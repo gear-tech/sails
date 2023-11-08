@@ -6,10 +6,19 @@ license = "GPL-3.0"
 
 [workspace]
 resolver = "2"
-members = ["macros", "macros/core"]
+members = [
+    "examples/this-that/app",
+    "examples/this-that/wasm",
+    "macros",
+    "macros/core",
+]
 
 [workspace.dependencies]
 convert-case = { package = "convert_case", version = "0.6" }
+gmeta = { git = "https://github.com/gear-tech/gear.git", tag = "v0.3.3" }
+gstd = { git = "https://github.com/gear-tech/gear.git", tag = "v0.3.3" }
+gsys = { git = "https://github.com/gear-tech/gear.git", tag = "v0.3.3" }
+gwasm-builder = { package = "gear-wasm-builder", git = "https://github.com/gear-tech/gear.git", tag = "v0.3.3" }
 parity-scale-codec = { version = "3.6.4", default-features = false }
 proc-macro-error = "1.0.4"
 proc-macro2 = { version = "1", default-features = false }

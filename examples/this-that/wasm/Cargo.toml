@@ -1,0 +1,14 @@
+[package]
+name = "this-that"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+gstd.workspace = true
+gsys.workspace = true
+parity-scale-codec.workspace = true
+this-that-app = { path = "../app" }
+
+[build-dependencies]
+gwasm-builder.workspace = true
+this-that-app = { path = "../app", features = ["data-contract"] }
