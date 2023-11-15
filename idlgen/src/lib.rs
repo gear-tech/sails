@@ -19,7 +19,7 @@
 //! Functionality for generating IDL files describing some service based on its Rust code.
 
 use handlebars::{handlebars_helper, Handlebars};
-use handler_types::HandlerTypes;
+pub use handler_types::HandlerTypes;
 use scale_info::PortableType;
 use service_types::ServiceTypes;
 use std::io;
