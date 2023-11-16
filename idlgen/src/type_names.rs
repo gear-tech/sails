@@ -52,7 +52,7 @@ fn resolve_type_name(
 
     let type_info = type_registry
         .resolve(type_id)
-        .ok_or_else(|| Error::TypeNotFound(type_id))?;
+        .ok_or_else(|| Error::UnknownType(type_id))?;
 
     let type_name = match &type_info.type_def {
         TypeDef::Primitive(primitive_def) => primitive_type_name(primitive_def)?,
@@ -77,7 +77,7 @@ fn resolve_type_name(
             }
         }
         _ => {
-            return Err(Error::TypeNotSupproted(format!("{type_info:?}")));
+            return Err(Error::UnsupprotedType(format!("{type_info:?}")));
         }
     };
 
@@ -94,16 +94,16 @@ fn result_type_name(
         .type_params
         .iter()
         .find(|param| param.name == "T")
-        .ok_or_else(|| Error::TypeNotSupproted(format!("{type_info:?}")))?
+        .ok_or_else(|| Error::UnsupprotedType(format!("{type_info:?}")))?
         .ty
-        .ok_or_else(|| Error::TypeNotSupproted(format!("{type_info:?}")))?;
+        .ok_or_else(|| Error::UnsupprotedType(format!("{type_info:?}")))?;
     let err_type_id = type_info
         .type_params
         .iter()
         .find(|param| param.name == "E")
-        .ok_or_else(|| Error::TypeNotSupproted(format!("{type_info:?}")))?
+        .ok_or_else(|| Error::UnsupprotedType(format!("{type_info:?}")))?
         .ty
-        .ok_or_else(|| Error::TypeNotSupproted(format!("{type_info:?}")))?;
+        .ok_or_else(|| Error::UnsupprotedType(format!("{type_info:?}")))?;
     let ok_type_name = resolve_type_name(type_registry, ok_type_id.id, resolved_type_names)?;
     let err_type_name = resolve_type_name(type_registry, err_type_id.id, resolved_type_names)?;
     Ok(format!("({ok_type_name}, {err_type_name})"))
@@ -118,9 +118,9 @@ fn option_type_name(
         .type_params
         .iter()
         .find(|param| param.name == "T")
-        .ok_or_else(|| Error::TypeNotSupproted(format!("{type_info:?}")))?
+        .ok_or_else(|| Error::UnsupprotedType(format!("{type_info:?}")))?
         .ty
-        .ok_or_else(|| Error::TypeNotSupproted(format!("{type_info:?}")))?;
+        .ok_or_else(|| Error::UnsupprotedType(format!("{type_info:?}")))?;
     let some_type_name = resolve_type_name(type_registry, some_type_id.id, resolved_type_names)?;
     Ok(format!("opt {}", some_type_name))
 }
@@ -134,7 +134,7 @@ fn type_name_by_path(type_info: &Type<PortableForm>) -> Result<String> {
         .collect::<Vec<_>>()
         .join("");
     if type_name.is_empty() {
-        Err(Error::TypeNotSupproted(format!("{type_info:?}")))
+        Err(Error::UnsupprotedType(format!("{type_info:?}")))
     } else {
         Ok(type_name)
     }
@@ -177,12 +177,12 @@ fn primitive_type_name(type_def: &TypeDefPrimitive) -> Result<String> {
         TypeDefPrimitive::U32 => Ok("nat32".into()),
         TypeDefPrimitive::U64 => Ok("nat64".into()),
         TypeDefPrimitive::U128 => Ok("nat128".into()), // Candid doesn't have it
-        TypeDefPrimitive::U256 => Err(Error::TypeNotSupproted("u256".into())), // Rust doesn't have it
+        TypeDefPrimitive::U256 => Err(Error::UnsupprotedType("u256".into())), // Rust doesn't have it
         TypeDefPrimitive::I8 => Ok("int8".into()),
         TypeDefPrimitive::I16 => Ok("int16".into()),
         TypeDefPrimitive::I32 => Ok("int32".into()),
         TypeDefPrimitive::I64 => Ok("int64".into()),
         TypeDefPrimitive::I128 => Ok("int128".into()), // Candid doesn't have it
-        TypeDefPrimitive::I256 => Err(Error::TypeNotSupproted("i256".into())), // Rust doesn't have it
+        TypeDefPrimitive::I256 => Err(Error::UnsupprotedType("i256".into())), // Rust doesn't have it
     }
 }

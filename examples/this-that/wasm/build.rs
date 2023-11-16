@@ -46,5 +46,5 @@ fn wasm_target_dir(out_dir: &std::path::Path) -> std::path::PathBuf {
     let mut target_dir = out_dir.to_path_buf();
     while !target_dir.ends_with("target") && target_dir.pop() {}
 
-    target_dir.join("wasm32-unknown-unknown").join(&profile)
+    target_dir.join("wasm32-unknown-unknown").join(profile)
 }

@@ -23,11 +23,11 @@ pub type Result<T> = std::result::Result<T, Error>;
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
     #[error("type with id {0} is not found in the type registry")]
-    TypeNotFound(u32),
+    UnknownType(u32),
     #[error("type `{0}` is not supported")]
-    TypeNotSupproted(String),
+    UnsupprotedType(String),
     #[error(transparent)]
-    TemplateError(#[from] handlebars::TemplateError),
+    BadTemplate(#[from] Box<handlebars::TemplateError>),
     #[error(transparent)]
-    RenderError(#[from] handlebars::RenderError),
+    FailedRendering(#[from] Box<handlebars::RenderError>),
 }

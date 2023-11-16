@@ -55,12 +55,20 @@ where
     };
 
     let mut handlebars = Handlebars::new();
-    handlebars.register_template_string("idl", IDL_TEMPLATE)?;
-    handlebars.register_template_string("composite", COMPOSITE_TEMPLATE)?;
-    handlebars.register_template_string("variant", VARIANT_TEMPLATE)?;
+    handlebars
+        .register_template_string("idl", IDL_TEMPLATE)
+        .map_err(Box::new)?;
+    handlebars
+        .register_template_string("composite", COMPOSITE_TEMPLATE)
+        .map_err(Box::new)?;
+    handlebars
+        .register_template_string("variant", VARIANT_TEMPLATE)
+        .map_err(Box::new)?;
     handlebars.register_helper("deref", Box::new(deref));
 
-    handlebars.render_to_write("idl", &service_idl_data, idl_writer)?;
+    handlebars
+        .render_to_write("idl", &service_idl_data, idl_writer)
+        .map_err(Box::new)?;
 
     Ok(())
 }
