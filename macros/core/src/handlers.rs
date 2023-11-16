@@ -91,8 +91,8 @@ struct FullHandlerParts {
 }
 
 impl FullHandlerParts {
-    fn from<'a>(
-        handlers_mod_funcs: &Vec<&'a syn::ItemFn>,
+    fn from(
+        handlers_mod_funcs: &[&syn::ItemFn],
         request_enum_ident: &syn::Ident,
         response_enum_ident: &syn::Ident,
         func_name: &syn::Ident,
@@ -101,11 +101,7 @@ impl FullHandlerParts {
 
         let handlers_parts = handlers_signatures
             .map(|handler_signature| {
-                SubHandlerParts::from(
-                    &request_enum_ident,
-                    &response_enum_ident,
-                    &handler_signature,
-                )
+                SubHandlerParts::from(request_enum_ident, response_enum_ident, handler_signature)
             })
             .collect::<Vec<_>>();
 
@@ -242,9 +238,7 @@ impl SubHandlerParts {
     }
 }
 
-fn split_handlers_mod<'a>(
-    handlers_mod: &'a syn::ItemMod,
-) -> (Vec<&'a syn::ItemFn>, Vec<&'a syn::Item>) {
+fn split_handlers_mod(handlers_mod: &syn::ItemMod) -> (Vec<&syn::ItemFn>, Vec<&syn::Item>) {
     let (handlers_mod_funcs, handlers_mod_non_funcs): (Vec<&syn::Item>, Vec<&syn::Item>) =
         handlers_mod
             .content
@@ -252,10 +246,7 @@ fn split_handlers_mod<'a>(
             .unwrap_or_else(|| abort!(handlers_mod, "Handlers module must be inline"))
             .1
             .iter()
-            .partition(|item| match item {
-                syn::Item::Fn(_) => true,
-                _ => false,
-            });
+            .partition(|item| matches!(item, syn::Item::Fn(_)));
     let handlers_mod_funcs = handlers_mod_funcs
         .iter()
         .filter_map(|item_fn| match item_fn {
@@ -323,7 +314,7 @@ mod tests {
             .to_string(),
             handler_parts.call_match_arm.to_string()
         );
-        assert_eq!(false, handler_parts.is_async);
+        assert!(!handler_parts.is_async);
     }
 
     #[test]
@@ -358,7 +349,7 @@ mod tests {
             .to_string(),
             handler_parts.call_match_arm.to_string()
         );
-        assert_eq!(false, handler_parts.is_async);
+        assert!(!handler_parts.is_async);
     }
 
     #[test]
@@ -393,6 +384,6 @@ mod tests {
             .to_string(),
             handler_parts.call_match_arm.to_string()
         );
-        assert_eq!(true, handler_parts.is_async);
+        assert!(handler_parts.is_async);
     }
 }
