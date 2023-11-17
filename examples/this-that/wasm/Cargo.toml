@@ -7,9 +7,9 @@ edition = "2021"
 gstd.workspace = true
 gsys.workspace = true
 parity-scale-codec.workspace = true
-this-that-app = { path = "../app" }
+this-that-app = { path = "../app", features = ["handlers"] }
 
 [build-dependencies]
 gwasm-builder.workspace = true
 sails-idlgen.workspace = true
-this-that-app = { path = "../app", features = ["data-contract"] }
+this-that-app = { path = "../app" }
