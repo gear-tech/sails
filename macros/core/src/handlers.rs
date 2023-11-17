@@ -72,7 +72,7 @@ pub(super) fn generate(
 
             #(#handlers_mod_non_funcs)*
 
-            #[cfg(not(feature = "data-contract"))] // TODO: Make this configurable?
+            #[cfg(feature = "handlers")] // TODO: Make this configurable?
             pub mod handlers {
                 use super::*;
 

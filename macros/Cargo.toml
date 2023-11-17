@@ -17,3 +17,9 @@ parity-scale-codec = { workspace = true, features = ["derive"] }
 scale-info = { workspace = true, features = ["derive"] }
 tokio = { workspace = true, features = ["full"] }
 trybuild.workspace = true
+
+[features]
+default = [
+    "handlers",
+] # Just for the sake of testing. I could not find any better solution https://github.com/rust-lang/cargo/issues/2911
+handlers = []

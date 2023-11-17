@@ -70,7 +70,7 @@ mod tests {
 
                 struct SomeStruct {}
 
-                #[cfg(not(feature = "data-contract"))]
+                #[cfg(feature = "handlers")]
                 pub mod handlers {
                     use super::*;
 
@@ -116,7 +116,7 @@ mod tests {
                     This(()),
                 }
 
-                #[cfg(not(feature = "data-contract"))]
+                #[cfg(feature = "handlers")]
                 pub mod handlers {
                     use super::*;
 
