@@ -10,12 +10,6 @@ error[E0308]: mismatched types
   = note: expected enum `Result<_, _>`
              found type `u32`
   = note: this error originates in the attribute macro `query_handlers` (in Nightly builds, run with -Z macro-backtrace for more info)
-help: try wrapping the expression in a variant of `Result`
-  |
-3 | Ok(#[query_handlers])
-  | +++                 +
-3 | Err(#[query_handlers])
-  | ++++                 +
 
 error[E0308]: mismatched types
  --> tests/ui/query_handler_returns_result.rs:3:1
