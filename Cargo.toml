@@ -12,9 +12,11 @@ members = [
     "idlgen",
     "macros",
     "macros/core",
+    "service",
 ]
 
 [workspace.dependencies]
+async-trait = "0.1"
 convert-case = { package = "convert_case", version = "0.6" }
 gmeta = { git = "https://github.com/gear-tech/gear.git", tag = "v1.0.1" }
 gstd = { git = "https://github.com/gear-tech/gear.git", tag = "v1.0.1" }
@@ -26,6 +28,8 @@ proc-macro-error = "1.0.4"
 proc-macro2 = { version = "1", default-features = false }
 quote = "1.0.33"
 sails-idlgen = { path = "idlgen" }
+sails-macros = { path = "macros" }
+sails-service = { path = "service" }
 scale-info = { version = "2.5.0", default-features = false }
 serde = "1.0"
 serde-json = { package = "serde_json", version = "1.0" }

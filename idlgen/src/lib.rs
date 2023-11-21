@@ -19,13 +19,12 @@
 //! Functionality for generating IDL files describing some service based on its Rust code.
 
 use handlebars::{handlebars_helper, Handlebars};
-pub use handler_types::HandlerTypes;
+use sails_service::RequestProcessorMeta;
 use scale_info::PortableType;
 use service_types::ServiceTypes;
 use std::io;
 
 mod errors;
-mod handler_types;
 mod service_types;
 mod type_names;
 
@@ -38,8 +37,8 @@ pub fn generate_serivce_idl<C, Q>(
     idl_writer: impl io::Write,
 ) -> errors::Result<()>
 where
-    C: HandlerTypes,
-    Q: HandlerTypes,
+    C: RequestProcessorMeta,
+    Q: RequestProcessorMeta,
 {
     let service_info = ServiceTypes::<C, Q>::new();
 
@@ -90,11 +89,12 @@ handlebars_helper!(deref: |v: String| { v });
 #[cfg(test)]
 mod tests {
     use super::*;
+    use parity_scale_codec::{Decode, Encode};
     use scale_info::TypeInfo;
     use std::result::Result as StdResult;
 
     #[allow(dead_code)]
-    #[derive(TypeInfo)]
+    #[derive(TypeInfo, Decode)]
     pub struct DoThatParam {
         pub p1: u32,
         pub p2: String,
@@ -102,17 +102,17 @@ mod tests {
     }
 
     #[allow(dead_code)]
-    #[derive(TypeInfo)]
+    #[derive(TypeInfo, Decode)]
     pub struct ThatParam {
         pub p1: ManyVariants,
     }
 
     #[allow(dead_code)]
-    #[derive(TypeInfo)]
+    #[derive(TypeInfo, Decode)]
     pub struct TupleStruct(bool);
 
     #[allow(dead_code)]
-    #[derive(TypeInfo)]
+    #[derive(TypeInfo, Decode)]
     pub enum ManyVariants {
         One,
         Two(u32),
@@ -123,7 +123,7 @@ mod tests {
     }
 
     #[allow(dead_code)]
-    #[derive(TypeInfo)]
+    #[derive(TypeInfo, Decode)]
     enum Commands {
         DoThis(u32, String, (Option<String>, u8), TupleStruct),
         DoThat(DoThatParam),
@@ -131,22 +131,23 @@ mod tests {
     }
 
     #[allow(dead_code)]
-    #[derive(TypeInfo)]
+    #[derive(TypeInfo, Encode)]
     enum CommandResponses {
         DoThis(StdResult<(String, u32), String>),
         DoThat(StdResult<(String, u32), (String,)>),
         Fail(StdResult<(), String>),
     }
 
-    struct TestCommands;
+    struct TestCommandProcessorMeta;
 
-    impl HandlerTypes for TestCommands {
-        type Requests = Commands;
-        type Responses = CommandResponses;
+    impl RequestProcessorMeta for TestCommandProcessorMeta {
+        type Request = Commands;
+        type Response = CommandResponses;
+        type ProcessFn = fn(Self::Request) -> (Self::Response, bool);
     }
 
     #[allow(dead_code)]
-    #[derive(TypeInfo)]
+    #[derive(TypeInfo, Decode)]
     enum Queries {
         This(u32, String, (Option<String>, u8), TupleStruct),
         That(ThatParam),
@@ -154,24 +155,25 @@ mod tests {
     }
 
     #[allow(dead_code)]
-    #[derive(TypeInfo)]
+    #[derive(TypeInfo, Encode)]
     enum QueryResponses {
         This(StdResult<(String, u32), String>),
         That(StdResult<(String, u32), (String,)>),
         Fail(StdResult<(), String>),
     }
 
-    struct TestQueries;
+    struct TestQueryProcessorMeta;
 
-    impl HandlerTypes for TestQueries {
-        type Requests = Queries;
-        type Responses = QueryResponses;
+    impl RequestProcessorMeta for TestQueryProcessorMeta {
+        type Request = Queries;
+        type Response = QueryResponses;
+        type ProcessFn = fn(Self::Request) -> (Self::Response, bool);
     }
 
     #[test]
     fn idl_generation_works_for_commands() {
         let mut idl = Vec::new();
-        generate_serivce_idl::<TestCommands, ()>(None, &mut idl).unwrap();
+        generate_serivce_idl::<TestCommandProcessorMeta, ()>(None, &mut idl).unwrap();
         let generated_idl = String::from_utf8(idl).unwrap();
 
         const EXPECTED_IDL: &str = r"type SailsIdlgenTestsTupleStruct = record {
@@ -205,7 +207,7 @@ service {
     #[test]
     fn idl_generation_works_for_queries() {
         let mut idl = Vec::new();
-        generate_serivce_idl::<(), TestQueries>(None, &mut idl).unwrap();
+        generate_serivce_idl::<(), TestQueryProcessorMeta>(None, &mut idl).unwrap();
         let generated_idl = String::from_utf8(idl).unwrap();
 
         const EXPECTED_IDL: &str = r"type SailsIdlgenTestsTupleStruct = record {
@@ -237,7 +239,8 @@ service {
     #[test]
     fn idl_generation_works_for_commands_and_queries() {
         let mut idl = Vec::new();
-        generate_serivce_idl::<TestCommands, TestQueries>(None, &mut idl).unwrap();
+        generate_serivce_idl::<TestCommandProcessorMeta, TestQueryProcessorMeta>(None, &mut idl)
+            .unwrap();
         let generated_idl = String::from_utf8(idl).unwrap();
 
         const EXPECTED_IDL: &str = r"type SailsIdlgenTestsTupleStruct = record {

@@ -6,7 +6,8 @@ edition = "2021"
 [dependencies]
 gmeta.workspace = true
 gstd = { workspace = true, features = ["debug"] }
-sails-macros = { path = "../../../macros" }
+sails-macros.workspace = true
+sails-service.workspace = true
 parity-scale-codec = { workspace = true, features = ["derive"] }
 scale-info = { workspace = true, features = ["derive"] }
 

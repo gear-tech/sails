@@ -18,7 +18,7 @@
 
 //! Struct describing the types of a service comprised of command and query handlers.
 
-use crate::handler_types::HandlerTypes;
+use sails_service::RequestProcessorMeta;
 use scale_info::{MetaType, PortableRegistry, PortableType, Registry};
 use std::marker::PhantomData;
 
@@ -34,23 +34,23 @@ pub(crate) struct ServiceTypes<C, Q> {
 
 impl<C, Q> ServiceTypes<C, Q>
 where
-    C: HandlerTypes,
-    Q: HandlerTypes,
+    C: RequestProcessorMeta,
+    Q: RequestProcessorMeta,
 {
     pub fn new() -> Self {
         // TODO: Validate HandlerTypes - both C and Q must be enums with variants having the same names in the same order
         let mut type_registry = Registry::new();
         let commands_type_id = type_registry
-            .register_type(&MetaType::new::<C::Requests>())
+            .register_type(&MetaType::new::<C::Request>())
             .id;
         let command_responses_type_id = type_registry
-            .register_type(&MetaType::new::<C::Responses>())
+            .register_type(&MetaType::new::<C::Response>())
             .id;
         let queries_type_id = type_registry
-            .register_type(&MetaType::new::<Q::Requests>())
+            .register_type(&MetaType::new::<Q::Request>())
             .id;
         let query_responses_type_id = type_registry
-            .register_type(&MetaType::new::<Q::Responses>())
+            .register_type(&MetaType::new::<Q::Response>())
             .id;
         let type_registry = PortableRegistry::from(type_registry);
         Self {
