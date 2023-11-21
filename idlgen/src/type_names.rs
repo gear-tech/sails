@@ -28,17 +28,13 @@ use std::collections::BTreeMap;
 pub(super) fn resolve_type_names(
     type_registry: &PortableRegistry,
 ) -> Result<BTreeMap<u32, String>> {
-    type_registry
-        .types
-        .iter()
-        .fold(Ok(BTreeMap::<u32, String>::new()), |result, ty| {
-            if let Ok(mut resolved_type_names) = result {
-                resolve_type_name(type_registry, ty.id, &mut resolved_type_names)
-                    .map(|_| resolved_type_names)
-            } else {
-                result
-            }
-        })
+    type_registry.types.iter().try_fold(
+        BTreeMap::<u32, String>::new(),
+        |mut resolved_type_names, ty| {
+            resolve_type_name(type_registry, ty.id, &mut resolved_type_names)
+                .map(|_| resolved_type_names)
+        },
+    )
 }
 
 fn resolve_type_name(
