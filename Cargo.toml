@@ -23,6 +23,7 @@ gstd = { git = "https://github.com/gear-tech/gear.git", tag = "v1.0.1" }
 gsys = { git = "https://github.com/gear-tech/gear.git", tag = "v1.0.1" }
 gwasm-builder = { package = "gear-wasm-builder", git = "https://github.com/gear-tech/gear.git", tag = "v1.0.1" }
 handlebars = "4.4"
+hashbrown = "0.14"
 parity-scale-codec = { version = "3.6.4", default-features = false }
 proc-macro-error = "1.0.4"
 proc-macro2 = { version = "1", default-features = false }

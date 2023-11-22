@@ -7,5 +7,6 @@ license.workspace = true
 
 [dependencies]
 async-trait.workspace = true
+hashbrown.workspace = true
 parity-scale-codec.workspace = true
 scale-info.workspace = true
