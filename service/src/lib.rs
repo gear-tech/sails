@@ -124,12 +124,12 @@ impl CompositeService {
         service_route
     }
 
-    fn select_service_by_route<'a>(&'a self, input: &'a [u8]) -> (&Box<dyn Service + Sync>, &[u8]) {
+    fn select_service_by_route<'a>(&'a self, input: &'a [u8]) -> (&(dyn Service + Sync), &[u8]) {
         self.services
             .iter()
             .find_map(|(service_route, service)| {
                 if input.starts_with(service_route.as_bytes()) {
-                    Some((service, &input[service_route.len()..]))
+                    Some((service.as_ref(), &input[service_route.len()..]))
                 } else {
                     None
                 }
