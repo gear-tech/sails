@@ -57,8 +57,6 @@ impl<C: CommandProcessorMeta, Q: QueryProcessorMeta> SimpleService<C, Q> {
 impl<C: CommandProcessorMeta, Q: QueryProcessorMeta> Service for SimpleService<C, Q> {
     async fn process_command(&self, mut input: &[u8]) -> (Vec<u8>, bool) {
         let request = C::Request::decode(&mut input).expect("Failed to decode request");
-        //let (response, is_error) = (self.process_command)(request);
-        // For async processing
         let (response, is_error) = (self.process_command)(request).await;
         (response.encode(), is_error)
     }
