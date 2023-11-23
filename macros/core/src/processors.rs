@@ -24,6 +24,9 @@ use proc_macro_error::abort;
 use quote::quote;
 use syn::{self, spanned::Spanned};
 
+/// Generates a processor function with requests it can process and responses it can return.
+/// The processor function essentially acts as a router for the requests on their way to the
+/// handlers.
 pub(super) fn generate(
     mod_tokens: TokenStream2,
     request_enum_name: &str,
@@ -34,9 +37,10 @@ pub(super) fn generate(
     let handlers_mod_ident = &handlers_mod.ident;
     let handlers_mod_visibility = &handlers_mod.vis;
     let (handlers_mod_funcs, handlers_mod_non_funcs) = split_handlers_mod(&handlers_mod);
+
     let request_enum_ident = syn::Ident::new(request_enum_name, proc_macro2::Span::call_site());
     let response_enum_ident = syn::Ident::new(response_enum_name, proc_macro2::Span::call_site());
-    let func_ident = get_func_name_ident(request_enum_name);
+    let function_ident = get_processor_function_ident(request_enum_name);
 
     if handlers_mod_funcs.is_empty() {
         abort!(
@@ -45,16 +49,16 @@ pub(super) fn generate(
         );
     }
 
-    let full_handler_parts = FullHandlerParts::from(
+    let processor_tokens = ProcessorTokens::from(
         &handlers_mod_funcs,
         &request_enum_ident,
         &response_enum_ident,
-        &func_ident,
+        &function_ident,
     );
 
-    let request_enum = full_handler_parts.request_enum;
-    let response_enum = full_handler_parts.response_enum;
-    let function = full_handler_parts.function;
+    let request_enum = processor_tokens.request_enum;
+    let response_enum = processor_tokens.response_enum;
+    let function = processor_tokens.function;
 
     let scale_codec_crate_ident = get_scale_codec_crate_ident(request_enum_name);
     let scale_info_crate_ident = get_scale_info_crate_ident(request_enum_name);
@@ -84,50 +88,50 @@ pub(super) fn generate(
     )
 }
 
-struct FullHandlerParts {
+struct ProcessorTokens {
     request_enum: TokenStream2,
     response_enum: TokenStream2,
     function: TokenStream2,
 }
 
-impl FullHandlerParts {
+impl ProcessorTokens {
     fn from(
         handlers_mod_funcs: &[&syn::ItemFn],
         request_enum_ident: &syn::Ident,
         response_enum_ident: &syn::Ident,
-        func_name: &syn::Ident,
-    ) -> FullHandlerParts {
+        function_ident: &syn::Ident,
+    ) -> ProcessorTokens {
         let handlers_signatures = handlers_mod_funcs.iter().map(|item_fn| &item_fn.sig);
 
-        let handlers_parts = handlers_signatures
+        let handlers_tokens = handlers_signatures
             .map(|handler_signature| {
-                SubHandlerParts::from(request_enum_ident, response_enum_ident, handler_signature)
+                HandlerTokens::from(request_enum_ident, response_enum_ident, handler_signature)
             })
             .collect::<Vec<_>>();
 
-        let request_enum_variants = handlers_parts
+        let request_enum_variants = handlers_tokens
             .iter()
-            .map(|handler_parts| &handler_parts.request_enum_variant);
+            .map(|handler_tokens| &handler_tokens.request_enum_variant);
 
-        let response_enum_variants = handlers_parts
+        let response_enum_variants = handlers_tokens
             .iter()
-            .map(|handler_parts| &handler_parts.response_enum_variant);
+            .map(|handler_tokens| &handler_tokens.response_enum_variant);
 
-        let call_match_arms = handlers_parts
+        let call_match_arms = handlers_tokens
             .iter()
-            .map(|handler_parts| &handler_parts.call_match_arm);
+            .map(|handler_tokens| &handler_tokens.call_match_arm);
 
-        let has_async_handler = handlers_parts
+        let has_async_handler = handlers_tokens
             .iter()
-            .any(|handler_parts| handler_parts.is_async);
+            .any(|handler_tokens| handler_tokens.is_async);
 
         let fn_signature = if has_async_handler {
-            quote!(async fn #func_name(request: #request_enum_ident) -> (#response_enum_ident, bool))
+            quote!(async fn #function_ident(request: #request_enum_ident) -> (#response_enum_ident, bool))
         } else {
-            quote!(fn #func_name(request: #request_enum_ident) -> (#response_enum_ident, bool))
+            quote!(fn #function_ident(request: #request_enum_ident) -> (#response_enum_ident, bool))
         };
 
-        FullHandlerParts {
+        ProcessorTokens {
             request_enum: quote!(
                 pub enum #request_enum_ident {
                     #(#request_enum_variants)*
@@ -149,14 +153,14 @@ impl FullHandlerParts {
     }
 }
 
-struct SubHandlerParts {
+struct HandlerTokens {
     request_enum_variant: TokenStream2,
     response_enum_variant: TokenStream2,
     call_match_arm: TokenStream2,
     is_async: bool,
 }
 
-impl SubHandlerParts {
+impl HandlerTokens {
     fn from(
         request_enum_ident: &syn::Ident,
         response_enum_ident: &syn::Ident,
@@ -271,9 +275,9 @@ fn get_scale_info_crate_ident(prefix: &str) -> syn::Ident {
     )
 }
 
-fn get_func_name_ident(suffix: &str) -> syn::Ident {
+fn get_processor_function_ident(suffix: &str) -> syn::Ident {
     syn::Ident::new(
-        format!("handle_{}", suffix.to_case(Case::Snake)).as_str(),
+        format!("process_{}", suffix.to_case(Case::Snake)).as_str(),
         proc_macro2::Span::call_site(),
     )
 }
@@ -283,13 +287,13 @@ mod tests {
     use super::*;
 
     #[test]
-    fn sub_handler_parts_works_for_func_with_default_return_type() {
+    fn handler_tokens_work_for_func_with_default_return_type() {
         let signature = syn::parse2::<syn::Signature>(quote! {
             fn do_this(p1: u32, p2: String)
         })
         .unwrap();
 
-        let handler_parts = SubHandlerParts::from(
+        let handler_tokens = HandlerTokens::from(
             &syn::Ident::new("Commands", proc_macro2::Span::call_site()),
             &syn::Ident::new("CommandResponses", proc_macro2::Span::call_site()),
             &signature,
@@ -297,11 +301,11 @@ mod tests {
 
         assert_eq!(
             quote!(DoThis(u32, String,),).to_string(),
-            handler_parts.request_enum_variant.to_string()
+            handler_tokens.request_enum_variant.to_string()
         );
         assert_eq!(
             quote!(DoThis(()),).to_string(),
-            handler_parts.response_enum_variant.to_string()
+            handler_tokens.response_enum_variant.to_string()
         );
         assert_eq!(
             quote!(
@@ -312,19 +316,19 @@ mod tests {
                 }
             )
             .to_string(),
-            handler_parts.call_match_arm.to_string()
+            handler_tokens.call_match_arm.to_string()
         );
-        assert!(!handler_parts.is_async);
+        assert!(!handler_tokens.is_async);
     }
 
     #[test]
-    fn sub_handler_parts_works_for_func_without_args() {
+    fn handler_tokens_work_for_func_without_args() {
         let signature = syn::parse2::<syn::Signature>(quote! {
             fn do_this()
         })
         .unwrap();
 
-        let handler_parts = SubHandlerParts::from(
+        let handler_tokens = HandlerTokens::from(
             &syn::Ident::new("Commands", proc_macro2::Span::call_site()),
             &syn::Ident::new("CommandResponses", proc_macro2::Span::call_site()),
             &signature,
@@ -332,11 +336,11 @@ mod tests {
 
         assert_eq!(
             quote!(DoThis(),).to_string(),
-            handler_parts.request_enum_variant.to_string()
+            handler_tokens.request_enum_variant.to_string()
         );
         assert_eq!(
             quote!(DoThis(()),).to_string(),
-            handler_parts.response_enum_variant.to_string()
+            handler_tokens.response_enum_variant.to_string()
         );
         assert_eq!(
             quote!(
@@ -347,19 +351,19 @@ mod tests {
                 }
             )
             .to_string(),
-            handler_parts.call_match_arm.to_string()
+            handler_tokens.call_match_arm.to_string()
         );
-        assert!(!handler_parts.is_async);
+        assert!(!handler_tokens.is_async);
     }
 
     #[test]
-    fn sub_handler_parts_works_for_async_func() {
+    fn handler_tokens_work_for_async_func() {
         let signature = syn::parse2::<syn::Signature>(quote! {
             async fn do_this(p1: (u32, u8))
         })
         .unwrap();
 
-        let handler_parts = SubHandlerParts::from(
+        let handler_tokens = HandlerTokens::from(
             &syn::Ident::new("Commands", proc_macro2::Span::call_site()),
             &syn::Ident::new("CommandResponses", proc_macro2::Span::call_site()),
             &signature,
@@ -367,11 +371,11 @@ mod tests {
 
         assert_eq!(
             quote!(DoThis((u32, u8),),).to_string(),
-            handler_parts.request_enum_variant.to_string()
+            handler_tokens.request_enum_variant.to_string()
         );
         assert_eq!(
             quote!(DoThis(()),).to_string(),
-            handler_parts.response_enum_variant.to_string()
+            handler_tokens.response_enum_variant.to_string()
         );
         assert_eq!(
             quote!(
@@ -382,8 +386,8 @@ mod tests {
                 }
             )
             .to_string(),
-            handler_parts.call_match_arm.to_string()
+            handler_tokens.call_match_arm.to_string()
         );
-        assert!(handler_parts.is_async);
+        assert!(handler_tokens.is_async);
     }
 }

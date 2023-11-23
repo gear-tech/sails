@@ -29,5 +29,5 @@ async fn main() {
         p2: "2".into(),
     });
     let (_response, _is_error): (commands::CommandResponses, bool) =
-        commands::handlers::handle_commands(do_this_cmd).await;
+        commands::handlers::process_commands(do_this_cmd).await;
 }

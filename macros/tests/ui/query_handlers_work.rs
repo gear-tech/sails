@@ -28,5 +28,5 @@ fn main() {
         p2: "2".into(),
     });
     let (_response, _is_error): (queries::QueryResponses, bool) =
-        queries::handlers::handle_queries(this_query);
+        queries::handlers::process_queries(this_query);
 }

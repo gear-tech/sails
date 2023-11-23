@@ -20,7 +20,7 @@
 
 use proc_macro2::TokenStream as TokenStream2;
 
-mod handlers;
+mod processors;
 
 const COMMAND_ENUM_NAME: &str = "Commands";
 const COMMAND_RESPONSES_ENUM_NAME: &str = "CommandResponses";
@@ -28,11 +28,11 @@ const QUERY_ENUM_NAME: &str = "Queries";
 const QUERY_RESPONSES_ENUM_NAME: &str = "QueryResponses";
 
 pub fn command_handlers_core(mod_tokens: TokenStream2) -> TokenStream2 {
-    handlers::generate(mod_tokens, COMMAND_ENUM_NAME, COMMAND_RESPONSES_ENUM_NAME)
+    processors::generate(mod_tokens, COMMAND_ENUM_NAME, COMMAND_RESPONSES_ENUM_NAME)
 }
 
 pub fn query_handlers_core(mod_tokens: TokenStream2) -> TokenStream2 {
-    handlers::generate(mod_tokens, QUERY_ENUM_NAME, QUERY_RESPONSES_ENUM_NAME)
+    processors::generate(mod_tokens, QUERY_ENUM_NAME, QUERY_RESPONSES_ENUM_NAME)
 }
 
 #[cfg(test)]
@@ -74,7 +74,7 @@ mod tests {
                 pub mod handlers {
                     use super::*;
 
-                    pub fn handle_commands(request: Commands) -> (CommandResponses, bool) {
+                    pub fn process_commands(request: Commands) -> (CommandResponses, bool) {
                         match request {
                             Commands::DoThis(v0) => {
                                 let result: Result<_, _> = do_this(v0);
@@ -120,7 +120,7 @@ mod tests {
                 pub mod handlers {
                     use super::*;
 
-                    pub fn handle_queries(request: Queries) -> (QueryResponses, bool) {
+                    pub fn process_queries(request: Queries) -> (QueryResponses, bool) {
                         match request {
                             Queries::This() => {
                                 let result: Result<_, _> = this();
