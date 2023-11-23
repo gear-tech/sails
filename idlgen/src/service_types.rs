@@ -18,7 +18,7 @@
 
 //! Struct describing the types of a service comprised of command and query handlers.
 
-use sails_service::RequestProcessorMeta;
+use sails_service::{CommandProcessorMeta, QueryProcessorMeta};
 use scale_info::{MetaType, PortableRegistry, PortableType, Registry};
 use std::marker::PhantomData;
 
@@ -34,8 +34,8 @@ pub(crate) struct ServiceTypes<C, Q> {
 
 impl<C, Q> ServiceTypes<C, Q>
 where
-    C: RequestProcessorMeta,
-    Q: RequestProcessorMeta,
+    C: CommandProcessorMeta,
+    Q: QueryProcessorMeta,
 {
     pub fn new() -> Self {
         // TODO: Validate HandlerTypes - both C and Q must be enums with variants having the same names in the same order

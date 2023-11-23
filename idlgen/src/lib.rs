@@ -19,7 +19,7 @@
 //! Functionality for generating IDL files describing some service based on its Rust code.
 
 use handlebars::{handlebars_helper, Handlebars};
-use sails_service::RequestProcessorMeta;
+use sails_service::{CommandProcessorMeta, QueryProcessorMeta};
 use scale_info::PortableType;
 use service_types::ServiceTypes;
 use std::io;
@@ -37,8 +37,8 @@ pub fn generate_serivce_idl<C, Q>(
     idl_writer: impl io::Write,
 ) -> errors::Result<()>
 where
-    C: RequestProcessorMeta,
-    Q: RequestProcessorMeta,
+    C: CommandProcessorMeta,
+    Q: QueryProcessorMeta,
 {
     let service_info = ServiceTypes::<C, Q>::new();
 
@@ -90,6 +90,7 @@ handlebars_helper!(deref: |v: String| { v });
 mod tests {
     use super::*;
     use parity_scale_codec::{Decode, Encode};
+    use sails_service::BoxedFuture;
     use scale_info::TypeInfo;
     use std::result::Result as StdResult;
 
@@ -140,10 +141,10 @@ mod tests {
 
     struct TestCommandProcessorMeta;
 
-    impl RequestProcessorMeta for TestCommandProcessorMeta {
+    impl CommandProcessorMeta for TestCommandProcessorMeta {
         type Request = Commands;
         type Response = CommandResponses;
-        type ProcessFn = fn(Self::Request) -> (Self::Response, bool);
+        type ProcessFn = fn(Self::Request) -> BoxedFuture<(Self::Response, bool)>;
     }
 
     #[allow(dead_code)]
@@ -164,7 +165,7 @@ mod tests {
 
     struct TestQueryProcessorMeta;
 
-    impl RequestProcessorMeta for TestQueryProcessorMeta {
+    impl QueryProcessorMeta for TestQueryProcessorMeta {
         type Request = Queries;
         type Response = QueryResponses;
         type ProcessFn = fn(Self::Request) -> (Self::Response, bool);

@@ -24,32 +24,11 @@ extern crate alloc;
 
 use alloc::{borrow::ToOwned, boxed::Box, format, string::String, vec::Vec};
 use async_trait::async_trait;
-use core::{future::Future, pin::Pin};
 use hashbrown::HashMap;
+pub use meta::{BoxedFuture, CommandProcessorMeta, QueryProcessorMeta};
 use parity_scale_codec::{Decode, Encode};
-use scale_info::StaticTypeInfo;
 
-pub type BoxedFuture<T> = Pin<Box<dyn Future<Output = T> + Send>>;
-
-pub trait RequestProcessorMeta {
-    type Request: StaticTypeInfo + Decode;
-    type Response: StaticTypeInfo + Encode;
-    // TODO: Make something up for error handling (some sort of Result)
-    type ProcessFn: Fn(Self::Request) -> (Self::Response, bool) + Sync;
-    // For async processing
-    //type ProcessFn: Fn(Self::Requests) -> BoxedFuture<Self::Responses> + Sync;
-}
-
-impl RequestProcessorMeta for () {
-    type Request = ();
-    type Response = ();
-    type ProcessFn = fn(()) -> ((), bool);
-    // For async processing
-    //type ProcessFn = fn(()) -> BoxedFuture<()>;
-}
-
-// TODO: Think of introducing ServiceMeta trait with associated types for command and query processors
-//       Then SimpleService can have impls for the ServiceMeta and Service traits both
+mod meta;
 
 #[async_trait]
 pub trait Service {
@@ -60,12 +39,12 @@ pub trait Service {
     fn process_query(&self, input: &[u8]) -> Vec<u8>;
 }
 
-pub struct SimpleService<C: RequestProcessorMeta, Q: RequestProcessorMeta> {
+pub struct SimpleService<C: CommandProcessorMeta, Q: QueryProcessorMeta> {
     process_command: C::ProcessFn,
     process_query: Q::ProcessFn,
 }
 
-impl<C: RequestProcessorMeta, Q: RequestProcessorMeta> SimpleService<C, Q> {
+impl<C: CommandProcessorMeta, Q: QueryProcessorMeta> SimpleService<C, Q> {
     pub const fn new(process_command: C::ProcessFn, process_query: Q::ProcessFn) -> Self {
         Self {
             process_command,
@@ -75,12 +54,12 @@ impl<C: RequestProcessorMeta, Q: RequestProcessorMeta> SimpleService<C, Q> {
 }
 
 #[async_trait]
-impl<C: RequestProcessorMeta, Q: RequestProcessorMeta> Service for SimpleService<C, Q> {
+impl<C: CommandProcessorMeta, Q: QueryProcessorMeta> Service for SimpleService<C, Q> {
     async fn process_command(&self, mut input: &[u8]) -> (Vec<u8>, bool) {
         let request = C::Request::decode(&mut input).expect("Failed to decode request");
-        let (response, is_error) = (self.process_command)(request);
+        //let (response, is_error) = (self.process_command)(request);
         // For async processing
-        //let response = (self.handle_command)(request).await;
+        let (response, is_error) = (self.process_command)(request).await;
         (response.encode(), is_error)
     }
 
