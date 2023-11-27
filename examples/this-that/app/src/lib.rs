@@ -63,7 +63,7 @@ pub mod commands {
     use super::*;
 
     // This
-    fn do_this(
+    async fn do_this(
         p1: u32,
         p2: String,
         p3: (Option<String>, u8),

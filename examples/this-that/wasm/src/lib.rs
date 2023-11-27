@@ -1,11 +1,11 @@
 #![no_std]
 
-use gstd::{future, msg, vec, Box};
+use gstd::{msg, vec, Box};
 use sails_service::{CompositeService, Service as ServiceTrait};
 use this_that_app::{commands::handlers as c_handlers, queries::handlers as q_handlers, Service};
 
 static SERVICE: Service = Service::new(
-    |command| Box::pin(future::ready(c_handlers::process_commands(command))),
+    |command| Box::pin(c_handlers::process_commands(command)),
     q_handlers::process_queries,
 );
 
@@ -16,7 +16,7 @@ fn _composite_service() -> &'static CompositeService {
             CompositeService::new(vec![(
                 "this-that",
                 Box::new(Service::new(
-                    |command| Box::pin(future::ready(c_handlers::process_commands(command))),
+                    |command| Box::pin(c_handlers::process_commands(command)),
                     q_handlers::process_queries,
                 )) as Box<dyn ServiceTrait + Sync>,
             )])
