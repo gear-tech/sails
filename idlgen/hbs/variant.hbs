@@ -1,9 +1,9 @@
-type {{lookup @root/type_names id}} = variant {
+type {{{lookup @root/type_names id}}} = variant {
 {{#each variants}}
   {{name}}
-  {{~#if fields.[1]}}: record { {{#each fields~}} {{#if @index}}; {{/if}}{{#if name}}{{name}}: {{/if}}{{lookup @root/type_names type}}{{/each}} }
+  {{~#if fields.[1]}}: record { {{#each fields~}} {{#if @index}}; {{/if}}{{#if name}}{{name}}: {{/if}}{{{lookup @root/type_names type}}}{{/each}} }
   {{~else}}
-	  {{~#if fields.[0]}}: {{lookup @root/type_names fields.[0].type}}
+	  {{~#if fields.[0]}}: {{{lookup @root/type_names fields.[0].type}}}
     {{~/if}}
   {{/if~}}
   ;

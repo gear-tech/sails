@@ -60,7 +60,7 @@ fn resolve_type_name(
             sequence_def.type_param.id,
             resolved_type_names,
         )?,
-        TypeDef::Composite(_) => type_name_by_path(type_info)?,
+        TypeDef::Composite(_) => type_name_by_path(type_registry, type_info, resolved_type_names)?,
         TypeDef::Variant(_) => {
             let result_type_info = std::result::Result::<(), ()>::type_info();
             let option_type_info = std::option::Option::<()>::type_info();
@@ -69,7 +69,7 @@ fn resolve_type_name(
             } else if option_type_info.path.segments == type_info.path.segments {
                 option_type_name(type_registry, type_info, resolved_type_names)?
             } else {
-                type_name_by_path(type_info)?
+                type_name_by_path(type_registry, type_info, resolved_type_names)?
             }
         }
         _ => {
@@ -121,7 +121,11 @@ fn option_type_name(
     Ok(format!("opt {}", some_type_name))
 }
 
-fn type_name_by_path(type_info: &Type<PortableForm>) -> Result<String> {
+fn type_name_by_path(
+    type_registry: &PortableRegistry,
+    type_info: &Type<PortableForm>,
+    resolved_type_names: &mut BTreeMap<u32, String>,
+) -> Result<String> {
     let type_name = type_info
         .path
         .segments
@@ -129,6 +133,23 @@ fn type_name_by_path(type_info: &Type<PortableForm>) -> Result<String> {
         .map(|segment| segment.to_case(Case::Pascal))
         .collect::<Vec<_>>()
         .join("");
+    let type_param_names = type_info
+        .type_params
+        .iter()
+        .map(|type_param| {
+            let type_param_id = type_param
+                .ty
+                .ok_or_else(|| Error::UnsupprotedType(format!("{type_info:?}")))?
+                .id;
+            resolve_type_name(type_registry, type_param_id, resolved_type_names)
+        })
+        .collect::<Result<Vec<_>>>()?
+        .join(", ");
+    let type_name = if type_param_names.is_empty() {
+        type_name
+    } else {
+        format!("{}<{}>", type_name, type_param_names)
+    };
     if type_name.is_empty() {
         Err(Error::UnsupprotedType(format!("{type_info:?}")))
     } else {
@@ -180,5 +201,76 @@ fn primitive_type_name(type_def: &TypeDefPrimitive) -> Result<String> {
         TypeDefPrimitive::I64 => Ok("int64".into()),
         TypeDefPrimitive::I128 => Ok("int128".into()), // Candid doesn't have it
         TypeDefPrimitive::I256 => Err(Error::UnsupprotedType("i256".into())), // Rust doesn't have it
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use scale_info::{MetaType, Registry};
+
+    #[allow(dead_code)]
+    #[derive(TypeInfo)]
+    struct GenericStruct<T> {
+        field: T,
+    }
+
+    #[allow(dead_code)]
+    #[derive(TypeInfo)]
+    enum GenericEnum<T1, T2> {
+        Variant1(T1),
+        Variant2(T2),
+    }
+
+    #[test]
+    fn generic_struct_type_name_resolution_works() {
+        let mut registry = Registry::new();
+        let u32_struct_id = registry
+            .register_type(&MetaType::new::<GenericStruct<u32>>())
+            .id;
+        let string_struct_id = registry
+            .register_type(&MetaType::new::<GenericStruct<String>>())
+            .id;
+        let portable_registry = PortableRegistry::from(registry);
+
+        let type_names = resolve_type_names(&portable_registry).unwrap();
+
+        let u32_struct_name = type_names.get(&u32_struct_id).unwrap();
+        assert_eq!(
+            u32_struct_name,
+            "SailsIdlgenTypeNamesTestsGenericStruct<nat32>"
+        );
+
+        let string_struct_name = type_names.get(&string_struct_id).unwrap();
+        assert_eq!(
+            string_struct_name,
+            "SailsIdlgenTypeNamesTestsGenericStruct<text>"
+        );
+    }
+
+    #[test]
+    fn generic_variant_type_name_resolution_works() {
+        let mut registry = Registry::new();
+        let u32_string_enum_id = registry
+            .register_type(&MetaType::new::<GenericEnum<u32, String>>())
+            .id;
+        let bool_u32_enum_id = registry
+            .register_type(&MetaType::new::<GenericEnum<bool, u32>>())
+            .id;
+        let portable_registry = PortableRegistry::from(registry);
+
+        let type_names = resolve_type_names(&portable_registry).unwrap();
+
+        let u32_string_enum_name = type_names.get(&u32_string_enum_id).unwrap();
+        assert_eq!(
+            u32_string_enum_name,
+            "SailsIdlgenTypeNamesTestsGenericEnum<nat32, text>"
+        );
+
+        let bool_u32_enum_name = type_names.get(&bool_u32_enum_id).unwrap();
+        assert_eq!(
+            bool_u32_enum_name,
+            "SailsIdlgenTypeNamesTestsGenericEnum<bool, nat32>"
+        );
     }
 }

@@ -96,6 +96,19 @@ mod tests {
 
     #[allow(dead_code)]
     #[derive(TypeInfo, Decode)]
+    pub struct GenericStruct<T> {
+        pub p1: T,
+    }
+
+    #[allow(dead_code)]
+    #[derive(TypeInfo, Decode)]
+    pub enum GenericEnum<T1, T2> {
+        Variant1(T1),
+        Variant2(T2),
+    }
+
+    #[allow(dead_code)]
+    #[derive(TypeInfo, Decode)]
     pub struct DoThatParam {
         pub p1: u32,
         pub p2: String,
@@ -121,12 +134,20 @@ mod tests {
         Four { a: u32, b: Option<u16> },
         Five(String, Vec<u8>),
         Six((u32,)),
+        Seven(GenericEnum<u32, String>),
     }
 
     #[allow(dead_code)]
     #[derive(TypeInfo, Decode)]
     enum Commands {
-        DoThis(u32, String, (Option<String>, u8), TupleStruct),
+        DoThis(
+            u32,
+            String,
+            (Option<String>, u8),
+            TupleStruct,
+            GenericStruct<u32>,
+            GenericStruct<String>,
+        ),
         DoThat(DoThatParam),
         Fail(String),
     }
@@ -150,7 +171,13 @@ mod tests {
     #[allow(dead_code)]
     #[derive(TypeInfo, Decode)]
     enum Queries {
-        This(u32, String, (Option<String>, u8), TupleStruct),
+        This(
+            u32,
+            String,
+            (Option<String>, u8),
+            TupleStruct,
+            GenericEnum<bool, u32>,
+        ),
         That(ThatParam),
         Fail(String),
     }
@@ -181,6 +208,14 @@ mod tests {
   bool;
 };
 
+type SailsIdlgenTestsGenericStruct<nat32> = record {
+  p1: nat32;
+};
+
+type SailsIdlgenTestsGenericStruct<text> = record {
+  p1: text;
+};
+
 type SailsIdlgenTestsDoThatParam = record {
   p1: nat32;
   p2: text;
@@ -194,10 +229,16 @@ type SailsIdlgenTestsManyVariants = variant {
   Four: record { a: nat32; b: opt nat16 };
   Five: record { text; vec nat8 };
   Six: record { nat32 };
+  Seven: SailsIdlgenTestsGenericEnum<nat32, text>;
+};
+
+type SailsIdlgenTestsGenericEnum<nat32, text> = variant {
+  Variant1: nat32;
+  Variant2: text;
 };
 
 service {
-  async DoThis : (nat32, text, record { opt text; nat8 }, SailsIdlgenTestsTupleStruct) -> (record { text; nat32 }, text);
+  async DoThis : (nat32, text, record { opt text; nat8 }, SailsIdlgenTestsTupleStruct, SailsIdlgenTestsGenericStruct<nat32>, SailsIdlgenTestsGenericStruct<text>) -> (record { text; nat32 }, text);
   async DoThat : (SailsIdlgenTestsDoThatParam) -> (record { text; nat32 }, record { text });
   async Fail : (text) -> (null, text);
 }
@@ -215,6 +256,11 @@ service {
   bool;
 };
 
+type SailsIdlgenTestsGenericEnum<bool, nat32> = variant {
+  Variant1: bool;
+  Variant2: nat32;
+};
+
 type SailsIdlgenTestsThatParam = record {
   p1: SailsIdlgenTestsManyVariants;
 };
@@ -226,10 +272,16 @@ type SailsIdlgenTestsManyVariants = variant {
   Four: record { a: nat32; b: opt nat16 };
   Five: record { text; vec nat8 };
   Six: record { nat32 };
+  Seven: SailsIdlgenTestsGenericEnum<nat32, text>;
+};
+
+type SailsIdlgenTestsGenericEnum<nat32, text> = variant {
+  Variant1: nat32;
+  Variant2: text;
 };
 
 service {
-  This : (nat32, text, record { opt text; nat8 }, SailsIdlgenTestsTupleStruct) -> (record { text; nat32 }, text) query;
+  This : (nat32, text, record { opt text; nat8 }, SailsIdlgenTestsTupleStruct, SailsIdlgenTestsGenericEnum<bool, nat32>) -> (record { text; nat32 }, text) query;
   That : (SailsIdlgenTestsThatParam) -> (record { text; nat32 }, record { text }) query;
   Fail : (text) -> (null, text) query;
 }
@@ -248,6 +300,14 @@ service {
   bool;
 };
 
+type SailsIdlgenTestsGenericStruct<nat32> = record {
+  p1: nat32;
+};
+
+type SailsIdlgenTestsGenericStruct<text> = record {
+  p1: text;
+};
+
 type SailsIdlgenTestsDoThatParam = record {
   p1: nat32;
   p2: text;
@@ -261,6 +321,17 @@ type SailsIdlgenTestsManyVariants = variant {
   Four: record { a: nat32; b: opt nat16 };
   Five: record { text; vec nat8 };
   Six: record { nat32 };
+  Seven: SailsIdlgenTestsGenericEnum<nat32, text>;
+};
+
+type SailsIdlgenTestsGenericEnum<nat32, text> = variant {
+  Variant1: nat32;
+  Variant2: text;
+};
+
+type SailsIdlgenTestsGenericEnum<bool, nat32> = variant {
+  Variant1: bool;
+  Variant2: nat32;
 };
 
 type SailsIdlgenTestsThatParam = record {
@@ -268,10 +339,10 @@ type SailsIdlgenTestsThatParam = record {
 };
 
 service {
-  async DoThis : (nat32, text, record { opt text; nat8 }, SailsIdlgenTestsTupleStruct) -> (record { text; nat32 }, text);
+  async DoThis : (nat32, text, record { opt text; nat8 }, SailsIdlgenTestsTupleStruct, SailsIdlgenTestsGenericStruct<nat32>, SailsIdlgenTestsGenericStruct<text>) -> (record { text; nat32 }, text);
   async DoThat : (SailsIdlgenTestsDoThatParam) -> (record { text; nat32 }, record { text });
   async Fail : (text) -> (null, text);
-  This : (nat32, text, record { opt text; nat8 }, SailsIdlgenTestsTupleStruct) -> (record { text; nat32 }, text) query;
+  This : (nat32, text, record { opt text; nat8 }, SailsIdlgenTestsTupleStruct, SailsIdlgenTestsGenericEnum<bool, nat32>) -> (record { text; nat32 }, text) query;
   That : (SailsIdlgenTestsThatParam) -> (record { text; nat32 }, record { text }) query;
   Fail : (text) -> (null, text) query;
 }
