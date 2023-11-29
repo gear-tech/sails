@@ -52,7 +52,7 @@ pub struct TupleStruct(bool);
 pub enum ManyVariants {
     One,
     Two(u32),
-    Three(Option<u32>),
+    Three(Option<Vec<u8>>),
     Four { a: u32, b: Option<u16> },
     Five(String, u32),
     Six((u32,)), // IDEA can't handle meta with single element tuple
