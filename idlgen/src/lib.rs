@@ -238,9 +238,9 @@ type SailsIdlgenTestsGenericEnum<nat32, text> = variant {
 };
 
 service {
-  async DoThis : (nat32, text, record { opt text; nat8 }, SailsIdlgenTestsTupleStruct, SailsIdlgenTestsGenericStruct<nat32>, SailsIdlgenTestsGenericStruct<text>) -> (record { text; nat32 }, text);
-  async DoThat : (SailsIdlgenTestsDoThatParam) -> (record { text; nat32 }, record { text });
-  async Fail : (text) -> (null, text);
+  async DoThis : (nat32, text, record { opt text; nat8 }, SailsIdlgenTestsTupleStruct, SailsIdlgenTestsGenericStruct<nat32>, SailsIdlgenTestsGenericStruct<text>) -> Result<record { text; nat32 }, text>;
+  async DoThat : (SailsIdlgenTestsDoThatParam) -> Result<record { text; nat32 }, record { text }>;
+  async Fail : (text) -> Result<null, text>;
 }
 ";
         assert_eq!(generated_idl, EXPECTED_IDL);
@@ -281,9 +281,9 @@ type SailsIdlgenTestsGenericEnum<nat32, text> = variant {
 };
 
 service {
-  This : (nat32, text, record { opt text; nat8 }, SailsIdlgenTestsTupleStruct, SailsIdlgenTestsGenericEnum<bool, nat32>) -> (record { text; nat32 }, text) query;
-  That : (SailsIdlgenTestsThatParam) -> (record { text; nat32 }, record { text }) query;
-  Fail : (text) -> (null, text) query;
+  This : (nat32, text, record { opt text; nat8 }, SailsIdlgenTestsTupleStruct, SailsIdlgenTestsGenericEnum<bool, nat32>) -> Result<record { text; nat32 }, text> query;
+  That : (SailsIdlgenTestsThatParam) -> Result<record { text; nat32 }, record { text }> query;
+  Fail : (text) -> Result<null, text> query;
 }
 ";
         assert_eq!(generated_idl, EXPECTED_IDL);
@@ -339,12 +339,12 @@ type SailsIdlgenTestsThatParam = record {
 };
 
 service {
-  async DoThis : (nat32, text, record { opt text; nat8 }, SailsIdlgenTestsTupleStruct, SailsIdlgenTestsGenericStruct<nat32>, SailsIdlgenTestsGenericStruct<text>) -> (record { text; nat32 }, text);
-  async DoThat : (SailsIdlgenTestsDoThatParam) -> (record { text; nat32 }, record { text });
-  async Fail : (text) -> (null, text);
-  This : (nat32, text, record { opt text; nat8 }, SailsIdlgenTestsTupleStruct, SailsIdlgenTestsGenericEnum<bool, nat32>) -> (record { text; nat32 }, text) query;
-  That : (SailsIdlgenTestsThatParam) -> (record { text; nat32 }, record { text }) query;
-  Fail : (text) -> (null, text) query;
+  async DoThis : (nat32, text, record { opt text; nat8 }, SailsIdlgenTestsTupleStruct, SailsIdlgenTestsGenericStruct<nat32>, SailsIdlgenTestsGenericStruct<text>) -> Result<record { text; nat32 }, text>;
+  async DoThat : (SailsIdlgenTestsDoThatParam) -> Result<record { text; nat32 }, record { text }>;
+  async Fail : (text) -> Result<null, text>;
+  This : (nat32, text, record { opt text; nat8 }, SailsIdlgenTestsTupleStruct, SailsIdlgenTestsGenericEnum<bool, nat32>) -> Result<record { text; nat32 }, text> query;
+  That : (SailsIdlgenTestsThatParam) -> Result<record { text; nat32 }, record { text }> query;
+  Fail : (text) -> Result<null, text> query;
 }
 ";
         assert_eq!(generated_idl, EXPECTED_IDL);
