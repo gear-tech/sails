@@ -1,5 +1,5 @@
-type {{{lookup @root/type_names id}}} = struct {
+type {{{lookup @root/type_names id}}} = record {
 {{#each fields}}
-  {{#if name}}{{name}}: {{/if}}{{{lookup @root/type_names type}}},
+  {{#if name}}{{name}}: {{/if}}{{{lookup @root/type_names type}}};
 {{/each}}
 };

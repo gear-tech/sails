@@ -204,43 +204,43 @@ mod tests {
         generate_serivce_idl::<TestCommandProcessorMeta, ()>(None, &mut idl).unwrap();
         let generated_idl = String::from_utf8(idl).unwrap();
 
-        const EXPECTED_IDL: &str = r"type SailsIdlgenTestsTupleStruct = struct {
-  bool,
+        const EXPECTED_IDL: &str = r"type SailsIdlgenTestsTupleStruct = record {
+  bool;
 };
 
-type SailsIdlgenTestsGenericStruct<u32> = struct {
-  p1: u32,
+type SailsIdlgenTestsGenericStruct<nat32> = record {
+  p1: nat32;
 };
 
-type SailsIdlgenTestsGenericStruct<string> = struct {
-  p1: string,
+type SailsIdlgenTestsGenericStruct<text> = record {
+  p1: text;
 };
 
-type SailsIdlgenTestsDoThatParam = struct {
-  p1: u32,
-  p2: string,
-  p3: SailsIdlgenTestsManyVariants,
+type SailsIdlgenTestsDoThatParam = record {
+  p1: nat32;
+  p2: text;
+  p3: SailsIdlgenTestsManyVariants;
 };
 
 type SailsIdlgenTestsManyVariants = variant {
-  One,
-  Two: u32,
-  Three: Option<Vec<u32>>,
-  Four: struct { a: u32, b: Option<u16> },
-  Five: struct { string, Vec<u8> },
-  Six: struct { u32 },
-  Seven: SailsIdlgenTestsGenericEnum<u32, string>,
+  One;
+  Two: nat32;
+  Three: opt vec nat32;
+  Four: record { a: nat32; b: opt nat16 };
+  Five: record { text; vec nat8 };
+  Six: record { nat32 };
+  Seven: SailsIdlgenTestsGenericEnum<nat32, text>;
 };
 
-type SailsIdlgenTestsGenericEnum<u32, string> = variant {
-  Variant1: u32,
-  Variant2: string,
+type SailsIdlgenTestsGenericEnum<nat32, text> = variant {
+  Variant1: nat32;
+  Variant2: text;
 };
 
 service {
-  async DoThis : (u32, string, struct { Option<string>, u8 }, SailsIdlgenTestsTupleStruct, SailsIdlgenTestsGenericStruct<u32>, SailsIdlgenTestsGenericStruct<string>) -> Result<struct { string, u32 }, string>;
-  async DoThat : (SailsIdlgenTestsDoThatParam) -> Result<struct { string, u32 }, struct { string }>;
-  async Fail : (string) -> Result<null, string>;
+  async DoThis : (nat32, text, record { opt text; nat8 }, SailsIdlgenTestsTupleStruct, SailsIdlgenTestsGenericStruct<nat32>, SailsIdlgenTestsGenericStruct<text>) -> Result<record { text; nat32 }, text>;
+  async DoThat : (SailsIdlgenTestsDoThatParam) -> Result<record { text; nat32 }, record { text }>;
+  async Fail : (text) -> Result<null, text>;
 }
 ";
         assert_eq!(generated_idl, EXPECTED_IDL);
@@ -252,38 +252,38 @@ service {
         generate_serivce_idl::<(), TestQueryProcessorMeta>(None, &mut idl).unwrap();
         let generated_idl = String::from_utf8(idl).unwrap();
 
-        const EXPECTED_IDL: &str = r"type SailsIdlgenTestsTupleStruct = struct {
-  bool,
+        const EXPECTED_IDL: &str = r"type SailsIdlgenTestsTupleStruct = record {
+  bool;
 };
 
-type SailsIdlgenTestsGenericEnum<bool, u32> = variant {
-  Variant1: bool,
-  Variant2: u32,
+type SailsIdlgenTestsGenericEnum<bool, nat32> = variant {
+  Variant1: bool;
+  Variant2: nat32;
 };
 
-type SailsIdlgenTestsThatParam = struct {
-  p1: SailsIdlgenTestsManyVariants,
+type SailsIdlgenTestsThatParam = record {
+  p1: SailsIdlgenTestsManyVariants;
 };
 
 type SailsIdlgenTestsManyVariants = variant {
-  One,
-  Two: u32,
-  Three: Option<Vec<u32>>,
-  Four: struct { a: u32, b: Option<u16> },
-  Five: struct { string, Vec<u8> },
-  Six: struct { u32 },
-  Seven: SailsIdlgenTestsGenericEnum<u32, string>,
+  One;
+  Two: nat32;
+  Three: opt vec nat32;
+  Four: record { a: nat32; b: opt nat16 };
+  Five: record { text; vec nat8 };
+  Six: record { nat32 };
+  Seven: SailsIdlgenTestsGenericEnum<nat32, text>;
 };
 
-type SailsIdlgenTestsGenericEnum<u32, string> = variant {
-  Variant1: u32,
-  Variant2: string,
+type SailsIdlgenTestsGenericEnum<nat32, text> = variant {
+  Variant1: nat32;
+  Variant2: text;
 };
 
 service {
-  query This : (u32, string, struct { Option<string>, u8 }, SailsIdlgenTestsTupleStruct, SailsIdlgenTestsGenericEnum<bool, u32>) -> Result<struct { string, u32 }, string>;
-  query That : (SailsIdlgenTestsThatParam) -> Result<struct { string, u32 }, struct { string }>;
-  query Fail : (string) -> Result<null, string>;
+  This : (nat32, text, record { opt text; nat8 }, SailsIdlgenTestsTupleStruct, SailsIdlgenTestsGenericEnum<bool, nat32>) -> Result<record { text; nat32 }, text> query;
+  That : (SailsIdlgenTestsThatParam) -> Result<record { text; nat32 }, record { text }> query;
+  Fail : (text) -> Result<null, text> query;
 }
 ";
         assert_eq!(generated_idl, EXPECTED_IDL);
@@ -296,55 +296,55 @@ service {
             .unwrap();
         let generated_idl = String::from_utf8(idl).unwrap();
 
-        const EXPECTED_IDL: &str = r"type SailsIdlgenTestsTupleStruct = struct {
-  bool,
+        const EXPECTED_IDL: &str = r"type SailsIdlgenTestsTupleStruct = record {
+  bool;
 };
 
-type SailsIdlgenTestsGenericStruct<u32> = struct {
-  p1: u32,
+type SailsIdlgenTestsGenericStruct<nat32> = record {
+  p1: nat32;
 };
 
-type SailsIdlgenTestsGenericStruct<string> = struct {
-  p1: string,
+type SailsIdlgenTestsGenericStruct<text> = record {
+  p1: text;
 };
 
-type SailsIdlgenTestsDoThatParam = struct {
-  p1: u32,
-  p2: string,
-  p3: SailsIdlgenTestsManyVariants,
+type SailsIdlgenTestsDoThatParam = record {
+  p1: nat32;
+  p2: text;
+  p3: SailsIdlgenTestsManyVariants;
 };
 
 type SailsIdlgenTestsManyVariants = variant {
-  One,
-  Two: u32,
-  Three: Option<Vec<u32>>,
-  Four: struct { a: u32, b: Option<u16> },
-  Five: struct { string, Vec<u8> },
-  Six: struct { u32 },
-  Seven: SailsIdlgenTestsGenericEnum<u32, string>,
+  One;
+  Two: nat32;
+  Three: opt vec nat32;
+  Four: record { a: nat32; b: opt nat16 };
+  Five: record { text; vec nat8 };
+  Six: record { nat32 };
+  Seven: SailsIdlgenTestsGenericEnum<nat32, text>;
 };
 
-type SailsIdlgenTestsGenericEnum<u32, string> = variant {
-  Variant1: u32,
-  Variant2: string,
+type SailsIdlgenTestsGenericEnum<nat32, text> = variant {
+  Variant1: nat32;
+  Variant2: text;
 };
 
-type SailsIdlgenTestsGenericEnum<bool, u32> = variant {
-  Variant1: bool,
-  Variant2: u32,
+type SailsIdlgenTestsGenericEnum<bool, nat32> = variant {
+  Variant1: bool;
+  Variant2: nat32;
 };
 
-type SailsIdlgenTestsThatParam = struct {
-  p1: SailsIdlgenTestsManyVariants,
+type SailsIdlgenTestsThatParam = record {
+  p1: SailsIdlgenTestsManyVariants;
 };
 
 service {
-  async DoThis : (u32, string, struct { Option<string>, u8 }, SailsIdlgenTestsTupleStruct, SailsIdlgenTestsGenericStruct<u32>, SailsIdlgenTestsGenericStruct<string>) -> Result<struct { string, u32 }, string>;
-  async DoThat : (SailsIdlgenTestsDoThatParam) -> Result<struct { string, u32 }, struct { string }>;
-  async Fail : (string) -> Result<null, string>;
-  query This : (u32, string, struct { Option<string>, u8 }, SailsIdlgenTestsTupleStruct, SailsIdlgenTestsGenericEnum<bool, u32>) -> Result<struct { string, u32 }, string>;
-  query That : (SailsIdlgenTestsThatParam) -> Result<struct { string, u32 }, struct { string }>;
-  query Fail : (string) -> Result<null, string>;
+  async DoThis : (nat32, text, record { opt text; nat8 }, SailsIdlgenTestsTupleStruct, SailsIdlgenTestsGenericStruct<nat32>, SailsIdlgenTestsGenericStruct<text>) -> Result<record { text; nat32 }, text>;
+  async DoThat : (SailsIdlgenTestsDoThatParam) -> Result<record { text; nat32 }, record { text }>;
+  async Fail : (text) -> Result<null, text>;
+  This : (nat32, text, record { opt text; nat8 }, SailsIdlgenTestsTupleStruct, SailsIdlgenTestsGenericEnum<bool, nat32>) -> Result<record { text; nat32 }, text> query;
+  That : (SailsIdlgenTestsThatParam) -> Result<record { text; nat32 }, record { text }> query;
+  Fail : (text) -> Result<null, text> query;
 }
 ";
         assert_eq!(generated_idl, EXPECTED_IDL);

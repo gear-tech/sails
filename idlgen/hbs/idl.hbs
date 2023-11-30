@@ -15,12 +15,12 @@ service {
        {{/with}}
 {{/each}}
 {{#each queries.type.def.variant.variants}}
-  query {{name}} : (
+  {{name}} : (
     {{~#each fields~}}
       {{#if @index}}, {{/if}}{{{lookup @root/type_names type}}}
     {{~/each~}}
   ) -> {{#with (lookup @root/queryResponses.type.def.variant.variants @index)}}
-         {{{~lookup @root/type_names fields.[0].type}}};
+         {{{~lookup @root/type_names fields.[0].type}}} query;
        {{/with}}
 {{/each}}
 }
