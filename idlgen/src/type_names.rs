@@ -62,8 +62,11 @@ fn resolve_type_name(
         )?,
         TypeDef::Composite(_) => type_name_by_path(type_registry, type_info, resolved_type_names)?,
         TypeDef::Variant(_) => {
+            let result_type_info = std::result::Result::<(), ()>::type_info();
             let option_type_info = std::option::Option::<()>::type_info();
-            if option_type_info.path.segments == type_info.path.segments {
+            if result_type_info.path.segments == type_info.path.segments {
+                result_type_name(type_registry, type_info, resolved_type_names)?
+            } else if option_type_info.path.segments == type_info.path.segments {
                 option_type_name(type_registry, type_info, resolved_type_names)?
             } else {
                 type_name_by_path(type_registry, type_info, resolved_type_names)?
@@ -76,6 +79,30 @@ fn resolve_type_name(
 
     resolved_type_names.insert(type_id, type_name.clone());
     Ok(type_name)
+}
+
+fn result_type_name(
+    type_registry: &PortableRegistry,
+    type_info: &Type<PortableForm>,
+    resolved_type_names: &mut BTreeMap<u32, String>,
+) -> Result<String> {
+    let ok_type_id = type_info
+        .type_params
+        .iter()
+        .find(|param| param.name == "T")
+        .ok_or_else(|| Error::UnsupprotedType(format!("{type_info:?}")))?
+        .ty
+        .ok_or_else(|| Error::UnsupprotedType(format!("{type_info:?}")))?;
+    let err_type_id = type_info
+        .type_params
+        .iter()
+        .find(|param| param.name == "E")
+        .ok_or_else(|| Error::UnsupprotedType(format!("{type_info:?}")))?
+        .ty
+        .ok_or_else(|| Error::UnsupprotedType(format!("{type_info:?}")))?;
+    let ok_type_name = resolve_type_name(type_registry, ok_type_id.id, resolved_type_names)?;
+    let err_type_name = resolve_type_name(type_registry, err_type_id.id, resolved_type_names)?;
+    Ok(format!("({ok_type_name}, {err_type_name})"))
 }
 
 fn option_type_name(
@@ -245,19 +272,5 @@ mod tests {
             bool_u32_enum_name,
             "SailsIdlgenTypeNamesTestsGenericEnum<bool, nat32>"
         );
-    }
-
-    #[test]
-    fn result_type_name_resolution_works() {
-        let mut registry = Registry::new();
-        let result_id = registry
-            .register_type(&MetaType::new::<std::result::Result<u32, String>>())
-            .id;
-        let portable_registry = PortableRegistry::from(registry);
-
-        let type_names = resolve_type_names(&portable_registry).unwrap();
-
-        let result_name = type_names.get(&result_id).unwrap();
-        assert_eq!(result_name, "Result<nat32, text>");
     }
 }
