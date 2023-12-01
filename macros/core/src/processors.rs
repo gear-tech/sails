@@ -21,7 +21,7 @@
 use convert_case::{Case, Casing};
 use proc_macro2::TokenStream as TokenStream2;
 use proc_macro_error::abort;
-use quote::quote;
+use quote::{quote, ToTokens};
 use syn::{self, spanned::Spanned};
 
 /// Generates a processor function with requests it can process and responses it can return.
@@ -63,6 +63,13 @@ pub(super) fn generate(
     let scale_codec_crate_ident = get_scale_codec_crate_ident(request_enum_name);
     let scale_info_crate_ident = get_scale_info_crate_ident(request_enum_name);
 
+    let client = ClientTokens::from(
+        &handlers_mod_funcs,
+        &request_enum_ident,
+        &response_enum_ident,
+    )
+    .module;
+
     quote!(
         #handlers_mod_visibility mod #handlers_mod_ident {
             extern crate parity_scale_codec as #scale_codec_crate_ident;
@@ -83,6 +90,8 @@ pub(super) fn generate(
                 #function
 
                 #(#handlers_mod_funcs)*
+
+                #client
             }
         }
     )
@@ -133,11 +142,13 @@ impl ProcessorTokens {
 
         ProcessorTokens {
             request_enum: quote!(
+                #[derive(Debug)]
                 pub enum #request_enum_ident {
                     #(#request_enum_variants)*
                 }
             ),
             response_enum: quote!(
+                #[derive(Debug)]
                 pub enum #response_enum_ident {
                     #(#response_enum_variants)*
                 }
@@ -280,6 +291,92 @@ fn get_processor_function_ident(suffix: &str) -> syn::Ident {
         format!("process_{}", suffix.to_case(Case::Snake)).as_str(),
         proc_macro2::Span::call_site(),
     )
+}
+
+struct ClientTokens {
+    module: TokenStream2,
+}
+
+impl ClientTokens {
+    fn from(
+        handlers_mod_funcs: &[&syn::ItemFn],
+        request_enum_ident: &syn::Ident,
+        response_enum_ident: &syn::Ident,
+    ) -> ClientTokens {
+        let handlers_signatures = handlers_mod_funcs.iter().map(|item_fn| &item_fn.sig);
+
+        let methods = handlers_signatures
+            .clone()
+            .map(|s| {
+                let ident = s.ident.clone();
+
+                let result = match &s.output {
+                    syn::ReturnType::Default => quote!(()),
+                    syn::ReturnType::Type(_, ty) => quote!(#ty),
+                };
+
+                let inputs = s.inputs.clone();
+
+                let enum_variant_name = syn::Ident::new(
+                    &ident.to_string().to_case(Case::Pascal),
+                    proc_macro2::Span::call_site(),
+                );
+
+                let call_param_idents = s
+                    .inputs
+                    .pairs()
+                    .map(|p| {
+                        let value = p.value();
+                        match value {
+                            syn::FnArg::Receiver(_) => {
+                                abort!(value.span(), "Arguments of the Self type are not supported")
+                            }
+                            syn::FnArg::Typed(arg) => arg.pat.clone().into_token_stream(),
+                        }
+                    })
+                    .collect::<Vec<_>>();
+
+                quote!(
+                    pub fn #ident(&self, #inputs) -> Call<#response_enum_ident, fn(#response_enum_ident) -> Option<#result>, #result> {
+                        let payload = #request_enum_ident::#enum_variant_name(#(#call_param_idents, )*).encode();
+
+                        let map = |r: #response_enum_ident| -> Option<#result> {
+                            match r {
+                                #response_enum_ident::#enum_variant_name(result) => Some(result),
+                                _ => None,
+                            }
+                        };
+
+                        Call::<#response_enum_ident, fn(#response_enum_ident) -> Option<#result>, #result>::new(payload, map)
+                    }
+                )
+            })
+            .collect::<Vec<TokenStream2>>();
+
+        ClientTokens {
+            module: quote!(
+                #[cfg(feature = "client")]
+                pub mod client {
+                    extern crate gtest;
+                    extern crate sails_client;
+                    use gtest::{Program, RunResult};
+                    use sails_client::{Call};
+                    use super::*;
+
+                    pub struct Client {
+                    }
+
+                    impl Client {
+                        pub fn new() -> Self {
+                            Self { }
+                        }
+
+                        #( #methods )*
+                    }
+                }
+            ),
+        }
+    }
 }
 
 #[cfg(test)]

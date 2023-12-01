@@ -95,20 +95,20 @@ mod tests {
     use std::result::Result as StdResult;
 
     #[allow(dead_code)]
-    #[derive(TypeInfo, Decode)]
+    #[derive(TypeInfo, Decode, Debug)]
     pub struct GenericStruct<T> {
         pub p1: T,
     }
 
     #[allow(dead_code)]
-    #[derive(TypeInfo, Decode)]
+    #[derive(TypeInfo, Decode, Debug)]
     pub enum GenericEnum<T1, T2> {
         Variant1(T1),
         Variant2(T2),
     }
 
     #[allow(dead_code)]
-    #[derive(TypeInfo, Decode)]
+    #[derive(TypeInfo, Decode, Debug)]
     pub struct DoThatParam {
         pub p1: u32,
         pub p2: String,
@@ -122,11 +122,11 @@ mod tests {
     }
 
     #[allow(dead_code)]
-    #[derive(TypeInfo, Decode)]
+    #[derive(TypeInfo, Decode, Debug)]
     pub struct TupleStruct(bool);
 
     #[allow(dead_code)]
-    #[derive(TypeInfo, Decode)]
+    #[derive(TypeInfo, Decode, Debug)]
     pub enum ManyVariants {
         One,
         Two(u32),
@@ -138,7 +138,7 @@ mod tests {
     }
 
     #[allow(dead_code)]
-    #[derive(TypeInfo, Decode)]
+    #[derive(TypeInfo, Decode, Debug)]
     enum Commands {
         DoThis(
             u32,
@@ -153,7 +153,7 @@ mod tests {
     }
 
     #[allow(dead_code)]
-    #[derive(TypeInfo, Encode)]
+    #[derive(TypeInfo, Encode, Debug)]
     enum CommandResponses {
         DoThis(StdResult<(String, u32), String>),
         DoThat(StdResult<(String, u32), (String,)>),

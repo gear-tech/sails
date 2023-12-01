@@ -9,7 +9,9 @@ resolver = "2"
 members = [
     "examples/this-that/app",
     "examples/this-that/wasm",
+    "examples/this-that/test",
     "idlgen",
+    "client",
     "macros",
     "macros/core",
     "service",
@@ -20,6 +22,7 @@ async-trait = "0.1"
 convert-case = { package = "convert_case", version = "0.6" }
 gmeta = { git = "https://github.com/gear-tech/gear.git", tag = "v1.0.1" }
 gstd = { git = "https://github.com/gear-tech/gear.git", tag = "v1.0.1" }
+gtest = { git = "https://github.com/gear-tech/gear.git", tag = "v1.0.1" }
 gsys = { git = "https://github.com/gear-tech/gear.git", tag = "v1.0.1" }
 gwasm-builder = { package = "gear-wasm-builder", git = "https://github.com/gear-tech/gear.git", tag = "v1.0.1" }
 handlebars = "4.4"
@@ -31,6 +34,7 @@ quote = "1.0.33"
 sails-idlgen = { path = "idlgen" }
 sails-macros = { path = "macros" }
 sails-service = { path = "service" }
+sails-client = { path = "client" }
 scale-info = { version = "2.5.0", default-features = false }
 serde = "1.0"
 serde-json = { package = "serde_json", version = "1.0" }

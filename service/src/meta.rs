@@ -21,15 +21,15 @@
 extern crate alloc;
 
 use alloc::boxed::Box;
-use core::{future::Future, pin::Pin};
+use core::{fmt::Debug, future::Future, pin::Pin};
 use parity_scale_codec::{Decode, Encode};
 use scale_info::StaticTypeInfo;
 
 pub type BoxedFuture<T> = Pin<Box<dyn Future<Output = T> + Send>>;
 
 pub trait CommandProcessorMeta {
-    type Request: StaticTypeInfo + Decode;
-    type Response: StaticTypeInfo + Encode;
+    type Request: StaticTypeInfo + Decode + Debug;
+    type Response: StaticTypeInfo + Encode + Debug;
     // TODO: Make something up for error handling (some sort of Result)
     type ProcessFn: Fn(Self::Request) -> BoxedFuture<(Self::Response, bool)> + Sync;
 }

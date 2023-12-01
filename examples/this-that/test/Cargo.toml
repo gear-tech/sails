@@ -1,0 +1,12 @@
+[package]
+name = "this-that-test"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+gstd.workspace = true
+gtest.workspace = true
+gsys.workspace = true
+parity-scale-codec.workspace = true
+sails-service.workspace = true
+this-that-app = { path = "../app", features = ["handlers", "client"] }

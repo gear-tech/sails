@@ -10,6 +10,12 @@ sails-macros.workspace = true
 sails-service.workspace = true
 parity-scale-codec = { workspace = true, features = ["derive"] }
 scale-info = { workspace = true, features = ["derive"] }
+gtest = { workspace = true, optional = true }
+sails-client = { workspace = true, optional = true }
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["rt", "macros"] }
 
 [features]
 "handlers" = []
+"client" = ["dep:gtest", "dep:sails-client"]

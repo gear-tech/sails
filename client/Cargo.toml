@@ -1,0 +1,18 @@
+[package]
+name = "sails-client"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+gmeta.workspace = true
+gstd = { workspace = true, features = ["debug"] }
+sails-macros.workspace = true
+sails-service.workspace = true
+parity-scale-codec = { workspace = true, features = ["derive"] }
+scale-info = { workspace = true, features = ["derive"] }
+gtest = { workspace = true }
+async-trait = "0.1"
+
+

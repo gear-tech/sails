@@ -1,5 +1,3 @@
-#![no_std]
-
 use gmeta::{InOut, Metadata};
 #[allow(unused_imports)]
 use gstd::debug;
@@ -46,7 +44,7 @@ pub struct DoThatParam {
 }
 
 #[derive(Debug, Encode, Decode, TypeInfo)]
-pub struct TupleStruct(bool);
+pub struct TupleStruct(pub bool);
 
 #[derive(Debug, Encode, Decode, TypeInfo)]
 pub enum ManyVariants {
@@ -109,5 +107,79 @@ pub mod queries {
     fn fail() -> Result<(), String> {
         debug!("Handling 'fail'");
         Err("Failed".into())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use commands::handlers::client::Client;
+    use gstd::panic;
+    use gtest::*;
+    use sails_client::{GTestSender, SendError};
+
+    #[tokio::test]
+    async fn test_program() {
+        let system = System::new();
+        system.init_verbose_logger();
+
+        let program = Program::from_file(
+            &system,
+            "../../../target/wasm32-unknown-unknown/debug/this_that.wasm",
+        );
+
+        let sender_id = [1; 32];
+        let mut transport = GTestSender::new(&program);
+        let client = Client::new();
+
+        // init
+        program.send(sender_id, [0; 0]);
+
+        let resp = client
+            .do_that(DoThatParam {
+                p1: 0xFFFF,
+                p2: "AAAA".to_owned(),
+                p3: ManyVariants::One,
+            })
+            .send(&mut transport)
+            .await
+            .expect("call failed");
+
+        assert_eq!(resp.unwrap(), ("AAAA".to_string(), 0xFFFF));
+
+        // fail
+        let err = client
+            .fail("123".to_owned())
+            .send(&mut transport)
+            .await
+            .unwrap_err();
+
+        match err {
+            SendError::Sender(run_result) => {
+                use gstd::errors::{
+                    ErrorReplyReason::Execution, ReplyCode::Error,
+                    SimpleExecutionError::UserspacePanic,
+                };
+                let code = run_result.log()[0].reply_code().unwrap();
+                assert_eq!(code, Error(Execution(UserspacePanic)));
+            }
+            _ => panic!("unexpected error kind: {err:?}"),
+        }
+    }
+
+    #[test]
+    fn test_into_bytes() {
+        let client = Client::new();
+
+        // to bytes
+        let payload = client
+            .do_that(DoThatParam {
+                p1: 0xFFFF,
+                p2: "AAAA".to_owned(),
+                p3: ManyVariants::One,
+            })
+            .into_bytes();
+
+        assert_eq!(payload, [1, 255, 255, 0, 0, 16, 65, 65, 65, 65, 0]);
     }
 }

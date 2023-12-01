@@ -14,3 +14,4 @@ this-that-app = { path = "../app", features = ["handlers"] }
 gwasm-builder.workspace = true
 sails-idlgen.workspace = true
 this-that-app = { path = "../app" }
+gtest.workspace = true
