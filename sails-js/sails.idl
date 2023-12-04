@@ -1,0 +1,45 @@
+type Alias = u32;
+
+type OptionAlias = opt u8;
+
+type ResultAlias = result (u8, string)
+
+type VecAlias = vec u8;
+
+type ThisThatAppTupleStruct = struct {
+  bool,
+};
+
+type ThisThatAppDoThatParam = struct {
+  p1: u32,
+  p2: string,
+  p3: ThisThatAppManyVariants,
+};
+
+type ThisThatAppManyVariants = variant {
+  One,
+  Two: u32,
+  Three: opt vec u8,
+  Four: struct { a: u32, b: opt u16 },
+  Five: struct { string, u32 },
+  Six: struct { u32 },
+};
+
+type CustomGeneric<u8, struct { u8, u32 }> = struct {
+  p1: u8,
+  p2: struct { u8, u32 }
+};
+
+type CustomGeneric<u32, opt vec u8> = struct {
+  p1: u32,
+  p2: opt vec u8
+};
+
+service {
+  async DoThis : (a1: u32, a2: string, a3:  struct { opt string, u8 }, a4: ThisThatAppTupleStruct) -> result (struct { string, u32 }, string);
+  async DoThat : (a1: ThisThatAppDoThatParam) -> result (struct { string, u32 }, struct { string });
+  async Fail : (a2: string) -> result (null, string);
+  query This : () -> result (u32, string);
+  query That : () -> result (string, string);
+  query Fail : () -> result (null, string);
+};

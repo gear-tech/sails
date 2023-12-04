@@ -1,0 +1,85 @@
+name: 'CI-CD @gear-js/sails'
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, labeled]
+    branches: [master]
+  push:
+    branches: [master]
+    paths:
+      - sails-js/**
+  workflow_dispatch:
+
+jobs:
+  test:
+    if: github.event_name == 'pull_request'
+
+    runs-on: ubuntu-22.04
+    env: 
+      RUSTUP_HOME: /tmp/rustup_home
+    steps:
+      - name: Cancel previous workflow runs
+        uses: styfle/cancel-workflow-action@0.4.0
+        with:
+          access_token: ${{ github.token }}
+
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: "Install: NodeJS 18.x"
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18.x
+
+      - name: "Install: pkg dependencies"
+        working-directory: sails-js
+        run: yarn install
+
+      - name: "Build: @gear-js/sails"
+        working-directory: sails-js
+        run: yarn build
+
+      - name: "Test: run"
+        working-directory: sails-js
+        run: yarn test
+
+  publish-to-npm:
+    if: github.event_name == 'push'
+
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Use node 18.x
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18.x
+
+      - name: Check package version
+        uses: EndBug/version-check@v1
+        id: check
+        with:
+          file-name: sails-js/package.json
+          file-url: https://unpkg.com/@gear-js/sails@latest/package.json
+          static-checking: localIsNew
+
+      - name: Install dependencies
+        if: steps.check.outputs.changed == 'true'
+        working-directory: sails-js
+        run: yarn install
+
+      - name: Build @gear-js/sails
+        if: steps.check.outputs.changed == 'true'
+        working-directory: sails-js
+        run: yarn build
+
+      - name: Publish
+        if: steps.check.outputs.changed == 'true'
+        working-directory: sails-js
+        run: |
+          export token=$(printenv $(printenv GITHUB_ACTOR))
+          npm config set //registry.npmjs.org/:_authToken=$token
+          npm publish
+        env:
+          osipov-mit: ${{ secrets.OSIPOV_NPM_TOKEN }}
