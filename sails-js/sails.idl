@@ -41,5 +41,4 @@ service {
   async Fail : (a2: string) -> result (null, string);
   query This : () -> result (u32, string);
   query That : () -> result (string, string);
-  query Fail : () -> result (null, string);
 };

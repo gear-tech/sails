@@ -1,7 +1,7 @@
 import { GearApi, HexString, MessageQueuedData, UserMessageSentData, decodeAddress } from '@gear-js/api';
 import { SubmittableExtrinsic } from '@polkadot/api/types';
 import { TypeRegistry } from '@polkadot/types';
-import { Codec, IKeyringPair, ISubmittableResult } from '@polkadot/types/types';
+import { IKeyringPair, ISubmittableResult } from '@polkadot/types/types';
 import { Registry } from '@polkadot/types-codec/types/registry';
 import { ReplaySubject } from 'rxjs';
 
@@ -70,12 +70,11 @@ export class Transaction {
     });
   }
 
-  protected async submitMsgAndWaitForReply<Out extends Codec = Codec>(
+  protected async submitMsgAndWaitForReply(
     programId: HexString,
     payload: any,
     account: string | IKeyringPair,
-    outputType: string,
-  ): Promise<Out> {
+  ): Promise<HexString> {
     const addressHex = decodeAddress(typeof account === 'string' ? account : account.address);
 
     const gasLimit = await this.api.program.calculateGas.handle(addressHex, programId, payload, 0, false);
@@ -94,6 +93,6 @@ export class Transaction {
 
     unsub();
 
-    return this.registry.createType<Out>(outputType, replyPayload);
+    return replyPayload;
   }
 }

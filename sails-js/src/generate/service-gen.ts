@@ -58,33 +58,36 @@ export class ServiceGenerator {
           )}): Promise<${returnType}>`,
           () => {
             let index = kind === 'message' ? messageIndex : queryIndex;
-            this._out.block(
-              `const payload =`,
-              () => {
-                this._out.line(`...this.registry.createType('u8', ${index}).toU8a(),`, false);
-                for (const { name, type } of args) {
-                  this._out.line(`...this.registry.createType('${getType(type, true)}', ${name}).toU8a(),`, false);
-                }
-              },
-              '[',
-            );
-            if (kind === 'message') messageIndex++;
-            if (kind === 'query') queryIndex++;
-            if (kind === 'message') {
+            if (args.length === 0) {
+              this._out.line(`const payload = this.registry.createType('u8', ${index}).toU8a()`);
+            } else {
               this._out
-                .line(`const replyPayload = await this.submitMsgAndWaitForReply(`, false)
+                .line(`const payload = [`, false)
+                .increaseIndent()
+                .line(`...this.registry.createType('u8', ${index}).toU8a(),`, false);
+              for (const { name, type } of args) {
+                this._out.line(`...this.registry.createType('${getType(type, true)}', ${name}).toU8a(),`, false);
+              }
+              this._out.reduceIndent().line(']');
+            }
+
+            if (kind === 'message') {
+              messageIndex++;
+              this._out
+                .line(`const replyPayloadBytes = await this.submitMsgAndWaitForReply(`, false)
                 .increaseIndent()
                 .line('this.programId,', false)
                 .line('payload,', false)
                 .line('account,', false)
-                .line(`'${getType(output, true)}',`, false)
                 .reduceIndent()
                 .line(')')
-                .line(`return replyPayload.toJSON() as ${returnType}`);
+                .line(`const result = this.registry.createType('${getType(output, true)}', replyPayloadBytes)`)
+                .line(`return result.toJSON() as ${returnType}`);
             } else if (kind === 'query') {
+              queryIndex++;
               this._out
-                .line(`const state = await this.api.programState.read({ programId: this.programId, payload})`)
-                .line(`const result = this.registry.createType('${getType(output, true)}', state)`)
+                .line(`const stateBytes = await this.api.programState.read({ programId: this.programId, payload})`)
+                .line(`const result = this.registry.createType('${getType(output, true)}', stateBytes)`)
                 .line(`return result.toJSON() as ${returnType}`);
             }
           },
