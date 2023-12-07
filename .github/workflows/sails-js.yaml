@@ -1,4 +1,4 @@
-name: 'CI-CD @gear-js/sails'
+name: 'CI-CD sails-js'
 
 on:
   pull_request:
@@ -7,7 +7,7 @@ on:
   push:
     branches: [master]
     paths:
-      - sails-js/**
+      - js/**
   workflow_dispatch:
 
 jobs:
@@ -32,15 +32,15 @@ jobs:
           node-version: 18.x
 
       - name: "Install: pkg dependencies"
-        working-directory: sails-js
+        working-directory: js
         run: yarn install
 
-      - name: "Build: @gear-js/sails"
-        working-directory: sails-js
+      - name: "Build: sails-js"
+        working-directory: js
         run: yarn build
 
       - name: "Test: run"
-        working-directory: sails-js
+        working-directory: js
         run: yarn test
 
   publish-to-npm:
@@ -60,23 +60,23 @@ jobs:
         uses: EndBug/version-check@v1
         id: check
         with:
-          file-name: sails-js/package.json
-          file-url: https://unpkg.com/@gear-js/sails@latest/package.json
+          file-name: js/package.json
+          file-url: https://unpkg.com/sails-js@latest/package.json
           static-checking: localIsNew
 
       - name: Install dependencies
         if: steps.check.outputs.changed == 'true'
-        working-directory: sails-js
+        working-directory: js
         run: yarn install
 
-      - name: Build @gear-js/sails
+      - name: Build sails-js
         if: steps.check.outputs.changed == 'true'
-        working-directory: sails-js
+        working-directory: js
         run: yarn build
 
       - name: Publish
         if: steps.check.outputs.changed == 'true'
-        working-directory: sails-js
+        working-directory: js
         run: |
           export token=$(printenv $(printenv GITHUB_ACTOR))
           npm config set //registry.npmjs.org/:_authToken=$token

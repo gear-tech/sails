@@ -1,5 +1,5 @@
 {
-  "name": "@gear-js/sails",
+  "name": "sails-js",
   "version": "0.0.1",
   "description": "Parser and typescript code generator from Sails IDL files",
   "main": "lib/index.js",
@@ -7,6 +7,18 @@
   "type": "module",
   "license": "GPL-3.0",
   "author": "Gear Technologies",
+  "bugs": {
+    "url": "https://github.com/gear-tech/sails/issues"
+  },
+  "homepage": "https://github.com/gear-tech/sails/tree/master/js#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://githib.com/gear-tech/sails.git"
+  },
+  "keywords": [
+    "gear",
+    "sails"
+  ],
   "bin": {
     "sails-js": "./lib/app.js"
   },

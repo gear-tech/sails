@@ -2,11 +2,11 @@
 The package can be installed as either a global dependency or a package dependency.
 
 ```bash
-npm install -g @gear-js/sails
+npm install -g sails-js
 ```
 or
 ```bash
-npm install @gear-js/sails
+npm install sails-js
 ```
 
 ## Usage
