@@ -102,7 +102,7 @@ fn result_type_name(
         .ok_or_else(|| Error::UnsupprotedType(format!("{type_info:?}")))?;
     let ok_type_name = resolve_type_name(type_registry, ok_type_id.id, resolved_type_names)?;
     let err_type_name = resolve_type_name(type_registry, err_type_id.id, resolved_type_names)?;
-    Ok(format!("({ok_type_name}, {err_type_name})"))
+    Ok(format!("result ({ok_type_name}, {err_type_name})"))
 }
 
 fn option_type_name(
@@ -187,19 +187,19 @@ fn array_type_name(
 fn primitive_type_name(type_def: &TypeDefPrimitive) -> Result<String> {
     match type_def {
         TypeDefPrimitive::Bool => Ok("bool".into()),
-        TypeDefPrimitive::Char => Ok("char".into()), // Candid doesn't have it. Do we want to support it? If such it will require a definition
-        TypeDefPrimitive::Str => Ok("text".into()),
-        TypeDefPrimitive::U8 => Ok("nat8".into()),
-        TypeDefPrimitive::U16 => Ok("nat16".into()),
-        TypeDefPrimitive::U32 => Ok("nat32".into()),
-        TypeDefPrimitive::U64 => Ok("nat64".into()),
-        TypeDefPrimitive::U128 => Ok("nat128".into()), // Candid doesn't have it
+        TypeDefPrimitive::Char => Ok("char".into()),
+        TypeDefPrimitive::Str => Ok("str".into()),
+        TypeDefPrimitive::U8 => Ok("u8".into()),
+        TypeDefPrimitive::U16 => Ok("u16".into()),
+        TypeDefPrimitive::U32 => Ok("u32".into()),
+        TypeDefPrimitive::U64 => Ok("u64".into()),
+        TypeDefPrimitive::U128 => Ok("u128".into()),
         TypeDefPrimitive::U256 => Err(Error::UnsupprotedType("u256".into())), // Rust doesn't have it
-        TypeDefPrimitive::I8 => Ok("int8".into()),
-        TypeDefPrimitive::I16 => Ok("int16".into()),
-        TypeDefPrimitive::I32 => Ok("int32".into()),
-        TypeDefPrimitive::I64 => Ok("int64".into()),
-        TypeDefPrimitive::I128 => Ok("int128".into()), // Candid doesn't have it
+        TypeDefPrimitive::I8 => Ok("i8".into()),
+        TypeDefPrimitive::I16 => Ok("i16".into()),
+        TypeDefPrimitive::I32 => Ok("i32".into()),
+        TypeDefPrimitive::I64 => Ok("i64".into()),
+        TypeDefPrimitive::I128 => Ok("i128".into()),
         TypeDefPrimitive::I256 => Err(Error::UnsupprotedType("i256".into())), // Rust doesn't have it
     }
 }
@@ -238,13 +238,13 @@ mod tests {
         let u32_struct_name = type_names.get(&u32_struct_id).unwrap();
         assert_eq!(
             u32_struct_name,
-            "SailsIdlgenTypeNamesTestsGenericStruct<nat32>"
+            "SailsIdlgenTypeNamesTestsGenericStruct<u32>"
         );
 
         let string_struct_name = type_names.get(&string_struct_id).unwrap();
         assert_eq!(
             string_struct_name,
-            "SailsIdlgenTypeNamesTestsGenericStruct<text>"
+            "SailsIdlgenTypeNamesTestsGenericStruct<str>"
         );
     }
 
@@ -264,13 +264,13 @@ mod tests {
         let u32_string_enum_name = type_names.get(&u32_string_enum_id).unwrap();
         assert_eq!(
             u32_string_enum_name,
-            "SailsIdlgenTypeNamesTestsGenericEnum<nat32, text>"
+            "SailsIdlgenTypeNamesTestsGenericEnum<u32, str>"
         );
 
         let bool_u32_enum_name = type_names.get(&bool_u32_enum_id).unwrap();
         assert_eq!(
             bool_u32_enum_name,
-            "SailsIdlgenTypeNamesTestsGenericEnum<bool, nat32>"
+            "SailsIdlgenTypeNamesTestsGenericEnum<bool, u32>"
         );
     }
 }
