@@ -251,39 +251,39 @@ mod tests {
   bool;
 };
 
-type SailsIdlgenTestsGenericStruct<nat32> = record {
-  p1: nat32;
+type SailsIdlgenTestsGenericStruct<u32> = record {
+  p1: u32;
 };
 
-type SailsIdlgenTestsGenericStruct<text> = record {
-  p1: text;
+type SailsIdlgenTestsGenericStruct<str> = record {
+  p1: str;
 };
 
 type SailsIdlgenTestsDoThatParam = record {
-  p1: nat32;
-  p2: text;
+  p1: u32;
+  p2: str;
   p3: SailsIdlgenTestsManyVariants;
 };
 
 type SailsIdlgenTestsManyVariants = variant {
   One;
-  Two: nat32;
-  Three: opt vec nat32;
-  Four: record { a: nat32; b: opt nat16 };
-  Five: record { text; vec nat8 };
-  Six: record { nat32 };
-  Seven: SailsIdlgenTestsGenericEnum<nat32, text>;
+  Two: u32;
+  Three: opt vec u32;
+  Four: record { a: u32; b: opt u16 };
+  Five: record { str; vec u8 };
+  Six: record { u32 };
+  Seven: SailsIdlgenTestsGenericEnum<u32, str>;
 };
 
-type SailsIdlgenTestsGenericEnum<nat32, text> = variant {
-  Variant1: nat32;
-  Variant2: text;
+type SailsIdlgenTestsGenericEnum<u32, str> = variant {
+  Variant1: u32;
+  Variant2: str;
 };
 
 service {
-  async DoThis : (nat32, text, record { opt text; nat8 }, SailsIdlgenTestsTupleStruct, SailsIdlgenTestsGenericStruct<nat32>, SailsIdlgenTestsGenericStruct<text>) -> (record { text; nat32 }, text);
-  async DoThat : (SailsIdlgenTestsDoThatParam) -> (record { text; nat32 }, record { text });
-  async Fail : (text) -> (null, text);
+  async DoThis : (u32, str, record { opt str; u8 }, SailsIdlgenTestsTupleStruct, SailsIdlgenTestsGenericStruct<u32>, SailsIdlgenTestsGenericStruct<str>) -> result (record { str; u32 }, str);
+  async DoThat : (SailsIdlgenTestsDoThatParam) -> result (record { str; u32 }, record { str });
+  async Fail : (str) -> result (null, str);
 }
 ";
         assert_eq!(generated_idl, EXPECTED_IDL);
@@ -299,9 +299,9 @@ service {
   bool;
 };
 
-type SailsIdlgenTestsGenericEnum<bool, nat32> = variant {
+type SailsIdlgenTestsGenericEnum<bool, u32> = variant {
   Variant1: bool;
-  Variant2: nat32;
+  Variant2: u32;
 };
 
 type SailsIdlgenTestsThatParam = record {
@@ -310,23 +310,23 @@ type SailsIdlgenTestsThatParam = record {
 
 type SailsIdlgenTestsManyVariants = variant {
   One;
-  Two: nat32;
-  Three: opt vec nat32;
-  Four: record { a: nat32; b: opt nat16 };
-  Five: record { text; vec nat8 };
-  Six: record { nat32 };
-  Seven: SailsIdlgenTestsGenericEnum<nat32, text>;
+  Two: u32;
+  Three: opt vec u32;
+  Four: record { a: u32; b: opt u16 };
+  Five: record { str; vec u8 };
+  Six: record { u32 };
+  Seven: SailsIdlgenTestsGenericEnum<u32, str>;
 };
 
-type SailsIdlgenTestsGenericEnum<nat32, text> = variant {
-  Variant1: nat32;
-  Variant2: text;
+type SailsIdlgenTestsGenericEnum<u32, str> = variant {
+  Variant1: u32;
+  Variant2: str;
 };
 
 service {
-  This : (nat32, text, record { opt text; nat8 }, SailsIdlgenTestsTupleStruct, SailsIdlgenTestsGenericEnum<bool, nat32>) -> (record { text; nat32 }, text) query;
-  That : (SailsIdlgenTestsThatParam) -> (record { text; nat32 }, record { text }) query;
-  Fail : (text) -> (null, text) query;
+  This : (u32, str, record { opt str; u8 }, SailsIdlgenTestsTupleStruct, SailsIdlgenTestsGenericEnum<bool, u32>) -> result (record { str; u32 }, str) query;
+  That : (SailsIdlgenTestsThatParam) -> result (record { str; u32 }, record { str }) query;
+  Fail : (str) -> result (null, str) query;
 }
 ";
         assert_eq!(generated_idl, EXPECTED_IDL);
@@ -343,38 +343,38 @@ service {
   bool;
 };
 
-type SailsIdlgenTestsGenericStruct<nat32> = record {
-  p1: nat32;
+type SailsIdlgenTestsGenericStruct<u32> = record {
+  p1: u32;
 };
 
-type SailsIdlgenTestsGenericStruct<text> = record {
-  p1: text;
+type SailsIdlgenTestsGenericStruct<str> = record {
+  p1: str;
 };
 
 type SailsIdlgenTestsDoThatParam = record {
-  p1: nat32;
-  p2: text;
+  p1: u32;
+  p2: str;
   p3: SailsIdlgenTestsManyVariants;
 };
 
 type SailsIdlgenTestsManyVariants = variant {
   One;
-  Two: nat32;
-  Three: opt vec nat32;
-  Four: record { a: nat32; b: opt nat16 };
-  Five: record { text; vec nat8 };
-  Six: record { nat32 };
-  Seven: SailsIdlgenTestsGenericEnum<nat32, text>;
+  Two: u32;
+  Three: opt vec u32;
+  Four: record { a: u32; b: opt u16 };
+  Five: record { str; vec u8 };
+  Six: record { u32 };
+  Seven: SailsIdlgenTestsGenericEnum<u32, str>;
 };
 
-type SailsIdlgenTestsGenericEnum<nat32, text> = variant {
-  Variant1: nat32;
-  Variant2: text;
+type SailsIdlgenTestsGenericEnum<u32, str> = variant {
+  Variant1: u32;
+  Variant2: str;
 };
 
-type SailsIdlgenTestsGenericEnum<bool, nat32> = variant {
+type SailsIdlgenTestsGenericEnum<bool, u32> = variant {
   Variant1: bool;
-  Variant2: nat32;
+  Variant2: u32;
 };
 
 type SailsIdlgenTestsThatParam = record {
@@ -382,12 +382,12 @@ type SailsIdlgenTestsThatParam = record {
 };
 
 service {
-  async DoThis : (nat32, text, record { opt text; nat8 }, SailsIdlgenTestsTupleStruct, SailsIdlgenTestsGenericStruct<nat32>, SailsIdlgenTestsGenericStruct<text>) -> (record { text; nat32 }, text);
-  async DoThat : (SailsIdlgenTestsDoThatParam) -> (record { text; nat32 }, record { text });
-  async Fail : (text) -> (null, text);
-  This : (nat32, text, record { opt text; nat8 }, SailsIdlgenTestsTupleStruct, SailsIdlgenTestsGenericEnum<bool, nat32>) -> (record { text; nat32 }, text) query;
-  That : (SailsIdlgenTestsThatParam) -> (record { text; nat32 }, record { text }) query;
-  Fail : (text) -> (null, text) query;
+  async DoThis : (u32, str, record { opt str; u8 }, SailsIdlgenTestsTupleStruct, SailsIdlgenTestsGenericStruct<u32>, SailsIdlgenTestsGenericStruct<str>) -> result (record { str; u32 }, str);
+  async DoThat : (SailsIdlgenTestsDoThatParam) -> result (record { str; u32 }, record { str });
+  async Fail : (str) -> result (null, str);
+  This : (u32, str, record { opt str; u8 }, SailsIdlgenTestsTupleStruct, SailsIdlgenTestsGenericEnum<bool, u32>) -> result (record { str; u32 }, str) query;
+  That : (SailsIdlgenTestsThatParam) -> result (record { str; u32 }, record { str }) query;
+  Fail : (str) -> result (null, str) query;
 }
 ";
         assert_eq!(generated_idl, EXPECTED_IDL);
