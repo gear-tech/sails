@@ -1,0 +1,16 @@
+[package]
+name = "this-that-svc"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+gstd.workspace = true
+gsys.workspace = true
+parity-scale-codec.workspace = true
+sails-service.workspace = true
+this-that-svc-app = { path = "../app" }
+
+[build-dependencies]
+gwasm-builder.workspace = true
+sails-idlgen.workspace = true
+this-that-svc-app = { path = "../app" }

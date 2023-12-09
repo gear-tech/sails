@@ -1,0 +1,12 @@
+[package]
+name = "sails-service"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+async-trait.workspace = true
+hashbrown.workspace = true
+parity-scale-codec.workspace = true
+scale-info.workspace = true
