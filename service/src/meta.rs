@@ -53,5 +53,7 @@ impl QueryProcessorMeta for () {
     type ProcessFn = fn(Self::Request) -> (Self::Response, bool);
 }
 
-// TODO: Think of introducing ServiceMeta trait with associated types for command and query processors
-//       Then SimpleService can have impls for the ServiceMeta and Service traits both
+pub trait ServiceMeta {
+    type Commands: StaticTypeInfo;
+    type Queries: StaticTypeInfo;
+}

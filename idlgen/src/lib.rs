@@ -19,15 +19,17 @@
 //! Functionality for generating IDL files describing some service based on its Rust code.
 
 use handlebars::{handlebars_helper, Handlebars};
-use sails_service::{CommandProcessorMeta, QueryProcessorMeta};
+use sails_service::{CommandProcessorMeta, QueryProcessorMeta, ServiceMeta};
 use scale_info::PortableType;
-use service_types::ServiceTypes;
+use serde::Serialize;
+use service_types::{ServiceTypes, ServiceTypesEx};
 use std::io;
 
 mod errors;
 mod service_types;
 mod type_names;
 
+const IDL_EX_TEMPLATE: &str = include_str!("../hbs/idl_ex.hbs");
 const IDL_TEMPLATE: &str = include_str!("../hbs/idl.hbs");
 const COMPOSITE_TEMPLATE: &str = include_str!("../hbs/composite.hbs");
 const VARIANT_TEMPLATE: &str = include_str!("../hbs/variant.hbs");
@@ -72,6 +74,38 @@ where
     Ok(())
 }
 
+pub fn generate_serivce_idl_ex<S: ServiceMeta>(idl_writer: impl io::Write) -> errors::Result<()> {
+    let service_info = ServiceTypesEx::<S>::new();
+
+    let service_all_type_names = type_names::resolve_type_names(service_info.all_types_registry())?;
+
+    let service_idl_data = ServiceIdlDataEx {
+        type_names: service_all_type_names.values().collect(),
+        all_types: service_info.all_types_registry().types.iter().collect(),
+        complex_types: service_info.complex_types().collect(),
+        commands: service_info.commands_type(),
+        queries: service_info.queries_type(),
+    };
+
+    let mut handlebars = Handlebars::new();
+    handlebars
+        .register_template_string("idl", IDL_EX_TEMPLATE)
+        .map_err(Box::new)?;
+    handlebars
+        .register_template_string("composite", COMPOSITE_TEMPLATE)
+        .map_err(Box::new)?;
+    handlebars
+        .register_template_string("variant", VARIANT_TEMPLATE)
+        .map_err(Box::new)?;
+    handlebars.register_helper("deref", Box::new(deref));
+
+    handlebars
+        .render_to_write("idl", &service_idl_data, idl_writer)
+        .map_err(Box::new)?;
+
+    Ok(())
+}
+
 #[derive(serde::Serialize)]
 struct ServiceIdlData<'a> {
     complex_types: Vec<&'a PortableType>,
@@ -82,6 +116,15 @@ struct ServiceIdlData<'a> {
     #[serde(rename = "queryResponses")]
     query_responses: &'a PortableType,
     type_names: Vec<&'a String>,
+}
+
+#[derive(Serialize)]
+struct ServiceIdlDataEx<'a> {
+    type_names: Vec<&'a String>,
+    all_types: Vec<&'a PortableType>,
+    complex_types: Vec<&'a PortableType>,
+    commands: &'a PortableType,
+    queries: &'a PortableType,
 }
 
 handlebars_helper!(deref: |v: String| { v });

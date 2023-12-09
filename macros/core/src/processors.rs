@@ -21,8 +21,260 @@
 use convert_case::{Case, Casing};
 use proc_macro2::TokenStream as TokenStream2;
 use proc_macro_error::abort;
-use quote::quote;
-use syn::{self, spanned::Spanned};
+use quote::{quote, ToTokens};
+use syn::{self, spanned::Spanned, Ident, Receiver, Signature, Type, TypePath};
+
+pub(super) fn gservice(impl_tokens: TokenStream2) -> TokenStream2 {
+    let handlers_impl = syn::parse2::<syn::ItemImpl>(impl_tokens.clone())
+        .unwrap_or_else(|err| abort!(err.span(), "Failed to parse handlers impl: {}", err));
+
+    let handler_funcs = handler_funcs(&handlers_impl).collect::<Vec<_>>();
+
+    if handler_funcs.is_empty() {
+        abort!(
+            handlers_impl,
+            "No handlers found. Try either defining one or removing the macro usage"
+        );
+    }
+
+    let service_type = service_type(&handlers_impl.self_ty);
+
+    let mut params_structs = vec![];
+    let mut invocation_funcs = vec![];
+    let mut invocations = vec![];
+    let mut commands_meta_variants = vec![];
+    let mut queries_meta_variants = vec![];
+
+    for handler_func in &handler_funcs {
+        let handler = Handler::from(handler_func);
+        let handler_generator = HandlerGenerator::from(service_type, handler);
+        let invocation_func_ident = handler_generator.invocation_func_ident();
+        let invocation_path = invocation_func_ident.to_string().to_case(Case::Pascal);
+        let invocation_route = format!("{}/", invocation_path);
+
+        params_structs.push(handler_generator.params_struct());
+        invocation_funcs.push(handler_generator.invocation_func());
+        invocations.push(quote!(
+            if input.starts_with(#invocation_route.as_bytes()) {
+                return #invocation_func_ident(service, &input[#invocation_route.as_bytes().len()..]).await;
+            }
+        ));
+
+        let params_struct_ident = handler_generator.params_struct_ident();
+        let result_type = handler_generator.result_type();
+        let invocation_path = Ident::new(&invocation_path, proc_macro2::Span::call_site());
+        let handler_meta_variant = quote!(
+            #invocation_path(#params_struct_ident, #result_type),
+        );
+        if handler_generator.is_query() {
+            queries_meta_variants.push(handler_meta_variant);
+        } else {
+            commands_meta_variants.push(handler_meta_variant);
+        }
+    }
+
+    quote!(
+        #impl_tokens
+
+        #(#[derive(Decode, TypeInfo)] #params_structs)*
+
+        pub mod meta {
+            use super::*;
+
+            #[derive(TypeInfo)]
+            pub enum CommandsMeta {
+                #(#commands_meta_variants)*
+            }
+
+            #[derive(TypeInfo)]
+            pub enum QueriesMeta {
+                #(#queries_meta_variants)*
+            }
+
+            pub struct ServiceMeta;
+
+            impl sails_service::ServiceMeta for ServiceMeta {
+                type Commands = CommandsMeta;
+                type Queries = QueriesMeta;
+            }
+        }
+
+        pub mod handlers {
+            use super::*;
+
+            pub async fn process_request(service: &mut #service_type, mut input: &[u8]) -> Vec<u8> {
+                #(#invocations)*
+                panic!("Unknown request");
+            }
+
+            #(#invocation_funcs)*
+        }
+    )
+}
+
+fn service_type(service_type: &Type) -> &TypePath {
+    if let syn::Type::Path(type_path) = service_type {
+        type_path
+    } else {
+        abort!(
+            service_type.span(),
+            "Failed to parse service type: {}",
+            service_type.to_token_stream()
+        )
+    }
+}
+
+fn handler_funcs(handlers_impl: &syn::ItemImpl) -> impl Iterator<Item = &syn::Signature> {
+    handlers_impl.items.iter().filter_map(|item| {
+        if let syn::ImplItem::Fn(fn_item) = item {
+            if matches!(fn_item.vis, syn::Visibility::Public(_)) && fn_item.sig.receiver().is_some()
+            {
+                return Some(&fn_item.sig);
+            }
+        }
+        None
+    })
+}
+
+struct Handler<'a> {
+    func: &'a Ident,
+    receiver: &'a Receiver,
+    params: Vec<(&'a Ident, &'a Type)>,
+    result: &'a Type,
+    is_async: bool,
+    is_query: bool,
+}
+
+impl<'a> Handler<'a> {
+    fn from(handler_signature: &'a Signature) -> Self {
+        let func = &handler_signature.ident;
+        let receiver = handler_signature.receiver().unwrap_or_else(|| {
+            abort!(
+                handler_signature.span(),
+                "Handler must be a public method of service"
+            )
+        });
+        let params = params(handler_signature).collect();
+        let result = result(handler_signature);
+        Self {
+            func,
+            receiver,
+            params,
+            result,
+            is_async: handler_signature.asyncness.is_some(),
+            is_query: receiver.mutability.is_none(),
+        }
+    }
+}
+
+fn params(handler_signature: &syn::Signature) -> impl Iterator<Item = (&Ident, &Type)> {
+    handler_signature.inputs.iter().skip(1).map(|arg| {
+        if let syn::FnArg::Typed(arg) = arg {
+            let arg_ident = if let syn::Pat::Ident(arg_ident) = arg.pat.as_ref() {
+                &arg_ident.ident
+            } else {
+                abort!(arg.span(), "Unnamed arguments are not supported");
+            };
+            (arg_ident, arg.ty.as_ref())
+        } else {
+            abort!(arg.span(), "Arguments of the Self type are not supported");
+        }
+    })
+}
+
+fn result(handler_signature: &Signature) -> &Type {
+    if let syn::ReturnType::Type(_, ty) = &handler_signature.output {
+        ty.as_ref()
+    } else {
+        abort!(
+            handler_signature.output.span(),
+            "Failed to parse return type"
+        );
+    }
+}
+
+struct HandlerGenerator<'a> {
+    service_type: &'a TypePath,
+    handler: Handler<'a>,
+}
+
+impl<'a> HandlerGenerator<'a> {
+    fn from(service_type: &'a TypePath, handler: Handler<'a>) -> Self {
+        Self {
+            service_type,
+            handler,
+        }
+    }
+
+    fn params_struct_ident(&self) -> Ident {
+        syn::Ident::new(
+            &format!(
+                "{}Params",
+                self.handler.func.to_string().to_case(Case::Pascal)
+            ),
+            proc_macro2::Span::call_site(),
+        )
+    }
+
+    fn result_type(&self) -> Type {
+        self.handler.result.clone()
+    }
+
+    fn handler_func_ident(&self) -> Ident {
+        self.handler.func.clone()
+    }
+
+    fn invocation_func_ident(&self) -> Ident {
+        self.handler_func_ident()
+    }
+
+    fn is_query(&self) -> bool {
+        self.handler.is_query
+    }
+
+    fn params_struct(&self) -> TokenStream2 {
+        let params_struct_ident = self.params_struct_ident();
+        let params_struct_members = self.handler.params.iter().map(|item| {
+            let arg_ident = item.0;
+            let arg_type = item.1;
+            quote!(#arg_ident: #arg_type)
+        });
+
+        quote!(
+            pub struct #params_struct_ident {
+                #(#params_struct_members),*
+            }
+        )
+    }
+
+    fn invocation_func(&self) -> TokenStream2 {
+        let invocation_func_ident = self.invocation_func_ident();
+        let service_ref = self.handler.receiver.reference.as_ref().map(|r| r.0);
+        let service_lifetime = self.handler.receiver.reference.as_ref().map(|r| &r.1);
+        let service_mut = self.handler.receiver.mutability;
+        let service_type = self.service_type;
+        let params_struct_ident = self.params_struct_ident();
+        let handler_func_ident = self.handler_func_ident();
+        let handler_func_params = self.handler.params.iter().map(|item| {
+            let param_ident = item.0;
+            quote!(request.#param_ident)
+        });
+
+        let await_token = if self.handler.is_async {
+            quote!(.await)
+        } else {
+            quote!()
+        };
+
+        quote!(
+            async fn #invocation_func_ident(service: #service_ref #service_lifetime #service_mut #service_type, mut input: &[u8]) -> Vec<u8> {
+                let request = #params_struct_ident::decode(&mut input).expect("Failed to decode request");
+                let result = service.#handler_func_ident(#(#handler_func_params),*)#await_token;
+                return result.encode();
+            }
+        )
+    }
+}
 
 /// Generates a processor function with requests it can process and responses it can return.
 /// The processor function essentially acts as a router for the requests on their way to the

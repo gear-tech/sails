@@ -9,6 +9,8 @@ resolver = "2"
 members = [
     "examples/this-that/app",
     "examples/this-that/wasm",
+    "examples/this-that-svc/app",
+    "examples/this-that-svc/wasm",
     "idlgen",
     "macros",
     "macros/core",

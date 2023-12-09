@@ -1428,6 +1428,31 @@ dependencies = [
 ]
 
 [[package]]
+name = "this-that-svc"
+version = "0.1.0"
+dependencies = [
+ "gear-wasm-builder",
+ "gstd",
+ "gsys",
+ "parity-scale-codec",
+ "sails-idlgen",
+ "sails-service",
+ "this-that-svc-app",
+]
+
+[[package]]
+name = "this-that-svc-app"
+version = "0.1.0"
+dependencies = [
+ "gmeta",
+ "gstd",
+ "parity-scale-codec",
+ "sails-macros",
+ "sails-service",
+ "scale-info",
+]
+
+[[package]]
 name = "thiserror"
 version = "1.0.50"
 source = "registry+https://github.com/rust-lang/crates.io-index"

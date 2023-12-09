@@ -25,7 +25,7 @@ extern crate alloc;
 use alloc::{borrow::ToOwned, boxed::Box, format, string::String, vec::Vec};
 use async_trait::async_trait;
 use hashbrown::HashMap;
-pub use meta::{BoxedFuture, CommandProcessorMeta, QueryProcessorMeta};
+pub use meta::{BoxedFuture, CommandProcessorMeta, QueryProcessorMeta, ServiceMeta};
 use parity_scale_codec::{Decode, Encode};
 
 mod meta;

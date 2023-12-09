@@ -35,10 +35,96 @@ pub fn query_handlers_core(mod_tokens: TokenStream2) -> TokenStream2 {
     processors::generate(mod_tokens, QUERY_ENUM_NAME, QUERY_RESPONSES_ENUM_NAME)
 }
 
+pub fn gservice_core(impl_tokens: TokenStream2) -> TokenStream2 {
+    processors::gservice(impl_tokens)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use quote::quote;
+
+    #[test]
+    fn gservice_core_works() {
+        let input = quote! {
+            impl SomeService {
+                pub async fn do_this(&mut self, p1: u32, p2: String) -> u32 {
+                    p1
+                }
+
+                pub fn this(&self, p1: bool) -> bool {
+                    p1
+                }
+            }
+        };
+        let expected = quote!(
+            impl SomeService {
+                pub async fn do_this(&mut self, p1: u32, p2: String) -> u32 {
+                    p1
+                }
+                pub fn this(&self, p1: bool) -> bool {
+                    p1
+                }
+            }
+
+            #[derive(Decode, TypeInfo)]
+            pub struct DoThisParams {
+                p1: u32,
+                p2: String
+            }
+
+            #[derive(Decode, TypeInfo)]
+            pub struct ThisParams {
+                p1: bool
+            }
+
+            pub mod meta {
+                use super::*;
+
+                #[derive(TypeInfo)]
+                pub enum CommandsMeta {
+                    DoThis(DoThisParams, u32),
+                }
+
+                #[derive(TypeInfo)]
+                pub enum QueriesMeta {
+                    This(ThisParams, bool),
+                }
+
+                pub struct ServiceMeta;
+
+                impl sails_service::ServiceMeta for ServiceMeta {
+                    type Commands = CommandsMeta;
+                    type Queries = QueriesMeta;
+                }
+            }
+
+            pub mod handlers {
+                use super::*;
+                pub async fn process_request(service: &mut SomeService, mut input: &[u8]) -> Vec<u8> {
+                    if input.starts_with("DoThis/".as_bytes()) {
+                        return do_this(service, &input["DoThis/".as_bytes().len()..]).await;
+                    }
+                    if input.starts_with("This/".as_bytes()) {
+                        return this(service, &input["This/".as_bytes().len()..]).await;
+                    }
+                    panic!("Unknown request");
+                }
+                async fn do_this(service: &mut SomeService, mut input: &[u8]) -> Vec<u8> {
+                    let request = DoThisParams::decode(&mut input).expect("Failed to decode request");
+                    let result = service.do_this(request.p1, request.p2).await;
+                    return result.encode();
+                }
+                async fn this(service: &SomeService, mut input: &[u8]) -> Vec<u8> {
+                    let request = ThisParams::decode(&mut input).expect("Failed to decode request");
+                    let result = service.this(request.p1);
+                    return result.encode();
+                }
+            }
+
+        );
+        assert_eq!(expected.to_string(), gservice_core(input).to_string());
+    }
 
     #[test]
     fn command_handlers_core_works() {

@@ -18,7 +18,7 @@
 
 //! Struct describing the types of a service comprised of command and query handlers.
 
-use sails_service::{CommandProcessorMeta, QueryProcessorMeta};
+use sails_service::{CommandProcessorMeta, QueryProcessorMeta, ServiceMeta};
 use scale_info::{MetaType, PortableRegistry, PortableType, Registry};
 use std::marker::PhantomData;
 
@@ -101,5 +101,90 @@ where
                     handler_type_id
                 )
             })
+    }
+}
+
+pub(crate) struct ServiceTypesEx<S> {
+    type_registry: PortableRegistry,
+    commands_type_id: u32,
+    queries_type_id: u32,
+    _service: PhantomData<S>,
+}
+
+impl<S: ServiceMeta> ServiceTypesEx<S> {
+    pub fn new() -> Self {
+        // TODO: Validate HandlerTypes - both C and Q must be enums with variants having the same names in the same order
+        let mut type_registry = Registry::new();
+        let commands_type_id = type_registry
+            .register_type(&MetaType::new::<S::Commands>())
+            .id;
+        let queries_type_id = type_registry
+            .register_type(&MetaType::new::<S::Queries>())
+            .id;
+        let type_registry = PortableRegistry::from(type_registry);
+        Self {
+            type_registry,
+            commands_type_id,
+            queries_type_id,
+            _service: PhantomData,
+        }
+    }
+
+    pub fn complex_types(&self) -> impl Iterator<Item = &PortableType> {
+        self.type_registry.types.iter().filter(|ty| {
+            !ty.ty.path.namespace().is_empty()
+                && ty.id != self.commands_type_id
+                && ty.id != self.queries_type_id
+                && !self.command_params_type_ids().any(|id| id == ty.id)
+                && !self.query_params_type_ids().any(|id| id == ty.id)
+        })
+    }
+
+    pub fn commands_type(&self) -> &PortableType {
+        self.type_registry
+            .types
+            .iter()
+            .find(|ty| ty.id == self.commands_type_id)
+            .unwrap_or_else(|| {
+                panic!(
+                    "type with id {} not found while it was registered previously",
+                    self.commands_type_id
+                )
+            })
+    }
+
+    pub fn queries_type(&self) -> &PortableType {
+        self.type_registry
+            .types
+            .iter()
+            .find(|ty| ty.id == self.queries_type_id)
+            .unwrap_or_else(|| {
+                panic!(
+                    "type with id {} not found while it was registered previously",
+                    self.queries_type_id
+                )
+            })
+    }
+
+    pub fn all_types_registry(&self) -> &PortableRegistry {
+        &self.type_registry
+    }
+
+    fn command_params_type_ids(&self) -> impl Iterator<Item = u32> + '_ {
+        match &self.commands_type().ty.type_def {
+            scale_info::TypeDef::Variant(variant) => {
+                variant.variants.iter().map(|v| v.fields[0].ty.id)
+            }
+            _ => panic!("Commands type is not a variant"),
+        }
+    }
+
+    fn query_params_type_ids(&self) -> impl Iterator<Item = u32> + '_ {
+        match &self.queries_type().ty.type_def {
+            scale_info::TypeDef::Variant(variant) => {
+                variant.variants.iter().map(|v| v.fields[0].ty.id)
+            }
+            _ => panic!("Queries type is not a variant"),
+        }
     }
 }

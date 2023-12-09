@@ -20,7 +20,7 @@
 
 use proc_macro::TokenStream;
 use proc_macro_error::proc_macro_error;
-use sails_macros_core::{command_handlers_core, query_handlers_core};
+use sails_macros_core::{command_handlers_core, gservice_core, query_handlers_core};
 
 #[proc_macro_error]
 #[proc_macro_attribute]
@@ -32,4 +32,10 @@ pub fn command_handlers(_attrs: TokenStream, mod_tokens: TokenStream) -> TokenSt
 #[proc_macro_attribute]
 pub fn query_handlers(_attrs: TokenStream, mod_tokens: TokenStream) -> TokenStream {
     query_handlers_core(mod_tokens.into()).into()
+}
+
+#[proc_macro_error]
+#[proc_macro_attribute]
+pub fn gservice(_attrs: TokenStream, impl_tokens: TokenStream) -> TokenStream {
+    gservice_core(impl_tokens.into()).into()
 }
