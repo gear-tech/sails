@@ -548,7 +548,7 @@ dependencies = [
  "dirs",
  "gear-core",
  "gear-wasm-instrument",
- "gmeta",
+ "gmeta 1.0.1",
  "log",
  "once_cell",
  "pathdiff",
@@ -606,6 +606,17 @@ checksum = "d2fabcfbdc87f4758337ca535fb41a6d701b65693ce38287d856d1674551ec9b"
 name = "gmeta"
 version = "1.0.1"
 source = "git+https://github.com/gear-tech/gear.git?tag=v1.0.1#a3fe307bd8e0bdef14b323c4e2361d7df824a5f2"
+dependencies = [
+ "blake2-rfc",
+ "derive_more",
+ "hex",
+ "scale-info",
+]
+
+[[package]]
+name = "gmeta"
+version = "1.0.2"
+source = "git+https://github.com/gear-tech/gear.git?tag=v1.0.2#d02d306f97c2d60c1a8786366a56d8c02264f4e1"
 dependencies = [
  "blake2-rfc",
  "derive_more",
@@ -1419,7 +1430,7 @@ dependencies = [
 name = "this-that-app"
 version = "0.1.0"
 dependencies = [
- "gmeta",
+ "gmeta 1.0.2",
  "gstd",
  "parity-scale-codec",
  "sails-macros",
@@ -1444,7 +1455,7 @@ dependencies = [
 name = "this-that-svc-app"
 version = "0.1.0"
 dependencies = [
- "gmeta",
+ "gmeta 1.0.2",
  "gstd",
  "parity-scale-codec",
  "sails-macros",
