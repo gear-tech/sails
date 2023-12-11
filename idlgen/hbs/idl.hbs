@@ -1,0 +1,26 @@
+{{#each complex_types as |type|}}
+	{{#each type.type.def}}
+		{{~> (deref @key) id=type.id}}
+    {{/each}}
+
+{{/each}}
+service {
+{{#each commands.type.def.variant.variants}}
+  async {{name}} : (
+    {{~#each fields~}}
+      {{#if @index}}, {{/if}}{{{lookup @root/type_names type}}}
+    {{~/each~}}
+  ) -> {{#with (lookup @root/commandResponses.type.def.variant.variants @index)}}
+         {{{~lookup @root/type_names fields.[0].type}}};
+       {{/with}}
+{{/each}}
+{{#each queries.type.def.variant.variants}}
+  {{name}} : (
+    {{~#each fields~}}
+      {{#if @index}}, {{/if}}{{{lookup @root/type_names type}}}
+    {{~/each~}}
+  ) -> {{#with (lookup @root/queryResponses.type.def.variant.variants @index)}}
+         {{{~lookup @root/type_names fields.[0].type}}} query;
+       {{/with}}
+{{/each}}
+}

@@ -1,0 +1,5 @@
+error: No handlers found. Please either define one or remove the macro usage
+ --> tests/ui/no_query_handlers.rs:4:1
+  |
+4 | mod queries {}
+  | ^^^^^^^^^^^^^^
