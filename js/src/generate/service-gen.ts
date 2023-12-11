@@ -42,8 +42,6 @@ export class ServiceGenerator {
   private generateMethods(methods: IServiceMethod[]) {
     this._out.import('@polkadot/types/types', 'IKeyringPair');
 
-    let messageIndex = 0;
-    let queryIndex = 0;
     for (const {
       def: { args, name, output },
       kind,
@@ -57,14 +55,13 @@ export class ServiceGenerator {
             kind,
           )}): Promise<${returnType}>`,
           () => {
-            let index = kind === 'message' ? messageIndex : queryIndex;
             if (args.length === 0) {
-              this._out.line(`const payload = this.registry.createType('u8', ${index}).toU8a()`);
+              this._out.line(`const payload = this.registry.createType('String', '${name}/').toU8a()`);
             } else {
               this._out
                 .line(`const payload = [`, false)
                 .increaseIndent()
-                .line(`...this.registry.createType('u8', ${index}).toU8a(),`, false);
+                .line(`...this.registry.createType('String', '${name}/').toU8a(),`, false);
               for (const { name, type } of args) {
                 this._out.line(`...this.registry.createType('${getType(type, true)}', ${name}).toU8a(),`, false);
               }
@@ -72,7 +69,6 @@ export class ServiceGenerator {
             }
 
             if (kind === 'message') {
-              messageIndex++;
               this._out
                 .line(`const replyPayloadBytes = await this.submitMsgAndWaitForReply(`, false)
                 .increaseIndent()
@@ -84,7 +80,6 @@ export class ServiceGenerator {
                 .line(`const result = this.registry.createType('${getType(output, true)}', replyPayloadBytes)`)
                 .line(`return result.toJSON() as ${returnType}`);
             } else if (kind === 'query') {
-              queryIndex++;
               this._out
                 .line(`const stateBytes = await this.api.programState.read({ programId: this.programId, payload})`)
                 .line(`const result = this.registry.createType('${getType(output, true)}', stateBytes)`)
