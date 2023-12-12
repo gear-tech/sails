@@ -6,9 +6,9 @@
 {{/each}}
 service {
 {{#each commands.type.def.variant.variants}}
-  {{name}} : ({{#with (lookup @root/all_types fields.[0].type)}}{{#each type.def.composite.fields}}{{#if @index}}, {{/if}}{{name}}: {{{lookup @root/type_names type}}}{{/each}}{{/with}}) -> {{{lookup @root/type_names fields.[1].type}}}
+  command {{name}} : ({{#with (lookup @root/all_types fields.[0].type)}}{{#each type.def.composite.fields}}{{#if @index}}, {{/if}}{{name}}: {{{lookup @root/type_names type}}}{{/each}}{{/with}}) -> {{{lookup @root/type_names fields.[1].type}}};
 {{/each}}
 {{#each queries.type.def.variant.variants}}
-  query {{name}} : ({{#with (lookup @root/all_types fields.[0].type)}}{{#each type.def.composite.fields}}{{#if @index}}, {{/if}}{{name}}: {{{lookup @root/type_names type}}}{{/each}}{{/with}}) -> {{{lookup @root/type_names fields.[1].type}}}
+  query {{name}} : ({{#with (lookup @root/all_types fields.[0].type)}}{{#each type.def.composite.fields}}{{#if @index}}, {{/if}}{{name}}: {{{lookup @root/type_names type}}}{{/each}}{{/with}}) -> {{{lookup @root/type_names fields.[1].type}}};
 {{/each}}
 }
