@@ -1,4 +1,4 @@
-type {{{lookup @root/type_names id}}} = variant {
+type {{{lookup @root/type_names id}}} = enum {
 {{#each variants}}
   {{name}}
   {{~#if fields.[1]}}: struct { {{#each fields~}} {{#if @index}}, {{/if}}{{#if name}}{{name}}: {{/if}}{{{lookup @root/type_names type}}}{{/each}} }

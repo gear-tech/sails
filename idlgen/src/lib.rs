@@ -265,7 +265,7 @@ type SailsIdlgenTestsDoThatParam = struct {
   p3: SailsIdlgenTestsManyVariants,
 };
 
-type SailsIdlgenTestsManyVariants = variant {
+type SailsIdlgenTestsManyVariants = enum {
   One,
   Two: u32,
   Three: opt vec u32,
@@ -275,7 +275,7 @@ type SailsIdlgenTestsManyVariants = variant {
   Seven: SailsIdlgenTestsGenericEnum<u32, str>,
 };
 
-type SailsIdlgenTestsGenericEnum<u32, str> = variant {
+type SailsIdlgenTestsGenericEnum<u32, str> = enum {
   Variant1: u32,
   Variant2: str,
 };
@@ -299,7 +299,7 @@ service {
   bool,
 };
 
-type SailsIdlgenTestsGenericEnum<bool, u32> = variant {
+type SailsIdlgenTestsGenericEnum<bool, u32> = enum {
   Variant1: bool,
   Variant2: u32,
 };
@@ -308,7 +308,7 @@ type SailsIdlgenTestsThatParam = struct {
   p1: SailsIdlgenTestsManyVariants,
 };
 
-type SailsIdlgenTestsManyVariants = variant {
+type SailsIdlgenTestsManyVariants = enum {
   One,
   Two: u32,
   Three: opt vec u32,
@@ -318,7 +318,7 @@ type SailsIdlgenTestsManyVariants = variant {
   Seven: SailsIdlgenTestsGenericEnum<u32, str>,
 };
 
-type SailsIdlgenTestsGenericEnum<u32, str> = variant {
+type SailsIdlgenTestsGenericEnum<u32, str> = enum {
   Variant1: u32,
   Variant2: str,
 };
@@ -357,7 +357,7 @@ type SailsIdlgenTestsDoThatParam = struct {
   p3: SailsIdlgenTestsManyVariants,
 };
 
-type SailsIdlgenTestsManyVariants = variant {
+type SailsIdlgenTestsManyVariants = enum {
   One,
   Two: u32,
   Three: opt vec u32,
@@ -367,12 +367,12 @@ type SailsIdlgenTestsManyVariants = variant {
   Seven: SailsIdlgenTestsGenericEnum<u32, str>,
 };
 
-type SailsIdlgenTestsGenericEnum<u32, str> = variant {
+type SailsIdlgenTestsGenericEnum<u32, str> = enum {
   Variant1: u32,
   Variant2: str,
 };
 
-type SailsIdlgenTestsGenericEnum<bool, u32> = variant {
+type SailsIdlgenTestsGenericEnum<bool, u32> = enum {
   Variant1: bool,
   Variant2: u32,
 };
