@@ -1,0 +1,15 @@
+---
+source: client-gen/src/generator.rs
+expression: generator.result_string()
+---
+#[derive(PartialEq, Debug, Encode, Decode)]
+pub enum P3Variant  {
+One,
+Two,
+} 
+#[derive(PartialEq, Debug, Encode, Decode)]
+pub struct ThisThatAppDoThatParam  {
+p2: String,
+p3: P3Variant,
+} 
+

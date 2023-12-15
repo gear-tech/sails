@@ -1,0 +1,15 @@
+---
+source: client-gen/src/generator.rs
+expression: generator.result_string()
+---
+#[derive(PartialEq, Debug, Encode, Decode)]
+pub enum TwoVariant  {
+Three,
+Four,
+} 
+#[derive(PartialEq, Debug, Encode, Decode)]
+pub enum ThisThatAppManyVariants  {
+One,
+Two(TwoVariant),
+} 
+

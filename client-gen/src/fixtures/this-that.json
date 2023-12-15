@@ -1,0 +1,490 @@
+{
+   "types": [
+      {
+         "def": {
+            "name": "u32",
+            "kind": "simple"
+         },
+         "kind": "typeName",
+         "type": {
+            "name": "Alias",
+            "kind": "simple"
+         }
+      },
+      {
+         "def": {
+            "def": {
+               "name": "u8",
+               "kind": "simple"
+            },
+            "kind": "typeName"
+         },
+         "kind": "option",
+         "type": {
+            "name": "OptionAlias",
+            "kind": "simple"
+         }
+      },
+      {
+         "def": {
+            "ok": {
+               "def": {
+                  "name": "u8",
+                  "kind": "simple"
+               },
+               "kind": "typeName"
+            },
+            "err": {
+               "def": {
+                  "name": "string",
+                  "kind": "simple"
+               },
+               "kind": "typeName"
+            }
+         },
+         "kind": "result",
+         "type": {
+            "name": "ResultAlias",
+            "kind": "simple"
+         }
+      },
+      {
+         "def": {
+            "def": {
+               "name": "u8",
+               "kind": "simple"
+            },
+            "kind": "typeName"
+         },
+         "kind": "vec",
+         "type": {
+            "name": "VecAlias",
+            "kind": "simple"
+         }
+      },
+      {
+         "def": {
+            "fields": [
+               {
+                  "def": {
+                     "name": "bool",
+                     "kind": "simple"
+                  },
+                  "kind": "typeName"
+               }
+            ]
+         },
+         "kind": "tuple",
+         "type": {
+            "name": "ThisThatAppTupleStruct",
+            "kind": "simple"
+         }
+      },
+      {
+         "def": {
+            "fields": [
+               {
+                  "name": "p1",
+                  "type": {
+                     "def": {
+                        "name": "u32",
+                        "kind": "simple"
+                     },
+                     "kind": "typeName"
+                  }
+               },
+               {
+                  "name": "p2",
+                  "type": {
+                     "def": {
+                        "name": "string",
+                        "kind": "simple"
+                     },
+                     "kind": "typeName"
+                  }
+               },
+               {
+                  "name": "p3",
+                  "type": {
+                     "def": {
+                        "name": "ThisThatAppManyVariants",
+                        "kind": "simple"
+                     },
+                     "kind": "typeName"
+                  }
+               }
+            ]
+         },
+         "kind": "struct",
+         "type": {
+            "name": "ThisThatAppDoThatParam",
+            "kind": "simple"
+         }
+      },
+      {
+         "def": {
+            "variants": [
+               {
+                  "name": "One"
+               },
+               {
+                  "name": "Two",
+                  "type": {
+                     "def": {
+                        "name": "u32",
+                        "kind": "simple"
+                     },
+                     "kind": "typeName"
+                  }
+               },
+               {
+                  "name": "Three",
+                  "type": {
+                     "def": {
+                        "def": {
+                           "def": {
+                              "name": "u8",
+                              "kind": "simple"
+                           },
+                           "kind": "typeName"
+                        },
+                        "kind": "vec"
+                     },
+                     "kind": "option"
+                  }
+               },
+               {
+                  "name": "Four",
+                  "type": {
+                     "def": {
+                        "fields": [
+                           {
+                              "name": "a",
+                              "type": {
+                                 "def": {
+                                    "name": "u32",
+                                    "kind": "simple"
+                                 },
+                                 "kind": "typeName"
+                              }
+                           },
+                           {
+                              "name": "b",
+                              "type": {
+                                 "def": {
+                                    "def": {
+                                       "name": "u16",
+                                       "kind": "simple"
+                                    },
+                                    "kind": "typeName"
+                                 },
+                                 "kind": "option"
+                              }
+                           }
+                        ]
+                     },
+                     "kind": "struct"
+                  }
+               },
+               {
+                  "name": "Five",
+                  "type": {
+                     "def": {
+                        "fields": [
+                           {
+                              "def": {
+                                 "name": "string",
+                                 "kind": "simple"
+                              },
+                              "kind": "typeName"
+                           },
+                           {
+                              "def": {
+                                 "name": "u32",
+                                 "kind": "simple"
+                              },
+                              "kind": "typeName"
+                           }
+                        ]
+                     },
+                     "kind": "tuple"
+                  }
+               },
+               {
+                  "name": "Six",
+                  "type": {
+                     "def": {
+                        "fields": [
+                           {
+                              "def": {
+                                 "name": "u32",
+                                 "kind": "simple"
+                              },
+                              "kind": "typeName"
+                           }
+                        ]
+                     },
+                     "kind": "tuple"
+                  }
+               }
+            ]
+         },
+         "kind": "variant",
+         "type": {
+            "name": "ThisThatAppManyVariants",
+            "kind": "simple"
+         }
+      }
+   ],
+   "services": [
+      {
+         "methods": [
+            {
+               "def": {
+                  "name": "DoThis",
+                  "args": [
+                     {
+                        "name": "a1",
+                        "type": {
+                           "def": {
+                              "name": "u32",
+                              "kind": "simple"
+                           },
+                           "kind": "typeName"
+                        }
+                     },
+                     {
+                        "name": "a2",
+                        "type": {
+                           "def": {
+                              "name": "string",
+                              "kind": "simple"
+                           },
+                           "kind": "typeName"
+                        }
+                     },
+                     {
+                        "name": "a3",
+                        "type": {
+                           "def": {
+                              "fields": [
+                                 {
+                                    "def": {
+                                       "def": {
+                                          "name": "string",
+                                          "kind": "simple"
+                                       },
+                                       "kind": "typeName"
+                                    },
+                                    "kind": "option"
+                                 },
+                                 {
+                                    "def": {
+                                       "name": "u8",
+                                       "kind": "simple"
+                                    },
+                                    "kind": "typeName"
+                                 }
+                              ]
+                           },
+                           "kind": "tuple"
+                        }
+                     },
+                     {
+                        "name": "a4",
+                        "type": {
+                           "def": {
+                              "name": "ThisThatAppTupleStruct",
+                              "kind": "simple"
+                           },
+                           "kind": "typeName"
+                        }
+                     }
+                  ],
+                  "output": {
+                     "def": {
+                        "ok": {
+                           "def": {
+                              "fields": [
+                                 {
+                                    "def": {
+                                       "name": "string",
+                                       "kind": "simple"
+                                    },
+                                    "kind": "typeName"
+                                 },
+                                 {
+                                    "def": {
+                                       "name": "u32",
+                                       "kind": "simple"
+                                    },
+                                    "kind": "typeName"
+                                 }
+                              ]
+                           },
+                           "kind": "tuple"
+                        },
+                        "err": {
+                           "def": {
+                              "name": "string",
+                              "kind": "simple"
+                           },
+                           "kind": "typeName"
+                        }
+                     },
+                     "kind": "result"
+                  }
+               },
+               "kind": "message"
+            },
+            {
+               "def": {
+                  "name": "DoThat",
+                  "args": [
+                     {
+                        "name": "a1",
+                        "type": {
+                           "def": {
+                              "name": "ThisThatAppDoThatParam",
+                              "kind": "simple"
+                           },
+                           "kind": "typeName"
+                        }
+                     }
+                  ],
+                  "output": {
+                     "def": {
+                        "ok": {
+                           "def": {
+                              "fields": [
+                                 {
+                                    "def": {
+                                       "name": "string",
+                                       "kind": "simple"
+                                    },
+                                    "kind": "typeName"
+                                 },
+                                 {
+                                    "def": {
+                                       "name": "u32",
+                                       "kind": "simple"
+                                    },
+                                    "kind": "typeName"
+                                 }
+                              ]
+                           },
+                           "kind": "tuple"
+                        },
+                        "err": {
+                           "def": {
+                              "fields": [
+                                 {
+                                    "def": {
+                                       "name": "string",
+                                       "kind": "simple"
+                                    },
+                                    "kind": "typeName"
+                                 }
+                              ]
+                           },
+                           "kind": "tuple"
+                        }
+                     },
+                     "kind": "result"
+                  }
+               },
+               "kind": "message"
+            },
+            {
+               "def": {
+                  "name": "Fail",
+                  "args": [
+                     {
+                        "name": "a2",
+                        "type": {
+                           "def": {
+                              "name": "string",
+                              "kind": "simple"
+                           },
+                           "kind": "typeName"
+                        }
+                     }
+                  ],
+                  "output": {
+                     "def": {
+                        "ok": {
+                           "def": {
+                              "name": "null",
+                              "kind": "simple"
+                           },
+                           "kind": "typeName"
+                        },
+                        "err": {
+                           "def": {
+                              "name": "string",
+                              "kind": "simple"
+                           },
+                           "kind": "typeName"
+                        }
+                     },
+                     "kind": "result"
+                  }
+               },
+               "kind": "message"
+            },
+            {
+               "def": {
+                  "name": "This",
+                  "args": [],
+                  "output": {
+                     "def": {
+                        "ok": {
+                           "def": {
+                              "name": "u32",
+                              "kind": "simple"
+                           },
+                           "kind": "typeName"
+                        },
+                        "err": {
+                           "def": {
+                              "name": "string",
+                              "kind": "simple"
+                           },
+                           "kind": "typeName"
+                        }
+                     },
+                     "kind": "result"
+                  }
+               },
+               "kind": "query"
+            },
+            {
+               "def": {
+                  "name": "That",
+                  "args": [],
+                  "output": {
+                     "def": {
+                        "ok": {
+                           "def": {
+                              "name": "string",
+                              "kind": "simple"
+                           },
+                           "kind": "typeName"
+                        },
+                        "err": {
+                           "def": {
+                              "name": "string",
+                              "kind": "simple"
+                           },
+                           "kind": "typeName"
+                        }
+                     },
+                     "kind": "result"
+                  }
+               },
+               "kind": "query"
+            }
+         ]
+      }
+   ]
+}
