@@ -3,7 +3,7 @@ import { parseSailsIdl } from '../src';
 describe('service', () => {
   test('simple service', () => {
     const text = `service {
-      async DoThis : (a1: string) -> u8;
+      DoThis : (a1: string) -> u8;
     }`;
 
     const result = parseSailsIdl(text);
@@ -39,8 +39,8 @@ describe('service', () => {
 
   test('service with multiple methods', () => {
     const text = `service {
-      async DoThis : (a1: u32, a2: struct { string, opt u8 }) -> result ( string, u8 );
-      async DoThat : (a1: vec u8) -> string;
+      DoThis : (a1: u32, a2: struct { string, opt u8 }) -> result ( string, u8 );
+      DoThat : (a1: vec u8) -> string;
       query GetThis : (a1: string) -> u8;
       query GetThat : (a1: vec u8) -> string;
     }`;

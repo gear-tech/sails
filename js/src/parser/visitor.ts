@@ -3,6 +3,8 @@ import { CstNode } from 'chevrotain';
 import { SailsParser } from './parser.js';
 import {
   IArgument,
+  IEnumField,
+  IEnumType,
   IInnerType,
   IOptionType,
   IResultType,
@@ -15,8 +17,6 @@ import {
   IType,
   ITypeDecl,
   ITypeNameType,
-  IVariantField,
-  IVariantType,
   IVecType,
 } from '../types/index.js';
 
@@ -129,8 +129,8 @@ export function getSailsVisitorClass(parser: SailsParser) {
       if (ctx.struct) {
         return this.visit(ctx.struct);
       }
-      if (ctx.variant) {
-        return this.visit(ctx.variant);
+      if (ctx.enum) {
+        return this.visit(ctx.enum);
       }
       if (ctx.opt) {
         return this.visit(ctx.opt);
@@ -156,11 +156,11 @@ export function getSailsVisitorClass(parser: SailsParser) {
       return { def, kind: 'typeName' };
     }
 
-    variant(ctx: CstNode & Record<string, any>): Omit<IVariantType, 'type'> {
-      return { def: { variants: ctx.variantField.map((field) => this.visit(field)) }, kind: 'variant' };
+    enum(ctx: CstNode & Record<string, any>): Omit<IEnumType, 'type'> {
+      return { def: { variants: ctx.enumField.map((field) => this.visit(field)) }, kind: 'enum' };
     }
 
-    variantField(ctx: CstNode & Record<string, any>): IVariantField {
+    enumField(ctx: CstNode & Record<string, any>): IEnumField {
       const name = this.visit(ctx.fieldName);
       if (ctx.fieldType) {
         const type = this.visit(ctx.fieldType);

@@ -1,8 +1,8 @@
 import { parseSailsIdl } from '../src';
 
-describe('variant', () => {
-  test('simple variant', () => {
-    const text = `type SimpleVariant = variant {
+describe('enum', () => {
+  test('simple enum', () => {
+    const text = `type SimpleEnum = enum {
         One,
         Two,
         Three,
@@ -26,16 +26,16 @@ describe('variant', () => {
           },
         ],
       },
-      kind: 'variant',
+      kind: 'enum',
       type: {
         kind: 'simple',
-        name: 'SimpleVariant',
+        name: 'SimpleEnum',
       },
     });
   });
 
-  test('complex variant', () => {
-    const text = `type ComplexVariant = variant {
+  test('complex enum', () => {
+    const text = `type ComplexEnum = enum {
         One,
         Two: u32,
         Three: opt vec u8,
@@ -48,8 +48,8 @@ describe('variant', () => {
 
     expect(result.types).toHaveLength(1);
 
-    expect(result.types[0].kind).toBe('variant');
-    expect(result.types[0].type).toEqual({ name: 'ComplexVariant', kind: 'simple' });
+    expect(result.types[0].kind).toBe('enum');
+    expect(result.types[0].type).toEqual({ name: 'ComplexEnum', kind: 'simple' });
 
     expect(result.types[0].def.variants).toHaveLength(6);
 

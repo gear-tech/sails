@@ -58,6 +58,6 @@ export const Vec = createToken({ name: 'Vec', pattern: /vec/ });
 
 export const Result = createToken({ name: 'Result', pattern: /result/ });
 
-export const Variant = createToken({ name: 'Variant', pattern: /variant/ });
+export const Enum = createToken({ name: 'Enum', pattern: /enum/ });
 
 export const Identifier = createToken({ name: 'Identifier', pattern: /[A-Za-z0-9]+/ });

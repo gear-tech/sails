@@ -54,16 +54,16 @@ export interface IStructType extends IBaseType {
   kind: 'struct';
 }
 
-export interface IVariantField {
+export interface IEnumField {
   name: string;
   type?: IInnerType | Omit<IStructType, 'type'>;
 }
 
-export interface IVariantType extends IBaseType {
+export interface IEnumType extends IBaseType {
   def: {
-    variants: IVariantField[];
+    variants: IEnumField[];
   };
-  kind: 'variant';
+  kind: 'enum';
 }
 
 export type IInnerType =
@@ -74,4 +74,4 @@ export type IInnerType =
   | Omit<ITupleType, 'type'>
   | Omit<IStructType, 'type'>;
 
-export type IType = ITypeNameType | IOptionType | IResultType | IVecType | ITupleType | IStructType | IVariantType;
+export type IType = ITypeNameType | IOptionType | IResultType | IVecType | ITupleType | IStructType | IEnumType;

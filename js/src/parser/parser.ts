@@ -10,7 +10,6 @@ import {
   LAngle,
   LCurly,
   LParen,
-  Message,
   Query,
   RAngle,
   RCurly,
@@ -22,7 +21,7 @@ import {
   Vec,
   Result,
   Type,
-  Variant,
+  Enum,
 } from './tokens.js';
 
 export class SailsParser extends CstParser {
@@ -34,7 +33,7 @@ export class SailsParser extends CstParser {
     this.commonParser();
     this.structParser();
     this.tupleParser();
-    this.variantParser();
+    this.enumParser();
     this.optionParser();
     this.resultParser();
     this.vecParser();
@@ -89,7 +88,7 @@ export class SailsParser extends CstParser {
         { ALT: () => $.SUBRULE($.vec) },
         { ALT: () => $.SUBRULE($.result) },
         { ALT: () => $.SUBRULE($.struct) },
-        { ALT: () => $.SUBRULE($.variant) },
+        { ALT: () => $.SUBRULE($.enum) },
       ]),
     );
 
@@ -169,19 +168,19 @@ export class SailsParser extends CstParser {
     });
   }
 
-  private variantParser() {
+  private enumParser() {
     const $ = this as SailsParser & Record<string, any>;
 
-    $.RULE('variant', () => {
-      $.CONSUME(Variant);
+    $.RULE('enum', () => {
+      $.CONSUME(Enum);
       $.CONSUME(LCurly);
       $.AT_LEAST_ONE({
-        DEF: () => $.SUBRULE($.variantField),
+        DEF: () => $.SUBRULE($.enumField),
       });
       $.CONSUME(RCurly);
     });
 
-    $.RULE('variantField', () => {
+    $.RULE('enumField', () => {
       $.SUBRULE($.fieldName);
       $.OPTION(() => {
         $.CONSUME(Colon);
@@ -198,14 +197,13 @@ export class SailsParser extends CstParser {
       $.CONSUME(Service);
       $.CONSUME(LCurly);
       $.MANY({
-        DEF: () => $.OR([{ ALT: () => $.SUBRULE($.message) }, { ALT: () => $.SUBRULE($.query) }]),
+        DEF: () => $.OR([{ ALT: () => $.SUBRULE($.query) }, { ALT: () => $.SUBRULE($.message) }]),
       });
       $.CONSUME(RCurly);
       $.OPTION(() => $.CONSUME(Semicolon));
     });
 
     $.RULE('message', () => {
-      $.CONSUME(Message);
       $.SUBRULE($.methodName);
       $.CONSUME(Colon);
       $.SUBRULE($.methodArguments);
