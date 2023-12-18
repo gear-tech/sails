@@ -1,6 +1,6 @@
 import { getTypeDef, getTypeName } from './utils/types.js';
 import { Output } from './output.js';
-import { IInnerType, IStructType, IType, IVariantField, IVariantType } from '../types/index.js';
+import { IInnerType, IStructType, IType, IEnumField, IEnumType } from '../types/index.js';
 
 const getScaleCodecName = (type: IType | IInnerType) => {
   switch (type.kind) {
@@ -26,7 +26,7 @@ const getScaleCodecName = (type: IType | IInnerType) => {
       }
       return result;
     }
-    case 'variant': {
+    case 'enum': {
       const result = {};
       for (const variant of type.def.variants) {
         result[variant.name] = variant.type ? getScaleCodecName(variant.type) : null;
@@ -70,8 +70,8 @@ export class TypesGenerator {
           this.generateStruct(type);
           break;
         }
-        case 'variant': {
-          this.generateVariant(type);
+        case 'enum': {
+          this.generateEnum(type);
           break;
         }
 
@@ -94,7 +94,7 @@ export class TypesGenerator {
       .line();
   }
 
-  private getVariantFieldString(f: IVariantField) {
+  private getEnumFieldString(f: IEnumField) {
     if (!f.type) {
       return `{ ${f.name}: null }`;
     } else {
@@ -102,10 +102,10 @@ export class TypesGenerator {
     }
   }
 
-  private generateVariant(type: IVariantType) {
+  private generateEnum(type: IEnumType) {
     this._out.line(`export type ${getTypeName(type.type)} = `, false).increaseIndent();
     for (let i = 0; i < type.def.variants.length; i++) {
-      this._out.line(`| ${this.getVariantFieldString(type.def.variants[i])}`, i === type.def.variants.length - 1);
+      this._out.line(`| ${this.getEnumFieldString(type.def.variants[i])}`, i === type.def.variants.length - 1);
     }
     this._out.reduceIndent().line();
   }

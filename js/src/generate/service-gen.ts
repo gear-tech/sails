@@ -1,5 +1,5 @@
 import { IArgument, IService, IServiceMethod, MethodType } from '../types/index.js';
-import { getClassName } from './utils/index.js';
+import { getClassName, getPayloadMethod } from './utils/index.js';
 import { getType } from './utils/scale-types.js';
 import { getTypeDef } from './utils/types.js';
 import { Output } from './output.js';
@@ -47,6 +47,8 @@ export class ServiceGenerator {
       kind,
     } of methods) {
       const returnType = getTypeDef(output, false, true);
+      const returnScaleType = getType(output, true);
+      // const resultPayloadMethod = getPayloadMethod(output.def.)
 
       this._out
         .line()
@@ -77,13 +79,13 @@ export class ServiceGenerator {
                 .line('account,', false)
                 .reduceIndent()
                 .line(')')
-                .line(`const result = this.registry.createType('${getType(output, true)}', replyPayloadBytes)`)
-                .line(`return result.toJSON() as ${returnType}`);
+                .line(`const result = this.registry.createType('${returnScaleType}', replyPayloadBytes)`)
+                .line(`return result.${getPayloadMethod(returnScaleType)}() as ${returnType}`);
             } else if (kind === 'query') {
               this._out
                 .line(`const stateBytes = await this.api.programState.read({ programId: this.programId, payload})`)
-                .line(`const result = this.registry.createType('${getType(output, true)}', stateBytes)`)
-                .line(`return result.toJSON() as ${returnType}`);
+                .line(`const result = this.registry.createType('${returnScaleType}', stateBytes)`)
+                .line(`return result.${getPayloadMethod(returnScaleType)}() as ${returnType}`);
             }
           },
         );
