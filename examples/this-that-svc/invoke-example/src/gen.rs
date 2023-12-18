@@ -5,21 +5,21 @@ use parity_scale_codec::{Decode, Encode};
 use sails_client::{Call, Sender};
 pub type Alias = u32;
 pub type OptionAlias = Option<u8>;
-pub type ResultAlias = Result<u8, String>;
+pub type ResultAlias = Result<u8, string>;
 pub type VecAlias = Vec<u8>;
 #[derive(PartialEq, Debug, Encode, Decode)]
-pub struct ThisThatAppTupleStruct(bool);
+pub struct ThisThatSvcAppTupleStruct(bool);
 #[derive(PartialEq, Debug, Encode, Decode)]
-pub struct ThisThatAppDoThatParam {
+pub struct ThisThatSvcAppDoThatParam {
     p1: u32,
     p2: String,
-    p3: ThisThatAppManyVariants,
+    p3: ThisThatSvcAppManyVariants,
 }
 #[derive(PartialEq, Debug, Encode, Decode)]
-pub enum ThisThatAppManyVariants {
+pub enum ThisThatSvcAppManyVariants {
     One,
     Two(u32),
-    Three(Option<Vec<u8>>),
+    Three(Option<u32>),
     Four { a: u32, b: Option<u16> },
     Five((String, u32)),
     Six((u32)),
@@ -28,22 +28,16 @@ pub enum ThisThatAppManyVariants {
 #[doc(hidden)]
 #[derive(PartialEq, Debug, Encode, Decode)]
 pub struct DoThisRequestArgs {
-    a1: u32,
-    a2: String,
-    a3: (Option<String>, u8),
-    a4: ThisThatAppTupleStruct,
+    p1: u32,
+    p2: String,
+    p3: (Option<String>, u8),
+    p4: ThisThatSvcAppTupleStruct,
 }
 
 #[doc(hidden)]
 #[derive(PartialEq, Debug, Encode, Decode)]
 pub struct DoThatRequestArgs {
-    a1: ThisThatAppDoThatParam,
-}
-
-#[doc(hidden)]
-#[derive(PartialEq, Debug, Encode, Decode)]
-pub struct FailRequestArgs {
-    a2: String,
+    param: ThisThatSvcAppDoThatParam,
 }
 
 #[doc(hidden)]
@@ -71,29 +65,26 @@ impl Client {
 
     pub fn do_this(
         &self,
-        a1: u32,
-        a2: String,
-        a3: (Option<String>, u8),
-        a4: ThisThatAppTupleStruct,
-    ) -> Call<Result<(String, u32), String>> {
+        p1: u32,
+        p2: String,
+        p3: (Option<String>, u8),
+        p4: ThisThatSvcAppTupleStruct,
+    ) -> Call<(String, u32)> {
         let mut payload = Vec::from("DoThis/");
-        DoThisRequestArgs { a1, a2, a3, a4 }.encode_to(&mut payload);
+        DoThisRequestArgs { p1, p2, p3, p4 }.encode_to(&mut payload);
 
         Call::new(payload).with_program_id(self.program_id)
     }
-    pub fn do_that(&self, a1: ThisThatAppDoThatParam) -> Call<Result<(String, u32), (String)>> {
+    pub fn do_that(
+        &self,
+        param: ThisThatSvcAppDoThatParam,
+    ) -> Call<Result<(String, u32), (String)>> {
         let mut payload = Vec::from("DoThat/");
-        DoThatRequestArgs { a1 }.encode_to(&mut payload);
+        DoThatRequestArgs { param }.encode_to(&mut payload);
 
         Call::new(payload).with_program_id(self.program_id)
     }
-    pub fn fail(&self, a2: String) -> Call<Result<(), String>> {
-        let mut payload = Vec::from("Fail/");
-        FailRequestArgs { a2 }.encode_to(&mut payload);
-
-        Call::new(payload).with_program_id(self.program_id)
-    }
-    pub fn this(&self) -> Call<Result<u32, String>> {
+    pub fn this(&self) -> Call<u32> {
         let mut payload = Vec::from("This/");
         ThisRequestArgs {}.encode_to(&mut payload);
 

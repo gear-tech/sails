@@ -33,7 +33,7 @@ pub enum InnerType {
     Tuple { def: TupleDef },
     #[serde(rename = "struct")]
     Struct { def: StructDef },
-    #[serde(rename = "variant")]
+    #[serde(rename = "enum")]
     Enum { def: EnumDef },
 }
 

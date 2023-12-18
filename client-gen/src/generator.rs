@@ -181,7 +181,7 @@ impl IdlGenerator {
     fn format_inner_type(&mut self, t: &InnerType) -> Result<String> {
         Ok(match t {
             InnerType::TypeName { def } => match def.name.as_str() {
-                "string" => "String".to_string(),
+                "str" => "String".to_string(),
                 "null" => "()".to_string(),
                 _ => def.name.clone(),
             },
