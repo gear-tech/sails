@@ -1,0 +1,426 @@
+{
+  "types": [
+    {
+      "def": {
+        "name": "u32",
+        "kind": "simple"
+      },
+      "kind": "typeName",
+      "type": {
+        "name": "Alias",
+        "kind": "simple"
+      }
+    },
+    {
+      "def": {
+        "def": {
+          "name": "u8",
+          "kind": "simple"
+        },
+        "kind": "typeName"
+      },
+      "kind": "option",
+      "type": {
+        "name": "OptionAlias",
+        "kind": "simple"
+      }
+    },
+    {
+      "def": {
+        "ok": {
+          "def": {
+            "name": "u8",
+            "kind": "simple"
+          },
+          "kind": "typeName"
+        },
+        "err": {
+          "def": {
+            "name": "string",
+            "kind": "simple"
+          },
+          "kind": "typeName"
+        }
+      },
+      "kind": "result",
+      "type": {
+        "name": "ResultAlias",
+        "kind": "simple"
+      }
+    },
+    {
+      "def": {
+        "def": {
+          "name": "u8",
+          "kind": "simple"
+        },
+        "kind": "typeName"
+      },
+      "kind": "vec",
+      "type": {
+        "name": "VecAlias",
+        "kind": "simple"
+      }
+    },
+    {
+      "def": {
+        "fields": [
+          {
+            "def": {
+              "name": "bool",
+              "kind": "simple"
+            },
+            "kind": "typeName"
+          }
+        ]
+      },
+      "kind": "tuple",
+      "type": {
+        "name": "ThisThatSvcAppTupleStruct",
+        "kind": "simple"
+      }
+    },
+    {
+      "def": {
+        "fields": [
+          {
+            "name": "p1",
+            "type": {
+              "def": {
+                "name": "u32",
+                "kind": "simple"
+              },
+              "kind": "typeName"
+            }
+          },
+          {
+            "name": "p2",
+            "type": {
+              "def": {
+                "name": "str",
+                "kind": "simple"
+              },
+              "kind": "typeName"
+            }
+          },
+          {
+            "name": "p3",
+            "type": {
+              "def": {
+                "name": "ThisThatSvcAppManyVariants",
+                "kind": "simple"
+              },
+              "kind": "typeName"
+            }
+          }
+        ]
+      },
+      "kind": "struct",
+      "type": {
+        "name": "ThisThatSvcAppDoThatParam",
+        "kind": "simple"
+      }
+    },
+    {
+      "def": {
+        "variants": [
+          {
+            "name": "One"
+          },
+          {
+            "name": "Two",
+            "type": {
+              "def": {
+                "name": "u32",
+                "kind": "simple"
+              },
+              "kind": "typeName"
+            }
+          },
+          {
+            "name": "Three",
+            "type": {
+              "def": {
+                "def": {
+                  "name": "u32",
+                  "kind": "simple"
+                },
+                "kind": "typeName"
+              },
+              "kind": "option"
+            }
+          },
+          {
+            "name": "Four",
+            "type": {
+              "def": {
+                "fields": [
+                  {
+                    "name": "a",
+                    "type": {
+                      "def": {
+                        "name": "u32",
+                        "kind": "simple"
+                      },
+                      "kind": "typeName"
+                    }
+                  },
+                  {
+                    "name": "b",
+                    "type": {
+                      "def": {
+                        "def": {
+                          "name": "u16",
+                          "kind": "simple"
+                        },
+                        "kind": "typeName"
+                      },
+                      "kind": "option"
+                    }
+                  }
+                ]
+              },
+              "kind": "struct"
+            }
+          },
+          {
+            "name": "Five",
+            "type": {
+              "def": {
+                "fields": [
+                  {
+                    "def": {
+                      "name": "str",
+                      "kind": "simple"
+                    },
+                    "kind": "typeName"
+                  },
+                  {
+                    "def": {
+                      "name": "u32",
+                      "kind": "simple"
+                    },
+                    "kind": "typeName"
+                  }
+                ]
+              },
+              "kind": "tuple"
+            }
+          },
+          {
+            "name": "Six",
+            "type": {
+              "def": {
+                "fields": [
+                  {
+                    "def": {
+                      "name": "u32",
+                      "kind": "simple"
+                    },
+                    "kind": "typeName"
+                  }
+                ]
+              },
+              "kind": "tuple"
+            }
+          }
+        ]
+      },
+      "kind": "enum",
+      "type": {
+        "name": "ThisThatSvcAppManyVariants",
+        "kind": "simple"
+      }
+    }
+  ],
+  "services": [
+    {
+      "methods": [
+        {
+          "def": {
+            "name": "DoThis",
+            "args": [
+              {
+                "name": "p1",
+                "type": {
+                  "def": {
+                    "name": "u32",
+                    "kind": "simple"
+                  },
+                  "kind": "typeName"
+                }
+              },
+              {
+                "name": "p2",
+                "type": {
+                  "def": {
+                    "name": "str",
+                    "kind": "simple"
+                  },
+                  "kind": "typeName"
+                }
+              },
+              {
+                "name": "p3",
+                "type": {
+                  "def": {
+                    "fields": [
+                      {
+                        "def": {
+                          "def": {
+                            "name": "str",
+                            "kind": "simple"
+                          },
+                          "kind": "typeName"
+                        },
+                        "kind": "option"
+                      },
+                      {
+                        "def": {
+                          "name": "u8",
+                          "kind": "simple"
+                        },
+                        "kind": "typeName"
+                      }
+                    ]
+                  },
+                  "kind": "tuple"
+                }
+              },
+              {
+                "name": "p4",
+                "type": {
+                  "def": {
+                    "name": "ThisThatSvcAppTupleStruct",
+                    "kind": "simple"
+                  },
+                  "kind": "typeName"
+                }
+              }
+            ],
+            "output": {
+              "def": {
+                "fields": [
+                  {
+                    "def": {
+                      "name": "str",
+                      "kind": "simple"
+                    },
+                    "kind": "typeName"
+                  },
+                  {
+                    "def": {
+                      "name": "u32",
+                      "kind": "simple"
+                    },
+                    "kind": "typeName"
+                  }
+                ]
+              },
+              "kind": "tuple"
+            }
+          },
+          "kind": "message"
+        },
+        {
+          "def": {
+            "name": "DoThat",
+            "args": [
+              {
+                "name": "param",
+                "type": {
+                  "def": {
+                    "name": "ThisThatSvcAppDoThatParam",
+                    "kind": "simple"
+                  },
+                  "kind": "typeName"
+                }
+              }
+            ],
+            "output": {
+              "def": {
+                "ok": {
+                  "def": {
+                    "fields": [
+                      {
+                        "def": {
+                          "name": "str",
+                          "kind": "simple"
+                        },
+                        "kind": "typeName"
+                      },
+                      {
+                        "def": {
+                          "name": "u32",
+                          "kind": "simple"
+                        },
+                        "kind": "typeName"
+                      }
+                    ]
+                  },
+                  "kind": "tuple"
+                },
+                "err": {
+                  "def": {
+                    "fields": [
+                      {
+                        "def": {
+                          "name": "str",
+                          "kind": "simple"
+                        },
+                        "kind": "typeName"
+                      }
+                    ]
+                  },
+                  "kind": "tuple"
+                }
+              },
+              "kind": "result"
+            }
+          },
+          "kind": "message"
+        },
+        {
+          "def": {
+            "name": "This",
+            "args": [],
+            "output": {
+              "def": {
+                "name": "u32",
+                "kind": "simple"
+              },
+              "kind": "typeName"
+            }
+          },
+          "kind": "query"
+        },
+        {
+          "def": {
+            "name": "That",
+            "args": [],
+            "output": {
+              "def": {
+                "ok": {
+                  "def": {
+                    "name": "str",
+                    "kind": "simple"
+                  },
+                  "kind": "typeName"
+                },
+                "err": {
+                  "def": {
+                    "name": "str",
+                    "kind": "simple"
+                  },
+                  "kind": "typeName"
+                }
+              },
+              "kind": "result"
+            }
+          },
+          "kind": "query"
+        }
+      ]
+    }
+  ]
+}
