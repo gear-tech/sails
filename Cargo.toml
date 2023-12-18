@@ -20,7 +20,7 @@ members = [
 [workspace.dependencies]
 async-trait = "0.1"
 convert-case = { package = "convert_case", version = "0.6" }
-gmeta = { git = "https://github.com/gear-tech/gear.git", tag = "v1.0.1" }
+gmeta = { git = "https://github.com/gear-tech/gear.git", tag = "v1.0.3" }
 gstd = { git = "https://github.com/gear-tech/gear.git", tag = "v1.0.1" }
 gsys = { git = "https://github.com/gear-tech/gear.git", tag = "v1.0.1" }
 gwasm-builder = { package = "gear-wasm-builder", git = "https://github.com/gear-tech/gear.git", tag = "v1.0.1" }
