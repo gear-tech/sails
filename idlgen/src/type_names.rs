@@ -167,11 +167,11 @@ fn tuple_type_name(
         .iter()
         .map(|field| resolve_type_name(type_registry, field.id, resolved_type_names))
         .collect::<Result<Vec<_>>>()?
-        .join("; ");
+        .join(", ");
     if fields.is_empty() {
         Ok("null".into()) // For the () type
     } else {
-        Ok(format!("record {{ {} }}", fields))
+        Ok(format!("struct {{ {} }}", fields))
     }
 }
 
