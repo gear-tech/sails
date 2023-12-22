@@ -50,13 +50,14 @@ pub(super) fn gservice(impl_tokens: TokenStream2) -> TokenStream2 {
         let handler_generator = HandlerGenerator::from(service_type, handler);
         let invocation_func_ident = handler_generator.invocation_func_ident();
         let invocation_path = invocation_func_ident.to_string().to_case(Case::Pascal);
-        let invocation_route = format!("{}/", invocation_path);
 
         params_structs.push(handler_generator.params_struct());
         invocation_funcs.push(handler_generator.invocation_func());
         invocations.push(quote!(
-            if input.starts_with(#invocation_route.as_bytes()) {
-                return #invocation_func_ident(service, &input[#invocation_route.as_bytes().len()..]).await;
+            let invocation_path = #invocation_path.encode();
+            if input.starts_with(&invocation_path) {
+                let output = #invocation_func_ident(service, &input[invocation_path.len()..]).await;
+                return [invocation_path, output].concat();
             }
         ));
 
