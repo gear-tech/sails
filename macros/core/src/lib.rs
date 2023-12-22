@@ -102,11 +102,15 @@ mod tests {
             pub mod handlers {
                 use super::*;
                 pub async fn process_request(service: &mut SomeService, mut input: &[u8]) -> Vec<u8> {
-                    if input.starts_with("DoThis/".as_bytes()) {
-                        return do_this(service, &input["DoThis/".as_bytes().len()..]).await;
+                    let invocation_path = "DoThis".encode();
+                    if input.starts_with(&invocation_path) {
+                        let output = do_this(service, &input[invocation_path.len()..]).await;
+                        return [invocation_path, output].concat();
                     }
-                    if input.starts_with("This/".as_bytes()) {
-                        return this(service, &input["This/".as_bytes().len()..]).await;
+                    let invocation_path = "This".encode();
+                    if input.starts_with(&invocation_path) {
+                        let output = this(service, &input[invocation_path.len()..]).await;
+                        return [invocation_path, output].concat();
                     }
                     panic!("Unknown request");
                 }
