@@ -36,7 +36,7 @@ sails-service = { path = "service" }
 scale-info = { version = "2.10.0", default-features = false }
 serde = "1.0"
 serde-json = { package = "serde_json", version = "1.0" }
-syn = "2.0.32"
+syn = "2.0.42"
 thiserror = "1.0"
 tokio = "1.32"
 trybuild = "1"
