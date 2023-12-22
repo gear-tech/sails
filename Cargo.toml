@@ -38,5 +38,5 @@ serde = "1.0"
 serde-json = { package = "serde_json", version = "1.0" }
 syn = "2.0.32"
 thiserror = "1.0"
-tokio = "1.32"
+tokio = "1.35"
 trybuild = "1"
