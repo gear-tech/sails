@@ -16,40 +16,10 @@
 // You should have received a copy of the GNU General Public License
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
-//! Integration tests for functionality provided by the `gprogram-framework-macros` crate.
+//! Integration tests for functionality provided by the `sails-macros` crate.
 
 #[test]
-fn command_handlers_work() {
+fn gservice_works() {
     let t = trybuild::TestCases::new();
-    t.pass("tests/ui/command_handlers_work.rs");
-}
-
-#[test]
-fn query_handlers_work() {
-    let t = trybuild::TestCases::new();
-    t.pass("tests/ui/query_handlers_work.rs");
-}
-
-#[test]
-fn no_command_handlers() {
-    let t = trybuild::TestCases::new();
-    t.compile_fail("tests/ui/no_command_handlers.rs");
-}
-
-#[test]
-fn no_query_handlers() {
-    let t = trybuild::TestCases::new();
-    t.compile_fail("tests/ui/no_query_handlers.rs");
-}
-
-#[test]
-fn command_handler_returns_result() {
-    let t = trybuild::TestCases::new();
-    t.compile_fail("tests/ui/command_handler_returns_result.rs");
-}
-
-#[test]
-fn query_handler_returns_result() {
-    let t = trybuild::TestCases::new();
-    t.compile_fail("tests/ui/query_handler_returns_result.rs");
+    t.pass("tests/ui/gservice_works.rs");
 }

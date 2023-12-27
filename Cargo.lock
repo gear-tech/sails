@@ -81,17 +81,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "96d30a06541fbafbc7f82ed10c06164cfbd2c401138f6addd8404629c4b16711"
 
 [[package]]
-name = "async-trait"
-version = "0.1.75"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fdf6721fb0140e4f897002dd086c06f6c27775df19cfe1fccb21181a48fd2c98"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn 2.0.42",
-]
-
-[[package]]
 name = "autocfg"
 version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1212,8 +1201,7 @@ version = "0.0.1"
 dependencies = [
  "convert_case 0.6.0",
  "handlebars",
- "parity-scale-codec",
- "sails-service",
+ "sails-service-meta",
  "scale-info",
  "serde",
  "serde_json",
@@ -1227,6 +1215,7 @@ dependencies = [
  "parity-scale-codec",
  "proc-macro-error",
  "sails-macros-core",
+ "sails-service-meta",
  "scale-info",
  "tokio",
  "trybuild",
@@ -1244,12 +1233,9 @@ dependencies = [
 ]
 
 [[package]]
-name = "sails-service"
+name = "sails-service-meta"
 version = "0.0.1"
 dependencies = [
- "async-trait",
- "hashbrown",
- "parity-scale-codec",
  "scale-info",
 ]
 
@@ -1413,31 +1399,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "this-that"
-version = "0.1.0"
-dependencies = [
- "gear-wasm-builder",
- "gstd",
- "gsys",
- "parity-scale-codec",
- "sails-idlgen",
- "sails-service",
- "this-that-app",
-]
-
-[[package]]
-name = "this-that-app"
-version = "0.1.0"
-dependencies = [
- "gmeta",
- "gstd",
- "parity-scale-codec",
- "sails-macros",
- "sails-service",
- "scale-info",
-]
-
-[[package]]
 name = "this-that-svc"
 version = "0.1.0"
 dependencies = [
@@ -1446,7 +1407,7 @@ dependencies = [
  "gsys",
  "parity-scale-codec",
  "sails-idlgen",
- "sails-service",
+ "sails-service-meta",
  "this-that-svc-app",
 ]
 
@@ -1458,7 +1419,7 @@ dependencies = [
  "gstd",
  "parity-scale-codec",
  "sails-macros",
- "sails-service",
+ "sails-service-meta",
  "scale-info",
 ]
 

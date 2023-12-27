@@ -6,7 +6,7 @@ fn main() {
     //       needs to be returned from the `gwasm_builder::build...` methods.
     let idl_path = wasm_target_dir.join("this_that_svc.sails.idl");
     let idl_file = std::fs::File::create(idl_path).expect("failed to create IDL file");
-    sails_idlgen::generate_serivce_idl_ex::<this_that_svc_app::meta::ServiceMeta>(idl_file)
+    sails_idlgen::generate_serivce_idl::<this_that_svc_app::meta::ServiceMeta>(idl_file)
         .expect("failed to write IDL file");
 }
 

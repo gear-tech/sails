@@ -16,14 +16,14 @@
 // You should have received a copy of the GNU General Public License
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
-//! Procedural macros for the `sails` framework.
+//! Traits and structs for a simple service comprised of command and query dispatchers.
 
-use proc_macro::TokenStream;
-use proc_macro_error::proc_macro_error;
-use sails_macros_core::gservice_core;
+#![no_std]
 
-#[proc_macro_error]
-#[proc_macro_attribute]
-pub fn gservice(_attrs: TokenStream, impl_tokens: TokenStream) -> TokenStream {
-    gservice_core(impl_tokens.into()).into()
+use scale_info::StaticTypeInfo;
+
+/// A trait to represent service meta.
+pub trait ServiceMeta {
+    type Commands: StaticTypeInfo;
+    type Queries: StaticTypeInfo;
 }

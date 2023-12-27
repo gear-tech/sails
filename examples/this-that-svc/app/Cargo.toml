@@ -7,6 +7,6 @@ edition = "2021"
 gmeta.workspace = true
 gstd = { workspace = true, features = ["debug"] }
 sails-macros.workspace = true
-sails-service.workspace = true
+sails-service-meta.workspace = true
 parity-scale-codec = { workspace = true, features = ["derive"] }
 scale-info = { workspace = true, features = ["derive"] }

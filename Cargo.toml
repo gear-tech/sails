@@ -7,18 +7,15 @@ license = "GPL-3.0"
 [workspace]
 resolver = "2"
 members = [
-    "examples/this-that/app",
-    "examples/this-that/wasm",
     "examples/this-that-svc/app",
     "examples/this-that-svc/wasm",
     "idlgen",
     "macros",
     "macros/core",
-    "service",
+    "service-meta",
 ]
 
 [workspace.dependencies]
-async-trait = "0.1"
 convert-case = { package = "convert_case", version = "0.6" }
 gmeta = { git = "https://github.com/gear-tech/gear.git", tag = "v1.0.3" }
 gstd = { git = "https://github.com/gear-tech/gear.git", tag = "v1.0.3" }
@@ -32,7 +29,7 @@ proc-macro2 = { version = "1", default-features = false }
 quote = "1.0.33"
 sails-idlgen = { path = "idlgen" }
 sails-macros = { path = "macros" }
-sails-service = { path = "service" }
+sails-service-meta = { path = "service-meta" }
 scale-info = { version = "2.10.0", default-features = false }
 serde = "1.0"
 serde-json = { package = "serde_json", version = "1.0" }
