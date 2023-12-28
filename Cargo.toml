@@ -22,18 +22,17 @@ gstd = { git = "https://github.com/gear-tech/gear.git", tag = "v1.0.3" }
 gsys = { git = "https://github.com/gear-tech/gear.git", tag = "v1.0.3" }
 gwasm-builder = { package = "gear-wasm-builder", git = "https://github.com/gear-tech/gear.git", tag = "v1.0.3" }
 handlebars = "4.4"
-hashbrown = "0.14"
-parity-scale-codec = { version = "3.6.9", default-features = false }
-proc-macro-error = "1.0.4"
+parity-scale-codec = { version = "3.6", default-features = false }
+proc-macro-error = "1.0"
 proc-macro2 = { version = "1", default-features = false }
-quote = "1.0.33"
+quote = "1.0"
 sails-idlgen = { path = "idlgen" }
 sails-macros = { path = "macros" }
 sails-service-meta = { path = "service-meta" }
-scale-info = { version = "2.10.0", default-features = false }
+scale-info = { version = "2.10", default-features = false }
 serde = "1.0"
 serde-json = { package = "serde_json", version = "1.0" }
-syn = "2.0.42"
+syn = "2.0"
 thiserror = "1.0"
 tokio = "1.35"
 trybuild = "1"
