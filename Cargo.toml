@@ -19,7 +19,7 @@ members = [
 convert-case = { package = "convert_case", version = "0.6" }
 gmeta = { git = "https://github.com/gear-tech/gear.git", tag = "v1.0.3" }
 gstd = { git = "https://github.com/gear-tech/gear.git", tag = "v1.0.3" }
-gsys = { git = "https://github.com/gear-tech/gear.git", tag = "v1.0.3" }
+gsys = { git = "https://github.com/gear-tech/gear.git", tag = "v1.0.4" }
 gwasm-builder = { package = "gear-wasm-builder", git = "https://github.com/gear-tech/gear.git", tag = "v1.0.3" }
 handlebars = "4.4"
 parity-scale-codec = { version = "3.6", default-features = false }
