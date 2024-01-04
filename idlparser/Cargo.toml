@@ -1,0 +1,16 @@
+[package]
+name = "sails-idlparser"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+lalrpop-util.workspace = true
+logos.workspace = true
+
+[build-dependencies]
+lalrpop.workspace = true

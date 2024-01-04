@@ -10,6 +10,7 @@ members = [
     "examples/this-that-svc/app",
     "examples/this-that-svc/wasm",
     "idlgen",
+    "idlparser",
     "macros",
     "macros/core",
     "service-meta",
@@ -22,11 +23,15 @@ gstd = { git = "https://github.com/gear-tech/gear.git", tag = "v1.0.3" }
 gsys = { git = "https://github.com/gear-tech/gear.git", tag = "v1.0.3" }
 gwasm-builder = { package = "gear-wasm-builder", git = "https://github.com/gear-tech/gear.git", tag = "v1.0.3" }
 handlebars = "4.4"
+lalrpop = { version = "0.20", default-features = false }
+lalrpop-util = "0.20"
+logos = "0.13"
 parity-scale-codec = { version = "3.6", default-features = false }
 proc-macro-error = "1.0"
 proc-macro2 = { version = "1", default-features = false }
 quote = "1.0"
 sails-idlgen = { path = "idlgen" }
+sails-idlparser = { path = "idlparser" }
 sails-macros = { path = "macros" }
 sails-service-meta = { path = "service-meta" }
 scale-info = { version = "2.10", default-features = false }

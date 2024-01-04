@@ -1,0 +1,102 @@
+use crate::{lexer::{LexicalError, Token}, types::*};
+
+grammar;
+
+extern {
+    type Location = usize;
+    type Error = LexicalError;
+
+    enum Token {
+        "=" => Token::Equals,
+        "(" => Token::LParen,
+        ")" => Token::RParen,
+        "{" => Token::LBrace,
+        "}" => Token::RBrace,
+        ";" => Token::Semicolon,
+        ":" => Token::Colon,
+        "," => Token::Comma,
+        "->" => Token::Arrow,
+        "service" => Token::Service,
+        "query" => Token::Query,
+        "type" => Token::Type,
+        "struct" => Token::Struct,
+        "enum" => Token::Enum,
+        "id" => Token::Id(<String>),
+        "opt" => Token::Opt,
+        "result" => Token::Result,
+        "vec" => Token::Vec,
+        "null" => Token::Null,
+    }
+}
+
+pub Program: Program = {
+    <Separated<ProgramItem, ";">> => Program { items: <> }
+}
+
+ProgramItem: ProgramItem = {
+    <Service> => ProgramItem::Service(<>),
+    <Type> => ProgramItem::Type(<>),
+}
+
+Service: Service = {
+    "service" "{" <Separated<Func, ",">> "}" => Service { funcs: <> },
+}
+
+Func: Func = {
+    <query: "query"?> <name: "id"> ":" "(" <params: Separated<Param, ",">> ")" "->" <output: TypeDecl> =>
+        Func { name, params, output, is_query: query.is_some() },
+}
+
+Param: Param = {
+    <name: "id"> ":" <r#type: TypeDecl> => Param { name, r#type },
+}
+
+Type: Type = {
+    "type" <name: "id"> "=" <def: TypeDef> => Type { name, def },
+}
+
+TypeDecl: TypeDecl = {
+    "opt" <TypeDecl> => TypeDecl::Opt(Box::new(<>)),
+    "vec" <TypeDecl> => TypeDecl::Vec(Box::new(<>)),
+    "result" "(" <ok: TypeDecl> "," <err: TypeDecl> ")" => TypeDecl::Result { ok: Box::new(ok), err: Box::new(err) },
+    "null" => TypeDecl::Null,
+    <"id"> => match PrimitiveType::str_to_enum(&<>) {
+        Some(primitive_type) => TypeDecl::Id(TypeId::Primitive(primitive_type)),
+        None => TypeDecl::Id(TypeId::UserDefined(<>)),
+    },
+    <TypeDef> => TypeDecl::Def(<>),
+}
+
+TypeDef: TypeDef = {
+    <StructDef> => TypeDef::Struct(<>),
+    <EnumDef> => TypeDef::Enum(<>),
+}
+
+StructDef: StructDef = {
+    "struct" "{" <Separated<StructField, ",">> "}" => StructDef { fields: <> },
+}
+
+StructField: StructField = {
+    <name: "id"> ":" <r#type: TypeDecl> => StructField { name: Some(name), r#type },
+    <r#type: TypeDecl> => StructField { name: None, r#type },
+}
+
+EnumDef: EnumDef = {
+    "enum" "{" <Separated<EnumVariant, ",">> "}" => EnumDef { variants: <> },
+}
+
+EnumVariant: EnumVariant = {
+    <name: "id"> ":" <r#type: TypeDecl> => EnumVariant { name, r#type: Some(r#type) },
+    <name: "id"> => EnumVariant { name, r#type: None },
+}
+
+#[inline]
+Separated<Token, Separator>: Vec<Token> = {
+    <mut values:(<Token> Separator)*> <last: Token?> => match last {
+        None => values,
+        Some(last) => {
+            values.push(last);
+            values
+        }
+    }
+}
