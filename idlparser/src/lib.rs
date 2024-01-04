@@ -1,14 +1,18 @@
 use grammar::ProgramParser;
 use lexer::Lexer;
+use std::{slice, str};
 
 mod grammar;
 mod lexer;
 mod types;
 
+/// # Safety
+///
+/// See the safity documentation of [`std::slice::from_raw_parts`].
 #[no_mangle]
-pub extern "C" fn parse_idl_from_utf8(idl_data: *const u8, idl_len: u32) {
-    let idl = unsafe { std::slice::from_raw_parts(idl_data, idl_len.try_into().unwrap()) };
-    let idl = std::str::from_utf8(idl).unwrap();
+pub unsafe extern "C" fn parse_idl_from_utf8(idl_data: *const u8, idl_len: u32) {
+    let idl = unsafe { slice::from_raw_parts(idl_data, idl_len.try_into().unwrap()) };
+    let idl = str::from_utf8(idl).unwrap();
     let _program = parse_idl_from_str(idl).unwrap();
 }
 
