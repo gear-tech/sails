@@ -29,42 +29,111 @@ mod tests {
 
     #[test]
     fn parser_works() {
-        let lexer = lexer::Lexer::new(
-            r"
-        type ThisThatSvcAppTupleStruct = struct {
-          bool,
-        };
-        
-        type ThisThatSvcAppDoThatParam = struct {
-          p1: u32,
-          p2: str,
-          p3: ThisThatSvcAppManyVariants,
-        };
-        
-        type ThisThatSvcAppManyVariants = enum {
-          One,
-          Two: u32,
-          Three: opt u32,
-          Four: struct { a: u32, b: opt u16 },
-          Five: struct { str, u32 },
-          Six: struct { u32 },
-        };
+        let program_idl = r"
+          type ThisThatSvcAppTupleStruct = struct {
+            bool,
+          };
+          
+          type ThisThatSvcAppDoThatParam = struct {
+            p1: u32,
+            p2: str,
+            p3: ThisThatSvcAppManyVariants,
+          };
+          
+          type ThisThatSvcAppManyVariants = enum {
+            One,
+            Two: u32,
+            Three: opt u32,
+            Four: struct { a: u32, b: opt u16 },
+            Five: struct { str, u32 },
+            Six: struct { u32 },
+          };
+  
+          service {
+            DoThis : (p1: u32, p2: str, p3: struct { opt str, u8 }, p4: ThisThatSvcAppTupleStruct) -> struct { str, u32 },
+            DoThat : (param: ThisThatSvcAppDoThatParam) -> result (struct { str, u32 }, struct { str }),
+            query This : (v1: vec u16) -> u32,
+            query That : (v1: null) -> result (str, str),
+          };
+  
+          type T = enum { One }
+        ";
 
-        service {
-          DoThis : (p1: u32, p2: str, p3: struct { opt str, u8 }, p4: ThisThatSvcAppTupleStruct) -> struct { str, u32 },
-          DoThat : (param: ThisThatSvcAppDoThatParam) -> result (struct { str, u32 }, struct { str }),
-          query This : (v1: vec u16) -> u32,
-          query That : (v1: null) -> result (str, str),
-        }
-        ",
-        );
+        let program = parse_idl_from_str(program_idl).unwrap();
 
-        let parser = grammar::ProgramParser::new();
-
-        let program = parser.parse(lexer).unwrap();
-
-        assert_eq!(program.items.len(), 4);
+        assert_eq!(program.types.len(), 4);
 
         //println!("ast: {:#?}", program);
+    }
+
+    #[test]
+    fn parser_requires_service() {
+        let program_idl = r"
+          type T = enum { One };
+        ";
+
+        let program = parse_idl_from_str(program_idl);
+
+        assert!(program.is_err());
+    }
+
+    #[test]
+    fn parser_requires_single_service() {
+        let program_idl = r"
+          service {};
+          service {}
+        ";
+
+        let program = parse_idl_from_str(program_idl);
+
+        assert!(program.is_err());
+    }
+
+    #[test]
+    fn parser_accepts_types_service() {
+        let program_idl = r"
+          type T = enum { One };
+          service {}
+        ";
+
+        let program = parse_idl_from_str(program_idl).unwrap();
+
+        assert_eq!(program.types.len(), 1);
+    }
+
+    #[test]
+    fn parser_requires_semicolon_between_types_and_service() {
+        let program_idl = r"
+          type T = enum { One }
+          service {}
+        ";
+
+        let program = parse_idl_from_str(program_idl);
+
+        assert!(program.is_err());
+    }
+
+    #[test]
+    fn parser_accepts_service_types() {
+        let program_idl = r"
+          service {};
+          type T = enum { One };
+        ";
+
+        let program = parse_idl_from_str(program_idl).unwrap();
+
+        assert_eq!(program.types.len(), 1);
+    }
+
+    #[test]
+    fn parser_requires_semicolon_between_service_and_types() {
+        let program_idl = r"
+          service {}
+          type T = enum { One };
+        ";
+
+        let program = parse_idl_from_str(program_idl);
+
+        assert!(program.is_err());
     }
 }

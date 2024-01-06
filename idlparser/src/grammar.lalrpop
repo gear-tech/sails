@@ -30,12 +30,13 @@ extern {
 }
 
 pub Program: Program = {
-    <Separated<ProgramItem, ";">> => Program { items: <> }
-}
-
-ProgramItem: ProgramItem = {
-    <Service> => ProgramItem::Service(<>),
-    <Type> => ProgramItem::Type(<>),
+    <types1: (<Separated<Type, ";">> ";")?> <service: Service> <types2: (";" <Separated<Type, ";">>)?> =>
+        Program {
+            service,
+            types: types1.unwrap_or_default().into_iter()
+                .chain(types2.unwrap_or_default().into_iter())
+                .collect(),
+        },
 }
 
 Service: Service = {

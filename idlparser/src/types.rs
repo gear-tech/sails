@@ -1,12 +1,7 @@
 #[derive(Debug)]
 pub struct Program {
-    pub items: Vec<ProgramItem>,
-}
-
-#[derive(Debug)]
-pub enum ProgramItem {
-    Service(Service),
-    Type(Type),
+    pub service: Service,
+    pub types: Vec<Type>,
 }
 
 #[derive(Debug)]
