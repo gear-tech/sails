@@ -327,7 +327,9 @@ impl EnumVariant {
     }
 
     pub fn accept<'ast>(&'ast self, visitor: &mut (impl Visitor<'ast> + ?Sized)) {
-        self.r#type.as_ref().map(|r#type| r#type.accept(visitor));
+        if let Some(r#type) = self.r#type.as_ref() {
+            r#type.accept(visitor);
+        }
     }
 }
 
@@ -369,5 +371,34 @@ mod tests {
 
         assert_eq!(program_visitor.service, Some(program.service()));
         assert!(itertools::equal(program_visitor.types, program.types()));
+    }
+
+    struct EnumDefVisitor<'ast> {
+        variants: Vec<&'ast EnumVariant>,
+    }
+
+    impl<'ast> Visitor<'ast> for EnumDefVisitor<'ast> {
+        fn visit_enum_variant(&mut self, enum_variant: &'ast EnumVariant) {
+            self.variants.push(enum_variant);
+        }
+    }
+
+    #[test]
+    fn enum_def_accept_works() {
+        let enum_def = EnumDef::new(vec![
+            EnumVariant::new("Variant1".into(), None),
+            EnumVariant::new(
+                "Variant2".into(),
+                Some(TypeDecl::Id(TypeId::Primitive(PrimitiveType::U32))),
+            ),
+        ]);
+        let mut enum_def_visitor = EnumDefVisitor { variants: vec![] };
+
+        enum_def.accept(&mut enum_def_visitor);
+
+        assert!(itertools::equal(
+            enum_def_visitor.variants,
+            enum_def.variants()
+        ));
     }
 }
