@@ -192,104 +192,12 @@ mod tests {
         type Queries = QueriesMeta;
     }
 
-    //     #[test]
-    //     fn idl_generation_works_for_commands() {
-    //         let mut idl = Vec::new();
-    //         generate_serivce_idl::<TestCommandProcessorMeta, ()>(None, &mut idl).unwrap();
-    //         let generated_idl = String::from_utf8(idl).unwrap();
-
-    //         const EXPECTED_IDL: &str = r"type SailsIdlgenTestsTupleStruct = struct {
-    //   bool,
-    // };
-
-    // type SailsIdlgenTestsGenericStruct<u32> = struct {
-    //   p1: u32,
-    // };
-
-    // type SailsIdlgenTestsGenericStruct<str> = struct {
-    //   p1: str,
-    // };
-
-    // type SailsIdlgenTestsDoThatParam = struct {
-    //   p1: u32,
-    //   p2: str,
-    //   p3: SailsIdlgenTestsManyVariants,
-    // };
-
-    // type SailsIdlgenTestsManyVariants = enum {
-    //   One,
-    //   Two: u32,
-    //   Three: opt vec u32,
-    //   Four: struct { a: u32, b: opt u16 },
-    //   Five: struct { str, vec u8 },
-    //   Six: struct { u32 },
-    //   Seven: SailsIdlgenTestsGenericEnum<u32, str>,
-    // };
-
-    // type SailsIdlgenTestsGenericEnum<u32, str> = enum {
-    //   Variant1: u32,
-    //   Variant2: str,
-    // };
-
-    // service {
-    //   async DoThis : (u32, str, struct { opt str, u8 }, SailsIdlgenTestsTupleStruct, SailsIdlgenTestsGenericStruct<u32>, SailsIdlgenTestsGenericStruct<str>) -> result (struct { str, u32 }, str);
-    //   async DoThat : (SailsIdlgenTestsDoThatParam) -> result (struct { str, u32 }, struct { str });
-    //   async Fail : (str) -> result (null, str);
-    // }
-    // ";
-    //         assert_eq!(generated_idl, EXPECTED_IDL);
-    //     }
-
-    //     #[test]
-    //     fn idl_generation_works_for_queries() {
-    //         let mut idl = Vec::new();
-    //         generate_serivce_idl::<(), TestQueryProcessorMeta>(None, &mut idl).unwrap();
-    //         let generated_idl = String::from_utf8(idl).unwrap();
-
-    //         const EXPECTED_IDL: &str = r"type SailsIdlgenTestsTupleStruct = struct {
-    //   bool,
-    // };
-
-    // type SailsIdlgenTestsGenericEnum<bool, u32> = enum {
-    //   Variant1: bool,
-    //   Variant2: u32,
-    // };
-
-    // type SailsIdlgenTestsThatParam = struct {
-    //   p1: SailsIdlgenTestsManyVariants,
-    // };
-
-    // type SailsIdlgenTestsManyVariants = enum {
-    //   One,
-    //   Two: u32,
-    //   Three: opt vec u32,
-    //   Four: struct { a: u32, b: opt u16 },
-    //   Five: struct { str, vec u8 },
-    //   Six: struct { u32 },
-    //   Seven: SailsIdlgenTestsGenericEnum<u32, str>,
-    // };
-
-    // type SailsIdlgenTestsGenericEnum<u32, str> = enum {
-    //   Variant1: u32,
-    //   Variant2: str,
-    // };
-
-    // service {
-    //   This : (u32, str, struct { opt str, u8 }, SailsIdlgenTestsTupleStruct, SailsIdlgenTestsGenericEnum<bool, u32>) -> result (struct { str, u32 }, str) query;
-    //   That : (SailsIdlgenTestsThatParam) -> result (struct { str, u32 }, struct { str }) query;
-    //   Fail : (str) -> result (null, str) query;
-    // }
-    // ";
-    //         assert_eq!(generated_idl, EXPECTED_IDL);
-    //     }
-
     #[test]
-    fn idl_generation_works_for_commands_and_queries() {
+    fn idl_generation_works() {
         let mut idl = Vec::new();
-        // generate_serivce_idl::<TestCommandProcessorMeta, TestQueryProcessorMeta>(None, &mut idl)
-        //     .unwrap();
         generate_serivce_idl::<TestServiceMeta>(&mut idl).unwrap();
         let generated_idl = String::from_utf8(idl).unwrap();
+        let _generated_idl_program = sails_idlparser::parse_idl_from_str(&generated_idl);
 
         const EXPECTED_IDL: &str = r"type SailsIdlgenTestsTupleStruct = struct {
   bool,
@@ -340,6 +248,9 @@ service {
   query That : (pr1: SailsIdlgenTestsThatParam) -> str;
 }
 ";
+
         assert_eq!(generated_idl, EXPECTED_IDL);
+        // assert!(generated_idl_program.is_ok());
+        // assert_eq!(generated_idl_program.unwrap().items.len(), 8);
     }
 }
