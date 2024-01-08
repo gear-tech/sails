@@ -4,7 +4,8 @@ use std::{slice, str};
 
 mod grammar;
 mod lexer;
-mod types;
+pub mod types;
+pub mod visitor;
 
 /// # Safety
 ///
@@ -61,7 +62,7 @@ mod tests {
 
         let program = parse_idl_from_str(program_idl).unwrap();
 
-        assert_eq!(program.types.len(), 4);
+        assert_eq!(program.types().len(), 4);
 
         //println!("ast: {:#?}", program);
     }
@@ -98,7 +99,7 @@ mod tests {
 
         let program = parse_idl_from_str(program_idl).unwrap();
 
-        assert_eq!(program.types.len(), 1);
+        assert_eq!(program.types().len(), 1);
     }
 
     #[test]
@@ -122,7 +123,7 @@ mod tests {
 
         let program = parse_idl_from_str(program_idl).unwrap();
 
-        assert_eq!(program.types.len(), 1);
+        assert_eq!(program.types().len(), 1);
     }
 
     #[test]

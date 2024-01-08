@@ -31,36 +31,36 @@ extern {
 
 pub Program: Program = {
     <types1: (<Separated<Type, ";">> ";")?> <service: Service> <types2: (";" <Separated<Type, ";">>)?> =>
-        Program {
+        Program::new(
             service,
-            types: types1.unwrap_or_default().into_iter()
+            types1.unwrap_or_default().into_iter()
                 .chain(types2.unwrap_or_default().into_iter())
                 .collect(),
-        },
+        ),
 }
 
 Service: Service = {
-    "service" "{" <Separated<Func, ",">> "}" => Service { funcs: <> },
+    "service" "{" <Separated<Func, ",">> "}" => Service::new(<>),
 }
 
 Func: Func = {
     <query: "query"?> <name: "id"> ":" "(" <params: Separated<Param, ",">> ")" "->" <output: TypeDecl> =>
-        Func { name, params, output, is_query: query.is_some() },
+        Func::new(name, params, output, query.is_some()),
 }
 
 Param: Param = {
-    <name: "id"> ":" <r#type: TypeDecl> => Param { name, r#type },
+    <name: "id"> ":" <r#type: TypeDecl> => Param::new(name, r#type),
 }
 
 Type: Type = {
-    "type" <name: "id"> "=" <def: TypeDef> => Type { name, def },
+    "type" <name: "id"> "=" <def: TypeDef> => Type::new(name, def),
 }
 
 TypeDecl: TypeDecl = {
     "opt" <TypeDecl> => TypeDecl::Opt(Box::new(<>)),
     "vec" <TypeDecl> => TypeDecl::Vec(Box::new(<>)),
     "result" "(" <ok: TypeDecl> "," <err: TypeDecl> ")" => TypeDecl::Result { ok: Box::new(ok), err: Box::new(err) },
-    "null" => TypeDecl::Null,
+    "null" => TypeDecl::Id(TypeId::Primitive(PrimitiveType::Null)),
     <"id"> => match PrimitiveType::str_to_enum(&<>) {
         Some(primitive_type) => TypeDecl::Id(TypeId::Primitive(primitive_type)),
         None => TypeDecl::Id(TypeId::UserDefined(<>)),
@@ -74,21 +74,21 @@ TypeDef: TypeDef = {
 }
 
 StructDef: StructDef = {
-    "struct" "{" <Separated<StructField, ",">> "}" => StructDef { fields: <> },
+    "struct" "{" <Separated<StructField, ",">> "}" => StructDef::new(<>),
 }
 
 StructField: StructField = {
-    <name: "id"> ":" <r#type: TypeDecl> => StructField { name: Some(name), r#type },
-    <r#type: TypeDecl> => StructField { name: None, r#type },
+    <name: "id"> ":" <r#type: TypeDecl> => StructField::new(Some(name), r#type),
+    <r#type: TypeDecl> => StructField::new(None, r#type),
 }
 
 EnumDef: EnumDef = {
-    "enum" "{" <Separated<EnumVariant, ",">> "}" => EnumDef { variants: <> },
+    "enum" "{" <Separated<EnumVariant, ",">> "}" => EnumDef::new(<>),
 }
 
 EnumVariant: EnumVariant = {
-    <name: "id"> ":" <r#type: TypeDecl> => EnumVariant { name, r#type: Some(r#type) },
-    <name: "id"> => EnumVariant { name, r#type: None },
+    <name: "id"> ":" <r#type: TypeDecl> => EnumVariant::new(name, Some(r#type)),
+    <name: "id"> => EnumVariant::new(name, None),
 }
 
 #[inline]

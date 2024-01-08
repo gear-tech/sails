@@ -14,3 +14,6 @@ logos.workspace = true
 
 [build-dependencies]
 lalrpop.workspace = true
+
+[dev-dependencies]
+itertools.workspace = true

@@ -23,6 +23,7 @@ gstd = { git = "https://github.com/gear-tech/gear.git", tag = "v1.0.3" }
 gsys = { git = "https://github.com/gear-tech/gear.git", tag = "v1.0.3" }
 gwasm-builder = { package = "gear-wasm-builder", git = "https://github.com/gear-tech/gear.git", tag = "v1.0.3" }
 handlebars = "4.4"
+itertools = "0.12"
 lalrpop = { version = "0.20", default-features = false }
 lalrpop-util = "0.20"
 logos = "0.13"
