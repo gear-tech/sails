@@ -44,12 +44,12 @@ Service: Service = {
 }
 
 Func: Func = {
-    <query: "query"?> <name: "id"> ":" "(" <params: Separated<Param, ",">> ")" "->" <output: TypeDecl> =>
+    <query: "query"?> <name: "id"> ":" "(" <params: Separated<FuncParam, ",">> ")" "->" <output: TypeDecl> =>
         Func::new(name, params, output, query.is_some()),
 }
 
-Param: Param = {
-    <name: "id"> ":" <r#type: TypeDecl> => Param::new(name, r#type),
+FuncParam: FuncParam = {
+    <name: "id"> ":" <r#type: TypeDecl> => FuncParam::new(name, r#type),
 }
 
 Type: Type = {
@@ -57,8 +57,8 @@ Type: Type = {
 }
 
 TypeDecl: TypeDecl = {
-    "opt" <TypeDecl> => TypeDecl::Opt(Box::new(<>)),
-    "vec" <TypeDecl> => TypeDecl::Vec(Box::new(<>)),
+    "opt" <TypeDecl> => TypeDecl::Optional(Box::new(<>)),
+    "vec" <TypeDecl> => TypeDecl::Vector(Box::new(<>)),
     "result" "(" <ok: TypeDecl> "," <err: TypeDecl> ")" => TypeDecl::Result { ok: Box::new(ok), err: Box::new(err) },
     "null" => TypeDecl::Id(TypeId::Primitive(PrimitiveType::Null)),
     <"id"> => match PrimitiveType::str_to_enum(&<>) {
