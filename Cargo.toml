@@ -18,10 +18,10 @@ members = [
 
 [workspace.dependencies]
 convert-case = { package = "convert_case", version = "0.6" }
-gmeta = { git = "https://github.com/gear-tech/gear.git", tag = "v1.0.3" }
-gstd = { git = "https://github.com/gear-tech/gear.git", tag = "v1.0.3" }
-gsys = { git = "https://github.com/gear-tech/gear.git", tag = "v1.0.3" }
-gwasm-builder = { package = "gear-wasm-builder", git = "https://github.com/gear-tech/gear.git", tag = "v1.0.3" }
+gmeta = "1.0.4"
+gstd = "1.0.4"
+gsys = "1.0.4"
+gwasm-builder = { package = "gear-wasm-builder", version = "1.0.4" }
 handlebars = "4.4"
 itertools = "0.12"
 lalrpop = { version = "0.20", default-features = false }
