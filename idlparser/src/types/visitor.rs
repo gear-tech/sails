@@ -83,7 +83,7 @@ pub fn accept_func_param<'ast>(
     func_param: &'ast FuncParam,
     visitor: &mut (impl Visitor<'ast> + ?Sized),
 ) {
-    accept_type_decl(func_param.r#type(), visitor);
+    accept_type_decl(func_param.type_decl(), visitor);
 }
 
 pub fn accept_type<'ast>(r#type: &'ast Type, visitor: &mut (impl Visitor<'ast> + ?Sized)) {
@@ -140,7 +140,7 @@ pub fn accept_struct_field<'ast>(
     struct_field: &'ast StructField,
     visitor: &mut (impl Visitor<'ast> + ?Sized),
 ) {
-    accept_type_decl(struct_field.r#type(), visitor);
+    accept_type_decl(struct_field.type_decl(), visitor);
 }
 
 pub fn accept_enum_def<'ast>(enum_def: &'ast EnumDef, visitor: &mut (impl Visitor<'ast> + ?Sized)) {
@@ -153,8 +153,8 @@ pub fn accept_enum_variant<'ast>(
     enum_variant: &'ast EnumVariant,
     visitor: &mut (impl Visitor<'ast> + ?Sized),
 ) {
-    if let Some(r#type) = enum_variant.r#type().as_ref() {
-        accept_type_decl(r#type, visitor);
+    if let Some(type_decl) = enum_variant.type_decl().as_ref() {
+        accept_type_decl(type_decl, visitor);
     }
 }
 

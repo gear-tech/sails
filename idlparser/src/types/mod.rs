@@ -87,20 +87,20 @@ impl Func {
 #[derive(Debug, PartialEq)]
 pub struct FuncParam {
     name: String,
-    r#type: TypeDecl,
+    type_decl: TypeDecl,
 }
 
 impl FuncParam {
-    pub(crate) fn new(name: String, r#type: TypeDecl) -> Self {
-        Self { name, r#type }
+    pub(crate) fn new(name: String, type_decl: TypeDecl) -> Self {
+        Self { name, type_decl }
     }
 
     pub fn name(&self) -> &str {
         &self.name
     }
 
-    pub fn r#type(&self) -> &TypeDecl {
-        &self.r#type
+    pub fn type_decl(&self) -> &TypeDecl {
+        &self.type_decl
     }
 }
 
@@ -206,20 +206,20 @@ impl StructDef {
 #[derive(Debug, PartialEq)]
 pub struct StructField {
     name: Option<String>,
-    r#type: TypeDecl,
+    type_decl: TypeDecl,
 }
 
 impl StructField {
-    pub(crate) fn new(name: Option<String>, r#type: TypeDecl) -> Self {
-        Self { name, r#type }
+    pub(crate) fn new(name: Option<String>, type_decl: TypeDecl) -> Self {
+        Self { name, type_decl }
     }
 
     pub fn name(&self) -> Option<&str> {
         self.name.as_deref()
     }
 
-    pub fn r#type(&self) -> &TypeDecl {
-        &self.r#type
+    pub fn type_decl(&self) -> &TypeDecl {
+        &self.type_decl
     }
 }
 
@@ -241,20 +241,20 @@ impl EnumDef {
 #[derive(Debug, PartialEq)]
 pub struct EnumVariant {
     name: String,
-    r#type: Option<TypeDecl>,
+    type_decl: Option<TypeDecl>,
 }
 
 impl EnumVariant {
-    pub(crate) fn new(name: String, r#type: Option<TypeDecl>) -> Self {
-        Self { name, r#type }
+    pub(crate) fn new(name: String, type_decl: Option<TypeDecl>) -> Self {
+        Self { name, type_decl }
     }
 
     pub fn name(&self) -> &str {
         &self.name
     }
 
-    pub fn r#type(&self) -> Option<&TypeDecl> {
-        self.r#type.as_ref()
+    pub fn type_decl(&self) -> Option<&TypeDecl> {
+        self.type_decl.as_ref()
     }
 }
 
