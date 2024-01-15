@@ -197,7 +197,7 @@ mod tests {
         let mut idl = Vec::new();
         generate_serivce_idl::<TestServiceMeta>(&mut idl).unwrap();
         let generated_idl = String::from_utf8(idl).unwrap();
-        let _generated_idl_program = sails_idlparser::types::parse_idl(&generated_idl);
+        let generated_idl_program = sails_idlparser::types::parse_idl(&generated_idl);
 
         const EXPECTED_IDL: &str = r"type SailsIdlgenTestsTupleStruct = struct {
   bool,
@@ -250,7 +250,7 @@ service {
 ";
 
         assert_eq!(generated_idl, EXPECTED_IDL);
-        // assert!(generated_idl_program.is_ok());
-        // assert_eq!(generated_idl_program.unwrap().items.len(), 8);
+        assert!(generated_idl_program.is_ok());
+        assert_eq!(generated_idl_program.unwrap().types().len(), 8);
     }
 }

@@ -40,7 +40,7 @@ pub Program: Program = {
 }
 
 Service: Service = {
-    "service" "{" <Separated<Func, ",">> "}" => Service::new(<>),
+    "service" "{" <Separated<Func, ";">> "}" => Service::new(<>),
 }
 
 Func: Func = {
