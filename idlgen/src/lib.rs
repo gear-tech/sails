@@ -203,11 +203,11 @@ mod tests {
   bool,
 };
 
-type SailsIdlgenTestsGenericStruct<u32> = struct {
+type SailsIdlgenTestsGenericStructForU32 = struct {
   p1: u32,
 };
 
-type SailsIdlgenTestsGenericStruct<str> = struct {
+type SailsIdlgenTestsGenericStructForStr = struct {
   p1: str,
 };
 
@@ -224,15 +224,15 @@ type SailsIdlgenTestsManyVariants = enum {
   Four: struct { a: u32, b: opt u16 },
   Five: struct { str, vec u8 },
   Six: struct { u32 },
-  Seven: SailsIdlgenTestsGenericEnum<u32, str>,
+  Seven: SailsIdlgenTestsGenericEnumForU32AndStr,
 };
 
-type SailsIdlgenTestsGenericEnum<u32, str> = enum {
+type SailsIdlgenTestsGenericEnumForU32AndStr = enum {
   Variant1: u32,
   Variant2: str,
 };
 
-type SailsIdlgenTestsGenericEnum<bool, u32> = enum {
+type SailsIdlgenTestsGenericEnumForBoolAndU32 = enum {
   Variant1: bool,
   Variant2: u32,
 };
@@ -242,9 +242,9 @@ type SailsIdlgenTestsThatParam = struct {
 };
 
 service {
-  DoThis : (p1: u32, p2: str, p3: struct { opt str, u8 }, p4: SailsIdlgenTestsTupleStruct, p5: SailsIdlgenTestsGenericStruct<u32>, p6: SailsIdlgenTestsGenericStruct<str>) -> str;
+  DoThis : (p1: u32, p2: str, p3: struct { opt str, u8 }, p4: SailsIdlgenTestsTupleStruct, p5: SailsIdlgenTestsGenericStructForU32, p6: SailsIdlgenTestsGenericStructForStr) -> str;
   DoThat : (par1: SailsIdlgenTestsDoThatParam) -> result (struct { str, u32 }, struct { str });
-  query This : (p1: u32, p2: str, p3: struct { opt str, u8 }, p4: SailsIdlgenTestsTupleStruct, p5: SailsIdlgenTestsGenericEnum<bool, u32>) -> result (struct { str, u32 }, str);
+  query This : (p1: u32, p2: str, p3: struct { opt str, u8 }, p4: SailsIdlgenTestsTupleStruct, p5: SailsIdlgenTestsGenericEnumForBoolAndU32) -> result (struct { str, u32 }, str);
   query That : (pr1: SailsIdlgenTestsThatParam) -> str;
 }
 ";

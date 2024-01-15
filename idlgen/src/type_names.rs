@@ -142,13 +142,14 @@ fn type_name_by_path(
                 .ok_or_else(|| Error::UnsupprotedType(format!("{type_info:?}")))?
                 .id;
             resolve_type_name(type_registry, type_param_id, resolved_type_names)
+                .map(|type_name| type_name.to_case(Case::Pascal))
         })
         .collect::<Result<Vec<_>>>()?
-        .join(", ");
+        .join("And");
     let type_name = if type_param_names.is_empty() {
         type_name
     } else {
-        format!("{}<{}>", type_name, type_param_names)
+        format!("{}For{}", type_name, type_param_names)
     };
     if type_name.is_empty() {
         Err(Error::UnsupprotedType(format!("{type_info:?}")))
@@ -238,13 +239,13 @@ mod tests {
         let u32_struct_name = type_names.get(&u32_struct_id).unwrap();
         assert_eq!(
             u32_struct_name,
-            "SailsIdlgenTypeNamesTestsGenericStruct<u32>"
+            "SailsIdlgenTypeNamesTestsGenericStructForU32"
         );
 
         let string_struct_name = type_names.get(&string_struct_id).unwrap();
         assert_eq!(
             string_struct_name,
-            "SailsIdlgenTypeNamesTestsGenericStruct<str>"
+            "SailsIdlgenTypeNamesTestsGenericStructForStr"
         );
     }
 
@@ -264,13 +265,13 @@ mod tests {
         let u32_string_enum_name = type_names.get(&u32_string_enum_id).unwrap();
         assert_eq!(
             u32_string_enum_name,
-            "SailsIdlgenTypeNamesTestsGenericEnum<u32, str>"
+            "SailsIdlgenTypeNamesTestsGenericEnumForU32AndStr"
         );
 
         let bool_u32_enum_name = type_names.get(&bool_u32_enum_id).unwrap();
         assert_eq!(
             bool_u32_enum_name,
-            "SailsIdlgenTypeNamesTestsGenericEnum<bool, u32>"
+            "SailsIdlgenTypeNamesTestsGenericEnumForBoolAndU32"
         );
     }
 }
