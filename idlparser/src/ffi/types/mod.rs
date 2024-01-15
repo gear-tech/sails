@@ -5,7 +5,7 @@ pub mod visitor;
 
 /// # Safety
 ///
-/// See the safity documentation of [`slice::from_raw_parts`].
+/// See the safety documentation of [`slice::from_raw_parts`].
 #[no_mangle]
 pub unsafe extern "C" fn parse_idl(idl_ptr: *const u8, idl_len: u32) -> *mut Program {
     let idl = unsafe { slice::from_raw_parts(idl_ptr, idl_len.try_into().unwrap()) };

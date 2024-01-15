@@ -1,9 +1,8 @@
-use std::ptr;
-
 use super::*;
 use crate::{
     types as raw_types, types::visitor as raw_visitor, types::visitor::Visitor as RawVisitor,
 };
+use std::ptr;
 
 #[repr(C, packed)]
 pub struct Visitor {
