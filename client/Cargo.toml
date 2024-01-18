@@ -8,7 +8,7 @@ license.workspace = true
 [dependencies]
 gmeta.workspace = true
 gclient.workspace = true
-gstd = { workspace = true, features = ["debug"] }
+gstd = { workspace = true, features = ["debug"], optional = true }
 sails-macros.workspace = true
 parity-scale-codec = { workspace = true, features = ["derive"] }
 scale-info = { workspace = true, features = ["derive"] }
