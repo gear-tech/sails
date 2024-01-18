@@ -9,7 +9,6 @@ resolver = "2"
 members = [
     "examples/this-that-svc/app",
     "examples/this-that-svc/wasm",
-    "examples/this-that-svc/invoke-example",
     "idlgen",
     "client-gen",
     "idlparser",
