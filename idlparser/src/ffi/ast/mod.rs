@@ -1,4 +1,4 @@
-use crate::types;
+use crate::ast;
 use std::{slice, str};
 
 pub mod visitor;
@@ -10,7 +10,7 @@ pub mod visitor;
 pub unsafe extern "C" fn parse_idl(idl_ptr: *const u8, idl_len: u32) -> *mut Program {
     let idl = unsafe { slice::from_raw_parts(idl_ptr, idl_len.try_into().unwrap()) };
     let idl = str::from_utf8(idl).unwrap();
-    let program = types::parse_idl(idl).unwrap();
+    let program = ast::parse_idl(idl).unwrap();
     let program = Box::new(program);
     Box::into_raw(program)
 }
@@ -28,50 +28,50 @@ pub unsafe extern "C" fn free_program(program: *mut Program) {
     }
 }
 
-pub type Program = types::Program;
+pub type Program = ast::Program;
 
-pub type Service = types::Service;
+pub type Service = ast::Service;
 
 #[repr(C, packed)]
 pub struct Func {
     name_ptr: *const u8,
     name_len: u32,
     is_query: bool,
-    raw_func: *const types::Func,
+    raw_func: *const ast::Func,
 }
 
 #[repr(C, packed)]
 pub struct FuncParam {
     name_ptr: *const u8,
     name_len: u32,
-    raw_func_param: *const types::FuncParam,
+    raw_func_param: *const ast::FuncParam,
 }
 
 #[repr(C, packed)]
 pub struct Type {
     name_ptr: *const u8,
     name_len: u32,
-    raw_type: *const types::Type,
+    raw_type: *const ast::Type,
 }
 
-pub type TypeDecl = types::TypeDecl;
+pub type TypeDecl = ast::TypeDecl;
 
-pub type PrimitiveType = types::PrimitiveType;
+pub type PrimitiveType = ast::PrimitiveType;
 
-pub type StructDef = types::StructDef;
+pub type StructDef = ast::StructDef;
 
 #[repr(C, packed)]
 pub struct StructField {
     name_ptr: *const u8,
     name_len: u32,
-    raw_struct_field: *const types::StructField,
+    raw_struct_field: *const ast::StructField,
 }
 
-pub type EnumDef = types::EnumDef;
+pub type EnumDef = ast::EnumDef;
 
 #[repr(C, packed)]
 pub struct EnumVariant {
     name_ptr: *const u8,
     name_len: u32,
-    raw_enum_variant: *const types::EnumVariant,
+    raw_enum_variant: *const ast::EnumVariant,
 }
