@@ -1,7 +1,7 @@
-use sails_idlparser::{types, types::visitor, types::visitor::Visitor, types::*};
+use sails_idlparser::{ast, ast::visitor, ast::visitor::Visitor, ast::*};
 
 pub fn process_file(content: &str) -> String {
-    let program = types::parse_idl(content).unwrap();
+    let program = ast::parse_idl(content).unwrap();
     let mut trait_generator = RootGenerator::new("MyService");
     visitor::accept_program(&program, &mut trait_generator);
     let code = trait_generator.code;
