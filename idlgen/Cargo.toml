@@ -15,4 +15,5 @@ serde-json.workspace = true
 thiserror.workspace = true
 
 [dev-dependencies]
+sails-idlparser.workspace = true
 scale-info = { workspace = true, features = ["derive"] }
