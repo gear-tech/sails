@@ -1,0 +1,12 @@
+[package]
+name = "sails-clientgen"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+mockall.workspace = true
+prettyplease.workspace = true
+sails-idlparser.workspace = true
+syn = { workspace = true, features = ["full", "parsing"] }
