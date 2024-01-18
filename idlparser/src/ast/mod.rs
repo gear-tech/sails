@@ -9,14 +9,14 @@ pub fn parse_idl(idl: &str) -> Result<Program, String> {
     Ok(program)
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Program {
     service: Service,
     types: Vec<Type>,
 }
 
 impl Program {
-    pub(crate) fn new(service: Service, types: Vec<Type>) -> Self {
+    pub fn new(service: Service, types: Vec<Type>) -> Self {
         Self { service, types }
     }
 
@@ -29,13 +29,13 @@ impl Program {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Service {
     funcs: Vec<Func>,
 }
 
 impl Service {
-    pub(crate) fn new(funcs: Vec<Func>) -> Self {
+    pub fn new(funcs: Vec<Func>) -> Self {
         Self { funcs }
     }
 
@@ -44,7 +44,7 @@ impl Service {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Func {
     name: String,
     params: Vec<FuncParam>,
@@ -53,12 +53,7 @@ pub struct Func {
 }
 
 impl Func {
-    pub(crate) fn new(
-        name: String,
-        params: Vec<FuncParam>,
-        output: TypeDecl,
-        is_query: bool,
-    ) -> Self {
+    pub fn new(name: String, params: Vec<FuncParam>, output: TypeDecl, is_query: bool) -> Self {
         Self {
             name,
             params,
@@ -84,14 +79,14 @@ impl Func {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct FuncParam {
     name: String,
     type_decl: TypeDecl,
 }
 
 impl FuncParam {
-    pub(crate) fn new(name: String, type_decl: TypeDecl) -> Self {
+    pub fn new(name: String, type_decl: TypeDecl) -> Self {
         Self { name, type_decl }
     }
 
@@ -104,14 +99,14 @@ impl FuncParam {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Type {
     name: String,
     def: TypeDef,
 }
 
 impl Type {
-    pub(crate) fn new(name: String, def: TypeDef) -> Self {
+    pub fn new(name: String, def: TypeDef) -> Self {
         Self { name, def }
     }
 
@@ -124,7 +119,7 @@ impl Type {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum TypeDecl {
     Optional(Box<TypeDecl>),
     Vector(Box<TypeDecl>),
@@ -136,13 +131,13 @@ pub enum TypeDecl {
     Def(TypeDef),
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum TypeId {
     Primitive(PrimitiveType),
     UserDefined(String),
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 #[repr(u8)]
 pub enum PrimitiveType {
     Null,
@@ -162,7 +157,7 @@ pub enum PrimitiveType {
 }
 
 impl PrimitiveType {
-    pub(crate) fn str_to_enum(str: &str) -> Option<Self> {
+    pub fn str_to_enum(str: &str) -> Option<Self> {
         match str {
             "bool" => Some(PrimitiveType::Bool),
             "char" => Some(PrimitiveType::Char),
@@ -182,19 +177,19 @@ impl PrimitiveType {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum TypeDef {
     Struct(StructDef),
     Enum(EnumDef),
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct StructDef {
     fields: Vec<StructField>,
 }
 
 impl StructDef {
-    pub(crate) fn new(fields: Vec<StructField>) -> Self {
+    pub fn new(fields: Vec<StructField>) -> Self {
         Self { fields }
     }
 
@@ -203,14 +198,14 @@ impl StructDef {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct StructField {
     name: Option<String>,
     type_decl: TypeDecl,
 }
 
 impl StructField {
-    pub(crate) fn new(name: Option<String>, type_decl: TypeDecl) -> Self {
+    pub fn new(name: Option<String>, type_decl: TypeDecl) -> Self {
         Self { name, type_decl }
     }
 
@@ -223,13 +218,13 @@ impl StructField {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct EnumDef {
     variants: Vec<EnumVariant>,
 }
 
 impl EnumDef {
-    pub(crate) fn new(variants: Vec<EnumVariant>) -> Self {
+    pub fn new(variants: Vec<EnumVariant>) -> Self {
         Self { variants }
     }
 
@@ -238,14 +233,14 @@ impl EnumDef {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct EnumVariant {
     name: String,
     type_decl: Option<TypeDecl>,
 }
 
 impl EnumVariant {
-    pub(crate) fn new(name: String, type_decl: Option<TypeDecl>) -> Self {
+    pub fn new(name: String, type_decl: Option<TypeDecl>) -> Self {
         Self { name, type_decl }
     }
 
@@ -268,13 +263,13 @@ mod tests {
           type ThisThatSvcAppTupleStruct = struct {
             bool,
           };
-          
+
           type ThisThatSvcAppDoThatParam = struct {
             p1: u32,
             p2: str,
             p3: ThisThatSvcAppManyVariants,
           };
-          
+
           type ThisThatSvcAppManyVariants = enum {
             One,
             Two: u32,
@@ -283,14 +278,14 @@ mod tests {
             Five: struct { str, u32 },
             Six: struct { u32 },
           };
-  
+
           service {
             DoThis : (p1: u32, p2: str, p3: struct { opt str, u8 }, p4: ThisThatSvcAppTupleStruct) -> struct { str, u32 };
             DoThat : (param: ThisThatSvcAppDoThatParam) -> result (struct { str, u32 }, struct { str });
             query This : (v1: vec u16) -> u32;
             query That : (v1: null) -> result (str, str);
           };
-  
+
           type T = enum { One }
         ";
 

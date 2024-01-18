@@ -1,6 +1,6 @@
 use anyhow::Result;
 use convert_case::{Case, Casing};
-use sails_idlparser::types::*;
+use sails_idlparser::ast::*;
 use std::{fmt::Write, path::PathBuf};
 
 pub struct IdlGenerator {
@@ -273,9 +273,7 @@ impl IdlGenerator {
                             w,
                             "{}{},",
                             variant.name(),
-                            self.format_inner_type(&TypeDecl::Def(TypeDef::Struct(
-                                def.to_owned()
-                            )))?
+                            self.format_inner_type(&TypeDecl::Def(TypeDef::Struct(def.clone())))?
                         )?,
                         Some(tt) => {
                             writeln!(w, "{}({}),", variant.name(), self.format_inner_type(tt)?)?
@@ -333,7 +331,7 @@ mod tests {
         service {}
         "#;
 
-        let program = sails_idlparser::types::parse_idl(idl).expect("parse IDL");
+        let program = sails_idlparser::ast::parse_idl(idl).expect("parse IDL");
         let generator = IdlGenerator::new(PathBuf::from("test"));
 
         insta::assert_snapshot!(generator.generate(program).unwrap());
@@ -353,7 +351,7 @@ mod tests {
         service {}
         "#;
 
-        let program = sails_idlparser::types::parse_idl(idl).expect("parse IDL");
+        let program = sails_idlparser::ast::parse_idl(idl).expect("parse IDL");
         let generator = IdlGenerator::new(PathBuf::from("test"));
 
         insta::assert_snapshot!(generator.generate(program).unwrap());

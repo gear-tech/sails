@@ -16,7 +16,7 @@ fn main() -> Result<()> {
     let idl = fs::read_to_string(&idl_json_path)
         .with_context(|| format!("Failed to open {} for reading", idl_json_path.display()))?;
 
-    let program = match sails_idlparser::types::parse_idl(&idl) {
+    let program = match sails_idlparser::ast::parse_idl(&idl) {
         Ok(program) => program,
         Err(e) => {
             eprintln!("Failed to parse IDL: {}", e);
@@ -95,7 +95,7 @@ mod tests {
 
         type T = enum { One }
         "#;
-        let program = sails_idlparser::types::parse_idl(&IDL).expect("parse IDL");
+        let program = sails_idlparser::ast::parse_idl(&IDL).expect("parse IDL");
 
         let generator = IdlGenerator::new(PathBuf::from("test"));
 
