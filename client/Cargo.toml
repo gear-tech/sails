@@ -1,12 +1,16 @@
 [package]
-name = "this-that-svc-app"
-version = "0.1.0"
-edition = "2021"
+name = "sails-client"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
 
 [dependencies]
 gmeta.workspace = true
+gclient.workspace = true
 gstd = { workspace = true, features = ["debug"] }
 sails-macros.workspace = true
-sails-service-meta.workspace = true
 parity-scale-codec = { workspace = true, features = ["derive"] }
 scale-info = { workspace = true, features = ["derive"] }
+gtest = { workspace = true }
+async-trait = "0.1"

@@ -19,63 +19,23 @@
 //! Functionality for generating IDL files describing some service based on its Rust code.
 
 use handlebars::{handlebars_helper, Handlebars};
-use sails_service::{CommandProcessorMeta, QueryProcessorMeta, ServiceMeta};
+use sails_service_meta::ServiceMeta;
 use scale_info::PortableType;
 use serde::Serialize;
-use service_types::{ServiceTypes, ServiceTypesEx};
+use service_types::ServiceTypes;
 use std::io;
 
 mod errors;
 mod service_types;
 mod type_names;
 
-const IDL_EX_TEMPLATE: &str = include_str!("../hbs/idl_ex.hbs");
 const IDL_TEMPLATE: &str = include_str!("../hbs/idl.hbs");
 const COMPOSITE_TEMPLATE: &str = include_str!("../hbs/composite.hbs");
 const VARIANT_TEMPLATE: &str = include_str!("../hbs/variant.hbs");
 
-pub fn generate_serivce_idl<C, Q>(
-    _service_name: Option<&str>,
-    idl_writer: impl io::Write,
-) -> errors::Result<()>
-where
-    C: CommandProcessorMeta,
-    Q: QueryProcessorMeta,
-{
-    let service_info = ServiceTypes::<C, Q>::new();
-
-    let service_all_type_names = type_names::resolve_type_names(service_info.all_types_registry())?;
-
-    let service_idl_data = ServiceIdlData {
-        complex_types: service_info.complex_types().collect(),
-        commands: service_info.command_types().0,
-        command_responses: service_info.command_types().1,
-        queries: service_info.query_types().0,
-        query_responses: service_info.query_types().1,
-        type_names: service_all_type_names.values().collect(),
-    };
-
-    let mut handlebars = Handlebars::new();
-    handlebars
-        .register_template_string("idl", IDL_TEMPLATE)
-        .map_err(Box::new)?;
-    handlebars
-        .register_template_string("composite", COMPOSITE_TEMPLATE)
-        .map_err(Box::new)?;
-    handlebars
-        .register_template_string("variant", VARIANT_TEMPLATE)
-        .map_err(Box::new)?;
-    handlebars.register_helper("deref", Box::new(deref));
-
-    handlebars
-        .render_to_write("idl", &service_idl_data, idl_writer)
-        .map_err(Box::new)?;
-
-    Ok(())
-}
-
-pub fn generate_serivce_idl_ex<S: ServiceMeta>(idl_writer: impl io::Write) -> errors::Result<()> {
-    let service_info = ServiceTypesEx::<S>::new();
+/// Generates IDL for the given service meta and writes it to the given writer.
+pub fn generate_serivce_idl<S: ServiceMeta>(idl_writer: impl io::Write) -> errors::Result<()> {
+    let service_info = ServiceTypes::<S>::new();
 
     let service_all_type_names = type_names::resolve_type_names(service_info.all_types_registry())?;
 
@@ -89,7 +49,7 @@ pub fn generate_serivce_idl_ex<S: ServiceMeta>(idl_writer: impl io::Write) -> er
 
     let mut handlebars = Handlebars::new();
     handlebars
-        .register_template_string("idl", IDL_EX_TEMPLATE)
+        .register_template_string("idl", IDL_TEMPLATE)
         .map_err(Box::new)?;
     handlebars
         .register_template_string("composite", COMPOSITE_TEMPLATE)
@@ -132,26 +92,24 @@ handlebars_helper!(deref: |v: String| { v });
 #[cfg(test)]
 mod tests {
     use super::*;
-    use parity_scale_codec::{Decode, Encode};
-    use sails_service::BoxedFuture;
     use scale_info::TypeInfo;
     use std::result::Result as StdResult;
 
     #[allow(dead_code)]
-    #[derive(TypeInfo, Decode)]
+    #[derive(TypeInfo)]
     pub struct GenericStruct<T> {
         pub p1: T,
     }
 
     #[allow(dead_code)]
-    #[derive(TypeInfo, Decode)]
+    #[derive(TypeInfo)]
     pub enum GenericEnum<T1, T2> {
         Variant1(T1),
         Variant2(T2),
     }
 
     #[allow(dead_code)]
-    #[derive(TypeInfo, Decode)]
+    #[derive(TypeInfo)]
     pub struct DoThatParam {
         pub p1: u32,
         pub p2: String,
@@ -159,17 +117,17 @@ mod tests {
     }
 
     #[allow(dead_code)]
-    #[derive(TypeInfo, Decode)]
+    #[derive(TypeInfo)]
     pub struct ThatParam {
         pub p1: ManyVariants,
     }
 
     #[allow(dead_code)]
-    #[derive(TypeInfo, Decode)]
+    #[derive(TypeInfo)]
     pub struct TupleStruct(bool);
 
     #[allow(dead_code)]
-    #[derive(TypeInfo, Decode)]
+    #[derive(TypeInfo)]
     pub enum ManyVariants {
         One,
         Two(u32),
@@ -181,81 +139,75 @@ mod tests {
     }
 
     #[allow(dead_code)]
-    #[derive(TypeInfo, Decode)]
-    enum Commands {
-        DoThis(
-            u32,
-            String,
-            (Option<String>, u8),
-            TupleStruct,
-            GenericStruct<u32>,
-            GenericStruct<String>,
-        ),
-        DoThat(DoThatParam),
-        Fail(String),
+    #[derive(TypeInfo)]
+    struct DoThisParams {
+        p1: u32,
+        p2: String,
+        p3: (Option<String>, u8),
+        p4: TupleStruct,
+        p5: GenericStruct<u32>,
+        p6: GenericStruct<String>,
     }
 
     #[allow(dead_code)]
-    #[derive(TypeInfo, Encode)]
-    enum CommandResponses {
-        DoThis(StdResult<(String, u32), String>),
-        DoThat(StdResult<(String, u32), (String,)>),
-        Fail(StdResult<(), String>),
-    }
-
-    struct TestCommandProcessorMeta;
-
-    impl CommandProcessorMeta for TestCommandProcessorMeta {
-        type Request = Commands;
-        type Response = CommandResponses;
-        type ProcessFn = fn(Self::Request) -> BoxedFuture<(Self::Response, bool)>;
+    #[derive(TypeInfo)]
+    struct DoThatParams {
+        par1: DoThatParam,
     }
 
     #[allow(dead_code)]
-    #[derive(TypeInfo, Decode)]
-    enum Queries {
-        This(
-            u32,
-            String,
-            (Option<String>, u8),
-            TupleStruct,
-            GenericEnum<bool, u32>,
-        ),
-        That(ThatParam),
-        Fail(String),
+    #[derive(TypeInfo)]
+    enum CommandsMeta {
+        DoThis(DoThisParams, String),
+        DoThat(DoThatParams, StdResult<(String, u32), (String,)>),
     }
 
     #[allow(dead_code)]
-    #[derive(TypeInfo, Encode)]
-    enum QueryResponses {
-        This(StdResult<(String, u32), String>),
-        That(StdResult<(String, u32), (String,)>),
-        Fail(StdResult<(), String>),
+    #[derive(TypeInfo)]
+    struct ThisParams {
+        p1: u32,
+        p2: String,
+        p3: (Option<String>, u8),
+        p4: TupleStruct,
+        p5: GenericEnum<bool, u32>,
     }
 
-    struct TestQueryProcessorMeta;
+    #[allow(dead_code)]
+    #[derive(TypeInfo)]
+    struct ThatParams {
+        pr1: ThatParam,
+    }
 
-    impl QueryProcessorMeta for TestQueryProcessorMeta {
-        type Request = Queries;
-        type Response = QueryResponses;
-        type ProcessFn = fn(Self::Request) -> (Self::Response, bool);
+    #[allow(dead_code)]
+    #[derive(TypeInfo)]
+    enum QueriesMeta {
+        This(ThisParams, StdResult<(String, u32), String>),
+        That(ThatParams, String),
+    }
+
+    struct TestServiceMeta;
+
+    impl ServiceMeta for TestServiceMeta {
+        type Commands = CommandsMeta;
+        type Queries = QueriesMeta;
     }
 
     #[test]
-    fn idl_generation_works_for_commands() {
+    fn idl_generation_works() {
         let mut idl = Vec::new();
-        generate_serivce_idl::<TestCommandProcessorMeta, ()>(None, &mut idl).unwrap();
+        generate_serivce_idl::<TestServiceMeta>(&mut idl).unwrap();
         let generated_idl = String::from_utf8(idl).unwrap();
+        let generated_idl_program = sails_idlparser::types::parse_idl(&generated_idl);
 
         const EXPECTED_IDL: &str = r"type SailsIdlgenTestsTupleStruct = struct {
   bool,
 };
 
-type SailsIdlgenTestsGenericStruct<u32> = struct {
+type SailsIdlgenTestsGenericStructForU32 = struct {
   p1: u32,
 };
 
-type SailsIdlgenTestsGenericStruct<str> = struct {
+type SailsIdlgenTestsGenericStructForStr = struct {
   p1: str,
 };
 
@@ -272,107 +224,15 @@ type SailsIdlgenTestsManyVariants = enum {
   Four: struct { a: u32, b: opt u16 },
   Five: struct { str, vec u8 },
   Six: struct { u32 },
-  Seven: SailsIdlgenTestsGenericEnum<u32, str>,
+  Seven: SailsIdlgenTestsGenericEnumForU32AndStr,
 };
 
-type SailsIdlgenTestsGenericEnum<u32, str> = enum {
+type SailsIdlgenTestsGenericEnumForU32AndStr = enum {
   Variant1: u32,
   Variant2: str,
 };
 
-service {
-  async DoThis : (u32, str, struct { opt str, u8 }, SailsIdlgenTestsTupleStruct, SailsIdlgenTestsGenericStruct<u32>, SailsIdlgenTestsGenericStruct<str>) -> result (struct { str, u32 }, str);
-  async DoThat : (SailsIdlgenTestsDoThatParam) -> result (struct { str, u32 }, struct { str });
-  async Fail : (str) -> result (null, str);
-}
-";
-        assert_eq!(generated_idl, EXPECTED_IDL);
-    }
-
-    #[test]
-    fn idl_generation_works_for_queries() {
-        let mut idl = Vec::new();
-        generate_serivce_idl::<(), TestQueryProcessorMeta>(None, &mut idl).unwrap();
-        let generated_idl = String::from_utf8(idl).unwrap();
-
-        const EXPECTED_IDL: &str = r"type SailsIdlgenTestsTupleStruct = struct {
-  bool,
-};
-
-type SailsIdlgenTestsGenericEnum<bool, u32> = enum {
-  Variant1: bool,
-  Variant2: u32,
-};
-
-type SailsIdlgenTestsThatParam = struct {
-  p1: SailsIdlgenTestsManyVariants,
-};
-
-type SailsIdlgenTestsManyVariants = enum {
-  One,
-  Two: u32,
-  Three: opt vec u32,
-  Four: struct { a: u32, b: opt u16 },
-  Five: struct { str, vec u8 },
-  Six: struct { u32 },
-  Seven: SailsIdlgenTestsGenericEnum<u32, str>,
-};
-
-type SailsIdlgenTestsGenericEnum<u32, str> = enum {
-  Variant1: u32,
-  Variant2: str,
-};
-
-service {
-  This : (u32, str, struct { opt str, u8 }, SailsIdlgenTestsTupleStruct, SailsIdlgenTestsGenericEnum<bool, u32>) -> result (struct { str, u32 }, str) query;
-  That : (SailsIdlgenTestsThatParam) -> result (struct { str, u32 }, struct { str }) query;
-  Fail : (str) -> result (null, str) query;
-}
-";
-        assert_eq!(generated_idl, EXPECTED_IDL);
-    }
-
-    #[test]
-    fn idl_generation_works_for_commands_and_queries() {
-        let mut idl = Vec::new();
-        generate_serivce_idl::<TestCommandProcessorMeta, TestQueryProcessorMeta>(None, &mut idl)
-            .unwrap();
-        let generated_idl = String::from_utf8(idl).unwrap();
-
-        const EXPECTED_IDL: &str = r"type SailsIdlgenTestsTupleStruct = struct {
-  bool,
-};
-
-type SailsIdlgenTestsGenericStruct<u32> = struct {
-  p1: u32,
-};
-
-type SailsIdlgenTestsGenericStruct<str> = struct {
-  p1: str,
-};
-
-type SailsIdlgenTestsDoThatParam = struct {
-  p1: u32,
-  p2: str,
-  p3: SailsIdlgenTestsManyVariants,
-};
-
-type SailsIdlgenTestsManyVariants = enum {
-  One,
-  Two: u32,
-  Three: opt vec u32,
-  Four: struct { a: u32, b: opt u16 },
-  Five: struct { str, vec u8 },
-  Six: struct { u32 },
-  Seven: SailsIdlgenTestsGenericEnum<u32, str>,
-};
-
-type SailsIdlgenTestsGenericEnum<u32, str> = enum {
-  Variant1: u32,
-  Variant2: str,
-};
-
-type SailsIdlgenTestsGenericEnum<bool, u32> = enum {
+type SailsIdlgenTestsGenericEnumForBoolAndU32 = enum {
   Variant1: bool,
   Variant2: u32,
 };
@@ -382,14 +242,15 @@ type SailsIdlgenTestsThatParam = struct {
 };
 
 service {
-  async DoThis : (u32, str, struct { opt str, u8 }, SailsIdlgenTestsTupleStruct, SailsIdlgenTestsGenericStruct<u32>, SailsIdlgenTestsGenericStruct<str>) -> result (struct { str, u32 }, str);
-  async DoThat : (SailsIdlgenTestsDoThatParam) -> result (struct { str, u32 }, struct { str });
-  async Fail : (str) -> result (null, str);
-  This : (u32, str, struct { opt str, u8 }, SailsIdlgenTestsTupleStruct, SailsIdlgenTestsGenericEnum<bool, u32>) -> result (struct { str, u32 }, str) query;
-  That : (SailsIdlgenTestsThatParam) -> result (struct { str, u32 }, struct { str }) query;
-  Fail : (str) -> result (null, str) query;
+  DoThis : (p1: u32, p2: str, p3: struct { opt str, u8 }, p4: SailsIdlgenTestsTupleStruct, p5: SailsIdlgenTestsGenericStructForU32, p6: SailsIdlgenTestsGenericStructForStr) -> str;
+  DoThat : (par1: SailsIdlgenTestsDoThatParam) -> result (struct { str, u32 }, struct { str });
+  query This : (p1: u32, p2: str, p3: struct { opt str, u8 }, p4: SailsIdlgenTestsTupleStruct, p5: SailsIdlgenTestsGenericEnumForBoolAndU32) -> result (struct { str, u32 }, str);
+  query That : (pr1: SailsIdlgenTestsThatParam) -> str;
 }
 ";
+
         assert_eq!(generated_idl, EXPECTED_IDL);
+        assert!(generated_idl_program.is_ok());
+        assert_eq!(generated_idl_program.unwrap().types().len(), 8);
     }
 }

@@ -26,7 +26,6 @@ impl MyService {
         debug!("Handling 'do_that': {:?}", param);
         Ok((param.p2, param.p1))
     }
-
     pub fn this(&self) -> u32 {
         debug!("Handling 'this'");
         42

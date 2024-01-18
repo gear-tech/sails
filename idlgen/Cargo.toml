@@ -8,12 +8,12 @@ license.workspace = true
 [dependencies]
 convert-case.workspace = true
 handlebars.workspace = true
-sails-service.workspace = true
+sails-service-meta.workspace = true
 scale-info = { workspace = true, features = ["serde"] }
 serde.workspace = true
 serde-json.workspace = true
 thiserror.workspace = true
 
 [dev-dependencies]
-parity-scale-codec = { workspace = true, features = ["derive"] }
+sails-idlparser.workspace = true
 scale-info = { workspace = true, features = ["derive"] }

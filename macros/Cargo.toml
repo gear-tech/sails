@@ -14,12 +14,14 @@ proc-macro-error.workspace = true
 
 [dev-dependencies]
 parity-scale-codec = { workspace = true, features = ["derive"] }
+sails-service-meta.workspace = true
 scale-info = { workspace = true, features = ["derive"] }
 tokio = { workspace = true, features = ["full"] }
 trybuild.workspace = true
 
-[features]
-default = [
-    "handlers",
-] # Just for the sake of testing. I could not find any better solution https://github.com/rust-lang/cargo/issues/2911
-handlers = []
+
+# [features]
+# default = [
+#     "handlers",
+# ] # Just for the sake of testing. I could not find any better solution https://github.com/rust-lang/cargo/issues/2911
+# handlers = []
