@@ -4770,7 +4770,6 @@ dependencies = [
  "async-trait",
  "gclient",
  "gmeta",
- "gstd",
  "gtest",
  "parity-scale-codec",
  "sails-macros",

@@ -70,32 +70,6 @@ impl<'a> Sender for GTestSender<'a> {
     }
 }
 
-/// Sender that runs message against gtest::Program
-#[cfg(no_std)]
-#[derive(Default)]
-pub struct NativeSender;
-
-#[cfg(no_std)]
-impl NativeSender {
-    pub fn new() -> Self {
-        Self
-    }
-}
-
-#[cfg(no_std)]
-#[async_trait(?Send)]
-impl Sender for NativeSender {
-    type Error = gstd::errors::Error;
-
-    async fn send(&mut self, payload: &[u8], args: SendArgs) -> Result<SendResult, Self::Error> {
-        let payload =
-            gstd::msg::send_bytes_for_reply(args.program_id.into(), payload, args.value, 0)?
-                .await?;
-
-        Ok(SendResult { payload })
-    }
-}
-
 pub struct GClientSender {
     api: GearApi,
     listener: EventListener,
