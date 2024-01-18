@@ -184,11 +184,6 @@ pub enum TypeDef {
     Enum(EnumDef),
 }
 
-#[derive(Debug, Clone, PartialEq)]
-pub struct StructDef {
-    fields: Vec<StructField>,
-}
-
 impl StructDef {
     pub fn new(fields: Vec<StructField>) -> Self {
         Self { fields }
@@ -280,21 +275,21 @@ mod tests {
             Six: struct { u32 },
           };
 
-          type T = u32;
-
           service {
             DoThis : (p1: u32, p2: str, p3: struct { opt str, u8 }, p4: ThisThatSvcAppTupleStruct) -> struct { str, u32 };
             DoThat : (param: ThisThatSvcAppDoThatParam) -> result (struct { str, u32 }, struct { str });
             query This : (v1: vec u16) -> u32;
             query That : (v1: null) -> result (str, str);
           };
+
+          type T = enum { One }
         ";
 
         let program = parse_idl(program_idl).unwrap();
 
         assert_eq!(program.types().len(), 4);
 
-        println!("ast: {:#?}", program);
+        //println!("ast: {:#?}", program);
     }
 
     #[test]
