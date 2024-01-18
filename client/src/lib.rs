@@ -34,8 +34,6 @@ pub struct GTestSender<'a> {
     program: &'a gtest::Program<'a>,
 }
 
-// unsafe impl Send for GTestSender<'_> {}
-
 impl<'a> GTestSender<'a> {
     pub fn new(program: &'a gtest::Program<'a>) -> Self {
         Self { program }
@@ -73,6 +71,7 @@ impl<'a> Sender for GTestSender<'a> {
 }
 
 /// Sender that runs message against gtest::Program
+#[derive(Default)]
 pub struct NativeSender;
 
 impl NativeSender {

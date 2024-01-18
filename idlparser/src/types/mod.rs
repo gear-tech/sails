@@ -184,6 +184,11 @@ pub enum TypeDef {
     Enum(EnumDef),
 }
 
+#[derive(Debug, Clone, PartialEq)]
+pub struct StructDef {
+    fields: Vec<StructField>,
+}
+
 impl StructDef {
     pub fn new(fields: Vec<StructField>) -> Self {
         Self { fields }
@@ -274,7 +279,7 @@ mod tests {
             Five: struct { str, u32 },
             Six: struct { u32 },
           };
-
+   
           service {
             DoThis : (p1: u32, p2: str, p3: struct { opt str, u8 }, p4: ThisThatSvcAppTupleStruct) -> struct { str, u32 };
             DoThat : (param: ThisThatSvcAppDoThatParam) -> result (struct { str, u32 }, struct { str });
