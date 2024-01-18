@@ -95,7 +95,7 @@ mod tests {
 
         type T = enum { One }
         "#;
-        let program = sails_idlparser::ast::parse_idl(&IDL).expect("parse IDL");
+        let program = sails_idlparser::ast::parse_idl(IDL).expect("parse IDL");
 
         let generator = IdlGenerator::new(PathBuf::from("test"));
 
