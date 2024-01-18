@@ -1,7 +1,5 @@
 use super::*;
-use crate::{
-    types as raw_types, types::visitor as raw_visitor, types::visitor::Visitor as RawVisitor,
-};
+use crate::{ast as raw_ast, ast::visitor as raw_visitor, ast::visitor::Visitor as RawVisitor};
 use std::ptr;
 
 #[repr(C, packed)]
@@ -157,14 +155,14 @@ macro_rules! fn_ptr_addr {
 struct VisitorWrapper<'a>(&'a mut Visitor);
 
 impl<'a, 'ast> RawVisitor<'ast> for VisitorWrapper<'a> {
-    fn visit_service(&mut self, service: &'ast raw_types::Service) {
+    fn visit_service(&mut self, service: &'ast raw_ast::Service) {
         if fn_ptr_addr!(self.0.visit_service).is_null() {
             return raw_visitor::accept_service(service, self);
         }
         (self.0.visit_service)(self.0, service);
     }
 
-    fn visit_type(&mut self, r#type: &'ast raw_types::Type) {
+    fn visit_type(&mut self, r#type: &'ast raw_ast::Type) {
         if fn_ptr_addr!(self.0.visit_type).is_null() {
             return raw_visitor::accept_type(r#type, self);
         }
@@ -177,14 +175,14 @@ impl<'a, 'ast> RawVisitor<'ast> for VisitorWrapper<'a> {
         (self.0.visit_type)(self.0, &r#type);
     }
 
-    fn visit_optional_type_decl(&mut self, optional_type_decl: &'ast raw_types::TypeDecl) {
+    fn visit_optional_type_decl(&mut self, optional_type_decl: &'ast raw_ast::TypeDecl) {
         if fn_ptr_addr!(self.0.visit_optional_type_decl).is_null() {
             return raw_visitor::accept_type_decl(optional_type_decl, self);
         }
         (self.0.visit_optional_type_decl)(self.0, optional_type_decl);
     }
 
-    fn visit_vector_type_decl(&mut self, vector_type_decl: &'ast raw_types::TypeDecl) {
+    fn visit_vector_type_decl(&mut self, vector_type_decl: &'ast raw_ast::TypeDecl) {
         if fn_ptr_addr!(self.0.visit_vector_type_decl).is_null() {
             return raw_visitor::accept_type_decl(vector_type_decl, self);
         }
@@ -193,8 +191,8 @@ impl<'a, 'ast> RawVisitor<'ast> for VisitorWrapper<'a> {
 
     fn visit_result_type_decl(
         &mut self,
-        ok_type_decl: &'ast raw_types::TypeDecl,
-        err_type_decl: &'ast raw_types::TypeDecl,
+        ok_type_decl: &'ast raw_ast::TypeDecl,
+        err_type_decl: &'ast raw_ast::TypeDecl,
     ) {
         if fn_ptr_addr!(self.0.visit_result_type_decl).is_null() {
             return raw_visitor::accept_type_decl(ok_type_decl, self);
@@ -202,7 +200,7 @@ impl<'a, 'ast> RawVisitor<'ast> for VisitorWrapper<'a> {
         (self.0.visit_result_type_decl)(self.0, ok_type_decl, err_type_decl);
     }
 
-    fn visit_primitive_type_id(&mut self, primitive_type_id: &'ast raw_types::PrimitiveType) {
+    fn visit_primitive_type_id(&mut self, primitive_type_id: &'ast raw_ast::PrimitiveType) {
         if fn_ptr_addr!(self.0.visit_primitive_type_id).is_null() {
             return;
         }
@@ -221,7 +219,7 @@ impl<'a, 'ast> RawVisitor<'ast> for VisitorWrapper<'a> {
         );
     }
 
-    fn visit_func(&mut self, func: &'ast raw_types::Func) {
+    fn visit_func(&mut self, func: &'ast raw_ast::Func) {
         let func_name_bytes = func.name().as_bytes();
         let func = Func {
             name_ptr: func_name_bytes.as_ptr(),
@@ -232,7 +230,7 @@ impl<'a, 'ast> RawVisitor<'ast> for VisitorWrapper<'a> {
         (self.0.visit_func)(self.0, &func);
     }
 
-    fn visit_func_param(&mut self, func_param: &'ast raw_types::FuncParam) {
+    fn visit_func_param(&mut self, func_param: &'ast raw_ast::FuncParam) {
         if fn_ptr_addr!(self.0.visit_func_param).is_null() {
             return raw_visitor::accept_func_param(func_param, self);
         }
@@ -245,21 +243,21 @@ impl<'a, 'ast> RawVisitor<'ast> for VisitorWrapper<'a> {
         (self.0.visit_func_param)(self.0, &func_param);
     }
 
-    fn visit_func_output(&mut self, func_output: &'ast raw_types::TypeDecl) {
+    fn visit_func_output(&mut self, func_output: &'ast raw_ast::TypeDecl) {
         if fn_ptr_addr!(self.0.visit_func_output).is_null() {
             return raw_visitor::accept_type_decl(func_output, self);
         }
         (self.0.visit_func_output)(self.0, func_output);
     }
 
-    fn visit_struct_def(&mut self, struct_def: &'ast raw_types::StructDef) {
+    fn visit_struct_def(&mut self, struct_def: &'ast raw_ast::StructDef) {
         if fn_ptr_addr!(self.0.visit_struct_def).is_null() {
             return raw_visitor::accept_struct_def(struct_def, self);
         }
         (self.0.visit_struct_def)(self.0, struct_def);
     }
 
-    fn visit_struct_field(&mut self, struct_field: &'ast types::StructField) {
+    fn visit_struct_field(&mut self, struct_field: &'ast raw_ast::StructField) {
         if fn_ptr_addr!(self.0.visit_struct_field).is_null() {
             return raw_visitor::accept_struct_field(struct_field, self);
         }
@@ -272,14 +270,14 @@ impl<'a, 'ast> RawVisitor<'ast> for VisitorWrapper<'a> {
         (self.0.visit_struct_field)(self.0, &struct_field);
     }
 
-    fn visit_enum_def(&mut self, enum_def: &'ast raw_types::EnumDef) {
+    fn visit_enum_def(&mut self, enum_def: &'ast raw_ast::EnumDef) {
         if fn_ptr_addr!(self.0.visit_enum_def).is_null() {
             return raw_visitor::accept_enum_def(enum_def, self);
         }
         (self.0.visit_enum_def)(self.0, enum_def);
     }
 
-    fn visit_enum_variant(&mut self, enum_variant: &'ast raw_types::EnumVariant) {
+    fn visit_enum_variant(&mut self, enum_variant: &'ast raw_ast::EnumVariant) {
         if fn_ptr_addr!(self.0.visit_enum_variant).is_null() {
             return raw_visitor::accept_enum_variant(enum_variant, self);
         }
