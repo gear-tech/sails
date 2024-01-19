@@ -1,4 +1,10 @@
+node_modules/
+js/lib/
+
+.DS_Store
+
+.vscode
 target/
 .binpath
-#.vscode
+.vscode
 #.log
