@@ -1,9 +1,6 @@
-node_modules/
-
-.DS_Store
-
-.vscode
-target/
 .binpath
-#.vscode
-#.log
+.DS_Store
+.vscode
+js/lib/
+node_modules/
+target/
