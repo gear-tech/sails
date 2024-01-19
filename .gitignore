@@ -6,5 +6,5 @@ js/lib/
 .vscode
 target/
 .binpath
-#.vscode
+.vscode
 #.log
