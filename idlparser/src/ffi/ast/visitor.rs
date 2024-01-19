@@ -20,6 +20,31 @@ pub struct Visitor {
     visit_enum_variant: extern "C" fn(*mut Visitor, *const EnumVariant),
 }
 
+#[repr(C, packed)]
+struct VisitorCallbackData {
+    name_ptr: *const u8,
+    name_len: u32,
+}
+
+#[cfg(target_arch = "wasm32")]
+extern "C" {
+    fn visitor_callback(ptr: *const VisitorCallbackData);
+}
+
+#[cfg(target_arch = "wasm32")]
+#[no_mangle]
+pub unsafe extern "C" fn accept_name(name_ptr: *const u8, name_len: u32) {
+    let name = unsafe { slice::from_raw_parts(name_ptr, name_len.try_into().unwrap()) };
+    let name = str::from_utf8(name).unwrap();
+    let adjutest_name = format!("Processed: {}", name);
+    let adjusted_name_bytes = adjutest_name.as_bytes();
+    let cb_data = VisitorCallbackData {
+        name_ptr: adjusted_name_bytes.as_ptr(),
+        name_len: adjusted_name_bytes.len() as u32,
+    };
+    visitor_callback(&cb_data);
+}
+
 /// # Safety
 ///
 /// See documentation for [`const_ptr::as_ref`] and [`mut_ptr::as_mut`]
