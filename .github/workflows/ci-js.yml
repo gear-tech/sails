@@ -82,4 +82,4 @@ jobs:
           npm config set //registry.npmjs.org/:_authToken=$token
           npm publish
         env:
-          osipov-mit: ${{ secrets.OSIPOV_NPM_TOKEN }}
+          osipov-mit: ${{ secrets.SAILS_JS_NPM_TOKEN }}
