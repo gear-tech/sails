@@ -30,48 +30,60 @@ pub unsafe extern "C" fn free_program(program: *mut Program) {
 
 pub type Program = ast::Program;
 
-pub type Service = ast::Service;
+#[repr(C, packed)]
+pub struct Service {
+    raw_ptr: *const (),
+}
 
 #[repr(C, packed)]
 pub struct Func {
+    raw_ptr: *const (),
     name_ptr: *const u8,
     name_len: u32,
     is_query: bool,
-    raw_func: *const ast::Func,
 }
 
 #[repr(C, packed)]
 pub struct FuncParam {
+    raw_ptr: *const (),
     name_ptr: *const u8,
     name_len: u32,
-    raw_func_param: *const ast::FuncParam,
 }
 
 #[repr(C, packed)]
 pub struct Type {
+    raw_ptr: *const (),
     name_ptr: *const u8,
     name_len: u32,
-    raw_type: *const ast::Type,
 }
 
-pub type TypeDecl = ast::TypeDecl;
+#[repr(C, packed)]
+pub struct TypeDecl {
+    raw_ptr: *const (),
+}
 
 pub type PrimitiveType = ast::PrimitiveType;
 
-pub type StructDef = ast::StructDef;
+#[repr(C, packed)]
+pub struct StructDef {
+    raw_ptr: *const (),
+}
 
 #[repr(C, packed)]
 pub struct StructField {
+    raw_ptr: *const (),
     name_ptr: *const u8,
     name_len: u32,
-    raw_struct_field: *const ast::StructField,
 }
 
-pub type EnumDef = ast::EnumDef;
+#[repr(C, packed)]
+pub struct EnumDef {
+    raw_ptr: *const (),
+}
 
 #[repr(C, packed)]
 pub struct EnumVariant {
+    raw_ptr: *const (),
     name_ptr: *const u8,
     name_len: u32,
-    raw_enum_variant: *const ast::EnumVariant,
 }
