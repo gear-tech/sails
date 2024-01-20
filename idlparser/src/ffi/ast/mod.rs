@@ -32,12 +32,12 @@ pub type Program = ast::Program;
 
 #[repr(C, packed)]
 pub struct Service {
-    raw_ptr: *const (),
+    raw_ptr: Ptr,
 }
 
 #[repr(C, packed)]
 pub struct Func {
-    raw_ptr: *const (),
+    raw_ptr: Ptr,
     name_ptr: *const u8,
     name_len: u32,
     is_query: bool,
@@ -45,45 +45,54 @@ pub struct Func {
 
 #[repr(C, packed)]
 pub struct FuncParam {
-    raw_ptr: *const (),
+    raw_ptr: Ptr,
     name_ptr: *const u8,
     name_len: u32,
 }
 
 #[repr(C, packed)]
 pub struct Type {
-    raw_ptr: *const (),
+    raw_ptr: Ptr,
     name_ptr: *const u8,
     name_len: u32,
 }
 
 #[repr(C, packed)]
 pub struct TypeDecl {
-    raw_ptr: *const (),
+    raw_ptr: Ptr,
 }
 
 pub type PrimitiveType = ast::PrimitiveType;
 
 #[repr(C, packed)]
 pub struct StructDef {
-    raw_ptr: *const (),
+    raw_ptr: Ptr,
 }
 
 #[repr(C, packed)]
 pub struct StructField {
-    raw_ptr: *const (),
+    raw_ptr: Ptr,
     name_ptr: *const u8,
     name_len: u32,
 }
 
 #[repr(C, packed)]
 pub struct EnumDef {
-    raw_ptr: *const (),
+    raw_ptr: Ptr,
 }
 
 #[repr(C, packed)]
 pub struct EnumVariant {
-    raw_ptr: *const (),
+    raw_ptr: Ptr,
     name_ptr: *const u8,
     name_len: u32,
+}
+
+#[repr(transparent)]
+pub struct Ptr(*const ());
+
+impl<T> From<&T> for Ptr {
+    fn from(t: &T) -> Self {
+        Self(t as *const T as *const ())
+    }
 }

@@ -98,7 +98,7 @@ extern "C" fn accept_service(service: *const Service, context: *const (), visito
 fn accept_service_impl(service: *const Service, context: *const (), visitor: *const Visitor) {
     let service = unsafe { service.as_ref() }.unwrap();
     let mut visitor = VisitorWrapper::new(context, visitor);
-    raw_visitor::accept_service(as_raw_ast_ref(service.raw_ptr), &mut visitor);
+    raw_visitor::accept_service(as_raw_ast_ref(service.raw_ptr.0), &mut visitor);
 }
 
 #[cfg(target_arch = "wasm32")]
@@ -116,7 +116,7 @@ extern "C" fn accept_func(func: *const Func, context: *const (), visitor: *const
 fn accept_func_impl(func: *const Func, context: *const (), visitor: *const Visitor) {
     let func = unsafe { func.as_ref() }.unwrap();
     let mut visitor = VisitorWrapper::new(context, visitor);
-    raw_visitor::accept_func(as_raw_ast_ref(func.raw_ptr), &mut visitor);
+    raw_visitor::accept_func(as_raw_ast_ref(func.raw_ptr.0), &mut visitor);
 }
 
 #[cfg(target_arch = "wasm32")]
@@ -142,7 +142,7 @@ fn accept_func_param_impl(
 ) {
     let func_param = unsafe { func_param.as_ref() }.unwrap();
     let mut visitor = VisitorWrapper::new(context, visitor);
-    raw_visitor::accept_func_param(as_raw_ast_ref(func_param.raw_ptr), &mut visitor);
+    raw_visitor::accept_func_param(as_raw_ast_ref(func_param.raw_ptr.0), &mut visitor);
 }
 
 #[cfg(target_arch = "wasm32")]
@@ -160,7 +160,7 @@ extern "C" fn accept_type(r#type: *const Type, context: *const (), visitor: *con
 fn accept_type_impl(r#type: *const Type, context: *const (), visitor: *const Visitor) {
     let r#type = unsafe { r#type.as_ref() }.unwrap();
     let mut visitor = VisitorWrapper::new(context, visitor);
-    raw_visitor::accept_type(as_raw_ast_ref(r#type.raw_ptr), &mut visitor);
+    raw_visitor::accept_type(as_raw_ast_ref(r#type.raw_ptr.0), &mut visitor);
 }
 
 #[cfg(target_arch = "wasm32")]
@@ -182,7 +182,7 @@ extern "C" fn accept_type_decl(
 fn accept_type_decl_impl(type_decl: *const TypeDecl, context: *const (), visitor: *const Visitor) {
     let type_decl = unsafe { type_decl.as_ref() }.unwrap();
     let mut visitor = VisitorWrapper::new(context, visitor);
-    raw_visitor::accept_type_decl(as_raw_ast_ref(type_decl.raw_ptr), &mut visitor);
+    raw_visitor::accept_type_decl(as_raw_ast_ref(type_decl.raw_ptr.0), &mut visitor);
 }
 
 #[cfg(target_arch = "wasm32")]
@@ -208,7 +208,7 @@ fn accept_struct_def_impl(
 ) {
     let struct_def = unsafe { struct_def.as_ref() }.unwrap();
     let mut visitor = VisitorWrapper::new(context, visitor);
-    raw_visitor::accept_struct_def(as_raw_ast_ref(struct_def.raw_ptr), &mut visitor);
+    raw_visitor::accept_struct_def(as_raw_ast_ref(struct_def.raw_ptr.0), &mut visitor);
 }
 
 #[cfg(target_arch = "wasm32")]
@@ -234,7 +234,7 @@ fn accept_struct_field_impl(
 ) {
     let struct_field = unsafe { struct_field.as_ref() }.unwrap();
     let mut visitor = VisitorWrapper::new(context, visitor);
-    raw_visitor::accept_struct_field(as_raw_ast_ref(struct_field.raw_ptr), &mut visitor);
+    raw_visitor::accept_struct_field(as_raw_ast_ref(struct_field.raw_ptr.0), &mut visitor);
 }
 
 #[cfg(target_arch = "wasm32")]
@@ -256,7 +256,7 @@ extern "C" fn accept_enum_def(
 fn accept_enum_def_impl(enum_def: *const EnumDef, context: *const (), visitor: *const Visitor) {
     let enum_def = unsafe { enum_def.as_ref() }.unwrap();
     let mut visitor = VisitorWrapper::new(context, visitor);
-    raw_visitor::accept_enum_def(as_raw_ast_ref(enum_def.raw_ptr), &mut visitor);
+    raw_visitor::accept_enum_def(as_raw_ast_ref(enum_def.raw_ptr.0), &mut visitor);
 }
 
 #[cfg(target_arch = "wasm32")]
@@ -282,7 +282,7 @@ fn accept_enum_variant_impl(
 ) {
     let enum_variant = unsafe { enum_variant.as_ref() }.unwrap();
     let mut visitor = VisitorWrapper::new(context, visitor);
-    raw_visitor::accept_enum_variant(as_raw_ast_ref(enum_variant.raw_ptr), &mut visitor);
+    raw_visitor::accept_enum_variant(as_raw_ast_ref(enum_variant.raw_ptr.0), &mut visitor);
 }
 
 fn as_raw_ast_ref<T>(raw_ptr: *const ()) -> &'static T {
@@ -297,10 +297,6 @@ mod wrapper {
             let fn_ptr_addr = $fn_ptr as *const ();
             fn_ptr_addr
         }};
-    }
-
-    fn as_raw_ptr<T>(t: &T) -> *const () {
-        t as *const T as *const ()
     }
 
     pub(super) struct VisitorWrapper<'a> {
@@ -323,7 +319,7 @@ mod wrapper {
                 return raw_visitor::accept_service(service, self);
             }
             let service = Service {
-                raw_ptr: as_raw_ptr(service),
+                raw_ptr: service.into(),
             };
             unsafe { (self.visitor.visit_service)(self.context, &service) };
         }
@@ -336,7 +332,7 @@ mod wrapper {
             let r#type = Type {
                 name_ptr: name_bytes.as_ptr(),
                 name_len: name_bytes.len() as u32,
-                raw_ptr: as_raw_ptr(r#type),
+                raw_ptr: r#type.into(),
             };
             unsafe { (self.visitor.visit_type)(self.context, &r#type) };
         }
@@ -346,7 +342,7 @@ mod wrapper {
                 return raw_visitor::accept_type_decl(optional_type_decl, self);
             }
             let optional_type_decl = TypeDecl {
-                raw_ptr: as_raw_ptr(optional_type_decl),
+                raw_ptr: optional_type_decl.into(),
             };
             unsafe { (self.visitor.visit_optional_type_decl)(self.context, &optional_type_decl) };
         }
@@ -356,7 +352,7 @@ mod wrapper {
                 return raw_visitor::accept_type_decl(vector_type_decl, self);
             }
             let vector_type_decl = TypeDecl {
-                raw_ptr: as_raw_ptr(vector_type_decl),
+                raw_ptr: vector_type_decl.into(),
             };
             unsafe { (self.visitor.visit_vector_type_decl)(self.context, &vector_type_decl) };
         }
@@ -370,10 +366,10 @@ mod wrapper {
                 return raw_visitor::accept_type_decl(ok_type_decl, self);
             }
             let ok_type_decl = TypeDecl {
-                raw_ptr: as_raw_ptr(ok_type_decl),
+                raw_ptr: ok_type_decl.into(),
             };
             let err_type_decl = TypeDecl {
-                raw_ptr: as_raw_ptr(err_type_decl),
+                raw_ptr: err_type_decl.into(),
             };
             unsafe {
                 (self.visitor.visit_result_type_decl)(self.context, &ok_type_decl, &err_type_decl)
@@ -410,7 +406,7 @@ mod wrapper {
                 name_ptr: func_name_bytes.as_ptr(),
                 name_len: func_name_bytes.len() as u32,
                 is_query: func.is_query(),
-                raw_ptr: as_raw_ptr(func),
+                raw_ptr: func.into(),
             };
             unsafe { (self.visitor.visit_func)(self.context, &func) };
         }
@@ -423,7 +419,7 @@ mod wrapper {
             let func_param = FuncParam {
                 name_ptr: func_param_name_bytes.as_ptr(),
                 name_len: func_param_name_bytes.len() as u32,
-                raw_ptr: as_raw_ptr(func_param),
+                raw_ptr: func_param.into(),
             };
             unsafe { (self.visitor.visit_func_param)(self.context, &func_param) };
         }
@@ -433,7 +429,7 @@ mod wrapper {
                 return raw_visitor::accept_type_decl(func_output, self);
             }
             let func_output = TypeDecl {
-                raw_ptr: as_raw_ptr(func_output),
+                raw_ptr: func_output.into(),
             };
             unsafe { (self.visitor.visit_func_output)(self.context, &func_output) };
         }
@@ -443,7 +439,7 @@ mod wrapper {
                 return raw_visitor::accept_struct_def(struct_def, self);
             }
             let struct_def = StructDef {
-                raw_ptr: as_raw_ptr(struct_def),
+                raw_ptr: struct_def.into(),
             };
             unsafe { (self.visitor.visit_struct_def)(self.context, &struct_def) };
         }
@@ -456,7 +452,7 @@ mod wrapper {
             let struct_field = StructField {
                 name_ptr: struct_field_name_bytes.map_or(ptr::null(), |n| n.as_ptr()),
                 name_len: struct_field_name_bytes.map_or(0, |n| n.len() as u32),
-                raw_ptr: as_raw_ptr(struct_field),
+                raw_ptr: struct_field.into(),
             };
             unsafe { (self.visitor.visit_struct_field)(self.context, &struct_field) };
         }
@@ -466,7 +462,7 @@ mod wrapper {
                 return raw_visitor::accept_enum_def(enum_def, self);
             }
             let enum_def = EnumDef {
-                raw_ptr: as_raw_ptr(enum_def),
+                raw_ptr: enum_def.into(),
             };
             unsafe { (self.visitor.visit_enum_def)(self.context, &enum_def) };
         }
@@ -479,7 +475,7 @@ mod wrapper {
             let enum_variant = EnumVariant {
                 name_ptr: enum_variant_name_bytes.as_ptr(),
                 name_len: enum_variant_name_bytes.len() as u32,
-                raw_ptr: as_raw_ptr(enum_variant),
+                raw_ptr: enum_variant.into(),
             };
             unsafe { (self.visitor.visit_enum_variant)(self.context, &enum_variant) };
         }
