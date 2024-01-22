@@ -20,7 +20,7 @@ members = [
 convert-case = { package = "convert_case", version = "0.6" }
 gmeta = "1.0.4"
 gstd = "1.0.4"
-gsys = "1.0.4"
+gsys = "1.1.0"
 gwasm-builder = { package = "gear-wasm-builder", version = "1.0.4" }
 handlebars = "4.4"
 itertools = "0.12"

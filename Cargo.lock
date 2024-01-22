@@ -737,9 +737,9 @@ dependencies = [
 
 [[package]]
 name = "gsys"
-version = "1.0.4"
+version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6082dddcf87ef77db209e78ab511edc493ae58f444abf0c3b23a5a5a85265f29"
+checksum = "a57ae1f6edfb4df9bfc5b8cd5147095a6cf186f6690d280f712d3834b18ce668"
 
 [[package]]
 name = "gwasm-instrument"
