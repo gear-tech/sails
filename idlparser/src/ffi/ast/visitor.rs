@@ -24,46 +24,46 @@ pub struct Visitor {
 
 #[cfg(target_arch = "wasm32")]
 extern "C" {
-    fn visite_service(context: *const (), service: *const Service);
-    fn visite_type(context: *const (), r#type: *const Type);
-    fn visite_optional_type_decl(context: *const (), optional_type_decl: *const TypeDecl);
-    fn visite_vector_type_decl(context: *const (), vector_type_decl: *const TypeDecl);
-    fn visite_result_type_decl(
+    fn visit_service(context: *const (), service: *const Service);
+    fn visit_type(context: *const (), r#type: *const Type);
+    fn visit_optional_type_decl(context: *const (), optional_type_decl: *const TypeDecl);
+    fn visit_vector_type_decl(context: *const (), vector_type_decl: *const TypeDecl);
+    fn visit_result_type_decl(
         context: *const (),
         ok_type_decl: *const TypeDecl,
         err_type_decl: *const TypeDecl,
     );
-    fn visite_primitive_type_id(context: *const (), primitive_type_id: *const PrimitiveType);
-    fn visite_user_defined_type_id(
+    fn visit_primitive_type_id(context: *const (), primitive_type_id: *const PrimitiveType);
+    fn visit_user_defined_type_id(
         context: *const (),
         user_defined_type_id_ptr: *const u8,
         user_defined_type_id_len: u32,
     );
-    fn visite_func(context: *const (), func: *const Func);
-    fn visite_func_param(context: *const (), func_param: *const FuncParam);
-    fn visite_func_output(context: *const (), func_output: *const TypeDecl);
-    fn visite_struct_def(context: *const (), struct_def: *const StructDef);
-    fn visite_struct_field(context: *const (), struct_field: *const StructField);
-    fn visite_enum_def(context: *const (), enum_def: *const EnumDef);
-    fn visite_enum_variant(context: *const (), enum_variant: *const EnumVariant);
+    fn visit_func(context: *const (), func: *const Func);
+    fn visit_func_param(context: *const (), func_param: *const FuncParam);
+    fn visit_func_output(context: *const (), func_output: *const TypeDecl);
+    fn visit_struct_def(context: *const (), struct_def: *const StructDef);
+    fn visit_struct_field(context: *const (), struct_field: *const StructField);
+    fn visit_enum_def(context: *const (), enum_def: *const EnumDef);
+    fn visit_enum_variant(context: *const (), enum_variant: *const EnumVariant);
 }
 
 #[cfg(target_arch = "wasm32")]
 static VISITOR: Visitor = Visitor {
-    visit_service: visite_service,
-    visit_type: visite_type,
-    visit_optional_type_decl: visite_optional_type_decl,
-    visit_vector_type_decl: visite_vector_type_decl,
-    visit_result_type_decl: visite_result_type_decl,
-    visit_primitive_type_id: visite_primitive_type_id,
-    visit_user_defined_type_id: visite_user_defined_type_id,
-    visit_func: visite_func,
-    visit_func_param: visite_func_param,
-    visit_func_output: visite_func_output,
-    visit_struct_def: visite_struct_def,
-    visit_struct_field: visite_struct_field,
-    visit_enum_def: visite_enum_def,
-    visit_enum_variant: visite_enum_variant,
+    visit_service,
+    visit_type,
+    visit_optional_type_decl,
+    visit_vector_type_decl,
+    visit_result_type_decl,
+    visit_primitive_type_id,
+    visit_user_defined_type_id,
+    visit_func,
+    visit_func_param,
+    visit_func_output,
+    visit_struct_def,
+    visit_struct_field,
+    visit_enum_def,
+    visit_enum_variant,
 };
 
 #[cfg(target_arch = "wasm32")]
@@ -98,7 +98,7 @@ extern "C" fn accept_service(service: *const Service, context: *const (), visito
 fn accept_service_impl(service: *const Service, context: *const (), visitor: *const Visitor) {
     let service = unsafe { service.as_ref() }.unwrap();
     let mut visitor = VisitorWrapper::new(context, visitor);
-    raw_visitor::accept_service(as_raw_ast_ref(service.raw_ptr.0), &mut visitor);
+    raw_visitor::accept_service(service.raw_ptr.as_ref(), &mut visitor);
 }
 
 #[cfg(target_arch = "wasm32")]
@@ -116,7 +116,7 @@ extern "C" fn accept_func(func: *const Func, context: *const (), visitor: *const
 fn accept_func_impl(func: *const Func, context: *const (), visitor: *const Visitor) {
     let func = unsafe { func.as_ref() }.unwrap();
     let mut visitor = VisitorWrapper::new(context, visitor);
-    raw_visitor::accept_func(as_raw_ast_ref(func.raw_ptr.0), &mut visitor);
+    raw_visitor::accept_func(func.raw_ptr.as_ref(), &mut visitor);
 }
 
 #[cfg(target_arch = "wasm32")]
@@ -142,7 +142,7 @@ fn accept_func_param_impl(
 ) {
     let func_param = unsafe { func_param.as_ref() }.unwrap();
     let mut visitor = VisitorWrapper::new(context, visitor);
-    raw_visitor::accept_func_param(as_raw_ast_ref(func_param.raw_ptr.0), &mut visitor);
+    raw_visitor::accept_func_param(func_param.raw_ptr.as_ref(), &mut visitor);
 }
 
 #[cfg(target_arch = "wasm32")]
@@ -160,7 +160,7 @@ extern "C" fn accept_type(r#type: *const Type, context: *const (), visitor: *con
 fn accept_type_impl(r#type: *const Type, context: *const (), visitor: *const Visitor) {
     let r#type = unsafe { r#type.as_ref() }.unwrap();
     let mut visitor = VisitorWrapper::new(context, visitor);
-    raw_visitor::accept_type(as_raw_ast_ref(r#type.raw_ptr.0), &mut visitor);
+    raw_visitor::accept_type(r#type.raw_ptr.as_ref(), &mut visitor);
 }
 
 #[cfg(target_arch = "wasm32")]
@@ -182,7 +182,7 @@ extern "C" fn accept_type_decl(
 fn accept_type_decl_impl(type_decl: *const TypeDecl, context: *const (), visitor: *const Visitor) {
     let type_decl = unsafe { type_decl.as_ref() }.unwrap();
     let mut visitor = VisitorWrapper::new(context, visitor);
-    raw_visitor::accept_type_decl(as_raw_ast_ref(type_decl.raw_ptr.0), &mut visitor);
+    raw_visitor::accept_type_decl(type_decl.raw_ptr.as_ref(), &mut visitor);
 }
 
 #[cfg(target_arch = "wasm32")]
@@ -208,7 +208,7 @@ fn accept_struct_def_impl(
 ) {
     let struct_def = unsafe { struct_def.as_ref() }.unwrap();
     let mut visitor = VisitorWrapper::new(context, visitor);
-    raw_visitor::accept_struct_def(as_raw_ast_ref(struct_def.raw_ptr.0), &mut visitor);
+    raw_visitor::accept_struct_def(struct_def.raw_ptr.as_ref(), &mut visitor);
 }
 
 #[cfg(target_arch = "wasm32")]
@@ -234,7 +234,7 @@ fn accept_struct_field_impl(
 ) {
     let struct_field = unsafe { struct_field.as_ref() }.unwrap();
     let mut visitor = VisitorWrapper::new(context, visitor);
-    raw_visitor::accept_struct_field(as_raw_ast_ref(struct_field.raw_ptr.0), &mut visitor);
+    raw_visitor::accept_struct_field(struct_field.raw_ptr.as_ref(), &mut visitor);
 }
 
 #[cfg(target_arch = "wasm32")]
@@ -256,7 +256,7 @@ extern "C" fn accept_enum_def(
 fn accept_enum_def_impl(enum_def: *const EnumDef, context: *const (), visitor: *const Visitor) {
     let enum_def = unsafe { enum_def.as_ref() }.unwrap();
     let mut visitor = VisitorWrapper::new(context, visitor);
-    raw_visitor::accept_enum_def(as_raw_ast_ref(enum_def.raw_ptr.0), &mut visitor);
+    raw_visitor::accept_enum_def(enum_def.raw_ptr.as_ref(), &mut visitor);
 }
 
 #[cfg(target_arch = "wasm32")]
@@ -282,11 +282,7 @@ fn accept_enum_variant_impl(
 ) {
     let enum_variant = unsafe { enum_variant.as_ref() }.unwrap();
     let mut visitor = VisitorWrapper::new(context, visitor);
-    raw_visitor::accept_enum_variant(as_raw_ast_ref(enum_variant.raw_ptr.0), &mut visitor);
-}
-
-fn as_raw_ast_ref<T>(raw_ptr: *const ()) -> &'static T {
-    unsafe { (raw_ptr as *const T).as_ref() }.unwrap()
+    raw_visitor::accept_enum_variant(enum_variant.raw_ptr.as_ref(), &mut visitor);
 }
 
 mod wrapper {

@@ -30,12 +30,12 @@ pub unsafe extern "C" fn free_program(program: *mut Program) {
 
 pub type Program = ast::Program;
 
-#[repr(C, packed)]
+#[repr(C)]
 pub struct Service {
     raw_ptr: Ptr,
 }
 
-#[repr(C, packed)]
+#[repr(C)]
 pub struct Func {
     raw_ptr: Ptr,
     name_ptr: *const u8,
@@ -43,45 +43,45 @@ pub struct Func {
     is_query: bool,
 }
 
-#[repr(C, packed)]
+#[repr(C)]
 pub struct FuncParam {
     raw_ptr: Ptr,
     name_ptr: *const u8,
     name_len: u32,
 }
 
-#[repr(C, packed)]
+#[repr(C)]
 pub struct Type {
     raw_ptr: Ptr,
     name_ptr: *const u8,
     name_len: u32,
 }
 
-#[repr(C, packed)]
+#[repr(C)]
 pub struct TypeDecl {
     raw_ptr: Ptr,
 }
 
 pub type PrimitiveType = ast::PrimitiveType;
 
-#[repr(C, packed)]
+#[repr(C)]
 pub struct StructDef {
     raw_ptr: Ptr,
 }
 
-#[repr(C, packed)]
+#[repr(C)]
 pub struct StructField {
     raw_ptr: Ptr,
     name_ptr: *const u8,
     name_len: u32,
 }
 
-#[repr(C, packed)]
+#[repr(C)]
 pub struct EnumDef {
     raw_ptr: Ptr,
 }
 
-#[repr(C, packed)]
+#[repr(C)]
 pub struct EnumVariant {
     raw_ptr: Ptr,
     name_ptr: *const u8,
@@ -94,5 +94,11 @@ pub struct Ptr(*const ());
 impl<T> From<&T> for Ptr {
     fn from(t: &T) -> Self {
         Self(t as *const T as *const ())
+    }
+}
+
+impl<T> AsRef<T> for Ptr {
+    fn as_ref(&self) -> &T {
+        unsafe { (self.0 as *const T).as_ref() }.unwrap()
     }
 }
