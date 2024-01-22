@@ -694,9 +694,9 @@ checksum = "d2fabcfbdc87f4758337ca535fb41a6d701b65693ce38287d856d1674551ec9b"
 
 [[package]]
 name = "gmeta"
-version = "1.0.4"
+version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3b2308d06544d5a0e31502f4a104290a67b4b180d1890ab726a8eb8c73c31bd5"
+checksum = "5c0a1ed30a16d6f9bb5f6b871a8c102869ec151fe2700cf6dca2678bad39a719"
 dependencies = [
  "blake2-rfc",
  "derive_more",
