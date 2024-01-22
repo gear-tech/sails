@@ -19,7 +19,7 @@ members = [
 [workspace.dependencies]
 convert-case = { package = "convert_case", version = "0.6" }
 gmeta = "1.0.4"
-gstd = "1.0.4"
+gstd = "1.1.0"
 gsys = "1.0.4"
 gwasm-builder = { package = "gear-wasm-builder", version = "1.0.4" }
 handlebars = "4.4"
