@@ -6,6 +6,7 @@ use std::{fmt::Write, path::PathBuf};
 pub struct IdlGenerator {
     path: PathBuf,
     w: String,
+    pub_fields: bool, // one time modifier before calling
 }
 
 impl IdlGenerator {
@@ -13,6 +14,7 @@ impl IdlGenerator {
         Self {
             path,
             w: String::new(),
+            pub_fields: false,
         }
     }
 
@@ -43,6 +45,10 @@ impl IdlGenerator {
 
         writeln!(self.w, "use parity_scale_codec::{{Encode, Decode}};")?;
         writeln!(self.w, "use sails_client::{{Sender, Call}};")?;
+        writeln!(self.w, "use gstd::prelude::*;")?;
+
+        // writeln!(self.w, "#[cfg(test)]")?;
+        // writeln!(self.w, "use mockall::automock;")?;
 
         Ok(())
     }
@@ -55,6 +61,7 @@ impl IdlGenerator {
     }
 
     fn write_base_type(&mut self, t: &Type) -> Result<()> {
+        self.pub_fields = true;
         let formatted = self.format_inner_type(&Self::type_def_to_decl(t.def()))?;
 
         let type_keyword = match t.def() {
@@ -94,6 +101,21 @@ impl IdlGenerator {
     }
 
     fn write_service(&mut self, s: &Service) -> Result<()> {
+        writeln!(
+            self.w,
+            r#"
+                // #[cfg_attr(not(no_std), automock)]
+                pub trait Service {{
+            "#
+        )?;
+
+        for m in s.funcs() {
+            let signature = self.format_service_method_signature(m)?;
+            writeln!(self.w, "{};", signature)?;
+        }
+
+        writeln!(self.w, "}}")?;
+
         for m in s.funcs() {
             writeln!(
                 self.w,
@@ -115,16 +137,18 @@ impl IdlGenerator {
     }}
 
     impl Client {{
+        pub fn new() -> Self {{
+            Self::default()
+        }}
 
-    pub fn new() -> Self {{
-        Self::default()
+        pub fn with_program_id(mut self, program_id: impl Into<[u8; 32]>) -> Self {{
+            self.program_id = program_id.into();
+            self
+        }}
     }}
 
-    pub fn with_program_id(mut self, program_id: impl Into<[u8; 32]>) -> Self {{
-        self.program_id = program_id.into();
-        self
-    }}
 
+    impl Service for Client {{
 
     "#
         )?;
@@ -139,6 +163,32 @@ impl IdlGenerator {
     }
 
     fn format_service_method(&mut self, f: &Func) -> Result<()> {
+        let signature = self.format_service_method_signature(f)?;
+
+        let arg_names = f
+            .params()
+            .iter()
+            .map(|a| a.name())
+            .collect::<Vec<_>>()
+            .join(", ");
+
+        let name = f.name();
+
+        writeln!(
+            self.w,
+            r#"{signature} {{
+            let mut payload = Vec::from("{name}/");
+            {name}RequestArgs {{ {arg_names} }}.encode_to(&mut payload);
+
+            Call::new(payload)
+                .with_program_id(self.program_id)
+        }}"#
+        )?;
+
+        Ok(())
+    }
+
+    fn format_service_method_signature(&mut self, f: &Func) -> Result<String> {
         let args = f
             .params()
             .iter()
@@ -152,30 +202,13 @@ impl IdlGenerator {
             .collect::<Vec<_>>()
             .join(", ");
 
-        let arg_names = f
-            .params()
-            .iter()
-            .map(|a| a.name())
-            .collect::<Vec<_>>()
-            .join(", ");
-
         let output = self.format_inner_type(f.output()).unwrap();
 
-        let name_camel = f.name().to_owned();
         let name_snake = f.name().to_case(Case::Snake);
 
-        writeln!(
-            self.w,
-            r#"pub fn {name_snake}(&self, {args}) -> Call<{output}> {{
-            let mut payload = Vec::from("{name_camel}/");
-            {name_camel}RequestArgs {{ {arg_names} }}.encode_to(&mut payload);
+        let signature = format!("fn {name_snake}(&self, {args}) -> Call<{output}>");
 
-            Call::new(payload)
-                .with_program_id(self.program_id)
-        }}"#
-        )?;
-
-        Ok(())
+        Ok(signature)
     }
 
     fn format_inner_type(&mut self, t: &TypeDecl) -> Result<String> {
@@ -218,10 +251,16 @@ impl IdlGenerator {
 
                 writeln!(w, "{open}")?;
 
+                let mut vis = "";
+                if self.pub_fields {
+                    self.pub_fields = false;
+                    vis = "pub";
+                }
+
                 // for struct with named fields:
                 for field in def.fields() {
                     if let TypeDecl::Def(TypeDef::Enum(def)) = field.type_decl() {
-                        // enums can't be nested, so write to top level buffer and replace definition with SimpleTypeDecl
+                        // enums can't be nested, so write to top level buffer and replace definition with alias
                         let enum_name =
                             format!("{}Variant", field.name().unwrap().to_case(Case::Pascal));
 
@@ -230,8 +269,8 @@ impl IdlGenerator {
                         self.write_base_type(&t)?;
 
                         match field.name() {
-                            Some(name) => writeln!(w, "{}: {},", name, enum_name)?,
-                            None => writeln!(w, "{},", enum_name)?,
+                            Some(name) => writeln!(w, "{} {}: {},", vis, name, enum_name)?,
+                            None => writeln!(w, "{} {},", vis, enum_name)?,
                         }
 
                         continue;
@@ -240,11 +279,14 @@ impl IdlGenerator {
                     match field.name() {
                         Some(name) => writeln!(
                             w,
-                            "{}: {},",
+                            "{} {}: {},",
+                            vis,
                             name,
                             self.format_inner_type(field.type_decl())?
                         )?,
-                        None => writeln!(w, "{},", self.format_inner_type(field.type_decl())?)?,
+                        None => {
+                            writeln!(w, "{} {},", vis, self.format_inner_type(field.type_decl())?)?
+                        }
                     }
                 }
 
@@ -254,6 +296,7 @@ impl IdlGenerator {
             }
             TypeDecl::Def(TypeDef::Enum(def)) => {
                 let mut w = String::new();
+                self.pub_fields = false; // fields can't be public in enums
 
                 writeln!(w, "{{")?;
 
