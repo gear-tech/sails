@@ -57,7 +57,7 @@ jobs:
           node-version: 18.x
 
       - name: Check package version
-        uses: EndBug/version-check@v1
+        uses: EndBug/version-check@v2
         id: check
         with:
           file-name: js/package.json
