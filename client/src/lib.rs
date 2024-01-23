@@ -1,139 +1,69 @@
+#![no_std]
+
 use async_trait::async_trait;
 use core::fmt::Debug;
-use gclient::{EventListener, EventProcessor, GearApi};
-use gtest::RunResult;
-use parity_scale_codec::Decode;
-use std::marker::PhantomData;
+use core::marker::PhantomData;
+use gstd::{msg::MessageFuture, prelude::*, MessageId};
+use parity_scale_codec::{Decode, Encode};
 
 #[non_exhaustive]
 #[derive(Default)]
 pub struct SendArgs {
     value: u128,
     program_id: [u8; 32],
-    sender_id: [u8; 32],
+    _sender_id: [u8; 32],
 }
 
 #[non_exhaustive]
-#[derive(Default, Debug)]
-pub struct SendResult {
-    payload: Vec<u8>,
+pub struct SendTicket<R: Decode + Debug> {
+    // message we are waiting on
+    f: MessageFuture,
+    // silence the compiler
+    _marker: PhantomData<R>,
+}
+
+impl<R: Decode + Debug> SendTicket<R> {
+    pub async fn result(self) -> Result<R, gstd::errors::Error> {
+        let payload = self.f.await?;
+
+        R::decode(&mut payload.as_ref()).map_err(gstd::errors::Error::Decode)
+    }
+
+    pub fn message_id(&self) -> MessageId {
+        self.f.waiting_reply_to
+    }
 }
 
 // implemented by: gclient
 // by: native gr_send
 // by: gtest
 #[async_trait(?Send)]
-pub trait Sender {
+pub trait Sender<R: Decode + Debug> {
     type Error;
 
-    async fn send(&mut self, payload: &[u8], args: SendArgs) -> Result<SendResult, Self::Error>;
+    async fn send(&mut self, payload: &[u8], args: SendArgs) -> Result<SendTicket<R>, Self::Error>;
 }
 
 /// Sender that runs message against gtest::Program
-pub struct GTestSender<'a> {
-    program: &'a gtest::Program<'a>,
-}
-
-impl<'a> GTestSender<'a> {
-    pub fn new(program: &'a gtest::Program<'a>) -> Self {
-        Self { program }
-    }
-}
-
-#[async_trait(?Send)]
-impl<'a> Sender for GTestSender<'a> {
-    type Error = RunResult;
-
-    async fn send(&mut self, payload: &[u8], args: SendArgs) -> Result<SendResult, Self::Error> {
-        let result = self
-            .program
-            .send_bytes_with_value(args.sender_id, payload, args.value);
-
-        if result.main_failed() || result.others_failed() {
-            return Err(result);
-        }
-
-        // find response in result logs
-        let predicate = |l: &&gtest::CoreLog| {
-            l.source() == self.program.id() && l.destination() == args.sender_id.into()
-        };
-
-        let resp_msg = result
-            .log()
-            .iter()
-            .find(predicate)
-            .ok_or_else(|| result.clone())?;
-
-        Ok(SendResult {
-            payload: resp_msg.payload().to_owned(),
-        })
-    }
-}
-
-/// Sender that runs message against gtest::Program
-#[cfg(no_std)]
 #[derive(Default)]
 pub struct NativeSender;
-
-#[cfg(no_std)]
 impl NativeSender {
     pub fn new() -> Self {
         Self
     }
 }
 
-#[cfg(no_std)]
 #[async_trait(?Send)]
-impl Sender for NativeSender {
+impl<R: Decode + Debug> Sender<R> for NativeSender {
     type Error = gstd::errors::Error;
 
-    async fn send(&mut self, payload: &[u8], args: SendArgs) -> Result<SendResult, Self::Error> {
-        let payload =
-            gstd::msg::send_bytes_for_reply(args.program_id.into(), payload, args.value, 0)?
-                .await?;
+    async fn send(&mut self, payload: &[u8], args: SendArgs) -> Result<SendTicket<R>, Self::Error> {
+        let future =
+            gstd::msg::send_bytes_for_reply(args.program_id.into(), payload, args.value, 0)?;
 
-        Ok(SendResult { payload })
-    }
-}
-
-pub struct GClientSender {
-    api: GearApi,
-    listener: EventListener,
-}
-
-impl GClientSender {
-    pub async fn new(api: GearApi) -> Result<Self, gclient::Error> {
-        let mut listener = api.subscribe().await?;
-
-        // Check that blocks are still running
-        assert!(listener.blocks_running().await?);
-
-        Ok(Self { api, listener })
-    }
-}
-
-#[async_trait(?Send)]
-impl Sender for GClientSender {
-    type Error = gclient::Error;
-
-    async fn send(&mut self, payload: &[u8], args: SendArgs) -> Result<SendResult, Self::Error> {
-        let pid = args.program_id.into();
-
-        let gas_info = self
-            .api
-            .calculate_handle_gas(None, pid, payload.to_owned(), args.value, true)
-            .await?;
-
-        // Send the message
-        let (message_id, _hash) = self
-            .api
-            .send_message_bytes(pid, payload, gas_info.min_limit, args.value)
-            .await?;
-
-        let (_, reply_bytes, _) = self.listener.reply_bytes_on(message_id).await?;
-
-        Ok(SendResult {
-            payload: reply_bytes.unwrap(),
+        Ok(SendTicket {
+            f: future,
+            _marker: PhantomData,
         })
     }
 }
@@ -149,7 +79,7 @@ pub struct Call<R: Decode + Debug> {
 }
 
 #[non_exhaustive]
-#[derive(PartialEq, Eq, Clone, Debug)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum SendError<T> {
     Parse(parity_scale_codec::Error),
     Sender(T),
@@ -170,16 +100,29 @@ impl<R: Decode + Debug> Call<R> {
         self
     }
 
-    pub async fn send<E>(self, sender: &mut dyn Sender<Error = E>) -> Result<R, SendError<E>> {
-        let result = sender
+    pub async fn send<E>(
+        self,
+        sender: &mut dyn Sender<R, Error = E>,
+    ) -> Result<SendTicket<R>, SendError<E>> {
+        let ticket = sender
             .send(&self.payload, self.args)
             .await
             .map_err(|e| SendError::<E>::Sender(e))?;
 
-        R::decode(&mut result.payload.as_ref()).map_err(|e| SendError::Parse(e))
+        Ok(ticket)
     }
 
     pub fn into_bytes(self) -> Vec<u8> {
         self.payload
+    }
+}
+
+impl<R: Encode + Decode + Debug> Call<R> {
+    /// Create call that instantly resolves into `result`. Useful for mocking responses
+    pub fn ready(result: R) -> Self {
+        let mut payload = Vec::new();
+        result.encode_to(&mut payload);
+
+        Self::new(payload)
     }
 }

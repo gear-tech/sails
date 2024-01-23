@@ -1,13 +1,14 @@
 [package]
-name = "sails-client"
-version.workspace = true
-authors.workspace = true
-edition.workspace = true
-license.workspace = true
+name = "puppeteer-app"
+version = "0.1.0"
+edition = "2021"
 
 [dependencies]
 gmeta.workspace = true
 gstd = { workspace = true, features = ["debug"] }
+sails-macros.workspace = true
+sails-client.workspace = true
+mockall = "0.12.1"
+sails-service-meta.workspace = true
 parity-scale-codec = { workspace = true, features = ["derive"] }
 scale-info = { workspace = true, features = ["derive"] }
-async-trait = "0.1"

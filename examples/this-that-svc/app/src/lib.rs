@@ -1,7 +1,5 @@
 #![no_std]
 
-mod client;
-
 use gstd::{debug, prelude::*};
 use sails_macros::gservice;
 
@@ -58,27 +56,4 @@ pub enum ManyVariants {
     Four { a: u32, b: Option<u16> },
     Five(String, u32),
     Six((u32,)),
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::client::*;
-
-    #[test]
-    fn test_client() {
-        let payload = Client::new()
-            .do_this(
-                42,
-                "AAAA".to_owned(),
-                (None, 0),
-                ThisThatSvcAppTupleStruct(true),
-            )
-            .into_bytes();
-
-        assert_eq!(
-            payload,
-            vec![68, 111, 84, 104, 105, 115, 47, 42, 0, 0, 0, 16, 65, 65, 65, 65, 0, 0, 1]
-        );
-    }
 }

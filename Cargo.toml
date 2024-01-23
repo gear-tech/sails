@@ -9,6 +9,8 @@ resolver = "2"
 members = [
     "examples/this-that-svc/app",
     "examples/this-that-svc/wasm",
+    "examples/puppeteer/app",
+    "examples/puppeteer/wasm",
     "idlgen",
     "client-gen",
     "idlparser",
@@ -19,12 +21,12 @@ members = [
 
 [workspace.dependencies]
 convert-case = { package = "convert_case", version = "0.6" }
-gmeta = "1.0.4"
-gstd = "1.0.4"
-gsys = "1.0.4"
-gclient = "1.0.4"
-gtest = "1.0.4"
-gwasm-builder = { package = "gear-wasm-builder", version = "1.0.4" }
+gmeta = "1.1.0"
+gstd = "1.1.0"
+gsys = "1.1.0"
+gclient = "1.1.0"
+gtest = "1.1.0"
+gwasm-builder = { package = "gear-wasm-builder", version = "1.1.0" }
 handlebars = "4.4"
 itertools = "0.12"
 lalrpop = { version = "0.20", default-features = false }
