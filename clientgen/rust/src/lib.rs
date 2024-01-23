@@ -28,7 +28,7 @@ impl<'a, 'ast> Visitor<'ast> for RootGenerator<'a> {
         self.code
             .push_str(&format!("#[automock] trait {} {{", self.service_name));
         visitor::accept_service(service, self);
-        self.code.push_str("}");
+        self.code.push('}');
     }
 
     fn visit_func(&mut self, func: &'ast Func) {
@@ -36,7 +36,7 @@ impl<'a, 'ast> Visitor<'ast> for RootGenerator<'a> {
         self.code
             .push_str(&format!("async fn {}(&{} self,", func.name(), mutability));
         visitor::accept_func(func, self);
-        self.code.push_str(";");
+        self.code.push(';');
     }
 
     fn visit_func_param(&mut self, func_param: &'ast FuncParam) {
@@ -104,15 +104,15 @@ impl<'ast> Visitor<'ast> for StructDefGenerator {
             panic!("Struct must be either regular or tuple");
         }
         if is_regular_struct {
-            self.code.push_str("{");
+            self.code.push('{');
         } else {
-            self.code.push_str("(");
+            self.code.push('(');
         }
         visitor::accept_struct_def(struct_def, self);
         if is_regular_struct {
-            self.code.push_str("}");
+            self.code.push('}');
         } else {
-            self.code.push_str(")");
+            self.code.push(')');
         }
     }
 
@@ -134,15 +134,15 @@ struct EnumDefGenerator {
 
 impl<'ast> Visitor<'ast> for EnumDefGenerator {
     fn visit_enum_def(&mut self, enum_def: &'ast EnumDef) {
-        self.code.push_str("{");
+        self.code.push('{');
         visitor::accept_enum_def(enum_def, self);
-        self.code.push_str("}");
+        self.code.push('}');
     }
 
     fn visit_enum_variant(&mut self, enum_variant: &'ast EnumVariant) {
         if let Some(type_decl) = enum_variant.type_decl().as_ref() {
             let type_decl_code = generate_type_decl_code(type_decl);
-            if type_decl_code.starts_with("{") {
+            if type_decl_code.starts_with('{') {
                 self.code
                     .push_str(&format!("{} {},", enum_variant.name(), type_decl_code));
             } else {
@@ -168,9 +168,9 @@ struct TypeDeclGenerator {
 
 impl<'ast> Visitor<'ast> for TypeDeclGenerator {
     fn visit_optional_type_decl(&mut self, optional_type_decl: &'ast TypeDecl) {
-        self.code.push_str(&format!("Option<"));
+        self.code.push_str("Option<");
         visitor::accept_type_decl(optional_type_decl, self);
-        self.code.push_str(&format!(">"));
+        self.code.push('>');
     }
 
     fn visit_result_type_decl(
@@ -178,17 +178,17 @@ impl<'ast> Visitor<'ast> for TypeDeclGenerator {
         ok_type_decl: &'ast TypeDecl,
         err_type_decl: &'ast TypeDecl,
     ) {
-        self.code.push_str(&format!("Result<"));
+        self.code.push_str("Result<");
         visitor::accept_type_decl(ok_type_decl, self);
-        self.code.push_str(&format!(", "));
+        self.code.push_str(", ");
         visitor::accept_type_decl(err_type_decl, self);
-        self.code.push_str(&format!(">"));
+        self.code.push('>');
     }
 
     fn visit_vector_type_decl(&mut self, vector_type_decl: &'ast TypeDecl) {
-        self.code.push_str(&format!("Vec<"));
+        self.code.push_str("Vec<");
         visitor::accept_type_decl(vector_type_decl, self);
-        self.code.push_str(&format!(">"));
+        self.code.push('>');
     }
 
     fn visit_struct_def(&mut self, struct_def: &'ast StructDef) {
@@ -217,7 +217,7 @@ impl<'ast> Visitor<'ast> for TypeDeclGenerator {
     }
 
     fn visit_user_defined_type_id(&mut self, user_defined_type_id: &'ast str) {
-        self.code.push_str(&format!("{}", user_defined_type_id));
+        self.code.push_str(user_defined_type_id);
     }
 }
 
