@@ -11,7 +11,7 @@ pub struct Visitor {
     visit_vector_type_decl: unsafe extern "C" fn(context: *const (), *const TypeDecl),
     visit_result_type_decl:
         unsafe extern "C" fn(context: *const (), *const TypeDecl, *const TypeDecl),
-    visit_primitive_type_id: unsafe extern "C" fn(context: *const (), *const PrimitiveType),
+    visit_primitive_type_id: unsafe extern "C" fn(context: *const (), PrimitiveType),
     visit_user_defined_type_id: unsafe extern "C" fn(context: *const (), *const u8, u32),
     visit_func: unsafe extern "C" fn(context: *const (), *const Func),
     visit_func_param: unsafe extern "C" fn(context: *const (), *const FuncParam),
@@ -33,7 +33,7 @@ extern "C" {
         ok_type_decl: *const TypeDecl,
         err_type_decl: *const TypeDecl,
     );
-    fn visit_primitive_type_id(context: *const (), primitive_type_id: *const PrimitiveType);
+    fn visit_primitive_type_id(context: *const (), primitive_type_id: PrimitiveType);
     fn visit_user_defined_type_id(
         context: *const (),
         user_defined_type_id_ptr: *const u8,
@@ -376,7 +376,7 @@ mod wrapper {
             if fn_ptr_addr!(self.visitor.visit_primitive_type_id).is_null() {
                 return;
             }
-            unsafe { (self.visitor.visit_primitive_type_id)(self.context, primitive_type_id) };
+            unsafe { (self.visitor.visit_primitive_type_id)(self.context, *primitive_type_id) };
         }
 
         fn visit_user_defined_type_id(&mut self, user_defined_type_id: &'ast str) {
