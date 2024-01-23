@@ -9,7 +9,7 @@ pub fn parse_idl(idl: &str) -> Result<Program, String> {
     Ok(program)
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct Program {
     service: Service,
     types: Vec<Type>,
@@ -29,7 +29,7 @@ impl Program {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct Service {
     funcs: Vec<Func>,
 }
@@ -44,7 +44,7 @@ impl Service {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct Func {
     name: String,
     params: Vec<FuncParam>,
@@ -84,7 +84,7 @@ impl Func {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct FuncParam {
     name: String,
     type_decl: TypeDecl,
@@ -104,7 +104,7 @@ impl FuncParam {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct Type {
     name: String,
     def: TypeDef,
@@ -124,7 +124,7 @@ impl Type {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum TypeDecl {
     Optional(Box<TypeDecl>),
     Vector(Box<TypeDecl>),
@@ -136,13 +136,13 @@ pub enum TypeDecl {
     Def(TypeDef),
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum TypeId {
     Primitive(PrimitiveType),
     UserDefined(String),
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone, Copy)]
 #[repr(u8)]
 pub enum PrimitiveType {
     Null,
@@ -182,13 +182,13 @@ impl PrimitiveType {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum TypeDef {
     Struct(StructDef),
     Enum(EnumDef),
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct StructDef {
     fields: Vec<StructField>,
 }
@@ -203,7 +203,7 @@ impl StructDef {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct StructField {
     name: Option<String>,
     type_decl: TypeDecl,
@@ -223,7 +223,7 @@ impl StructField {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct EnumDef {
     variants: Vec<EnumVariant>,
 }
@@ -238,7 +238,7 @@ impl EnumDef {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct EnumVariant {
     name: String,
     type_decl: Option<TypeDecl>,
@@ -268,13 +268,13 @@ mod tests {
           type ThisThatSvcAppTupleStruct = struct {
             bool,
           };
-          
+
           type ThisThatSvcAppDoThatParam = struct {
             p1: u32,
             p2: str,
             p3: ThisThatSvcAppManyVariants,
           };
-          
+
           type ThisThatSvcAppManyVariants = enum {
             One,
             Two: u32,
@@ -283,14 +283,14 @@ mod tests {
             Five: struct { str, u32 },
             Six: struct { u32 },
           };
-  
+
           service {
             DoThis : (p1: u32, p2: str, p3: struct { opt str, u8 }, p4: ThisThatSvcAppTupleStruct) -> struct { str, u32 };
             DoThat : (param: ThisThatSvcAppDoThatParam) -> result (struct { str, u32 }, struct { str });
             query This : (v1: vec u16) -> u32;
             query That : (v1: null) -> result (str, str);
           };
-  
+
           type T = enum { One }
         ";
 
