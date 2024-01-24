@@ -22,7 +22,6 @@ pub enum ThisThatSvcAppManyVariants {
     Six(u32),
 }
 
-// #[cfg_attr(not(no_std), automock)]
 pub trait Service {
     fn do_this(
         &self,

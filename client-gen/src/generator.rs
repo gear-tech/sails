@@ -47,9 +47,6 @@ impl IdlGenerator {
         writeln!(self.w, "use sails_client::{{Sender, Call}};")?;
         writeln!(self.w, "use gstd::prelude::*;")?;
 
-        // writeln!(self.w, "#[cfg(test)]")?;
-        // writeln!(self.w, "use mockall::automock;")?;
-
         Ok(())
     }
 
@@ -104,7 +101,6 @@ impl IdlGenerator {
         writeln!(
             self.w,
             r#"
-                // #[cfg_attr(not(no_std), automock)]
                 pub trait Service {{
             "#
         )?;

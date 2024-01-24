@@ -7,6 +7,7 @@ expression: generator.generate(program).unwrap()
 #![allow(unused)]
 use parity_scale_codec::{Encode, Decode};
 use sails_client::{Sender, Call};
+use gstd::prelude::*;
 #[derive(PartialEq, Debug, Encode, Decode)]
 pub enum P3Variant  {
 One,
@@ -14,9 +15,13 @@ Two,
 } 
 #[derive(PartialEq, Debug, Encode, Decode)]
 pub struct ThisThatAppDoThatParam  {
-p2: String,
-p3: P3Variant,
+pub p2: String,
+pub p3: P3Variant,
 } 
+
+                pub trait Service {
+            
+}
 
 
     #[derive(Default, Clone)]
@@ -25,16 +30,18 @@ p3: P3Variant,
     }
 
     impl Client {
+        pub fn new() -> Self {
+            Self::default()
+        }
 
-    pub fn new() -> Self {
-        Self::default()
+        pub fn with_program_id(mut self, program_id: impl Into<[u8; 32]>) -> Self {
+            self.program_id = program_id.into();
+            self
+        }
     }
 
-    pub fn with_program_id(mut self, program_id: impl Into<[u8; 32]>) -> Self {
-        self.program_id = program_id.into();
-        self
-    }
 
+    impl Service for Client {
 
     
 }

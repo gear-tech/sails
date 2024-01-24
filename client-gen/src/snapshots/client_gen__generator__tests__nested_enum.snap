@@ -7,6 +7,7 @@ expression: generator.generate(program).unwrap()
 #![allow(unused)]
 use parity_scale_codec::{Encode, Decode};
 use sails_client::{Sender, Call};
+use gstd::prelude::*;
 #[derive(PartialEq, Debug, Encode, Decode)]
 pub enum TwoVariant  {
 Three,
@@ -18,6 +19,10 @@ One,
 Two(TwoVariant),
 } 
 
+                pub trait Service {
+            
+}
+
 
     #[derive(Default, Clone)]
     pub struct Client {
@@ -25,16 +30,18 @@ Two(TwoVariant),
     }
 
     impl Client {
+        pub fn new() -> Self {
+            Self::default()
+        }
 
-    pub fn new() -> Self {
-        Self::default()
+        pub fn with_program_id(mut self, program_id: impl Into<[u8; 32]>) -> Self {
+            self.program_id = program_id.into();
+            self
+        }
     }
 
-    pub fn with_program_id(mut self, program_id: impl Into<[u8; 32]>) -> Self {
-        self.program_id = program_id.into();
-        self
-    }
 
+    impl Service for Client {
 
     
 }
