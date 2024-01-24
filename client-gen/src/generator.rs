@@ -336,7 +336,7 @@ impl IdlGenerator {
 // todo: move this to a method inside idlparser?
 fn struct_has_named_fields(def: &StructDef) -> bool {
     def.fields()
-        .get(0)
+        .first()
         .map(|f| f.name().is_some())
         .unwrap_or(true)
 }
