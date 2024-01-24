@@ -27,7 +27,7 @@ jobs:
         run: cargo fmt --all --check
 
       - name: Check Code With Clippy
-        run: cargo clippy --workspace --all-targets -- -D warnings
+        run: cargo clippy --workspace --all-targets --locked -- -D warnings -A unused-imports
 
       - name: Check IDL Parser For WASM With Clippy
         run: cargo clippy --manifest-path=idlparser/Cargo.toml --all-targets --target=wasm32-unknown-unknown -- -D warnings

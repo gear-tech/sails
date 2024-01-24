@@ -19,15 +19,15 @@ jobs:
       RUSTUP_HOME: /tmp/rustup_home
     steps:
       - name: Cancel previous workflow runs
-        uses: styfle/cancel-workflow-action@0.4.0
+        uses: styfle/cancel-workflow-action@0.12.0
         with:
           access_token: ${{ github.token }}
 
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: "Install: NodeJS 18.x"
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: 18.x
 
@@ -49,15 +49,15 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Use node 18.x
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: 18.x
 
       - name: Check package version
-        uses: EndBug/version-check@v1
+        uses: EndBug/version-check@v2
         id: check
         with:
           file-name: js/package.json
