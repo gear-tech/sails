@@ -3,7 +3,7 @@
 #![allow(unused)]
 use gstd::prelude::*;
 use parity_scale_codec::{Decode, Encode};
-use sails_client::{Call, Sender};
+use sails_client::Call;
 #[derive(PartialEq, Debug, Encode, Decode)]
 pub struct ThisThatSvcAppTupleStruct(pub bool);
 #[derive(PartialEq, Debug, Encode, Decode)]
@@ -67,11 +67,6 @@ impl Client {
     pub fn new() -> Self {
         Self::default()
     }
-
-    pub fn with_program_id(mut self, program_id: impl Into<[u8; 32]>) -> Self {
-        self.program_id = program_id.into();
-        self
-    }
 }
 
 impl Service for Client {
@@ -85,24 +80,24 @@ impl Service for Client {
         let mut payload = Vec::from("DoThis/");
         DoThisRequestArgs { p1, p2, p3, p4 }.encode_to(&mut payload);
 
-        Call::new(payload).with_program_id(self.program_id)
+        Call::new(payload)
     }
     fn do_that(&self, param: ThisThatSvcAppDoThatParam) -> Call<Result<(String, u32), (String,)>> {
         let mut payload = Vec::from("DoThat/");
         DoThatRequestArgs { param }.encode_to(&mut payload);
 
-        Call::new(payload).with_program_id(self.program_id)
+        Call::new(payload)
     }
     fn this(&self) -> Call<u32> {
         let mut payload = Vec::from("This/");
         ThisRequestArgs {}.encode_to(&mut payload);
 
-        Call::new(payload).with_program_id(self.program_id)
+        Call::new(payload)
     }
     fn that(&self) -> Call<Result<String, String>> {
         let mut payload = Vec::from("That/");
         ThatRequestArgs {}.encode_to(&mut payload);
 
-        Call::new(payload).with_program_id(self.program_id)
+        Call::new(payload)
     }
 }

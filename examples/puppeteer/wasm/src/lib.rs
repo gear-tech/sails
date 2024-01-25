@@ -1,12 +1,18 @@
 #![no_std]
 
-use gstd::msg;
+use gstd::{boxed::Box, msg};
+use puppeteer_app::puppet::Client;
 use puppeteer_app::{requests as service_requests, Puppeteer};
 
-static mut SERVICE: Puppeteer = Puppeteer::new();
+static mut SERVICE: Option<Puppeteer> = None;
 
 fn service() -> &'static mut Puppeteer {
-    unsafe { &mut SERVICE }
+    let s = unsafe { &mut SERVICE };
+    if s.is_none() {
+        *s = Some(Puppeteer::new(Box::new(Client::new())));
+    }
+
+    s.as_mut().unwrap()
 }
 
 #[gstd::async_main]

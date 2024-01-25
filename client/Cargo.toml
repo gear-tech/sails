@@ -11,3 +11,4 @@ gstd = { workspace = true, features = ["debug"] }
 parity-scale-codec = { workspace = true, features = ["derive"] }
 scale-info = { workspace = true, features = ["derive"] }
 async-trait = "0.1"
+onlyerror = "0.1.3"

@@ -44,7 +44,7 @@ impl IdlGenerator {
         writeln!(self.w, "#![allow(unused)]")?;
 
         writeln!(self.w, "use parity_scale_codec::{{Encode, Decode}};")?;
-        writeln!(self.w, "use sails_client::{{Sender, Call}};")?;
+        writeln!(self.w, "use sails_client::Call;")?;
         writeln!(self.w, "use gstd::prelude::*;")?;
 
         Ok(())
@@ -136,11 +136,6 @@ impl IdlGenerator {
         pub fn new() -> Self {{
             Self::default()
         }}
-
-        pub fn with_program_id(mut self, program_id: impl Into<[u8; 32]>) -> Self {{
-            self.program_id = program_id.into();
-            self
-        }}
     }}
 
 
@@ -177,7 +172,6 @@ impl IdlGenerator {
             {name}RequestArgs {{ {arg_names} }}.encode_to(&mut payload);
 
             Call::new(payload)
-                .with_program_id(self.program_id)
         }}"#
         )?;
 

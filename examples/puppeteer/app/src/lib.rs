@@ -1,30 +1,30 @@
 #![no_std]
 
-mod client;
+pub mod puppet;
 
-use client::{Client, Service};
+use puppet::Service;
 
-use sails_client::NativeSender;
 use sails_macros::gservice;
 
 use gstd::prelude::*;
 
-pub struct Puppeteer;
+pub struct Puppeteer {
+    puppet: Box<dyn Service>,
+}
+
+const PROGRAM_ID: [u8; 32] = [1; 32];
 
 #[gservice]
 impl Puppeteer {
-    pub const fn new() -> Self {
-        Self
+    pub const fn new(puppet: Box<dyn Service>) -> Self {
+        Self { puppet }
     }
 
     pub async fn call_this(&mut self) -> Result<u32, String> {
-        let mut sender = NativeSender::new();
-
-        let client = Client::new().with_program_id([1; 32]);
-
-        let result = client
+        let result = self
+            .puppet
             .this()
-            .send(&mut sender)
+            .send(PROGRAM_ID)
             .await
             .expect("send msg")
             .result()
