@@ -6,6 +6,7 @@ const config: Config.InitialOptions = {
   testEnvironment: 'node',
   verbose: true,
   preset: 'ts-jest/presets/js-with-babel',
+  transformIgnorePatterns: ['node_modules/(?!@polkadot)/'],
   extensionsToTreatAsEsm: ['.ts'],
   moduleNameMapper: {
     '^(\\.{1,2}/.*)\\.js$': '$1',

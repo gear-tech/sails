@@ -1,11 +1,3 @@
-type Alias = u32;
-
-type OptionAlias = opt u8;
-
-type ResultAlias = result (u8, string)
-
-type VecAlias = vec u8;
-
 type ThisThatSvcAppTupleStruct = struct {
   bool,
 };
@@ -23,6 +15,17 @@ type ThisThatSvcAppManyVariants = enum {
   Four: struct { a: u32, b: opt u16 },
   Five: struct { str, u32 },
   Six: struct { u32 },
+};
+
+type SimpleStruct = struct {
+  a: result (str, u32),
+  b: u32,
+};
+
+type SimpleEnum = enum {
+  One,
+  Two,
+  Three,
 };
 
 service {
