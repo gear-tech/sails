@@ -1,5 +1,5 @@
 [package]
-name = "client-gen"
+name = "sails-clientgen"
 version.workspace = true
 authors.workspace = true
 edition.workspace = true
@@ -13,4 +13,4 @@ rand.workspace = true
 sails-idlparser.workspace = true
 
 [dev-dependencies]
-insta = "1.34.0"
+insta.workspace = "1.34.0"

@@ -272,18 +272,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "client-gen"
-version = "0.0.1"
-dependencies = [
- "anyhow",
- "convert_case 0.6.0",
- "handlebars",
- "insta",
- "rand",
- "sails-idlparser",
-]
-
-[[package]]
 name = "colored"
 version = "2.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1451,10 +1439,9 @@ version = "0.1.0"
 dependencies = [
  "gmeta",
  "gstd",
- "mockall",
  "parity-scale-codec",
- "sails-client",
  "sails-macros",
+ "sails-sender",
  "sails-service-meta",
  "scale-info",
 ]
@@ -1613,13 +1600,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f98d2aa92eebf49b69786be48e4477826b256916e84a57ff2a4f21923b48eb4c"
 
 [[package]]
-name = "sails-client"
+name = "sails-clientgen"
 version = "0.0.1"
 dependencies = [
- "gmeta",
- "gstd",
- "parity-scale-codec",
- "scale-info",
+ "anyhow",
+ "convert_case 0.6.0",
+ "handlebars",
+ "insta",
+ "rand",
+ "sails-idlparser",
 ]
 
 [[package]]
@@ -1668,6 +1657,16 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 2.0.48",
+]
+
+[[package]]
+name = "sails-sender"
+version = "0.0.1"
+dependencies = [
+ "gmeta",
+ "gstd",
+ "parity-scale-codec",
+ "scale-info",
 ]
 
 [[package]]

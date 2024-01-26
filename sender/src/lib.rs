@@ -3,10 +3,10 @@
 use core::fmt::Debug;
 use core::marker::PhantomData;
 use gstd::{errors::Error as GStdError, msg::MessageFuture, prelude::*, ActorId, MessageId};
-use parity_scale_codec::Decode;
+use parity_scale_codec::{Decode, Error as ParseError};
 
 #[derive(Default)]
-pub struct SendArgs {
+struct SendArgs {
     value: u128,
     reply_deposit: u64,
 }
@@ -51,12 +51,12 @@ pub struct Call<R: Decode + Debug> {
 #[non_exhaustive]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum SendError {
-    Parse(parity_scale_codec::Error),
+    Parse(ParseError),
     Sender(GStdError),
 }
 
-impl From<parity_scale_codec::Error> for SendError {
-    fn from(e: parity_scale_codec::Error) -> Self {
+impl From<ParseError> for SendError {
+    fn from(e: ParseError) -> Self {
         Self::Parse(e)
     }
 }

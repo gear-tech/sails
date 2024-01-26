@@ -44,7 +44,7 @@ impl IdlGenerator {
         writeln!(self.w, "#![allow(unused)]")?;
 
         writeln!(self.w, "use parity_scale_codec::{{Encode, Decode}};")?;
-        writeln!(self.w, "use sails_client::Call;")?;
+        writeln!(self.w, "use sails_sender::Call;")?;
         writeln!(self.w, "use gstd::prelude::*;")?;
 
         Ok(())

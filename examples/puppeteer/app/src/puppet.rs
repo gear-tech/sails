@@ -3,7 +3,7 @@
 #![allow(unused)]
 use gstd::prelude::*;
 use parity_scale_codec::{Decode, Encode};
-use sails_client::Call;
+use sails_sender::Call;
 #[derive(PartialEq, Debug, Encode, Decode)]
 pub struct ThisThatSvcAppTupleStruct(pub bool);
 #[derive(PartialEq, Debug, Encode, Decode)]
