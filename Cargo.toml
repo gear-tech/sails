@@ -37,10 +37,11 @@ proc-macro-error = "1.0"
 proc-macro2 = { version = "1", default-features = false }
 quote = "1.0"
 rand = "0.8"
-sails-sender = { path = "sender" }
+sails-clentgen = { path = "client-gen" }
 sails-idlgen = { path = "idlgen" }
 sails-idlparser = { path = "idlparser" }
 sails-macros = { path = "macros" }
+sails-sender = { path = "sender" }
 sails-service-meta = { path = "service-meta" }
 scale-info = { version = "2.10", default-features = false }
 serde = "1.0"
