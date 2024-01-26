@@ -7,12 +7,13 @@ license = "GPL-3.0"
 [workspace]
 resolver = "2"
 members = [
-    "examples/this-that-svc/app",
-    "examples/this-that-svc/wasm",
+    "client",
+    "client-gen",
     "examples/puppeteer/app",
     "examples/puppeteer/wasm",
+    "examples/this-that-svc/app",
+    "examples/this-that-svc/wasm",
     "idlgen",
-    "client-gen",
     "idlparser",
     "macros",
     "macros/core",
@@ -20,12 +21,11 @@ members = [
 ]
 
 [workspace.dependencies]
+anyhow = "1"
 convert-case = { package = "convert_case", version = "0.6" }
 gmeta = "1.1.0"
 gstd = "1.1.0"
 gsys = "1.1.0"
-gclient = "1.1.0"
-gtest = "1.1.0"
 gwasm-builder = { package = "gear-wasm-builder", version = "1.1.0" }
 handlebars = "4.4"
 itertools = "0.12"
@@ -36,11 +36,12 @@ parity-scale-codec = { version = "3.6", default-features = false }
 proc-macro-error = "1.0"
 proc-macro2 = { version = "1", default-features = false }
 quote = "1.0"
+rand = "0.8"
+sails-client = { path = "client" }
 sails-idlgen = { path = "idlgen" }
 sails-idlparser = { path = "idlparser" }
 sails-macros = { path = "macros" }
 sails-service-meta = { path = "service-meta" }
-sails-client = { path = "client" }
 scale-info = { version = "2.10", default-features = false }
 serde = "1.0"
 serde-json = { package = "serde_json", version = "1.0" }

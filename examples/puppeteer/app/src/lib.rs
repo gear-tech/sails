@@ -6,13 +6,13 @@ use puppet::Service;
 
 use sails_macros::gservice;
 
-use gstd::prelude::*;
+use gstd::{prelude::*, ActorId};
 
 pub struct Puppeteer {
     puppet: Box<dyn Service>,
 }
 
-const PROGRAM_ID: [u8; 32] = [1; 32];
+const PUPPET_ADDRESS: ActorId = ActorId::new([1; 32]);
 
 #[gservice]
 impl Puppeteer {
@@ -24,10 +24,10 @@ impl Puppeteer {
         let result = self
             .puppet
             .this()
-            .send(PROGRAM_ID)
+            .send(PUPPET_ADDRESS)
             .await
             .expect("send msg")
-            .result()
+            .response()
             .await
             .expect("parse msg");
 
