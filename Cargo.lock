@@ -1400,6 +1400,29 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c08c74e62047bb2de4ff487b251e4a92e24f48745648451635cec7d591162d9f"
 
 [[package]]
+name = "rmrk-catalog"
+version = "0.1.0"
+dependencies = [
+ "gear-wasm-builder",
+ "gstd",
+ "rmrk-catalog-app",
+ "sails-exec-context-gstd",
+ "sails-idlgen",
+]
+
+[[package]]
+name = "rmrk-catalog-app"
+version = "0.1.0"
+dependencies = [
+ "gstd",
+ "parity-scale-codec",
+ "sails-exec-context-abstractions",
+ "sails-macros",
+ "sails-service-meta",
+ "scale-info",
+]
+
+[[package]]
 name = "rustc-demangle"
 version = "0.1.23"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1438,6 +1461,18 @@ name = "ryu"
 version = "1.0.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1ad4cc8da4ef723ed60bced201181d83791ad433213d8c24efffda1eec85d741"
+
+[[package]]
+name = "sails-exec-context-abstractions"
+version = "0.0.1"
+
+[[package]]
+name = "sails-exec-context-gstd"
+version = "0.0.1"
+dependencies = [
+ "gstd",
+ "sails-exec-context-abstractions",
+]
 
 [[package]]
 name = "sails-idlgen"
@@ -1690,10 +1725,7 @@ version = "0.1.0"
 dependencies = [
  "gear-wasm-builder",
  "gstd",
- "gsys",
- "parity-scale-codec",
  "sails-idlgen",
- "sails-service-meta",
  "this-that-svc-app",
 ]
 

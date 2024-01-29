@@ -1,0 +1,12 @@
+[package]
+name = "rmrk-catalog-app"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+gstd.workspace = true
+sails-exec-context-abstractions.workspace = true
+sails-macros.workspace = true
+sails-service-meta.workspace = true
+parity-scale-codec = { workspace = true, features = ["derive"] }
+scale-info = { workspace = true, features = ["derive"] }
