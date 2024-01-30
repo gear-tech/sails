@@ -9,12 +9,25 @@ pub trait Visitor<'ast> {
         accept_type(r#type, self);
     }
 
-    fn visit_optional_type_decl(&mut self, optional_type_decl: &'ast TypeDecl) {
-        accept_type_decl(optional_type_decl, self);
+    fn visit_vector_type_decl(&mut self, item_type_decl: &'ast TypeDecl) {
+        accept_type_decl(item_type_decl, self);
     }
 
-    fn visit_vector_type_decl(&mut self, vector_type_decl: &'ast TypeDecl) {
-        accept_type_decl(vector_type_decl, self);
+    fn visit_array_type_decl(&mut self, item_type_decl: &'ast TypeDecl, _len: u32) {
+        accept_type_decl(item_type_decl, self);
+    }
+
+    fn visit_map_type_decl(
+        &mut self,
+        key_type_decl: &'ast TypeDecl,
+        value_type_decl: &'ast TypeDecl,
+    ) {
+        accept_type_decl(key_type_decl, self);
+        accept_type_decl(value_type_decl, self);
+    }
+
+    fn visit_optional_type_decl(&mut self, optional_type_decl: &'ast TypeDecl) {
+        accept_type_decl(optional_type_decl, self);
     }
 
     fn visit_result_type_decl(
@@ -26,7 +39,7 @@ pub trait Visitor<'ast> {
         accept_type_decl(err_type_decl, self);
     }
 
-    fn visit_primitive_type_id(&mut self, _primitive_type_id: &'ast PrimitiveType) {}
+    fn visit_primitive_type_id(&mut self, _primitive_type_id: PrimitiveType) {}
 
     fn visit_user_defined_type_id(&mut self, _user_defined_type_id: &'ast str) {}
 
@@ -95,20 +108,26 @@ pub fn accept_type_decl<'ast>(
     visitor: &mut (impl Visitor<'ast> + ?Sized),
 ) {
     match type_decl {
-        TypeDecl::Id(TypeId::Primitive(primitive_type_id)) => {
-            visitor.visit_primitive_type_id(primitive_type_id);
+        TypeDecl::Vector(item_type_decl) => {
+            visitor.visit_vector_type_decl(item_type_decl);
         }
-        TypeDecl::Id(TypeId::UserDefined(user_defined_type_id)) => {
-            visitor.visit_user_defined_type_id(user_defined_type_id);
+        TypeDecl::Array { item, len } => {
+            visitor.visit_array_type_decl(item, *len);
+        }
+        TypeDecl::Map { key, value } => {
+            visitor.visit_map_type_decl(key, value);
         }
         TypeDecl::Optional(optional_type_decl) => {
             visitor.visit_optional_type_decl(optional_type_decl);
         }
-        TypeDecl::Vector(vector_type_decl) => {
-            visitor.visit_vector_type_decl(vector_type_decl);
-        }
         TypeDecl::Result { ok, err } => {
             visitor.visit_result_type_decl(ok, err);
+        }
+        TypeDecl::Id(TypeId::Primitive(primitive_type_id)) => {
+            visitor.visit_primitive_type_id(*primitive_type_id);
+        }
+        TypeDecl::Id(TypeId::UserDefined(user_defined_type_id)) => {
+            visitor.visit_user_defined_type_id(user_defined_type_id);
         }
         TypeDecl::Def(type_def) => {
             accept_type_def(type_def, visitor);

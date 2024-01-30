@@ -46,6 +46,10 @@ pub(crate) enum Token {
     LBrace,
     #[token("}")]
     RBrace,
+    #[token("[")]
+    LBracket,
+    #[token("]")]
+    RBracket,
     #[token(";")]
     Semicolon,
     #[token(":")]
@@ -72,8 +76,12 @@ pub(crate) enum Token {
     Result,
     #[token("vec")]
     Vec,
+    #[token("map")]
+    Map,
     #[regex(r"[a-zA-Z_][a-zA-Z0-9_]*", |lex| lex.slice().to_string())]
     Id(String),
+    #[regex(r"[0-9]+", |lex| lex.slice().parse().ok())]
+    Num(u32),
 }
 
 impl Display for Token {
@@ -93,13 +101,13 @@ mod tests {
           type ThisThatSvcAppTupleStruct = struct {
             bool,
           };
-          
+
           type ThisThatSvcAppDoThatParam = struct {
             p1: u32,
             p2: str,
             p3: ThisThatSvcAppManyVariants,
           };
-          
+
           type ThisThatSvcAppManyVariants = enum {
             One,
             Two: u32,
@@ -107,8 +115,9 @@ mod tests {
             Four: struct { a: u32, b: opt u16 },
             Five: struct { str, u32 },
             Six: struct { u32 },
+            Seven: [map (u32, str), 10],
           };
-          
+
           service {
             DoThis : (p1: u32, p2: str, p3: struct { opt str, u8 }, p4: ThisThatSvcAppTupleStruct) -> struct { str, u32 };
             DoThat : (param: ThisThatSvcAppDoThatParam) -> result (struct { str, u32 }, struct { str });

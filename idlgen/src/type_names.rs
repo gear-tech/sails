@@ -21,7 +21,8 @@
 use crate::errors::{Error, Result};
 use convert_case::{Case, Casing};
 use scale_info::{
-    form::PortableForm, PortableRegistry, Type, TypeDef, TypeDefPrimitive, TypeDefTuple, TypeInfo,
+    form::PortableForm, PortableRegistry, Type, TypeDef, TypeDefArray, TypeDefPrimitive,
+    TypeDefSequence, TypeDefTuple, TypeInfo,
 };
 use std::collections::BTreeMap;
 
@@ -55,12 +56,20 @@ fn resolve_type_name(
         TypeDef::Tuple(tuple_def) => {
             tuple_type_name(type_registry, tuple_def, resolved_type_names)?
         }
-        TypeDef::Sequence(sequence_def) => array_type_name(
-            type_registry,
-            sequence_def.type_param.id,
-            resolved_type_names,
-        )?,
-        TypeDef::Composite(_) => type_name_by_path(type_registry, type_info, resolved_type_names)?,
+        TypeDef::Sequence(vector_def) => {
+            vector_type_name(type_registry, vector_def, resolved_type_names)?
+        }
+        TypeDef::Array(array_def) => {
+            array_type_name(type_registry, array_def, resolved_type_names)?
+        }
+        TypeDef::Composite(_) => {
+            let btree_map_type_info = BTreeMap::<u32, ()>::type_info();
+            if btree_map_type_info.path.segments == type_info.path.segments {
+                btree_map_type_name(type_registry, type_info, resolved_type_names)?
+            } else {
+                type_name_by_path(type_registry, type_info, resolved_type_names)?
+            }
+        }
         TypeDef::Variant(_) => {
             let result_type_info = std::result::Result::<(), ()>::type_info();
             let option_type_info = std::option::Option::<()>::type_info();
@@ -79,6 +88,30 @@ fn resolve_type_name(
 
     resolved_type_names.insert(type_id, type_name.clone());
     Ok(type_name)
+}
+
+fn btree_map_type_name(
+    type_registry: &PortableRegistry,
+    type_info: &Type<PortableForm>,
+    resolved_type_names: &mut BTreeMap<u32, String>,
+) -> Result<String> {
+    let key_type_id = type_info
+        .type_params
+        .iter()
+        .find(|param| param.name == "K")
+        .ok_or_else(|| Error::UnsupprotedType(format!("{type_info:?}")))?
+        .ty
+        .ok_or_else(|| Error::UnsupprotedType(format!("{type_info:?}")))?;
+    let value_type_id = type_info
+        .type_params
+        .iter()
+        .find(|param| param.name == "V")
+        .ok_or_else(|| Error::UnsupprotedType(format!("{type_info:?}")))?
+        .ty
+        .ok_or_else(|| Error::UnsupprotedType(format!("{type_info:?}")))?;
+    let key_type_name = resolve_type_name(type_registry, key_type_id.id, resolved_type_names)?;
+    let value_type_name = resolve_type_name(type_registry, value_type_id.id, resolved_type_names)?;
+    Ok(format!("map ({}, {})", key_type_name, value_type_name))
 }
 
 fn result_type_name(
@@ -176,13 +209,24 @@ fn tuple_type_name(
     }
 }
 
-fn array_type_name(
+fn vector_type_name(
     type_registry: &PortableRegistry,
-    item_type_id: u32,
+    vector_def: &TypeDefSequence<PortableForm>,
     resolved_type_names: &mut BTreeMap<u32, String>,
 ) -> Result<String> {
-    let item_type_name = resolve_type_name(type_registry, item_type_id, resolved_type_names)?;
+    let item_type_name =
+        resolve_type_name(type_registry, vector_def.type_param.id, resolved_type_names)?;
     Ok(format!("vec {}", item_type_name))
+}
+
+fn array_type_name(
+    type_registry: &PortableRegistry,
+    array_def: &TypeDefArray<PortableForm>,
+    resolved_type_names: &mut BTreeMap<u32, String>,
+) -> Result<String> {
+    let item_type_name =
+        resolve_type_name(type_registry, array_def.type_param.id, resolved_type_names)?;
+    Ok(format!("[{}, {}]", item_type_name, array_def.len))
 }
 
 fn primitive_type_name(type_def: &TypeDefPrimitive) -> Result<String> {
@@ -273,5 +317,31 @@ mod tests {
             bool_u32_enum_name,
             "SailsIdlgenTypeNamesTestsGenericEnumForBoolAndU32"
         );
+    }
+
+    #[test]
+    fn array_type_name_resolution_works() {
+        let mut registry = Registry::new();
+        let u32_array_id = registry.register_type(&MetaType::new::<[u32; 10]>()).id;
+        let portable_registry = PortableRegistry::from(registry);
+
+        let type_names = resolve_type_names(&portable_registry).unwrap();
+
+        let u32_array_name = type_names.get(&u32_array_id).unwrap();
+        assert_eq!(u32_array_name, "[u32, 10]");
+    }
+
+    #[test]
+    fn btree_map_name_resolution_works() {
+        let mut registry = Registry::new();
+        let btree_map_id = registry
+            .register_type(&MetaType::new::<BTreeMap<u32, String>>())
+            .id;
+        let portable_registry = PortableRegistry::from(registry);
+
+        let type_names = resolve_type_names(&portable_registry).unwrap();
+
+        let btree_map_name = type_names.get(&btree_map_id).unwrap();
+        assert_eq!(btree_map_name, "map (u32, str)");
     }
 }
