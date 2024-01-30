@@ -12,6 +12,8 @@ extern {
         ")" => Token::RParen,
         "{" => Token::LBrace,
         "}" => Token::RBrace,
+        "[" => Token::LBracket,
+        "]" => Token::RBracket,
         ";" => Token::Semicolon,
         ":" => Token::Colon,
         "," => Token::Comma,
@@ -21,11 +23,13 @@ extern {
         "type" => Token::Type,
         "struct" => Token::Struct,
         "enum" => Token::Enum,
-        "id" => Token::Id(<String>),
         "opt" => Token::Opt,
         "result" => Token::Result,
         "vec" => Token::Vec,
+        "map" => Token::Map,
         "null" => Token::Null,
+        "id" => Token::Id(<String>),
+        "num" => Token::Num(<u32>),
     }
 }
 
@@ -57,8 +61,10 @@ Type: Type = {
 }
 
 TypeDecl: TypeDecl = {
-    "opt" <TypeDecl> => TypeDecl::Optional(Box::new(<>)),
     "vec" <TypeDecl> => TypeDecl::Vector(Box::new(<>)),
+    "[" <item: TypeDecl> "," <len: "num"> "]" => TypeDecl::Array { item: Box::new(item), len },
+    "map" "(" <key: TypeDecl> "," <value: TypeDecl> ")" => TypeDecl::Map { key: Box::new(key), value: Box::new(value) },
+    "opt" <TypeDecl> => TypeDecl::Optional(Box::new(<>)),
     "result" "(" <ok: TypeDecl> "," <err: TypeDecl> ")" => TypeDecl::Result { ok: Box::new(ok), err: Box::new(err) },
     "null" => TypeDecl::Id(TypeId::Primitive(PrimitiveType::Null)),
     <"id"> => match PrimitiveType::str_to_enum(&<>) {

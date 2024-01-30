@@ -7,8 +7,10 @@ use wrapper::VisitorWrapper;
 pub struct Visitor {
     visit_service: unsafe extern "C" fn(context: *const (), *const Service),
     visit_type: unsafe extern "C" fn(context: *const (), *const Type),
-    visit_optional_type_decl: unsafe extern "C" fn(context: *const (), *const TypeDecl),
     visit_vector_type_decl: unsafe extern "C" fn(context: *const (), *const TypeDecl),
+    visit_array_type_decl: unsafe extern "C" fn(context: *const (), *const TypeDecl, u32),
+    visit_map_type_decl: unsafe extern "C" fn(context: *const (), *const TypeDecl, *const TypeDecl),
+    visit_optional_type_decl: unsafe extern "C" fn(context: *const (), *const TypeDecl),
     visit_result_type_decl:
         unsafe extern "C" fn(context: *const (), *const TypeDecl, *const TypeDecl),
     visit_primitive_type_id: unsafe extern "C" fn(context: *const (), PrimitiveType),
@@ -26,8 +28,14 @@ pub struct Visitor {
 extern "C" {
     fn visit_service(context: *const (), service: *const Service);
     fn visit_type(context: *const (), r#type: *const Type);
+    fn visit_vector_type_decl(context: *const (), item_type_decl: *const TypeDecl);
+    fn visit_array_type_decl(context: *const (), item_type_decl: *const TypeDecl, len: u32);
+    fn visit_map_type_decl(
+        context: *const (),
+        key_type_decl: *const TypeDecl,
+        value_type_decl: *const TypeDecl,
+    );
     fn visit_optional_type_decl(context: *const (), optional_type_decl: *const TypeDecl);
-    fn visit_vector_type_decl(context: *const (), vector_type_decl: *const TypeDecl);
     fn visit_result_type_decl(
         context: *const (),
         ok_type_decl: *const TypeDecl,
@@ -52,8 +60,10 @@ extern "C" {
 static VISITOR: Visitor = Visitor {
     visit_service,
     visit_type,
-    visit_optional_type_decl,
     visit_vector_type_decl,
+    visit_array_type_decl,
+    visit_map_type_decl,
+    visit_optional_type_decl,
     visit_result_type_decl,
     visit_primitive_type_id,
     visit_user_defined_type_id,
@@ -333,6 +343,47 @@ mod wrapper {
             unsafe { (self.visitor.visit_type)(self.context, &r#type) };
         }
 
+        fn visit_vector_type_decl(&mut self, item_type_decl: &'ast raw_ast::TypeDecl) {
+            if fn_ptr_addr!(self.visitor.visit_vector_type_decl).is_null() {
+                return raw_visitor::accept_type_decl(item_type_decl, self);
+            }
+            let item_type_decl = TypeDecl {
+                raw_ptr: item_type_decl.into(),
+            };
+            unsafe { (self.visitor.visit_vector_type_decl)(self.context, &item_type_decl) };
+        }
+
+        fn visit_array_type_decl(&mut self, item_type_decl: &'ast ast::TypeDecl, len: u32) {
+            if fn_ptr_addr!(self.visitor.visit_array_type_decl).is_null() {
+                return raw_visitor::accept_type_decl(item_type_decl, self);
+            }
+            let item_type_decl = TypeDecl {
+                raw_ptr: item_type_decl.into(),
+            };
+            unsafe { (self.visitor.visit_array_type_decl)(self.context, &item_type_decl, len) };
+        }
+
+        fn visit_map_type_decl(
+            &mut self,
+            key_type_decl: &'ast ast::TypeDecl,
+            value_type_decl: &'ast ast::TypeDecl,
+        ) {
+            if fn_ptr_addr!(self.visitor.visit_map_type_decl).is_null() {
+                raw_visitor::accept_type_decl(key_type_decl, self);
+                raw_visitor::accept_type_decl(value_type_decl, self);
+                return;
+            }
+            let key_type_decl = TypeDecl {
+                raw_ptr: key_type_decl.into(),
+            };
+            let value_type_decl = TypeDecl {
+                raw_ptr: value_type_decl.into(),
+            };
+            unsafe {
+                (self.visitor.visit_map_type_decl)(self.context, &key_type_decl, &value_type_decl)
+            };
+        }
+
         fn visit_optional_type_decl(&mut self, optional_type_decl: &'ast raw_ast::TypeDecl) {
             if fn_ptr_addr!(self.visitor.visit_optional_type_decl).is_null() {
                 return raw_visitor::accept_type_decl(optional_type_decl, self);
@@ -343,23 +394,15 @@ mod wrapper {
             unsafe { (self.visitor.visit_optional_type_decl)(self.context, &optional_type_decl) };
         }
 
-        fn visit_vector_type_decl(&mut self, vector_type_decl: &'ast raw_ast::TypeDecl) {
-            if fn_ptr_addr!(self.visitor.visit_vector_type_decl).is_null() {
-                return raw_visitor::accept_type_decl(vector_type_decl, self);
-            }
-            let vector_type_decl = TypeDecl {
-                raw_ptr: vector_type_decl.into(),
-            };
-            unsafe { (self.visitor.visit_vector_type_decl)(self.context, &vector_type_decl) };
-        }
-
         fn visit_result_type_decl(
             &mut self,
             ok_type_decl: &'ast raw_ast::TypeDecl,
             err_type_decl: &'ast raw_ast::TypeDecl,
         ) {
             if fn_ptr_addr!(self.visitor.visit_result_type_decl).is_null() {
-                return raw_visitor::accept_type_decl(ok_type_decl, self);
+                raw_visitor::accept_type_decl(ok_type_decl, self);
+                raw_visitor::accept_type_decl(err_type_decl, self);
+                return;
             }
             let ok_type_decl = TypeDecl {
                 raw_ptr: ok_type_decl.into(),
@@ -372,11 +415,11 @@ mod wrapper {
             };
         }
 
-        fn visit_primitive_type_id(&mut self, primitive_type_id: &'ast raw_ast::PrimitiveType) {
+        fn visit_primitive_type_id(&mut self, primitive_type_id: raw_ast::PrimitiveType) {
             if fn_ptr_addr!(self.visitor.visit_primitive_type_id).is_null() {
                 return;
             }
-            unsafe { (self.visitor.visit_primitive_type_id)(self.context, *primitive_type_id) };
+            unsafe { (self.visitor.visit_primitive_type_id)(self.context, primitive_type_id) };
         }
 
         fn visit_user_defined_type_id(&mut self, user_defined_type_id: &'ast str) {
