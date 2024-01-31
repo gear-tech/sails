@@ -121,8 +121,16 @@ impl Type {
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum TypeDecl {
-    Optional(Box<TypeDecl>),
     Vector(Box<TypeDecl>),
+    Array {
+        item: Box<TypeDecl>,
+        len: u32,
+    },
+    Map {
+        key: Box<TypeDecl>,
+        value: Box<TypeDecl>,
+    },
+    Optional(Box<TypeDecl>),
     Result {
         ok: Box<TypeDecl>,
         err: Box<TypeDecl>,
@@ -277,6 +285,7 @@ mod tests {
             Four: struct { a: u32, b: opt u16 },
             Five: struct { str, u32 },
             Six: struct { u32 },
+            Seven: [map (u32, str), 10],
           };
 
           service {

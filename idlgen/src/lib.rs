@@ -93,6 +93,7 @@ handlebars_helper!(deref: |v: String| { v });
 mod tests {
     use super::*;
     use scale_info::TypeInfo;
+    use std::collections::BTreeMap;
     use std::result::Result as StdResult;
 
     #[allow(dead_code)]
@@ -136,6 +137,7 @@ mod tests {
         Five(String, Vec<u8>),
         Six((u32,)),
         Seven(GenericEnum<u32, String>),
+        Eight([BTreeMap<u32, String>; 10]),
     }
 
     #[allow(dead_code)]
@@ -225,6 +227,7 @@ type SailsIdlgenTestsManyVariants = enum {
   Five: struct { str, vec u8 },
   Six: struct { u32 },
   Seven: SailsIdlgenTestsGenericEnumForU32AndStr,
+  Eight: [map (u32, str), 10],
 };
 
 type SailsIdlgenTestsGenericEnumForU32AndStr = enum {

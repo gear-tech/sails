@@ -23,3 +23,9 @@ fn gservice_works() {
     let t = trybuild::TestCases::new();
     t.pass("tests/ui/gservice_works.rs");
 }
+
+#[test]
+fn gservice_works_for_lifecycles_and_generics() {
+    let t = trybuild::TestCases::new();
+    t.pass("tests/ui/gservice_works_for_lifecycles_and_generics.rs");
+}
