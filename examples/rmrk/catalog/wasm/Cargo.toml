@@ -11,3 +11,4 @@ rmrk-catalog-app = { path = "../app" }
 [build-dependencies]
 gwasm-builder.workspace = true
 sails-idlgen.workspace = true
+rmrk-catalog-app = { path = "../app" }
