@@ -34,6 +34,12 @@ jobs:
       - name: "Install: pkg dependencies"
         working-directory: js
         run: yarn install
+      
+      - name: "Prepare: build parser"
+        run: cargo build --manifest-path=idlparser/Cargo.toml --target=wasm32-unknown-unknown --release
+
+      - name: "Copy wasm"
+        run: cp ./target/wasm32-unknown-unknown/release/sails_idlparser.wasm js/src/parser/parser.wasm
 
       - name: "Build: sails-js"
         working-directory: js
