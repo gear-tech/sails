@@ -1,0 +1,19 @@
+[package]
+name = "rmrk-resource"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+gstd.workspace = true
+sails-exec-context-gstd.workspace = true
+rmrk-resource-app = { path = "../app" }
+
+[build-dependencies]
+gwasm-builder.workspace = true
+sails-idlgen.workspace = true
+rmrk-resource-app = { path = "../app" }
+
+[dev-dependencies]
+gtest.workspace = true
+rmrk-catalog-app = { path = "../../catalog/app" }
+rmrk-catalog = { path = "../../catalog/wasm" }

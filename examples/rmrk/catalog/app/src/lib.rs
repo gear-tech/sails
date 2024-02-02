@@ -10,8 +10,8 @@ use parts::{CollectionId, Part, PartId, SlotPart};
 use sails_exec_context_abstractions::ExecContext;
 use sails_macros::gservice;
 
-mod errors;
-mod parts;
+pub mod errors;
+pub mod parts;
 
 static mut CATALOG_ADMIN: Option<ActorId> = None;
 
