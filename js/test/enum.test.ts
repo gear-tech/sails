@@ -16,18 +16,18 @@ describe('enum', () => {
     
     service {}`;
 
-    const result = sails.parseIdl(idl);
+    sails.parseIdl(idl);
 
-    expect(result.scaleCodecTypes).toEqual({
+    expect(sails.scaleCodecTypes).toEqual({
       SimpleEnum: { _enum: ['One', 'Two', 'Three'] },
     });
 
-    expect(result.registry.createType('SimpleEnum', 'One').toU8a()[0]).toBe(0);
-    expect(result.registry.createType('SimpleEnum', 'One').toJSON()).toEqual('One');
-    expect(result.registry.createType('SimpleEnum', 'Two').toU8a()[0]).toBe(1);
-    expect(result.registry.createType('SimpleEnum', 'Two').toJSON()).toEqual('Two');
-    expect(result.registry.createType('SimpleEnum', 'Three').toU8a()[0]).toBe(2);
-    expect(result.registry.createType('SimpleEnum', 'Three').toJSON()).toEqual('Three');
+    expect(sails.registry.createType('SimpleEnum', 'One').toU8a()[0]).toBe(0);
+    expect(sails.registry.createType('SimpleEnum', 'One').toJSON()).toEqual('One');
+    expect(sails.registry.createType('SimpleEnum', 'Two').toU8a()[0]).toBe(1);
+    expect(sails.registry.createType('SimpleEnum', 'Two').toJSON()).toEqual('Two');
+    expect(sails.registry.createType('SimpleEnum', 'Three').toU8a()[0]).toBe(2);
+    expect(sails.registry.createType('SimpleEnum', 'Three').toJSON()).toEqual('Three');
   });
 
   test('complex enum', () => {

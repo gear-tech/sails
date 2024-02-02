@@ -3,6 +3,14 @@ import { TypeRegistry } from '@polkadot/types';
 import { Program, WasmParser } from './parser/index.js';
 import { getScaleCodecDef } from './utils/types.js';
 
+interface SailsFunc {
+  args: { name: string; type: any }[];
+  returnType: any;
+  isQuery: boolean;
+  encodePayload: (...args: any[]) => Uint8Array;
+  decodeResult: (result: Uint8Array) => any;
+}
+
 export class Sails {
   private _parser: WasmParser;
   private _program: Program;
@@ -67,21 +75,14 @@ export class Sails {
       throw new Error('IDL not parsed');
     }
 
-    const funcs: Record<
-      string,
-      {
-        args: { name: string; type: any }[];
-        returnType: any;
-        isQuery: boolean;
-        encodePayload: (...args: any[]) => Uint8Array;
-      }
-    > = {};
+    const funcs: Record<string, SailsFunc> = {};
 
     for (const func of this._program.service.funcs) {
       const params = func.params.map((p) => ({ name: p.name, type: getScaleCodecDef(p.def) }));
+      const returnType = getScaleCodecDef(func.def);
       funcs[func.name] = {
         args: params,
-        returnType: getScaleCodecDef(func.def),
+        returnType,
         isQuery: func.isQuery,
         encodePayload: (...args) => {
           if (args.length !== args.length) {
@@ -90,6 +91,9 @@ export class Sails {
           return this.registry
             .createType(`(String, ${params.map((p) => p.type).join(', ')})`, [func.name + '/', ...args])
             .toU8a();
+        },
+        decodeResult: (result: Uint8Array | string) => {
+          return this.registry.createType(`(String, ${returnType})`, result)[1].toJSON();
         },
       };
     }
