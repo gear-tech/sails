@@ -1,13 +1,14 @@
 [package]
-name = "this-that-svc"
+name = "rmrk-catalog"
 version = "0.1.0"
 edition = "2021"
 
 [dependencies]
 gstd.workspace = true
-this-that-svc-app = { path = "../app" }
+sails-exec-context-gstd.workspace = true
+rmrk-catalog-app = { path = "../app" }
 
 [build-dependencies]
 gwasm-builder.workspace = true
 sails-idlgen.workspace = true
-this-that-svc-app = { path = "../app" }
+rmrk-catalog-app = { path = "../app" }
