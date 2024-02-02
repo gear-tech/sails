@@ -28,9 +28,10 @@
     "types": "./lib/index.d.ts"
   },
   "scripts": {
-    "build": "rm -rf lib && tsc && node build-wasm.js",
-    "test": "yarn node --no-warnings --experimental-vm-modules $(yarn bin jest)",
-    "parse": "node ./test/parser.js"
+    "prebuild": "rm -rf lib",
+    "build": "tsc -p tsconfig.build.json && node build-wasm.js",
+    "pretest": "yarn build",
+    "test": "yarn node --no-warnings --experimental-vm-modules $(yarn bin jest)"
   },
   "peerDependencies": {
     "@polkadot/types": "^10.11.2"

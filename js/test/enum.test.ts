@@ -37,7 +37,7 @@ describe('enum', () => {
         Three: opt vec u8,
         Four: struct { a: u32, b: opt u16 },
         Five: struct { str, u32 },
-        Six: struct { u32 },
+        Six: [map (str, u32), 3],
     };
     
     service {}`;
@@ -52,7 +52,7 @@ describe('enum', () => {
           Three: 'Option<Vec<u8>>',
           Four: { a: 'u32', b: 'Option<u16>' },
           Five: '(String, u32)',
-          Six: '(u32)',
+          Six: '[BTreeMap<String, u32>; 3]',
         },
       },
     });
@@ -83,9 +83,8 @@ describe('enum', () => {
     expect(result.registry.createType('ComplexEnum', { Five: ['abc', 123] }).toJSON()).toEqual({
       five: ['abc', 123],
     });
-    expect(result.registry.createType('ComplexEnum', { Six: [123] }).toU8a()[0]).toBe(5);
-    expect(result.registry.createType('ComplexEnum', { Six: [123] }).toJSON()).toEqual({
-      six: 123,
-    });
+    expect(
+      result.registry.createType('ComplexEnum', { Six: [{ foo: 1 }, { bar: 2 }, { foobar: 3 }] }).toJSON(),
+    ).toEqual({ six: [{ foo: 1 }, { bar: 2 }, { foobar: 3 }] });
   });
 });

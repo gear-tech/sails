@@ -16,7 +16,7 @@ export type ThisThatSvcAppManyVariants =
   | { Three: number | string | bigint | null }
   | { Four: { a: number | string | bigint; b: number | string | bigint | null } }
   | { Five: [string, number | string | bigint] }
-  | { Six: [number | string | bigint] };
+  | { Six: Array<Record<string, number | string | bigint>> };
 
 export interface SimpleStruct {
   a: { ok: string } | { err: number | string | bigint };
@@ -37,7 +37,7 @@ export class Service extends Transaction {
           Three: 'Option<u32>',
           Four: { a: 'u32', b: 'Option<u16>' },
           Five: '(String, u32)',
-          Six: '(u32)',
+          Six: '[BTreeMap<String, u32>; 3]',
         },
       },
       SimpleStruct: { a: 'Result<String, u32>', b: 'u32' },

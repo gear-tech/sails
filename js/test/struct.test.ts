@@ -153,4 +153,58 @@ describe('struct', () => {
       b: 123,
     });
   });
+
+  test('struct with fixed size array', () => {
+    const text = `type StructWithArray = struct {
+      a: [u32, 3],
+      b: u32
+    };
+
+    service {}`;
+
+    const result = sails.parseIdl(text);
+
+    expect(result.scaleCodecTypes).toEqual({
+      StructWithArray: {
+        a: '[u32; 3]',
+        b: 'u32',
+      },
+    });
+
+    expect(result.functions).toEqual({});
+
+    let encoded = result.registry.createType('StructWithArray', { a: [1, 2, 3], b: 123 });
+
+    expect(encoded.toJSON()).toEqual({
+      a: [1, 2, 3],
+      b: 123,
+    });
+  });
+
+  test('struct with map', () => {
+    const text = `type StructWithMap = struct {
+      a: map (str, u32),
+      b: u32
+    };
+
+    service {}`;
+
+    const result = sails.parseIdl(text);
+
+    expect(result.scaleCodecTypes).toEqual({
+      StructWithMap: {
+        a: 'BTreeMap<String, u32>',
+        b: 'u32',
+      },
+    });
+
+    expect(result.functions).toEqual({});
+
+    let encoded = result.registry.createType('StructWithMap', { a: { foo: 123, bar: 456 }, b: 123 });
+
+    expect(encoded.toJSON()).toEqual({
+      a: { foo: 123, bar: 456 },
+      b: 123,
+    });
+  });
 });

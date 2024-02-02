@@ -13,6 +13,12 @@ export const getJsTypeDef = (type: TypeDef): string => {
   if (type.isVec) {
     return `Array<${getJsTypeDef(type.asVec.def)}>`;
   }
+  if (type.isFixedSizeArray) {
+    return `Array<${getJsTypeDef(type.asFixedSizeArray.def)}>`;
+  }
+  if (type.isMap) {
+    return `Record<${getJsTypeDef(type.asMap.key.def)}, ${getJsTypeDef(type.asMap.value.def)}>`;
+  }
   if (type.isUserDefined) {
     return type.asUserDefined.name;
   }
@@ -23,7 +29,8 @@ export const getJsTypeDef = (type: TypeDef): string => {
     const def = type.asStruct.fields.map((f) => `${f.name}: ${getJsTypeDef(f.def)}`).join('; ');
     return `{ ${def} }`;
   }
-  throw new Error('Unknown type');
+
+  throw new Error('Unknown type :: ' + JSON.stringify(type));
 };
 
 const TS_NUMBER = 'number | string | bigint';
@@ -60,6 +67,12 @@ export const getScaleCodecDef = (type: TypeDef, asString = false) => {
   if (type.isVec) {
     return `Vec<${getScaleCodecDef(type.asVec.def)}>`;
   }
+  if (type.isFixedSizeArray) {
+    return `[${getScaleCodecDef(type.asFixedSizeArray.def)}; ${type.asFixedSizeArray.len}]`;
+  }
+  if (type.isMap) {
+    return `BTreeMap<${getScaleCodecDef(type.asMap.key.def)}, ${getScaleCodecDef(type.asMap.value.def)}>`;
+  }
   if (type.isUserDefined) {
     return type.asUserDefined.name;
   }
@@ -84,5 +97,5 @@ export const getScaleCodecDef = (type: TypeDef, asString = false) => {
     return { _enum: result };
   }
 
-  throw new Error('Unknown type');
+  throw new Error('Unknown type :: ' + JSON.stringify(type));
 };

@@ -3,8 +3,10 @@ import {
   DefKind,
   EnumDef,
   EnumVariant,
+  FixedSizeArrayDef,
   Func,
   FuncParam,
+  MapDef,
   OptionalDef,
   PrimitiveDef,
   Program,
@@ -86,6 +88,23 @@ export class WasmParser {
           type.setDef(new TypeDef(def, DefKind.Vec));
           $._program.addContext(def.rawPtr, def);
           $._exports.accept_type_decl(vector_type_decl_ptr, def.rawPtr);
+        },
+        visit_array_type_decl: (ctx: number, array_type_decl_ptr: number, len: number) => {
+          const type = $._program.getContext(ctx);
+          const def = new FixedSizeArrayDef(array_type_decl_ptr, len, $._memory);
+          type.setDef(new TypeDef(def, DefKind.FixedSizeArray));
+          $._program.addContext(def.rawPtr, def);
+          $._exports.accept_type_decl(array_type_decl_ptr, def.rawPtr);
+        },
+        visit_map_type_decl: (ctx: number, key_type_decl_ptr: number, value_type_decl_ptr: number) => {
+          const type = $._program.getContext(ctx);
+          const def = new MapDef(key_type_decl_ptr, value_type_decl_ptr, $._memory);
+          type.setDef(new TypeDef(def, DefKind.Map));
+          $._program.addContext(def.key.rawPtr, def.key);
+          $._program.addContext(def.value.rawPtr, def.value);
+
+          $._exports.accept_type_decl(key_type_decl_ptr, def.key.rawPtr);
+          $._exports.accept_type_decl(value_type_decl_ptr, def.value.rawPtr);
         },
         visit_result_type_decl: (ctx: number, ok_type_decl_ptr: number, err_type_decl_ptr: number) => {
           const type = $._program.getContext(ctx);

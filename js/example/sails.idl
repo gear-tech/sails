@@ -14,7 +14,7 @@ type ThisThatSvcAppManyVariants = enum {
   Three: opt u32,
   Four: struct { a: u32, b: opt u16 },
   Five: struct { str, u32 },
-  Six: struct { u32 },
+  Six: [map (str, u32), 3],
 };
 
 type SimpleStruct = struct {

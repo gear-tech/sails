@@ -83,10 +83,14 @@ export class Program {
 }
 
 class WithDef extends Base {
-  def: TypeDef;
+  private _def: TypeDef;
 
   setDef(def: TypeDef): void {
-    this.def = def;
+    this._def = def;
+  }
+
+  get def(): TypeDef {
+    return this._def;
   }
 }
 
@@ -111,16 +115,26 @@ export enum DefKind {
   Result,
   Vec,
   UserDefined,
+  FixedSizeArray,
+  Map,
 }
 
+type DefVariants =
+  | StructDef
+  | EnumDef
+  | OptionalDef
+  | PrimitiveDef
+  | ResultDef
+  | VecDef
+  | UserDefinedDef
+  | MapDef
+  | FixedSizeArrayDef;
+
 export class TypeDef {
-  private _def: StructDef | EnumDef | OptionalDef | PrimitiveDef | ResultDef | VecDef | UserDefinedDef;
+  private _def: DefVariants;
   private _kind: DefKind;
 
-  constructor(
-    def: StructDef | EnumDef | OptionalDef | PrimitiveDef | ResultDef | VecDef | UserDefinedDef,
-    kind: DefKind,
-  ) {
+  constructor(def: DefVariants, kind: DefKind) {
     this._def = def;
     this._kind = kind;
   }
@@ -147,6 +161,14 @@ export class TypeDef {
 
   get isVec(): boolean {
     return this._kind === DefKind.Vec;
+  }
+
+  get isMap(): boolean {
+    return this._kind === DefKind.Map;
+  }
+
+  get isFixedSizeArray(): boolean {
+    return this._kind === DefKind.FixedSizeArray;
   }
 
   get isUserDefined(): boolean {
@@ -194,13 +216,17 @@ export class TypeDef {
 
     return this._def as UserDefinedDef;
   }
-}
 
-export class OptionalDef extends Base implements WithDef {
-  public def: TypeDef;
+  get asMap(): MapDef {
+    if (!this.isMap) throw new Error('not a map');
 
-  setDef(def: TypeDef): void {
-    this.def = def;
+    return this._def as MapDef;
+  }
+
+  get asFixedSizeArray(): FixedSizeArrayDef {
+    if (!this.isFixedSizeArray) throw new Error('not a fixed size array');
+
+    return this._def as FixedSizeArrayDef;
   }
 }
 
@@ -281,19 +307,27 @@ export class PrimitiveDef {
   }
 }
 
+export class OptionalDef extends WithDef {}
+
 export class VecDef extends WithDef {}
 
-export class OkDef extends WithDef {}
-
-export class ErrDef extends WithDef {}
-
 export class ResultDef {
-  public ok: OkDef;
-  public err: ErrDef;
+  public readonly ok: WithDef;
+  public readonly err: WithDef;
 
   constructor(ok_ptr: number, err_ptr: number, memory: WebAssembly.Memory) {
-    this.ok = new OkDef(ok_ptr, memory);
-    this.err = new ErrDef(err_ptr, memory);
+    this.ok = new WithDef(ok_ptr, memory);
+    this.err = new WithDef(err_ptr, memory);
+  }
+}
+
+export class MapDef {
+  public readonly key: WithDef;
+  public readonly value: WithDef;
+
+  constructor(keyPtr: number, valuePtr: number, memory: WebAssembly.Memory) {
+    this.key = new WithDef(keyPtr, memory);
+    this.value = new WithDef(valuePtr, memory);
   }
 }
 
@@ -368,6 +402,16 @@ export class EnumVariant extends WithDef {
 
     this.name = name;
     this.offset = offset;
+  }
+}
+
+export class FixedSizeArrayDef extends WithDef {
+  public readonly len: number;
+
+  constructor(ptr: number, len: number, memory: WebAssembly.Memory) {
+    super(ptr, memory);
+
+    this.len = len;
   }
 }
 
