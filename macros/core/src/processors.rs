@@ -23,8 +23,8 @@ use proc_macro2::TokenStream as TokenStream2;
 use proc_macro_error::abort;
 use quote::{quote, ToTokens};
 use syn::{
-    self, spanned::Spanned, FnArg, Ident, ImplItem, ItemImpl, Pat, Receiver, ReturnType, Signature,
-    Type, TypePath, Visibility,
+    self, spanned::Spanned, FnArg, Ident, ImplItem, ItemImpl, Pat, PathArguments, Receiver,
+    ReturnType, Signature, Type, TypePath, Visibility, WhereClause,
 };
 
 pub(super) fn gservice(service_impl_tokens: TokenStream2) -> TokenStream2 {
@@ -40,7 +40,10 @@ pub(super) fn gservice(service_impl_tokens: TokenStream2) -> TokenStream2 {
         );
     }
 
-    let service_type = service_type(&service_impl.self_ty);
+    let service_type = ServiceType::new(&service_impl);
+    let service_type_path = service_type.path;
+    let service_type_args = service_type.args;
+    let service_type_constraints = service_type.constraints;
 
     let mut params_structs = vec![];
     let mut invocation_funcs = vec![];
@@ -50,7 +53,7 @@ pub(super) fn gservice(service_impl_tokens: TokenStream2) -> TokenStream2 {
 
     for handler_func in &handler_funcs {
         let handler = Handler::from(handler_func);
-        let handler_generator = HandlerGenerator::from(service_type, handler);
+        let handler_generator = HandlerGenerator::from(&service_type, handler);
         let invocation_func_ident = handler_generator.invocation_func_ident();
         let invocation_path = invocation_func_ident.to_string().to_case(Case::Pascal);
 
@@ -106,7 +109,9 @@ pub(super) fn gservice(service_impl_tokens: TokenStream2) -> TokenStream2 {
         pub mod requests {
             use super::*;
 
-            pub async fn process(service: &mut #service_type, mut input: &[u8]) -> Vec<u8> {
+            pub async fn process #service_type_args (service: &mut #service_type_path, mut input: &[u8]) -> Vec<u8>
+                #service_type_constraints
+            {
                 #(#invocations)*
                 panic!("Unknown request");
             }
@@ -114,18 +119,6 @@ pub(super) fn gservice(service_impl_tokens: TokenStream2) -> TokenStream2 {
             #(#invocation_funcs)*
         }
     )
-}
-
-fn service_type(service_type: &Type) -> &TypePath {
-    if let Type::Path(type_path) = service_type {
-        type_path
-    } else {
-        abort!(
-            service_type.span(),
-            "Failed to parse service type: {}",
-            service_type.to_token_stream()
-        )
-    }
 }
 
 fn handler_funcs(service_impl: &ItemImpl) -> impl Iterator<Item = &Signature> {
@@ -198,12 +191,12 @@ impl<'a> Handler<'a> {
 }
 
 struct HandlerGenerator<'a> {
-    service_type: &'a TypePath,
+    service_type: &'a ServiceType<'a>,
     handler: Handler<'a>,
 }
 
 impl<'a> HandlerGenerator<'a> {
-    fn from(service_type: &'a TypePath, handler: Handler<'a>) -> Self {
+    fn from(service_type: &'a ServiceType, handler: Handler<'a>) -> Self {
         Self {
             service_type,
             handler,
@@ -253,10 +246,10 @@ impl<'a> HandlerGenerator<'a> {
 
     fn invocation_func(&self) -> TokenStream2 {
         let invocation_func_ident = self.invocation_func_ident();
-        let service_ref = self.handler.receiver.reference.as_ref().map(|r| r.0);
-        let service_lifetime = self.handler.receiver.reference.as_ref().map(|r| &r.1);
         let service_mut = self.handler.receiver.mutability;
-        let service_type = self.service_type;
+        let service_type_path = self.service_type.path;
+        let service_type_args = self.service_type.args;
+        let service_type_constraints = self.service_type.constraints;
         let params_struct_ident = self.params_struct_ident();
         let handler_func_ident = self.handler_func_ident();
         let handler_func_params = self.handler.params.iter().map(|item| {
@@ -271,11 +264,41 @@ impl<'a> HandlerGenerator<'a> {
         };
 
         quote!(
-            async fn #invocation_func_ident(service: #service_ref #service_lifetime #service_mut #service_type, mut input: &[u8]) -> Vec<u8> {
+            async fn #invocation_func_ident #service_type_args (service: & #service_mut #service_type_path, mut input: &[u8]) -> Vec<u8>
+                #service_type_constraints
+            {
                 let request = #params_struct_ident::decode(&mut input).expect("Failed to decode request");
                 let result = service.#handler_func_ident(#(#handler_func_params),*)#await_token;
                 return result.encode();
             }
         )
+    }
+}
+
+struct ServiceType<'a> {
+    path: &'a TypePath,
+    args: &'a PathArguments,
+    constraints: Option<&'a WhereClause>,
+}
+
+impl<'a> ServiceType<'a> {
+    fn new(r#impl: &'a ItemImpl) -> Self {
+        let service_type = r#impl.self_ty.as_ref();
+        let path = if let Type::Path(type_path) = service_type {
+            type_path
+        } else {
+            abort!(
+                service_type.span(),
+                "Failed to parse service type: {}",
+                service_type.to_token_stream()
+            )
+        };
+        let args = &path.path.segments.last().unwrap().arguments;
+        let constraints = r#impl.generics.where_clause.as_ref();
+        Self {
+            path,
+            args,
+            constraints,
+        }
     }
 }

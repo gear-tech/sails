@@ -115,8 +115,87 @@ mod tests {
                     return result.encode();
                 }
             }
-
         );
         assert_eq!(expected.to_string(), gservice_core(input).to_string());
+    }
+
+    #[test]
+    fn gservice_core_works_for_lifecycles_and_generics() {
+        let input = syn::parse_quote! {
+            impl<'a, 'b, T> SomeService<'a, 'b, T> where T : Clone {
+                pub fn do_this(&mut self) -> u32 {
+                    42
+                }
+            }
+        };
+        let expected = syn::parse_quote!(
+            impl<'a, 'b, T> SomeService<'a, 'b, T>
+            where
+                T: Clone,
+            {
+                pub fn do_this(&mut self) -> u32 {
+                    42
+                }
+            }
+
+            #[derive(Decode, TypeInfo)]
+            pub struct DoThisParams {}
+
+            pub mod meta {
+                use super::*;
+
+                #[derive(TypeInfo)]
+                pub enum CommandsMeta {
+                    DoThis(DoThisParams, u32),
+                }
+
+                #[derive(TypeInfo)]
+                pub enum QueriesMeta {}
+
+                pub struct ServiceMeta;
+
+                impl sails_service_meta::ServiceMeta for ServiceMeta {
+                    type Commands = CommandsMeta;
+                    type Queries = QueriesMeta;
+                }
+            }
+
+            pub mod requests {
+                use super::*;
+
+                pub async fn process<'a, 'b, T>(
+                    service: &mut SomeService<'a, 'b, T>,
+                    mut input: &[u8],
+                ) -> Vec<u8>
+                where
+                    T: Clone,
+                {
+                    let invocation_path = "DoThis".encode();
+                    if input.starts_with(&invocation_path) {
+                        let output = do_this(service, &input[invocation_path.len()..]).await;
+                        return [invocation_path, output].concat();
+                    }
+                    panic!("Unknown request");
+                }
+
+                async fn do_this<'a, 'b, T>(
+                    service: &mut SomeService<'a, 'b, T>,
+                    mut input: &[u8],
+                ) -> Vec<u8>
+                where
+                    T: Clone,
+                {
+                    let request =
+                        DoThisParams::decode(&mut input).expect("Failed to decode request");
+                    let result = service.do_this();
+                    return result.encode();
+                }
+            }
+        );
+
+        assert_eq!(
+            prettyplease::unparse(&expected),
+            prettyplease::unparse(&syn::parse_str(&gservice_core(input).to_string()).unwrap())
+        );
     }
 }
