@@ -6,7 +6,7 @@ fn main() {
     let idl_file_path = out_dir_path.join("rmrk-catalog.idl");
 
     git_download::repo("https://github.com/gear-tech/sails")
-        .branch_name("dd/rmrk-protocol")
+        .branch_name("master")
         .add_file("examples/rmrk/catalog/wasm/rmrk-catalog.idl", idl_file_path)
         .exec()
         .unwrap();
