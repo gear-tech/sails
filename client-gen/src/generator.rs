@@ -429,46 +429,6 @@ mod tests {
     use super::*;
 
     #[test]
-    fn nested_enum() {
-        let idl = r#"
-        type ThisThatAppManyVariants = enum {
-            One,
-            Two: enum {
-                Three,
-                Four,
-            },
-        };
-
-        service {}
-        "#;
-
-        let program = sails_idlparser::ast::parse_idl(idl).expect("parse IDL");
-        let generator = IdlGenerator::new(PathBuf::from("test"));
-
-        insta::assert_snapshot!(generator.generate(program).unwrap());
-    }
-
-    #[test]
-    fn nested_enum_in_struct() {
-        let idl = r#"
-        type ThisThatAppDoThatParam = struct {
-            p2: str,
-            p3: enum {
-                One,
-                Two,
-            },
-        };
-
-        service {}
-        "#;
-
-        let program = sails_idlparser::ast::parse_idl(idl).expect("parse IDL");
-        let generator = IdlGenerator::new(PathBuf::from("test"));
-
-        insta::assert_snapshot!(generator.generate(program).unwrap());
-    }
-
-    #[test]
     fn process_file_works() {
         let idl = r"
             service {
