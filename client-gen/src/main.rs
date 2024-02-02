@@ -1,8 +1,8 @@
 mod generator;
 
-use anyhow::{bail, Context, Result};
+use anyhow::{Context, Result};
 use generator::*;
-use std::{env, fs, path::PathBuf, process};
+use std::{fs, path::PathBuf};
 
 fn main() -> Result<()> {
     let idl_json_path = match std::env::args().nth(1) {
@@ -29,35 +29,9 @@ fn main() -> Result<()> {
         .generate(program)
         .context("failed to generate client")?;
 
-    let buf = prettify(buf)?;
-
     print!("{}", buf);
 
     Ok(())
-}
-
-fn prettify(buf: String) -> Result<String> {
-    let mut tmp_path = env::temp_dir();
-    tmp_path.push(format!("client.{}.rs", rand::random::<u16>()));
-
-    fs::write(&tmp_path, buf.as_bytes()).context("write temp file")?;
-
-    // run rustfmt against temp file
-    let status = process::Command::new("rustfmt")
-        .arg(format!("{}", tmp_path.display()))
-        .spawn()
-        .context("failed spawn rustfmt. Make sure it's in your PATH")?
-        .wait()
-        .context("wait for rustfmt to finish")?;
-
-    if !status.success() {
-        bail!("rustfmt returned non-zero exit code. exiting");
-    }
-
-    let result = fs::read_to_string(&tmp_path).context("read resulting file")?;
-    fs::remove_file(&tmp_path).context("remove temp file")?;
-
-    Ok(result)
 }
 
 #[cfg(test)]
@@ -100,7 +74,8 @@ mod tests {
         let generator = IdlGenerator::new(PathBuf::from("test"));
 
         let generated = generator.generate(program).unwrap();
-        let generated = prettify(generated).unwrap();
+
+        dbg!(&generated);
 
         insta::assert_snapshot!(generated);
     }

@@ -9,8 +9,10 @@ license.workspace = true
 anyhow.workspace = true
 convert-case.workspace = true
 handlebars.workspace = true
+prettyplease.workspace = true
 rand.workspace = true
 sails-idlparser.workspace = true
+syn = { workspace = true, features = ["full", "parsing"] }
 
 [dev-dependencies]
-insta.workspace = "1.34.0"
+insta = "1.34.0"

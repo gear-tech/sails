@@ -3830,8 +3830,10 @@ dependencies = [
  "convert_case 0.6.0",
  "handlebars",
  "insta",
+ "prettyplease",
  "rand 0.8.5",
  "sails-idlparser",
+ "syn 2.0.48",
 ]
 
 [[package]]

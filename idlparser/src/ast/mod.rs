@@ -16,7 +16,7 @@ pub struct Program {
 }
 
 impl Program {
-    pub fn new(service: Service, types: Vec<Type>) -> Self {
+    pub(crate) fn new(service: Service, types: Vec<Type>) -> Self {
         Self { service, types }
     }
 
@@ -35,7 +35,7 @@ pub struct Service {
 }
 
 impl Service {
-    pub fn new(funcs: Vec<Func>) -> Self {
+    pub(crate) fn new(funcs: Vec<Func>) -> Self {
         Self { funcs }
     }
 
@@ -53,7 +53,12 @@ pub struct Func {
 }
 
 impl Func {
-    pub fn new(name: String, params: Vec<FuncParam>, output: TypeDecl, is_query: bool) -> Self {
+    pub(crate) fn new(
+        name: String,
+        params: Vec<FuncParam>,
+        output: TypeDecl,
+        is_query: bool,
+    ) -> Self {
         Self {
             name,
             params,
@@ -86,7 +91,7 @@ pub struct FuncParam {
 }
 
 impl FuncParam {
-    pub fn new(name: String, type_decl: TypeDecl) -> Self {
+    pub(crate) fn new(name: String, type_decl: TypeDecl) -> Self {
         Self { name, type_decl }
     }
 
@@ -106,7 +111,7 @@ pub struct Type {
 }
 
 impl Type {
-    pub fn new(name: String, def: TypeDef) -> Self {
+    pub(crate) fn new(name: String, def: TypeDef) -> Self {
         Self { name, def }
     }
 
@@ -197,7 +202,7 @@ pub struct StructDef {
 }
 
 impl StructDef {
-    pub fn new(fields: Vec<StructField>) -> Self {
+    pub(crate) fn new(fields: Vec<StructField>) -> Self {
         Self { fields }
     }
 
@@ -213,7 +218,7 @@ pub struct StructField {
 }
 
 impl StructField {
-    pub fn new(name: Option<String>, type_decl: TypeDecl) -> Self {
+    pub(crate) fn new(name: Option<String>, type_decl: TypeDecl) -> Self {
         Self { name, type_decl }
     }
 
@@ -232,7 +237,7 @@ pub struct EnumDef {
 }
 
 impl EnumDef {
-    pub fn new(variants: Vec<EnumVariant>) -> Self {
+    pub(crate) fn new(variants: Vec<EnumVariant>) -> Self {
         Self { variants }
     }
 
@@ -248,7 +253,7 @@ pub struct EnumVariant {
 }
 
 impl EnumVariant {
-    pub fn new(name: String, type_decl: Option<TypeDecl>) -> Self {
+    pub(crate) fn new(name: String, type_decl: Option<TypeDecl>) -> Self {
         Self { name, type_decl }
     }
 
