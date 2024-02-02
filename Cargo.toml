@@ -8,25 +8,33 @@ license = "GPL-3.0"
 resolver = "2"
 members = [
     "client-gen",
-    "sender",
     "examples/puppeteer/app",
     "examples/puppeteer/wasm",
+    "examples/rmrk/catalog/app",
+    "examples/rmrk/catalog/wasm",
+    "examples/rmrk/resource/app",
+    "examples/rmrk/resource/wasm",
     "examples/this-that-svc/app",
     "examples/this-that-svc/wasm",
+    "exec-context/abstractions",
+    "exec-context/gstd",
     "idlgen",
     "idlparser",
     "macros",
     "macros/core",
+    "sender",
     "service-meta",
 ]
 
 [workspace.dependencies]
 anyhow = "1"
 convert-case = { package = "convert_case", version = "0.6" }
-gmeta = "1.1.0"
-gstd = "1.1.0"
-gsys = "1.1.0"
-gwasm-builder = { package = "gear-wasm-builder", version = "1.1.0" }
+git-download = "0.1"
+gmeta = "1.1.1-rc.0"
+gstd = "1.1.1-rc.0"
+gsys = "1.1.1-rc.0"
+gtest = "1.1.1-rc.0"
+gwasm-builder = { package = "gear-wasm-builder", version = "1.1.1-rc.0" }
 handlebars = "4.4"
 itertools = "0.12"
 lalrpop = { version = "0.20", default-features = false }
@@ -39,6 +47,8 @@ proc-macro2 = { version = "1", default-features = false }
 quote = "1.0"
 rand = "0.8"
 sails-clentgen = { path = "client-gen" }
+sails-exec-context-abstractions = { path = "exec-context/abstractions" }
+sails-exec-context-gstd = { path = "exec-context/gstd" }
 sails-idlgen = { path = "idlgen" }
 sails-idlparser = { path = "idlparser" }
 sails-macros = { path = "macros" }
