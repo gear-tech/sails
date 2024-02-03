@@ -1,0 +1,46 @@
+type RmrkResourceAppResourcesResource = enum {
+  Basic: RmrkResourceAppResourcesBasicResource,
+  Slot: RmrkResourceAppResourcesSlotResource,
+  Composed: RmrkResourceAppResourcesComposedResource,
+};
+
+type RmrkResourceAppResourcesBasicResource = struct {
+  src: str,
+  thumb: opt str,
+  metadata_uri: str,
+};
+
+type RmrkResourceAppResourcesSlotResource = struct {
+  src: str,
+  thumb: str,
+  metadata_uri: str,
+  base: GstdCommonPrimitivesActorId,
+  slot: u32,
+};
+
+type GstdCommonPrimitivesActorId = struct {
+  [u8, 32],
+};
+
+type RmrkResourceAppResourcesComposedResource = struct {
+  src: str,
+  thumb: str,
+  metadata_uri: str,
+  base: GstdCommonPrimitivesActorId,
+  parts: vec u32,
+};
+
+type RmrkResourceAppErrorsError = enum {
+  NotAuthorized,
+  ZeroResourceId,
+  ResourceAlreadyExists,
+  ResourceNotFound,
+  WrongResourceType,
+  PartNotFound,
+};
+
+service {
+  AddResourceEntry : (resource_id: u8, resource: RmrkResourceAppResourcesResource) -> result (struct { u8, RmrkResourceAppResourcesResource }, RmrkResourceAppErrorsError);
+  AddPartToResource : (resource_id: u8, part_id: u32) -> result (u32, RmrkResourceAppErrorsError);
+  query Resource : (resource_id: u8) -> result (RmrkResourceAppResourcesResource, RmrkResourceAppErrorsError);
+}

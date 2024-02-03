@@ -1,0 +1,40 @@
+type RmrkCatalogAppPartsPart = enum {
+  Fixed: RmrkCatalogAppPartsFixedPart,
+  Slot: RmrkCatalogAppPartsSlotPart,
+};
+
+type RmrkCatalogAppPartsFixedPart = struct {
+  z: opt u32,
+  metadata_uri: str,
+};
+
+type RmrkCatalogAppPartsSlotPart = struct {
+  equippable: vec GstdCommonPrimitivesActorId,
+  z: opt u32,
+  metadata_uri: str,
+};
+
+type GstdCommonPrimitivesActorId = struct {
+  [u8, 32],
+};
+
+type RmrkCatalogAppErrorsError = enum {
+  PartIdCantBeZero,
+  BadConfig,
+  PartAlreadyExists,
+  ZeroLengthPassed,
+  PartDoesNotExist,
+  WrongPartFormat,
+  NotAllowedToCall,
+};
+
+service {
+  AddParts : (parts: map (u32, RmrkCatalogAppPartsPart)) -> result (map (u32, RmrkCatalogAppPartsPart), RmrkCatalogAppErrorsError);
+  RemoveParts : (part_ids: vec u32) -> result (vec u32, RmrkCatalogAppErrorsError);
+  AddEquippables : (part_id: u32, collection_ids: vec GstdCommonPrimitivesActorId) -> result (struct { u32, vec GstdCommonPrimitivesActorId }, RmrkCatalogAppErrorsError);
+  RemoveEquippable : (part_id: u32, collection_id: GstdCommonPrimitivesActorId) -> result (struct { u32, GstdCommonPrimitivesActorId }, RmrkCatalogAppErrorsError);
+  ResetEquippables : (part_id: u32) -> result (null, RmrkCatalogAppErrorsError);
+  SetEquippablesToAll : (part_id: u32) -> result (null, RmrkCatalogAppErrorsError);
+  query Part : (part_id: u32) -> opt RmrkCatalogAppPartsPart;
+  query Equippable : (part_id: u32, collection_id: GstdCommonPrimitivesActorId) -> result (bool, RmrkCatalogAppErrorsError);
+}
