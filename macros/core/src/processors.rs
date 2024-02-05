@@ -113,7 +113,8 @@ pub(super) fn gservice(service_impl_tokens: TokenStream2) -> TokenStream2 {
                 #service_type_constraints
             {
                 #(#invocations)*
-                panic!("Unknown request");
+                let invocation_path = String::decode(&mut input).expect("Failed to decode invocation path");
+                panic!("Unknown request: {}", invocation_path);
             }
 
             #(#invocation_funcs)*
