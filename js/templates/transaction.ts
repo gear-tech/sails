@@ -27,11 +27,11 @@ export class Transaction {
 
             events.forEach(({ event }) => {
               const { method, section, data } = event;
-              if (method === 'MessageQueued' && section === 'Gear') {
+              if (method === 'MessageQueued' && section === 'gear') {
                 msgId = (data as MessageQueuedData).id.toHex();
-              } else if (section === 'System' && method === 'ExtrinsicSuccess') {
+              } else if (method === 'ExtrinsicSuccess') {
                 resolve(msgId);
-              } else if (section === 'System' && method === 'ExtrinsicFailed') {
+              } else if (method === 'ExtrinsicFailed') {
                 reject(this.api.getExtrinsicFailedError(event));
               }
             });
@@ -85,7 +85,7 @@ export class Transaction {
       gasLimit: gasLimit.min_limit,
     });
 
-    const { unsub, subject } = await this.listenToUserMessageSentEvents(addressHex, programId);
+    const { unsub, subject } = await this.listenToUserMessageSentEvents(programId, addressHex);
 
     const msgId = await this.sendTx(tx, account);
 

@@ -84,16 +84,21 @@ export class Sails {
         args: params,
         returnType,
         isQuery: func.isQuery,
-        encodePayload: (...args) => {
+        encodePayload: (...args): Uint8Array => {
           if (args.length !== args.length) {
             throw new Error(`Expected ${args.length} arguments, but got ${args.length}`);
           }
-          return this.registry
-            .createType(`(String, ${params.map((p) => p.type).join(', ')})`, [func.name + '/', ...args])
-            .toU8a();
+
+          const payload = this.registry.createType(`(String, ${params.map((p) => p.type).join(', ')})`, [
+            func.name,
+            ...args,
+          ]);
+
+          return payload.toU8a();
         },
         decodeResult: (result: Uint8Array | string) => {
-          return this.registry.createType(`(String, ${returnType})`, result)[1].toJSON();
+          const payload = this.registry.createType(`(String, ${returnType})`, result);
+          return payload[1].toJSON();
         },
       };
     }

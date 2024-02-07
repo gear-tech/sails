@@ -1,5 +1,5 @@
 import { EnumDef, EnumVariant, Program, TypeDef } from '../parser/index.js';
-import { getJsTypeDef } from '../utils/types.js';
+import { toLowerCaseFirst, getJsTypeDef } from '../utils/index.js';
 import { Output } from './output.js';
 
 export class TypesGenerator {
@@ -21,11 +21,13 @@ export class TypesGenerator {
 
   private generateStruct(name: string, def: TypeDef) {
     if (def.asStruct.isTuple) {
-      this._out.line(`export type ${name} = ${getJsTypeDef(def)}`).line();
-      return;
+      if (name === 'GstdCommonPrimitivesActorId') {
+        return this._out.line(`export type ${name} = ${'`0x${string}`'}`).line();
+      }
+      return this._out.line(`export type ${name} = ${getJsTypeDef(def)}`).line();
     }
 
-    this._out
+    return this._out
       .block(`export interface ${name}`, () => {
         for (const field of def.asStruct.fields) {
           this._out.line(`${field.name}: ${getJsTypeDef(field.def)}`);
@@ -42,15 +44,17 @@ export class TypesGenerator {
       }
       this._out.reduceIndent().line();
     } else {
-      this._out.line(`export type ${typeName} = ${def.variants.map((v) => `"${v.name}"`).join(' | ')}`).line();
+      this._out
+        .line(`export type ${typeName} = ${def.variants.map((v) => `"${toLowerCaseFirst(v.name)}"`).join(' | ')}`)
+        .line();
     }
   }
 
   private getEnumFieldString(f: EnumVariant) {
     if (!f.def) {
-      return `{ ${f.name}: null }`;
+      return `{ ${toLowerCaseFirst(f.name)}: null }`;
     } else {
-      return `{ ${f.name}: ${getJsTypeDef(f.def)} }`;
+      return `{ ${toLowerCaseFirst(f.name)}: ${getJsTypeDef(f.def)} }`;
     }
   }
 }

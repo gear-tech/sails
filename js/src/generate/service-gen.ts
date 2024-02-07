@@ -1,16 +1,15 @@
-import { getJsTypeDef, getScaleCodecDef } from '../utils/types.js';
+import { getPayloadMethod, getJsTypeDef, getScaleCodecDef } from '../utils/index.js';
 import { FuncParam, Program } from '../parser/visitor.js';
-import { getPayloadMethod } from '../utils/payload-method.js';
 import { Output } from './output.js';
 
 const HEX_STRING_TYPE = '`0x${string}`';
 
 const getArgs = (params: FuncParam[]) => {
-  return params.map(({ name, def }) => `${name}: ${getJsTypeDef(def)}`).join(', ') + (params.length > 0 ? ', ' : '');
+  return params.map(({ name, def }) => `${name}: ${getJsTypeDef(def)}`).join(', ');
 };
 
 const getAccount = (isQuery: boolean) => {
-  return isQuery ? '' : `account: ${HEX_STRING_TYPE} | IKeyringPair`;
+  return isQuery ? '' : `, account: ${HEX_STRING_TYPE} | IKeyringPair`;
 };
 
 export class ServiceGenerator {
@@ -49,16 +48,13 @@ export class ServiceGenerator {
           )}): Promise<${returnType}>`,
           () => {
             if (params.length === 0) {
-              this._out.line(`const payload = this.registry.createType('String', '${name}/').toU8a()`);
+              this._out.line(`const payload = this.registry.createType('String', '${name}').toU8a()`);
             } else {
-              this._out
-                .line(`const payload = [`, false)
-                .increaseIndent()
-                .line(`...this.registry.createType('String', '${name}/').toU8a(),`, false);
-              for (const { name, def } of params) {
-                this._out.line(`...this.registry.createType('${getScaleCodecDef(def)}', ${name}).toU8a(),`, false);
-              }
-              this._out.reduceIndent().line(']');
+              this._out.line(
+                `const payload = this.registry.createType('(String, ${params
+                  .map(({ def }) => getScaleCodecDef(def))
+                  .join(', ')})', ['${name}', ${params.map(({ name }) => name).join(', ')}]).toU8a()`,
+              );
             }
 
             if (!isQuery) {
@@ -70,13 +66,13 @@ export class ServiceGenerator {
                 .line('account,', false)
                 .reduceIndent()
                 .line(')')
-                .line(`const result = this.registry.createType('${returnScaleType}', replyPayloadBytes)`)
-                .line(`return result.${getPayloadMethod(returnScaleType)}() as ${returnType}`);
+                .line(`const result = this.registry.createType('(String, ${returnScaleType})', replyPayloadBytes)`)
+                .line(`return result[1].${getPayloadMethod(returnScaleType)}() as unknown as ${returnType}`);
             } else {
               this._out
-                .line(`const stateBytes = await this.api.programState.read({ programId: this.programId, payload})`)
-                .line(`const result = this.registry.createType('${returnScaleType}', stateBytes)`)
-                .line(`return result.${getPayloadMethod(returnScaleType)}() as ${returnType}`);
+                .line(`const stateBytes = await this.api.programState.read({ programId: this.programId, payload })`)
+                .line(`const result = this.registry.createType('(String, ${returnScaleType})', stateBytes)`)
+                .line(`return result[1].${getPayloadMethod(returnScaleType)}() as unknown as ${returnType}`);
             }
           },
         );

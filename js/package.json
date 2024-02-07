@@ -29,14 +29,16 @@
   },
   "scripts": {
     "prebuild": "rm -rf lib",
-    "build": "tsc -p tsconfig.build.json && node build-wasm.js",
+    "build": "tsc -p tsconfig.build.json && node convert-parser.js",
     "pretest": "yarn build",
-    "test": "yarn node --no-warnings --experimental-vm-modules $(yarn bin jest)"
+    "test": "yarn node --no-warnings --experimental-vm-modules $(yarn bin jest) --detectOpenHandles"
   },
   "peerDependencies": {
     "@polkadot/types": "^10.11.2"
   },
   "devDependencies": {
+    "@gear-js/api": "^0.36.3",
+    "@polkadot/api": "^10.11.2",
     "@polkadot/types": "^10.11.2",
     "@types/jest": "^29.5.11",
     "@types/node": "^20.10.3",

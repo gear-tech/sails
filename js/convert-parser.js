@@ -1,6 +1,6 @@
 import * as fs from 'fs';
 
-const file = fs.readFileSync('./src/parser/parser.wasm');
+const file = fs.readFileSync('./parser.wasm');
 
 const bytes = file.toString('base64');
 
