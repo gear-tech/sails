@@ -116,6 +116,7 @@ describe('RMRK generated', () => {
   });
 
   test('add parts', async () => {
+    expect(catalogId).toBeDefined();
     const result = await service.addParts(
       {
         2: { fixed: { z: 0, metadata_uri: 'bar' } },
@@ -144,6 +145,7 @@ describe('RMRK generated', () => {
   });
 
   test('remove parts', async () => {
+    expect(catalogId).toBeDefined();
     const result = await service.removeParts([1], alice);
     expect(result).toHaveProperty('ok');
     if ('ok' in result) {
@@ -153,6 +155,7 @@ describe('RMRK generated', () => {
   });
 
   test('add equippables', async () => {
+    expect(catalogId).toBeDefined();
     const result = await service.addEquippables(3, [aliceRaw], alice);
     expect(result).toHaveProperty('ok');
     if ('ok' in result) {
@@ -164,6 +167,7 @@ describe('RMRK generated', () => {
   });
 
   test('remove equippable', async () => {
+    expect(catalogId).toBeDefined();
     const result = await service.removeEquippable(3, aliceRaw, alice);
 
     expect(result).toHaveProperty('ok');
@@ -175,6 +179,7 @@ describe('RMRK generated', () => {
   });
 
   test('reset equippables', async () => {
+    expect(catalogId).toBeDefined();
     const result = await service.resetEquippables(3, alice);
     expect(result).toHaveProperty('ok');
     if ('ok' in result) {
@@ -183,6 +188,7 @@ describe('RMRK generated', () => {
   });
 
   test('set equippables to all', async () => {
+    expect(catalogId).toBeDefined();
     const result = await service.setEquippablesToAll(3, alice);
     expect(result).toHaveProperty('ok');
     if ('ok' in result) {

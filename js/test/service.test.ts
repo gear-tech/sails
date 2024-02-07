@@ -26,7 +26,7 @@ describe('service', () => {
 
     const payload = result.functions.DoThis.encodePayload('hello');
 
-    expect(result.registry.createType('(String, String)', payload).toJSON()).toEqual(['DoThis/', 'hello']);
+    expect(result.registry.createType('(String, String)', payload).toJSON()).toEqual(['DoThis', 'hello']);
   });
 
   test('service with multiple methods', () => {
@@ -67,7 +67,7 @@ describe('service', () => {
     expect(result.functions.DoThis.isQuery).toBeFalsy();
     let payload = result.functions.DoThis.encodePayload(1, ['hello', 2]);
     expect(result.registry.createType('(String, u32, (String, Option<u8>))', payload).toJSON()).toEqual([
-      'DoThis/',
+      'DoThis',
       1,
       ['hello', 2],
     ]);
@@ -78,7 +78,7 @@ describe('service', () => {
     expect(result.functions.DoThat.returnType).toEqual('String');
     expect(result.functions.DoThat.isQuery).toBeFalsy();
     payload = result.functions.DoThat.encodePayload({ Two: 2 });
-    expect(result.registry.createType('(String, ComplexEnum)', payload).toJSON()).toEqual(['DoThat/', { two: 2 }]);
+    expect(result.registry.createType('(String, ComplexEnum)', payload).toJSON()).toEqual(['DoThat', { two: 2 }]);
 
     expect(result.functions.GetThis.args).toHaveLength(1);
     expect(result.functions.GetThis.args[0].name).toEqual('a1');
@@ -86,7 +86,7 @@ describe('service', () => {
     expect(result.functions.GetThis.returnType).toEqual('u8');
     expect(result.functions.GetThis.isQuery).toBeTruthy();
     payload = result.functions.GetThis.encodePayload('hello');
-    expect(result.registry.createType('(String, String)', payload).toJSON()).toEqual(['GetThis/', 'hello']);
+    expect(result.registry.createType('(String, String)', payload).toJSON()).toEqual(['GetThis', 'hello']);
 
     expect(result.functions.GetThat.args).toHaveLength(1);
     expect(result.functions.GetThat.args[0].name).toEqual('a1');
@@ -95,7 +95,7 @@ describe('service', () => {
     expect(result.functions.GetThat.isQuery).toBeTruthy();
     payload = result.functions.GetThat.encodePayload({ a: 'hello', b: 1234 });
     expect(result.registry.createType('(String, SimpleStruct)', payload).toJSON()).toEqual([
-      'GetThat/',
+      'GetThat',
       { a: 'hello', b: 1234 },
     ]);
   });
