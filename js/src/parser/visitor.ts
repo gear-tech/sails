@@ -1,238 +1,482 @@
-import { CstNode } from 'chevrotain';
+const getText = (ptr: number, len: number, memory: WebAssembly.Memory): string => {
+  const buf = new Uint8Array(memory.buffer.slice(ptr, ptr + len));
+  return new TextDecoder().decode(buf);
+};
 
-import { SailsParser } from './parser.js';
-import {
-  IArgument,
-  IEnumField,
-  IEnumType,
-  IInnerType,
-  IOptionType,
-  IResultType,
-  IService,
-  IServiceMethod,
-  IServiceMethodDef,
-  IStructFieldDef,
-  IStructType,
-  ITupleType,
-  IType,
-  ITypeDecl,
-  ITypeNameType,
-  IVecType,
-} from '../types/index.js';
+const getName = (ptr: number, offset: number, memory: WebAssembly.Memory): { name: string; offset: number } => {
+  const name_ptr_buf = new Uint8Array(memory.buffer.slice(ptr + offset, ptr + offset + 4));
+  offset += 4;
+  const name_ptr_dv = new DataView(name_ptr_buf.buffer, 0);
+  const name_ptr = name_ptr_dv.getUint32(0, true);
 
-export function getSailsVisitorClass(parser: SailsParser) {
-  const BaseCstVisitor = parser.getBaseCstVisitorConstructor<any, any>();
+  const name_len_buf = new Uint8Array(memory.buffer.slice(ptr + offset, ptr + offset + 4));
+  offset += 4;
+  const name_len_dv = new DataView(name_len_buf.buffer, 0);
+  const name_len = name_len_dv.getUint32(0, true);
 
-  return class SailsVisitor extends BaseCstVisitor {
-    constructor() {
-      super();
-      this.validateVisitor();
-    }
+  const name = getText(name_ptr, name_len, memory);
 
-    sails(ctx: CstNode & Record<string, any>) {
-      const types: IType[] = [];
+  return { name, offset };
+};
 
-      if (ctx.type) {
-        for (const type of ctx.type) {
-          types.push(this.visit(type));
-        }
-      }
+class Base {
+  protected offset: number;
+  public readonly rawPtr: number;
 
-      const services = [];
+  constructor(public ptr: number, memory: WebAssembly.Memory) {
+    const rawPtrBuf = new Uint8Array(memory.buffer.slice(ptr, ptr + 4));
+    const rawPtrDv = new DataView(rawPtrBuf.buffer, 0);
+    this.rawPtr = rawPtrDv.getUint32(0, true);
+    this.offset = 4;
+  }
+}
 
-      if (ctx.service) {
-        for (const service of ctx.service) {
-          services.push(this.visit(service));
-        }
-      }
+export class Program {
+  private _service: Service;
+  private _types: Map<number, Type>;
+  private _context: Map<number, WithDef>;
 
-      return {
-        types,
-        services,
-      };
-    }
+  constructor() {
+    this._service = null;
+    this._types = new Map();
+    this._context = new Map();
+  }
 
-    type(ctx: CstNode & Record<string, any>): IType {
-      const type = this.visit(ctx.declaration);
+  addService(service: Service) {
+    this._service = service;
+  }
 
-      return { ...this.visit(ctx.def), type };
-    }
+  addType(type: Type) {
+    const id = type.rawPtr;
+    this._types.set(id, type);
+    this._context.set(id, type);
+    return id;
+  }
 
-    declaration(ctx: CstNode & Record<string, any>): ITypeDecl {
-      const name = ctx.Identifier[0].image;
-      if (ctx.generic) {
-        return { name, kind: 'generic', generic: this.visit(ctx.generic) };
-      }
-      return { name, kind: 'simple' };
-    }
+  get service(): Service {
+    return this._service;
+  }
 
-    generic(ctx: CstNode & Record<string, any>): IInnerType[] {
-      const genericInner = [];
+  getType(id: number): Type {
+    return this._types.get(id);
+  }
 
-      for (const type of ctx.def) {
-        genericInner.push(this.visit(type));
-      }
+  getContext(id: number): any {
+    return this._context.get(id);
+  }
 
-      return genericInner;
-    }
+  addContext(id: number, ctx: any) {
+    this._context.set(id, ctx);
+  }
 
-    struct(ctx: CstNode & Record<string, any>): Omit<IStructType | ITupleType, 'type'> {
-      if (ctx.structField) {
-        const fields = ctx.structField.map((field) => this.visit(field));
-        return { def: { fields }, kind: 'struct' };
-      } else if (ctx.tupleField) {
-        const fields = ctx.tupleField.map((field) => this.visit(field));
-        return { def: { fields }, kind: 'tuple' };
-      } else {
-        throw new Error('Invalid struct definition');
-      }
-    }
+  get types(): Type[] {
+    return Array.from(this._types.values());
+  }
 
-    opt(ctx: CstNode & Record<string, any>): Omit<IOptionType, 'type'> {
-      const type = this.visit(ctx.fieldType);
-      return { def: type, kind: 'option' };
-    }
+  getTypeByName(name: string): Type {
+    const types = this.types.filter((type) => type.name === name);
+    if (types.length > 1) throw new Error(`multiple types found with name ${name}`);
+    if (types.length === 0) throw new Error(`no type found with name ${name}`);
 
-    vec(ctx: CstNode & Record<string, any>): Omit<IVecType, 'type'> {
-      const type = this.visit(ctx.fieldType);
-      return { def: type, kind: 'vec' };
-    }
+    return types[0];
+  }
+}
 
-    result(ctx: CstNode & Record<string, any>): Omit<IResultType, 'type'> {
-      const ok = this.visit(ctx.fieldType[0]);
-      const err = this.visit(ctx.fieldType[1]);
-      return { def: { ok, err }, kind: 'result' };
-    }
+class WithDef extends Base {
+  private _def: TypeDef;
 
-    structField(ctx: CstNode & Record<string, any>): IStructFieldDef {
-      const name = this.visit(ctx.fieldName);
-      const type = this.visit(ctx.fieldType);
-      return { name, type };
-    }
+  setDef(def: TypeDef): void {
+    this._def = def;
+  }
 
-    tupleField(ctx: CstNode & Record<string, any>): Omit<ITupleType, 'type'> {
-      return this.visit(ctx.fieldType);
-    }
+  get def(): TypeDef {
+    return this._def;
+  }
+}
 
-    fieldName(ctx: CstNode & Record<string, any>): string {
-      return ctx.Identifier[0].image;
-    }
+export class Type extends WithDef {
+  public readonly name: string;
 
-    fieldType(ctx: CstNode & Record<string, any>): IInnerType {
-      return this.visit(ctx.def);
-    }
+  constructor(ptr: number, memory: WebAssembly.Memory) {
+    super(ptr, memory);
 
-    def(ctx: CstNode & Record<string, any>): IInnerType {
-      if (ctx.typeName) {
-        return this.visit(ctx.typeName);
-      }
-      if (ctx.struct) {
-        return this.visit(ctx.struct);
-      }
-      if (ctx.enum) {
-        return this.visit(ctx.enum);
-      }
-      if (ctx.opt) {
-        return this.visit(ctx.opt);
-      }
-      if (ctx.result) {
-        return this.visit(ctx.result);
-      }
-      if (ctx.vec) {
-        return this.visit(ctx.vec);
-      }
-    }
+    const { name, offset } = getName(ptr, this.offset, memory);
 
-    typeName(ctx: CstNode & Record<string, any>): Omit<ITypeNameType, 'type'> {
-      let def: ITypeDecl;
+    this.name = name;
+    this.offset = offset;
+  }
+}
 
-      const identifier = { name: ctx.Identifier[0].image };
+export enum DefKind {
+  Struct,
+  Enum,
+  Optional,
+  Primitive,
+  Result,
+  Vec,
+  UserDefined,
+  FixedSizeArray,
+  Map,
+}
 
-      if (ctx.generic) {
-        def = { ...identifier, kind: 'generic', generic: this.visit(ctx.generic) };
-      } else {
-        def = { ...identifier, kind: 'simple' };
-      }
-      return { def, kind: 'typeName' };
-    }
+type DefVariants =
+  | StructDef
+  | EnumDef
+  | OptionalDef
+  | PrimitiveDef
+  | ResultDef
+  | VecDef
+  | UserDefinedDef
+  | MapDef
+  | FixedSizeArrayDef;
 
-    enum(ctx: CstNode & Record<string, any>): Omit<IEnumType, 'type'> {
-      return { def: { variants: ctx.enumField.map((field) => this.visit(field)) }, kind: 'enum' };
-    }
+export class TypeDef {
+  private _def: DefVariants;
+  private _kind: DefKind;
 
-    enumField(ctx: CstNode & Record<string, any>): IEnumField {
-      const name = this.visit(ctx.fieldName);
-      if (ctx.fieldType) {
-        const type = this.visit(ctx.fieldType);
-        return { name, type };
-      }
-      return { name };
-    }
+  constructor(def: DefVariants, kind: DefKind) {
+    this._def = def;
+    this._kind = kind;
+  }
 
-    service(ctx: CstNode & Record<string, any>): IService {
-      const methods: IServiceMethod[] = [];
+  get isStruct(): boolean {
+    return this._kind === DefKind.Struct;
+  }
 
-      if (ctx.message) {
-        for (const message of ctx.message) {
-          methods.push({ def: this.visit(message), kind: 'message' });
-        }
-      }
+  get isEnum(): boolean {
+    return this._kind === DefKind.Enum;
+  }
 
-      if (ctx.query) {
-        for (const query of ctx.query) {
-          methods.push({ def: this.visit(query), kind: 'query' });
-        }
-      }
-      return { methods };
-    }
+  get isOptional(): boolean {
+    return this._kind === DefKind.Optional;
+  }
 
-    message(ctx: CstNode & Record<string, any>): IServiceMethodDef {
-      return {
-        name: this.visit(ctx.methodName),
-        args: this.visit(ctx.methodArguments),
-        output: this.visit(ctx.methodOutput),
-      };
-    }
+  get isPrimitive(): boolean {
+    return this._kind === DefKind.Primitive;
+  }
 
-    query(ctx: CstNode & Record<string, any>): IServiceMethodDef {
-      return {
-        name: this.visit(ctx.methodName),
-        args: this.visit(ctx.methodArguments),
-        output: this.visit(ctx.methodOutput),
-      };
-    }
+  get isResult(): boolean {
+    return this._kind === DefKind.Result;
+  }
 
-    methodName(ctx: CstNode & Record<string, any>): string {
-      return ctx.Identifier[0].image;
-    }
+  get isVec(): boolean {
+    return this._kind === DefKind.Vec;
+  }
 
-    methodArguments(ctx: CstNode & Record<string, any>): IArgument[] {
-      const args = [];
-      if (!ctx.argument) {
-        return args;
-      }
-      for (const arg of ctx.argument) {
-        args.push(this.visit(arg));
-      }
-      return args;
-    }
+  get isMap(): boolean {
+    return this._kind === DefKind.Map;
+  }
 
-    argument(ctx: CstNode & Record<string, any>): IArgument {
-      const name = this.visit(ctx.argumentName);
-      const type = this.visit(ctx.argumentType);
-      return { name, type };
-    }
+  get isFixedSizeArray(): boolean {
+    return this._kind === DefKind.FixedSizeArray;
+  }
 
-    argumentName(ctx: CstNode & Record<string, any>): string {
-      return ctx.Identifier[0].image;
-    }
+  get isUserDefined(): boolean {
+    return this._kind === DefKind.UserDefined;
+  }
 
-    argumentType(ctx: CstNode & Record<string, any>): IInnerType {
-      return this.visit(ctx.def);
-    }
+  get asStruct(): StructDef {
+    if (!this.isStruct) throw new Error('not a struct');
 
-    methodOutput(ctx: CstNode & Record<string, any>): IInnerType {
-      return this.visit(ctx.def);
-    }
-  };
+    return this._def as StructDef;
+  }
+
+  get asEnum(): EnumDef {
+    if (!this.isEnum) throw new Error('not a enum');
+
+    return this._def as EnumDef;
+  }
+
+  get asOptional(): OptionalDef {
+    if (!this.isOptional) throw new Error('not a optional');
+
+    return this._def as OptionalDef;
+  }
+
+  get asPrimitive(): PrimitiveDef {
+    if (!this.isPrimitive) throw new Error('not a primitive');
+
+    return this._def as PrimitiveDef;
+  }
+
+  get asResult(): ResultDef {
+    if (!this.isResult) throw new Error('not a result');
+
+    return this._def as ResultDef;
+  }
+
+  get asVec(): VecDef {
+    if (!this.isVec) throw new Error('not a vec');
+
+    return this._def as VecDef;
+  }
+
+  get asUserDefined(): UserDefinedDef {
+    if (!this.isUserDefined) throw new Error('not a user defined');
+
+    return this._def as UserDefinedDef;
+  }
+
+  get asMap(): MapDef {
+    if (!this.isMap) throw new Error('not a map');
+
+    return this._def as MapDef;
+  }
+
+  get asFixedSizeArray(): FixedSizeArrayDef {
+    if (!this.isFixedSizeArray) throw new Error('not a fixed size array');
+
+    return this._def as FixedSizeArrayDef;
+  }
+}
+
+export enum EPrimitiveType {
+  Null,
+  Bool,
+  Char,
+  Str,
+  U8,
+  U16,
+  U32,
+  U64,
+  U128,
+  I8,
+  I16,
+  I32,
+  I64,
+  I128,
+}
+
+export class PrimitiveDef {
+  constructor(private value: number) {}
+
+  get isNull(): boolean {
+    return this.value === EPrimitiveType.Null;
+  }
+
+  get isBool(): boolean {
+    return this.value === EPrimitiveType.Bool;
+  }
+
+  get isChar(): boolean {
+    return this.value === EPrimitiveType.Char;
+  }
+
+  get isStr(): boolean {
+    return this.value === EPrimitiveType.Str;
+  }
+
+  get isU8(): boolean {
+    return this.value === EPrimitiveType.U8;
+  }
+
+  get isU16(): boolean {
+    return this.value === EPrimitiveType.U16;
+  }
+
+  get isU32(): boolean {
+    return this.value === EPrimitiveType.U32;
+  }
+
+  get isU64(): boolean {
+    return this.value === EPrimitiveType.U64;
+  }
+
+  get isU128(): boolean {
+    return this.value === EPrimitiveType.U128;
+  }
+
+  get isI8(): boolean {
+    return this.value === EPrimitiveType.I8;
+  }
+
+  get isI16(): boolean {
+    return this.value === EPrimitiveType.I16;
+  }
+
+  get isI32(): boolean {
+    return this.value === EPrimitiveType.I32;
+  }
+
+  get isI64(): boolean {
+    return this.value === EPrimitiveType.I64;
+  }
+
+  get isI128(): boolean {
+    return this.value === EPrimitiveType.I128;
+  }
+}
+
+export class OptionalDef extends WithDef {}
+
+export class VecDef extends WithDef {}
+
+export class ResultDef {
+  public readonly ok: WithDef;
+  public readonly err: WithDef;
+
+  constructor(ok_ptr: number, err_ptr: number, memory: WebAssembly.Memory) {
+    this.ok = new WithDef(ok_ptr, memory);
+    this.err = new WithDef(err_ptr, memory);
+  }
+}
+
+export class MapDef {
+  public readonly key: WithDef;
+  public readonly value: WithDef;
+
+  constructor(keyPtr: number, valuePtr: number, memory: WebAssembly.Memory) {
+    this.key = new WithDef(keyPtr, memory);
+    this.value = new WithDef(valuePtr, memory);
+  }
+}
+
+export class StructDef extends Base {
+  private _fields: Map<number, StructField>;
+
+  constructor(ptr: number, memory: WebAssembly.Memory) {
+    super(ptr, memory);
+
+    this._fields = new Map();
+  }
+
+  addField(field: StructField) {
+    const id = field.rawPtr;
+    this._fields.set(id, field);
+    return id;
+  }
+
+  get fields(): StructField[] {
+    return Array.from(this._fields.values());
+  }
+
+  get isTuple(): boolean {
+    return this.fields.every((f) => f.name === '');
+  }
+}
+
+export class EnumDef extends Base {
+  private _variants: Map<number, EnumVariant>;
+
+  constructor(ptr: number, memory: WebAssembly.Memory) {
+    super(ptr, memory);
+
+    this._variants = new Map();
+  }
+
+  addVariant(variant: EnumVariant) {
+    const id = variant.rawPtr;
+    this._variants.set(id, variant);
+    return id;
+  }
+
+  get variants(): EnumVariant[] {
+    return Array.from(this._variants.values());
+  }
+
+  get isNesting(): boolean {
+    return this.variants.some((v) => !!v.def);
+  }
+}
+
+export class StructField extends WithDef {
+  public readonly name: string;
+
+  constructor(ptr: number, memory: WebAssembly.Memory) {
+    super(ptr, memory);
+
+    const { name, offset } = getName(ptr, this.offset, memory);
+
+    this.name = name;
+    this.offset = offset;
+  }
+}
+
+export class EnumVariant extends WithDef {
+  public readonly name: string;
+
+  constructor(ptr: number, memory: WebAssembly.Memory) {
+    super(ptr, memory);
+
+    const { name, offset } = getName(ptr, this.offset, memory);
+
+    this.name = name;
+    this.offset = offset;
+  }
+}
+
+export class FixedSizeArrayDef extends WithDef {
+  public readonly len: number;
+
+  constructor(ptr: number, len: number, memory: WebAssembly.Memory) {
+    super(ptr, memory);
+
+    this.len = len;
+  }
+}
+
+export class UserDefinedDef {
+  public readonly name: string;
+
+  constructor(ptr: number, len: number, memory: WebAssembly.Memory) {
+    this.name = getText(ptr, len, memory);
+  }
+}
+
+export class Service extends Base {
+  public readonly funcs: Func[];
+
+  constructor(ptr: number, memory: WebAssembly.Memory) {
+    super(ptr, memory);
+
+    this.funcs = [];
+  }
+
+  addFunc(func: Func) {
+    this.funcs.push(func);
+  }
+}
+
+export class Func extends WithDef {
+  public readonly name: string;
+  public readonly isQuery: boolean;
+  private _params: Map<number, FuncParam>;
+
+  constructor(ptr: number, memory: WebAssembly.Memory) {
+    super(ptr, memory);
+
+    const { name, offset } = getName(ptr, this.offset, memory);
+
+    this.name = name;
+    this.offset = offset;
+
+    const is_query_buf = new Uint8Array(memory.buffer.slice(ptr + this.offset, ptr + this.offset + 1));
+    const is_query_dv = new DataView(is_query_buf.buffer, 0);
+    this.isQuery = is_query_dv.getUint8(0) === 1;
+
+    this._params = new Map();
+  }
+
+  addFuncParam(ptr: number, param: FuncParam) {
+    this._params.set(ptr, param);
+  }
+
+  get params(): FuncParam[] {
+    if (this._params.size === 0) return [];
+
+    return Array.from(this._params.values());
+  }
+}
+
+export class FuncParam extends WithDef {
+  public readonly name: string;
+
+  constructor(ptr: number, memory: WebAssembly.Memory) {
+    super(ptr, memory);
+
+    const { name, offset } = getName(ptr, this.offset, memory);
+
+    this.name = name;
+    this.offset = offset;
+  }
 }

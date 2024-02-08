@@ -1,257 +1,230 @@
-import { CstNode, CstParser } from 'chevrotain';
-
+import wasmParserBytes from './wasm-bytes.js';
 import {
-  ALL_TOKENS,
-  Arrow,
-  Colon,
-  Comma,
-  Equals,
-  Identifier,
-  LAngle,
-  LCurly,
-  LParen,
-  Query,
-  RAngle,
-  RCurly,
-  RParen,
-  Semicolon,
+  DefKind,
+  EnumDef,
+  EnumVariant,
+  FixedSizeArrayDef,
+  Func,
+  FuncParam,
+  MapDef,
+  OptionalDef,
+  PrimitiveDef,
+  Program,
+  ResultDef,
   Service,
-  Struct,
-  Option,
-  Vec,
-  Result,
+  StructDef,
+  StructField,
   Type,
-  Enum,
-} from './tokens.js';
+  TypeDef,
+  UserDefinedDef,
+  VecDef,
+} from './visitor.js';
 
-export class SailsParser extends CstParser {
+const WASM_PAGE_SIZE = 0x10000;
+
+interface ParserInstance extends WebAssembly.Instance {
+  exports: {
+    parse_idl: (idl_ptr: number, idl_len: number) => number;
+    free_program: (program_ptr: number) => void;
+    accept_program: (program_ptr: number, ctx: number) => void;
+    accept_service: (service_ptr: number, ctx: number) => void;
+    accept_func: (func_ptr: number, ctx: number) => void;
+    accept_func_param: (func_param_ptr: number, ctx: number) => void;
+    accept_type: (type_ptr: number, ctx: number) => void;
+    accept_type_decl: (type_decl_ptr: number, ctx: number) => void;
+    accept_struct_def: (struct_def_ptr: number, ctx: number) => void;
+    accept_struct_field: (struct_field_ptr: number, ctx: number) => void;
+    accept_enum_def: (enum_def_ptr: number, ctx: number) => void;
+    accept_enum_variant: (enum_variant_ptr: number, ctx: number) => void;
+  };
+}
+
+export class WasmParser {
+  private _memory: WebAssembly.Memory;
+  private _instance: ParserInstance;
+  private _exports: ParserInstance['exports'];
+  private _encoder: TextEncoder;
+  private _program: Program;
+  private _memPtr: number;
+  private _idlLen: number;
+  private _numberOfGrownPages = 0;
+
   constructor() {
-    super(ALL_TOKENS, { recoveryEnabled: true });
+    this._encoder = new TextEncoder();
+  }
 
-    const $ = this as SailsParser & Record<string, any>;
+  async init() {
+    const binaryStr = atob(wasmParserBytes);
+    const u8a = new Uint8Array(binaryStr.length);
 
-    this.commonParser();
-    this.structParser();
-    this.tupleParser();
-    this.enumParser();
-    this.optionParser();
-    this.resultParser();
-    this.vecParser();
-    this.typesParser();
-    this.servicesParser();
-    this.methodParser();
+    for (let i = 0; i < binaryStr.length; i++) {
+      u8a[i] = binaryStr.charCodeAt(i);
+    }
 
-    $.RULE('sails', () => {
-      $.MANY({
-        DEF: () => {
-          $.OR([{ ALT: () => $.SUBRULE($.type) }, { ALT: () => $.SUBRULE($.service) }]);
+    const wasmBuf = u8a.buffer;
+
+    const $ = this;
+
+    $._memory = new WebAssembly.Memory({ initial: 17 });
+
+    const source = await WebAssembly.instantiate(wasmBuf, {
+      env: {
+        memory: $._memory,
+        visit_type: (_, type_ptr: number) => {
+          const type = new Type(type_ptr, $._memory);
+          const id = $._program.addType(type);
+          $._instance.exports.accept_type(type_ptr, id);
         },
-      });
+        visit_optional_type_decl: (ctx: number, optional_type_decl_ptr: number) => {
+          const type = $._program.getContext(ctx);
+          const def = new OptionalDef(optional_type_decl_ptr, $._memory);
+          type.setDef(new TypeDef(def, DefKind.Optional));
+          $._program.addContext(def.rawPtr, def);
+          $._exports.accept_type_decl(optional_type_decl_ptr, def.rawPtr);
+        },
+        visit_vector_type_decl: (ctx: number, vector_type_decl_ptr: number) => {
+          const type = $._program.getContext(ctx);
+          const def = new VecDef(vector_type_decl_ptr, $._memory);
+          type.setDef(new TypeDef(def, DefKind.Vec));
+          $._program.addContext(def.rawPtr, def);
+          $._exports.accept_type_decl(vector_type_decl_ptr, def.rawPtr);
+        },
+        visit_array_type_decl: (ctx: number, array_type_decl_ptr: number, len: number) => {
+          const type = $._program.getContext(ctx);
+          const def = new FixedSizeArrayDef(array_type_decl_ptr, len, $._memory);
+          type.setDef(new TypeDef(def, DefKind.FixedSizeArray));
+          $._program.addContext(def.rawPtr, def);
+          $._exports.accept_type_decl(array_type_decl_ptr, def.rawPtr);
+        },
+        visit_map_type_decl: (ctx: number, key_type_decl_ptr: number, value_type_decl_ptr: number) => {
+          const type = $._program.getContext(ctx);
+          const def = new MapDef(key_type_decl_ptr, value_type_decl_ptr, $._memory);
+          type.setDef(new TypeDef(def, DefKind.Map));
+          $._program.addContext(def.key.rawPtr, def.key);
+          $._program.addContext(def.value.rawPtr, def.value);
+
+          $._exports.accept_type_decl(key_type_decl_ptr, def.key.rawPtr);
+          $._exports.accept_type_decl(value_type_decl_ptr, def.value.rawPtr);
+        },
+        visit_result_type_decl: (ctx: number, ok_type_decl_ptr: number, err_type_decl_ptr: number) => {
+          const type = $._program.getContext(ctx);
+          const def = new ResultDef(ok_type_decl_ptr, err_type_decl_ptr, $._memory);
+          type.setDef(new TypeDef(def, DefKind.Result));
+          $._program.addContext(def.ok.rawPtr, def.ok);
+          $._program.addContext(def.err.rawPtr, def.err);
+
+          $._exports.accept_type_decl(ok_type_decl_ptr, def.ok.rawPtr);
+          $._exports.accept_type_decl(err_type_decl_ptr, def.err.rawPtr);
+        },
+        visit_primitive_type_id: (ctx: number, primitive_type_id: number) => {
+          const type = $._program.getContext(ctx);
+          const def = new PrimitiveDef(primitive_type_id);
+          type.setDef(new TypeDef(def, DefKind.Primitive));
+        },
+        visit_user_defined_type_id: (
+          ctx: number,
+          user_defined_type_id_ptr: number,
+          user_defined_type_id_len: number,
+        ) => {
+          const type = $._program.getContext(ctx);
+          const def = new UserDefinedDef(user_defined_type_id_ptr, user_defined_type_id_len, $._memory);
+          type.setDef(new TypeDef(def, DefKind.UserDefined));
+        },
+        visit_struct_def: (ctx: number, struct_def_ptr: number) => {
+          const type = $._program.getContext(ctx);
+          const def = new StructDef(struct_def_ptr, $._memory);
+          $._program.addContext(def.rawPtr, def);
+          type.setDef(new TypeDef(def, DefKind.Struct));
+          $._exports.accept_struct_def(struct_def_ptr, def.rawPtr);
+        },
+        visit_struct_field: (ctx: number, struct_field_ptr: number) => {
+          const def = $._program.getContext(ctx);
+          const field = new StructField(struct_field_ptr, $._memory);
+          const id = def.addField(field);
+          $._program.addContext(id, field);
+          $._exports.accept_struct_field(struct_field_ptr, id);
+        },
+        visit_enum_def: (ctx: number, enum_def_ptr: number) => {
+          const type = $._program.getType(ctx);
+          const def = new EnumDef(enum_def_ptr, $._memory);
+          $._program.addContext(def.rawPtr, def);
+          type.setDef(new TypeDef(def, DefKind.Enum));
+          $._exports.accept_enum_def(enum_def_ptr, def.rawPtr);
+        },
+        visit_enum_variant: (ctx: number, enum_variant_ptr: number) => {
+          const def = $._program.getContext(ctx);
+          const variant = new EnumVariant(enum_variant_ptr, $._memory);
+          const id = def.addVariant(variant);
+          $._program.addContext(id, variant);
+          $._exports.accept_enum_variant(enum_variant_ptr, id);
+        },
+        visit_service: (_, service_ptr: number) => {
+          $._program.addService(new Service(service_ptr, $._memory));
+          $._exports.accept_service(service_ptr, 0);
+        },
+        visit_func: (_, func_ptr: number) => {
+          const func = new Func(func_ptr, $._memory);
+          $._program.service.addFunc(func);
+          $._program.addContext(func.rawPtr, func);
+          $._exports.accept_func(func_ptr, func.rawPtr);
+        },
+        visit_func_param: (ctx: number, func_param_ptr: number) => {
+          const param = new FuncParam(func_param_ptr, $._memory);
+          const func = $._program.getContext(ctx);
+          func.addFuncParam(param.rawPtr, param);
+          $._program.addContext(param.rawPtr, param);
+          $._exports.accept_func_param(func_param_ptr, param.rawPtr);
+        },
+        visit_func_output: (ctx: number, func_output_ptr: number) => {
+          $._exports.accept_type_decl(func_output_ptr, ctx);
+        },
+      },
     });
 
-    this.performSelfAnalysis();
+    $._instance = source.instance as ParserInstance;
+    $._exports = $._instance.exports;
+
+    return $;
   }
 
-  parse(): CstNode {
-    return (this as any).sails();
+  static async new(): Promise<WasmParser> {
+    const parser = new WasmParser();
+    return parser.init();
   }
 
-  private commonParser() {
-    const $ = this as SailsParser & Record<string, any>;
+  private fillMemory(idl: string) {
+    const buf = this._encoder.encode(idl);
+    this._idlLen = buf.length;
 
-    $.RULE('declaration', () => {
-      $.CONSUME(Identifier);
-      $.OPTION(() => $.SUBRULE($.generic));
-    });
+    const numberOfPages = Math.round(buf.length / WASM_PAGE_SIZE) + 1;
 
-    $.RULE('typeName', () => {
-      $.CONSUME(Identifier);
-      $.OPTION(() => $.SUBRULE($.generic));
-    });
+    if (!this._memPtr || numberOfPages > this._numberOfGrownPages) {
+      this._memPtr = this._memory.grow(numberOfPages - this._numberOfGrownPages) * WASM_PAGE_SIZE;
+      this._numberOfGrownPages = numberOfPages;
+    }
 
-    $.RULE('generic', () => {
-      $.CONSUME(LAngle);
-      $.SUBRULE($.def);
-      $.OPTION(() => {
-        $.MANY(() => {
-          $.CONSUME(Comma);
-          $.SUBRULE1($.def);
-        });
-      });
-      $.CONSUME(RAngle);
-    });
-
-    $.RULE('def', () =>
-      $.OR([
-        { ALT: () => $.SUBRULE($.typeName) },
-        { ALT: () => $.SUBRULE($.opt) },
-        { ALT: () => $.SUBRULE($.vec) },
-        { ALT: () => $.SUBRULE($.result) },
-        { ALT: () => $.SUBRULE($.struct) },
-        { ALT: () => $.SUBRULE($.enum) },
-      ]),
-    );
-
-    $.RULE('fieldName', () => $.CONSUME(Identifier));
-    $.RULE('fieldType', () => $.SUBRULE($.def));
+    for (let i = 0; i < buf.length; i++) {
+      new Uint8Array(this._memory.buffer)[i + this._memPtr] = buf[i];
+    }
   }
 
-  private typesParser() {
-    const $ = this as SailsParser & Record<string, any>;
-
-    $.RULE('type', () => {
-      $.CONSUME(Type);
-      $.SUBRULE($.declaration);
-      $.CONSUME(Equals);
-      $.SUBRULE($.def);
-      $.OPTION(() => $.CONSUME(Semicolon));
-    });
+  private clearMemory() {
+    for (let i = 0; i < this._numberOfGrownPages * WASM_PAGE_SIZE; i++) {
+      new Uint8Array(this._memory.buffer)[i + this._memPtr] = 0;
+    }
+    this._idlLen = null;
   }
 
-  private structParser() {
-    const $ = this as SailsParser & Record<string, any>;
+  public parse(idl: string): Program {
+    this.fillMemory(idl);
 
-    $.RULE('struct', () => {
-      $.CONSUME(Struct);
-      $.CONSUME(LCurly);
-      $.AT_LEAST_ONE({
-        DEF: () => $.OR([{ ALT: () => $.SUBRULE($.structField) }, { ALT: () => $.SUBRULE($.tupleField) }]),
-      });
-      $.CONSUME(RCurly);
-    });
+    const programPtr = this._instance.exports.parse_idl(this._memPtr, this._idlLen);
 
-    $.RULE('structField', () => {
-      $.SUBRULE($.fieldName);
-      $.CONSUME(Colon);
-      $.SUBRULE($.fieldType);
-      $.OPTION(() => $.CONSUME(Comma));
-    });
-  }
+    this._program = new Program();
+    this._instance.exports.accept_program(programPtr, 0);
 
-  private tupleParser() {
-    const $ = this as SailsParser & Record<string, any>;
-
-    $.RULE('tupleField', () => {
-      $.SUBRULE($.fieldType);
-      $.OPTION(() => $.CONSUME(Comma));
-    });
-  }
-
-  private optionParser() {
-    const $ = this as SailsParser & Record<string, any>;
-
-    $.RULE('opt', () => {
-      $.CONSUME(Option);
-      $.SUBRULE($.fieldType);
-    });
-  }
-
-  private vecParser() {
-    const $ = this as SailsParser & Record<string, any>;
-
-    $.RULE('vec', () => {
-      $.CONSUME(Vec);
-      $.SUBRULE($.fieldType);
-    });
-  }
-
-  private resultParser() {
-    const $ = this as SailsParser & Record<string, any>;
-
-    $.RULE('result', () => {
-      $.CONSUME(Result);
-      $.CONSUME(LParen);
-      $.SUBRULE($.fieldType);
-      $.CONSUME(Comma);
-      $.SUBRULE1($.fieldType);
-      $.CONSUME(RParen);
-    });
-  }
-
-  private enumParser() {
-    const $ = this as SailsParser & Record<string, any>;
-
-    $.RULE('enum', () => {
-      $.CONSUME(Enum);
-      $.CONSUME(LCurly);
-      $.AT_LEAST_ONE({
-        DEF: () => $.SUBRULE($.enumField),
-      });
-      $.CONSUME(RCurly);
-    });
-
-    $.RULE('enumField', () => {
-      $.SUBRULE($.fieldName);
-      $.OPTION(() => {
-        $.CONSUME(Colon);
-        $.SUBRULE($.fieldType);
-      });
-      $.OPTION1(() => $.CONSUME(Comma));
-    });
-  }
-
-  private servicesParser() {
-    const $ = this as SailsParser & Record<string, any>;
-
-    $.RULE('service', () => {
-      $.CONSUME(Service);
-      $.CONSUME(LCurly);
-      $.MANY({
-        DEF: () => $.OR([{ ALT: () => $.SUBRULE($.query) }, { ALT: () => $.SUBRULE($.message) }]),
-      });
-      $.CONSUME(RCurly);
-      $.OPTION(() => $.CONSUME(Semicolon));
-    });
-
-    $.RULE('message', () => {
-      $.SUBRULE($.methodName);
-      $.CONSUME(Colon);
-      $.SUBRULE($.methodArguments);
-      $.CONSUME(Arrow);
-      $.SUBRULE($.methodOutput);
-      $.CONSUME(Semicolon);
-    });
-
-    $.RULE('query', () => {
-      $.CONSUME(Query);
-      $.SUBRULE($.methodName);
-      $.CONSUME(Colon);
-      $.SUBRULE($.methodArguments);
-      $.CONSUME(Arrow);
-      $.SUBRULE($.methodOutput);
-      $.CONSUME(Semicolon);
-    });
-  }
-
-  private methodParser() {
-    const $ = this as SailsParser & Record<string, any>;
-
-    $.RULE('methodName', () => {
-      $.CONSUME(Identifier);
-    });
-
-    $.RULE('methodArguments', () => {
-      $.CONSUME(LParen);
-      $.OPTION(() => {
-        $.SUBRULE($.argument);
-        $.MANY(() => {
-          $.CONSUME(Comma);
-          $.SUBRULE1($.argument);
-        });
-      });
-      $.CONSUME(RParen);
-    });
-
-    $.RULE('argument', () => {
-      $.SUBRULE($.argumentName);
-      $.CONSUME(Colon);
-      $.SUBRULE($.argumentType);
-    });
-
-    $.RULE('argumentName', () => $.CONSUME(Identifier));
-
-    $.RULE('argumentType', () => $.SUBRULE($.def));
-
-    $.RULE('methodOutput', () => $.SUBRULE($.def));
+    this._exports.free_program(programPtr);
+    this.clearMemory();
+    return this._program;
   }
 }

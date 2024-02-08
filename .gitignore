@@ -8,3 +8,7 @@ target/
 .binpath
 .vscode
 #.log
+
+js/test/lib.ts
+js/test/transaction.ts
+js/parser.wasm
