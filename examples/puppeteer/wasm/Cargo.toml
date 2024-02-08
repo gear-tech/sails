@@ -8,6 +8,7 @@ gstd.workspace = true
 gsys.workspace = true
 parity-scale-codec.workspace = true
 sails-service-meta.workspace = true
+sails-sender.workspace = true
 puppeteer-app = { path = "../app" }
 
 [build-dependencies]

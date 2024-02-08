@@ -1,5 +1,6 @@
 #![no_std]
 
+use codec::Output;
 use core::fmt::Debug;
 use core::marker::PhantomData;
 use gstd::{errors::Error as GStdError, msg::MessageFuture, prelude::*, ActorId, MessageId};
@@ -9,25 +10,6 @@ use parity_scale_codec::{Decode, Error as ParseError};
 struct SendArgs {
     value: u128,
     reply_deposit: u64,
-}
-
-pub struct SendTicket<R: Decode + Debug> {
-    // message we are waiting on
-    f: MessageFuture,
-    // silence the compiler
-    _marker: PhantomData<R>,
-}
-
-impl<R: Decode + Debug> SendTicket<R> {
-    pub async fn response(self) -> Result<R, GStdError> {
-        let payload = self.f.await?;
-
-        R::decode(&mut payload.as_ref()).map_err(GStdError::Decode)
-    }
-
-    pub fn message_id(&self) -> MessageId {
-        self.f.waiting_reply_to
-    }
 }
 
 #[derive(Default)]
@@ -40,10 +22,10 @@ impl GStdSender {
 }
 
 pub struct Call<R: Decode + Debug> {
-    /// request payload
+    /// serialized method and args
     payload: Vec<u8>,
     /// optional args
-    args: SendArgs,
+    send_args: SendArgs,
     /// silence the compiler
     _marker: PhantomData<R>,
 }
@@ -68,33 +50,40 @@ impl From<GStdError> for SendError {
 }
 
 impl<R: Decode + Debug> Call<R> {
-    pub fn new(payload: Vec<u8>) -> Self {
+    pub fn new<T: Encode + Debug>(method: &str, args: T) -> Self {
+        let capacity = method.len() + 1 + args.encoded_size();
+        let mut payload = Vec::with_capacity(capacity);
+        payload.extend_from_slice(method.as_bytes());
+        payload.push_byte(b'/');
+
+        args.encode_to(&mut payload);
+
         Self {
             payload,
-            args: SendArgs::default(),
+            send_args: SendArgs::default(),
             _marker: PhantomData,
         }
     }
 
     pub fn with_value(mut self, value: u128) -> Self {
-        self.args.value = value;
+        self.send_args.value = value;
         self
     }
 
     pub fn with_reply_deposit(mut self, reply_deposit: u64) -> Self {
-        self.args.reply_deposit = reply_deposit;
+        self.send_args.reply_deposit = reply_deposit;
         self
     }
 
-    pub async fn send(self, address: ActorId) -> Result<SendTicket<R>, SendError> {
+    pub async fn send(self, address: ActorId) -> Result<CallTicket<R>, SendError> {
         let future = gstd::msg::send_bytes_for_reply(
             address,
             self.payload,
-            self.args.value,
-            self.args.reply_deposit,
+            self.send_args.value,
+            self.send_args.reply_deposit,
         )?;
 
-        Ok(SendTicket {
+        Ok(CallTicket {
             f: future,
             _marker: PhantomData,
         })
@@ -102,5 +91,24 @@ impl<R: Decode + Debug> Call<R> {
 
     pub fn into_bytes(self) -> Vec<u8> {
         self.payload
+    }
+}
+
+pub struct CallTicket<R: Decode + Debug> {
+    // message we are waiting on
+    f: MessageFuture,
+    // silence the compiler
+    _marker: PhantomData<R>,
+}
+
+impl<R: Decode + Debug> CallTicket<R> {
+    pub async fn response(self) -> Result<R, GStdError> {
+        let payload = self.f.await?;
+
+        R::decode(&mut payload.as_ref()).map_err(GStdError::Decode)
+    }
+
+    pub fn message_id(&self) -> MessageId {
+        self.f.waiting_reply_to
     }
 }

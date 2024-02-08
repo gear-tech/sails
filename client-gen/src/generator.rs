@@ -1,9 +1,11 @@
 use anyhow::Result;
 use convert_case::{Case, Casing};
 use sails_idlparser::ast::*;
-use std::path::{Path, PathBuf};
-
 use sails_idlparser::{ast::visitor, ast::visitor::Visitor};
+use std::{
+    io::Write,
+    path::{Path, PathBuf},
+};
 
 pub struct IdlGenerator {
     path: PathBuf,
@@ -20,11 +22,32 @@ impl IdlGenerator {
 
         let code = trait_generator.code;
 
-        let code = syn::parse_str(&code).expect("parse ast");
-        let code = prettyplease::unparse(&code);
+        // Check for parsing errors
+        let code = pretty_with_rustfmt(&code);
 
         Ok(code)
     }
+}
+
+fn pretty_with_rustfmt(code: &str) -> String {
+    use std::process::Command;
+    let mut child = Command::new("rustfmt")
+        .arg("--config")
+        .arg("format_strings=false")
+        .stdin(std::process::Stdio::piped())
+        .stdout(std::process::Stdio::piped())
+        .spawn()
+        .expect("Failed to spawn rustfmt");
+
+    let child_stdin = child.stdin.as_mut().expect("Failed to open stdin");
+    child_stdin
+        .write_all(code.as_bytes())
+        .expect("Failed to write to rustfmt");
+
+    let output = child
+        .wait_with_output()
+        .expect("Failed to wait for rustfmt");
+    String::from_utf8(output.stdout).expect("Failed to read rustfmt output")
 }
 
 struct RootGenerator<'a> {
@@ -44,7 +67,7 @@ impl<'a> RootGenerator<'a> {
         code.push_str("#![allow(unused)]\n");
 
         code.push_str("use parity_scale_codec::{Encode, Decode};\n");
-        code.push_str("use sails_sender::Call;\n");
+        code.push_str("use sails_sender::{Call, GStdSender};\n");
         code.push_str("use gstd::prelude::*;\n");
 
         Self { service_name, code }
@@ -56,10 +79,6 @@ impl<'a, 'ast> Visitor<'ast> for RootGenerator<'a> {
         let mut service_gen = ServiceGenerator::new(self.service_name.to_owned());
         service_gen.visit_service(service);
         self.code.push_str(&service_gen.code);
-
-        let mut structs_gen = RequestStructsGenerator::default();
-        structs_gen.visit_service(service);
-        self.code.push_str(&structs_gen.code);
 
         let mut client_gen = ClientGenerator::new(self.service_name.to_owned());
         client_gen.visit_service(service);
@@ -162,18 +181,18 @@ impl<'ast> Visitor<'ast> for ClientGenerator {
 
         self.code.push_str(&format!(
             r#"
-            #[derive(Default, Clone)]
-            pub struct Client {{
-                program_id: [u8; 32],
+            #[derive(Clone)]
+            pub struct Client<'a> {{
+                sender: &'a GStdSender
             }}
 
-            impl Client {{
-                pub fn new() -> Self {{
-                    Self::default()
+            impl<'a> Client<'a> {{
+                pub fn new(sender: &'a GStdSender) -> Self {{
+                    Self {{ sender }}
                 }}
             }}
 
-            impl {name} for Client {{
+            impl<'a> {name} for Client<'a> {{
         "#
         ));
 
@@ -194,14 +213,12 @@ impl<'ast> Visitor<'ast> for ClientGenerator {
 
         let method_name = func.name().to_case(Case::Pascal);
 
-        self.code.push_str(&format!(
-            "let mut payload = Vec::from(\"{method_name}/\");\n"
-        ));
+        let args = encoded_args(func.params());
 
         self.code
-            .push_str(&encoded_args(&method_name, func.params()));
+            .push_str(&format!("Call::new(\"{method_name}\", {args})"));
 
-        self.code.push_str("Call::new(payload)\n}\n");
+        self.code.push_str("}\n");
     }
 
     fn visit_func_param(&mut self, func_param: &'ast FuncParam) {
@@ -217,16 +234,14 @@ impl<'ast> Visitor<'ast> for ClientGenerator {
     }
 }
 
-fn encoded_args(method_name: &str, params: &[FuncParam]) -> String {
-    let struct_name = format!("{method_name}RequestArgs");
-
+fn encoded_args(params: &[FuncParam]) -> String {
     let arg_names = params
         .iter()
         .map(|a| a.name())
         .collect::<Vec<_>>()
         .join(", ");
 
-    format!("{struct_name} {{ {arg_names} }}.encode_to(&mut payload);\n ")
+    format!("({arg_names})")
 }
 
 struct TypeGenerator<'a> {

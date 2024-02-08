@@ -3436,6 +3436,7 @@ dependencies = [
  "parity-scale-codec",
  "puppeteer-app",
  "sails-idlgen",
+ "sails-sender",
  "sails-service-meta",
 ]
 

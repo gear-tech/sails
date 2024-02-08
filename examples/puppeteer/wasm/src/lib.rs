@@ -3,13 +3,17 @@
 use gstd::{boxed::Box, msg};
 use puppeteer_app::puppet::Client;
 use puppeteer_app::{requests as service_requests, Puppeteer};
+use sails_sender::GStdSender;
 
 static mut SERVICE: Option<Puppeteer> = None;
+static mut SENDER: Option<GStdSender> = None;
 
 fn service() -> &'static mut Puppeteer {
     let s = unsafe { &mut SERVICE };
     if s.is_none() {
-        *s = Some(Puppeteer::new(Box::new(Client::new())));
+        unsafe { SENDER = Some(GStdSender::new()) };
+        let sender = unsafe { &SENDER }.as_ref().unwrap();
+        *s = Some(Puppeteer::new(Box::new(Client::new(&sender))));
     }
 
     s.as_mut().unwrap()
