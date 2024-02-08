@@ -1,6 +1,6 @@
 import { TypeRegistry } from '@polkadot/types';
 
-import { Program, WasmParser } from './parser/index.js';
+import { Program, TypeDef, WasmParser } from './parser/index.js';
 import { getScaleCodecDef } from './utils/types.js';
 
 interface SailsFunc {
@@ -70,7 +70,7 @@ export class Sails {
   }
 
   /** #### Functions with arguments and return types from the parsed IDL */
-  get functions() {
+  get functions(): Record<string, SailsFunc> {
     if (!this._program) {
       throw new Error('IDL not parsed');
     }
@@ -115,7 +115,7 @@ export class Sails {
     return this._program;
   }
 
-  getTypeDef(name: string) {
+  getTypeDef(name: string): TypeDef {
     return this.program.getTypeByName(name).def;
   }
 }
