@@ -50,7 +50,7 @@
   },
   "dependencies": {
     "chevrotain": "^11.0.3",
-    "commander": "^11.1.0"
+    "commander": "^12.0.0"
   },
   "files": [
     "lib",
