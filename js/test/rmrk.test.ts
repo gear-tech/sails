@@ -124,22 +124,30 @@ describe('RMRK generated', () => {
       },
       alice,
     );
-    expect(result).toHaveProperty('ok');
-    if ('ok' in result) {
-      expect(result.ok).toHaveProperty('2');
-      expect(result.ok).toHaveProperty('3');
-      expect(result.ok[2]).toHaveProperty('fixed');
-      expect(result.ok[3]).toHaveProperty('slot');
-      if ('fixed' in result.ok[2]) {
-        expect(result.ok[2].fixed).toHaveProperty('z', 0);
-        expect(result.ok[2].fixed).toHaveProperty('metadata_uri', 'bar');
+    expect(result).toHaveProperty('msgId');
+    expect(result).toHaveProperty('blockHash');
+    expect(result).toHaveProperty('response');
+    expect(result.msgId).toBeDefined();
+    expect(result.blockHash).toBeDefined();
+
+    const response = await result.response();
+
+    expect(response).toHaveProperty('ok');
+    if ('ok' in response) {
+      expect(response.ok).toHaveProperty('2');
+      expect(response.ok).toHaveProperty('3');
+      expect(response.ok[2]).toHaveProperty('fixed');
+      expect(response.ok[3]).toHaveProperty('slot');
+      if ('fixed' in response.ok[2]) {
+        expect(response.ok[2].fixed).toHaveProperty('z', 0);
+        expect(response.ok[2].fixed).toHaveProperty('metadata_uri', 'bar');
       }
-      if ('slot' in result.ok[3]) {
-        expect(result.ok[3].slot).toHaveProperty('z', 1);
-        expect(result.ok[3].slot).toHaveProperty('metadata_uri', 'baz');
-        expect(result.ok[3].slot).toHaveProperty('equippable');
-        expect(result.ok[3].slot.equippable).toHaveLength(1);
-        expect(result.ok[3].slot.equippable[0]).toBe(aliceRaw);
+      if ('slot' in response.ok[3]) {
+        expect(response.ok[3].slot).toHaveProperty('z', 1);
+        expect(response.ok[3].slot).toHaveProperty('metadata_uri', 'baz');
+        expect(response.ok[3].slot).toHaveProperty('equippable');
+        expect(response.ok[3].slot.equippable).toHaveLength(1);
+        expect(response.ok[3].slot.equippable[0]).toBe(aliceRaw);
       }
     }
   });
@@ -147,22 +155,28 @@ describe('RMRK generated', () => {
   test('remove parts', async () => {
     expect(catalogId).toBeDefined();
     const result = await service.removeParts([1], alice);
-    expect(result).toHaveProperty('ok');
-    if ('ok' in result) {
-      expect(result.ok).toHaveLength(1);
-      expect(result.ok[0]).toBe(1);
+
+    const response = await result.response();
+
+    expect(response).toHaveProperty('ok');
+    if ('ok' in response) {
+      expect(response.ok).toHaveLength(1);
+      expect(response.ok[0]).toBe(1);
     }
   });
 
   test('add equippables', async () => {
     expect(catalogId).toBeDefined();
     const result = await service.addEquippables(3, [aliceRaw], alice);
-    expect(result).toHaveProperty('ok');
-    if ('ok' in result) {
-      expect(result.ok).toHaveLength(2);
-      expect(result.ok[0]).toBe(3);
-      expect(result.ok[1]).toHaveLength(1);
-      expect(result.ok[1][0]).toBe(aliceRaw);
+
+    const response = await result.response();
+
+    expect(response).toHaveProperty('ok');
+    if ('ok' in response) {
+      expect(response.ok).toHaveLength(2);
+      expect(response.ok[0]).toBe(3);
+      expect(response.ok[1]).toHaveLength(1);
+      expect(response.ok[1][0]).toBe(aliceRaw);
     }
   });
 
@@ -170,29 +184,37 @@ describe('RMRK generated', () => {
     expect(catalogId).toBeDefined();
     const result = await service.removeEquippable(3, aliceRaw, alice);
 
-    expect(result).toHaveProperty('ok');
-    if ('ok' in result) {
-      expect(result.ok).toHaveLength(2);
-      expect(result.ok[0]).toBe(3);
-      expect(result.ok[1]).toBe(aliceRaw);
+    const response = await result.response();
+
+    expect(response).toHaveProperty('ok');
+    if ('ok' in response) {
+      expect(response.ok).toHaveLength(2);
+      expect(response.ok[0]).toBe(3);
+      expect(response.ok[1]).toBe(aliceRaw);
     }
   });
 
   test('reset equippables', async () => {
     expect(catalogId).toBeDefined();
     const result = await service.resetEquippables(3, alice);
-    expect(result).toHaveProperty('ok');
-    if ('ok' in result) {
-      expect(result.ok).toBeNull();
+
+    const response = await result.response();
+
+    expect(response).toHaveProperty('ok');
+    if ('ok' in response) {
+      expect(response.ok).toBeNull();
     }
   });
 
   test('set equippables to all', async () => {
     expect(catalogId).toBeDefined();
     const result = await service.setEquippablesToAll(3, alice);
-    expect(result).toHaveProperty('ok');
-    if ('ok' in result) {
-      expect(result.ok).toBeNull();
+
+    const response = await result.response();
+
+    expect(response).toHaveProperty('ok');
+    if ('ok' in response) {
+      expect(response.ok).toBeNull();
     }
   });
 });

@@ -5,6 +5,12 @@ import { IKeyringPair, ISubmittableResult } from '@polkadot/types/types';
 import { Registry } from '@polkadot/types-codec/types/registry';
 import { ReplaySubject } from 'rxjs';
 
+export interface IMethodReturnType<T> {
+  msgId: string;
+  blockHash: string;
+  response: () => Promise<T>;
+}
+
 export class Transaction {
   protected registry: Registry;
 
@@ -18,7 +24,7 @@ export class Transaction {
   private sendTx(
     tx: SubmittableExtrinsic<'promise', ISubmittableResult>,
     account: IKeyringPair | string,
-  ): Promise<string> {
+  ): Promise<{ msgId: string; blockHash: string }> {
     return new Promise((resolve, reject) =>
       tx
         .signAndSend(account, ({ events, status }) => {
@@ -30,7 +36,7 @@ export class Transaction {
               if (method === 'MessageQueued' && section === 'gear') {
                 msgId = (data as MessageQueuedData).id.toHex();
               } else if (method === 'ExtrinsicSuccess') {
-                resolve(msgId);
+                resolve({ msgId, blockHash: status.asInBlock.toHex() });
               } else if (method === 'ExtrinsicFailed') {
                 reject(this.api.getExtrinsicFailedError(event));
               }
@@ -70,14 +76,16 @@ export class Transaction {
     });
   }
 
-  protected async submitMsgAndWaitForReply(
+  protected async submitMsg<T>(
     programId: HexString,
     payload: any,
+    responseType: string,
     account: string | IKeyringPair,
-  ): Promise<HexString> {
+    value: number | string | bigint = 0,
+  ): Promise<{ msgId: string; blockHash: string; response: () => Promise<T> }> {
     const addressHex = decodeAddress(typeof account === 'string' ? account : account.address);
 
-    const gasLimit = await this.api.program.calculateGas.handle(addressHex, programId, payload, 0, false);
+    const gasLimit = await this.api.program.calculateGas.handle(addressHex, programId, payload, value, false);
 
     const tx = this.api.message.send({
       destination: programId,
@@ -87,12 +95,17 @@ export class Transaction {
 
     const { unsub, subject } = await this.listenToUserMessageSentEvents(programId, addressHex);
 
-    const msgId = await this.sendTx(tx, account);
+    const { msgId, blockHash } = await this.sendTx(tx, account);
 
-    const replyPayload = await this.waitForReply(subject, msgId);
-
-    unsub();
-
-    return replyPayload;
+    return {
+      msgId,
+      blockHash,
+      response: () =>
+        this.waitForReply(subject, msgId).then((reply) => {
+          unsub();
+          subject.complete();
+          return this.registry.createType<any>(responseType, reply)[1].toJSON() as T;
+        }),
+    };
   }
 }

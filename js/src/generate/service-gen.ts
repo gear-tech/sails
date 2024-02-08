@@ -12,6 +12,10 @@ const getAccount = (isQuery: boolean) => {
   return isQuery ? '' : `, account: ${HEX_STRING_TYPE} | IKeyringPair`;
 };
 
+const getValue = (isQuery: boolean) => {
+  return isQuery ? '' : `, value?: number | string | bigint`;
+};
+
 export class ServiceGenerator {
   constructor(private _out: Output, private _program: Program, private scaleTypes: Record<string, any>) {}
 
@@ -43,9 +47,9 @@ export class ServiceGenerator {
       this._out
         .line()
         .block(
-          `public async ${name[0].toLowerCase() + name.slice(1)}(${getArgs(params)}${getAccount(
+          `public async ${name[0].toLowerCase() + name.slice(1)}(${getArgs(params)}${getAccount(isQuery)}${getValue(
             isQuery,
-          )}): Promise<${returnType}>`,
+          )}): Promise<${isQuery ? returnType : `IMethodReturnType<${returnType}>`}>`,
           () => {
             if (params.length === 0) {
               this._out.line(`const payload = this.registry.createType('String', '${name}').toU8a()`);
@@ -57,22 +61,25 @@ export class ServiceGenerator {
               );
             }
 
-            if (!isQuery) {
-              this._out
-                .line(`const replyPayloadBytes = await this.submitMsgAndWaitForReply(`, false)
-                .increaseIndent()
-                .line('this.programId,', false)
-                .line('payload,', false)
-                .line('account,', false)
-                .reduceIndent()
-                .line(')')
-                .line(`const result = this.registry.createType('(String, ${returnScaleType})', replyPayloadBytes)`)
-                .line(`return result[1].${getPayloadMethod(returnScaleType)}() as unknown as ${returnType}`);
-            } else {
+            if (isQuery) {
               this._out
                 .line(`const stateBytes = await this.api.programState.read({ programId: this.programId, payload })`)
                 .line(`const result = this.registry.createType('(String, ${returnScaleType})', stateBytes)`)
                 .line(`return result[1].${getPayloadMethod(returnScaleType)}() as unknown as ${returnType}`);
+            } else {
+              this._out.import('./transaction', 'IMethodReturnType');
+              this._out.block(
+                `return this.submitMsg<${returnType}>`,
+                () => {
+                  this._out
+                    .line('this.programId,', false)
+                    .line('payload,', false)
+                    .line(`'(String, ${returnScaleType})',`, false)
+                    .line('account,', false)
+                    .line('value,', false);
+                },
+                '(',
+              );
             }
           },
         );
