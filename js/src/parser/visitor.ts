@@ -21,7 +21,7 @@ const getName = (ptr: number, offset: number, memory: WebAssembly.Memory): { nam
 
 class Base {
   protected offset: number;
-  public rawPtr: number;
+  public readonly rawPtr: number;
 
   constructor(public ptr: number, memory: WebAssembly.Memory) {
     const rawPtrBuf = new Uint8Array(memory.buffer.slice(ptr, ptr + 4));
@@ -95,7 +95,7 @@ class WithDef extends Base {
 }
 
 export class Type extends WithDef {
-  public name: string;
+  public readonly name: string;
 
   constructor(ptr: number, memory: WebAssembly.Memory) {
     super(ptr, memory);
@@ -380,7 +380,7 @@ export class EnumDef extends Base {
 }
 
 export class StructField extends WithDef {
-  public name: string;
+  public readonly name: string;
 
   constructor(ptr: number, memory: WebAssembly.Memory) {
     super(ptr, memory);
@@ -393,7 +393,7 @@ export class StructField extends WithDef {
 }
 
 export class EnumVariant extends WithDef {
-  public name: string;
+  public readonly name: string;
 
   constructor(ptr: number, memory: WebAssembly.Memory) {
     super(ptr, memory);
@@ -416,7 +416,7 @@ export class FixedSizeArrayDef extends WithDef {
 }
 
 export class UserDefinedDef {
-  public name: string;
+  public readonly name: string;
 
   constructor(ptr: number, len: number, memory: WebAssembly.Memory) {
     this.name = getText(ptr, len, memory);
@@ -424,7 +424,7 @@ export class UserDefinedDef {
 }
 
 export class Service extends Base {
-  public funcs: Func[];
+  public readonly funcs: Func[];
 
   constructor(ptr: number, memory: WebAssembly.Memory) {
     super(ptr, memory);
@@ -438,9 +438,9 @@ export class Service extends Base {
 }
 
 export class Func extends WithDef {
-  public name: string;
-  public isQuery: boolean;
-  public _params: Map<number, FuncParam>;
+  public readonly name: string;
+  public readonly isQuery: boolean;
+  private _params: Map<number, FuncParam>;
 
   constructor(ptr: number, memory: WebAssembly.Memory) {
     super(ptr, memory);
@@ -469,7 +469,7 @@ export class Func extends WithDef {
 }
 
 export class FuncParam extends WithDef {
-  public name: string;
+  public readonly name: string;
 
   constructor(ptr: number, memory: WebAssembly.Memory) {
     super(ptr, memory);
