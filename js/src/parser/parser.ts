@@ -53,15 +53,34 @@ export class WasmParser {
     this._encoder = new TextEncoder();
   }
 
-  async init() {
+  private async _decompressWasm() {
     const binaryStr = atob(wasmParserBytes);
-    const u8a = new Uint8Array(binaryStr.length);
+
+    const binaryBase64 = new Uint8Array(binaryStr.length);
 
     for (let i = 0; i < binaryStr.length; i++) {
-      u8a[i] = binaryStr.charCodeAt(i);
+      binaryBase64[i] = binaryStr.charCodeAt(i);
     }
 
-    const wasmBuf = u8a.buffer;
+    const ds = new DecompressionStream('gzip');
+    const decompressed = new Response(binaryBase64).body.pipeThrough<Uint8Array>(ds);
+
+    const reader = decompressed.getReader();
+    const bytes = [];
+
+    while (true) {
+      const { value, done } = await reader.read();
+
+      if (done) break;
+
+      bytes.push(...value);
+    }
+
+    return new Uint8Array(bytes).buffer;
+  }
+
+  async init() {
+    const wasmBuf = await this._decompressWasm();
 
     const $ = this;
 
