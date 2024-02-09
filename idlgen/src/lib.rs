@@ -201,54 +201,54 @@ mod tests {
         let generated_idl = String::from_utf8(idl).unwrap();
         let generated_idl_program = sails_idlparser::ast::parse_idl(&generated_idl);
 
-        const EXPECTED_IDL: &str = r"type SailsIdlgenTestsTupleStruct = struct {
+        const EXPECTED_IDL: &str = r"type TupleStruct = struct {
   bool,
 };
 
-type SailsIdlgenTestsGenericStructForU32 = struct {
+type GenericStructForU32 = struct {
   p1: u32,
 };
 
-type SailsIdlgenTestsGenericStructForStr = struct {
+type GenericStructForStr = struct {
   p1: str,
 };
 
-type SailsIdlgenTestsDoThatParam = struct {
+type DoThatParam = struct {
   p1: u32,
   p2: str,
-  p3: SailsIdlgenTestsManyVariants,
+  p3: ManyVariants,
 };
 
-type SailsIdlgenTestsManyVariants = enum {
+type ManyVariants = enum {
   One,
   Two: u32,
   Three: opt vec u32,
   Four: struct { a: u32, b: opt u16 },
   Five: struct { str, vec u8 },
   Six: struct { u32 },
-  Seven: SailsIdlgenTestsGenericEnumForU32AndStr,
+  Seven: GenericEnumForU32AndStr,
   Eight: [map (u32, str), 10],
 };
 
-type SailsIdlgenTestsGenericEnumForU32AndStr = enum {
+type GenericEnumForU32AndStr = enum {
   Variant1: u32,
   Variant2: str,
 };
 
-type SailsIdlgenTestsGenericEnumForBoolAndU32 = enum {
+type GenericEnumForBoolAndU32 = enum {
   Variant1: bool,
   Variant2: u32,
 };
 
-type SailsIdlgenTestsThatParam = struct {
-  p1: SailsIdlgenTestsManyVariants,
+type ThatParam = struct {
+  p1: ManyVariants,
 };
 
 service {
-  DoThis : (p1: u32, p2: str, p3: struct { opt str, u8 }, p4: SailsIdlgenTestsTupleStruct, p5: SailsIdlgenTestsGenericStructForU32, p6: SailsIdlgenTestsGenericStructForStr) -> str;
-  DoThat : (par1: SailsIdlgenTestsDoThatParam) -> result (struct { str, u32 }, struct { str });
-  query This : (p1: u32, p2: str, p3: struct { opt str, u8 }, p4: SailsIdlgenTestsTupleStruct, p5: SailsIdlgenTestsGenericEnumForBoolAndU32) -> result (struct { str, u32 }, str);
-  query That : (pr1: SailsIdlgenTestsThatParam) -> str;
+  DoThis : (p1: u32, p2: str, p3: struct { opt str, u8 }, p4: TupleStruct, p5: GenericStructForU32, p6: GenericStructForStr) -> str;
+  DoThat : (par1: DoThatParam) -> result (struct { str, u32 }, struct { str });
+  query This : (p1: u32, p2: str, p3: struct { opt str, u8 }, p4: TupleStruct, p5: GenericEnumForBoolAndU32) -> result (struct { str, u32 }, str);
+  query That : (pr1: ThatParam) -> str;
 }
 ";
 
