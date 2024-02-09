@@ -6,7 +6,5 @@ edition.workspace = true
 license.workspace = true
 
 [dependencies]
-gmeta.workspace = true
 gstd = { workspace = true, features = ["debug"] }
 parity-scale-codec = { workspace = true, features = ["derive"] }
-scale-info = { workspace = true, features = ["derive"] }

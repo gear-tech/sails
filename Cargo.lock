@@ -110,9 +110,9 @@ dependencies = [
 
 [[package]]
 name = "anstyle"
-version = "1.0.5"
+version = "1.0.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2faccea4cc4ab4a667ce676a30e8ec13922a692c99bb8f5b11f1502c72e04220"
+checksum = "8901269c6307e8d93993578286ac0edf7f195079ffff5ebdeea6a59ffb7e36bc"
 
 [[package]]
 name = "anyhow"
@@ -3417,7 +3417,6 @@ dependencies = [
 name = "puppeteer-app"
 version = "0.1.0"
 dependencies = [
- "gmeta",
  "gstd",
  "parity-scale-codec",
  "sails-macros",
@@ -3432,12 +3431,11 @@ version = "0.1.0"
 dependencies = [
  "gear-wasm-builder",
  "gstd",
- "gsys",
- "parity-scale-codec",
  "puppeteer-app",
+ "sails-clientgen",
  "sails-idlgen",
  "sails-sender",
- "sails-service-meta",
+ "this-that-svc-app",
 ]
 
 [[package]]
@@ -3829,12 +3827,8 @@ version = "0.0.1"
 dependencies = [
  "anyhow",
  "convert_case 0.6.0",
- "handlebars",
  "insta",
- "prettyplease",
- "rand 0.8.5",
  "sails-idlparser",
- "syn 2.0.48",
 ]
 
 [[package]]
@@ -3902,10 +3896,8 @@ dependencies = [
 name = "sails-sender"
 version = "0.0.1"
 dependencies = [
- "gmeta",
  "gstd",
  "parity-scale-codec",
- "scale-info",
 ]
 
 [[package]]
@@ -4848,7 +4840,6 @@ dependencies = [
 name = "this-that-svc-app"
 version = "0.1.0"
 dependencies = [
- "gmeta",
  "gstd",
  "mockall",
  "parity-scale-codec",

@@ -4,7 +4,6 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-gmeta.workspace = true
 gstd = { workspace = true, features = ["debug"] }
 sails-macros.workspace = true
 mockall = "0.12.1"

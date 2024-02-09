@@ -1,12 +1,13 @@
 #![no_std]
 
+use core::ptr::addr_of_mut;
 use gstd::msg;
 use this_that_svc_app::{requests as service_requests, MyService};
 
 static mut MY_SERVICE: MyService = MyService::new();
 
 fn my_service() -> &'static mut MyService {
-    unsafe { &mut MY_SERVICE }
+    unsafe { &mut *addr_of_mut!(MY_SERVICE) }
 }
 
 #[gstd::async_main]

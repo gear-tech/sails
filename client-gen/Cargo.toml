@@ -8,11 +8,7 @@ license.workspace = true
 [dependencies]
 anyhow.workspace = true
 convert-case.workspace = true
-handlebars.workspace = true
-prettyplease.workspace = true
-rand.workspace = true
 sails-idlparser.workspace = true
-syn = { workspace = true, features = ["full", "parsing"] }
 
 [dev-dependencies]
 insta = "1.34.0"

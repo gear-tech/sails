@@ -26,6 +26,7 @@ impl MyService {
         debug!("Handling 'do_that': {:?}", param);
         Ok((param.p2, param.p1))
     }
+
     pub fn this(&self) -> u32 {
         debug!("Handling 'this'");
         42
@@ -39,6 +40,7 @@ impl MyService {
 }
 
 #[derive(Debug, Decode, TypeInfo)]
+#[allow(unused)]
 pub struct TupleStruct(bool);
 
 #[derive(Debug, Decode, TypeInfo)]

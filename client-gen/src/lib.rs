@@ -2,19 +2,11 @@ mod generator;
 
 use anyhow::{Context, Result};
 use generator::*;
-use std::{fs, path::PathBuf};
+use std::{fs, path::Path};
 
-fn main() -> Result<()> {
-    let idl_json_path = match std::env::args().nth(1) {
-        Some(path) => PathBuf::from(path),
-        None => {
-            eprintln!("Usage: client-gen <idl.json>");
-            std::process::exit(1);
-        }
-    };
-
-    let idl = fs::read_to_string(&idl_json_path)
-        .with_context(|| format!("Failed to open {} for reading", idl_json_path.display()))?;
+pub fn generate_client_from_idl(idl_path: &Path, out_path: &Path) -> Result<()> {
+    let idl = fs::read_to_string(idl_path)
+        .with_context(|| format!("Failed to open {} for reading", idl_path.display()))?;
 
     let program = match sails_idlparser::ast::parse_idl(&idl) {
         Ok(program) => program,
@@ -24,12 +16,13 @@ fn main() -> Result<()> {
         }
     };
 
-    let builder = IdlGenerator::new(idl_json_path);
+    let builder = IdlClientGenerator::new();
     let buf = builder
         .generate(program)
         .context("failed to generate client")?;
 
-    print!("{}", buf);
+    fs::write(out_path, buf)
+        .with_context(|| format!("Failed to write generated client to {}", out_path.display()))?;
 
     Ok(())
 }
@@ -71,7 +64,7 @@ mod tests {
         "#;
         let program = sails_idlparser::ast::parse_idl(IDL).expect("parse IDL");
 
-        let generator = IdlGenerator::new(PathBuf::from("test"));
+        let generator = IdlClientGenerator::new();
 
         let generated = generator.generate(program).unwrap();
 

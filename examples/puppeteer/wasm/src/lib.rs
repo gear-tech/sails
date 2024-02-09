@@ -1,5 +1,6 @@
 #![no_std]
 
+use core::ptr::{addr_of, addr_of_mut};
 use gstd::{boxed::Box, msg};
 use puppeteer_app::puppet::Client;
 use puppeteer_app::{requests as service_requests, Puppeteer};
@@ -9,10 +10,10 @@ static mut SERVICE: Option<Puppeteer> = None;
 static mut SENDER: Option<GStdSender> = None;
 
 fn service() -> &'static mut Puppeteer {
-    let s = unsafe { &mut SERVICE };
+    let s = unsafe { &mut *addr_of_mut!(SERVICE) };
     if s.is_none() {
         unsafe { SENDER = Some(GStdSender::new()) };
-        let sender = unsafe { &SENDER }.as_ref().unwrap();
+        let sender: &'static GStdSender = unsafe { &*addr_of!(SENDER) }.as_ref().unwrap();
         *s = Some(Puppeteer::new(Box::new(Client::new(&sender))));
     }
 

@@ -170,7 +170,7 @@ pub enum PrimitiveType {
 }
 
 impl PrimitiveType {
-    pub fn str_to_enum(str: &str) -> Option<Self> {
+    pub(crate) fn str_to_enum(str: &str) -> Option<Self> {
         match str {
             "bool" => Some(PrimitiveType::Bool),
             "char" => Some(PrimitiveType::Char),

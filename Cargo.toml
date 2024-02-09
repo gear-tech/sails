@@ -46,7 +46,7 @@ proc-macro-error = "1.0"
 proc-macro2 = { version = "1", default-features = false }
 quote = "1.0"
 rand = "0.8"
-sails-clentgen = { path = "client-gen" }
+sails-clientgen = { path = "client-gen" }
 sails-exec-context-abstractions = { path = "exec-context/abstractions" }
 sails-exec-context-gstd = { path = "exec-context/gstd" }
 sails-idlgen = { path = "idlgen" }
