@@ -14,7 +14,7 @@ fn service() -> &'static mut Puppeteer {
     if s.is_none() {
         unsafe { SENDER = Some(GStdSender::new()) };
         let sender: &'static GStdSender = unsafe { &*addr_of!(SENDER) }.as_ref().unwrap();
-        *s = Some(Puppeteer::new(Box::new(Client::new(&sender))));
+        *s = Some(Puppeteer::new(Box::new(Client::new(sender))));
     }
 
     s.as_mut().unwrap()
