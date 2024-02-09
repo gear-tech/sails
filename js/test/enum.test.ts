@@ -1,37 +1,33 @@
-import { parseSailsIdl } from '../src';
+import { Sails } from '../lib';
+
+let sails: Sails;
+
+beforeAll(async () => {
+  sails = await Sails.new();
+});
 
 describe('enum', () => {
   test('simple enum', () => {
-    const text = `type SimpleEnum = enum {
+    const idl = `type SimpleEnum = enum {
         One,
         Two,
         Three,
-    }`;
+    };
+    
+    service {}`;
 
-    const result = parseSailsIdl(text);
+    sails.parseIdl(idl);
 
-    expect(result.types).toHaveLength(1);
-
-    expect(result.types[0]).toEqual({
-      def: {
-        variants: [
-          {
-            name: 'One',
-          },
-          {
-            name: 'Two',
-          },
-          {
-            name: 'Three',
-          },
-        ],
-      },
-      kind: 'enum',
-      type: {
-        kind: 'simple',
-        name: 'SimpleEnum',
-      },
+    expect(sails.scaleCodecTypes).toEqual({
+      SimpleEnum: { _enum: ['One', 'Two', 'Three'] },
     });
+
+    expect(sails.registry.createType('SimpleEnum', 'One').toU8a()[0]).toBe(0);
+    expect(sails.registry.createType('SimpleEnum', 'One').toJSON()).toEqual('One');
+    expect(sails.registry.createType('SimpleEnum', 'Two').toU8a()[0]).toBe(1);
+    expect(sails.registry.createType('SimpleEnum', 'Two').toJSON()).toEqual('Two');
+    expect(sails.registry.createType('SimpleEnum', 'Three').toU8a()[0]).toBe(2);
+    expect(sails.registry.createType('SimpleEnum', 'Three').toJSON()).toEqual('Three');
   });
 
   test('complex enum', () => {
@@ -40,75 +36,55 @@ describe('enum', () => {
         Two: u32,
         Three: opt vec u8,
         Four: struct { a: u32, b: opt u16 },
-        Five: struct { string, u32 },
-        Six: struct { u32 },
-    }`;
+        Five: struct { str, u32 },
+        Six: [map (str, u32), 3],
+    };
+    
+    service {}`;
 
-    const result = parseSailsIdl(text);
+    const result = sails.parseIdl(text);
 
-    expect(result.types).toHaveLength(1);
-
-    expect(result.types[0].kind).toBe('enum');
-    expect(result.types[0].type).toEqual({ name: 'ComplexEnum', kind: 'simple' });
-
-    expect(result.types[0].def.variants).toHaveLength(6);
-
-    expect(result.types[0].def.variants).toEqual([
-      { name: 'One' },
-      { name: 'Two', type: { kind: 'typeName', def: { kind: 'simple', name: 'u32' } } },
-      {
-        name: 'Three',
-        type: {
-          kind: 'option',
-          def: {
-            kind: 'vec',
-            def: {
-              kind: 'typeName',
-              def: { kind: 'simple', name: 'u8' },
-            },
-          },
+    expect(result.scaleCodecTypes).toEqual({
+      ComplexEnum: {
+        _enum: {
+          One: 'Null',
+          Two: 'u32',
+          Three: 'Option<Vec<u8>>',
+          Four: { a: 'u32', b: 'Option<u16>' },
+          Five: '(String, u32)',
+          Six: '[BTreeMap<String, u32>; 3]',
         },
       },
-      {
-        name: 'Four',
-        type: {
-          kind: 'struct',
-          def: {
-            fields: [
-              { name: 'a', type: { kind: 'typeName', def: { kind: 'simple', name: 'u32' } } },
-              {
-                name: 'b',
-                type: {
-                  kind: 'option',
-                  def: {
-                    kind: 'typeName',
-                    def: { kind: 'simple', name: 'u16' },
-                  },
-                },
-              },
-            ],
-          },
-        },
-      },
-      {
-        name: 'Five',
-        type: {
-          kind: 'tuple',
-          def: {
-            fields: [
-              { kind: 'typeName', def: { kind: 'simple', name: 'string' } },
-              {
-                kind: 'typeName',
-                def: { kind: 'simple', name: 'u32' },
-              },
-            ],
-          },
-        },
-      },
-      {
-        name: 'Six',
-        type: { kind: 'tuple', def: { fields: [{ kind: 'typeName', def: { kind: 'simple', name: 'u32' } }] } },
-      },
-    ]);
+    });
+
+    expect(result.registry.createType('ComplexEnum', 'One').toU8a()[0]).toBe(0);
+    expect(result.registry.createType('ComplexEnum', 'One').toJSON()).toEqual({ one: null });
+    expect(result.registry.createType('ComplexEnum', { Two: 123 }).toU8a()[0]).toBe(1);
+    expect(result.registry.createType('ComplexEnum', { Two: 123 }).toJSON()).toEqual({
+      two: 123,
+    });
+    expect(result.registry.createType('ComplexEnum', { Three: null }).toU8a()[0]).toBe(2);
+    expect(result.registry.createType('ComplexEnum', { Three: null }).toJSON()).toEqual({
+      three: null,
+    });
+    expect(result.registry.createType('ComplexEnum', { Three: [1, 2, 3] }).toU8a()[0]).toBe(2);
+    expect(result.registry.createType('ComplexEnum', { Three: '0x1234' }).toJSON()).toEqual({
+      three: '0x1234',
+    });
+    expect(result.registry.createType('ComplexEnum', { Four: { a: 123, b: null } }).toU8a()[0]).toBe(3);
+    expect(result.registry.createType('ComplexEnum', { Four: { a: 123, b: null } }).toJSON()).toEqual({
+      four: { a: 123, b: null },
+    });
+    expect(result.registry.createType('ComplexEnum', { Four: { a: 123, b: 456 } }).toU8a()[0]).toBe(3);
+    expect(result.registry.createType('ComplexEnum', { Four: { a: 123, b: 456 } }).toJSON()).toEqual({
+      four: { a: 123, b: 456 },
+    });
+    expect(result.registry.createType('ComplexEnum', { Five: ['abc', 123] }).toU8a()[0]).toBe(4);
+    expect(result.registry.createType('ComplexEnum', { Five: ['abc', 123] }).toJSON()).toEqual({
+      five: ['abc', 123],
+    });
+    expect(
+      result.registry.createType('ComplexEnum', { Six: [{ foo: 1 }, { bar: 2 }, { foobar: 3 }] }).toJSON(),
+    ).toEqual({ six: [{ foo: 1 }, { bar: 2 }, { foobar: 3 }] });
   });
 });

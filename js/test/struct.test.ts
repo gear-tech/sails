@@ -1,339 +1,210 @@
-import { parseSailsIdl } from '../src';
+import { Sails } from '../lib';
+
+let sails: Sails;
+
+beforeAll(async () => {
+  sails = await Sails.new();
+});
 
 describe('struct', () => {
   test('simple struct', () => {
     const text = `type SimpleStruct = struct {
-        a: string,
+        a: str,
         b: u32,
-      }
-    `;
-    const result = parseSailsIdl(text);
+      };
 
-    expect(result).toEqual({
-      services: [],
-      types: [
-        {
-          def: {
-            fields: [
-              {
-                type: {
-                  def: {
-                    kind: 'simple',
-                    name: 'string',
-                  },
-                  kind: 'typeName',
-                },
-                name: 'a',
-              },
-              {
-                type: {
-                  def: {
-                    kind: 'simple',
-                    name: 'u32',
-                  },
-                  kind: 'typeName',
-                },
-                name: 'b',
-              },
-            ],
-          },
-          kind: 'struct',
-          type: {
-            kind: 'simple',
-            name: 'SimpleStruct',
-          },
-        },
-      ],
+      service {}
+    `;
+    const result = sails.parseIdl(text);
+
+    expect(result.scaleCodecTypes).toEqual({
+      SimpleStruct: {
+        a: 'String',
+        b: 'u32',
+      },
+    });
+
+    expect(result.functions).toEqual({});
+
+    const encoded = result.registry.createType('SimpleStruct', { a: 'hello', b: 123 });
+
+    expect(encoded.toJSON()).toEqual({
+      a: 'hello',
+      b: 123,
     });
   });
 
   test('struct with option', () => {
     const text = `type StructWithOption = struct {
-        a: opt string,
+        a: opt str,
         b: u32,
-      }
-    `;
-    const result = parseSailsIdl(text);
+      };
 
-    expect(result).toEqual({
-      services: [],
-      types: [
-        {
-          def: {
-            fields: [
-              {
-                type: {
-                  def: {
-                    def: {
-                      kind: 'simple',
-                      name: 'string',
-                    },
-                    kind: 'typeName',
-                  },
-                  kind: 'option',
-                },
-                name: 'a',
-              },
-              {
-                type: {
-                  def: {
-                    kind: 'simple',
-                    name: 'u32',
-                  },
-                  kind: 'typeName',
-                },
-                name: 'b',
-              },
-            ],
-          },
-          kind: 'struct',
-          type: {
-            kind: 'simple',
-            name: 'StructWithOption',
-          },
-        },
-      ],
+      service {}
+    `;
+    const result = sails.parseIdl(text);
+
+    expect(result.scaleCodecTypes).toEqual({
+      StructWithOption: {
+        a: 'Option<String>',
+        b: 'u32',
+      },
+    });
+    expect(result.functions).toEqual({});
+
+    let encoded = result.registry.createType('StructWithOption', { a: 'hello', b: 123 });
+
+    expect(encoded.toJSON()).toEqual({
+      a: 'hello',
+      b: 123,
+    });
+
+    encoded = result.registry.createType('StructWithOption', { a: null, b: 123 });
+
+    expect(encoded.toJSON()).toEqual({
+      a: null,
+      b: 123,
     });
   });
 
   test('struct with result', () => {
     const text = `type StructWithResult = struct {
-        a: result (string, u32),
+        a: result (str, u32),
         b: u32,
-      }
-    `;
-    const result = parseSailsIdl(text);
+      };
 
-    expect(result).toEqual({
-      services: [],
-      types: [
-        {
-          def: {
-            fields: [
-              {
-                type: {
-                  def: {
-                    ok: {
-                      def: {
-                        kind: 'simple',
-                        name: 'string',
-                      },
-                      kind: 'typeName',
-                    },
-                    err: {
-                      def: {
-                        kind: 'simple',
-                        name: 'u32',
-                      },
-                      kind: 'typeName',
-                    },
-                  },
-                  kind: 'result',
-                },
-                name: 'a',
-              },
-              {
-                type: {
-                  def: {
-                    kind: 'simple',
-                    name: 'u32',
-                  },
-                  kind: 'typeName',
-                },
-                name: 'b',
-              },
-            ],
-          },
-          kind: 'struct',
-          type: {
-            kind: 'simple',
-            name: 'StructWithResult',
-          },
-        },
-      ],
+      service {}
+    `;
+    const result = sails.parseIdl(text);
+
+    expect(result.scaleCodecTypes).toEqual({
+      StructWithResult: {
+        a: 'Result<String, u32>',
+        b: 'u32',
+      },
+    });
+
+    expect(result.functions).toEqual({});
+
+    let encoded = result.registry.createType('StructWithResult', { a: { ok: 'hello' }, b: 123 });
+
+    expect(encoded.toJSON()).toEqual({
+      a: { ok: 'hello' },
+      b: 123,
+    });
+
+    encoded = result.registry.createType('StructWithResult', { a: { err: 123 }, b: 123 });
+
+    expect(encoded.toJSON()).toEqual({
+      a: { err: 123 },
+      b: 123,
     });
   });
 
   test('struct with tuple', () => {
     const text = `type StructWithTuple = struct {
-      a: struct { string, u32 },
+      a: struct { str, u32 },
       b: u32
-    }`;
+    };
+    
+    service {}`;
 
-    const result = parseSailsIdl(text);
+    const result = sails.parseIdl(text);
 
-    expect(result).toEqual({
-      services: [],
-      types: [
-        {
-          def: {
-            fields: [
-              {
-                type: {
-                  def: {
-                    fields: [
-                      {
-                        def: {
-                          kind: 'simple',
-                          name: 'string',
-                        },
-                        kind: 'typeName',
-                      },
-                      {
-                        def: {
-                          kind: 'simple',
-                          name: 'u32',
-                        },
-                        kind: 'typeName',
-                      },
-                    ],
-                  },
-                  kind: 'tuple',
-                },
-                name: 'a',
-              },
-              {
-                type: {
-                  def: {
-                    kind: 'simple',
-                    name: 'u32',
-                  },
-                  kind: 'typeName',
-                },
-                name: 'b',
-              },
-            ],
-          },
-          kind: 'struct',
-          type: {
-            kind: 'simple',
-            name: 'StructWithTuple',
-          },
-        },
-      ],
+    expect(result.scaleCodecTypes).toEqual({
+      StructWithTuple: {
+        a: '(String, u32)',
+        b: 'u32',
+      },
+    });
+
+    expect(result.functions).toEqual({});
+
+    let encoded = result.registry.createType('StructWithTuple', { a: ['hello', 123], b: 123 });
+    expect(encoded.toJSON()).toEqual({
+      a: ['hello', 123],
+      b: 123,
     });
   });
 
   test('struct with vec', () => {
     const text = `type StructWithVec = struct {
-      a: vec string,
+      a: vec str,
       b: u32
-    }`;
+    };
 
-    const result = parseSailsIdl(text);
+    service {}`;
 
-    expect(result.types).toHaveLength(1);
-    expect(result.types[0].kind).toBe('struct');
+    const result = sails.parseIdl(text);
 
-    expect(result.types[0]).toEqual({
-      def: {
-        fields: [
-          {
-            type: {
-              def: {
-                def: {
-                  kind: 'simple',
-                  name: 'string',
-                },
-                kind: 'typeName',
-              },
-              kind: 'vec',
-            },
-            name: 'a',
-          },
-          {
-            type: {
-              def: {
-                kind: 'simple',
-                name: 'u32',
-              },
-              kind: 'typeName',
-            },
-            name: 'b',
-          },
-        ],
+    expect(result.scaleCodecTypes).toEqual({
+      StructWithVec: {
+        a: 'Vec<String>',
+        b: 'u32',
       },
-      kind: 'struct',
-      type: {
-        kind: 'simple',
-        name: 'StructWithVec',
-      },
+    });
+
+    expect(result.functions).toEqual({});
+
+    let encoded = result.registry.createType('StructWithVec', { a: ['hello', 'world'], b: 123 });
+
+    expect(encoded.toJSON()).toEqual({
+      a: ['hello', 'world'],
+      b: 123,
     });
   });
 
-  test('generic struct', () => {
-    const text = `type GenericStruct<u32, opt result (vec u8, struct { u8, u32 })> = struct {
-      a: u32,
-      b: opt result (vec u8, struct { u8, u32 })
-    }`;
+  test('struct with fixed size array', () => {
+    const text = `type StructWithArray = struct {
+      a: [u32, 3],
+      b: u32
+    };
 
-    const result = parseSailsIdl(text);
+    service {}`;
 
-    expect(result.types[0].kind).toBe('struct');
+    const result = sails.parseIdl(text);
 
-    expect(result.types[0].type).toEqual({
-      generic: [
-        { def: { kind: 'simple', name: 'u32' }, kind: 'typeName' },
-        {
-          def: {
-            def: {
-              ok: {
-                def: {
-                  def: { name: 'u8', kind: 'simple' },
-                  kind: 'typeName',
-                },
-                kind: 'vec',
-              },
-              err: {
-                def: {
-                  fields: [
-                    { def: { name: 'u8', kind: 'simple' }, kind: 'typeName' },
-                    { def: { name: 'u32', kind: 'simple' }, kind: 'typeName' },
-                  ],
-                },
-                kind: 'tuple',
-              },
-            },
-            kind: 'result',
-          },
-          kind: 'option',
-        },
-      ],
-      kind: 'generic',
-      name: 'GenericStruct',
+    expect(result.scaleCodecTypes).toEqual({
+      StructWithArray: {
+        a: '[u32; 3]',
+        b: 'u32',
+      },
     });
 
-    expect(result.types[0].def).toEqual({
-      fields: [
-        { name: 'a', type: { kind: 'typeName', def: { kind: 'simple', name: 'u32' } } },
-        {
-          name: 'b',
-          type: {
-            def: {
-              def: {
-                ok: {
-                  def: {
-                    def: { name: 'u8', kind: 'simple' },
-                    kind: 'typeName',
-                  },
-                  kind: 'vec',
-                },
-                err: {
-                  def: {
-                    fields: [
-                      { def: { name: 'u8', kind: 'simple' }, kind: 'typeName' },
-                      { def: { name: 'u32', kind: 'simple' }, kind: 'typeName' },
-                    ],
-                  },
-                  kind: 'tuple',
-                },
-              },
-              kind: 'result',
-            },
-            kind: 'option',
-          },
-        },
-      ],
+    expect(result.functions).toEqual({});
+
+    let encoded = result.registry.createType('StructWithArray', { a: [1, 2, 3], b: 123 });
+
+    expect(encoded.toJSON()).toEqual({
+      a: [1, 2, 3],
+      b: 123,
+    });
+  });
+
+  test('struct with map', () => {
+    const text = `type StructWithMap = struct {
+      a: map (str, u32),
+      b: u32
+    };
+
+    service {}`;
+
+    const result = sails.parseIdl(text);
+
+    expect(result.scaleCodecTypes).toEqual({
+      StructWithMap: {
+        a: 'BTreeMap<String, u32>',
+        b: 'u32',
+      },
+    });
+
+    expect(result.functions).toEqual({});
+
+    let encoded = result.registry.createType('StructWithMap', { a: { foo: 123, bar: 456 }, b: 123 });
+
+    expect(encoded.toJSON()).toEqual({
+      a: { foo: 123, bar: 456 },
+      b: 123,
     });
   });
 });

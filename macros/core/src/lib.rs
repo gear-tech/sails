@@ -100,7 +100,8 @@ mod tests {
                         let output = this(service, &input[invocation_path.len()..]).await;
                         return [invocation_path, output].concat();
                     }
-                    panic!("Unknown request");
+                    let invocation_path = String::decode(&mut input).expect("Failed to decode invocation path");
+                    panic!("Unknown request: {}", invocation_path);
                 }
 
                 async fn do_this(service: &mut SomeService, mut input: &[u8]) -> Vec<u8> {
@@ -175,7 +176,9 @@ mod tests {
                         let output = do_this(service, &input[invocation_path.len()..]).await;
                         return [invocation_path, output].concat();
                     }
-                    panic!("Unknown request");
+                    let invocation_path =
+                        String::decode(&mut input).expect("Failed to decode invocation path");
+                    panic!("Unknown request: {}", invocation_path);
                 }
 
                 async fn do_this<'a, 'b, T>(

@@ -1,26 +1,24 @@
+import { fileURLToPath } from 'url';
 import { cpSync } from 'fs';
 import path from 'path';
 
 import { ServiceGenerator } from './service-gen.js';
-import { IType, IService } from '../types/index.js';
 import { TypesGenerator } from './types-gen.js';
 import { Output } from './output.js';
-import { fileURLToPath } from 'url';
+import { Sails } from '../sails.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-export function generate(definition: { types: IType[]; services: IService[] }, outDir: string) {
+export function generate(sails: Sails, outDir: string) {
   const out = new Output();
-  const typesGen = new TypesGenerator(out);
-  const serviceGen = new ServiceGenerator(out);
 
-  typesGen.prepare(definition.types);
-  typesGen.generate(definition.types);
+  const typesGen = new TypesGenerator(out, sails.program);
+  typesGen.generate();
 
-  for (const service of definition.services) {
-    serviceGen.generate(service, typesGen.scaleTypes);
-  }
+  const serviceGen = new ServiceGenerator(out, sails.program, sails.scaleCodecTypes);
+
+  serviceGen.generate();
 
   out.save(path.join(outDir, 'lib.ts'));
 

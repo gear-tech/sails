@@ -1,6 +1,10 @@
 .binpath
 .DS_Store
 .vscode
+.vscode
 js/lib/
+js/parser.wasm
+js/test/lib.ts
+js/test/transaction.ts
 node_modules/
 target/
