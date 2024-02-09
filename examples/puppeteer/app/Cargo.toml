@@ -10,3 +10,6 @@ sails-macros.workspace = true
 sails-sender.workspace = true
 sails-service-meta.workspace = true
 scale-info = { workspace = true, features = ["derive"] }
+
+[build-dependencies]
+sails-clientgen.workspace = true

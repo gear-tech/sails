@@ -21,11 +21,27 @@ impl GStdSender {
     }
 }
 
-pub struct Call<R: Decode + Debug> {
+impl GStdSender {
+    pub fn send(
+        &self,
+        address: ActorId,
+        payload: Vec<u8>,
+        value: u128,
+        reply_deposit: u64,
+    ) -> Result<MessageFuture, GStdError> {
+        let future = gstd::msg::send_bytes_for_reply(address, payload, value, reply_deposit)?;
+
+        Ok(future)
+    }
+}
+
+pub struct Call<'a, R: Decode + Debug> {
     /// serialized method and args
     payload: Vec<u8>,
     /// optional args
     send_args: SendArgs,
+    /// the client to send the message
+    sender: &'a GStdSender,
     /// silence the compiler
     _marker: PhantomData<R>,
 }
@@ -49,8 +65,8 @@ impl From<GStdError> for SendError {
     }
 }
 
-impl<R: Decode + Debug> Call<R> {
-    pub fn new<T: Encode + Debug>(method: &str, args: T) -> Self {
+impl<'a, R: Decode + Debug> Call<'a, R> {
+    pub fn new<T: Encode + Debug>(method: &str, args: T, client: &'a GStdSender) -> Self {
         let capacity = method.len() + 1 + args.encoded_size();
         let mut payload = Vec::with_capacity(capacity);
         payload.extend_from_slice(method.as_bytes());
@@ -61,6 +77,7 @@ impl<R: Decode + Debug> Call<R> {
         Self {
             payload,
             send_args: SendArgs::default(),
+            sender: client,
             _marker: PhantomData,
         }
     }
@@ -76,7 +93,7 @@ impl<R: Decode + Debug> Call<R> {
     }
 
     pub async fn send(self, address: ActorId) -> Result<CallTicket<R>, SendError> {
-        let future = gstd::msg::send_bytes_for_reply(
+        let future = self.sender.send(
             address,
             self.payload,
             self.send_args.value,

@@ -3419,6 +3419,7 @@ version = "0.1.0"
 dependencies = [
  "gstd",
  "parity-scale-codec",
+ "sails-clientgen",
  "sails-macros",
  "sails-sender",
  "sails-service-meta",
@@ -3432,7 +3433,6 @@ dependencies = [
  "gear-wasm-builder",
  "gstd",
  "puppeteer-app",
- "sails-clientgen",
  "sails-idlgen",
  "sails-sender",
  "this-that-svc-app",
