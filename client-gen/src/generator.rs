@@ -4,24 +4,16 @@ use sails_idlparser::ast::*;
 use sails_idlparser::{ast::visitor, ast::visitor::Visitor};
 use std::io::Write;
 
-pub struct IdlClientGenerator;
+pub fn generate(program: Program) -> Result<String> {
+    let mut trait_generator = RootGenerator::new("Service");
+    visitor::accept_program(&program, &mut trait_generator);
 
-impl IdlClientGenerator {
-    pub fn new() -> Self {
-        Self
-    }
+    let code = trait_generator.code;
 
-    pub fn generate(self, program: Program) -> Result<String> {
-        let mut trait_generator = RootGenerator::new("Service");
-        visitor::accept_program(&program, &mut trait_generator);
+    // Check for parsing errors
+    let code = pretty_with_rustfmt(&code);
 
-        let code = trait_generator.code;
-
-        // Check for parsing errors
-        let code = pretty_with_rustfmt(&code);
-
-        Ok(code)
-    }
+    Ok(code)
 }
 
 // not using prettyplease since it's bad at reporting syntax errors and also removes comments
@@ -440,8 +432,7 @@ mod tests {
         ";
 
         let program = sails_idlparser::ast::parse_idl(idl).expect("parse IDL");
-        let generator = IdlClientGenerator::new();
 
-        insta::assert_snapshot!(generator.generate(program).unwrap());
+        insta::assert_snapshot!(generate(program).unwrap());
     }
 }

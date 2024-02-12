@@ -1,7 +1,6 @@
 mod generator;
 
 use anyhow::{Context, Result};
-use generator::*;
 use std::{fs, path::Path};
 
 pub fn generate_client_from_idl(idl_path: &Path, out_path: &Path) -> Result<()> {
@@ -16,10 +15,7 @@ pub fn generate_client_from_idl(idl_path: &Path, out_path: &Path) -> Result<()> 
         }
     };
 
-    let builder = IdlClientGenerator::new();
-    let buf = builder
-        .generate(program)
-        .context("failed to generate client")?;
+    let buf = generator::generate(program).context("failed to generate client")?;
 
     fs::write(out_path, buf)
         .with_context(|| format!("Failed to write generated client to {}", out_path.display()))?;
@@ -64,9 +60,7 @@ mod tests {
         "#;
         let program = sails_idlparser::ast::parse_idl(IDL).expect("parse IDL");
 
-        let generator = IdlClientGenerator::new();
-
-        let generated = generator.generate(program).unwrap();
+        let generated = generator::generate(program).unwrap();
 
         dbg!(&generated);
 
