@@ -36,6 +36,15 @@ fn pretty_with_rustfmt(code: &str) -> String {
     let output = child
         .wait_with_output()
         .expect("Failed to wait for rustfmt");
+
+    if !output.status.success() {
+        panic!(
+            "rustfmt failed with status: {}\n{}",
+            output.status,
+            String::from_utf8(output.stderr).expect("Failed to read rustfmt stderr")
+        );
+    }
+
     String::from_utf8(output.stdout).expect("Failed to read rustfmt output")
 }
 
@@ -400,7 +409,7 @@ impl<'ast> Visitor<'ast> for TypeDeclGenerator {
     fn visit_array_type_decl(&mut self, item_type_decl: &'ast TypeDecl, len: u32) {
         self.code.push('[');
         visitor::accept_type_decl(item_type_decl, self);
-        self.code.push_str(&format!("; {len}"));
+        self.code.push_str(&format!("; {len}]"));
     }
 }
 
@@ -409,7 +418,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn process_file_works() {
+    fn test_basic_works() {
         let idl = r"
             service {
                 DoThis: (p1: u32, p2: MyParam) -> u16;
@@ -430,6 +439,15 @@ mod tests {
                 Variant5: struct { f1: str, f2: vec u8 },
             };
         ";
+
+        let program = sails_idlparser::ast::parse_idl(idl).expect("parse IDL");
+
+        insta::assert_snapshot!(generate(program).unwrap());
+    }
+
+    #[test]
+    fn test_rmrk_works() {
+        let idl = include_str!("../../examples/rmrk/catalog/wasm/rmrk-catalog.idl");
 
         let program = sails_idlparser::ast::parse_idl(idl).expect("parse IDL");
 
