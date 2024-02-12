@@ -62,6 +62,8 @@ impl<'a> RootGenerator<'a> {
         code.push_str("use parity_scale_codec::{Encode, Decode};\n");
         code.push_str("use sails_sender::{Call, GStdSender};\n");
         code.push_str("use gstd::prelude::*;\n");
+        code.push_str("#[allow(unused_imports)]\n");
+        code.push_str("use gstd::collections::BTreeMap;\n");
 
         Self { service_name, code }
     }
@@ -399,7 +401,7 @@ impl<'ast> Visitor<'ast> for TypeDeclGenerator {
         key_type_decl: &'ast TypeDecl,
         value_type_decl: &'ast TypeDecl,
     ) {
-        self.code.push_str("HashMap<");
+        self.code.push_str("BTreeMap<");
         visitor::accept_type_decl(key_type_decl, self);
         self.code.push_str(", ");
         visitor::accept_type_decl(value_type_decl, self);
