@@ -37,6 +37,8 @@ impl GStdSender {
 pub struct Call<'a, R: Decode + Debug> {
     /// serialized method and args
     payload: Vec<u8>,
+    /// method to verify we received the correct response
+    method: String,
     /// optional args
     send_args: SendArgs,
     /// the client to send the message
@@ -74,6 +76,7 @@ impl<'a, R: Decode + Debug> Call<'a, R> {
 
         Self {
             payload,
+            method: method.to_string(),
             send_args: SendArgs::default(),
             sender,
             _marker: PhantomData,
@@ -100,6 +103,7 @@ impl<'a, R: Decode + Debug> Call<'a, R> {
 
         Ok(CallTicket {
             f: future,
+            method: self.method,
             _marker: PhantomData,
         })
     }
@@ -110,17 +114,36 @@ impl<'a, R: Decode + Debug> Call<'a, R> {
 }
 
 pub struct CallTicket<R: Decode + Debug> {
-    // message we are waiting on
+    /// message we are waiting on
     f: MessageFuture,
-    // silence the compiler
+    /// method
+    method: String,
+    /// silence the compiler
     _marker: PhantomData<R>,
 }
 
 impl<R: Decode + Debug> CallTicket<R> {
     pub async fn response(self) -> Result<R, GStdError> {
         let payload = self.f.await?;
+        Self::decode_response(self.method, payload)
+    }
 
-        R::decode(&mut payload.as_ref()).map_err(GStdError::Decode)
+    fn decode_response(method: String, payload: Vec<u8>) -> Result<R, GStdError> {
+        let encoded = method.encode();
+
+        if payload.len() < encoded.len() {
+            return Err(GStdError::Decode(ParseError::from("response too short")));
+        }
+
+        if payload[..encoded.len()] != encoded {
+            return Err(GStdError::Decode(ParseError::from(
+                "unexpected response method",
+            )));
+        }
+
+        let mut args = &payload[encoded.len()..];
+
+        R::decode(&mut args).map_err(GStdError::Decode)
     }
 
     pub fn message_id(&self) -> MessageId {
@@ -137,5 +160,32 @@ mod tests {
         let call: Call<()> = Call::new(&sender, "AAAA", "BBBB");
         let bytes = call.into_bytes();
         assert_eq!(bytes, vec![16, 65, 65, 65, 65, 16, 66, 66, 66, 66]);
+
+        assert_eq!(
+            CallTicket::decode_response("AAAA".to_string(), bytes),
+            Ok("BBBB".to_string())
+        );
+    }
+
+    #[test]
+    fn test_wrong_response_method() {
+        let bytes = vec![16, 66, 66, 66, 66, 16, 66, 66, 66, 66];
+
+        assert_eq!(
+            CallTicket::<String>::decode_response("AAAA".to_string(), bytes),
+            Err(GStdError::Decode(ParseError::from(
+                "unexpected response method"
+            )))
+        );
+    }
+
+    #[test]
+    fn test_short_response() {
+        let bytes = vec![];
+
+        assert_eq!(
+            CallTicket::<String>::decode_response("AAAA".to_string(), bytes),
+            Err(GStdError::Decode(ParseError::from("response too short")))
+        );
     }
 }
