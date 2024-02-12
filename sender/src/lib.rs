@@ -66,7 +66,7 @@ impl From<GStdError> for SendError {
 
 impl<'a, R: Decode + Debug> Call<'a, R> {
     pub fn new<T: Encode + Debug>(sender: &'a GStdSender, method: &str, args: T) -> Self {
-        let capacity = method.len() + 1 + args.encoded_size();
+        let capacity = method.encoded_size() + args.encoded_size();
         let mut payload = Vec::with_capacity(capacity);
 
         method.encode_to(&mut payload);
