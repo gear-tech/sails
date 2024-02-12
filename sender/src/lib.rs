@@ -68,8 +68,8 @@ impl<'a, R: Decode + Debug> Call<'a, R> {
     pub fn new<T: Encode + Debug>(sender: &'a GStdSender, method: &str, args: T) -> Self {
         let capacity = method.len() + 1 + args.encoded_size();
         let mut payload = Vec::with_capacity(capacity);
-        payload.extend_from_slice(method.as_bytes());
 
+        method.encode_to(&mut payload);
         args.encode_to(&mut payload);
 
         Self {
@@ -125,5 +125,17 @@ impl<R: Decode + Debug> CallTicket<R> {
 
     pub fn message_id(&self) -> MessageId {
         self.f.waiting_reply_to
+    }
+}
+
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_request_encoding() {
+        let sender = GStdSender::new();
+        let call: Call<()> = Call::new(&sender, "AAAA", "BBBB");
+        let bytes = call.into_bytes();
+        assert_eq!(bytes, vec![16, 65, 65, 65, 65, 16, 66, 66, 66, 66]);
     }
 }
