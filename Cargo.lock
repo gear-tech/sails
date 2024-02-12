@@ -3364,7 +3364,6 @@ dependencies = [
  "puppeteer-app",
  "sails-idlgen",
  "sails-sender",
- "this-that-svc-app",
 ]
 
 [[package]]

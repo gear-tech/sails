@@ -1,6 +1,5 @@
 #![no_std]
 
-use codec::Output;
 use core::fmt::Debug;
 use core::marker::PhantomData;
 use gstd::{errors::Error as GStdError, msg::MessageFuture, prelude::*, ActorId, MessageId};
@@ -49,13 +48,13 @@ pub struct Call<'a, R: Decode + Debug> {
 #[non_exhaustive]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum SendError {
-    Parse(ParseError),
+    Parser(ParseError),
     Sender(GStdError),
 }
 
 impl From<ParseError> for SendError {
     fn from(e: ParseError) -> Self {
-        Self::Parse(e)
+        Self::Parser(e)
     }
 }
 
@@ -66,18 +65,17 @@ impl From<GStdError> for SendError {
 }
 
 impl<'a, R: Decode + Debug> Call<'a, R> {
-    pub fn new<T: Encode + Debug>(method: &str, args: T, client: &'a GStdSender) -> Self {
+    pub fn new<T: Encode + Debug>(sender: &'a GStdSender, method: &str, args: T) -> Self {
         let capacity = method.len() + 1 + args.encoded_size();
         let mut payload = Vec::with_capacity(capacity);
         payload.extend_from_slice(method.as_bytes());
-        payload.push_byte(b'/');
 
         args.encode_to(&mut payload);
 
         Self {
             payload,
             send_args: SendArgs::default(),
-            sender: client,
+            sender,
             _marker: PhantomData,
         }
     }

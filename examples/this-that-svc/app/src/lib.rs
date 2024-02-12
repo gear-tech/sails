@@ -40,7 +40,6 @@ impl MyService {
 }
 
 #[derive(Debug, Decode, TypeInfo)]
-#[allow(unused)]
 pub struct TupleStruct(bool);
 
 #[derive(Debug, Decode, TypeInfo)]

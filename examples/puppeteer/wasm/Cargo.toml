@@ -12,4 +12,3 @@ puppeteer-app = { path = "../app" }
 gwasm-builder.workspace = true
 sails-idlgen.workspace = true
 puppeteer-app = { path = "../app" }
-this-that-svc-app = { path = "../../this-that-svc/app" }

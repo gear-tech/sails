@@ -11,4 +11,4 @@ convert-case.workspace = true
 sails-idlparser.workspace = true
 
 [dev-dependencies]
-insta = "1.34.0"
+insta.workspace = true

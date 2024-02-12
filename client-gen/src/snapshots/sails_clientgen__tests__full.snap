@@ -41,19 +41,19 @@ impl<'a> Service for Client<'a> {
         p3: (Option<String>, u8),
         p4: ThisThatSvcAppTupleStruct,
     ) -> Call<(String, u32)> {
-        Call::new("DoThis", (p1, p2, p3, p4), self.sender)
+        Call::new(self.sender, "DoThis", (p1, p2, p3, p4))
     }
     fn do_that(
         &mut self,
         param: ThisThatSvcAppDoThatParam,
     ) -> Call<Result<(String, u32), (String,)>> {
-        Call::new("DoThat", param, self.sender)
+        Call::new(self.sender, "DoThat", param)
     }
     fn this(&self, v1: Vec<u16>) -> Call<u32> {
-        Call::new("This", v1, self.sender)
+        Call::new(self.sender, "This", v1)
     }
     fn that(&self, v1: ()) -> Call<Result<String, String>> {
-        Call::new("That", v1, self.sender)
+        Call::new(self.sender, "That", v1)
     }
 }
 #[derive(PartialEq, Debug, Encode, Decode)]

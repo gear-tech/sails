@@ -162,22 +162,22 @@ impl<'ast> Visitor<'ast> for ClientGenerator {
 
     fn visit_func(&mut self, func: &'ast Func) {
         let mutability = if func.is_query() { "" } else { "mut" };
-        let fn_name = func.name().to_case(Case::Snake);
+        let fn_name = func.name();
 
-        self.code
-            .push_str(&format!("fn {}(&{} self,", fn_name, mutability));
+        self.code.push_str(&format!(
+            "fn {}(&{} self,",
+            fn_name.to_case(Case::Snake),
+            mutability
+        ));
 
         visitor::accept_func(func, self);
 
         self.code.push_str("{\n");
 
-        let method_name = func.name().to_case(Case::Pascal);
-
         let args = encoded_args(func.params());
 
-        self.code.push_str(&format!(
-            "Call::new(\"{method_name}\", {args}, self.sender)"
-        ));
+        self.code
+            .push_str(&format!("Call::new(self.sender, \"{fn_name}\", {args})"));
 
         self.code.push_str("}\n");
     }
