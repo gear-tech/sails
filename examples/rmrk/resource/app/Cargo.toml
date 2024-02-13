@@ -8,8 +8,10 @@ gstd.workspace = true
 parity-scale-codec = { workspace = true, features = ["derive"] }
 sails-exec-context-abstractions.workspace = true
 sails-macros.workspace = true
+sails-sender.workspace = true
 sails-service-meta.workspace = true
 scale-info = { workspace = true, features = ["derive"] }
 
 [build-dependencies]
 git-download.workspace = true
+sails-clientgen.workspace = true

@@ -1,11 +1,14 @@
 #![no_std]
 
+pub use catalogs::Client as CatalogClientImpl;
+use catalogs::Service as CatalogClient;
 use errors::{Error, Result};
 use gstd::{collections::HashMap, prelude::*, ActorId};
 use resources::{ComposedResource, PartId, Resource, ResourceId};
 use sails_exec_context_abstractions::ExecContext;
 use sails_macros::gservice;
 
+mod catalogs;
 pub mod errors;
 pub mod resources;
 
@@ -18,21 +21,26 @@ struct ResourceStorageData {
     resources: HashMap<ResourceId, Resource>,
 }
 
-pub struct ResourceStorage<TExecContext> {
+pub struct ResourceStorage<TExecContext, TCatalogClient> {
     exec_context: TExecContext,
+    catalog_client: TCatalogClient,
 }
 
 #[gservice]
-impl<TExecContext> ResourceStorage<TExecContext>
+impl<TExecContext, TCatalogClient> ResourceStorage<TExecContext, TCatalogClient>
 where
     TExecContext: ExecContext<ActorId = ActorId>,
+    TCatalogClient: CatalogClient,
 {
-    pub fn new(exec_context: TExecContext) -> Self {
+    pub fn new(exec_context: TExecContext, catalog_client: TCatalogClient) -> Self {
         unsafe {
             RESOURCE_STORAGE_DATA.get_or_insert_with(Default::default);
             RESOURCE_STORAGE_ADMIN.get_or_insert_with(|| *exec_context.actor_id());
         }
-        Self { exec_context }
+        Self {
+            exec_context,
+            catalog_client,
+        }
     }
 
     pub fn add_resource_entry(
@@ -69,17 +77,12 @@ where
             .get_mut(&resource_id)
             .ok_or(Error::ResourceNotFound)?;
 
-        if let Resource::Composed(ComposedResource { base: _, parts, .. }) = resource {
-            // check that part exist in base contract
-            // msg::send_for_reply_as::<_, CatalogReply>(
-            //     *base,
-            //     CatalogAction::CheckPart(part_id),
-            //     0,
-            //     0,
-            // )
-            // .expect("Error in sending async message `[BaseAction::CheckPart]` to base contract")
-            // .await
-            // .expect("Error in async message `[BaseAction::CheckPart]`");
+        if let Resource::Composed(ComposedResource { base, parts, .. }) = resource {
+            let part_call = self.catalog_client.part(part_id).send(*base).await.unwrap();
+            let part_response = part_call.response().await.unwrap();
+            if part_response.is_none() {
+                return Err(Error::PartNotFound);
+            }
             parts.push(part_id);
         } else {
             return Err(Error::WrongResourceType);

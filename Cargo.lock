@@ -3668,6 +3668,7 @@ dependencies = [
  "rmrk-resource-app",
  "sails-exec-context-gstd",
  "sails-idlgen",
+ "sails-sender",
 ]
 
 [[package]]
@@ -3677,8 +3678,10 @@ dependencies = [
  "git-download",
  "gstd",
  "parity-scale-codec",
+ "sails-clientgen",
  "sails-exec-context-abstractions",
  "sails-macros",
+ "sails-sender",
  "sails-service-meta",
  "scale-info",
 ]
