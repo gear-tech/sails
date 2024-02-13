@@ -129,16 +129,15 @@ fn adding_non_existing_part_to_resource_fails() {
     );
 
     // Act
-    let _run_result = fixture.add_part_to_resource(ADMIN_ID, RESOURCE_ID, PART_ID);
+    let run_result = fixture.add_part_to_resource(ADMIN_ID, RESOURCE_ID, PART_ID);
 
     // Assert
-    let _expected_response = [
+    let expected_response = [
         resources::ADD_PART_TO_RESOURCE_FUNC_NAME.encode(),
         (Err(ResourceStorageError::PartNotFound) as ResourceStorageResult<PartId>).encode(),
     ]
     .concat();
-    // The functionality is not implemented yet
-    // assert!(run_result.contains(&(ADMIN_ID, expected_response)));
+    assert!(run_result.contains(&(ADMIN_ID, expected_response)));
 }
 
 struct Fixture<'a> {
