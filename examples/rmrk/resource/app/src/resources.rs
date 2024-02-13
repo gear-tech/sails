@@ -4,14 +4,14 @@ pub type PartId = u32;
 
 pub type ResourceId = u8;
 
-#[derive(Decode, Encode, TypeInfo, Clone, Debug)]
+#[derive(Decode, Encode, TypeInfo, Clone, Debug, PartialEq, Eq)]
 pub enum Resource {
     Basic(BasicResource),
     Slot(SlotResource),
     Composed(ComposedResource),
 }
 
-#[derive(Decode, Encode, TypeInfo, Clone, Debug)]
+#[derive(Decode, Encode, TypeInfo, Clone, Debug, PartialEq, Eq)]
 pub struct BasicResource {
     /// URI like IPFS hash
     pub src: String,
@@ -24,7 +24,7 @@ pub struct BasicResource {
     pub metadata_uri: String,
 }
 
-#[derive(Decode, Encode, TypeInfo, Clone, Debug)]
+#[derive(Decode, Encode, TypeInfo, Clone, Debug, PartialEq, Eq)]
 pub struct ComposedResource {
     /// URI like ipfs hash
     pub src: String,
@@ -43,7 +43,7 @@ pub struct ComposedResource {
     pub parts: Vec<PartId>,
 }
 
-#[derive(Decode, Encode, TypeInfo, Clone, Debug)]
+#[derive(Decode, Encode, TypeInfo, Clone, Debug, PartialEq, Eq)]
 pub struct SlotResource {
     /// URI like ipfs hash
     pub src: String,
