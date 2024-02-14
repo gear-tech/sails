@@ -3638,20 +3638,18 @@ name = "rmrk-catalog"
 version = "0.1.0"
 dependencies = [
  "gear-wasm-builder",
- "gstd",
  "rmrk-catalog-app",
- "sails-exec-context-gstd",
  "sails-idlgen",
+ "sails-rtl-gstd",
 ]
 
 [[package]]
 name = "rmrk-catalog-app"
 version = "0.1.0"
 dependencies = [
- "gstd",
  "parity-scale-codec",
- "sails-exec-context-abstractions",
  "sails-macros",
+ "sails-rtl",
  "sails-service-meta",
  "scale-info",
 ]
@@ -3661,13 +3659,12 @@ name = "rmrk-resource"
 version = "0.1.0"
 dependencies = [
  "gear-wasm-builder",
- "gstd",
  "gtest",
  "rmrk-catalog",
  "rmrk-catalog-app",
  "rmrk-resource-app",
- "sails-exec-context-gstd",
  "sails-idlgen",
+ "sails-rtl-gstd",
  "sails-sender",
 ]
 
@@ -3679,8 +3676,8 @@ dependencies = [
  "gstd",
  "parity-scale-codec",
  "sails-clientgen",
- "sails-exec-context-abstractions",
  "sails-macros",
+ "sails-rtl",
  "sails-sender",
  "sails-service-meta",
  "scale-info",
@@ -3763,18 +3760,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "sails-exec-context-abstractions"
-version = "0.0.1"
-
-[[package]]
-name = "sails-exec-context-gstd"
-version = "0.0.1"
-dependencies = [
- "gstd",
- "sails-exec-context-abstractions",
-]
-
-[[package]]
 name = "sails-idlgen"
 version = "0.0.1"
 dependencies = [
@@ -3821,6 +3806,23 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 2.0.48",
+]
+
+[[package]]
+name = "sails-rtl"
+version = "0.0.1"
+dependencies = [
+ "hashbrown 0.14.3",
+ "parity-scale-codec",
+ "scale-info",
+]
+
+[[package]]
+name = "sails-rtl-gstd"
+version = "0.0.1"
+dependencies = [
+ "gstd",
+ "sails-rtl",
 ]
 
 [[package]]

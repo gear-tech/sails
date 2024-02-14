@@ -1,12 +1,11 @@
 use core::cell::OnceCell;
-use gstd::{ActorId, Decode, Encode};
 use gtest::{Program, RunResult, System};
 use rmrk_catalog_app::parts::{FixedPart, Part};
 use rmrk_resource_app::{
     errors::{Error as ResourceStorageError, Result as ResourceStorageResult},
     resources::{ComposedResource, PartId, Resource, ResourceId},
 };
-use std::collections::BTreeMap;
+use sails_rtl_gstd::{collections::BTreeMap, ActorId, Decode, Encode};
 
 const CATALOG_PROGRAM_WASM_PATH: &str =
     "../../../../target/wasm32-unknown-unknown/debug/rmrk_catalog.wasm";

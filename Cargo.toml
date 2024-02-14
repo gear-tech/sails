@@ -16,12 +16,12 @@ members = [
     "examples/rmrk/resource/wasm",
     "examples/this-that-svc/app",
     "examples/this-that-svc/wasm",
-    "exec-context/abstractions",
-    "exec-context/gstd",
     "idlgen",
     "idlparser",
     "macros",
     "macros/core",
+    "runtimes/gstd",
+    "runtimes/rtl",
     "sender",
     "service-meta",
 ]
@@ -34,6 +34,7 @@ gstd = "1.1.1"
 gtest = "1.1.1"
 gwasm-builder = { package = "gear-wasm-builder", version = "1.1.1" }
 handlebars = "4.4"
+hashbrown = "0.14"
 insta = "1.34"
 itertools = "0.12"
 lalrpop = { version = "0.20", default-features = false }
@@ -45,11 +46,12 @@ proc-macro-error = "1.0"
 proc-macro2 = { version = "1", default-features = false }
 quote = "1.0"
 sails-clientgen = { path = "client-gen" }
-sails-exec-context-abstractions = { path = "exec-context/abstractions" }
 sails-exec-context-gstd = { path = "exec-context/gstd" }
 sails-idlgen = { path = "idlgen" }
 sails-idlparser = { path = "idlparser" }
 sails-macros = { path = "macros" }
+sails-rtl = { path = "runtimes/rtl" }
+sails-rtl-gstd = { path = "runtimes/gstd" }
 sails-sender = { path = "sender" }
 sails-service-meta = { path = "service-meta" }
 scale-info = { version = "2.10", default-features = false }

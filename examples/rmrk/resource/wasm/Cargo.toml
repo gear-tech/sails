@@ -4,10 +4,9 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-gstd.workspace = true
-sails-exec-context-gstd.workspace = true
-sails-sender.workspace = true
 rmrk-resource-app = { path = "../app" }
+sails-rtl-gstd.workspace = true
+sails-sender.workspace = true
 
 [build-dependencies]
 gwasm-builder.workspace = true

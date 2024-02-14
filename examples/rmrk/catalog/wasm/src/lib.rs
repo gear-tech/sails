@@ -1,8 +1,7 @@
 #![no_std]
 
-use gstd::msg;
 use rmrk_catalog_app::{requests, Catalog, CatalogData};
-use sails_exec_context_gstd::GStdExecContext;
+use sails_rtl_gstd::{gstd, gstd::msg, GStdExecContext};
 
 static mut CATALOG_DATA: Option<CatalogData> = None;
 
