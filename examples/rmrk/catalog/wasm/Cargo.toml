@@ -4,9 +4,8 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-gstd.workspace = true
-sails-exec-context-gstd.workspace = true
 rmrk-catalog-app = { path = "../app" }
+sails-rtl-gstd.workspace = true
 
 [build-dependencies]
 gwasm-builder.workspace = true

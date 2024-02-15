@@ -1,0 +1,15 @@
+[package]
+name = "puppeteer-app"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+gstd = { workspace = true, features = ["debug"] }
+parity-scale-codec = { workspace = true, features = ["derive"] }
+sails-macros.workspace = true
+sails-sender.workspace = true
+sails-service-meta.workspace = true
+scale-info = { workspace = true, features = ["derive"] }
+
+[build-dependencies]
+sails-clientgen.workspace = true

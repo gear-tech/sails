@@ -1,112 +1,60 @@
-import { getTypeDef, getTypeName } from './utils/types.js';
+import { EnumDef, EnumVariant, Program, TypeDef } from '../parser/index.js';
+import { toLowerCaseFirst, getJsTypeDef } from '../utils/index.js';
 import { Output } from './output.js';
-import { IInnerType, IStructType, IType, IEnumField, IEnumType } from '../types/index.js';
-
-const getScaleCodecName = (type: IType | IInnerType) => {
-  switch (type.kind) {
-    case 'typeName': {
-      return getTypeName(type.def, false);
-    }
-    case 'option': {
-      return `Option<${getScaleCodecName(type.def)}>`;
-    }
-    case 'result': {
-      return `Result<${getScaleCodecName(type.def.ok)}, ${getScaleCodecName(type.def.err)}>`;
-    }
-    case 'vec': {
-      return `Vec<${getScaleCodecName(type.def)}>`;
-    }
-    case 'tuple': {
-      return `(${type.def.fields.map((t) => getScaleCodecName(t)).join(', ')})`;
-    }
-    case 'struct': {
-      const result = {};
-      for (const field of type.def.fields) {
-        result[field.name] = getScaleCodecName(field.type);
-      }
-      return result;
-    }
-    case 'enum': {
-      const result = {};
-      for (const variant of type.def.variants) {
-        result[variant.name] = variant.type ? getScaleCodecName(variant.type) : null;
-      }
-      return { _enum: result };
-    }
-    default: {
-      throw new Error(`Unknown type: ${JSON.stringify(type)}`);
-    }
-  }
-};
 
 export class TypesGenerator {
-  private _scaleTypes: Record<string, any>;
+  constructor(private _out: Output, private _program: Program) {}
 
-  constructor(private _out: Output) {
-    this._scaleTypes = {};
-  }
-
-  prepare(types: IType[]) {
-    for (const type of types) {
-      this._scaleTypes[getTypeName(type.type, false)] = getScaleCodecName(type);
-    }
-  }
-
-  get scaleTypes() {
-    return this._scaleTypes;
-  }
-
-  public generate(types: IType[]) {
-    for (const type of types) {
-      switch (type.kind) {
-        case 'typeName':
-        case 'option':
-        case 'result':
-        case 'vec':
-        case 'tuple':
-          this._out.line(`export type ${getTypeName(type.type)} = ${getTypeDef(type)}`).line();
-          break;
-        case 'struct': {
-          this.generateStruct(type);
-          break;
-        }
-        case 'enum': {
-          this.generateEnum(type);
-          break;
-        }
-
-        default: {
-          throw new Error(`Unknown type: ${JSON.stringify(type)}`);
-        }
+  public generate() {
+    for (const { name, def } of this._program.types) {
+      if (def.isStruct) {
+        this.generateStruct(name, def);
+      } else if (def.isEnum) {
+        this.generateEnum(name, def.asEnum);
+      } else if (def.isPrimitive || def.isOptional || def.isResult || def.asVec) {
+        this._out.line(`export type ${name} = ${getJsTypeDef(def)}`).line();
+      } else {
+        throw new Error(`Unknown type: ${JSON.stringify(def)}`);
       }
     }
   }
 
-  private generateStruct(type: IStructType) {
-    let typeName = getTypeName(type.type);
+  private generateStruct(name: string, def: TypeDef) {
+    if (def.asStruct.isTuple) {
+      if (name === 'SailsRtlTypesActorId') {
+        return this._out.line(`export type ${name} = ${'`0x${string}`'}`).line();
+      }
+      return this._out.line(`export type ${name} = ${getJsTypeDef(def)}`).line();
+    }
 
-    this._out
-      .block(`export interface ${typeName}`, () => {
-        for (const field of type.def.fields) {
-          this._out.line(`${field.name}: ${getTypeDef(field.type)}`);
+    return this._out
+      .block(`export interface ${name}`, () => {
+        for (const field of def.asStruct.fields) {
+          this._out.line(`${field.name}: ${getJsTypeDef(field.def)}`);
         }
       })
       .line();
   }
 
-  private getEnumFieldString(f: IEnumField) {
-    if (!f.type) {
-      return `{ ${f.name}: null }`;
+  private generateEnum(typeName: string, def: EnumDef) {
+    if (def.isNesting) {
+      this._out.line(`export type ${typeName} = `, false).increaseIndent();
+      for (let i = 0; i < def.variants.length; i++) {
+        this._out.line(`| ${this.getEnumFieldString(def.variants[i])}`, i === def.variants.length - 1);
+      }
+      this._out.reduceIndent().line();
     } else {
-      return `{ ${f.name}: ${getTypeDef(f.type)} }`;
+      this._out
+        .line(`export type ${typeName} = ${def.variants.map((v) => `"${toLowerCaseFirst(v.name)}"`).join(' | ')}`)
+        .line();
     }
   }
 
-  private generateEnum(type: IEnumType) {
-    this._out.line(`export type ${getTypeName(type.type)} = `, false).increaseIndent();
-    for (let i = 0; i < type.def.variants.length; i++) {
-      this._out.line(`| ${this.getEnumFieldString(type.def.variants[i])}`, i === type.def.variants.length - 1);
+  private getEnumFieldString(f: EnumVariant) {
+    if (!f.def) {
+      return `{ ${toLowerCaseFirst(f.name)}: null }`;
+    } else {
+      return `{ ${toLowerCaseFirst(f.name)}: ${getJsTypeDef(f.def)} }`;
     }
-    this._out.reduceIndent().line();
   }
 }

@@ -1,12 +1,11 @@
 use core::cell::OnceCell;
-use gstd::{ActorId, Decode, Encode};
 use gtest::{Program, RunResult, System};
 use rmrk_catalog_app::parts::{FixedPart, Part};
 use rmrk_resource_app::{
     errors::{Error as ResourceStorageError, Result as ResourceStorageResult},
     resources::{ComposedResource, PartId, Resource, ResourceId},
 };
-use std::collections::BTreeMap;
+use sails_rtl_gstd::{collections::BTreeMap, ActorId, Decode, Encode};
 
 const CATALOG_PROGRAM_WASM_PATH: &str =
     "../../../../target/wasm32-unknown-unknown/debug/rmrk_catalog.wasm";
@@ -129,16 +128,15 @@ fn adding_non_existing_part_to_resource_fails() {
     );
 
     // Act
-    let _run_result = fixture.add_part_to_resource(ADMIN_ID, RESOURCE_ID, PART_ID);
+    let run_result = fixture.add_part_to_resource(ADMIN_ID, RESOURCE_ID, PART_ID);
 
     // Assert
-    let _expected_response = [
+    let expected_response = [
         resources::ADD_PART_TO_RESOURCE_FUNC_NAME.encode(),
         (Err(ResourceStorageError::PartNotFound) as ResourceStorageResult<PartId>).encode(),
     ]
     .concat();
-    // The functionality is not implemented yet
-    // assert!(run_result.contains(&(ADMIN_ID, expected_response)));
+    assert!(run_result.contains(&(ADMIN_ID, expected_response)));
 }
 
 struct Fixture<'a> {
