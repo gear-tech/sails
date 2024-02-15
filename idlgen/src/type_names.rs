@@ -288,8 +288,7 @@ impl BTreeMapTypeName {
 
     pub fn is_btree_map_type(type_info: &Type<PortableForm>) -> bool {
         static BTREE_MAP_TYPE_INFO: OnceLock<Type> = OnceLock::new();
-        let btree_map_type_info =
-            BTREE_MAP_TYPE_INFO.get_or_init(|| BTreeMap::<u32, ()>::type_info());
+        let btree_map_type_info = BTREE_MAP_TYPE_INFO.get_or_init(BTreeMap::<u32, ()>::type_info);
         btree_map_type_info.path.segments == type_info.path.segments
     }
 }
@@ -351,7 +350,7 @@ impl ResultTypeName {
 
     pub fn is_result_type(type_info: &Type<PortableForm>) -> bool {
         static RESULT_TYPE_INFO: OnceLock<Type> = OnceLock::new();
-        let result_type_info = RESULT_TYPE_INFO.get_or_init(|| StdResult::<(), ()>::type_info());
+        let result_type_info = RESULT_TYPE_INFO.get_or_init(StdResult::<(), ()>::type_info);
         result_type_info.path.segments == type_info.path.segments
     }
 }
@@ -396,7 +395,7 @@ impl OptionTypeName {
 
     pub fn is_option_type(type_info: &Type<PortableForm>) -> bool {
         static OPTION_TYPE_INFO: OnceLock<Type> = OnceLock::new();
-        let option_type_info = OPTION_TYPE_INFO.get_or_init(|| Option::<()>::type_info());
+        let option_type_info = OPTION_TYPE_INFO.get_or_init(Option::<()>::type_info);
         option_type_info.path.segments == type_info.path.segments
     }
 }
@@ -526,7 +525,7 @@ impl ActorIdTypeName {
 
     pub fn is_actor_id_type(type_info: &Type<PortableForm>) -> bool {
         static ACTOR_ID_TYPE_INFO: OnceLock<Type> = OnceLock::new();
-        let actor_id_type_info = ACTOR_ID_TYPE_INFO.get_or_init(|| ActorId::type_info());
+        let actor_id_type_info = ACTOR_ID_TYPE_INFO.get_or_init(ActorId::type_info);
         actor_id_type_info.path.segments == type_info.path.segments
     }
 }
@@ -547,7 +546,7 @@ impl MessageIdTypeName {
 
     pub fn is_message_id_type(type_info: &Type<PortableForm>) -> bool {
         static MESSAGE_ID_TYPE_INFO: OnceLock<Type> = OnceLock::new();
-        let message_id_type_info = MESSAGE_ID_TYPE_INFO.get_or_init(|| MessageId::type_info());
+        let message_id_type_info = MESSAGE_ID_TYPE_INFO.get_or_init(MessageId::type_info);
         message_id_type_info.path.segments == type_info.path.segments
     }
 }
@@ -568,7 +567,7 @@ impl CodeIdTypeName {
 
     pub fn is_code_id_type(type_info: &Type<PortableForm>) -> bool {
         static CODE_ID_TYPE_INFO: OnceLock<Type> = OnceLock::new();
-        let code_id_type_info = CODE_ID_TYPE_INFO.get_or_init(|| CodeId::type_info());
+        let code_id_type_info = CODE_ID_TYPE_INFO.get_or_init(CodeId::type_info);
         code_id_type_info.path.segments == type_info.path.segments
     }
 }
