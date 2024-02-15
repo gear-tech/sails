@@ -123,7 +123,7 @@ fn resource_storage_admin() -> &'static ActorId {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use catalogs::{RmrkCatalogAppErrorsError, RmrkCatalogAppPartsPart, SailsRtlTypesActorId};
+    use catalogs::{ActorId as CatalogActorId, Error, Part};
     use resources::BasicResource;
     use sails_rtl::{collections::BTreeMap, Result as RtlResult};
     use sails_sender::Call;
@@ -159,58 +159,48 @@ mod tests {
     impl CatalogClient for CatalogClientMock {
         fn add_parts(
             &mut self,
-            _parts: BTreeMap<u32, RmrkCatalogAppPartsPart>,
-        ) -> Call<RtlResult<BTreeMap<u32, RmrkCatalogAppPartsPart>, RmrkCatalogAppErrorsError>>
-        {
+            _parts: BTreeMap<u32, Part>,
+        ) -> Call<RtlResult<BTreeMap<u32, Part>, Error>> {
             unimplemented!()
         }
 
-        fn remove_parts(
-            &mut self,
-            _part_ids: Vec<u32>,
-        ) -> Call<RtlResult<Vec<u32>, RmrkCatalogAppErrorsError>> {
+        fn remove_parts(&mut self, _part_ids: Vec<u32>) -> Call<RtlResult<Vec<u32>, Error>> {
             unimplemented!()
         }
 
         fn add_equippables(
             &mut self,
             _part_id: u32,
-            _collection_ids: Vec<SailsRtlTypesActorId>,
-        ) -> Call<RtlResult<(u32, Vec<SailsRtlTypesActorId>), RmrkCatalogAppErrorsError>> {
+            _collection_ids: Vec<CatalogActorId>,
+        ) -> Call<RtlResult<(u32, Vec<CatalogActorId>), Error>> {
             unimplemented!()
         }
 
         fn remove_equippable(
             &mut self,
             _part_id: u32,
-            _collection_id: SailsRtlTypesActorId,
-        ) -> Call<RtlResult<(u32, SailsRtlTypesActorId), RmrkCatalogAppErrorsError>> {
+            _collection_id: CatalogActorId,
+        ) -> Call<RtlResult<(u32, CatalogActorId), Error>> {
             unimplemented!()
         }
 
-        fn reset_equippables(
-            &mut self,
-            _part_id: u32,
-        ) -> Call<RtlResult<(), RmrkCatalogAppErrorsError>> {
+        fn reset_equippables(&mut self, _part_id: u32) -> Call<RtlResult<(), Error>> {
             unimplemented!()
         }
 
-        fn set_equippables_to_all(
-            &mut self,
-            _part_id: u32,
-        ) -> Call<RtlResult<(), RmrkCatalogAppErrorsError>> {
+        fn set_equippables_to_all(&mut self, _part_id: u32) -> Call<RtlResult<(), Error>> {
             unimplemented!()
         }
 
-        fn part(&self, _part_id: u32) -> Call<Option<RmrkCatalogAppPartsPart>> {
+        fn part(&self, _part_id: u32) -> Call<Option<Part>> {
             unimplemented!()
         }
 
         fn equippable(
             &self,
             _part_id: u32,
-            _collection_id: SailsRtlTypesActorId,
-        ) -> Call<RtlResult<bool, RmrkCatalogAppErrorsError>> {
+            _collection_id: CatalogActorId,
+        ) -> Call<RtlResult<bool, Error>> {
             unimplemented!()
         }
     }
