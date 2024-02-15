@@ -22,7 +22,7 @@ impl From<u64> for ActorId {
     fn from(v: u64) -> Self {
         let mut arr = [0u8; 32];
         arr[0..8].copy_from_slice(&v.to_le_bytes()[..]);
-        arr[31] = 'A' as u8;
+        arr[31] = b'A';
         Self(arr)
     }
 }
@@ -55,7 +55,7 @@ impl From<u64> for MessageId {
     fn from(v: u64) -> Self {
         let mut arr = [0u8; 32];
         arr[0..8].copy_from_slice(&v.to_le_bytes()[..]);
-        arr[31] = 'M' as u8;
+        arr[31] = b'M';
         Self(arr)
     }
 }
@@ -88,7 +88,7 @@ impl From<u64> for CodeId {
     fn from(v: u64) -> Self {
         let mut arr = [0u8; 32];
         arr[0..8].copy_from_slice(&v.to_le_bytes()[..]);
-        arr[31] = 'C' as u8;
+        arr[31] = b'C';
         Self(arr)
     }
 }
