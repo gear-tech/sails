@@ -1,8 +1,7 @@
 #![no_std]
 
-use gstd::msg;
 use rmrk_resource_app::{requests, CatalogClientImpl, ResourceStorage};
-use sails_exec_context_gstd::GStdExecContext;
+use sails_rtl_gstd::{gstd, gstd::msg, GStdExecContext};
 use sails_sender::GStdSender;
 
 #[no_mangle]

@@ -20,13 +20,13 @@ pub trait Service {
     fn add_equippables(
         &mut self,
         part_id: u32,
-        collection_ids: Vec<GstdCommonPrimitivesActorId>,
-    ) -> Call<Result<(u32, Vec<GstdCommonPrimitivesActorId>), RmrkCatalogAppErrorsError>>;
+        collection_ids: Vec<SailsRtlTypesActorId>,
+    ) -> Call<Result<(u32, Vec<SailsRtlTypesActorId>), RmrkCatalogAppErrorsError>>;
     fn remove_equippable(
         &mut self,
         part_id: u32,
-        collection_id: GstdCommonPrimitivesActorId,
-    ) -> Call<Result<(u32, GstdCommonPrimitivesActorId), RmrkCatalogAppErrorsError>>;
+        collection_id: SailsRtlTypesActorId,
+    ) -> Call<Result<(u32, SailsRtlTypesActorId), RmrkCatalogAppErrorsError>>;
     fn reset_equippables(&mut self, part_id: u32) -> Call<Result<(), RmrkCatalogAppErrorsError>>;
     fn set_equippables_to_all(
         &mut self,
@@ -36,7 +36,7 @@ pub trait Service {
     fn equippable(
         &self,
         part_id: u32,
-        collection_id: GstdCommonPrimitivesActorId,
+        collection_id: SailsRtlTypesActorId,
     ) -> Call<Result<bool, RmrkCatalogAppErrorsError>>;
 }
 
@@ -67,15 +67,15 @@ impl<'a> Service for Client<'a> {
     fn add_equippables(
         &mut self,
         part_id: u32,
-        collection_ids: Vec<GstdCommonPrimitivesActorId>,
-    ) -> Call<Result<(u32, Vec<GstdCommonPrimitivesActorId>), RmrkCatalogAppErrorsError>> {
+        collection_ids: Vec<SailsRtlTypesActorId>,
+    ) -> Call<Result<(u32, Vec<SailsRtlTypesActorId>), RmrkCatalogAppErrorsError>> {
         Call::new(self.sender, "AddEquippables", (part_id, collection_ids))
     }
     fn remove_equippable(
         &mut self,
         part_id: u32,
-        collection_id: GstdCommonPrimitivesActorId,
-    ) -> Call<Result<(u32, GstdCommonPrimitivesActorId), RmrkCatalogAppErrorsError>> {
+        collection_id: SailsRtlTypesActorId,
+    ) -> Call<Result<(u32, SailsRtlTypesActorId), RmrkCatalogAppErrorsError>> {
         Call::new(self.sender, "RemoveEquippable", (part_id, collection_id))
     }
     fn reset_equippables(&mut self, part_id: u32) -> Call<Result<(), RmrkCatalogAppErrorsError>> {
@@ -93,7 +93,7 @@ impl<'a> Service for Client<'a> {
     fn equippable(
         &self,
         part_id: u32,
-        collection_id: GstdCommonPrimitivesActorId,
+        collection_id: SailsRtlTypesActorId,
     ) -> Call<Result<bool, RmrkCatalogAppErrorsError>> {
         Call::new(self.sender, "Equippable", (part_id, collection_id))
     }
@@ -110,12 +110,12 @@ pub struct RmrkCatalogAppPartsFixedPart {
 }
 #[derive(PartialEq, Debug, Encode, Decode)]
 pub struct RmrkCatalogAppPartsSlotPart {
-    equippable: Vec<GstdCommonPrimitivesActorId>,
+    equippable: Vec<SailsRtlTypesActorId>,
     z: Option<u32>,
     metadata_uri: String,
 }
 #[derive(PartialEq, Debug, Encode, Decode)]
-pub struct GstdCommonPrimitivesActorId([u8; 32]);
+pub struct SailsRtlTypesActorId([u8; 32]);
 #[derive(PartialEq, Debug, Encode, Decode)]
 pub enum RmrkCatalogAppErrorsError {
     PartIdCantBeZero,

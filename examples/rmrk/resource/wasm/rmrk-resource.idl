@@ -14,11 +14,11 @@ type RmrkResourceAppResourcesSlotResource = struct {
   src: str,
   thumb: str,
   metadata_uri: str,
-  base: GstdCommonPrimitivesActorId,
+  base: SailsRtlTypesActorId,
   slot: u32,
 };
 
-type GstdCommonPrimitivesActorId = struct {
+type SailsRtlTypesActorId = struct {
   [u8, 32],
 };
 
@@ -26,7 +26,7 @@ type RmrkResourceAppResourcesComposedResource = struct {
   src: str,
   thumb: str,
   metadata_uri: str,
-  base: GstdCommonPrimitivesActorId,
+  base: SailsRtlTypesActorId,
   parts: vec u32,
 };
 

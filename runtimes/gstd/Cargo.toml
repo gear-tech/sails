@@ -1,5 +1,5 @@
 [package]
-name = "sails-exec-context-gstd"
+name = "sails-rtl-gstd"
 version.workspace = true
 authors.workspace = true
 edition.workspace = true
@@ -7,4 +7,4 @@ license.workspace = true
 
 [dependencies]
 gstd.workspace = true
-sails-exec-context-abstractions.workspace = true
+sails-rtl.workspace = true

@@ -1,4 +1,4 @@
-use gstd::prelude::*;
+use sails_rtl::{Encode, TypeInfo};
 
 #[derive(Encode, TypeInfo)]
 pub enum Error {

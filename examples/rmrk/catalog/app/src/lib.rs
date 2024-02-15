@@ -1,21 +1,19 @@
 #![no_std]
 
 use errors::Error;
-use gstd::{
-    collections::{BTreeMap, BTreeSet},
-    prelude::*,
-    ActorId,
-};
 use parts::{CollectionId, Part, PartId, SlotPart};
-use sails_exec_context_abstractions::ExecContext;
 use sails_macros::gservice;
+use sails_rtl::{
+    collections::{BTreeMap, BTreeSet},
+    Result as RtlResult, *,
+};
 
 pub mod errors;
 pub mod parts;
 
 static mut CATALOG_ADMIN: Option<ActorId> = None;
 
-type Result<T> = gstd::Result<T, Error>;
+type Result<T> = RtlResult<T, Error>;
 
 type PartMap<K, V> = BTreeMap<K, V>;
 
@@ -32,7 +30,7 @@ pub struct Catalog<'a, TExecContext: ExecContext> {
 
 impl<'a, TExecContext: ExecContext> Catalog<'a, TExecContext>
 where
-    TExecContext: ExecContext<ActorId = ActorId>,
+    TExecContext: ExecContext,
 {
     pub fn new(data: &'a mut CatalogData, exec_context: TExecContext) -> Self {
         unsafe {
@@ -45,7 +43,7 @@ where
 #[gservice]
 impl<'a, TExecContext> Catalog<'a, TExecContext>
 where
-    TExecContext: ExecContext<ActorId = ActorId>,
+    TExecContext: ExecContext,
 {
     pub fn add_parts(&mut self, parts: PartMap<PartId, Part>) -> Result<PartMap<PartId, Part>> {
         self.require_admin()?;

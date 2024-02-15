@@ -3,10 +3,10 @@
 pub use catalogs::Client as CatalogClientImpl;
 use catalogs::Service as CatalogClient;
 use errors::{Error, Result};
-use gstd::{collections::HashMap, prelude::*, ActorId};
+use gstd::ActorId as GStdActorId;
 use resources::{ComposedResource, PartId, Resource, ResourceId};
-use sails_exec_context_abstractions::ExecContext;
 use sails_macros::gservice;
+use sails_rtl::{collections::HashMap, *};
 
 mod catalogs;
 pub mod errors;
@@ -29,7 +29,7 @@ pub struct ResourceStorage<TExecContext, TCatalogClient> {
 #[gservice]
 impl<TExecContext, TCatalogClient> ResourceStorage<TExecContext, TCatalogClient>
 where
-    TExecContext: ExecContext<ActorId = ActorId>,
+    TExecContext: ExecContext,
     TCatalogClient: CatalogClient,
 {
     pub fn new(exec_context: TExecContext, catalog_client: TCatalogClient) -> Self {
@@ -78,7 +78,12 @@ where
             .ok_or(Error::ResourceNotFound)?;
 
         if let Resource::Composed(ComposedResource { base, parts, .. }) = resource {
-            let part_call = self.catalog_client.part(part_id).send(*base).await.unwrap();
+            let part_call = self
+                .catalog_client
+                .part(part_id)
+                .send(GStdActorId::from_slice(base.as_ref()).unwrap())
+                .await
+                .unwrap();
             let part_response = part_call.response().await.unwrap();
             if part_response.is_none() {
                 return Err(Error::PartNotFound);
@@ -121,8 +126,8 @@ mod tests {
     use catalogs::{
         GstdCommonPrimitivesActorId, RmrkCatalogAppErrorsError, RmrkCatalogAppPartsPart,
     };
-    use gstd::{collections::BTreeMap, result::Result as StdResult};
     use resources::BasicResource;
+    use sails_rtl::{collections::BTreeMap, Result as RtlResult};
     use sails_sender::Call;
 
     #[test]
@@ -146,8 +151,6 @@ mod tests {
     }
 
     impl ExecContext for ExecContextMock {
-        type ActorId = ActorId;
-
         fn actor_id(&self) -> &ActorId {
             &self.actor_id
         }
@@ -159,7 +162,7 @@ mod tests {
         fn add_parts(
             &mut self,
             _parts: BTreeMap<u32, RmrkCatalogAppPartsPart>,
-        ) -> Call<StdResult<BTreeMap<u32, RmrkCatalogAppPartsPart>, RmrkCatalogAppErrorsError>>
+        ) -> Call<RtlResult<BTreeMap<u32, RmrkCatalogAppPartsPart>, RmrkCatalogAppErrorsError>>
         {
             unimplemented!()
         }
@@ -167,7 +170,7 @@ mod tests {
         fn remove_parts(
             &mut self,
             _part_ids: Vec<u32>,
-        ) -> Call<StdResult<Vec<u32>, RmrkCatalogAppErrorsError>> {
+        ) -> Call<RtlResult<Vec<u32>, RmrkCatalogAppErrorsError>> {
             unimplemented!()
         }
 
@@ -175,7 +178,7 @@ mod tests {
             &mut self,
             _part_id: u32,
             _collection_ids: Vec<GstdCommonPrimitivesActorId>,
-        ) -> Call<StdResult<(u32, Vec<GstdCommonPrimitivesActorId>), RmrkCatalogAppErrorsError>>
+        ) -> Call<RtlResult<(u32, Vec<GstdCommonPrimitivesActorId>), RmrkCatalogAppErrorsError>>
         {
             unimplemented!()
         }
@@ -184,7 +187,7 @@ mod tests {
             &mut self,
             _part_id: u32,
             _collection_id: GstdCommonPrimitivesActorId,
-        ) -> Call<StdResult<(u32, GstdCommonPrimitivesActorId), RmrkCatalogAppErrorsError>>
+        ) -> Call<RtlResult<(u32, GstdCommonPrimitivesActorId), RmrkCatalogAppErrorsError>>
         {
             unimplemented!()
         }
@@ -192,14 +195,14 @@ mod tests {
         fn reset_equippables(
             &mut self,
             _part_id: u32,
-        ) -> Call<StdResult<(), RmrkCatalogAppErrorsError>> {
+        ) -> Call<RtlResult<(), RmrkCatalogAppErrorsError>> {
             unimplemented!()
         }
 
         fn set_equippables_to_all(
             &mut self,
             _part_id: u32,
-        ) -> Call<StdResult<(), RmrkCatalogAppErrorsError>> {
+        ) -> Call<RtlResult<(), RmrkCatalogAppErrorsError>> {
             unimplemented!()
         }
 
@@ -211,7 +214,7 @@ mod tests {
             &self,
             _part_id: u32,
             _collection_id: GstdCommonPrimitivesActorId,
-        ) -> Call<StdResult<bool, RmrkCatalogAppErrorsError>> {
+        ) -> Call<RtlResult<bool, RmrkCatalogAppErrorsError>> {
             unimplemented!()
         }
     }

@@ -9,12 +9,12 @@ type RmrkCatalogAppPartsFixedPart = struct {
 };
 
 type RmrkCatalogAppPartsSlotPart = struct {
-  equippable: vec GstdCommonPrimitivesActorId,
+  equippable: vec SailsRtlTypesActorId,
   z: opt u32,
   metadata_uri: str,
 };
 
-type GstdCommonPrimitivesActorId = struct {
+type SailsRtlTypesActorId = struct {
   [u8, 32],
 };
 
@@ -31,10 +31,10 @@ type RmrkCatalogAppErrorsError = enum {
 service {
   AddParts : (parts: map (u32, RmrkCatalogAppPartsPart)) -> result (map (u32, RmrkCatalogAppPartsPart), RmrkCatalogAppErrorsError);
   RemoveParts : (part_ids: vec u32) -> result (vec u32, RmrkCatalogAppErrorsError);
-  AddEquippables : (part_id: u32, collection_ids: vec GstdCommonPrimitivesActorId) -> result (struct { u32, vec GstdCommonPrimitivesActorId }, RmrkCatalogAppErrorsError);
-  RemoveEquippable : (part_id: u32, collection_id: GstdCommonPrimitivesActorId) -> result (struct { u32, GstdCommonPrimitivesActorId }, RmrkCatalogAppErrorsError);
+  AddEquippables : (part_id: u32, collection_ids: vec SailsRtlTypesActorId) -> result (struct { u32, vec SailsRtlTypesActorId }, RmrkCatalogAppErrorsError);
+  RemoveEquippable : (part_id: u32, collection_id: SailsRtlTypesActorId) -> result (struct { u32, SailsRtlTypesActorId }, RmrkCatalogAppErrorsError);
   ResetEquippables : (part_id: u32) -> result (null, RmrkCatalogAppErrorsError);
   SetEquippablesToAll : (part_id: u32) -> result (null, RmrkCatalogAppErrorsError);
   query Part : (part_id: u32) -> opt RmrkCatalogAppPartsPart;
-  query Equippable : (part_id: u32, collection_id: GstdCommonPrimitivesActorId) -> result (bool, RmrkCatalogAppErrorsError);
+  query Equippable : (part_id: u32, collection_id: SailsRtlTypesActorId) -> result (bool, RmrkCatalogAppErrorsError);
 }
