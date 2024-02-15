@@ -21,7 +21,7 @@ export class TypesGenerator {
 
   private generateStruct(name: string, def: TypeDef) {
     if (def.asStruct.isTuple) {
-      if (name === 'SailsRtlTypesActorId') {
+      if (name === 'ActorId') {
         return this._out.line(`export type ${name} = ${'`0x${string}`'}`).line();
       }
       return this._out.line(`export type ${name} = ${getJsTypeDef(def)}`).line();
