@@ -167,6 +167,9 @@ pub enum PrimitiveType {
     I32,
     I64,
     I128,
+    ActorId,
+    CodeId,
+    MessageId,
 }
 
 impl PrimitiveType {
@@ -185,6 +188,9 @@ impl PrimitiveType {
             "i32" => Some(PrimitiveType::I32),
             "i64" => Some(PrimitiveType::I64),
             "i128" => Some(PrimitiveType::I128),
+            "actor_id" => Some(PrimitiveType::ActorId),
+            "code_id" => Some(PrimitiveType::CodeId),
+            "message_id" => Some(PrimitiveType::MessageId),
             _ => None,
         }
     }
@@ -291,6 +297,7 @@ mod tests {
             Five: struct { str, u32 },
             Six: struct { u32 },
             Seven: [map (u32, str), 10],
+            Eight: actor_id,
           };
 
           service {
@@ -379,5 +386,36 @@ mod tests {
         let program = parse_idl(program_idl);
 
         assert!(program.is_err());
+    }
+
+    #[test]
+    fn parser_recognizes_builtin_typesas_primitives() {
+        let program_idl = r"
+            service {
+                DoThis : (p1: actor_id, p2: code_id, p3: message_id) -> null;
+            }
+        ";
+
+        let program = parse_idl(program_idl).unwrap();
+
+        program
+            .service()
+            .funcs()
+            .first()
+            .unwrap()
+            .params()
+            .iter()
+            .for_each(|p| match p.type_decl() {
+                TypeDecl::Id(TypeId::Primitive(PrimitiveType::ActorId)) => {
+                    assert_eq!(p.name(), "p1");
+                }
+                TypeDecl::Id(TypeId::Primitive(PrimitiveType::CodeId)) => {
+                    assert_eq!(p.name(), "p2");
+                }
+                TypeDecl::Id(TypeId::Primitive(PrimitiveType::MessageId)) => {
+                    assert_eq!(p.name(), "p3");
+                }
+                _ => panic!("unexpected type"),
+            });
     }
 }
