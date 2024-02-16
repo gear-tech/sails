@@ -123,9 +123,9 @@ fn resource_storage_admin() -> &'static ActorId {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use catalogs::{ActorId as CatalogActorId, Error, Part};
+    use catalogs::{Error, Part};
     use resources::BasicResource;
-    use sails_rtl::{collections::BTreeMap, Result as RtlResult};
+    use sails_rtl::{collections::BTreeMap, ActorId, Result as RtlResult};
     use sails_sender::Call;
 
     #[test]
@@ -171,16 +171,16 @@ mod tests {
         fn add_equippables(
             &mut self,
             _part_id: u32,
-            _collection_ids: Vec<CatalogActorId>,
-        ) -> Call<RtlResult<(u32, Vec<CatalogActorId>), Error>> {
+            _collection_ids: Vec<ActorId>,
+        ) -> Call<RtlResult<(u32, Vec<ActorId>), Error>> {
             unimplemented!()
         }
 
         fn remove_equippable(
             &mut self,
             _part_id: u32,
-            _collection_id: CatalogActorId,
-        ) -> Call<RtlResult<(u32, CatalogActorId), Error>> {
+            _collection_id: ActorId,
+        ) -> Call<RtlResult<(u32, ActorId), Error>> {
             unimplemented!()
         }
 
@@ -199,7 +199,7 @@ mod tests {
         fn equippable(
             &self,
             _part_id: u32,
-            _collection_id: CatalogActorId,
+            _collection_id: ActorId,
         ) -> Call<RtlResult<bool, Error>> {
             unimplemented!()
         }
