@@ -14,19 +14,15 @@ type SlotResource = struct {
   src: str,
   thumb: str,
   metadata_uri: str,
-  base: ActorId,
+  base: actor_id,
   slot: u32,
-};
-
-type ActorId = struct {
-  [u8, 32],
 };
 
 type ComposedResource = struct {
   src: str,
   thumb: str,
   metadata_uri: str,
-  base: ActorId,
+  base: actor_id,
   parts: vec u32,
 };
 

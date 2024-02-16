@@ -20,6 +20,7 @@
 
 use crate::errors::{Error, Result};
 use convert_case::{Case, Casing};
+use sails_rtl::{ActorId, CodeId, MessageId};
 use scale_info::{
     form::PortableForm, PortableRegistry, Type, TypeDef, TypeDefArray, TypeDefPrimitive,
     TypeDefSequence, TypeDefTuple, TypeInfo,
@@ -27,6 +28,8 @@ use scale_info::{
 use std::{
     collections::{BTreeMap, HashMap},
     rc::Rc,
+    result::Result as StdResult,
+    sync::OnceLock,
 };
 
 pub(super) fn resolve_type_names(
@@ -92,6 +95,12 @@ fn resolve_type_name(
                     resolved_type_names,
                     by_path_type_names,
                 )?)
+            } else if ActorIdTypeName::is_actor_id_type(type_info) {
+                Rc::new(ActorIdTypeName::new())
+            } else if MessageIdTypeName::is_message_id_type(type_info) {
+                Rc::new(MessageIdTypeName::new())
+            } else if CodeIdTypeName::is_code_id_type(type_info) {
+                Rc::new(CodeIdTypeName::new())
             } else {
                 Rc::new(ByPathTypeName::new(
                     type_registry,
@@ -278,7 +287,8 @@ impl BTreeMapTypeName {
     }
 
     pub fn is_btree_map_type(type_info: &Type<PortableForm>) -> bool {
-        let btree_map_type_info = BTreeMap::<u32, ()>::type_info();
+        static BTREE_MAP_TYPE_INFO: OnceLock<Type> = OnceLock::new();
+        let btree_map_type_info = BTREE_MAP_TYPE_INFO.get_or_init(BTreeMap::<u32, ()>::type_info);
         btree_map_type_info.path.segments == type_info.path.segments
     }
 }
@@ -339,7 +349,8 @@ impl ResultTypeName {
     }
 
     pub fn is_result_type(type_info: &Type<PortableForm>) -> bool {
-        let result_type_info = std::result::Result::<(), ()>::type_info();
+        static RESULT_TYPE_INFO: OnceLock<Type> = OnceLock::new();
+        let result_type_info = RESULT_TYPE_INFO.get_or_init(StdResult::<(), ()>::type_info);
         result_type_info.path.segments == type_info.path.segments
     }
 }
@@ -383,7 +394,8 @@ impl OptionTypeName {
     }
 
     pub fn is_option_type(type_info: &Type<PortableForm>) -> bool {
-        let option_type_info = std::option::Option::<()>::type_info();
+        static OPTION_TYPE_INFO: OnceLock<Type> = OnceLock::new();
+        let option_type_info = OPTION_TYPE_INFO.get_or_init(Option::<()>::type_info);
         option_type_info.path.segments == type_info.path.segments
     }
 }
@@ -503,6 +515,70 @@ impl TypeName for ArrayTypeName {
     }
 }
 
+/// ActorId type name resolution.
+struct ActorIdTypeName;
+
+impl ActorIdTypeName {
+    pub fn new() -> Self {
+        Self
+    }
+
+    pub fn is_actor_id_type(type_info: &Type<PortableForm>) -> bool {
+        static ACTOR_ID_TYPE_INFO: OnceLock<Type> = OnceLock::new();
+        let actor_id_type_info = ACTOR_ID_TYPE_INFO.get_or_init(ActorId::type_info);
+        actor_id_type_info.path.segments == type_info.path.segments
+    }
+}
+
+impl TypeName for ActorIdTypeName {
+    fn as_string(&self, _by_path_type_names: &HashMap<(String, Vec<u32>), u32>) -> String {
+        "actor_id".into()
+    }
+}
+
+/// MessageId type name resolution.
+struct MessageIdTypeName;
+
+impl MessageIdTypeName {
+    pub fn new() -> Self {
+        Self
+    }
+
+    pub fn is_message_id_type(type_info: &Type<PortableForm>) -> bool {
+        static MESSAGE_ID_TYPE_INFO: OnceLock<Type> = OnceLock::new();
+        let message_id_type_info = MESSAGE_ID_TYPE_INFO.get_or_init(MessageId::type_info);
+        message_id_type_info.path.segments == type_info.path.segments
+    }
+}
+
+impl TypeName for MessageIdTypeName {
+    fn as_string(&self, _by_path_type_names: &HashMap<(String, Vec<u32>), u32>) -> String {
+        "message_id".into()
+    }
+}
+
+/// CodeId type name resolution.
+struct CodeIdTypeName;
+
+impl CodeIdTypeName {
+    pub fn new() -> Self {
+        Self
+    }
+
+    pub fn is_code_id_type(type_info: &Type<PortableForm>) -> bool {
+        static CODE_ID_TYPE_INFO: OnceLock<Type> = OnceLock::new();
+        let code_id_type_info = CODE_ID_TYPE_INFO.get_or_init(CodeId::type_info);
+        code_id_type_info.path.segments == type_info.path.segments
+    }
+}
+
+impl TypeName for CodeIdTypeName {
+    fn as_string(&self, _by_path_type_names: &HashMap<(String, Vec<u32>), u32>) -> String {
+        "code_id".into()
+    }
+}
+
+/// Primitive type name resolution.
 struct PrimitiveTypeName {
     name: &'static str,
 }
@@ -578,6 +654,42 @@ mod tests {
 
         #[derive(TypeInfo)]
         pub struct T2 {}
+    }
+
+    #[test]
+    fn actor_id_type_name_resolution_works() {
+        let mut registry = Registry::new();
+        let actor_id_id = registry.register_type(&MetaType::new::<ActorId>()).id;
+        let portable_registry = PortableRegistry::from(registry);
+
+        let type_names = resolve_type_names(&portable_registry).unwrap();
+
+        let actor_id_name = type_names.get(&actor_id_id).unwrap();
+        assert_eq!(actor_id_name, "actor_id");
+    }
+
+    #[test]
+    fn message_id_type_name_resolution_works() {
+        let mut registry = Registry::new();
+        let message_id_id = registry.register_type(&MetaType::new::<MessageId>()).id;
+        let portable_registry = PortableRegistry::from(registry);
+
+        let type_names = resolve_type_names(&portable_registry).unwrap();
+
+        let message_id_name = type_names.get(&message_id_id).unwrap();
+        assert_eq!(message_id_name, "message_id");
+    }
+
+    #[test]
+    fn code_id_type_name_resolution_works() {
+        let mut registry = Registry::new();
+        let code_id_id = registry.register_type(&MetaType::new::<CodeId>()).id;
+        let portable_registry = PortableRegistry::from(registry);
+
+        let type_names = resolve_type_names(&portable_registry).unwrap();
+
+        let code_id_name = type_names.get(&code_id_id).unwrap();
+        assert_eq!(code_id_name, "code_id");
     }
 
     #[test]

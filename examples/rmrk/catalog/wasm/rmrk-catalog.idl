@@ -9,13 +9,9 @@ type FixedPart = struct {
 };
 
 type SlotPart = struct {
-  equippable: vec ActorId,
+  equippable: vec actor_id,
   z: opt u32,
   metadata_uri: str,
-};
-
-type ActorId = struct {
-  [u8, 32],
 };
 
 type Error = enum {
@@ -31,10 +27,10 @@ type Error = enum {
 service {
   AddParts : (parts: map (u32, Part)) -> result (map (u32, Part), Error);
   RemoveParts : (part_ids: vec u32) -> result (vec u32, Error);
-  AddEquippables : (part_id: u32, collection_ids: vec ActorId) -> result (struct { u32, vec ActorId }, Error);
-  RemoveEquippable : (part_id: u32, collection_id: ActorId) -> result (struct { u32, ActorId }, Error);
+  AddEquippables : (part_id: u32, collection_ids: vec actor_id) -> result (struct { u32, vec actor_id }, Error);
+  RemoveEquippable : (part_id: u32, collection_id: actor_id) -> result (struct { u32, actor_id }, Error);
   ResetEquippables : (part_id: u32) -> result (null, Error);
   SetEquippablesToAll : (part_id: u32) -> result (null, Error);
   query Part : (part_id: u32) -> opt Part;
-  query Equippable : (part_id: u32, collection_id: ActorId) -> result (bool, Error);
+  query Equippable : (part_id: u32, collection_id: actor_id) -> result (bool, Error);
 }

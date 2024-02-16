@@ -245,6 +245,9 @@ export enum EPrimitiveType {
   I32,
   I64,
   I128,
+  ActorId,
+  CodeId,
+  MessageId,
 }
 
 export class PrimitiveDef {
@@ -304,6 +307,18 @@ export class PrimitiveDef {
 
   get isI128(): boolean {
     return this.value === EPrimitiveType.I128;
+  }
+
+  get isActorId(): boolean {
+    return this.value === EPrimitiveType.ActorId;
+  }
+
+  get isCodeId(): boolean {
+    return this.value === EPrimitiveType.CodeId;
+  }
+
+  get isMessageId(): boolean {
+    return this.value === EPrimitiveType.MessageId;
   }
 }
 

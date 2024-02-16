@@ -18,14 +18,16 @@
 
 //! Struct describing the types of a service comprised of command and query handlers.
 
+use sails_rtl::{ActorId, CodeId, MessageId};
 use sails_service_meta::ServiceMeta;
 use scale_info::{MetaType, PortableRegistry, PortableType, Registry};
-use std::marker::PhantomData;
+use std::{marker::PhantomData, vec};
 
 pub(crate) struct ServiceTypes<S> {
     type_registry: PortableRegistry,
     commands_type_id: u32,
     queries_type_id: u32,
+    builtin_type_ids: Vec<u32>,
     _service: PhantomData<S>,
 }
 
@@ -39,11 +41,21 @@ impl<S: ServiceMeta> ServiceTypes<S> {
         let queries_type_id = type_registry
             .register_type(&MetaType::new::<S::Queries>())
             .id;
+        let builtin_type_ids = type_registry
+            .register_types(vec![
+                MetaType::new::<ActorId>(),
+                MetaType::new::<CodeId>(),
+                MetaType::new::<MessageId>(),
+            ])
+            .iter()
+            .map(|t| t.id)
+            .collect::<Vec<_>>();
         let type_registry = PortableRegistry::from(type_registry);
         Self {
             type_registry,
             commands_type_id,
             queries_type_id,
+            builtin_type_ids,
             _service: PhantomData,
         }
     }
@@ -55,6 +67,7 @@ impl<S: ServiceMeta> ServiceTypes<S> {
                 && ty.id != self.queries_type_id
                 && !self.command_params_type_ids().any(|id| id == ty.id)
                 && !self.query_params_type_ids().any(|id| id == ty.id)
+                && !self.builtin_type_ids.contains(&ty.id)
         })
     }
 

@@ -18,7 +18,6 @@ const KNOWN_TYPES = new Map<string, string>([
   ['[u8;64]', 'Uint8Array | `0x${string}`'],
   ['[u8;32]', 'Uint8Array | `0x${string}`'],
   ['Bytes', 'Uint8Array | `0x${string}`'],
-  ['ActorId', '`0x${string}`'],
   ['Null', 'null'],
   ['null', 'null'],
 ]);
