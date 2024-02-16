@@ -67,7 +67,7 @@ export class ServiceGenerator {
                 .line(`const result = this.registry.createType('(String, ${returnScaleType})', stateBytes)`)
                 .line(`return result[1].${getPayloadMethod(returnScaleType)}() as unknown as ${returnType}`);
             } else {
-              this._out.import('./transaction', 'IMethodReturnType');
+              this._out.import('./transaction.js', 'IMethodReturnType');
               this._out.block(
                 `return this.submitMsg<${returnType}>`,
                 () => {
