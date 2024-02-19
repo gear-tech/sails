@@ -337,9 +337,9 @@
     "@jridgewell/trace-mapping" "0.3.9"
 
 "@gear-js/api@^0.36.3":
-  version "0.36.5"
-  resolved "https://registry.yarnpkg.com/@gear-js/api/-/api-0.36.5.tgz#1f32a70653310d4b0f30a1a0ef458ec999375f6e"
-  integrity sha512-7gtnbqHbw1m3rJOB3A24EYec7Edpc109HvQeZ1QLXAQH97kVhryTzLt3RWviroD3FDhH6i53rOviQdGY5Apfww==
+  version "0.36.6"
+  resolved "https://registry.yarnpkg.com/@gear-js/api/-/api-0.36.6.tgz#7c00d785c52b612d1e11d7635d6ff1e0b667af47"
+  integrity sha512-GCnJY3zcvTEW9FQ6skc2ixfxkaBGry+h2PMg8KF2Y5Hskt5lwFfrbM21e7t5Dirx3hE9oedTMFtvWPK4SF1qpg==
 
 "@istanbuljs/load-nyc-config@^1.0.0":
   version "1.1.0"
