@@ -14,22 +14,22 @@ pub trait Service {
 }
 
 #[derive(Clone)]
-pub struct Client<'a> {
-    sender: &'a GStdSender,
+pub struct Client {
+    sender: GStdSender,
 }
 
-impl<'a> Client<'a> {
-    pub fn new(sender: &'a GStdSender) -> Self {
+impl Client {
+    pub fn new(sender: GStdSender) -> Self {
         Self { sender }
     }
 }
 
-impl<'a> Service for Client<'a> {
+impl Service for Client {
     fn do_this(&mut self, p1: u32, p2: MyParam) -> Call<u16> {
-        Call::new(self.sender, "DoThis", (p1, p2))
+        Call::new(&self.sender, "DoThis", (p1, p2))
     }
     fn do_that(&mut self, p1: (u8, u32)) -> Call<u8> {
-        Call::new(self.sender, "DoThat", p1)
+        Call::new(&self.sender, "DoThat", p1)
     }
 }
 #[derive(PartialEq, Debug, Encode, Decode)]

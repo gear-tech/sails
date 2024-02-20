@@ -29,51 +29,51 @@ pub trait Service {
 }
 
 #[derive(Clone)]
-pub struct Client<'a> {
-    sender: &'a GStdSender,
+pub struct Client {
+    sender: GStdSender,
 }
 
-impl<'a> Client<'a> {
-    pub fn new(sender: &'a GStdSender) -> Self {
+impl Client {
+    pub fn new(sender: GStdSender) -> Self {
         Self { sender }
     }
 }
 
-impl<'a> Service for Client<'a> {
+impl Service for Client {
     fn add_parts(
         &mut self,
         parts: BTreeMap<u32, Part>,
     ) -> Call<Result<BTreeMap<u32, Part>, Error>> {
-        Call::new(self.sender, "AddParts", parts)
+        Call::new(&self.sender, "AddParts", parts)
     }
     fn remove_parts(&mut self, part_ids: Vec<u32>) -> Call<Result<Vec<u32>, Error>> {
-        Call::new(self.sender, "RemoveParts", part_ids)
+        Call::new(&self.sender, "RemoveParts", part_ids)
     }
     fn add_equippables(
         &mut self,
         part_id: u32,
         collection_ids: Vec<ActorId>,
     ) -> Call<Result<(u32, Vec<ActorId>), Error>> {
-        Call::new(self.sender, "AddEquippables", (part_id, collection_ids))
+        Call::new(&self.sender, "AddEquippables", (part_id, collection_ids))
     }
     fn remove_equippable(
         &mut self,
         part_id: u32,
         collection_id: ActorId,
     ) -> Call<Result<(u32, ActorId), Error>> {
-        Call::new(self.sender, "RemoveEquippable", (part_id, collection_id))
+        Call::new(&self.sender, "RemoveEquippable", (part_id, collection_id))
     }
     fn reset_equippables(&mut self, part_id: u32) -> Call<Result<(), Error>> {
-        Call::new(self.sender, "ResetEquippables", part_id)
+        Call::new(&self.sender, "ResetEquippables", part_id)
     }
     fn set_equippables_to_all(&mut self, part_id: u32) -> Call<Result<(), Error>> {
-        Call::new(self.sender, "SetEquippablesToAll", part_id)
+        Call::new(&self.sender, "SetEquippablesToAll", part_id)
     }
     fn part(&self, part_id: u32) -> Call<Option<Part>> {
-        Call::new(self.sender, "Part", part_id)
+        Call::new(&self.sender, "Part", part_id)
     }
     fn equippable(&self, part_id: u32, collection_id: ActorId) -> Call<Result<bool, Error>> {
-        Call::new(self.sender, "Equippable", (part_id, collection_id))
+        Call::new(&self.sender, "Equippable", (part_id, collection_id))
     }
 }
 #[derive(PartialEq, Debug, Encode, Decode)]
