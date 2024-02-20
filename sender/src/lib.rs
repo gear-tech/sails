@@ -11,7 +11,7 @@ struct SendArgs {
     reply_deposit: u64,
 }
 
-#[derive(Default)]
+#[derive(Default, Clone, Copy)]
 pub struct GStdSender;
 
 impl GStdSender {

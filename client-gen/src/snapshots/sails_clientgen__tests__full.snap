@@ -25,17 +25,17 @@ pub trait Service {
 }
 
 #[derive(Clone)]
-pub struct Client<'a> {
-    sender: &'a GStdSender,
+pub struct Client {
+    sender: GStdSender,
 }
 
-impl<'a> Client<'a> {
-    pub fn new(sender: &'a GStdSender) -> Self {
+impl Client {
+    pub fn new(sender: GStdSender) -> Self {
         Self { sender }
     }
 }
 
-impl<'a> Service for Client<'a> {
+impl Service for Client {
     fn do_this(
         &mut self,
         p1: u32,
@@ -43,19 +43,19 @@ impl<'a> Service for Client<'a> {
         p3: (Option<String>, u8),
         p4: ThisThatSvcAppTupleStruct,
     ) -> Call<(String, u32)> {
-        Call::new(self.sender, "DoThis", (p1, p2, p3, p4))
+        Call::new(&self.sender, "DoThis", (p1, p2, p3, p4))
     }
     fn do_that(
         &mut self,
         param: ThisThatSvcAppDoThatParam,
     ) -> Call<Result<(String, u32), (String,)>> {
-        Call::new(self.sender, "DoThat", param)
+        Call::new(&self.sender, "DoThat", param)
     }
     fn this(&self, v1: Vec<u16>) -> Call<u32> {
-        Call::new(self.sender, "This", v1)
+        Call::new(&self.sender, "This", v1)
     }
     fn that(&self, v1: ()) -> Call<Result<String, String>> {
-        Call::new(self.sender, "That", v1)
+        Call::new(&self.sender, "That", v1)
     }
 }
 #[derive(PartialEq, Debug, Encode, Decode)]

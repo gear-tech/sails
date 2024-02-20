@@ -153,17 +153,17 @@ impl<'ast> Visitor<'ast> for ClientGenerator {
         self.code.push_str(&format!(
             r#"
             #[derive(Clone)]
-            pub struct Client<'a> {{
-                sender: &'a GStdSender
+            pub struct Client {{
+                sender: GStdSender
             }}
 
-            impl<'a> Client<'a> {{
-                pub fn new(sender: &'a GStdSender) -> Self {{
+            impl Client {{
+                pub fn new(sender: GStdSender) -> Self {{
                     Self {{ sender }}
                 }}
             }}
 
-            impl<'a> {name} for Client<'a> {{
+            impl {name} for Client {{
         "#
         ));
 
@@ -188,7 +188,7 @@ impl<'ast> Visitor<'ast> for ClientGenerator {
         let args = encoded_args(func.params());
 
         self.code
-            .push_str(&format!("Call::new(self.sender, \"{fn_name}\", {args})"));
+            .push_str(&format!("Call::new(&self.sender, \"{fn_name}\", {args})"));
 
         self.code.push_str("}\n");
     }
