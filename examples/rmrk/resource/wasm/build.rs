@@ -1,4 +1,4 @@
-use rmrk_resource_app::meta::ServiceMeta as RmrkResourceServiceMeta;
+use rmrk_resource_app::services::meta::ServiceMeta as RmrkResourceServiceMeta;
 use std::env;
 use std::{fs::File, path::PathBuf};
 

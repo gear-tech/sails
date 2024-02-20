@@ -1,4 +1,4 @@
-use rmrk_catalog_app::meta::ServiceMeta as RmrkCatalogServiceMeta;
+use rmrk_catalog_app::services::meta::ServiceMeta as RmrkCatalogServiceMeta;
 use std::env;
 use std::{fs::File, path::PathBuf};
 

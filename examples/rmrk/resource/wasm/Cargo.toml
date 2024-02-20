@@ -5,15 +5,13 @@ edition = "2021"
 
 [dependencies]
 rmrk-resource-app = { path = "../app" }
-sails-rtl-gstd.workspace = true
-sails-sender.workspace = true
 
 [build-dependencies]
 gwasm-builder.workspace = true
-sails-idlgen.workspace = true
 rmrk-resource-app = { path = "../app" }
+sails-idlgen.workspace = true
 
 [dev-dependencies]
 gtest.workspace = true
-rmrk-catalog-app = { path = "../../catalog/app" }
 rmrk-catalog = { path = "../../catalog/wasm" }
+sails-rtl-gstd.workspace = true
