@@ -5,9 +5,8 @@ edition = "2021"
 
 [dependencies]
 rmrk-catalog-app = { path = "../app" }
-sails-rtl-gstd.workspace = true
 
 [build-dependencies]
 gwasm-builder.workspace = true
 sails-idlgen.workspace = true
-rmrk-catalog-app = { path = "../app" }
+rmrk-catalog-app = { path = "../app" } # Used for generating IDL (service metadata)

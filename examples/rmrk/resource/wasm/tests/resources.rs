@@ -1,7 +1,7 @@
 use core::cell::OnceCell;
 use gtest::{Program, RunResult, System};
-use rmrk_catalog_app::parts::{FixedPart, Part};
-use rmrk_resource_app::{
+use rmrk_catalog::services::parts::{FixedPart, Part};
+use rmrk_resource_app::services::{
     errors::{Error as ResourceStorageError, Result as ResourceStorageResult},
     resources::{ComposedResource, PartId, Resource, ResourceId},
 };

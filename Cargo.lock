@@ -3641,7 +3641,6 @@ dependencies = [
  "gear-wasm-builder",
  "rmrk-catalog-app",
  "sails-idlgen",
- "sails-rtl-gstd",
 ]
 
 [[package]]
@@ -3650,7 +3649,7 @@ version = "0.1.0"
 dependencies = [
  "parity-scale-codec",
  "sails-macros",
- "sails-rtl",
+ "sails-rtl-gstd",
  "sails-service-meta",
  "scale-info",
 ]
@@ -3662,11 +3661,9 @@ dependencies = [
  "gear-wasm-builder",
  "gtest",
  "rmrk-catalog",
- "rmrk-catalog-app",
  "rmrk-resource-app",
  "sails-idlgen",
  "sails-rtl-gstd",
- "sails-sender",
 ]
 
 [[package]]
@@ -3679,6 +3676,7 @@ dependencies = [
  "sails-clientgen",
  "sails-macros",
  "sails-rtl",
+ "sails-rtl-gstd",
  "sails-sender",
  "sails-service-meta",
  "scale-info",

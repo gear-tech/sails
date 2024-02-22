@@ -1,4 +1,4 @@
-use sails_rtl::*;
+use sails_rtl_gstd::{prelude::*, ActorId};
 
 pub type CollectionId = ActorId;
 pub type ZIndex = u32;
