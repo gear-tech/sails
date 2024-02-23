@@ -7,10 +7,12 @@ license.workspace = true
 
 [dependencies]
 convert-case.workspace = true
+parity-scale-codec.workspace = true
 proc-macro-error.workspace = true
 proc-macro2.workspace = true
 quote.workspace = true
-syn = { workspace = true, features = ["full"] }
+syn = { workspace = true, features = ["full", "extra-traits"] }
 
 [dev-dependencies]
+insta.workspace = true
 prettyplease.workspace = true

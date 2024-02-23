@@ -3801,6 +3801,8 @@ name = "sails-macros-core"
 version = "0.0.1"
 dependencies = [
  "convert_case 0.6.0",
+ "insta",
+ "parity-scale-codec",
  "prettyplease",
  "proc-macro-error",
  "proc-macro2",
@@ -3822,6 +3824,7 @@ name = "sails-rtl-gstd"
 version = "0.0.1"
 dependencies = [
  "gstd",
+ "hex",
  "sails-rtl",
 ]
 
