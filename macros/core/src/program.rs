@@ -9,11 +9,37 @@ use syn::{Ident, ImplItem, ItemImpl, ReturnType, Signature, Type, TypePath, Visi
 pub fn gprogram(program_impl_tokens: TokenStream2) -> TokenStream2 {
     let program_impl = syn::parse2::<ItemImpl>(program_impl_tokens)
         .unwrap_or_else(|err| abort!(err.span(), "Failed to parse program impl: {}", err));
-
-    let ctor_funcs = discover_ctor_funcs(&program_impl).collect::<Vec<&Signature>>();
-
     let program_type = ImplType::new(&program_impl);
     let program_type_path = program_type.path();
+    let program_ident = Ident::new("PROGRAM", Span::call_site());
+
+    let (data_structs, init) = generate_init(&program_impl, &program_type_path, &program_ident);
+
+    quote!(
+        #program_impl
+
+        #data_structs
+
+        #[cfg(target_arch = "wasm32")]
+        pub mod wasm {
+            use super::*;
+            use sails_rtl_gstd::{*, gstd};
+
+            // Publicity is temporary so it can be used from module with main function
+            pub(crate) static mut #program_ident: Option<#program_type_path> = None;
+
+            #init
+        }
+    )
+}
+
+fn generate_init(
+    program_impl: &ItemImpl,
+    program_type_path: &TypePath,
+    program_ident: &Ident,
+) -> (TokenStream2, TokenStream2) {
+    let ctor_funcs = discover_ctor_funcs(&program_impl).collect::<Vec<&Signature>>();
+
     let input_ident = Ident::new("input", Span::call_site());
 
     let mut invocation_dispatches = Vec::with_capacity(ctor_funcs.len());
@@ -61,34 +87,37 @@ pub fn gprogram(program_impl_tokens: TokenStream2) -> TokenStream2 {
         });
     }
 
-    if ctor_funcs.is_empty() {
+    let data_structs = if ctor_funcs.is_empty() {
+        quote!()
+    } else {
         quote!(
-            #program_impl
+            use sails_rtl_gstd::Decode as InvocationParamsStructsDecode;
+            use sails_rtl_gstd::TypeInfo as InvocationParamsStructsTypeInfo;
 
-            #[cfg(target_arch = "wasm32")]
-            pub mod wasm {
-                use super::*;
-                use sails_rtl_gstd::{gstd, gstd::msg, hex, format};
+            #(#[derive(InvocationParamsStructsDecode, InvocationParamsStructsTypeInfo)] #invocation_params_structs )*
+        )
+    };
 
-                // Publicity is temporary so it can be used from module with main function
-                pub(crate) static mut PROGRAM: Option<#program_type_path> = None;
-
-                #[no_mangle]
-                extern "C" fn init() {
-                    let #input_ident = msg::load_bytes().expect("Failed to read input");
-                    if !#input_ident.is_empty() {
-                        let input = if #input_ident.len() <= 8 {
-                            format!("0x{}", hex::encode(#input_ident))
-                        } else {
-                            format!("0x{}..{}", hex::encode(&#input_ident[..4]), hex::encode(&#input_ident[#input_ident.len() - 4..]))
-                        };
-                        panic!("Unexpected non-empty init request: {}", input);
-                    }
-                    unsafe {
-                        PROGRAM = Some(#program_type_path::default());
-                    }
-                    msg::reply_bytes(#input_ident, 0).expect("Failed to send output");
+    let init = if ctor_funcs.is_empty() {
+        quote!(
+            #[no_mangle]
+            extern "C" fn init() {
+                let #input_ident = gstd::msg::load_bytes().expect("Failed to read input");
+                if !#input_ident.is_empty() {
+                    let input = if #input_ident.len() <= 8 {
+                        format!("0x{}", hex::encode(#input_ident))
+                    } else {
+                        format!(
+                            "0x{}..{}",
+                            hex::encode(&#input_ident[..4]),
+                            hex::encode(&#input_ident[#input_ident.len() - 4..]))
+                    };
+                    panic!("Unexpected non-empty init request: {}", input);
                 }
+                unsafe {
+                    #program_ident = Some(#program_type_path::default());
+                }
+                gstd::msg::reply_bytes(#input_ident, 0).expect("Failed to send output");
             }
         )
     } else {
@@ -99,33 +128,19 @@ pub fn gprogram(program_impl_tokens: TokenStream2) -> TokenStream2 {
         }));
 
         quote!(
-            #program_impl
-
-            use sails_rtl_gstd::Decode as InvocationParamsStructsDecode;
-            use sails_rtl_gstd::TypeInfo as InvocationParamsStructsTypeInfo;
-
-            #(#[derive(InvocationParamsStructsDecode, InvocationParamsStructsTypeInfo)] #invocation_params_structs )*
-
-            #[cfg(target_arch = "wasm32")]
-            pub mod wasm {
-                use super::*;
-                use sails_rtl_gstd::{gstd, gstd::msg, String};
-
-                // Publicity is temporary so it can be used from module with main function
-                pub(crate) static mut PROGRAM: Option<#program_type_path> = None;
-
-                #[gstd::async_init]
-                async fn init() {
-                    let mut #input_ident: &[u8] = &msg::load_bytes().expect("Failed to read input");
-                    let (program, invocation_route) = #(#invocation_dispatches)else*;
-                    unsafe {
-                        PROGRAM = Some(program);
-                    }
-                    msg::reply_bytes(invocation_route, 0).expect("Failed to send output");
+            #[gstd::async_init]
+            async fn init() {
+                let mut #input_ident: &[u8] = &gstd::msg::load_bytes().expect("Failed to read input");
+                let (program, invocation_route) = #(#invocation_dispatches)else*;
+                unsafe {
+                    #program_ident = Some(program);
                 }
+                gstd::msg::reply_bytes(invocation_route, 0).expect("Failed to send output");
             }
         )
-    }
+    };
+
+    (data_structs, init)
 }
 
 fn discover_ctor_funcs(program_impl: &ItemImpl) -> impl Iterator<Item = &Signature> {

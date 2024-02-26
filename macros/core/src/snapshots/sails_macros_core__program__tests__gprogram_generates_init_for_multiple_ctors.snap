@@ -25,11 +25,11 @@ struct __New2Params {
 #[cfg(target_arch = "wasm32")]
 pub mod wasm {
     use super::*;
-    use sails_rtl_gstd::{gstd, gstd::msg, String};
+    use sails_rtl_gstd::{*, gstd};
     pub(crate) static mut PROGRAM: Option<MyProgram> = None;
     #[gstd::async_init]
     async fn init() {
-        let mut input: &[u8] = &msg::load_bytes().expect("Failed to read input");
+        let mut input: &[u8] = &gstd::msg::load_bytes().expect("Failed to read input");
         let (program, invocation_route) = if input
             .starts_with(&[12u8, 78u8, 101u8, 119u8])
         {
@@ -52,7 +52,7 @@ pub mod wasm {
         unsafe {
             PROGRAM = Some(program);
         }
-        msg::reply_bytes(invocation_route, 0).expect("Failed to send output");
+        gstd::msg::reply_bytes(invocation_route, 0).expect("Failed to send output");
     }
 }
 

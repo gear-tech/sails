@@ -6,11 +6,11 @@ impl MyProgram {}
 #[cfg(target_arch = "wasm32")]
 pub mod wasm {
     use super::*;
-    use sails_rtl_gstd::{gstd, gstd::msg, hex, format};
+    use sails_rtl_gstd::{*, gstd};
     pub(crate) static mut PROGRAM: Option<MyProgram> = None;
     #[no_mangle]
     extern "C" fn init() {
-        let input = msg::load_bytes().expect("Failed to read input");
+        let input = gstd::msg::load_bytes().expect("Failed to read input");
         if !input.is_empty() {
             let input = if input.len() <= 8 {
                 format!("0x{}", hex::encode(input))
@@ -25,7 +25,7 @@ pub mod wasm {
         unsafe {
             PROGRAM = Some(MyProgram::default());
         }
-        msg::reply_bytes(input, 0).expect("Failed to send output");
+        gstd::msg::reply_bytes(input, 0).expect("Failed to send output");
     }
 }
 
