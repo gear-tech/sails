@@ -5,13 +5,14 @@ import { Keyring } from '@polkadot/api';
 
 import { Sails } from '../lib';
 import { readFileSync } from 'fs';
-import { Service } from './lib';
+import { Program } from './lib';
 
 let sails: Sails;
 let api: GearApi;
 let alice: KeyringPair;
 let catalogId: HexString;
 let aliceRaw: HexString;
+let code: Buffer;
 
 const IDL_PATH = '../examples/rmrk/catalog/wasm/rmrk-catalog.idl';
 const CATALOG_WASM_PATH = '../target/wasm32-unknown-unknown/debug/rmrk_catalog.opt.wasm';
@@ -38,9 +39,9 @@ describe('RMRK', () => {
   });
 
   test('upload catalog', async () => {
-    const code = readFileSync(CATALOG_WASM_PATH);
-    const gas = await api.program.calculateGas.initUpload(aliceRaw, code, '0x');
-    const { extrinsic, programId } = api.program.upload({ code, gasLimit: gas.min_limit });
+    code = readFileSync(CATALOG_WASM_PATH);
+    const gas = await api.program.calculateGas.initUpload(aliceRaw, code, 'New');
+    const { extrinsic, programId } = api.program.upload({ code, gasLimit: gas.min_limit, initPayload: 'New' });
 
     await new Promise((resolve, reject) => {
       extrinsic.signAndSend(alice, ({ events, status }) => {
@@ -100,25 +101,26 @@ describe('RMRK', () => {
   });
 });
 
-let service: Service;
+let program: Program;
 
 describe('RMRK generated', () => {
-  test('create service', async () => {
-    service = new Service(api, catalogId);
-    expect(service).toHaveProperty('addParts');
-    expect(service).toHaveProperty('removeParts');
-    expect(service).toHaveProperty('addEquippables');
-    expect(service).toHaveProperty('removeEquippable');
-    expect(service).toHaveProperty('resetEquippables');
-    expect(service).toHaveProperty('setEquippablesToAll');
-    expect(service).toHaveProperty('part');
-    expect(service).toHaveProperty('equippable');
+  test('create program', async () => {
+    program = await Program.new(api, code, alice);
+    expect(program).toHaveProperty('addParts');
+    expect(program).toHaveProperty('removeParts');
+    expect(program).toHaveProperty('addEquippables');
+    expect(program).toHaveProperty('removeEquippable');
+    expect(program).toHaveProperty('resetEquippables');
+    expect(program).toHaveProperty('setEquippablesToAll');
+    expect(program).toHaveProperty('part');
+    expect(program).toHaveProperty('equippable');
   });
 
   test('add parts', async () => {
-    expect(catalogId).toBeDefined();
-    const result = await service.addParts(
+    expect(program).toBeDefined();
+    const result = await program.addParts(
       {
+        1: { fixed: { z: null, metadata_uri: 'foo' } },
         2: { fixed: { z: 0, metadata_uri: 'bar' } },
         3: { slot: { z: 1, equippable: [aliceRaw], metadata_uri: 'baz' } },
       },
@@ -153,8 +155,8 @@ describe('RMRK generated', () => {
   });
 
   test('remove parts', async () => {
-    expect(catalogId).toBeDefined();
-    const result = await service.removeParts([1], alice);
+    expect(program).toBeDefined();
+    const result = await program.removeParts([1], alice);
 
     const response = await result.response();
 
@@ -166,8 +168,8 @@ describe('RMRK generated', () => {
   });
 
   test('add equippables', async () => {
-    expect(catalogId).toBeDefined();
-    const result = await service.addEquippables(3, [aliceRaw], alice);
+    expect(program).toBeDefined();
+    const result = await program.addEquippables(3, [aliceRaw], alice);
 
     const response = await result.response();
 
@@ -181,8 +183,8 @@ describe('RMRK generated', () => {
   });
 
   test('remove equippable', async () => {
-    expect(catalogId).toBeDefined();
-    const result = await service.removeEquippable(3, aliceRaw, alice);
+    expect(program).toBeDefined();
+    const result = await program.removeEquippable(3, aliceRaw, alice);
 
     const response = await result.response();
 
@@ -195,8 +197,8 @@ describe('RMRK generated', () => {
   });
 
   test('reset equippables', async () => {
-    expect(catalogId).toBeDefined();
-    const result = await service.resetEquippables(3, alice);
+    expect(program).toBeDefined();
+    const result = await program.resetEquippables(3, alice);
 
     const response = await result.response();
 
@@ -207,8 +209,8 @@ describe('RMRK generated', () => {
   });
 
   test('set equippables to all', async () => {
-    expect(catalogId).toBeDefined();
-    const result = await service.setEquippablesToAll(3, alice);
+    expect(program).toBeDefined();
+    const result = await program.setEquippablesToAll(3, alice);
 
     const response = await result.response();
 

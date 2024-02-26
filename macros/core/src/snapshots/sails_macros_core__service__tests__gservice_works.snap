@@ -1,0 +1,67 @@
+---
+source: macros/core/src/service.rs
+expression: result
+---
+impl SomeService {
+    pub async fn do_this(&mut self, p1: u32, p2: String) -> u32 {
+        p1
+    }
+    pub fn this(&self, p1: bool) -> bool {
+        p1
+    }
+}
+#[derive(Decode, TypeInfo)]
+pub struct DoThisParams {
+    p1: u32,
+    p2: String,
+}
+#[derive(Decode, TypeInfo)]
+pub struct ThisParams {
+    p1: bool,
+}
+pub mod meta {
+    use super::*;
+    #[derive(TypeInfo)]
+    pub enum CommandsMeta {
+        DoThis(DoThisParams, u32),
+    }
+    #[derive(TypeInfo)]
+    pub enum QueriesMeta {
+        This(ThisParams, bool),
+    }
+    pub struct ServiceMeta;
+    impl sails_service_meta::ServiceMeta for ServiceMeta {
+        type Commands = CommandsMeta;
+        type Queries = QueriesMeta;
+    }
+}
+pub mod requests {
+    use super::*;
+    pub async fn process(service: &mut SomeService, mut input: &[u8]) -> Vec<u8> {
+        let invocation_path = "DoThis".encode();
+        if input.starts_with(&invocation_path) {
+            let output = do_this(service, &input[invocation_path.len()..]).await;
+            return [invocation_path, output].concat();
+        }
+        let invocation_path = "This".encode();
+        if input.starts_with(&invocation_path) {
+            let output = this(service, &input[invocation_path.len()..]).await;
+            return [invocation_path, output].concat();
+        }
+        let invocation_path = String::decode(&mut input)
+            .expect("Failed to decode invocation path");
+        panic!("Unknown request: {}", invocation_path);
+    }
+    async fn do_this(service: &mut SomeService, mut input: &[u8]) -> Vec<u8> {
+        let request = DoThisParams::decode(&mut input)
+            .expect("Failed to decode request");
+        let result = service.do_this(request.p1, request.p2).await;
+        return result.encode();
+    }
+    async fn this(service: &SomeService, mut input: &[u8]) -> Vec<u8> {
+        let request = ThisParams::decode(&mut input).expect("Failed to decode request");
+        let result = service.this(request.p1);
+        return result.encode();
+    }
+}
+

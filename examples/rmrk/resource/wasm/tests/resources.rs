@@ -16,12 +16,14 @@ const ADMIN_ID: u64 = 10;
 const NON_ADMIN_ID: u64 = 11;
 
 mod resources {
+    pub const CTOR_FUNC_NAME: &str = "New";
     pub const ADD_RESOURCE_ENTRY_FUNC_NAME: &str = "AddResourceEntry";
     pub const ADD_PART_TO_RESOURCE_FUNC_NAME: &str = "AddPartToResource";
     pub const RESOURCE_FUNC_NAME: &str = "Resource";
 }
 
 mod catalog {
+    pub const CTOR_FUNC_NAME: &str = "New";
     pub const ADD_PARTS_FUNC_NAME: &str = "AddParts";
 }
 
@@ -162,7 +164,8 @@ impl<'a> Fixture<'a> {
     fn catalog_program(&'a self) -> &Program<'a> {
         self.catalog_program.get_or_init(|| {
             let program = Program::from_file(&self.system, CATALOG_PROGRAM_WASM_PATH);
-            program.send_bytes(self.admin_id, vec![]);
+            let encoded_request = catalog::CTOR_FUNC_NAME.encode();
+            program.send_bytes(self.admin_id, encoded_request);
             program
         })
     }
@@ -170,7 +173,8 @@ impl<'a> Fixture<'a> {
     fn resource_program(&'a self) -> &Program<'a> {
         self.resource_program.get_or_init(|| {
             let program = Program::from_file(&self.system, RESOURCE_PROGRAM_WASM_PATH);
-            program.send_bytes(self.admin_id, vec![]);
+            let encoded_request = resources::CTOR_FUNC_NAME.encode();
+            program.send_bytes(self.admin_id, encoded_request);
             program
         })
     }

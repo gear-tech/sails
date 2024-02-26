@@ -5,3 +5,5 @@
 pub use rmrk_catalog_app::services;
 #[cfg(target_arch = "wasm32")]
 pub use rmrk_catalog_app::wasm::*;
+#[cfg(target_arch = "wasm32")]
+pub use rmrk_catalog_app::wasm_main::*;

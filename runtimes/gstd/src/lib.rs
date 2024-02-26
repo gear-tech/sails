@@ -7,6 +7,10 @@ pub mod gstd {
     pub use ::gstd::*;
 }
 
+pub mod hex {
+    pub use ::hex::*;
+}
+
 #[derive(Default)]
 pub struct GStdExecContext {
     msg_source: OnceCell<ActorId>,
