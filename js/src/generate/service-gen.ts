@@ -9,7 +9,7 @@ const getArgs = (params: FuncParam[]) => {
 };
 
 const getAccount = (isQuery: boolean) => {
-  return isQuery ? '' : `, account: ${HEX_STRING_TYPE} | IKeyringPair`;
+  return isQuery ? '' : `, account: ${HEX_STRING_TYPE} | IKeyringPair, signerOptions?: Partial<SignerOptions>`;
 };
 
 const getValue = (isQuery: boolean) => {
@@ -23,8 +23,8 @@ export class ServiceGenerator {
     this._out
       .import('@gear-js/api', 'GearApi')
       .import('./transaction.js', 'Transaction')
-      .block(`export class Service extends Transaction`, () => {
-        this._out.block(`constructor(api: GearApi, public programId: ${HEX_STRING_TYPE})`, () => {
+      .block(`export class Program extends Transaction`, () => {
+        this._out.block(`constructor(api: GearApi, public programId?: ${HEX_STRING_TYPE})`, () => {
           this._out
             .block(`const types: Record<string, any> =`, () => {
               for (const [name, type] of Object.entries(this.scaleTypes)) {
@@ -33,12 +33,37 @@ export class ServiceGenerator {
             })
             .line('super(api, types)');
         });
+        this.generateProgramConstructor();
         this.generateMethods();
       });
   }
 
+  private generateProgramConstructor() {
+    this._out
+      .block(
+        `public createProgram(code: Uint8Array | Buffer, account: string | IKeyringPair, signerOptions: Partial<SignerOptions>, value = 0)`,
+        () => {
+          this._out.line(`return this.uploadProgram(code, 'New', account, signerOptions, value)`);
+        },
+      )
+      .line()
+      .block(
+        `static async new(api: GearApi, code: Uint8Array | Buffer, account: string | IKeyringPair, signerOptions?: Partial<SignerOptions>, value = 0)`,
+        () => {
+          this._out
+            .line(`const program = new Program(api)`)
+            .line(`const { programId, response } = await program.createProgram(code, account, signerOptions, value)`)
+            .line('await response()')
+            .line('program.programId = programId')
+            .line('return program');
+        },
+      )
+      .line();
+  }
+
   private generateMethods() {
     this._out.import('@polkadot/types/types', 'IKeyringPair');
+    this._out.import('@polkadot/api/types', 'SignerOptions');
 
     for (const { name, def, params, isQuery } of this._program.service.funcs) {
       const returnType = getJsTypeDef(def);
@@ -76,6 +101,7 @@ export class ServiceGenerator {
                     .line('payload,', false)
                     .line(`'(String, ${returnScaleType})',`, false)
                     .line('account,', false)
+                    .line('signerOptions,', false)
                     .line('value,', false);
                 },
                 '(',
