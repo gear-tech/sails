@@ -1,6 +1,5 @@
 ---
 source: macros/core/src/program.rs
-assertion_line: 231
 expression: result
 ---
 impl MyProgram {}
@@ -26,6 +25,7 @@ pub mod wasm {
         unsafe {
             PROGRAM = Some(MyProgram::default());
         }
+        msg::reply_bytes(input, 0).expect("Failed to send output");
     }
 }
 

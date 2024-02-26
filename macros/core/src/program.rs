@@ -87,6 +87,7 @@ pub fn gprogram(program_impl_tokens: TokenStream2) -> TokenStream2 {
                     unsafe {
                         PROGRAM = Some(#program_type_path::default());
                     }
+                    msg::reply_bytes(#input_ident, 0).expect("Failed to send output");
                 }
             }
         )
