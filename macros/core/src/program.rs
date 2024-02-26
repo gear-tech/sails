@@ -13,7 +13,7 @@ pub fn gprogram(program_impl_tokens: TokenStream2) -> TokenStream2 {
     let program_type_path = program_type.path();
     let program_ident = Ident::new("PROGRAM", Span::call_site());
 
-    let (data_structs, init) = generate_init(&program_impl, &program_type_path, &program_ident);
+    let (data_structs, init) = generate_init(&program_impl, program_type_path, &program_ident);
 
     quote!(
         #program_impl
@@ -38,7 +38,7 @@ fn generate_init(
     program_type_path: &TypePath,
     program_ident: &Ident,
 ) -> (TokenStream2, TokenStream2) {
-    let ctor_funcs = discover_ctor_funcs(&program_impl).collect::<Vec<&Signature>>();
+    let ctor_funcs = discover_ctor_funcs(program_impl).collect::<Vec<&Signature>>();
 
     let input_ident = Ident::new("input", Span::call_site());
 
