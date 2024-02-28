@@ -9,14 +9,30 @@ where
     pub fn do_this(&mut self) -> u32 {
         42
     }
+    pub async fn handle(&mut self, mut input: &[u8]) -> Vec<u8> {
+        let invocation_path = "DoThis".encode();
+        if input.starts_with(&invocation_path) {
+            let output = self.__do_this(&input[invocation_path.len()..]).await;
+            return [invocation_path, output].concat();
+        }
+        let invocation_path = String::decode(&mut input)
+            .expect("Failed to decode invocation path");
+        panic!("Unknown request: {}", invocation_path);
+    }
+    async fn __do_this(&mut self, mut input: &[u8]) -> Vec<u8> {
+        let request = __DoThisParams::decode(&mut input)
+            .expect("Failed to decode request");
+        let result = self.do_this();
+        return result.encode();
+    }
 }
 #[derive(Decode, TypeInfo)]
-pub struct DoThisParams {}
+pub struct __DoThisParams {}
 pub mod meta {
     use super::*;
     #[derive(TypeInfo)]
     pub enum CommandsMeta {
-        DoThis(DoThisParams, u32),
+        DoThis(__DoThisParams, u32),
     }
     #[derive(TypeInfo)]
     pub enum QueriesMeta {}
@@ -24,37 +40,6 @@ pub mod meta {
     impl sails_service_meta::ServiceMeta for ServiceMeta {
         type Commands = CommandsMeta;
         type Queries = QueriesMeta;
-    }
-}
-pub mod requests {
-    use super::*;
-    pub async fn process<'a, 'b, T>(
-        service: &mut SomeService<'a, 'b, T>,
-        mut input: &[u8],
-    ) -> Vec<u8>
-    where
-        T: Clone,
-    {
-        let invocation_path = "DoThis".encode();
-        if input.starts_with(&invocation_path) {
-            let output = do_this(service, &input[invocation_path.len()..]).await;
-            return [invocation_path, output].concat();
-        }
-        let invocation_path = String::decode(&mut input)
-            .expect("Failed to decode invocation path");
-        panic!("Unknown request: {}", invocation_path);
-    }
-    async fn do_this<'a, 'b, T>(
-        service: &mut SomeService<'a, 'b, T>,
-        mut input: &[u8],
-    ) -> Vec<u8>
-    where
-        T: Clone,
-    {
-        let request = DoThisParams::decode(&mut input)
-            .expect("Failed to decode request");
-        let result = service.do_this();
-        return result.encode();
     }
 }
 
