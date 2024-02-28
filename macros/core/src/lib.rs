@@ -19,8 +19,10 @@
 //! Implemntation of the procedural macros exposed via the `sails-macros` crate.
 
 pub use program::gprogram;
+pub use route::groute;
 pub use service::gservice;
 
 mod program;
+mod route;
 mod service;
 mod shared;

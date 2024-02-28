@@ -32,3 +32,9 @@ pub fn gservice(_attrs: TokenStream, impl_tokens: TokenStream) -> TokenStream {
 pub fn gprogram(_attrs: TokenStream, impl_tokens: TokenStream) -> TokenStream {
     sails_macros_core::gprogram(impl_tokens.into()).into()
 }
+
+#[proc_macro_error]
+#[proc_macro_attribute]
+pub fn groute(attrs: TokenStream, impl_item_fn_tokens: TokenStream) -> TokenStream {
+    sails_macros_core::groute(attrs.into(), impl_item_fn_tokens.into()).into()
+}
