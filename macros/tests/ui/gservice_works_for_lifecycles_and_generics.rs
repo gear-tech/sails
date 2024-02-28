@@ -23,7 +23,7 @@ async fn main() {
 
     let mut my_service = MyService::<'_, String> { _a: PhantomData };
 
-    let output = requests::process(&mut my_service, &DO_THIS.encode()).await;
+    let output = my_service.handle(&DO_THIS.encode()).await;
     let mut output = output.as_slice();
 
     let func_name = String::decode(&mut output).unwrap();

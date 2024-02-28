@@ -36,7 +36,7 @@ async fn main() {
         .encode(),
     ]
     .concat();
-    let output = requests::process(&mut my_service, &input).await;
+    let output = my_service.handle(&input).await;
     let mut output = output.as_slice();
 
     let func_name = String::decode(&mut output).unwrap();

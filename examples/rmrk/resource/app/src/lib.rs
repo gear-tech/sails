@@ -51,13 +51,12 @@ pub mod wasm_main {
     use super::wasm::PROGRAM;
     use super::*;
     use sails_rtl_gstd::{gstd, gstd::msg};
-    use services::requests;
 
     #[gstd::async_main]
     async fn main() {
         let input_bytes = msg::load_bytes().expect("Failed to read input");
         let mut resource_storage = unsafe { PROGRAM.as_ref().unwrap() }.resource_storage();
-        let output_bytes = requests::process(&mut resource_storage, &input_bytes).await;
+        let output_bytes = resource_storage.handle(&input_bytes).await;
         msg::reply_bytes(output_bytes, 0).expect("Failed to send output");
     }
 }

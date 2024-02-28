@@ -1,15 +1,12 @@
 use proc_macro_error::abort;
 use quote::ToTokens;
 use syn::{
-    spanned::Spanned, FnArg, Ident, ItemImpl, Pat, PathArguments, Receiver, ReturnType, Signature,
-    Type, TypePath, WhereClause,
+    spanned::Spanned, FnArg, Ident, ItemImpl, Pat, Receiver, ReturnType, Signature, Type, TypePath,
 };
 
 /// A struct that represents the type of an `impl` block.
 pub(crate) struct ImplType<'a> {
     path: &'a TypePath,
-    args: &'a PathArguments,
-    constraints: Option<&'a WhereClause>,
 }
 
 impl<'a> ImplType<'a> {
@@ -24,25 +21,11 @@ impl<'a> ImplType<'a> {
                 impl_type.to_token_stream()
             )
         };
-        let args = &path.path.segments.last().unwrap().arguments;
-        let constraints = r#impl.generics.where_clause.as_ref();
-        Self {
-            path,
-            args,
-            constraints,
-        }
+        Self { path }
     }
 
     pub(crate) fn path(&self) -> &TypePath {
         self.path
-    }
-
-    pub(crate) fn args(&self) -> &PathArguments {
-        self.args
-    }
-
-    pub(crate) fn constraints(&self) -> Option<&WhereClause> {
-        self.constraints
     }
 }
 
