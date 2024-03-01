@@ -36,10 +36,10 @@ impl<S: ServiceMeta> ServiceTypes<S> {
         // TODO: Validate HandlerTypes - both C and Q must be enums with variants having the same names in the same order
         let mut type_registry = Registry::new();
         let commands_type_id = type_registry
-            .register_type(&MetaType::new::<S::Commands>())
+            .register_type(&<S as ServiceMeta>::commands())
             .id;
         let queries_type_id = type_registry
-            .register_type(&MetaType::new::<S::Queries>())
+            .register_type(&<S as ServiceMeta>::queries())
             .id;
         let builtin_type_ids = type_registry
             .register_types(vec![
@@ -59,7 +59,9 @@ impl<S: ServiceMeta> ServiceTypes<S> {
             _service: PhantomData,
         }
     }
+}
 
+impl<S> ServiceTypes<S> {
     pub fn complex_types(&self) -> impl Iterator<Item = &PortableType> {
         self.type_registry.types.iter().filter(|ty| {
             !ty.ty.path.namespace().is_empty()

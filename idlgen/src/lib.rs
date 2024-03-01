@@ -19,7 +19,6 @@
 //! Functionality for generating IDL files describing some service based on its Rust code.
 
 use handlebars::{handlebars_helper, Handlebars};
-use sails_service_meta::ServiceMeta;
 use scale_info::PortableType;
 use serde::Serialize;
 use service_types::ServiceTypes;
@@ -33,37 +32,42 @@ const IDL_TEMPLATE: &str = include_str!("../hbs/idl.hbs");
 const COMPOSITE_TEMPLATE: &str = include_str!("../hbs/composite.hbs");
 const VARIANT_TEMPLATE: &str = include_str!("../hbs/variant.hbs");
 
-/// Generates IDL for the given service meta and writes it to the given writer.
-pub fn generate_serivce_idl<S: ServiceMeta>(idl_writer: impl io::Write) -> errors::Result<()> {
-    let service_info = ServiceTypes::<S>::new();
+pub mod service {
+    use super::*;
+    use sails_service_meta::ServiceMeta;
 
-    let service_all_type_names = type_names::resolve_type_names(service_info.all_types_registry())?;
+    pub fn generate_idl<S: ServiceMeta>(idl_writer: impl io::Write) -> errors::Result<()> {
+        let service_info = ServiceTypes::<S>::new();
 
-    let service_idl_data = ServiceIdlDataEx {
-        type_names: service_all_type_names.values().collect(),
-        all_types: service_info.all_types_registry().types.iter().collect(),
-        complex_types: service_info.complex_types().collect(),
-        commands: service_info.commands_type(),
-        queries: service_info.queries_type(),
-    };
+        let service_all_type_names =
+            type_names::resolve_type_names(service_info.all_types_registry())?;
 
-    let mut handlebars = Handlebars::new();
-    handlebars
-        .register_template_string("idl", IDL_TEMPLATE)
-        .map_err(Box::new)?;
-    handlebars
-        .register_template_string("composite", COMPOSITE_TEMPLATE)
-        .map_err(Box::new)?;
-    handlebars
-        .register_template_string("variant", VARIANT_TEMPLATE)
-        .map_err(Box::new)?;
-    handlebars.register_helper("deref", Box::new(deref));
+        let service_idl_data = ServiceIdlDataEx {
+            type_names: service_all_type_names.values().collect(),
+            all_types: service_info.all_types_registry().types.iter().collect(),
+            complex_types: service_info.complex_types().collect(),
+            commands: service_info.commands_type(),
+            queries: service_info.queries_type(),
+        };
 
-    handlebars
-        .render_to_write("idl", &service_idl_data, idl_writer)
-        .map_err(Box::new)?;
+        let mut handlebars = Handlebars::new();
+        handlebars
+            .register_template_string("idl", IDL_TEMPLATE)
+            .map_err(Box::new)?;
+        handlebars
+            .register_template_string("composite", COMPOSITE_TEMPLATE)
+            .map_err(Box::new)?;
+        handlebars
+            .register_template_string("variant", VARIANT_TEMPLATE)
+            .map_err(Box::new)?;
+        handlebars.register_helper("deref", Box::new(deref));
 
-    Ok(())
+        handlebars
+            .render_to_write("idl", &service_idl_data, idl_writer)
+            .map_err(Box::new)?;
+
+        Ok(())
+    }
 }
 
 #[derive(serde::Serialize)]
@@ -92,9 +96,9 @@ handlebars_helper!(deref: |v: String| { v });
 #[cfg(test)]
 mod tests {
     use super::*;
-    use scale_info::TypeInfo;
-    use std::collections::BTreeMap;
-    use std::result::Result as StdResult;
+    use sails_service_meta::ServiceMeta;
+    use scale_info::{MetaType, TypeInfo};
+    use std::{collections::BTreeMap, result::Result as StdResult};
 
     #[allow(dead_code)]
     #[derive(TypeInfo)]
@@ -190,14 +194,19 @@ mod tests {
     struct TestServiceMeta;
 
     impl ServiceMeta for TestServiceMeta {
-        type Commands = CommandsMeta;
-        type Queries = QueriesMeta;
+        fn commands() -> MetaType {
+            scale_info::meta_type::<CommandsMeta>()
+        }
+
+        fn queries() -> MetaType {
+            scale_info::meta_type::<QueriesMeta>()
+        }
     }
 
     #[test]
     fn idl_generation_works() {
         let mut idl = Vec::new();
-        generate_serivce_idl::<TestServiceMeta>(&mut idl).unwrap();
+        service::generate_idl::<TestServiceMeta>(&mut idl).unwrap();
         let generated_idl = String::from_utf8(idl).unwrap();
         let generated_idl_program = sails_idlparser::ast::parse_idl(&generated_idl);
 

@@ -20,10 +20,9 @@
 
 #![no_std]
 
-use scale_info::StaticTypeInfo;
+use scale_info::MetaType;
 
-/// A trait to represent service meta.
 pub trait ServiceMeta {
-    type Commands: StaticTypeInfo;
-    type Queries: StaticTypeInfo;
+    fn commands() -> MetaType;
+    fn queries() -> MetaType;
 }
