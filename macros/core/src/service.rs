@@ -18,44 +18,46 @@
 
 //! Supporting functions and structures for the `gservice` macro.
 
-use crate::shared::Handler;
+use crate::shared::{self, Func};
 use convert_case::{Case, Casing};
 use proc_macro2::{Span, TokenStream as TokenStream2};
 use proc_macro_error::abort;
 use quote::quote;
-use syn::{Ident, ImplItem, ItemImpl, Signature, Type, Visibility};
+use std::collections::BTreeMap;
+use syn::{Ident, ItemImpl, Signature, Type, Visibility};
 
 pub fn gservice(service_impl_tokens: TokenStream2) -> TokenStream2 {
     let mut service_impl = syn::parse2(service_impl_tokens.clone())
         .unwrap_or_else(|err| abort!(err.span(), "Failed to parse service impl: {}", err));
 
-    let handler_funcs = discover_handler_funcs(&service_impl).collect::<Vec<_>>();
+    let service_handlers = discover_service_handlers(&service_impl);
 
-    if handler_funcs.is_empty() {
+    if service_handlers.is_empty() {
         abort!(
             service_impl,
             "No handlers found. Try either defining one or removing the macro usage"
         );
     }
 
-    let mut invocation_params_structs = Vec::with_capacity(handler_funcs.len());
-    let mut invocation_funcs = Vec::with_capacity(handler_funcs.len());
-    let mut invocation_dispatches = Vec::with_capacity(handler_funcs.len());
-    let mut commands_meta_variants = Vec::with_capacity(handler_funcs.len());
-    let mut queries_meta_variants = Vec::with_capacity(handler_funcs.len());
+    let input_ident = Ident::new("input", Span::call_site());
 
-    for handler_func in &handler_funcs {
-        let handler = Handler::from(handler_func);
+    let mut invocation_params_structs = Vec::with_capacity(service_handlers.len());
+    let mut invocation_funcs = Vec::with_capacity(service_handlers.len());
+    let mut invocation_dispatches = Vec::with_capacity(service_handlers.len());
+    let mut commands_meta_variants = Vec::with_capacity(service_handlers.len());
+    let mut queries_meta_variants = Vec::with_capacity(service_handlers.len());
+
+    for (invocation_route, service_handler) in &service_handlers {
+        let handler = Func::from(service_handler);
         let handler_generator = HandlerGenerator::from(handler);
         let invocation_func_ident = handler_generator.invocation_func_ident();
-        let invocation_route = invocation_func_ident.to_string().to_case(Case::Pascal);
 
         invocation_params_structs.push(handler_generator.params_struct());
         invocation_funcs.push(handler_generator.invocation_func());
         invocation_dispatches.push(quote!(
             let invocation_path = #invocation_route.encode();
-            if input.starts_with(&invocation_path) {
-                let output = self.#invocation_func_ident(&input[invocation_path.len()..]).await;
+            if #input_ident.starts_with(&invocation_path) {
+                let output = self.#invocation_func_ident(&#input_ident[invocation_path.len()..]).await;
                 return [invocation_path, output].concat();
             }
         ));
@@ -63,7 +65,7 @@ pub fn gservice(service_impl_tokens: TokenStream2) -> TokenStream2 {
         let handler_meta_variant = {
             let params_struct_ident = handler_generator.params_struct_ident();
             let result_type = handler_generator.result_type();
-            let invocation_route_ident = Ident::new(&invocation_route, Span::call_site());
+            let invocation_route_ident = Ident::new(invocation_route, Span::call_site());
 
             quote!(#invocation_route_ident(#params_struct_ident, #result_type))
         };
@@ -75,9 +77,9 @@ pub fn gservice(service_impl_tokens: TokenStream2) -> TokenStream2 {
     }
 
     service_impl.items.push(syn::parse2(quote!(
-        pub async fn handle(&mut self, mut input: &[u8]) -> Vec<u8> {
-            #(#invocation_dispatches)*
-            let invocation_path = String::decode(&mut input).expect("Failed to decode invocation path");
+            pub async fn handle(&mut self, mut #input_ident: &[u8]) -> Vec<u8> {
+                #(#invocation_dispatches)*
+                let invocation_path = String::decode(&mut #input_ident).expect("Failed to decode invocation path");
             panic!("Unknown request: {}", invocation_path);
         })).expect("Unable to parse process function"));
 
@@ -115,23 +117,20 @@ pub fn gservice(service_impl_tokens: TokenStream2) -> TokenStream2 {
     )
 }
 
-fn discover_handler_funcs(service_impl: &ItemImpl) -> impl Iterator<Item = &Signature> {
-    service_impl.items.iter().filter_map(|item| {
-        if let ImplItem::Fn(fn_item) = item {
-            if matches!(fn_item.vis, Visibility::Public(_)) && fn_item.sig.receiver().is_some() {
-                return Some(&fn_item.sig);
-            }
-        }
-        None
-    })
+fn discover_service_handlers(service_impl: &ItemImpl) -> BTreeMap<String, &Signature> {
+    shared::discover_invocation_targets(
+        service_impl,
+        |fn_item| matches!(fn_item.vis, Visibility::Public(_)) && fn_item.sig.receiver().is_some(),
+        false,
+    )
 }
 
 struct HandlerGenerator<'a> {
-    handler: Handler<'a>,
+    handler: Func<'a>,
 }
 
 impl<'a> HandlerGenerator<'a> {
-    fn from(handler: Handler<'a>) -> Self {
+    fn from(handler: Func<'a>) -> Self {
         Self { handler }
     }
 
@@ -139,7 +138,7 @@ impl<'a> HandlerGenerator<'a> {
         Ident::new(
             &format!(
                 "__{}Params",
-                self.handler.func().to_string().to_case(Case::Pascal)
+                self.handler.ident().to_string().to_case(Case::Pascal)
             ),
             Span::call_site(),
         )
@@ -150,7 +149,7 @@ impl<'a> HandlerGenerator<'a> {
     }
 
     fn handler_func_ident(&self) -> Ident {
-        self.handler.func().clone()
+        self.handler.ident().clone()
     }
 
     fn invocation_func_ident(&self) -> Ident {

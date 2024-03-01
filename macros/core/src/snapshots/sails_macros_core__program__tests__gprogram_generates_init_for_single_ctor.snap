@@ -18,7 +18,7 @@ struct __NewParams {
 pub mod wasm {
     use super::*;
     use sails_rtl_gstd::{*, gstd};
-    pub(crate) static mut PROGRAM: Option<MyProgram> = None;
+    static mut PROGRAM: Option<MyProgram> = None;
     #[gstd::async_init]
     async fn init() {
         let mut input: &[u8] = &gstd::msg::load_bytes().expect("Failed to read input");
@@ -31,14 +31,42 @@ pub mod wasm {
             static INVOCATION_ROUTE: [u8; 4usize] = [12u8, 78u8, 101u8, 119u8];
             (program, INVOCATION_ROUTE.as_ref())
         } else {
-            let invocation_route = String::decode(&mut input)
-                .expect("Failed to decode invocation route");
-            panic!("Unknown init request: {}", invocation_route);
+            let input = String::decode(&mut input)
+                .unwrap_or_else(|_| {
+                    if input.len() <= 8 {
+                        format!("0x{}", hex::encode(input))
+                    } else {
+                        format!(
+                            "0x{}..{}", hex::encode(& input[..4]), hex::encode(&
+                            input[input.len() - 4..])
+                        )
+                    }
+                });
+            panic!("Unexpected ctor: {}", input)
         };
         unsafe {
             PROGRAM = Some(program);
         }
         gstd::msg::reply_bytes(invocation_route, 0).expect("Failed to send output");
+    }
+    #[gstd::async_main]
+    async fn main() {
+        let mut input: &[u8] = &gstd::msg::load_bytes().expect("Failed to read input");
+        let output = {
+            let input = String::decode(&mut input)
+                .unwrap_or_else(|_| {
+                    if input.len() <= 8 {
+                        format!("0x{}", hex::encode(input))
+                    } else {
+                        format!(
+                            "0x{}..{}", hex::encode(& input[..4]), hex::encode(&
+                            input[input.len() - 4..])
+                        )
+                    }
+                });
+            panic!("Unexpected service: {}", input)
+        };
+        gstd::msg::reply_bytes(output, 0).expect("Failed to send output");
     }
 }
 

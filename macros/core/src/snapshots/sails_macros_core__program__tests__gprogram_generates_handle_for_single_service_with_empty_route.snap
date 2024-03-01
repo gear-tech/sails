@@ -2,7 +2,12 @@
 source: macros/core/src/program.rs
 expression: result
 ---
-impl MyProgram {}
+impl MyProgram {
+    #[groute("")]
+    pub fn service(&self) -> MyService {
+        MyService
+    }
+}
 #[cfg(target_arch = "wasm32")]
 pub mod wasm {
     use super::*;
@@ -36,18 +41,11 @@ pub mod wasm {
     async fn main() {
         let mut input: &[u8] = &gstd::msg::load_bytes().expect("Failed to read input");
         let output = {
-            let input = String::decode(&mut input)
-                .unwrap_or_else(|_| {
-                    if input.len() <= 8 {
-                        format!("0x{}", hex::encode(input))
-                    } else {
-                        format!(
-                            "0x{}..{}", hex::encode(& input[..4]), hex::encode(&
-                            input[input.len() - 4..])
-                        )
-                    }
-                });
-            panic!("Unexpected service: {}", input)
+            let program_ref = unsafe { PROGRAM.as_ref() }
+                .expect("Program not initialized");
+            let mut service = program_ref.service();
+            let output = service.handle(&input).await;
+            output
         };
         gstd::msg::reply_bytes(output, 0).expect("Failed to send output");
     }

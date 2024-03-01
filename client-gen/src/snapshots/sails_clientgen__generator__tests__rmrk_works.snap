@@ -9,23 +9,23 @@ use sails_rtl::collections::BTreeMap;
 use sails_rtl::{String, *};
 use sails_sender::{Call, GStdSender};
 pub trait Service {
-    fn add_parts(&mut self, parts: BTreeMap<u32, Part>)
-        -> Call<Result<BTreeMap<u32, Part>, Error>>;
-    fn remove_parts(&mut self, part_ids: Vec<u32>) -> Call<Result<Vec<u32>, Error>>;
     fn add_equippables(
         &mut self,
         part_id: u32,
         collection_ids: Vec<ActorId>,
     ) -> Call<Result<(u32, Vec<ActorId>), Error>>;
+    fn add_parts(&mut self, parts: BTreeMap<u32, Part>)
+        -> Call<Result<BTreeMap<u32, Part>, Error>>;
     fn remove_equippable(
         &mut self,
         part_id: u32,
         collection_id: ActorId,
     ) -> Call<Result<(u32, ActorId), Error>>;
+    fn remove_parts(&mut self, part_ids: Vec<u32>) -> Call<Result<Vec<u32>, Error>>;
     fn reset_equippables(&mut self, part_id: u32) -> Call<Result<(), Error>>;
     fn set_equippables_to_all(&mut self, part_id: u32) -> Call<Result<(), Error>>;
-    fn part(&self, part_id: u32) -> Call<Option<Part>>;
     fn equippable(&self, part_id: u32, collection_id: ActorId) -> Call<Result<bool, Error>>;
+    fn part(&self, part_id: u32) -> Call<Option<Part>>;
 }
 
 #[derive(Clone)]
@@ -40,21 +40,18 @@ impl Client {
 }
 
 impl Service for Client {
-    fn add_parts(
-        &mut self,
-        parts: BTreeMap<u32, Part>,
-    ) -> Call<Result<BTreeMap<u32, Part>, Error>> {
-        Call::new(&self.sender, "AddParts", parts)
-    }
-    fn remove_parts(&mut self, part_ids: Vec<u32>) -> Call<Result<Vec<u32>, Error>> {
-        Call::new(&self.sender, "RemoveParts", part_ids)
-    }
     fn add_equippables(
         &mut self,
         part_id: u32,
         collection_ids: Vec<ActorId>,
     ) -> Call<Result<(u32, Vec<ActorId>), Error>> {
         Call::new(&self.sender, "AddEquippables", (part_id, collection_ids))
+    }
+    fn add_parts(
+        &mut self,
+        parts: BTreeMap<u32, Part>,
+    ) -> Call<Result<BTreeMap<u32, Part>, Error>> {
+        Call::new(&self.sender, "AddParts", parts)
     }
     fn remove_equippable(
         &mut self,
@@ -63,18 +60,31 @@ impl Service for Client {
     ) -> Call<Result<(u32, ActorId), Error>> {
         Call::new(&self.sender, "RemoveEquippable", (part_id, collection_id))
     }
+    fn remove_parts(&mut self, part_ids: Vec<u32>) -> Call<Result<Vec<u32>, Error>> {
+        Call::new(&self.sender, "RemoveParts", part_ids)
+    }
     fn reset_equippables(&mut self, part_id: u32) -> Call<Result<(), Error>> {
         Call::new(&self.sender, "ResetEquippables", part_id)
     }
     fn set_equippables_to_all(&mut self, part_id: u32) -> Call<Result<(), Error>> {
         Call::new(&self.sender, "SetEquippablesToAll", part_id)
     }
-    fn part(&self, part_id: u32) -> Call<Option<Part>> {
-        Call::new(&self.sender, "Part", part_id)
-    }
     fn equippable(&self, part_id: u32, collection_id: ActorId) -> Call<Result<bool, Error>> {
         Call::new(&self.sender, "Equippable", (part_id, collection_id))
     }
+    fn part(&self, part_id: u32) -> Call<Option<Part>> {
+        Call::new(&self.sender, "Part", part_id)
+    }
+}
+#[derive(PartialEq, Debug, Encode, Decode)]
+pub enum Error {
+    PartIdCantBeZero,
+    BadConfig,
+    PartAlreadyExists,
+    ZeroLengthPassed,
+    PartDoesNotExist,
+    WrongPartFormat,
+    NotAllowedToCall,
 }
 #[derive(PartialEq, Debug, Encode, Decode)]
 pub enum Part {
@@ -91,15 +101,5 @@ pub struct SlotPart {
     equippable: Vec<ActorId>,
     z: Option<u32>,
     metadata_uri: String,
-}
-#[derive(PartialEq, Debug, Encode, Decode)]
-pub enum Error {
-    PartIdCantBeZero,
-    BadConfig,
-    PartAlreadyExists,
-    ZeroLengthPassed,
-    PartDoesNotExist,
-    WrongPartFormat,
-    NotAllowedToCall,
 }
 
