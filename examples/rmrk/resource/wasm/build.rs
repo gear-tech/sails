@@ -1,6 +1,6 @@
-use rmrk_resource_app::services::meta::ServiceMeta as RmrkResourceServiceMeta;
-use std::env;
-use std::{fs::File, path::PathBuf};
+use rmrk_resource_app::ResourceStorageService;
+use sails_idlgen::service;
+use std::{env, fs::File, path::PathBuf};
 
 fn main() {
     gwasm_builder::build();
@@ -11,5 +11,5 @@ fn main() {
 
     let idl_file = File::create(idl_file_path).unwrap();
 
-    sails_idlgen::generate_serivce_idl::<RmrkResourceServiceMeta>(idl_file).unwrap();
+    service::generate_idl::<ResourceStorageService>(idl_file).unwrap();
 }

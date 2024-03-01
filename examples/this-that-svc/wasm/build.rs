@@ -1,6 +1,6 @@
-use std::env;
-use std::{fs::File, path::PathBuf};
-use this_that_svc_app::meta::ServiceMeta;
+use sails_idlgen::service;
+use std::{env, fs::File, path::PathBuf};
+use this_that_svc_app::MyService;
 
 fn main() {
     gwasm_builder::build();
@@ -11,5 +11,5 @@ fn main() {
 
     let idl_file = File::create(idl_file_path).unwrap();
 
-    sails_idlgen::generate_serivce_idl::<ServiceMeta>(idl_file).unwrap();
+    service::generate_idl::<MyService>(idl_file).unwrap();
 }

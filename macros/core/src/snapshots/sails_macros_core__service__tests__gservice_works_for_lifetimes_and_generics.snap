@@ -26,9 +26,20 @@ where
         return result.encode();
     }
 }
+impl<'a, 'b, T> sails_service_meta::ServiceMeta for SomeService<'a, 'b, T>
+where
+    T: Clone,
+{
+    fn commands() -> scale_info::MetaType {
+        scale_info::MetaType::new::<meta::CommandsMeta>()
+    }
+    fn queries() -> scale_info::MetaType {
+        scale_info::MetaType::new::<meta::QueriesMeta>()
+    }
+}
 #[derive(Decode, TypeInfo)]
 pub struct __DoThisParams {}
-pub mod meta {
+mod meta {
     use super::*;
     #[derive(TypeInfo)]
     pub enum CommandsMeta {
@@ -36,10 +47,5 @@ pub mod meta {
     }
     #[derive(TypeInfo)]
     pub enum QueriesMeta {}
-    pub struct ServiceMeta;
-    impl sails_service_meta::ServiceMeta for ServiceMeta {
-        type Commands = CommandsMeta;
-        type Queries = QueriesMeta;
-    }
 }
 

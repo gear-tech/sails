@@ -2,16 +2,14 @@ use crate::shared::{self, Func};
 use parity_scale_codec::Encode;
 use proc_macro2::{Span, TokenStream as TokenStream2};
 use proc_macro_error::abort;
-use quote::{quote, ToTokens};
+use quote::quote;
 use std::collections::BTreeMap;
-use syn::{
-    spanned::Spanned, Ident, ItemImpl, Receiver, ReturnType, Signature, Type, TypePath, Visibility,
-};
+use syn::{Ident, ItemImpl, Receiver, ReturnType, Signature, Type, TypePath, Visibility};
 
 pub fn gprogram(program_impl_tokens: TokenStream2) -> TokenStream2 {
     let program_impl = syn::parse2(program_impl_tokens)
         .unwrap_or_else(|err| abort!(err.span(), "Failed to parse program impl: {}", err));
-    let program_type_path = impl_type_path(&program_impl);
+    let program_type_path = shared::impl_type_path(&program_impl);
     let program_ident = Ident::new("PROGRAM", Span::call_site());
 
     let (data_structs, init) = generate_init(&program_impl, program_type_path, &program_ident);
@@ -237,19 +235,6 @@ fn discover_service_ctors(program_impl: &ItemImpl) -> BTreeMap<String, &Signatur
     )
 }
 
-fn impl_type_path(item_impl: &ItemImpl) -> &TypePath {
-    let item_impl_type = item_impl.self_ty.as_ref();
-    if let Type::Path(type_path) = item_impl_type {
-        type_path
-    } else {
-        abort!(
-            item_impl_type.span(),
-            "Failed to parse impl type: {}",
-            item_impl_type.to_token_stream()
-        )
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -274,7 +259,7 @@ mod tests {
             }
         ))
         .unwrap();
-        let program_type_path = impl_type_path(&program_impl);
+        let program_type_path = shared::impl_type_path(&program_impl);
 
         let discovered_ctors = discover_program_ctors(&program_impl, program_type_path)
             .iter()

@@ -7,9 +7,13 @@ use sails_sender::GStdSender;
 use services::ResourceStorage;
 
 mod catalogs;
+// Exposed publicly because of tests which use generated data
+// while there is no generated client
+pub mod services;
+
 // Exposed publicly because of service metadata for IDL
 // Will be superseded by program metadata, thus pub won't be needed
-pub mod services;
+pub type ResourceStorageService = ResourceStorage<GStdExecContext, CatalogClient>;
 
 #[derive(Default)]
 pub struct Program;
@@ -25,7 +29,7 @@ impl Program {
 
     // Expose hosted service
     #[groute("")]
-    pub fn resource_storage(&self) -> ResourceStorage<GStdExecContext, CatalogClient> {
+    pub fn resource_storage(&self) -> ResourceStorageService {
         let exec_context = GStdExecContext::default();
         ResourceStorage::new(exec_context, CatalogClient::new(GStdSender))
     }
@@ -41,7 +45,7 @@ impl Program {
         &self,
         exec_context: GStdExecContext,
         sender: GStdSender,
-    ) -> ResourceStorage<GStdExecContext, CatalogClient> {
+    ) -> ResourceStorageService {
         ResourceStorage::new(exec_context, CatalogClient::new(sender))
     }
 }

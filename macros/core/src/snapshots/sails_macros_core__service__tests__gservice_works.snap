@@ -37,6 +37,14 @@ impl SomeService {
         return result.encode();
     }
 }
+impl sails_service_meta::ServiceMeta for SomeService {
+    fn commands() -> scale_info::MetaType {
+        scale_info::MetaType::new::<meta::CommandsMeta>()
+    }
+    fn queries() -> scale_info::MetaType {
+        scale_info::MetaType::new::<meta::QueriesMeta>()
+    }
+}
 #[derive(Decode, TypeInfo)]
 pub struct __DoThisParams {
     p1: u32,
@@ -46,7 +54,7 @@ pub struct __DoThisParams {
 pub struct __ThisParams {
     p1: bool,
 }
-pub mod meta {
+mod meta {
     use super::*;
     #[derive(TypeInfo)]
     pub enum CommandsMeta {
@@ -55,11 +63,6 @@ pub mod meta {
     #[derive(TypeInfo)]
     pub enum QueriesMeta {
         This(__ThisParams, bool),
-    }
-    pub struct ServiceMeta;
-    impl sails_service_meta::ServiceMeta for ServiceMeta {
-        type Commands = CommandsMeta;
-        type Queries = QueriesMeta;
     }
 }
 

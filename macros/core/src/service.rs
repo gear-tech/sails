@@ -18,7 +18,7 @@
 
 //! Supporting functions and structures for the `gservice` macro.
 
-use crate::shared::{self, Func};
+use crate::shared::{self, Func, ImplType};
 use convert_case::{Case, Casing};
 use proc_macro2::{Span, TokenStream as TokenStream2};
 use proc_macro_error::abort;
@@ -29,6 +29,15 @@ use syn::{Ident, ItemImpl, Signature, Type, Visibility};
 pub fn gservice(service_impl_tokens: TokenStream2) -> TokenStream2 {
     let mut service_impl = syn::parse2(service_impl_tokens.clone())
         .unwrap_or_else(|err| abort!(err.span(), "Failed to parse service impl: {}", err));
+
+    let (service_type_path, service_type_args, service_type_constraints) = {
+        let service_type = ImplType::new(&service_impl);
+        (
+            service_type.path().clone(),
+            service_type.args().clone(),
+            service_type.constraints().map(Clone::clone),
+        )
+    };
 
     let service_handlers = discover_service_handlers(&service_impl);
 
@@ -92,9 +101,19 @@ pub fn gservice(service_impl_tokens: TokenStream2) -> TokenStream2 {
     quote!(
         #service_impl
 
+        impl #service_type_args sails_service_meta::ServiceMeta for #service_type_path #service_type_constraints {
+            fn commands() -> scale_info::MetaType {
+                scale_info::MetaType::new::<meta::CommandsMeta>()
+            }
+
+            fn queries() -> scale_info::MetaType {
+                scale_info::MetaType::new::<meta::QueriesMeta>()
+            }
+        }
+
         #(#[derive(Decode, TypeInfo)] #invocation_params_structs)*
 
-        pub mod meta {
+        mod meta {
             use super::*;
 
             #[derive(TypeInfo)]
@@ -105,13 +124,6 @@ pub fn gservice(service_impl_tokens: TokenStream2) -> TokenStream2 {
             #[derive(TypeInfo)]
             pub enum QueriesMeta {
                 #(#queries_meta_variants),*
-            }
-
-            pub struct ServiceMeta;
-
-            impl sails_service_meta::ServiceMeta for ServiceMeta {
-                type Commands = CommandsMeta;
-                type Queries = QueriesMeta;
             }
         }
     )

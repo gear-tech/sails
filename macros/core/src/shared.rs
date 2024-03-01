@@ -1,12 +1,57 @@
 use crate::route;
 use proc_macro2::TokenStream as TokenStream2;
 use proc_macro_error::abort;
-use quote::quote;
+use quote::{quote, ToTokens};
 use std::collections::BTreeMap;
 use syn::{
-    spanned::Spanned, FnArg, Ident, ImplItem, ImplItemFn, ItemImpl, Pat, Receiver, ReturnType,
-    Signature, Type,
+    spanned::Spanned, FnArg, Ident, ImplItem, ImplItemFn, ItemImpl, Pat, PathArguments, Receiver,
+    ReturnType, Signature, Type, TypePath, WhereClause,
 };
+
+/// A struct that represents the type of an `impl` block.
+pub(crate) struct ImplType<'a> {
+    path: &'a TypePath,
+    args: &'a PathArguments,
+    constraints: Option<&'a WhereClause>,
+}
+
+impl<'a> ImplType<'a> {
+    pub(crate) fn new(item_impl: &'a ItemImpl) -> Self {
+        let path = impl_type_path(item_impl);
+        let args = &path.path.segments.last().unwrap().arguments;
+        let constraints = item_impl.generics.where_clause.as_ref();
+        Self {
+            path,
+            args,
+            constraints,
+        }
+    }
+
+    pub(crate) fn path(&self) -> &TypePath {
+        self.path
+    }
+
+    pub(crate) fn args(&self) -> &PathArguments {
+        self.args
+    }
+
+    pub(crate) fn constraints(&self) -> Option<&WhereClause> {
+        self.constraints
+    }
+}
+
+pub(crate) fn impl_type_path(item_impl: &ItemImpl) -> &TypePath {
+    let item_impl_type = item_impl.self_ty.as_ref();
+    if let Type::Path(type_path) = item_impl_type {
+        type_path
+    } else {
+        abort!(
+            item_impl_type.span(),
+            "Failed to parse impl type: {}",
+            item_impl_type.to_token_stream()
+        )
+    }
+}
 
 /// Represents parts of a handler function.
 pub(crate) struct Func<'a> {
