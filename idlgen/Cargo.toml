@@ -8,8 +8,8 @@ license.workspace = true
 [dependencies]
 convert-case.workspace = true
 handlebars.workspace = true
+sails-idl-meta.workspace = true
 sails-rtl.workspace = true
-sails-service-meta.workspace = true
 scale-info = { workspace = true, features = ["serde"] }
 serde.workspace = true
 serde-json.workspace = true

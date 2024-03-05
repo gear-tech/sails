@@ -10,17 +10,35 @@ impl MyProgram {
         Self { p1, p2 }
     }
 }
-use sails_rtl_gstd::Decode as InvocationParamsStructsDecode;
-use sails_rtl_gstd::TypeInfo as InvocationParamsStructsTypeInfo;
-#[derive(InvocationParamsStructsDecode, InvocationParamsStructsTypeInfo)]
+impl sails_idl_meta::ProgramMeta for MyProgram {
+    fn constructors() -> scale_info::MetaType {
+        scale_info::MetaType::new::<meta::ConstructorsMeta>()
+    }
+    fn services() -> impl Iterator<
+        Item = (&'static str, sails_idl_meta::AnyServiceMeta),
+    > {
+        [].into_iter()
+    }
+}
+use sails_rtl_gstd::Decode as __ProgramDecode;
+use sails_rtl_gstd::TypeInfo as __ProgramTypeInfo;
+#[derive(__ProgramDecode, __ProgramTypeInfo)]
 struct __NewParams {
     p1: u32,
     p2: String,
 }
-#[derive(InvocationParamsStructsDecode, InvocationParamsStructsTypeInfo)]
+#[derive(__ProgramDecode, __ProgramTypeInfo)]
 struct __New2Params {
     p2: String,
     p1: u32,
+}
+mod meta {
+    use super::*;
+    #[derive(__ProgramTypeInfo)]
+    pub enum ConstructorsMeta {
+        New(__NewParams),
+        New2(__New2Params),
+    }
 }
 #[cfg(target_arch = "wasm32")]
 pub mod wasm {

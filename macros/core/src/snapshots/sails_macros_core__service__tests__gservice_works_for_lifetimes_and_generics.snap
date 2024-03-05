@@ -26,7 +26,7 @@ where
         return result.encode();
     }
 }
-impl<'a, 'b, T> sails_service_meta::ServiceMeta for SomeService<'a, 'b, T>
+impl<'a, 'b, T> sails_idl_meta::ServiceMeta for SomeService<'a, 'b, T>
 where
     T: Clone,
 {

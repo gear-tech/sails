@@ -37,7 +37,7 @@ impl SomeService {
         return result.encode();
     }
 }
-impl sails_service_meta::ServiceMeta for SomeService {
+impl sails_idl_meta::ServiceMeta for SomeService {
     fn commands() -> scale_info::MetaType {
         scale_info::MetaType::new::<meta::CommandsMeta>()
     }

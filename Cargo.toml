@@ -16,6 +16,7 @@ members = [
     "examples/rmrk/resource/wasm",
     "examples/this-that-svc/app",
     "examples/this-that-svc/wasm",
+    "idl-meta",
     "idlgen",
     "idlparser",
     "macros",
@@ -23,7 +24,6 @@ members = [
     "runtimes/gstd",
     "runtimes/rtl",
     "sender",
-    "service-meta",
 ]
 
 [workspace.dependencies]
@@ -48,13 +48,13 @@ proc-macro2 = { version = "1", default-features = false }
 quote = "1.0"
 sails-clientgen = { path = "client-gen" }
 sails-exec-context-gstd = { path = "exec-context/gstd" }
+sails-idl-meta = { path = "idl-meta" }
 sails-idlgen = { path = "idlgen" }
 sails-idlparser = { path = "idlparser" }
 sails-macros = { path = "macros" }
 sails-rtl = { path = "runtimes/rtl" }
 sails-rtl-gstd = { path = "runtimes/gstd" }
 sails-sender = { path = "sender" }
-sails-service-meta = { path = "service-meta" }
 scale-info = { version = "2.10", default-features = false }
 serde = "1.0"
 serde-json = { package = "serde_json", version = "1.0" }

@@ -26,3 +26,30 @@ pub trait ServiceMeta {
     fn commands() -> MetaType;
     fn queries() -> MetaType;
 }
+
+pub struct AnyServiceMeta {
+    commands: MetaType,
+    queries: MetaType,
+}
+
+impl AnyServiceMeta {
+    pub fn new<S: ServiceMeta>() -> Self {
+        Self {
+            commands: S::commands(),
+            queries: S::queries(),
+        }
+    }
+
+    pub fn commands(&self) -> &MetaType {
+        &self.commands
+    }
+
+    pub fn queries(&self) -> &MetaType {
+        &self.queries
+    }
+}
+
+pub trait ProgramMeta {
+    fn constructors() -> MetaType;
+    fn services() -> impl Iterator<Item = (&'static str, AnyServiceMeta)>;
+}

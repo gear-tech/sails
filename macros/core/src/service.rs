@@ -101,7 +101,7 @@ pub fn gservice(service_impl_tokens: TokenStream2) -> TokenStream2 {
     quote!(
         #service_impl
 
-        impl #service_type_args sails_service_meta::ServiceMeta for #service_type_path #service_type_constraints {
+        impl #service_type_args sails_idl_meta::ServiceMeta for #service_type_path #service_type_constraints {
             fn commands() -> scale_info::MetaType {
                 scale_info::MetaType::new::<meta::CommandsMeta>()
             }

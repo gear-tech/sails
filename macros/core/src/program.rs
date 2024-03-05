@@ -1,4 +1,4 @@
-use crate::shared::{self, Func};
+use crate::shared::{self, Func, ImplType};
 use parity_scale_codec::Encode;
 use proc_macro2::{Span, TokenStream as TokenStream2};
 use proc_macro_error::abort;
@@ -9,17 +9,58 @@ use syn::{Ident, ItemImpl, Receiver, ReturnType, Signature, Type, TypePath, Visi
 pub fn gprogram(program_impl_tokens: TokenStream2) -> TokenStream2 {
     let program_impl = syn::parse2(program_impl_tokens)
         .unwrap_or_else(|err| abort!(err.span(), "Failed to parse program impl: {}", err));
-    let program_type_path = shared::impl_type_path(&program_impl);
+    let program_type = ImplType::new(&program_impl);
+    let program_type_path = program_type.path();
+    let program_type_args = program_type.args();
+    let program_type_constraints = program_type.constraints();
     let program_ident = Ident::new("PROGRAM", Span::call_site());
 
-    let (data_structs, init) = generate_init(&program_impl, program_type_path, &program_ident);
+    let (ctors_data, init) = generate_init(&program_impl, program_type_path, &program_ident);
 
-    let handle = generate_handle(&program_impl, &program_ident);
+    let (service_types, handle) = generate_handle(&program_impl, &program_ident);
+
+    let services = service_types.map(|item| {
+        let service_route = item.0;
+        let service_type = item.1;
+        quote!((#service_route, sails_idl_meta::AnyServiceMeta::new::<#service_type>()))
+    });
+
+    let ctors_params_structs = ctors_data.clone().map(|item| item.2);
+
+    let ctors_meta_variants = ctors_data.map(|item| {
+        let ctor_route = Ident::new(&item.0, Span::call_site());
+        let ctor_params_struct_ident = item.1;
+        quote!(#ctor_route(#ctor_params_struct_ident))
+    });
 
     quote!(
         #program_impl
 
-        #data_structs
+        impl #program_type_args sails_idl_meta::ProgramMeta for #program_type_path #program_type_constraints {
+            fn constructors() -> scale_info::MetaType {
+                scale_info::MetaType::new::<meta::ConstructorsMeta>()
+            }
+
+            fn services() -> impl Iterator<Item = (&'static str, sails_idl_meta::AnyServiceMeta)> {
+                [
+                    #(#services),*
+                ].into_iter()
+            }
+        }
+
+        use sails_rtl_gstd::Decode as __ProgramDecode;
+        use sails_rtl_gstd::TypeInfo as __ProgramTypeInfo;
+
+        #(#[derive(__ProgramDecode, __ProgramTypeInfo)] #ctors_params_structs )*
+
+        mod meta {
+            use super::*;
+
+            #[derive(__ProgramTypeInfo)]
+            pub enum ConstructorsMeta {
+                #(#ctors_meta_variants),*
+            }
+        }
 
         #[cfg(target_arch = "wasm32")]
         pub mod wasm {
@@ -39,7 +80,10 @@ fn generate_init(
     program_impl: &ItemImpl,
     program_type_path: &TypePath,
     program_ident: &Ident,
-) -> (TokenStream2, TokenStream2) {
+) -> (
+    impl Iterator<Item = (String, Ident, TokenStream2)> + Clone,
+    TokenStream2,
+) {
     let program_ctors = discover_program_ctors(program_impl, program_type_path);
 
     let input_ident = Ident::new("input", Span::call_site());
@@ -80,24 +124,17 @@ fn generate_init(
                 quote!(#param_ident: #param_type)
             });
 
-            quote!(
-                struct #invocation_params_struct_ident {
-                    #(#invocation_params_struct_members),*
-                }
+            (
+                invocation_route.clone(),
+                invocation_params_struct_ident.clone(),
+                quote!(
+                    struct #invocation_params_struct_ident {
+                        #(#invocation_params_struct_members),*
+                    }
+                ),
             )
         });
     }
-
-    let data_structs = if program_ctors.is_empty() {
-        quote!()
-    } else {
-        quote!(
-            use sails_rtl_gstd::Decode as InvocationParamsStructsDecode;
-            use sails_rtl_gstd::TypeInfo as InvocationParamsStructsTypeInfo;
-
-            #(#[derive(InvocationParamsStructsDecode, InvocationParamsStructsTypeInfo)] #invocation_params_structs )*
-        )
-    };
 
     let init = if program_ctors.is_empty() {
         let unexpected_ctor_panic =
@@ -135,25 +172,31 @@ fn generate_init(
         )
     };
 
-    (data_structs, init)
+    (invocation_params_structs.into_iter(), init)
 }
 
-fn generate_handle(program_impl: &ItemImpl, program_ident: &Ident) -> TokenStream2 {
+fn generate_handle(
+    program_impl: &ItemImpl,
+    program_ident: &Ident,
+) -> (impl Iterator<Item = (String, Type)>, TokenStream2) {
     let service_ctors = discover_service_ctors(program_impl);
 
     let input_ident = Ident::new("input", Span::call_site());
 
     let mut invocation_dispatches = Vec::with_capacity(service_ctors.len());
     let mut last_resort_invocation_dispatch = None;
+    let mut service_types = Vec::with_capacity(service_ctors.len());
 
     for (invocation_route, service_ctor) in &service_ctors {
-        let service_handler = Func::from(service_ctor);
-        let service_func_ident = service_handler.ident();
+        let service_ctor = Func::from(service_ctor);
+        let service_ctor_ident = service_ctor.ident();
+
+        service_types.push((invocation_route.clone(), service_ctor.result().clone()));
 
         if invocation_route.is_empty() {
             last_resort_invocation_dispatch = Some(quote!({
                     let program_ref = unsafe { #program_ident.as_ref() }.expect("Program not initialized");
-                    let mut service = program_ref.#service_func_ident();
+                    let mut service = program_ref.#service_ctor_ident();
                     let output = service.handle(&#input_ident).await;
                     output
                 }
@@ -166,7 +209,7 @@ fn generate_handle(program_impl: &ItemImpl, program_ident: &Ident) -> TokenStrea
                 quote!(
                     if #input_ident.starts_with(& [ #(#invocation_route_bytes),* ]) {
                         let program_ref = unsafe { #program_ident.as_ref() }.expect("Program not initialized");
-                        let mut service = program_ref.#service_func_ident();
+                        let mut service = program_ref.#service_ctor_ident();
                         let output = service.handle(&#input_ident[#invocation_route_len..]).await;
                         static INVOCATION_ROUTE: [u8; #invocation_route_len] = [ #(#invocation_route_bytes),* ];
                         [INVOCATION_ROUTE.as_ref(), &output].concat()
@@ -180,13 +223,16 @@ fn generate_handle(program_impl: &ItemImpl, program_ident: &Ident) -> TokenStrea
         shared::generate_unexpected_input_panic(&input_ident, "Unexpected service")
     }));
 
-    quote!(
-        #[gstd::async_main]
-        async fn main() {
-            let mut #input_ident: &[u8] = &gstd::msg::load_bytes().expect("Failed to read input");
-            let output = #(#invocation_dispatches)else*;
-            gstd::msg::reply_bytes(output, 0).expect("Failed to send output");
-        }
+    (
+        service_types.into_iter(),
+        quote!(
+            #[gstd::async_main]
+            async fn main() {
+                let mut #input_ident: &[u8] = &gstd::msg::load_bytes().expect("Failed to read input");
+                let output = #(#invocation_dispatches)else*;
+                gstd::msg::reply_bytes(output, 0).expect("Failed to send output");
+            }
+        ),
     )
 }
 
@@ -259,9 +305,9 @@ mod tests {
             }
         ))
         .unwrap();
-        let program_type_path = shared::impl_type_path(&program_impl);
+        let program_type_path = ImplType::new(&program_impl).path().clone();
 
-        let discovered_ctors = discover_program_ctors(&program_impl, program_type_path)
+        let discovered_ctors = discover_program_ctors(&program_impl, &program_type_path)
             .iter()
             .map(|s| s.1.ident.to_string())
             .collect::<Vec<_>>();
