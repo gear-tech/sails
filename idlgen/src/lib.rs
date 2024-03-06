@@ -18,11 +18,12 @@
 
 //! Functionality for generating IDL files describing some service based on its Rust code.
 
+use errors::Result;
 use handlebars::{handlebars_helper, Handlebars};
 use scale_info::PortableType;
 use serde::Serialize;
 use service_types::ServiceTypes;
-use std::io;
+use std::io::Write;
 
 mod errors;
 mod service_types;
@@ -32,42 +33,75 @@ const IDL_TEMPLATE: &str = include_str!("../hbs/idl.hbs");
 const COMPOSITE_TEMPLATE: &str = include_str!("../hbs/composite.hbs");
 const VARIANT_TEMPLATE: &str = include_str!("../hbs/variant.hbs");
 
+pub mod program {
+    use super::*;
+    use sails_idl_meta::ProgramMeta;
+
+    pub fn generate_idl<P: ProgramMeta>(idl_writer: impl Write) -> Result<()> {
+        let services = P::services().collect::<Vec<_>>();
+
+        if services.is_empty() {
+            return Ok(());
+        }
+
+        if services.len() > 1 {
+            todo!("Multiple services are not supported yet");
+        }
+
+        let service = &services[0];
+
+        if !service.0.is_empty() {
+            todo!("Service routes are not supported yet");
+        }
+
+        generate_service_idl(
+            &ServiceTypes::new(service.1.commands(), service.1.queries()),
+            idl_writer,
+        )
+    }
+}
+
 pub mod service {
     use super::*;
-    use sails_service_meta::ServiceMeta;
+    use sails_idl_meta::ServiceMeta;
 
-    pub fn generate_idl<S: ServiceMeta>(idl_writer: impl io::Write) -> errors::Result<()> {
-        let service_info = ServiceTypes::<S>::new();
-
-        let service_all_type_names =
-            type_names::resolve_type_names(service_info.all_types_registry())?;
-
-        let service_idl_data = ServiceIdlDataEx {
-            type_names: service_all_type_names.values().collect(),
-            all_types: service_info.all_types_registry().types.iter().collect(),
-            complex_types: service_info.complex_types().collect(),
-            commands: service_info.commands_type(),
-            queries: service_info.queries_type(),
-        };
-
-        let mut handlebars = Handlebars::new();
-        handlebars
-            .register_template_string("idl", IDL_TEMPLATE)
-            .map_err(Box::new)?;
-        handlebars
-            .register_template_string("composite", COMPOSITE_TEMPLATE)
-            .map_err(Box::new)?;
-        handlebars
-            .register_template_string("variant", VARIANT_TEMPLATE)
-            .map_err(Box::new)?;
-        handlebars.register_helper("deref", Box::new(deref));
-
-        handlebars
-            .render_to_write("idl", &service_idl_data, idl_writer)
-            .map_err(Box::new)?;
-
-        Ok(())
+    pub fn generate_idl<S: ServiceMeta>(idl_writer: impl Write) -> Result<()> {
+        generate_service_idl(
+            &ServiceTypes::new(&S::commands(), &S::queries()),
+            idl_writer,
+        )
     }
+}
+
+fn generate_service_idl(service_types: &ServiceTypes, idl_writer: impl Write) -> Result<()> {
+    let service_all_type_names =
+        type_names::resolve_type_names(service_types.all_types_registry())?;
+
+    let service_idl_data = ServiceIdlDataEx {
+        type_names: service_all_type_names.values().collect(),
+        all_types: service_types.all_types_registry().types.iter().collect(),
+        complex_types: service_types.complex_types().collect(),
+        commands: service_types.commands_type(),
+        queries: service_types.queries_type(),
+    };
+
+    let mut handlebars = Handlebars::new();
+    handlebars
+        .register_template_string("idl", IDL_TEMPLATE)
+        .map_err(Box::new)?;
+    handlebars
+        .register_template_string("composite", COMPOSITE_TEMPLATE)
+        .map_err(Box::new)?;
+    handlebars
+        .register_template_string("variant", VARIANT_TEMPLATE)
+        .map_err(Box::new)?;
+    handlebars.register_helper("deref", Box::new(deref));
+
+    handlebars
+        .render_to_write("idl", &service_idl_data, idl_writer)
+        .map_err(Box::new)?;
+
+    Ok(())
 }
 
 #[derive(serde::Serialize)]
@@ -96,7 +130,7 @@ handlebars_helper!(deref: |v: String| { v });
 #[cfg(test)]
 mod tests {
     use super::*;
-    use sails_service_meta::ServiceMeta;
+    use sails_idl_meta::ServiceMeta;
     use scale_info::{MetaType, TypeInfo};
     use std::{collections::BTreeMap, result::Result as StdResult};
 

@@ -19,28 +19,22 @@
 //! Struct describing the types of a service comprised of command and query handlers.
 
 use sails_rtl::{ActorId, CodeId, MessageId};
-use sails_service_meta::ServiceMeta;
 use scale_info::{MetaType, PortableRegistry, PortableType, Registry};
-use std::{marker::PhantomData, vec};
+use std::vec;
 
-pub(crate) struct ServiceTypes<S> {
+pub(crate) struct ServiceTypes {
     type_registry: PortableRegistry,
     commands_type_id: u32,
     queries_type_id: u32,
     builtin_type_ids: Vec<u32>,
-    _service: PhantomData<S>,
 }
 
-impl<S: ServiceMeta> ServiceTypes<S> {
-    pub fn new() -> Self {
+impl ServiceTypes {
+    pub fn new(commands: &MetaType, queries: &MetaType) -> Self {
         // TODO: Validate HandlerTypes - both C and Q must be enums with variants having the same names in the same order
         let mut type_registry = Registry::new();
-        let commands_type_id = type_registry
-            .register_type(&<S as ServiceMeta>::commands())
-            .id;
-        let queries_type_id = type_registry
-            .register_type(&<S as ServiceMeta>::queries())
-            .id;
+        let commands_type_id = type_registry.register_type(commands).id;
+        let queries_type_id = type_registry.register_type(queries).id;
         let builtin_type_ids = type_registry
             .register_types(vec![
                 MetaType::new::<ActorId>(),
@@ -56,12 +50,9 @@ impl<S: ServiceMeta> ServiceTypes<S> {
             commands_type_id,
             queries_type_id,
             builtin_type_ids,
-            _service: PhantomData,
         }
     }
-}
 
-impl<S> ServiceTypes<S> {
     pub fn complex_types(&self) -> impl Iterator<Item = &PortableType> {
         self.type_registry.types.iter().filter(|ty| {
             !ty.ty.path.namespace().is_empty()

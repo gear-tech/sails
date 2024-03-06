@@ -1,5 +1,5 @@
 [package]
-name = "sails-service-meta"
+name = "sails-idl-meta"
 version.workspace = true
 authors.workspace = true
 edition.workspace = true

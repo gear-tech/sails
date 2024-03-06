@@ -1,5 +1,5 @@
-use rmrk_catalog_app::CatalogService;
-use sails_idlgen::service;
+use rmrk_catalog_app::Program;
+use sails_idlgen::program;
 use std::{env, fs::File, path::PathBuf};
 
 fn main() {
@@ -11,5 +11,5 @@ fn main() {
 
     let idl_file = File::create(idl_file_path).unwrap();
 
-    service::generate_idl::<CatalogService>(idl_file).unwrap();
+    program::generate_idl::<Program>(idl_file).unwrap();
 }

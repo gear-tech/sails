@@ -5,7 +5,7 @@ edition = "2021"
 
 [dependencies]
 parity-scale-codec = { workspace = true, features = ["derive"] }
+sails-idl-meta.workspace = true
 sails-macros.workspace = true
 sails-rtl-gstd.workspace = true
-sails-service-meta.workspace = true
 scale-info = { workspace = true, features = ["derive"] }

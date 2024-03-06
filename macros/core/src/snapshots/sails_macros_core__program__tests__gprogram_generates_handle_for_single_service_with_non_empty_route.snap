@@ -7,6 +7,23 @@ impl MyProgram {
         MyService
     }
 }
+impl sails_idl_meta::ProgramMeta for MyProgram {
+    fn constructors() -> scale_info::MetaType {
+        scale_info::MetaType::new::<meta::ConstructorsMeta>()
+    }
+    fn services() -> impl Iterator<
+        Item = (&'static str, sails_idl_meta::AnyServiceMeta),
+    > {
+        [("Service", sails_idl_meta::AnyServiceMeta::new::<MyService>())].into_iter()
+    }
+}
+use sails_rtl_gstd::Decode as __ProgramDecode;
+use sails_rtl_gstd::TypeInfo as __ProgramTypeInfo;
+mod meta {
+    use super::*;
+    #[derive(__ProgramTypeInfo)]
+    pub enum ConstructorsMeta {}
+}
 #[cfg(target_arch = "wasm32")]
 pub mod wasm {
     use super::*;

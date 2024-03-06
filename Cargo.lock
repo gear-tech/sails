@@ -3349,10 +3349,10 @@ dependencies = [
  "gstd",
  "parity-scale-codec",
  "sails-clientgen",
+ "sails-idl-meta",
  "sails-macros",
  "sails-rtl",
  "sails-sender",
- "sails-service-meta",
  "scale-info",
 ]
 
@@ -3648,9 +3648,9 @@ name = "rmrk-catalog-app"
 version = "0.1.0"
 dependencies = [
  "parity-scale-codec",
+ "sails-idl-meta",
  "sails-macros",
  "sails-rtl-gstd",
- "sails-service-meta",
  "scale-info",
 ]
 
@@ -3674,11 +3674,11 @@ dependencies = [
  "gstd",
  "parity-scale-codec",
  "sails-clientgen",
+ "sails-idl-meta",
  "sails-macros",
  "sails-rtl",
  "sails-rtl-gstd",
  "sails-sender",
- "sails-service-meta",
  "scale-info",
 ]
 
@@ -3759,14 +3759,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "sails-idl-meta"
+version = "0.0.1"
+dependencies = [
+ "scale-info",
+]
+
+[[package]]
 name = "sails-idlgen"
 version = "0.0.1"
 dependencies = [
  "convert_case 0.6.0",
  "handlebars",
+ "sails-idl-meta",
  "sails-idlparser",
  "sails-rtl",
- "sails-service-meta",
  "scale-info",
  "serde",
  "serde_json",
@@ -3789,8 +3796,8 @@ version = "0.0.1"
 dependencies = [
  "parity-scale-codec",
  "proc-macro-error",
+ "sails-idl-meta",
  "sails-macros-core",
- "sails-service-meta",
  "scale-info",
  "tokio",
  "trybuild",
@@ -3834,13 +3841,6 @@ version = "0.0.1"
 dependencies = [
  "gstd",
  "parity-scale-codec",
-]
-
-[[package]]
-name = "sails-service-meta"
-version = "0.0.1"
-dependencies = [
- "scale-info",
 ]
 
 [[package]]
@@ -4772,8 +4772,8 @@ version = "0.1.0"
 dependencies = [
  "gstd",
  "parity-scale-codec",
+ "sails-idl-meta",
  "sails-macros",
- "sails-service-meta",
  "scale-info",
 ]
 
