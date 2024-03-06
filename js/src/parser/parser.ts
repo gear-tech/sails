@@ -180,12 +180,12 @@ export class WasmParser {
           $._exports.accept_enum_variant(enum_variant_ptr, id);
         },
         visit_ctor: (_, ctor_ptr: number) => {
-          // TODO: Behaviour should be defined
-          $._exports.accept_ctor(ctor_ptr, 0);
+          // TODO: Behaviour should be defined (#115). Stop traversing further
+          // $._exports.accept_ctor(ctor_ptr, 0);
         },
         visit_ctor_func: (_, func_ptr: number) => {
-          // TODO: Behaviour should be defined
-          $._exports.accept_ctor_func(func_ptr, 0);
+          // TODO: Behaviour should be defined (#115). Stop traversing further
+          //$._exports.accept_ctor_func(func_ptr, 0);
         },
         visit_service: (_, service_ptr: number) => {
           $._program.addService(new Service(service_ptr, $._memory));
