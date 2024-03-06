@@ -18,6 +18,7 @@ extern {
         ":" => Token::Colon,
         "," => Token::Comma,
         "->" => Token::Arrow,
+        "constructor" => Token::Ctor,
         "service" => Token::Service,
         "query" => Token::Query,
         "type" => Token::Type,
@@ -34,22 +35,30 @@ extern {
 }
 
 pub Program: Program = {
-    <types1: (<Separated<Type, ";">> ";")?> <service: Service> <types2: (";" <Separated<Type, ";">>)?> =>
+    <types: (<Separated<Type, ";">> ";")?> <ctor: (Ctor ";")?> <service: Service> ";"? =>
         Program::new(
+            ctor.map(|c| c.0),
             service,
-            types1.unwrap_or_default().into_iter()
-                .chain(types2.unwrap_or_default().into_iter())
-                .collect(),
+            types.unwrap_or_default(),
         ),
 }
 
-Service: Service = {
-    "service" "{" <Separated<Func, ";">> "}" => Service::new(<>),
+Ctor: Ctor = {
+    "constructor" "{" <Separated<CtorFunc, ";">> "}" => Ctor::new(<>),
 }
 
-Func: Func = {
+CtorFunc : CtorFunc = {
+    <name: "id"> ":" "(" <params: Separated<FuncParam, ",">> ")" =>
+        CtorFunc::new(name, params),
+}
+
+Service: Service = {
+    "service" "{" <Separated<ServiceFunc, ";">> "}" => Service::new(<>),
+}
+
+ServiceFunc: ServiceFunc = {
     <query: "query"?> <name: "id"> ":" "(" <params: Separated<FuncParam, ",">> ")" "->" <output: TypeDecl> =>
-        Func::new(name, params, output, query.is_some()),
+        ServiceFunc::new(name, params, output, query.is_some()),
 }
 
 FuncParam: FuncParam = {

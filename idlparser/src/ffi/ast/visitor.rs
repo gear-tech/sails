@@ -5,6 +5,7 @@ use wrapper::VisitorWrapper;
 
 #[repr(C, packed)]
 pub struct Visitor {
+    visit_ctor: unsafe extern "C" fn(context: *const (), *const Ctor),
     visit_service: unsafe extern "C" fn(context: *const (), *const Service),
     visit_type: unsafe extern "C" fn(context: *const (), *const Type),
     visit_vector_type_decl: unsafe extern "C" fn(context: *const (), *const TypeDecl),
@@ -15,7 +16,8 @@ pub struct Visitor {
         unsafe extern "C" fn(context: *const (), *const TypeDecl, *const TypeDecl),
     visit_primitive_type_id: unsafe extern "C" fn(context: *const (), PrimitiveType),
     visit_user_defined_type_id: unsafe extern "C" fn(context: *const (), *const u8, u32),
-    visit_func: unsafe extern "C" fn(context: *const (), *const Func),
+    visit_ctor_func: unsafe extern "C" fn(context: *const (), *const CtorFunc),
+    visit_service_func: unsafe extern "C" fn(context: *const (), *const ServiceFunc),
     visit_func_param: unsafe extern "C" fn(context: *const (), *const FuncParam),
     visit_func_output: unsafe extern "C" fn(context: *const (), *const TypeDecl),
     visit_struct_def: unsafe extern "C" fn(context: *const (), *const StructDef),
@@ -26,6 +28,7 @@ pub struct Visitor {
 
 #[cfg(target_arch = "wasm32")]
 extern "C" {
+    fn visit_ctor(context: *const (), ctor: *const Ctor);
     fn visit_service(context: *const (), service: *const Service);
     fn visit_type(context: *const (), r#type: *const Type);
     fn visit_vector_type_decl(context: *const (), item_type_decl: *const TypeDecl);
@@ -47,7 +50,8 @@ extern "C" {
         user_defined_type_id_ptr: *const u8,
         user_defined_type_id_len: u32,
     );
-    fn visit_func(context: *const (), func: *const Func);
+    fn visit_ctor_func(context: *const (), func: *const CtorFunc);
+    fn visit_service_func(context: *const (), func: *const ServiceFunc);
     fn visit_func_param(context: *const (), func_param: *const FuncParam);
     fn visit_func_output(context: *const (), func_output: *const TypeDecl);
     fn visit_struct_def(context: *const (), struct_def: *const StructDef);
@@ -58,6 +62,7 @@ extern "C" {
 
 #[cfg(target_arch = "wasm32")]
 static VISITOR: Visitor = Visitor {
+    visit_ctor,
     visit_service,
     visit_type,
     visit_vector_type_decl,
@@ -67,7 +72,8 @@ static VISITOR: Visitor = Visitor {
     visit_result_type_decl,
     visit_primitive_type_id,
     visit_user_defined_type_id,
-    visit_func,
+    visit_ctor_func,
+    visit_service_func,
     visit_func_param,
     visit_func_output,
     visit_struct_def,
@@ -96,9 +102,46 @@ fn accept_program_impl(program: *const Program, context: *const (), visitor: *co
 
 #[cfg(target_arch = "wasm32")]
 #[no_mangle]
+extern "C" fn accept_ctor(ctor: *const Ctor, context: *const ()) {
+    accept_ctor_impl(ctor, context, &VISITOR)
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+#[no_mangle]
+extern "C" fn accept_ctor(ctor: *const Ctor, context: *const (), visitor: *const Visitor) {
+    accept_ctor_impl(ctor, context, visitor)
+}
+
+fn accept_ctor_impl(ctor: *const Ctor, context: *const (), visitor: *const Visitor) {
+    let ctor = unsafe { ctor.as_ref() }.unwrap();
+    let mut visitor = VisitorWrapper::new(context, visitor);
+    raw_visitor::accept_ctor(ctor.raw_ptr.as_ref(), &mut visitor);
+}
+
+#[cfg(target_arch = "wasm32")]
+#[no_mangle]
+extern "C" fn accept_ctor_func(func: *const CtorFunc, context: *const ()) {
+    accept_ctor_func_impl(func, context, &VISITOR)
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+#[no_mangle]
+extern "C" fn accept_ctor_func(func: *const CtorFunc, context: *const (), visitor: *const Visitor) {
+    accept_ctor_func_impl(func, context, visitor)
+}
+
+fn accept_ctor_func_impl(func: *const CtorFunc, context: *const (), visitor: *const Visitor) {
+    let func = unsafe { func.as_ref() }.unwrap();
+    let mut visitor = VisitorWrapper::new(context, visitor);
+    raw_visitor::accept_ctor_func(func.raw_ptr.as_ref(), &mut visitor);
+}
+
+#[cfg(target_arch = "wasm32")]
+#[no_mangle]
 extern "C" fn accept_service(service: *const Service, context: *const ()) {
     accept_service_impl(service, context, &VISITOR)
 }
+
 #[cfg(not(target_arch = "wasm32"))]
 #[no_mangle]
 extern "C" fn accept_service(service: *const Service, context: *const (), visitor: *const Visitor) {
@@ -113,20 +156,24 @@ fn accept_service_impl(service: *const Service, context: *const (), visitor: *co
 
 #[cfg(target_arch = "wasm32")]
 #[no_mangle]
-extern "C" fn accept_func(func: *const Func, context: *const ()) {
-    accept_func_impl(func, context, &VISITOR)
+extern "C" fn accept_service_func(func: *const ServiceFunc, context: *const ()) {
+    accept_service_func_impl(func, context, &VISITOR)
 }
 
 #[cfg(not(target_arch = "wasm32"))]
 #[no_mangle]
-extern "C" fn accept_func(func: *const Func, context: *const (), visitor: *const Visitor) {
-    accept_func_impl(func, context, visitor)
+extern "C" fn accept_service_func(
+    func: *const ServiceFunc,
+    context: *const (),
+    visitor: *const Visitor,
+) {
+    accept_service_func_impl(func, context, visitor)
 }
 
-fn accept_func_impl(func: *const Func, context: *const (), visitor: *const Visitor) {
+fn accept_service_func_impl(func: *const ServiceFunc, context: *const (), visitor: *const Visitor) {
     let func = unsafe { func.as_ref() }.unwrap();
     let mut visitor = VisitorWrapper::new(context, visitor);
-    raw_visitor::accept_func(func.raw_ptr.as_ref(), &mut visitor);
+    raw_visitor::accept_service_func(func.raw_ptr.as_ref(), &mut visitor);
 }
 
 #[cfg(target_arch = "wasm32")]
@@ -320,6 +367,16 @@ mod wrapper {
     }
 
     impl<'a, 'ast> RawVisitor<'ast> for VisitorWrapper<'a> {
+        fn visit_ctor(&mut self, ctor: &'ast raw_ast::Ctor) {
+            if fn_ptr_addr!(self.visitor.visit_ctor).is_null() {
+                return raw_visitor::accept_ctor(ctor, self);
+            }
+            let ctor = Ctor {
+                raw_ptr: ctor.into(),
+            };
+            unsafe { (self.visitor.visit_ctor)(self.context, &ctor) };
+        }
+
         fn visit_service(&mut self, service: &'ast raw_ast::Service) {
             if fn_ptr_addr!(self.visitor.visit_service).is_null() {
                 return raw_visitor::accept_service(service, self);
@@ -436,18 +493,31 @@ mod wrapper {
             };
         }
 
-        fn visit_func(&mut self, func: &'ast raw_ast::Func) {
-            if fn_ptr_addr!(self.visitor.visit_func).is_null() {
-                return raw_visitor::accept_func(func, self);
+        fn visit_ctor_func(&mut self, func: &'ast raw_ast::CtorFunc) {
+            if fn_ptr_addr!(self.visitor.visit_ctor_func).is_null() {
+                return raw_visitor::accept_ctor_func(func, self);
             }
             let func_name_bytes = func.name().as_bytes();
-            let func = Func {
+            let func = CtorFunc {
+                name_ptr: func_name_bytes.as_ptr(),
+                name_len: func_name_bytes.len() as u32,
+                raw_ptr: func.into(),
+            };
+            unsafe { (self.visitor.visit_ctor_func)(self.context, &func) };
+        }
+
+        fn visit_service_func(&mut self, func: &'ast raw_ast::ServiceFunc) {
+            if fn_ptr_addr!(self.visitor.visit_service_func).is_null() {
+                return raw_visitor::accept_service_func(func, self);
+            }
+            let func_name_bytes = func.name().as_bytes();
+            let func = ServiceFunc {
                 name_ptr: func_name_bytes.as_ptr(),
                 name_len: func_name_bytes.len() as u32,
                 is_query: func.is_query(),
                 raw_ptr: func.into(),
             };
-            unsafe { (self.visitor.visit_func)(self.context, &func) };
+            unsafe { (self.visitor.visit_service_func)(self.context, &func) };
         }
 
         fn visit_func_param(&mut self, func_param: &'ast raw_ast::FuncParam) {

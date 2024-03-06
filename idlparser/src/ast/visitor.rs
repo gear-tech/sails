@@ -1,6 +1,10 @@
 use super::*;
 
 pub trait Visitor<'ast> {
+    fn visit_ctor(&mut self, ctor: &'ast Ctor) {
+        accept_ctor(ctor, self);
+    }
+
     fn visit_service(&mut self, service: &'ast Service) {
         accept_service(service, self);
     }
@@ -43,8 +47,12 @@ pub trait Visitor<'ast> {
 
     fn visit_user_defined_type_id(&mut self, _user_defined_type_id: &'ast str) {}
 
-    fn visit_func(&mut self, func: &'ast Func) {
-        accept_func(func, self);
+    fn visit_ctor_func(&mut self, func: &'ast CtorFunc) {
+        accept_ctor_func(func, self);
+    }
+
+    fn visit_service_func(&mut self, func: &'ast ServiceFunc) {
+        accept_service_func(func, self);
     }
 
     fn visit_func_param(&mut self, func_param: &'ast FuncParam) {
@@ -73,19 +81,37 @@ pub trait Visitor<'ast> {
 }
 
 pub fn accept_program<'ast>(program: &'ast Program, visitor: &mut (impl Visitor<'ast> + ?Sized)) {
+    if let Some(ctor) = program.ctor() {
+        visitor.visit_ctor(ctor);
+    }
     visitor.visit_service(program.service());
     for r#type in program.types() {
         visitor.visit_type(r#type);
     }
 }
 
-pub fn accept_service<'ast>(service: &'ast Service, visitor: &mut (impl Visitor<'ast> + ?Sized)) {
-    for func in service.funcs() {
-        visitor.visit_func(func);
+pub fn accept_ctor<'ast>(ctor: &'ast Ctor, visitor: &mut (impl Visitor<'ast> + ?Sized)) {
+    for func in ctor.funcs() {
+        visitor.visit_ctor_func(func);
     }
 }
 
-pub fn accept_func<'ast>(func: &'ast Func, visitor: &mut (impl Visitor<'ast> + ?Sized)) {
+pub fn accept_ctor_func<'ast>(func: &'ast CtorFunc, visitor: &mut (impl Visitor<'ast> + ?Sized)) {
+    for param in func.params() {
+        visitor.visit_func_param(param);
+    }
+}
+
+pub fn accept_service<'ast>(service: &'ast Service, visitor: &mut (impl Visitor<'ast> + ?Sized)) {
+    for func in service.funcs() {
+        visitor.visit_service_func(func);
+    }
+}
+
+pub fn accept_service_func<'ast>(
+    func: &'ast ServiceFunc,
+    visitor: &mut (impl Visitor<'ast> + ?Sized),
+) {
     for param in func.params() {
         visitor.visit_func_param(param);
     }
@@ -199,6 +225,7 @@ mod tests {
     #[test]
     fn accept_program_works() {
         let program = Program::new(
+            Some(Ctor::new(vec![])),
             Service::new(vec![]),
             vec![
                 Type::new("Type1".into(), TypeDef::Struct(StructDef::new(vec![]))),
