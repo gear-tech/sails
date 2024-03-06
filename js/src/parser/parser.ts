@@ -27,8 +27,10 @@ interface ParserInstance extends WebAssembly.Instance {
     parse_idl: (idl_ptr: number, idl_len: number) => number;
     free_program: (program_ptr: number) => void;
     accept_program: (program_ptr: number, ctx: number) => void;
+    accept_ctor: (ctor_ptr: number, ctx: number) => void;
+    accept_ctor_func: (func_ptr: number, ctx: number) => void;
     accept_service: (service_ptr: number, ctx: number) => void;
-    accept_func: (func_ptr: number, ctx: number) => void;
+    accept_service_func: (func_ptr: number, ctx: number) => void;
     accept_func_param: (func_param_ptr: number, ctx: number) => void;
     accept_type: (type_ptr: number, ctx: number) => void;
     accept_type_decl: (type_decl_ptr: number, ctx: number) => void;
@@ -177,15 +179,23 @@ export class WasmParser {
           $._program.addContext(id, variant);
           $._exports.accept_enum_variant(enum_variant_ptr, id);
         },
+        visit_ctor: (_, ctor_ptr: number) => {
+          // TODO: Behaviour should be defined
+          $._exports.accept_ctor(ctor_ptr, 0);
+        },
+        visit_ctor_func: (_, func_ptr: number) => {
+          // TODO: Behaviour should be defined
+          $._exports.accept_ctor_func(func_ptr, 0);
+        },
         visit_service: (_, service_ptr: number) => {
           $._program.addService(new Service(service_ptr, $._memory));
           $._exports.accept_service(service_ptr, 0);
         },
-        visit_func: (_, func_ptr: number) => {
+        visit_service_func: (_, func_ptr: number) => {
           const func = new Func(func_ptr, $._memory);
           $._program.service.addFunc(func);
           $._program.addContext(func.rawPtr, func);
-          $._exports.accept_func(func_ptr, func.rawPtr);
+          $._exports.accept_service_func(func_ptr, func.rawPtr);
         },
         visit_func_param: (ctx: number, func_param_ptr: number) => {
           const param = new FuncParam(func_param_ptr, $._memory);
