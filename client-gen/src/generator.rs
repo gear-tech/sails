@@ -109,13 +109,13 @@ impl<'ast> Visitor<'ast> for ServiceGenerator {
         self.code.push_str("}\n");
     }
 
-    fn visit_func(&mut self, func: &'ast Func) {
+    fn visit_service_func(&mut self, func: &'ast ServiceFunc) {
         let mutability = if func.is_query() { "" } else { "mut" };
         let name = func.name().to_case(Case::Snake);
 
         self.code
             .push_str(&format!("fn {}(&{} self,", name, mutability));
-        visitor::accept_func(func, self);
+        visitor::accept_service_func(func, self);
         self.code.push_str(";\n");
     }
 
@@ -171,7 +171,7 @@ impl<'ast> Visitor<'ast> for ClientGenerator {
         self.code.push_str("}\n");
     }
 
-    fn visit_func(&mut self, func: &'ast Func) {
+    fn visit_service_func(&mut self, func: &'ast ServiceFunc) {
         let mutability = if func.is_query() { "" } else { "mut" };
         let fn_name = func.name();
 
@@ -181,7 +181,7 @@ impl<'ast> Visitor<'ast> for ClientGenerator {
             mutability
         ));
 
-        visitor::accept_func(func, self);
+        visitor::accept_service_func(func, self);
 
         self.code.push_str("{\n");
 
@@ -425,11 +425,6 @@ mod tests {
     #[test]
     fn test_basic_works() {
         let idl = r"
-            service {
-                DoThis: (p1: u32, p2: MyParam) -> u16;
-                DoThat: (p1: struct { u8, u32 }) -> u8;
-            };
-
             type MyParam = struct {
                 f1: u32,
                 f2: vec str,
@@ -442,6 +437,11 @@ mod tests {
                 Variant3: struct { u32 },
                 Variant4: struct { u8, u32 },
                 Variant5: struct { f1: str, f2: vec u8 },
+            };
+
+            service {
+                DoThis: (p1: u32, p2: MyParam) -> u16;
+                DoThat: (p1: struct { u8, u32 }) -> u8;
             };
         ";
 

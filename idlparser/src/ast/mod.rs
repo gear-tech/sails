@@ -9,15 +9,25 @@ pub fn parse_idl(idl: &str) -> Result<Program, String> {
     Ok(program)
 }
 
+/// A structure describing program
 #[derive(Debug, PartialEq, Clone)]
 pub struct Program {
+    ctor: Option<Ctor>,
     service: Service,
     types: Vec<Type>,
 }
 
 impl Program {
-    pub(crate) fn new(service: Service, types: Vec<Type>) -> Self {
-        Self { service, types }
+    pub(crate) fn new(ctor: Option<Ctor>, service: Service, types: Vec<Type>) -> Self {
+        Self {
+            ctor,
+            service,
+            types,
+        }
+    }
+
+    pub fn ctor(&self) -> Option<&Ctor> {
+        self.ctor.as_ref()
     }
 
     pub fn service(&self) -> &Service {
@@ -29,30 +39,69 @@ impl Program {
     }
 }
 
+/// A structure describing program constructor
 #[derive(Debug, PartialEq, Clone)]
-pub struct Service {
-    funcs: Vec<Func>,
+pub struct Ctor {
+    funcs: Vec<CtorFunc>,
 }
 
-impl Service {
-    pub(crate) fn new(funcs: Vec<Func>) -> Self {
+impl Ctor {
+    pub(crate) fn new(funcs: Vec<CtorFunc>) -> Self {
         Self { funcs }
     }
 
-    pub fn funcs(&self) -> &[Func] {
+    pub fn funcs(&self) -> &[CtorFunc] {
         &self.funcs
     }
 }
 
+/// A structure describing one of program constructor functions
 #[derive(Debug, PartialEq, Clone)]
-pub struct Func {
+pub struct CtorFunc {
+    name: String,
+    params: Vec<FuncParam>,
+}
+
+impl CtorFunc {
+    pub(crate) fn new(name: String, params: Vec<FuncParam>) -> Self {
+        Self { name, params }
+    }
+
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+
+    pub fn params(&self) -> &[FuncParam] {
+        &self.params
+    }
+}
+
+/// A structure describing one of program services
+#[derive(Debug, PartialEq, Clone)]
+pub struct Service {
+    funcs: Vec<ServiceFunc>,
+}
+
+impl Service {
+    pub(crate) fn new(funcs: Vec<ServiceFunc>) -> Self {
+        Self { funcs }
+    }
+
+    pub fn funcs(&self) -> &[ServiceFunc] {
+        &self.funcs
+    }
+}
+
+/// A structure describing one of service functions
+#[derive(Debug, PartialEq, Clone)]
+pub struct ServiceFunc {
     name: String,
     params: Vec<FuncParam>,
     output: TypeDecl,
     is_query: bool,
 }
 
-impl Func {
+impl ServiceFunc {
     pub(crate) fn new(
         name: String,
         params: Vec<FuncParam>,
@@ -300,19 +349,23 @@ mod tests {
             Eight: actor_id,
           };
 
+          constructor {
+            New : (p1: u32);
+          };
+
           service {
             DoThis : (p1: u32, p2: str, p3: struct { opt str, u8 }, p4: ThisThatSvcAppTupleStruct) -> struct { str, u32 };
             DoThat : (param: ThisThatSvcAppDoThatParam) -> result (struct { str, u32 }, struct { str });
             query This : (v1: vec u16) -> u32;
             query That : (v1: null) -> result (str, str);
           };
-
-          type T = enum { One }
         ";
 
         let program = parse_idl(program_idl).unwrap();
 
-        assert_eq!(program.types().len(), 4);
+        assert_eq!(program.types().len(), 3);
+        assert_eq!(program.ctor().unwrap().funcs().len(), 1);
+        assert_eq!(program.service().funcs().len(), 4);
 
         //println!("ast: {:#?}", program);
     }
@@ -325,7 +378,7 @@ mod tests {
 
         let program = parse_idl(program_idl);
 
-        assert!(program.is_err());
+        assert_eq!(program.unwrap_err(), "UnrecognizedEof { location: 33, expected: [\"\\\";\\\"\", \"\\\"constructor\\\"\", \"\\\"service\\\"\", \"\\\"type\\\"\"] }");
     }
 
     #[test]
@@ -337,7 +390,10 @@ mod tests {
 
         let program = parse_idl(program_idl);
 
-        assert!(program.is_err());
+        assert_eq!(
+            program.unwrap_err(),
+            "UnrecognizedToken { token: (33, Service, 40), expected: [] }"
+        );
     }
 
     #[test]
@@ -350,6 +406,35 @@ mod tests {
         let program = parse_idl(program_idl).unwrap();
 
         assert_eq!(program.types().len(), 1);
+        assert_eq!(program.service().funcs().len(), 0);
+    }
+
+    #[test]
+    fn parser_accepts_ctor_service() {
+        let program_idl = r"
+          constructor {};
+          service {}
+        ";
+
+        let program = parse_idl(program_idl).unwrap();
+
+        assert_eq!(program.ctor().unwrap().funcs().len(), 0);
+        assert_eq!(program.service().funcs().len(), 0);
+    }
+
+    #[test]
+    fn parser_accepts_types_ctor_service() {
+        let program_idl = r"
+          type T = enum { One };
+          constructor {};
+          service {}
+        ";
+
+        let program = parse_idl(program_idl).unwrap();
+
+        assert_eq!(program.types().len(), 1);
+        assert_eq!(program.ctor().unwrap().funcs().len(), 0);
+        assert_eq!(program.service().funcs().len(), 0);
     }
 
     #[test]
@@ -365,31 +450,7 @@ mod tests {
     }
 
     #[test]
-    fn parser_accepts_service_types() {
-        let program_idl = r"
-          service {};
-          type T = enum { One };
-        ";
-
-        let program = parse_idl(program_idl).unwrap();
-
-        assert_eq!(program.types().len(), 1);
-    }
-
-    #[test]
-    fn parser_requires_semicolon_between_service_and_types() {
-        let program_idl = r"
-          service {}
-          type T = enum { One };
-        ";
-
-        let program = parse_idl(program_idl);
-
-        assert!(program.is_err());
-    }
-
-    #[test]
-    fn parser_recognizes_builtin_typesas_primitives() {
+    fn parser_recognizes_builtin_types_as_primitives() {
         let program_idl = r"
             service {
                 DoThis : (p1: actor_id, p2: code_id, p3: message_id) -> null;

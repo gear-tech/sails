@@ -31,12 +31,24 @@ pub unsafe extern "C" fn free_program(program: *mut Program) {
 pub type Program = ast::Program;
 
 #[repr(C)]
+pub struct Ctor {
+    raw_ptr: Ptr,
+}
+
+#[repr(C)]
+pub struct CtorFunc {
+    raw_ptr: Ptr,
+    name_ptr: *const u8,
+    name_len: u32,
+}
+
+#[repr(C)]
 pub struct Service {
     raw_ptr: Ptr,
 }
 
 #[repr(C)]
-pub struct Func {
+pub struct ServiceFunc {
     raw_ptr: Ptr,
     name_ptr: *const u8,
     name_len: u32,

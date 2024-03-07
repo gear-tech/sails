@@ -64,6 +64,8 @@ pub(crate) enum Token {
     Struct,
     #[token("enum")]
     Enum,
+    #[token("constructor")]
+    Ctor,
     #[token("service")]
     Service,
     #[token("query")]

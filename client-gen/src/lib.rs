@@ -49,14 +49,14 @@ mod tests {
             Six: struct { u32 },
         };
 
+        type T = enum { One };
+
         service {
             DoThis : (p1: u32, p2: str, p3: struct { opt str, u8 }, p4: ThisThatSvcAppTupleStruct) -> struct { str, u32 };
             DoThat : (param: ThisThatSvcAppDoThatParam) -> result (struct { str, u32 }, struct { str });
             query This : (v1: vec u16) -> u32;
             query That : (v1: null) -> result (str, str);
         };
-
-        type T = enum { One }
         "#;
         let program = sails_idlparser::ast::parse_idl(IDL).expect("parse IDL");
 
