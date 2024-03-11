@@ -1,0 +1,59 @@
+---
+source: idlgen/src/lib.rs
+expression: generated_idl
+---
+type TupleStruct = struct {
+  bool,
+};
+
+type GenericStructForU32 = struct {
+  p1: u32,
+};
+
+type GenericStructForStr = struct {
+  p1: str,
+};
+
+type DoThatParam = struct {
+  p1: u32,
+  p2: str,
+  p3: ManyVariants,
+};
+
+type ManyVariants = enum {
+  One,
+  Two: u32,
+  Three: opt vec u32,
+  Four: struct { a: u32, b: opt u16 },
+  Five: struct { str, vec u8 },
+  Six: struct { u32 },
+  Seven: GenericEnumForU32AndStr,
+  Eight: [map (u32, str), 10],
+};
+
+type GenericEnumForU32AndStr = enum {
+  Variant1: u32,
+  Variant2: str,
+};
+
+type GenericEnumForBoolAndU32 = enum {
+  Variant1: bool,
+  Variant2: u32,
+};
+
+type ThatParam = struct {
+  p1: ManyVariants,
+};
+
+constructor {
+  New : ();
+  FromStr : (s: str);
+};
+
+service {
+  DoThis : (p1: u32, p2: str, p3: struct { opt str, u8 }, p4: TupleStruct, p5: GenericStructForU32, p6: GenericStructForStr) -> str;
+  DoThat : (par1: DoThatParam) -> result (struct { str, u32 }, struct { str });
+  query This : (p1: u32, p2: str, p3: struct { opt str, u8 }, p4: TupleStruct, p5: GenericEnumForBoolAndU32) -> result (struct { str, u32 }, str);
+  query That : (pr1: ThatParam) -> str;
+}
+

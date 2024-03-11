@@ -11,10 +11,6 @@ mod catalogs;
 // while there is no generated client
 pub mod services;
 
-// Exposed publicly because of service metadata for IDL
-// Will be superseded by program metadata, thus pub won't be needed
-pub type ResourceStorageService = ResourceStorage<GStdExecContext, CatalogClient>;
-
 #[derive(Default)]
 pub struct Program;
 
@@ -29,7 +25,7 @@ impl Program {
 
     // Expose hosted service
     #[groute("")]
-    pub fn resource_storage(&self) -> ResourceStorageService {
+    pub fn resource_storage(&self) -> ResourceStorage<GStdExecContext, CatalogClient> {
         let exec_context = GStdExecContext::default();
         ResourceStorage::new(exec_context, CatalogClient::new(GStdSender))
     }
@@ -45,7 +41,7 @@ impl Program {
         &self,
         exec_context: GStdExecContext,
         sender: GStdSender,
-    ) -> ResourceStorageService {
+    ) -> ResourceStorage<GStdExecContext, CatalogClient> {
         ResourceStorage::new(exec_context, CatalogClient::new(sender))
     }
 }

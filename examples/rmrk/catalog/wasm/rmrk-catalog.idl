@@ -24,6 +24,10 @@ type SlotPart = struct {
   metadata_uri: str,
 };
 
+constructor {
+  New : ();
+};
+
 service {
   AddEquippables : (part_id: u32, collection_ids: vec actor_id) -> result (struct { u32, vec actor_id }, Error);
   AddParts : (parts: map (u32, Part)) -> result (map (u32, Part), Error);
