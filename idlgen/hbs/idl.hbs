@@ -1,14 +1,22 @@
-{{#each complex_types as |type|}}
+{{#each types as |type|}}
   {{#each type.type.def}}
     {{~> (deref @key) id=type.id}}
   {{/each}}
 
 {{/each}}
-service {
-{{#each commands.type.def.variant.variants}}
-  {{name}} : ({{#with (lookup @root/all_types fields.[0].type)}}{{#each type.def.composite.fields}}{{#if @index}}, {{/if}}{{name}}: {{{lookup @root/type_names type}}}{{/each}}{{/with}}) -> {{{lookup @root/type_names fields.[1].type}}};
+{{#if (len ctors)}}
+constructor {
+{{#each ctors}}
+  {{./[0]}} : ({{#each ./[1]}}{{#if @index}}, {{/if}}{{name}}: {{{lookup @root/type_names type}}}{{/each}});
 {{/each}}
-{{#each queries.type.def.variant.variants}}
-  query {{name}} : ({{#with (lookup @root/all_types fields.[0].type)}}{{#each type.def.composite.fields}}{{#if @index}}, {{/if}}{{name}}: {{{lookup @root/type_names type}}}{{/each}}{{/with}}) -> {{{lookup @root/type_names fields.[1].type}}};
+};
+
+{{/if}}
+service {
+{{#each commands}}
+  {{./[0]}} : ({{#each ./[1]}}{{#if @index}}, {{/if}}{{name}}: {{{lookup @root/type_names type}}}{{/each}}) -> {{{lookup @root/type_names ./[2]}}};
+{{/each}}
+{{#each queries}}
+  query {{./[0]}} : ({{#each ./[1]}}{{#if @index}}, {{/if}}{{name}}: {{{lookup @root/type_names type}}}{{/each}}) -> {{{lookup @root/type_names ./[2]}}};
 {{/each}}
 }

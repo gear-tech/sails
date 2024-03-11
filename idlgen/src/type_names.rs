@@ -22,7 +22,7 @@ use crate::errors::{Error, Result};
 use convert_case::{Case, Casing};
 use sails_rtl::{ActorId, CodeId, MessageId};
 use scale_info::{
-    form::PortableForm, PortableRegistry, Type, TypeDef, TypeDefArray, TypeDefPrimitive,
+    form::PortableForm, PortableType, Type, TypeDef, TypeDefArray, TypeDefPrimitive,
     TypeDefSequence, TypeDefTuple, TypeInfo,
 };
 use std::{
@@ -32,16 +32,19 @@ use std::{
     sync::OnceLock,
 };
 
-pub(super) fn resolve_type_names(
-    type_registry: &PortableRegistry,
+pub(super) fn resolve<'a>(
+    types: impl Iterator<Item = &'a PortableType>,
 ) -> Result<BTreeMap<u32, String>> {
-    let type_names = type_registry.types.iter().try_fold(
+    let types = types
+        .map(|t| (t.id, t))
+        .collect::<BTreeMap<u32, &PortableType>>();
+    let type_names = types.iter().try_fold(
         (
             BTreeMap::<u32, RcTypeName>::new(),
             HashMap::<(String, Vec<u32>), u32>::new(),
         ),
         |mut type_names, ty| {
-            resolve_type_name(type_registry, ty.id, &mut type_names.0, &mut type_names.1)
+            resolve_type_name(&types, *ty.0, &mut type_names.0, &mut type_names.1)
                 .map(|_| type_names)
         },
     );
@@ -55,7 +58,7 @@ pub(super) fn resolve_type_names(
 }
 
 fn resolve_type_name(
-    type_registry: &PortableRegistry,
+    types: &BTreeMap<u32, &PortableType>,
     type_id: u32,
     resolved_type_names: &mut BTreeMap<u32, RcTypeName>,
     by_path_type_names: &mut HashMap<(String, Vec<u32>), u32>,
@@ -64,25 +67,26 @@ fn resolve_type_name(
         return Ok(type_name.clone());
     }
 
-    let type_info = type_registry
-        .resolve(type_id)
-        .ok_or_else(|| Error::UnknownType(type_id))?;
+    let type_info = types
+        .get(&type_id)
+        .map(|t| &t.ty)
+        .ok_or_else(|| Error::TypeIdIsUnknown(type_id))?;
 
     let type_name: RcTypeName = match &type_info.type_def {
         TypeDef::Tuple(tuple_def) => Rc::new(TupleTypeName::new(
-            type_registry,
+            types,
             tuple_def,
             resolved_type_names,
             by_path_type_names,
         )?),
         TypeDef::Sequence(vector_def) => Rc::new(VectorTypeName::new(
-            type_registry,
+            types,
             vector_def,
             resolved_type_names,
             by_path_type_names,
         )?),
         TypeDef::Array(array_def) => Rc::new(ArrayTypeName::new(
-            type_registry,
+            types,
             array_def,
             resolved_type_names,
             by_path_type_names,
@@ -90,7 +94,7 @@ fn resolve_type_name(
         TypeDef::Composite(_) => {
             if BTreeMapTypeName::is_btree_map_type(type_info) {
                 Rc::new(BTreeMapTypeName::new(
-                    type_registry,
+                    types,
                     type_info,
                     resolved_type_names,
                     by_path_type_names,
@@ -103,7 +107,7 @@ fn resolve_type_name(
                 Rc::new(CodeIdTypeName::new())
             } else {
                 Rc::new(ByPathTypeName::new(
-                    type_registry,
+                    types,
                     type_info,
                     resolved_type_names,
                     by_path_type_names,
@@ -113,21 +117,21 @@ fn resolve_type_name(
         TypeDef::Variant(_) => {
             if ResultTypeName::is_result_type(type_info) {
                 Rc::new(ResultTypeName::new(
-                    type_registry,
+                    types,
                     type_info,
                     resolved_type_names,
                     by_path_type_names,
                 )?)
             } else if OptionTypeName::is_option_type(type_info) {
                 Rc::new(OptionTypeName::new(
-                    type_registry,
+                    types,
                     type_info,
                     resolved_type_names,
                     by_path_type_names,
                 )?)
             } else {
                 Rc::new(ByPathTypeName::new(
-                    type_registry,
+                    types,
                     type_info,
                     resolved_type_names,
                     by_path_type_names,
@@ -136,7 +140,7 @@ fn resolve_type_name(
         }
         TypeDef::Primitive(primitive_def) => Rc::new(PrimitiveTypeName::new(primitive_def)?),
         _ => {
-            return Err(Error::UnsupprotedType(format!("{type_info:?}")));
+            return Err(Error::TypeIsUnsupported(format!("{type_info:?}")));
         }
     };
 
@@ -158,7 +162,7 @@ struct ByPathTypeName {
 
 impl ByPathTypeName {
     pub fn new(
-        type_registry: &PortableRegistry,
+        types: &BTreeMap<u32, &PortableType>,
         type_info: &Type<PortableForm>,
         resolved_type_names: &mut BTreeMap<u32, RcTypeName>,
         by_path_type_names: &mut HashMap<(String, Vec<u32>), u32>,
@@ -171,10 +175,10 @@ impl ByPathTypeName {
             |(mut type_param_ids, mut type_param_type_names), type_param| {
                 let type_param_id = type_param
                     .ty
-                    .ok_or_else(|| Error::UnsupprotedType(format!("{type_info:?}")))?
+                    .ok_or_else(|| Error::TypeIsUnsupported(format!("{type_info:?}")))?
                     .id;
                 let type_param_type_name = resolve_type_name(
-                    type_registry,
+                    types,
                     type_param_id,
                     resolved_type_names,
                     by_path_type_names,
@@ -198,7 +202,7 @@ impl ByPathTypeName {
                 possible_names
             });
         if possible_names.is_empty() {
-            return Err(Error::UnsupprotedType(format!("{type_info:?}")));
+            return Err(Error::TypeIsUnsupported(format!("{type_info:?}")));
         }
 
         Ok(Self {
@@ -249,7 +253,7 @@ struct BTreeMapTypeName {
 
 impl BTreeMapTypeName {
     pub fn new(
-        type_registry: &PortableRegistry,
+        types: &BTreeMap<u32, &PortableType>,
         type_info: &Type<PortableForm>,
         resolved_type_names: &mut BTreeMap<u32, RcTypeName>,
         by_path_type_names: &mut HashMap<(String, Vec<u32>), u32>,
@@ -258,24 +262,24 @@ impl BTreeMapTypeName {
             .type_params
             .iter()
             .find(|param| param.name == "K")
-            .ok_or_else(|| Error::UnsupprotedType(format!("{type_info:?}")))?
+            .ok_or_else(|| Error::TypeIsUnsupported(format!("{type_info:?}")))?
             .ty
-            .ok_or_else(|| Error::UnsupprotedType(format!("{type_info:?}")))?;
+            .ok_or_else(|| Error::TypeIsUnsupported(format!("{type_info:?}")))?;
         let value_type_id = type_info
             .type_params
             .iter()
             .find(|param| param.name == "V")
-            .ok_or_else(|| Error::UnsupprotedType(format!("{type_info:?}")))?
+            .ok_or_else(|| Error::TypeIsUnsupported(format!("{type_info:?}")))?
             .ty
-            .ok_or_else(|| Error::UnsupprotedType(format!("{type_info:?}")))?;
+            .ok_or_else(|| Error::TypeIsUnsupported(format!("{type_info:?}")))?;
         let key_type_name = resolve_type_name(
-            type_registry,
+            types,
             key_type_id.id,
             resolved_type_names,
             by_path_type_names,
         )?;
         let value_type_name = resolve_type_name(
-            type_registry,
+            types,
             value_type_id.id,
             resolved_type_names,
             by_path_type_names,
@@ -311,7 +315,7 @@ struct ResultTypeName {
 
 impl ResultTypeName {
     pub fn new(
-        type_registry: &PortableRegistry,
+        types: &BTreeMap<u32, &PortableType>,
         type_info: &Type<PortableForm>,
         resolved_type_names: &mut BTreeMap<u32, RcTypeName>,
         by_path_type_names: &mut HashMap<(String, Vec<u32>), u32>,
@@ -320,24 +324,24 @@ impl ResultTypeName {
             .type_params
             .iter()
             .find(|param| param.name == "T")
-            .ok_or_else(|| Error::UnsupprotedType(format!("{type_info:?}")))?
+            .ok_or_else(|| Error::TypeIsUnsupported(format!("{type_info:?}")))?
             .ty
-            .ok_or_else(|| Error::UnsupprotedType(format!("{type_info:?}")))?;
+            .ok_or_else(|| Error::TypeIsUnsupported(format!("{type_info:?}")))?;
         let err_type_id = type_info
             .type_params
             .iter()
             .find(|param| param.name == "E")
-            .ok_or_else(|| Error::UnsupprotedType(format!("{type_info:?}")))?
+            .ok_or_else(|| Error::TypeIsUnsupported(format!("{type_info:?}")))?
             .ty
-            .ok_or_else(|| Error::UnsupprotedType(format!("{type_info:?}")))?;
+            .ok_or_else(|| Error::TypeIsUnsupported(format!("{type_info:?}")))?;
         let ok_type_name = resolve_type_name(
-            type_registry,
+            types,
             ok_type_id.id,
             resolved_type_names,
             by_path_type_names,
         )?;
         let err_type_name = resolve_type_name(
-            type_registry,
+            types,
             err_type_id.id,
             resolved_type_names,
             by_path_type_names,
@@ -372,7 +376,7 @@ struct OptionTypeName {
 
 impl OptionTypeName {
     pub fn new(
-        type_registry: &PortableRegistry,
+        types: &BTreeMap<u32, &PortableType>,
         type_info: &Type<PortableForm>,
         resolved_type_names: &mut BTreeMap<u32, RcTypeName>,
         by_path_type_names: &mut HashMap<(String, Vec<u32>), u32>,
@@ -381,11 +385,11 @@ impl OptionTypeName {
             .type_params
             .iter()
             .find(|param| param.name == "T")
-            .ok_or_else(|| Error::UnsupprotedType(format!("{type_info:?}")))?
+            .ok_or_else(|| Error::TypeIsUnsupported(format!("{type_info:?}")))?
             .ty
-            .ok_or_else(|| Error::UnsupprotedType(format!("{type_info:?}")))?;
+            .ok_or_else(|| Error::TypeIsUnsupported(format!("{type_info:?}")))?;
         let some_type_name = resolve_type_name(
-            type_registry,
+            types,
             some_type_id.id,
             resolved_type_names,
             by_path_type_names,
@@ -413,7 +417,7 @@ struct TupleTypeName {
 
 impl TupleTypeName {
     pub fn new(
-        type_registry: &PortableRegistry,
+        types: &BTreeMap<u32, &PortableType>,
         tuple_def: &TypeDefTuple<PortableForm>,
         resolved_type_names: &mut BTreeMap<u32, RcTypeName>,
         by_path_type_names: &mut HashMap<(String, Vec<u32>), u32>,
@@ -422,12 +426,7 @@ impl TupleTypeName {
             .fields
             .iter()
             .map(|field| {
-                resolve_type_name(
-                    type_registry,
-                    field.id,
-                    resolved_type_names,
-                    by_path_type_names,
-                )
+                resolve_type_name(types, field.id, resolved_type_names, by_path_type_names)
             })
             .collect::<Result<Vec<_>>>()?;
         Ok(Self { field_type_names })
@@ -458,13 +457,13 @@ struct VectorTypeName {
 
 impl VectorTypeName {
     pub fn new(
-        type_registry: &PortableRegistry,
+        types: &BTreeMap<u32, &PortableType>,
         vector_def: &TypeDefSequence<PortableForm>,
         resolved_type_names: &mut BTreeMap<u32, RcTypeName>,
         by_path_type_names: &mut HashMap<(String, Vec<u32>), u32>,
     ) -> Result<Self> {
         let item_type_name = resolve_type_name(
-            type_registry,
+            types,
             vector_def.type_param.id,
             resolved_type_names,
             by_path_type_names,
@@ -487,13 +486,13 @@ struct ArrayTypeName {
 
 impl ArrayTypeName {
     pub fn new(
-        type_registry: &PortableRegistry,
+        types: &BTreeMap<u32, &PortableType>,
         array_def: &TypeDefArray<PortableForm>,
         resolved_type_names: &mut BTreeMap<u32, RcTypeName>,
         by_path_type_names: &mut HashMap<(String, Vec<u32>), u32>,
     ) -> Result<Self> {
         let item_type_name = resolve_type_name(
-            type_registry,
+            types,
             array_def.type_param.id,
             resolved_type_names,
             by_path_type_names,
@@ -594,13 +593,13 @@ impl PrimitiveTypeName {
             TypeDefPrimitive::U32 => Ok("u32"),
             TypeDefPrimitive::U64 => Ok("u64"),
             TypeDefPrimitive::U128 => Ok("u128"),
-            TypeDefPrimitive::U256 => Err(Error::UnsupprotedType("u256".into())), // Rust doesn't have it
+            TypeDefPrimitive::U256 => Err(Error::TypeIsUnsupported("u256".into())), // Rust doesn't have it
             TypeDefPrimitive::I8 => Ok("i8"),
             TypeDefPrimitive::I16 => Ok("i16"),
             TypeDefPrimitive::I32 => Ok("i32"),
             TypeDefPrimitive::I64 => Ok("i64"),
             TypeDefPrimitive::I128 => Ok("i128"),
-            TypeDefPrimitive::I256 => Err(Error::UnsupprotedType("i256".into())), // Rust doesn't have it
+            TypeDefPrimitive::I256 => Err(Error::TypeIsUnsupported("i256".into())), // Rust doesn't have it
         }?;
         Ok(Self { name })
     }
@@ -615,7 +614,7 @@ impl TypeName for PrimitiveTypeName {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use scale_info::{MetaType, Registry};
+    use scale_info::{MetaType, PortableRegistry, Registry};
 
     #[allow(dead_code)]
     #[derive(TypeInfo)]
@@ -662,7 +661,7 @@ mod tests {
         let actor_id_id = registry.register_type(&MetaType::new::<ActorId>()).id;
         let portable_registry = PortableRegistry::from(registry);
 
-        let type_names = resolve_type_names(&portable_registry).unwrap();
+        let type_names = resolve(portable_registry.types.iter()).unwrap();
 
         let actor_id_name = type_names.get(&actor_id_id).unwrap();
         assert_eq!(actor_id_name, "actor_id");
@@ -674,7 +673,7 @@ mod tests {
         let message_id_id = registry.register_type(&MetaType::new::<MessageId>()).id;
         let portable_registry = PortableRegistry::from(registry);
 
-        let type_names = resolve_type_names(&portable_registry).unwrap();
+        let type_names = resolve(portable_registry.types.iter()).unwrap();
 
         let message_id_name = type_names.get(&message_id_id).unwrap();
         assert_eq!(message_id_name, "message_id");
@@ -686,7 +685,7 @@ mod tests {
         let code_id_id = registry.register_type(&MetaType::new::<CodeId>()).id;
         let portable_registry = PortableRegistry::from(registry);
 
-        let type_names = resolve_type_names(&portable_registry).unwrap();
+        let type_names = resolve(portable_registry.types.iter()).unwrap();
 
         let code_id_name = type_names.get(&code_id_id).unwrap();
         assert_eq!(code_id_name, "code_id");
@@ -703,7 +702,7 @@ mod tests {
             .id;
         let portable_registry = PortableRegistry::from(registry);
 
-        let type_names = resolve_type_names(&portable_registry).unwrap();
+        let type_names = resolve(portable_registry.types.iter()).unwrap();
 
         let u32_struct_name = type_names.get(&u32_struct_id).unwrap();
         assert_eq!(u32_struct_name, "GenericStructForU32");
@@ -723,7 +722,7 @@ mod tests {
             .id;
         let portable_registry = PortableRegistry::from(registry);
 
-        let type_names = resolve_type_names(&portable_registry).unwrap();
+        let type_names = resolve(portable_registry.types.iter()).unwrap();
 
         let u32_string_enum_name = type_names.get(&u32_string_enum_id).unwrap();
         assert_eq!(u32_string_enum_name, "GenericEnumForU32AndStr");
@@ -738,7 +737,7 @@ mod tests {
         let u32_array_id = registry.register_type(&MetaType::new::<[u32; 10]>()).id;
         let portable_registry = PortableRegistry::from(registry);
 
-        let type_names = resolve_type_names(&portable_registry).unwrap();
+        let type_names = resolve(portable_registry.types.iter()).unwrap();
 
         let u32_array_name = type_names.get(&u32_array_id).unwrap();
         assert_eq!(u32_array_name, "[u32, 10]");
@@ -752,7 +751,7 @@ mod tests {
             .id;
         let portable_registry = PortableRegistry::from(registry);
 
-        let type_names = resolve_type_names(&portable_registry).unwrap();
+        let type_names = resolve(portable_registry.types.iter()).unwrap();
 
         let btree_map_name = type_names.get(&btree_map_id).unwrap();
         assert_eq!(btree_map_name, "map (u32, str)");
@@ -765,7 +764,7 @@ mod tests {
         let t2_id = registry.register_type(&MetaType::new::<mod_2::T1>()).id;
         let portable_registry = PortableRegistry::from(registry);
 
-        let type_names = resolve_type_names(&portable_registry).unwrap();
+        let type_names = resolve(portable_registry.types.iter()).unwrap();
 
         let t1_name = type_names.get(&t1_id).unwrap();
         assert_eq!(t1_name, "Mod1T1");
@@ -783,7 +782,7 @@ mod tests {
         let t2_id = registry.register_type(&MetaType::new::<mod_2::T2>()).id;
         let portable_registry = PortableRegistry::from(registry);
 
-        let type_names = resolve_type_names(&portable_registry).unwrap();
+        let type_names = resolve(portable_registry.types.iter()).unwrap();
 
         let t1_name = type_names.get(&t1_id).unwrap();
         assert_eq!(t1_name, "Mod1Mod2T2");

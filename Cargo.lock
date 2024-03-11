@@ -3771,6 +3771,7 @@ version = "0.0.1"
 dependencies = [
  "convert_case 0.6.0",
  "handlebars",
+ "insta",
  "sails-idl-meta",
  "sails-idlparser",
  "sails-rtl",

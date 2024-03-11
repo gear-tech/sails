@@ -18,15 +18,15 @@
 
 //! Functionality for generating IDL files describing some service based on its Rust code.
 
-use errors::Result;
+use errors::{Error, Result};
 use handlebars::{handlebars_helper, Handlebars};
-use scale_info::PortableType;
+use meta::ExpandedProgramMeta;
+use scale_info::{form::PortableForm, Field, PortableType};
 use serde::Serialize;
-use service_types::ServiceTypes;
 use std::io::Write;
 
 mod errors;
-mod service_types;
+mod meta;
 mod type_names;
 
 const IDL_TEMPLATE: &str = include_str!("../hbs/idl.hbs");
@@ -41,21 +41,25 @@ pub mod program {
         let services = P::services().collect::<Vec<_>>();
 
         if services.is_empty() {
-            return Ok(());
+            Err(Error::ServiceIsMissing)?;
         }
 
         if services.len() > 1 {
-            todo!("Multiple services are not supported yet");
+            todo!("multiple services are not supported yet");
         }
 
         let service = &services[0];
 
         if !service.0.is_empty() {
-            todo!("Service routes are not supported yet");
+            todo!("service routes are not supported yet");
         }
 
-        generate_service_idl(
-            &ServiceTypes::new(service.1.commands(), service.1.queries()),
+        render_idl(
+            &ExpandedProgramMeta::new(
+                Some(&P::constructors()),
+                service.1.commands(),
+                service.1.queries(),
+            )?,
             idl_writer,
         )
     }
@@ -66,23 +70,20 @@ pub mod service {
     use sails_idl_meta::ServiceMeta;
 
     pub fn generate_idl<S: ServiceMeta>(idl_writer: impl Write) -> Result<()> {
-        generate_service_idl(
-            &ServiceTypes::new(&S::commands(), &S::queries()),
+        render_idl(
+            &ExpandedProgramMeta::new(None, &S::commands(), &S::queries())?,
             idl_writer,
         )
     }
 }
 
-fn generate_service_idl(service_types: &ServiceTypes, idl_writer: impl Write) -> Result<()> {
-    let service_all_type_names =
-        type_names::resolve_type_names(service_types.all_types_registry())?;
-
-    let service_idl_data = ServiceIdlDataEx {
-        type_names: service_all_type_names.values().collect(),
-        all_types: service_types.all_types_registry().types.iter().collect(),
-        complex_types: service_types.complex_types().collect(),
-        commands: service_types.commands_type(),
-        queries: service_types.queries_type(),
+fn render_idl(program_meta: &ExpandedProgramMeta, idl_writer: impl Write) -> Result<()> {
+    let program_idl_data = ProgramIdlData {
+        type_names: program_meta.type_names()?.collect(),
+        types: program_meta.types().collect(),
+        ctors: program_meta.ctors().collect(),
+        commands: program_meta.commands().collect(),
+        queries: program_meta.queries().collect(),
     };
 
     let mut handlebars = Handlebars::new();
@@ -98,31 +99,19 @@ fn generate_service_idl(service_types: &ServiceTypes, idl_writer: impl Write) ->
     handlebars.register_helper("deref", Box::new(deref));
 
     handlebars
-        .render_to_write("idl", &service_idl_data, idl_writer)
+        .render_to_write("idl", &program_idl_data, idl_writer)
         .map_err(Box::new)?;
 
     Ok(())
 }
 
-#[derive(serde::Serialize)]
-struct ServiceIdlData<'a> {
-    complex_types: Vec<&'a PortableType>,
-    commands: &'a PortableType,
-    #[serde(rename = "commandResponses")]
-    command_responses: &'a PortableType,
-    queries: &'a PortableType,
-    #[serde(rename = "queryResponses")]
-    query_responses: &'a PortableType,
-    type_names: Vec<&'a String>,
-}
-
 #[derive(Serialize)]
-struct ServiceIdlDataEx<'a> {
-    type_names: Vec<&'a String>,
-    all_types: Vec<&'a PortableType>,
-    complex_types: Vec<&'a PortableType>,
-    commands: &'a PortableType,
-    queries: &'a PortableType,
+struct ProgramIdlData<'a> {
+    type_names: Vec<String>,
+    types: Vec<&'a PortableType>,
+    ctors: Vec<(&'a str, &'a Vec<Field<PortableForm>>)>,
+    commands: Vec<(&'a str, &'a Vec<Field<PortableForm>>, u32)>,
+    queries: Vec<(&'a str, &'a Vec<Field<PortableForm>>, u32)>,
 }
 
 handlebars_helper!(deref: |v: String| { v });
@@ -130,7 +119,7 @@ handlebars_helper!(deref: |v: String| { v });
 #[cfg(test)]
 mod tests {
     use super::*;
-    use sails_idl_meta::ServiceMeta;
+    use sails_idl_meta::{AnyServiceMeta, ProgramMeta, ServiceMeta};
     use scale_info::{MetaType, TypeInfo};
     use std::{collections::BTreeMap, result::Result as StdResult};
 
@@ -237,66 +226,90 @@ mod tests {
         }
     }
 
+    #[allow(dead_code)]
+    #[derive(TypeInfo)]
+    enum EmptyCtorsMeta {}
+
+    struct TestProgramWithEmptyCtorsMeta;
+
+    impl ProgramMeta for TestProgramWithEmptyCtorsMeta {
+        fn constructors() -> MetaType {
+            scale_info::meta_type::<EmptyCtorsMeta>()
+        }
+
+        fn services() -> impl Iterator<Item = (&'static str, AnyServiceMeta)> {
+            vec![("", AnyServiceMeta::new::<TestServiceMeta>())].into_iter()
+        }
+    }
+
+    #[allow(dead_code)]
+    #[derive(TypeInfo)]
+    struct NewParams;
+
+    #[allow(dead_code)]
+    #[derive(TypeInfo)]
+    struct FromStrParams {
+        s: String,
+    }
+
+    #[allow(dead_code)]
+    #[derive(TypeInfo)]
+    enum NonEmptyCtorsMeta {
+        New(NewParams),
+        FromStr(FromStrParams),
+    }
+
+    struct TestProgramWithNonEmptyCtorsMeta;
+
+    impl ProgramMeta for TestProgramWithNonEmptyCtorsMeta {
+        fn constructors() -> MetaType {
+            scale_info::meta_type::<NonEmptyCtorsMeta>()
+        }
+
+        fn services() -> impl Iterator<Item = (&'static str, AnyServiceMeta)> {
+            vec![("", AnyServiceMeta::new::<TestServiceMeta>())].into_iter()
+        }
+    }
+
     #[test]
-    fn idl_generation_works() {
+    fn generare_program_idl_works_with_empty_ctors() {
+        let mut idl = Vec::new();
+        program::generate_idl::<TestProgramWithEmptyCtorsMeta>(&mut idl).unwrap();
+        let generated_idl = String::from_utf8(idl).unwrap();
+        let generated_idl_program = sails_idlparser::ast::parse_idl(&generated_idl);
+
+        insta::assert_snapshot!(generated_idl);
+        let generated_idl_program = generated_idl_program.unwrap();
+        assert!(generated_idl_program.ctor().is_none());
+        assert_eq!(generated_idl_program.service().funcs().len(), 4);
+        assert_eq!(generated_idl_program.types().len(), 8);
+    }
+
+    #[test]
+    fn generare_program_idl_works_with_non_empty_ctors() {
+        let mut idl = Vec::new();
+        program::generate_idl::<TestProgramWithNonEmptyCtorsMeta>(&mut idl).unwrap();
+        let generated_idl = String::from_utf8(idl).unwrap();
+        let generated_idl_program = sails_idlparser::ast::parse_idl(&generated_idl);
+
+        insta::assert_snapshot!(generated_idl);
+        let generated_idl_program = generated_idl_program.unwrap();
+        assert_eq!(generated_idl_program.ctor().unwrap().funcs().len(), 2);
+        assert_eq!(generated_idl_program.service().funcs().len(), 4);
+        assert_eq!(generated_idl_program.types().len(), 8);
+    }
+
+    #[test]
+    fn generate_service_idl_works() {
         let mut idl = Vec::new();
         service::generate_idl::<TestServiceMeta>(&mut idl).unwrap();
         let generated_idl = String::from_utf8(idl).unwrap();
         let generated_idl_program = sails_idlparser::ast::parse_idl(&generated_idl);
 
-        const EXPECTED_IDL: &str = r"type TupleStruct = struct {
-  bool,
-};
-
-type GenericStructForU32 = struct {
-  p1: u32,
-};
-
-type GenericStructForStr = struct {
-  p1: str,
-};
-
-type DoThatParam = struct {
-  p1: u32,
-  p2: str,
-  p3: ManyVariants,
-};
-
-type ManyVariants = enum {
-  One,
-  Two: u32,
-  Three: opt vec u32,
-  Four: struct { a: u32, b: opt u16 },
-  Five: struct { str, vec u8 },
-  Six: struct { u32 },
-  Seven: GenericEnumForU32AndStr,
-  Eight: [map (u32, str), 10],
-};
-
-type GenericEnumForU32AndStr = enum {
-  Variant1: u32,
-  Variant2: str,
-};
-
-type GenericEnumForBoolAndU32 = enum {
-  Variant1: bool,
-  Variant2: u32,
-};
-
-type ThatParam = struct {
-  p1: ManyVariants,
-};
-
-service {
-  DoThis : (p1: u32, p2: str, p3: struct { opt str, u8 }, p4: TupleStruct, p5: GenericStructForU32, p6: GenericStructForStr) -> str;
-  DoThat : (par1: DoThatParam) -> result (struct { str, u32 }, struct { str });
-  query This : (p1: u32, p2: str, p3: struct { opt str, u8 }, p4: TupleStruct, p5: GenericEnumForBoolAndU32) -> result (struct { str, u32 }, str);
-  query That : (pr1: ThatParam) -> str;
-}
-";
-
-        assert_eq!(generated_idl, EXPECTED_IDL);
-        assert!(generated_idl_program.is_ok());
-        assert_eq!(generated_idl_program.unwrap().types().len(), 8);
+        insta::assert_snapshot!(generated_idl);
+        let generated_idl_program = generated_idl_program.unwrap();
+        assert!(generated_idl_program.ctor().is_none());
+        assert_eq!(generated_idl_program.service().funcs().len(), 4);
+        assert_eq!(generated_idl_program.types().len(), 8);
     }
 }
