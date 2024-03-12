@@ -20,6 +20,7 @@
 
 use crate::shared::{self, Func, ImplType};
 use convert_case::{Case, Casing};
+use parity_scale_codec::Encode;
 use proc_macro2::{Span, TokenStream as TokenStream2};
 use proc_macro_error::abort;
 use quote::quote;
@@ -63,13 +64,17 @@ pub fn gservice(service_impl_tokens: TokenStream2) -> TokenStream2 {
 
         invocation_params_structs.push(handler_generator.params_struct());
         invocation_funcs.push(handler_generator.invocation_func());
-        invocation_dispatches.push(quote!(
-            let invocation_path = #invocation_route.encode();
-            if #input_ident.starts_with(&invocation_path) {
-                let output = self.#invocation_func_ident(&#input_ident[invocation_path.len()..]).await;
-                return [invocation_path, output].concat();
-            }
-        ));
+        invocation_dispatches.push({
+            let invocation_route_bytes = invocation_route.encode();
+            let invocation_route_len = invocation_route_bytes.len();
+            quote!(
+                if #input_ident.starts_with(& [ #(#invocation_route_bytes),* ]) {
+                    let output = self.#invocation_func_ident(&#input_ident[#invocation_route_len..]).await;
+                    static INVOCATION_ROUTE: [u8; #invocation_route_len] = [ #(#invocation_route_bytes),* ];
+                    return [INVOCATION_ROUTE.as_ref(), &output].concat();
+                }
+            )
+        });
 
         let handler_meta_variant = {
             let params_struct_ident = handler_generator.params_struct_ident();
