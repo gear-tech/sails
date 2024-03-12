@@ -52,7 +52,7 @@ pub(super) fn resolve<'a>(
         type_names
             .0
             .iter()
-            .map(|(id, name)| (*id, name.as_string(&type_names.1)))
+            .map(|(id, name)| (*id, name.as_string(false, &type_names.1)))
             .collect()
     })
 }
@@ -151,7 +151,11 @@ fn resolve_type_name(
 type RcTypeName = Rc<dyn TypeName>;
 
 trait TypeName {
-    fn as_string(&self, by_path_type_names: &HashMap<(String, Vec<u32>), u32>) -> String; // Make returning &str + use OnceCell to cache the result
+    fn as_string(
+        &self,
+        for_generic_param: bool,
+        by_path_type_names: &HashMap<(String, Vec<u32>), u32>,
+    ) -> String; // Make returning &str + use OnceCell to cache the result
 }
 
 /// By path type name resolution.
@@ -221,7 +225,11 @@ impl ByPathTypeName {
 }
 
 impl TypeName for ByPathTypeName {
-    fn as_string(&self, by_path_type_names: &HashMap<(String, Vec<u32>), u32>) -> String {
+    fn as_string(
+        &self,
+        _for_generic_param: bool,
+        by_path_type_names: &HashMap<(String, Vec<u32>), u32>,
+    ) -> String {
         let name = self
             .possible_names
             .iter()
@@ -237,7 +245,7 @@ impl TypeName for ByPathTypeName {
             let type_param_names = self
                 .type_param_type_names
                 .iter()
-                .map(|tn| tn.as_string(by_path_type_names).to_case(Case::Pascal))
+                .map(|tn| tn.as_string(true, by_path_type_names))
                 .collect::<Vec<_>>()
                 .join("And");
             format!("{}For{}", name.0, type_param_names)
@@ -298,12 +306,22 @@ impl BTreeMapTypeName {
 }
 
 impl TypeName for BTreeMapTypeName {
-    fn as_string(&self, by_path_type_names: &HashMap<(String, Vec<u32>), u32>) -> String {
-        format!(
-            "map ({}, {})",
-            self.key_type_name.as_string(by_path_type_names),
-            self.value_type_name.as_string(by_path_type_names)
-        )
+    fn as_string(
+        &self,
+        for_generic_param: bool,
+        by_path_type_names: &HashMap<(String, Vec<u32>), u32>,
+    ) -> String {
+        let key_type_name = self
+            .key_type_name
+            .as_string(for_generic_param, by_path_type_names);
+        let value_type_name = self
+            .value_type_name
+            .as_string(for_generic_param, by_path_type_names);
+        if for_generic_param {
+            format!("MapOf{}To{}", key_type_name, value_type_name)
+        } else {
+            format!("map ({}, {})", key_type_name, value_type_name)
+        }
     }
 }
 
@@ -360,12 +378,22 @@ impl ResultTypeName {
 }
 
 impl TypeName for ResultTypeName {
-    fn as_string(&self, by_path_type_names: &HashMap<(String, Vec<u32>), u32>) -> String {
-        format!(
-            "result ({}, {})",
-            self.ok_type_name.as_string(by_path_type_names),
-            self.err_type_name.as_string(by_path_type_names)
-        )
+    fn as_string(
+        &self,
+        for_generic_param: bool,
+        by_path_type_names: &HashMap<(String, Vec<u32>), u32>,
+    ) -> String {
+        let ok_type_name = self
+            .ok_type_name
+            .as_string(for_generic_param, by_path_type_names);
+        let err_type_name = self
+            .err_type_name
+            .as_string(for_generic_param, by_path_type_names);
+        if for_generic_param {
+            format!("ResultOf{}Or{}", ok_type_name, err_type_name)
+        } else {
+            format!("result ({}, {})", ok_type_name, err_type_name)
+        }
     }
 }
 
@@ -405,8 +433,19 @@ impl OptionTypeName {
 }
 
 impl TypeName for OptionTypeName {
-    fn as_string(&self, by_path_type_names: &HashMap<(String, Vec<u32>), u32>) -> String {
-        format!("opt {}", self.some_type_name.as_string(by_path_type_names))
+    fn as_string(
+        &self,
+        for_generic_param: bool,
+        by_path_type_names: &HashMap<(String, Vec<u32>), u32>,
+    ) -> String {
+        let some_type_name = self
+            .some_type_name
+            .as_string(for_generic_param, by_path_type_names);
+        if for_generic_param {
+            format!("OptOf{}", some_type_name)
+        } else {
+            format!("opt {}", some_type_name)
+        }
     }
 }
 
@@ -434,18 +473,33 @@ impl TupleTypeName {
 }
 
 impl TypeName for TupleTypeName {
-    fn as_string(&self, by_path_type_names: &HashMap<(String, Vec<u32>), u32>) -> String {
+    fn as_string(
+        &self,
+        for_generic_param: bool,
+        by_path_type_names: &HashMap<(String, Vec<u32>), u32>,
+    ) -> String {
         if self.field_type_names.is_empty() {
             "null".into()
         } else {
-            format!(
-                "struct {{ {} }}",
-                self.field_type_names
-                    .iter()
-                    .map(|tn| tn.as_string(by_path_type_names))
-                    .collect::<Vec<_>>()
-                    .join(", ")
-            )
+            if for_generic_param {
+                format!(
+                    "StructOf{}",
+                    self.field_type_names
+                        .iter()
+                        .map(|tn| tn.as_string(for_generic_param, by_path_type_names))
+                        .collect::<Vec<_>>()
+                        .join("And")
+                )
+            } else {
+                format!(
+                    "struct {{ {} }}",
+                    self.field_type_names
+                        .iter()
+                        .map(|tn| tn.as_string(for_generic_param, by_path_type_names))
+                        .collect::<Vec<_>>()
+                        .join(", ")
+                )
+            }
         }
     }
 }
@@ -473,8 +527,19 @@ impl VectorTypeName {
 }
 
 impl TypeName for VectorTypeName {
-    fn as_string(&self, by_path_type_names: &HashMap<(String, Vec<u32>), u32>) -> String {
-        format!("vec {}", self.item_type_name.as_string(by_path_type_names))
+    fn as_string(
+        &self,
+        for_generic_param: bool,
+        by_path_type_names: &HashMap<(String, Vec<u32>), u32>,
+    ) -> String {
+        let item_type_name = self
+            .item_type_name
+            .as_string(for_generic_param, by_path_type_names);
+        if for_generic_param {
+            format!("VecOf{}", item_type_name)
+        } else {
+            format!("vec {}", item_type_name)
+        }
     }
 }
 
@@ -505,12 +570,19 @@ impl ArrayTypeName {
 }
 
 impl TypeName for ArrayTypeName {
-    fn as_string(&self, by_path_type_names: &HashMap<(String, Vec<u32>), u32>) -> String {
-        format!(
-            "[{}, {}]",
-            self.item_type_name.as_string(by_path_type_names),
-            self.len
-        )
+    fn as_string(
+        &self,
+        for_generic_param: bool,
+        by_path_type_names: &HashMap<(String, Vec<u32>), u32>,
+    ) -> String {
+        let item_type_name = self
+            .item_type_name
+            .as_string(for_generic_param, by_path_type_names);
+        if for_generic_param {
+            format!("ArrOf{}{}", self.len, item_type_name)
+        } else {
+            format!("[{}, {}]", item_type_name, self.len)
+        }
     }
 }
 
@@ -530,8 +602,16 @@ impl ActorIdTypeName {
 }
 
 impl TypeName for ActorIdTypeName {
-    fn as_string(&self, _by_path_type_names: &HashMap<(String, Vec<u32>), u32>) -> String {
-        "actor_id".into()
+    fn as_string(
+        &self,
+        for_generic_param: bool,
+        _by_path_type_names: &HashMap<(String, Vec<u32>), u32>,
+    ) -> String {
+        if for_generic_param {
+            "ActorId".into()
+        } else {
+            "actor_id".into()
+        }
     }
 }
 
@@ -551,8 +631,16 @@ impl MessageIdTypeName {
 }
 
 impl TypeName for MessageIdTypeName {
-    fn as_string(&self, _by_path_type_names: &HashMap<(String, Vec<u32>), u32>) -> String {
-        "message_id".into()
+    fn as_string(
+        &self,
+        for_generic_param: bool,
+        _by_path_type_names: &HashMap<(String, Vec<u32>), u32>,
+    ) -> String {
+        if for_generic_param {
+            "MessageId".into()
+        } else {
+            "message_id".into()
+        }
     }
 }
 
@@ -572,8 +660,16 @@ impl CodeIdTypeName {
 }
 
 impl TypeName for CodeIdTypeName {
-    fn as_string(&self, _by_path_type_names: &HashMap<(String, Vec<u32>), u32>) -> String {
-        "code_id".into()
+    fn as_string(
+        &self,
+        for_generic_param: bool,
+        _by_path_type_names: &HashMap<(String, Vec<u32>), u32>,
+    ) -> String {
+        if for_generic_param {
+            "CodeId".into()
+        } else {
+            "code_id".into()
+        }
     }
 }
 
@@ -606,13 +702,23 @@ impl PrimitiveTypeName {
 }
 
 impl TypeName for PrimitiveTypeName {
-    fn as_string(&self, _by_path_type_names: &HashMap<(String, Vec<u32>), u32>) -> String {
-        self.name.to_string()
+    fn as_string(
+        &self,
+        for_generic_param: bool,
+        _by_path_type_names: &HashMap<(String, Vec<u32>), u32>,
+    ) -> String {
+        if for_generic_param {
+            self.name.to_case(Case::Pascal)
+        } else {
+            self.name.to_string()
+        }
     }
 }
 
 #[cfg(test)]
 mod tests {
+    use std::result;
+
     use super::*;
     use scale_info::{MetaType, PortableRegistry, Registry};
 
@@ -659,36 +765,51 @@ mod tests {
     fn actor_id_type_name_resolution_works() {
         let mut registry = Registry::new();
         let actor_id_id = registry.register_type(&MetaType::new::<ActorId>()).id;
+        let as_generic_param_id = registry
+            .register_type(&MetaType::new::<GenericStruct<ActorId>>())
+            .id;
         let portable_registry = PortableRegistry::from(registry);
 
         let type_names = resolve(portable_registry.types.iter()).unwrap();
 
         let actor_id_name = type_names.get(&actor_id_id).unwrap();
         assert_eq!(actor_id_name, "actor_id");
+        let as_generic_param_name = type_names.get(&as_generic_param_id).unwrap();
+        assert_eq!(as_generic_param_name, "GenericStructForActorId");
     }
 
     #[test]
     fn message_id_type_name_resolution_works() {
         let mut registry = Registry::new();
         let message_id_id = registry.register_type(&MetaType::new::<MessageId>()).id;
+        let as_generic_param_id = registry
+            .register_type(&MetaType::new::<GenericStruct<MessageId>>())
+            .id;
         let portable_registry = PortableRegistry::from(registry);
 
         let type_names = resolve(portable_registry.types.iter()).unwrap();
 
         let message_id_name = type_names.get(&message_id_id).unwrap();
         assert_eq!(message_id_name, "message_id");
+        let as_generic_param_name = type_names.get(&as_generic_param_id).unwrap();
+        assert_eq!(as_generic_param_name, "GenericStructForMessageId");
     }
 
     #[test]
     fn code_id_type_name_resolution_works() {
         let mut registry = Registry::new();
         let code_id_id = registry.register_type(&MetaType::new::<CodeId>()).id;
+        let as_generic_param_id = registry
+            .register_type(&MetaType::new::<GenericStruct<CodeId>>())
+            .id;
         let portable_registry = PortableRegistry::from(registry);
 
         let type_names = resolve(portable_registry.types.iter()).unwrap();
 
         let code_id_name = type_names.get(&code_id_id).unwrap();
         assert_eq!(code_id_name, "code_id");
+        let as_generic_param_name = type_names.get(&as_generic_param_id).unwrap();
+        assert_eq!(as_generic_param_name, "GenericStructForCodeId");
     }
 
     #[test]
@@ -735,19 +856,97 @@ mod tests {
     fn array_type_name_resolution_works() {
         let mut registry = Registry::new();
         let u32_array_id = registry.register_type(&MetaType::new::<[u32; 10]>()).id;
+        let as_generic_param_id = registry
+            .register_type(&MetaType::new::<GenericStruct<[u32; 10]>>())
+            .id;
         let portable_registry = PortableRegistry::from(registry);
 
         let type_names = resolve(portable_registry.types.iter()).unwrap();
 
         let u32_array_name = type_names.get(&u32_array_id).unwrap();
         assert_eq!(u32_array_name, "[u32, 10]");
+        let as_generic_param_name = type_names.get(&as_generic_param_id).unwrap();
+        assert_eq!(as_generic_param_name, "GenericStructForArrOf10U32");
     }
 
     #[test]
-    fn btree_map_name_resolution_works() {
+    fn vector_type_name_resolution_works() {
+        let mut registry = Registry::new();
+        let u32_vector_id = registry.register_type(&MetaType::new::<Vec<u32>>()).id;
+        let as_generic_param_id = registry
+            .register_type(&MetaType::new::<GenericStruct<Vec<u32>>>())
+            .id;
+        let portable_registry = PortableRegistry::from(registry);
+
+        let type_names = resolve(portable_registry.types.iter()).unwrap();
+
+        let u32_vector_name = type_names.get(&u32_vector_id).unwrap();
+        assert_eq!(u32_vector_name, "vec u32");
+        let as_generic_param_name = type_names.get(&as_generic_param_id).unwrap();
+        assert_eq!(as_generic_param_name, "GenericStructForVecOfU32");
+    }
+
+    #[test]
+    fn result_type_name_resolution_works() {
+        let mut registry = Registry::new();
+        let u32_result_id = registry
+            .register_type(&MetaType::new::<result::Result<u32, String>>())
+            .id;
+        let as_generic_param_id = registry
+            .register_type(&MetaType::new::<GenericStruct<result::Result<u32, String>>>())
+            .id;
+        let portable_registry = PortableRegistry::from(registry);
+
+        let type_names = resolve(portable_registry.types.iter()).unwrap();
+
+        let u32_result_name = type_names.get(&u32_result_id).unwrap();
+        assert_eq!(u32_result_name, "result (u32, str)");
+        let as_generic_param_name = type_names.get(&as_generic_param_id).unwrap();
+        assert_eq!(as_generic_param_name, "GenericStructForResultOfU32OrStr");
+    }
+
+    #[test]
+    fn option_type_name_resolution_works() {
+        let mut registry = Registry::new();
+        let u32_option_id = registry.register_type(&MetaType::new::<Option<u32>>()).id;
+        let as_generic_param_id = registry
+            .register_type(&MetaType::new::<GenericStruct<Option<u32>>>())
+            .id;
+        let portable_registry = PortableRegistry::from(registry);
+
+        let type_names = resolve(portable_registry.types.iter()).unwrap();
+
+        let u32_option_name = type_names.get(&u32_option_id).unwrap();
+        assert_eq!(u32_option_name, "opt u32");
+        let as_generic_param_name = type_names.get(&as_generic_param_id).unwrap();
+        assert_eq!(as_generic_param_name, "GenericStructForOptOfU32");
+    }
+
+    #[test]
+    fn tuple_type_name_resolution_works() {
+        let mut registry = Registry::new();
+        let u32_str_tuple_id = registry.register_type(&MetaType::new::<(u32, String)>()).id;
+        let as_generic_param_id = registry
+            .register_type(&MetaType::new::<GenericStruct<(u32, String)>>())
+            .id;
+        let portable_registry = PortableRegistry::from(registry);
+
+        let type_names = resolve(portable_registry.types.iter()).unwrap();
+
+        let u32_str_tuple_name = type_names.get(&u32_str_tuple_id).unwrap();
+        assert_eq!(u32_str_tuple_name, "struct { u32, str }");
+        let as_generic_param_name = type_names.get(&as_generic_param_id).unwrap();
+        assert_eq!(as_generic_param_name, "GenericStructForStructOfU32AndStr");
+    }
+
+    #[test]
+    fn btree_map_type_name_resolution_works() {
         let mut registry = Registry::new();
         let btree_map_id = registry
             .register_type(&MetaType::new::<BTreeMap<u32, String>>())
+            .id;
+        let as_generic_param_id = registry
+            .register_type(&MetaType::new::<GenericStruct<BTreeMap<u32, String>>>())
             .id;
         let portable_registry = PortableRegistry::from(registry);
 
@@ -755,6 +954,8 @@ mod tests {
 
         let btree_map_name = type_names.get(&btree_map_id).unwrap();
         assert_eq!(btree_map_name, "map (u32, str)");
+        let as_generic_param_name = type_names.get(&as_generic_param_id).unwrap();
+        assert_eq!(as_generic_param_name, "GenericStructForMapOfU32ToStr");
     }
 
     #[test]
