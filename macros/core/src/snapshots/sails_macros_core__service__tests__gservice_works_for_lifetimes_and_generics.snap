@@ -10,10 +10,18 @@ where
         42
     }
     pub async fn handle(&mut self, mut input: &[u8]) -> Vec<u8> {
-        let invocation_path = "DoThis".encode();
-        if input.starts_with(&invocation_path) {
-            let output = self.__do_this(&input[invocation_path.len()..]).await;
-            return [invocation_path, output].concat();
+        if input.starts_with(&[24u8, 68u8, 111u8, 84u8, 104u8, 105u8, 115u8]) {
+            let output = self.__do_this(&input[7usize..]).await;
+            static INVOCATION_ROUTE: [u8; 7usize] = [
+                24u8,
+                68u8,
+                111u8,
+                84u8,
+                104u8,
+                105u8,
+                115u8,
+            ];
+            return [INVOCATION_ROUTE.as_ref(), &output].concat();
         }
         let invocation_path = String::decode(&mut input)
             .expect("Failed to decode invocation path");
