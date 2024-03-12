@@ -2,6 +2,7 @@ import { GearApi, HexString, MessageQueued, decodeAddress } from '@gear-js/api';
 import { KeyringPair } from '@polkadot/keyring/types';
 import { waitReady } from '@polkadot/wasm-crypto';
 import { Keyring } from '@polkadot/api';
+import { u8aToHex } from '@polkadot/util';
 
 import { Sails } from '../lib';
 import { readFileSync } from 'fs';
@@ -40,8 +41,17 @@ describe('RMRK', () => {
 
   test('upload catalog', async () => {
     code = readFileSync(CATALOG_WASM_PATH);
-    const gas = await api.program.calculateGas.initUpload(aliceRaw, code, 'New');
-    const { extrinsic, programId } = api.program.upload({ code, gasLimit: gas.min_limit, initPayload: 'New' });
+
+    const payload = sails.ctors.New.encodePayload();
+
+    const gas = await api.program.calculateGas.initUpload(aliceRaw, code, payload);
+
+    // TODO: replace u8aToHex(payload) with payload after next @gear-js/api release
+    const { extrinsic, programId } = api.program.upload({
+      code,
+      gasLimit: gas.min_limit,
+      initPayload: u8aToHex(payload),
+    });
 
     await new Promise((resolve, reject) => {
       extrinsic.signAndSend(alice, ({ events, status }) => {
@@ -105,7 +115,11 @@ let program: Program;
 
 describe('RMRK generated', () => {
   test('create program', async () => {
-    program = await Program.new(api, code, alice);
+    program = new Program(api);
+    expect(program).toHaveProperty('newCtor');
+
+    await program.newCtor(code, alice);
+
     expect(program).toHaveProperty('addParts');
     expect(program).toHaveProperty('removeParts');
     expect(program).toHaveProperty('addEquippables');
@@ -114,6 +128,7 @@ describe('RMRK generated', () => {
     expect(program).toHaveProperty('setEquippablesToAll');
     expect(program).toHaveProperty('part');
     expect(program).toHaveProperty('equippable');
+    expect(program.programId).toBeDefined();
   });
 
   test('add parts', async () => {
@@ -219,4 +234,6 @@ describe('RMRK generated', () => {
       expect(response.ok).toBeNull();
     }
   });
+
+  test.todo('read state');
 });

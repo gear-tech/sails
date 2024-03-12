@@ -5,6 +5,9 @@ import { Output } from './output.js';
 const HEX_STRING_TYPE = '`0x${string}`';
 
 const getArgs = (params: FuncParam[]) => {
+  if (params.length === 0) {
+    return null;
+  }
   return params.map(({ name, def }) => `${name}: ${getJsTypeDef(def)}`).join(', ');
 };
 
@@ -16,6 +19,10 @@ const getValue = (isQuery: boolean) => {
   return isQuery ? '' : `, value?: number | string | bigint`;
 };
 
+const getFuncName = (name: string) => {
+  return name[0].toLowerCase() + name.slice(1);
+};
+
 export class ServiceGenerator {
   constructor(private _out: Output, private _program: Program, private scaleTypes: Record<string, any>) {}
 
@@ -24,41 +31,51 @@ export class ServiceGenerator {
       .import('@gear-js/api', 'GearApi')
       .import('./transaction.js', 'Transaction')
       .block(`export class Program extends Transaction`, () => {
-        this._out.block(`constructor(api: GearApi, public programId?: ${HEX_STRING_TYPE})`, () => {
-          this._out
-            .block(`const types: Record<string, any> =`, () => {
-              for (const [name, type] of Object.entries(this.scaleTypes)) {
-                this._out.line(`${name}: ${JSON.stringify(type)},`, false);
-              }
-            })
-            .line('super(api, types)');
-        });
+        this._out
+          .block(`constructor(api: GearApi, public programId?: ${HEX_STRING_TYPE})`, () => {
+            this._out
+              .block(`const types: Record<string, any> =`, () => {
+                for (const [name, type] of Object.entries(this.scaleTypes)) {
+                  this._out.line(`${name}: ${JSON.stringify(type)},`, false);
+                }
+              })
+              .line('super(api, types)');
+          })
+          .line();
         this.generateProgramConstructor();
         this.generateMethods();
       });
   }
 
   private generateProgramConstructor() {
-    this._out
-      .block(
-        `public createProgram(code: Uint8Array | Buffer, account: string | IKeyringPair, signerOptions: Partial<SignerOptions>, value = 0)`,
-        () => {
-          this._out.line(`return this.uploadProgram(code, 'New', account, signerOptions, value)`);
-        },
-      )
-      .line()
-      .block(
-        `static async new(api: GearApi, code: Uint8Array | Buffer, account: string | IKeyringPair, signerOptions?: Partial<SignerOptions>, value = 0)`,
-        () => {
-          this._out
-            .line(`const program = new Program(api)`)
-            .line(`const { programId, response } = await program.createProgram(code, account, signerOptions, value)`)
-            .line('await response()')
-            .line('program.programId = programId')
-            .line('return program');
-        },
-      )
-      .line();
+    for (const { name, params } of this._program.ctor.funcs) {
+      const args = getArgs(params);
+      this._out
+        .block(
+          `async ${getFuncName(name)}Ctor(code: Uint8Array | Buffer, ${
+            args !== null ? args + ', ' : ''
+          }account: string | IKeyringPair, signerOptions?: Partial<SignerOptions>, value = 0)`,
+          () => {
+            if (params.length === 0) {
+              this._out.line(`const payload = this.registry.createType('String', '${name}').toU8a()`);
+            } else {
+              this._out.line(
+                `const payload = this.registry.createType('(String, ${params
+                  .map(({ def }) => getScaleCodecDef(def))
+                  .join(', ')})', ['${name}', ${params.map(({ name }) => name).join(', ')}]).toU8a()`,
+              );
+            }
+            this._out
+              .line(
+                `const { programId, response } = await this.uploadProgram(code, payload, account, signerOptions, value)`,
+              )
+              .line('await response()')
+              .line('this.programId = programId')
+              .line('return this');
+          },
+        )
+        .line();
+    }
   }
 
   private generateMethods() {
@@ -72,9 +89,9 @@ export class ServiceGenerator {
       this._out
         .line()
         .block(
-          `public async ${name[0].toLowerCase() + name.slice(1)}(${getArgs(params)}${getAccount(isQuery)}${getValue(
-            isQuery,
-          )}): Promise<${isQuery ? returnType : `IMethodReturnType<${returnType}>`}>`,
+          `public async ${getFuncName(name)}(${getArgs(params)}${getAccount(isQuery)}${getValue(isQuery)}): Promise<${
+            isQuery ? returnType : `IMethodReturnType<${returnType}>`
+          }>`,
           () => {
             if (params.length === 0) {
               this._out.line(`const payload = this.registry.createType('String', '${name}').toU8a()`);
