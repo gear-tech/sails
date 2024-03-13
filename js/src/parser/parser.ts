@@ -1,10 +1,12 @@
 import wasmParserBytes from './wasm-bytes.js';
 import {
+  Ctor,
+  CtorFunc,
   DefKind,
   EnumDef,
   EnumVariant,
   FixedSizeArrayDef,
-  Func,
+  ServiceFunc,
   FuncParam,
   MapDef,
   OptionalDef,
@@ -180,19 +182,21 @@ export class WasmParser {
           $._exports.accept_enum_variant(enum_variant_ptr, id);
         },
         visit_ctor: (_, ctor_ptr: number) => {
-          // TODO: Behaviour should be defined (#115). Stop traversing further
-          // $._exports.accept_ctor(ctor_ptr, 0);
+          $._program.addCtor(new Ctor(ctor_ptr, $._memory));
+          $._exports.accept_ctor(ctor_ptr, 0);
         },
         visit_ctor_func: (_, func_ptr: number) => {
-          // TODO: Behaviour should be defined (#115). Stop traversing further
-          //$._exports.accept_ctor_func(func_ptr, 0);
+          const func = new CtorFunc(func_ptr, $._memory);
+          $._program.ctor.addFunc(func);
+          $._program.addContext(func.rawPtr, func);
+          $._exports.accept_ctor_func(func_ptr, func.rawPtr);
         },
         visit_service: (_, service_ptr: number) => {
           $._program.addService(new Service(service_ptr, $._memory));
           $._exports.accept_service(service_ptr, 0);
         },
         visit_service_func: (_, func_ptr: number) => {
-          const func = new Func(func_ptr, $._memory);
+          const func = new ServiceFunc(func_ptr, $._memory);
           $._program.service.addFunc(func);
           $._program.addContext(func.rawPtr, func);
           $._exports.accept_service_func(func_ptr, func.rawPtr);

@@ -3,12 +3,17 @@ import { TypeRegistry } from '@polkadot/types';
 import { Program, TypeDef, WasmParser } from './parser/index.js';
 import { getScaleCodecDef } from './utils/types.js';
 
-interface SailsFunc {
+interface SailsServiceFunc {
   args: { name: string; type: any }[];
   returnType: any;
   isQuery: boolean;
   encodePayload: (...args: any[]) => Uint8Array;
   decodeResult: (result: Uint8Array) => any;
+}
+
+interface SailsCtorFunc {
+  args: { name: string; type: any }[];
+  encodePayload: (...args: any[]) => Uint8Array;
 }
 
 export class Sails {
@@ -70,12 +75,12 @@ export class Sails {
   }
 
   /** #### Functions with arguments and return types from the parsed IDL */
-  get functions(): Record<string, SailsFunc> {
+  get functions(): Record<string, SailsServiceFunc> {
     if (!this._program) {
       throw new Error('IDL not parsed');
     }
 
-    const funcs: Record<string, SailsFunc> = {};
+    const funcs: Record<string, SailsServiceFunc> = {};
 
     for (const func of this._program.service.funcs) {
       const params = func.params.map((p) => ({ name: p.name, type: getScaleCodecDef(p.def) }));
@@ -86,7 +91,7 @@ export class Sails {
         isQuery: func.isQuery,
         encodePayload: (...args): Uint8Array => {
           if (args.length !== args.length) {
-            throw new Error(`Expected ${args.length} arguments, but got ${args.length}`);
+            throw new Error(`Expected ${params.length} arguments, but got ${args.length}`);
           }
 
           const payload = this.registry.createType(`(String, ${params.map((p) => p.type).join(', ')})`, [
@@ -106,6 +111,42 @@ export class Sails {
     return funcs;
   }
 
+  /** #### Constructor functions with arguments from the parsed IDL */
+  get ctors() {
+    if (!this._program) {
+      throw new Error('IDL not parsed');
+    }
+
+    const ctor = this._program.ctor;
+
+    if (!ctor) {
+      return null;
+    }
+
+    const funcs: Record<string, SailsCtorFunc> = {};
+
+    for (const func of ctor.funcs) {
+      const params = func.params.map((p) => ({ name: p.name, type: getScaleCodecDef(p.def) }));
+      funcs[func.name] = {
+        args: params,
+        encodePayload: (...args): Uint8Array => {
+          if (args.length !== args.length) {
+            throw new Error(`Expected ${params.length} arguments, but got ${args.length}`);
+          }
+
+          const payload = this.registry.createType(`(String, ${params.map((p) => p.type).join(', ')})`, [
+            func.name,
+            ...args,
+          ]);
+
+          return payload.toU8a();
+        },
+      };
+    }
+
+    return funcs;
+  }
+
   /** #### Parsed IDL */
   get program() {
     if (!this._program) {
@@ -115,6 +156,7 @@ export class Sails {
     return this._program;
   }
 
+  /** #### Get type definition by name */
   getTypeDef(name: string): TypeDef {
     return this.program.getTypeByName(name).def;
   }

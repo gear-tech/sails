@@ -99,4 +99,22 @@ describe('service', () => {
       { a: 'hello', b: 1234 },
     ]);
   });
+
+  test('service with ctor', () => {
+    const idl = `
+    constructor {
+      New : (p1: u32);
+    };
+
+    service {
+      DoThis : (a1: str) -> u8;
+    }`;
+
+    const result = sails.parseIdl(idl);
+
+    expect(Object.keys(result.functions)).toHaveLength(1);
+    expect(Object.keys(result.ctors).includes('New')).toBeTruthy();
+    expect(Object.keys(result.ctors.New.args)).toHaveLength(1);
+    expect([...result.ctors.New.encodePayload(1)]).toEqual([12, 78, 101, 119, 1, 0, 0, 0]);
+  });
 });

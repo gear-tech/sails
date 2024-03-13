@@ -35,6 +35,7 @@ export class Program {
   private _service: Service;
   private _types: Map<number, Type>;
   private _context: Map<number, WithDef>;
+  private _ctor: Ctor;
 
   constructor() {
     this._service = null;
@@ -55,6 +56,10 @@ export class Program {
 
   get service(): Service {
     return this._service;
+  }
+
+  get ctor(): Ctor {
+    return this._ctor;
   }
 
   getType(id: number): Type {
@@ -79,6 +84,10 @@ export class Program {
     if (types.length === 0) throw new Error(`no type found with name ${name}`);
 
     return types[0];
+  }
+
+  addCtor(ctor: Ctor) {
+    this._ctor = ctor;
   }
 }
 
@@ -439,7 +448,7 @@ export class UserDefinedDef {
 }
 
 export class Service extends Base {
-  public readonly funcs: Func[];
+  public readonly funcs: ServiceFunc[];
 
   constructor(ptr: number, memory: WebAssembly.Memory) {
     super(ptr, memory);
@@ -447,12 +456,12 @@ export class Service extends Base {
     this.funcs = [];
   }
 
-  addFunc(func: Func) {
+  addFunc(func: ServiceFunc) {
     this.funcs.push(func);
   }
 }
 
-export class Func extends WithDef {
+export class ServiceFunc extends WithDef {
   public readonly name: string;
   public readonly isQuery: boolean;
   private _params: Map<number, FuncParam>;
@@ -468,6 +477,45 @@ export class Func extends WithDef {
     const is_query_buf = new Uint8Array(memory.buffer.slice(ptr + this.offset, ptr + this.offset + 1));
     const is_query_dv = new DataView(is_query_buf.buffer, 0);
     this.isQuery = is_query_dv.getUint8(0) === 1;
+
+    this._params = new Map();
+  }
+
+  addFuncParam(ptr: number, param: FuncParam) {
+    this._params.set(ptr, param);
+  }
+
+  get params(): FuncParam[] {
+    if (this._params.size === 0) return [];
+
+    return Array.from(this._params.values());
+  }
+}
+
+export class Ctor extends Base {
+  public readonly funcs: CtorFunc[];
+
+  constructor(ptr: number, memory: WebAssembly.Memory) {
+    super(ptr, memory);
+
+    this.funcs = [];
+  }
+
+  addFunc(func: CtorFunc) {
+    this.funcs.push(func);
+  }
+}
+
+export class CtorFunc extends Base {
+  private _params: Map<number, FuncParam>;
+  public readonly name: string;
+
+  constructor(ptr: number, memory: WebAssembly.Memory) {
+    super(ptr, memory);
+
+    const { name, offset } = getName(ptr, this.offset, memory);
+    this.name = name;
+    this.offset = offset;
 
     this._params = new Map();
   }
