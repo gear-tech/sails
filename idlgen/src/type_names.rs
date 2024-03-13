@@ -480,26 +480,24 @@ impl TypeName for TupleTypeName {
     ) -> String {
         if self.field_type_names.is_empty() {
             "null".into()
+        } else if for_generic_param {
+            format!(
+                "StructOf{}",
+                self.field_type_names
+                    .iter()
+                    .map(|tn| tn.as_string(for_generic_param, by_path_type_names))
+                    .collect::<Vec<_>>()
+                    .join("And")
+            )
         } else {
-            if for_generic_param {
-                format!(
-                    "StructOf{}",
-                    self.field_type_names
-                        .iter()
-                        .map(|tn| tn.as_string(for_generic_param, by_path_type_names))
-                        .collect::<Vec<_>>()
-                        .join("And")
-                )
-            } else {
-                format!(
-                    "struct {{ {} }}",
-                    self.field_type_names
-                        .iter()
-                        .map(|tn| tn.as_string(for_generic_param, by_path_type_names))
-                        .collect::<Vec<_>>()
-                        .join(", ")
-                )
-            }
+            format!(
+                "struct {{ {} }}",
+                self.field_type_names
+                    .iter()
+                    .map(|tn| tn.as_string(for_generic_param, by_path_type_names))
+                    .collect::<Vec<_>>()
+                    .join(", ")
+            )
         }
     }
 }
