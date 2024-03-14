@@ -2,7 +2,12 @@
 
 use core::fmt::Debug;
 use core::marker::PhantomData;
-use gstd::{errors::Error as GStdError, msg::MessageFuture, prelude::*, ActorId, MessageId};
+use gstd::{
+    errors::Error as GStdError,
+    msg::{CreateProgramFuture, MessageFuture},
+    prelude::*,
+    ActorId, MessageId,
+};
 use parity_scale_codec::{Decode, Error as ParseError};
 
 #[derive(Default)]
@@ -151,6 +156,32 @@ impl<R: Decode + Debug> CallTicket<R> {
     }
 }
 
+pub struct CreateProgramTicket {
+    /// message we are waiting on
+    f: CreateProgramFuture,
+}
+
+pub trait ProgramClient {
+    fn new(id: ActorId) -> Self;
+}
+
+impl CreateProgramTicket {
+    pub async fn response(self) -> Result<ActorId, GStdError> {
+        let (prog_id, reply) = self.f.await?;
+
+        assert_eq!(reply, vec![123]);
+
+        Ok(prog_id)
+    }
+
+    pub fn message_id(&self) -> MessageId {
+        self.f.waiting_reply_to
+    }
+
+    pub fn program_id(&self) -> ActorId {
+        self.f.program_id
+    }
+}
 mod tests {
     use super::*;
 

@@ -8,6 +8,27 @@ use parity_scale_codec::{Decode, Encode};
 use sails_rtl::collections::BTreeMap;
 use sails_rtl::{String, *};
 use sails_sender::{Call, GStdSender};
+pub mod ctor {
+    pub struct ProgramFactory {
+        creator: GStdCreator,
+    }
+    impl ProgramFactory {
+        pub fn new(creator: GStdCreator) -> Self {
+            Self { creator }
+        }
+        pub fn new(code_id: CodeId, value: u128, a: u32) -> CreateProgramTicket {
+            let mut payload = new_payload(a);
+            let future =
+                ProgramCreator::create_program_bytes_for_reply(code_id, &payload, value, 0);
+            CreateProgramTicket { f: future }
+        }
+    }
+    pub fn new_payload(a: u32) -> Vec<u8> {
+        let mut payload = vec![12, 78, 101, 119];
+        a.encode_to(&mut payload);
+        payload
+    }
+}
 pub trait Service {
     fn do_this(
         &mut self,

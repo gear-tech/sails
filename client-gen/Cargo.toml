@@ -9,6 +9,7 @@ license.workspace = true
 anyhow.workspace = true
 convert-case.workspace = true
 sails-idlparser.workspace = true
+parity-scale-codec.workspace = true
 
 [dev-dependencies]
 insta.workspace = true
