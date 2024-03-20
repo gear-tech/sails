@@ -1,15 +1,6 @@
-#![no_std]
-
-use crate::{cell::OnceCell, gstd::msg};
-pub use sails_rtl::*;
-
-pub mod gstd {
-    pub use ::gstd::*;
-}
-
-pub mod hex {
-    pub use ::hex::*;
-}
+use crate::{ActorId, ExecContext};
+use core::cell::OnceCell;
+pub use gstd::{async_init, async_main, handle_signal, message_loop, msg, record_reply};
 
 #[derive(Default)]
 pub struct GStdExecContext {

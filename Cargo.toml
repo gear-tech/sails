@@ -21,8 +21,7 @@ members = [
     "idlparser",
     "macros",
     "macros/core",
-    "runtimes/gstd",
-    "runtimes/rtl",
+    "rtl",
     "sender",
 ]
 
@@ -52,8 +51,7 @@ sails-idl-meta = { path = "idl-meta" }
 sails-idlgen = { path = "idlgen" }
 sails-idlparser = { path = "idlparser" }
 sails-macros = { path = "macros" }
-sails-rtl = { path = "runtimes/rtl" }
-sails-rtl-gstd = { path = "runtimes/gstd" }
+sails-rtl = { path = "rtl" }
 sails-sender = { path = "sender" }
 scale-info = { version = "2.10", default-features = false }
 serde = "1.0"

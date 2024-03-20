@@ -14,4 +14,4 @@ sails-idlgen.workspace = true
 [dev-dependencies]
 gtest.workspace = true
 rmrk-catalog = { path = "../../catalog/wasm" }
-sails-rtl-gstd.workspace = true
+sails-rtl.workspace = true

@@ -2,7 +2,7 @@
 
 use catalogs::Client as CatalogClient;
 use sails_macros::{gprogram, groute};
-use sails_rtl_gstd::GStdExecContext;
+use sails_rtl::gstd::GStdExecContext;
 use sails_sender::GStdSender;
 use services::ResourceStorage;
 

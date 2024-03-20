@@ -48,8 +48,8 @@ pub fn gprogram(program_impl_tokens: TokenStream2) -> TokenStream2 {
             }
         }
 
-        use sails_rtl_gstd::Decode as __ProgramDecode;
-        use sails_rtl_gstd::TypeInfo as __ProgramTypeInfo;
+        use sails_rtl::prelude::Decode as __ProgramDecode;
+        use sails_rtl::prelude::TypeInfo as __ProgramTypeInfo;
 
         #(#[derive(__ProgramDecode, __ProgramTypeInfo)] #ctors_params_structs )*
 
@@ -65,7 +65,7 @@ pub fn gprogram(program_impl_tokens: TokenStream2) -> TokenStream2 {
         #[cfg(target_arch = "wasm32")]
         pub mod wasm {
             use super::*;
-            use sails_rtl_gstd::{*, gstd};
+            use sails_rtl::{gstd, hex, prelude::*};
 
             static mut #program_ident: Option<#program_type_path> = None;
 

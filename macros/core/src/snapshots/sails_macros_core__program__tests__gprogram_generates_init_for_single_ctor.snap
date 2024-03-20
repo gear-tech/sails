@@ -17,8 +17,8 @@ impl sails_idl_meta::ProgramMeta for MyProgram {
         [].into_iter()
     }
 }
-use sails_rtl_gstd::Decode as __ProgramDecode;
-use sails_rtl_gstd::TypeInfo as __ProgramTypeInfo;
+use sails_rtl::prelude::Decode as __ProgramDecode;
+use sails_rtl::prelude::TypeInfo as __ProgramTypeInfo;
 #[derive(__ProgramDecode, __ProgramTypeInfo)]
 struct __NewParams {
     p1: u32,
@@ -34,7 +34,7 @@ mod meta {
 #[cfg(target_arch = "wasm32")]
 pub mod wasm {
     use super::*;
-    use sails_rtl_gstd::{*, gstd};
+    use sails_rtl::{gstd, hex, prelude::*};
     static mut PROGRAM: Option<MyProgram> = None;
     #[gstd::async_init]
     async fn init() {

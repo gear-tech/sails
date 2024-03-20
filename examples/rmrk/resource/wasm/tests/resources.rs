@@ -5,7 +5,7 @@ use rmrk_resource_app::services::{
     errors::{Error as ResourceStorageError, Result as ResourceStorageResult},
     resources::{ComposedResource, PartId, Resource, ResourceId},
 };
-use sails_rtl_gstd::{collections::BTreeMap, ActorId, Decode, Encode};
+use sails_rtl::{collections::BTreeMap, ActorId, Decode, Encode};
 
 const CATALOG_PROGRAM_WASM_PATH: &str =
     "../../../../target/wasm32-unknown-unknown/debug/rmrk_catalog.wasm";
