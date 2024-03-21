@@ -68,6 +68,8 @@ pub(crate) enum Token {
     Ctor,
     #[token("service")]
     Service,
+    #[token("events")]
+    Events,
     #[token("query")]
     Query,
     #[token("type")]

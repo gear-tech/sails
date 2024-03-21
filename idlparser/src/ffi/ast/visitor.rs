@@ -18,6 +18,7 @@ pub struct Visitor {
     visit_user_defined_type_id: unsafe extern "C" fn(context: *const (), *const u8, u32),
     visit_ctor_func: unsafe extern "C" fn(context: *const (), *const CtorFunc),
     visit_service_func: unsafe extern "C" fn(context: *const (), *const ServiceFunc),
+    visit_service_event: unsafe extern "C" fn(context: *const (), *const ServiceEvent),
     visit_func_param: unsafe extern "C" fn(context: *const (), *const FuncParam),
     visit_func_output: unsafe extern "C" fn(context: *const (), *const TypeDecl),
     visit_struct_def: unsafe extern "C" fn(context: *const (), *const StructDef),
@@ -52,6 +53,7 @@ extern "C" {
     );
     fn visit_ctor_func(context: *const (), func: *const CtorFunc);
     fn visit_service_func(context: *const (), func: *const ServiceFunc);
+    fn visit_service_event(context: *const (), event: *const ServiceEvent);
     fn visit_func_param(context: *const (), func_param: *const FuncParam);
     fn visit_func_output(context: *const (), func_output: *const TypeDecl);
     fn visit_struct_def(context: *const (), struct_def: *const StructDef);
@@ -74,6 +76,7 @@ static VISITOR: Visitor = Visitor {
     visit_user_defined_type_id,
     visit_ctor_func,
     visit_service_func,
+    visit_service_event,
     visit_func_param,
     visit_func_output,
     visit_struct_def,
@@ -174,6 +177,32 @@ fn accept_service_func_impl(func: *const ServiceFunc, context: *const (), visito
     let func = unsafe { func.as_ref() }.unwrap();
     let mut visitor = VisitorWrapper::new(context, visitor);
     raw_visitor::accept_service_func(func.raw_ptr.as_ref(), &mut visitor);
+}
+
+#[cfg(target_arch = "wasm32")]
+#[no_mangle]
+extern "C" fn accept_service_event(event: *const ServiceEvent, context: *const ()) {
+    accept_service_event_impl(event, context, &VISITOR)
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+#[no_mangle]
+extern "C" fn accept_service_event(
+    event: *const ServiceEvent,
+    context: *const (),
+    visitor: *const Visitor,
+) {
+    accept_service_event_impl(event, context, visitor)
+}
+
+fn accept_service_event_impl(
+    event: *const ServiceEvent,
+    context: *const (),
+    visitor: *const Visitor,
+) {
+    let event = unsafe { event.as_ref() }.unwrap();
+    let mut visitor = VisitorWrapper::new(context, visitor);
+    raw_visitor::accept_service_event(event.raw_ptr.as_ref(), &mut visitor);
 }
 
 #[cfg(target_arch = "wasm32")]

@@ -80,15 +80,20 @@ impl CtorFunc {
 #[derive(Debug, PartialEq, Clone)]
 pub struct Service {
     funcs: Vec<ServiceFunc>,
+    events: Vec<ServiceEvent>,
 }
 
 impl Service {
-    pub(crate) fn new(funcs: Vec<ServiceFunc>) -> Self {
-        Self { funcs }
+    pub(crate) fn new(funcs: Vec<ServiceFunc>, events: Vec<ServiceEvent>) -> Self {
+        Self { funcs, events }
     }
 
     pub fn funcs(&self) -> &[ServiceFunc] {
         &self.funcs
+    }
+
+    pub fn events(&self) -> &[ServiceEvent] {
+        &self.events
     }
 }
 
@@ -132,6 +137,9 @@ impl ServiceFunc {
         self.is_query
     }
 }
+
+/// A structure describing one of service events
+pub type ServiceEvent = EnumVariant;
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct FuncParam {
@@ -358,6 +366,13 @@ mod tests {
             DoThat : (param: ThisThatSvcAppDoThatParam) -> result (struct { str, u32 }, struct { str });
             query This : (v1: vec u16) -> u32;
             query That : (v1: null) -> result (str, str);
+
+            events {
+                ThisDone;
+                ThatDone: u32;
+                SomethingHappened: struct { str, u32 };
+                SomethingDone: ThisThatSvcAppManyVariants;
+            }
           };
         ";
 
@@ -366,6 +381,7 @@ mod tests {
         assert_eq!(program.types().len(), 3);
         assert_eq!(program.ctor().unwrap().funcs().len(), 1);
         assert_eq!(program.service().funcs().len(), 4);
+        assert_eq!(program.service().events().len(), 4);
 
         //println!("ast: {:#?}", program);
     }

@@ -55,6 +55,8 @@ pub struct ServiceFunc {
     is_query: bool,
 }
 
+pub type ServiceEvent = EnumVariant;
+
 #[repr(C)]
 pub struct FuncParam {
     raw_ptr: Ptr,
