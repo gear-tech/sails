@@ -55,6 +55,10 @@ pub trait Visitor<'ast> {
         accept_service_func(func, self);
     }
 
+    fn visit_service_event(&mut self, event: &'ast ServiceEvent) {
+        accept_service_event(event, self);
+    }
+
     fn visit_func_param(&mut self, func_param: &'ast FuncParam) {
         accept_func_param(func_param, self);
     }
@@ -116,6 +120,13 @@ pub fn accept_service_func<'ast>(
         visitor.visit_func_param(param);
     }
     visitor.visit_func_output(func.output());
+}
+
+pub fn accept_service_event<'ast>(
+    event: &'ast ServiceEvent,
+    visitor: &mut (impl Visitor<'ast> + ?Sized),
+) {
+    accept_enum_variant(event, visitor)
 }
 
 pub fn accept_func_param<'ast>(
@@ -226,7 +237,7 @@ mod tests {
     fn accept_program_works() {
         let program = Program::new(
             Some(Ctor::new(vec![])),
-            Service::new(vec![]),
+            Service::new(vec![], vec![]),
             vec![
                 Type::new("Type1".into(), TypeDef::Struct(StructDef::new(vec![]))),
                 Type::new("Type2".into(), TypeDef::Enum(EnumDef::new(vec![]))),

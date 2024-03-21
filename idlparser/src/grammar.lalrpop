@@ -20,6 +20,7 @@ extern {
         "->" => Token::Arrow,
         "constructor" => Token::Ctor,
         "service" => Token::Service,
+        "events" => Token::Events,
         "query" => Token::Query,
         "type" => Token::Type,
         "struct" => Token::Struct,
@@ -53,7 +54,8 @@ CtorFunc : CtorFunc = {
 }
 
 Service: Service = {
-    "service" "{" <Separated<ServiceFunc, ";">> "}" => Service::new(<>),
+    "service" "{" <funcs: Separated<ServiceFunc, ";">> <events: ("events" "{" <Separated<EnumVariant, ";">> "}")?> "}" =>
+        Service::new(funcs, events.unwrap_or_default()),
 }
 
 ServiceFunc: ServiceFunc = {
