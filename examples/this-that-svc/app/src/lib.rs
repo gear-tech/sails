@@ -39,6 +39,7 @@ impl MyService {
     }
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Decode, TypeInfo)]
 pub struct TupleStruct(bool);
 
