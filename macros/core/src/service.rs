@@ -36,7 +36,7 @@ pub fn gservice(service_impl_tokens: TokenStream2) -> TokenStream2 {
         (
             service_type.path().clone(),
             service_type.args().clone(),
-            service_type.constraints().map(Clone::clone),
+            service_type.constraints().cloned(),
         )
     };
 
