@@ -1,6 +1,6 @@
 use crate::catalogs::Service as CatalogClient;
+use ::gstd::ActorId as GStdActorId;
 use errors::{Error, Result};
-use gstd::ActorId as GStdActorId;
 use resources::{ComposedResource, PartId, Resource, ResourceId};
 use sails_macros::gservice;
 use sails_rtl::{collections::HashMap, *};

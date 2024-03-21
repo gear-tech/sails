@@ -1,9 +1,10 @@
 use errors::Error;
 use parts::{CollectionId, Part, PartId, SlotPart};
 use sails_macros::gservice;
-use sails_rtl_gstd::{
+use sails_rtl::{
     collections::{BTreeMap, BTreeSet},
-    Result as RtlResult, *,
+    prelude::*,
+    ExecContext, Result as RtlResult,
 };
 
 pub mod errors;
