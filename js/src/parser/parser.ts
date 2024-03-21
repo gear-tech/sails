@@ -201,6 +201,9 @@ export class WasmParser {
           $._program.addContext(func.rawPtr, func);
           $._exports.accept_service_func(func_ptr, func.rawPtr);
         },
+        visit_service_event: (_, event_ptr: number) => {
+          // TODO
+        },
         visit_func_param: (ctx: number, func_param_ptr: number) => {
           const param = new FuncParam(func_param_ptr, $._memory);
           const func = $._program.getContext(ctx);
