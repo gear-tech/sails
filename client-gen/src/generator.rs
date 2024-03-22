@@ -1,6 +1,5 @@
 use anyhow::Result;
 use convert_case::{Case, Casing};
-use parity_scale_codec::Encode;
 use sails_idlparser::ast::*;
 use sails_idlparser::{ast::visitor, ast::visitor::Visitor};
 use std::io::Write;
@@ -74,43 +73,13 @@ impl<'a, 'ast> Visitor<'ast> for RootGenerator<'a> {
     fn visit_ctor(&mut self, ctor: &'ast Ctor) {
         self.code.push_str("pub mod ctor {\n");
 
+        let mut ctor_gen = CtorTraitGenerator::new();
+        ctor_gen.visit_ctor(ctor);
+        self.code.push_str(&ctor_gen.code);
+
         let mut ctor_gen = CtorFactoryGenerator::new();
         ctor_gen.visit_ctor(ctor);
         self.code.push_str(&ctor_gen.code);
-
-        let mut ctor_gen = CtorPayloadGenerator::new();
-        ctor_gen.visit_ctor(ctor);
-        self.code.push_str(&ctor_gen.code);
-
-        self.code.push_str("}\n");
-    }
-
-    fn visit_ctor_func(&mut self, func: &'ast CtorFunc) {
-        let fn_name = func.name();
-
-        self.code
-            .push_str(&format!("fn {}_message(", fn_name.to_case(Case::Snake)));
-
-        visitor::accept_ctor_func(func, self);
-
-        self.code.push_str(")-> Vec<u8> {\n");
-
-        let fn_bytes = fn_name
-            .encode()
-            .iter()
-            .map(|b| format!("{}", b))
-            .collect::<Vec<_>>()
-            .join(", ");
-
-        self.code
-            .push_str(&format!("let mut payload = vec![{fn_bytes}];"));
-
-        let args = encoded_args(func.params());
-
-        self.code
-            .push_str(&format!("{args}.encode_to(&mut payload);"));
-
-        self.code.push_str("payload");
 
         self.code.push_str("}\n");
     }
@@ -138,6 +107,42 @@ impl<'a, 'ast> Visitor<'ast> for RootGenerator<'a> {
     }
 }
 
+struct CtorTraitGenerator {
+    code: String,
+}
+
+impl CtorTraitGenerator {
+    fn new() -> Self {
+        Self {
+            code: String::new(),
+        }
+    }
+}
+
+impl<'ast> Visitor<'ast> for CtorTraitGenerator {
+    fn visit_ctor(&mut self, ctor: &'ast Ctor) {
+        self.code.push_str("pub trait ProgramConstructors {\n");
+        visitor::accept_ctor(ctor, self);
+        self.code.push_str("}\n");
+    }
+
+    fn visit_ctor_func(&mut self, func: &'ast CtorFunc) {
+        let fn_name = func.name().to_case(Case::Snake);
+
+        self.code.push_str(&format!("fn {fn_name}("));
+
+        visitor::accept_ctor_func(func, self);
+
+        self.code.push_str(")-> CreateProgramCall;\n");
+    }
+
+    fn visit_func_param(&mut self, func_param: &'ast FuncParam) {
+        let type_decl_code = generate_type_decl_code(func_param.type_decl());
+        self.code
+            .push_str(&format!("{}: {},", func_param.name(), type_decl_code));
+    }
+}
+
 struct CtorFactoryGenerator {
     code: String,
 }
@@ -152,19 +157,19 @@ impl CtorFactoryGenerator {
 
 impl<'ast> Visitor<'ast> for CtorFactoryGenerator {
     fn visit_ctor(&mut self, ctor: &'ast Ctor) {
-        self.code.push_str(
-            "pub struct ProgramFactory {
-            creator: GStdCreator,
-        } \n",
-        );
+        self.code.push_str("pub struct ProgramFactory;\n");
         self.code.push_str("impl ProgramFactory {\n");
         self.code.push_str(
             "
             pub fn new(creator: GStdCreator) -> Self {
-               Self { creator }
+                Self
             }
         ",
         );
+        self.code.push_str("}\n");
+
+        self.code
+            .push_str("impl ProgramConstructors for ProgramFactory {\n");
         visitor::accept_ctor(ctor, self);
         self.code.push_str("}\n");
     }
@@ -173,78 +178,15 @@ impl<'ast> Visitor<'ast> for CtorFactoryGenerator {
         let fn_name = func.name();
         let fn_name_snake = fn_name.to_case(Case::Snake);
 
-        self.code.push_str(&format!(
-            "pub fn {fn_name_snake}(code_id: CodeId, value: u128,",
-        ));
+        self.code.push_str(&format!("pub fn {fn_name_snake}(",));
 
         visitor::accept_ctor_func(func, self);
 
-        self.code.push_str(")-> CreateProgramTicket {\n");
-
-        let args = encoded_args(func.params());
-
-        self.code.push_str(&format!(
-            "let mut payload = {fn_name_snake}_payload({args});"
-        ));
-
-        self.code
-            .push_str("let future = ProgramCreator::create_program_bytes_for_reply(code_id, &payload, value, 0);");
-
-        self.code.push_str("CreateProgramTicket { f: future }");
-
-        self.code.push_str("}\n");
-    }
-
-    fn visit_func_param(&mut self, func_param: &'ast FuncParam) {
-        let type_decl_code = generate_type_decl_code(func_param.type_decl());
-        self.code
-            .push_str(&format!("{}: {},", func_param.name(), type_decl_code));
-    }
-}
-
-struct CtorPayloadGenerator {
-    code: String,
-}
-
-impl CtorPayloadGenerator {
-    fn new() -> Self {
-        Self {
-            code: String::new(),
-        }
-    }
-}
-
-impl<'ast> Visitor<'ast> for CtorPayloadGenerator {
-    fn visit_ctor(&mut self, ctor: &'ast Ctor) {
-        visitor::accept_ctor(ctor, self);
-    }
-
-    fn visit_ctor_func(&mut self, func: &'ast CtorFunc) {
-        let fn_name = func.name();
-
-        self.code
-            .push_str(&format!("pub fn {}_payload(", fn_name.to_case(Case::Snake)));
-
-        visitor::accept_ctor_func(func, self);
-
-        self.code.push_str(")-> Vec<u8> {\n");
-
-        let fn_bytes = fn_name
-            .encode()
-            .iter()
-            .map(|b| format!("{}", b))
-            .collect::<Vec<_>>()
-            .join(", ");
-
-        self.code
-            .push_str(&format!("let mut payload = vec![{fn_bytes}];"));
-
+        self.code.push_str(")-> CreateProgramCall {\n");
         let args = encoded_args(func.params());
 
         self.code
-            .push_str(&format!("{args}.encode_to(&mut payload);"));
-
-        self.code.push_str("payload");
+            .push_str(&format!(r#"CreateProgramCall::new("{fn_name}", {args})"#));
 
         self.code.push_str("}\n");
     }

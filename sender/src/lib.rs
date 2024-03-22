@@ -6,15 +6,10 @@ use gstd::{
     errors::Error as GStdError,
     msg::{CreateProgramFuture, MessageFuture},
     prelude::*,
-    ActorId, MessageId,
+    prog::{create_program_bytes_for_reply, ProgramGenerator},
+    ActorId, CodeId, MessageId,
 };
 use parity_scale_codec::{Decode, Error as ParseError};
-
-#[derive(Default)]
-struct SendArgs {
-    value: u128,
-    reply_deposit: u64,
-}
 
 #[derive(Default, Clone, Copy)]
 pub struct GStdSender;
@@ -39,19 +34,6 @@ impl GStdSender {
     }
 }
 
-pub struct Call<'a, R: Decode + Debug> {
-    /// serialized method and args
-    payload: Vec<u8>,
-    /// method to verify we received the correct response
-    method: String,
-    /// optional args
-    send_args: SendArgs,
-    /// the client to send the message
-    sender: &'a GStdSender,
-    /// silence the compiler
-    _marker: PhantomData<R>,
-}
-
 #[non_exhaustive]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum SendError {
@@ -69,6 +51,25 @@ impl From<GStdError> for SendError {
     fn from(e: GStdError) -> Self {
         Self::Sender(e)
     }
+}
+
+#[derive(Default)]
+struct SendArgs {
+    value: u128,
+    reply_deposit: u64,
+}
+
+pub struct Call<'a, R: Decode + Debug> {
+    /// serialized method and args
+    payload: Vec<u8>,
+    /// method to verify we received the correct response
+    method: String,
+    /// optional args
+    send_args: SendArgs,
+    /// the client to send the message
+    sender: &'a GStdSender,
+    /// silence the compiler
+    _marker: PhantomData<R>,
 }
 
 impl<'a, R: Decode + Debug> Call<'a, R> {
@@ -153,6 +154,73 @@ impl<R: Decode + Debug> CallTicket<R> {
 
     pub fn message_id(&self) -> MessageId {
         self.f.waiting_reply_to
+    }
+}
+
+#[derive(Default)]
+struct CreateArgs {
+    value: u128,
+    reply_deposit: u64,
+    salt: Option<Vec<u8>>,
+}
+
+pub struct CreateProgramCall<'a, R: Decode + Debug> {
+    /// serialized method and args
+    payload: Vec<u8>,
+    /// optional args
+    create_args: CreateArgs,
+    /// silence the compiler
+    _marker: &'a PhantomData<R>,
+}
+
+impl<'a, R: Decode + Debug> CreateProgramCall<'a, R> {
+    pub fn new<T: Encode + Debug>(method: &str, args: T) -> Self {
+        let capacity = method.encoded_size() + args.encoded_size();
+        let mut payload = Vec::with_capacity(capacity);
+
+        method.encode_to(&mut payload);
+        args.encode_to(&mut payload);
+
+        Self {
+            payload,
+            create_args: CreateArgs::default(),
+            _marker: &PhantomData,
+        }
+    }
+
+    pub fn with_value(mut self, value: u128) -> Self {
+        self.create_args.value = value;
+        self
+    }
+
+    pub fn with_reply_deposit(mut self, reply_deposit: u64) -> Self {
+        self.create_args.reply_deposit = reply_deposit;
+        self
+    }
+
+    /// Specify a salt to use for the program creation
+    /// Random salt is generated if salt is not set
+    pub fn with_salt(mut self, salt: Vec<u8>) -> Self {
+        self.create_args.salt = Some(salt.into());
+        self
+    }
+
+    pub async fn create(self, code_id: CodeId) -> Result<CreateProgramTicket, SendError> {
+        let future = create_program_bytes_for_reply(
+            code_id,
+            self.create_args
+                .salt
+                .unwrap_or(ProgramGenerator::get_salt()),
+            &self.payload,
+            self.create_args.value,
+            self.create_args.reply_deposit,
+        )?;
+
+        Ok(CreateProgramTicket { f: future })
+    }
+
+    pub fn into_bytes(self) -> Vec<u8> {
+        self.payload
     }
 }
 
