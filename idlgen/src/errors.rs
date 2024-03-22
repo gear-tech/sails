@@ -18,7 +18,7 @@
 
 //! Errors returned by IDL generator.
 
-pub type Result<T> = std::result::Result<T, Error>;
+pub type Result<T, E = Error> = core::result::Result<T, E>;
 
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
