@@ -164,16 +164,14 @@ struct CreateArgs {
     salt: Option<Vec<u8>>,
 }
 
-pub struct CreateProgramCall<'a, R: Decode + Debug> {
+pub struct CreateProgramCall {
     /// serialized method and args
     payload: Vec<u8>,
     /// optional args
     create_args: CreateArgs,
-    /// silence the compiler
-    _marker: &'a PhantomData<R>,
 }
 
-impl<'a, R: Decode + Debug> CreateProgramCall<'a, R> {
+impl CreateProgramCall {
     pub fn new<T: Encode + Debug>(method: &str, args: T) -> Self {
         let capacity = method.encoded_size() + args.encoded_size();
         let mut payload = Vec::with_capacity(capacity);
@@ -184,7 +182,6 @@ impl<'a, R: Decode + Debug> CreateProgramCall<'a, R> {
         Self {
             payload,
             create_args: CreateArgs::default(),
-            _marker: &PhantomData,
         }
     }
 
@@ -201,7 +198,7 @@ impl<'a, R: Decode + Debug> CreateProgramCall<'a, R> {
     /// Specify a salt to use for the program creation
     /// Random salt is generated if salt is not set
     pub fn with_salt(mut self, salt: Vec<u8>) -> Self {
-        self.create_args.salt = Some(salt.into());
+        self.create_args.salt = Some(salt);
         self
     }
 

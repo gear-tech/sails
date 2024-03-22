@@ -7,19 +7,22 @@ use parity_scale_codec::{Decode, Encode};
 #[allow(unused_imports)]
 use sails_rtl::collections::BTreeMap;
 use sails_rtl::{String, *};
-use sails_sender::{Call, GStdSender};
+#[allow(unused_imports)]
+use sails_sender::{Call, CreateProgramCall, GStdSender};
 pub mod ctor {
+    use super::*;
     pub trait ProgramConstructors {
         fn new(a: u32) -> CreateProgramCall;
     }
     pub struct ProgramFactory;
     impl ProgramFactory {
-        pub fn new(creator: GStdCreator) -> Self {
+        #[allow(unused)]
+        pub fn new() -> Self {
             Self
         }
     }
     impl ProgramConstructors for ProgramFactory {
-        pub fn new(a: u32) -> CreateProgramCall {
+        fn new(a: u32) -> CreateProgramCall {
             CreateProgramCall::new("New", a)
         }
     }
