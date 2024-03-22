@@ -12,6 +12,7 @@ use sails_sender::{Call, CreateProgramCall, GStdSender};
 pub mod ctor {
     use super::*;
     pub trait ProgramConstructors {
+        #[allow(clippy::new_ret_no_self)]
         fn new(a: u32) -> CreateProgramCall;
     }
     pub struct ProgramFactory;
