@@ -2,6 +2,7 @@
 
 pub use prelude::*;
 
+pub mod errors;
 pub mod gstd;
 pub mod prelude;
 pub mod types;

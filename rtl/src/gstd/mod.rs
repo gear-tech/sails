@@ -2,6 +2,8 @@ use crate::{ActorId, ExecContext};
 use core::cell::OnceCell;
 pub use gstd::{async_init, async_main, handle_signal, message_loop, msg, record_reply};
 
+pub mod events;
+
 #[derive(Default)]
 pub struct GStdExecContext {
     msg_source: OnceCell<ActorId>,

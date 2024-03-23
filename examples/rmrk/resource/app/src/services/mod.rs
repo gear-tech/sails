@@ -3,7 +3,7 @@ use ::gstd::ActorId as GStdActorId;
 use errors::{Error, Result};
 use resources::{ComposedResource, PartId, Resource, ResourceId};
 use sails_macros::gservice;
-use sails_rtl::{collections::HashMap, *};
+use sails_rtl::{collections::HashMap, gstd::events::EventTrigger, *};
 
 pub mod errors;
 pub mod resources;
@@ -17,16 +17,30 @@ struct ResourceStorageData {
     resources: HashMap<ResourceId, Resource>,
 }
 
-pub struct ResourceStorage<TExecContext, TCatalogClient> {
+#[derive(TypeInfo, Encode)]
+pub enum ResourceStorageEvent {
+    ResourceAdded {
+        resource_id: ResourceId,
+    },
+    PartAdded {
+        resource_id: ResourceId,
+        part_id: PartId,
+    },
+}
+
+pub struct ResourceStorage<TExecContext, TCatalogClient, TEventTrigger> {
     exec_context: TExecContext,
     catalog_client: TCatalogClient,
+    event_trigger: TEventTrigger,
 }
 
 #[gservice]
-impl<TExecContext, TCatalogClient> ResourceStorage<TExecContext, TCatalogClient>
+impl<TExecContext, TCatalogClient, TEventTrigger>
+    ResourceStorage<TExecContext, TCatalogClient, TEventTrigger>
 where
     TExecContext: ExecContext,
     TCatalogClient: CatalogClient,
+    TEventTrigger: EventTrigger<ResourceStorageEvent>,
 {
     pub fn seed(exec_context: TExecContext) {
         unsafe {
@@ -35,10 +49,15 @@ where
         }
     }
 
-    pub fn new(exec_context: TExecContext, catalog_client: TCatalogClient) -> Self {
+    pub fn new(
+        exec_context: TExecContext,
+        catalog_client: TCatalogClient,
+        event_trigger: TEventTrigger,
+    ) -> Self {
         Self {
             exec_context,
             catalog_client,
+            event_trigger,
         }
     }
 
@@ -61,6 +80,10 @@ where
         {
             return Err(Error::ResourceAlreadyExists);
         }
+
+        self.event_trigger
+            .trigger(ResourceStorageEvent::ResourceAdded { resource_id })
+            .unwrap();
 
         Ok((resource_id, resource))
     }
@@ -93,6 +116,13 @@ where
         } else {
             return Err(Error::WrongResourceType);
         }
+
+        self.event_trigger
+            .trigger(ResourceStorageEvent::PartAdded {
+                resource_id,
+                part_id,
+            })
+            .unwrap();
 
         Ok(part_id)
     }
@@ -130,14 +160,21 @@ mod tests {
     use super::*;
     use crate::catalogs::{Error, Part};
     use resources::BasicResource;
-    use sails_rtl::{collections::BTreeMap, ActorId, Result as RtlResult};
+    use sails_rtl::{collections::BTreeMap, gstd::events::mocks::MockEventTrigger, ActorId};
     use sails_sender::Call;
+
+    type MockResourceStorageEventTrigger = MockEventTrigger<ResourceStorageEvent>;
 
     #[test]
     fn test_add_resource_entry() {
-        ResourceStorage::<_, CatalogClientMock>::seed(ExecContextMock { actor_id: 1.into() });
-        let mut resource_storage =
-            ResourceStorage::new(ExecContextMock { actor_id: 1.into() }, CatalogClientMock);
+        ResourceStorage::<_, MockCatalogClient, MockResourceStorageEventTrigger>::seed(
+            ExecContextMock { actor_id: 1.into() },
+        );
+        let mut resource_storage = ResourceStorage::new(
+            ExecContextMock { actor_id: 1.into() },
+            MockCatalogClient,
+            MockResourceStorageEventTrigger::new(),
+        );
         let resource = Resource::Basic(BasicResource {
             src: "src".to_string(),
             thumb: None,
@@ -160,17 +197,17 @@ mod tests {
         }
     }
 
-    struct CatalogClientMock;
+    struct MockCatalogClient;
 
-    impl CatalogClient for CatalogClientMock {
+    impl CatalogClient for MockCatalogClient {
         fn add_parts(
             &mut self,
             _parts: BTreeMap<u32, Part>,
-        ) -> Call<RtlResult<BTreeMap<u32, Part>, Error>> {
+        ) -> Call<Result<BTreeMap<u32, Part>, Error>> {
             unimplemented!()
         }
 
-        fn remove_parts(&mut self, _part_ids: Vec<u32>) -> Call<RtlResult<Vec<u32>, Error>> {
+        fn remove_parts(&mut self, _part_ids: Vec<u32>) -> Call<Result<Vec<u32>, Error>> {
             unimplemented!()
         }
 
@@ -178,7 +215,7 @@ mod tests {
             &mut self,
             _part_id: u32,
             _collection_ids: Vec<ActorId>,
-        ) -> Call<RtlResult<(u32, Vec<ActorId>), Error>> {
+        ) -> Call<Result<(u32, Vec<ActorId>), Error>> {
             unimplemented!()
         }
 
@@ -186,15 +223,15 @@ mod tests {
             &mut self,
             _part_id: u32,
             _collection_id: ActorId,
-        ) -> Call<RtlResult<(u32, ActorId), Error>> {
+        ) -> Call<Result<(u32, ActorId), Error>> {
             unimplemented!()
         }
 
-        fn reset_equippables(&mut self, _part_id: u32) -> Call<RtlResult<(), Error>> {
+        fn reset_equippables(&mut self, _part_id: u32) -> Call<Result<(), Error>> {
             unimplemented!()
         }
 
-        fn set_equippables_to_all(&mut self, _part_id: u32) -> Call<RtlResult<(), Error>> {
+        fn set_equippables_to_all(&mut self, _part_id: u32) -> Call<Result<(), Error>> {
             unimplemented!()
         }
 
@@ -202,11 +239,7 @@ mod tests {
             unimplemented!()
         }
 
-        fn equippable(
-            &self,
-            _part_id: u32,
-            _collection_id: ActorId,
-        ) -> Call<RtlResult<bool, Error>> {
+        fn equippable(&self, _part_id: u32, _collection_id: ActorId) -> Call<Result<bool, Error>> {
             unimplemented!()
         }
     }
