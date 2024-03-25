@@ -117,4 +117,29 @@ describe('service', () => {
     expect(Object.keys(result.ctors.New.args)).toHaveLength(1);
     expect([...result.ctors.New.encodePayload(1)]).toEqual([12, 78, 101, 119, 1, 0, 0, 0]);
   });
+
+  test('service with events', () => {
+    const idl = `
+    service {
+      DoThis : (a1: str) -> u8;
+
+      events {
+        ThisDone;
+        ThatDone: u32;
+        SomethingHappened: struct { str, u32 };
+      }
+    }`;
+
+    const result = sails.parseIdl(idl);
+
+    expect(Object.keys(result.events)).toHaveLength(3);
+
+    expect(result.events).toHaveProperty('ThisDone');
+    expect(result.events).toHaveProperty('ThatDone');
+    expect(result.events).toHaveProperty('SomethingHappened');
+
+    expect(result.events.ThisDone.type).toBe('Null');
+    expect(result.events.ThatDone.type).toBe('u32');
+    expect(result.events.SomethingHappened.type).toBe('(String, u32)');
+  });
 });

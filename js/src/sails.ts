@@ -11,6 +11,11 @@ interface SailsServiceFunc {
   decodeResult: (result: Uint8Array) => any;
 }
 
+interface SailsEvent {
+  type: any;
+  decode: (payload: Uint8Array) => any;
+}
+
 interface SailsCtorFunc {
   args: { name: string; type: any }[];
   encodePayload: (...args: any[]) => Uint8Array;
@@ -109,6 +114,28 @@ export class Sails {
     }
 
     return funcs;
+  }
+
+  /** #### Program events from the parsed IDL */
+  get events(): Record<string, SailsEvent> {
+    if (!this._program) {
+      throw new Error('IDL not parsed');
+    }
+
+    const events: Record<string, SailsEvent> = {};
+
+    for (const event of this._program.service.events) {
+      const t = event.def ? getScaleCodecDef(event.def) : 'Null';
+      events[event.name] = {
+        type: t,
+        decode: (payload: Uint8Array) => {
+          const data = this.registry.createType(`(String, ${t})`, payload);
+          return data[1].toJSON();
+        },
+      };
+    }
+
+    return events;
   }
 
   /** #### Constructor functions with arguments from the parsed IDL */

@@ -20,6 +20,7 @@ import {
   TypeDef,
   UserDefinedDef,
   VecDef,
+  ServiceEvent,
 } from './visitor.js';
 
 const WASM_PAGE_SIZE = 0x10000;
@@ -40,6 +41,7 @@ interface ParserInstance extends WebAssembly.Instance {
     accept_struct_field: (struct_field_ptr: number, ctx: number) => void;
     accept_enum_def: (enum_def_ptr: number, ctx: number) => void;
     accept_enum_variant: (enum_variant_ptr: number, ctx: number) => void;
+    accept_service_event: (event_ptr: number, ctx: number) => void;
   };
 }
 
@@ -202,7 +204,10 @@ export class WasmParser {
           $._exports.accept_service_func(func_ptr, func.rawPtr);
         },
         visit_service_event: (_, event_ptr: number) => {
-          // TODO
+          const event = new ServiceEvent(event_ptr, $._memory);
+          $._program.service.addEvent(event);
+          $._program.addContext(event.rawPtr, event);
+          $._exports.accept_service_event(event_ptr, event.rawPtr);
         },
         visit_func_param: (ctx: number, func_param_ptr: number) => {
           const param = new FuncParam(func_param_ptr, $._memory);

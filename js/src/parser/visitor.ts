@@ -449,17 +449,25 @@ export class UserDefinedDef {
 
 export class Service extends Base {
   public readonly funcs: ServiceFunc[];
+  public readonly events: ServiceEvent[];
 
   constructor(ptr: number, memory: WebAssembly.Memory) {
     super(ptr, memory);
 
     this.funcs = [];
+    this.events = [];
   }
 
   addFunc(func: ServiceFunc) {
     this.funcs.push(func);
   }
+
+  addEvent(event: ServiceEvent) {
+    this.events.push(event);
+  }
 }
+
+export class ServiceEvent extends EnumVariant {}
 
 export class ServiceFunc extends WithDef {
   public readonly name: string;
