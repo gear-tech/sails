@@ -7,7 +7,8 @@ use parity_scale_codec::{Decode, Encode};
 #[allow(unused_imports)]
 use sails_rtl::collections::BTreeMap;
 use sails_rtl::{String, *};
-use sails_sender::{Call, GStdSender};
+#[allow(unused_imports)]
+use sails_sender::{Call, CreateProgramCall, GStdSender};
 pub trait Service {
     fn do_this(&mut self, p1: u32, p2: MyParam) -> Call<u16>;
     fn do_that(&mut self, p1: (u8, u32)) -> Call<u8>;
