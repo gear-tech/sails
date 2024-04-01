@@ -98,3 +98,5 @@ impl AsRef<[u8]> for CodeId {
         self.0.as_ref()
     }
 }
+
+pub type Value = u128;
