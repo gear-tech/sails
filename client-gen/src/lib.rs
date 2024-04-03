@@ -51,6 +51,10 @@ mod tests {
 
         type T = enum { One };
 
+        constructor {
+            New : (a: u32);
+        };
+
         service {
             DoThis : (p1: u32, p2: str, p3: struct { opt str, u8 }, p4: ThisThatSvcAppTupleStruct) -> struct { str, u32 };
             DoThat : (param: ThisThatSvcAppDoThatParam) -> result (struct { str, u32 }, struct { str });
