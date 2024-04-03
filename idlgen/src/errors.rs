@@ -24,6 +24,8 @@ pub type Result<T, E = Error> = core::result::Result<T, E>;
 pub enum Error {
     #[error("funcion meta is invalid: {0}")]
     FuncMetaIsInvalid(String),
+    #[error("event meta is invalid: {0}")]
+    EventMetaIsInvalid(String),
     #[error("at least one service is required")]
     ServiceIsMissing,
     #[error("type id `{0}` is not found in the type registry")]

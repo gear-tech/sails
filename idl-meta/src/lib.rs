@@ -25,11 +25,13 @@ use scale_info::MetaType;
 pub trait ServiceMeta {
     fn commands() -> MetaType;
     fn queries() -> MetaType;
+    fn events() -> MetaType;
 }
 
 pub struct AnyServiceMeta {
     commands: MetaType,
     queries: MetaType,
+    events: MetaType,
 }
 
 impl AnyServiceMeta {
@@ -37,6 +39,7 @@ impl AnyServiceMeta {
         Self {
             commands: S::commands(),
             queries: S::queries(),
+            events: S::events(),
         }
     }
 
@@ -46,6 +49,10 @@ impl AnyServiceMeta {
 
     pub fn queries(&self) -> &MetaType {
         &self.queries
+    }
+
+    pub fn events(&self) -> &MetaType {
+        &self.events
     }
 }
 
