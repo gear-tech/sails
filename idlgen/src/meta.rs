@@ -39,15 +39,23 @@ pub(crate) struct ExpandedProgramMeta {
     commands: Vec<ServiceFuncMeta>,
     queries_type_id: u32,
     queries: Vec<ServiceFuncMeta>,
+    events_type_id: u32,
+    events: Vec<Variant<PortableForm>>,
     builtin_type_ids: Vec<u32>,
 }
 
 impl ExpandedProgramMeta {
-    pub fn new(ctors: Option<&MetaType>, commands: &MetaType, queries: &MetaType) -> Result<Self> {
+    pub fn new(
+        ctors: Option<&MetaType>,
+        commands: &MetaType,
+        queries: &MetaType,
+        events: &MetaType,
+    ) -> Result<Self> {
         let mut registry = Registry::new();
         let ctors_type_id = ctors.map(|ctors| registry.register_type(ctors).id);
         let commands_type_id = registry.register_type(commands).id;
         let queries_type_id = registry.register_type(queries).id;
+        let events_type_id = registry.register_type(events).id;
         let builtin_type_ids = registry
             .register_types([
                 MetaType::new::<ActorId>(),
@@ -61,6 +69,7 @@ impl ExpandedProgramMeta {
         let ctors = Self::ctor_funcs(&registry, ctors_type_id)?;
         let commands = Self::service_funcs(&registry, commands_type_id)?;
         let queries = Self::service_funcs(&registry, queries_type_id)?;
+        let events = Self::event_variants(&registry, events_type_id)?;
         Ok(Self {
             registry,
             ctors_type_id,
@@ -69,17 +78,20 @@ impl ExpandedProgramMeta {
             commands,
             queries_type_id,
             queries,
+            events_type_id,
+            events,
             builtin_type_ids,
         })
     }
 
-    /// Returns only complex types introduced by program
+    /// Returns complex types introduced by program only
     pub fn types(&self) -> impl Iterator<Item = &PortableType> {
         self.registry.types.iter().filter(|ty| {
             !ty.ty.path.namespace().is_empty()
                 && !self.ctors_type_id.is_some_and(|id| id == ty.id)
                 && ty.id != self.commands_type_id
                 && ty.id != self.queries_type_id
+                && ty.id != self.events_type_id
                 && !self.ctor_params_type_ids().any(|id| id == ty.id)
                 && !self.command_params_type_ids().any(|id| id == ty.id)
                 && !self.query_params_type_ids().any(|id| id == ty.id)
@@ -97,6 +109,10 @@ impl ExpandedProgramMeta {
 
     pub fn queries(&self) -> impl Iterator<Item = (&str, &Vec<Field<PortableForm>>, u32)> {
         self.queries.iter().map(|c| (c.0.as_str(), &c.2, c.3))
+    }
+
+    pub fn events(&self) -> impl Iterator<Item = &Variant<PortableForm>> {
+        self.events.iter()
     }
 
     /// Returns names for all types used by program including primitive, complex and "internal" ones.
@@ -211,5 +227,25 @@ impl ExpandedProgramMeta {
 
     fn query_params_type_ids(&self) -> impl Iterator<Item = u32> + '_ {
         self.queries.iter().map(|v| v.1)
+    }
+
+    fn event_variants(
+        registry: &PortableRegistry,
+        events_type_id: u32,
+    ) -> Result<Vec<Variant<PortableForm>>> {
+        let events = registry.resolve(events_type_id).unwrap_or_else(|| {
+            panic!(
+                "events type id {} not found while it was registered previously",
+                events_type_id
+            )
+        });
+        if let TypeDef::Variant(variant) = &events.type_def {
+            Ok(variant.variants.to_vec())
+        } else {
+            Err(Error::EventMetaIsInvalid(format!(
+                "events type id {} references a type that is not a variant",
+                events_type_id
+            )))
+        }
     }
 }

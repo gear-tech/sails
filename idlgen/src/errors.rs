@@ -18,12 +18,14 @@
 
 //! Errors returned by IDL generator.
 
-pub type Result<T> = std::result::Result<T, Error>;
+pub type Result<T, E = Error> = core::result::Result<T, E>;
 
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
     #[error("funcion meta is invalid: {0}")]
     FuncMetaIsInvalid(String),
+    #[error("event meta is invalid: {0}")]
+    EventMetaIsInvalid(String),
     #[error("at least one service is required")]
     ServiceIsMissing,
     #[error("type id `{0}` is not found in the type registry")]

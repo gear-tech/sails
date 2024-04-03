@@ -21,7 +21,7 @@
 use errors::{Error, Result};
 use handlebars::{handlebars_helper, Handlebars};
 use meta::ExpandedProgramMeta;
-use scale_info::{form::PortableForm, Field, PortableType};
+use scale_info::{form::PortableForm, Field, PortableType, Variant};
 use serde::Serialize;
 use std::io::Write;
 
@@ -59,6 +59,7 @@ pub mod program {
                 Some(&P::constructors()),
                 service.1.commands(),
                 service.1.queries(),
+                service.1.events(),
             )?,
             idl_writer,
         )
@@ -71,7 +72,7 @@ pub mod service {
 
     pub fn generate_idl<S: ServiceMeta>(idl_writer: impl Write) -> Result<()> {
         render_idl(
-            &ExpandedProgramMeta::new(None, &S::commands(), &S::queries())?,
+            &ExpandedProgramMeta::new(None, &S::commands(), &S::queries(), &S::events())?,
             idl_writer,
         )
     }
@@ -84,6 +85,7 @@ fn render_idl(program_meta: &ExpandedProgramMeta, idl_writer: impl Write) -> Res
         ctors: program_meta.ctors().collect(),
         commands: program_meta.commands().collect(),
         queries: program_meta.queries().collect(),
+        events: program_meta.events().collect(),
     };
 
     let mut handlebars = Handlebars::new();
@@ -112,6 +114,7 @@ struct ProgramIdlData<'a> {
     ctors: Vec<(&'a str, &'a Vec<Field<PortableForm>>)>,
     commands: Vec<(&'a str, &'a Vec<Field<PortableForm>>, u32)>,
     queries: Vec<(&'a str, &'a Vec<Field<PortableForm>>, u32)>,
+    events: Vec<&'a Variant<PortableForm>>,
 }
 
 handlebars_helper!(deref: |v: String| { v });
@@ -214,6 +217,13 @@ mod tests {
         That(ThatParams, String),
     }
 
+    #[allow(dead_code)]
+    #[derive(TypeInfo)]
+    enum EventsMeta {
+        ThisDone(u32),
+        ThatDone { p1: String },
+    }
+
     struct TestServiceMeta;
 
     impl ServiceMeta for TestServiceMeta {
@@ -223,6 +233,10 @@ mod tests {
 
         fn queries() -> MetaType {
             scale_info::meta_type::<QueriesMeta>()
+        }
+
+        fn events() -> MetaType {
+            scale_info::meta_type::<EventsMeta>()
         }
     }
 

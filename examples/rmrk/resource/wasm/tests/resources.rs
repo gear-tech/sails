@@ -4,6 +4,7 @@ use rmrk_catalog::services::parts::{FixedPart, Part};
 use rmrk_resource_app::services::{
     errors::{Error as ResourceStorageError, Result as ResourceStorageResult},
     resources::{ComposedResource, PartId, Resource, ResourceId},
+    ResourceStorageEvent,
 };
 use sails_rtl::{collections::BTreeMap, ActorId, Decode, Encode};
 
@@ -52,6 +53,17 @@ fn adding_resource_to_storage_by_admin_succeeds() {
     ]
     .concat();
     assert!(run_result.contains(&(ADMIN_ID, expected_response)));
+
+    let expected_event = [
+        "ResourceAdded".encode().as_slice(),
+        &ResourceStorageEvent::ResourceAdded {
+            resource_id: RESOURCE_ID,
+        }
+        .encode()
+        .as_slice()[1..],
+    ]
+    .concat();
+    assert!(run_result.contains(&(0, expected_event)));
 
     assert_eq!(
         resource.encode(),
