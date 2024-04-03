@@ -43,4 +43,9 @@ service {
   AddPartToResource : (resource_id: u8, part_id: u32) -> result (u32, Error);
   AddResourceEntry : (resource_id: u8, resource: Resource) -> result (struct { u8, Resource }, Error);
   query Resource : (resource_id: u8) -> result (Resource, Error);
+
+  events {
+    ResourceAdded: struct { resource_id: u8 };
+    PartAdded: struct { resource_id: u8, part_id: u32 };
+  }
 }

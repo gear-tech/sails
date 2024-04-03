@@ -52,6 +52,9 @@ impl sails_idl_meta::ServiceMeta for SomeService {
     fn queries() -> scale_info::MetaType {
         scale_info::MetaType::new::<meta::QueriesMeta>()
     }
+    fn events() -> scale_info::MetaType {
+        scale_info::MetaType::new::<meta::EventsMeta>()
+    }
 }
 #[derive(Decode, TypeInfo)]
 pub struct __DoThisParams {
@@ -72,5 +75,8 @@ mod meta {
     pub enum QueriesMeta {
         This(__ThisParams, bool),
     }
+    #[derive(TypeInfo)]
+    pub enum NoEvents {}
+    pub type EventsMeta = NoEvents;
 }
 
