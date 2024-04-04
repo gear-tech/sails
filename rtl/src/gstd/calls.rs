@@ -6,7 +6,18 @@ use gstd::msg;
 
 #[derive(Debug, Default, Clone)]
 pub struct Args {
-    pub reply_deposit: GasUnit,
+    reply_deposit: GasUnit,
+}
+
+impl Args {
+    pub fn with_reply_deposit(mut self, reply_deposit: GasUnit) -> Self {
+        self.reply_deposit = reply_deposit;
+        self
+    }
+
+    pub fn reply_deposit(&self) -> GasUnit {
+        self.reply_deposit
+    }
 }
 
 #[derive(Debug, Default, Clone)]
