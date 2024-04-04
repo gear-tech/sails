@@ -3821,6 +3821,7 @@ dependencies = [
 name = "sails-rtl"
 version = "0.0.1"
 dependencies = [
+ "futures",
  "gstd",
  "hashbrown 0.14.3",
  "hex",

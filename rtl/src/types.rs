@@ -99,4 +99,6 @@ impl AsRef<[u8]> for CodeId {
     }
 }
 
-pub type Value = u128;
+pub type ValueUnit = u128;
+
+pub type GasUnit = u64;
