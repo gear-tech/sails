@@ -50,5 +50,10 @@ service {
   DoThat : (par1: DoThatParam) -> result (struct { str, u32 }, struct { str });
   query This : (p1: u32, p2: str, p3: struct { opt str, u8 }, p4: TupleStruct, p5: GenericEnumForBoolAndU32) -> result (struct { str, u32 }, str);
   query That : (pr1: ThatParam) -> str;
+
+  events {
+    ThisDone: u32;
+    ThatDone: struct { p1: str };
+  }
 }
 

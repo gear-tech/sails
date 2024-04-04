@@ -19,4 +19,18 @@ service {
 {{#each queries}}
   query {{./[0]}} : ({{#each ./[1]}}{{#if @index}}, {{/if}}{{name}}: {{{lookup @root/type_names type}}}{{/each}}) -> {{{lookup @root/type_names ./[2]}}};
 {{/each}}
+{{#if (len events)}}
+
+  events {
+  {{#each events}}
+    {{name}}
+    {{~#if fields.[1]}}: struct { {{#each fields~}} {{#if @index}}, {{/if}}{{#if name}}{{name}}: {{/if}}{{{lookup @root/type_names type}}}{{/each}} }
+    {{~else}}
+	    {{~#if fields.[0]}}: {{#with fields.[0]}} {{~#if name~}} struct { {{name}}: {{{lookup @root/type_names type}}} } {{~else~}} {{{lookup @root/type_names type}}} {{~/if}}{{/with}}
+      {{~/if}}
+    {{/if~}}
+    ;
+  {{/each}}
+  }
+{{/if}}
 }

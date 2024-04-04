@@ -25,7 +25,10 @@ use proc_macro2::{Span, TokenStream as TokenStream2};
 use proc_macro_error::abort;
 use quote::quote;
 use std::collections::BTreeMap;
-use syn::{Ident, ItemImpl, Signature, Type, Visibility};
+use syn::{
+    GenericArgument, Ident, ItemImpl, Path, PathArguments, Signature, Type, TypeParamBound,
+    Visibility, WhereClause, WherePredicate,
+};
 
 pub fn gservice(service_impl_tokens: TokenStream2) -> TokenStream2 {
     let mut service_impl = syn::parse2(service_impl_tokens.clone())
@@ -48,6 +51,12 @@ pub fn gservice(service_impl_tokens: TokenStream2) -> TokenStream2 {
             "No handlers found. Try either defining one or removing the macro usage"
         );
     }
+
+    let no_events_type = Path::from(Ident::new("NoEvents", Span::call_site()));
+    let events_type = service_type_constraints
+        .as_ref()
+        .and_then(discover_service_events_type)
+        .unwrap_or(&no_events_type);
 
     let input_ident = Ident::new("input", Span::call_site());
 
@@ -114,6 +123,10 @@ pub fn gservice(service_impl_tokens: TokenStream2) -> TokenStream2 {
             fn queries() -> scale_info::MetaType {
                 scale_info::MetaType::new::<meta::QueriesMeta>()
             }
+
+            fn events() -> scale_info::MetaType {
+                scale_info::MetaType::new::<meta::EventsMeta>()
+            }
         }
 
         #(#[derive(Decode, TypeInfo)] #invocation_params_structs)*
@@ -130,6 +143,11 @@ pub fn gservice(service_impl_tokens: TokenStream2) -> TokenStream2 {
             pub enum QueriesMeta {
                 #(#queries_meta_variants),*
             }
+
+            #[derive(TypeInfo)]
+            pub enum #no_events_type {}
+
+            pub type EventsMeta = #events_type;
         }
     )
 }
@@ -140,6 +158,44 @@ fn discover_service_handlers(service_impl: &ItemImpl) -> BTreeMap<String, &Signa
         |fn_item| matches!(fn_item.vis, Visibility::Public(_)) && fn_item.sig.receiver().is_some(),
         false,
     )
+}
+
+fn discover_service_events_type(where_clause: &WhereClause) -> Option<&Path> {
+    let event_types = where_clause
+        .predicates
+        .iter()
+        .filter_map(|predicate| {
+            if let WherePredicate::Type(predicate) = predicate {
+                return Some(&predicate.bounds);
+            }
+            None
+        })
+        .flatten()
+        .filter_map(|bound| {
+            if let TypeParamBound::Trait(trait_bound) = bound {
+                let last_segment = trait_bound.path.segments.last()?;
+                if last_segment.ident == "EventTrigger" {
+                    if let PathArguments::AngleBracketed(args) = &last_segment.arguments {
+                        if args.args.len() == 1 {
+                            if let GenericArgument::Type(Type::Path(type_path)) =
+                                args.args.first().unwrap()
+                            {
+                                return Some(&type_path.path);
+                            }
+                        }
+                    }
+                }
+            }
+            None
+        })
+        .collect::<Vec<_>>();
+    if event_types.len() > 1 {
+        abort!(
+            where_clause,
+            "Multiple event types found. Please specify only one event type"
+        );
+    }
+    event_types.first().copied()
 }
 
 struct HandlerGenerator<'a> {
@@ -223,6 +279,7 @@ impl<'a> HandlerGenerator<'a> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use quote::ToTokens;
 
     #[test]
     fn gservice_works() {
@@ -247,7 +304,9 @@ mod tests {
     #[test]
     fn gservice_works_for_lifetimes_and_generics() {
         let input = quote! {
-            impl<'a, 'b, T> SomeService<'a, 'b, T> where T : Clone {
+            impl<'a, 'b, T, TEventTrigger> SomeService<'a, 'b, T, TEventTrigger>
+            where T : Clone,
+                  TEventTrigger: EventTrigger<events::SomeEvents> {
                 pub fn do_this(&mut self) -> u32 {
                     42
                 }
@@ -258,5 +317,25 @@ mod tests {
         let result = prettyplease::unparse(&syn::parse_str(&result).unwrap());
 
         insta::assert_snapshot!(result);
+    }
+
+    #[test]
+    fn events_type_is_discovered_via_where_clause() {
+        let input = quote! {
+            impl<T> SomeService<T> where T: EventTrigger<events::SomeEvents> {
+                pub async fn do_this(&mut self) -> u32 {
+                    42
+                }
+            }
+        };
+        let service_impl = syn::parse2(input).unwrap();
+        let item_type = ImplType::new(&service_impl);
+
+        let result = discover_service_events_type(item_type.constraints().unwrap());
+
+        assert_eq!(
+            result.unwrap().to_token_stream().to_string(),
+            quote!(events::SomeEvents).to_string()
+        );
     }
 }

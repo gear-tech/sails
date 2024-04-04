@@ -5,10 +5,10 @@ use sails_idlparser::{ast::visitor, ast::visitor::Visitor};
 use std::io::Write;
 
 pub fn generate(program: Program) -> Result<String> {
-    let mut trait_generator = RootGenerator::new("Service");
-    visitor::accept_program(&program, &mut trait_generator);
+    let mut generator = RootGenerator::new("Service");
+    visitor::accept_program(&program, &mut generator);
 
-    let code = trait_generator.code;
+    let code = generator.code;
 
     // Check for parsing errors
     let code = pretty_with_rustfmt(&code);
@@ -61,7 +61,8 @@ impl<'a> RootGenerator<'a> {
 
         code.push_str("use parity_scale_codec::{Encode, Decode};\n");
         code.push_str("use sails_rtl::{*, String};\n");
-        code.push_str("use sails_sender::{Call, GStdSender};\n");
+        code.push_str("#[allow(unused_imports)]\n");
+        code.push_str("use sails_sender::{Call, CreateProgramCall, GStdSender};\n");
         code.push_str("#[allow(unused_imports)]\n");
         code.push_str("use sails_rtl::collections::BTreeMap;\n");
 
@@ -70,6 +71,21 @@ impl<'a> RootGenerator<'a> {
 }
 
 impl<'a, 'ast> Visitor<'ast> for RootGenerator<'a> {
+    fn visit_ctor(&mut self, ctor: &'ast Ctor) {
+        self.code.push_str("pub mod ctor {\n");
+        self.code.push_str("use super::*;\n");
+
+        let mut ctor_gen = CtorTraitGenerator::new();
+        ctor_gen.visit_ctor(ctor);
+        self.code.push_str(&ctor_gen.code);
+
+        let mut ctor_gen = CtorFactoryGenerator::new();
+        ctor_gen.visit_ctor(ctor);
+        self.code.push_str(&ctor_gen.code);
+
+        self.code.push_str("}\n");
+    }
+
     fn visit_service(&mut self, service: &'ast Service) {
         let mut service_gen = ServiceGenerator::new(self.service_name.to_owned());
         service_gen.visit_service(service);
@@ -84,6 +100,102 @@ impl<'a, 'ast> Visitor<'ast> for RootGenerator<'a> {
         let mut type_gen = TypeGenerator::new(t.name());
         type_gen.visit_type(t);
         self.code.push_str(&type_gen.code);
+    }
+}
+
+struct CtorTraitGenerator {
+    code: String,
+}
+
+impl CtorTraitGenerator {
+    fn new() -> Self {
+        Self {
+            code: String::new(),
+        }
+    }
+}
+
+impl<'ast> Visitor<'ast> for CtorTraitGenerator {
+    fn visit_ctor(&mut self, ctor: &'ast Ctor) {
+        self.code.push_str("pub trait ProgramConstructors {\n");
+        visitor::accept_ctor(ctor, self);
+        self.code.push_str("}\n");
+    }
+
+    fn visit_ctor_func(&mut self, func: &'ast CtorFunc) {
+        let fn_name = func.name().to_case(Case::Snake);
+
+        if fn_name == "new" {
+            // https://rust-lang.github.io/rust-clippy/master/index.html#/new_ret_no_self
+            self.code.push_str("#[allow(clippy::new_ret_no_self)]\n");
+        }
+        self.code.push_str(&format!("fn {fn_name}("));
+
+        visitor::accept_ctor_func(func, self);
+
+        self.code.push_str(")-> CreateProgramCall;\n");
+    }
+
+    fn visit_func_param(&mut self, func_param: &'ast FuncParam) {
+        let type_decl_code = generate_type_decl_code(func_param.type_decl());
+        self.code
+            .push_str(&format!("{}: {},", func_param.name(), type_decl_code));
+    }
+}
+
+struct CtorFactoryGenerator {
+    code: String,
+}
+
+impl CtorFactoryGenerator {
+    fn new() -> Self {
+        Self {
+            code: String::new(),
+        }
+    }
+}
+
+impl<'ast> Visitor<'ast> for CtorFactoryGenerator {
+    fn visit_ctor(&mut self, ctor: &'ast Ctor) {
+        self.code.push_str("pub struct ProgramFactory;\n");
+        self.code.push_str("impl ProgramFactory {\n");
+        self.code.push_str(
+            "
+            #[allow(unused)]
+            pub fn new() -> Self {
+                Self
+            }
+        ",
+        );
+        self.code.push_str("}\n");
+
+        self.code
+            .push_str("impl ProgramConstructors for ProgramFactory {\n");
+        visitor::accept_ctor(ctor, self);
+        self.code.push_str("}\n");
+    }
+
+    fn visit_ctor_func(&mut self, func: &'ast CtorFunc) {
+        let fn_name = func.name();
+        let fn_name_snake = fn_name.to_case(Case::Snake);
+
+        self.code.push_str(&format!("fn {fn_name_snake}(",));
+
+        visitor::accept_ctor_func(func, self);
+
+        self.code.push_str(")-> CreateProgramCall {\n");
+        let args = encoded_args(func.params());
+
+        self.code
+            .push_str(&format!(r#"CreateProgramCall::new("{fn_name}", {args})"#));
+
+        self.code.push_str("}\n");
+    }
+
+    fn visit_func_param(&mut self, func_param: &'ast FuncParam) {
+        let type_decl_code = generate_type_decl_code(func_param.type_decl());
+        self.code
+            .push_str(&format!("{}: {},", func_param.name(), type_decl_code));
     }
 }
 
