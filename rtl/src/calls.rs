@@ -2,12 +2,12 @@ use crate::errors::{Result, RtlError};
 use crate::prelude::*;
 use core::{future::Future, marker::PhantomData};
 
-pub trait Call<TArgs, TReply, const PREFIX_SIZE: usize> {
+pub trait Call<TArgs, TReply> {
     #[allow(async_fn_in_trait)]
     async fn send_to(
         self,
         target: ActorId,
-    ) -> Result<CallTicket<impl Future<Output = Result<Vec<u8>>>, TReply, PREFIX_SIZE>>;
+    ) -> Result<CallTicket<impl Future<Output = Result<Vec<u8>>>, TReply>>;
 
     fn with_value(self, value: ValueUnit) -> Self;
 
@@ -18,21 +18,18 @@ pub trait Call<TArgs, TReply, const PREFIX_SIZE: usize> {
     fn args(&self) -> &TArgs;
 }
 
-pub struct CallTicket<TReplyFuture, TReply, const PREFIX_SIZE: usize> {
-    reply_prefix: &'static [u8; PREFIX_SIZE],
+pub struct CallTicket<TReplyFuture, TReply> {
+    reply_prefix: &'static [u8],
     reply_future: TReplyFuture,
     _treply: PhantomData<TReply>,
 }
 
-impl<TReplyFuture, TReply, const PREFIX_SIZE: usize> CallTicket<TReplyFuture, TReply, PREFIX_SIZE>
+impl<TReplyFuture, TReply> CallTicket<TReplyFuture, TReply>
 where
     TReplyFuture: Future<Output = Result<Vec<u8>>>,
     TReply: Decode,
 {
-    pub(crate) fn new(
-        reply_prefix: &'static [u8; PREFIX_SIZE],
-        reply_future: TReplyFuture,
-    ) -> Self {
+    pub(crate) fn new(reply_prefix: &'static [u8], reply_future: TReplyFuture) -> Self {
         Self {
             reply_prefix,
             reply_future,
@@ -45,7 +42,7 @@ where
         if !reply_bytes.starts_with(self.reply_prefix) {
             Err(RtlError::UnexpectedReply)?
         }
-        let mut reply_bytes = &reply_bytes[PREFIX_SIZE..];
+        let mut reply_bytes = &reply_bytes[self.reply_prefix.len()..];
         Ok(TReply::decode(&mut reply_bytes)?)
     }
 }
@@ -61,25 +58,20 @@ pub trait Sender<TArgs> {
     ) -> Result<impl Future<Output = Result<Vec<u8>>>>;
 }
 
-pub struct CallViaSender<TSender, TArgs, TReply, const PREFIX_SIZE: usize> {
+pub struct CallViaSender<TSender, TArgs, TReply> {
     sender: TSender,
     payload: Vec<u8>,
     value: ValueUnit,
     args: TArgs,
-    reply_prefix: &'static [u8; PREFIX_SIZE],
+    reply_prefix: &'static [u8],
     _treply: PhantomData<TReply>,
 }
 
-impl<TSender, TArgs, TReply, const PREFIX_SIZE: usize>
-    CallViaSender<TSender, TArgs, TReply, PREFIX_SIZE>
+impl<TSender, TArgs, TReply> CallViaSender<TSender, TArgs, TReply>
 where
     TArgs: Default,
 {
-    pub fn new<TParams>(
-        sender: TSender,
-        params: TParams,
-        reply_prefix: &'static [u8; PREFIX_SIZE],
-    ) -> Self
+    pub fn new<TParams>(sender: TSender, params: TParams, reply_prefix: &'static [u8]) -> Self
     where
         TParams: Encode,
     {
@@ -96,8 +88,7 @@ where
     }
 }
 
-impl<TSender, TArgs, TReply, const PREFIX_SIZE: usize> Call<TArgs, TReply, PREFIX_SIZE>
-    for CallViaSender<TSender, TArgs, TReply, PREFIX_SIZE>
+impl<TSender, TArgs, TReply> Call<TArgs, TReply> for CallViaSender<TSender, TArgs, TReply>
 where
     TSender: Sender<TArgs>,
     TReply: Decode,
@@ -105,7 +96,7 @@ where
     async fn send_to(
         self,
         target: ActorId,
-    ) -> Result<CallTicket<impl Future<Output = Result<Vec<u8>>>, TReply, PREFIX_SIZE>> {
+    ) -> Result<CallTicket<impl Future<Output = Result<Vec<u8>>>, TReply>> {
         let reply_future = self
             .sender
             .send_to(target, self.payload, self.value, self.args)
