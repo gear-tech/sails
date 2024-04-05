@@ -27,7 +27,7 @@ impl SenderTrait<Args> for Sender {
     async fn send_to(
         self,
         target: ActorId,
-        payload: Vec<u8>,
+        payload: impl AsRef<[u8]>,
         value: ValueUnit,
         args: Args,
     ) -> Result<impl Future<Output = Result<Vec<u8>>>> {

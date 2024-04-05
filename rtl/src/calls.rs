@@ -19,7 +19,7 @@ pub trait Call<TArgs, TReply> {
 }
 
 pub struct CallTicket<TReplyFuture, TReply> {
-    reply_prefix: &'static [u8],
+    route: &'static [u8],
     reply_future: TReplyFuture,
     _treply: PhantomData<TReply>,
 }
@@ -29,9 +29,9 @@ where
     TReplyFuture: Future<Output = Result<Vec<u8>>>,
     TReply: Decode,
 {
-    pub(crate) fn new(reply_prefix: &'static [u8], reply_future: TReplyFuture) -> Self {
+    pub(crate) fn new(route: &'static [u8], reply_future: TReplyFuture) -> Self {
         Self {
-            reply_prefix,
+            route,
             reply_future,
             _treply: PhantomData,
         }
@@ -39,10 +39,10 @@ where
 
     pub async fn reply(self) -> Result<TReply> {
         let reply_bytes = self.reply_future.await?;
-        if !reply_bytes.starts_with(self.reply_prefix) {
+        if !reply_bytes.starts_with(self.route) {
             Err(RtlError::UnexpectedReply)?
         }
-        let mut reply_bytes = &reply_bytes[self.reply_prefix.len()..];
+        let mut reply_bytes = &reply_bytes[self.route.len()..];
         Ok(TReply::decode(&mut reply_bytes)?)
     }
 }
@@ -52,7 +52,7 @@ pub trait Sender<TArgs> {
     async fn send_to(
         self,
         target: ActorId,
-        payload: Vec<u8>,
+        payload: impl AsRef<[u8]>,
         value: ValueUnit,
         args: TArgs,
     ) -> Result<impl Future<Output = Result<Vec<u8>>>>;
@@ -60,10 +60,10 @@ pub trait Sender<TArgs> {
 
 pub struct CallViaSender<TSender, TArgs, TReply> {
     sender: TSender,
+    route: &'static [u8],
     payload: Vec<u8>,
     value: ValueUnit,
     args: TArgs,
-    reply_prefix: &'static [u8],
     _treply: PhantomData<TReply>,
 }
 
@@ -71,18 +71,18 @@ impl<TSender, TArgs, TReply> CallViaSender<TSender, TArgs, TReply>
 where
     TArgs: Default,
 {
-    pub fn new<TParams>(sender: TSender, params: TParams, reply_prefix: &'static [u8]) -> Self
+    pub fn new<TParams>(sender: TSender, route: &'static [u8], params: TParams) -> Self
     where
         TParams: Encode,
     {
-        let mut payload = Vec::new();
+        let mut payload = route.to_vec();
         params.encode_to(&mut payload);
         Self {
             sender,
+            route,
             payload,
             value: Default::default(),
             args: Default::default(),
-            reply_prefix,
             _treply: PhantomData,
         }
     }
@@ -101,7 +101,7 @@ where
             .sender
             .send_to(target, self.payload, self.value, self.args)
             .await?;
-        Ok(CallTicket::new(self.reply_prefix, reply_future))
+        Ok(CallTicket::new(self.route, reply_future))
     }
 
     fn with_value(self, value: ValueUnit) -> Self {
