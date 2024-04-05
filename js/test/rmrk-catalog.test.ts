@@ -46,11 +46,10 @@ describe('RMRK catalog', () => {
 
     const gas = await api.program.calculateGas.initUpload(aliceRaw, code, payload);
 
-    // TODO: replace u8aToHex(payload) with payload after next @gear-js/api release
     const { extrinsic, programId } = api.program.upload({
       code,
       gasLimit: gas.min_limit,
-      initPayload: u8aToHex(payload),
+      initPayload: payload,
     });
 
     await new Promise((resolve, reject) => {
@@ -235,5 +234,15 @@ describe('RMRK generated', () => {
     }
   });
 
-  test.todo('read state');
+  test('read state: part', async () => {
+    expect(program).toBeDefined();
+    const result = await program.part(2, aliceRaw);
+
+    expect(result).toEqual({
+      fixed: {
+        metadata_uri: 'bar',
+        z: 0,
+      },
+    });
+  });
 });
