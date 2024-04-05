@@ -37,9 +37,9 @@
     "@polkadot/types": "^10.11.2"
   },
   "devDependencies": {
-    "@gear-js/api": "^0.36.7",
-    "@polkadot/api": "^10.11.2",
-    "@polkadot/types": "^10.11.2",
+    "@gear-js/api": "^0.37.0",
+    "@polkadot/api": "^10.12.6",
+    "@polkadot/types": "^10.12.6",
     "@types/jest": "^29.5.11",
     "@types/node": "^20.11.16",
     "babel-jest": "^29.7.0",

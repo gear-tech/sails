@@ -3,10 +3,10 @@ import { KeyringPair } from '@polkadot/keyring/types';
 import { waitReady } from '@polkadot/wasm-crypto';
 import { Keyring } from '@polkadot/api';
 import { u8aToHex } from '@polkadot/util';
+import { readFileSync } from 'fs';
 
 import { Sails } from '../lib';
-import { readFileSync } from 'fs';
-import { Program } from './lib';
+import { Program } from './rmrk-catalog/lib';
 
 let sails: Sails;
 let api: GearApi;
@@ -33,7 +33,7 @@ afterAll(async () => {
   });
 });
 
-describe('RMRK', () => {
+describe('RMRK catalog', () => {
   test('parse catalog idl', () => {
     const idl = readFileSync(IDL_PATH, 'utf-8');
     sails.parseIdl(idl);

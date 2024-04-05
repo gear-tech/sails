@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import { Command } from 'commander';
-import { readFileSync } from 'fs';
+import { readFileSync, mkdirSync, existsSync } from 'fs';
 
 import { generate } from './generate/index.js';
 import { Sails } from './sails.js';
@@ -16,6 +16,10 @@ program
     const sails = await Sails.new();
 
     const idl = readFileSync(path, 'utf-8');
+
+    if (options.out && !existsSync(options.out)) {
+      mkdirSync(options.out, { recursive: true });
+    }
 
     generate(sails.parseIdl(idl), options.out || '.');
 
