@@ -2,8 +2,8 @@ use crate::errors::{Result, RtlError};
 use crate::prelude::*;
 use core::{future::Future, marker::PhantomData};
 
+#[allow(async_fn_in_trait)]
 pub trait Call<TArgs, TReply> {
-    #[allow(async_fn_in_trait)]
     async fn send_to(
         self,
         target: ActorId,
@@ -47,8 +47,8 @@ where
     }
 }
 
+#[allow(async_fn_in_trait)]
 pub trait Sender<TArgs> {
-    #[allow(async_fn_in_trait)]
     async fn send_to(
         self,
         target: ActorId,
