@@ -26,13 +26,13 @@ pub struct Sender;
 impl SenderTrait<Args> for Sender {
     async fn send_to(
         self,
-        _target: ActorId,
+        target: ActorId,
         payload: Vec<u8>,
         value: ValueUnit,
         args: Args,
     ) -> Result<impl Future<Output = Result<Vec<u8>>>> {
         let response_future =
-            msg::send_bytes_for_reply(gstd::ActorId::zero(), payload, value, args.reply_deposit)?;
+            msg::send_bytes_for_reply(target.into(), payload, value, args.reply_deposit)?;
         let response_future = response_future.map(|result| result.map_err(Into::into));
         Ok(response_future)
     }
