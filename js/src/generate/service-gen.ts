@@ -44,6 +44,7 @@ export class ServiceGenerator {
           .line();
         this.generateProgramConstructor();
         this.generateMethods();
+        this.generateSubscriptions();
       });
   }
 
@@ -124,6 +125,48 @@ export class ServiceGenerator {
                 '(',
               );
             }
+          },
+        );
+    }
+  }
+
+  private generateSubscriptions() {
+    if (this._program.service.events.length > 0) {
+      this._out
+        .firstLine(`const ZERO_ADDRESS = u8aToHex(new Uint8Array(32))`)
+        .import('@polkadot/util', 'u8aToHex')
+        .import('@polkadot/util', 'compactFromU8aLim');
+    }
+
+    for (const event of this._program.service.events) {
+      const jsType = getJsTypeDef(event.def);
+
+      this._out
+        .line()
+        .block(
+          `public subscribeTo${event.name}Event(callback: (data: ${jsType}) => void | Promise<void>): Promise<() => void>`,
+          () => {
+            this._out
+              .line(`return this.api.gearEvents.subscribeToGearEvent('UserMessageSent', ({ data: { message } }) => {`)
+              .increaseIndent()
+              .block(`if (!message.source.eq(this.programId) || !message.destination.eq(ZERO_ADDRESS))`, () => {
+                this._out.line(`return`);
+              })
+              .line()
+              .line(`const payload = message.payload.toU8a()`)
+              .line(`const [offset, limit] = compactFromU8aLim(payload)`)
+              .line(`const name = this.registry.createType('String', payload.subarray(offset, limit)).toString()`)
+              .block(`if (name === '${event.name}')`, () => {
+                this._out
+                  .line(
+                    `callback(this.registry.createType('(String, ${getScaleCodecDef(
+                      event.def,
+                      true,
+                    )})', message.payload)[1].toJSON() as ${jsType})`,
+                  )
+              })
+              .reduceIndent()
+              .line(`})`);
           },
         );
     }

@@ -1,7 +1,20 @@
 import { TypeRegistry } from '@polkadot/types';
+import { u8aToHex, compactFromU8aLim } from '@polkadot/util';
+import { UserMessageSent } from '@gear-js/api';
 
 import { Program, TypeDef, WasmParser } from './parser/index.js';
 import { getScaleCodecDef } from './utils/types.js';
+
+const ZERO_ADDRESS = u8aToHex(new Uint8Array(32));
+
+const getPrefixLimitAndOffset = (payload: Uint8Array) => {
+  const [offset, limit] = compactFromU8aLim(payload);
+
+  return {
+    offset,
+    limit,
+  };
+};
 
 interface SailsServiceFunc {
   args: { name: string; type: any }[];
@@ -9,6 +22,12 @@ interface SailsServiceFunc {
   isQuery: boolean;
   encodePayload: (...args: any[]) => Uint8Array;
   decodeResult: (result: Uint8Array) => any;
+}
+
+interface SailsEvent {
+  type: any;
+  is: (event: UserMessageSent) => boolean;
+  decode: (payload: Uint8Array) => any;
 }
 
 interface SailsCtorFunc {
@@ -109,6 +128,45 @@ export class Sails {
     }
 
     return funcs;
+  }
+
+  /** #### Program events from the parsed IDL */
+  get events(): Record<string, SailsEvent> {
+    if (!this._program) {
+      throw new Error('IDL not parsed');
+    }
+
+    const events: Record<string, SailsEvent> = {};
+
+    for (const event of this._program.service.events) {
+      const t = event.def ? getScaleCodecDef(event.def) : 'Null';
+      const typeStr = event.def ? getScaleCodecDef(event.def, true) : 'Null';
+      events[event.name] = {
+        type: t,
+        is: ({ data: { message } }: UserMessageSent) => {
+          if (!message.destination.eq(ZERO_ADDRESS)) {
+            return false;
+          }
+
+          const payload = message.payload.toU8a();
+          const { offset, limit } = getPrefixLimitAndOffset(payload);
+          const name = this.registry.createType('String', payload.subarray(offset, limit)).toString();
+
+          if (name === event.name) {
+            return true;
+          } else {
+            return false;
+          }
+        },
+        decode: (payload: Uint8Array) => {
+          const { limit } = getPrefixLimitAndOffset(payload);
+          const data = this.registry.createType(typeStr, payload.subarray(limit));
+          return data.toJSON();
+        },
+      };
+    }
+
+    return events;
   }
 
   /** #### Constructor functions with arguments from the parsed IDL */

@@ -549,6 +549,19 @@ mod wrapper {
             unsafe { (self.visitor.visit_service_func)(self.context, &func) };
         }
 
+        fn visit_service_event(&mut self, event: &'ast ast::ServiceEvent) {
+            if fn_ptr_addr!(self.visitor.visit_service_event).is_null() {
+                return raw_visitor::accept_service_event(event, self);
+            }
+            let event_name_bytes = event.name().as_bytes();
+            let event = ServiceEvent {
+                name_ptr: event_name_bytes.as_ptr(),
+                name_len: event_name_bytes.len() as u32,
+                raw_ptr: event.into(),
+            };
+            unsafe { (self.visitor.visit_service_event)(self.context, &event) };
+        }
+
         fn visit_func_param(&mut self, func_param: &'ast raw_ast::FuncParam) {
             if fn_ptr_addr!(self.visitor.visit_func_param).is_null() {
                 return raw_visitor::accept_func_param(func_param, self);

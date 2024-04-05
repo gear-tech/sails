@@ -110,6 +110,9 @@ pub fn accept_service<'ast>(service: &'ast Service, visitor: &mut (impl Visitor<
     for func in service.funcs() {
         visitor.visit_service_func(func);
     }
+    for event in service.events() {
+        visitor.visit_service_event(event);
+    }
 }
 
 pub fn accept_service_func<'ast>(
