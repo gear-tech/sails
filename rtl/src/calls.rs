@@ -2,13 +2,7 @@ use crate::errors::{Result, RtlError};
 use crate::prelude::*;
 use core::{future::Future, marker::PhantomData};
 
-#[allow(async_fn_in_trait)]
-pub trait Call<TArgs, TReply> {
-    async fn send_to(
-        self,
-        target: ActorId,
-    ) -> Result<CallTicket<impl Future<Output = Result<Vec<u8>>>, TReply>>;
-
+pub trait Action<TArgs> {
     fn with_value(self, value: ValueUnit) -> Self;
 
     fn with_args(self, args: TArgs) -> Self;
@@ -16,6 +10,23 @@ pub trait Call<TArgs, TReply> {
     fn value(&self) -> ValueUnit;
 
     fn args(&self) -> &TArgs;
+}
+
+#[allow(async_fn_in_trait)]
+pub trait Call<TArgs, TReply>: Action<TArgs> {
+    async fn publish(
+        self,
+        target: ActorId,
+    ) -> Result<CallTicket<impl Future<Output = Result<Vec<u8>>>, TReply>>;
+}
+
+#[allow(async_fn_in_trait)]
+pub trait Activation<TArgs>: Action<TArgs> {
+    async fn publish(
+        self,
+        code_id: CodeId,
+        salt: impl AsRef<[u8]>,
+    ) -> Result<ActivationTicket<impl Future<Output = Result<(ActorId, Vec<u8>)>>>>;
 }
 
 pub struct CallTicket<TReplyFuture, TReply> {
@@ -47,9 +58,43 @@ where
     }
 }
 
+pub struct ActivationTicket<TReplyFuture> {
+    route: &'static [u8],
+    reply_future: TReplyFuture,
+}
+
+impl<TReplyFuture> ActivationTicket<TReplyFuture>
+where
+    TReplyFuture: Future<Output = Result<(ActorId, Vec<u8>)>>,
+{
+    pub(crate) fn new(route: &'static [u8], reply_future: TReplyFuture) -> Self {
+        Self {
+            route,
+            reply_future,
+        }
+    }
+
+    pub async fn reply(self) -> Result<ActorId> {
+        let reply = self.reply_future.await?;
+        if reply.1 != self.route {
+            Err(RtlError::UnexpectedReply)?
+        }
+        Ok(reply.0)
+    }
+}
+
 #[allow(async_fn_in_trait)]
-pub trait Sender<TArgs> {
-    async fn send_to(
+pub trait Remoting<TArgs> {
+    async fn activate(
+        self,
+        code_id: CodeId,
+        salt: impl AsRef<[u8]>,
+        payload: impl AsRef<[u8]>,
+        value: ValueUnit,
+        args: TArgs,
+    ) -> Result<impl Future<Output = Result<(ActorId, Vec<u8>)>>>;
+
+    async fn message(
         self,
         target: ActorId,
         payload: impl AsRef<[u8]>,
@@ -58,8 +103,8 @@ pub trait Sender<TArgs> {
     ) -> Result<impl Future<Output = Result<Vec<u8>>>>;
 }
 
-pub struct CallViaSender<TSender, TArgs, TReply> {
-    sender: TSender,
+pub struct RemotingAction<TRemoting, TArgs, TReply> {
+    remoting: TRemoting,
     route: &'static [u8],
     payload: Vec<u8>,
     value: ValueUnit,
@@ -67,18 +112,18 @@ pub struct CallViaSender<TSender, TArgs, TReply> {
     _treply: PhantomData<TReply>,
 }
 
-impl<TSender, TArgs, TReply> CallViaSender<TSender, TArgs, TReply>
+impl<TRemoting, TArgs, TReply> RemotingAction<TRemoting, TArgs, TReply>
 where
     TArgs: Default,
 {
-    pub fn new<TParams>(sender: TSender, route: &'static [u8], params: TParams) -> Self
+    pub fn new<TParams>(remoting: TRemoting, route: &'static [u8], params: TParams) -> Self
     where
         TParams: Encode,
     {
         let mut payload = route.to_vec();
         params.encode_to(&mut payload);
         Self {
-            sender,
+            remoting,
             route,
             payload,
             value: Default::default(),
@@ -88,22 +133,7 @@ where
     }
 }
 
-impl<TSender, TArgs, TReply> Call<TArgs, TReply> for CallViaSender<TSender, TArgs, TReply>
-where
-    TSender: Sender<TArgs>,
-    TReply: Decode,
-{
-    async fn send_to(
-        self,
-        target: ActorId,
-    ) -> Result<CallTicket<impl Future<Output = Result<Vec<u8>>>, TReply>> {
-        let reply_future = self
-            .sender
-            .send_to(target, self.payload, self.value, self.args)
-            .await?;
-        Ok(CallTicket::new(self.route, reply_future))
-    }
-
+impl<TRemoting, TArgs, TReply> Action<TArgs> for RemotingAction<TRemoting, TArgs, TReply> {
     fn with_value(self, value: ValueUnit) -> Self {
         Self { value, ..self }
     }
@@ -118,5 +148,39 @@ where
 
     fn args(&self) -> &TArgs {
         &self.args
+    }
+}
+
+impl<TRemoting, TArgs, TReply> Call<TArgs, TReply> for RemotingAction<TRemoting, TArgs, TReply>
+where
+    TRemoting: Remoting<TArgs>,
+    TReply: Decode,
+{
+    async fn publish(
+        self,
+        target: ActorId,
+    ) -> Result<CallTicket<impl Future<Output = Result<Vec<u8>>>, TReply>> {
+        let reply_future = self
+            .remoting
+            .message(target, self.payload, self.value, self.args)
+            .await?;
+        Ok(CallTicket::new(self.route, reply_future))
+    }
+}
+
+impl<TRemoting, TArgs> Activation<TArgs> for RemotingAction<TRemoting, TArgs, ActorId>
+where
+    TRemoting: Remoting<TArgs>,
+{
+    async fn publish(
+        self,
+        code_id: CodeId,
+        salt: impl AsRef<[u8]>,
+    ) -> Result<ActivationTicket<impl Future<Output = Result<(ActorId, Vec<u8>)>>>> {
+        let reply_future = self
+            .remoting
+            .activate(code_id, salt, self.payload, self.value, self.args)
+            .await?;
+        Ok(ActivationTicket::new(self.route, reply_future))
     }
 }

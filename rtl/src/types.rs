@@ -60,9 +60,9 @@ impl From<u64> for MessageId {
     }
 }
 
-impl AsRef<[u8]> for MessageId {
-    fn as_ref(&self) -> &[u8] {
-        self.0.as_ref()
+impl AsRef<[u8; 32]> for MessageId {
+    fn as_ref(&self) -> &[u8; 32] {
+        &self.0
     }
 }
 
@@ -93,9 +93,9 @@ impl From<u64> for CodeId {
     }
 }
 
-impl AsRef<[u8]> for CodeId {
-    fn as_ref(&self) -> &[u8] {
-        self.0.as_ref()
+impl AsRef<[u8; 32]> for CodeId {
+    fn as_ref(&self) -> &[u8; 32] {
+        &self.0
     }
 }
 
