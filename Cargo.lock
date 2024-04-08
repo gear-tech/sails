@@ -3352,7 +3352,6 @@ dependencies = [
  "sails-idl-meta",
  "sails-macros",
  "sails-rtl",
- "sails-sender",
  "scale-info",
 ]
 
@@ -3364,7 +3363,7 @@ dependencies = [
  "gstd",
  "puppeteer-app",
  "sails-idlgen",
- "sails-sender",
+ "sails-rtl",
 ]
 
 [[package]]
@@ -3677,7 +3676,6 @@ dependencies = [
  "sails-idl-meta",
  "sails-macros",
  "sails-rtl",
- "sails-sender",
  "scale-info",
 ]
 
@@ -3828,14 +3826,6 @@ dependencies = [
  "parity-scale-codec",
  "scale-info",
  "thiserror-no-std",
-]
-
-[[package]]
-name = "sails-sender"
-version = "0.0.1"
-dependencies = [
- "gstd",
- "parity-scale-codec",
 ]
 
 [[package]]

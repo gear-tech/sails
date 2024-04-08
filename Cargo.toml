@@ -22,7 +22,6 @@ members = [
     "macros",
     "macros/core",
     "rtl",
-    "sender",
 ]
 
 [workspace.dependencies]
@@ -53,7 +52,6 @@ sails-idlgen = { path = "idlgen" }
 sails-idlparser = { path = "idlparser" }
 sails-macros = { path = "macros" }
 sails-rtl = { path = "rtl" }
-sails-sender = { path = "sender" }
 scale-info = { version = "2.10", default-features = false }
 serde = "1.0"
 serde-json = { package = "serde_json", version = "1.0" }

@@ -2,16 +2,16 @@
 
 use core::ptr::addr_of_mut;
 use gstd::{boxed::Box, msg};
+use sails_rtl::gstd::calls::Sender;
 use puppeteer_app::puppet::Client;
 use puppeteer_app::Puppeteer;
-use sails_sender::GStdSender;
 
 static mut SERVICE: Option<Puppeteer> = None;
 
 fn service() -> &'static mut Puppeteer {
     let s = unsafe { &mut *addr_of_mut!(SERVICE) };
     if s.is_none() {
-        let sender = GStdSender::new();
+        let sender = Sender;
         *s = Some(Puppeteer::new(Box::new(Client::new(sender))));
     }
 
