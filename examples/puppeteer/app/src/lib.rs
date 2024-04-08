@@ -6,14 +6,13 @@ use puppet::Service;
 
 use sails_macros::gservice;
 
-use gstd::{prelude::*};
-use sails_rtl::ActorId;
+use gstd::prelude::*;
 use sails_rtl::calls::Call;
+use sails_rtl::ActorId;
 
 pub struct Puppeteer {
     puppet: Box<dyn Service>,
 }
-
 
 #[gservice]
 impl Puppeteer {
@@ -27,7 +26,7 @@ impl Puppeteer {
         let result = self
             .puppet
             .this()
-            .send_to(puppet_address)
+            .publish(puppet_address)
             .await
             .expect("send msg")
             .reply()

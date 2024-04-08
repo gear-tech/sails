@@ -2,7 +2,7 @@
 
 use catalogs::Client as CatalogClient;
 use sails_macros::{gprogram, groute};
-use sails_rtl::gstd::{events::GStdEventTrigger, GStdExecContext, calls::Sender};
+use sails_rtl::gstd::{calls::Remoting, events::GStdEventTrigger, GStdExecContext};
 use services::{ResourceStorage, ResourceStorageEvent};
 
 mod catalogs;
@@ -31,7 +31,7 @@ impl Program {
     ) -> ResourceStorage<GStdExecContext, CatalogClient, ResourceStorageEventTrigger> {
         ResourceStorage::new(
             GStdExecContext::default(),
-            CatalogClient::new(Sender),
+            CatalogClient::new(Remoting),
             GStdEventTrigger::new(),
         )
     }
@@ -46,9 +46,9 @@ impl Program {
     fn __resource_storage(
         &self,
         exec_context: GStdExecContext,
-        sender: Sender,
+        remoting: Remoting,
         event_trigger: ResourceStorageEventTrigger,
     ) -> ResourceStorage<GStdExecContext, CatalogClient, ResourceStorageEventTrigger> {
-        ResourceStorage::new(exec_context, CatalogClient::new(sender), event_trigger)
+        ResourceStorage::new(exec_context, CatalogClient::new(remoting), event_trigger)
     }
 }

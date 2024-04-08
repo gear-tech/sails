@@ -2,8 +2,8 @@ use crate::catalogs::Service as CatalogClient;
 use errors::{Error, Result};
 use resources::{ComposedResource, PartId, Resource, ResourceId};
 use sails_macros::gservice;
-use sails_rtl::{collections::HashMap, ActorId, gstd::events::EventTrigger, *};
 use sails_rtl::calls::Call;
+use sails_rtl::{collections::HashMap, gstd::events::EventTrigger, ActorId, *};
 
 pub mod errors;
 pub mod resources;
@@ -105,7 +105,7 @@ where
             let part_call = self
                 .catalog_client
                 .part(part_id)
-                .send_to(*base)
+                .publish(*base)
                 .await
                 .unwrap();
             let part_reply = part_call.reply().await.unwrap();
@@ -160,7 +160,10 @@ mod tests {
     use super::*;
     use crate::catalogs::{Error, Part};
     use resources::BasicResource;
-    use sails_rtl::{collections::BTreeMap, calls::CallViaSender, gstd::calls::Args, gstd::calls::Sender, gstd::events::mocks::MockEventTrigger, ActorId};
+    use sails_rtl::{
+        calls::RemotingAction, collections::BTreeMap, gstd::calls::Args, gstd::calls::Remoting,
+        gstd::events::mocks::MockEventTrigger, ActorId,
+    };
 
     type MockResourceStorageEventTrigger = MockEventTrigger<ResourceStorageEvent>;
 
@@ -202,11 +205,14 @@ mod tests {
         fn add_parts(
             &mut self,
             _parts: BTreeMap<u32, Part>,
-        ) -> CallViaSender<Sender, Args, Result<BTreeMap<u32, Part>, Error>> {
+        ) -> RemotingAction<Remoting, Args, Result<BTreeMap<u32, Part>, Error>> {
             unimplemented!()
         }
 
-        fn remove_parts(&mut self, _part_ids: Vec<u32>) -> CallViaSender<Sender, Args, Result<Vec<u32>, Error>> {
+        fn remove_parts(
+            &mut self,
+            _part_ids: Vec<u32>,
+        ) -> RemotingAction<Remoting, Args, Result<Vec<u32>, Error>> {
             unimplemented!()
         }
 
@@ -214,7 +220,7 @@ mod tests {
             &mut self,
             _part_id: u32,
             _collection_ids: Vec<ActorId>,
-        ) -> CallViaSender<Sender, Args, Result<(u32, Vec<ActorId>), Error>> {
+        ) -> RemotingAction<Remoting, Args, Result<(u32, Vec<ActorId>), Error>> {
             unimplemented!()
         }
 
@@ -222,23 +228,33 @@ mod tests {
             &mut self,
             _part_id: u32,
             _collection_id: ActorId,
-        ) -> CallViaSender<Sender, Args, Result<(u32, ActorId), Error>> {
+        ) -> RemotingAction<Remoting, Args, Result<(u32, ActorId), Error>> {
             unimplemented!()
         }
 
-        fn reset_equippables(&mut self, _part_id: u32) -> CallViaSender<Sender, Args, Result<(), Error>> {
+        fn reset_equippables(
+            &mut self,
+            _part_id: u32,
+        ) -> RemotingAction<Remoting, Args, Result<(), Error>> {
             unimplemented!()
         }
 
-        fn set_equippables_to_all(&mut self, _part_id: u32) -> CallViaSender<Sender, Args, Result<(), Error>> {
+        fn set_equippables_to_all(
+            &mut self,
+            _part_id: u32,
+        ) -> RemotingAction<Remoting, Args, Result<(), Error>> {
             unimplemented!()
         }
 
-        fn part(&self, _part_id: u32) -> CallViaSender<Sender, Args, Option<Part>> {
+        fn part(&self, _part_id: u32) -> RemotingAction<Remoting, Args, Option<Part>> {
             unimplemented!()
         }
 
-        fn equippable(&self, _part_id: u32, _collection_id: ActorId) -> CallViaSender<Sender, Args, Result<bool, Error>> {
+        fn equippable(
+            &self,
+            _part_id: u32,
+            _collection_id: ActorId,
+        ) -> RemotingAction<Remoting, Args, Result<bool, Error>> {
             unimplemented!()
         }
     }
