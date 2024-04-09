@@ -18,25 +18,25 @@ pub trait Service {
 
 #[derive(Clone)]
 pub struct Client {
-    sender: Remoting,
+    remoting: Remoting,
 }
 
 impl Client {
-    pub fn new(sender: Remoting) -> Self {
-        Self { sender }
+    pub fn new(remoting: Remoting) -> Self {
+        Self { remoting }
     }
 }
 
 impl Service for Client {
     fn do_this(&mut self, p1: u32, p2: MyParam) -> RemotingAction<Remoting, Args, u16> {
         RemotingAction::new(
-            self.sender.clone(),
+            self.remoting.clone(),
             &[24, 68, 111, 84, 104, 105, 115],
             (p1, p2),
         )
     }
     fn do_that(&mut self, p1: (u8, u32)) -> RemotingAction<Remoting, Args, u8> {
-        RemotingAction::new(self.sender.clone(), &[24, 68, 111, 84, 104, 97, 116], p1)
+        RemotingAction::new(self.remoting.clone(), &[24, 68, 111, 84, 104, 97, 116], p1)
     }
 }
 #[derive(PartialEq, Debug, Encode, Decode)]

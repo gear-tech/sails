@@ -279,12 +279,12 @@ impl<'ast> Visitor<'ast> for ClientGenerator {
             r#"
             #[derive(Clone)]
             pub struct Client {{
-                sender: Remoting
+                remoting: Remoting
             }}
 
             impl Client {{
-                pub fn new(sender: Remoting) -> Self {{
-                    Self {{ sender }}
+                pub fn new(remoting: Remoting) -> Self {{
+                    Self {{ remoting }}
                 }}
             }}
 
@@ -320,7 +320,7 @@ impl<'ast> Visitor<'ast> for ClientGenerator {
             .join(",");
 
         self.code.push_str(&format!(
-            "RemotingAction::new(self.sender.clone(), &[{route_bytes}], {args})"
+            "RemotingAction::new(self.remoting.clone(), &[{route_bytes}], {args})"
         ));
 
         self.code.push_str("}\n");

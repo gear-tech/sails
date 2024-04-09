@@ -11,8 +11,8 @@ static mut SERVICE: Option<Puppeteer> = None;
 fn service() -> &'static mut Puppeteer {
     let s = unsafe { &mut *addr_of_mut!(SERVICE) };
     if s.is_none() {
-        let sender = Remoting;
-        *s = Some(Puppeteer::new(Box::new(Client::new(sender))));
+        let remoting = Remoting;
+        *s = Some(Puppeteer::new(Box::new(Client::new(remoting))));
     }
 
     s.as_mut().unwrap()

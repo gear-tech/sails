@@ -73,12 +73,12 @@ pub trait Service {
 
 #[derive(Clone)]
 pub struct Client {
-    sender: Remoting,
+    remoting: Remoting,
 }
 
 impl Client {
-    pub fn new(sender: Remoting) -> Self {
-        Self { sender }
+    pub fn new(remoting: Remoting) -> Self {
+        Self { remoting }
     }
 }
 
@@ -89,7 +89,7 @@ impl Service for Client {
         collection_ids: Vec<ActorId>,
     ) -> RemotingAction<Remoting, Args, Result<(u32, Vec<ActorId>), Error>> {
         RemotingAction::new(
-            self.sender.clone(),
+            self.remoting.clone(),
             &[
                 56, 65, 100, 100, 69, 113, 117, 105, 112, 112, 97, 98, 108, 101, 115,
             ],
@@ -101,7 +101,7 @@ impl Service for Client {
         parts: BTreeMap<u32, Part>,
     ) -> RemotingAction<Remoting, Args, Result<BTreeMap<u32, Part>, Error>> {
         RemotingAction::new(
-            self.sender.clone(),
+            self.remoting.clone(),
             &[32, 65, 100, 100, 80, 97, 114, 116, 115],
             parts,
         )
@@ -112,7 +112,7 @@ impl Service for Client {
         collection_id: ActorId,
     ) -> RemotingAction<Remoting, Args, Result<(u32, ActorId), Error>> {
         RemotingAction::new(
-            self.sender.clone(),
+            self.remoting.clone(),
             &[
                 64, 82, 101, 109, 111, 118, 101, 69, 113, 117, 105, 112, 112, 97, 98, 108, 101,
             ],
@@ -124,7 +124,7 @@ impl Service for Client {
         part_ids: Vec<u32>,
     ) -> RemotingAction<Remoting, Args, Result<Vec<u32>, Error>> {
         RemotingAction::new(
-            self.sender.clone(),
+            self.remoting.clone(),
             &[44, 82, 101, 109, 111, 118, 101, 80, 97, 114, 116, 115],
             part_ids,
         )
@@ -134,7 +134,7 @@ impl Service for Client {
         part_id: u32,
     ) -> RemotingAction<Remoting, Args, Result<(), Error>> {
         RemotingAction::new(
-            self.sender.clone(),
+            self.remoting.clone(),
             &[
                 64, 82, 101, 115, 101, 116, 69, 113, 117, 105, 112, 112, 97, 98, 108, 101, 115,
             ],
@@ -146,7 +146,7 @@ impl Service for Client {
         part_id: u32,
     ) -> RemotingAction<Remoting, Args, Result<(), Error>> {
         RemotingAction::new(
-            self.sender.clone(),
+            self.remoting.clone(),
             &[
                 76, 83, 101, 116, 69, 113, 117, 105, 112, 112, 97, 98, 108, 101, 115, 84, 111, 65,
                 108, 108,
@@ -160,13 +160,13 @@ impl Service for Client {
         collection_id: ActorId,
     ) -> RemotingAction<Remoting, Args, Result<bool, Error>> {
         RemotingAction::new(
-            self.sender.clone(),
+            self.remoting.clone(),
             &[40, 69, 113, 117, 105, 112, 112, 97, 98, 108, 101],
             (part_id, collection_id),
         )
     }
     fn part(&self, part_id: u32) -> RemotingAction<Remoting, Args, Option<Part>> {
-        RemotingAction::new(self.sender.clone(), &[16, 80, 97, 114, 116], part_id)
+        RemotingAction::new(self.remoting.clone(), &[16, 80, 97, 114, 116], part_id)
     }
 }
 #[derive(PartialEq, Debug, Encode, Decode)]

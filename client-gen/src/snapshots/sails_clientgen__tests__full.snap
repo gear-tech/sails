@@ -50,12 +50,12 @@ pub trait Service {
 
 #[derive(Clone)]
 pub struct Client {
-    sender: Remoting,
+    remoting: Remoting,
 }
 
 impl Client {
-    pub fn new(sender: Remoting) -> Self {
-        Self { sender }
+    pub fn new(remoting: Remoting) -> Self {
+        Self { remoting }
     }
 }
 
@@ -68,7 +68,7 @@ impl Service for Client {
         p4: ThisThatSvcAppTupleStruct,
     ) -> RemotingAction<Remoting, Args, (String, u32)> {
         RemotingAction::new(
-            self.sender.clone(),
+            self.remoting.clone(),
             &[24, 68, 111, 84, 104, 105, 115],
             (p1, p2, p3, p4),
         )
@@ -77,13 +77,17 @@ impl Service for Client {
         &mut self,
         param: ThisThatSvcAppDoThatParam,
     ) -> RemotingAction<Remoting, Args, Result<(String, u32), (String,)>> {
-        RemotingAction::new(self.sender.clone(), &[24, 68, 111, 84, 104, 97, 116], param)
+        RemotingAction::new(
+            self.remoting.clone(),
+            &[24, 68, 111, 84, 104, 97, 116],
+            param,
+        )
     }
     fn this(&self, v1: Vec<u16>) -> RemotingAction<Remoting, Args, u32> {
-        RemotingAction::new(self.sender.clone(), &[16, 84, 104, 105, 115], v1)
+        RemotingAction::new(self.remoting.clone(), &[16, 84, 104, 105, 115], v1)
     }
     fn that(&self, v1: ()) -> RemotingAction<Remoting, Args, Result<String, String>> {
-        RemotingAction::new(self.sender.clone(), &[16, 84, 104, 97, 116], v1)
+        RemotingAction::new(self.remoting.clone(), &[16, 84, 104, 97, 116], v1)
     }
 }
 #[derive(PartialEq, Debug, Encode, Decode)]
