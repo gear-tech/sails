@@ -6,35 +6,59 @@ expression: generate(program).unwrap()
 use parity_scale_codec::{Decode, Encode};
 #[allow(unused_imports)]
 use sails_rtl::collections::BTreeMap;
-use sails_rtl::{String, *};
-use sails_sender::{Call, GStdSender};
+use sails_rtl::{
+    calls::RemotingAction, gstd::calls::Args, gstd::calls::Remoting, prelude::*, String,
+};
 pub trait Service {
+    #[allow(clippy::type_complexity)]
     fn add_equippables(
         &mut self,
         part_id: u32,
         collection_ids: Vec<ActorId>,
-    ) -> Call<Result<(u32, Vec<ActorId>), Error>>;
-    fn add_parts(&mut self, parts: BTreeMap<u32, Part>)
-        -> Call<Result<BTreeMap<u32, Part>, Error>>;
+    ) -> RemotingAction<Remoting, Args, Result<(u32, Vec<ActorId>), Error>>;
+    #[allow(clippy::type_complexity)]
+    fn add_parts(
+        &mut self,
+        parts: BTreeMap<u32, Part>,
+    ) -> RemotingAction<Remoting, Args, Result<BTreeMap<u32, Part>, Error>>;
+    #[allow(clippy::type_complexity)]
     fn remove_equippable(
         &mut self,
         part_id: u32,
         collection_id: ActorId,
-    ) -> Call<Result<(u32, ActorId), Error>>;
-    fn remove_parts(&mut self, part_ids: Vec<u32>) -> Call<Result<Vec<u32>, Error>>;
-    fn reset_equippables(&mut self, part_id: u32) -> Call<Result<(), Error>>;
-    fn set_equippables_to_all(&mut self, part_id: u32) -> Call<Result<(), Error>>;
-    fn equippable(&self, part_id: u32, collection_id: ActorId) -> Call<Result<bool, Error>>;
-    fn part(&self, part_id: u32) -> Call<Option<Part>>;
+    ) -> RemotingAction<Remoting, Args, Result<(u32, ActorId), Error>>;
+    #[allow(clippy::type_complexity)]
+    fn remove_parts(
+        &mut self,
+        part_ids: Vec<u32>,
+    ) -> RemotingAction<Remoting, Args, Result<Vec<u32>, Error>>;
+    #[allow(clippy::type_complexity)]
+    fn reset_equippables(
+        &mut self,
+        part_id: u32,
+    ) -> RemotingAction<Remoting, Args, Result<(), Error>>;
+    #[allow(clippy::type_complexity)]
+    fn set_equippables_to_all(
+        &mut self,
+        part_id: u32,
+    ) -> RemotingAction<Remoting, Args, Result<(), Error>>;
+    #[allow(clippy::type_complexity)]
+    fn equippable(
+        &self,
+        part_id: u32,
+        collection_id: ActorId,
+    ) -> RemotingAction<Remoting, Args, Result<bool, Error>>;
+    #[allow(clippy::type_complexity)]
+    fn part(&self, part_id: u32) -> RemotingAction<Remoting, Args, Option<Part>>;
 }
 
 #[derive(Clone)]
 pub struct Client {
-    sender: GStdSender,
+    sender: Remoting,
 }
 
 impl Client {
-    pub fn new(sender: GStdSender) -> Self {
+    pub fn new(sender: Remoting) -> Self {
         Self { sender }
     }
 }
@@ -44,36 +68,86 @@ impl Service for Client {
         &mut self,
         part_id: u32,
         collection_ids: Vec<ActorId>,
-    ) -> Call<Result<(u32, Vec<ActorId>), Error>> {
-        Call::new(&self.sender, "AddEquippables", (part_id, collection_ids))
+    ) -> RemotingAction<Remoting, Args, Result<(u32, Vec<ActorId>), Error>> {
+        RemotingAction::new(
+            self.sender.clone(),
+            &[
+                56, 65, 100, 100, 69, 113, 117, 105, 112, 112, 97, 98, 108, 101, 115,
+            ],
+            (part_id, collection_ids),
+        )
     }
     fn add_parts(
         &mut self,
         parts: BTreeMap<u32, Part>,
-    ) -> Call<Result<BTreeMap<u32, Part>, Error>> {
-        Call::new(&self.sender, "AddParts", parts)
+    ) -> RemotingAction<Remoting, Args, Result<BTreeMap<u32, Part>, Error>> {
+        RemotingAction::new(
+            self.sender.clone(),
+            &[32, 65, 100, 100, 80, 97, 114, 116, 115],
+            parts,
+        )
     }
     fn remove_equippable(
         &mut self,
         part_id: u32,
         collection_id: ActorId,
-    ) -> Call<Result<(u32, ActorId), Error>> {
-        Call::new(&self.sender, "RemoveEquippable", (part_id, collection_id))
+    ) -> RemotingAction<Remoting, Args, Result<(u32, ActorId), Error>> {
+        RemotingAction::new(
+            self.sender.clone(),
+            &[
+                64, 82, 101, 109, 111, 118, 101, 69, 113, 117, 105, 112, 112, 97, 98, 108, 101,
+            ],
+            (part_id, collection_id),
+        )
     }
-    fn remove_parts(&mut self, part_ids: Vec<u32>) -> Call<Result<Vec<u32>, Error>> {
-        Call::new(&self.sender, "RemoveParts", part_ids)
+    fn remove_parts(
+        &mut self,
+        part_ids: Vec<u32>,
+    ) -> RemotingAction<Remoting, Args, Result<Vec<u32>, Error>> {
+        RemotingAction::new(
+            self.sender.clone(),
+            &[44, 82, 101, 109, 111, 118, 101, 80, 97, 114, 116, 115],
+            part_ids,
+        )
     }
-    fn reset_equippables(&mut self, part_id: u32) -> Call<Result<(), Error>> {
-        Call::new(&self.sender, "ResetEquippables", part_id)
+    fn reset_equippables(
+        &mut self,
+        part_id: u32,
+    ) -> RemotingAction<Remoting, Args, Result<(), Error>> {
+        RemotingAction::new(
+            self.sender.clone(),
+            &[
+                64, 82, 101, 115, 101, 116, 69, 113, 117, 105, 112, 112, 97, 98, 108, 101, 115,
+            ],
+            part_id,
+        )
     }
-    fn set_equippables_to_all(&mut self, part_id: u32) -> Call<Result<(), Error>> {
-        Call::new(&self.sender, "SetEquippablesToAll", part_id)
+    fn set_equippables_to_all(
+        &mut self,
+        part_id: u32,
+    ) -> RemotingAction<Remoting, Args, Result<(), Error>> {
+        RemotingAction::new(
+            self.sender.clone(),
+            &[
+                76, 83, 101, 116, 69, 113, 117, 105, 112, 112, 97, 98, 108, 101, 115, 84, 111, 65,
+                108, 108,
+            ],
+            part_id,
+        )
     }
-    fn equippable(&self, part_id: u32, collection_id: ActorId) -> Call<Result<bool, Error>> {
-        Call::new(&self.sender, "Equippable", (part_id, collection_id))
+    fn equippable(
+        &self,
+        part_id: u32,
+        collection_id: ActorId,
+    ) -> RemotingAction<Remoting, Args, Result<bool, Error>> {
+        RemotingAction::new(
+            self.sender.clone(),
+            &[40, 69, 113, 117, 105, 112, 112, 97, 98, 108, 101],
+            (part_id, collection_id),
+        )
     }
-    fn part(&self, part_id: u32) -> Call<Option<Part>> {
-        Call::new(&self.sender, "Part", part_id)
+    fn part(&self, part_id: u32) -> RemotingAction<Remoting, Args, Option<Part>> {
+        RemotingAction::new(self.sender.clone(), &[16, 80, 97, 114, 116], part_id)
     }
 }
 #[derive(PartialEq, Debug, Encode, Decode)]

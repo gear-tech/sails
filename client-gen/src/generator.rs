@@ -1,5 +1,6 @@
 use anyhow::Result;
 use convert_case::{Case, Casing};
+use parity_scale_codec::Encode;
 use sails_idlparser::ast::*;
 use sails_idlparser::{ast::visitor, ast::visitor::Visitor};
 use std::io::Write;
@@ -188,8 +189,15 @@ impl<'ast> Visitor<'ast> for ClientGenerator {
 
         let args = encoded_args(func.params());
 
+        let route_bytes = fn_name
+            .encode()
+            .into_iter()
+            .map(|x| x.to_string())
+            .collect::<Vec<_>>()
+            .join(",");
+
         self.code.push_str(&format!(
-            "RemotingAction::new(self.sender.clone(), b\"{fn_name}\", {args})"
+            "RemotingAction::new(self.sender.clone(), &[{route_bytes}], {args})"
         ));
 
         self.code.push_str("}\n");

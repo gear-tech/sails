@@ -3752,6 +3752,7 @@ dependencies = [
  "anyhow",
  "convert_case 0.6.0",
  "insta",
+ "parity-scale-codec",
  "sails-idlparser",
 ]
 
