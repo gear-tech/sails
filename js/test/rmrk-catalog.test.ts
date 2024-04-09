@@ -3,10 +3,10 @@ import { KeyringPair } from '@polkadot/keyring/types';
 import { waitReady } from '@polkadot/wasm-crypto';
 import { Keyring } from '@polkadot/api';
 import { u8aToHex } from '@polkadot/util';
+import { readFileSync } from 'fs';
 
 import { Sails } from '../lib';
-import { readFileSync } from 'fs';
-import { Program } from './lib';
+import { Program } from './rmrk-catalog/lib';
 
 let sails: Sails;
 let api: GearApi;
@@ -33,7 +33,7 @@ afterAll(async () => {
   });
 });
 
-describe('RMRK', () => {
+describe('RMRK catalog', () => {
   test('parse catalog idl', () => {
     const idl = readFileSync(IDL_PATH, 'utf-8');
     sails.parseIdl(idl);
@@ -46,11 +46,10 @@ describe('RMRK', () => {
 
     const gas = await api.program.calculateGas.initUpload(aliceRaw, code, payload);
 
-    // TODO: replace u8aToHex(payload) with payload after next @gear-js/api release
     const { extrinsic, programId } = api.program.upload({
       code,
       gasLimit: gas.min_limit,
-      initPayload: u8aToHex(payload),
+      initPayload: payload,
     });
 
     await new Promise((resolve, reject) => {
@@ -235,5 +234,15 @@ describe('RMRK generated', () => {
     }
   });
 
-  test.todo('read state');
+  test('read state: part', async () => {
+    expect(program).toBeDefined();
+    const result = await program.part(2, aliceRaw);
+
+    expect(result).toEqual({
+      fixed: {
+        metadata_uri: 'bar',
+        z: 0,
+      },
+    });
+  });
 });

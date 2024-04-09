@@ -9,6 +9,25 @@ use sails_rtl::collections::BTreeMap;
 use sails_rtl::{
     calls::RemotingAction, gstd::calls::Args, gstd::calls::Remoting, prelude::*, String,
 };
+pub mod ctor {
+    use super::*;
+    pub trait ProgramConstructors {
+        #[allow(clippy::new_ret_no_self)]
+        fn new(remoting: Remoting, a: u32) -> RemotingAction<Remoting, Args, ActorId>;
+    }
+    pub struct ProgramFactory;
+    impl ProgramFactory {
+        #[allow(unused)]
+        pub fn new() -> Self {
+            Self
+        }
+    }
+    impl ProgramConstructors for ProgramFactory {
+        fn new(remoting: Remoting, a: u32) -> RemotingAction<Remoting, Args, ActorId> {
+            RemotingAction::new(remoting, &[12, 78, 101, 119], a)
+        }
+    }
+}
 pub trait Service {
     #[allow(clippy::type_complexity)]
     fn do_this(

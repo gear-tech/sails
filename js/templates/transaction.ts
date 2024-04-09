@@ -11,6 +11,8 @@ export interface IMethodReturnType<T> {
   response: () => Promise<T>;
 }
 
+export const ZERO_ADDRESS = new Uint8Array(32);
+
 export class Transaction {
   protected registry: Registry;
 
