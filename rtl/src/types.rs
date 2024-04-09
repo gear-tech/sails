@@ -27,9 +27,9 @@ impl From<u64> for ActorId {
     }
 }
 
-impl AsRef<[u8]> for ActorId {
-    fn as_ref(&self) -> &[u8] {
-        self.0.as_ref()
+impl AsRef<[u8; 32]> for ActorId {
+    fn as_ref(&self) -> &[u8; 32] {
+        &self.0
     }
 }
 
@@ -60,9 +60,9 @@ impl From<u64> for MessageId {
     }
 }
 
-impl AsRef<[u8]> for MessageId {
-    fn as_ref(&self) -> &[u8] {
-        self.0.as_ref()
+impl AsRef<[u8; 32]> for MessageId {
+    fn as_ref(&self) -> &[u8; 32] {
+        &self.0
     }
 }
 
@@ -93,8 +93,12 @@ impl From<u64> for CodeId {
     }
 }
 
-impl AsRef<[u8]> for CodeId {
-    fn as_ref(&self) -> &[u8] {
-        self.0.as_ref()
+impl AsRef<[u8; 32]> for CodeId {
+    fn as_ref(&self) -> &[u8; 32] {
+        &self.0
     }
 }
+
+pub type ValueUnit = u128;
+
+pub type GasUnit = u64;
