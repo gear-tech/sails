@@ -29,6 +29,7 @@ members = [
 anyhow = "1"
 convert-case = { package = "convert_case", version = "0.6" }
 futures = { version = "0.3", default-features = false }
+gear-core-errors = "1.1.1"
 git-download = "0.1"
 gstd = "1.1.1"
 gtest = "1.1.1"

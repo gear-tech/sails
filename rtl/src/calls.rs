@@ -51,7 +51,7 @@ where
     pub async fn reply(self) -> Result<TReply> {
         let reply_bytes = self.reply_future.await?;
         if !reply_bytes.starts_with(self.route) {
-            Err(RtlError::UnexpectedReply)?
+            Err(RtlError::ReplyPrefixMismatches)?
         }
         let mut reply_bytes = &reply_bytes[self.route.len()..];
         Ok(TReply::decode(&mut reply_bytes)?)
@@ -77,7 +77,7 @@ where
     pub async fn reply(self) -> Result<ActorId> {
         let reply = self.reply_future.await?;
         if reply.1 != self.route {
-            Err(RtlError::UnexpectedReply)?
+            Err(RtlError::ReplyPrefixMismatches)?
         }
         Ok(reply.0)
     }

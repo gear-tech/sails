@@ -1,4 +1,4 @@
-use crate::{ActorId, ExecContext};
+use crate::{ActorId, ExecContext, MessageId};
 use core::cell::OnceCell;
 pub use gstd::{async_init, async_main, handle_signal, message_loop, msg, record_reply};
 
@@ -9,12 +9,14 @@ mod types;
 #[derive(Default)]
 pub struct GStdExecContext {
     msg_source: OnceCell<ActorId>,
+    msg_id: OnceCell<MessageId>,
 }
 
 impl GStdExecContext {
     pub fn new() -> Self {
         Self {
             msg_source: OnceCell::new(),
+            msg_id: OnceCell::new(),
         }
     }
 }
@@ -23,5 +25,9 @@ impl ExecContext for GStdExecContext {
     fn actor_id(&self) -> &ActorId {
         self.msg_source
             .get_or_init(|| msg::source().as_ref().into())
+    }
+
+    fn message_id(&self) -> &MessageId {
+        self.msg_id.get_or_init(|| msg::id().as_ref().into())
     }
 }
