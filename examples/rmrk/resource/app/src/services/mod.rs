@@ -1,8 +1,9 @@
-use crate::catalogs::Service as CatalogClient;
+use crate::catalogs::RmrkCatalog;
 use errors::{Error, Result};
 use resources::{ComposedResource, PartId, Resource, ResourceId};
 use sails_macros::gservice;
 use sails_rtl::calls::Call;
+use sails_rtl::gstd::calls::Args;
 use sails_rtl::{collections::HashMap, gstd::events::EventTrigger, ActorId, *};
 
 pub mod errors;
@@ -39,7 +40,7 @@ impl<TExecContext, TCatalogClient, TEventTrigger>
     ResourceStorage<TExecContext, TCatalogClient, TEventTrigger>
 where
     TExecContext: ExecContext,
-    TCatalogClient: CatalogClient,
+    TCatalogClient: RmrkCatalog<Args>,
     TEventTrigger: EventTrigger<ResourceStorageEvent>,
 {
     pub fn seed(exec_context: TExecContext) {
@@ -161,7 +162,7 @@ mod tests {
     use crate::catalogs::{Error, Part};
     use resources::BasicResource;
     use sails_rtl::{
-        calls::RemotingAction, collections::BTreeMap, gstd::calls::Args, gstd::calls::Remoting,
+        calls::RemotingAction, collections::BTreeMap, gstd::calls::Remoting,
         gstd::events::mocks::MockEventTrigger, ActorId,
     };
 
@@ -201,18 +202,18 @@ mod tests {
 
     struct MockCatalogClient;
 
-    impl CatalogClient for MockCatalogClient {
+    impl<A: Default> RmrkCatalog<A> for MockCatalogClient {
         fn add_parts(
             &mut self,
             _parts: BTreeMap<u32, Part>,
-        ) -> RemotingAction<Remoting, Args, Result<BTreeMap<u32, Part>, Error>> {
+        ) -> RemotingAction<Remoting, A, Result<BTreeMap<u32, Part>, Error>> {
             unimplemented!()
         }
 
         fn remove_parts(
             &mut self,
             _part_ids: Vec<u32>,
-        ) -> RemotingAction<Remoting, Args, Result<Vec<u32>, Error>> {
+        ) -> RemotingAction<Remoting, A, Result<Vec<u32>, Error>> {
             unimplemented!()
         }
 
@@ -220,7 +221,7 @@ mod tests {
             &mut self,
             _part_id: u32,
             _collection_ids: Vec<ActorId>,
-        ) -> RemotingAction<Remoting, Args, Result<(u32, Vec<ActorId>), Error>> {
+        ) -> RemotingAction<Remoting, A, Result<(u32, Vec<ActorId>), Error>> {
             unimplemented!()
         }
 
@@ -228,25 +229,25 @@ mod tests {
             &mut self,
             _part_id: u32,
             _collection_id: ActorId,
-        ) -> RemotingAction<Remoting, Args, Result<(u32, ActorId), Error>> {
+        ) -> RemotingAction<Remoting, A, Result<(u32, ActorId), Error>> {
             unimplemented!()
         }
 
         fn reset_equippables(
             &mut self,
             _part_id: u32,
-        ) -> RemotingAction<Remoting, Args, Result<(), Error>> {
+        ) -> RemotingAction<Remoting, A, Result<(), Error>> {
             unimplemented!()
         }
 
         fn set_equippables_to_all(
             &mut self,
             _part_id: u32,
-        ) -> RemotingAction<Remoting, Args, Result<(), Error>> {
+        ) -> RemotingAction<Remoting, A, Result<(), Error>> {
             unimplemented!()
         }
 
-        fn part(&self, _part_id: u32) -> RemotingAction<Remoting, Args, Option<Part>> {
+        fn part(&self, _part_id: u32) -> RemotingAction<Remoting, A, Option<Part>> {
             unimplemented!()
         }
 
@@ -254,7 +255,7 @@ mod tests {
             &self,
             _part_id: u32,
             _collection_id: ActorId,
-        ) -> RemotingAction<Remoting, Args, Result<bool, Error>> {
+        ) -> RemotingAction<Remoting, A, Result<bool, Error>> {
             unimplemented!()
         }
     }
