@@ -15,3 +15,4 @@ sails-idlgen.workspace = true
 gtest.workspace = true
 rmrk-catalog = { path = "../../catalog/wasm" }
 sails-rtl.workspace = true
+tokio = { workspace = true, features = ["rt", "macros"] }

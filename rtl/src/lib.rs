@@ -5,6 +5,8 @@ pub use prelude::*;
 pub mod calls;
 pub mod errors;
 pub mod gstd;
+#[cfg(not(target_arch = "wasm32"))]
+pub mod gtest;
 pub mod prelude;
 pub mod types;
 
@@ -19,4 +21,6 @@ pub mod scale {
 
 pub trait ExecContext {
     fn actor_id(&self) -> &ActorId;
+
+    fn message_id(&self) -> &MessageId;
 }
