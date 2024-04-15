@@ -1,12 +1,18 @@
 use core::cell::OnceCell;
-use gtest::{Program, RunResult, System};
+use gtest::{Program, RunResult};
 use rmrk_catalog::services::parts::{FixedPart, Part};
 use rmrk_resource_app::services::{
     errors::{Error as ResourceStorageError, Result as ResourceStorageResult},
     resources::{ComposedResource, PartId, Resource, ResourceId},
     ResourceStorageEvent,
 };
-use sails_rtl::{collections::BTreeMap, ActorId, Decode, Encode};
+use sails_rtl::{
+    calls::Remoting,
+    collections::BTreeMap,
+    errors::Result,
+    gtest::calls::{GTestArgs, GTestRemoting},
+    ActorId, Decode, Encode,
+};
 
 const CATALOG_PROGRAM_WASM_PATH: &str =
     "../../../../target/wasm32-unknown-unknown/debug/rmrk_catalog.wasm";
@@ -73,6 +79,35 @@ fn adding_resource_to_storage_by_admin_succeeds() {
             .unwrap()
             .encode()
     );
+}
+
+#[tokio::test]
+async fn adding_resource_to_storage_by_admin_succeeds_async() {
+    // Arrange
+    let fixture = Fixture::new(ADMIN_ID);
+
+    // Act
+    let resource = Resource::Composed(ComposedResource {
+        src: "<src_uri>".into(),
+        thumb: "<thumb_uri>".into(),
+        metadata_uri: "<metadata_uri>".into(),
+        base: ActorId::from(fixture.catalog_program().id().into_bytes()),
+        parts: vec![1, 2, 3],
+    });
+    let reply = fixture
+        .add_resource_async(ADMIN_ID, RESOURCE_ID, &resource)
+        .await;
+
+    // Assert
+    assert!(reply.is_ok());
+    let reply = reply.unwrap();
+
+    let expected_reply = [
+        resources::ADD_RESOURCE_ENTRY_FUNC_NAME.encode(),
+        (Ok((RESOURCE_ID, &resource)) as ResourceStorageResult<(u8, &Resource)>).encode(),
+    ]
+    .concat();
+    assert_eq!(expected_reply, reply);
 }
 
 #[test]
@@ -155,27 +190,31 @@ fn adding_non_existing_part_to_resource_fails() {
 
 struct Fixture<'a> {
     admin_id: u64,
-    system: System,
+    net_client: GTestRemoting,
     catalog_program: OnceCell<Program<'a>>,
     resource_program: OnceCell<Program<'a>>,
 }
 
 impl<'a> Fixture<'a> {
     fn new(admin_id: u64) -> Self {
-        let system = System::new();
-        system.init_logger();
+        let net_client = GTestRemoting::new();
+        net_client.system().init_logger();
 
         Self {
             admin_id,
-            system,
+            net_client,
             catalog_program: OnceCell::new(),
             resource_program: OnceCell::new(),
         }
     }
 
+    fn net_client(&self) -> &GTestRemoting {
+        &self.net_client
+    }
+
     fn catalog_program(&'a self) -> &Program<'a> {
         self.catalog_program.get_or_init(|| {
-            let program = Program::from_file(&self.system, CATALOG_PROGRAM_WASM_PATH);
+            let program = Program::from_file(self.net_client.system(), CATALOG_PROGRAM_WASM_PATH);
             let encoded_request = catalog::CTOR_FUNC_NAME.encode();
             program.send_bytes(self.admin_id, encoded_request);
             program
@@ -184,7 +223,7 @@ impl<'a> Fixture<'a> {
 
     fn resource_program(&'a self) -> &Program<'a> {
         self.resource_program.get_or_init(|| {
-            let program = Program::from_file(&self.system, RESOURCE_PROGRAM_WASM_PATH);
+            let program = Program::from_file(self.net_client.system(), RESOURCE_PROGRAM_WASM_PATH);
             let encoded_request = resources::CTOR_FUNC_NAME.encode();
             program.send_bytes(self.admin_id, encoded_request);
             program
@@ -205,6 +244,30 @@ impl<'a> Fixture<'a> {
         ]
         .concat();
         program.send_bytes(actor_id, encoded_request)
+    }
+
+    async fn add_resource_async(
+        &'a self,
+        actor_id: u64,
+        resource_id: ResourceId,
+        resource: &Resource,
+    ) -> Result<Vec<u8>> {
+        let encoded_request = [
+            resources::ADD_RESOURCE_ENTRY_FUNC_NAME.encode(),
+            resource_id.encode(),
+            resource.encode(),
+        ]
+        .concat();
+        let net_client = self.net_client().clone();
+        let reply = net_client
+            .message(
+                self.resource_program().id().as_ref().into(),
+                encoded_request,
+                0,
+                GTestArgs::new(actor_id.into()),
+            )
+            .await?;
+        reply.await
     }
 
     fn add_part_to_resource(

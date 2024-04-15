@@ -22,14 +22,13 @@ impl From<u64> for ActorId {
     fn from(v: u64) -> Self {
         let mut arr = [0u8; 32];
         arr[0..8].copy_from_slice(&v.to_le_bytes()[..]);
-        arr[31] = b'A';
         Self(arr)
     }
 }
 
-impl AsRef<[u8]> for ActorId {
-    fn as_ref(&self) -> &[u8] {
-        self.0.as_ref()
+impl AsRef<[u8; 32]> for ActorId {
+    fn as_ref(&self) -> &[u8; 32] {
+        &self.0
     }
 }
 
@@ -55,14 +54,13 @@ impl From<u64> for MessageId {
     fn from(v: u64) -> Self {
         let mut arr = [0u8; 32];
         arr[0..8].copy_from_slice(&v.to_le_bytes()[..]);
-        arr[31] = b'M';
         Self(arr)
     }
 }
 
-impl AsRef<[u8]> for MessageId {
-    fn as_ref(&self) -> &[u8] {
-        self.0.as_ref()
+impl AsRef<[u8; 32]> for MessageId {
+    fn as_ref(&self) -> &[u8; 32] {
+        &self.0
     }
 }
 
@@ -88,13 +86,16 @@ impl From<u64> for CodeId {
     fn from(v: u64) -> Self {
         let mut arr = [0u8; 32];
         arr[0..8].copy_from_slice(&v.to_le_bytes()[..]);
-        arr[31] = b'C';
         Self(arr)
     }
 }
 
-impl AsRef<[u8]> for CodeId {
-    fn as_ref(&self) -> &[u8] {
-        self.0.as_ref()
+impl AsRef<[u8; 32]> for CodeId {
+    fn as_ref(&self) -> &[u8; 32] {
+        &self.0
     }
 }
+
+pub type ValueUnit = u128;
+
+pub type GasUnit = u64;

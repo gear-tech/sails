@@ -168,10 +168,16 @@ mod tests {
     #[test]
     fn test_add_resource_entry() {
         ResourceStorage::<_, MockCatalogClient, MockResourceStorageEventTrigger>::seed(
-            ExecContextMock { actor_id: 1.into() },
+            ExecContextMock {
+                actor_id: 1.into(),
+                message_id: 1.into(),
+            },
         );
         let mut resource_storage = ResourceStorage::new(
-            ExecContextMock { actor_id: 1.into() },
+            ExecContextMock {
+                actor_id: 1.into(),
+                message_id: 1.into(),
+            },
             MockCatalogClient,
             MockResourceStorageEventTrigger::new(),
         );
@@ -189,11 +195,16 @@ mod tests {
 
     struct ExecContextMock {
         actor_id: ActorId,
+        message_id: MessageId,
     }
 
     impl ExecContext for ExecContextMock {
         fn actor_id(&self) -> &ActorId {
             &self.actor_id
+        }
+
+        fn message_id(&self) -> &MessageId {
+            &self.message_id
         }
     }
 

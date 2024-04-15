@@ -1,5 +1,5 @@
 ---
-source: idlgen/src/lib.rs
+source: idlgen/tests/generator.rs
 expression: generated_idl
 ---
 type TupleStruct = struct {

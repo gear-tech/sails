@@ -6,9 +6,14 @@ edition.workspace = true
 license.workspace = true
 
 [dependencies]
+futures.workspace = true
+gear-core-errors.workspace = true
 gstd.workspace = true
 hashbrown.workspace = true
 hex.workspace = true
 parity-scale-codec = { workspace = true, features = ["derive"] }
 scale-info = { workspace = true, features = ["derive"] }
 thiserror-no-std.workspace = true
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+gtest.workspace = true

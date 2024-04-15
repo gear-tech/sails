@@ -2189,9 +2189,9 @@ dependencies = [
 
 [[package]]
 name = "hermit-abi"
-version = "0.3.4"
+version = "0.3.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5d3d0e0f38255e7fa3cf31335b3a56f05febd18025f4db5ef7a0cfb4f8da651f"
+checksum = "d231dfb89cfffdbc30e7fc41579ed6066ad03abda9e567ccafae602b97ec5024"
 
 [[package]]
 name = "hex"
@@ -3664,6 +3664,7 @@ dependencies = [
  "rmrk-resource-app",
  "sails-idlgen",
  "sails-rtl",
+ "tokio",
 ]
 
 [[package]]
@@ -3821,7 +3822,10 @@ dependencies = [
 name = "sails-rtl"
 version = "0.0.1"
 dependencies = [
+ "futures",
+ "gear-core-errors",
  "gstd",
+ "gtest",
  "hashbrown 0.14.3",
  "hex",
  "parity-scale-codec",
