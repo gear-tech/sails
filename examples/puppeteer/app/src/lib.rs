@@ -2,22 +2,22 @@
 
 pub mod puppet;
 
-use puppet::ThisThatSvc;
+use puppet::traits::ThisThatSvc;
 
 use sails_macros::gservice;
 
 use gstd::prelude::*;
 use sails_rtl::calls::Call;
-use sails_rtl::gstd::calls::Args;
+use sails_rtl::gstd::calls::{Args, Remoting};
 use sails_rtl::ActorId;
 
 pub struct Puppeteer {
-    puppet: Box<dyn ThisThatSvc<Args>>,
+    puppet: Box<dyn ThisThatSvc<Remoting, Args>>,
 }
 
 #[gservice]
 impl Puppeteer {
-    pub const fn new(puppet: Box<dyn ThisThatSvc<Args>>) -> Self {
+    pub const fn new(puppet: Box<dyn ThisThatSvc<Remoting, Args>>) -> Self {
         Self { puppet }
     }
 
