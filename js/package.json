@@ -1,6 +1,6 @@
 {
   "name": "sails-js",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "description": "Parser and typescript code generator from Sails IDL files",
   "main": "lib/index.js",
   "preferGlobal": true,
@@ -30,14 +30,14 @@
   "scripts": {
     "prebuild": "rm -rf lib",
     "build": "tsc -p tsconfig.build.json && node compress-parser.js",
-    "pretest": "yarn build",
+    "pretest": "yarn build && node test/modify-import.js",
     "test": "yarn node --no-warnings --experimental-vm-modules $(yarn bin jest) --detectOpenHandles"
   },
   "peerDependencies": {
     "@polkadot/types": "^10.11.2"
   },
   "devDependencies": {
-    "@gear-js/api": "^0.37.0",
+    "@gear-js/api": "^0.37.2",
     "@polkadot/api": "^10.12.6",
     "@polkadot/types": "^10.12.6",
     "@types/jest": "^29.5.11",
