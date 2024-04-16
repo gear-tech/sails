@@ -145,9 +145,15 @@ describe('RMRK resource', () => {
 describe('RMRK resource generated', () => {
   test('create program', async () => {
     program = new Program(api);
-    expect(program).toHaveProperty('newCtor');
 
-    await program.newCtor(code, alice);
+    const transaction = await program.newCtorFromCode(code);
+
+    await transaction.withAccount(alice).calculateGas();
+    const { msgId, response, blockHash } = await transaction.signAndSend();
+
+    expect(msgId).toBeDefined();
+    expect(blockHash).toBeDefined();
+    await response();
 
     expect(program).toHaveProperty('addPartToResource');
     expect(program).toHaveProperty('addResourceEntry');
@@ -162,19 +168,19 @@ describe('RMRK resource generated', () => {
       resourceEvent = data;
     });
 
-    const result = await program.addResourceEntry(
-      1,
-      {
-        composed: {
-          src: 'src',
-          thumb: 'thumb',
-          metadata_uri: 'metadata_uri',
-          base: aliceRaw,
-          parts: [],
-        },
+    const transaction = await program.addResourceEntry(1, {
+      composed: {
+        src: 'src',
+        thumb: 'thumb',
+        metadata_uri: 'metadata_uri',
+        base: aliceRaw,
+        parts: [],
       },
-      alice,
-    );
+    });
+
+    await transaction.withAccount(alice).calculateGas();
+
+    const result = await transaction.signAndSend();
 
     expect(result).toHaveProperty('msgId');
     expect(result).toHaveProperty('blockHash');

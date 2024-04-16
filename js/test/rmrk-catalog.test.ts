@@ -24,6 +24,7 @@ beforeAll(async () => {
   await waitReady();
   alice = new Keyring().addFromUri('//Alice', {}, 'sr25519');
   aliceRaw = decodeAddress(alice.address);
+  code = readFileSync(CATALOG_WASM_PATH);
 });
 
 afterAll(async () => {
@@ -40,8 +41,6 @@ describe('RMRK catalog', () => {
   });
 
   test('upload catalog', async () => {
-    code = readFileSync(CATALOG_WASM_PATH);
-
     const payload = sails.ctors.New.encodePayload();
 
     const gas = await api.program.calculateGas.initUpload(aliceRaw, code, payload);
@@ -113,11 +112,11 @@ describe('RMRK catalog', () => {
 let program: Program;
 
 describe('RMRK generated', () => {
+  let programCreated = false;
+
   test('create program', async () => {
     program = new Program(api);
-    expect(program).toHaveProperty('newCtor');
-
-    await program.newCtor(code, alice);
+    const transaction = await program.newCtorFromCode(code);
 
     expect(program).toHaveProperty('addParts');
     expect(program).toHaveProperty('removeParts');
@@ -128,18 +127,30 @@ describe('RMRK generated', () => {
     expect(program).toHaveProperty('part');
     expect(program).toHaveProperty('equippable');
     expect(program.programId).toBeDefined();
+
+    await transaction.withAccount(alice).calculateGas();
+
+    const { msgId, blockHash } = await transaction.signAndSend();
+
+    expect(msgId).toBeDefined();
+    expect(blockHash).toBeDefined();
+
+    programCreated = true;
   });
 
   test('add parts', async () => {
+    expect(programCreated).toBeTruthy();
     expect(program).toBeDefined();
-    const result = await program.addParts(
-      {
-        1: { fixed: { z: null, metadata_uri: 'foo' } },
-        2: { fixed: { z: 0, metadata_uri: 'bar' } },
-        3: { slot: { z: 1, equippable: [aliceRaw], metadata_uri: 'baz' } },
-      },
-      alice,
-    );
+    const transaction = await program.addParts({
+      1: { fixed: { z: null, metadata_uri: 'foo' } },
+      2: { fixed: { z: 0, metadata_uri: 'bar' } },
+      3: { slot: { z: 1, equippable: [aliceRaw], metadata_uri: 'baz' } },
+    });
+
+    await transaction.withAccount(alice).calculateGas();
+
+    const result = await transaction.signAndSend();
+
     expect(result).toHaveProperty('msgId');
     expect(result).toHaveProperty('blockHash');
     expect(result).toHaveProperty('response');
@@ -169,8 +180,13 @@ describe('RMRK generated', () => {
   });
 
   test('remove parts', async () => {
+    expect(programCreated).toBeTruthy();
     expect(program).toBeDefined();
-    const result = await program.removeParts([1], alice);
+    const transaction = await program.removeParts([1]);
+
+    await transaction.withAccount(alice).calculateGas();
+
+    const result = await transaction.signAndSend();
 
     const response = await result.response();
 
@@ -182,8 +198,13 @@ describe('RMRK generated', () => {
   });
 
   test('add equippables', async () => {
+    expect(programCreated).toBeTruthy();
     expect(program).toBeDefined();
-    const result = await program.addEquippables(3, [aliceRaw], alice);
+    const transaction = await program.addEquippables(3, [aliceRaw]);
+
+    await transaction.withAccount(alice).calculateGas();
+
+    const result = await transaction.signAndSend();
 
     const response = await result.response();
 
@@ -197,8 +218,13 @@ describe('RMRK generated', () => {
   });
 
   test('remove equippable', async () => {
+    expect(programCreated).toBeTruthy();
     expect(program).toBeDefined();
-    const result = await program.removeEquippable(3, aliceRaw, alice);
+    const transaction = await program.removeEquippable(3, aliceRaw);
+
+    await transaction.withAccount(alice).calculateGas();
+
+    const result = await transaction.signAndSend();
 
     const response = await result.response();
 
@@ -211,8 +237,13 @@ describe('RMRK generated', () => {
   });
 
   test('reset equippables', async () => {
+    expect(programCreated).toBeTruthy();
     expect(program).toBeDefined();
-    const result = await program.resetEquippables(3, alice);
+    const transaction = await program.resetEquippables(3);
+
+    await transaction.withAccount(alice).calculateGas();
+
+    const result = await transaction.signAndSend();
 
     const response = await result.response();
 
@@ -223,8 +254,13 @@ describe('RMRK generated', () => {
   });
 
   test('set equippables to all', async () => {
+    expect(programCreated).toBeTruthy();
     expect(program).toBeDefined();
-    const result = await program.setEquippablesToAll(3, alice);
+    const transaction = await program.setEquippablesToAll(3);
+
+    await transaction.withAccount(alice).calculateGas();
+
+    const result = await transaction.signAndSend();
 
     const response = await result.response();
 
@@ -235,6 +271,7 @@ describe('RMRK generated', () => {
   });
 
   test('read state: part', async () => {
+    expect(programCreated).toBeTruthy();
     expect(program).toBeDefined();
     const result = await program.part(2, aliceRaw);
 

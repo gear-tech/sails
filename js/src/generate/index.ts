@@ -21,6 +21,4 @@ export function generate(sails: Sails, outDir: string) {
   serviceGen.generate();
 
   out.save(path.join(outDir, 'lib.ts'));
-
-  cpSync(path.join(__dirname, '..', '..', 'templates', 'transaction.ts'), path.join(outDir, 'transaction.ts'));
 }

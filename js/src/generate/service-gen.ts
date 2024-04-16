@@ -13,16 +13,6 @@ const getArgs = (params: FuncParam[]) => {
   return params.map(({ name, def }) => `${name}: ${getJsTypeDef(def)}`).join(', ');
 };
 
-const getAccount = (isQuery: boolean) => {
-  return isQuery
-    ? `, originAddress: string`
-    : `, account: ${HEX_STRING_TYPE} | IKeyringPair, signerOptions?: Partial<SignerOptions>`;
-};
-
-const getValue = (isQuery: boolean) => {
-  return isQuery ? '' : `, `;
-};
-
 const getFuncName = (name: string) => {
   return name[0].toLowerCase() + name.slice(1);
 };
@@ -38,13 +28,13 @@ const createPayload = (name: string, params: FuncParam[]) => {
 };
 
 const getFuncSignature = (name: string, params: FuncParam[], returnType: string, isQuery: boolean) => {
-  let result = `public async ${getFuncName(name)}(${getArgs(params)}${getAccount(isQuery)}, ${VALUE_ARG}`;
+  let result = `public async ${getFuncName(name)}(${getArgs(params)}`;
 
   if (isQuery) {
-    result += `, atBlock?: ${HEX_STRING_TYPE}`;
+    result += `, originAddress: string, ${VALUE_ARG}, atBlock?: ${HEX_STRING_TYPE}`;
   }
 
-  result += `): Promise<${isQuery ? returnType : `IMethodReturnType<${returnType}>`}>`;
+  result += `): Promise<${isQuery ? returnType : `TransactionBuilder<${returnType}>`}>`;
 
   return result;
 };
@@ -55,17 +45,22 @@ export class ServiceGenerator {
   public generate() {
     this._out
       .import('@gear-js/api', 'GearApi')
-      .import('./transaction.js', 'Transaction')
-      .block(`export class Program extends Transaction`, () => {
+      .import(`@polkadot/types`, `TypeRegistry`)
+      .import('sails-js', 'TransactionBuilder')
+      .block(`export class Program`, () => {
         this._out
-          .block(`constructor(api: GearApi, public programId?: ${HEX_STRING_TYPE})`, () => {
+          .line(`private registry: TypeRegistry`)
+          .block(`constructor(public api: GearApi, public programId?: ${HEX_STRING_TYPE})`, () => {
             this._out
               .block(`const types: Record<string, any> =`, () => {
                 for (const [name, type] of Object.entries(this.scaleTypes)) {
                   this._out.line(`${name}: ${JSON.stringify(type)},`, false);
                 }
               })
-              .line('super(api, types)');
+              .line()
+              .line(`this.registry = new TypeRegistry()`)
+              .line(`this.registry.setKnownTypes({ types })`)
+              .line(`this.registry.register(types)`);
           })
           .line();
         this.generateProgramConstructor();
@@ -79,45 +74,74 @@ export class ServiceGenerator {
       const args = getArgs(params);
       this._out
         .block(
-          `async ${getFuncName(name)}Ctor(code: Uint8Array | Buffer, ${
-            args !== null ? args + ', ' : ''
-          }account: string | IKeyringPair, signerOptions?: Partial<SignerOptions>, value = 0)`,
+          `async ${getFuncName(name)}CtorFromCode(code: Uint8Array | Buffer${args !== null ? ', ' + args : ''})`,
           () => {
-            if (params.length === 0) {
-              this._out.line(`const payload = this.registry.createType('String', '${name}').toU8a()`);
-            } else {
-              this._out.line(
-                `const payload = this.registry.createType('(String, ${params
-                  .map(({ def }) => getScaleCodecDef(def))
-                  .join(', ')})', ['${name}', ${params.map(({ name }) => name).join(', ')}]).toU8a()`,
-              );
-            }
             this._out
+              .line(`const builder = new TransactionBuilder<null>(`, false)
+              .increaseIndent()
+              .line(`this.api,`, false)
+              .line(`this.registry,`, false)
+              .line(`'upload_program',`, false)
               .line(
-                `const { programId, response } = await this.uploadProgram(code, payload, account, signerOptions, value)`,
+                params.length === 0 ? `'${name}',` : `['${name}', ${params.map(({ name }) => name).join(', ')}],`,
+                false,
               )
-              .line('await response()')
-              .line('this.programId = programId')
-              .line('return this');
+              .line(
+                params.length === 0
+                  ? `'String',`
+                  : `'(String, ${params.map(({ def }) => getScaleCodecDef(def)).join(', ')})',`,
+                false,
+              )
+              .line(`'String',`, false)
+              .line(`code,`, false)
+              .reduceIndent()
+              .line(`)`)
+              .line()
+              .line('this.programId = builder.programId')
+              .line('return builder');
           },
         )
-        .line();
+        .line()
+        .block(
+          `async ${getFuncName(name)}CtorFromCodeId(codeId: ${HEX_STRING_TYPE}${args !== null ? ', ' + args : ''})`,
+          () => {
+            this._out
+              .line(`const builder = new TransactionBuilder<null>(`, false)
+              .increaseIndent()
+              .line(`this.api,`, false)
+              .line(`this.registry,`, false)
+              .line(`'create_program',`, false)
+              .line(
+                params.length === 0 ? `'${name}',` : `['${name}', ${params.map(({ name }) => name).join(', ')}],`,
+                false,
+              )
+              .line(
+                params.length === 0
+                  ? `'String',`
+                  : `'(String, ${params.map(({ def }) => getScaleCodecDef(def)).join(', ')})',`,
+                false,
+              )
+              .line(`'String',`, false)
+              .line(`codeId,`, false)
+              .reduceIndent()
+              .line(`)`)
+              .line()
+              .line('this.programId = builder.programId')
+              .line('return builder');
+          },
+        );
     }
   }
 
   private generateMethods() {
-    this._out.import('@polkadot/types/types', 'IKeyringPair');
-    this._out.import('@polkadot/api/types', 'SignerOptions');
-
     for (const { name, def, params, isQuery } of this._program.service.funcs) {
       const returnType = getJsTypeDef(def);
       const returnScaleType = getScaleCodecDef(def);
 
       this._out.line().block(getFuncSignature(name, params, returnType, isQuery), () => {
-        this._out.line(createPayload(name, params));
-
         if (isQuery) {
           this._out
+            .line(createPayload(name, params))
             .import('@gear-js/api', 'decodeAddress')
             .line(`const reply = await this.api.message.calculateReply({`, false)
             .increaseIndent()
@@ -132,20 +156,26 @@ export class ServiceGenerator {
             .line(`const result = this.registry.createType('(String, ${returnScaleType})', reply.payload)`)
             .line(`return result[1].${getPayloadMethod(returnScaleType)}() as unknown as ${returnType}`);
         } else {
-          this._out.import('./transaction.js', 'IMethodReturnType');
-          this._out.block(
-            `return this.submitMsg<${returnType}>`,
-            () => {
-              this._out
-                .line('this.programId,', false)
-                .line('payload,', false)
-                .line(`'(String, ${returnScaleType})',`, false)
-                .line('account,', false)
-                .line('signerOptions,', false)
-                .line('value,', false);
-            },
-            '(',
-          );
+          this._out
+            .line(`return new TransactionBuilder<${returnType}>(`, false)
+            .increaseIndent()
+            .line(`this.api,`, false)
+            .line(`this.registry,`, false)
+            .line(`'send_message',`, false)
+            .line(
+              params.length === 0 ? `'${name}',` : `['${name}', ${params.map(({ name }) => name).join(', ')}],`,
+              false,
+            )
+            .line(
+              params.length === 0
+                ? `'String',`
+                : `'(String, ${params.map(({ def }) => getScaleCodecDef(def)).join(', ')})',`,
+              false,
+            )
+            .line(`'${returnScaleType}',`, false)
+            .line(`this.programId`, false)
+            .reduceIndent()
+            .line(`)`);
         }
       });
     }
