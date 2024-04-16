@@ -21,7 +21,8 @@ interface SailsServiceFunc {
   returnType: any;
   isQuery: boolean;
   encodePayload: (...args: any[]) => Uint8Array;
-  decodeResult: (result: Uint8Array) => any;
+  decodePayload: <T>(bytes: string | Uint8Array) => T;
+  decodeResult: <T>(result: string | Uint8Array) => T;
 }
 
 interface SailsEvent {
@@ -33,6 +34,7 @@ interface SailsEvent {
 interface SailsCtorFunc {
   args: { name: string; type: any }[];
   encodePayload: (...args: any[]) => Uint8Array;
+  decodePayload: <T>(bytes: string | Uint8Array) => T;
 }
 
 export class Sails {
@@ -120,9 +122,13 @@ export class Sails {
 
           return payload.toU8a();
         },
-        decodeResult: (result: Uint8Array | string) => {
+        decodePayload: <T = any>(bytes: Uint8Array | string) => {
+          const payload = this.registry.createType(`(String, ${params.map((p) => p.type).join(', ')})`, bytes);
+          return payload[1].toJSON() as T;
+        },
+        decodeResult: <T = any>(result: Uint8Array | string) => {
           const payload = this.registry.createType(`(String, ${returnType})`, result);
-          return payload[1].toJSON();
+          return payload[1].toJSON() as T;
         },
       };
     }
@@ -199,6 +205,10 @@ export class Sails {
 
           return payload.toU8a();
         },
+        decodePayload: <T = any>(bytes: Uint8Array | string) => {
+          const payload = this.registry.createType(`(String, ${params.map((p) => p.type).join(', ')})`, bytes);
+          return payload[1].toJSON() as T;
+        },
       };
     }
 
@@ -217,5 +227,9 @@ export class Sails {
   /** #### Get type definition by name */
   getTypeDef(name: string): TypeDef {
     return this.program.getTypeByName(name).def;
+  }
+
+  getFnName(payload: string | Uint8Array) {
+    return this._registry.createType('String', payload).toString();
   }
 }
