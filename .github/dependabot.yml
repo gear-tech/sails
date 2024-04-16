@@ -12,3 +12,4 @@ updates:
     directory: "./js"
     schedule:
       interval: "weekly"
+    versioning-strategy: "increase"
