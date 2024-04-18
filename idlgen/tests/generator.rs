@@ -172,7 +172,8 @@ fn generare_program_idl_works_with_empty_ctors() {
     insta::assert_snapshot!(generated_idl);
     let generated_idl_program = generated_idl_program.unwrap();
     assert!(generated_idl_program.ctor().is_none());
-    assert_eq!(generated_idl_program.service().funcs().len(), 4);
+    assert_eq!(generated_idl_program.services().len(), 1);
+    assert_eq!(generated_idl_program.services()[0].funcs().len(), 4);
     assert_eq!(generated_idl_program.types().len(), 8);
 }
 
@@ -186,7 +187,8 @@ fn generare_program_idl_works_with_non_empty_ctors() {
     insta::assert_snapshot!(generated_idl);
     let generated_idl_program = generated_idl_program.unwrap();
     assert_eq!(generated_idl_program.ctor().unwrap().funcs().len(), 2);
-    assert_eq!(generated_idl_program.service().funcs().len(), 4);
+    assert_eq!(generated_idl_program.services().len(), 1);
+    assert_eq!(generated_idl_program.services()[0].funcs().len(), 4);
     assert_eq!(generated_idl_program.types().len(), 8);
 }
 
@@ -200,6 +202,7 @@ fn generate_service_idl_works() {
     insta::assert_snapshot!(generated_idl);
     let generated_idl_program = generated_idl_program.unwrap();
     assert!(generated_idl_program.ctor().is_none());
-    assert_eq!(generated_idl_program.service().funcs().len(), 4);
+    assert_eq!(generated_idl_program.services().len(), 1);
+    assert_eq!(generated_idl_program.services()[0].funcs().len(), 4);
     assert_eq!(generated_idl_program.types().len(), 8);
 }

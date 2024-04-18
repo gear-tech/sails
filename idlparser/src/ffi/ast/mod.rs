@@ -45,6 +45,8 @@ pub struct CtorFunc {
 #[repr(C)]
 pub struct Service {
     raw_ptr: Ptr,
+    name_ptr: *const u8,
+    name_len: u32,
 }
 
 #[repr(C)]

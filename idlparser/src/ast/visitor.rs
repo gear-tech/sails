@@ -88,7 +88,9 @@ pub fn accept_program<'ast>(program: &'ast Program, visitor: &mut (impl Visitor<
     if let Some(ctor) = program.ctor() {
         visitor.visit_ctor(ctor);
     }
-    visitor.visit_service(program.service());
+    for service in program.services() {
+        visitor.visit_service(service);
+    }
     for r#type in program.types() {
         visitor.visit_type(r#type);
     }
@@ -222,13 +224,13 @@ mod tests {
     use super::*;
 
     struct ProgramVisitor<'ast> {
-        service: Option<&'ast Service>,
+        services: Vec<&'ast Service>,
         types: Vec<&'ast Type>,
     }
 
     impl<'ast> Visitor<'ast> for ProgramVisitor<'ast> {
         fn visit_service(&mut self, service: &'ast Service) {
-            self.service = Some(service);
+            self.services.push(service);
         }
 
         fn visit_type(&mut self, r#type: &'ast Type) {
@@ -240,20 +242,23 @@ mod tests {
     fn accept_program_works() {
         let program = Program::new(
             Some(Ctor::new(vec![])),
-            Service::new(vec![], vec![]),
+            vec![Service::new(String::default(), vec![], vec![])],
             vec![
                 Type::new("Type1".into(), TypeDef::Struct(StructDef::new(vec![]))),
                 Type::new("Type2".into(), TypeDef::Enum(EnumDef::new(vec![]))),
             ],
         );
         let mut program_visitor = ProgramVisitor {
-            service: None,
+            services: vec![],
             types: vec![],
         };
 
         accept_program(&program, &mut program_visitor);
 
-        assert_eq!(program_visitor.service, Some(program.service()));
+        assert!(itertools::equal(
+            program_visitor.services,
+            program.services()
+        ));
         assert!(itertools::equal(program_visitor.types, program.types()));
     }
 

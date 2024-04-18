@@ -36,10 +36,10 @@ extern {
 }
 
 pub Program: Program = {
-    <types: (<Separated<Type, ";">> ";")?> <ctor: (Ctor ";")?> <service: Service> ";"? =>
+    <types: (<Separated<Type, ";">> ";")?> <ctor: (Ctor ";")?> <services: Separated<Service, ";">> =>
         Program::new(
             ctor.map(|c| c.0),
-            service,
+            services,
             types.unwrap_or_default(),
         ),
 }
@@ -54,8 +54,8 @@ CtorFunc : CtorFunc = {
 }
 
 Service: Service = {
-    "service" "{" <funcs: Separated<ServiceFunc, ";">> <events: ("events" "{" <Separated<EnumVariant, ";">> "}")?> "}" =>
-        Service::new(funcs, events.unwrap_or_default()),
+    "service" <name: "id"?> "{" <funcs: Separated<ServiceFunc, ";">> <events: ("events" "{" <Separated<EnumVariant, ";">> "}")?> "}" =>
+        Service::new(name.unwrap_or_default(), funcs, events.unwrap_or_default()),
 }
 
 ServiceFunc: ServiceFunc = {

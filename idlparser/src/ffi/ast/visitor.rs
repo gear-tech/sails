@@ -410,8 +410,11 @@ mod wrapper {
             if fn_ptr_addr!(self.visitor.visit_service).is_null() {
                 return raw_visitor::accept_service(service, self);
             }
+            let name_bytes = service.name().as_bytes();
             let service = Service {
                 raw_ptr: service.into(),
+                name_ptr: name_bytes.as_ptr(),
+                name_len: name_bytes.len() as u32,
             };
             unsafe { (self.visitor.visit_service)(self.context, &service) };
         }
