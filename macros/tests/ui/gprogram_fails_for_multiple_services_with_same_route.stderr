@@ -1,0 +1,5 @@
+error: Route conflicts with service1
+  --> tests/ui/gprogram_fails_for_multiple_services_with_same_route.rs:15:9
+   |
+15 |     pub fn service2(&self) -> MyService {
+   |         ^^
