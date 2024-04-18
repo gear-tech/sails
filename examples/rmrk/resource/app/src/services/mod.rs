@@ -3,7 +3,7 @@ use errors::{Error, Result};
 use resources::{ComposedResource, PartId, Resource, ResourceId};
 use sails_macros::gservice;
 use sails_rtl::calls::Call;
-use sails_rtl::gstd::calls::{Args, Remoting};
+use sails_rtl::gstd::calls::{GStdArgs, GStdRemoting};
 use sails_rtl::{collections::HashMap, gstd::events::EventTrigger, ActorId, *};
 
 pub mod errors;
@@ -40,7 +40,7 @@ impl<TExecContext, TCatalogClient, TEventTrigger>
     ResourceStorage<TExecContext, TCatalogClient, TEventTrigger>
 where
     TExecContext: ExecContext,
-    TCatalogClient: RmrkCatalog<Remoting, Args>,
+    TCatalogClient: RmrkCatalog<GStdRemoting, GStdArgs>,
     TEventTrigger: EventTrigger<ResourceStorageEvent>,
 {
     pub fn seed(exec_context: TExecContext) {
