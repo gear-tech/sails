@@ -8,3 +8,4 @@ js/test/rmrk-*/
 
 node_modules/
 target/
+*.log
