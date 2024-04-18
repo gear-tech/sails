@@ -29,3 +29,9 @@ fn gservice_works_for_lifecycles_and_generics() {
     let t = trybuild::TestCases::new();
     t.pass("tests/ui/gservice_works_for_lifecycles_and_generics.rs");
 }
+
+#[test]
+fn gservice_fails_for_multiple_services_with_same_route() {
+    let t = trybuild::TestCases::new();
+    t.compile_fail("tests/ui/gprogram_fails_for_multiple_services_with_same_route.rs");
+}
