@@ -78,23 +78,4 @@ export default [
       writePackageJson('cjs'),
     ],
   },
-  // {
-  //   input: 'src/app.ts',
-  //   output: {
-  //     dir: 'lib',
-  //     format: 'es',
-  //     preserveModules: true,
-  //     strict: false,
-  //     banner: '#!/usr/bin/env node',
-  //   },
-  //   plugins: [
-  //     typescript({
-  //       tsconfig: 'tsconfig.build.json',
-  //     }),
-  //     nodeResolve({
-  //       preferBuiltins: true,
-  //       resolveOnly: (module) => !module.includes('polkadot') && !module.includes('commander'),
-  //     }),
-  //   ],
-  // },
 ];
