@@ -67,7 +67,7 @@ export class TransactionBuilder<ResponseType> {
         const { programId, extrinsic } = this._api.program.upload({
           code: _programIdOrCodeOrCodeId as Uint8Array,
           gasLimit: 0,
-          initPayload: _payload,
+          initPayload: _payload.toHex(),
         });
         this.programId = programId;
         this._tx = extrinsic;
@@ -77,7 +77,7 @@ export class TransactionBuilder<ResponseType> {
         const { programId, extrinsic } = this._api.program.create({
           codeId: _programIdOrCodeOrCodeId as HexString,
           gasLimit: 0,
-          initPayload: _payload,
+          initPayload: _payload.toHex(),
         });
         this.programId = programId;
         this._tx = extrinsic;

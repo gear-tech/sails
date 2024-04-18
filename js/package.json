@@ -38,9 +38,9 @@
     "test": "yarn node --no-warnings --experimental-vm-modules $(yarn bin jest) --detectOpenHandles"
   },
   "peerDependencies": {
-    "@gear-js/api": "0.37.2",
-    "@polkadot/api": "10.12.6",
-    "@polkadot/types": "10.12.6"
+    "@gear-js/api": "^0.37.2",
+    "@polkadot/api": "^10.12.3",
+    "@polkadot/types": "^10.12.3"
   },
   "devDependencies": {
     "@gear-js/api": "0.37.2",
