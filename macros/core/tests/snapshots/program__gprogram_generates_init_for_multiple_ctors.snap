@@ -1,5 +1,5 @@
 ---
-source: macros/core/src/program.rs
+source: macros/core/tests/program.rs
 expression: result
 ---
 impl MyProgram {
