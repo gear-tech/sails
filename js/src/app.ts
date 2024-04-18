@@ -37,7 +37,8 @@ program
     try {
       await handler(path, options.out, options.name);
     } catch (error) {
-      console.log(error.message, error.stack);
+      console.error(error.message);
+      process.exit(1);
     }
     process.exit(0);
   });
