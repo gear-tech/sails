@@ -4,14 +4,14 @@ use core::ptr::addr_of_mut;
 use gstd::{boxed::Box, msg};
 use puppeteer_app::puppet::ThisThatSvc;
 use puppeteer_app::Puppeteer;
-use sails_rtl::gstd::calls::Remoting;
+use sails_rtl::gstd::calls::GStdRemoting;
 
 static mut SERVICE: Option<Puppeteer> = None;
 
 fn service() -> &'static mut Puppeteer {
     let s = unsafe { &mut *addr_of_mut!(SERVICE) };
     if s.is_none() {
-        let remoting = Remoting;
+        let remoting = GStdRemoting;
         *s = Some(Puppeteer::new(Box::new(ThisThatSvc::new(remoting))));
     }
 
