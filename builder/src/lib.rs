@@ -5,6 +5,12 @@ pub struct Builder {
     idl_file_path: PathBuf,
 }
 
+impl Default for Builder {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Builder {
     pub fn new() -> Self {
         let pkg_name = env::var("CARGO_PKG_NAME").unwrap();
