@@ -7,6 +7,7 @@ license = "GPL-3.0"
 [workspace]
 resolver = "2"
 members = [
+    "builder",
     "client-gen",
     "examples/puppeteer/app",
     "examples/puppeteer/wasm",
@@ -46,6 +47,7 @@ primitive-types = { version = "0.12", default-features = false }
 proc-macro-error = "1.0"
 proc-macro2 = { version = "1", default-features = false }
 quote = "1.0"
+sails-builder = { path = "builder" }
 sails-client-gen = { path = "client-gen" }
 sails-idl-gen = { path = "idl-gen" }
 sails-idl-parser = { path = "idl-parser" }
