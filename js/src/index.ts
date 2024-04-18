@@ -1,2 +1,2 @@
-export { Sails } from './sails';
-export { TransactionBuilder } from './transaction-builder';
+export { Sails } from './sails.js';
+export { TransactionBuilder } from './transaction-builder.js';

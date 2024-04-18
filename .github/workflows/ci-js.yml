@@ -125,7 +125,7 @@ jobs:
 
       - name: Publish
         if: steps.check.outputs.changed == 'true'
-        working-directory: js
+        working-directory: js/lib
         run: |
           export token=$(printenv npm_token)
           npm config set //registry.npmjs.org/:_authToken=$token

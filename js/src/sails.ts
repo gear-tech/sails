@@ -1,4 +1,4 @@
-import { TypeRegistry } from '@polkadot/types';
+import { TypeRegistry } from '@polkadot/types/create';
 import { u8aToHex, compactFromU8aLim } from '@polkadot/util';
 import { UserMessageSent } from '@gear-js/api';
 

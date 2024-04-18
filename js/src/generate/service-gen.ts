@@ -28,13 +28,13 @@ const createPayload = (name: string, params: FuncParam[]) => {
 };
 
 const getFuncSignature = (name: string, params: FuncParam[], returnType: string, isQuery: boolean) => {
-  let result = `public async ${getFuncName(name)}(${getArgs(params)}`;
+  let result = `public ${isQuery ? 'async ' : ''}${getFuncName(name)}(${getArgs(params)}`;
 
   if (isQuery) {
     result += `, originAddress: string, ${VALUE_ARG}, atBlock?: ${HEX_STRING_TYPE}`;
   }
 
-  result += `): Promise<${isQuery ? returnType : `TransactionBuilder<${returnType}>`}>`;
+  result += `): ${isQuery ? `Promise<${returnType}>` : `TransactionBuilder<${returnType}>`}`;
 
   return result;
 };
@@ -42,12 +42,12 @@ const getFuncSignature = (name: string, params: FuncParam[], returnType: string,
 export class ServiceGenerator {
   constructor(private _out: Output, private _program: Program, private scaleTypes: Record<string, any>) {}
 
-  public generate() {
+  public generate(className = 'Program') {
     this._out
       .import('@gear-js/api', 'GearApi')
       .import(`@polkadot/types`, `TypeRegistry`)
       .import('sails-js', 'TransactionBuilder')
-      .block(`export class Program`, () => {
+      .block(`export class ${className}`, () => {
         this._out
           .line(`private registry: TypeRegistry`)
           .block(`constructor(public api: GearApi, public programId?: ${HEX_STRING_TYPE})`, () => {
@@ -74,7 +74,9 @@ export class ServiceGenerator {
       const args = getArgs(params);
       this._out
         .block(
-          `async ${getFuncName(name)}CtorFromCode(code: Uint8Array | Buffer${args !== null ? ', ' + args : ''})`,
+          `${getFuncName(name)}CtorFromCode(code: Uint8Array | Buffer${
+            args !== null ? ', ' + args : ''
+          }): TransactionBuilder<null>`,
           () => {
             this._out
               .line(`const builder = new TransactionBuilder<null>(`, false)
@@ -103,7 +105,7 @@ export class ServiceGenerator {
         )
         .line()
         .block(
-          `async ${getFuncName(name)}CtorFromCodeId(codeId: ${HEX_STRING_TYPE}${args !== null ? ', ' + args : ''})`,
+          `${getFuncName(name)}CtorFromCodeId(codeId: ${HEX_STRING_TYPE}${args !== null ? ', ' + args : ''})`,
           () => {
             this._out
               .line(`const builder = new TransactionBuilder<null>(`, false)
