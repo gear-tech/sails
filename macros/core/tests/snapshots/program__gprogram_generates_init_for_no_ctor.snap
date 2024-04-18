@@ -1,16 +1,8 @@
 ---
-source: macros/core/src/program.rs
+source: macros/core/tests/program.rs
 expression: result
 ---
-impl MyProgram {
-    #[groute("")]
-    pub fn service1(&self) -> MyService {
-        MyService
-    }
-    pub fn service2(&self) -> MyService {
-        MyService
-    }
-}
+impl MyProgram {}
 impl sails_idl_meta::ProgramMeta for MyProgram {
     fn constructors() -> scale_info::MetaType {
         scale_info::MetaType::new::<meta::ConstructorsMeta>()
@@ -18,11 +10,7 @@ impl sails_idl_meta::ProgramMeta for MyProgram {
     fn services() -> impl Iterator<
         Item = (&'static str, sails_idl_meta::AnyServiceMeta),
     > {
-        [
-            ("", sails_idl_meta::AnyServiceMeta::new::<MyService>()),
-            ("Service2", sails_idl_meta::AnyServiceMeta::new::<MyService>()),
-        ]
-            .into_iter()
+        [].into_iter()
     }
 }
 use sails_rtl::prelude::Decode as __ProgramDecode;
@@ -64,31 +52,19 @@ pub mod wasm {
     #[gstd::async_main]
     async fn main() {
         let mut input: &[u8] = &gstd::msg::load_bytes().expect("Failed to read input");
-        let output = if input
-            .starts_with(&[32u8, 83u8, 101u8, 114u8, 118u8, 105u8, 99u8, 101u8, 50u8])
-        {
-            let program_ref = unsafe { PROGRAM.as_ref() }
-                .expect("Program not initialized");
-            let mut service = program_ref.service2();
-            let output = service.handle(&input[9usize..]).await;
-            static INVOCATION_ROUTE: [u8; 9usize] = [
-                32u8,
-                83u8,
-                101u8,
-                114u8,
-                118u8,
-                105u8,
-                99u8,
-                101u8,
-                50u8,
-            ];
-            [INVOCATION_ROUTE.as_ref(), &output].concat()
-        } else {
-            let program_ref = unsafe { PROGRAM.as_ref() }
-                .expect("Program not initialized");
-            let mut service = program_ref.service1();
-            let output = service.handle(&input).await;
-            output
+        let output = {
+            let input = String::decode(&mut input)
+                .unwrap_or_else(|_| {
+                    if input.len() <= 8 {
+                        format!("0x{}", hex::encode(input))
+                    } else {
+                        format!(
+                            "0x{}..{}", hex::encode(& input[..4]), hex::encode(&
+                            input[input.len() - 4..])
+                        )
+                    }
+                });
+            panic!("Unexpected service: {}", input)
         };
         gstd::msg::reply_bytes(output, 0).expect("Failed to send output");
     }

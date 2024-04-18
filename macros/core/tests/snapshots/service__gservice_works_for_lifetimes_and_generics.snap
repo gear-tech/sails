@@ -1,5 +1,5 @@
 ---
-source: macros/core/src/service.rs
+source: macros/core/tests/service.rs
 expression: result
 ---
 impl<'a, 'b, T, TEventTrigger> SomeService<'a, 'b, T, TEventTrigger>
