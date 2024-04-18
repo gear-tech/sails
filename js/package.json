@@ -62,9 +62,5 @@
   },
   "dependencies": {
     "commander": "12.0.0"
-  },
-  "files": [
-    "lib",
-    "templates"
-  ]
+  }
 }
