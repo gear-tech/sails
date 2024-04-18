@@ -13,15 +13,15 @@ pub fn parse_idl(idl: &str) -> Result<Program, String> {
 #[derive(Debug, PartialEq, Clone)]
 pub struct Program {
     ctor: Option<Ctor>,
-    service: Service,
+    services: Vec<Service>,
     types: Vec<Type>,
 }
 
 impl Program {
-    pub(crate) fn new(ctor: Option<Ctor>, service: Service, types: Vec<Type>) -> Self {
+    pub(crate) fn new(ctor: Option<Ctor>, services: Vec<Service>, types: Vec<Type>) -> Self {
         Self {
             ctor,
-            service,
+            services,
             types,
         }
     }
@@ -30,8 +30,8 @@ impl Program {
         self.ctor.as_ref()
     }
 
-    pub fn service(&self) -> &Service {
-        &self.service
+    pub fn services(&self) -> &[Service] {
+        &self.services
     }
 
     pub fn types(&self) -> &[Type] {
@@ -79,13 +79,22 @@ impl CtorFunc {
 /// A structure describing one of program services
 #[derive(Debug, PartialEq, Clone)]
 pub struct Service {
+    name: String,
     funcs: Vec<ServiceFunc>,
     events: Vec<ServiceEvent>,
 }
 
 impl Service {
-    pub(crate) fn new(funcs: Vec<ServiceFunc>, events: Vec<ServiceEvent>) -> Self {
-        Self { funcs, events }
+    pub(crate) fn new(name: String, funcs: Vec<ServiceFunc>, events: Vec<ServiceEvent>) -> Self {
+        Self {
+            name,
+            funcs,
+            events,
+        }
+    }
+
+    pub fn name(&self) -> &str {
+        self.name.as_str()
     }
 
     pub fn funcs(&self) -> &[ServiceFunc] {
@@ -380,36 +389,11 @@ mod tests {
 
         assert_eq!(program.types().len(), 3);
         assert_eq!(program.ctor().unwrap().funcs().len(), 1);
-        assert_eq!(program.service().funcs().len(), 4);
-        assert_eq!(program.service().events().len(), 4);
+        assert_eq!(program.services().len(), 1);
+        assert_eq!(program.services()[0].funcs().len(), 4);
+        assert_eq!(program.services()[0].events().len(), 4);
 
         //println!("ast: {:#?}", program);
-    }
-
-    #[test]
-    fn parser_requires_service() {
-        let program_idl = r"
-          type T = enum { One };
-        ";
-
-        let program = parse_idl(program_idl);
-
-        assert_eq!(program.unwrap_err(), "UnrecognizedEof { location: 33, expected: [\"\\\";\\\"\", \"\\\"constructor\\\"\", \"\\\"service\\\"\", \"\\\"type\\\"\"] }");
-    }
-
-    #[test]
-    fn parser_requires_single_service() {
-        let program_idl = r"
-          service {};
-          service {}
-        ";
-
-        let program = parse_idl(program_idl);
-
-        assert_eq!(
-            program.unwrap_err(),
-            "UnrecognizedToken { token: (33, Service, 40), expected: [] }"
-        );
     }
 
     #[test]
@@ -422,7 +406,8 @@ mod tests {
         let program = parse_idl(program_idl).unwrap();
 
         assert_eq!(program.types().len(), 1);
-        assert_eq!(program.service().funcs().len(), 0);
+        assert_eq!(program.services().len(), 1);
+        assert_eq!(program.services()[0].funcs().len(), 0);
     }
 
     #[test]
@@ -435,7 +420,22 @@ mod tests {
         let program = parse_idl(program_idl).unwrap();
 
         assert_eq!(program.ctor().unwrap().funcs().len(), 0);
-        assert_eq!(program.service().funcs().len(), 0);
+        assert_eq!(program.services().len(), 1);
+        assert_eq!(program.services()[0].funcs().len(), 0);
+    }
+
+    #[test]
+    fn parser_accepts_multiple_services() {
+        let program_idl = r"
+          service {};
+          service SomeService {};
+        ";
+
+        let program = parse_idl(program_idl).unwrap();
+
+        assert_eq!(program.services().len(), 2);
+        assert_eq!(program.services()[0].name(), "");
+        assert_eq!(program.services()[1].name(), "SomeService");
     }
 
     #[test]
@@ -450,7 +450,8 @@ mod tests {
 
         assert_eq!(program.types().len(), 1);
         assert_eq!(program.ctor().unwrap().funcs().len(), 0);
-        assert_eq!(program.service().funcs().len(), 0);
+        assert_eq!(program.services().len(), 1);
+        assert_eq!(program.services()[0].funcs().len(), 0);
     }
 
     #[test]
@@ -475,8 +476,8 @@ mod tests {
 
         let program = parse_idl(program_idl).unwrap();
 
-        program
-            .service()
+        assert_eq!(program.services().len(), 1);
+        program.services()[0]
             .funcs()
             .first()
             .unwrap()
