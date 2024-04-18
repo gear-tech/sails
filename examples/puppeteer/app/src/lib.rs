@@ -2,32 +2,35 @@
 
 pub mod puppet;
 
-use puppet::Service;
+use puppet::traits::ThisThatSvc;
 
 use sails_macros::gservice;
 
-use gstd::{prelude::*, ActorId};
+use gstd::prelude::*;
+use sails_rtl::calls::Call;
+use sails_rtl::gstd::calls::{Args, Remoting};
+use sails_rtl::ActorId;
 
 pub struct Puppeteer {
-    puppet: Box<dyn Service>,
+    puppet: Box<dyn ThisThatSvc<Remoting, Args>>,
 }
-
-const PUPPET_ADDRESS: ActorId = ActorId::new([1; 32]);
 
 #[gservice]
 impl Puppeteer {
-    pub const fn new(puppet: Box<dyn Service>) -> Self {
+    pub const fn new(puppet: Box<dyn ThisThatSvc<Remoting, Args>>) -> Self {
         Self { puppet }
     }
 
     pub async fn call_this(&mut self) -> Result<u32, String> {
+        let puppet_address = ActorId::from([1; 32]);
+
         let result = self
             .puppet
             .this()
-            .send(PUPPET_ADDRESS)
+            .publish(puppet_address)
             .await
             .expect("send msg")
-            .response()
+            .reply()
             .await
             .expect("parse msg");
 

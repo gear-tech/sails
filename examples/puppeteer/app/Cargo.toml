@@ -9,7 +9,6 @@ parity-scale-codec = { workspace = true, features = ["derive"] }
 sails-idl-meta.workspace = true
 sails-rtl.workspace = true
 sails-macros.workspace = true
-sails-sender.workspace = true
 scale-info = { workspace = true, features = ["derive"] }
 
 [build-dependencies]

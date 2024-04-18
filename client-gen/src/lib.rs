@@ -1,7 +1,8 @@
 mod generator;
 
 use anyhow::{Context, Result};
-use std::{fs, path::Path};
+use convert_case::{Case, Casing};
+use std::{ffi::OsStr, fs, path::Path};
 
 pub fn generate_client_from_idl(idl_path: &Path, out_path: &Path) -> Result<()> {
     let idl = fs::read_to_string(idl_path)
@@ -15,7 +16,10 @@ pub fn generate_client_from_idl(idl_path: &Path, out_path: &Path) -> Result<()> 
         }
     };
 
-    let buf = generator::generate(program).context("failed to generate client")?;
+    let file_name = idl_path.file_stem().unwrap_or(OsStr::new("service"));
+    let service_name = file_name.to_string_lossy().to_case(Case::Pascal);
+
+    let buf = generator::generate(program, &service_name).context("failed to generate client")?;
 
     fs::write(out_path, buf)
         .with_context(|| format!("Failed to write generated client to {}", out_path.display()))?;
@@ -64,7 +68,7 @@ mod tests {
         "#;
         let program = sails_idlparser::ast::parse_idl(IDL).expect("parse IDL");
 
-        let generated = generator::generate(program).unwrap();
+        let generated = generator::generate(program, "Service").unwrap();
 
         dbg!(&generated);
 

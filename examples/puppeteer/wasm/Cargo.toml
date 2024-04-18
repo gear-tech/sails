@@ -5,7 +5,7 @@ edition = "2021"
 
 [dependencies]
 gstd.workspace = true
-sails-sender.workspace = true
+sails-rtl.workspace = true
 puppeteer-app = { path = "../app" }
 
 [build-dependencies]

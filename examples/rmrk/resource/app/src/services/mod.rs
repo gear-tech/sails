@@ -1,9 +1,10 @@
-use crate::catalogs::Service as CatalogClient;
-use ::gstd::ActorId as GStdActorId;
+use crate::catalogs::traits::RmrkCatalog;
 use errors::{Error, Result};
 use resources::{ComposedResource, PartId, Resource, ResourceId};
 use sails_macros::gservice;
-use sails_rtl::{collections::HashMap, gstd::events::EventTrigger, *};
+use sails_rtl::calls::Call;
+use sails_rtl::gstd::calls::{Args, Remoting};
+use sails_rtl::{collections::HashMap, gstd::events::EventTrigger, ActorId, *};
 
 pub mod errors;
 pub mod resources;
@@ -39,7 +40,7 @@ impl<TExecContext, TCatalogClient, TEventTrigger>
     ResourceStorage<TExecContext, TCatalogClient, TEventTrigger>
 where
     TExecContext: ExecContext,
-    TCatalogClient: CatalogClient,
+    TCatalogClient: RmrkCatalog<Remoting, Args>,
     TEventTrigger: EventTrigger<ResourceStorageEvent>,
 {
     pub fn seed(exec_context: TExecContext) {
@@ -105,11 +106,11 @@ where
             let part_call = self
                 .catalog_client
                 .part(part_id)
-                .send(GStdActorId::from_slice(base.as_ref()).unwrap())
+                .publish(*base)
                 .await
                 .unwrap();
-            let part_response = part_call.response().await.unwrap();
-            if part_response.is_none() {
+            let part_reply = part_call.reply().await.unwrap();
+            if part_reply.is_none() {
                 return Err(Error::PartNotFound);
             }
             parts.push(part_id);
@@ -160,8 +161,12 @@ mod tests {
     use super::*;
     use crate::catalogs::{Error, Part};
     use resources::BasicResource;
-    use sails_rtl::{collections::BTreeMap, gstd::events::mocks::MockEventTrigger, ActorId};
-    use sails_sender::Call;
+    use sails_rtl::{
+        calls::{Remoting, RemotingAction},
+        collections::BTreeMap,
+        gstd::events::mocks::MockEventTrigger,
+        ActorId,
+    };
 
     type MockResourceStorageEventTrigger = MockEventTrigger<ResourceStorageEvent>;
 
@@ -210,15 +215,22 @@ mod tests {
 
     struct MockCatalogClient;
 
-    impl CatalogClient for MockCatalogClient {
+    impl<R, A> RmrkCatalog<R, A> for MockCatalogClient
+    where
+        R: Remoting<A>,
+        A: Default,
+    {
         fn add_parts(
             &mut self,
             _parts: BTreeMap<u32, Part>,
-        ) -> Call<Result<BTreeMap<u32, Part>, Error>> {
+        ) -> RemotingAction<R, A, Result<BTreeMap<u32, Part>, Error>> {
             unimplemented!()
         }
 
-        fn remove_parts(&mut self, _part_ids: Vec<u32>) -> Call<Result<Vec<u32>, Error>> {
+        fn remove_parts(
+            &mut self,
+            _part_ids: Vec<u32>,
+        ) -> RemotingAction<R, A, Result<Vec<u32>, Error>> {
             unimplemented!()
         }
 
@@ -226,7 +238,7 @@ mod tests {
             &mut self,
             _part_id: u32,
             _collection_ids: Vec<ActorId>,
-        ) -> Call<Result<(u32, Vec<ActorId>), Error>> {
+        ) -> RemotingAction<R, A, Result<(u32, Vec<ActorId>), Error>> {
             unimplemented!()
         }
 
@@ -234,23 +246,30 @@ mod tests {
             &mut self,
             _part_id: u32,
             _collection_id: ActorId,
-        ) -> Call<Result<(u32, ActorId), Error>> {
+        ) -> RemotingAction<R, A, Result<(u32, ActorId), Error>> {
             unimplemented!()
         }
 
-        fn reset_equippables(&mut self, _part_id: u32) -> Call<Result<(), Error>> {
+        fn reset_equippables(&mut self, _part_id: u32) -> RemotingAction<R, A, Result<(), Error>> {
             unimplemented!()
         }
 
-        fn set_equippables_to_all(&mut self, _part_id: u32) -> Call<Result<(), Error>> {
+        fn set_equippables_to_all(
+            &mut self,
+            _part_id: u32,
+        ) -> RemotingAction<R, A, Result<(), Error>> {
             unimplemented!()
         }
 
-        fn part(&self, _part_id: u32) -> Call<Option<Part>> {
+        fn part(&self, _part_id: u32) -> RemotingAction<R, A, Option<Part>> {
             unimplemented!()
         }
 
-        fn equippable(&self, _part_id: u32, _collection_id: ActorId) -> Call<Result<bool, Error>> {
+        fn equippable(
+            &self,
+            _part_id: u32,
+            _collection_id: ActorId,
+        ) -> RemotingAction<R, A, Result<bool, Error>> {
             unimplemented!()
         }
     }
