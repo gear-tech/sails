@@ -14,7 +14,7 @@ const handler = async (path: string, out: string, name: string) => {
   const idl = readFileSync(path, 'utf-8');
 
   out = out || '.';
-  const dir = out.endsWith('.ts') ? out.split('/').slice(0, -1).join('/') : '.';
+  const dir = out.endsWith('.ts') ? out.split('/').slice(0, -1).join('/') : out;
   const file = out.endsWith('.ts') ? out.split('/').slice(-1)[0] : 'lib.ts';
 
   if (!existsSync(dir)) {
