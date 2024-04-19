@@ -12,7 +12,8 @@ constructor {
 };
 
 {{/if}}
-service {
+{{#each services}}
+service {{#if name}}{{name}} {{/if}}{
 {{#each commands}}
   {{./[0]}} : ({{#each ./[1]}}{{#if @index}}, {{/if}}{{name}}: {{{lookup @root/type_names type}}}{{/each}}) -> {{{lookup @root/type_names ./[2]}}};
 {{/each}}
@@ -33,4 +34,6 @@ service {
   {{/each}}
   }
 {{/if}}
-}
+};
+
+{{/each}}
