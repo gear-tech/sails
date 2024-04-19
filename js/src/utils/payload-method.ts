@@ -11,9 +11,12 @@ export function getPayloadMethod(type: string) {
     case 'i32':
     case 'i64':
     case 'i128':
+    case 'U256':
       return 'toBigInt';
     case 'String':
       return 'toString';
+    case 'H256':
+      return 'toHex';
     default:
       return 'toJSON';
   }
