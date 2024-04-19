@@ -37,4 +37,5 @@ service {
   SetEquippablesToAll : (part_id: u32) -> result (null, Error);
   query Equippable : (part_id: u32, collection_id: actor_id) -> result (bool, Error);
   query Part : (part_id: u32) -> opt Part;
-}
+};
+

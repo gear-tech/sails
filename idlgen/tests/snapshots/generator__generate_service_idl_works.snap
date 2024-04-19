@@ -55,5 +55,6 @@ service {
     ThisDone: u32;
     ThatDone: struct { p1: str };
   }
-}
+};
+
 

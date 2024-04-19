@@ -18,7 +18,7 @@
 
 //! Functionality for generating IDL files describing some service based on its Rust code.
 
-use errors::{Error, Result};
+use errors::Result;
 use handlebars::{handlebars_helper, Handlebars};
 use meta::ExpandedProgramMeta;
 use scale_info::{form::PortableForm, Field, PortableType, Variant};
@@ -38,29 +38,8 @@ pub mod program {
     use sails_idl_meta::ProgramMeta;
 
     pub fn generate_idl<P: ProgramMeta>(idl_writer: impl Write) -> Result<()> {
-        let services = P::services().collect::<Vec<_>>();
-
-        if services.is_empty() {
-            Err(Error::ServiceIsMissing)?;
-        }
-
-        if services.len() > 1 {
-            todo!("multiple services are not supported yet");
-        }
-
-        let service = &services[0];
-
-        if !service.0.is_empty() {
-            todo!("service routes are not supported yet");
-        }
-
         render_idl(
-            &ExpandedProgramMeta::new(
-                Some(&P::constructors()),
-                service.1.commands(),
-                service.1.queries(),
-                service.1.events(),
-            )?,
+            &ExpandedProgramMeta::new(Some(P::constructors()), P::services())?,
             idl_writer,
         )
     }
@@ -68,11 +47,11 @@ pub mod program {
 
 pub mod service {
     use super::*;
-    use sails_idl_meta::ServiceMeta;
+    use sails_idl_meta::{AnyServiceMeta, ServiceMeta};
 
     pub fn generate_idl<S: ServiceMeta>(idl_writer: impl Write) -> Result<()> {
         render_idl(
-            &ExpandedProgramMeta::new(None, &S::commands(), &S::queries(), &S::events())?,
+            &ExpandedProgramMeta::new(None, vec![("", AnyServiceMeta::new::<S>())].into_iter())?,
             idl_writer,
         )
     }
@@ -83,9 +62,15 @@ fn render_idl(program_meta: &ExpandedProgramMeta, idl_writer: impl Write) -> Res
         type_names: program_meta.type_names()?.collect(),
         types: program_meta.types().collect(),
         ctors: program_meta.ctors().collect(),
-        commands: program_meta.commands().collect(),
-        queries: program_meta.queries().collect(),
-        events: program_meta.events().collect(),
+        services: program_meta
+            .services()
+            .map(|s| ServiceIdlData {
+                name: s.name(),
+                commands: s.commands().collect(),
+                queries: s.queries().collect(),
+                events: s.events().collect(),
+            })
+            .collect(),
     };
 
     let mut handlebars = Handlebars::new();
@@ -112,6 +97,12 @@ struct ProgramIdlData<'a> {
     type_names: Vec<String>,
     types: Vec<&'a PortableType>,
     ctors: Vec<(&'a str, &'a Vec<Field<PortableForm>>)>,
+    services: Vec<ServiceIdlData<'a>>,
+}
+
+#[derive(Serialize)]
+struct ServiceIdlData<'a> {
+    name: &'a str,
     commands: Vec<(&'a str, &'a Vec<Field<PortableForm>>, u32)>,
     queries: Vec<(&'a str, &'a Vec<Field<PortableForm>>, u32)>,
     events: Vec<&'a Variant<PortableForm>>,

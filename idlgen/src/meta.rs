@@ -22,6 +22,7 @@ use crate::{
     errors::{Error, Result},
     type_names,
 };
+use sails_idl_meta::AnyServiceMeta;
 use sails_rtl::{ActorId, CodeId, MessageId};
 use scale_info::{
     form::PortableForm, Field, MetaType, PortableRegistry, PortableType, Registry, TypeDef, Variant,
@@ -33,29 +34,18 @@ struct ServiceFuncMeta(String, u32, Vec<Field<PortableForm>>, u32);
 
 pub(crate) struct ExpandedProgramMeta {
     registry: PortableRegistry,
+    builtin_type_ids: Vec<u32>,
     ctors_type_id: Option<u32>,
     ctors: Vec<CtorFuncMeta>,
-    commands_type_id: u32,
-    commands: Vec<ServiceFuncMeta>,
-    queries_type_id: u32,
-    queries: Vec<ServiceFuncMeta>,
-    events_type_id: u32,
-    events: Vec<Variant<PortableForm>>,
-    builtin_type_ids: Vec<u32>,
+    services: Vec<ExpandedServiceMeta>,
 }
 
 impl ExpandedProgramMeta {
     pub fn new(
-        ctors: Option<&MetaType>,
-        commands: &MetaType,
-        queries: &MetaType,
-        events: &MetaType,
+        ctors: Option<MetaType>,
+        services: impl Iterator<Item = (&'static str, AnyServiceMeta)>,
     ) -> Result<Self> {
         let mut registry = Registry::new();
-        let ctors_type_id = ctors.map(|ctors| registry.register_type(ctors).id);
-        let commands_type_id = registry.register_type(commands).id;
-        let queries_type_id = registry.register_type(queries).id;
-        let events_type_id = registry.register_type(events).id;
         let builtin_type_ids = registry
             .register_types([
                 MetaType::new::<ActorId>(),
@@ -65,22 +55,32 @@ impl ExpandedProgramMeta {
             .iter()
             .map(|t| t.id)
             .collect::<Vec<_>>();
+        let ctors_type_id = ctors.map(|ctors| registry.register_type(&ctors).id);
+        let services_data = services
+            .map(|(sn, sm)| {
+                (
+                    sn,
+                    registry.register_type(sm.commands()).id,
+                    registry.register_type(sm.queries()).id,
+                    registry.register_type(sm.events()).id,
+                )
+            })
+            .collect::<Vec<_>>();
+        if services_data.is_empty() {
+            return Err(Error::ServiceIsMissing);
+        }
         let registry = PortableRegistry::from(registry);
         let ctors = Self::ctor_funcs(&registry, ctors_type_id)?;
-        let commands = Self::service_funcs(&registry, commands_type_id)?;
-        let queries = Self::service_funcs(&registry, queries_type_id)?;
-        let events = Self::event_variants(&registry, events_type_id)?;
+        let services = services_data
+            .into_iter()
+            .map(|(sn, ctid, qtid, etid)| ExpandedServiceMeta::new(&registry, sn, ctid, qtid, etid))
+            .collect::<Result<Vec<_>>>()?;
         Ok(Self {
             registry,
+            builtin_type_ids,
             ctors_type_id,
             ctors,
-            commands_type_id,
-            commands,
-            queries_type_id,
-            queries,
-            events_type_id,
-            events,
-            builtin_type_ids,
+            services,
         })
     }
 
@@ -89,9 +89,9 @@ impl ExpandedProgramMeta {
         self.registry.types.iter().filter(|ty| {
             !ty.ty.path.namespace().is_empty()
                 && !self.ctors_type_id.is_some_and(|id| id == ty.id)
-                && ty.id != self.commands_type_id
-                && ty.id != self.queries_type_id
-                && ty.id != self.events_type_id
+                && !self.commands_type_ids().any(|id| id == ty.id)
+                && !self.queries_type_ids().any(|id| id == ty.id)
+                && !self.events_type_ids().any(|id| id == ty.id)
                 && !self.ctor_params_type_ids().any(|id| id == ty.id)
                 && !self.command_params_type_ids().any(|id| id == ty.id)
                 && !self.query_params_type_ids().any(|id| id == ty.id)
@@ -103,16 +103,8 @@ impl ExpandedProgramMeta {
         self.ctors.iter().map(|c| (c.0.as_str(), &c.2))
     }
 
-    pub fn commands(&self) -> impl Iterator<Item = (&str, &Vec<Field<PortableForm>>, u32)> {
-        self.commands.iter().map(|c| (c.0.as_str(), &c.2, c.3))
-    }
-
-    pub fn queries(&self) -> impl Iterator<Item = (&str, &Vec<Field<PortableForm>>, u32)> {
-        self.queries.iter().map(|c| (c.0.as_str(), &c.2, c.3))
-    }
-
-    pub fn events(&self) -> impl Iterator<Item = &Variant<PortableForm>> {
-        self.events.iter()
+    pub fn services(&self) -> impl Iterator<Item = &ExpandedServiceMeta> {
+        self.services.iter()
     }
 
     /// Returns names for all types used by program including primitive, complex and "internal" ones.
@@ -130,7 +122,7 @@ impl ExpandedProgramMeta {
             return Ok(Vec::new());
         }
         let func_type_id = func_type_id.unwrap();
-        Self::any_funcs(registry, func_type_id)?
+        any_funcs(registry, func_type_id)?
             .map(|c| {
                 if c.fields.len() != 1 {
                     Err(Error::FuncMetaIsInvalid(format!(
@@ -161,11 +153,88 @@ impl ExpandedProgramMeta {
             .collect()
     }
 
+    fn commands_type_ids(&self) -> impl Iterator<Item = u32> + '_ {
+        self.services.iter().map(|s| s.commands_type_id)
+    }
+
+    fn queries_type_ids(&self) -> impl Iterator<Item = u32> + '_ {
+        self.services.iter().map(|s| s.queries_type_id)
+    }
+
+    fn events_type_ids(&self) -> impl Iterator<Item = u32> + '_ {
+        self.services.iter().map(|s| s.events_type_id)
+    }
+
+    fn ctor_params_type_ids(&self) -> impl Iterator<Item = u32> + '_ {
+        self.ctors.iter().map(|v| v.1)
+    }
+
+    fn command_params_type_ids(&self) -> impl Iterator<Item = u32> + '_ {
+        self.services
+            .iter()
+            .flat_map(|s| s.commands.iter().map(|v| v.1))
+    }
+
+    fn query_params_type_ids(&self) -> impl Iterator<Item = u32> + '_ {
+        self.services
+            .iter()
+            .flat_map(|s| s.queries.iter().map(|v| v.1))
+    }
+}
+
+pub(crate) struct ExpandedServiceMeta {
+    name: &'static str,
+    commands_type_id: u32,
+    commands: Vec<ServiceFuncMeta>,
+    queries_type_id: u32,
+    queries: Vec<ServiceFuncMeta>,
+    events_type_id: u32,
+    events: Vec<Variant<PortableForm>>,
+}
+
+impl ExpandedServiceMeta {
+    fn new(
+        registry: &PortableRegistry,
+        name: &'static str,
+        commands_type_id: u32,
+        queries_type_id: u32,
+        events_type_id: u32,
+    ) -> Result<Self> {
+        let commands = Self::service_funcs(registry, commands_type_id)?;
+        let queries = Self::service_funcs(registry, queries_type_id)?;
+        let events = Self::event_variants(registry, events_type_id)?;
+        Ok(Self {
+            name,
+            commands_type_id,
+            commands,
+            queries_type_id,
+            queries,
+            events_type_id,
+            events,
+        })
+    }
+
+    pub fn name(&self) -> &str {
+        self.name
+    }
+
+    pub fn commands(&self) -> impl Iterator<Item = (&str, &Vec<Field<PortableForm>>, u32)> {
+        self.commands.iter().map(|c| (c.0.as_str(), &c.2, c.3))
+    }
+
+    pub fn queries(&self) -> impl Iterator<Item = (&str, &Vec<Field<PortableForm>>, u32)> {
+        self.queries.iter().map(|c| (c.0.as_str(), &c.2, c.3))
+    }
+
+    pub fn events(&self) -> impl Iterator<Item = &Variant<PortableForm>> {
+        self.events.iter()
+    }
+
     fn service_funcs(
         registry: &PortableRegistry,
         func_type_id: u32,
     ) -> Result<Vec<ServiceFuncMeta>> {
-        Self::any_funcs(registry, func_type_id)?
+        any_funcs(registry, func_type_id)?
             .map(|f| {
                 if f.fields.len() != 2 {
                     Err(Error::FuncMetaIsInvalid(format!(
@@ -197,38 +266,6 @@ impl ExpandedProgramMeta {
             .collect()
     }
 
-    fn any_funcs(
-        registry: &PortableRegistry,
-        func_type_id: u32,
-    ) -> Result<impl Iterator<Item = &Variant<PortableForm>>> {
-        let funcs = registry.resolve(func_type_id).unwrap_or_else(|| {
-            panic!(
-                "func type id {} not found while it was registered previously",
-                func_type_id
-            )
-        });
-        if let TypeDef::Variant(variant) = &funcs.type_def {
-            Ok(variant.variants.iter())
-        } else {
-            Err(Error::FuncMetaIsInvalid(format!(
-                "func type id {} references a type that is not a variant",
-                func_type_id
-            )))
-        }
-    }
-
-    fn ctor_params_type_ids(&self) -> impl Iterator<Item = u32> + '_ {
-        self.ctors.iter().map(|v| v.1)
-    }
-
-    fn command_params_type_ids(&self) -> impl Iterator<Item = u32> + '_ {
-        self.commands.iter().map(|v| v.1)
-    }
-
-    fn query_params_type_ids(&self) -> impl Iterator<Item = u32> + '_ {
-        self.queries.iter().map(|v| v.1)
-    }
-
     fn event_variants(
         registry: &PortableRegistry,
         events_type_id: u32,
@@ -247,5 +284,25 @@ impl ExpandedProgramMeta {
                 events_type_id
             )))
         }
+    }
+}
+
+fn any_funcs(
+    registry: &PortableRegistry,
+    func_type_id: u32,
+) -> Result<impl Iterator<Item = &Variant<PortableForm>>> {
+    let funcs = registry.resolve(func_type_id).unwrap_or_else(|| {
+        panic!(
+            "func type id {} not found while it was registered previously",
+            func_type_id
+        )
+    });
+    if let TypeDef::Variant(variant) = &funcs.type_def {
+        Ok(variant.variants.iter())
+    } else {
+        Err(Error::FuncMetaIsInvalid(format!(
+            "func type id {} references a type that is not a variant",
+            func_type_id
+        )))
     }
 }

@@ -162,6 +162,22 @@ impl ProgramMeta for TestProgramWithNonEmptyCtorsMeta {
     }
 }
 
+struct TestProgramWithMultipleServicesMeta;
+
+impl ProgramMeta for TestProgramWithMultipleServicesMeta {
+    fn constructors() -> MetaType {
+        scale_info::meta_type::<EmptyCtorsMeta>()
+    }
+
+    fn services() -> impl Iterator<Item = (&'static str, AnyServiceMeta)> {
+        vec![
+            ("", AnyServiceMeta::new::<TestServiceMeta>()),
+            ("SomeService", AnyServiceMeta::new::<TestServiceMeta>()),
+        ]
+        .into_iter()
+    }
+}
+
 #[test]
 fn generare_program_idl_works_with_empty_ctors() {
     let mut idl = Vec::new();
@@ -189,6 +205,24 @@ fn generare_program_idl_works_with_non_empty_ctors() {
     assert_eq!(generated_idl_program.ctor().unwrap().funcs().len(), 2);
     assert_eq!(generated_idl_program.services().len(), 1);
     assert_eq!(generated_idl_program.services()[0].funcs().len(), 4);
+    assert_eq!(generated_idl_program.types().len(), 8);
+}
+
+#[test]
+fn generate_program_idl_works_with_multiple_services() {
+    let mut idl = Vec::new();
+    program::generate_idl::<TestProgramWithMultipleServicesMeta>(&mut idl).unwrap();
+    let generated_idl = String::from_utf8(idl).unwrap();
+    let generated_idl_program = sails_idlparser::ast::parse_idl(&generated_idl);
+
+    insta::assert_snapshot!(generated_idl);
+    let generated_idl_program = generated_idl_program.unwrap();
+    assert!(generated_idl_program.ctor().is_none());
+    assert_eq!(generated_idl_program.services().len(), 2);
+    assert_eq!(generated_idl_program.services()[0].name(), "");
+    assert_eq!(generated_idl_program.services()[0].funcs().len(), 4);
+    assert_eq!(generated_idl_program.services()[1].name(), "SomeService");
+    assert_eq!(generated_idl_program.services()[1].funcs().len(), 4);
     assert_eq!(generated_idl_program.types().len(), 8);
 }
 
