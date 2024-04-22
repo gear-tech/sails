@@ -11,13 +11,16 @@ use sails_rtl::calls::Call;
 use sails_rtl::gstd::calls::{GStdArgs, GStdRemoting};
 use sails_rtl::ActorId;
 
-pub struct Puppeteer {
-    puppet: Box<dyn ThisThatSvc<GStdRemoting, GStdArgs>>,
+pub struct Puppeteer<ThisThatClient> {
+    puppet: ThisThatClient,
 }
 
 #[gservice]
-impl Puppeteer {
-    pub const fn new(puppet: Box<dyn ThisThatSvc<GStdRemoting, GStdArgs>>) -> Self {
+impl<ThisThatClient> Puppeteer<ThisThatClient>
+where
+    ThisThatClient: ThisThatSvc<GStdRemoting, GStdArgs>,
+{
+    pub const fn new(puppet: ThisThatClient) -> Self {
         Self { puppet }
     }
 

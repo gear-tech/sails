@@ -9,7 +9,7 @@ use parity_scale_codec::{Decode, Encode};
 use sails_rtl::collections::BTreeMap;
 #[allow(unused_imports)]
 use sails_rtl::{
-    calls::{Remoting, RemotingAction},
+    calls::{Activation, Call, Remoting, RemotingAction},
     prelude::*,
     String,
 };
@@ -17,7 +17,7 @@ pub mod ctor {
     use super::*;
     pub trait RmrkCatalogConstructors<A: Default> {
         #[allow(clippy::new_ret_no_self)]
-        fn new(remoting: impl Remoting<A>) -> RemotingAction<impl Remoting<A>, A, ActorId>;
+        fn new(remoting: impl Remoting<A>) -> impl Activation<A>;
     }
     pub struct ProgramFactory;
     impl ProgramFactory {
@@ -27,7 +27,7 @@ pub mod ctor {
         }
     }
     impl<A: Default> RmrkCatalogConstructors<A> for ProgramFactory {
-        fn new(remoting: impl Remoting<A>) -> RemotingAction<impl Remoting<A>, A, ActorId> {
+        fn new(remoting: impl Remoting<A>) -> impl Activation<A> {
             RemotingAction::new(remoting, &[12, 78, 101, 119], ())
         }
     }
@@ -40,41 +40,38 @@ pub mod traits {
             &mut self,
             part_id: u32,
             collection_ids: Vec<ActorId>,
-        ) -> RemotingAction<R, TCallArgs, Result<(u32, Vec<ActorId>), Error>>;
+        ) -> impl Call<TCallArgs, Result<(u32, Vec<ActorId>), Error>>;
         #[allow(clippy::type_complexity)]
         fn add_parts(
             &mut self,
             parts: BTreeMap<u32, Part>,
-        ) -> RemotingAction<R, TCallArgs, Result<BTreeMap<u32, Part>, Error>>;
+        ) -> impl Call<TCallArgs, Result<BTreeMap<u32, Part>, Error>>;
         #[allow(clippy::type_complexity)]
         fn remove_equippable(
             &mut self,
             part_id: u32,
             collection_id: ActorId,
-        ) -> RemotingAction<R, TCallArgs, Result<(u32, ActorId), Error>>;
+        ) -> impl Call<TCallArgs, Result<(u32, ActorId), Error>>;
         #[allow(clippy::type_complexity)]
         fn remove_parts(
             &mut self,
             part_ids: Vec<u32>,
-        ) -> RemotingAction<R, TCallArgs, Result<Vec<u32>, Error>>;
+        ) -> impl Call<TCallArgs, Result<Vec<u32>, Error>>;
         #[allow(clippy::type_complexity)]
-        fn reset_equippables(
-            &mut self,
-            part_id: u32,
-        ) -> RemotingAction<R, TCallArgs, Result<(), Error>>;
+        fn reset_equippables(&mut self, part_id: u32) -> impl Call<TCallArgs, Result<(), Error>>;
         #[allow(clippy::type_complexity)]
         fn set_equippables_to_all(
             &mut self,
             part_id: u32,
-        ) -> RemotingAction<R, TCallArgs, Result<(), Error>>;
+        ) -> impl Call<TCallArgs, Result<(), Error>>;
         #[allow(clippy::type_complexity)]
         fn equippable(
             &self,
             part_id: u32,
             collection_id: ActorId,
-        ) -> RemotingAction<R, TCallArgs, Result<bool, Error>>;
+        ) -> impl Call<TCallArgs, Result<bool, Error>>;
         #[allow(clippy::type_complexity)]
-        fn part(&self, part_id: u32) -> RemotingAction<R, TCallArgs, Option<Part>>;
+        fn part(&self, part_id: u32) -> impl Call<TCallArgs, Option<Part>>;
     }
 }
 
@@ -106,7 +103,7 @@ where
         &mut self,
         part_id: u32,
         collection_ids: Vec<ActorId>,
-    ) -> RemotingAction<R, A, Result<(u32, Vec<ActorId>), Error>> {
+    ) -> impl Call<A, Result<(u32, Vec<ActorId>), Error>> {
         RemotingAction::new(
             self.remoting.clone(),
             &[
@@ -118,7 +115,7 @@ where
     fn add_parts(
         &mut self,
         parts: BTreeMap<u32, Part>,
-    ) -> RemotingAction<R, A, Result<BTreeMap<u32, Part>, Error>> {
+    ) -> impl Call<A, Result<BTreeMap<u32, Part>, Error>> {
         RemotingAction::new(
             self.remoting.clone(),
             &[32, 65, 100, 100, 80, 97, 114, 116, 115],
@@ -129,7 +126,7 @@ where
         &mut self,
         part_id: u32,
         collection_id: ActorId,
-    ) -> RemotingAction<R, A, Result<(u32, ActorId), Error>> {
+    ) -> impl Call<A, Result<(u32, ActorId), Error>> {
         RemotingAction::new(
             self.remoting.clone(),
             &[
@@ -138,17 +135,14 @@ where
             (part_id, collection_id),
         )
     }
-    fn remove_parts(
-        &mut self,
-        part_ids: Vec<u32>,
-    ) -> RemotingAction<R, A, Result<Vec<u32>, Error>> {
+    fn remove_parts(&mut self, part_ids: Vec<u32>) -> impl Call<A, Result<Vec<u32>, Error>> {
         RemotingAction::new(
             self.remoting.clone(),
             &[44, 82, 101, 109, 111, 118, 101, 80, 97, 114, 116, 115],
             part_ids,
         )
     }
-    fn reset_equippables(&mut self, part_id: u32) -> RemotingAction<R, A, Result<(), Error>> {
+    fn reset_equippables(&mut self, part_id: u32) -> impl Call<A, Result<(), Error>> {
         RemotingAction::new(
             self.remoting.clone(),
             &[
@@ -157,7 +151,7 @@ where
             part_id,
         )
     }
-    fn set_equippables_to_all(&mut self, part_id: u32) -> RemotingAction<R, A, Result<(), Error>> {
+    fn set_equippables_to_all(&mut self, part_id: u32) -> impl Call<A, Result<(), Error>> {
         RemotingAction::new(
             self.remoting.clone(),
             &[
@@ -171,14 +165,14 @@ where
         &self,
         part_id: u32,
         collection_id: ActorId,
-    ) -> RemotingAction<R, A, Result<bool, Error>> {
+    ) -> impl Call<A, Result<bool, Error>> {
         RemotingAction::new(
             self.remoting.clone(),
             &[40, 69, 113, 117, 105, 112, 112, 97, 98, 108, 101],
             (part_id, collection_id),
         )
     }
-    fn part(&self, part_id: u32) -> RemotingAction<R, A, Option<Part>> {
+    fn part(&self, part_id: u32) -> impl Call<A, Option<Part>> {
         RemotingAction::new(self.remoting.clone(), &[16, 80, 97, 114, 116], part_id)
     }
 }

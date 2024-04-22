@@ -1,18 +1,18 @@
 #![no_std]
 
 use core::ptr::addr_of_mut;
-use gstd::{boxed::Box, msg};
+use gstd::msg;
 use puppeteer_app::puppet::ThisThatSvc;
 use puppeteer_app::Puppeteer;
-use sails_rtl::gstd::calls::GStdRemoting;
+use sails_rtl::gstd::calls::{GStdArgs, GStdRemoting};
 
-static mut SERVICE: Option<Puppeteer> = None;
+static mut SERVICE: Option<Puppeteer<ThisThatSvc<GStdRemoting, GStdArgs>>> = None;
 
-fn service() -> &'static mut Puppeteer {
+fn service() -> &'static mut Puppeteer<ThisThatSvc<GStdRemoting, GStdArgs>> {
     let s = unsafe { &mut *addr_of_mut!(SERVICE) };
     if s.is_none() {
         let remoting = GStdRemoting;
-        *s = Some(Puppeteer::new(Box::new(ThisThatSvc::new(remoting))));
+        *s = Some(Puppeteer::new(ThisThatSvc::new(remoting)));
     }
 
     s.as_mut().unwrap()
