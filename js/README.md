@@ -1,13 +1,16 @@
+# Overview
+`sails-js` is a library that can be used to interact with the programs written with the `sails` framework and to generate typescript code from an IDL file (generated when the program is compiled).
+
 # Installation
 
-The package can be installed as either a global dependency or a package dependency.
+The package can be installed as either a global dependency or a local dependency.
 
 As a global dependency the package can be used to generate typescript code from the IDL file.
 ```bash
 npm install -g sails-js
 ```
 
-As a package dependency the package can be used to parse the IDL file and work with the program on chain. In this case you need to have `@gear-js/api` and `@polkadot/api` packages installed.
+As a local dependency the package can be used to parse the IDL file and work with the program on chain. In this case you need to have `@gear-js/api` and `@polkadot/api` packages installed.
 ```bash
 npm install sails-js
 ```
