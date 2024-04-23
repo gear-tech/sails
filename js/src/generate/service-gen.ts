@@ -28,10 +28,12 @@ const createPayload = (name: string, params: FuncParam[]) => {
 };
 
 const getFuncSignature = (name: string, params: FuncParam[], returnType: string, isQuery: boolean) => {
-  let result = `public ${isQuery ? 'async ' : ''}${getFuncName(name)}(${getArgs(params)}`;
+  const args = getArgs(params);
+
+  let result = `public ${isQuery ? 'async ' : ''}${getFuncName(name)}(${args || ''}`;
 
   if (isQuery) {
-    result += `, originAddress: string, ${VALUE_ARG}, atBlock?: ${HEX_STRING_TYPE}`;
+    result += `${args ? ', ' : ''}originAddress: string, ${VALUE_ARG}, atBlock?: ${HEX_STRING_TYPE}`;
   }
 
   result += `): ${isQuery ? `Promise<${returnType}>` : `TransactionBuilder<${returnType}>`}`;

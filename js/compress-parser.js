@@ -22,6 +22,10 @@ const main = async () => {
   const base64Bytes = Buffer.from(Uint8Array.from(resultArr).buffer).toString('base64');
 
   fs.writeFileSync('./lib/parser/wasm-bytes.js', `export default '${base64Bytes}'`);
+  fs.writeFileSync(
+    './lib/cjs/parser/wasm-bytes.js',
+    `Object.defineProperty(exports, '__esModule', { value: true });\n\nvar wasmParserBytes = '${base64Bytes}';\n\nexports.default = wasmParserBytes;`,
+  );
 };
 
 main()
