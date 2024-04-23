@@ -20,7 +20,7 @@ pub mod scale {
 }
 
 pub trait ExecContext {
-    fn actor_id(&self) -> &ActorId;
+    fn actor_id(&self) -> ActorId;
 
-    fn message_id(&self) -> &MessageId;
+    fn message_id(&self) -> MessageId;
 }
