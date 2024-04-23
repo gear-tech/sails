@@ -32,19 +32,19 @@ class Base {
 }
 
 export class Program {
-  private _service: Service;
+  private _services: Service[];
   private _types: Map<number, Type>;
   private _context: Map<number, WithDef>;
   private _ctor: Ctor;
 
   constructor() {
-    this._service = null;
+    this._services = [];
     this._types = new Map();
     this._context = new Map();
   }
 
   addService(service: Service) {
-    this._service = service;
+    this._services.push(service);
   }
 
   addType(type: Type) {
@@ -54,8 +54,8 @@ export class Program {
     return id;
   }
 
-  get service(): Service {
-    return this._service;
+  get services(): Service[] {
+    return this._services;
   }
 
   get ctor(): Ctor {
@@ -450,9 +450,15 @@ export class UserDefinedDef {
 export class Service extends Base {
   public readonly funcs: ServiceFunc[];
   public readonly events: ServiceEvent[];
+  public readonly name: string;
 
   constructor(ptr: number, memory: WebAssembly.Memory) {
     super(ptr, memory);
+
+    const { name, offset } = getName(ptr, this.offset, memory);
+
+    this.name = name || 'Service';
+    this.offset = offset;
 
     this.funcs = [];
     this.events = [];

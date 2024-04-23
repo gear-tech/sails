@@ -1,5 +1,5 @@
-import { getPayloadMethod, getJsTypeDef, getScaleCodecDef } from '../utils/index.js';
-import { FuncParam, Program } from '../parser/visitor.js';
+import { getPayloadMethod, getJsTypeDef, getScaleCodecDef, toLowerCaseFirst } from '../utils/index.js';
+import { FuncParam, Program, Service } from '../parser/visitor.js';
 import { Output } from './output.js';
 
 const HEX_STRING_TYPE = '`0x${string}`';
@@ -19,9 +19,9 @@ const getFuncName = (name: string) => {
 
 const createPayload = (name: string, params: FuncParam[]) => {
   if (params.length === 0) {
-    return `const payload = this.registry.createType('String', '${name}').toU8a()`;
+    return `const payload = this._program.registry.createType('String', '${name}').toU8a()`;
   } else {
-    return `const payload = this.registry.createType('(String, ${params
+    return `const payload = this._program.registry.createType('(String, ${params
       .map(({ def }) => getScaleCodecDef(def))
       .join(', ')})', ['${name}', ${params.map(({ name }) => name).join(', ')}]).toU8a()`;
   }
@@ -50,8 +50,18 @@ export class ServiceGenerator {
       .import(`@polkadot/types`, `TypeRegistry`)
       .import('sails-js', 'TransactionBuilder')
       .block(`export class ${className}`, () => {
+        this._out.line(`public readonly registry: TypeRegistry`);
+
+        for (const service of this._program.services) {
+          this._out.line(
+            `public readonly ${toLowerCaseFirst(service.name)}: ${
+              service.name === className ? service.name + 'Service' : service.name
+            }`,
+          );
+        }
+
         this._out
-          .line(`private registry: TypeRegistry`)
+          .line()
           .block(`constructor(public api: GearApi, public programId?: ${HEX_STRING_TYPE})`, () => {
             this._out
               .block(`const types: Record<string, any> =`, () => {
@@ -62,13 +72,17 @@ export class ServiceGenerator {
               .line()
               .line(`this.registry = new TypeRegistry()`)
               .line(`this.registry.setKnownTypes({ types })`)
-              .line(`this.registry.register(types)`);
+              .line(`this.registry.register(types)`)
+              .line();
+
+            for (const service of this._program.services) {
+              this._out.line(`this.${toLowerCaseFirst(service.name)} = new ${service.name}(this)`);
+            }
           })
           .line();
         this.generateProgramConstructor();
-        this.generateMethods();
-        this.generateSubscriptions();
       });
+    this.generateServices(className);
   }
 
   private generateProgramConstructor() {
@@ -137,8 +151,20 @@ export class ServiceGenerator {
     }
   }
 
-  private generateMethods() {
-    for (const { name, def, params, isQuery } of this._program.service.funcs) {
+  private generateServices(programClass: string) {
+    for (const service of this._program.services) {
+      this._out
+        .line()
+        .block(`export class ${service.name === programClass ? service.name + 'Service' : service.name}`, () => {
+          this._out.line(`constructor(private _program: ${programClass}) {}`, false);
+          this.generateMethods(service);
+          this.generateSubscriptions(service);
+        });
+    }
+  }
+
+  private generateMethods(service: Service) {
+    for (const { name, def, params, isQuery } of service.funcs) {
       const returnType = getJsTypeDef(def);
       const returnScaleType = getScaleCodecDef(def);
 
@@ -147,24 +173,24 @@ export class ServiceGenerator {
           this._out
             .line(createPayload(name, params))
             .import('@gear-js/api', 'decodeAddress')
-            .line(`const reply = await this.api.message.calculateReply({`, false)
+            .line(`const reply = await this._program.api.message.calculateReply({`, false)
             .increaseIndent()
-            .line(`destination: this.programId,`, false)
+            .line(`destination: this._program.programId,`, false)
             .line(`origin: decodeAddress(originAddress),`, false)
             .line(`payload,`, false)
             .line(`value: value || 0,`, false)
-            .line(`gasLimit: this.api.blockGasLimit.toBigInt(),`, false)
+            .line(`gasLimit: this._program.api.blockGasLimit.toBigInt(),`, false)
             .line(`at: atBlock || null,`, false)
             .reduceIndent()
             .line(`})`)
-            .line(`const result = this.registry.createType('(String, ${returnScaleType})', reply.payload)`)
+            .line(`const result = this._program.registry.createType('(String, ${returnScaleType})', reply.payload)`)
             .line(`return result[1].${getPayloadMethod(returnScaleType)}() as unknown as ${returnType}`);
         } else {
           this._out
             .line(`return new TransactionBuilder<${returnType}>(`, false)
             .increaseIndent()
-            .line(`this.api,`, false)
-            .line(`this.registry,`, false)
+            .line(`this._program.api,`, false)
+            .line(`this._program.registry,`, false)
             .line(`'send_message',`, false)
             .line(
               params.length === 0 ? `'${name}',` : `['${name}', ${params.map(({ name }) => name).join(', ')}],`,
@@ -177,7 +203,7 @@ export class ServiceGenerator {
               false,
             )
             .line(`'${returnScaleType}',`, false)
-            .line(`this.programId`, false)
+            .line(`this._program.programId`, false)
             .reduceIndent()
             .line(`)`);
         }
@@ -185,15 +211,15 @@ export class ServiceGenerator {
     }
   }
 
-  private generateSubscriptions() {
-    if (this._program.service.events.length > 0) {
+  private generateSubscriptions(service: Service) {
+    if (service.events.length > 0) {
       this._out
         .firstLine(`const ZERO_ADDRESS = u8aToHex(new Uint8Array(32))`)
         .import('@polkadot/util', 'u8aToHex')
         .import('@polkadot/util', 'compactFromU8aLim');
     }
 
-    for (const event of this._program.service.events) {
+    for (const event of service.events) {
       const jsType = getJsTypeDef(event.def);
 
       this._out
@@ -202,18 +228,25 @@ export class ServiceGenerator {
           `public subscribeTo${event.name}Event(callback: (data: ${jsType}) => void | Promise<void>): Promise<() => void>`,
           () => {
             this._out
-              .line(`return this.api.gearEvents.subscribeToGearEvent('UserMessageSent', ({ data: { message } }) => {`)
+              .line(
+                `return this._program.api.gearEvents.subscribeToGearEvent('UserMessageSent', ({ data: { message } }) => {`,
+              )
               .increaseIndent()
-              .block(`if (!message.source.eq(this.programId) || !message.destination.eq(ZERO_ADDRESS))`, () => {
-                this._out.line(`return`);
-              })
+              .block(
+                `if (!message.source.eq(this._program.programId) || !message.destination.eq(ZERO_ADDRESS))`,
+                () => {
+                  this._out.line(`return`);
+                },
+              )
               .line()
               .line(`const payload = message.payload.toU8a()`)
               .line(`const [offset, limit] = compactFromU8aLim(payload)`)
-              .line(`const name = this.registry.createType('String', payload.subarray(offset, limit)).toString()`)
+              .line(
+                `const name = this._program.registry.createType('String', payload.subarray(offset, limit)).toString()`,
+              )
               .block(`if (name === '${event.name}')`, () => {
                 this._out.line(
-                  `callback(this.registry.createType('(String, ${getScaleCodecDef(
+                  `callback(this._program.registry.createType('(String, ${getScaleCodecDef(
                     event.def,
                     true,
                   )})', message.payload)[1].toJSON() as ${jsType})`,

@@ -44,7 +44,7 @@ export class Output {
 
   block(beginning: string, content?: () => void, bracket: '{' | '[' | '(' = '{') {
     const openBracket = bracket;
-    const closeBracket = bracket === '{' ? '}' : bracket === '[' ? '];' : ');';
+    const closeBracket = openBracket === '{' ? '}' : openBracket === '[' ? '];' : ');';
     this._rows.push(`${this._indent}${beginning} ${openBracket}${!content ? ' ' + closeBracket : ''}`);
     if (content) {
       this.increaseIndent();

@@ -2,7 +2,7 @@ import { TypeRegistry } from '@polkadot/types/create';
 import { u8aToHex, compactFromU8aLim } from '@polkadot/util';
 import { UserMessageSent } from '@gear-js/api';
 
-import { Program, TypeDef, WasmParser } from './parser/index.js';
+import { Program, Service, TypeDef, WasmParser } from './parser/index.js';
 import { getScaleCodecDef } from './utils/types.js';
 
 const ZERO_ADDRESS = u8aToHex(new Uint8Array(32));
@@ -15,6 +15,11 @@ const getPrefixLimitAndOffset = (payload: Uint8Array) => {
     limit,
   };
 };
+
+interface SailsService {
+  functions: Record<string, SailsServiceFunc>;
+  events: Record<string, SailsEvent>;
+}
 
 interface SailsServiceFunc {
   args: { name: string; type: any }[];
@@ -95,15 +100,10 @@ export class Sails {
     return this._registry;
   }
 
-  /** #### Functions with arguments and return types from the parsed IDL */
-  get functions(): Record<string, SailsServiceFunc> {
-    if (!this._program) {
-      throw new Error('IDL not parsed');
-    }
-
+  private _getFunctions(service: Service): Record<string, SailsServiceFunc> {
     const funcs: Record<string, SailsServiceFunc> = {};
 
-    for (const func of this._program.service.funcs) {
+    for (const func of service.funcs) {
       const params = func.params.map((p) => ({ name: p.name, type: getScaleCodecDef(p.def) }));
       const returnType = getScaleCodecDef(func.def);
       funcs[func.name] = {
@@ -136,15 +136,10 @@ export class Sails {
     return funcs;
   }
 
-  /** #### Program events from the parsed IDL */
-  get events(): Record<string, SailsEvent> {
-    if (!this._program) {
-      throw new Error('IDL not parsed');
-    }
-
+  private _getEvents(service: Service): Record<string, SailsEvent> {
     const events: Record<string, SailsEvent> = {};
 
-    for (const event of this._program.service.events) {
+    for (const event of service.events) {
       const t = event.def ? getScaleCodecDef(event.def) : 'Null';
       const typeStr = event.def ? getScaleCodecDef(event.def, true) : 'Null';
       events[event.name] = {
@@ -173,6 +168,24 @@ export class Sails {
     }
 
     return events;
+  }
+
+  /** #### Services with functions and events from the parsed IDL */
+  get services(): Record<string, SailsService> {
+    if (!this._program) {
+      throw new Error('IDL is not parsed');
+    }
+
+    const services = {};
+
+    for (const service of this._program.services) {
+      services[service.name] = {
+        functions: this._getFunctions(service),
+        events: this._getEvents(service),
+      };
+    }
+
+    return services;
   }
 
   /** #### Constructor functions with arguments from the parsed IDL */
@@ -218,7 +231,7 @@ export class Sails {
   /** #### Parsed IDL */
   get program() {
     if (!this._program) {
-      throw new Error('IDL not parsed');
+      throw new Error('IDL is not parsed');
     }
 
     return this._program;
@@ -229,6 +242,7 @@ export class Sails {
     return this.program.getTypeByName(name).def;
   }
 
+  /** #### Get function name from payload bytes */
   getFnName(payload: string | Uint8Array) {
     return this._registry.createType('String', payload).toString();
   }
