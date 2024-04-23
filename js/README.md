@@ -1,5 +1,5 @@
 # Overview
-`sails-js` is a library that can be used to interact with the programs written with the `sails` framework and to generate typescript code from an IDL file (generated when the program is compiled).
+`sails-js` is a library that can be used to interact with the programs written with the [sails](https://github.com/gear-tech/sails) framework and to generate typescript code from an IDL file (generated when the program is compiled).
 
 # Installation
 
