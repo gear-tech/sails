@@ -29,7 +29,7 @@ impl Program {
     }
 
     // Expose hosted service
-    #[groute("")]
+    #[groute("RmrkResource")]
     pub fn resource_storage(
         &self,
     ) -> ResourceStorage<GStdExecContext, RmrkCatalog, ResourceStorageEventTrigger> {

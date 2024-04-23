@@ -153,20 +153,20 @@ describe('RMRK resource generated', () => {
     expect(blockHash).toBeDefined();
     await response();
 
-    expect(program.service).toHaveProperty('addPartToResource');
-    expect(program.service).toHaveProperty('addResourceEntry');
-    expect(program.service).toHaveProperty('resource');
+    expect(program.rmrkResource).toHaveProperty('addPartToResource');
+    expect(program.rmrkResource).toHaveProperty('addResourceEntry');
+    expect(program.rmrkResource).toHaveProperty('resource');
     expect(program.programId).toBeDefined();
   });
 
   test('add resource and listen to event', async () => {
     let resourceEvent;
 
-    const unsub = await program.service.subscribeToResourceAddedEvent((data) => {
+    const unsub = await program.rmrkResource.subscribeToResourceAddedEvent((data) => {
       resourceEvent = data;
     });
 
-    const transaction = await program.service.addResourceEntry(1, {
+    const transaction = await program.rmrkResource.addResourceEntry(1, {
       composed: {
         src: 'src',
         thumb: 'thumb',

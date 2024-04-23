@@ -115,14 +115,14 @@ describe('RMRK generated', () => {
     program = new Program(api);
     const transaction = await program.newCtorFromCode(code);
 
-    expect(program.service).toHaveProperty('addParts');
-    expect(program.service).toHaveProperty('removeParts');
-    expect(program.service).toHaveProperty('addEquippables');
-    expect(program.service).toHaveProperty('removeEquippable');
-    expect(program.service).toHaveProperty('resetEquippables');
-    expect(program.service).toHaveProperty('setEquippablesToAll');
-    expect(program.service).toHaveProperty('part');
-    expect(program.service).toHaveProperty('equippable');
+    expect(program.rmrkCatalog).toHaveProperty('addParts');
+    expect(program.rmrkCatalog).toHaveProperty('removeParts');
+    expect(program.rmrkCatalog).toHaveProperty('addEquippables');
+    expect(program.rmrkCatalog).toHaveProperty('removeEquippable');
+    expect(program.rmrkCatalog).toHaveProperty('resetEquippables');
+    expect(program.rmrkCatalog).toHaveProperty('setEquippablesToAll');
+    expect(program.rmrkCatalog).toHaveProperty('part');
+    expect(program.rmrkCatalog).toHaveProperty('equippable');
     expect(program.programId).toBeDefined();
 
     await transaction.withAccount(alice).calculateGas();
@@ -138,7 +138,7 @@ describe('RMRK generated', () => {
   test('add parts', async () => {
     expect(programCreated).toBeTruthy();
     expect(program).toBeDefined();
-    const transaction = await program.service.addParts({
+    const transaction = await program.rmrkCatalog.addParts({
       1: { fixed: { z: null, metadata_uri: 'foo' } },
       2: { fixed: { z: 0, metadata_uri: 'bar' } },
       3: { slot: { z: 1, equippable: [aliceRaw], metadata_uri: 'baz' } },
@@ -179,7 +179,7 @@ describe('RMRK generated', () => {
   test('remove parts', async () => {
     expect(programCreated).toBeTruthy();
     expect(program).toBeDefined();
-    const transaction = await program.service.removeParts([1]);
+    const transaction = await program.rmrkCatalog.removeParts([1]);
 
     await transaction.withAccount(alice).calculateGas();
 
@@ -197,7 +197,7 @@ describe('RMRK generated', () => {
   test('add equippables', async () => {
     expect(programCreated).toBeTruthy();
     expect(program).toBeDefined();
-    const transaction = await program.service.addEquippables(3, [aliceRaw]);
+    const transaction = await program.rmrkCatalog.addEquippables(3, [aliceRaw]);
 
     await transaction.withAccount(alice).calculateGas();
 
@@ -217,7 +217,7 @@ describe('RMRK generated', () => {
   test('remove equippable', async () => {
     expect(programCreated).toBeTruthy();
     expect(program).toBeDefined();
-    const transaction = await program.service.removeEquippable(3, aliceRaw);
+    const transaction = await program.rmrkCatalog.removeEquippable(3, aliceRaw);
 
     await transaction.withAccount(alice).calculateGas();
 
@@ -236,7 +236,7 @@ describe('RMRK generated', () => {
   test('reset equippables', async () => {
     expect(programCreated).toBeTruthy();
     expect(program).toBeDefined();
-    const transaction = await program.service.resetEquippables(3);
+    const transaction = await program.rmrkCatalog.resetEquippables(3);
 
     await transaction.withAccount(alice).calculateGas();
 
@@ -253,7 +253,7 @@ describe('RMRK generated', () => {
   test('set equippables to all', async () => {
     expect(programCreated).toBeTruthy();
     expect(program).toBeDefined();
-    const transaction = await program.service.setEquippablesToAll(3);
+    const transaction = await program.rmrkCatalog.setEquippablesToAll(3);
 
     await transaction.withAccount(alice).calculateGas();
 
@@ -270,7 +270,7 @@ describe('RMRK generated', () => {
   test('read state: part', async () => {
     expect(programCreated).toBeTruthy();
     expect(program).toBeDefined();
-    const result = await program.service.part(2, aliceRaw);
+    const result = await program.rmrkCatalog.part(2, aliceRaw);
 
     expect(result).toEqual({
       fixed: {
