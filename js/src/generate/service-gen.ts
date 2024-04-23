@@ -17,13 +17,13 @@ const getFuncName = (name: string) => {
   return name[0].toLowerCase() + name.slice(1);
 };
 
-const createPayload = (name: string, params: FuncParam[]) => {
+const createPayload = (serviceName: string, fnName: string, params: FuncParam[]) => {
   if (params.length === 0) {
-    return `const payload = this._program.registry.createType('String', '${name}').toU8a()`;
+    return `const payload = this._program.registry.createType('(String, String)', '[${serviceName}, ${fnName}]').toU8a()`;
   } else {
-    return `const payload = this._program.registry.createType('(String, ${params
+    return `const payload = this._program.registry.createType('(String, String, ${params
       .map(({ def }) => getScaleCodecDef(def))
-      .join(', ')})', ['${name}', ${params.map(({ name }) => name).join(', ')}]).toU8a()`;
+      .join(', ')})', ['${serviceName}', '${fnName}', ${params.map(({ name }) => name).join(', ')}]).toU8a()`;
   }
 };
 
@@ -171,7 +171,7 @@ export class ServiceGenerator {
       this._out.line().block(getFuncSignature(name, params, returnType, isQuery), () => {
         if (isQuery) {
           this._out
-            .line(createPayload(name, params))
+            .line(createPayload(service.name, name, params))
             .import('@gear-js/api', 'decodeAddress')
             .line(`const reply = await this._program.api.message.calculateReply({`, false)
             .increaseIndent()
@@ -183,8 +183,10 @@ export class ServiceGenerator {
             .line(`at: atBlock || null,`, false)
             .reduceIndent()
             .line(`})`)
-            .line(`const result = this._program.registry.createType('(String, ${returnScaleType})', reply.payload)`)
-            .line(`return result[1].${getPayloadMethod(returnScaleType)}() as unknown as ${returnType}`);
+            .line(
+              `const result = this._program.registry.createType('(String, String, ${returnScaleType})', reply.payload)`,
+            )
+            .line(`return result[2].${getPayloadMethod(returnScaleType)}() as unknown as ${returnType}`);
         } else {
           this._out
             .line(`return new TransactionBuilder<${returnType}>(`, false)
@@ -193,13 +195,15 @@ export class ServiceGenerator {
             .line(`this._program.registry,`, false)
             .line(`'send_message',`, false)
             .line(
-              params.length === 0 ? `'${name}',` : `['${name}', ${params.map(({ name }) => name).join(', ')}],`,
+              params.length === 0
+                ? `['${service.name}', '${name}'],`
+                : `['${service.name}', '${name}', ${params.map(({ name }) => name).join(', ')}],`,
               false,
             )
             .line(
               params.length === 0
-                ? `'String',`
-                : `'(String, ${params.map(({ def }) => getScaleCodecDef(def)).join(', ')})',`,
+                ? `'(String, String)',`
+                : `'(String, String, ${params.map(({ def }) => getScaleCodecDef(def)).join(', ')})',`,
               false,
             )
             .line(`'${returnScaleType}',`, false)

@@ -14,7 +14,7 @@ describe('enum', () => {
         Three,
     };
     
-    service {}`;
+    service TestService {}`;
 
     sails.parseIdl(idl);
 
@@ -40,7 +40,7 @@ describe('enum', () => {
         Six: [map (str, u32), 3],
     };
     
-    service {}`;
+    service TestService {}`;
 
     const result = sails.parseIdl(text);
 

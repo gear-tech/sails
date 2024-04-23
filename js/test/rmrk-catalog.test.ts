@@ -2,7 +2,6 @@ import { GearApi, HexString, MessageQueued, decodeAddress } from '@gear-js/api';
 import { KeyringPair } from '@polkadot/keyring/types';
 import { waitReady } from '@polkadot/wasm-crypto';
 import { Keyring } from '@polkadot/api';
-import { u8aToHex } from '@polkadot/util';
 import { readFileSync } from 'fs';
 
 import { Sails } from '../lib';
