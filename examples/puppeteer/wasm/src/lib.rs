@@ -6,9 +6,11 @@ use puppeteer_app::puppet::ThisThatSvc;
 use puppeteer_app::Puppeteer;
 use sails_rtl::gstd::calls::{GStdArgs, GStdRemoting};
 
-static mut SERVICE: Option<Puppeteer<ThisThatSvc<GStdRemoting, GStdArgs>>> = None;
+type Service = Puppeteer<GStdArgs, GStdRemoting, ThisThatSvc<GStdRemoting, GStdArgs>>;
 
-fn service() -> &'static mut Puppeteer<ThisThatSvc<GStdRemoting, GStdArgs>> {
+static mut SERVICE: Option<Service> = None;
+
+fn service() -> &'static mut Service {
     let s = unsafe { &mut *addr_of_mut!(SERVICE) };
     if s.is_none() {
         let remoting = GStdRemoting;
