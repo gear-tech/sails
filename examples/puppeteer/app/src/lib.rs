@@ -2,26 +2,35 @@
 
 pub mod puppet;
 
+use core::marker::PhantomData;
+
 use puppet::traits::ThisThatSvc;
 
 use sails_macros::gservice;
 
 use gstd::prelude::*;
-use sails_rtl::calls::Call;
-use sails_rtl::gstd::calls::{GStdArgs, GStdRemoting};
+use sails_rtl::calls::{Call, Remoting};
 use sails_rtl::ActorId;
 
-pub struct Puppeteer<ThisThatClient> {
-    puppet: ThisThatClient,
+pub struct Puppeteer<A: Default, R: Remoting<A>, Client: ThisThatSvc<R, A>> {
+    _args: PhantomData<A>,
+    _remote: PhantomData<R>,
+    puppet: Client,
 }
 
 #[gservice]
-impl<ThisThatClient> Puppeteer<ThisThatClient>
+impl<A, R, Client> Puppeteer<A, R, Client>
 where
-    ThisThatClient: ThisThatSvc<GStdRemoting, GStdArgs>,
+    A: Default,
+    R: Remoting<A>,
+    Client: ThisThatSvc<R, A>,
 {
-    pub const fn new(puppet: ThisThatClient) -> Self {
-        Self { puppet }
+    pub const fn new(puppet: Client) -> Self {
+        Self {
+            _args: PhantomData,
+            _remote: PhantomData,
+            puppet,
+        }
     }
 
     pub async fn call_this(&mut self) -> Result<u32, String> {
