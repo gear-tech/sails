@@ -13,27 +13,24 @@ use sails_rtl::{
     prelude::*,
     String,
 };
-pub mod ctor {
-    use super::*;
-    pub trait ServiceConstructors<A: Default> {
-        #[allow(clippy::new_ret_no_self)]
-        fn new(remoting: impl Remoting<A>, a: u32) -> impl Activation<A>;
+pub struct ServiceFactory;
+impl ServiceFactory {
+    #[allow(unused)]
+    pub fn new() -> Self {
+        Self
     }
-    pub struct ProgramFactory;
-    impl ProgramFactory {
-        #[allow(unused)]
-        pub fn new() -> Self {
-            Self
-        }
-    }
-    impl<A: Default> ServiceConstructors<A> for ProgramFactory {
-        fn new(remoting: impl Remoting<A>, a: u32) -> impl Activation<A> {
-            RemotingAction::new(remoting, &[12, 78, 101, 119], a)
-        }
+}
+impl<A: Default> traits::ServiceFactory<A> for ServiceFactory {
+    fn new(remoting: impl Remoting<A>, a: u32) -> impl Activation<A> {
+        RemotingAction::new(remoting, &[12, 78, 101, 119], a)
     }
 }
 pub mod traits {
     use super::*;
+    pub trait ServiceFactory<A: Default> {
+        #[allow(clippy::new_ret_no_self)]
+        fn new(remoting: impl Remoting<A>, a: u32) -> impl Activation<A>;
+    }
     pub trait Service<R, TCallArgs> {
         #[allow(clippy::type_complexity)]
         fn do_this(

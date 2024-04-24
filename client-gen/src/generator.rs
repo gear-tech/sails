@@ -51,6 +51,7 @@ fn pretty_with_rustfmt(code: &str) -> String {
 
 struct RootGenerator<'a> {
     code: String,
+    traits_code: String,
     service_name: &'a str,
 }
 
@@ -68,30 +69,35 @@ impl<'a> RootGenerator<'a> {
         code.push_str("use sails_rtl::collections::BTreeMap;\n");
         code.push_str("use core::marker::PhantomData;\n");
 
-        Self { service_name, code }
+        Self {
+            service_name,
+            traits_code: String::new(),
+            code,
+        }
     }
 }
 
 impl<'a, 'ast> Visitor<'ast> for RootGenerator<'a> {
     fn visit_ctor(&mut self, ctor: &'ast Ctor) {
-        self.code.push_str("pub mod ctor {\n");
-        self.code.push_str("use super::*;\n");
-
         let mut ctor_gen = CtorTraitGenerator::new(self.service_name.to_owned());
         ctor_gen.visit_ctor(ctor);
-        self.code.push_str(&ctor_gen.code);
+        self.traits_code.push_str(&ctor_gen.code);
 
         let mut ctor_gen = CtorFactoryGenerator::new(self.service_name.to_owned());
         ctor_gen.visit_ctor(ctor);
         self.code.push_str(&ctor_gen.code);
-
-        self.code.push_str("}\n");
     }
 
     fn visit_service(&mut self, service: &'ast Service) {
         let mut service_gen = ServiceGenerator::new(self.service_name.to_owned());
         service_gen.visit_service(service);
-        self.code.push_str(&service_gen.code);
+
+        self.traits_code.push_str(&service_gen.code);
+
+        self.code.push_str("pub mod traits {\n");
+        self.code.push_str("use super::*;\n");
+        self.code.push_str(&self.traits_code);
+        self.code.push_str("}\n");
 
         let mut client_gen = ClientGenerator::new(self.service_name.to_owned());
         client_gen.visit_service(service);
@@ -122,7 +128,7 @@ impl CtorTraitGenerator {
 impl<'ast> Visitor<'ast> for CtorTraitGenerator {
     fn visit_ctor(&mut self, ctor: &'ast Ctor) {
         self.code.push_str(&format!(
-            "pub trait {}Constructors<A: Default> {{\n",
+            "pub trait {}Factory<A: Default> {{\n",
             self.service_name
         ));
         visitor::accept_ctor(ctor, self);
@@ -167,8 +173,10 @@ impl CtorFactoryGenerator {
 
 impl<'ast> Visitor<'ast> for CtorFactoryGenerator {
     fn visit_ctor(&mut self, ctor: &'ast Ctor) {
-        self.code.push_str("pub struct ProgramFactory;\n");
-        self.code.push_str("impl ProgramFactory {\n");
+        self.code
+            .push_str(&format!("pub struct {}Factory;\n", self.service_name));
+        self.code
+            .push_str(&format!("impl {}Factory {{\n", self.service_name));
         self.code.push_str(
             "
             #[allow(unused)]
@@ -180,8 +188,8 @@ impl<'ast> Visitor<'ast> for CtorFactoryGenerator {
         self.code.push_str("}\n");
 
         self.code.push_str(&format!(
-            "impl<A: Default> {}Constructors<A> for ProgramFactory {{\n",
-            self.service_name,
+            "impl<A: Default> traits::{}Factory<A> for {}Factory {{\n",
+            self.service_name, self.service_name,
         ));
         visitor::accept_ctor(ctor, self);
         self.code.push_str("}\n");
@@ -236,14 +244,11 @@ impl ServiceGenerator {
 
 impl<'ast> Visitor<'ast> for ServiceGenerator {
     fn visit_service(&mut self, service: &'ast Service) {
-        self.code.push_str("pub mod traits {\n");
-        self.code.push_str("use super::*;\n");
         self.code.push_str(&format!(
             "pub trait {}<R, TCallArgs> {{\n",
             self.service_name
         ));
         visitor::accept_service(service, self);
-        self.code.push_str("}\n");
         self.code.push_str("}\n");
     }
 
