@@ -49,3 +49,28 @@ where
         Ok(result)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    use puppet::{DoThatParam, ManyVariants, ThisThatSvcCallBuilder};
+
+    #[test]
+    fn test_call_builder() {
+        let bytes = ThisThatSvcCallBuilder::do_that(DoThatParam {
+            p1: u32::MAX,
+            p2: "hello".to_string(),
+            p3: ManyVariants::One,
+        });
+        assert_eq!(
+            bytes,
+            vec![
+                24, 68, 111, 84, 104, 97, 116, // doThat
+                255, 255, 255, 255, // p1
+                20, 104, 101, 108, 108, 111, // p2
+                0    // p3
+            ]
+        );
+    }
+}

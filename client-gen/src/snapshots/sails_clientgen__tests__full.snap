@@ -106,13 +106,56 @@ where
         RemotingAction::new(self.remoting.clone(), &[16, 84, 104, 97, 116], v1)
     }
 }
+
+#[derive(Default)]
+pub struct ServiceCallBuilder;
+
+impl ServiceCallBuilder {
+    #[allow(unused)]
+    pub fn do_this(
+        p1: u32,
+        p2: String,
+        p3: (Option<String>, u8),
+        p4: ThisThatSvcAppTupleStruct,
+    ) -> Vec<u8> {
+        let args = (p1, p2, p3, p4);
+        let mut result = Vec::with_capacity(7 + args.encoded_size());
+        result.extend_from_slice(&[24, 68, 111, 84, 104, 105, 115]);
+        args.encode_to(&mut result);
+        result
+    }
+    #[allow(unused)]
+    pub fn do_that(param: ThisThatSvcAppDoThatParam) -> Vec<u8> {
+        let args = param;
+        let mut result = Vec::with_capacity(7 + args.encoded_size());
+        result.extend_from_slice(&[24, 68, 111, 84, 104, 97, 116]);
+        args.encode_to(&mut result);
+        result
+    }
+    #[allow(unused)]
+    pub fn this(v1: Vec<u16>) -> Vec<u8> {
+        let args = v1;
+        let mut result = Vec::with_capacity(5 + args.encoded_size());
+        result.extend_from_slice(&[16, 84, 104, 105, 115]);
+        args.encode_to(&mut result);
+        result
+    }
+    #[allow(unused)]
+    pub fn that(v1: ()) -> Vec<u8> {
+        let args = v1;
+        let mut result = Vec::with_capacity(5 + args.encoded_size());
+        result.extend_from_slice(&[16, 84, 104, 97, 116]);
+        args.encode_to(&mut result);
+        result
+    }
+}
 #[derive(PartialEq, Debug, Encode, Decode)]
-pub struct ThisThatSvcAppTupleStruct(bool);
+pub struct ThisThatSvcAppTupleStruct(pub bool);
 #[derive(PartialEq, Debug, Encode, Decode)]
 pub struct ThisThatSvcAppDoThatParam {
-    p1: u32,
-    p2: String,
-    p3: ThisThatSvcAppManyVariants,
+    pub p1: u32,
+    pub p2: String,
+    pub p3: ThisThatSvcAppManyVariants,
 }
 #[derive(PartialEq, Debug, Encode, Decode)]
 pub enum ThisThatSvcAppManyVariants {

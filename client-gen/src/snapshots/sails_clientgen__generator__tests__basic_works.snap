@@ -58,11 +58,33 @@ where
         RemotingAction::new(self.remoting.clone(), &[24, 68, 111, 84, 104, 97, 116], p1)
     }
 }
+
+#[derive(Default)]
+pub struct BasicCallBuilder;
+
+impl BasicCallBuilder {
+    #[allow(unused)]
+    pub fn do_this(p1: u32, p2: MyParam) -> Vec<u8> {
+        let args = (p1, p2);
+        let mut result = Vec::with_capacity(7 + args.encoded_size());
+        result.extend_from_slice(&[24, 68, 111, 84, 104, 105, 115]);
+        args.encode_to(&mut result);
+        result
+    }
+    #[allow(unused)]
+    pub fn do_that(p1: (u8, u32)) -> Vec<u8> {
+        let args = p1;
+        let mut result = Vec::with_capacity(7 + args.encoded_size());
+        result.extend_from_slice(&[24, 68, 111, 84, 104, 97, 116]);
+        args.encode_to(&mut result);
+        result
+    }
+}
 #[derive(PartialEq, Debug, Encode, Decode)]
 pub struct MyParam {
-    f1: u32,
-    f2: Vec<String>,
-    f3: Option<(u8, u32)>,
+    pub f1: u32,
+    pub f2: Vec<String>,
+    pub f3: Option<(u8, u32)>,
 }
 #[derive(PartialEq, Debug, Encode, Decode)]
 pub enum MyParam2 {

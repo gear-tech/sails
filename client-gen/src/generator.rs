@@ -102,6 +102,10 @@ impl<'a, 'ast> Visitor<'ast> for RootGenerator<'a> {
         let mut client_gen = ClientGenerator::new(self.service_name.to_owned());
         client_gen.visit_service(service);
         self.code.push_str(&client_gen.code);
+
+        let mut client_gen = CallBuilderGenerator::new(self.service_name.to_owned());
+        client_gen.visit_service(service);
+        self.code.push_str(&client_gen.code);
     }
 
     fn visit_type(&mut self, t: &'ast Type) {
@@ -397,6 +401,7 @@ impl<'a> TypeGenerator<'a> {
 impl<'a, 'ast> Visitor<'ast> for TypeGenerator<'a> {
     fn visit_struct_def(&mut self, struct_def: &'ast StructDef) {
         let mut struct_def_generator = StructDefGenerator::default();
+        struct_def_generator.is_pub = true;
         struct_def_generator.visit_struct_def(struct_def);
 
         let semi = if struct_def.fields().iter().all(|f| f.name().is_none()) {
@@ -429,6 +434,7 @@ impl<'a, 'ast> Visitor<'ast> for TypeGenerator<'a> {
 #[derive(Default)]
 struct StructDefGenerator {
     code: String,
+    is_pub: bool,
 }
 
 impl<'ast> Visitor<'ast> for StructDefGenerator {
@@ -454,11 +460,13 @@ impl<'ast> Visitor<'ast> for StructDefGenerator {
     fn visit_struct_field(&mut self, struct_field: &'ast StructField) {
         let type_decl_code = generate_type_decl_code(struct_field.type_decl());
 
+        let vis = if self.is_pub { "pub " } else { "" };
+
         if let Some(field_name) = struct_field.name() {
             self.code
-                .push_str(&format!("{}: {},", field_name, type_decl_code));
+                .push_str(&format!("{vis}{field_name}: {type_decl_code},"));
         } else {
-            self.code.push_str(&format!("{},", type_decl_code));
+            self.code.push_str(&format!("{vis}{type_decl_code},"));
         }
     }
 }
@@ -578,6 +586,83 @@ impl<'ast> Visitor<'ast> for TypeDeclGenerator {
     }
 }
 
+struct CallBuilderGenerator {
+    service_name: String,
+    code: String,
+}
+
+impl CallBuilderGenerator {
+    fn new(service_name: String) -> Self {
+        Self {
+            service_name,
+            code: String::new(),
+        }
+    }
+}
+
+impl<'ast> Visitor<'ast> for CallBuilderGenerator {
+    fn visit_service(&mut self, service: &'ast Service) {
+        let name = &self.service_name;
+
+        self.code.push_str(&format!(
+            r#"
+            #[derive(Default)]
+            pub struct {name}CallBuilder;
+
+            impl {name}CallBuilder {{
+        "#
+        ));
+
+        visitor::accept_service(service, self);
+
+        self.code.push_str("}\n");
+    }
+
+    fn visit_service_func(&mut self, func: &'ast ServiceFunc) {
+        let fn_name = func.name();
+
+        self.code.push_str("#[allow(unused)]");
+        self.code
+            .push_str(&format!("pub fn {}(", fn_name.to_case(Case::Snake)));
+
+        visitor::accept_service_func(func, self);
+
+        self.code.push_str("{\n");
+
+        let args = encoded_args(func.params());
+
+        let route_bytes = fn_name.encode();
+
+        let route_encoded_length = route_bytes.len();
+
+        let route_bytes = route_bytes
+            .into_iter()
+            .map(|x| x.to_string())
+            .collect::<Vec<_>>()
+            .join(",");
+
+        self.code.push_str(&format!("let args = {args};"));
+        self.code.push_str(&format!(
+            "let mut result = Vec::with_capacity({route_encoded_length} + args.encoded_size());",
+        ));
+        self.code
+            .push_str(&format!("result.extend_from_slice(&[{route_bytes}]);"));
+        self.code.push_str("args.encode_to(&mut result);");
+        self.code.push_str("result");
+
+        self.code.push_str("}\n");
+    }
+
+    fn visit_func_param(&mut self, func_param: &'ast FuncParam) {
+        let type_decl_code = generate_type_decl_code(func_param.type_decl());
+        self.code
+            .push_str(&format!("{}: {},", func_param.name(), type_decl_code));
+    }
+
+    fn visit_func_output(&mut self, _func_output: &'ast TypeDecl) {
+        self.code.push_str(") -> Vec<u8>");
+    }
+}
 #[cfg(test)]
 mod tests {
     use super::*;

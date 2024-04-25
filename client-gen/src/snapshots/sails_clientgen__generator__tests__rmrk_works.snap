@@ -173,6 +173,85 @@ where
         RemotingAction::new(self.remoting.clone(), &[16, 80, 97, 114, 116], part_id)
     }
 }
+
+#[derive(Default)]
+pub struct RmrkCatalogCallBuilder;
+
+impl RmrkCatalogCallBuilder {
+    #[allow(unused)]
+    pub fn add_equippables(part_id: u32, collection_ids: Vec<ActorId>) -> Vec<u8> {
+        let args = (part_id, collection_ids);
+        let mut result = Vec::with_capacity(15 + args.encoded_size());
+        result.extend_from_slice(&[
+            56, 65, 100, 100, 69, 113, 117, 105, 112, 112, 97, 98, 108, 101, 115,
+        ]);
+        args.encode_to(&mut result);
+        result
+    }
+    #[allow(unused)]
+    pub fn add_parts(parts: BTreeMap<u32, Part>) -> Vec<u8> {
+        let args = parts;
+        let mut result = Vec::with_capacity(9 + args.encoded_size());
+        result.extend_from_slice(&[32, 65, 100, 100, 80, 97, 114, 116, 115]);
+        args.encode_to(&mut result);
+        result
+    }
+    #[allow(unused)]
+    pub fn remove_equippable(part_id: u32, collection_id: ActorId) -> Vec<u8> {
+        let args = (part_id, collection_id);
+        let mut result = Vec::with_capacity(17 + args.encoded_size());
+        result.extend_from_slice(&[
+            64, 82, 101, 109, 111, 118, 101, 69, 113, 117, 105, 112, 112, 97, 98, 108, 101,
+        ]);
+        args.encode_to(&mut result);
+        result
+    }
+    #[allow(unused)]
+    pub fn remove_parts(part_ids: Vec<u32>) -> Vec<u8> {
+        let args = part_ids;
+        let mut result = Vec::with_capacity(12 + args.encoded_size());
+        result.extend_from_slice(&[44, 82, 101, 109, 111, 118, 101, 80, 97, 114, 116, 115]);
+        args.encode_to(&mut result);
+        result
+    }
+    #[allow(unused)]
+    pub fn reset_equippables(part_id: u32) -> Vec<u8> {
+        let args = part_id;
+        let mut result = Vec::with_capacity(17 + args.encoded_size());
+        result.extend_from_slice(&[
+            64, 82, 101, 115, 101, 116, 69, 113, 117, 105, 112, 112, 97, 98, 108, 101, 115,
+        ]);
+        args.encode_to(&mut result);
+        result
+    }
+    #[allow(unused)]
+    pub fn set_equippables_to_all(part_id: u32) -> Vec<u8> {
+        let args = part_id;
+        let mut result = Vec::with_capacity(20 + args.encoded_size());
+        result.extend_from_slice(&[
+            76, 83, 101, 116, 69, 113, 117, 105, 112, 112, 97, 98, 108, 101, 115, 84, 111, 65, 108,
+            108,
+        ]);
+        args.encode_to(&mut result);
+        result
+    }
+    #[allow(unused)]
+    pub fn equippable(part_id: u32, collection_id: ActorId) -> Vec<u8> {
+        let args = (part_id, collection_id);
+        let mut result = Vec::with_capacity(11 + args.encoded_size());
+        result.extend_from_slice(&[40, 69, 113, 117, 105, 112, 112, 97, 98, 108, 101]);
+        args.encode_to(&mut result);
+        result
+    }
+    #[allow(unused)]
+    pub fn part(part_id: u32) -> Vec<u8> {
+        let args = part_id;
+        let mut result = Vec::with_capacity(5 + args.encoded_size());
+        result.extend_from_slice(&[16, 80, 97, 114, 116]);
+        args.encode_to(&mut result);
+        result
+    }
+}
 #[derive(PartialEq, Debug, Encode, Decode)]
 pub enum Error {
     PartIdCantBeZero,
@@ -190,13 +269,13 @@ pub enum Part {
 }
 #[derive(PartialEq, Debug, Encode, Decode)]
 pub struct FixedPart {
-    z: Option<u32>,
-    metadata_uri: String,
+    pub z: Option<u32>,
+    pub metadata_uri: String,
 }
 #[derive(PartialEq, Debug, Encode, Decode)]
 pub struct SlotPart {
-    equippable: Vec<ActorId>,
-    z: Option<u32>,
-    metadata_uri: String,
+    pub equippable: Vec<ActorId>,
+    pub z: Option<u32>,
+    pub metadata_uri: String,
 }
 
