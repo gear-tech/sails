@@ -70,8 +70,9 @@ describe('RMRK resource', () => {
 
   test('AddResourceEntry func', async () => {
     expect(resourceId).toBeDefined();
+    expect(sails.services).toHaveProperty('RmrkResource');
 
-    const payload = sails.services.Service.functions.AddResourceEntry.encodePayload(1, {
+    const payload = sails.services.RmrkResource.functions.AddResourceEntry.encodePayload(1, {
       basic: {
         src: 'src',
         thumb: null,
@@ -117,7 +118,7 @@ describe('RMRK resource', () => {
 
     expect(replyMsg).toBeDefined();
 
-    const result = sails.services.Service.functions.AddResourceEntry.decodeResult(replyMsg.data.message.payload);
+    const result = sails.services.RmrkResource.functions.AddResourceEntry.decodeResult(replyMsg.data.message.payload);
 
     expect(result).toEqual({
       ok: [

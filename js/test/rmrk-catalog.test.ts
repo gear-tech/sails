@@ -69,7 +69,8 @@ describe('RMRK catalog', () => {
 
   test('add parts func', async () => {
     expect(catalogId).toBeDefined();
-    const payload = sails.services.Service.functions.AddParts.encodePayload({
+    expect(sails.services).toHaveProperty('RmrkCatalog');
+    const payload = sails.services.RmrkCatalog.functions.AddParts.encodePayload({
       1: { Fixed: { z: null, metadata_uri: 'foo' } },
     });
 
@@ -96,7 +97,7 @@ describe('RMRK catalog', () => {
 
     expect(replyMsg).toBeDefined();
 
-    const result = sails.services.Service.functions.AddParts.decodeResult(replyMsg.data.message.payload);
+    const result = sails.services.RmrkCatalog.functions.AddParts.decodeResult(replyMsg.data.message.payload);
 
     expect(result).toEqual({
       ok: {
