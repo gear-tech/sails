@@ -23,7 +23,6 @@ export class TransactionBuilder<ResponseType> {
     payloadType: string,
     responseType: string,
     programId: HexString,
-    serviceName: string,
   );
   constructor(
     api: GearApi,
