@@ -91,11 +91,11 @@ describe('RMRK resource', () => {
         return;
       }
 
-      if (!sails.services.Service.events.ResourceAdded.is(event)) {
+      if (!sails.services.RmrkResource.events.ResourceAdded.is(event)) {
         return;
       }
 
-      resourceAddedEvent = sails.services.Service.events.ResourceAdded.decode(event.data.message.payload.toU8a());
+      resourceAddedEvent = sails.services.RmrkResource.events.ResourceAdded.decode(event.data.message.payload.toU8a());
     });
 
     let [msgId, blockHash] = await new Promise<[HexString, HexString]>((resolve, reject) => {
