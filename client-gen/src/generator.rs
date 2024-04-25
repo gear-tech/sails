@@ -400,8 +400,7 @@ impl<'a> TypeGenerator<'a> {
 
 impl<'a, 'ast> Visitor<'ast> for TypeGenerator<'a> {
     fn visit_struct_def(&mut self, struct_def: &'ast StructDef) {
-        let mut struct_def_generator = StructDefGenerator::default();
-        struct_def_generator.is_pub = true;
+        let mut struct_def_generator = StructDefGenerator::new(true);
         struct_def_generator.visit_struct_def(struct_def);
 
         let semi = if struct_def.fields().iter().all(|f| f.name().is_none()) {
@@ -435,6 +434,15 @@ impl<'a, 'ast> Visitor<'ast> for TypeGenerator<'a> {
 struct StructDefGenerator {
     code: String,
     is_pub: bool,
+}
+
+impl StructDefGenerator {
+    fn new(is_pub: bool) -> Self {
+        Self {
+            code: String::new(),
+            is_pub,
+        }
+    }
 }
 
 impl<'ast> Visitor<'ast> for StructDefGenerator {
