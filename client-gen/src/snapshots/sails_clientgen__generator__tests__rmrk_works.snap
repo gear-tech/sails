@@ -25,52 +25,6 @@ impl<A: Default> traits::RmrkCatalogFactory<A> for RmrkCatalogFactory {
         RemotingAction::new(remoting, &[12, 78, 101, 119], ())
     }
 }
-pub mod traits {
-    use super::*;
-    pub trait RmrkCatalogFactory<A: Default> {
-        #[allow(clippy::new_ret_no_self)]
-        fn new(remoting: impl Remoting<A>) -> impl Activation<A>;
-    }
-    pub trait RmrkCatalog<R, TCallArgs> {
-        #[allow(clippy::type_complexity)]
-        fn add_equippables(
-            &mut self,
-            part_id: u32,
-            collection_ids: Vec<ActorId>,
-        ) -> impl Call<TCallArgs, Result<(u32, Vec<ActorId>), Error>>;
-        #[allow(clippy::type_complexity)]
-        fn add_parts(
-            &mut self,
-            parts: BTreeMap<u32, Part>,
-        ) -> impl Call<TCallArgs, Result<BTreeMap<u32, Part>, Error>>;
-        #[allow(clippy::type_complexity)]
-        fn remove_equippable(
-            &mut self,
-            part_id: u32,
-            collection_id: ActorId,
-        ) -> impl Call<TCallArgs, Result<(u32, ActorId), Error>>;
-        #[allow(clippy::type_complexity)]
-        fn remove_parts(
-            &mut self,
-            part_ids: Vec<u32>,
-        ) -> impl Call<TCallArgs, Result<Vec<u32>, Error>>;
-        #[allow(clippy::type_complexity)]
-        fn reset_equippables(&mut self, part_id: u32) -> impl Call<TCallArgs, Result<(), Error>>;
-        #[allow(clippy::type_complexity)]
-        fn set_equippables_to_all(
-            &mut self,
-            part_id: u32,
-        ) -> impl Call<TCallArgs, Result<(), Error>>;
-        #[allow(clippy::type_complexity)]
-        fn equippable(
-            &self,
-            part_id: u32,
-            collection_id: ActorId,
-        ) -> impl Call<TCallArgs, Result<bool, Error>>;
-        #[allow(clippy::type_complexity)]
-        fn part(&self, part_id: u32) -> impl Call<TCallArgs, Option<Part>>;
-    }
-}
 
 #[derive(Clone)]
 pub struct RmrkCatalog<R, A>
@@ -182,6 +136,7 @@ impl RmrkCatalogCallBuilder {
     pub fn add_equippables(part_id: u32, collection_ids: Vec<ActorId>) -> Vec<u8> {
         let args = (part_id, collection_ids);
         let mut result = Vec::with_capacity(15 + args.encoded_size());
+        result.extend_from_slice(&[]);
         result.extend_from_slice(&[
             56, 65, 100, 100, 69, 113, 117, 105, 112, 112, 97, 98, 108, 101, 115,
         ]);
@@ -192,6 +147,7 @@ impl RmrkCatalogCallBuilder {
     pub fn add_parts(parts: BTreeMap<u32, Part>) -> Vec<u8> {
         let args = parts;
         let mut result = Vec::with_capacity(9 + args.encoded_size());
+        result.extend_from_slice(&[]);
         result.extend_from_slice(&[32, 65, 100, 100, 80, 97, 114, 116, 115]);
         args.encode_to(&mut result);
         result
@@ -200,6 +156,7 @@ impl RmrkCatalogCallBuilder {
     pub fn remove_equippable(part_id: u32, collection_id: ActorId) -> Vec<u8> {
         let args = (part_id, collection_id);
         let mut result = Vec::with_capacity(17 + args.encoded_size());
+        result.extend_from_slice(&[]);
         result.extend_from_slice(&[
             64, 82, 101, 109, 111, 118, 101, 69, 113, 117, 105, 112, 112, 97, 98, 108, 101,
         ]);
@@ -210,6 +167,7 @@ impl RmrkCatalogCallBuilder {
     pub fn remove_parts(part_ids: Vec<u32>) -> Vec<u8> {
         let args = part_ids;
         let mut result = Vec::with_capacity(12 + args.encoded_size());
+        result.extend_from_slice(&[]);
         result.extend_from_slice(&[44, 82, 101, 109, 111, 118, 101, 80, 97, 114, 116, 115]);
         args.encode_to(&mut result);
         result
@@ -218,6 +176,7 @@ impl RmrkCatalogCallBuilder {
     pub fn reset_equippables(part_id: u32) -> Vec<u8> {
         let args = part_id;
         let mut result = Vec::with_capacity(17 + args.encoded_size());
+        result.extend_from_slice(&[]);
         result.extend_from_slice(&[
             64, 82, 101, 115, 101, 116, 69, 113, 117, 105, 112, 112, 97, 98, 108, 101, 115,
         ]);
@@ -228,6 +187,7 @@ impl RmrkCatalogCallBuilder {
     pub fn set_equippables_to_all(part_id: u32) -> Vec<u8> {
         let args = part_id;
         let mut result = Vec::with_capacity(20 + args.encoded_size());
+        result.extend_from_slice(&[]);
         result.extend_from_slice(&[
             76, 83, 101, 116, 69, 113, 117, 105, 112, 112, 97, 98, 108, 101, 115, 84, 111, 65, 108,
             108,
@@ -239,6 +199,7 @@ impl RmrkCatalogCallBuilder {
     pub fn equippable(part_id: u32, collection_id: ActorId) -> Vec<u8> {
         let args = (part_id, collection_id);
         let mut result = Vec::with_capacity(11 + args.encoded_size());
+        result.extend_from_slice(&[]);
         result.extend_from_slice(&[40, 69, 113, 117, 105, 112, 112, 97, 98, 108, 101]);
         args.encode_to(&mut result);
         result
@@ -247,6 +208,7 @@ impl RmrkCatalogCallBuilder {
     pub fn part(part_id: u32) -> Vec<u8> {
         let args = part_id;
         let mut result = Vec::with_capacity(5 + args.encoded_size());
+        result.extend_from_slice(&[]);
         result.extend_from_slice(&[16, 80, 97, 114, 116]);
         args.encode_to(&mut result);
         result
@@ -277,5 +239,51 @@ pub struct SlotPart {
     pub equippable: Vec<ActorId>,
     pub z: Option<u32>,
     pub metadata_uri: String,
+}
+pub mod traits {
+    use super::*;
+    pub trait RmrkCatalogFactory<A: Default> {
+        #[allow(clippy::new_ret_no_self)]
+        fn new(remoting: impl Remoting<A>) -> impl Activation<A>;
+    }
+    pub trait RmrkCatalog<R, TCallArgs> {
+        #[allow(clippy::type_complexity)]
+        fn add_equippables(
+            &mut self,
+            part_id: u32,
+            collection_ids: Vec<ActorId>,
+        ) -> impl Call<TCallArgs, Result<(u32, Vec<ActorId>), Error>>;
+        #[allow(clippy::type_complexity)]
+        fn add_parts(
+            &mut self,
+            parts: BTreeMap<u32, Part>,
+        ) -> impl Call<TCallArgs, Result<BTreeMap<u32, Part>, Error>>;
+        #[allow(clippy::type_complexity)]
+        fn remove_equippable(
+            &mut self,
+            part_id: u32,
+            collection_id: ActorId,
+        ) -> impl Call<TCallArgs, Result<(u32, ActorId), Error>>;
+        #[allow(clippy::type_complexity)]
+        fn remove_parts(
+            &mut self,
+            part_ids: Vec<u32>,
+        ) -> impl Call<TCallArgs, Result<Vec<u32>, Error>>;
+        #[allow(clippy::type_complexity)]
+        fn reset_equippables(&mut self, part_id: u32) -> impl Call<TCallArgs, Result<(), Error>>;
+        #[allow(clippy::type_complexity)]
+        fn set_equippables_to_all(
+            &mut self,
+            part_id: u32,
+        ) -> impl Call<TCallArgs, Result<(), Error>>;
+        #[allow(clippy::type_complexity)]
+        fn equippable(
+            &self,
+            part_id: u32,
+            collection_id: ActorId,
+        ) -> impl Call<TCallArgs, Result<bool, Error>>;
+        #[allow(clippy::type_complexity)]
+        fn part(&self, part_id: u32) -> impl Call<TCallArgs, Option<Part>>;
+    }
 }
 
