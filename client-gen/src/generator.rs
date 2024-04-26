@@ -116,8 +116,7 @@ impl<'a, 'ast> Visitor<'ast> for RootGenerator<'a> {
         client_gen.visit_service(service);
         self.code.push_str(&client_gen.code);
 
-        let mut client_gen =
-            CallBuilderGenerator::new(service_name.to_owned(), path.to_owned());
+        let mut client_gen = CallBuilderGenerator::new(service_name.to_owned(), path.to_owned());
 
         client_gen.visit_service(service);
         self.code.push_str(&client_gen.code);
@@ -627,32 +626,32 @@ impl CallBuilderGenerator {
 }
 
 fn path_bytes(path: &str) -> (String, usize) {
-        if path.is_empty() {
-            (String::new(), 0)
-        } else {
-            let service_path_bytes = path.encode();
-            let service_path_encoded_length = service_path_bytes.len();
-            let service_path_bytes = service_path_bytes
-                .into_iter()
-                .map(|x| x.to_string())
-                .collect::<Vec<_>>()
-                .join(",");
-
-            (service_path_bytes, service_path_encoded_length)
-        }
-    }
-
-    fn method_bytes(fn_name: &str) -> (String, usize) {
-        let route_bytes = fn_name.encode();
-        let route_encoded_length = route_bytes.len();
-        let route_bytes = route_bytes
+    if path.is_empty() {
+        (String::new(), 0)
+    } else {
+        let service_path_bytes = path.encode();
+        let service_path_encoded_length = service_path_bytes.len();
+        let service_path_bytes = service_path_bytes
             .into_iter()
             .map(|x| x.to_string())
             .collect::<Vec<_>>()
             .join(",");
 
-        (route_bytes, route_encoded_length)
+        (service_path_bytes, service_path_encoded_length)
     }
+}
+
+fn method_bytes(fn_name: &str) -> (String, usize) {
+    let route_bytes = fn_name.encode();
+    let route_encoded_length = route_bytes.len();
+    let route_bytes = route_bytes
+        .into_iter()
+        .map(|x| x.to_string())
+        .collect::<Vec<_>>()
+        .join(",");
+
+    (route_bytes, route_encoded_length)
+}
 
 impl<'ast> Visitor<'ast> for CallBuilderGenerator {
     fn visit_service(&mut self, service: &'ast Service) {
