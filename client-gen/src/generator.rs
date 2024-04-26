@@ -105,17 +105,19 @@ impl<'a, 'ast> Visitor<'ast> for RootGenerator<'a> {
             service.name()
         };
 
+        let path = service.name();
+
         let mut service_gen = ServiceGenerator::new(service_name.to_owned());
         service_gen.visit_service(service);
 
         self.traits_code.push_str(&service_gen.code);
 
-        let mut client_gen = ClientGenerator::new(service_name.to_owned());
+        let mut client_gen = ClientGenerator::new(service_name.to_owned(), path.to_owned());
         client_gen.visit_service(service);
         self.code.push_str(&client_gen.code);
 
         let mut client_gen =
-            CallBuilderGenerator::new(service_name.to_owned(), service.name().to_owned());
+            CallBuilderGenerator::new(service_name.to_owned(), path.to_owned());
 
         client_gen.visit_service(service);
         self.code.push_str(&client_gen.code);
@@ -295,13 +297,15 @@ impl<'ast> Visitor<'ast> for ServiceGenerator {
 
 struct ClientGenerator {
     service_name: String,
+    path: String,
     code: String,
 }
 
 impl ClientGenerator {
-    fn new(service_name: String) -> Self {
+    fn new(service_name: String, path: String) -> Self {
         Self {
             service_name,
+            path,
             code: String::new(),
         }
     }
@@ -356,15 +360,14 @@ impl<'ast> Visitor<'ast> for ClientGenerator {
 
         let args = encoded_args(func.params());
 
-        let route_bytes = fn_name
-            .encode()
-            .into_iter()
-            .map(|x| x.to_string())
-            .collect::<Vec<_>>()
-            .join(",");
+        let (mut service_path_bytes, _service_path_encoded_length) = path_bytes(&self.path);
+        if !service_path_bytes.is_empty() {
+            service_path_bytes.push(',')
+        }
+        let (route_bytes, _route_encoded_length) = method_bytes(&fn_name);
 
         self.code.push_str(&format!(
-            "RemotingAction::new(self.remoting.clone(), &[{route_bytes}], {args})"
+            "RemotingAction::new(self.remoting.clone(), &[{service_path_bytes} {route_bytes}], {args})"
         ));
 
         self.code.push_str("}\n");
@@ -481,7 +484,7 @@ impl<'ast> Visitor<'ast> for StructDefGenerator {
     fn visit_struct_field(&mut self, struct_field: &'ast StructField) {
         let type_decl_code = generate_type_decl_code(struct_field.type_decl());
 
-        let vis = if self.is_pub { "pub " } else { "" };
+        let vis = self.is_pub.then_some("pub ").unwrap_or_default();
 
         if let Some(field_name) = struct_field.name() {
             self.code
@@ -621,12 +624,13 @@ impl CallBuilderGenerator {
             code: String::new(),
         }
     }
+}
 
-    fn path_bytes(&self) -> (String, usize) {
-        if self.path.is_empty() {
+fn path_bytes(path: &str) -> (String, usize) {
+        if path.is_empty() {
             (String::new(), 0)
         } else {
-            let service_path_bytes = self.path.encode();
+            let service_path_bytes = path.encode();
             let service_path_encoded_length = service_path_bytes.len();
             let service_path_bytes = service_path_bytes
                 .into_iter()
@@ -638,7 +642,7 @@ impl CallBuilderGenerator {
         }
     }
 
-    fn method_bytes(&self, fn_name: &str) -> (String, usize) {
+    fn method_bytes(fn_name: &str) -> (String, usize) {
         let route_bytes = fn_name.encode();
         let route_encoded_length = route_bytes.len();
         let route_bytes = route_bytes
@@ -649,7 +653,6 @@ impl CallBuilderGenerator {
 
         (route_bytes, route_encoded_length)
     }
-}
 
 impl<'ast> Visitor<'ast> for CallBuilderGenerator {
     fn visit_service(&mut self, service: &'ast Service) {
@@ -682,8 +685,8 @@ impl<'ast> Visitor<'ast> for CallBuilderGenerator {
 
         let args = encoded_args(func.params());
 
-        let (service_path_bytes, service_path_encoded_length) = self.path_bytes();
-        let (route_bytes, route_encoded_length) = self.method_bytes(fn_name);
+        let (service_path_bytes, service_path_encoded_length) = path_bytes(&self.path);
+        let (route_bytes, route_encoded_length) = method_bytes(&fn_name);
 
         let path_len = service_path_encoded_length + route_encoded_length;
 
