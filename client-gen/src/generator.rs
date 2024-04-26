@@ -364,7 +364,7 @@ impl<'ast> Visitor<'ast> for ClientGenerator {
         if !service_path_bytes.is_empty() {
             service_path_bytes.push(',')
         }
-        let (route_bytes, _route_encoded_length) = method_bytes(&fn_name);
+        let (route_bytes, _route_encoded_length) = method_bytes(fn_name);
 
         self.code.push_str(&format!(
             "RemotingAction::new(self.remoting.clone(), &[{service_path_bytes} {route_bytes}], {args})"
@@ -686,7 +686,7 @@ impl<'ast> Visitor<'ast> for CallBuilderGenerator {
         let args = encoded_args(func.params());
 
         let (service_path_bytes, service_path_encoded_length) = path_bytes(&self.path);
-        let (route_bytes, route_encoded_length) = method_bytes(&fn_name);
+        let (route_bytes, route_encoded_length) = method_bytes(fn_name);
 
         let path_len = service_path_encoded_length + route_encoded_length;
 
