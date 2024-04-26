@@ -10,9 +10,6 @@ pub trait Action<TArgs> {
     fn value(&self) -> ValueUnit;
 
     fn args(&self) -> &TArgs;
-
-    /// Consumes action and returns its binary representation.
-    fn into_bytes(self) -> Vec<u8>;
 }
 
 #[allow(async_fn_in_trait)]
@@ -151,10 +148,6 @@ impl<TRemoting, TArgs, TReply> Action<TArgs> for RemotingAction<TRemoting, TArgs
 
     fn args(&self) -> &TArgs {
         &self.args
-    }
-
-    fn into_bytes(self) -> Vec<u8> {
-        self.payload
     }
 }
 
