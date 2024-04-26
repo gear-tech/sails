@@ -25,32 +25,6 @@ impl<A: Default> traits::ServiceFactory<A> for ServiceFactory {
         RemotingAction::new(remoting, &[12, 78, 101, 119], a)
     }
 }
-pub mod traits {
-    use super::*;
-    pub trait ServiceFactory<A: Default> {
-        #[allow(clippy::new_ret_no_self)]
-        fn new(remoting: impl Remoting<A>, a: u32) -> impl Activation<A>;
-    }
-    pub trait Service<R, TCallArgs> {
-        #[allow(clippy::type_complexity)]
-        fn do_this(
-            &mut self,
-            p1: u32,
-            p2: String,
-            p3: (Option<String>, u8),
-            p4: ThisThatSvcAppTupleStruct,
-        ) -> impl Call<TCallArgs, (String, u32)>;
-        #[allow(clippy::type_complexity)]
-        fn do_that(
-            &mut self,
-            param: ThisThatSvcAppDoThatParam,
-        ) -> impl Call<TCallArgs, Result<(String, u32), (String,)>>;
-        #[allow(clippy::type_complexity)]
-        fn this(&self, v1: Vec<u16>) -> impl Call<TCallArgs, u32>;
-        #[allow(clippy::type_complexity)]
-        fn that(&self, v1: ()) -> impl Call<TCallArgs, Result<String, String>>;
-    }
-}
 
 #[derive(Clone)]
 pub struct Service<R, A>
@@ -106,13 +80,60 @@ where
         RemotingAction::new(self.remoting.clone(), &[16, 84, 104, 97, 116], v1)
     }
 }
+
+#[derive(Default)]
+pub struct ServiceCallBuilder;
+
+impl ServiceCallBuilder {
+    #[allow(unused)]
+    pub fn do_this(
+        p1: u32,
+        p2: String,
+        p3: (Option<String>, u8),
+        p4: ThisThatSvcAppTupleStruct,
+    ) -> Vec<u8> {
+        let args = (p1, p2, p3, p4);
+        let mut result = Vec::with_capacity(7 + args.encoded_size());
+        result.extend_from_slice(&[]);
+        result.extend_from_slice(&[24, 68, 111, 84, 104, 105, 115]);
+        args.encode_to(&mut result);
+        result
+    }
+    #[allow(unused)]
+    pub fn do_that(param: ThisThatSvcAppDoThatParam) -> Vec<u8> {
+        let args = param;
+        let mut result = Vec::with_capacity(7 + args.encoded_size());
+        result.extend_from_slice(&[]);
+        result.extend_from_slice(&[24, 68, 111, 84, 104, 97, 116]);
+        args.encode_to(&mut result);
+        result
+    }
+    #[allow(unused)]
+    pub fn this(v1: Vec<u16>) -> Vec<u8> {
+        let args = v1;
+        let mut result = Vec::with_capacity(5 + args.encoded_size());
+        result.extend_from_slice(&[]);
+        result.extend_from_slice(&[16, 84, 104, 105, 115]);
+        args.encode_to(&mut result);
+        result
+    }
+    #[allow(unused)]
+    pub fn that(v1: ()) -> Vec<u8> {
+        let args = v1;
+        let mut result = Vec::with_capacity(5 + args.encoded_size());
+        result.extend_from_slice(&[]);
+        result.extend_from_slice(&[16, 84, 104, 97, 116]);
+        args.encode_to(&mut result);
+        result
+    }
+}
 #[derive(PartialEq, Debug, Encode, Decode)]
-pub struct ThisThatSvcAppTupleStruct(bool);
+pub struct ThisThatSvcAppTupleStruct(pub bool);
 #[derive(PartialEq, Debug, Encode, Decode)]
 pub struct ThisThatSvcAppDoThatParam {
-    p1: u32,
-    p2: String,
-    p3: ThisThatSvcAppManyVariants,
+    pub p1: u32,
+    pub p2: String,
+    pub p3: ThisThatSvcAppManyVariants,
 }
 #[derive(PartialEq, Debug, Encode, Decode)]
 pub enum ThisThatSvcAppManyVariants {
@@ -126,5 +147,31 @@ pub enum ThisThatSvcAppManyVariants {
 #[derive(PartialEq, Debug, Encode, Decode)]
 pub enum T {
     One,
+}
+pub mod traits {
+    use super::*;
+    pub trait ServiceFactory<A: Default> {
+        #[allow(clippy::new_ret_no_self)]
+        fn new(remoting: impl Remoting<A>, a: u32) -> impl Activation<A>;
+    }
+    pub trait Service<R, TCallArgs> {
+        #[allow(clippy::type_complexity)]
+        fn do_this(
+            &mut self,
+            p1: u32,
+            p2: String,
+            p3: (Option<String>, u8),
+            p4: ThisThatSvcAppTupleStruct,
+        ) -> impl Call<TCallArgs, (String, u32)>;
+        #[allow(clippy::type_complexity)]
+        fn do_that(
+            &mut self,
+            param: ThisThatSvcAppDoThatParam,
+        ) -> impl Call<TCallArgs, Result<(String, u32), (String,)>>;
+        #[allow(clippy::type_complexity)]
+        fn this(&self, v1: Vec<u16>) -> impl Call<TCallArgs, u32>;
+        #[allow(clippy::type_complexity)]
+        fn that(&self, v1: ()) -> impl Call<TCallArgs, Result<String, String>>;
+    }
 }
 
