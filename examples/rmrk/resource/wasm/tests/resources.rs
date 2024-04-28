@@ -320,7 +320,7 @@ impl<'a> Fixture<'a> {
                     && l.payload()[encoded_service_name.len()..].starts_with(&encoded_func_name)
             })
             .map(|l| {
-                let mut p = &l.payload()[&encoded_service_name.len() + &encoded_func_name.len()..];
+                let mut p = &l.payload()[encoded_service_name.len() + encoded_func_name.len()..];
                 ResourceStorageResult::<Resource>::decode(&mut p).unwrap()
             })
     }
