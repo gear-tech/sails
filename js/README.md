@@ -35,9 +35,30 @@ sails.parseIdl(idl);
 `@gear-js/api` package can be used for all these actions.
 `Sails` instance can be used to encode and decode payloads for the specific program functions or events.
 
+### Constructors
+`sails.ctors` property contains an object with all the constructors available in the IDL file.
+The key of the object is the name of the constructor and the value is an object with the following properties:
+```javascript
+{
+  args: Array<{name: string, type: string}>, // array of arguments with their names and scale codec types
+  encodePayload: (...args: any): Uint8Array, // function to encode the payload
+}
+```
 
-### Available functions of the program
-`sails.functions` property contains an object with all the functions available in the IDL file.
+### Services
+`sails.services` property contains an object with all the services available in the IDL file.
+The key of the object is the name of the service and the value is an object with the following properties:
+```javascript
+{
+  functions: Record<string, SailsServiceFunc>, // object with all the functions available in the service
+  events: Record<string, SailsServiceEvent>, // object with all the events available in the service
+}
+```
+To get the service object use `sails.services.ServiceName`
+
+
+### Functions
+`sails.services.ServiceName.functions` property contains an object with all the functions available in the IDL file.
 The key of the object is the name of the function and the value is an object with the following properties:
 ```javascript
 {
@@ -50,18 +71,8 @@ The key of the object is the name of the function and the value is an object wit
 }
 ```
 
-### Available constructors of the program
-`sails.ctors` property contains an object with all the constructors available in the IDL file.
-The key of the object is the name of the constructor and the value is an object with the following properties:
-```javascript
-{
-  args: Array<{name: string, type: string}>, // array of arguments with their names and scale codec types
-  encodePayload: (...args: any): Uint8Array, // function to encode the payload
-}
-```
-
 ### Available events of the program
-`sails.events` property contains an object with all the events available in the IDL file.
+`sails.services.ServiceName.events` property contains an object with all the events available in the IDL file.
 The key of the object is the name of the event and the value is an object with the following properties:
 ```javascript
 {
@@ -72,16 +83,18 @@ The key of the object is the name of the event and the value is an object with t
 ```
 
 ### Get function name and decode bytes
+Use `sails.getServiceName` method to get the service name from the payload bytes.
 Use `sails.getFnName` method to get the function name from the payload bytes.
-Use `sails.functions.FuncitonName.decodePayload` method of the function object to decode the payload bytes of the send message.
-Use `sails.functions.FuncitonName.decodeResult` method of the function object to decode the result bytes of the received message.
+Use `sails.services.ServiceName.functions.FuncitonName.decodePayload` method of the function object to decode the payload bytes of the send message.
+Use `sails.services.ServiceName.functions.FuncitonName.decodeResult` method of the function object to decode the result bytes of the received message.
 
 ```javascript
-const payloadOfSentMessage = '<some bytes>';
-const functionName = sails.getFunctionName(payloadOfSentMessage);
-console.log(sails.functions[functionName].decodeResult(payloadOfSentMessage));
+const payloadOfSentMessage = '0x<some bytes>';
+const serviceName = sails.getServiceName(payloadOfSentMessage);
+const functionName = sails.getFnName(payloadOfSentMessage);
+console.log(sails.services[serviceName].functions[functionName].decodeResult(payloadOfSentMessage));
 
-const payloadOfReceivedMessage = '<some bytes>';
+const payloadOfReceivedMessage = '0x<some bytes>';
 const functionName = sails.getFunctionName(payloadOfReceivedMessage);
 console.log(sails.functions[functionName].decodePayload(payloadOfReceivedMessage));
 ```
@@ -96,7 +109,7 @@ sails.events.EventName.decode('<some bytes>')
 ```
 
 ### Encode payload
-Use `sails.functions.FunctionName.encodePayload` method of the function object to encode the payload for the specific function. The bytes returned by this method can be used to send the message to the program.
+Use `sails.services.ServiceName.functions.FunctionName.encodePayload` method of the function object to encode the payload for the specific function. The bytes returned by this method can be used to send the message to the program.
 
 ```javascript
 const payload = sails.functions.SomeFunction.encodePayload(arg1, arg2);

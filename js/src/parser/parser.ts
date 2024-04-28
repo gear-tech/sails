@@ -194,18 +194,22 @@ export class WasmParser {
           $._exports.accept_ctor_func(func_ptr, func.rawPtr);
         },
         visit_service: (_, service_ptr: number) => {
-          $._program.addService(new Service(service_ptr, $._memory));
-          $._exports.accept_service(service_ptr, 0);
+          const service = new Service(service_ptr, $._memory);
+          $._program.addContext(service.rawPtr, service);
+          $._program.addService(service);
+          $._exports.accept_service(service_ptr, service.rawPtr);
         },
-        visit_service_func: (_, func_ptr: number) => {
+        visit_service_func: (ctx: number, func_ptr: number) => {
           const func = new ServiceFunc(func_ptr, $._memory);
-          $._program.service.addFunc(func);
+          const service = $._program.getContext(ctx);
+          service.addFunc(func);
           $._program.addContext(func.rawPtr, func);
           $._exports.accept_service_func(func_ptr, func.rawPtr);
         },
-        visit_service_event: (_, event_ptr: number) => {
+        visit_service_event: (ctx: number, event_ptr: number) => {
           const event = new ServiceEvent(event_ptr, $._memory);
-          $._program.service.addEvent(event);
+          const service = $._program.getContext(ctx);
+          service.addEvent(event);
           $._program.addContext(event.rawPtr, event);
           $._exports.accept_service_event(event_ptr, event.rawPtr);
         },

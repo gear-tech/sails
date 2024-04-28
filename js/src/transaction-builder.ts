@@ -271,7 +271,7 @@ export class TransactionBuilder<ResponseType> {
         }
 
         return this._registry
-          .createType<any>(`(String, ${this._responseType})`, message.payload)[1]
+          .createType<any>(`(String, String, ${this._responseType})`, message.payload)[2]
           .toJSON() as ResponseType;
       },
     };

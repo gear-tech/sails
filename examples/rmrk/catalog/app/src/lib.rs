@@ -21,7 +21,7 @@ impl Program {
     }
 
     // Expose hosted service
-    #[groute("")]
+    #[groute("RmrkCatalog")]
     pub fn catalog(&self) -> Catalog<GStdExecContext> {
         let exec_context = GStdExecContext::default();
         Catalog::new(exec_context)

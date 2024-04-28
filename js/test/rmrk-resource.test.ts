@@ -70,8 +70,9 @@ describe('RMRK resource', () => {
 
   test('AddResourceEntry func', async () => {
     expect(resourceId).toBeDefined();
+    expect(sails.services).toHaveProperty('RmrkResource');
 
-    const payload = sails.functions.AddResourceEntry.encodePayload(1, {
+    const payload = sails.services.RmrkResource.functions.AddResourceEntry.encodePayload(1, {
       basic: {
         src: 'src',
         thumb: null,
@@ -90,23 +91,21 @@ describe('RMRK resource', () => {
         return;
       }
 
-      if (!sails.events.ResourceAdded.is(event)) {
+      if (!sails.services.RmrkResource.events.ResourceAdded.is(event)) {
         return;
       }
 
-      resourceAddedEvent = sails.events.ResourceAdded.decode(event.data.message.payload.toU8a());
+      resourceAddedEvent = sails.services.RmrkResource.events.ResourceAdded.decode(event.data.message.payload.toU8a());
     });
 
-    const reply = api.message.listenToReplies(resourceId);
-
-    let msgId = await new Promise<HexString>((resolve, reject) => {
+    let [msgId, blockHash] = await new Promise<[HexString, HexString]>((resolve, reject) => {
       extrinsic.signAndSend(alice, ({ events, status }) => {
         if (status.isInBlock) {
           const success = events.find(({ event: { method } }) => method === 'ExtrinsicSuccess');
           if (success) {
             const msgQueued = events.find(({ event: { method } }) => method === 'MessageQueued')
               ?.event as MessageQueued;
-            resolve(msgQueued.data.id.toHex());
+            resolve([msgQueued.data.id.toHex(), status.asInBlock.toHex()]);
           } else {
             const failed = events.find(({ event: { method } }) => method === 'ExtrinsicFailed');
             reject(api.getExtrinsicFailedError(failed.event).docs);
@@ -115,11 +114,11 @@ describe('RMRK resource', () => {
       });
     });
 
-    const replyMsg = await reply(msgId);
+    const replyMsg = await api.message.getReplyEvent(resourceId, msgId, blockHash);
 
     expect(replyMsg).toBeDefined();
 
-    const result = sails.functions.AddResourceEntry.decodeResult(replyMsg.message.payload);
+    const result = sails.services.RmrkResource.functions.AddResourceEntry.decodeResult(replyMsg.data.message.payload);
 
     expect(result).toEqual({
       ok: [
@@ -155,20 +154,20 @@ describe('RMRK resource generated', () => {
     expect(blockHash).toBeDefined();
     await response();
 
-    expect(program).toHaveProperty('addPartToResource');
-    expect(program).toHaveProperty('addResourceEntry');
-    expect(program).toHaveProperty('resource');
+    expect(program.rmrkResource).toHaveProperty('addPartToResource');
+    expect(program.rmrkResource).toHaveProperty('addResourceEntry');
+    expect(program.rmrkResource).toHaveProperty('resource');
     expect(program.programId).toBeDefined();
   });
 
   test('add resource and listen to event', async () => {
     let resourceEvent;
 
-    const unsub = await program.subscribeToResourceAddedEvent((data) => {
+    const unsub = await program.rmrkResource.subscribeToResourceAddedEvent((data) => {
       resourceEvent = data;
     });
 
-    const transaction = await program.addResourceEntry(1, {
+    const transaction = await program.rmrkResource.addResourceEntry(1, {
       composed: {
         src: 'src',
         thumb: 'thumb',

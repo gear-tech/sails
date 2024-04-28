@@ -2,7 +2,6 @@ import { GearApi, HexString, MessageQueued, decodeAddress } from '@gear-js/api';
 import { KeyringPair } from '@polkadot/keyring/types';
 import { waitReady } from '@polkadot/wasm-crypto';
 import { Keyring } from '@polkadot/api';
-import { u8aToHex } from '@polkadot/util';
 import { readFileSync } from 'fs';
 
 import { Sails } from '../lib';
@@ -70,7 +69,8 @@ describe('RMRK catalog', () => {
 
   test('add parts func', async () => {
     expect(catalogId).toBeDefined();
-    const payload = sails.functions.AddParts.encodePayload({
+    expect(sails.services).toHaveProperty('RmrkCatalog');
+    const payload = sails.services.RmrkCatalog.functions.AddParts.encodePayload({
       1: { Fixed: { z: null, metadata_uri: 'foo' } },
     });
 
@@ -78,15 +78,13 @@ describe('RMRK catalog', () => {
 
     const extrinsic = api.message.send({ destination: catalogId, payload, gasLimit: gas.min_limit });
 
-    const reply = api.message.listenToReplies(catalogId);
-
-    let msgId = await new Promise<HexString>((resolve, reject) => {
+    let [msgId, blockHash] = await new Promise<[HexString, HexString]>((resolve, reject) => {
       extrinsic.signAndSend(alice, ({ events, status }) => {
         if (status.isInBlock) {
           const success = events.find(({ event: { method } }) => method === 'ExtrinsicSuccess');
           if (success) {
             const msgQueued = events.find(({ event: { method } }) => method === 'MessageQueued').event as MessageQueued;
-            resolve(msgQueued.data.id.toHex());
+            resolve([msgQueued.data.id.toHex(), status.asInBlock.toHex()]);
           } else {
             const failed = events.find(({ event: { method } }) => method === 'ExtrinsicFailed');
             reject(api.getExtrinsicFailedError(failed.event).docs);
@@ -95,11 +93,11 @@ describe('RMRK catalog', () => {
       });
     });
 
-    const replyMsg = await reply(msgId);
+    const replyMsg = await api.message.getReplyEvent(catalogId, msgId, blockHash);
 
     expect(replyMsg).toBeDefined();
 
-    const result = sails.functions.AddParts.decodeResult(replyMsg.message.payload);
+    const result = sails.services.RmrkCatalog.functions.AddParts.decodeResult(replyMsg.data.message.payload);
 
     expect(result).toEqual({
       ok: {
@@ -118,14 +116,14 @@ describe('RMRK generated', () => {
     program = new Program(api);
     const transaction = await program.newCtorFromCode(code);
 
-    expect(program).toHaveProperty('addParts');
-    expect(program).toHaveProperty('removeParts');
-    expect(program).toHaveProperty('addEquippables');
-    expect(program).toHaveProperty('removeEquippable');
-    expect(program).toHaveProperty('resetEquippables');
-    expect(program).toHaveProperty('setEquippablesToAll');
-    expect(program).toHaveProperty('part');
-    expect(program).toHaveProperty('equippable');
+    expect(program.rmrkCatalog).toHaveProperty('addParts');
+    expect(program.rmrkCatalog).toHaveProperty('removeParts');
+    expect(program.rmrkCatalog).toHaveProperty('addEquippables');
+    expect(program.rmrkCatalog).toHaveProperty('removeEquippable');
+    expect(program.rmrkCatalog).toHaveProperty('resetEquippables');
+    expect(program.rmrkCatalog).toHaveProperty('setEquippablesToAll');
+    expect(program.rmrkCatalog).toHaveProperty('part');
+    expect(program.rmrkCatalog).toHaveProperty('equippable');
     expect(program.programId).toBeDefined();
 
     await transaction.withAccount(alice).calculateGas();
@@ -141,7 +139,7 @@ describe('RMRK generated', () => {
   test('add parts', async () => {
     expect(programCreated).toBeTruthy();
     expect(program).toBeDefined();
-    const transaction = await program.addParts({
+    const transaction = await program.rmrkCatalog.addParts({
       1: { fixed: { z: null, metadata_uri: 'foo' } },
       2: { fixed: { z: 0, metadata_uri: 'bar' } },
       3: { slot: { z: 1, equippable: [aliceRaw], metadata_uri: 'baz' } },
@@ -182,7 +180,7 @@ describe('RMRK generated', () => {
   test('remove parts', async () => {
     expect(programCreated).toBeTruthy();
     expect(program).toBeDefined();
-    const transaction = await program.removeParts([1]);
+    const transaction = await program.rmrkCatalog.removeParts([1]);
 
     await transaction.withAccount(alice).calculateGas();
 
@@ -200,7 +198,7 @@ describe('RMRK generated', () => {
   test('add equippables', async () => {
     expect(programCreated).toBeTruthy();
     expect(program).toBeDefined();
-    const transaction = await program.addEquippables(3, [aliceRaw]);
+    const transaction = await program.rmrkCatalog.addEquippables(3, [aliceRaw]);
 
     await transaction.withAccount(alice).calculateGas();
 
@@ -220,7 +218,7 @@ describe('RMRK generated', () => {
   test('remove equippable', async () => {
     expect(programCreated).toBeTruthy();
     expect(program).toBeDefined();
-    const transaction = await program.removeEquippable(3, aliceRaw);
+    const transaction = await program.rmrkCatalog.removeEquippable(3, aliceRaw);
 
     await transaction.withAccount(alice).calculateGas();
 
@@ -239,7 +237,7 @@ describe('RMRK generated', () => {
   test('reset equippables', async () => {
     expect(programCreated).toBeTruthy();
     expect(program).toBeDefined();
-    const transaction = await program.resetEquippables(3);
+    const transaction = await program.rmrkCatalog.resetEquippables(3);
 
     await transaction.withAccount(alice).calculateGas();
 
@@ -256,7 +254,7 @@ describe('RMRK generated', () => {
   test('set equippables to all', async () => {
     expect(programCreated).toBeTruthy();
     expect(program).toBeDefined();
-    const transaction = await program.setEquippablesToAll(3);
+    const transaction = await program.rmrkCatalog.setEquippablesToAll(3);
 
     await transaction.withAccount(alice).calculateGas();
 
@@ -273,7 +271,7 @@ describe('RMRK generated', () => {
   test('read state: part', async () => {
     expect(programCreated).toBeTruthy();
     expect(program).toBeDefined();
-    const result = await program.part(2, aliceRaw);
+    const result = await program.rmrkCatalog.part(2, aliceRaw);
 
     expect(result).toEqual({
       fixed: {
