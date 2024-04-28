@@ -31,7 +31,7 @@ pub enum ResourceStorageEvent {
 
 pub struct ResourceStorage<TExecContext, TCatalogClient, TEventTrigger> {
     exec_context: TExecContext,
-    _catalog_client: TCatalogClient,
+    catalog_client: TCatalogClient,
     event_trigger: TEventTrigger,
 }
 
@@ -57,7 +57,7 @@ where
     ) -> Self {
         Self {
             exec_context,
-            _catalog_client: catalog_client,
+            catalog_client,
             event_trigger,
         }
     }
@@ -102,20 +102,17 @@ where
             .get_mut(&resource_id)
             .ok_or(Error::ResourceNotFound)?;
 
-        if let Resource::Composed(ComposedResource {
-            /*base,*/ parts, ..
-        }) = resource
-        {
-            // let part_call = self
-            //     .catalog_client
-            //     .part(part_id)
-            //     .publish(*base)
-            //     .await
-            //     .unwrap();
-            // let part_reply = part_call.reply().await.unwrap();
-            // if part_reply.is_none() {
-            //     return Err(Error::PartNotFound);
-            // }
+        if let Resource::Composed(ComposedResource { base, parts, .. }) = resource {
+            let part_call = self
+                .catalog_client
+                .part(part_id)
+                .publish(*base)
+                .await
+                .unwrap();
+            let part_reply = part_call.reply().await.unwrap();
+            if part_reply.is_none() {
+                return Err(Error::PartNotFound);
+            }
             parts.push(part_id);
         } else {
             return Err(Error::WrongResourceType);
