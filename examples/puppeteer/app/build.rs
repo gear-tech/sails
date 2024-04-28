@@ -8,5 +8,5 @@ fn main() {
 
     let out_dir_path = PathBuf::from(env::var("OUT_DIR").unwrap());
     let out_path = out_dir_path.join("client.rs");
-    sails_clientgen::generate_client_from_idl(idl_path, &out_path).unwrap();
+    sails_clientgen::generate_client_from_idl(idl_path, out_path).unwrap();
 }

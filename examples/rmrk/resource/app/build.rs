@@ -16,5 +16,5 @@ fn main() {
         .exec()
         .unwrap();
 
-    sails_clientgen::generate_client_from_idl(&idl_file_path, &client_rs_file_path).unwrap();
+    sails_clientgen::generate_client_from_idl(&idl_file_path, client_rs_file_path).unwrap();
 }
