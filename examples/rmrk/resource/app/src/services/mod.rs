@@ -46,7 +46,7 @@ where
     pub fn seed(exec_context: TExecContext) {
         unsafe {
             RESOURCE_STORAGE_DATA = Some(ResourceStorageData::default());
-            RESOURCE_STORAGE_ADMIN = Some(*exec_context.actor_id());
+            RESOURCE_STORAGE_ADMIN = Some(exec_context.actor_id());
         }
     }
 
@@ -152,8 +152,8 @@ where
     }
 }
 
-fn resource_storage_admin() -> &'static ActorId {
-    unsafe { RESOURCE_STORAGE_ADMIN.as_ref().unwrap() }
+fn resource_storage_admin() -> ActorId {
+    unsafe { RESOURCE_STORAGE_ADMIN.unwrap() }
 }
 
 #[cfg(test)]
@@ -204,12 +204,12 @@ mod tests {
     }
 
     impl ExecContext for ExecContextMock {
-        fn actor_id(&self) -> &ActorId {
-            &self.actor_id
+        fn actor_id(&self) -> ActorId {
+            self.actor_id
         }
 
-        fn message_id(&self) -> &MessageId {
-            &self.message_id
+        fn message_id(&self) -> MessageId {
+            self.message_id
         }
     }
 

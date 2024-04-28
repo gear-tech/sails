@@ -38,7 +38,7 @@ where
     pub fn seed(exec_context: TExecContext) {
         unsafe {
             CATALOG_DATA = Some(CatalogData::default());
-            CATALOG_ADMIN = Some(*exec_context.actor_id());
+            CATALOG_ADMIN = Some(exec_context.actor_id());
         }
     }
 
@@ -231,6 +231,6 @@ where
     }
 }
 
-fn catalog_admin() -> &'static ActorId {
-    unsafe { CATALOG_ADMIN.as_ref().unwrap() }
+fn catalog_admin() -> ActorId {
+    unsafe { CATALOG_ADMIN.unwrap() }
 }

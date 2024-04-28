@@ -22,12 +22,11 @@ impl GStdExecContext {
 }
 
 impl ExecContext for GStdExecContext {
-    fn actor_id(&self) -> &ActorId {
-        self.msg_source
-            .get_or_init(|| msg::source().as_ref().into())
+    fn actor_id(&self) -> ActorId {
+        *self.msg_source.get_or_init(|| msg::source().into())
     }
 
-    fn message_id(&self) -> &MessageId {
-        self.msg_id.get_or_init(|| msg::id().as_ref().into())
+    fn message_id(&self) -> MessageId {
+        *self.msg_id.get_or_init(|| msg::id().into())
     }
 }
