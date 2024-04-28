@@ -58,7 +58,8 @@ where
         RemotingAction::new(
             self.remoting.clone(),
             &[
-                56, 65, 100, 100, 69, 113, 117, 105, 112, 112, 97, 98, 108, 101, 115,
+                44, 82, 109, 114, 107, 67, 97, 116, 97, 108, 111, 103, 56, 65, 100, 100, 69, 113,
+                117, 105, 112, 112, 97, 98, 108, 101, 115,
             ],
             (part_id, collection_ids),
         )
@@ -69,7 +70,10 @@ where
     ) -> impl Call<A, Result<BTreeMap<u32, Part>, Error>> {
         RemotingAction::new(
             self.remoting.clone(),
-            &[32, 65, 100, 100, 80, 97, 114, 116, 115],
+            &[
+                44, 82, 109, 114, 107, 67, 97, 116, 97, 108, 111, 103, 32, 65, 100, 100, 80, 97,
+                114, 116, 115,
+            ],
             parts,
         )
     }
@@ -81,7 +85,8 @@ where
         RemotingAction::new(
             self.remoting.clone(),
             &[
-                64, 82, 101, 109, 111, 118, 101, 69, 113, 117, 105, 112, 112, 97, 98, 108, 101,
+                44, 82, 109, 114, 107, 67, 97, 116, 97, 108, 111, 103, 64, 82, 101, 109, 111, 118,
+                101, 69, 113, 117, 105, 112, 112, 97, 98, 108, 101,
             ],
             (part_id, collection_id),
         )
@@ -89,7 +94,10 @@ where
     fn remove_parts(&mut self, part_ids: Vec<u32>) -> impl Call<A, Result<Vec<u32>, Error>> {
         RemotingAction::new(
             self.remoting.clone(),
-            &[44, 82, 101, 109, 111, 118, 101, 80, 97, 114, 116, 115],
+            &[
+                44, 82, 109, 114, 107, 67, 97, 116, 97, 108, 111, 103, 44, 82, 101, 109, 111, 118,
+                101, 80, 97, 114, 116, 115,
+            ],
             part_ids,
         )
     }
@@ -97,7 +105,8 @@ where
         RemotingAction::new(
             self.remoting.clone(),
             &[
-                64, 82, 101, 115, 101, 116, 69, 113, 117, 105, 112, 112, 97, 98, 108, 101, 115,
+                44, 82, 109, 114, 107, 67, 97, 116, 97, 108, 111, 103, 64, 82, 101, 115, 101, 116,
+                69, 113, 117, 105, 112, 112, 97, 98, 108, 101, 115,
             ],
             part_id,
         )
@@ -106,8 +115,8 @@ where
         RemotingAction::new(
             self.remoting.clone(),
             &[
-                76, 83, 101, 116, 69, 113, 117, 105, 112, 112, 97, 98, 108, 101, 115, 84, 111, 65,
-                108, 108,
+                44, 82, 109, 114, 107, 67, 97, 116, 97, 108, 111, 103, 76, 83, 101, 116, 69, 113,
+                117, 105, 112, 112, 97, 98, 108, 101, 115, 84, 111, 65, 108, 108,
             ],
             part_id,
         )
@@ -119,12 +128,21 @@ where
     ) -> impl Call<A, Result<bool, Error>> {
         RemotingAction::new(
             self.remoting.clone(),
-            &[40, 69, 113, 117, 105, 112, 112, 97, 98, 108, 101],
+            &[
+                44, 82, 109, 114, 107, 67, 97, 116, 97, 108, 111, 103, 40, 69, 113, 117, 105, 112,
+                112, 97, 98, 108, 101,
+            ],
             (part_id, collection_id),
         )
     }
     fn part(&self, part_id: u32) -> impl Call<A, Option<Part>> {
-        RemotingAction::new(self.remoting.clone(), &[16, 80, 97, 114, 116], part_id)
+        RemotingAction::new(
+            self.remoting.clone(),
+            &[
+                44, 82, 109, 114, 107, 67, 97, 116, 97, 108, 111, 103, 16, 80, 97, 114, 116,
+            ],
+            part_id,
+        )
     }
 }
 
@@ -135,8 +153,8 @@ impl RmrkCatalogCallBuilder {
     #[allow(unused)]
     pub fn add_equippables(part_id: u32, collection_ids: Vec<ActorId>) -> Vec<u8> {
         let args = (part_id, collection_ids);
-        let mut result = Vec::with_capacity(15 + args.encoded_size());
-        result.extend_from_slice(&[]);
+        let mut result = Vec::with_capacity(27 + args.encoded_size());
+        result.extend_from_slice(&[44, 82, 109, 114, 107, 67, 97, 116, 97, 108, 111, 103]);
         result.extend_from_slice(&[
             56, 65, 100, 100, 69, 113, 117, 105, 112, 112, 97, 98, 108, 101, 115,
         ]);
@@ -146,8 +164,8 @@ impl RmrkCatalogCallBuilder {
     #[allow(unused)]
     pub fn add_parts(parts: BTreeMap<u32, Part>) -> Vec<u8> {
         let args = parts;
-        let mut result = Vec::with_capacity(9 + args.encoded_size());
-        result.extend_from_slice(&[]);
+        let mut result = Vec::with_capacity(21 + args.encoded_size());
+        result.extend_from_slice(&[44, 82, 109, 114, 107, 67, 97, 116, 97, 108, 111, 103]);
         result.extend_from_slice(&[32, 65, 100, 100, 80, 97, 114, 116, 115]);
         args.encode_to(&mut result);
         result
@@ -155,8 +173,8 @@ impl RmrkCatalogCallBuilder {
     #[allow(unused)]
     pub fn remove_equippable(part_id: u32, collection_id: ActorId) -> Vec<u8> {
         let args = (part_id, collection_id);
-        let mut result = Vec::with_capacity(17 + args.encoded_size());
-        result.extend_from_slice(&[]);
+        let mut result = Vec::with_capacity(29 + args.encoded_size());
+        result.extend_from_slice(&[44, 82, 109, 114, 107, 67, 97, 116, 97, 108, 111, 103]);
         result.extend_from_slice(&[
             64, 82, 101, 109, 111, 118, 101, 69, 113, 117, 105, 112, 112, 97, 98, 108, 101,
         ]);
@@ -166,8 +184,8 @@ impl RmrkCatalogCallBuilder {
     #[allow(unused)]
     pub fn remove_parts(part_ids: Vec<u32>) -> Vec<u8> {
         let args = part_ids;
-        let mut result = Vec::with_capacity(12 + args.encoded_size());
-        result.extend_from_slice(&[]);
+        let mut result = Vec::with_capacity(24 + args.encoded_size());
+        result.extend_from_slice(&[44, 82, 109, 114, 107, 67, 97, 116, 97, 108, 111, 103]);
         result.extend_from_slice(&[44, 82, 101, 109, 111, 118, 101, 80, 97, 114, 116, 115]);
         args.encode_to(&mut result);
         result
@@ -175,8 +193,8 @@ impl RmrkCatalogCallBuilder {
     #[allow(unused)]
     pub fn reset_equippables(part_id: u32) -> Vec<u8> {
         let args = part_id;
-        let mut result = Vec::with_capacity(17 + args.encoded_size());
-        result.extend_from_slice(&[]);
+        let mut result = Vec::with_capacity(29 + args.encoded_size());
+        result.extend_from_slice(&[44, 82, 109, 114, 107, 67, 97, 116, 97, 108, 111, 103]);
         result.extend_from_slice(&[
             64, 82, 101, 115, 101, 116, 69, 113, 117, 105, 112, 112, 97, 98, 108, 101, 115,
         ]);
@@ -186,8 +204,8 @@ impl RmrkCatalogCallBuilder {
     #[allow(unused)]
     pub fn set_equippables_to_all(part_id: u32) -> Vec<u8> {
         let args = part_id;
-        let mut result = Vec::with_capacity(20 + args.encoded_size());
-        result.extend_from_slice(&[]);
+        let mut result = Vec::with_capacity(32 + args.encoded_size());
+        result.extend_from_slice(&[44, 82, 109, 114, 107, 67, 97, 116, 97, 108, 111, 103]);
         result.extend_from_slice(&[
             76, 83, 101, 116, 69, 113, 117, 105, 112, 112, 97, 98, 108, 101, 115, 84, 111, 65, 108,
             108,
@@ -198,8 +216,8 @@ impl RmrkCatalogCallBuilder {
     #[allow(unused)]
     pub fn equippable(part_id: u32, collection_id: ActorId) -> Vec<u8> {
         let args = (part_id, collection_id);
-        let mut result = Vec::with_capacity(11 + args.encoded_size());
-        result.extend_from_slice(&[]);
+        let mut result = Vec::with_capacity(23 + args.encoded_size());
+        result.extend_from_slice(&[44, 82, 109, 114, 107, 67, 97, 116, 97, 108, 111, 103]);
         result.extend_from_slice(&[40, 69, 113, 117, 105, 112, 112, 97, 98, 108, 101]);
         args.encode_to(&mut result);
         result
@@ -207,8 +225,8 @@ impl RmrkCatalogCallBuilder {
     #[allow(unused)]
     pub fn part(part_id: u32) -> Vec<u8> {
         let args = part_id;
-        let mut result = Vec::with_capacity(5 + args.encoded_size());
-        result.extend_from_slice(&[]);
+        let mut result = Vec::with_capacity(17 + args.encoded_size());
+        result.extend_from_slice(&[44, 82, 109, 114, 107, 67, 97, 116, 97, 108, 111, 103]);
         result.extend_from_slice(&[16, 80, 97, 114, 116]);
         args.encode_to(&mut result);
         result
