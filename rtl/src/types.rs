@@ -1,4 +1,5 @@
 use crate::prelude::*;
+pub use primitive_types::*;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Encode, Decode, TypeInfo)]
 pub struct ActorId([u8; 32]);

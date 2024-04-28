@@ -12,6 +12,7 @@ gstd.workspace = true
 hashbrown.workspace = true
 hex.workspace = true
 parity-scale-codec = { workspace = true, features = ["derive"] }
+primitive-types.workspace = true
 scale-info = { workspace = true, features = ["derive"] }
 thiserror-no-std.workspace = true
 

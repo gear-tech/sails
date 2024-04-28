@@ -6,8 +6,8 @@ type TupleStruct = struct {
   bool,
 };
 
-type GenericStructForU32 = struct {
-  p1: u32,
+type GenericStructForH256 = struct {
+  p1: h256,
 };
 
 type GenericStructForStr = struct {
@@ -23,7 +23,7 @@ type DoThatParam = struct {
 type ManyVariants = enum {
   One,
   Two: u32,
-  Three: opt vec u32,
+  Three: opt vec u256,
   Four: struct { a: u32, b: opt u16 },
   Five: struct { str, vec u8 },
   Six: struct { u32 },
@@ -46,7 +46,7 @@ type ThatParam = struct {
 };
 
 service {
-  DoThis : (p1: u32, p2: str, p3: struct { opt str, u8 }, p4: TupleStruct, p5: GenericStructForU32, p6: GenericStructForStr) -> str;
+  DoThis : (p1: u32, p2: str, p3: struct { opt str, u8 }, p4: TupleStruct, p5: GenericStructForH256, p6: GenericStructForStr) -> str;
   DoThat : (par1: DoThatParam) -> result (struct { str, u32 }, struct { str });
   query This : (p1: u32, p2: str, p3: struct { opt str, u8 }, p4: TupleStruct, p5: GenericEnumForBoolAndU32) -> result (struct { str, u32 }, str);
   query That : (pr1: ThatParam) -> str;
@@ -58,7 +58,7 @@ service {
 };
 
 service SomeService {
-  DoThis : (p1: u32, p2: str, p3: struct { opt str, u8 }, p4: TupleStruct, p5: GenericStructForU32, p6: GenericStructForStr) -> str;
+  DoThis : (p1: u32, p2: str, p3: struct { opt str, u8 }, p4: TupleStruct, p5: GenericStructForH256, p6: GenericStructForStr) -> str;
   DoThat : (par1: DoThatParam) -> result (struct { str, u32 }, struct { str });
   query This : (p1: u32, p2: str, p3: struct { opt str, u8 }, p4: TupleStruct, p5: GenericEnumForBoolAndU32) -> result (struct { str, u32 }, str);
   query That : (pr1: ThatParam) -> str;

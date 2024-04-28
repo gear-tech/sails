@@ -3828,6 +3828,7 @@ dependencies = [
  "hashbrown 0.14.3",
  "hex",
  "parity-scale-codec",
+ "primitive-types",
  "scale-info",
  "thiserror-no-std",
 ]
@@ -4761,6 +4762,7 @@ version = "0.1.0"
 dependencies = [
  "gstd",
  "parity-scale-codec",
+ "primitive-types",
  "sails-idl-meta",
  "sails-macros",
  "scale-info",

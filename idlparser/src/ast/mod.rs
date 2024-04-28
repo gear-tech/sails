@@ -236,6 +236,8 @@ pub enum PrimitiveType {
     ActorId,
     CodeId,
     MessageId,
+    H256,
+    U256,
 }
 
 impl PrimitiveType {
@@ -254,6 +256,8 @@ impl PrimitiveType {
             "i32" => Some(PrimitiveType::I32),
             "i64" => Some(PrimitiveType::I64),
             "i128" => Some(PrimitiveType::I128),
+            "h256" => Some(PrimitiveType::H256),
+            "u256" => Some(PrimitiveType::U256),
             "actor_id" => Some(PrimitiveType::ActorId),
             "code_id" => Some(PrimitiveType::CodeId),
             "message_id" => Some(PrimitiveType::MessageId),
@@ -358,9 +362,9 @@ mod tests {
           type ThisThatSvcAppManyVariants = enum {
             One,
             Two: u32,
-            Three: opt u32,
+            Three: opt u256,
             Four: struct { a: u32, b: opt u16 },
-            Five: struct { str, u32 },
+            Five: struct { str, h256 },
             Six: struct { u32 },
             Seven: [map (u32, str), 10],
             Eight: actor_id,
@@ -470,7 +474,7 @@ mod tests {
     fn parser_recognizes_builtin_types_as_primitives() {
         let program_idl = r"
             service {
-                DoThis : (p1: actor_id, p2: code_id, p3: message_id) -> null;
+                DoThis : (p1: actor_id, p2: code_id, p3: message_id, p4: h256, p5: u256) -> null;
             }
         ";
 
@@ -492,6 +496,12 @@ mod tests {
                 }
                 TypeDecl::Id(TypeId::Primitive(PrimitiveType::MessageId)) => {
                     assert_eq!(p.name(), "p3");
+                }
+                TypeDecl::Id(TypeId::Primitive(PrimitiveType::H256)) => {
+                    assert_eq!(p.name(), "p4");
+                }
+                TypeDecl::Id(TypeId::Primitive(PrimitiveType::U256)) => {
+                    assert_eq!(p.name(), "p5");
                 }
                 _ => panic!("unexpected type"),
             });

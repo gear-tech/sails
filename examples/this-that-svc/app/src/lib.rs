@@ -1,6 +1,7 @@
 #![no_std]
 
 use gstd::{debug, prelude::*};
+use primitive_types::{H256, U256};
 use sails_macros::gservice;
 
 pub struct MyService;
@@ -54,8 +55,8 @@ pub struct DoThatParam {
 pub enum ManyVariants {
     One,
     Two(u32),
-    Three(Option<u32>),
+    Three(Option<U256>),
     Four { a: u32, b: Option<u16> },
-    Five(String, u32),
+    Five(String, H256),
     Six((u32,)),
 }
