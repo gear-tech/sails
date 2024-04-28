@@ -6,7 +6,7 @@ use std::{ffi::OsStr, fs, path::Path};
 
 pub fn generate_client_from_idl(
     idl_path: impl AsRef<Path>,
-    out_path: impl AsRef<Path>
+    out_path: impl AsRef<Path>,
 ) -> Result<()> {
     let idl_path = idl_path.as_ref();
     let out_path = out_path.as_ref();
