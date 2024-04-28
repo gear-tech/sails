@@ -583,6 +583,8 @@ impl<'ast> Visitor<'ast> for TypeDeclGenerator {
             PrimitiveType::ActorId => "ActorId",
             PrimitiveType::CodeId => "CodeId",
             PrimitiveType::MessageId => "MessageId",
+            PrimitiveType::H256 => "H256",
+            PrimitiveType::U256 => "U256",
         });
     }
 

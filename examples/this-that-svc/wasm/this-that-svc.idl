@@ -7,9 +7,9 @@ type DoThatParam = struct {
 type ManyVariants = enum {
   One,
   Two: u32,
-  Three: opt u32,
+  Three: opt u256,
   Four: struct { a: u32, b: opt u16 },
-  Five: struct { str, u32 },
+  Five: struct { str, h256 },
   Six: struct { u32 },
 };
 

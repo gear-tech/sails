@@ -1,5 +1,6 @@
 use sails_idl_meta::{AnyServiceMeta, ProgramMeta, ServiceMeta};
 use sails_idlgen::{program, service};
+use sails_rtl::{H256, U256};
 use scale_info::{MetaType, TypeInfo};
 use std::{collections::BTreeMap, result::Result as StdResult};
 
@@ -39,7 +40,7 @@ pub struct TupleStruct(bool);
 pub enum ManyVariants {
     One,
     Two(u32),
-    Three(Option<Vec<u32>>),
+    Three(Option<Vec<U256>>),
     Four { a: u32, b: Option<u16> },
     Five(String, Vec<u8>),
     Six((u32,)),
@@ -54,7 +55,7 @@ struct DoThisParams {
     p2: String,
     p3: (Option<String>, u8),
     p4: TupleStruct,
-    p5: GenericStruct<u32>,
+    p5: GenericStruct<H256>,
     p6: GenericStruct<String>,
 }
 
