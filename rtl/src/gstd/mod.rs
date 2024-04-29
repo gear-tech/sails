@@ -10,7 +10,13 @@ static mut MESSAGE_ID_TO_SERVICE_ROUTE: BTreeMap<MessageId, &'static [u8]> = BTr
 
 pub fn __create_message_scope(service_route: &'static [u8]) -> __MessageScope {
     let msg_id = current_message_id();
-    unsafe { MESSAGE_ID_TO_SERVICE_ROUTE.insert(msg_id, service_route) };
+    let prev_value = unsafe { MESSAGE_ID_TO_SERVICE_ROUTE.insert(msg_id, service_route) };
+    if prev_value.is_some() {
+        panic!(
+            "Service route already registered for message id: {:?}",
+            msg_id
+        );
+    }
     __MessageScope { msg_id }
 }
 
