@@ -43,7 +43,7 @@
     "@polkadot/types": "^10.12.3"
   },
   "devDependencies": {
-    "@gear-js/api": "0.37.2",
+    "@gear-js/api": "0.38.0",
     "@polkadot/api": "10.12.6",
     "@polkadot/types": "10.12.6",
     "@rollup/plugin-commonjs": "25.0.7",
