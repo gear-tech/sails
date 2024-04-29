@@ -44,7 +44,7 @@
   },
   "devDependencies": {
     "@gear-js/api": "0.37.2",
-    "@polkadot/api": "10.12.6",
+    "@polkadot/api": "11.0.2",
     "@polkadot/types": "10.12.6",
     "@rollup/plugin-commonjs": "25.0.7",
     "@rollup/plugin-node-resolve": "15.2.3",
