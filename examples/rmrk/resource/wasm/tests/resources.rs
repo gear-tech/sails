@@ -197,44 +197,82 @@ fn adding_non_existing_part_to_resource_fails() {
 
 struct Fixture<'a> {
     admin_id: u64,
-    net_client: GTestRemoting,
+    program_space: GTestRemoting,
     catalog_program: OnceCell<Program<'a>>,
     resource_program: OnceCell<Program<'a>>,
 }
 
 impl<'a> Fixture<'a> {
     fn new(admin_id: u64) -> Self {
-        let net_client = GTestRemoting::new();
-        net_client.system().init_logger();
+        let program_space = GTestRemoting::new();
+        program_space.system().init_logger();
 
         Self {
             admin_id,
-            net_client,
+            program_space,
             catalog_program: OnceCell::new(),
             resource_program: OnceCell::new(),
         }
     }
 
-    fn net_client(&self) -> &GTestRemoting {
-        &self.net_client
+    fn program_space(&self) -> &GTestRemoting {
+        &self.program_space
     }
 
     fn catalog_program(&'a self) -> &Program<'a> {
         self.catalog_program.get_or_init(|| {
-            let program = Program::from_file(self.net_client.system(), CATALOG_PROGRAM_WASM_PATH);
+            let program =
+                Program::from_file(self.program_space.system(), CATALOG_PROGRAM_WASM_PATH);
             let encoded_request = catalog::CTOR_FUNC_NAME.encode();
             program.send_bytes(self.admin_id, encoded_request);
             program
         })
     }
 
-    fn resource_program(&'a self) -> &Program<'a> {
+    fn resource_program_for_async(&'a self) -> &Program<'a> {
+        println!("For async");
         self.resource_program.get_or_init(|| {
-            let program = Program::from_file(self.net_client.system(), RESOURCE_PROGRAM_WASM_PATH);
+            let program =
+                Program::from_file(self.program_space.system(), RESOURCE_PROGRAM_WASM_PATH);
             let encoded_request = resources::CTOR_FUNC_NAME.encode();
             program.send_bytes(self.admin_id, encoded_request);
             program
         })
+    }
+
+    fn resource_program_for_sync(&'a self) -> &Program<'a> {
+        println!("For sync");
+        self.resource_program.get_or_init(|| {
+            tokio::runtime::Builder::new_current_thread()
+                .enable_all()
+                .build()
+                .unwrap()
+                .block_on(async {
+                    self.__spin_up_program(
+                        RESOURCE_PROGRAM_WASM_PATH,
+                        &resources::CTOR_FUNC_NAME.encode(),
+                    )
+                    .await
+                })
+        })
+    }
+
+    async fn __spin_up_program(&'a self, program_path: &str, payload: &[u8]) -> Program<'a> {
+        let code_id = self.program_space().system().submit_code(program_path);
+        let program_space = self.program_space().clone();
+        let reply = program_space
+            .activate(
+                code_id.as_ref().into(),
+                "123",
+                payload,
+                0,
+                GTestArgs::new(self.admin_id.into()),
+            )
+            .await
+            .unwrap();
+        self.program_space()
+            .system()
+            .get_program(*reply.await.unwrap().0.as_ref())
     }
 
     fn add_resource(
@@ -243,7 +281,7 @@ impl<'a> Fixture<'a> {
         resource_id: ResourceId,
         resource: &Resource,
     ) -> RunResult {
-        let program = self.resource_program();
+        let program = self.resource_program_for_sync();
         let encoded_request = [
             resources::RESOURCE_SERVICE_NAME.encode(),
             resources::ADD_RESOURCE_ENTRY_FUNC_NAME.encode(),
@@ -267,10 +305,10 @@ impl<'a> Fixture<'a> {
             resource.encode(),
         ]
         .concat();
-        let net_client = self.net_client().clone();
-        let reply = net_client
+        let program_space = self.program_space().clone();
+        let reply = program_space
             .message(
-                self.resource_program().id().as_ref().into(),
+                self.resource_program_for_async().id().as_ref().into(),
                 encoded_request,
                 0,
                 GTestArgs::new(actor_id.into()),
@@ -285,7 +323,7 @@ impl<'a> Fixture<'a> {
         resource_id: ResourceId,
         part_id: PartId,
     ) -> RunResult {
-        let program = self.resource_program();
+        let program = self.resource_program_for_sync();
         let encoded_request = [
             resources::RESOURCE_SERVICE_NAME.encode(),
             resources::ADD_PART_TO_RESOURCE_FUNC_NAME.encode(),
@@ -301,7 +339,7 @@ impl<'a> Fixture<'a> {
         actor_id: u64,
         resource_id: ResourceId,
     ) -> Option<ResourceStorageResult<Resource>> {
-        let program = self.resource_program();
+        let program = self.resource_program_for_sync();
         let encoded_service_name = resources::RESOURCE_SERVICE_NAME.encode();
         let encoded_func_name = resources::RESOURCE_FUNC_NAME.encode();
         let encoded_request = [
