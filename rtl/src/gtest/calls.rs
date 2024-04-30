@@ -6,7 +6,7 @@ use crate::{
 };
 use core::future::Future;
 use gear_core_errors::{ReplyCode, SuccessReplyReason};
-use gtest::System;
+use gtest::{Program, RunResult, System};
 
 #[derive(Debug, Clone)]
 pub struct GTestArgs {
@@ -45,18 +45,48 @@ impl GTestRemoting {
     }
 }
 
+impl GTestRemoting {
+    fn extract_reply(run_result: RunResult) -> Result<Vec<u8>> {
+        let mut reply_iter = run_result
+            .log()
+            .iter()
+            .filter(|entry| entry.reply_to() == Some(run_result.sent_message_id()));
+        let reply = reply_iter.next().ok_or(RtlError::ReplyIsMissing)?;
+        if reply_iter.next().is_some() {
+            Err(RtlError::ReplyIsAmbiguous)?
+        }
+        let reply_code = reply.reply_code().ok_or(RtlError::ReplyCodeIsMissing)?;
+        if let ReplyCode::Error(error) = reply_code {
+            Err(error)?
+        }
+        if reply_code != ReplyCode::Success(SuccessReplyReason::Manual) {
+            Err(RtlError::ReplyIsMissing)?
+        }
+        Ok(reply.payload().to_vec())
+    }
+}
+
 impl Remoting<GTestArgs> for GTestRemoting {
     async fn activate(
         self,
-        _code_id: CodeId,
-        _salt: impl AsRef<[u8]>,
-        _payload: impl AsRef<[u8]>,
-        _value: ValueUnit,
-        _args: GTestArgs,
+        code_id: CodeId,
+        salt: impl AsRef<[u8]>,
+        payload: impl AsRef<[u8]>,
+        value: ValueUnit,
+        args: GTestArgs,
     ) -> Result<impl Future<Output = Result<(ActorId, Vec<u8>)>>> {
-        todo!();
-        #[allow(unreachable_code)]
-        Ok(async { Ok((ActorId::from([0; 32]), vec![])) })
+        let code_id = (&code_id.as_ref()[..]).into();
+        let code = self
+            .system
+            .submitted_code(code_id)
+            .ok_or(RtlError::ProgramCodeIsNotFound)?;
+        let program_id = gtest::calculate_program_id(code_id, salt.as_ref(), None);
+        let program = Program::from_opt_and_meta_code_with_id(&self.system, program_id, code, None);
+        let run_result = program.send_bytes_with_value(*args.actor_id.as_ref(), payload, value);
+        Ok(async move {
+            let reply = Self::extract_reply(run_result)?;
+            Ok((program_id.as_ref().into(), reply))
+        })
     }
 
     async fn message(
@@ -68,23 +98,6 @@ impl Remoting<GTestArgs> for GTestRemoting {
     ) -> Result<impl Future<Output = Result<Vec<u8>>>> {
         let program = self.system.get_program(*target.as_ref());
         let run_result = program.send_bytes_with_value(*args.actor_id.as_ref(), payload, value);
-        Ok(async move {
-            let mut reply_iter = run_result
-                .log()
-                .iter()
-                .filter(|entry| entry.reply_to() == Some(run_result.sent_message_id()));
-            let reply = reply_iter.next().ok_or(RtlError::ReplyIsMissing)?;
-            if reply_iter.next().is_some() {
-                Err(RtlError::ReplyIsAmbiguous)?
-            }
-            let reply_code = reply.reply_code().ok_or(RtlError::ReplyCodeIsMissing)?;
-            if let ReplyCode::Error(error) = reply_code {
-                Err(error)?
-            }
-            if reply_code != ReplyCode::Success(SuccessReplyReason::Manual) {
-                Err(RtlError::ReplyIsMissing)?
-            }
-            Ok(reply.payload().to_vec())
-        })
+        Ok(async move { Self::extract_reply(run_result) })
     }
 }
