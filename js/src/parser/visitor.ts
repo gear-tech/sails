@@ -257,6 +257,8 @@ export enum EPrimitiveType {
   ActorId,
   CodeId,
   MessageId,
+  H256,
+  U256,
 }
 
 export class PrimitiveDef {
@@ -328,6 +330,14 @@ export class PrimitiveDef {
 
   get isMessageId(): boolean {
     return this.value === EPrimitiveType.MessageId;
+  }
+
+  get isH256(): boolean {
+    return this.value === EPrimitiveType.H256;
+  }
+
+  get isU256(): boolean {
+    return this.value === EPrimitiveType.U256;
   }
 }
 

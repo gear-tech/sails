@@ -26,8 +26,8 @@ interface SailsServiceFunc {
   returnType: any;
   isQuery: boolean;
   encodePayload: (...args: any[]) => Uint8Array;
-  decodePayload: <T>(bytes: string | Uint8Array) => T;
-  decodeResult: <T>(result: string | Uint8Array) => T;
+  decodePayload: <T extends any = any>(bytes: string | Uint8Array) => T;
+  decodeResult: <T extends any = any>(result: string | Uint8Array) => T;
 }
 
 interface SailsServiceEvent {
@@ -123,11 +123,11 @@ export class Sails {
 
           return payload.toU8a();
         },
-        decodePayload: <T = any>(bytes: Uint8Array | string) => {
+        decodePayload: <T extends any = any>(bytes: Uint8Array | string): T => {
           const payload = this.registry.createType(`(String, String, ${params.map((p) => p.type).join(', ')})`, bytes);
           return payload[2].toJSON() as T;
         },
-        decodeResult: <T = any>(result: Uint8Array | string) => {
+        decodeResult: <T extends any = any>(result: Uint8Array | string): T => {
           const payload = this.registry.createType(`(String, String, ${returnType})`, result);
           return payload[2].toJSON() as T;
         },

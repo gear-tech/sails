@@ -34,7 +34,6 @@
   "scripts": {
     "prebuild": "rm -rf lib",
     "build": "rm -rf lib && rollup --config rollup.config.js && node compress-parser.js",
-    "pretest": "yarn build && node test/modify-import.js",
     "test": "yarn node --no-warnings --experimental-vm-modules $(yarn bin jest) --detectOpenHandles"
   },
   "peerDependencies": {
