@@ -83,20 +83,20 @@ The key of the object is the name of the event and the value is an object with t
 ```
 
 ### Get function name and decode bytes
-Use `sails.getServiceName` method to get the service name from the payload bytes.
-Use `sails.getFnName` method to get the function name from the payload bytes.
+Use `getServiceNamePrefix` function to get the service name from the payload bytes.
+Use `getFnNamePrefix` method to get the function or event name from the payload bytes.
 Use `sails.services.ServiceName.functions.FuncitonName.decodePayload` method of the function object to decode the payload bytes of the send message.
 Use `sails.services.ServiceName.functions.FuncitonName.decodeResult` method of the function object to decode the result bytes of the received message.
 
 ```javascript
+import { getServiceNamePrefix, getFnNamePrefix } from 'sails-js';
 const payloadOfSentMessage = '0x<some bytes>';
-const serviceName = sails.getServiceName(payloadOfSentMessage);
-const functionName = sails.getFnName(payloadOfSentMessage);
+const serviceName = getServiceNamePrefix(payloadOfSentMessage);
+const functionName = getFnNamePrefix(payloadOfSentMessage);
 console.log(sails.services[serviceName].functions[functionName].decodeResult(payloadOfSentMessage));
 
 const payloadOfReceivedMessage = '0x<some bytes>';
-const functionName = sails.getFunctionName(payloadOfReceivedMessage);
-console.log(sails.functions[functionName].decodePayload(payloadOfReceivedMessage));
+console.log(sails.service[serviceName].functions[functionName].decodePayload(payloadOfReceivedMessage));
 ```
 
 The same approach can be used to encode/decode bytes of the contructor or event.
