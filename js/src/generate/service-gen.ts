@@ -19,11 +19,11 @@ const getFuncName = (name: string) => {
 
 const createPayload = (serviceName: string, fnName: string, params: FuncParam[]) => {
   if (params.length === 0) {
-    return `const payload = this._program.registry.createType('(String, String)', '[${serviceName}, ${fnName}]').toU8a()`;
+    return `const payload = this._program.registry.createType('(String, String)', '[${serviceName}, ${fnName}]').toHex()`;
   } else {
     return `const payload = this._program.registry.createType('(String, String, ${params
       .map(({ def }) => getScaleCodecDef(def))
-      .join(', ')})', ['${serviceName}', '${fnName}', ${params.map(({ name }) => name).join(', ')}]).toU8a()`;
+      .join(', ')})', ['${serviceName}', '${fnName}', ${params.map(({ name }) => name).join(', ')}]).toHex()`;
   }
 };
 
@@ -220,7 +220,8 @@ export class ServiceGenerator {
       this._out
         .firstLine(`const ZERO_ADDRESS = u8aToHex(new Uint8Array(32))`)
         .import('@polkadot/util', 'u8aToHex')
-        .import('@polkadot/util', 'compactFromU8aLim');
+        .import('sails-js', 'getServiceNamePrefix')
+        .import('sails-js', 'getFnNamePrefix');
     }
 
     for (const event of service.events) {
@@ -243,19 +244,18 @@ export class ServiceGenerator {
                 },
               )
               .line()
-              .line(`const payload = message.payload.toU8a()`)
-              .line(`const [offset, limit] = compactFromU8aLim(payload)`)
-              .line(
-                `const name = this._program.registry.createType('String', payload.subarray(offset, limit)).toString()`,
+              .line(`const payload = message.payload.toHex()`)
+              .block(
+                `if (getServiceNamePrefix(payload) === '${service.name}' && getFnNamePrefix(payload) === '${event.name}')`,
+                () => {
+                  this._out.line(
+                    `callback(this._program.registry.createType('(String, String, ${getScaleCodecDef(
+                      event.def,
+                      true,
+                    )})', message.payload)[2].toJSON() as ${jsType})`,
+                  );
+                },
               )
-              .block(`if (name === '${event.name}')`, () => {
-                this._out.line(
-                  `callback(this._program.registry.createType('(String, ${getScaleCodecDef(
-                    event.def,
-                    true,
-                  )})', message.payload)[1].toJSON() as ${jsType})`,
-                );
-              })
               .reduceIndent()
               .line(`})`);
           },

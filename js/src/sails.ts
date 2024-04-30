@@ -1,20 +1,12 @@
 import { TypeRegistry } from '@polkadot/types/create';
-import { hexToU8a, u8aToHex, compactFromU8aLim } from '@polkadot/util';
+import { u8aToHex } from '@polkadot/util';
 import { HexString, UserMessageSent } from '@gear-js/api';
 
 import { Program, Service, TypeDef, WasmParser } from './parser/index.js';
 import { getScaleCodecDef } from './utils/types.js';
+import { getFnNamePrefix, getServiceNamePrefix } from 'utils/prefix.js';
 
 const ZERO_ADDRESS = u8aToHex(new Uint8Array(32));
-
-const getPrefixLimitAndOffset = (payload: Uint8Array) => {
-  const [offset, limit] = compactFromU8aLim(payload);
-
-  return {
-    offset,
-    limit,
-  };
-};
 
 interface SailsService {
   functions: Record<string, SailsServiceFunc>;
@@ -25,21 +17,21 @@ interface SailsServiceFunc {
   args: { name: string; type: any }[];
   returnType: any;
   isQuery: boolean;
-  encodePayload: (...args: any[]) => Uint8Array;
-  decodePayload: <T>(bytes: string | Uint8Array) => T;
-  decodeResult: <T>(result: string | Uint8Array) => T;
+  encodePayload: (...args: any[]) => HexString;
+  decodePayload: <T>(bytes: HexString) => T;
+  decodeResult: <T>(result: HexString) => T;
 }
 
 interface SailsServiceEvent {
   type: any;
   is: (event: UserMessageSent) => boolean;
-  decode: (payload: Uint8Array) => any;
+  decode: (payload: HexString) => any;
 }
 
 interface SailsCtorFunc {
   args: { name: string; type: any }[];
   encodePayload: (...args: any[]) => Uint8Array;
-  decodePayload: <T>(bytes: string | Uint8Array) => T;
+  decodePayload: <T>(bytes: HexString) => T;
 }
 
 export class Sails {
@@ -110,7 +102,7 @@ export class Sails {
         args: params,
         returnType,
         isQuery: func.isQuery,
-        encodePayload: (...args): Uint8Array => {
+        encodePayload: (...args): HexString => {
           if (args.length !== args.length) {
             throw new Error(`Expected ${params.length} arguments, but got ${args.length}`);
           }
@@ -121,13 +113,13 @@ export class Sails {
             ...args,
           ]);
 
-          return payload.toU8a();
+          return payload.toHex();
         },
-        decodePayload: <T = any>(bytes: Uint8Array | string) => {
+        decodePayload: <T = any>(bytes: HexString) => {
           const payload = this.registry.createType(`(String, String, ${params.map((p) => p.type).join(', ')})`, bytes);
           return payload[2].toJSON() as T;
         },
-        decodeResult: <T = any>(result: Uint8Array | string) => {
+        decodeResult: <T = any>(result: HexString) => {
           const payload = this.registry.createType(`(String, String, ${returnType})`, result);
           return payload[2].toJSON() as T;
         },
@@ -150,20 +142,19 @@ export class Sails {
             return false;
           }
 
-          const payload = message.payload.toU8a();
-          const { offset, limit } = getPrefixLimitAndOffset(payload);
-          const name = this.registry.createType('String', payload.subarray(offset, limit)).toString();
-
-          if (name === event.name) {
-            return true;
-          } else {
+          if (getServiceNamePrefix(message.payload.toHex()) !== service.name) {
             return false;
           }
+
+          if (getFnNamePrefix(message.payload.toHex()) !== event.name) {
+            return false;
+          }
+
+          return true;
         },
-        decode: (payload: Uint8Array) => {
-          const { limit } = getPrefixLimitAndOffset(payload);
-          const data = this.registry.createType(typeStr, payload.subarray(limit));
-          return data.toJSON();
+        decode: (payload: HexString) => {
+          const data = this.registry.createType(`(String, String, ${typeStr})`, payload);
+          return data[2].toJSON();
         },
       };
     }
@@ -241,20 +232,5 @@ export class Sails {
   /** #### Get type definition by name */
   getTypeDef(name: string): TypeDef {
     return this.program.getTypeByName(name).def;
-  }
-
-  /** #### Get function name from payload bytes */
-  getFnName(payload: Uint8Array | HexString) {
-    payload = typeof payload === 'string' ? hexToU8a(payload) : payload;
-    const serviceName = compactFromU8aLim(payload);
-    const [offset, limit] = compactFromU8aLim(payload.subarray(serviceName[1]));
-    return this._registry.createType('String', payload.subarray(offset, limit)).toString();
-  }
-
-  /** #### Get service name from payload bytes */
-  getServiceName(payload: Uint8Array | HexString): string {
-    payload = typeof payload === 'string' ? hexToU8a(payload) : payload;
-    const [offset, limit] = compactFromU8aLim(payload);
-    return this._registry.createType('String', payload.subarray(offset, limit)).toString();
   }
 }

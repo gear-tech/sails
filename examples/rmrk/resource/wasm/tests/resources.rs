@@ -64,6 +64,7 @@ fn adding_resource_to_storage_by_admin_succeeds() {
     assert!(run_result.contains(&(ADMIN_ID, expected_response)));
 
     let expected_event = [
+        resources::RESOURCE_SERVICE_NAME.encode().as_slice(),
         "ResourceAdded".encode().as_slice(),
         &ResourceStorageEvent::ResourceAdded {
             resource_id: RESOURCE_ID,
