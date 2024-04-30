@@ -67,10 +67,6 @@ pub mod wasm {
         let output = if input
             .starts_with(&[32u8, 83u8, 101u8, 114u8, 118u8, 105u8, 99u8, 101u8, 50u8])
         {
-            let program_ref = unsafe { PROGRAM.as_ref() }
-                .expect("Program not initialized");
-            let mut service = program_ref.service2();
-            let output = service.handle(&input[9usize..]).await;
             static INVOCATION_ROUTE: [u8; 9usize] = [
                 32u8,
                 83u8,
@@ -82,13 +78,19 @@ pub mod wasm {
                 101u8,
                 50u8,
             ];
+            let msg_scope = gstd::__create_message_scope(INVOCATION_ROUTE.as_ref());
+            let program_ref = unsafe { PROGRAM.as_ref() }
+                .expect("Program not initialized");
+            let mut service = program_ref.service2();
+            let output = service.handle(&input[9usize..]).await;
             [INVOCATION_ROUTE.as_ref(), &output].concat()
         } else if input.starts_with(&[16u8, 83u8, 118u8, 99u8, 49u8]) {
+            static INVOCATION_ROUTE: [u8; 5usize] = [16u8, 83u8, 118u8, 99u8, 49u8];
+            let msg_scope = gstd::__create_message_scope(INVOCATION_ROUTE.as_ref());
             let program_ref = unsafe { PROGRAM.as_ref() }
                 .expect("Program not initialized");
             let mut service = program_ref.service1();
             let output = service.handle(&input[5usize..]).await;
-            static INVOCATION_ROUTE: [u8; 5usize] = [16u8, 83u8, 118u8, 99u8, 49u8];
             [INVOCATION_ROUTE.as_ref(), &output].concat()
         } else {
             let input = String::decode(&mut input)

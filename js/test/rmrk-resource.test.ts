@@ -95,7 +95,7 @@ describe('RMRK resource', () => {
         return;
       }
 
-      resourceAddedEvent = sails.services.RmrkResource.events.ResourceAdded.decode(event.data.message.payload.toU8a());
+      resourceAddedEvent = sails.services.RmrkResource.events.ResourceAdded.decode(event.data.message.payload.toHex());
     });
 
     let [msgId, blockHash] = await new Promise<[HexString, HexString]>((resolve, reject) => {
@@ -118,7 +118,9 @@ describe('RMRK resource', () => {
 
     expect(replyMsg).toBeDefined();
 
-    const result = sails.services.RmrkResource.functions.AddResourceEntry.decodeResult(replyMsg.data.message.payload);
+    const result = sails.services.RmrkResource.functions.AddResourceEntry.decodeResult(
+      replyMsg.data.message.payload.toHex(),
+    );
 
     expect(result).toEqual({
       ok: [

@@ -51,16 +51,16 @@ pub mod wasm {
         let (program, invocation_route) = if input
             .starts_with(&[12u8, 78u8, 101u8, 119u8])
         {
+            static INVOCATION_ROUTE: [u8; 4usize] = [12u8, 78u8, 101u8, 119u8];
             let request = __NewParams::decode(&mut &input[4usize..])
                 .expect("Failed to decode request");
             let program = MyProgram::new(request.p1, request.p2).await;
-            static INVOCATION_ROUTE: [u8; 4usize] = [12u8, 78u8, 101u8, 119u8];
             (program, INVOCATION_ROUTE.as_ref())
         } else if input.starts_with(&[16u8, 78u8, 101u8, 119u8, 50u8]) {
+            static INVOCATION_ROUTE: [u8; 5usize] = [16u8, 78u8, 101u8, 119u8, 50u8];
             let request = __New2Params::decode(&mut &input[5usize..])
                 .expect("Failed to decode request");
             let program = MyProgram::new2(request.p2, request.p1);
-            static INVOCATION_ROUTE: [u8; 5usize] = [16u8, 78u8, 101u8, 119u8, 50u8];
             (program, INVOCATION_ROUTE.as_ref())
         } else {
             let input = String::decode(&mut input)
