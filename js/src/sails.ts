@@ -18,8 +18,8 @@ interface SailsServiceFunc {
   returnType: any;
   isQuery: boolean;
   encodePayload: (...args: any[]) => HexString;
-  decodePayload: <T>(bytes: HexString) => T;
-  decodeResult: <T>(result: HexString) => T;
+  decodePayload: <T extends any = any>(bytes: HexString) => T;
+  decodeResult: <T extends any = any>(result: HexString) => T;
 }
 
 interface SailsServiceEvent {
@@ -30,7 +30,7 @@ interface SailsServiceEvent {
 
 interface SailsCtorFunc {
   args: { name: string; type: any }[];
-  encodePayload: (...args: any[]) => Uint8Array;
+  encodePayload: (...args: any[]) => HexString;
   decodePayload: <T>(bytes: HexString) => T;
 }
 
@@ -198,9 +198,13 @@ export class Sails {
       const params = func.params.map((p) => ({ name: p.name, type: getScaleCodecDef(p.def) }));
       funcs[func.name] = {
         args: params,
-        encodePayload: (...args): Uint8Array => {
+        encodePayload: (...args): HexString => {
           if (args.length !== args.length) {
             throw new Error(`Expected ${params.length} arguments, but got ${args.length}`);
+          }
+
+          if (params.length === 0) {
+            return u8aToHex(this.registry.createType('String', func.name).toU8a());
           }
 
           const payload = this.registry.createType(`(String, ${params.map((p) => p.type).join(', ')})`, [
@@ -208,7 +212,7 @@ export class Sails {
             ...args,
           ]);
 
-          return payload.toU8a();
+          return payload.toHex();
         },
         decodePayload: <T = any>(bytes: Uint8Array | string) => {
           const payload = this.registry.createType(`(String, ${params.map((p) => p.type).join(', ')})`, bytes);

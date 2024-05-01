@@ -1,4 +1,5 @@
 import { Sails } from '../lib';
+import { hexToU8a } from '@polkadot/util';
 
 let sails: Sails;
 
@@ -129,7 +130,7 @@ describe('service', () => {
     expect(Object.keys(result.services.TestService.functions)).toHaveLength(1);
     expect(Object.keys(result.ctors).includes('New')).toBeTruthy();
     expect(Object.keys(result.ctors.New.args)).toHaveLength(1);
-    expect([...result.ctors.New.encodePayload(1)]).toEqual([12, 78, 101, 119, 1, 0, 0, 0]);
+    expect([...hexToU8a(result.ctors.New.encodePayload(1))]).toEqual([12, 78, 101, 119, 1, 0, 0, 0]);
   });
 
   test('service with events', () => {
