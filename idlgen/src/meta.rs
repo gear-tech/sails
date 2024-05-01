@@ -30,7 +30,7 @@ use scale_info::{
 
 struct CtorFuncMeta(String, u32, Vec<Field<PortableForm>>);
 
-struct ServiceFuncMeta(String, u32, Vec<Field<PortableForm>>, u32);
+struct ServiceFuncMeta(String, u32, Vec<Field<PortableForm>>, Option<u32>);
 
 pub(crate) struct ExpandedProgramMeta {
     registry: PortableRegistry,
@@ -220,11 +220,11 @@ impl ExpandedServiceMeta {
         self.name
     }
 
-    pub fn commands(&self) -> impl Iterator<Item = (&str, &Vec<Field<PortableForm>>, u32)> {
+    pub fn commands(&self) -> impl Iterator<Item = (&str, &Vec<Field<PortableForm>>, Option<u32>)> {
         self.commands.iter().map(|c| (c.0.as_str(), &c.2, c.3))
     }
 
-    pub fn queries(&self) -> impl Iterator<Item = (&str, &Vec<Field<PortableForm>>, u32)> {
+    pub fn queries(&self) -> impl Iterator<Item = (&str, &Vec<Field<PortableForm>>, Option<u32>)> {
         self.queries.iter().map(|c| (c.0.as_str(), &c.2, c.3))
     }
 
@@ -238,7 +238,7 @@ impl ExpandedServiceMeta {
     ) -> Result<Vec<ServiceFuncMeta>> {
         any_funcs(registry, func_type_id)?
             .map(|f| {
-                if f.fields.len() != 2 {
+                if f.fields.len() != 2 && f.fields.len() != 1 {
                     Err(Error::FuncMetaIsInvalid(format!(
                         "func `{}` has invalid number of fields",
                         f.name
@@ -255,7 +255,7 @@ impl ExpandedServiceMeta {
                             f.name.to_string(),
                             f.fields[0].ty.id,
                             params_type.fields.to_vec(),
-                            f.fields[1].ty.id,
+                            f.fields.get(1).map(|r| r.ty.id),
                         ))
                     } else {
                         Err(Error::FuncMetaIsInvalid(format!(

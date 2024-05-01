@@ -56,7 +56,7 @@ pub(crate) struct Func<'a> {
     ident: &'a Ident,
     receiver: Option<&'a Receiver>,
     params: Vec<(&'a Ident, &'a Type)>,
-    result: &'a Type,
+    result: Option<&'a Type>,
     is_async: bool,
 }
 
@@ -87,7 +87,7 @@ impl<'a> Func<'a> {
         &self.params
     }
 
-    pub(crate) fn result(&self) -> &Type {
+    pub(crate) fn result(&self) -> Option<&Type> {
         self.result
     }
 
@@ -109,14 +109,10 @@ impl<'a> Func<'a> {
         })
     }
 
-    fn extract_result(handler_signature: &Signature) -> &Type {
-        if let ReturnType::Type(_, ty) = &handler_signature.output {
-            ty.as_ref()
-        } else {
-            abort!(
-                handler_signature.output.span(),
-                "Failed to parse return type"
-            );
+    fn extract_result(handler_signature: &Signature) -> Option<&Type> {
+        match &handler_signature.output {
+            ReturnType::Type(_, ty) => Some(ty.as_ref()),
+            ReturnType::Default => None,
         }
     }
 }

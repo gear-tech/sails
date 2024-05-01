@@ -178,7 +178,7 @@ fn generate_init(
 fn generate_handle(
     program_impl: &ItemImpl,
     program_ident: &Ident,
-) -> (impl Iterator<Item = (String, Type)>, TokenStream2) {
+) -> (impl Iterator<Item = (String, Option<Type>)>, TokenStream2) {
     let service_ctors = discover_service_ctors(program_impl);
 
     let input_ident = Ident::new("input", Span::call_site());
@@ -191,7 +191,7 @@ fn generate_handle(
         let service_ctor = Func::from(service_ctor);
         let service_ctor_ident = service_ctor.ident();
 
-        service_types.push((invocation_route.clone(), service_ctor.result().clone()));
+        service_types.push((invocation_route.clone(), service_ctor.result().cloned()));
 
         if invocation_route.is_empty() {
             last_resort_invocation_dispatch = Some(quote!({

@@ -1,4 +1,5 @@
 use crate::{lexer::{LexicalError, Token}, ast::*};
+use lalrpop_util::ParseError;
 
 grammar;
 
@@ -59,8 +60,15 @@ Service: Service = {
 }
 
 ServiceFunc: ServiceFunc = {
-    <query: "query"?> <name: "id"> ":" "(" <params: Separated<FuncParam, ",">> ")" "->" <output: TypeDecl> =>
-        ServiceFunc::new(name, params, output, query.is_some()),
+    <query: "query"?> <name: "id"> ":" "(" <params: Separated<FuncParam, ",">> ")" <ret:"->"?> <output: TypeDecl?> =>? {
+        if output.is_some() != ret.is_some() {
+            return Err(ParseError::User {
+                error: LexicalError::InvalidReturn,
+            })
+        }
+        let output = output.unwrap_or(TypeDecl::Id(TypeId::Primitive(PrimitiveType::Null)));
+        Ok(ServiceFunc::new(name, params, output, query.is_some()))
+    }
 }
 
 FuncParam: FuncParam = {
