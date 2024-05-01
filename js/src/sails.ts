@@ -203,6 +203,10 @@ export class Sails {
             throw new Error(`Expected ${params.length} arguments, but got ${args.length}`);
           }
 
+          if (params.length === 0) {
+            return u8aToHex(this.registry.createType('String', func.name).toU8a());
+          }
+
           const payload = this.registry.createType(`(String, ${params.map((p) => p.type).join(', ')})`, [
             func.name,
             ...args,

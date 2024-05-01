@@ -1,4 +1,5 @@
 import { readFileSync } from 'fs';
+import { hexToU8a } from '@polkadot/util';
 import { Sails } from '../lib';
 
 let sails: Sails;
@@ -51,7 +52,7 @@ describe('this-that', () => {
       p3: { five: ['str', h256Hash] },
     });
 
-    expect(Array.from(payloadWithH256)).toEqual([
+    expect(Array.from(hexToU8a(payloadWithH256))).toEqual([
       28, 83, 101, 114, 118, 105, 99, 101, 24, 68, 111, 84, 104, 97, 116, 1, 0, 0, 0, 20, 104, 101, 108, 108, 111, 4,
       12, 115, 116, 114, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     ]);
@@ -62,7 +63,7 @@ describe('this-that', () => {
       p3: { three: 1234567890 },
     });
 
-    expect(Array.from(payloadWithU256)).toEqual([
+    expect(Array.from(hexToU8a(payloadWithU256))).toEqual([
       28, 83, 101, 114, 118, 105, 99, 101, 24, 68, 111, 84, 104, 97, 116, 2, 0, 0, 0, 20, 119, 111, 114, 108, 100, 2, 1,
       210, 2, 150, 73, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     ]);
