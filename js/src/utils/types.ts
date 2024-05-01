@@ -33,7 +33,7 @@ export const getJsTypeDef = (type: TypeDef): string => {
   throw new Error('Unknown type :: ' + JSON.stringify(type));
 };
 
-const TS_NUMBER = 'number | bigint';
+const TS_NUMBER = 'number | string';
 
 export const getPrimitiveTypeName = (type: PrimitiveDef, forTs = false): string => {
   if (type.isBool) return forTs ? 'boolean' : 'bool';
