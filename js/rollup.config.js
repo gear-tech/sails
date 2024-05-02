@@ -34,11 +34,6 @@ export default [
         format: 'es',
         preserveModules: true,
         strict: false,
-        banner: (chunk) => {
-          if (chunk.fileName === 'app.js') {
-            return '#!/usr/bin/env node';
-          }
-        },
       },
     ],
     plugins: [
