@@ -2,13 +2,10 @@ use crate::route;
 use proc_macro2::TokenStream as TokenStream2;
 use proc_macro_error::abort;
 use quote::{quote, ToTokens};
-use std::{
-    collections::BTreeMap,
-    sync::{Once, OnceLock},
-};
+use std::{collections::BTreeMap, sync::Once};
 use syn::{
-    parse_quote, parse_quote_spanned, spanned::Spanned, FnArg, Ident, ImplItem, ImplItemFn,
-    ItemImpl, Pat, PathArguments, Receiver, ReturnType, Signature, Type, TypePath, WhereClause,
+    parse_quote, spanned::Spanned, FnArg, Ident, ImplItem, ImplItemFn, ItemImpl, Pat,
+    PathArguments, Receiver, ReturnType, Signature, Type, TypePath, WhereClause,
 };
 
 /// A struct that represents the type of an `impl` block.
@@ -91,7 +88,7 @@ impl<'a> Func<'a> {
     }
 
     pub(crate) fn result(&self) -> &Type {
-        &self.result
+        self.result
     }
 
     pub(crate) fn is_async(&self) -> bool {
@@ -127,7 +124,6 @@ fn unit() -> &'static Type {
     UNIT_GUARD.call_once(|| {
         let unit: Type = parse_quote!(());
         unsafe { UNIT = Some(unit) };
-        ()
     });
 
     unsafe { UNIT.as_ref().unwrap() }
