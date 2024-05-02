@@ -4,8 +4,8 @@ use proc_macro_error::abort;
 use quote::{quote, ToTokens};
 use std::collections::BTreeMap;
 use syn::{
-    spanned::Spanned, FnArg, Ident, ImplItem, ImplItemFn, ItemImpl, Pat, PathArguments, Receiver,
-    ReturnType, Signature, Type, TypePath, WhereClause,
+    parse_quote_spanned, spanned::Spanned, FnArg, Ident, ImplItem, ImplItemFn, ItemImpl, Pat,
+    PathArguments, Receiver, ReturnType, Signature, Type, TypePath, WhereClause,
 };
 
 /// A struct that represents the type of an `impl` block.
@@ -56,7 +56,7 @@ pub(crate) struct Func<'a> {
     ident: &'a Ident,
     receiver: Option<&'a Receiver>,
     params: Vec<(&'a Ident, &'a Type)>,
-    result: &'a Type,
+    result: Type,
     is_async: bool,
 }
 
@@ -70,7 +70,7 @@ impl<'a> Func<'a> {
             ident: func,
             receiver,
             params,
-            result,
+            result: result.clone(),
             is_async: handler_signature.asyncness.is_some(),
         }
     }
@@ -88,7 +88,7 @@ impl<'a> Func<'a> {
     }
 
     pub(crate) fn result(&self) -> &Type {
-        self.result
+        &self.result
     }
 
     pub(crate) fn is_async(&self) -> bool {
@@ -109,14 +109,14 @@ impl<'a> Func<'a> {
         })
     }
 
-    fn extract_result(handler_signature: &Signature) -> &Type {
-        if let ReturnType::Type(_, ty) = &handler_signature.output {
-            ty.as_ref()
-        } else {
-            abort!(
-                handler_signature.output.span(),
-                "Failed to parse return type"
-            );
+    fn extract_result(handler_signature: &Signature) -> Type {
+        match &handler_signature.output {
+            ReturnType::Type(_, ty) => *ty.to_owned(),
+            ReturnType::Default => {
+                let unit_type: Type =
+                    parse_quote_spanned! { handler_signature.paren_token.span => () };
+                unit_type
+            }
         }
     }
 }
