@@ -11,6 +11,7 @@ crate-type = ["cdylib", "rlib"]
 [dependencies]
 lalrpop-util.workspace = true
 logos.workspace = true
+thiserror.workspace = true
 
 [build-dependencies]
 lalrpop.workspace = true

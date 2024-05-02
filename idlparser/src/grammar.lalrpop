@@ -1,10 +1,10 @@
-use crate::{lexer::{LexicalError, Token}, ast::*};
+use crate::{lexer::Token, ast::*};
 
 grammar;
 
 extern {
     type Location = usize;
-    type Error = LexicalError;
+    type Error = ParseError;
 
     enum Token {
         "=" => Token::Equals,
@@ -36,16 +36,16 @@ extern {
 }
 
 pub Program: Program = {
-    <types: (<Separated<Type, ";">> ";")?> <ctor: (Ctor ";")?> <services: Separated<Service, ";">> =>
-        Program::new(
+    <types: (<Separated<Type, ";">> ";")?> <ctor: (Ctor ";")?> <services: Separated<Service, ";">> =>?
+        Ok(Program::new(
             ctor.map(|c| c.0),
             services,
             types.unwrap_or_default(),
-        ),
+        )?),
 }
 
 Ctor: Ctor = {
-    "constructor" "{" <Separated<CtorFunc, ";">> "}" => Ctor::new(<>),
+    "constructor" "{" <Separated<CtorFunc, ";">> "}" =>? Ok(Ctor::new(<>)?),
 }
 
 CtorFunc : CtorFunc = {
@@ -54,8 +54,8 @@ CtorFunc : CtorFunc = {
 }
 
 Service: Service = {
-    "service" <name: "id"?> "{" <funcs: Separated<ServiceFunc, ";">> <events: ("events" "{" <Separated<EnumVariant, ";">> "}")?> "}" =>
-        Service::new(name.unwrap_or_default(), funcs, events.unwrap_or_default()),
+    "service" <name: "id"?> "{" <funcs: Separated<ServiceFunc, ";">> <events: ("events" "{" <Separated<EnumVariant, ";">> "}")?> "}" =>?
+        Ok(Service::new(name.unwrap_or_default(), funcs, events.unwrap_or_default())?),
 }
 
 ServiceFunc: ServiceFunc = {
@@ -91,7 +91,7 @@ TypeDef: TypeDef = {
 }
 
 StructDef: StructDef = {
-    "struct" "{" <Separated<StructField, ",">> "}" => StructDef::new(<>),
+    "struct" "{" <Separated<StructField, ",">> "}" =>? Ok(StructDef::new(<>)?),
 }
 
 StructField: StructField = {
@@ -100,7 +100,7 @@ StructField: StructField = {
 }
 
 EnumDef: EnumDef = {
-    "enum" "{" <Separated<EnumVariant, ",">> "}" => EnumDef::new(<>),
+    "enum" "{" <Separated<EnumVariant, ",">> "}" =>? Ok(EnumDef::new(<>)?),
 }
 
 EnumVariant: EnumVariant = {

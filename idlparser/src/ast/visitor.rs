@@ -241,13 +241,17 @@ mod tests {
     #[test]
     fn accept_program_works() {
         let program = Program::new(
-            Some(Ctor::new(vec![])),
-            vec![Service::new(String::default(), vec![], vec![])],
+            Some(Ctor::new(vec![]).unwrap()),
+            vec![Service::new(String::default(), vec![], vec![]).unwrap()],
             vec![
-                Type::new("Type1".into(), TypeDef::Struct(StructDef::new(vec![]))),
-                Type::new("Type2".into(), TypeDef::Enum(EnumDef::new(vec![]))),
+                Type::new(
+                    "Type1".into(),
+                    TypeDef::Struct(StructDef::new(vec![]).unwrap()),
+                ),
+                Type::new("Type2".into(), TypeDef::Enum(EnumDef::new(vec![]).unwrap())),
             ],
-        );
+        )
+        .unwrap();
         let mut program_visitor = ProgramVisitor {
             services: vec![],
             types: vec![],
@@ -280,7 +284,8 @@ mod tests {
                 "Variant2".into(),
                 Some(TypeDecl::Id(TypeId::Primitive(PrimitiveType::U32))),
             ),
-        ]);
+        ])
+        .unwrap();
         let mut enum_def_visitor = EnumDefVisitor { variants: vec![] };
 
         accept_enum_def(&enum_def, &mut enum_def_visitor);

@@ -3788,6 +3788,7 @@ dependencies = [
  "lalrpop",
  "lalrpop-util",
  "logos",
+ "thiserror",
 ]
 
 [[package]]
