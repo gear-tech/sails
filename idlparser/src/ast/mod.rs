@@ -506,36 +506,4 @@ mod tests {
                 _ => panic!("unexpected type"),
             });
     }
-
-    #[test]
-    fn parser_recognizes_methods_without_return_value() {
-        let program_idl = r"
-            service {
-                Noop : (p1: u32);
-            }
-        ";
-
-        let program = parse_idl(program_idl).unwrap();
-
-        assert_eq!(program.services().len(), 1);
-        let output = program.services()[0].funcs().first().unwrap().output();
-
-        assert_eq!(
-            *output,
-            TypeDecl::Id(TypeId::Primitive(PrimitiveType::Null))
-        );
-    }
-
-    #[test]
-    fn parser_rejects_missing_return_value() {
-        // "->"" should be either present with returned type or missing alltogether
-        let program_idl = r"
-            service {
-                Noop : (p1: u32) ->;
-            }
-        ";
-
-        let err = parse_idl(program_idl).unwrap_err();
-        assert!(err.contains("InvalidReturn"));
-    }
 }

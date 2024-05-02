@@ -6,8 +6,6 @@ pub(crate) type Spanned<Token, Location, Error> = Result<(Location, Token, Locat
 #[derive(Debug)]
 pub(crate) enum LexicalError {
     InvalidToken,
-    #[allow(dead_code)] // This error is returned inside grammar
-    InvalidReturn,
 }
 
 pub(crate) struct Lexer<'input> {

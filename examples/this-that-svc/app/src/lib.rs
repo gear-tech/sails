@@ -28,10 +28,6 @@ impl MyService {
         Ok((param.p2, param.p1))
     }
 
-    pub fn noop(&mut self) {
-        debug!("Handling 'noop'");
-    }
-
     pub fn this(&self) -> u32 {
         debug!("Handling 'this'");
         42

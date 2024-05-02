@@ -217,8 +217,8 @@ impl<'a> HandlerGenerator<'a> {
         )
     }
 
-    fn result_type(&self) -> Option<Type> {
-        self.handler.result().cloned()
+    fn result_type(&self) -> Type {
+        self.handler.result().clone()
     }
 
     fn handler_func_ident(&self) -> Ident {

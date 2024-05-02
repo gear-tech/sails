@@ -15,10 +15,10 @@ constructor {
 {{#each services}}
 service {{#if name}}{{name}} {{/if}}{
 {{#each commands}}
-  {{./[0]}} : ({{#each ./[1]}}{{#if @index}}, {{/if}}{{name}}: {{{lookup @root/type_names type}}}{{/each}}){{#if ./[2]}} -> {{{lookup @root/type_names ./[2]}}}{{/if}};
+  {{./[0]}} : ({{#each ./[1]}}{{#if @index}}, {{/if}}{{name}}: {{{lookup @root/type_names type}}}{{/each}}) -> {{{lookup @root/type_names ./[2]}}};
 {{/each}}
 {{#each queries}}
-  query {{./[0]}} : ({{#each ./[1]}}{{#if @index}}, {{/if}}{{name}}: {{{lookup @root/type_names type}}}{{/each}}){{#if ./[2]}} -> {{{lookup @root/type_names ./[2]}}}{{/if}};
+  query {{./[0]}} : ({{#each ./[1]}}{{#if @index}}, {{/if}}{{name}}: {{{lookup @root/type_names type}}}{{/each}}) -> {{{lookup @root/type_names ./[2]}}};
 {{/each}}
 {{#if (len events)}}
 
