@@ -189,6 +189,7 @@ export class ServiceGenerator {
             .line(`return result[2].${getPayloadMethod(returnScaleType)}() as unknown as ${returnType}`);
         } else {
           this._out
+            .line(`if (!this.programId) throw new Error('Program ID is not set')`)
             .line(`return new TransactionBuilder<${returnType}>(`, false)
             .increaseIndent()
             .line(`this._program.api,`, false)

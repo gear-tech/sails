@@ -38,14 +38,14 @@
     "test": "yarn node --no-warnings --experimental-vm-modules $(yarn bin jest) --detectOpenHandles"
   },
   "peerDependencies": {
-    "@gear-js/api": "^0.37.2",
-    "@polkadot/api": "^10.12.3",
-    "@polkadot/types": "^10.12.3"
+    "@gear-js/api": "^0.38.0",
+    "@polkadot/api": "^11.0.1",
+    "@polkadot/types": "^11.0.1"
   },
   "devDependencies": {
-    "@gear-js/api": "0.38.0",
-    "@polkadot/api": "10.12.6",
-    "@polkadot/types": "10.12.6",
+    "@gear-js/api": "^0.38.0",
+    "@polkadot/api": "^11.0.1",
+    "@polkadot/types": "^11.0.1",
     "@rollup/plugin-commonjs": "25.0.7",
     "@rollup/plugin-node-resolve": "15.2.3",
     "@rollup/plugin-typescript": "11.1.6",
