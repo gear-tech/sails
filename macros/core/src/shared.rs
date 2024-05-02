@@ -2,10 +2,13 @@ use crate::route;
 use proc_macro2::TokenStream as TokenStream2;
 use proc_macro_error::abort;
 use quote::{quote, ToTokens};
-use std::collections::BTreeMap;
+use std::{
+    collections::BTreeMap,
+    sync::{Once, OnceLock},
+};
 use syn::{
-    parse_quote_spanned, spanned::Spanned, FnArg, Ident, ImplItem, ImplItemFn, ItemImpl, Pat,
-    PathArguments, Receiver, ReturnType, Signature, Type, TypePath, WhereClause,
+    parse_quote, parse_quote_spanned, spanned::Spanned, FnArg, Ident, ImplItem, ImplItemFn,
+    ItemImpl, Pat, PathArguments, Receiver, ReturnType, Signature, Type, TypePath, WhereClause,
 };
 
 /// A struct that represents the type of an `impl` block.
@@ -56,7 +59,7 @@ pub(crate) struct Func<'a> {
     ident: &'a Ident,
     receiver: Option<&'a Receiver>,
     params: Vec<(&'a Ident, &'a Type)>,
-    result: Type,
+    result: &'a Type,
     is_async: bool,
 }
 
@@ -70,7 +73,7 @@ impl<'a> Func<'a> {
             ident: func,
             receiver,
             params,
-            result: result.clone(),
+            result,
             is_async: handler_signature.asyncness.is_some(),
         }
     }
@@ -109,16 +112,25 @@ impl<'a> Func<'a> {
         })
     }
 
-    fn extract_result(handler_signature: &Signature) -> Type {
+    fn extract_result(handler_signature: &Signature) -> &Type {
         match &handler_signature.output {
-            ReturnType::Type(_, ty) => *ty.to_owned(),
-            ReturnType::Default => {
-                let unit_type: Type =
-                    parse_quote_spanned! { handler_signature.paren_token.span => () };
-                unit_type
-            }
+            ReturnType::Type(_, ty) => ty.as_ref(),
+            ReturnType::Default => unit(),
         }
     }
+}
+
+fn unit() -> &'static Type {
+    static mut UNIT: Option<Type> = None;
+    static UNIT_GUARD: Once = Once::new();
+
+    UNIT_GUARD.call_once(|| {
+        let unit: Type = parse_quote!(());
+        unsafe { UNIT = Some(unit) };
+        ()
+    });
+
+    unsafe { UNIT.as_ref().unwrap() }
 }
 
 pub(crate) fn discover_invocation_targets(
