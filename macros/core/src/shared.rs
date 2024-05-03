@@ -2,10 +2,10 @@ use crate::route;
 use proc_macro2::TokenStream as TokenStream2;
 use proc_macro_error::abort;
 use quote::{quote, ToTokens};
-use std::{collections::BTreeMap, sync::Once};
+use std::collections::BTreeMap;
 use syn::{
-    parse_quote, spanned::Spanned, FnArg, Ident, ImplItem, ImplItemFn, ItemImpl, Pat,
-    PathArguments, Receiver, ReturnType, Signature, Type, TypePath, WhereClause,
+    spanned::Spanned, FnArg, Ident, ImplItem, ImplItemFn, ItemImpl, Pat, PathArguments, Receiver,
+    ReturnType, Signature, Type, TypePath, TypeTuple, WhereClause,
 };
 
 /// A struct that represents the type of an `impl` block.
@@ -56,7 +56,7 @@ pub(crate) struct Func<'a> {
     ident: &'a Ident,
     receiver: Option<&'a Receiver>,
     params: Vec<(&'a Ident, &'a Type)>,
-    result: &'a Type,
+    result: Type,
     is_async: bool,
 }
 
@@ -88,7 +88,7 @@ impl<'a> Func<'a> {
     }
 
     pub(crate) fn result(&self) -> &Type {
-        self.result
+        &self.result
     }
 
     pub(crate) fn is_async(&self) -> bool {
@@ -109,24 +109,15 @@ impl<'a> Func<'a> {
         })
     }
 
-    fn extract_result(handler_signature: &Signature) -> &Type {
+    fn extract_result(handler_signature: &Signature) -> Type {
         match &handler_signature.output {
-            ReturnType::Type(_, ty) => ty.as_ref(),
-            ReturnType::Default => unit(),
+            ReturnType::Type(_, ty) => *ty.to_owned(),
+            ReturnType::Default => Type::Tuple(TypeTuple {
+                paren_token: Default::default(),
+                elems: Default::default(),
+            }),
         }
     }
-}
-
-fn unit() -> &'static Type {
-    static mut UNIT: Option<Type> = None;
-    static UNIT_GUARD: Once = Once::new();
-
-    UNIT_GUARD.call_once(|| {
-        let unit: Type = parse_quote!(());
-        unsafe { UNIT = Some(unit) };
-    });
-
-    unsafe { UNIT.as_ref().unwrap() }
 }
 
 pub(crate) fn discover_invocation_targets(
