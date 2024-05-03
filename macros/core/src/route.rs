@@ -7,7 +7,7 @@ pub fn groute(_attrs: TokenStream2, impl_item_fn_tokens: TokenStream2) -> TokenS
     impl_item_fn_tokens
 }
 
-pub(crate) fn invocation_route(invocation_func: &ImplItemFn) -> String {
+pub(crate) fn invocation_route(invocation_func: &ImplItemFn, allow_empty_route: bool) -> String {
     let service_func_ident = invocation_func.sig.ident.to_string();
     let routes = invocation_func
         .attrs
@@ -36,12 +36,18 @@ pub(crate) fn invocation_route(invocation_func: &ImplItemFn) -> String {
     if routes.len() > 1 {
         abort!(
             routes[1].0,
-            "Multiple groute attributes are not allowed for the same service function"
+            "Multiple groute attributes are not allowed for the same function"
         );
     }
     routes
         .first()
-        .map(|(_, route)| route)
+        .map(|(span, route)| {
+            if route.is_empty() && !allow_empty_route {
+                abort!(*span, "Empty route is not allowed")
+            } else {
+                route
+            }
+        })
         .unwrap_or_else(|| &service_func_ident)
         .to_case(Case::Pascal)
 }

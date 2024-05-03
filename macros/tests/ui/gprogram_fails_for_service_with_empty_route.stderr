@@ -1,0 +1,5 @@
+error: Empty route is not allowed
+ --> tests/ui/gprogram_fails_for_service_with_empty_route.rs:9:7
+  |
+9 |     #[groute("")]
+  |       ^^^^^^

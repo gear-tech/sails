@@ -31,7 +31,13 @@ fn gservice_works_for_lifecycles_and_generics() {
 }
 
 #[test]
-fn gservice_fails_for_multiple_services_with_same_route() {
+fn gprogram_fails_for_multiple_services_with_same_route() {
     let t = trybuild::TestCases::new();
     t.compile_fail("tests/ui/gprogram_fails_for_multiple_services_with_same_route.rs");
+}
+
+#[test]
+fn gprogram_fails_for_service_with_empty_route() {
+    let t = trybuild::TestCases::new();
+    t.compile_fail("tests/ui/gprogram_fails_for_service_with_empty_route.rs");
 }

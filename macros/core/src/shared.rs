@@ -131,11 +131,8 @@ pub(crate) fn discover_invocation_targets(
         .filter_map(|item| {
             if let ImplItem::Fn(fn_item) = item {
                 if filter(fn_item) {
-                    let route = route::invocation_route(fn_item);
-                    if route.is_empty() && !allow_empty_route {
-                        abort!(fn_item.sig.span(), "Empty route is not allowed");
-                    }
-                    return Some((route::invocation_route(fn_item), &fn_item.sig));
+                    let route = route::invocation_route(fn_item, allow_empty_route);
+                    return Some((route, &fn_item.sig));
                 }
             }
             None
