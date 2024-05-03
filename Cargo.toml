@@ -16,9 +16,9 @@ members = [
     "examples/rmrk/resource/wasm",
     "examples/this-that-svc/app",
     "examples/this-that-svc/wasm",
+    "idl-gen",
     "idl-meta",
-    "idlgen",
-    "idlparser",
+    "idl-parser",
     "macros",
     "macros/core",
     "rtl",
@@ -47,11 +47,11 @@ primitive-types = { version = "0.12", default-features = false }
 proc-macro-error = "1.0"
 proc-macro2 = { version = "1", default-features = false }
 quote = "1.0"
-sails-clientgen = { path = "client-gen" }
+sails-client-gen = { path = "client-gen" }
 sails-exec-context-gstd = { path = "exec-context/gstd" }
+sails-idl-gen = { path = "idl-gen" }
 sails-idl-meta = { path = "idl-meta" }
-sails-idlgen = { path = "idlgen" }
-sails-idlparser = { path = "idlparser" }
+sails-idl-parser = { path = "idl-parser" }
 sails-macros = { path = "macros" }
 sails-rtl = { path = "rtl" }
 scale-info = { version = "2.10", default-features = false }

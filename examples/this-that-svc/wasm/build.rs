@@ -1,4 +1,4 @@
-use sails_idlgen::service;
+use sails_idl_gen::service;
 use std::{env, fs::File, path::PathBuf};
 use this_that_svc_app::MyService;
 

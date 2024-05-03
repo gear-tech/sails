@@ -1,5 +1,5 @@
 [package]
-name = "sails-idlparser"
+name = "sails-idl-parser"
 version.workspace = true
 authors.workspace = true
 edition.workspace = true

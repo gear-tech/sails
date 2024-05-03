@@ -14,7 +14,7 @@ pub fn generate_client_from_idl(
     let idl = fs::read_to_string(idl_path)
         .with_context(|| format!("Failed to open {} for reading", idl_path.display()))?;
 
-    let program = match sails_idlparser::ast::parse_idl(&idl) {
+    let program = match sails_idl_parser::ast::parse_idl(&idl) {
         Ok(program) => program,
         Err(e) => {
             eprintln!("Failed to parse IDL: {}", e);
@@ -72,7 +72,7 @@ mod tests {
             query That : (v1: null) -> result (str, str);
         };
         "#;
-        let program = sails_idlparser::ast::parse_idl(IDL).expect("parse IDL");
+        let program = sails_idl_parser::ast::parse_idl(IDL).expect("parse IDL");
 
         let generated = generator::generate(program, "Service").unwrap();
 
