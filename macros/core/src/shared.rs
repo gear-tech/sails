@@ -138,10 +138,10 @@ pub(crate) fn discover_invocation_targets(
             None
         })
         .fold(BTreeMap::new(), |mut result, (route, target)| {
-            if let Some(duplicate) = result.insert(route, target) {
+            if let Some(duplicate) = result.insert(route.1, target) {
                 abort!(
-                    target.span(),
-                    "Route conflicts with {}",
+                    route.0,
+                    "Route conflicts with one assigned to '{}'",
                     duplicate.ident.to_string()
                 );
             }

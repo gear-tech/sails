@@ -1,13 +1,16 @@
 use convert_case::{Case, Casing};
-use proc_macro2::TokenStream as TokenStream2;
+use proc_macro2::{Span, TokenStream};
 use proc_macro_error::abort;
 use syn::{spanned::Spanned, ImplItemFn, Lit};
 
-pub fn groute(_attrs: TokenStream2, impl_item_fn_tokens: TokenStream2) -> TokenStream2 {
+pub fn groute(_attrs: TokenStream, impl_item_fn_tokens: TokenStream) -> TokenStream {
     impl_item_fn_tokens
 }
 
-pub(crate) fn invocation_route(invocation_func: &ImplItemFn, allow_empty_route: bool) -> String {
+pub(crate) fn invocation_route(
+    invocation_func: &ImplItemFn,
+    allow_empty_route: bool,
+) -> (Span, String) {
     let service_func_ident = invocation_func.sig.ident.to_string();
     let routes = invocation_func
         .attrs
@@ -45,9 +48,13 @@ pub(crate) fn invocation_route(invocation_func: &ImplItemFn, allow_empty_route: 
             if route.is_empty() && !allow_empty_route {
                 abort!(*span, "Empty route is not allowed")
             } else {
-                route
+                (span.clone(), route.to_case(Case::Pascal))
             }
         })
-        .unwrap_or_else(|| &service_func_ident)
-        .to_case(Case::Pascal)
+        .unwrap_or_else(|| {
+            (
+                invocation_func.sig.ident.span(),
+                service_func_ident.to_case(Case::Pascal),
+            )
+        })
 }
