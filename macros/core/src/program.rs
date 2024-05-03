@@ -278,7 +278,7 @@ fn discover_service_ctors(program_impl: &ItemImpl) -> BTreeMap<String, &Signatur
                 && fn_item.sig.inputs.len() == 1
                 && !matches!(fn_item.sig.output, ReturnType::Default)
         },
-        true,
+        false,
     )
 }
 

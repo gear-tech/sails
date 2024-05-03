@@ -123,7 +123,7 @@ impl<'a> Func<'a> {
 pub(crate) fn discover_invocation_targets(
     item_impl: &ItemImpl,
     filter: impl Fn(&ImplItemFn) -> bool,
-    allow_empty_route: bool,
+    allow_empty_route: bool, // Even though we always pass `false` here, we keep this parameter for the case when we want to allow anonymously exposed services
 ) -> BTreeMap<String, &Signature> {
     item_impl
         .items
@@ -132,19 +132,19 @@ pub(crate) fn discover_invocation_targets(
             if let ImplItem::Fn(fn_item) = item {
                 if filter(fn_item) {
                     let route = route::invocation_route(fn_item);
-                    if route.is_empty() && !allow_empty_route {
-                        abort!(fn_item.sig.span(), "Empty route is not allowed");
+                    if route.1.is_empty() && !allow_empty_route {
+                        abort!(route.0, "Empty route is not allowed")
                     }
-                    return Some((route::invocation_route(fn_item), &fn_item.sig));
+                    return Some((route, &fn_item.sig));
                 }
             }
             None
         })
         .fold(BTreeMap::new(), |mut result, (route, target)| {
-            if let Some(duplicate) = result.insert(route, target) {
+            if let Some(duplicate) = result.insert(route.1, target) {
                 abort!(
-                    target.span(),
-                    "Route conflicts with {}",
+                    route.0,
+                    "Route conflicts with one assigned to '{}'",
                     duplicate.ident.to_string()
                 );
             }

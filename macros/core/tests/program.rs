@@ -51,23 +51,6 @@ fn gprogram_generates_init_for_no_ctor() {
 }
 
 #[test]
-fn gprogram_generates_handle_for_single_service_with_empty_route() {
-    let input = quote! {
-        impl MyProgram {
-            #[groute("")]
-            pub fn service(&self) -> MyService {
-                MyService
-            }
-        }
-    };
-
-    let result = gprogram(input).to_string();
-    let result = prettyplease::unparse(&syn::parse_str(&result).unwrap());
-
-    insta::assert_snapshot!(result);
-}
-
-#[test]
 fn gprogram_generates_handle_for_single_service_with_non_empty_route() {
     let input = quote! {
         impl MyProgram {
@@ -88,27 +71,6 @@ fn gprogram_generates_handle_for_multiple_services_with_non_empty_routes() {
     let input = quote! {
         impl MyProgram {
             #[groute("svc1")]
-            pub fn service1(&self) -> MyService {
-                MyService
-            }
-
-            pub fn service2(&self) -> MyService {
-                MyService
-            }
-        }
-    };
-
-    let result = gprogram(input).to_string();
-    let result = prettyplease::unparse(&syn::parse_str(&result).unwrap());
-
-    insta::assert_snapshot!(result);
-}
-
-#[test]
-fn gprogram_generates_handle_for_multiple_services_with_empty_and_non_empty_routes() {
-    let input = quote! {
-        impl MyProgram {
-            #[groute("")]
             pub fn service1(&self) -> MyService {
                 MyService
             }

@@ -1,13 +1,13 @@
 use convert_case::{Case, Casing};
-use proc_macro2::TokenStream as TokenStream2;
+use proc_macro2::{Span, TokenStream};
 use proc_macro_error::abort;
 use syn::{spanned::Spanned, ImplItemFn, Lit};
 
-pub fn groute(_attrs: TokenStream2, impl_item_fn_tokens: TokenStream2) -> TokenStream2 {
+pub fn groute(_attrs: TokenStream, impl_item_fn_tokens: TokenStream) -> TokenStream {
     impl_item_fn_tokens
 }
 
-pub(crate) fn invocation_route(invocation_func: &ImplItemFn) -> String {
+pub(crate) fn invocation_route(invocation_func: &ImplItemFn) -> (Span, String) {
     let service_func_ident = invocation_func.sig.ident.to_string();
     let routes = invocation_func
         .attrs
@@ -36,12 +36,16 @@ pub(crate) fn invocation_route(invocation_func: &ImplItemFn) -> String {
     if routes.len() > 1 {
         abort!(
             routes[1].0,
-            "Multiple groute attributes are not allowed for the same service function"
+            "Multiple groute attributes are not allowed for the same function"
         );
     }
     routes
         .first()
-        .map(|(_, route)| route)
-        .unwrap_or_else(|| &service_func_ident)
-        .to_case(Case::Pascal)
+        .map(|(span, route)| (*span, route.to_case(Case::Pascal)))
+        .unwrap_or_else(|| {
+            (
+                invocation_func.sig.ident.span(),
+                service_func_ident.to_case(Case::Pascal),
+            )
+        })
 }
