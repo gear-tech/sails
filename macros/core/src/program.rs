@@ -109,9 +109,9 @@ fn generate_init(
 
             quote!(
                 if #input_ident.starts_with(& [ #(#invocation_route_bytes),* ]) {
+                    static INVOCATION_ROUTE: [u8; #invocation_route_len] = [ #(#invocation_route_bytes),* ];
                     let request = #invocation_params_struct_ident::decode(&mut &#input_ident[#invocation_route_len..]).expect("Failed to decode request");
                     let program = #program_type_path :: #handler_ident (#(#handler_args),*) #handler_await;
-                    static INVOCATION_ROUTE: [u8; #invocation_route_len] = [ #(#invocation_route_bytes),* ];
                     (program, INVOCATION_ROUTE.as_ref())
                 }
             )
@@ -208,10 +208,11 @@ fn generate_handle(
 
                 quote!(
                     if #input_ident.starts_with(& [ #(#invocation_route_bytes),* ]) {
+                        static INVOCATION_ROUTE: [u8; #invocation_route_len] = [ #(#invocation_route_bytes),* ];
+                        let msg_scope = gstd::__create_message_scope(INVOCATION_ROUTE.as_ref());
                         let program_ref = unsafe { #program_ident.as_ref() }.expect("Program not initialized");
                         let mut service = program_ref.#service_ctor_ident();
                         let output = service.handle(&#input_ident[#invocation_route_len..]).await;
-                        static INVOCATION_ROUTE: [u8; #invocation_route_len] = [ #(#invocation_route_bytes),* ];
                         [INVOCATION_ROUTE.as_ref(), &output].concat()
                     }
                 )

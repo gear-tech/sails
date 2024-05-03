@@ -145,6 +145,7 @@ impl CtorTraitGenerator {
 
 impl<'ast> Visitor<'ast> for CtorTraitGenerator {
     fn visit_ctor(&mut self, ctor: &'ast Ctor) {
+        self.code.push_str("#[allow(dead_code)]\n");
         self.code.push_str(&format!(
             "pub trait {}Factory<A: Default> {{\n",
             self.service_name

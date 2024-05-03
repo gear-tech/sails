@@ -64,12 +64,12 @@ where
             .map(|v| v.as_slice())
     }
 
-    fn compose_payload(event: TEvents) -> Result<Vec<u8>, RtlError> {
+    fn compose_payload(prefix: &[u8], event: TEvents) -> Result<Vec<u8>, RtlError> {
         let encoded_event_names = Self::encoded_event_names()?;
         let payload = event.encode();
         let event_idx = payload[0]; // It is safe to get this w/o any check as we know the type is a proper event type, i.e. enum
         let encoded_event_name = &encoded_event_names[event_idx as usize];
-        Ok([&encoded_event_name[..], &payload[1..]].concat())
+        Ok([prefix, &encoded_event_name[..], &payload[1..]].concat())
     }
 }
 
@@ -78,7 +78,10 @@ where
     TEvents: Encode + StaticTypeInfo,
 {
     fn trigger(&self, event: TEvents) -> Result<()> {
-        let payload = Self::compose_payload(event)?;
+        let payload = Self::compose_payload(
+            super::message_service_route(super::current_message_id()),
+            event,
+        )?;
         msg::send_bytes(GStdActorId::zero(), payload, 0)?;
         Ok(())
     }
@@ -105,7 +108,7 @@ pub mod mocks {
         TEvents: Encode + StaticTypeInfo,
     {
         fn trigger(&self, event: TEvents) -> Result<()> {
-            GStdEventTrigger::<TEvents>::compose_payload(event)?;
+            GStdEventTrigger::<TEvents>::compose_payload(&[], event)?;
             Ok(())
         }
     }
@@ -150,12 +153,15 @@ mod tests {
     #[test]
     fn compose_payload_returns_proper_payload() {
         let event = TestEvents::Event1(42);
-        let payload = GStdEventTrigger::<TestEvents>::compose_payload(event).unwrap();
+        let payload = GStdEventTrigger::<TestEvents>::compose_payload(&[1, 2, 3], event).unwrap();
 
-        assert_eq!(payload, [24, 69, 118, 101, 110, 116, 49, 42, 00, 00, 00]);
+        assert_eq!(
+            payload,
+            [1, 2, 3, 24, 69, 118, 101, 110, 116, 49, 42, 00, 00, 00]
+        );
 
         let event = TestEvents::Event2 { p1: 43 };
-        let payload = GStdEventTrigger::<TestEvents>::compose_payload(event).unwrap();
+        let payload = GStdEventTrigger::<TestEvents>::compose_payload(&[], event).unwrap();
 
         assert_eq!(payload, [24, 69, 118, 101, 110, 116, 50, 43, 00]);
     }
