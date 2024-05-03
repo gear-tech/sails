@@ -1,4 +1,4 @@
-use crate::{collections::BTreeMap, ActorId, ExecContext, MessageId};
+use crate::{collections::BTreeMap, ActorId, MessageId};
 use core::cell::OnceCell;
 pub use gstd::{async_init, async_main, handle_signal, message_loop, msg, record_reply};
 
@@ -40,6 +40,13 @@ fn message_service_route(msg_id: MessageId) -> &'static [u8] {
 
 fn current_message_id() -> MessageId {
     msg::id().into()
+}
+
+// TODO: To be renamed into SysCalls or something similar
+pub trait ExecContext {
+    fn actor_id(&self) -> ActorId;
+
+    fn message_id(&self) -> MessageId;
 }
 
 #[derive(Default)]
