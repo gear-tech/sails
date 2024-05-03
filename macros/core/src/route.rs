@@ -7,10 +7,7 @@ pub fn groute(_attrs: TokenStream, impl_item_fn_tokens: TokenStream) -> TokenStr
     impl_item_fn_tokens
 }
 
-pub(crate) fn invocation_route(
-    invocation_func: &ImplItemFn,
-    allow_empty_route: bool,
-) -> (Span, String) {
+pub(crate) fn invocation_route(invocation_func: &ImplItemFn) -> (Span, String) {
     let service_func_ident = invocation_func.sig.ident.to_string();
     let routes = invocation_func
         .attrs
@@ -44,13 +41,7 @@ pub(crate) fn invocation_route(
     }
     routes
         .first()
-        .map(|(span, route)| {
-            if route.is_empty() && !allow_empty_route {
-                abort!(*span, "Empty route is not allowed")
-            } else {
-                (span.clone(), route.to_case(Case::Pascal))
-            }
-        })
+        .map(|(span, route)| (*span, route.to_case(Case::Pascal)))
         .unwrap_or_else(|| {
             (
                 invocation_func.sig.ident.span(),
