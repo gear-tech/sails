@@ -150,6 +150,7 @@ pub enum T {
 }
 pub mod traits {
     use super::*;
+    #[allow(dead_code)]
     pub trait ServiceFactory<A: Default> {
         #[allow(clippy::new_ret_no_self)]
         fn new(remoting: impl Remoting<A>, a: u32) -> impl Activation<A>;

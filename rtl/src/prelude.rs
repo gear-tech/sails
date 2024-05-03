@@ -41,7 +41,7 @@ pub mod collections {
 pub mod ffi {
     extern crate alloc;
 
-    pub use alloc::ffi::*;
+    pub use alloc::ffi::{CString, FromVecWithNulError, IntoStringError, NulError};
     pub use core::ffi::*;
 }
 

@@ -97,7 +97,7 @@ describe('RMRK catalog', () => {
 
     expect(replyMsg).toBeDefined();
 
-    const result = sails.services.RmrkCatalog.functions.AddParts.decodeResult(replyMsg.data.message.payload);
+    const result = sails.services.RmrkCatalog.functions.AddParts.decodeResult(replyMsg.data.message.payload.toHex());
 
     expect(result).toEqual({
       ok: {

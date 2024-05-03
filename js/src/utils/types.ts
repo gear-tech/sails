@@ -51,17 +51,15 @@ export const getPrimitiveTypeName = (type: PrimitiveDef, forTs = false): string 
   if (type.isU64) return forTs ? TS_NUMBER : 'u64';
   if (type.isU128) return forTs ? TS_NUMBER : 'u128';
   if (type.isActorId || type.isCodeId || type.isMessageId) return forTs ? '`0x${string}` | Uint8Array' : '[u8;32]';
+  if (type.isH256) return forTs ? 'string' : 'H256';
+  if (type.isU256) return forTs ? TS_NUMBER : 'U256';
 
   throw new Error('Unknown primitive type');
 };
 
 export const getScaleCodecDef = (type: TypeDef, asString = false) => {
   if (type.isPrimitive) {
-    const primitive = type.asPrimitive;
-    if (primitive.isActorId || primitive.isCodeId || primitive.isMessageId) {
-      return '[u8;32]';
-    }
-    return getPrimitiveTypeName(primitive);
+    return getPrimitiveTypeName(type.asPrimitive);
   }
   if (type.isOptional) {
     return `Option<${getScaleCodecDef(type.asOptional.def)}>`;
