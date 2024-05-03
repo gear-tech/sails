@@ -1,5 +1,5 @@
+use sails_idl_gen::{program, service};
 use sails_idl_meta::{AnyServiceMeta, ProgramMeta, ServiceMeta};
-use sails_idlgen::{program, service};
 use sails_rtl::{H256, U256};
 use scale_info::{MetaType, TypeInfo};
 use std::{collections::BTreeMap, result::Result as StdResult};
@@ -184,7 +184,7 @@ fn generare_program_idl_works_with_empty_ctors() {
     let mut idl = Vec::new();
     program::generate_idl::<TestProgramWithEmptyCtorsMeta>(&mut idl).unwrap();
     let generated_idl = String::from_utf8(idl).unwrap();
-    let generated_idl_program = sails_idlparser::ast::parse_idl(&generated_idl);
+    let generated_idl_program = sails_idl_parser::ast::parse_idl(&generated_idl);
 
     insta::assert_snapshot!(generated_idl);
     let generated_idl_program = generated_idl_program.unwrap();
@@ -199,7 +199,7 @@ fn generare_program_idl_works_with_non_empty_ctors() {
     let mut idl = Vec::new();
     program::generate_idl::<TestProgramWithNonEmptyCtorsMeta>(&mut idl).unwrap();
     let generated_idl = String::from_utf8(idl).unwrap();
-    let generated_idl_program = sails_idlparser::ast::parse_idl(&generated_idl);
+    let generated_idl_program = sails_idl_parser::ast::parse_idl(&generated_idl);
 
     insta::assert_snapshot!(generated_idl);
     let generated_idl_program = generated_idl_program.unwrap();
@@ -214,7 +214,7 @@ fn generate_program_idl_works_with_multiple_services() {
     let mut idl = Vec::new();
     program::generate_idl::<TestProgramWithMultipleServicesMeta>(&mut idl).unwrap();
     let generated_idl = String::from_utf8(idl).unwrap();
-    let generated_idl_program = sails_idlparser::ast::parse_idl(&generated_idl);
+    let generated_idl_program = sails_idl_parser::ast::parse_idl(&generated_idl);
 
     insta::assert_snapshot!(generated_idl);
     let generated_idl_program = generated_idl_program.unwrap();
@@ -232,7 +232,7 @@ fn generate_service_idl_works() {
     let mut idl = Vec::new();
     service::generate_idl::<TestServiceMeta>(&mut idl).unwrap();
     let generated_idl = String::from_utf8(idl).unwrap();
-    let generated_idl_program = sails_idlparser::ast::parse_idl(&generated_idl);
+    let generated_idl_program = sails_idl_parser::ast::parse_idl(&generated_idl);
 
     insta::assert_snapshot!(generated_idl);
     let generated_idl_program = generated_idl_program.unwrap();

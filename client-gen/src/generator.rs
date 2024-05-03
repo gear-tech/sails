@@ -1,8 +1,7 @@
 use anyhow::Result;
 use convert_case::{Case, Casing};
 use parity_scale_codec::Encode;
-use sails_idlparser::ast::*;
-use sails_idlparser::{ast::visitor, ast::visitor::Visitor};
+use sails_idl_parser::{ast::visitor, ast::visitor::Visitor, ast::*};
 use std::io::Write;
 
 pub fn generate(program: Program, default_service_name: &str) -> Result<String> {
@@ -746,7 +745,7 @@ mod tests {
             };
         ";
 
-        let program = sails_idlparser::ast::parse_idl(idl).expect("parse IDL");
+        let program = sails_idl_parser::ast::parse_idl(idl).expect("parse IDL");
 
         insta::assert_snapshot!(generate(program, "Basic").unwrap());
     }
@@ -764,7 +763,7 @@ mod tests {
             };
         ";
 
-        let program = sails_idlparser::ast::parse_idl(idl).expect("parse IDL");
+        let program = sails_idl_parser::ast::parse_idl(idl).expect("parse IDL");
 
         insta::assert_snapshot!(generate(program, "Multiple").unwrap());
     }
@@ -773,7 +772,7 @@ mod tests {
     fn test_rmrk_works() {
         let idl = include_str!("../../examples/rmrk/catalog/wasm/rmrk-catalog.idl");
 
-        let program = sails_idlparser::ast::parse_idl(idl).expect("parse IDL");
+        let program = sails_idl_parser::ast::parse_idl(idl).expect("parse IDL");
 
         insta::assert_snapshot!(generate(program, "RmrkCatalog").unwrap());
     }

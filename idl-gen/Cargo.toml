@@ -1,5 +1,5 @@
 [package]
-name = "sails-idlgen"
+name = "sails-idl-gen"
 version.workspace = true
 authors.workspace = true
 edition.workspace = true
@@ -17,5 +17,5 @@ thiserror.workspace = true
 
 [dev-dependencies]
 insta.workspace = true
-sails-idlparser.workspace = true
+sails-idl-parser.workspace = true
 scale-info = { workspace = true, features = ["derive"] }

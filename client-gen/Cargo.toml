@@ -1,5 +1,5 @@
 [package]
-name = "sails-clientgen"
+name = "sails-client-gen"
 version.workspace = true
 authors.workspace = true
 edition.workspace = true
@@ -9,7 +9,7 @@ license.workspace = true
 anyhow.workspace = true
 convert-case.workspace = true
 parity-scale-codec.workspace = true
-sails-idlparser.workspace = true
+sails-idl-parser.workspace = true
 
 [dev-dependencies]
 insta.workspace = true

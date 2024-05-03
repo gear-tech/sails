@@ -12,4 +12,4 @@ sails-macros.workspace = true
 scale-info = { workspace = true, features = ["derive"] }
 
 [build-dependencies]
-sails-clientgen.workspace = true
+sails-client-gen.workspace = true

@@ -9,7 +9,7 @@ rmrk-resource-app = { path = "../app" }
 [build-dependencies]
 gwasm-builder.workspace = true
 rmrk-resource-app = { path = "../app" }
-sails-idlgen.workspace = true
+sails-idl-gen.workspace = true
 
 [dev-dependencies]
 gtest.workspace = true

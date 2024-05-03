@@ -1,5 +1,5 @@
 use rmrk_resource_app::Program;
-use sails_idlgen::program;
+use sails_idl_gen::program;
 use std::{env, fs::File, path::PathBuf};
 
 fn main() {

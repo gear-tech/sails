@@ -3360,7 +3360,7 @@ version = "0.1.0"
 dependencies = [
  "gstd",
  "parity-scale-codec",
- "sails-clientgen",
+ "sails-client-gen",
  "sails-idl-meta",
  "sails-macros",
  "sails-rtl",
@@ -3374,7 +3374,7 @@ dependencies = [
  "gear-wasm-builder",
  "gstd",
  "puppeteer-app",
- "sails-idlgen",
+ "sails-idl-gen",
  "sails-rtl",
 ]
 
@@ -3651,7 +3651,7 @@ version = "0.1.0"
 dependencies = [
  "gear-wasm-builder",
  "rmrk-catalog-app",
- "sails-idlgen",
+ "sails-idl-gen",
 ]
 
 [[package]]
@@ -3673,7 +3673,7 @@ dependencies = [
  "gtest",
  "rmrk-catalog",
  "rmrk-resource-app",
- "sails-idlgen",
+ "sails-idl-gen",
  "sails-rtl",
  "tokio",
 ]
@@ -3685,7 +3685,7 @@ dependencies = [
  "git-download",
  "gstd",
  "parity-scale-codec",
- "sails-clientgen",
+ "sails-client-gen",
  "sails-idl-meta",
  "sails-macros",
  "sails-rtl",
@@ -3759,14 +3759,30 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f98d2aa92eebf49b69786be48e4477826b256916e84a57ff2a4f21923b48eb4c"
 
 [[package]]
-name = "sails-clientgen"
+name = "sails-client-gen"
 version = "0.0.1"
 dependencies = [
  "anyhow",
  "convert_case 0.6.0",
  "insta",
  "parity-scale-codec",
- "sails-idlparser",
+ "sails-idl-parser",
+]
+
+[[package]]
+name = "sails-idl-gen"
+version = "0.0.1"
+dependencies = [
+ "convert_case 0.6.0",
+ "handlebars",
+ "insta",
+ "sails-idl-meta",
+ "sails-idl-parser",
+ "sails-rtl",
+ "scale-info",
+ "serde",
+ "serde_json",
+ "thiserror",
 ]
 
 [[package]]
@@ -3777,23 +3793,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "sails-idlgen"
-version = "0.0.1"
-dependencies = [
- "convert_case 0.6.0",
- "handlebars",
- "insta",
- "sails-idl-meta",
- "sails-idlparser",
- "sails-rtl",
- "scale-info",
- "serde",
- "serde_json",
- "thiserror",
-]
-
-[[package]]
-name = "sails-idlparser"
+name = "sails-idl-parser"
 version = "0.0.1"
 dependencies = [
  "itertools 0.12.1",
@@ -4764,7 +4764,7 @@ version = "0.1.0"
 dependencies = [
  "gear-wasm-builder",
  "gstd",
- "sails-idlgen",
+ "sails-idl-gen",
  "this-that-svc-app",
 ]
 

@@ -13,4 +13,4 @@ scale-info = { workspace = true, features = ["derive"] }
 
 [build-dependencies]
 git-download.workspace = true
-sails-clientgen.workspace = true
+sails-client-gen.workspace = true
