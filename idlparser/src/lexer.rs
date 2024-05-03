@@ -1,10 +1,14 @@
 use logos::{Logos, SpannedIter};
 use std::fmt::{Display, Formatter, Result as FmtResult};
+use thiserror::Error;
+
+use crate::ast::ParseError;
 
 pub(crate) type Spanned<Token, Location, Error> = Result<(Location, Token, Location), Error>;
 
-#[derive(Debug)]
-pub(crate) enum LexicalError {
+#[derive(Error, Debug, PartialEq)]
+pub enum LexicalError {
+    #[error("Invalid token")]
     InvalidToken,
 }
 
@@ -23,11 +27,11 @@ impl<'input> Lexer<'input> {
 }
 
 impl<'input> Iterator for Lexer<'input> {
-    type Item = Spanned<Token, usize, LexicalError>;
+    type Item = Spanned<Token, usize, ParseError>;
 
     fn next(&mut self) -> Option<Self::Item> {
         self.token_stream.next().map(|(token, span)| match token {
-            Err(_) => Err(LexicalError::InvalidToken),
+            Err(_) => Err(ParseError::Lexical(LexicalError::InvalidToken)),
             Ok(token) => Ok((span.start, token, span.end)),
         })
     }

@@ -1,13 +1,48 @@
-use crate::{grammar::ProgramParser, lexer::Lexer};
+use std::collections::HashSet;
+use thiserror::Error;
+
+use crate::{
+    grammar::ProgramParser,
+    lexer::{Lexer, LexicalError},
+};
 
 pub mod visitor;
 
-pub fn parse_idl(idl: &str) -> Result<Program, String> {
+#[derive(Error, Debug, PartialEq)]
+pub enum ParseError {
+    #[error(transparent)]
+    Lexical(#[from] LexicalError),
+    #[error("duplicate type `{0}`")]
+    DuplicateType(String),
+    #[error("duplicate ctor `{0}`")]
+    DuplicateCtor(String),
+    #[error("duplicate service `{0}`")]
+    DuplicateService(String),
+    #[error("duplicate service method `{method}` in service `{service}`")]
+    DuplicateServiceMethod { method: String, service: String },
+    #[error("duplicate variant `{0}`")]
+    DuplicateEnumVariant(String),
+    #[error("duplicate field `{0}`")]
+    DuplicateStructField(String),
+    #[error("struct has mixed named and unnamed fields")]
+    StructMixedFields,
+    #[error("parse error: `{0}`")]
+    Other(String),
+}
+
+pub fn parse_idl(idl: &str) -> Result<Program, ParseError> {
     let lexer = Lexer::new(idl);
     let parser = ProgramParser::new();
-    let program = parser.parse(lexer).map_err(|e| format!("{:?}", e))?;
+
+    let program = parser.parse(lexer).map_err(|e| match e {
+        lalrpop_util::ParseError::User { error } => error,
+        _ => ParseError::Other(e.to_string()),
+    })?;
+
     Ok(program)
 }
+
+type ParseResult<T> = Result<T, ParseError>;
 
 /// A structure describing program
 #[derive(Debug, PartialEq, Clone)]
@@ -18,12 +53,30 @@ pub struct Program {
 }
 
 impl Program {
-    pub(crate) fn new(ctor: Option<Ctor>, services: Vec<Service>, types: Vec<Type>) -> Self {
-        Self {
+    pub(crate) fn new(
+        ctor: Option<Ctor>,
+        services: Vec<Service>,
+        types: Vec<Type>,
+    ) -> ParseResult<Self> {
+        let mut seen_types = HashSet::new();
+        for t in &types {
+            if !seen_types.insert(t.name().to_lowercase()) {
+                return Err(ParseError::DuplicateType(t.name().to_string()));
+            }
+        }
+
+        let mut seen_services = HashSet::new();
+        for s in &services {
+            if !seen_services.insert(s.name().to_lowercase()) {
+                return Err(ParseError::DuplicateService(s.name().to_string()));
+            }
+        }
+
+        Ok(Self {
             ctor,
             services,
             types,
-        }
+        })
     }
 
     pub fn ctor(&self) -> Option<&Ctor> {
@@ -46,8 +99,14 @@ pub struct Ctor {
 }
 
 impl Ctor {
-    pub(crate) fn new(funcs: Vec<CtorFunc>) -> Self {
-        Self { funcs }
+    pub(crate) fn new(funcs: Vec<CtorFunc>) -> ParseResult<Self> {
+        let mut seen = HashSet::new();
+        for f in &funcs {
+            if !seen.insert(f.name().to_lowercase()) {
+                return Err(ParseError::DuplicateCtor(f.name().to_string()));
+            }
+        }
+        Ok(Self { funcs })
     }
 
     pub fn funcs(&self) -> &[CtorFunc] {
@@ -85,12 +144,26 @@ pub struct Service {
 }
 
 impl Service {
-    pub(crate) fn new(name: String, funcs: Vec<ServiceFunc>, events: Vec<ServiceEvent>) -> Self {
-        Self {
+    pub(crate) fn new(
+        name: String,
+        funcs: Vec<ServiceFunc>,
+        events: Vec<ServiceEvent>,
+    ) -> ParseResult<Self> {
+        let mut seen = HashSet::new();
+        for f in &funcs {
+            if !seen.insert(f.name().to_lowercase()) {
+                return Err(ParseError::DuplicateServiceMethod {
+                    method: f.name().to_string(),
+                    service: name.to_string(),
+                });
+            }
+        }
+
+        Ok(Self {
             name,
             funcs,
             events,
-        }
+        })
     }
 
     pub fn name(&self) -> &str {
@@ -278,8 +351,27 @@ pub struct StructDef {
 }
 
 impl StructDef {
-    pub(crate) fn new(fields: Vec<StructField>) -> Self {
-        Self { fields }
+    pub(crate) fn new(fields: Vec<StructField>) -> ParseResult<Self> {
+        // check if all fields are named or unnamed
+        let all_unnamed = fields.iter().all(|f| f.name().is_none());
+        let all_named = fields.iter().all(|f| f.name().is_some());
+
+        if !all_unnamed && !all_named {
+            return Err(ParseError::StructMixedFields);
+        }
+
+        let mut seen = HashSet::new();
+
+        if all_named {
+            for f in &fields {
+                let name = f.name().unwrap();
+                if !seen.insert(name.to_lowercase()) {
+                    return Err(ParseError::DuplicateStructField(name.to_string()));
+                }
+            }
+        }
+
+        Ok(Self { fields })
     }
 
     pub fn fields(&self) -> &[StructField] {
@@ -313,8 +405,14 @@ pub struct EnumDef {
 }
 
 impl EnumDef {
-    pub(crate) fn new(variants: Vec<EnumVariant>) -> Self {
-        Self { variants }
+    pub(crate) fn new(variants: Vec<EnumVariant>) -> ParseResult<Self> {
+        let mut seen = HashSet::new();
+        for v in &variants {
+            if !seen.insert(v.name().to_lowercase()) {
+                return Err(ParseError::DuplicateEnumVariant(v.name().to_string()));
+            }
+        }
+        Ok(Self { variants })
     }
 
     pub fn variants(&self) -> &[EnumVariant] {
@@ -505,5 +603,117 @@ mod tests {
                 }
                 _ => panic!("unexpected type"),
             });
+    }
+
+    #[test]
+    fn parser_rejects_duplicate_names() {
+        let program_idl = r"
+          type A = enum { One };
+          type A = enum { Two };
+          service {};
+        ";
+
+        let err = parse_idl(program_idl).unwrap_err();
+
+        assert_eq!(err, ParseError::DuplicateType("A".to_owned()));
+    }
+
+    #[test]
+    fn parser_rejects_duplicate_unnamed_services() {
+        let program_idl = r"
+          service {};
+          service {};
+        ";
+
+        let err = parse_idl(program_idl).unwrap_err();
+
+        assert_eq!(err, ParseError::DuplicateService("".to_owned()));
+    }
+
+    #[test]
+    fn parser_rejects_duplicate_named_services() {
+        let program_idl = r"
+          service A {};
+          service B {};
+          service A {};
+          service {};
+        ";
+
+        let err = parse_idl(program_idl).unwrap_err();
+
+        assert_eq!(err, ParseError::DuplicateService("A".to_owned()));
+    }
+
+    #[test]
+    fn parser_rejects_duplicate_service_methods() {
+        let program_idl = r"
+          service {
+            DoTHIS : () -> null;
+            DoThis : () -> null;
+          };
+        ";
+
+        let err = parse_idl(program_idl).unwrap_err();
+
+        assert_eq!(
+            err,
+            ParseError::DuplicateServiceMethod {
+                method: "DoThis".to_owned(),
+                service: "".to_owned()
+            }
+        );
+    }
+
+    #[test]
+    fn parser_rejects_duplicate_ctor_funcs() {
+        let program_idl = r"
+          constructor {
+            New : ();
+            new : ();
+          };
+        ";
+
+        let err = parse_idl(program_idl).unwrap_err();
+
+        assert_eq!(err, ParseError::DuplicateCtor("new".to_owned()));
+    }
+
+    #[test]
+    fn parser_rejects_duplicate_enum_variants() {
+        let program_idl = r"
+          type T = enum { One, One };
+        ";
+
+        let err = parse_idl(program_idl).unwrap_err();
+
+        assert_eq!(err, ParseError::DuplicateEnumVariant("One".to_owned()));
+    }
+
+    #[test]
+    fn parser_rejects_duplicate_struct_fields() {
+        let program_idl = r"
+          type T = struct {
+            a: u32,
+            a: u32,
+          };
+        ";
+
+        let err = parse_idl(program_idl).unwrap_err();
+
+        assert_eq!(err, ParseError::DuplicateStructField("a".to_owned()));
+    }
+
+    #[test]
+    fn parser_rejects_mixed_named_unnamed_struct_fields() {
+        let program_idl = r"
+          type T = struct {
+            a: u32,
+            u32,
+          };
+        ";
+
+        let err = parse_idl(program_idl).unwrap_err();
+
+        assert_eq!(err, ParseError::StructMixedFields);
     }
 }
