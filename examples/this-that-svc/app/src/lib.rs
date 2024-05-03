@@ -4,6 +4,7 @@ use gstd::{debug, prelude::*};
 use primitive_types::{H256, U256};
 use sails_macros::gservice;
 
+#[derive(Default)]
 pub struct MyService;
 
 #[gservice]
