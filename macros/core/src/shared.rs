@@ -123,7 +123,7 @@ impl<'a> Func<'a> {
 pub(crate) fn discover_invocation_targets(
     item_impl: &ItemImpl,
     filter: impl Fn(&ImplItemFn) -> bool,
-    allow_empty_route: bool,
+    allow_empty_route: bool, // Even though we always pass `false` here, we keep this parameter for the case when we want to allow anonymously exposed services
 ) -> BTreeMap<String, &Signature> {
     item_impl
         .items
