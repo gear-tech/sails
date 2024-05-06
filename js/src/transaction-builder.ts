@@ -4,8 +4,9 @@ import { IKeyringPair, ISubmittableResult } from '@polkadot/types/types';
 import { TypeRegistry, u128, u64 } from '@polkadot/types';
 
 export interface IMethodReturnType<T> {
-  msgId: string;
-  blockHash: string;
+  msgId: HexString;
+  blockHash: HexString;
+  txHash: HexString;
   response: () => Promise<T>;
 }
 
@@ -13,7 +14,7 @@ export class TransactionBuilder<ResponseType> {
   private _account: string | IKeyringPair;
   private _signerOptions: Partial<SignerOptions>;
   private _tx: SubmittableExtrinsic<'promise', ISubmittableResult>;
-  public programId: HexString;
+  public readonly programId: HexString;
 
   constructor(
     api: GearApi,
@@ -261,6 +262,7 @@ export class TransactionBuilder<ResponseType> {
     return {
       msgId,
       blockHash,
+      txHash: this._tx.hash.toHex(),
       response: async () => {
         const {
           data: { message },

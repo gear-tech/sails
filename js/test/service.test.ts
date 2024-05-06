@@ -23,7 +23,6 @@ describe('service', () => {
     expect(result.services.TestService.functions.DoThis.args[0].name).toEqual('a1');
     expect(result.services.TestService.functions.DoThis.args[0].type).toEqual('String');
     expect(result.services.TestService.functions.DoThis.returnType).toEqual('u8');
-    expect(result.services.TestService.functions.DoThis.isQuery).toBeFalsy();
 
     const payload = result.services.TestService.functions.DoThis.encodePayload('hello');
 
@@ -56,12 +55,13 @@ describe('service', () => {
 
     const result = sails.parseIdl(idl);
 
-    expect(Object.keys(result.services.TestService.functions)).toHaveLength(4);
-
+    expect(Object.keys(result.services.TestService.functions)).toHaveLength(2);
     expect(result.services.TestService.functions).toHaveProperty('DoThis');
     expect(result.services.TestService.functions).toHaveProperty('DoThat');
-    expect(result.services.TestService.functions).toHaveProperty('GetThis');
-    expect(result.services.TestService.functions).toHaveProperty('GetThat');
+
+    expect(Object.keys(result.services.TestService.queries)).toHaveLength(2);
+    expect(result.services.TestService.queries).toHaveProperty('GetThis');
+    expect(result.services.TestService.queries).toHaveProperty('GetThat');
 
     expect(result.services.TestService.functions.DoThis.args).toHaveLength(2);
     expect(result.services.TestService.functions.DoThis.args[0].name).toEqual('a1');
@@ -69,7 +69,6 @@ describe('service', () => {
     expect(result.services.TestService.functions.DoThis.args[1].name).toEqual('a2');
     expect(result.services.TestService.functions.DoThis.args[1].type).toEqual('(String, Option<u8>)');
     expect(result.services.TestService.functions.DoThis.returnType).toEqual('Result<String, u8>');
-    expect(result.services.TestService.functions.DoThis.isQuery).toBeFalsy();
     let payload = result.services.TestService.functions.DoThis.encodePayload(1, ['hello', 2]);
     expect(result.registry.createType('(String, String, u32, (String, Option<u8>))', payload).toJSON()).toEqual([
       'TestService',
@@ -82,7 +81,6 @@ describe('service', () => {
     expect(result.services.TestService.functions.DoThat.args[0].name).toEqual('a1');
     expect(result.services.TestService.functions.DoThat.args[0].type).toEqual('ComplexEnum');
     expect(result.services.TestService.functions.DoThat.returnType).toEqual('String');
-    expect(result.services.TestService.functions.DoThat.isQuery).toBeFalsy();
     payload = result.services.TestService.functions.DoThat.encodePayload({ Two: 2 });
     expect(result.registry.createType('(String, String, ComplexEnum)', payload).toJSON()).toEqual([
       'TestService',
@@ -90,24 +88,22 @@ describe('service', () => {
       { two: 2 },
     ]);
 
-    expect(result.services.TestService.functions.GetThis.args).toHaveLength(1);
-    expect(result.services.TestService.functions.GetThis.args[0].name).toEqual('a1');
-    expect(result.services.TestService.functions.GetThis.args[0].type).toEqual('String');
-    expect(result.services.TestService.functions.GetThis.returnType).toEqual('u8');
-    expect(result.services.TestService.functions.GetThis.isQuery).toBeTruthy();
-    payload = result.services.TestService.functions.GetThis.encodePayload('hello');
+    expect(result.services.TestService.queries.GetThis.args).toHaveLength(1);
+    expect(result.services.TestService.queries.GetThis.args[0].name).toEqual('a1');
+    expect(result.services.TestService.queries.GetThis.args[0].type).toEqual('String');
+    expect(result.services.TestService.queries.GetThis.returnType).toEqual('u8');
+    payload = result.services.TestService.queries.GetThis.encodePayload('hello');
     expect(result.registry.createType('(String, String, String)', payload).toJSON()).toEqual([
       'TestService',
       'GetThis',
       'hello',
     ]);
 
-    expect(result.services.TestService.functions.GetThat.args).toHaveLength(1);
-    expect(result.services.TestService.functions.GetThat.args[0].name).toEqual('a1');
-    expect(result.services.TestService.functions.GetThat.args[0].type).toEqual('SimpleStruct');
-    expect(result.services.TestService.functions.GetThat.returnType).toEqual('String');
-    expect(result.services.TestService.functions.GetThat.isQuery).toBeTruthy();
-    payload = result.services.TestService.functions.GetThat.encodePayload({ a: 'hello', b: 1234 });
+    expect(result.services.TestService.queries.GetThat.args).toHaveLength(1);
+    expect(result.services.TestService.queries.GetThat.args[0].name).toEqual('a1');
+    expect(result.services.TestService.queries.GetThat.args[0].type).toEqual('SimpleStruct');
+    expect(result.services.TestService.queries.GetThat.returnType).toEqual('String');
+    payload = result.services.TestService.queries.GetThat.encodePayload({ a: 'hello', b: 1234 });
     expect(result.registry.createType('(String, String, SimpleStruct)', payload).toJSON()).toEqual([
       'TestService',
       'GetThat',
