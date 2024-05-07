@@ -1,37 +1,55 @@
+import { GearApi, HexString, UserMessageSent, decodeAddress } from '@gear-js/api';
 import { TypeRegistry } from '@polkadot/types/create';
 import { u8aToHex } from '@polkadot/util';
-import { HexString, UserMessageSent } from '@gear-js/api';
 
 import { Program, Service, TypeDef, WasmParser } from './parser/index.js';
-import { getScaleCodecDef } from './utils/types.js';
 import { getFnNamePrefix, getServiceNamePrefix } from 'utils/prefix.js';
-
-const ZERO_ADDRESS = u8aToHex(new Uint8Array(32));
+import { TransactionBuilder } from './transaction-builder.js';
+import { getScaleCodecDef } from './utils/types.js';
+import { ZERO_ADDRESS } from './consts.js';
 
 interface SailsService {
   functions: Record<string, SailsServiceFunc>;
+  queries: Record<string, SailsServiceQuery>;
   events: Record<string, SailsServiceEvent>;
 }
 
-interface SailsServiceFunc {
+interface ISailsServiceFuncParams {
+  /** ### List of argument names and types  */
   args: { name: string; type: any }[];
+  /** ### Function return type */
   returnType: any;
-  isQuery: boolean;
+  /** ### Encode payload to hex string */
   encodePayload: (...args: any[]) => HexString;
+  /** ### Decode payload from hex string */
   decodePayload: <T extends any = any>(bytes: HexString) => T;
+  /** ### Decode function result */
   decodeResult: <T extends any = any>(result: HexString) => T;
 }
+
+type SailsServiceQuery = ISailsServiceFuncParams &
+  (<T>(origin: string, value?: bigint, atBlock?: HexString, ...args: unknown[]) => Promise<T>);
+
+type SailsServiceFunc = ISailsServiceFuncParams & (<T>(...args: unknown[]) => TransactionBuilder<T>);
 
 interface SailsServiceEvent {
   type: any;
   is: (event: UserMessageSent) => boolean;
   decode: (payload: HexString) => any;
+  subscribe: <T>(cb: (event: T) => void | Promise<void>) => void;
 }
 
-interface SailsCtorFunc {
+interface ISailsCtorFuncParams {
+  /** ### List of argument names and types  */
   args: { name: string; type: any }[];
+  /** ### Encode payload to hex string */
   encodePayload: (...args: any[]) => HexString;
+  /** ### Decode payload from hex string */
   decodePayload: <T>(bytes: HexString) => T;
+  /** ### Create transaction builder from code */
+  fromCode: (code: Uint8Array | Buffer, ...args: unknown[]) => TransactionBuilder<any>;
+  /** ### Create transaction builder from code id */
+  fromCodeId: (codeId: HexString, ...args: unknown[]) => TransactionBuilder<any>;
 }
 
 export class Sails {
@@ -39,6 +57,8 @@ export class Sails {
   private _program: Program;
   private _scaleTypes: Record<string, any>;
   private _registry: TypeRegistry;
+  private _api?: GearApi;
+  private _programId?: HexString;
 
   constructor(parser: WasmParser) {
     this._parser = parser;
@@ -48,6 +68,23 @@ export class Sails {
   static async new() {
     const parser = new WasmParser();
     return new Sails(await parser.init());
+  }
+
+  /** ### Set api to use for transactions */
+  setApi(api: GearApi) {
+    this._api = api;
+    return this;
+  }
+
+  /** ### Set program id to interact with */
+  setProgramId(programId: HexString) {
+    this._programId = programId;
+    return this;
+  }
+
+  /** ### Get program id */
+  get programId() {
+    return this._programId;
   }
 
   /**
@@ -92,17 +129,73 @@ export class Sails {
     return this._registry;
   }
 
-  private _getFunctions(service: Service): Record<string, SailsServiceFunc> {
+  private _getFunctions(service: Service): {
+    funcs: Record<string, SailsServiceFunc>;
+    queries: Record<string, SailsServiceQuery>;
+  } {
     const funcs: Record<string, SailsServiceFunc> = {};
+    const queries: Record<string, SailsServiceQuery> = {};
 
     for (const func of service.funcs) {
       const params = func.params.map((p) => ({ name: p.name, type: getScaleCodecDef(p.def) }));
       const returnType = getScaleCodecDef(func.def);
-      funcs[func.name] = {
+      if (func.isQuery) {
+        queries[func.name] = (async <T extends any = any>(
+          origin: string,
+          value: bigint = 0n,
+          atBlock?: HexString,
+          ...args: unknown[]
+        ): Promise<T> => {
+          if (!this._api) {
+            throw new Error('API is not set. Use .setApi method to set API instance');
+          }
+          if (!this._programId) {
+            throw new Error('Program ID is not set. Use .setProgramId method to set program ID');
+          }
+          const payload = this.registry
+            .createType(`(String, String, ${params.map((p) => p.type).join(', ')})`, [service.name, func.name, ...args])
+            .toHex();
+
+          const reply = await this._api.message.calculateReply({
+            destination: this.programId,
+            origin: decodeAddress(origin),
+            payload,
+            value,
+            gasLimit: this._api.blockGasLimit.toBigInt(),
+            at: atBlock || null,
+          });
+
+          if (!reply.code.isSuccess) {
+            throw new Error(this.registry.createType('String', reply.payload).toString());
+          }
+
+          const result = this.registry.createType(`(String, String, ${returnType})`, reply.payload.toHex());
+          return result[2].toJSON() as T;
+        }) as SailsServiceQuery;
+      } else {
+        funcs[func.name] = (<T extends any = any>(...args: any): TransactionBuilder<T> => {
+          if (!this._api) {
+            throw new Error('API is not set. Use .setApi method to set API instance');
+          }
+          if (!this._programId) {
+            throw new Error('Program ID is not set. Use .setProgramId method to set program ID');
+          }
+          return new TransactionBuilder(
+            this._api,
+            this.registry,
+            'send_message',
+            [service.name, func.name, ...args],
+            `(String, String, ${params.map((p) => p.type).join(', ')})`,
+            returnType,
+            this._programId,
+          );
+        }) as SailsServiceFunc;
+      }
+
+      Object.assign(func.isQuery ? queries[func.name] : funcs[func.name], {
         args: params,
         returnType,
-        isQuery: func.isQuery,
-        encodePayload: (...args): HexString => {
+        encodePayload: (...args: unknown[]): HexString => {
           if (args.length !== args.length) {
             throw new Error(`Expected ${params.length} arguments, but got ${args.length}`);
           }
@@ -123,10 +216,10 @@ export class Sails {
           const payload = this.registry.createType(`(String, String, ${returnType})`, result);
           return payload[2].toJSON() as T;
         },
-      };
+      });
     }
 
-    return funcs;
+    return { funcs, queries };
   }
 
   private _getEvents(service: Service): Record<string, SailsServiceEvent> {
@@ -156,6 +249,25 @@ export class Sails {
           const data = this.registry.createType(`(String, String, ${typeStr})`, payload);
           return data[2].toJSON();
         },
+        subscribe: <T extends any = any>(cb: (eventData: T) => void | Promise<void>) => {
+          if (!this._api) {
+            throw new Error('API is not set. Use .setApi method to set API instance');
+          }
+
+          if (!this._programId) {
+            throw new Error('Program ID is not set. Use .setProgramId method to set program ID');
+          }
+
+          this._api.gearEvents.subscribeToGearEvent('UserMessageSent', ({ data: { message } }) => {
+            if (!message.source.eq(this._programId)) return;
+            if (!message.destination.eq(ZERO_ADDRESS)) return;
+            const payload = message.payload.toHex();
+
+            if (getServiceNamePrefix(payload) === service.name && getFnNamePrefix(payload) === event.name) {
+              cb(this.registry.createType(`(String, String, ${typeStr})`, message.payload)[2].toJSON() as T);
+            }
+          });
+        },
       };
     }
 
@@ -171,8 +283,10 @@ export class Sails {
     const services = {};
 
     for (const service of this._program.services) {
+      const { funcs, queries } = this._getFunctions(service);
       services[service.name] = {
-        functions: this._getFunctions(service),
+        functions: funcs,
+        queries,
         events: this._getEvents(service),
       };
     }
@@ -192,7 +306,7 @@ export class Sails {
       return null;
     }
 
-    const funcs: Record<string, SailsCtorFunc> = {};
+    const funcs: Record<string, ISailsCtorFuncParams> = {};
 
     for (const func of ctor.funcs) {
       const params = func.params.map((p) => ({ name: p.name, type: getScaleCodecDef(p.def) }));
@@ -217,6 +331,42 @@ export class Sails {
         decodePayload: <T = any>(bytes: Uint8Array | string) => {
           const payload = this.registry.createType(`(String, ${params.map((p) => p.type).join(', ')})`, bytes);
           return payload[1].toJSON() as T;
+        },
+        fromCode: (code: Uint8Array | Buffer, ...args: unknown[]) => {
+          if (!this._api) {
+            throw new Error('API is not set. Use .setApi method to set API instance');
+          }
+
+          const builder = new TransactionBuilder(
+            this._api,
+            this.registry,
+            'upload_program',
+            [func.name, ...args],
+            `(String, ${params.map((p) => p.type).join(', ')})`,
+            'String',
+            code,
+          );
+
+          this._programId = builder.programId;
+          return builder;
+        },
+        fromCodeId: (codeId: HexString, ...args: unknown[]) => {
+          if (!this._api) {
+            throw new Error('API is not set. Use .setApi method to set API instance');
+          }
+
+          const builder = new TransactionBuilder(
+            this._api,
+            this.registry,
+            'create_program',
+            [func.name, ...args],
+            `(String, ${params.map((p) => p.type).join(', ')})`,
+            'String',
+            codeId,
+          );
+
+          this._programId = builder.programId;
+          return builder;
         },
       };
     }

@@ -10,7 +10,6 @@ import { Program } from './rmrk-catalog/lib';
 let sails: Sails;
 let api: GearApi;
 let alice: KeyringPair;
-let catalogId: HexString;
 let aliceRaw: HexString;
 let code: Buffer;
 
@@ -40,68 +39,43 @@ describe('RMRK catalog', () => {
   });
 
   test('upload catalog', async () => {
-    const payload = sails.ctors.New.encodePayload();
-
-    const gas = await api.program.calculateGas.initUpload(aliceRaw, code, payload);
-
-    const { extrinsic, programId } = api.program.upload({
-      code,
-      gasLimit: gas.min_limit,
-      initPayload: payload,
-    });
-
-    await new Promise((resolve, reject) => {
-      extrinsic.signAndSend(alice, ({ events, status }) => {
-        if (status.isInBlock) {
-          const success = events.find(({ event: { method } }) => method === 'ExtrinsicSuccess');
-          if (success) {
-            resolve(0);
-          } else {
-            const failed = events.find(({ event: { method } }) => method === 'ExtrinsicFailed');
-            reject(api.getExtrinsicFailedError(failed.event).docs);
-          }
-        }
-      });
-    });
-
-    catalogId = programId;
+    sails.setApi(api);
+    const transaction = await sails.ctors.New.fromCode(code).withAccount(alice).calculateGas();
+    const { response } = await transaction.signAndSend();
+    await response();
   });
 
   test('add parts func', async () => {
-    expect(catalogId).toBeDefined();
+    expect(sails.programId).toBeDefined();
     expect(sails.services).toHaveProperty('RmrkCatalog');
-    const payload = sails.services.RmrkCatalog.functions.AddParts.encodePayload({
-      1: { Fixed: { z: null, metadata_uri: 'foo' } },
-    });
 
-    const gas = await api.program.calculateGas.handle(aliceRaw, catalogId, payload);
+    const transaction = await sails.services.RmrkCatalog.functions
+      .AddParts({
+        1: { Fixed: { z: null, metadata_uri: 'foo' } },
+      })
+      .withAccount(alice)
+      .calculateGas();
+    const { response, blockHash, txHash, msgId } = await transaction.signAndSend();
+    const result = await response();
 
-    const extrinsic = api.message.send({ destination: catalogId, payload, gasLimit: gas.min_limit });
-
-    let [msgId, blockHash] = await new Promise<[HexString, HexString]>((resolve, reject) => {
-      extrinsic.signAndSend(alice, ({ events, status }) => {
-        if (status.isInBlock) {
-          const success = events.find(({ event: { method } }) => method === 'ExtrinsicSuccess');
-          if (success) {
-            const msgQueued = events.find(({ event: { method } }) => method === 'MessageQueued').event as MessageQueued;
-            resolve([msgQueued.data.id.toHex(), status.asInBlock.toHex()]);
-          } else {
-            const failed = events.find(({ event: { method } }) => method === 'ExtrinsicFailed');
-            reject(api.getExtrinsicFailedError(failed.event).docs);
-          }
-        }
-      });
-    });
-
-    const replyMsg = await api.message.getReplyEvent(catalogId, msgId, blockHash);
-
-    expect(replyMsg).toBeDefined();
-
-    const result = sails.services.RmrkCatalog.functions.AddParts.decodeResult(replyMsg.data.message.payload.toHex());
+    expect(blockHash).toBeDefined();
+    expect(msgId).toBeDefined();
+    expect(txHash).toBeDefined();
 
     expect(result).toEqual({
       ok: {
         '1': { fixed: { z: null, metadata_uri: 'foo' } },
+      },
+    });
+  });
+
+  test('read parts', async () => {
+    const result = await sails.services.RmrkCatalog.queries.Part(alice.address, null, null, 1);
+
+    expect(result).toEqual({
+      fixed: {
+        metadata_uri: 'foo',
+        z: null,
       },
     });
   });
@@ -114,7 +88,6 @@ describe('RMRK generated', () => {
 
   test('create program', async () => {
     program = new Program(api);
-    const transaction = await program.newCtorFromCode(code);
 
     expect(program.rmrkCatalog).toHaveProperty('addParts');
     expect(program.rmrkCatalog).toHaveProperty('removeParts');
@@ -124,9 +97,8 @@ describe('RMRK generated', () => {
     expect(program.rmrkCatalog).toHaveProperty('setEquippablesToAll');
     expect(program.rmrkCatalog).toHaveProperty('part');
     expect(program.rmrkCatalog).toHaveProperty('equippable');
-    expect(program.programId).toBeDefined();
 
-    await transaction.withAccount(alice).calculateGas();
+    const transaction = await program.newCtorFromCode(code).withAccount(alice).calculateGas();
 
     const { msgId, blockHash } = await transaction.signAndSend();
 
