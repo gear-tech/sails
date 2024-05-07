@@ -45,5 +45,13 @@ fn gprogram_fails_for_service_with_empty_route() {
 #[test]
 fn gprogram_fails_for_service_multiple_groute_attributes_are_not_allowed() {
     let t = trybuild::TestCases::new();
-    t.compile_fail("tests/ui/gprogram_fails_for_service_multiple_groute_attributes_are_not_allowed.rs");
+    t.compile_fail(
+        "tests/ui/gprogram_fails_for_service_multiple_groute_attributes_are_not_allowed.rs",
+    );
+}
+
+#[test]
+fn gservice_fails_no_handlers_found() {
+    let t = trybuild::TestCases::new();
+    t.compile_fail("tests/ui/gservice_fails_no_handlers_found.rs");
 }

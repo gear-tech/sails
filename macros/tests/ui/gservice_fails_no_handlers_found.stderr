@@ -1,0 +1,5 @@
+error: No handlers found. Try either defining one or removing the macro usage
+ --> tests/ui/gservice_fails_no_handlers_found.rs:6:1
+  |
+6 | impl MyService {}
+  | ^^^^^^^^^^^^^^^^^
