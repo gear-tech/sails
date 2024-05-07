@@ -55,3 +55,9 @@ fn gservice_fails_no_handlers_found() {
     let t = trybuild::TestCases::new();
     t.compile_fail("tests/ui/gservice_fails_no_handlers_found.rs");
 }
+
+#[test]
+fn gservice_fails_to_parse_service_impl() {
+    let t = trybuild::TestCases::new();
+    t.compile_fail("tests/ui/gservice_fails_to_parse_service_impl.rs");
+}
