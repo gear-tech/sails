@@ -52,6 +52,7 @@ impl<'a> ImplType<'a> {
 }
 
 /// Represents parts of a handler function.
+#[derive(Clone)]
 pub(crate) struct Func<'a> {
     ident: &'a Ident,
     receiver: Option<&'a Receiver>,

@@ -22,7 +22,7 @@ pub fn gprogram(program_impl_tokens: TokenStream2) -> TokenStream2 {
     let services = service_types.map(|item| {
         let service_route = item.0;
         let service_type = item.1;
-        quote!((#service_route, sails_idl_meta::AnyServiceMeta::new::<#service_type>()))
+        quote!((#service_route, sails_rtl::meta::AnyServiceMeta::new::<#service_type>()))
     });
 
     let ctors_params_structs = ctors_data.clone().map(|item| item.2);
@@ -36,12 +36,12 @@ pub fn gprogram(program_impl_tokens: TokenStream2) -> TokenStream2 {
     quote!(
         #program_impl
 
-        impl #program_type_args sails_idl_meta::ProgramMeta for #program_type_path #program_type_constraints {
+        impl #program_type_args sails_rtl::meta::ProgramMeta for #program_type_path #program_type_constraints {
             fn constructors() -> scale_info::MetaType {
                 scale_info::MetaType::new::<meta::ConstructorsMeta>()
             }
 
-            fn services() -> impl Iterator<Item = (&'static str, sails_idl_meta::AnyServiceMeta)> {
+            fn services() -> impl Iterator<Item = (&'static str, sails_rtl::meta::AnyServiceMeta)> {
                 [
                     #(#services),*
                 ].into_iter()

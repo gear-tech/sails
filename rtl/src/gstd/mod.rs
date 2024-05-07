@@ -4,6 +4,7 @@ pub use gstd::{async_init, async_main, handle_signal, message_loop, msg, record_
 
 pub mod calls;
 pub mod events;
+pub mod services;
 mod types;
 
 static mut MESSAGE_ID_TO_SERVICE_ROUTE: BTreeMap<MessageId, &'static [u8]> = BTreeMap::new();
