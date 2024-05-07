@@ -6,8 +6,7 @@ import { Program, Service, TypeDef, WasmParser } from './parser/index.js';
 import { getFnNamePrefix, getServiceNamePrefix } from 'utils/prefix.js';
 import { TransactionBuilder } from './transaction-builder.js';
 import { getScaleCodecDef } from './utils/types.js';
-
-const ZERO_ADDRESS = u8aToHex(new Uint8Array(32));
+import { ZERO_ADDRESS } from './consts.js';
 
 interface SailsService {
   functions: Record<string, SailsServiceFunc>;
