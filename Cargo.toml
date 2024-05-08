@@ -17,7 +17,6 @@ members = [
     "examples/this-that-svc/app",
     "examples/this-that-svc/wasm",
     "idl-gen",
-    "idl-meta",
     "idl-parser",
     "macros",
     "macros/core",
@@ -50,7 +49,6 @@ quote = "1.0"
 sails-client-gen = { path = "client-gen" }
 sails-exec-context-gstd = { path = "exec-context/gstd" }
 sails-idl-gen = { path = "idl-gen" }
-sails-idl-meta = { path = "idl-meta" }
 sails-idl-parser = { path = "idl-parser" }
 sails-macros = { path = "macros" }
 sails-rtl = { path = "rtl" }

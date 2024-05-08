@@ -35,7 +35,7 @@ const VARIANT_TEMPLATE: &str = include_str!("../hbs/variant.hbs");
 
 pub mod program {
     use super::*;
-    use sails_idl_meta::ProgramMeta;
+    use sails_rtl::meta::ProgramMeta;
 
     pub fn generate_idl<P: ProgramMeta>(idl_writer: impl Write) -> Result<()> {
         render_idl(
@@ -47,7 +47,7 @@ pub mod program {
 
 pub mod service {
     use super::*;
-    use sails_idl_meta::{AnyServiceMeta, ServiceMeta};
+    use sails_rtl::meta::{AnyServiceMeta, ServiceMeta};
 
     pub fn generate_idl<S: ServiceMeta>(idl_writer: impl Write) -> Result<()> {
         render_idl(

@@ -26,8 +26,8 @@ use proc_macro_error::abort;
 use quote::quote;
 use std::collections::BTreeMap;
 use syn::{
-    GenericArgument, Ident, ItemImpl, Path, PathArguments, Signature, Type, TypeParamBound,
-    Visibility, WhereClause, WherePredicate,
+    GenericArgument, Ident, ImplItem, ItemImpl, Path, PathArguments, Signature, Type,
+    TypeParamBound, Visibility, WhereClause, WherePredicate,
 };
 
 pub fn gservice(service_impl_tokens: TokenStream2) -> TokenStream2 {
@@ -58,8 +58,10 @@ pub fn gservice(service_impl_tokens: TokenStream2) -> TokenStream2 {
         .and_then(discover_service_events_type)
         .unwrap_or(&no_events_type);
 
+    let inner_ident = Ident::new("inner", Span::call_site());
     let input_ident = Ident::new("input", Span::call_site());
 
+    let mut exposed_funcs = Vec::with_capacity(service_handlers.len());
     let mut invocation_params_structs = Vec::with_capacity(service_handlers.len());
     let mut invocation_funcs = Vec::with_capacity(service_handlers.len());
     let mut invocation_dispatches = Vec::with_capacity(service_handlers.len());
@@ -68,9 +70,18 @@ pub fn gservice(service_impl_tokens: TokenStream2) -> TokenStream2 {
 
     for (invocation_route, service_handler) in &service_handlers {
         let handler = Func::from(service_handler);
-        let handler_generator = HandlerGenerator::from(handler);
+        let handler_generator = HandlerGenerator::from(handler.clone());
         let invocation_func_ident = handler_generator.invocation_func_ident();
 
+        exposed_funcs.push({
+            let handler_ident = handler.ident();
+            let handler_params = handler.params().iter().map(|item| item.0);
+            let handler_await_token = handler.is_async().then(|| quote!(.await));
+            quote!(
+            pub #service_handler {
+                self. #inner_ident . #handler_ident (#(#handler_params),*) #handler_await_token
+            })
+        });
         invocation_params_structs.push(handler_generator.params_struct());
         invocation_funcs.push(handler_generator.invocation_func());
         invocation_dispatches.push({
@@ -99,23 +110,42 @@ pub fn gservice(service_impl_tokens: TokenStream2) -> TokenStream2 {
         }
     }
 
-    service_impl.items.push(syn::parse2(quote!(
-            pub async fn handle(&mut self, mut #input_ident: &[u8]) -> Vec<u8> {
-                #(#invocation_dispatches)*
-                let invocation_path = String::decode(&mut #input_ident).expect("Failed to decode invocation path");
-            panic!("Unknown request: {}", invocation_path);
-        })).expect("Unable to parse process function"));
+    let handle_func = syn::parse2::<ImplItem>(quote!(
+        pub async fn handle(&mut self, mut #input_ident: &[u8]) -> Vec<u8> {
+            #(#invocation_dispatches)*
+            let invocation_path = String::decode(&mut #input_ident).expect("Failed to decode invocation path");
+        panic!("Unknown request: {}", invocation_path);
+    })).expect("Unable to parse process function");
+    service_impl.items.push(handle_func.clone());
 
-    service_impl.items.extend(
-        invocation_funcs
-            .into_iter()
-            .map(|func| syn::parse2(func).expect("Unable to parse invocation function")),
-    );
+    let invocation_funcs = invocation_funcs
+        .into_iter()
+        .map(|func| syn::parse2(func).expect("Unable to parse invocation function"));
+    service_impl.items.extend(invocation_funcs.clone());
 
     quote!(
         #service_impl
 
-        impl #service_type_args sails_idl_meta::ServiceMeta for #service_type_path #service_type_constraints {
+        pub struct Exposed<T> {
+            invocation_route: &'static [u8],
+            #inner_ident : T,
+        }
+
+        impl #service_type_args Exposed<#service_type_path> #service_type_constraints {
+            #(#exposed_funcs)*
+
+            #handle_func
+
+            #(#invocation_funcs)*
+        }
+
+        impl #service_type_args sails_rtl::gstd::services::Service for #service_type_path #service_type_constraints {
+            type Exposed = Exposed<#service_type_path>;
+
+            fn expose(self, invocation_route: &'static [u8]) -> Self::Exposed { Self::Exposed { invocation_route, inner: self } }
+        }
+
+        impl #service_type_args sails_rtl::meta::ServiceMeta for #service_type_path #service_type_constraints {
             fn commands() -> scale_info::MetaType {
                 scale_info::MetaType::new::<meta::CommandsMeta>()
             }
