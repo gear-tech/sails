@@ -31,6 +31,12 @@ fn gservice_works_for_lifecycles_and_generics() {
 }
 
 #[test]
+fn gprogram_works_with_no_exposed_services() {
+    let t = trybuild::TestCases::new();
+    t.pass("tests/ui/gprogram_works_with_no_exposed_services.rs");
+}
+
+#[test]
 fn gprogram_fails_for_multiple_services_with_same_route() {
     let t = trybuild::TestCases::new();
     t.compile_fail("tests/ui/gprogram_fails_for_multiple_services_with_same_route.rs");
