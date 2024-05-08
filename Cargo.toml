@@ -51,7 +51,7 @@ sails-idl-gen = { path = "idl-gen" }
 sails-idl-parser = { path = "idl-parser" }
 sails-macros = { path = "macros" }
 sails-rtl = { path = "rtl" }
-scale-info = { version = "2.10", default-features = false }
+scale-info = { version = "2.11", default-features = false }
 serde = "1.0"
 serde-json = { package = "serde_json", version = "1.0" }
 syn = "2.0"
