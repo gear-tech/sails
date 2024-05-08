@@ -1,0 +1,5 @@
+error: Function impl with route must be public
+  --> tests/ui/gservice_fails_route_fn_must_be_public.rs:14:5
+   |
+14 |     fn this(&self, p1: bool) -> bool {
+   |     ^^

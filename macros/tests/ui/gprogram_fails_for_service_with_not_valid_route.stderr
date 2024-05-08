@@ -1,0 +1,5 @@
+error: Route name must be a literal with a valid Rust identifier: unexpected token
+ --> tests/ui/gprogram_fails_for_service_with_not_valid_route.rs:9:14
+  |
+9 |     #[groute("svc1/")]
+  |              ^^^^^^^

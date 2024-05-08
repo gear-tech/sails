@@ -31,33 +31,7 @@ fn gservice_works_for_lifecycles_and_generics() {
 }
 
 #[test]
-fn gprogram_fails_for_multiple_services_with_same_route() {
+fn fails() {
     let t = trybuild::TestCases::new();
-    t.compile_fail("tests/ui/gprogram_fails_for_multiple_services_with_same_route.rs");
-}
-
-#[test]
-fn gprogram_fails_for_service_with_empty_route() {
-    let t = trybuild::TestCases::new();
-    t.compile_fail("tests/ui/gprogram_fails_for_service_with_empty_route.rs");
-}
-
-#[test]
-fn gprogram_fails_for_service_multiple_groute_attributes_are_not_allowed() {
-    let t = trybuild::TestCases::new();
-    t.compile_fail(
-        "tests/ui/gprogram_fails_for_service_multiple_groute_attributes_are_not_allowed.rs",
-    );
-}
-
-#[test]
-fn gservice_fails_no_handlers_found() {
-    let t = trybuild::TestCases::new();
-    t.compile_fail("tests/ui/gservice_fails_no_handlers_found.rs");
-}
-
-#[test]
-fn gservice_fails_to_parse_service_impl() {
-    let t = trybuild::TestCases::new();
-    t.compile_fail("tests/ui/gservice_fails_to_parse_service_impl.rs");
+    t.compile_fail("tests/ui/*fails*.rs");
 }

@@ -1,10 +1,18 @@
 use convert_case::{Case, Casing};
 use proc_macro2::{Span, TokenStream};
 use proc_macro_error::abort;
-use syn::{spanned::Spanned, ImplItemFn, Lit};
+use syn::{spanned::Spanned, Ident, ImplItemFn, Lit};
 
 pub fn groute(_attrs: TokenStream, impl_item_fn_tokens: TokenStream) -> TokenStream {
-    impl_item_fn_tokens
+    let service_impl: ImplItemFn = syn::parse2::<ImplItemFn>(impl_item_fn_tokens.clone())
+        .unwrap_or_else(|err| abort!(err.span(), "Failed to parse function impl: {}", err));
+    match service_impl.vis {
+        syn::Visibility::Public(_) => impl_item_fn_tokens,
+        _ => abort!(
+            service_impl.span(),
+            "Function impl with route must be public"
+        ),
+    }
 }
 
 pub(crate) fn invocation_route(invocation_func: &ImplItemFn) -> (Span, String) {
@@ -27,9 +35,20 @@ pub(crate) fn invocation_route(invocation_func: &ImplItemFn) -> (Span, String) {
         })
         .filter_map(|(span, lit)| {
             if let Lit::Str(lit) = lit {
-                Some((span, lit.value()))
+                let route = lit.value();
+                _ = syn::parse_str::<Ident>(&route).map_err(|err| {
+                    abort!(
+                        lit.span(),
+                        "Route name must be a literal with a valid Rust identifier: {}",
+                        err
+                    )
+                });
+                Some((span, route))
             } else {
-                None
+                abort!(
+                    lit.span(),
+                    "Route name must be a literal with a valid Rust identifier",
+                )
             }
         })
         .collect::<Vec<_>>();
