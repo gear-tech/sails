@@ -47,7 +47,6 @@ proc-macro-error = "1.0"
 proc-macro2 = { version = "1", default-features = false }
 quote = "1.0"
 sails-client-gen = { path = "client-gen" }
-sails-exec-context-gstd = { path = "exec-context/gstd" }
 sails-idl-gen = { path = "idl-gen" }
 sails-idl-parser = { path = "idl-parser" }
 sails-macros = { path = "macros" }
