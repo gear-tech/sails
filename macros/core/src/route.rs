@@ -4,12 +4,12 @@ use proc_macro_error::abort;
 use syn::{spanned::Spanned, Ident, ImplItemFn, Lit};
 
 pub fn groute(_attrs: TokenStream, impl_item_fn_tokens: TokenStream) -> TokenStream {
-    let service_impl: ImplItemFn = syn::parse2::<ImplItemFn>(impl_item_fn_tokens.clone())
+    let route_fn_impl: ImplItemFn = syn::parse2::<ImplItemFn>(impl_item_fn_tokens.clone())
         .unwrap_or_else(|err| abort!(err.span(), "Failed to parse function impl: {}", err));
-    match service_impl.vis {
+    match route_fn_impl.vis {
         syn::Visibility::Public(_) => impl_item_fn_tokens,
         _ => abort!(
-            service_impl.span(),
+            route_fn_impl.span(),
             "Function impl with route must be public"
         ),
     }
