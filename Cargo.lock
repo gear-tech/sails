@@ -1535,18 +1535,18 @@ dependencies = [
 
 [[package]]
 name = "galloc"
-version = "1.3.0"
+version = "1.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "99dca925c5f3985a741dc70c55372b8896c775d9022977feb713d6b2e5926714"
+checksum = "5afe8c638f6470457e35ae926e6b58fa98564f7e381fb61d758d2b6ff131edd1"
 dependencies = [
  "gear-dlmalloc",
 ]
 
 [[package]]
 name = "gcore"
-version = "1.3.0"
+version = "1.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c54420edffb115198575c6d9cd408f3936bfa3feb6fbddd573681a43c6183524"
+checksum = "ddfbed259877b5e4f1180451c6aaeee6c28341bb405ceb898d3684f3d1166400"
 dependencies = [
  "gear-core-errors",
  "gear-stack-buffer",
@@ -1633,9 +1633,9 @@ dependencies = [
 
 [[package]]
 name = "gear-core-errors"
-version = "1.3.0"
+version = "1.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "36293ee8813273934186736378c2d25019031790713c2c5fc5215e3a42766dbb"
+checksum = "968fa9eda3803a6ed27645f586548d5cc427e41341164853277a811821710dac"
 dependencies = [
  "derive_more",
  "enum-iterator 1.5.0",
@@ -1785,9 +1785,9 @@ dependencies = [
 
 [[package]]
 name = "gear-stack-buffer"
-version = "1.3.0"
+version = "1.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bda85b63aca9a1abbe646995225ddf92f210a204916bec1f1463aa43236081ec"
+checksum = "168b36090e6c36ed3bb02879c92be5e38d9c87e79d862a939042550e040536f5"
 
 [[package]]
 name = "gear-utils"
@@ -2019,9 +2019,9 @@ dependencies = [
 
 [[package]]
 name = "gstd"
-version = "1.3.0"
+version = "1.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8216c54291edaab2a1935913bea6b2ea421b9e24b706e79f9fb86486635e8108"
+checksum = "f8a569f3a852387ef7c8541723fe8df63918567995281af28452676a52e77b75"
 dependencies = [
  "arrayvec 0.7.4",
  "bs58 0.5.1",
@@ -2040,9 +2040,9 @@ dependencies = [
 
 [[package]]
 name = "gstd-codegen"
-version = "1.3.0"
+version = "1.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "054636b87f7a7eef568707a94c2660b2a354330aca556d25386dd94dc1778426"
+checksum = "fde54396922d0c9a0b757ad0cfd505aab89a5513b0cec6977d4085ee1f81bb8d"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -2051,9 +2051,9 @@ dependencies = [
 
 [[package]]
 name = "gsys"
-version = "1.3.0"
+version = "1.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8f7dc9624dc4bdcb00e675b4a20c39a127c2cbb15be223592e044ab0f155f2b1"
+checksum = "6b18c7d999ad6899a25351322705cf8bb3d4ff7268fba22def679b156a7bc76c"
 
 [[package]]
 name = "gtest"
@@ -3370,9 +3370,9 @@ dependencies = [
 
 [[package]]
 name = "quote"
-version = "1.0.35"
+version = "1.0.36"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "291ec9ab5efd934aaf503a6466c5d5251535d108ee747472c3977cc5acc868ef"
+checksum = "0fa76aaf39101c457836aec0ce2316dbdc3ab723cdda1c6bd4e6ad4208acaca7"
 dependencies = [
  "proc-macro2",
 ]
