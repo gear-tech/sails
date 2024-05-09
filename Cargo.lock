@@ -4752,6 +4752,7 @@ dependencies = [
  "gear-wasm-builder",
  "gstd",
  "sails-idl-gen",
+ "sails-rtl",
  "this-that-svc-app",
 ]
 

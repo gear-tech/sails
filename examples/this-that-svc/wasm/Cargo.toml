@@ -5,6 +5,7 @@ edition = "2021"
 
 [dependencies]
 gstd.workspace = true
+sails-rtl.workspace = true
 this-that-svc-app = { path = "../app" }
 
 [build-dependencies]

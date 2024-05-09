@@ -2,8 +2,28 @@
 source: macros/core/tests/program.rs
 expression: result
 ---
+static __ROUTE_SERVICE: [u8; 8usize] = [
+    28u8,
+    83u8,
+    101u8,
+    114u8,
+    118u8,
+    105u8,
+    99u8,
+    101u8,
+];
 impl MyProgram {
-    pub fn service(&self) -> MyService {
+    pub fn service(
+        &self,
+    ) -> <MyService as sails_rtl::gstd::services::Service>::Exposure {
+        let service = self.__service();
+        let exposure = <MyService as sails_rtl::gstd::services::Service>::expose(
+            service,
+            __ROUTE_SERVICE.as_ref(),
+        );
+        exposure
+    }
+    fn __service(&self) -> MyService {
         MyService
     }
 }
@@ -56,25 +76,13 @@ pub mod wasm {
     #[gstd::async_main]
     async fn main() {
         let mut input: &[u8] = &gstd::msg::load_bytes().expect("Failed to read input");
-        let output = if input
-            .starts_with(&[28u8, 83u8, 101u8, 114u8, 118u8, 105u8, 99u8, 101u8])
-        {
-            static INVOCATION_ROUTE: [u8; 8usize] = [
-                28u8,
-                83u8,
-                101u8,
-                114u8,
-                118u8,
-                105u8,
-                99u8,
-                101u8,
-            ];
-            let msg_scope = gstd::__create_message_scope(INVOCATION_ROUTE.as_ref());
+        let output = if input.starts_with(&__ROUTE_SERVICE) {
+            let msg_scope = gstd::__create_message_scope(__ROUTE_SERVICE.as_ref());
             let program_ref = unsafe { PROGRAM.as_ref() }
                 .expect("Program not initialized");
             let mut service = program_ref.service();
-            let output = service.handle(&input[8usize..]).await;
-            [INVOCATION_ROUTE.as_ref(), &output].concat()
+            let output = service.handle(&input[__ROUTE_SERVICE.len()..]).await;
+            [__ROUTE_SERVICE.as_ref(), &output].concat()
         } else {
             let input = String::decode(&mut input)
                 .unwrap_or_else(|_| {
