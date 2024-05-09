@@ -1,5 +1,5 @@
 pub trait Service {
-    type Exposed;
+    type Exposure;
 
-    fn expose(self, invocation_route: &'static [u8]) -> Self::Exposed;
+    fn expose(self, route: &'static [u8]) -> Self::Exposure;
 }

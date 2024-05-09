@@ -111,13 +111,17 @@ impl<'a> Func<'a> {
     }
 
     fn extract_result(handler_signature: &Signature) -> Type {
-        match &handler_signature.output {
-            ReturnType::Type(_, ty) => *ty.to_owned(),
-            ReturnType::Default => Type::Tuple(TypeTuple {
-                paren_token: Default::default(),
-                elems: Default::default(),
-            }),
-        }
+        result_type(handler_signature)
+    }
+}
+
+pub(crate) fn result_type(handler_signature: &Signature) -> Type {
+    match &handler_signature.output {
+        ReturnType::Type(_, ty) => *ty.to_owned(),
+        ReturnType::Default => Type::Tuple(TypeTuple {
+            paren_token: Default::default(),
+            elems: Default::default(),
+        }),
     }
 }
 
@@ -125,18 +129,19 @@ pub(crate) fn discover_invocation_targets(
     item_impl: &ItemImpl,
     filter: impl Fn(&ImplItemFn) -> bool,
     allow_empty_route: bool, // Even though we always pass `false` here, we keep this parameter for the case when we want to allow anonymously exposed services
-) -> BTreeMap<String, &Signature> {
+) -> BTreeMap<String, (&ImplItemFn, usize)> {
     item_impl
         .items
         .iter()
+        .enumerate()
         .filter_map(|item| {
-            if let ImplItem::Fn(fn_item) = item {
+            if let ImplItem::Fn(fn_item) = item.1 {
                 if filter(fn_item) {
                     let route = route::invocation_route(fn_item);
                     if route.1.is_empty() && !allow_empty_route {
                         abort!(route.0, "Empty route is not allowed")
                     }
-                    return Some((route, &fn_item.sig));
+                    return Some((route, (fn_item, item.0)));
                 }
             }
             None
@@ -146,7 +151,7 @@ pub(crate) fn discover_invocation_targets(
                 abort!(
                     route.0,
                     "Route conflicts with one assigned to '{}'",
-                    duplicate.ident.to_string()
+                    duplicate.0.sig.ident.to_string()
                 );
             }
             result

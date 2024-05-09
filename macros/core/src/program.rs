@@ -4,26 +4,70 @@ use proc_macro2::{Span, TokenStream as TokenStream2};
 use proc_macro_error::abort;
 use quote::quote;
 use std::collections::BTreeMap;
-use syn::{Ident, ItemImpl, Receiver, ReturnType, Signature, Type, TypePath, Visibility};
+use syn::{
+    parse_quote, Ident, ImplItem, ImplItemFn, ItemImpl, Receiver, ReturnType, Type, TypePath,
+    Visibility,
+};
 
 pub fn gprogram(program_impl_tokens: TokenStream2) -> TokenStream2 {
     let program_impl = syn::parse2(program_impl_tokens)
         .unwrap_or_else(|err| abort!(err.span(), "Failed to parse program impl: {}", err));
+
+    let services_ctors = discover_services_ctors(&program_impl);
+
+    let mut program_impl = program_impl.clone();
+
+    let services_data = services_ctors
+        .into_iter()
+        .map(|(route, (ctor_fn, ctor_idx))| {
+            let route_ident = Ident::new(
+                &format!("__ROUTE_{}", route.to_ascii_uppercase()),
+                Span::call_site(),
+            );
+
+            let route_static = {
+                let ctor_route_bytes = route.encode();
+                let ctor_route_len = ctor_route_bytes.len();
+                quote!(
+                    static #route_ident: [u8; #ctor_route_len] = [ #(#ctor_route_bytes),* ];
+                )
+            };
+
+            let service_meta = {
+                let service_type = shared::result_type(&ctor_fn.sig);
+                quote!(
+                    ( #route , sails_rtl::meta::AnyServiceMeta::new::< #service_type >())
+                )
+            };
+
+            wire_up_service_exposure(&mut program_impl, &route_ident, ctor_fn, ctor_idx);
+
+            (
+                route_static,
+                service_meta,
+                ctor_fn.sig.ident.clone(),
+                route_ident,
+            )
+        })
+        .collect::<Vec<_>>();
+
+    let program_ident = Ident::new("PROGRAM", Span::call_site());
+
+    let handle_fn = generate_handle(
+        &program_ident,
+        services_data.iter().map(|item| (&item.3, &item.2)),
+    );
+
+    let services_meta = services_data.iter().map(|item| &item.1);
+
+    let services_routes = services_data.iter().map(|item| &item.0);
+
     let program_type = ImplType::new(&program_impl);
     let program_type_path = program_type.path();
     let program_type_args = program_type.args();
     let program_type_constraints = program_type.constraints();
-    let program_ident = Ident::new("PROGRAM", Span::call_site());
 
-    let (ctors_data, init) = generate_init(&program_impl, program_type_path, &program_ident);
-
-    let (service_types, handle) = generate_handle(&program_impl, &program_ident);
-
-    let services = service_types.map(|item| {
-        let service_route = item.0;
-        let service_type = item.1;
-        quote!((#service_route, sails_rtl::meta::AnyServiceMeta::new::<#service_type>()))
-    });
+    let (ctors_data, init_fn) = generate_init(&program_impl, program_type_path, &program_ident);
 
     let ctors_params_structs = ctors_data.clone().map(|item| item.2);
 
@@ -34,6 +78,8 @@ pub fn gprogram(program_impl_tokens: TokenStream2) -> TokenStream2 {
     });
 
     quote!(
+        #(#services_routes)*
+
         #program_impl
 
         impl #program_type_args sails_rtl::meta::ProgramMeta for #program_type_path #program_type_constraints {
@@ -43,7 +89,7 @@ pub fn gprogram(program_impl_tokens: TokenStream2) -> TokenStream2 {
 
             fn services() -> impl Iterator<Item = (&'static str, sails_rtl::meta::AnyServiceMeta)> {
                 [
-                    #(#services),*
+                    #(#services_meta),*
                 ].into_iter()
             }
         }
@@ -69,11 +115,43 @@ pub fn gprogram(program_impl_tokens: TokenStream2) -> TokenStream2 {
 
             static mut #program_ident: Option<#program_type_path> = None;
 
-            #init
+            #init_fn
 
-            #handle
+            #handle_fn
         }
     )
+}
+
+fn wire_up_service_exposure(
+    program_impl: &mut ItemImpl,
+    route_ident: &Ident,
+    ctor_fn: &ImplItemFn,
+    ctor_idx: usize,
+) {
+    let service_type = shared::result_type(&ctor_fn.sig);
+
+    let mut original_service_ctor_fn = ctor_fn.clone();
+    let original_service_ctor_fn_ident = Ident::new(
+        &format!("__{}", original_service_ctor_fn.sig.ident),
+        original_service_ctor_fn.sig.ident.span(),
+    );
+    original_service_ctor_fn.attrs.clear();
+    original_service_ctor_fn.vis = Visibility::Inherited;
+    original_service_ctor_fn.sig.ident = original_service_ctor_fn_ident.clone();
+    program_impl
+        .items
+        .push(ImplItem::Fn(original_service_ctor_fn));
+
+    let mut wrapping_service_ctor_fn = ctor_fn.clone();
+    wrapping_service_ctor_fn.sig.output = parse_quote!(
+        -> < #service_type as sails_rtl::gstd::services::Service>::Exposure
+    );
+    wrapping_service_ctor_fn.block = parse_quote!({
+        let service = self. #original_service_ctor_fn_ident ();
+        let exposure = < #service_type as sails_rtl::gstd::services::Service>::expose(service, #route_ident .as_ref());
+        exposure
+    });
+    program_impl.items[ctor_idx] = ImplItem::Fn(wrapping_service_ctor_fn);
 }
 
 fn generate_init(
@@ -91,7 +169,8 @@ fn generate_init(
     let mut invocation_dispatches = Vec::with_capacity(program_ctors.len());
     let mut invocation_params_structs = Vec::with_capacity(program_ctors.len());
 
-    for (invocation_route, program_ctor) in &program_ctors {
+    for (invocation_route, (program_ctor, ..)) in &program_ctors {
+        let program_ctor = &program_ctor.sig;
         let handler = Func::from(program_ctor);
 
         let invocation_params_struct_ident =
@@ -175,72 +254,47 @@ fn generate_init(
     (invocation_params_structs.into_iter(), init)
 }
 
-fn generate_handle(
-    program_impl: &ItemImpl,
-    program_ident: &Ident,
-) -> (impl Iterator<Item = (String, Type)>, TokenStream2) {
-    let service_ctors = discover_service_ctors(program_impl);
-
+fn generate_handle<'a>(
+    program_ident: &'a Ident,
+    service_ctors: impl Iterator<Item = (&'a Ident, &'a Ident)>,
+) -> TokenStream2 {
     let input_ident = Ident::new("input", Span::call_site());
 
-    let mut invocation_dispatches = Vec::with_capacity(service_ctors.len());
-    let mut last_resort_invocation_dispatch = None;
-    let mut service_types = Vec::with_capacity(service_ctors.len());
+    let mut invocation_dispatches = Vec::new();
 
-    for (invocation_route, service_ctor) in &service_ctors {
-        let service_ctor = Func::from(service_ctor);
-        let service_ctor_ident = service_ctor.ident();
-
-        service_types.push((invocation_route.clone(), service_ctor.result().clone()));
-
-        if invocation_route.is_empty() {
-            last_resort_invocation_dispatch = Some(quote!({
+    for (service_route_ident, service_ctor_ident) in service_ctors {
+        invocation_dispatches.push({
+            quote!(
+                if #input_ident.starts_with(& #service_route_ident) {
+                    let msg_scope = gstd::__create_message_scope(#service_route_ident .as_ref());
                     let program_ref = unsafe { #program_ident.as_ref() }.expect("Program not initialized");
                     let mut service = program_ref.#service_ctor_ident();
-                    let output = service.handle(&#input_ident).await;
-                    output
+                    let output = service.handle(&#input_ident[#service_route_ident .len()..]).await;
+                    [#service_route_ident .as_ref(), &output].concat()
                 }
-            ));
-        } else {
-            invocation_dispatches.push({
-                let invocation_route_bytes = invocation_route.encode();
-                let invocation_route_len = invocation_route_bytes.len();
-
-                quote!(
-                    if #input_ident.starts_with(& [ #(#invocation_route_bytes),* ]) {
-                        static INVOCATION_ROUTE: [u8; #invocation_route_len] = [ #(#invocation_route_bytes),* ];
-                        let msg_scope = gstd::__create_message_scope(INVOCATION_ROUTE.as_ref());
-                        let program_ref = unsafe { #program_ident.as_ref() }.expect("Program not initialized");
-                        let mut service = program_ref.#service_ctor_ident();
-                        let output = service.handle(&#input_ident[#invocation_route_len..]).await;
-                        [INVOCATION_ROUTE.as_ref(), &output].concat()
-                    }
-                )
-            });
-        }
+            )
+        });
     }
 
-    invocation_dispatches.push(last_resort_invocation_dispatch.unwrap_or_else(|| {
-        shared::generate_unexpected_input_panic(&input_ident, "Unexpected service")
-    }));
+    invocation_dispatches.push(shared::generate_unexpected_input_panic(
+        &input_ident,
+        "Unexpected service",
+    ));
 
-    (
-        service_types.into_iter(),
-        quote!(
-            #[gstd::async_main]
-            async fn main() {
-                let mut #input_ident: &[u8] = &gstd::msg::load_bytes().expect("Failed to read input");
-                let output = #(#invocation_dispatches)else*;
-                gstd::msg::reply_bytes(output, 0).expect("Failed to send output");
-            }
-        ),
+    quote!(
+        #[gstd::async_main]
+        async fn main() {
+            let mut #input_ident: &[u8] = &gstd::msg::load_bytes().expect("Failed to read input");
+            let output = #(#invocation_dispatches)else*;
+            gstd::msg::reply_bytes(output, 0).expect("Failed to send output");
+        }
     )
 }
 
 fn discover_program_ctors<'a>(
     program_impl: &'a ItemImpl,
     program_type_path: &'a TypePath,
-) -> BTreeMap<String, &'a Signature> {
+) -> BTreeMap<String, (&'a ImplItemFn, usize)> {
     let self_type_path = syn::parse_str::<TypePath>("Self").unwrap();
     shared::discover_invocation_targets(
         program_impl,
@@ -262,7 +316,7 @@ fn discover_program_ctors<'a>(
     )
 }
 
-fn discover_service_ctors(program_impl: &ItemImpl) -> BTreeMap<String, &Signature> {
+fn discover_services_ctors(program_impl: &ItemImpl) -> BTreeMap<String, (&ImplItemFn, usize)> {
     shared::discover_invocation_targets(
         program_impl,
         |fn_item| {
@@ -310,7 +364,7 @@ mod tests {
 
         let discovered_ctors = discover_program_ctors(&program_impl, &program_type_path)
             .iter()
-            .map(|s| s.1.ident.to_string())
+            .map(|(.., (ctor_fn, ..))| ctor_fn.sig.ident.to_string())
             .collect::<Vec<_>>();
 
         assert_eq!(discovered_ctors.len(), 2);
@@ -335,9 +389,9 @@ mod tests {
         ))
         .unwrap();
 
-        let discovered_services = discover_service_ctors(&program_impl)
+        let discovered_services = discover_services_ctors(&program_impl)
             .iter()
-            .map(|s| s.1.ident.to_string())
+            .map(|(_, (fn_impl, _))| fn_impl.sig.ident.to_string())
             .collect::<Vec<_>>();
 
         assert_eq!(discovered_services.len(), 1);
