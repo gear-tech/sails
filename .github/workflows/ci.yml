@@ -27,10 +27,10 @@ jobs:
         run: cargo fmt --all --check
 
       - name: Check Code With Clippy
-        run: cargo clippy --workspace --all-targets --locked -- -D warnings -A unused-imports
+        run: cargo clippy --color never --workspace --all-targets --locked -- -D warnings -A unused-imports
 
       - name: Check IDL Parser For WASM With Clippy
-        run: cargo clippy --manifest-path=idl-parser/Cargo.toml --all-targets --locked --target=wasm32-unknown-unknown -- -D warnings
+        run: cargo clippy --color never --manifest-path=idl-parser/Cargo.toml --all-targets --locked --target=wasm32-unknown-unknown -- -D warnings
 
       - name: Run Tests
         run: cargo test --workspace --all-targets --locked --no-fail-fast
