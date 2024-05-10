@@ -31,4 +31,6 @@ pub enum RtlError {
     ReplyCodeIsMissing,
     #[error("program code is not found")]
     ProgramCodeIsNotFound,
+    #[error("program is not found")]
+    ProgramIsNotFound,
 }
