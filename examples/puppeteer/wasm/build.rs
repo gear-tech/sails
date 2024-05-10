@@ -1,3 +1,5 @@
+use sails_builder::Builder;
+
 fn main() {
-    gwasm_builder::build();
+    Builder::new().build();
 }

@@ -9,6 +9,6 @@ sails-rtl.workspace = true
 puppeteer-app = { path = "../app" }
 
 [build-dependencies]
-gwasm-builder.workspace = true
+sails-builder.workspace = true
 sails-idl-gen.workspace = true
 puppeteer-app = { path = "../app" }

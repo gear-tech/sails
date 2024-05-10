@@ -9,6 +9,5 @@ sails-rtl.workspace = true
 this-that-svc-app = { path = "../app" }
 
 [build-dependencies]
-gwasm-builder.workspace = true
-sails-idl-gen.workspace = true
+sails-builder.workspace = true
 this-that-svc-app = { path = "../app" }
