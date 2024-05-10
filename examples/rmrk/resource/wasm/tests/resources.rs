@@ -230,7 +230,6 @@ impl<'a> Fixture<'a> {
     }
 
     fn resource_program_for_async(&'a self) -> &Program<'a> {
-        println!("For async");
         self.resource_program.get_or_init(|| {
             let program =
                 Program::from_file(self.program_space.system(), RESOURCE_PROGRAM_WASM_PATH);
@@ -240,8 +239,7 @@ impl<'a> Fixture<'a> {
         })
     }
 
-    fn resource_program_for_sync(&'a self) -> &Program<'a> {
-        println!("For sync");
+    fn __resource_program_for_sync(&'a self) -> &Program<'a> {
         self.resource_program.get_or_init(|| {
             tokio::runtime::Builder::new_current_thread()
                 .enable_all()
@@ -273,6 +271,7 @@ impl<'a> Fixture<'a> {
         self.program_space()
             .system()
             .get_program(*reply.await.unwrap().0.as_ref())
+            .unwrap()
     }
 
     fn add_resource(
@@ -281,7 +280,7 @@ impl<'a> Fixture<'a> {
         resource_id: ResourceId,
         resource: &Resource,
     ) -> RunResult {
-        let program = self.resource_program_for_sync();
+        let program = self.resource_program_for_async();
         let encoded_request = [
             resources::RESOURCE_SERVICE_NAME.encode(),
             resources::ADD_RESOURCE_ENTRY_FUNC_NAME.encode(),
@@ -323,7 +322,7 @@ impl<'a> Fixture<'a> {
         resource_id: ResourceId,
         part_id: PartId,
     ) -> RunResult {
-        let program = self.resource_program_for_sync();
+        let program = self.resource_program_for_async();
         let encoded_request = [
             resources::RESOURCE_SERVICE_NAME.encode(),
             resources::ADD_PART_TO_RESOURCE_FUNC_NAME.encode(),
@@ -339,7 +338,7 @@ impl<'a> Fixture<'a> {
         actor_id: u64,
         resource_id: ResourceId,
     ) -> Option<ResourceStorageResult<Resource>> {
-        let program = self.resource_program_for_sync();
+        let program = self.resource_program_for_async();
         let encoded_service_name = resources::RESOURCE_SERVICE_NAME.encode();
         let encoded_func_name = resources::RESOURCE_FUNC_NAME.encode();
         let encoded_request = [
