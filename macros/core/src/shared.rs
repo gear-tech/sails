@@ -151,7 +151,7 @@ pub(crate) fn discover_invocation_targets(
                 abort!(
                     route.0,
                     "`groute` attribute conflicts with one assigned to '{}'",
-                    duplicate.ident.to_string()
+                    duplicate.0.sig.ident.to_string()
                 );
             }
             result

@@ -31,7 +31,7 @@ use syn::{
 };
 
 pub fn gservice(service_impl_tokens: TokenStream2) -> TokenStream2 {
-    let mut service_impl = syn::parse2(service_impl_tokens.clone())
+    let service_impl = syn::parse2(service_impl_tokens)
         .unwrap_or_else(|err| abort!(err.span(), "`gservice` attribute can be applied to impls only: {}", err));
 
     let (service_type_path, service_type_args, service_type_constraints) = {
