@@ -41,3 +41,9 @@ fn gprogram_fails_for_service_with_empty_route() {
     let t = trybuild::TestCases::new();
     t.compile_fail("tests/ui/gprogram_fails_for_service_with_empty_route.rs");
 }
+
+#[test]
+fn gprogram_works_without_exposed_services() {
+    let t = trybuild::TestCases::new();
+    t.pass("tests/ui/gprogram_works_without_exposed_services.rs");
+}

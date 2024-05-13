@@ -285,7 +285,7 @@ fn generate_handle<'a>(
         #[gstd::async_main]
         async fn main() {
             let mut #input_ident: &[u8] = &gstd::msg::load_bytes().expect("Failed to read input");
-            let output = #(#invocation_dispatches)else*;
+            let output: Vec<u8> = #(#invocation_dispatches)else*;
             gstd::msg::reply_bytes(output, 0).expect("Failed to send output");
         }
     )

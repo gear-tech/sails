@@ -67,9 +67,6 @@ impl ExpandedProgramMeta {
                 )
             })
             .collect::<Vec<_>>();
-        if services_data.is_empty() {
-            return Err(Error::ServiceIsMissing);
-        }
         let registry = PortableRegistry::from(registry);
         let ctors = Self::ctor_funcs(&registry, ctors_type_id)?;
         let services = services_data
