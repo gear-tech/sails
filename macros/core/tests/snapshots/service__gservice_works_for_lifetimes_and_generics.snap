@@ -12,6 +12,7 @@ where
     }
 }
 pub struct Exposure<T> {
+    message_id: sails_rtl::MessageId,
     route: &'static [u8],
     inner: T,
 }
@@ -21,6 +22,7 @@ where
     TEventTrigger: EventTrigger<events::SomeEvents>,
 {
     pub fn do_this(&mut self) -> u32 {
+        let exposure_scope = sails_rtl::gstd::services::ExposureCallScope::new(self);
         self.inner.do_this()
     }
     pub async fn handle(&mut self, mut input: &[u8]) -> Vec<u8> {
@@ -48,6 +50,19 @@ where
         return result.encode();
     }
 }
+impl<'a, 'b, T, TEventTrigger> sails_rtl::gstd::services::Exposure
+for Exposure<SomeService<'a, 'b, T, TEventTrigger>>
+where
+    T: Clone,
+    TEventTrigger: EventTrigger<events::SomeEvents>,
+{
+    fn message_id(&self) -> sails_rtl::MessageId {
+        self.message_id
+    }
+    fn route(&self) -> &'static [u8] {
+        self.route
+    }
+}
 impl<'a, 'b, T, TEventTrigger> sails_rtl::gstd::services::Service
 for SomeService<'a, 'b, T, TEventTrigger>
 where
@@ -55,8 +70,13 @@ where
     TEventTrigger: EventTrigger<events::SomeEvents>,
 {
     type Exposure = Exposure<SomeService<'a, 'b, T, TEventTrigger>>;
-    fn expose(self, route: &'static [u8]) -> Self::Exposure {
+    fn expose(
+        self,
+        message_id: sails_rtl::MessageId,
+        route: &'static [u8],
+    ) -> Self::Exposure {
         Self::Exposure {
+            message_id,
             route,
             inner: self,
         }
@@ -92,4 +112,3 @@ mod meta {
     pub enum NoEvents {}
     pub type EventsMeta = events::SomeEvents;
 }
-

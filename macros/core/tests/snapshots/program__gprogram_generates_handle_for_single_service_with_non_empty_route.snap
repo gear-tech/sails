@@ -19,6 +19,7 @@ impl MyProgram {
         let service = self.__service();
         let exposure = <MyService as sails_rtl::gstd::services::Service>::expose(
             service,
+            sails_rtl::gstd::msg::id().into(),
             __ROUTE_SERVICE.as_ref(),
         );
         exposure
@@ -77,7 +78,6 @@ pub mod wasm {
     async fn main() {
         let mut input: &[u8] = &gstd::msg::load_bytes().expect("Failed to read input");
         let output = if input.starts_with(&__ROUTE_SERVICE) {
-            let msg_scope = gstd::__create_message_scope(__ROUTE_SERVICE.as_ref());
             let program_ref = unsafe { PROGRAM.as_ref() }
                 .expect("Program not initialized");
             let mut service = program_ref.service();
@@ -100,4 +100,3 @@ pub mod wasm {
         gstd::msg::reply_bytes(output, 0).expect("Failed to send output");
     }
 }
-

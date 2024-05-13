@@ -148,7 +148,11 @@ fn wire_up_service_exposure(
     );
     wrapping_service_ctor_fn.block = parse_quote!({
         let service = self. #original_service_ctor_fn_ident ();
-        let exposure = < #service_type as sails_rtl::gstd::services::Service>::expose(service, #route_ident .as_ref());
+        let exposure = < #service_type as sails_rtl::gstd::services::Service>::expose(
+            service,
+            sails_rtl::gstd::msg::id().into(),
+            #route_ident .as_ref(),
+        );
         exposure
     });
     program_impl.items[ctor_idx] = ImplItem::Fn(wrapping_service_ctor_fn);
@@ -266,7 +270,6 @@ fn generate_handle<'a>(
         invocation_dispatches.push({
             quote!(
                 if #input_ident.starts_with(& #service_route_ident) {
-                    let msg_scope = gstd::__create_message_scope(#service_route_ident .as_ref());
                     let program_ref = unsafe { #program_ident.as_ref() }.expect("Program not initialized");
                     let mut service = program_ref.#service_ctor_ident();
                     let output = service.handle(&#input_ident[#service_route_ident .len()..]).await;
