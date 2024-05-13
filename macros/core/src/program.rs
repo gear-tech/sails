@@ -10,8 +10,13 @@ use syn::{
 };
 
 pub fn gprogram(program_impl_tokens: TokenStream2) -> TokenStream2 {
-    let program_impl = syn::parse2(program_impl_tokens)
-        .unwrap_or_else(|err| abort!(err.span(), "`gprogram` attribute can be applied to impls only: {}", err));
+    let program_impl = syn::parse2(program_impl_tokens).unwrap_or_else(|err| {
+        abort!(
+            err.span(),
+            "`gprogram` attribute can be applied to impls only: {}",
+            err
+        )
+    });
 
     let services_ctors = discover_services_ctors(&program_impl);
 
@@ -299,44 +304,35 @@ fn discover_program_ctors<'a>(
     program_type_path: &'a TypePath,
 ) -> BTreeMap<String, (&'a ImplItemFn, usize)> {
     let self_type_path = syn::parse_str::<TypePath>("Self").unwrap();
-    shared::discover_invocation_targets(
-        program_impl,
-        |fn_item| {
-            if matches!(fn_item.vis, Visibility::Public(_)) && fn_item.sig.receiver().is_none() {
-                if let ReturnType::Type(_, output_type) = &fn_item.sig.output {
-                    if let Type::Path(output_type_path) = output_type.as_ref() {
-                        if output_type_path == &self_type_path
-                            || output_type_path == program_type_path
-                        {
-                            return true;
-                        }
+    shared::discover_invocation_targets(program_impl, |fn_item| {
+        if matches!(fn_item.vis, Visibility::Public(_)) && fn_item.sig.receiver().is_none() {
+            if let ReturnType::Type(_, output_type) = &fn_item.sig.output {
+                if let Type::Path(output_type_path) = output_type.as_ref() {
+                    if output_type_path == &self_type_path || output_type_path == program_type_path
+                    {
+                        return true;
                     }
                 }
             }
-            false
-        },
-        false,
-    )
+        }
+        false
+    })
 }
 
 fn discover_services_ctors(program_impl: &ItemImpl) -> BTreeMap<String, (&ImplItemFn, usize)> {
-    shared::discover_invocation_targets(
-        program_impl,
-        |fn_item| {
-            matches!(fn_item.vis, Visibility::Public(_))
-                && matches!(
-                    fn_item.sig.receiver(),
-                    Some(Receiver {
-                        mutability: None,
-                        reference: Some(_),
-                        ..
-                    })
-                )
-                && fn_item.sig.inputs.len() == 1
-                && !matches!(fn_item.sig.output, ReturnType::Default)
-        },
-        false,
-    )
+    shared::discover_invocation_targets(program_impl, |fn_item| {
+        matches!(fn_item.vis, Visibility::Public(_))
+            && matches!(
+                fn_item.sig.receiver(),
+                Some(Receiver {
+                    mutability: None,
+                    reference: Some(_),
+                    ..
+                })
+            )
+            && fn_item.sig.inputs.len() == 1
+            && !matches!(fn_item.sig.output, ReturnType::Default)
+    })
 }
 
 #[cfg(test)]

@@ -31,8 +31,13 @@ use syn::{
 };
 
 pub fn gservice(service_impl_tokens: TokenStream2) -> TokenStream2 {
-    let service_impl = syn::parse2(service_impl_tokens)
-        .unwrap_or_else(|err| abort!(err.span(), "`gservice` attribute can be applied to impls only: {}", err));
+    let service_impl = syn::parse2(service_impl_tokens).unwrap_or_else(|err| {
+        abort!(
+            err.span(),
+            "`gservice` attribute can be applied to impls only: {}",
+            err
+        )
+    });
 
     let (service_type_path, service_type_args, service_type_constraints) = {
         let service_type = ImplType::new(&service_impl);
@@ -193,11 +198,9 @@ pub fn gservice(service_impl_tokens: TokenStream2) -> TokenStream2 {
 }
 
 fn discover_service_handlers(service_impl: &ItemImpl) -> BTreeMap<String, (&ImplItemFn, usize)> {
-    shared::discover_invocation_targets(
-        service_impl,
-        |fn_item| matches!(fn_item.vis, Visibility::Public(_)) && fn_item.sig.receiver().is_some(),
-        false,
-    )
+    shared::discover_invocation_targets(service_impl, |fn_item| {
+        matches!(fn_item.vis, Visibility::Public(_)) && fn_item.sig.receiver().is_some()
+    })
 }
 
 fn discover_service_events_type(where_clause: &WhereClause) -> Option<&Path> {

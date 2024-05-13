@@ -128,7 +128,6 @@ pub(crate) fn result_type(handler_signature: &Signature) -> Type {
 pub(crate) fn discover_invocation_targets(
     item_impl: &ItemImpl,
     filter: impl Fn(&ImplItemFn) -> bool,
-    allow_empty_route: bool, // Even though we always pass `false` here, we keep this parameter for the case when we want to allow anonymously exposed services
 ) -> BTreeMap<String, (&ImplItemFn, usize)> {
     item_impl
         .items
@@ -138,9 +137,6 @@ pub(crate) fn discover_invocation_targets(
             if let ImplItem::Fn(fn_item) = item.1 {
                 if filter(fn_item) {
                     let route = route::invocation_route(fn_item);
-                    if route.1.is_empty() && !allow_empty_route {
-                        abort!(route.0, "Empty route is not allowed")
-                    }
                     return Some((route, (fn_item, item.0)));
                 }
             }
