@@ -7,12 +7,12 @@ impl MyProgram {
         Self { p1, p2 }
     }
 }
-impl sails_idl_meta::ProgramMeta for MyProgram {
+impl sails_rtl::meta::ProgramMeta for MyProgram {
     fn constructors() -> scale_info::MetaType {
         scale_info::MetaType::new::<meta::ConstructorsMeta>()
     }
     fn services() -> impl Iterator<
-        Item = (&'static str, sails_idl_meta::AnyServiceMeta),
+        Item = (&'static str, sails_rtl::meta::AnyServiceMeta),
     > {
         [].into_iter()
     }

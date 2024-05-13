@@ -219,14 +219,13 @@ export class ServiceGenerator {
   private generateSubscriptions(service: Service) {
     if (service.events.length > 0) {
       this._out
-        .firstLine(`const ZERO_ADDRESS = u8aToHex(new Uint8Array(32))`)
-        .import('@polkadot/util', 'u8aToHex')
         .import('sails-js', 'getServiceNamePrefix')
-        .import('sails-js', 'getFnNamePrefix');
+        .import('sails-js', 'getFnNamePrefix')
+        .import('sails-js', 'ZERO_ADDRESS');
     }
 
     for (const event of service.events) {
-      const jsType = getJsTypeDef(event.def);
+      const jsType = event.def ? getJsTypeDef(event.def) : 'null';
 
       this._out
         .line()
@@ -249,12 +248,16 @@ export class ServiceGenerator {
               .block(
                 `if (getServiceNamePrefix(payload) === '${service.name}' && getFnNamePrefix(payload) === '${event.name}')`,
                 () => {
-                  this._out.line(
-                    `callback(this._program.registry.createType('(String, String, ${getScaleCodecDef(
-                      event.def,
-                      true,
-                    )})', message.payload)[2].toJSON() as ${jsType})`,
-                  );
+                  if (jsType === 'null') {
+                    this._out.line(`callback(null)`);
+                  } else {
+                    this._out.line(
+                      `callback(this._program.registry.createType('(String, String, ${getScaleCodecDef(
+                        event.def,
+                        true,
+                      )})', message.payload)[2].toJSON() as ${jsType})`,
+                    );
+                  }
                 },
               )
               .reduceIndent()

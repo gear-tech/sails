@@ -37,10 +37,13 @@ describe('this-that', () => {
       },
     });
 
+    expect(Object.keys(sails.services.Service.functions)).toHaveLength(3);
     expect(sails.services.Service.functions).toHaveProperty('DoThis');
     expect(sails.services.Service.functions).toHaveProperty('DoThat');
-    expect(sails.services.Service.functions).toHaveProperty('That');
-    expect(sails.services.Service.functions).toHaveProperty('This');
+    expect(sails.services.Service.functions).toHaveProperty('Noop');
+    expect(Object.keys(sails.services.Service.queries)).toHaveLength(2);
+    expect(sails.services.Service.queries).toHaveProperty('That');
+    expect(sails.services.Service.queries).toHaveProperty('This');
   });
 
   test('encode/decode', async () => {

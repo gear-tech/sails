@@ -26,7 +26,7 @@ use proc_macro_error::abort;
 use quote::quote;
 use std::collections::BTreeMap;
 use syn::{
-    GenericArgument, Ident, ItemImpl, Path, PathArguments, Signature, Type, TypeParamBound,
+    GenericArgument, Ident, ImplItemFn, ItemImpl, Path, PathArguments, Type, TypeParamBound,
     Visibility, WhereClause, WherePredicate,
 };
 
@@ -58,28 +58,42 @@ pub fn gservice(service_impl_tokens: TokenStream2) -> TokenStream2 {
         .and_then(discover_service_events_type)
         .unwrap_or(&no_events_type);
 
+    let inner_ident = Ident::new("inner", Span::call_site());
     let input_ident = Ident::new("input", Span::call_site());
 
+    let mut exposure_funcs = Vec::with_capacity(service_handlers.len());
     let mut invocation_params_structs = Vec::with_capacity(service_handlers.len());
     let mut invocation_funcs = Vec::with_capacity(service_handlers.len());
     let mut invocation_dispatches = Vec::with_capacity(service_handlers.len());
     let mut commands_meta_variants = Vec::with_capacity(service_handlers.len());
     let mut queries_meta_variants = Vec::with_capacity(service_handlers.len());
 
-    for (invocation_route, service_handler) in &service_handlers {
-        let handler = Func::from(service_handler);
-        let handler_generator = HandlerGenerator::from(handler);
+    for (handler_route, (handler_fn, ..)) in &service_handlers {
+        let handler_fn = &handler_fn.sig;
+        let handler_func = Func::from(handler_fn);
+        let handler_generator = HandlerGenerator::from(handler_func.clone());
         let invocation_func_ident = handler_generator.invocation_func_ident();
 
+        exposure_funcs.push({
+            let handler_ident = handler_func.ident();
+            let handler_params = handler_func.params().iter().map(|item| item.0);
+            let handler_await_token = handler_func.is_async().then(|| quote!(.await));
+            quote!(
+                pub #handler_fn {
+                    let exposure_scope = sails_rtl::gstd::services::ExposureCallScope::new(self);
+                    self. #inner_ident . #handler_ident (#(#handler_params),*) #handler_await_token
+                }
+            )
+        });
         invocation_params_structs.push(handler_generator.params_struct());
         invocation_funcs.push(handler_generator.invocation_func());
         invocation_dispatches.push({
-            let invocation_route_bytes = invocation_route.encode();
-            let invocation_route_len = invocation_route_bytes.len();
+            let handler_route_bytes = handler_route.encode();
+            let handler_route_len = handler_route_bytes.len();
             quote!(
-                if #input_ident.starts_with(& [ #(#invocation_route_bytes),* ]) {
-                    let output = self.#invocation_func_ident(&#input_ident[#invocation_route_len..]).await;
-                    static INVOCATION_ROUTE: [u8; #invocation_route_len] = [ #(#invocation_route_bytes),* ];
+                if #input_ident.starts_with(& [ #(#handler_route_bytes),* ]) {
+                    let output = self.#invocation_func_ident(&#input_ident[#handler_route_len..]).await;
+                    static INVOCATION_ROUTE: [u8; #handler_route_len] = [ #(#handler_route_bytes),* ];
                     return [INVOCATION_ROUTE.as_ref(), &output].concat();
                 }
             )
@@ -88,9 +102,9 @@ pub fn gservice(service_impl_tokens: TokenStream2) -> TokenStream2 {
         let handler_meta_variant = {
             let params_struct_ident = handler_generator.params_struct_ident();
             let result_type = handler_generator.result_type();
-            let invocation_route_ident = Ident::new(invocation_route, Span::call_site());
+            let handler_route_ident = Ident::new(handler_route, Span::call_site());
 
-            quote!(#invocation_route_ident(#params_struct_ident, #result_type))
+            quote!(#handler_route_ident(#params_struct_ident, #result_type))
         };
         if handler_generator.is_query() {
             queries_meta_variants.push(handler_meta_variant);
@@ -99,23 +113,49 @@ pub fn gservice(service_impl_tokens: TokenStream2) -> TokenStream2 {
         }
     }
 
-    service_impl.items.push(syn::parse2(quote!(
-            pub async fn handle(&mut self, mut #input_ident: &[u8]) -> Vec<u8> {
-                #(#invocation_dispatches)*
-                let invocation_path = String::decode(&mut #input_ident).expect("Failed to decode invocation path");
-            panic!("Unknown request: {}", invocation_path);
-        })).expect("Unable to parse process function"));
-
-    service_impl.items.extend(
-        invocation_funcs
-            .into_iter()
-            .map(|func| syn::parse2(func).expect("Unable to parse invocation function")),
-    );
+    let message_id_ident = Ident::new("message_id", Span::call_site());
+    let route_ident = Ident::new("route", Span::call_site());
 
     quote!(
         #service_impl
 
-        impl #service_type_args sails_idl_meta::ServiceMeta for #service_type_path #service_type_constraints {
+        pub struct Exposure<T> {
+            #message_id_ident : sails_rtl::MessageId,
+            #route_ident : &'static [u8],
+            #inner_ident : T,
+        }
+
+        impl #service_type_args Exposure<#service_type_path> #service_type_constraints {
+            #(#exposure_funcs)*
+
+            pub async fn handle(&mut self, mut #input_ident: &[u8]) -> Vec<u8> {
+                #(#invocation_dispatches)*
+                let invocation_path = String::decode(&mut #input_ident).expect("Failed to decode invocation path");
+                panic!("Unknown request: {}", invocation_path);
+            }
+
+            #(#invocation_funcs)*
+        }
+
+        impl #service_type_args sails_rtl::gstd::services::Exposure for Exposure<#service_type_path> #service_type_constraints {
+            fn message_id(&self) -> sails_rtl::MessageId {
+                self. #message_id_ident
+            }
+
+            fn route(&self) -> &'static [u8] {
+                self. #route_ident
+            }
+        }
+
+        impl #service_type_args sails_rtl::gstd::services::Service for #service_type_path #service_type_constraints {
+            type Exposure = Exposure< #service_type_path >;
+
+            fn expose(self, #message_id_ident : sails_rtl::MessageId, #route_ident : &'static [u8]) -> Self::Exposure {
+                Self::Exposure { #message_id_ident , #route_ident , inner: self }
+            }
+        }
+
+        impl #service_type_args sails_rtl::meta::ServiceMeta for #service_type_path #service_type_constraints {
             fn commands() -> scale_info::MetaType {
                 scale_info::MetaType::new::<meta::CommandsMeta>()
             }
@@ -152,7 +192,7 @@ pub fn gservice(service_impl_tokens: TokenStream2) -> TokenStream2 {
     )
 }
 
-fn discover_service_handlers(service_impl: &ItemImpl) -> BTreeMap<String, &Signature> {
+fn discover_service_handlers(service_impl: &ItemImpl) -> BTreeMap<String, (&ImplItemFn, usize)> {
     shared::discover_invocation_targets(
         service_impl,
         |fn_item| matches!(fn_item.vis, Visibility::Public(_)) && fn_item.sig.receiver().is_some(),

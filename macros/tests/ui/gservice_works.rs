@@ -1,5 +1,6 @@
 use parity_scale_codec::{Decode, Encode};
 use sails_macros::gservice;
+use sails_rtl::{gstd::services::Service, MessageId};
 use scale_info::TypeInfo;
 
 struct MyService;
@@ -25,8 +26,6 @@ struct MyDoThisParams {
 async fn main() {
     const DO_THIS: &str = "DoThis";
 
-    let mut my_service = MyService;
-
     let input = [
         DO_THIS.encode(),
         MyDoThisParams {
@@ -36,7 +35,10 @@ async fn main() {
         .encode(),
     ]
     .concat();
-    let output = my_service.handle(&input).await;
+    let output = MyService
+        .expose(MessageId::from(123), &[1, 2, 3])
+        .handle(&input)
+        .await;
     let mut output = output.as_slice();
 
     let func_name = String::decode(&mut output).unwrap();

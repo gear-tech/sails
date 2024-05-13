@@ -3,15 +3,15 @@
 pub mod puppet;
 
 use core::marker::PhantomData;
-
-use puppet::traits::ThisThatSvc;
-
-use sails_macros::gservice;
-
 use gstd::prelude::*;
-use sails_rtl::calls::{Call, Remoting};
-use sails_rtl::ActorId;
+use puppet::traits::ThisThatSvc;
+use sails_macros::gservice;
+use sails_rtl::{
+    calls::{Call, Remoting},
+    ActorId,
+};
 
+#[derive(Clone)]
 pub struct Puppeteer<A: Default, R: Remoting<A>, Client: ThisThatSvc<R, A>> {
     _args: PhantomData<A>,
     _remote: PhantomData<R>,
