@@ -1545,18 +1545,18 @@ dependencies = [
 
 [[package]]
 name = "galloc"
-version = "1.4.0"
+version = "1.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "051badf0179b74ab843eece3910c19b83910e417c0416ecd5c81c7f6979f8d3f"
+checksum = "eec05cbaee718ae5fe97e62dacbec2807186c942ed24e72e6984e6bb2e81ab3f"
 dependencies = [
  "gear-dlmalloc",
 ]
 
 [[package]]
 name = "gcore"
-version = "1.4.0"
+version = "1.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "eabac75e218c4462ea6ae167717de90e567516690db1fd923ce1aed934837ecc"
+checksum = "6dcd57f0ef3eada83210201b59f0cff9fe2c3849563eccf03f5942943adb4ae8"
 dependencies = [
  "gear-core-errors",
  "gear-stack-buffer",
@@ -1644,9 +1644,9 @@ dependencies = [
 
 [[package]]
 name = "gear-core-errors"
-version = "1.4.0"
+version = "1.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2067ae7fcbe4daa02fca1afa231da90ea251cf02c670f35f22a3d34965a230a2"
+checksum = "ee3baa8a387c829d5045015f788a31a35b6cd50df72f25420bb850d2bd432416"
 dependencies = [
  "derive_more",
  "enum-iterator 1.5.0",
@@ -1797,9 +1797,9 @@ dependencies = [
 
 [[package]]
 name = "gear-ss58"
-version = "1.4.0"
+version = "1.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "366360488f7c2d8541a0ab9a2786285e27b64cd2c9dbeaca201d990e9778e84f"
+checksum = "ae8a82173968491c367a0fd0a315337f942228d3663322a9c08b66e057903858"
 dependencies = [
  "anyhow",
  "blake2",
@@ -1808,9 +1808,9 @@ dependencies = [
 
 [[package]]
 name = "gear-stack-buffer"
-version = "1.4.0"
+version = "1.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4e4c44216fca30facef9573198cb5a06af21f1dd9f6487b8ba3bcc69a69aeb6a"
+checksum = "78c49ff4ab26f2949996266c3edce0cb3494931d546e4ee8ae928c65c3a50fce"
 
 [[package]]
 name = "gear-utils"
@@ -2043,9 +2043,9 @@ dependencies = [
 
 [[package]]
 name = "gstd"
-version = "1.4.0"
+version = "1.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "299badae4a9e90af8712199597fd7a95881b3d3ec56e09378943f93d7624aaf6"
+checksum = "191118e6cdbc43811c17d96aaa4cf52a402e474f5f626936825bc0d1b330fc68"
 dependencies = [
  "arrayvec 0.7.4",
  "const_format",
@@ -2063,9 +2063,9 @@ dependencies = [
 
 [[package]]
 name = "gstd-codegen"
-version = "1.4.0"
+version = "1.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b23b09c3cc2b715b046453d57f58fe25ae20ebb1c441cf3ee9ee2a59f68a960d"
+checksum = "f0122a5b154e398c88b477644ca560e59296de2001f20bf4d16f21760923f3ce"
 dependencies = [
  "gear-ss58",
  "hex",
@@ -2076,9 +2076,9 @@ dependencies = [
 
 [[package]]
 name = "gsys"
-version = "1.4.0"
+version = "1.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "93fb4dcb5347292fcb6866a5338d7bca14bfe95a6e3a01cb7a6e7e8fe3a07022"
+checksum = "7e26e485e593d193dbea49821a9f67f83ffaec4f82c289b860b56dd2fd092462"
 
 [[package]]
 name = "gtest"
