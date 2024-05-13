@@ -61,7 +61,7 @@ pub(crate) fn invocation_route(invocation_func: &ImplItemFn) -> (Span, String) {
     if routes.len() > 1 {
         abort!(
             routes[1].0,
-            "multiple `groute` attributes are not allowed for the same function"
+            "multiple `groute` attributes are not allowed for the same method"
         );
     }
     routes
