@@ -8,6 +8,7 @@ license = "GPL-3.0"
 resolver = "2"
 members = [
     "client-gen",
+    "examples/empty",
     "examples/puppeteer/app",
     "examples/puppeteer/wasm",
     "examples/rmrk/catalog/app",

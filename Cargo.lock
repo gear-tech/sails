@@ -538,6 +538,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "conditional-service"
+version = "0.1.0"
+dependencies = [
+ "gear-wasm-builder",
+ "gstd",
+ "parity-scale-codec",
+ "sails-idl-gen",
+ "sails-macros",
+ "sails-rtl",
+ "scale-info",
+]
+
+[[package]]
 name = "console"
 version = "0.15.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
