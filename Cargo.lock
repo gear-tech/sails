@@ -1644,9 +1644,9 @@ dependencies = [
 
 [[package]]
 name = "gear-core-errors"
-version = "1.4.0"
+version = "1.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2067ae7fcbe4daa02fca1afa231da90ea251cf02c670f35f22a3d34965a230a2"
+checksum = "ee3baa8a387c829d5045015f788a31a35b6cd50df72f25420bb850d2bd432416"
 dependencies = [
  "derive_more",
  "enum-iterator 1.5.0",
