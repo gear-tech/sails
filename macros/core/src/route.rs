@@ -5,7 +5,13 @@ use syn::{spanned::Spanned, Ident, ImplItemFn, Lit};
 
 pub fn groute(_attrs: TokenStream, impl_item_fn_tokens: TokenStream) -> TokenStream {
     let route_fn_impl: ImplItemFn = syn::parse2::<ImplItemFn>(impl_item_fn_tokens.clone())
-        .unwrap_or_else(|err| abort!(err.span(), "`groute` attribute can be applied to impls only: {}", err));
+        .unwrap_or_else(|err| {
+            abort!(
+                err.span(),
+                "`groute` attribute can be applied to impls only: {}",
+                err
+            )
+        });
     match route_fn_impl.vis {
         syn::Visibility::Public(_) => impl_item_fn_tokens,
         _ => abort!(
