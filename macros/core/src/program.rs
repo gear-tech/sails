@@ -8,7 +8,7 @@ use syn::{Ident, ItemImpl, Receiver, ReturnType, Signature, Type, TypePath, Visi
 
 pub fn gprogram(program_impl_tokens: TokenStream2) -> TokenStream2 {
     let program_impl = syn::parse2(program_impl_tokens)
-        .unwrap_or_else(|err| abort!(err.span(), "Failed to parse program impl: {}", err));
+        .unwrap_or_else(|err| abort!(err.span(), "`gprogram` attribute can be applied to impls only: {}", err));
     let program_type = ImplType::new(&program_impl);
     let program_type_path = program_type.path();
     let program_type_args = program_type.args();

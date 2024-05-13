@@ -5,12 +5,12 @@ use syn::{spanned::Spanned, Ident, ImplItemFn, Lit};
 
 pub fn groute(_attrs: TokenStream, impl_item_fn_tokens: TokenStream) -> TokenStream {
     let route_fn_impl: ImplItemFn = syn::parse2::<ImplItemFn>(impl_item_fn_tokens.clone())
-        .unwrap_or_else(|err| abort!(err.span(), "Failed to parse function impl: {}", err));
+        .unwrap_or_else(|err| abort!(err.span(), "`groute` attribute can be applied to impls only: {}", err));
     match route_fn_impl.vis {
         syn::Visibility::Public(_) => impl_item_fn_tokens,
         _ => abort!(
             route_fn_impl.span(),
-            "Function impl with route must be public"
+            "`groute` attribute can be applied to public methods only"
         ),
     }
 }
@@ -39,7 +39,7 @@ pub(crate) fn invocation_route(invocation_func: &ImplItemFn) -> (Span, String) {
                 _ = syn::parse_str::<Ident>(&route).map_err(|err| {
                     abort!(
                         lit.span(),
-                        "Route name must be a literal with a valid Rust identifier: {}",
+                        "`groute` attribute requires a literal with a valid Rust identifier: {}",
                         err
                     )
                 });
@@ -47,7 +47,7 @@ pub(crate) fn invocation_route(invocation_func: &ImplItemFn) -> (Span, String) {
             } else {
                 abort!(
                     lit.span(),
-                    "Route name must be a literal with a valid Rust identifier",
+                    "`groute` attribute requires a literal with a valid Rust identifier",
                 )
             }
         })
@@ -55,7 +55,7 @@ pub(crate) fn invocation_route(invocation_func: &ImplItemFn) -> (Span, String) {
     if routes.len() > 1 {
         abort!(
             routes[1].0,
-            "Multiple groute attributes are not allowed for the same function"
+            "multiple `groute` attributes are not allowed for the same function"
         );
     }
     routes

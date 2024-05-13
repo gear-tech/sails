@@ -1,4 +1,4 @@
-error: Route name must be a literal with a valid Rust identifier: unexpected end of input, expected identifier
+error: `groute` attribute requires a literal with a valid Rust identifier: unexpected end of input, expected identifier
  --> tests/ui/gprogram_fails_for_service_with_empty_route.rs:9:14
   |
 9 |     #[groute("")]

@@ -24,7 +24,7 @@ impl<'a> ImplType<'a> {
             } else {
                 abort!(
                     item_impl_type.span(),
-                    "Failed to parse impl type: {}",
+                    "failed to parse impl type: {}",
                     item_impl_type.to_token_stream()
                 )
             }
@@ -101,7 +101,7 @@ impl<'a> Func<'a> {
                 let arg_ident = if let Pat::Ident(arg_ident) = arg.pat.as_ref() {
                     &arg_ident.ident
                 } else {
-                    abort!(arg.span(), "Unnamed arguments are not supported");
+                    abort!(arg.span(), "unnamed arguments are not supported");
                 };
                 return Some((arg_ident, arg.ty.as_ref()));
             }
@@ -144,7 +144,7 @@ pub(crate) fn discover_invocation_targets(
             if let Some(duplicate) = result.insert(route.1, target) {
                 abort!(
                     route.0,
-                    "Route conflicts with one assigned to '{}'",
+                    "`groute` attribute conflicts with one assigned to '{}'",
                     duplicate.ident.to_string()
                 );
             }

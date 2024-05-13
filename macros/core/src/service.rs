@@ -32,7 +32,7 @@ use syn::{
 
 pub fn gservice(service_impl_tokens: TokenStream2) -> TokenStream2 {
     let mut service_impl = syn::parse2(service_impl_tokens.clone())
-        .unwrap_or_else(|err| abort!(err.span(), "Failed to parse service impl: {}", err));
+        .unwrap_or_else(|err| abort!(err.span(), "`gservice` attribute can be applied to impls only: {}", err));
 
     let (service_type_path, service_type_args, service_type_constraints) = {
         let service_type = ImplType::new(&service_impl);
@@ -48,7 +48,7 @@ pub fn gservice(service_impl_tokens: TokenStream2) -> TokenStream2 {
     if service_handlers.is_empty() {
         abort!(
             service_impl,
-            "No handlers found. Try either defining one or removing the macro usage"
+            "`gservice` attribute requires impl to define at least one public method"
         );
     }
 
