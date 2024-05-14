@@ -31,8 +31,13 @@ use syn::{
 };
 
 pub fn gservice(service_impl_tokens: TokenStream2) -> TokenStream2 {
-    let service_impl = syn::parse2(service_impl_tokens)
-        .unwrap_or_else(|err| abort!(err.span(), "Failed to parse service impl: {}", err));
+    let service_impl = syn::parse2(service_impl_tokens).unwrap_or_else(|err| {
+        abort!(
+            err.span(),
+            "`gservice` attribute can be applied to impls only: {}",
+            err
+        )
+    });
 
     let (service_type_path, service_type_args, service_type_constraints) = {
         let service_type = ImplType::new(&service_impl);
@@ -48,7 +53,7 @@ pub fn gservice(service_impl_tokens: TokenStream2) -> TokenStream2 {
     if service_handlers.is_empty() {
         abort!(
             service_impl,
-            "No handlers found. Try either defining one or removing the macro usage"
+            "`gservice` attribute requires impl to define at least one public method"
         );
     }
 
@@ -80,6 +85,7 @@ pub fn gservice(service_impl_tokens: TokenStream2) -> TokenStream2 {
             let handler_await_token = handler_func.is_async().then(|| quote!(.await));
             quote!(
                 pub #handler_fn {
+                    let exposure_scope = sails_rtl::gstd::services::ExposureCallScope::new(self);
                     self. #inner_ident . #handler_ident (#(#handler_params),*) #handler_await_token
                 }
             )
@@ -112,11 +118,15 @@ pub fn gservice(service_impl_tokens: TokenStream2) -> TokenStream2 {
         }
     }
 
+    let message_id_ident = Ident::new("message_id", Span::call_site());
+    let route_ident = Ident::new("route", Span::call_site());
+
     quote!(
         #service_impl
 
         pub struct Exposure<T> {
-            route: &'static [u8],
+            #message_id_ident : sails_rtl::MessageId,
+            #route_ident : &'static [u8],
             #inner_ident : T,
         }
 
@@ -132,10 +142,22 @@ pub fn gservice(service_impl_tokens: TokenStream2) -> TokenStream2 {
             #(#invocation_funcs)*
         }
 
+        impl #service_type_args sails_rtl::gstd::services::Exposure for Exposure<#service_type_path> #service_type_constraints {
+            fn message_id(&self) -> sails_rtl::MessageId {
+                self. #message_id_ident
+            }
+
+            fn route(&self) -> &'static [u8] {
+                self. #route_ident
+            }
+        }
+
         impl #service_type_args sails_rtl::gstd::services::Service for #service_type_path #service_type_constraints {
             type Exposure = Exposure< #service_type_path >;
 
-            fn expose(self, route: &'static [u8]) -> Self::Exposure { Self::Exposure { route, inner: self } }
+            fn expose(self, #message_id_ident : sails_rtl::MessageId, #route_ident : &'static [u8]) -> Self::Exposure {
+                Self::Exposure { #message_id_ident , #route_ident , inner: self }
+            }
         }
 
         impl #service_type_args sails_rtl::meta::ServiceMeta for #service_type_path #service_type_constraints {
@@ -176,11 +198,9 @@ pub fn gservice(service_impl_tokens: TokenStream2) -> TokenStream2 {
 }
 
 fn discover_service_handlers(service_impl: &ItemImpl) -> BTreeMap<String, (&ImplItemFn, usize)> {
-    shared::discover_invocation_targets(
-        service_impl,
-        |fn_item| matches!(fn_item.vis, Visibility::Public(_)) && fn_item.sig.receiver().is_some(),
-        false,
-    )
+    shared::discover_invocation_targets(service_impl, |fn_item| {
+        matches!(fn_item.vis, Visibility::Public(_)) && fn_item.sig.receiver().is_some()
+    })
 }
 
 fn discover_service_events_type(where_clause: &WhereClause) -> Option<&Path> {

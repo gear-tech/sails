@@ -1,0 +1,5 @@
+error: `gservice` attribute requires impl to define at least one public method
+ --> tests/ui/gservice_fails_no_handlers_found.rs:6:1
+  |
+6 | impl MyService {}
+  | ^^^^^^^^^^^^^^^^^

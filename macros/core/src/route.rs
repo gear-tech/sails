@@ -1,10 +1,24 @@
 use convert_case::{Case, Casing};
 use proc_macro2::{Span, TokenStream};
 use proc_macro_error::abort;
-use syn::{spanned::Spanned, ImplItemFn, Lit};
+use syn::{spanned::Spanned, Ident, ImplItemFn, Lit};
 
 pub fn groute(_attrs: TokenStream, impl_item_fn_tokens: TokenStream) -> TokenStream {
-    impl_item_fn_tokens
+    let route_fn_impl: ImplItemFn = syn::parse2::<ImplItemFn>(impl_item_fn_tokens.clone())
+        .unwrap_or_else(|err| {
+            abort!(
+                err.span(),
+                "`groute` attribute can be applied to impls only: {}",
+                err
+            )
+        });
+    match route_fn_impl.vis {
+        syn::Visibility::Public(_) => impl_item_fn_tokens,
+        _ => abort!(
+            route_fn_impl.span(),
+            "`groute` attribute can be applied to public methods only"
+        ),
+    }
 }
 
 pub(crate) fn invocation_route(invocation_func: &ImplItemFn) -> (Span, String) {
@@ -27,16 +41,27 @@ pub(crate) fn invocation_route(invocation_func: &ImplItemFn) -> (Span, String) {
         })
         .filter_map(|(span, lit)| {
             if let Lit::Str(lit) = lit {
-                Some((span, lit.value()))
+                let route = lit.value();
+                _ = syn::parse_str::<Ident>(&route).map_err(|err| {
+                    abort!(
+                        lit.span(),
+                        "`groute` attribute requires a literal with a valid Rust identifier: {}",
+                        err
+                    )
+                });
+                Some((span, route))
             } else {
-                None
+                abort!(
+                    lit.span(),
+                    "`groute` attribute requires a literal with a valid Rust identifier",
+                )
             }
         })
         .collect::<Vec<_>>();
     if routes.len() > 1 {
         abort!(
             routes[1].0,
-            "Multiple groute attributes are not allowed for the same function"
+            "multiple `groute` attributes are not allowed for the same method"
         );
     }
     routes

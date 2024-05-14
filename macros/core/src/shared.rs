@@ -24,7 +24,7 @@ impl<'a> ImplType<'a> {
             } else {
                 abort!(
                     item_impl_type.span(),
-                    "Failed to parse impl type: {}",
+                    "failed to parse impl type: {}",
                     item_impl_type.to_token_stream()
                 )
             }
@@ -102,7 +102,7 @@ impl<'a> Func<'a> {
                 let arg_ident = if let Pat::Ident(arg_ident) = arg.pat.as_ref() {
                     &arg_ident.ident
                 } else {
-                    abort!(arg.span(), "Unnamed arguments are not supported");
+                    abort!(arg.span(), "unnamed arguments are not supported");
                 };
                 return Some((arg_ident, arg.ty.as_ref()));
             }
@@ -128,7 +128,6 @@ pub(crate) fn result_type(handler_signature: &Signature) -> Type {
 pub(crate) fn discover_invocation_targets(
     item_impl: &ItemImpl,
     filter: impl Fn(&ImplItemFn) -> bool,
-    allow_empty_route: bool, // Even though we always pass `false` here, we keep this parameter for the case when we want to allow anonymously exposed services
 ) -> BTreeMap<String, (&ImplItemFn, usize)> {
     item_impl
         .items
@@ -138,9 +137,6 @@ pub(crate) fn discover_invocation_targets(
             if let ImplItem::Fn(fn_item) = item.1 {
                 if filter(fn_item) {
                     let route = route::invocation_route(fn_item);
-                    if route.1.is_empty() && !allow_empty_route {
-                        abort!(route.0, "Empty route is not allowed")
-                    }
                     return Some((route, (fn_item, item.0)));
                 }
             }
@@ -150,7 +146,7 @@ pub(crate) fn discover_invocation_targets(
             if let Some(duplicate) = result.insert(route.1, target) {
                 abort!(
                     route.0,
-                    "Route conflicts with one assigned to '{}'",
+                    "`groute` attribute conflicts with one assigned to '{}'",
                     duplicate.0.sig.ident.to_string()
                 );
             }

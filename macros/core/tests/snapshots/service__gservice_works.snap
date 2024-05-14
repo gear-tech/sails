@@ -11,14 +11,17 @@ impl SomeService {
     }
 }
 pub struct Exposure<T> {
+    message_id: sails_rtl::MessageId,
     route: &'static [u8],
     inner: T,
 }
 impl Exposure<SomeService> {
     pub async fn do_this(&mut self, p1: u32, p2: String) -> u32 {
+        let exposure_scope = sails_rtl::gstd::services::ExposureCallScope::new(self);
         self.inner.do_this(p1, p2).await
     }
     pub fn this(&self, p1: bool) -> bool {
+        let exposure_scope = sails_rtl::gstd::services::ExposureCallScope::new(self);
         self.inner.this(p1)
     }
     pub async fn handle(&mut self, mut input: &[u8]) -> Vec<u8> {
@@ -57,10 +60,23 @@ impl Exposure<SomeService> {
         return result.encode();
     }
 }
+impl sails_rtl::gstd::services::Exposure for Exposure<SomeService> {
+    fn message_id(&self) -> sails_rtl::MessageId {
+        self.message_id
+    }
+    fn route(&self) -> &'static [u8] {
+        self.route
+    }
+}
 impl sails_rtl::gstd::services::Service for SomeService {
     type Exposure = Exposure<SomeService>;
-    fn expose(self, route: &'static [u8]) -> Self::Exposure {
+    fn expose(
+        self,
+        message_id: sails_rtl::MessageId,
+        route: &'static [u8],
+    ) -> Self::Exposure {
         Self::Exposure {
+            message_id,
             route,
             inner: self,
         }
@@ -100,4 +116,3 @@ mod meta {
     pub enum NoEvents {}
     pub type EventsMeta = NoEvents;
 }
-

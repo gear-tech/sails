@@ -1,6 +1,11 @@
-use crate::{collections::HashMap, errors::*, Vec};
+use crate::{
+    collections::HashMap,
+    errors::*,
+    gstd::{msg, services},
+    Vec,
+};
 use core::{any::TypeId, marker::PhantomData};
-use gstd::{msg, ActorId as GStdActorId};
+use gstd::ActorId as GStdActorId;
 use parity_scale_codec::Encode;
 use scale_info::{StaticTypeInfo, TypeDef};
 
@@ -78,10 +83,8 @@ where
     TEvents: Encode + StaticTypeInfo,
 {
     fn trigger(&self, event: TEvents) -> Result<()> {
-        let payload = Self::compose_payload(
-            super::message_service_route(super::current_message_id()),
-            event,
-        )?;
+        let payload =
+            Self::compose_payload(services::exposure_context(msg::id().into()).route(), event)?;
         msg::send_bytes(GStdActorId::zero(), payload, 0)?;
         Ok(())
     }
