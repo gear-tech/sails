@@ -3402,7 +3402,6 @@ dependencies = [
  "gstd",
  "parity-scale-codec",
  "sails-client-gen",
- "sails-macros",
  "sails-rtl",
  "scale-info",
 ]
@@ -3693,7 +3692,6 @@ name = "rmrk-catalog-app"
 version = "0.1.0"
 dependencies = [
  "parity-scale-codec",
- "sails-macros",
  "sails-rtl",
  "scale-info",
 ]
@@ -3719,7 +3717,6 @@ dependencies = [
  "gstd",
  "parity-scale-codec",
  "sails-client-gen",
- "sails-macros",
  "sails-rtl",
  "scale-info",
 ]
@@ -3844,6 +3841,7 @@ dependencies = [
 name = "sails-macros-core"
 version = "0.0.1"
 dependencies = [
+ "const_format",
  "convert_case 0.6.0",
  "insta",
  "parity-scale-codec",
@@ -3866,6 +3864,7 @@ dependencies = [
  "hex",
  "parity-scale-codec",
  "primitive-types",
+ "sails-macros",
  "scale-info",
  "thiserror-no-std",
 ]
@@ -4808,8 +4807,6 @@ version = "0.1.0"
 dependencies = [
  "gstd",
  "parity-scale-codec",
- "primitive-types",
- "sails-macros",
  "sails-rtl",
  "scale-info",
 ]

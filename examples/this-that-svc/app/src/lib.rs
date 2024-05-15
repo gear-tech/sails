@@ -1,8 +1,7 @@
 #![no_std]
 
 use gstd::{debug, prelude::*};
-use primitive_types::{H256, U256};
-use sails_macros::gservice;
+use sails_rtl::{gstd::gservice, H256, U256};
 
 #[derive(Default)]
 pub struct MyService;

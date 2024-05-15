@@ -7,7 +7,6 @@ edition = "2021"
 gstd = { workspace = true, features = ["debug"] }
 parity-scale-codec = { workspace = true, features = ["derive"] }
 sails-rtl.workspace = true
-sails-macros.workspace = true
 scale-info = { workspace = true, features = ["derive"] }
 
 [build-dependencies]

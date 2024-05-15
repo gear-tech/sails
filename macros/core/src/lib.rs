@@ -24,5 +24,6 @@ pub use service::gservice;
 
 mod program;
 mod route;
+mod sails_paths;
 mod service;
 mod shared;

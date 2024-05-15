@@ -1,10 +1,9 @@
 #![no_std]
 
-use sails_macros::{gprogram, groute};
 use sails_rtl::gstd::{
     calls::{GStdArgs, GStdRemoting},
     events::GStdEventTrigger,
-    GStdExecContext,
+    gprogram, groute, GStdExecContext,
 };
 use services::{ResourceStorage, ResourceStorageEvent};
 
