@@ -1,5 +1,5 @@
 use crate::route;
-use proc_macro2::TokenStream as TokenStream2;
+use proc_macro2::{Span, TokenStream as TokenStream2};
 use proc_macro_error::abort;
 use quote::{quote, ToTokens};
 use std::collections::BTreeMap;
@@ -7,6 +7,9 @@ use syn::{
     spanned::Spanned, FnArg, Ident, ImplItem, ImplItemFn, ItemImpl, Pat, PathArguments, Receiver,
     ReturnType, Signature, Type, TypePath, TypeTuple, WhereClause,
 };
+
+/// Static Span of Program `impl` block
+pub(crate) static mut PROGRAM_SPAN: Option<Span> = None;
 
 /// A struct that represents the type of an `impl` block.
 pub(crate) struct ImplType<'a> {

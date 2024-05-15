@@ -5,18 +5,25 @@ use proc_macro_error::abort;
 use quote::quote;
 use std::collections::BTreeMap;
 use syn::{
-    parse_quote, Ident, ImplItem, ImplItemFn, ItemImpl, Receiver, ReturnType, Type, TypePath,
-    Visibility,
+    parse_quote, spanned::Spanned, Ident, ImplItem, ImplItemFn, ItemImpl, Receiver, ReturnType,
+    Type, TypePath, Visibility,
 };
 
 pub fn gprogram(program_impl_tokens: TokenStream2) -> TokenStream2 {
-    let program_impl = syn::parse2(program_impl_tokens).unwrap_or_else(|err| {
+    let program_impl: ItemImpl = syn::parse2(program_impl_tokens).unwrap_or_else(|err| {
         abort!(
             err.span(),
             "`gprogram` attribute can be applied to impls only: {}",
             err
         )
     });
+    if let Some(_) = unsafe { shared::PROGRAM_SPAN } {
+        abort!(
+            program_impl.span(),
+            "multiple `gprogram` attributes are not allowed"
+        )
+    }
+    unsafe { shared::PROGRAM_SPAN = Some(program_impl.span()) };
 
     let services_ctors = discover_services_ctors(&program_impl);
 

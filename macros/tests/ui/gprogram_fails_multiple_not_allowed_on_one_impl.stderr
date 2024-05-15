@@ -1,0 +1,5 @@
+error: multiple `gprogram` attributes are not allowed
+ --> tests/ui/gprogram_fails_multiple_not_allowed_on_one_impl.rs:7:1
+  |
+7 | impl MyProgram {
+  | ^^^^
