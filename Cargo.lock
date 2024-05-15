@@ -3846,7 +3846,6 @@ version = "0.0.1"
 dependencies = [
  "convert_case 0.6.0",
  "insta",
- "lazy_static",
  "parity-scale-codec",
  "prettyplease",
  "proc-macro-error",

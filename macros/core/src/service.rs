@@ -41,13 +41,13 @@ pub fn gservice(service_impl_tokens: TokenStream2) -> TokenStream2 {
 
     let path = shared::impl_type_path(&service_impl);
     let type_ident = path.path.segments.last().unwrap().ident.to_string();
-    if let Some(_) = shared::SERVICE_TYPES.lock().unwrap().get(&type_ident) {
+    if let Some(_) = unsafe { shared::SERVICE_TYPES.get(&type_ident) } {
         abort!(
             service_impl.span(),
             "multiple `gservice` attributes are not allowed"
         )
     }
-    shared::SERVICE_TYPES.lock().unwrap().insert(type_ident);
+    unsafe { shared::SERVICE_TYPES.insert(type_ident, service_impl.span()) };
 
     let (service_type_path, service_type_args, service_type_constraints) = {
         let service_type = ImplType::new(&service_impl);
