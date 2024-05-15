@@ -1,0 +1,5 @@
+error: multiple `gservice` attributes are not allowed
+  --> tests/ui/gservice_fails_multiple_not_allowed.rs:15:1
+   |
+15 | impl MyService {
+   | ^^^^

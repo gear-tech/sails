@@ -26,18 +26,28 @@ use proc_macro_error::abort;
 use quote::quote;
 use std::collections::BTreeMap;
 use syn::{
-    GenericArgument, Ident, ImplItemFn, ItemImpl, Path, PathArguments, Type, TypeParamBound,
-    Visibility, WhereClause, WherePredicate,
+    spanned::Spanned, GenericArgument, Ident, ImplItemFn, ItemImpl, Path, PathArguments, Type,
+    TypeParamBound, Visibility, WhereClause, WherePredicate,
 };
 
 pub fn gservice(service_impl_tokens: TokenStream2) -> TokenStream2 {
-    let service_impl = syn::parse2(service_impl_tokens).unwrap_or_else(|err| {
+    let service_impl: ItemImpl = syn::parse2(service_impl_tokens).unwrap_or_else(|err| {
         abort!(
             err.span(),
             "`gservice` attribute can be applied to impls only: {}",
             err
         )
     });
+
+    let path = shared::impl_type_path(&service_impl);
+    let type_ident = path.path.segments.last().unwrap().ident.to_string();
+    if let Some(_) = shared::SERVICE_TYPES.lock().unwrap().get(&type_ident) {
+        abort!(
+            service_impl.span(),
+            "multiple `gservice` attributes are not allowed"
+        )
+    }
+    shared::SERVICE_TYPES.lock().unwrap().insert(type_ident);
 
     let (service_type_path, service_type_args, service_type_constraints) = {
         let service_type = ImplType::new(&service_impl);

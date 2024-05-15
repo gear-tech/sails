@@ -39,6 +39,7 @@ insta = "1.38"
 itertools = "0.12"
 lalrpop = { version = "0.20", default-features = false }
 lalrpop-util = "0.20"
+lazy_static = "1"
 logos = "0.13"
 parity-scale-codec = { version = "3.6", default-features = false }
 prettyplease = "0.2"
