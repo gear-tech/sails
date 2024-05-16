@@ -83,8 +83,7 @@ where
     TEvents: Encode + StaticTypeInfo,
 {
     fn trigger(&self, event: TEvents) -> Result<()> {
-        let payload =
-            Self::compose_payload(services::exposure_context(msg::id().into()).route(), event)?;
+        let payload = Self::compose_payload(services::exposure_context(msg::id()).route(), event)?;
         msg::send_bytes(GStdActorId::zero(), payload, 0)?;
         Ok(())
     }
