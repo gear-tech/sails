@@ -5,9 +5,9 @@ pub mod puppet;
 use core::marker::PhantomData;
 use gstd::prelude::*;
 use puppet::traits::ThisThatSvc;
-use sails_macros::gservice;
 use sails_rtl::{
     calls::{Call, Remoting},
+    gstd::gservice,
     ActorId,
 };
 

@@ -1,7 +1,6 @@
 #![no_std]
 
-use sails_macros::{gprogram, groute};
-use sails_rtl::gstd::GStdExecContext;
+use sails_rtl::gstd::{gprogram, groute, GStdExecContext};
 use services::Catalog;
 
 // Exposed publicly because of tests which use generated data

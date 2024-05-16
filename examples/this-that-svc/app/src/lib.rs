@@ -1,8 +1,7 @@
 #![no_std]
 
 use gstd::{debug, prelude::*};
-use primitive_types::{H256, U256};
-use sails_macros::gservice;
+use sails_rtl::{gstd::gservice, H256, U256};
 
 #[derive(Default)]
 pub struct MyService;
@@ -47,9 +46,13 @@ impl MyService {
 
 #[allow(dead_code)]
 #[derive(Debug, Decode, TypeInfo)]
+#[codec(crate = sails_rtl::scale_codec)]
+#[scale_info(crate = sails_rtl::scale_info)]
 pub struct TupleStruct(bool);
 
 #[derive(Debug, Decode, TypeInfo)]
+#[codec(crate = sails_rtl::scale_codec)]
+#[scale_info(crate = sails_rtl::scale_info)]
 pub struct DoThatParam {
     pub p1: u32,
     pub p2: String,
@@ -57,6 +60,8 @@ pub struct DoThatParam {
 }
 
 #[derive(Debug, Decode, TypeInfo)]
+#[codec(crate = sails_rtl::scale_codec)]
+#[scale_info(crate = sails_rtl::scale_info)]
 pub enum ManyVariants {
     One,
     Two(u32),
