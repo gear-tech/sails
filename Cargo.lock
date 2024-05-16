@@ -4806,9 +4806,7 @@ name = "this-that-svc-app"
 version = "0.1.0"
 dependencies = [
  "gstd",
- "parity-scale-codec",
  "sails-rtl",
- "scale-info",
 ]
 
 [[package]]
