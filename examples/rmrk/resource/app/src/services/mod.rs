@@ -1,12 +1,14 @@
 use crate::catalogs::traits::RmrkCatalog;
 use errors::{Error, Result};
 use resources::{ComposedResource, PartId, Resource, ResourceId};
-use sails_macros::gservice;
-use sails_rtl::calls::Call;
-use sails_rtl::gstd::calls::{GStdArgs, GStdRemoting};
 use sails_rtl::{
+    calls::Call,
     collections::HashMap,
-    gstd::{events::EventTrigger, ExecContext},
+    gstd::{
+        calls::{GStdArgs, GStdRemoting},
+        events::EventTrigger,
+        gservice, ExecContext,
+    },
     prelude::*,
     ActorId,
 };

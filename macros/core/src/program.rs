@@ -1,4 +1,7 @@
-use crate::shared::{self, Func, ImplType};
+use crate::{
+    sails_paths,
+    shared::{self, Func, ImplType},
+};
 use parity_scale_codec::Encode;
 use proc_macro2::{Span, TokenStream as TokenStream2};
 use proc_macro_error::abort;
@@ -10,8 +13,13 @@ use syn::{
 };
 
 pub fn gprogram(program_impl_tokens: TokenStream2) -> TokenStream2 {
-    let program_impl = syn::parse2(program_impl_tokens)
-        .unwrap_or_else(|err| abort!(err.span(), "Failed to parse program impl: {}", err));
+    let program_impl = syn::parse2(program_impl_tokens).unwrap_or_else(|err| {
+        abort!(
+            err.span(),
+            "`gprogram` attribute can be applied to impls only: {}",
+            err
+        )
+    });
 
     let services_ctors = discover_services_ctors(&program_impl);
 
@@ -77,6 +85,10 @@ pub fn gprogram(program_impl_tokens: TokenStream2) -> TokenStream2 {
         quote!(#ctor_route(#ctor_params_struct_ident))
     });
 
+    let scale_types_path = sails_paths::scale_types_path();
+    let scale_codec_path = sails_paths::scale_codec_path();
+    let scale_info_path = sails_paths::scale_info_path();
+
     quote!(
         #(#services_routes)*
 
@@ -94,15 +106,21 @@ pub fn gprogram(program_impl_tokens: TokenStream2) -> TokenStream2 {
             }
         }
 
-        use sails_rtl::prelude::Decode as __ProgramDecode;
-        use sails_rtl::prelude::TypeInfo as __ProgramTypeInfo;
+        use #scale_types_path ::Decode as __ProgramDecode;
+        use #scale_types_path ::TypeInfo as __ProgramTypeInfo;
 
-        #(#[derive(__ProgramDecode, __ProgramTypeInfo)] #ctors_params_structs )*
+        #(
+            #[derive(__ProgramDecode, __ProgramTypeInfo)]
+            #[codec(crate = #scale_codec_path )]
+            #[scale_info(crate = #scale_info_path )]
+            #ctors_params_structs
+        )*
 
         mod meta {
             use super::*;
 
             #[derive(__ProgramTypeInfo)]
+            #[scale_info(crate = #scale_info_path )]
             pub enum ConstructorsMeta {
                 #(#ctors_meta_variants),*
             }
@@ -299,44 +317,35 @@ fn discover_program_ctors<'a>(
     program_type_path: &'a TypePath,
 ) -> BTreeMap<String, (&'a ImplItemFn, usize)> {
     let self_type_path = syn::parse_str::<TypePath>("Self").unwrap();
-    shared::discover_invocation_targets(
-        program_impl,
-        |fn_item| {
-            if matches!(fn_item.vis, Visibility::Public(_)) && fn_item.sig.receiver().is_none() {
-                if let ReturnType::Type(_, output_type) = &fn_item.sig.output {
-                    if let Type::Path(output_type_path) = output_type.as_ref() {
-                        if output_type_path == &self_type_path
-                            || output_type_path == program_type_path
-                        {
-                            return true;
-                        }
+    shared::discover_invocation_targets(program_impl, |fn_item| {
+        if matches!(fn_item.vis, Visibility::Public(_)) && fn_item.sig.receiver().is_none() {
+            if let ReturnType::Type(_, output_type) = &fn_item.sig.output {
+                if let Type::Path(output_type_path) = output_type.as_ref() {
+                    if output_type_path == &self_type_path || output_type_path == program_type_path
+                    {
+                        return true;
                     }
                 }
             }
-            false
-        },
-        false,
-    )
+        }
+        false
+    })
 }
 
 fn discover_services_ctors(program_impl: &ItemImpl) -> BTreeMap<String, (&ImplItemFn, usize)> {
-    shared::discover_invocation_targets(
-        program_impl,
-        |fn_item| {
-            matches!(fn_item.vis, Visibility::Public(_))
-                && matches!(
-                    fn_item.sig.receiver(),
-                    Some(Receiver {
-                        mutability: None,
-                        reference: Some(_),
-                        ..
-                    })
-                )
-                && fn_item.sig.inputs.len() == 1
-                && !matches!(fn_item.sig.output, ReturnType::Default)
-        },
-        false,
-    )
+    shared::discover_invocation_targets(program_impl, |fn_item| {
+        matches!(fn_item.vis, Visibility::Public(_))
+            && matches!(
+                fn_item.sig.receiver(),
+                Some(Receiver {
+                    mutability: None,
+                    reference: Some(_),
+                    ..
+                })
+            )
+            && fn_item.sig.inputs.len() == 1
+            && !matches!(fn_item.sig.output, ReturnType::Default)
+    })
 }
 
 #[cfg(test)]

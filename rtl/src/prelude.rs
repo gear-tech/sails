@@ -47,5 +47,5 @@ pub mod ffi {
 
 pub use crate::types::*;
 
-// Reexports from third-party libraries
-pub use crate::scale::*;
+pub use parity_scale_codec::{self as scale_codec, Decode, Encode, EncodeLike};
+pub use scale_info::{self as scale_info, TypeInfo};

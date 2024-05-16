@@ -13,11 +13,12 @@ impl sails_rtl::meta::ProgramMeta for MyProgram {
         [].into_iter()
     }
 }
-use sails_rtl::prelude::Decode as __ProgramDecode;
-use sails_rtl::prelude::TypeInfo as __ProgramTypeInfo;
+use sails_rtl::Decode as __ProgramDecode;
+use sails_rtl::TypeInfo as __ProgramTypeInfo;
 mod meta {
     use super::*;
     #[derive(__ProgramTypeInfo)]
+    #[scale_info(crate = sails_rtl::scale_info)]
     pub enum ConstructorsMeta {}
 }
 #[cfg(target_arch = "wasm32")]

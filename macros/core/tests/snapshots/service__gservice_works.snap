@@ -83,36 +83,46 @@ impl sails_rtl::gstd::services::Service for SomeService {
     }
 }
 impl sails_rtl::meta::ServiceMeta for SomeService {
-    fn commands() -> scale_info::MetaType {
-        scale_info::MetaType::new::<meta::CommandsMeta>()
+    fn commands() -> sails_rtl::scale_info::MetaType {
+        sails_rtl::scale_info::MetaType::new::<meta::CommandsMeta>()
     }
-    fn queries() -> scale_info::MetaType {
-        scale_info::MetaType::new::<meta::QueriesMeta>()
+    fn queries() -> sails_rtl::scale_info::MetaType {
+        sails_rtl::scale_info::MetaType::new::<meta::QueriesMeta>()
     }
-    fn events() -> scale_info::MetaType {
-        scale_info::MetaType::new::<meta::EventsMeta>()
+    fn events() -> sails_rtl::scale_info::MetaType {
+        sails_rtl::scale_info::MetaType::new::<meta::EventsMeta>()
     }
 }
-#[derive(Decode, TypeInfo)]
+use sails_rtl::Decode as __ServiceDecode;
+use sails_rtl::Encode as __ServiceEncode;
+use sails_rtl::TypeInfo as __ServiceTypeInfo;
+#[derive(__ServiceDecode, __ServiceTypeInfo)]
+#[codec(crate = sails_rtl::scale_codec)]
+#[scale_info(crate = sails_rtl::scale_info)]
 pub struct __DoThisParams {
     p1: u32,
     p2: String,
 }
-#[derive(Decode, TypeInfo)]
+#[derive(__ServiceDecode, __ServiceTypeInfo)]
+#[codec(crate = sails_rtl::scale_codec)]
+#[scale_info(crate = sails_rtl::scale_info)]
 pub struct __ThisParams {
     p1: bool,
 }
 mod meta {
     use super::*;
-    #[derive(TypeInfo)]
+    #[derive(__ServiceTypeInfo)]
+    #[scale_info(crate = sails_rtl::scale_info)]
     pub enum CommandsMeta {
         DoThis(__DoThisParams, u32),
     }
-    #[derive(TypeInfo)]
+    #[derive(__ServiceTypeInfo)]
+    #[scale_info(crate = sails_rtl::scale_info)]
     pub enum QueriesMeta {
         This(__ThisParams, bool),
     }
-    #[derive(TypeInfo)]
+    #[derive(__ServiceTypeInfo)]
+    #[scale_info(crate = sails_rtl::scale_info)]
     pub enum NoEvents {}
     pub type EventsMeta = NoEvents;
 }

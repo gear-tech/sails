@@ -1,7 +1,8 @@
-use parity_scale_codec::{Decode, Encode};
-use sails_macros::gservice;
-use sails_rtl::{gstd::services::Service, MessageId};
-use scale_info::TypeInfo;
+use parity_scale_codec::Encode;
+use sails_rtl::{
+    gstd::{gservice, services::Service},
+    MessageId,
+};
 
 struct MyService;
 

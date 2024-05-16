@@ -1,0 +1,5 @@
+error: `groute` attribute can be applied to public methods only
+  --> tests/ui/gservice_fails_route_fn_must_be_public.rs:12:5
+   |
+12 |     fn this(&self, p1: bool) -> bool {
+   |     ^^
