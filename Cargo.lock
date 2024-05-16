@@ -538,19 +538,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "conditional-service"
-version = "0.1.0"
-dependencies = [
- "gear-wasm-builder",
- "gstd",
- "parity-scale-codec",
- "sails-idl-gen",
- "sails-macros",
- "sails-rtl",
- "scale-info",
-]
-
-[[package]]
 name = "console"
 version = "0.15.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3377,6 +3364,28 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8ad3d49ab951a01fbaafe34f2ec74122942fe18a3f9814c3268f1bb72042131b"
 dependencies = [
  "unicode-ident",
+]
+
+[[package]]
+name = "prog-without-svcs"
+version = "0.1.0"
+dependencies = [
+ "gear-wasm-builder",
+ "prog-without-svcs-app",
+ "sails-idl-gen",
+ "sails-macros",
+ "sails-rtl",
+]
+
+[[package]]
+name = "prog-without-svcs-app"
+version = "0.1.0"
+dependencies = [
+ "git-download",
+ "sails-client-gen",
+ "sails-macros",
+ "sails-rtl",
+ "scale-info",
 ]
 
 [[package]]

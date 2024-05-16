@@ -1,15 +1,14 @@
 [package]
-name = "conditional-service"
+name = "no-svcs-prog"
 version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-gstd.workspace = true
-sails-rtl.workspace = true
+prog-without-svcs-app = { path = "../app" }
 sails-macros.workspace = true
-scale-info.workspace = true
-parity-scale-codec.workspace = true
+sails-rtl.workspace = true
 
 [build-dependencies]
 gwasm-builder.workspace = true
+prog-without-svcs-app = { path = "../app" }
 sails-idl-gen.workspace = true
