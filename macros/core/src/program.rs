@@ -17,7 +17,7 @@ pub fn gprogram(program_impl_tokens: TokenStream2) -> TokenStream2 {
             err
         )
     });
-    if let Some(_) = unsafe { shared::PROGRAM_SPAN } {
+    if unsafe { shared::PROGRAM_SPAN }.is_some() {
         abort!(
             program_impl.span(),
             "multiple `gprogram` attributes are not allowed"
