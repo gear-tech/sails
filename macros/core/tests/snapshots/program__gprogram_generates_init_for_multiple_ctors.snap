@@ -20,14 +20,18 @@ impl sails_rtl::meta::ProgramMeta for MyProgram {
         [].into_iter()
     }
 }
-use sails_rtl::prelude::Decode as __ProgramDecode;
-use sails_rtl::prelude::TypeInfo as __ProgramTypeInfo;
+use sails_rtl::Decode as __ProgramDecode;
+use sails_rtl::TypeInfo as __ProgramTypeInfo;
 #[derive(__ProgramDecode, __ProgramTypeInfo)]
+#[codec(crate = sails_rtl::scale_codec)]
+#[scale_info(crate = sails_rtl::scale_info)]
 struct __NewParams {
     p1: u32,
     p2: String,
 }
 #[derive(__ProgramDecode, __ProgramTypeInfo)]
+#[codec(crate = sails_rtl::scale_codec)]
+#[scale_info(crate = sails_rtl::scale_info)]
 struct __New2Params {
     p2: String,
     p1: u32,
@@ -35,6 +39,7 @@ struct __New2Params {
 mod meta {
     use super::*;
     #[derive(__ProgramTypeInfo)]
+    #[scale_info(crate = sails_rtl::scale_info)]
     pub enum ConstructorsMeta {
         New(__NewParams),
         New2(__New2Params),
@@ -101,4 +106,3 @@ pub mod wasm {
         gstd::msg::reply_bytes(output, 0).expect("Failed to send output");
     }
 }
-

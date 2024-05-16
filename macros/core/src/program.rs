@@ -1,4 +1,7 @@
-use crate::shared::{self, Func, ImplType};
+use crate::{
+    sails_paths,
+    shared::{self, Func, ImplType},
+};
 use parity_scale_codec::Encode;
 use proc_macro2::{Span, TokenStream as TokenStream2};
 use proc_macro_error::abort;
@@ -82,6 +85,10 @@ pub fn gprogram(program_impl_tokens: TokenStream2) -> TokenStream2 {
         quote!(#ctor_route(#ctor_params_struct_ident))
     });
 
+    let scale_types_path = sails_paths::scale_types_path();
+    let scale_codec_path = sails_paths::scale_codec_path();
+    let scale_info_path = sails_paths::scale_info_path();
+
     quote!(
         #(#services_routes)*
 
@@ -99,15 +106,21 @@ pub fn gprogram(program_impl_tokens: TokenStream2) -> TokenStream2 {
             }
         }
 
-        use sails_rtl::prelude::Decode as __ProgramDecode;
-        use sails_rtl::prelude::TypeInfo as __ProgramTypeInfo;
+        use #scale_types_path ::Decode as __ProgramDecode;
+        use #scale_types_path ::TypeInfo as __ProgramTypeInfo;
 
-        #(#[derive(__ProgramDecode, __ProgramTypeInfo)] #ctors_params_structs )*
+        #(
+            #[derive(__ProgramDecode, __ProgramTypeInfo)]
+            #[codec(crate = #scale_codec_path )]
+            #[scale_info(crate = #scale_info_path )]
+            #ctors_params_structs
+        )*
 
         mod meta {
             use super::*;
 
             #[derive(__ProgramTypeInfo)]
+            #[scale_info(crate = #scale_info_path )]
             pub enum ConstructorsMeta {
                 #(#ctors_meta_variants),*
             }

@@ -6,6 +6,7 @@ edition.workspace = true
 license.workspace = true
 
 [dependencies]
+const-format.workspace = true
 convert-case.workspace = true
 parity-scale-codec.workspace = true
 proc-macro-error.workspace = true

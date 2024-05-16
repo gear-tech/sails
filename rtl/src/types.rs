@@ -1,5 +1,6 @@
-use crate::prelude::*;
+use parity_scale_codec::{Decode, Encode};
 pub use primitive_types::*;
+use scale_info::TypeInfo;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Encode, Decode, TypeInfo)]
 pub struct ActorId([u8; 32]);
