@@ -1,4 +1,5 @@
-import { EnumDef, EnumVariant, Program, TypeDef } from '../parser/index.js';
+import { EnumDef, EnumVariant, TypeDef } from '../parser/types.js';
+import { Program } from '../parser/program.js';
 import { toLowerCaseFirst, getJsTypeDef } from '../utils/index.js';
 import { Output } from './output.js';
 
