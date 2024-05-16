@@ -4,11 +4,11 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-prog-without-svcs-app = { path = "../app" }
+no-svcs-prog-app = { path = "../app" }
 sails-macros.workspace = true
 sails-rtl.workspace = true
 
 [build-dependencies]
 gwasm-builder.workspace = true
-prog-without-svcs-app = { path = "../app" }
+no-svcs-prog-app = { path = "../app" }
 sails-idl-gen.workspace = true

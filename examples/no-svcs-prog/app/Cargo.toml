@@ -6,7 +6,3 @@ edition = "2021"
 [dependencies]
 sails-macros.workspace = true
 sails-rtl.workspace = true
-
-[build-dependencies]
-git-download.workspace = true
-sails-client-gen.workspace = true

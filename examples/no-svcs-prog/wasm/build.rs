@@ -1,4 +1,4 @@
-use prog_without_svcs_app::Program;
+use no_svcs_prog_app::Program;
 use sails_idl_gen::program;
 use std::{env, fs::File, path::PathBuf};
 

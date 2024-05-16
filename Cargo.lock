@@ -2902,6 +2902,25 @@ dependencies = [
 ]
 
 [[package]]
+name = "no-svcs-prog"
+version = "0.1.0"
+dependencies = [
+ "gear-wasm-builder",
+ "no-svcs-prog-app",
+ "sails-idl-gen",
+ "sails-macros",
+ "sails-rtl",
+]
+
+[[package]]
+name = "no-svcs-prog-app"
+version = "0.1.0"
+dependencies = [
+ "sails-macros",
+ "sails-rtl",
+]
+
+[[package]]
 name = "nodrop"
 version = "0.1.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3364,28 +3383,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8ad3d49ab951a01fbaafe34f2ec74122942fe18a3f9814c3268f1bb72042131b"
 dependencies = [
  "unicode-ident",
-]
-
-[[package]]
-name = "prog-without-svcs"
-version = "0.1.0"
-dependencies = [
- "gear-wasm-builder",
- "prog-without-svcs-app",
- "sails-idl-gen",
- "sails-macros",
- "sails-rtl",
-]
-
-[[package]]
-name = "prog-without-svcs-app"
-version = "0.1.0"
-dependencies = [
- "git-download",
- "sails-client-gen",
- "sails-macros",
- "sails-rtl",
- "scale-info",
 ]
 
 [[package]]
