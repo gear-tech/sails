@@ -1,6 +1,4 @@
-use parity_scale_codec::{Decode, Encode};
 use sails_macros::gservice;
-use scale_info::TypeInfo;
 
 struct MyService;
 
