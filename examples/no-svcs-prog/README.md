@@ -1,3 +1,3 @@
-# empty
+# no-svcs-prog
 
-Most basic program structure without services to get you started
+Most basic program without services to get you started
