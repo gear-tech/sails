@@ -30,16 +30,29 @@ use syn::{
     TypeParamBound, Visibility, WhereClause, WherePredicate,
 };
 
+pub fn gservice_safe(service_impl_tokens: TokenStream2) -> TokenStream2 {
+    let service_impl = parse_service_impl(service_impl_tokens);
+    check_service_single_by_name(&service_impl);
+    gen_gservice_impl(service_impl)
+}
+
 pub fn gservice(service_impl_tokens: TokenStream2) -> TokenStream2 {
-    let service_impl: ItemImpl = syn::parse2(service_impl_tokens).unwrap_or_else(|err| {
+    let service_impl = parse_service_impl(service_impl_tokens);
+    gen_gservice_impl(service_impl)
+}
+
+fn parse_service_impl(service_impl_tokens: TokenStream2) -> ItemImpl {
+    syn::parse2(service_impl_tokens).unwrap_or_else(|err| {
         abort!(
             err.span(),
             "`gservice` attribute can be applied to impls only: {}",
             err
         )
-    });
+    })
+}
 
-    let path = shared::impl_type_path(&service_impl);
+fn check_service_single_by_name(service_impl: &ItemImpl) {
+    let path = shared::impl_type_path(service_impl);
     let type_ident = path.path.segments.last().unwrap().ident.to_string();
     if unsafe { shared::SERVICE_TYPES.get(&type_ident) }.is_some() {
         abort!(
@@ -48,7 +61,9 @@ pub fn gservice(service_impl_tokens: TokenStream2) -> TokenStream2 {
         )
     }
     unsafe { shared::SERVICE_TYPES.insert(type_ident, service_impl.span()) };
+}
 
+pub fn gen_gservice_impl(service_impl: ItemImpl) -> TokenStream2 {
     let (service_type_path, service_type_args, service_type_constraints) = {
         let service_type = ImplType::new(&service_impl);
         (

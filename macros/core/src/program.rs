@@ -9,14 +9,28 @@ use syn::{
     Type, TypePath, Visibility,
 };
 
+pub fn gprogram_safe(program_impl_tokens: TokenStream2) -> TokenStream2 {
+    let program_impl = parse_program_impl(program_impl_tokens);
+    check_program_single(&program_impl);
+    gen_gprogram_impl(program_impl)
+}
+
 pub fn gprogram(program_impl_tokens: TokenStream2) -> TokenStream2 {
-    let program_impl: ItemImpl = syn::parse2(program_impl_tokens).unwrap_or_else(|err| {
+    let program_impl = parse_program_impl(program_impl_tokens);
+    gen_gprogram_impl(program_impl)
+}
+
+fn parse_program_impl(program_impl_tokens: TokenStream2) -> ItemImpl {
+    syn::parse2(program_impl_tokens).unwrap_or_else(|err| {
         abort!(
             err.span(),
             "`gprogram` attribute can be applied to impls only: {}",
             err
         )
-    });
+    })
+}
+
+fn check_program_single(program_impl: &ItemImpl) {
     if unsafe { shared::PROGRAM_SPAN }.is_some() {
         abort!(
             program_impl.span(),
@@ -24,7 +38,9 @@ pub fn gprogram(program_impl_tokens: TokenStream2) -> TokenStream2 {
         )
     }
     unsafe { shared::PROGRAM_SPAN = Some(program_impl.span()) };
+}
 
+fn gen_gprogram_impl(program_impl: ItemImpl) -> TokenStream2 {
     let services_ctors = discover_services_ctors(&program_impl);
 
     let mut program_impl = program_impl.clone();
