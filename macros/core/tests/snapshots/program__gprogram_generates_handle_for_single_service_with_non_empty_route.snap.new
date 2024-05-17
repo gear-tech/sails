@@ -1,9 +1,10 @@
 ---
 source: macros/core/tests/program.rs
+assertion_line: 66
 expression: result
 ---
-static __ROUTE_SERVICE2: [u8; 9usize] = [
-    32u8,
+static __ROUTE_SERVICE: [u8; 8usize] = [
+    28u8,
     83u8,
     101u8,
     114u8,
@@ -11,37 +12,20 @@ static __ROUTE_SERVICE2: [u8; 9usize] = [
     105u8,
     99u8,
     101u8,
-    50u8,
 ];
-static __ROUTE_SVC1: [u8; 5usize] = [16u8, 83u8, 118u8, 99u8, 49u8];
 impl MyProgram {
-    #[groute("svc1")]
-    pub fn service1(
+    pub fn service(
         &self,
     ) -> <MyService as sails_rtl::gstd::services::Service>::Exposure {
-        let service = self.__service1();
+        let service = self.__service();
         let exposure = <MyService as sails_rtl::gstd::services::Service>::expose(
             service,
             sails_rtl::gstd::msg::id().into(),
-            __ROUTE_SVC1.as_ref(),
+            __ROUTE_SERVICE.as_ref(),
         );
         exposure
     }
-    pub fn service2(
-        &self,
-    ) -> <MyService as sails_rtl::gstd::services::Service>::Exposure {
-        let service = self.__service2();
-        let exposure = <MyService as sails_rtl::gstd::services::Service>::expose(
-            service,
-            sails_rtl::gstd::msg::id().into(),
-            __ROUTE_SERVICE2.as_ref(),
-        );
-        exposure
-    }
-    fn __service2(&self) -> MyService {
-        MyService
-    }
-    fn __service1(&self) -> MyService {
+    fn __service(&self) -> MyService {
         MyService
     }
 }
@@ -52,11 +36,7 @@ impl sails_rtl::meta::ProgramMeta for MyProgram {
     fn services() -> impl Iterator<
         Item = (&'static str, sails_rtl::meta::AnyServiceMeta),
     > {
-        [
-            ("Service2", sails_rtl::meta::AnyServiceMeta::new::<MyService>()),
-            ("Svc1", sails_rtl::meta::AnyServiceMeta::new::<MyService>()),
-        ]
-            .into_iter()
+        [("Service", sails_rtl::meta::AnyServiceMeta::new::<MyService>())].into_iter()
     }
 }
 use sails_rtl::Decode as __ProgramDecode;
@@ -99,18 +79,12 @@ pub mod wasm {
     #[gstd::async_main]
     async fn main() {
         let mut input: &[u8] = &gstd::msg::load_bytes().expect("Failed to read input");
-        let output: Vec<u8> = if input.starts_with(&__ROUTE_SERVICE2) {
+        let output: Vec<u8> = if input.starts_with(&__ROUTE_SERVICE) {
             let program_ref = unsafe { PROGRAM.as_ref() }
                 .expect("Program not initialized");
-            let mut service = program_ref.service2();
-            let output = service.handle(&input[__ROUTE_SERVICE2.len()..]).await;
-            [__ROUTE_SERVICE2.as_ref(), &output].concat()
-        } else if input.starts_with(&__ROUTE_SVC1) {
-            let program_ref = unsafe { PROGRAM.as_ref() }
-                .expect("Program not initialized");
-            let mut service = program_ref.service1();
-            let output = service.handle(&input[__ROUTE_SVC1.len()..]).await;
-            [__ROUTE_SVC1.as_ref(), &output].concat()
+            let mut service = program_ref.service();
+            let output = service.handle(&input[__ROUTE_SERVICE.len()..]).await;
+            [__ROUTE_SERVICE.as_ref(), &output].concat()
         } else {
             let input = String::decode(&mut input)
                 .unwrap_or_else(|_| {

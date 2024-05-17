@@ -94,12 +94,12 @@ pub fn gprogram(program_impl_tokens: TokenStream2) -> TokenStream2 {
 
         #program_impl
 
-        impl #program_type_args ::sails_rtl::meta::ProgramMeta for #program_type_path #program_type_constraints {
-            fn constructors() -> ::sails_rtl::scale_info::MetaType {
-                ::sails_rtl::scale_info::MetaType::new::<meta::ConstructorsMeta>()
+        impl #program_type_args sails_rtl::meta::ProgramMeta for #program_type_path #program_type_constraints {
+            fn constructors() -> #scale_info_path::MetaType {
+                #scale_info_path::MetaType::new::<meta::ConstructorsMeta>()
             }
 
-            fn services() -> impl Iterator<Item = (&'static str, ::sails_rtl::meta::AnyServiceMeta)> {
+            fn services() -> impl Iterator<Item = (&'static str, sails_rtl::meta::AnyServiceMeta)> {
                 [
                     #(#services_meta),*
                 ].into_iter()
