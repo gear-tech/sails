@@ -13,6 +13,7 @@ sails-macros-core = { path = "./core" }
 proc-macro-error.workspace = true
 
 [dev-dependencies]
+fluent-asserter.workspace = true
 parity-scale-codec = { workspace = true, features = ["derive"] }
 sails-rtl.workspace = true
 scale-info = { workspace = true, features = ["derive"] }
