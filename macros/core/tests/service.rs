@@ -1,5 +1,5 @@
 use quote::quote;
-use sails_macros_core::gservice;
+use sails_macros_core::__gservice_internal;
 
 #[test]
 fn gservice_works() {
@@ -15,7 +15,7 @@ fn gservice_works() {
         }
     };
 
-    let result = gservice(input).to_string();
+    let result = __gservice_internal(input).to_string();
     let result = prettyplease::unparse(&syn::parse_str(&result).unwrap());
 
     insta::assert_snapshot!(result);
@@ -33,7 +33,7 @@ fn gservice_works_for_lifetimes_and_generics() {
         }
     };
 
-    let result = gservice(input).to_string();
+    let result = __gservice_internal(input).to_string();
     let result = prettyplease::unparse(&syn::parse_str(&result).unwrap());
 
     insta::assert_snapshot!(result);

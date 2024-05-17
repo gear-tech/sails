@@ -1,5 +1,5 @@
 use quote::quote;
-use sails_macros_core::gprogram;
+use sails_macros_core::__gprogram_internal;
 
 #[test]
 fn gprogram_generates_init_for_single_ctor() {
@@ -11,7 +11,7 @@ fn gprogram_generates_init_for_single_ctor() {
         }
     };
 
-    let result = gprogram(input).to_string();
+    let result = __gprogram_internal(input).to_string();
     let result = prettyplease::unparse(&syn::parse_str(&result).unwrap());
 
     insta::assert_snapshot!(result);
@@ -31,7 +31,7 @@ fn gprogram_generates_init_for_multiple_ctors() {
         }
     };
 
-    let result = gprogram(input).to_string();
+    let result = __gprogram_internal(input).to_string();
     let result = prettyplease::unparse(&syn::parse_str(&result).unwrap());
 
     insta::assert_snapshot!(result);
@@ -44,7 +44,7 @@ fn gprogram_generates_init_for_no_ctor() {
         }
     };
 
-    let result = gprogram(input).to_string();
+    let result = __gprogram_internal(input).to_string();
     let result = prettyplease::unparse(&syn::parse_str(&result).unwrap());
 
     insta::assert_snapshot!(result);
@@ -60,7 +60,7 @@ fn gprogram_generates_handle_for_single_service_with_non_empty_route() {
         }
     };
 
-    let result = gprogram(input).to_string();
+    let result = __gprogram_internal(input).to_string();
     let result = prettyplease::unparse(&syn::parse_str(&result).unwrap());
 
     insta::assert_snapshot!(result);
@@ -81,7 +81,7 @@ fn gprogram_generates_handle_for_multiple_services_with_non_empty_routes() {
         }
     };
 
-    let result = gprogram(input).to_string();
+    let result = __gprogram_internal(input).to_string();
     let result = prettyplease::unparse(&syn::parse_str(&result).unwrap());
 
     insta::assert_snapshot!(result);

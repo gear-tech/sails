@@ -12,18 +12,22 @@ use syn::{
     Type, TypePath, Visibility,
 };
 
-pub fn gprogram_safe(program_impl_tokens: TokenStream2) -> TokenStream2 {
-    let program_impl = parse_program_impl(program_impl_tokens);
-    check_program_single(&program_impl);
-    gen_gprogram_impl(program_impl)
-}
+/// Static Span of Program `impl` block
+static mut PROGRAM_SPAN: Option<Span> = None;
 
 pub fn gprogram(program_impl_tokens: TokenStream2) -> TokenStream2 {
-    let program_impl = parse_program_impl(program_impl_tokens);
+    let program_impl = parse_gprogram_impl(program_impl_tokens);
+    ensure_single_gprogram(&program_impl);
     gen_gprogram_impl(program_impl)
 }
 
-fn parse_program_impl(program_impl_tokens: TokenStream2) -> ItemImpl {
+#[doc(hidden)]
+pub fn __gprogram_internal(program_impl_tokens: TokenStream2) -> TokenStream2 {
+    let program_impl = parse_gprogram_impl(program_impl_tokens);
+    gen_gprogram_impl(program_impl)
+}
+
+fn parse_gprogram_impl(program_impl_tokens: TokenStream2) -> ItemImpl {
     syn::parse2(program_impl_tokens).unwrap_or_else(|err| {
         abort!(
             err.span(),
@@ -33,14 +37,14 @@ fn parse_program_impl(program_impl_tokens: TokenStream2) -> ItemImpl {
     })
 }
 
-fn check_program_single(program_impl: &ItemImpl) {
-    if unsafe { shared::PROGRAM_SPAN }.is_some() {
+fn ensure_single_gprogram(program_impl: &ItemImpl) {
+    if unsafe { PROGRAM_SPAN }.is_some() {
         abort!(
             program_impl.span(),
             "multiple `gprogram` attributes are not allowed"
         )
     }
-    unsafe { shared::PROGRAM_SPAN = Some(program_impl.span()) };
+    unsafe { PROGRAM_SPAN = Some(program_impl.span()) };
 }
 
 fn gen_gprogram_impl(program_impl: ItemImpl) -> TokenStream2 {

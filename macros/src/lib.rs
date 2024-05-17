@@ -24,13 +24,13 @@ use proc_macro_error::proc_macro_error;
 #[proc_macro_error]
 #[proc_macro_attribute]
 pub fn gservice(_attrs: TokenStream, impl_tokens: TokenStream) -> TokenStream {
-    sails_macros_core::gservice_safe(impl_tokens.into()).into()
+    sails_macros_core::gservice(impl_tokens.into()).into()
 }
 
 #[proc_macro_error]
 #[proc_macro_attribute]
 pub fn gprogram(_attrs: TokenStream, impl_tokens: TokenStream) -> TokenStream {
-    sails_macros_core::gprogram_safe(impl_tokens.into()).into()
+    sails_macros_core::gprogram(impl_tokens.into()).into()
 }
 
 #[proc_macro_error]

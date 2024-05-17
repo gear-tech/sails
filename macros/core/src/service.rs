@@ -33,18 +33,21 @@ use syn::{
     TypeParamBound, Visibility, WhereClause, WherePredicate,
 };
 
-pub fn gservice_safe(service_impl_tokens: TokenStream2) -> TokenStream2 {
-    let service_impl = parse_service_impl(service_impl_tokens);
-    check_service_single_by_name(&service_impl);
-    gen_gservice_impl(service_impl)
-}
+static mut SERVICE_SPANS: BTreeMap<String, Span> = BTreeMap::new();
 
 pub fn gservice(service_impl_tokens: TokenStream2) -> TokenStream2 {
-    let service_impl = parse_service_impl(service_impl_tokens);
+    let service_impl = parse_gservice_impl(service_impl_tokens);
+    ensure_single_gservice_by_name(&service_impl);
     gen_gservice_impl(service_impl)
 }
 
-fn parse_service_impl(service_impl_tokens: TokenStream2) -> ItemImpl {
+#[doc(hidden)]
+pub fn __gservice_internal(service_impl_tokens: TokenStream2) -> TokenStream2 {
+    let service_impl = parse_gservice_impl(service_impl_tokens);
+    gen_gservice_impl(service_impl)
+}
+
+fn parse_gservice_impl(service_impl_tokens: TokenStream2) -> ItemImpl {
     syn::parse2(service_impl_tokens).unwrap_or_else(|err| {
         abort!(
             err.span(),
@@ -54,19 +57,19 @@ fn parse_service_impl(service_impl_tokens: TokenStream2) -> ItemImpl {
     })
 }
 
-fn check_service_single_by_name(service_impl: &ItemImpl) {
+fn ensure_single_gservice_by_name(service_impl: &ItemImpl) {
     let path = shared::impl_type_path(service_impl);
     let type_ident = path.path.segments.last().unwrap().ident.to_string();
-    if unsafe { shared::SERVICE_TYPES.get(&type_ident) }.is_some() {
+    if unsafe { SERVICE_SPANS.get(&type_ident) }.is_some() {
         abort!(
             service_impl.span(),
-            "multiple `gservice` attributes are not allowed"
+            "multiple `gservice` attributes on a type with the same name are not allowed"
         )
     }
-    unsafe { shared::SERVICE_TYPES.insert(type_ident, service_impl.span()) };
+    unsafe { SERVICE_SPANS.insert(type_ident, service_impl.span()) };
 }
 
-pub fn gen_gservice_impl(service_impl: ItemImpl) -> TokenStream2 {
+fn gen_gservice_impl(service_impl: ItemImpl) -> TokenStream2 {
     let (service_type_path, service_type_args, service_type_constraints) = {
         let service_type = ImplType::new(&service_impl);
         (
