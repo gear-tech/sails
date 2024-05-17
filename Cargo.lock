@@ -2902,6 +2902,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "no-svcs-prog"
+version = "0.1.0"
+dependencies = [
+ "gear-wasm-builder",
+ "no-svcs-prog-app",
+ "sails-idl-gen",
+ "sails-rtl",
+]
+
+[[package]]
+name = "no-svcs-prog-app"
+version = "0.1.0"
+dependencies = [
+ "sails-rtl",
+]
+
+[[package]]
 name = "nodrop"
 version = "0.1.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
