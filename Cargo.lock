@@ -2908,7 +2908,6 @@ dependencies = [
  "gear-wasm-builder",
  "no-svcs-prog-app",
  "sails-idl-gen",
- "sails-macros",
  "sails-rtl",
 ]
 
@@ -2916,7 +2915,6 @@ dependencies = [
 name = "no-svcs-prog-app"
 version = "0.1.0"
 dependencies = [
- "sails-macros",
  "sails-rtl",
 ]
 

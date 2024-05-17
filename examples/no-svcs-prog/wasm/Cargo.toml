@@ -5,7 +5,6 @@ edition = "2021"
 
 [dependencies]
 no-svcs-prog-app = { path = "../app" }
-sails-macros.workspace = true
 sails-rtl.workspace = true
 
 [build-dependencies]
