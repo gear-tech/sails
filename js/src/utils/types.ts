@@ -1,7 +1,14 @@
-import { PrimitiveDef, TypeDef } from '../parser/visitor.js';
+import { PrimitiveDef, TypeDef } from '../parser/types.js';
+import { PaylodMethod } from './payload-method.js';
 
-export const getJsTypeDef = (type: TypeDef): string => {
+export const getJsTypeDef = (type: TypeDef, payloadMethod?: PaylodMethod): string => {
   if (type.isPrimitive) {
+    if (payloadMethod === PaylodMethod.toNumber) {
+      return 'number';
+    }
+    if (payloadMethod === PaylodMethod.toBigInt) {
+      return 'bigint';
+    }
     return getPrimitiveTypeName(type.asPrimitive, true);
   }
   if (type.isOptional) {
@@ -33,26 +40,24 @@ export const getJsTypeDef = (type: TypeDef): string => {
   throw new Error('Unknown type :: ' + JSON.stringify(type));
 };
 
-const TS_NUMBER = 'number | string';
-
 export const getPrimitiveTypeName = (type: PrimitiveDef, forTs = false): string => {
   if (type.isBool) return forTs ? 'boolean' : 'bool';
   if (type.isChar) return forTs ? 'string' : 'char';
   if (type.isNull) return forTs ? 'null' : 'Null';
   if (type.isStr) return forTs ? 'string' : 'String';
-  if (type.isI8) return forTs ? TS_NUMBER : 'i8';
-  if (type.isI16) return forTs ? TS_NUMBER : 'i16';
-  if (type.isI32) return forTs ? TS_NUMBER : 'i32';
-  if (type.isI64) return forTs ? TS_NUMBER : 'i64';
-  if (type.isI128) return forTs ? TS_NUMBER : 'i128';
-  if (type.isU8) return forTs ? TS_NUMBER : 'u8';
-  if (type.isU16) return forTs ? TS_NUMBER : 'u16';
-  if (type.isU32) return forTs ? TS_NUMBER : 'u32';
-  if (type.isU64) return forTs ? TS_NUMBER : 'u64';
-  if (type.isU128) return forTs ? TS_NUMBER : 'u128';
-  if (type.isActorId || type.isCodeId || type.isMessageId) return forTs ? '`0x${string}` | Uint8Array' : '[u8;32]';
+  if (type.isI8) return forTs ? 'number' : 'i8';
+  if (type.isI16) return forTs ? 'number' : 'i16';
+  if (type.isI32) return forTs ? 'number' : 'i32';
+  if (type.isI64) return forTs ? 'number | string' : 'i64';
+  if (type.isI128) return forTs ? 'number | string' : 'i128';
+  if (type.isU8) return forTs ? 'number' : 'u8';
+  if (type.isU16) return forTs ? 'number' : 'u16';
+  if (type.isU32) return forTs ? 'number' : 'u32';
+  if (type.isU64) return forTs ? 'number | string' : 'u64';
+  if (type.isU128) return forTs ? 'number | string' : 'u128';
+  if (type.isU256) return forTs ? 'number | string' : 'U256';
+  if (type.isActorId || type.isCodeId || type.isMessageId) return forTs ? 'string' : '[u8;32]';
   if (type.isH256) return forTs ? 'string' : 'H256';
-  if (type.isU256) return forTs ? TS_NUMBER : 'U256';
 
   throw new Error('Unknown primitive type');
 };

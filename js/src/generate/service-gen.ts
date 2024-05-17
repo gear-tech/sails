@@ -1,5 +1,6 @@
-import { getPayloadMethod, getJsTypeDef, getScaleCodecDef, toLowerCaseFirst } from '../utils/index.js';
-import { FuncParam, Program, Service } from '../parser/visitor.js';
+import { getPayloadMethod, getJsTypeDef, getScaleCodecDef, toLowerCaseFirst, PaylodMethod } from '../utils/index.js';
+import { FuncParam, Service } from '../parser/service.js';
+import { Program } from '../parser/program.js';
 import { Output } from './output.js';
 
 const HEX_STRING_TYPE = '`0x${string}`';
@@ -165,8 +166,9 @@ export class ServiceGenerator {
 
   private generateMethods(service: Service) {
     for (const { name, def, params, isQuery } of service.funcs) {
-      const returnType = getJsTypeDef(def);
       const returnScaleType = getScaleCodecDef(def);
+      const decodeMethod = getPayloadMethod(returnScaleType);
+      const returnType = getJsTypeDef(def, decodeMethod);
 
       this._out.line().block(getFuncSignature(name, params, returnType, isQuery), () => {
         if (isQuery) {
@@ -186,7 +188,7 @@ export class ServiceGenerator {
             .line(
               `const result = this._program.registry.createType('(String, String, ${returnScaleType})', reply.payload)`,
             )
-            .line(`return result[2].${getPayloadMethod(returnScaleType)}() as unknown as ${returnType}`);
+            .line(`return result[2].${decodeMethod}() as unknown as ${returnType}`);
         } else {
           this._out
             .line(`if (!this._program.programId) throw new Error('Program ID is not set')`)
@@ -225,7 +227,8 @@ export class ServiceGenerator {
     }
 
     for (const event of service.events) {
-      const jsType = event.def ? getJsTypeDef(event.def) : 'null';
+      const decodeMethod = event.def ? getPayloadMethod(getScaleCodecDef(event.def)) : PaylodMethod.toJSON;
+      const jsType = event.def ? getJsTypeDef(event.def, decodeMethod) : 'null';
 
       this._out
         .line()
@@ -255,7 +258,7 @@ export class ServiceGenerator {
                       `callback(this._program.registry.createType('(String, String, ${getScaleCodecDef(
                         event.def,
                         true,
-                      )})', message.payload)[2].toJSON() as ${jsType})`,
+                      )})', message.payload)[2].${decodeMethod}() as ${jsType})`,
                     );
                   }
                 },
