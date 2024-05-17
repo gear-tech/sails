@@ -11,8 +11,8 @@ impl MyProgram {
     }
 }
 impl sails_rtl::meta::ProgramMeta for MyProgram {
-    fn constructors() -> scale_info::MetaType {
-        scale_info::MetaType::new::<meta::ConstructorsMeta>()
+    fn constructors() -> sails_rtl::scale_info::MetaType {
+        sails_rtl::scale_info::MetaType::new::<meta::ConstructorsMeta>()
     }
     fn services() -> impl Iterator<
         Item = (&'static str, sails_rtl::meta::AnyServiceMeta),
