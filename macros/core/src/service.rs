@@ -29,12 +29,12 @@ use proc_macro_error::abort;
 use quote::quote;
 use std::collections::BTreeMap;
 use syn::{
-    GenericArgument, Ident, ImplItemFn, ItemImpl, Path, PathArguments, Type, TypeParamBound,
-    Visibility, WhereClause, WherePredicate,
+    punctuated::Punctuated, visit_mut::VisitMut, GenericArgument, Ident, ImplItemFn, ItemImpl,
+    Path, PathArguments, Type, TypeParamBound, TypePath, Visibility, WhereClause, WherePredicate,
 };
 
 pub fn gservice(service_impl_tokens: TokenStream2) -> TokenStream2 {
-    let service_impl = syn::parse2(service_impl_tokens).unwrap_or_else(|err| {
+    let service_impl: ItemImpl = syn::parse2(service_impl_tokens).unwrap_or_else(|err| {
         abort!(
             err.span(),
             "`gservice` attribute can be applied to impls only: {}",
@@ -109,7 +109,10 @@ pub fn gservice(service_impl_tokens: TokenStream2) -> TokenStream2 {
 
         let handler_meta_variant = {
             let params_struct_ident = handler_generator.params_struct_ident();
-            let result_type = handler_generator.result_type();
+            let mut result_type = handler_generator.result_type();
+
+            ReplaceReferences.visit_type_mut(&mut result_type);
+
             let handler_route_ident = Ident::new(handler_route, Span::call_site());
 
             quote!(#handler_route_ident(#params_struct_ident, #result_type))
@@ -335,6 +338,40 @@ impl<'a> HandlerGenerator<'a> {
                 return result.encode();
             }
         )
+    }
+}
+
+/// A visitor that replaces references with their owned equivalents
+struct ReplaceReferences;
+
+impl VisitMut for ReplaceReferences {
+    fn visit_type_mut(&mut self, ty: &mut Type) {
+        match ty {
+            Type::Reference(type_reference) => {
+                let inner_type = *type_reference.elem.clone();
+
+                *ty = match inner_type {
+                    // str => String
+                    Type::Path(inner_type_path) if inner_type_path.path.is_ident("str") => {
+                        Type::Path(TypePath {
+                            qself: None,
+                            path: Path {
+                                leading_colon: None,
+                                segments: Punctuated::from_iter(vec![syn::PathSegment {
+                                    ident: Ident::new("String", Span::call_site()),
+                                    arguments: PathArguments::None,
+                                }]),
+                            },
+                        })
+                    }
+                    _ => inner_type,
+                };
+            }
+            _ => {
+                // For other types, proceed with the default traversal
+                syn::visit_mut::visit_type_mut(self, ty);
+            }
+        }
     }
 }
 

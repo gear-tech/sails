@@ -1,0 +1,11 @@
+type Counter = struct {
+  count: u32,
+};
+
+service {
+  Add : (x: i32) -> result (Counter, str);
+  Incr : () -> Counter;
+  query Baked : () -> str;
+  query Name : () -> str;
+};
+
