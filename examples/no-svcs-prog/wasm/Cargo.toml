@@ -1,0 +1,13 @@
+[package]
+name = "no-svcs-prog"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+no-svcs-prog-app = { path = "../app" }
+sails-rtl.workspace = true
+
+[build-dependencies]
+gwasm-builder.workspace = true
+no-svcs-prog-app = { path = "../app" }
+sails-idl-gen.workspace = true

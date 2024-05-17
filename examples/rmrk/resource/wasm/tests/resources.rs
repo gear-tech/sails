@@ -239,7 +239,7 @@ impl<'a> Fixture<'a> {
         })
     }
 
-    fn __resource_program_for_sync(&'a self) -> &Program<'a> {
+    fn resource_program_for_sync(&'a self) -> &Program<'a> {
         self.resource_program.get_or_init(|| {
             tokio::runtime::Builder::new_current_thread()
                 .enable_all()
@@ -256,7 +256,7 @@ impl<'a> Fixture<'a> {
     }
 
     async fn __spin_up_program(&'a self, program_path: &str, payload: &[u8]) -> Program<'a> {
-        let code_id = self.program_space().system().submit_code(program_path);
+        let code_id = self.program_space().system().submit_code_file(program_path);
         let program_space = self.program_space().clone();
         let reply = program_space
             .activate(
@@ -280,7 +280,7 @@ impl<'a> Fixture<'a> {
         resource_id: ResourceId,
         resource: &Resource,
     ) -> RunResult {
-        let program = self.resource_program_for_async();
+        let program = self.resource_program_for_sync();
         let encoded_request = [
             resources::RESOURCE_SERVICE_NAME.encode(),
             resources::ADD_RESOURCE_ENTRY_FUNC_NAME.encode(),
@@ -322,7 +322,7 @@ impl<'a> Fixture<'a> {
         resource_id: ResourceId,
         part_id: PartId,
     ) -> RunResult {
-        let program = self.resource_program_for_async();
+        let program = self.resource_program_for_sync();
         let encoded_request = [
             resources::RESOURCE_SERVICE_NAME.encode(),
             resources::ADD_PART_TO_RESOURCE_FUNC_NAME.encode(),
@@ -338,7 +338,7 @@ impl<'a> Fixture<'a> {
         actor_id: u64,
         resource_id: ResourceId,
     ) -> Option<ResourceStorageResult<Resource>> {
-        let program = self.resource_program_for_async();
+        let program = self.resource_program_for_sync();
         let encoded_service_name = resources::RESOURCE_SERVICE_NAME.encode();
         let encoded_func_name = resources::RESOURCE_FUNC_NAME.encode();
         let encoded_request = [
