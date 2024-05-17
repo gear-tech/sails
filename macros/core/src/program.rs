@@ -94,7 +94,7 @@ pub fn gprogram(program_impl_tokens: TokenStream2) -> TokenStream2 {
 
         #program_impl
 
-        impl #program_type_args sails_rtl::meta::ProgramMeta for #program_type_path #program_type_constraints {
+        impl #program_type_args ::sails_rtl::meta::ProgramMeta for #program_type_path #program_type_constraints {
             fn constructors() -> ::sails_rtl::scale_info::MetaType {
                 ::sails_rtl::scale_info::MetaType::new::<meta::ConstructorsMeta>()
             }
