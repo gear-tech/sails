@@ -3624,6 +3624,25 @@ dependencies = [
 ]
 
 [[package]]
+name = "references"
+version = "0.1.0"
+dependencies = [
+ "gear-wasm-builder",
+ "gstd",
+ "references-app",
+ "sails-idl-gen",
+ "sails-rtl",
+]
+
+[[package]]
+name = "references-app"
+version = "0.1.0"
+dependencies = [
+ "gstd",
+ "sails-rtl",
+]
+
+[[package]]
 name = "regalloc"
 version = "0.0.34"
 source = "registry+https://github.com/rust-lang/crates.io-index"
