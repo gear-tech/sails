@@ -39,9 +39,21 @@ where
             ];
             return [INVOCATION_ROUTE.as_ref(), &output].concat();
         }
-        let invocation_path = String::decode(&mut input)
-            .expect("Failed to decode invocation path");
-        panic!("Unknown request: {}", invocation_path);
+        {
+            let mut __input = input;
+            let input = String::decode(&mut __input)
+                .unwrap_or_else(|_| {
+                    if input.len() <= 8 {
+                        format!("0x{}", sails_rtl::hex::encode(input))
+                    } else {
+                        format!(
+                            "0x{}..{}", sails_rtl::hex::encode(& input[..4]),
+                            sails_rtl::hex::encode(& input[input.len() - 4..])
+                        )
+                    }
+                });
+            panic!("Unknown request: {}", input)
+        }
     }
     async fn __do_this(&mut self, mut input: &[u8]) -> Vec<u8> {
         let request = __DoThisParams::decode(&mut input)

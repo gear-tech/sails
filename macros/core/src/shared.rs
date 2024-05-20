@@ -1,5 +1,5 @@
 use crate::route;
-use proc_macro2::TokenStream as TokenStream2;
+use proc_macro2::{Span, TokenStream as TokenStream2};
 use proc_macro_error::abort;
 use quote::{quote, ToTokens};
 use std::collections::BTreeMap;
@@ -156,16 +156,18 @@ pub(crate) fn discover_invocation_targets(
 
 pub(crate) fn generate_unexpected_input_panic(input_ident: &Ident, message: &str) -> TokenStream2 {
     let message_pattern = message.to_owned() + ": {}";
+    let copy_ident = Ident::new(&format!("__{}", input_ident), Span::call_site());
     quote!({
-        let input = String::decode(&mut #input_ident)
+        let mut #copy_ident = #input_ident;
+        let input = String::decode(&mut #copy_ident)
             .unwrap_or_else(|_| {
                 if #input_ident.len() <= 8 {
-                    format!("0x{}", hex::encode(#input_ident))
+                    format!("0x{}", sails_rtl::hex::encode(#input_ident))
                 } else {
                     format!(
                         "0x{}..{}",
-                        hex::encode(&#input_ident[..4]),
-                        hex::encode(&#input_ident[#input_ident.len() - 4..]))
+                        sails_rtl::hex::encode(&#input_ident[..4]),
+                        sails_rtl::hex::encode(&#input_ident[#input_ident.len() - 4..]))
                 }
             });
         panic!(#message_pattern, input)
