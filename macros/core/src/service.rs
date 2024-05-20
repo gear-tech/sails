@@ -59,18 +59,14 @@ fn parse_gservice_impl(service_impl_tokens: TokenStream2) -> ItemImpl {
 }
 
 fn ensure_single_gservice_on_impl(service_impl: &ItemImpl) {
-    let attr_gservice = service_impl
-        .attrs
-        .iter()
-        .filter(|attr| {
-            attr.meta
-                .path()
-                .segments
-                .last()
-                .map(|s| s.ident == "gservice")
-                .unwrap_or(false)
-        })
-        .next();
+    let attr_gservice = service_impl.attrs.iter().find(|attr| {
+        attr.meta
+            .path()
+            .segments
+            .last()
+            .map(|s| s.ident == "gservice")
+            .unwrap_or(false)
+    });
     if attr_gservice.is_some() {
         abort!(
             service_impl,
