@@ -29,12 +29,12 @@ use proc_macro_error::abort;
 use quote::quote;
 use std::collections::BTreeMap;
 use syn::{
-    punctuated::Punctuated, visit_mut::VisitMut, GenericArgument, Ident, ImplItemFn, ItemImpl,
-    Path, PathArguments, Type, TypeParamBound, TypePath, Visibility, WhereClause, WherePredicate,
+    GenericArgument, Ident, ImplItemFn, ItemImpl, Path, PathArguments, Type, TypeParamBound,
+    Visibility, WhereClause, WherePredicate,
 };
 
 pub fn gservice(service_impl_tokens: TokenStream2) -> TokenStream2 {
-    let service_impl: ItemImpl = syn::parse2(service_impl_tokens).unwrap_or_else(|err| {
+    let service_impl = syn::parse2(service_impl_tokens).unwrap_or_else(|err| {
         abort!(
             err.span(),
             "`gservice` attribute can be applied to impls only: {}",
@@ -110,7 +110,6 @@ pub fn gservice(service_impl_tokens: TokenStream2) -> TokenStream2 {
         let handler_meta_variant = {
             let params_struct_ident = handler_generator.params_struct_ident();
             let result_type = handler_generator.result_type();
-
             let handler_route_ident = Ident::new(handler_route, Span::call_site());
 
             quote!(#handler_route_ident(#params_struct_ident, #result_type))
