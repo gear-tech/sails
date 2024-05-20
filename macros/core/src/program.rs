@@ -140,6 +140,7 @@ fn gen_gprogram_impl(program_impl: ItemImpl) -> TokenStream2 {
             #[derive(__ProgramDecode, __ProgramTypeInfo)]
             #[codec(crate = #scale_codec_path )]
             #[scale_info(crate = #scale_info_path )]
+            #[allow(dead_code)]
             #ctors_params_structs
         )*
 
