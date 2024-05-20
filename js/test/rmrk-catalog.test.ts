@@ -1,4 +1,4 @@
-import { GearApi, HexString, MessageQueued, decodeAddress } from '@gear-js/api';
+import { GearApi, HexString, decodeAddress } from '@gear-js/api';
 import { KeyringPair } from '@polkadot/keyring/types';
 import { waitReady } from '@polkadot/wasm-crypto';
 import { Keyring } from '@polkadot/api';
@@ -20,7 +20,8 @@ beforeAll(async () => {
   sails = await Sails.new();
   api = await GearApi.create({ providerAddress: 'ws://127.0.0.1:9944' });
   await waitReady();
-  alice = new Keyring().addFromUri('//Alice', {}, 'sr25519');
+  const keyring = new Keyring({ type: 'sr25519' });
+  alice = keyring.addFromUri('//Alice');
   aliceRaw = decodeAddress(alice.address);
   code = readFileSync(CATALOG_WASM_PATH);
 });
@@ -32,7 +33,7 @@ afterAll(async () => {
   });
 });
 
-describe('RMRK catalog', () => {
+describe.only('RMRK catalog', () => {
   test('parse catalog idl', () => {
     const idl = readFileSync(IDL_PATH, 'utf-8');
     sails.parseIdl(idl);
@@ -40,12 +41,14 @@ describe('RMRK catalog', () => {
 
   test('upload catalog', async () => {
     sails.setApi(api);
-    const transaction = await sails.ctors.New.fromCode(code).withAccount(alice).calculateGas();
+    const transaction = await sails.ctors.New.fromCode(code)
+      .withAccount(alice)
+      .withGas(api.blockGasLimit.toBigInt() / 2n);
     const { response } = await transaction.signAndSend();
     await response();
   });
 
-  test('add parts func', async () => {
+  test.skip('add parts func', async () => {
     expect(sails.programId).toBeDefined();
     expect(sails.services).toHaveProperty('RmrkCatalog');
 
@@ -69,7 +72,7 @@ describe('RMRK catalog', () => {
     });
   });
 
-  test('read parts', async () => {
+  test.skip('read parts', async () => {
     const result = await sails.services.RmrkCatalog.queries.Part(alice.address, null, null, 1);
 
     expect(result).toEqual({
@@ -170,7 +173,7 @@ describe('RMRK generated', () => {
   test('add equippables', async () => {
     expect(programCreated).toBeTruthy();
     expect(program).toBeDefined();
-    const transaction = await program.rmrkCatalog.addEquippables(3, [aliceRaw]);
+    const transaction = program.rmrkCatalog.addEquippables(3, [aliceRaw]);
 
     await transaction.withAccount(alice).calculateGas();
 

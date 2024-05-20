@@ -5,6 +5,7 @@
 js/lib/
 js/parser.wasm
 js/test/rmrk-*/
+js/test/ping/
 
 node_modules/
 target/
