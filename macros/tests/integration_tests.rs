@@ -21,17 +21,17 @@
 #[test]
 fn gservice_works() {
     let t = trybuild::TestCases::new();
-    t.pass("tests/ui/gservice_works.rs");
+    t.pass("tests/ui/gservice_works*.rs");
 }
 
 #[test]
-fn gservice_works_for_lifecycles_and_generics() {
+fn gservice_fails() {
     let t = trybuild::TestCases::new();
-    t.pass("tests/ui/gservice_works_for_lifecycles_and_generics.rs");
+    t.compile_fail("tests/ui/gservice_fails*.rs");
 }
 
 #[test]
-fn fails() {
+fn gprogram_fails() {
     let t = trybuild::TestCases::new();
-    t.compile_fail("tests/ui/*fails*.rs");
+    t.compile_fail("tests/ui/gprogram_fails*.rs");
 }

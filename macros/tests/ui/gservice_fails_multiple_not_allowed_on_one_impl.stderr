@@ -1,14 +1,5 @@
-error: multiple `gservice` attributes on a type with the same name are not allowed
- --> tests/ui/gservice_fails_multiple_not_allowed_on_one_impl.rs:7:1
+error: multiple `gservice` attributes on the same impl are not allowed
+ --> tests/ui/gservice_fails_multiple_not_allowed_on_one_impl.rs:6:1
   |
-7 | impl MyService {
-  | ^^^^
-
-error[E0599]: no method named `this` found for struct `MyService` in the current scope
- --> tests/ui/gservice_fails_multiple_not_allowed_on_one_impl.rs:8:12
-  |
-3 | struct MyService;
-  | ---------------- method `this` not found for this struct
-...
-8 |     pub fn this(&self, p1: bool) -> bool {
-  |            ^^^^ method not found in `MyService`
+6 | #[gservice]
+  | ^

@@ -37,6 +37,7 @@ static mut SERVICE_SPANS: BTreeMap<String, Span> = BTreeMap::new();
 
 pub fn gservice(service_impl_tokens: TokenStream2) -> TokenStream2 {
     let service_impl = parse_gservice_impl(service_impl_tokens);
+    ensure_single_gservice_on_impl(&service_impl);
     ensure_single_gservice_by_name(&service_impl);
     gen_gservice_impl(service_impl)
 }
@@ -55,6 +56,27 @@ fn parse_gservice_impl(service_impl_tokens: TokenStream2) -> ItemImpl {
             err
         )
     })
+}
+
+fn ensure_single_gservice_on_impl(service_impl: &ItemImpl) {
+    let attrs_gservice: Vec<_> = service_impl
+        .attrs
+        .iter()
+        .filter(|attr| {
+            attr.meta
+                .path()
+                .segments
+                .last()
+                .map(|s| s.ident == "gservice")
+                .unwrap_or(false)
+        })
+        .collect();
+    if !attrs_gservice.is_empty() {
+        abort!(
+            service_impl.span(),
+            "multiple `gservice` attributes on the same impl are not allowed",
+        )
+    }
 }
 
 fn ensure_single_gservice_by_name(service_impl: &ItemImpl) {
