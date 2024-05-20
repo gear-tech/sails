@@ -46,7 +46,7 @@ pub(crate) fn impl_type_path(item_impl: &ItemImpl) -> &TypePath {
         type_path
     } else {
         abort!(
-            item_impl_type.span(),
+            item_impl_type,
             "failed to parse impl type: {}",
             item_impl_type.to_token_stream()
         )

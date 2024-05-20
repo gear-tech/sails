@@ -1,5 +1,9 @@
 error: multiple `gservice` attributes on a type with the same name are not allowed
   --> tests/ui/gservice_fails_multiple_not_allowed.rs:13:1
    |
-13 | impl MyService {
-   | ^^^^
+13 | / impl MyService {
+14 | |     pub fn this(&self, p1: bool) -> bool {
+15 | |         !p1
+16 | |     }
+17 | | }
+   | |_^

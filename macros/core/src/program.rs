@@ -40,7 +40,7 @@ fn parse_gprogram_impl(program_impl_tokens: TokenStream2) -> ItemImpl {
 fn ensure_single_gprogram(program_impl: &ItemImpl) {
     if unsafe { PROGRAM_SPAN }.is_some() {
         abort!(
-            program_impl.span(),
+            program_impl,
             "multiple `gprogram` attributes are not allowed"
         )
     }

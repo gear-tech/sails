@@ -59,7 +59,7 @@ fn parse_gservice_impl(service_impl_tokens: TokenStream2) -> ItemImpl {
 }
 
 fn ensure_single_gservice_on_impl(service_impl: &ItemImpl) {
-    let attrs_gservice: Vec<_> = service_impl
+    let attr_gservice = service_impl
         .attrs
         .iter()
         .filter(|attr| {
@@ -70,10 +70,10 @@ fn ensure_single_gservice_on_impl(service_impl: &ItemImpl) {
                 .map(|s| s.ident == "gservice")
                 .unwrap_or(false)
         })
-        .collect();
-    if !attrs_gservice.is_empty() {
+        .next();
+    if attr_gservice.is_some() {
         abort!(
-            service_impl.span(),
+            service_impl,
             "multiple `gservice` attributes on the same impl are not allowed",
         )
     }
@@ -84,7 +84,7 @@ fn ensure_single_gservice_by_name(service_impl: &ItemImpl) {
     let type_ident = path.path.segments.last().unwrap().ident.to_string();
     if unsafe { SERVICE_SPANS.get(&type_ident) }.is_some() {
         abort!(
-            service_impl.span(),
+            service_impl,
             "multiple `gservice` attributes on a type with the same name are not allowed"
         )
     }
