@@ -29,7 +29,7 @@ members = [
 anyhow = "1"
 const-format = { package = "const_format", version = "0.2" }
 convert-case = { package = "convert_case", version = "0.6" }
-fluent-asserter = "0.1.9"
+fluent-asserter = "0.1"
 futures = { version = "0.3", default-features = false }
 gear-core-errors = "1.4.1"
 git-download = "0.1"
