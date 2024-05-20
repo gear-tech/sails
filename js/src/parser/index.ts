@@ -1,2 +1,4 @@
 export * from './parser.js';
-export * from './visitor.js';
+export { Program, Ctor, CtorFunc } from './program.js';
+export { Service, ServiceFunc, ServiceEvent } from './service.js';
+export { TypeDef } from './types.js';

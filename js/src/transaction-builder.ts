@@ -2,6 +2,7 @@ import { GearApi, HexString, MessageQueuedData, decodeAddress } from '@gear-js/a
 import { SignerOptions, SubmittableExtrinsic } from '@polkadot/api/types';
 import { IKeyringPair, ISubmittableResult } from '@polkadot/types/types';
 import { TypeRegistry, u128, u64 } from '@polkadot/types';
+import { getPayloadMethod } from './utils/index.js';
 
 export interface IMethodReturnType<T> {
   msgId: HexString;
@@ -99,17 +100,19 @@ export class TransactionBuilder<ResponseType> {
   }
 
   private _setTxArg(index: number, value: unknown) {
+    const args = this._tx.args.map((arg, i) => (i === index ? value : arg));
+
     switch (this._tx.method.method) {
       case 'uploadProgram': {
-        this._tx = this._api.tx.gear.uploadProgram(...this._tx.args.map((arg, i) => (i === index ? value : arg)));
+        this._tx = this._api.tx.gear.uploadProgram(...args);
         break;
       }
       case 'createProgram': {
-        this._tx = this._api.tx.gear.createProgram(...this._tx.args.map((arg, i) => (i === index ? value : arg)));
+        this._tx = this._api.tx.gear.createProgram(...args);
         break;
       }
       case 'sendMessage': {
-        this._tx = this._api.tx.gear.sendMessage(...this._tx.args.map((arg, i) => (i === index ? value : arg)));
+        this._tx = this._api.tx.gear.sendMessage(...args);
         break;
       }
     }
@@ -274,7 +277,7 @@ export class TransactionBuilder<ResponseType> {
 
         return this._registry
           .createType<any>(`(String, String, ${this._responseType})`, message.payload)[2]
-          .toJSON() as ResponseType;
+          [getPayloadMethod(this._responseType)]();
       },
     };
   }

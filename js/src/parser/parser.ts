@@ -1,27 +1,22 @@
 import wasmParserBytes from './wasm-bytes.js';
 import {
-  Ctor,
-  CtorFunc,
   DefKind,
   EnumDef,
   EnumVariant,
   FixedSizeArrayDef,
-  ServiceFunc,
-  FuncParam,
   MapDef,
   OptionalDef,
   PrimitiveDef,
-  Program,
   ResultDef,
-  Service,
   StructDef,
   StructField,
   Type,
   TypeDef,
   UserDefinedDef,
   VecDef,
-  ServiceEvent,
-} from './visitor.js';
+} from './types.js';
+import { Ctor, CtorFunc, Program } from './program.js';
+import { FuncParam, Service, ServiceEvent, ServiceFunc } from './service.js';
 
 const WASM_PAGE_SIZE = 0x10000;
 

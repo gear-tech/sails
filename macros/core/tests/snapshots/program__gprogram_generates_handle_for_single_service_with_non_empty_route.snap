@@ -29,8 +29,8 @@ impl MyProgram {
     }
 }
 impl sails_rtl::meta::ProgramMeta for MyProgram {
-    fn constructors() -> scale_info::MetaType {
-        scale_info::MetaType::new::<meta::ConstructorsMeta>()
+    fn constructors() -> sails_rtl::scale_info::MetaType {
+        sails_rtl::scale_info::MetaType::new::<meta::ConstructorsMeta>()
     }
     fn services() -> impl Iterator<
         Item = (&'static str, sails_rtl::meta::AnyServiceMeta),
@@ -56,14 +56,15 @@ pub mod wasm {
         let input = gstd::msg::load_bytes().expect("Failed to read input");
         if !input.is_empty() {
             {
-                let input = String::decode(&mut input)
+                let mut __input = input;
+                let input = String::decode(&mut __input)
                     .unwrap_or_else(|_| {
                         if input.len() <= 8 {
-                            format!("0x{}", hex::encode(input))
+                            format!("0x{}", sails_rtl::hex::encode(input))
                         } else {
                             format!(
-                                "0x{}..{}", hex::encode(& input[..4]), hex::encode(&
-                                input[input.len() - 4..])
+                                "0x{}..{}", sails_rtl::hex::encode(& input[..4]),
+                                sails_rtl::hex::encode(& input[input.len() - 4..])
                             )
                         }
                     });
@@ -78,21 +79,22 @@ pub mod wasm {
     #[gstd::async_main]
     async fn main() {
         let mut input: &[u8] = &gstd::msg::load_bytes().expect("Failed to read input");
-        let output = if input.starts_with(&__ROUTE_SERVICE) {
+        let output: Vec<u8> = if input.starts_with(&__ROUTE_SERVICE) {
             let program_ref = unsafe { PROGRAM.as_ref() }
                 .expect("Program not initialized");
             let mut service = program_ref.service();
             let output = service.handle(&input[__ROUTE_SERVICE.len()..]).await;
             [__ROUTE_SERVICE.as_ref(), &output].concat()
         } else {
-            let input = String::decode(&mut input)
+            let mut __input = input;
+            let input = String::decode(&mut __input)
                 .unwrap_or_else(|_| {
                     if input.len() <= 8 {
-                        format!("0x{}", hex::encode(input))
+                        format!("0x{}", sails_rtl::hex::encode(input))
                     } else {
                         format!(
-                            "0x{}..{}", hex::encode(& input[..4]), hex::encode(&
-                            input[input.len() - 4..])
+                            "0x{}..{}", sails_rtl::hex::encode(& input[..4]),
+                            sails_rtl::hex::encode(& input[input.len() - 4..])
                         )
                     }
                 });

@@ -3,28 +3,39 @@ import { TypeRegistry } from '@polkadot/types/create';
 import { u8aToHex } from '@polkadot/util';
 
 import { Program, Service, TypeDef, WasmParser } from './parser/index.js';
-import { getFnNamePrefix, getServiceNamePrefix } from 'utils/prefix.js';
+import { getFnNamePrefix, getServiceNamePrefix } from './utils/prefix.js';
 import { TransactionBuilder } from './transaction-builder.js';
 import { getScaleCodecDef } from './utils/types.js';
 import { ZERO_ADDRESS } from './consts.js';
 
 interface SailsService {
-  functions: Record<string, SailsServiceFunc>;
-  queries: Record<string, SailsServiceQuery>;
-  events: Record<string, SailsServiceEvent>;
+  readonly functions: Record<string, SailsServiceFunc>;
+  readonly queries: Record<string, SailsServiceQuery>;
+  readonly events: Record<string, SailsServiceEvent>;
+}
+
+interface ISailsFuncArg {
+  /** ### Argument name */
+  name: string;
+  /** ### Argument type */
+  type: any;
+  /** ### Argument type definition */
+  typeDef: TypeDef;
 }
 
 interface ISailsServiceFuncParams {
   /** ### List of argument names and types  */
-  args: { name: string; type: any }[];
+  readonly args: ISailsFuncArg[];
   /** ### Function return type */
-  returnType: any;
+  readonly returnType: any;
+  /** ### Function return type definition */
+  readonly returnTypeDef: TypeDef;
   /** ### Encode payload to hex string */
-  encodePayload: (...args: any[]) => HexString;
+  readonly encodePayload: (...args: any[]) => HexString;
   /** ### Decode payload from hex string */
-  decodePayload: <T extends any = any>(bytes: HexString) => T;
+  readonly decodePayload: <T extends any = any>(bytes: HexString) => T;
   /** ### Decode function result */
-  decodeResult: <T extends any = any>(result: HexString) => T;
+  readonly decodeResult: <T extends any = any>(result: HexString) => T;
 }
 
 type SailsServiceQuery = ISailsServiceFuncParams &
@@ -33,23 +44,29 @@ type SailsServiceQuery = ISailsServiceFuncParams &
 type SailsServiceFunc = ISailsServiceFuncParams & (<T>(...args: unknown[]) => TransactionBuilder<T>);
 
 interface SailsServiceEvent {
-  type: any;
-  is: (event: UserMessageSent) => boolean;
-  decode: (payload: HexString) => any;
-  subscribe: <T>(cb: (event: T) => void | Promise<void>) => void;
+  /** ### Event type */
+  readonly type: any;
+  /** ###  */
+  readonly typeDef: TypeDef;
+  /** ### Check if event is of this type */
+  readonly is: (event: UserMessageSent) => boolean;
+  /** ### Decode event payload */
+  readonly decode: (payload: HexString) => any;
+  /** ### Subscribe to event */
+  readonly subscribe: <T>(cb: (event: T) => void | Promise<void>) => void;
 }
 
 interface ISailsCtorFuncParams {
   /** ### List of argument names and types  */
-  args: { name: string; type: any }[];
+  readonly args: ISailsFuncArg[];
   /** ### Encode payload to hex string */
-  encodePayload: (...args: any[]) => HexString;
+  readonly encodePayload: (...args: any[]) => HexString;
   /** ### Decode payload from hex string */
-  decodePayload: <T>(bytes: HexString) => T;
+  readonly decodePayload: <T>(bytes: HexString) => T;
   /** ### Create transaction builder from code */
-  fromCode: (code: Uint8Array | Buffer, ...args: unknown[]) => TransactionBuilder<any>;
+  readonly fromCode: (code: Uint8Array | Buffer, ...args: unknown[]) => TransactionBuilder<any>;
   /** ### Create transaction builder from code id */
-  fromCodeId: (codeId: HexString, ...args: unknown[]) => TransactionBuilder<any>;
+  readonly fromCodeId: (codeId: HexString, ...args: unknown[]) => TransactionBuilder<any>;
 }
 
 export class Sails {
@@ -137,7 +154,7 @@ export class Sails {
     const queries: Record<string, SailsServiceQuery> = {};
 
     for (const func of service.funcs) {
-      const params = func.params.map((p) => ({ name: p.name, type: getScaleCodecDef(p.def) }));
+      const params = func.params.map((p) => ({ name: p.name, type: getScaleCodecDef(p.def), typeDef: p.def }));
       const returnType = getScaleCodecDef(func.def);
       if (func.isQuery) {
         queries[func.name] = (async <T extends any = any>(
@@ -195,6 +212,7 @@ export class Sails {
       Object.assign(func.isQuery ? queries[func.name] : funcs[func.name], {
         args: params,
         returnType,
+        returnTypeDef: func.def,
         encodePayload: (...args: unknown[]): HexString => {
           if (args.length !== args.length) {
             throw new Error(`Expected ${params.length} arguments, but got ${args.length}`);
@@ -230,6 +248,7 @@ export class Sails {
       const typeStr = event.def ? getScaleCodecDef(event.def, true) : 'Null';
       events[event.name] = {
         type: t,
+        typeDef: event.def,
         is: ({ data: { message } }: UserMessageSent) => {
           if (!message.destination.eq(ZERO_ADDRESS)) {
             return false;
@@ -309,7 +328,7 @@ export class Sails {
     const funcs: Record<string, ISailsCtorFuncParams> = {};
 
     for (const func of ctor.funcs) {
-      const params = func.params.map((p) => ({ name: p.name, type: getScaleCodecDef(p.def) }));
+      const params = func.params.map((p) => ({ name: p.name, type: getScaleCodecDef(p.def), typeDef: p.def }));
       funcs[func.name] = {
         args: params,
         encodePayload: (...args): HexString => {

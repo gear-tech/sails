@@ -174,6 +174,9 @@ fn gen_gservice_impl(service_impl: ItemImpl) -> TokenStream2 {
     let scale_codec_path = sails_paths::scale_codec_path();
     let scale_info_path = sails_paths::scale_info_path();
 
+    let unexpected_route_panic =
+        shared::generate_unexpected_input_panic(&input_ident, "Unknown request");
+
     quote!(
         #service_impl
 
@@ -188,8 +191,7 @@ fn gen_gservice_impl(service_impl: ItemImpl) -> TokenStream2 {
 
             pub async fn handle(&mut self, mut #input_ident: &[u8]) -> Vec<u8> {
                 #(#invocation_dispatches)*
-                let invocation_path = String::decode(&mut #input_ident).expect("Failed to decode invocation path");
-                panic!("Unknown request: {}", invocation_path);
+                #unexpected_route_panic
             }
 
             #(#invocation_funcs)*

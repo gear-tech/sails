@@ -122,8 +122,8 @@ fn gen_gprogram_impl(program_impl: ItemImpl) -> TokenStream2 {
         #program_impl
 
         impl #program_type_args sails_rtl::meta::ProgramMeta for #program_type_path #program_type_constraints {
-            fn constructors() -> scale_info::MetaType {
-                scale_info::MetaType::new::<meta::ConstructorsMeta>()
+            fn constructors() -> #scale_info_path::MetaType {
+                #scale_info_path::MetaType::new::<meta::ConstructorsMeta>()
             }
 
             fn services() -> impl Iterator<Item = (&'static str, sails_rtl::meta::AnyServiceMeta)> {
@@ -333,7 +333,7 @@ fn generate_handle<'a>(
         #[gstd::async_main]
         async fn main() {
             let mut #input_ident: &[u8] = &gstd::msg::load_bytes().expect("Failed to read input");
-            let output = #(#invocation_dispatches)else*;
+            let output: Vec<u8> = #(#invocation_dispatches)else*;
             gstd::msg::reply_bytes(output, 0).expect("Failed to send output");
         }
     )
