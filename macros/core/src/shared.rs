@@ -17,18 +17,7 @@ pub(crate) struct ImplType<'a> {
 
 impl<'a> ImplType<'a> {
     pub(crate) fn new(item_impl: &'a ItemImpl) -> Self {
-        let path = {
-            let item_impl_type = item_impl.self_ty.as_ref();
-            if let Type::Path(type_path) = item_impl_type {
-                type_path
-            } else {
-                abort!(
-                    item_impl_type.span(),
-                    "failed to parse impl type: {}",
-                    item_impl_type.to_token_stream()
-                )
-            }
-        };
+        let path = impl_type_path(item_impl);
         let args = &path.path.segments.last().unwrap().arguments;
         let constraints = item_impl.generics.where_clause.as_ref();
         Self {
@@ -48,6 +37,19 @@ impl<'a> ImplType<'a> {
 
     pub(crate) fn constraints(&self) -> Option<&WhereClause> {
         self.constraints
+    }
+}
+
+pub(crate) fn impl_type_path(item_impl: &ItemImpl) -> &TypePath {
+    let item_impl_type = item_impl.self_ty.as_ref();
+    if let Type::Path(type_path) = item_impl_type {
+        type_path
+    } else {
+        abort!(
+            item_impl_type,
+            "failed to parse impl type: {}",
+            item_impl_type.to_token_stream()
+        )
     }
 }
 

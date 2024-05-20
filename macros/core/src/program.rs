@@ -8,19 +8,46 @@ use proc_macro_error::abort;
 use quote::quote;
 use std::collections::BTreeMap;
 use syn::{
-    parse_quote, Ident, ImplItem, ImplItemFn, ItemImpl, Receiver, ReturnType, Type, TypePath,
-    Visibility,
+    parse_quote, spanned::Spanned, Ident, ImplItem, ImplItemFn, ItemImpl, Receiver, ReturnType,
+    Type, TypePath, Visibility,
 };
 
+/// Static Span of Program `impl` block
+static mut PROGRAM_SPAN: Option<Span> = None;
+
 pub fn gprogram(program_impl_tokens: TokenStream2) -> TokenStream2 {
-    let program_impl = syn::parse2(program_impl_tokens).unwrap_or_else(|err| {
+    let program_impl = parse_gprogram_impl(program_impl_tokens);
+    ensure_single_gprogram(&program_impl);
+    gen_gprogram_impl(program_impl)
+}
+
+#[doc(hidden)]
+pub fn __gprogram_internal(program_impl_tokens: TokenStream2) -> TokenStream2 {
+    let program_impl = parse_gprogram_impl(program_impl_tokens);
+    gen_gprogram_impl(program_impl)
+}
+
+fn parse_gprogram_impl(program_impl_tokens: TokenStream2) -> ItemImpl {
+    syn::parse2(program_impl_tokens).unwrap_or_else(|err| {
         abort!(
             err.span(),
             "`gprogram` attribute can be applied to impls only: {}",
             err
         )
-    });
+    })
+}
 
+fn ensure_single_gprogram(program_impl: &ItemImpl) {
+    if unsafe { PROGRAM_SPAN }.is_some() {
+        abort!(
+            program_impl,
+            "multiple `gprogram` attributes are not allowed"
+        )
+    }
+    unsafe { PROGRAM_SPAN = Some(program_impl.span()) };
+}
+
+fn gen_gprogram_impl(program_impl: ItemImpl) -> TokenStream2 {
     let services_ctors = discover_services_ctors(&program_impl);
 
     let mut program_impl = program_impl.clone();

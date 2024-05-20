@@ -1,5 +1,5 @@
 use quote::quote;
-use sails_macros_core::gprogram;
+use sails_macros_core::__gprogram_internal as gprogram;
 
 #[test]
 fn gprogram_generates_init_for_single_ctor() {
