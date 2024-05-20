@@ -35,3 +35,9 @@ fn gprogram_fails() {
     let t = trybuild::TestCases::new();
     t.compile_fail("tests/ui/gprogram_fails*.rs");
 }
+
+#[test]
+fn gprogram_works() {
+    let t = trybuild::TestCases::new();
+    t.pass("tests/ui/gprogram_works*.rs");
+}
