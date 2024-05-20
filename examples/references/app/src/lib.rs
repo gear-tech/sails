@@ -6,6 +6,7 @@ use gstd::prelude::*;
 use sails_rtl::gstd::gservice;
 
 static mut COUNTER: Counter = Counter { count: 0 };
+static mut BYTES: Vec<u8> = Vec::new();
 
 #[derive(Debug, Encode, Decode, TypeInfo)]
 #[codec(crate = sails_rtl::scale_codec)]
@@ -15,45 +16,29 @@ pub struct Counter {
 }
 
 #[derive(Default)]
-pub struct ReferenceService<'a> {
-    name: &'a str,
-}
+pub struct ReferenceService;
 
 #[gservice]
-impl<'a> ReferenceService<'a> {
-    pub const fn new(name: &'a str) -> Self {
-        Self { name }
+impl ReferenceService {
+    pub const fn new() -> Self {
+        Self
     }
 
-    // Types returned by services don't have to be owned
-    pub fn name(&self) -> &'a str {
-        self.name
-    }
-
-    // They can also be static
     pub fn baked(&self) -> &'static str {
         "Static str!"
     }
 
-    // Or references to structs and enums
-    pub fn incr(&mut self) -> &'a Counter {
+    pub fn incr(&mut self) -> &'static Counter {
         unsafe {
             COUNTER.count += 1;
             &*addr_of!(COUNTER)
         }
     }
 
-    // Something more complex
-    pub fn add(&mut self, x: i32) -> Result<&Counter, &'static str> {
-        if x < 0 {
-            return Err("Can't add negative numbers");
-        }
-
+    pub fn add_byte(&mut self, byte: u8) -> &'static [u8] {
         unsafe {
-            COUNTER.count += x as u32;
-            Ok(&*addr_of!(COUNTER))
+            BYTES.push(byte);
+            &*addr_of!(BYTES)
         }
     }
-
-    // Note that returning types with lifetimes is not yet supported
 }

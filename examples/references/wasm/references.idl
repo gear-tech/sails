@@ -3,9 +3,8 @@ type Counter = struct {
 };
 
 service {
-  Add : (x: i32) -> result (Counter, str);
+  AddByte : (byte: u8) -> vec u8;
   Incr : () -> Counter;
   query Baked : () -> str;
-  query Name : () -> str;
 };
 

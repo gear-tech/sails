@@ -6,7 +6,7 @@ use sails_rtl::gstd::{msg, services::Service};
 #[gstd::async_main]
 async fn main() {
     let input_bytes = msg::load_bytes().expect("Failed to read input");
-    let output_bytes = ReferenceService::new("MyService")
+    let output_bytes = ReferenceService::new()
         .expose(msg::id().into(), &[1, 2, 3])
         .handle(&input_bytes)
         .await;
