@@ -61,6 +61,6 @@
     "typescript": "5.4.5"
   },
   "dependencies": {
-    "commander": "12.0.0"
+    "commander": "12.1.0"
   }
 }
