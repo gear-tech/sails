@@ -22,6 +22,7 @@ use sails_rtl::TypeInfo as __ProgramTypeInfo;
 #[derive(__ProgramDecode, __ProgramTypeInfo)]
 #[codec(crate = sails_rtl::scale_codec)]
 #[scale_info(crate = sails_rtl::scale_info)]
+#[allow(dead_code)]
 struct __NewParams {
     p1: u32,
     p2: String,
