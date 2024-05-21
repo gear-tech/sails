@@ -15,7 +15,7 @@ let code: Buffer;
 let resourceId: HexString;
 
 const IDL_PATH = '../examples/rmrk/resource/wasm/rmrk-resource.idl';
-const RESOURCE_WASM_PATH = '../target/wasm32-unknown-unknown/debug/rmrk_resource.opt.wasm';
+const RESOURCE_WASM_PATH = '../target/wasm32-unknown-unknown/release/rmrk_resource.opt.wasm';
 
 beforeAll(async () => {
   sails = await Sails.new();

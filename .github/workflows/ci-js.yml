@@ -54,14 +54,16 @@ jobs:
 
       - name: "Prepare: build rmrk"
         run: |
-          cargo build --manifest-path=examples/rmrk/catalog/wasm/Cargo.toml
-          cargo build --manifest-path=examples/rmrk/resource/wasm/Cargo.toml
+          cargo build --manifest-path=examples/rmrk/catalog/wasm/Cargo.toml --release
+          cargo build --manifest-path=examples/rmrk/resource/wasm/Cargo.toml --release
+          cargo build --manifest-path=examples/ping/wasm/Cargo.toml --release
 
       - name: "Prepare: build rmrk client lib"
         working-directory: js
         run: |
           node lib/app.js generate ../examples/rmrk/catalog/wasm/rmrk-catalog.idl -o ./test/rmrk-catalog
           node lib/app.js generate ../examples/rmrk/resource/wasm/rmrk-resource.idl -o ./test/rmrk-resource
+          node lib/app.js generate ../examples/ping/wasm/ping.idl -o ./test/ping
 
       - name: "Prepare: download Gear node"
         run: |

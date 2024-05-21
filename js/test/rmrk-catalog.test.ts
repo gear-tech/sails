@@ -14,7 +14,7 @@ let aliceRaw: HexString;
 let code: Buffer;
 
 const IDL_PATH = '../examples/rmrk/catalog/wasm/rmrk-catalog.idl';
-const CATALOG_WASM_PATH = '../target/wasm32-unknown-unknown/debug/rmrk_catalog.opt.wasm';
+const CATALOG_WASM_PATH = '../target/wasm32-unknown-unknown/release/rmrk_catalog.opt.wasm';
 
 beforeAll(async () => {
   sails = await Sails.new();
@@ -33,7 +33,7 @@ afterAll(async () => {
   });
 });
 
-describe.only('RMRK catalog', () => {
+describe('RMRK catalog', () => {
   test('parse catalog idl', () => {
     const idl = readFileSync(IDL_PATH, 'utf-8');
     sails.parseIdl(idl);
@@ -48,7 +48,7 @@ describe.only('RMRK catalog', () => {
     await response();
   });
 
-  test.skip('add parts func', async () => {
+  test('add parts func', async () => {
     expect(sails.programId).toBeDefined();
     expect(sails.services).toHaveProperty('RmrkCatalog');
 
@@ -72,7 +72,7 @@ describe.only('RMRK catalog', () => {
     });
   });
 
-  test.skip('read parts', async () => {
+  test('read parts', async () => {
     const result = await sails.services.RmrkCatalog.queries.Part(alice.address, null, null, 1);
 
     expect(result).toEqual({

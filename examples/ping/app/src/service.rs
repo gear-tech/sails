@@ -1,5 +1,6 @@
 use sails_rtl::{gstd::gservice, prelude::*};
 
+#[derive(Default)]
 pub struct PingService {}
 
 #[gservice]
@@ -14,11 +15,5 @@ impl PingService {
         } else {
             Ok("pong".into())
         }
-    }
-}
-
-impl Default for PingService {
-    fn default() -> Self {
-        Self::new()
     }
 }

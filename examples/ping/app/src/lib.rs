@@ -1,6 +1,6 @@
 #![no_std]
 
-use sails_rtl::gstd::{gprogram, groute};
+use sails_rtl::gstd::gprogram;
 use service::PingService;
 
 pub mod service;
@@ -14,7 +14,6 @@ impl Program {
         Self
     }
 
-    #[groute("Ping")]
     pub fn ping(&self) -> service::PingService {
         PingService::new()
     }
