@@ -36,5 +36,4 @@ pub mod svc {
 #[tokio::main]
 async fn main() {
     let _prg = MyProgram::new(42);
-    // let _s  = &prg.service1(); // panic here (!)
 }
