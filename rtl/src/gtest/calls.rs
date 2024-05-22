@@ -28,6 +28,14 @@ impl GTestArgs {
     }
 }
 
+impl Default for GTestArgs {
+    fn default() -> Self {
+        Self {
+            actor_id: 10.into(),
+        }
+    }
+}
+
 #[derive(Default, Clone)]
 pub struct GTestRemoting {
     system: Rc<System>,

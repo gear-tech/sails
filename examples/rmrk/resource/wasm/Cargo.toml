@@ -9,10 +9,13 @@ rmrk-resource-app = { path = "../app" }
 [build-dependencies]
 gwasm-builder.workspace = true
 rmrk-resource-app = { path = "../app" }
+sails-client-gen.workspace = true
 sails-idl-gen.workspace = true
 
 [dev-dependencies]
 gtest.workspace = true
+parity-scale-codec = { workspace = true, features = ["derive"] }
 rmrk-catalog = { path = "../../catalog/wasm" }
 sails-rtl.workspace = true
+scale-info = { workspace = true, features = ["derive"] }
 tokio = { workspace = true, features = ["rt", "macros"] }
