@@ -1,5 +1,5 @@
 ---
-source: macros/core/tests/program.rs
+source: macros/core/tests/gprogram.rs
 expression: result
 ---
 static __ROUTE_SERVICE2: [u8; 9usize] = [

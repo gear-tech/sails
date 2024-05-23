@@ -12,18 +12,21 @@ pub mod prelude;
 mod types;
 
 pub mod meta {
+    use crate::Vec;
     use scale_info::MetaType;
 
     pub trait ServiceMeta {
         fn commands() -> MetaType;
         fn queries() -> MetaType;
         fn events() -> MetaType;
+        fn base_services() -> impl Iterator<Item = AnyServiceMeta>;
     }
 
     pub struct AnyServiceMeta {
         commands: MetaType,
         queries: MetaType,
         events: MetaType,
+        base_services: Vec<AnyServiceMeta>,
     }
 
     impl AnyServiceMeta {
@@ -32,6 +35,7 @@ pub mod meta {
                 commands: S::commands(),
                 queries: S::queries(),
                 events: S::events(),
+                base_services: S::base_services().collect(),
             }
         }
 
@@ -45,6 +49,10 @@ pub mod meta {
 
         pub fn events(&self) -> &MetaType {
             &self.events
+        }
+
+        pub fn base_services(&self) -> impl Iterator<Item = &AnyServiceMeta> {
+            self.base_services.iter()
         }
     }
 
