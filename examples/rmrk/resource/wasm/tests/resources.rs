@@ -204,13 +204,7 @@ async fn adding_resource_to_storage_using_client_succeeds() {
     // Arrange
     let fixture = Fixture::new(ADMIN_ID);
     let base_id = ActorId::from(fixture.catalog_program().id().into_bytes());
-    let actor_id = ActorId::from(
-        fixture
-            .resource_program_for_async()
-            .id()
-            .clone()
-            .into_bytes(),
-    );
+    let actor_id = ActorId::from(fixture.resource_program_for_async().id().into_bytes());
 
     // Act
     let resource =
@@ -235,13 +229,7 @@ async fn adding_part_to_resource_using_client_succeeds() {
     // Arrange
     let fixture = Fixture::new(ADMIN_ID);
     let base_id = ActorId::from(fixture.catalog_program().id().into_bytes());
-    let actor_id = ActorId::from(
-        fixture
-            .resource_program_for_async()
-            .id()
-            .clone()
-            .into_bytes(),
-    );
+    let actor_id = ActorId::from(fixture.resource_program_for_async().id().into_bytes());
     let resource =
         rmrk_resource_client::Resource::Composed(rmrk_resource_client::ComposedResource {
             src: "<src_uri>".into(),
