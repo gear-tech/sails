@@ -108,12 +108,16 @@ fn gen_gservice_impl(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
         )
     };
 
+    let service_base_types = service_args.items.iter().flat_map(|item| match item {
+        ServiceArg::Extends(paths) => paths,
+    });
+
     let service_handlers = discover_service_handlers(&service_impl);
 
-    if service_handlers.is_empty() {
+    if service_handlers.is_empty() && !service_base_types.clone().any(|_| true) {
         abort!(
             service_impl,
-            "`gservice` attribute requires impl to define at least one public method"
+            "`gservice` attribute requires impl to define at least one public method or extend another service"
         );
     }
 
