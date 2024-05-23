@@ -1,4 +1,4 @@
-import { GearApi, HexString, MessageQueued, decodeAddress } from '@gear-js/api';
+import { GearApi, HexString, decodeAddress } from '@gear-js/api';
 import { KeyringPair } from '@polkadot/keyring/types';
 import { waitReady } from '@polkadot/wasm-crypto';
 import { Keyring } from '@polkadot/api';
@@ -14,13 +14,14 @@ let aliceRaw: HexString;
 let code: Buffer;
 
 const IDL_PATH = '../examples/rmrk/catalog/wasm/rmrk-catalog.idl';
-const CATALOG_WASM_PATH = '../target/wasm32-unknown-unknown/debug/rmrk_catalog.opt.wasm';
+const CATALOG_WASM_PATH = '../target/wasm32-unknown-unknown/release/rmrk_catalog.opt.wasm';
 
 beforeAll(async () => {
   sails = await Sails.new();
   api = await GearApi.create({ providerAddress: 'ws://127.0.0.1:9944' });
   await waitReady();
-  alice = new Keyring().addFromUri('//Alice', {}, 'sr25519');
+  const keyring = new Keyring({ type: 'sr25519' });
+  alice = keyring.addFromUri('//Alice');
   aliceRaw = decodeAddress(alice.address);
   code = readFileSync(CATALOG_WASM_PATH);
 });
@@ -40,7 +41,9 @@ describe('RMRK catalog', () => {
 
   test('upload catalog', async () => {
     sails.setApi(api);
-    const transaction = await sails.ctors.New.fromCode(code).withAccount(alice).calculateGas();
+    const transaction = await sails.ctors.New.fromCode(code)
+      .withAccount(alice)
+      .withGas(api.blockGasLimit.toBigInt() / 2n);
     const { response } = await transaction.signAndSend();
     await response();
   });
@@ -170,7 +173,7 @@ describe('RMRK generated', () => {
   test('add equippables', async () => {
     expect(programCreated).toBeTruthy();
     expect(program).toBeDefined();
-    const transaction = await program.rmrkCatalog.addEquippables(3, [aliceRaw]);
+    const transaction = program.rmrkCatalog.addEquippables(3, [aliceRaw]);
 
     await transaction.withAccount(alice).calculateGas();
 

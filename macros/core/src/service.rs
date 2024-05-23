@@ -29,19 +29,65 @@ use proc_macro_error::abort;
 use quote::quote;
 use std::collections::BTreeMap;
 use syn::{
-    GenericArgument, Ident, ImplItemFn, ItemImpl, Path, PathArguments, Type, TypeParamBound,
-    Visibility, WhereClause, WherePredicate,
+    spanned::Spanned, GenericArgument, Ident, ImplItemFn, ItemImpl, Path, PathArguments, Type,
+    TypeParamBound, Visibility, WhereClause, WherePredicate,
 };
 
+static mut SERVICE_SPANS: BTreeMap<String, Span> = BTreeMap::new();
+
 pub fn gservice(service_impl_tokens: TokenStream2) -> TokenStream2 {
-    let service_impl = syn::parse2(service_impl_tokens).unwrap_or_else(|err| {
+    let service_impl = parse_gservice_impl(service_impl_tokens);
+    ensure_single_gservice_on_impl(&service_impl);
+    ensure_single_gservice_by_name(&service_impl);
+    gen_gservice_impl(service_impl)
+}
+
+#[doc(hidden)]
+pub fn __gservice_internal(service_impl_tokens: TokenStream2) -> TokenStream2 {
+    let service_impl = parse_gservice_impl(service_impl_tokens);
+    gen_gservice_impl(service_impl)
+}
+
+fn parse_gservice_impl(service_impl_tokens: TokenStream2) -> ItemImpl {
+    syn::parse2(service_impl_tokens).unwrap_or_else(|err| {
         abort!(
             err.span(),
             "`gservice` attribute can be applied to impls only: {}",
             err
         )
-    });
+    })
+}
 
+fn ensure_single_gservice_on_impl(service_impl: &ItemImpl) {
+    let attr_gservice = service_impl.attrs.iter().find(|attr| {
+        attr.meta
+            .path()
+            .segments
+            .last()
+            .map(|s| s.ident == "gservice")
+            .unwrap_or(false)
+    });
+    if attr_gservice.is_some() {
+        abort!(
+            service_impl,
+            "multiple `gservice` attributes on the same impl are not allowed",
+        )
+    }
+}
+
+fn ensure_single_gservice_by_name(service_impl: &ItemImpl) {
+    let path = shared::impl_type_path(service_impl);
+    let type_ident = path.path.segments.last().unwrap().ident.to_string();
+    if unsafe { SERVICE_SPANS.get(&type_ident) }.is_some() {
+        abort!(
+            service_impl,
+            "multiple `gservice` attributes on a type with the same name are not allowed"
+        )
+    }
+    unsafe { SERVICE_SPANS.insert(type_ident, service_impl.span()) };
+}
+
+fn gen_gservice_impl(service_impl: ItemImpl) -> TokenStream2 {
     let (service_type_path, service_type_args, service_type_constraints) = {
         let service_type = ImplType::new(&service_impl);
         (
@@ -128,6 +174,9 @@ pub fn gservice(service_impl_tokens: TokenStream2) -> TokenStream2 {
     let scale_codec_path = sails_paths::scale_codec_path();
     let scale_info_path = sails_paths::scale_info_path();
 
+    let unexpected_route_panic =
+        shared::generate_unexpected_input_panic(&input_ident, "Unknown request");
+
     quote!(
         #service_impl
 
@@ -142,8 +191,7 @@ pub fn gservice(service_impl_tokens: TokenStream2) -> TokenStream2 {
 
             pub async fn handle(&mut self, mut #input_ident: &[u8]) -> Vec<u8> {
                 #(#invocation_dispatches)*
-                let invocation_path = String::decode(&mut #input_ident).expect("Failed to decode invocation path");
-                panic!("Unknown request: {}", invocation_path);
+                #unexpected_route_panic
             }
 
             #(#invocation_funcs)*

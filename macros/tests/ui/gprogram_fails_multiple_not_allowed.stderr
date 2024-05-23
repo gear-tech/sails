@@ -1,0 +1,9 @@
+error: multiple `gprogram` attributes are not allowed
+  --> tests/ui/gprogram_fails_multiple_not_allowed.rs:13:1
+   |
+13 | / impl MyProgram {
+14 | |     pub fn default() -> Self {
+15 | |         Self
+16 | |     }
+17 | | }
+   | |_^

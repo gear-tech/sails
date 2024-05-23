@@ -1,5 +1,5 @@
 use quote::quote;
-use sails_macros_core::gservice;
+use sails_macros_core::__gservice_internal as gservice;
 
 #[test]
 fn gservice_works() {

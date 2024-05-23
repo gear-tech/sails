@@ -1,5 +1,5 @@
 use crate::route;
-use proc_macro2::TokenStream as TokenStream2;
+use proc_macro2::{Span, TokenStream as TokenStream2};
 use proc_macro_error::abort;
 use quote::{quote, ToTokens};
 use std::collections::BTreeMap;
@@ -17,18 +17,7 @@ pub(crate) struct ImplType<'a> {
 
 impl<'a> ImplType<'a> {
     pub(crate) fn new(item_impl: &'a ItemImpl) -> Self {
-        let path = {
-            let item_impl_type = item_impl.self_ty.as_ref();
-            if let Type::Path(type_path) = item_impl_type {
-                type_path
-            } else {
-                abort!(
-                    item_impl_type.span(),
-                    "failed to parse impl type: {}",
-                    item_impl_type.to_token_stream()
-                )
-            }
-        };
+        let path = impl_type_path(item_impl);
         let args = &path.path.segments.last().unwrap().arguments;
         let constraints = item_impl.generics.where_clause.as_ref();
         Self {
@@ -48,6 +37,19 @@ impl<'a> ImplType<'a> {
 
     pub(crate) fn constraints(&self) -> Option<&WhereClause> {
         self.constraints
+    }
+}
+
+pub(crate) fn impl_type_path(item_impl: &ItemImpl) -> &TypePath {
+    let item_impl_type = item_impl.self_ty.as_ref();
+    if let Type::Path(type_path) = item_impl_type {
+        type_path
+    } else {
+        abort!(
+            item_impl_type,
+            "failed to parse impl type: {}",
+            item_impl_type.to_token_stream()
+        )
     }
 }
 
@@ -156,16 +158,18 @@ pub(crate) fn discover_invocation_targets(
 
 pub(crate) fn generate_unexpected_input_panic(input_ident: &Ident, message: &str) -> TokenStream2 {
     let message_pattern = message.to_owned() + ": {}";
+    let copy_ident = Ident::new(&format!("__{}", input_ident), Span::call_site());
     quote!({
-        let input = String::decode(&mut #input_ident)
+        let mut #copy_ident = #input_ident;
+        let input = String::decode(&mut #copy_ident)
             .unwrap_or_else(|_| {
                 if #input_ident.len() <= 8 {
-                    format!("0x{}", hex::encode(#input_ident))
+                    format!("0x{}", sails_rtl::hex::encode(#input_ident))
                 } else {
                     format!(
                         "0x{}..{}",
-                        hex::encode(&#input_ident[..4]),
-                        hex::encode(&#input_ident[#input_ident.len() - 4..]))
+                        sails_rtl::hex::encode(&#input_ident[..4]),
+                        sails_rtl::hex::encode(&#input_ident[#input_ident.len() - 4..]))
                 }
             });
         panic!(#message_pattern, input)

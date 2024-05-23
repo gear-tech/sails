@@ -56,8 +56,8 @@ impl GTestRemoting {
             Err(RtlError::ReplyIsAmbiguous)?
         }
         let reply_code = reply.reply_code().ok_or(RtlError::ReplyCodeIsMissing)?;
-        if let ReplyCode::Error(error) = reply_code {
-            Err(error)?
+        if let ReplyCode::Error(reason) = reply_code {
+            Err(RtlError::ReplyHasError(reason))?
         }
         if reply_code != ReplyCode::Success(SuccessReplyReason::Manual) {
             Err(RtlError::ReplyIsMissing)?

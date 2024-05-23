@@ -77,14 +77,15 @@ pub mod wasm {
         let input = gstd::msg::load_bytes().expect("Failed to read input");
         if !input.is_empty() {
             {
-                let input = String::decode(&mut input)
+                let mut __input = input;
+                let input = String::decode(&mut __input)
                     .unwrap_or_else(|_| {
                         if input.len() <= 8 {
-                            format!("0x{}", hex::encode(input))
+                            format!("0x{}", sails_rtl::hex::encode(input))
                         } else {
                             format!(
-                                "0x{}..{}", hex::encode(& input[..4]), hex::encode(&
-                                input[input.len() - 4..])
+                                "0x{}..{}", sails_rtl::hex::encode(& input[..4]),
+                                sails_rtl::hex::encode(& input[input.len() - 4..])
                             )
                         }
                     });
@@ -112,14 +113,15 @@ pub mod wasm {
             let output = service.handle(&input[__ROUTE_SVC1.len()..]).await;
             [__ROUTE_SVC1.as_ref(), &output].concat()
         } else {
-            let input = String::decode(&mut input)
+            let mut __input = input;
+            let input = String::decode(&mut __input)
                 .unwrap_or_else(|_| {
                     if input.len() <= 8 {
-                        format!("0x{}", hex::encode(input))
+                        format!("0x{}", sails_rtl::hex::encode(input))
                     } else {
                         format!(
-                            "0x{}..{}", hex::encode(& input[..4]), hex::encode(&
-                            input[input.len() - 4..])
+                            "0x{}..{}", sails_rtl::hex::encode(& input[..4]),
+                            sails_rtl::hex::encode(& input[input.len() - 4..])
                         )
                     }
                 });

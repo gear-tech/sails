@@ -8,8 +8,12 @@ license = "GPL-3.0"
 resolver = "2"
 members = [
     "client-gen",
+    "examples/references/app",
+    "examples/references/wasm",
     "examples/no-svcs-prog/app",
     "examples/no-svcs-prog/wasm",
+    "examples/ping/app",
+    "examples/ping/wasm",
     "examples/puppeteer/app",
     "examples/puppeteer/wasm",
     "examples/rmrk/catalog/app",
@@ -29,6 +33,7 @@ members = [
 anyhow = "1"
 const-format = { package = "const_format", version = "0.2" }
 convert-case = { package = "convert_case", version = "0.6" }
+fluent-asserter = "0.1"
 futures = { version = "0.3", default-features = false }
 gear-core-errors = { git = "https://github.com/gear-tech/gear", branch = "av/gcore-primitives" }
 git-download = "0.1"
@@ -41,7 +46,7 @@ gwasm-builder = { package = "gear-wasm-builder", git = "https://github.com/gear-
 handlebars = "4.4"
 hashbrown = "0.14"
 hex = { version = "0.4", default-features = false }
-insta = "1.38"
+insta = "1.39"
 itertools = "0.12"
 lalrpop = { version = "0.20", default-features = false }
 lalrpop-util = "0.20"
