@@ -18,4 +18,5 @@ parity-scale-codec = { workspace = true, features = ["derive"] }
 rmrk-catalog = { path = "../../catalog/wasm" }
 sails-rtl.workspace = true
 scale-info = { workspace = true, features = ["derive"] }
+thiserror-no-std.workspace = true
 tokio = { workspace = true, features = ["rt", "macros"] }

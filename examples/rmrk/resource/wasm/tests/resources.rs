@@ -14,6 +14,7 @@ use sails_rtl::{
     gtest::calls::{GTestArgs, GTestRemoting},
     ActorId, Decode, Encode,
 };
+use thiserror_no_std::Error as ThisError;
 
 mod rmrk_resource_client;
 
@@ -118,83 +119,6 @@ async fn adding_resource_to_storage_by_admin_succeeds_async() {
     assert_eq!(expected_reply, reply);
 }
 
-#[tokio::test]
-async fn adding_resource_to_storage_by_client_succeeds() {
-    // Arrange
-    let fixture = Fixture::new(ADMIN_ID);
-
-    let mut parts = BTreeMap::new();
-    parts.insert(
-        PART_ID,
-        Part::Fixed(FixedPart {
-            z: Some(1),
-            metadata_uri: "<metadata_uri>".into(),
-        }),
-    );
-    fixture.add_parts(ADMIN_ID, &parts);
-
-    // Act
-    let base_id = ActorId::from(fixture.catalog_program().id().into_bytes());
-    let actor_id = ActorId::from(
-        fixture
-            .resource_program_for_async()
-            .id()
-            .clone()
-            .into_bytes(),
-    );
-    let resource =
-        rmrk_resource_client::Resource::Composed(rmrk_resource_client::ComposedResource {
-            src: "<src_uri>".into(),
-            thumb: "<thumb_uri>".into(),
-            metadata_uri: "<metadata_uri>".into(),
-            base: base_id,
-            parts: vec![1, 2, 3],
-        });
-
-    let mut resource_client1 = fixture.resource_client.clone();
-    let add_call = resource_client1
-        .add_resource_entry(RESOURCE_ID, resource)
-        .publish(actor_id.clone())
-        .await
-        .unwrap();
-    let add_reply = add_call.reply().await.unwrap().unwrap();
-
-    // Assert
-    assert_eq!(RESOURCE_ID, add_reply.0);
-
-    // Act
-    let mut resource_client2 = fixture.resource_client.clone();
-    let add_part_call = resource_client2
-        .add_part_to_resource(RESOURCE_ID, PART_ID)
-        .publish(actor_id.clone())
-        .await
-        .unwrap();
-    let add_part_reply = add_part_call.reply().await.unwrap().unwrap();
-
-    // Assert
-    assert_eq!(PART_ID, add_part_reply);
-
-    // Act
-    let resource_client3 = fixture.resource_client.clone();
-    let resource_call = resource_client3
-        .resource(RESOURCE_ID)
-        .publish(actor_id.clone())
-        .await
-        .unwrap();
-    let resource_reply = resource_call.reply().await.unwrap().unwrap();
-
-    // Assert
-    if let rmrk_resource_client::Resource::Composed(rmrk_resource_client::ComposedResource {
-        parts,
-        ..
-    }) = resource_reply
-    {
-        assert_eq!(vec![1, 2, 3, PART_ID], parts);
-    } else {
-        panic!("Resource is not composed");
-    }
-}
-
 #[test]
 fn adding_existing_part_to_resource_by_admin_succeeds() {
     // Arrange
@@ -275,31 +199,127 @@ fn adding_non_existing_part_to_resource_fails() {
     assert!(run_result.contains(&(ADMIN_ID, expected_response)));
 }
 
+#[tokio::test]
+async fn adding_resource_to_storage_using_client_succeeds() {
+    // Arrange
+    let fixture = Fixture::new(ADMIN_ID);
+    let base_id = ActorId::from(fixture.catalog_program().id().into_bytes());
+    let actor_id = ActorId::from(
+        fixture
+            .resource_program_for_async()
+            .id()
+            .clone()
+            .into_bytes(),
+    );
+
+    // Act
+    let resource =
+        rmrk_resource_client::Resource::Composed(rmrk_resource_client::ComposedResource {
+            src: "<src_uri>".into(),
+            thumb: "<thumb_uri>".into(),
+            metadata_uri: "<metadata_uri>".into(),
+            base: base_id,
+            parts: vec![1, 2, 3],
+        });
+    let add_reply = fixture
+        .add_resource_using_client(actor_id, RESOURCE_ID, resource)
+        .await
+        .unwrap();
+
+    // Assert
+    assert_eq!(RESOURCE_ID, add_reply.0);
+}
+
+#[tokio::test]
+async fn adding_part_to_resource_using_client_succeeds() {
+    // Arrange
+    let fixture = Fixture::new(ADMIN_ID);
+    let base_id = ActorId::from(fixture.catalog_program().id().into_bytes());
+    let actor_id = ActorId::from(
+        fixture
+            .resource_program_for_async()
+            .id()
+            .clone()
+            .into_bytes(),
+    );
+    let resource =
+        rmrk_resource_client::Resource::Composed(rmrk_resource_client::ComposedResource {
+            src: "<src_uri>".into(),
+            thumb: "<thumb_uri>".into(),
+            metadata_uri: "<metadata_uri>".into(),
+            base: base_id,
+            parts: vec![1, 2, 3],
+        });
+    let _ = fixture
+        .add_resource_using_client(actor_id, RESOURCE_ID, resource)
+        .await
+        .unwrap();
+
+    let mut parts = BTreeMap::new();
+    parts.insert(
+        PART_ID,
+        Part::Fixed(FixedPart {
+            z: Some(1),
+            metadata_uri: "<metadata_uri>".into(),
+        }),
+    );
+    fixture.add_parts(ADMIN_ID, &parts);
+
+    // Act
+    let add_part_reply = fixture
+        .add_part_to_resource_using_client(actor_id, RESOURCE_ID, PART_ID)
+        .await
+        .unwrap();
+
+    // Assert
+    assert_eq!(PART_ID, add_part_reply);
+
+    // Act
+    let resource_reply = fixture
+        .get_resource_using_client(actor_id, RESOURCE_ID)
+        .await
+        .unwrap();
+
+    // Assert
+    if let rmrk_resource_client::Resource::Composed(rmrk_resource_client::ComposedResource {
+        parts,
+        ..
+    }) = resource_reply
+    {
+        assert_eq!(vec![1, 2, 3, PART_ID], parts);
+    } else {
+        panic!("Resource is not composed");
+    }
+}
+
 struct Fixture<'a> {
     admin_id: u64,
     program_space: GTestRemoting,
     catalog_program: OnceCell<Program<'a>>,
     resource_program: OnceCell<Program<'a>>,
-    resource_client: crate::rmrk_resource_client::RmrkResource<GTestRemoting, GTestArgs>,
 }
 
 impl<'a> Fixture<'a> {
     fn new(admin_id: u64) -> Self {
         let program_space = GTestRemoting::new();
         program_space.system().init_logger();
-        let resource_client = crate::rmrk_resource_client::RmrkResource::new(program_space.clone());
 
         Self {
             admin_id,
             program_space,
             catalog_program: OnceCell::new(),
             resource_program: OnceCell::new(),
-            resource_client,
         }
     }
 
     fn program_space(&self) -> &GTestRemoting {
         &self.program_space
+    }
+
+    fn resource_client(
+        &self,
+    ) -> crate::rmrk_resource_client::RmrkResource<GTestRemoting, GTestArgs> {
+        crate::rmrk_resource_client::RmrkResource::new(self.program_space.clone())
     }
 
     fn catalog_program(&'a self) -> &Program<'a> {
@@ -456,4 +476,53 @@ impl<'a> Fixture<'a> {
         .concat();
         program.send_bytes(actor_id, encoded_request)
     }
+
+    async fn add_resource_using_client(
+        &'a self,
+        actor_id: ActorId,
+        resource_id: u8,
+        resource: rmrk_resource_client::Resource,
+    ) -> Result<(u8, rmrk_resource_client::Resource), TestError> {
+        let mut resource_client = self.resource_client();
+        let call = resource_client
+            .add_resource_entry(resource_id, resource)
+            .publish(actor_id)
+            .await?;
+        sails_rtl::Ok(call.reply().await??)
+    }
+
+    async fn add_part_to_resource_using_client(
+        &'a self,
+        actor_id: ActorId,
+        resource_id: u8,
+        part_id: u32,
+    ) -> Result<u32, TestError> {
+        let mut resource_client = self.resource_client();
+        let call = resource_client
+            .add_part_to_resource(resource_id, part_id)
+            .publish(actor_id)
+            .await?;
+        sails_rtl::Ok(call.reply().await??)
+    }
+
+    async fn get_resource_using_client(
+        &'a self,
+        actor_id: ActorId,
+        resource_id: u8,
+    ) -> Result<rmrk_resource_client::Resource, TestError> {
+        let resource_client = self.resource_client();
+        let call = resource_client
+            .resource(resource_id)
+            .publish(actor_id)
+            .await?;
+        sails_rtl::Ok(call.reply().await??)
+    }
+}
+
+#[derive(ThisError, Debug)]
+pub enum TestError {
+    #[error("ClientError {0:?}")]
+    ClientError(#[from] rmrk_resource_client::Error),
+    #[error(transparent)]
+    RtlError(#[from] sails_rtl::errors::Error),
 }

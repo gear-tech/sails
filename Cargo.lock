@@ -3788,6 +3788,7 @@ dependencies = [
  "sails-idl-gen",
  "sails-rtl",
  "scale-info",
+ "thiserror-no-std",
  "tokio",
 ]
 
