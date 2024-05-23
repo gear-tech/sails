@@ -1,18 +1,43 @@
 use crate::ast;
-use std::{slice, str};
+use std::{
+    error::Error,
+    ffi::{c_char, CString},
+    slice, str,
+};
 
 pub mod visitor;
+
+#[repr(C)]
+pub enum ParseResult {
+    Success(*mut Program),
+    Error(*const c_char),
+}
 
 /// # Safety
 ///
 /// See the safety documentation of [`slice::from_raw_parts`].
 #[no_mangle]
-pub unsafe extern "C" fn parse_idl(idl_ptr: *const u8, idl_len: u32) -> *mut Program {
-    let idl = unsafe { slice::from_raw_parts(idl_ptr, idl_len.try_into().unwrap()) };
-    let idl = str::from_utf8(idl).unwrap();
-    let program = ast::parse_idl(idl).unwrap();
-    let program = Box::new(program);
-    Box::into_raw(program)
+pub unsafe extern "C" fn parse_idl(idl_ptr: *const u8, idl_len: u32) -> *mut ParseResult {
+    let idl_slice = unsafe { slice::from_raw_parts(idl_ptr, idl_len as usize) };
+    let idl_str = match str::from_utf8(idl_slice) {
+        Ok(s) => s,
+        Err(e) => return create_error(e, "validate IDL string"),
+    };
+
+    let program = match ast::parse_idl(idl_str) {
+        Ok(p) => p,
+        Err(e) => return create_error(e, "parse IDL"),
+    };
+
+    let program_box = Box::new(program);
+    let result = Box::new(ParseResult::Success(Box::into_raw(program_box)));
+    Box::into_raw(result)
+}
+
+fn create_error(e: impl Error, context: &str) -> *mut ParseResult {
+    let err_str = CString::new(format!("{}: {}", context, e)).unwrap();
+    let result = Box::new(ParseResult::Error(err_str.into_raw()));
+    Box::into_raw(result)
 }
 
 /// # Safety

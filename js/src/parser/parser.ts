@@ -255,10 +255,31 @@ export class WasmParser {
     this._idlLen = null;
   }
 
+  private readCString = (ptr: number): string => {
+    const view = new DataView(this._memory.buffer);
+    let len = 0;
+    while (view.getUint8(ptr + len) !== 0) {
+      len++;
+    }
+    const buf = new Uint8Array(this._memory.buffer, ptr, len);
+    return new TextDecoder().decode(buf);
+  };
+
   public parse(idl: string): Program {
     this.fillMemory(idl);
 
-    const programPtr = this._instance.exports.parse_idl(this._memPtr, this._idlLen);
+    const resultPtr = this._instance.exports.parse_idl(this._memPtr, this._idlLen);
+
+    const view = new DataView(this._memory.buffer);
+    if (view.getUint32(resultPtr, true) == 1) { // Read ParseResult enum discriminant
+      // Error
+      const errorPtr = view.getUint32(resultPtr + 4, true);
+      const error = this.readCString(errorPtr);
+
+      throw new Error(error);
+    }
+
+    const programPtr = view.getUint32(resultPtr + 4, true);
 
     this._program = new Program();
     this._instance.exports.accept_program(programPtr, 0);
