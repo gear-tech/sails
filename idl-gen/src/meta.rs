@@ -58,12 +58,21 @@ impl ExpandedProgramMeta {
             .collect::<Vec<_>>();
         let ctors_type_id = ctors.map(|ctors| registry.register_type(&ctors).id);
         let services_data = services
-            .map(|(sn, sm)| {
+            .map(|(sname, sm)| {
                 (
-                    sn,
-                    registry.register_type(sm.commands()).id,
-                    registry.register_type(sm.queries()).id,
-                    registry.register_type(sm.events()).id,
+                    sname,
+                    Self::flat_meta(&sm, |sm| sm.commands())
+                        .into_iter()
+                        .map(|mt| registry.register_type(mt).id)
+                        .collect::<Vec<_>>(),
+                    Self::flat_meta(&sm, |sm| sm.queries())
+                        .into_iter()
+                        .map(|mt| registry.register_type(mt).id)
+                        .collect::<Vec<_>>(),
+                    Self::flat_meta(&sm, |sm| sm.events())
+                        .into_iter()
+                        .map(|mt| registry.register_type(mt).id)
+                        .collect::<Vec<_>>(),
                 )
             })
             .collect::<Vec<_>>();
@@ -71,7 +80,9 @@ impl ExpandedProgramMeta {
         let ctors = Self::ctor_funcs(&registry, ctors_type_id)?;
         let services = services_data
             .into_iter()
-            .map(|(sn, ctid, qtid, etid)| ExpandedServiceMeta::new(&registry, sn, ctid, qtid, etid))
+            .map(|(sname, ct_ids, qt_ids, et_ids)| {
+                ExpandedServiceMeta::new(&registry, sname, ct_ids, qt_ids, et_ids)
+            })
             .collect::<Result<Vec<_>>>()?;
         Ok(Self {
             registry,
@@ -151,16 +162,33 @@ impl ExpandedProgramMeta {
             .collect()
     }
 
+    fn flat_meta(
+        service_meta: &AnyServiceMeta,
+        meta: fn(&AnyServiceMeta) -> &MetaType,
+    ) -> Vec<&MetaType> {
+        let mut metas = vec![meta(service_meta)];
+        for base_service_meta in service_meta.base_services() {
+            metas.extend(Self::flat_meta(base_service_meta, meta));
+        }
+        metas
+    }
+
     fn commands_type_ids(&self) -> impl Iterator<Item = u32> + '_ {
-        self.services.iter().map(|s| s.commands_type_id)
+        self.services
+            .iter()
+            .flat_map(|s| s.commands_type_ids.iter().copied())
     }
 
     fn queries_type_ids(&self) -> impl Iterator<Item = u32> + '_ {
-        self.services.iter().map(|s| s.queries_type_id)
+        self.services
+            .iter()
+            .flat_map(|s| s.queries_type_ids.iter().copied())
     }
 
     fn events_type_ids(&self) -> impl Iterator<Item = u32> + '_ {
-        self.services.iter().map(|s| s.events_type_id)
+        self.services
+            .iter()
+            .flat_map(|s| s.events_type_ids.iter().copied())
     }
 
     fn ctor_params_type_ids(&self) -> impl Iterator<Item = u32> + '_ {
@@ -170,23 +198,25 @@ impl ExpandedProgramMeta {
     fn command_params_type_ids(&self) -> impl Iterator<Item = u32> + '_ {
         self.services
             .iter()
-            .flat_map(|s| s.commands.iter().map(|v| v.1))
+            .flat_map(|s| s.commands.iter().chain(&s.overriden_commands).map(|v| v.1))
     }
 
     fn query_params_type_ids(&self) -> impl Iterator<Item = u32> + '_ {
         self.services
             .iter()
-            .flat_map(|s| s.queries.iter().map(|v| v.1))
+            .flat_map(|s| s.queries.iter().chain(&s.overriden_queries).map(|v| v.1))
     }
 }
 
 pub(crate) struct ExpandedServiceMeta {
     name: &'static str,
-    commands_type_id: u32,
+    commands_type_ids: Vec<u32>,
     commands: Vec<ServiceFuncMeta>,
-    queries_type_id: u32,
+    overriden_commands: Vec<ServiceFuncMeta>,
+    queries_type_ids: Vec<u32>,
     queries: Vec<ServiceFuncMeta>,
-    events_type_id: u32,
+    overriden_queries: Vec<ServiceFuncMeta>,
+    events_type_ids: Vec<u32>,
     events: Vec<Variant<PortableForm>>,
 }
 
@@ -194,20 +224,24 @@ impl ExpandedServiceMeta {
     fn new(
         registry: &PortableRegistry,
         name: &'static str,
-        commands_type_id: u32,
-        queries_type_id: u32,
-        events_type_id: u32,
+        commands_type_ids: Vec<u32>,
+        queries_type_ids: Vec<u32>,
+        events_type_ids: Vec<u32>,
     ) -> Result<Self> {
-        let commands = Self::service_funcs(registry, commands_type_id)?;
-        let queries = Self::service_funcs(registry, queries_type_id)?;
-        let events = Self::event_variants(registry, events_type_id)?;
+        let (commands, overriden_commands) =
+            Self::service_funcs(registry, commands_type_ids.iter().copied())?;
+        let (queries, overriden_queries) =
+            Self::service_funcs(registry, queries_type_ids.iter().copied())?;
+        let events = Self::event_variants(registry, events_type_ids.iter().copied())?;
         Ok(Self {
             name,
-            commands_type_id,
+            commands_type_ids,
             commands,
-            queries_type_id,
+            overriden_commands,
+            queries_type_ids,
             queries,
-            events_type_id,
+            overriden_queries,
+            events_type_ids,
             events,
         })
     }
@@ -230,58 +264,86 @@ impl ExpandedServiceMeta {
 
     fn service_funcs(
         registry: &PortableRegistry,
-        func_type_id: u32,
-    ) -> Result<Vec<ServiceFuncMeta>> {
-        any_funcs(registry, func_type_id)?
-            .map(|f| {
-                if f.fields.len() != 2 {
-                    Err(Error::FuncMetaIsInvalid(format!(
+        func_type_ids: impl Iterator<Item = u32>,
+    ) -> Result<(Vec<ServiceFuncMeta>, Vec<ServiceFuncMeta>)> {
+        let mut funcs_meta = Vec::new();
+        let mut overriden_funcs_meta = Vec::new();
+        for func_type_id in func_type_ids {
+            for func_descr in any_funcs(registry, func_type_id)? {
+                if func_descr.fields.len() != 2 {
+                    return Err(Error::FuncMetaIsInvalid(format!(
                         "func `{}` has invalid number of fields",
-                        f.name
-                    )))
-                } else {
-                    let params_type = registry.resolve(f.fields[0].ty.id).unwrap_or_else(|| {
-                        panic!(
-                            "func params type id {} not found while it was registered previously",
-                            f.fields[0].ty.id
-                        )
-                    });
-                    if let TypeDef::Composite(params_type) = &params_type.type_def {
-                        Ok(ServiceFuncMeta(
-                            f.name.to_string(),
-                            f.fields[0].ty.id,
-                            params_type.fields.to_vec(),
-                            f.fields[1].ty.id,
-                        ))
-                    } else {
-                        Err(Error::FuncMetaIsInvalid(format!(
-                            "func `{}` params type is not a composite",
-                            f.name
-                        )))
-                    }
+                        func_descr.name
+                    )));
                 }
-            })
-            .collect()
+                let func_params_type =
+                    registry
+                        .resolve(func_descr.fields[0].ty.id)
+                        .unwrap_or_else(|| {
+                            panic!(
+                            "func params type id {} not found while it was registered previously",
+                            func_descr.fields[0].ty.id
+                        )
+                        });
+                if let TypeDef::Composite(func_params_type) = &func_params_type.type_def {
+                    let func_meta = ServiceFuncMeta(
+                        func_descr.name.to_string(),
+                        func_descr.fields[0].ty.id,
+                        func_params_type.fields.to_vec(),
+                        func_descr.fields[1].ty.id,
+                    );
+                    if !funcs_meta
+                        .iter()
+                        .any(|fm: &ServiceFuncMeta| fm.0 == func_meta.0)
+                    {
+                        funcs_meta.push(func_meta);
+                    } else {
+                        overriden_funcs_meta.push(func_meta);
+                    }
+                } else {
+                    return Err(Error::FuncMetaIsInvalid(format!(
+                        "func `{}` params type is not a composite",
+                        func_descr.name
+                    )));
+                }
+            }
+        }
+        Ok((funcs_meta, overriden_funcs_meta))
     }
 
     fn event_variants(
         registry: &PortableRegistry,
-        events_type_id: u32,
+        events_type_ids: impl Iterator<Item = u32>,
     ) -> Result<Vec<Variant<PortableForm>>> {
-        let events = registry.resolve(events_type_id).unwrap_or_else(|| {
-            panic!(
-                "events type id {} not found while it was registered previously",
-                events_type_id
-            )
-        });
-        if let TypeDef::Variant(variant) = &events.type_def {
-            Ok(variant.variants.to_vec())
-        } else {
-            Err(Error::EventMetaIsInvalid(format!(
-                "events type id {} references a type that is not a variant",
-                events_type_id
-            )))
+        let mut events_variants = Vec::new();
+        for events_type_id in events_type_ids {
+            let events = registry.resolve(events_type_id).unwrap_or_else(|| {
+                panic!(
+                    "events type id {} not found while it was registered previously",
+                    events_type_id
+                )
+            });
+            if let TypeDef::Variant(variant) = &events.type_def {
+                for event_variant in &variant.variants {
+                    if events_variants
+                        .iter()
+                        .any(|ev: &Variant<PortableForm>| ev.name == event_variant.name)
+                    {
+                        return Err(Error::EventMetaIsAmbiguous(format!(
+                            "events type id {} contains ambiguous event variant `{}`",
+                            events_type_id, event_variant.name
+                        )));
+                    }
+                    events_variants.push(event_variant.clone());
+                }
+            } else {
+                return Err(Error::EventMetaIsInvalid(format!(
+                    "events type id {} references a type that is not a variant",
+                    events_type_id
+                )));
+            }
         }
+        Ok(events_variants)
     }
 }
 

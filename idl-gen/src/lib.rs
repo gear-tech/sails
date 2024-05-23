@@ -18,7 +18,7 @@
 
 //! Functionality for generating IDL files describing some service based on its Rust code.
 
-use errors::Result;
+pub use errors::*;
 use handlebars::{handlebars_helper, Handlebars};
 use meta::ExpandedProgramMeta;
 use scale_info::{form::PortableForm, Field, PortableType, Variant};
