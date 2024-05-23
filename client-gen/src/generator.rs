@@ -198,6 +198,7 @@ impl<'ast> Visitor<'ast> for CtorFactoryGenerator {
         self.code.push_str(
             "
             #[allow(unused)]
+            #[allow(clippy::new_without_default)]
             pub fn new() -> Self {
                 Self
             }
