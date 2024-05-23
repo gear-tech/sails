@@ -8,7 +8,7 @@ use rmrk_resource_app::services::{
     ResourceStorageEvent,
 };
 use sails_rtl::{
-    calls::{Call, Remoting},
+    calls::{Action, Call, Remoting},
     collections::BTreeMap,
     errors::Result,
     gtest::calls::{GTestArgs, GTestRemoting},
@@ -486,6 +486,7 @@ impl<'a> Fixture<'a> {
         let mut resource_client = self.resource_client();
         let call = resource_client
             .add_resource_entry(resource_id, resource)
+            .with_args(GTestArgs::new(self.admin_id.into()))
             .publish(actor_id)
             .await?;
         sails_rtl::Ok(call.reply().await??)
@@ -500,6 +501,7 @@ impl<'a> Fixture<'a> {
         let mut resource_client = self.resource_client();
         let call = resource_client
             .add_part_to_resource(resource_id, part_id)
+            .with_args(GTestArgs::new(self.admin_id.into()))
             .publish(actor_id)
             .await?;
         sails_rtl::Ok(call.reply().await??)
