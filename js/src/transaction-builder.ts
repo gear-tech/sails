@@ -1,4 +1,4 @@
-import { GearApi, HexString, MessageQueuedData, decodeAddress } from '@gear-js/api';
+import { GearApi, HexString, ICallOptions, MessageQueuedData, decodeAddress } from '@gear-js/api';
 import { SignerOptions, SubmittableExtrinsic } from '@polkadot/api/types';
 import { IKeyringPair, ISubmittableResult } from '@polkadot/types/types';
 import { TypeRegistry, u128, u64 } from '@polkadot/types';
@@ -15,6 +15,7 @@ export class TransactionBuilder<ResponseType> {
   private _account: string | IKeyringPair;
   private _signerOptions: Partial<SignerOptions>;
   private _tx: SubmittableExtrinsic<'promise', ISubmittableResult>;
+  private _voucher: string;
   public readonly programId: HexString;
 
   constructor(
@@ -236,9 +237,27 @@ export class TransactionBuilder<ResponseType> {
   }
 
   /**
+   * ## Use voucher for transaction
+   * @param id Voucher id
+   */
+  public withVoucher(id: HexString) {
+    if (this._tx.method.method !== 'sendMessage') {
+      throw new Error('Voucher can be used only with sendMessage extrinsics');
+    }
+
+    this._voucher = id;
+    return this;
+  }
+
+  /**
    * ## Sign and send transaction
    */
   public async signAndSend(): Promise<IMethodReturnType<ResponseType>> {
+    if (this._voucher) {
+      const callParams: ICallOptions = { SendMessage: this._tx };
+      this._tx = this._api.voucher.call(this._voucher, callParams);
+    }
+
     const { msgId, blockHash } = await new Promise<{ msgId: HexString; blockHash: HexString }>((resolve, reject) =>
       this._tx
         .signAndSend(this._account, this._signerOptions, ({ events, status }) => {

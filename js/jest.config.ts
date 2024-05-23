@@ -14,7 +14,7 @@ const config: Config.InitialOptions = {
   transform: {
     '^.+\\.tsx?$': ['ts-jest', { useESM: true }],
   },
-  testTimeout: 30000,
+  testTimeout: 15_000,
 };
 
 export default config;

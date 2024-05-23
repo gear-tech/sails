@@ -12,6 +12,8 @@ members = [
     "examples/references/wasm",
     "examples/no-svcs-prog/app",
     "examples/no-svcs-prog/wasm",
+    "examples/ping/app",
+    "examples/ping/wasm",
     "examples/puppeteer/app",
     "examples/puppeteer/wasm",
     "examples/rmrk/catalog/app",
