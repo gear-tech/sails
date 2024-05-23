@@ -1,5 +1,5 @@
 ---
-source: idlgen/tests/generator.rs
+source: idl-gen/tests/generator.rs
 expression: generated_idl
 ---
 type TupleStruct = struct {
@@ -47,7 +47,7 @@ type ThatParam = struct {
 
 constructor {
   New : ();
-  FromStr : (s: str);
+  FromStr : (p1: str);
 };
 
 service {
@@ -61,5 +61,3 @@ service {
     ThatDone: struct { p1: str };
   }
 };
-
-

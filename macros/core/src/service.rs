@@ -24,31 +24,34 @@ use crate::{
 };
 use convert_case::{Case, Casing};
 use parity_scale_codec::Encode;
-use proc_macro2::{Span, TokenStream as TokenStream2};
+use proc_macro2::{Span, TokenStream};
 use proc_macro_error::abort;
-use quote::quote;
+use quote::{quote, ToTokens};
 use std::collections::BTreeMap;
 use syn::{
-    spanned::Spanned, GenericArgument, Ident, ImplItemFn, ItemImpl, Path, PathArguments, Type,
-    TypeParamBound, Visibility, WhereClause, WherePredicate,
+    parse::{Parse, ParseStream},
+    punctuated::Punctuated,
+    spanned::Spanned,
+    Expr, GenericArgument, Ident, ImplItemFn, ItemImpl, Path, PathArguments, Result as SynResult,
+    Token, Type, TypeParamBound, Visibility, WhereClause, WherePredicate,
 };
 
 static mut SERVICE_SPANS: BTreeMap<String, Span> = BTreeMap::new();
 
-pub fn gservice(service_impl_tokens: TokenStream2) -> TokenStream2 {
-    let service_impl = parse_gservice_impl(service_impl_tokens);
+pub fn gservice(args: TokenStream, service_impl: TokenStream) -> TokenStream {
+    let service_impl = parse_gservice_impl(service_impl);
     ensure_single_gservice_on_impl(&service_impl);
     ensure_single_gservice_by_name(&service_impl);
-    gen_gservice_impl(service_impl)
+    gen_gservice_impl(args, service_impl)
 }
 
 #[doc(hidden)]
-pub fn __gservice_internal(service_impl_tokens: TokenStream2) -> TokenStream2 {
-    let service_impl = parse_gservice_impl(service_impl_tokens);
-    gen_gservice_impl(service_impl)
+pub fn __gservice_internal(args: TokenStream, service_impl: TokenStream) -> TokenStream {
+    let service_impl = parse_gservice_impl(service_impl);
+    gen_gservice_impl(args, service_impl)
 }
 
-fn parse_gservice_impl(service_impl_tokens: TokenStream2) -> ItemImpl {
+fn parse_gservice_impl(service_impl_tokens: TokenStream) -> ItemImpl {
     syn::parse2(service_impl_tokens).unwrap_or_else(|err| {
         abort!(
             err.span(),
@@ -87,8 +90,16 @@ fn ensure_single_gservice_by_name(service_impl: &ItemImpl) {
     unsafe { SERVICE_SPANS.insert(type_ident, service_impl.span()) };
 }
 
-fn gen_gservice_impl(service_impl: ItemImpl) -> TokenStream2 {
-    let (service_type_path, service_type_args, service_type_constraints) = {
+fn gen_gservice_impl(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
+    let service_args = syn::parse2::<ServiceArgs>(args).unwrap_or_else(|err| {
+        abort!(
+            err.span(),
+            "failed to parse `gservice` attribute arguments: {}",
+            err
+        )
+    });
+
+    let (service_type, service_type_args, service_type_constraints) = {
         let service_type = ImplType::new(&service_impl);
         (
             service_type.path().clone(),
@@ -148,7 +159,7 @@ fn gen_gservice_impl(service_impl: ItemImpl) -> TokenStream2 {
                 if #input_ident.starts_with(& [ #(#handler_route_bytes),* ]) {
                     let output = self.#invocation_func_ident(&#input_ident[#handler_route_len..]).await;
                     static INVOCATION_ROUTE: [u8; #handler_route_len] = [ #(#handler_route_bytes),* ];
-                    return [INVOCATION_ROUTE.as_ref(), &output].concat();
+                    return Some([INVOCATION_ROUTE.as_ref(), &output].concat());
                 }
             )
         });
@@ -170,6 +181,62 @@ fn gen_gservice_impl(service_impl: ItemImpl) -> TokenStream2 {
     let message_id_ident = Ident::new("message_id", Span::call_site());
     let route_ident = Ident::new("route", Span::call_site());
 
+    let service_base_types = service_args.items.iter().flat_map(|item| match item {
+        ServiceArg::Extends(paths) => paths,
+    });
+
+    let code_for_base_types = service_base_types
+        .enumerate()
+        .map(|(idx, base_type)| {
+            let base_ident = Ident::new(&format!("base_{}", idx), Span::call_site());
+
+            let exposure_as_ref_impl = quote!(
+                impl AsRef<< #base_type as sails_rtl::gstd::services::Service>::Exposure> for Exposure< #service_type > {
+                    fn as_ref(&self) -> &< #base_type as sails_rtl::gstd::services::Service>::Exposure {
+                        &self. #base_ident
+                    }
+                }
+            );
+
+            let base_exposure_member = quote!(
+                #base_ident : < #base_type as sails_rtl::gstd::services::Service>::Exposure,
+            );
+
+            let base_exposure_instantiation = quote!(
+                #base_ident : < #base_type as Clone>::clone(AsRef::< #base_type >::as_ref(&self))
+                    .expose( #message_id_ident , #route_ident ),
+            );
+
+            let base_exposure_invocation = quote!(
+                if let Some(output) = self. #base_ident .try_handle(#input_ident).await {
+                    return Some(output);
+                }
+            );
+
+            let base_service_meta = quote!(sails_rtl::meta::AnyServiceMeta::new::< #base_type >());
+
+            (exposure_as_ref_impl, base_exposure_member, base_exposure_instantiation, base_exposure_invocation, base_service_meta)
+        });
+
+    let exposure_as_ref_impls = code_for_base_types
+        .clone()
+        .map(|(exposure_as_ref_impl, ..)| exposure_as_ref_impl);
+
+    let base_exposures_members = code_for_base_types
+        .clone()
+        .map(|(_, base_exposure_member, ..)| base_exposure_member);
+
+    let base_exposures_instantiations = code_for_base_types
+        .clone()
+        .map(|(_, _, base_exposure_instantiation, ..)| base_exposure_instantiation);
+
+    let base_exposures_invocations = code_for_base_types
+        .clone()
+        .map(|(_, _, _, base_exposure_invocation, ..)| base_exposure_invocation);
+
+    let base_services_meta =
+        code_for_base_types.map(|(_, _, _, _, base_service_meta)| base_service_meta);
+
     let scale_types_path = sails_paths::scale_types_path();
     let scale_codec_path = sails_paths::scale_codec_path();
     let scale_info_path = sails_paths::scale_info_path();
@@ -184,20 +251,28 @@ fn gen_gservice_impl(service_impl: ItemImpl) -> TokenStream2 {
             #message_id_ident : sails_rtl::MessageId,
             #route_ident : &'static [u8],
             #inner_ident : T,
+            #( #base_exposures_members )*
         }
 
-        impl #service_type_args Exposure<#service_type_path> #service_type_constraints {
-            #(#exposure_funcs)*
+        impl #service_type_args Exposure<#service_type> #service_type_constraints {
+            #( #exposure_funcs )*
 
             pub async fn handle(&mut self, mut #input_ident: &[u8]) -> Vec<u8> {
-                #(#invocation_dispatches)*
-                #unexpected_route_panic
+                self.try_handle( #input_ident ).await.unwrap_or_else(|| {
+                    #unexpected_route_panic
+                })
+            }
+
+            pub async fn try_handle(&mut self, #input_ident : &[u8]) -> Option<Vec<u8>> {
+                #( #invocation_dispatches )*
+                #( #base_exposures_invocations )*
+                None
             }
 
             #(#invocation_funcs)*
         }
 
-        impl #service_type_args sails_rtl::gstd::services::Exposure for Exposure<#service_type_path> #service_type_constraints {
+        impl #service_type_args sails_rtl::gstd::services::Exposure for Exposure< #service_type > #service_type_constraints {
             fn message_id(&self) -> sails_rtl::MessageId {
                 self. #message_id_ident
             }
@@ -207,15 +282,22 @@ fn gen_gservice_impl(service_impl: ItemImpl) -> TokenStream2 {
             }
         }
 
-        impl #service_type_args sails_rtl::gstd::services::Service for #service_type_path #service_type_constraints {
-            type Exposure = Exposure< #service_type_path >;
+        #( #exposure_as_ref_impls )*
+
+        impl #service_type_args sails_rtl::gstd::services::Service for #service_type #service_type_constraints {
+            type Exposure = Exposure< #service_type >;
 
             fn expose(self, #message_id_ident : sails_rtl::MessageId, #route_ident : &'static [u8]) -> Self::Exposure {
-                Self::Exposure { #message_id_ident , #route_ident , inner: self }
+                Self::Exposure {
+                    #message_id_ident ,
+                    #route_ident ,
+                    #( #base_exposures_instantiations )*
+                    #inner_ident : self,
+                }
             }
         }
 
-        impl #service_type_args sails_rtl::meta::ServiceMeta for #service_type_path #service_type_constraints {
+        impl #service_type_args sails_rtl::meta::ServiceMeta for #service_type #service_type_constraints {
             fn commands() -> #scale_info_path ::MetaType {
                 #scale_info_path ::MetaType::new::<meta::CommandsMeta>()
             }
@@ -226,6 +308,12 @@ fn gen_gservice_impl(service_impl: ItemImpl) -> TokenStream2 {
 
             fn events() -> #scale_info_path ::MetaType {
                 #scale_info_path ::MetaType::new::<meta::EventsMeta>()
+            }
+
+            fn base_services() -> impl Iterator<Item = sails_rtl::meta::AnyServiceMeta> {
+                [
+                    #( #base_services_meta ),*
+                ].into_iter()
             }
         }
 
@@ -262,6 +350,59 @@ fn gen_gservice_impl(service_impl: ItemImpl) -> TokenStream2 {
             pub type EventsMeta = #events_type;
         }
     )
+}
+
+struct ServiceArgs {
+    items: Punctuated<ServiceArg, Token![,]>,
+}
+
+impl Parse for ServiceArgs {
+    fn parse(input: ParseStream) -> SynResult<Self> {
+        Ok(Self {
+            items: input.parse_terminated(ServiceArg::parse, Token![,])?,
+        })
+    }
+}
+
+#[derive(Debug)]
+enum ServiceArg {
+    Extends(Vec<Path>),
+}
+
+impl Parse for ServiceArg {
+    fn parse(input: ParseStream) -> SynResult<Self> {
+        let ident = input.parse::<Ident>()?;
+        input.parse::<Token![=]>()?;
+        let values = input.parse::<Expr>()?;
+        match ident.to_string().as_str() {
+            "extends" => {
+                if let Expr::Path(path_expr) = values {
+                    // Check path_expr.attrs is empty and qself is none
+                    return Ok(Self::Extends(vec![path_expr.path]));
+                } else if let Expr::Array(array_expr) = values {
+                    let mut paths = Vec::new();
+                    for item_expr in array_expr.elems {
+                        if let Expr::Path(path_expr) = item_expr {
+                            paths.push(path_expr.path);
+                        } else {
+                            abort!(
+                                item_expr,
+                                "unexpected value for `extends` argument: {}",
+                                item_expr.to_token_stream()
+                            )
+                        }
+                    }
+                    return Ok(Self::Extends(paths));
+                }
+                abort!(
+                    ident,
+                    "unexpected value for `extends` argument: {}",
+                    values.to_token_stream()
+                )
+            }
+            _ => abort!(ident, "unknown argument: {}", ident),
+        }
+    }
 }
 
 fn discover_service_handlers(service_impl: &ItemImpl) -> BTreeMap<String, (&ImplItemFn, usize)> {
@@ -348,7 +489,7 @@ impl<'a> HandlerGenerator<'a> {
             .map_or(true, |r| r.mutability.is_none())
     }
 
-    fn params_struct(&self) -> TokenStream2 {
+    fn params_struct(&self) -> TokenStream {
         let params_struct_ident = self.params_struct_ident();
         let params_struct_members = self.handler.params().iter().map(|item| {
             let arg_ident = item.0;
@@ -363,7 +504,7 @@ impl<'a> HandlerGenerator<'a> {
         )
     }
 
-    fn invocation_func(&self) -> TokenStream2 {
+    fn invocation_func(&self) -> TokenStream {
         let invocation_func_ident = self.invocation_func_ident();
         let receiver = self.handler.receiver();
         let params_struct_ident = self.params_struct_ident();

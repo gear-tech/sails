@@ -2,7 +2,7 @@ use quote::quote;
 use sails_macros_core::__gprogram_internal as gprogram;
 
 #[test]
-fn gprogram_generates_init_for_single_ctor() {
+fn generates_init_for_single_ctor() {
     let input = quote! {
         impl MyProgram {
             pub async fn new(p1: u32, p2: String) -> Self {
@@ -18,7 +18,7 @@ fn gprogram_generates_init_for_single_ctor() {
 }
 
 #[test]
-fn gprogram_generates_init_for_multiple_ctors() {
+fn generates_init_for_multiple_ctors() {
     let input = quote! {
         impl MyProgram {
             pub async fn new(p1: u32, p2: String) -> Self {
@@ -38,7 +38,7 @@ fn gprogram_generates_init_for_multiple_ctors() {
 }
 
 #[test]
-fn gprogram_generates_init_for_no_ctor() {
+fn generates_init_for_no_ctor() {
     let input = quote! {
         impl MyProgram {
         }
@@ -51,7 +51,7 @@ fn gprogram_generates_init_for_no_ctor() {
 }
 
 #[test]
-fn gprogram_generates_handle_for_single_service_with_non_empty_route() {
+fn generates_handle_for_single_service_with_non_empty_route() {
     let input = quote! {
         impl MyProgram {
             pub fn service(&self) -> MyService {
@@ -67,7 +67,7 @@ fn gprogram_generates_handle_for_single_service_with_non_empty_route() {
 }
 
 #[test]
-fn gprogram_generates_handle_for_multiple_services_with_non_empty_routes() {
+fn generates_handle_for_multiple_services_with_non_empty_routes() {
     let input = quote! {
         impl MyProgram {
             #[groute("svc1")]
