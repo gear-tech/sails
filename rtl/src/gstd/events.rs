@@ -13,7 +13,7 @@ pub trait EventTrigger<TEvents> {
     fn trigger(&self, event: TEvents) -> Result<()>;
 }
 
-#[derive(Default)]
+#[derive(Default, Clone)]
 pub struct GStdEventTrigger<TEvents> {
     _tevents: PhantomData<TEvents>,
 }
@@ -93,7 +93,7 @@ where
 pub mod mocks {
     use super::*;
 
-    #[derive(Default)]
+    #[derive(Default, Clone)]
     pub struct MockEventTrigger<TEvents> {
         _tevents: PhantomData<TEvents>,
     }
