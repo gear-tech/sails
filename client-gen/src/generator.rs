@@ -191,8 +191,7 @@ impl CtorFactoryGenerator {
 
 impl<'ast> Visitor<'ast> for CtorFactoryGenerator {
     fn visit_ctor(&mut self, ctor: &'ast Ctor) {
-        self.code
-            .push_str("#[derive(Default)]");
+        self.code.push_str("#[derive(Default)]");
         self.code
             .push_str(&format!("pub struct {}Factory(());\n", self.service_name));
         self.code
