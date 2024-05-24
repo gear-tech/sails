@@ -13,12 +13,12 @@ use sails_rtl::{
     prelude::*,
     String,
 };
-pub struct RmrkCatalogFactory;
+#[derive(Default)]
+pub struct RmrkCatalogFactory(());
 impl RmrkCatalogFactory {
     #[allow(unused)]
-    #[allow(clippy::new_without_default)]
     pub fn new() -> Self {
-        Self
+        Self(())
     }
 }
 impl<A: Default> traits::RmrkCatalogFactory<A> for RmrkCatalogFactory {

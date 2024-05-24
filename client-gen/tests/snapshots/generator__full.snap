@@ -13,12 +13,12 @@ use sails_rtl::{
     prelude::*,
     String,
 };
-pub struct ServiceFactory;
+#[derive(Default)]
+pub struct ServiceFactory(());
 impl ServiceFactory {
     #[allow(unused)]
-    #[allow(clippy::new_without_default)]
     pub fn new() -> Self {
-        Self
+        Self(())
     }
 }
 impl<A: Default> traits::ServiceFactory<A> for ServiceFactory {

@@ -119,6 +119,31 @@ async fn adding_resource_to_storage_by_admin_succeeds_async() {
     assert_eq!(expected_reply, reply);
 }
 
+#[tokio::test]
+async fn adding_resource_to_storage_by_admin_via_client_succeeds() {
+    // Arrange
+    let fixture = Fixture::new(ADMIN_ID);
+    let catalog_program_id = ActorId::from(fixture.catalog_program().id().into_bytes());
+    let resource_program_id = ActorId::from(fixture.resource_program_for_async().id().into_bytes());
+
+    // Act
+    let resource =
+        rmrk_resource_client::Resource::Composed(rmrk_resource_client::ComposedResource {
+            src: "<src_uri>".into(),
+            thumb: "<thumb_uri>".into(),
+            metadata_uri: "<metadata_uri>".into(),
+            base: catalog_program_id,
+            parts: vec![1, 2, 3],
+        });
+    let add_reply = fixture
+        .add_resource_via_client(resource_program_id, RESOURCE_ID, resource)
+        .await
+        .unwrap();
+
+    // Assert
+    assert_eq!(RESOURCE_ID, add_reply.0);
+}
+
 #[test]
 fn adding_existing_part_to_resource_by_admin_succeeds() {
     // Arrange
@@ -169,6 +194,62 @@ fn adding_existing_part_to_resource_by_admin_succeeds() {
     }
 }
 
+#[tokio::test]
+async fn adding_existing_part_to_resource_by_admin_via_client_succeeds() {
+    // Arrange
+    let fixture = Fixture::new(ADMIN_ID);
+    let catalog_program_id = ActorId::from(fixture.catalog_program().id().into_bytes());
+    let resource_program_id = ActorId::from(fixture.resource_program_for_async().id().into_bytes());
+    let resource =
+        rmrk_resource_client::Resource::Composed(rmrk_resource_client::ComposedResource {
+            src: "<src_uri>".into(),
+            thumb: "<thumb_uri>".into(),
+            metadata_uri: "<metadata_uri>".into(),
+            base: catalog_program_id,
+            parts: vec![1, 2, 3],
+        });
+    let _ = fixture
+        .add_resource_via_client(resource_program_id, RESOURCE_ID, resource)
+        .await
+        .unwrap();
+
+    let mut parts = BTreeMap::new();
+    parts.insert(
+        PART_ID,
+        Part::Fixed(FixedPart {
+            z: Some(1),
+            metadata_uri: "<metadata_uri>".into(),
+        }),
+    );
+    fixture.add_parts(ADMIN_ID, &parts);
+
+    // Act
+    let add_part_reply = fixture
+        .add_part_to_resource_via_client(resource_program_id, RESOURCE_ID, PART_ID)
+        .await
+        .unwrap();
+
+    // Assert
+    assert_eq!(PART_ID, add_part_reply);
+
+    // Act
+    let resource_reply = fixture
+        .get_resource_via_client(resource_program_id, RESOURCE_ID)
+        .await
+        .unwrap();
+
+    // Assert
+    if let rmrk_resource_client::Resource::Composed(rmrk_resource_client::ComposedResource {
+        parts,
+        ..
+    }) = resource_reply
+    {
+        assert_eq!(vec![1, 2, 3, PART_ID], parts);
+    } else {
+        panic!("Resource is not composed");
+    }
+}
+
 #[test]
 fn adding_non_existing_part_to_resource_fails() {
     // Arrange
@@ -197,87 +278,6 @@ fn adding_non_existing_part_to_resource_fails() {
     ]
     .concat();
     assert!(run_result.contains(&(ADMIN_ID, expected_response)));
-}
-
-#[tokio::test]
-async fn adding_resource_to_storage_using_client_succeeds() {
-    // Arrange
-    let fixture = Fixture::new(ADMIN_ID);
-    let base_id = ActorId::from(fixture.catalog_program().id().into_bytes());
-    let actor_id = ActorId::from(fixture.resource_program_for_async().id().into_bytes());
-
-    // Act
-    let resource =
-        rmrk_resource_client::Resource::Composed(rmrk_resource_client::ComposedResource {
-            src: "<src_uri>".into(),
-            thumb: "<thumb_uri>".into(),
-            metadata_uri: "<metadata_uri>".into(),
-            base: base_id,
-            parts: vec![1, 2, 3],
-        });
-    let add_reply = fixture
-        .add_resource_using_client(actor_id, RESOURCE_ID, resource)
-        .await
-        .unwrap();
-
-    // Assert
-    assert_eq!(RESOURCE_ID, add_reply.0);
-}
-
-#[tokio::test]
-async fn adding_part_to_resource_using_client_succeeds() {
-    // Arrange
-    let fixture = Fixture::new(ADMIN_ID);
-    let base_id = ActorId::from(fixture.catalog_program().id().into_bytes());
-    let actor_id = ActorId::from(fixture.resource_program_for_async().id().into_bytes());
-    let resource =
-        rmrk_resource_client::Resource::Composed(rmrk_resource_client::ComposedResource {
-            src: "<src_uri>".into(),
-            thumb: "<thumb_uri>".into(),
-            metadata_uri: "<metadata_uri>".into(),
-            base: base_id,
-            parts: vec![1, 2, 3],
-        });
-    let _ = fixture
-        .add_resource_using_client(actor_id, RESOURCE_ID, resource)
-        .await
-        .unwrap();
-
-    let mut parts = BTreeMap::new();
-    parts.insert(
-        PART_ID,
-        Part::Fixed(FixedPart {
-            z: Some(1),
-            metadata_uri: "<metadata_uri>".into(),
-        }),
-    );
-    fixture.add_parts(ADMIN_ID, &parts);
-
-    // Act
-    let add_part_reply = fixture
-        .add_part_to_resource_using_client(actor_id, RESOURCE_ID, PART_ID)
-        .await
-        .unwrap();
-
-    // Assert
-    assert_eq!(PART_ID, add_part_reply);
-
-    // Act
-    let resource_reply = fixture
-        .get_resource_using_client(actor_id, RESOURCE_ID)
-        .await
-        .unwrap();
-
-    // Assert
-    if let rmrk_resource_client::Resource::Composed(rmrk_resource_client::ComposedResource {
-        parts,
-        ..
-    }) = resource_reply
-    {
-        assert_eq!(vec![1, 2, 3, PART_ID], parts);
-    } else {
-        panic!("Resource is not composed");
-    }
 }
 
 struct Fixture<'a> {
@@ -407,6 +407,21 @@ impl<'a> Fixture<'a> {
         reply.await
     }
 
+    async fn add_resource_via_client(
+        &'a self,
+        program_id: ActorId,
+        resource_id: u8,
+        resource: rmrk_resource_client::Resource,
+    ) -> Result<(u8, rmrk_resource_client::Resource), TestError> {
+        let mut resource_client = self.resource_client();
+        let call = resource_client
+            .add_resource_entry(resource_id, resource)
+            .with_args(GTestArgs::new(self.admin_id.into()))
+            .publish(program_id)
+            .await?;
+        sails_rtl::Ok(call.reply().await??)
+    }
+
     fn add_part_to_resource(
         &'a self,
         actor_id: u64,
@@ -422,6 +437,21 @@ impl<'a> Fixture<'a> {
         ]
         .concat();
         program.send_bytes(actor_id, encoded_request)
+    }
+
+    async fn add_part_to_resource_via_client(
+        &'a self,
+        program_id: ActorId,
+        resource_id: u8,
+        part_id: u32,
+    ) -> Result<u32, TestError> {
+        let mut resource_client = self.resource_client();
+        let call = resource_client
+            .add_part_to_resource(resource_id, part_id)
+            .with_args(GTestArgs::new(self.admin_id.into()))
+            .publish(program_id)
+            .await?;
+        sails_rtl::Ok(call.reply().await??)
     }
 
     fn get_resource(
@@ -454,6 +484,20 @@ impl<'a> Fixture<'a> {
             })
     }
 
+    async fn get_resource_via_client(
+        &'a self,
+        program_id: ActorId,
+        resource_id: u8,
+    ) -> Result<rmrk_resource_client::Resource, TestError> {
+        let resource_client = self.resource_client();
+        let call = resource_client
+            .resource(resource_id)
+            .with_args(GTestArgs::new(self.admin_id.into()))
+            .publish(program_id)
+            .await?;
+        sails_rtl::Ok(call.reply().await??)
+    }
+
     fn add_parts(&'a self, actor_id: u64, parts: &BTreeMap<PartId, Part>) -> RunResult {
         let program = self.catalog_program();
         let encoded_request = [
@@ -463,49 +507,6 @@ impl<'a> Fixture<'a> {
         ]
         .concat();
         program.send_bytes(actor_id, encoded_request)
-    }
-
-    async fn add_resource_using_client(
-        &'a self,
-        actor_id: ActorId,
-        resource_id: u8,
-        resource: rmrk_resource_client::Resource,
-    ) -> Result<(u8, rmrk_resource_client::Resource), TestError> {
-        let mut resource_client = self.resource_client();
-        let call = resource_client
-            .add_resource_entry(resource_id, resource)
-            .with_args(GTestArgs::new(self.admin_id.into()))
-            .publish(actor_id)
-            .await?;
-        sails_rtl::Ok(call.reply().await??)
-    }
-
-    async fn add_part_to_resource_using_client(
-        &'a self,
-        actor_id: ActorId,
-        resource_id: u8,
-        part_id: u32,
-    ) -> Result<u32, TestError> {
-        let mut resource_client = self.resource_client();
-        let call = resource_client
-            .add_part_to_resource(resource_id, part_id)
-            .with_args(GTestArgs::new(self.admin_id.into()))
-            .publish(actor_id)
-            .await?;
-        sails_rtl::Ok(call.reply().await??)
-    }
-
-    async fn get_resource_using_client(
-        &'a self,
-        actor_id: ActorId,
-        resource_id: u8,
-    ) -> Result<rmrk_resource_client::Resource, TestError> {
-        let resource_client = self.resource_client();
-        let call = resource_client
-            .resource(resource_id)
-            .publish(actor_id)
-            .await?;
-        sails_rtl::Ok(call.reply().await??)
     }
 }
 
