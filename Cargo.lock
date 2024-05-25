@@ -3781,13 +3781,11 @@ version = "0.1.0"
 dependencies = [
  "gear-wasm-builder",
  "gtest",
- "parity-scale-codec",
  "rmrk-catalog",
  "rmrk-resource-app",
  "sails-client-gen",
  "sails-idl-gen",
  "sails-rtl",
- "scale-info",
  "thiserror-no-std",
  "tokio",
 ]
