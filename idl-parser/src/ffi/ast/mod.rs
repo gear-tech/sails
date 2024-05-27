@@ -42,14 +42,25 @@ fn create_error(e: impl Error, context: &str) -> *mut ParseResult {
 
 /// # Safety
 ///
-/// TODO
+/// Pointer must be obtained from [`parse_idl`].
 #[no_mangle]
-pub unsafe extern "C" fn free_program(program: *mut Program) {
-    if program.is_null() {
+pub unsafe extern "C" fn free_result(result: *mut ParseResult) {
+    if result.is_null() {
         return;
     }
     unsafe {
-        drop(Box::from_raw(program));
+        let result = Box::from_raw(result);
+
+        match *result {
+            ParseResult::Success(program) => {
+                let program = Box::from_raw(program);
+                drop(program);
+            }
+            ParseResult::Error(err) => {
+                let err = CString::from_raw(err as *mut i8);
+                drop(err);
+            }
+        }
     }
 }
 

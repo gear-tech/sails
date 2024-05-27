@@ -23,7 +23,7 @@ const WASM_PAGE_SIZE = 0x10000;
 interface ParserInstance extends WebAssembly.Instance {
   exports: {
     parse_idl: (idl_ptr: number, idl_len: number) => number;
-    free_program: (program_ptr: number) => void;
+    free_result: (result_ptr: number) => void;
     accept_program: (program_ptr: number, ctx: number) => void;
     accept_ctor: (ctor_ptr: number, ctx: number) => void;
     accept_ctor_func: (func_ptr: number, ctx: number) => void;
@@ -284,7 +284,7 @@ export class WasmParser {
     this._program = new Program();
     this._instance.exports.accept_program(programPtr, 0);
 
-    this._exports.free_program(programPtr);
+    this._exports.free_result(resultPtr);
     this.clearMemory();
     return this._program;
   }
