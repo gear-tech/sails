@@ -304,10 +304,10 @@
   dependencies:
     "@jridgewell/trace-mapping" "0.3.9"
 
-"@gear-js/api@^0.38.0":
-  version "0.38.0"
-  resolved "https://registry.yarnpkg.com/@gear-js/api/-/api-0.38.0.tgz#7a2f6745d3e2a476e226a44c0814f8a2d9f09ca2"
-  integrity sha512-zc+h5tv1P/qNPaihk8Za4x3IqBqseKDlMLzHNSk4GR5P3B4IN7xRzTtE/nK5v3Aunhej8DxEyO8iZwUsuib8wQ==
+"@gear-js/api@^0.38.1":
+  version "0.38.1"
+  resolved "https://registry.yarnpkg.com/@gear-js/api/-/api-0.38.1.tgz#4a79144e59512633d4f819370354912678dcc108"
+  integrity sha512-SghbC+9Jc5YsNjuO/I3cHMlBXkUZK8OgpI7bXyP3fetQo/Ls4/cgv4JD/XX2S7Y/UpG+gSdSEXaxpU1g7OYK7A==
 
 "@istanbuljs/load-nyc-config@^1.0.0":
   version "1.1.0"
