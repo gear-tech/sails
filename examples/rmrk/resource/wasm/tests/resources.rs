@@ -134,7 +134,7 @@ async fn adding_resource_to_storage_by_admin_via_client_succeeds() {
         parts: vec![1, 2, 3],
     });
     let add_reply = fixture
-        .add_resource_via_client(resource_program_id, RESOURCE_ID, resource)
+        .add_resource_via_client(ADMIN_ID, RESOURCE_ID, resource, resource_program_id)
         .await
         .unwrap()
         .unwrap();
@@ -207,7 +207,7 @@ async fn adding_existing_part_to_resource_by_admin_via_client_succeeds() {
         parts: vec![1, 2, 3],
     });
     let _ = fixture
-        .add_resource_via_client(resource_program_id, RESOURCE_ID, resource)
+        .add_resource_via_client(ADMIN_ID, RESOURCE_ID, resource, resource_program_id)
         .await
         .unwrap()
         .unwrap();
@@ -224,7 +224,7 @@ async fn adding_existing_part_to_resource_by_admin_via_client_succeeds() {
 
     // Act
     let add_part_reply = fixture
-        .add_part_to_resource_via_client(resource_program_id, RESOURCE_ID, PART_ID)
+        .add_part_to_resource_via_client(ADMIN_ID, RESOURCE_ID, PART_ID, resource_program_id)
         .await
         .unwrap()
         .unwrap();
@@ -407,14 +407,15 @@ impl<'a> Fixture<'a> {
 
     async fn add_resource_via_client(
         &'a self,
-        program_id: ActorId,
+        actor_id: u64,
         resource_id: u8,
         resource: resource_client::Resource,
+        program_id: ActorId,
     ) -> Result<Result<(u8, resource_client::Resource), resource_client::Error>> {
         let mut resource_client = self.resource_client();
         let call = resource_client
             .add_resource_entry(resource_id, resource)
-            .with_args(GTestArgs::new(self.admin_id.into()))
+            .with_args(GTestArgs::new(actor_id.into()))
             .publish(program_id)
             .await?;
         call.reply().await
@@ -439,14 +440,15 @@ impl<'a> Fixture<'a> {
 
     async fn add_part_to_resource_via_client(
         &'a self,
-        program_id: ActorId,
+        actor_id: u64,
         resource_id: u8,
         part_id: u32,
+        program_id: ActorId,
     ) -> Result<Result<u32, resource_client::Error>> {
         let mut resource_client = self.resource_client();
         let call = resource_client
             .add_part_to_resource(resource_id, part_id)
-            .with_args(GTestArgs::new(self.admin_id.into()))
+            .with_args(GTestArgs::new(actor_id.into()))
             .publish(program_id)
             .await?;
         call.reply().await
