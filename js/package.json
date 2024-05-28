@@ -38,12 +38,12 @@
     "test": "yarn node --no-warnings --experimental-vm-modules $(yarn bin jest) --detectOpenHandles"
   },
   "peerDependencies": {
-    "@gear-js/api": "^0.38.0",
+    "@gear-js/api": "^0.38.1",
     "@polkadot/api": "^11.0.1",
     "@polkadot/types": "^11.0.1"
   },
   "devDependencies": {
-    "@gear-js/api": "^0.38.0",
+    "@gear-js/api": "^0.38.1",
     "@polkadot/api": "^11.0.1",
     "@polkadot/types": "^11.0.1",
     "@rollup/plugin-commonjs": "25.0.7",
