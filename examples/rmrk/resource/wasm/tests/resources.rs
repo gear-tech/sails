@@ -1,4 +1,4 @@
-use crate::rmrk_resource_client::traits::RmrkResource;
+use crate::resource_client::traits::RmrkResource;
 use core::cell::OnceCell;
 use gtest::{Program, RunResult};
 use rmrk_catalog::services::parts::{FixedPart, Part};
@@ -14,9 +14,8 @@ use sails_rtl::{
     gtest::calls::{GTestArgs, GTestRemoting},
     ActorId, Decode, Encode,
 };
-use thiserror_no_std::Error as ThisError;
 
-mod rmrk_resource_client;
+mod resource_client;
 
 const CATALOG_PROGRAM_WASM_PATH: &str =
     "../../../../target/wasm32-unknown-unknown/debug/rmrk_catalog.wasm";
@@ -127,17 +126,17 @@ async fn adding_resource_to_storage_by_admin_via_client_succeeds() {
     let resource_program_id = ActorId::from(fixture.resource_program_for_async().id().into_bytes());
 
     // Act
-    let resource =
-        rmrk_resource_client::Resource::Composed(rmrk_resource_client::ComposedResource {
-            src: "<src_uri>".into(),
-            thumb: "<thumb_uri>".into(),
-            metadata_uri: "<metadata_uri>".into(),
-            base: catalog_program_id,
-            parts: vec![1, 2, 3],
-        });
+    let resource = resource_client::Resource::Composed(resource_client::ComposedResource {
+        src: "<src_uri>".into(),
+        thumb: "<thumb_uri>".into(),
+        metadata_uri: "<metadata_uri>".into(),
+        base: catalog_program_id,
+        parts: vec![1, 2, 3],
+    });
     let add_reply = fixture
         .add_resource_via_client(resource_program_id, RESOURCE_ID, resource)
         .await
+        .unwrap()
         .unwrap();
 
     // Assert
@@ -200,17 +199,17 @@ async fn adding_existing_part_to_resource_by_admin_via_client_succeeds() {
     let fixture = Fixture::new(ADMIN_ID);
     let catalog_program_id = ActorId::from(fixture.catalog_program().id().into_bytes());
     let resource_program_id = ActorId::from(fixture.resource_program_for_async().id().into_bytes());
-    let resource =
-        rmrk_resource_client::Resource::Composed(rmrk_resource_client::ComposedResource {
-            src: "<src_uri>".into(),
-            thumb: "<thumb_uri>".into(),
-            metadata_uri: "<metadata_uri>".into(),
-            base: catalog_program_id,
-            parts: vec![1, 2, 3],
-        });
+    let resource = resource_client::Resource::Composed(resource_client::ComposedResource {
+        src: "<src_uri>".into(),
+        thumb: "<thumb_uri>".into(),
+        metadata_uri: "<metadata_uri>".into(),
+        base: catalog_program_id,
+        parts: vec![1, 2, 3],
+    });
     let _ = fixture
         .add_resource_via_client(resource_program_id, RESOURCE_ID, resource)
         .await
+        .unwrap()
         .unwrap();
 
     let mut parts = BTreeMap::new();
@@ -227,6 +226,7 @@ async fn adding_existing_part_to_resource_by_admin_via_client_succeeds() {
     let add_part_reply = fixture
         .add_part_to_resource_via_client(resource_program_id, RESOURCE_ID, PART_ID)
         .await
+        .unwrap()
         .unwrap();
 
     // Assert
@@ -234,14 +234,14 @@ async fn adding_existing_part_to_resource_by_admin_via_client_succeeds() {
 
     // Act
     let resource_reply = fixture
-        .get_resource_via_client(resource_program_id, RESOURCE_ID)
+        .get_resource_via_client(ADMIN_ID, RESOURCE_ID, resource_program_id)
         .await
+        .unwrap()
         .unwrap();
 
     // Assert
-    if let rmrk_resource_client::Resource::Composed(rmrk_resource_client::ComposedResource {
-        parts,
-        ..
+    if let resource_client::Resource::Composed(resource_client::ComposedResource {
+        parts, ..
     }) = resource_reply
     {
         assert_eq!(vec![1, 2, 3, PART_ID], parts);
@@ -304,10 +304,8 @@ impl<'a> Fixture<'a> {
         &self.program_space
     }
 
-    fn resource_client(
-        &self,
-    ) -> crate::rmrk_resource_client::RmrkResource<GTestRemoting, GTestArgs> {
-        crate::rmrk_resource_client::RmrkResource::new(self.program_space.clone())
+    fn resource_client(&self) -> crate::resource_client::RmrkResource<GTestRemoting, GTestArgs> {
+        crate::resource_client::RmrkResource::new(self.program_space.clone())
     }
 
     fn catalog_program(&'a self) -> &Program<'a> {
@@ -411,15 +409,15 @@ impl<'a> Fixture<'a> {
         &'a self,
         program_id: ActorId,
         resource_id: u8,
-        resource: rmrk_resource_client::Resource,
-    ) -> Result<(u8, rmrk_resource_client::Resource), TestError> {
+        resource: resource_client::Resource,
+    ) -> Result<Result<(u8, resource_client::Resource), resource_client::Error>> {
         let mut resource_client = self.resource_client();
         let call = resource_client
             .add_resource_entry(resource_id, resource)
             .with_args(GTestArgs::new(self.admin_id.into()))
             .publish(program_id)
             .await?;
-        sails_rtl::Ok(call.reply().await??)
+        call.reply().await
     }
 
     fn add_part_to_resource(
@@ -444,14 +442,14 @@ impl<'a> Fixture<'a> {
         program_id: ActorId,
         resource_id: u8,
         part_id: u32,
-    ) -> Result<u32, TestError> {
+    ) -> Result<Result<u32, resource_client::Error>> {
         let mut resource_client = self.resource_client();
         let call = resource_client
             .add_part_to_resource(resource_id, part_id)
             .with_args(GTestArgs::new(self.admin_id.into()))
             .publish(program_id)
             .await?;
-        sails_rtl::Ok(call.reply().await??)
+        call.reply().await
     }
 
     fn get_resource(
@@ -486,16 +484,17 @@ impl<'a> Fixture<'a> {
 
     async fn get_resource_via_client(
         &'a self,
-        program_id: ActorId,
+        actor_id: u64,
         resource_id: u8,
-    ) -> Result<rmrk_resource_client::Resource, TestError> {
+        program_id: ActorId,
+    ) -> Result<Result<resource_client::Resource, resource_client::Error>> {
         let resource_client = self.resource_client();
         let call = resource_client
             .resource(resource_id)
-            .with_args(GTestArgs::new(self.admin_id.into()))
+            .with_args(GTestArgs::new(actor_id.into()))
             .publish(program_id)
             .await?;
-        sails_rtl::Ok(call.reply().await??)
+        call.reply().await
     }
 
     fn add_parts(&'a self, actor_id: u64, parts: &BTreeMap<PartId, Part>) -> RunResult {
@@ -508,12 +507,4 @@ impl<'a> Fixture<'a> {
         .concat();
         program.send_bytes(actor_id, encoded_request)
     }
-}
-
-#[derive(ThisError, Debug)]
-pub enum TestError {
-    #[error("ClientError {0:?}")]
-    ClientError(#[from] rmrk_resource_client::Error),
-    #[error(transparent)]
-    RtlError(#[from] sails_rtl::errors::Error),
 }

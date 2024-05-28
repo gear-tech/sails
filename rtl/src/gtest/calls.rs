@@ -84,11 +84,9 @@ impl Remoting<GTestArgs> for GTestRemoting {
             .ok_or(RtlError::ProgramCodeIsNotFound)?;
         let program_id = gtest::calculate_program_id(code_id, salt.as_ref(), None);
         let program = Program::from_binary_with_id(&self.system, program_id, code);
-        let run_result = program.send_bytes_with_value(
-            *args.actor_id.unwrap().as_ref(),
-            payload.as_ref().to_vec(),
-            value,
-        );
+        let actor_id = args.actor_id.ok_or(RtlError::ActorIsNotSet)?;
+        let run_result =
+            program.send_bytes_with_value(*actor_id.as_ref(), payload.as_ref().to_vec(), value);
         Ok(async move {
             let reply = Self::extract_reply(run_result)?;
             Ok((program_id.as_ref().into(), reply))
@@ -106,11 +104,9 @@ impl Remoting<GTestArgs> for GTestRemoting {
             .system
             .get_program(*target.as_ref())
             .ok_or(RtlError::ProgramIsNotFound)?;
-        let run_result = program.send_bytes_with_value(
-            *args.actor_id.unwrap().as_ref(),
-            payload.as_ref().to_vec(),
-            value,
-        );
+        let actor_id = args.actor_id.ok_or(RtlError::ActorIsNotSet)?;
+        let run_result =
+            program.send_bytes_with_value(*actor_id.as_ref(), payload.as_ref().to_vec(), value);
         Ok(async move { Self::extract_reply(run_result) })
     }
 }
