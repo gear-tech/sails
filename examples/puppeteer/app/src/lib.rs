@@ -54,15 +54,17 @@ where
 mod tests {
     use super::*;
 
-    use puppet::{DoThatParam, ManyVariants, ThisThatSvcCallBuilder};
+    use puppet::{this_that_svc_calls, DoThatParam, ManyVariants};
 
     #[test]
-    fn test_call_builder() {
-        let bytes = ThisThatSvcCallBuilder::do_that(DoThatParam {
+    fn test_call_module() {
+        let bytes = this_that_svc_calls::DoThatCall(DoThatParam {
             p1: u32::MAX,
             p2: "hello".to_string(),
             p3: ManyVariants::One,
-        });
+        })
+        .encode();
+
         assert_eq!(
             bytes,
             vec![
@@ -72,5 +74,10 @@ mod tests {
                 0    // p3
             ]
         );
+
+        let call = this_that_svc_calls::DoThatCall::from_bytes(&bytes).expect("decode call");
+        assert_eq!(call.0.p1, u32::MAX);
+        assert_eq!(call.0.p2, "hello");
+        assert_eq!(call.0.p3, ManyVariants::One);
     }
 }
