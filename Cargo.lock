@@ -4098,8 +4098,10 @@ dependencies = [
  "gtest",
  "rmrk-catalog",
  "rmrk-resource-app",
+ "sails-client-gen",
  "sails-idl-gen",
  "sails-rtl",
+ "thiserror-no-std",
  "tokio",
 ]
 

@@ -14,7 +14,7 @@ pub trait ExecContext {
     fn message_id(&self) -> MessageId;
 }
 
-#[derive(Default)]
+#[derive(Default, Clone)]
 pub struct GStdExecContext {
     msg_source: OnceCell<ActorId>,
     msg_id: OnceCell<MessageId>,

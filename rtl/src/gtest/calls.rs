@@ -8,22 +8,24 @@ use core::future::Future;
 use gear_core_errors::{ReplyCode, SuccessReplyReason};
 use gtest::{Program, RunResult, System};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Default, Clone)]
 pub struct GTestArgs {
-    actor_id: ActorId,
+    actor_id: Option<ActorId>,
 }
 
 impl GTestArgs {
     pub fn new(actor_id: ActorId) -> Self {
-        Self { actor_id }
+        Self {
+            actor_id: Some(actor_id),
+        }
     }
 
     pub fn with_actor_id(mut self, actor_id: ActorId) -> Self {
-        self.actor_id = actor_id;
+        self.actor_id = Some(actor_id);
         self
     }
 
-    pub fn actor_id(&self) -> ActorId {
+    pub fn actor_id(&self) -> Option<ActorId> {
         self.actor_id
     }
 }
@@ -81,8 +83,9 @@ impl Remoting<GTestArgs> for GTestRemoting {
             .ok_or(RtlError::ProgramCodeIsNotFound)?;
         let program_id = gtest::calculate_program_id(code_id, salt.as_ref(), None);
         let program = Program::from_binary_with_id(&self.system, program_id, code);
+        let actor_id = args.actor_id.ok_or(RtlError::ActorIsNotSet)?;
         let run_result =
-            program.send_bytes_with_value(args.actor_id.as_ref(), payload.as_ref().to_vec(), value);
+            program.send_bytes_with_value(actor_id.as_ref(), payload.as_ref().to_vec(), value);
         Ok(async move {
             let reply = Self::extract_reply(run_result)?;
             Ok((program_id, reply))
@@ -100,8 +103,9 @@ impl Remoting<GTestArgs> for GTestRemoting {
             .system
             .get_program(target.as_ref())
             .ok_or(RtlError::ProgramIsNotFound)?;
+        let actor_id = args.actor_id.ok_or(RtlError::ActorIsNotSet)?;
         let run_result =
-            program.send_bytes_with_value(args.actor_id.as_ref(), payload.as_ref().to_vec(), value);
+            program.send_bytes_with_value(actor_id.as_ref(), payload.as_ref().to_vec(), value);
         Ok(async move { Self::extract_reply(run_result) })
     }
 }
