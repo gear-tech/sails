@@ -76,9 +76,9 @@ pub mod multiple_calls {
         }
 
         #[allow(unused)]
-        pub fn decode_reply(reply: Vec<u8>) -> Result<u16, parity_scale_codec::Error> {
-            let mut reply = reply.as_slice();
-            let result = Decode::decode(&mut reply)?;
+        pub fn decode_reply(mut reply: &[u8]) -> Result<u16, sails_rtl::errors::Error> {
+            let result =
+                Decode::decode(&mut reply).map_err(|e| sails_rtl::errors::Error::Codec(e))?;
             Ok(result)
         }
     }
@@ -107,9 +107,9 @@ pub mod multiple_calls {
         }
 
         #[allow(unused)]
-        pub fn decode_reply(reply: Vec<u8>) -> Result<u8, parity_scale_codec::Error> {
-            let mut reply = reply.as_slice();
-            let result = Decode::decode(&mut reply)?;
+        pub fn decode_reply(mut reply: &[u8]) -> Result<u8, sails_rtl::errors::Error> {
+            let result =
+                Decode::decode(&mut reply).map_err(|e| sails_rtl::errors::Error::Codec(e))?;
             Ok(result)
         }
     }
@@ -175,9 +175,9 @@ pub mod named_calls {
         }
 
         #[allow(unused)]
-        pub fn decode_reply(reply: Vec<u8>) -> Result<String, parity_scale_codec::Error> {
-            let mut reply = reply.as_slice();
-            let result = Decode::decode(&mut reply)?;
+        pub fn decode_reply(mut reply: &[u8]) -> Result<String, sails_rtl::errors::Error> {
+            let result =
+                Decode::decode(&mut reply).map_err(|e| sails_rtl::errors::Error::Codec(e))?;
             Ok(result)
         }
     }

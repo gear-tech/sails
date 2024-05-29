@@ -10,8 +10,6 @@ pub fn generate(program: Program, default_service_name: &str) -> Result<String> 
 
     let code = generator.finalize();
 
-    println!("{}", code);
-
     // Check for parsing errors
     let code = pretty_with_rustfmt(&code);
 
@@ -717,7 +715,6 @@ impl<'ast> Visitor<'ast> for CallBuilderGenerator {
 
         self.code.push_str("}\n\n");
 
-        // reply generator
         let mut decode_reply_gen = DecodeReplyGenerator::new();
         decode_reply_gen.visit_service_func(func);
 
@@ -754,18 +751,17 @@ impl<'ast> Visitor<'ast> for DecodeReplyGenerator {
         self.code.push_str(&format!(
             "
             #[allow(unused)]
-            pub fn decode_reply(reply: Vec<u8>) -> Result<
+            pub fn decode_reply(mut reply: &[u8]) -> Result<
             ",
         ));
 
         visitor::accept_service_func(func, self);
 
-        self.code.push_str(", parity_scale_codec::Error> {\n");
+        self.code.push_str(", sails_rtl::errors::Error> {\n");
 
-        self.code.push_str("let mut reply = reply.as_slice();\n");
-
-        self.code
-            .push_str(&format!("let result = Decode::decode(&mut reply)?;\n"));
+        self.code.push_str(&format!(
+            "let result = Decode::decode(&mut reply).map_err(|e| sails_rtl::errors::Error::Codec(e))?;\n"
+        ));
 
         self.code.push_str("Ok(result)\n");
 
