@@ -1,8 +1,8 @@
 use crate::{
     calls::Remoting,
     errors::{Result, RtlError},
-    prelude::*,
     rc::Rc,
+    ActorId, CodeId, ValueUnit, Vec,
 };
 use core::future::Future;
 use gear_core_errors::{ReplyCode, SuccessReplyReason};
@@ -58,8 +58,8 @@ impl GTestRemoting {
             Err(RtlError::ReplyIsAmbiguous)?
         }
         let reply_code = reply.reply_code().ok_or(RtlError::ReplyCodeIsMissing)?;
-        if let ReplyCode::Error(error) = reply_code {
-            Err(error)?
+        if let ReplyCode::Error(reason) = reply_code {
+            Err(RtlError::ReplyHasError(reason))?
         }
         if reply_code != ReplyCode::Success(SuccessReplyReason::Manual) {
             Err(RtlError::ReplyIsMissing)?
@@ -77,7 +77,6 @@ impl Remoting<GTestArgs> for GTestRemoting {
         value: ValueUnit,
         args: GTestArgs,
     ) -> Result<impl Future<Output = Result<(ActorId, Vec<u8>)>>> {
-        let code_id = (&code_id.as_ref()[..]).into();
         let code = self
             .system
             .submitted_code(code_id)
@@ -86,10 +85,10 @@ impl Remoting<GTestArgs> for GTestRemoting {
         let program = Program::from_binary_with_id(&self.system, program_id, code);
         let actor_id = args.actor_id.ok_or(RtlError::ActorIsNotSet)?;
         let run_result =
-            program.send_bytes_with_value(*actor_id.as_ref(), payload.as_ref().to_vec(), value);
+            program.send_bytes_with_value(actor_id.as_ref(), payload.as_ref().to_vec(), value);
         Ok(async move {
             let reply = Self::extract_reply(run_result)?;
-            Ok((program_id.as_ref().into(), reply))
+            Ok((program_id, reply))
         })
     }
 
@@ -102,11 +101,11 @@ impl Remoting<GTestArgs> for GTestRemoting {
     ) -> Result<impl Future<Output = Result<Vec<u8>>>> {
         let program = self
             .system
-            .get_program(*target.as_ref())
+            .get_program(target.as_ref())
             .ok_or(RtlError::ProgramIsNotFound)?;
         let actor_id = args.actor_id.ok_or(RtlError::ActorIsNotSet)?;
         let run_result =
-            program.send_bytes_with_value(*actor_id.as_ref(), payload.as_ref().to_vec(), value);
+            program.send_bytes_with_value(actor_id.as_ref(), payload.as_ref().to_vec(), value);
         Ok(async move { Self::extract_reply(run_result) })
     }
 }

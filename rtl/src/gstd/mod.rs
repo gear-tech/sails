@@ -6,7 +6,6 @@ pub use sails_macros::*;
 pub mod calls;
 pub mod events;
 pub mod services;
-mod types;
 
 // TODO: To be renamed into SysCalls or something similar
 pub trait ExecContext {
@@ -15,7 +14,7 @@ pub trait ExecContext {
     fn message_id(&self) -> MessageId;
 }
 
-#[derive(Default)]
+#[derive(Default, Clone)]
 pub struct GStdExecContext {
     msg_source: OnceCell<ActorId>,
     msg_id: OnceCell<MessageId>,
@@ -32,10 +31,10 @@ impl GStdExecContext {
 
 impl ExecContext for GStdExecContext {
     fn actor_id(&self) -> ActorId {
-        *self.msg_source.get_or_init(|| msg::source().into())
+        *self.msg_source.get_or_init(msg::source)
     }
 
     fn message_id(&self) -> MessageId {
-        *self.msg_id.get_or_init(|| msg::id().into())
+        *self.msg_id.get_or_init(msg::id)
     }
 }

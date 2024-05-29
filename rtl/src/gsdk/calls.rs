@@ -1,8 +1,6 @@
-use crate::{calls::Remoting, errors::Result, prelude::*};
+use crate::{calls::Remoting, errors::Result, ActorId, CodeId, GasUnit, ValueUnit, Vec};
 use core::future::Future;
 use gclient::{EventProcessor, GearApi};
-use gear_core::ids::ProgramId;
-
 #[derive(Debug, Default, Clone)]
 pub struct GSdkArgs {
     gas_limit: Option<GasUnit>,
@@ -49,10 +47,9 @@ impl Remoting<GSdkArgs> for GSdkRemoting {
         value: ValueUnit,
         args: GSdkArgs,
     ) -> Result<impl Future<Output = Result<(ActorId, Vec<u8>)>>> {
-        let mut listener = self.api.subscribe().await.unwrap();
-        let code_id: gear_core::ids::CodeId = gear_core::ids::CodeId::from(*code_id.as_ref());
-        let (message_id, program_id, ..) = &self
-            .api
+        let api = self.api;
+        let mut listener = api.subscribe().await.unwrap();
+        let (message_id, program_id, ..) = api
             .create_program_bytes(
                 code_id,
                 salt,
@@ -63,11 +60,10 @@ impl Remoting<GSdkArgs> for GSdkRemoting {
             .await
             .unwrap();
 
-        let actor_id: ActorId = program_id.as_ref().into();
-        let (_, result, _) = listener.reply_bytes_on(*message_id).await.unwrap();
+        let (_, result, _) = listener.reply_bytes_on(message_id).await.unwrap();
         Ok(async move {
             let reply: Vec<u8> = result.unwrap();
-            Ok((actor_id, reply))
+            Ok((program_id, reply))
         })
     }
 
@@ -78,20 +74,14 @@ impl Remoting<GSdkArgs> for GSdkRemoting {
         value: ValueUnit,
         args: GSdkArgs,
     ) -> Result<impl Future<Output = Result<Vec<u8>>>> {
-        let mut listener = self.api.subscribe().await.unwrap();
-        let destination: ProgramId = ProgramId::from(*target.as_ref());
-        let (message_id, ..) = &self
-            .api
-            .send_message_bytes(
-                destination,
-                payload,
-                args.gas_limit.unwrap_or_default(),
-                value,
-            )
+        let api = self.api;
+        let mut listener = api.subscribe().await.unwrap();
+        let (message_id, ..) = api
+            .send_message_bytes(target, payload, args.gas_limit.unwrap_or_default(), value)
             .await
             .unwrap();
 
-        let (_, result, _) = listener.reply_bytes_on(*message_id).await.unwrap();
+        let (_, result, _) = listener.reply_bytes_on(message_id).await.unwrap();
         Ok(async move {
             let reply = result.unwrap();
             Ok(reply)

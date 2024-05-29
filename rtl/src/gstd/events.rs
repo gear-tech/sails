@@ -13,7 +13,7 @@ pub trait EventTrigger<TEvents> {
     fn trigger(&self, event: TEvents) -> Result<()>;
 }
 
-#[derive(Default)]
+#[derive(Default, Clone)]
 pub struct GStdEventTrigger<TEvents> {
     _tevents: PhantomData<TEvents>,
 }
@@ -83,8 +83,7 @@ where
     TEvents: Encode + StaticTypeInfo,
 {
     fn trigger(&self, event: TEvents) -> Result<()> {
-        let payload =
-            Self::compose_payload(services::exposure_context(msg::id().into()).route(), event)?;
+        let payload = Self::compose_payload(services::exposure_context(msg::id()).route(), event)?;
         msg::send_bytes(GStdActorId::zero(), payload, 0)?;
         Ok(())
     }
@@ -93,7 +92,7 @@ where
 pub mod mocks {
     use super::*;
 
-    #[derive(Default)]
+    #[derive(Default, Clone)]
     pub struct MockEventTrigger<TEvents> {
         _tevents: PhantomData<TEvents>,
     }

@@ -10,7 +10,6 @@ use sails_rtl::{
         gservice, ExecContext,
     },
     prelude::*,
-    ActorId,
 };
 
 pub mod errors;
@@ -172,7 +171,6 @@ mod tests {
         calls::{Remoting, RemotingAction},
         collections::BTreeMap,
         gstd::events::mocks::MockEventTrigger,
-        ActorId,
     };
 
     type MockResourceStorageEventTrigger = MockEventTrigger<ResourceStorageEvent>;
