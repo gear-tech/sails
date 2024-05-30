@@ -7,7 +7,7 @@ test:
 	@cargo test --workspace --all-targets
 
 clippy:
-	@cargo clippy --workspace --all-targets -- -D warnings -A unused-imports
+	@cargo clippy --workspace --all-targets -- -D warnings
 
 build-parser:
 	@echo "Building idlparser"

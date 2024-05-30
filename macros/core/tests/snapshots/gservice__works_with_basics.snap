@@ -1,5 +1,5 @@
 ---
-source: macros/core/tests/service.rs
+source: macros/core/tests/gservice.rs
 expression: result
 ---
 impl SomeService {
@@ -25,6 +25,27 @@ impl Exposure<SomeService> {
         self.inner.this(p1)
     }
     pub async fn handle(&mut self, mut input: &[u8]) -> Vec<u8> {
+        self.try_handle(input)
+            .await
+            .unwrap_or_else(|| {
+                {
+                    let mut __input = input;
+                    let input = String::decode(&mut __input)
+                        .unwrap_or_else(|_| {
+                            if input.len() <= 8 {
+                                format!("0x{}", sails_rtl::hex::encode(input))
+                            } else {
+                                format!(
+                                    "0x{}..{}", sails_rtl::hex::encode(& input[..4]),
+                                    sails_rtl::hex::encode(& input[input.len() - 4..])
+                                )
+                            }
+                        });
+                    panic!("Unknown request: {}", input)
+                }
+            })
+    }
+    pub async fn try_handle(&mut self, input: &[u8]) -> Option<Vec<u8>> {
         if input.starts_with(&[24u8, 68u8, 111u8, 84u8, 104u8, 105u8, 115u8]) {
             let output = self.__do_this(&input[7usize..]).await;
             static INVOCATION_ROUTE: [u8; 7usize] = [
@@ -36,28 +57,14 @@ impl Exposure<SomeService> {
                 105u8,
                 115u8,
             ];
-            return [INVOCATION_ROUTE.as_ref(), &output].concat();
+            return Some([INVOCATION_ROUTE.as_ref(), &output].concat());
         }
         if input.starts_with(&[16u8, 84u8, 104u8, 105u8, 115u8]) {
             let output = self.__this(&input[5usize..]).await;
             static INVOCATION_ROUTE: [u8; 5usize] = [16u8, 84u8, 104u8, 105u8, 115u8];
-            return [INVOCATION_ROUTE.as_ref(), &output].concat();
+            return Some([INVOCATION_ROUTE.as_ref(), &output].concat());
         }
-        {
-            let mut __input = input;
-            let input = String::decode(&mut __input)
-                .unwrap_or_else(|_| {
-                    if input.len() <= 8 {
-                        format!("0x{}", sails_rtl::hex::encode(input))
-                    } else {
-                        format!(
-                            "0x{}..{}", sails_rtl::hex::encode(& input[..4]),
-                            sails_rtl::hex::encode(& input[input.len() - 4..])
-                        )
-                    }
-                });
-            panic!("Unknown request: {}", input)
-        }
+        None
     }
     async fn __do_this(&mut self, mut input: &[u8]) -> Vec<u8> {
         let request = __DoThisParams::decode(&mut input)
@@ -103,6 +110,9 @@ impl sails_rtl::meta::ServiceMeta for SomeService {
     }
     fn events() -> sails_rtl::scale_info::MetaType {
         sails_rtl::scale_info::MetaType::new::<meta::EventsMeta>()
+    }
+    fn base_services() -> impl Iterator<Item = sails_rtl::meta::AnyServiceMeta> {
+        [].into_iter()
     }
 }
 use sails_rtl::Decode as __ServiceDecode;
