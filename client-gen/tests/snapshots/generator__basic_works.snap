@@ -77,8 +77,7 @@ pub mod basic_calls {
 
         #[allow(unused)]
         pub fn decode_reply(mut reply: &[u8]) -> Result<u16, sails_rtl::errors::Error> {
-            let result =
-                Decode::decode(&mut reply).map_err(|e| sails_rtl::errors::Error::Codec(e))?;
+            let result = Decode::decode(&mut reply).map_err(sails_rtl::errors::Error::Codec)?;
             Ok(result)
         }
     }
@@ -108,8 +107,7 @@ pub mod basic_calls {
 
         #[allow(unused)]
         pub fn decode_reply(mut reply: &[u8]) -> Result<u8, sails_rtl::errors::Error> {
-            let result =
-                Decode::decode(&mut reply).map_err(|e| sails_rtl::errors::Error::Codec(e))?;
+            let result = Decode::decode(&mut reply).map_err(sails_rtl::errors::Error::Codec)?;
             Ok(result)
         }
     }

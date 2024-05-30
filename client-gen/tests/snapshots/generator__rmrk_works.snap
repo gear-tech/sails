@@ -180,8 +180,7 @@ pub mod rmrk_catalog_calls {
         pub fn decode_reply(
             mut reply: &[u8],
         ) -> Result<Result<(u32, Vec<ActorId>), Error>, sails_rtl::errors::Error> {
-            let result =
-                Decode::decode(&mut reply).map_err(|e| sails_rtl::errors::Error::Codec(e))?;
+            let result = Decode::decode(&mut reply).map_err(sails_rtl::errors::Error::Codec)?;
             Ok(result)
         }
     }
@@ -213,8 +212,7 @@ pub mod rmrk_catalog_calls {
         pub fn decode_reply(
             mut reply: &[u8],
         ) -> Result<Result<BTreeMap<u32, Part>, Error>, sails_rtl::errors::Error> {
-            let result =
-                Decode::decode(&mut reply).map_err(|e| sails_rtl::errors::Error::Codec(e))?;
+            let result = Decode::decode(&mut reply).map_err(sails_rtl::errors::Error::Codec)?;
             Ok(result)
         }
     }
@@ -250,8 +248,7 @@ pub mod rmrk_catalog_calls {
         pub fn decode_reply(
             mut reply: &[u8],
         ) -> Result<Result<(u32, ActorId), Error>, sails_rtl::errors::Error> {
-            let result =
-                Decode::decode(&mut reply).map_err(|e| sails_rtl::errors::Error::Codec(e))?;
+            let result = Decode::decode(&mut reply).map_err(sails_rtl::errors::Error::Codec)?;
             Ok(result)
         }
     }
@@ -283,8 +280,7 @@ pub mod rmrk_catalog_calls {
         pub fn decode_reply(
             mut reply: &[u8],
         ) -> Result<Result<Vec<u32>, Error>, sails_rtl::errors::Error> {
-            let result =
-                Decode::decode(&mut reply).map_err(|e| sails_rtl::errors::Error::Codec(e))?;
+            let result = Decode::decode(&mut reply).map_err(sails_rtl::errors::Error::Codec)?;
             Ok(result)
         }
     }
@@ -320,8 +316,7 @@ pub mod rmrk_catalog_calls {
         pub fn decode_reply(
             mut reply: &[u8],
         ) -> Result<Result<(), Error>, sails_rtl::errors::Error> {
-            let result =
-                Decode::decode(&mut reply).map_err(|e| sails_rtl::errors::Error::Codec(e))?;
+            let result = Decode::decode(&mut reply).map_err(sails_rtl::errors::Error::Codec)?;
             Ok(result)
         }
     }
@@ -359,8 +354,7 @@ pub mod rmrk_catalog_calls {
         pub fn decode_reply(
             mut reply: &[u8],
         ) -> Result<Result<(), Error>, sails_rtl::errors::Error> {
-            let result =
-                Decode::decode(&mut reply).map_err(|e| sails_rtl::errors::Error::Codec(e))?;
+            let result = Decode::decode(&mut reply).map_err(sails_rtl::errors::Error::Codec)?;
             Ok(result)
         }
     }
@@ -392,8 +386,7 @@ pub mod rmrk_catalog_calls {
         pub fn decode_reply(
             mut reply: &[u8],
         ) -> Result<Result<bool, Error>, sails_rtl::errors::Error> {
-            let result =
-                Decode::decode(&mut reply).map_err(|e| sails_rtl::errors::Error::Codec(e))?;
+            let result = Decode::decode(&mut reply).map_err(sails_rtl::errors::Error::Codec)?;
             Ok(result)
         }
     }
@@ -423,8 +416,7 @@ pub mod rmrk_catalog_calls {
 
         #[allow(unused)]
         pub fn decode_reply(mut reply: &[u8]) -> Result<Option<Part>, sails_rtl::errors::Error> {
-            let result =
-                Decode::decode(&mut reply).map_err(|e| sails_rtl::errors::Error::Codec(e))?;
+            let result = Decode::decode(&mut reply).map_err(sails_rtl::errors::Error::Codec)?;
             Ok(result)
         }
     }

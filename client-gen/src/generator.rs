@@ -709,9 +709,9 @@ impl<'ast> Visitor<'ast> for CallBuilderGenerator {
             .push_str(&format!("bytes = &bytes[{route_encoded_length}..];\n"));
 
         self.code
-            .push_str(&format!("let call = Decode::decode(&mut bytes)?;\n"));
+            .push_str("let call = Decode::decode(&mut bytes)?;\n");
 
-        self.code.push_str(&format!("Ok(call)\n"));
+        self.code.push_str("Ok(call)\n");
 
         self.code.push_str("}\n\n");
 
@@ -730,15 +730,15 @@ impl<'ast> Visitor<'ast> for CallBuilderGenerator {
     }
 }
 
+#[derive(Default)]
 pub struct DecodeReplyGenerator {
     code: String,
+    is_unit: bool,
 }
 
 impl DecodeReplyGenerator {
     pub fn new() -> Self {
-        Self {
-            code: String::new(),
-        }
+        Self::default()
     }
 }
 
@@ -748,20 +748,23 @@ impl<'ast> Visitor<'ast> for DecodeReplyGenerator {
     }
 
     fn visit_service_func(&mut self, func: &'ast ServiceFunc) {
-        self.code.push_str(&format!(
+        self.code.push_str(
             "
             #[allow(unused)]
             pub fn decode_reply(mut reply: &[u8]) -> Result<
             ",
-        ));
+        );
 
         visitor::accept_service_func(func, self);
 
         self.code.push_str(", sails_rtl::errors::Error> {\n");
 
-        self.code.push_str(&format!(
-            "let result = Decode::decode(&mut reply).map_err(|e| sails_rtl::errors::Error::Codec(e))?;\n"
-        ));
+        if self.is_unit {
+            self.code.push_str("#[allow(clippy::let_unit_value)]");
+        }
+        self.code.push_str(
+            "let result = Decode::decode(&mut reply).map_err(sails_rtl::errors::Error::Codec)?;\n",
+        );
 
         self.code.push_str("Ok(result)\n");
 
@@ -770,6 +773,9 @@ impl<'ast> Visitor<'ast> for DecodeReplyGenerator {
 
     fn visit_func_output(&mut self, func_output: &'ast TypeDecl) {
         let type_decl_code = generate_type_decl_code(func_output);
+        if type_decl_code == "()" {
+            self.is_unit = true;
+        }
 
         self.code.push_str(&type_decl_code);
     }

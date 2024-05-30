@@ -114,8 +114,7 @@ pub mod service_calls {
 
         #[allow(unused)]
         pub fn decode_reply(mut reply: &[u8]) -> Result<(String, u32), sails_rtl::errors::Error> {
-            let result =
-                Decode::decode(&mut reply).map_err(|e| sails_rtl::errors::Error::Codec(e))?;
+            let result = Decode::decode(&mut reply).map_err(sails_rtl::errors::Error::Codec)?;
             Ok(result)
         }
     }
@@ -147,8 +146,7 @@ pub mod service_calls {
         pub fn decode_reply(
             mut reply: &[u8],
         ) -> Result<Result<(String, u32), (String,)>, sails_rtl::errors::Error> {
-            let result =
-                Decode::decode(&mut reply).map_err(|e| sails_rtl::errors::Error::Codec(e))?;
+            let result = Decode::decode(&mut reply).map_err(sails_rtl::errors::Error::Codec)?;
             Ok(result)
         }
     }
@@ -178,8 +176,7 @@ pub mod service_calls {
 
         #[allow(unused)]
         pub fn decode_reply(mut reply: &[u8]) -> Result<u32, sails_rtl::errors::Error> {
-            let result =
-                Decode::decode(&mut reply).map_err(|e| sails_rtl::errors::Error::Codec(e))?;
+            let result = Decode::decode(&mut reply).map_err(sails_rtl::errors::Error::Codec)?;
             Ok(result)
         }
     }
@@ -211,8 +208,7 @@ pub mod service_calls {
         pub fn decode_reply(
             mut reply: &[u8],
         ) -> Result<Result<String, String>, sails_rtl::errors::Error> {
-            let result =
-                Decode::decode(&mut reply).map_err(|e| sails_rtl::errors::Error::Codec(e))?;
+            let result = Decode::decode(&mut reply).map_err(sails_rtl::errors::Error::Codec)?;
             Ok(result)
         }
     }
