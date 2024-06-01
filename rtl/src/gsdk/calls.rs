@@ -1,6 +1,11 @@
-use crate::{calls::Remoting, errors::Result, ActorId, CodeId, GasUnit, ValueUnit, Vec};
+use crate::{
+    calls::Remoting,
+    errors::{Result, RtlError},
+    ActorId, CodeId, GasUnit, ValueUnit, Vec,
+};
 use core::future::Future;
 use gclient::{EventProcessor, GearApi};
+
 #[derive(Debug, Default, Clone)]
 pub struct GSdkArgs {
     gas_limit: Option<GasUnit>,
@@ -23,14 +28,8 @@ pub struct GSdkRemoting {
 }
 
 impl GSdkRemoting {
-    // pub async fn new(address: WSAddress) -> Result<Self> {
-    //     let api = GearApi::init_with(address).await?;
-    //     Ok(Self { api })
-    // }
-
-    pub async fn dev() -> Result<Self> {
-        let api = GearApi::dev().await.unwrap();
-        Ok(Self { api })
+    pub fn new(api: GearApi) -> Self {
+        Self { api }
     }
 
     pub fn api(&self) -> &GearApi {
@@ -48,21 +47,25 @@ impl Remoting<GSdkArgs> for GSdkRemoting {
         args: GSdkArgs,
     ) -> Result<impl Future<Output = Result<(ActorId, Vec<u8>)>>> {
         let api = self.api;
-        let mut listener = api.subscribe().await.unwrap();
-        let (message_id, program_id, ..) = api
-            .create_program_bytes(
-                code_id,
-                salt,
-                payload,
-                args.gas_limit.unwrap_or_default(),
-                value,
-            )
-            .await
-            .unwrap();
+        let gas_limit = if let Some(gas_limit) = args.gas_limit {
+            gas_limit
+        } else {
+            // api.block_gas_limit()?
+            // Calculate gas amount needed for initialization
+            let gas_info = api
+                .calculate_create_gas(None, code_id, Vec::from(payload.as_ref()), value, true)
+                .await?;
+            gas_info.min_limit
+        };
 
-        let (_, result, _) = listener.reply_bytes_on(message_id).await.unwrap();
+        let mut listener = api.subscribe().await?;
+        let (message_id, program_id, ..) = api
+            .create_program_bytes(code_id, salt, payload, gas_limit, value)
+            .await?;
+
         Ok(async move {
-            let reply: Vec<u8> = result.unwrap();
+            let (_, result, _) = listener.reply_bytes_on(message_id).await?;
+            let reply = result.map_err(RtlError::ReplyHasErrorString)?;
             Ok((program_id, reply))
         })
     }
@@ -75,15 +78,25 @@ impl Remoting<GSdkArgs> for GSdkRemoting {
         args: GSdkArgs,
     ) -> Result<impl Future<Output = Result<Vec<u8>>>> {
         let api = self.api;
-        let mut listener = api.subscribe().await.unwrap();
-        let (message_id, ..) = api
-            .send_message_bytes(target, payload, args.gas_limit.unwrap_or_default(), value)
-            .await
-            .unwrap();
+        let gas_limit = if let Some(gas_limit) = args.gas_limit {
+            gas_limit
+        } else {
+            //api.block_gas_limit()?
+            // Calculate gas amount needed for handling the message
+            let gas_info = api
+                .calculate_handle_gas(None, target, Vec::from(payload.as_ref()), value, true)
+                .await?;
+            gas_info.min_limit
+        };
 
-        let (_, result, _) = listener.reply_bytes_on(message_id).await.unwrap();
+        let mut listener = api.subscribe().await?;
+        let (message_id, ..) = api
+            .send_message_bytes(target, payload, gas_limit, value)
+            .await?;
+
         Ok(async move {
-            let reply = result.unwrap();
+            let (_, result, _) = listener.reply_bytes_on(message_id).await?;
+            let reply = result.map_err(RtlError::ReplyHasErrorString)?;
             Ok(reply)
         })
     }
