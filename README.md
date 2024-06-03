@@ -1,15 +1,24 @@
-Sails is a library for organizing inter-program transport in Gear protocol.
+# Sails &emsp; [![Build Status]][actions]
+
+Sails is a library for bringing your experience of writing programs utilizing
+Gear protocol to the next level. It deals with things like:
+- eliminating
+the necessity of writing some low-level boilerplate code and letting you to stay
+focused on your bussiness problem
+- generated [IDL](https://en.wikipedia.org/wiki/Interface_description_language) file for
+your program
+- generated client allowing to interact with your program from code written in
+different languages and executed in different runtimes
+
+---
 
 ## Getting started
 
 Add the following to your `Cargo.toml`
-```
+```toml
 [dependencies]
-sails-macros = { git = "https://github.com/gear-tech/sails" }
-gstd = { git = "https://github.com/gear-tech/gear"}
-parity-scale-codec = { version = "3.6", default-features = false }
-scale-info = { version = "2.10", default-features = false }
-sails-idl-meta = { git = "https://github.com/gear-tech/sails" }
+sails-rtl = { git = "https://github.com/gear-tech/sails" }
+gstd = "{ git = "https://github.com/gear-tech/gear", features = ["debug"] }"
 ```
 
 And then:
@@ -17,8 +26,8 @@ And then:
 ```rust
 #![no_std]
 
-use gstd::{debug, prelude::*};
-use sails_macros::gservice;
+use gstd::debug;
+use sails_rtl::{gstd::gservice, prelude::*};
 
 struct MyService;
 
@@ -33,10 +42,40 @@ impl MyService {
         true
     }
 }
+
+#[derive(Default)]
+struct MyProgram;
+
+#[gprogram]
+impl MyProgram {
+    #[groute("ping")]
+    pub fn ping_svc(&self) -> MyService {
+        MyService::new()
+    }
+}
 ```
 
-## License
+## Details
 
-`sails` is primarily distributed under the terms of both the MIT license and the Apache License (Version 2.0), at your choice.
+Bla-bla
 
-See LICENSE-APACHE, and LICENSE-MIT for details.
+### Concepts
+
+Bla-bla
+
+### Examples
+
+#### License
+
+<sup>
+Licensed under either of <a href="LICENSE-APACHE">Apache License, Version
+2.0</a> or <a href="LICENSE-MIT">MIT license</a> at your option.
+</sup>
+
+<br>
+
+<sub>
+Unless you explicitly state otherwise, any contribution intentionally submitted
+for inclusion in Serde by you, as defined in the Apache-2.0 license, shall be
+dual licensed as above, without any additional terms or conditions.
+</sub>
