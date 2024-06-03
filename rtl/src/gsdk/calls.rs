@@ -12,8 +12,8 @@ pub struct GSdkArgs {
 }
 
 impl GSdkArgs {
-    pub fn with_gas_limit(mut self, gas_limit: Option<GasUnit>) -> Self {
-        self.gas_limit = gas_limit;
+    pub fn with_gas_limit(mut self, gas_limit: GasUnit) -> Self {
+        self.gas_limit = Some(gas_limit);
         self
     }
 
@@ -47,16 +47,8 @@ impl Remoting<GSdkArgs> for GSdkRemoting {
         args: GSdkArgs,
     ) -> Result<impl Future<Output = Result<(ActorId, Vec<u8>)>>> {
         let api = self.api;
-        let gas_limit = if let Some(gas_limit) = args.gas_limit {
-            gas_limit
-        } else {
-            // api.block_gas_limit()?
-            // Calculate gas amount needed for initialization
-            let gas_info = api
-                .calculate_create_gas(None, code_id, Vec::from(payload.as_ref()), value, true)
-                .await?;
-            gas_info.min_limit
-        };
+        // Do not Calculate gas amount needed
+        let gas_limit = args.gas_limit.unwrap_or_default();
 
         let mut listener = api.subscribe().await?;
         let (message_id, program_id, ..) = api
@@ -78,16 +70,8 @@ impl Remoting<GSdkArgs> for GSdkRemoting {
         args: GSdkArgs,
     ) -> Result<impl Future<Output = Result<Vec<u8>>>> {
         let api = self.api;
-        let gas_limit = if let Some(gas_limit) = args.gas_limit {
-            gas_limit
-        } else {
-            //api.block_gas_limit()?
-            // Calculate gas amount needed for handling the message
-            let gas_info = api
-                .calculate_handle_gas(None, target, Vec::from(payload.as_ref()), value, true)
-                .await?;
-            gas_info.min_limit
-        };
+        // Do not Calculate gas amount needed
+        let gas_limit = args.gas_limit.unwrap_or_default();
 
         let mut listener = api.subscribe().await?;
         let (message_id, ..) = api
