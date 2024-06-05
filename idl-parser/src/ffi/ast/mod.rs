@@ -1,33 +1,32 @@
 use crate::ast;
 use std::{
-    ffi::{c_char, CStr, CString},
+    ffi::{c_char, CString},
     slice, str,
 };
 
 pub mod visitor;
 
 #[repr(C)]
-pub enum ParseResult {
-    Success(*mut Program),
-    Error(*mut Error),
+pub struct ParseResult {
+    program: *mut Program,
+    error: Error,
 }
 
 #[repr(C)]
-pub enum AcceptResult {
-    Success,
-    Error(*mut Error),
+pub struct AcceptResult {
+    error: Error,
 }
 
 #[repr(C)]
 pub struct Error {
     code: ErrorCode,
     details: *const c_char,
-    // If true, `details` is an allocated CString.
-    is_dynamic: bool,
 }
 
 #[repr(C)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum ErrorCode {
+    Ok,
     InvalidIDL,
     ParseError,
     NullPtr,
@@ -49,10 +48,15 @@ pub unsafe extern "C" fn parse_idl(idl_ptr: *const u8, idl_len: u32) -> *mut Par
         Err(e) => return create_parse_error(ErrorCode::ParseError, e, "parse IDL"),
     };
 
-    let program_box = Box::new(program);
-    let result = Box::new(ParseResult::Success(Box::into_raw(program_box)));
+    let result = ParseResult {
+        error: Error {
+            code: ErrorCode::Ok,
+            details: std::ptr::null(),
+        },
+        program: Box::into_raw(Box::new(program)),
+    };
 
-    Box::into_raw(result)
+    Box::into_raw(Box::new(result))
 }
 
 fn create_parse_error(
@@ -61,27 +65,33 @@ fn create_parse_error(
     context: &'static str,
 ) -> *mut ParseResult {
     let details = CString::new(format!("{}: {}", context, e)).unwrap();
-    let error = Error {
-        code,
-        is_dynamic: true,
-        details: details.into_raw(),
+    let result = ParseResult {
+        error: Error {
+            code,
+            details: details.into_raw(),
+        },
+        program: std::ptr::null_mut(),
     };
-    let result = Box::new(ParseResult::Error(Box::into_raw(Box::new(error))));
-    Box::into_raw(result)
+    Box::into_raw(Box::new(result))
 }
 
 fn ok() -> *mut AcceptResult {
-    Box::into_raw(Box::new(AcceptResult::Success))
+    Box::into_raw(Box::new(AcceptResult {
+        error: Error {
+            code: ErrorCode::Ok,
+            details: std::ptr::null(),
+        },
+    }))
 }
 
-fn create_accept_error(code: ErrorCode, msg: &'static CStr) -> *mut AcceptResult {
-    let error = Error {
-        code,
-        is_dynamic: false,
-        details: msg.as_ptr() as *const c_char,
+fn create_accept_error(code: ErrorCode) -> *mut AcceptResult {
+    let result = AcceptResult {
+        error: Error {
+            code,
+            details: std::ptr::null(),
+        },
     };
-    let result = Box::new(AcceptResult::Error(Box::into_raw(Box::new(error))));
-    Box::into_raw(result)
+    Box::into_raw(Box::new(result))
 }
 
 /// # Safety
@@ -94,20 +104,9 @@ pub unsafe extern "C" fn free_parse_result(result: *mut ParseResult) {
     }
     unsafe {
         let result = Box::from_raw(result);
-
-        match *result {
-            ParseResult::Success(t) => {
-                let program = Box::from_raw(t);
-                drop(program);
-            }
-            ParseResult::Error(errptr) => {
-                let err = Box::from_raw(errptr);
-
-                if err.is_dynamic {
-                    let err = CString::from_raw(err.details as *mut i8);
-                    drop(err);
-                }
-            }
+        if result.error.code != ErrorCode::Ok {
+            let details = CString::from_raw(result.error.details as *mut i8);
+            drop(details);
         }
     }
 }
@@ -122,12 +121,7 @@ pub unsafe extern "C" fn free_accept_result(result: *mut AcceptResult) {
     }
     unsafe {
         let result = Box::from_raw(result);
-
-        if let AcceptResult::Error(errptr) = *result {
-            let error = Box::from_raw(errptr);
-            let details = CString::from_raw(error.details as *mut i8);
-            drop(details);
-        }
+        drop(result);
     }
 }
 

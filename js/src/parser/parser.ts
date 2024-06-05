@@ -273,19 +273,16 @@ export class WasmParser {
 
     const view = new DataView(this._memory.buffer);
 
-    const discriminant = view.getUint32(resultPtr, true);
 
-    if (discriminant == 1) { // Read ParseResult enum discriminant
-      // Error
-      const errorPtr = view.getUint32(resultPtr + 4, true);
+    const errorCode = view.getUint32(resultPtr + 4, true);
 
-      const errorCode = view.getUint32(errorPtr, true)
-      const errorDetails = this.readString(view.getUint32(errorPtr + 4, true));
+    if (errorCode > 0) { // Read ParseResult enum discriminant
+      const errorDetails = this.readString(view.getUint32(resultPtr + 8, true));
 
       throw new Error(`Error code: ${errorCode}, Error details: ${errorDetails}`);
     }
 
-    const programPtr = view.getUint32(resultPtr + 4, true);
+    const programPtr = view.getUint32(resultPtr, true);
 
     this._program = new Program();
     this.handleAcceptError(this._instance.exports.accept_program(programPtr, 0));
@@ -298,14 +295,9 @@ export class WasmParser {
   private handleAcceptError(resultPtr: number) {
     const view = new DataView(this._memory.buffer);
 
-    if (view.getUint32(resultPtr, true) == 1) { // Read ParseResult enum discriminant
-      // Error
-      const errorPtr = view.getUint32(resultPtr + 4, true);
-
-      const errorCode = view.getUint32(errorPtr, true)
-      const errorDetails = this.readString(view.getUint32(errorPtr + 4, true));
-
-      throw new Error(`Error code: ${errorCode}, Error details: ${errorDetails}`);
+    const errorCode = view.getUint32(resultPtr, true);
+    if (errorCode > 0) {
+      throw new Error(`Error code: ${errorCode}`);
     }
 
     // success

@@ -88,7 +88,7 @@ static VISITOR: Visitor = Visitor {
 macro_rules! defer {
     ($expr:expr) => {{
         if $expr.is_null() {
-            return create_accept_error(ErrorCode::NullPtr, c"null pointer");
+            return create_accept_error(ErrorCode::NullPtr);
         }
         unsafe { $expr.as_ref() }.unwrap()
     }};
@@ -493,7 +493,7 @@ mod wrapper {
     impl<'a> VisitorWrapper<'a> {
         pub fn new(context: *const (), visitor: *const Visitor) -> Result<Self, *mut AcceptResult> {
             if visitor.is_null() {
-                return Err(create_accept_error(ErrorCode::NullPtr, c"visitor is null"));
+                return Err(create_accept_error(ErrorCode::NullPtr));
             }
 
             Ok(Self {
