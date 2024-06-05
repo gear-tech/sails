@@ -112,6 +112,9 @@ pub unsafe extern "C" fn free_parse_result(result: *mut ParseResult) {
     }
 }
 
+/// # Safety
+///
+/// Pointer must be obtained from `accept_*` function
 #[no_mangle]
 pub unsafe extern "C" fn free_accept_result(result: *mut AcceptResult) {
     if result.is_null() {
