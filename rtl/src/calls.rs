@@ -32,6 +32,11 @@ pub trait Activation<TArgs>: Action<TArgs> {
     ) -> Result<ActivationTicket<impl Future<Output = Result<(ActorId, Vec<u8>)>>>>;
 }
 
+#[allow(async_fn_in_trait)]
+pub trait Query<TArgs, TReply>: Action<TArgs> {
+    async fn query(self, target: ActorId) -> Result<TReply>;
+}
+
 pub struct CallTicket<TReplyFuture, TReply> {
     route: &'static [u8],
     reply_future: TReplyFuture,
@@ -87,7 +92,7 @@ where
 }
 
 #[allow(async_fn_in_trait)]
-pub trait Remoting<TArgs> {
+pub trait Remoting<TArgs: Default>: Clone {
     async fn activate(
         self,
         code_id: CodeId,
@@ -104,6 +109,14 @@ pub trait Remoting<TArgs> {
         value: ValueUnit,
         args: TArgs,
     ) -> Result<impl Future<Output = Result<Vec<u8>>>>;
+
+    async fn query(
+        self,
+        target: ActorId,
+        payload: impl AsRef<[u8]>,
+        value: ValueUnit,
+        args: TArgs,
+    ) -> Result<Vec<u8>>;
 }
 
 pub struct RemotingAction<TRemoting, TArgs, TReply> {
@@ -157,6 +170,7 @@ impl<TRemoting, TArgs, TReply> Action<TArgs> for RemotingAction<TRemoting, TArgs
 impl<TRemoting, TArgs, TReply> Call<TArgs, TReply> for RemotingAction<TRemoting, TArgs, TReply>
 where
     TRemoting: Remoting<TArgs>,
+    TArgs: Default,
     TReply: Decode,
 {
     async fn publish(
@@ -174,6 +188,7 @@ where
 impl<TRemoting, TArgs> Activation<TArgs> for RemotingAction<TRemoting, TArgs, ActorId>
 where
     TRemoting: Remoting<TArgs>,
+    TArgs: Default,
 {
     async fn publish(
         self,
@@ -185,5 +200,24 @@ where
             .activate(code_id, salt, self.payload, self.value, self.args)
             .await?;
         Ok(ActivationTicket::new(self.route, reply_future))
+    }
+}
+
+impl<TRemoting, TArgs, TReply> Query<TArgs, TReply> for RemotingAction<TRemoting, TArgs, TReply>
+where
+    TRemoting: Remoting<TArgs>,
+    TArgs: Default,
+    TReply: Decode,
+{
+    async fn query(self, target: ActorId) -> Result<TReply> {
+        let reply_bytes = self
+            .remoting
+            .query(target, self.payload, self.value, self.args)
+            .await?;
+        if !reply_bytes.starts_with(self.route) {
+            Err(RtlError::ReplyPrefixMismatches)?
+        }
+        let mut reply_bytes = &reply_bytes[self.route.len()..];
+        Ok(TReply::decode(&mut reply_bytes)?)
     }
 }

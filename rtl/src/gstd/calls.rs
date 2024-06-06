@@ -78,4 +78,31 @@ impl Remoting<GStdArgs> for GStdRemoting {
         let reply_future = reply_future.map(|result| result.map_err(Into::into));
         Ok(reply_future)
     }
+
+    async fn query(
+        self,
+        target: ActorId,
+        payload: impl AsRef<[u8]>,
+        value: ValueUnit,
+        args: GStdArgs,
+    ) -> Result<Vec<u8>> {
+        let reply_future = if let Some(gas_limit) = args.gas_limit {
+            msg::send_bytes_with_gas_for_reply(
+                target,
+                payload,
+                gas_limit,
+                value,
+                args.reply_deposit.unwrap_or_default(),
+            )?
+        } else {
+            msg::send_bytes_for_reply(
+                target,
+                payload,
+                value,
+                args.reply_deposit.unwrap_or_default(),
+            )?
+        };
+        let reply = reply_future.await?;
+        Ok(reply)
+    }
 }
