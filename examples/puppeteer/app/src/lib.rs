@@ -58,12 +58,11 @@ mod tests {
 
     #[test]
     fn test_call_module() {
-        let bytes = this_that_svc_calls::DoThatCall(DoThatParam {
+        let bytes = this_that_svc_calls::DoThatCall::encode_call(DoThatParam {
             p1: u32::MAX,
             p2: "hello".to_string(),
             p3: ManyVariants::One,
-        })
-        .encode();
+        });
 
         assert_eq!(
             bytes,
@@ -74,10 +73,5 @@ mod tests {
                 0    // p3
             ]
         );
-
-        let call = this_that_svc_calls::DoThatCall::from_bytes(&bytes).expect("decode call");
-        assert_eq!(call.0.p1, u32::MAX);
-        assert_eq!(call.0.p2, "hello");
-        assert_eq!(call.0.p3, ManyVariants::One);
     }
 }

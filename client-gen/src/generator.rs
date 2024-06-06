@@ -652,23 +652,19 @@ impl<'ast> Visitor<'ast> for CallBuilderGenerator {
 
         self.code.push_str(&format!(
             "
-            #[derive(Debug, Encode, Decode)]
+            #[derive(Debug, Clone, Copy)]
             #[codec(crate = sails_rtl::scale_codec)]
-            pub struct {}Call(\n
+            pub struct {fn_name}Call(());
+
+            impl {fn_name}Call {{
+            #[allow(unused)]
+            pub fn encode_call(
             ",
-            fn_name
         ));
 
         visitor::accept_service_func(func, self);
 
-        self.code.push_str(");\n");
-
-        self.code.push_str(&format!(
-            "impl {}Call {{
-                #[allow(unused)]
-                pub fn encode(&self) -> Vec<u8> {{",
-            fn_name
-        ));
+        self.code.push_str(") -> Vec<u8> {\n");
 
         let (service_path_bytes, service_path_encoded_length) = path_bytes(&self.path);
         let (route_bytes, route_encoded_length) = method_bytes(fn_name);
@@ -685,7 +681,11 @@ impl<'ast> Visitor<'ast> for CallBuilderGenerator {
         self.code
             .push_str(&format!("result.extend_from_slice(&[{route_bytes}]);"));
 
-        self.code.push_str("self.encode_to(&mut result);");
+        let args = encoded_args(func.params());
+
+        self.code
+            .push_str(&format!("{args}.encode_to(&mut result);"));
+
         self.code.push_str("result \n}");
 
         self.code.push_str(
@@ -725,8 +725,8 @@ impl<'ast> Visitor<'ast> for CallBuilderGenerator {
 
     fn visit_func_param(&mut self, func_param: &'ast FuncParam) {
         let type_decl_code = generate_type_decl_code(func_param.type_decl());
-
-        self.code.push_str(&format!("pub {},", type_decl_code));
+        self.code
+            .push_str(&format!("{}: {},", func_param.name(), type_decl_code));
     }
 }
 

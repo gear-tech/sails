@@ -149,18 +149,19 @@ where
 pub mod rmrk_catalog_calls {
     use super::*;
 
-    #[derive(Debug, Encode, Decode)]
+    #[derive(Debug, Clone, Copy)]
     #[codec(crate = sails_rtl::scale_codec)]
-    pub struct AddEquippablesCall(pub u32, pub Vec<ActorId>);
+    pub struct AddEquippablesCall(());
+
     impl AddEquippablesCall {
         #[allow(unused)]
-        pub fn encode(&self) -> Vec<u8> {
+        pub fn encode_call(part_id: u32, collection_ids: Vec<ActorId>) -> Vec<u8> {
             let mut result = Vec::with_capacity(27 + self.encoded_size());
             result.extend_from_slice(&[44, 82, 109, 114, 107, 67, 97, 116, 97, 108, 111, 103]);
             result.extend_from_slice(&[
                 56, 65, 100, 100, 69, 113, 117, 105, 112, 112, 97, 98, 108, 101, 115,
             ]);
-            self.encode_to(&mut result);
+            (part_id, collection_ids).encode_to(&mut result);
             result
         }
         #[allow(unused)]
@@ -185,16 +186,17 @@ pub mod rmrk_catalog_calls {
         }
     }
 
-    #[derive(Debug, Encode, Decode)]
+    #[derive(Debug, Clone, Copy)]
     #[codec(crate = sails_rtl::scale_codec)]
-    pub struct AddPartsCall(pub BTreeMap<u32, Part>);
+    pub struct AddPartsCall(());
+
     impl AddPartsCall {
         #[allow(unused)]
-        pub fn encode(&self) -> Vec<u8> {
+        pub fn encode_call(parts: BTreeMap<u32, Part>) -> Vec<u8> {
             let mut result = Vec::with_capacity(21 + self.encoded_size());
             result.extend_from_slice(&[44, 82, 109, 114, 107, 67, 97, 116, 97, 108, 111, 103]);
             result.extend_from_slice(&[32, 65, 100, 100, 80, 97, 114, 116, 115]);
-            self.encode_to(&mut result);
+            parts.encode_to(&mut result);
             result
         }
         #[allow(unused)]
@@ -217,18 +219,19 @@ pub mod rmrk_catalog_calls {
         }
     }
 
-    #[derive(Debug, Encode, Decode)]
+    #[derive(Debug, Clone, Copy)]
     #[codec(crate = sails_rtl::scale_codec)]
-    pub struct RemoveEquippableCall(pub u32, pub ActorId);
+    pub struct RemoveEquippableCall(());
+
     impl RemoveEquippableCall {
         #[allow(unused)]
-        pub fn encode(&self) -> Vec<u8> {
+        pub fn encode_call(part_id: u32, collection_id: ActorId) -> Vec<u8> {
             let mut result = Vec::with_capacity(29 + self.encoded_size());
             result.extend_from_slice(&[44, 82, 109, 114, 107, 67, 97, 116, 97, 108, 111, 103]);
             result.extend_from_slice(&[
                 64, 82, 101, 109, 111, 118, 101, 69, 113, 117, 105, 112, 112, 97, 98, 108, 101,
             ]);
-            self.encode_to(&mut result);
+            (part_id, collection_id).encode_to(&mut result);
             result
         }
         #[allow(unused)]
@@ -253,16 +256,17 @@ pub mod rmrk_catalog_calls {
         }
     }
 
-    #[derive(Debug, Encode, Decode)]
+    #[derive(Debug, Clone, Copy)]
     #[codec(crate = sails_rtl::scale_codec)]
-    pub struct RemovePartsCall(pub Vec<u32>);
+    pub struct RemovePartsCall(());
+
     impl RemovePartsCall {
         #[allow(unused)]
-        pub fn encode(&self) -> Vec<u8> {
+        pub fn encode_call(part_ids: Vec<u32>) -> Vec<u8> {
             let mut result = Vec::with_capacity(24 + self.encoded_size());
             result.extend_from_slice(&[44, 82, 109, 114, 107, 67, 97, 116, 97, 108, 111, 103]);
             result.extend_from_slice(&[44, 82, 101, 109, 111, 118, 101, 80, 97, 114, 116, 115]);
-            self.encode_to(&mut result);
+            part_ids.encode_to(&mut result);
             result
         }
         #[allow(unused)]
@@ -285,18 +289,19 @@ pub mod rmrk_catalog_calls {
         }
     }
 
-    #[derive(Debug, Encode, Decode)]
+    #[derive(Debug, Clone, Copy)]
     #[codec(crate = sails_rtl::scale_codec)]
-    pub struct ResetEquippablesCall(pub u32);
+    pub struct ResetEquippablesCall(());
+
     impl ResetEquippablesCall {
         #[allow(unused)]
-        pub fn encode(&self) -> Vec<u8> {
+        pub fn encode_call(part_id: u32) -> Vec<u8> {
             let mut result = Vec::with_capacity(29 + self.encoded_size());
             result.extend_from_slice(&[44, 82, 109, 114, 107, 67, 97, 116, 97, 108, 111, 103]);
             result.extend_from_slice(&[
                 64, 82, 101, 115, 101, 116, 69, 113, 117, 105, 112, 112, 97, 98, 108, 101, 115,
             ]);
-            self.encode_to(&mut result);
+            part_id.encode_to(&mut result);
             result
         }
         #[allow(unused)]
@@ -321,19 +326,20 @@ pub mod rmrk_catalog_calls {
         }
     }
 
-    #[derive(Debug, Encode, Decode)]
+    #[derive(Debug, Clone, Copy)]
     #[codec(crate = sails_rtl::scale_codec)]
-    pub struct SetEquippablesToAllCall(pub u32);
+    pub struct SetEquippablesToAllCall(());
+
     impl SetEquippablesToAllCall {
         #[allow(unused)]
-        pub fn encode(&self) -> Vec<u8> {
+        pub fn encode_call(part_id: u32) -> Vec<u8> {
             let mut result = Vec::with_capacity(32 + self.encoded_size());
             result.extend_from_slice(&[44, 82, 109, 114, 107, 67, 97, 116, 97, 108, 111, 103]);
             result.extend_from_slice(&[
                 76, 83, 101, 116, 69, 113, 117, 105, 112, 112, 97, 98, 108, 101, 115, 84, 111, 65,
                 108, 108,
             ]);
-            self.encode_to(&mut result);
+            part_id.encode_to(&mut result);
             result
         }
         #[allow(unused)]
@@ -359,16 +365,17 @@ pub mod rmrk_catalog_calls {
         }
     }
 
-    #[derive(Debug, Encode, Decode)]
+    #[derive(Debug, Clone, Copy)]
     #[codec(crate = sails_rtl::scale_codec)]
-    pub struct EquippableCall(pub u32, pub ActorId);
+    pub struct EquippableCall(());
+
     impl EquippableCall {
         #[allow(unused)]
-        pub fn encode(&self) -> Vec<u8> {
+        pub fn encode_call(part_id: u32, collection_id: ActorId) -> Vec<u8> {
             let mut result = Vec::with_capacity(23 + self.encoded_size());
             result.extend_from_slice(&[44, 82, 109, 114, 107, 67, 97, 116, 97, 108, 111, 103]);
             result.extend_from_slice(&[40, 69, 113, 117, 105, 112, 112, 97, 98, 108, 101]);
-            self.encode_to(&mut result);
+            (part_id, collection_id).encode_to(&mut result);
             result
         }
         #[allow(unused)]
@@ -391,16 +398,17 @@ pub mod rmrk_catalog_calls {
         }
     }
 
-    #[derive(Debug, Encode, Decode)]
+    #[derive(Debug, Clone, Copy)]
     #[codec(crate = sails_rtl::scale_codec)]
-    pub struct PartCall(pub u32);
+    pub struct PartCall(());
+
     impl PartCall {
         #[allow(unused)]
-        pub fn encode(&self) -> Vec<u8> {
+        pub fn encode_call(part_id: u32) -> Vec<u8> {
             let mut result = Vec::with_capacity(17 + self.encoded_size());
             result.extend_from_slice(&[44, 82, 109, 114, 107, 67, 97, 116, 97, 108, 111, 103]);
             result.extend_from_slice(&[16, 80, 97, 114, 116]);
-            self.encode_to(&mut result);
+            part_id.encode_to(&mut result);
             result
         }
         #[allow(unused)]

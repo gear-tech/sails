@@ -84,21 +84,22 @@ where
 pub mod service_calls {
     use super::*;
 
-    #[derive(Debug, Encode, Decode)]
+    #[derive(Debug, Clone, Copy)]
     #[codec(crate = sails_rtl::scale_codec)]
-    pub struct DoThisCall(
-        pub u32,
-        pub String,
-        pub (Option<String>, u8),
-        pub ThisThatSvcAppTupleStruct,
-    );
+    pub struct DoThisCall(());
+
     impl DoThisCall {
         #[allow(unused)]
-        pub fn encode(&self) -> Vec<u8> {
+        pub fn encode_call(
+            p1: u32,
+            p2: String,
+            p3: (Option<String>, u8),
+            p4: ThisThatSvcAppTupleStruct,
+        ) -> Vec<u8> {
             let mut result = Vec::with_capacity(7 + self.encoded_size());
             result.extend_from_slice(&[]);
             result.extend_from_slice(&[24, 68, 111, 84, 104, 105, 115]);
-            self.encode_to(&mut result);
+            (p1, p2, p3, p4).encode_to(&mut result);
             result
         }
         #[allow(unused)]
@@ -119,16 +120,17 @@ pub mod service_calls {
         }
     }
 
-    #[derive(Debug, Encode, Decode)]
+    #[derive(Debug, Clone, Copy)]
     #[codec(crate = sails_rtl::scale_codec)]
-    pub struct DoThatCall(pub ThisThatSvcAppDoThatParam);
+    pub struct DoThatCall(());
+
     impl DoThatCall {
         #[allow(unused)]
-        pub fn encode(&self) -> Vec<u8> {
+        pub fn encode_call(param: ThisThatSvcAppDoThatParam) -> Vec<u8> {
             let mut result = Vec::with_capacity(7 + self.encoded_size());
             result.extend_from_slice(&[]);
             result.extend_from_slice(&[24, 68, 111, 84, 104, 97, 116]);
-            self.encode_to(&mut result);
+            param.encode_to(&mut result);
             result
         }
         #[allow(unused)]
@@ -151,16 +153,17 @@ pub mod service_calls {
         }
     }
 
-    #[derive(Debug, Encode, Decode)]
+    #[derive(Debug, Clone, Copy)]
     #[codec(crate = sails_rtl::scale_codec)]
-    pub struct ThisCall(pub Vec<u16>);
+    pub struct ThisCall(());
+
     impl ThisCall {
         #[allow(unused)]
-        pub fn encode(&self) -> Vec<u8> {
+        pub fn encode_call(v1: Vec<u16>) -> Vec<u8> {
             let mut result = Vec::with_capacity(5 + self.encoded_size());
             result.extend_from_slice(&[]);
             result.extend_from_slice(&[16, 84, 104, 105, 115]);
-            self.encode_to(&mut result);
+            v1.encode_to(&mut result);
             result
         }
         #[allow(unused)]
@@ -181,16 +184,17 @@ pub mod service_calls {
         }
     }
 
-    #[derive(Debug, Encode, Decode)]
+    #[derive(Debug, Clone, Copy)]
     #[codec(crate = sails_rtl::scale_codec)]
-    pub struct ThatCall(pub ());
+    pub struct ThatCall(());
+
     impl ThatCall {
         #[allow(unused)]
-        pub fn encode(&self) -> Vec<u8> {
+        pub fn encode_call(v1: ()) -> Vec<u8> {
             let mut result = Vec::with_capacity(5 + self.encoded_size());
             result.extend_from_slice(&[]);
             result.extend_from_slice(&[16, 84, 104, 97, 116]);
-            self.encode_to(&mut result);
+            v1.encode_to(&mut result);
             result
         }
         #[allow(unused)]
