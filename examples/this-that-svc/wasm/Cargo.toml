@@ -10,5 +10,12 @@ this-that-svc-app = { path = "../app" }
 
 [build-dependencies]
 gwasm-builder.workspace = true
+sails-client-gen.workspace = true
 sails-idl-gen.workspace = true
 this-that-svc-app = { path = "../app" }
+
+[dev-dependencies]
+gclient.workspace = true
+sails-rtl.workspace = true
+parity-scale-codec = { workspace = true, features = ["derive"] }
+tokio = { workspace = true, features = ["rt", "macros"] }

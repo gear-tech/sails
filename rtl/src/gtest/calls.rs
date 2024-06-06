@@ -108,4 +108,21 @@ impl Remoting<GTestArgs> for GTestRemoting {
             program.send_bytes_with_value(actor_id.as_ref(), payload.as_ref().to_vec(), value);
         Ok(async move { Self::extract_reply(run_result) })
     }
+
+    async fn query(
+        self,
+        target: ActorId,
+        payload: impl AsRef<[u8]>,
+        value: ValueUnit,
+        args: GTestArgs,
+    ) -> Result<Vec<u8>> {
+        let program = self
+            .system
+            .get_program(target.as_ref())
+            .ok_or(RtlError::ProgramIsNotFound)?;
+        let actor_id = args.actor_id.ok_or(RtlError::ActorIsNotSet)?;
+        let run_result =
+            program.send_bytes_with_value(actor_id.as_ref(), payload.as_ref().to_vec(), value);
+        Self::extract_reply(run_result)
+    }
 }

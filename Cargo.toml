@@ -35,16 +35,16 @@ const-format = { package = "const_format", version = "0.2" }
 convert-case = { package = "convert_case", version = "0.6" }
 fluent-asserter = "0.1"
 futures = { version = "0.3", default-features = false }
-gclient = { git = "https://github.com/gear-tech/gear", branch = "av/gcore-primitives" }
-gear-core = { git = "https://github.com/gear-tech/gear", branch = "av/gcore-primitives" }
-gear-core-errors = { git = "https://github.com/gear-tech/gear", branch = "av/gcore-primitives" }
+gclient = { git = "https://github.com/gear-tech/gear", branch = "vo/gsdk_calculate_reply_for_handle" }
+gear-core = { git = "https://github.com/gear-tech/gear", branch = "vo/gsdk_calculate_reply_for_handle" }
+gear-core-errors = { git = "https://github.com/gear-tech/gear", branch = "vo/gsdk_calculate_reply_for_handle" }
 git-download = "0.1"
-gprimitives = { git = "https://github.com/gear-tech/gear", branch = "av/gcore-primitives", features = [
+gprimitives = { git = "https://github.com/gear-tech/gear", branch = "vo/gsdk_calculate_reply_for_handle", features = [
     "codec",
 ] }
-gstd = { git = "https://github.com/gear-tech/gear", branch = "av/gcore-primitives" }
-gtest = { git = "https://github.com/gear-tech/gear", branch = "av/gcore-primitives" }
-gwasm-builder = { package = "gear-wasm-builder", git = "https://github.com/gear-tech/gear", branch = "av/gcore-primitives" }
+gstd = { git = "https://github.com/gear-tech/gear", branch = "vo/gsdk_calculate_reply_for_handle" }
+gtest = { git = "https://github.com/gear-tech/gear", branch = "vo/gsdk_calculate_reply_for_handle" }
+gwasm-builder = { package = "gear-wasm-builder", git = "https://github.com/gear-tech/gear", branch = "vo/gsdk_calculate_reply_for_handle" }
 handlebars = "4.4"
 hashbrown = "0.14"
 hex = { version = "0.4", default-features = false }

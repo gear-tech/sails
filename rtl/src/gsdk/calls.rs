@@ -4,7 +4,8 @@ use crate::{
     ActorId, CodeId, GasUnit, ValueUnit, Vec,
 };
 use core::future::Future;
-use gclient::{EventProcessor, GearApi};
+use gclient::{ext::sp_core::ByteArray, EventProcessor, GearApi};
+use gprimitives::H256;
 
 #[derive(Debug, Default, Clone)]
 pub struct GSdkArgs {
@@ -83,5 +84,25 @@ impl Remoting<GSdkArgs> for GSdkRemoting {
             let reply = result.map_err(RtlError::ReplyHasErrorString)?;
             Ok(reply)
         })
+    }
+
+    async fn query(
+        self,
+        target: ActorId,
+        payload: impl AsRef<[u8]>,
+        value: ValueUnit,
+        args: GSdkArgs,
+    ) -> Result<Vec<u8>> {
+        let api = self.api;
+        // Do not Calculate gas amount needed
+        let gas_limit = args.gas_limit.unwrap_or_default();
+        let origin = H256::from_slice(api.account_id().as_slice());
+        let payload = payload.as_ref().to_vec();
+
+        let reply_info = api
+            .calculate_reply_for_handle(Some(origin), target, payload, gas_limit, value)
+            .await?;
+
+        Ok(reply_info.payload)
     }
 }

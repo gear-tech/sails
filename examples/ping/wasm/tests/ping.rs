@@ -1,7 +1,7 @@
 use gclient::GearApi;
-use ping_client::traits::Ping;
+use ping_client::traits::{Ping, PingFactory};
 use sails_rtl::{
-    calls::{Action, Activation, Call},
+    calls::{Action, Activation, Call, Query},
     errors::RtlError,
     gsdk::calls::{GSdkArgs, GSdkRemoting},
 };
@@ -20,26 +20,26 @@ async fn ping_succeed() {
         .unwrap();
     let remoting = GSdkRemoting::new(api);
 
-    let activation = <ping_client::PingFactory as ping_client::traits::PingFactory<GSdkArgs>>::new(
-        remoting.clone(),
-    )
-    .with_args(GSdkArgs::default().with_gas_limit(gas_limit))
-    .publish(code_id, "123")
-    .await
-    .unwrap();
+    let mut factory = ping_client::PingFactory::new(&remoting);
+    let activation = factory
+        .new()
+        .with_args(GSdkArgs::default().with_gas_limit(gas_limit))
+        .publish(code_id, "123")
+        .await
+        .unwrap();
 
     let program_id = activation.reply().await.unwrap();
 
-    let mut client = ping_client::Ping::new(remoting);
+    let mut client = ping_client::Ping::new(&remoting);
     let call = client
         .ping("ping".to_owned())
         .with_args(GSdkArgs::default().with_gas_limit(gas_limit))
-        .publish(program_id)
+        .query(program_id)
         .await
         .unwrap();
-    let reply = call.reply().await.unwrap();
+    // let reply = call.reply().await.unwrap();
 
-    assert_eq!(Ok("pong".to_owned()), reply);
+    assert_eq!(Ok("pong".to_owned()), call);
 }
 
 #[tokio::test]
@@ -51,12 +51,8 @@ async fn ping_not_enough_gas() {
         .unwrap();
     let remoting = GSdkRemoting::new(api);
 
-    let activation = <ping_client::PingFactory as ping_client::traits::PingFactory<GSdkArgs>>::new(
-        remoting.clone(),
-    )
-    .publish(code_id, "123")
-    .await
-    .unwrap();
+    let mut factory = ping_client::PingFactory::new(&remoting);
+    let activation = factory.new().publish(code_id, "123").await.unwrap();
 
     let activation_reply = activation.reply().await;
 
