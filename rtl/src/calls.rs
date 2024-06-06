@@ -210,11 +210,10 @@ where
     TReply: Decode,
 {
     async fn query(self, target: ActorId) -> Result<TReply> {
-        let reply_future = self
+        let reply_bytes = self
             .remoting
-            .message(target, self.payload, self.value, self.args)
+            .query(target, self.payload, self.value, self.args)
             .await?;
-        let reply_bytes = reply_future.await?;
         if !reply_bytes.starts_with(self.route) {
             Err(RtlError::ReplyPrefixMismatches)?
         }
