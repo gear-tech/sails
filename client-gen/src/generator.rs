@@ -653,7 +653,6 @@ impl<'ast> Visitor<'ast> for CallBuilderGenerator {
         self.code.push_str(&format!(
             "
             #[derive(Debug, Clone, Copy)]
-            #[codec(crate = sails_rtl::scale_codec)]
             pub struct {fn_name}Call(());
 
             impl {fn_name}Call {{
@@ -671,8 +670,12 @@ impl<'ast> Visitor<'ast> for CallBuilderGenerator {
 
         let path_len = service_path_encoded_length + route_encoded_length;
 
+        let args = encoded_args(func.params());
+
+        self.code.push_str(&format!("let args = {args};",));
+
         self.code.push_str(&format!(
-            "let mut result = Vec::with_capacity({path_len} + self.encoded_size());",
+            "let mut result = Vec::with_capacity({path_len} + args.encoded_size());",
         ));
 
         self.code.push_str(&format!(
@@ -681,39 +684,9 @@ impl<'ast> Visitor<'ast> for CallBuilderGenerator {
         self.code
             .push_str(&format!("result.extend_from_slice(&[{route_bytes}]);"));
 
-        let args = encoded_args(func.params());
-
-        self.code
-            .push_str(&format!("{args}.encode_to(&mut result);"));
+        self.code.push_str("args.encode_to(&mut result);");
 
         self.code.push_str("result \n}");
-
-        self.code.push_str(
-            "
-            #[allow(unused)]
-            pub fn from_bytes(mut bytes: &[u8]) -> Result<Self, sails_rtl::errors::Error> {
-            ",
-        );
-
-        self.code.push_str(&format!(
-            "bytes = &bytes[{service_path_encoded_length}..];\n"
-        ));
-
-        self.code.push_str(&format!(
-            "if !bytes.starts_with(&[{route_bytes}]) {{
-                return Err(sails_rtl::errors::RtlError::ReplyPrefixMismatches.into());
-            }}\n",
-        ));
-
-        self.code
-            .push_str(&format!("bytes = &bytes[{route_encoded_length}..];\n"));
-
-        self.code
-            .push_str("let call = Decode::decode(&mut bytes)?;\n");
-
-        self.code.push_str("Ok(call)\n");
-
-        self.code.push_str("}\n\n");
 
         let mut decode_reply_gen = DecodeReplyGenerator::new();
         decode_reply_gen.visit_service_func(func);
