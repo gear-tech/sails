@@ -24,7 +24,6 @@ interface ParserInstance extends WebAssembly.Instance {
   exports: {
     parse_idl: (idl_ptr: number, idl_len: number) => number;
     free_parse_result: (result_ptr: number) => void;
-    free_accept_result: (result_ptr: number) => void;
     accept_program: (program_ptr: number, ctx: number) => number;
     accept_ctor: (ctor_ptr: number, ctx: number) => number;
     accept_ctor_func: (func_ptr: number, ctx: number) => number;
@@ -292,15 +291,11 @@ export class WasmParser {
     return this._program;
   }
 
-  private handleAcceptError(resultPtr: number) {
+  private handleAcceptError(errorCode: number) {
     const view = new DataView(this._memory.buffer);
 
-    const errorCode = view.getUint32(resultPtr, true);
     if (errorCode > 0) {
       throw new Error(`Error code: ${errorCode}`);
     }
-
-    // success
-    this._exports.free_accept_result(resultPtr);
   }
 }

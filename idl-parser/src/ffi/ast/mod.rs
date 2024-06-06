@@ -13,11 +13,6 @@ pub struct ParseResult {
 }
 
 #[repr(C)]
-pub struct AcceptResult {
-    error: Error,
-}
-
-#[repr(C)]
 pub struct Error {
     code: ErrorCode,
     details: *const c_char,
@@ -75,25 +70,6 @@ fn create_parse_error(
     Box::into_raw(Box::new(result))
 }
 
-fn ok() -> *mut AcceptResult {
-    Box::into_raw(Box::new(AcceptResult {
-        error: Error {
-            code: ErrorCode::Ok,
-            details: std::ptr::null(),
-        },
-    }))
-}
-
-fn create_accept_error(code: ErrorCode) -> *mut AcceptResult {
-    let result = AcceptResult {
-        error: Error {
-            code,
-            details: std::ptr::null(),
-        },
-    };
-    Box::into_raw(Box::new(result))
-}
-
 /// # Safety
 ///
 /// Pointer must be obtained from [`parse_idl`].
@@ -108,20 +84,6 @@ pub unsafe extern "C" fn free_parse_result(result: *mut ParseResult) {
             let details = CString::from_raw(result.error.details as *mut i8);
             drop(details);
         }
-    }
-}
-
-/// # Safety
-///
-/// Pointer must be obtained from `accept_*` function
-#[no_mangle]
-pub unsafe extern "C" fn free_accept_result(result: *mut AcceptResult) {
-    if result.is_null() {
-        return;
-    }
-    unsafe {
-        let result = Box::from_raw(result);
-        drop(result);
     }
 }
 
