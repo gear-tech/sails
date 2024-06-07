@@ -49,14 +49,14 @@ where
     }
 }
 
-pub mod multiple_calls {
+pub mod multiple_io {
     use super::*;
 
-    #[derive(Debug, Clone, Copy)]
+    #[derive(Debug, Default, Clone, Copy)]
     pub struct DoThisCall(());
 
     impl DoThisCall {
-        #[allow(unused)]
+        #[allow(dead_code)]
         pub fn encode_call(p1: u32, p2: MyParam) -> Vec<u8> {
             let args = (p1, p2);
             let mut result = Vec::with_capacity(7 + args.encoded_size());
@@ -65,18 +65,24 @@ pub mod multiple_calls {
             args.encode_to(&mut result);
             result
         }
-        #[allow(unused)]
+        #[allow(dead_code)]
         pub fn decode_reply(mut reply: &[u8]) -> Result<u16, sails_rtl::errors::Error> {
+            if !reply.starts_with(&[24, 68, 111, 84, 104, 105, 115]) {
+                return Err(sails_rtl::errors::Error::Rtl(
+                    sails_rtl::errors::RtlError::ReplyPrefixMismatches,
+                ));
+            }
+            reply = &reply[7..];
             let result = Decode::decode(&mut reply).map_err(sails_rtl::errors::Error::Codec)?;
             Ok(result)
         }
     }
 
-    #[derive(Debug, Clone, Copy)]
+    #[derive(Debug, Default, Clone, Copy)]
     pub struct DoThatCall(());
 
     impl DoThatCall {
-        #[allow(unused)]
+        #[allow(dead_code)]
         pub fn encode_call(p1: (u8, u32)) -> Vec<u8> {
             let args = p1;
             let mut result = Vec::with_capacity(7 + args.encoded_size());
@@ -85,8 +91,14 @@ pub mod multiple_calls {
             args.encode_to(&mut result);
             result
         }
-        #[allow(unused)]
+        #[allow(dead_code)]
         pub fn decode_reply(mut reply: &[u8]) -> Result<u8, sails_rtl::errors::Error> {
+            if !reply.starts_with(&[24, 68, 111, 84, 104, 97, 116]) {
+                return Err(sails_rtl::errors::Error::Rtl(
+                    sails_rtl::errors::RtlError::ReplyPrefixMismatches,
+                ));
+            }
+            reply = &reply[7..];
             let result = Decode::decode(&mut reply).map_err(sails_rtl::errors::Error::Codec)?;
             Ok(result)
         }
@@ -126,14 +138,14 @@ where
     }
 }
 
-pub mod named_calls {
+pub mod named_io {
     use super::*;
 
-    #[derive(Debug, Clone, Copy)]
+    #[derive(Debug, Default, Clone, Copy)]
     pub struct ThatCall(());
 
     impl ThatCall {
-        #[allow(unused)]
+        #[allow(dead_code)]
         pub fn encode_call(p1: u32) -> Vec<u8> {
             let args = p1;
             let mut result = Vec::with_capacity(11 + args.encoded_size());
@@ -142,8 +154,14 @@ pub mod named_calls {
             args.encode_to(&mut result);
             result
         }
-        #[allow(unused)]
+        #[allow(dead_code)]
         pub fn decode_reply(mut reply: &[u8]) -> Result<String, sails_rtl::errors::Error> {
+            if !reply.starts_with(&[16, 84, 104, 97, 116]) {
+                return Err(sails_rtl::errors::Error::Rtl(
+                    sails_rtl::errors::RtlError::ReplyPrefixMismatches,
+                ));
+            }
+            reply = &reply[5..];
             let result = Decode::decode(&mut reply).map_err(sails_rtl::errors::Error::Codec)?;
             Ok(result)
         }

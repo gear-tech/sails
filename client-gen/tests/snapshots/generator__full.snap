@@ -81,14 +81,14 @@ where
     }
 }
 
-pub mod service_calls {
+pub mod service_io {
     use super::*;
 
-    #[derive(Debug, Clone, Copy)]
+    #[derive(Debug, Default, Clone, Copy)]
     pub struct DoThisCall(());
 
     impl DoThisCall {
-        #[allow(unused)]
+        #[allow(dead_code)]
         pub fn encode_call(
             p1: u32,
             p2: String,
@@ -102,18 +102,24 @@ pub mod service_calls {
             args.encode_to(&mut result);
             result
         }
-        #[allow(unused)]
+        #[allow(dead_code)]
         pub fn decode_reply(mut reply: &[u8]) -> Result<(String, u32), sails_rtl::errors::Error> {
+            if !reply.starts_with(&[24, 68, 111, 84, 104, 105, 115]) {
+                return Err(sails_rtl::errors::Error::Rtl(
+                    sails_rtl::errors::RtlError::ReplyPrefixMismatches,
+                ));
+            }
+            reply = &reply[7..];
             let result = Decode::decode(&mut reply).map_err(sails_rtl::errors::Error::Codec)?;
             Ok(result)
         }
     }
 
-    #[derive(Debug, Clone, Copy)]
+    #[derive(Debug, Default, Clone, Copy)]
     pub struct DoThatCall(());
 
     impl DoThatCall {
-        #[allow(unused)]
+        #[allow(dead_code)]
         pub fn encode_call(param: ThisThatSvcAppDoThatParam) -> Vec<u8> {
             let args = param;
             let mut result = Vec::with_capacity(7 + args.encoded_size());
@@ -122,20 +128,26 @@ pub mod service_calls {
             args.encode_to(&mut result);
             result
         }
-        #[allow(unused)]
+        #[allow(dead_code)]
         pub fn decode_reply(
             mut reply: &[u8],
         ) -> Result<Result<(String, u32), (String,)>, sails_rtl::errors::Error> {
+            if !reply.starts_with(&[24, 68, 111, 84, 104, 97, 116]) {
+                return Err(sails_rtl::errors::Error::Rtl(
+                    sails_rtl::errors::RtlError::ReplyPrefixMismatches,
+                ));
+            }
+            reply = &reply[7..];
             let result = Decode::decode(&mut reply).map_err(sails_rtl::errors::Error::Codec)?;
             Ok(result)
         }
     }
 
-    #[derive(Debug, Clone, Copy)]
+    #[derive(Debug, Default, Clone, Copy)]
     pub struct ThisCall(());
 
     impl ThisCall {
-        #[allow(unused)]
+        #[allow(dead_code)]
         pub fn encode_call(v1: Vec<u16>) -> Vec<u8> {
             let args = v1;
             let mut result = Vec::with_capacity(5 + args.encoded_size());
@@ -144,18 +156,24 @@ pub mod service_calls {
             args.encode_to(&mut result);
             result
         }
-        #[allow(unused)]
+        #[allow(dead_code)]
         pub fn decode_reply(mut reply: &[u8]) -> Result<u32, sails_rtl::errors::Error> {
+            if !reply.starts_with(&[16, 84, 104, 105, 115]) {
+                return Err(sails_rtl::errors::Error::Rtl(
+                    sails_rtl::errors::RtlError::ReplyPrefixMismatches,
+                ));
+            }
+            reply = &reply[5..];
             let result = Decode::decode(&mut reply).map_err(sails_rtl::errors::Error::Codec)?;
             Ok(result)
         }
     }
 
-    #[derive(Debug, Clone, Copy)]
+    #[derive(Debug, Default, Clone, Copy)]
     pub struct ThatCall(());
 
     impl ThatCall {
-        #[allow(unused)]
+        #[allow(dead_code)]
         pub fn encode_call(v1: ()) -> Vec<u8> {
             let args = v1;
             let mut result = Vec::with_capacity(5 + args.encoded_size());
@@ -164,10 +182,16 @@ pub mod service_calls {
             args.encode_to(&mut result);
             result
         }
-        #[allow(unused)]
+        #[allow(dead_code)]
         pub fn decode_reply(
             mut reply: &[u8],
         ) -> Result<Result<String, String>, sails_rtl::errors::Error> {
+            if !reply.starts_with(&[16, 84, 104, 97, 116]) {
+                return Err(sails_rtl::errors::Error::Rtl(
+                    sails_rtl::errors::RtlError::ReplyPrefixMismatches,
+                ));
+            }
+            reply = &reply[5..];
             let result = Decode::decode(&mut reply).map_err(sails_rtl::errors::Error::Codec)?;
             Ok(result)
         }

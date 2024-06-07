@@ -637,7 +637,7 @@ impl<'ast> Visitor<'ast> for CallBuilderGenerator {
 
         self.code.push_str(&format!(
             r#"
-            pub mod {name}_calls {{
+            pub mod {name}_io {{
                 use super::*;
         "#
         ));
@@ -652,11 +652,11 @@ impl<'ast> Visitor<'ast> for CallBuilderGenerator {
 
         self.code.push_str(&format!(
             "
-            #[derive(Debug, Clone, Copy)]
+            #[derive(Debug, Default, Clone, Copy)]
             pub struct {fn_name}Call(());
 
             impl {fn_name}Call {{
-            #[allow(unused)]
+            #[allow(dead_code)]
             pub fn encode_call(
             ",
         ));
@@ -688,7 +688,7 @@ impl<'ast> Visitor<'ast> for CallBuilderGenerator {
 
         self.code.push_str("result \n}");
 
-        let mut decode_reply_gen = DecodeReplyGenerator::new();
+        let mut decode_reply_gen = DecodeReplyGenerator::default();
         decode_reply_gen.visit_service_func(func);
 
         self.code.push_str(&decode_reply_gen.code);
@@ -709,12 +709,6 @@ pub struct DecodeReplyGenerator {
     is_unit: bool,
 }
 
-impl DecodeReplyGenerator {
-    pub fn new() -> Self {
-        Self::default()
-    }
-}
-
 impl<'ast> Visitor<'ast> for DecodeReplyGenerator {
     fn visit_service(&mut self, service: &'ast Service) {
         visitor::accept_service(service, self);
@@ -723,7 +717,7 @@ impl<'ast> Visitor<'ast> for DecodeReplyGenerator {
     fn visit_service_func(&mut self, func: &'ast ServiceFunc) {
         self.code.push_str(
             "
-            #[allow(unused)]
+            #[allow(dead_code)]
             pub fn decode_reply(mut reply: &[u8]) -> Result<
             ",
         );
@@ -731,6 +725,17 @@ impl<'ast> Visitor<'ast> for DecodeReplyGenerator {
         visitor::accept_service_func(func, self);
 
         self.code.push_str(", sails_rtl::errors::Error> {\n");
+
+        let (route_bytes, route_encoded_length) = method_bytes(func.name());
+
+        self.code.push_str(&format!(
+            "if !reply.starts_with(&[{route_bytes}]) {{
+                return Err(sails_rtl::errors::Error::Rtl(sails_rtl::errors::RtlError::ReplyPrefixMismatches));
+            }}",
+        ));
+
+        self.code
+            .push_str(&format!("reply = &reply[{route_encoded_length}..];"));
 
         if self.is_unit {
             self.code.push_str("#[allow(clippy::let_unit_value)]");

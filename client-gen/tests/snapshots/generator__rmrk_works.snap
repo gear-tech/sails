@@ -146,14 +146,14 @@ where
     }
 }
 
-pub mod rmrk_catalog_calls {
+pub mod rmrk_catalog_io {
     use super::*;
 
-    #[derive(Debug, Clone, Copy)]
+    #[derive(Debug, Default, Clone, Copy)]
     pub struct AddEquippablesCall(());
 
     impl AddEquippablesCall {
-        #[allow(unused)]
+        #[allow(dead_code)]
         pub fn encode_call(part_id: u32, collection_ids: Vec<ActorId>) -> Vec<u8> {
             let args = (part_id, collection_ids);
             let mut result = Vec::with_capacity(27 + args.encoded_size());
@@ -164,20 +164,28 @@ pub mod rmrk_catalog_calls {
             args.encode_to(&mut result);
             result
         }
-        #[allow(unused)]
+        #[allow(dead_code)]
         pub fn decode_reply(
             mut reply: &[u8],
         ) -> Result<Result<(u32, Vec<ActorId>), Error>, sails_rtl::errors::Error> {
+            if !reply.starts_with(&[
+                56, 65, 100, 100, 69, 113, 117, 105, 112, 112, 97, 98, 108, 101, 115,
+            ]) {
+                return Err(sails_rtl::errors::Error::Rtl(
+                    sails_rtl::errors::RtlError::ReplyPrefixMismatches,
+                ));
+            }
+            reply = &reply[15..];
             let result = Decode::decode(&mut reply).map_err(sails_rtl::errors::Error::Codec)?;
             Ok(result)
         }
     }
 
-    #[derive(Debug, Clone, Copy)]
+    #[derive(Debug, Default, Clone, Copy)]
     pub struct AddPartsCall(());
 
     impl AddPartsCall {
-        #[allow(unused)]
+        #[allow(dead_code)]
         pub fn encode_call(parts: BTreeMap<u32, Part>) -> Vec<u8> {
             let args = parts;
             let mut result = Vec::with_capacity(21 + args.encoded_size());
@@ -186,20 +194,26 @@ pub mod rmrk_catalog_calls {
             args.encode_to(&mut result);
             result
         }
-        #[allow(unused)]
+        #[allow(dead_code)]
         pub fn decode_reply(
             mut reply: &[u8],
         ) -> Result<Result<BTreeMap<u32, Part>, Error>, sails_rtl::errors::Error> {
+            if !reply.starts_with(&[32, 65, 100, 100, 80, 97, 114, 116, 115]) {
+                return Err(sails_rtl::errors::Error::Rtl(
+                    sails_rtl::errors::RtlError::ReplyPrefixMismatches,
+                ));
+            }
+            reply = &reply[9..];
             let result = Decode::decode(&mut reply).map_err(sails_rtl::errors::Error::Codec)?;
             Ok(result)
         }
     }
 
-    #[derive(Debug, Clone, Copy)]
+    #[derive(Debug, Default, Clone, Copy)]
     pub struct RemoveEquippableCall(());
 
     impl RemoveEquippableCall {
-        #[allow(unused)]
+        #[allow(dead_code)]
         pub fn encode_call(part_id: u32, collection_id: ActorId) -> Vec<u8> {
             let args = (part_id, collection_id);
             let mut result = Vec::with_capacity(29 + args.encoded_size());
@@ -210,20 +224,28 @@ pub mod rmrk_catalog_calls {
             args.encode_to(&mut result);
             result
         }
-        #[allow(unused)]
+        #[allow(dead_code)]
         pub fn decode_reply(
             mut reply: &[u8],
         ) -> Result<Result<(u32, ActorId), Error>, sails_rtl::errors::Error> {
+            if !reply.starts_with(&[
+                64, 82, 101, 109, 111, 118, 101, 69, 113, 117, 105, 112, 112, 97, 98, 108, 101,
+            ]) {
+                return Err(sails_rtl::errors::Error::Rtl(
+                    sails_rtl::errors::RtlError::ReplyPrefixMismatches,
+                ));
+            }
+            reply = &reply[17..];
             let result = Decode::decode(&mut reply).map_err(sails_rtl::errors::Error::Codec)?;
             Ok(result)
         }
     }
 
-    #[derive(Debug, Clone, Copy)]
+    #[derive(Debug, Default, Clone, Copy)]
     pub struct RemovePartsCall(());
 
     impl RemovePartsCall {
-        #[allow(unused)]
+        #[allow(dead_code)]
         pub fn encode_call(part_ids: Vec<u32>) -> Vec<u8> {
             let args = part_ids;
             let mut result = Vec::with_capacity(24 + args.encoded_size());
@@ -232,20 +254,26 @@ pub mod rmrk_catalog_calls {
             args.encode_to(&mut result);
             result
         }
-        #[allow(unused)]
+        #[allow(dead_code)]
         pub fn decode_reply(
             mut reply: &[u8],
         ) -> Result<Result<Vec<u32>, Error>, sails_rtl::errors::Error> {
+            if !reply.starts_with(&[44, 82, 101, 109, 111, 118, 101, 80, 97, 114, 116, 115]) {
+                return Err(sails_rtl::errors::Error::Rtl(
+                    sails_rtl::errors::RtlError::ReplyPrefixMismatches,
+                ));
+            }
+            reply = &reply[12..];
             let result = Decode::decode(&mut reply).map_err(sails_rtl::errors::Error::Codec)?;
             Ok(result)
         }
     }
 
-    #[derive(Debug, Clone, Copy)]
+    #[derive(Debug, Default, Clone, Copy)]
     pub struct ResetEquippablesCall(());
 
     impl ResetEquippablesCall {
-        #[allow(unused)]
+        #[allow(dead_code)]
         pub fn encode_call(part_id: u32) -> Vec<u8> {
             let args = part_id;
             let mut result = Vec::with_capacity(29 + args.encoded_size());
@@ -256,20 +284,28 @@ pub mod rmrk_catalog_calls {
             args.encode_to(&mut result);
             result
         }
-        #[allow(unused)]
+        #[allow(dead_code)]
         pub fn decode_reply(
             mut reply: &[u8],
         ) -> Result<Result<(), Error>, sails_rtl::errors::Error> {
+            if !reply.starts_with(&[
+                64, 82, 101, 115, 101, 116, 69, 113, 117, 105, 112, 112, 97, 98, 108, 101, 115,
+            ]) {
+                return Err(sails_rtl::errors::Error::Rtl(
+                    sails_rtl::errors::RtlError::ReplyPrefixMismatches,
+                ));
+            }
+            reply = &reply[17..];
             let result = Decode::decode(&mut reply).map_err(sails_rtl::errors::Error::Codec)?;
             Ok(result)
         }
     }
 
-    #[derive(Debug, Clone, Copy)]
+    #[derive(Debug, Default, Clone, Copy)]
     pub struct SetEquippablesToAllCall(());
 
     impl SetEquippablesToAllCall {
-        #[allow(unused)]
+        #[allow(dead_code)]
         pub fn encode_call(part_id: u32) -> Vec<u8> {
             let args = part_id;
             let mut result = Vec::with_capacity(32 + args.encoded_size());
@@ -281,20 +317,29 @@ pub mod rmrk_catalog_calls {
             args.encode_to(&mut result);
             result
         }
-        #[allow(unused)]
+        #[allow(dead_code)]
         pub fn decode_reply(
             mut reply: &[u8],
         ) -> Result<Result<(), Error>, sails_rtl::errors::Error> {
+            if !reply.starts_with(&[
+                76, 83, 101, 116, 69, 113, 117, 105, 112, 112, 97, 98, 108, 101, 115, 84, 111, 65,
+                108, 108,
+            ]) {
+                return Err(sails_rtl::errors::Error::Rtl(
+                    sails_rtl::errors::RtlError::ReplyPrefixMismatches,
+                ));
+            }
+            reply = &reply[20..];
             let result = Decode::decode(&mut reply).map_err(sails_rtl::errors::Error::Codec)?;
             Ok(result)
         }
     }
 
-    #[derive(Debug, Clone, Copy)]
+    #[derive(Debug, Default, Clone, Copy)]
     pub struct EquippableCall(());
 
     impl EquippableCall {
-        #[allow(unused)]
+        #[allow(dead_code)]
         pub fn encode_call(part_id: u32, collection_id: ActorId) -> Vec<u8> {
             let args = (part_id, collection_id);
             let mut result = Vec::with_capacity(23 + args.encoded_size());
@@ -303,20 +348,26 @@ pub mod rmrk_catalog_calls {
             args.encode_to(&mut result);
             result
         }
-        #[allow(unused)]
+        #[allow(dead_code)]
         pub fn decode_reply(
             mut reply: &[u8],
         ) -> Result<Result<bool, Error>, sails_rtl::errors::Error> {
+            if !reply.starts_with(&[40, 69, 113, 117, 105, 112, 112, 97, 98, 108, 101]) {
+                return Err(sails_rtl::errors::Error::Rtl(
+                    sails_rtl::errors::RtlError::ReplyPrefixMismatches,
+                ));
+            }
+            reply = &reply[11..];
             let result = Decode::decode(&mut reply).map_err(sails_rtl::errors::Error::Codec)?;
             Ok(result)
         }
     }
 
-    #[derive(Debug, Clone, Copy)]
+    #[derive(Debug, Default, Clone, Copy)]
     pub struct PartCall(());
 
     impl PartCall {
-        #[allow(unused)]
+        #[allow(dead_code)]
         pub fn encode_call(part_id: u32) -> Vec<u8> {
             let args = part_id;
             let mut result = Vec::with_capacity(17 + args.encoded_size());
@@ -325,8 +376,14 @@ pub mod rmrk_catalog_calls {
             args.encode_to(&mut result);
             result
         }
-        #[allow(unused)]
+        #[allow(dead_code)]
         pub fn decode_reply(mut reply: &[u8]) -> Result<Option<Part>, sails_rtl::errors::Error> {
+            if !reply.starts_with(&[16, 80, 97, 114, 116]) {
+                return Err(sails_rtl::errors::Error::Rtl(
+                    sails_rtl::errors::RtlError::ReplyPrefixMismatches,
+                ));
+            }
+            reply = &reply[5..];
             let result = Decode::decode(&mut reply).map_err(sails_rtl::errors::Error::Codec)?;
             Ok(result)
         }
