@@ -54,6 +54,7 @@ pub mod wasm {
     static mut PROGRAM: Option<MyProgram> = None;
     #[gstd::async_init]
     async fn init() {
+        sails_rtl::gstd::events::__enable_events();
         let mut input: &[u8] = &gstd::msg::load_bytes().expect("Failed to read input");
         let (program, invocation_route) = if input
             .starts_with(&[12u8, 78u8, 101u8, 119u8])
