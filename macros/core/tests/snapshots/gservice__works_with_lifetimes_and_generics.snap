@@ -5,7 +5,7 @@ expression: result
 impl<'a, 'b, T, TEventTrigger> SomeService<'a, 'b, T, TEventTrigger>
 where
     T: Clone,
-    TEventTrigger: EventTrigger<events::SomeEvents>,
+    TEventTrigger: EventNotifier<events::SomeEvents>,
 {
     pub fn do_this(&mut self) -> u32 {
         42
@@ -19,7 +19,7 @@ pub struct Exposure<T> {
 impl<'a, 'b, T, TEventTrigger> Exposure<SomeService<'a, 'b, T, TEventTrigger>>
 where
     T: Clone,
-    TEventTrigger: EventTrigger<events::SomeEvents>,
+    TEventTrigger: EventNotifier<events::SomeEvents>,
 {
     pub fn do_this(&mut self) -> u32 {
         let exposure_scope = sails_rtl::gstd::services::ExposureCallScope::new(self);
@@ -73,7 +73,7 @@ impl<'a, 'b, T, TEventTrigger> sails_rtl::gstd::services::Exposure
 for Exposure<SomeService<'a, 'b, T, TEventTrigger>>
 where
     T: Clone,
-    TEventTrigger: EventTrigger<events::SomeEvents>,
+    TEventTrigger: EventNotifier<events::SomeEvents>,
 {
     fn message_id(&self) -> sails_rtl::MessageId {
         self.message_id
@@ -86,7 +86,7 @@ impl<'a, 'b, T, TEventTrigger> sails_rtl::gstd::services::Service
 for SomeService<'a, 'b, T, TEventTrigger>
 where
     T: Clone,
-    TEventTrigger: EventTrigger<events::SomeEvents>,
+    TEventTrigger: EventNotifier<events::SomeEvents>,
 {
     type Exposure = Exposure<SomeService<'a, 'b, T, TEventTrigger>>;
     fn expose(
@@ -105,7 +105,7 @@ impl<'a, 'b, T, TEventTrigger> sails_rtl::meta::ServiceMeta
 for SomeService<'a, 'b, T, TEventTrigger>
 where
     T: Clone,
-    TEventTrigger: EventTrigger<events::SomeEvents>,
+    TEventTrigger: EventNotifier<events::SomeEvents>,
 {
     fn commands() -> sails_rtl::scale_info::MetaType {
         sails_rtl::scale_info::MetaType::new::<meta::CommandsMeta>()

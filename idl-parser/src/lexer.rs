@@ -111,8 +111,8 @@ mod tests {
           };
 
           type ThisThatSvcAppDoThatParam = struct {
-            p1: u32,
-            p2: str,
+            query: u32,
+            result: str,
             p3: ThisThatSvcAppManyVariants,
           };
 

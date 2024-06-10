@@ -6,7 +6,7 @@ use sails_rtl::{
     collections::HashMap,
     gstd::{
         calls::{GStdArgs, GStdRemoting},
-        events::EventTrigger,
+        events::traits::EventNotifier,
         gservice, ExecContext,
     },
     prelude::*,
@@ -48,7 +48,7 @@ impl<TExecContext, TCatalogClient, TEventTrigger>
 where
     TExecContext: ExecContext,
     TCatalogClient: RmrkCatalog<GStdRemoting, GStdArgs>,
-    TEventTrigger: EventTrigger<ResourceStorageEvent>,
+    TEventTrigger: EventNotifier<ResourceStorageEvent>,
 {
     pub fn seed(exec_context: TExecContext) {
         unsafe {
@@ -90,7 +90,7 @@ where
         }
 
         self.event_trigger
-            .trigger(ResourceStorageEvent::ResourceAdded { resource_id })
+            .notify_on(ResourceStorageEvent::ResourceAdded { resource_id })
             .unwrap();
 
         Ok((resource_id, resource))
@@ -126,7 +126,7 @@ where
         }
 
         self.event_trigger
-            .trigger(ResourceStorageEvent::PartAdded {
+            .notify_on(ResourceStorageEvent::PartAdded {
                 resource_id,
                 part_id,
             })
@@ -171,11 +171,11 @@ mod tests {
     use sails_rtl::{
         calls::{Remoting, RemotingAction},
         collections::BTreeMap,
-        gstd::events::mocks::MockEventTrigger,
+        gstd::events::mocks::EventNotifier,
         ActorId,
     };
 
-    type MockResourceStorageEventTrigger = MockEventTrigger<ResourceStorageEvent>;
+    type MockResourceStorageEventTrigger = EventNotifier<ResourceStorageEvent>;
 
     #[test]
     fn test_add_resource_entry() {

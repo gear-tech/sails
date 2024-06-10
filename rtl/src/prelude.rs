@@ -20,8 +20,6 @@ pub use core::{
 /// Collection types.
 ///
 /// See [`alloc::collections`] & [`hashbrown`].
-///
-/// [`alloc::collections`]: ::alloc::collections
 pub mod collections {
     extern crate alloc;
 
@@ -36,8 +34,6 @@ pub mod collections {
 /// Utilities related to FFI bindings.
 ///
 /// See [`alloc::ffi`] & [`core::ffi`].
-///
-/// [`alloc::ffi`]: ::alloc::ffi
 pub mod ffi {
     extern crate alloc;
 

@@ -429,7 +429,7 @@ fn discover_service_events_type(where_clause: &WhereClause) -> Option<&Path> {
         .filter_map(|bound| {
             if let TypeParamBound::Trait(trait_bound) = bound {
                 let last_segment = trait_bound.path.segments.last()?;
-                if last_segment.ident == "EventTrigger" {
+                if last_segment.ident == "EventNotifier" {
                     if let PathArguments::AngleBracketed(args) = &last_segment.arguments {
                         if args.args.len() == 1 {
                             if let GenericArgument::Type(Type::Path(type_path)) =
@@ -539,7 +539,7 @@ mod tests {
     #[test]
     fn events_type_is_discovered_via_where_clause() {
         let input = quote! {
-            impl<T> SomeService<T> where T: EventTrigger<events::SomeEvents> {
+            impl<T> SomeService<T> where T: EventNotifier<events::SomeEvents> {
                 pub async fn do_this(&mut self) -> u32 {
                     42
                 }

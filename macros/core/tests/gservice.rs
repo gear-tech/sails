@@ -27,7 +27,7 @@ fn works_with_lifetimes_and_generics() {
     let input = quote! {
         impl<'a, 'b, T, TEventTrigger> SomeService<'a, 'b, T, TEventTrigger>
         where T : Clone,
-              TEventTrigger: EventTrigger<events::SomeEvents> {
+              TEventTrigger: EventNotifier<events::SomeEvents> {
             pub fn do_this(&mut self) -> u32 {
                 42
             }
