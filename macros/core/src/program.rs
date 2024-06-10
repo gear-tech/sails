@@ -6,25 +6,94 @@ use parity_scale_codec::Encode;
 use proc_macro2::{Span, TokenStream as TokenStream2};
 use proc_macro_error::abort;
 use quote::quote;
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 use syn::{
-    parse_quote, spanned::Spanned, Ident, ImplItem, ImplItemFn, ItemImpl, Receiver, ReturnType,
-    Type, TypePath, Visibility,
+    parse::{Parse, ParseStream},
+    parse_quote,
+    punctuated::Punctuated,
+    spanned::Spanned,
+    Ident, ImplItem, ImplItemFn, ItemImpl, Path, Receiver, ReturnType, Token, Type, TypePath,
+    Visibility,
 };
 
 /// Static Span of Program `impl` block
 static mut PROGRAM_SPAN: Option<Span> = None;
 
-pub fn gprogram(program_impl_tokens: TokenStream2) -> TokenStream2 {
+#[derive(Debug, Default, PartialEq)]
+struct ProgramAttrs {
+    handle_reply: Option<Path>,
+    handle_signal: Option<Path>,
+}
+
+impl Parse for ProgramAttrs {
+    fn parse(input: ParseStream<'_>) -> syn::Result<Self> {
+        let punctuated: Punctuated<ProgramAttr, Token![,]> = Punctuated::parse_terminated(input)?;
+        let mut attrs = ProgramAttrs {
+            handle_reply: None,
+            handle_signal: None,
+        };
+        let mut existing_attrs = BTreeSet::new();
+
+        for ProgramAttr { name, path, .. } in punctuated {
+            let name = name.to_string();
+            if existing_attrs.contains(&name) {
+                return Err(syn::Error::new_spanned(name, "parameter already defined"));
+            }
+
+            match &*name {
+                "handle_reply" => {
+                    attrs.handle_reply = Some(path);
+                }
+                "handle_signal" => {
+                    attrs.handle_signal = Some(path);
+                }
+                _ => return Err(syn::Error::new_spanned(name, "unknown parameter")),
+            }
+
+            existing_attrs.insert(name);
+        }
+
+        Ok(attrs)
+    }
+}
+
+struct ProgramAttr {
+    name: Ident,
+    path: Path,
+}
+
+impl Parse for ProgramAttr {
+    fn parse(input: ParseStream<'_>) -> syn::Result<Self> {
+        let name: Ident = input.parse()?;
+        let _: Token![=] = input.parse()?;
+        let path: Path = input.parse()?;
+
+        Ok(Self { name, path })
+    }
+}
+
+pub fn gprogram(args: TokenStream2, program_impl_tokens: TokenStream2) -> TokenStream2 {
     let program_impl = parse_gprogram_impl(program_impl_tokens);
     ensure_single_gprogram(&program_impl);
-    gen_gprogram_impl(program_impl)
+    let attrs = parse_attrs(args);
+    gen_gprogram_impl(program_impl, attrs)
 }
 
 #[doc(hidden)]
-pub fn __gprogram_internal(program_impl_tokens: TokenStream2) -> TokenStream2 {
+pub fn __gprogram_internal(args: TokenStream2, program_impl_tokens: TokenStream2) -> TokenStream2 {
     let program_impl = parse_gprogram_impl(program_impl_tokens);
-    gen_gprogram_impl(program_impl)
+    let attrs = parse_attrs(args);
+    gen_gprogram_impl(program_impl, attrs)
+}
+
+fn parse_attrs(args: TokenStream2) -> ProgramAttrs {
+    syn::parse2::<ProgramAttrs>(args).unwrap_or_else(|err| {
+        abort!(
+            err.span(),
+            "`gprogram` attribute can only contain `handle_reply` and `handle_signal` parameters: {}",
+            err
+        )
+    })
 }
 
 fn parse_gprogram_impl(program_impl_tokens: TokenStream2) -> ItemImpl {
@@ -47,7 +116,7 @@ fn ensure_single_gprogram(program_impl: &ItemImpl) {
     unsafe { PROGRAM_SPAN = Some(program_impl.span()) };
 }
 
-fn gen_gprogram_impl(program_impl: ItemImpl) -> TokenStream2 {
+fn gen_gprogram_impl(program_impl: ItemImpl, program_attrs: ProgramAttrs) -> TokenStream2 {
     let services_ctors = discover_services_ctors(&program_impl);
 
     let mut program_impl = program_impl.clone();
@@ -91,6 +160,7 @@ fn gen_gprogram_impl(program_impl: ItemImpl) -> TokenStream2 {
     let handle_fn = generate_handle(
         &program_ident,
         services_data.iter().map(|item| (&item.3, &item.2)),
+        program_attrs,
     );
 
     let services_meta = services_data.iter().map(|item| &item.1);
@@ -307,6 +377,7 @@ fn generate_init(
 fn generate_handle<'a>(
     program_ident: &'a Ident,
     service_ctors: impl Iterator<Item = (&'a Ident, &'a Ident)>,
+    program_attrs: ProgramAttrs,
 ) -> TokenStream2 {
     let input_ident = Ident::new("input", Span::call_site());
 
@@ -330,8 +401,21 @@ fn generate_handle<'a>(
         "Unexpected service",
     ));
 
+    let mut attrs = Vec::with_capacity(2);
+    if let Some(handle_reply) = program_attrs.handle_reply {
+        attrs.push(quote!(handle_reply = #handle_reply));
+    }
+    if let Some(handle_signal) = program_attrs.handle_signal {
+        attrs.push(quote!(handle_signal = #handle_signal));
+    }
+    let attrs_token = if attrs.is_empty() {
+        quote!()
+    } else {
+        quote!((#(#attrs),*))
+    };
+
     quote!(
-        #[gstd::async_main]
+        #[gstd::async_main #attrs_token]
         async fn main() {
             let mut #input_ident: &[u8] = &gstd::msg::load_bytes().expect("Failed to read input");
             let output: Vec<u8> = #(#invocation_dispatches)else*;
@@ -380,6 +464,7 @@ fn discover_services_ctors(program_impl: &ItemImpl) -> BTreeMap<String, (&ImplIt
 mod tests {
     use super::*;
     use quote::quote;
+    use syn::PathSegment;
 
     #[test]
     fn gprogram_discovers_public_associated_functions_returning_self_or_the_type_as_ctors() {
@@ -436,5 +521,43 @@ mod tests {
 
         assert_eq!(discovered_services.len(), 1);
         assert!(discovered_services.contains(&String::from("public_method_returning_smth")));
+    }
+
+    #[test]
+    fn gprogram_parse_attrs() {
+        // arrange
+        let input = quote!(
+            handle_reply = my_handle_reply,
+            handle_signal = my_handle_signal
+        );
+        let expected = ProgramAttrs {
+            handle_reply: Some(
+                PathSegment::from(Ident::new("my_handle_reply", Span::call_site())).into(),
+            ),
+            handle_signal: Some(
+                PathSegment::from(Ident::new("my_handle_signal", Span::call_site())).into(),
+            ),
+        };
+
+        // act
+        let attrs = parse_attrs(input);
+
+        // arrange
+        assert_eq!(expected, attrs);
+    }
+
+    #[test]
+    fn gprogram_parse_attrs_unknown_parameter() {
+        // arrange
+        let input = quote!(
+            _handle_reply = my_handle_reply,
+            handle_signal = my_handle_signal
+        );
+
+        // act
+        let result = syn::parse2::<ProgramAttrs>(input);
+
+        // arrange
+        assert!(matches!(result, Err(_)));
     }
 }
