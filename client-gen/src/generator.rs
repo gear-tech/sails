@@ -399,20 +399,6 @@ fn encoded_args(params: &[FuncParam]) -> String {
     format!("({arg_names})")
 }
 
-fn encoded_args2(params: &[FuncParam]) -> String {
-    if params.len() == 1 {
-        return params[0].name().to_owned();
-    }
-
-    let arg_names = params
-        .iter()
-        .map(|a| a.name())
-        .collect::<Vec<_>>()
-        .join(", ");
-
-    format!("({arg_names})")
-}
-
 struct TypeGenerator<'a> {
     type_name: &'a str,
     code: String,
@@ -550,8 +536,10 @@ fn generate_type_decl_code(type_decl: &TypeDecl) -> String {
 }
 
 fn generate_type_decl_with_path(type_decl: &TypeDecl, path: String) -> String {
-    let mut type_decl_generator = TypeDeclGenerator::default();
-    type_decl_generator.path = path;
+    let mut type_decl_generator = TypeDeclGenerator {
+        code: String::new(),
+        path,
+    };
     visitor::accept_type_decl(type_decl, &mut type_decl_generator);
     type_decl_generator.code
 }
@@ -699,7 +687,7 @@ impl<'ast> Visitor<'ast> for CallBuilderGenerator {
 
         let path_len = service_path_encoded_length + route_encoded_length;
 
-        let args = encoded_args2(func.params());
+        let args = encoded_args(func.params());
 
         self.code.push_str(&format!("let args = {args};",));
 
