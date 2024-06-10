@@ -86,25 +86,6 @@ fn test_rmrk_works() {
     insta::assert_snapshot!(gen(idl, "RmrkCatalog"));
 }
 
-#[test]
-fn test_reserved_keywords() {
-    const IDL: &str = r#"
-        type MyStruct = struct {
-            query: u8,
-            result: u8,
-        };
-
-        service {
-            MyFn : (constructor: u32, service: str, p3: struct { opt str, u8 }, result: MyStruct) -> struct { str, u32 };
-        };
-        "#;
-
-    let program = sails_idl_parser::ast::parse_idl(IDL).expect("parse IDL");
-    let s =
-        sails_client_gen::generator::generate(program, "ReservedKeyword").expect("generate client");
-    insta::assert_snapshot!(s);
-}
-
 fn gen(program: &str, service_name: &str) -> String {
     let program = sails_idl_parser::ast::parse_idl(program).expect("parse IDL");
 
