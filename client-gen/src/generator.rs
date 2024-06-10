@@ -415,7 +415,7 @@ impl<'a> TypeGenerator<'a> {
 
 impl<'a, 'ast> Visitor<'ast> for TypeGenerator<'a> {
     fn visit_struct_def(&mut self, struct_def: &'ast StructDef) {
-        let mut struct_def_generator = StructDefGenerator::new(true);
+        let mut struct_def_generator = StructDefGenerator::new(true, "".to_owned());
         struct_def_generator.visit_struct_def(struct_def);
 
         let semi = if struct_def.fields().iter().all(|f| f.name().is_none()) {
@@ -453,13 +453,15 @@ impl<'a, 'ast> Visitor<'ast> for TypeGenerator<'a> {
 struct StructDefGenerator {
     code: String,
     is_pub: bool,
+    path: String,
 }
 
 impl StructDefGenerator {
-    fn new(is_pub: bool) -> Self {
+    fn new(is_pub: bool, path: String) -> Self {
         Self {
             code: String::new(),
             is_pub,
+            path,
         }
     }
 }
@@ -485,7 +487,8 @@ impl<'ast> Visitor<'ast> for StructDefGenerator {
     }
 
     fn visit_struct_field(&mut self, struct_field: &'ast StructField) {
-        let type_decl_code = generate_type_decl_code(struct_field.type_decl());
+        let type_decl_code =
+            generate_type_decl_with_path(struct_field.type_decl(), self.path.clone());
 
         let vis = self.is_pub.then_some("pub ").unwrap_or_default();
 
@@ -532,9 +535,19 @@ fn generate_type_decl_code(type_decl: &TypeDecl) -> String {
     type_decl_generator.code
 }
 
+fn generate_type_decl_with_path(type_decl: &TypeDecl, path: String) -> String {
+    let mut type_decl_generator = TypeDeclGenerator {
+        code: String::new(),
+        path,
+    };
+    visitor::accept_type_decl(type_decl, &mut type_decl_generator);
+    type_decl_generator.code
+}
+
 #[derive(Default)]
 struct TypeDeclGenerator {
     code: String,
+    path: String,
 }
 
 impl<'ast> Visitor<'ast> for TypeDeclGenerator {
@@ -563,7 +576,7 @@ impl<'ast> Visitor<'ast> for TypeDeclGenerator {
     }
 
     fn visit_struct_def(&mut self, struct_def: &'ast StructDef) {
-        let mut struct_def_generator = StructDefGenerator::default();
+        let mut struct_def_generator = StructDefGenerator::new(false, self.path.clone());
         struct_def_generator.visit_struct_def(struct_def);
         self.code.push_str(&struct_def_generator.code);
     }
@@ -593,6 +606,10 @@ impl<'ast> Visitor<'ast> for TypeDeclGenerator {
     }
 
     fn visit_user_defined_type_id(&mut self, user_defined_type_id: &'ast str) {
+        if !self.path.is_empty() {
+            self.code.push_str(&self.path);
+            self.code.push_str("::");
+        }
         self.code.push_str(user_defined_type_id);
     }
 
@@ -631,6 +648,136 @@ impl CallBuilderGenerator {
     }
 }
 
+impl<'ast> Visitor<'ast> for CallBuilderGenerator {
+    fn visit_service(&mut self, service: &'ast Service) {
+        let name = self.service_name.to_case(Case::Snake);
+
+        self.code.push_str(&format!(
+            r#"
+            pub mod {name}_io {{
+                use super::*;
+        "#
+        ));
+
+        visitor::accept_service(service, self);
+
+        self.code.push_str("}\n");
+    }
+
+    fn visit_service_func(&mut self, func: &'ast ServiceFunc) {
+        let fn_name = func.name();
+
+        self.code.push_str(&format!(
+            "
+            #[derive(Debug, Default, Clone, Copy)]
+            pub struct {fn_name}(());
+
+            impl {fn_name} {{
+            #[allow(dead_code)]
+            pub fn encode_call(
+            ",
+        ));
+
+        visitor::accept_service_func(func, self);
+
+        self.code.push_str(") -> Vec<u8> {\n");
+
+        let (service_path_bytes, service_path_encoded_length) = path_bytes(&self.path);
+        let (route_bytes, route_encoded_length) = method_bytes(fn_name);
+
+        let path_len = service_path_encoded_length + route_encoded_length;
+
+        let args = encoded_args(func.params());
+
+        self.code.push_str(&format!("let args = {args};",));
+
+        self.code.push_str(&format!(
+            "let mut result = Vec::with_capacity({path_len} + args.encoded_size());",
+        ));
+
+        self.code.push_str(&format!(
+            "result.extend_from_slice(&[{service_path_bytes}]);"
+        ));
+        self.code
+            .push_str(&format!("result.extend_from_slice(&[{route_bytes}]);"));
+
+        self.code.push_str("args.encode_to(&mut result);");
+
+        self.code.push_str("result \n}");
+
+        let mut decode_reply_gen = DecodeReplyGenerator::default();
+        decode_reply_gen.visit_service_func(func);
+
+        self.code.push_str(&decode_reply_gen.code);
+
+        self.code.push_str("}\n");
+    }
+
+    fn visit_func_param(&mut self, func_param: &'ast FuncParam) {
+        let type_decl_code =
+            generate_type_decl_with_path(func_param.type_decl(), "super".to_owned());
+
+        self.code
+            .push_str(&format!("{}: {},", func_param.name(), type_decl_code));
+    }
+}
+
+#[derive(Default)]
+pub struct DecodeReplyGenerator {
+    code: String,
+    is_unit: bool,
+}
+
+impl<'ast> Visitor<'ast> for DecodeReplyGenerator {
+    fn visit_service(&mut self, service: &'ast Service) {
+        visitor::accept_service(service, self);
+    }
+
+    fn visit_service_func(&mut self, func: &'ast ServiceFunc) {
+        self.code.push_str(
+            "
+            #[allow(dead_code)]
+            pub fn decode_reply(mut reply: &[u8]) -> Result<
+            ",
+        );
+
+        visitor::accept_service_func(func, self);
+
+        self.code.push_str(", sails_rtl::errors::Error> {\n");
+
+        let (route_bytes, route_encoded_length) = method_bytes(func.name());
+
+        self.code.push_str(&format!(
+            "if !reply.starts_with(&[{route_bytes}]) {{
+                return Err(sails_rtl::errors::Error::Rtl(sails_rtl::errors::RtlError::ReplyPrefixMismatches));
+            }}",
+        ));
+
+        self.code
+            .push_str(&format!("reply = &reply[{route_encoded_length}..];"));
+
+        if self.is_unit {
+            self.code.push_str("#[allow(clippy::let_unit_value)]");
+        }
+        self.code.push_str(
+            "let result = Decode::decode(&mut reply).map_err(sails_rtl::errors::Error::Codec)?;\n",
+        );
+
+        self.code.push_str("Ok(result)\n");
+
+        self.code.push_str("}\n\n");
+    }
+
+    fn visit_func_output(&mut self, func_output: &'ast TypeDecl) {
+        let type_decl_code = generate_type_decl_with_path(func_output, "super".to_owned());
+        if type_decl_code == "()" {
+            self.is_unit = true;
+        }
+
+        self.code.push_str(&type_decl_code);
+    }
+}
+
 fn path_bytes(path: &str) -> (String, usize) {
     if path.is_empty() {
         (String::new(), 0)
@@ -657,68 +804,4 @@ fn method_bytes(fn_name: &str) -> (String, usize) {
         .join(",");
 
     (route_bytes, route_encoded_length)
-}
-
-impl<'ast> Visitor<'ast> for CallBuilderGenerator {
-    fn visit_service(&mut self, service: &'ast Service) {
-        let name = &self.service_name;
-
-        self.code.push_str(&format!(
-            r#"
-            #[derive(Default)]
-            pub struct {name}CallBuilder;
-
-            impl {name}CallBuilder {{
-        "#
-        ));
-
-        visitor::accept_service(service, self);
-
-        self.code.push_str("}\n");
-    }
-
-    fn visit_service_func(&mut self, func: &'ast ServiceFunc) {
-        let fn_name = func.name();
-
-        self.code.push_str("#[allow(unused)]");
-        self.code
-            .push_str(&format!("pub fn {}(", fn_name.to_case(Case::Snake)));
-
-        visitor::accept_service_func(func, self);
-
-        self.code.push_str("{\n");
-
-        let args = encoded_args(func.params());
-
-        let (service_path_bytes, service_path_encoded_length) = path_bytes(&self.path);
-        let (route_bytes, route_encoded_length) = method_bytes(fn_name);
-
-        let path_len = service_path_encoded_length + route_encoded_length;
-
-        self.code.push_str(&format!("let args = {args};"));
-        self.code.push_str(&format!(
-            "let mut result = Vec::with_capacity({path_len} + args.encoded_size());",
-        ));
-
-        self.code.push_str(&format!(
-            "result.extend_from_slice(&[{service_path_bytes}]);"
-        ));
-        self.code
-            .push_str(&format!("result.extend_from_slice(&[{route_bytes}]);"));
-
-        self.code.push_str("args.encode_to(&mut result);");
-        self.code.push_str("result");
-
-        self.code.push_str("}\n");
-    }
-
-    fn visit_func_param(&mut self, func_param: &'ast FuncParam) {
-        let type_decl_code = generate_type_decl_code(func_param.type_decl());
-        self.code
-            .push_str(&format!("{}: {},", func_param.name(), type_decl_code));
-    }
-
-    fn visit_func_output(&mut self, _func_output: &'ast TypeDecl) {
-        self.code.push_str(") -> Vec<u8>");
-    }
 }
