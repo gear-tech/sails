@@ -399,6 +399,20 @@ fn encoded_args(params: &[FuncParam]) -> String {
     format!("({arg_names})")
 }
 
+fn encoded_args2(params: &[FuncParam]) -> String {
+    if params.len() == 1 {
+        return params[0].name().to_owned();
+    }
+
+    let arg_names = params
+        .iter()
+        .map(|a| a.name())
+        .collect::<Vec<_>>()
+        .join(", ");
+
+    format!("({arg_names})")
+}
+
 struct TypeGenerator<'a> {
     type_name: &'a str,
     code: String,
@@ -415,7 +429,7 @@ impl<'a> TypeGenerator<'a> {
 
 impl<'a, 'ast> Visitor<'ast> for TypeGenerator<'a> {
     fn visit_struct_def(&mut self, struct_def: &'ast StructDef) {
-        let mut struct_def_generator = StructDefGenerator::new(true);
+        let mut struct_def_generator = StructDefGenerator::new(true, "".to_owned());
         struct_def_generator.visit_struct_def(struct_def);
 
         let semi = if struct_def.fields().iter().all(|f| f.name().is_none()) {
@@ -453,13 +467,15 @@ impl<'a, 'ast> Visitor<'ast> for TypeGenerator<'a> {
 struct StructDefGenerator {
     code: String,
     is_pub: bool,
+    path: String,
 }
 
 impl StructDefGenerator {
-    fn new(is_pub: bool) -> Self {
+    fn new(is_pub: bool, path: String) -> Self {
         Self {
             code: String::new(),
             is_pub,
+            path,
         }
     }
 }
@@ -485,7 +501,8 @@ impl<'ast> Visitor<'ast> for StructDefGenerator {
     }
 
     fn visit_struct_field(&mut self, struct_field: &'ast StructField) {
-        let type_decl_code = generate_type_decl_code(struct_field.type_decl());
+        let type_decl_code =
+            generate_type_decl_with_path(struct_field.type_decl(), self.path.clone());
 
         let vis = self.is_pub.then_some("pub ").unwrap_or_default();
 
@@ -532,9 +549,17 @@ fn generate_type_decl_code(type_decl: &TypeDecl) -> String {
     type_decl_generator.code
 }
 
+fn generate_type_decl_with_path(type_decl: &TypeDecl, path: String) -> String {
+    let mut type_decl_generator = TypeDeclGenerator::default();
+    type_decl_generator.path = path;
+    visitor::accept_type_decl(type_decl, &mut type_decl_generator);
+    type_decl_generator.code
+}
+
 #[derive(Default)]
 struct TypeDeclGenerator {
     code: String,
+    path: String,
 }
 
 impl<'ast> Visitor<'ast> for TypeDeclGenerator {
@@ -563,7 +588,7 @@ impl<'ast> Visitor<'ast> for TypeDeclGenerator {
     }
 
     fn visit_struct_def(&mut self, struct_def: &'ast StructDef) {
-        let mut struct_def_generator = StructDefGenerator::default();
+        let mut struct_def_generator = StructDefGenerator::new(false, self.path.clone());
         struct_def_generator.visit_struct_def(struct_def);
         self.code.push_str(&struct_def_generator.code);
     }
@@ -593,6 +618,10 @@ impl<'ast> Visitor<'ast> for TypeDeclGenerator {
     }
 
     fn visit_user_defined_type_id(&mut self, user_defined_type_id: &'ast str) {
+        if !self.path.is_empty() {
+            self.code.push_str(&self.path);
+            self.code.push_str("::");
+        }
         self.code.push_str(user_defined_type_id);
     }
 
@@ -653,9 +682,9 @@ impl<'ast> Visitor<'ast> for CallBuilderGenerator {
         self.code.push_str(&format!(
             "
             #[derive(Debug, Default, Clone, Copy)]
-            pub struct {fn_name}Call(());
+            pub struct {fn_name}(());
 
-            impl {fn_name}Call {{
+            impl {fn_name} {{
             #[allow(dead_code)]
             pub fn encode_call(
             ",
@@ -670,7 +699,7 @@ impl<'ast> Visitor<'ast> for CallBuilderGenerator {
 
         let path_len = service_path_encoded_length + route_encoded_length;
 
-        let args = encoded_args(func.params());
+        let args = encoded_args2(func.params());
 
         self.code.push_str(&format!("let args = {args};",));
 
@@ -697,7 +726,9 @@ impl<'ast> Visitor<'ast> for CallBuilderGenerator {
     }
 
     fn visit_func_param(&mut self, func_param: &'ast FuncParam) {
-        let type_decl_code = generate_type_decl_code(func_param.type_decl());
+        let type_decl_code =
+            generate_type_decl_with_path(func_param.type_decl(), "super".to_owned());
+
         self.code
             .push_str(&format!("{}: {},", func_param.name(), type_decl_code));
     }
@@ -750,7 +781,7 @@ impl<'ast> Visitor<'ast> for DecodeReplyGenerator {
     }
 
     fn visit_func_output(&mut self, func_output: &'ast TypeDecl) {
-        let type_decl_code = generate_type_decl_code(func_output);
+        let type_decl_code = generate_type_decl_with_path(func_output, "super".to_owned());
         if type_decl_code == "()" {
             self.is_unit = true;
         }

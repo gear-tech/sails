@@ -58,7 +58,7 @@ mod tests {
 
     #[test]
     fn test_io_module_encode() {
-        let bytes = this_that_svc_io::DoThatCall::encode_call(DoThatParam {
+        let bytes = this_that_svc_io::DoThat::encode_call(DoThatParam {
             p1: u32::MAX,
             p2: "hello".to_string(),
             p3: ManyVariants::One,
@@ -85,7 +85,7 @@ mod tests {
         ];
 
         let reply: Result<(String, u32), (String,)> =
-            this_that_svc_io::DoThatCall::decode_reply(&bytes).unwrap();
+            this_that_svc_io::DoThat::decode_reply(&bytes).unwrap();
 
         assert_eq!(reply, Ok(("AAAA".to_string(), u32::MAX)));
     }
