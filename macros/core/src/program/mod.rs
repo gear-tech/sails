@@ -21,15 +21,15 @@ static mut PROGRAM_SPAN: Option<Span> = None;
 pub fn gprogram(args: TokenStream2, program_impl_tokens: TokenStream2) -> TokenStream2 {
     let program_impl = parse_gprogram_impl(program_impl_tokens);
     ensure_single_gprogram(&program_impl);
-    let attrs = parse_args(args);
-    gen_gprogram_impl(program_impl, attrs)
+    let args = parse_args(args);
+    gen_gprogram_impl(program_impl, args)
 }
 
 #[doc(hidden)]
 pub fn __gprogram_internal(args: TokenStream2, program_impl_tokens: TokenStream2) -> TokenStream2 {
     let program_impl = parse_gprogram_impl(program_impl_tokens);
-    let attrs = parse_args(args);
-    gen_gprogram_impl(program_impl, attrs)
+    let args = parse_args(args);
+    gen_gprogram_impl(program_impl, args)
 }
 
 fn parse_args(args: TokenStream2) -> ProgramArgs {
@@ -62,7 +62,7 @@ fn ensure_single_gprogram(program_impl: &ItemImpl) {
     unsafe { PROGRAM_SPAN = Some(program_impl.span()) };
 }
 
-fn gen_gprogram_impl(program_impl: ItemImpl, program_attrs: ProgramArgs) -> TokenStream2 {
+fn gen_gprogram_impl(program_impl: ItemImpl, program_args: ProgramArgs) -> TokenStream2 {
     let services_ctors = discover_services_ctors(&program_impl);
 
     let mut program_impl = program_impl.clone();
@@ -106,7 +106,7 @@ fn gen_gprogram_impl(program_impl: ItemImpl, program_attrs: ProgramArgs) -> Toke
     let handle_fn = generate_handle(
         &program_ident,
         services_data.iter().map(|item| (&item.3, &item.2)),
-        program_attrs,
+        program_args,
     );
 
     let services_meta = services_data.iter().map(|item| &item.1);
@@ -325,7 +325,7 @@ fn generate_init(
 fn generate_handle<'a>(
     program_ident: &'a Ident,
     service_ctors: impl Iterator<Item = (&'a Ident, &'a Ident)>,
-    program_attrs: ProgramArgs,
+    program_args: ProgramArgs,
 ) -> TokenStream2 {
     let input_ident = Ident::new("input", Span::call_site());
 
@@ -349,21 +349,21 @@ fn generate_handle<'a>(
         "Unexpected service",
     ));
 
-    let mut attrs = Vec::with_capacity(2);
-    if let Some(handle_reply) = program_attrs.handle_reply() {
-        attrs.push(quote!(handle_reply = #handle_reply));
+    let mut args = Vec::with_capacity(2);
+    if let Some(handle_reply) = program_args.handle_reply() {
+        args.push(quote!(handle_reply = #handle_reply));
     }
-    if let Some(handle_signal) = program_attrs.handle_signal() {
-        attrs.push(quote!(handle_signal = #handle_signal));
+    if let Some(handle_signal) = program_args.handle_signal() {
+        args.push(quote!(handle_signal = #handle_signal));
     }
-    let attrs_token = if attrs.is_empty() {
+    let async_main_args = if args.is_empty() {
         quote!()
     } else {
-        quote!((#(#attrs),*))
+        quote!((#(#args),*))
     };
 
     quote!(
-        #[gstd::async_main #attrs_token]
+        #[gstd::async_main #async_main_args]
         async fn main() {
             let mut #input_ident: &[u8] = &gstd::msg::load_bytes().expect("Failed to read input");
             let output: Vec<u8> = #(#invocation_dispatches)else*;
