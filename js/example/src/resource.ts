@@ -1,9 +1,6 @@
 import { GearApi, decodeAddress } from '@gear-js/api';
 import { TypeRegistry } from '@polkadot/types';
-import { TransactionBuilder } from 'sails-js';
-import { u8aToHex, compactFromU8aLim } from '@polkadot/util';
-
-const ZERO_ADDRESS = u8aToHex(new Uint8Array(32));
+import { TransactionBuilder, getServiceNamePrefix, getFnNamePrefix, ZERO_ADDRESS } from 'sails-js';
 
 export type Error = "notAuthorized" | "zeroResourceId" | "resourceAlreadyExists" | "resourceNotFound" | "wrongResourceType" | "partNotFound";
 
@@ -22,20 +19,22 @@ export interface SlotResource {
   src: string;
   thumb: string;
   metadata_uri: string;
-  base: `0x${string}` | Uint8Array;
-  slot: number | string;
+  base: string;
+  slot: number;
 }
 
 export interface ComposedResource {
   src: string;
   thumb: string;
   metadata_uri: string;
-  base: `0x${string}` | Uint8Array;
-  parts: Array<number | string>;
+  base: string;
+  parts: Array<number>;
 }
 
 export class RmrkResource {
-  private registry: TypeRegistry;
+  public readonly registry: TypeRegistry;
+  public readonly service: Service;
+
   constructor(public api: GearApi, public programId?: `0x${string}`) {
     const types: Record<string, any> = {
       Error: {"_enum":["NotAuthorized","ZeroResourceId","ResourceAlreadyExists","ResourceNotFound","WrongResourceType","PartNotFound"]},
@@ -48,6 +47,8 @@ export class RmrkResource {
     this.registry = new TypeRegistry();
     this.registry.setKnownTypes({ types });
     this.registry.register(types);
+
+    this.service = new Service(this);
   }
 
   newCtorFromCode(code: Uint8Array | Buffer): TransactionBuilder<null> {
@@ -79,71 +80,73 @@ export class RmrkResource {
     this.programId = builder.programId;
     return builder;
   }
+}
 
-  public addPartToResource(resource_id: number | string, part_id: number | string): TransactionBuilder<{ ok: number | string } | { err: Error }> {
-    return new TransactionBuilder<{ ok: number | string } | { err: Error }>(
-      this.api,
-      this.registry,
+export class Service {
+  constructor(private _program: RmrkResource) {}
+
+  public addPartToResource(resource_id: number, part_id: number): TransactionBuilder<{ ok: number } | { err: Error }> {
+    if (!this._program.programId) throw new Error('Program ID is not set');
+    return new TransactionBuilder<{ ok: number } | { err: Error }>(
+      this._program.api,
+      this._program.registry,
       'send_message',
-      ['AddPartToResource', resource_id, part_id],
-      '(String, u8, u32)',
+      ['Service', 'AddPartToResource', resource_id, part_id],
+      '(String, String, u8, u32)',
       'Result<u32, Error>',
-      this.programId
+      this._program.programId
     );
   }
 
-  public addResourceEntry(resource_id: number | string, resource: Resource): TransactionBuilder<{ ok: [number | string, Resource] } | { err: Error }> {
-    return new TransactionBuilder<{ ok: [number | string, Resource] } | { err: Error }>(
-      this.api,
-      this.registry,
+  public addResourceEntry(resource_id: number, resource: Resource): TransactionBuilder<{ ok: [number, Resource] } | { err: Error }> {
+    if (!this._program.programId) throw new Error('Program ID is not set');
+    return new TransactionBuilder<{ ok: [number, Resource] } | { err: Error }>(
+      this._program.api,
+      this._program.registry,
       'send_message',
-      ['AddResourceEntry', resource_id, resource],
-      '(String, u8, Resource)',
+      ['Service', 'AddResourceEntry', resource_id, resource],
+      '(String, String, u8, Resource)',
       'Result<(u8, Resource), Error>',
-      this.programId
+      this._program.programId
     );
   }
 
-  public async resource(resource_id: number | string, originAddress: string, value?: number | string | bigint, atBlock?: `0x${string}`): Promise<{ ok: Resource } | { err: Error }> {
-    const payload = this.registry.createType('(String, u8)', ['Resource', resource_id]).toU8a();
-    const reply = await this.api.message.calculateReply({
-      destination: this.programId,
+  public async resource(resource_id: number, originAddress: string, value?: number | string | bigint, atBlock?: `0x${string}`): Promise<{ ok: Resource } | { err: Error }> {
+    const payload = this._program.registry.createType('(String, String, u8)', ['Service', 'Resource', resource_id]).toHex();
+    const reply = await this._program.api.message.calculateReply({
+      destination: this._program.programId,
       origin: decodeAddress(originAddress),
       payload,
       value: value || 0,
-      gasLimit: this.api.blockGasLimit.toBigInt(),
+      gasLimit: this._program.api.blockGasLimit.toBigInt(),
       at: atBlock || null,
     });
-    const result = this.registry.createType('(String, Result<Resource, Error>)', reply.payload);
-    return result[1].toJSON() as unknown as { ok: Resource } | { err: Error };
+    const result = this._program.registry.createType('(String, String, Result<Resource, Error>)', reply.payload);
+    return result[2].toJSON() as unknown as { ok: Resource } | { err: Error };
   }
 
-  public subscribeToResourceAddedEvent(callback: (data: { resource_id: number | string }) => void | Promise<void>): Promise<() => void> {
-    return this.api.gearEvents.subscribeToGearEvent('UserMessageSent', ({ data: { message } }) => {;
-      if (!message.source.eq(this.programId) || !message.destination.eq(ZERO_ADDRESS)) {
+  public subscribeToResourceAddedEvent(callback: (data: { resource_id: number }) => void | Promise<void>): Promise<() => void> {
+    return this._program.api.gearEvents.subscribeToGearEvent('UserMessageSent', ({ data: { message } }) => {;
+      if (!message.source.eq(this._program.programId) || !message.destination.eq(ZERO_ADDRESS)) {
         return;
       }
 
-      const payload = message.payload.toU8a();
-      const [offset, limit] = compactFromU8aLim(payload);
-      const name = this.registry.createType('String', payload.subarray(offset, limit)).toString();
-      if (name === 'ResourceAdded') {
-        callback(this.registry.createType('(String, {"resource_id":"u8"})', message.payload)[1].toJSON() as { resource_id: number | string });
+      const payload = message.payload.toHex();
+      if (getServiceNamePrefix(payload) === 'Service' && getFnNamePrefix(payload) === 'ResourceAdded') {
+        callback(this._program.registry.createType('(String, String, {"resource_id":"u8"})', message.payload)[2].toJSON() as { resource_id: number });
       }
     });
   }
 
-  public subscribeToPartAddedEvent(callback: (data: { resource_id: number | string; part_id: number | string }) => void | Promise<void>): Promise<() => void> {
-    return this.api.gearEvents.subscribeToGearEvent('UserMessageSent', ({ data: { message } }) => {;
-      if (!message.source.eq(this.programId) || !message.destination.eq(ZERO_ADDRESS)) {
+  public subscribeToPartAddedEvent(callback: (data: { resource_id: number; part_id: number }) => void | Promise<void>): Promise<() => void> {
+    return this._program.api.gearEvents.subscribeToGearEvent('UserMessageSent', ({ data: { message } }) => {;
+      if (!message.source.eq(this._program.programId) || !message.destination.eq(ZERO_ADDRESS)) {
         return;
       }
 
-      const payload = message.payload.toU8a();
-      const [offset, limit] = compactFromU8aLim(payload);
-      const name = this.registry.createType('String', payload.subarray(offset, limit)).toString();
-      if (name === 'PartAdded') {
-        callback(this.registry.createType('(String, {"resource_id":"u8","part_id":"u32"})', message.payload)[1].toJSON() as { resource_id: number | string; part_id: number | string });
+      const payload = message.payload.toHex();
+      if (getServiceNamePrefix(payload) === 'Service' && getFnNamePrefix(payload) === 'PartAdded') {
+        callback(this._program.registry.createType('(String, String, {"resource_id":"u8","part_id":"u32"})', message.payload)[2].toJSON() as { resource_id: number; part_id: number });
       }
     });
   }

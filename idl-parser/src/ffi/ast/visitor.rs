@@ -85,81 +85,131 @@ static VISITOR: Visitor = Visitor {
     visit_enum_variant,
 };
 
+macro_rules! deref {
+    ($expr:expr) => {{
+        if $expr.is_null() {
+            return ErrorCode::NullPtr;
+        }
+        unsafe { $expr.as_ref() }.unwrap()
+    }};
+}
+
+macro_rules! deref_visitor {
+    ($context:expr, $visitor:expr) => {
+        match VisitorWrapper::new($context, $visitor) {
+            Ok(visitor) => visitor,
+            Err(err) => return err,
+        }
+    };
+}
+
 #[cfg(target_arch = "wasm32")]
 #[no_mangle]
-extern "C" fn accept_program(program: *const Program, context: *const ()) {
+extern "C" fn accept_program(program: *const Program, context: *const ()) -> ErrorCode {
     accept_program_impl(program, context, &VISITOR)
 }
 
 #[cfg(not(target_arch = "wasm32"))]
 #[no_mangle]
-extern "C" fn accept_program(program: *const Program, context: *const (), visitor: *const Visitor) {
+extern "C" fn accept_program(
+    program: *const Program,
+    context: *const (),
+    visitor: *const Visitor,
+) -> ErrorCode {
     accept_program_impl(program, context, visitor)
 }
 
-fn accept_program_impl(program: *const Program, context: *const (), visitor: *const Visitor) {
-    let program = unsafe { program.as_ref() }.unwrap();
-    let mut visitor = VisitorWrapper::new(context, visitor);
+fn accept_program_impl(
+    program: *const Program,
+    context: *const (),
+    visitor: *const Visitor,
+) -> ErrorCode {
+    let program = deref!(program);
+    let mut visitor = deref_visitor!(context, visitor);
     raw_visitor::accept_program(program, &mut visitor);
+    ErrorCode::Ok
 }
 
 #[cfg(target_arch = "wasm32")]
 #[no_mangle]
-extern "C" fn accept_ctor(ctor: *const Ctor, context: *const ()) {
+extern "C" fn accept_ctor(ctor: *const Ctor, context: *const ()) -> ErrorCode {
     accept_ctor_impl(ctor, context, &VISITOR)
 }
 
 #[cfg(not(target_arch = "wasm32"))]
 #[no_mangle]
-extern "C" fn accept_ctor(ctor: *const Ctor, context: *const (), visitor: *const Visitor) {
+extern "C" fn accept_ctor(
+    ctor: *const Ctor,
+    context: *const (),
+    visitor: *const Visitor,
+) -> ErrorCode {
     accept_ctor_impl(ctor, context, visitor)
 }
 
-fn accept_ctor_impl(ctor: *const Ctor, context: *const (), visitor: *const Visitor) {
-    let ctor = unsafe { ctor.as_ref() }.unwrap();
-    let mut visitor = VisitorWrapper::new(context, visitor);
+fn accept_ctor_impl(ctor: *const Ctor, context: *const (), visitor: *const Visitor) -> ErrorCode {
+    let ctor = deref!(ctor);
+    let mut visitor = deref_visitor!(context, visitor);
     raw_visitor::accept_ctor(ctor.raw_ptr.as_ref(), &mut visitor);
+    ErrorCode::Ok
 }
 
 #[cfg(target_arch = "wasm32")]
 #[no_mangle]
-extern "C" fn accept_ctor_func(func: *const CtorFunc, context: *const ()) {
+extern "C" fn accept_ctor_func(func: *const CtorFunc, context: *const ()) -> ErrorCode {
     accept_ctor_func_impl(func, context, &VISITOR)
 }
 
 #[cfg(not(target_arch = "wasm32"))]
 #[no_mangle]
-extern "C" fn accept_ctor_func(func: *const CtorFunc, context: *const (), visitor: *const Visitor) {
+extern "C" fn accept_ctor_func(
+    func: *const CtorFunc,
+    context: *const (),
+    visitor: *const Visitor,
+) -> ErrorCode {
     accept_ctor_func_impl(func, context, visitor)
 }
 
-fn accept_ctor_func_impl(func: *const CtorFunc, context: *const (), visitor: *const Visitor) {
-    let func = unsafe { func.as_ref() }.unwrap();
-    let mut visitor = VisitorWrapper::new(context, visitor);
+fn accept_ctor_func_impl(
+    func: *const CtorFunc,
+    context: *const (),
+    visitor: *const Visitor,
+) -> ErrorCode {
+    let func = deref!(func);
+    let mut visitor = deref_visitor!(context, visitor);
     raw_visitor::accept_ctor_func(func.raw_ptr.as_ref(), &mut visitor);
+    ErrorCode::Ok
 }
 
 #[cfg(target_arch = "wasm32")]
 #[no_mangle]
-extern "C" fn accept_service(service: *const Service, context: *const ()) {
+extern "C" fn accept_service(service: *const Service, context: *const ()) -> ErrorCode {
     accept_service_impl(service, context, &VISITOR)
 }
 
 #[cfg(not(target_arch = "wasm32"))]
 #[no_mangle]
-extern "C" fn accept_service(service: *const Service, context: *const (), visitor: *const Visitor) {
+extern "C" fn accept_service(
+    service: *const Service,
+    context: *const (),
+    visitor: *const Visitor,
+) -> ErrorCode {
     accept_service_impl(service, context, visitor)
 }
 
-fn accept_service_impl(service: *const Service, context: *const (), visitor: *const Visitor) {
-    let service = unsafe { service.as_ref() }.unwrap();
-    let mut visitor = VisitorWrapper::new(context, visitor);
+fn accept_service_impl(
+    service: *const Service,
+    context: *const (),
+    visitor: *const Visitor,
+) -> ErrorCode {
+    let service = deref!(service);
+    let mut visitor = deref_visitor!(context, visitor);
     raw_visitor::accept_service(service.raw_ptr.as_ref(), &mut visitor);
+    ErrorCode::Ok
 }
 
 #[cfg(target_arch = "wasm32")]
 #[no_mangle]
-extern "C" fn accept_service_func(func: *const ServiceFunc, context: *const ()) {
+extern "C" fn accept_service_func(func: *const ServiceFunc, context: *const ()) -> ErrorCode {
     accept_service_func_impl(func, context, &VISITOR)
 }
 
@@ -169,19 +219,24 @@ extern "C" fn accept_service_func(
     func: *const ServiceFunc,
     context: *const (),
     visitor: *const Visitor,
-) {
+) -> ErrorCode {
     accept_service_func_impl(func, context, visitor)
 }
 
-fn accept_service_func_impl(func: *const ServiceFunc, context: *const (), visitor: *const Visitor) {
-    let func = unsafe { func.as_ref() }.unwrap();
-    let mut visitor = VisitorWrapper::new(context, visitor);
+fn accept_service_func_impl(
+    func: *const ServiceFunc,
+    context: *const (),
+    visitor: *const Visitor,
+) -> ErrorCode {
+    let func = deref!(func);
+    let mut visitor = deref_visitor!(context, visitor);
     raw_visitor::accept_service_func(func.raw_ptr.as_ref(), &mut visitor);
+    ErrorCode::Ok
 }
 
 #[cfg(target_arch = "wasm32")]
 #[no_mangle]
-extern "C" fn accept_service_event(event: *const ServiceEvent, context: *const ()) {
+extern "C" fn accept_service_event(event: *const ServiceEvent, context: *const ()) -> ErrorCode {
     accept_service_event_impl(event, context, &VISITOR)
 }
 
@@ -191,7 +246,7 @@ extern "C" fn accept_service_event(
     event: *const ServiceEvent,
     context: *const (),
     visitor: *const Visitor,
-) {
+) -> ErrorCode {
     accept_service_event_impl(event, context, visitor)
 }
 
@@ -199,15 +254,16 @@ fn accept_service_event_impl(
     event: *const ServiceEvent,
     context: *const (),
     visitor: *const Visitor,
-) {
-    let event = unsafe { event.as_ref() }.unwrap();
-    let mut visitor = VisitorWrapper::new(context, visitor);
+) -> ErrorCode {
+    let event = deref!(event);
+    let mut visitor = deref_visitor!(context, visitor);
     raw_visitor::accept_service_event(event.raw_ptr.as_ref(), &mut visitor);
+    ErrorCode::Ok
 }
 
 #[cfg(target_arch = "wasm32")]
 #[no_mangle]
-extern "C" fn accept_func_param(func_param: *const FuncParam, context: *const ()) {
+extern "C" fn accept_func_param(func_param: *const FuncParam, context: *const ()) -> ErrorCode {
     accept_func_param_impl(func_param, context, &VISITOR)
 }
 
@@ -217,7 +273,7 @@ extern "C" fn accept_func_param(
     func_param: *const FuncParam,
     context: *const (),
     visitor: *const Visitor,
-) {
+) -> ErrorCode {
     accept_func_param_impl(func_param, context, visitor)
 }
 
@@ -225,33 +281,39 @@ fn accept_func_param_impl(
     func_param: *const FuncParam,
     context: *const (),
     visitor: *const Visitor,
-) {
-    let func_param = unsafe { func_param.as_ref() }.unwrap();
-    let mut visitor = VisitorWrapper::new(context, visitor);
+) -> ErrorCode {
+    let func_param = deref!(func_param);
+    let mut visitor = deref_visitor!(context, visitor);
     raw_visitor::accept_func_param(func_param.raw_ptr.as_ref(), &mut visitor);
+    ErrorCode::Ok
 }
 
 #[cfg(target_arch = "wasm32")]
 #[no_mangle]
-extern "C" fn accept_type(r#type: *const Type, context: *const ()) {
+extern "C" fn accept_type(r#type: *const Type, context: *const ()) -> ErrorCode {
     accept_type_impl(r#type, context, &VISITOR)
 }
 
 #[cfg(not(target_arch = "wasm32"))]
 #[no_mangle]
-extern "C" fn accept_type(r#type: *const Type, context: *const (), visitor: *const Visitor) {
+extern "C" fn accept_type(
+    r#type: *const Type,
+    context: *const (),
+    visitor: *const Visitor,
+) -> ErrorCode {
     accept_type_impl(r#type, context, visitor)
 }
 
-fn accept_type_impl(r#type: *const Type, context: *const (), visitor: *const Visitor) {
-    let r#type = unsafe { r#type.as_ref() }.unwrap();
-    let mut visitor = VisitorWrapper::new(context, visitor);
+fn accept_type_impl(r#type: *const Type, context: *const (), visitor: *const Visitor) -> ErrorCode {
+    let r#type = deref!(r#type);
+    let mut visitor = deref_visitor!(context, visitor);
     raw_visitor::accept_type(r#type.raw_ptr.as_ref(), &mut visitor);
+    ErrorCode::Ok
 }
 
 #[cfg(target_arch = "wasm32")]
 #[no_mangle]
-extern "C" fn accept_type_decl(type_decl: *const TypeDecl, context: *const ()) {
+extern "C" fn accept_type_decl(type_decl: *const TypeDecl, context: *const ()) -> ErrorCode {
     accept_type_decl_impl(type_decl, context, &VISITOR)
 }
 
@@ -261,19 +323,24 @@ extern "C" fn accept_type_decl(
     type_decl: *const TypeDecl,
     context: *const (),
     visitor: *const Visitor,
-) {
+) -> ErrorCode {
     accept_type_decl_impl(type_decl, context, visitor)
 }
 
-fn accept_type_decl_impl(type_decl: *const TypeDecl, context: *const (), visitor: *const Visitor) {
-    let type_decl = unsafe { type_decl.as_ref() }.unwrap();
-    let mut visitor = VisitorWrapper::new(context, visitor);
+fn accept_type_decl_impl(
+    type_decl: *const TypeDecl,
+    context: *const (),
+    visitor: *const Visitor,
+) -> ErrorCode {
+    let type_decl = deref!(type_decl);
+    let mut visitor = deref_visitor!(context, visitor);
     raw_visitor::accept_type_decl(type_decl.raw_ptr.as_ref(), &mut visitor);
+    ErrorCode::Ok
 }
 
 #[cfg(target_arch = "wasm32")]
 #[no_mangle]
-extern "C" fn accept_struct_def(struct_def: *const StructDef, context: *const ()) {
+extern "C" fn accept_struct_def(struct_def: *const StructDef, context: *const ()) -> ErrorCode {
     accept_struct_def_impl(struct_def, context, &VISITOR)
 }
 
@@ -283,7 +350,7 @@ extern "C" fn accept_struct_def(
     struct_def: *const StructDef,
     context: *const (),
     visitor: *const Visitor,
-) {
+) -> ErrorCode {
     accept_struct_def_impl(struct_def, context, visitor)
 }
 
@@ -291,15 +358,19 @@ fn accept_struct_def_impl(
     struct_def: *const StructDef,
     context: *const (),
     visitor: *const Visitor,
-) {
-    let struct_def = unsafe { struct_def.as_ref() }.unwrap();
-    let mut visitor = VisitorWrapper::new(context, visitor);
+) -> ErrorCode {
+    let struct_def = deref!(struct_def);
+    let mut visitor = deref_visitor!(context, visitor);
     raw_visitor::accept_struct_def(struct_def.raw_ptr.as_ref(), &mut visitor);
+    ErrorCode::Ok
 }
 
 #[cfg(target_arch = "wasm32")]
 #[no_mangle]
-extern "C" fn accept_struct_field(struct_field: *const StructField, context: *const ()) {
+extern "C" fn accept_struct_field(
+    struct_field: *const StructField,
+    context: *const (),
+) -> ErrorCode {
     accept_struct_field_impl(struct_field, context, &VISITOR)
 }
 
@@ -309,7 +380,7 @@ extern "C" fn accept_struct_field(
     struct_field: *const StructField,
     context: *const (),
     visitor: *const Visitor,
-) {
+) -> ErrorCode {
     accept_struct_field_impl(struct_field, context, visitor)
 }
 
@@ -317,15 +388,16 @@ fn accept_struct_field_impl(
     struct_field: *const StructField,
     context: *const (),
     visitor: *const Visitor,
-) {
-    let struct_field = unsafe { struct_field.as_ref() }.unwrap();
-    let mut visitor = VisitorWrapper::new(context, visitor);
+) -> ErrorCode {
+    let struct_field = deref!(struct_field);
+    let mut visitor = deref_visitor!(context, visitor);
     raw_visitor::accept_struct_field(struct_field.raw_ptr.as_ref(), &mut visitor);
+    ErrorCode::Ok
 }
 
 #[cfg(target_arch = "wasm32")]
 #[no_mangle]
-extern "C" fn accept_enum_def(enum_def: *const EnumDef, context: *const ()) {
+extern "C" fn accept_enum_def(enum_def: *const EnumDef, context: *const ()) -> ErrorCode {
     accept_enum_def_impl(enum_def, context, &VISITOR)
 }
 
@@ -335,19 +407,27 @@ extern "C" fn accept_enum_def(
     enum_def: *const EnumDef,
     context: *const (),
     visitor: *const Visitor,
-) {
+) -> ErrorCode {
     accept_enum_def_impl(enum_def, context, visitor)
 }
 
-fn accept_enum_def_impl(enum_def: *const EnumDef, context: *const (), visitor: *const Visitor) {
-    let enum_def = unsafe { enum_def.as_ref() }.unwrap();
-    let mut visitor = VisitorWrapper::new(context, visitor);
+fn accept_enum_def_impl(
+    enum_def: *const EnumDef,
+    context: *const (),
+    visitor: *const Visitor,
+) -> ErrorCode {
+    let enum_def = deref!(enum_def);
+    let mut visitor = deref_visitor!(context, visitor);
     raw_visitor::accept_enum_def(enum_def.raw_ptr.as_ref(), &mut visitor);
+    ErrorCode::Ok
 }
 
 #[cfg(target_arch = "wasm32")]
 #[no_mangle]
-extern "C" fn accept_enum_variant(enum_variant: *const EnumVariant, context: *const ()) {
+extern "C" fn accept_enum_variant(
+    enum_variant: *const EnumVariant,
+    context: *const (),
+) -> ErrorCode {
     accept_enum_variant_impl(enum_variant, context, &VISITOR)
 }
 
@@ -357,7 +437,7 @@ extern "C" fn accept_enum_variant(
     enum_variant: *const EnumVariant,
     context: *const (),
     visitor: *const Visitor,
-) {
+) -> ErrorCode {
     accept_enum_variant_impl(enum_variant, context, visitor)
 }
 
@@ -365,10 +445,11 @@ fn accept_enum_variant_impl(
     enum_variant: *const EnumVariant,
     context: *const (),
     visitor: *const Visitor,
-) {
-    let enum_variant = unsafe { enum_variant.as_ref() }.unwrap();
-    let mut visitor = VisitorWrapper::new(context, visitor);
+) -> ErrorCode {
+    let enum_variant = deref!(enum_variant);
+    let mut visitor = deref_visitor!(context, visitor);
     raw_visitor::accept_enum_variant(enum_variant.raw_ptr.as_ref(), &mut visitor);
+    ErrorCode::Ok
 }
 
 mod wrapper {
@@ -387,11 +468,15 @@ mod wrapper {
     }
 
     impl<'a> VisitorWrapper<'a> {
-        pub fn new(context: *const (), visitor: *const Visitor) -> Self {
-            Self {
+        pub fn new(context: *const (), visitor: *const Visitor) -> Result<Self, ErrorCode> {
+            if visitor.is_null() {
+                return Err(ErrorCode::NullPtr);
+            }
+
+            Ok(Self {
                 context,
                 visitor: unsafe { visitor.as_ref() }.unwrap(),
-            }
+            })
         }
     }
 
