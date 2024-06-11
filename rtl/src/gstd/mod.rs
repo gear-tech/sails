@@ -1,5 +1,6 @@
 use crate::{ActorId, MessageId};
 use core::cell::OnceCell;
+#[doc(hidden)]
 pub use gstd::{async_init, async_main, handle_signal, message_loop, msg, record_reply};
 pub use sails_macros::*;
 

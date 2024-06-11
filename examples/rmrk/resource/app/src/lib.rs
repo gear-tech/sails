@@ -2,7 +2,7 @@
 
 use sails_rtl::gstd::{
     calls::{GStdArgs, GStdRemoting},
-    events::GStdEventTrigger,
+    events::EventNotifier,
     gprogram, groute, GStdExecContext,
 };
 use services::{ResourceStorage, ResourceStorageEvent};
@@ -12,7 +12,7 @@ mod catalogs;
 // while there is no generated client
 pub mod services;
 
-type ResourceStorageEventTrigger = GStdEventTrigger<ResourceStorageEvent>;
+type ResourceStorageEventTrigger = EventNotifier<ResourceStorageEvent>;
 type RmrkCatalog = catalogs::RmrkCatalog<GStdRemoting, GStdArgs>;
 
 #[derive(Default)]
@@ -35,7 +35,7 @@ impl Program {
         ResourceStorage::new(
             GStdExecContext::default(),
             RmrkCatalog::new(GStdRemoting),
-            GStdEventTrigger::new(),
+            EventNotifier::new(),
         )
     }
 

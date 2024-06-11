@@ -716,4 +716,82 @@ mod tests {
 
         assert_eq!(err, ParseError::StructMixedFields);
     }
+
+    #[test]
+    fn parser_accepts_struct_field_reserved_keywords() {
+        const IDL: &str = r#"
+        type MyStruct = struct {
+            query: u8,
+            result: u8,
+        };
+        "#;
+
+        let expected = TypeDef::Struct(
+            StructDef::new(vec![
+                StructField::new(
+                    Some("query".to_owned()),
+                    TypeDecl::Id(TypeId::Primitive(PrimitiveType::U8)),
+                ),
+                StructField::new(
+                    Some("result".to_owned()),
+                    TypeDecl::Id(TypeId::Primitive(PrimitiveType::U8)),
+                ),
+            ])
+            .unwrap(),
+        );
+
+        // act
+        let program = parse_idl(IDL).unwrap();
+
+        // assert
+        let my_struct = program
+            .types()
+            .iter()
+            .find(|t| t.name() == "MyStruct")
+            .unwrap();
+        assert_eq!(&expected, my_struct.def());
+    }
+
+    #[test]
+    fn parser_accepts_func_param_reserved_keywords() {
+        const IDL: &str = r#"
+            service {
+                DoThis : (constructor: u8, service: u8, events: vec u8) -> null;
+            }
+        "#;
+
+        let expected = Service::new(
+            "".to_owned(),
+            vec![ServiceFunc::new(
+                "DoThis".to_owned(),
+                vec![
+                    FuncParam::new(
+                        "constructor".to_owned(),
+                        TypeDecl::Id(TypeId::Primitive(PrimitiveType::U8)),
+                    ),
+                    FuncParam::new(
+                        "service".to_owned(),
+                        TypeDecl::Id(TypeId::Primitive(PrimitiveType::U8)),
+                    ),
+                    FuncParam::new(
+                        "events".to_owned(),
+                        TypeDecl::Vector(Box::new(TypeDecl::Id(TypeId::Primitive(
+                            PrimitiveType::U8,
+                        )))),
+                    ),
+                ],
+                TypeDecl::Id(TypeId::Primitive(PrimitiveType::Null)),
+                false,
+            )],
+            vec![],
+        )
+        .unwrap();
+
+        // act
+        let program = parse_idl(IDL).unwrap();
+
+        // assert
+        let my_service = program.services().iter().find(|t| t.name() == "").unwrap();
+        assert_eq!(&expected, my_service);
+    }
 }

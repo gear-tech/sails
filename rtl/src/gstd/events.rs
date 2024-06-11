@@ -1,3 +1,5 @@
+//! Functionality for notifying off-chain subscribers on events happening in on-chain programs.
+
 use crate::{
     collections::HashMap,
     errors::*,
@@ -9,19 +11,19 @@ use gstd::ActorId as GStdActorId;
 use parity_scale_codec::Encode;
 use scale_info::{StaticTypeInfo, TypeDef};
 
-pub trait EventTrigger<TEvents> {
-    fn trigger(&self, event: TEvents) -> Result<()>;
-}
-
+/// An implementation of the [`traits::EventNotifier`] trait for using within on-chain programs.
+///
+/// The `TEvents` type parameter must be a enum type where each variant represents an event.
 #[derive(Default, Clone)]
-pub struct GStdEventTrigger<TEvents> {
+pub struct EventNotifier<TEvents> {
     _tevents: PhantomData<TEvents>,
 }
 
-impl<TEvents> GStdEventTrigger<TEvents>
+impl<TEvents> EventNotifier<TEvents>
 where
     TEvents: StaticTypeInfo + Encode,
 {
+    /// Creates a new instance of the [`EventNotifier`].
     pub fn new() -> Self {
         Self {
             _tevents: PhantomData,
@@ -78,11 +80,16 @@ where
     }
 }
 
-impl<TEvents> EventTrigger<TEvents> for GStdEventTrigger<TEvents>
+impl<TEvents> traits::EventNotifier<TEvents> for EventNotifier<TEvents>
 where
     TEvents: Encode + StaticTypeInfo,
 {
-    fn trigger(&self, event: TEvents) -> Result<()> {
+    /// Deposits an event to be sent out to subscribers.
+    ///
+    /// Actual dispatching of the event happens on reaching the next `commit point` by program execution.
+    /// The `commit point` is a point in the program execution where the program's state is persisted.
+    /// It can be either a call to some async Gear API or return from the program.
+    fn notify_on(&self, event: TEvents) -> Result<()> {
         let payload =
             Self::compose_payload(services::exposure_context(msg::id().into()).route(), event)?;
         msg::send_bytes(GStdActorId::zero(), payload, 0)?;
@@ -90,15 +97,32 @@ where
     }
 }
 
+/// Abstractions for notifying off-chain subscribers on events happening in on-chain programs.
+pub mod traits {
+    use super::*;
+
+    /// A trait for notifying off-chain subscribers on events happening in on-chain programs.
+    ///
+    /// The trait can be used to abstract the mechanics of sending an event out so the code
+    /// can be tested in isolation.
+    pub trait EventNotifier<TEvents> {
+        /// Deposits an event to be sent out to subscribers.
+        fn notify_on(&self, event: TEvents) -> Result<()>;
+    }
+}
+
+/// Mocks for notifying off-chain subscribers on events happening in on-chain programs.
 pub mod mocks {
     use super::*;
 
+    /// A mock of the [`traits::EventNotifier`] trait.
     #[derive(Default, Clone)]
-    pub struct MockEventTrigger<TEvents> {
+    pub struct EventNotifier<TEvents> {
         _tevents: PhantomData<TEvents>,
     }
 
-    impl<TEvents> MockEventTrigger<TEvents> {
+    impl<TEvents> EventNotifier<TEvents> {
+        /// Creates a new instance of the mock.
         pub fn new() -> Self {
             Self {
                 _tevents: PhantomData,
@@ -106,12 +130,13 @@ pub mod mocks {
         }
     }
 
-    impl<TEvents> EventTrigger<TEvents> for MockEventTrigger<TEvents>
+    impl<TEvents> traits::EventNotifier<TEvents> for EventNotifier<TEvents>
     where
         TEvents: Encode + StaticTypeInfo,
     {
-        fn trigger(&self, event: TEvents) -> Result<()> {
-            GStdEventTrigger::<TEvents>::compose_payload(&[], event)?;
+        /// Composes payload for the event and returns with NOOP.
+        fn notify_on(&self, event: TEvents) -> Result<()> {
+            super::EventNotifier::<TEvents>::compose_payload(&[], event)?;
             Ok(())
         }
     }
@@ -134,7 +159,7 @@ mod tests {
 
     #[test]
     fn encoded_event_names_returns_proper_names_for_enum_type() {
-        let encoded_event_names = GStdEventTrigger::<TestEvents>::encoded_event_names().unwrap();
+        let encoded_event_names = EventNotifier::<TestEvents>::encoded_event_names().unwrap();
 
         assert_eq!(encoded_event_names.len(), 2);
         assert_eq!(encoded_event_names[0], "Event1".encode());
@@ -143,7 +168,7 @@ mod tests {
 
     #[test]
     fn encoded_event_names_returns_error_for_non_enum_type() {
-        let result = GStdEventTrigger::<NotEnum>::encoded_event_names();
+        let result = EventNotifier::<NotEnum>::encoded_event_names();
 
         assert!(result.is_err());
         let err = result.unwrap_err();
@@ -156,7 +181,7 @@ mod tests {
     #[test]
     fn compose_payload_returns_proper_payload() {
         let event = TestEvents::Event1(42);
-        let payload = GStdEventTrigger::<TestEvents>::compose_payload(&[1, 2, 3], event).unwrap();
+        let payload = EventNotifier::<TestEvents>::compose_payload(&[1, 2, 3], event).unwrap();
 
         assert_eq!(
             payload,
@@ -164,7 +189,7 @@ mod tests {
         );
 
         let event = TestEvents::Event2 { p1: 43 };
-        let payload = GStdEventTrigger::<TestEvents>::compose_payload(&[], event).unwrap();
+        let payload = EventNotifier::<TestEvents>::compose_payload(&[], event).unwrap();
 
         assert_eq!(payload, [24, 69, 118, 101, 110, 116, 50, 43, 00]);
     }
