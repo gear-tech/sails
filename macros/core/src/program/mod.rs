@@ -36,7 +36,7 @@ fn parse_args(args: TokenStream2) -> ProgramArgs {
     syn::parse2(args).unwrap_or_else(|err| {
         abort!(
             err.span(),
-            "`gprogram` attribute can only contain `handle_reply` and `handle_signal` parameters: {}",
+            "failed to parse `gprogram` attribute arguments: {}",
             err
         )
     })

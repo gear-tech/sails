@@ -1,3 +1,5 @@
+use proc_macro2::Span;
+use proc_macro_error::abort;
 use std::collections::BTreeSet;
 use syn::{
     parse::{Parse, ParseStream},
@@ -30,10 +32,13 @@ impl Parse for ProgramArgs {
         };
         let mut existing_attrs = BTreeSet::new();
 
-        for ProgramArg { name, path, .. } in punctuated {
+        for ProgramArg {
+            name, path, span, ..
+        } in punctuated
+        {
             let name = name.to_string();
             if existing_attrs.contains(&name) {
-                return Err(syn::Error::new_spanned(name, "parameter already defined"));
+                abort!(span, "parameter already defined");
             }
 
             match &*name {
@@ -43,7 +48,10 @@ impl Parse for ProgramArgs {
                 "handle_signal" => {
                     attrs.handle_signal = Some(path);
                 }
-                _ => return Err(syn::Error::new_spanned(name, "unknown parameter")),
+                _ => abort!(
+                    span,
+                    "`gprogram` attribute can only contain `handle_reply` and `handle_signal` parameters",
+                ),
             }
 
             existing_attrs.insert(name);
@@ -56,15 +64,17 @@ impl Parse for ProgramArgs {
 struct ProgramArg {
     name: Ident,
     path: Path,
+    span: Span,
 }
 
 impl Parse for ProgramArg {
     fn parse(input: ParseStream<'_>) -> syn::Result<Self> {
+        let span = input.span();
         let name: Ident = input.parse()?;
         let _: Token![=] = input.parse()?;
         let path: Path = input.parse()?;
 
-        Ok(Self { name, path })
+        Ok(Self { name, path, span })
     }
 }
 
@@ -96,20 +106,5 @@ mod tests {
 
         // arrange
         assert_eq!(expected, args);
-    }
-
-    #[test]
-    fn gprogram_parse_attrs_unknown_parameter() {
-        // arrange
-        let input = quote!(
-            _handle_reply = my_handle_reply,
-            handle_signal = my_handle_signal
-        );
-
-        // act
-        let result = syn::parse2::<ProgramArgs>(input);
-
-        // arrange
-        assert!(result.is_err());
     }
 }

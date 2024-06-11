@@ -1,7 +1,5 @@
-error: `gprogram` attribute can only contain `handle_reply` and `handle_signal` parameters: unknown parameter
- --> tests/ui/gprogram_fails_unknown_args.rs:5:1
+error: `gprogram` attribute can only contain `handle_reply` and `handle_signal` parameters
+ --> tests/ui/gprogram_fails_unknown_args.rs:5:12
   |
 5 | #[gprogram(_handle_reply = my_handle_reply, handle_signal = my_handle_signal)]
-  | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  |
-  = note: this error originates in the attribute macro `gprogram` (in Nightly builds, run with -Z macro-backtrace for more info)
+  |            ^^^^^^^^^^^^^
