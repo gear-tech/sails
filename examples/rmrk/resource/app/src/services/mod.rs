@@ -6,7 +6,6 @@ use sails_rtl::{
     collections::HashMap,
     gstd::{
         calls::{GStdArgs, GStdRemoting},
-        events::traits::EventNotifier,
         gservice, ExecContext,
     },
     prelude::*,
@@ -35,19 +34,16 @@ pub enum ResourceStorageEvent {
     },
 }
 
-pub struct ResourceStorage<TExecContext, TCatalogClient, TEventTrigger> {
+pub struct ResourceStorage<TExecContext, TCatalogClient> {
     exec_context: TExecContext,
     catalog_client: TCatalogClient,
-    event_trigger: TEventTrigger,
 }
 
-#[gservice]
-impl<TExecContext, TCatalogClient, TEventTrigger>
-    ResourceStorage<TExecContext, TCatalogClient, TEventTrigger>
+#[gservice(events = ResourceStorageEvent)]
+impl<TExecContext, TCatalogClient> ResourceStorage<TExecContext, TCatalogClient>
 where
     TExecContext: ExecContext,
     TCatalogClient: RmrkCatalog<GStdRemoting, GStdArgs>,
-    TEventTrigger: EventNotifier<ResourceStorageEvent>,
 {
     pub fn seed(exec_context: TExecContext) {
         unsafe {
@@ -56,15 +52,10 @@ where
         }
     }
 
-    pub fn new(
-        exec_context: TExecContext,
-        catalog_client: TCatalogClient,
-        event_trigger: TEventTrigger,
-    ) -> Self {
+    pub fn new(exec_context: TExecContext, catalog_client: TCatalogClient) -> Self {
         Self {
             exec_context,
             catalog_client,
-            event_trigger,
         }
     }
 
@@ -88,8 +79,7 @@ where
             return Err(Error::ResourceAlreadyExists);
         }
 
-        self.event_trigger
-            .notify_on(ResourceStorageEvent::ResourceAdded { resource_id })
+        self.notify_on(ResourceStorageEvent::ResourceAdded { resource_id })
             .unwrap();
 
         Ok((resource_id, resource))
@@ -124,12 +114,11 @@ where
             return Err(Error::WrongResourceType);
         }
 
-        self.event_trigger
-            .notify_on(ResourceStorageEvent::PartAdded {
-                resource_id,
-                part_id,
-            })
-            .unwrap();
+        self.notify_on(ResourceStorageEvent::PartAdded {
+            resource_id,
+            part_id,
+        })
+        .unwrap();
 
         Ok(part_id)
     }
@@ -170,26 +159,21 @@ mod tests {
     use sails_rtl::{
         calls::{Remoting, RemotingAction},
         collections::BTreeMap,
-        gstd::events::mocks::EventNotifier,
+        ActorId,
     };
-
-    type MockResourceStorageEventTrigger = EventNotifier<ResourceStorageEvent>;
 
     #[test]
     fn test_add_resource_entry() {
-        ResourceStorage::<_, MockCatalogClient, MockResourceStorageEventTrigger>::seed(
-            ExecContextMock {
-                actor_id: 1.into(),
-                message_id: 1.into(),
-            },
-        );
+        ResourceStorage::<_, MockCatalogClient>::seed(ExecContextMock {
+            actor_id: 1.into(),
+            message_id: 1.into(),
+        });
         let mut resource_storage = ResourceStorage::new(
             ExecContextMock {
                 actor_id: 1.into(),
                 message_id: 1.into(),
             },
             MockCatalogClient,
-            MockResourceStorageEventTrigger::new(),
         );
         let resource = Resource::Basic(BasicResource {
             src: "src".to_string(),

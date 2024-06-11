@@ -49,27 +49,59 @@ where
     }
 }
 
-#[derive(Default)]
-pub struct MultipleCallBuilder;
+pub mod multiple_io {
+    use super::*;
 
-impl MultipleCallBuilder {
-    #[allow(unused)]
-    pub fn do_this(p1: u32, p2: MyParam) -> Vec<u8> {
-        let args = (p1, p2);
-        let mut result = Vec::with_capacity(7 + args.encoded_size());
-        result.extend_from_slice(&[]);
-        result.extend_from_slice(&[24, 68, 111, 84, 104, 105, 115]);
-        args.encode_to(&mut result);
-        result
+    #[derive(Debug, Default, Clone, Copy)]
+    pub struct DoThis(());
+
+    impl DoThis {
+        #[allow(dead_code)]
+        pub fn encode_call(p1: u32, p2: super::MyParam) -> Vec<u8> {
+            let args = (p1, p2);
+            let mut result = Vec::with_capacity(7 + args.encoded_size());
+            result.extend_from_slice(&[]);
+            result.extend_from_slice(&[24, 68, 111, 84, 104, 105, 115]);
+            args.encode_to(&mut result);
+            result
+        }
+        #[allow(dead_code)]
+        pub fn decode_reply(mut reply: &[u8]) -> Result<u16, sails_rtl::errors::Error> {
+            if !reply.starts_with(&[24, 68, 111, 84, 104, 105, 115]) {
+                return Err(sails_rtl::errors::Error::Rtl(
+                    sails_rtl::errors::RtlError::ReplyPrefixMismatches,
+                ));
+            }
+            reply = &reply[7..];
+            let result = Decode::decode(&mut reply).map_err(sails_rtl::errors::Error::Codec)?;
+            Ok(result)
+        }
     }
-    #[allow(unused)]
-    pub fn do_that(p1: (u8, u32)) -> Vec<u8> {
-        let args = p1;
-        let mut result = Vec::with_capacity(7 + args.encoded_size());
-        result.extend_from_slice(&[]);
-        result.extend_from_slice(&[24, 68, 111, 84, 104, 97, 116]);
-        args.encode_to(&mut result);
-        result
+
+    #[derive(Debug, Default, Clone, Copy)]
+    pub struct DoThat(());
+
+    impl DoThat {
+        #[allow(dead_code)]
+        pub fn encode_call(p1: (u8, u32)) -> Vec<u8> {
+            let args = p1;
+            let mut result = Vec::with_capacity(7 + args.encoded_size());
+            result.extend_from_slice(&[]);
+            result.extend_from_slice(&[24, 68, 111, 84, 104, 97, 116]);
+            args.encode_to(&mut result);
+            result
+        }
+        #[allow(dead_code)]
+        pub fn decode_reply(mut reply: &[u8]) -> Result<u8, sails_rtl::errors::Error> {
+            if !reply.starts_with(&[24, 68, 111, 84, 104, 97, 116]) {
+                return Err(sails_rtl::errors::Error::Rtl(
+                    sails_rtl::errors::RtlError::ReplyPrefixMismatches,
+                ));
+            }
+            reply = &reply[7..];
+            let result = Decode::decode(&mut reply).map_err(sails_rtl::errors::Error::Codec)?;
+            Ok(result)
+        }
     }
 }
 
@@ -106,18 +138,33 @@ where
     }
 }
 
-#[derive(Default)]
-pub struct NamedCallBuilder;
+pub mod named_io {
+    use super::*;
 
-impl NamedCallBuilder {
-    #[allow(unused)]
-    pub fn that(p1: u32) -> Vec<u8> {
-        let args = p1;
-        let mut result = Vec::with_capacity(11 + args.encoded_size());
-        result.extend_from_slice(&[20, 78, 97, 109, 101, 100]);
-        result.extend_from_slice(&[16, 84, 104, 97, 116]);
-        args.encode_to(&mut result);
-        result
+    #[derive(Debug, Default, Clone, Copy)]
+    pub struct That(());
+
+    impl That {
+        #[allow(dead_code)]
+        pub fn encode_call(p1: u32) -> Vec<u8> {
+            let args = p1;
+            let mut result = Vec::with_capacity(11 + args.encoded_size());
+            result.extend_from_slice(&[20, 78, 97, 109, 101, 100]);
+            result.extend_from_slice(&[16, 84, 104, 97, 116]);
+            args.encode_to(&mut result);
+            result
+        }
+        #[allow(dead_code)]
+        pub fn decode_reply(mut reply: &[u8]) -> Result<String, sails_rtl::errors::Error> {
+            if !reply.starts_with(&[16, 84, 104, 97, 116]) {
+                return Err(sails_rtl::errors::Error::Rtl(
+                    sails_rtl::errors::RtlError::ReplyPrefixMismatches,
+                ));
+            }
+            reply = &reply[5..];
+            let result = Decode::decode(&mut reply).map_err(sails_rtl::errors::Error::Codec)?;
+            Ok(result)
+        }
     }
 }
 pub mod traits {

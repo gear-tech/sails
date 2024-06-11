@@ -272,6 +272,7 @@ fn generate_init(
         quote!(
             #[no_mangle]
             extern "C" fn init() {
+                sails_rtl::gstd::events::__enable_events();
                 let #input_ident = gstd::msg::load_bytes().expect("Failed to read input");
                 if !#input_ident.is_empty() {
                     #unexpected_ctor_panic
@@ -291,6 +292,7 @@ fn generate_init(
         quote!(
             #[gstd::async_init]
             async fn init() {
+                sails_rtl::gstd::events::__enable_events();
                 let mut #input_ident: &[u8] = &gstd::msg::load_bytes().expect("Failed to read input");
                 let (program, invocation_route) = #(#invocation_dispatches)else*;
                 unsafe {

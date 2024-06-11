@@ -35,6 +35,23 @@ extern {
     }
 }
 
+Ident: String = {
+    <name: "id"> => name,
+    "constructor" => "constructor".to_owned(),
+    "service" => "service".to_owned(),
+    "events" => "events".to_owned(),
+    "query" => "query".to_owned(),
+    "type" => "type".to_owned(),
+    "struct" => "struct".to_owned(),
+    "enum" => "enum".to_owned(),
+    "opt" => "opt".to_owned(),
+    "result" => "result".to_owned(),
+    "vec" => "vec".to_owned(),
+    "map" => "map".to_owned(),
+    "null" => "null".to_owned(),
+    "num" => "num".to_owned(),
+}
+
 pub Program: Program = {
     <types: (<Separated<Type, ";">> ";")?> <ctor: (Ctor ";")?> <services: Separated<Service, ";">> =>?
         Ok(Program::new(
@@ -64,7 +81,7 @@ ServiceFunc: ServiceFunc = {
 }
 
 FuncParam: FuncParam = {
-    <name: "id"> ":" <r#type: TypeDecl> => FuncParam::new(name, r#type),
+    <name: Ident> ":" <r#type: TypeDecl> => FuncParam::new(name, r#type),
 }
 
 Type: Type = {
@@ -95,7 +112,7 @@ StructDef: StructDef = {
 }
 
 StructField: StructField = {
-    <name: "id"> ":" <r#type: TypeDecl> => StructField::new(Some(name), r#type),
+    <name: Ident> ":" <r#type: TypeDecl> => StructField::new(Some(name), r#type),
     <r#type: TypeDecl> => StructField::new(None, r#type),
 }
 

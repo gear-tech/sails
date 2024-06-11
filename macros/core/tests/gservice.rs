@@ -25,9 +25,9 @@ fn works_with_basics() {
 #[test]
 fn works_with_lifetimes_and_generics() {
     let input = quote! {
-        impl<'a, 'b, T, TEventTrigger> SomeService<'a, 'b, T, TEventTrigger>
+        impl<'a, 'b, T, U> SomeService<'a, 'b, T, U>
         where T : Clone,
-              TEventTrigger: EventNotifier<events::SomeEvents> {
+              U: Iterator<Item = u32> {
             pub fn do_this(&mut self) -> u32 {
                 42
             }
@@ -50,6 +50,29 @@ fn works_with_extends() {
         impl SomeService {
             pub fn do_this(&mut self) -> u32 {
                 42
+            }
+        }
+    };
+
+    let result = gservice(args, input).to_string();
+    let result = prettyplease::unparse(&syn::parse_str(&result).unwrap());
+
+    insta::assert_snapshot!(result);
+}
+
+#[test]
+fn works_with_events() {
+    let args = quote! {
+        events = SomeEvents,
+    };
+    let input = quote! {
+        impl SomeService {
+            pub fn do_this(&mut self) -> u32 {
+                42
+            }
+
+            pub fn this(&self) -> bool {
+                true
             }
         }
     };
