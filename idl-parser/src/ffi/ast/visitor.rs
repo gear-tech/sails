@@ -85,7 +85,7 @@ static VISITOR: Visitor = Visitor {
     visit_enum_variant,
 };
 
-macro_rules! defer {
+macro_rules! deref {
     ($expr:expr) => {{
         if $expr.is_null() {
             return ErrorCode::NullPtr;
@@ -94,7 +94,7 @@ macro_rules! defer {
     }};
 }
 
-macro_rules! create_visitor {
+macro_rules! deref_visitor {
     ($context:expr, $visitor:expr) => {
         match VisitorWrapper::new($context, $visitor) {
             Ok(visitor) => visitor,
@@ -124,8 +124,8 @@ fn accept_program_impl(
     context: *const (),
     visitor: *const Visitor,
 ) -> ErrorCode {
-    let program = defer!(program);
-    let mut visitor = create_visitor!(context, visitor);
+    let program = deref!(program);
+    let mut visitor = deref_visitor!(context, visitor);
     raw_visitor::accept_program(program, &mut visitor);
     ErrorCode::Ok
 }
@@ -147,8 +147,8 @@ extern "C" fn accept_ctor(
 }
 
 fn accept_ctor_impl(ctor: *const Ctor, context: *const (), visitor: *const Visitor) -> ErrorCode {
-    let ctor = defer!(ctor);
-    let mut visitor = create_visitor!(context, visitor);
+    let ctor = deref!(ctor);
+    let mut visitor = deref_visitor!(context, visitor);
     raw_visitor::accept_ctor(ctor.raw_ptr.as_ref(), &mut visitor);
     ErrorCode::Ok
 }
@@ -174,8 +174,8 @@ fn accept_ctor_func_impl(
     context: *const (),
     visitor: *const Visitor,
 ) -> ErrorCode {
-    let func = defer!(func);
-    let mut visitor = create_visitor!(context, visitor);
+    let func = deref!(func);
+    let mut visitor = deref_visitor!(context, visitor);
     raw_visitor::accept_ctor_func(func.raw_ptr.as_ref(), &mut visitor);
     ErrorCode::Ok
 }
@@ -201,8 +201,8 @@ fn accept_service_impl(
     context: *const (),
     visitor: *const Visitor,
 ) -> ErrorCode {
-    let service = defer!(service);
-    let mut visitor = create_visitor!(context, visitor);
+    let service = deref!(service);
+    let mut visitor = deref_visitor!(context, visitor);
     raw_visitor::accept_service(service.raw_ptr.as_ref(), &mut visitor);
     ErrorCode::Ok
 }
@@ -228,8 +228,8 @@ fn accept_service_func_impl(
     context: *const (),
     visitor: *const Visitor,
 ) -> ErrorCode {
-    let func = defer!(func);
-    let mut visitor = create_visitor!(context, visitor);
+    let func = deref!(func);
+    let mut visitor = deref_visitor!(context, visitor);
     raw_visitor::accept_service_func(func.raw_ptr.as_ref(), &mut visitor);
     ErrorCode::Ok
 }
@@ -255,8 +255,8 @@ fn accept_service_event_impl(
     context: *const (),
     visitor: *const Visitor,
 ) -> ErrorCode {
-    let event = defer!(event);
-    let mut visitor = create_visitor!(context, visitor);
+    let event = deref!(event);
+    let mut visitor = deref_visitor!(context, visitor);
     raw_visitor::accept_service_event(event.raw_ptr.as_ref(), &mut visitor);
     ErrorCode::Ok
 }
@@ -282,8 +282,8 @@ fn accept_func_param_impl(
     context: *const (),
     visitor: *const Visitor,
 ) -> ErrorCode {
-    let func_param = defer!(func_param);
-    let mut visitor = create_visitor!(context, visitor);
+    let func_param = deref!(func_param);
+    let mut visitor = deref_visitor!(context, visitor);
     raw_visitor::accept_func_param(func_param.raw_ptr.as_ref(), &mut visitor);
     ErrorCode::Ok
 }
@@ -305,8 +305,8 @@ extern "C" fn accept_type(
 }
 
 fn accept_type_impl(r#type: *const Type, context: *const (), visitor: *const Visitor) -> ErrorCode {
-    let r#type = defer!(r#type);
-    let mut visitor = create_visitor!(context, visitor);
+    let r#type = deref!(r#type);
+    let mut visitor = deref_visitor!(context, visitor);
     raw_visitor::accept_type(r#type.raw_ptr.as_ref(), &mut visitor);
     ErrorCode::Ok
 }
@@ -332,8 +332,8 @@ fn accept_type_decl_impl(
     context: *const (),
     visitor: *const Visitor,
 ) -> ErrorCode {
-    let type_decl = defer!(type_decl);
-    let mut visitor = create_visitor!(context, visitor);
+    let type_decl = deref!(type_decl);
+    let mut visitor = deref_visitor!(context, visitor);
     raw_visitor::accept_type_decl(type_decl.raw_ptr.as_ref(), &mut visitor);
     ErrorCode::Ok
 }
@@ -359,8 +359,8 @@ fn accept_struct_def_impl(
     context: *const (),
     visitor: *const Visitor,
 ) -> ErrorCode {
-    let struct_def = defer!(struct_def);
-    let mut visitor = create_visitor!(context, visitor);
+    let struct_def = deref!(struct_def);
+    let mut visitor = deref_visitor!(context, visitor);
     raw_visitor::accept_struct_def(struct_def.raw_ptr.as_ref(), &mut visitor);
     ErrorCode::Ok
 }
@@ -389,8 +389,8 @@ fn accept_struct_field_impl(
     context: *const (),
     visitor: *const Visitor,
 ) -> ErrorCode {
-    let struct_field = defer!(struct_field);
-    let mut visitor = create_visitor!(context, visitor);
+    let struct_field = deref!(struct_field);
+    let mut visitor = deref_visitor!(context, visitor);
     raw_visitor::accept_struct_field(struct_field.raw_ptr.as_ref(), &mut visitor);
     ErrorCode::Ok
 }
@@ -416,8 +416,8 @@ fn accept_enum_def_impl(
     context: *const (),
     visitor: *const Visitor,
 ) -> ErrorCode {
-    let enum_def = defer!(enum_def);
-    let mut visitor = create_visitor!(context, visitor);
+    let enum_def = deref!(enum_def);
+    let mut visitor = deref_visitor!(context, visitor);
     raw_visitor::accept_enum_def(enum_def.raw_ptr.as_ref(), &mut visitor);
     ErrorCode::Ok
 }
@@ -446,8 +446,8 @@ fn accept_enum_variant_impl(
     context: *const (),
     visitor: *const Visitor,
 ) -> ErrorCode {
-    let enum_variant = defer!(enum_variant);
-    let mut visitor = create_visitor!(context, visitor);
+    let enum_variant = deref!(enum_variant);
+    let mut visitor = deref_visitor!(context, visitor);
     raw_visitor::accept_enum_variant(enum_variant.raw_ptr.as_ref(), &mut visitor);
     ErrorCode::Ok
 }
