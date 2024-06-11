@@ -74,6 +74,7 @@ pub mod wasm {
     static mut PROGRAM: Option<MyProgram> = None;
     #[no_mangle]
     extern "C" fn init() {
+        sails_rtl::gstd::events::__enable_events();
         let input = gstd::msg::load_bytes().expect("Failed to read input");
         if !input.is_empty() {
             {
