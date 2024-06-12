@@ -16,6 +16,5 @@ proc-macro-error.workspace = true
 parity-scale-codec = { workspace = true, features = ["derive"] }
 sails-rtl.workspace = true
 scale-info = { workspace = true, features = ["derive"] }
-serial_test.workspace = true
 tokio = { workspace = true, features = ["full"] }
 trybuild.workspace = true

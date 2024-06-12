@@ -12,6 +12,7 @@ gstd.workspace = true
 hashbrown.workspace = true
 hex.workspace = true
 parity-scale-codec = { workspace = true, features = ["derive"] }
+parking_lot.workspace = true
 primitive-types.workspace = true
 sails-macros.workspace = true
 scale-info = { workspace = true, features = ["derive"] }

@@ -7,7 +7,6 @@ mod gservice_with_extends;
 mod gservice_with_lifecycles_and_generics;
 
 #[tokio::test]
-#[serial_test::serial]
 async fn gservice_with_basics() {
     use gservice_with_basics::MyDoThisParams;
     use gservice_with_basics::MyService;
@@ -39,7 +38,6 @@ async fn gservice_with_basics() {
 }
 
 #[tokio::test]
-#[serial_test::serial]
 async fn gservice_with_extends() {
     use gservice_with_extends::{
         base::{Base, BASE_NAME_RESULT},
@@ -87,7 +85,6 @@ async fn gservice_with_extends() {
 }
 
 #[tokio::test]
-#[serial_test::serial]
 async fn gservice_with_lifecycles_and_generics() {
     use gservice_with_lifecycles_and_generics::MyGenericService;
 
@@ -111,7 +108,6 @@ async fn gservice_with_lifecycles_and_generics() {
 }
 
 #[tokio::test]
-#[serial_test::serial]
 #[should_panic(expected = "Unknown request: 0xffffffff..ffffffff")]
 async fn gservice_panic_on_unexpected_input() {
     use gservice_with_basics::MyService;
@@ -124,7 +120,6 @@ async fn gservice_panic_on_unexpected_input() {
 }
 
 #[tokio::test]
-#[serial_test::serial]
 #[should_panic(expected = "Unknown request: 0x81112c00..00000000")]
 async fn gservice_panic_on_unexpected_input_double_encoded() {
     use gservice_with_basics::MyService;
@@ -154,7 +149,6 @@ async fn gservice_panic_on_unexpected_input_double_encoded() {
 }
 
 #[test]
-#[serial_test::serial]
 fn gservice_with_events() {
     use gservice_with_events::MyServiceWithEvents;
 

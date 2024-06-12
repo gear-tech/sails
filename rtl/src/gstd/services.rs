@@ -1,6 +1,8 @@
 use crate::{collections::BTreeMap, MessageId, Vec};
+use parking_lot::Mutex;
 
-static mut MESSAGE_ID_TO_SERVICE_ROUTE: BTreeMap<MessageId, Vec<&'static [u8]>> = BTreeMap::new();
+static MESSAGE_ID_TO_SERVICE_ROUTE: Mutex<BTreeMap<MessageId, Vec<&'static [u8]>>> =
+    Mutex::new(BTreeMap::new());
 
 pub trait Service {
     type Exposure: Exposure;
@@ -30,17 +32,16 @@ impl ExposureContext {
 }
 
 pub(crate) fn exposure_context(message_id: MessageId) -> ExposureContext {
-    let route = unsafe {
-        MESSAGE_ID_TO_SERVICE_ROUTE
-            .get(&message_id)
-            .and_then(|routes| routes.last().copied())
-            .unwrap_or_else(|| {
-                panic!(
-                    "Exposure context is not found for message id {:?}",
-                    message_id
-                )
-            })
-    };
+    let map = MESSAGE_ID_TO_SERVICE_ROUTE.lock();
+    let route = map
+        .get(&message_id)
+        .and_then(|routes| routes.last().copied())
+        .unwrap_or_else(|| {
+            panic!(
+                "Exposure context is not found for message id {:?}",
+                message_id
+            )
+        });
     ExposureContext { message_id, route }
 }
 
@@ -51,11 +52,8 @@ pub struct ExposureCallScope {
 
 impl ExposureCallScope {
     pub fn new(exposure: &impl Exposure) -> Self {
-        let routes = unsafe {
-            MESSAGE_ID_TO_SERVICE_ROUTE
-                .entry(exposure.message_id())
-                .or_default()
-        };
+        let mut map = MESSAGE_ID_TO_SERVICE_ROUTE.lock();
+        let routes = map.entry(exposure.message_id()).or_default();
         routes.push(exposure.route());
         Self {
             message_id: exposure.message_id(),
@@ -66,11 +64,10 @@ impl ExposureCallScope {
 
 impl Drop for ExposureCallScope {
     fn drop(&mut self) {
-        let routes = unsafe {
-            MESSAGE_ID_TO_SERVICE_ROUTE
-                .get_mut(&self.message_id)
-                .unwrap_or_else(|| unreachable!("Entry for message should always exist"))
-        };
+        let mut map = MESSAGE_ID_TO_SERVICE_ROUTE.lock();
+        let routes = map
+            .get_mut(&self.message_id)
+            .unwrap_or_else(|| unreachable!("Entry for message should always exist"));
         let route = routes
             .pop()
             .unwrap_or_else(|| unreachable!("Route should always exist"));
@@ -78,7 +75,7 @@ impl Drop for ExposureCallScope {
             unreachable!("Route should always match");
         }
         if routes.is_empty() {
-            unsafe { MESSAGE_ID_TO_SERVICE_ROUTE.remove(&self.message_id) };
+            map.remove(&self.message_id);
         }
     }
 }
