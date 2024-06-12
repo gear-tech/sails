@@ -1,6 +1,6 @@
 use sails_rtl::{gstd::gservice, Encode, TypeInfo};
 
-struct MyService;
+pub(super) struct MyServiceWithEvents;
 
 #[derive(TypeInfo, Encode)]
 enum MyEvents {
@@ -8,14 +8,8 @@ enum MyEvents {
 }
 
 #[gservice(events = MyEvents)]
-impl MyService {
+impl MyServiceWithEvents {
     pub fn my_method(&mut self) {
         self.notify_on(MyEvents::Event1).unwrap();
     }
-}
-
-#[test]
-fn service_with_events_works() {
-    let mut service = MyService;
-    service.my_method();
 }

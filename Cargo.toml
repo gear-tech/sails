@@ -33,7 +33,6 @@ members = [
 anyhow = "1"
 const-format = { package = "const_format", version = "0.2" }
 convert-case = { package = "convert_case", version = "0.6" }
-fluent-asserter = "0.1"
 futures = { version = "0.3", default-features = false }
 gear-core-errors = "1.4.1"
 git-download = "0.1"
@@ -62,6 +61,7 @@ sails-rtl = { path = "rtl" }
 scale-info = { version = "2.11", default-features = false }
 serde = "1.0"
 serde-json = { package = "serde_json", version = "1.0" }
+serial_test = "3"
 syn = "2.0"
 thiserror = "1.0"
 thiserror-no-std = "2.0"
