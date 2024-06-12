@@ -1,5 +1,5 @@
 use crate::{collections::BTreeMap, MessageId, Vec};
-use parking_lot::Mutex;
+use spin::Mutex;
 
 static MESSAGE_ID_TO_SERVICE_ROUTE: Mutex<BTreeMap<MessageId, Vec<&'static [u8]>>> =
     Mutex::new(BTreeMap::new());
