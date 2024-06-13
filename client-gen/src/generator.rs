@@ -602,6 +602,12 @@ impl<'ast> Visitor<'ast> for TypeDeclGenerator {
             PrimitiveType::MessageId => "MessageId",
             PrimitiveType::H256 => "H256",
             PrimitiveType::U256 => "U256",
+            PrimitiveType::NonZeroU8 => "NonZeroU8",
+            PrimitiveType::NonZeroU16 => "NonZeroU16",
+            PrimitiveType::NonZeroU32 => "NonZeroU32",
+            PrimitiveType::NonZeroU64 => "NonZeroU64",
+            PrimitiveType::NonZeroU128 => "NonZeroU128",
+            PrimitiveType::NonZeroU256 => "NonZeroU256",
         });
     }
 

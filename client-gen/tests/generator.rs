@@ -86,6 +86,17 @@ fn test_rmrk_works() {
     insta::assert_snapshot!(gen(idl, "RmrkCatalog"));
 }
 
+#[test]
+fn test_nonzero_works() {
+    let idl = r"
+            service {
+                DoThis: (p1: nat256, p2: nat32) -> u16;
+            };
+        ";
+
+    insta::assert_snapshot!(gen(idl, "NonZeroParams"));
+}
+
 fn gen(program: &str, service_name: &str) -> String {
     let program = sails_idl_parser::ast::parse_idl(program).expect("parse IDL");
 
