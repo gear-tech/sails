@@ -9,7 +9,6 @@ use sails_rtl::{
         gservice, ExecContext,
     },
     prelude::*,
-    ActorId,
 };
 
 pub mod errors;
