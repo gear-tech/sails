@@ -10,6 +10,7 @@ anyhow.workspace = true
 convert-case.workspace = true
 parity-scale-codec.workspace = true
 sails-idl-parser.workspace = true
+genco = "0.17.9"
 
 [dev-dependencies]
 insta.workspace = true

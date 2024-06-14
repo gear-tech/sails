@@ -12,7 +12,6 @@ use sails_rtl::{
     prelude::*,
     String,
 };
-
 #[derive(Clone)]
 pub struct Basic<R, A>
 where
@@ -22,7 +21,6 @@ where
     remoting: R,
     _phantom: PhantomData<A>,
 }
-
 impl<A: Default, R: Remoting<A>> Basic<R, A> {
     pub fn new(remoting: R) -> Self {
         Self {
@@ -31,7 +29,6 @@ impl<A: Default, R: Remoting<A>> Basic<R, A> {
         }
     }
 }
-
 impl<R, A> traits::Basic<R, A> for Basic<R, A>
 where
     R: Remoting<A> + Clone,
@@ -48,13 +45,10 @@ where
         RemotingAction::new(self.remoting.clone(), &[24, 68, 111, 84, 104, 97, 116], p1)
     }
 }
-
 pub mod basic_io {
     use super::*;
-
     #[derive(Debug, Default, Clone, Copy)]
     pub struct DoThis(());
-
     impl DoThis {
         #[allow(dead_code)]
         pub fn encode_call(p1: u32, p2: super::MyParam) -> Vec<u8> {
@@ -77,10 +71,8 @@ pub mod basic_io {
             Ok(result)
         }
     }
-
     #[derive(Debug, Default, Clone, Copy)]
     pub struct DoThat(());
-
     impl DoThat {
         #[allow(dead_code)]
         pub fn encode_call(p1: (u8, u32)) -> Vec<u8> {
