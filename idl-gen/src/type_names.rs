@@ -27,7 +27,7 @@ use scale_info::{
 };
 use std::{
     collections::{BTreeMap, HashMap},
-    num::{NonZeroI16, NonZeroU128, NonZeroU32, NonZeroU64, NonZeroU8},
+    num::{NonZeroU128, NonZeroU16, NonZeroU32, NonZeroU64, NonZeroU8},
     rc::Rc,
     result::Result as StdResult,
     sync::OnceLock,
@@ -825,7 +825,7 @@ macro_rules! impl_primitive_alias_type_name {
 }
 
 impl_primitive_alias_type_name!(NonZeroU8, nat8);
-impl_primitive_alias_type_name!(NonZeroI16, nat16);
+impl_primitive_alias_type_name!(NonZeroU16, nat16);
 impl_primitive_alias_type_name!(NonZeroU32, nat32);
 impl_primitive_alias_type_name!(NonZeroU64, nat64);
 impl_primitive_alias_type_name!(NonZeroU128, nat128);
@@ -1157,6 +1157,21 @@ mod tests {
     #[test]
     fn nonzero_u8_type_name_resolution_works() {
         type_name_resolution_works!(NonZeroU8, nat8);
+    }
+
+    #[test]
+    fn nonzero_u16_type_name_resolution_works() {
+        type_name_resolution_works!(NonZeroU16, nat16);
+    }
+
+    #[test]
+    fn nonzero_u32_type_name_resolution_works() {
+        type_name_resolution_works!(NonZeroU32, nat32);
+    }
+
+    #[test]
+    fn nonzero_u64_type_name_resolution_works() {
+        type_name_resolution_works!(NonZeroU64, nat64);
     }
 
     #[test]
