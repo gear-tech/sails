@@ -15,7 +15,7 @@ dependencies = [
 [[package]]
 name = "actor-system-error"
 version = "1.4.2"
-source = "git+https://github.com/gear-tech/gear?branch=vo/gprimitives_nonzero_u256#6399db4fcd273b6e2be408dfc0ef50c46612507f"
+source = "git+https://github.com/gear-tech/gear?branch=vo/gprimitives_nonzero_u256#45d14b71b8a4e8c201a189567babf54f86c9482f"
 dependencies = [
  "derive_more",
 ]
@@ -1878,7 +1878,7 @@ dependencies = [
 [[package]]
 name = "galloc"
 version = "1.4.2"
-source = "git+https://github.com/gear-tech/gear?branch=vo/gprimitives_nonzero_u256#6399db4fcd273b6e2be408dfc0ef50c46612507f"
+source = "git+https://github.com/gear-tech/gear?branch=vo/gprimitives_nonzero_u256#45d14b71b8a4e8c201a189567babf54f86c9482f"
 dependencies = [
  "gear-dlmalloc",
 ]
@@ -1886,7 +1886,7 @@ dependencies = [
 [[package]]
 name = "gcore"
 version = "1.4.2"
-source = "git+https://github.com/gear-tech/gear?branch=vo/gprimitives_nonzero_u256#6399db4fcd273b6e2be408dfc0ef50c46612507f"
+source = "git+https://github.com/gear-tech/gear?branch=vo/gprimitives_nonzero_u256#45d14b71b8a4e8c201a189567babf54f86c9482f"
 dependencies = [
  "gear-core-errors",
  "gear-stack-buffer",
@@ -1898,7 +1898,7 @@ dependencies = [
 [[package]]
 name = "gear-common"
 version = "1.4.2"
-source = "git+https://github.com/gear-tech/gear?branch=vo/gprimitives_nonzero_u256#6399db4fcd273b6e2be408dfc0ef50c46612507f"
+source = "git+https://github.com/gear-tech/gear?branch=vo/gprimitives_nonzero_u256#45d14b71b8a4e8c201a189567babf54f86c9482f"
 dependencies = [
  "derive_more",
  "enum-iterator 1.5.0",
@@ -1920,7 +1920,7 @@ dependencies = [
 [[package]]
 name = "gear-common-codegen"
 version = "1.4.2"
-source = "git+https://github.com/gear-tech/gear?branch=vo/gprimitives_nonzero_u256#6399db4fcd273b6e2be408dfc0ef50c46612507f"
+source = "git+https://github.com/gear-tech/gear?branch=vo/gprimitives_nonzero_u256#45d14b71b8a4e8c201a189567babf54f86c9482f"
 dependencies = [
  "quote",
  "syn 2.0.66",
@@ -1929,7 +1929,7 @@ dependencies = [
 [[package]]
 name = "gear-core"
 version = "1.4.2"
-source = "git+https://github.com/gear-tech/gear?branch=vo/gprimitives_nonzero_u256#6399db4fcd273b6e2be408dfc0ef50c46612507f"
+source = "git+https://github.com/gear-tech/gear?branch=vo/gprimitives_nonzero_u256#45d14b71b8a4e8c201a189567babf54f86c9482f"
 dependencies = [
  "blake2",
  "byteorder",
@@ -1955,7 +1955,7 @@ dependencies = [
 [[package]]
 name = "gear-core-backend"
 version = "1.4.2"
-source = "git+https://github.com/gear-tech/gear?branch=vo/gprimitives_nonzero_u256#6399db4fcd273b6e2be408dfc0ef50c46612507f"
+source = "git+https://github.com/gear-tech/gear?branch=vo/gprimitives_nonzero_u256#45d14b71b8a4e8c201a189567babf54f86c9482f"
 dependencies = [
  "actor-system-error",
  "blake2",
@@ -1974,7 +1974,7 @@ dependencies = [
 [[package]]
 name = "gear-core-errors"
 version = "1.4.2"
-source = "git+https://github.com/gear-tech/gear?branch=vo/gprimitives_nonzero_u256#6399db4fcd273b6e2be408dfc0ef50c46612507f"
+source = "git+https://github.com/gear-tech/gear?branch=vo/gprimitives_nonzero_u256#45d14b71b8a4e8c201a189567babf54f86c9482f"
 dependencies = [
  "derive_more",
  "enum-iterator 1.5.0",
@@ -1985,7 +1985,7 @@ dependencies = [
 [[package]]
 name = "gear-core-processor"
 version = "1.4.2"
-source = "git+https://github.com/gear-tech/gear?branch=vo/gprimitives_nonzero_u256#6399db4fcd273b6e2be408dfc0ef50c46612507f"
+source = "git+https://github.com/gear-tech/gear?branch=vo/gprimitives_nonzero_u256#45d14b71b8a4e8c201a189567babf54f86c9482f"
 dependencies = [
  "actor-system-error",
  "derive_more",
@@ -2015,7 +2015,7 @@ dependencies = [
 [[package]]
 name = "gear-lazy-pages"
 version = "1.4.2"
-source = "git+https://github.com/gear-tech/gear?branch=vo/gprimitives_nonzero_u256#6399db4fcd273b6e2be408dfc0ef50c46612507f"
+source = "git+https://github.com/gear-tech/gear?branch=vo/gprimitives_nonzero_u256#45d14b71b8a4e8c201a189567babf54f86c9482f"
 dependencies = [
  "cfg-if",
  "derive_more",
@@ -2036,7 +2036,7 @@ dependencies = [
 [[package]]
 name = "gear-lazy-pages-common"
 version = "1.4.2"
-source = "git+https://github.com/gear-tech/gear?branch=vo/gprimitives_nonzero_u256#6399db4fcd273b6e2be408dfc0ef50c46612507f"
+source = "git+https://github.com/gear-tech/gear?branch=vo/gprimitives_nonzero_u256#45d14b71b8a4e8c201a189567babf54f86c9482f"
 dependencies = [
  "gear-core",
  "num_enum",
@@ -2046,7 +2046,7 @@ dependencies = [
 [[package]]
 name = "gear-lazy-pages-native-interface"
 version = "1.4.2"
-source = "git+https://github.com/gear-tech/gear?branch=vo/gprimitives_nonzero_u256#6399db4fcd273b6e2be408dfc0ef50c46612507f"
+source = "git+https://github.com/gear-tech/gear?branch=vo/gprimitives_nonzero_u256#45d14b71b8a4e8c201a189567babf54f86c9482f"
 dependencies = [
  "gear-core",
  "gear-lazy-pages",
@@ -2068,7 +2068,7 @@ dependencies = [
 [[package]]
 name = "gear-runtime-interface"
 version = "1.4.2"
-source = "git+https://github.com/gear-tech/gear?branch=vo/gprimitives_nonzero_u256#6399db4fcd273b6e2be408dfc0ef50c46612507f"
+source = "git+https://github.com/gear-tech/gear?branch=vo/gprimitives_nonzero_u256#45d14b71b8a4e8c201a189567babf54f86c9482f"
 dependencies = [
  "byteorder",
  "gear-core",
@@ -2087,7 +2087,7 @@ dependencies = [
 [[package]]
 name = "gear-sandbox"
 version = "1.4.2"
-source = "git+https://github.com/gear-tech/gear?branch=vo/gprimitives_nonzero_u256#6399db4fcd273b6e2be408dfc0ef50c46612507f"
+source = "git+https://github.com/gear-tech/gear?branch=vo/gprimitives_nonzero_u256#45d14b71b8a4e8c201a189567babf54f86c9482f"
 dependencies = [
  "gear-runtime-interface",
  "gear-sandbox-env",
@@ -2102,7 +2102,7 @@ dependencies = [
 [[package]]
 name = "gear-sandbox-env"
 version = "1.4.2"
-source = "git+https://github.com/gear-tech/gear?branch=vo/gprimitives_nonzero_u256#6399db4fcd273b6e2be408dfc0ef50c46612507f"
+source = "git+https://github.com/gear-tech/gear?branch=vo/gprimitives_nonzero_u256#45d14b71b8a4e8c201a189567babf54f86c9482f"
 dependencies = [
  "parity-scale-codec",
  "sp-debug-derive",
@@ -2113,7 +2113,7 @@ dependencies = [
 [[package]]
 name = "gear-sandbox-host"
 version = "1.4.2"
-source = "git+https://github.com/gear-tech/gear?branch=vo/gprimitives_nonzero_u256#6399db4fcd273b6e2be408dfc0ef50c46612507f"
+source = "git+https://github.com/gear-tech/gear?branch=vo/gprimitives_nonzero_u256#45d14b71b8a4e8c201a189567babf54f86c9482f"
 dependencies = [
  "environmental",
  "gear-sandbox-env",
@@ -2133,7 +2133,7 @@ dependencies = [
 [[package]]
 name = "gear-ss58"
 version = "1.4.2"
-source = "git+https://github.com/gear-tech/gear?branch=vo/gprimitives_nonzero_u256#6399db4fcd273b6e2be408dfc0ef50c46612507f"
+source = "git+https://github.com/gear-tech/gear?branch=vo/gprimitives_nonzero_u256#45d14b71b8a4e8c201a189567babf54f86c9482f"
 dependencies = [
  "blake2",
  "bs58",
@@ -2143,12 +2143,12 @@ dependencies = [
 [[package]]
 name = "gear-stack-buffer"
 version = "1.4.2"
-source = "git+https://github.com/gear-tech/gear?branch=vo/gprimitives_nonzero_u256#6399db4fcd273b6e2be408dfc0ef50c46612507f"
+source = "git+https://github.com/gear-tech/gear?branch=vo/gprimitives_nonzero_u256#45d14b71b8a4e8c201a189567babf54f86c9482f"
 
 [[package]]
 name = "gear-utils"
 version = "1.4.2"
-source = "git+https://github.com/gear-tech/gear?branch=vo/gprimitives_nonzero_u256#6399db4fcd273b6e2be408dfc0ef50c46612507f"
+source = "git+https://github.com/gear-tech/gear?branch=vo/gprimitives_nonzero_u256#45d14b71b8a4e8c201a189567babf54f86c9482f"
 dependencies = [
  "env_logger",
  "gear-core",
@@ -2169,7 +2169,7 @@ checksum = "bbfbfa701dc65e683fcd2fb24f046bcef22634acbdf47ad14724637dc39ad05b"
 [[package]]
 name = "gear-wasm-builder"
 version = "1.4.2"
-source = "git+https://github.com/gear-tech/gear?branch=vo/gprimitives_nonzero_u256#6399db4fcd273b6e2be408dfc0ef50c46612507f"
+source = "git+https://github.com/gear-tech/gear?branch=vo/gprimitives_nonzero_u256#45d14b71b8a4e8c201a189567babf54f86c9482f"
 dependencies = [
  "anyhow",
  "cargo_metadata",
@@ -2194,7 +2194,7 @@ dependencies = [
 [[package]]
 name = "gear-wasm-instrument"
 version = "1.4.2"
-source = "git+https://github.com/gear-tech/gear?branch=vo/gprimitives_nonzero_u256#6399db4fcd273b6e2be408dfc0ef50c46612507f"
+source = "git+https://github.com/gear-tech/gear?branch=vo/gprimitives_nonzero_u256#45d14b71b8a4e8c201a189567babf54f86c9482f"
 dependencies = [
  "derive_more",
  "enum-iterator 1.5.0",
@@ -2300,7 +2300,7 @@ checksum = "d2fabcfbdc87f4758337ca535fb41a6d701b65693ce38287d856d1674551ec9b"
 [[package]]
 name = "gmeta"
 version = "1.4.2"
-source = "git+https://github.com/gear-tech/gear?branch=vo/gprimitives_nonzero_u256#6399db4fcd273b6e2be408dfc0ef50c46612507f"
+source = "git+https://github.com/gear-tech/gear?branch=vo/gprimitives_nonzero_u256#45d14b71b8a4e8c201a189567babf54f86c9482f"
 dependencies = [
  "blake2",
  "derive_more",
@@ -2311,7 +2311,7 @@ dependencies = [
 [[package]]
 name = "gprimitives"
 version = "1.4.2"
-source = "git+https://github.com/gear-tech/gear?branch=vo/gprimitives_nonzero_u256#6399db4fcd273b6e2be408dfc0ef50c46612507f"
+source = "git+https://github.com/gear-tech/gear?branch=vo/gprimitives_nonzero_u256#45d14b71b8a4e8c201a189567babf54f86c9482f"
 dependencies = [
  "derive_more",
  "gear-ss58",
@@ -2335,7 +2335,7 @@ dependencies = [
 [[package]]
 name = "gstd"
 version = "1.4.2"
-source = "git+https://github.com/gear-tech/gear?branch=vo/gprimitives_nonzero_u256#6399db4fcd273b6e2be408dfc0ef50c46612507f"
+source = "git+https://github.com/gear-tech/gear?branch=vo/gprimitives_nonzero_u256#45d14b71b8a4e8c201a189567babf54f86c9482f"
 dependencies = [
  "arrayvec 0.7.4",
  "const_format",
@@ -2353,7 +2353,7 @@ dependencies = [
 [[package]]
 name = "gstd-codegen"
 version = "1.4.2"
-source = "git+https://github.com/gear-tech/gear?branch=vo/gprimitives_nonzero_u256#6399db4fcd273b6e2be408dfc0ef50c46612507f"
+source = "git+https://github.com/gear-tech/gear?branch=vo/gprimitives_nonzero_u256#45d14b71b8a4e8c201a189567babf54f86c9482f"
 dependencies = [
  "gprimitives",
  "proc-macro2",
@@ -2364,12 +2364,12 @@ dependencies = [
 [[package]]
 name = "gsys"
 version = "1.4.2"
-source = "git+https://github.com/gear-tech/gear?branch=vo/gprimitives_nonzero_u256#6399db4fcd273b6e2be408dfc0ef50c46612507f"
+source = "git+https://github.com/gear-tech/gear?branch=vo/gprimitives_nonzero_u256#45d14b71b8a4e8c201a189567babf54f86c9482f"
 
 [[package]]
 name = "gtest"
 version = "1.4.2"
-source = "git+https://github.com/gear-tech/gear?branch=vo/gprimitives_nonzero_u256#6399db4fcd273b6e2be408dfc0ef50c46612507f"
+source = "git+https://github.com/gear-tech/gear?branch=vo/gprimitives_nonzero_u256#45d14b71b8a4e8c201a189567babf54f86c9482f"
 dependencies = [
  "cargo_toml",
  "colored",
@@ -3336,7 +3336,7 @@ dependencies = [
 [[package]]
 name = "numerated"
 version = "1.4.2"
-source = "git+https://github.com/gear-tech/gear?branch=vo/gprimitives_nonzero_u256#6399db4fcd273b6e2be408dfc0ef50c46612507f"
+source = "git+https://github.com/gear-tech/gear?branch=vo/gprimitives_nonzero_u256#45d14b71b8a4e8c201a189567babf54f86c9482f"
 dependencies = [
  "derive_more",
  "num-traits",
@@ -4579,7 +4579,7 @@ dependencies = [
 [[package]]
 name = "sp-allocator"
 version = "4.1.0-dev"
-source = "git+https://github.com/gear-tech/polkadot-sdk.git?branch=gear-v1.3.0#8c76964cc3c2debb09a81f8b85976bb3a43f766b"
+source = "git+https://github.com/gear-tech/polkadot-sdk.git?branch=gear-v1.3.0#e0206506693aef9ad68f42001b86312f8b9debcf"
 dependencies = [
  "log",
  "parity-scale-codec",
@@ -4652,7 +4652,7 @@ dependencies = [
 [[package]]
 name = "sp-core"
 version = "21.0.0"
-source = "git+https://github.com/gear-tech/polkadot-sdk.git?branch=gear-v1.3.0#8c76964cc3c2debb09a81f8b85976bb3a43f766b"
+source = "git+https://github.com/gear-tech/polkadot-sdk.git?branch=gear-v1.3.0#e0206506693aef9ad68f42001b86312f8b9debcf"
 dependencies = [
  "array-bytes",
  "bandersnatch_vrfs",
@@ -4700,7 +4700,7 @@ dependencies = [
 [[package]]
 name = "sp-core-hashing"
 version = "9.0.0"
-source = "git+https://github.com/gear-tech/polkadot-sdk.git?branch=gear-v1.3.0#8c76964cc3c2debb09a81f8b85976bb3a43f766b"
+source = "git+https://github.com/gear-tech/polkadot-sdk.git?branch=gear-v1.3.0#e0206506693aef9ad68f42001b86312f8b9debcf"
 dependencies = [
  "blake2b_simd",
  "byteorder",
@@ -4723,7 +4723,7 @@ dependencies = [
 [[package]]
 name = "sp-debug-derive"
 version = "8.0.0"
-source = "git+https://github.com/gear-tech/polkadot-sdk.git?branch=gear-v1.3.0#8c76964cc3c2debb09a81f8b85976bb3a43f766b"
+source = "git+https://github.com/gear-tech/polkadot-sdk.git?branch=gear-v1.3.0#e0206506693aef9ad68f42001b86312f8b9debcf"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -4733,7 +4733,7 @@ dependencies = [
 [[package]]
 name = "sp-externalities"
 version = "0.19.0"
-source = "git+https://github.com/gear-tech/polkadot-sdk.git?branch=gear-v1.3.0#8c76964cc3c2debb09a81f8b85976bb3a43f766b"
+source = "git+https://github.com/gear-tech/polkadot-sdk.git?branch=gear-v1.3.0#e0206506693aef9ad68f42001b86312f8b9debcf"
 dependencies = [
  "environmental",
  "parity-scale-codec",
@@ -4769,7 +4769,7 @@ dependencies = [
 [[package]]
 name = "sp-io"
 version = "23.0.0"
-source = "git+https://github.com/gear-tech/polkadot-sdk.git?branch=gear-v1.3.0#8c76964cc3c2debb09a81f8b85976bb3a43f766b"
+source = "git+https://github.com/gear-tech/polkadot-sdk.git?branch=gear-v1.3.0#e0206506693aef9ad68f42001b86312f8b9debcf"
 dependencies = [
  "bytes",
  "ed25519-dalek",
@@ -4793,7 +4793,7 @@ dependencies = [
 [[package]]
 name = "sp-keystore"
 version = "0.27.0"
-source = "git+https://github.com/gear-tech/polkadot-sdk.git?branch=gear-v1.3.0#8c76964cc3c2debb09a81f8b85976bb3a43f766b"
+source = "git+https://github.com/gear-tech/polkadot-sdk.git?branch=gear-v1.3.0#e0206506693aef9ad68f42001b86312f8b9debcf"
 dependencies = [
  "parity-scale-codec",
  "parking_lot",
@@ -4816,7 +4816,7 @@ dependencies = [
 [[package]]
 name = "sp-panic-handler"
 version = "8.0.0"
-source = "git+https://github.com/gear-tech/polkadot-sdk.git?branch=gear-v1.3.0#8c76964cc3c2debb09a81f8b85976bb3a43f766b"
+source = "git+https://github.com/gear-tech/polkadot-sdk.git?branch=gear-v1.3.0#e0206506693aef9ad68f42001b86312f8b9debcf"
 dependencies = [
  "backtrace",
  "lazy_static",
@@ -4848,7 +4848,7 @@ dependencies = [
 [[package]]
 name = "sp-runtime-interface"
 version = "17.0.0"
-source = "git+https://github.com/gear-tech/polkadot-sdk.git?branch=gear-v1.3.0#8c76964cc3c2debb09a81f8b85976bb3a43f766b"
+source = "git+https://github.com/gear-tech/polkadot-sdk.git?branch=gear-v1.3.0#e0206506693aef9ad68f42001b86312f8b9debcf"
 dependencies = [
  "bytes",
  "impl-trait-for-tuples",
@@ -4866,7 +4866,7 @@ dependencies = [
 [[package]]
 name = "sp-runtime-interface-proc-macro"
 version = "11.0.0"
-source = "git+https://github.com/gear-tech/polkadot-sdk.git?branch=gear-v1.3.0#8c76964cc3c2debb09a81f8b85976bb3a43f766b"
+source = "git+https://github.com/gear-tech/polkadot-sdk.git?branch=gear-v1.3.0#e0206506693aef9ad68f42001b86312f8b9debcf"
 dependencies = [
  "Inflector",
  "proc-macro-crate 1.3.1",
@@ -4892,7 +4892,7 @@ dependencies = [
 [[package]]
 name = "sp-state-machine"
 version = "0.28.0"
-source = "git+https://github.com/gear-tech/polkadot-sdk.git?branch=gear-v1.3.0#8c76964cc3c2debb09a81f8b85976bb3a43f766b"
+source = "git+https://github.com/gear-tech/polkadot-sdk.git?branch=gear-v1.3.0#e0206506693aef9ad68f42001b86312f8b9debcf"
 dependencies = [
  "hash-db",
  "log",
@@ -4913,12 +4913,12 @@ dependencies = [
 [[package]]
 name = "sp-std"
 version = "8.0.0"
-source = "git+https://github.com/gear-tech/polkadot-sdk.git?branch=gear-v1.3.0#8c76964cc3c2debb09a81f8b85976bb3a43f766b"
+source = "git+https://github.com/gear-tech/polkadot-sdk.git?branch=gear-v1.3.0#e0206506693aef9ad68f42001b86312f8b9debcf"
 
 [[package]]
 name = "sp-storage"
 version = "13.0.0"
-source = "git+https://github.com/gear-tech/polkadot-sdk.git?branch=gear-v1.3.0#8c76964cc3c2debb09a81f8b85976bb3a43f766b"
+source = "git+https://github.com/gear-tech/polkadot-sdk.git?branch=gear-v1.3.0#e0206506693aef9ad68f42001b86312f8b9debcf"
 dependencies = [
  "impl-serde",
  "parity-scale-codec",
@@ -4931,7 +4931,7 @@ dependencies = [
 [[package]]
 name = "sp-tracing"
 version = "10.0.0"
-source = "git+https://github.com/gear-tech/polkadot-sdk.git?branch=gear-v1.3.0#8c76964cc3c2debb09a81f8b85976bb3a43f766b"
+source = "git+https://github.com/gear-tech/polkadot-sdk.git?branch=gear-v1.3.0#e0206506693aef9ad68f42001b86312f8b9debcf"
 dependencies = [
  "parity-scale-codec",
  "sp-std",
@@ -4943,7 +4943,7 @@ dependencies = [
 [[package]]
 name = "sp-trie"
 version = "22.0.0"
-source = "git+https://github.com/gear-tech/polkadot-sdk.git?branch=gear-v1.3.0#8c76964cc3c2debb09a81f8b85976bb3a43f766b"
+source = "git+https://github.com/gear-tech/polkadot-sdk.git?branch=gear-v1.3.0#e0206506693aef9ad68f42001b86312f8b9debcf"
 dependencies = [
  "ahash 0.8.11",
  "hash-db",
@@ -4995,7 +4995,7 @@ dependencies = [
 [[package]]
 name = "sp-wasm-interface"
 version = "14.0.0"
-source = "git+https://github.com/gear-tech/polkadot-sdk.git?branch=gear-v1.3.0#8c76964cc3c2debb09a81f8b85976bb3a43f766b"
+source = "git+https://github.com/gear-tech/polkadot-sdk.git?branch=gear-v1.3.0#e0206506693aef9ad68f42001b86312f8b9debcf"
 dependencies = [
  "anyhow",
  "impl-trait-for-tuples",
@@ -5010,7 +5010,7 @@ dependencies = [
 [[package]]
 name = "sp-wasm-interface-common"
 version = "7.0.0"
-source = "git+https://github.com/gear-tech/polkadot-sdk.git?branch=gear-v1.3.0#8c76964cc3c2debb09a81f8b85976bb3a43f766b"
+source = "git+https://github.com/gear-tech/polkadot-sdk.git?branch=gear-v1.3.0#e0206506693aef9ad68f42001b86312f8b9debcf"
 dependencies = [
  "parity-scale-codec",
  "sp-std",
@@ -5185,9 +5185,13 @@ version = "0.1.0"
 dependencies = [
  "gear-wasm-builder",
  "gstd",
+ "gtest",
+ "parity-scale-codec",
+ "sails-client-gen",
  "sails-idl-gen",
  "sails-rtl",
  "this-that-svc-app",
+ "tokio",
 ]
 
 [[package]]
@@ -5323,14 +5327,14 @@ dependencies = [
 
 [[package]]
 name = "toml"
-version = "0.8.13"
+version = "0.8.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a4e43f8cc456c9704c851ae29c67e17ef65d2c30017c17a9765b89c382dc8bba"
+checksum = "6f49eb2ab21d2f26bd6db7bf383edc527a7ebaee412d17af4d40fdccd442f335"
 dependencies = [
  "serde",
  "serde_spanned",
  "toml_datetime",
- "toml_edit 0.22.13",
+ "toml_edit 0.22.14",
 ]
 
 [[package]]
@@ -5366,9 +5370,9 @@ dependencies = [
 
 [[package]]
 name = "toml_edit"
-version = "0.22.13"
+version = "0.22.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c127785850e8c20836d49732ae6abfa47616e60bf9d9f57c43c250361a9db96c"
+checksum = "f21c7aaf97f1bd9ca9d4f9e73b0a6c74bd5afef56f2bc931943a6e1c37e04e38"
 dependencies = [
  "indexmap 2.2.6",
  "serde",

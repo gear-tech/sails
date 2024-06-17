@@ -37,7 +37,7 @@ where
     R: Remoting<A> + Clone,
     A: Default,
 {
-    fn do_this(&mut self, p1: NonZeroU256, p2: NonZeroU32) -> impl Call<A, u16> {
+    fn do_this(&mut self, p1: NonZeroU256, p2: MyParam) -> impl Call<A, NonZeroU64> {
         RemotingAction::new(
             self.remoting.clone(),
             &[24, 68, 111, 84, 104, 105, 115],
@@ -54,7 +54,7 @@ pub mod non_zero_params_io {
 
     impl DoThis {
         #[allow(dead_code)]
-        pub fn encode_call(p1: NonZeroU256, p2: NonZeroU32) -> Vec<u8> {
+        pub fn encode_call(p1: NonZeroU256, p2: super::MyParam) -> Vec<u8> {
             let args = (p1, p2);
             let mut result = Vec::with_capacity(7 + args.encoded_size());
             result.extend_from_slice(&[]);
@@ -63,7 +63,7 @@ pub mod non_zero_params_io {
             result
         }
         #[allow(dead_code)]
-        pub fn decode_reply(mut reply: &[u8]) -> Result<u16, sails_rtl::errors::Error> {
+        pub fn decode_reply(mut reply: &[u8]) -> Result<NonZeroU64, sails_rtl::errors::Error> {
             if !reply.starts_with(&[24, 68, 111, 84, 104, 105, 115]) {
                 return Err(sails_rtl::errors::Error::Rtl(
                     sails_rtl::errors::RtlError::ReplyPrefixMismatches,
@@ -75,10 +75,17 @@ pub mod non_zero_params_io {
         }
     }
 }
+#[derive(PartialEq, Debug, Encode, Decode)]
+#[codec(crate = sails_rtl::scale_codec)]
+pub struct MyParam {
+    pub f1: NonZeroU256,
+    pub f2: Vec<NonZeroU8>,
+    pub f3: Option<(NonZeroU64, NonZeroU256)>,
+}
 pub mod traits {
     use super::*;
     pub trait NonZeroParams<R, TCallArgs> {
         #[allow(clippy::type_complexity)]
-        fn do_this(&mut self, p1: NonZeroU256, p2: NonZeroU32) -> impl Call<TCallArgs, u16>;
+        fn do_this(&mut self, p1: NonZeroU256, p2: MyParam) -> impl Call<TCallArgs, NonZeroU64>;
     }
 }

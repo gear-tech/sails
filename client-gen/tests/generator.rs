@@ -89,8 +89,14 @@ fn test_rmrk_works() {
 #[test]
 fn test_nonzero_works() {
     let idl = r"
+            type MyParam = struct {
+                f1: nat256,
+                f2: vec nat8,
+                f3: opt struct { nat64, nat256 },
+            };
+
             service {
-                DoThis: (p1: nat256, p2: nat32) -> u16;
+                DoThis: (p1: nat256, p2: MyParam) -> nat64;
             };
         ";
 
