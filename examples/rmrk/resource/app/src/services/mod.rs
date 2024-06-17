@@ -166,7 +166,7 @@ fn resource_storage_admin() -> ActorId {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::catalogs::{Error, Part};
+    use crate::catalogs::{self, Error, Part};
     use resources::BasicResource;
     use sails_rtl::{
         calls::{Remoting, RemotingAction},
@@ -222,6 +222,7 @@ mod tests {
 
     struct MockCatalogClient;
 
+    #[allow(refining_impl_trait)]
     impl<R, A> RmrkCatalog<R, A> for MockCatalogClient
     where
         R: Remoting<A>,
