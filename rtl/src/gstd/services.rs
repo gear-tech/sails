@@ -1,8 +1,34 @@
 use crate::{collections::BTreeMap, MessageId, Vec};
-use spin::Mutex;
+use core::ops::DerefMut;
 
-static MESSAGE_ID_TO_SERVICE_ROUTE: Mutex<BTreeMap<MessageId, Vec<&'static [u8]>>> =
-    Mutex::new(BTreeMap::new());
+#[cfg(not(target_arch = "wasm32"))]
+mod map {
+    use super::*;
+    use spin::Mutex;
+
+    static MESSAGE_ID_TO_SERVICE_ROUTE: Mutex<BTreeMap<MessageId, Vec<&'static [u8]>>> =
+        Mutex::new(BTreeMap::new());
+
+    pub(super) fn get_mut() -> impl DerefMut<Target = BTreeMap<MessageId, Vec<&'static [u8]>>> {
+        MESSAGE_ID_TO_SERVICE_ROUTE.lock()
+    }
+}
+
+#[cfg(target_arch = "wasm32")]
+mod map {
+    use super::*;
+
+    static mut MESSAGE_ID_TO_SERVICE_ROUTE: BTreeMap<MessageId, Vec<&'static [u8]>> =
+        BTreeMap::new();
+
+    pub(super) fn get_mut() -> impl DerefMut<Target = BTreeMap<MessageId, Vec<&'static [u8]>>> {
+        // SAFETY: only for wasm32 target
+        #[allow(static_mut_refs)]
+        unsafe {
+            &mut MESSAGE_ID_TO_SERVICE_ROUTE
+        }
+    }
+}
 
 pub trait Service {
     type Exposure: Exposure;
@@ -32,7 +58,7 @@ impl ExposureContext {
 }
 
 pub(crate) fn exposure_context(message_id: MessageId) -> ExposureContext {
-    let map = MESSAGE_ID_TO_SERVICE_ROUTE.lock();
+    let map = map::get_mut();
     let route = map
         .get(&message_id)
         .and_then(|routes| routes.last().copied())
@@ -52,7 +78,7 @@ pub struct ExposureCallScope {
 
 impl ExposureCallScope {
     pub fn new(exposure: &impl Exposure) -> Self {
-        let mut map = MESSAGE_ID_TO_SERVICE_ROUTE.lock();
+        let mut map = map::get_mut();
         let routes = map.entry(exposure.message_id()).or_default();
         routes.push(exposure.route());
         Self {
@@ -64,7 +90,7 @@ impl ExposureCallScope {
 
 impl Drop for ExposureCallScope {
     fn drop(&mut self) {
-        let mut map = MESSAGE_ID_TO_SERVICE_ROUTE.lock();
+        let mut map = map::get_mut();
         let routes = map
             .get_mut(&self.message_id)
             .unwrap_or_else(|| unreachable!("Entry for message should always exist"));
