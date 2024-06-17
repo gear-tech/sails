@@ -166,7 +166,7 @@ fn resource_storage_admin() -> ActorId {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::catalogs::{self, Error, Part};
+    use crate::catalogs::{Error, Part};
     use resources::BasicResource;
     use sails_rtl::{
         calls::{Remoting, RemotingAction},
