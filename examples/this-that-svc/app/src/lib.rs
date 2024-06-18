@@ -2,7 +2,7 @@
 
 use sails_rtl::gstd::gprogram;
 
-pub mod service;
+pub mod this_that_svc;
 
 #[derive(Default)]
 pub struct Program;
@@ -13,7 +13,7 @@ impl Program {
         Self
     }
 
-    pub fn service(&self) -> service::MyService {
-        service::MyService::new()
+    pub fn this_that_svc(&self) -> this_that_svc::ThisThatSvc {
+        this_that_svc::ThisThatSvc::new()
     }
 }

@@ -5,7 +5,7 @@ use sails_rtl::{
     gtest::calls::{GTestArgs, GTestRemoting},
     NonZeroU256, NonZeroU64, H256,
 };
-use this_that_svc_client::{traits::Service, DoThatParam, ManyVariants};
+use this_that_svc_client::{traits::ThisThatSvc, DoThatParam, ManyVariants};
 
 mod this_that_svc_client;
 
@@ -21,7 +21,7 @@ async fn call_this_succeed() {
     let program = Program::from_file(remoting_clone.system(), PROGRAM_WASM_PATH);
     program.send_bytes(ADMIN_ID, "New".encode());
 
-    let client = this_that_svc_client::Service::new(remoting);
+    let client = this_that_svc_client::ThisThatSvc::new(remoting);
     let reply = client
         .this()
         .with_args(GTestArgs::default().with_actor_id(ADMIN_ID.into()))
@@ -53,7 +53,7 @@ async fn call_do_that_succeed() {
         )),
     };
 
-    let mut client = this_that_svc_client::Service::new(remoting);
+    let mut client = this_that_svc_client::ThisThatSvc::new(remoting);
     let reply = client
         .do_that(param)
         .with_args(GTestArgs::default().with_actor_id(ADMIN_ID.into()))

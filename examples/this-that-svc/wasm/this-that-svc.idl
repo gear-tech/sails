@@ -21,7 +21,7 @@ constructor {
   New : ();
 };
 
-service Service {
+service ThisThatSvc {
   DoThat : (param: DoThatParam) -> result (struct { str, u32 }, struct { str });
   DoThis : (p1: u32, p2: str, p3: struct { opt str, u8 }, p4: TupleStruct) -> struct { str, u32 };
   Noop : () -> null;

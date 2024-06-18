@@ -3,10 +3,10 @@ use num::NonZeroU64;
 use sails_rtl::{gstd::gservice, NonZeroU256, H256, U256};
 
 #[derive(Default)]
-pub struct MyService;
+pub struct ThisThatSvc;
 
 #[gservice]
-impl MyService {
+impl ThisThatSvc {
     pub const fn new() -> Self {
         Self
     }
