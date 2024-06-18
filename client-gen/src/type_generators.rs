@@ -208,7 +208,7 @@ impl<'ast> Visitor<'ast> for TypeDeclGenerator {
             PrimitiveType::NonZeroU32 => "NonZeroU32",
             PrimitiveType::NonZeroU64 => "NonZeroU64",
             PrimitiveType::NonZeroU128 => "NonZeroU128",
-            PrimitiveType::NonZeroU256 => "NonZeroU256",            
+            PrimitiveType::NonZeroU256 => "NonZeroU256",
         });
     }
 
