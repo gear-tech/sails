@@ -205,6 +205,7 @@ mod tests {
 
     struct MockCatalogClient;
 
+    #[allow(refining_impl_trait)]
     impl<R, A> RmrkCatalog<R, A> for MockCatalogClient
     where
         R: Remoting<A>,
