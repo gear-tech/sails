@@ -12,7 +12,6 @@ use sails_rtl::{
     prelude::*,
     String,
 };
-
 #[derive(Clone)]
 pub struct NonZeroParams<R, A>
 where
@@ -22,7 +21,6 @@ where
     remoting: R,
     _phantom: PhantomData<A>,
 }
-
 impl<A: Default, R: Remoting<A>> NonZeroParams<R, A> {
     pub fn new(remoting: R) -> Self {
         Self {
@@ -31,7 +29,6 @@ impl<A: Default, R: Remoting<A>> NonZeroParams<R, A> {
         }
     }
 }
-
 impl<R, A> traits::NonZeroParams<R, A> for NonZeroParams<R, A>
 where
     R: Remoting<A> + Clone,
@@ -45,13 +42,10 @@ where
         )
     }
 }
-
 pub mod non_zero_params_io {
     use super::*;
-
     #[derive(Debug, Default, Clone, Copy)]
     pub struct DoThis(());
-
     impl DoThis {
         #[allow(dead_code)]
         pub fn encode_call(p1: NonZeroU256, p2: super::MyParam) -> Vec<u8> {
