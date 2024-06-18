@@ -36,7 +36,7 @@ convert-case = { package = "convert_case", version = "0.6" }
 fluent-asserter = "0.1"
 futures = { version = "0.3", default-features = false }
 gear-core-errors = "1.4.1"
-genco = "0.17.9"
+genco = "0.17"
 git-download = "0.1"
 gstd = "1.4.1"
 gtest = "1.4.1"

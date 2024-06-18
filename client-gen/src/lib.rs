@@ -41,8 +41,8 @@ pub fn generate_client_from_idl(
     Ok(())
 }
 
-pub fn generate(program: Program, default_service_name: &str) -> Result<String> {
-    let mut generator = RootGenerator::new(default_service_name);
+pub fn generate(program: Program, anonymous_service_name: &str) -> Result<String> {
+    let mut generator = RootGenerator::new(anonymous_service_name);
     visitor::accept_program(&program, &mut generator);
 
     let code = generator.finalize();

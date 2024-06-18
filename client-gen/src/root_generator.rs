@@ -8,11 +8,11 @@ use sails_idl_parser::{ast::visitor::Visitor, ast::*};
 pub(crate) struct RootGenerator<'a> {
     tokens: Tokens,
     traits_tokens: Tokens,
-    default_service_name: &'a str,
+    anonymous_service_name: &'a str,
 }
 
 impl<'a> RootGenerator<'a> {
-    pub(crate) fn new(default_service_name: &'a str) -> Self {
+    pub(crate) fn new(anonymous_service_name: &'a str) -> Self {
         let tokens = quote! {
             #[allow(unused_imports)]
             use sails_rtl::{prelude::*, String, calls::{Call, Activation, Remoting, RemotingAction}};
@@ -22,7 +22,7 @@ impl<'a> RootGenerator<'a> {
         };
 
         Self {
-            default_service_name,
+            anonymous_service_name,
             tokens,
             traits_tokens: Tokens::new(),
         }
@@ -48,19 +48,19 @@ impl<'a> RootGenerator<'a> {
 
 impl<'a, 'ast> Visitor<'ast> for RootGenerator<'a> {
     fn visit_ctor(&mut self, ctor: &'ast Ctor) {
-        let mut ctor_gen = CtorTraitGenerator::new(self.default_service_name.to_owned());
+        let mut ctor_gen = CtorTraitGenerator::new(self.anonymous_service_name.to_owned());
         ctor_gen.visit_ctor(ctor);
 
         self.traits_tokens.extend(ctor_gen.finalize());
 
-        let mut ctor_gen = CtorFactoryGenerator::new(self.default_service_name.to_owned());
+        let mut ctor_gen = CtorFactoryGenerator::new(self.anonymous_service_name.to_owned());
         ctor_gen.visit_ctor(ctor);
         self.tokens.extend(ctor_gen.finalize());
     }
 
     fn visit_service(&mut self, service: &'ast Service) {
         let service_name = if service.name().is_empty() {
-            self.default_service_name
+            self.anonymous_service_name
         } else {
             service.name()
         };
