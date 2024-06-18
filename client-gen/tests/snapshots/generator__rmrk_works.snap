@@ -25,7 +25,6 @@ impl<A: Default> traits::RmrkCatalogFactory<A> for RmrkCatalogFactory {
         RemotingAction::new(remoting, &[12, 78, 101, 119], ())
     }
 }
-
 #[derive(Clone)]
 pub struct RmrkCatalog<R, A>
 where
@@ -35,7 +34,6 @@ where
     remoting: R,
     _phantom: PhantomData<A>,
 }
-
 impl<A: Default, R: Remoting<A>> RmrkCatalog<R, A> {
     pub fn new(remoting: R) -> Self {
         Self {
@@ -44,7 +42,6 @@ impl<A: Default, R: Remoting<A>> RmrkCatalog<R, A> {
         }
     }
 }
-
 impl<R, A> traits::RmrkCatalog<R, A> for RmrkCatalog<R, A>
 where
     R: Remoting<A> + Clone,
@@ -145,13 +142,10 @@ where
         )
     }
 }
-
 pub mod rmrk_catalog_io {
     use super::*;
-
     #[derive(Debug, Default, Clone, Copy)]
     pub struct AddEquippables(());
-
     impl AddEquippables {
         #[allow(dead_code)]
         pub fn encode_call(part_id: u32, collection_ids: Vec<ActorId>) -> Vec<u8> {
@@ -180,10 +174,8 @@ pub mod rmrk_catalog_io {
             Ok(result)
         }
     }
-
     #[derive(Debug, Default, Clone, Copy)]
     pub struct AddParts(());
-
     impl AddParts {
         #[allow(dead_code)]
         pub fn encode_call(parts: BTreeMap<u32, super::Part>) -> Vec<u8> {
@@ -209,10 +201,8 @@ pub mod rmrk_catalog_io {
             Ok(result)
         }
     }
-
     #[derive(Debug, Default, Clone, Copy)]
     pub struct RemoveEquippable(());
-
     impl RemoveEquippable {
         #[allow(dead_code)]
         pub fn encode_call(part_id: u32, collection_id: ActorId) -> Vec<u8> {
@@ -241,10 +231,8 @@ pub mod rmrk_catalog_io {
             Ok(result)
         }
     }
-
     #[derive(Debug, Default, Clone, Copy)]
     pub struct RemoveParts(());
-
     impl RemoveParts {
         #[allow(dead_code)]
         pub fn encode_call(part_ids: Vec<u32>) -> Vec<u8> {
@@ -269,10 +257,8 @@ pub mod rmrk_catalog_io {
             Ok(result)
         }
     }
-
     #[derive(Debug, Default, Clone, Copy)]
     pub struct ResetEquippables(());
-
     impl ResetEquippables {
         #[allow(dead_code)]
         pub fn encode_call(part_id: u32) -> Vec<u8> {
@@ -301,10 +287,8 @@ pub mod rmrk_catalog_io {
             Ok(result)
         }
     }
-
     #[derive(Debug, Default, Clone, Copy)]
     pub struct SetEquippablesToAll(());
-
     impl SetEquippablesToAll {
         #[allow(dead_code)]
         pub fn encode_call(part_id: u32) -> Vec<u8> {
@@ -335,10 +319,8 @@ pub mod rmrk_catalog_io {
             Ok(result)
         }
     }
-
     #[derive(Debug, Default, Clone, Copy)]
     pub struct Equippable(());
-
     impl Equippable {
         #[allow(dead_code)]
         pub fn encode_call(part_id: u32, collection_id: ActorId) -> Vec<u8> {
@@ -363,10 +345,8 @@ pub mod rmrk_catalog_io {
             Ok(result)
         }
     }
-
     #[derive(Debug, Default, Clone, Copy)]
     pub struct Part(());
-
     impl Part {
         #[allow(dead_code)]
         pub fn encode_call(part_id: u32) -> Vec<u8> {
