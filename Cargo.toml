@@ -36,6 +36,7 @@ convert-case = { package = "convert_case", version = "0.6" }
 fluent-asserter = "0.1"
 futures = { version = "0.3", default-features = false }
 gear-core-errors = { git = "https://github.com/gear-tech/gear", branch = "vo/gprimitives_nonzero_u256" }
+genco = "0.17"
 git-download = "0.1"
 gprimitives = { git = "https://github.com/gear-tech/gear", branch = "vo/gprimitives_nonzero_u256", features = [
     "codec",

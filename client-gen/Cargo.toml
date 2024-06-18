@@ -8,6 +8,7 @@ license.workspace = true
 [dependencies]
 anyhow.workspace = true
 convert-case.workspace = true
+genco.workspace = true
 parity-scale-codec.workspace = true
 sails-idl-parser.workspace = true
 
