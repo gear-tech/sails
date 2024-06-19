@@ -415,6 +415,7 @@ pub mod traits {
     #[allow(dead_code)]
     pub trait RmrkCatalogFactory<A: Default> {
         #[allow(clippy::new_ret_no_self)]
+        #[allow(clippy::wrong_self_convention)]
         fn new(&self) -> impl Activation<A>;
     }
     pub trait RmrkCatalog<R, TCallArgs> {

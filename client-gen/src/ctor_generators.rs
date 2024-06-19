@@ -57,8 +57,6 @@ impl<'ast> Visitor<'ast> for CtorFactoryGenerator {
         let fn_name_snake = fn_name.to_case(Case::Snake);
         let fn_name_snake = fn_name_snake.as_str();
 
-        let route_bytes = path_bytes(fn_name).0;
-
         quote_in! { self.tokens =>
             fn $fn_name_snake$("(")&self,
         };
@@ -66,6 +64,7 @@ impl<'ast> Visitor<'ast> for CtorFactoryGenerator {
         visitor::accept_ctor_func(func, self);
 
         let args = encoded_args(func.params());
+        let route_bytes = path_bytes(fn_name).0;
 
         quote_in! { self.tokens =>
             $(")") -> impl Activation<A> {
@@ -122,6 +121,7 @@ impl<'ast> Visitor<'ast> for CtorTraitGenerator {
         if fn_name_snake == "new" {
             quote_in! {self.tokens =>
                 #[allow(clippy::new_ret_no_self)]
+                #[allow(clippy::wrong_self_convention)]
             };
         }
 

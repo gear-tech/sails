@@ -221,6 +221,7 @@ pub mod traits {
     #[allow(dead_code)]
     pub trait ServiceFactory<A: Default> {
         #[allow(clippy::new_ret_no_self)]
+        #[allow(clippy::wrong_self_convention)]
         fn new(&self, a: u32) -> impl Activation<A>;
     }
     pub trait Service<R, TCallArgs> {
