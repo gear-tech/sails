@@ -13,16 +13,24 @@ use sails_rtl::{
     String,
 };
 #[derive(Default)]
-pub struct RmrkCatalogFactory(());
-impl RmrkCatalogFactory {
+pub struct RmrkCatalogFactory<R: Remoting<A> + Clone, A: Default> {
+    remoting: R,
+    _phantom: PhantomData<A>,
+}
+impl<R: Remoting<A> + Clone, A: Default> RmrkCatalogFactory<R, A> {
     #[allow(unused)]
-    pub fn new() -> Self {
-        Self(())
+    pub fn new(remoting: &R) -> Self {
+        Self {
+            remoting: remoting.clone(),
+            _phantom: PhantomData,
+        }
     }
 }
-impl<A: Default> traits::RmrkCatalogFactory<A> for RmrkCatalogFactory {
-    fn new(remoting: impl Remoting<A>) -> impl Activation<A> {
-        RemotingAction::new(remoting, &[12, 78, 101, 119], ())
+impl<R: Remoting<A> + Clone, A: Default> traits::RmrkCatalogFactory<A>
+    for RmrkCatalogFactory<R, A>
+{
+    fn new(&self) -> impl Activation<A> {
+        RemotingAction::new(self.remoting.clone(), &[12, 78, 101, 119], ())
     }
 }
 #[derive(Clone)]
@@ -407,7 +415,7 @@ pub mod traits {
     #[allow(dead_code)]
     pub trait RmrkCatalogFactory<A: Default> {
         #[allow(clippy::new_ret_no_self)]
-        fn new(remoting: impl Remoting<A>) -> impl Activation<A>;
+        fn new(&self) -> impl Activation<A>;
     }
     pub trait RmrkCatalog<R, TCallArgs> {
         #[allow(clippy::type_complexity)]

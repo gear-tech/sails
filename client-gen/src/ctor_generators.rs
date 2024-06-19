@@ -27,16 +27,22 @@ impl<'ast> Visitor<'ast> for CtorFactoryGenerator {
     fn visit_ctor(&mut self, ctor: &'ast Ctor) {
         quote_in! {self.tokens =>
             #[derive(Default)]
-            pub struct $(&self.service_name)Factory (());
+            pub struct $(&self.service_name)Factory<R: Remoting<A> + Clone, A: Default> {
+                remoting: R,
+                _phantom: PhantomData<A>,
+            }
 
-            impl $(&self.service_name)Factory {
+            impl<R: Remoting<A> + Clone, A: Default> $(&self.service_name)Factory<R, A> {
                 #[allow(unused)]
-                pub fn new() -> Self {
-                    Self(())
+                pub fn new(remoting: &R) -> Self {
+                    Self {
+                        remoting: remoting.clone(),
+                        _phantom: PhantomData,
+                    }
                 }
             }
 
-            impl<A: Default> traits::$(&self.service_name)Factory<A> for $(&self.service_name)Factory $("{")
+            impl<R: Remoting<A> + Clone, A: Default> traits::$(&self.service_name)Factory<A> for $(&self.service_name)Factory<R, A> $("{")
         };
 
         visitor::accept_ctor(ctor, self);
@@ -54,7 +60,7 @@ impl<'ast> Visitor<'ast> for CtorFactoryGenerator {
         let route_bytes = path_bytes(fn_name).0;
 
         quote_in! { self.tokens =>
-            fn $fn_name_snake$("(")remoting: impl Remoting<A>,
+            fn $fn_name_snake$("(")&self,
         };
 
         visitor::accept_ctor_func(func, self);
@@ -63,7 +69,7 @@ impl<'ast> Visitor<'ast> for CtorFactoryGenerator {
 
         quote_in! { self.tokens =>
             $(")") -> impl Activation<A> {
-                RemotingAction::new(remoting, &[$route_bytes], $args)
+                RemotingAction::new(self.remoting.clone(), &[$route_bytes], $args)
             }
         };
     }
@@ -120,7 +126,7 @@ impl<'ast> Visitor<'ast> for CtorTraitGenerator {
         }
 
         quote_in! {self.tokens =>
-            fn $fn_name_snake$("(")remoting: impl Remoting<A>,
+            fn $fn_name_snake$("(")&self,
         };
 
         visitor::accept_ctor_func(func, self);

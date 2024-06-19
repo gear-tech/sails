@@ -13,16 +13,22 @@ use sails_rtl::{
     String,
 };
 #[derive(Default)]
-pub struct ServiceFactory(());
-impl ServiceFactory {
+pub struct ServiceFactory<R: Remoting<A> + Clone, A: Default> {
+    remoting: R,
+    _phantom: PhantomData<A>,
+}
+impl<R: Remoting<A> + Clone, A: Default> ServiceFactory<R, A> {
     #[allow(unused)]
-    pub fn new() -> Self {
-        Self(())
+    pub fn new(remoting: &R) -> Self {
+        Self {
+            remoting: remoting.clone(),
+            _phantom: PhantomData,
+        }
     }
 }
-impl<A: Default> traits::ServiceFactory<A> for ServiceFactory {
-    fn new(remoting: impl Remoting<A>, a: u32) -> impl Activation<A> {
-        RemotingAction::new(remoting, &[12, 78, 101, 119], a)
+impl<R: Remoting<A> + Clone, A: Default> traits::ServiceFactory<A> for ServiceFactory<R, A> {
+    fn new(&self, a: u32) -> impl Activation<A> {
+        RemotingAction::new(self.remoting.clone(), &[12, 78, 101, 119], a)
     }
 }
 #[derive(Clone)]
@@ -215,7 +221,7 @@ pub mod traits {
     #[allow(dead_code)]
     pub trait ServiceFactory<A: Default> {
         #[allow(clippy::new_ret_no_self)]
-        fn new(remoting: impl Remoting<A>, a: u32) -> impl Activation<A>;
+        fn new(&self, a: u32) -> impl Activation<A>;
     }
     pub trait Service<R, TCallArgs> {
         #[allow(clippy::type_complexity)]
