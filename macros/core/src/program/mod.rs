@@ -2,6 +2,7 @@ use crate::{
     sails_paths,
     shared::{self, Func, ImplType},
 };
+use args::ProgramArgs;
 use parity_scale_codec::Encode;
 use proc_macro2::{Span, TokenStream as TokenStream2};
 use proc_macro_error::abort;
@@ -12,19 +13,33 @@ use syn::{
     Type, TypePath, Visibility,
 };
 
+mod args;
+
 /// Static Span of Program `impl` block
 static mut PROGRAM_SPAN: Option<Span> = None;
 
-pub fn gprogram(program_impl_tokens: TokenStream2) -> TokenStream2 {
+pub fn gprogram(args: TokenStream2, program_impl_tokens: TokenStream2) -> TokenStream2 {
     let program_impl = parse_gprogram_impl(program_impl_tokens);
     ensure_single_gprogram(&program_impl);
-    gen_gprogram_impl(program_impl)
+    let args = parse_args(args);
+    gen_gprogram_impl(program_impl, args)
 }
 
 #[doc(hidden)]
-pub fn __gprogram_internal(program_impl_tokens: TokenStream2) -> TokenStream2 {
+pub fn __gprogram_internal(args: TokenStream2, program_impl_tokens: TokenStream2) -> TokenStream2 {
     let program_impl = parse_gprogram_impl(program_impl_tokens);
-    gen_gprogram_impl(program_impl)
+    let args = parse_args(args);
+    gen_gprogram_impl(program_impl, args)
+}
+
+fn parse_args(args: TokenStream2) -> ProgramArgs {
+    syn::parse2(args).unwrap_or_else(|err| {
+        abort!(
+            err.span(),
+            "failed to parse `gprogram` attribute arguments: {}",
+            err
+        )
+    })
 }
 
 fn parse_gprogram_impl(program_impl_tokens: TokenStream2) -> ItemImpl {
@@ -47,7 +62,7 @@ fn ensure_single_gprogram(program_impl: &ItemImpl) {
     unsafe { PROGRAM_SPAN = Some(program_impl.span()) };
 }
 
-fn gen_gprogram_impl(program_impl: ItemImpl) -> TokenStream2 {
+fn gen_gprogram_impl(program_impl: ItemImpl, program_args: ProgramArgs) -> TokenStream2 {
     let services_ctors = discover_services_ctors(&program_impl);
 
     let mut program_impl = program_impl.clone();
@@ -91,6 +106,7 @@ fn gen_gprogram_impl(program_impl: ItemImpl) -> TokenStream2 {
     let handle_fn = generate_handle(
         &program_ident,
         services_data.iter().map(|item| (&item.3, &item.2)),
+        program_args,
     );
 
     let services_meta = services_data.iter().map(|item| &item.1);
@@ -272,6 +288,7 @@ fn generate_init(
         quote!(
             #[no_mangle]
             extern "C" fn init() {
+                sails_rtl::gstd::events::__enable_events();
                 let #input_ident = gstd::msg::load_bytes().expect("Failed to read input");
                 if !#input_ident.is_empty() {
                     #unexpected_ctor_panic
@@ -291,6 +308,7 @@ fn generate_init(
         quote!(
             #[gstd::async_init]
             async fn init() {
+                sails_rtl::gstd::events::__enable_events();
                 let mut #input_ident: &[u8] = &gstd::msg::load_bytes().expect("Failed to read input");
                 let (program, invocation_route) = #(#invocation_dispatches)else*;
                 unsafe {
@@ -307,6 +325,7 @@ fn generate_init(
 fn generate_handle<'a>(
     program_ident: &'a Ident,
     service_ctors: impl Iterator<Item = (&'a Ident, &'a Ident)>,
+    program_args: ProgramArgs,
 ) -> TokenStream2 {
     let input_ident = Ident::new("input", Span::call_site());
 
@@ -330,8 +349,21 @@ fn generate_handle<'a>(
         "Unexpected service",
     ));
 
+    let mut args = Vec::with_capacity(2);
+    if let Some(handle_reply) = program_args.handle_reply() {
+        args.push(quote!(handle_reply = #handle_reply));
+    }
+    if let Some(handle_signal) = program_args.handle_signal() {
+        args.push(quote!(handle_signal = #handle_signal));
+    }
+    let async_main_args = if args.is_empty() {
+        quote!()
+    } else {
+        quote!((#(#args),*))
+    };
+
     quote!(
-        #[gstd::async_main]
+        #[gstd::async_main #async_main_args]
         async fn main() {
             let mut #input_ident: &[u8] = &gstd::msg::load_bytes().expect("Failed to read input");
             let output: Vec<u8> = #(#invocation_dispatches)else*;

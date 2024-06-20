@@ -22,19 +22,16 @@ use crate::{
     sails_paths,
     shared::{self, Func, ImplType},
 };
+use args::ServiceArgs;
 use convert_case::{Case, Casing};
 use parity_scale_codec::Encode;
 use proc_macro2::{Span, TokenStream};
 use proc_macro_error::abort;
-use quote::{quote, ToTokens};
+use quote::quote;
 use std::collections::BTreeMap;
-use syn::{
-    parse::{Parse, ParseStream},
-    punctuated::Punctuated,
-    spanned::Spanned,
-    Expr, GenericArgument, Ident, ImplItemFn, ItemImpl, Path, PathArguments, Result as SynResult,
-    Token, Type, TypeParamBound, Visibility, WhereClause, WherePredicate,
-};
+use syn::{parse_quote, spanned::Spanned, Ident, ImplItemFn, ItemImpl, Path, Type, Visibility};
+
+mod args;
 
 static mut SERVICE_SPANS: BTreeMap<String, Span> = BTreeMap::new();
 
@@ -108,24 +105,25 @@ fn gen_gservice_impl(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
         )
     };
 
-    let service_base_types = service_args.items.iter().flat_map(|item| match item {
-        ServiceArg::Extends(paths) => paths,
-    });
-
     let service_handlers = discover_service_handlers(&service_impl);
 
-    if service_handlers.is_empty() && !service_base_types.clone().any(|_| true) {
+    if service_handlers.is_empty() && service_args.base_types().is_empty() {
         abort!(
             service_impl,
             "`gservice` attribute requires impl to define at least one public method or extend another service"
         );
     }
 
-    let no_events_type = Path::from(Ident::new("NoEvents", Span::call_site()));
-    let events_type = service_type_constraints
-        .as_ref()
-        .and_then(discover_service_events_type)
-        .unwrap_or(&no_events_type);
+    let events_type = service_args.events_type().as_ref();
+
+    let mut service_impl = service_impl.clone();
+    if let Some(events_type) = events_type {
+        service_impl.items.push(parse_quote!(
+            fn notify_on(&mut self, event: #events_type ) -> sails_rtl::errors::Result<()>  {
+                sails_rtl::gstd::events::__notify_on(event)
+            }
+        ));
+    }
 
     let inner_ident = Ident::new("inner", Span::call_site());
     let input_ident = Ident::new("input", Span::call_site());
@@ -185,11 +183,7 @@ fn gen_gservice_impl(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
     let message_id_ident = Ident::new("message_id", Span::call_site());
     let route_ident = Ident::new("route", Span::call_site());
 
-    let service_base_types = service_args.items.iter().flat_map(|item| match item {
-        ServiceArg::Extends(paths) => paths,
-    });
-
-    let code_for_base_types = service_base_types
+    let code_for_base_types = service_args.base_types().iter()
         .enumerate()
         .map(|(idx, base_type)| {
             let base_ident = Ident::new(&format!("base_{}", idx), Span::call_site());
@@ -240,6 +234,9 @@ fn gen_gservice_impl(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
 
     let base_services_meta =
         code_for_base_types.map(|(_, _, _, _, base_service_meta)| base_service_meta);
+
+    let no_events_type = Path::from(Ident::new("NoEvents", Span::call_site()));
+    let events_type = events_type.unwrap_or(&no_events_type);
 
     let scale_types_path = sails_paths::scale_types_path();
     let scale_codec_path = sails_paths::scale_codec_path();
@@ -356,101 +353,10 @@ fn gen_gservice_impl(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
     )
 }
 
-struct ServiceArgs {
-    items: Punctuated<ServiceArg, Token![,]>,
-}
-
-impl Parse for ServiceArgs {
-    fn parse(input: ParseStream) -> SynResult<Self> {
-        Ok(Self {
-            items: input.parse_terminated(ServiceArg::parse, Token![,])?,
-        })
-    }
-}
-
-#[derive(Debug)]
-enum ServiceArg {
-    Extends(Vec<Path>),
-}
-
-impl Parse for ServiceArg {
-    fn parse(input: ParseStream) -> SynResult<Self> {
-        let ident = input.parse::<Ident>()?;
-        input.parse::<Token![=]>()?;
-        let values = input.parse::<Expr>()?;
-        match ident.to_string().as_str() {
-            "extends" => {
-                if let Expr::Path(path_expr) = values {
-                    // Check path_expr.attrs is empty and qself is none
-                    return Ok(Self::Extends(vec![path_expr.path]));
-                } else if let Expr::Array(array_expr) = values {
-                    let mut paths = Vec::new();
-                    for item_expr in array_expr.elems {
-                        if let Expr::Path(path_expr) = item_expr {
-                            paths.push(path_expr.path);
-                        } else {
-                            abort!(
-                                item_expr,
-                                "unexpected value for `extends` argument: {}",
-                                item_expr.to_token_stream()
-                            )
-                        }
-                    }
-                    return Ok(Self::Extends(paths));
-                }
-                abort!(
-                    ident,
-                    "unexpected value for `extends` argument: {}",
-                    values.to_token_stream()
-                )
-            }
-            _ => abort!(ident, "unknown argument: {}", ident),
-        }
-    }
-}
-
 fn discover_service_handlers(service_impl: &ItemImpl) -> BTreeMap<String, (&ImplItemFn, usize)> {
     shared::discover_invocation_targets(service_impl, |fn_item| {
         matches!(fn_item.vis, Visibility::Public(_)) && fn_item.sig.receiver().is_some()
     })
-}
-
-fn discover_service_events_type(where_clause: &WhereClause) -> Option<&Path> {
-    let event_types = where_clause
-        .predicates
-        .iter()
-        .filter_map(|predicate| {
-            if let WherePredicate::Type(predicate) = predicate {
-                return Some(&predicate.bounds);
-            }
-            None
-        })
-        .flatten()
-        .filter_map(|bound| {
-            if let TypeParamBound::Trait(trait_bound) = bound {
-                let last_segment = trait_bound.path.segments.last()?;
-                if last_segment.ident == "EventNotifier" {
-                    if let PathArguments::AngleBracketed(args) = &last_segment.arguments {
-                        if args.args.len() == 1 {
-                            if let GenericArgument::Type(Type::Path(type_path)) =
-                                args.args.first().unwrap()
-                            {
-                                return Some(&type_path.path);
-                            }
-                        }
-                    }
-                }
-            }
-            None
-        })
-        .collect::<Vec<_>>();
-    if event_types.len() > 1 {
-        abort!(
-            where_clause,
-            "Multiple event types found. Please specify only one event type"
-        );
-    }
-    event_types.first().copied()
 }
 
 struct HandlerGenerator<'a> {
@@ -528,31 +434,5 @@ impl<'a> HandlerGenerator<'a> {
                 return result.encode();
             }
         )
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use quote::ToTokens;
-
-    #[test]
-    fn events_type_is_discovered_via_where_clause() {
-        let input = quote! {
-            impl<T> SomeService<T> where T: EventNotifier<events::SomeEvents> {
-                pub async fn do_this(&mut self) -> u32 {
-                    42
-                }
-            }
-        };
-        let service_impl = syn::parse2(input).unwrap();
-        let item_type = ImplType::new(&service_impl);
-
-        let result = discover_service_events_type(item_type.constraints().unwrap());
-
-        assert_eq!(
-            result.unwrap().to_token_stream().to_string(),
-            quote!(events::SomeEvents).to_string()
-        );
     }
 }

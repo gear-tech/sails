@@ -1,3 +1,4 @@
+use proc_macro2::TokenStream;
 use quote::quote;
 use sails_macros_core::__gprogram_internal as gprogram;
 
@@ -11,7 +12,7 @@ fn generates_init_for_single_ctor() {
         }
     };
 
-    let result = gprogram(input).to_string();
+    let result = gprogram(TokenStream::new(), input).to_string();
     let result = prettyplease::unparse(&syn::parse_str(&result).unwrap());
 
     insta::assert_snapshot!(result);
@@ -31,7 +32,7 @@ fn generates_init_for_multiple_ctors() {
         }
     };
 
-    let result = gprogram(input).to_string();
+    let result = gprogram(TokenStream::new(), input).to_string();
     let result = prettyplease::unparse(&syn::parse_str(&result).unwrap());
 
     insta::assert_snapshot!(result);
@@ -44,7 +45,7 @@ fn generates_init_for_no_ctor() {
         }
     };
 
-    let result = gprogram(input).to_string();
+    let result = gprogram(TokenStream::new(), input).to_string();
     let result = prettyplease::unparse(&syn::parse_str(&result).unwrap());
 
     insta::assert_snapshot!(result);
@@ -60,7 +61,7 @@ fn generates_handle_for_single_service_with_non_empty_route() {
         }
     };
 
-    let result = gprogram(input).to_string();
+    let result = gprogram(TokenStream::new(), input).to_string();
     let result = prettyplease::unparse(&syn::parse_str(&result).unwrap());
 
     insta::assert_snapshot!(result);
@@ -81,7 +82,23 @@ fn generates_handle_for_multiple_services_with_non_empty_routes() {
         }
     };
 
-    let result = gprogram(input).to_string();
+    let result = gprogram(TokenStream::new(), input).to_string();
+    let result = prettyplease::unparse(&syn::parse_str(&result).unwrap());
+
+    insta::assert_snapshot!(result);
+}
+
+#[test]
+fn generates_handle_with_gprogram_attributes() {
+    let args = quote!(
+        handle_reply = my_handle_reply,
+        handle_signal = my_handle_signal
+    );
+    let input = quote! {
+        impl MyProgram {}
+    };
+
+    let result = gprogram(args, input).to_string();
     let result = prettyplease::unparse(&syn::parse_str(&result).unwrap());
 
     insta::assert_snapshot!(result);

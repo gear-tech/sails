@@ -1,30 +1,89 @@
 use crate::ast;
-use std::{slice, str};
+use std::{
+    ffi::{c_char, CString},
+    slice, str,
+};
 
 pub mod visitor;
+
+#[repr(C)]
+pub struct ParseResult {
+    program: *mut Program,
+    error: Error,
+}
+
+#[repr(C)]
+pub struct Error {
+    code: ErrorCode,
+    details: *const c_char,
+}
+
+#[repr(C)]
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum ErrorCode {
+    Ok,
+    InvalidIDL,
+    ParseError,
+    NullPtr,
+}
 
 /// # Safety
 ///
 /// See the safety documentation of [`slice::from_raw_parts`].
 #[no_mangle]
-pub unsafe extern "C" fn parse_idl(idl_ptr: *const u8, idl_len: u32) -> *mut Program {
-    let idl = unsafe { slice::from_raw_parts(idl_ptr, idl_len.try_into().unwrap()) };
-    let idl = str::from_utf8(idl).unwrap();
-    let program = ast::parse_idl(idl).unwrap();
-    let program = Box::new(program);
-    Box::into_raw(program)
+pub unsafe extern "C" fn parse_idl(idl_ptr: *const u8, idl_len: u32) -> *mut ParseResult {
+    let idl_slice = unsafe { slice::from_raw_parts(idl_ptr, idl_len as usize) };
+    let idl_str = match str::from_utf8(idl_slice) {
+        Ok(s) => s,
+        Err(e) => return create_parse_error(ErrorCode::ParseError, e, "validate IDL string"),
+    };
+
+    let program = match ast::parse_idl(idl_str) {
+        Ok(p) => p,
+        Err(e) => return create_parse_error(ErrorCode::ParseError, e, "parse IDL"),
+    };
+
+    let result = ParseResult {
+        error: Error {
+            code: ErrorCode::Ok,
+            details: std::ptr::null(),
+        },
+        program: Box::into_raw(Box::new(program)),
+    };
+
+    Box::into_raw(Box::new(result))
+}
+
+fn create_parse_error(
+    code: ErrorCode,
+    e: impl std::error::Error,
+    context: &'static str,
+) -> *mut ParseResult {
+    let details = CString::new(format!("{}: {}", context, e)).unwrap();
+    let result = ParseResult {
+        error: Error {
+            code,
+            details: details.into_raw(),
+        },
+        program: std::ptr::null_mut(),
+    };
+    Box::into_raw(Box::new(result))
 }
 
 /// # Safety
 ///
-/// TODO
+/// Pointer must be obtained from [`parse_idl`].
 #[no_mangle]
-pub unsafe extern "C" fn free_program(program: *mut Program) {
-    if program.is_null() {
+pub unsafe extern "C" fn free_parse_result(result: *mut ParseResult) {
+    if result.is_null() {
         return;
     }
     unsafe {
-        drop(Box::from_raw(program));
+        let result = Box::from_raw(result);
+        if result.error.code != ErrorCode::Ok {
+            let details = CString::from_raw(result.error.details as *mut i8);
+            drop(details);
+        }
     }
 }
 
