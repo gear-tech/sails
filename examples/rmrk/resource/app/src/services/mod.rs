@@ -9,7 +9,6 @@ use sails_rtl::{
         gservice, ExecContext,
     },
     prelude::*,
-    ActorId,
 };
 
 pub mod errors;
@@ -160,7 +159,6 @@ mod tests {
     use sails_rtl::{
         calls::{Remoting, RemotingAction},
         collections::BTreeMap,
-        ActorId,
     };
 
     #[test]
