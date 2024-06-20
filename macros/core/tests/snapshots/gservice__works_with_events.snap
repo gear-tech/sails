@@ -10,13 +10,40 @@ impl SomeService {
         true
     }
     fn notify_on(&mut self, event: SomeEvents) -> sails_rtl::errors::Result<()> {
+        #[cfg(not(target_arch = "wasm32"))]
+        {
+            let self_ptr = self as *const _ as usize;
+            let event_listeners = event_listeners().lock();
+            if let Some(event_listener_ptr) = event_listeners.get(&self_ptr) {
+                let event_listener = unsafe {
+                    &mut *(*event_listener_ptr as *mut Box<dyn FnMut(&SomeEvents)>)
+                };
+                core::mem::drop(event_listeners);
+                event_listener(&event);
+            }
+        }
         sails_rtl::gstd::events::__notify_on(event)
     }
 }
 pub struct Exposure<T> {
     message_id: sails_rtl::MessageId,
     route: &'static [u8],
+    #[cfg(not(target_arch = "wasm32"))]
+    inner: Box<T>,
+    #[cfg(not(target_arch = "wasm32"))]
+    inner_ptr: *const T,
+    #[cfg(target_arch = "wasm32")]
     inner: T,
+}
+#[cfg(not(target_arch = "wasm32"))]
+impl<T> Drop for Exposure<T> {
+    fn drop(&mut self) {
+        let service_ptr = self.inner_ptr as usize;
+        let mut event_listeners = event_listeners().lock();
+        if event_listeners.remove(&service_ptr).is_some() {
+            panic!("there should be no any event listeners left by this time");
+        }
+    }
 }
 impl Exposure<SomeService> {
     pub fn do_this(&mut self) -> u32 {
@@ -27,7 +54,7 @@ impl Exposure<SomeService> {
         let exposure_scope = sails_rtl::gstd::services::ExposureCallScope::new(self);
         self.inner.this()
     }
-    pub async fn handle(&mut self, mut input: &[u8]) -> Vec<u8> {
+    pub async fn handle(&mut self, input: &[u8]) -> Vec<u8> {
         self.try_handle(input)
             .await
             .unwrap_or_else(|| {
@@ -81,6 +108,31 @@ impl Exposure<SomeService> {
         let result = self.this();
         return result.encode();
     }
+    #[cfg(not(target_arch = "wasm32"))]
+    pub fn set_event_listener<'a>(
+        &self,
+        listener: impl FnMut(&SomeEvents) + 'a,
+    ) -> EventListenerGuard<'a> {
+        if core::mem::size_of_val(self.inner.as_ref()) == 0 {
+            panic!(
+                "setting event listener on a zero-sized service is not supported for now"
+            );
+        }
+        let service_ptr = self.inner_ptr as usize;
+        let listener: Box<dyn FnMut(&SomeEvents)> = Box::new(listener);
+        let listener = Box::new(listener);
+        let listener_ptr = Box::into_raw(listener) as usize;
+        let mut event_listeners = event_listeners().lock();
+        if event_listeners.contains_key(&service_ptr) {
+            panic!("event listener is already set");
+        }
+        event_listeners.insert(service_ptr, listener_ptr);
+        EventListenerGuard {
+            service_ptr,
+            listener_ptr,
+            _phantom: core::marker::PhantomData,
+        }
+    }
 }
 impl sails_rtl::gstd::services::Exposure for Exposure<SomeService> {
     fn message_id(&self) -> sails_rtl::MessageId {
@@ -97,9 +149,20 @@ impl sails_rtl::gstd::services::Service for SomeService {
         message_id: sails_rtl::MessageId,
         route: &'static [u8],
     ) -> Self::Exposure {
+        #[cfg(not(target_arch = "wasm32"))]
+        let inner_box = Box::new(self);
+        #[cfg(not(target_arch = "wasm32"))]
+        let inner = inner_box.as_ref();
+        #[cfg(target_arch = "wasm32")]
+        let inner = &self;
         Self::Exposure {
             message_id,
             route,
+            #[cfg(not(target_arch = "wasm32"))]
+            inner_ptr: inner_box.as_ref() as *const Self,
+            #[cfg(not(target_arch = "wasm32"))]
+            inner: inner_box,
+            #[cfg(target_arch = "wasm32")]
             inner: self,
         }
     }
@@ -116,6 +179,32 @@ impl sails_rtl::meta::ServiceMeta for SomeService {
     }
     fn base_services() -> impl Iterator<Item = sails_rtl::meta::AnyServiceMeta> {
         [].into_iter()
+    }
+}
+type __EventlistenersMap = sails_rtl::collections::HashMap<usize, usize>;
+type __Mutex<T> = sails_rtl::spin::Mutex<T>;
+type __Lazy<T> = sails_rtl::spin::Lazy<T>;
+#[cfg(not(target_arch = "wasm32"))]
+fn event_listeners() -> &'static __Mutex<__EventlistenersMap> {
+    static EVENT_LISTENERS: __Lazy<__Mutex<__EventlistenersMap>> = __Lazy::new(|| __Mutex::new(
+        __EventlistenersMap::new(),
+    ));
+    &EVENT_LISTENERS
+}
+#[cfg(not(target_arch = "wasm32"))]
+pub struct EventListenerGuard<'a> {
+    service_ptr: usize,
+    listener_ptr: usize,
+    _phantom: core::marker::PhantomData<&'a ()>,
+}
+#[cfg(not(target_arch = "wasm32"))]
+impl<'a> Drop for EventListenerGuard<'a> {
+    fn drop(&mut self) {
+        let mut event_listeners = event_listeners().lock();
+        let listener_ptr = event_listeners.remove(&self.service_ptr);
+        if listener_ptr != Some(self.listener_ptr) {
+            panic!("event listener is being removed out of order");
+        }
     }
 }
 use sails_rtl::Decode as __ServiceDecode;

@@ -14,6 +14,11 @@ where
 pub struct Exposure<T> {
     message_id: sails_rtl::MessageId,
     route: &'static [u8],
+    #[cfg(not(target_arch = "wasm32"))]
+    inner: Box<T>,
+    #[cfg(not(target_arch = "wasm32"))]
+    inner_ptr: *const T,
+    #[cfg(target_arch = "wasm32")]
     inner: T,
 }
 impl<'a, 'b, T, U> Exposure<SomeService<'a, 'b, T, U>>
@@ -25,7 +30,7 @@ where
         let exposure_scope = sails_rtl::gstd::services::ExposureCallScope::new(self);
         self.inner.do_this()
     }
-    pub async fn handle(&mut self, mut input: &[u8]) -> Vec<u8> {
+    pub async fn handle(&mut self, input: &[u8]) -> Vec<u8> {
         self.try_handle(input)
             .await
             .unwrap_or_else(|| {
@@ -93,9 +98,20 @@ where
         message_id: sails_rtl::MessageId,
         route: &'static [u8],
     ) -> Self::Exposure {
+        #[cfg(not(target_arch = "wasm32"))]
+        let inner_box = Box::new(self);
+        #[cfg(not(target_arch = "wasm32"))]
+        let inner = inner_box.as_ref();
+        #[cfg(target_arch = "wasm32")]
+        let inner = &self;
         Self::Exposure {
             message_id,
             route,
+            #[cfg(not(target_arch = "wasm32"))]
+            inner_ptr: inner_box.as_ref() as *const Self,
+            #[cfg(not(target_arch = "wasm32"))]
+            inner: inner_box,
+            #[cfg(target_arch = "wasm32")]
             inner: self,
         }
     }

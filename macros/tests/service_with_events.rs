@@ -1,8 +1,12 @@
-use sails_rtl::{gstd::gservice, Encode, TypeInfo};
+use sails_rtl::{
+    gstd::{gservice, services::Service},
+    Encode, MessageId, TypeInfo,
+};
 
-struct MyService;
+#[allow(dead_code)]
+struct MyService(u8);
 
-#[derive(TypeInfo, Encode)]
+#[derive(TypeInfo, Encode, Clone, Debug, PartialEq)]
 enum MyEvents {
     Event1,
 }
@@ -16,6 +20,15 @@ impl MyService {
 
 #[test]
 fn service_with_events_works() {
-    let mut service = MyService;
-    service.my_method();
+    let mut exposure = MyService(0).expose(MessageId::from(142), &[1, 4, 2]);
+
+    let mut events = Vec::new();
+    {
+        let _event_listener_guard = exposure.set_event_listener(|event| events.push(event.clone()));
+
+        exposure.my_method();
+    }
+
+    assert_eq!(events.len(), 1);
+    assert_eq!(events[0], MyEvents::Event1);
 }
