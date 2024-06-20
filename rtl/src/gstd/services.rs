@@ -2,31 +2,26 @@ use crate::{collections::BTreeMap, MessageId, Vec};
 use core::ops::DerefMut;
 
 #[cfg(not(target_arch = "wasm32"))]
-mod map {
-    use super::*;
+fn get_message_id_to_service_route_map(
+) -> impl DerefMut<Target = BTreeMap<MessageId, Vec<&'static [u8]>>> {
     use spin::Mutex;
 
     static MESSAGE_ID_TO_SERVICE_ROUTE: Mutex<BTreeMap<MessageId, Vec<&'static [u8]>>> =
         Mutex::new(BTreeMap::new());
 
-    pub(super) fn get_mut() -> impl DerefMut<Target = BTreeMap<MessageId, Vec<&'static [u8]>>> {
-        MESSAGE_ID_TO_SERVICE_ROUTE.lock()
-    }
+    MESSAGE_ID_TO_SERVICE_ROUTE.lock()
 }
 
 #[cfg(target_arch = "wasm32")]
-mod map {
-    use super::*;
-
+fn get_message_id_to_service_route_map(
+) -> impl DerefMut<Target = BTreeMap<MessageId, Vec<&'static [u8]>>> {
     static mut MESSAGE_ID_TO_SERVICE_ROUTE: BTreeMap<MessageId, Vec<&'static [u8]>> =
         BTreeMap::new();
 
-    pub(super) fn get_mut() -> impl DerefMut<Target = BTreeMap<MessageId, Vec<&'static [u8]>>> {
-        // SAFETY: only for wasm32 target
-        #[allow(static_mut_refs)]
-        unsafe {
-            &mut MESSAGE_ID_TO_SERVICE_ROUTE
-        }
+    // SAFETY: only for wasm32 target
+    #[allow(static_mut_refs)]
+    unsafe {
+        &mut MESSAGE_ID_TO_SERVICE_ROUTE
     }
 }
 
@@ -58,7 +53,7 @@ impl ExposureContext {
 }
 
 pub(crate) fn exposure_context(message_id: MessageId) -> ExposureContext {
-    let map = map::get_mut();
+    let map = get_message_id_to_service_route_map();
     let route = map
         .get(&message_id)
         .and_then(|routes| routes.last().copied())
@@ -78,7 +73,7 @@ pub struct ExposureCallScope {
 
 impl ExposureCallScope {
     pub fn new(exposure: &impl Exposure) -> Self {
-        let mut map = map::get_mut();
+        let mut map = get_message_id_to_service_route_map();
         let routes = map.entry(exposure.message_id()).or_default();
         routes.push(exposure.route());
         Self {
@@ -90,7 +85,7 @@ impl ExposureCallScope {
 
 impl Drop for ExposureCallScope {
     fn drop(&mut self) {
-        let mut map = map::get_mut();
+        let mut map = get_message_id_to_service_route_map();
         let routes = map
             .get_mut(&self.message_id)
             .unwrap_or_else(|| unreachable!("Entry for message should always exist"));
