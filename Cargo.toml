@@ -33,9 +33,9 @@ members = [
 anyhow = "1"
 const-format = { package = "const_format", version = "0.2" }
 convert-case = { package = "convert_case", version = "0.6" }
-fluent-asserter = "0.1"
 futures = { version = "0.3", default-features = false }
 gear-core-errors = "1.4.1"
+genco = "0.17"
 git-download = "0.1"
 gstd = "1.4.1"
 gtest = "1.4.1"
@@ -62,7 +62,7 @@ sails-rtl = { path = "rtl" }
 scale-info = { version = "2.11", default-features = false }
 serde = "1.0"
 serde-json = { package = "serde_json", version = "1.0" }
-spin = "0.9"
+spin = { version = "0.9", default-features = false, features = ["spin_mutex"] }
 syn = "2.0"
 thiserror = "1.0"
 thiserror-no-std = "2.0"
