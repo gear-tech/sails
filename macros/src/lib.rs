@@ -29,8 +29,8 @@ pub fn gservice(args: TokenStream, impl_tokens: TokenStream) -> TokenStream {
 
 #[proc_macro_error]
 #[proc_macro_attribute]
-pub fn gprogram(_args: TokenStream, impl_tokens: TokenStream) -> TokenStream {
-    sails_macros_core::gprogram(impl_tokens.into()).into()
+pub fn gprogram(args: TokenStream, impl_tokens: TokenStream) -> TokenStream {
+    sails_macros_core::gprogram(args.into(), impl_tokens.into()).into()
 }
 
 #[proc_macro_error]

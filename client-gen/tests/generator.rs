@@ -40,25 +40,25 @@ fn full() {
 #[test]
 fn test_basic_works() {
     let idl = r"
-            type MyParam = struct {
-                f1: u32,
-                f2: vec str,
-                f3: opt struct { u8, u32 },
-            };
+        type MyParam = struct {
+            f1: u32,
+            f2: vec str,
+            f3: opt struct { u8, u32 },
+        };
 
-            type MyParam2 = enum {
-                Variant1,
-                Variant2: u32,
-                Variant3: struct { u32 },
-                Variant4: struct { u8, u32 },
-                Variant5: struct { f1: str, f2: vec u8 },
-            };
+        type MyParam2 = enum {
+            Variant1,
+            Variant2: u32,
+            Variant3: struct { u32 },
+            Variant4: struct { u8, u32 },
+            Variant5: struct { f1: str, f2: vec u8 },
+        };
 
-            service {
-                DoThis: (p1: u32, p2: MyParam) -> u16;
-                DoThat: (p1: struct { u8, u32 }) -> u8;
-            };
-        ";
+        service {
+            DoThis: (p1: u32, p2: MyParam) -> u16;
+            DoThat: (p1: struct { u8, u32 }) -> u8;
+        };
+    ";
 
     insta::assert_snapshot!(gen(idl, "Basic"));
 }
@@ -66,15 +66,15 @@ fn test_basic_works() {
 #[test]
 fn test_multiple_services() {
     let idl = r"
-            service {
-                DoThis: (p1: u32, p2: MyParam) -> u16;
-                DoThat: (p1: struct { u8, u32 }) -> u8;
-            };
+        service {
+            DoThis: (p1: u32, p2: MyParam) -> u16;
+            DoThat: (p1: struct { u8, u32 }) -> u8;
+        };
 
-            service Named {
-                query That: (p1: u32) -> str;
-            };
-        ";
+        service Named {
+            query That: (p1: u32) -> str;
+        };
+    ";
 
     insta::assert_snapshot!(gen(idl, "Multiple"));
 }
@@ -89,5 +89,5 @@ fn test_rmrk_works() {
 fn gen(program: &str, service_name: &str) -> String {
     let program = sails_idl_parser::ast::parse_idl(program).expect("parse IDL");
 
-    sails_client_gen::generator::generate(program, service_name).expect("generate client")
+    sails_client_gen::generate(program, service_name).expect("generate client")
 }
