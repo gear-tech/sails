@@ -396,14 +396,13 @@ fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
 // Generates function for accessing event listeners map in non-wasm code.
 fn generate_event_listeners() -> TokenStream {
     quote!(
-        type __EventlistenersMap = sails_rtl::collections::HashMap<usize, usize>;
+        type __EventlistenersMap = sails_rtl::collections::BTreeMap<usize, usize>;
         type __Mutex<T> = sails_rtl::spin::Mutex<T>;
-        type __Lazy<T> = sails_rtl::spin::Lazy<T>;
 
         #[cfg(not(target_arch = "wasm32"))]
         fn event_listeners() -> &'static __Mutex<__EventlistenersMap> {
-            static EVENT_LISTENERS: __Lazy<__Mutex<__EventlistenersMap>> =
-                __Lazy::new(|| __Mutex::new(__EventlistenersMap::new()));
+            static EVENT_LISTENERS: __Mutex<__EventlistenersMap> =
+                __Mutex::new(__EventlistenersMap::new());
             &EVENT_LISTENERS
         }
 
