@@ -12,6 +12,7 @@ const ADMIN_ID: u64 = 10;
 #[tokio::test]
 async fn counter_succeed() {
     let remoting = GTestRemoting::new();
+    let listener = remoting.clone().subscribe();
 
     let code_id = remoting.system().submit_code_file(PROGRAM_WASM_PATH);
 
@@ -63,4 +64,7 @@ async fn counter_succeed() {
         .unwrap();
 
     assert_eq!(42, reply);
+    let events = listener.events();
+    let ev = events.first();
+    assert_ne!(None, ev);
 }
