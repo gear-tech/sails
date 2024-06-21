@@ -4,10 +4,7 @@ use resources::{ComposedResource, PartId, Resource, ResourceId};
 use sails_rtl::{
     calls::Call,
     collections::HashMap,
-    gstd::{
-        calls::{GStdArgs, GStdRemoting},
-        gservice, ExecContext,
-    },
+    gstd::{calls::GStdArgs, gservice, ExecContext},
     prelude::*,
     ActorId,
 };
@@ -44,7 +41,7 @@ pub struct ResourceStorage<TExecContext, TCatalogClient> {
 impl<TExecContext, TCatalogClient> ResourceStorage<TExecContext, TCatalogClient>
 where
     TExecContext: ExecContext,
-    TCatalogClient: RmrkCatalog<GStdRemoting, GStdArgs>,
+    TCatalogClient: RmrkCatalog<GStdArgs>,
 {
     pub fn seed(exec_context: TExecContext) {
         unsafe {
@@ -154,27 +151,35 @@ fn resource_storage_admin() -> ActorId {
 
 #[cfg(test)]
 mod tests {
+    use core::marker::PhantomData;
+
     use super::*;
     use crate::catalogs::{Error, Part};
     use resources::BasicResource;
     use sails_rtl::{
         calls::{Remoting, RemotingAction},
         collections::BTreeMap,
+        gstd::calls::GStdRemoting,
         ActorId,
     };
 
     #[test]
     fn test_add_resource_entry() {
-        ResourceStorage::<_, MockCatalogClient>::seed(ExecContextMock {
-            actor_id: 1.into(),
-            message_id: 1.into(),
-        });
+        ResourceStorage::<ExecContextMock, MockCatalogClient<GStdRemoting, GStdArgs>>::seed(
+            ExecContextMock {
+                actor_id: 1.into(),
+                message_id: 1.into(),
+            },
+        );
         let mut resource_storage = ResourceStorage::new(
             ExecContextMock {
                 actor_id: 1.into(),
                 message_id: 1.into(),
             },
-            MockCatalogClient,
+            MockCatalogClient::<GStdRemoting, GStdArgs> {
+                _r: PhantomData,
+                _a: PhantomData,
+            },
         );
         let resource = Resource::Basic(BasicResource {
             src: "src".to_string(),
@@ -203,10 +208,13 @@ mod tests {
         }
     }
 
-    struct MockCatalogClient;
+    struct MockCatalogClient<R: Remoting<A>, A> {
+        _r: PhantomData<R>,
+        _a: PhantomData<A>,
+    }
 
     #[allow(refining_impl_trait)]
-    impl<R, A> RmrkCatalog<R, A> for MockCatalogClient
+    impl<R, A> RmrkCatalog<A> for MockCatalogClient<R, A>
     where
         R: Remoting<A>,
         A: Default,
