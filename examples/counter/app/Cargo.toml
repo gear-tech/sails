@@ -1,0 +1,8 @@
+[package]
+name = "counter-app"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+gstd = { workspace = true, features = ["debug"] }
+sails-rtl.workspace = true
