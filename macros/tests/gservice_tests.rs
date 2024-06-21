@@ -150,8 +150,17 @@ async fn gservice_panic_on_unexpected_input_double_encoded() {
 
 #[test]
 fn gservice_with_events() {
-    use gservice_with_events::MyServiceWithEvents;
+    use gservice_with_events::{MyEvents, MyServiceWithEvents};
 
-    let mut service = MyServiceWithEvents;
-    service.my_method();
+    let mut exposure = MyServiceWithEvents(0).expose(MessageId::from(142), &[1, 4, 2]);
+
+    let mut events = Vec::new();
+    {
+        let _event_listener_guard = exposure.set_event_listener(|event| events.push(event.clone()));
+
+        exposure.my_method();
+    }
+
+    assert_eq!(events.len(), 1);
+    assert_eq!(events[0], MyEvents::Event1);
 }

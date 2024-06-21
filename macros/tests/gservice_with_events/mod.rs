@@ -1,9 +1,10 @@
 use sails_rtl::{gstd::gservice, Encode, TypeInfo};
 
-pub(super) struct MyServiceWithEvents;
+#[allow(dead_code)]
+pub struct MyServiceWithEvents(pub u8);
 
-#[derive(TypeInfo, Encode)]
-enum MyEvents {
+#[derive(TypeInfo, Encode, Clone, Debug, PartialEq)]
+pub enum MyEvents {
     Event1,
 }
 
