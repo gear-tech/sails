@@ -1,5 +1,8 @@
-use gear_core_errors::ErrorReplyReason as GCoreError;
-use gstd::{errors::Error as GStdError, String};
+use gear_core_errors::ErrorReplyReason;
+use gstd::{
+    errors::{CoreError as GCoreError, Error as GStdError},
+    String,
+};
 use parity_scale_codec::Error as CodecError;
 use thiserror_no_std::Error as ThisError;
 
@@ -29,6 +32,8 @@ pub enum RtlError {
     ReplyIsAmbiguous,
     #[error("reply code is missing")]
     ReplyCodeIsMissing,
+    #[error("reply error: {0}")]
+    ReplyHasError(ErrorReplyReason),
     #[error("program code is not found")]
     ProgramCodeIsNotFound,
     #[error("program is not found")]
