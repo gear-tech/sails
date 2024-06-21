@@ -50,7 +50,7 @@ impl<A: Default, R: Remoting<A>> RmrkCatalog<R, A> {
         }
     }
 }
-impl<R, A> traits::RmrkCatalog<R, A> for RmrkCatalog<R, A>
+impl<R, A> traits::RmrkCatalog<A> for RmrkCatalog<R, A>
 where
     R: Remoting<A> + Clone,
     A: Default,
@@ -418,7 +418,7 @@ pub mod traits {
         #[allow(clippy::wrong_self_convention)]
         fn new(&self) -> impl Activation<A>;
     }
-    pub trait RmrkCatalog<R, TCallArgs> {
+    pub trait RmrkCatalog<TCallArgs> {
         #[allow(clippy::type_complexity)]
         fn add_equippables(
             &mut self,

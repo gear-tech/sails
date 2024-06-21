@@ -48,7 +48,7 @@ impl<A: Default, R: Remoting<A>> Service<R, A> {
         }
     }
 }
-impl<R, A> traits::Service<R, A> for Service<R, A>
+impl<R, A> traits::Service<A> for Service<R, A>
 where
     R: Remoting<A> + Clone,
     A: Default,
@@ -224,7 +224,7 @@ pub mod traits {
         #[allow(clippy::wrong_self_convention)]
         fn new(&self, a: u32) -> impl Activation<A>;
     }
-    pub trait Service<R, TCallArgs> {
+    pub trait Service<TCallArgs> {
         #[allow(clippy::type_complexity)]
         fn do_this(
             &mut self,
