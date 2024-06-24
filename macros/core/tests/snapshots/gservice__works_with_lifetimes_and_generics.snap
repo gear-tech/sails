@@ -2,10 +2,10 @@
 source: macros/core/tests/gservice.rs
 expression: result
 ---
-impl<'a, 'b, T, TEventTrigger> SomeService<'a, 'b, T, TEventTrigger>
+impl<'a, 'b, T, U> SomeService<'a, 'b, T, U>
 where
     T: Clone,
-    TEventTrigger: EventTrigger<events::SomeEvents>,
+    U: Iterator<Item = u32>,
 {
     pub fn do_this(&mut self) -> u32 {
         42
@@ -14,18 +14,23 @@ where
 pub struct Exposure<T> {
     message_id: sails_rtl::MessageId,
     route: &'static [u8],
+    #[cfg(not(target_arch = "wasm32"))]
+    inner: Box<T>,
+    #[cfg(not(target_arch = "wasm32"))]
+    inner_ptr: *const T,
+    #[cfg(target_arch = "wasm32")]
     inner: T,
 }
-impl<'a, 'b, T, TEventTrigger> Exposure<SomeService<'a, 'b, T, TEventTrigger>>
+impl<'a, 'b, T, U> Exposure<SomeService<'a, 'b, T, U>>
 where
     T: Clone,
-    TEventTrigger: EventTrigger<events::SomeEvents>,
+    U: Iterator<Item = u32>,
 {
     pub fn do_this(&mut self) -> u32 {
         let exposure_scope = sails_rtl::gstd::services::ExposureCallScope::new(self);
         self.inner.do_this()
     }
-    pub async fn handle(&mut self, mut input: &[u8]) -> Vec<u8> {
+    pub async fn handle(&mut self, input: &[u8]) -> Vec<u8> {
         self.try_handle(input)
             .await
             .unwrap_or_else(|| {
@@ -69,11 +74,11 @@ where
         return result.encode();
     }
 }
-impl<'a, 'b, T, TEventTrigger> sails_rtl::gstd::services::Exposure
-for Exposure<SomeService<'a, 'b, T, TEventTrigger>>
+impl<'a, 'b, T, U> sails_rtl::gstd::services::Exposure
+for Exposure<SomeService<'a, 'b, T, U>>
 where
     T: Clone,
-    TEventTrigger: EventTrigger<events::SomeEvents>,
+    U: Iterator<Item = u32>,
 {
     fn message_id(&self) -> sails_rtl::MessageId {
         self.message_id
@@ -82,30 +87,39 @@ where
         self.route
     }
 }
-impl<'a, 'b, T, TEventTrigger> sails_rtl::gstd::services::Service
-for SomeService<'a, 'b, T, TEventTrigger>
+impl<'a, 'b, T, U> sails_rtl::gstd::services::Service for SomeService<'a, 'b, T, U>
 where
     T: Clone,
-    TEventTrigger: EventTrigger<events::SomeEvents>,
+    U: Iterator<Item = u32>,
 {
-    type Exposure = Exposure<SomeService<'a, 'b, T, TEventTrigger>>;
+    type Exposure = Exposure<SomeService<'a, 'b, T, U>>;
     fn expose(
         self,
         message_id: sails_rtl::MessageId,
         route: &'static [u8],
     ) -> Self::Exposure {
+        #[cfg(not(target_arch = "wasm32"))]
+        let inner_box = Box::new(self);
+        #[cfg(not(target_arch = "wasm32"))]
+        let inner = inner_box.as_ref();
+        #[cfg(target_arch = "wasm32")]
+        let inner = &self;
         Self::Exposure {
             message_id,
             route,
+            #[cfg(not(target_arch = "wasm32"))]
+            inner_ptr: inner_box.as_ref() as *const Self,
+            #[cfg(not(target_arch = "wasm32"))]
+            inner: inner_box,
+            #[cfg(target_arch = "wasm32")]
             inner: self,
         }
     }
 }
-impl<'a, 'b, T, TEventTrigger> sails_rtl::meta::ServiceMeta
-for SomeService<'a, 'b, T, TEventTrigger>
+impl<'a, 'b, T, U> sails_rtl::meta::ServiceMeta for SomeService<'a, 'b, T, U>
 where
     T: Clone,
-    TEventTrigger: EventTrigger<events::SomeEvents>,
+    U: Iterator<Item = u32>,
 {
     fn commands() -> sails_rtl::scale_info::MetaType {
         sails_rtl::scale_info::MetaType::new::<meta::CommandsMeta>()
@@ -140,5 +154,5 @@ mod meta {
     #[derive(__ServiceTypeInfo)]
     #[scale_info(crate = sails_rtl::scale_info)]
     pub enum NoEvents {}
-    pub type EventsMeta = events::SomeEvents;
+    pub type EventsMeta = NoEvents;
 }

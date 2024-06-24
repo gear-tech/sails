@@ -22,19 +22,16 @@ use crate::{
     sails_paths,
     shared::{self, Func, ImplType},
 };
+use args::ServiceArgs;
 use convert_case::{Case, Casing};
 use parity_scale_codec::Encode;
 use proc_macro2::{Span, TokenStream};
 use proc_macro_error::abort;
-use quote::{quote, ToTokens};
+use quote::quote;
 use std::collections::BTreeMap;
-use syn::{
-    parse::{Parse, ParseStream},
-    punctuated::Punctuated,
-    spanned::Spanned,
-    Expr, GenericArgument, Ident, ImplItemFn, ItemImpl, Path, PathArguments, Result as SynResult,
-    Token, Type, TypeParamBound, Visibility, WhereClause, WherePredicate,
-};
+use syn::{parse_quote, spanned::Spanned, Ident, ImplItemFn, ItemImpl, Path, Type, Visibility};
+
+mod args;
 
 static mut SERVICE_SPANS: BTreeMap<String, Span> = BTreeMap::new();
 
@@ -42,13 +39,13 @@ pub fn gservice(args: TokenStream, service_impl: TokenStream) -> TokenStream {
     let service_impl = parse_gservice_impl(service_impl);
     ensure_single_gservice_on_impl(&service_impl);
     ensure_single_gservice_by_name(&service_impl);
-    gen_gservice_impl(args, service_impl)
+    generate_gservice(args, service_impl)
 }
 
 #[doc(hidden)]
 pub fn __gservice_internal(args: TokenStream, service_impl: TokenStream) -> TokenStream {
     let service_impl = parse_gservice_impl(service_impl);
-    gen_gservice_impl(args, service_impl)
+    generate_gservice(args, service_impl)
 }
 
 fn parse_gservice_impl(service_impl_tokens: TokenStream) -> ItemImpl {
@@ -90,7 +87,7 @@ fn ensure_single_gservice_by_name(service_impl: &ItemImpl) {
     unsafe { SERVICE_SPANS.insert(type_ident, service_impl.span()) };
 }
 
-fn gen_gservice_impl(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
+fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
     let service_args = syn::parse2::<ServiceArgs>(args).unwrap_or_else(|err| {
         abort!(
             err.span(),
@@ -108,26 +105,39 @@ fn gen_gservice_impl(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
         )
     };
 
-    let service_base_types = service_args.items.iter().flat_map(|item| match item {
-        ServiceArg::Extends(paths) => paths,
-    });
-
     let service_handlers = discover_service_handlers(&service_impl);
 
-    if service_handlers.is_empty() && !service_base_types.clone().any(|_| true) {
+    if service_handlers.is_empty() && service_args.base_types().is_empty() {
         abort!(
             service_impl,
             "`gservice` attribute requires impl to define at least one public method or extend another service"
         );
     }
 
-    let no_events_type = Path::from(Ident::new("NoEvents", Span::call_site()));
-    let events_type = service_type_constraints
-        .as_ref()
-        .and_then(discover_service_events_type)
-        .unwrap_or(&no_events_type);
+    let events_type = service_args.events_type().as_ref();
+
+    let mut service_impl = service_impl.clone();
+    if let Some(events_type) = events_type {
+        service_impl.items.push(parse_quote!(
+            fn notify_on(&mut self, event: #events_type ) -> sails_rtl::errors::Result<()>  {
+                #[cfg(not(target_arch = "wasm32"))]
+                {
+                    let self_ptr = self as *const _ as usize;
+                    let event_listeners = event_listeners().lock();
+                    if let Some(event_listener_ptr) = event_listeners.get(&self_ptr) {
+                        let event_listener =
+                            unsafe { &mut *(*event_listener_ptr as *mut Box<dyn FnMut(& #events_type )>) };
+                        core::mem::drop(event_listeners);
+                        event_listener(&event);
+                    }
+                }
+                sails_rtl::gstd::events::__notify_on(event)
+            }
+        ));
+    }
 
     let inner_ident = Ident::new("inner", Span::call_site());
+    let inner_ptr_ident = Ident::new("inner_ptr", Span::call_site());
     let input_ident = Ident::new("input", Span::call_site());
 
     let mut exposure_funcs = Vec::with_capacity(service_handlers.len());
@@ -185,11 +195,7 @@ fn gen_gservice_impl(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
     let message_id_ident = Ident::new("message_id", Span::call_site());
     let route_ident = Ident::new("route", Span::call_site());
 
-    let service_base_types = service_args.items.iter().flat_map(|item| match item {
-        ServiceArg::Extends(paths) => paths,
-    });
-
-    let code_for_base_types = service_base_types
+    let code_for_base_types = service_args.base_types().iter()
         .enumerate()
         .map(|(idx, base_type)| {
             let base_ident = Ident::new(&format!("base_{}", idx), Span::call_site());
@@ -207,7 +213,7 @@ fn gen_gservice_impl(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
             );
 
             let base_exposure_instantiation = quote!(
-                #base_ident : < #base_type as Clone>::clone(AsRef::< #base_type >::as_ref(&self))
+                #base_ident : < #base_type as Clone>::clone(AsRef::< #base_type >::as_ref( #inner_ident ))
                     .expose( #message_id_ident , #route_ident ),
             );
 
@@ -241,6 +247,15 @@ fn gen_gservice_impl(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
     let base_services_meta =
         code_for_base_types.map(|(_, _, _, _, base_service_meta)| base_service_meta);
 
+    let events_listeners_code = events_type.map(|_| generate_event_listeners());
+
+    let exposure_set_event_listener_code = events_type.map(generate_exposure_set_event_listener);
+
+    let exposure_drop_code = events_type.map(|_| generate_exposure_drop());
+
+    let no_events_type = Path::from(Ident::new("NoEvents", Span::call_site()));
+    let events_type = events_type.unwrap_or(&no_events_type);
+
     let scale_types_path = sails_paths::scale_types_path();
     let scale_codec_path = sails_paths::scale_codec_path();
     let scale_info_path = sails_paths::scale_info_path();
@@ -254,14 +269,21 @@ fn gen_gservice_impl(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
         pub struct Exposure<T> {
             #message_id_ident : sails_rtl::MessageId,
             #route_ident : &'static [u8],
+            #[cfg(not(target_arch = "wasm32"))]
+            #inner_ident : Box<T>, // Ensure service is not movable
+            #[cfg(not(target_arch = "wasm32"))]
+            #inner_ptr_ident : *const T, // Prevent exposure being Send + Sync
+            #[cfg(target_arch = "wasm32")]
             #inner_ident : T,
             #( #base_exposures_members )*
         }
 
-        impl #service_type_args Exposure<#service_type> #service_type_constraints {
+        #exposure_drop_code
+
+        impl #service_type_args Exposure< #service_type > #service_type_constraints {
             #( #exposure_funcs )*
 
-            pub async fn handle(&mut self, mut #input_ident: &[u8]) -> Vec<u8> {
+            pub async fn handle(&mut self, #input_ident: &[u8]) -> Vec<u8> {
                 self.try_handle( #input_ident ).await.unwrap_or_else(|| {
                     #unexpected_route_panic
                 })
@@ -274,6 +296,8 @@ fn gen_gservice_impl(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
             }
 
             #(#invocation_funcs)*
+
+            #exposure_set_event_listener_code
         }
 
         impl #service_type_args sails_rtl::gstd::services::Exposure for Exposure< #service_type > #service_type_constraints {
@@ -292,10 +316,21 @@ fn gen_gservice_impl(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
             type Exposure = Exposure< #service_type >;
 
             fn expose(self, #message_id_ident : sails_rtl::MessageId, #route_ident : &'static [u8]) -> Self::Exposure {
+                #[cfg(not(target_arch = "wasm32"))]
+                let inner_box = Box::new(self);
+                #[cfg(not(target_arch = "wasm32"))]
+                let #inner_ident = inner_box.as_ref();
+                #[cfg(target_arch = "wasm32")]
+                let #inner_ident = &self;
                 Self::Exposure {
                     #message_id_ident ,
                     #route_ident ,
                     #( #base_exposures_instantiations )*
+                    #[cfg(not(target_arch = "wasm32"))]
+                    #inner_ptr_ident : inner_box.as_ref() as *const Self,
+                    #[cfg(not(target_arch = "wasm32"))]
+                    #inner_ident : inner_box ,
+                    #[cfg(target_arch = "wasm32")]
                     #inner_ident : self,
                 }
             }
@@ -320,6 +355,8 @@ fn gen_gservice_impl(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
                 ].into_iter()
             }
         }
+
+        #events_listeners_code
 
         use #scale_types_path ::Decode as __ServiceDecode;
         use #scale_types_path ::Encode as __ServiceEncode;
@@ -356,101 +393,87 @@ fn gen_gservice_impl(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
     )
 }
 
-struct ServiceArgs {
-    items: Punctuated<ServiceArg, Token![,]>,
-}
+// Generates function for accessing event listeners map in non-wasm code.
+fn generate_event_listeners() -> TokenStream {
+    quote!(
+        type __EventlistenersMap = sails_rtl::collections::BTreeMap<usize, usize>;
+        type __Mutex<T> = sails_rtl::spin::Mutex<T>;
 
-impl Parse for ServiceArgs {
-    fn parse(input: ParseStream) -> SynResult<Self> {
-        Ok(Self {
-            items: input.parse_terminated(ServiceArg::parse, Token![,])?,
-        })
-    }
-}
-
-#[derive(Debug)]
-enum ServiceArg {
-    Extends(Vec<Path>),
-}
-
-impl Parse for ServiceArg {
-    fn parse(input: ParseStream) -> SynResult<Self> {
-        let ident = input.parse::<Ident>()?;
-        input.parse::<Token![=]>()?;
-        let values = input.parse::<Expr>()?;
-        match ident.to_string().as_str() {
-            "extends" => {
-                if let Expr::Path(path_expr) = values {
-                    // Check path_expr.attrs is empty and qself is none
-                    return Ok(Self::Extends(vec![path_expr.path]));
-                } else if let Expr::Array(array_expr) = values {
-                    let mut paths = Vec::new();
-                    for item_expr in array_expr.elems {
-                        if let Expr::Path(path_expr) = item_expr {
-                            paths.push(path_expr.path);
-                        } else {
-                            abort!(
-                                item_expr,
-                                "unexpected value for `extends` argument: {}",
-                                item_expr.to_token_stream()
-                            )
-                        }
-                    }
-                    return Ok(Self::Extends(paths));
-                }
-                abort!(
-                    ident,
-                    "unexpected value for `extends` argument: {}",
-                    values.to_token_stream()
-                )
-            }
-            _ => abort!(ident, "unknown argument: {}", ident),
+        #[cfg(not(target_arch = "wasm32"))]
+        fn event_listeners() -> &'static __Mutex<__EventlistenersMap> {
+            static EVENT_LISTENERS: __Mutex<__EventlistenersMap> =
+                __Mutex::new(__EventlistenersMap::new());
+            &EVENT_LISTENERS
         }
-    }
+
+        #[cfg(not(target_arch = "wasm32"))]
+        pub struct EventListenerGuard<'a> {
+            service_ptr: usize,
+            listener_ptr: usize,
+            _phantom: core::marker::PhantomData<&'a ()>,
+        }
+
+        #[cfg(not(target_arch = "wasm32"))]
+        impl<'a> Drop for EventListenerGuard<'a> {
+            fn drop(&mut self) {
+                let mut event_listeners = event_listeners().lock();
+                let listener_ptr = event_listeners.remove(&self.service_ptr);
+                if listener_ptr != Some(self.listener_ptr) {
+                    panic!("event listener is being removed out of order");
+                }
+            }
+        }
+    )
+}
+
+fn generate_exposure_drop() -> TokenStream {
+    quote!(
+        #[cfg(not(target_arch = "wasm32"))]
+        impl<T> Drop for Exposure<T> {
+            fn drop(&mut self) {
+                let service_ptr = self.inner_ptr as usize;
+                let mut event_listeners = event_listeners().lock();
+                if event_listeners.remove(&service_ptr).is_some() {
+                    panic!("there should be no any event listeners left by this time");
+                }
+            }
+        }
+    )
+}
+
+fn generate_exposure_set_event_listener(events_type: &Path) -> TokenStream {
+    quote!(
+        #[cfg(not(target_arch = "wasm32"))]
+        // Immutable so one can set it via AsRef when used with extending
+        pub fn set_event_listener<'a>(
+            &self,
+            listener: impl FnMut(& #events_type ) + 'a,
+        ) -> EventListenerGuard<'a> {
+            if core::mem::size_of_val(self.inner.as_ref()) == 0 {
+                panic!("setting event listener on a zero-sized service is not supported for now");
+            }
+            let service_ptr = self.inner_ptr as usize;
+            let listener: Box<dyn FnMut(& #events_type )> = Box::new(listener);
+            let listener = Box::new(listener);
+            let listener_ptr = Box::into_raw(listener) as usize;
+            let mut event_listeners = event_listeners().lock();
+            if event_listeners.contains_key(&service_ptr) {
+                panic!("event listener is already set");
+            }
+            event_listeners.insert(service_ptr, listener_ptr);
+            EventListenerGuard {
+                service_ptr,
+                listener_ptr,
+                _phantom: core::marker::PhantomData,
+            }
+        }
+    )
 }
 
 fn discover_service_handlers(service_impl: &ItemImpl) -> BTreeMap<String, (&ImplItemFn, usize)> {
     shared::discover_invocation_targets(service_impl, |fn_item| {
         matches!(fn_item.vis, Visibility::Public(_)) && fn_item.sig.receiver().is_some()
     })
-}
-
-fn discover_service_events_type(where_clause: &WhereClause) -> Option<&Path> {
-    let event_types = where_clause
-        .predicates
-        .iter()
-        .filter_map(|predicate| {
-            if let WherePredicate::Type(predicate) = predicate {
-                return Some(&predicate.bounds);
-            }
-            None
-        })
-        .flatten()
-        .filter_map(|bound| {
-            if let TypeParamBound::Trait(trait_bound) = bound {
-                let last_segment = trait_bound.path.segments.last()?;
-                if last_segment.ident == "EventTrigger" {
-                    if let PathArguments::AngleBracketed(args) = &last_segment.arguments {
-                        if args.args.len() == 1 {
-                            if let GenericArgument::Type(Type::Path(type_path)) =
-                                args.args.first().unwrap()
-                            {
-                                return Some(&type_path.path);
-                            }
-                        }
-                    }
-                }
-            }
-            None
-        })
-        .collect::<Vec<_>>();
-    if event_types.len() > 1 {
-        abort!(
-            where_clause,
-            "Multiple event types found. Please specify only one event type"
-        );
-    }
-    event_types.first().copied()
 }
 
 struct HandlerGenerator<'a> {
@@ -528,31 +551,5 @@ impl<'a> HandlerGenerator<'a> {
                 return result.encode();
             }
         )
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use quote::ToTokens;
-
-    #[test]
-    fn events_type_is_discovered_via_where_clause() {
-        let input = quote! {
-            impl<T> SomeService<T> where T: EventTrigger<events::SomeEvents> {
-                pub async fn do_this(&mut self) -> u32 {
-                    42
-                }
-            }
-        };
-        let service_impl = syn::parse2(input).unwrap();
-        let item_type = ImplType::new(&service_impl);
-
-        let result = discover_service_events_type(item_type.constraints().unwrap());
-
-        assert_eq!(
-            result.unwrap().to_token_stream().to_string(),
-            quote!(events::SomeEvents).to_string()
-        );
     }
 }

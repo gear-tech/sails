@@ -4,11 +4,7 @@ use resources::{ComposedResource, PartId, Resource, ResourceId};
 use sails_rtl::{
     calls::Call,
     collections::HashMap,
-    gstd::{
-        calls::{GStdArgs, GStdRemoting},
-        events::EventTrigger,
-        gservice, ExecContext,
-    },
+    gstd::{calls::GStdArgs, gservice, ExecContext},
     prelude::*,
 };
 
@@ -35,19 +31,16 @@ pub enum ResourceStorageEvent {
     },
 }
 
-pub struct ResourceStorage<TExecContext, TCatalogClient, TEventTrigger> {
+pub struct ResourceStorage<TExecContext, TCatalogClient> {
     exec_context: TExecContext,
     catalog_client: TCatalogClient,
-    event_trigger: TEventTrigger,
 }
 
-#[gservice]
-impl<TExecContext, TCatalogClient, TEventTrigger>
-    ResourceStorage<TExecContext, TCatalogClient, TEventTrigger>
+#[gservice(events = ResourceStorageEvent)]
+impl<TExecContext, TCatalogClient> ResourceStorage<TExecContext, TCatalogClient>
 where
     TExecContext: ExecContext,
-    TCatalogClient: RmrkCatalog<GStdRemoting, GStdArgs>,
-    TEventTrigger: EventTrigger<ResourceStorageEvent>,
+    TCatalogClient: RmrkCatalog<GStdArgs>,
 {
     pub fn seed(exec_context: TExecContext) {
         unsafe {
@@ -56,15 +49,10 @@ where
         }
     }
 
-    pub fn new(
-        exec_context: TExecContext,
-        catalog_client: TCatalogClient,
-        event_trigger: TEventTrigger,
-    ) -> Self {
+    pub fn new(exec_context: TExecContext, catalog_client: TCatalogClient) -> Self {
         Self {
             exec_context,
             catalog_client,
-            event_trigger,
         }
     }
 
@@ -88,8 +76,7 @@ where
             return Err(Error::ResourceAlreadyExists);
         }
 
-        self.event_trigger
-            .trigger(ResourceStorageEvent::ResourceAdded { resource_id })
+        self.notify_on(ResourceStorageEvent::ResourceAdded { resource_id })
             .unwrap();
 
         Ok((resource_id, resource))
@@ -124,12 +111,11 @@ where
             return Err(Error::WrongResourceType);
         }
 
-        self.event_trigger
-            .trigger(ResourceStorageEvent::PartAdded {
-                resource_id,
-                part_id,
-            })
-            .unwrap();
+        self.notify_on(ResourceStorageEvent::PartAdded {
+            resource_id,
+            part_id,
+        })
+        .unwrap();
 
         Ok(part_id)
     }
@@ -164,20 +150,21 @@ fn resource_storage_admin() -> ActorId {
 
 #[cfg(test)]
 mod tests {
+    use core::marker::PhantomData;
+
     use super::*;
     use crate::catalogs::{Error, Part};
     use resources::BasicResource;
     use sails_rtl::{
         calls::{Remoting, RemotingAction},
         collections::BTreeMap,
-        gstd::events::mocks::MockEventTrigger,
+        gstd::calls::GStdRemoting,
+        ActorId,
     };
-
-    type MockResourceStorageEventTrigger = MockEventTrigger<ResourceStorageEvent>;
 
     #[test]
     fn test_add_resource_entry() {
-        ResourceStorage::<_, MockCatalogClient, MockResourceStorageEventTrigger>::seed(
+        ResourceStorage::<ExecContextMock, MockCatalogClient<GStdRemoting, GStdArgs>>::seed(
             ExecContextMock {
                 actor_id: 1.into(),
                 message_id: 1.into(),
@@ -188,8 +175,10 @@ mod tests {
                 actor_id: 1.into(),
                 message_id: 1.into(),
             },
-            MockCatalogClient,
-            MockResourceStorageEventTrigger::new(),
+            MockCatalogClient::<GStdRemoting, GStdArgs> {
+                _r: PhantomData,
+                _a: PhantomData,
+            },
         );
         let resource = Resource::Basic(BasicResource {
             src: "src".to_string(),
@@ -218,9 +207,13 @@ mod tests {
         }
     }
 
-    struct MockCatalogClient;
+    struct MockCatalogClient<R: Remoting<A>, A> {
+        _r: PhantomData<R>,
+        _a: PhantomData<A>,
+    }
 
-    impl<R, A> RmrkCatalog<R, A> for MockCatalogClient
+    #[allow(refining_impl_trait)]
+    impl<R, A> RmrkCatalog<A> for MockCatalogClient<R, A>
     where
         R: Remoting<A>,
         A: Default,

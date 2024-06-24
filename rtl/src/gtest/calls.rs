@@ -30,9 +30,15 @@ impl GTestArgs {
     }
 }
 
-#[derive(Default, Clone)]
+#[derive(Clone)]
 pub struct GTestRemoting {
     system: Rc<System>,
+}
+
+impl Default for  GTestRemoting {
+    fn default() -> Self {
+        GTestRemoting::new()
+    }
 }
 
 impl GTestRemoting {

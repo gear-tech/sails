@@ -25,6 +25,7 @@ const handler = async (path: string, out: string, name: string) => {
     generate(sails.parseIdl(idl), dir, file, name);
   } catch (e) {
     console.log(e.message, e.stack);
+    process.exit(1);
   }
 };
 

@@ -1,119 +1,106 @@
-use crate::{
-    collections::HashMap,
-    errors::*,
-    gstd::{msg, services},
-    Vec,
-};
-use core::{any::TypeId, marker::PhantomData};
-use gstd::ActorId as GStdActorId;
+//! Functionality for notifying off-chain subscribers on events happening in on-chain programs.
+
+use crate::{collections::HashMap, errors::*, gstd::services, ValueUnit, Vec};
+use core::any::TypeId;
+use gstd::{errors::CoreError, ActorId as GStdActorId};
 use parity_scale_codec::Encode;
 use scale_info::{StaticTypeInfo, TypeDef};
 
-pub trait EventTrigger<TEvents> {
-    fn trigger(&self, event: TEvents) -> Result<()>;
+#[cfg(target_arch = "wasm32")]
+#[doc(hidden)]
+pub fn __enable_events() {
+    SysCalls::init()
 }
 
-#[derive(Default, Clone)]
-pub struct GStdEventTrigger<TEvents> {
-    _tevents: PhantomData<TEvents>,
+static mut SYS_CALLS: Option<SysCalls> = None;
+
+struct SysCalls {
+    msg_id: fn() -> gstd::MessageId,
+    msg_send_bytes: fn(gstd::ActorId, Vec<u8>, ValueUnit) -> gstd::errors::Result<gstd::MessageId, CoreError>,
 }
 
-impl<TEvents> GStdEventTrigger<TEvents>
-where
-    TEvents: StaticTypeInfo + Encode,
-{
-    pub fn new() -> Self {
-        Self {
-            _tevents: PhantomData,
+impl SysCalls {
+    #[cfg(target_arch = "wasm32")]
+    fn init() {
+        unsafe {
+            SYS_CALLS = Some(SysCalls {
+                msg_id: gstd::msg::id,
+                msg_send_bytes: gstd::msg::send_bytes::<Vec<u8>>,
+            })
         }
     }
 
-    // This code relies on the fact contracts are executed in a single-threaded environment
-    fn type_id_to_event_names_map() -> &'static mut HashMap<TypeId, Result<Vec<Vec<u8>>, RtlError>>
-    {
-        type TypeIdToEncodedEventNamesMap = HashMap<TypeId, Result<Vec<Vec<u8>>, RtlError>>;
-        // It is not expected this to be ever big as there are not that many event types in a contract.
-        // So it shouldn't incur too many memory operations
-        static mut TYPE_ID_TO_EVENT_NAMES_MAP: Option<TypeIdToEncodedEventNamesMap> = None;
-        unsafe { TYPE_ID_TO_EVENT_NAMES_MAP.get_or_insert_with(HashMap::new) }
-    }
-
-    fn encoded_event_names() -> Result<&'static [Vec<u8>], RtlError>
-    where
-        TEvents: StaticTypeInfo,
-    {
-        let type_id_to_encoded_event_names_map = Self::type_id_to_event_names_map();
-
-        let encoded_event_names = type_id_to_encoded_event_names_map
-            .entry(TypeId::of::<TEvents::Identity>())
-            .or_insert_with(|| {
-                let type_meta = scale_info::meta_type::<TEvents>();
-                let type_info = type_meta.type_info();
-                let variant_type_def = match type_info.type_def {
-                    TypeDef::Variant(variant_type_def) => variant_type_def,
-                    _ => {
-                        return Err(RtlError::EventTypeMustBeEnum {
-                            type_name: type_info.path.ident().unwrap_or("N/A").into(),
-                        })
-                    }
-                };
-                Ok(variant_type_def
-                    .variants
-                    .iter()
-                    .map(|variant| variant.name.encode())
-                    .collect())
-            });
-        encoded_event_names
-            .as_ref()
-            .map_err(Clone::clone)
-            .map(|v| v.as_slice())
-    }
-
-    fn compose_payload(prefix: &[u8], event: TEvents) -> Result<Vec<u8>, RtlError> {
-        let encoded_event_names = Self::encoded_event_names()?;
-        let payload = event.encode();
-        let event_idx = payload[0]; // It is safe to get this w/o any check as we know the type is a proper event type, i.e. enum
-        let encoded_event_name = &encoded_event_names[event_idx as usize];
-        Ok([prefix, &encoded_event_name[..], &payload[1..]].concat())
+    fn as_ref() -> Option<&'static SysCalls> {
+        unsafe { SYS_CALLS.as_ref() }
     }
 }
 
-impl<TEvents> EventTrigger<TEvents> for GStdEventTrigger<TEvents>
+#[doc(hidden)]
+pub fn __notify_on<TEvents>(event: TEvents) -> Result<()>
 where
     TEvents: Encode + StaticTypeInfo,
 {
-    fn trigger(&self, event: TEvents) -> Result<()> {
-        let payload = Self::compose_payload(services::exposure_context(msg::id()).route(), event)?;
-        msg::send_bytes(GStdActorId::zero(), payload, 0)?;
-        Ok(())
+    if let Some(sys_calls) = SysCalls::as_ref() {
+        let payload = compose_payload::<TEvents>(
+            services::exposure_context((sys_calls.msg_id)().into()).route(),
+            event,
+        )?;
+        (sys_calls.msg_send_bytes)(GStdActorId::zero(), payload, 0)?;
+    } else {
+        compose_payload::<TEvents>(&[], event)?;
     }
+    Ok(())
 }
 
-pub mod mocks {
-    use super::*;
+fn compose_payload<TEvents>(prefix: &[u8], event: TEvents) -> Result<Vec<u8>, RtlError>
+where
+    TEvents: StaticTypeInfo + Encode,
+{
+    let encoded_event_names = encoded_event_names::<TEvents>()?;
+    let payload = event.encode();
+    let event_idx = payload[0]; // It is safe to get this w/o any check as we know the type is a proper event type, i.e. enum
+    let encoded_event_name = &encoded_event_names[event_idx as usize];
+    Ok([prefix, &encoded_event_name[..], &payload[1..]].concat())
+}
 
-    #[derive(Default, Clone)]
-    pub struct MockEventTrigger<TEvents> {
-        _tevents: PhantomData<TEvents>,
-    }
+fn encoded_event_names<TEvents>() -> Result<&'static [Vec<u8>], RtlError>
+where
+    TEvents: StaticTypeInfo,
+{
+    let type_id_to_encoded_event_names_map = type_id_to_event_names_map();
 
-    impl<TEvents> MockEventTrigger<TEvents> {
-        pub fn new() -> Self {
-            Self {
-                _tevents: PhantomData,
-            }
-        }
-    }
+    let encoded_event_names = type_id_to_encoded_event_names_map
+        .entry(TypeId::of::<TEvents::Identity>())
+        .or_insert_with(|| {
+            let type_meta = scale_info::meta_type::<TEvents>();
+            let type_info = type_meta.type_info();
+            let variant_type_def = match type_info.type_def {
+                TypeDef::Variant(variant_type_def) => variant_type_def,
+                _ => {
+                    return Err(RtlError::EventTypeMustBeEnum {
+                        type_name: type_info.path.ident().unwrap_or("N/A").into(),
+                    })
+                }
+            };
+            Ok(variant_type_def
+                .variants
+                .iter()
+                .map(|variant| variant.name.encode())
+                .collect())
+        });
+    encoded_event_names
+        .as_ref()
+        .map_err(Clone::clone)
+        .map(|v| v.as_slice())
+}
 
-    impl<TEvents> EventTrigger<TEvents> for MockEventTrigger<TEvents>
-    where
-        TEvents: Encode + StaticTypeInfo,
-    {
-        fn trigger(&self, event: TEvents) -> Result<()> {
-            GStdEventTrigger::<TEvents>::compose_payload(&[], event)?;
-            Ok(())
-        }
-    }
+// This code relies on the fact contracts are executed in a single-threaded environment
+fn type_id_to_event_names_map() -> &'static mut HashMap<TypeId, Result<Vec<Vec<u8>>, RtlError>> {
+    type TypeIdToEncodedEventNamesMap = HashMap<TypeId, Result<Vec<Vec<u8>>, RtlError>>;
+    // It is not expected this to be ever big as there are not that many event types in a contract.
+    // So it shouldn't incur too many memory operations
+    static mut TYPE_ID_TO_EVENT_NAMES_MAP: Option<TypeIdToEncodedEventNamesMap> = None;
+    unsafe { TYPE_ID_TO_EVENT_NAMES_MAP.get_or_insert_with(HashMap::new) }
 }
 
 #[cfg(test)]
@@ -133,7 +120,7 @@ mod tests {
 
     #[test]
     fn encoded_event_names_returns_proper_names_for_enum_type() {
-        let encoded_event_names = GStdEventTrigger::<TestEvents>::encoded_event_names().unwrap();
+        let encoded_event_names = encoded_event_names::<TestEvents>().unwrap();
 
         assert_eq!(encoded_event_names.len(), 2);
         assert_eq!(encoded_event_names[0], "Event1".encode());
@@ -142,7 +129,7 @@ mod tests {
 
     #[test]
     fn encoded_event_names_returns_error_for_non_enum_type() {
-        let result = GStdEventTrigger::<NotEnum>::encoded_event_names();
+        let result = encoded_event_names::<NotEnum>();
 
         assert!(result.is_err());
         let err = result.unwrap_err();
@@ -155,7 +142,7 @@ mod tests {
     #[test]
     fn compose_payload_returns_proper_payload() {
         let event = TestEvents::Event1(42);
-        let payload = GStdEventTrigger::<TestEvents>::compose_payload(&[1, 2, 3], event).unwrap();
+        let payload = compose_payload::<TestEvents>(&[1, 2, 3], event).unwrap();
 
         assert_eq!(
             payload,
@@ -163,7 +150,7 @@ mod tests {
         );
 
         let event = TestEvents::Event2 { p1: 43 };
-        let payload = GStdEventTrigger::<TestEvents>::compose_payload(&[], event).unwrap();
+        let payload = compose_payload::<TestEvents>(&[], event).unwrap();
 
         assert_eq!(payload, [24, 69, 118, 101, 110, 116, 50, 43, 00]);
     }
