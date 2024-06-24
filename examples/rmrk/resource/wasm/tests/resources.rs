@@ -344,7 +344,7 @@ impl<'a> Fixture<'a> {
         let program_space = self.program_space().clone();
         let reply = program_space
             .activate(
-                code_id.as_ref().into(),
+                code_id,
                 "123",
                 payload,
                 0,
@@ -354,7 +354,7 @@ impl<'a> Fixture<'a> {
             .unwrap();
         self.program_space()
             .system()
-            .get_program(*reply.await.unwrap().0.as_ref())
+            .get_program(reply.await.unwrap().0)
             .unwrap()
     }
 
@@ -391,7 +391,7 @@ impl<'a> Fixture<'a> {
         let program_space = self.program_space().clone();
         let reply = program_space
             .message(
-                self.resource_program_for_async().id().as_ref().into(),
+                self.resource_program_for_async().id(),
                 encoded_request,
                 0,
                 GTestArgs::new(actor_id.into()),
