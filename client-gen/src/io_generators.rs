@@ -77,7 +77,10 @@ impl<'ast> Visitor<'ast> for IoModuleGenerator {
             $("}")
         };
 
-        let mut decode_reply_gen = DecodeReplyGenerator::default();
+        let mut decode_reply_gen = DecodeReplyGenerator {
+            path: self.path.clone(),
+            ..Default::default()
+        };
         decode_reply_gen.visit_service_func(func);
 
         self.tokens.extend(decode_reply_gen.tokens);
@@ -100,6 +103,7 @@ impl<'ast> Visitor<'ast> for IoModuleGenerator {
 #[derive(Default)]
 struct DecodeReplyGenerator {
     tokens: rust::Tokens,
+    path: String,
     is_unit: bool,
 }
 
@@ -121,10 +125,25 @@ impl<'ast> Visitor<'ast> for DecodeReplyGenerator {
             .then_some("#[allow(clippy::let_unit_value)]")
             .unwrap_or_default();
 
+        let path_check = match path_bytes(&self.path) {
+            (_, 0) => quote! {}, // no path
+            (path_bytes, path_encoded_length) => {
+                quote! {
+                    if !reply.starts_with(&[$path_bytes]) {
+                        return Err(sails_rtl::errors::Error::Rtl(sails_rtl::errors::RtlError::ReplyPrefixMismatches));
+                    }
+
+                    reply = &reply[$path_encoded_length..];
+                }
+            }
+        };
+
         let (route_bytes, route_encoded_length) = method_bytes(func.name());
 
         quote_in! { self.tokens =>
             , sails_rtl::errors::Error> {
+                $path_check
+
                 if !reply.starts_with(&[$route_bytes]) {
                     return Err(sails_rtl::errors::Error::Rtl(sails_rtl::errors::RtlError::ReplyPrefixMismatches));
                 }

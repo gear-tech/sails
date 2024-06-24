@@ -142,6 +142,12 @@ pub mod named_io {
         }
         #[allow(dead_code)]
         pub fn decode_reply(mut reply: &[u8]) -> Result<String, sails_rtl::errors::Error> {
+            if !reply.starts_with(&[20, 78, 97, 109, 101, 100]) {
+                return Err(sails_rtl::errors::Error::Rtl(
+                    sails_rtl::errors::RtlError::ReplyPrefixMismatches,
+                ));
+            }
+            reply = &reply[6..];
             if !reply.starts_with(&[16, 84, 104, 97, 116]) {
                 return Err(sails_rtl::errors::Error::Rtl(
                     sails_rtl::errors::RtlError::ReplyPrefixMismatches,
