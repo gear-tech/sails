@@ -240,7 +240,7 @@ You can find more details in the [Examples](#examples) section.
 
 Another feature Sails can boast of is the ability to extend (mixin) existing services.
 Say there are service `A` and service `B`, and you want their functionality to be exposed
-as part of your new service `C`. You can achieve this by using the `extends` argument of
+as a part of your new service `C`. You can achieve this by using the `extends` argument of
 the `#[gservice]` attribute. You can not only mix the functionality in but also override
 some methods of the original services. For example:
 
@@ -318,7 +318,7 @@ crate for interacting from off-chain code with an on-chain application, or [TDB 
 all you need to do is to compose byte payload according to the layout outlined in the
 [Payload Encoding](#payload-encoding) section and send it to an application. Thanks to the
 generated IDL, Sails provides a way to interact with your application using generated clients
-having similar interface to the one exposed by your application. Currently Sails can generate
+having interface similar to the one exposed by your application. Currently Sails can generate
 client code for Rust and TypeScript.
 
 <br/>
