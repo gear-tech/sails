@@ -2,7 +2,7 @@ use crate::{
     calls::Remoting,
     errors::{Result, RtlError},
     event_listener::{EventListener, EventSubscriber},
-    ActorId, CodeId, GasUnit, MessageId, ValueUnit, Vec,
+    ActorId, CodeId, GasUnit, ValueUnit, Vec,
 };
 use core::future::Future;
 use gclient::metadata::runtime_types::gear_core::message::user::UserMessage as GenUserMessage;
@@ -111,7 +111,7 @@ impl Remoting<GSdkArgs> for GSdkRemoting {
 
 pub struct GSdkEventListener {
     listener: gclient::EventListener,
-    events: Vec<(ActorId, MessageId, Vec<u8>)>,
+    events: Vec<(ActorId, Vec<u8>)>,
 }
 
 impl EventSubscriber for GSdkRemoting {
@@ -125,7 +125,7 @@ impl EventSubscriber for GSdkRemoting {
 }
 
 impl GSdkEventListener {
-    async fn get_events_from_block(&mut self) -> Result<Vec<(ActorId, MessageId, Vec<u8>)>> {
+    async fn get_events_from_block(&mut self) -> Result<Vec<(ActorId, Vec<u8>)>> {
         let vec = self
             .listener
             .proc_many(
@@ -133,7 +133,7 @@ impl GSdkEventListener {
                     if let gclient::Event::Gear(gclient::GearEvent::UserMessageSent {
                         message:
                             GenUserMessage {
-                                id,
+                                id: _,
                                 source,
                                 destination,
                                 payload,
@@ -143,9 +143,8 @@ impl GSdkEventListener {
                     }) = e
                     {
                         let source = ActorId::from(source);
-                        let message_id = MessageId::from(id);
                         if ActorId::from(destination) == ActorId::zero() {
-                            Some((source, message_id, payload.0))
+                            Some((source, payload.0))
                         } else {
                             None
                         }
@@ -161,14 +160,14 @@ impl GSdkEventListener {
 }
 
 impl EventListener for GSdkEventListener {
-    async fn next_event<T>(
+    async fn next_event(
         &mut self,
-        predicate: impl Fn((ActorId, MessageId, Vec<u8>)) -> Option<T>,
-    ) -> Result<T> {
+        predicate: impl Fn(&(ActorId, Vec<u8>)) -> bool,
+    ) -> Result<(ActorId, Vec<u8>)> {
         loop {
             while let Some(evt) = self.events.pop() {
-                if let Some(t) = predicate(evt) {
-                    return Ok(t);
+                if predicate(&evt) {
+                    return Ok(evt);
                 }
             }
             self.events = self.get_events_from_block().await?;
