@@ -22,7 +22,7 @@ sails-rtl = { git = "https://github.com/gear-tech/sails" }
 gstd = { git = "https://github.com/gear-tech/gear", features = ["debug"] }
 ```
 
-And then:
+And then in your `lib.rs`:
 
 ```rust
 #![no_std]
