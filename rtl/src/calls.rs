@@ -4,7 +4,7 @@ use crate::{
     Vec,
 };
 use core::{future::Future, marker::PhantomData};
-use parity_scale_codec::{Decode, Encode};
+use parity_scale_codec::Decode;
 
 pub trait Action<TArgs> {
     fn with_value(self, value: ValueUnit) -> Self;
@@ -120,12 +120,8 @@ impl<TRemoting, TArgs, TReply> RemotingAction<TRemoting, TArgs, TReply>
 where
     TArgs: Default,
 {
-    pub fn new<TParams>(remoting: TRemoting, route: &'static [u8], params: TParams) -> Self
-    where
-        TParams: Encode,
-    {
-        let mut payload = route.to_vec();
-        params.encode_to(&mut payload);
+    /// Create a new RemotingAction. The route is the prefix of the reply that the caller expects.
+    pub fn new(remoting: TRemoting, route: &'static [u8], payload: Vec<u8>) -> Self {
         Self {
             remoting,
             route,

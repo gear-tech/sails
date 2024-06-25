@@ -68,7 +68,7 @@ impl<'ast> Visitor<'ast> for CtorFactoryGenerator {
 
         quote_in! { self.tokens =>
             $(")") -> impl Activation<A> {
-                RemotingAction::new(self.remoting.clone(), &[$route_bytes], $args)
+                RemotingAction::new(self.remoting.clone(), &[$route_bytes], $args.encode())
             }
         };
     }

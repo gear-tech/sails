@@ -38,11 +38,15 @@ where
         RemotingAction::new(
             self.remoting.clone(),
             &[24, 68, 111, 84, 104, 105, 115],
-            (p1, p2),
+            multiple_io::DoThis::encode_call(p1, p2),
         )
     }
     fn do_that(&mut self, p1: (u8, u32)) -> impl Call<A, u8> {
-        RemotingAction::new(self.remoting.clone(), &[24, 68, 111, 84, 104, 97, 116], p1)
+        RemotingAction::new(
+            self.remoting.clone(),
+            &[24, 68, 111, 84, 104, 97, 116],
+            multiple_io::DoThat::encode_call(p1),
+        )
     }
 }
 pub mod multiple_io {
@@ -122,7 +126,7 @@ where
         RemotingAction::new(
             self.remoting.clone(),
             &[20, 78, 97, 109, 101, 100, 16, 84, 104, 97, 116],
-            p1,
+            named_io::That::encode_call(p1),
         )
     }
 }

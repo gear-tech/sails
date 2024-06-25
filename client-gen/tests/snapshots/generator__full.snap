@@ -28,7 +28,7 @@ impl<R: Remoting<A> + Clone, A: Default> ServiceFactory<R, A> {
 }
 impl<R: Remoting<A> + Clone, A: Default> traits::ServiceFactory<A> for ServiceFactory<R, A> {
     fn new(&self, a: u32) -> impl Activation<A> {
-        RemotingAction::new(self.remoting.clone(), &[12, 78, 101, 119], a)
+        RemotingAction::new(self.remoting.clone(), &[12, 78, 101, 119], a.encode())
     }
 }
 #[derive(Clone)]
@@ -63,7 +63,7 @@ where
         RemotingAction::new(
             self.remoting.clone(),
             &[24, 68, 111, 84, 104, 105, 115],
-            (p1, p2, p3, p4),
+            service_io::DoThis::encode_call(p1, p2, p3, p4),
         )
     }
     fn do_that(
@@ -73,14 +73,22 @@ where
         RemotingAction::new(
             self.remoting.clone(),
             &[24, 68, 111, 84, 104, 97, 116],
-            param,
+            service_io::DoThat::encode_call(param),
         )
     }
     fn this(&self, v1: Vec<u16>) -> impl Call<A, u32> {
-        RemotingAction::new(self.remoting.clone(), &[16, 84, 104, 105, 115], v1)
+        RemotingAction::new(
+            self.remoting.clone(),
+            &[16, 84, 104, 105, 115],
+            service_io::This::encode_call(v1),
+        )
     }
     fn that(&self, v1: ()) -> impl Call<A, Result<String, String>> {
-        RemotingAction::new(self.remoting.clone(), &[16, 84, 104, 97, 116], v1)
+        RemotingAction::new(
+            self.remoting.clone(),
+            &[16, 84, 104, 97, 116],
+            service_io::That::encode_call(v1),
+        )
     }
 }
 pub mod service_io {

@@ -125,6 +125,7 @@ impl<'ast> Visitor<'ast> for ServiceClientGenerator {
         let mutability = if func.is_query() { "" } else { "mut" };
         let fn_name = func.name();
         let fn_name_snake = fn_name.to_case(Case::Snake);
+        let service_name = self.service_name.to_case(Case::Snake);
 
         quote_in! {self.tokens =>
             fn $fn_name_snake $("(")&$mutability self,
@@ -132,14 +133,14 @@ impl<'ast> Visitor<'ast> for ServiceClientGenerator {
 
         visitor::accept_service_func(func, self);
 
-        let args = encoded_args(func.params());
+        let args = encoded_fn_args(func.params());
 
         let (service_path_bytes, _service_path_encoded_length) = path_bytes(&self.path);
         let (route_bytes, _route_encoded_length) = method_bytes(fn_name);
 
         quote_in! {self.tokens =>
             {
-                RemotingAction::new(self.remoting.clone(), &[$service_path_bytes $route_bytes], $args)
+                RemotingAction::new(self.remoting.clone(), &[$service_path_bytes $route_bytes], $(service_name)_io::$fn_name::encode_call($args))
             }
         };
     }

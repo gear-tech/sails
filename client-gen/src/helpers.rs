@@ -44,3 +44,13 @@ pub(crate) fn encoded_args(params: &[FuncParam]) -> String {
 
     format!("({arg_names})")
 }
+
+pub(crate) fn encoded_fn_args(params: &[FuncParam]) -> String {
+    let arg_names = params
+        .iter()
+        .map(|a| a.name())
+        .collect::<Vec<_>>()
+        .join(", ");
+
+    format!("{arg_names}")
+}

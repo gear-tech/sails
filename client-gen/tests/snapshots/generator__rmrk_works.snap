@@ -30,7 +30,7 @@ impl<R: Remoting<A> + Clone, A: Default> traits::RmrkCatalogFactory<A>
     for RmrkCatalogFactory<R, A>
 {
     fn new(&self) -> impl Activation<A> {
-        RemotingAction::new(self.remoting.clone(), &[12, 78, 101, 119], ())
+        RemotingAction::new(self.remoting.clone(), &[12, 78, 101, 119], ().encode())
     }
 }
 #[derive(Clone)]
@@ -66,7 +66,7 @@ where
                 44, 82, 109, 114, 107, 67, 97, 116, 97, 108, 111, 103, 56, 65, 100, 100, 69, 113,
                 117, 105, 112, 112, 97, 98, 108, 101, 115,
             ],
-            (part_id, collection_ids),
+            rmrk_catalog_io::AddEquippables::encode_call(part_id, collection_ids),
         )
     }
     fn add_parts(
@@ -79,7 +79,7 @@ where
                 44, 82, 109, 114, 107, 67, 97, 116, 97, 108, 111, 103, 32, 65, 100, 100, 80, 97,
                 114, 116, 115,
             ],
-            parts,
+            rmrk_catalog_io::AddParts::encode_call(parts),
         )
     }
     fn remove_equippable(
@@ -93,7 +93,7 @@ where
                 44, 82, 109, 114, 107, 67, 97, 116, 97, 108, 111, 103, 64, 82, 101, 109, 111, 118,
                 101, 69, 113, 117, 105, 112, 112, 97, 98, 108, 101,
             ],
-            (part_id, collection_id),
+            rmrk_catalog_io::RemoveEquippable::encode_call(part_id, collection_id),
         )
     }
     fn remove_parts(&mut self, part_ids: Vec<u32>) -> impl Call<A, Result<Vec<u32>, Error>> {
@@ -103,7 +103,7 @@ where
                 44, 82, 109, 114, 107, 67, 97, 116, 97, 108, 111, 103, 44, 82, 101, 109, 111, 118,
                 101, 80, 97, 114, 116, 115,
             ],
-            part_ids,
+            rmrk_catalog_io::RemoveParts::encode_call(part_ids),
         )
     }
     fn reset_equippables(&mut self, part_id: u32) -> impl Call<A, Result<(), Error>> {
@@ -113,7 +113,7 @@ where
                 44, 82, 109, 114, 107, 67, 97, 116, 97, 108, 111, 103, 64, 82, 101, 115, 101, 116,
                 69, 113, 117, 105, 112, 112, 97, 98, 108, 101, 115,
             ],
-            part_id,
+            rmrk_catalog_io::ResetEquippables::encode_call(part_id),
         )
     }
     fn set_equippables_to_all(&mut self, part_id: u32) -> impl Call<A, Result<(), Error>> {
@@ -123,7 +123,7 @@ where
                 44, 82, 109, 114, 107, 67, 97, 116, 97, 108, 111, 103, 76, 83, 101, 116, 69, 113,
                 117, 105, 112, 112, 97, 98, 108, 101, 115, 84, 111, 65, 108, 108,
             ],
-            part_id,
+            rmrk_catalog_io::SetEquippablesToAll::encode_call(part_id),
         )
     }
     fn equippable(
@@ -137,7 +137,7 @@ where
                 44, 82, 109, 114, 107, 67, 97, 116, 97, 108, 111, 103, 40, 69, 113, 117, 105, 112,
                 112, 97, 98, 108, 101,
             ],
-            (part_id, collection_id),
+            rmrk_catalog_io::Equippable::encode_call(part_id, collection_id),
         )
     }
     fn part(&self, part_id: u32) -> impl Call<A, Option<Part>> {
@@ -146,7 +146,7 @@ where
             &[
                 44, 82, 109, 114, 107, 67, 97, 116, 97, 108, 111, 103, 16, 80, 97, 114, 116,
             ],
-            part_id,
+            rmrk_catalog_io::Part::encode_call(part_id),
         )
     }
 }
