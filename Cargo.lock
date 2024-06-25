@@ -4596,6 +4596,7 @@ dependencies = [
  "sails-client-gen",
  "sails-idl-gen",
  "sails-rtl",
+ "scale-info",
  "tokio",
 ]
 
@@ -4603,7 +4604,9 @@ dependencies = [
 name = "ping-app"
 version = "0.1.0"
 dependencies = [
+ "parity-scale-codec",
  "sails-rtl",
+ "scale-info",
 ]
 
 [[package]]

@@ -4,5 +4,10 @@ constructor {
 
 service Ping {
   Ping : (input: str) -> result (str, str);
+
+  events {
+    Ping;
+    Pong;
+  }
 };
 

@@ -1,9 +1,11 @@
 use crate::{
     calls::Remoting,
     errors::{Result, RtlError},
-    ActorId, CodeId, GasUnit, ValueUnit, Vec,
+    event_listener::{EventListener, EventSubscriber},
+    ActorId, CodeId, GasUnit, MessageId, ValueUnit, Vec,
 };
 use core::future::Future;
+use gclient::metadata::runtime_types::gear_core::message::user::UserMessage as GenUserMessage;
 use gclient::{ext::sp_core::ByteArray, EventProcessor, GearApi};
 use gprimitives::H256;
 
@@ -104,5 +106,73 @@ impl Remoting<GSdkArgs> for GSdkRemoting {
             .await?;
 
         Ok(reply_info.payload)
+    }
+}
+
+pub struct GSdkEventListener {
+    listener: gclient::EventListener,
+    events: Vec<(ActorId, MessageId, Vec<u8>)>,
+}
+
+impl EventSubscriber for GSdkRemoting {
+    async fn subscribe(&mut self) -> Result<impl EventListener> {
+        let listener = self.api.subscribe().await?;
+        Ok(GSdkEventListener {
+            listener,
+            events: Vec::new(),
+        })
+    }
+}
+
+impl GSdkEventListener {
+    async fn get_events_from_block(&mut self) -> Result<Vec<(ActorId, MessageId, Vec<u8>)>> {
+        let vec = self
+            .listener
+            .proc_many(
+                |e| {
+                    if let gclient::Event::Gear(gclient::GearEvent::UserMessageSent {
+                        message:
+                            GenUserMessage {
+                                id,
+                                source,
+                                destination,
+                                payload,
+                                ..
+                            },
+                        ..
+                    }) = e
+                    {
+                        let source = ActorId::from(source);
+                        let message_id = MessageId::from(id);
+                        if ActorId::from(destination) == ActorId::zero() {
+                            Some((source, message_id, payload.0))
+                        } else {
+                            None
+                        }
+                    } else {
+                        None
+                    }
+                },
+                |v| (v, true),
+            )
+            .await?;
+        Ok(vec)
+    }
+}
+
+impl EventListener for GSdkEventListener {
+    async fn next_event<T>(
+        &mut self,
+        predicate: impl Fn((ActorId, MessageId, Vec<u8>)) -> Option<T>,
+    ) -> Result<T> {
+        loop {
+            while let Some(evt) = self.events.pop() {
+                if let Some(t) = predicate(evt) {
+                    return Ok(t);
+                }
+            }
+            self.events = self.get_events_from_block().await?;
+            self.events.reverse();
+        }
     }
 }

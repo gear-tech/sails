@@ -63,7 +63,7 @@ where
     Ok([prefix, &encoded_event_name[..], &payload[1..]].concat())
 }
 
-fn encoded_event_names<TEvents>() -> Result<&'static [Vec<u8>], RtlError>
+pub fn encoded_event_names<TEvents>() -> Result<&'static [Vec<u8>], RtlError>
 where
     TEvents: StaticTypeInfo,
 {

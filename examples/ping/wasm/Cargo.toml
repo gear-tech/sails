@@ -17,4 +17,5 @@ sails-idl-gen.workspace = true
 gclient.workspace = true
 sails-rtl.workspace = true
 parity-scale-codec = { workspace = true, features = ["derive"] }
+scale-info = { workspace = true, features = ["derive"] }
 tokio = { workspace = true, features = ["rt", "macros"] }
