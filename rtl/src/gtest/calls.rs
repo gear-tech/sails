@@ -1,6 +1,7 @@
 use crate::{
     calls::Remoting,
     errors::{Result, RtlError},
+    event_listener::{EventListener, EventSubscriber},
     rc::Rc,
     ActorId, CodeId, MessageId, ValueUnit, Vec,
 };
@@ -76,35 +77,18 @@ impl GTestRemoting {
         Ok(reply.payload().to_vec())
     }
 
-    fn extract_events(self, run_result: &RunResult, source: ActorId) {
+    fn extract_events(self, run_result: &RunResult) {
         let mut events: Vec<(ActorId, MessageId, Vec<u8>)> = run_result
             .log()
             .iter()
-            .filter(|entry| entry.source() == source && entry.destination() == ActorId::zero())
-            .map(|entry| (source, entry.id(), entry.payload().to_vec()))
+            .filter(|entry| entry.destination() == ActorId::zero())
+            .map(|entry| (entry.source(), entry.id(), entry.payload().to_vec()))
             .collect();
         for listener in self.listeners.borrow_mut().iter_mut() {
             if let Some(listener) = listener.upgrade() {
                 listener.events.borrow_mut().append(&mut events);
             }
         }
-    }
-
-    pub fn subscribe<'a>(self) -> impl Deref<Target = GTestEventListener> {
-        let listener = Rc::new(GTestEventListener::default());
-        self.listeners.borrow_mut().push(Rc::downgrade(&listener));
-        listener
-    }
-}
-
-#[derive(Default, Debug)]
-pub struct GTestEventListener {
-    events: RefCell<Vec<(ActorId, MessageId, Vec<u8>)>>,
-}
-
-impl GTestEventListener {
-    pub fn events(&self) -> impl Deref<Target = Vec<(ActorId, MessageId, Vec<u8>)>> + '_ {
-        self.events.borrow()
     }
 }
 
@@ -146,7 +130,42 @@ impl Remoting<GTestArgs> for GTestRemoting {
         let actor_id = args.actor_id.ok_or(RtlError::ActorIsNotSet)?;
         let run_result =
             program.send_bytes_with_value(actor_id.as_ref(), payload.as_ref().to_vec(), value);
-        Self::extract_events(self, &run_result, target);
+        Self::extract_events(self, &run_result);
         Ok(async move { Self::extract_reply(run_result) })
+    }
+}
+
+impl EventSubscriber for GTestRemoting {
+    async fn subscribe(&mut self) -> Result<impl EventListener> {
+        let listener = Rc::new(GTestEventListener::default());
+        self.listeners.borrow_mut().push(Rc::downgrade(&listener));
+        Ok(listener)
+    }
+}
+
+#[derive(Default, Debug)]
+pub struct GTestEventListener {
+    events: RefCell<Vec<(ActorId, MessageId, Vec<u8>)>>,
+}
+
+impl GTestEventListener {
+    pub fn events(&self) -> impl Deref<Target = Vec<(ActorId, MessageId, Vec<u8>)>> + '_ {
+        self.events.borrow()
+    }
+}
+
+impl EventListener for Rc<GTestEventListener> {
+    async fn next_event(
+        &mut self,
+        predicate: impl Fn(&(ActorId, Vec<u8>)) -> bool,
+    ) -> Result<(ActorId, Vec<u8>)> {
+        while !self.events.borrow().is_empty() {
+            let (source, _, payload) = self.events.borrow_mut().remove(0);
+            let evt = (source, payload);
+            if predicate(&evt) {
+                return Ok(evt);
+            }
+        }
+        Err(RtlError::EventIsNotFound)?
     }
 }

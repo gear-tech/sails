@@ -10,6 +10,8 @@ pub mod gstd;
 pub mod gtest;
 pub mod prelude;
 mod types;
+#[cfg(not(target_arch = "wasm32"))]
+pub mod event_listener;
 
 pub mod meta {
     use crate::Vec;

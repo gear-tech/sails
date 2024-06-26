@@ -40,4 +40,8 @@ pub enum RtlError {
     ProgramIsNotFound,
     #[error("actor is not set")]
     ActorIsNotSet,
+    #[error("event name is not found")]
+    EventNameIsNotFound,
+    #[error("event is not found")]
+    EventIsNotFound,
 }

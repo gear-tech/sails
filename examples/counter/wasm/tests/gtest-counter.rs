@@ -1,6 +1,10 @@
-use counter_client::traits::{CounterFactory, Dec, Inc, Query};
+use std::{f64::consts::E, io::Lines};
+
+use counter_client::traits::{CounterFactory, IncDec, IncDecListener, Query};
+use counter_client::inc_dec_events::IncDecEvents;
 use sails_rtl::{
     calls::{Action, Activation, Call},
+    event_listener::{EventListener, EventSubscriber, Listen, Subscribe},
     gtest::calls::{GTestArgs, GTestRemoting},
 };
 
@@ -12,7 +16,11 @@ const ADMIN_ID: u64 = 10;
 #[tokio::test]
 async fn counter_succeed() {
     let remoting = GTestRemoting::new();
-    let listener = remoting.clone().subscribe();
+
+    let mut r = remoting.clone();
+
+    // let mut rem = remoting.clone();
+    // let mut listener = rem.subscribe().await.unwrap();
 
     let code_id = remoting.system().submit_code_file(PROGRAM_WASM_PATH);
 
@@ -26,9 +34,12 @@ async fn counter_succeed() {
         .await
         .unwrap();
 
-    let mut client = counter_client::Inc::new(remoting.clone());
+    let mut incdec_listener = counter_client::IncDecListener::new(&remoting).listener();
+    let mut listener = incdec_listener.subscribe(program_id).await.unwrap();
+
+    let mut client = counter_client::IncDec::new(remoting.clone());
     let reply = client
-        .op(32)
+        .inc(32)
         .with_args(GTestArgs::default().with_actor_id(ADMIN_ID.into()))
         .publish(program_id)
         .await
@@ -39,8 +50,8 @@ async fn counter_succeed() {
 
     assert_eq!(10, reply);
 
-    let client = counter_client::Query::new(remoting.clone());
-    let reply = client
+    let query_client = counter_client::Query::new(remoting.clone());
+    let reply = query_client
         .current_value()
         .with_args(GTestArgs::default().with_actor_id(ADMIN_ID.into()))
         .publish(program_id)
@@ -52,9 +63,8 @@ async fn counter_succeed() {
 
     assert_eq!(42, reply);
 
-    let mut client = counter_client::Dec::new(remoting.clone());
     let reply = client
-        .op(1)
+        .dec(1)
         .with_args(GTestArgs::default().with_actor_id(ADMIN_ID.into()))
         .publish(program_id)
         .await
@@ -64,7 +74,13 @@ async fn counter_succeed() {
         .unwrap();
 
     assert_eq!(42, reply);
-    let events = listener.events();
-    let ev = events.first();
-    assert_ne!(None, ev);
+    // let event = listener.next_event(|_| true).await.unwrap();
+    // println!("{:?}", event);
+    // let event = listener.next_event(|_| true).await.unwrap();
+    // println!("{:?}", event);
+
+    let event = listener.next_event().await.unwrap();
+    assert_eq!(IncDecEvents::Inc(32), event);
+    let event = listener.next_event().await.unwrap();
+    assert_eq!(IncDecEvents::Dec(1), event);
 }
