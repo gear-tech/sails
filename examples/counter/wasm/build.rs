@@ -1,6 +1,6 @@
+use counter_app::Program;
 use sails_idl_gen::program;
 use std::{env, fs::File, path::PathBuf};
-use counter_app::Program;
 
 fn main() {
     gwasm_builder::build();

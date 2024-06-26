@@ -1,5 +1,9 @@
 use crate::{
-    ctor_generators::*, io_generators::IoModuleGenerator, service_generators::*, type_generators::*,
+    ctor_generators::*,
+    events_generator::{EventsModuleGenerator, EventsTraitGenerator},
+    io_generators::IoModuleGenerator,
+    service_generators::*,
+    type_generators::*,
 };
 use genco::prelude::*;
 use rust::Tokens;
@@ -15,7 +19,7 @@ impl<'a> RootGenerator<'a> {
     pub(crate) fn new(anonymous_service_name: &'a str) -> Self {
         let tokens = quote! {
             #[allow(unused_imports)]
-            use sails_rtl::{prelude::*, String, calls::{Call, Activation, Remoting, RemotingAction}};
+            use sails_rtl::{prelude::*, String, calls::{Call, Activation, Remoting, RemotingAction},event_listener::{EventSubscriber, RemotingSubscribe, Subscribe}};
             #[allow(unused_imports)]
             use sails_rtl::collections::BTreeMap;
             use core::marker::PhantomData;
@@ -78,6 +82,16 @@ impl<'a, 'ast> Visitor<'ast> for RootGenerator<'a> {
         let mut io_mod_gen = IoModuleGenerator::new(service_name.to_owned(), path.to_owned());
         io_mod_gen.visit_service(service);
         self.tokens.extend(io_mod_gen.finalize());
+
+        if !service.events().is_empty() {
+            let mut events_mod_gen =
+                EventsModuleGenerator::new(service_name.to_owned(), path.to_owned());
+            events_mod_gen.visit_service(service);
+            self.tokens.extend(events_mod_gen.finalize());
+
+            let service_gen = EventsTraitGenerator::new(service_name.to_owned());
+            self.traits_tokens.extend(service_gen.finalize());
+        }
     }
 
     fn visit_type(&mut self, t: &'ast Type) {

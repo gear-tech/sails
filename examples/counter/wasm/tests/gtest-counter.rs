@@ -1,7 +1,5 @@
-use std::{f64::consts::E, io::Lines};
-
-use counter_client::traits::{CounterFactory, IncDec, IncDecListener, Query};
 use counter_client::inc_dec_events::IncDecEvents;
+use counter_client::traits::{CounterFactory, IncDec, IncDecListener, Query};
 use sails_rtl::{
     calls::{Action, Activation, Call},
     event_listener::{EventListener, EventSubscriber, Listen, Subscribe},
@@ -17,10 +15,9 @@ const ADMIN_ID: u64 = 10;
 async fn counter_succeed() {
     let remoting = GTestRemoting::new();
 
-    let mut r = remoting.clone();
-
-    // let mut rem = remoting.clone();
-    // let mut listener = rem.subscribe().await.unwrap();
+    let mut rem = remoting.clone();
+    // Low level remoting listener
+    let mut remoting_listener = rem.subscribe().await.unwrap();
 
     let code_id = remoting.system().submit_code_file(PROGRAM_WASM_PATH);
 
@@ -34,7 +31,8 @@ async fn counter_succeed() {
         .await
         .unwrap();
 
-    let mut incdec_listener = counter_client::IncDecListener::new(&remoting).listener();
+    let mut incdec_listener = counter_client::inc_dec_events::Listener::new(&remoting).listener();
+    // Typed service event listener
     let mut listener = incdec_listener.subscribe(program_id).await.unwrap();
 
     let mut client = counter_client::IncDec::new(remoting.clone());
@@ -74,10 +72,11 @@ async fn counter_succeed() {
         .unwrap();
 
     assert_eq!(42, reply);
-    // let event = listener.next_event(|_| true).await.unwrap();
-    // println!("{:?}", event);
-    // let event = listener.next_event(|_| true).await.unwrap();
-    // println!("{:?}", event);
+
+    let event = remoting_listener.next_event(|_| true).await.unwrap();
+    println!("{:?}", event);
+    let event = remoting_listener.next_event(|_| true).await.unwrap();
+    println!("{:?}", event);
 
     let event = listener.next_event().await.unwrap();
     assert_eq!(IncDecEvents::Inc(32), event);

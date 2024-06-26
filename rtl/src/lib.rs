@@ -5,13 +5,13 @@ pub use prelude::*;
 
 pub mod calls;
 pub mod errors;
+#[cfg(not(target_arch = "wasm32"))]
+pub mod event_listener;
 pub mod gstd;
 #[cfg(not(target_arch = "wasm32"))]
 pub mod gtest;
 pub mod prelude;
 mod types;
-#[cfg(not(target_arch = "wasm32"))]
-pub mod event_listener;
 
 pub mod meta {
     use crate::Vec;

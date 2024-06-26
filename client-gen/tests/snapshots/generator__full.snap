@@ -9,6 +9,7 @@ use sails_rtl::collections::BTreeMap;
 #[allow(unused_imports)]
 use sails_rtl::{
     calls::{Activation, Call, Remoting, RemotingAction},
+    event_listener::{EventSubscriber, RemotingSubscribe, Subscribe},
     prelude::*,
     String,
 };

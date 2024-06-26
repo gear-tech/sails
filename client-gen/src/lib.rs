@@ -1,4 +1,5 @@
 mod ctor_generators;
+mod events_generator;
 mod helpers;
 mod io_generators;
 mod root_generator;

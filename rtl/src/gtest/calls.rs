@@ -78,7 +78,7 @@ impl GTestRemoting {
     }
 
     fn extract_events(self, run_result: &RunResult) {
-        let mut events: Vec<(ActorId, MessageId, Vec<u8>)> = run_result
+        let events: Vec<(ActorId, MessageId, Vec<u8>)> = run_result
             .log()
             .iter()
             .filter(|entry| entry.destination() == ActorId::zero())
@@ -86,7 +86,7 @@ impl GTestRemoting {
             .collect();
         for listener in self.listeners.borrow_mut().iter_mut() {
             if let Some(listener) = listener.upgrade() {
-                listener.events.borrow_mut().append(&mut events);
+                listener.events.borrow_mut().append(&mut events.clone());
             }
         }
     }
