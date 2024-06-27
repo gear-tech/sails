@@ -15,7 +15,7 @@ dependencies = [
 [[package]]
 name = "actor-system-error"
 version = "1.4.2"
-source = "git+https://github.com/gear-tech/gear?branch=vo/gprimitives_nonzero_u256#45d14b71b8a4e8c201a189567babf54f86c9482f"
+source = "git+https://github.com/gear-tech/gear#bcfaff193e749b979446a52ad6cc7112468e7fa5"
 dependencies = [
  "derive_more",
 ]
@@ -243,6 +243,18 @@ checksum = "51bd73bb6ddb72630987d37fa963e99196896c0d0ea81b7c894567e74a2f83af"
 dependencies = [
  "ark-ec",
  "ark-ff",
+ "ark-serialize",
+ "ark-std",
+ "parity-scale-codec",
+ "scale-info",
+]
+
+[[package]]
+name = "ark-scale"
+version = "0.0.12"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5f69c00b3b529be29528a6f2fd5fa7b1790f8bed81b9cdca17e326538545a179"
+dependencies = [
  "ark-serialize",
  "ark-std",
  "parity-scale-codec",
@@ -1242,7 +1254,7 @@ source = "git+https://github.com/w3f/ring-vrf?rev=4b09416#4b09416fd23383ec436dda
 dependencies = [
  "ark-ec",
  "ark-ff",
- "ark-scale",
+ "ark-scale 0.0.11",
  "ark-secret-scalar",
  "ark-serialize",
  "ark-std",
@@ -1868,7 +1880,7 @@ dependencies = [
 [[package]]
 name = "galloc"
 version = "1.4.2"
-source = "git+https://github.com/gear-tech/gear?branch=vo/gprimitives_nonzero_u256#45d14b71b8a4e8c201a189567babf54f86c9482f"
+source = "git+https://github.com/gear-tech/gear#bcfaff193e749b979446a52ad6cc7112468e7fa5"
 dependencies = [
  "gear-dlmalloc",
 ]
@@ -1876,7 +1888,7 @@ dependencies = [
 [[package]]
 name = "gcore"
 version = "1.4.2"
-source = "git+https://github.com/gear-tech/gear?branch=vo/gprimitives_nonzero_u256#45d14b71b8a4e8c201a189567babf54f86c9482f"
+source = "git+https://github.com/gear-tech/gear#bcfaff193e749b979446a52ad6cc7112468e7fa5"
 dependencies = [
  "gear-core-errors",
  "gear-stack-buffer",
@@ -1888,7 +1900,7 @@ dependencies = [
 [[package]]
 name = "gear-common"
 version = "1.4.2"
-source = "git+https://github.com/gear-tech/gear?branch=vo/gprimitives_nonzero_u256#45d14b71b8a4e8c201a189567babf54f86c9482f"
+source = "git+https://github.com/gear-tech/gear#bcfaff193e749b979446a52ad6cc7112468e7fa5"
 dependencies = [
  "derive_more",
  "enum-iterator 1.5.0",
@@ -1910,7 +1922,7 @@ dependencies = [
 [[package]]
 name = "gear-common-codegen"
 version = "1.4.2"
-source = "git+https://github.com/gear-tech/gear?branch=vo/gprimitives_nonzero_u256#45d14b71b8a4e8c201a189567babf54f86c9482f"
+source = "git+https://github.com/gear-tech/gear#bcfaff193e749b979446a52ad6cc7112468e7fa5"
 dependencies = [
  "quote",
  "syn 2.0.68",
@@ -1919,7 +1931,7 @@ dependencies = [
 [[package]]
 name = "gear-core"
 version = "1.4.2"
-source = "git+https://github.com/gear-tech/gear?branch=vo/gprimitives_nonzero_u256#45d14b71b8a4e8c201a189567babf54f86c9482f"
+source = "git+https://github.com/gear-tech/gear#bcfaff193e749b979446a52ad6cc7112468e7fa5"
 dependencies = [
  "blake2",
  "byteorder",
@@ -1945,7 +1957,7 @@ dependencies = [
 [[package]]
 name = "gear-core-backend"
 version = "1.4.2"
-source = "git+https://github.com/gear-tech/gear?branch=vo/gprimitives_nonzero_u256#45d14b71b8a4e8c201a189567babf54f86c9482f"
+source = "git+https://github.com/gear-tech/gear#bcfaff193e749b979446a52ad6cc7112468e7fa5"
 dependencies = [
  "actor-system-error",
  "blake2",
@@ -1964,7 +1976,7 @@ dependencies = [
 [[package]]
 name = "gear-core-errors"
 version = "1.4.2"
-source = "git+https://github.com/gear-tech/gear?branch=vo/gprimitives_nonzero_u256#45d14b71b8a4e8c201a189567babf54f86c9482f"
+source = "git+https://github.com/gear-tech/gear#bcfaff193e749b979446a52ad6cc7112468e7fa5"
 dependencies = [
  "derive_more",
  "enum-iterator 1.5.0",
@@ -1975,7 +1987,7 @@ dependencies = [
 [[package]]
 name = "gear-core-processor"
 version = "1.4.2"
-source = "git+https://github.com/gear-tech/gear?branch=vo/gprimitives_nonzero_u256#45d14b71b8a4e8c201a189567babf54f86c9482f"
+source = "git+https://github.com/gear-tech/gear#bcfaff193e749b979446a52ad6cc7112468e7fa5"
 dependencies = [
  "actor-system-error",
  "derive_more",
@@ -2005,7 +2017,7 @@ dependencies = [
 [[package]]
 name = "gear-lazy-pages"
 version = "1.4.2"
-source = "git+https://github.com/gear-tech/gear?branch=vo/gprimitives_nonzero_u256#45d14b71b8a4e8c201a189567babf54f86c9482f"
+source = "git+https://github.com/gear-tech/gear#bcfaff193e749b979446a52ad6cc7112468e7fa5"
 dependencies = [
  "cfg-if",
  "derive_more",
@@ -2026,7 +2038,7 @@ dependencies = [
 [[package]]
 name = "gear-lazy-pages-common"
 version = "1.4.2"
-source = "git+https://github.com/gear-tech/gear?branch=vo/gprimitives_nonzero_u256#45d14b71b8a4e8c201a189567babf54f86c9482f"
+source = "git+https://github.com/gear-tech/gear#bcfaff193e749b979446a52ad6cc7112468e7fa5"
 dependencies = [
  "gear-core",
  "num_enum",
@@ -2036,7 +2048,7 @@ dependencies = [
 [[package]]
 name = "gear-lazy-pages-native-interface"
 version = "1.4.2"
-source = "git+https://github.com/gear-tech/gear?branch=vo/gprimitives_nonzero_u256#45d14b71b8a4e8c201a189567babf54f86c9482f"
+source = "git+https://github.com/gear-tech/gear#bcfaff193e749b979446a52ad6cc7112468e7fa5"
 dependencies = [
  "gear-core",
  "gear-lazy-pages",
@@ -2058,8 +2070,12 @@ dependencies = [
 [[package]]
 name = "gear-runtime-interface"
 version = "1.4.2"
-source = "git+https://github.com/gear-tech/gear?branch=vo/gprimitives_nonzero_u256#45d14b71b8a4e8c201a189567babf54f86c9482f"
+source = "git+https://github.com/gear-tech/gear#bcfaff193e749b979446a52ad6cc7112468e7fa5"
 dependencies = [
+ "ark-bls12-381",
+ "ark-ec",
+ "ark-ff",
+ "ark-scale 0.0.12",
  "byteorder",
  "gear-core",
  "gear-lazy-pages",
@@ -2067,6 +2083,7 @@ dependencies = [
  "gear-sandbox-host",
  "log",
  "parity-scale-codec",
+ "sha2 0.10.8",
  "sp-io",
  "sp-runtime-interface",
  "sp-std",
@@ -2077,7 +2094,7 @@ dependencies = [
 [[package]]
 name = "gear-sandbox"
 version = "1.4.2"
-source = "git+https://github.com/gear-tech/gear?branch=vo/gprimitives_nonzero_u256#45d14b71b8a4e8c201a189567babf54f86c9482f"
+source = "git+https://github.com/gear-tech/gear#bcfaff193e749b979446a52ad6cc7112468e7fa5"
 dependencies = [
  "gear-runtime-interface",
  "gear-sandbox-env",
@@ -2092,7 +2109,7 @@ dependencies = [
 [[package]]
 name = "gear-sandbox-env"
 version = "1.4.2"
-source = "git+https://github.com/gear-tech/gear?branch=vo/gprimitives_nonzero_u256#45d14b71b8a4e8c201a189567babf54f86c9482f"
+source = "git+https://github.com/gear-tech/gear#bcfaff193e749b979446a52ad6cc7112468e7fa5"
 dependencies = [
  "parity-scale-codec",
  "sp-debug-derive",
@@ -2103,7 +2120,7 @@ dependencies = [
 [[package]]
 name = "gear-sandbox-host"
 version = "1.4.2"
-source = "git+https://github.com/gear-tech/gear?branch=vo/gprimitives_nonzero_u256#45d14b71b8a4e8c201a189567babf54f86c9482f"
+source = "git+https://github.com/gear-tech/gear#bcfaff193e749b979446a52ad6cc7112468e7fa5"
 dependencies = [
  "environmental",
  "gear-sandbox-env",
@@ -2123,7 +2140,7 @@ dependencies = [
 [[package]]
 name = "gear-ss58"
 version = "1.4.2"
-source = "git+https://github.com/gear-tech/gear?branch=vo/gprimitives_nonzero_u256#45d14b71b8a4e8c201a189567babf54f86c9482f"
+source = "git+https://github.com/gear-tech/gear#bcfaff193e749b979446a52ad6cc7112468e7fa5"
 dependencies = [
  "blake2",
  "bs58",
@@ -2133,12 +2150,12 @@ dependencies = [
 [[package]]
 name = "gear-stack-buffer"
 version = "1.4.2"
-source = "git+https://github.com/gear-tech/gear?branch=vo/gprimitives_nonzero_u256#45d14b71b8a4e8c201a189567babf54f86c9482f"
+source = "git+https://github.com/gear-tech/gear#bcfaff193e749b979446a52ad6cc7112468e7fa5"
 
 [[package]]
 name = "gear-utils"
 version = "1.4.2"
-source = "git+https://github.com/gear-tech/gear?branch=vo/gprimitives_nonzero_u256#45d14b71b8a4e8c201a189567babf54f86c9482f"
+source = "git+https://github.com/gear-tech/gear#bcfaff193e749b979446a52ad6cc7112468e7fa5"
 dependencies = [
  "env_logger",
  "gear-core",
@@ -2159,7 +2176,7 @@ checksum = "bbfbfa701dc65e683fcd2fb24f046bcef22634acbdf47ad14724637dc39ad05b"
 [[package]]
 name = "gear-wasm-builder"
 version = "1.4.2"
-source = "git+https://github.com/gear-tech/gear?branch=vo/gprimitives_nonzero_u256#45d14b71b8a4e8c201a189567babf54f86c9482f"
+source = "git+https://github.com/gear-tech/gear#bcfaff193e749b979446a52ad6cc7112468e7fa5"
 dependencies = [
  "anyhow",
  "cargo_metadata",
@@ -2184,7 +2201,7 @@ dependencies = [
 [[package]]
 name = "gear-wasm-instrument"
 version = "1.4.2"
-source = "git+https://github.com/gear-tech/gear?branch=vo/gprimitives_nonzero_u256#45d14b71b8a4e8c201a189567babf54f86c9482f"
+source = "git+https://github.com/gear-tech/gear#bcfaff193e749b979446a52ad6cc7112468e7fa5"
 dependencies = [
  "derive_more",
  "enum-iterator 1.5.0",
@@ -2312,7 +2329,7 @@ checksum = "d2fabcfbdc87f4758337ca535fb41a6d701b65693ce38287d856d1674551ec9b"
 [[package]]
 name = "gmeta"
 version = "1.4.2"
-source = "git+https://github.com/gear-tech/gear?branch=vo/gprimitives_nonzero_u256#45d14b71b8a4e8c201a189567babf54f86c9482f"
+source = "git+https://github.com/gear-tech/gear#bcfaff193e749b979446a52ad6cc7112468e7fa5"
 dependencies = [
  "blake2",
  "derive_more",
@@ -2323,7 +2340,7 @@ dependencies = [
 [[package]]
 name = "gprimitives"
 version = "1.4.2"
-source = "git+https://github.com/gear-tech/gear?branch=vo/gprimitives_nonzero_u256#45d14b71b8a4e8c201a189567babf54f86c9482f"
+source = "git+https://github.com/gear-tech/gear#bcfaff193e749b979446a52ad6cc7112468e7fa5"
 dependencies = [
  "derive_more",
  "gear-ss58",
@@ -2347,7 +2364,7 @@ dependencies = [
 [[package]]
 name = "gstd"
 version = "1.4.2"
-source = "git+https://github.com/gear-tech/gear?branch=vo/gprimitives_nonzero_u256#45d14b71b8a4e8c201a189567babf54f86c9482f"
+source = "git+https://github.com/gear-tech/gear#bcfaff193e749b979446a52ad6cc7112468e7fa5"
 dependencies = [
  "arrayvec 0.7.4",
  "const_format",
@@ -2365,7 +2382,7 @@ dependencies = [
 [[package]]
 name = "gstd-codegen"
 version = "1.4.2"
-source = "git+https://github.com/gear-tech/gear?branch=vo/gprimitives_nonzero_u256#45d14b71b8a4e8c201a189567babf54f86c9482f"
+source = "git+https://github.com/gear-tech/gear#bcfaff193e749b979446a52ad6cc7112468e7fa5"
 dependencies = [
  "gprimitives",
  "proc-macro2",
@@ -2376,12 +2393,12 @@ dependencies = [
 [[package]]
 name = "gsys"
 version = "1.4.2"
-source = "git+https://github.com/gear-tech/gear?branch=vo/gprimitives_nonzero_u256#45d14b71b8a4e8c201a189567babf54f86c9482f"
+source = "git+https://github.com/gear-tech/gear#bcfaff193e749b979446a52ad6cc7112468e7fa5"
 
 [[package]]
 name = "gtest"
 version = "1.4.2"
-source = "git+https://github.com/gear-tech/gear?branch=vo/gprimitives_nonzero_u256#45d14b71b8a4e8c201a189567babf54f86c9482f"
+source = "git+https://github.com/gear-tech/gear#bcfaff193e749b979446a52ad6cc7112468e7fa5"
 dependencies = [
  "cargo_toml",
  "colored",
@@ -3314,7 +3331,7 @@ dependencies = [
 [[package]]
 name = "numerated"
 version = "1.4.2"
-source = "git+https://github.com/gear-tech/gear?branch=vo/gprimitives_nonzero_u256#45d14b71b8a4e8c201a189567babf54f86c9482f"
+source = "git+https://github.com/gear-tech/gear#bcfaff193e749b979446a52ad6cc7112468e7fa5"
 dependencies = [
  "derive_more",
  "num-traits",
