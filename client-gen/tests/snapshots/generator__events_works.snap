@@ -30,7 +30,7 @@ impl<A: Default, R: Remoting<A>> ServiceWithEvents<R, A> {
         }
     }
 }
-impl<R, A> traits::ServiceWithEvents<R, A> for ServiceWithEvents<R, A>
+impl<R, A> traits::ServiceWithEvents<A> for ServiceWithEvents<R, A>
 where
     R: Remoting<A> + Clone,
     A: Default,
@@ -144,7 +144,7 @@ pub struct MyParam {
 }
 pub mod traits {
     use super::*;
-    pub trait ServiceWithEvents<R, TCallArgs> {
+    pub trait ServiceWithEvents<TCallArgs> {
         #[allow(clippy::type_complexity)]
         fn do_this(&mut self, p1: NonZeroU256, p2: MyParam) -> impl Call<TCallArgs, NonZeroU64>;
     }

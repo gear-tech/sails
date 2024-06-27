@@ -2,8 +2,8 @@ use cell::RefCell;
 use sails_rtl::gstd::gservice;
 use sails_rtl::prelude::*;
 
-pub struct IncDecSvc<'a> {
-    value: &'a RefCell<u64>,
+pub struct IncDecSvc<'q> {
+    value: &'q RefCell<u64>,
 }
 
 #[derive(Clone, sails_rtl::Encode, sails_rtl::TypeInfo)]
@@ -14,8 +14,8 @@ pub enum SvcEvents {
 }
 
 #[gservice(events = SvcEvents)]
-impl<'a> IncDecSvc<'a> {
-    pub fn new(value: &'a RefCell<u64>) -> Self {
+impl<'q> IncDecSvc<'q> {
+    pub fn new(value: &'q RefCell<u64>) -> Self {
         Self { value }
     }
 

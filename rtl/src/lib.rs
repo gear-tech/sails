@@ -2,6 +2,7 @@
 
 pub use hex::{self};
 pub use prelude::*;
+pub use spin::{self};
 
 pub mod calls;
 pub mod errors;
