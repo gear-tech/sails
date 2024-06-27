@@ -24,6 +24,16 @@ impl Exposure<SomeService> {
         let exposure_scope = sails_rtl::gstd::services::ExposureCallScope::new(self);
         self.inner.do_this()
     }
+    pub fn as_base_0(
+        &self,
+    ) -> &<ExtendedService1 as sails_rtl::gstd::services::Service>::Exposure {
+        &self.base_0
+    }
+    pub fn as_base_1(
+        &self,
+    ) -> &<ExtendedService2 as sails_rtl::gstd::services::Service>::Exposure {
+        &self.base_1
+    }
     pub async fn handle(&mut self, input: &[u8]) -> Vec<u8> {
         self.try_handle(input)
             .await
@@ -80,22 +90,6 @@ impl sails_rtl::gstd::services::Exposure for Exposure<SomeService> {
     }
     fn route(&self) -> &'static [u8] {
         self.route
-    }
-}
-impl AsRef<<ExtendedService1 as sails_rtl::gstd::services::Service>::Exposure>
-for Exposure<SomeService> {
-    fn as_ref(
-        &self,
-    ) -> &<ExtendedService1 as sails_rtl::gstd::services::Service>::Exposure {
-        &self.base_0
-    }
-}
-impl AsRef<<ExtendedService2 as sails_rtl::gstd::services::Service>::Exposure>
-for Exposure<SomeService> {
-    fn as_ref(
-        &self,
-    ) -> &<ExtendedService2 as sails_rtl::gstd::services::Service>::Exposure {
-        &self.base_1
     }
 }
 impl sails_rtl::gstd::services::Service for SomeService {
