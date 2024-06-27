@@ -199,12 +199,11 @@ fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
         .enumerate()
         .map(|(idx, base_type)| {
             let base_ident = Ident::new(&format!("base_{}", idx), Span::call_site());
+            let as_base_ident = Ident::new(&format!("as_base_{}", idx), Span::call_site());
 
-            let exposure_as_ref_impl = quote!(
-                impl AsRef<< #base_type as sails_rtl::gstd::services::Service>::Exposure> for Exposure< #service_type > {
-                    fn as_ref(&self) -> &< #base_type as sails_rtl::gstd::services::Service>::Exposure {
-                        &self. #base_ident
-                    }
+            let base_exposure_accessor = quote!(
+                pub fn #as_base_ident (&self) -> &< #base_type as sails_rtl::gstd::services::Service>::Exposure {
+                    &self. #base_ident
                 }
             );
 
@@ -225,12 +224,12 @@ fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
 
             let base_service_meta = quote!(sails_rtl::meta::AnyServiceMeta::new::< #base_type >());
 
-            (exposure_as_ref_impl, base_exposure_member, base_exposure_instantiation, base_exposure_invocation, base_service_meta)
+            (base_exposure_accessor, base_exposure_member, base_exposure_instantiation, base_exposure_invocation, base_service_meta)
         });
 
-    let exposure_as_ref_impls = code_for_base_types
+    let base_exposure_accessors = code_for_base_types
         .clone()
-        .map(|(exposure_as_ref_impl, ..)| exposure_as_ref_impl);
+        .map(|(base_exposure_accessor, ..)| base_exposure_accessor);
 
     let base_exposures_members = code_for_base_types
         .clone()
@@ -283,6 +282,8 @@ fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
         impl #service_type_args Exposure< #service_type > #service_type_constraints {
             #( #exposure_funcs )*
 
+            #( #base_exposure_accessors )*
+
             pub async fn handle(&mut self, #input_ident: &[u8]) -> Vec<u8> {
                 self.try_handle( #input_ident ).await.unwrap_or_else(|| {
                     #unexpected_route_panic
@@ -295,7 +296,7 @@ fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
                 None
             }
 
-            #(#invocation_funcs)*
+            #( #invocation_funcs )*
 
             #exposure_set_event_listener_code
         }
@@ -309,8 +310,6 @@ fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
                 self. #route_ident
             }
         }
-
-        #( #exposure_as_ref_impls )*
 
         impl #service_type_args sails_rtl::gstd::services::Service for #service_type #service_type_constraints {
             type Exposure = Exposure< #service_type >;
