@@ -57,7 +57,7 @@ async fn gservice_with_extends() {
         [EXTENDED_NAME_METHOD.encode(), EXTENDED_NAME_RESULT.encode()].concat()
     );
 
-    let _base: &<Base as Service>::Exposure = extended_svc.as_ref();
+    let _base: &<Base as Service>::Exposure = extended_svc.as_base_0();
 
     let output = extended_svc.handle(&BASE_NAME_METHOD.encode()).await;
     let mut output = output.as_slice();
