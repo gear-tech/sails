@@ -8,7 +8,7 @@ use sails_rtl::gstd::{
     services::Service as GStdService,
 };
 
-type Service = Puppeteer<GStdArgs, ThisThatSvc<GStdRemoting, GStdArgs>>;
+type Service = Puppeteer<GStdArgs, GStdRemoting, ThisThatSvc<GStdRemoting, GStdArgs>>;
 
 static mut SERVICE: Option<Service> = None;
 

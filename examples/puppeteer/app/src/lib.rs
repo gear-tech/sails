@@ -5,23 +5,30 @@ pub mod puppet;
 use core::marker::PhantomData;
 use gstd::prelude::*;
 use puppet::traits::ThisThatSvc;
-use sails_rtl::{calls::Call, gstd::gservice, ActorId};
+use sails_rtl::{
+    calls::{Call, Remoting},
+    gstd::gservice,
+    ActorId,
+};
 
 #[derive(Clone)]
-pub struct Puppeteer<A: Default, Client: ThisThatSvc<A>> {
+pub struct Puppeteer<A: Default, R: Remoting<A>, Client: ThisThatSvc<A>> {
     _args: PhantomData<A>,
+    _remote: PhantomData<R>,
     puppet: Client,
 }
 
 #[gservice]
-impl<A, Client> Puppeteer<A, Client>
+impl<A, R, Client> Puppeteer<A, R, Client>
 where
     A: Default,
+    R: Remoting<A>,
     Client: ThisThatSvc<A>,
 {
     pub const fn new(puppet: Client) -> Self {
         Self {
             _args: PhantomData,
+            _remote: PhantomData,
             puppet,
         }
     }
@@ -60,7 +67,6 @@ mod tests {
         assert_eq!(
             bytes,
             vec![
-                44, 84, 104, 105, 115, 84, 104, 97, 116, 83, 118, 99, // ThisThatSvc
                 24, 68, 111, 84, 104, 97, 116, // DoThat
                 255, 255, 255, 255, // p1
                 20, 104, 101, 108, 108, 111, // p2
