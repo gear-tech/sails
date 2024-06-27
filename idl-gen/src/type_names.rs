@@ -20,13 +20,14 @@
 
 use crate::errors::{Error, Result};
 use convert_case::{Case, Casing};
-use sails_rtl::{ActorId, CodeId, MessageId, H256, U256};
+use sails_rtl::{ActorId, CodeId, MessageId, NonZeroU256, H256, U256};
 use scale_info::{
     form::PortableForm, PortableType, Type, TypeDef, TypeDefArray, TypeDefPrimitive,
     TypeDefSequence, TypeDefTuple, TypeInfo,
 };
 use std::{
     collections::{BTreeMap, HashMap},
+    num::{NonZeroU128, NonZeroU16, NonZeroU32, NonZeroU64, NonZeroU8},
     rc::Rc,
     result::Result as StdResult,
     sync::OnceLock,
@@ -109,6 +110,18 @@ fn resolve_type_name(
                 Rc::new(H256TypeName::new())
             } else if U256TypeName::is_u256_type(type_info) {
                 Rc::new(U256TypeName::new())
+            } else if nat8::TypeNameImpl::is_type(type_info) {
+                Rc::new(nat8::TypeNameImpl::new())
+            } else if nat16::TypeNameImpl::is_type(type_info) {
+                Rc::new(nat16::TypeNameImpl::new())
+            } else if nat32::TypeNameImpl::is_type(type_info) {
+                Rc::new(nat32::TypeNameImpl::new())
+            } else if nat64::TypeNameImpl::is_type(type_info) {
+                Rc::new(nat64::TypeNameImpl::new())
+            } else if nat128::TypeNameImpl::is_type(type_info) {
+                Rc::new(nat128::TypeNameImpl::new())
+            } else if nat256::TypeNameImpl::is_type(type_info) {
+                Rc::new(nat256::TypeNameImpl::new())
             } else {
                 Rc::new(ByPathTypeName::new(
                     types,
@@ -775,6 +788,49 @@ impl TypeName for PrimitiveTypeName {
     }
 }
 
+macro_rules! impl_primitive_alias_type_name {
+    ($primitive:ident, $alias:ident) => {
+        mod $alias {
+            use super::*;
+
+            pub(super) struct TypeNameImpl;
+
+            impl TypeNameImpl {
+                pub fn new() -> Self {
+                    Self
+                }
+
+                pub fn is_type(type_info: &Type<PortableForm>) -> bool {
+                    static TYPE_INFO: OnceLock<Type> = OnceLock::new();
+                    let info = TYPE_INFO.get_or_init($primitive::type_info);
+                    info.path.segments == type_info.path.segments
+                }
+            }
+
+            impl TypeName for TypeNameImpl {
+                fn as_string(
+                    &self,
+                    for_generic_param: bool,
+                    _by_path_type_names: &HashMap<(String, Vec<u32>), u32>,
+                ) -> String {
+                    if for_generic_param {
+                        stringify!($primitive).into()
+                    } else {
+                        stringify!($alias).into()
+                    }
+                }
+            }
+        }
+    };
+}
+
+impl_primitive_alias_type_name!(NonZeroU8, nat8);
+impl_primitive_alias_type_name!(NonZeroU16, nat16);
+impl_primitive_alias_type_name!(NonZeroU32, nat32);
+impl_primitive_alias_type_name!(NonZeroU64, nat64);
+impl_primitive_alias_type_name!(NonZeroU128, nat128);
+impl_primitive_alias_type_name!(NonZeroU256, nat256);
+
 #[cfg(test)]
 mod tests {
     use std::result;
@@ -1075,5 +1131,56 @@ mod tests {
 
         let t2_name = type_names.get(&t2_id).unwrap();
         assert_eq!(t2_name, "TestsMod2T2");
+    }
+
+    macro_rules! type_name_resolution_works {
+        ($primitive:ident, $alias:ident) => {
+            let mut registry = Registry::new();
+            let id = registry.register_type(&MetaType::new::<$primitive>()).id;
+            let as_generic_param_id = registry
+                .register_type(&MetaType::new::<GenericStruct<$primitive>>())
+                .id;
+            let portable_registry = PortableRegistry::from(registry);
+
+            let type_names = resolve(portable_registry.types.iter()).unwrap();
+
+            let name = type_names.get(&id).unwrap();
+            assert_eq!(name, stringify!($alias));
+            let as_generic_param_name = type_names.get(&as_generic_param_id).unwrap();
+            assert_eq!(
+                as_generic_param_name,
+                concat!("GenericStructFor", stringify!($primitive))
+            );
+        };
+    }
+
+    #[test]
+    fn nonzero_u8_type_name_resolution_works() {
+        type_name_resolution_works!(NonZeroU8, nat8);
+    }
+
+    #[test]
+    fn nonzero_u16_type_name_resolution_works() {
+        type_name_resolution_works!(NonZeroU16, nat16);
+    }
+
+    #[test]
+    fn nonzero_u32_type_name_resolution_works() {
+        type_name_resolution_works!(NonZeroU32, nat32);
+    }
+
+    #[test]
+    fn nonzero_u64_type_name_resolution_works() {
+        type_name_resolution_works!(NonZeroU64, nat64);
+    }
+
+    #[test]
+    fn nonzero_u128_type_name_resolution_works() {
+        type_name_resolution_works!(NonZeroU128, nat128);
+    }
+
+    #[test]
+    fn nonzero_u256_type_name_resolution_works() {
+        type_name_resolution_works!(NonZeroU256, nat256);
     }
 }

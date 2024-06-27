@@ -47,4 +47,8 @@ pub enum RtlError {
     ReplyHasErrorString(String),
     #[error("event name is not found")]
     EventNameIsNotFound,
+    #[error("event is not found")]
+    EventIsNotFound,
+    #[error("event prefix mismatches")]
+    EventPrefixMismatches,
 }

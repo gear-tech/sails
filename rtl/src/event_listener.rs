@@ -1,8 +1,5 @@
-use scale_info::StaticTypeInfo;
-
 use crate::{
     errors::{Result, RtlError},
-    gstd::events::encoded_event_names,
     ActorId, Decode, Vec,
 };
 
@@ -20,50 +17,67 @@ pub trait EventListener {
 }
 
 #[allow(async_fn_in_trait)]
-pub trait Subscribe<E: StaticTypeInfo + Decode> {
+pub trait Subscribe<E: Decode> {
     async fn subscribe(&mut self, source: ActorId) -> Result<impl Listen<E>>;
 }
 
 #[allow(async_fn_in_trait)]
-pub trait Listen<E: StaticTypeInfo + Decode> {
+pub trait Listen<E: Decode> {
     async fn next_event(&mut self) -> Result<E>;
 }
 
 pub struct RemotingSubscribe<R: EventSubscriber> {
     remoting: R,
     route: &'static [u8],
+    event_names: &'static [&'static [u8]],
 }
 
 impl<R: EventSubscriber> RemotingSubscribe<R> {
-    pub fn new(remoting: R, route: &'static [u8]) -> Self {
-        Self { remoting, route }
+    pub fn new(remoting: R, route: &'static [u8], event_names: &'static [&'static [u8]]) -> Self {
+        Self {
+            remoting,
+            route,
+            event_names,
+        }
     }
 }
 
-impl<R: EventSubscriber, E: StaticTypeInfo + Decode> Subscribe<E> for RemotingSubscribe<R> {
+impl<R: EventSubscriber, E: Decode> Subscribe<E> for RemotingSubscribe<R> {
     async fn subscribe(&mut self, source: ActorId) -> Result<impl Listen<E>> {
         let listener = self.remoting.subscribe().await?;
-        Ok(ClientListener::new(listener, self.route, source))
+        Ok(ClientListener::new(
+            listener,
+            self.route,
+            self.event_names,
+            source,
+        ))
     }
 }
 
 pub struct ClientListener<L: EventListener> {
     listener: L,
     route: &'static [u8],
+    event_names: &'static [&'static [u8]],
     source: ActorId,
 }
 
 impl<L: EventListener> ClientListener<L> {
-    pub fn new(listener: L, route: &'static [u8], source: ActorId) -> Self {
+    pub fn new(
+        listener: L,
+        route: &'static [u8],
+        event_names: &'static [&'static [u8]],
+        source: ActorId,
+    ) -> Self {
         Self {
             listener,
             route,
+            event_names,
             source,
         }
     }
 }
 
-impl<L: EventListener, E: StaticTypeInfo + Decode> Listen<E> for ClientListener<L> {
+impl<L: EventListener, E: Decode> Listen<E> for ClientListener<L> {
     async fn next_event(&mut self) -> Result<E> {
         let (_, payload) = self
             .listener
@@ -72,8 +86,7 @@ impl<L: EventListener, E: StaticTypeInfo + Decode> Listen<E> for ClientListener<
             })
             .await?;
         let event_bytes = &payload[self.route.len()..];
-        let event_names = encoded_event_names::<E>()?;
-        for (idx, name) in event_names.iter().enumerate() {
+        for (idx, name) in self.event_names.iter().enumerate() {
             if event_bytes.starts_with(name) {
                 let idx = idx as u8;
                 let bytes = [&[idx], &event_bytes[name.len()..]].concat();

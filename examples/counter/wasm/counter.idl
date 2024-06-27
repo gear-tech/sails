@@ -1,0 +1,20 @@
+constructor {
+  WithInitialValue : (init_value: u64);
+};
+
+service IncDec {
+  Dec : (val: u64) -> u64;
+  Inc : (val: u64) -> u64;
+  Reset : () -> null;
+
+  events {
+    Inc: u64;
+    Dec: u64;
+    Reset;
+  }
+};
+
+service Query {
+  query CurrentValue : () -> u64;
+};
+
