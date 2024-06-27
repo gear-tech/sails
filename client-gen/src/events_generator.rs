@@ -26,7 +26,6 @@ impl EventsModuleGenerator {
 
 impl<'ast> Visitor<'ast> for EventsModuleGenerator {
     fn visit_service(&mut self, service: &'ast Service) {
-        let name = self.service_name.to_case(Case::Snake);
         let (service_path_bytes, _) = path_bytes(&self.path);
         let event_names_bytes = service
             .events()
@@ -36,7 +35,7 @@ impl<'ast> Visitor<'ast> for EventsModuleGenerator {
             .join("], &[");
 
         quote_in! { self.tokens =>
-            pub mod $(name)_events $("{")
+            pub mod events $("{")
                 use super::*;
                 #[derive(PartialEq, Debug, Encode, Decode)]
                 #[codec(crate = sails_rtl::scale_codec)]
@@ -122,7 +121,7 @@ impl EventsTraitGenerator {
         let name = self.service_name.to_case(Case::Snake);
         quote! {
             pub trait $(&self.service_name)Listener {
-                fn listener(self) -> impl Subscribe<$(name)_events::$(&self.service_name)Events>;
+                fn listener(self) -> impl Subscribe<$(name)::events::$(&self.service_name)Events>;
             }
         }
     }

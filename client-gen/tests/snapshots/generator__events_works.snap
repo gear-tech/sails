@@ -43,76 +43,79 @@ where
         )
     }
 }
-pub mod service_with_events_io {
+pub mod service_with_events {
     use super::*;
-    #[derive(Debug, Default, Clone, Copy)]
-    pub struct DoThis(());
-    impl DoThis {
-        #[allow(dead_code)]
-        pub fn encode_call(p1: NonZeroU256, p2: super::MyParam) -> Vec<u8> {
-            let args = (p1, p2);
-            let mut result = Vec::with_capacity(7 + args.encoded_size());
-            result.extend_from_slice(&[]);
-            result.extend_from_slice(&[24, 68, 111, 84, 104, 105, 115]);
-            args.encode_to(&mut result);
-            result
-        }
-        #[allow(dead_code)]
-        pub fn decode_reply(mut reply: &[u8]) -> Result<NonZeroU64, sails_rtl::errors::Error> {
-            if !reply.starts_with(&[24, 68, 111, 84, 104, 105, 115]) {
-                return Err(sails_rtl::errors::Error::Rtl(
-                    sails_rtl::errors::RtlError::ReplyPrefixMismatches,
-                ));
+    pub mod io {
+        use super::*;
+        #[derive(Debug, Default, Clone, Copy)]
+        pub struct DoThis(());
+        impl DoThis {
+            #[allow(dead_code)]
+            pub fn encode_call(p1: NonZeroU256, p2: super::MyParam) -> Vec<u8> {
+                let args = (p1, p2);
+                let mut result = Vec::with_capacity(7 + args.encoded_size());
+                result.extend_from_slice(&[]);
+                result.extend_from_slice(&[24, 68, 111, 84, 104, 105, 115]);
+                args.encode_to(&mut result);
+                result
             }
-            reply = &reply[7..];
-            let result = Decode::decode(&mut reply).map_err(sails_rtl::errors::Error::Codec)?;
-            Ok(result)
-        }
-    }
-}
-pub mod service_with_events_events {
-    use super::*;
-    #[derive(PartialEq, Debug, Encode, Decode)]
-    #[codec(crate = sails_rtl::scale_codec)]
-    pub enum ServiceWithEventsEvents {
-        One(u64),
-        Two { id: u8, reference: u64 },
-        Three(MyParam),
-        Reset,
-    }
-    #[derive(Clone)]
-    pub struct Listener<R, A>
-    where
-        R: Remoting<A> + Clone + EventSubscriber,
-        A: Default,
-    {
-        remoting: R,
-        _phantom: PhantomData<A>,
-    }
-    impl<A: Default, R: Remoting<A> + Clone + EventSubscriber> Listener<R, A> {
-        pub fn new(remoting: &R) -> Self {
-            Self {
-                remoting: remoting.clone(),
-                _phantom: PhantomData,
+            #[allow(dead_code)]
+            pub fn decode_reply(mut reply: &[u8]) -> Result<NonZeroU64, sails_rtl::errors::Error> {
+                if !reply.starts_with(&[24, 68, 111, 84, 104, 105, 115]) {
+                    return Err(sails_rtl::errors::Error::Rtl(
+                        sails_rtl::errors::RtlError::ReplyPrefixMismatches,
+                    ));
+                }
+                reply = &reply[7..];
+                let result = Decode::decode(&mut reply).map_err(sails_rtl::errors::Error::Codec)?;
+                Ok(result)
             }
         }
     }
-    impl<R, A> traits::ServiceWithEventsListener for Listener<R, A>
-    where
-        R: Remoting<A> + Clone + EventSubscriber,
-        A: Default,
-    {
-        fn listener(self) -> impl Subscribe<ServiceWithEventsEvents> {
-            RemotingSubscribe::new(
-                self.remoting,
-                &[],
-                &[
-                    &[12, 79, 110, 101],
-                    &[12, 84, 119, 111],
-                    &[20, 84, 104, 114, 101, 101],
-                    &[20, 82, 101, 115, 101, 116],
-                ],
-            )
+    pub mod events {
+        use super::*;
+        #[derive(PartialEq, Debug, Encode, Decode)]
+        #[codec(crate = sails_rtl::scale_codec)]
+        pub enum ServiceWithEventsEvents {
+            One(u64),
+            Two { id: u8, reference: u64 },
+            Three(MyParam),
+            Reset,
+        }
+        #[derive(Clone)]
+        pub struct Listener<R, A>
+        where
+            R: Remoting<A> + Clone + EventSubscriber,
+            A: Default,
+        {
+            remoting: R,
+            _phantom: PhantomData<A>,
+        }
+        impl<A: Default, R: Remoting<A> + Clone + EventSubscriber> Listener<R, A> {
+            pub fn new(remoting: &R) -> Self {
+                Self {
+                    remoting: remoting.clone(),
+                    _phantom: PhantomData,
+                }
+            }
+        }
+        impl<R, A> traits::ServiceWithEventsListener for Listener<R, A>
+        where
+            R: Remoting<A> + Clone + EventSubscriber,
+            A: Default,
+        {
+            fn listener(self) -> impl Subscribe<ServiceWithEventsEvents> {
+                RemotingSubscribe::new(
+                    self.remoting,
+                    &[],
+                    &[
+                        &[12, 79, 110, 101],
+                        &[12, 84, 119, 111],
+                        &[20, 84, 104, 114, 101, 101],
+                        &[20, 82, 101, 115, 101, 116],
+                    ],
+                )
+            }
         }
     }
 }
@@ -130,6 +133,6 @@ pub mod traits {
         fn do_this(&mut self, p1: NonZeroU256, p2: MyParam) -> impl Call<TCallArgs, NonZeroU64>;
     }
     pub trait ServiceWithEventsListener {
-        fn listener(self) -> impl Subscribe<service_with_events_events::ServiceWithEventsEvents>;
+        fn listener(self) -> impl Subscribe<service_with_events::events::ServiceWithEventsEvents>;
     }
 }

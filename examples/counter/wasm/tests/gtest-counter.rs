@@ -1,4 +1,4 @@
-use counter_client::inc_dec_events::IncDecEvents;
+use counter_client::inc_dec::events::IncDecEvents;
 use counter_client::traits::{CounterFactory, IncDec, IncDecListener, Query};
 use sails_rtl::{
     calls::{Action, Activation, Call},
@@ -31,7 +31,7 @@ async fn counter_succeed() {
         .await
         .unwrap();
 
-    let mut incdec_listener = counter_client::inc_dec_events::Listener::new(&remoting).listener();
+    let mut incdec_listener = counter_client::inc_dec::events::Listener::new(&remoting).listener();
     // Typed service event listener
     let mut listener = incdec_listener.subscribe(program_id).await.unwrap();
 
