@@ -44,4 +44,6 @@ pub enum RtlError {
     EventNameIsNotFound,
     #[error("event is not found")]
     EventIsNotFound,
+    #[error("event prefix mismatches")]
+    EventPrefixMismatches,
 }

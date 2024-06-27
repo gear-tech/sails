@@ -82,6 +82,13 @@ pub mod service_with_events {
             Three(MyParam),
             Reset,
         }
+        const SERVICE_ROUTE: &[u8] = &[];
+        const EVENT_NAMES: &[&[u8]] = &[
+            &[12, 79, 110, 101],
+            &[12, 84, 119, 111],
+            &[20, 84, 104, 114, 101, 101],
+            &[20, 82, 101, 115, 101, 116],
+        ];
         #[derive(Clone)]
         pub struct Listener<R, A>
         where
@@ -105,17 +112,26 @@ pub mod service_with_events {
             A: Default,
         {
             fn listener(self) -> impl Subscribe<ServiceWithEventsEvents> {
-                RemotingSubscribe::new(
-                    self.remoting,
-                    &[],
-                    &[
-                        &[12, 79, 110, 101],
-                        &[12, 84, 119, 111],
-                        &[20, 84, 104, 114, 101, 101],
-                        &[20, 82, 101, 115, 101, 116],
-                    ],
-                )
+                RemotingSubscribe::new(self.remoting, SERVICE_ROUTE, EVENT_NAMES)
             }
+        }
+        #[allow(dead_code)]
+        pub fn decode_event(
+            payload: &[u8],
+        ) -> Result<ServiceWithEventsEvents, sails_rtl::errors::Error> {
+            if !payload.starts_with(SERVICE_ROUTE) {
+                return Err(sails_rtl::errors::RtlError::EventPrefixMismatches)?;
+            }
+            let event_bytes = &payload[0..];
+            for (idx, name) in EVENT_NAMES.iter().enumerate() {
+                if event_bytes.starts_with(name) {
+                    let idx = idx as u8;
+                    let bytes = [&[idx], &event_bytes[name.len()..]].concat();
+                    let mut event_bytes = &bytes[..];
+                    return Ok(ServiceWithEventsEvents::decode(&mut event_bytes)?);
+                }
+            }
+            Err(sails_rtl::errors::RtlError::EventNameIsNotFound)?
         }
     }
 }

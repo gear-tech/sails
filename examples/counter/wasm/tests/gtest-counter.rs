@@ -75,8 +75,16 @@ async fn counter_succeed() {
 
     let event = remoting_listener.next_event(|_| true).await.unwrap();
     println!("{:?}", event);
+    assert_eq!(
+        IncDecEvents::Inc(32),
+        counter_client::inc_dec::events::decode_event(&event.1).unwrap()
+    );
     let event = remoting_listener.next_event(|_| true).await.unwrap();
     println!("{:?}", event);
+    assert_eq!(
+        IncDecEvents::Dec(1),
+        counter_client::inc_dec::events::decode_event(&event.1).unwrap()
+    );
 
     let event = listener.next_event().await.unwrap();
     assert_eq!(IncDecEvents::Inc(32), event);

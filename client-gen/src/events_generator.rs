@@ -26,7 +26,8 @@ impl EventsModuleGenerator {
 
 impl<'ast> Visitor<'ast> for EventsModuleGenerator {
     fn visit_service(&mut self, service: &'ast Service) {
-        let (service_path_bytes, _) = path_bytes(&self.path);
+        let events_name = format!("{}Events", self.service_name);
+        let (service_path_bytes, service_path_length) = path_bytes(&self.path);
         let event_names_bytes = service
             .events()
             .iter()
@@ -39,7 +40,7 @@ impl<'ast> Visitor<'ast> for EventsModuleGenerator {
                 use super::*;
                 #[derive(PartialEq, Debug, Encode, Decode)]
                 #[codec(crate = sails_rtl::scale_codec)]
-                pub enum $(&self.service_name)Events $("{")
+                pub enum $(&events_name) $("{")
         };
 
         visitor::accept_service(service, self);
@@ -49,6 +50,9 @@ impl<'ast> Visitor<'ast> for EventsModuleGenerator {
         };
 
         quote_in! { self.tokens =>
+            const SERVICE_ROUTE: &[u8] = &[$service_path_bytes];
+            const EVENT_NAMES: &[&[u8]] = &[&[$event_names_bytes]];
+
             #[derive(Clone)]
             pub struct Listener<R, A>
             where
@@ -73,13 +77,30 @@ impl<'ast> Visitor<'ast> for EventsModuleGenerator {
                 R: Remoting<A> + Clone + EventSubscriber,
                 A: Default,
             {
-                fn listener(self) -> impl Subscribe<$(&self.service_name)Events> {
+                fn listener(self) -> impl Subscribe<$(&events_name)> {
                     RemotingSubscribe::new(
                         self.remoting,
-                        &[$service_path_bytes],
-                        &[&[$event_names_bytes]],
+                        SERVICE_ROUTE,
+                        EVENT_NAMES,
                     )
                 }
+            }
+
+            #[allow(dead_code)]
+            pub fn decode_event(payload: &[u8]) -> Result<$(&events_name), sails_rtl::errors::Error> {
+                if !payload.starts_with(SERVICE_ROUTE) {
+                    return Err(sails_rtl::errors::RtlError::EventPrefixMismatches)?;
+                }
+                let event_bytes = &payload[$(service_path_length)..];
+                for (idx, name) in EVENT_NAMES.iter().enumerate() {
+                    if event_bytes.starts_with(name) {
+                        let idx = idx as u8;
+                        let bytes = [&[idx], &event_bytes[name.len()..]].concat();
+                        let mut event_bytes = &bytes[..];
+                        return Ok($(&events_name)::decode(&mut event_bytes)?);
+                    }
+                }
+                Err(sails_rtl::errors::RtlError::EventNameIsNotFound)?
             }
         }
 
