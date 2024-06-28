@@ -29,7 +29,7 @@ impl<'a> CounterService<'a> {
 }
 
 #[gservice(events = CounterEvents)]
-impl<'b> CounterService<'b> {
+impl<'a> CounterService<'a> {
     pub fn add(&mut self, value: u32) -> u32 {
         self.data.counter += value;
         self.notify_on(CounterEvents::Added(value)).unwrap();
