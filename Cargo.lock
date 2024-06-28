@@ -889,6 +889,41 @@ dependencies = [
 ]
 
 [[package]]
+name = "demo"
+version = "0.1.0"
+dependencies = [
+ "demo-app",
+ "gear-wasm-builder",
+ "sails-idl-gen",
+ "sails-rtl",
+]
+
+[[package]]
+name = "demo-app"
+version = "0.1.0"
+dependencies = [
+ "demo-walker",
+ "gstd",
+ "sails-rtl",
+]
+
+[[package]]
+name = "demo-client"
+version = "0.1.0"
+dependencies = [
+ "demo",
+ "sails-client-gen",
+ "sails-rtl",
+]
+
+[[package]]
+name = "demo-walker"
+version = "0.1.0"
+dependencies = [
+ "sails-rtl",
+]
+
+[[package]]
 name = "der"
 version = "0.7.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3297,23 +3332,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8b870d8c151b6f2fb93e84a13146138f05d02ed11c7e7c54f8826aaaf7c9f184"
 
 [[package]]
-name = "ping"
-version = "0.1.0"
-dependencies = [
- "gear-wasm-builder",
- "ping-app",
- "sails-idl-gen",
- "sails-rtl",
-]
-
-[[package]]
-name = "ping-app"
-version = "0.1.0"
-dependencies = [
- "sails-rtl",
-]
-
-[[package]]
 name = "pkcs8"
 version = "0.10.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3422,6 +3440,24 @@ dependencies = [
 ]
 
 [[package]]
+name = "proxy"
+version = "0.1.0"
+dependencies = [
+ "gear-wasm-builder",
+ "proxy-app",
+ "sails-idl-gen",
+ "sails-rtl",
+]
+
+[[package]]
+name = "proxy-app"
+version = "0.1.0"
+dependencies = [
+ "demo-client",
+ "sails-rtl",
+]
+
+[[package]]
 name = "psm"
 version = "0.1.21"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3448,28 +3484,6 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 1.0.109",
-]
-
-[[package]]
-name = "puppeteer-app"
-version = "0.1.0"
-dependencies = [
- "gstd",
- "parity-scale-codec",
- "sails-client-gen",
- "sails-rtl",
- "scale-info",
-]
-
-[[package]]
-name = "puppeteer-svc"
-version = "0.1.0"
-dependencies = [
- "gear-wasm-builder",
- "gstd",
- "puppeteer-app",
- "sails-idl-gen",
- "sails-rtl",
 ]
 
 [[package]]
@@ -3616,25 +3630,6 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 2.0.68",
-]
-
-[[package]]
-name = "references"
-version = "0.1.0"
-dependencies = [
- "gear-wasm-builder",
- "gstd",
- "references-app",
- "sails-idl-gen",
- "sails-rtl",
-]
-
-[[package]]
-name = "references-app"
-version = "0.1.0"
-dependencies = [
- "gstd",
- "sails-rtl",
 ]
 
 [[package]]
@@ -4872,25 +4867,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "06794f8f6c5c898b3275aebefa6b8a1cb24cd2c6c79397ab15774837a0bc5755"
 dependencies = [
  "winapi-util",
-]
-
-[[package]]
-name = "this-that-svc"
-version = "0.1.0"
-dependencies = [
- "gear-wasm-builder",
- "gstd",
- "sails-idl-gen",
- "sails-rtl",
- "this-that-svc-app",
-]
-
-[[package]]
-name = "this-that-svc-app"
-version = "0.1.0"
-dependencies = [
- "gstd",
- "sails-rtl",
 ]
 
 [[package]]

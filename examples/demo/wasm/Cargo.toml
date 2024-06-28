@@ -1,0 +1,13 @@
+[package]
+name = "demo"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+demo-app = { path = "../app" }
+sails-rtl.workspace = true
+
+[build-dependencies]
+demo-app = { path = "../app" }
+gwasm-builder.workspace = true
+sails-idl-gen.workspace = true
