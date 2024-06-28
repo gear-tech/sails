@@ -52,8 +52,10 @@ interface SailsServiceEvent {
   readonly is: (event: UserMessageSent) => boolean;
   /** ### Decode event payload */
   readonly decode: (payload: HexString) => any;
-  /** ### Subscribe to event */
-  readonly subscribe: <T>(cb: (event: T) => void | Promise<void>) => void;
+  /** ### Subscribe to event
+   * @returns Promise with unsubscribe function
+   */
+  readonly subscribe: <T>(cb: (event: T) => void | Promise<void>) => Promise<() => void>;
 }
 
 interface ISailsCtorFuncParams {
@@ -228,7 +230,11 @@ export class Sails {
         },
         decodePayload: <T = any>(bytes: HexString) => {
           const payload = this.registry.createType(`(String, String, ${params.map((p) => p.type).join(', ')})`, bytes);
-          return payload[2].toJSON() as T;
+          const result = {} as Record<string, any>;
+          params.forEach((param, i) => {
+            result[param.name] = payload[i + 2].toJSON();
+          });
+          return result as T;
         },
         decodeResult: <T = any>(result: HexString) => {
           const payload = this.registry.createType(`(String, String, ${returnType})`, result);
@@ -268,7 +274,7 @@ export class Sails {
           const data = this.registry.createType(`(String, String, ${typeStr})`, payload);
           return data[2].toJSON();
         },
-        subscribe: <T extends any = any>(cb: (eventData: T) => void | Promise<void>) => {
+        subscribe: <T extends any = any>(cb: (eventData: T) => void | Promise<void>): Promise<() => void> => {
           if (!this._api) {
             throw new Error('API is not set. Use .setApi method to set API instance');
           }
@@ -277,7 +283,7 @@ export class Sails {
             throw new Error('Program ID is not set. Use .setProgramId method to set program ID');
           }
 
-          this._api.gearEvents.subscribeToGearEvent('UserMessageSent', ({ data: { message } }) => {
+          return this._api.gearEvents.subscribeToGearEvent('UserMessageSent', ({ data: { message } }) => {
             if (!message.source.eq(this._programId)) return;
             if (!message.destination.eq(ZERO_ADDRESS)) return;
             const payload = message.payload.toHex();

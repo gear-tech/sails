@@ -29,7 +29,7 @@ impl<A: Default, R: Remoting<A>> Basic<R, A> {
         }
     }
 }
-impl<R, A> traits::Basic<R, A> for Basic<R, A>
+impl<R, A> traits::Basic<A> for Basic<R, A>
 where
     R: Remoting<A> + Clone,
     A: Default,
@@ -114,7 +114,7 @@ pub enum MyParam2 {
 }
 pub mod traits {
     use super::*;
-    pub trait Basic<R, TCallArgs> {
+    pub trait Basic<TCallArgs> {
         #[allow(clippy::type_complexity)]
         fn do_this(&mut self, p1: u32, p2: MyParam) -> impl Call<TCallArgs, u16>;
         #[allow(clippy::type_complexity)]

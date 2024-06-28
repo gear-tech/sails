@@ -8,6 +8,7 @@ export interface IMethodReturnType<T> {
   msgId: HexString;
   blockHash: HexString;
   txHash: HexString;
+  isFinalized: Promise<boolean>;
   response: () => Promise<T>;
 }
 
@@ -45,6 +46,7 @@ export class TransactionBuilder<ResponseType> {
     responseType: string,
     codeId: HexString,
   );
+
   constructor(
     private _api: GearApi,
     private _registry: TypeRegistry,
@@ -117,6 +119,10 @@ export class TransactionBuilder<ResponseType> {
         break;
       }
     }
+  }
+
+  public get extrinsic(): SubmittableExtrinsic<'promise', ISubmittableResult> {
+    return this._tx;
   }
 
   /**
@@ -250,6 +256,17 @@ export class TransactionBuilder<ResponseType> {
   }
 
   /**
+   * ## Get transaction fee
+   */
+  public async transactionFee(): Promise<bigint> {
+    if (!this._account) {
+      throw new Error('Account is required. Use withAccount() method to set account.');
+    }
+    const info = await this._tx.paymentInfo(this._account, this._signerOptions);
+    return info.partialFee.toBigInt();
+  }
+
+  /**
    * ## Sign and send transaction
    */
   public async signAndSend(): Promise<IMethodReturnType<ResponseType>> {
@@ -257,6 +274,12 @@ export class TransactionBuilder<ResponseType> {
       const callParams: ICallOptions = { SendMessage: this._tx };
       this._tx = this._api.voucher.call(this._voucher, callParams);
     }
+
+    let resolveFinalized: (value: boolean) => void;
+
+    const isFinalized = new Promise<boolean>((resolve) => {
+      resolveFinalized = resolve;
+    });
 
     const { msgId, blockHash } = await new Promise<{ msgId: HexString; blockHash: HexString }>((resolve, reject) =>
       this._tx
@@ -274,6 +297,8 @@ export class TransactionBuilder<ResponseType> {
                 reject(this._api.getExtrinsicFailedError(event));
               }
             });
+          } else if (status.isFinalized) {
+            resolveFinalized(true);
           }
         })
         .catch((error) => {
@@ -285,6 +310,7 @@ export class TransactionBuilder<ResponseType> {
       msgId,
       blockHash,
       txHash: this._tx.hash.toHex(),
+      isFinalized,
       response: async () => {
         const {
           data: { message },

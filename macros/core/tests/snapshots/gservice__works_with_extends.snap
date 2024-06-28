@@ -10,6 +10,11 @@ impl SomeService {
 pub struct Exposure<T> {
     message_id: sails_rtl::MessageId,
     route: &'static [u8],
+    #[cfg(not(target_arch = "wasm32"))]
+    inner: Box<T>,
+    #[cfg(not(target_arch = "wasm32"))]
+    inner_ptr: *const T,
+    #[cfg(target_arch = "wasm32")]
     inner: T,
     base_0: <ExtendedService1 as sails_rtl::gstd::services::Service>::Exposure,
     base_1: <ExtendedService2 as sails_rtl::gstd::services::Service>::Exposure,
@@ -19,7 +24,17 @@ impl Exposure<SomeService> {
         let exposure_scope = sails_rtl::gstd::services::ExposureCallScope::new(self);
         self.inner.do_this()
     }
-    pub async fn handle(&mut self, mut input: &[u8]) -> Vec<u8> {
+    pub fn as_base_0(
+        &self,
+    ) -> &<ExtendedService1 as sails_rtl::gstd::services::Service>::Exposure {
+        &self.base_0
+    }
+    pub fn as_base_1(
+        &self,
+    ) -> &<ExtendedService2 as sails_rtl::gstd::services::Service>::Exposure {
+        &self.base_1
+    }
+    pub async fn handle(&mut self, input: &[u8]) -> Vec<u8> {
         self.try_handle(input)
             .await
             .unwrap_or_else(|| {
@@ -77,22 +92,6 @@ impl sails_rtl::gstd::services::Exposure for Exposure<SomeService> {
         self.route
     }
 }
-impl AsRef<<ExtendedService1 as sails_rtl::gstd::services::Service>::Exposure>
-for Exposure<SomeService> {
-    fn as_ref(
-        &self,
-    ) -> &<ExtendedService1 as sails_rtl::gstd::services::Service>::Exposure {
-        &self.base_0
-    }
-}
-impl AsRef<<ExtendedService2 as sails_rtl::gstd::services::Service>::Exposure>
-for Exposure<SomeService> {
-    fn as_ref(
-        &self,
-    ) -> &<ExtendedService2 as sails_rtl::gstd::services::Service>::Exposure {
-        &self.base_1
-    }
-}
 impl sails_rtl::gstd::services::Service for SomeService {
     type Exposure = Exposure<SomeService>;
     fn expose(
@@ -100,17 +99,28 @@ impl sails_rtl::gstd::services::Service for SomeService {
         message_id: sails_rtl::MessageId,
         route: &'static [u8],
     ) -> Self::Exposure {
+        #[cfg(not(target_arch = "wasm32"))]
+        let inner_box = Box::new(self);
+        #[cfg(not(target_arch = "wasm32"))]
+        let inner = inner_box.as_ref();
+        #[cfg(target_arch = "wasm32")]
+        let inner = &self;
         Self::Exposure {
             message_id,
             route,
             base_0: <ExtendedService1 as Clone>::clone(
-                    AsRef::<ExtendedService1>::as_ref(&self),
+                    AsRef::<ExtendedService1>::as_ref(inner),
                 )
                 .expose(message_id, route),
             base_1: <ExtendedService2 as Clone>::clone(
-                    AsRef::<ExtendedService2>::as_ref(&self),
+                    AsRef::<ExtendedService2>::as_ref(inner),
                 )
                 .expose(message_id, route),
+            #[cfg(not(target_arch = "wasm32"))]
+            inner_ptr: inner_box.as_ref() as *const Self,
+            #[cfg(not(target_arch = "wasm32"))]
+            inner: inner_box,
+            #[cfg(target_arch = "wasm32")]
             inner: self,
         }
     }

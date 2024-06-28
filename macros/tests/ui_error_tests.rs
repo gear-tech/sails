@@ -19,12 +19,6 @@
 //! Integration tests for functionality provided by the `sails-macros` crate.
 
 #[test]
-fn gservice_works() {
-    let t = trybuild::TestCases::new();
-    t.pass("tests/ui/gservice_works*.rs");
-}
-
-#[test]
 fn gservice_fails() {
     let t = trybuild::TestCases::new();
     t.compile_fail("tests/ui/gservice_fails*.rs");
@@ -34,10 +28,4 @@ fn gservice_fails() {
 fn gprogram_fails() {
     let t = trybuild::TestCases::new();
     t.compile_fail("tests/ui/gprogram_fails*.rs");
-}
-
-#[test]
-fn gprogram_works() {
-    let t = trybuild::TestCases::new();
-    t.pass("tests/ui/gprogram_works*.rs");
 }
