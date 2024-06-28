@@ -30,8 +30,7 @@ use proc_macro_error::abort;
 use quote::quote;
 use std::collections::BTreeMap;
 use syn::{
-    parse_quote, spanned::Spanned, Ident, ImplItemFn, ItemImpl, Lifetime, Path, PathArguments,
-    Type, Visibility,
+    parse_quote, spanned::Spanned, Ident, ImplItemFn, ItemImpl, Lifetime, Path, Type, Visibility,
 };
 
 mod args;
@@ -253,17 +252,12 @@ fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
 
     let exposure_set_event_listener_code = events_type.map(|t| {
         // get non conflicting lifetime name
-        let lifetime_name =
-            if let PathArguments::AngleBracketed(type_args) = service_type_args.clone() {
-                let lifetimes = extract_lifetime_names(type_args);
-                let mut lt = "__elg".to_owned();
-                while lifetimes.contains(&lt) {
-                    lt = format!("_{}", lt);
-                }
-                format!("'{0}", lt)
-            } else {
-                "'__elg".to_owned()
-            };
+        let lifetimes = extract_lifetime_names(&service_type_args);
+        let mut lt = "__elg".to_owned();
+        while lifetimes.contains(&lt) {
+            lt = format!("_{}", lt);
+        }
+        let lifetime_name = format!("'{0}", lt);
         generate_exposure_set_event_listener(t, Lifetime::new(&lifetime_name, Span::call_site()))
     });
 

@@ -4,9 +4,8 @@ use proc_macro_error::abort;
 use quote::{quote, ToTokens};
 use std::collections::BTreeMap;
 use syn::{
-    spanned::Spanned, AngleBracketedGenericArguments, FnArg, GenericArgument, Ident, ImplItem,
-    ImplItemFn, ItemImpl, Pat, PathArguments, Receiver, ReturnType, Signature, Type, TypePath,
-    TypeTuple, WhereClause,
+    spanned::Spanned, FnArg, GenericArgument, Ident, ImplItem, ImplItemFn, ItemImpl, Pat,
+    PathArguments, Receiver, ReturnType, Signature, Type, TypePath, TypeTuple, WhereClause,
 };
 
 /// A struct that represents the type of an `impl` block.
@@ -177,16 +176,20 @@ pub(crate) fn generate_unexpected_input_panic(input_ident: &Ident, message: &str
     })
 }
 
-pub(crate) fn extract_lifetime_names(type_args: AngleBracketedGenericArguments) -> Vec<String> {
-    type_args
-        .args
-        .into_iter()
-        .filter_map(|a| {
-            if let GenericArgument::Lifetime(lifetime) = a {
-                Some(lifetime.ident.to_string())
-            } else {
-                None
-            }
-        })
-        .collect::<Vec<_>>()
+pub(crate) fn extract_lifetime_names(path_args: &PathArguments) -> Vec<String> {
+    if let PathArguments::AngleBracketed(type_args) = path_args.clone() {
+        type_args
+            .args
+            .into_iter()
+            .filter_map(|a| {
+                if let GenericArgument::Lifetime(lifetime) = a {
+                    Some(lifetime.ident.to_string())
+                } else {
+                    None
+                }
+            })
+            .collect::<Vec<_>>()
+    } else {
+        Vec::<String>::new()
+    }
 }

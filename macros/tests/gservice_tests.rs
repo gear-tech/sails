@@ -5,7 +5,7 @@ mod gservice_with_basics;
 mod gservice_with_events;
 mod gservice_with_extends;
 mod gservice_with_lifecycles_and_generics;
-mod gservice_with_lifecycles_generics_events;
+mod gservice_with_lifetimes_and_events;
 
 #[tokio::test]
 async fn gservice_with_basics() {
@@ -168,7 +168,7 @@ fn gservice_with_events() {
 
 #[tokio::test]
 async fn gservice_with_lifecycles_generics_events() {
-    use gservice_with_lifecycles_generics_events::{MyEvents, MyGenericEventsService};
+    use gservice_with_lifetimes_and_events::{MyEvents, MyGenericEventsService};
 
     const DO_THIS: &str = "DoThis";
 

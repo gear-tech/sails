@@ -84,7 +84,7 @@ fn works_with_events() {
 }
 
 #[test]
-fn works_withworks_with_lifetimes_generics_events() {
+fn works_with_lifetimes_and_events() {
     let args = quote! {
         events = MyEvents,
     };
