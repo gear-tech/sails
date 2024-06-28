@@ -20,7 +20,7 @@
 
 use crate::errors::{Error, Result};
 use convert_case::{Case, Casing};
-use sails_rtl::{ActorId, CodeId, MessageId, H256, U256};
+use sails_rtl::{ActorId, CodeId, MessageId, H160, H256, U256};
 use scale_info::{
     form::PortableForm, PortableType, Type, TypeDef, TypeDefArray, TypeDefPrimitive,
     TypeDefSequence, TypeDefTuple, TypeInfo,
@@ -105,10 +105,12 @@ fn resolve_type_name(
                 Rc::new(MessageIdTypeName::new())
             } else if CodeIdTypeName::is_code_id_type(type_info) {
                 Rc::new(CodeIdTypeName::new())
-            } else if H256TypeName::is_h256_type(type_info) {
-                Rc::new(H256TypeName::new())
-            } else if U256TypeName::is_u256_type(type_info) {
-                Rc::new(U256TypeName::new())
+            } else if h160::TypeNameImpl::is_type(type_info) {
+                Rc::new(h160::TypeNameImpl::new())
+            } else if h256::TypeNameImpl::is_type(type_info) {
+                Rc::new(h256::TypeNameImpl::new())
+            } else if u256::TypeNameImpl::is_type(type_info) {
+                Rc::new(u256::TypeNameImpl::new())
             } else {
                 Rc::new(ByPathTypeName::new(
                     types,
@@ -675,64 +677,6 @@ impl TypeName for CodeIdTypeName {
     }
 }
 
-/// H256 type name resolution.
-struct H256TypeName;
-
-impl H256TypeName {
-    pub fn new() -> Self {
-        Self
-    }
-
-    pub fn is_h256_type(type_info: &Type<PortableForm>) -> bool {
-        static H256_TYPE_INFO: OnceLock<Type> = OnceLock::new();
-        let h256_type_info = H256_TYPE_INFO.get_or_init(H256::type_info);
-        h256_type_info.path.segments == type_info.path.segments
-    }
-}
-
-impl TypeName for H256TypeName {
-    fn as_string(
-        &self,
-        for_generic_param: bool,
-        _by_path_type_names: &HashMap<(String, Vec<u32>), u32>,
-    ) -> String {
-        if for_generic_param {
-            "H256".into()
-        } else {
-            "h256".into()
-        }
-    }
-}
-
-/// U256 type name resolution.
-struct U256TypeName;
-
-impl U256TypeName {
-    pub fn new() -> Self {
-        Self
-    }
-
-    pub fn is_u256_type(type_info: &Type<PortableForm>) -> bool {
-        static U256_TYPE_INFO: OnceLock<Type> = OnceLock::new();
-        let u256_type_info = U256_TYPE_INFO.get_or_init(U256::type_info);
-        u256_type_info.path.segments == type_info.path.segments
-    }
-}
-
-impl TypeName for U256TypeName {
-    fn as_string(
-        &self,
-        for_generic_param: bool,
-        _by_path_type_names: &HashMap<(String, Vec<u32>), u32>,
-    ) -> String {
-        if for_generic_param {
-            "U256".into()
-        } else {
-            "u256".into()
-        }
-    }
-}
-
 /// Primitive type name resolution.
 struct PrimitiveTypeName {
     name: &'static str,
@@ -774,6 +718,46 @@ impl TypeName for PrimitiveTypeName {
         }
     }
 }
+
+macro_rules! impl_primitive_alias_type_name {
+    ($primitive:ident, $alias:ident) => {
+        mod $alias {
+            use super::*;
+
+            pub(super) struct TypeNameImpl;
+
+            impl TypeNameImpl {
+                pub fn new() -> Self {
+                    Self
+                }
+
+                pub fn is_type(type_info: &Type<PortableForm>) -> bool {
+                    static TYPE_INFO: OnceLock<Type> = OnceLock::new();
+                    let info = TYPE_INFO.get_or_init($primitive::type_info);
+                    info.path.segments == type_info.path.segments
+                }
+            }
+
+            impl TypeName for TypeNameImpl {
+                fn as_string(
+                    &self,
+                    for_generic_param: bool,
+                    _by_path_type_names: &HashMap<(String, Vec<u32>), u32>,
+                ) -> String {
+                    if for_generic_param {
+                        stringify!($primitive).into()
+                    } else {
+                        stringify!($alias).into()
+                    }
+                }
+            }
+        }
+    };
+}
+
+impl_primitive_alias_type_name!(H160, h160);
+impl_primitive_alias_type_name!(H256, h256);
+impl_primitive_alias_type_name!(U256, u256);
 
 #[cfg(test)]
 mod tests {

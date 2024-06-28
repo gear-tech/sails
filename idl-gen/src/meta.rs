@@ -22,7 +22,7 @@ use crate::{
     errors::{Error, Result},
     type_names,
 };
-use sails_rtl::{meta::AnyServiceMeta, ActorId, CodeId, MessageId, H256, U256};
+use sails_rtl::{meta::AnyServiceMeta, ActorId, CodeId, MessageId, H160, H256, U256};
 use scale_info::{
     form::PortableForm, Field, MetaType, PortableRegistry, PortableType, Registry, TypeDef, Variant,
 };
@@ -50,6 +50,7 @@ impl ExpandedProgramMeta {
                 MetaType::new::<ActorId>(),
                 MetaType::new::<CodeId>(),
                 MetaType::new::<MessageId>(),
+                MetaType::new::<H160>(),
                 MetaType::new::<H256>(),
                 MetaType::new::<U256>(),
             ])

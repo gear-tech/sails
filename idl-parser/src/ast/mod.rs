@@ -309,6 +309,7 @@ pub enum PrimitiveType {
     ActorId,
     CodeId,
     MessageId,
+    H160,
     H256,
     U256,
 }
@@ -329,6 +330,7 @@ impl PrimitiveType {
             "i32" => Some(PrimitiveType::I32),
             "i64" => Some(PrimitiveType::I64),
             "i128" => Some(PrimitiveType::I128),
+            "h160" => Some(PrimitiveType::H160),
             "h256" => Some(PrimitiveType::H256),
             "u256" => Some(PrimitiveType::U256),
             "actor_id" => Some(PrimitiveType::ActorId),
