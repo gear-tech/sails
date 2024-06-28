@@ -29,7 +29,10 @@ use proc_macro2::{Span, TokenStream};
 use proc_macro_error::abort;
 use quote::quote;
 use std::collections::BTreeMap;
-use syn::{parse_quote, spanned::Spanned, Ident, ImplItemFn, ItemImpl, Path, Type, Visibility};
+use syn::{
+    parse_quote, spanned::Spanned, GenericArgument, Ident, ImplItemFn, ItemImpl, Lifetime, Path,
+    PathArguments, Type, Visibility,
+};
 
 mod args;
 
@@ -248,7 +251,31 @@ fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
 
     let events_listeners_code = events_type.map(|_| generate_event_listeners());
 
-    let exposure_set_event_listener_code = events_type.map(generate_exposure_set_event_listener);
+    // get non conflicting lifetime name
+    let lifetime_name = if let PathArguments::AngleBracketed(type_args) = service_type_args.clone()
+    {
+        let lifetimes = type_args
+            .args
+            .into_iter()
+            .filter_map(|a| {
+                if let GenericArgument::Lifetime(lifetime) = a {
+                    Some(lifetime.ident.to_string())
+                } else {
+                    None
+                }
+            })
+            .collect::<Vec<_>>();
+        let mut lt = "l".to_owned();
+        while lifetimes.contains(&lt) {
+            lt = format!("{}_", lt);
+        }
+        format!("'{0}", lt)
+    } else {
+        "'l".to_owned()
+    };
+    let exposure_set_event_listener_code = events_type.map(|t| {
+        generate_exposure_set_event_listener(t, Lifetime::new(&lifetime_name, Span::call_site()))
+    });
 
     let exposure_drop_code = events_type.map(|_| generate_exposure_drop());
 
@@ -440,14 +467,14 @@ fn generate_exposure_drop() -> TokenStream {
     )
 }
 
-fn generate_exposure_set_event_listener(events_type: &Path) -> TokenStream {
+fn generate_exposure_set_event_listener(events_type: &Path, lifetime: Lifetime) -> TokenStream {
     quote!(
         #[cfg(not(target_arch = "wasm32"))]
         // Immutable so one can set it via AsRef when used with extending
-        pub fn set_event_listener<'a>(
+        pub fn set_event_listener<#lifetime>(
             &self,
-            listener: impl FnMut(& #events_type ) + 'a,
-        ) -> EventListenerGuard<'a> {
+            listener: impl FnMut(& #events_type ) + #lifetime,
+        ) -> EventListenerGuard<#lifetime> {
             if core::mem::size_of_val(self.inner.as_ref()) == 0 {
                 panic!("setting event listener on a zero-sized service is not supported for now");
             }

@@ -82,3 +82,25 @@ fn works_with_events() {
 
     insta::assert_snapshot!(result);
 }
+
+#[test]
+fn works_withworks_with_lifetimes_generics_events() {
+    let args = quote! {
+        events = MyEvents,
+    };
+    let input = quote! {
+        impl<'a, T> MyGenericEventsService<'a, T>
+        where
+            T: Clone,
+        {
+            pub fn do_this(&mut self) -> u32 {
+                42
+            }
+        }
+    };
+
+    let result = gservice(args, input).to_string();
+    let result = prettyplease::unparse(&syn::parse_str(&result).unwrap());
+
+    insta::assert_snapshot!(result);
+}
