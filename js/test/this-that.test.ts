@@ -74,18 +74,22 @@ describe('this-that', () => {
     const decodedWithH256 = sails.services.Service.functions.DoThat.decodePayload(payloadWithH256);
 
     expect(decodedWithH256).toEqual({
-      p1: 1,
-      p2: 'hello',
-      p3: { five: ['str', h256Hash] },
+      param: {
+        p1: 1,
+        p2: 'hello',
+        p3: { five: ['str', h256Hash] },
+      },
     });
 
     const decodedWithU256 = sails.services.Service.functions.DoThat.decodePayload(payloadWithU256);
-    decodedWithU256.p3.three = BigInt(decodedWithU256.p3.three); // TODO: find a better way to handle this
+    decodedWithU256.param.p3.three = BigInt(decodedWithU256.param.p3.three); // TODO: find a better way to handle this
 
     expect(decodedWithU256).toEqual({
-      p1: 2,
-      p2: 'world',
-      p3: { three: 1234567890n },
+      param: {
+        p1: 2,
+        p2: 'world',
+        p3: { three: 1234567890n },
+      },
     });
   });
 });
