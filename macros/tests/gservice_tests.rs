@@ -167,7 +167,7 @@ fn gservice_with_events() {
 }
 
 #[tokio::test]
-async fn gservice_with_lifecycles_generics_events() {
+async fn gservice_with_lifetimes_and_events() {
     use gservice_with_lifetimes_and_events::{MyEvents, MyGenericEventsService};
 
     const DO_THIS: &str = "DoThis";
