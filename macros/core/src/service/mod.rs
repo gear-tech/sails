@@ -20,7 +20,7 @@
 
 use crate::{
     sails_paths,
-    shared::{self, Func, ImplType},
+    shared::{self, extract_lifetime_names, Func, ImplType},
 };
 use args::ServiceArgs;
 use convert_case::{Case, Casing};
@@ -30,8 +30,8 @@ use proc_macro_error::abort;
 use quote::quote;
 use std::collections::BTreeMap;
 use syn::{
-    parse_quote, spanned::Spanned, GenericArgument, Ident, ImplItemFn, ItemImpl, Lifetime, Path,
-    PathArguments, Type, Visibility,
+    parse_quote, spanned::Spanned, Ident, ImplItemFn, ItemImpl, Lifetime, Path, PathArguments,
+    Type, Visibility,
 };
 
 mod args;
@@ -251,29 +251,19 @@ fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
 
     let events_listeners_code = events_type.map(|_| generate_event_listeners());
 
-    // get non conflicting lifetime name
-    let lifetime_name = if let PathArguments::AngleBracketed(type_args) = service_type_args.clone()
-    {
-        let lifetimes = type_args
-            .args
-            .into_iter()
-            .filter_map(|a| {
-                if let GenericArgument::Lifetime(lifetime) = a {
-                    Some(lifetime.ident.to_string())
-                } else {
-                    None
-                }
-            })
-            .collect::<Vec<_>>();
-        let mut lt = "l".to_owned();
-        while lifetimes.contains(&lt) {
-            lt = format!("{}_", lt);
-        }
-        format!("'{0}", lt)
-    } else {
-        "'l".to_owned()
-    };
     let exposure_set_event_listener_code = events_type.map(|t| {
+        // get non conflicting lifetime name
+        let lifetime_name =
+            if let PathArguments::AngleBracketed(type_args) = service_type_args.clone() {
+                let lifetimes = extract_lifetime_names(type_args);
+                let mut lt = "__elg".to_owned();
+                while lifetimes.contains(&lt) {
+                    lt = format!("_{}", lt);
+                }
+                format!("'{0}", lt)
+            } else {
+                "'__elg".to_owned()
+            };
         generate_exposure_set_event_listener(t, Lifetime::new(&lifetime_name, Span::call_site()))
     });
 

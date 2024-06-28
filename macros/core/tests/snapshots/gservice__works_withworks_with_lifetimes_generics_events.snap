@@ -97,10 +97,10 @@ where
         return result.encode();
     }
     #[cfg(not(target_arch = "wasm32"))]
-    pub fn set_event_listener<'l>(
+    pub fn set_event_listener<'__elg>(
         &self,
-        listener: impl FnMut(&MyEvents) + 'l,
-    ) -> EventListenerGuard<'l> {
+        listener: impl FnMut(&MyEvents) + '__elg,
+    ) -> EventListenerGuard<'__elg> {
         if core::mem::size_of_val(self.inner.as_ref()) == 0 {
             panic!(
                 "setting event listener on a zero-sized service is not supported for now"
