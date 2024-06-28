@@ -1,13 +1,12 @@
 use core::ptr;
 use sails_rtl::{gstd::gservice, prelude::*};
 
+// This example makes use of fully incapsulated static state.
+// It is safe to use this approach in WASM envrionment due to its single-threaded nature.
+// But there might be issues in multi-threaded environment like testing.
+// Tags: #state
 static mut COUNTER: ReferenceCount = ReferenceCount(0);
 static mut BYTES: Vec<u8> = Vec::new();
-
-#[derive(Debug, Encode, Decode, TypeInfo)]
-#[codec(crate = sails_rtl::scale_codec)]
-#[scale_info(crate = sails_rtl::scale_info)]
-pub struct ReferenceCount(u32);
 
 #[derive(Default)]
 pub struct ReferenceService(());
@@ -32,3 +31,8 @@ impl ReferenceService {
         }
     }
 }
+
+#[derive(Debug, Encode, Decode, TypeInfo)]
+#[codec(crate = sails_rtl::scale_codec)]
+#[scale_info(crate = sails_rtl::scale_info)]
+pub struct ReferenceCount(u32);
