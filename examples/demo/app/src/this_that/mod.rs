@@ -2,14 +2,10 @@ use gstd::{debug, prelude::*};
 use sails_rtl::{gstd::gservice, H256, U256};
 
 #[derive(Default)]
-pub struct MyService;
+pub struct MyService(());
 
 #[gservice]
 impl MyService {
-    pub const fn new() -> Self {
-        Self
-    }
-
     pub async fn do_this(
         &mut self,
         p1: u32,
@@ -35,7 +31,6 @@ impl MyService {
         42
     }
 
-    // That
     pub fn that(&self) -> Result<String, String> {
         debug!("Handling 'that'");
         Ok("Forty two".into())

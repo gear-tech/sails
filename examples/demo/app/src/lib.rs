@@ -78,6 +78,6 @@ impl DemoProgram {
     }
 
     pub fn this_that(&self) -> this_that::MyService {
-        this_that::MyService
+        this_that::MyService::default()
     }
 }
