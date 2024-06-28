@@ -1,4 +1,4 @@
-use sails_rtl::{gstd::gservice, prelude::*};
+use sails_rtl::{cell::RefCell, gstd::gservice, prelude::*};
 
 pub struct CounterData {
     counter: u32,
@@ -19,11 +19,11 @@ enum CounterEvents {
 }
 
 pub struct CounterService<'a> {
-    data: &'a mut CounterData,
+    data: &'a RefCell<CounterData>,
 }
 
 impl<'a> CounterService<'a> {
-    pub fn new(data: &'a mut CounterData) -> Self {
+    pub fn new(data: &'a RefCell<CounterData>) -> Self {
         Self { data }
     }
 }
@@ -31,18 +31,20 @@ impl<'a> CounterService<'a> {
 #[gservice(events = CounterEvents)]
 impl<'a> CounterService<'a> {
     pub fn add(&mut self, value: u32) -> u32 {
-        self.data.counter += value;
+        let mut data_mut = self.data.borrow_mut();
+        data_mut.counter += value;
         self.notify_on(CounterEvents::Added(value)).unwrap();
-        self.data.counter
+        data_mut.counter
     }
 
     pub fn sub(&mut self, value: u32) -> u32 {
-        self.data.counter -= value;
+        let mut data_mut = self.data.borrow_mut();
+        data_mut.counter -= value;
         self.notify_on(CounterEvents::Subtracted(value)).unwrap();
-        self.data.counter
+        data_mut.counter
     }
 
     pub fn value(&self) -> u32 {
-        self.data.counter
+        self.data.borrow().counter
     }
 }

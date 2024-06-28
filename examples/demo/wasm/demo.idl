@@ -23,7 +23,7 @@ type TupleStruct = struct {
 
 constructor {
   Default : ();
-  New : (counter: u32, dog_position: struct { i32, i32 });
+  New : (counter: opt u32, dog_position: opt struct { i32, i32 });
 };
 
 service Counter {

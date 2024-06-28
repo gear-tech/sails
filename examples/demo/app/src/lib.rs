@@ -13,16 +13,6 @@ mod ping;
 mod references;
 mod this_that;
 
-static mut COUNTER_DATA: Option<counter::CounterData> = None;
-
-fn counter_data_mut() -> &'static mut counter::CounterData {
-    unsafe {
-        COUNTER_DATA
-            .as_mut()
-            .unwrap_or_else(|| panic!("`Counter` data should be initialized first"))
-    }
-}
-
 static mut DOG_DATA: Option<RefCell<walker::WalkerData>> = None;
 
 fn dog_data() -> &'static RefCell<walker::WalkerData> {
@@ -33,31 +23,36 @@ fn dog_data() -> &'static RefCell<walker::WalkerData> {
     }
 }
 
-pub struct DemoProgram(());
+pub struct DemoProgram {
+    counter_data: RefCell<counter::CounterData>,
+}
 
 #[gprogram]
 impl DemoProgram {
     #[allow(clippy::should_implement_trait)]
     pub fn default() -> Self {
         unsafe {
-            COUNTER_DATA = Some(counter::CounterData::new(Default::default()));
             DOG_DATA = Some(RefCell::new(walker::WalkerData::new(
                 Default::default(),
                 Default::default(),
             )));
         }
-        Self(())
+        Self {
+            counter_data: RefCell::new(counter::CounterData::new(Default::default())),
+        }
     }
 
-    pub fn new(counter: u32, dog_position: (i32, i32)) -> Self {
+    pub fn new(counter: Option<u32>, dog_position: Option<(i32, i32)>) -> Self {
         unsafe {
-            COUNTER_DATA = Some(counter::CounterData::new(counter));
+            let dog_position = dog_position.unwrap_or_default();
             DOG_DATA = Some(RefCell::new(walker::WalkerData::new(
                 dog_position.0,
                 dog_position.1,
             )));
         }
-        Self(())
+        Self {
+            counter_data: RefCell::new(counter::CounterData::new(counter.unwrap_or_default())),
+        }
     }
 
     #[groute("ping_pong")]
@@ -66,7 +61,7 @@ impl DemoProgram {
     }
 
     pub fn counter(&self) -> counter::CounterService {
-        counter::CounterService::new(counter_data_mut())
+        counter::CounterService::new(&self.counter_data)
     }
 
     pub fn dog(&self) -> dog::DogService {
