@@ -2,9 +2,10 @@ use proc_macro_error::abort;
 use quote::ToTokens;
 use syn::{
     parse::{Parse, ParseStream},
-    Expr, Ident, Path, Result as SynResult, Token,
+    Expr, ExprArray, Ident, Path, Result as SynResult, Token,
 };
 
+#[derive(PartialEq, Debug)]
 pub(super) struct ServiceArgs {
     base_types: Vec<Path>,
     events_type: Option<Path>,
@@ -56,13 +57,12 @@ impl Parse for ServiceArg {
     fn parse(input: ParseStream) -> SynResult<Self> {
         let ident = input.parse::<Ident>()?;
         input.parse::<Token![=]>()?;
-        let values = input.parse::<Expr>()?;
         match ident.to_string().as_str() {
             "extends" => {
-                if let Expr::Path(path_expr) = values {
+                if let Ok(path) = input.parse::<Path>() {
                     // Check path_expr.attrs is empty and qself is none
-                    return Ok(Self::Extends(vec![path_expr.path]));
-                } else if let Expr::Array(array_expr) = values {
+                    return Ok(Self::Extends(vec![path]));
+                } else if let Ok(array_expr) = input.parse::<ExprArray>() {
                     let mut paths = Vec::new();
                     for item_expr in array_expr.elems {
                         if let Expr::Path(path_expr) = item_expr {
@@ -77,23 +77,113 @@ impl Parse for ServiceArg {
                     }
                     return Ok(Self::Extends(paths));
                 }
-                abort!(
-                    ident,
-                    "unexpected value for `extends` argument: {}",
-                    values.to_token_stream()
-                )
+                abort!(ident, "unexpected value for `extends` argument: {}", input)
             }
             "events" => {
-                if let Expr::Path(path_expr) = values {
-                    return Ok(Self::Events(path_expr.path));
+                if let Ok(path) = input.parse::<Path>() {
+                    return Ok(Self::Events(path));
                 }
-                abort!(
-                    ident,
-                    "unexpected value for `events` argument: {}",
-                    values.to_token_stream()
-                )
+                abort!(ident, "unexpected value for `events` argument: {}", input)
             }
             _ => abort!(ident, "unknown argument: {}", ident),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use proc_macro2::Span;
+    use quote::quote;
+    use syn::{
+        punctuated::Punctuated, AngleBracketedGenericArguments, GenericArgument, Lifetime,
+        PathArguments, PathSegment, Token,
+    };
+
+    #[test]
+    fn gservice_parse_empty() {
+        // arrange
+        let input = quote!();
+
+        let expected = ServiceArgs {
+            base_types: vec![],
+            events_type: None,
+        };
+
+        // act
+        let args = syn::parse2::<ServiceArgs>(input).unwrap();
+
+        // arrange
+        assert_eq!(expected, args);
+    }
+
+    #[test]
+    fn gservice_parse_extends_path() {
+        // arrange
+        let input = quote!(extends = SomeService);
+
+        let expected = ServiceArgs {
+            base_types: vec![
+                PathSegment::from(Ident::new("SomeService", Span::call_site())).into(),
+            ],
+            events_type: None,
+        };
+
+        // act
+        let args = syn::parse2::<ServiceArgs>(input).unwrap();
+
+        // arrange
+        assert_eq!(expected, args);
+    }
+
+    #[test]
+    fn gservice_parse_extends_array_path() {
+        // arrange
+        let input = quote!(extends = [SomeService, AnotherService]);
+
+        let expected = ServiceArgs {
+            base_types: vec![
+                PathSegment::from(Ident::new("SomeService", Span::call_site())).into(),
+                PathSegment::from(Ident::new("AnotherService", Span::call_site())).into(),
+            ],
+            events_type: None,
+        };
+
+        // act
+        let args = syn::parse2::<ServiceArgs>(input).unwrap();
+
+        // arrange
+        assert_eq!(expected, args);
+    }
+
+    #[test]
+    fn gservice_parse_extends_path_with_args() {
+        // arrange
+        let input = quote!(extends = SomeService<'a>);
+
+        let lt = Lifetime::new("'a", Span::call_site());
+        let mut args = Punctuated::new();
+        args.push(GenericArgument::Lifetime(lt));
+        let arguments = AngleBracketedGenericArguments {
+            colon2_token: None,
+            lt_token: Token![<](Span::call_site()),
+            args: args,
+            gt_token: Token![>](Span::call_site()),
+        };
+
+        let expected = ServiceArgs {
+            base_types: vec![PathSegment {
+                ident: Ident::new("SomeService", Span::call_site()),
+                arguments: PathArguments::AngleBracketed(arguments),
+            }
+            .into()],
+            events_type: None,
+        };
+
+        // act
+        let args = syn::parse2::<ServiceArgs>(input).unwrap();
+
+        // arrange
+        assert_eq!(expected, args);
     }
 }
