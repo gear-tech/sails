@@ -309,9 +309,9 @@ pub enum PrimitiveType {
     ActorId,
     CodeId,
     MessageId,
-    H160,
     H256,
     U256,
+    H160,
 }
 
 impl PrimitiveType {
