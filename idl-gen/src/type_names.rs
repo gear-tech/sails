@@ -1060,4 +1060,30 @@ mod tests {
         let t2_name = type_names.get(&t2_id).unwrap();
         assert_eq!(t2_name, "TestsMod2T2");
     }
+
+    macro_rules! type_name_resolution_works {
+        ($primitive:ident, $alias:ident) => {
+            let mut registry = Registry::new();
+            let id = registry.register_type(&MetaType::new::<$primitive>()).id;
+            let as_generic_param_id = registry
+                .register_type(&MetaType::new::<GenericStruct<$primitive>>())
+                .id;
+            let portable_registry = PortableRegistry::from(registry);
+
+            let type_names = resolve(portable_registry.types.iter()).unwrap();
+
+            let name = type_names.get(&id).unwrap();
+            assert_eq!(name, stringify!($alias));
+            let as_generic_param_name = type_names.get(&as_generic_param_id).unwrap();
+            assert_eq!(
+                as_generic_param_name,
+                concat!("GenericStructFor", stringify!($primitive))
+            );
+        };
+    }
+
+    #[test]
+    fn h160_type_name_resolution_works() {
+        type_name_resolution_works!(H160, h160);
+    }
 }
