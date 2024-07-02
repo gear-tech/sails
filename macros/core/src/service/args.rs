@@ -160,7 +160,7 @@ mod tests {
         let arguments = AngleBracketedGenericArguments {
             colon2_token: None,
             lt_token: Token![<](Span::call_site()),
-            args: args,
+            args,
             gt_token: Token![>](Span::call_site()),
         };
 
@@ -191,7 +191,7 @@ mod tests {
         let arguments = AngleBracketedGenericArguments {
             colon2_token: None,
             lt_token: Token![<](Span::call_site()),
-            args: args,
+            args,
             gt_token: Token![>](Span::call_site()),
         };
 

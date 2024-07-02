@@ -1,6 +1,5 @@
 ---
 source: macros/core/tests/gservice.rs
-assertion_line: 129
 expression: result
 ---
 impl<'a> ExtendedLifetime<'a> {
