@@ -2,21 +2,21 @@
 source: macros/core/tests/gservice.rs
 expression: result
 ---
-impl SomeService {
+impl<'a, T> MyGenericEventsService<'a, T>
+where
+    T: Clone,
+{
     pub fn do_this(&mut self) -> u32 {
         42
     }
-    pub fn this(&self) -> bool {
-        true
-    }
-    fn notify_on(&mut self, event: SomeEvents) -> sails_rtl::errors::Result<()> {
+    fn notify_on(&mut self, event: MyEvents) -> sails_rtl::errors::Result<()> {
         #[cfg(not(target_arch = "wasm32"))]
         {
             let self_ptr = self as *const _ as usize;
             let event_listeners = event_listeners().lock();
             if let Some(event_listener_ptr) = event_listeners.get(&self_ptr) {
                 let event_listener = unsafe {
-                    &mut *(*event_listener_ptr as *mut Box<dyn FnMut(&SomeEvents)>)
+                    &mut *(*event_listener_ptr as *mut Box<dyn FnMut(&MyEvents)>)
                 };
                 core::mem::drop(event_listeners);
                 event_listener(&event);
@@ -45,14 +45,13 @@ impl<T> Drop for Exposure<T> {
         }
     }
 }
-impl Exposure<SomeService> {
+impl<'a, T> Exposure<MyGenericEventsService<'a, T>>
+where
+    T: Clone,
+{
     pub fn do_this(&mut self) -> u32 {
         let exposure_scope = sails_rtl::gstd::services::ExposureCallScope::new(self);
         self.inner.do_this()
-    }
-    pub fn this(&self) -> bool {
-        let exposure_scope = sails_rtl::gstd::services::ExposureCallScope::new(self);
-        self.inner.this()
     }
     pub async fn handle(&mut self, input: &[u8]) -> Vec<u8> {
         self.try_handle(input)
@@ -89,11 +88,6 @@ impl Exposure<SomeService> {
             ];
             return Some([INVOCATION_ROUTE.as_ref(), &output].concat());
         }
-        if input.starts_with(&[16u8, 84u8, 104u8, 105u8, 115u8]) {
-            let output = self.__this(&input[5usize..]).await;
-            static INVOCATION_ROUTE: [u8; 5usize] = [16u8, 84u8, 104u8, 105u8, 115u8];
-            return Some([INVOCATION_ROUTE.as_ref(), &output].concat());
-        }
         None
     }
     async fn __do_this(&mut self, mut input: &[u8]) -> Vec<u8> {
@@ -102,16 +96,10 @@ impl Exposure<SomeService> {
         let result = self.do_this();
         return result.encode();
     }
-    async fn __this(&self, mut input: &[u8]) -> Vec<u8> {
-        let request = __ThisParams::decode(&mut input)
-            .expect("Failed to decode request");
-        let result = self.this();
-        return result.encode();
-    }
     #[cfg(not(target_arch = "wasm32"))]
     pub fn set_event_listener<'__elg>(
         &self,
-        listener: impl FnMut(&SomeEvents) + '__elg,
+        listener: impl FnMut(&MyEvents) + '__elg,
     ) -> EventListenerGuard<'__elg> {
         if core::mem::size_of_val(self.inner.as_ref()) == 0 {
             panic!(
@@ -119,7 +107,7 @@ impl Exposure<SomeService> {
             );
         }
         let service_ptr = self.inner_ptr as usize;
-        let listener: Box<dyn FnMut(&SomeEvents)> = Box::new(listener);
+        let listener: Box<dyn FnMut(&MyEvents)> = Box::new(listener);
         let listener = Box::new(listener);
         let listener_ptr = Box::into_raw(listener) as usize;
         let mut event_listeners = event_listeners().lock();
@@ -134,7 +122,11 @@ impl Exposure<SomeService> {
         }
     }
 }
-impl sails_rtl::gstd::services::Exposure for Exposure<SomeService> {
+impl<'a, T> sails_rtl::gstd::services::Exposure
+for Exposure<MyGenericEventsService<'a, T>>
+where
+    T: Clone,
+{
     fn message_id(&self) -> sails_rtl::MessageId {
         self.message_id
     }
@@ -142,8 +134,11 @@ impl sails_rtl::gstd::services::Exposure for Exposure<SomeService> {
         self.route
     }
 }
-impl sails_rtl::gstd::services::Service for SomeService {
-    type Exposure = Exposure<SomeService>;
+impl<'a, T> sails_rtl::gstd::services::Service for MyGenericEventsService<'a, T>
+where
+    T: Clone,
+{
+    type Exposure = Exposure<MyGenericEventsService<'a, T>>;
     fn expose(
         self,
         message_id: sails_rtl::MessageId,
@@ -167,7 +162,10 @@ impl sails_rtl::gstd::services::Service for SomeService {
         }
     }
 }
-impl sails_rtl::meta::ServiceMeta for SomeService {
+impl<'a, T> sails_rtl::meta::ServiceMeta for MyGenericEventsService<'a, T>
+where
+    T: Clone,
+{
     fn commands() -> sails_rtl::scale_info::MetaType {
         sails_rtl::scale_info::MetaType::new::<meta::CommandsMeta>()
     }
@@ -213,10 +211,6 @@ use sails_rtl::TypeInfo as __ServiceTypeInfo;
 #[codec(crate = sails_rtl::scale_codec)]
 #[scale_info(crate = sails_rtl::scale_info)]
 pub struct __DoThisParams {}
-#[derive(__ServiceDecode, __ServiceTypeInfo)]
-#[codec(crate = sails_rtl::scale_codec)]
-#[scale_info(crate = sails_rtl::scale_info)]
-pub struct __ThisParams {}
 mod meta {
     use super::*;
     #[derive(__ServiceTypeInfo)]
@@ -226,11 +220,9 @@ mod meta {
     }
     #[derive(__ServiceTypeInfo)]
     #[scale_info(crate = sails_rtl::scale_info)]
-    pub enum QueriesMeta {
-        This(__ThisParams, bool),
-    }
+    pub enum QueriesMeta {}
     #[derive(__ServiceTypeInfo)]
     #[scale_info(crate = sails_rtl::scale_info)]
     pub enum NoEvents {}
-    pub type EventsMeta = SomeEvents;
+    pub type EventsMeta = MyEvents;
 }
