@@ -31,16 +31,20 @@ pub(crate) fn method_bytes(fn_name: &str) -> (String, usize) {
     (route_bytes, route_encoded_length)
 }
 
+pub(crate) fn encoded_fn_args(params: &[FuncParam]) -> String {
+    params
+        .iter()
+        .map(|a| a.name())
+        .collect::<Vec<_>>()
+        .join(", ")
+}
+
 pub(crate) fn encoded_args(params: &[FuncParam]) -> String {
     if params.len() == 1 {
         return params[0].name().to_owned();
     }
 
-    let arg_names = params
-        .iter()
-        .map(|a| a.name())
-        .collect::<Vec<_>>()
-        .join(", ");
+    let arg_names = encoded_fn_args(params);
 
     format!("({arg_names})")
 }

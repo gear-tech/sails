@@ -19,7 +19,7 @@ pub struct RmrkCatalogFactory<R: Remoting<A> + Clone, A: Default> {
 }
 impl<R: Remoting<A> + Clone, A: Default> RmrkCatalogFactory<R, A> {
     #[allow(unused)]
-    pub fn new(remoting: &R) -> Self {
+    pub fn new(remoting: R) -> Self {
         Self {
             remoting: remoting.clone(),
             _phantom: PhantomData,
