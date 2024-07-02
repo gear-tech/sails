@@ -1,7 +1,6 @@
 use crate::{
     errors::{Result, RtlError},
-    types::*,
-    Vec,
+    ActorId, CodeId, ValueUnit, Vec,
 };
 use core::{future::Future, marker::PhantomData};
 use parity_scale_codec::{Decode, Encode};

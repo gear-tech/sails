@@ -8,6 +8,7 @@ license.workspace = true
 [dependencies]
 futures.workspace = true
 gear-core-errors.workspace = true
+gprimitives.workspace = true
 gstd.workspace = true
 hashbrown.workspace = true
 hex.workspace = true

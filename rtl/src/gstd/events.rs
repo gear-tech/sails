@@ -16,7 +16,8 @@ static mut SYS_CALLS: Option<SysCalls> = None;
 
 struct SysCalls {
     msg_id: fn() -> gstd::MessageId,
-    msg_send_bytes: fn(gstd::ActorId, Vec<u8>, ValueUnit) -> gstd::errors::Result<gstd::MessageId>,
+    msg_send_bytes:
+        fn(gstd::ActorId, Vec<u8>, ValueUnit) -> Result<gstd::MessageId, gstd::errors::CoreError>,
 }
 
 impl SysCalls {
@@ -42,7 +43,7 @@ where
 {
     if let Some(sys_calls) = SysCalls::as_ref() {
         let payload = compose_payload::<TEvents>(
-            services::exposure_context((sys_calls.msg_id)().into()).route(),
+            services::exposure_context((sys_calls.msg_id)()).route(),
             event,
         )?;
         (sys_calls.msg_send_bytes)(GStdActorId::zero(), payload, 0)?;
