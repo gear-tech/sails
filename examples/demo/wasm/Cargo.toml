@@ -5,9 +5,14 @@ edition = "2021"
 
 [dependencies]
 demo-app = { path = "../app" }
-sails-rtl.workspace = true
 
 [build-dependencies]
 demo-app = { path = "../app" }
 gwasm-builder.workspace = true
 sails-idl-gen.workspace = true
+
+[dev-dependencies]
+gtest.workspace = true
+demo-client = { path = "../client" }
+sails-rtl.workspace = true
+tokio = { workspace = true, features = ["rt", "macros"] }

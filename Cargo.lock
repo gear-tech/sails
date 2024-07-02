@@ -893,9 +893,12 @@ name = "demo"
 version = "0.1.0"
 dependencies = [
  "demo-app",
+ "demo-client",
  "gear-wasm-builder",
+ "gtest",
  "sails-idl-gen",
  "sails-rtl",
+ "tokio",
 ]
 
 [[package]]
