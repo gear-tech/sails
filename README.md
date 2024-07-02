@@ -104,18 +104,19 @@ impl MyService {
 The second key concept is *__program__* which is similarly to the service represented
 by an impl of some Rust struct marked with the `#[gprogram]` attribute. The program
 main responsibility is hosting one or more services and exposing them to the external
-consumers. A set of its __public__ associated functions returning `Self` are
+consumers. A set of its associated __public__ functions returning `Self` are
 treated as application constructors. These functions can accept some parameters
 passed by a client and can be synchronous or asynchronous. One of them will be called
-once per application lifetime when the application is loaded onto the network.
-A set of program's __public__ methods working over `&self` and having no other parameters
-are treated as exposed service constructors and are called each time when an incoming
-request message needs be dispatched to a selected service. All the other methods and
-associated functions are treated as implementation details and ignored. The code
-generated behind the program by the `#[gprogram]` attribute receives an incoming request
-message from the network, decodes it and dispatches it to a matching service for actual
-processing. After that, the result is encoded and returned as a response to a caller.
-Only one program is allowed per application.
+once at the very beginning of the application lifetime, i.e. when the application is
+loaded onto the network. The returned program instance will live until the application
+stays on the network. A set of program's __public__ methods working over `&self` and
+having no other parameters are treated as exposed service constructors and are called
+each time when an incoming request message needs be dispatched to a selected service.
+All the other methods and associated functions are treated as implementation details
+and ignored. The code generated behind the program by the `#[gprogram]` attribute
+receives an incoming request message from the network, decodes it and dispatches it to
+a matching service for actual processing. After that, the result is encoded and returned
+as a response to a caller. Only one program is allowed per application.
 
 ```rust
 #[gprogram]

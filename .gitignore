@@ -4,8 +4,7 @@
 .vscode
 js/lib/
 js/parser.wasm
-js/test/rmrk-*/
-js/test/ping/
+js/test/demo/
 
 node_modules/
 target/
