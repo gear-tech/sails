@@ -20,13 +20,14 @@
 
 use crate::errors::{Error, Result};
 use convert_case::{Case, Casing};
-use sails_rtl::{ActorId, CodeId, MessageId, H160, H256, U256};
+use sails_rtl::{ActorId, CodeId, MessageId, NonZeroU256, H160, H256, U256};
 use scale_info::{
     form::PortableForm, PortableType, Type, TypeDef, TypeDefArray, TypeDefPrimitive,
     TypeDefSequence, TypeDefTuple, TypeInfo,
 };
 use std::{
     collections::{BTreeMap, HashMap},
+    num::{NonZeroU128, NonZeroU16, NonZeroU32, NonZeroU64, NonZeroU8},
     rc::Rc,
     result::Result as StdResult,
     sync::OnceLock,
@@ -111,6 +112,18 @@ fn resolve_type_name(
                 Rc::new(h256::TypeNameImpl::new())
             } else if u256::TypeNameImpl::is_type(type_info) {
                 Rc::new(u256::TypeNameImpl::new())
+            } else if nat8::TypeNameImpl::is_type(type_info) {
+                Rc::new(nat8::TypeNameImpl::new())
+            } else if nat16::TypeNameImpl::is_type(type_info) {
+                Rc::new(nat16::TypeNameImpl::new())
+            } else if nat32::TypeNameImpl::is_type(type_info) {
+                Rc::new(nat32::TypeNameImpl::new())
+            } else if nat64::TypeNameImpl::is_type(type_info) {
+                Rc::new(nat64::TypeNameImpl::new())
+            } else if nat128::TypeNameImpl::is_type(type_info) {
+                Rc::new(nat128::TypeNameImpl::new())
+            } else if nat256::TypeNameImpl::is_type(type_info) {
+                Rc::new(nat256::TypeNameImpl::new())
             } else {
                 Rc::new(ByPathTypeName::new(
                     types,
@@ -674,6 +687,12 @@ impl_primitive_alias_type_name!(CodeId, code_id);
 impl_primitive_alias_type_name!(H160, h160);
 impl_primitive_alias_type_name!(H256, h256);
 impl_primitive_alias_type_name!(U256, u256);
+impl_primitive_alias_type_name!(NonZeroU8, nat8);
+impl_primitive_alias_type_name!(NonZeroU16, nat16);
+impl_primitive_alias_type_name!(NonZeroU32, nat32);
+impl_primitive_alias_type_name!(NonZeroU64, nat64);
+impl_primitive_alias_type_name!(NonZeroU128, nat128);
+impl_primitive_alias_type_name!(NonZeroU256, nat256);
 
 #[cfg(test)]
 mod tests {
@@ -965,5 +984,35 @@ mod tests {
     #[test]
     fn h160_type_name_resolution_works() {
         type_name_resolution_works!(H160, h160);
+    }
+
+    #[test]
+    fn nonzero_u8_type_name_resolution_works() {
+        type_name_resolution_works!(NonZeroU8, nat8);
+    }
+
+    #[test]
+    fn nonzero_u16_type_name_resolution_works() {
+        type_name_resolution_works!(NonZeroU16, nat16);
+    }
+
+    #[test]
+    fn nonzero_u32_type_name_resolution_works() {
+        type_name_resolution_works!(NonZeroU32, nat32);
+    }
+
+    #[test]
+    fn nonzero_u64_type_name_resolution_works() {
+        type_name_resolution_works!(NonZeroU64, nat64);
+    }
+
+    #[test]
+    fn nonzero_u128_type_name_resolution_works() {
+        type_name_resolution_works!(NonZeroU128, nat128);
+    }
+
+    #[test]
+    fn nonzero_u256_type_name_resolution_works() {
+        type_name_resolution_works!(NonZeroU256, nat256);
     }
 }
