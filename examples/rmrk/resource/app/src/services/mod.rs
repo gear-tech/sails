@@ -96,14 +96,13 @@ where
             .ok_or(Error::ResourceNotFound)?;
 
         if let Resource::Composed(ComposedResource { base, parts, .. }) = resource {
-            let part_call = self
+            let part = self
                 .catalog_client
                 .part(part_id)
-                .publish(*base)
+                .execute(*base)
                 .await
                 .unwrap();
-            let part_reply = part_call.reply().await.unwrap();
-            if part_reply.is_none() {
+            if part.is_none() {
                 return Err(Error::PartNotFound);
             }
             parts.push(part_id);

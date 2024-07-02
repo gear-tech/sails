@@ -13,21 +13,18 @@ async fn ping_pong_works() {
     let demo_program_id = demo_factory
         .default()
         .with_args(GTestArgs::new(fixture.admin_id()))
-        .publish(fixture.demo_code_id(), "123")
-        .await
-        .unwrap()
-        .reply()
+        .execute(fixture.demo_code_id(), "123")
         .await
         .unwrap();
 
     let mut ping_pong_client = fixture.ping_pong_client();
 
-    let reply_ticket = ping_pong_client
+    let result = ping_pong_client
         .ping("ping".into())
         .with_args(GTestArgs::new(fixture.admin_id()))
-        .publish(demo_program_id)
+        .execute(demo_program_id)
         .await
         .unwrap();
 
-    assert_eq!(reply_ticket.reply().await.unwrap(), Ok("pong".to_string()));
+    assert_eq!(result, Ok("pong".to_string()));
 }
