@@ -3,7 +3,7 @@ use syn::{
     bracketed,
     parse::{Parse, ParseStream},
     punctuated::Punctuated,
-    Ident, Path, Result as SynResult, Token,
+    token, Ident, Path, Result as SynResult, Token,
 };
 
 #[derive(PartialEq, Debug)]
@@ -63,8 +63,12 @@ impl Parse for ServiceArg {
                 if let Ok(path) = input.parse::<Path>() {
                     // Check path_expr.attrs is empty and qself is none
                     return Ok(Self::Extends(vec![path]));
-                } else if let Ok(paths) = input.parse::<PathVec>() {
-                    return Ok(Self::Extends(paths.0));
+                } else if input.peek(token::Bracket) {
+                    let content;
+                    let _bracket = bracketed!(content in input);
+                    let punctuated: Punctuated<Path, Token![,]> =
+                        Punctuated::parse_terminated(&content)?;
+                    return Ok(Self::Extends(punctuated.into_iter().collect::<Vec<_>>()));
                 }
                 abort!(ident, "unexpected value for `extends` argument: {}", input)
             }
@@ -76,17 +80,6 @@ impl Parse for ServiceArg {
             }
             _ => abort!(ident, "unknown argument: {}", ident),
         }
-    }
-}
-
-struct PathVec(Vec<Path>);
-
-impl Parse for PathVec {
-    fn parse(input: ParseStream) -> SynResult<Self> {
-        let content;
-        let _bracket = bracketed!(content in input);
-        let punctuated: Punctuated<Path, Token![,]> = Punctuated::parse_terminated(&content)?;
-        Ok(PathVec(punctuated.into_iter().collect::<Vec<_>>()))
     }
 }
 
