@@ -28,10 +28,9 @@ impl Fixture {
     }
 
     pub(crate) fn demo_code_id(&self) -> CodeId {
-        let demo_code_id = self.demo_program_code_id.get_or_init(|| {
-            let code_id = self.program_space.system().submit_code_file(DEMO_WASM_PATH);
-            code_id.as_ref().into()
-        });
+        let demo_code_id = self
+            .demo_program_code_id
+            .get_or_init(|| self.program_space.system().submit_code_file(DEMO_WASM_PATH));
         *demo_code_id
     }
 

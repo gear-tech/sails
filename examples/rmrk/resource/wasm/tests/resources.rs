@@ -344,7 +344,7 @@ impl<'a> Fixture<'a> {
         let program_space = self.program_space().clone();
         let reply = program_space
             .activate(
-                code_id.as_ref().into(),
+                code_id,
                 "123",
                 payload,
                 0,
@@ -354,7 +354,7 @@ impl<'a> Fixture<'a> {
             .unwrap();
         self.program_space()
             .system()
-            .get_program(*reply.await.unwrap().0.as_ref())
+            .get_program(reply.await.unwrap().0)
             .unwrap()
     }
 
@@ -391,7 +391,7 @@ impl<'a> Fixture<'a> {
         let program_space = self.program_space().clone();
         let reply = program_space
             .message(
-                self.resource_program_for_async().id().as_ref().into(),
+                self.resource_program_for_async().id(),
                 encoded_request,
                 0,
                 GTestArgs::new(actor_id.into()),
@@ -409,12 +409,11 @@ impl<'a> Fixture<'a> {
         let resource_program_id =
             ActorId::from(self.resource_program_for_async().id().into_bytes());
         let mut resource_client = self.resource_client();
-        let call = resource_client
+        resource_client
             .add_resource_entry(resource_id, resource)
             .with_args(GTestArgs::new(actor_id.into()))
-            .publish(resource_program_id)
-            .await?;
-        call.reply().await
+            .execute(resource_program_id)
+            .await
     }
 
     fn add_part_to_resource(
@@ -443,12 +442,11 @@ impl<'a> Fixture<'a> {
         let resource_program_id =
             ActorId::from(self.resource_program_for_async().id().into_bytes());
         let mut resource_client = self.resource_client();
-        let call = resource_client
+        resource_client
             .add_part_to_resource(resource_id, part_id)
             .with_args(GTestArgs::new(actor_id.into()))
-            .publish(resource_program_id)
-            .await?;
-        call.reply().await
+            .execute(resource_program_id)
+            .await
     }
 
     fn get_resource(
@@ -489,12 +487,11 @@ impl<'a> Fixture<'a> {
         let resource_program_id =
             ActorId::from(self.resource_program_for_async().id().into_bytes());
         let resource_client = self.resource_client();
-        let call = resource_client
+        resource_client
             .resource(resource_id)
             .with_args(GTestArgs::new(actor_id.into()))
-            .publish(resource_program_id)
-            .await?;
-        call.reply().await
+            .execute(resource_program_id)
+            .await
     }
 
     fn add_parts(&'a self, actor_id: u64, parts: &BTreeMap<PartId, Part>) -> RunResult {

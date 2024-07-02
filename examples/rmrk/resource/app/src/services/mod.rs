@@ -6,7 +6,6 @@ use sails_rtl::{
     collections::HashMap,
     gstd::{calls::GStdArgs, gservice, ExecContext},
     prelude::*,
-    ActorId,
 };
 
 pub mod errors;
