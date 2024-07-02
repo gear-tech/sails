@@ -36,7 +36,7 @@ impl Fixture {
     }
 
     pub(crate) fn demo_factory(&self) -> DemoFactory<GTestRemoting, GTestArgs> {
-        DemoFactory::new(&self.program_space)
+        DemoFactory::new(self.program_space.clone())
     }
 
     #[allow(dead_code)]
