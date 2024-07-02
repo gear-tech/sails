@@ -104,3 +104,26 @@ fn works_with_lifetimes_and_events() {
 
     insta::assert_snapshot!(result);
 }
+
+#[test]
+fn works_with_extends_and_lifetimes() {
+    let args = quote! {
+        extends = [base::BaseLifetime<'a>]
+    };
+    let input = quote! {
+        impl<'a> ExtendedLifetime<'a> {
+            pub fn extended_name(&self) -> String {
+                "extended-name".to_string()
+            }
+
+            pub fn name(&self) -> String {
+                "extended".to_string()
+            }
+        }
+    };
+
+    let result = gservice(args, input).to_string();
+    let result = prettyplease::unparse(&syn::parse_str(&result).unwrap());
+
+    insta::assert_snapshot!(result);
+}
