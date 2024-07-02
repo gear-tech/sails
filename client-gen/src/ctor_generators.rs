@@ -34,7 +34,7 @@ impl<'ast> Visitor<'ast> for CtorFactoryGenerator {
 
             impl<R: Remoting<A> + Clone, A: Default> $(&self.service_name)Factory<R, A> {
                 #[allow(unused)]
-                pub fn new(remoting: &R) -> Self {
+                pub fn new(remoting: R) -> Self {
                     Self {
                         remoting: remoting.clone(),
                         _phantom: PhantomData,

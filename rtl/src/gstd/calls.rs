@@ -1,4 +1,4 @@
-use crate::{calls::Remoting, errors::Result, prelude::*};
+use crate::{calls::Remoting, errors::Result, ActorId, CodeId, GasUnit, ValueUnit, Vec};
 use core::future::Future;
 use futures::FutureExt;
 use gstd::{msg, prog};
@@ -42,17 +42,13 @@ impl Remoting<GStdArgs> for GStdRemoting {
         args: GStdArgs,
     ) -> Result<impl Future<Output = Result<(ActorId, Vec<u8>)>>> {
         let reply_future = prog::create_program_bytes_for_reply(
-            code_id.into(),
+            code_id,
             salt,
             payload,
             value,
             args.reply_deposit.unwrap_or_default(),
         )?;
-        let reply_future = reply_future.map(|result| {
-            result
-                .map(|(actor_id, data)| (actor_id.into(), data))
-                .map_err(Into::into)
-        });
+        let reply_future = reply_future.map(|result| result.map_err(Into::into));
         Ok(reply_future)
     }
 
@@ -65,7 +61,7 @@ impl Remoting<GStdArgs> for GStdRemoting {
     ) -> Result<impl Future<Output = Result<Vec<u8>>>> {
         let reply_future = if let Some(gas_limit) = args.gas_limit {
             msg::send_bytes_with_gas_for_reply(
-                target.into(),
+                target,
                 payload,
                 gas_limit,
                 value,
@@ -73,7 +69,7 @@ impl Remoting<GStdArgs> for GStdRemoting {
             )?
         } else {
             msg::send_bytes_for_reply(
-                target.into(),
+                target,
                 payload,
                 value,
                 args.reply_deposit.unwrap_or_default(),
