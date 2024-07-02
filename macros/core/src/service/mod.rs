@@ -30,7 +30,8 @@ use proc_macro_error::abort;
 use quote::quote;
 use std::collections::BTreeMap;
 use syn::{
-    parse_quote, spanned::Spanned, Ident, ImplItemFn, ItemImpl, Lifetime, Path, Type, Visibility,
+    parse_quote, punctuated::Punctuated, spanned::Spanned, token::Comma, Ident, ImplItemFn,
+    ItemImpl, Lifetime, Path, Type, Visibility,
 };
 
 mod args;
@@ -274,24 +275,25 @@ fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
     let unexpected_route_panic =
         shared::generate_unexpected_input_panic(&input_ident, "Unknown request");
 
-    let exposure_lifetime = if !service_args.base_types().is_empty() {
-        // todo: support more than one lifetime or abort if not supported
-        lifetimes.first().map(|lt| {
+    let mut exposure_lifetimes: Punctuated<Lifetime, Comma> = Punctuated::new();
+    if !service_args.base_types().is_empty() {
+        for lt in lifetimes.iter().map(|lt| {
             let lt = format!("'{lt}");
             Lifetime::new(&lt, Span::call_site())
-        })
-    } else {
-        None
+        }) {
+            exposure_lifetimes.push(lt);
+        }
     };
-    let exposure_generic_args = if let Some(lt) = &exposure_lifetime {
-        quote! { #lt, T }
-    } else {
+
+    let exposure_generic_args = if exposure_lifetimes.is_empty() {
         quote! { T }
-    };
-    let exposure_args = if let Some(lt) = &exposure_lifetime {
-        quote! { #lt, #service_type }
     } else {
+        quote! { #exposure_lifetimes, T }
+    };
+    let exposure_args = if exposure_lifetimes.is_empty() {
         quote! { #service_type }
+    } else {
+        quote! { #exposure_lifetimes, #service_type }
     };
 
     quote!(
