@@ -32,10 +32,10 @@ where
         let result = self
             .puppet
             .this()
-            .publish(puppet_address)
+            .send(puppet_address)
             .await
             .expect("send msg")
-            .reply()
+            .recv()
             .await
             .expect("parse msg");
 
