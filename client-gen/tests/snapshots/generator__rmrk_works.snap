@@ -8,7 +8,7 @@ use core::marker::PhantomData;
 use sails_rtl::collections::BTreeMap;
 #[allow(unused_imports)]
 use sails_rtl::{
-    calls::{Activation, Call, Remoting, RemotingAction},
+    calls::{Activation, Call, Query, Remoting, RemotingAction},
     prelude::*,
     String,
 };
@@ -19,7 +19,7 @@ pub struct RmrkCatalogFactory<R: Remoting<A> + Clone, A: Default> {
 }
 impl<R: Remoting<A> + Clone, A: Default> RmrkCatalogFactory<R, A> {
     #[allow(unused)]
-    pub fn new(remoting: &R) -> Self {
+    pub fn new(remoting: R) -> Self {
         Self {
             remoting: remoting.clone(),
             _phantom: PhantomData,
@@ -130,7 +130,7 @@ where
         &self,
         part_id: u32,
         collection_id: ActorId,
-    ) -> impl Call<A, Result<bool, Error>> {
+    ) -> impl Query<A, Result<bool, Error>> {
         RemotingAction::new(
             self.remoting.clone(),
             &[
@@ -140,7 +140,7 @@ where
             (part_id, collection_id),
         )
     }
-    fn part(&self, part_id: u32) -> impl Call<A, Option<Part>> {
+    fn part(&self, part_id: u32) -> impl Query<A, Option<Part>> {
         RemotingAction::new(
             self.remoting.clone(),
             &[
@@ -466,43 +466,37 @@ pub mod traits {
         #[allow(clippy::wrong_self_convention)]
         fn new(&self) -> impl Activation<A>;
     }
-    pub trait RmrkCatalog<TCallArgs> {
+    pub trait RmrkCatalog<A> {
         #[allow(clippy::type_complexity)]
         fn add_equippables(
             &mut self,
             part_id: u32,
             collection_ids: Vec<ActorId>,
-        ) -> impl Call<TCallArgs, Result<(u32, Vec<ActorId>), Error>>;
+        ) -> impl Call<A, Result<(u32, Vec<ActorId>), Error>>;
         #[allow(clippy::type_complexity)]
         fn add_parts(
             &mut self,
             parts: BTreeMap<u32, Part>,
-        ) -> impl Call<TCallArgs, Result<BTreeMap<u32, Part>, Error>>;
+        ) -> impl Call<A, Result<BTreeMap<u32, Part>, Error>>;
         #[allow(clippy::type_complexity)]
         fn remove_equippable(
             &mut self,
             part_id: u32,
             collection_id: ActorId,
-        ) -> impl Call<TCallArgs, Result<(u32, ActorId), Error>>;
+        ) -> impl Call<A, Result<(u32, ActorId), Error>>;
         #[allow(clippy::type_complexity)]
-        fn remove_parts(
-            &mut self,
-            part_ids: Vec<u32>,
-        ) -> impl Call<TCallArgs, Result<Vec<u32>, Error>>;
+        fn remove_parts(&mut self, part_ids: Vec<u32>) -> impl Call<A, Result<Vec<u32>, Error>>;
         #[allow(clippy::type_complexity)]
-        fn reset_equippables(&mut self, part_id: u32) -> impl Call<TCallArgs, Result<(), Error>>;
+        fn reset_equippables(&mut self, part_id: u32) -> impl Call<A, Result<(), Error>>;
         #[allow(clippy::type_complexity)]
-        fn set_equippables_to_all(
-            &mut self,
-            part_id: u32,
-        ) -> impl Call<TCallArgs, Result<(), Error>>;
+        fn set_equippables_to_all(&mut self, part_id: u32) -> impl Call<A, Result<(), Error>>;
         #[allow(clippy::type_complexity)]
         fn equippable(
             &self,
             part_id: u32,
             collection_id: ActorId,
-        ) -> impl Call<TCallArgs, Result<bool, Error>>;
+        ) -> impl Query<A, Result<bool, Error>>;
         #[allow(clippy::type_complexity)]
-        fn part(&self, part_id: u32) -> impl Call<TCallArgs, Option<Part>>;
+        fn part(&self, part_id: u32) -> impl Query<A, Option<Part>>;
     }
 }

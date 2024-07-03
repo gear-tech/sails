@@ -35,9 +35,9 @@ pub struct GTestRemoting {
     system: Rc<System>,
 }
 
-impl Default for  GTestRemoting {
+impl Default for GTestRemoting {
     fn default() -> Self {
-        GTestRemoting::new()
+        Self::new()
     }
 }
 

@@ -8,7 +8,7 @@ use core::marker::PhantomData;
 use sails_rtl::collections::BTreeMap;
 #[allow(unused_imports)]
 use sails_rtl::{
-    calls::{Activation, Call, Remoting, RemotingAction},
+    calls::{Activation, Call, Query, Remoting, RemotingAction},
     prelude::*,
     String,
 };
@@ -19,7 +19,7 @@ pub struct ServiceFactory<R: Remoting<A> + Clone, A: Default> {
 }
 impl<R: Remoting<A> + Clone, A: Default> ServiceFactory<R, A> {
     #[allow(unused)]
-    pub fn new(remoting: &R) -> Self {
+    pub fn new(remoting: R) -> Self {
         Self {
             remoting: remoting.clone(),
             _phantom: PhantomData,
@@ -76,10 +76,10 @@ where
             param,
         )
     }
-    fn this(&self, v1: Vec<u16>) -> impl Call<A, u32> {
+    fn this(&self, v1: Vec<u16>) -> impl Query<A, u32> {
         RemotingAction::new(self.remoting.clone(), &[16, 84, 104, 105, 115], v1)
     }
-    fn that(&self, v1: ()) -> impl Call<A, Result<String, String>> {
+    fn that(&self, v1: ()) -> impl Query<A, Result<String, String>> {
         RemotingAction::new(self.remoting.clone(), &[16, 84, 104, 97, 116], v1)
     }
 }
@@ -224,7 +224,7 @@ pub mod traits {
         #[allow(clippy::wrong_self_convention)]
         fn new(&self, a: u32) -> impl Activation<A>;
     }
-    pub trait Service<TCallArgs> {
+    pub trait Service<A> {
         #[allow(clippy::type_complexity)]
         fn do_this(
             &mut self,
@@ -232,15 +232,15 @@ pub mod traits {
             p2: String,
             p3: (Option<String>, u8),
             p4: ThisThatSvcAppTupleStruct,
-        ) -> impl Call<TCallArgs, (String, u32)>;
+        ) -> impl Call<A, (String, u32)>;
         #[allow(clippy::type_complexity)]
         fn do_that(
             &mut self,
             param: ThisThatSvcAppDoThatParam,
-        ) -> impl Call<TCallArgs, Result<(String, u32), (String,)>>;
+        ) -> impl Call<A, Result<(String, u32), (String,)>>;
         #[allow(clippy::type_complexity)]
-        fn this(&self, v1: Vec<u16>) -> impl Call<TCallArgs, u32>;
+        fn this(&self, v1: Vec<u16>) -> impl Query<A, u32>;
         #[allow(clippy::type_complexity)]
-        fn that(&self, v1: ()) -> impl Call<TCallArgs, Result<String, String>>;
+        fn that(&self, v1: ()) -> impl Query<A, Result<String, String>>;
     }
 }
