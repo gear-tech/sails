@@ -9,7 +9,7 @@ fn main() {
 
     let idl_file_path = manifest_dir_path.join("this-that-svc.idl");
 
-    let idl_file = File::create(idl_file_path).unwrap();
+    let idl_file = File::create(idl_file_path.clone()).unwrap();
 
     service::generate_idl::<MyService>(idl_file).unwrap();
 

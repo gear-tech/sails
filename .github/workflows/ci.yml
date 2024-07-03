@@ -82,7 +82,7 @@ jobs:
       - name: Download Gear node
         run: |
           sudo wget -O ./gear https://github.com/gear-tech/gear/releases/download/build/gear
-          chmod +x gear
+          sudo chmod +x gear
           sudo mv gear /usr/bin/
 
       - name: Run Tests
