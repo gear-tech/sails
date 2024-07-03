@@ -2,7 +2,7 @@ use crate::catalogs::traits::RmrkCatalog;
 use errors::{Error, Result};
 use resources::{ComposedResource, PartId, Resource, ResourceId};
 use sails_rtl::{
-    calls::Call,
+    calls::{Call, Query},
     collections::HashMap,
     gstd::{calls::GStdArgs, gservice, ExecContext},
     prelude::*,
@@ -96,12 +96,7 @@ where
             .ok_or(Error::ResourceNotFound)?;
 
         if let Resource::Composed(ComposedResource { base, parts, .. }) = resource {
-            let part = self
-                .catalog_client
-                .part(part_id)
-                .send_recv(*base)
-                .await
-                .unwrap();
+            let part = self.catalog_client.part(part_id).recv(*base).await.unwrap();
             if part.is_none() {
                 return Err(Error::PartNotFound);
             }
