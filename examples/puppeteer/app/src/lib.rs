@@ -5,7 +5,7 @@ pub mod puppet;
 use core::marker::PhantomData;
 use gstd::prelude::*;
 use puppet::traits::ThisThatSvc;
-use sails_rtl::{calls::Call, gstd::gservice, ActorId};
+use sails_rtl::{calls::Query, gstd::gservice, ActorId};
 
 #[derive(Clone)]
 pub struct Puppeteer<A: Default, Client: ThisThatSvc<A>> {
@@ -32,10 +32,7 @@ where
         let result = self
             .puppet
             .this()
-            .send(puppet_address)
-            .await
-            .expect("send msg")
-            .recv()
+            .recv(puppet_address)
             .await
             .expect("parse msg");
 
