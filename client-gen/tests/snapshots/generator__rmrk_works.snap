@@ -13,16 +13,24 @@ use sails_rtl::{
     String,
 };
 #[derive(Default)]
-pub struct RmrkCatalogFactory(());
-impl RmrkCatalogFactory {
+pub struct RmrkCatalogFactory<R: Remoting<A> + Clone, A: Default> {
+    remoting: R,
+    _phantom: PhantomData<A>,
+}
+impl<R: Remoting<A> + Clone, A: Default> RmrkCatalogFactory<R, A> {
     #[allow(unused)]
-    pub fn new() -> Self {
-        Self(())
+    pub fn new(remoting: R) -> Self {
+        Self {
+            remoting: remoting.clone(),
+            _phantom: PhantomData,
+        }
     }
 }
-impl<A: Default> traits::RmrkCatalogFactory<A> for RmrkCatalogFactory {
-    fn new(remoting: impl Remoting<A>) -> impl Activation<A> {
-        RemotingAction::new(remoting, &[12, 78, 101, 119], ())
+impl<R: Remoting<A> + Clone, A: Default> traits::RmrkCatalogFactory<A>
+    for RmrkCatalogFactory<R, A>
+{
+    fn new(&self) -> impl Activation<A> {
+        RemotingAction::new(self.remoting.clone(), &[12, 78, 101, 119], ())
     }
 }
 #[derive(Clone)]
@@ -42,7 +50,7 @@ impl<A: Default, R: Remoting<A>> RmrkCatalog<R, A> {
         }
     }
 }
-impl<R, A> traits::RmrkCatalog<R, A> for RmrkCatalog<R, A>
+impl<R, A> traits::RmrkCatalog<A> for RmrkCatalog<R, A>
 where
     R: Remoting<A> + Clone,
     A: Default,
@@ -162,6 +170,12 @@ pub mod rmrk_catalog_io {
         pub fn decode_reply(
             mut reply: &[u8],
         ) -> Result<Result<(u32, Vec<ActorId>), super::Error>, sails_rtl::errors::Error> {
+            if !reply.starts_with(&[44, 82, 109, 114, 107, 67, 97, 116, 97, 108, 111, 103]) {
+                return Err(sails_rtl::errors::Error::Rtl(
+                    sails_rtl::errors::RtlError::ReplyPrefixMismatches,
+                ));
+            }
+            reply = &reply[12..];
             if !reply.starts_with(&[
                 56, 65, 100, 100, 69, 113, 117, 105, 112, 112, 97, 98, 108, 101, 115,
             ]) {
@@ -191,6 +205,12 @@ pub mod rmrk_catalog_io {
             mut reply: &[u8],
         ) -> Result<Result<BTreeMap<u32, super::Part>, super::Error>, sails_rtl::errors::Error>
         {
+            if !reply.starts_with(&[44, 82, 109, 114, 107, 67, 97, 116, 97, 108, 111, 103]) {
+                return Err(sails_rtl::errors::Error::Rtl(
+                    sails_rtl::errors::RtlError::ReplyPrefixMismatches,
+                ));
+            }
+            reply = &reply[12..];
             if !reply.starts_with(&[32, 65, 100, 100, 80, 97, 114, 116, 115]) {
                 return Err(sails_rtl::errors::Error::Rtl(
                     sails_rtl::errors::RtlError::ReplyPrefixMismatches,
@@ -219,6 +239,12 @@ pub mod rmrk_catalog_io {
         pub fn decode_reply(
             mut reply: &[u8],
         ) -> Result<Result<(u32, ActorId), super::Error>, sails_rtl::errors::Error> {
+            if !reply.starts_with(&[44, 82, 109, 114, 107, 67, 97, 116, 97, 108, 111, 103]) {
+                return Err(sails_rtl::errors::Error::Rtl(
+                    sails_rtl::errors::RtlError::ReplyPrefixMismatches,
+                ));
+            }
+            reply = &reply[12..];
             if !reply.starts_with(&[
                 64, 82, 101, 109, 111, 118, 101, 69, 113, 117, 105, 112, 112, 97, 98, 108, 101,
             ]) {
@@ -247,6 +273,12 @@ pub mod rmrk_catalog_io {
         pub fn decode_reply(
             mut reply: &[u8],
         ) -> Result<Result<Vec<u32>, super::Error>, sails_rtl::errors::Error> {
+            if !reply.starts_with(&[44, 82, 109, 114, 107, 67, 97, 116, 97, 108, 111, 103]) {
+                return Err(sails_rtl::errors::Error::Rtl(
+                    sails_rtl::errors::RtlError::ReplyPrefixMismatches,
+                ));
+            }
+            reply = &reply[12..];
             if !reply.starts_with(&[44, 82, 101, 109, 111, 118, 101, 80, 97, 114, 116, 115]) {
                 return Err(sails_rtl::errors::Error::Rtl(
                     sails_rtl::errors::RtlError::ReplyPrefixMismatches,
@@ -275,6 +307,12 @@ pub mod rmrk_catalog_io {
         pub fn decode_reply(
             mut reply: &[u8],
         ) -> Result<Result<(), super::Error>, sails_rtl::errors::Error> {
+            if !reply.starts_with(&[44, 82, 109, 114, 107, 67, 97, 116, 97, 108, 111, 103]) {
+                return Err(sails_rtl::errors::Error::Rtl(
+                    sails_rtl::errors::RtlError::ReplyPrefixMismatches,
+                ));
+            }
+            reply = &reply[12..];
             if !reply.starts_with(&[
                 64, 82, 101, 115, 101, 116, 69, 113, 117, 105, 112, 112, 97, 98, 108, 101, 115,
             ]) {
@@ -306,6 +344,12 @@ pub mod rmrk_catalog_io {
         pub fn decode_reply(
             mut reply: &[u8],
         ) -> Result<Result<(), super::Error>, sails_rtl::errors::Error> {
+            if !reply.starts_with(&[44, 82, 109, 114, 107, 67, 97, 116, 97, 108, 111, 103]) {
+                return Err(sails_rtl::errors::Error::Rtl(
+                    sails_rtl::errors::RtlError::ReplyPrefixMismatches,
+                ));
+            }
+            reply = &reply[12..];
             if !reply.starts_with(&[
                 76, 83, 101, 116, 69, 113, 117, 105, 112, 112, 97, 98, 108, 101, 115, 84, 111, 65,
                 108, 108,
@@ -335,6 +379,12 @@ pub mod rmrk_catalog_io {
         pub fn decode_reply(
             mut reply: &[u8],
         ) -> Result<Result<bool, super::Error>, sails_rtl::errors::Error> {
+            if !reply.starts_with(&[44, 82, 109, 114, 107, 67, 97, 116, 97, 108, 111, 103]) {
+                return Err(sails_rtl::errors::Error::Rtl(
+                    sails_rtl::errors::RtlError::ReplyPrefixMismatches,
+                ));
+            }
+            reply = &reply[12..];
             if !reply.starts_with(&[40, 69, 113, 117, 105, 112, 112, 97, 98, 108, 101]) {
                 return Err(sails_rtl::errors::Error::Rtl(
                     sails_rtl::errors::RtlError::ReplyPrefixMismatches,
@@ -361,6 +411,12 @@ pub mod rmrk_catalog_io {
         pub fn decode_reply(
             mut reply: &[u8],
         ) -> Result<Option<super::Part>, sails_rtl::errors::Error> {
+            if !reply.starts_with(&[44, 82, 109, 114, 107, 67, 97, 116, 97, 108, 111, 103]) {
+                return Err(sails_rtl::errors::Error::Rtl(
+                    sails_rtl::errors::RtlError::ReplyPrefixMismatches,
+                ));
+            }
+            reply = &reply[12..];
             if !reply.starts_with(&[16, 80, 97, 114, 116]) {
                 return Err(sails_rtl::errors::Error::Rtl(
                     sails_rtl::errors::RtlError::ReplyPrefixMismatches,
@@ -407,9 +463,10 @@ pub mod traits {
     #[allow(dead_code)]
     pub trait RmrkCatalogFactory<A: Default> {
         #[allow(clippy::new_ret_no_self)]
-        fn new(remoting: impl Remoting<A>) -> impl Activation<A>;
+        #[allow(clippy::wrong_self_convention)]
+        fn new(&self) -> impl Activation<A>;
     }
-    pub trait RmrkCatalog<R, TCallArgs> {
+    pub trait RmrkCatalog<TCallArgs> {
         #[allow(clippy::type_complexity)]
         fn add_equippables(
             &mut self,

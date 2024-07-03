@@ -20,7 +20,7 @@ const getFuncName = (name: string) => {
 
 const createPayload = (serviceName: string, fnName: string, params: FuncParam[]) => {
   if (params.length === 0) {
-    return `const payload = this._program.registry.createType('(String, String)', '[${serviceName}, ${fnName}]').toHex()`;
+    return `const payload = this._program.registry.createType('(String, String)', ['${serviceName}', '${fnName}']).toHex()`;
   } else {
     return `const payload = this._program.registry.createType('(String, String, ${params
       .map(({ def }) => getScaleCodecDef(def))
@@ -43,7 +43,11 @@ const getFuncSignature = (name: string, params: FuncParam[], returnType: string,
 };
 
 export class ServiceGenerator {
-  constructor(private _out: Output, private _program: Program, private scaleTypes: Record<string, any>) {}
+  constructor(
+    private _out: Output,
+    private _program: Program,
+    private scaleTypes: Record<string, any>,
+  ) {}
 
   public generate(className = 'Program') {
     this._out
@@ -258,7 +262,7 @@ export class ServiceGenerator {
                       `callback(this._program.registry.createType('(String, String, ${getScaleCodecDef(
                         event.def,
                         true,
-                      )})', message.payload)[2].${decodeMethod}() as ${jsType})`,
+                      )})', message.payload)[2].${decodeMethod}() as unknown as ${jsType})`,
                     );
                   }
                 },

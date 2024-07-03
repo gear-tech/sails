@@ -28,7 +28,7 @@ impl ServiceTraitGenerator {
 impl<'ast> Visitor<'ast> for ServiceTraitGenerator {
     fn visit_service(&mut self, service: &'ast Service) {
         quote_in! { self.tokens =>
-            pub trait $(&self.service_name)<R, TCallArgs> $("{")
+            pub trait $(&self.service_name)<TCallArgs> $("{")
         };
 
         visitor::accept_service(service, self);
@@ -107,7 +107,7 @@ impl<'ast> Visitor<'ast> for ServiceClientGenerator {
                 }
             }
 
-            impl<R, A> traits::$name<R, A> for $name<R, A>
+            impl<R, A> traits::$name<A> for $name<R, A>
             where
                 R: Remoting<A> + Clone,
                 A: Default,

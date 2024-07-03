@@ -20,7 +20,7 @@
 
 use crate::errors::{Error, Result};
 use convert_case::{Case, Casing};
-use sails_rtl::{ActorId, CodeId, MessageId, H256, U256};
+use sails_rtl::{ActorId, CodeId, MessageId, H160, H256, U256};
 use scale_info::{
     form::PortableForm, PortableType, Type, TypeDef, TypeDefArray, TypeDefPrimitive,
     TypeDefSequence, TypeDefTuple, TypeInfo,
@@ -99,16 +99,18 @@ fn resolve_type_name(
                     resolved_type_names,
                     by_path_type_names,
                 )?)
-            } else if ActorIdTypeName::is_actor_id_type(type_info) {
-                Rc::new(ActorIdTypeName::new())
-            } else if MessageIdTypeName::is_message_id_type(type_info) {
-                Rc::new(MessageIdTypeName::new())
-            } else if CodeIdTypeName::is_code_id_type(type_info) {
-                Rc::new(CodeIdTypeName::new())
-            } else if H256TypeName::is_h256_type(type_info) {
-                Rc::new(H256TypeName::new())
-            } else if U256TypeName::is_u256_type(type_info) {
-                Rc::new(U256TypeName::new())
+            } else if actor_id::TypeNameImpl::is_type(type_info) {
+                Rc::new(actor_id::TypeNameImpl::new())
+            } else if message_id::TypeNameImpl::is_type(type_info) {
+                Rc::new(message_id::TypeNameImpl::new())
+            } else if code_id::TypeNameImpl::is_type(type_info) {
+                Rc::new(code_id::TypeNameImpl::new())
+            } else if h160::TypeNameImpl::is_type(type_info) {
+                Rc::new(h160::TypeNameImpl::new())
+            } else if h256::TypeNameImpl::is_type(type_info) {
+                Rc::new(h256::TypeNameImpl::new())
+            } else if u256::TypeNameImpl::is_type(type_info) {
+                Rc::new(u256::TypeNameImpl::new())
             } else {
                 Rc::new(ByPathTypeName::new(
                     types,
@@ -588,151 +590,6 @@ impl TypeName for ArrayTypeName {
     }
 }
 
-/// ActorId type name resolution.
-struct ActorIdTypeName;
-
-impl ActorIdTypeName {
-    pub fn new() -> Self {
-        Self
-    }
-
-    pub fn is_actor_id_type(type_info: &Type<PortableForm>) -> bool {
-        static ACTOR_ID_TYPE_INFO: OnceLock<Type> = OnceLock::new();
-        let actor_id_type_info = ACTOR_ID_TYPE_INFO.get_or_init(ActorId::type_info);
-        actor_id_type_info.path.segments == type_info.path.segments
-    }
-}
-
-impl TypeName for ActorIdTypeName {
-    fn as_string(
-        &self,
-        for_generic_param: bool,
-        _by_path_type_names: &HashMap<(String, Vec<u32>), u32>,
-    ) -> String {
-        if for_generic_param {
-            "ActorId".into()
-        } else {
-            "actor_id".into()
-        }
-    }
-}
-
-/// MessageId type name resolution.
-struct MessageIdTypeName;
-
-impl MessageIdTypeName {
-    pub fn new() -> Self {
-        Self
-    }
-
-    pub fn is_message_id_type(type_info: &Type<PortableForm>) -> bool {
-        static MESSAGE_ID_TYPE_INFO: OnceLock<Type> = OnceLock::new();
-        let message_id_type_info = MESSAGE_ID_TYPE_INFO.get_or_init(MessageId::type_info);
-        message_id_type_info.path.segments == type_info.path.segments
-    }
-}
-
-impl TypeName for MessageIdTypeName {
-    fn as_string(
-        &self,
-        for_generic_param: bool,
-        _by_path_type_names: &HashMap<(String, Vec<u32>), u32>,
-    ) -> String {
-        if for_generic_param {
-            "MessageId".into()
-        } else {
-            "message_id".into()
-        }
-    }
-}
-
-/// CodeId type name resolution.
-struct CodeIdTypeName;
-
-impl CodeIdTypeName {
-    pub fn new() -> Self {
-        Self
-    }
-
-    pub fn is_code_id_type(type_info: &Type<PortableForm>) -> bool {
-        static CODE_ID_TYPE_INFO: OnceLock<Type> = OnceLock::new();
-        let code_id_type_info = CODE_ID_TYPE_INFO.get_or_init(CodeId::type_info);
-        code_id_type_info.path.segments == type_info.path.segments
-    }
-}
-
-impl TypeName for CodeIdTypeName {
-    fn as_string(
-        &self,
-        for_generic_param: bool,
-        _by_path_type_names: &HashMap<(String, Vec<u32>), u32>,
-    ) -> String {
-        if for_generic_param {
-            "CodeId".into()
-        } else {
-            "code_id".into()
-        }
-    }
-}
-
-/// H256 type name resolution.
-struct H256TypeName;
-
-impl H256TypeName {
-    pub fn new() -> Self {
-        Self
-    }
-
-    pub fn is_h256_type(type_info: &Type<PortableForm>) -> bool {
-        static H256_TYPE_INFO: OnceLock<Type> = OnceLock::new();
-        let h256_type_info = H256_TYPE_INFO.get_or_init(H256::type_info);
-        h256_type_info.path.segments == type_info.path.segments
-    }
-}
-
-impl TypeName for H256TypeName {
-    fn as_string(
-        &self,
-        for_generic_param: bool,
-        _by_path_type_names: &HashMap<(String, Vec<u32>), u32>,
-    ) -> String {
-        if for_generic_param {
-            "H256".into()
-        } else {
-            "h256".into()
-        }
-    }
-}
-
-/// U256 type name resolution.
-struct U256TypeName;
-
-impl U256TypeName {
-    pub fn new() -> Self {
-        Self
-    }
-
-    pub fn is_u256_type(type_info: &Type<PortableForm>) -> bool {
-        static U256_TYPE_INFO: OnceLock<Type> = OnceLock::new();
-        let u256_type_info = U256_TYPE_INFO.get_or_init(U256::type_info);
-        u256_type_info.path.segments == type_info.path.segments
-    }
-}
-
-impl TypeName for U256TypeName {
-    fn as_string(
-        &self,
-        for_generic_param: bool,
-        _by_path_type_names: &HashMap<(String, Vec<u32>), u32>,
-    ) -> String {
-        if for_generic_param {
-            "U256".into()
-        } else {
-            "u256".into()
-        }
-    }
-}
-
 /// Primitive type name resolution.
 struct PrimitiveTypeName {
     name: &'static str,
@@ -774,6 +631,49 @@ impl TypeName for PrimitiveTypeName {
         }
     }
 }
+
+macro_rules! impl_primitive_alias_type_name {
+    ($primitive:ident, $alias:ident) => {
+        mod $alias {
+            use super::*;
+
+            pub(super) struct TypeNameImpl;
+
+            impl TypeNameImpl {
+                pub fn new() -> Self {
+                    Self
+                }
+
+                pub fn is_type(type_info: &Type<PortableForm>) -> bool {
+                    static TYPE_INFO: OnceLock<Type> = OnceLock::new();
+                    let info = TYPE_INFO.get_or_init($primitive::type_info);
+                    info.path.segments == type_info.path.segments
+                }
+            }
+
+            impl TypeName for TypeNameImpl {
+                fn as_string(
+                    &self,
+                    for_generic_param: bool,
+                    _by_path_type_names: &HashMap<(String, Vec<u32>), u32>,
+                ) -> String {
+                    if for_generic_param {
+                        stringify!($primitive).into()
+                    } else {
+                        stringify!($alias).into()
+                    }
+                }
+            }
+        }
+    };
+}
+
+impl_primitive_alias_type_name!(ActorId, actor_id);
+impl_primitive_alias_type_name!(MessageId, message_id);
+impl_primitive_alias_type_name!(CodeId, code_id);
+impl_primitive_alias_type_name!(H160, h160);
+impl_primitive_alias_type_name!(H256, h256);
+impl_primitive_alias_type_name!(U256, u256);
 
 #[cfg(test)]
 mod tests {
@@ -819,57 +719,6 @@ mod tests {
 
         #[derive(TypeInfo)]
         pub struct T2 {}
-    }
-
-    #[test]
-    fn actor_id_type_name_resolution_works() {
-        let mut registry = Registry::new();
-        let actor_id_id = registry.register_type(&MetaType::new::<ActorId>()).id;
-        let as_generic_param_id = registry
-            .register_type(&MetaType::new::<GenericStruct<ActorId>>())
-            .id;
-        let portable_registry = PortableRegistry::from(registry);
-
-        let type_names = resolve(portable_registry.types.iter()).unwrap();
-
-        let actor_id_name = type_names.get(&actor_id_id).unwrap();
-        assert_eq!(actor_id_name, "actor_id");
-        let as_generic_param_name = type_names.get(&as_generic_param_id).unwrap();
-        assert_eq!(as_generic_param_name, "GenericStructForActorId");
-    }
-
-    #[test]
-    fn message_id_type_name_resolution_works() {
-        let mut registry = Registry::new();
-        let message_id_id = registry.register_type(&MetaType::new::<MessageId>()).id;
-        let as_generic_param_id = registry
-            .register_type(&MetaType::new::<GenericStruct<MessageId>>())
-            .id;
-        let portable_registry = PortableRegistry::from(registry);
-
-        let type_names = resolve(portable_registry.types.iter()).unwrap();
-
-        let message_id_name = type_names.get(&message_id_id).unwrap();
-        assert_eq!(message_id_name, "message_id");
-        let as_generic_param_name = type_names.get(&as_generic_param_id).unwrap();
-        assert_eq!(as_generic_param_name, "GenericStructForMessageId");
-    }
-
-    #[test]
-    fn code_id_type_name_resolution_works() {
-        let mut registry = Registry::new();
-        let code_id_id = registry.register_type(&MetaType::new::<CodeId>()).id;
-        let as_generic_param_id = registry
-            .register_type(&MetaType::new::<GenericStruct<CodeId>>())
-            .id;
-        let portable_registry = PortableRegistry::from(registry);
-
-        let type_names = resolve(portable_registry.types.iter()).unwrap();
-
-        let code_id_name = type_names.get(&code_id_id).unwrap();
-        assert_eq!(code_id_name, "code_id");
-        let as_generic_param_name = type_names.get(&as_generic_param_id).unwrap();
-        assert_eq!(as_generic_param_name, "GenericStructForCodeId");
     }
 
     #[test]
@@ -1075,5 +924,46 @@ mod tests {
 
         let t2_name = type_names.get(&t2_id).unwrap();
         assert_eq!(t2_name, "TestsMod2T2");
+    }
+
+    macro_rules! type_name_resolution_works {
+        ($primitive:ident, $alias:ident) => {
+            let mut registry = Registry::new();
+            let id = registry.register_type(&MetaType::new::<$primitive>()).id;
+            let as_generic_param_id = registry
+                .register_type(&MetaType::new::<GenericStruct<$primitive>>())
+                .id;
+            let portable_registry = PortableRegistry::from(registry);
+
+            let type_names = resolve(portable_registry.types.iter()).unwrap();
+
+            let name = type_names.get(&id).unwrap();
+            assert_eq!(name, stringify!($alias));
+            let as_generic_param_name = type_names.get(&as_generic_param_id).unwrap();
+            assert_eq!(
+                as_generic_param_name,
+                concat!("GenericStructFor", stringify!($primitive))
+            );
+        };
+    }
+
+    #[test]
+    fn actor_id_type_name_resolution_works() {
+        type_name_resolution_works!(ActorId, actor_id);
+    }
+
+    #[test]
+    fn message_id_type_name_resolution_works() {
+        type_name_resolution_works!(MessageId, message_id);
+    }
+
+    #[test]
+    fn code_id_type_name_resolution_works() {
+        type_name_resolution_works!(CodeId, code_id);
+    }
+
+    #[test]
+    fn h160_type_name_resolution_works() {
+        type_name_resolution_works!(H160, h160);
     }
 }

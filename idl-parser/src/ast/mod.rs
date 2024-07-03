@@ -311,6 +311,7 @@ pub enum PrimitiveType {
     MessageId,
     H256,
     U256,
+    H160,
 }
 
 impl PrimitiveType {
@@ -329,6 +330,7 @@ impl PrimitiveType {
             "i32" => Some(PrimitiveType::I32),
             "i64" => Some(PrimitiveType::I64),
             "i128" => Some(PrimitiveType::I128),
+            "h160" => Some(PrimitiveType::H160),
             "h256" => Some(PrimitiveType::H256),
             "u256" => Some(PrimitiveType::U256),
             "actor_id" => Some(PrimitiveType::ActorId),
@@ -572,7 +574,7 @@ mod tests {
     fn parser_recognizes_builtin_types_as_primitives() {
         let program_idl = r"
             service {
-                DoThis : (p1: actor_id, p2: code_id, p3: message_id, p4: h256, p5: u256) -> null;
+                DoThis : (p1: actor_id, p2: code_id, p3: message_id, p4: h256, p5: u256, p6: h160) -> null;
             }
         ";
 
@@ -600,6 +602,9 @@ mod tests {
                 }
                 TypeDecl::Id(TypeId::Primitive(PrimitiveType::U256)) => {
                     assert_eq!(p.name(), "p5");
+                }
+                TypeDecl::Id(TypeId::Primitive(PrimitiveType::H160)) => {
+                    assert_eq!(p.name(), "p6");
                 }
                 _ => panic!("unexpected type"),
             });

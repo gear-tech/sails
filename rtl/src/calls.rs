@@ -21,6 +21,14 @@ pub trait Call<TArgs, TReply>: Action<TArgs> {
         self,
         target: ActorId,
     ) -> Result<CallTicket<impl Future<Output = Result<Vec<u8>>>, TReply>>;
+
+    async fn execute(self, target: ActorId) -> Result<TReply>
+    where
+        Self: Sized,
+        TReply: Decode,
+    {
+        self.publish(target).await?.reply().await
+    }
 }
 
 #[allow(async_fn_in_trait)]
@@ -30,6 +38,13 @@ pub trait Activation<TArgs>: Action<TArgs> {
         code_id: CodeId,
         salt: impl AsRef<[u8]>,
     ) -> Result<ActivationTicket<impl Future<Output = Result<(ActorId, Vec<u8>)>>>>;
+
+    async fn execute(self, code_id: CodeId, salt: impl AsRef<[u8]>) -> Result<ActorId>
+    where
+        Self: Sized,
+    {
+        self.publish(code_id, salt).await?.reply().await
+    }
 }
 
 #[allow(async_fn_in_trait)]
