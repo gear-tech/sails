@@ -221,7 +221,6 @@ where
 impl<TRemoting, TArgs, TReply> Query<TArgs, TReply> for RemotingAction<TRemoting, TArgs, TReply>
 where
     TRemoting: Remoting<TArgs>,
-    TArgs: Default,
     TReply: Decode,
 {
     async fn recv(self, target: ActorId) -> Result<TReply> {
