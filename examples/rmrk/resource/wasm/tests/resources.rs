@@ -8,7 +8,7 @@ use rmrk_resource_app::services::{
     ResourceStorageEvent,
 };
 use sails_rtl::{
-    calls::{Action, Call, Remoting},
+    calls::{Action, Call, Query, Remoting},
     collections::BTreeMap,
     errors::Result,
     gtest::calls::{GTestArgs, GTestRemoting},
@@ -490,7 +490,7 @@ impl<'a> Fixture<'a> {
         resource_client
             .resource(resource_id)
             .with_args(GTestArgs::new(actor_id.into()))
-            .send_recv(resource_program_id)
+            .recv(resource_program_id)
             .await
     }
 

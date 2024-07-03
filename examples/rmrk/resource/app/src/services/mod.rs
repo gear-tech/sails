@@ -2,7 +2,7 @@ use crate::catalogs::traits::RmrkCatalog;
 use errors::{Error, Result};
 use resources::{ComposedResource, PartId, Resource, ResourceId};
 use sails_rtl::{
-    calls::{Call, Query},
+    calls::Query,
     collections::HashMap,
     gstd::{calls::GStdArgs, gservice, ExecContext},
     prelude::*,
