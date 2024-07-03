@@ -35,7 +35,6 @@ const-format = { package = "const_format", version = "0.2" }
 convert-case = { package = "convert_case", version = "0.6" }
 futures = { version = "0.3", default-features = false }
 gclient = "1.4.2"
-gear-core = "1.4.2"
 gear-core-errors = "1.4.2"
 genco = "0.17"
 git-download = "0.1"
