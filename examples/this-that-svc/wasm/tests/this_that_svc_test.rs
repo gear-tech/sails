@@ -12,7 +12,7 @@ const PROGRAM_WASM_PATH: &str =
 
 #[tokio::test]
 async fn ping_succeed() {
-    let api = GearApi::dev().await.unwrap();
+    let api = GearApi::dev_from_path(env!("GEAR_PATH")).await.unwrap();
     let gas_limit = api.block_gas_limit().unwrap();
     let (code_id, ..) = api.upload_code_by_path(PROGRAM_WASM_PATH).await.unwrap();
 

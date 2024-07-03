@@ -8,6 +8,7 @@ on:
 env:
   BINARYEN_VERSION: version_111
   CARGO_TERM_COLOR: always
+  GEAR_PATH: /usr/bin/gear
 
 jobs:
   check:
@@ -51,8 +52,6 @@ jobs:
   test:
     name: Run Tests
     runs-on: ubuntu-latest
-    env:
-      GEAR_PATH: /usr/bin/gear
 
     steps:
       - name: Free Disk Space
