@@ -20,14 +20,16 @@
 
 use crate::errors::{Error, Result};
 use convert_case::{Case, Casing};
-use sails_rtl::{ActorId, CodeId, MessageId, NonZeroU256, H160, H256, U256};
-use scale_info::{
+use sails_rtl::scale_info::{
     form::PortableForm, PortableType, Type, TypeDef, TypeDefArray, TypeDefPrimitive,
     TypeDefSequence, TypeDefTuple, TypeInfo,
 };
+use sails_rtl::{
+    ActorId, CodeId, MessageId, NonZeroU128, NonZeroU16, NonZeroU256, NonZeroU32, NonZeroU64,
+    NonZeroU8, H160, H256, U256,
+};
 use std::{
     collections::{BTreeMap, HashMap},
-    num::{NonZeroU128, NonZeroU16, NonZeroU32, NonZeroU64, NonZeroU8},
     rc::Rc,
     result::Result as StdResult,
     sync::OnceLock,
