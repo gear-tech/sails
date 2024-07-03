@@ -13,7 +13,7 @@ async fn counter_works() {
     let demo_program_id = demo_factory
         .new(Some(42), None)
         .with_args(GTestArgs::new(fixture.admin_id()))
-        .execute(fixture.demo_code_id(), "123")
+        .send_recv(fixture.demo_code_id(), "123")
         .await
         .unwrap();
 
@@ -22,7 +22,7 @@ async fn counter_works() {
     let result = counter_client
         .add(10)
         .with_args(GTestArgs::new(fixture.admin_id()))
-        .execute(demo_program_id)
+        .send_recv(demo_program_id)
         .await
         .unwrap();
 

@@ -99,7 +99,7 @@ where
             let part = self
                 .catalog_client
                 .part(part_id)
-                .execute(*base)
+                .send_recv(*base)
                 .await
                 .unwrap();
             if part.is_none() {

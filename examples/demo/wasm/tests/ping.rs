@@ -13,7 +13,7 @@ async fn ping_pong_works() {
     let demo_program_id = demo_factory
         .default()
         .with_args(GTestArgs::new(fixture.admin_id()))
-        .execute(fixture.demo_code_id(), "123")
+        .send_recv(fixture.demo_code_id(), "123")
         .await
         .unwrap();
 
@@ -22,7 +22,7 @@ async fn ping_pong_works() {
     let result = ping_pong_client
         .ping("ping".into())
         .with_args(GTestArgs::new(fixture.admin_id()))
-        .execute(demo_program_id)
+        .send_recv(demo_program_id)
         .await
         .unwrap();
 

@@ -30,7 +30,8 @@ use proc_macro_error::abort;
 use quote::quote;
 use std::collections::BTreeMap;
 use syn::{
-    parse_quote, spanned::Spanned, Ident, ImplItemFn, ItemImpl, Lifetime, Path, Type, Visibility,
+    parse_quote, punctuated::Punctuated, spanned::Spanned, token::Comma, Ident, ImplItemFn,
+    ItemImpl, Lifetime, Path, Type, Visibility,
 };
 
 mod args;
@@ -250,9 +251,10 @@ fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
 
     let events_listeners_code = events_type.map(|_| generate_event_listeners());
 
+    let lifetimes = extract_lifetime_names(&service_type_args);
     let exposure_set_event_listener_code = events_type.map(|t| {
         // get non conflicting lifetime name
-        let lifetimes = extract_lifetime_names(&service_type_args);
+
         let mut lt = "__elg".to_owned();
         while lifetimes.contains(&lt) {
             lt = format!("_{}", lt);
@@ -273,10 +275,31 @@ fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
     let unexpected_route_panic =
         shared::generate_unexpected_input_panic(&input_ident, "Unknown request");
 
+    let mut exposure_lifetimes: Punctuated<Lifetime, Comma> = Punctuated::new();
+    if !service_args.base_types().is_empty() {
+        for lt in lifetimes.iter().map(|lt| {
+            let lt = format!("'{lt}");
+            Lifetime::new(&lt, Span::call_site())
+        }) {
+            exposure_lifetimes.push(lt);
+        }
+    };
+
+    let exposure_generic_args = if exposure_lifetimes.is_empty() {
+        quote! { T }
+    } else {
+        quote! { #exposure_lifetimes, T }
+    };
+    let exposure_args = if exposure_lifetimes.is_empty() {
+        quote! { #service_type }
+    } else {
+        quote! { #exposure_lifetimes, #service_type }
+    };
+
     quote!(
         #service_impl
 
-        pub struct Exposure<T> {
+        pub struct Exposure<#exposure_generic_args> {
             #message_id_ident : sails_rtl::MessageId,
             #route_ident : &'static [u8],
             #[cfg(not(target_arch = "wasm32"))]
@@ -290,7 +313,7 @@ fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
 
         #exposure_drop_code
 
-        impl #service_type_args Exposure< #service_type > #service_type_constraints {
+        impl #service_type_args Exposure< #exposure_args > #service_type_constraints {
             #( #exposure_funcs )*
 
             #( #base_exposure_accessors )*
@@ -312,7 +335,7 @@ fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
             #exposure_set_event_listener_code
         }
 
-        impl #service_type_args sails_rtl::gstd::services::Exposure for Exposure< #service_type > #service_type_constraints {
+        impl #service_type_args sails_rtl::gstd::services::Exposure for Exposure< #exposure_args > #service_type_constraints {
             fn message_id(&self) -> sails_rtl::MessageId {
                 self. #message_id_ident
             }
@@ -323,7 +346,7 @@ fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
         }
 
         impl #service_type_args sails_rtl::gstd::services::Service for #service_type #service_type_constraints {
-            type Exposure = Exposure< #service_type >;
+            type Exposure = Exposure< #exposure_args >;
 
             fn expose(self, #message_id_ident : sails_rtl::MessageId, #route_ident : &'static [u8]) -> Self::Exposure {
                 #[cfg(not(target_arch = "wasm32"))]

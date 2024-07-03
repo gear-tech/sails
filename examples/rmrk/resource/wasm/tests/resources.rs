@@ -412,7 +412,7 @@ impl<'a> Fixture<'a> {
         resource_client
             .add_resource_entry(resource_id, resource)
             .with_args(GTestArgs::new(actor_id.into()))
-            .execute(resource_program_id)
+            .send_recv(resource_program_id)
             .await
     }
 
@@ -445,7 +445,7 @@ impl<'a> Fixture<'a> {
         resource_client
             .add_part_to_resource(resource_id, part_id)
             .with_args(GTestArgs::new(actor_id.into()))
-            .execute(resource_program_id)
+            .send_recv(resource_program_id)
             .await
     }
 
@@ -490,7 +490,7 @@ impl<'a> Fixture<'a> {
         resource_client
             .resource(resource_id)
             .with_args(GTestArgs::new(actor_id.into()))
-            .execute(resource_program_id)
+            .send_recv(resource_program_id)
             .await
     }
 

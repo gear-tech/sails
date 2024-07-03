@@ -24,11 +24,8 @@ where
     pub async fn call_this(&mut self, this_that_addr: ActorId) -> u32 {
         self.this_that
             .this()
-            .publish(this_that_addr)
+            .send_recv(this_that_addr)
             .await
             .expect("send msg")
-            .reply()
-            .await
-            .expect("parse msg")
     }
 }
