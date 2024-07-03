@@ -199,8 +199,8 @@ async fn gservice_with_lifetimes_and_events() {
 #[tokio::test]
 async fn gservice_with_extends_and_lifetimes() {
     use gservice_with_extends_and_lifetimes::{
-        base::{BaseLifetime, BASE_NAME_RESULT},
-        extended::{ExtendedLifetime, EXTENDED_NAME_RESULT, NAME_RESULT},
+        base::{BaseWithLifetime, BASE_NAME_RESULT},
+        extended::{ExtendedWithLifetime, EXTENDED_NAME_RESULT, NAME_RESULT},
     };
 
     const NAME_METHOD: &str = "Name";
@@ -209,7 +209,7 @@ async fn gservice_with_extends_and_lifetimes() {
 
     let int = 42u64;
     let mut extended_svc =
-        ExtendedLifetime::new(BaseLifetime::new(&int)).expose(123.into(), &[1, 2, 3]);
+        ExtendedWithLifetime::new(BaseWithLifetime::new(&int)).expose(123.into(), &[1, 2, 3]);
 
     let output = extended_svc.handle(&EXTENDED_NAME_METHOD.encode()).await;
 
@@ -218,7 +218,7 @@ async fn gservice_with_extends_and_lifetimes() {
         [EXTENDED_NAME_METHOD.encode(), EXTENDED_NAME_RESULT.encode()].concat()
     );
 
-    // let _base: &<BaseLifetime as Service>::Exposure = extended_svc.as_base_0();
+    let _base: &<BaseWithLifetime as Service>::Exposure = extended_svc.as_base_0();
 
     let output = extended_svc.handle(&BASE_NAME_METHOD.encode()).await;
     let mut output = output.as_slice();

@@ -8,18 +8,18 @@ pub(super) mod base {
     pub const NAME_RESULT: &str = "base";
 
     #[derive(Clone)]
-    pub struct BaseLifetime<'a> {
+    pub struct BaseWithLifetime<'a> {
         _int: &'a u64,
     }
 
-    impl<'a> BaseLifetime<'a> {
+    impl<'a> BaseWithLifetime<'a> {
         pub fn new(int: &'a u64) -> Self {
-            BaseLifetime { _int: int }
+            BaseWithLifetime { _int: int }
         }
     }
 
     #[gservice]
-    impl<'a> BaseLifetime<'a> {
+    impl<'a> BaseWithLifetime<'a> {
         pub fn base_name(&self) -> String {
             "base-name".to_string()
         }
@@ -36,18 +36,18 @@ pub(super) mod extended {
     pub const EXTENDED_NAME_RESULT: &str = "extended-name";
     pub const NAME_RESULT: &str = "extended";
 
-    pub struct ExtendedLifetime<'a> {
-        base: base::BaseLifetime<'a>,
+    pub struct ExtendedWithLifetime<'a> {
+        base: base::BaseWithLifetime<'a>,
     }
 
-    impl<'a> ExtendedLifetime<'a> {
-        pub fn new(base: base::BaseLifetime<'a>) -> Self {
+    impl<'a> ExtendedWithLifetime<'a> {
+        pub fn new(base: base::BaseWithLifetime<'a>) -> Self {
             Self { base }
         }
     }
 
-    #[gservice(extends = base::BaseLifetime<'a>)]
-    impl<'a> ExtendedLifetime<'a> {
+    #[gservice(extends = base::BaseWithLifetime<'a>)]
+    impl<'a> ExtendedWithLifetime<'a> {
         pub fn extended_name(&self) -> String {
             "extended-name".to_string()
         }
@@ -57,8 +57,8 @@ pub(super) mod extended {
         }
     }
 
-    impl<'a> AsRef<base::BaseLifetime<'a>> for ExtendedLifetime<'a> {
-        fn as_ref(&self) -> &base::BaseLifetime<'a> {
+    impl<'a> AsRef<base::BaseWithLifetime<'a>> for ExtendedWithLifetime<'a> {
+        fn as_ref(&self) -> &base::BaseWithLifetime<'a> {
             &self.base
         }
     }
