@@ -17,33 +17,33 @@ pub trait Action<TArgs> {
 
 #[allow(async_fn_in_trait)]
 pub trait Call<TArgs, TReply>: Action<TArgs> {
-    async fn publish(
+    async fn send(
         self,
         target: ActorId,
     ) -> Result<CallTicket<impl Future<Output = Result<Vec<u8>>>, TReply>>;
 
-    async fn execute(self, target: ActorId) -> Result<TReply>
+    async fn send_recv(self, target: ActorId) -> Result<TReply>
     where
         Self: Sized,
         TReply: Decode,
     {
-        self.publish(target).await?.reply().await
+        self.send(target).await?.recv().await
     }
 }
 
 #[allow(async_fn_in_trait)]
 pub trait Activation<TArgs>: Action<TArgs> {
-    async fn publish(
+    async fn send(
         self,
         code_id: CodeId,
         salt: impl AsRef<[u8]>,
     ) -> Result<ActivationTicket<impl Future<Output = Result<(ActorId, Vec<u8>)>>>>;
 
-    async fn execute(self, code_id: CodeId, salt: impl AsRef<[u8]>) -> Result<ActorId>
+    async fn send_recv(self, code_id: CodeId, salt: impl AsRef<[u8]>) -> Result<ActorId>
     where
         Self: Sized,
     {
-        self.publish(code_id, salt).await?.reply().await
+        self.send(code_id, salt).await?.recv().await
     }
 }
 
@@ -71,7 +71,7 @@ where
         }
     }
 
-    pub async fn reply(self) -> Result<TReply> {
+    pub async fn recv(self) -> Result<TReply> {
         let reply_bytes = self.reply_future.await?;
         if !reply_bytes.starts_with(self.route) {
             Err(RtlError::ReplyPrefixMismatches)?
@@ -97,7 +97,7 @@ where
         }
     }
 
-    pub async fn reply(self) -> Result<ActorId> {
+    pub async fn recv(self) -> Result<ActorId> {
         let reply = self.reply_future.await?;
         if reply.1 != self.route {
             Err(RtlError::ReplyPrefixMismatches)?
@@ -188,7 +188,7 @@ where
     TArgs: Default,
     TReply: Decode,
 {
-    async fn publish(
+    async fn send(
         self,
         target: ActorId,
     ) -> Result<CallTicket<impl Future<Output = Result<Vec<u8>>>, TReply>> {
@@ -205,7 +205,7 @@ where
     TRemoting: Remoting<TArgs>,
     TArgs: Default,
 {
-    async fn publish(
+    async fn send(
         self,
         code_id: CodeId,
         salt: impl AsRef<[u8]>,

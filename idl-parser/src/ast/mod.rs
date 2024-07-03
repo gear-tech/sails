@@ -312,6 +312,12 @@ pub enum PrimitiveType {
     H256,
     U256,
     H160,
+    NonZeroU8,
+    NonZeroU16,
+    NonZeroU32,
+    NonZeroU64,
+    NonZeroU128,
+    NonZeroU256,
 }
 
 impl PrimitiveType {
@@ -333,6 +339,12 @@ impl PrimitiveType {
             "h160" => Some(PrimitiveType::H160),
             "h256" => Some(PrimitiveType::H256),
             "u256" => Some(PrimitiveType::U256),
+            "nat8" => Some(PrimitiveType::NonZeroU8),
+            "nat16" => Some(PrimitiveType::NonZeroU16),
+            "nat32" => Some(PrimitiveType::NonZeroU32),
+            "nat64" => Some(PrimitiveType::NonZeroU64),
+            "nat128" => Some(PrimitiveType::NonZeroU128),
+            "nat256" => Some(PrimitiveType::NonZeroU256),
             "actor_id" => Some(PrimitiveType::ActorId),
             "code_id" => Some(PrimitiveType::CodeId),
             "message_id" => Some(PrimitiveType::MessageId),
@@ -798,5 +810,45 @@ mod tests {
         // assert
         let my_service = program.services().iter().find(|t| t.name() == "").unwrap();
         assert_eq!(&expected, my_service);
+    }
+
+    #[test]
+    fn parser_accepts_nonzero_primitives() {
+        const IDL: &str = r#"
+        type MyStruct = struct {
+            query: nat32,
+            data: nat256,
+            result: nat8
+        };
+        "#;
+
+        let expected = TypeDef::Struct(
+            StructDef::new(vec![
+                StructField::new(
+                    Some("query".to_owned()),
+                    TypeDecl::Id(TypeId::Primitive(PrimitiveType::NonZeroU32)),
+                ),
+                StructField::new(
+                    Some("data".to_owned()),
+                    TypeDecl::Id(TypeId::Primitive(PrimitiveType::NonZeroU256)),
+                ),
+                StructField::new(
+                    Some("result".to_owned()),
+                    TypeDecl::Id(TypeId::Primitive(PrimitiveType::NonZeroU8)),
+                ),
+            ])
+            .unwrap(),
+        );
+
+        // act
+        let program = parse_idl(IDL).unwrap();
+
+        // assert
+        let my_struct = program
+            .types()
+            .iter()
+            .find(|t| t.name() == "MyStruct")
+            .unwrap();
+        assert_eq!(&expected, my_struct.def());
     }
 }
