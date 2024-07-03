@@ -1,7 +1,6 @@
 use gclient::GearApi;
 use sails_rtl::{
-    calls::{Action, Activation, Call, Query},
-    errors::RtlError,
+    calls::*,
     gsdk::calls::{GSdkArgs, GSdkRemoting},
 };
 use this_that_svc_client::traits::ThisThatSvc;
@@ -13,23 +12,23 @@ const PROGRAM_WASM_PATH: &str =
 
 #[tokio::test]
 async fn ping_succeed() {
-    let api = GearApi::dev_from_path(env!("GEAR_PATH")).await.unwrap();
+    let api = GearApi::dev().await.unwrap();
     let gas_limit = api.block_gas_limit().unwrap();
     let (code_id, ..) = api.upload_code_by_path(PROGRAM_WASM_PATH).await.unwrap();
 
     // Create program w/o constructor
-    let (message_id, program_id, ..) = api
+    let (_, program_id, ..) = api
         .create_program_bytes(code_id, "123", vec![], gas_limit, 0)
         .await
         .unwrap();
 
     let remoting = GSdkRemoting::new(api);
 
-    let mut client = this_that_svc_client::ThisThatSvc::new(remoting);
+    let client = this_that_svc_client::ThisThatSvc::new(remoting);
     let reply = client
         .this()
         .with_args(GSdkArgs::default().with_gas_limit(gas_limit))
-        .query(program_id)
+        .recv(program_id)
         .await
         .unwrap();
 
