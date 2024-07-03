@@ -107,7 +107,7 @@ where
 }
 
 #[allow(async_fn_in_trait)]
-pub trait Remoting<TArgs: Default>: Clone {
+pub trait Remoting<TArgs> {
     async fn activate(
         self,
         code_id: CodeId,
@@ -185,7 +185,6 @@ impl<TRemoting, TArgs, TReply> Action<TArgs> for RemotingAction<TRemoting, TArgs
 impl<TRemoting, TArgs, TReply> Call<TArgs, TReply> for RemotingAction<TRemoting, TArgs, TReply>
 where
     TRemoting: Remoting<TArgs>,
-    TArgs: Default,
     TReply: Decode,
 {
     async fn send(
@@ -203,7 +202,6 @@ where
 impl<TRemoting, TArgs> Activation<TArgs> for RemotingAction<TRemoting, TArgs, ActorId>
 where
     TRemoting: Remoting<TArgs>,
-    TArgs: Default,
 {
     async fn send(
         self,
