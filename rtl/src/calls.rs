@@ -49,7 +49,7 @@ pub trait Activation<TArgs>: Action<TArgs> {
 
 #[allow(async_fn_in_trait)]
 pub trait Query<TArgs, TReply>: Action<TArgs> {
-    async fn query(self, target: ActorId) -> Result<TReply>;
+    async fn recv(self, target: ActorId) -> Result<TReply>;
 }
 
 pub struct CallTicket<TReplyFuture, TReply> {
@@ -107,7 +107,7 @@ where
 }
 
 #[allow(async_fn_in_trait)]
-pub trait Remoting<TArgs: Default>: Clone {
+pub trait Remoting<TArgs> {
     async fn activate(
         self,
         code_id: CodeId,
@@ -224,7 +224,7 @@ where
     TArgs: Default,
     TReply: Decode,
 {
-    async fn query(self, target: ActorId) -> Result<TReply> {
+    async fn recv(self, target: ActorId) -> Result<TReply> {
         let reply_bytes = self
             .remoting
             .query(target, self.payload, self.value, self.args)
