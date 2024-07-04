@@ -8,7 +8,7 @@ use core::marker::PhantomData;
 use sails_rtl::collections::BTreeMap;
 #[allow(unused_imports)]
 use sails_rtl::{
-    calls::{Activation, Call, Remoting, RemotingAction},
+    calls::{Activation, Call, Query, Remoting, RemotingAction},
     event_listener::{EventSubscriber, RemotingSubscribe, Subscribe},
     prelude::*,
     String,
@@ -122,7 +122,7 @@ where
     R: Remoting<A> + Clone,
     A: Default,
 {
-    fn that(&self, p1: u32) -> impl Call<A, String> {
+    fn that(&self, p1: u32) -> impl Query<A, String> {
         RemotingAction::new(
             self.remoting.clone(),
             &[20, 78, 97, 109, 101, 100, 16, 84, 104, 97, 116],
@@ -168,14 +168,14 @@ pub mod named {
 }
 pub mod traits {
     use super::*;
-    pub trait Multiple<TCallArgs> {
+    pub trait Multiple<A> {
         #[allow(clippy::type_complexity)]
-        fn do_this(&mut self, p1: u32, p2: MyParam) -> impl Call<TCallArgs, u16>;
+        fn do_this(&mut self, p1: u32, p2: MyParam) -> impl Call<A, u16>;
         #[allow(clippy::type_complexity)]
-        fn do_that(&mut self, p1: (u8, u32)) -> impl Call<TCallArgs, u8>;
+        fn do_that(&mut self, p1: (u8, u32)) -> impl Call<A, u8>;
     }
-    pub trait Named<TCallArgs> {
+    pub trait Named<A> {
         #[allow(clippy::type_complexity)]
-        fn that(&self, p1: u32) -> impl Call<TCallArgs, String>;
+        fn that(&self, p1: u32) -> impl Query<A, String>;
     }
 }

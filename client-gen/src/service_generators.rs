@@ -21,46 +21,37 @@ impl ServiceTraitGenerator {
     }
 
     pub(crate) fn finalize(self) -> Tokens {
-        self.tokens
+        quote! {
+            pub trait $(&self.service_name)<A> {
+                $(self.tokens)
+            }
+        }
     }
 }
 
 impl<'ast> Visitor<'ast> for ServiceTraitGenerator {
     fn visit_service(&mut self, service: &'ast Service) {
-        quote_in! { self.tokens =>
-            pub trait $(&self.service_name)<TCallArgs> $("{")
-        };
-
         visitor::accept_service(service, self);
-
-        quote_in! { self.tokens =>
-            $("}")
-        };
     }
 
     fn visit_service_func(&mut self, func: &'ast ServiceFunc) {
         let mutability = if func.is_query() { "" } else { "mut" };
         let fn_name = func.name().to_case(Case::Snake);
 
+        let mut params_tokens = Tokens::new();
+        for param in func.params() {
+            let type_decl_code = generate_type_decl_code(param.type_decl());
+            quote_in! {params_tokens =>
+                $(param.name()): $(type_decl_code),
+            };
+        }
+
+        let output_type_decl_code = generate_type_decl_code(func.output());
+        let output_trait = if func.is_query() { "Query" } else { "Call" };
+
         quote_in! { self.tokens=>
             #[allow(clippy::type_complexity)]
-            fn $fn_name $("(")&$mutability self,
-        };
-
-        visitor::accept_service_func(func, self);
-    }
-
-    fn visit_func_param(&mut self, func_param: &'ast FuncParam) {
-        let type_decl_code = generate_type_decl_code(func_param.type_decl());
-        quote_in! { self.tokens =>
-            $(func_param.name()): $(type_decl_code),
-        };
-    }
-
-    fn visit_func_output(&mut self, func_output: &'ast TypeDecl) {
-        let type_decl_code = generate_type_decl_code(func_output);
-        quote_in! { self.tokens =>
-            $(")") -> impl Call<TCallArgs, $type_decl_code>;
+            fn $fn_name (&$mutability self, $params_tokens) -> impl $output_trait<A, $output_type_decl_code>;
         };
     }
 }
@@ -126,11 +117,16 @@ impl<'ast> Visitor<'ast> for ServiceClientGenerator {
         let fn_name = func.name();
         let fn_name_snake = fn_name.to_case(Case::Snake);
 
-        quote_in! {self.tokens =>
-            fn $fn_name_snake $("(")&$mutability self,
-        };
+        let mut params_tokens = Tokens::new();
+        for param in func.params() {
+            let type_decl_code = generate_type_decl_code(param.type_decl());
+            quote_in! {params_tokens =>
+                $(param.name()): $(type_decl_code),
+            };
+        }
 
-        visitor::accept_service_func(func, self);
+        let output_type_decl_code = generate_type_decl_code(func.output());
+        let output_trait = if func.is_query() { "Query" } else { "Call" };
 
         let args = encoded_args(func.params());
 
@@ -138,25 +134,9 @@ impl<'ast> Visitor<'ast> for ServiceClientGenerator {
         let (route_bytes, _route_encoded_length) = method_bytes(fn_name);
 
         quote_in! {self.tokens =>
-            {
+            fn $fn_name_snake (&$mutability self, $params_tokens) -> impl $output_trait<A, $output_type_decl_code> {
                 RemotingAction::new(self.remoting.clone(), &[$service_path_bytes $route_bytes], $args)
             }
-        };
-    }
-
-    fn visit_func_param(&mut self, func_param: &'ast FuncParam) {
-        let type_decl_code = generate_type_decl_code(func_param.type_decl());
-
-        quote_in! {self.tokens =>
-            $(func_param.name()): $(type_decl_code),
-        };
-    }
-
-    fn visit_func_output(&mut self, func_output: &'ast TypeDecl) {
-        let type_decl_code = generate_type_decl_code(func_output);
-
-        quote_in! {self.tokens =>
-            $(")") -> impl Call<A, $type_decl_code>
         };
     }
 }

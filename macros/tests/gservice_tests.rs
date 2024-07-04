@@ -4,7 +4,9 @@ use sails_rtl::{Decode, Encode, MessageId};
 mod gservice_with_basics;
 mod gservice_with_events;
 mod gservice_with_extends;
+mod gservice_with_extends_and_lifetimes;
 mod gservice_with_lifecycles_and_generics;
+mod gservice_with_lifetimes_and_events;
 
 #[tokio::test]
 async fn gservice_with_basics() {
@@ -163,4 +165,82 @@ fn gservice_with_events() {
 
     assert_eq!(events.len(), 1);
     assert_eq!(events[0], MyEvents::Event1);
+}
+
+#[tokio::test]
+async fn gservice_with_lifetimes_and_events() {
+    use gservice_with_lifetimes_and_events::{MyEvents, MyGenericEventsService};
+
+    const DO_THIS: &str = "DoThis";
+
+    let my_service = MyGenericEventsService::<'_, String>::default();
+    let mut exposure = my_service.expose(MessageId::from(123), &[1, 2, 3]);
+
+    let mut events = Vec::new();
+    {
+        let _event_listener_guard = exposure.set_event_listener(|event| events.push(event.clone()));
+
+        let output = exposure.handle(&DO_THIS.encode()).await;
+
+        let mut output = output.as_slice();
+
+        let func_name = String::decode(&mut output).unwrap();
+        assert_eq!(func_name, DO_THIS);
+
+        let result = u32::decode(&mut output).unwrap();
+        assert_eq!(result, 42);
+
+        assert_eq!(output.len(), 0);
+    }
+    assert_eq!(events.len(), 1);
+    assert_eq!(events[0], MyEvents::Event1);
+}
+
+#[tokio::test]
+async fn gservice_with_extends_and_lifetimes() {
+    use gservice_with_extends_and_lifetimes::{
+        base::{BaseWithLifetime, BASE_NAME_RESULT},
+        extended::{ExtendedWithLifetime, EXTENDED_NAME_RESULT, NAME_RESULT},
+    };
+
+    const NAME_METHOD: &str = "Name";
+    const BASE_NAME_METHOD: &str = "BaseName";
+    const EXTENDED_NAME_METHOD: &str = "ExtendedName";
+
+    let int = 42u64;
+    let mut extended_svc =
+        ExtendedWithLifetime::new(BaseWithLifetime::new(&int)).expose(123.into(), &[1, 2, 3]);
+
+    let output = extended_svc.handle(&EXTENDED_NAME_METHOD.encode()).await;
+
+    assert_eq!(
+        output,
+        [EXTENDED_NAME_METHOD.encode(), EXTENDED_NAME_RESULT.encode()].concat()
+    );
+
+    let _base: &<BaseWithLifetime as Service>::Exposure = extended_svc.as_base_0();
+
+    let output = extended_svc.handle(&BASE_NAME_METHOD.encode()).await;
+    let mut output = output.as_slice();
+    let func_name = String::decode(&mut output).unwrap();
+    assert_eq!(func_name, BASE_NAME_METHOD);
+
+    let result = String::decode(&mut output).unwrap();
+    assert_eq!(result, BASE_NAME_RESULT);
+
+    let output = extended_svc.handle(&EXTENDED_NAME_METHOD.encode()).await;
+    let mut output = output.as_slice();
+    let func_name = String::decode(&mut output).unwrap();
+    assert_eq!(func_name, EXTENDED_NAME_METHOD);
+
+    let result = String::decode(&mut output).unwrap();
+    assert_eq!(result, EXTENDED_NAME_RESULT);
+
+    let output = extended_svc.handle(&NAME_METHOD.encode()).await;
+    let mut output = output.as_slice();
+    let func_name = String::decode(&mut output).unwrap();
+    assert_eq!(func_name, NAME_METHOD);
+
+    let result = String::decode(&mut output).unwrap();
+    assert_eq!(result, NAME_RESULT);
 }

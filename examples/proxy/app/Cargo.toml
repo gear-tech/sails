@@ -1,0 +1,8 @@
+[package]
+name = "proxy-app"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+demo-client = { path = "../../demo/client" }
+sails-rtl.workspace = true

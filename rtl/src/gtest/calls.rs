@@ -40,7 +40,7 @@ pub struct GTestRemoting {
 
 impl Default for GTestRemoting {
     fn default() -> Self {
-        GTestRemoting::new()
+        Self::new()
     }
 }
 
@@ -90,6 +90,21 @@ impl GTestRemoting {
             }
         }
     }
+
+    fn send_and_get_result(
+        &self,
+        target: ActorId,
+        payload: impl AsRef<[u8]>,
+        value: ValueUnit,
+        args: GTestArgs,
+    ) -> Result<RunResult> {
+        let program = self
+            .system
+            .get_program(target.as_ref())
+            .ok_or(RtlError::ProgramIsNotFound)?;
+        let actor_id = args.actor_id.ok_or(RtlError::ActorIsNotSet)?;
+        Ok(program.send_bytes_with_value(actor_id.as_ref(), payload.as_ref().to_vec(), value))
+    }
 }
 
 impl Remoting<GTestArgs> for GTestRemoting {
@@ -123,15 +138,20 @@ impl Remoting<GTestArgs> for GTestRemoting {
         value: ValueUnit,
         args: GTestArgs,
     ) -> Result<impl Future<Output = Result<Vec<u8>>>> {
-        let program = self
-            .system
-            .get_program(target.as_ref())
-            .ok_or(RtlError::ProgramIsNotFound)?;
-        let actor_id = args.actor_id.ok_or(RtlError::ActorIsNotSet)?;
-        let run_result =
-            program.send_bytes_with_value(actor_id.as_ref(), payload.as_ref().to_vec(), value);
+        let run_result = self.send_and_get_result(target, payload, value, args)?;
         Self::extract_events(self, &run_result);
         Ok(async move { Self::extract_reply(run_result) })
+    }
+
+    async fn query(
+        self,
+        target: ActorId,
+        payload: impl AsRef<[u8]>,
+        value: ValueUnit,
+        args: GTestArgs,
+    ) -> Result<Vec<u8>> {
+        let run_result = self.send_and_get_result(target, payload, value, args)?;
+        Self::extract_reply(run_result)
     }
 }
 

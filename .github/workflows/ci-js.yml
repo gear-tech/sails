@@ -1,4 +1,4 @@
-name: 'CI-CD sails-js'
+name: "CI-CD sails-js"
 
 on:
   pull_request:
@@ -52,18 +52,14 @@ jobs:
         working-directory: js
         run: yarn build
 
-      - name: "Prepare: build rmrk"
+      - name: "Prepare: build demo app"
         run: |
-          cargo build --manifest-path=examples/rmrk/catalog/wasm/Cargo.toml --release
-          cargo build --manifest-path=examples/rmrk/resource/wasm/Cargo.toml --release
-          cargo build --manifest-path=examples/ping/wasm/Cargo.toml --release
+          cargo build -p demo --release
 
-      - name: "Prepare: build rmrk client lib"
+      - name: "Prepare: build demo client lib"
         working-directory: js
         run: |
-          node lib/app.js generate ../examples/rmrk/catalog/wasm/rmrk-catalog.idl -o ./test/rmrk-catalog
-          node lib/app.js generate ../examples/rmrk/resource/wasm/rmrk-resource.idl -o ./test/rmrk-resource
-          node lib/app.js generate ../examples/ping/wasm/ping.idl -o ./test/ping
+          node lib/app.js generate ../examples/demo/wasm/demo.idl -o ./test/demo
 
       - name: "Prepare: download Gear node"
         run: |

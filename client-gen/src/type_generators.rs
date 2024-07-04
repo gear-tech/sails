@@ -201,6 +201,7 @@ impl<'ast> Visitor<'ast> for TypeDeclGenerator {
             PrimitiveType::ActorId => "ActorId",
             PrimitiveType::CodeId => "CodeId",
             PrimitiveType::MessageId => "MessageId",
+            PrimitiveType::H160 => "H160",
             PrimitiveType::H256 => "H256",
             PrimitiveType::U256 => "U256",
             PrimitiveType::NonZeroU8 => "NonZeroU8",
