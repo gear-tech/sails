@@ -10,11 +10,4 @@ sails-rtl.workspace = true
 [build-dependencies]
 gwasm-builder.workspace = true
 ping-app = { path = "../app" }
-sails-client-gen.workspace = true
 sails-idl-gen.workspace = true
-
-[dev-dependencies]
-gclient.workspace = true
-sails-rtl.workspace = true
-parity-scale-codec = { workspace = true, features = ["derive"] }
-tokio = { workspace = true, features = ["rt", "macros"] }

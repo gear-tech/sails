@@ -4473,14 +4473,10 @@ checksum = "8b870d8c151b6f2fb93e84a13146138f05d02ed11c7e7c54f8826aaaf7c9f184"
 name = "ping"
 version = "0.1.0"
 dependencies = [
- "gclient",
  "gear-wasm-builder",
- "parity-scale-codec",
  "ping-app",
- "sails-client-gen",
  "sails-idl-gen",
  "sails-rtl",
- "tokio",
 ]
 
 [[package]]
@@ -6647,15 +6643,11 @@ dependencies = [
 name = "this-that-svc"
 version = "0.1.0"
 dependencies = [
- "gclient",
  "gear-wasm-builder",
  "gstd",
- "parity-scale-codec",
- "sails-client-gen",
  "sails-idl-gen",
  "sails-rtl",
  "this-that-svc-app",
- "tokio",
 ]
 
 [[package]]
