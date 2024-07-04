@@ -31,7 +31,8 @@ async fn counter_succeed() {
         .await
         .unwrap();
 
-    let mut incdec_listener = counter_client::inc_dec::events::Listener::new(&remoting).listener();
+    let mut incdec_listener =
+        counter_client::inc_dec::events::Listener::new(remoting.clone()).listener();
     // Typed service event listener
     let mut listener = incdec_listener.subscribe(program_id).await.unwrap();
 

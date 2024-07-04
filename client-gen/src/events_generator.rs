@@ -64,9 +64,9 @@ impl<'ast> Visitor<'ast> for EventsModuleGenerator {
             }
 
             impl<A: Default, R: Remoting<A> + Clone + EventSubscriber> Listener<R, A> {
-                pub fn new(remoting: &R) -> Self {
+                pub fn new(remoting: R) -> Self {
                     Self {
-                        remoting: remoting.clone(),
+                        remoting: remoting,
                         _phantom: PhantomData,
                     }
                 }
