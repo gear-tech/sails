@@ -759,31 +759,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "counter"
-version = "0.1.0"
-dependencies = [
- "counter-app",
- "gear-wasm-builder",
- "gstd",
- "gtest",
- "parity-scale-codec",
- "sails-client-gen",
- "sails-idl-gen",
- "sails-rtl",
- "tokio",
-]
-
-[[package]]
-name = "counter-app"
-version = "0.1.0"
-dependencies = [
- "gstd",
- "parity-scale-codec",
- "sails-rtl",
- "scale-info",
-]
-
-[[package]]
 name = "cpp_demangle"
 version = "0.3.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"

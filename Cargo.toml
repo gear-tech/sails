@@ -8,8 +8,6 @@ license = "GPL-3.0"
 resolver = "2"
 members = [
     "client-gen",
-    "examples/counter/app",
-    "examples/counter/wasm",
     "examples/demo/app",
     "examples/demo/client",
     "examples/demo/walker",
