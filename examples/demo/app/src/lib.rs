@@ -30,6 +30,7 @@ pub struct DemoProgram {
 #[gprogram]
 impl DemoProgram {
     #[allow(clippy::should_implement_trait)]
+    // Program constructor (called once at the very beginning of the program lifetime)
     pub fn default() -> Self {
         unsafe {
             DOG_DATA = Some(RefCell::new(walker::WalkerData::new(
@@ -42,6 +43,7 @@ impl DemoProgram {
         }
     }
 
+    // Another program constructor (called once at the very beginning of the program lifetime)
     pub fn new(counter: Option<u32>, dog_position: Option<(i32, i32)>) -> Self {
         unsafe {
             let dog_position = dog_position.unwrap_or_default();
@@ -55,15 +57,18 @@ impl DemoProgram {
         }
     }
 
+    // Exposing service with overriden route
     #[groute("ping_pong")]
     pub fn ping(&self) -> ping::PingService {
         ping::PingService::default()
     }
 
+    // Exposing another service
     pub fn counter(&self) -> counter::CounterService {
         counter::CounterService::new(&self.counter_data)
     }
 
+    // Exposing yet another service
     pub fn dog(&self) -> dog::DogService {
         dog::DogService::new(walker::WalkerService::new(dog_data()))
     }

@@ -305,7 +305,7 @@ __|__ *SCALE encoded service name* __|__ *SCALE encoded method name* __|__ *SCAL
 Every outgoing event message has the following format:
 <br/>
 
-__|__ *SCALE encoded service name* __|__ *SCALE encoded event data* __|__
+__|__ *SCALE encoded service name* __|__ *SCALE encoded event name* __|__ *SCALE encoded event data* __|__
 <br/>
 
 ### Client
@@ -392,6 +392,28 @@ code depends on the trait which can be easily mocked.
 When it comes to TypeScript [TBD]
 
 ### Examples
+
+You can find all examples <a href="examples/">here</a> along with some descriptions
+provided at the folder level. You can also find some explanatory comments in the code.
+Here is a brief overview of features showcased by the examples:
+
+#### Exposing Services via Program
+
+The examples are composed on a principle of a few programs exposing several services.
+See <a href="examples/demo/app/src/lib.rs">DemoProgram</a> which demonstrates this
+including the use of program's multiple constructors and the `#[groute]` attribute
+for one of the exposed services. The program is built as a separate Rust crate which
+later wired up to another crate for building the <a href="examples/demo/wasm/">Demo</a>
+app. We do it this way, so we can build an <a href="examples/demo/wasm/demo.idl">IDL file</a>
+representing the entire program as a part of the Rust <a href="examples/demo/wasm/build.rs">build script</a>.
+
+#### Basics
+
+<sup>
+<a href="examples/demo/app/src/ping">Ping Service</a>
+<br/>
+<a href="examples/demo/app/src/this_that/">ThisThat Service</a>
+</sup>
 
 [TBD]
 
