@@ -87,7 +87,7 @@ jobs:
 
       - name: Run Gear node
         run: |
-          nohup ./gear --dev --tmp
+          nohup ./gear --dev --tmp &
 
       - name: Run Integration Tests on Gear Node
         run: cargo test gclient -p demo --locked --no-fail-fast -- --ignored
