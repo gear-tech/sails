@@ -36,6 +36,7 @@ impl<'ast> Visitor<'ast> for EventsModuleGenerator {
             .join("], &[");
 
         quote_in! { self.tokens =>
+            #[allow(dead_code)]
             #[cfg(not(target_arch = "wasm32"))]
             pub mod events $("{")
                 use super::*;
@@ -135,6 +136,7 @@ impl EventsTraitGenerator {
     pub(crate) fn finalize(self) -> rust::Tokens {
         let name = self.service_name.to_case(Case::Snake);
         quote! {
+            #[allow(dead_code)]
             #[cfg(not(target_arch = "wasm32"))]
             pub trait $(&self.service_name)Listener {
                 fn listener(self) -> impl sails_rtl::event_listener::Subscribe<$(name)::events::$(&self.service_name)Events>;

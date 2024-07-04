@@ -71,6 +71,7 @@ pub mod service_with_events {
             }
         }
     }
+    #[allow(dead_code)]
     #[cfg(not(target_arch = "wasm32"))]
     pub mod events {
         use super::*;
@@ -137,6 +138,7 @@ pub mod traits {
         #[allow(clippy::type_complexity)]
         fn do_this(&mut self, p1: NonZeroU256, p2: MyParam) -> impl Call<A, NonZeroU64>;
     }
+    #[allow(dead_code)]
     #[cfg(not(target_arch = "wasm32"))]
     pub trait ServiceWithEventsListener {
         fn listener(

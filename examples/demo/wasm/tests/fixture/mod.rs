@@ -1,6 +1,6 @@
 use core::cell::OnceCell;
-use demo_client::{Counter, DemoFactory, PingPong};
-use sails_rtl::{gtest::calls::*, prelude::*};
+use demo_client::{counter, traits::CounterListener, Counter, DemoFactory, PingPong};
+use sails_rtl::{event_listener::*, gtest::calls::*, prelude::*};
 
 const DEMO_WASM_PATH: &str = "../../../target/wasm32-unknown-unknown/debug/demo.wasm";
 
@@ -15,6 +15,11 @@ pub(crate) struct Fixture {
 impl Fixture {
     pub(crate) fn admin_id(&self) -> ActorId {
         self.admin_id.into()
+    }
+
+    #[allow(dead_code)]
+    pub(crate) fn cloned_program_space(&self) -> GTestRemoting {
+        self.program_space.clone()
     }
 
     pub(crate) fn new(admin_id: u64) -> Self {
@@ -46,5 +51,10 @@ impl Fixture {
     #[allow(dead_code)]
     pub(crate) fn counter_client(&self) -> Counter<GTestRemoting, GTestArgs> {
         Counter::new(self.program_space.clone())
+    }
+
+    #[allow(dead_code)]
+    pub(crate) fn counter_listener(&self) -> impl Subscribe<counter::events::CounterEvents> {
+        counter::events::Listener::new(self.program_space.clone()).listener()
     }
 }
