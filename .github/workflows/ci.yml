@@ -8,7 +8,6 @@ on:
 env:
   BINARYEN_VERSION: version_111
   CARGO_TERM_COLOR: always
-  GEAR_PATH: /usr/bin/gear
 
 jobs:
   check:
@@ -78,11 +77,17 @@ jobs:
           sudo wget -c https://github.com/WebAssembly/binaryen/releases/download/$BINARYEN_VERSION/binaryen-$BINARYEN_VERSION-x86_64-linux.tar.gz -O - | sudo tar -xz -C .
           sudo cp binaryen-$BINARYEN_VERSION/bin/wasm-opt /usr/bin/
 
+      - name: Run Tests
+        run: cargo test --workspace --all-targets --locked --no-fail-fast
+
       - name: Download Gear node
         run: |
           sudo wget -O ./gear https://github.com/gear-tech/gear/releases/download/build/gear
           sudo chmod +x gear
-          sudo mv gear /usr/bin/
 
-      - name: Run Tests
-        run: cargo test --workspace --all-targets --locked --no-fail-fast
+      - name: Run Gear node
+        run: |
+          nohup ./gear --dev --tmp
+
+      - name: Run Integration Tests on Gear Node
+        run: cargo test gclient -p demo --locked --no-fail-fast -- --ignored

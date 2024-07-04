@@ -1427,6 +1427,7 @@ version = "0.1.0"
 dependencies = [
  "demo-app",
  "demo-client",
+ "gclient",
  "gear-wasm-builder",
  "gtest",
  "sails-idl-gen",

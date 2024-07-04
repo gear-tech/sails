@@ -36,6 +36,10 @@ impl GSdkRemoting {
     pub fn api(&self) -> &GearApi {
         &self.api
     }
+
+    pub async fn upload_code_by_path(&self, path: &str) -> CodeId {
+        self.api.upload_code_by_path(path).await.unwrap().0
+    }
 }
 
 impl Remoting<GSdkArgs> for GSdkRemoting {
