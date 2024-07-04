@@ -1,6 +1,6 @@
 use core::marker::PhantomData;
 use demo_client::traits::ThisThat;
-use sails_rtl::{calls::Call, gstd::gservice, prelude::*};
+use sails_rtl::{calls::Query, gstd::gservice, prelude::*};
 
 #[derive(Clone)]
 pub struct ThisThatCaller<ThisThatClient, CallArgs> {
@@ -22,10 +22,6 @@ where
     }
 
     pub async fn call_this(&mut self, this_that_addr: ActorId) -> u32 {
-        self.this_that
-            .this()
-            .send_recv(this_that_addr)
-            .await
-            .expect("send msg")
+        self.this_that.this().recv(this_that_addr).await.unwrap()
     }
 }

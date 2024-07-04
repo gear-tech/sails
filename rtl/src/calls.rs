@@ -47,6 +47,11 @@ pub trait Activation<TArgs>: Action<TArgs> {
     }
 }
 
+#[allow(async_fn_in_trait)]
+pub trait Query<TArgs, TReply>: Action<TArgs> {
+    async fn recv(self, target: ActorId) -> Result<TReply>;
+}
+
 pub struct CallTicket<TReplyFuture, TReply> {
     route: &'static [u8],
     reply_future: TReplyFuture,
@@ -119,6 +124,14 @@ pub trait Remoting<TArgs> {
         value: ValueUnit,
         args: TArgs,
     ) -> Result<impl Future<Output = Result<Vec<u8>>>>;
+
+    async fn query(
+        self,
+        target: ActorId,
+        payload: impl AsRef<[u8]>,
+        value: ValueUnit,
+        args: TArgs,
+    ) -> Result<Vec<u8>>;
 }
 
 pub struct RemotingAction<TRemoting, TArgs, TReply> {
@@ -200,5 +213,23 @@ where
             .activate(code_id, salt, self.payload, self.value, self.args)
             .await?;
         Ok(ActivationTicket::new(self.route, reply_future))
+    }
+}
+
+impl<TRemoting, TArgs, TReply> Query<TArgs, TReply> for RemotingAction<TRemoting, TArgs, TReply>
+where
+    TRemoting: Remoting<TArgs>,
+    TReply: Decode,
+{
+    async fn recv(self, target: ActorId) -> Result<TReply> {
+        let reply_bytes = self
+            .remoting
+            .query(target, self.payload, self.value, self.args)
+            .await?;
+        if !reply_bytes.starts_with(self.route) {
+            Err(RtlError::ReplyPrefixMismatches)?
+        }
+        let mut reply_bytes = &reply_bytes[self.route.len()..];
+        Ok(TReply::decode(&mut reply_bytes)?)
     }
 }
