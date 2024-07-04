@@ -6,19 +6,50 @@ import { HexString } from '@gear-js/api';
  * @param payload in hex string format
  * @returns Name of the service
  */
-export const getServiceNamePrefix = (payload: HexString): string => {
+export function getServiceNamePrefix(payload: HexString): string;
+
+/**
+ * ## Get service name prefix and bytes length
+ * @param payload in hex string format
+ * @param withBytesLength flag
+ * @returns Name of the service and bytes length
+ */
+export function getServiceNamePrefix(
+  payload: HexString,
+  withBytesLength: true,
+): { service: string; bytesLength: number };
+
+export function getServiceNamePrefix(
+  payload: HexString,
+  withBytesLength: boolean = false,
+): string | { service: string; bytesLength: number } {
   const _payload = hexToU8a(payload);
   const [offset, limit] = compactFromU8aLim(_payload);
 
-  return u8aToString(_payload.subarray(offset, limit + offset));
-};
+  const prefix = u8aToString(_payload.subarray(offset, limit + offset));
+
+  return withBytesLength ? { service: prefix, bytesLength: limit + offset } : prefix;
+}
 
 /**
  * ## Get function (or event) name prefix
  * @param payload in hex string format
  * @returns Name of the function
  */
-export function getFnNamePrefix(payload: HexString) {
+export function getFnNamePrefix(payload: HexString): string;
+
+/**
+ * ## Get function (or event) name prefix and bytes length
+ * @param payload in hex string format
+ * @param withBytesLength flag
+ * @returns Name of the function and bytes length
+ */
+export function getFnNamePrefix(payload: HexString, withBytesLength: true): { fn: string; bytesLength: number };
+
+export function getFnNamePrefix(
+  payload: HexString,
+  withBytesLength: boolean = false,
+): string | { fn: string; bytesLength: number } {
   const _payload = hexToU8a(payload);
 
   const [sOff, sLim] = compactFromU8aLim(_payload);
@@ -26,5 +57,7 @@ export function getFnNamePrefix(payload: HexString) {
 
   const [offset, limit] = compactFromU8aLim(_payload.subarray(serviceOffset));
 
-  return u8aToString(_payload.subarray(serviceOffset + offset, serviceOffset + offset + limit));
+  const prefix = u8aToString(_payload.subarray(serviceOffset + offset, serviceOffset + offset + limit));
+
+  return withBytesLength ? { fn: prefix, bytesLength: offset + limit } : prefix;
 }

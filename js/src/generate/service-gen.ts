@@ -1,18 +1,12 @@
-import { getPayloadMethod, getJsTypeDef, getScaleCodecDef, toLowerCaseFirst, PaylodMethod } from '../utils/index.js';
+import { getPayloadMethod, getScaleCodecDef, PayloadMethod, toLowerCaseFirst } from '../utils/index.js';
 import { FuncParam, Service } from '../parser/service.js';
 import { Program } from '../parser/program.js';
 import { Output } from './output.js';
+import { BaseGenerator } from './base.js';
 
 const HEX_STRING_TYPE = '`0x${string}`';
 
 const VALUE_ARG = 'value?: number | string | bigint';
-
-const getArgs = (params: FuncParam[]) => {
-  if (params.length === 0) {
-    return null;
-  }
-  return params.map(({ name, def }) => `${name}: ${getJsTypeDef(def)}`).join(', ');
-};
 
 const getFuncName = (name: string) => {
   return name[0].toLowerCase() + name.slice(1);
@@ -28,26 +22,14 @@ const createPayload = (serviceName: string, fnName: string, params: FuncParam[])
   }
 };
 
-const getFuncSignature = (name: string, params: FuncParam[], returnType: string, isQuery: boolean) => {
-  const args = getArgs(params);
-
-  let result = `public ${isQuery ? 'async ' : ''}${getFuncName(name)}(${args || ''}`;
-
-  if (isQuery) {
-    result += `${args ? ', ' : ''}originAddress: string, ${VALUE_ARG}, atBlock?: ${HEX_STRING_TYPE}`;
-  }
-
-  result += `): ${isQuery ? `Promise<${returnType}>` : `TransactionBuilder<${returnType}>`}`;
-
-  return result;
-};
-
-export class ServiceGenerator {
+export class ServiceGenerator extends BaseGenerator {
   constructor(
-    private _out: Output,
+    out: Output,
     private _program: Program,
     private scaleTypes: Record<string, any>,
-  ) {}
+  ) {
+    super(out);
+  }
 
   public generate(className = 'Program') {
     this._out
@@ -91,8 +73,10 @@ export class ServiceGenerator {
   }
 
   private generateProgramConstructor() {
+    if (!this._program.ctor || this._program.ctor.funcs.length === 0) return;
+
     for (const { name, params } of this._program.ctor.funcs) {
-      const args = getArgs(params);
+      const args = this.getArgs(params);
       this._out
         .block(
           `${getFuncName(name)}CtorFromCode(code: Uint8Array | Buffer${
@@ -172,9 +156,9 @@ export class ServiceGenerator {
     for (const { name, def, params, isQuery } of service.funcs) {
       const returnScaleType = getScaleCodecDef(def);
       const decodeMethod = getPayloadMethod(returnScaleType);
-      const returnType = getJsTypeDef(def, decodeMethod);
+      const returnType = this.getType(def, decodeMethod);
 
-      this._out.line().block(getFuncSignature(name, params, returnType, isQuery), () => {
+      this._out.line().block(this.getFuncSignature(name, params, returnType, isQuery), () => {
         if (isQuery) {
           this._out
             .line(createPayload(service.name, name, params))
@@ -231,8 +215,8 @@ export class ServiceGenerator {
     }
 
     for (const event of service.events) {
-      const decodeMethod = event.def ? getPayloadMethod(getScaleCodecDef(event.def)) : PaylodMethod.toJSON;
-      const jsType = event.def ? getJsTypeDef(event.def, decodeMethod) : 'null';
+      const decodeMethod = event.def ? getPayloadMethod(getScaleCodecDef(event.def)) : PayloadMethod.toJSON;
+      const jsType = event.def ? this.getType(event.def, decodeMethod) : 'null';
 
       this._out
         .line()
@@ -272,5 +256,26 @@ export class ServiceGenerator {
           },
         );
     }
+  }
+
+  private getArgs(params: FuncParam[]) {
+    if (params.length === 0) {
+      return null;
+    }
+    return params.map(({ name, def }) => `${name}: ${this.getType(def)}`).join(', ');
+  }
+
+  private getFuncSignature(name: string, params: FuncParam[], returnType: string, isQuery: boolean) {
+    const args = this.getArgs(params);
+
+    let result = `public ${isQuery ? 'async ' : ''}${getFuncName(name)}(${args || ''}`;
+
+    if (isQuery) {
+      result += `${args ? ', ' : ''}originAddress: string, ${VALUE_ARG}, atBlock?: ${HEX_STRING_TYPE}`;
+    }
+
+    result += `): ${isQuery ? `Promise<${returnType}>` : `TransactionBuilder<${returnType}>`}`;
+
+    return result;
   }
 }
