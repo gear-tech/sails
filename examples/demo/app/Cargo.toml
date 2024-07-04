@@ -1,0 +1,9 @@
+[package]
+name = "demo-app"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+demo-walker = { path = "../walker" }
+gstd.workspace = true
+sails-rtl.workspace = true
