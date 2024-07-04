@@ -36,8 +36,10 @@ impl<'ast> Visitor<'ast> for EventsModuleGenerator {
             .join("], &[");
 
         quote_in! { self.tokens =>
+            #[cfg(not(target_arch = "wasm32"))]
             pub mod events $("{")
                 use super::*;
+                use sails_rtl::event_listener::{EventSubscriber, RemotingSubscribe, Subscribe};
                 #[derive(PartialEq, Debug, Encode, Decode)]
                 #[codec(crate = sails_rtl::scale_codec)]
                 pub enum $(&events_name) $("{")
@@ -66,7 +68,7 @@ impl<'ast> Visitor<'ast> for EventsModuleGenerator {
             impl<A: Default, R: Remoting<A> + Clone + EventSubscriber> Listener<R, A> {
                 pub fn new(remoting: R) -> Self {
                     Self {
-                        remoting: remoting,
+                        remoting,
                         _phantom: PhantomData,
                     }
                 }
@@ -89,7 +91,7 @@ impl<'ast> Visitor<'ast> for EventsModuleGenerator {
             #[allow(dead_code)]
             pub fn decode_event(payload: &[u8]) -> Result<$(&events_name), sails_rtl::errors::Error> {
                 if !payload.starts_with(SERVICE_ROUTE) {
-                    return Err(sails_rtl::errors::RtlError::EventPrefixMismatches)?;
+                    Err(sails_rtl::errors::RtlError::EventPrefixMismatches)?;
                 }
                 let event_bytes = &payload[$(service_path_length)..];
                 for (idx, name) in EVENT_NAMES.iter().enumerate() {
@@ -141,8 +143,9 @@ impl EventsTraitGenerator {
     pub(crate) fn finalize(self) -> rust::Tokens {
         let name = self.service_name.to_case(Case::Snake);
         quote! {
+            #[cfg(not(target_arch = "wasm32"))]
             pub trait $(&self.service_name)Listener {
-                fn listener(self) -> impl Subscribe<$(name)::events::$(&self.service_name)Events>;
+                fn listener(self) -> impl sails_rtl::event_listener::Subscribe<$(name)::events::$(&self.service_name)Events>;
             }
         }
     }

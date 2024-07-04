@@ -20,7 +20,7 @@ impl<'a> RootGenerator<'a> {
     pub(crate) fn new(anonymous_service_name: &'a str) -> Self {
         let tokens = quote! {
             #[allow(unused_imports)]
-            use sails_rtl::{prelude::*, String, calls::{Activation, Call, Query, Remoting, RemotingAction},event_listener::{EventSubscriber, RemotingSubscribe, Subscribe}};
+            use sails_rtl::{prelude::*, String, calls::{Activation, Call, Query, Remoting, RemotingAction}};
             #[allow(unused_imports)]
             use sails_rtl::collections::BTreeMap;
             use core::marker::PhantomData;

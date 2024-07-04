@@ -1,7 +1,7 @@
 use counter_client::inc_dec::events::IncDecEvents;
-use counter_client::traits::{CounterFactory, IncDec, IncDecListener, Query};
+use counter_client::traits::{CounterFactory, IncDec, IncDecListener, Qry};
 use sails_rtl::{
-    calls::{Action, Activation, Call},
+    calls::{Action, Activation, Call, Query},
     event_listener::{EventListener, EventSubscriber, Listen, Subscribe},
     gtest::calls::{GTestArgs, GTestRemoting},
 };
@@ -21,13 +21,10 @@ async fn counter_succeed() {
 
     let code_id = remoting.system().submit_code_file(PROGRAM_WASM_PATH);
 
-    let program_id = counter_client::CounterFactory::new(&remoting)
+    let program_id = counter_client::CounterFactory::new(remoting.clone())
         .with_initial_value(10)
         .with_args(GTestArgs::default().with_actor_id(ADMIN_ID.into()))
-        .publish(code_id, vec![])
-        .await
-        .unwrap()
-        .reply()
+        .send_recv(code_id, vec![])
         .await
         .unwrap();
 
@@ -40,23 +37,17 @@ async fn counter_succeed() {
     let reply = client
         .inc(32)
         .with_args(GTestArgs::default().with_actor_id(ADMIN_ID.into()))
-        .publish(program_id)
-        .await
-        .unwrap()
-        .reply()
+        .send_recv(program_id)
         .await
         .unwrap();
 
     assert_eq!(10, reply);
 
-    let query_client = counter_client::Query::new(remoting.clone());
+    let query_client = counter_client::Qry::new(remoting.clone());
     let reply = query_client
         .current_value()
         .with_args(GTestArgs::default().with_actor_id(ADMIN_ID.into()))
-        .publish(program_id)
-        .await
-        .unwrap()
-        .reply()
+        .recv(program_id)
         .await
         .unwrap();
 
@@ -65,10 +56,7 @@ async fn counter_succeed() {
     let reply = client
         .dec(1)
         .with_args(GTestArgs::default().with_actor_id(ADMIN_ID.into()))
-        .publish(program_id)
-        .await
-        .unwrap()
-        .reply()
+        .send_recv(program_id)
         .await
         .unwrap();
 

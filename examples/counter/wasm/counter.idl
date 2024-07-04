@@ -14,7 +14,7 @@ service IncDec {
   }
 };
 
-service Query {
+service Qry {
   query CurrentValue : () -> u64;
 };
 
