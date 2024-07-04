@@ -26,17 +26,16 @@ impl CtorFactoryGenerator {
 impl<'ast> Visitor<'ast> for CtorFactoryGenerator {
     fn visit_ctor(&mut self, ctor: &'ast Ctor) {
         quote_in! {self.tokens =>
-            #[derive(Default)]
-            pub struct $(&self.service_name)Factory<R: Remoting<A> + Clone, A: Default> {
+            pub struct $(&self.service_name)Factory<R, A> {
                 remoting: R,
                 _phantom: PhantomData<A>,
             }
 
-            impl<R: Remoting<A> + Clone, A: Default> $(&self.service_name)Factory<R, A> {
+            impl<R: Remoting<A>, A> $(&self.service_name)Factory<R, A> {
                 #[allow(unused)]
                 pub fn new(remoting: R) -> Self {
                     Self {
-                        remoting: remoting.clone(),
+                        remoting,
                         _phantom: PhantomData,
                     }
                 }
@@ -103,7 +102,7 @@ impl<'ast> Visitor<'ast> for CtorTraitGenerator {
     fn visit_ctor(&mut self, ctor: &'ast Ctor) {
         quote_in! {self.tokens =>
             #[allow(dead_code)]
-            pub trait $(&self.service_name)Factory<A: Default> $("{")
+            pub trait $(&self.service_name)Factory<A> $("{")
         };
 
         visitor::accept_ctor(ctor, self);

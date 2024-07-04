@@ -56,28 +56,20 @@ impl<'ast> Visitor<'ast> for EventsModuleGenerator {
             const EVENT_NAMES: &[&[u8]] = &[&[$event_names_bytes]];
 
             #[derive(Clone)]
-            pub struct Listener<R, A>
-            where
-                R: Remoting<A> + Clone + EventSubscriber,
-                A: Default,
+            pub struct Listener<R>
             {
                 remoting: R,
-                _phantom: PhantomData<A>,
             }
 
-            impl<A: Default, R: Remoting<A> + Clone + EventSubscriber> Listener<R, A> {
+            impl<R: EventSubscriber> Listener<R> {
                 pub fn new(remoting: R) -> Self {
                     Self {
                         remoting,
-                        _phantom: PhantomData,
                     }
                 }
             }
 
-            impl<R, A> traits::$(&self.service_name)Listener for Listener<R, A>
-            where
-                R: Remoting<A> + Clone + EventSubscriber,
-                A: Default,
+            impl<R: EventSubscriber> traits::$(&self.service_name)Listener for Listener<R>
             {
                 fn listener(self) -> impl Subscribe<$(&events_name)> {
                     RemotingSubscribe::new(

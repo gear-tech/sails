@@ -9,20 +9,18 @@ use sails_rtl::collections::BTreeMap;
 #[allow(unused_imports)]
 use sails_rtl::{
     calls::{Activation, Call, Query, Remoting, RemotingAction},
-    event_listener::{EventSubscriber, RemotingSubscribe, Subscribe},
     prelude::*,
     String,
 };
-#[derive(Default)]
-pub struct RmrkCatalogFactory<R: Remoting<A> + Clone, A: Default> {
+pub struct RmrkCatalogFactory<R, A> {
     remoting: R,
     _phantom: PhantomData<A>,
 }
-impl<R: Remoting<A> + Clone, A: Default> RmrkCatalogFactory<R, A> {
+impl<R: Remoting<A>, A> RmrkCatalogFactory<R, A> {
     #[allow(unused)]
     pub fn new(remoting: R) -> Self {
         Self {
-            remoting: remoting.clone(),
+            remoting,
             _phantom: PhantomData,
         }
     }
@@ -467,7 +465,7 @@ pub struct SlotPart {
 pub mod traits {
     use super::*;
     #[allow(dead_code)]
-    pub trait RmrkCatalogFactory<A: Default> {
+    pub trait RmrkCatalogFactory<A> {
         #[allow(clippy::new_ret_no_self)]
         #[allow(clippy::wrong_self_convention)]
         fn new(&self) -> impl Activation<A>;
