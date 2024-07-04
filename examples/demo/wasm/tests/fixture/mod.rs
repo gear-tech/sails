@@ -1,5 +1,5 @@
 use core::cell::OnceCell;
-use demo_client::{counter, traits::CounterListener, Counter, DemoFactory, PingPong};
+use demo_client::{counter, Counter, DemoFactory, PingPong};
 use sails_rtl::{event_listener::*, gtest::calls::*, prelude::*};
 
 const DEMO_WASM_PATH: &str = "../../../target/wasm32-unknown-unknown/debug/demo.wasm";
@@ -55,6 +55,6 @@ impl Fixture {
 
     #[allow(dead_code)]
     pub(crate) fn counter_listener(&self) -> impl Subscribe<counter::events::CounterEvents> {
-        counter::events::Listener::new(self.program_space.clone()).listener()
+        counter::events::listener(self.program_space.clone())
     }
 }

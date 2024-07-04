@@ -1,4 +1,3 @@
-use convert_case::{Case, Casing};
 use genco::prelude::*;
 use sails_idl_parser::{ast::visitor, ast::visitor::Visitor, ast::*};
 
@@ -56,29 +55,12 @@ impl<'ast> Visitor<'ast> for EventsModuleGenerator {
             const SERVICE_ROUTE: &[u8] = &[$service_path_bytes];
             const EVENT_NAMES: &[&[u8]] = &[&[$event_names_bytes]];
 
-            #[derive(Clone)]
-            pub struct Listener<R>
-            {
-                remoting: R,
-            }
-
-            impl<R: EventSubscriber> Listener<R> {
-                pub fn new(remoting: R) -> Self {
-                    Self {
-                        remoting,
-                    }
-                }
-            }
-
-            impl<R: EventSubscriber> traits::$(&self.service_name)Listener for Listener<R>
-            {
-                fn listener(self) -> impl Subscribe<$(&events_name)> {
-                    RemotingSubscribe::new(
-                        self.remoting,
-                        SERVICE_ROUTE,
-                        EVENT_NAMES,
-                    )
-                }
+            pub fn listener<R: EventSubscriber>(remoting: R) -> impl Subscribe<$(&events_name)> {
+                RemotingSubscribe::new(
+                    remoting,
+                    SERVICE_ROUTE,
+                    EVENT_NAMES,
+                )
             }
 
             #[allow(dead_code)]
@@ -120,27 +102,6 @@ impl<'ast> Visitor<'ast> for EventsModuleGenerator {
             quote_in! { self.tokens =>
                 $(event.name()),
             };
-        }
-    }
-}
-
-pub(crate) struct EventsTraitGenerator {
-    service_name: String,
-}
-
-impl EventsTraitGenerator {
-    pub(crate) fn new(service_name: String) -> Self {
-        Self { service_name }
-    }
-
-    pub(crate) fn finalize(self) -> rust::Tokens {
-        let name = self.service_name.to_case(Case::Snake);
-        quote! {
-            #[allow(dead_code)]
-            #[cfg(not(target_arch = "wasm32"))]
-            pub trait $(&self.service_name)Listener {
-                fn listener(self) -> impl sails_rtl::event_listener::Subscribe<$(name)::events::$(&self.service_name)Events>;
-            }
         }
     }
 }

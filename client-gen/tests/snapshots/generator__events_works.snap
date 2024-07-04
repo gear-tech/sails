@@ -91,19 +91,10 @@ pub mod service_with_events {
             &[20, 84, 104, 114, 101, 101],
             &[20, 82, 101, 115, 101, 116],
         ];
-        #[derive(Clone)]
-        pub struct Listener<R> {
+        pub fn listener<R: EventSubscriber>(
             remoting: R,
-        }
-        impl<R: EventSubscriber> Listener<R> {
-            pub fn new(remoting: R) -> Self {
-                Self { remoting }
-            }
-        }
-        impl<R: EventSubscriber> traits::ServiceWithEventsListener for Listener<R> {
-            fn listener(self) -> impl Subscribe<ServiceWithEventsEvents> {
-                RemotingSubscribe::new(self.remoting, SERVICE_ROUTE, EVENT_NAMES)
-            }
+        ) -> impl Subscribe<ServiceWithEventsEvents> {
+            RemotingSubscribe::new(remoting, SERVICE_ROUTE, EVENT_NAMES)
         }
         #[allow(dead_code)]
         pub fn decode_event(
@@ -137,14 +128,5 @@ pub mod traits {
     pub trait ServiceWithEvents<A> {
         #[allow(clippy::type_complexity)]
         fn do_this(&mut self, p1: NonZeroU256, p2: MyParam) -> impl Call<A, NonZeroU64>;
-    }
-    #[allow(dead_code)]
-    #[cfg(not(target_arch = "wasm32"))]
-    pub trait ServiceWithEventsListener {
-        fn listener(
-            self,
-        ) -> impl sails_rtl::event_listener::Subscribe<
-            service_with_events::events::ServiceWithEventsEvents,
-        >;
     }
 }
