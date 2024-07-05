@@ -12,7 +12,7 @@ const DEMO_WASM_PATH: &str = "../../../target/wasm32-unknown-unknown/debug/demo.
 #[ignore = "requires run gear node on GEAR_PATH"]
 async fn gclient_counter_works() {
     let gear_path = option_env!("GEAR_PATH");
-    if !gear_path.is_some() {
+    if gear_path.is_none() {
         return;
     }
     let api = GearApi::dev_from_path(gear_path.unwrap()).await.unwrap();
@@ -43,7 +43,7 @@ async fn gclient_counter_works() {
 #[ignore = "requires run gear node on GEAR_PATH"]
 async fn gclient_counter_not_enough_gas() {
     let gear_path = option_env!("GEAR_PATH");
-    if !gear_path.is_some() {
+    if gear_path.is_none() {
         return;
     }
     let api = GearApi::dev_from_path(gear_path.unwrap()).await.unwrap();
