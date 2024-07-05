@@ -84,10 +84,9 @@ jobs:
         run: |
           sudo wget -O ./gear https://github.com/gear-tech/gear/releases/download/build/gear
           sudo chmod +x gear
-
-      - name: Run Gear node
-        run: |
-          nohup ./gear --dev --tmp &
+          sudo mv gear /usr/bin/
 
       - name: Run Integration Tests on Gear Node
+        env:
+          GEAR_PATH: /usr/bin/gear
         run: cargo test gclient -p demo --locked --no-fail-fast -- --ignored
