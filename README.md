@@ -104,18 +104,19 @@ impl MyService {
 The second key concept is *__program__* which is similarly to the service represented
 by an impl of some Rust struct marked with the `#[gprogram]` attribute. The program
 main responsibility is hosting one or more services and exposing them to the external
-consumers. A set of its __public__ associated functions returning `Self` are
+consumers. A set of its associated __public__ functions returning `Self` are
 treated as application constructors. These functions can accept some parameters
 passed by a client and can be synchronous or asynchronous. One of them will be called
-once per application lifetime when the application is loaded onto the network.
-A set of program's __public__ methods working over `&self` and having no other parameters
-are treated as exposed service constructors and are called each time when an incoming
-request message needs be dispatched to a selected service. All the other methods and
-associated functions are treated as implementation details and ignored. The code
-generated behind the program by the `#[gprogram]` attribute receives an incoming request
-message from the network, decodes it and dispatches it to a matching service for actual
-processing. After that, the result is encoded and returned as a response to a caller.
-Only one program is allowed per application.
+once at the very beginning of the application lifetime, i.e. when the application is
+loaded onto the network. The returned program instance will live until the application
+stays on the network. A set of program's __public__ methods working over `&self` and
+having no other parameters are treated as exposed service constructors and are called
+each time when an incoming request message needs be dispatched to a selected service.
+All the other methods and associated functions are treated as implementation details
+and ignored. The code generated behind the program by the `#[gprogram]` attribute
+receives an incoming request message from the network, decodes it and dispatches it to
+a matching service for actual processing. After that, the result is encoded and returned
+as a response to a caller. Only one program is allowed per application.
 
 ```rust
 #[gprogram]
@@ -304,7 +305,7 @@ __|__ *SCALE encoded service name* __|__ *SCALE encoded method name* __|__ *SCAL
 Every outgoing event message has the following format:
 <br/>
 
-__|__ *SCALE encoded service name* __|__ *SCALE encoded event data* __|__
+__|__ *SCALE encoded service name* __|__ *SCALE encoded event name* __|__ *SCALE encoded event data* __|__
 <br/>
 
 ### Client
@@ -358,9 +359,9 @@ you can use the generated code like this (option 1):
 include!(concat!(env!("OUT_DIR"), "/my_service.rs"));
 
 fn some_client_code() {
-    let call_payload = my_service_io::DoSomething::encode_call(42, "Hello".to_string());
+    let call_payload = my_service::io::DoSomething::encode_call(42, "Hello".to_string());
     let reply_bytes = gstd::msg::send_bytes_for_reply(target_app_id, call_payload, 0, 0).await.unwrap();
-    let reply = my_service_io::DoSomething::decode_reply(&reply_bytes).unwrap();
+    let reply = my_service::io::DoSomething::decode_reply(&reply_bytes).unwrap();
     let m1 = reply.m1;
     let m2 = reply.m2;
 }
@@ -392,6 +393,28 @@ When it comes to TypeScript [TBD]
 
 ### Examples
 
+You can find all examples <a href="examples/">here</a> along with some descriptions
+provided at the folder level. You can also find some explanatory comments in the code.
+Here is a brief overview of features showcased by the examples:
+
+#### Exposing Services via Program
+
+The examples are composed on a principle of a few programs exposing several services.
+See <a href="examples/demo/app/src/lib.rs">DemoProgram</a> which demonstrates this
+including the use of program's multiple constructors and the `#[groute]` attribute
+for one of the exposed services. The program is built as a separate Rust crate which
+later wired up to another crate for building the <a href="examples/demo/wasm/">Demo</a>
+app. We do it this way, so we can build an <a href="examples/demo/wasm/demo.idl">IDL file</a>
+representing the entire program as a part of the Rust <a href="examples/demo/wasm/build.rs">build script</a>.
+
+#### Basics
+
+<sup>
+<a href="examples/demo/app/src/ping">Ping Service</a>
+<br/>
+<a href="examples/demo/app/src/this_that/">ThisThat Service</a>
+</sup>
+
 [TBD]
 
 #### License
@@ -405,6 +428,6 @@ Licensed under either of <a href="LICENSE-APACHE">Apache License, Version
 
 <sub>
 Unless you explicitly state otherwise, any contribution intentionally submitted
-for inclusion in Serde by you, as defined in the Apache-2.0 license, shall be
+for inclusion in Sails by you, as defined in the Apache-2.0 license, shall be
 dual licensed as above, without any additional terms or conditions.
 </sub>

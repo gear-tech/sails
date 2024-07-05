@@ -1,0 +1,8 @@
+constructor {
+  New : ();
+};
+
+service ThisThatCaller {
+  CallThis : (this_that_addr: actor_id) -> u32;
+};
+

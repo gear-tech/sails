@@ -8,22 +8,18 @@ license = "GPL-3.0"
 resolver = "2"
 members = [
     "client-gen",
-    "examples/counter/app",
-    "examples/counter/wasm",
-    "examples/references/app",
-    "examples/references/wasm",
+    "examples/demo/app",
+    "examples/demo/client",
+    "examples/demo/walker",
+    "examples/demo/wasm",
     "examples/no-svcs-prog/app",
     "examples/no-svcs-prog/wasm",
-    "examples/ping/app",
-    "examples/ping/wasm",
-    "examples/puppeteer/app",
-    "examples/puppeteer/wasm",
+    "examples/proxy/app",
+    "examples/proxy/wasm",
     "examples/rmrk/catalog/app",
     "examples/rmrk/catalog/wasm",
     "examples/rmrk/resource/app",
     "examples/rmrk/resource/wasm",
-    "examples/this-that-svc/app",
-    "examples/this-that-svc/wasm",
     "idl-gen",
     "idl-parser",
     "macros",
@@ -36,17 +32,13 @@ anyhow = "1"
 const-format = { package = "const_format", version = "0.2" }
 convert-case = { package = "convert_case", version = "0.6" }
 futures = { version = "0.3", default-features = false }
-gclient = { git = "https://github.com/gear-tech/gear" }
-gear-core = { git = "https://github.com/gear-tech/gear" }
-gear-core-errors = { git = "https://github.com/gear-tech/gear" }
+gear-core-errors = "1.4.2"
 genco = "0.17"
 git-download = "0.1"
-gprimitives = { git = "https://github.com/gear-tech/gear", features = [
-    "codec",
-] }
-gstd = { git = "https://github.com/gear-tech/gear" }
-gtest = { git = "https://github.com/gear-tech/gear" }
-gwasm-builder = { package = "gear-wasm-builder", git = "https://github.com/gear-tech/gear" }
+gprimitives = { version = "1.4.2", features = ["codec"] }
+gstd = "1.4.2"
+gtest = "1.4.2"
+gwasm-builder = { package = "gear-wasm-builder", version = "1.4.2" }
 handlebars = "4.4"
 hashbrown = "0.14"
 hex = { version = "0.4", default-features = false }

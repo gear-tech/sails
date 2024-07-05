@@ -8,8 +8,7 @@ use core::marker::PhantomData;
 use sails_rtl::collections::BTreeMap;
 #[allow(unused_imports)]
 use sails_rtl::{
-    calls::{Activation, Call, Remoting, RemotingAction},
-    event_listener::{EventSubscriber, RemotingSubscribe, Subscribe},
+    calls::{Activation, Call, Query, Remoting, RemotingAction},
     prelude::*,
     String,
 };
@@ -118,10 +117,10 @@ pub enum MyParam2 {
 }
 pub mod traits {
     use super::*;
-    pub trait Basic<TCallArgs> {
+    pub trait Basic<A> {
         #[allow(clippy::type_complexity)]
-        fn do_this(&mut self, p1: u32, p2: MyParam) -> impl Call<TCallArgs, u16>;
+        fn do_this(&mut self, p1: u32, p2: MyParam) -> impl Call<A, u16>;
         #[allow(clippy::type_complexity)]
-        fn do_that(&mut self, p1: (u8, u32)) -> impl Call<TCallArgs, u8>;
+        fn do_that(&mut self, p1: (u8, u32)) -> impl Call<A, u8>;
     }
 }

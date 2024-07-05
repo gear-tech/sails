@@ -8,7 +8,7 @@ use rmrk_resource_app::services::{
     ResourceStorageEvent,
 };
 use sails_rtl::{
-    calls::{Action, Call, Remoting},
+    calls::{Action, Call, Query, Remoting},
     collections::BTreeMap,
     errors::Result,
     gtest::calls::{GTestArgs, GTestRemoting},
@@ -409,12 +409,11 @@ impl<'a> Fixture<'a> {
         let resource_program_id =
             ActorId::from(self.resource_program_for_async().id().into_bytes());
         let mut resource_client = self.resource_client();
-        let call = resource_client
+        resource_client
             .add_resource_entry(resource_id, resource)
             .with_args(GTestArgs::new(actor_id.into()))
-            .publish(resource_program_id)
-            .await?;
-        call.reply().await
+            .send_recv(resource_program_id)
+            .await
     }
 
     fn add_part_to_resource(
@@ -443,12 +442,11 @@ impl<'a> Fixture<'a> {
         let resource_program_id =
             ActorId::from(self.resource_program_for_async().id().into_bytes());
         let mut resource_client = self.resource_client();
-        let call = resource_client
+        resource_client
             .add_part_to_resource(resource_id, part_id)
             .with_args(GTestArgs::new(actor_id.into()))
-            .publish(resource_program_id)
-            .await?;
-        call.reply().await
+            .send_recv(resource_program_id)
+            .await
     }
 
     fn get_resource(
@@ -489,12 +487,11 @@ impl<'a> Fixture<'a> {
         let resource_program_id =
             ActorId::from(self.resource_program_for_async().id().into_bytes());
         let resource_client = self.resource_client();
-        let call = resource_client
+        resource_client
             .resource(resource_id)
             .with_args(GTestArgs::new(actor_id.into()))
-            .publish(resource_program_id)
-            .await?;
-        call.reply().await
+            .recv(resource_program_id)
+            .await
     }
 
     fn add_parts(&'a self, actor_id: u64, parts: &BTreeMap<PartId, Part>) -> RunResult {

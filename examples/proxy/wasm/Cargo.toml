@@ -1,0 +1,13 @@
+[package]
+name = "proxy"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+proxy-app = { path = "../app" }
+sails-rtl.workspace = true
+
+[build-dependencies]
+proxy-app = { path = "../app" }
+gwasm-builder.workspace = true
+sails-idl-gen.workspace = true

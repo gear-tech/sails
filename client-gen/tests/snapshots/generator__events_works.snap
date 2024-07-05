@@ -8,8 +8,7 @@ use core::marker::PhantomData;
 use sails_rtl::collections::BTreeMap;
 #[allow(unused_imports)]
 use sails_rtl::{
-    calls::{Activation, Call, Remoting, RemotingAction},
-    event_listener::{EventSubscriber, RemotingSubscribe, Subscribe},
+    calls::{Activation, Call, Query, Remoting, RemotingAction},
     prelude::*,
     String,
 };
@@ -72,8 +71,11 @@ pub mod service_with_events {
             }
         }
     }
+    #[allow(dead_code)]
+    #[cfg(not(target_arch = "wasm32"))]
     pub mod events {
         use super::*;
+        use sails_rtl::event_listener::{EventSubscriber, RemotingSubscribe, Subscribe};
         #[derive(PartialEq, Debug, Encode, Decode)]
         #[codec(crate = sails_rtl::scale_codec)]
         pub enum ServiceWithEventsEvents {
@@ -89,38 +91,17 @@ pub mod service_with_events {
             &[20, 84, 104, 114, 101, 101],
             &[20, 82, 101, 115, 101, 116],
         ];
-        #[derive(Clone)]
-        pub struct Listener<R, A>
-        where
-            R: Remoting<A> + Clone + EventSubscriber,
-            A: Default,
-        {
+        pub fn listener<R: EventSubscriber>(
             remoting: R,
-            _phantom: PhantomData<A>,
-        }
-        impl<A: Default, R: Remoting<A> + Clone + EventSubscriber> Listener<R, A> {
-            pub fn new(remoting: &R) -> Self {
-                Self {
-                    remoting: remoting.clone(),
-                    _phantom: PhantomData,
-                }
-            }
-        }
-        impl<R, A> traits::ServiceWithEventsListener for Listener<R, A>
-        where
-            R: Remoting<A> + Clone + EventSubscriber,
-            A: Default,
-        {
-            fn listener(self) -> impl Subscribe<ServiceWithEventsEvents> {
-                RemotingSubscribe::new(self.remoting, SERVICE_ROUTE, EVENT_NAMES)
-            }
+        ) -> impl Subscribe<ServiceWithEventsEvents> {
+            RemotingSubscribe::new(remoting, SERVICE_ROUTE, EVENT_NAMES)
         }
         #[allow(dead_code)]
         pub fn decode_event(
             payload: &[u8],
         ) -> Result<ServiceWithEventsEvents, sails_rtl::errors::Error> {
             if !payload.starts_with(SERVICE_ROUTE) {
-                return Err(sails_rtl::errors::RtlError::EventPrefixMismatches)?;
+                Err(sails_rtl::errors::RtlError::EventPrefixMismatches)?;
             }
             let event_bytes = &payload[0..];
             for (idx, name) in EVENT_NAMES.iter().enumerate() {
@@ -144,11 +125,8 @@ pub struct MyParam {
 }
 pub mod traits {
     use super::*;
-    pub trait ServiceWithEvents<TCallArgs> {
+    pub trait ServiceWithEvents<A> {
         #[allow(clippy::type_complexity)]
-        fn do_this(&mut self, p1: NonZeroU256, p2: MyParam) -> impl Call<TCallArgs, NonZeroU64>;
-    }
-    pub trait ServiceWithEventsListener {
-        fn listener(self) -> impl Subscribe<service_with_events::events::ServiceWithEventsEvents>;
+        fn do_this(&mut self, p1: NonZeroU256, p2: MyParam) -> impl Call<A, NonZeroU64>;
     }
 }

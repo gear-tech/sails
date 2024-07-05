@@ -32,6 +32,33 @@ impl GStdArgs {
 #[derive(Debug, Default, Clone)]
 pub struct GStdRemoting;
 
+impl GStdRemoting {
+    fn send_for_reply(
+        target: ActorId,
+        payload: impl AsRef<[u8]>,
+        value: u128,
+        args: GStdArgs,
+    ) -> Result<msg::MessageFuture, crate::errors::Error> {
+        let message_future = if let Some(gas_limit) = args.gas_limit {
+            msg::send_bytes_with_gas_for_reply(
+                target,
+                payload,
+                gas_limit,
+                value,
+                args.reply_deposit.unwrap_or_default(),
+            )?
+        } else {
+            msg::send_bytes_for_reply(
+                target,
+                payload,
+                value,
+                args.reply_deposit.unwrap_or_default(),
+            )?
+        };
+        Ok(message_future)
+    }
+}
+
 impl Remoting<GStdArgs> for GStdRemoting {
     async fn activate(
         self,
@@ -59,22 +86,7 @@ impl Remoting<GStdArgs> for GStdRemoting {
         value: ValueUnit,
         args: GStdArgs,
     ) -> Result<impl Future<Output = Result<Vec<u8>>>> {
-        let reply_future = if let Some(gas_limit) = args.gas_limit {
-            msg::send_bytes_with_gas_for_reply(
-                target,
-                payload,
-                gas_limit,
-                value,
-                args.reply_deposit.unwrap_or_default(),
-            )?
-        } else {
-            msg::send_bytes_for_reply(
-                target,
-                payload,
-                value,
-                args.reply_deposit.unwrap_or_default(),
-            )?
-        };
+        let reply_future = GStdRemoting::send_for_reply(target, payload, value, args)?;
         let reply_future = reply_future.map(|result| result.map_err(Into::into));
         Ok(reply_future)
     }
@@ -86,22 +98,7 @@ impl Remoting<GStdArgs> for GStdRemoting {
         value: ValueUnit,
         args: GStdArgs,
     ) -> Result<Vec<u8>> {
-        let reply_future = if let Some(gas_limit) = args.gas_limit {
-            msg::send_bytes_with_gas_for_reply(
-                target,
-                payload,
-                gas_limit,
-                value,
-                args.reply_deposit.unwrap_or_default(),
-            )?
-        } else {
-            msg::send_bytes_for_reply(
-                target,
-                payload,
-                value,
-                args.reply_deposit.unwrap_or_default(),
-            )?
-        };
+        let reply_future = GStdRemoting::send_for_reply(target, payload, value, args)?;
         let reply = reply_future.await?;
         Ok(reply)
     }

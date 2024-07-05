@@ -1,8 +1,5 @@
 use crate::{
-    ctor_generators::*,
-    events_generator::{EventsModuleGenerator, EventsTraitGenerator},
-    io_generators::IoModuleGenerator,
-    service_generators::*,
+    ctor_generators::*, events_generator::*, io_generators::*, service_generators::*,
     type_generators::*,
 };
 use convert_case::{Case, Casing};
@@ -20,7 +17,7 @@ impl<'a> RootGenerator<'a> {
     pub(crate) fn new(anonymous_service_name: &'a str) -> Self {
         let tokens = quote! {
             #[allow(unused_imports)]
-            use sails_rtl::{prelude::*, String, calls::{Call, Activation, Remoting, RemotingAction},event_listener::{EventSubscriber, RemotingSubscribe, Subscribe}};
+            use sails_rtl::{prelude::*, String, calls::{Activation, Call, Query, Remoting, RemotingAction}};
             #[allow(unused_imports)]
             use sails_rtl::collections::BTreeMap;
             use core::marker::PhantomData;
@@ -92,9 +89,6 @@ impl<'a, 'ast> Visitor<'ast> for RootGenerator<'a> {
                 EventsModuleGenerator::new(service_name.to_owned(), path.to_owned());
             events_mod_gen.visit_service(service);
             service_tokens.extend(events_mod_gen.finalize());
-
-            let service_gen = EventsTraitGenerator::new(service_name.to_owned());
-            self.traits_tokens.extend(service_gen.finalize());
         }
 
         quote_in! { self.tokens =>

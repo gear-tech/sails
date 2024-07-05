@@ -1,4 +1,3 @@
-use convert_case::{Case, Casing};
 use genco::prelude::*;
 use sails_idl_parser::{ast::visitor, ast::visitor::Visitor, ast::*};
 
@@ -36,8 +35,11 @@ impl<'ast> Visitor<'ast> for EventsModuleGenerator {
             .join("], &[");
 
         quote_in! { self.tokens =>
+            #[allow(dead_code)]
+            #[cfg(not(target_arch = "wasm32"))]
             pub mod events $("{")
                 use super::*;
+                use sails_rtl::event_listener::{EventSubscriber, RemotingSubscribe, Subscribe};
                 #[derive(PartialEq, Debug, Encode, Decode)]
                 #[codec(crate = sails_rtl::scale_codec)]
                 pub enum $(&events_name) $("{")
@@ -53,43 +55,18 @@ impl<'ast> Visitor<'ast> for EventsModuleGenerator {
             const SERVICE_ROUTE: &[u8] = &[$service_path_bytes];
             const EVENT_NAMES: &[&[u8]] = &[&[$event_names_bytes]];
 
-            #[derive(Clone)]
-            pub struct Listener<R, A>
-            where
-                R: Remoting<A> + Clone + EventSubscriber,
-                A: Default,
-            {
-                remoting: R,
-                _phantom: PhantomData<A>,
-            }
-
-            impl<A: Default, R: Remoting<A> + Clone + EventSubscriber> Listener<R, A> {
-                pub fn new(remoting: &R) -> Self {
-                    Self {
-                        remoting: remoting.clone(),
-                        _phantom: PhantomData,
-                    }
-                }
-            }
-
-            impl<R, A> traits::$(&self.service_name)Listener for Listener<R, A>
-            where
-                R: Remoting<A> + Clone + EventSubscriber,
-                A: Default,
-            {
-                fn listener(self) -> impl Subscribe<$(&events_name)> {
-                    RemotingSubscribe::new(
-                        self.remoting,
-                        SERVICE_ROUTE,
-                        EVENT_NAMES,
-                    )
-                }
+            pub fn listener<R: EventSubscriber>(remoting: R) -> impl Subscribe<$(&events_name)> {
+                RemotingSubscribe::new(
+                    remoting,
+                    SERVICE_ROUTE,
+                    EVENT_NAMES,
+                )
             }
 
             #[allow(dead_code)]
             pub fn decode_event(payload: &[u8]) -> Result<$(&events_name), sails_rtl::errors::Error> {
                 if !payload.starts_with(SERVICE_ROUTE) {
-                    return Err(sails_rtl::errors::RtlError::EventPrefixMismatches)?;
+                    Err(sails_rtl::errors::RtlError::EventPrefixMismatches)?;
                 }
                 let event_bytes = &payload[$(service_path_length)..];
                 for (idx, name) in EVENT_NAMES.iter().enumerate() {
@@ -125,25 +102,6 @@ impl<'ast> Visitor<'ast> for EventsModuleGenerator {
             quote_in! { self.tokens =>
                 $(event.name()),
             };
-        }
-    }
-}
-
-pub(crate) struct EventsTraitGenerator {
-    service_name: String,
-}
-
-impl EventsTraitGenerator {
-    pub(crate) fn new(service_name: String) -> Self {
-        Self { service_name }
-    }
-
-    pub(crate) fn finalize(self) -> rust::Tokens {
-        let name = self.service_name.to_case(Case::Snake);
-        quote! {
-            pub trait $(&self.service_name)Listener {
-                fn listener(self) -> impl Subscribe<$(name)::events::$(&self.service_name)Events>;
-            }
         }
     }
 }
