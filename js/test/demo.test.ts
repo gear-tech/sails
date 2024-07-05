@@ -264,7 +264,7 @@ describe('ThisThat', () => {
 
   test('doThat', async () => {
     const tx = await program.thisThat
-      .doThat({ p1: NonZeroU32(2), p2: 'b', p3: { five: ['c', H256(ZERO_ADDRESS)] } })
+      .doThat({ p1: NonZeroU32(2), p2: ZERO_ADDRESS, p3: { five: ['c', H256(ZERO_ADDRESS)] } })
       .withAccount(alice)
       .calculateGas();
 
