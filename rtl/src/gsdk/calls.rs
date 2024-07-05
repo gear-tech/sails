@@ -37,8 +37,9 @@ impl GSdkRemoting {
         &self.api
     }
 
-    pub async fn upload_code_by_path(&self, path: &str) -> CodeId {
-        self.api.upload_code_by_path(path).await.unwrap().0
+    pub async fn upload_code_by_path(&self, path: &str) -> Result<CodeId> {
+        let (code_id, ..) = self.api.upload_code_by_path(path).await?;
+        Ok(code_id)
     }
 }
 
