@@ -3,8 +3,8 @@ type ReferenceCount = struct {
 };
 
 type DoThatParam = struct {
-  p1: u32,
-  p2: str,
+  p1: nat32,
+  p2: actor_id,
   p3: ManyVariants,
 };
 
@@ -60,8 +60,8 @@ service References {
 };
 
 service ThisThat {
-  DoThat : (param: DoThatParam) -> result (struct { str, u32 }, struct { str });
-  DoThis : (p1: u32, p2: str, p3: struct { opt str, u8 }, p4: TupleStruct) -> struct { str, u32 };
+  DoThat : (param: DoThatParam) -> result (struct { actor_id, nat32 }, struct { str });
+  DoThis : (p1: u32, p2: str, p3: struct { opt h160, nat8 }, p4: TupleStruct) -> struct { str, u32 };
   Noop : () -> null;
   query That : () -> result (str, str);
   query This : () -> u32;
