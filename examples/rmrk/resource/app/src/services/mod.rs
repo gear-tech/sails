@@ -11,8 +11,8 @@ use sails_rtl::{
 pub mod errors;
 pub mod resources;
 
+// Fully hidden service state
 static mut RESOURCE_STORAGE_DATA: Option<ResourceStorageData> = None;
-
 static mut RESOURCE_STORAGE_ADMIN: Option<ActorId> = None;
 
 #[derive(Default)]
@@ -42,6 +42,7 @@ where
     TExecContext: ExecContext,
     TCatalogClient: RmrkCatalog<GStdArgs>,
 {
+    // This function needs to be called before any other function
     pub fn seed(exec_context: TExecContext) {
         unsafe {
             RESOURCE_STORAGE_DATA = Some(ResourceStorageData::default());

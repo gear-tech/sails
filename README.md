@@ -68,7 +68,6 @@ interacting with the network.
 ### Application
 
 Sails architecture for applications is based on a few key concepts.
-<br/>
 
 The first one is *__service__* which is represented by an impl of some Rust struct
 marked with the `#[gservice]` attribute. The service main responsibility is
@@ -99,7 +98,6 @@ impl MyService {
 }
 ```
 
-<br/>
 
 The second key concept is *__program__* which is similarly to the service represented
 by an impl of some Rust struct marked with the `#[gprogram]` attribute. The program
@@ -138,7 +136,6 @@ impl MyProgram {
 }
 ```
 
-<br/>
 
 And the final key concept is message *__routing__*. This concept doesn't have a
 mandatory representation in code, but can be altered by using the `#[groute]`
@@ -234,7 +231,7 @@ impl MyCounter {
 It is worth mentioning that under the hood events utilize the same mechanism as
 any other message sending in Gear Protocol. This implies that the event is published
 only on successful completion of the command which emitted it.
-<br/>
+
 You can find more details in the [Examples](#examples) section.
 
 ### Service Extending (Mixins)
@@ -288,25 +285,18 @@ You can find more details in the [Examples](#examples) section.
 
 An application written with Sails uses [SCALE Codec](https://github.com/paritytech/parity-scale-codec) to encode/decode data
 at its base.
-<br/>
 
 Every incoming request message is expected to have the following format:
-<br/>
 
 __|__ *SCALE encoded service name* __|__ *SCALE encoded method name* __|__ *SCALE encoded parameters* __|__
-<br/>
 
 Every outgoing response message has the following format:
-<br/>
 
 __|__ *SCALE encoded service name* __|__ *SCALE encoded method name* __|__ *SCALE encoded result* __|__
-<br/>
 
 Every outgoing event message has the following format:
-<br/>
 
 __|__ *SCALE encoded service name* __|__ *SCALE encoded event name* __|__ *SCALE encoded event data* __|__
-<br/>
 
 ### Client
 
@@ -321,8 +311,6 @@ all you need to do is to compose byte payload according to the layout outlined i
 generated IDL, Sails provides a way to interact with your application using generated clients
 having interface similar to the one exposed by your application. Currently Sails can generate
 client code for Rust and TypeScript.
-
-<br/>
 
 When it comes to Rust, there are 2 options:
 - use generated code which can encode and decode byte payload for you, and you can keep
@@ -387,35 +375,65 @@ fn some_client_code() {
 The second option provides you with an option to have your code testable as the generated
 code depends on the trait which can be easily mocked.
 
-<br/>
-
 When it comes to TypeScript [TBD]
 
-### Examples
+## Examples
 
 You can find all examples <a href="examples/">here</a> along with some descriptions
 provided at the folder level. You can also find some explanatory comments in the code.
-Here is a brief overview of features showcased by the examples:
+Here is a brief overview of features mentioned above and showcased by the examples:
 
-#### Exposing Services via Program
+### Exposing Services via Program
 
 The examples are composed on a principle of a few programs exposing several services.
-See <a href="examples/demo/app/src/lib.rs">DemoProgram</a> which demonstrates this
-including the use of program's multiple constructors and the `#[groute]` attribute
-for one of the exposed services. The program is built as a separate Rust crate which
-later wired up to another crate for building the <a href="examples/demo/wasm/">Demo</a>
-app. We do it this way, so we can build an <a href="examples/demo/wasm/demo.idl">IDL file</a>
-representing the entire program as a part of the Rust <a href="examples/demo/wasm/build.rs">build script</a>.
+See [DemoProgram](examples/demo/app/src/lib.rs) which demonstrates this, including
+the use of program's multiple constructors and the `#[groute]` attribute for one of
+the exposed services. The program is built as a separate Rust crate, which is later
+wired up to another crate for building the [Demo](examples/demo/wasm/) app. This
+approach allows us to generate an [IDL file](examples/demo/wasm/demo.idl) representing
+the entire program as part of the Rust [build script](examples/demo/wasm/build.rs).
 
-#### Basics
+### Basic Services
 
-<sup>
-<a href="examples/demo/app/src/ping">Ping Service</a>
-<br/>
-<a href="examples/demo/app/src/this_that/">ThisThat Service</a>
-</sup>
+There are a couple of services which demonstrate basic service structure exposing
+some primitive methods operating based on input parameters and returning some
+results. They serve as an excellent starting point for developing your services. See
+[Ping](examples/demo/app/src/ping) and [ThisThat](examples/demo/app/src/this_that/)
+services. The latter, in addition to the basics, showcases the variety of types
+which can be used as parameters and return values in service methods.
 
-[TBD]
+### Working with Data
+
+In the real world, almost all apps work with some form of data, and apps developed
+using Sails are no exception. As discussed in the [Application](#application) section,
+services are instantiated for every incoming request message, indicating that these
+services are stateless. However, there are a few ways to enable your services to
+maintain some state. In this case, the state will be treated as external to the service.
+
+The most recommended way is demonstrated in the [Counter](examples/demo/app/src/counter/)
+service, where the data is stored as part of the program and passed to the service
+via `RefCell`. The service module merely defines the shape of the data but requires
+the data itself to be passed from the outside. This option provides you with full
+flexibility and allows you to unit test your services in a multi-threaded environment,
+ensuring the tests do not affect each other.
+
+Another method is illustrated in the [RmrkCatalog](examples/rmrk/catalog/app/src/services/)
+and [RmrkResource](examples/rmrk/resource/app/src/services/) services, where the data
+is stored in static variables within the service module. This strategy ensures that the
+state remains completely hidden from the outside, making the service entirely self-contained.
+However, this approach is not ideal for unit testing in a multi-threaded environment
+because each test can potentially influence others. Additionally, it's important
+not to overlook calling the service's `seed` method before its first use.
+
+You can also explore other approaches, such as making a service require `&'a mut` for its
+data (which makes the service non-clonable), or using `Cell` (which requires data copying,
+incurring additional costs).
+
+In all scenarios, except when using `Cell`, it's crucial to consider the static nature
+of data, especially during asynchronous calls within service methods. This implies that
+data accessed before initiating an asynchronous call might change by the time the call completes.
+
+##
 
 #### License
 
@@ -423,8 +441,6 @@ representing the entire program as a part of the Rust <a href="examples/demo/was
 Licensed under either of <a href="LICENSE-APACHE">Apache License, Version
 2.0</a> or <a href="LICENSE-MIT">MIT license</a> at your option.
 </sup>
-
-<br>
 
 <sub>
 Unless you explicitly state otherwise, any contribution intentionally submitted
