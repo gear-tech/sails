@@ -13,6 +13,9 @@ mod ping;
 mod references;
 mod this_that;
 
+// Dog data is stored as a global variable. However, it has exactly the same lifetime
+// the Counter data incapsulated in the program itself, i.e. there are no any benefits
+// of using a global variable here. It is just a demonstration of how to use global variables.
 static mut DOG_DATA: Option<RefCell<walker::WalkerData>> = None;
 
 fn dog_data() -> &'static RefCell<walker::WalkerData> {
@@ -24,6 +27,8 @@ fn dog_data() -> &'static RefCell<walker::WalkerData> {
 }
 
 pub struct DemoProgram {
+    // Counter data has the same lifetime as the program itself, i.e. it will
+    // live as long as the program is available on the network.
     counter_data: RefCell<counter::CounterData>,
 }
 

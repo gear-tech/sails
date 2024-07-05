@@ -1,10 +1,13 @@
 use sails_rtl::{cell::RefCell, gstd::gservice, prelude::*};
 
+// Model of the service's data. Only service knows what is the data
+// and how to manipulate it.
 pub struct CounterData {
     counter: u32,
 }
 
 impl CounterData {
+    // The only method exposed publicly for creating a new instance of the data.
     pub const fn new(counter: u32) -> Self {
         Self { counter }
     }
@@ -23,6 +26,8 @@ pub struct CounterService<'a> {
 }
 
 impl<'a> CounterService<'a> {
+    // Service constrctor demands a reference to the data to be passed
+    // from the outside.
     pub fn new(data: &'a RefCell<CounterData>) -> Self {
         Self { data }
     }
