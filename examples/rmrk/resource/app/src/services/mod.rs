@@ -100,8 +100,19 @@ where
             .get_mut(&resource_id)
             .ok_or(Error::ResourceNotFound)?;
 
+        // Caution: If we change the `resource` variable here, the changes will be avaialble
+        //          to the other calls of this or another method (e.g. `add_resource_entry`)
+        //          working with the same data before this method returns.
+
         if let Resource::Composed(ComposedResource { base, parts, .. }) = resource {
             let part = self.catalog_client.part(part_id).recv(*base).await.unwrap();
+
+            // Caution: Reading from the `resource` variable here may yield unexpected value.
+            //          This can happen because execution after asynchronous calls can resume
+            //          after a number of blocks, and the `resources` map can be modified by that time
+            //          by a call of this or another method (e.g. `add_resource_entry`) working
+            //          with the same data.
+
             if part.is_none() {
                 return Err(Error::PartNotFound);
             }

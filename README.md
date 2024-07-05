@@ -429,7 +429,9 @@ incurring additional costs).
 
 In all scenarios, except when using `Cell`, it's crucial to consider the static nature
 of data, especially during asynchronous calls within service methods. This implies that
-data accessed before initiating an asynchronous call might change by the time the call completes.
+data accessed before initiating an asynchronous call might change by the time the call
+completes. See the [RmrkResource](examples/rmrk/resource/app/src/services/) service's
+`add_part_to_resource` method for more details.
 
 ### Events
 
