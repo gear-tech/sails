@@ -21,5 +21,4 @@ thiserror-no-std.workspace = true
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 gclient.workspace = true
-gear-core.workspace = true
 gtest.workspace = true

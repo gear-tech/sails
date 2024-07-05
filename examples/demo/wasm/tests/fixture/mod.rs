@@ -2,7 +2,7 @@ use core::cell::OnceCell;
 use demo_client::{counter, Counter, DemoFactory, PingPong};
 use sails_rtl::{event_listener::*, gtest::calls::*, prelude::*};
 
-const DEMO_WASM_PATH: &str = "../../../target/wasm32-unknown-unknown/debug/demo.wasm";
+const DEMO_WASM_PATH: &str = "../../../target/wasm32-unknown-unknown/debug/demo.opt.wasm";
 
 pub(crate) const ADMIN_ID: u64 = 10;
 

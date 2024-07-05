@@ -2,7 +2,7 @@
 
 use crate::{collections::HashMap, errors::*, gstd::services, ValueUnit, Vec};
 use core::any::TypeId;
-use gstd::{errors::CoreError, ActorId as GStdActorId};
+use gstd::ActorId as GStdActorId;
 use parity_scale_codec::Encode;
 use scale_info::{StaticTypeInfo, TypeDef};
 
@@ -16,7 +16,8 @@ static mut SYS_CALLS: Option<SysCalls> = None;
 
 struct SysCalls {
     msg_id: fn() -> gstd::MessageId,
-    msg_send_bytes: fn(gstd::ActorId, Vec<u8>, ValueUnit) -> Result<gstd::MessageId, CoreError>,
+    msg_send_bytes:
+        fn(gstd::ActorId, Vec<u8>, ValueUnit) -> Result<gstd::MessageId, gstd::errors::CoreError>,
 }
 
 impl SysCalls {
