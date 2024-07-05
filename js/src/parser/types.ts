@@ -171,6 +171,13 @@ export enum EPrimitiveType {
   MessageId,
   H256,
   U256,
+  H160,
+  NonZeroU8,
+  NonZeroU16,
+  NonZeroU32,
+  NonZeroU64,
+  NonZeroU128,
+  NonZeroU256,
 }
 
 export class PrimitiveDef {
@@ -250,6 +257,34 @@ export class PrimitiveDef {
 
   get isU256(): boolean {
     return this.value === EPrimitiveType.U256;
+  }
+
+  get isH160(): boolean {
+    return this.value === EPrimitiveType.H160;
+  }
+
+  get isNonZeroU8(): boolean {
+    return this.value === EPrimitiveType.NonZeroU8;
+  }
+
+  get isNonZeroU16(): boolean {
+    return this.value === EPrimitiveType.NonZeroU16;
+  }
+
+  get isNonZeroU32(): boolean {
+    return this.value === EPrimitiveType.NonZeroU32;
+  }
+
+  get isNonZeroU64(): boolean {
+    return this.value === EPrimitiveType.NonZeroU64;
+  }
+
+  get isNonZeroU128(): boolean {
+    return this.value === EPrimitiveType.NonZeroU128;
+  }
+
+  get isNonZeroU256(): boolean {
+    return this.value === EPrimitiveType.NonZeroU256;
   }
 }
 

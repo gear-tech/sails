@@ -1,10 +1,16 @@
 import { EnumDef, EnumVariant, TypeDef } from '../parser/types.js';
 import { Program } from '../parser/program.js';
-import { toLowerCaseFirst, getJsTypeDef } from '../utils/index.js';
+import { toLowerCaseFirst } from '../utils/index.js';
 import { Output } from './output.js';
+import { BaseGenerator } from './base.js';
 
-export class TypesGenerator {
-  constructor(private _out: Output, private _program: Program) {}
+export class TypesGenerator extends BaseGenerator {
+  constructor(
+    out: Output,
+    private _program: Program,
+  ) {
+    super(out);
+  }
 
   public generate() {
     for (const { name, def } of this._program.types) {
@@ -13,7 +19,7 @@ export class TypesGenerator {
       } else if (def.isEnum) {
         this.generateEnum(name, def.asEnum);
       } else if (def.isPrimitive || def.isOptional || def.isResult || def.asVec) {
-        this._out.line(`export type ${name} = ${getJsTypeDef(def)}`).line();
+        this._out.line(`export type ${name} = ${this.getType(def)}`).line();
       } else {
         throw new Error(`Unknown type: ${JSON.stringify(def)}`);
       }
@@ -22,13 +28,13 @@ export class TypesGenerator {
 
   private generateStruct(name: string, def: TypeDef) {
     if (def.asStruct.isTuple) {
-      return this._out.line(`export type ${name} = ${getJsTypeDef(def)}`).line();
+      return this._out.line(`export type ${name} = ${this.getType(def)}`).line();
     }
 
     return this._out
       .block(`export interface ${name}`, () => {
         for (const field of def.asStruct.fields) {
-          this._out.line(`${field.name}: ${getJsTypeDef(field.def)}`);
+          this._out.line(`${field.name}: ${this.getType(field.def)}`);
         }
       })
       .line();
@@ -52,7 +58,7 @@ export class TypesGenerator {
     if (!f.def) {
       return `{ ${toLowerCaseFirst(f.name)}: null }`;
     } else {
-      return `{ ${toLowerCaseFirst(f.name)}: ${getJsTypeDef(f.def)} }`;
+      return `{ ${toLowerCaseFirst(f.name)}: ${this.getType(f.def)} }`;
     }
   }
 }
