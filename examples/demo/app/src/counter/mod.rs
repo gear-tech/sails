@@ -40,7 +40,8 @@ impl<'a> CounterService<'a> {
     pub fn add(&mut self, value: u32) -> u32 {
         let mut data_mut = self.data.borrow_mut();
         data_mut.counter += value;
-        // Emit event right before the method returns.
+        // Emit event right before the method returns via
+        // the generated `notify_on` method.
         self.notify_on(CounterEvents::Added(value)).unwrap();
         data_mut.counter
     }
@@ -48,7 +49,8 @@ impl<'a> CounterService<'a> {
     pub fn sub(&mut self, value: u32) -> u32 {
         let mut data_mut = self.data.borrow_mut();
         data_mut.counter -= value;
-        // Emit event right before the method returns.
+        // Emit event right before the method returns via
+        // the generated `notify_on` method.
         self.notify_on(CounterEvents::Subtracted(value)).unwrap();
         data_mut.counter
     }

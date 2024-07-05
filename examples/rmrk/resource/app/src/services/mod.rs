@@ -20,6 +20,7 @@ struct ResourceStorageData {
     resources: HashMap<ResourceId, Resource>,
 }
 
+// Service event type definition
 #[derive(TypeInfo, Encode)]
 pub enum ResourceStorageEvent {
     ResourceAdded {
@@ -36,6 +37,7 @@ pub struct ResourceStorage<TExecContext, TCatalogClient> {
     catalog_client: TCatalogClient,
 }
 
+// Declare the service can emit events of type ResourceStorageEvent
 #[gservice(events = ResourceStorageEvent)]
 impl<TExecContext, TCatalogClient> ResourceStorage<TExecContext, TCatalogClient>
 where
@@ -77,6 +79,8 @@ where
             return Err(Error::ResourceAlreadyExists);
         }
 
+        // Emit event right before the method returns via
+        // the generated `notify_on` method
         self.notify_on(ResourceStorageEvent::ResourceAdded { resource_id })
             .unwrap();
 
@@ -106,6 +110,8 @@ where
             return Err(Error::WrongResourceType);
         }
 
+        // Emit event right before the method returns via
+        // the generated `notify_on` method
         self.notify_on(ResourceStorageEvent::PartAdded {
             resource_id,
             part_id,

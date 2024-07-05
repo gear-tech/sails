@@ -228,9 +228,9 @@ impl MyCounter {
 }
 ```
 
-It is worth mentioning that under the hood events utilize the same mechanism as
-any other message sending in Gear Protocol. This implies that the event is published
-only on successful completion of the command which emitted it.
+It's important to note that, internally, events use the same mechanism as any other
+message transmission in the Gear Protocol. This means an event is only published
+upon the successful completion of the command that emitted it.
 
 ### Service Extending (Mixins)
 
