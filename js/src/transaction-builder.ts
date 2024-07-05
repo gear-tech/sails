@@ -5,11 +5,27 @@ import { TypeRegistry, u128, u64 } from '@polkadot/types';
 import { getPayloadMethod } from './utils/index.js';
 
 export interface IMethodReturnType<T> {
+  /**
+   * ## The id of the sent message.
+   */
   msgId: HexString;
+  /**
+   * ## The blockhash of the block that contains the transaction.
+   */
   blockHash: HexString;
+  /**
+   * ## The transaction hash.
+   */
   txHash: HexString;
+  /**
+   * ## A promise that resolves when the block with the transaction is finalized.
+   */
   isFinalized: Promise<boolean>;
-  response: () => Promise<T>;
+  /**
+   * ## A promise that resolves into the response from the program.
+   * @param rawResult (optional) If true, the response will be the raw bytes of the function result, otherwise it will be decoded.
+   */
+  response: <Raw extends boolean = false>(rawResult?: Raw) => Promise<Raw extends true ? HexString : T>;
 }
 
 export class TransactionBuilder<ResponseType> {
@@ -311,13 +327,17 @@ export class TransactionBuilder<ResponseType> {
       blockHash,
       txHash: this._tx.hash.toHex(),
       isFinalized,
-      response: async () => {
+      response: async (rawResult = false) => {
         const {
           data: { message },
         } = await this._api.message.getReplyEvent(this.programId, msgId, blockHash);
 
         if (!message.details.unwrap().code.isSuccess) {
           throw new Error(this._registry.createType('String', message.payload).toString());
+        }
+
+        if (rawResult) {
+          return message.payload.toHex();
         }
 
         return this._registry

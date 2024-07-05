@@ -1,5 +1,5 @@
 use gstd::{debug, prelude::*};
-use sails_rtl::{gstd::gservice, H256, U256};
+use sails_rtl::{gstd::gservice, ActorId, NonZeroU32, NonZeroU8, H160, H256, U256};
 
 #[derive(Default)]
 pub struct MyService(());
@@ -10,14 +10,14 @@ impl MyService {
         &mut self,
         p1: u32,
         p2: String,
-        p3: (Option<String>, u8),
+        p3: (Option<H160>, NonZeroU8),
         p4: TupleStruct,
     ) -> (String, u32) {
         debug!("Handling 'do_this': {}, {}, {:?}, {:?}", p1, p2, p3, p4);
         (p2, p1)
     }
 
-    pub fn do_that(&mut self, param: DoThatParam) -> Result<(String, u32), (String,)> {
+    pub fn do_that(&mut self, param: DoThatParam) -> Result<(ActorId, NonZeroU32), (String,)> {
         debug!("Handling 'do_that': {:?}", param);
         Ok((param.p2, param.p1))
     }
@@ -47,8 +47,8 @@ pub struct TupleStruct(bool);
 #[codec(crate = sails_rtl::scale_codec)]
 #[scale_info(crate = sails_rtl::scale_info)]
 pub struct DoThatParam {
-    pub p1: u32,
-    pub p2: String,
+    pub p1: NonZeroU32,
+    pub p2: ActorId,
     pub p3: ManyVariants,
 }
 

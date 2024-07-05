@@ -272,10 +272,10 @@ export class WasmParser {
 
     const view = new DataView(this._memory.buffer);
 
-
     const errorCode = view.getUint32(resultPtr + 4, true);
 
-    if (errorCode > 0) { // Read ParseResult enum discriminant
+    if (errorCode > 0) {
+      // Read ParseResult enum discriminant
       const errorDetails = this.readString(view.getUint32(resultPtr + 8, true));
 
       throw new Error(`Error code: ${errorCode}, Error details: ${errorDetails}`);

@@ -1,10 +1,11 @@
-import { GearApi, HexString, MessageQueued, VoucherIssued, decodeAddress, generateCodeHash } from '@gear-js/api';
+import { GearApi, HexString, decodeAddress, generateCodeHash } from '@gear-js/api';
 import { KeyringPair } from '@polkadot/keyring/types';
 import { waitReady } from '@polkadot/wasm-crypto';
 import { Keyring } from '@polkadot/api';
+import { hexToU8a } from '@polkadot/util';
 import { readFileSync } from 'fs';
 
-import { Sails } from '../lib';
+import { getFnNamePrefix, getServiceNamePrefix, H256, NonZeroU32, NonZeroU8, Sails, ZERO_ADDRESS } from '../lib';
 import { Program } from './demo/lib';
 
 let sails: Sails;
@@ -69,7 +70,7 @@ describe('Ping', () => {
 
   test('ping with voucher', async () => {
     expect(program.programId).toBeDefined();
-    const { extrinsic, voucherId } = await api.voucher.issue(decodeAddress(charlie.address), 10 * 1e12);
+    const { extrinsic, voucherId } = await api.voucher.issue(charlieRaw, 10 * 1e12);
     await new Promise((resolve, reject) =>
       extrinsic.signAndSend(alice, ({ events, status }) => {
         if (status.isInBlock) {
@@ -226,5 +227,64 @@ describe('Dog', () => {
     const position = await program.dog.position(aliceRaw);
 
     expect(position).toEqual([10, 15]);
+  });
+});
+
+describe('ThisThat', () => {
+  let program: Program;
+
+  test('create program from code id', async () => {
+    program = new Program(api);
+
+    const transaction = await program.defaultCtorFromCodeId(codeId).withAccount(alice).calculateGas();
+
+    const { msgId, blockHash, response } = await transaction.signAndSend();
+
+    expect(msgId).toBeDefined();
+    expect(blockHash).toBeDefined();
+
+    await response();
+  });
+
+  test('doThis', async () => {
+    const tx = await program.thisThat
+      .doThis(1, 'a', [null, NonZeroU8(1)], [true])
+      .withAccount(alice)
+      .calculateGas();
+
+    const { msgId, blockHash, response } = await tx.signAndSend();
+
+    expect(msgId).toBeDefined();
+    expect(blockHash).toBeDefined();
+
+    const result = await response();
+
+    expect(result).toEqual(['a', 1]);
+  });
+
+  test('doThat', async () => {
+    const tx = await program.thisThat
+      .doThat({ p1: NonZeroU32(2), p2: ZERO_ADDRESS, p3: { five: ['c', H256(ZERO_ADDRESS)] } })
+      .withAccount(alice)
+      .calculateGas();
+
+    const { msgId, blockHash, response } = await tx.signAndSend();
+
+    expect(msgId).toBeDefined();
+    expect(blockHash).toBeDefined();
+
+    const result = await response(true);
+
+    const service = getServiceNamePrefix(result, true);
+    const fn = getFnNamePrefix(result, true);
+
+    const u8aResult = hexToU8a(result);
+
+    const woPrefix = u8aResult.slice(service.bytesLength + fn.bytesLength);
+
+    // TODO: figure out how to decode such complicated types out of the box
+    const decoded = program.registry.createType(`Result<([u8;32], u32), (String)>`, woPrefix).toJSON();
+
+    expect(decoded).toEqual({ ok: [ZERO_ADDRESS, 2] });
   });
 });
