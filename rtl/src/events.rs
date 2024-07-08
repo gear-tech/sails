@@ -7,16 +7,12 @@ pub trait Listener<E> {
     async fn listen(&mut self) -> Result<impl Stream<Item = (ActorId, E)> + Unpin>;
 }
 
-pub trait DecodeEvent: Sized {
-    fn decode_event(payload: impl AsRef<[u8]>) -> Result<Self>;
-}
-
 pub struct RemotingListener<R, E> {
     remoting: R,
     _event: PhantomData<E>,
 }
 
-impl<R: Listener<Vec<u8>>, E: DecodeEvent> RemotingListener<R, E> {
+impl<R: Listener<Vec<u8>>, E: TryFrom<Vec<u8>>> RemotingListener<R, E> {
     pub fn new(remoting: R) -> Self {
         Self {
             remoting,
@@ -25,11 +21,11 @@ impl<R: Listener<Vec<u8>>, E: DecodeEvent> RemotingListener<R, E> {
     }
 }
 
-impl<R: Listener<Vec<u8>>, E: DecodeEvent> Listener<E> for RemotingListener<R, E> {
+impl<R: Listener<Vec<u8>>, E: TryFrom<Vec<u8>>> Listener<E> for RemotingListener<R, E> {
     async fn listen(&mut self) -> Result<impl Stream<Item = (ActorId, E)> + Unpin> {
         let stream = self.remoting.listen().await?;
         let map = stream.filter_map(move |(actor_id, payload)| async move {
-            E::decode_event(&payload).ok().map(|e| (actor_id, e))
+            E::try_from(payload).ok().map(|e| (actor_id, e))
         });
         Ok(Box::pin(map))
     }

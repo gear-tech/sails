@@ -75,7 +75,7 @@ pub mod service_with_events {
     #[cfg(not(target_arch = "wasm32"))]
     pub mod events {
         use super::*;
-        use sails_rtl::events::{DecodeEvent, Listener, RemotingListener};
+        use sails_rtl::events::{Listener, RemotingListener};
         #[derive(PartialEq, Debug, Encode, Decode)]
         #[codec(crate = sails_rtl::scale_codec)]
         pub enum ServiceWithEventsEvents {
@@ -91,9 +91,10 @@ pub mod service_with_events {
             &[20, 84, 104, 114, 101, 101],
             &[20, 82, 101, 115, 101, 116],
         ];
-        impl DecodeEvent for ServiceWithEventsEvents {
-            fn decode_event(payload: impl AsRef<[u8]>) -> Result<Self, sails_rtl::errors::Error> {
-                let payload = payload.as_ref();
+        impl TryFrom<Vec<u8>> for ServiceWithEventsEvents {
+            type Error = sails_rtl::errors::Error;
+            fn try_from(value: Vec<u8>) -> Result<Self, Self::Error> {
+                let payload: &[u8] = value.as_ref();
                 if !payload.starts_with(SERVICE_ROUTE) {
                     Err(sails_rtl::errors::RtlError::EventPrefixMismatches)?;
                 }

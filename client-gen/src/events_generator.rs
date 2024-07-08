@@ -39,7 +39,7 @@ impl<'ast> Visitor<'ast> for EventsModuleGenerator {
             #[cfg(not(target_arch = "wasm32"))]
             pub mod events $("{")
                 use super::*;
-                use sails_rtl::events::{Listener, RemotingListener, DecodeEvent};
+                use sails_rtl::events::{Listener, RemotingListener};
                 #[derive(PartialEq, Debug, Encode, Decode)]
                 #[codec(crate = sails_rtl::scale_codec)]
                 pub enum $(&events_name) $("{")
@@ -55,9 +55,10 @@ impl<'ast> Visitor<'ast> for EventsModuleGenerator {
             const SERVICE_ROUTE: &[u8] = &[$service_path_bytes];
             const EVENT_NAMES: &[&[u8]] = &[&[$event_names_bytes]];
 
-            impl DecodeEvent for $(&events_name) {
-                fn decode_event(payload: impl AsRef<[u8]>) -> Result<Self, sails_rtl::errors::Error> {
-                    let payload = payload.as_ref();
+            impl TryFrom<Vec<u8>> for $(&events_name) {
+                type Error = sails_rtl::errors::Error;
+                fn try_from(value: Vec<u8>) -> Result<Self, Self::Error> {
+                    let payload: &[u8] = value.as_ref();
                     if !payload.starts_with(SERVICE_ROUTE) {
                         Err(sails_rtl::errors::RtlError::EventPrefixMismatches)?;
                     }
