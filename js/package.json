@@ -40,12 +40,12 @@
   "peerDependencies": {
     "@gear-js/api": "^0.38.1",
     "@polkadot/api": "^11.0.1",
-    "@polkadot/types": "^11.0.1"
+    "@polkadot/types": "^12.1.1"
   },
   "devDependencies": {
     "@gear-js/api": "^0.38.1",
     "@polkadot/api": "^11.0.1",
-    "@polkadot/types": "^11.0.1",
+    "@polkadot/types": "^12.1.1",
     "@rollup/plugin-commonjs": "26.0.1",
     "@rollup/plugin-node-resolve": "15.2.3",
     "@rollup/plugin-typescript": "11.1.6",
