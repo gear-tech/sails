@@ -20,4 +20,5 @@ spin.workspace = true
 thiserror-no-std.workspace = true
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+gclient.workspace = true
 gtest.workspace = true
