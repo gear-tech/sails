@@ -1,7 +1,7 @@
 use demo_client::{counter::events::*, traits::*};
 use fixture::Fixture;
+use futures::stream::StreamExt;
 use sails_rtl::{calls::*, event_listener::*, gtest::calls::GTestArgs};
-
 mod fixture;
 
 #[tokio::test]
@@ -78,18 +78,18 @@ async fn counter_events() {
 
     assert_eq!(43, reply);
 
-    let event = remoting_listener.next_event(|_| true).await.unwrap();
+    let event = remoting_listener.next().await.unwrap();
     println!("{:?}", event);
     assert_eq!(CounterEvents::Added(2), decode_event(&event.1).unwrap());
-    let event = remoting_listener.next_event(|_| true).await.unwrap();
+    let event = remoting_listener.next().await.unwrap();
     println!("{:?}", event);
     assert_eq!(
         CounterEvents::Subtracted(1),
         decode_event(&event.1).unwrap()
     );
 
-    let event = listener.next_event().await.unwrap();
+    let event = listener.next().await.unwrap();
     assert_eq!(CounterEvents::Added(2), event);
-    let event = listener.next_event().await.unwrap();
+    let event = listener.next().await.unwrap();
     assert_eq!(CounterEvents::Subtracted(1), event);
 }
