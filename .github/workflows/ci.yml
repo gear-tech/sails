@@ -89,4 +89,4 @@ jobs:
       - name: Run Integration Tests on Gear Node
         env:
           GEAR_PATH: /usr/bin/gear
-        run: cargo test -p demo --test *_gclient --locked --no-fail-fast -- --ignored
+        run: cargo test -p demo --test gclient --locked --no-fail-fast -- --ignored

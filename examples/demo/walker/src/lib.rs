@@ -21,8 +21,12 @@ enum WalkerEvents {
     Walked { from: (i32, i32), to: (i32, i32) },
 }
 
+// Service extension requires the service to implement `Clone`
 #[derive(Clone)]
 pub struct WalkerService {
+    // Yet another example of using `RefCell` for service
+    // state. This time it demonstrates use of static lifetime
+    // even though it is not the best option
     data: &'static RefCell<WalkerData>,
 }
 

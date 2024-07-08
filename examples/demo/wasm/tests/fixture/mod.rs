@@ -1,5 +1,5 @@
 use core::cell::OnceCell;
-use demo_client::{Counter, DemoFactory, PingPong};
+use demo_client::{Counter, DemoFactory, Dog, PingPong};
 use sails_rtl::{gtest::calls::*, prelude::*};
 
 const DEMO_WASM_PATH: &str = "../../../target/wasm32-unknown-unknown/debug/demo.opt.wasm";
@@ -38,13 +38,15 @@ impl Fixture {
         DemoFactory::new(self.program_space.clone())
     }
 
-    #[allow(dead_code)]
     pub(crate) fn ping_pong_client(&self) -> PingPong<GTestRemoting, GTestArgs> {
         PingPong::new(self.program_space.clone())
     }
 
-    #[allow(dead_code)]
     pub(crate) fn counter_client(&self) -> Counter<GTestRemoting, GTestArgs> {
         Counter::new(self.program_space.clone())
+    }
+
+    pub(crate) fn dog_client(&self) -> Dog<GTestRemoting, GTestArgs> {
+        Dog::new(self.program_space.clone())
     }
 }
