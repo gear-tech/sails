@@ -8,7 +8,7 @@ use thiserror_no_std::Error as ThisError;
 
 pub type Result<T, E = Error> = core::result::Result<T, E>;
 
-#[derive(ThisError, Debug, Clone)]
+#[derive(ThisError, Debug)]
 pub enum Error {
     #[error("rtl: {0}")]
     Rtl(#[from] RtlError),
@@ -18,6 +18,9 @@ pub enum Error {
     GCore(#[from] GCoreError),
     #[error("codec: {0}")]
     Codec(#[from] CodecError),
+    #[cfg(not(target_arch = "wasm32"))]
+    #[error("codec: {0}")]
+    GClient(#[from] gclient::Error),
 }
 
 #[derive(ThisError, Debug, Clone)]
@@ -40,6 +43,8 @@ pub enum RtlError {
     ProgramIsNotFound,
     #[error("actor is not set")]
     ActorIsNotSet,
+    #[error("reply has error string")]
+    ReplyHasErrorString(String),
     #[error("event name is not found")]
     EventNameIsNotFound,
     #[error("event is not found")]

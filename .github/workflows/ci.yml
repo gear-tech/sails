@@ -79,3 +79,14 @@ jobs:
 
       - name: Run Tests
         run: cargo test --workspace --all-targets --locked --no-fail-fast
+
+      - name: Download Gear node
+        run: |
+          sudo wget -O ./gear https://github.com/gear-tech/gear/releases/download/build/gear
+          sudo chmod +x gear
+          sudo mv gear /usr/bin/
+
+      - name: Run Integration Tests on Gear Node
+        env:
+          GEAR_PATH: /usr/bin/gear
+        run: cargo test -p demo --test *_gclient --locked --no-fail-fast -- --ignored

@@ -2,6 +2,7 @@ use demo_client::{counter::events::*, traits::*};
 use fixture::Fixture;
 use futures::stream::StreamExt;
 use sails_rtl::{calls::*, events::*, gtest::calls::GTestArgs};
+
 mod fixture;
 
 #[tokio::test]

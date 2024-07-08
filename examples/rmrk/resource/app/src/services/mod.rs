@@ -11,8 +11,8 @@ use sails_rtl::{
 pub mod errors;
 pub mod resources;
 
+// Fully hidden service state
 static mut RESOURCE_STORAGE_DATA: Option<ResourceStorageData> = None;
-
 static mut RESOURCE_STORAGE_ADMIN: Option<ActorId> = None;
 
 #[derive(Default)]
@@ -20,6 +20,7 @@ struct ResourceStorageData {
     resources: HashMap<ResourceId, Resource>,
 }
 
+// Service event type definition
 #[derive(TypeInfo, Encode)]
 pub enum ResourceStorageEvent {
     ResourceAdded {
@@ -36,12 +37,14 @@ pub struct ResourceStorage<TExecContext, TCatalogClient> {
     catalog_client: TCatalogClient,
 }
 
+// Declare the service can emit events of type ResourceStorageEvent
 #[gservice(events = ResourceStorageEvent)]
 impl<TExecContext, TCatalogClient> ResourceStorage<TExecContext, TCatalogClient>
 where
     TExecContext: ExecContext,
     TCatalogClient: RmrkCatalog<GStdArgs>,
 {
+    // This function needs to be called before any other function
     pub fn seed(exec_context: TExecContext) {
         unsafe {
             RESOURCE_STORAGE_DATA = Some(ResourceStorageData::default());
@@ -76,6 +79,8 @@ where
             return Err(Error::ResourceAlreadyExists);
         }
 
+        // Emit event right before the method returns via
+        // the generated `notify_on` method
         self.notify_on(ResourceStorageEvent::ResourceAdded { resource_id })
             .unwrap();
 
@@ -96,7 +101,20 @@ where
             .ok_or(Error::ResourceNotFound)?;
 
         if let Resource::Composed(ComposedResource { base, parts, .. }) = resource {
+            // Caution: The execution of this method pauses right after the call to `recv` method due to
+            //          its asynchronous nature , and all changes made to the state are saved, i.e. if we
+            //          modify the `resource` variable here, the new value will be available to the other
+            //          calls of this or another method (e.g. `add_resource_entry`) working with the same
+            //          data before this method returns.
+
             let part = self.catalog_client.part(part_id).recv(*base).await.unwrap();
+
+            // Caution: Reading from the `resource` variable here may yield unexpected value.
+            //          This can happen because execution after asynchronous calls can resume
+            //          after a number of blocks, and the `resources` map can be modified by that time
+            //          by a call of this or another method (e.g. `add_resource_entry`) working
+            //          with the same data.
+
             if part.is_none() {
                 return Err(Error::PartNotFound);
             }
@@ -105,6 +123,8 @@ where
             return Err(Error::WrongResourceType);
         }
 
+        // Emit event right before the method returns via
+        // the generated `notify_on` method
         self.notify_on(ResourceStorageEvent::PartAdded {
             resource_id,
             part_id,

@@ -13,6 +13,7 @@ sails-idl-gen.workspace = true
 
 [dev-dependencies]
 futures.workspace = true
+gclient.workspace = true
 gtest.workspace = true
 demo-client = { path = "../client" }
 sails-rtl.workspace = true

@@ -1,4 +1,4 @@
-export enum PaylodMethod {
+export enum PayloadMethod {
   toNumber = 'toNumber',
   toBigInt = 'toBigInt',
   toString = 'toString',
@@ -14,18 +14,18 @@ export function getPayloadMethod(type: string) {
     case 'i16':
     case 'u32':
     case 'i32':
-      return PaylodMethod.toNumber;
+      return PayloadMethod.toNumber;
     case 'u64':
     case 'u128':
     case 'i64':
     case 'i128':
     case 'U256':
-      return PaylodMethod.toBigInt;
+      return PayloadMethod.toBigInt;
     case 'String':
-      return PaylodMethod.toString;
+      return PayloadMethod.toString;
     case 'H256':
-      return PaylodMethod.toHex;
+      return PayloadMethod.toHex;
     default:
-      return PaylodMethod.toJSON;
+      return PayloadMethod.toJSON;
   }
 }

@@ -8,6 +8,8 @@ pub mod calls;
 pub mod errors;
 #[cfg(not(target_arch = "wasm32"))]
 pub mod events;
+#[cfg(not(target_arch = "wasm32"))]
+pub mod gsdk;
 pub mod gstd;
 #[cfg(not(target_arch = "wasm32"))]
 pub mod gtest;
