@@ -80,12 +80,15 @@ async fn counter_events() {
 
     let event = remoting_listener.next().await.unwrap();
     println!("{:?}", event);
-    assert_eq!(CounterEvents::Added(2), decode_event(&event.1).unwrap());
+    assert_eq!(
+        CounterEvents::Added(2),
+        CounterEvents::decode_event(&event.1).unwrap()
+    );
     let event = remoting_listener.next().await.unwrap();
     println!("{:?}", event);
     assert_eq!(
         CounterEvents::Subtracted(1),
-        decode_event(&event.1).unwrap()
+        CounterEvents::decode_event(&event.1).unwrap()
     );
 
     let event = listener.next().await.unwrap();

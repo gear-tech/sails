@@ -75,7 +75,7 @@ pub mod service_with_events {
     #[cfg(not(target_arch = "wasm32"))]
     pub mod events {
         use super::*;
-        use sails_rtl::events::{EventListener, RemotingListener};
+        use sails_rtl::events::{DecodeEvent, Listener, RemotingListener};
         #[derive(PartialEq, Debug, Encode, Decode)]
         #[codec(crate = sails_rtl::scale_codec)]
         pub enum ServiceWithEventsEvents {
@@ -91,28 +91,28 @@ pub mod service_with_events {
             &[20, 84, 104, 114, 101, 101],
             &[20, 82, 101, 115, 101, 116],
         ];
-        pub fn listener<R: EventListener<Vec<u8>>>(
-            remoting: R,
-        ) -> impl EventListener<ServiceWithEventsEvents> {
-            RemotingListener::new(remoting, SERVICE_ROUTE, EVENT_NAMES)
-        }
-        #[allow(dead_code)]
-        pub fn decode_event(
-            payload: &[u8],
-        ) -> Result<ServiceWithEventsEvents, sails_rtl::errors::Error> {
-            if !payload.starts_with(SERVICE_ROUTE) {
-                Err(sails_rtl::errors::RtlError::EventPrefixMismatches)?;
-            }
-            let event_bytes = &payload[0..];
-            for (idx, name) in EVENT_NAMES.iter().enumerate() {
-                if event_bytes.starts_with(name) {
-                    let idx = idx as u8;
-                    let bytes = [&[idx], &event_bytes[name.len()..]].concat();
-                    let mut event_bytes = &bytes[..];
-                    return Ok(ServiceWithEventsEvents::decode(&mut event_bytes)?);
+        impl DecodeEvent for ServiceWithEventsEvents {
+            fn decode_event(payload: impl AsRef<[u8]>) -> Result<Self, sails_rtl::errors::Error> {
+                let payload = payload.as_ref();
+                if !payload.starts_with(SERVICE_ROUTE) {
+                    Err(sails_rtl::errors::RtlError::EventPrefixMismatches)?;
                 }
+                let event_bytes = &payload[0..];
+                for (idx, name) in EVENT_NAMES.iter().enumerate() {
+                    if event_bytes.starts_with(name) {
+                        let idx = idx as u8;
+                        let bytes = [&[idx], &event_bytes[name.len()..]].concat();
+                        let mut event_bytes = &bytes[..];
+                        return Ok(ServiceWithEventsEvents::decode(&mut event_bytes)?);
+                    }
+                }
+                Err(sails_rtl::errors::RtlError::EventNameIsNotFound)?
             }
-            Err(sails_rtl::errors::RtlError::EventNameIsNotFound)?
+        }
+        pub fn listener<R: Listener<Vec<u8>>>(
+            remoting: R,
+        ) -> impl Listener<ServiceWithEventsEvents> {
+            RemotingListener::new(remoting)
         }
     }
 }

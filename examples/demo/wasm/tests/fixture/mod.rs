@@ -54,7 +54,7 @@ impl Fixture {
     }
 
     #[allow(dead_code)]
-    pub(crate) fn counter_listener(&self) -> impl EventListener<counter::events::CounterEvents> {
+    pub(crate) fn counter_listener(&self) -> impl Listener<counter::events::CounterEvents> {
         counter::events::listener(self.program_space.clone())
     }
 }

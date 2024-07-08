@@ -1,7 +1,7 @@
 use crate::{
     calls::Remoting,
     errors::{Result, RtlError},
-    events::EventListener,
+    events::Listener,
     prelude::*,
     rc::Rc,
 };
@@ -156,7 +156,7 @@ impl Remoting<GTestArgs> for GTestRemoting {
     }
 }
 
-impl EventListener<Vec<u8>> for GTestRemoting {
+impl Listener<Vec<u8>> for GTestRemoting {
     async fn listen(&mut self) -> Result<impl Stream<Item = (ActorId, Vec<u8>)>> {
         let listener = Rc::new(GTestEventListener::default());
         self.listeners.borrow_mut().push(Rc::downgrade(&listener));
