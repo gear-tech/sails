@@ -75,7 +75,7 @@ pub mod service_with_events {
     #[cfg(not(target_arch = "wasm32"))]
     pub mod events {
         use super::*;
-        use sails_rtl::event_listener::{EventSubscriber, RemotingSubscribe, Subscribe};
+        use sails_rtl::events::{EventListener, RemotingListener};
         #[derive(PartialEq, Debug, Encode, Decode)]
         #[codec(crate = sails_rtl::scale_codec)]
         pub enum ServiceWithEventsEvents {
@@ -91,10 +91,10 @@ pub mod service_with_events {
             &[20, 84, 104, 114, 101, 101],
             &[20, 82, 101, 115, 101, 116],
         ];
-        pub fn listener<R: EventSubscriber>(
+        pub fn listener<R: EventListener<Vec<u8>>>(
             remoting: R,
-        ) -> impl Subscribe<ServiceWithEventsEvents> {
-            RemotingSubscribe::new(remoting, SERVICE_ROUTE, EVENT_NAMES)
+        ) -> impl EventListener<ServiceWithEventsEvents> {
+            RemotingListener::new(remoting, SERVICE_ROUTE, EVENT_NAMES)
         }
         #[allow(dead_code)]
         pub fn decode_event(

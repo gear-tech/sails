@@ -1,7 +1,7 @@
 use demo_client::{counter::events::*, traits::*};
 use fixture::Fixture;
 use futures::stream::StreamExt;
-use sails_rtl::{calls::*, event_listener::*, gtest::calls::GTestArgs};
+use sails_rtl::{calls::*, events::*, gtest::calls::GTestArgs};
 mod fixture;
 
 #[tokio::test]
@@ -34,8 +34,8 @@ async fn counter_events() {
     let fixture = Fixture::new(fixture::ADMIN_ID);
 
     // Low level remoting listener
-    let mut space = fixture.cloned_program_space();
-    let mut remoting_listener = space.subscribe().await.unwrap();
+    let mut space = fixture.program_space().clone();
+    let mut remoting_listener = space.listen().await.unwrap();
 
     let factory = fixture.demo_factory();
 
@@ -48,7 +48,7 @@ async fn counter_events() {
 
     let mut counter_listener = fixture.counter_listener();
     // Typed service event listener
-    let mut listener = counter_listener.subscribe(program_id).await.unwrap();
+    let mut listener = counter_listener.listen().await.unwrap();
 
     let mut client = fixture.counter_client();
     let reply = client
@@ -89,7 +89,7 @@ async fn counter_events() {
     );
 
     let event = listener.next().await.unwrap();
-    assert_eq!(CounterEvents::Added(2), event);
+    assert_eq!((program_id, CounterEvents::Added(2)), event);
     let event = listener.next().await.unwrap();
-    assert_eq!(CounterEvents::Subtracted(1), event);
+    assert_eq!((program_id, CounterEvents::Subtracted(1)), event);
 }

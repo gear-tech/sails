@@ -1,9 +1,9 @@
 use crate::{
     calls::Remoting,
     errors::{Result, RtlError},
-    event_listener::EventSubscriber,
+    events::EventListener,
+    prelude::*,
     rc::Rc,
-    ActorId, CodeId, MessageId, ValueUnit, Vec,
 };
 use core::{cell::RefCell, future::Future, ops::Deref, pin::Pin, task::Poll};
 use futures::Stream;
@@ -156,8 +156,8 @@ impl Remoting<GTestArgs> for GTestRemoting {
     }
 }
 
-impl EventSubscriber for GTestRemoting {
-    async fn subscribe(&mut self) -> Result<impl Stream<Item = (ActorId, Vec<u8>)>> {
+impl EventListener<Vec<u8>> for GTestRemoting {
+    async fn listen(&mut self) -> Result<impl Stream<Item = (ActorId, Vec<u8>)>> {
         let listener = Rc::new(GTestEventListener::default());
         self.listeners.borrow_mut().push(Rc::downgrade(&listener));
         Ok(GTestEventStream(Pin::new(listener)))

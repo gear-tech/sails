@@ -39,7 +39,7 @@ impl<'ast> Visitor<'ast> for EventsModuleGenerator {
             #[cfg(not(target_arch = "wasm32"))]
             pub mod events $("{")
                 use super::*;
-                use sails_rtl::event_listener::{EventSubscriber, RemotingSubscribe, Subscribe};
+                use sails_rtl::events::{EventListener, RemotingListener};
                 #[derive(PartialEq, Debug, Encode, Decode)]
                 #[codec(crate = sails_rtl::scale_codec)]
                 pub enum $(&events_name) $("{")
@@ -55,8 +55,8 @@ impl<'ast> Visitor<'ast> for EventsModuleGenerator {
             const SERVICE_ROUTE: &[u8] = &[$service_path_bytes];
             const EVENT_NAMES: &[&[u8]] = &[&[$event_names_bytes]];
 
-            pub fn listener<R: EventSubscriber>(remoting: R) -> impl Subscribe<$(&events_name)> {
-                RemotingSubscribe::new(
+            pub fn listener<R: EventListener<Vec<u8>>>(remoting: R) -> impl EventListener<$(&events_name)> {
+                RemotingListener::new(
                     remoting,
                     SERVICE_ROUTE,
                     EVENT_NAMES,
