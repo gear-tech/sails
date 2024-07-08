@@ -55,9 +55,8 @@ impl<'ast> Visitor<'ast> for EventsModuleGenerator {
             const SERVICE_ROUTE: &[u8] = &[$service_path_bytes];
             const EVENT_NAMES: &[&[u8]] = &[&[$event_names_bytes]];
 
-            impl TryFrom<Vec<u8>> for $(&events_name) {
-                type Error = sails_rtl::errors::Error;
-                fn try_from(value: Vec<u8>) -> Result<Self, Self::Error> {
+            impl $(&events_name) {
+                pub fn decode_event(value: impl AsRef<[u8]>) -> Result<Self, sails_rtl::errors::Error> {
                     let payload: &[u8] = value.as_ref();
                     if !payload.starts_with(SERVICE_ROUTE) {
                         Err(sails_rtl::errors::RtlError::EventPrefixMismatches)?;
@@ -76,7 +75,11 @@ impl<'ast> Visitor<'ast> for EventsModuleGenerator {
             }
 
             pub fn listener<R: Listener<Vec<u8>>>(remoting: R) -> impl Listener<$(&events_name)> {
-                RemotingListener::new(remoting)
+                RemotingListener::new(
+                    remoting,
+                    SERVICE_ROUTE,
+                    EVENT_NAMES,
+                )
             }
         }
 

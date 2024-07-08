@@ -91,9 +91,8 @@ pub mod service_with_events {
             &[20, 84, 104, 114, 101, 101],
             &[20, 82, 101, 115, 101, 116],
         ];
-        impl TryFrom<Vec<u8>> for ServiceWithEventsEvents {
-            type Error = sails_rtl::errors::Error;
-            fn try_from(value: Vec<u8>) -> Result<Self, Self::Error> {
+        impl ServiceWithEventsEvents {
+            pub fn decode_event(value: impl AsRef<[u8]>) -> Result<Self, sails_rtl::errors::Error> {
                 let payload: &[u8] = value.as_ref();
                 if !payload.starts_with(SERVICE_ROUTE) {
                     Err(sails_rtl::errors::RtlError::EventPrefixMismatches)?;
@@ -113,7 +112,7 @@ pub mod service_with_events {
         pub fn listener<R: Listener<Vec<u8>>>(
             remoting: R,
         ) -> impl Listener<ServiceWithEventsEvents> {
-            RemotingListener::new(remoting)
+            RemotingListener::new(remoting, SERVICE_ROUTE, EVENT_NAMES)
         }
     }
 }
