@@ -23,18 +23,29 @@ impl DogService {
     }
 }
 
+// Implementing `AsRef` for each of the extended services
 impl AsRef<WalkerService> for DogService {
     fn as_ref(&self) -> &WalkerService {
         &self.walker
     }
 }
 
+// Implementing `AsRef` for each of the extended services
 impl AsRef<MammalService> for DogService {
     fn as_ref(&self) -> &MammalService {
         &self.mammal
     }
 }
 
+// The resulting Dog service will have 4 methods:
+// - MakeSound (from DogService)
+// - Walk (from WalkerService)
+// - AvgWeight (from MammalService)
+// - Position (from WalkerService)
+// and 2 events:
+// - Barked (from DogEvents)
+// - Walked (from WalkerEvents)
+// See [IDL](/examples/demo/wasm/demo.idl)
 #[gservice(extends = [MammalService, WalkerService], events = DogEvents)]
 impl DogService {
     pub fn make_sound(&mut self) -> &'static str {
