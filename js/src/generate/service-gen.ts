@@ -166,13 +166,16 @@ export class ServiceGenerator extends BaseGenerator {
             .line(`const reply = await this._program.api.message.calculateReply({`, false)
             .increaseIndent()
             .line(`destination: this._program.programId,`, false)
-            .line(`origin: decodeAddress(originAddress),`, false)
+            .line(`origin: originAddress ? decodeAddress(originAddress) : ZERO_ADDRESS,`, false)
             .line(`payload,`, false)
             .line(`value: value || 0,`, false)
             .line(`gasLimit: this._program.api.blockGasLimit.toBigInt(),`, false)
             .line(`at: atBlock || null,`, false)
             .reduceIndent()
             .line(`})`)
+            .line(
+              "if (!reply.code.isSuccess) throw new Error(this._program.registry.createType('String', reply.payload).toString())",
+            )
             .line(
               `const result = this._program.registry.createType('(String, String, ${returnScaleType})', reply.payload)`,
             )
@@ -271,7 +274,7 @@ export class ServiceGenerator extends BaseGenerator {
     let result = `public ${isQuery ? 'async ' : ''}${getFuncName(name)}(${args || ''}`;
 
     if (isQuery) {
-      result += `${args ? ', ' : ''}originAddress: string, ${VALUE_ARG}, atBlock?: ${HEX_STRING_TYPE}`;
+      result += `${args ? ', ' : ''}originAddress?: string, ${VALUE_ARG}, atBlock?: ${HEX_STRING_TYPE}`;
     }
 
     result += `): ${isQuery ? `Promise<${returnType}>` : `TransactionBuilder<${returnType}>`}`;
