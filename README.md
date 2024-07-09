@@ -234,11 +234,20 @@ upon the successful completion of the command that emitted it.
 
 ### Service Extending (Mixins)
 
-Another feature Sails can boast of is the ability to extend (mixin) existing services.
-Say there are service `A` and service `B`, and you want their functionality to be exposed
-as a part of your new service `C`. You can achieve this by using the `extends` argument of
-the `#[gservice]` attribute. You can not only mix the functionality in but also override
-some methods of the original services. For example:
+A standout feature of Sails is its capability to extend (or mix in) existing services.
+This is facilitated through the use of the `extends` argument in the `#[gservice]`
+attribute. Consider you have Service `A` and Service `B`, possibly sourced from
+external crates, and you aim to integrate their functionalities into a new
+Service `C`. This integration would result in methods and events from Services `A`
+and `B` being seamlessly incorporated into Service `C`, as if they were originally
+part of it. In such a case, the methods available in Service `C` represent a combination
+of those from Services `A` and `B`. Should a method name conflict arise, where both
+Services `A` and `B` contain a method with the same name, the method from the service
+specified first in the `extends` argument takes precedence. This strategy not only
+facilitates the blending of functionalities but also permits the overriding of specific
+methods from the original services by defining a method with the same name in the
+new service. With event names, conflicts are not allowed. Unfortunately, the IDL
+generation process is the earliest when this can be reported as an error. For example:
 
 ```rust
 struct MyServiceA;
@@ -276,8 +285,6 @@ impl MyServiceC {
     // do_b from MyServiceB will exposed due to the extends argument
 }
 ```
-
-You can find more details in the [Examples](#examples) section.
 
 ### Payload Encoding
 
@@ -437,6 +444,14 @@ completes. See the [RmrkResource](examples/rmrk/resource/app/src/services/) serv
 
 You can find an example of how to emit events from your service in the [Counter](examples/demo/app/src/counter/)
 and [RmrkResource](examples/rmrk/resource/app/src/services/) services.
+
+### Service Extending (Mixins)
+
+An example of service extension is demonstrated with the [Dog](examples/demo/app/src/dog/)
+service, which extends the [Mammal](examples/demo/app/src/mammal/) service from
+the same crate and the [Walker](examples/demo/walker/src/) service from a different crate.
+The service being extended must implement the `Clone` trait, while the extending
+service must implement the `AsRef` trait for the service being extended.
 
 ##
 

@@ -1,5 +1,6 @@
 use sails_rtl::{gstd::gservice, prelude::*};
 
+// Service extension requires the service to implement `Clone`
 #[derive(Clone)]
 pub struct MammalService {
     avg_weight: u32,
