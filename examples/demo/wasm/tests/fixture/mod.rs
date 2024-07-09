@@ -1,6 +1,6 @@
 use core::cell::OnceCell;
 use demo_client::{counter, Counter, DemoFactory, PingPong};
-use sails_rtl::{event_listener::*, gtest::calls::*, prelude::*};
+use sails_rtl::{events::*, gtest::calls::*, prelude::*};
 
 const DEMO_WASM_PATH: &str = "../../../target/wasm32-unknown-unknown/debug/demo.opt.wasm";
 
@@ -18,8 +18,8 @@ impl Fixture {
     }
 
     #[allow(dead_code)]
-    pub(crate) fn cloned_program_space(&self) -> GTestRemoting {
-        self.program_space.clone()
+    pub(crate) fn program_space(&self) -> &GTestRemoting {
+        &self.program_space
     }
 
     pub(crate) fn new(admin_id: u64) -> Self {
@@ -54,7 +54,7 @@ impl Fixture {
     }
 
     #[allow(dead_code)]
-    pub(crate) fn counter_listener(&self) -> impl Subscribe<counter::events::CounterEvents> {
+    pub(crate) fn counter_listener(&self) -> impl Listener<counter::events::CounterEvents> {
         counter::events::listener(self.program_space.clone())
     }
 }

@@ -1,11 +1,12 @@
 use crate::{
     calls::Remoting,
     errors::{Result, RtlError},
-    event_listener::{EventListener, EventSubscriber},
+    events::Listener,
+    prelude::*,
     rc::Rc,
-    ActorId, CodeId, MessageId, ValueUnit, Vec,
 };
-use core::{cell::RefCell, future::Future, ops::Deref};
+use core::{cell::RefCell, future::Future, ops::Deref, pin::Pin, task::Poll};
+use futures::Stream;
 use gear_core_errors::{ReplyCode, SuccessReplyReason};
 use gstd::rc::Weak;
 use gtest::{Program, RunResult, System};
@@ -155,11 +156,11 @@ impl Remoting<GTestArgs> for GTestRemoting {
     }
 }
 
-impl EventSubscriber for GTestRemoting {
-    async fn subscribe(&mut self) -> Result<impl EventListener> {
+impl Listener<Vec<u8>> for GTestRemoting {
+    async fn listen(&mut self) -> Result<impl Stream<Item = (ActorId, Vec<u8>)>> {
         let listener = Rc::new(GTestEventListener::default());
         self.listeners.borrow_mut().push(Rc::downgrade(&listener));
-        Ok(listener)
+        Ok(GTestEventStream(Pin::new(listener)))
     }
 }
 
@@ -174,18 +175,20 @@ impl GTestEventListener {
     }
 }
 
-impl EventListener for Rc<GTestEventListener> {
-    async fn next_event(
-        &mut self,
-        predicate: impl Fn(&(ActorId, Vec<u8>)) -> bool,
-    ) -> Result<(ActorId, Vec<u8>)> {
-        while !self.events.borrow().is_empty() {
-            let (source, _, payload) = self.events.borrow_mut().remove(0);
-            let evt = (source, payload);
-            if predicate(&evt) {
-                return Ok(evt);
-            }
+pub struct GTestEventStream(Pin<Rc<GTestEventListener>>);
+
+impl Stream for GTestEventStream {
+    type Item = (ActorId, Vec<u8>);
+
+    fn poll_next(
+        self: core::pin::Pin<&mut Self>,
+        _cx: &mut core::task::Context<'_>,
+    ) -> Poll<Option<Self::Item>> {
+        if self.0.events.borrow().is_empty() {
+            Poll::Ready(None)
+        } else {
+            let (source, _, payload) = self.0.events.borrow_mut().remove(0);
+            Poll::Ready(Some((source, payload)))
         }
-        Err(RtlError::EventIsNotFound)?
     }
 }

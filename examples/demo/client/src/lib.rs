@@ -1,5 +1,7 @@
 #![no_std]
 
+use sails_rtl::prelude::*;
+
 include!(concat!(env!("OUT_DIR"), "/demo_client.rs"));
 
 #[cfg(test)]
@@ -9,8 +11,8 @@ mod tests {
     #[test]
     fn test_io_module_encode() {
         let bytes = this_that::io::DoThat::encode_call(DoThatParam {
-            p1: u32::MAX,
-            p2: "hello".to_string(),
+            p1: NonZeroU32::MAX,
+            p2: 123.into(),
             p3: ManyVariants::One,
         });
 
@@ -20,8 +22,9 @@ mod tests {
                 32, 84, 104, 105, 115, 84, 104, 97, 116, // ThisThat
                 24, 68, 111, 84, 104, 97, 116, // DoThat
                 255, 255, 255, 255, // p1
-                20, 104, 101, 108, 108, 111, // p2
-                0    // p3
+                123, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, // p2
+                0, // p3
             ]
         );
     }
@@ -32,13 +35,14 @@ mod tests {
             32, 84, 104, 105, 115, 84, 104, 97, 116, // ThisThat
             24, 68, 111, 84, 104, 97, 116, // DoThat
             0,   // Ok
-            16, 65, 65, 65, 65, // len + "AAAA"
-            255, 255, 255, 255, // u32::MAX
+            123, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, // 123
+            255, 255, 255, 255, // NonZeroU32::MAX
         ];
 
-        let reply: Result<(String, u32), (String,)> =
+        let reply: Result<(ActorId, NonZeroU32), (String,)> =
             this_that::io::DoThat::decode_reply(&bytes).unwrap();
 
-        assert_eq!(reply, Ok(("AAAA".to_string(), u32::MAX)));
+        assert_eq!(reply, Ok((ActorId::from(123), NonZeroU32::MAX)));
     }
 }

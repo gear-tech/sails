@@ -10,8 +10,8 @@ use sails_rtl::{
 pub mod errors;
 pub mod parts;
 
+// Fully hidden service state
 static mut CATALOG_DATA: Option<CatalogData> = None;
-
 static mut CATALOG_ADMIN: Option<ActorId> = None;
 
 type Result<T> = RtlResult<T, Error>;
@@ -35,6 +35,7 @@ impl<TExecContext: ExecContext> Catalog<TExecContext>
 where
     TExecContext: ExecContext,
 {
+    // This function needs to be called before any other function
     pub fn seed(exec_context: TExecContext) {
         unsafe {
             CATALOG_DATA = Some(CatalogData::default());
