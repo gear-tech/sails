@@ -1,10 +1,7 @@
-use demo_client::traits::{Counter, DemoFactory};
+use demo_client::{counter::events::*, traits::*};
+use futures::stream::StreamExt;
 use gclient::GearApi;
-use sails_rtl::{
-    calls::*,
-    errors::RtlError,
-    gsdk::calls::{GSdkArgs, GSdkRemoting},
-};
+use sails_rtl::{calls::*, errors::RtlError, events::*, gsdk::calls::*};
 
 const DEMO_WASM_PATH: &str = "../../../target/wasm32-unknown-unknown/debug/demo.opt.wasm";
 
@@ -59,4 +56,79 @@ async fn gclient_counter_not_enough_gas() {
             RtlError::ReplyHasErrorString(s)
         )) if s.as_str() == "Not enough gas to handle program data"
     ));
+}
+
+#[tokio::test]
+#[ignore = "requires run gear node on GEAR_PATH"]
+async fn gclient_counter_events() {
+    let gear_path = option_env!("GEAR_PATH");
+    if gear_path.is_none() {
+        return;
+    }
+    let api = GearApi::dev_from_path(gear_path.unwrap()).await.unwrap();
+    let gas_limit = api.block_gas_limit().unwrap();
+    let remoting = GSdkRemoting::new(api);
+    let code_id = remoting.upload_code_by_path(DEMO_WASM_PATH).await.unwrap();
+
+    // Low level remoting listener
+    let mut space = remoting.clone();
+    let mut remoting_listener = space.listen().await.unwrap();
+
+    let factory = demo_client::DemoFactory::new(remoting.clone());
+    let program_id = factory
+        .new(Some(42), None)
+        .with_args(GSdkArgs::default().with_gas_limit(gas_limit))
+        .send_recv(code_id, "123")
+        .await
+        .unwrap();
+
+    let mut counter_listener = demo_client::counter::events::listener(remoting.clone());
+    // Typed service event listener
+    let mut listener = counter_listener.listen().await.unwrap();
+
+    let mut client = demo_client::Counter::new(remoting.clone());
+    let reply = client
+        .add(2)
+        .with_args(GSdkArgs::default().with_gas_limit(gas_limit))
+        .send_recv(program_id)
+        .await
+        .unwrap();
+
+    assert_eq!(44, reply);
+
+    let reply = client
+        .value()
+        .with_args(GSdkArgs::default().with_gas_limit(gas_limit))
+        .recv(program_id)
+        .await
+        .unwrap();
+
+    assert_eq!(44, reply);
+
+    let reply = client
+        .sub(1)
+        .with_args(GSdkArgs::default().with_gas_limit(gas_limit))
+        .send_recv(program_id)
+        .await
+        .unwrap();
+
+    assert_eq!(43, reply);
+
+    let event = remoting_listener.next().await.unwrap();
+    println!("{:?}", event);
+    assert_eq!(
+        CounterEvents::Added(2),
+        CounterEvents::decode_event(event.1).unwrap()
+    );
+    let event = remoting_listener.next().await.unwrap();
+    println!("{:?}", event);
+    assert_eq!(
+        CounterEvents::Subtracted(1),
+        CounterEvents::decode_event(event.1).unwrap()
+    );
+
+    let event = listener.next().await.unwrap();
+    assert_eq!((program_id, CounterEvents::Added(2)), event);
+    let event = listener.next().await.unwrap();
+    assert_eq!((program_id, CounterEvents::Subtracted(1)), event);
 }
