@@ -314,7 +314,7 @@ You can use:
 
 All you need to do is compose a byte payload according to the layout outlined in the [Payload Encoding](#payload-encoding) section and send it to an application.
 
-Thanks to the generated IDL, Sails provides a way to interact with your application using generated clients that have an interface similar to the one exposed by your application. Currently, Sails can generate client code for Rust and TypeScript.
+Thanks to the generated IDL, Sails provides a way to interact with your application using [generated clients](js/README.md#generate-library-from-idl) that have an interface similar to the one exposed by your application. Currently, Sails can generate client code for Rust and TypeScript.
 
 When it comes to Rust, there are 2 options:
 - use generated code which can encode and decode byte payload for you, and you can keep
