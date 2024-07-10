@@ -17,7 +17,6 @@ impl Fixture {
         self.admin_id.into()
     }
 
-    #[allow(dead_code)]
     pub(crate) fn program_space(&self) -> &GTestRemoting {
         &self.program_space
     }
@@ -55,7 +54,6 @@ impl Fixture {
         Dog::new(self.program_space.clone())
     }
 
-    #[allow(dead_code)]
     pub(crate) fn counter_listener(&self) -> impl Listener<counter::events::CounterEvents> {
         counter::events::listener(self.program_space.clone())
     }
