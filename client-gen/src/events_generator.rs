@@ -77,8 +77,7 @@ impl<'ast> Visitor<'ast> for EventsModuleGenerator {
             pub fn listener<R: Listener<Vec<u8>>>(remoting: R) -> impl Listener<$(&events_name)> {
                 RemotingListener::new(
                     remoting,
-                    SERVICE_ROUTE,
-                    EVENT_NAMES,
+                    $(&events_name)::decode_event,
                 )
             }
         }

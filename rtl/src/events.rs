@@ -7,43 +7,30 @@ pub trait Listener<E> {
     async fn listen(&mut self) -> Result<impl Stream<Item = (ActorId, E)> + Unpin>;
 }
 
-pub struct RemotingListener<R, E> {
+pub struct RemotingListener<R, E, F> {
     remoting: R,
-    route: &'static [u8],
-    event_names: &'static [&'static [u8]],
+    f: F,
     _event: PhantomData<E>,
 }
 
-impl<R: Listener<Vec<u8>>, E: Decode> RemotingListener<R, E> {
-    pub fn new(remoting: R, route: &'static [u8], event_names: &'static [&'static [u8]]) -> Self {
+impl<R: Listener<Vec<u8>>, E: Decode, F> RemotingListener<R, E, F> {
+    pub fn new(remoting: R, f: F) -> Self {
         Self {
             remoting,
-            route,
-            event_names,
+            f,
             _event: PhantomData,
         }
     }
 }
 
-impl<R: Listener<Vec<u8>>, E: Decode> Listener<E> for RemotingListener<R, E> {
+impl<R: Listener<Vec<u8>>, E, F: Fn(Vec<u8>) -> Result<E>> Listener<E>
+    for RemotingListener<R, E, F>
+{
     async fn listen(&mut self) -> Result<impl Stream<Item = (ActorId, E)> + Unpin> {
         let stream = self.remoting.listen().await?;
-        let route: &'static [u8] = self.route;
-        let event_names: &'static [&'static [u8]] = self.event_names;
+        let f = &self.f;
         let map = stream.filter_map(move |(actor_id, payload)| async move {
-            if !payload.starts_with(route) {
-                return None;
-            }
-            let event_bytes = &payload[route.len()..];
-            for (idx, name) in event_names.iter().enumerate() {
-                if event_bytes.starts_with(name) {
-                    let idx = idx as u8;
-                    let bytes = [&[idx], &event_bytes[name.len()..]].concat();
-                    let mut event_bytes = &bytes[..];
-                    return E::decode(&mut event_bytes).ok().map(|e| (actor_id, e));
-                }
-            }
-            None
+            (f)(payload).ok().map(|e| (actor_id, e))
         });
         Ok(Box::pin(map))
     }

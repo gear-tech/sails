@@ -112,7 +112,7 @@ pub mod service_with_events {
         pub fn listener<R: Listener<Vec<u8>>>(
             remoting: R,
         ) -> impl Listener<ServiceWithEventsEvents> {
-            RemotingListener::new(remoting, SERVICE_ROUTE, EVENT_NAMES)
+            RemotingListener::new(remoting, ServiceWithEventsEvents::decode_event)
         }
     }
 }
