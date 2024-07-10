@@ -4,6 +4,4 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-parity-scale-codec = { workspace = true, features = ["derive"] }
 sails-rtl.workspace = true
-scale-info = { workspace = true, features = ["derive"] }

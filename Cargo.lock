@@ -1458,9 +1458,7 @@ dependencies = [
 name = "demo-walker"
 version = "0.1.0"
 dependencies = [
- "parity-scale-codec",
  "sails-rtl",
- "scale-info",
 ]
 
 [[package]]
