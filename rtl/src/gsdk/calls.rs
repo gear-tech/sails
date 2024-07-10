@@ -1,10 +1,14 @@
 use crate::{
     calls::Remoting,
     errors::{Result, RtlError},
+    events::Listener,
     prelude::*,
 };
 use core::future::Future;
+use futures::{stream, Stream, StreamExt};
+use gclient::metadata::runtime_types::gear_core::message::user::UserMessage as GenUserMessage;
 use gclient::{ext::sp_core::ByteArray, EventProcessor, GearApi};
+
 #[derive(Debug, Default, Clone)]
 pub struct GSdkArgs {
     gas_limit: Option<GasUnit>,
@@ -108,4 +112,50 @@ impl Remoting<GSdkArgs> for GSdkRemoting {
 
         Ok(reply_info.payload)
     }
+}
+
+impl Listener<Vec<u8>> for GSdkRemoting {
+    async fn listen(&mut self) -> Result<impl Stream<Item = (ActorId, Vec<u8>)> + Unpin> {
+        let listener = self.api.subscribe().await?;
+        let stream = stream::unfold(listener, |mut l| async move {
+            let vec = get_events_from_block(&mut l).await.ok();
+            vec.map(|v| (v, l))
+        })
+        .flat_map(stream::iter);
+        Ok(Box::pin(stream))
+    }
+}
+
+async fn get_events_from_block(
+    listener: &mut gclient::EventListener,
+) -> Result<Vec<(ActorId, Vec<u8>)>> {
+    let vec = listener
+        .proc_many(
+            |e| {
+                if let gclient::Event::Gear(gclient::GearEvent::UserMessageSent {
+                    message:
+                        GenUserMessage {
+                            id: _,
+                            source,
+                            destination,
+                            payload,
+                            ..
+                        },
+                    ..
+                }) = e
+                {
+                    let source = ActorId::from(source);
+                    if ActorId::from(destination) == ActorId::zero() {
+                        Some((source, payload.0))
+                    } else {
+                        None
+                    }
+                } else {
+                    None
+                }
+            },
+            |v| (v, true),
+        )
+        .await?;
+    Ok(vec)
 }
