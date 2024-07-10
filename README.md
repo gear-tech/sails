@@ -310,7 +310,7 @@ provides a number of options to do this. First of all, it doesn't eliminate the 
 of doing this in fully manual mode using means provided by the Gear Protocol - whether
 you want to use a set of the `msg::send` functions from the `gstd` crate for interacting
 from one application with another, or you want to use functionality provided by the `gclient`
-crate for interacting from off-chain code with an on-chain application, or you can create your JavaScript application using [sails-js](js/README.md),
+crate for interacting from off-chain code with an on-chain application, or you can use `@gear-js/api` library for interacting with your program from JavaScript,
 all you need to do is to compose byte payload according to the layout outlined in the
 [Payload Encoding](#payload-encoding) section and send it to an application. Thanks to the
 generated IDL, Sails provides a way to interact with your application using generated clients
