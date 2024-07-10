@@ -1,5 +1,5 @@
 # Overview
-`sails-js` is a library that can be used to interact with the programs written with the [sails](https://github.com/gear-tech/sails) framework and to generate typescript code from an IDL file (generated when the program is compiled).
+`sails-js` is a library that can be used to interact with the programs written with the [Sails](https://github.com/gear-tech/sails) framework and to generate typescript code from the Sails IDL file.
 
 # Installation
 
@@ -98,7 +98,7 @@ const transaction = sails.services.ServiceName.functions.FunctionName(arg1, arg2
 
 ### Queries
 `sails.services.ServiceName.queries` property contains an object with all the queries from the IDL file that can be used to read the program state.
-The key of the object is the name of the function. 
+The key of the object is the name of the function.
 The value includes the same properties as described in the [Functions](#functions) section above. Note that the function returns the result of the query, not the transaction builder.
 
 *The query function accepts 3 more arguments in addition to arguments from the IDL:*
@@ -215,20 +215,20 @@ There are a few types of methods available in the `Program` class.
 
 ##### Query methods
 Query methods are used to query the program state.
-These methods accept the arguments needed to call the function in the program and return the result. Apart from the arguments, these functions also accept required parameter `originAddress` which is the address of the account that is calling the function and optional parameters `value` and `atBlock`. `Value` parameter can be used depending on the function to send some amount of tokens to the correct function execution. `atBlock` parameter can be used to query the program state at a specific block.
+These methods accept the arguments needed to call the function in the program and return the result. Apart from the arguments, these functions also accept optional parameters: `originAddress` is the address of the account that is calling the function (if this parameter isn't provided zero address is used as a default value), `value` is a parameter parameter can be used depending on the function to send some amount of tokens to the correct function execution and `atBlock` to query program state at a specific block.
 
 ```javascript
 const alice = '0xd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d';
-const result = await program.someQueryFunction(arg1, arg2, alice);
+const result = await program.serviceName.queryFnName(arg1, arg2, alice);
 console.log(result);
 ```
 
 ##### Message methods
-Message methods are used to send messages to the program. 
-These methods accept the arguments needed to send the message and return transaction builder that has a few methods to build and send the transaction.
+Message methods are used to send messages to the program.
+These methods accept the arguments needed to send the message and return [transaction builder](#transaction-builder) that has a few methods to build and send the transaction.
 
 ```javascript
-const transaction = program.someMessageFunction(arg1, arg2);
+const transaction = program.serviceName.functionName(arg1, arg2);
 
 // ## Set the account that is sending the message
 
@@ -335,17 +335,30 @@ await transaction.calculateGas();
 transaction.withGas(100_000_000_000n);
 ```
 
+- `withVoucher` - sets the voucher id to be used for the transaction
+```javascript
+const voucherId = '0x...'
+transaction.withVoucher(voucherId);
+```
+
+- `transactionFee` - get the transaction fee
+```javascript
+const fee = await transaction.transactionFee();
+console.log(fee);
+```
+
 - `signAndSend` - sends the transaction to the chain
-<i>Returns the id of the sent message, transaction hash, the block hash in which the message is included and `response` function that can be used to get the response from the program.
+<i>Returns the id of the sent message, transaction hash, the block hash in which the message is included, `isFinalized` to check if the transaction is finalized and `response` function that can be used to get the response from the program.
 The `response` function returns a promise with the response from the program. If an error occurs during message execution the promise will be rejected with the error message.
 </i>
 
 ```javascript
-const { msgId, blockHash, txHash, response } = await transaction.signAndSend();
+const { msgId, blockHash, txHash, response, isFinalized } = await transaction.signAndSend();
 
 console.log('Message id:', msgId);
 console.log('Transaction hash:', txHash);
 console.log('Block hash:', blockHash);
+console.log('Is finalized:', await isFinalized);
 
 const result = await response();
 console.log(result);
