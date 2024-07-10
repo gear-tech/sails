@@ -1,6 +1,6 @@
 use core::cell::OnceCell;
-use demo_client::{counter, counter, Counter, DemoFactory, Dog, PingPong};
-use sails_rtl::{events::*, events::*, gtest::calls::*, prelude::*};
+use demo_client::{counter, Counter, DemoFactory, Dog, PingPong};
+use sails_rtl::{events::*, gtest::calls::*, prelude::*};
 
 const DEMO_WASM_PATH: &str = "../../../target/wasm32-unknown-unknown/debug/demo.opt.wasm";
 

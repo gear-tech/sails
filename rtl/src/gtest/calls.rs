@@ -11,7 +11,6 @@ use futures::{
     Stream,
 };
 use gear_core_errors::{ReplyCode, SuccessReplyReason};
-use gstd::rc::Weak;
 use gtest::{Program, RunResult, System};
 
 type EventSender = UnboundedSender<(ActorId, Vec<u8>)>;
