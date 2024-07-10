@@ -234,11 +234,20 @@ upon the successful completion of the command that emitted it.
 
 ### Service Extending (Mixins)
 
-Another feature Sails can boast of is the ability to extend (mixin) existing services.
-Say there are service `A` and service `B`, and you want their functionality to be exposed
-as a part of your new service `C`. You can achieve this by using the `extends` argument of
-the `#[gservice]` attribute. You can not only mix the functionality in but also override
-some methods of the original services. For example:
+A standout feature of Sails is its capability to extend (or mix in) existing services.
+This is facilitated through the use of the `extends` argument in the `#[gservice]`
+attribute. Consider you have Service `A` and Service `B`, possibly sourced from
+external crates, and you aim to integrate their functionalities into a new
+Service `C`. This integration would result in methods and events from Services `A`
+and `B` being seamlessly incorporated into Service `C`, as if they were originally
+part of it. In such a case, the methods available in Service `C` represent a combination
+of those from Services `A` and `B`. Should a method name conflict arise, where both
+Services `A` and `B` contain a method with the same name, the method from the service
+specified first in the `extends` argument takes precedence. This strategy not only
+facilitates the blending of functionalities but also permits the overriding of specific
+methods from the original services by defining a method with the same name in the
+new service. With event names, conflicts are not allowed. Unfortunately, the IDL
+generation process is the earliest when this can be reported as an error. For example:
 
 ```rust
 struct MyServiceA;
@@ -277,8 +286,6 @@ impl MyServiceC {
 }
 ```
 
-You can find more details in the [Examples](#examples) section.
-
 ### Payload Encoding
 
 An application written with Sails uses [SCALE Codec](https://github.com/paritytech/parity-scale-codec) to encode/decode data
@@ -298,17 +305,16 @@ __|__ *SCALE encoded service name* __|__ *SCALE encoded event name* __|__ *SCALE
 
 ### Client
 
-Having applications without a way to interact with them is not very useful. Sails
-provides a number of options to do this. First of all, it doesn't eliminate the option
-of doing this in fully manual mode using means provided by the Gear Protocol - whether
-you want to use a set of the `msg::send` functions from the `gstd` crate for interacting
-from one application with another, or you want to use functionality provided by the `gclient`
-crate for interacting from off-chain code with an on-chain application, or [TDB about JS],
-all you need to do is to compose byte payload according to the layout outlined in the
-[Payload Encoding](#payload-encoding) section and send it to an application. Thanks to the
-generated IDL, Sails provides a way to interact with your application using generated clients
-having interface similar to the one exposed by your application. Currently Sails can generate
-client code for Rust and TypeScript.
+Having robust interaction capabilities with applications is crucial. Sails offers several options for interaction. Firstly, it supports manual interaction using the Gear Protocol.
+
+You can use:
+- The `msg::send` functions from the `gstd` crate to interact between applications.
+- The `gclient` crate to interact from off-chain code with an on-chain application.
+- The `@gear-js/api` library to interact with your program from JavaScript.
+
+All you need to do is compose a byte payload according to the layout outlined in the [Payload Encoding](#payload-encoding) section and send it to an application.
+
+Thanks to the generated IDL, Sails provides a way to interact with your application using [generated clients](js/README.md#generate-library-from-idl) that have an interface similar to the one exposed by your application. Currently, Sails can generate client code for Rust and TypeScript.
 
 When it comes to Rust, there are 2 options:
 - use generated code which can encode and decode byte payload for you, and you can keep
@@ -373,7 +379,7 @@ fn some_client_code() {
 The second option provides you with an option to have your code testable as the generated
 code depends on the trait which can be easily mocked.
 
-When it comes to TypeScript [TBD]
+When it comes to TypeScript, `sails-js` lilbrary can be used to interact with the program. Check out [`sails-js` documentation](js/README.md) for more details.
 
 ## Examples
 
@@ -437,6 +443,14 @@ completes. See the [RmrkResource](examples/rmrk/resource/app/src/services/) serv
 
 You can find an example of how to emit events from your service in the [Counter](examples/demo/app/src/counter/)
 and [RmrkResource](examples/rmrk/resource/app/src/services/) services.
+
+### Service Extending (Mixins)
+
+An example of service extension is demonstrated with the [Dog](examples/demo/app/src/dog/)
+service, which extends the [Mammal](examples/demo/app/src/mammal/) service from
+the same crate and the [Walker](examples/demo/walker/src/) service from a different crate.
+The service being extended must implement the `Clone` trait, while the extending
+service must implement the `AsRef` trait for the service being extended.
 
 ##
 

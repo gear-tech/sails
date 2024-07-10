@@ -5,11 +5,16 @@ use crate::{
     prelude::*,
     rc::Rc,
 };
-use core::{cell::RefCell, future::Future, ops::Deref, pin::Pin, task::Poll};
-use futures::Stream;
+use core::{cell::RefCell, future::Future};
+use futures::{
+    channel::mpsc::{unbounded, UnboundedSender},
+    Stream,
+};
 use gear_core_errors::{ReplyCode, SuccessReplyReason};
 use gstd::rc::Weak;
 use gtest::{Program, RunResult, System};
+
+type EventSender = UnboundedSender<(ActorId, Vec<u8>)>;
 
 #[derive(Debug, Default, Clone)]
 pub struct GTestArgs {
@@ -36,7 +41,7 @@ impl GTestArgs {
 #[derive(Clone)]
 pub struct GTestRemoting {
     system: Rc<System>,
-    listeners: Rc<RefCell<Vec<Weak<GTestEventListener>>>>,
+    event_senders: Rc<RefCell<Vec<EventSender>>>,
 }
 
 impl Default for GTestRemoting {
@@ -49,7 +54,7 @@ impl GTestRemoting {
     pub fn new() -> Self {
         Self {
             system: Rc::new(System::new()),
-            listeners: Rc::new(RefCell::new(Vec::new())),
+            event_senders: Default::default(),
         }
     }
 
@@ -59,7 +64,7 @@ impl GTestRemoting {
 }
 
 impl GTestRemoting {
-    fn extract_reply(run_result: RunResult) -> Result<Vec<u8>> {
+    fn extract_reply(run_result: &RunResult) -> Result<Vec<u8>> {
         let mut reply_iter = run_result
             .log()
             .iter()
@@ -78,17 +83,18 @@ impl GTestRemoting {
         Ok(reply.payload().to_vec())
     }
 
-    fn extract_events(self, run_result: &RunResult) {
-        let events: Vec<(ActorId, MessageId, Vec<u8>)> = run_result
+    fn extract_and_send_events(run_result: &RunResult, senders: &mut Vec<EventSender>) {
+        let events: Vec<(ActorId, Vec<u8>)> = run_result
             .log()
             .iter()
             .filter(|entry| entry.destination() == ActorId::zero())
-            .map(|entry| (entry.source(), entry.id(), entry.payload().to_vec()))
+            .map(|entry| (entry.source(), entry.payload().to_vec()))
             .collect();
-        for listener in self.listeners.borrow_mut().iter_mut() {
-            if let Some(listener) = listener.upgrade() {
-                listener.events.borrow_mut().append(&mut events.clone());
-            }
+        senders.retain(|c| !c.is_closed());
+        for sender in senders.iter() {
+            events.clone().into_iter().for_each(move |ev| {
+                _ = sender.unbounded_send(ev);
+            });
         }
     }
 
@@ -127,7 +133,7 @@ impl Remoting<GTestArgs> for GTestRemoting {
         let run_result =
             program.send_bytes_with_value(actor_id.as_ref(), payload.as_ref().to_vec(), value);
         Ok(async move {
-            let reply = Self::extract_reply(run_result)?;
+            let reply = Self::extract_reply(&run_result)?;
             Ok((program_id, reply))
         })
     }
@@ -140,8 +146,8 @@ impl Remoting<GTestArgs> for GTestRemoting {
         args: GTestArgs,
     ) -> Result<impl Future<Output = Result<Vec<u8>>>> {
         let run_result = self.send_and_get_result(target, payload, value, args)?;
-        Self::extract_events(self, &run_result);
-        Ok(async move { Self::extract_reply(run_result) })
+        Self::extract_and_send_events(&run_result, self.event_senders.borrow_mut().as_mut());
+        Ok(async move { Self::extract_reply(&run_result) })
     }
 
     async fn query(
@@ -152,43 +158,14 @@ impl Remoting<GTestArgs> for GTestRemoting {
         args: GTestArgs,
     ) -> Result<Vec<u8>> {
         let run_result = self.send_and_get_result(target, payload, value, args)?;
-        Self::extract_reply(run_result)
+        Self::extract_reply(&run_result)
     }
 }
 
 impl Listener<Vec<u8>> for GTestRemoting {
     async fn listen(&mut self) -> Result<impl Stream<Item = (ActorId, Vec<u8>)>> {
-        let listener = Rc::new(GTestEventListener::default());
-        self.listeners.borrow_mut().push(Rc::downgrade(&listener));
-        Ok(GTestEventStream(Pin::new(listener)))
-    }
-}
-
-#[derive(Default, Debug)]
-pub struct GTestEventListener {
-    events: RefCell<Vec<(ActorId, MessageId, Vec<u8>)>>,
-}
-
-impl GTestEventListener {
-    pub fn events(&self) -> impl Deref<Target = Vec<(ActorId, MessageId, Vec<u8>)>> + '_ {
-        self.events.borrow()
-    }
-}
-
-pub struct GTestEventStream(Pin<Rc<GTestEventListener>>);
-
-impl Stream for GTestEventStream {
-    type Item = (ActorId, Vec<u8>);
-
-    fn poll_next(
-        self: core::pin::Pin<&mut Self>,
-        _cx: &mut core::task::Context<'_>,
-    ) -> Poll<Option<Self::Item>> {
-        if self.0.events.borrow().is_empty() {
-            Poll::Ready(None)
-        } else {
-            let (source, _, payload) = self.0.events.borrow_mut().remove(0);
-            Poll::Ready(Some((source, payload)))
-        }
+        let (tx, rx) = unbounded::<(ActorId, Vec<u8>)>();
+        self.event_senders.borrow_mut().push(tx);
+        Ok(rx)
     }
 }

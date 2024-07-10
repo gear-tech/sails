@@ -1,6 +1,6 @@
 use core::cell::OnceCell;
-use demo_client::{counter, Counter, DemoFactory, PingPong};
-use sails_rtl::{events::*, gtest::calls::*, prelude::*};
+use demo_client::{counter, counter, Counter, DemoFactory, Dog, PingPong};
+use sails_rtl::{events::*, events::*, gtest::calls::*, prelude::*};
 
 const DEMO_WASM_PATH: &str = "../../../target/wasm32-unknown-unknown/debug/demo.opt.wasm";
 
@@ -17,7 +17,6 @@ impl Fixture {
         self.admin_id.into()
     }
 
-    #[allow(dead_code)]
     pub(crate) fn program_space(&self) -> &GTestRemoting {
         &self.program_space
     }
@@ -43,17 +42,18 @@ impl Fixture {
         DemoFactory::new(self.program_space.clone())
     }
 
-    #[allow(dead_code)]
     pub(crate) fn ping_pong_client(&self) -> PingPong<GTestRemoting, GTestArgs> {
         PingPong::new(self.program_space.clone())
     }
 
-    #[allow(dead_code)]
     pub(crate) fn counter_client(&self) -> Counter<GTestRemoting, GTestArgs> {
         Counter::new(self.program_space.clone())
     }
 
-    #[allow(dead_code)]
+    pub(crate) fn dog_client(&self) -> Dog<GTestRemoting, GTestArgs> {
+        Dog::new(self.program_space.clone())
+    }
+
     pub(crate) fn counter_listener(&self) -> impl Listener<counter::events::CounterEvents> {
         counter::events::listener(self.program_space.clone())
     }
