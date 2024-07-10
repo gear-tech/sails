@@ -1,6 +1,8 @@
 use crate::{
-    ctor_generators::*, io_generators::IoModuleGenerator, service_generators::*, type_generators::*,
+    ctor_generators::*, events_generator::*, io_generators::*, service_generators::*,
+    type_generators::*,
 };
+use convert_case::{Case, Casing};
 use genco::prelude::*;
 use rust::Tokens;
 use sails_idl_parser::{ast::visitor::Visitor, ast::*};
@@ -64,6 +66,7 @@ impl<'a, 'ast> Visitor<'ast> for RootGenerator<'a> {
         } else {
             service.name()
         };
+        let service_name_snake = service_name.to_case(Case::Snake);
 
         let mut service_gen = ServiceTraitGenerator::new(service_name.to_owned());
         service_gen.visit_service(service);
@@ -75,9 +78,25 @@ impl<'a, 'ast> Visitor<'ast> for RootGenerator<'a> {
         client_gen.visit_service(service);
         self.tokens.extend(client_gen.finalize());
 
-        let mut io_mod_gen = IoModuleGenerator::new(service_name.to_owned(), path.to_owned());
+        let mut service_tokens = Tokens::new();
+
+        let mut io_mod_gen = IoModuleGenerator::new(path.to_owned());
         io_mod_gen.visit_service(service);
-        self.tokens.extend(io_mod_gen.finalize());
+        service_tokens.extend(io_mod_gen.finalize());
+
+        if !service.events().is_empty() {
+            let mut events_mod_gen =
+                EventsModuleGenerator::new(service_name.to_owned(), path.to_owned());
+            events_mod_gen.visit_service(service);
+            service_tokens.extend(events_mod_gen.finalize());
+        }
+
+        quote_in! { self.tokens =>
+            pub mod $(service_name_snake) {
+                use super::*;
+                $(service_tokens)
+            }
+        }
     }
 
     fn visit_type(&mut self, t: &'ast Type) {

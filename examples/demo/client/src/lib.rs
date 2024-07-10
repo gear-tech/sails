@@ -10,7 +10,7 @@ mod tests {
 
     #[test]
     fn test_io_module_encode() {
-        let bytes = this_that_io::DoThat::encode_call(DoThatParam {
+        let bytes = this_that::io::DoThat::encode_call(DoThatParam {
             p1: NonZeroU32::MAX,
             p2: 123.into(),
             p3: ManyVariants::One,
@@ -41,7 +41,7 @@ mod tests {
         ];
 
         let reply: Result<(ActorId, NonZeroU32), (String,)> =
-            this_that_io::DoThat::decode_reply(&bytes).unwrap();
+            this_that::io::DoThat::decode_reply(&bytes).unwrap();
 
         assert_eq!(reply, Ok((ActorId::from(123), NonZeroU32::MAX)));
     }

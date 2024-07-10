@@ -45,4 +45,10 @@ pub enum RtlError {
     ActorIsNotSet,
     #[error("reply has error string")]
     ReplyHasErrorString(String),
+    #[error("event name is not found")]
+    EventNameIsNotFound,
+    #[error("event is not found")]
+    EventIsNotFound,
+    #[error("event prefix mismatches")]
+    EventPrefixMismatches,
 }

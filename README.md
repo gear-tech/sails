@@ -351,9 +351,9 @@ you can use the generated code like this (option 1):
 include!(concat!(env!("OUT_DIR"), "/my_service.rs"));
 
 fn some_client_code() {
-    let call_payload = my_service_io::DoSomething::encode_call(42, "Hello".to_string());
+    let call_payload = my_service::io::DoSomething::encode_call(42, "Hello".to_string());
     let reply_bytes = gstd::msg::send_bytes_for_reply(target_app_id, call_payload, 0, 0).await.unwrap();
-    let reply = my_service_io::DoSomething::decode_reply(&reply_bytes).unwrap();
+    let reply = my_service::io::DoSomething::decode_reply(&reply_bytes).unwrap();
     let m1 = reply.m1;
     let m2 = reply.m2;
 }

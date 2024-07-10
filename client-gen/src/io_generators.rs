@@ -1,4 +1,3 @@
-use convert_case::{Case, Casing};
 use genco::prelude::*;
 use sails_idl_parser::{ast::visitor, ast::visitor::Visitor, ast::*};
 
@@ -6,15 +5,13 @@ use crate::helpers::*;
 use crate::type_generators::generate_type_decl_with_path;
 
 pub(crate) struct IoModuleGenerator {
-    service_name: String,
     path: String,
     tokens: rust::Tokens,
 }
 
 impl IoModuleGenerator {
-    pub(crate) fn new(service_name: String, path: String) -> Self {
+    pub(crate) fn new(path: String) -> Self {
         Self {
-            service_name,
             path,
             tokens: rust::Tokens::new(),
         }
@@ -27,10 +24,8 @@ impl IoModuleGenerator {
 
 impl<'ast> Visitor<'ast> for IoModuleGenerator {
     fn visit_service(&mut self, service: &'ast Service) {
-        let name = self.service_name.to_case(Case::Snake);
-
         quote_in! { self.tokens =>
-            pub mod $(name)_io $("{")
+            pub mod io $("{")
                 use super::*;
         };
 
