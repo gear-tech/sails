@@ -1,4 +1,9 @@
-use demo_client::{counter::events::*, traits::*};
+use demo_client::{
+    counter::events::CounterEvents,
+    dog::events::DogEvents,
+    ping_pong,
+    traits::{Counter, DemoFactory, Dog},
+};
 use fixture::Fixture;
 use futures::stream::StreamExt;
 use sails_rtl::{calls::*, events::*, gtest::calls::GTestArgs};
@@ -6,11 +11,15 @@ use sails_rtl::{calls::*, events::*, gtest::calls::GTestArgs};
 mod fixture;
 
 #[tokio::test]
-async fn counter_works() {
+async fn counter_add_works() {
+    // Arrange
+
     let fixture = Fixture::new(fixture::ADMIN_ID);
 
     let demo_factory = fixture.demo_factory();
 
+    // Use generated client code for activating Demo program
+    // using the `new` constructor and the `send_recv` method
     let demo_program_id = demo_factory
         .new(Some(42), None)
         .with_args(GTestArgs::new(fixture.admin_id()))
@@ -19,7 +28,14 @@ async fn counter_works() {
         .unwrap();
 
     let mut counter_client = fixture.counter_client();
+    // Listen for Counter events
+    let mut counter_listener = fixture.counter_listener();
+    let mut counter_events = counter_listener.listen().await.unwrap();
 
+    // Act
+
+    // Use generated client code for calling Counter service
+    // using the `send_recv` method
     let result = counter_client
         .add(10)
         .with_args(GTestArgs::new(fixture.admin_id()))
@@ -27,75 +43,56 @@ async fn counter_works() {
         .await
         .unwrap();
 
+    // Asert
+
+    let event = counter_events.next().await.unwrap();
+
     assert_eq!(result, 52);
+    assert_eq!((demo_program_id, CounterEvents::Added(10)), event);
 }
 
 #[tokio::test]
-async fn counter_events() {
+async fn counter_sub_works() {
+    // Arrange
+
     let fixture = Fixture::new(fixture::ADMIN_ID);
 
-    // Low level remoting listener
-    let mut space = fixture.program_space().clone();
-    let mut remoting_stream = space.listen().await.unwrap();
+    let demo_factory = fixture.demo_factory();
 
-    let factory = fixture.demo_factory();
-
-    let program_id = factory
+    // Use generated client code for activating Demo program
+    // using the `new` constructor and the `send`/`recv` pair
+    // of methods
+    let activation = demo_factory
         .new(Some(42), None)
         .with_args(GTestArgs::new(fixture.admin_id()))
-        .send_recv(fixture.demo_code_id(), "123")
+        .send(fixture.demo_code_id(), "123")
         .await
         .unwrap();
+    let demo_program_id = activation.recv().await.unwrap();
 
+    let mut counter_client = fixture.counter_client();
+    // Listen for Counter events
     let mut counter_listener = fixture.counter_listener();
-    // Typed service event listener
-    let mut event_stream = counter_listener.listen().await.unwrap();
+    let mut counter_events = counter_listener.listen().await.unwrap();
 
-    let mut client = fixture.counter_client();
-    let reply = client
-        .add(2)
-        .with_args(GTestArgs::default().with_actor_id(fixture.admin_id()))
-        .send_recv(program_id)
+    // Act
+
+    // Use generated client code for calling Counter service
+    // using the `send`/`recv` pair of methods
+    let response = counter_client
+        .sub(10)
+        .with_args(GTestArgs::new(fixture.admin_id()))
+        .send(demo_program_id)
         .await
         .unwrap();
+    let result = response.recv().await.unwrap();
 
-    assert_eq!(44, reply);
+    // Assert
 
-    let reply = client
-        .value()
-        .with_args(GTestArgs::default().with_actor_id(fixture.admin_id()))
-        .recv(program_id)
-        .await
-        .unwrap();
+    let event = counter_events.next().await.unwrap();
 
-    assert_eq!(44, reply);
-
-    let reply = client
-        .sub(1)
-        .with_args(GTestArgs::default().with_actor_id(fixture.admin_id()))
-        .send_recv(program_id)
-        .await
-        .unwrap();
-
-    assert_eq!(43, reply);
-
-    let event = remoting_stream.next().await.unwrap();
-    println!("{:?}", event);
-    assert_eq!(
-        (program_id, CounterEvents::Added(2)),
-        (event.0, CounterEvents::decode_event(event.1).unwrap())
-    );
-    let event = remoting_stream.next().await.unwrap();
-    println!("{:?}", event);
-    assert_eq!(
-        (program_id, CounterEvents::Subtracted(1)),
-        (event.0, CounterEvents::decode_event(event.1).unwrap())
-    );
-
-    let event = event_stream.next().await.unwrap();
-    assert_eq!((program_id, CounterEvents::Added(2)), event);
-    let event = event_stream.next().await.unwrap();
-    assert_eq!((program_id, CounterEvents::Subtracted(1)), event);
+    assert_eq!(result, 32);
+    assert_eq!((demo_program_id, CounterEvents::Subtracted(10)), event);
 }
 
 #[tokio::test]
@@ -104,6 +101,8 @@ async fn ping_pong_works() {
 
     let demo_factory = fixture.demo_factory();
 
+    // Use generated client code for activating Demo program
+    // using the `default` constructor and the `send_recv` method
     let demo_program_id = demo_factory
         .default()
         .with_args(GTestArgs::new(fixture.admin_id()))
@@ -111,20 +110,31 @@ async fn ping_pong_works() {
         .await
         .unwrap();
 
-    let mut ping_pong_client = fixture.ping_pong_client();
+    // Use generated `io` module for encoding/decoding calls and replies
+    // and send/receive bytes using `gtest` native means
+    let demo_program = fixture.demo_program(demo_program_id);
 
-    let result = ping_pong_client
-        .ping("ping".into())
-        .with_args(GTestArgs::new(fixture.admin_id()))
-        .send_recv(demo_program_id)
-        .await
+    let ping_call_payload = ping_pong::io::Ping::encode_call("ping".into());
+
+    let run_result = demo_program.send_bytes(fixture.admin_id(), ping_call_payload);
+
+    let reply_log_record = run_result
+        .log()
+        .iter()
+        .find(|entry| entry.reply_to() == Some(run_result.sent_message_id()))
         .unwrap();
 
-    assert_eq!(result, Ok("pong".to_string()));
+    let ping_reply_payload = reply_log_record.payload();
+
+    let ping_reply = ping_pong::io::Ping::decode_reply(ping_reply_payload).unwrap();
+
+    assert_eq!(ping_reply, Ok("pong".to_string()));
 }
 
 #[tokio::test]
 async fn dog_barks() {
+    // Arrange
+
     let fixture = Fixture::new(fixture::ADMIN_ID);
 
     let demo_factory = fixture.demo_factory();
@@ -137,6 +147,10 @@ async fn dog_barks() {
         .unwrap();
 
     let mut dog_client = fixture.dog_client();
+    let mut dog_listener = fixture.dog_listener();
+    let mut dog_events = dog_listener.listen().await.unwrap();
+
+    // Act
 
     let result = dog_client
         .make_sound()
@@ -145,11 +159,18 @@ async fn dog_barks() {
         .await
         .unwrap();
 
+    // Assert
+
+    let event = dog_events.next().await.unwrap();
+
     assert_eq!(result, "Woof! Woof!");
+    assert_eq!((demo_program_id, DogEvents::Barked), event);
 }
 
 #[tokio::test]
 async fn dog_walks() {
+    // Arrange
+
     let fixture = Fixture::new(fixture::ADMIN_ID);
 
     let demo_factory = fixture.demo_factory();
@@ -162,6 +183,10 @@ async fn dog_walks() {
         .unwrap();
 
     let mut dog_client = fixture.dog_client();
+    let mut dog_listener = fixture.dog_listener();
+    let mut dog_events = dog_listener.listen().await.unwrap();
+
+    // Act
 
     dog_client
         .walk(10, 20)
@@ -170,15 +195,27 @@ async fn dog_walks() {
         .await
         .unwrap();
 
+    // Assert
+
     let position = dog_client
         .position()
         .with_args(GTestArgs::new(fixture.admin_id()))
         .recv(demo_program_id)
         .await
         .unwrap();
+    let event = dog_events.next().await.unwrap();
 
     assert_eq!(position, (11, 19));
-    // TODO: Assert for Walked event as soon as event listener is implemented
+    assert_eq!(
+        (
+            demo_program_id,
+            DogEvents::Walked {
+                from: (1, -1),
+                to: (11, 19)
+            }
+        ),
+        event
+    );
 }
 
 #[tokio::test]

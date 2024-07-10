@@ -1,6 +1,11 @@
 use core::cell::OnceCell;
-use demo_client::{counter, Counter, DemoFactory, Dog, PingPong};
-use sails_rtl::{events::*, gtest::calls::*, prelude::*};
+use demo_client::{
+    counter::{self, events::CounterEvents},
+    dog::{self, events::DogEvents},
+    Counter, DemoFactory, Dog,
+};
+use gtest::Program;
+use sails_rtl::{events::Listener, gtest::calls::*, prelude::*};
 
 const DEMO_WASM_PATH: &str = "../../../target/wasm32-unknown-unknown/debug/demo.opt.wasm";
 
@@ -15,10 +20,6 @@ pub(crate) struct Fixture {
 impl Fixture {
     pub(crate) fn admin_id(&self) -> ActorId {
         self.admin_id.into()
-    }
-
-    pub(crate) fn program_space(&self) -> &GTestRemoting {
-        &self.program_space
     }
 
     pub(crate) fn new(admin_id: u64) -> Self {
@@ -42,19 +43,26 @@ impl Fixture {
         DemoFactory::new(self.program_space.clone())
     }
 
-    pub(crate) fn ping_pong_client(&self) -> PingPong<GTestRemoting, GTestArgs> {
-        PingPong::new(self.program_space.clone())
+    pub(crate) fn demo_program(&self, program_id: ActorId) -> Program<'_> {
+        self.program_space
+            .system()
+            .get_program(program_id.as_ref())
+            .unwrap()
     }
 
     pub(crate) fn counter_client(&self) -> Counter<GTestRemoting, GTestArgs> {
         Counter::new(self.program_space.clone())
     }
 
+    pub(crate) fn counter_listener(&self) -> impl Listener<CounterEvents> {
+        counter::events::listener(self.program_space.clone())
+    }
+
     pub(crate) fn dog_client(&self) -> Dog<GTestRemoting, GTestArgs> {
         Dog::new(self.program_space.clone())
     }
 
-    pub(crate) fn counter_listener(&self) -> impl Listener<counter::events::CounterEvents> {
-        counter::events::listener(self.program_space.clone())
+    pub(crate) fn dog_listener(&self) -> impl Listener<DogEvents> {
+        dog::events::listener(self.program_space.clone())
     }
 }
