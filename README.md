@@ -305,17 +305,16 @@ __|__ *SCALE encoded service name* __|__ *SCALE encoded event name* __|__ *SCALE
 
 ### Client
 
-Having applications without a way to interact with them is not very useful. Sails
-provides a number of options to do this. First of all, it doesn't eliminate the option
-of doing this in fully manual mode using means provided by the Gear Protocol - whether
-you want to use a set of the `msg::send` functions from the `gstd` crate for interacting
-from one application with another, or you want to use functionality provided by the `gclient`
-crate for interacting from off-chain code with an on-chain application, or [TDB about JS],
-all you need to do is to compose byte payload according to the layout outlined in the
-[Payload Encoding](#payload-encoding) section and send it to an application. Thanks to the
-generated IDL, Sails provides a way to interact with your application using generated clients
-having interface similar to the one exposed by your application. Currently Sails can generate
-client code for Rust and TypeScript.
+Having robust interaction capabilities with applications is crucial. Sails offers several options for interaction. Firstly, it supports manual interaction using the Gear Protocol.
+
+You can use:
+- The `msg::send` functions from the `gstd` crate to interact between applications.
+- The `gclient` crate to interact from off-chain code with an on-chain application.
+- The `@gear-js/api` library to interact with your program from JavaScript.
+
+All you need to do is compose a byte payload according to the layout outlined in the [Payload Encoding](#payload-encoding) section and send it to an application.
+
+Thanks to the generated IDL, Sails provides a way to interact with your application using [generated clients](js/README.md#generate-library-from-idl) that have an interface similar to the one exposed by your application. Currently, Sails can generate client code for Rust and TypeScript.
 
 When it comes to Rust, there are 2 options:
 - use generated code which can encode and decode byte payload for you, and you can keep
@@ -380,7 +379,7 @@ fn some_client_code() {
 The second option provides you with an option to have your code testable as the generated
 code depends on the trait which can be easily mocked.
 
-When it comes to TypeScript [TBD]
+When it comes to TypeScript, `sails-js` lilbrary can be used to interact with the program. Check out [`sails-js` documentation](js/README.md) for more details.
 
 ## Examples
 
