@@ -16,5 +16,5 @@ futures.workspace = true
 gclient.workspace = true
 gtest.workspace = true
 demo-client = { path = "../client" }
-sails-rtl.workspace = true
+sails.workspace = true
 tokio = { workspace = true, features = ["rt", "macros"] }

@@ -1,6 +1,6 @@
 use core::marker::PhantomData;
 use demo_client::traits::ThisThat;
-use sails_rtl::{calls::Query, gstd::gservice, prelude::*};
+use sails::{calls::Query, gstd::gservice, prelude::*};
 
 #[derive(Clone)]
 pub struct ThisThatCaller<ThisThatClient, CallArgs> {

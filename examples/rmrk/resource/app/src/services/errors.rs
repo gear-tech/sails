@@ -1,4 +1,4 @@
-use sails_rtl::{Decode, Encode, Result as RtlResult, TypeInfo};
+use sails::{Decode, Encode, Result as RtlResult, TypeInfo};
 
 pub type Result<T, E = Error> = RtlResult<T, E>;
 

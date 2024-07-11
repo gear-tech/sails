@@ -1,4 +1,4 @@
-use sails_rtl::{gstd::gservice, prelude::*};
+use sails::{gstd::gservice, prelude::*};
 
 #[derive(Default)]
 pub struct PingService(());
