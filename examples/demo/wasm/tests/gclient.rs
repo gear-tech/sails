@@ -7,6 +7,7 @@ use std::panic;
 const DEMO_WASM_PATH: &str = "../../../target/wasm32-unknown-unknown/debug/demo.opt.wasm";
 
 #[tokio::test]
+#[ignore = "requires run gear node on GEAR_PATH"]
 async fn counter_add_works() {
     // Arrange
 
@@ -48,6 +49,7 @@ async fn counter_add_works() {
 }
 
 #[tokio::test]
+#[ignore = "requires run gear node on GEAR_PATH"]
 async fn counter_sub_works() {
     // Arrange
 
@@ -92,6 +94,7 @@ async fn counter_sub_works() {
 }
 
 #[tokio::test]
+#[ignore = "requires run gear node on GEAR_PATH"]
 async fn ping_pong_works() {
     // Arrange
 
