@@ -29,7 +29,30 @@ impl<R: Remoting<A> + Clone, A: Default> traits::RmrkCatalogFactory<A>
     for RmrkCatalogFactory<R, A>
 {
     fn new(&self) -> impl Activation<A> {
-        RemotingAction::new(self.remoting.clone(), &[12, 78, 101, 119], ())
+        RemotingAction::new(self.remoting.clone(), rmrk_catalog_factory::io::New())
+    }
+}
+pub mod rmrk_catalog_factory {
+    use super::*;
+    pub mod io {
+        use super::*;
+        #[derive(Debug, Encode)]
+        #[codec(crate = sails_rtl::scale_codec)]
+        pub struct New();
+        impl New {
+            const ROUTE: &'static [u8] = &[12, 78, 101, 119];
+        }
+        impl EncodeWithRoute for New {
+            fn route() -> &'static [u8] {
+                New::ROUTE
+            }
+        }
+        impl DecodeWithRoute for New {
+            type Reply = ();
+            fn route() -> &'static [u8] {
+                New::ROUTE
+            }
+        }
     }
 }
 #[derive(Clone)]
@@ -61,25 +84,14 @@ where
     ) -> impl Call<A, Result<(u32, Vec<ActorId>), Error>> {
         RemotingAction::new(
             self.remoting.clone(),
-            &[
-                44, 82, 109, 114, 107, 67, 97, 116, 97, 108, 111, 103, 56, 65, 100, 100, 69, 113,
-                117, 105, 112, 112, 97, 98, 108, 101, 115,
-            ],
-            (part_id, collection_ids),
+            rmrk_catalog::io::AddEquippables(part_id, collection_ids),
         )
     }
     fn add_parts(
         &mut self,
         parts: BTreeMap<u32, Part>,
     ) -> impl Call<A, Result<BTreeMap<u32, Part>, Error>> {
-        RemotingAction::new(
-            self.remoting.clone(),
-            &[
-                44, 82, 109, 114, 107, 67, 97, 116, 97, 108, 111, 103, 32, 65, 100, 100, 80, 97,
-                114, 116, 115,
-            ],
-            parts,
-        )
+        RemotingAction::new(self.remoting.clone(), rmrk_catalog::io::AddParts(parts))
     }
     fn remove_equippable(
         &mut self,
@@ -88,41 +100,25 @@ where
     ) -> impl Call<A, Result<(u32, ActorId), Error>> {
         RemotingAction::new(
             self.remoting.clone(),
-            &[
-                44, 82, 109, 114, 107, 67, 97, 116, 97, 108, 111, 103, 64, 82, 101, 109, 111, 118,
-                101, 69, 113, 117, 105, 112, 112, 97, 98, 108, 101,
-            ],
-            (part_id, collection_id),
+            rmrk_catalog::io::RemoveEquippable(part_id, collection_id),
         )
     }
     fn remove_parts(&mut self, part_ids: Vec<u32>) -> impl Call<A, Result<Vec<u32>, Error>> {
         RemotingAction::new(
             self.remoting.clone(),
-            &[
-                44, 82, 109, 114, 107, 67, 97, 116, 97, 108, 111, 103, 44, 82, 101, 109, 111, 118,
-                101, 80, 97, 114, 116, 115,
-            ],
-            part_ids,
+            rmrk_catalog::io::RemoveParts(part_ids),
         )
     }
     fn reset_equippables(&mut self, part_id: u32) -> impl Call<A, Result<(), Error>> {
         RemotingAction::new(
             self.remoting.clone(),
-            &[
-                44, 82, 109, 114, 107, 67, 97, 116, 97, 108, 111, 103, 64, 82, 101, 115, 101, 116,
-                69, 113, 117, 105, 112, 112, 97, 98, 108, 101, 115,
-            ],
-            part_id,
+            rmrk_catalog::io::ResetEquippables(part_id),
         )
     }
     fn set_equippables_to_all(&mut self, part_id: u32) -> impl Call<A, Result<(), Error>> {
         RemotingAction::new(
             self.remoting.clone(),
-            &[
-                44, 82, 109, 114, 107, 67, 97, 116, 97, 108, 111, 103, 76, 83, 101, 116, 69, 113,
-                117, 105, 112, 112, 97, 98, 108, 101, 115, 84, 111, 65, 108, 108,
-            ],
-            part_id,
+            rmrk_catalog::io::SetEquippablesToAll(part_id),
         )
     }
     fn equippable(
@@ -132,302 +128,174 @@ where
     ) -> impl Query<A, Result<bool, Error>> {
         RemotingAction::new(
             self.remoting.clone(),
-            &[
-                44, 82, 109, 114, 107, 67, 97, 116, 97, 108, 111, 103, 40, 69, 113, 117, 105, 112,
-                112, 97, 98, 108, 101,
-            ],
-            (part_id, collection_id),
+            rmrk_catalog::io::Equippable(part_id, collection_id),
         )
     }
     fn part(&self, part_id: u32) -> impl Query<A, Option<Part>> {
-        RemotingAction::new(
-            self.remoting.clone(),
-            &[
-                44, 82, 109, 114, 107, 67, 97, 116, 97, 108, 111, 103, 16, 80, 97, 114, 116,
-            ],
-            part_id,
-        )
+        RemotingAction::new(self.remoting.clone(), rmrk_catalog::io::Part(part_id))
     }
 }
 pub mod rmrk_catalog {
     use super::*;
     pub mod io {
         use super::*;
-        #[derive(Debug, Default, Clone, Copy)]
-        pub struct AddEquippables(());
+        #[derive(Debug, Encode)]
+        #[codec(crate = sails_rtl::scale_codec)]
+        pub struct AddEquippables(pub u32, pub Vec<ActorId>);
         impl AddEquippables {
-            #[allow(dead_code)]
-            pub fn encode_call(part_id: u32, collection_ids: Vec<ActorId>) -> Vec<u8> {
-                let args = (part_id, collection_ids);
-                let mut result = Vec::with_capacity(27 + args.encoded_size());
-                result.extend_from_slice(&[44, 82, 109, 114, 107, 67, 97, 116, 97, 108, 111, 103]);
-                result.extend_from_slice(&[
-                    56, 65, 100, 100, 69, 113, 117, 105, 112, 112, 97, 98, 108, 101, 115,
-                ]);
-                args.encode_to(&mut result);
-                result
-            }
-            #[allow(dead_code)]
-            pub fn decode_reply(
-                mut reply: &[u8],
-            ) -> Result<Result<(u32, Vec<ActorId>), super::Error>, sails_rtl::errors::Error>
-            {
-                if !reply.starts_with(&[44, 82, 109, 114, 107, 67, 97, 116, 97, 108, 111, 103]) {
-                    return Err(sails_rtl::errors::Error::Rtl(
-                        sails_rtl::errors::RtlError::ReplyPrefixMismatches,
-                    ));
-                }
-                reply = &reply[12..];
-                if !reply.starts_with(&[
-                    56, 65, 100, 100, 69, 113, 117, 105, 112, 112, 97, 98, 108, 101, 115,
-                ]) {
-                    return Err(sails_rtl::errors::Error::Rtl(
-                        sails_rtl::errors::RtlError::ReplyPrefixMismatches,
-                    ));
-                }
-                reply = &reply[15..];
-                let result = Decode::decode(&mut reply).map_err(sails_rtl::errors::Error::Codec)?;
-                Ok(result)
+            const ROUTE: &'static [u8] = &[
+                44, 82, 109, 114, 107, 67, 97, 116, 97, 108, 111, 103, 56, 65, 100, 100, 69, 113,
+                117, 105, 112, 112, 97, 98, 108, 101, 115,
+            ];
+        }
+        impl EncodeWithRoute for AddEquippables {
+            fn route() -> &'static [u8] {
+                AddEquippables::ROUTE
             }
         }
-        #[derive(Debug, Default, Clone, Copy)]
-        pub struct AddParts(());
+        impl DecodeWithRoute for AddEquippables {
+            type Reply = Result<(u32, Vec<ActorId>), super::Error>;
+            fn route() -> &'static [u8] {
+                AddEquippables::ROUTE
+            }
+        }
+        #[derive(Debug, Encode)]
+        #[codec(crate = sails_rtl::scale_codec)]
+        pub struct AddParts(pub BTreeMap<u32, super::Part>);
         impl AddParts {
-            #[allow(dead_code)]
-            pub fn encode_call(parts: BTreeMap<u32, super::Part>) -> Vec<u8> {
-                let args = parts;
-                let mut result = Vec::with_capacity(21 + args.encoded_size());
-                result.extend_from_slice(&[44, 82, 109, 114, 107, 67, 97, 116, 97, 108, 111, 103]);
-                result.extend_from_slice(&[32, 65, 100, 100, 80, 97, 114, 116, 115]);
-                args.encode_to(&mut result);
-                result
-            }
-            #[allow(dead_code)]
-            pub fn decode_reply(
-                mut reply: &[u8],
-            ) -> Result<Result<BTreeMap<u32, super::Part>, super::Error>, sails_rtl::errors::Error>
-            {
-                if !reply.starts_with(&[44, 82, 109, 114, 107, 67, 97, 116, 97, 108, 111, 103]) {
-                    return Err(sails_rtl::errors::Error::Rtl(
-                        sails_rtl::errors::RtlError::ReplyPrefixMismatches,
-                    ));
-                }
-                reply = &reply[12..];
-                if !reply.starts_with(&[32, 65, 100, 100, 80, 97, 114, 116, 115]) {
-                    return Err(sails_rtl::errors::Error::Rtl(
-                        sails_rtl::errors::RtlError::ReplyPrefixMismatches,
-                    ));
-                }
-                reply = &reply[9..];
-                let result = Decode::decode(&mut reply).map_err(sails_rtl::errors::Error::Codec)?;
-                Ok(result)
+            const ROUTE: &'static [u8] = &[
+                44, 82, 109, 114, 107, 67, 97, 116, 97, 108, 111, 103, 32, 65, 100, 100, 80, 97,
+                114, 116, 115,
+            ];
+        }
+        impl EncodeWithRoute for AddParts {
+            fn route() -> &'static [u8] {
+                AddParts::ROUTE
             }
         }
-        #[derive(Debug, Default, Clone, Copy)]
-        pub struct RemoveEquippable(());
+        impl DecodeWithRoute for AddParts {
+            type Reply = Result<BTreeMap<u32, super::Part>, super::Error>;
+            fn route() -> &'static [u8] {
+                AddParts::ROUTE
+            }
+        }
+        #[derive(Debug, Encode)]
+        #[codec(crate = sails_rtl::scale_codec)]
+        pub struct RemoveEquippable(pub u32, pub ActorId);
         impl RemoveEquippable {
-            #[allow(dead_code)]
-            pub fn encode_call(part_id: u32, collection_id: ActorId) -> Vec<u8> {
-                let args = (part_id, collection_id);
-                let mut result = Vec::with_capacity(29 + args.encoded_size());
-                result.extend_from_slice(&[44, 82, 109, 114, 107, 67, 97, 116, 97, 108, 111, 103]);
-                result.extend_from_slice(&[
-                    64, 82, 101, 109, 111, 118, 101, 69, 113, 117, 105, 112, 112, 97, 98, 108, 101,
-                ]);
-                args.encode_to(&mut result);
-                result
-            }
-            #[allow(dead_code)]
-            pub fn decode_reply(
-                mut reply: &[u8],
-            ) -> Result<Result<(u32, ActorId), super::Error>, sails_rtl::errors::Error>
-            {
-                if !reply.starts_with(&[44, 82, 109, 114, 107, 67, 97, 116, 97, 108, 111, 103]) {
-                    return Err(sails_rtl::errors::Error::Rtl(
-                        sails_rtl::errors::RtlError::ReplyPrefixMismatches,
-                    ));
-                }
-                reply = &reply[12..];
-                if !reply.starts_with(&[
-                    64, 82, 101, 109, 111, 118, 101, 69, 113, 117, 105, 112, 112, 97, 98, 108, 101,
-                ]) {
-                    return Err(sails_rtl::errors::Error::Rtl(
-                        sails_rtl::errors::RtlError::ReplyPrefixMismatches,
-                    ));
-                }
-                reply = &reply[17..];
-                let result = Decode::decode(&mut reply).map_err(sails_rtl::errors::Error::Codec)?;
-                Ok(result)
+            const ROUTE: &'static [u8] = &[
+                44, 82, 109, 114, 107, 67, 97, 116, 97, 108, 111, 103, 64, 82, 101, 109, 111, 118,
+                101, 69, 113, 117, 105, 112, 112, 97, 98, 108, 101,
+            ];
+        }
+        impl EncodeWithRoute for RemoveEquippable {
+            fn route() -> &'static [u8] {
+                RemoveEquippable::ROUTE
             }
         }
-        #[derive(Debug, Default, Clone, Copy)]
-        pub struct RemoveParts(());
+        impl DecodeWithRoute for RemoveEquippable {
+            type Reply = Result<(u32, ActorId), super::Error>;
+            fn route() -> &'static [u8] {
+                RemoveEquippable::ROUTE
+            }
+        }
+        #[derive(Debug, Encode)]
+        #[codec(crate = sails_rtl::scale_codec)]
+        pub struct RemoveParts(pub Vec<u32>);
         impl RemoveParts {
-            #[allow(dead_code)]
-            pub fn encode_call(part_ids: Vec<u32>) -> Vec<u8> {
-                let args = part_ids;
-                let mut result = Vec::with_capacity(24 + args.encoded_size());
-                result.extend_from_slice(&[44, 82, 109, 114, 107, 67, 97, 116, 97, 108, 111, 103]);
-                result.extend_from_slice(&[44, 82, 101, 109, 111, 118, 101, 80, 97, 114, 116, 115]);
-                args.encode_to(&mut result);
-                result
-            }
-            #[allow(dead_code)]
-            pub fn decode_reply(
-                mut reply: &[u8],
-            ) -> Result<Result<Vec<u32>, super::Error>, sails_rtl::errors::Error> {
-                if !reply.starts_with(&[44, 82, 109, 114, 107, 67, 97, 116, 97, 108, 111, 103]) {
-                    return Err(sails_rtl::errors::Error::Rtl(
-                        sails_rtl::errors::RtlError::ReplyPrefixMismatches,
-                    ));
-                }
-                reply = &reply[12..];
-                if !reply.starts_with(&[44, 82, 101, 109, 111, 118, 101, 80, 97, 114, 116, 115]) {
-                    return Err(sails_rtl::errors::Error::Rtl(
-                        sails_rtl::errors::RtlError::ReplyPrefixMismatches,
-                    ));
-                }
-                reply = &reply[12..];
-                let result = Decode::decode(&mut reply).map_err(sails_rtl::errors::Error::Codec)?;
-                Ok(result)
+            const ROUTE: &'static [u8] = &[
+                44, 82, 109, 114, 107, 67, 97, 116, 97, 108, 111, 103, 44, 82, 101, 109, 111, 118,
+                101, 80, 97, 114, 116, 115,
+            ];
+        }
+        impl EncodeWithRoute for RemoveParts {
+            fn route() -> &'static [u8] {
+                RemoveParts::ROUTE
             }
         }
-        #[derive(Debug, Default, Clone, Copy)]
-        pub struct ResetEquippables(());
+        impl DecodeWithRoute for RemoveParts {
+            type Reply = Result<Vec<u32>, super::Error>;
+            fn route() -> &'static [u8] {
+                RemoveParts::ROUTE
+            }
+        }
+        #[derive(Debug, Encode)]
+        #[codec(crate = sails_rtl::scale_codec)]
+        pub struct ResetEquippables(pub u32);
         impl ResetEquippables {
-            #[allow(dead_code)]
-            pub fn encode_call(part_id: u32) -> Vec<u8> {
-                let args = part_id;
-                let mut result = Vec::with_capacity(29 + args.encoded_size());
-                result.extend_from_slice(&[44, 82, 109, 114, 107, 67, 97, 116, 97, 108, 111, 103]);
-                result.extend_from_slice(&[
-                    64, 82, 101, 115, 101, 116, 69, 113, 117, 105, 112, 112, 97, 98, 108, 101, 115,
-                ]);
-                args.encode_to(&mut result);
-                result
-            }
-            #[allow(dead_code)]
-            pub fn decode_reply(
-                mut reply: &[u8],
-            ) -> Result<Result<(), super::Error>, sails_rtl::errors::Error> {
-                if !reply.starts_with(&[44, 82, 109, 114, 107, 67, 97, 116, 97, 108, 111, 103]) {
-                    return Err(sails_rtl::errors::Error::Rtl(
-                        sails_rtl::errors::RtlError::ReplyPrefixMismatches,
-                    ));
-                }
-                reply = &reply[12..];
-                if !reply.starts_with(&[
-                    64, 82, 101, 115, 101, 116, 69, 113, 117, 105, 112, 112, 97, 98, 108, 101, 115,
-                ]) {
-                    return Err(sails_rtl::errors::Error::Rtl(
-                        sails_rtl::errors::RtlError::ReplyPrefixMismatches,
-                    ));
-                }
-                reply = &reply[17..];
-                let result = Decode::decode(&mut reply).map_err(sails_rtl::errors::Error::Codec)?;
-                Ok(result)
+            const ROUTE: &'static [u8] = &[
+                44, 82, 109, 114, 107, 67, 97, 116, 97, 108, 111, 103, 64, 82, 101, 115, 101, 116,
+                69, 113, 117, 105, 112, 112, 97, 98, 108, 101, 115,
+            ];
+        }
+        impl EncodeWithRoute for ResetEquippables {
+            fn route() -> &'static [u8] {
+                ResetEquippables::ROUTE
             }
         }
-        #[derive(Debug, Default, Clone, Copy)]
-        pub struct SetEquippablesToAll(());
+        impl DecodeWithRoute for ResetEquippables {
+            type Reply = Result<(), super::Error>;
+            fn route() -> &'static [u8] {
+                ResetEquippables::ROUTE
+            }
+        }
+        #[derive(Debug, Encode)]
+        #[codec(crate = sails_rtl::scale_codec)]
+        pub struct SetEquippablesToAll(pub u32);
         impl SetEquippablesToAll {
-            #[allow(dead_code)]
-            pub fn encode_call(part_id: u32) -> Vec<u8> {
-                let args = part_id;
-                let mut result = Vec::with_capacity(32 + args.encoded_size());
-                result.extend_from_slice(&[44, 82, 109, 114, 107, 67, 97, 116, 97, 108, 111, 103]);
-                result.extend_from_slice(&[
-                    76, 83, 101, 116, 69, 113, 117, 105, 112, 112, 97, 98, 108, 101, 115, 84, 111,
-                    65, 108, 108,
-                ]);
-                args.encode_to(&mut result);
-                result
-            }
-            #[allow(dead_code)]
-            pub fn decode_reply(
-                mut reply: &[u8],
-            ) -> Result<Result<(), super::Error>, sails_rtl::errors::Error> {
-                if !reply.starts_with(&[44, 82, 109, 114, 107, 67, 97, 116, 97, 108, 111, 103]) {
-                    return Err(sails_rtl::errors::Error::Rtl(
-                        sails_rtl::errors::RtlError::ReplyPrefixMismatches,
-                    ));
-                }
-                reply = &reply[12..];
-                if !reply.starts_with(&[
-                    76, 83, 101, 116, 69, 113, 117, 105, 112, 112, 97, 98, 108, 101, 115, 84, 111,
-                    65, 108, 108,
-                ]) {
-                    return Err(sails_rtl::errors::Error::Rtl(
-                        sails_rtl::errors::RtlError::ReplyPrefixMismatches,
-                    ));
-                }
-                reply = &reply[20..];
-                let result = Decode::decode(&mut reply).map_err(sails_rtl::errors::Error::Codec)?;
-                Ok(result)
+            const ROUTE: &'static [u8] = &[
+                44, 82, 109, 114, 107, 67, 97, 116, 97, 108, 111, 103, 76, 83, 101, 116, 69, 113,
+                117, 105, 112, 112, 97, 98, 108, 101, 115, 84, 111, 65, 108, 108,
+            ];
+        }
+        impl EncodeWithRoute for SetEquippablesToAll {
+            fn route() -> &'static [u8] {
+                SetEquippablesToAll::ROUTE
             }
         }
-        #[derive(Debug, Default, Clone, Copy)]
-        pub struct Equippable(());
+        impl DecodeWithRoute for SetEquippablesToAll {
+            type Reply = Result<(), super::Error>;
+            fn route() -> &'static [u8] {
+                SetEquippablesToAll::ROUTE
+            }
+        }
+        #[derive(Debug, Encode)]
+        #[codec(crate = sails_rtl::scale_codec)]
+        pub struct Equippable(pub u32, pub ActorId);
         impl Equippable {
-            #[allow(dead_code)]
-            pub fn encode_call(part_id: u32, collection_id: ActorId) -> Vec<u8> {
-                let args = (part_id, collection_id);
-                let mut result = Vec::with_capacity(23 + args.encoded_size());
-                result.extend_from_slice(&[44, 82, 109, 114, 107, 67, 97, 116, 97, 108, 111, 103]);
-                result.extend_from_slice(&[40, 69, 113, 117, 105, 112, 112, 97, 98, 108, 101]);
-                args.encode_to(&mut result);
-                result
-            }
-            #[allow(dead_code)]
-            pub fn decode_reply(
-                mut reply: &[u8],
-            ) -> Result<Result<bool, super::Error>, sails_rtl::errors::Error> {
-                if !reply.starts_with(&[44, 82, 109, 114, 107, 67, 97, 116, 97, 108, 111, 103]) {
-                    return Err(sails_rtl::errors::Error::Rtl(
-                        sails_rtl::errors::RtlError::ReplyPrefixMismatches,
-                    ));
-                }
-                reply = &reply[12..];
-                if !reply.starts_with(&[40, 69, 113, 117, 105, 112, 112, 97, 98, 108, 101]) {
-                    return Err(sails_rtl::errors::Error::Rtl(
-                        sails_rtl::errors::RtlError::ReplyPrefixMismatches,
-                    ));
-                }
-                reply = &reply[11..];
-                let result = Decode::decode(&mut reply).map_err(sails_rtl::errors::Error::Codec)?;
-                Ok(result)
+            const ROUTE: &'static [u8] = &[
+                44, 82, 109, 114, 107, 67, 97, 116, 97, 108, 111, 103, 40, 69, 113, 117, 105, 112,
+                112, 97, 98, 108, 101,
+            ];
+        }
+        impl EncodeWithRoute for Equippable {
+            fn route() -> &'static [u8] {
+                Equippable::ROUTE
             }
         }
-        #[derive(Debug, Default, Clone, Copy)]
-        pub struct Part(());
-        impl Part {
-            #[allow(dead_code)]
-            pub fn encode_call(part_id: u32) -> Vec<u8> {
-                let args = part_id;
-                let mut result = Vec::with_capacity(17 + args.encoded_size());
-                result.extend_from_slice(&[44, 82, 109, 114, 107, 67, 97, 116, 97, 108, 111, 103]);
-                result.extend_from_slice(&[16, 80, 97, 114, 116]);
-                args.encode_to(&mut result);
-                result
+        impl DecodeWithRoute for Equippable {
+            type Reply = Result<bool, super::Error>;
+            fn route() -> &'static [u8] {
+                Equippable::ROUTE
             }
-            #[allow(dead_code)]
-            pub fn decode_reply(
-                mut reply: &[u8],
-            ) -> Result<Option<super::Part>, sails_rtl::errors::Error> {
-                if !reply.starts_with(&[44, 82, 109, 114, 107, 67, 97, 116, 97, 108, 111, 103]) {
-                    return Err(sails_rtl::errors::Error::Rtl(
-                        sails_rtl::errors::RtlError::ReplyPrefixMismatches,
-                    ));
-                }
-                reply = &reply[12..];
-                if !reply.starts_with(&[16, 80, 97, 114, 116]) {
-                    return Err(sails_rtl::errors::Error::Rtl(
-                        sails_rtl::errors::RtlError::ReplyPrefixMismatches,
-                    ));
-                }
-                reply = &reply[5..];
-                let result = Decode::decode(&mut reply).map_err(sails_rtl::errors::Error::Codec)?;
-                Ok(result)
+        }
+        #[derive(Debug, Encode)]
+        #[codec(crate = sails_rtl::scale_codec)]
+        pub struct Part(pub u32);
+        impl Part {
+            const ROUTE: &'static [u8] = &[
+                44, 82, 109, 114, 107, 67, 97, 116, 97, 108, 111, 103, 16, 80, 97, 114, 116,
+            ];
+        }
+        impl EncodeWithRoute for Part {
+            fn route() -> &'static [u8] {
+                Part::ROUTE
+            }
+        }
+        impl DecodeWithRoute for Part {
+            type Reply = Option<super::Part>;
+            fn route() -> &'static [u8] {
+                Part::ROUTE
             }
         }
     }

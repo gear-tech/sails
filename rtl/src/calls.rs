@@ -1,5 +1,5 @@
 use crate::{
-    errors::{Result, RtlError},
+    errors::{Error, Result, RtlError},
     prelude::*,
 };
 use core::{future::Future, marker::PhantomData};
@@ -16,15 +16,16 @@ pub trait Action<TArgs> {
 
 #[allow(async_fn_in_trait)]
 pub trait Call<TArgs, TReply>: Action<TArgs> {
+    type TParams: DecodeWithRoute<Reply = TReply>;
+
     async fn send(
         self,
         target: ActorId,
-    ) -> Result<CallTicket<impl Future<Output = Result<Vec<u8>>>, TReply>>;
+    ) -> Result<CallTicket<impl Future<Output = Result<Vec<u8>>>, Self::TParams, TReply>>;
 
     async fn send_recv(self, target: ActorId) -> Result<TReply>
     where
         Self: Sized,
-        TReply: Decode,
     {
         self.send(target).await?.recv().await
     }
@@ -32,11 +33,13 @@ pub trait Call<TArgs, TReply>: Action<TArgs> {
 
 #[allow(async_fn_in_trait)]
 pub trait Activation<TArgs>: Action<TArgs> {
+    type TParams: DecodeWithRoute<Reply = ()>;
+
     async fn send(
         self,
         code_id: CodeId,
         salt: impl AsRef<[u8]>,
-    ) -> Result<ActivationTicket<impl Future<Output = Result<(ActorId, Vec<u8>)>>>>;
+    ) -> Result<ActivationTicket<impl Future<Output = Result<(ActorId, Vec<u8>)>>, Self::TParams>>;
 
     async fn send_recv(self, code_id: CodeId, salt: impl AsRef<[u8]>) -> Result<ActorId>
     where
@@ -51,56 +54,51 @@ pub trait Query<TArgs, TReply>: Action<TArgs> {
     async fn recv(self, target: ActorId) -> Result<TReply>;
 }
 
-pub struct CallTicket<TReplyFuture, TReply> {
-    route: &'static [u8],
+pub struct CallTicket<TReplyFuture, TParams, TReply> {
     reply_future: TReplyFuture,
-    _treply: PhantomData<TReply>,
+    _params: PhantomData<TParams>,
+    _reply: PhantomData<TReply>,
 }
 
-impl<TReplyFuture, TReply> CallTicket<TReplyFuture, TReply>
+impl<TReplyFuture, TParams, TReply> CallTicket<TReplyFuture, TParams, TReply>
 where
     TReplyFuture: Future<Output = Result<Vec<u8>>>,
-    TReply: Decode,
+    TParams: DecodeWithRoute<Reply = TReply>,
 {
-    pub(crate) fn new(route: &'static [u8], reply_future: TReplyFuture) -> Self {
+    pub(crate) fn new(reply_future: TReplyFuture) -> Self {
         Self {
-            route,
             reply_future,
-            _treply: PhantomData,
+            _params: PhantomData,
+            _reply: PhantomData,
         }
     }
 
     pub async fn recv(self) -> Result<TReply> {
         let reply_bytes = self.reply_future.await?;
-        if !reply_bytes.starts_with(self.route) {
-            Err(RtlError::ReplyPrefixMismatches)?
-        }
-        let mut reply_bytes = &reply_bytes[self.route.len()..];
-        Ok(TReply::decode(&mut reply_bytes)?)
+        TParams::decode_with_route(reply_bytes)
     }
 }
 
-pub struct ActivationTicket<TReplyFuture> {
-    route: &'static [u8],
+pub struct ActivationTicket<TReplyFuture, TParams> {
     reply_future: TReplyFuture,
+    _params: PhantomData<TParams>,
 }
 
-impl<TReplyFuture> ActivationTicket<TReplyFuture>
+impl<TReplyFuture, TParams> ActivationTicket<TReplyFuture, TParams>
 where
     TReplyFuture: Future<Output = Result<(ActorId, Vec<u8>)>>,
+    TParams: DecodeWithRoute<Reply = ()>,
 {
-    pub(crate) fn new(route: &'static [u8], reply_future: TReplyFuture) -> Self {
+    pub(crate) fn new(reply_future: TReplyFuture) -> Self {
         Self {
-            route,
             reply_future,
+            _params: PhantomData,
         }
     }
 
     pub async fn recv(self) -> Result<ActorId> {
         let reply = self.reply_future.await?;
-        if reply.1 != self.route {
-            Err(RtlError::ReplyPrefixMismatches)?
-        }
+        TParams::decode_with_route(reply.1)?;
         Ok(reply.0)
     }
 }
@@ -133,29 +131,23 @@ pub trait Remoting<TArgs> {
     ) -> Result<Vec<u8>>;
 }
 
-pub struct RemotingAction<TRemoting, TArgs, TReply> {
+pub struct RemotingAction<TRemoting, TArgs, TParams, TReply> {
     remoting: TRemoting,
-    route: &'static [u8],
-    payload: Vec<u8>,
+    params: TParams,
     value: ValueUnit,
     args: TArgs,
     _treply: PhantomData<TReply>,
 }
 
-impl<TRemoting, TArgs, TReply> RemotingAction<TRemoting, TArgs, TReply>
+impl<TRemoting, TArgs, TParams, TReply> RemotingAction<TRemoting, TArgs, TParams, TReply>
 where
     TArgs: Default,
+    TParams: EncodeWithRoute + DecodeWithRoute,
 {
-    pub fn new<TParams>(remoting: TRemoting, route: &'static [u8], params: TParams) -> Self
-    where
-        TParams: Encode,
-    {
-        let mut payload = route.to_vec();
-        params.encode_to(&mut payload);
+    pub fn new(remoting: TRemoting, params: TParams) -> Self {
         Self {
             remoting,
-            route,
-            payload,
+            params,
             value: Default::default(),
             args: Default::default(),
             _treply: PhantomData,
@@ -163,7 +155,9 @@ where
     }
 }
 
-impl<TRemoting, TArgs, TReply> Action<TArgs> for RemotingAction<TRemoting, TArgs, TReply> {
+impl<TRemoting, TArgs, TParams, TReply> Action<TArgs>
+    for RemotingAction<TRemoting, TArgs, TParams, TReply>
+{
     fn with_value(self, value: ValueUnit) -> Self {
         Self { value, ..self }
     }
@@ -181,54 +175,89 @@ impl<TRemoting, TArgs, TReply> Action<TArgs> for RemotingAction<TRemoting, TArgs
     }
 }
 
-impl<TRemoting, TArgs, TReply> Call<TArgs, TReply> for RemotingAction<TRemoting, TArgs, TReply>
+impl<TRemoting, TArgs, TParams, TReply> Call<TArgs, TReply>
+    for RemotingAction<TRemoting, TArgs, TParams, TReply>
 where
     TRemoting: Remoting<TArgs>,
-    TReply: Decode,
+    TParams: EncodeWithRoute + DecodeWithRoute<Reply = TReply>,
 {
+    type TParams = TParams;
+
     async fn send(
         self,
         target: ActorId,
-    ) -> Result<CallTicket<impl Future<Output = Result<Vec<u8>>>, TReply>> {
+    ) -> Result<CallTicket<impl Future<Output = Result<Vec<u8>>>, TParams, TReply>> {
+        let payload = self.params.encode_with_route();
         let reply_future = self
             .remoting
-            .message(target, self.payload, self.value, self.args)
+            .message(target, payload, self.value, self.args)
             .await?;
-        Ok(CallTicket::new(self.route, reply_future))
+        Ok(CallTicket::new(reply_future))
     }
 }
 
-impl<TRemoting, TArgs> Activation<TArgs> for RemotingAction<TRemoting, TArgs, ActorId>
+impl<TRemoting, TArgs, TParams> Activation<TArgs>
+    for RemotingAction<TRemoting, TArgs, TParams, ActorId>
 where
     TRemoting: Remoting<TArgs>,
+    TParams: EncodeWithRoute + DecodeWithRoute<Reply = ()>,
 {
+    type TParams = TParams;
+
     async fn send(
         self,
         code_id: CodeId,
         salt: impl AsRef<[u8]>,
-    ) -> Result<ActivationTicket<impl Future<Output = Result<(ActorId, Vec<u8>)>>>> {
+    ) -> Result<ActivationTicket<impl Future<Output = Result<(ActorId, Vec<u8>)>>, TParams>> {
+        let payload = self.params.encode_with_route();
         let reply_future = self
             .remoting
-            .activate(code_id, salt, self.payload, self.value, self.args)
+            .activate(code_id, salt, payload, self.value, self.args)
             .await?;
-        Ok(ActivationTicket::new(self.route, reply_future))
+        Ok(ActivationTicket::new(reply_future))
     }
 }
 
-impl<TRemoting, TArgs, TReply> Query<TArgs, TReply> for RemotingAction<TRemoting, TArgs, TReply>
+impl<TRemoting, TArgs, TParams, TReply> Query<TArgs, TReply>
+    for RemotingAction<TRemoting, TArgs, TParams, TReply>
 where
     TRemoting: Remoting<TArgs>,
-    TReply: Decode,
+    TParams: EncodeWithRoute + DecodeWithRoute<Reply = TReply>,
 {
     async fn recv(self, target: ActorId) -> Result<TReply> {
+        let payload = self.params.encode_with_route();
         let reply_bytes = self
             .remoting
-            .query(target, self.payload, self.value, self.args)
+            .query(target, payload, self.value, self.args)
             .await?;
-        if !reply_bytes.starts_with(self.route) {
-            Err(RtlError::ReplyPrefixMismatches)?
+        TParams::decode_with_route(reply_bytes)
+    }
+}
+
+pub trait EncodeWithRoute: Encode {
+    fn route() -> &'static [u8];
+
+    fn encode_with_route(&self) -> Vec<u8> {
+        let route = Self::route();
+        let mut result = Vec::with_capacity(route.len() + self.encoded_size());
+        result.extend_from_slice(route);
+        self.encode_to(&mut result);
+        result
+    }
+}
+
+pub trait DecodeWithRoute {
+    type Reply: Decode;
+
+    fn route() -> &'static [u8];
+
+    fn decode_with_route<T: AsRef<[u8]>>(value: T) -> Result<Self::Reply> {
+        let route = Self::route();
+        let mut value = value.as_ref();
+        if !value.starts_with(route) {
+            return Err(Error::Rtl(RtlError::ReplyPrefixMismatches));
         }
-        let mut reply_bytes = &reply_bytes[self.route.len()..];
-        Ok(TReply::decode(&mut reply_bytes)?)
+        value = &value[route.len()..];
+        Decode::decode(&mut value).map_err(Error::Codec)
     }
 }

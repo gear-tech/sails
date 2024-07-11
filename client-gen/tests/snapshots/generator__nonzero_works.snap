@@ -35,39 +35,28 @@ where
     A: Default,
 {
     fn do_this(&mut self, p1: NonZeroU256, p2: MyParam) -> impl Call<A, NonZeroU64> {
-        RemotingAction::new(
-            self.remoting.clone(),
-            &[24, 68, 111, 84, 104, 105, 115],
-            (p1, p2),
-        )
+        RemotingAction::new(self.remoting.clone(), non_zero_params::io::DoThis(p1, p2))
     }
 }
 pub mod non_zero_params {
     use super::*;
     pub mod io {
         use super::*;
-        #[derive(Debug, Default, Clone, Copy)]
-        pub struct DoThis(());
+        #[derive(Debug, Encode)]
+        #[codec(crate = sails_rtl::scale_codec)]
+        pub struct DoThis(pub NonZeroU256, pub super::MyParam);
         impl DoThis {
-            #[allow(dead_code)]
-            pub fn encode_call(p1: NonZeroU256, p2: super::MyParam) -> Vec<u8> {
-                let args = (p1, p2);
-                let mut result = Vec::with_capacity(7 + args.encoded_size());
-                result.extend_from_slice(&[]);
-                result.extend_from_slice(&[24, 68, 111, 84, 104, 105, 115]);
-                args.encode_to(&mut result);
-                result
+            const ROUTE: &'static [u8] = &[24, 68, 111, 84, 104, 105, 115];
+        }
+        impl EncodeWithRoute for DoThis {
+            fn route() -> &'static [u8] {
+                DoThis::ROUTE
             }
-            #[allow(dead_code)]
-            pub fn decode_reply(mut reply: &[u8]) -> Result<NonZeroU64, sails_rtl::errors::Error> {
-                if !reply.starts_with(&[24, 68, 111, 84, 104, 105, 115]) {
-                    return Err(sails_rtl::errors::Error::Rtl(
-                        sails_rtl::errors::RtlError::ReplyPrefixMismatches,
-                    ));
-                }
-                reply = &reply[7..];
-                let result = Decode::decode(&mut reply).map_err(sails_rtl::errors::Error::Codec)?;
-                Ok(result)
+        }
+        impl DecodeWithRoute for DoThis {
+            type Reply = NonZeroU64;
+            fn route() -> &'static [u8] {
+                DoThis::ROUTE
             }
         }
     }
