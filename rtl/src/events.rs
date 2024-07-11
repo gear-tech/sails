@@ -1,4 +1,7 @@
-use crate::{errors::Result, prelude::*};
+use crate::{
+    errors::{Error, Result, RtlError},
+    prelude::*,
+};
 use core::marker::PhantomData;
 use futures::{Stream, StreamExt};
 
@@ -7,31 +10,51 @@ pub trait Listener<E> {
     async fn listen(&mut self) -> Result<impl Stream<Item = (ActorId, E)> + Unpin>;
 }
 
-pub struct RemotingListener<R, E, F> {
+pub struct RemotingListener<R, E> {
     remoting: R,
-    f: F,
     _event: PhantomData<E>,
 }
 
-impl<R: Listener<Vec<u8>>, E: Decode, F> RemotingListener<R, E, F> {
-    pub fn new(remoting: R, f: F) -> Self {
+impl<R: Listener<Vec<u8>>, E> RemotingListener<R, E> {
+    pub fn new(remoting: R) -> Self {
         Self {
             remoting,
-            f,
             _event: PhantomData,
         }
     }
 }
 
-impl<R: Listener<Vec<u8>>, E, F: Fn(Vec<u8>) -> Result<E>> Listener<E>
-    for RemotingListener<R, E, F>
-{
+impl<R: Listener<Vec<u8>>, E: DecodeEventWithRoute> Listener<E> for RemotingListener<R, E> {
     async fn listen(&mut self) -> Result<impl Stream<Item = (ActorId, E)> + Unpin> {
         let stream = self.remoting.listen().await?;
-        let f = &self.f;
         let map = stream.filter_map(move |(actor_id, payload)| async move {
-            (f)(payload).ok().map(|e| (actor_id, e))
+            E::decode_event(payload).ok().map(|e| (actor_id, e))
         });
         Ok(Box::pin(map))
+    }
+}
+
+pub trait DecodeEventWithRoute: Decode {
+    fn route() -> &'static [u8];
+
+    fn event_names() -> &'static [&'static [u8]];
+
+    fn decode_event(payload: impl AsRef<[u8]>) -> Result<Self> {
+        let route = Self::route();
+        let event_names = Self::event_names();
+        let payload = payload.as_ref();
+        if !payload.starts_with(route) {
+            Err(RtlError::EventPrefixMismatches)?;
+        }
+        let event_bytes = &payload[route.len()..];
+        for (idx, name) in event_names.iter().enumerate() {
+            if event_bytes.starts_with(name) {
+                let idx = idx as u8;
+                let bytes = [&[idx], &event_bytes[name.len()..]].concat();
+                let mut event_bytes = &bytes[..];
+                return Decode::decode(&mut event_bytes).map_err(Error::Codec);
+            }
+        }
+        Err(RtlError::EventNameIsNotFound)?
     }
 }
