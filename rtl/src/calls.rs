@@ -75,7 +75,7 @@ where
 
     pub async fn recv(self) -> Result<TReply> {
         let reply_bytes = self.reply_future.await?;
-        TParams::decode_with_route(reply_bytes)
+        TParams::decode_reply(reply_bytes)
     }
 }
 
@@ -98,7 +98,7 @@ where
 
     pub async fn recv(self) -> Result<ActorId> {
         let reply = self.reply_future.await?;
-        TParams::decode_with_route(reply.1)?;
+        TParams::decode_reply(reply.1)?;
         Ok(reply.0)
     }
 }
@@ -186,7 +186,7 @@ where
         self,
         target: ActorId,
     ) -> Result<CallTicket<impl Future<Output = Result<Vec<u8>>>, TParams, TReply>> {
-        let payload = self.params.encode_with_route();
+        let payload = self.params.encode_call();
         let reply_future = self
             .remoting
             .message(target, payload, self.value, self.args)
@@ -208,7 +208,7 @@ where
         code_id: CodeId,
         salt: impl AsRef<[u8]>,
     ) -> Result<ActivationTicket<impl Future<Output = Result<(ActorId, Vec<u8>)>>, TParams>> {
-        let payload = self.params.encode_with_route();
+        let payload = self.params.encode_call();
         let reply_future = self
             .remoting
             .activate(code_id, salt, payload, self.value, self.args)
@@ -224,35 +224,32 @@ where
     TParams: EncodeDecodeWithRoute<Reply = TReply>,
 {
     async fn recv(self, target: ActorId) -> Result<TReply> {
-        let payload = self.params.encode_with_route();
+        let payload = self.params.encode_call();
         let reply_bytes = self
             .remoting
             .query(target, payload, self.value, self.args)
             .await?;
-        TParams::decode_with_route(reply_bytes)
+        TParams::decode_reply(reply_bytes)
     }
 }
 
 pub trait EncodeDecodeWithRoute: Encode {
+    const ROUTE: &'static [u8];
     type Reply: Decode;
 
-    fn route() -> &'static [u8];
-
-    fn encode_with_route(&self) -> Vec<u8> {
-        let route = Self::route();
-        let mut result = Vec::with_capacity(route.len() + self.encoded_size());
-        result.extend_from_slice(route);
+    fn encode_call(&self) -> Vec<u8> {
+        let mut result = Vec::with_capacity(Self::ROUTE.len() + self.encoded_size());
+        result.extend_from_slice(Self::ROUTE);
         self.encode_to(&mut result);
         result
     }
 
-    fn decode_with_route<T: AsRef<[u8]>>(value: T) -> Result<Self::Reply> {
-        let route = Self::route();
+    fn decode_reply<T: AsRef<[u8]>>(value: T) -> Result<Self::Reply> {
         let mut value = value.as_ref();
-        if !value.starts_with(route) {
+        if !value.starts_with(Self::ROUTE) {
             return Err(Error::Rtl(RtlError::ReplyPrefixMismatches));
         }
-        value = &value[route.len()..];
+        value = &value[Self::ROUTE.len()..];
         Decode::decode(&mut value).map_err(Error::Codec)
     }
 }

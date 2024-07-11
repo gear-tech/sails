@@ -105,18 +105,9 @@ impl<'ast> Visitor<'ast> for CtorFactoryGenerator {
             #[codec(crate = sails_rtl::scale_codec)]
             pub struct $fn_name ($func_param_tokens);
 
-            impl $fn_name {
-                const ROUTE: &'static [u8] = &[
-                    $route_bytes
-                ];
-            }
-
             impl EncodeDecodeWithRoute for $fn_name {
+                const ROUTE: &'static [u8] = &[$route_bytes];
                 type Reply = ();
-
-                fn route() -> &'static [u8] {
-                    $fn_name::ROUTE
-                }
             }
         };
     }

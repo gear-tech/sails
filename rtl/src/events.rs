@@ -35,19 +35,16 @@ impl<R: Listener<Vec<u8>>, E: DecodeEventWithRoute> Listener<E> for RemotingList
 }
 
 pub trait DecodeEventWithRoute: Decode {
-    fn route() -> &'static [u8];
-
-    fn event_names() -> &'static [&'static [u8]];
+    const ROUTE: &'static [u8];
+    const EVENT_NAMES: &'static [&'static [u8]];
 
     fn decode_event(payload: impl AsRef<[u8]>) -> Result<Self> {
-        let route = Self::route();
-        let event_names = Self::event_names();
         let payload = payload.as_ref();
-        if !payload.starts_with(route) {
+        if !payload.starts_with(Self::ROUTE) {
             Err(RtlError::EventPrefixMismatches)?;
         }
-        let event_bytes = &payload[route.len()..];
-        for (idx, name) in event_names.iter().enumerate() {
+        let event_bytes = &payload[Self::ROUTE.len()..];
+        for (idx, name) in Self::EVENT_NAMES.iter().enumerate() {
             if event_bytes.starts_with(name) {
                 let idx = idx as u8;
                 let bytes = [&[idx], &event_bytes[name.len()..]].concat();

@@ -49,14 +49,9 @@ pub mod service_with_events {
         #[derive(Debug, Encode)]
         #[codec(crate = sails_rtl::scale_codec)]
         pub struct DoThis(pub NonZeroU256, pub super::MyParam);
-        impl DoThis {
-            const ROUTE: &'static [u8] = &[24, 68, 111, 84, 104, 105, 115];
-        }
         impl EncodeDecodeWithRoute for DoThis {
+            const ROUTE: &'static [u8] = &[24, 68, 111, 84, 104, 105, 115];
             type Reply = NonZeroU64;
-            fn route() -> &'static [u8] {
-                DoThis::ROUTE
-            }
         }
     }
     #[allow(dead_code)]
@@ -72,20 +67,14 @@ pub mod service_with_events {
             Three(MyParam),
             Reset,
         }
-        const SERVICE_ROUTE: &[u8] = &[];
-        const EVENT_NAMES: &[&[u8]] = &[
-            &[12, 79, 110, 101],
-            &[12, 84, 119, 111],
-            &[20, 84, 104, 114, 101, 101],
-            &[20, 82, 101, 115, 101, 116],
-        ];
         impl DecodeEventWithRoute for ServiceWithEventsEvents {
-            fn route() -> &'static [u8] {
-                SERVICE_ROUTE
-            }
-            fn event_names() -> &'static [&'static [u8]] {
-                EVENT_NAMES
-            }
+            const ROUTE: &'static [u8] = &[];
+            const EVENT_NAMES: &'static [&'static [u8]] = &[
+                &[12, 79, 110, 101],
+                &[12, 84, 119, 111],
+                &[20, 84, 104, 114, 101, 101],
+                &[20, 82, 101, 115, 101, 116],
+            ];
         }
         pub fn listener<R: Listener<Vec<u8>>>(
             remoting: R,

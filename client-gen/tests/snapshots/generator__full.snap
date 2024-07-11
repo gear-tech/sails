@@ -38,14 +38,9 @@ pub mod service_factory {
         #[derive(Debug, Encode)]
         #[codec(crate = sails_rtl::scale_codec)]
         pub struct New(pub u32);
-        impl New {
-            const ROUTE: &'static [u8] = &[12, 78, 101, 119];
-        }
         impl EncodeDecodeWithRoute for New {
+            const ROUTE: &'static [u8] = &[12, 78, 101, 119];
             type Reply = ();
-            fn route() -> &'static [u8] {
-                New::ROUTE
-            }
         }
     }
 }
@@ -106,50 +101,30 @@ pub mod service {
             pub (Option<String>, u8),
             pub super::ThisThatSvcAppTupleStruct,
         );
-        impl DoThis {
-            const ROUTE: &'static [u8] = &[24, 68, 111, 84, 104, 105, 115];
-        }
         impl EncodeDecodeWithRoute for DoThis {
+            const ROUTE: &'static [u8] = &[24, 68, 111, 84, 104, 105, 115];
             type Reply = (String, u32);
-            fn route() -> &'static [u8] {
-                DoThis::ROUTE
-            }
         }
         #[derive(Debug, Encode)]
         #[codec(crate = sails_rtl::scale_codec)]
         pub struct DoThat(pub super::ThisThatSvcAppDoThatParam);
-        impl DoThat {
-            const ROUTE: &'static [u8] = &[24, 68, 111, 84, 104, 97, 116];
-        }
         impl EncodeDecodeWithRoute for DoThat {
+            const ROUTE: &'static [u8] = &[24, 68, 111, 84, 104, 97, 116];
             type Reply = Result<(String, u32), (String,)>;
-            fn route() -> &'static [u8] {
-                DoThat::ROUTE
-            }
         }
         #[derive(Debug, Encode)]
         #[codec(crate = sails_rtl::scale_codec)]
         pub struct This(pub Vec<u16>);
-        impl This {
-            const ROUTE: &'static [u8] = &[16, 84, 104, 105, 115];
-        }
         impl EncodeDecodeWithRoute for This {
+            const ROUTE: &'static [u8] = &[16, 84, 104, 105, 115];
             type Reply = u32;
-            fn route() -> &'static [u8] {
-                This::ROUTE
-            }
         }
         #[derive(Debug, Encode)]
         #[codec(crate = sails_rtl::scale_codec)]
         pub struct That(pub ());
-        impl That {
-            const ROUTE: &'static [u8] = &[16, 84, 104, 97, 116];
-        }
         impl EncodeDecodeWithRoute for That {
+            const ROUTE: &'static [u8] = &[16, 84, 104, 97, 116];
             type Reply = Result<String, String>;
-            fn route() -> &'static [u8] {
-                That::ROUTE
-            }
         }
     }
 }

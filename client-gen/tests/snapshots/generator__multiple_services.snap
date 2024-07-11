@@ -49,26 +49,16 @@ pub mod multiple {
         #[derive(Debug, Encode)]
         #[codec(crate = sails_rtl::scale_codec)]
         pub struct DoThis(pub u32, pub super::MyParam);
-        impl DoThis {
-            const ROUTE: &'static [u8] = &[24, 68, 111, 84, 104, 105, 115];
-        }
         impl EncodeDecodeWithRoute for DoThis {
+            const ROUTE: &'static [u8] = &[24, 68, 111, 84, 104, 105, 115];
             type Reply = u16;
-            fn route() -> &'static [u8] {
-                DoThis::ROUTE
-            }
         }
         #[derive(Debug, Encode)]
         #[codec(crate = sails_rtl::scale_codec)]
         pub struct DoThat(pub (u8, u32));
-        impl DoThat {
-            const ROUTE: &'static [u8] = &[24, 68, 111, 84, 104, 97, 116];
-        }
         impl EncodeDecodeWithRoute for DoThat {
+            const ROUTE: &'static [u8] = &[24, 68, 111, 84, 104, 97, 116];
             type Reply = u8;
-            fn route() -> &'static [u8] {
-                DoThat::ROUTE
-            }
         }
     }
 }
@@ -106,14 +96,9 @@ pub mod named {
         #[derive(Debug, Encode)]
         #[codec(crate = sails_rtl::scale_codec)]
         pub struct That(pub u32);
-        impl That {
-            const ROUTE: &'static [u8] = &[20, 78, 97, 109, 101, 100, 16, 84, 104, 97, 116];
-        }
         impl EncodeDecodeWithRoute for That {
+            const ROUTE: &'static [u8] = &[20, 78, 97, 109, 101, 100, 16, 84, 104, 97, 116];
             type Reply = String;
-            fn route() -> &'static [u8] {
-                That::ROUTE
-            }
         }
     }
 }

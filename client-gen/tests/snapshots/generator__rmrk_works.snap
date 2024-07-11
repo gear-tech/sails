@@ -40,14 +40,9 @@ pub mod rmrk_catalog_factory {
         #[derive(Debug, Encode)]
         #[codec(crate = sails_rtl::scale_codec)]
         pub struct New();
-        impl New {
-            const ROUTE: &'static [u8] = &[12, 78, 101, 119];
-        }
         impl EncodeDecodeWithRoute for New {
+            const ROUTE: &'static [u8] = &[12, 78, 101, 119];
             type Reply = ();
-            fn route() -> &'static [u8] {
-                New::ROUTE
-            }
         }
     }
 }
@@ -139,121 +134,81 @@ pub mod rmrk_catalog {
         #[derive(Debug, Encode)]
         #[codec(crate = sails_rtl::scale_codec)]
         pub struct AddEquippables(pub u32, pub Vec<ActorId>);
-        impl AddEquippables {
+        impl EncodeDecodeWithRoute for AddEquippables {
             const ROUTE: &'static [u8] = &[
                 44, 82, 109, 114, 107, 67, 97, 116, 97, 108, 111, 103, 56, 65, 100, 100, 69, 113,
                 117, 105, 112, 112, 97, 98, 108, 101, 115,
             ];
-        }
-        impl EncodeDecodeWithRoute for AddEquippables {
             type Reply = Result<(u32, Vec<ActorId>), super::Error>;
-            fn route() -> &'static [u8] {
-                AddEquippables::ROUTE
-            }
         }
         #[derive(Debug, Encode)]
         #[codec(crate = sails_rtl::scale_codec)]
         pub struct AddParts(pub BTreeMap<u32, super::Part>);
-        impl AddParts {
+        impl EncodeDecodeWithRoute for AddParts {
             const ROUTE: &'static [u8] = &[
                 44, 82, 109, 114, 107, 67, 97, 116, 97, 108, 111, 103, 32, 65, 100, 100, 80, 97,
                 114, 116, 115,
             ];
-        }
-        impl EncodeDecodeWithRoute for AddParts {
             type Reply = Result<BTreeMap<u32, super::Part>, super::Error>;
-            fn route() -> &'static [u8] {
-                AddParts::ROUTE
-            }
         }
         #[derive(Debug, Encode)]
         #[codec(crate = sails_rtl::scale_codec)]
         pub struct RemoveEquippable(pub u32, pub ActorId);
-        impl RemoveEquippable {
+        impl EncodeDecodeWithRoute for RemoveEquippable {
             const ROUTE: &'static [u8] = &[
                 44, 82, 109, 114, 107, 67, 97, 116, 97, 108, 111, 103, 64, 82, 101, 109, 111, 118,
                 101, 69, 113, 117, 105, 112, 112, 97, 98, 108, 101,
             ];
-        }
-        impl EncodeDecodeWithRoute for RemoveEquippable {
             type Reply = Result<(u32, ActorId), super::Error>;
-            fn route() -> &'static [u8] {
-                RemoveEquippable::ROUTE
-            }
         }
         #[derive(Debug, Encode)]
         #[codec(crate = sails_rtl::scale_codec)]
         pub struct RemoveParts(pub Vec<u32>);
-        impl RemoveParts {
+        impl EncodeDecodeWithRoute for RemoveParts {
             const ROUTE: &'static [u8] = &[
                 44, 82, 109, 114, 107, 67, 97, 116, 97, 108, 111, 103, 44, 82, 101, 109, 111, 118,
                 101, 80, 97, 114, 116, 115,
             ];
-        }
-        impl EncodeDecodeWithRoute for RemoveParts {
             type Reply = Result<Vec<u32>, super::Error>;
-            fn route() -> &'static [u8] {
-                RemoveParts::ROUTE
-            }
         }
         #[derive(Debug, Encode)]
         #[codec(crate = sails_rtl::scale_codec)]
         pub struct ResetEquippables(pub u32);
-        impl ResetEquippables {
+        impl EncodeDecodeWithRoute for ResetEquippables {
             const ROUTE: &'static [u8] = &[
                 44, 82, 109, 114, 107, 67, 97, 116, 97, 108, 111, 103, 64, 82, 101, 115, 101, 116,
                 69, 113, 117, 105, 112, 112, 97, 98, 108, 101, 115,
             ];
-        }
-        impl EncodeDecodeWithRoute for ResetEquippables {
             type Reply = Result<(), super::Error>;
-            fn route() -> &'static [u8] {
-                ResetEquippables::ROUTE
-            }
         }
         #[derive(Debug, Encode)]
         #[codec(crate = sails_rtl::scale_codec)]
         pub struct SetEquippablesToAll(pub u32);
-        impl SetEquippablesToAll {
+        impl EncodeDecodeWithRoute for SetEquippablesToAll {
             const ROUTE: &'static [u8] = &[
                 44, 82, 109, 114, 107, 67, 97, 116, 97, 108, 111, 103, 76, 83, 101, 116, 69, 113,
                 117, 105, 112, 112, 97, 98, 108, 101, 115, 84, 111, 65, 108, 108,
             ];
-        }
-        impl EncodeDecodeWithRoute for SetEquippablesToAll {
             type Reply = Result<(), super::Error>;
-            fn route() -> &'static [u8] {
-                SetEquippablesToAll::ROUTE
-            }
         }
         #[derive(Debug, Encode)]
         #[codec(crate = sails_rtl::scale_codec)]
         pub struct Equippable(pub u32, pub ActorId);
-        impl Equippable {
+        impl EncodeDecodeWithRoute for Equippable {
             const ROUTE: &'static [u8] = &[
                 44, 82, 109, 114, 107, 67, 97, 116, 97, 108, 111, 103, 40, 69, 113, 117, 105, 112,
                 112, 97, 98, 108, 101,
             ];
-        }
-        impl EncodeDecodeWithRoute for Equippable {
             type Reply = Result<bool, super::Error>;
-            fn route() -> &'static [u8] {
-                Equippable::ROUTE
-            }
         }
         #[derive(Debug, Encode)]
         #[codec(crate = sails_rtl::scale_codec)]
         pub struct Part(pub u32);
-        impl Part {
+        impl EncodeDecodeWithRoute for Part {
             const ROUTE: &'static [u8] = &[
                 44, 82, 109, 114, 107, 67, 97, 116, 97, 108, 111, 103, 16, 80, 97, 114, 116,
             ];
-        }
-        impl EncodeDecodeWithRoute for Part {
             type Reply = Option<super::Part>;
-            fn route() -> &'static [u8] {
-                Part::ROUTE
-            }
         }
     }
 }

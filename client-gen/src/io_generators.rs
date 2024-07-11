@@ -56,18 +56,9 @@ impl<'ast> Visitor<'ast> for IoModuleGenerator {
             #[codec(crate = sails_rtl::scale_codec)]
             pub struct $fn_name ($func_param_tokens);
 
-            impl $fn_name {
-                const ROUTE: &'static [u8] = &[
-                    $service_path_bytes $route_bytes
-                ];
-            }
-
             impl EncodeDecodeWithRoute for $fn_name {
+                const ROUTE: &'static [u8] = &[$service_path_bytes $route_bytes];
                 type Reply = $func_output;
-
-                fn route() -> &'static [u8] {
-                    $fn_name::ROUTE
-                }
             }
         };
     }

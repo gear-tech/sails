@@ -52,17 +52,9 @@ impl<'ast> Visitor<'ast> for EventsModuleGenerator {
         };
 
         quote_in! { self.tokens =>
-            const SERVICE_ROUTE: &[u8] = &[$service_path_bytes];
-            const EVENT_NAMES: &[&[u8]] = &[&[$event_names_bytes]];
-
             impl DecodeEventWithRoute for $(&events_name) {
-                fn route() -> &'static [u8] {
-                    SERVICE_ROUTE
-                }
-
-                fn event_names() -> &'static [&'static [u8]] {
-                    EVENT_NAMES
-                }
+                const ROUTE: &'static [u8] = &[$service_path_bytes];
+                const EVENT_NAMES: &'static [&'static [u8]] = &[&[$event_names_bytes]];
             }
 
             pub fn listener<R: Listener<Vec<u8>>>(remoting: R) -> impl Listener<$(&events_name)> {

@@ -46,14 +46,9 @@ pub mod non_zero_params {
         #[derive(Debug, Encode)]
         #[codec(crate = sails_rtl::scale_codec)]
         pub struct DoThis(pub NonZeroU256, pub super::MyParam);
-        impl DoThis {
-            const ROUTE: &'static [u8] = &[24, 68, 111, 84, 104, 105, 115];
-        }
         impl EncodeDecodeWithRoute for DoThis {
+            const ROUTE: &'static [u8] = &[24, 68, 111, 84, 104, 105, 115];
             type Reply = NonZeroU64;
-            fn route() -> &'static [u8] {
-                DoThis::ROUTE
-            }
         }
     }
 }
