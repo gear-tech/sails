@@ -1,12 +1,11 @@
 #![no_std]
 
-use sails_rtl::{calls::*, prelude::*};
-
 include!(concat!(env!("OUT_DIR"), "/demo_client.rs"));
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use sails_rtl::{calls::*, prelude::*};
 
     #[test]
     fn test_io_module_encode() {

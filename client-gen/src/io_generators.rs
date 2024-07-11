@@ -21,6 +21,7 @@ impl IoModuleGenerator {
         quote!(
             pub mod io {
                 use super::*;
+                use sails_rtl::calls::EncodeDecodeWithRoute;
                 $(self.tokens)
             }
         )
@@ -61,13 +62,7 @@ impl<'ast> Visitor<'ast> for IoModuleGenerator {
                 ];
             }
 
-            impl EncodeWithRoute for $fn_name {
-                fn route() -> &'static [u8] {
-                    $fn_name::ROUTE
-                }
-            }
-
-            impl DecodeWithRoute for $fn_name {
+            impl EncodeDecodeWithRoute for $fn_name {
                 type Reply = $func_output;
 
                 fn route() -> &'static [u8] {

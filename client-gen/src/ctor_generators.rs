@@ -29,6 +29,7 @@ impl CtorFactoryGenerator {
             $(self.tokens)
             pub mod $(service_name_snake)_factory {
                 use super::*;
+                use sails_rtl::calls::EncodeDecodeWithRoute;
                 pub mod io {
                     use super::*;
                     $(self.io_tokens)
@@ -110,13 +111,7 @@ impl<'ast> Visitor<'ast> for CtorFactoryGenerator {
                 ];
             }
 
-            impl EncodeWithRoute for $fn_name {
-                fn route() -> &'static [u8] {
-                    $fn_name::ROUTE
-                }
-            }
-
-            impl DecodeWithRoute for $fn_name {
+            impl EncodeDecodeWithRoute for $fn_name {
                 type Reply = ();
 
                 fn route() -> &'static [u8] {

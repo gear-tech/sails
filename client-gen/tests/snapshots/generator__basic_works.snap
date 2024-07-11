@@ -45,18 +45,14 @@ pub mod basic {
     use super::*;
     pub mod io {
         use super::*;
+        use sails_rtl::calls::EncodeDecodeWithRoute;
         #[derive(Debug, Encode)]
         #[codec(crate = sails_rtl::scale_codec)]
         pub struct DoThis(pub u32, pub super::MyParam);
         impl DoThis {
             const ROUTE: &'static [u8] = &[24, 68, 111, 84, 104, 105, 115];
         }
-        impl EncodeWithRoute for DoThis {
-            fn route() -> &'static [u8] {
-                DoThis::ROUTE
-            }
-        }
-        impl DecodeWithRoute for DoThis {
+        impl EncodeDecodeWithRoute for DoThis {
             type Reply = u16;
             fn route() -> &'static [u8] {
                 DoThis::ROUTE
@@ -68,12 +64,7 @@ pub mod basic {
         impl DoThat {
             const ROUTE: &'static [u8] = &[24, 68, 111, 84, 104, 97, 116];
         }
-        impl EncodeWithRoute for DoThat {
-            fn route() -> &'static [u8] {
-                DoThat::ROUTE
-            }
-        }
-        impl DecodeWithRoute for DoThat {
+        impl EncodeDecodeWithRoute for DoThat {
             type Reply = u8;
             fn route() -> &'static [u8] {
                 DoThat::ROUTE

@@ -16,7 +16,7 @@ pub trait Action<TArgs> {
 
 #[allow(async_fn_in_trait)]
 pub trait Call<TArgs, TReply>: Action<TArgs> {
-    type TParams: DecodeWithRoute<Reply = TReply>;
+    type TParams: EncodeDecodeWithRoute<Reply = TReply>;
 
     async fn send(
         self,
@@ -33,7 +33,7 @@ pub trait Call<TArgs, TReply>: Action<TArgs> {
 
 #[allow(async_fn_in_trait)]
 pub trait Activation<TArgs>: Action<TArgs> {
-    type TParams: DecodeWithRoute<Reply = ()>;
+    type TParams: EncodeDecodeWithRoute<Reply = ()>;
 
     async fn send(
         self,
@@ -63,7 +63,7 @@ pub struct CallTicket<TReplyFuture, TParams, TReply> {
 impl<TReplyFuture, TParams, TReply> CallTicket<TReplyFuture, TParams, TReply>
 where
     TReplyFuture: Future<Output = Result<Vec<u8>>>,
-    TParams: DecodeWithRoute<Reply = TReply>,
+    TParams: EncodeDecodeWithRoute<Reply = TReply>,
 {
     pub(crate) fn new(reply_future: TReplyFuture) -> Self {
         Self {
@@ -87,7 +87,7 @@ pub struct ActivationTicket<TReplyFuture, TParams> {
 impl<TReplyFuture, TParams> ActivationTicket<TReplyFuture, TParams>
 where
     TReplyFuture: Future<Output = Result<(ActorId, Vec<u8>)>>,
-    TParams: DecodeWithRoute<Reply = ()>,
+    TParams: EncodeDecodeWithRoute<Reply = ()>,
 {
     pub(crate) fn new(reply_future: TReplyFuture) -> Self {
         Self {
@@ -142,7 +142,6 @@ pub struct RemotingAction<TRemoting, TArgs, TParams, TReply> {
 impl<TRemoting, TArgs, TParams, TReply> RemotingAction<TRemoting, TArgs, TParams, TReply>
 where
     TArgs: Default,
-    TParams: EncodeWithRoute + DecodeWithRoute,
 {
     pub fn new(remoting: TRemoting, params: TParams) -> Self {
         Self {
@@ -179,7 +178,7 @@ impl<TRemoting, TArgs, TParams, TReply> Call<TArgs, TReply>
     for RemotingAction<TRemoting, TArgs, TParams, TReply>
 where
     TRemoting: Remoting<TArgs>,
-    TParams: EncodeWithRoute + DecodeWithRoute<Reply = TReply>,
+    TParams: EncodeDecodeWithRoute<Reply = TReply>,
 {
     type TParams = TParams;
 
@@ -200,7 +199,7 @@ impl<TRemoting, TArgs, TParams> Activation<TArgs>
     for RemotingAction<TRemoting, TArgs, TParams, ActorId>
 where
     TRemoting: Remoting<TArgs>,
-    TParams: EncodeWithRoute + DecodeWithRoute<Reply = ()>,
+    TParams: EncodeDecodeWithRoute<Reply = ()>,
 {
     type TParams = TParams;
 
@@ -222,7 +221,7 @@ impl<TRemoting, TArgs, TParams, TReply> Query<TArgs, TReply>
     for RemotingAction<TRemoting, TArgs, TParams, TReply>
 where
     TRemoting: Remoting<TArgs>,
-    TParams: EncodeWithRoute + DecodeWithRoute<Reply = TReply>,
+    TParams: EncodeDecodeWithRoute<Reply = TReply>,
 {
     async fn recv(self, target: ActorId) -> Result<TReply> {
         let payload = self.params.encode_with_route();
@@ -234,7 +233,9 @@ where
     }
 }
 
-pub trait EncodeWithRoute: Encode {
+pub trait EncodeDecodeWithRoute: Encode {
+    type Reply: Decode;
+
     fn route() -> &'static [u8];
 
     fn encode_with_route(&self) -> Vec<u8> {
@@ -244,12 +245,6 @@ pub trait EncodeWithRoute: Encode {
         self.encode_to(&mut result);
         result
     }
-}
-
-pub trait DecodeWithRoute {
-    type Reply: Decode;
-
-    fn route() -> &'static [u8];
 
     fn decode_with_route<T: AsRef<[u8]>>(value: T) -> Result<Self::Reply> {
         let route = Self::route();

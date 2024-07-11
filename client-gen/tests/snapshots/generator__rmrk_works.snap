@@ -34,6 +34,7 @@ impl<R: Remoting<A> + Clone, A: Default> traits::RmrkCatalogFactory<A>
 }
 pub mod rmrk_catalog_factory {
     use super::*;
+    use sails_rtl::calls::EncodeDecodeWithRoute;
     pub mod io {
         use super::*;
         #[derive(Debug, Encode)]
@@ -42,12 +43,7 @@ pub mod rmrk_catalog_factory {
         impl New {
             const ROUTE: &'static [u8] = &[12, 78, 101, 119];
         }
-        impl EncodeWithRoute for New {
-            fn route() -> &'static [u8] {
-                New::ROUTE
-            }
-        }
-        impl DecodeWithRoute for New {
+        impl EncodeDecodeWithRoute for New {
             type Reply = ();
             fn route() -> &'static [u8] {
                 New::ROUTE
@@ -139,6 +135,7 @@ pub mod rmrk_catalog {
     use super::*;
     pub mod io {
         use super::*;
+        use sails_rtl::calls::EncodeDecodeWithRoute;
         #[derive(Debug, Encode)]
         #[codec(crate = sails_rtl::scale_codec)]
         pub struct AddEquippables(pub u32, pub Vec<ActorId>);
@@ -148,12 +145,7 @@ pub mod rmrk_catalog {
                 117, 105, 112, 112, 97, 98, 108, 101, 115,
             ];
         }
-        impl EncodeWithRoute for AddEquippables {
-            fn route() -> &'static [u8] {
-                AddEquippables::ROUTE
-            }
-        }
-        impl DecodeWithRoute for AddEquippables {
+        impl EncodeDecodeWithRoute for AddEquippables {
             type Reply = Result<(u32, Vec<ActorId>), super::Error>;
             fn route() -> &'static [u8] {
                 AddEquippables::ROUTE
@@ -168,12 +160,7 @@ pub mod rmrk_catalog {
                 114, 116, 115,
             ];
         }
-        impl EncodeWithRoute for AddParts {
-            fn route() -> &'static [u8] {
-                AddParts::ROUTE
-            }
-        }
-        impl DecodeWithRoute for AddParts {
+        impl EncodeDecodeWithRoute for AddParts {
             type Reply = Result<BTreeMap<u32, super::Part>, super::Error>;
             fn route() -> &'static [u8] {
                 AddParts::ROUTE
@@ -188,12 +175,7 @@ pub mod rmrk_catalog {
                 101, 69, 113, 117, 105, 112, 112, 97, 98, 108, 101,
             ];
         }
-        impl EncodeWithRoute for RemoveEquippable {
-            fn route() -> &'static [u8] {
-                RemoveEquippable::ROUTE
-            }
-        }
-        impl DecodeWithRoute for RemoveEquippable {
+        impl EncodeDecodeWithRoute for RemoveEquippable {
             type Reply = Result<(u32, ActorId), super::Error>;
             fn route() -> &'static [u8] {
                 RemoveEquippable::ROUTE
@@ -208,12 +190,7 @@ pub mod rmrk_catalog {
                 101, 80, 97, 114, 116, 115,
             ];
         }
-        impl EncodeWithRoute for RemoveParts {
-            fn route() -> &'static [u8] {
-                RemoveParts::ROUTE
-            }
-        }
-        impl DecodeWithRoute for RemoveParts {
+        impl EncodeDecodeWithRoute for RemoveParts {
             type Reply = Result<Vec<u32>, super::Error>;
             fn route() -> &'static [u8] {
                 RemoveParts::ROUTE
@@ -228,12 +205,7 @@ pub mod rmrk_catalog {
                 69, 113, 117, 105, 112, 112, 97, 98, 108, 101, 115,
             ];
         }
-        impl EncodeWithRoute for ResetEquippables {
-            fn route() -> &'static [u8] {
-                ResetEquippables::ROUTE
-            }
-        }
-        impl DecodeWithRoute for ResetEquippables {
+        impl EncodeDecodeWithRoute for ResetEquippables {
             type Reply = Result<(), super::Error>;
             fn route() -> &'static [u8] {
                 ResetEquippables::ROUTE
@@ -248,12 +220,7 @@ pub mod rmrk_catalog {
                 117, 105, 112, 112, 97, 98, 108, 101, 115, 84, 111, 65, 108, 108,
             ];
         }
-        impl EncodeWithRoute for SetEquippablesToAll {
-            fn route() -> &'static [u8] {
-                SetEquippablesToAll::ROUTE
-            }
-        }
-        impl DecodeWithRoute for SetEquippablesToAll {
+        impl EncodeDecodeWithRoute for SetEquippablesToAll {
             type Reply = Result<(), super::Error>;
             fn route() -> &'static [u8] {
                 SetEquippablesToAll::ROUTE
@@ -268,12 +235,7 @@ pub mod rmrk_catalog {
                 112, 97, 98, 108, 101,
             ];
         }
-        impl EncodeWithRoute for Equippable {
-            fn route() -> &'static [u8] {
-                Equippable::ROUTE
-            }
-        }
-        impl DecodeWithRoute for Equippable {
+        impl EncodeDecodeWithRoute for Equippable {
             type Reply = Result<bool, super::Error>;
             fn route() -> &'static [u8] {
                 Equippable::ROUTE
@@ -287,12 +249,7 @@ pub mod rmrk_catalog {
                 44, 82, 109, 114, 107, 67, 97, 116, 97, 108, 111, 103, 16, 80, 97, 114, 116,
             ];
         }
-        impl EncodeWithRoute for Part {
-            fn route() -> &'static [u8] {
-                Part::ROUTE
-            }
-        }
-        impl DecodeWithRoute for Part {
+        impl EncodeDecodeWithRoute for Part {
             type Reply = Option<super::Part>;
             fn route() -> &'static [u8] {
                 Part::ROUTE

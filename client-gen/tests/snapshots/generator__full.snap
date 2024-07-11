@@ -32,6 +32,7 @@ impl<R: Remoting<A> + Clone, A: Default> traits::ServiceFactory<A> for ServiceFa
 }
 pub mod service_factory {
     use super::*;
+    use sails_rtl::calls::EncodeDecodeWithRoute;
     pub mod io {
         use super::*;
         #[derive(Debug, Encode)]
@@ -40,12 +41,7 @@ pub mod service_factory {
         impl New {
             const ROUTE: &'static [u8] = &[12, 78, 101, 119];
         }
-        impl EncodeWithRoute for New {
-            fn route() -> &'static [u8] {
-                New::ROUTE
-            }
-        }
-        impl DecodeWithRoute for New {
+        impl EncodeDecodeWithRoute for New {
             type Reply = ();
             fn route() -> &'static [u8] {
                 New::ROUTE
@@ -101,6 +97,7 @@ pub mod service {
     use super::*;
     pub mod io {
         use super::*;
+        use sails_rtl::calls::EncodeDecodeWithRoute;
         #[derive(Debug, Encode)]
         #[codec(crate = sails_rtl::scale_codec)]
         pub struct DoThis(
@@ -112,12 +109,7 @@ pub mod service {
         impl DoThis {
             const ROUTE: &'static [u8] = &[24, 68, 111, 84, 104, 105, 115];
         }
-        impl EncodeWithRoute for DoThis {
-            fn route() -> &'static [u8] {
-                DoThis::ROUTE
-            }
-        }
-        impl DecodeWithRoute for DoThis {
+        impl EncodeDecodeWithRoute for DoThis {
             type Reply = (String, u32);
             fn route() -> &'static [u8] {
                 DoThis::ROUTE
@@ -129,12 +121,7 @@ pub mod service {
         impl DoThat {
             const ROUTE: &'static [u8] = &[24, 68, 111, 84, 104, 97, 116];
         }
-        impl EncodeWithRoute for DoThat {
-            fn route() -> &'static [u8] {
-                DoThat::ROUTE
-            }
-        }
-        impl DecodeWithRoute for DoThat {
+        impl EncodeDecodeWithRoute for DoThat {
             type Reply = Result<(String, u32), (String,)>;
             fn route() -> &'static [u8] {
                 DoThat::ROUTE
@@ -146,12 +133,7 @@ pub mod service {
         impl This {
             const ROUTE: &'static [u8] = &[16, 84, 104, 105, 115];
         }
-        impl EncodeWithRoute for This {
-            fn route() -> &'static [u8] {
-                This::ROUTE
-            }
-        }
-        impl DecodeWithRoute for This {
+        impl EncodeDecodeWithRoute for This {
             type Reply = u32;
             fn route() -> &'static [u8] {
                 This::ROUTE
@@ -163,12 +145,7 @@ pub mod service {
         impl That {
             const ROUTE: &'static [u8] = &[16, 84, 104, 97, 116];
         }
-        impl EncodeWithRoute for That {
-            fn route() -> &'static [u8] {
-                That::ROUTE
-            }
-        }
-        impl DecodeWithRoute for That {
+        impl EncodeDecodeWithRoute for That {
             type Reply = Result<String, String>;
             fn route() -> &'static [u8] {
                 That::ROUTE
