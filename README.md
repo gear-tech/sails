@@ -305,23 +305,30 @@ __|__ *SCALE encoded service name* __|__ *SCALE encoded event name* __|__ *SCALE
 
 ### Client
 
-Having robust interaction capabilities with applications is crucial. Sails offers several options for interaction. Firstly, it supports manual interaction using the Gear Protocol.
+Having robust interaction capabilities with applications is crucial. Sails offers
+several options for interaction.
 
-You can use:
+Firstly, it supports manual interaction using the Gear Protocol. You can use:
 - The `msg::send` functions from the `gstd` crate to interact between applications.
 - The `gclient` crate to interact from off-chain code with an on-chain application.
 - The `@gear-js/api` library to interact with your program from JavaScript.
 
-All you need to do is compose a byte payload according to the layout outlined in the [Payload Encoding](#payload-encoding) section and send it to an application.
+All you need to do is compose a byte payload according to the layout outlined in the
+[Payload Encoding](#payload-encoding) section and send it to the application.
 
-Thanks to the generated IDL, Sails provides a way to interact with your application using [generated clients](js/README.md#generate-library-from-idl) that have an interface similar to the one exposed by your application. Currently, Sails can generate client code for Rust and TypeScript.
+Thanks to the generated IDL, Sails provides a way to interact with your application
+using generated clients with an interface similar to the one exposed by latter in
+a clearer way. Currently, Sails can generate client code for Rust and TypeScript.
 
-When it comes to Rust, there are 2 options:
-- use generated code which can encode and decode byte payload for you, and you can keep
-  using functions sending raw bytes
-- use fully generated code which can interact with your application in an RPC style
+When it comes to Rust, there are two options:
+- Use generated code that can encode and decode byte payloads for you, allowing you
+to continue using functions that send raw bytes.
+- Use fully generated code that can interact with your application in an RPC style.
 
-Say you have an application which exposes a service `MyService` with a command `do_something`:
+For TypeScript see [generated clients](js/README.md#generate-library-from-idl)
+documentation.
+
+Say you have an application that exposes a service `MyService` with a command `do_something`:
 
 ```rust
 struct Ouput {
@@ -451,6 +458,22 @@ service, which extends the [Mammal](examples/demo/app/src/mammal/) service from
 the same crate and the [Walker](examples/demo/walker/src/) service from a different crate.
 The service being extended must implement the `Clone` trait, while the extending
 service must implement the `AsRef` trait for the service being extended.
+
+### Using Generated Clients from Rust
+
+The [Demo Client](/examples/demo/client/src/) crate showcases how to generate client
+code from an IDL file as a separate Rust crate. Alternatively, you can use the same
+approach directly in your application crate. See [Rmrk Resource](/examples/rmrk/resource/app/build.rs).
+
+You can find various examples of how to interact with the application using the
+generated client code in [Demo Tests](/examples/demo/wasm/tests/gtest.rs). Check
+the comments in the code for more details.
+
+Since the generated code is the same for all environments, whether it is an interaction
+from tests or from another application, the techniques for these interactions are the same.
+You can find an example of the interaction from an application in the
+[Rmrk Resource](/examples/rmrk/resource/app/src/services/mod.rs) service's `add_part_to_resource`
+method.
 
 ##
 
