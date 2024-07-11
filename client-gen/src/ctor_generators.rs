@@ -29,9 +29,9 @@ impl CtorFactoryGenerator {
             $(self.tokens)
             pub mod $(service_name_snake)_factory {
                 use super::*;
-                use sails_rtl::calls::EncodeDecodeWithRoute;
                 pub mod io {
                     use super::*;
+                    use sails_rtl::calls::EncodeDecodeWithRoute;
                     $(self.io_tokens)
                 }
             }

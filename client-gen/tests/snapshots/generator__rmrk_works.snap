@@ -34,9 +34,9 @@ impl<R: Remoting<A> + Clone, A: Default> traits::RmrkCatalogFactory<A>
 }
 pub mod rmrk_catalog_factory {
     use super::*;
-    use sails_rtl::calls::EncodeDecodeWithRoute;
     pub mod io {
         use super::*;
+        use sails_rtl::calls::EncodeDecodeWithRoute;
         #[derive(Debug, Encode)]
         #[codec(crate = sails_rtl::scale_codec)]
         pub struct New();

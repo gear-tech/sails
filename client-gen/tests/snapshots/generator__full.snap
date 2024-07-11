@@ -32,9 +32,9 @@ impl<R: Remoting<A> + Clone, A: Default> traits::ServiceFactory<A> for ServiceFa
 }
 pub mod service_factory {
     use super::*;
-    use sails_rtl::calls::EncodeDecodeWithRoute;
     pub mod io {
         use super::*;
+        use sails_rtl::calls::EncodeDecodeWithRoute;
         #[derive(Debug, Encode)]
         #[codec(crate = sails_rtl::scale_codec)]
         pub struct New(pub u32);
