@@ -2,7 +2,7 @@ use demo_client::{counter::events::*, ping_pong, traits::*};
 use futures::stream::StreamExt;
 use gclient::GearApi;
 use sails_rtl::{calls::*, errors::RtlError, events::*, gsdk::calls::*, prelude::*};
-use std::env;
+use std::panic;
 
 const DEMO_WASM_PATH: &str = "../../../target/wasm32-unknown-unknown/debug/demo.opt.wasm";
 
@@ -157,8 +157,11 @@ async fn demo_returns_not_enough_gas_on_activation() {
 }
 
 async fn spin_up_node_with_demo_code() -> (GSdkRemoting, CodeId, GasUnit) {
-    let gear_path = env::var("GEAR_PATH").unwrap();
-    let api = GearApi::dev_from_path(gear_path).await.unwrap();
+    let gear_path = option_env!("GEAR_PATH");
+    if gear_path.is_none() {
+        panic!("the 'GEAR_PATH' environment variable was not set during compile time");
+    }
+    let api = GearApi::dev_from_path(gear_path.unwrap()).await.unwrap();
     let gas_limit = api.block_gas_limit().unwrap();
     let remoting = GSdkRemoting::new(api);
     let code_id = remoting.upload_code_by_path(DEMO_WASM_PATH).await.unwrap();
