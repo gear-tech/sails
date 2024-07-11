@@ -107,6 +107,7 @@ where
             //          calls of this or another method (e.g. `add_resource_entry`) working with the same
             //          data before this method returns.
 
+            // Call `Rmrk Catalog` via the generated client and the `recv` method
             let part = self.catalog_client.part(part_id).recv(*base).await.unwrap();
 
             // Caution: Reading from the `resource` variable here may yield unexpected value.
