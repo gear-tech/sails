@@ -28,7 +28,7 @@ async fn counter_add_works() {
         .unwrap();
 
     let mut counter_client = fixture.counter_client();
-    // Listen for Counter events
+    // Listen to Counter events
     let mut counter_listener = fixture.counter_listener();
     let mut counter_events = counter_listener.listen().await.unwrap();
 
@@ -71,7 +71,7 @@ async fn counter_sub_works() {
     let demo_program_id = activation.recv().await.unwrap();
 
     let mut counter_client = fixture.counter_client();
-    // Listen for Counter events
+    // Listen to Counter events
     let mut counter_listener = fixture.counter_listener();
     let mut counter_events = counter_listener.listen().await.unwrap();
 
