@@ -1,6 +1,6 @@
 #![no_std]
 
-use sails_rtl::gstd::gprogram;
+use sails::gstd::gprogram;
 
 #[derive(Default)]
 pub struct Program;

@@ -1,6 +1,6 @@
 use errors::Error;
 use parts::{CollectionId, Part, PartId, SlotPart};
-use sails_rtl::{
+use sails::{
     collections::{BTreeMap, BTreeSet},
     gstd::{gservice, ExecContext},
     prelude::*,

@@ -5,7 +5,7 @@ edition = "2021"
 
 [dependencies]
 no-svcs-prog-app = { path = "../app" }
-sails-rtl.workspace = true
+sails.workspace = true
 
 [build-dependencies]
 gwasm-builder.workspace = true

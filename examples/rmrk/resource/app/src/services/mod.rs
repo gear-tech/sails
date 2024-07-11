@@ -1,7 +1,7 @@
 use crate::catalogs::traits::RmrkCatalog;
 use errors::{Error, Result};
 use resources::{ComposedResource, PartId, Resource, ResourceId};
-use sails_rtl::{
+use sails::{
     calls::Query,
     collections::HashMap,
     gstd::{calls::GStdArgs, gservice, ExecContext},
@@ -170,7 +170,7 @@ mod tests {
     use super::*;
     use crate::catalogs::{Error, Part};
     use resources::BasicResource;
-    use sails_rtl::{
+    use sails::{
         calls::{Remoting, RemotingAction},
         collections::BTreeMap,
         gstd::calls::GStdRemoting,

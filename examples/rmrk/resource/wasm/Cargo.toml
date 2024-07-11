@@ -15,6 +15,6 @@ sails-idl-gen.workspace = true
 [dev-dependencies]
 gtest.workspace = true
 rmrk-catalog = { path = "../../catalog/wasm" }
-sails-rtl.workspace = true
+sails.workspace = true
 thiserror-no-std.workspace = true
 tokio = { workspace = true, features = ["rt", "macros"] }

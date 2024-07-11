@@ -1431,8 +1431,8 @@ dependencies = [
  "gclient",
  "gear-wasm-builder",
  "gtest",
+ "sails",
  "sails-idl-gen",
- "sails-rtl",
  "tokio",
 ]
 
@@ -1442,7 +1442,7 @@ version = "0.1.0"
 dependencies = [
  "demo-walker",
  "gstd",
- "sails-rtl",
+ "sails",
 ]
 
 [[package]]
@@ -1450,15 +1450,15 @@ name = "demo-client"
 version = "0.1.0"
 dependencies = [
  "demo",
+ "sails",
  "sails-client-gen",
- "sails-rtl",
 ]
 
 [[package]]
 name = "demo-walker"
 version = "0.1.0"
 dependencies = [
- "sails-rtl",
+ "sails",
 ]
 
 [[package]]
@@ -4093,15 +4093,15 @@ version = "0.1.0"
 dependencies = [
  "gear-wasm-builder",
  "no-svcs-prog-app",
+ "sails",
  "sails-idl-gen",
- "sails-rtl",
 ]
 
 [[package]]
 name = "no-svcs-prog-app"
 version = "0.1.0"
 dependencies = [
- "sails-rtl",
+ "sails",
 ]
 
 [[package]]
@@ -4688,8 +4688,8 @@ version = "0.1.0"
 dependencies = [
  "gear-wasm-builder",
  "proxy-app",
+ "sails",
  "sails-idl-gen",
- "sails-rtl",
 ]
 
 [[package]]
@@ -4697,7 +4697,7 @@ name = "proxy-app"
 version = "0.1.0"
 dependencies = [
  "demo-client",
- "sails-rtl",
+ "sails",
 ]
 
 [[package]]
@@ -5025,7 +5025,7 @@ name = "rmrk-catalog-app"
 version = "0.1.0"
 dependencies = [
  "parity-scale-codec",
- "sails-rtl",
+ "sails",
  "scale-info",
 ]
 
@@ -5037,9 +5037,9 @@ dependencies = [
  "gtest",
  "rmrk-catalog",
  "rmrk-resource-app",
+ "sails",
  "sails-client-gen",
  "sails-idl-gen",
- "sails-rtl",
  "thiserror-no-std",
  "tokio",
 ]
@@ -5051,8 +5051,8 @@ dependencies = [
  "git-download",
  "gstd",
  "parity-scale-codec",
+ "sails",
  "sails-client-gen",
- "sails-rtl",
  "scale-info",
 ]
 
@@ -5191,6 +5191,26 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f3cb5ba0dc43242ce17de99c180e96db90b235b8a9fdc9543c96d2209116bd9f"
 
 [[package]]
+name = "sails"
+version = "0.0.1"
+dependencies = [
+ "futures",
+ "gclient",
+ "gear-core-errors",
+ "gprimitives",
+ "gstd",
+ "gtest",
+ "hashbrown 0.14.5",
+ "hex",
+ "parity-scale-codec",
+ "primitive-types",
+ "sails-macros",
+ "scale-info",
+ "spin",
+ "thiserror-no-std",
+]
+
+[[package]]
 name = "sails-client-gen"
 version = "0.0.1"
 dependencies = [
@@ -5209,8 +5229,8 @@ dependencies = [
  "convert_case 0.6.0",
  "handlebars",
  "insta",
+ "sails",
  "sails-idl-parser",
- "sails-rtl",
  "scale-info",
  "serde",
  "serde_json",
@@ -5234,8 +5254,8 @@ version = "0.0.1"
 dependencies = [
  "parity-scale-codec",
  "proc-macro-error",
+ "sails",
  "sails-macros-core",
- "sails-rtl",
  "scale-info",
  "tokio",
  "trybuild",
@@ -5254,26 +5274,6 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 2.0.69",
-]
-
-[[package]]
-name = "sails-rtl"
-version = "0.0.1"
-dependencies = [
- "futures",
- "gclient",
- "gear-core-errors",
- "gprimitives",
- "gstd",
- "gtest",
- "hashbrown 0.14.5",
- "hex",
- "parity-scale-codec",
- "primitive-types",
- "sails-macros",
- "scale-info",
- "spin",
- "thiserror-no-std",
 ]
 
 [[package]]

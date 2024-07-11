@@ -7,7 +7,6 @@ license = "GPL-3.0"
 [workspace]
 resolver = "2"
 members = [
-    "client-gen",
     "examples/demo/app",
     "examples/demo/client",
     "examples/demo/walker",
@@ -20,11 +19,12 @@ members = [
     "examples/rmrk/catalog/wasm",
     "examples/rmrk/resource/app",
     "examples/rmrk/resource/wasm",
-    "idl-gen",
-    "idl-parser",
-    "macros",
-    "macros/core",
-    "rtl",
+    "sails",
+    "sails/client-gen",
+    "sails/idl-gen",
+    "sails/idl-parser",
+    "sails/macros",
+    "sails/macros/core",
 ]
 
 [workspace.dependencies]
@@ -54,11 +54,12 @@ primitive-types = { version = "0.12", default-features = false }
 proc-macro-error = "1.0"
 proc-macro2 = { version = "1", default-features = false }
 quote = "1.0"
-sails-client-gen = { path = "client-gen" }
-sails-idl-gen = { path = "idl-gen" }
-sails-idl-parser = { path = "idl-parser" }
-sails-macros = { path = "macros" }
-sails-rtl = { path = "rtl" }
+sails = { path = "sails" }
+sails-client-gen = { path = "sails/client-gen" }
+sails-idl-gen = { path = "sails/idl-gen" }
+sails-idl-parser = { path = "sails/idl-parser" }
+sails-macros = { path = "sails/macros" }
+sails-macros-core = { path = "sails/macros/core" }
 scale-info = { version = "2.11", default-features = false }
 serde = "1.0"
 serde-json = { package = "serde_json", version = "1.0" }

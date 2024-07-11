@@ -1,10 +1,10 @@
 use crate::mammal::MammalService;
 use demo_walker::WalkerService;
-use sails_rtl::{gstd::gservice, prelude::*};
+use sails::{gstd::gservice, prelude::*};
 
 #[derive(Encode, TypeInfo)]
-#[codec(crate = sails_rtl::scale_codec)]
-#[scale_info(crate = sails_rtl::scale_info)]
+#[codec(crate = sails::scale_codec)]
+#[scale_info(crate = sails::scale_info)]
 enum DogEvents {
     Barked,
 }

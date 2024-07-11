@@ -46,7 +46,7 @@ jobs:
         run: cargo clippy --workspace --all-targets --locked -- -D warnings
 
       - name: Check IDL Parser For WASM With Clippy
-        run: cargo clippy --manifest-path=idl-parser/Cargo.toml --all-targets --locked --target=wasm32-unknown-unknown -- -D warnings
+        run: cargo clippy --manifest-path=sails/idl-parser/Cargo.toml --all-targets --locked --target=wasm32-unknown-unknown -- -D warnings
 
   test:
     name: Run Tests

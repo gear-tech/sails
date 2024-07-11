@@ -1,7 +1,7 @@
 #![no_std]
 
 use demo_walker as walker;
-use sails_rtl::{
+use sails::{
     cell::RefCell,
     gstd::{gprogram, groute},
 };

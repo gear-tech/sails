@@ -1,4 +1,4 @@
-use sails_rtl::{gstd::gservice, prelude::*};
+use sails::{gstd::gservice, prelude::*};
 
 // Service extension requires the service to implement `Clone`
 #[derive(Clone)]
