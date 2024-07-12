@@ -50,6 +50,7 @@ pub mod basic {
         #[codec(crate = sails::scale_codec)]
         pub struct DoThis(pub(crate) u32, pub(crate) super::MyParam);
         impl DoThis {
+            #[allow(dead_code)]
             pub fn encode_call(p1: u32, p2: super::MyParam) -> Vec<u8> {
                 let call = DoThis(p1, p2);
                 call.encode_call()
@@ -63,6 +64,7 @@ pub mod basic {
         #[codec(crate = sails::scale_codec)]
         pub struct DoThat(pub(crate) (u8, u32));
         impl DoThat {
+            #[allow(dead_code)]
             pub fn encode_call(p1: (u8, u32)) -> Vec<u8> {
                 let call = DoThat(p1);
                 call.encode_call()

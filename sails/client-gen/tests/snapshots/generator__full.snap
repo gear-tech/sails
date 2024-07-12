@@ -39,6 +39,7 @@ pub mod service_factory {
         #[codec(crate = sails::scale_codec)]
         pub struct New(pub(crate) u32);
         impl New {
+            #[allow(dead_code)]
             pub fn encode_call(a: u32) -> Vec<u8> {
                 let call = New(a);
                 call.encode_call()
@@ -108,6 +109,7 @@ pub mod service {
             pub(crate) super::ThisThatSvcAppTupleStruct,
         );
         impl DoThis {
+            #[allow(dead_code)]
             pub fn encode_call(
                 p1: u32,
                 p2: String,
@@ -126,6 +128,7 @@ pub mod service {
         #[codec(crate = sails::scale_codec)]
         pub struct DoThat(pub(crate) super::ThisThatSvcAppDoThatParam);
         impl DoThat {
+            #[allow(dead_code)]
             pub fn encode_call(param: super::ThisThatSvcAppDoThatParam) -> Vec<u8> {
                 let call = DoThat(param);
                 call.encode_call()
@@ -139,6 +142,7 @@ pub mod service {
         #[codec(crate = sails::scale_codec)]
         pub struct This(pub(crate) Vec<u16>);
         impl This {
+            #[allow(dead_code)]
             pub fn encode_call(v1: Vec<u16>) -> Vec<u8> {
                 let call = This(v1);
                 call.encode_call()
@@ -152,6 +156,7 @@ pub mod service {
         #[codec(crate = sails::scale_codec)]
         pub struct That(pub(crate) ());
         impl That {
+            #[allow(dead_code)]
             pub fn encode_call(v1: ()) -> Vec<u8> {
                 let call = That(v1);
                 call.encode_call()

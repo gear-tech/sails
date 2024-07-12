@@ -47,6 +47,7 @@ pub mod non_zero_params {
         #[codec(crate = sails::scale_codec)]
         pub struct DoThis(pub(crate) NonZeroU256, pub(crate) super::MyParam);
         impl DoThis {
+            #[allow(dead_code)]
             pub fn encode_call(p1: NonZeroU256, p2: super::MyParam) -> Vec<u8> {
                 let call = DoThis(p1, p2);
                 call.encode_call()
