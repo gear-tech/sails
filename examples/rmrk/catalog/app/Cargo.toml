@@ -5,5 +5,5 @@ edition = "2021"
 
 [dependencies]
 parity-scale-codec = { workspace = true, features = ["derive"] }
-sails-rtl.workspace = true
+sails.workspace = true
 scale-info = { workspace = true, features = ["derive"] }

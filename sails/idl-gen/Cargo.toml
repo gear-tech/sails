@@ -1,0 +1,20 @@
+[package]
+name = "sails-idl-gen"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+convert-case.workspace = true
+handlebars.workspace = true
+sails.workspace = true
+scale-info = { workspace = true, features = ["serde"] }
+serde.workspace = true
+serde-json.workspace = true
+thiserror.workspace = true
+
+[dev-dependencies]
+insta.workspace = true
+sails-idl-parser.workspace = true
+scale-info = { workspace = true, features = ["derive"] }

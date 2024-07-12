@@ -28,7 +28,7 @@ And then in your `lib.rs`:
 #![no_std]
 
 use gstd::debug;
-use sails_rtl::{gstd::gservice, prelude::*};
+use sails::{gstd::gservice, prelude::*};
 
 struct MyPing;
 

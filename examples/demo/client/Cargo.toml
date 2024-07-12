@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-sails-rtl.workspace = true
+sails.workspace = true
 
 [build-dependencies]
 demo = { path = "../wasm" }

@@ -5,7 +5,7 @@ edition = "2021"
 
 [dependencies]
 proxy-app = { path = "../app" }
-sails-rtl.workspace = true
+sails.workspace = true
 
 [build-dependencies]
 proxy-app = { path = "../app" }

@@ -6,7 +6,7 @@ include!(concat!(env!("OUT_DIR"), "/demo_client.rs"));
 #[cfg(test)]
 mod tests {
     use super::*;
-    use sails_rtl::{calls::*, prelude::*};
+    use sails::{calls::*, prelude::*};
 
     #[test]
     fn test_io_module_encode() {

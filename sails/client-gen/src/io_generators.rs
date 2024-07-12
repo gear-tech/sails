@@ -1,0 +1,98 @@
+use genco::prelude::*;
+use sails_idl_parser::{ast::visitor, ast::visitor::Visitor, ast::*};
+
+use crate::helpers::*;
+use crate::type_generators::generate_type_decl_with_path;
+
+pub(crate) struct IoModuleGenerator {
+    path: String,
+    tokens: rust::Tokens,
+}
+
+impl IoModuleGenerator {
+    pub(crate) fn new(path: String) -> Self {
+        Self {
+            path,
+            tokens: rust::Tokens::new(),
+        }
+    }
+
+    pub(crate) fn finalize(self) -> rust::Tokens {
+        quote!(
+            pub mod io {
+                use super::*;
+                use sails::calls::EncodeDecodeWithRoute;
+                $(self.tokens)
+            }
+        )
+    }
+}
+
+impl<'ast> Visitor<'ast> for IoModuleGenerator {
+    fn visit_service(&mut self, service: &'ast Service) {
+        visitor::accept_service(service, self);
+    }
+
+    fn visit_service_func(&mut self, func: &'ast ServiceFunc) {
+        let fn_name = func.name();
+        let (service_path_bytes, _) = path_bytes(&self.path);
+        let (route_bytes, _) = method_bytes(fn_name);
+
+        let struct_tokens = generate_io_struct(
+            fn_name,
+            func.params(),
+            Some(func.output()),
+            format!("{service_path_bytes}{route_bytes}").as_str(),
+        );
+
+        quote_in! { self.tokens =>
+            $struct_tokens
+        };
+    }
+}
+
+pub(crate) fn generate_io_struct(
+    fn_name: &str,
+    fn_params: &[FuncParam],
+    fn_output: Option<&TypeDecl>,
+    route_bytes: &str,
+) -> rust::Tokens {
+    let mut struct_param_tokens = rust::Tokens::new();
+    let mut encode_call_args = rust::Tokens::new();
+    let mut encode_call_names = rust::Tokens::new();
+    for func_param in fn_params {
+        let type_decl_code =
+            generate_type_decl_with_path(func_param.type_decl(), "super".to_owned());
+        quote_in! { struct_param_tokens =>
+            pub(crate) $(&type_decl_code),
+        };
+        quote_in! { encode_call_args =>
+            $(func_param.name()): $(&type_decl_code),
+        };
+        quote_in! { encode_call_names =>
+            $(func_param.name()),
+        };
+    }
+
+    let func_output = fn_output.map_or("()".to_owned(), |output| {
+        generate_type_decl_with_path(output, "super".to_owned())
+    });
+
+    quote! {
+        #[derive(Debug, Encode)]
+        #[codec(crate = sails::scale_codec)]
+        pub struct $fn_name ($struct_param_tokens);
+
+        impl $fn_name {
+            pub fn encode_call($encode_call_args) -> Vec<u8> {
+                let call = $fn_name($encode_call_names);
+                call.encode_call()
+            }
+        }
+
+        impl EncodeDecodeWithRoute for $fn_name {
+            const ROUTE: &'static [u8] = &[$route_bytes];
+            type Reply = $func_output;
+        }
+    }
+}

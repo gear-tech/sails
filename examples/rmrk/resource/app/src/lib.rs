@@ -1,6 +1,6 @@
 #![no_std]
 
-use sails_rtl::gstd::{
+use sails::gstd::{
     calls::{GStdArgs, GStdRemoting},
     gprogram, groute, GStdExecContext,
 };

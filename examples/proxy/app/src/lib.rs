@@ -1,7 +1,7 @@
 #![no_std]
 
 use demo_client::ThisThat;
-use sails_rtl::gstd::{
+use sails::gstd::{
     calls::{GStdArgs, GStdRemoting},
     gprogram,
 };

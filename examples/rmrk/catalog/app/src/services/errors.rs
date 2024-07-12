@@ -1,4 +1,4 @@
-use sails_rtl::{Encode, TypeInfo};
+use sails::{Encode, TypeInfo};
 
 #[derive(Encode, TypeInfo)]
 pub enum Error {
