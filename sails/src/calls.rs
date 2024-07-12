@@ -244,8 +244,8 @@ pub trait EncodeDecodeWithRoute: Encode {
         result
     }
 
-    fn decode_reply<T: AsRef<[u8]>>(value: T) -> Result<Self::Reply> {
-        let mut value = value.as_ref();
+    fn decode_reply(payload: impl AsRef<[u8]>) -> Result<Self::Reply> {
+        let mut value = payload.as_ref();
         if !value.starts_with(Self::ROUTE) {
             return Err(Error::Rtl(RtlError::ReplyPrefixMismatches));
         }
