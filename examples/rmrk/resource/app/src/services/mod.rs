@@ -171,7 +171,7 @@ mod tests {
     use crate::catalogs::{Error, Part};
     use resources::BasicResource;
     use sails::{
-        calls::{Call, Remoting, RemotingAction},
+        calls::{Action, Call, Remoting, Reply},
         collections::BTreeMap,
         gstd::calls::GStdRemoting,
         ActorId,
@@ -227,6 +227,99 @@ mod tests {
         _a: PhantomData<A>,
     }
 
+    struct MockCall<A, R> {
+        _r: PhantomData<R>,
+        _a: PhantomData<A>,
+    }
+
+    impl<A, R> MockCall<A, R> {
+        pub fn new() -> Self {
+            Self {
+                _r: PhantomData,
+                _a: PhantomData,
+            }
+        }
+    }
+
+    impl<A, R> Call<A, R> for MockCall<A, R> {
+        async fn send(self, _target: ActorId) -> sails::errors::Result<impl Reply<R>> {
+            Ok(MockReply::<R>::new())
+        }
+    }
+
+    impl<A, R> Action<A> for MockCall<A, R> {
+        fn with_value(self, _value: ValueUnit) -> Self {
+            todo!()
+        }
+
+        fn with_args(self, _args: A) -> Self {
+            todo!()
+        }
+
+        fn value(&self) -> ValueUnit {
+            todo!()
+        }
+
+        fn args(&self) -> &A {
+            todo!()
+        }
+    }
+
+    struct MockReply<R> {
+        _r: PhantomData<R>,
+    }
+
+    impl<R> MockReply<R> {
+        pub fn new() -> Self {
+            Self { _r: PhantomData }
+        }
+    }
+
+    impl<R> Reply<R> for MockReply<R> {
+        async fn recv(self) -> sails::errors::Result<R> {
+            unimplemented!()
+        }
+    }
+
+    #[derive(Default)]
+    struct MockQuery<A, R> {
+        _r: PhantomData<R>,
+        _a: PhantomData<A>,
+    }
+
+    impl<A, R> MockQuery<A, R> {
+        pub fn new() -> Self {
+            Self {
+                _r: PhantomData,
+                _a: PhantomData,
+            }
+        }
+    }
+
+    impl<A, R> Query<A, R> for MockQuery<A, R> {
+        async fn recv(self, _target: ActorId) -> sails::errors::Result<R> {
+            unimplemented!()
+        }
+    }
+
+    impl<A, R> Action<A> for MockQuery<A, R> {
+        fn with_value(self, _value: ValueUnit) -> Self {
+            todo!()
+        }
+
+        fn with_args(self, _args: A) -> Self {
+            todo!()
+        }
+
+        fn value(&self) -> ValueUnit {
+            todo!()
+        }
+
+        fn args(&self) -> &A {
+            todo!()
+        }
+    }
+
     impl<R, A> RmrkCatalog<A> for MockCatalogClient<R, A>
     where
         R: Remoting<A>,
@@ -236,11 +329,11 @@ mod tests {
             &mut self,
             _parts: BTreeMap<u32, Part>,
         ) -> impl Call<A, Result<BTreeMap<u32, Part>, Error>> {
-            unimplemented!()
+            MockCall::new()
         }
 
         fn remove_parts(&mut self, _part_ids: Vec<u32>) -> impl Call<A, Result<Vec<u32>, Error>> {
-            unimplemented!()
+            MockCall::new()
         }
 
         fn add_equippables(
@@ -248,7 +341,7 @@ mod tests {
             _part_id: u32,
             _collection_ids: Vec<ActorId>,
         ) -> impl Call<A, Result<(u32, Vec<ActorId>), Error>> {
-            unimplemented!()
+            MockCall::new()
         }
 
         fn remove_equippable(
@@ -256,19 +349,19 @@ mod tests {
             _part_id: u32,
             _collection_id: ActorId,
         ) -> impl Call<A, Result<(u32, ActorId), Error>> {
-            unimplemented!()
+            MockCall::new()
         }
 
         fn reset_equippables(&mut self, _part_id: u32) -> impl Call<A, Result<(), Error>> {
-            unimplemented!()
+            MockCall::new()
         }
 
         fn set_equippables_to_all(&mut self, _part_id: u32) -> impl Call<A, Result<(), Error>> {
-            unimplemented!()
+            MockCall::new()
         }
 
         fn part(&self, _part_id: u32) -> impl Query<A, Option<Part>> {
-            unimplemented!()
+            MockQuery::new()
         }
 
         fn equippable(
@@ -276,7 +369,7 @@ mod tests {
             _part_id: u32,
             _collection_id: ActorId,
         ) -> impl Query<A, Result<bool, Error>> {
-            unimplemented!()
+            MockQuery::new()
         }
     }
 }
