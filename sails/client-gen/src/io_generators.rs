@@ -84,6 +84,7 @@ pub(crate) fn generate_io_struct(
         pub struct $fn_name ($struct_param_tokens);
 
         impl $fn_name {
+            #[allow(dead_code)]
             pub fn encode_call($encode_call_args) -> Vec<u8> {
                 let call = $fn_name($encode_call_names);
                 call.encode_call()
