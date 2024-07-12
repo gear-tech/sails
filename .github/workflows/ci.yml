@@ -40,13 +40,13 @@ jobs:
           sudo cp binaryen-$BINARYEN_VERSION/bin/wasm-opt /usr/bin/
 
       - name: Check Code Formatting
-        run: cargo fmt --all --check
+        run: __GEAR_WASM_BUILDER_NO_FEATURES_TRACKING=1 cargo fmt --all --check
 
       - name: Check Code With Clippy
-        run: cargo clippy --workspace --all-targets --locked -- -D warnings
+        run: __GEAR_WASM_BUILDER_NO_FEATURES_TRACKING=1 cargo clippy --workspace --all-targets --locked -- -D warnings
 
       - name: Check IDL Parser For WASM With Clippy
-        run: cargo clippy --manifest-path=sails/idl-parser/Cargo.toml --all-targets --locked --target=wasm32-unknown-unknown -- -D warnings
+        run: __GEAR_WASM_BUILDER_NO_FEATURES_TRACKING=1 cargo clippy --manifest-path=sails/idl-parser/Cargo.toml --all-targets --locked --target=wasm32-unknown-unknown -- -D warnings
 
   test:
     name: Run Tests
@@ -78,7 +78,7 @@ jobs:
           sudo cp binaryen-$BINARYEN_VERSION/bin/wasm-opt /usr/bin/
 
       - name: Run Tests
-        run: cargo test --workspace --all-targets --locked --no-fail-fast
+        run: __GEAR_WASM_BUILDER_NO_FEATURES_TRACKING=1 cargo test --workspace --all-targets --locked --no-fail-fast
 
       - name: Download Gear node
         run: |
@@ -89,4 +89,4 @@ jobs:
       - name: Run Integration Tests on Gear Node
         env:
           GEAR_PATH: /usr/bin/gear
-        run: cargo test -p demo --test gclient --locked --no-fail-fast -- --ignored
+        run: __GEAR_WASM_BUILDER_NO_FEATURES_TRACKING=1 cargo test -p demo --test gclient --locked --no-fail-fast -- --ignored
