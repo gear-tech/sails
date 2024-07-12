@@ -41,7 +41,10 @@ pub mod ffi {
     pub use core::ffi::*;
 }
 
-pub use crate::types::*;
+pub use crate::{
+    gstd::{gprogram, groute, gservice},
+    types::*,
+};
 
 pub use parity_scale_codec::{self as scale_codec, Decode, Encode, EncodeLike};
 pub use scale_info::{self as scale_info, TypeInfo};
