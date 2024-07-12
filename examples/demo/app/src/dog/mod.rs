@@ -1,6 +1,6 @@
 use crate::mammal::MammalService;
 use demo_walker::WalkerService;
-use sails::{gstd::gservice, prelude::*};
+use sails::prelude::*;
 
 #[derive(Encode, TypeInfo)]
 #[codec(crate = sails::scale_codec)]

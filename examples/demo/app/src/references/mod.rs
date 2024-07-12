@@ -1,5 +1,5 @@
 use core::ptr;
-use sails::{gstd::gservice, prelude::*};
+use sails::prelude::*;
 
 // This example makes use of fully incapsulated static state.
 // It is safe to use this approach in WASM envrionment due to its single-threaded nature.
