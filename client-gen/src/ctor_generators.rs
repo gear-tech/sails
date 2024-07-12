@@ -4,8 +4,7 @@ use rust::Tokens;
 use sails_idl_parser::{ast::visitor, ast::visitor::Visitor, ast::*};
 
 use crate::{
-    helpers::*,
-    type_generators::{generate_type_decl_code, generate_type_decl_with_path},
+    helpers::*, io_generators::generate_io_struct, type_generators::generate_type_decl_code,
 };
 
 pub(crate) struct CtorFactoryGenerator {
@@ -90,25 +89,10 @@ impl<'ast> Visitor<'ast> for CtorFactoryGenerator {
         };
 
         let route_bytes = path_bytes(fn_name).0;
-
-        let mut func_param_tokens = rust::Tokens::new();
-        for func_param in func.params() {
-            let type_decl_code =
-                generate_type_decl_with_path(func_param.type_decl(), "super".to_owned());
-            quote_in! { func_param_tokens =>
-                pub $(type_decl_code),
-            };
-        }
+        let struct_tokens = generate_io_struct(fn_name, func.params(), None, route_bytes.as_str());
 
         quote_in! { self.io_tokens =>
-            #[derive(Debug, Encode)]
-            #[codec(crate = sails_rtl::scale_codec)]
-            pub struct $fn_name ($func_param_tokens);
-
-            impl EncodeDecodeWithRoute for $fn_name {
-                const ROUTE: &'static [u8] = &[$route_bytes];
-                type Reply = ();
-            }
+            $struct_tokens
         };
     }
 

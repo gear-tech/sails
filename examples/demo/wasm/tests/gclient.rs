@@ -113,8 +113,7 @@ async fn ping_pong_works() {
 
     // Use generated `io` module for encoding/decoding calls and replies
     // and send/receive bytes using `gsdk` native means (remoting is just a wrapper)
-    let ping_call = ping_pong::io::Ping("ping".into());
-    let ping_call_payload = ping_call.encode_call();
+    let ping_call_payload = ping_pong::io::Ping::encode_call("ping".into());
 
     // Act
 

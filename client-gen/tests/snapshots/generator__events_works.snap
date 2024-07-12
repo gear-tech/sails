@@ -48,7 +48,13 @@ pub mod service_with_events {
         use sails_rtl::calls::EncodeDecodeWithRoute;
         #[derive(Debug, Encode)]
         #[codec(crate = sails_rtl::scale_codec)]
-        pub struct DoThis(pub NonZeroU256, pub super::MyParam);
+        pub struct DoThis(pub(crate) NonZeroU256, pub(crate) super::MyParam);
+        impl DoThis {
+            pub fn encode_call(p1: NonZeroU256, p2: super::MyParam) -> Vec<u8> {
+                let call = DoThis(p1, p2);
+                call.encode_call()
+            }
+        }
         impl EncodeDecodeWithRoute for DoThis {
             const ROUTE: &'static [u8] = &[24, 68, 111, 84, 104, 105, 115];
             type Reply = NonZeroU64;

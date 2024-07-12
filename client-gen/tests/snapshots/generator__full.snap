@@ -37,7 +37,13 @@ pub mod service_factory {
         use sails_rtl::calls::EncodeDecodeWithRoute;
         #[derive(Debug, Encode)]
         #[codec(crate = sails_rtl::scale_codec)]
-        pub struct New(pub u32);
+        pub struct New(pub(crate) u32);
+        impl New {
+            pub fn encode_call(a: u32) -> Vec<u8> {
+                let call = New(a);
+                call.encode_call()
+            }
+        }
         impl EncodeDecodeWithRoute for New {
             const ROUTE: &'static [u8] = &[12, 78, 101, 119];
             type Reply = ();
@@ -96,32 +102,61 @@ pub mod service {
         #[derive(Debug, Encode)]
         #[codec(crate = sails_rtl::scale_codec)]
         pub struct DoThis(
-            pub u32,
-            pub String,
-            pub (Option<String>, u8),
-            pub super::ThisThatSvcAppTupleStruct,
+            pub(crate) u32,
+            pub(crate) String,
+            pub(crate) (Option<String>, u8),
+            pub(crate) super::ThisThatSvcAppTupleStruct,
         );
+        impl DoThis {
+            pub fn encode_call(
+                p1: u32,
+                p2: String,
+                p3: (Option<String>, u8),
+                p4: super::ThisThatSvcAppTupleStruct,
+            ) -> Vec<u8> {
+                let call = DoThis(p1, p2, p3, p4);
+                call.encode_call()
+            }
+        }
         impl EncodeDecodeWithRoute for DoThis {
             const ROUTE: &'static [u8] = &[24, 68, 111, 84, 104, 105, 115];
             type Reply = (String, u32);
         }
         #[derive(Debug, Encode)]
         #[codec(crate = sails_rtl::scale_codec)]
-        pub struct DoThat(pub super::ThisThatSvcAppDoThatParam);
+        pub struct DoThat(pub(crate) super::ThisThatSvcAppDoThatParam);
+        impl DoThat {
+            pub fn encode_call(param: super::ThisThatSvcAppDoThatParam) -> Vec<u8> {
+                let call = DoThat(param);
+                call.encode_call()
+            }
+        }
         impl EncodeDecodeWithRoute for DoThat {
             const ROUTE: &'static [u8] = &[24, 68, 111, 84, 104, 97, 116];
             type Reply = Result<(String, u32), (String,)>;
         }
         #[derive(Debug, Encode)]
         #[codec(crate = sails_rtl::scale_codec)]
-        pub struct This(pub Vec<u16>);
+        pub struct This(pub(crate) Vec<u16>);
+        impl This {
+            pub fn encode_call(v1: Vec<u16>) -> Vec<u8> {
+                let call = This(v1);
+                call.encode_call()
+            }
+        }
         impl EncodeDecodeWithRoute for This {
             const ROUTE: &'static [u8] = &[16, 84, 104, 105, 115];
             type Reply = u32;
         }
         #[derive(Debug, Encode)]
         #[codec(crate = sails_rtl::scale_codec)]
-        pub struct That(pub ());
+        pub struct That(pub(crate) ());
+        impl That {
+            pub fn encode_call(v1: ()) -> Vec<u8> {
+                let call = That(v1);
+                call.encode_call()
+            }
+        }
         impl EncodeDecodeWithRoute for That {
             const ROUTE: &'static [u8] = &[16, 84, 104, 97, 116];
             type Reply = Result<String, String>;

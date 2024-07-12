@@ -48,14 +48,26 @@ pub mod basic {
         use sails_rtl::calls::EncodeDecodeWithRoute;
         #[derive(Debug, Encode)]
         #[codec(crate = sails_rtl::scale_codec)]
-        pub struct DoThis(pub u32, pub super::MyParam);
+        pub struct DoThis(pub(crate) u32, pub(crate) super::MyParam);
+        impl DoThis {
+            pub fn encode_call(p1: u32, p2: super::MyParam) -> Vec<u8> {
+                let call = DoThis(p1, p2);
+                call.encode_call()
+            }
+        }
         impl EncodeDecodeWithRoute for DoThis {
             const ROUTE: &'static [u8] = &[24, 68, 111, 84, 104, 105, 115];
             type Reply = u16;
         }
         #[derive(Debug, Encode)]
         #[codec(crate = sails_rtl::scale_codec)]
-        pub struct DoThat(pub (u8, u32));
+        pub struct DoThat(pub(crate) (u8, u32));
+        impl DoThat {
+            pub fn encode_call(p1: (u8, u32)) -> Vec<u8> {
+                let call = DoThat(p1);
+                call.encode_call()
+            }
+        }
         impl EncodeDecodeWithRoute for DoThat {
             const ROUTE: &'static [u8] = &[24, 68, 111, 84, 104, 97, 116];
             type Reply = u8;

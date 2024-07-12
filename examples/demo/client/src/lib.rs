@@ -10,12 +10,11 @@ mod tests {
 
     #[test]
     fn test_io_module_encode() {
-        let do_that = this_that::io::DoThat(DoThatParam {
+        let bytes = this_that::io::DoThat::encode_call(DoThatParam {
             p1: NonZeroU32::MAX,
             p2: 123.into(),
             p3: ManyVariants::One,
         });
-        let bytes = do_that.encode_call();
 
         assert_eq!(
             bytes,

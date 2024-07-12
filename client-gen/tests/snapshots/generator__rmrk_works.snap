@@ -40,6 +40,12 @@ pub mod rmrk_catalog_factory {
         #[derive(Debug, Encode)]
         #[codec(crate = sails_rtl::scale_codec)]
         pub struct New();
+        impl New {
+            pub fn encode_call() -> Vec<u8> {
+                let call = New();
+                call.encode_call()
+            }
+        }
         impl EncodeDecodeWithRoute for New {
             const ROUTE: &'static [u8] = &[12, 78, 101, 119];
             type Reply = ();
@@ -133,7 +139,13 @@ pub mod rmrk_catalog {
         use sails_rtl::calls::EncodeDecodeWithRoute;
         #[derive(Debug, Encode)]
         #[codec(crate = sails_rtl::scale_codec)]
-        pub struct AddEquippables(pub u32, pub Vec<ActorId>);
+        pub struct AddEquippables(pub(crate) u32, pub(crate) Vec<ActorId>);
+        impl AddEquippables {
+            pub fn encode_call(part_id: u32, collection_ids: Vec<ActorId>) -> Vec<u8> {
+                let call = AddEquippables(part_id, collection_ids);
+                call.encode_call()
+            }
+        }
         impl EncodeDecodeWithRoute for AddEquippables {
             const ROUTE: &'static [u8] = &[
                 44, 82, 109, 114, 107, 67, 97, 116, 97, 108, 111, 103, 56, 65, 100, 100, 69, 113,
@@ -143,7 +155,13 @@ pub mod rmrk_catalog {
         }
         #[derive(Debug, Encode)]
         #[codec(crate = sails_rtl::scale_codec)]
-        pub struct AddParts(pub BTreeMap<u32, super::Part>);
+        pub struct AddParts(pub(crate) BTreeMap<u32, super::Part>);
+        impl AddParts {
+            pub fn encode_call(parts: BTreeMap<u32, super::Part>) -> Vec<u8> {
+                let call = AddParts(parts);
+                call.encode_call()
+            }
+        }
         impl EncodeDecodeWithRoute for AddParts {
             const ROUTE: &'static [u8] = &[
                 44, 82, 109, 114, 107, 67, 97, 116, 97, 108, 111, 103, 32, 65, 100, 100, 80, 97,
@@ -153,7 +171,13 @@ pub mod rmrk_catalog {
         }
         #[derive(Debug, Encode)]
         #[codec(crate = sails_rtl::scale_codec)]
-        pub struct RemoveEquippable(pub u32, pub ActorId);
+        pub struct RemoveEquippable(pub(crate) u32, pub(crate) ActorId);
+        impl RemoveEquippable {
+            pub fn encode_call(part_id: u32, collection_id: ActorId) -> Vec<u8> {
+                let call = RemoveEquippable(part_id, collection_id);
+                call.encode_call()
+            }
+        }
         impl EncodeDecodeWithRoute for RemoveEquippable {
             const ROUTE: &'static [u8] = &[
                 44, 82, 109, 114, 107, 67, 97, 116, 97, 108, 111, 103, 64, 82, 101, 109, 111, 118,
@@ -163,7 +187,13 @@ pub mod rmrk_catalog {
         }
         #[derive(Debug, Encode)]
         #[codec(crate = sails_rtl::scale_codec)]
-        pub struct RemoveParts(pub Vec<u32>);
+        pub struct RemoveParts(pub(crate) Vec<u32>);
+        impl RemoveParts {
+            pub fn encode_call(part_ids: Vec<u32>) -> Vec<u8> {
+                let call = RemoveParts(part_ids);
+                call.encode_call()
+            }
+        }
         impl EncodeDecodeWithRoute for RemoveParts {
             const ROUTE: &'static [u8] = &[
                 44, 82, 109, 114, 107, 67, 97, 116, 97, 108, 111, 103, 44, 82, 101, 109, 111, 118,
@@ -173,7 +203,13 @@ pub mod rmrk_catalog {
         }
         #[derive(Debug, Encode)]
         #[codec(crate = sails_rtl::scale_codec)]
-        pub struct ResetEquippables(pub u32);
+        pub struct ResetEquippables(pub(crate) u32);
+        impl ResetEquippables {
+            pub fn encode_call(part_id: u32) -> Vec<u8> {
+                let call = ResetEquippables(part_id);
+                call.encode_call()
+            }
+        }
         impl EncodeDecodeWithRoute for ResetEquippables {
             const ROUTE: &'static [u8] = &[
                 44, 82, 109, 114, 107, 67, 97, 116, 97, 108, 111, 103, 64, 82, 101, 115, 101, 116,
@@ -183,7 +219,13 @@ pub mod rmrk_catalog {
         }
         #[derive(Debug, Encode)]
         #[codec(crate = sails_rtl::scale_codec)]
-        pub struct SetEquippablesToAll(pub u32);
+        pub struct SetEquippablesToAll(pub(crate) u32);
+        impl SetEquippablesToAll {
+            pub fn encode_call(part_id: u32) -> Vec<u8> {
+                let call = SetEquippablesToAll(part_id);
+                call.encode_call()
+            }
+        }
         impl EncodeDecodeWithRoute for SetEquippablesToAll {
             const ROUTE: &'static [u8] = &[
                 44, 82, 109, 114, 107, 67, 97, 116, 97, 108, 111, 103, 76, 83, 101, 116, 69, 113,
@@ -193,7 +235,13 @@ pub mod rmrk_catalog {
         }
         #[derive(Debug, Encode)]
         #[codec(crate = sails_rtl::scale_codec)]
-        pub struct Equippable(pub u32, pub ActorId);
+        pub struct Equippable(pub(crate) u32, pub(crate) ActorId);
+        impl Equippable {
+            pub fn encode_call(part_id: u32, collection_id: ActorId) -> Vec<u8> {
+                let call = Equippable(part_id, collection_id);
+                call.encode_call()
+            }
+        }
         impl EncodeDecodeWithRoute for Equippable {
             const ROUTE: &'static [u8] = &[
                 44, 82, 109, 114, 107, 67, 97, 116, 97, 108, 111, 103, 40, 69, 113, 117, 105, 112,
@@ -203,7 +251,13 @@ pub mod rmrk_catalog {
         }
         #[derive(Debug, Encode)]
         #[codec(crate = sails_rtl::scale_codec)]
-        pub struct Part(pub u32);
+        pub struct Part(pub(crate) u32);
+        impl Part {
+            pub fn encode_call(part_id: u32) -> Vec<u8> {
+                let call = Part(part_id);
+                call.encode_call()
+            }
+        }
         impl EncodeDecodeWithRoute for Part {
             const ROUTE: &'static [u8] = &[
                 44, 82, 109, 114, 107, 67, 97, 116, 97, 108, 111, 103, 16, 80, 97, 114, 116,
