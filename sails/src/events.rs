@@ -24,7 +24,7 @@ impl<R: Listener<Vec<u8>>, E> RemotingListener<R, E> {
     }
 }
 
-impl<R: Listener<Vec<u8>>, E: DecodeEventWithRoute> Listener<E> for RemotingListener<R, E> {
+impl<R: Listener<Vec<u8>>, E: EventIo> Listener<E> for RemotingListener<R, E> {
     async fn listen(&mut self) -> Result<impl Stream<Item = (ActorId, E)> + Unpin> {
         let stream = self.remoting.listen().await?;
         let map = stream.filter_map(move |(actor_id, payload)| async move {
@@ -34,7 +34,7 @@ impl<R: Listener<Vec<u8>>, E: DecodeEventWithRoute> Listener<E> for RemotingList
     }
 }
 
-pub trait DecodeEventWithRoute: Decode {
+pub trait EventIo: Decode {
     const ROUTE: &'static [u8];
     const EVENT_NAMES: &'static [&'static [u8]];
 

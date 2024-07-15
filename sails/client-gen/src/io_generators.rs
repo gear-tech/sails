@@ -21,7 +21,7 @@ impl IoModuleGenerator {
         quote!(
             pub mod io {
                 use super::*;
-                use sails::calls::EncodeDecodeWithRoute;
+                use sails::calls::ActionIo;
                 $(self.tokens)
             }
         )
@@ -91,7 +91,7 @@ pub(crate) fn generate_io_struct(
             }
         }
 
-        impl EncodeDecodeWithRoute for $fn_name {
+        impl ActionIo for $fn_name {
             const ROUTE: &'static [u8] = &[$route_bytes];
             type Reply = $func_output;
         }

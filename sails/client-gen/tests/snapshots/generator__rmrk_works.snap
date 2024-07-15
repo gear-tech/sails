@@ -36,7 +36,7 @@ pub mod rmrk_catalog_factory {
     use super::*;
     pub mod io {
         use super::*;
-        use sails::calls::EncodeDecodeWithRoute;
+        use sails::calls::ActionIo;
         #[derive(Debug, Encode)]
         #[codec(crate = sails::scale_codec)]
         pub struct New();
@@ -47,7 +47,7 @@ pub mod rmrk_catalog_factory {
                 call.encode_call()
             }
         }
-        impl EncodeDecodeWithRoute for New {
+        impl ActionIo for New {
             const ROUTE: &'static [u8] = &[12, 78, 101, 119];
             type Reply = ();
         }
@@ -137,7 +137,7 @@ pub mod rmrk_catalog {
     use super::*;
     pub mod io {
         use super::*;
-        use sails::calls::EncodeDecodeWithRoute;
+        use sails::calls::ActionIo;
         #[derive(Debug, Encode)]
         #[codec(crate = sails::scale_codec)]
         pub struct AddEquippables(pub(crate) u32, pub(crate) Vec<ActorId>);
@@ -148,7 +148,7 @@ pub mod rmrk_catalog {
                 call.encode_call()
             }
         }
-        impl EncodeDecodeWithRoute for AddEquippables {
+        impl ActionIo for AddEquippables {
             const ROUTE: &'static [u8] = &[
                 44, 82, 109, 114, 107, 67, 97, 116, 97, 108, 111, 103, 56, 65, 100, 100, 69, 113,
                 117, 105, 112, 112, 97, 98, 108, 101, 115,
@@ -165,7 +165,7 @@ pub mod rmrk_catalog {
                 call.encode_call()
             }
         }
-        impl EncodeDecodeWithRoute for AddParts {
+        impl ActionIo for AddParts {
             const ROUTE: &'static [u8] = &[
                 44, 82, 109, 114, 107, 67, 97, 116, 97, 108, 111, 103, 32, 65, 100, 100, 80, 97,
                 114, 116, 115,
@@ -182,7 +182,7 @@ pub mod rmrk_catalog {
                 call.encode_call()
             }
         }
-        impl EncodeDecodeWithRoute for RemoveEquippable {
+        impl ActionIo for RemoveEquippable {
             const ROUTE: &'static [u8] = &[
                 44, 82, 109, 114, 107, 67, 97, 116, 97, 108, 111, 103, 64, 82, 101, 109, 111, 118,
                 101, 69, 113, 117, 105, 112, 112, 97, 98, 108, 101,
@@ -199,7 +199,7 @@ pub mod rmrk_catalog {
                 call.encode_call()
             }
         }
-        impl EncodeDecodeWithRoute for RemoveParts {
+        impl ActionIo for RemoveParts {
             const ROUTE: &'static [u8] = &[
                 44, 82, 109, 114, 107, 67, 97, 116, 97, 108, 111, 103, 44, 82, 101, 109, 111, 118,
                 101, 80, 97, 114, 116, 115,
@@ -216,7 +216,7 @@ pub mod rmrk_catalog {
                 call.encode_call()
             }
         }
-        impl EncodeDecodeWithRoute for ResetEquippables {
+        impl ActionIo for ResetEquippables {
             const ROUTE: &'static [u8] = &[
                 44, 82, 109, 114, 107, 67, 97, 116, 97, 108, 111, 103, 64, 82, 101, 115, 101, 116,
                 69, 113, 117, 105, 112, 112, 97, 98, 108, 101, 115,
@@ -233,7 +233,7 @@ pub mod rmrk_catalog {
                 call.encode_call()
             }
         }
-        impl EncodeDecodeWithRoute for SetEquippablesToAll {
+        impl ActionIo for SetEquippablesToAll {
             const ROUTE: &'static [u8] = &[
                 44, 82, 109, 114, 107, 67, 97, 116, 97, 108, 111, 103, 76, 83, 101, 116, 69, 113,
                 117, 105, 112, 112, 97, 98, 108, 101, 115, 84, 111, 65, 108, 108,
@@ -250,7 +250,7 @@ pub mod rmrk_catalog {
                 call.encode_call()
             }
         }
-        impl EncodeDecodeWithRoute for Equippable {
+        impl ActionIo for Equippable {
             const ROUTE: &'static [u8] = &[
                 44, 82, 109, 114, 107, 67, 97, 116, 97, 108, 111, 103, 40, 69, 113, 117, 105, 112,
                 112, 97, 98, 108, 101,
@@ -267,7 +267,7 @@ pub mod rmrk_catalog {
                 call.encode_call()
             }
         }
-        impl EncodeDecodeWithRoute for Part {
+        impl ActionIo for Part {
             const ROUTE: &'static [u8] = &[
                 44, 82, 109, 114, 107, 67, 97, 116, 97, 108, 111, 103, 16, 80, 97, 114, 116,
             ];

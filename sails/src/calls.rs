@@ -48,26 +48,24 @@ pub trait Reply<TReply> {
     async fn recv(self) -> Result<TReply>;
 }
 
-pub struct CallTicket<TReplyFuture, TParams, TReply> {
+pub struct CallTicket<TReplyFuture, TParams> {
     reply_future: TReplyFuture,
     _params: PhantomData<TParams>,
-    _reply: PhantomData<TReply>,
 }
 
-impl<TReplyFuture, TParams, TReply> CallTicket<TReplyFuture, TParams, TReply> {
+impl<TReplyFuture, TParams> CallTicket<TReplyFuture, TParams> {
     pub(crate) fn new(reply_future: TReplyFuture) -> Self {
         Self {
             reply_future,
             _params: PhantomData,
-            _reply: PhantomData,
         }
     }
 }
 
-impl<TReplyFuture, TParams, TReply> Reply<TReply> for CallTicket<TReplyFuture, TParams, TReply>
+impl<TReplyFuture, TParams, TReply> Reply<TReply> for CallTicket<TReplyFuture, TParams>
 where
     TReplyFuture: Future<Output = Result<Vec<u8>>>,
-    TParams: EncodeDecodeWithRoute<Reply = TReply>,
+    TParams: ActionIo<Reply = TReply>,
 {
     async fn recv(self) -> Result<TReply> {
         let reply_bytes = self.reply_future.await?;
@@ -92,7 +90,7 @@ impl<TReplyFuture, TParams> ActivationTicket<TReplyFuture, TParams> {
 impl<TReplyFuture, TParams> Reply<ActorId> for ActivationTicket<TReplyFuture, TParams>
 where
     TReplyFuture: Future<Output = Result<(ActorId, Vec<u8>)>>,
-    TParams: EncodeDecodeWithRoute<Reply = ()>,
+    TParams: ActionIo<Reply = ()>,
 {
     async fn recv(self) -> Result<ActorId> {
         let (actor_id, payload) = self.reply_future.await?;
@@ -129,15 +127,14 @@ pub trait Remoting<TArgs> {
     ) -> Result<Vec<u8>>;
 }
 
-pub struct RemotingAction<TRemoting, TArgs, TParams, TReply> {
+pub struct RemotingAction<TRemoting, TArgs, TParams> {
     remoting: TRemoting,
     params: TParams,
     value: ValueUnit,
     args: TArgs,
-    _treply: PhantomData<TReply>,
 }
 
-impl<TRemoting, TArgs, TParams, TReply> RemotingAction<TRemoting, TArgs, TParams, TReply>
+impl<TRemoting, TArgs, TParams> RemotingAction<TRemoting, TArgs, TParams>
 where
     TArgs: Default,
 {
@@ -147,14 +144,11 @@ where
             params,
             value: Default::default(),
             args: Default::default(),
-            _treply: PhantomData,
         }
     }
 }
 
-impl<TRemoting, TArgs, TParams, TReply> Action<TArgs>
-    for RemotingAction<TRemoting, TArgs, TParams, TReply>
-{
+impl<TRemoting, TArgs, TParams> Action<TArgs> for RemotingAction<TRemoting, TArgs, TParams> {
     fn with_value(self, value: ValueUnit) -> Self {
         Self { value, ..self }
     }
@@ -173,26 +167,25 @@ impl<TRemoting, TArgs, TParams, TReply> Action<TArgs>
 }
 
 impl<TRemoting, TArgs, TParams, TReply> Call<TArgs, TReply>
-    for RemotingAction<TRemoting, TArgs, TParams, TReply>
+    for RemotingAction<TRemoting, TArgs, TParams>
 where
     TRemoting: Remoting<TArgs>,
-    TParams: EncodeDecodeWithRoute<Reply = TReply>,
+    TParams: ActionIo<Reply = TReply>,
 {
-    async fn send(self, target: ActorId) -> Result<impl Reply<TReply>> {
+    async fn send(self, target: ActorId) -> Result<impl Reply<TParams::Reply>> {
         let payload = self.params.encode_call();
         let reply_future = self
             .remoting
             .message(target, payload, self.value, self.args)
             .await?;
-        Ok(CallTicket::<_, TParams, TReply>::new(reply_future))
+        Ok(CallTicket::<_, TParams>::new(reply_future))
     }
 }
 
-impl<TRemoting, TArgs, TParams> Activation<TArgs>
-    for RemotingAction<TRemoting, TArgs, TParams, ActorId>
+impl<TRemoting, TArgs, TParams> Activation<TArgs> for RemotingAction<TRemoting, TArgs, TParams>
 where
     TRemoting: Remoting<TArgs>,
-    TParams: EncodeDecodeWithRoute<Reply = ()>,
+    TParams: ActionIo<Reply = ()>,
 {
     async fn send(self, code_id: CodeId, salt: impl AsRef<[u8]>) -> Result<impl Reply<ActorId>> {
         let payload = self.params.encode_call();
@@ -205,10 +198,10 @@ where
 }
 
 impl<TRemoting, TArgs, TParams, TReply> Query<TArgs, TReply>
-    for RemotingAction<TRemoting, TArgs, TParams, TReply>
+    for RemotingAction<TRemoting, TArgs, TParams>
 where
     TRemoting: Remoting<TArgs>,
-    TParams: EncodeDecodeWithRoute<Reply = TReply>,
+    TParams: ActionIo<Reply = TReply>,
 {
     async fn recv(self, target: ActorId) -> Result<TReply> {
         let payload = self.params.encode_call();
@@ -220,7 +213,7 @@ where
     }
 }
 
-pub trait EncodeDecodeWithRoute: Encode {
+pub trait ActionIo: Encode {
     const ROUTE: &'static [u8];
     type Reply: Decode;
 

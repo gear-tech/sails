@@ -45,7 +45,7 @@ pub mod service_with_events {
     use super::*;
     pub mod io {
         use super::*;
-        use sails::calls::EncodeDecodeWithRoute;
+        use sails::calls::ActionIo;
         #[derive(Debug, Encode)]
         #[codec(crate = sails::scale_codec)]
         pub struct DoThis(pub(crate) NonZeroU256, pub(crate) super::MyParam);
@@ -56,7 +56,7 @@ pub mod service_with_events {
                 call.encode_call()
             }
         }
-        impl EncodeDecodeWithRoute for DoThis {
+        impl ActionIo for DoThis {
             const ROUTE: &'static [u8] = &[24, 68, 111, 84, 104, 105, 115];
             type Reply = NonZeroU64;
         }
@@ -65,7 +65,7 @@ pub mod service_with_events {
     #[cfg(not(target_arch = "wasm32"))]
     pub mod events {
         use super::*;
-        use sails::events::{DecodeEventWithRoute, Listener, RemotingListener};
+        use sails::events::*;
         #[derive(PartialEq, Debug, Encode, Decode)]
         #[codec(crate = sails::scale_codec)]
         pub enum ServiceWithEventsEvents {
@@ -74,7 +74,7 @@ pub mod service_with_events {
             Three(MyParam),
             Reset,
         }
-        impl DecodeEventWithRoute for ServiceWithEventsEvents {
+        impl EventIo for ServiceWithEventsEvents {
             const ROUTE: &'static [u8] = &[];
             const EVENT_NAMES: &'static [&'static [u8]] = &[
                 &[12, 79, 110, 101],

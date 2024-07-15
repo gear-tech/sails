@@ -34,7 +34,7 @@ pub mod service_factory {
     use super::*;
     pub mod io {
         use super::*;
-        use sails::calls::EncodeDecodeWithRoute;
+        use sails::calls::ActionIo;
         #[derive(Debug, Encode)]
         #[codec(crate = sails::scale_codec)]
         pub struct New(pub(crate) u32);
@@ -45,7 +45,7 @@ pub mod service_factory {
                 call.encode_call()
             }
         }
-        impl EncodeDecodeWithRoute for New {
+        impl ActionIo for New {
             const ROUTE: &'static [u8] = &[12, 78, 101, 119];
             type Reply = ();
         }
@@ -99,7 +99,7 @@ pub mod service {
     use super::*;
     pub mod io {
         use super::*;
-        use sails::calls::EncodeDecodeWithRoute;
+        use sails::calls::ActionIo;
         #[derive(Debug, Encode)]
         #[codec(crate = sails::scale_codec)]
         pub struct DoThis(
@@ -120,7 +120,7 @@ pub mod service {
                 call.encode_call()
             }
         }
-        impl EncodeDecodeWithRoute for DoThis {
+        impl ActionIo for DoThis {
             const ROUTE: &'static [u8] = &[24, 68, 111, 84, 104, 105, 115];
             type Reply = (String, u32);
         }
@@ -134,7 +134,7 @@ pub mod service {
                 call.encode_call()
             }
         }
-        impl EncodeDecodeWithRoute for DoThat {
+        impl ActionIo for DoThat {
             const ROUTE: &'static [u8] = &[24, 68, 111, 84, 104, 97, 116];
             type Reply = Result<(String, u32), (String,)>;
         }
@@ -148,7 +148,7 @@ pub mod service {
                 call.encode_call()
             }
         }
-        impl EncodeDecodeWithRoute for This {
+        impl ActionIo for This {
             const ROUTE: &'static [u8] = &[16, 84, 104, 105, 115];
             type Reply = u32;
         }
@@ -162,7 +162,7 @@ pub mod service {
                 call.encode_call()
             }
         }
-        impl EncodeDecodeWithRoute for That {
+        impl ActionIo for That {
             const ROUTE: &'static [u8] = &[16, 84, 104, 97, 116];
             type Reply = Result<String, String>;
         }

@@ -42,7 +42,7 @@ pub mod non_zero_params {
     use super::*;
     pub mod io {
         use super::*;
-        use sails::calls::EncodeDecodeWithRoute;
+        use sails::calls::ActionIo;
         #[derive(Debug, Encode)]
         #[codec(crate = sails::scale_codec)]
         pub struct DoThis(pub(crate) NonZeroU256, pub(crate) super::MyParam);
@@ -53,7 +53,7 @@ pub mod non_zero_params {
                 call.encode_call()
             }
         }
-        impl EncodeDecodeWithRoute for DoThis {
+        impl ActionIo for DoThis {
             const ROUTE: &'static [u8] = &[24, 68, 111, 84, 104, 105, 115];
             type Reply = NonZeroU64;
         }
