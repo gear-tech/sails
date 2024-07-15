@@ -5192,7 +5192,7 @@ checksum = "f3cb5ba0dc43242ce17de99c180e96db90b235b8a9fdc9543c96d2209116bd9f"
 
 [[package]]
 name = "sails"
-version = "0.0.1"
+version = "0.1.0"
 dependencies = [
  "futures",
  "gclient",
@@ -5212,7 +5212,7 @@ dependencies = [
 
 [[package]]
 name = "sails-client-gen"
-version = "0.0.1"
+version = "0.1.0"
 dependencies = [
  "anyhow",
  "convert_case 0.6.0",
@@ -5224,7 +5224,7 @@ dependencies = [
 
 [[package]]
 name = "sails-idl-gen"
-version = "0.0.1"
+version = "0.1.0"
 dependencies = [
  "convert_case 0.6.0",
  "handlebars",
@@ -5239,7 +5239,7 @@ dependencies = [
 
 [[package]]
 name = "sails-idl-parser"
-version = "0.0.1"
+version = "0.1.0"
 dependencies = [
  "itertools 0.12.1",
  "lalrpop",
@@ -5250,7 +5250,7 @@ dependencies = [
 
 [[package]]
 name = "sails-macros"
-version = "0.0.1"
+version = "0.1.0"
 dependencies = [
  "parity-scale-codec",
  "proc-macro-error",
@@ -5263,7 +5263,7 @@ dependencies = [
 
 [[package]]
 name = "sails-macros-core"
-version = "0.0.1"
+version = "0.1.0"
 dependencies = [
  "const_format",
  "convert_case 0.6.0",
