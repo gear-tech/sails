@@ -3,7 +3,7 @@ use core::future::Future;
 use futures::FutureExt;
 use gstd::{msg, prog};
 
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default, Clone, Copy)]
 pub struct GStdArgs {
     reply_deposit: Option<GasUnit>,
     gas_limit: Option<GasUnit>,
@@ -30,9 +30,21 @@ impl GStdArgs {
 }
 
 #[derive(Debug, Default, Clone)]
-pub struct GStdRemoting;
+pub struct GStdRemoting {
+    args: GStdArgs,
+}
 
 impl GStdRemoting {
+    pub fn new() -> Self {
+        Self {
+            args: Default::default(),
+        }
+    }
+
+    pub fn with_args(self, args: GStdArgs) -> Self {
+        Self { args }
+    }
+
     fn send_for_reply(
         target: ActorId,
         payload: impl AsRef<[u8]>,
@@ -101,5 +113,9 @@ impl Remoting<GStdArgs> for GStdRemoting {
         let reply_future = GStdRemoting::send_for_reply(target, payload, value, args)?;
         let reply = reply_future.await?;
         Ok(reply)
+    }
+
+    fn args(&self) -> GStdArgs {
+        self.args
     }
 }

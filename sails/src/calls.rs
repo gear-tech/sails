@@ -127,6 +127,8 @@ pub trait Remoting<TArgs> {
         value: ValueUnit,
         args: TArgs,
     ) -> Result<Vec<u8>>;
+
+    fn args(&self) -> TArgs;
 }
 
 pub struct RemotingAction<TRemoting, TArgs, TParams, TReply> {
@@ -137,16 +139,16 @@ pub struct RemotingAction<TRemoting, TArgs, TParams, TReply> {
     _treply: PhantomData<TReply>,
 }
 
-impl<TRemoting, TArgs, TParams, TReply> RemotingAction<TRemoting, TArgs, TParams, TReply>
-where
-    TArgs: Default,
+impl<TRemoting: Remoting<TArgs>, TArgs, TParams, TReply>
+    RemotingAction<TRemoting, TArgs, TParams, TReply>
 {
     pub fn new(remoting: TRemoting, params: TParams) -> Self {
+        let args = remoting.args();
         Self {
             remoting,
             params,
             value: Default::default(),
-            args: Default::default(),
+            args,
             _treply: PhantomData,
         }
     }

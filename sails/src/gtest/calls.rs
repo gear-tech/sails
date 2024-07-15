@@ -15,7 +15,7 @@ use gtest::{Program, RunResult, System};
 
 type EventSender = UnboundedSender<(ActorId, Vec<u8>)>;
 
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default, Clone, Copy)]
 pub struct GTestArgs {
     actor_id: Option<ActorId>,
 }
@@ -41,6 +41,7 @@ impl GTestArgs {
 pub struct GTestRemoting {
     system: Rc<System>,
     event_senders: Rc<RefCell<Vec<EventSender>>>,
+    args: GTestArgs,
 }
 
 impl Default for GTestRemoting {
@@ -54,7 +55,12 @@ impl GTestRemoting {
         Self {
             system: Rc::new(System::new()),
             event_senders: Default::default(),
+            args: Default::default(),
         }
+    }
+
+    pub fn with_args(self, args: GTestArgs) -> Self {
+        Self { args, ..self }
     }
 
     pub fn system(&self) -> &System {
@@ -158,6 +164,10 @@ impl Remoting<GTestArgs> for GTestRemoting {
     ) -> Result<Vec<u8>> {
         let run_result = self.send_and_get_result(target, payload, value, args)?;
         Self::extract_reply(&run_result)
+    }
+
+    fn args(&self) -> GTestArgs {
+        self.args
     }
 }
 

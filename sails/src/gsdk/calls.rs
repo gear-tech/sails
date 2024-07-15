@@ -9,15 +9,16 @@ use futures::{stream, Stream, StreamExt};
 use gclient::metadata::runtime_types::gear_core::message::user::UserMessage as GenUserMessage;
 use gclient::{ext::sp_core::ByteArray, EventProcessor, GearApi};
 
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default, Clone, Copy)]
 pub struct GSdkArgs {
     gas_limit: Option<GasUnit>,
 }
 
 impl GSdkArgs {
-    pub fn with_gas_limit(mut self, gas_limit: GasUnit) -> Self {
-        self.gas_limit = Some(gas_limit);
-        self
+    pub fn with_gas_limit(gas_limit: GasUnit) -> Self {
+        Self {
+            gas_limit: Some(gas_limit),
+        }
     }
 
     pub fn gas_limit(&self) -> Option<GasUnit> {
@@ -28,11 +29,19 @@ impl GSdkArgs {
 #[derive(Clone)]
 pub struct GSdkRemoting {
     api: GearApi,
+    args: GSdkArgs,
 }
 
 impl GSdkRemoting {
     pub fn new(api: GearApi) -> Self {
-        Self { api }
+        Self {
+            api,
+            args: Default::default(),
+        }
+    }
+
+    pub fn with_args(self, args: GSdkArgs) -> Self {
+        Self { args, ..self }
     }
 
     pub fn api(&self) -> &GearApi {
@@ -111,6 +120,10 @@ impl Remoting<GSdkArgs> for GSdkRemoting {
             .await?;
 
         Ok(reply_info.payload)
+    }
+
+    fn args(&self) -> GSdkArgs {
+        self.args
     }
 }
 

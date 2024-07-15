@@ -11,7 +11,7 @@ const DEMO_WASM_PATH: &str = "../../../target/wasm32-unknown-unknown/debug/demo.
 async fn counter_add_works() {
     // Arrange
 
-    let (remoting, demo_code_id, gas_limit) = spin_up_node_with_demo_code().await;
+    let (remoting, demo_code_id) = spin_up_node_with_demo_code().await;
 
     let demo_factory = demo_client::DemoFactory::new(remoting.clone());
 
@@ -19,7 +19,6 @@ async fn counter_add_works() {
     // using the `new` constructor and the `send_recv` method
     let demo_program_id = demo_factory
         .new(Some(42), None)
-        .with_args(GSdkArgs::default().with_gas_limit(gas_limit))
         .send_recv(demo_code_id, "123")
         .await
         .unwrap();
@@ -35,7 +34,6 @@ async fn counter_add_works() {
     // using the `send_recv` method
     let result = counter_client
         .add(10)
-        .with_args(GSdkArgs::default().with_gas_limit(gas_limit))
         .send_recv(demo_program_id)
         .await
         .unwrap();
@@ -53,7 +51,7 @@ async fn counter_add_works() {
 async fn counter_sub_works() {
     // Arrange
 
-    let (remoting, demo_code_id, gas_limit) = spin_up_node_with_demo_code().await;
+    let (remoting, demo_code_id) = spin_up_node_with_demo_code().await;
 
     let demo_factory = demo_client::DemoFactory::new(remoting.clone());
 
@@ -62,7 +60,6 @@ async fn counter_sub_works() {
     // of methods
     let activation = demo_factory
         .new(Some(42), None)
-        .with_args(GSdkArgs::default().with_gas_limit(gas_limit))
         .send(demo_code_id, "123")
         .await
         .unwrap();
@@ -77,12 +74,7 @@ async fn counter_sub_works() {
 
     // Use generated client code for calling Counter service
     // using the `send`/`recv` pair of methods
-    let response = counter_client
-        .sub(10)
-        .with_args(GSdkArgs::default().with_gas_limit(gas_limit))
-        .send(demo_program_id)
-        .await
-        .unwrap();
+    let response = counter_client.sub(10).send(demo_program_id).await.unwrap();
     let result = response.recv().await.unwrap();
 
     // Assert
@@ -98,7 +90,7 @@ async fn counter_sub_works() {
 async fn ping_pong_works() {
     // Arrange
 
-    let (remoting, demo_code_id, gas_limit) = spin_up_node_with_demo_code().await;
+    let (remoting, demo_code_id) = spin_up_node_with_demo_code().await;
 
     let demo_factory = demo_client::DemoFactory::new(remoting.clone());
 
@@ -106,7 +98,6 @@ async fn ping_pong_works() {
     // using the `default` constructor and the `send_recv` method
     let demo_program_id = demo_factory
         .default()
-        .with_args(GSdkArgs::default().with_gas_limit(gas_limit))
         .send_recv(demo_code_id, "123")
         .await
         .unwrap();
@@ -116,14 +107,9 @@ async fn ping_pong_works() {
     let ping_call_payload = ping_pong::io::Ping::encode_call("ping".into());
 
     // Act
-
+    let args = remoting.args();
     let ping_reply_payload = remoting
-        .message(
-            demo_program_id,
-            ping_call_payload,
-            0,
-            GSdkArgs::default().with_gas_limit(gas_limit),
-        )
+        .message(demo_program_id, ping_call_payload, 0, args)
         .await
         .unwrap()
         .await
@@ -141,13 +127,17 @@ async fn ping_pong_works() {
 async fn demo_returns_not_enough_gas_on_activation() {
     // Arrange
 
-    let (remoting, demo_code_id, ..) = spin_up_node_with_demo_code().await;
+    let (remoting, demo_code_id) = spin_up_node_with_demo_code().await;
 
     let demo_factory = demo_client::DemoFactory::new(remoting.clone());
 
     // Act
 
-    let activation_result = demo_factory.default().send_recv(demo_code_id, "123").await;
+    let activation_result = demo_factory
+        .default()
+        .with_args(GSdkArgs::default()) // override args from remoting
+        .send_recv(demo_code_id, "123")
+        .await;
 
     // Assert
 
@@ -159,14 +149,14 @@ async fn demo_returns_not_enough_gas_on_activation() {
     ));
 }
 
-async fn spin_up_node_with_demo_code() -> (GSdkRemoting, CodeId, GasUnit) {
+async fn spin_up_node_with_demo_code() -> (GSdkRemoting, CodeId) {
     let gear_path = option_env!("GEAR_PATH");
     if gear_path.is_none() {
         panic!("the 'GEAR_PATH' environment variable was not set during compile time");
     }
     let api = GearApi::dev_from_path(gear_path.unwrap()).await.unwrap();
     let gas_limit = api.block_gas_limit().unwrap();
-    let remoting = GSdkRemoting::new(api);
+    let remoting = GSdkRemoting::new(api).with_args(GSdkArgs::with_gas_limit(gas_limit));
     let code_id = remoting.upload_code_by_path(DEMO_WASM_PATH).await.unwrap();
-    (remoting, code_id, gas_limit)
+    (remoting, code_id)
 }
