@@ -38,3 +38,13 @@ pub(crate) fn encoded_fn_args(params: &[FuncParam]) -> String {
         .collect::<Vec<_>>()
         .join(", ")
 }
+
+pub(crate) fn encoded_args(params: &[FuncParam]) -> String {
+    if params.len() == 1 {
+        return params[0].name().to_owned();
+    }
+
+    let arg_names = encoded_fn_args(params);
+
+    format!("({arg_names})")
+}

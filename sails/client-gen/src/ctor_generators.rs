@@ -30,7 +30,7 @@ impl CtorFactoryGenerator {
                 use super::*;
                 pub mod io {
                     use super::*;
-                    use sails::calls::EncodeDecodeWithRoute;
+                    use sails::calls::ActionIo;
                     $(self.io_tokens)
                 }
             }
@@ -77,14 +77,14 @@ impl<'ast> Visitor<'ast> for CtorFactoryGenerator {
 
         visitor::accept_ctor_func(func, self);
 
-        let args = encoded_fn_args(func.params());
+        let args = encoded_args(func.params());
 
         let service_name_snake = self.service_name.to_case(Case::Snake);
         let params_type = format!("{service_name_snake}_factory::io::{fn_name}");
 
         quote_in! { self.tokens =>
             $(")") -> impl Activation<A> {
-                RemotingAction::new(self.remoting.clone(), $params_type ($args))
+                RemotingAction::<_, _ ,$params_type>::new(self.remoting.clone(), $args)
             }
         };
 

@@ -1,15 +1,12 @@
 use rmrk_catalog_app::Program;
 use sails_idl_gen::program;
-use std::{env, fs::File, path::PathBuf};
+use std::{env, path::PathBuf};
 
 fn main() {
     gwasm_builder::build();
 
-    let manifest_dir_path = PathBuf::from(env::var("CARGO_MANIFEST_DIR").unwrap());
-
-    let idl_file_path = manifest_dir_path.join("rmrk-catalog.idl");
-
-    let idl_file = File::create(idl_file_path).unwrap();
-
-    program::generate_idl::<Program>(idl_file).unwrap();
+    program::generate_idl_to_file::<Program>(
+        PathBuf::from(env::var("CARGO_MANIFEST_DIR").unwrap()).join("rmrk-catalog.idl"),
+    )
+    .unwrap();
 }

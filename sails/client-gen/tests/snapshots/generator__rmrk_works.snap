@@ -29,26 +29,24 @@ impl<R: Remoting<A> + Clone, A: Default> traits::RmrkCatalogFactory<A>
     for RmrkCatalogFactory<R, A>
 {
     fn new(&self) -> impl Activation<A> {
-        RemotingAction::new(self.remoting.clone(), rmrk_catalog_factory::io::New())
+        RemotingAction::<_, _, rmrk_catalog_factory::io::New>::new(self.remoting.clone(), ())
     }
 }
 pub mod rmrk_catalog_factory {
     use super::*;
     pub mod io {
         use super::*;
-        use sails::calls::EncodeDecodeWithRoute;
-        #[derive(Debug, Encode)]
-        #[codec(crate = sails::scale_codec)]
-        pub struct New();
+        use sails::calls::ActionIo;
+        pub struct New(());
         impl New {
             #[allow(dead_code)]
             pub fn encode_call() -> Vec<u8> {
-                let call = New();
-                call.encode_call()
+                <New as ActionIo>::encode_call(&())
             }
         }
-        impl EncodeDecodeWithRoute for New {
+        impl ActionIo for New {
             const ROUTE: &'static [u8] = &[12, 78, 101, 119];
+            type Params = ();
             type Reply = ();
         }
     }
@@ -80,43 +78,40 @@ where
         part_id: u32,
         collection_ids: Vec<ActorId>,
     ) -> impl Call<A, Result<(u32, Vec<ActorId>), Error>> {
-        RemotingAction::new(
+        RemotingAction::<_, _, rmrk_catalog::io::AddEquippables>::new(
             self.remoting.clone(),
-            rmrk_catalog::io::AddEquippables(part_id, collection_ids),
+            (part_id, collection_ids),
         )
     }
     fn add_parts(
         &mut self,
         parts: BTreeMap<u32, Part>,
     ) -> impl Call<A, Result<BTreeMap<u32, Part>, Error>> {
-        RemotingAction::new(self.remoting.clone(), rmrk_catalog::io::AddParts(parts))
+        RemotingAction::<_, _, rmrk_catalog::io::AddParts>::new(self.remoting.clone(), parts)
     }
     fn remove_equippable(
         &mut self,
         part_id: u32,
         collection_id: ActorId,
     ) -> impl Call<A, Result<(u32, ActorId), Error>> {
-        RemotingAction::new(
+        RemotingAction::<_, _, rmrk_catalog::io::RemoveEquippable>::new(
             self.remoting.clone(),
-            rmrk_catalog::io::RemoveEquippable(part_id, collection_id),
+            (part_id, collection_id),
         )
     }
     fn remove_parts(&mut self, part_ids: Vec<u32>) -> impl Call<A, Result<Vec<u32>, Error>> {
-        RemotingAction::new(
-            self.remoting.clone(),
-            rmrk_catalog::io::RemoveParts(part_ids),
-        )
+        RemotingAction::<_, _, rmrk_catalog::io::RemoveParts>::new(self.remoting.clone(), part_ids)
     }
     fn reset_equippables(&mut self, part_id: u32) -> impl Call<A, Result<(), Error>> {
-        RemotingAction::new(
+        RemotingAction::<_, _, rmrk_catalog::io::ResetEquippables>::new(
             self.remoting.clone(),
-            rmrk_catalog::io::ResetEquippables(part_id),
+            part_id,
         )
     }
     fn set_equippables_to_all(&mut self, part_id: u32) -> impl Call<A, Result<(), Error>> {
-        RemotingAction::new(
+        RemotingAction::<_, _, rmrk_catalog::io::SetEquippablesToAll>::new(
             self.remoting.clone(),
-            rmrk_catalog::io::SetEquippablesToAll(part_id),
+            part_id,
         )
     }
     fn equippable(
@@ -124,153 +119,137 @@ where
         part_id: u32,
         collection_id: ActorId,
     ) -> impl Query<A, Result<bool, Error>> {
-        RemotingAction::new(
+        RemotingAction::<_, _, rmrk_catalog::io::Equippable>::new(
             self.remoting.clone(),
-            rmrk_catalog::io::Equippable(part_id, collection_id),
+            (part_id, collection_id),
         )
     }
     fn part(&self, part_id: u32) -> impl Query<A, Option<Part>> {
-        RemotingAction::new(self.remoting.clone(), rmrk_catalog::io::Part(part_id))
+        RemotingAction::<_, _, rmrk_catalog::io::Part>::new(self.remoting.clone(), part_id)
     }
 }
 pub mod rmrk_catalog {
     use super::*;
     pub mod io {
         use super::*;
-        use sails::calls::EncodeDecodeWithRoute;
-        #[derive(Debug, Encode)]
-        #[codec(crate = sails::scale_codec)]
-        pub struct AddEquippables(pub(crate) u32, pub(crate) Vec<ActorId>);
+        use sails::calls::ActionIo;
+        pub struct AddEquippables(());
         impl AddEquippables {
             #[allow(dead_code)]
             pub fn encode_call(part_id: u32, collection_ids: Vec<ActorId>) -> Vec<u8> {
-                let call = AddEquippables(part_id, collection_ids);
-                call.encode_call()
+                <AddEquippables as ActionIo>::encode_call(&(part_id, collection_ids))
             }
         }
-        impl EncodeDecodeWithRoute for AddEquippables {
+        impl ActionIo for AddEquippables {
             const ROUTE: &'static [u8] = &[
                 44, 82, 109, 114, 107, 67, 97, 116, 97, 108, 111, 103, 56, 65, 100, 100, 69, 113,
                 117, 105, 112, 112, 97, 98, 108, 101, 115,
             ];
+            type Params = (u32, Vec<ActorId>);
             type Reply = Result<(u32, Vec<ActorId>), super::Error>;
         }
-        #[derive(Debug, Encode)]
-        #[codec(crate = sails::scale_codec)]
-        pub struct AddParts(pub(crate) BTreeMap<u32, super::Part>);
+        pub struct AddParts(());
         impl AddParts {
             #[allow(dead_code)]
             pub fn encode_call(parts: BTreeMap<u32, super::Part>) -> Vec<u8> {
-                let call = AddParts(parts);
-                call.encode_call()
+                <AddParts as ActionIo>::encode_call(&parts)
             }
         }
-        impl EncodeDecodeWithRoute for AddParts {
+        impl ActionIo for AddParts {
             const ROUTE: &'static [u8] = &[
                 44, 82, 109, 114, 107, 67, 97, 116, 97, 108, 111, 103, 32, 65, 100, 100, 80, 97,
                 114, 116, 115,
             ];
+            type Params = BTreeMap<u32, super::Part>;
             type Reply = Result<BTreeMap<u32, super::Part>, super::Error>;
         }
-        #[derive(Debug, Encode)]
-        #[codec(crate = sails::scale_codec)]
-        pub struct RemoveEquippable(pub(crate) u32, pub(crate) ActorId);
+        pub struct RemoveEquippable(());
         impl RemoveEquippable {
             #[allow(dead_code)]
             pub fn encode_call(part_id: u32, collection_id: ActorId) -> Vec<u8> {
-                let call = RemoveEquippable(part_id, collection_id);
-                call.encode_call()
+                <RemoveEquippable as ActionIo>::encode_call(&(part_id, collection_id))
             }
         }
-        impl EncodeDecodeWithRoute for RemoveEquippable {
+        impl ActionIo for RemoveEquippable {
             const ROUTE: &'static [u8] = &[
                 44, 82, 109, 114, 107, 67, 97, 116, 97, 108, 111, 103, 64, 82, 101, 109, 111, 118,
                 101, 69, 113, 117, 105, 112, 112, 97, 98, 108, 101,
             ];
+            type Params = (u32, ActorId);
             type Reply = Result<(u32, ActorId), super::Error>;
         }
-        #[derive(Debug, Encode)]
-        #[codec(crate = sails::scale_codec)]
-        pub struct RemoveParts(pub(crate) Vec<u32>);
+        pub struct RemoveParts(());
         impl RemoveParts {
             #[allow(dead_code)]
             pub fn encode_call(part_ids: Vec<u32>) -> Vec<u8> {
-                let call = RemoveParts(part_ids);
-                call.encode_call()
+                <RemoveParts as ActionIo>::encode_call(&part_ids)
             }
         }
-        impl EncodeDecodeWithRoute for RemoveParts {
+        impl ActionIo for RemoveParts {
             const ROUTE: &'static [u8] = &[
                 44, 82, 109, 114, 107, 67, 97, 116, 97, 108, 111, 103, 44, 82, 101, 109, 111, 118,
                 101, 80, 97, 114, 116, 115,
             ];
+            type Params = Vec<u32>;
             type Reply = Result<Vec<u32>, super::Error>;
         }
-        #[derive(Debug, Encode)]
-        #[codec(crate = sails::scale_codec)]
-        pub struct ResetEquippables(pub(crate) u32);
+        pub struct ResetEquippables(());
         impl ResetEquippables {
             #[allow(dead_code)]
             pub fn encode_call(part_id: u32) -> Vec<u8> {
-                let call = ResetEquippables(part_id);
-                call.encode_call()
+                <ResetEquippables as ActionIo>::encode_call(&part_id)
             }
         }
-        impl EncodeDecodeWithRoute for ResetEquippables {
+        impl ActionIo for ResetEquippables {
             const ROUTE: &'static [u8] = &[
                 44, 82, 109, 114, 107, 67, 97, 116, 97, 108, 111, 103, 64, 82, 101, 115, 101, 116,
                 69, 113, 117, 105, 112, 112, 97, 98, 108, 101, 115,
             ];
+            type Params = u32;
             type Reply = Result<(), super::Error>;
         }
-        #[derive(Debug, Encode)]
-        #[codec(crate = sails::scale_codec)]
-        pub struct SetEquippablesToAll(pub(crate) u32);
+        pub struct SetEquippablesToAll(());
         impl SetEquippablesToAll {
             #[allow(dead_code)]
             pub fn encode_call(part_id: u32) -> Vec<u8> {
-                let call = SetEquippablesToAll(part_id);
-                call.encode_call()
+                <SetEquippablesToAll as ActionIo>::encode_call(&part_id)
             }
         }
-        impl EncodeDecodeWithRoute for SetEquippablesToAll {
+        impl ActionIo for SetEquippablesToAll {
             const ROUTE: &'static [u8] = &[
                 44, 82, 109, 114, 107, 67, 97, 116, 97, 108, 111, 103, 76, 83, 101, 116, 69, 113,
                 117, 105, 112, 112, 97, 98, 108, 101, 115, 84, 111, 65, 108, 108,
             ];
+            type Params = u32;
             type Reply = Result<(), super::Error>;
         }
-        #[derive(Debug, Encode)]
-        #[codec(crate = sails::scale_codec)]
-        pub struct Equippable(pub(crate) u32, pub(crate) ActorId);
+        pub struct Equippable(());
         impl Equippable {
             #[allow(dead_code)]
             pub fn encode_call(part_id: u32, collection_id: ActorId) -> Vec<u8> {
-                let call = Equippable(part_id, collection_id);
-                call.encode_call()
+                <Equippable as ActionIo>::encode_call(&(part_id, collection_id))
             }
         }
-        impl EncodeDecodeWithRoute for Equippable {
+        impl ActionIo for Equippable {
             const ROUTE: &'static [u8] = &[
                 44, 82, 109, 114, 107, 67, 97, 116, 97, 108, 111, 103, 40, 69, 113, 117, 105, 112,
                 112, 97, 98, 108, 101,
             ];
+            type Params = (u32, ActorId);
             type Reply = Result<bool, super::Error>;
         }
-        #[derive(Debug, Encode)]
-        #[codec(crate = sails::scale_codec)]
-        pub struct Part(pub(crate) u32);
+        pub struct Part(());
         impl Part {
             #[allow(dead_code)]
             pub fn encode_call(part_id: u32) -> Vec<u8> {
-                let call = Part(part_id);
-                call.encode_call()
+                <Part as ActionIo>::encode_call(&part_id)
             }
         }
-        impl EncodeDecodeWithRoute for Part {
+        impl ActionIo for Part {
             const ROUTE: &'static [u8] = &[
                 44, 82, 109, 114, 107, 67, 97, 116, 97, 108, 111, 103, 16, 80, 97, 114, 116,
             ];
+            type Params = u32;
             type Reply = Option<super::Part>;
         }
     }

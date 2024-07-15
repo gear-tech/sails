@@ -1,5 +1,5 @@
-use gstd::{debug, prelude::*};
-use sails::{gstd::gservice, ActorId, NonZeroU32, NonZeroU8, H160, H256, U256};
+use gstd::debug;
+use sails::prelude::*;
 
 #[derive(Default)]
 pub struct MyService(());

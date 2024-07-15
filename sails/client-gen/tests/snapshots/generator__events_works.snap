@@ -35,9 +35,9 @@ where
     A: Default,
 {
     fn do_this(&mut self, p1: NonZeroU256, p2: MyParam) -> impl Call<A, NonZeroU64> {
-        RemotingAction::new(
+        RemotingAction::<_, _, service_with_events::io::DoThis>::new(
             self.remoting.clone(),
-            service_with_events::io::DoThis(p1, p2),
+            (p1, p2),
         )
     }
 }
@@ -45,19 +45,17 @@ pub mod service_with_events {
     use super::*;
     pub mod io {
         use super::*;
-        use sails::calls::EncodeDecodeWithRoute;
-        #[derive(Debug, Encode)]
-        #[codec(crate = sails::scale_codec)]
-        pub struct DoThis(pub(crate) NonZeroU256, pub(crate) super::MyParam);
+        use sails::calls::ActionIo;
+        pub struct DoThis(());
         impl DoThis {
             #[allow(dead_code)]
             pub fn encode_call(p1: NonZeroU256, p2: super::MyParam) -> Vec<u8> {
-                let call = DoThis(p1, p2);
-                call.encode_call()
+                <DoThis as ActionIo>::encode_call(&(p1, p2))
             }
         }
-        impl EncodeDecodeWithRoute for DoThis {
+        impl ActionIo for DoThis {
             const ROUTE: &'static [u8] = &[24, 68, 111, 84, 104, 105, 115];
+            type Params = (NonZeroU256, super::MyParam);
             type Reply = NonZeroU64;
         }
     }
@@ -65,7 +63,7 @@ pub mod service_with_events {
     #[cfg(not(target_arch = "wasm32"))]
     pub mod events {
         use super::*;
-        use sails::events::{DecodeEventWithRoute, Listener, RemotingListener};
+        use sails::events::*;
         #[derive(PartialEq, Debug, Encode, Decode)]
         #[codec(crate = sails::scale_codec)]
         pub enum ServiceWithEventsEvents {
@@ -74,7 +72,7 @@ pub mod service_with_events {
             Three(MyParam),
             Reset,
         }
-        impl DecodeEventWithRoute for ServiceWithEventsEvents {
+        impl EventIo for ServiceWithEventsEvents {
             const ROUTE: &'static [u8] = &[];
             const EVENT_NAMES: &'static [&'static [u8]] = &[
                 &[12, 79, 110, 101],
@@ -82,11 +80,12 @@ pub mod service_with_events {
                 &[20, 84, 104, 114, 101, 101],
                 &[20, 82, 101, 115, 101, 116],
             ];
+            type Event = Self;
         }
         pub fn listener<R: Listener<Vec<u8>>>(
             remoting: R,
         ) -> impl Listener<ServiceWithEventsEvents> {
-            RemotingListener::new(remoting)
+            RemotingListener::<_, ServiceWithEventsEvents>::new(remoting)
         }
     }
 }

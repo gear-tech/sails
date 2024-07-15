@@ -39,7 +39,7 @@ impl<'ast> Visitor<'ast> for EventsModuleGenerator {
             #[cfg(not(target_arch = "wasm32"))]
             pub mod events $("{")
                 use super::*;
-                use sails::events::{Listener, RemotingListener, DecodeEventWithRoute};
+                use sails::events::*;
                 #[derive(PartialEq, Debug, Encode, Decode)]
                 #[codec(crate = sails::scale_codec)]
                 pub enum $(&events_name) $("{")
@@ -52,13 +52,14 @@ impl<'ast> Visitor<'ast> for EventsModuleGenerator {
         };
 
         quote_in! { self.tokens =>
-            impl DecodeEventWithRoute for $(&events_name) {
+            impl EventIo for $(&events_name) {
                 const ROUTE: &'static [u8] = &[$service_path_bytes];
                 const EVENT_NAMES: &'static [&'static [u8]] = &[&[$event_names_bytes]];
+                type Event = Self;
             }
 
             pub fn listener<R: Listener<Vec<u8>>>(remoting: R) -> impl Listener<$(&events_name)> {
-                RemotingListener::new(remoting)
+                RemotingListener::<_, $(&events_name)>::new(remoting)
             }
         }
 

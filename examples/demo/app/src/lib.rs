@@ -1,10 +1,7 @@
 #![no_std]
 
 use demo_walker as walker;
-use sails::{
-    cell::RefCell,
-    gstd::{gprogram, groute},
-};
+use sails::{cell::RefCell, prelude::*};
 
 mod counter;
 mod dog;

@@ -1,29 +1,9 @@
-// This file is part of Gear.
-
-// Copyright (C) 2021-2023 Gear Technologies Inc.
-// SPDX-License-Identifier: GPL-3.0-or-later WITH Classpath-exception-2.0
-
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU General Public License for more details.
-
-// You should have received a copy of the GNU General Public License
-// along with this program. If not, see <https://www.gnu.org/licenses/>.
-
-//! Functionality for generating IDL files describing some service based on its Rust code.
-
 pub use errors::*;
 use handlebars::{handlebars_helper, Handlebars};
 use meta::ExpandedProgramMeta;
 use scale_info::{form::PortableForm, Field, PortableType, Variant};
 use serde::Serialize;
-use std::io::Write;
+use std::{fs, io::Write, path::Path};
 
 mod errors;
 mod meta;
@@ -43,6 +23,17 @@ pub mod program {
             idl_writer,
         )
     }
+
+    pub fn generate_idl_to_file<P: ProgramMeta>(path: impl AsRef<Path>) -> Result<()> {
+        let mut idl_new_content = Vec::new();
+        generate_idl::<P>(&mut idl_new_content)?;
+        if let Ok(idl_old_content) = fs::read(&path) {
+            if idl_new_content == idl_old_content {
+                return Ok(());
+            }
+        }
+        Ok(fs::write(&path, idl_new_content)?)
+    }
 }
 
 pub mod service {
@@ -54,6 +45,17 @@ pub mod service {
             &ExpandedProgramMeta::new(None, vec![("", AnyServiceMeta::new::<S>())].into_iter())?,
             idl_writer,
         )
+    }
+
+    pub fn generate_idl_to_file<S: ServiceMeta>(path: impl AsRef<Path>) -> Result<()> {
+        let mut idl_new_content = Vec::new();
+        generate_idl::<S>(&mut idl_new_content)?;
+        if let Ok(idl_old_content) = fs::read(&path) {
+            if idl_new_content == idl_old_content {
+                return Ok(());
+            }
+        }
+        Ok(fs::write(&path, idl_new_content)?)
     }
 }
 

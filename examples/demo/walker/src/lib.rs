@@ -1,6 +1,6 @@
 #![no_std]
 
-use sails::{cell::RefCell, gstd::gservice, prelude::*};
+use sails::{cell::RefCell, prelude::*};
 
 #[derive(Clone)]
 pub struct WalkerData {

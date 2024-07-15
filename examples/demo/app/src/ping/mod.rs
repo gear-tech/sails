@@ -1,4 +1,4 @@
-use sails::{gstd::gservice, prelude::*};
+use sails::prelude::*;
 
 #[derive(Default)]
 pub struct PingService(());

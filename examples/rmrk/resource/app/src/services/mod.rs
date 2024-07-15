@@ -242,7 +242,7 @@ mod tests {
     }
 
     impl<A, R> Call<A, R> for MockCall<A, R> {
-        async fn send(self, _target: ActorId) -> sails::errors::Result<impl Reply<R>> {
+        async fn send(self, _target: ActorId) -> sails::errors::Result<impl Reply<T = R>> {
             Ok(MockReply::<R>::new())
         }
     }
@@ -275,8 +275,9 @@ mod tests {
         }
     }
 
-    impl<R> Reply<R> for MockReply<R> {
-        async fn recv(self) -> sails::errors::Result<R> {
+    impl<R> Reply for MockReply<R> {
+        type T = R;
+        async fn recv(self) -> sails::errors::Result<Self::T> {
             unimplemented!()
         }
     }

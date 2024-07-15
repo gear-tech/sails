@@ -12,20 +12,20 @@ pub trait Listener<E> {
 
 pub struct RemotingListener<R, E> {
     remoting: R,
-    _event: PhantomData<E>,
+    _io: PhantomData<E>,
 }
 
 impl<R: Listener<Vec<u8>>, E> RemotingListener<R, E> {
     pub fn new(remoting: R) -> Self {
         Self {
             remoting,
-            _event: PhantomData,
+            _io: PhantomData,
         }
     }
 }
 
-impl<R: Listener<Vec<u8>>, E: DecodeEventWithRoute> Listener<E> for RemotingListener<R, E> {
-    async fn listen(&mut self) -> Result<impl Stream<Item = (ActorId, E)> + Unpin> {
+impl<R: Listener<Vec<u8>>, E: EventIo> Listener<E::Event> for RemotingListener<R, E> {
+    async fn listen(&mut self) -> Result<impl Stream<Item = (ActorId, E::Event)> + Unpin> {
         let stream = self.remoting.listen().await?;
         let map = stream.filter_map(move |(actor_id, payload)| async move {
             E::decode_event(payload).ok().map(|e| (actor_id, e))
@@ -34,11 +34,12 @@ impl<R: Listener<Vec<u8>>, E: DecodeEventWithRoute> Listener<E> for RemotingList
     }
 }
 
-pub trait DecodeEventWithRoute: Decode {
+pub trait EventIo {
     const ROUTE: &'static [u8];
     const EVENT_NAMES: &'static [&'static [u8]];
+    type Event: Decode;
 
-    fn decode_event(payload: impl AsRef<[u8]>) -> Result<Self> {
+    fn decode_event(payload: impl AsRef<[u8]>) -> Result<Self::Event> {
         let payload = payload.as_ref();
         if !payload.starts_with(Self::ROUTE) {
             Err(RtlError::EventPrefixMismatches)?;
