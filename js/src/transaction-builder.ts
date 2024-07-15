@@ -137,8 +137,14 @@ export class TransactionBuilder<ResponseType> {
     }
   }
 
+  /** ## Get submittable extrinsic */
   public get extrinsic(): SubmittableExtrinsic<'promise', ISubmittableResult> {
     return this._tx;
+  }
+
+  /** ## Get payload of the transaction */
+  public get payload(): HexString {
+    return this._tx.args[0].toHex();
   }
 
   /**

@@ -357,7 +357,7 @@ export class Sails {
           const payload = this.registry.createType(`(String, ${params.map((p) => p.type).join(', ')})`, bytes);
           const result = {} as Record<string, any>;
           params.forEach((param, i) => {
-            result[param.name] = payload[i + 2].toJSON();
+            result[param.name] = payload[i + 1].toJSON();
           });
           return result as T;
         },
