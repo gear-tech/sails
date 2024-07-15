@@ -110,10 +110,10 @@ async fn ping_pong_works() {
         .await
         .unwrap();
 
-    // Use generated `io` module for encoding/decoding calls and replies
-    // and send/receive bytes using `gtest` native means
     let demo_program = fixture.demo_program(demo_program_id);
 
+    // Use generated `io` module for encoding/decoding calls and replies
+    // and send/receive bytes using `gtest` native means
     let ping_call_payload = ping_pong::io::Ping::encode_call("ping".into());
 
     let run_result = demo_program.send_bytes(fixture.admin_id(), ping_call_payload);

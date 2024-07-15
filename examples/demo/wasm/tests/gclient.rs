@@ -129,7 +129,7 @@ async fn ping_pong_works() {
         .await
         .unwrap();
 
-    let ping_reply = ping_pong::io::Ping::decode_reply(&ping_reply_payload).unwrap();
+    let ping_reply = ping_pong::io::Ping::decode_reply(ping_reply_payload).unwrap();
 
     // Assert
 

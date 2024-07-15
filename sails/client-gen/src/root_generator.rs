@@ -74,7 +74,7 @@ impl<'a, 'ast> Visitor<'ast> for RootGenerator<'a> {
 
         let path = service.name();
 
-        let mut client_gen = ServiceClientGenerator::new(service_name.to_owned(), path.to_owned());
+        let mut client_gen = ServiceClientGenerator::new(service_name.to_owned());
         client_gen.visit_service(service);
         self.tokens.extend(client_gen.finalize());
 

@@ -1,4 +1,7 @@
-use crate::{errors::Result, prelude::*};
+use crate::{
+    errors::{Error, Result, RtlError},
+    prelude::*,
+};
 use core::marker::PhantomData;
 use futures::{Stream, StreamExt};
 
@@ -9,42 +12,47 @@ pub trait Listener<E> {
 
 pub struct RemotingListener<R, E> {
     remoting: R,
-    route: &'static [u8],
-    event_names: &'static [&'static [u8]],
-    _event: PhantomData<E>,
+    _io: PhantomData<E>,
 }
 
-impl<R: Listener<Vec<u8>>, E: Decode> RemotingListener<R, E> {
-    pub fn new(remoting: R, route: &'static [u8], event_names: &'static [&'static [u8]]) -> Self {
+impl<R: Listener<Vec<u8>>, E> RemotingListener<R, E> {
+    pub fn new(remoting: R) -> Self {
         Self {
             remoting,
-            route,
-            event_names,
-            _event: PhantomData,
+            _io: PhantomData,
         }
     }
 }
 
-impl<R: Listener<Vec<u8>>, E: Decode> Listener<E> for RemotingListener<R, E> {
-    async fn listen(&mut self) -> Result<impl Stream<Item = (ActorId, E)> + Unpin> {
+impl<R: Listener<Vec<u8>>, E: EventIo> Listener<E::Event> for RemotingListener<R, E> {
+    async fn listen(&mut self) -> Result<impl Stream<Item = (ActorId, E::Event)> + Unpin> {
         let stream = self.remoting.listen().await?;
-        let route: &'static [u8] = self.route;
-        let event_names: &'static [&'static [u8]] = self.event_names;
         let map = stream.filter_map(move |(actor_id, payload)| async move {
-            if !payload.starts_with(route) {
-                return None;
-            }
-            let event_bytes = &payload[route.len()..];
-            for (idx, name) in event_names.iter().enumerate() {
-                if event_bytes.starts_with(name) {
-                    let idx = idx as u8;
-                    let bytes = [&[idx], &event_bytes[name.len()..]].concat();
-                    let mut event_bytes = &bytes[..];
-                    return E::decode(&mut event_bytes).ok().map(|e| (actor_id, e));
-                }
-            }
-            None
+            E::decode_event(payload).ok().map(|e| (actor_id, e))
         });
         Ok(Box::pin(map))
+    }
+}
+
+pub trait EventIo {
+    const ROUTE: &'static [u8];
+    const EVENT_NAMES: &'static [&'static [u8]];
+    type Event: Decode;
+
+    fn decode_event(payload: impl AsRef<[u8]>) -> Result<Self::Event> {
+        let payload = payload.as_ref();
+        if !payload.starts_with(Self::ROUTE) {
+            Err(RtlError::EventPrefixMismatches)?;
+        }
+        let event_bytes = &payload[Self::ROUTE.len()..];
+        for (idx, name) in Self::EVENT_NAMES.iter().enumerate() {
+            if event_bytes.starts_with(name) {
+                let idx = idx as u8;
+                let bytes = [&[idx], &event_bytes[name.len()..]].concat();
+                let mut event_bytes = &bytes[..];
+                return Decode::decode(&mut event_bytes).map_err(Error::Codec);
+            }
+        }
+        Err(RtlError::EventNameIsNotFound)?
     }
 }

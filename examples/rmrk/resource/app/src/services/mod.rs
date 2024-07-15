@@ -171,7 +171,7 @@ mod tests {
     use crate::catalogs::{Error, Part};
     use resources::BasicResource;
     use sails::{
-        calls::{Remoting, RemotingAction},
+        calls::{Action, Call, Remoting, Reply},
         collections::BTreeMap,
         gstd::calls::GStdRemoting,
         ActorId,
@@ -227,7 +227,100 @@ mod tests {
         _a: PhantomData<A>,
     }
 
-    #[allow(refining_impl_trait)]
+    struct MockCall<A, R> {
+        _r: PhantomData<R>,
+        _a: PhantomData<A>,
+    }
+
+    impl<A, R> MockCall<A, R> {
+        pub fn new() -> Self {
+            Self {
+                _r: PhantomData,
+                _a: PhantomData,
+            }
+        }
+    }
+
+    impl<A, R> Call<A, R> for MockCall<A, R> {
+        async fn send(self, _target: ActorId) -> sails::errors::Result<impl Reply<T = R>> {
+            Ok(MockReply::<R>::new())
+        }
+    }
+
+    impl<A, R> Action<A> for MockCall<A, R> {
+        fn with_value(self, _value: ValueUnit) -> Self {
+            todo!()
+        }
+
+        fn with_args(self, _args: A) -> Self {
+            todo!()
+        }
+
+        fn value(&self) -> ValueUnit {
+            todo!()
+        }
+
+        fn args(&self) -> &A {
+            todo!()
+        }
+    }
+
+    struct MockReply<R> {
+        _r: PhantomData<R>,
+    }
+
+    impl<R> MockReply<R> {
+        pub fn new() -> Self {
+            Self { _r: PhantomData }
+        }
+    }
+
+    impl<R> Reply for MockReply<R> {
+        type T = R;
+        async fn recv(self) -> sails::errors::Result<Self::T> {
+            unimplemented!()
+        }
+    }
+
+    #[derive(Default)]
+    struct MockQuery<A, R> {
+        _r: PhantomData<R>,
+        _a: PhantomData<A>,
+    }
+
+    impl<A, R> MockQuery<A, R> {
+        pub fn new() -> Self {
+            Self {
+                _r: PhantomData,
+                _a: PhantomData,
+            }
+        }
+    }
+
+    impl<A, R> Query<A, R> for MockQuery<A, R> {
+        async fn recv(self, _target: ActorId) -> sails::errors::Result<R> {
+            unimplemented!()
+        }
+    }
+
+    impl<A, R> Action<A> for MockQuery<A, R> {
+        fn with_value(self, _value: ValueUnit) -> Self {
+            todo!()
+        }
+
+        fn with_args(self, _args: A) -> Self {
+            todo!()
+        }
+
+        fn value(&self) -> ValueUnit {
+            todo!()
+        }
+
+        fn args(&self) -> &A {
+            todo!()
+        }
+    }
+
     impl<R, A> RmrkCatalog<A> for MockCatalogClient<R, A>
     where
         R: Remoting<A>,
@@ -236,54 +329,48 @@ mod tests {
         fn add_parts(
             &mut self,
             _parts: BTreeMap<u32, Part>,
-        ) -> RemotingAction<R, A, Result<BTreeMap<u32, Part>, Error>> {
-            unimplemented!()
+        ) -> impl Call<A, Result<BTreeMap<u32, Part>, Error>> {
+            MockCall::new()
         }
 
-        fn remove_parts(
-            &mut self,
-            _part_ids: Vec<u32>,
-        ) -> RemotingAction<R, A, Result<Vec<u32>, Error>> {
-            unimplemented!()
+        fn remove_parts(&mut self, _part_ids: Vec<u32>) -> impl Call<A, Result<Vec<u32>, Error>> {
+            MockCall::new()
         }
 
         fn add_equippables(
             &mut self,
             _part_id: u32,
             _collection_ids: Vec<ActorId>,
-        ) -> RemotingAction<R, A, Result<(u32, Vec<ActorId>), Error>> {
-            unimplemented!()
+        ) -> impl Call<A, Result<(u32, Vec<ActorId>), Error>> {
+            MockCall::new()
         }
 
         fn remove_equippable(
             &mut self,
             _part_id: u32,
             _collection_id: ActorId,
-        ) -> RemotingAction<R, A, Result<(u32, ActorId), Error>> {
-            unimplemented!()
+        ) -> impl Call<A, Result<(u32, ActorId), Error>> {
+            MockCall::new()
         }
 
-        fn reset_equippables(&mut self, _part_id: u32) -> RemotingAction<R, A, Result<(), Error>> {
-            unimplemented!()
+        fn reset_equippables(&mut self, _part_id: u32) -> impl Call<A, Result<(), Error>> {
+            MockCall::new()
         }
 
-        fn set_equippables_to_all(
-            &mut self,
-            _part_id: u32,
-        ) -> RemotingAction<R, A, Result<(), Error>> {
-            unimplemented!()
+        fn set_equippables_to_all(&mut self, _part_id: u32) -> impl Call<A, Result<(), Error>> {
+            MockCall::new()
         }
 
-        fn part(&self, _part_id: u32) -> RemotingAction<R, A, Option<Part>> {
-            unimplemented!()
+        fn part(&self, _part_id: u32) -> impl Query<A, Option<Part>> {
+            MockQuery::new()
         }
 
         fn equippable(
             &self,
             _part_id: u32,
             _collection_id: ActorId,
-        ) -> RemotingAction<R, A, Result<bool, Error>> {
-            unimplemented!()
+        ) -> impl Query<A, Result<bool, Error>> {
+            MockQuery::new()
         }
     }
 }

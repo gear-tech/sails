@@ -18,146 +18,109 @@ impl IoModuleGenerator {
     }
 
     pub(crate) fn finalize(self) -> rust::Tokens {
-        self.tokens
+        quote!(
+            pub mod io {
+                use super::*;
+                use sails::calls::ActionIo;
+                $(self.tokens)
+            }
+        )
     }
 }
 
 impl<'ast> Visitor<'ast> for IoModuleGenerator {
     fn visit_service(&mut self, service: &'ast Service) {
-        quote_in! { self.tokens =>
-            pub mod io $("{")
-                use super::*;
-        };
-
         visitor::accept_service(service, self);
-
-        quote_in! { self.tokens =>
-            $("}")
-        };
     }
 
     fn visit_service_func(&mut self, func: &'ast ServiceFunc) {
         let fn_name = func.name();
+        let (service_path_bytes, _) = path_bytes(&self.path);
+        let (route_bytes, _) = method_bytes(fn_name);
+
+        let struct_tokens = generate_io_struct(
+            fn_name,
+            func.params(),
+            Some(func.output()),
+            format!("{service_path_bytes}{route_bytes}").as_str(),
+        );
 
         quote_in! { self.tokens =>
-            #[derive(Debug, Default, Clone, Copy)]
-            pub struct $fn_name(());
-
-            impl $fn_name $("{")
-                #[allow(dead_code)]
-                pub fn encode_call $("(")
-        };
-
-        visitor::accept_service_func(func, self);
-
-        quote_in! { self.tokens =>
-            $(")") -> Vec<u8> $("{")
-        };
-
-        let (service_path_bytes, service_path_encoded_length) = path_bytes(&self.path);
-        let (route_bytes, route_encoded_length) = method_bytes(fn_name);
-
-        let path_len = service_path_encoded_length + route_encoded_length;
-
-        let args = encoded_args(func.params());
-
-        quote_in! { self.tokens =>
-            let args = $args;
-            let mut result = Vec::with_capacity($path_len + args.encoded_size());
-            result.extend_from_slice(&[$service_path_bytes]);
-            result.extend_from_slice(&[$route_bytes]);
-            args.encode_to(&mut result);
-            result
-
-            $("}")
-        };
-
-        let mut decode_reply_gen = DecodeReplyGenerator {
-            path: self.path.clone(),
-            ..Default::default()
-        };
-        decode_reply_gen.visit_service_func(func);
-
-        self.tokens.extend(decode_reply_gen.tokens);
-
-        quote_in! { self.tokens =>
-            $("}")
+            $struct_tokens
         };
     }
+}
 
-    fn visit_func_param(&mut self, func_param: &'ast FuncParam) {
+pub(crate) fn generate_io_struct(
+    fn_name: &str,
+    fn_params: &[FuncParam],
+    fn_output: Option<&TypeDecl>,
+    route_bytes: &str,
+) -> rust::Tokens {
+    let params_len = fn_params.len();
+    let mut struct_param_tokens = rust::Tokens::new();
+    let mut encode_call_args = rust::Tokens::new();
+    let mut encode_call_names = rust::Tokens::new();
+    for func_param in fn_params {
         let type_decl_code =
             generate_type_decl_with_path(func_param.type_decl(), "super".to_owned());
-
-        quote_in! { self.tokens =>
-            $(func_param.name()): $(type_decl_code),
+        quote_in! { struct_param_tokens =>
+            $(&type_decl_code),
+        };
+        quote_in! { encode_call_args =>
+            $(func_param.name()): $(&type_decl_code),
+        };
+        quote_in! { encode_call_names =>
+            $(func_param.name()),
         };
     }
-}
 
-#[derive(Default)]
-struct DecodeReplyGenerator {
-    tokens: rust::Tokens,
-    path: String,
-    is_unit: bool,
-}
+    let param_tokens = match params_len {
+        0 => quote!(()),
+        1 => quote!($(generate_type_decl_with_path(fn_params[0].type_decl(), "super".to_owned()))),
+        _ => quote!(($struct_param_tokens)),
+    };
 
-impl<'ast> Visitor<'ast> for DecodeReplyGenerator {
-    fn visit_service(&mut self, service: &'ast Service) {
-        visitor::accept_service(service, self);
-    }
+    let func_output = fn_output.map_or("()".to_owned(), |output| {
+        generate_type_decl_with_path(output, "super".to_owned())
+    });
 
-    fn visit_service_func(&mut self, func: &'ast ServiceFunc) {
-        quote_in! { self.tokens =>
-            #[allow(dead_code)]
-            pub fn decode_reply(mut reply: &[u8]) -> Result<
-        };
-
-        visitor::accept_service_func(func, self);
-
-        let allow_rule = self
-            .is_unit
-            .then_some("#[allow(clippy::let_unit_value)]")
-            .unwrap_or_default();
-
-        let path_check = match path_bytes(&self.path) {
-            (_, 0) => quote! {}, // no path
-            (path_bytes, path_encoded_length) => {
-                quote! {
-                    if !reply.starts_with(&[$path_bytes]) {
-                        return Err(sails::errors::Error::Rtl(sails::errors::RtlError::ReplyPrefixMismatches));
-                    }
-
-                    reply = &reply[$path_encoded_length..];
+    let encode_call_tokens = match params_len {
+        0 => quote!(
+            impl $fn_name {
+                #[allow(dead_code)]
+                pub fn encode_call() -> Vec<u8> {
+                    <$fn_name as ActionIo>::encode_call(&())
                 }
             }
-        };
-
-        let (route_bytes, route_encoded_length) = method_bytes(func.name());
-
-        quote_in! { self.tokens =>
-            , sails::errors::Error> {
-                $path_check
-
-                if !reply.starts_with(&[$route_bytes]) {
-                    return Err(sails::errors::Error::Rtl(sails::errors::RtlError::ReplyPrefixMismatches));
+        ),
+        1 => quote!(
+            impl $fn_name {
+                #[allow(dead_code)]
+                pub fn encode_call($encode_call_args) -> Vec<u8> {
+                    <$fn_name as ActionIo>::encode_call(&$(fn_params[0].name()))
                 }
-
-                reply = &reply[$route_encoded_length..];
-
-                $allow_rule
-                let result = Decode::decode(&mut reply).map_err(sails::errors::Error::Codec)?;
-                Ok(result)
             }
-        };
-    }
+        ),
+        _ => quote!(
+            impl $fn_name {
+                #[allow(dead_code)]
+                pub fn encode_call($encode_call_args) -> Vec<u8> {
+                    <$fn_name as ActionIo>::encode_call(&($encode_call_names))
+                }
+            }
+        ),
+    };
 
-    fn visit_func_output(&mut self, func_output: &'ast TypeDecl) {
-        let type_decl_code = generate_type_decl_with_path(func_output, "super".to_owned());
-        if type_decl_code == "()" {
-            self.is_unit = true;
+    quote! {
+        pub struct $fn_name (());
+
+        $encode_call_tokens
+
+        impl ActionIo for $fn_name {
+            const ROUTE: &'static [u8] = &[$route_bytes];
+            type Params = $param_tokens;
+            type Reply = $func_output;
         }
-
-        self.tokens.append(type_decl_code);
     }
 }

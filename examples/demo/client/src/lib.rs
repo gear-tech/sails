@@ -6,7 +6,7 @@ include!(concat!(env!("OUT_DIR"), "/demo_client.rs"));
 #[cfg(test)]
 mod tests {
     use super::*;
-    use sails::prelude::*;
+    use sails::{calls::*, prelude::*};
 
     #[test]
     fn test_io_module_encode() {
@@ -41,7 +41,7 @@ mod tests {
         ];
 
         let reply: Result<(ActorId, NonZeroU32), (String,)> =
-            this_that::io::DoThat::decode_reply(&bytes).unwrap();
+            this_that::io::DoThat::decode_reply(bytes).unwrap();
 
         assert_eq!(reply, Ok((ActorId::from(123), NonZeroU32::MAX)));
     }

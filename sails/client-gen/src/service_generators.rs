@@ -59,15 +59,13 @@ impl<'ast> Visitor<'ast> for ServiceTraitGenerator {
 /// Generates a client that implements service trait
 pub(crate) struct ServiceClientGenerator {
     service_name: String,
-    path: String,
     tokens: Tokens,
 }
 
 impl ServiceClientGenerator {
-    pub(crate) fn new(service_name: String, path: String) -> Self {
+    pub(crate) fn new(service_name: String) -> Self {
         Self {
             service_name,
-            path,
             tokens: Tokens::new(),
         }
     }
@@ -130,12 +128,12 @@ impl<'ast> Visitor<'ast> for ServiceClientGenerator {
 
         let args = encoded_args(func.params());
 
-        let (service_path_bytes, _service_path_encoded_length) = path_bytes(&self.path);
-        let (route_bytes, _route_encoded_length) = method_bytes(fn_name);
+        let service_name_snake = self.service_name.to_case(Case::Snake);
+        let params_type = format!("{service_name_snake}::io::{fn_name}");
 
         quote_in! {self.tokens =>
             fn $fn_name_snake (&$mutability self, $params_tokens) -> impl $output_trait<A, $output_type_decl_code> {
-                RemotingAction::new(self.remoting.clone(), &[$service_path_bytes $route_bytes], $args)
+                RemotingAction::<_, _, $params_type>::new(self.remoting.clone(), $args)
             }
         };
     }

@@ -3,11 +3,14 @@ use genco::prelude::*;
 use rust::Tokens;
 use sails_idl_parser::{ast::visitor, ast::visitor::Visitor, ast::*};
 
-use crate::{helpers::*, type_generators::generate_type_decl_code};
+use crate::{
+    helpers::*, io_generators::generate_io_struct, type_generators::generate_type_decl_code,
+};
 
 pub(crate) struct CtorFactoryGenerator {
     service_name: String,
     tokens: Tokens,
+    io_tokens: Tokens,
 }
 
 impl CtorFactoryGenerator {
@@ -15,11 +18,23 @@ impl CtorFactoryGenerator {
         Self {
             service_name,
             tokens: Tokens::new(),
+            io_tokens: Tokens::new(),
         }
     }
 
     pub(crate) fn finalize(self) -> Tokens {
-        self.tokens
+        let service_name_snake = self.service_name.to_case(Case::Snake);
+        quote! {
+            $(self.tokens)
+            pub mod $(service_name_snake)_factory {
+                use super::*;
+                pub mod io {
+                    use super::*;
+                    use sails::calls::ActionIo;
+                    $(self.io_tokens)
+                }
+            }
+        }
     }
 }
 
@@ -63,12 +78,21 @@ impl<'ast> Visitor<'ast> for CtorFactoryGenerator {
         visitor::accept_ctor_func(func, self);
 
         let args = encoded_args(func.params());
-        let route_bytes = path_bytes(fn_name).0;
+
+        let service_name_snake = self.service_name.to_case(Case::Snake);
+        let params_type = format!("{service_name_snake}_factory::io::{fn_name}");
 
         quote_in! { self.tokens =>
             $(")") -> impl Activation<A> {
-                RemotingAction::new(self.remoting.clone(), &[$route_bytes], $args)
+                RemotingAction::<_, _ ,$params_type>::new(self.remoting.clone(), $args)
             }
+        };
+
+        let route_bytes = path_bytes(fn_name).0;
+        let struct_tokens = generate_io_struct(fn_name, func.params(), None, route_bytes.as_str());
+
+        quote_in! { self.io_tokens =>
+            $struct_tokens
         };
     }
 
