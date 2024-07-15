@@ -1,5 +1,6 @@
 [package]
 name = "sails-client-gen"
+description = "Rust client generator for the Sails framework"
 version.workspace = true
 authors.workspace = true
 edition.workspace = true

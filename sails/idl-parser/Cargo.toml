@@ -1,5 +1,6 @@
 [package]
 name = "sails-idl-parser"
+description = "IDL parser for the Sails framework"
 version.workspace = true
 authors.workspace = true
 edition.workspace = true

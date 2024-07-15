@@ -1,5 +1,6 @@
 [package]
 name = "sails"
+description = "Main abstractions for the Sails framework"
 version.workspace = true
 authors.workspace = true
 edition.workspace = true
