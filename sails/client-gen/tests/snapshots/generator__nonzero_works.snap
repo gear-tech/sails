@@ -35,7 +35,7 @@ where
     A: Default,
 {
     fn do_this(&mut self, p1: NonZeroU256, p2: MyParam) -> impl Call<A, NonZeroU64> {
-        RemotingAction::new(self.remoting.clone(), non_zero_params::io::DoThis(p1, p2))
+        RemotingAction::<_, _, non_zero_params::io::DoThis>::new(self.remoting.clone(), (p1, p2))
     }
 }
 pub mod non_zero_params {
@@ -45,16 +45,16 @@ pub mod non_zero_params {
         use sails::calls::ActionIo;
         #[derive(Debug, Encode)]
         #[codec(crate = sails::scale_codec)]
-        pub struct DoThis(pub(crate) NonZeroU256, pub(crate) super::MyParam);
+        pub struct DoThis(());
         impl DoThis {
             #[allow(dead_code)]
             pub fn encode_call(p1: NonZeroU256, p2: super::MyParam) -> Vec<u8> {
-                let call = DoThis(p1, p2);
-                call.encode_call()
+                <DoThis as ActionIo>::encode_call(&(p1, p2))
             }
         }
         impl ActionIo for DoThis {
             const ROUTE: &'static [u8] = &[24, 68, 111, 84, 104, 105, 115];
+            type Params = (NonZeroU256, super::MyParam);
             type Reply = NonZeroU64;
         }
     }

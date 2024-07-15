@@ -27,7 +27,7 @@ impl<R: Remoting<A>, A> ServiceFactory<R, A> {
 }
 impl<R: Remoting<A> + Clone, A: Default> traits::ServiceFactory<A> for ServiceFactory<R, A> {
     fn new(&self, a: u32) -> impl Activation<A> {
-        RemotingAction::new(self.remoting.clone(), service_factory::io::New(a))
+        RemotingAction::<_, _, service_factory::io::New>::new(self.remoting.clone(), a)
     }
 }
 pub mod service_factory {
@@ -37,16 +37,16 @@ pub mod service_factory {
         use sails::calls::ActionIo;
         #[derive(Debug, Encode)]
         #[codec(crate = sails::scale_codec)]
-        pub struct New(pub(crate) u32);
+        pub struct New(());
         impl New {
             #[allow(dead_code)]
             pub fn encode_call(a: u32) -> Vec<u8> {
-                let call = New(a);
-                call.encode_call()
+                <New as ActionIo>::encode_call(&a)
             }
         }
         impl ActionIo for New {
             const ROUTE: &'static [u8] = &[12, 78, 101, 119];
+            type Params = u32;
             type Reply = ();
         }
     }
@@ -80,19 +80,19 @@ where
         p3: (Option<String>, u8),
         p4: ThisThatSvcAppTupleStruct,
     ) -> impl Call<A, (String, u32)> {
-        RemotingAction::new(self.remoting.clone(), service::io::DoThis(p1, p2, p3, p4))
+        RemotingAction::<_, _, service::io::DoThis>::new(self.remoting.clone(), (p1, p2, p3, p4))
     }
     fn do_that(
         &mut self,
         param: ThisThatSvcAppDoThatParam,
     ) -> impl Call<A, Result<(String, u32), (String,)>> {
-        RemotingAction::new(self.remoting.clone(), service::io::DoThat(param))
+        RemotingAction::<_, _, service::io::DoThat>::new(self.remoting.clone(), param)
     }
     fn this(&self, v1: Vec<u16>) -> impl Query<A, u32> {
-        RemotingAction::new(self.remoting.clone(), service::io::This(v1))
+        RemotingAction::<_, _, service::io::This>::new(self.remoting.clone(), v1)
     }
     fn that(&self, v1: ()) -> impl Query<A, Result<String, String>> {
-        RemotingAction::new(self.remoting.clone(), service::io::That(v1))
+        RemotingAction::<_, _, service::io::That>::new(self.remoting.clone(), v1)
     }
 }
 pub mod service {
@@ -102,12 +102,7 @@ pub mod service {
         use sails::calls::ActionIo;
         #[derive(Debug, Encode)]
         #[codec(crate = sails::scale_codec)]
-        pub struct DoThis(
-            pub(crate) u32,
-            pub(crate) String,
-            pub(crate) (Option<String>, u8),
-            pub(crate) super::ThisThatSvcAppTupleStruct,
-        );
+        pub struct DoThis(());
         impl DoThis {
             #[allow(dead_code)]
             pub fn encode_call(
@@ -116,54 +111,59 @@ pub mod service {
                 p3: (Option<String>, u8),
                 p4: super::ThisThatSvcAppTupleStruct,
             ) -> Vec<u8> {
-                let call = DoThis(p1, p2, p3, p4);
-                call.encode_call()
+                <DoThis as ActionIo>::encode_call(&(p1, p2, p3, p4))
             }
         }
         impl ActionIo for DoThis {
             const ROUTE: &'static [u8] = &[24, 68, 111, 84, 104, 105, 115];
+            type Params = (
+                u32,
+                String,
+                (Option<String>, u8),
+                super::ThisThatSvcAppTupleStruct,
+            );
             type Reply = (String, u32);
         }
         #[derive(Debug, Encode)]
         #[codec(crate = sails::scale_codec)]
-        pub struct DoThat(pub(crate) super::ThisThatSvcAppDoThatParam);
+        pub struct DoThat(());
         impl DoThat {
             #[allow(dead_code)]
             pub fn encode_call(param: super::ThisThatSvcAppDoThatParam) -> Vec<u8> {
-                let call = DoThat(param);
-                call.encode_call()
+                <DoThat as ActionIo>::encode_call(&param)
             }
         }
         impl ActionIo for DoThat {
             const ROUTE: &'static [u8] = &[24, 68, 111, 84, 104, 97, 116];
+            type Params = super::ThisThatSvcAppDoThatParam;
             type Reply = Result<(String, u32), (String,)>;
         }
         #[derive(Debug, Encode)]
         #[codec(crate = sails::scale_codec)]
-        pub struct This(pub(crate) Vec<u16>);
+        pub struct This(());
         impl This {
             #[allow(dead_code)]
             pub fn encode_call(v1: Vec<u16>) -> Vec<u8> {
-                let call = This(v1);
-                call.encode_call()
+                <This as ActionIo>::encode_call(&v1)
             }
         }
         impl ActionIo for This {
             const ROUTE: &'static [u8] = &[16, 84, 104, 105, 115];
+            type Params = Vec<u16>;
             type Reply = u32;
         }
         #[derive(Debug, Encode)]
         #[codec(crate = sails::scale_codec)]
-        pub struct That(pub(crate) ());
+        pub struct That(());
         impl That {
             #[allow(dead_code)]
             pub fn encode_call(v1: ()) -> Vec<u8> {
-                let call = That(v1);
-                call.encode_call()
+                <That as ActionIo>::encode_call(&v1)
             }
         }
         impl ActionIo for That {
             const ROUTE: &'static [u8] = &[16, 84, 104, 97, 116];
+            type Params = ();
             type Reply = Result<String, String>;
         }
     }

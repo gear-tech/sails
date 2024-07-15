@@ -35,9 +35,9 @@ where
     A: Default,
 {
     fn do_this(&mut self, p1: NonZeroU256, p2: MyParam) -> impl Call<A, NonZeroU64> {
-        RemotingAction::new(
+        RemotingAction::<_, _, service_with_events::io::DoThis>::new(
             self.remoting.clone(),
-            service_with_events::io::DoThis(p1, p2),
+            (p1, p2),
         )
     }
 }
@@ -48,16 +48,16 @@ pub mod service_with_events {
         use sails::calls::ActionIo;
         #[derive(Debug, Encode)]
         #[codec(crate = sails::scale_codec)]
-        pub struct DoThis(pub(crate) NonZeroU256, pub(crate) super::MyParam);
+        pub struct DoThis(());
         impl DoThis {
             #[allow(dead_code)]
             pub fn encode_call(p1: NonZeroU256, p2: super::MyParam) -> Vec<u8> {
-                let call = DoThis(p1, p2);
-                call.encode_call()
+                <DoThis as ActionIo>::encode_call(&(p1, p2))
             }
         }
         impl ActionIo for DoThis {
             const ROUTE: &'static [u8] = &[24, 68, 111, 84, 104, 105, 115];
+            type Params = (NonZeroU256, super::MyParam);
             type Reply = NonZeroU64;
         }
     }

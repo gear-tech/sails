@@ -127,18 +127,18 @@ pub trait Remoting<TArgs> {
     ) -> Result<Vec<u8>>;
 }
 
-pub struct RemotingAction<TRemoting, TArgs, TParams> {
+pub struct RemotingAction<TRemoting, TArgs, TParams: ActionIo> {
     remoting: TRemoting,
-    params: TParams,
+    params: TParams::Params,
     value: ValueUnit,
     args: TArgs,
 }
 
-impl<TRemoting, TArgs, TParams> RemotingAction<TRemoting, TArgs, TParams>
+impl<TRemoting, TArgs, TParams: ActionIo> RemotingAction<TRemoting, TArgs, TParams>
 where
     TArgs: Default,
 {
-    pub fn new(remoting: TRemoting, params: TParams) -> Self {
+    pub fn new(remoting: TRemoting, params: TParams::Params) -> Self {
         Self {
             remoting,
             params,
@@ -148,7 +148,9 @@ where
     }
 }
 
-impl<TRemoting, TArgs, TParams> Action<TArgs> for RemotingAction<TRemoting, TArgs, TParams> {
+impl<TRemoting, TArgs, TParams: ActionIo> Action<TArgs>
+    for RemotingAction<TRemoting, TArgs, TParams>
+{
     fn with_value(self, value: ValueUnit) -> Self {
         Self { value, ..self }
     }
@@ -173,7 +175,7 @@ where
     TParams: ActionIo<Reply = TReply>,
 {
     async fn send(self, target: ActorId) -> Result<impl Reply<TParams::Reply>> {
-        let payload = self.params.encode_call();
+        let payload = TParams::encode_call(&self.params);
         let reply_future = self
             .remoting
             .message(target, payload, self.value, self.args)
@@ -188,7 +190,7 @@ where
     TParams: ActionIo<Reply = ()>,
 {
     async fn send(self, code_id: CodeId, salt: impl AsRef<[u8]>) -> Result<impl Reply<ActorId>> {
-        let payload = self.params.encode_call();
+        let payload = TParams::encode_call(&self.params);
         let reply_future = self
             .remoting
             .activate(code_id, salt, payload, self.value, self.args)
@@ -204,7 +206,7 @@ where
     TParams: ActionIo<Reply = TReply>,
 {
     async fn recv(self, target: ActorId) -> Result<TReply> {
-        let payload = self.params.encode_call();
+        let payload = TParams::encode_call(&self.params);
         let reply_bytes = self
             .remoting
             .query(target, payload, self.value, self.args)
@@ -213,14 +215,15 @@ where
     }
 }
 
-pub trait ActionIo: Encode {
+pub trait ActionIo {
     const ROUTE: &'static [u8];
+    type Params: Encode;
     type Reply: Decode;
 
-    fn encode_call(&self) -> Vec<u8> {
-        let mut result = Vec::with_capacity(Self::ROUTE.len() + self.encoded_size());
+    fn encode_call(value: &Self::Params) -> Vec<u8> {
+        let mut result = Vec::with_capacity(Self::ROUTE.len() + value.encoded_size());
         result.extend_from_slice(Self::ROUTE);
-        self.encode_to(&mut result);
+        value.encode_to(&mut result);
         result
     }
 

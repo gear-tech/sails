@@ -126,14 +126,14 @@ impl<'ast> Visitor<'ast> for ServiceClientGenerator {
         let output_type_decl_code = generate_type_decl_code(func.output());
         let output_trait = if func.is_query() { "Query" } else { "Call" };
 
-        let args = encoded_fn_args(func.params());
+        let args = encoded_args(func.params());
 
         let service_name_snake = self.service_name.to_case(Case::Snake);
         let params_type = format!("{service_name_snake}::io::{fn_name}");
 
         quote_in! {self.tokens =>
             fn $fn_name_snake (&$mutability self, $params_tokens) -> impl $output_trait<A, $output_type_decl_code> {
-                RemotingAction::new(self.remoting.clone(), $params_type ($args))
+                RemotingAction::<_, _, $params_type>::new(self.remoting.clone(), $args)
             }
         };
     }

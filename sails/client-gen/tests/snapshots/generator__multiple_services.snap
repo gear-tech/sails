@@ -35,10 +35,10 @@ where
     A: Default,
 {
     fn do_this(&mut self, p1: u32, p2: MyParam) -> impl Call<A, u16> {
-        RemotingAction::new(self.remoting.clone(), multiple::io::DoThis(p1, p2))
+        RemotingAction::<_, _, multiple::io::DoThis>::new(self.remoting.clone(), (p1, p2))
     }
     fn do_that(&mut self, p1: (u8, u32)) -> impl Call<A, u8> {
-        RemotingAction::new(self.remoting.clone(), multiple::io::DoThat(p1))
+        RemotingAction::<_, _, multiple::io::DoThat>::new(self.remoting.clone(), p1)
     }
 }
 pub mod multiple {
@@ -48,30 +48,30 @@ pub mod multiple {
         use sails::calls::ActionIo;
         #[derive(Debug, Encode)]
         #[codec(crate = sails::scale_codec)]
-        pub struct DoThis(pub(crate) u32, pub(crate) super::MyParam);
+        pub struct DoThis(());
         impl DoThis {
             #[allow(dead_code)]
             pub fn encode_call(p1: u32, p2: super::MyParam) -> Vec<u8> {
-                let call = DoThis(p1, p2);
-                call.encode_call()
+                <DoThis as ActionIo>::encode_call(&(p1, p2))
             }
         }
         impl ActionIo for DoThis {
             const ROUTE: &'static [u8] = &[24, 68, 111, 84, 104, 105, 115];
+            type Params = (u32, super::MyParam);
             type Reply = u16;
         }
         #[derive(Debug, Encode)]
         #[codec(crate = sails::scale_codec)]
-        pub struct DoThat(pub(crate) (u8, u32));
+        pub struct DoThat(());
         impl DoThat {
             #[allow(dead_code)]
             pub fn encode_call(p1: (u8, u32)) -> Vec<u8> {
-                let call = DoThat(p1);
-                call.encode_call()
+                <DoThat as ActionIo>::encode_call(&p1)
             }
         }
         impl ActionIo for DoThat {
             const ROUTE: &'static [u8] = &[24, 68, 111, 84, 104, 97, 116];
+            type Params = (u8, u32);
             type Reply = u8;
         }
     }
@@ -99,7 +99,7 @@ where
     A: Default,
 {
     fn that(&self, p1: u32) -> impl Query<A, String> {
-        RemotingAction::new(self.remoting.clone(), named::io::That(p1))
+        RemotingAction::<_, _, named::io::That>::new(self.remoting.clone(), p1)
     }
 }
 pub mod named {
@@ -109,16 +109,16 @@ pub mod named {
         use sails::calls::ActionIo;
         #[derive(Debug, Encode)]
         #[codec(crate = sails::scale_codec)]
-        pub struct That(pub(crate) u32);
+        pub struct That(());
         impl That {
             #[allow(dead_code)]
             pub fn encode_call(p1: u32) -> Vec<u8> {
-                let call = That(p1);
-                call.encode_call()
+                <That as ActionIo>::encode_call(&p1)
             }
         }
         impl ActionIo for That {
             const ROUTE: &'static [u8] = &[20, 78, 97, 109, 101, 100, 16, 84, 104, 97, 116];
+            type Params = u32;
             type Reply = String;
         }
     }
