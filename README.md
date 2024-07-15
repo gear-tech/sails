@@ -18,8 +18,8 @@ different languages and executed in different runtimes
 Add the following to your `Cargo.toml`
 ```toml
 [dependencies]
-sails-rtl = { git = "https://github.com/gear-tech/sails" }
-gstd = { git = "https://github.com/gear-tech/gear", features = ["debug"] }
+sails = "*"
+gstd = { version = "*", features = ["debug"] }
 ```
 
 And then in your `lib.rs`:
