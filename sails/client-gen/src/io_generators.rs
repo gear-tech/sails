@@ -113,8 +113,6 @@ pub(crate) fn generate_io_struct(
     };
 
     quote! {
-        #[derive(Debug, Encode)]
-        #[codec(crate = sails::scale_codec)]
         pub struct $fn_name (());
 
         $encode_call_tokens

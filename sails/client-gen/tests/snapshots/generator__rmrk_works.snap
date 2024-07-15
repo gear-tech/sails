@@ -37,8 +37,6 @@ pub mod rmrk_catalog_factory {
     pub mod io {
         use super::*;
         use sails::calls::ActionIo;
-        #[derive(Debug, Encode)]
-        #[codec(crate = sails::scale_codec)]
         pub struct New(());
         impl New {
             #[allow(dead_code)]
@@ -135,8 +133,6 @@ pub mod rmrk_catalog {
     pub mod io {
         use super::*;
         use sails::calls::ActionIo;
-        #[derive(Debug, Encode)]
-        #[codec(crate = sails::scale_codec)]
         pub struct AddEquippables(());
         impl AddEquippables {
             #[allow(dead_code)]
@@ -152,8 +148,6 @@ pub mod rmrk_catalog {
             type Params = (u32, Vec<ActorId>);
             type Reply = Result<(u32, Vec<ActorId>), super::Error>;
         }
-        #[derive(Debug, Encode)]
-        #[codec(crate = sails::scale_codec)]
         pub struct AddParts(());
         impl AddParts {
             #[allow(dead_code)]
@@ -169,8 +163,6 @@ pub mod rmrk_catalog {
             type Params = BTreeMap<u32, super::Part>;
             type Reply = Result<BTreeMap<u32, super::Part>, super::Error>;
         }
-        #[derive(Debug, Encode)]
-        #[codec(crate = sails::scale_codec)]
         pub struct RemoveEquippable(());
         impl RemoveEquippable {
             #[allow(dead_code)]
@@ -186,8 +178,6 @@ pub mod rmrk_catalog {
             type Params = (u32, ActorId);
             type Reply = Result<(u32, ActorId), super::Error>;
         }
-        #[derive(Debug, Encode)]
-        #[codec(crate = sails::scale_codec)]
         pub struct RemoveParts(());
         impl RemoveParts {
             #[allow(dead_code)]
@@ -203,8 +193,6 @@ pub mod rmrk_catalog {
             type Params = Vec<u32>;
             type Reply = Result<Vec<u32>, super::Error>;
         }
-        #[derive(Debug, Encode)]
-        #[codec(crate = sails::scale_codec)]
         pub struct ResetEquippables(());
         impl ResetEquippables {
             #[allow(dead_code)]
@@ -220,8 +208,6 @@ pub mod rmrk_catalog {
             type Params = u32;
             type Reply = Result<(), super::Error>;
         }
-        #[derive(Debug, Encode)]
-        #[codec(crate = sails::scale_codec)]
         pub struct SetEquippablesToAll(());
         impl SetEquippablesToAll {
             #[allow(dead_code)]
@@ -237,8 +223,6 @@ pub mod rmrk_catalog {
             type Params = u32;
             type Reply = Result<(), super::Error>;
         }
-        #[derive(Debug, Encode)]
-        #[codec(crate = sails::scale_codec)]
         pub struct Equippable(());
         impl Equippable {
             #[allow(dead_code)]
@@ -254,8 +238,6 @@ pub mod rmrk_catalog {
             type Params = (u32, ActorId);
             type Reply = Result<bool, super::Error>;
         }
-        #[derive(Debug, Encode)]
-        #[codec(crate = sails::scale_codec)]
         pub struct Part(());
         impl Part {
             #[allow(dead_code)]

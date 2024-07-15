@@ -46,8 +46,6 @@ pub mod service_with_events {
     pub mod io {
         use super::*;
         use sails::calls::ActionIo;
-        #[derive(Debug, Encode)]
-        #[codec(crate = sails::scale_codec)]
         pub struct DoThis(());
         impl DoThis {
             #[allow(dead_code)]
@@ -82,11 +80,12 @@ pub mod service_with_events {
                 &[20, 84, 104, 114, 101, 101],
                 &[20, 82, 101, 115, 101, 116],
             ];
+            type Event = Self;
         }
         pub fn listener<R: Listener<Vec<u8>>>(
             remoting: R,
         ) -> impl Listener<ServiceWithEventsEvents> {
-            RemotingListener::new(remoting)
+            RemotingListener::<_, ServiceWithEventsEvents>::new(remoting)
         }
     }
 }

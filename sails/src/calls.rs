@@ -16,7 +16,7 @@ pub trait Action<TArgs> {
 
 #[allow(async_fn_in_trait)]
 pub trait Call<TArgs, TReply>: Action<TArgs> {
-    async fn send(self, target: ActorId) -> Result<impl Reply<TReply>>;
+    async fn send(self, target: ActorId) -> Result<impl Reply<T = TReply>>;
 
     async fn send_recv(self, target: ActorId) -> Result<TReply>
     where
@@ -28,7 +28,8 @@ pub trait Call<TArgs, TReply>: Action<TArgs> {
 
 #[allow(async_fn_in_trait)]
 pub trait Activation<TArgs>: Action<TArgs> {
-    async fn send(self, code_id: CodeId, salt: impl AsRef<[u8]>) -> Result<impl Reply<ActorId>>;
+    async fn send(self, code_id: CodeId, salt: impl AsRef<[u8]>)
+        -> Result<impl Reply<T = ActorId>>;
 
     async fn send_recv(self, code_id: CodeId, salt: impl AsRef<[u8]>) -> Result<ActorId>
     where
@@ -44,57 +45,62 @@ pub trait Query<TArgs, TReply>: Action<TArgs> {
 }
 
 #[allow(async_fn_in_trait)]
-pub trait Reply<TReply> {
-    async fn recv(self) -> Result<TReply>;
+pub trait Reply {
+    type T;
+    async fn recv(self) -> Result<Self::T>;
 }
 
-pub struct CallTicket<TReplyFuture, TParams> {
+pub struct CallTicket<TReplyFuture, TActionIo> {
     reply_future: TReplyFuture,
-    _params: PhantomData<TParams>,
+    _io: PhantomData<TActionIo>,
 }
 
-impl<TReplyFuture, TParams> CallTicket<TReplyFuture, TParams> {
+impl<TReplyFuture, TActionIo> CallTicket<TReplyFuture, TActionIo> {
     pub(crate) fn new(reply_future: TReplyFuture) -> Self {
         Self {
             reply_future,
-            _params: PhantomData,
+            _io: PhantomData,
         }
     }
 }
 
-impl<TReplyFuture, TParams, TReply> Reply<TReply> for CallTicket<TReplyFuture, TParams>
+impl<TReplyFuture, TActionIo> Reply for CallTicket<TReplyFuture, TActionIo>
 where
     TReplyFuture: Future<Output = Result<Vec<u8>>>,
-    TParams: ActionIo<Reply = TReply>,
+    TActionIo: ActionIo,
 {
-    async fn recv(self) -> Result<TReply> {
+    type T = TActionIo::Reply;
+
+    async fn recv(self) -> Result<Self::T> {
         let reply_bytes = self.reply_future.await?;
-        TParams::decode_reply(reply_bytes)
+        TActionIo::decode_reply(reply_bytes)
     }
 }
 
-pub struct ActivationTicket<TReplyFuture, TParams> {
+pub struct ActivationTicket<TReplyFuture, TActionIo> {
     reply_future: TReplyFuture,
-    _params: PhantomData<TParams>,
+    _io: PhantomData<TActionIo>,
 }
 
-impl<TReplyFuture, TParams> ActivationTicket<TReplyFuture, TParams> {
+impl<TReplyFuture, TActionIo> ActivationTicket<TReplyFuture, TActionIo> {
     pub(crate) fn new(reply_future: TReplyFuture) -> Self {
         Self {
             reply_future,
-            _params: PhantomData,
+            _io: PhantomData,
         }
     }
 }
 
-impl<TReplyFuture, TParams> Reply<ActorId> for ActivationTicket<TReplyFuture, TParams>
+impl<TReplyFuture, TActionIo> Reply for ActivationTicket<TReplyFuture, TActionIo>
 where
     TReplyFuture: Future<Output = Result<(ActorId, Vec<u8>)>>,
-    TParams: ActionIo<Reply = ()>,
+    TActionIo: ActionIo<Reply = ()>,
 {
-    async fn recv(self) -> Result<ActorId> {
+    type T = ActorId;
+
+    async fn recv(self) -> Result<Self::T> {
         let (actor_id, payload) = self.reply_future.await?;
-        TParams::decode_reply(payload)?;
+        TActionIo::decode_reply(payload)?;
         Ok(actor_id)
     }
 }
@@ -127,18 +133,18 @@ pub trait Remoting<TArgs> {
     ) -> Result<Vec<u8>>;
 }
 
-pub struct RemotingAction<TRemoting, TArgs, TParams: ActionIo> {
+pub struct RemotingAction<TRemoting, TArgs, TActionIo: ActionIo> {
     remoting: TRemoting,
-    params: TParams::Params,
+    params: TActionIo::Params,
     value: ValueUnit,
     args: TArgs,
 }
 
-impl<TRemoting, TArgs, TParams: ActionIo> RemotingAction<TRemoting, TArgs, TParams>
+impl<TRemoting, TArgs, TActionIo: ActionIo> RemotingAction<TRemoting, TArgs, TActionIo>
 where
     TArgs: Default,
 {
-    pub fn new(remoting: TRemoting, params: TParams::Params) -> Self {
+    pub fn new(remoting: TRemoting, params: TActionIo::Params) -> Self {
         Self {
             remoting,
             params,
@@ -148,8 +154,8 @@ where
     }
 }
 
-impl<TRemoting, TArgs, TParams: ActionIo> Action<TArgs>
-    for RemotingAction<TRemoting, TArgs, TParams>
+impl<TRemoting, TArgs, TActionIo: ActionIo> Action<TArgs>
+    for RemotingAction<TRemoting, TArgs, TActionIo>
 {
     fn with_value(self, value: ValueUnit) -> Self {
         Self { value, ..self }
@@ -168,50 +174,54 @@ impl<TRemoting, TArgs, TParams: ActionIo> Action<TArgs>
     }
 }
 
-impl<TRemoting, TArgs, TParams, TReply> Call<TArgs, TReply>
-    for RemotingAction<TRemoting, TArgs, TParams>
+impl<TRemoting, TArgs, TActionIo> Call<TArgs, TActionIo::Reply>
+    for RemotingAction<TRemoting, TArgs, TActionIo>
 where
     TRemoting: Remoting<TArgs>,
-    TParams: ActionIo<Reply = TReply>,
+    TActionIo: ActionIo,
 {
-    async fn send(self, target: ActorId) -> Result<impl Reply<TParams::Reply>> {
-        let payload = TParams::encode_call(&self.params);
+    async fn send(self, target: ActorId) -> Result<impl Reply<T = TActionIo::Reply>> {
+        let payload = TActionIo::encode_call(&self.params);
         let reply_future = self
             .remoting
             .message(target, payload, self.value, self.args)
             .await?;
-        Ok(CallTicket::<_, TParams>::new(reply_future))
+        Ok(CallTicket::<_, TActionIo>::new(reply_future))
     }
 }
 
-impl<TRemoting, TArgs, TParams> Activation<TArgs> for RemotingAction<TRemoting, TArgs, TParams>
+impl<TRemoting, TArgs, TActionIo> Activation<TArgs> for RemotingAction<TRemoting, TArgs, TActionIo>
 where
     TRemoting: Remoting<TArgs>,
-    TParams: ActionIo<Reply = ()>,
+    TActionIo: ActionIo<Reply = ()>,
 {
-    async fn send(self, code_id: CodeId, salt: impl AsRef<[u8]>) -> Result<impl Reply<ActorId>> {
-        let payload = TParams::encode_call(&self.params);
+    async fn send(
+        self,
+        code_id: CodeId,
+        salt: impl AsRef<[u8]>,
+    ) -> Result<impl Reply<T = ActorId>> {
+        let payload = TActionIo::encode_call(&self.params);
         let reply_future = self
             .remoting
             .activate(code_id, salt, payload, self.value, self.args)
             .await?;
-        Ok(ActivationTicket::<_, TParams>::new(reply_future))
+        Ok(ActivationTicket::<_, TActionIo>::new(reply_future))
     }
 }
 
-impl<TRemoting, TArgs, TParams, TReply> Query<TArgs, TReply>
-    for RemotingAction<TRemoting, TArgs, TParams>
+impl<TRemoting, TArgs, TActionIo> Query<TArgs, TActionIo::Reply>
+    for RemotingAction<TRemoting, TArgs, TActionIo>
 where
     TRemoting: Remoting<TArgs>,
-    TParams: ActionIo<Reply = TReply>,
+    TActionIo: ActionIo,
 {
-    async fn recv(self, target: ActorId) -> Result<TReply> {
-        let payload = TParams::encode_call(&self.params);
+    async fn recv(self, target: ActorId) -> Result<TActionIo::Reply> {
+        let payload = TActionIo::encode_call(&self.params);
         let reply_bytes = self
             .remoting
             .query(target, payload, self.value, self.args)
             .await?;
-        TParams::decode_reply(reply_bytes)
+        TActionIo::decode_reply(reply_bytes)
     }
 }
 

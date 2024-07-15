@@ -35,8 +35,6 @@ pub mod service_factory {
     pub mod io {
         use super::*;
         use sails::calls::ActionIo;
-        #[derive(Debug, Encode)]
-        #[codec(crate = sails::scale_codec)]
         pub struct New(());
         impl New {
             #[allow(dead_code)]
@@ -100,8 +98,6 @@ pub mod service {
     pub mod io {
         use super::*;
         use sails::calls::ActionIo;
-        #[derive(Debug, Encode)]
-        #[codec(crate = sails::scale_codec)]
         pub struct DoThis(());
         impl DoThis {
             #[allow(dead_code)]
@@ -124,8 +120,6 @@ pub mod service {
             );
             type Reply = (String, u32);
         }
-        #[derive(Debug, Encode)]
-        #[codec(crate = sails::scale_codec)]
         pub struct DoThat(());
         impl DoThat {
             #[allow(dead_code)]
@@ -138,8 +132,6 @@ pub mod service {
             type Params = super::ThisThatSvcAppDoThatParam;
             type Reply = Result<(String, u32), (String,)>;
         }
-        #[derive(Debug, Encode)]
-        #[codec(crate = sails::scale_codec)]
         pub struct This(());
         impl This {
             #[allow(dead_code)]
@@ -152,8 +144,6 @@ pub mod service {
             type Params = Vec<u16>;
             type Reply = u32;
         }
-        #[derive(Debug, Encode)]
-        #[codec(crate = sails::scale_codec)]
         pub struct That(());
         impl That {
             #[allow(dead_code)]

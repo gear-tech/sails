@@ -46,8 +46,6 @@ pub mod basic {
     pub mod io {
         use super::*;
         use sails::calls::ActionIo;
-        #[derive(Debug, Encode)]
-        #[codec(crate = sails::scale_codec)]
         pub struct DoThis(());
         impl DoThis {
             #[allow(dead_code)]
@@ -60,8 +58,6 @@ pub mod basic {
             type Params = (u32, super::MyParam);
             type Reply = u16;
         }
-        #[derive(Debug, Encode)]
-        #[codec(crate = sails::scale_codec)]
         pub struct DoThat(());
         impl DoThat {
             #[allow(dead_code)]
