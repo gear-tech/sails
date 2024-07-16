@@ -1,5 +1,6 @@
 [package]
 name = "sails-idl-gen"
+description = "IDL generator for the Sails framework"
 version.workspace = true
 authors.workspace = true
 edition.workspace = true
