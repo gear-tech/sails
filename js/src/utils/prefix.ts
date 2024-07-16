@@ -61,3 +61,30 @@ export function getFnNamePrefix(
 
   return withBytesLength ? { fn: prefix, bytesLength: offset + limit } : prefix;
 }
+
+/**
+ * ## Get constructor name prefix
+ * @param payload in hex string format
+ * @returns Name of the constructor
+ */
+export function getCtorNamePrefix(payload: HexString): string;
+
+/**
+ * ## Get constructor name prefix and bytes length
+ * @param payload in hex string format
+ * @param withBytesLength flag
+ * @returns Name of the constructor and bytes length
+ */
+export function getCtorNamePrefix(payload: HexString, withBytesLength: true): { ctor: string; bytesLength: number };
+
+export function getCtorNamePrefix(
+  payload: HexString,
+  withBytesLength: boolean = false,
+): string | { ctor: string; bytesLength: number } {
+  if (withBytesLength) {
+    const { service, bytesLength } = getServiceNamePrefix(payload, true);
+    return { ctor: service, bytesLength };
+  } else {
+    return getServiceNamePrefix(payload);
+  }
+}

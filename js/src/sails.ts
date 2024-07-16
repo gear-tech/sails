@@ -355,7 +355,11 @@ export class Sails {
         },
         decodePayload: <T = any>(bytes: Uint8Array | string) => {
           const payload = this.registry.createType(`(String, ${params.map((p) => p.type).join(', ')})`, bytes);
-          return payload[1].toJSON() as T;
+          const result = {} as Record<string, any>;
+          params.forEach((param, i) => {
+            result[param.name] = payload[i + 1].toJSON();
+          });
+          return result as T;
         },
         fromCode: (code: Uint8Array | Buffer, ...args: unknown[]) => {
           if (!this._api) {
