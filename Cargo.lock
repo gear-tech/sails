@@ -1430,8 +1430,8 @@ dependencies = [
  "futures",
  "gclient",
  "gear-wasm-builder",
+ "gsails",
  "gtest",
- "sails",
  "sails-idl-gen",
  "tokio",
 ]
@@ -1441,8 +1441,8 @@ name = "demo-app"
 version = "0.1.0"
 dependencies = [
  "demo-walker",
+ "gsails",
  "gstd",
- "sails",
 ]
 
 [[package]]
@@ -1450,7 +1450,7 @@ name = "demo-client"
 version = "0.1.0"
 dependencies = [
  "demo",
- "sails",
+ "gsails",
  "sails-client-gen",
 ]
 
@@ -1458,7 +1458,7 @@ dependencies = [
 name = "demo-walker"
 version = "0.1.0"
 dependencies = [
- "sails",
+ "gsails",
 ]
 
 [[package]]
@@ -2836,6 +2836,26 @@ dependencies = [
 ]
 
 [[package]]
+name = "gsails"
+version = "0.1.0"
+dependencies = [
+ "futures",
+ "gclient",
+ "gear-core-errors",
+ "gprimitives",
+ "gstd",
+ "gtest",
+ "hashbrown 0.14.5",
+ "hex",
+ "parity-scale-codec",
+ "primitive-types",
+ "sails-macros",
+ "scale-info",
+ "spin",
+ "thiserror-no-std",
+]
+
+[[package]]
 name = "gsdk"
 version = "1.4.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4092,8 +4112,8 @@ name = "no-svcs-prog"
 version = "0.1.0"
 dependencies = [
  "gear-wasm-builder",
+ "gsails",
  "no-svcs-prog-app",
- "sails",
  "sails-idl-gen",
 ]
 
@@ -4101,7 +4121,7 @@ dependencies = [
 name = "no-svcs-prog-app"
 version = "0.1.0"
 dependencies = [
- "sails",
+ "gsails",
 ]
 
 [[package]]
@@ -4687,8 +4707,8 @@ name = "proxy"
 version = "0.1.0"
 dependencies = [
  "gear-wasm-builder",
+ "gsails",
  "proxy-app",
- "sails",
  "sails-idl-gen",
 ]
 
@@ -4697,7 +4717,7 @@ name = "proxy-app"
 version = "0.1.0"
 dependencies = [
  "demo-client",
- "sails",
+ "gsails",
 ]
 
 [[package]]
@@ -5024,8 +5044,8 @@ dependencies = [
 name = "rmrk-catalog-app"
 version = "0.1.0"
 dependencies = [
+ "gsails",
  "parity-scale-codec",
- "sails",
  "scale-info",
 ]
 
@@ -5034,10 +5054,10 @@ name = "rmrk-resource"
 version = "0.1.0"
 dependencies = [
  "gear-wasm-builder",
+ "gsails",
  "gtest",
  "rmrk-catalog",
  "rmrk-resource-app",
- "sails",
  "sails-client-gen",
  "sails-idl-gen",
  "thiserror-no-std",
@@ -5049,9 +5069,9 @@ name = "rmrk-resource-app"
 version = "0.1.0"
 dependencies = [
  "git-download",
+ "gsails",
  "gstd",
  "parity-scale-codec",
- "sails",
  "sails-client-gen",
  "scale-info",
 ]
@@ -5191,26 +5211,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f3cb5ba0dc43242ce17de99c180e96db90b235b8a9fdc9543c96d2209116bd9f"
 
 [[package]]
-name = "sails"
-version = "0.1.0"
-dependencies = [
- "futures",
- "gclient",
- "gear-core-errors",
- "gprimitives",
- "gstd",
- "gtest",
- "hashbrown 0.14.5",
- "hex",
- "parity-scale-codec",
- "primitive-types",
- "sails-macros",
- "scale-info",
- "spin",
- "thiserror-no-std",
-]
-
-[[package]]
 name = "sails-client-gen"
 version = "0.1.0"
 dependencies = [
@@ -5227,9 +5227,9 @@ name = "sails-idl-gen"
 version = "0.1.0"
 dependencies = [
  "convert_case 0.6.0",
+ "gsails",
  "handlebars",
  "insta",
- "sails",
  "sails-idl-parser",
  "scale-info",
  "serde",
@@ -5252,9 +5252,9 @@ dependencies = [
 name = "sails-macros"
 version = "0.1.0"
 dependencies = [
+ "gsails",
  "parity-scale-codec",
  "proc-macro-error",
- "sails",
  "sails-macros-core",
  "scale-info",
  "tokio",

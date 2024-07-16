@@ -1,6 +1,7 @@
 [package]
 name = "sails-macros-core"
 description = "Implementations of procedural macros for the Sails framework"
+documentation = "https://docs.rs/sails-macros-core"
 version.workspace = true
 authors.workspace = true
 edition.workspace = true

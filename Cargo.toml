@@ -54,7 +54,7 @@ primitive-types = { version = "0.12", default-features = false }
 proc-macro-error = "1.0"
 proc-macro2 = { version = "1", default-features = false }
 quote = "1.0"
-sails = { path = "sails" }
+sails = { path = "sails", package = "gsails" }
 sails-client-gen = { path = "sails/client-gen" }
 sails-idl-gen = { path = "sails/idl-gen" }
 sails-idl-parser = { path = "sails/idl-parser" }

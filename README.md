@@ -13,12 +13,15 @@ different languages and executed in different runtimes
 
 ---
 
+> [!NOTE]
+> The Sails library is published under the name `gsails` on `crates-io`.
+
 ## Getting started
 
 Add the following to your `Cargo.toml`
 ```toml
 [dependencies]
-sails = "*"
+gsails = "*"
 gstd = { version = "*", features = ["debug"] }
 ```
 
@@ -27,8 +30,8 @@ And then in your `lib.rs`:
 ```rust
 #![no_std]
 
+use gsails::prelude::*;
 use gstd::debug;
-use sails::prelude::*;
 
 struct MyPing;
 

@@ -1,6 +1,7 @@
 [package]
-name = "sails"
+name = "gsails"
 description = "Main abstractions for the Sails framework"
+documentation = "https://docs.rs/gsails"
 version.workspace = true
 authors.workspace = true
 edition.workspace = true
