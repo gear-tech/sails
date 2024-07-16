@@ -41,22 +41,20 @@ impl CtorFactoryGenerator {
 impl<'ast> Visitor<'ast> for CtorFactoryGenerator {
     fn visit_ctor(&mut self, ctor: &'ast Ctor) {
         quote_in! {self.tokens =>
-            pub struct $(&self.service_name)Factory<R, A> {
+            pub struct $(&self.service_name)Factory<R> {
                 remoting: R,
-                _phantom: PhantomData<A>,
             }
 
-            impl<R: Remoting<A>, A> $(&self.service_name)Factory<R, A> {
+            impl<R> $(&self.service_name)Factory<R> {
                 #[allow(unused)]
                 pub fn new(remoting: R) -> Self {
                     Self {
                         remoting,
-                        _phantom: PhantomData,
                     }
                 }
             }
 
-            impl<R: Remoting<A> + Clone, A: Default> traits::$(&self.service_name)Factory<A> for $(&self.service_name)Factory<R, A> $("{")
+            impl<R: Remoting + Clone> traits::$(&self.service_name)Factory<R::Args> for $(&self.service_name)Factory<R> $("{")
         };
 
         visitor::accept_ctor(ctor, self);
@@ -83,8 +81,8 @@ impl<'ast> Visitor<'ast> for CtorFactoryGenerator {
         let params_type = format!("{service_name_snake}_factory::io::{fn_name}");
 
         quote_in! { self.tokens =>
-            $(")") -> impl Activation<A> {
-                RemotingAction::<_, _ ,$params_type>::new(self.remoting.clone(), $args)
+            $(")") -> impl Activation<Args = R::Args> {
+                RemotingAction::<_, $params_type>::new(self.remoting.clone(), $args)
             }
         };
 
@@ -155,7 +153,7 @@ impl<'ast> Visitor<'ast> for CtorTraitGenerator {
         visitor::accept_ctor_func(func, self);
 
         quote_in! {self.tokens =>
-            $(")") -> impl Activation<A>;
+            $(")") -> impl Activation<Args = A>;
         };
     }
 

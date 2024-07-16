@@ -17,9 +17,7 @@ impl ProxyProgram {
         Self::default()
     }
 
-    pub fn this_that_caller(
-        &self,
-    ) -> this_that::ThisThatCaller<ThisThat<GStdRemoting, GStdArgs>, GStdArgs> {
+    pub fn this_that_caller(&self) -> this_that::ThisThatCaller<ThisThat<GStdRemoting>, GStdArgs> {
         let this_that_client = ThisThat::new(GStdRemoting);
         this_that::ThisThatCaller::new(this_that_client)
     }

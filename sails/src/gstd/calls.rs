@@ -59,7 +59,9 @@ impl GStdRemoting {
     }
 }
 
-impl Remoting<GStdArgs> for GStdRemoting {
+impl Remoting for GStdRemoting {
+    type Args = GStdArgs;
+
     async fn activate(
         self,
         code_id: CodeId,

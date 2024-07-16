@@ -45,7 +45,9 @@ impl GSdkRemoting {
     }
 }
 
-impl Remoting<GSdkArgs> for GSdkRemoting {
+impl Remoting for GSdkRemoting {
+    type Args = GSdkArgs;
+
     async fn activate(
         self,
         code_id: CodeId,
