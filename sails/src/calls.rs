@@ -60,7 +60,7 @@ pub trait Reply {
     async fn recv(self) -> Result<Self::Output>;
 }
 
-pub struct CallTicket<TReplyFuture, TActionIo> {
+struct CallTicket<TReplyFuture, TActionIo> {
     reply_future: TReplyFuture,
     _io: PhantomData<TActionIo>,
 }
@@ -87,7 +87,7 @@ where
     }
 }
 
-pub struct ActivationTicket<TReplyFuture, TActionIo> {
+struct ActivationTicket<TReplyFuture, TActionIo> {
     reply_future: TReplyFuture,
     _io: PhantomData<TActionIo>,
 }
