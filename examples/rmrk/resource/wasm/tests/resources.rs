@@ -284,7 +284,7 @@ struct Fixture<'a> {
 
 impl<'a> Fixture<'a> {
     fn new(admin_id: u64) -> Self {
-        let program_space = GTestRemoting::new();
+        let program_space = GTestRemoting::new(admin_id.into());
         program_space.system().init_logger();
 
         Self {

@@ -41,24 +41,24 @@ impl GTestArgs {
 pub struct GTestRemoting {
     system: Rc<System>,
     event_senders: Rc<RefCell<Vec<EventSender>>>,
-}
-
-impl Default for GTestRemoting {
-    fn default() -> Self {
-        Self::new()
-    }
+    actor_id: ActorId,
 }
 
 impl GTestRemoting {
-    pub fn new() -> Self {
+    pub fn new(actor_id: ActorId) -> Self {
         Self {
             system: Rc::new(System::new()),
             event_senders: Default::default(),
+            actor_id,
         }
     }
 
     pub fn system(&self) -> &System {
         &self.system
+    }
+
+    pub fn actor_id(&self) -> ActorId {
+        self.actor_id
     }
 }
 
@@ -108,7 +108,7 @@ impl GTestRemoting {
             .system
             .get_program(target.as_ref())
             .ok_or(RtlError::ProgramIsNotFound)?;
-        let actor_id = args.actor_id.ok_or(RtlError::ActorIsNotSet)?;
+        let actor_id = args.actor_id.unwrap_or(self.actor_id);
         Ok(program.send_bytes_with_value(actor_id.as_ref(), payload.as_ref().to_vec(), value))
     }
 }
@@ -130,7 +130,7 @@ impl Remoting for GTestRemoting {
             .ok_or(RtlError::ProgramCodeIsNotFound)?;
         let program_id = gtest::calculate_program_id(code_id, salt.as_ref(), None);
         let program = Program::from_binary_with_id(&self.system, program_id, code);
-        let actor_id = args.actor_id.ok_or(RtlError::ActorIsNotSet)?;
+        let actor_id = args.actor_id.unwrap_or(self.actor_id);
         let run_result =
             program.send_bytes_with_value(actor_id.as_ref(), payload.as_ref().to_vec(), value);
         Ok(async move {
