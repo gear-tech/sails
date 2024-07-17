@@ -22,7 +22,8 @@ impl ServiceTraitGenerator {
 
     pub(crate) fn finalize(self) -> Tokens {
         quote! {
-            pub trait $(&self.service_name)<A> {
+            pub trait $(&self.service_name) {
+                type Args;
                 $(self.tokens)
             }
         }
@@ -51,7 +52,7 @@ impl<'ast> Visitor<'ast> for ServiceTraitGenerator {
 
         quote_in! { self.tokens=>
             #[allow(clippy::type_complexity)]
-            fn $fn_name (&$mutability self, $params_tokens) -> impl $output_trait<A, $output_type_decl_code>;
+            fn $fn_name (&$mutability self, $params_tokens) -> impl $output_trait<Output = $output_type_decl_code, Args = Self::Args>;
         };
     }
 }
@@ -81,26 +82,19 @@ impl<'ast> Visitor<'ast> for ServiceClientGenerator {
         let name = &self.service_name;
 
         quote_in! {self.tokens =>
-            #[derive(Clone)]
-            pub struct $name<R, A> where
-                R: Remoting<A>,
-                A: Default,
-            {
+            pub struct $name<R> {
                 remoting: R,
-                _phantom: PhantomData<A>,
             }
 
-            impl<A: Default, R: Remoting<A>> $name<R, A> {
+            impl<R> $name<R> {
                 pub fn new(remoting: R) -> Self {
-                    Self { remoting, _phantom: PhantomData }
+                    Self { remoting }
                 }
             }
 
-            impl<R, A> traits::$name<A> for $name<R, A>
-            where
-                R: Remoting<A> + Clone,
-                A: Default,
+            impl<R: Remoting + Clone> traits::$name for $name<R>
             $("{")
+                type Args = R::Args;
         };
 
         visitor::accept_service(service, self);
@@ -132,8 +126,8 @@ impl<'ast> Visitor<'ast> for ServiceClientGenerator {
         let params_type = format!("{service_name_snake}::io::{fn_name}");
 
         quote_in! {self.tokens =>
-            fn $fn_name_snake (&$mutability self, $params_tokens) -> impl $output_trait<A, $output_type_decl_code> {
-                RemotingAction::<_, _, $params_type>::new(self.remoting.clone(), $args)
+            fn $fn_name_snake (&$mutability self, $params_tokens) -> impl $output_trait<Output = $output_type_decl_code, Args = R::Args> {
+                RemotingAction::<_, $params_type>::new(self.remoting.clone(), $args)
             }
         };
     }

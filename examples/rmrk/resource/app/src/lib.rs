@@ -1,9 +1,6 @@
 #![no_std]
 
-use sails::gstd::{
-    calls::{GStdArgs, GStdRemoting},
-    gprogram, groute, GStdExecContext,
-};
+use sails::gstd::{calls::GStdRemoting, gprogram, groute, GStdExecContext};
 use services::ResourceStorage;
 
 mod catalogs;
@@ -11,7 +8,7 @@ mod catalogs;
 // while there is no generated client
 pub mod services;
 
-type RmrkCatalog = catalogs::RmrkCatalog<GStdRemoting, GStdArgs>;
+type RmrkCatalog = catalogs::RmrkCatalog<GStdRemoting>;
 
 #[derive(Default)]
 pub struct Program;

@@ -6,7 +6,7 @@ use demo_client::{
 };
 use fixture::Fixture;
 use futures::stream::StreamExt;
-use sails::{calls::*, events::*, gtest::calls::GTestArgs};
+use sails::{calls::*, events::*};
 
 mod fixture;
 
@@ -22,7 +22,6 @@ async fn counter_add_works() {
     // using the `new` constructor and the `send_recv` method
     let demo_program_id = demo_factory
         .new(Some(42), None)
-        .with_args(GTestArgs::new(fixture.admin_id()))
         .send_recv(fixture.demo_code_id(), "123")
         .await
         .unwrap();
@@ -38,7 +37,6 @@ async fn counter_add_works() {
     // using the `send_recv` method
     let result = counter_client
         .add(10)
-        .with_args(GTestArgs::new(fixture.admin_id()))
         .send_recv(demo_program_id)
         .await
         .unwrap();
@@ -64,7 +62,6 @@ async fn counter_sub_works() {
     // of methods
     let activation = demo_factory
         .new(Some(42), None)
-        .with_args(GTestArgs::new(fixture.admin_id()))
         .send(fixture.demo_code_id(), "123")
         .await
         .unwrap();
@@ -79,12 +76,7 @@ async fn counter_sub_works() {
 
     // Use generated client code for calling Counter service
     // using the `send`/`recv` pair of methods
-    let response = counter_client
-        .sub(10)
-        .with_args(GTestArgs::new(fixture.admin_id()))
-        .send(demo_program_id)
-        .await
-        .unwrap();
+    let response = counter_client.sub(10).send(demo_program_id).await.unwrap();
     let result = response.recv().await.unwrap();
 
     // Assert
@@ -105,7 +97,6 @@ async fn ping_pong_works() {
     // using the `default` constructor and the `send_recv` method
     let demo_program_id = demo_factory
         .default()
-        .with_args(GTestArgs::new(fixture.admin_id()))
         .send_recv(fixture.demo_code_id(), "123")
         .await
         .unwrap();
@@ -141,7 +132,6 @@ async fn dog_barks() {
 
     let demo_program_id = demo_factory
         .new(None, Some((1, -1)))
-        .with_args(GTestArgs::new(fixture.admin_id()))
         .send_recv(fixture.demo_code_id(), "123")
         .await
         .unwrap();
@@ -154,7 +144,6 @@ async fn dog_barks() {
 
     let result = dog_client
         .make_sound()
-        .with_args(GTestArgs::new(fixture.admin_id()))
         .send_recv(demo_program_id)
         .await
         .unwrap();
@@ -177,7 +166,6 @@ async fn dog_walks() {
 
     let demo_program_id = demo_factory
         .new(None, Some((1, -1)))
-        .with_args(GTestArgs::new(fixture.admin_id()))
         .send_recv(fixture.demo_code_id(), "123")
         .await
         .unwrap();
@@ -190,19 +178,13 @@ async fn dog_walks() {
 
     dog_client
         .walk(10, 20)
-        .with_args(GTestArgs::new(fixture.admin_id()))
         .send_recv(demo_program_id)
         .await
         .unwrap();
 
     // Assert
 
-    let position = dog_client
-        .position()
-        .with_args(GTestArgs::new(fixture.admin_id()))
-        .recv(demo_program_id)
-        .await
-        .unwrap();
+    let position = dog_client.position().recv(demo_program_id).await.unwrap();
     let event = dog_events.next().await.unwrap();
 
     assert_eq!(position, (11, 19));
@@ -226,19 +208,13 @@ async fn dog_weights() {
 
     let demo_program_id = demo_factory
         .new(None, Some((1, -1)))
-        .with_args(GTestArgs::new(fixture.admin_id()))
         .send_recv(fixture.demo_code_id(), "123")
         .await
         .unwrap();
 
     let dog_client = fixture.dog_client();
 
-    let avg_weight = dog_client
-        .avg_weight()
-        .with_args(GTestArgs::new(fixture.admin_id()))
-        .recv(demo_program_id)
-        .await
-        .unwrap();
+    let avg_weight = dog_client.avg_weight().recv(demo_program_id).await.unwrap();
 
     assert_eq!(avg_weight, 42);
 }
