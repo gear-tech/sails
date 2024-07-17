@@ -170,12 +170,7 @@ mod tests {
     use super::*;
     use crate::catalogs::{Error, Part};
     use resources::BasicResource;
-    use sails::{
-        calls::{Action, Call, Remoting, Reply},
-        collections::BTreeMap,
-        gstd::calls::GStdRemoting,
-        ActorId,
-    };
+    use sails::{calls::*, collections::*, gstd::calls::GStdRemoting, mocks::*, ActorId};
 
     #[test]
     fn test_add_resource_entry() {
@@ -221,112 +216,6 @@ mod tests {
 
     struct MockCatalogClient<R: Remoting> {
         _r: PhantomData<R>,
-    }
-
-    struct MockCall<A, R> {
-        _r: PhantomData<R>,
-        _a: PhantomData<A>,
-    }
-
-    impl<A, R> MockCall<A, R> {
-        pub fn new() -> Self {
-            Self {
-                _r: PhantomData,
-                _a: PhantomData,
-            }
-        }
-    }
-
-    impl<A, R> Call for MockCall<A, R> {
-        type Output = R;
-
-        async fn send(
-            self,
-            _target: ActorId,
-        ) -> sails::errors::Result<impl Reply<Output = Self::Output>> {
-            Ok(MockReply::<R>::new())
-        }
-    }
-
-    impl<A, R> Action for MockCall<A, R> {
-        type Args = A;
-
-        fn with_value(self, _value: ValueUnit) -> Self {
-            todo!()
-        }
-
-        fn with_args(self, _args: A) -> Self {
-            todo!()
-        }
-
-        fn value(&self) -> ValueUnit {
-            todo!()
-        }
-
-        fn args(&self) -> &A {
-            todo!()
-        }
-    }
-
-    struct MockReply<R> {
-        _r: PhantomData<R>,
-    }
-
-    impl<R> MockReply<R> {
-        pub fn new() -> Self {
-            Self { _r: PhantomData }
-        }
-    }
-
-    impl<R> Reply for MockReply<R> {
-        type Output = R;
-
-        async fn recv(self) -> sails::errors::Result<Self::Output> {
-            unimplemented!()
-        }
-    }
-
-    #[derive(Default)]
-    struct MockQuery<A, R> {
-        _r: PhantomData<R>,
-        _a: PhantomData<A>,
-    }
-
-    impl<A, R> MockQuery<A, R> {
-        pub fn new() -> Self {
-            Self {
-                _r: PhantomData,
-                _a: PhantomData,
-            }
-        }
-    }
-
-    impl<A, R> Query for MockQuery<A, R> {
-        async fn recv(self, _target: ActorId) -> sails::errors::Result<R> {
-            unimplemented!()
-        }
-
-        type Output = R;
-    }
-
-    impl<A, R> Action for MockQuery<A, R> {
-        fn with_value(self, _value: ValueUnit) -> Self {
-            todo!()
-        }
-
-        fn with_args(self, _args: A) -> Self {
-            todo!()
-        }
-
-        fn value(&self) -> ValueUnit {
-            todo!()
-        }
-
-        fn args(&self) -> &A {
-            todo!()
-        }
-
-        type Args = A;
     }
 
     impl<R: Remoting> RmrkCatalog for MockCatalogClient<R> {

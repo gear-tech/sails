@@ -1,5 +1,9 @@
 #![no_std]
 
+#[cfg(feature = "mockall")]
+#[cfg(not(target_arch = "wasm32"))]
+extern crate std;
+
 pub use hex::{self};
 pub use prelude::*;
 pub use spin::{self};
@@ -15,6 +19,10 @@ pub mod gstd;
 pub mod gtest;
 pub mod prelude;
 mod types;
+
+#[cfg(feature = "mockall")]
+#[cfg(not(target_arch = "wasm32"))]
+pub mod mocks;
 
 pub mod meta {
     use crate::Vec;
