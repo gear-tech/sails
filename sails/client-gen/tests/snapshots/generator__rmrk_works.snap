@@ -20,7 +20,8 @@ impl<R> RmrkCatalogFactory<R> {
         Self { remoting }
     }
 }
-impl<R: Remoting + Clone> traits::RmrkCatalogFactory<R::Args> for RmrkCatalogFactory<R> {
+impl<R: Remoting + Clone> traits::RmrkCatalogFactory for RmrkCatalogFactory<R> {
+    type Args = R::Args;
     fn new(&self) -> impl Activation<Args = R::Args> {
         RemotingAction::<_, rmrk_catalog_factory::io::New>::new(self.remoting.clone(), ())
     }
@@ -52,7 +53,8 @@ impl<R> RmrkCatalog<R> {
         Self { remoting }
     }
 }
-impl<R: Remoting + Clone> traits::RmrkCatalog<R::Args> for RmrkCatalog<R> {
+impl<R: Remoting + Clone> traits::RmrkCatalog for RmrkCatalog<R> {
+    type Args = R::Args;
     fn add_equippables(
         &mut self,
         part_id: u32,
@@ -273,51 +275,53 @@ pub struct SlotPart {
 pub mod traits {
     use super::*;
     #[allow(dead_code)]
-    pub trait RmrkCatalogFactory<A> {
+    pub trait RmrkCatalogFactory {
+        type Args;
         #[allow(clippy::new_ret_no_self)]
         #[allow(clippy::wrong_self_convention)]
-        fn new(&self) -> impl Activation<Args = A>;
+        fn new(&self) -> impl Activation<Args = Self::Args>;
     }
-    pub trait RmrkCatalog<A> {
+    pub trait RmrkCatalog {
+        type Args;
         #[allow(clippy::type_complexity)]
         fn add_equippables(
             &mut self,
             part_id: u32,
             collection_ids: Vec<ActorId>,
-        ) -> impl Call<Output = Result<(u32, Vec<ActorId>), Error>, Args = A>;
+        ) -> impl Call<Output = Result<(u32, Vec<ActorId>), Error>, Args = Self::Args>;
         #[allow(clippy::type_complexity)]
         fn add_parts(
             &mut self,
             parts: BTreeMap<u32, Part>,
-        ) -> impl Call<Output = Result<BTreeMap<u32, Part>, Error>, Args = A>;
+        ) -> impl Call<Output = Result<BTreeMap<u32, Part>, Error>, Args = Self::Args>;
         #[allow(clippy::type_complexity)]
         fn remove_equippable(
             &mut self,
             part_id: u32,
             collection_id: ActorId,
-        ) -> impl Call<Output = Result<(u32, ActorId), Error>, Args = A>;
+        ) -> impl Call<Output = Result<(u32, ActorId), Error>, Args = Self::Args>;
         #[allow(clippy::type_complexity)]
         fn remove_parts(
             &mut self,
             part_ids: Vec<u32>,
-        ) -> impl Call<Output = Result<Vec<u32>, Error>, Args = A>;
+        ) -> impl Call<Output = Result<Vec<u32>, Error>, Args = Self::Args>;
         #[allow(clippy::type_complexity)]
         fn reset_equippables(
             &mut self,
             part_id: u32,
-        ) -> impl Call<Output = Result<(), Error>, Args = A>;
+        ) -> impl Call<Output = Result<(), Error>, Args = Self::Args>;
         #[allow(clippy::type_complexity)]
         fn set_equippables_to_all(
             &mut self,
             part_id: u32,
-        ) -> impl Call<Output = Result<(), Error>, Args = A>;
+        ) -> impl Call<Output = Result<(), Error>, Args = Self::Args>;
         #[allow(clippy::type_complexity)]
         fn equippable(
             &self,
             part_id: u32,
             collection_id: ActorId,
-        ) -> impl Query<Output = Result<bool, Error>, Args = A>;
+        ) -> impl Query<Output = Result<bool, Error>, Args = Self::Args>;
         #[allow(clippy::type_complexity)]
-        fn part(&self, part_id: u32) -> impl Query<Output = Option<Part>, Args = A>;
+        fn part(&self, part_id: u32) -> impl Query<Output = Option<Part>, Args = Self::Args>;
     }
 }

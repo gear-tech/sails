@@ -22,7 +22,8 @@ impl ServiceTraitGenerator {
 
     pub(crate) fn finalize(self) -> Tokens {
         quote! {
-            pub trait $(&self.service_name)<A> {
+            pub trait $(&self.service_name) {
+                type Args;
                 $(self.tokens)
             }
         }
@@ -51,7 +52,7 @@ impl<'ast> Visitor<'ast> for ServiceTraitGenerator {
 
         quote_in! { self.tokens=>
             #[allow(clippy::type_complexity)]
-            fn $fn_name (&$mutability self, $params_tokens) -> impl $output_trait<Output = $output_type_decl_code, Args = A>;
+            fn $fn_name (&$mutability self, $params_tokens) -> impl $output_trait<Output = $output_type_decl_code, Args = Self::Args>;
         };
     }
 }
@@ -91,8 +92,9 @@ impl<'ast> Visitor<'ast> for ServiceClientGenerator {
                 }
             }
 
-            impl<R: Remoting + Clone> traits::$name<R::Args> for $name<R>
+            impl<R: Remoting + Clone> traits::$name for $name<R>
             $("{")
+                type Args = R::Args;
         };
 
         visitor::accept_service(service, self);

@@ -20,7 +20,8 @@ impl<R> ServiceFactory<R> {
         Self { remoting }
     }
 }
-impl<R: Remoting + Clone> traits::ServiceFactory<R::Args> for ServiceFactory<R> {
+impl<R: Remoting + Clone> traits::ServiceFactory for ServiceFactory<R> {
+    type Args = R::Args;
     fn new(&self, a: u32) -> impl Activation<Args = R::Args> {
         RemotingAction::<_, service_factory::io::New>::new(self.remoting.clone(), a)
     }
@@ -52,7 +53,8 @@ impl<R> Service<R> {
         Self { remoting }
     }
 }
-impl<R: Remoting + Clone> traits::Service<R::Args> for Service<R> {
+impl<R: Remoting + Clone> traits::Service for Service<R> {
+    type Args = R::Args;
     fn do_this(
         &mut self,
         p1: u32,
@@ -168,12 +170,14 @@ pub enum T {
 pub mod traits {
     use super::*;
     #[allow(dead_code)]
-    pub trait ServiceFactory<A> {
+    pub trait ServiceFactory {
+        type Args;
         #[allow(clippy::new_ret_no_self)]
         #[allow(clippy::wrong_self_convention)]
-        fn new(&self, a: u32) -> impl Activation<Args = A>;
+        fn new(&self, a: u32) -> impl Activation<Args = Self::Args>;
     }
-    pub trait Service<A> {
+    pub trait Service {
+        type Args;
         #[allow(clippy::type_complexity)]
         fn do_this(
             &mut self,
@@ -181,15 +185,15 @@ pub mod traits {
             p2: String,
             p3: (Option<String>, u8),
             p4: ThisThatSvcAppTupleStruct,
-        ) -> impl Call<Output = (String, u32), Args = A>;
+        ) -> impl Call<Output = (String, u32), Args = Self::Args>;
         #[allow(clippy::type_complexity)]
         fn do_that(
             &mut self,
             param: ThisThatSvcAppDoThatParam,
-        ) -> impl Call<Output = Result<(String, u32), (String,)>, Args = A>;
+        ) -> impl Call<Output = Result<(String, u32), (String,)>, Args = Self::Args>;
         #[allow(clippy::type_complexity)]
-        fn this(&self, v1: Vec<u16>) -> impl Query<Output = u32, Args = A>;
+        fn this(&self, v1: Vec<u16>) -> impl Query<Output = u32, Args = Self::Args>;
         #[allow(clippy::type_complexity)]
-        fn that(&self, v1: ()) -> impl Query<Output = Result<String, String>, Args = A>;
+        fn that(&self, v1: ()) -> impl Query<Output = Result<String, String>, Args = Self::Args>;
     }
 }

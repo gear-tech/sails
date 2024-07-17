@@ -19,7 +19,8 @@ impl<R> NonZeroParams<R> {
         Self { remoting }
     }
 }
-impl<R: Remoting + Clone> traits::NonZeroParams<R::Args> for NonZeroParams<R> {
+impl<R: Remoting + Clone> traits::NonZeroParams for NonZeroParams<R> {
+    type Args = R::Args;
     fn do_this(
         &mut self,
         p1: NonZeroU256,
@@ -56,12 +57,13 @@ pub struct MyParam {
 }
 pub mod traits {
     use super::*;
-    pub trait NonZeroParams<A> {
+    pub trait NonZeroParams {
+        type Args;
         #[allow(clippy::type_complexity)]
         fn do_this(
             &mut self,
             p1: NonZeroU256,
             p2: MyParam,
-        ) -> impl Call<Output = NonZeroU64, Args = A>;
+        ) -> impl Call<Output = NonZeroU64, Args = Self::Args>;
     }
 }

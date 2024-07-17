@@ -4,7 +4,7 @@ use resources::{ComposedResource, PartId, Resource, ResourceId};
 use sails::{
     calls::Query,
     collections::HashMap,
-    gstd::{calls::GStdArgs, gservice, ExecContext},
+    gstd::{gservice, ExecContext},
     prelude::*,
 };
 
@@ -42,7 +42,7 @@ pub struct ResourceStorage<TExecContext, TCatalogClient> {
 impl<TExecContext, TCatalogClient> ResourceStorage<TExecContext, TCatalogClient>
 where
     TExecContext: ExecContext,
-    TCatalogClient: RmrkCatalog<GStdArgs>,
+    TCatalogClient: RmrkCatalog,
 {
     // This function needs to be called before any other function
     pub fn seed(exec_context: TExecContext) {
@@ -329,7 +329,9 @@ mod tests {
         type Args = A;
     }
 
-    impl<R: Remoting> RmrkCatalog<R::Args> for MockCatalogClient<R> {
+    impl<R: Remoting> RmrkCatalog for MockCatalogClient<R> {
+        type Args = R::Args;
+
         fn add_parts(
             &mut self,
             _parts: BTreeMap<u32, Part>,

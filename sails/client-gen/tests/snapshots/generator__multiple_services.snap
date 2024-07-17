@@ -19,7 +19,8 @@ impl<R> Multiple<R> {
         Self { remoting }
     }
 }
-impl<R: Remoting + Clone> traits::Multiple<R::Args> for Multiple<R> {
+impl<R: Remoting + Clone> traits::Multiple for Multiple<R> {
+    type Args = R::Args;
     fn do_this(&mut self, p1: u32, p2: MyParam) -> impl Call<Output = u16, Args = R::Args> {
         RemotingAction::<_, multiple::io::DoThis>::new(self.remoting.clone(), (p1, p2))
     }
@@ -66,7 +67,8 @@ impl<R> Named<R> {
         Self { remoting }
     }
 }
-impl<R: Remoting + Clone> traits::Named<R::Args> for Named<R> {
+impl<R: Remoting + Clone> traits::Named for Named<R> {
+    type Args = R::Args;
     fn that(&self, p1: u32) -> impl Query<Output = String, Args = R::Args> {
         RemotingAction::<_, named::io::That>::new(self.remoting.clone(), p1)
     }
@@ -92,14 +94,16 @@ pub mod named {
 }
 pub mod traits {
     use super::*;
-    pub trait Multiple<A> {
+    pub trait Multiple {
+        type Args;
         #[allow(clippy::type_complexity)]
-        fn do_this(&mut self, p1: u32, p2: MyParam) -> impl Call<Output = u16, Args = A>;
+        fn do_this(&mut self, p1: u32, p2: MyParam) -> impl Call<Output = u16, Args = Self::Args>;
         #[allow(clippy::type_complexity)]
-        fn do_that(&mut self, p1: (u8, u32)) -> impl Call<Output = u8, Args = A>;
+        fn do_that(&mut self, p1: (u8, u32)) -> impl Call<Output = u8, Args = Self::Args>;
     }
-    pub trait Named<A> {
+    pub trait Named {
+        type Args;
         #[allow(clippy::type_complexity)]
-        fn that(&self, p1: u32) -> impl Query<Output = String, Args = A>;
+        fn that(&self, p1: u32) -> impl Query<Output = String, Args = Self::Args>;
     }
 }

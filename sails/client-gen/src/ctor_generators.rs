@@ -54,7 +54,8 @@ impl<'ast> Visitor<'ast> for CtorFactoryGenerator {
                 }
             }
 
-            impl<R: Remoting + Clone> traits::$(&self.service_name)Factory<R::Args> for $(&self.service_name)Factory<R> $("{")
+            impl<R: Remoting + Clone> traits::$(&self.service_name)Factory for $(&self.service_name)Factory<R> $("{")
+                type Args = R::Args;
         };
 
         visitor::accept_ctor(ctor, self);
@@ -124,7 +125,8 @@ impl<'ast> Visitor<'ast> for CtorTraitGenerator {
     fn visit_ctor(&mut self, ctor: &'ast Ctor) {
         quote_in! {self.tokens =>
             #[allow(dead_code)]
-            pub trait $(&self.service_name)Factory<A> $("{")
+            pub trait $(&self.service_name)Factory $("{")
+                type Args;
         };
 
         visitor::accept_ctor(ctor, self);
@@ -153,7 +155,7 @@ impl<'ast> Visitor<'ast> for CtorTraitGenerator {
         visitor::accept_ctor_func(func, self);
 
         quote_in! {self.tokens =>
-            $(")") -> impl Activation<Args = A>;
+            $(")") -> impl Activation<Args = Self::Args>;
         };
     }
 
