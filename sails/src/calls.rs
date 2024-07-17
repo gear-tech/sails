@@ -4,21 +4,25 @@ use crate::{
 };
 use core::{future::Future, marker::PhantomData};
 
-pub trait Action<TArgs> {
+pub trait Action {
+    type Args;
+
     fn with_value(self, value: ValueUnit) -> Self;
 
-    fn with_args(self, args: TArgs) -> Self;
+    fn with_args(self, args: Self::Args) -> Self;
 
     fn value(&self) -> ValueUnit;
 
-    fn args(&self) -> &TArgs;
+    fn args(&self) -> &Self::Args;
 }
 
 #[allow(async_fn_in_trait)]
-pub trait Call<TArgs, TReply>: Action<TArgs> {
-    async fn send(self, target: ActorId) -> Result<impl Reply<T = TReply>>;
+pub trait Call: Action {
+    type Output;
 
-    async fn send_recv(self, target: ActorId) -> Result<TReply>
+    async fn send(self, target: ActorId) -> Result<impl Reply<Output = Self::Output>>;
+
+    async fn send_recv(self, target: ActorId) -> Result<Self::Output>
     where
         Self: Sized,
     {
@@ -27,9 +31,12 @@ pub trait Call<TArgs, TReply>: Action<TArgs> {
 }
 
 #[allow(async_fn_in_trait)]
-pub trait Activation<TArgs>: Action<TArgs> {
-    async fn send(self, code_id: CodeId, salt: impl AsRef<[u8]>)
-        -> Result<impl Reply<T = ActorId>>;
+pub trait Activation: Action {
+    async fn send(
+        self,
+        code_id: CodeId,
+        salt: impl AsRef<[u8]>,
+    ) -> Result<impl Reply<Output = ActorId>>;
 
     async fn send_recv(self, code_id: CodeId, salt: impl AsRef<[u8]>) -> Result<ActorId>
     where
@@ -40,17 +47,20 @@ pub trait Activation<TArgs>: Action<TArgs> {
 }
 
 #[allow(async_fn_in_trait)]
-pub trait Query<TArgs, TReply>: Action<TArgs> {
-    async fn recv(self, target: ActorId) -> Result<TReply>;
+pub trait Query: Action {
+    type Output;
+
+    async fn recv(self, target: ActorId) -> Result<Self::Output>;
 }
 
 #[allow(async_fn_in_trait)]
 pub trait Reply {
-    type T;
-    async fn recv(self) -> Result<Self::T>;
+    type Output;
+
+    async fn recv(self) -> Result<Self::Output>;
 }
 
-pub struct CallTicket<TReplyFuture, TActionIo> {
+struct CallTicket<TReplyFuture, TActionIo> {
     reply_future: TReplyFuture,
     _io: PhantomData<TActionIo>,
 }
@@ -69,15 +79,15 @@ where
     TReplyFuture: Future<Output = Result<Vec<u8>>>,
     TActionIo: ActionIo,
 {
-    type T = TActionIo::Reply;
+    type Output = TActionIo::Reply;
 
-    async fn recv(self) -> Result<Self::T> {
+    async fn recv(self) -> Result<Self::Output> {
         let reply_bytes = self.reply_future.await?;
         TActionIo::decode_reply(reply_bytes)
     }
 }
 
-pub struct ActivationTicket<TReplyFuture, TActionIo> {
+struct ActivationTicket<TReplyFuture, TActionIo> {
     reply_future: TReplyFuture,
     _io: PhantomData<TActionIo>,
 }
@@ -96,9 +106,9 @@ where
     TReplyFuture: Future<Output = Result<(ActorId, Vec<u8>)>>,
     TActionIo: ActionIo<Reply = ()>,
 {
-    type T = ActorId;
+    type Output = ActorId;
 
-    async fn recv(self) -> Result<Self::T> {
+    async fn recv(self) -> Result<Self::Output> {
         let (actor_id, payload) = self.reply_future.await?;
         TActionIo::decode_reply(payload)?;
         Ok(actor_id)
@@ -106,14 +116,16 @@ where
 }
 
 #[allow(async_fn_in_trait)]
-pub trait Remoting<TArgs> {
+pub trait Remoting {
+    type Args: Default;
+
     async fn activate(
         self,
         code_id: CodeId,
         salt: impl AsRef<[u8]>,
         payload: impl AsRef<[u8]>,
         value: ValueUnit,
-        args: TArgs,
+        args: Self::Args,
     ) -> Result<impl Future<Output = Result<(ActorId, Vec<u8>)>>>;
 
     async fn message(
@@ -121,7 +133,7 @@ pub trait Remoting<TArgs> {
         target: ActorId,
         payload: impl AsRef<[u8]>,
         value: ValueUnit,
-        args: TArgs,
+        args: Self::Args,
     ) -> Result<impl Future<Output = Result<Vec<u8>>>>;
 
     async fn query(
@@ -129,21 +141,18 @@ pub trait Remoting<TArgs> {
         target: ActorId,
         payload: impl AsRef<[u8]>,
         value: ValueUnit,
-        args: TArgs,
+        args: Self::Args,
     ) -> Result<Vec<u8>>;
 }
 
-pub struct RemotingAction<TRemoting, TArgs, TActionIo: ActionIo> {
+pub struct RemotingAction<TRemoting: Remoting, TActionIo: ActionIo> {
     remoting: TRemoting,
     params: TActionIo::Params,
     value: ValueUnit,
-    args: TArgs,
+    args: TRemoting::Args,
 }
 
-impl<TRemoting, TArgs, TActionIo: ActionIo> RemotingAction<TRemoting, TArgs, TActionIo>
-where
-    TArgs: Default,
-{
+impl<TRemoting: Remoting, TActionIo: ActionIo> RemotingAction<TRemoting, TActionIo> {
     pub fn new(remoting: TRemoting, params: TActionIo::Params) -> Self {
         Self {
             remoting,
@@ -154,14 +163,14 @@ where
     }
 }
 
-impl<TRemoting, TArgs, TActionIo: ActionIo> Action<TArgs>
-    for RemotingAction<TRemoting, TArgs, TActionIo>
-{
+impl<TRemoting: Remoting, TActionIo: ActionIo> Action for RemotingAction<TRemoting, TActionIo> {
+    type Args = TRemoting::Args;
+
     fn with_value(self, value: ValueUnit) -> Self {
         Self { value, ..self }
     }
 
-    fn with_args(self, args: TArgs) -> Self {
+    fn with_args(self, args: Self::Args) -> Self {
         Self { args, ..self }
     }
 
@@ -169,18 +178,19 @@ impl<TRemoting, TArgs, TActionIo: ActionIo> Action<TArgs>
         self.value
     }
 
-    fn args(&self) -> &TArgs {
+    fn args(&self) -> &Self::Args {
         &self.args
     }
 }
 
-impl<TRemoting, TArgs, TActionIo> Call<TArgs, TActionIo::Reply>
-    for RemotingAction<TRemoting, TArgs, TActionIo>
+impl<TRemoting, TActionIo> Call for RemotingAction<TRemoting, TActionIo>
 where
-    TRemoting: Remoting<TArgs>,
+    TRemoting: Remoting,
     TActionIo: ActionIo,
 {
-    async fn send(self, target: ActorId) -> Result<impl Reply<T = TActionIo::Reply>> {
+    type Output = TActionIo::Reply;
+
+    async fn send(self, target: ActorId) -> Result<impl Reply<Output = TActionIo::Reply>> {
         let payload = TActionIo::encode_call(&self.params);
         let reply_future = self
             .remoting
@@ -190,16 +200,16 @@ where
     }
 }
 
-impl<TRemoting, TArgs, TActionIo> Activation<TArgs> for RemotingAction<TRemoting, TArgs, TActionIo>
+impl<TRemoting, TActionIo> Activation for RemotingAction<TRemoting, TActionIo>
 where
-    TRemoting: Remoting<TArgs>,
+    TRemoting: Remoting,
     TActionIo: ActionIo<Reply = ()>,
 {
     async fn send(
         self,
         code_id: CodeId,
         salt: impl AsRef<[u8]>,
-    ) -> Result<impl Reply<T = ActorId>> {
+    ) -> Result<impl Reply<Output = ActorId>> {
         let payload = TActionIo::encode_call(&self.params);
         let reply_future = self
             .remoting
@@ -209,13 +219,14 @@ where
     }
 }
 
-impl<TRemoting, TArgs, TActionIo> Query<TArgs, TActionIo::Reply>
-    for RemotingAction<TRemoting, TArgs, TActionIo>
+impl<TRemoting, TActionIo> Query for RemotingAction<TRemoting, TActionIo>
 where
-    TRemoting: Remoting<TArgs>,
+    TRemoting: Remoting,
     TActionIo: ActionIo,
 {
-    async fn recv(self, target: ActorId) -> Result<TActionIo::Reply> {
+    type Output = TActionIo::Reply;
+
+    async fn recv(self, target: ActorId) -> Result<Self::Output> {
         let payload = TActionIo::encode_call(&self.params);
         let reply_bytes = self
             .remoting

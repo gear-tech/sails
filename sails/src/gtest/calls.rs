@@ -113,7 +113,9 @@ impl GTestRemoting {
     }
 }
 
-impl Remoting<GTestArgs> for GTestRemoting {
+impl Remoting for GTestRemoting {
+    type Args = GTestArgs;
+
     async fn activate(
         self,
         code_id: CodeId,

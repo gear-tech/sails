@@ -16,7 +16,7 @@ use sails::{
 };
 
 mod resource_client;
-type RmrkResourceClient = crate::resource_client::RmrkResource<GTestRemoting, GTestArgs>;
+type RmrkResourceClient = crate::resource_client::RmrkResource<GTestRemoting>;
 
 const CATALOG_PROGRAM_WASM_PATH: &str =
     "../../../../target/wasm32-unknown-unknown/debug/rmrk_catalog.wasm";

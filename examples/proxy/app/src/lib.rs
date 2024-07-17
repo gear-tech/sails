@@ -1,10 +1,7 @@
 #![no_std]
 
 use demo_client::ThisThat;
-use sails::gstd::{
-    calls::{GStdArgs, GStdRemoting},
-    gprogram,
-};
+use sails::gstd::{calls::GStdRemoting, gprogram};
 
 mod this_that;
 
@@ -17,9 +14,7 @@ impl ProxyProgram {
         Self::default()
     }
 
-    pub fn this_that_caller(
-        &self,
-    ) -> this_that::ThisThatCaller<ThisThat<GStdRemoting, GStdArgs>, GStdArgs> {
+    pub fn this_that_caller(&self) -> this_that::ThisThatCaller<ThisThat<GStdRemoting>> {
         let this_that_client = ThisThat::new(GStdRemoting);
         this_that::ThisThatCaller::new(this_that_client)
     }

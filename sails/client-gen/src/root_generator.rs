@@ -20,7 +20,6 @@ impl<'a> RootGenerator<'a> {
             use sails::{prelude::*, String, calls::{Activation, Call, Query, Remoting, RemotingAction}};
             #[allow(unused_imports)]
             use sails::collections::BTreeMap;
-            use core::marker::PhantomData;
         };
 
         Self {

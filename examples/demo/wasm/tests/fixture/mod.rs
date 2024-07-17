@@ -39,7 +39,7 @@ impl Fixture {
         *demo_code_id
     }
 
-    pub(crate) fn demo_factory(&self) -> DemoFactory<GTestRemoting, GTestArgs> {
+    pub(crate) fn demo_factory(&self) -> DemoFactory<GTestRemoting> {
         DemoFactory::new(self.program_space.clone())
     }
 
@@ -50,7 +50,7 @@ impl Fixture {
             .unwrap()
     }
 
-    pub(crate) fn counter_client(&self) -> Counter<GTestRemoting, GTestArgs> {
+    pub(crate) fn counter_client(&self) -> Counter<GTestRemoting> {
         Counter::new(self.program_space.clone())
     }
 
@@ -58,7 +58,7 @@ impl Fixture {
         counter::events::listener(self.program_space.clone())
     }
 
-    pub(crate) fn dog_client(&self) -> Dog<GTestRemoting, GTestArgs> {
+    pub(crate) fn dog_client(&self) -> Dog<GTestRemoting> {
         Dog::new(self.program_space.clone())
     }
 
