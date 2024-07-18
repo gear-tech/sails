@@ -15,6 +15,7 @@ sails-client-gen.workspace = true
 
 [dev-dependencies]
 rmrk-resource-app = { path = ".", features = ["mockall"] }
+tokio = { workspace = true, features = ["rt", "macros"] }
 
 [features]
 std = []

@@ -5127,6 +5127,7 @@ dependencies = [
  "rmrk-resource-app",
  "sails",
  "sails-client-gen",
+ "tokio",
 ]
 
 [[package]]
