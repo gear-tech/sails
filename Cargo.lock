@@ -4686,18 +4686,9 @@ dependencies = [
 name = "proxy"
 version = "0.1.0"
 dependencies = [
- "gear-wasm-builder",
- "proxy-app",
- "sails",
- "sails-idl-gen",
-]
-
-[[package]]
-name = "proxy-app"
-version = "0.1.0"
-dependencies = [
  "demo-client",
  "sails",
+ "sails-idl-gen",
 ]
 
 [[package]]
