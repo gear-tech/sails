@@ -281,47 +281,48 @@ pub mod traits {
         #[allow(clippy::wrong_self_convention)]
         fn new(&self) -> impl Activation<Args = Self::Args>;
     }
+    #[allow(clippy::type_complexity)]
     pub trait RmrkCatalog {
         type Args;
-        #[allow(clippy::type_complexity)]
         fn add_equippables(
             &mut self,
             part_id: u32,
             collection_ids: Vec<ActorId>,
         ) -> impl Call<Output = Result<(u32, Vec<ActorId>), Error>, Args = Self::Args>;
-        #[allow(clippy::type_complexity)]
         fn add_parts(
             &mut self,
             parts: BTreeMap<u32, Part>,
         ) -> impl Call<Output = Result<BTreeMap<u32, Part>, Error>, Args = Self::Args>;
-        #[allow(clippy::type_complexity)]
         fn remove_equippable(
             &mut self,
             part_id: u32,
             collection_id: ActorId,
         ) -> impl Call<Output = Result<(u32, ActorId), Error>, Args = Self::Args>;
-        #[allow(clippy::type_complexity)]
         fn remove_parts(
             &mut self,
             part_ids: Vec<u32>,
         ) -> impl Call<Output = Result<Vec<u32>, Error>, Args = Self::Args>;
-        #[allow(clippy::type_complexity)]
         fn reset_equippables(
             &mut self,
             part_id: u32,
         ) -> impl Call<Output = Result<(), Error>, Args = Self::Args>;
-        #[allow(clippy::type_complexity)]
         fn set_equippables_to_all(
             &mut self,
             part_id: u32,
         ) -> impl Call<Output = Result<(), Error>, Args = Self::Args>;
-        #[allow(clippy::type_complexity)]
         fn equippable(
             &self,
             part_id: u32,
             collection_id: ActorId,
         ) -> impl Query<Output = Result<bool, Error>, Args = Self::Args>;
-        #[allow(clippy::type_complexity)]
         fn part(&self, part_id: u32) -> impl Query<Output = Option<Part>, Args = Self::Args>;
     }
+}
+#[cfg(feature = "mockall")]
+#[cfg(not(target_arch = "wasm32"))]
+pub mod mocks {
+    use super::*;
+    use mockall::*;
+    use sails::mocks::*;
+    mock! { pub RmrkCatalog<A> {} #[allow(refining_impl_trait)] #[allow(clippy::type_complexity)] impl<A> traits::RmrkCatalog for RmrkCatalog<A> { type Args = A; fn add_equippables (&mut self, part_id: u32,collection_ids: Vec<ActorId>,) -> MockCall<A, Result<(u32,Vec<ActorId>,), Error>>;fn add_parts (&mut self, parts: BTreeMap<u32, Part>,) -> MockCall<A, Result<BTreeMap<u32, Part>, Error>>;fn remove_equippable (&mut self, part_id: u32,collection_id: ActorId,) -> MockCall<A, Result<(u32,ActorId,), Error>>;fn remove_parts (&mut self, part_ids: Vec<u32>,) -> MockCall<A, Result<Vec<u32>, Error>>;fn reset_equippables (&mut self, part_id: u32,) -> MockCall<A, Result<(), Error>>;fn set_equippables_to_all (&mut self, part_id: u32,) -> MockCall<A, Result<(), Error>>;fn equippable (& self, part_id: u32,collection_id: ActorId,) -> MockQuery<A, Result<bool, Error>>;fn part (& self, part_id: u32,) -> MockQuery<A, Option<Part>>; } }
 }

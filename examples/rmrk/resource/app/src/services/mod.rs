@@ -167,28 +167,25 @@ fn resource_storage_admin() -> ActorId {
 
 #[cfg(test)]
 mod tests {
-    use mockall::*;
-
     use super::*;
-    use crate::catalogs::{Error, Part};
+    use crate::catalogs::mocks::MockRmrkCatalog;
     use resources::BasicResource;
-    use sails::{calls::*, collections::*, gstd::calls::GStdRemoting, mocks::*, ActorId};
+    use sails::{gstd::calls::GStdArgs, ActorId};
 
     #[test]
     fn test_add_resource_entry() {
-        ResourceStorage::<ExecContextMock, MockCatalogClient<GStdRemoting>>::seed(
-            ExecContextMock {
-                actor_id: 1.into(),
-                message_id: 1.into(),
-            },
-        );
+        ResourceStorage::<ExecContextMock, MockRmrkCatalog<GStdArgs>>::seed(ExecContextMock {
+            actor_id: 1.into(),
+            message_id: 1.into(),
+        });
         let mut resource_storage = ResourceStorage::new(
             ExecContextMock {
                 actor_id: 1.into(),
                 message_id: 1.into(),
             },
-            MockCatalogClient::<GStdRemoting>::new(),
+            MockRmrkCatalog::<GStdArgs>::new(),
         );
+
         let resource = Resource::Basic(BasicResource {
             src: "src".to_string(),
             thumb: None,
@@ -213,25 +210,6 @@ mod tests {
 
         fn message_id(&self) -> MessageId {
             self.message_id
-        }
-    }
-
-    mock! {
-        CatalogClient<R: Remoting> {}
-
-        #[allow(refining_impl_trait)]
-        #[allow(clippy::type_complexity)]
-        impl<R: Remoting> RmrkCatalog for CatalogClient<R> {
-            type Args = R::Args;
-
-            fn add_parts(&mut self, _parts: BTreeMap<u32, Part>,) -> MockCall<R::Args, Result<BTreeMap<u32, Part>, Error>>;
-            fn remove_parts(&mut self, _part_ids: Vec<u32>,) -> MockCall<R::Args, Result<Vec<u32>, Error>>;
-            fn add_equippables(&mut self, _part_id: u32, _collection_ids: Vec<ActorId>,) -> MockCall<R::Args, Result<(u32, Vec<ActorId>), Error>>;
-            fn remove_equippable(&mut self, _part_id: u32, _collection_id: ActorId,) -> MockCall<R::Args, Result<(u32, ActorId), Error>>;
-            fn reset_equippables(&mut self, _part_id: u32,) -> MockCall<R::Args, Result<(), Error>>;
-            fn set_equippables_to_all(&mut self, _part_id: u32,) -> MockCall<R::Args, Result<(), Error>>;
-            fn part(&self, _part_id: u32) -> MockQuery<R::Args, Option<Part>>;
-            fn equippable(&self, _part_id: u32, _collection_id: ActorId,) -> MockQuery<R::Args, Result<bool, Error>>;
         }
     }
 }

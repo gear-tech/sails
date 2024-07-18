@@ -86,13 +86,21 @@ pub struct MyParam {
 }
 pub mod traits {
     use super::*;
+    #[allow(clippy::type_complexity)]
     pub trait ServiceWithEvents {
         type Args;
-        #[allow(clippy::type_complexity)]
         fn do_this(
             &mut self,
             p1: NonZeroU256,
             p2: MyParam,
         ) -> impl Call<Output = NonZeroU64, Args = Self::Args>;
     }
+}
+#[cfg(feature = "mockall")]
+#[cfg(not(target_arch = "wasm32"))]
+pub mod mocks {
+    use super::*;
+    use mockall::*;
+    use sails::mocks::*;
+    mock! { pub ServiceWithEvents<A> {} #[allow(refining_impl_trait)] #[allow(clippy::type_complexity)] impl<A> traits::ServiceWithEvents for ServiceWithEvents<A> { type Args = A; fn do_this (&mut self, p1: NonZeroU256,p2: MyParam,) -> MockCall<A, NonZeroU64>; } }
 }

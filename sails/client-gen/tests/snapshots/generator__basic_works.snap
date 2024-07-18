@@ -77,11 +77,18 @@ pub enum MyParam2 {
 }
 pub mod traits {
     use super::*;
+    #[allow(clippy::type_complexity)]
     pub trait Basic {
         type Args;
-        #[allow(clippy::type_complexity)]
         fn do_this(&mut self, p1: u32, p2: MyParam) -> impl Call<Output = u16, Args = Self::Args>;
-        #[allow(clippy::type_complexity)]
         fn do_that(&mut self, p1: (u8, u32)) -> impl Call<Output = u8, Args = Self::Args>;
     }
+}
+#[cfg(feature = "mockall")]
+#[cfg(not(target_arch = "wasm32"))]
+pub mod mocks {
+    use super::*;
+    use mockall::*;
+    use sails::mocks::*;
+    mock! { pub Basic<A> {} #[allow(refining_impl_trait)] #[allow(clippy::type_complexity)] impl<A> traits::Basic for Basic<A> { type Args = A; fn do_this (&mut self, p1: u32,p2: MyParam,) -> MockCall<A, u16>;fn do_that (&mut self, p1: (u8,u32,),) -> MockCall<A, u8>; } }
 }

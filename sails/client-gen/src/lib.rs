@@ -2,6 +2,7 @@ mod ctor_generators;
 mod events_generator;
 mod helpers;
 mod io_generators;
+mod mock_generator;
 mod root_generator;
 mod service_generators;
 mod type_generators;

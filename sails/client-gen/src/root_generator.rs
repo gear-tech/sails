@@ -1,6 +1,6 @@
 use crate::{
-    ctor_generators::*, events_generator::*, io_generators::*, service_generators::*,
-    type_generators::*,
+    ctor_generators::*, events_generator::*, io_generators::*, mock_generator::MockGenerator,
+    service_generators::*, type_generators::*,
 };
 use convert_case::{Case, Casing};
 use genco::prelude::*;
@@ -10,6 +10,7 @@ use sails_idl_parser::{ast::visitor::Visitor, ast::*};
 pub(crate) struct RootGenerator<'a> {
     tokens: Tokens,
     traits_tokens: Tokens,
+    mocks_tokens: Tokens,
     anonymous_service_name: &'a str,
 }
 
@@ -26,6 +27,7 @@ impl<'a> RootGenerator<'a> {
             anonymous_service_name,
             tokens,
             traits_tokens: Tokens::new(),
+            mocks_tokens: Tokens::new(),
         }
     }
 
@@ -36,6 +38,16 @@ impl<'a> RootGenerator<'a> {
             pub mod traits {
                 use super::*;
                 $(self.traits_tokens)
+            }
+
+            #[cfg(feature = "mockall")]
+            #[cfg(not(target_arch = "wasm32"))]
+            pub mod mocks {
+                use super::*;
+                use mockall::*;
+                use sails::mocks::*;
+
+                $(self.mocks_tokens)
             }
         };
 
@@ -96,6 +108,10 @@ impl<'a, 'ast> Visitor<'ast> for RootGenerator<'a> {
                 $(service_tokens)
             }
         }
+
+        let mut mock_gen: MockGenerator = MockGenerator::new(service_name.to_owned());
+        mock_gen.visit_service(service);
+        self.mocks_tokens.extend(mock_gen.finalize());
     }
 
     fn visit_type(&mut self, t: &'ast Type) {

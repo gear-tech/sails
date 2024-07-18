@@ -1,5 +1,9 @@
 #![no_std]
 
+#[cfg(feature = "std")]
+#[cfg(not(target_arch = "wasm32"))]
+extern crate std;
+
 // Incorporate code generated based on the [IDL](/examples/demo/wasm/demo.idl) file
 include!(concat!(env!("OUT_DIR"), "/demo_client.rs"));
 

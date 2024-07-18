@@ -2,10 +2,19 @@
 name = "demo-client"
 version = "0.1.0"
 edition = "2021"
+resolver = "2"
 
 [dependencies]
+mockall = { workspace = true, optional = true }
 sails.workspace = true
 
 [build-dependencies]
 demo = { path = "../wasm" }
 sails-client-gen.workspace = true
+
+[dev-dependencies]
+demo-client = { path = ".", features = ["mockall"] }
+
+[features]
+std = []
+mockall = ["std", "sails/mockall", "dep:mockall"]
