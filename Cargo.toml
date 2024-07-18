@@ -10,7 +10,6 @@ members = [
     "examples/demo/app",
     "examples/demo/client",
     "examples/demo/walker",
-    "examples/demo/wasm",
     "examples/no-svcs-prog/app",
     "examples/no-svcs-prog/wasm",
     "examples/proxy/",
