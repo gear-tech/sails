@@ -41,8 +41,6 @@ pub enum RtlError {
     ProgramCodeIsNotFound,
     #[error("program is not found")]
     ProgramIsNotFound,
-    #[error("actor is not set")]
-    ActorIsNotSet,
     #[error("reply has error string")]
     ReplyHasErrorString(String),
     #[error("event name is not found")]

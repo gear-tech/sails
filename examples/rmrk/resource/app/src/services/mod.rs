@@ -4,7 +4,7 @@ use resources::{ComposedResource, PartId, Resource, ResourceId};
 use sails::{
     calls::Query,
     collections::HashMap,
-    gstd::{calls::GStdArgs, gservice, ExecContext},
+    gstd::{gservice, ExecContext},
     prelude::*,
 };
 
@@ -42,7 +42,7 @@ pub struct ResourceStorage<TExecContext, TCatalogClient> {
 impl<TExecContext, TCatalogClient> ResourceStorage<TExecContext, TCatalogClient>
 where
     TExecContext: ExecContext,
-    TCatalogClient: RmrkCatalog<GStdArgs>,
+    TCatalogClient: RmrkCatalog,
 {
     // This function needs to be called before any other function
     pub fn seed(exec_context: TExecContext) {
@@ -179,7 +179,7 @@ mod tests {
 
     #[test]
     fn test_add_resource_entry() {
-        ResourceStorage::<ExecContextMock, MockCatalogClient<GStdRemoting, GStdArgs>>::seed(
+        ResourceStorage::<ExecContextMock, MockCatalogClient<GStdRemoting>>::seed(
             ExecContextMock {
                 actor_id: 1.into(),
                 message_id: 1.into(),
@@ -190,10 +190,7 @@ mod tests {
                 actor_id: 1.into(),
                 message_id: 1.into(),
             },
-            MockCatalogClient::<GStdRemoting, GStdArgs> {
-                _r: PhantomData,
-                _a: PhantomData,
-            },
+            MockCatalogClient::<GStdRemoting> { _r: PhantomData },
         );
         let resource = Resource::Basic(BasicResource {
             src: "src".to_string(),
@@ -222,9 +219,8 @@ mod tests {
         }
     }
 
-    struct MockCatalogClient<R: Remoting<A>, A> {
+    struct MockCatalogClient<R: Remoting> {
         _r: PhantomData<R>,
-        _a: PhantomData<A>,
     }
 
     struct MockCall<A, R> {
@@ -241,13 +237,20 @@ mod tests {
         }
     }
 
-    impl<A, R> Call<A, R> for MockCall<A, R> {
-        async fn send(self, _target: ActorId) -> sails::errors::Result<impl Reply<T = R>> {
+    impl<A, R> Call for MockCall<A, R> {
+        type Output = R;
+
+        async fn send(
+            self,
+            _target: ActorId,
+        ) -> sails::errors::Result<impl Reply<Output = Self::Output>> {
             Ok(MockReply::<R>::new())
         }
     }
 
-    impl<A, R> Action<A> for MockCall<A, R> {
+    impl<A, R> Action for MockCall<A, R> {
+        type Args = A;
+
         fn with_value(self, _value: ValueUnit) -> Self {
             todo!()
         }
@@ -276,8 +279,9 @@ mod tests {
     }
 
     impl<R> Reply for MockReply<R> {
-        type T = R;
-        async fn recv(self) -> sails::errors::Result<Self::T> {
+        type Output = R;
+
+        async fn recv(self) -> sails::errors::Result<Self::Output> {
             unimplemented!()
         }
     }
@@ -297,13 +301,15 @@ mod tests {
         }
     }
 
-    impl<A, R> Query<A, R> for MockQuery<A, R> {
+    impl<A, R> Query for MockQuery<A, R> {
         async fn recv(self, _target: ActorId) -> sails::errors::Result<R> {
             unimplemented!()
         }
+
+        type Output = R;
     }
 
-    impl<A, R> Action<A> for MockQuery<A, R> {
+    impl<A, R> Action for MockQuery<A, R> {
         fn with_value(self, _value: ValueUnit) -> Self {
             todo!()
         }
@@ -319,21 +325,24 @@ mod tests {
         fn args(&self) -> &A {
             todo!()
         }
+
+        type Args = A;
     }
 
-    impl<R, A> RmrkCatalog<A> for MockCatalogClient<R, A>
-    where
-        R: Remoting<A>,
-        A: Default,
-    {
+    impl<R: Remoting> RmrkCatalog for MockCatalogClient<R> {
+        type Args = R::Args;
+
         fn add_parts(
             &mut self,
             _parts: BTreeMap<u32, Part>,
-        ) -> impl Call<A, Result<BTreeMap<u32, Part>, Error>> {
+        ) -> impl Call<Output = Result<BTreeMap<u32, Part>, Error>, Args = R::Args> {
             MockCall::new()
         }
 
-        fn remove_parts(&mut self, _part_ids: Vec<u32>) -> impl Call<A, Result<Vec<u32>, Error>> {
+        fn remove_parts(
+            &mut self,
+            _part_ids: Vec<u32>,
+        ) -> impl Call<Output = Result<Vec<u32>, Error>, Args = R::Args> {
             MockCall::new()
         }
 
@@ -341,7 +350,7 @@ mod tests {
             &mut self,
             _part_id: u32,
             _collection_ids: Vec<ActorId>,
-        ) -> impl Call<A, Result<(u32, Vec<ActorId>), Error>> {
+        ) -> impl Call<Output = Result<(u32, Vec<ActorId>), Error>, Args = R::Args> {
             MockCall::new()
         }
 
@@ -349,19 +358,25 @@ mod tests {
             &mut self,
             _part_id: u32,
             _collection_id: ActorId,
-        ) -> impl Call<A, Result<(u32, ActorId), Error>> {
+        ) -> impl Call<Output = Result<(u32, ActorId), Error>, Args = R::Args> {
             MockCall::new()
         }
 
-        fn reset_equippables(&mut self, _part_id: u32) -> impl Call<A, Result<(), Error>> {
+        fn reset_equippables(
+            &mut self,
+            _part_id: u32,
+        ) -> impl Call<Output = Result<(), Error>, Args = R::Args> {
             MockCall::new()
         }
 
-        fn set_equippables_to_all(&mut self, _part_id: u32) -> impl Call<A, Result<(), Error>> {
+        fn set_equippables_to_all(
+            &mut self,
+            _part_id: u32,
+        ) -> impl Call<Output = Result<(), Error>, Args = R::Args> {
             MockCall::new()
         }
 
-        fn part(&self, _part_id: u32) -> impl Query<A, Option<Part>> {
+        fn part(&self, _part_id: u32) -> impl Query<Output = Option<Part>, Args = R::Args> {
             MockQuery::new()
         }
 
@@ -369,7 +384,7 @@ mod tests {
             &self,
             _part_id: u32,
             _collection_id: ActorId,
-        ) -> impl Query<A, Result<bool, Error>> {
+        ) -> impl Query<Output = Result<bool, Error>, Args = R::Args> {
             MockQuery::new()
         }
     }

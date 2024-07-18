@@ -1,24 +1,18 @@
-use core::marker::PhantomData;
 use demo_client::traits::ThisThat;
 use sails::{calls::Query, prelude::*};
 
 #[derive(Clone)]
-pub struct ThisThatCaller<ThisThatClient, CallArgs> {
+pub struct ThisThatCaller<ThisThatClient> {
     this_that: ThisThatClient,
-    _args: PhantomData<CallArgs>,
 }
 
 #[gservice]
-impl<ThisThatClient, Args> ThisThatCaller<ThisThatClient, Args>
+impl<ThisThatClient> ThisThatCaller<ThisThatClient>
 where
-    ThisThatClient: ThisThat<Args>,
-    Args: Default,
+    ThisThatClient: ThisThat,
 {
     pub const fn new(this_that: ThisThatClient) -> Self {
-        Self {
-            this_that,
-            _args: PhantomData,
-        }
+        Self { this_that }
     }
 
     pub async fn call_this(&mut self, this_that_addr: ActorId) -> u32 {
