@@ -22,6 +22,8 @@ struct ResourceStorageData {
 
 // Service event type definition
 #[derive(TypeInfo, Encode)]
+#[codec(crate = sails::scale_codec)]
+#[scale_info(crate = sails::scale_info)]
 pub enum ResourceStorageEvent {
     ResourceAdded {
         resource_id: ResourceId,
@@ -165,7 +167,7 @@ fn resource_storage_admin() -> ActorId {
 
 #[cfg(test)]
 mod tests {
-    use core::marker::PhantomData;
+    use mockall::*;
 
     use super::*;
     use crate::catalogs::{Error, Part};
@@ -185,7 +187,7 @@ mod tests {
                 actor_id: 1.into(),
                 message_id: 1.into(),
             },
-            MockCatalogClient::<GStdRemoting> { _r: PhantomData },
+            MockCatalogClient::<GStdRemoting>::new(),
         );
         let resource = Resource::Basic(BasicResource {
             src: "src".to_string(),
@@ -214,67 +216,22 @@ mod tests {
         }
     }
 
-    struct MockCatalogClient<R: Remoting> {
-        _r: PhantomData<R>,
-    }
+    mock! {
+        CatalogClient<R: Remoting> {}
 
-    impl<R: Remoting> RmrkCatalog for MockCatalogClient<R> {
-        type Args = R::Args;
+        #[allow(refining_impl_trait)]
+        #[allow(clippy::type_complexity)]
+        impl<R: Remoting> RmrkCatalog for CatalogClient<R> {
+            type Args = R::Args;
 
-        fn add_parts(
-            &mut self,
-            _parts: BTreeMap<u32, Part>,
-        ) -> impl Call<Output = Result<BTreeMap<u32, Part>, Error>, Args = R::Args> {
-            MockCall::new()
-        }
-
-        fn remove_parts(
-            &mut self,
-            _part_ids: Vec<u32>,
-        ) -> impl Call<Output = Result<Vec<u32>, Error>, Args = R::Args> {
-            MockCall::new()
-        }
-
-        fn add_equippables(
-            &mut self,
-            _part_id: u32,
-            _collection_ids: Vec<ActorId>,
-        ) -> impl Call<Output = Result<(u32, Vec<ActorId>), Error>, Args = R::Args> {
-            MockCall::new()
-        }
-
-        fn remove_equippable(
-            &mut self,
-            _part_id: u32,
-            _collection_id: ActorId,
-        ) -> impl Call<Output = Result<(u32, ActorId), Error>, Args = R::Args> {
-            MockCall::new()
-        }
-
-        fn reset_equippables(
-            &mut self,
-            _part_id: u32,
-        ) -> impl Call<Output = Result<(), Error>, Args = R::Args> {
-            MockCall::new()
-        }
-
-        fn set_equippables_to_all(
-            &mut self,
-            _part_id: u32,
-        ) -> impl Call<Output = Result<(), Error>, Args = R::Args> {
-            MockCall::new()
-        }
-
-        fn part(&self, _part_id: u32) -> impl Query<Output = Option<Part>, Args = R::Args> {
-            MockQuery::new()
-        }
-
-        fn equippable(
-            &self,
-            _part_id: u32,
-            _collection_id: ActorId,
-        ) -> impl Query<Output = Result<bool, Error>, Args = R::Args> {
-            MockQuery::new()
+            fn add_parts(&mut self, _parts: BTreeMap<u32, Part>,) -> MockCall<R::Args, Result<BTreeMap<u32, Part>, Error>>;
+            fn remove_parts(&mut self, _part_ids: Vec<u32>,) -> MockCall<R::Args, Result<Vec<u32>, Error>>;
+            fn add_equippables(&mut self, _part_id: u32, _collection_ids: Vec<ActorId>,) -> MockCall<R::Args, Result<(u32, Vec<ActorId>), Error>>;
+            fn remove_equippable(&mut self, _part_id: u32, _collection_id: ActorId,) -> MockCall<R::Args, Result<(u32, ActorId), Error>>;
+            fn reset_equippables(&mut self, _part_id: u32,) -> MockCall<R::Args, Result<(), Error>>;
+            fn set_equippables_to_all(&mut self, _part_id: u32,) -> MockCall<R::Args, Result<(), Error>>;
+            fn part(&self, _part_id: u32) -> MockQuery<R::Args, Option<Part>>;
+            fn equippable(&self, _part_id: u32, _collection_id: ActorId,) -> MockQuery<R::Args, Result<bool, Error>>;
         }
     }
 }

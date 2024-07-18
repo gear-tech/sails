@@ -5,9 +5,7 @@ edition = "2021"
 
 [dependencies]
 gstd.workspace = true
-parity-scale-codec = { workspace = true, features = ["derive"] }
 sails.workspace = true
-scale-info = { workspace = true, features = ["derive"] }
 
 [build-dependencies]
 git-download.workspace = true
@@ -15,3 +13,4 @@ sails-client-gen.workspace = true
 
 [dev-dependencies]
 sails = { workspace = true, features = ["mockall"] }
+mockall.workspace = true

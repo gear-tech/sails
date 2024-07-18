@@ -13,7 +13,7 @@ gprimitives.workspace = true
 gstd.workspace = true
 hashbrown.workspace = true
 hex.workspace = true
-mockall = { version = "0.12", optional = true }
+mockall = { workspace = true, optional = true }
 parity-scale-codec = { workspace = true, features = ["derive"] }
 primitive-types.workspace = true
 sails-macros.workspace = true
@@ -22,8 +22,9 @@ spin.workspace = true
 thiserror-no-std.workspace = true
 
 [features]
-default = ["mockall"]
-mockall = ["dep:mockall"]
+default = []
+std = []
+mockall = ["std", "dep:mockall"]
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 gclient.workspace = true

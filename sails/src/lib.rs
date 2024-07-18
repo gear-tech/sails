@@ -1,6 +1,6 @@
 #![no_std]
 
-#[cfg(feature = "mockall")]
+#[cfg(feature = "std")]
 #[cfg(not(target_arch = "wasm32"))]
 extern crate std;
 

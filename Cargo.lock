@@ -5121,10 +5121,9 @@ version = "0.1.0"
 dependencies = [
  "git-download",
  "gstd",
- "parity-scale-codec",
+ "mockall",
  "sails",
  "sails-client-gen",
- "scale-info",
 ]
 
 [[package]]
