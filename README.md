@@ -397,12 +397,10 @@ Here is a brief overview of features mentioned above and showcased by the exampl
 ### Exposing Services via Program
 
 The examples are composed on a principle of a few programs exposing several services.
-See [DemoProgram](examples/demo/app/src/lib.rs) which demonstrates this, including
+See [DemoProgram](/examples/demo/app/src/lib.rs) which demonstrates this, including
 the use of program's multiple constructors and the `#[groute]` attribute for one of
-the exposed services. The program is built as a separate Rust crate, which is later
-wired up to another crate for building the [Demo](examples/demo/wasm/) app. This
-approach allows us to generate an [IDL file](examples/demo/wasm/demo.idl) representing
-the entire program as part of the Rust [build script](examples/demo/wasm/build.rs).
+the exposed services. The example also includes Rust [build script](/examples/demo/app/build.rs)
+building the program as a WASM app ready for loading onto Gear network.
 
 ### Basic Services
 
@@ -466,7 +464,7 @@ code from an IDL file as a separate Rust crate. Alternatively, you can use the s
 approach directly in your application crate. See [Rmrk Resource](/examples/rmrk/resource/app/build.rs).
 
 You can find various examples of how to interact with the application using the
-generated client code in [Demo Tests](/examples/demo/wasm/tests/gtest.rs). Check
+generated client code in [Demo Tests](/examples/demo/app/tests/gtest.rs). Check
 the comments in the code for more details.
 
 Since the generated code is the same for all environments, whether it is an interaction
