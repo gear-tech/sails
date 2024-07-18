@@ -6,6 +6,7 @@ version.workspace = true
 authors.workspace = true
 edition.workspace = true
 license.workspace = true
+repository.workspace = true
 
 [lib]
 proc-macro = true
@@ -16,7 +17,7 @@ proc-macro-error.workspace = true
 
 [dev-dependencies]
 parity-scale-codec = { workspace = true, features = ["derive"] }
-sails.workspace = true
+sails = { path = "..", package = "sails-rs" }
 scale-info = { workspace = true, features = ["derive"] }
 tokio = { workspace = true, features = ["full"] }
 trybuild.workspace = true

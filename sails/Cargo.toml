@@ -1,7 +1,8 @@
 [package]
-name = "gsails"
+name = "sails-rs"
 description = "Main abstractions for the Sails framework"
-documentation = "https://docs.rs/gsails"
+documentation = "https://docs.rs/sails-rs"
+readme = "../README.md"
 version.workspace = true
 authors.workspace = true
 edition.workspace = true

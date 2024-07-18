@@ -1,8 +1,9 @@
 [workspace.package]
-version = "0.1.0"
+version = "0.1.1"
 authors = ["Gear Technologies"]
 edition = "2021"
 license = "GPL-3.0"
+repository = "https://github.com/gear-tech/sails"
 
 [workspace]
 resolver = "2"
@@ -28,18 +29,34 @@ members = [
 ]
 
 [workspace.dependencies]
+# The order matches with publishing order.
+sails-macros-core = { path = "sails/macros/core" }
+sails-macros = { path = "sails/macros" }
+sails-idl-parser = { path = "sails/idl-parser" }
+sails-client-gen = { path = "sails/client-gen" }
+sails = { package = "sails-rs", path = "sails" }
+sails-idl-gen = { path = "sails/idl-gen" }
+
+# Gear deps
+gclient = "=1.4.2"
+gear-core-errors = "=1.4.2"
+gprimitives = { version = "=1.4.2", features = ["codec"] }
+gstd = "=1.4.2"
+gtest = "=1.4.2"
+gwasm-builder = { package = "gear-wasm-builder", version = "=1.4.2" }
+
+# Shared with gear deps
+parity-scale-codec = { version = "3.6", default-features = false }
+primitive-types = { version = "0.12", default-features = false }
+scale-info = { version = "2.11", default-features = false }
+
+# Other deps
 anyhow = "1"
 const-format = { package = "const_format", version = "0.2" }
 convert-case = { package = "convert_case", version = "0.6" }
 futures = { version = "0.3", default-features = false }
-gclient = "1.4.2"
-gear-core-errors = "1.4.2"
 genco = "0.17"
 git-download = "0.1"
-gprimitives = { version = "1.4.2", features = ["codec"] }
-gstd = "1.4.2"
-gtest = "1.4.2"
-gwasm-builder = { package = "gear-wasm-builder", version = "1.4.2" }
 handlebars = "4.4"
 hashbrown = "0.14"
 hex = { version = "0.4", default-features = false }
@@ -48,19 +65,10 @@ itertools = "0.12"
 lalrpop = { version = "0.20", default-features = false }
 lalrpop-util = "0.20"
 logos = "0.13"
-parity-scale-codec = { version = "3.6", default-features = false }
 prettyplease = "0.2"
-primitive-types = { version = "0.12", default-features = false }
 proc-macro-error = "1.0"
 proc-macro2 = { version = "1", default-features = false }
 quote = "1.0"
-sails = { path = "sails", package = "gsails" }
-sails-client-gen = { path = "sails/client-gen" }
-sails-idl-gen = { path = "sails/idl-gen" }
-sails-idl-parser = { path = "sails/idl-parser" }
-sails-macros = { path = "sails/macros" }
-sails-macros-core = { path = "sails/macros/core" }
-scale-info = { version = "2.11", default-features = false }
 serde = "1.0"
 serde-json = { package = "serde_json", version = "1.0" }
 spin = { version = "0.9", default-features = false, features = ["spin_mutex"] }

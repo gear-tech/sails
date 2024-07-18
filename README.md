@@ -5,7 +5,7 @@ Sails is a library for bringing your experience of writing applications utilizin
 clarity. It deals with things like:
 - eliminating
 the necessity of writing some low-level boilerplate code and letting you to stay
-focused on your bussiness problem
+focused on your business problem
 - generated [IDL](https://en.wikipedia.org/wiki/Interface_description_language) file for
 your application
 - generated client allowing to interact with your application from code written in
@@ -14,14 +14,16 @@ different languages and executed in different runtimes
 ---
 
 > [!NOTE]
-> The Sails library is published under the name `gsails` on `crates-io`.
+> The Sails library is published under the name `sails-rs` on `crates-io`.
+>
+> Versions in [v0.1.0; v0.1.1] are pinned to v1.4.2 of gear libs.
 
 ## Getting started
 
 Add the following to your `Cargo.toml`
 ```toml
 [dependencies]
-gsails = "*"
+sails-rs = "*"
 gstd = { version = "*", features = ["debug"] }
 ```
 
@@ -30,7 +32,7 @@ And then in your `lib.rs`:
 ```rust
 #![no_std]
 
-use gsails::prelude::*;
+use sails_rs::prelude::*;
 use gstd::debug;
 
 struct MyPing;
@@ -334,7 +336,7 @@ documentation.
 Say you have an application that exposes a service `MyService` with a command `do_something`:
 
 ```rust
-struct Ouput {
+struct Output {
     m1: u32,
     m2: String,
 }
@@ -389,7 +391,7 @@ fn some_client_code() {
 The second option provides you with an option to have your code testable as the generated
 code depends on the trait which can be easily mocked.
 
-When it comes to TypeScript, `sails-js` lilbrary can be used to interact with the program. Check out [`sails-js` documentation](js/README.md) for more details.
+When it comes to TypeScript, `sails-js` library can be used to interact with the program. Check out [`sails-js` documentation](js/README.md) for more details.
 
 ## Examples
 
