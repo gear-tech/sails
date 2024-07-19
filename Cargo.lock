@@ -4753,6 +4753,7 @@ dependencies = [
  "demo-client",
  "sails-idl-gen",
  "sails-rs",
+ "tokio",
 ]
 
 [[package]]

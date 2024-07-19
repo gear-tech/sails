@@ -16,5 +16,9 @@ demo-client = { path = "../demo/client" }
 sails.workspace = true
 sails-idl-gen = { workspace = true, optional = true }
 
+[dev-dependencies]
+demo-client = { path = "../demo/client", features = ["mockall"] }
+tokio = { workspace = true, features = ["rt", "macros"] }
+
 [features]
 idl-gen = ["sails-idl-gen"]
