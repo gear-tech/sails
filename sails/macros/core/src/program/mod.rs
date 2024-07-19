@@ -139,7 +139,7 @@ fn gen_gprogram_impl(program_impl: ItemImpl, program_args: ProgramArgs) -> Token
 
         impl #program_type_args sails_rs::meta::ProgramMeta for #program_type_path #program_type_constraints {
             fn constructors() -> #scale_info_path::MetaType {
-                #scale_info_path::MetaType::new::<meta::ConstructorsMeta>()
+                #scale_info_path::MetaType::new::<meta_in_program::ConstructorsMeta>()
             }
 
             fn services() -> impl Iterator<Item = (&'static str, sails_rs::meta::AnyServiceMeta)> {
@@ -160,7 +160,7 @@ fn gen_gprogram_impl(program_impl: ItemImpl, program_args: ProgramArgs) -> Token
             #ctors_params_structs
         )*
 
-        mod meta {
+        mod meta_in_program {
             use super::*;
 
             #[derive(__ProgramTypeInfo)]
