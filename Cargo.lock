@@ -1432,7 +1432,7 @@ dependencies = [
  "gear-wasm-builder",
  "gstd",
  "gtest",
- "sails",
+ "sails-rs",
  "tokio",
 ]
 
@@ -1441,16 +1441,16 @@ name = "demo-client"
 version = "0.1.0"
 dependencies = [
  "demo",
- "sails",
  "sails-client-gen",
  "sails-idl-gen",
+ "sails-rs",
 ]
 
 [[package]]
 name = "demo-walker"
 version = "0.1.0"
 dependencies = [
- "sails",
+ "sails-rs",
 ]
 
 [[package]]
@@ -4085,15 +4085,15 @@ version = "0.1.0"
 dependencies = [
  "gear-wasm-builder",
  "no-svcs-prog-app",
- "sails",
  "sails-idl-gen",
+ "sails-rs",
 ]
 
 [[package]]
 name = "no-svcs-prog-app"
 version = "0.1.0"
 dependencies = [
- "sails",
+ "sails-rs",
 ]
 
 [[package]]
@@ -4679,8 +4679,8 @@ name = "proxy"
 version = "0.1.0"
 dependencies = [
  "demo-client",
- "sails",
  "sails-idl-gen",
+ "sails-rs",
 ]
 
 [[package]]
@@ -5008,7 +5008,7 @@ name = "rmrk-catalog-app"
 version = "0.1.0"
 dependencies = [
  "parity-scale-codec",
- "sails",
+ "sails-rs",
  "scale-info",
 ]
 
@@ -5020,9 +5020,9 @@ dependencies = [
  "gtest",
  "rmrk-catalog",
  "rmrk-resource-app",
- "sails",
  "sails-client-gen",
  "sails-idl-gen",
+ "sails-rs",
  "thiserror-no-std",
  "tokio",
 ]
@@ -5034,8 +5034,8 @@ dependencies = [
  "git-download",
  "gstd",
  "parity-scale-codec",
- "sails",
  "sails-client-gen",
+ "sails-rs",
  "scale-info",
 ]
 
@@ -5174,8 +5174,74 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f3cb5ba0dc43242ce17de99c180e96db90b235b8a9fdc9543c96d2209116bd9f"
 
 [[package]]
-name = "sails"
-version = "0.1.0"
+name = "sails-client-gen"
+version = "0.1.1"
+dependencies = [
+ "anyhow",
+ "convert_case 0.6.0",
+ "genco",
+ "insta",
+ "parity-scale-codec",
+ "sails-idl-parser",
+]
+
+[[package]]
+name = "sails-idl-gen"
+version = "0.1.1"
+dependencies = [
+ "convert_case 0.6.0",
+ "handlebars",
+ "insta",
+ "sails-idl-parser",
+ "sails-rs",
+ "scale-info",
+ "serde",
+ "serde_json",
+ "thiserror",
+]
+
+[[package]]
+name = "sails-idl-parser"
+version = "0.1.1"
+dependencies = [
+ "itertools 0.12.1",
+ "lalrpop",
+ "lalrpop-util",
+ "logos",
+ "thiserror",
+]
+
+[[package]]
+name = "sails-macros"
+version = "0.1.1"
+dependencies = [
+ "parity-scale-codec",
+ "proc-macro-error",
+ "sails-macros-core",
+ "sails-rs",
+ "scale-info",
+ "tokio",
+ "trybuild",
+]
+
+[[package]]
+name = "sails-macros-core"
+version = "0.1.1"
+dependencies = [
+ "const_format",
+ "convert_case 0.6.0",
+ "insta",
+ "parity-scale-codec",
+ "prettyplease",
+ "proc-macro-error",
+ "proc-macro2",
+ "quote",
+ "syn 2.0.71",
+]
+
+[[package]]
+name = "sails-rs"
+version = "0.1.1"
 dependencies = [
  "futures",
  "gclient",
@@ -5191,72 +5257,6 @@ dependencies = [
  "scale-info",
  "spin",
  "thiserror-no-std",
-]
-
-[[package]]
-name = "sails-client-gen"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "convert_case 0.6.0",
- "genco",
- "insta",
- "parity-scale-codec",
- "sails-idl-parser",
-]
-
-[[package]]
-name = "sails-idl-gen"
-version = "0.1.0"
-dependencies = [
- "convert_case 0.6.0",
- "handlebars",
- "insta",
- "sails",
- "sails-idl-parser",
- "scale-info",
- "serde",
- "serde_json",
- "thiserror",
-]
-
-[[package]]
-name = "sails-idl-parser"
-version = "0.1.0"
-dependencies = [
- "itertools 0.12.1",
- "lalrpop",
- "lalrpop-util",
- "logos",
- "thiserror",
-]
-
-[[package]]
-name = "sails-macros"
-version = "0.1.0"
-dependencies = [
- "parity-scale-codec",
- "proc-macro-error",
- "sails",
- "sails-macros-core",
- "scale-info",
- "tokio",
- "trybuild",
-]
-
-[[package]]
-name = "sails-macros-core"
-version = "0.1.0"
-dependencies = [
- "const_format",
- "convert_case 0.6.0",
- "insta",
- "parity-scale-codec",
- "prettyplease",
- "proc-macro-error",
- "proc-macro2",
- "quote",
- "syn 2.0.71",
 ]
 
 [[package]]
