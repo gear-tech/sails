@@ -12,11 +12,14 @@ pub(crate) struct RootGenerator<'a> {
     traits_tokens: Tokens,
     mocks_tokens: Tokens,
     anonymous_service_name: &'a str,
-    mocks_feature_name: Option<String>,
+    mocks_feature_name: Option<&'a str>,
 }
 
 impl<'a> RootGenerator<'a> {
-    pub(crate) fn new(anonymous_service_name: &'a str, mocks_feature_name: Option<String>) -> Self {
+    pub(crate) fn new(
+        anonymous_service_name: &'a str,
+        mocks_feature_name: Option<&'a str>,
+    ) -> Self {
         let tokens = quote! {
             #[allow(unused_imports)]
             use sails::{prelude::*, String, calls::{Activation, Call, Query, Remoting, RemotingAction}};
@@ -36,9 +39,9 @@ impl<'a> RootGenerator<'a> {
     pub(crate) fn finalize(self) -> String {
         let mocks_tokens = if let Some(mocks_feature_name) = self.mocks_feature_name {
             quote! {
-                #[cfg(feature = $(quoted(&mocks_feature_name)))]
+                #[cfg(feature = $(quoted(mocks_feature_name)))]
                 #[cfg(not(target_arch = "wasm32"))]
-                pub mod $(&mocks_feature_name) {
+                pub mod $(mocks_feature_name) {
                     use super::*;
                     use sails::mockall::*;
                     $(self.mocks_tokens)

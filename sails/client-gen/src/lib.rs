@@ -17,7 +17,7 @@ use std::{ffi::OsStr, fs, io::Write, path::Path};
 pub fn generate_client_from_idl(
     idl_path: impl AsRef<Path>,
     out_path: impl AsRef<Path>,
-    mocks_feature_name: Option<String>,
+    mocks_feature_name: Option<&str>,
 ) -> Result<()> {
     let idl_path = idl_path.as_ref();
     let out_path = out_path.as_ref();
@@ -48,7 +48,7 @@ pub fn generate_client_from_idl(
 pub fn generate(
     program: Program,
     anonymous_service_name: &str,
-    mocks_feature_name: Option<String>,
+    mocks_feature_name: Option<&str>,
 ) -> Result<String> {
     let mut generator = RootGenerator::new(anonymous_service_name, mocks_feature_name);
     visitor::accept_program(&program, &mut generator);

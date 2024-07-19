@@ -24,7 +24,7 @@ fn main() {
     sails_client_gen::generate_client_from_idl(
         idl_file_path,
         client_rs_file_path,
-        Some("mockall".to_owned()),
+        Some("mockall"),
     )
     .unwrap();
 }
