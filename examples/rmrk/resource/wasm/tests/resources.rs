@@ -7,7 +7,7 @@ use rmrk_resource_app::services::{
     resources::{ComposedResource, PartId, Resource, ResourceId},
     ResourceStorageEvent,
 };
-use sails::{
+use sails_rs::{
     calls::{Action, Call, Query, Remoting},
     collections::BTreeMap,
     errors::Result,

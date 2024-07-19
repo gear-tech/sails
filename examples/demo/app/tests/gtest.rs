@@ -6,7 +6,7 @@ use demo_client::{
 };
 use fixture::Fixture;
 use futures::stream::StreamExt;
-use sails::{calls::*, events::*};
+use sails_rs::{calls::*, events::*};
 
 mod fixture;
 

@@ -21,7 +21,7 @@ impl IoModuleGenerator {
         quote!(
             pub mod io {
                 use super::*;
-                use sails::calls::ActionIo;
+                use sails_rs::calls::ActionIo;
                 $(self.tokens)
             }
         )

@@ -1,5 +1,5 @@
 use gstd::debug;
-use sails::prelude::*;
+use sails_rs::prelude::*;
 
 #[derive(Default)]
 pub struct MyService(());
@@ -43,13 +43,13 @@ impl MyService {
 
 #[allow(dead_code)]
 #[derive(Debug, Decode, TypeInfo)]
-#[codec(crate = sails::scale_codec)]
-#[scale_info(crate = sails::scale_info)]
+#[codec(crate = sails_rs::scale_codec)]
+#[scale_info(crate = sails_rs::scale_info)]
 pub struct TupleStruct(bool);
 
 #[derive(Debug, Decode, TypeInfo)]
-#[codec(crate = sails::scale_codec)]
-#[scale_info(crate = sails::scale_info)]
+#[codec(crate = sails_rs::scale_codec)]
+#[scale_info(crate = sails_rs::scale_info)]
 pub struct DoThatParam {
     pub p1: NonZeroU32,
     pub p2: ActorId,
@@ -57,8 +57,8 @@ pub struct DoThatParam {
 }
 
 #[derive(Debug, Decode, TypeInfo)]
-#[codec(crate = sails::scale_codec)]
-#[scale_info(crate = sails::scale_info)]
+#[codec(crate = sails_rs::scale_codec)]
+#[scale_info(crate = sails_rs::scale_info)]
 pub enum ManyVariants {
     One,
     Two(u32),

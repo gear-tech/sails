@@ -1,5 +1,5 @@
 ---
-source: macros/core/tests/gprogram.rs
+source: sails/macros/core/tests/gprogram.rs
 assertion_line: 38
 expression: result
 ---
@@ -11,27 +11,29 @@ impl MyProgram {
         Self { p1, p2 }
     }
 }
-impl sails::meta::ProgramMeta for MyProgram {
-    fn constructors() -> sails::scale_info::MetaType {
-        sails::scale_info::MetaType::new::<meta::ConstructorsMeta>()
+impl sails_rs::meta::ProgramMeta for MyProgram {
+    fn constructors() -> sails_rs::scale_info::MetaType {
+        sails_rs::scale_info::MetaType::new::<meta::ConstructorsMeta>()
     }
-    fn services() -> impl Iterator<Item = (&'static str, sails::meta::AnyServiceMeta)> {
+    fn services() -> impl Iterator<
+        Item = (&'static str, sails_rs::meta::AnyServiceMeta),
+    > {
         [].into_iter()
     }
 }
-use sails::Decode as __ProgramDecode;
-use sails::TypeInfo as __ProgramTypeInfo;
+use sails_rs::Decode as __ProgramDecode;
+use sails_rs::TypeInfo as __ProgramTypeInfo;
 #[derive(__ProgramDecode, __ProgramTypeInfo)]
-#[codec(crate = sails::scale_codec)]
-#[scale_info(crate = sails::scale_info)]
+#[codec(crate = sails_rs::scale_codec)]
+#[scale_info(crate = sails_rs::scale_info)]
 #[allow(dead_code)]
 struct __NewParams {
     p1: u32,
     p2: String,
 }
 #[derive(__ProgramDecode, __ProgramTypeInfo)]
-#[codec(crate = sails::scale_codec)]
-#[scale_info(crate = sails::scale_info)]
+#[codec(crate = sails_rs::scale_codec)]
+#[scale_info(crate = sails_rs::scale_info)]
 #[allow(dead_code)]
 struct __New2Params {
     p2: String,
@@ -40,7 +42,7 @@ struct __New2Params {
 mod meta {
     use super::*;
     #[derive(__ProgramTypeInfo)]
-    #[scale_info(crate = sails::scale_info)]
+    #[scale_info(crate = sails_rs::scale_info)]
     pub enum ConstructorsMeta {
         New(__NewParams),
         New2(__New2Params),
@@ -49,11 +51,11 @@ mod meta {
 #[cfg(target_arch = "wasm32")]
 pub mod wasm {
     use super::*;
-    use sails::{gstd, hex, prelude::*};
+    use sails_rs::{gstd, hex, prelude::*};
     static mut PROGRAM: Option<MyProgram> = None;
     #[gstd::async_init]
     async fn init() {
-        sails::gstd::events::__enable_events();
+        sails_rs::gstd::events::__enable_events();
         let mut input: &[u8] = &gstd::msg::load_bytes().expect("Failed to read input");
         let (program, invocation_route) = if input
             .starts_with(&[12u8, 78u8, 101u8, 119u8])
@@ -74,11 +76,11 @@ pub mod wasm {
             let input = String::decode(&mut __input)
                 .unwrap_or_else(|_| {
                     if input.len() <= 8 {
-                        format!("0x{}", sails::hex::encode(input))
+                        format!("0x{}", sails_rs::hex::encode(input))
                     } else {
                         format!(
-                            "0x{}..{}", sails::hex::encode(& input[..4]),
-                            sails::hex::encode(& input[input.len() - 4..])
+                            "0x{}..{}", sails_rs::hex::encode(& input[..4]),
+                            sails_rs::hex::encode(& input[input.len() - 4..])
                         )
                     }
                 });
@@ -97,11 +99,11 @@ pub mod wasm {
             let input = String::decode(&mut __input)
                 .unwrap_or_else(|_| {
                     if input.len() <= 8 {
-                        format!("0x{}", sails::hex::encode(input))
+                        format!("0x{}", sails_rs::hex::encode(input))
                     } else {
                         format!(
-                            "0x{}..{}", sails::hex::encode(& input[..4]),
-                            sails::hex::encode(& input[input.len() - 4..])
+                            "0x{}..{}", sails_rs::hex::encode(& input[..4]),
+                            sails_rs::hex::encode(& input[input.len() - 4..])
                         )
                     }
                 });

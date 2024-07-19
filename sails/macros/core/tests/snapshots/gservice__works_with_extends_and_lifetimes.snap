@@ -11,7 +11,7 @@ impl<'a> ExtendedLifetime<'a> {
     }
 }
 pub struct Exposure<'a, T> {
-    message_id: sails::MessageId,
+    message_id: sails_rs::MessageId,
     route: &'static [u8],
     #[cfg(not(target_arch = "wasm32"))]
     inner: Box<T>,
@@ -19,20 +19,20 @@ pub struct Exposure<'a, T> {
     inner_ptr: *const T,
     #[cfg(target_arch = "wasm32")]
     inner: T,
-    base_0: <base::BaseLifetime<'a> as sails::gstd::services::Service>::Exposure,
+    base_0: <base::BaseLifetime<'a> as sails_rs::gstd::services::Service>::Exposure,
 }
 impl<'a> Exposure<'a, ExtendedLifetime<'a>> {
     pub fn extended_name(&self) -> String {
-        let exposure_scope = sails::gstd::services::ExposureCallScope::new(self);
+        let exposure_scope = sails_rs::gstd::services::ExposureCallScope::new(self);
         self.inner.extended_name()
     }
     pub fn name(&self) -> String {
-        let exposure_scope = sails::gstd::services::ExposureCallScope::new(self);
+        let exposure_scope = sails_rs::gstd::services::ExposureCallScope::new(self);
         self.inner.name()
     }
     pub fn as_base_0(
         &self,
-    ) -> &<base::BaseLifetime<'a> as sails::gstd::services::Service>::Exposure {
+    ) -> &<base::BaseLifetime<'a> as sails_rs::gstd::services::Service>::Exposure {
         &self.base_0
     }
     pub async fn handle(&mut self, input: &[u8]) -> Vec<u8> {
@@ -44,11 +44,11 @@ impl<'a> Exposure<'a, ExtendedLifetime<'a>> {
                     let input = String::decode(&mut __input)
                         .unwrap_or_else(|_| {
                             if input.len() <= 8 {
-                                format!("0x{}", sails::hex::encode(input))
+                                format!("0x{}", sails_rs::hex::encode(input))
                             } else {
                                 format!(
-                                    "0x{}..{}", sails::hex::encode(& input[..4]),
-                                    sails::hex::encode(& input[input.len() - 4..])
+                                    "0x{}..{}", sails_rs::hex::encode(& input[..4]),
+                                    sails_rs::hex::encode(& input[input.len() - 4..])
                                 )
                             }
                         });
@@ -117,19 +117,19 @@ impl<'a> Exposure<'a, ExtendedLifetime<'a>> {
         return result.encode();
     }
 }
-impl<'a> sails::gstd::services::Exposure for Exposure<'a, ExtendedLifetime<'a>> {
-    fn message_id(&self) -> sails::MessageId {
+impl<'a> sails_rs::gstd::services::Exposure for Exposure<'a, ExtendedLifetime<'a>> {
+    fn message_id(&self) -> sails_rs::MessageId {
         self.message_id
     }
     fn route(&self) -> &'static [u8] {
         self.route
     }
 }
-impl<'a> sails::gstd::services::Service for ExtendedLifetime<'a> {
+impl<'a> sails_rs::gstd::services::Service for ExtendedLifetime<'a> {
     type Exposure = Exposure<'a, ExtendedLifetime<'a>>;
     fn expose(
         self,
-        message_id: sails::MessageId,
+        message_id: sails_rs::MessageId,
         route: &'static [u8],
     ) -> Self::Exposure {
         #[cfg(not(target_arch = "wasm32"))]
@@ -154,44 +154,44 @@ impl<'a> sails::gstd::services::Service for ExtendedLifetime<'a> {
         }
     }
 }
-impl<'a> sails::meta::ServiceMeta for ExtendedLifetime<'a> {
-    fn commands() -> sails::scale_info::MetaType {
-        sails::scale_info::MetaType::new::<meta::CommandsMeta>()
+impl<'a> sails_rs::meta::ServiceMeta for ExtendedLifetime<'a> {
+    fn commands() -> sails_rs::scale_info::MetaType {
+        sails_rs::scale_info::MetaType::new::<meta::CommandsMeta>()
     }
-    fn queries() -> sails::scale_info::MetaType {
-        sails::scale_info::MetaType::new::<meta::QueriesMeta>()
+    fn queries() -> sails_rs::scale_info::MetaType {
+        sails_rs::scale_info::MetaType::new::<meta::QueriesMeta>()
     }
-    fn events() -> sails::scale_info::MetaType {
-        sails::scale_info::MetaType::new::<meta::EventsMeta>()
+    fn events() -> sails_rs::scale_info::MetaType {
+        sails_rs::scale_info::MetaType::new::<meta::EventsMeta>()
     }
-    fn base_services() -> impl Iterator<Item = sails::meta::AnyServiceMeta> {
-        [sails::meta::AnyServiceMeta::new::<base::BaseLifetime<'a>>()].into_iter()
+    fn base_services() -> impl Iterator<Item = sails_rs::meta::AnyServiceMeta> {
+        [sails_rs::meta::AnyServiceMeta::new::<base::BaseLifetime<'a>>()].into_iter()
     }
 }
-use sails::Decode as __ServiceDecode;
-use sails::Encode as __ServiceEncode;
-use sails::TypeInfo as __ServiceTypeInfo;
+use sails_rs::Decode as __ServiceDecode;
+use sails_rs::Encode as __ServiceEncode;
+use sails_rs::TypeInfo as __ServiceTypeInfo;
 #[derive(__ServiceDecode, __ServiceTypeInfo)]
-#[codec(crate = sails::scale_codec)]
-#[scale_info(crate = sails::scale_info)]
+#[codec(crate = sails_rs::scale_codec)]
+#[scale_info(crate = sails_rs::scale_info)]
 pub struct __ExtendedNameParams {}
 #[derive(__ServiceDecode, __ServiceTypeInfo)]
-#[codec(crate = sails::scale_codec)]
-#[scale_info(crate = sails::scale_info)]
+#[codec(crate = sails_rs::scale_codec)]
+#[scale_info(crate = sails_rs::scale_info)]
 pub struct __NameParams {}
 mod meta {
     use super::*;
     #[derive(__ServiceTypeInfo)]
-    #[scale_info(crate = sails::scale_info)]
+    #[scale_info(crate = sails_rs::scale_info)]
     pub enum CommandsMeta {}
     #[derive(__ServiceTypeInfo)]
-    #[scale_info(crate = sails::scale_info)]
+    #[scale_info(crate = sails_rs::scale_info)]
     pub enum QueriesMeta {
         ExtendedName(__ExtendedNameParams, String),
         Name(__NameParams, String),
     }
     #[derive(__ServiceTypeInfo)]
-    #[scale_info(crate = sails::scale_info)]
+    #[scale_info(crate = sails_rs::scale_info)]
     pub enum NoEvents {}
     pub type EventsMeta = NoEvents;
 }

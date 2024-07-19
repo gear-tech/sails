@@ -1,6 +1,6 @@
 #![no_std]
 
-use sails::{cell::RefCell, prelude::*};
+use sails_rs::{cell::RefCell, prelude::*};
 
 #[derive(Clone)]
 pub struct WalkerData {
@@ -15,8 +15,8 @@ impl WalkerData {
 }
 
 #[derive(Encode, TypeInfo)]
-#[codec(crate = sails::scale_codec)]
-#[scale_info(crate = sails::scale_info)]
+#[codec(crate = sails_rs::scale_codec)]
+#[scale_info(crate = sails_rs::scale_info)]
 enum WalkerEvents {
     Walked { from: (i32, i32), to: (i32, i32) },
 }

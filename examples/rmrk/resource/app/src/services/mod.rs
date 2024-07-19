@@ -1,7 +1,7 @@
 use crate::catalogs::traits::RmrkCatalog;
 use errors::{Error, Result};
 use resources::{ComposedResource, PartId, Resource, ResourceId};
-use sails::{
+use sails_rs::{
     calls::Query,
     collections::HashMap,
     gstd::{gservice, ExecContext},
@@ -170,7 +170,7 @@ mod tests {
     use super::*;
     use crate::catalogs::{Error, Part};
     use resources::BasicResource;
-    use sails::{
+    use sails_rs::{
         calls::{Action, Call, Remoting, Reply},
         collections::BTreeMap,
         gstd::calls::GStdRemoting,
@@ -243,7 +243,7 @@ mod tests {
         async fn send(
             self,
             _target: ActorId,
-        ) -> sails::errors::Result<impl Reply<Output = Self::Output>> {
+        ) -> sails_rs::errors::Result<impl Reply<Output = Self::Output>> {
             Ok(MockReply::<R>::new())
         }
     }
@@ -281,7 +281,7 @@ mod tests {
     impl<R> Reply for MockReply<R> {
         type Output = R;
 
-        async fn recv(self) -> sails::errors::Result<Self::Output> {
+        async fn recv(self) -> sails_rs::errors::Result<Self::Output> {
             unimplemented!()
         }
     }
@@ -302,7 +302,7 @@ mod tests {
     }
 
     impl<A, R> Query for MockQuery<A, R> {
-        async fn recv(self, _target: ActorId) -> sails::errors::Result<R> {
+        async fn recv(self, _target: ActorId) -> sails_rs::errors::Result<R> {
             unimplemented!()
         }
 

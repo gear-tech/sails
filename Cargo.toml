@@ -32,7 +32,7 @@ sails-macros-core = { path = "sails/macros/core" }
 sails-macros = { path = "sails/macros" }
 sails-idl-parser = { path = "sails/idl-parser" }
 sails-client-gen = { path = "sails/client-gen" }
-sails = { package = "sails-rs", path = "sails" }
+sails-rs = { path = "sails" }
 sails-idl-gen = { path = "sails/idl-gen" }
 
 # Gear deps

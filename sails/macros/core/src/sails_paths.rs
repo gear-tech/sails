@@ -1,6 +1,6 @@
 use const_format::concatcp;
 
-const SAILS: &str = "sails";
+const SAILS: &str = "sails_rs";
 const SAILS_SCALE_CODEC: &str = concatcp!(SAILS, "::scale_codec");
 const SAILS_SCALE_INFO: &str = concatcp!(SAILS, "::scale_info");
 

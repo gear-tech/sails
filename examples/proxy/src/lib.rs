@@ -1,7 +1,7 @@
 #![no_std]
 
 use demo_client::ThisThat;
-use sails::gstd::{calls::GStdRemoting, gprogram};
+use sails_rs::gstd::{calls::GStdRemoting, gprogram};
 
 mod this_that;
 

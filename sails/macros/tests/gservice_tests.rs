@@ -1,5 +1,5 @@
-use sails::gstd::services::Service;
-use sails::{Decode, Encode, MessageId};
+use sails_rs::gstd::services::Service;
+use sails_rs::{Decode, Encode, MessageId};
 
 mod gservice_with_basics;
 mod gservice_with_events;

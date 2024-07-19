@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-sails.workspace = true
+sails-rs.workspace = true
 
 [build-dependencies]
 demo = { path = "../app" }

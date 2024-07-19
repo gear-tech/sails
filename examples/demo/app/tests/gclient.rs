@@ -1,7 +1,7 @@
 use demo_client::{counter::events::*, ping_pong, traits::*};
 use futures::stream::StreamExt;
 use gclient::GearApi;
-use sails::{calls::*, errors::RtlError, events::*, gsdk::calls::*, prelude::*};
+use sails_rs::{calls::*, errors::RtlError, events::*, gsdk::calls::*, prelude::*};
 use std::panic;
 
 const DEMO_WASM_PATH: &str = "../../../target/wasm32-unknown-unknown/debug/demo.opt.wasm";
@@ -153,7 +153,7 @@ async fn demo_returns_not_enough_gas_on_activation() {
 
     assert!(matches!(
         activation_result,
-        Err(sails::errors::Error::Rtl(
+        Err(sails_rs::errors::Error::Rtl(
             RtlError::ReplyHasErrorString(s)
         )) if s.as_str() == "Not enough gas to handle program data"
     ));

@@ -1,5 +1,5 @@
-use sails::Encode;
 use sails_macros::gservice;
+use sails_rs::Encode;
 
 pub(super) struct MyService;
 

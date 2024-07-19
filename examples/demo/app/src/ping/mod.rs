@@ -1,4 +1,4 @@
-use sails::prelude::*;
+use sails_rs::prelude::*;
 
 #[derive(Default)]
 pub struct PingService(());

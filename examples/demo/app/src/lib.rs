@@ -1,7 +1,7 @@
 #![no_std]
 
 use demo_walker as walker;
-use sails::{cell::RefCell, prelude::*};
+use sails_rs::{cell::RefCell, prelude::*};
 
 mod counter;
 mod dog;

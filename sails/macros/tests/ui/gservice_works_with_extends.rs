@@ -1,4 +1,4 @@
-use sails::{
+use sails_rs::{
     gstd::{gservice, services::Service},
     Decode, Encode,
 };

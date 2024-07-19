@@ -1,9 +1,9 @@
 use meta_params::*;
-use sails::{
+use sails_idl_gen::{program, service};
+use sails_rs::{
     meta::{AnyServiceMeta, ProgramMeta, ServiceMeta as RtlServiceMeta},
     H256, U256,
 };
-use sails_idl_gen::{program, service};
 use scale_info::{MetaType, StaticTypeInfo, TypeInfo};
 use std::{collections::BTreeMap, result::Result as StdResult};
 

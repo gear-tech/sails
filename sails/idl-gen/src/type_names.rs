@@ -20,11 +20,11 @@
 
 use crate::errors::{Error, Result};
 use convert_case::{Case, Casing};
-use sails::scale_info::{
+use sails_rs::scale_info::{
     form::PortableForm, PortableType, Type, TypeDef, TypeDefArray, TypeDefPrimitive,
     TypeDefSequence, TypeDefTuple, TypeInfo,
 };
-use sails::{
+use sails_rs::{
     ActorId, CodeId, MessageId, NonZeroU128, NonZeroU16, NonZeroU256, NonZeroU32, NonZeroU64,
     NonZeroU8, H160, H256, U256,
 };
