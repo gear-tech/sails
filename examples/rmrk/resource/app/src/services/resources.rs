@@ -1,4 +1,4 @@
-use sails::prelude::*;
+use sails_rs::prelude::*;
 
 pub type PartId = u32;
 

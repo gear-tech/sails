@@ -39,9 +39,9 @@ impl<'ast> Visitor<'ast> for EventsModuleGenerator {
             #[cfg(not(target_arch = "wasm32"))]
             pub mod events $("{")
                 use super::*;
-                use sails::events::*;
+                use sails_rs::events::*;
                 #[derive(PartialEq, Debug, Encode, Decode)]
-                #[codec(crate = sails::scale_codec)]
+                #[codec(crate = sails_rs::scale_codec)]
                 pub enum $(&events_name) $("{")
         };
 

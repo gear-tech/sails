@@ -1,5 +1,5 @@
 use core::ptr;
-use sails::prelude::*;
+use sails_rs::prelude::*;
 
 // This example makes use of fully incapsulated static state.
 // It is safe to use this approach in WASM envrionment due to its single-threaded nature.
@@ -33,6 +33,6 @@ impl ReferenceService {
 }
 
 #[derive(Debug, Encode, Decode, TypeInfo)]
-#[codec(crate = sails::scale_codec)]
-#[scale_info(crate = sails::scale_info)]
+#[codec(crate = sails_rs::scale_codec)]
+#[scale_info(crate = sails_rs::scale_info)]
 pub struct ReferenceCount(u32);

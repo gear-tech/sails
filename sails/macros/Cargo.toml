@@ -17,7 +17,7 @@ proc-macro-error.workspace = true
 
 [dev-dependencies]
 parity-scale-codec = { workspace = true, features = ["derive"] }
-sails = { path = "..", package = "sails-rs" }
+sails-rs = { path = ".." }
 scale-info = { workspace = true, features = ["derive"] }
 tokio = { workspace = true, features = ["full"] }
 trybuild.workspace = true

@@ -1,5 +1,5 @@
 use core::marker::PhantomData;
-use sails::gstd::gservice;
+use sails_rs::gstd::gservice;
 
 #[derive(Default)]
 pub(super) struct MyGenericService<'a, T> {

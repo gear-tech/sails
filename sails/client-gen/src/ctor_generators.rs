@@ -30,7 +30,7 @@ impl CtorFactoryGenerator {
                 use super::*;
                 pub mod io {
                     use super::*;
-                    use sails::calls::ActionIo;
+                    use sails_rs::calls::ActionIo;
                     $(self.io_tokens)
                 }
             }

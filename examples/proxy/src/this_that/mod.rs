@@ -1,5 +1,5 @@
 use demo_client::traits::ThisThat;
-use sails::{calls::Query, prelude::*};
+use sails_rs::{calls::Query, prelude::*};
 
 #[derive(Clone)]
 pub struct ThisThatCaller<ThisThatClient> {

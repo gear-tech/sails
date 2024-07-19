@@ -1,4 +1,4 @@
-use sails::gstd::gservice;
+use sails_rs::gstd::gservice;
 
 pub(super) mod base {
     use super::*;

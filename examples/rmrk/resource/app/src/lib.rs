@@ -1,6 +1,6 @@
 #![no_std]
 
-use sails::gstd::{calls::GStdRemoting, gprogram, groute, GStdExecContext};
+use sails_rs::gstd::{calls::GStdRemoting, gprogram, groute, GStdExecContext};
 use services::ResourceStorage;
 
 mod catalogs;

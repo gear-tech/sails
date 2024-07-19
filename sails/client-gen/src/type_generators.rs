@@ -48,7 +48,7 @@ impl<'a, 'ast> Visitor<'ast> for TopLevelTypeGenerator<'a> {
 
         quote_in!(self.tokens =>
             #[derive(PartialEq, Debug, Encode, Decode)]
-            #[codec(crate = sails::scale_codec)]
+            #[codec(crate = sails_rs::scale_codec)]
             pub struct $(self.type_name) $(struct_def_generator.code) $(semi)
         );
     }
@@ -59,7 +59,7 @@ impl<'a, 'ast> Visitor<'ast> for TopLevelTypeGenerator<'a> {
 
         quote_in!(self.tokens =>
             #[derive(PartialEq, Debug, Encode, Decode)]
-            #[codec(crate = sails::scale_codec)]
+            #[codec(crate = sails_rs::scale_codec)]
             pub enum $(self.type_name) $(enum_def_generator.code)
         );
     }

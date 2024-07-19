@@ -86,7 +86,7 @@ fn gen_gprogram_impl(program_impl: ItemImpl, program_args: ProgramArgs) -> Token
             let service_meta = {
                 let service_type = shared::result_type(&ctor_fn.sig);
                 quote!(
-                    ( #route , sails::meta::AnyServiceMeta::new::< #service_type >())
+                    ( #route , sails_rs::meta::AnyServiceMeta::new::< #service_type >())
                 )
             };
 
@@ -137,12 +137,12 @@ fn gen_gprogram_impl(program_impl: ItemImpl, program_args: ProgramArgs) -> Token
 
         #program_impl
 
-        impl #program_type_args sails::meta::ProgramMeta for #program_type_path #program_type_constraints {
+        impl #program_type_args sails_rs::meta::ProgramMeta for #program_type_path #program_type_constraints {
             fn constructors() -> #scale_info_path::MetaType {
                 #scale_info_path::MetaType::new::<meta::ConstructorsMeta>()
             }
 
-            fn services() -> impl Iterator<Item = (&'static str, sails::meta::AnyServiceMeta)> {
+            fn services() -> impl Iterator<Item = (&'static str, sails_rs::meta::AnyServiceMeta)> {
                 [
                     #(#services_meta),*
                 ].into_iter()
@@ -173,7 +173,7 @@ fn gen_gprogram_impl(program_impl: ItemImpl, program_args: ProgramArgs) -> Token
         #[cfg(target_arch = "wasm32")]
         pub mod wasm {
             use super::*;
-            use sails::{gstd, hex, prelude::*};
+            use sails_rs::{gstd, hex, prelude::*};
 
             static mut #program_ident: Option<#program_type_path> = None;
 
@@ -206,13 +206,13 @@ fn wire_up_service_exposure(
 
     let mut wrapping_service_ctor_fn = ctor_fn.clone();
     wrapping_service_ctor_fn.sig.output = parse_quote!(
-        -> < #service_type as sails::gstd::services::Service>::Exposure
+        -> < #service_type as sails_rs::gstd::services::Service>::Exposure
     );
     wrapping_service_ctor_fn.block = parse_quote!({
         let service = self. #original_service_ctor_fn_ident ();
-        let exposure = < #service_type as sails::gstd::services::Service>::expose(
+        let exposure = < #service_type as sails_rs::gstd::services::Service>::expose(
             service,
-            sails::gstd::msg::id().into(),
+            sails_rs::gstd::msg::id().into(),
             #route_ident .as_ref(),
         );
         exposure
@@ -288,7 +288,7 @@ fn generate_init(
         quote!(
             #[no_mangle]
             extern "C" fn init() {
-                sails::gstd::events::__enable_events();
+                sails_rs::gstd::events::__enable_events();
                 let #input_ident = gstd::msg::load_bytes().expect("Failed to read input");
                 if !#input_ident.is_empty() {
                     #unexpected_ctor_panic
@@ -308,7 +308,7 @@ fn generate_init(
         quote!(
             #[gstd::async_init]
             async fn init() {
-                sails::gstd::events::__enable_events();
+                sails_rs::gstd::events::__enable_events();
                 let mut #input_ident: &[u8] = &gstd::msg::load_bytes().expect("Failed to read input");
                 let (program, invocation_route) = #(#invocation_dispatches)else*;
                 unsafe {

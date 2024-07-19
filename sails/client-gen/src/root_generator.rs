@@ -17,9 +17,9 @@ impl<'a> RootGenerator<'a> {
     pub(crate) fn new(anonymous_service_name: &'a str) -> Self {
         let tokens = quote! {
             #[allow(unused_imports)]
-            use sails::{prelude::*, String, calls::{Activation, Call, Query, Remoting, RemotingAction}};
+            use sails_rs::{prelude::*, String, calls::{Activation, Call, Query, Remoting, RemotingAction}};
             #[allow(unused_imports)]
-            use sails::collections::BTreeMap;
+            use sails_rs::collections::BTreeMap;
         };
 
         Self {

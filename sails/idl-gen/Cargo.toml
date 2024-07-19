@@ -11,7 +11,7 @@ repository.workspace = true
 [dependencies]
 convert-case.workspace = true
 handlebars.workspace = true
-sails.workspace = true
+sails-rs.workspace = true
 scale-info = { workspace = true, features = ["serde"] }
 serde.workspace = true
 serde-json.workspace = true

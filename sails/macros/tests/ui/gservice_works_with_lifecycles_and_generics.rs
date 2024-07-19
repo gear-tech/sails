@@ -1,5 +1,5 @@
 use core::marker::PhantomData;
-use sails::{
+use sails_rs::{
     gstd::{gservice, services::Service},
     MessageId,
 };
