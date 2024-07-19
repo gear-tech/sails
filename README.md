@@ -5,7 +5,7 @@ Sails is a library for bringing your experience of writing applications utilizin
 clarity. It deals with things like:
 - eliminating
 the necessity of writing some low-level boilerplate code and letting you to stay
-focused on your bussiness problem
+focused on your business problem
 - generated [IDL](https://en.wikipedia.org/wiki/Interface_description_language) file for
 your application
 - generated client allowing to interact with your application from code written in
@@ -13,12 +13,17 @@ different languages and executed in different runtimes
 
 ---
 
+> [!NOTE]
+> The Sails library is published under the name `sails-rs` on `crates-io`.
+>
+> Versions in [v0.1.0; v0.1.1] are pinned to v1.4.2 of gear libs.
+
 ## Getting started
 
 Add the following to your `Cargo.toml`
 ```toml
 [dependencies]
-sails = "*"
+sails-rs = "*"
 gstd = { version = "*", features = ["debug"] }
 ```
 
@@ -27,8 +32,8 @@ And then in your `lib.rs`:
 ```rust
 #![no_std]
 
+use sails_rs::prelude::*;
 use gstd::debug;
-use sails::prelude::*;
 
 struct MyPing;
 
@@ -331,7 +336,7 @@ documentation.
 Say you have an application that exposes a service `MyService` with a command `do_something`:
 
 ```rust
-struct Ouput {
+struct Output {
     m1: u32,
     m2: String,
 }
@@ -386,7 +391,7 @@ fn some_client_code() {
 The second option provides you with an option to have your code testable as the generated
 code depends on the trait which can be easily mocked.
 
-When it comes to TypeScript, `sails-js` lilbrary can be used to interact with the program. Check out [`sails-js` documentation](js/README.md) for more details.
+When it comes to TypeScript, `sails-js` library can be used to interact with the program. Check out [`sails-js` documentation](js/README.md) for more details.
 
 ## Examples
 
@@ -397,12 +402,10 @@ Here is a brief overview of features mentioned above and showcased by the exampl
 ### Exposing Services via Program
 
 The examples are composed on a principle of a few programs exposing several services.
-See [DemoProgram](examples/demo/app/src/lib.rs) which demonstrates this, including
+See [DemoProgram](/examples/demo/app/src/lib.rs) which demonstrates this, including
 the use of program's multiple constructors and the `#[groute]` attribute for one of
-the exposed services. The program is built as a separate Rust crate, which is later
-wired up to another crate for building the [Demo](examples/demo/wasm/) app. This
-approach allows us to generate an [IDL file](examples/demo/wasm/demo.idl) representing
-the entire program as part of the Rust [build script](examples/demo/wasm/build.rs).
+the exposed services. The example also includes Rust [build script](/examples/demo/app/build.rs)
+building the program as a WASM app ready for loading onto Gear network.
 
 ### Basic Services
 
@@ -466,7 +469,7 @@ code from an IDL file as a separate Rust crate. Alternatively, you can use the s
 approach directly in your application crate. See [Rmrk Resource](/examples/rmrk/resource/app/build.rs).
 
 You can find various examples of how to interact with the application using the
-generated client code in [Demo Tests](/examples/demo/wasm/tests/gtest.rs). Check
+generated client code in [Demo Tests](/examples/demo/app/tests/gtest.rs). Check
 the comments in the code for more details.
 
 Since the generated code is the same for all environments, whether it is an interaction

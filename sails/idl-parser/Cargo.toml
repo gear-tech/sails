@@ -1,10 +1,12 @@
 [package]
 name = "sails-idl-parser"
 description = "IDL parser for the Sails framework"
+documentation = "https://docs.rs/sails-idl-parser"
 version.workspace = true
 authors.workspace = true
 edition.workspace = true
 license.workspace = true
+repository.workspace = true
 
 [lib]
 crate-type = ["cdylib", "rlib"]

@@ -1,5 +1,5 @@
 [package]
-name = "demo-app"
+name = "demo"
 version = "0.1.0"
 edition = "2021"
 
@@ -7,3 +7,13 @@ edition = "2021"
 demo-walker = { path = "../walker" }
 gstd.workspace = true
 sails.workspace = true
+
+[build-dependencies]
+gwasm-builder.workspace = true
+
+[dev-dependencies]
+futures.workspace = true
+gclient.workspace = true
+gtest.workspace = true
+demo-client = { path = "../client" }
+tokio = { workspace = true, features = ["rt", "macros"] }

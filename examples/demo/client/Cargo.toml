@@ -8,8 +8,9 @@ mockall = { workspace = true, optional = true }
 sails.workspace = true
 
 [build-dependencies]
-demo = { path = "../wasm" }
+demo = { path = "../app" }
 sails-client-gen.workspace = true
+sails-idl-gen.workspace = true
 
 [features]
 std = []

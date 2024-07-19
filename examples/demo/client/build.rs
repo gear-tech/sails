@@ -1,12 +1,15 @@
-use std::{
-    env,
-    path::{Path, PathBuf},
-};
+use demo::DemoProgram;
+use std::{env, path::PathBuf};
 
 fn main() {
+    let idl_file_path = PathBuf::from(env::var("CARGO_MANIFEST_DIR").unwrap()).join("demo.idl");
+
+    // Generate IDL file for the `Demo` app
+    sails_idl_gen::generate_idl_to_file::<DemoProgram>(&idl_file_path).unwrap();
+
     // Generate client code from IDL file
     sails_client_gen::generate_client_from_idl(
-        Path::new("../wasm/demo.idl"),
+        &idl_file_path,
         PathBuf::from(env::var("OUT_DIR").unwrap()).join("demo_client.rs"),
         Some("mockall".to_owned()),
     )
