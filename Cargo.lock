@@ -1425,24 +1425,15 @@ dependencies = [
 name = "demo"
 version = "0.1.0"
 dependencies = [
- "demo-app",
  "demo-client",
+ "demo-walker",
  "futures",
  "gclient",
  "gear-wasm-builder",
+ "gstd",
  "gtest",
- "sails-idl-gen",
  "sails-rs",
  "tokio",
-]
-
-[[package]]
-name = "demo-app"
-version = "0.1.0"
-dependencies = [
- "demo-walker",
- "gstd",
- "sails-rs",
 ]
 
 [[package]]
@@ -1451,6 +1442,7 @@ version = "0.1.0"
 dependencies = [
  "demo",
  "sails-client-gen",
+ "sails-idl-gen",
  "sails-rs",
 ]
 

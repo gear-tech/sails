@@ -59,7 +59,7 @@ jobs:
       - name: "Prepare: build demo client lib"
         working-directory: js
         run: |
-          node lib/app.js generate ../examples/demo/wasm/demo.idl -o ./test/demo
+          node lib/app.js generate ../examples/demo/client/demo.idl -o ./test/demo
 
       - name: "Prepare: download Gear node"
         run: |
