@@ -86,9 +86,8 @@ pub mod traits {
 }
 #[cfg(feature = "mockall")]
 #[cfg(not(target_arch = "wasm32"))]
-pub mod mocks {
+pub mod mockall {
     use super::*;
-    use mockall::*;
-    use sails::mocks::*;
+    use sails::mockall::*;
     mock! { pub Basic<A> {} #[allow(refining_impl_trait)] #[allow(clippy::type_complexity)] impl<A> traits::Basic for Basic<A> { type Args = A; fn do_this (&mut self, p1: u32,p2: MyParam,) -> MockCall<A, u16>;fn do_that (&mut self, p1: (u8,u32,),) -> MockCall<A, u8>; } }
 }

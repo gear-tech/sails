@@ -320,9 +320,8 @@ pub mod traits {
 }
 #[cfg(feature = "mockall")]
 #[cfg(not(target_arch = "wasm32"))]
-pub mod mocks {
+pub mod mockall {
     use super::*;
-    use mockall::*;
-    use sails::mocks::*;
+    use sails::mockall::*;
     mock! { pub RmrkCatalog<A> {} #[allow(refining_impl_trait)] #[allow(clippy::type_complexity)] impl<A> traits::RmrkCatalog for RmrkCatalog<A> { type Args = A; fn add_equippables (&mut self, part_id: u32,collection_ids: Vec<ActorId>,) -> MockCall<A, Result<(u32,Vec<ActorId>,), Error>>;fn add_parts (&mut self, parts: BTreeMap<u32, Part>,) -> MockCall<A, Result<BTreeMap<u32, Part>, Error>>;fn remove_equippable (&mut self, part_id: u32,collection_id: ActorId,) -> MockCall<A, Result<(u32,ActorId,), Error>>;fn remove_parts (&mut self, part_ids: Vec<u32>,) -> MockCall<A, Result<Vec<u32>, Error>>;fn reset_equippables (&mut self, part_id: u32,) -> MockCall<A, Result<(), Error>>;fn set_equippables_to_all (&mut self, part_id: u32,) -> MockCall<A, Result<(), Error>>;fn equippable (& self, part_id: u32,collection_id: ActorId,) -> MockQuery<A, Result<bool, Error>>;fn part (& self, part_id: u32,) -> MockQuery<A, Option<Part>>; } }
 }
