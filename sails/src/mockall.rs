@@ -19,6 +19,8 @@ mock! {
         #[allow(refining_impl_trait)]
         #[mockall::concretize]
         async fn send<S: AsRef<[u8]>>(self, code_id: CodeId, salt: S) -> Result<MockReply<ActorId>>;
+        #[mockall::concretize]
+        async fn send_recv<S: AsRef<[u8]>>(self, d: CodeId, salt: S) -> Result<ActorId>;
     }
 }
 
@@ -40,6 +42,8 @@ mock! {
 
         #[allow(refining_impl_trait)]
         async fn send(self, target: ActorId) -> Result<MockReply<O>>;
+        #[allow(refining_impl_trait)]
+        async fn send_recv(self, target: ActorId) -> Result<O>;
     }
 }
 
