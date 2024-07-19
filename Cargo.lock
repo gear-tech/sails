@@ -1456,7 +1456,6 @@ name = "demo-client"
 version = "0.1.0"
 dependencies = [
  "demo",
- "demo-client",
  "mockall",
  "sails",
  "sails-client-gen",

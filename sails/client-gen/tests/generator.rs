@@ -130,5 +130,6 @@ fn test_events_works() {
 fn gen(program: &str, service_name: &str) -> String {
     let program = sails_idl_parser::ast::parse_idl(program).expect("parse IDL");
 
-    sails_client_gen::generate(program, service_name).expect("generate client")
+    sails_client_gen::generate(program, service_name, Some("mockall".to_owned()))
+        .expect("generate client")
 }

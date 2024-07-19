@@ -22,7 +22,7 @@ mod types;
 
 #[cfg(feature = "mockall")]
 #[cfg(not(target_arch = "wasm32"))]
-pub mod mocks;
+pub mod mockall;
 
 pub mod meta {
     use crate::Vec;

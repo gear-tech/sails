@@ -21,5 +21,10 @@ fn main() {
     let idl_file_path = PathBuf::from(env::var("CARGO_MANIFEST_DIR").unwrap())
         .join("..\\..\\catalog\\wasm\\rmrk-catalog.idl");
 
-    sails_client_gen::generate_client_from_idl(idl_file_path, client_rs_file_path).unwrap();
+    sails_client_gen::generate_client_from_idl(
+        idl_file_path,
+        client_rs_file_path,
+        Some("mockall".to_owned()),
+    )
+    .unwrap();
 }

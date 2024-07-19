@@ -168,9 +168,9 @@ fn resource_storage_admin() -> ActorId {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::catalogs::{mocks::MockRmrkCatalog, FixedPart, Part};
+    use crate::catalogs::{mockall::MockRmrkCatalog, FixedPart, Part};
     use resources::ComposedResource;
-    use sails::{gstd::calls::GStdArgs, mocks::MockQuery, ActorId};
+    use sails::{gstd::calls::GStdArgs, mockall::MockQuery, ActorId};
 
     #[tokio::test]
     async fn test_add_resource_entry() {

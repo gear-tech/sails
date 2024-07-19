@@ -12,10 +12,11 @@ pub(crate) struct RootGenerator<'a> {
     traits_tokens: Tokens,
     mocks_tokens: Tokens,
     anonymous_service_name: &'a str,
+    mocks_feature_name: Option<String>,
 }
 
 impl<'a> RootGenerator<'a> {
-    pub(crate) fn new(anonymous_service_name: &'a str) -> Self {
+    pub(crate) fn new(anonymous_service_name: &'a str, mocks_feature_name: Option<String>) -> Self {
         let tokens = quote! {
             #[allow(unused_imports)]
             use sails::{prelude::*, String, calls::{Activation, Call, Query, Remoting, RemotingAction}};
@@ -28,10 +29,25 @@ impl<'a> RootGenerator<'a> {
             tokens,
             traits_tokens: Tokens::new(),
             mocks_tokens: Tokens::new(),
+            mocks_feature_name,
         }
     }
 
     pub(crate) fn finalize(self) -> String {
+        let mocks_tokens = if let Some(mocks_feature_name) = self.mocks_feature_name {
+            quote! {
+                #[cfg(feature = $(quoted(&mocks_feature_name)))]
+                #[cfg(not(target_arch = "wasm32"))]
+                pub mod $(&mocks_feature_name) {
+                    use super::*;
+                    use sails::mockall::*;
+                    $(self.mocks_tokens)
+                }
+            }
+        } else {
+            Tokens::new()
+        };
+
         let result: Tokens = quote! {
             $(self.tokens)
 
@@ -40,15 +56,7 @@ impl<'a> RootGenerator<'a> {
                 $(self.traits_tokens)
             }
 
-            #[cfg(feature = "mockall")]
-            #[cfg(not(target_arch = "wasm32"))]
-            pub mod mocks {
-                use super::*;
-                use mockall::*;
-                use sails::mocks::*;
-
-                $(self.mocks_tokens)
-            }
+            $mocks_tokens
         };
 
         let mut result = result.to_file_string().unwrap();
