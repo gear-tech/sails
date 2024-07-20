@@ -371,15 +371,15 @@ fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
 
         impl #service_type_args sails_rs::meta::ServiceMeta for #service_type #service_type_constraints {
             fn commands() -> #scale_info_path ::MetaType {
-                #scale_info_path ::MetaType::new::<meta::CommandsMeta>()
+                #scale_info_path ::MetaType::new::<meta_in_service::CommandsMeta>()
             }
 
             fn queries() -> #scale_info_path ::MetaType {
-                #scale_info_path ::MetaType::new::<meta::QueriesMeta>()
+                #scale_info_path ::MetaType::new::<meta_in_service::QueriesMeta>()
             }
 
             fn events() -> #scale_info_path ::MetaType {
-                #scale_info_path ::MetaType::new::<meta::EventsMeta>()
+                #scale_info_path ::MetaType::new::<meta_in_service::EventsMeta>()
             }
 
             fn base_services() -> impl Iterator<Item = sails_rs::meta::AnyServiceMeta> {
@@ -402,7 +402,7 @@ fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
             #invocation_params_structs
         )*
 
-        mod meta {
+        mod meta_in_service {
             use super::*;
 
             #[derive(__ServiceTypeInfo)]
