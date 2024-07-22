@@ -13,8 +13,8 @@ required-features = ["idl-gen"]
 
 [dependencies]
 demo-client = { path = "../demo/client" }
-sails.workspace = true
 sails-idl-gen = { workspace = true, optional = true }
+sails-rs.workspace = true
 
 [dev-dependencies]
 demo-client = { path = "../demo/client", features = ["mockall"] }

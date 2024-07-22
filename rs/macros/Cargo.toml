@@ -1,0 +1,23 @@
+[package]
+name = "sails-macros"
+description = "Procedural macros for the Sails framework"
+documentation = "https://docs.rs/sails-macros"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[lib]
+proc-macro = true
+
+[dependencies]
+sails-macros-core.workspace = true
+proc-macro-error.workspace = true
+
+[dev-dependencies]
+parity-scale-codec = { workspace = true, features = ["derive"] }
+sails-rs = { path = ".." }
+scale-info = { workspace = true, features = ["derive"] }
+tokio = { workspace = true, features = ["full"] }
+trybuild.workspace = true

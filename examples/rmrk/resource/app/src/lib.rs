@@ -4,7 +4,7 @@
 #[cfg(not(target_arch = "wasm32"))]
 pub extern crate std;
 
-use sails::gstd::{calls::GStdRemoting, gprogram, groute, GStdExecContext};
+use sails_rs::gstd::{calls::GStdRemoting, gprogram, groute, GStdExecContext};
 use services::ResourceStorage;
 
 mod catalogs;

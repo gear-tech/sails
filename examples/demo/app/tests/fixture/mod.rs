@@ -5,7 +5,7 @@ use demo_client::{
     Counter, DemoFactory, Dog,
 };
 use gtest::Program;
-use sails::{events::Listener, gtest::calls::*, prelude::*};
+use sails_rs::{events::Listener, gtest::calls::*, prelude::*};
 
 const DEMO_WASM_PATH: &str = "../../../target/wasm32-unknown-unknown/debug/demo.opt.wasm";
 

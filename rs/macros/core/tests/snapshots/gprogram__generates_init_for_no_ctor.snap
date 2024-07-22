@@ -1,0 +1,76 @@
+---
+source: sails/macros/core/tests/gprogram.rs
+assertion_line: 51
+expression: result
+---
+impl MyProgram {}
+impl sails_rs::meta::ProgramMeta for MyProgram {
+    fn constructors() -> sails_rs::scale_info::MetaType {
+        sails_rs::scale_info::MetaType::new::<meta::ConstructorsMeta>()
+    }
+    fn services() -> impl Iterator<
+        Item = (&'static str, sails_rs::meta::AnyServiceMeta),
+    > {
+        [].into_iter()
+    }
+}
+use sails_rs::Decode as __ProgramDecode;
+use sails_rs::TypeInfo as __ProgramTypeInfo;
+mod meta {
+    use super::*;
+    #[derive(__ProgramTypeInfo)]
+    #[scale_info(crate = sails_rs::scale_info)]
+    pub enum ConstructorsMeta {}
+}
+#[cfg(target_arch = "wasm32")]
+pub mod wasm {
+    use super::*;
+    use sails_rs::{gstd, hex, prelude::*};
+    static mut PROGRAM: Option<MyProgram> = None;
+    #[no_mangle]
+    extern "C" fn init() {
+        sails_rs::gstd::events::__enable_events();
+        let input = gstd::msg::load_bytes().expect("Failed to read input");
+        if !input.is_empty() {
+            {
+                let mut __input = input;
+                let input = String::decode(&mut __input)
+                    .unwrap_or_else(|_| {
+                        if input.len() <= 8 {
+                            format!("0x{}", sails_rs::hex::encode(input))
+                        } else {
+                            format!(
+                                "0x{}..{}", sails_rs::hex::encode(& input[..4]),
+                                sails_rs::hex::encode(& input[input.len() - 4..])
+                            )
+                        }
+                    });
+                panic!("Unexpected ctor: {}", input)
+            }
+        }
+        unsafe {
+            PROGRAM = Some(MyProgram::default());
+        }
+        gstd::msg::reply_bytes(input, 0).expect("Failed to send output");
+    }
+    #[gstd::async_main]
+    async fn main() {
+        let mut input: &[u8] = &gstd::msg::load_bytes().expect("Failed to read input");
+        let output: Vec<u8> = {
+            let mut __input = input;
+            let input = String::decode(&mut __input)
+                .unwrap_or_else(|_| {
+                    if input.len() <= 8 {
+                        format!("0x{}", sails_rs::hex::encode(input))
+                    } else {
+                        format!(
+                            "0x{}..{}", sails_rs::hex::encode(& input[..4]),
+                            sails_rs::hex::encode(& input[input.len() - 4..])
+                        )
+                    }
+                });
+            panic!("Unexpected service: {}", input)
+        };
+        gstd::msg::reply_bytes(output, 0).expect("Failed to send output");
+    }
+}

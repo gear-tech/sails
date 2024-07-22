@@ -1,7 +1,7 @@
 use crate::catalogs::traits::RmrkCatalog;
 use errors::{Error, Result};
 use resources::{ComposedResource, PartId, Resource, ResourceId};
-use sails::{
+use sails_rs::{
     calls::Query,
     collections::HashMap,
     gstd::{gservice, ExecContext},
@@ -22,8 +22,8 @@ struct ResourceStorageData {
 
 // Service event type definition
 #[derive(TypeInfo, Encode)]
-#[codec(crate = sails::scale_codec)]
-#[scale_info(crate = sails::scale_info)]
+#[codec(crate = sails_rs::scale_codec)]
+#[scale_info(crate = sails_rs::scale_info)]
 pub enum ResourceStorageEvent {
     ResourceAdded {
         resource_id: ResourceId,
@@ -170,7 +170,7 @@ mod tests {
     use super::*;
     use crate::catalogs::{mockall::MockRmrkCatalog, FixedPart, Part};
     use resources::ComposedResource;
-    use sails::{gstd::calls::GStdArgs, mockall::MockQuery, ActorId};
+    use sails_rs::{gstd::calls::GStdArgs, mockall::MockQuery, ActorId};
 
     #[tokio::test]
     async fn test_add_resource_entry() {

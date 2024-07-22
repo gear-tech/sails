@@ -1,10 +1,10 @@
-use sails::prelude::*;
+use sails_rs::prelude::*;
 
-pub type Result<T, E = Error> = sails::Result<T, E>;
+pub type Result<T, E = Error> = sails_rs::Result<T, E>;
 
 #[derive(Encode, Decode, TypeInfo, Debug)]
-#[codec(crate = sails::scale_codec)]
-#[scale_info(crate = sails::scale_info)]
+#[codec(crate = sails_rs::scale_codec)]
+#[scale_info(crate = sails_rs::scale_info)]
 pub enum Error {
     NotAuthorized,
     ZeroResourceId,

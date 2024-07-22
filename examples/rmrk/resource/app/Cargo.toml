@@ -7,7 +7,7 @@ resolver = "2"
 [dependencies]
 gstd.workspace = true
 mockall = { workspace = true, optional = true }
-sails.workspace = true
+sails-rs.workspace = true
 
 [build-dependencies]
 git-download.workspace = true
@@ -19,4 +19,4 @@ tokio = { workspace = true, features = ["rt", "macros"] }
 
 [features]
 std = []
-mockall = ["std", "sails/mockall", "dep:mockall"]
+mockall = ["std", "sails-rs/mockall", "dep:mockall"]

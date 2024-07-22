@@ -1,4 +1,4 @@
-use sails::{cell::RefCell, prelude::*};
+use sails_rs::{cell::RefCell, prelude::*};
 
 // Model of the service's data. Only service knows what is the data
 // and how to manipulate it.
@@ -15,8 +15,8 @@ impl CounterData {
 
 // Service event type definition.
 #[derive(Encode, TypeInfo)]
-#[codec(crate = sails::scale_codec)]
-#[scale_info(crate = sails::scale_info)]
+#[codec(crate = sails_rs::scale_codec)]
+#[scale_info(crate = sails_rs::scale_info)]
 enum CounterEvents {
     Added(u32),
     Subtracted(u32),

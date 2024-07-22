@@ -1,5 +1,5 @@
 use demo_client::{traits::ThisThat, TupleStruct};
-use sails::{calls::*, prelude::*};
+use sails_rs::{calls::*, prelude::*};
 
 #[derive(Clone)]
 pub struct ThisThatCaller<ThisThatClient> {
@@ -39,7 +39,7 @@ where
 mod tests {
     use super::*;
     use demo_client::mockall::MockThisThat;
-    use sails::mockall::*;
+    use sails_rs::mockall::*;
 
     #[tokio::test]
     async fn this_that_caller_query_this() {

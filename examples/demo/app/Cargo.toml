@@ -6,7 +6,7 @@ edition = "2021"
 [dependencies]
 demo-walker = { path = "../walker" }
 gstd.workspace = true
-sails.workspace = true
+sails-rs.workspace = true
 
 [build-dependencies]
 gwasm-builder.workspace = true

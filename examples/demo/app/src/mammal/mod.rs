@@ -1,4 +1,4 @@
-use sails::prelude::*;
+use sails_rs::prelude::*;
 
 // Service extension requires the service to implement `Clone`
 #[derive(Clone)]
