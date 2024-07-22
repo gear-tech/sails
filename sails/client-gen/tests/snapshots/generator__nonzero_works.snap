@@ -48,8 +48,9 @@ pub mod non_zero_params {
         }
     }
 }
-#[derive(PartialEq, Debug, Encode, Decode)]
+#[derive(PartialEq, Debug, Encode, Decode, TypeInfo)]
 #[codec(crate = sails::scale_codec)]
+#[scale_info(crate = sails::scale_info)]
 pub struct MyParam {
     pub f1: NonZeroU256,
     pub f2: Vec<NonZeroU8>,

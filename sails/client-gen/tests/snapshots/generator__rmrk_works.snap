@@ -242,8 +242,9 @@ pub mod rmrk_catalog {
         }
     }
 }
-#[derive(PartialEq, Debug, Encode, Decode)]
+#[derive(PartialEq, Debug, Encode, Decode, TypeInfo)]
 #[codec(crate = sails::scale_codec)]
+#[scale_info(crate = sails::scale_info)]
 pub enum Error {
     PartIdCantBeZero,
     BadConfig,
@@ -253,20 +254,23 @@ pub enum Error {
     WrongPartFormat,
     NotAllowedToCall,
 }
-#[derive(PartialEq, Debug, Encode, Decode)]
+#[derive(PartialEq, Debug, Encode, Decode, TypeInfo)]
 #[codec(crate = sails::scale_codec)]
+#[scale_info(crate = sails::scale_info)]
 pub enum Part {
     Fixed(FixedPart),
     Slot(SlotPart),
 }
-#[derive(PartialEq, Debug, Encode, Decode)]
+#[derive(PartialEq, Debug, Encode, Decode, TypeInfo)]
 #[codec(crate = sails::scale_codec)]
+#[scale_info(crate = sails::scale_info)]
 pub struct FixedPart {
     pub z: Option<u32>,
     pub metadata_uri: String,
 }
-#[derive(PartialEq, Debug, Encode, Decode)]
+#[derive(PartialEq, Debug, Encode, Decode, TypeInfo)]
 #[codec(crate = sails::scale_codec)]
+#[scale_info(crate = sails::scale_info)]
 pub struct SlotPart {
     pub equippable: Vec<ActorId>,
     pub z: Option<u32>,
