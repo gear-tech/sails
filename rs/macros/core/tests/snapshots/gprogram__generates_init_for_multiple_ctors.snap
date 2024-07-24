@@ -1,5 +1,5 @@
 ---
-source: sails/macros/core/tests/gprogram.rs
+source: rs/macros/core/tests/gprogram.rs
 assertion_line: 38
 expression: result
 ---
@@ -13,7 +13,7 @@ impl MyProgram {
 }
 impl sails_rs::meta::ProgramMeta for MyProgram {
     fn constructors() -> sails_rs::scale_info::MetaType {
-        sails_rs::scale_info::MetaType::new::<meta::ConstructorsMeta>()
+        sails_rs::scale_info::MetaType::new::<meta_in_program::ConstructorsMeta>()
     }
     fn services() -> impl Iterator<
         Item = (&'static str, sails_rs::meta::AnyServiceMeta),
@@ -39,7 +39,7 @@ struct __New2Params {
     p2: String,
     p1: u32,
 }
-mod meta {
+mod meta_in_program {
     use super::*;
     #[derive(__ProgramTypeInfo)]
     #[scale_info(crate = sails_rs::scale_info)]

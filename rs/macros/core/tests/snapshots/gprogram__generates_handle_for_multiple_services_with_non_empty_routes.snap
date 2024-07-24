@@ -48,7 +48,7 @@ impl MyProgram {
 }
 impl sails_rs::meta::ProgramMeta for MyProgram {
     fn constructors() -> sails_rs::scale_info::MetaType {
-        sails_rs::scale_info::MetaType::new::<meta::ConstructorsMeta>()
+        sails_rs::scale_info::MetaType::new::<meta_in_program::ConstructorsMeta>()
     }
     fn services() -> impl Iterator<
         Item = (&'static str, sails_rs::meta::AnyServiceMeta),
@@ -62,7 +62,7 @@ impl sails_rs::meta::ProgramMeta for MyProgram {
 }
 use sails_rs::Decode as __ProgramDecode;
 use sails_rs::TypeInfo as __ProgramTypeInfo;
-mod meta {
+mod meta_in_program {
     use super::*;
     #[derive(__ProgramTypeInfo)]
     #[scale_info(crate = sails_rs::scale_info)]
