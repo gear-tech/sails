@@ -1,14 +1,14 @@
 use fluent_asserter::prelude::*;
 use parity_scale_codec::Encode;
 use sails_rs::{
-    gstd::{gservice, services::Service},
+    gstd::{service, services::Service},
     MessageId,
 };
 use tokio::runtime::Runtime;
 
 struct MyService;
 
-#[gservice]
+#[service]
 impl MyService {
     pub async fn do_this(&mut self, p1: u32, p2: String) -> String {
         format!("{p1}: ") + &p2

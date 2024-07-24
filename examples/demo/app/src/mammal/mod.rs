@@ -12,7 +12,7 @@ impl MammalService {
     }
 }
 
-#[gservice]
+#[service]
 impl MammalService {
     pub fn make_sound(&mut self) -> &'static str {
         panic!("Not implemented")

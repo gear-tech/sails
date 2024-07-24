@@ -1,5 +1,5 @@
 use sails_rs::{
-    gstd::{gservice, services::Service},
+    gstd::{service, services::Service},
     Decode, Encode,
 };
 
@@ -12,7 +12,7 @@ mod base {
     #[derive(Clone)]
     pub struct Base;
 
-    #[gservice]
+    #[service]
     impl Base {
         pub fn base_name(&self) -> String {
             "base-name".to_string()
@@ -40,7 +40,7 @@ mod extended {
         }
     }
 
-    #[gservice(extends = base::Base)]
+    #[service(extends = base::Base)]
     impl Extended {
         pub fn extended_name(&self) -> String {
             "extended-name".to_string()

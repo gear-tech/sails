@@ -6,7 +6,7 @@ pub struct ThisThatCaller<ThisThatClient> {
     this_that: ThisThatClient,
 }
 
-#[gservice]
+#[service]
 impl<ThisThatClient> ThisThatCaller<ThisThatClient>
 where
     ThisThatClient: ThisThat,
