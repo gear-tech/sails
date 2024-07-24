@@ -41,7 +41,11 @@ impl<'a> RootGenerator<'a> {
             quote! {
                 #[cfg(feature = $(quoted(mocks_feature_name)))]
                 #[cfg(not(target_arch = "wasm32"))]
-                pub mod $(mocks_feature_name) {
+                extern crate std;
+
+                #[cfg(feature = $(quoted(mocks_feature_name)))]
+                #[cfg(not(target_arch = "wasm32"))]
+                pub mod mockall {
                     use super::*;
                     use sails_rs::mockall::*;
                     $(self.mocks_tokens)

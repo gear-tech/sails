@@ -13,5 +13,4 @@ sails-client-gen.workspace = true
 sails-idl-gen.workspace = true
 
 [features]
-std = []
-mockall = ["std", "sails-rs/mockall", "dep:mockall"]
+with_mocks = ["sails-rs/mockall", "dep:mockall"]

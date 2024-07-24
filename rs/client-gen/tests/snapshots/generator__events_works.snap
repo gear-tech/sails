@@ -99,6 +99,9 @@ pub mod traits {
 }
 #[cfg(feature = "mockall")]
 #[cfg(not(target_arch = "wasm32"))]
+extern crate std;
+#[cfg(feature = "mockall")]
+#[cfg(not(target_arch = "wasm32"))]
 pub mod mockall {
     use super::*;
     use sails_rs::mockall::*;

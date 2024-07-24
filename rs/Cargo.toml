@@ -25,9 +25,7 @@ spin.workspace = true
 thiserror-no-std.workspace = true
 
 [features]
-default = []
-std = []
-mockall = ["std", "dep:mockall"]
+mockall = ["dep:mockall"]
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 gclient.workspace = true
