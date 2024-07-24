@@ -289,12 +289,12 @@ fn generate_init(
             #[no_mangle]
             extern "C" fn init() {
                 sails_rs::gstd::events::__enable_events();
-                let #input_ident = gstd::msg::load_bytes().expect("Failed to read input");
+                let #input_ident: &[u8] = &gstd::msg::load_bytes().expect("Failed to read input");
                 if !#input_ident.is_empty() {
                     #unexpected_ctor_panic
                 }
                 unsafe {
-                    #program_ident = Some(#program_type_path::default());
+                    #program_ident = Some(#program_type_path);
                 }
                 gstd::msg::reply_bytes(#input_ident, 0).expect("Failed to send output");
             }

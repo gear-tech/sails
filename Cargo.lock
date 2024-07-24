@@ -4085,6 +4085,7 @@ version = "0.1.0"
 dependencies = [
  "gear-wasm-builder",
  "no-svcs-prog-app",
+ "sails-client-gen",
  "sails-idl-gen",
  "sails-rs",
 ]

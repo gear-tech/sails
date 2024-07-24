@@ -1,5 +1,5 @@
 ---
-source: sails/macros/core/tests/gprogram.rs
+source: rs/macros/core/tests/gprogram.rs
 assertion_line: 67
 expression: result
 ---
@@ -53,7 +53,7 @@ pub mod wasm {
     #[no_mangle]
     extern "C" fn init() {
         sails_rs::gstd::events::__enable_events();
-        let input = gstd::msg::load_bytes().expect("Failed to read input");
+        let input: &[u8] = &gstd::msg::load_bytes().expect("Failed to read input");
         if !input.is_empty() {
             {
                 let mut __input = input;
@@ -72,7 +72,7 @@ pub mod wasm {
             }
         }
         unsafe {
-            PROGRAM = Some(MyProgram::default());
+            PROGRAM = Some(MyProgram);
         }
         gstd::msg::reply_bytes(input, 0).expect("Failed to send output");
     }

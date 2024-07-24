@@ -478,6 +478,9 @@ You can find an example of the interaction from an application in the
 [Rmrk Resource](/examples/rmrk/resource/app/src/services/mod.rs) service's `add_part_to_resource`
 method.
 
+Bear in mind that working with the generated client requires the `sails_rs` crate to
+be in dependencies.
+
 ##
 
 #### License
