@@ -4,7 +4,7 @@ use sails_rs::prelude::*;
 #[derive(Default)]
 pub struct MyService(());
 
-#[gservice]
+#[service]
 impl MyService {
     // This is a service command as it works over `&mut self`
     pub async fn do_this(

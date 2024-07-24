@@ -4,7 +4,7 @@ use resources::{ComposedResource, PartId, Resource, ResourceId};
 use sails_rs::{
     calls::Query,
     collections::HashMap,
-    gstd::{gservice, ExecContext},
+    gstd::{service, ExecContext},
     prelude::*,
 };
 
@@ -38,7 +38,7 @@ pub struct ResourceStorage<TExecContext, TCatalogClient> {
 }
 
 // Declare the service can emit events of type ResourceStorageEvent
-#[gservice(events = ResourceStorageEvent)]
+#[service(events = ResourceStorageEvent)]
 impl<TExecContext, TCatalogClient> ResourceStorage<TExecContext, TCatalogClient>
 where
     TExecContext: ExecContext,

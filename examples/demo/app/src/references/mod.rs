@@ -11,7 +11,7 @@ static mut BYTES: Vec<u8> = Vec::new();
 #[derive(Default)]
 pub struct ReferenceService(());
 
-#[gservice]
+#[service]
 impl ReferenceService {
     pub fn baked(&self) -> &'static str {
         "Static str!"

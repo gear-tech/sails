@@ -2,7 +2,7 @@ use errors::Error;
 use parts::{CollectionId, Part, PartId, SlotPart};
 use sails_rs::{
     collections::{BTreeMap, BTreeSet},
-    gstd::{gservice, ExecContext},
+    gstd::{service, ExecContext},
     prelude::*,
     Result as RtlResult,
 };
@@ -56,7 +56,7 @@ where
     }
 }
 
-#[gservice]
+#[service]
 impl<TExecContext> Catalog<TExecContext>
 where
     TExecContext: ExecContext,

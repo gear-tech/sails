@@ -1,8 +1,8 @@
-use sails_macros::gservice;
+use sails_macros::service;
 
 struct MyService;
 
-#[gservice]
+#[service]
 impl MyService {}
 
 #[tokio::main]

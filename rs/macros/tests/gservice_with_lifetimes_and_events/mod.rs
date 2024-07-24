@@ -1,5 +1,5 @@
 use core::marker::PhantomData;
-use sails_rs::{gstd::gservice, Encode, TypeInfo};
+use sails_rs::{gstd::service, Encode, TypeInfo};
 
 #[derive(Default)]
 pub(super) struct MyGenericEventsService<'l, T> {
@@ -12,7 +12,7 @@ pub enum MyEvents {
     Event1,
 }
 
-#[gservice(events = MyEvents)]
+#[service(events = MyEvents)]
 impl<'l, T> MyGenericEventsService<'l, T>
 where
     T: Clone,

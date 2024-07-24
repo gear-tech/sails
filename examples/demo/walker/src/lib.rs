@@ -36,7 +36,7 @@ impl WalkerService {
     }
 }
 
-#[gservice(events = WalkerEvents)]
+#[service(events = WalkerEvents)]
 impl WalkerService {
     pub fn walk(&mut self, dx: i32, dy: i32) {
         let from = self.position();
