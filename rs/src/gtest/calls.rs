@@ -53,6 +53,10 @@ impl GTestRemoting {
         }
     }
 
+    pub fn with_actor_id(self, actor_id: ActorId) -> Self {
+        Self { actor_id, ..self }
+    }
+
     pub fn system(&self) -> &System {
         &self.system
     }
