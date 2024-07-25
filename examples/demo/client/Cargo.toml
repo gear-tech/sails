@@ -4,9 +4,13 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+mockall = { workspace = true, optional = true }
 sails-rs.workspace = true
 
 [build-dependencies]
 demo = { path = "../app" }
 sails-client-gen.workspace = true
 sails-idl-gen.workspace = true
+
+[features]
+with_mocks = ["sails-rs/mockall", "dep:mockall"]

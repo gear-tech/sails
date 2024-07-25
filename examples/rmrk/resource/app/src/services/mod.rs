@@ -22,6 +22,8 @@ struct ResourceStorageData {
 
 // Service event type definition
 #[derive(TypeInfo, Encode)]
+#[codec(crate = sails_rs::scale_codec)]
+#[scale_info(crate = sails_rs::scale_info)]
 pub enum ResourceStorageEvent {
     ResourceAdded {
         resource_id: ResourceId,
@@ -165,43 +167,57 @@ fn resource_storage_admin() -> ActorId {
 
 #[cfg(test)]
 mod tests {
-    use core::marker::PhantomData;
-
     use super::*;
-    use crate::catalogs::{Error, Part};
-    use resources::BasicResource;
-    use sails_rs::{
-        calls::{Action, Call, Remoting, Reply},
-        collections::BTreeMap,
-        gstd::calls::GStdRemoting,
-        ActorId,
-    };
+    use crate::catalogs::{mockall::MockRmrkCatalog, FixedPart, Part};
+    use resources::ComposedResource;
+    use sails_rs::{gstd::calls::GStdArgs, mockall::MockQuery, ActorId};
 
-    #[test]
-    fn test_add_resource_entry() {
-        ResourceStorage::<ExecContextMock, MockCatalogClient<GStdRemoting>>::seed(
-            ExecContextMock {
-                actor_id: 1.into(),
-                message_id: 1.into(),
-            },
-        );
+    #[tokio::test]
+    async fn test_add_resource_entry() {
+        ResourceStorage::<ExecContextMock, MockRmrkCatalog<GStdArgs>>::seed(ExecContextMock {
+            actor_id: 1.into(),
+            message_id: 1.into(),
+        });
         let mut resource_storage = ResourceStorage::new(
             ExecContextMock {
                 actor_id: 1.into(),
                 message_id: 1.into(),
             },
-            MockCatalogClient::<GStdRemoting> { _r: PhantomData },
+            MockRmrkCatalog::<GStdArgs>::new(),
         );
-        let resource = Resource::Basic(BasicResource {
+
+        let resource = Resource::Composed(ComposedResource {
             src: "src".to_string(),
-            thumb: None,
+            thumb: "thumb".to_string(),
             metadata_uri: "metadata_uri".to_string(),
+            base: 1.into(),
+            parts: vec![],
         });
         let (actual_resource_id, actual_resource) = resource_storage
             .add_resource_entry(1, resource.clone())
             .unwrap();
         assert_eq!(actual_resource_id, 1);
         assert_eq!(actual_resource, resource);
+
+        // add_part_to_resource
+        let mut part_query = MockQuery::new();
+        part_query.expect_recv().returning(move |_| {
+            Ok(Some(Part::Fixed(FixedPart {
+                z: None,
+                metadata_uri: "metadata_uri".to_string(),
+            })))
+        });
+        resource_storage
+            .catalog_client
+            .expect_part()
+            .with(mockall::predicate::eq(1))
+            .return_once(|_| part_query);
+
+        let actual_part_id = resource_storage
+            .add_part_to_resource(actual_resource_id, 1)
+            .await
+            .unwrap();
+        assert_eq!(actual_part_id, 1);
     }
 
     struct ExecContextMock {
@@ -216,176 +232,6 @@ mod tests {
 
         fn message_id(&self) -> MessageId {
             self.message_id
-        }
-    }
-
-    struct MockCatalogClient<R: Remoting> {
-        _r: PhantomData<R>,
-    }
-
-    struct MockCall<A, R> {
-        _r: PhantomData<R>,
-        _a: PhantomData<A>,
-    }
-
-    impl<A, R> MockCall<A, R> {
-        pub fn new() -> Self {
-            Self {
-                _r: PhantomData,
-                _a: PhantomData,
-            }
-        }
-    }
-
-    impl<A, R> Call for MockCall<A, R> {
-        type Output = R;
-
-        async fn send(
-            self,
-            _target: ActorId,
-        ) -> sails_rs::errors::Result<impl Reply<Output = Self::Output>> {
-            Ok(MockReply::<R>::new())
-        }
-    }
-
-    impl<A, R> Action for MockCall<A, R> {
-        type Args = A;
-
-        fn with_value(self, _value: ValueUnit) -> Self {
-            todo!()
-        }
-
-        fn with_args(self, _args: A) -> Self {
-            todo!()
-        }
-
-        fn value(&self) -> ValueUnit {
-            todo!()
-        }
-
-        fn args(&self) -> &A {
-            todo!()
-        }
-    }
-
-    struct MockReply<R> {
-        _r: PhantomData<R>,
-    }
-
-    impl<R> MockReply<R> {
-        pub fn new() -> Self {
-            Self { _r: PhantomData }
-        }
-    }
-
-    impl<R> Reply for MockReply<R> {
-        type Output = R;
-
-        async fn recv(self) -> sails_rs::errors::Result<Self::Output> {
-            unimplemented!()
-        }
-    }
-
-    #[derive(Default)]
-    struct MockQuery<A, R> {
-        _r: PhantomData<R>,
-        _a: PhantomData<A>,
-    }
-
-    impl<A, R> MockQuery<A, R> {
-        pub fn new() -> Self {
-            Self {
-                _r: PhantomData,
-                _a: PhantomData,
-            }
-        }
-    }
-
-    impl<A, R> Query for MockQuery<A, R> {
-        async fn recv(self, _target: ActorId) -> sails_rs::errors::Result<R> {
-            unimplemented!()
-        }
-
-        type Output = R;
-    }
-
-    impl<A, R> Action for MockQuery<A, R> {
-        fn with_value(self, _value: ValueUnit) -> Self {
-            todo!()
-        }
-
-        fn with_args(self, _args: A) -> Self {
-            todo!()
-        }
-
-        fn value(&self) -> ValueUnit {
-            todo!()
-        }
-
-        fn args(&self) -> &A {
-            todo!()
-        }
-
-        type Args = A;
-    }
-
-    impl<R: Remoting> RmrkCatalog for MockCatalogClient<R> {
-        type Args = R::Args;
-
-        fn add_parts(
-            &mut self,
-            _parts: BTreeMap<u32, Part>,
-        ) -> impl Call<Output = Result<BTreeMap<u32, Part>, Error>, Args = R::Args> {
-            MockCall::new()
-        }
-
-        fn remove_parts(
-            &mut self,
-            _part_ids: Vec<u32>,
-        ) -> impl Call<Output = Result<Vec<u32>, Error>, Args = R::Args> {
-            MockCall::new()
-        }
-
-        fn add_equippables(
-            &mut self,
-            _part_id: u32,
-            _collection_ids: Vec<ActorId>,
-        ) -> impl Call<Output = Result<(u32, Vec<ActorId>), Error>, Args = R::Args> {
-            MockCall::new()
-        }
-
-        fn remove_equippable(
-            &mut self,
-            _part_id: u32,
-            _collection_id: ActorId,
-        ) -> impl Call<Output = Result<(u32, ActorId), Error>, Args = R::Args> {
-            MockCall::new()
-        }
-
-        fn reset_equippables(
-            &mut self,
-            _part_id: u32,
-        ) -> impl Call<Output = Result<(), Error>, Args = R::Args> {
-            MockCall::new()
-        }
-
-        fn set_equippables_to_all(
-            &mut self,
-            _part_id: u32,
-        ) -> impl Call<Output = Result<(), Error>, Args = R::Args> {
-            MockCall::new()
-        }
-
-        fn part(&self, _part_id: u32) -> impl Query<Output = Option<Part>, Args = R::Args> {
-            MockQuery::new()
-        }
-
-        fn equippable(
-            &self,
-            _part_id: u32,
-            _collection_id: ActorId,
-        ) -> impl Query<Output = Result<bool, Error>, Args = R::Args> {
-            MockQuery::new()
         }
     }
 }

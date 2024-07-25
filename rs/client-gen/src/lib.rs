@@ -2,6 +2,7 @@ mod ctor_generators;
 mod events_generator;
 mod helpers;
 mod io_generators;
+mod mock_generator;
 mod root_generator;
 mod service_generators;
 mod type_generators;
@@ -16,6 +17,7 @@ use std::{ffi::OsStr, fs, io::Write, path::Path};
 pub fn generate_client_from_idl(
     idl_path: impl AsRef<Path>,
     out_path: impl AsRef<Path>,
+    mocks_feature_name: Option<&str>,
 ) -> Result<()> {
     let idl_path = idl_path.as_ref();
     let out_path = out_path.as_ref();
@@ -34,7 +36,8 @@ pub fn generate_client_from_idl(
     let file_name = idl_path.file_stem().unwrap_or(OsStr::new("service"));
     let service_name = file_name.to_string_lossy().to_case(Case::Pascal);
 
-    let buf = generate(program, &service_name).context("failed to generate client")?;
+    let buf = generate(program, &service_name, mocks_feature_name)
+        .context("failed to generate client")?;
 
     fs::write(out_path, buf)
         .with_context(|| format!("Failed to write generated client to {}", out_path.display()))?;
@@ -42,8 +45,12 @@ pub fn generate_client_from_idl(
     Ok(())
 }
 
-pub fn generate(program: Program, anonymous_service_name: &str) -> Result<String> {
-    let mut generator = RootGenerator::new(anonymous_service_name);
+pub fn generate(
+    program: Program,
+    anonymous_service_name: &str,
+    mocks_feature_name: Option<&str>,
+) -> Result<String> {
+    let mut generator = RootGenerator::new(anonymous_service_name, mocks_feature_name);
     visitor::accept_program(&program, &mut generator);
 
     let code = generator.finalize();

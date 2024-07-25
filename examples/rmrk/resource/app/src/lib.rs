@@ -1,5 +1,9 @@
 #![no_std]
 
+#[cfg(feature = "mockall")]
+#[cfg(not(target_arch = "wasm32"))]
+pub extern crate std;
+
 use sails_rs::gstd::{calls::GStdRemoting, gprogram, route, GStdExecContext};
 use services::ResourceStorage;
 

@@ -47,8 +47,9 @@ impl<'a, 'ast> Visitor<'ast> for TopLevelTypeGenerator<'a> {
         };
 
         quote_in!(self.tokens =>
-            #[derive(PartialEq, Debug, Encode, Decode)]
+            #[derive(PartialEq, Debug, Encode, Decode, TypeInfo)]
             #[codec(crate = sails_rs::scale_codec)]
+            #[scale_info(crate = sails_rs::scale_info)]
             pub struct $(self.type_name) $(struct_def_generator.code) $(semi)
         );
     }
@@ -58,8 +59,9 @@ impl<'a, 'ast> Visitor<'ast> for TopLevelTypeGenerator<'a> {
         enum_def_generator.visit_enum_def(enum_def);
 
         quote_in!(self.tokens =>
-            #[derive(PartialEq, Debug, Encode, Decode)]
+            #[derive(PartialEq, Debug, Encode, Decode, TypeInfo)]
             #[codec(crate = sails_rs::scale_codec)]
+            #[scale_info(crate = sails_rs::scale_info)]
             pub enum $(self.type_name) $(enum_def_generator.code)
         );
     }
