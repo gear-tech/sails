@@ -11,7 +11,7 @@ pub fn service(args: TokenStream, impl_tokens: TokenStream) -> TokenStream {
 
 #[proc_macro_error]
 #[proc_macro_attribute]
-pub fn gprogram(args: TokenStream, impl_tokens: TokenStream) -> TokenStream {
+pub fn program(args: TokenStream, impl_tokens: TokenStream) -> TokenStream {
     sails_macros_core::gprogram(args.into(), impl_tokens.into()).into()
 }
 

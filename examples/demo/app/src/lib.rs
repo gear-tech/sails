@@ -29,7 +29,7 @@ pub struct DemoProgram {
     counter_data: RefCell<counter::CounterData>,
 }
 
-#[gprogram]
+#[program]
 impl DemoProgram {
     #[allow(clippy::should_implement_trait)]
     // Program constructor (called once at the very beginning of the program lifetime)

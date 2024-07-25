@@ -36,7 +36,7 @@ fn parse_args(args: TokenStream2) -> ProgramArgs {
     syn::parse2(args).unwrap_or_else(|err| {
         abort!(
             err.span(),
-            "failed to parse `gprogram` attribute arguments: {}",
+            "failed to parse `program` attribute arguments: {}",
             err
         )
     })
@@ -46,7 +46,7 @@ fn parse_gprogram_impl(program_impl_tokens: TokenStream2) -> ItemImpl {
     syn::parse2(program_impl_tokens).unwrap_or_else(|err| {
         abort!(
             err.span(),
-            "`gprogram` attribute can be applied to impls only: {}",
+            "`program` attribute can be applied to impls only: {}",
             err
         )
     })
@@ -56,7 +56,7 @@ fn ensure_single_gprogram(program_impl: &ItemImpl) {
     if unsafe { PROGRAM_SPAN }.is_some() {
         abort!(
             program_impl,
-            "multiple `gprogram` attributes are not allowed"
+            "multiple `program` attributes are not allowed"
         )
     }
     unsafe { PROGRAM_SPAN = Some(program_impl.span()) };

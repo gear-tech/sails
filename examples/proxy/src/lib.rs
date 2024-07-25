@@ -1,14 +1,14 @@
 #![no_std]
 
 use demo_client::ThisThat;
-use sails_rs::gstd::{calls::GStdRemoting, gprogram};
+use sails_rs::gstd::{calls::GStdRemoting, program};
 
 mod this_that;
 
 #[derive(Default)]
 pub struct ProxyProgram(());
 
-#[gprogram]
+#[program]
 impl ProxyProgram {
     pub fn new() -> Self {
         Self::default()

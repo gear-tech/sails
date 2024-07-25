@@ -1,9 +1,9 @@
-use sails_macros::gprogram;
+use sails_macros::program;
 
 struct MyProgram;
 
-#[gprogram]
-#[gprogram]
+#[program]
+#[program]
 impl MyProgram {
     pub fn new() -> Self {
         Self

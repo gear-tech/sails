@@ -1,6 +1,6 @@
 #![no_std]
 
-use sails_rs::gstd::{gprogram, route, GStdExecContext};
+use sails_rs::gstd::{program, route, GStdExecContext};
 use services::Catalog;
 
 // Exposed publicly because of tests which use generated data
@@ -10,7 +10,7 @@ pub mod services;
 #[derive(Default)]
 pub struct Program;
 
-#[gprogram]
+#[program]
 impl Program {
     // Initialize program and seed hosted services
     pub fn new() -> Self {
