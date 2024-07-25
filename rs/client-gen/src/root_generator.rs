@@ -1,6 +1,6 @@
 use crate::{
-    ctor_generators::*, events_generator::*, io_generators::*, service_generators::*,
-    type_generators::*,
+    ctor_generators::*, events_generator::*, io_generators::*, mock_generator::MockGenerator,
+    service_generators::*, type_generators::*,
 };
 use convert_case::{Case, Casing};
 use genco::prelude::*;
@@ -10,11 +10,16 @@ use sails_idl_parser::{ast::visitor::Visitor, ast::*};
 pub(crate) struct RootGenerator<'a> {
     tokens: Tokens,
     traits_tokens: Tokens,
+    mocks_tokens: Tokens,
     anonymous_service_name: &'a str,
+    mocks_feature_name: Option<&'a str>,
 }
 
 impl<'a> RootGenerator<'a> {
-    pub(crate) fn new(anonymous_service_name: &'a str) -> Self {
+    pub(crate) fn new(
+        anonymous_service_name: &'a str,
+        mocks_feature_name: Option<&'a str>,
+    ) -> Self {
         let tokens = quote! {
             #[allow(unused_imports)]
             use sails_rs::{prelude::*, String, calls::{Activation, Call, Query, Remoting, RemotingAction}};
@@ -26,10 +31,30 @@ impl<'a> RootGenerator<'a> {
             anonymous_service_name,
             tokens,
             traits_tokens: Tokens::new(),
+            mocks_tokens: Tokens::new(),
+            mocks_feature_name,
         }
     }
 
     pub(crate) fn finalize(self) -> String {
+        let mocks_tokens = if let Some(mocks_feature_name) = self.mocks_feature_name {
+            quote! {
+                #[cfg(feature = $(quoted(mocks_feature_name)))]
+                #[cfg(not(target_arch = "wasm32"))]
+                extern crate std;
+
+                #[cfg(feature = $(quoted(mocks_feature_name)))]
+                #[cfg(not(target_arch = "wasm32"))]
+                pub mod mockall {
+                    use super::*;
+                    use sails_rs::mockall::*;
+                    $(self.mocks_tokens)
+                }
+            }
+        } else {
+            Tokens::new()
+        };
+
         let result: Tokens = quote! {
             $(self.tokens)
 
@@ -37,6 +62,8 @@ impl<'a> RootGenerator<'a> {
                 use super::*;
                 $(self.traits_tokens)
             }
+
+            $mocks_tokens
         };
 
         let mut result = result.to_file_string().unwrap();
@@ -96,6 +123,10 @@ impl<'a, 'ast> Visitor<'ast> for RootGenerator<'a> {
                 $(service_tokens)
             }
         }
+
+        let mut mock_gen: MockGenerator = MockGenerator::new(service_name.to_owned());
+        mock_gen.visit_service(service);
+        self.mocks_tokens.extend(mock_gen.finalize());
     }
 
     fn visit_type(&mut self, t: &'ast Type) {

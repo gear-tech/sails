@@ -22,6 +22,7 @@ impl ServiceTraitGenerator {
 
     pub(crate) fn finalize(self) -> Tokens {
         quote! {
+            #[allow(clippy::type_complexity)]
             pub trait $(&self.service_name) {
                 type Args;
                 $(self.tokens)
@@ -51,7 +52,6 @@ impl<'ast> Visitor<'ast> for ServiceTraitGenerator {
         let output_trait = if func.is_query() { "Query" } else { "Call" };
 
         quote_in! { self.tokens=>
-            #[allow(clippy::type_complexity)]
             fn $fn_name (&$mutability self, $params_tokens) -> impl $output_trait<Output = $output_type_decl_code, Args = Self::Args>;
         };
     }

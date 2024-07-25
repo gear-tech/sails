@@ -2,13 +2,20 @@
 name = "rmrk-resource-app"
 version = "0.1.0"
 edition = "2021"
+resolver = "2"
 
 [dependencies]
 gstd.workspace = true
-parity-scale-codec = { workspace = true, features = ["derive"] }
+mockall = { workspace = true, optional = true }
 sails-rs.workspace = true
-scale-info = { workspace = true, features = ["derive"] }
 
 [build-dependencies]
 git-download.workspace = true
 sails-client-gen.workspace = true
+
+[dev-dependencies]
+rmrk-resource-app = { path = ".", features = ["mockall"] }
+tokio = { workspace = true, features = ["rt", "macros"] }
+
+[features]
+mockall = ["sails-rs/mockall", "dep:mockall"]

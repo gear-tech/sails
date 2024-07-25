@@ -1,8 +1,13 @@
+type TupleStruct = struct {
+  bool,
+};
+
 constructor {
   New : ();
 };
 
 service ThisThatCaller {
-  CallThis : (this_that_addr: actor_id) -> u32;
+  CallDoThis : (p1: u32, p2: str, p3: struct { opt h160, nat8 }, p4: TupleStruct, this_that_addr: actor_id) -> struct { str, u32 };
+  query QueryThis : (this_that_addr: actor_id) -> u32;
 };
 

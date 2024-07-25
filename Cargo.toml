@@ -58,6 +58,7 @@ itertools = "0.12"
 lalrpop = { version = "0.20", default-features = false }
 lalrpop-util = "0.20"
 logos = "0.13"
+mockall = "0.12"
 parity-scale-codec = { version = "3.6", default-features = false }
 prettyplease = "0.2"
 primitive-types = { version = "0.12", default-features = false }

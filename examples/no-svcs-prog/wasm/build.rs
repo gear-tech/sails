@@ -12,6 +12,7 @@ fn main() {
     sails_client_gen::generate_client_from_idl(
         &idl_file_path,
         PathBuf::from(env::var("OUT_DIR").unwrap()).join("no_svcs_prog.rs"),
+        None,
     )
     .unwrap();
 }

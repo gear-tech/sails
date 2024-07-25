@@ -11,6 +11,7 @@ fn main() {
     sails_client_gen::generate_client_from_idl(
         &idl_file_path,
         PathBuf::from(env::var("OUT_DIR").unwrap()).join("demo_client.rs"),
+        Some("with_mocks"),
     )
     .unwrap();
 }

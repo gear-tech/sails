@@ -32,13 +32,13 @@ pub trait Call: Action {
 
 #[allow(async_fn_in_trait)]
 pub trait Activation: Action {
-    async fn send(
+    async fn send<S: AsRef<[u8]>>(
         self,
         code_id: CodeId,
-        salt: impl AsRef<[u8]>,
+        salt: S,
     ) -> Result<impl Reply<Output = ActorId>>;
 
-    async fn send_recv(self, code_id: CodeId, salt: impl AsRef<[u8]>) -> Result<ActorId>
+    async fn send_recv<S: AsRef<[u8]>>(self, code_id: CodeId, salt: S) -> Result<ActorId>
     where
         Self: Sized,
     {
@@ -205,10 +205,10 @@ where
     TRemoting: Remoting,
     TActionIo: ActionIo<Reply = ()>,
 {
-    async fn send(
+    async fn send<S: AsRef<[u8]>>(
         self,
         code_id: CodeId,
-        salt: impl AsRef<[u8]>,
+        salt: S,
     ) -> Result<impl Reply<Output = ActorId>> {
         let payload = TActionIo::encode_call(&self.params);
         let reply_future = self
