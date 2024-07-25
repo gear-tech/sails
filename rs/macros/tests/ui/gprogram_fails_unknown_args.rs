@@ -1,8 +1,8 @@
-use sails_macros::gprogram;
+use sails_macros::program;
 
 struct MyProgram;
 
-#[gprogram(_handle_reply = my_handle_reply, handle_signal = my_handle_signal)]
+#[program(_handle_reply = my_handle_reply, handle_signal = my_handle_signal)]
 impl MyProgram {
     pub fn new() -> Self {
         Self

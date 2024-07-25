@@ -52,7 +52,7 @@ impl MyPing {
 #[derive(Default)]
 struct MyProgram;
 
-#[gprogram]
+#[program]
 impl MyProgram {
     #[route("ping")]
     pub fn ping_svc(&self) -> MyPing {
@@ -105,7 +105,7 @@ impl MyService {
 
 
 The second key concept is *__program__* which is similarly to the service represented
-by an impl of some Rust struct marked with the `#[gprogram]` attribute. The program
+by an impl of some Rust struct marked with the `#[program]` attribute. The program
 main responsibility is hosting one or more services and exposing them to the external
 consumers. A set of its associated __public__ functions returning `Self` are
 treated as application constructors. These functions can accept some parameters
@@ -116,13 +116,13 @@ stays on the network. A set of program's __public__ methods working over `&self`
 having no other parameters are treated as exposed service constructors and are called
 each time when an incoming request message needs be dispatched to a selected service.
 All the other methods and associated functions are treated as implementation details
-and ignored. The code generated behind the program by the `#[gprogram]` attribute
+and ignored. The code generated behind the program by the `#[program]` attribute
 receives an incoming request message from the network, decodes it and dispatches it to
 a matching service for actual processing. After that, the result is encoded and returned
 as a response to a caller. Only one program is allowed per application.
 
 ```rust
-#[gprogram]
+#[program]
 impl MyProgram {
     // Application constructor
     pub fn new() -> Self {
@@ -151,7 +151,7 @@ service exposed via program is exposed using the name of the service constructor
 method converted into *PascalCase*. For example:
 
 ```rust
-#[gprogram]
+#[program]
 impl MyProgram {
     // The `MyPing` service is exposed as `PingSvc`
     pub fn ping_svc(&self) -> MyPing {
@@ -163,7 +163,7 @@ impl MyProgram {
 This behavior can be changed by applying the `#[route]` attribute:
 
 ```rust
-#[gprogram]
+#[program]
 impl MyProgram {
     // The `MyPing` service is exposed as `Ping`
     #[route("ping")] // The specified name will be converted into PascalCase
@@ -348,7 +348,7 @@ impl MyService {
     }
 }
 
-#[gprogram]
+#[program]
 impl MyProgram {
     pub fn my_service(&self) -> MyService {
         MyService::new()

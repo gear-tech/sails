@@ -50,7 +50,7 @@ impl Parse for ProgramArgs {
                 }
                 _ => abort!(
                     span,
-                    "`gprogram` attribute can only contain `handle_reply` and `handle_signal` parameters",
+                    "`program` attribute can only contain `handle_reply` and `handle_signal` parameters",
                 ),
             }
 
