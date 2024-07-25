@@ -54,6 +54,7 @@ service PingPong {
 };
 
 service References {
+  Add : (v: u32) -> u32;
   AddByte : (byte: u8) -> vec u8;
   Incr : () -> ReferenceCount;
   query Baked : () -> str;

@@ -24,6 +24,13 @@ impl ReferenceService {
         }
     }
 
+    pub fn add<'a>(&mut self, v: u32) -> &'a u32 {
+        unsafe {
+            COUNTER.0 += v;
+            &COUNTER.0
+        }
+    }
+
     pub fn add_byte(&mut self, byte: u8) -> &'static [u8] {
         unsafe {
             BYTES.push(byte);
