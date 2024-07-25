@@ -2,7 +2,7 @@ use demo_client::{
     counter::events::CounterEvents,
     dog::events::DogEvents,
     ping_pong,
-    traits::{Counter, DemoFactory, Dog},
+    traits::{Counter, DemoFactory, Dog, References},
 };
 use fixture::Fixture;
 use futures::stream::StreamExt;
@@ -217,4 +217,59 @@ async fn dog_weights() {
     let avg_weight = dog_client.avg_weight().recv(demo_program_id).await.unwrap();
 
     assert_eq!(avg_weight, 42);
+}
+
+#[tokio::test]
+async fn references_add() {
+    let fixture = Fixture::new(fixture::ADMIN_ID);
+
+    let demo_factory = fixture.demo_factory();
+
+    let demo_program_id = demo_factory
+        .new(None, Some((1, -1)))
+        .send_recv(fixture.demo_code_id(), "123")
+        .await
+        .unwrap();
+
+    let mut client = fixture.references_client();
+
+    let value = client.add(42).send_recv(demo_program_id).await.unwrap();
+
+    assert_eq!(42, value);
+}
+
+#[tokio::test]
+async fn references_bytes() {
+    let fixture = Fixture::new(fixture::ADMIN_ID);
+
+    let demo_factory = fixture.demo_factory();
+
+    let demo_program_id = demo_factory
+        .new(None, Some((1, -1)))
+        .send_recv(fixture.demo_code_id(), "123")
+        .await
+        .unwrap();
+
+    let mut client = fixture.references_client();
+
+    _ = client
+        .add_byte(42)
+        .send_recv(demo_program_id)
+        .await
+        .unwrap();
+    _ = client
+        .add_byte(89)
+        .send_recv(demo_program_id)
+        .await
+        .unwrap();
+    _ = client
+        .add_byte(14)
+        .send_recv(demo_program_id)
+        .await
+        .unwrap();
+
+    let first = client.first_byte().recv(demo_program_id).await.unwrap();
+    let last = client.last_byte().recv(demo_program_id).await.unwrap();
+    assert_eq!(Some(42), first);
+    assert_eq!(Some(14), last);
 }

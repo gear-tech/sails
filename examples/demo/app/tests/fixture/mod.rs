@@ -2,7 +2,7 @@ use core::cell::OnceCell;
 use demo_client::{
     counter::{self, events::CounterEvents},
     dog::{self, events::DogEvents},
-    Counter, DemoFactory, Dog,
+    Counter, DemoFactory, Dog, References,
 };
 use gtest::Program;
 use sails_rs::{events::Listener, gtest::calls::*, prelude::*};
@@ -64,5 +64,9 @@ impl Fixture {
 
     pub(crate) fn dog_listener(&self) -> impl Listener<DogEvents> {
         dog::events::listener(self.program_space.clone())
+    }
+
+    pub(crate) fn references_client(&self) -> References<GTestRemoting> {
+        References::new(self.program_space.clone())
     }
 }
