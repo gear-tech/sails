@@ -42,6 +42,7 @@ impl<'ast> Visitor<'ast> for CtorFactoryGenerator {
     fn visit_ctor(&mut self, ctor: &'ast Ctor) {
         quote_in! {self.tokens =>
             pub struct $(&self.service_name)Factory<R> {
+                #[allow(dead_code)]
                 remoting: R,
             }
 

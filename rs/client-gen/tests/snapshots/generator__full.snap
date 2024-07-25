@@ -12,6 +12,7 @@ use sails_rs::{
     String,
 };
 pub struct ServiceFactory<R> {
+    #[allow(dead_code)]
     remoting: R,
 }
 impl<R> ServiceFactory<R> {
