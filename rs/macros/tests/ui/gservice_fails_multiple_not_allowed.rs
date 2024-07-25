@@ -1,15 +1,15 @@
-use sails_macros::gservice;
+use sails_macros::service;
 
 struct MyService;
 
-#[gservice]
+#[service]
 impl MyService {
     pub fn this(&self, p1: bool) -> bool {
         !p1
     }
 }
 
-#[gservice]
+#[service]
 impl MyService {
     pub fn this(&self, p1: bool) -> bool {
         !p1

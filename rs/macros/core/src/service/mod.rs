@@ -55,7 +55,7 @@ fn parse_gservice_impl(service_impl_tokens: TokenStream) -> ItemImpl {
     syn::parse2(service_impl_tokens).unwrap_or_else(|err| {
         abort!(
             err.span(),
-            "`gservice` attribute can be applied to impls only: {}",
+            "`service` attribute can be applied to impls only: {}",
             err
         )
     })
@@ -67,13 +67,13 @@ fn ensure_single_gservice_on_impl(service_impl: &ItemImpl) {
             .path()
             .segments
             .last()
-            .map(|s| s.ident == "gservice")
+            .map(|s| s.ident == "service")
             .unwrap_or(false)
     });
     if attr_gservice.is_some() {
         abort!(
             service_impl,
-            "multiple `gservice` attributes on the same impl are not allowed",
+            "multiple `service` attributes on the same impl are not allowed",
         )
     }
 }
@@ -84,7 +84,7 @@ fn ensure_single_gservice_by_name(service_impl: &ItemImpl) {
     if unsafe { SERVICE_SPANS.get(&type_ident) }.is_some() {
         abort!(
             service_impl,
-            "multiple `gservice` attributes on a type with the same name are not allowed"
+            "multiple `service` attributes on a type with the same name are not allowed"
         )
     }
     unsafe { SERVICE_SPANS.insert(type_ident, service_impl.span()) };
@@ -94,7 +94,7 @@ fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
     let service_args = syn::parse2::<ServiceArgs>(args).unwrap_or_else(|err| {
         abort!(
             err.span(),
-            "failed to parse `gservice` attribute arguments: {}",
+            "failed to parse `service` attribute arguments: {}",
             err
         )
     });
@@ -113,7 +113,7 @@ fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
     if service_handlers.is_empty() && service_args.base_types().is_empty() {
         abort!(
             service_impl,
-            "`gservice` attribute requires impl to define at least one public method or extend another service"
+            "`service` attribute requires impl to define at least one public method or extend another service"
         );
     }
 
@@ -371,15 +371,15 @@ fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
 
         impl #service_type_args sails_rs::meta::ServiceMeta for #service_type #service_type_constraints {
             fn commands() -> #scale_info_path ::MetaType {
-                #scale_info_path ::MetaType::new::<meta::CommandsMeta>()
+                #scale_info_path ::MetaType::new::<meta_in_service::CommandsMeta>()
             }
 
             fn queries() -> #scale_info_path ::MetaType {
-                #scale_info_path ::MetaType::new::<meta::QueriesMeta>()
+                #scale_info_path ::MetaType::new::<meta_in_service::QueriesMeta>()
             }
 
             fn events() -> #scale_info_path ::MetaType {
-                #scale_info_path ::MetaType::new::<meta::EventsMeta>()
+                #scale_info_path ::MetaType::new::<meta_in_service::EventsMeta>()
             }
 
             fn base_services() -> impl Iterator<Item = sails_rs::meta::AnyServiceMeta> {
@@ -402,7 +402,7 @@ fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
             #invocation_params_structs
         )*
 
-        mod meta {
+        mod meta_in_service {
             use super::*;
 
             #[derive(__ServiceTypeInfo)]

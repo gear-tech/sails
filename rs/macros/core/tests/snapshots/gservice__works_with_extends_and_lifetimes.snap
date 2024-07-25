@@ -1,5 +1,5 @@
 ---
-source: macros/core/tests/gservice.rs
+source: rs/macros/core/tests/gservice.rs
 expression: result
 ---
 impl<'a> ExtendedLifetime<'a> {
@@ -156,13 +156,13 @@ impl<'a> sails_rs::gstd::services::Service for ExtendedLifetime<'a> {
 }
 impl<'a> sails_rs::meta::ServiceMeta for ExtendedLifetime<'a> {
     fn commands() -> sails_rs::scale_info::MetaType {
-        sails_rs::scale_info::MetaType::new::<meta::CommandsMeta>()
+        sails_rs::scale_info::MetaType::new::<meta_in_service::CommandsMeta>()
     }
     fn queries() -> sails_rs::scale_info::MetaType {
-        sails_rs::scale_info::MetaType::new::<meta::QueriesMeta>()
+        sails_rs::scale_info::MetaType::new::<meta_in_service::QueriesMeta>()
     }
     fn events() -> sails_rs::scale_info::MetaType {
-        sails_rs::scale_info::MetaType::new::<meta::EventsMeta>()
+        sails_rs::scale_info::MetaType::new::<meta_in_service::EventsMeta>()
     }
     fn base_services() -> impl Iterator<Item = sails_rs::meta::AnyServiceMeta> {
         [sails_rs::meta::AnyServiceMeta::new::<base::BaseLifetime<'a>>()].into_iter()
@@ -179,7 +179,7 @@ pub struct __ExtendedNameParams {}
 #[codec(crate = sails_rs::scale_codec)]
 #[scale_info(crate = sails_rs::scale_info)]
 pub struct __NameParams {}
-mod meta {
+mod meta_in_service {
     use super::*;
     #[derive(__ServiceTypeInfo)]
     #[scale_info(crate = sails_rs::scale_info)]

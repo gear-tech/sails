@@ -46,7 +46,7 @@ impl AsRef<MammalService> for DogService {
 // - Barked (from DogEvents)
 // - Walked (from WalkerEvents)
 // See [IDL](/examples/demo/wasm/demo.idl)
-#[gservice(extends = [MammalService, WalkerService], events = DogEvents)]
+#[service(extends = [MammalService, WalkerService], events = DogEvents)]
 impl DogService {
     pub fn make_sound(&mut self) -> &'static str {
         self.notify_on(DogEvents::Barked).unwrap();

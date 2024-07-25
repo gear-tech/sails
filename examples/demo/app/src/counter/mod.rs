@@ -35,7 +35,7 @@ impl<'a> CounterService<'a> {
 }
 
 // Declare the service can emit events of type CounterEvents.
-#[gservice(events = CounterEvents)]
+#[service(events = CounterEvents)]
 impl<'a> CounterService<'a> {
     pub fn add(&mut self, value: u32) -> u32 {
         let mut data_mut = self.data.borrow_mut();

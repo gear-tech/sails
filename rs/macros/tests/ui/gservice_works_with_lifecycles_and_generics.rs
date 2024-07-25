@@ -1,6 +1,6 @@
 use core::marker::PhantomData;
 use sails_rs::{
-    gstd::{gservice, services::Service},
+    gstd::{service, services::Service},
     MessageId,
 };
 
@@ -8,7 +8,7 @@ struct MyService<'a, T> {
     _a: PhantomData<&'a T>,
 }
 
-#[gservice]
+#[service]
 impl<'a, T> MyService<'a, T>
 where
     T: Clone,

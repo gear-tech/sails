@@ -1,4 +1,4 @@
-use sails_rs::gstd::gservice;
+use sails_rs::gstd::service;
 
 pub(super) mod base {
     use super::*;
@@ -18,7 +18,7 @@ pub(super) mod base {
         }
     }
 
-    #[gservice]
+    #[service]
     impl<'a> BaseWithLifetime<'a> {
         pub fn base_name(&self) -> String {
             "base-name".to_string()
@@ -46,7 +46,7 @@ pub(super) mod extended {
         }
     }
 
-    #[gservice(extends = base::BaseWithLifetime<'a>)]
+    #[service(extends = base::BaseWithLifetime<'a>)]
     impl<'a> ExtendedWithLifetime<'a> {
         pub fn extended_name(&self) -> String {
             "extended-name".to_string()

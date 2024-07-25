@@ -139,7 +139,7 @@ fn gen_gprogram_impl(program_impl: ItemImpl, program_args: ProgramArgs) -> Token
 
         impl #program_type_args sails_rs::meta::ProgramMeta for #program_type_path #program_type_constraints {
             fn constructors() -> #scale_info_path::MetaType {
-                #scale_info_path::MetaType::new::<meta::ConstructorsMeta>()
+                #scale_info_path::MetaType::new::<meta_in_program::ConstructorsMeta>()
             }
 
             fn services() -> impl Iterator<Item = (&'static str, sails_rs::meta::AnyServiceMeta)> {
@@ -160,7 +160,7 @@ fn gen_gprogram_impl(program_impl: ItemImpl, program_args: ProgramArgs) -> Token
             #ctors_params_structs
         )*
 
-        mod meta {
+        mod meta_in_program {
             use super::*;
 
             #[derive(__ProgramTypeInfo)]
@@ -289,12 +289,12 @@ fn generate_init(
             #[no_mangle]
             extern "C" fn init() {
                 sails_rs::gstd::events::__enable_events();
-                let #input_ident = gstd::msg::load_bytes().expect("Failed to read input");
+                let #input_ident: &[u8] = &gstd::msg::load_bytes().expect("Failed to read input");
                 if !#input_ident.is_empty() {
                     #unexpected_ctor_panic
                 }
                 unsafe {
-                    #program_ident = Some(#program_type_path::default());
+                    #program_ident = Some(#program_type_path);
                 }
                 gstd::msg::reply_bytes(#input_ident, 0).expect("Failed to send output");
             }

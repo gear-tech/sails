@@ -1,12 +1,12 @@
 use core::marker::PhantomData;
-use sails_rs::gstd::gservice;
+use sails_rs::gstd::service;
 
 #[derive(Default)]
 pub(super) struct MyGenericService<'a, T> {
     _a: PhantomData<&'a T>,
 }
 
-#[gservice]
+#[service]
 impl<'a, T> MyGenericService<'a, T>
 where
     T: Clone,

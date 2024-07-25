@@ -1,5 +1,5 @@
 ---
-source: macros/core/tests/gservice.rs
+source: rs/macros/core/tests/gservice.rs
 expression: result
 ---
 impl SomeService {
@@ -127,13 +127,13 @@ impl sails_rs::gstd::services::Service for SomeService {
 }
 impl sails_rs::meta::ServiceMeta for SomeService {
     fn commands() -> sails_rs::scale_info::MetaType {
-        sails_rs::scale_info::MetaType::new::<meta::CommandsMeta>()
+        sails_rs::scale_info::MetaType::new::<meta_in_service::CommandsMeta>()
     }
     fn queries() -> sails_rs::scale_info::MetaType {
-        sails_rs::scale_info::MetaType::new::<meta::QueriesMeta>()
+        sails_rs::scale_info::MetaType::new::<meta_in_service::QueriesMeta>()
     }
     fn events() -> sails_rs::scale_info::MetaType {
-        sails_rs::scale_info::MetaType::new::<meta::EventsMeta>()
+        sails_rs::scale_info::MetaType::new::<meta_in_service::EventsMeta>()
     }
     fn base_services() -> impl Iterator<Item = sails_rs::meta::AnyServiceMeta> {
         [
@@ -150,7 +150,7 @@ use sails_rs::TypeInfo as __ServiceTypeInfo;
 #[codec(crate = sails_rs::scale_codec)]
 #[scale_info(crate = sails_rs::scale_info)]
 pub struct __DoThisParams {}
-mod meta {
+mod meta_in_service {
     use super::*;
     #[derive(__ServiceTypeInfo)]
     #[scale_info(crate = sails_rs::scale_info)]

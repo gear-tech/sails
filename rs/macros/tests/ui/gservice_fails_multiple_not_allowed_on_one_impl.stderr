@@ -1,7 +1,7 @@
-error: multiple `gservice` attributes on the same impl are not allowed
+error: multiple `service` attributes on the same impl are not allowed
   --> tests/ui/gservice_fails_multiple_not_allowed_on_one_impl.rs:6:1
    |
-6  | / #[gservice]
+6  | / #[service]
 7  | | impl MyService {
 8  | |     pub fn this(&self, p1: bool) -> bool {
 9  | |         !p1
