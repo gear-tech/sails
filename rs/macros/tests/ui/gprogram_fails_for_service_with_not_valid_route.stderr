@@ -1,5 +1,5 @@
-error: `groute` attribute requires a literal with a valid Rust identifier: unexpected token
- --> tests/ui/gprogram_fails_for_service_with_not_valid_route.rs:9:14
+error: `route` attribute requires a literal with a valid Rust identifier: unexpected token
+ --> tests/ui/gprogram_fails_for_service_with_not_valid_route.rs:9:13
   |
-9 |     #[groute("svc1/")]
-  |              ^^^^^^^
+9 |     #[route("svc1/")]
+  |             ^^^^^^^

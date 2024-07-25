@@ -54,7 +54,7 @@ struct MyProgram;
 
 #[gprogram]
 impl MyProgram {
-    #[groute("ping")]
+    #[route("ping")]
     pub fn ping_svc(&self) -> MyPing {
         MyPing::new()
     }
@@ -143,7 +143,7 @@ impl MyProgram {
 
 
 And the final key concept is message *__routing__*. This concept doesn't have a
-mandatory representation in code, but can be altered by using the `#[groute]`
+mandatory representation in code, but can be altered by using the `#[route]`
 attribute applied to those public methods and associated functions described above.
 The concept itself is about rules for dispatching an incoming request message to
 a specific service's method using service and method names. By default, every
@@ -160,13 +160,13 @@ impl MyProgram {
 }
 ```
 
-This behavior can be changed by applying the `#[groute]` attribute:
+This behavior can be changed by applying the `#[route]` attribute:
 
 ```rust
 #[gprogram]
 impl MyProgram {
     // The `MyPing` service is exposed as `Ping`
-    #[groute("ping")] // The specified name will be converted into PascalCase
+    #[route("ping")] // The specified name will be converted into PascalCase
     pub fn ping_svc(&self) -> MyPing {
         ...
     }
@@ -179,7 +179,7 @@ The same rules are applicable to service method names:
 #[service]
 impl MyPing {
     // The `do_ping` method is exposed as `Ping`
-    #[groute("ping")]
+    #[route("ping")]
     pub fn do_ping(&mut self) {
         ...
     }
@@ -403,7 +403,7 @@ Here is a brief overview of features mentioned above and showcased by the exampl
 
 The examples are composed on a principle of a few programs exposing several services.
 See [DemoProgram](/examples/demo/app/src/lib.rs) which demonstrates this, including
-the use of program's multiple constructors and the `#[groute]` attribute for one of
+the use of program's multiple constructors and the `#[route]` attribute for one of
 the exposed services. The example also includes Rust [build script](/examples/demo/app/build.rs)
 building the program as a WASM app ready for loading onto Gear network.
 

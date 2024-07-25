@@ -42,7 +42,7 @@ pub mod ffi {
 }
 
 pub use crate::{
-    gstd::{gprogram, groute, service},
+    gstd::{gprogram, route, service},
     types::*,
 };
 

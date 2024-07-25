@@ -4,7 +4,7 @@
 #[cfg(not(target_arch = "wasm32"))]
 pub extern crate std;
 
-use sails_rs::gstd::{calls::GStdRemoting, gprogram, groute, GStdExecContext};
+use sails_rs::gstd::{calls::GStdRemoting, gprogram, route, GStdExecContext};
 use services::ResourceStorage;
 
 mod catalogs;
@@ -27,7 +27,7 @@ impl Program {
     }
 
     // Expose hosted service
-    #[groute("RmrkResource")]
+    #[route("RmrkResource")]
     pub fn resource_storage(&self) -> ResourceStorage<GStdExecContext, RmrkCatalog> {
         ResourceStorage::new(GStdExecContext::default(), RmrkCatalog::new(GStdRemoting))
     }

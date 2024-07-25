@@ -60,7 +60,7 @@ impl DemoProgram {
     }
 
     // Exposing service with overriden route
-    #[groute("ping_pong")]
+    #[route("ping_pong")]
     pub fn ping(&self) -> ping::PingService {
         ping::PingService::default()
     }
