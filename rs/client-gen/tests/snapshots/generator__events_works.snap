@@ -97,10 +97,10 @@ pub mod traits {
         ) -> impl Call<Output = NonZeroU64, Args = Self::Args>;
     }
 }
-#[cfg(feature = "mockall")]
+#[cfg(feature = "with_mocks")]
 #[cfg(not(target_arch = "wasm32"))]
 extern crate std;
-#[cfg(feature = "mockall")]
+#[cfg(feature = "with_mocks")]
 #[cfg(not(target_arch = "wasm32"))]
 pub mod mockall {
     use super::*;

@@ -24,9 +24,9 @@ scale-info = { workspace = true, features = ["derive"] }
 spin.workspace = true
 thiserror-no-std.workspace = true
 
-[features]
-mockall = ["dep:mockall"]
-
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 gclient.workspace = true
 gtest.workspace = true
+
+[features]
+mockall = ["dep:mockall"]

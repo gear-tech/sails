@@ -106,10 +106,10 @@ pub mod traits {
         fn that(&self, p1: u32) -> impl Query<Output = String, Args = Self::Args>;
     }
 }
-#[cfg(feature = "mockall")]
+#[cfg(feature = "with_mocks")]
 #[cfg(not(target_arch = "wasm32"))]
 extern crate std;
-#[cfg(feature = "mockall")]
+#[cfg(feature = "with_mocks")]
 #[cfg(not(target_arch = "wasm32"))]
 pub mod mockall {
     use super::*;

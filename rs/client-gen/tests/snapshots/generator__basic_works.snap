@@ -86,10 +86,10 @@ pub mod traits {
         fn do_that(&mut self, p1: (u8, u32)) -> impl Call<Output = u8, Args = Self::Args>;
     }
 }
-#[cfg(feature = "mockall")]
+#[cfg(feature = "with_mocks")]
 #[cfg(not(target_arch = "wasm32"))]
 extern crate std;
-#[cfg(feature = "mockall")]
+#[cfg(feature = "with_mocks")]
 #[cfg(not(target_arch = "wasm32"))]
 pub mod mockall {
     use super::*;

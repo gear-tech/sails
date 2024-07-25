@@ -18,5 +18,4 @@ rmrk-resource-app = { path = ".", features = ["mockall"] }
 tokio = { workspace = true, features = ["rt", "macros"] }
 
 [features]
-std = []
-mockall = ["std", "sails-rs/mockall", "dep:mockall"]
+mockall = ["sails-rs/mockall", "dep:mockall"]

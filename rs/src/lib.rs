@@ -17,12 +17,11 @@ pub mod gsdk;
 pub mod gstd;
 #[cfg(not(target_arch = "wasm32"))]
 pub mod gtest;
-pub mod prelude;
-mod types;
-
 #[cfg(feature = "mockall")]
 #[cfg(not(target_arch = "wasm32"))]
 pub mod mockall;
+pub mod prelude;
+mod types;
 
 pub mod meta {
     use crate::Vec;
