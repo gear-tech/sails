@@ -20,7 +20,7 @@
 
 use crate::{
     sails_paths,
-    shared::{self, extract_lifetime_names, Func, ImplType},
+    shared::{self, Func, ImplType, *},
 };
 use args::ServiceArgs;
 use convert_case::{Case, Casing};
@@ -529,7 +529,7 @@ impl<'a> HandlerGenerator<'a> {
     }
 
     fn result_type(&self) -> Type {
-        self.handler.result().clone()
+        type_to_meta_type_with_static_lifetime(self.handler.result().clone())
     }
 
     fn handler_func_ident(&self) -> Ident {

@@ -30,6 +30,14 @@ impl ReferenceService {
             &*ptr::addr_of!(BYTES)
         }
     }
+
+    pub async fn first_byte<'a>(&self) -> Option<&'a u8> {
+        unsafe { BYTES.first() }
+    }
+
+    pub async fn last_byte<'a>(&self) -> Option<&'a u8> {
+        unsafe { BYTES.last() }
+    }
 }
 
 #[derive(Debug, Encode, Decode, TypeInfo)]
