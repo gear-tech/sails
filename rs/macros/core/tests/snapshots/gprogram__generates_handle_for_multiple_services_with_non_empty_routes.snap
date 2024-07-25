@@ -16,7 +16,7 @@ static __ROUTE_SERVICE2: [u8; 9usize] = [
 ];
 static __ROUTE_SVC1: [u8; 5usize] = [16u8, 83u8, 118u8, 99u8, 49u8];
 impl MyProgram {
-    #[groute("svc1")]
+    #[route("svc1")]
     pub fn service1(
         &self,
     ) -> <MyService as sails_rs::gstd::services::Service>::Exposure {

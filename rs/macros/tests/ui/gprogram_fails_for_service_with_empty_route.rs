@@ -6,7 +6,7 @@ struct MyProgram;
 
 #[gprogram]
 impl MyProgram {
-    #[groute("")]
+    #[route("")]
     pub fn service1(&self) -> MyService {
         MyService
     }
