@@ -12,3 +12,6 @@ gwasm-builder.workspace = true
 no-svcs-prog-app = { path = "../app" }
 sails-client-gen.workspace = true
 sails-idl-gen.workspace = true
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["rt", "macros"] }

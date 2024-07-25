@@ -8,49 +8,23 @@ use syn::{
     PathArguments, Receiver, ReturnType, Signature, Type, TypePath, TypeTuple, WhereClause,
 };
 
-/// A struct that represents the type of an `impl` block.
-pub(crate) struct ImplType<'a> {
-    path: &'a TypePath,
-    args: &'a PathArguments,
-    constraints: Option<&'a WhereClause>,
-}
-
-impl<'a> ImplType<'a> {
-    pub(crate) fn new(item_impl: &'a ItemImpl) -> Self {
-        let path = impl_type_path(item_impl);
-        let args = &path.path.segments.last().unwrap().arguments;
-        let constraints = item_impl.generics.where_clause.as_ref();
-        Self {
-            path,
-            args,
-            constraints,
-        }
-    }
-
-    pub(crate) fn path(&self) -> &TypePath {
-        self.path
-    }
-
-    pub(crate) fn args(&self) -> &PathArguments {
-        self.args
-    }
-
-    pub(crate) fn constraints(&self) -> Option<&WhereClause> {
-        self.constraints
-    }
-}
-
-pub(crate) fn impl_type_path(item_impl: &ItemImpl) -> &TypePath {
+pub(crate) fn impl_type(item_impl: &ItemImpl) -> (TypePath, PathArguments) {
     let item_impl_type = item_impl.self_ty.as_ref();
-    if let Type::Path(type_path) = item_impl_type {
-        type_path
+    let path = if let Type::Path(type_path) = item_impl_type {
+        type_path.clone()
     } else {
         abort!(
             item_impl_type,
             "failed to parse impl type: {}",
             item_impl_type.to_token_stream()
         )
-    }
+    };
+    let args = path.path.segments.last().unwrap().arguments.clone();
+    (path, args)
+}
+
+pub(crate) fn impl_constraints(item_impl: &ItemImpl) -> Option<WhereClause> {
+    item_impl.generics.where_clause.clone()
 }
 
 /// Represents parts of a handler function.
