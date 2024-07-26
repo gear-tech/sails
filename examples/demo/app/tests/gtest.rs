@@ -88,6 +88,35 @@ async fn counter_sub_works() {
 }
 
 #[tokio::test]
+async fn counter_value_by_ref_works() {
+    // Arrange
+
+    let fixture = Fixture::new(fixture::ADMIN_ID);
+
+    let demo_factory = fixture.demo_factory();
+
+    // Use generated client code for activating Demo program
+    // using the `new` constructor and the `send_recv` method
+    let demo_program_id = demo_factory
+        .new(Some(42), None)
+        .send_recv(fixture.demo_code_id(), "123")
+        .await
+        .unwrap();
+
+    let counter_client = fixture.counter_client();
+
+    // Act
+    let val = counter_client
+        .value_by_ref()
+        .recv(demo_program_id)
+        .await
+        .unwrap();
+
+    // Assert
+    assert_eq!(val, 42);
+}
+
+#[tokio::test]
 async fn ping_pong_works() {
     let fixture = Fixture::new(fixture::ADMIN_ID);
 

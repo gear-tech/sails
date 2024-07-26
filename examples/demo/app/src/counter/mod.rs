@@ -58,4 +58,8 @@ impl<'a> CounterService<'a> {
     pub fn value(&self) -> u32 {
         self.data.borrow().counter
     }
+
+    pub fn value_by_ref(&self) -> &'a u32 {
+        unsafe { &(*self.data.as_ptr()).counter }
+    }
 }

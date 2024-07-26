@@ -30,6 +30,7 @@ service Counter {
   Add : (value: u32) -> u32;
   Sub : (value: u32) -> u32;
   query Value : () -> u32;
+  query ValueByRef : () -> u32;
 
   events {
     Added: u32;
