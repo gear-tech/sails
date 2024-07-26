@@ -35,6 +35,11 @@ impl GSdkRemoting {
         Self { api }
     }
 
+    pub fn with_suri(self, suri: impl AsRef<str>) -> Self {
+        let api = self.api.with(suri).unwrap();
+        Self { api }
+    }
+
     pub fn api(&self) -> &GearApi {
         &self.api
     }
