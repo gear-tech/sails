@@ -16,7 +16,7 @@ different languages and executed in different runtimes
 > [!NOTE]
 > The Sails library is published under the name `sails-rs` on `crates-io`.
 >
-> Versions in [v0.1.0; v0.1.1] are pinned to v1.4.2 of gear libs.
+> Versions "<= 0.2.0" are pinned to v1.4.2 of gear libs.
 
 ## Getting started
 
