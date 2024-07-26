@@ -1,6 +1,6 @@
 use crate::{
     sails_paths,
-    shared::{self, Func, ImplType},
+    shared::{self, Func},
 };
 use args::ProgramArgs;
 use parity_scale_codec::Encode;
@@ -113,12 +113,11 @@ fn gen_gprogram_impl(program_impl: ItemImpl, program_args: ProgramArgs) -> Token
 
     let services_routes = services_data.iter().map(|item| &item.0);
 
-    let program_type = ImplType::new(&program_impl);
-    let program_type_path = program_type.path();
-    let program_type_args = program_type.args();
-    let program_type_constraints = program_type.constraints();
+    let (program_type_path, program_type_args) = shared::impl_type(&program_impl);
+    let program_type_constraints = shared::impl_constraints(&program_impl);
 
-    let (ctors_data, init_fn) = generate_init(&program_impl, program_type_path, &program_ident);
+    let (ctors_data, init_fn) =
+        generate_init(&mut program_impl, &program_type_path, &program_ident);
 
     let ctors_params_structs = ctors_data.clone().map(|item| item.2);
 
@@ -221,13 +220,21 @@ fn wire_up_service_exposure(
 }
 
 fn generate_init(
-    program_impl: &ItemImpl,
+    program_impl: &mut ItemImpl,
     program_type_path: &TypePath,
     program_ident: &Ident,
 ) -> (
     impl Iterator<Item = (String, Ident, TokenStream2)> + Clone,
     TokenStream2,
 ) {
+    if discover_program_ctors(program_impl, program_type_path).is_empty() {
+        program_impl.items.push(ImplItem::Fn(parse_quote!(
+            pub fn default() -> Self {
+                Self
+            }
+        )));
+    }
+
     let program_ctors = discover_program_ctors(program_impl, program_type_path);
 
     let input_ident = Ident::new("input", Span::call_site());
@@ -281,43 +288,23 @@ fn generate_init(
         });
     }
 
-    let init = if program_ctors.is_empty() {
-        let unexpected_ctor_panic =
-            shared::generate_unexpected_input_panic(&input_ident, "Unexpected ctor");
+    invocation_dispatches.push(shared::generate_unexpected_input_panic(
+        &input_ident,
+        "Unexpected ctor",
+    ));
 
-        quote!(
-            #[no_mangle]
-            extern "C" fn init() {
-                sails_rs::gstd::events::__enable_events();
-                let #input_ident: &[u8] = &gstd::msg::load_bytes().expect("Failed to read input");
-                if !#input_ident.is_empty() {
-                    #unexpected_ctor_panic
-                }
-                unsafe {
-                    #program_ident = Some(#program_type_path);
-                }
-                gstd::msg::reply_bytes(#input_ident, 0).expect("Failed to send output");
+    let init = quote!(
+        #[gstd::async_init]
+        async fn init() {
+            sails_rs::gstd::events::__enable_events();
+            let mut #input_ident: &[u8] = &gstd::msg::load_bytes().expect("Failed to read input");
+            let (program, invocation_route) = #(#invocation_dispatches)else*;
+            unsafe {
+                #program_ident = Some(program);
             }
-        )
-    } else {
-        invocation_dispatches.push(shared::generate_unexpected_input_panic(
-            &input_ident,
-            "Unexpected ctor",
-        ));
-
-        quote!(
-            #[gstd::async_init]
-            async fn init() {
-                sails_rs::gstd::events::__enable_events();
-                let mut #input_ident: &[u8] = &gstd::msg::load_bytes().expect("Failed to read input");
-                let (program, invocation_route) = #(#invocation_dispatches)else*;
-                unsafe {
-                    #program_ident = Some(program);
-                }
-                gstd::msg::reply_bytes(invocation_route, 0).expect("Failed to send output");
-            }
-        )
-    };
+            gstd::msg::reply_bytes(invocation_route, 0).expect("Failed to send output");
+        }
+    );
 
     (invocation_params_structs.into_iter(), init)
 }
@@ -432,7 +419,7 @@ mod tests {
             }
         ))
         .unwrap();
-        let program_type_path = ImplType::new(&program_impl).path().clone();
+        let (program_type_path, ..) = shared::impl_type(&program_impl);
 
         let discovered_ctors = discover_program_ctors(&program_impl, &program_type_path)
             .iter()

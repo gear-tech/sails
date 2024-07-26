@@ -20,7 +20,7 @@
 
 use crate::{
     sails_paths,
-    shared::{self, extract_lifetime_names, Func, ImplType},
+    shared::{self, extract_lifetime_names, Func},
 };
 use args::ServiceArgs;
 use convert_case::{Case, Casing};
@@ -79,7 +79,7 @@ fn ensure_single_gservice_on_impl(service_impl: &ItemImpl) {
 }
 
 fn ensure_single_gservice_by_name(service_impl: &ItemImpl) {
-    let path = shared::impl_type_path(service_impl);
+    let (path, ..) = shared::impl_type(service_impl);
     let type_ident = path.path.segments.last().unwrap().ident.to_string();
     if unsafe { SERVICE_SPANS.get(&type_ident) }.is_some() {
         abort!(
@@ -99,14 +99,8 @@ fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
         )
     });
 
-    let (service_type, service_type_args, service_type_constraints) = {
-        let service_type = ImplType::new(&service_impl);
-        (
-            service_type.path().clone(),
-            service_type.args().clone(),
-            service_type.constraints().cloned(),
-        )
-    };
+    let (service_type_path, service_type_args) = shared::impl_type(&service_impl);
+    let service_type_constraints = shared::impl_constraints(&service_impl);
 
     let service_handlers = discover_service_handlers(&service_impl);
 
@@ -291,9 +285,9 @@ fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
         quote! { #exposure_lifetimes, T }
     };
     let exposure_args = if exposure_lifetimes.is_empty() {
-        quote! { #service_type }
+        quote! { #service_type_path }
     } else {
-        quote! { #exposure_lifetimes, #service_type }
+        quote! { #exposure_lifetimes, #service_type_path }
     };
 
     quote!(
@@ -345,7 +339,7 @@ fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
             }
         }
 
-        impl #service_type_args sails_rs::gstd::services::Service for #service_type #service_type_constraints {
+        impl #service_type_args sails_rs::gstd::services::Service for #service_type_path #service_type_constraints {
             type Exposure = Exposure< #exposure_args >;
 
             fn expose(self, #message_id_ident : sails_rs::MessageId, #route_ident : &'static [u8]) -> Self::Exposure {
@@ -369,7 +363,7 @@ fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
             }
         }
 
-        impl #service_type_args sails_rs::meta::ServiceMeta for #service_type #service_type_constraints {
+        impl #service_type_args sails_rs::meta::ServiceMeta for #service_type_path #service_type_constraints {
             fn commands() -> #scale_info_path ::MetaType {
                 #scale_info_path ::MetaType::new::<meta_in_service::CommandsMeta>()
             }
