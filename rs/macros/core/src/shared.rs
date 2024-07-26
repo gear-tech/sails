@@ -195,7 +195,7 @@ pub(crate) fn extract_lifetime_names(path_args: &PathArguments) -> Vec<String> {
     }
 }
 
-pub(crate) fn type_to_meta_type_with_static_lifetime(ty: Type) -> Type {
+pub(crate) fn replace_any_lifetime_with_static(ty: Type) -> Type {
     match ty {
         Type::Reference(r) => {
             if r.lifetime.is_some() {
@@ -210,19 +210,19 @@ pub(crate) fn type_to_meta_type_with_static_lifetime(ty: Type) -> Type {
             }
         }
         Type::Path(p) => Type::Path(TypePath {
-            path: path_to_meta(p.path),
+            path: replace_lifetime_with_static_in_path(p.path),
             qself: p.qself,
         }),
         _ => ty,
     }
 }
 
-fn path_to_meta(path: Path) -> Path {
+fn replace_lifetime_with_static_in_path(path: Path) -> Path {
     let mut segments: Punctuated<PathSegment, Token![::]> = Punctuated::new();
     for s in path.segments {
         segments.push(PathSegment {
             ident: s.ident,
-            arguments: path_segments_to_meta(s.arguments),
+            arguments: replace_lifetime_with_static_in_path_args(s.arguments),
         });
     }
     Path {
@@ -231,13 +231,13 @@ fn path_to_meta(path: Path) -> Path {
     }
 }
 
-fn path_segments_to_meta(path_args: PathArguments) -> PathArguments {
+fn replace_lifetime_with_static_in_path_args(path_args: PathArguments) -> PathArguments {
     if let PathArguments::AngleBracketed(mut type_args) = path_args {
         type_args.args.iter_mut().for_each(|a| match a {
             GenericArgument::Lifetime(lifetime) => {
                 *lifetime = Lifetime::new("'static", Span::call_site());
             }
-            GenericArgument::Type(ty) => *ty = type_to_meta_type_with_static_lifetime(ty.clone()),
+            GenericArgument::Type(ty) => *ty = replace_any_lifetime_with_static(ty.clone()),
             _ => {}
         });
         PathArguments::AngleBracketed(type_args)
