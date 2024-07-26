@@ -1,4 +1,4 @@
-use sails_macros::{groute, service};
+use sails_macros::{route, service};
 
 struct MyService;
 
@@ -8,7 +8,7 @@ impl MyService {
         format!("{p1}: ") + &p2
     }
 
-    #[groute("this")]
+    #[route("this")]
     fn this(&self, p1: bool) -> bool {
         !p1
     }

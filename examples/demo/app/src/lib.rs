@@ -30,7 +30,7 @@ pub struct DemoProgram {
     counter_data: RefCell<counter::CounterData>,
 }
 
-#[gprogram]
+#[program]
 impl DemoProgram {
     #[allow(clippy::should_implement_trait)]
     // Program constructor (called once at the very beginning of the program lifetime)
@@ -61,7 +61,7 @@ impl DemoProgram {
     }
 
     // Exposing service with overriden route
-    #[groute("ping_pong")]
+    #[route("ping_pong")]
     pub fn ping(&self) -> ping::PingService {
         ping::PingService::default()
     }

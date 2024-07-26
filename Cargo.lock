@@ -4135,6 +4135,7 @@ dependencies = [
  "sails-client-gen",
  "sails-idl-gen",
  "sails-rs",
+ "tokio",
 ]
 
 [[package]]

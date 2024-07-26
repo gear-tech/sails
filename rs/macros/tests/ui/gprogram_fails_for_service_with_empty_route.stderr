@@ -1,5 +1,5 @@
-error: `groute` attribute requires a literal with a valid Rust identifier: unexpected end of input, expected identifier
- --> tests/ui/gprogram_fails_for_service_with_empty_route.rs:9:14
+error: `route` attribute requires a literal with a valid Rust identifier: unexpected end of input, expected identifier
+ --> tests/ui/gprogram_fails_for_service_with_empty_route.rs:9:13
   |
-9 |     #[groute("")]
-  |              ^^
+9 |     #[route("")]
+  |             ^^

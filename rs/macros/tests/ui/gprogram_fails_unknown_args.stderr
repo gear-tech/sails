@@ -1,5 +1,5 @@
-error: `gprogram` attribute can only contain `handle_reply` and `handle_signal` parameters
- --> tests/ui/gprogram_fails_unknown_args.rs:5:12
+error: `program` attribute can only contain `handle_reply` and `handle_signal` parameters
+ --> tests/ui/gprogram_fails_unknown_args.rs:5:11
   |
-5 | #[gprogram(_handle_reply = my_handle_reply, handle_signal = my_handle_signal)]
-  |            ^^^^^^^^^^^^^
+5 | #[program(_handle_reply = my_handle_reply, handle_signal = my_handle_signal)]
+  |           ^^^^^^^^^^^^^

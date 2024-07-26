@@ -8,7 +8,7 @@ pub fn groute(_attrs: TokenStream, impl_item_fn_tokens: TokenStream) -> TokenStr
         .unwrap_or_else(|err| {
             abort!(
                 err.span(),
-                "`groute` attribute can be applied to impls only: {}",
+                "`route` attribute can be applied to impls only: {}",
                 err
             )
         });
@@ -16,7 +16,7 @@ pub fn groute(_attrs: TokenStream, impl_item_fn_tokens: TokenStream) -> TokenStr
         syn::Visibility::Public(_) => impl_item_fn_tokens,
         _ => abort!(
             route_fn_impl.span(),
-            "`groute` attribute can be applied to public methods only"
+            "`route` attribute can be applied to public methods only"
         ),
     }
 }
@@ -31,7 +31,7 @@ pub(crate) fn invocation_route(invocation_func: &ImplItemFn) -> (Span, String) {
             attr.path
                 .segments
                 .last()
-                .map(|s| s.ident == "groute")
+                .map(|s| s.ident == "route")
                 .unwrap_or(false)
         })
         .filter_map(|attr| {
@@ -45,7 +45,7 @@ pub(crate) fn invocation_route(invocation_func: &ImplItemFn) -> (Span, String) {
                 _ = syn::parse_str::<Ident>(&route).map_err(|err| {
                     abort!(
                         lit.span(),
-                        "`groute` attribute requires a literal with a valid Rust identifier: {}",
+                        "`route` attribute requires a literal with a valid Rust identifier: {}",
                         err
                     )
                 });
@@ -53,7 +53,7 @@ pub(crate) fn invocation_route(invocation_func: &ImplItemFn) -> (Span, String) {
             } else {
                 abort!(
                     lit.span(),
-                    "`groute` attribute requires a literal with a valid Rust identifier",
+                    "`route` attribute requires a literal with a valid Rust identifier",
                 )
             }
         })
@@ -61,7 +61,7 @@ pub(crate) fn invocation_route(invocation_func: &ImplItemFn) -> (Span, String) {
     if routes.len() > 1 {
         abort!(
             routes[1].0,
-            "multiple `groute` attributes are not allowed for the same method"
+            "multiple `route` attributes are not allowed for the same method"
         );
     }
     routes

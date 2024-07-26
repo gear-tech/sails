@@ -1,4 +1,4 @@
-error: `gprogram` attribute can be applied to impls only: expected `impl`
+error: `program` attribute can be applied to impls only: expected `impl`
  --> tests/ui/gprogram_fails_to_parse_program_impl.rs:4:1
   |
 4 | struct MyProgram;

@@ -1,6 +1,6 @@
-use sails_macros::gprogram;
+use sails_macros::program;
 
-#[gprogram]
+#[program]
 struct MyProgram;
 
 #[tokio::main]

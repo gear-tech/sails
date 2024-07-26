@@ -1,15 +1,15 @@
-use sails_macros::gprogram;
+use sails_macros::program;
 
 struct MyProgram;
 
-#[gprogram]
+#[program]
 impl MyProgram {
     pub fn new() -> Self {
         Self
     }
 }
 
-#[gprogram]
+#[program]
 impl MyProgram {
     pub fn default() -> Self {
         Self

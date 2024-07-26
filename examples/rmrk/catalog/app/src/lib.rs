@@ -1,6 +1,6 @@
 #![no_std]
 
-use sails_rs::gstd::{gprogram, groute, GStdExecContext};
+use sails_rs::gstd::{program, route, GStdExecContext};
 use services::Catalog;
 
 // Exposed publicly because of tests which use generated data
@@ -10,7 +10,7 @@ pub mod services;
 #[derive(Default)]
 pub struct Program;
 
-#[gprogram]
+#[program]
 impl Program {
     // Initialize program and seed hosted services
     pub fn new() -> Self {
@@ -20,7 +20,7 @@ impl Program {
     }
 
     // Expose hosted service
-    #[groute("RmrkCatalog")]
+    #[route("RmrkCatalog")]
     pub fn catalog(&self) -> Catalog<GStdExecContext> {
         let exec_context = GStdExecContext::default();
         Catalog::new(exec_context)

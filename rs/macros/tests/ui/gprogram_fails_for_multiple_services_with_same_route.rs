@@ -1,17 +1,17 @@
-use sails_macros::gprogram;
+use sails_macros::program;
 
 struct MyService;
 
 struct MyProgram;
 
-#[gprogram]
+#[program]
 impl MyProgram {
-    #[groute("svc")]
+    #[route("svc")]
     pub fn service1(&self) -> MyService {
         MyService
     }
 
-    #[groute("svc")]
+    #[route("svc")]
     pub fn service2(&self) -> MyService {
         MyService
     }
