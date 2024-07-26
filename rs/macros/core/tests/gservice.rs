@@ -127,3 +127,41 @@ fn works_with_extends_and_lifetimes() {
 
     insta::assert_snapshot!(result);
 }
+
+#[test]
+fn works_with_methods_with_lifetimes() {
+    let input = quote! {
+        impl ReferenceService {
+            pub fn baked(&self) -> &'static str {
+                "Static str!"
+            }
+
+            pub fn incr(&mut self) -> &'static ReferenceCount {
+                unsafe {
+                    COUNTER.0 += 1;
+                    &*ptr::addr_of!(COUNTER)
+                }
+            }
+
+            pub fn add_byte(&mut self, byte: u8) -> &'static [u8] {
+                unsafe {
+                    BYTES.push(byte);
+                    &*ptr::addr_of!(BYTES)
+                }
+            }
+
+            pub async fn first_byte<'a>(&self) -> Option<&'a u8> {
+                unsafe { BYTES.first() }
+            }
+
+            pub async fn last_byte<'a>(&self) -> Option<&'a u8> {
+                unsafe { BYTES.last() }
+            }
+        }
+    };
+
+    let result = gservice(TokenStream::new(), input).to_string();
+    let result = prettyplease::unparse(&syn::parse_str(&result).unwrap());
+
+    insta::assert_snapshot!(result);
+}

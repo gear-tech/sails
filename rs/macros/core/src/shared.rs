@@ -4,8 +4,9 @@ use proc_macro_error::abort;
 use quote::{quote, ToTokens};
 use std::collections::BTreeMap;
 use syn::{
-    spanned::Spanned, FnArg, GenericArgument, Ident, ImplItem, ImplItemFn, ItemImpl, Pat,
-    PathArguments, Receiver, ReturnType, Signature, Type, TypePath, TypeTuple, WhereClause,
+    punctuated::Punctuated, spanned::Spanned, FnArg, GenericArgument, Ident, ImplItem, ImplItemFn,
+    ItemImpl, Lifetime, Pat, Path, PathArguments, PathSegment, Receiver, ReturnType, Signature,
+    Token, Type, TypePath, TypeReference, TypeTuple, WhereClause,
 };
 
 pub(crate) fn impl_type(item_impl: &ItemImpl) -> (TypePath, PathArguments) {
@@ -165,5 +166,56 @@ pub(crate) fn extract_lifetime_names(path_args: &PathArguments) -> Vec<String> {
             .collect::<Vec<_>>()
     } else {
         Vec::<String>::new()
+    }
+}
+
+pub(crate) fn replace_any_lifetime_with_static(ty: Type) -> Type {
+    match ty {
+        Type::Reference(r) => {
+            if r.lifetime.is_some() {
+                Type::Reference(TypeReference {
+                    and_token: r.and_token,
+                    lifetime: Some(Lifetime::new("'static", Span::call_site())),
+                    mutability: r.mutability,
+                    elem: r.elem,
+                })
+            } else {
+                Type::Reference(r)
+            }
+        }
+        Type::Path(p) => Type::Path(TypePath {
+            path: replace_lifetime_with_static_in_path(p.path),
+            qself: p.qself,
+        }),
+        _ => ty,
+    }
+}
+
+fn replace_lifetime_with_static_in_path(path: Path) -> Path {
+    let mut segments: Punctuated<PathSegment, Token![::]> = Punctuated::new();
+    for s in path.segments {
+        segments.push(PathSegment {
+            ident: s.ident,
+            arguments: replace_lifetime_with_static_in_path_args(s.arguments),
+        });
+    }
+    Path {
+        leading_colon: path.leading_colon,
+        segments,
+    }
+}
+
+fn replace_lifetime_with_static_in_path_args(path_args: PathArguments) -> PathArguments {
+    if let PathArguments::AngleBracketed(mut type_args) = path_args {
+        type_args.args.iter_mut().for_each(|a| match a {
+            GenericArgument::Lifetime(lifetime) => {
+                *lifetime = Lifetime::new("'static", Span::call_site());
+            }
+            GenericArgument::Type(ty) => *ty = replace_any_lifetime_with_static(ty.clone()),
+            _ => {}
+        });
+        PathArguments::AngleBracketed(type_args)
+    } else {
+        path_args
     }
 }

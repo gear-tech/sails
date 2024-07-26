@@ -54,9 +54,14 @@ service PingPong {
 };
 
 service References {
+  Add : (v: u32) -> u32;
   AddByte : (byte: u8) -> vec u8;
+  GuessNum : (number: u8) -> result (str, str);
   Incr : () -> ReferenceCount;
+  SetNum : (number: u8) -> result (null, str);
   query Baked : () -> str;
+  query LastByte : () -> opt u8;
+  query Message : () -> opt str;
 };
 
 service ThisThat {

@@ -20,7 +20,7 @@
 
 use crate::{
     sails_paths,
-    shared::{self, extract_lifetime_names, Func},
+    shared::{self, Func},
 };
 use args::ServiceArgs;
 use convert_case::{Case, Casing};
@@ -245,7 +245,7 @@ fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
 
     let events_listeners_code = events_type.map(|_| generate_event_listeners());
 
-    let lifetimes = extract_lifetime_names(&service_type_args);
+    let lifetimes = shared::extract_lifetime_names(&service_type_args);
     let exposure_set_event_listener_code = events_type.map(|t| {
         // get non conflicting lifetime name
 
@@ -523,7 +523,7 @@ impl<'a> HandlerGenerator<'a> {
     }
 
     fn result_type(&self) -> Type {
-        self.handler.result().clone()
+        shared::replace_any_lifetime_with_static(self.handler.result().clone())
     }
 
     fn handler_func_ident(&self) -> Ident {
