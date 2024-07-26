@@ -14,6 +14,7 @@ mod this_that;
 // the Counter data incapsulated in the program itself, i.e. there are no any benefits
 // of using a global variable here. It is just a demonstration of how to use global variables.
 static mut DOG_DATA: Option<RefCell<walker::WalkerData>> = None;
+static mut REF_DATA: u8 = 42;
 
 fn dog_data() -> &'static RefCell<walker::WalkerData> {
     unsafe {
@@ -76,7 +77,10 @@ impl DemoProgram {
     }
 
     pub fn references(&self) -> references::ReferenceService {
-        references::ReferenceService::default()
+        #[allow(static_mut_refs)]
+        unsafe {
+            references::ReferenceService::new(&mut REF_DATA, "demo")
+        }
     }
 
     pub fn this_that(&self) -> this_that::MyService {

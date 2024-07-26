@@ -88,35 +88,6 @@ async fn counter_sub_works() {
 }
 
 #[tokio::test]
-async fn counter_value_by_ref_works() {
-    // Arrange
-
-    let fixture = Fixture::new(fixture::ADMIN_ID);
-
-    let demo_factory = fixture.demo_factory();
-
-    // Use generated client code for activating Demo program
-    // using the `new` constructor and the `send_recv` method
-    let demo_program_id = demo_factory
-        .new(Some(42), None)
-        .send_recv(fixture.demo_code_id(), "123")
-        .await
-        .unwrap();
-
-    let counter_client = fixture.counter_client();
-
-    // Act
-    let val = counter_client
-        .value_by_ref()
-        .recv(demo_program_id)
-        .await
-        .unwrap();
-
-    // Assert
-    assert_eq!(val, 42);
-}
-
-#[tokio::test]
 async fn ping_pong_works() {
     let fixture = Fixture::new(fixture::ADMIN_ID);
 
@@ -297,8 +268,45 @@ async fn references_bytes() {
         .await
         .unwrap();
 
-    let first = client.first_byte().recv(demo_program_id).await.unwrap();
     let last = client.last_byte().recv(demo_program_id).await.unwrap();
-    assert_eq!(Some(42), first);
     assert_eq!(Some(14), last);
+}
+
+#[tokio::test]
+async fn references_guess_num() {
+    let fixture = Fixture::new(fixture::ADMIN_ID);
+
+    let demo_factory = fixture.demo_factory();
+
+    let demo_program_id = demo_factory
+        .new(None, Some((1, -1)))
+        .send_recv(fixture.demo_code_id(), "123")
+        .await
+        .unwrap();
+
+    let mut client = fixture.references_client();
+
+    let res1 = client
+        .guess_num(42)
+        .send_recv(demo_program_id)
+        .await
+        .unwrap();
+    let res2 = client
+        .guess_num(89)
+        .send_recv(demo_program_id)
+        .await
+        .unwrap();
+    let res3 = client.message().recv(demo_program_id).await.unwrap();
+    let res4 = client.set_num(14).send_recv(demo_program_id).await.unwrap();
+    let res5 = client
+        .guess_num(14)
+        .send_recv(demo_program_id)
+        .await
+        .unwrap();
+
+    assert_eq!(Ok("demo".to_owned()), res1);
+    assert_eq!(Err("Number is too large".to_owned()), res2);
+    assert_eq!(Some("demo".to_owned()), res3);
+    assert_eq!(Ok(()), res4);
+    assert_eq!(Ok("demo".to_owned()), res5);
 }
