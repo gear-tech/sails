@@ -9,11 +9,11 @@ async fn activating_program_succeeds() {
     let remoting = GTestRemoting::new(ADMIN_ID.into());
     remoting.system().init_logger();
 
-    let program_code_code_id = remoting.system().submit_code_file(WASM_PATH);
+    let program_code_id = remoting.system().submit_code_file(WASM_PATH);
 
     let program_id = NoSvcsProgFactory::new(remoting.clone())
         .default()
-        .send_recv(program_code_code_id, "123")
+        .send_recv(program_code_id, "123")
         .await
         .unwrap();
 
