@@ -5305,6 +5305,7 @@ dependencies = [
 name = "sails-macros-core"
 version = "0.2.0"
 dependencies = [
+ "cargo_metadata",
  "const_format",
  "convert_case 0.6.0",
  "insta",
