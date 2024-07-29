@@ -1,8 +1,8 @@
 ---
 source: rs/macros/core/tests/gprogram.rs
-assertion_line: 67
 expression: result
 ---
+use sails_rs as _sails;
 static __ROUTE_SERVICE: [u8; 8usize] = [
     28u8,
     83u8,
@@ -14,11 +14,11 @@ static __ROUTE_SERVICE: [u8; 8usize] = [
     101u8,
 ];
 impl MyProgram {
-    pub fn service(&self) -> <MyService as sails_rs::gstd::services::Service>::Exposure {
+    pub fn service(&self) -> <MyService as _sails::gstd::services::Service>::Exposure {
         let service = self.__service();
-        let exposure = <MyService as sails_rs::gstd::services::Service>::expose(
+        let exposure = <MyService as _sails::gstd::services::Service>::expose(
             service,
-            sails_rs::gstd::msg::id().into(),
+            _sails::gstd::msg::id().into(),
             __ROUTE_SERVICE.as_ref(),
         );
         exposure
@@ -30,14 +30,12 @@ impl MyProgram {
         Self
     }
 }
-impl sails_rs::meta::ProgramMeta for MyProgram {
+impl _sails::meta::ProgramMeta for MyProgram {
     fn constructors() -> sails_rs::scale_info::MetaType {
         sails_rs::scale_info::MetaType::new::<meta_in_program::ConstructorsMeta>()
     }
-    fn services() -> impl Iterator<
-        Item = (&'static str, sails_rs::meta::AnyServiceMeta),
-    > {
-        [("Service", sails_rs::meta::AnyServiceMeta::new::<MyService>())].into_iter()
+    fn services() -> impl Iterator<Item = (&'static str, _sails::meta::AnyServiceMeta)> {
+        [("Service", _sails::meta::AnyServiceMeta::new::<MyService>())].into_iter()
     }
 }
 use sails_rs::Decode as __ProgramDecode;
@@ -58,11 +56,11 @@ mod meta_in_program {
 #[cfg(target_arch = "wasm32")]
 pub mod wasm {
     use super::*;
-    use sails_rs::{gstd, hex, prelude::*};
+    use _sails::{gstd, hex, prelude::*};
     static mut PROGRAM: Option<MyProgram> = None;
     #[gstd::async_init]
     async fn init() {
-        sails_rs::gstd::events::__enable_events();
+        _sails::gstd::events::__enable_events();
         let mut input: &[u8] = &gstd::msg::load_bytes().expect("Failed to read input");
         let (program, invocation_route) = if input
             .starts_with(&[28u8, 68u8, 101u8, 102u8, 97u8, 117u8, 108u8, 116u8])
@@ -86,11 +84,11 @@ pub mod wasm {
             let input = String::decode(&mut __input)
                 .unwrap_or_else(|_| {
                     if input.len() <= 8 {
-                        format!("0x{}", sails_rs::hex::encode(input))
+                        format!("0x{}", _sails::hex::encode(input))
                     } else {
                         format!(
-                            "0x{}..{}", sails_rs::hex::encode(& input[..4]),
-                            sails_rs::hex::encode(& input[input.len() - 4..])
+                            "0x{}..{}", _sails::hex::encode(& input[..4]),
+                            _sails::hex::encode(& input[input.len() - 4..])
                         )
                     }
                 });
@@ -115,11 +113,11 @@ pub mod wasm {
             let input = String::decode(&mut __input)
                 .unwrap_or_else(|_| {
                     if input.len() <= 8 {
-                        format!("0x{}", sails_rs::hex::encode(input))
+                        format!("0x{}", _sails::hex::encode(input))
                     } else {
                         format!(
-                            "0x{}..{}", sails_rs::hex::encode(& input[..4]),
-                            sails_rs::hex::encode(& input[input.len() - 4..])
+                            "0x{}..{}", _sails::hex::encode(& input[..4]),
+                            _sails::hex::encode(& input[input.len() - 4..])
                         )
                     }
                 });

@@ -139,12 +139,12 @@ pub(crate) fn generate_unexpected_input_panic(input_ident: &Ident, message: &str
         let input = String::decode(&mut #copy_ident)
             .unwrap_or_else(|_| {
                 if #input_ident.len() <= 8 {
-                    format!("0x{}", sails_rs::hex::encode(#input_ident))
+                    format!("0x{}", _sails::hex::encode(#input_ident))
                 } else {
                     format!(
                         "0x{}..{}",
-                        sails_rs::hex::encode(&#input_ident[..4]),
-                        sails_rs::hex::encode(&#input_ident[#input_ident.len() - 4..]))
+                        _sails::hex::encode(&#input_ident[..4]),
+                        _sails::hex::encode(&#input_ident[#input_ident.len() - 4..]))
                 }
             });
         panic!(#message_pattern, input)

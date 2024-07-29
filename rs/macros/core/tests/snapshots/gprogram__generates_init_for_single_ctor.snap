@@ -1,20 +1,18 @@
 ---
 source: rs/macros/core/tests/gprogram.rs
-assertion_line: 18
 expression: result
 ---
+use sails_rs as _sails;
 impl MyProgram {
     pub async fn new(p1: u32, p2: String) -> Self {
         Self { p1, p2 }
     }
 }
-impl sails_rs::meta::ProgramMeta for MyProgram {
+impl _sails::meta::ProgramMeta for MyProgram {
     fn constructors() -> sails_rs::scale_info::MetaType {
         sails_rs::scale_info::MetaType::new::<meta_in_program::ConstructorsMeta>()
     }
-    fn services() -> impl Iterator<
-        Item = (&'static str, sails_rs::meta::AnyServiceMeta),
-    > {
+    fn services() -> impl Iterator<Item = (&'static str, _sails::meta::AnyServiceMeta)> {
         [].into_iter()
     }
 }
@@ -39,11 +37,11 @@ mod meta_in_program {
 #[cfg(target_arch = "wasm32")]
 pub mod wasm {
     use super::*;
-    use sails_rs::{gstd, hex, prelude::*};
+    use _sails::{gstd, hex, prelude::*};
     static mut PROGRAM: Option<MyProgram> = None;
     #[gstd::async_init]
     async fn init() {
-        sails_rs::gstd::events::__enable_events();
+        _sails::gstd::events::__enable_events();
         let mut input: &[u8] = &gstd::msg::load_bytes().expect("Failed to read input");
         let (program, invocation_route) = if input
             .starts_with(&[12u8, 78u8, 101u8, 119u8])
@@ -58,11 +56,11 @@ pub mod wasm {
             let input = String::decode(&mut __input)
                 .unwrap_or_else(|_| {
                     if input.len() <= 8 {
-                        format!("0x{}", sails_rs::hex::encode(input))
+                        format!("0x{}", _sails::hex::encode(input))
                     } else {
                         format!(
-                            "0x{}..{}", sails_rs::hex::encode(& input[..4]),
-                            sails_rs::hex::encode(& input[input.len() - 4..])
+                            "0x{}..{}", _sails::hex::encode(& input[..4]),
+                            _sails::hex::encode(& input[input.len() - 4..])
                         )
                     }
                 });
@@ -81,11 +79,11 @@ pub mod wasm {
             let input = String::decode(&mut __input)
                 .unwrap_or_else(|_| {
                     if input.len() <= 8 {
-                        format!("0x{}", sails_rs::hex::encode(input))
+                        format!("0x{}", _sails::hex::encode(input))
                     } else {
                         format!(
-                            "0x{}..{}", sails_rs::hex::encode(& input[..4]),
-                            sails_rs::hex::encode(& input[input.len() - 4..])
+                            "0x{}..{}", _sails::hex::encode(& input[..4]),
+                            _sails::hex::encode(& input[input.len() - 4..])
                         )
                     }
                 });

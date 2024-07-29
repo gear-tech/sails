@@ -14,7 +14,8 @@ required-features = ["idl-gen"]
 [dependencies]
 demo-client = { path = "../demo/client" }
 sails-idl-gen = { workspace = true, optional = true }
-sails-rs.workspace = true
+#sails-rs.workspace = true
+sails-rename = { package = "sails-rs", path = "../../rs"}
 
 [dev-dependencies]
 demo-client = { path = "../demo/client", features = ["with_mocks"] }

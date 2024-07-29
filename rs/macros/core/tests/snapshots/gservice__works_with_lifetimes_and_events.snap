@@ -1,8 +1,8 @@
 ---
 source: rs/macros/core/tests/gservice.rs
-assertion_line: 105
 expression: result
 ---
+use sails_rs as _sails;
 impl<'a, T> MyGenericEventsService<'a, T>
 where
     T: Clone,
@@ -10,7 +10,7 @@ where
     pub fn do_this(&mut self) -> u32 {
         42
     }
-    fn notify_on(&mut self, event: MyEvents) -> sails_rs::errors::Result<()> {
+    fn notify_on(&mut self, event: MyEvents) -> _sails::errors::Result<()> {
         #[cfg(not(target_arch = "wasm32"))]
         {
             let self_ptr = self as *const _ as usize;
@@ -23,11 +23,11 @@ where
                 event_listener(&event);
             }
         }
-        sails_rs::gstd::events::__notify_on(event)
+        _sails::gstd::events::__notify_on(event)
     }
 }
 pub struct Exposure<T> {
-    message_id: sails_rs::MessageId,
+    message_id: _sails::MessageId,
     route: &'static [u8],
     #[cfg(not(target_arch = "wasm32"))]
     inner: Box<T>,
@@ -51,7 +51,7 @@ where
     T: Clone,
 {
     pub fn do_this(&mut self) -> u32 {
-        let exposure_scope = sails_rs::gstd::services::ExposureCallScope::new(self);
+        let exposure_scope = _sails::gstd::services::ExposureCallScope::new(self);
         self.inner.do_this()
     }
     pub async fn handle(&mut self, input: &[u8]) -> Vec<u8> {
@@ -63,11 +63,11 @@ where
                     let input = String::decode(&mut __input)
                         .unwrap_or_else(|_| {
                             if input.len() <= 8 {
-                                format!("0x{}", sails_rs::hex::encode(input))
+                                format!("0x{}", _sails::hex::encode(input))
                             } else {
                                 format!(
-                                    "0x{}..{}", sails_rs::hex::encode(& input[..4]),
-                                    sails_rs::hex::encode(& input[input.len() - 4..])
+                                    "0x{}..{}", _sails::hex::encode(& input[..4]),
+                                    _sails::hex::encode(& input[input.len() - 4..])
                                 )
                             }
                         });
@@ -123,26 +123,25 @@ where
         }
     }
 }
-impl<'a, T> sails_rs::gstd::services::Exposure
-for Exposure<MyGenericEventsService<'a, T>>
+impl<'a, T> _sails::gstd::services::Exposure for Exposure<MyGenericEventsService<'a, T>>
 where
     T: Clone,
 {
-    fn message_id(&self) -> sails_rs::MessageId {
+    fn message_id(&self) -> _sails::MessageId {
         self.message_id
     }
     fn route(&self) -> &'static [u8] {
         self.route
     }
 }
-impl<'a, T> sails_rs::gstd::services::Service for MyGenericEventsService<'a, T>
+impl<'a, T> _sails::gstd::services::Service for MyGenericEventsService<'a, T>
 where
     T: Clone,
 {
     type Exposure = Exposure<MyGenericEventsService<'a, T>>;
     fn expose(
         self,
-        message_id: sails_rs::MessageId,
+        message_id: _sails::MessageId,
         route: &'static [u8],
     ) -> Self::Exposure {
         #[cfg(not(target_arch = "wasm32"))]
@@ -163,7 +162,7 @@ where
         }
     }
 }
-impl<'a, T> sails_rs::meta::ServiceMeta for MyGenericEventsService<'a, T>
+impl<'a, T> _sails::meta::ServiceMeta for MyGenericEventsService<'a, T>
 where
     T: Clone,
 {
@@ -176,12 +175,12 @@ where
     fn events() -> sails_rs::scale_info::MetaType {
         sails_rs::scale_info::MetaType::new::<meta_in_service::EventsMeta>()
     }
-    fn base_services() -> impl Iterator<Item = sails_rs::meta::AnyServiceMeta> {
+    fn base_services() -> impl Iterator<Item = _sails::meta::AnyServiceMeta> {
         [].into_iter()
     }
 }
-type __EventlistenersMap = sails_rs::collections::BTreeMap<usize, usize>;
-type __Mutex<T> = sails_rs::spin::Mutex<T>;
+type __EventlistenersMap = _sails::collections::BTreeMap<usize, usize>;
+type __Mutex<T> = _sails::spin::Mutex<T>;
 #[cfg(not(target_arch = "wasm32"))]
 fn event_listeners() -> &'static __Mutex<__EventlistenersMap> {
     static EVENT_LISTENERS: __Mutex<__EventlistenersMap> = __Mutex::new(

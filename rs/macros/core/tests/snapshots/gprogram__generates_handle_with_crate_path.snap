@@ -2,31 +2,31 @@
 source: rs/macros/core/tests/gprogram.rs
 expression: result
 ---
-use sails_rs as _sails;
+use sails_rename as _sails;
 impl MyProgram {
     pub fn default() -> Self {
         Self
     }
 }
 impl _sails::meta::ProgramMeta for MyProgram {
-    fn constructors() -> sails_rs::scale_info::MetaType {
-        sails_rs::scale_info::MetaType::new::<meta_in_program::ConstructorsMeta>()
+    fn constructors() -> sails_rename::scale_info::MetaType {
+        sails_rename::scale_info::MetaType::new::<meta_in_program::ConstructorsMeta>()
     }
     fn services() -> impl Iterator<Item = (&'static str, _sails::meta::AnyServiceMeta)> {
         [].into_iter()
     }
 }
-use sails_rs::Decode as __ProgramDecode;
-use sails_rs::TypeInfo as __ProgramTypeInfo;
+use sails_rename::Decode as __ProgramDecode;
+use sails_rename::TypeInfo as __ProgramTypeInfo;
 #[derive(__ProgramDecode, __ProgramTypeInfo)]
-#[codec(crate = sails_rs::scale_codec)]
-#[scale_info(crate = sails_rs::scale_info)]
+#[codec(crate = sails_rename::scale_codec)]
+#[scale_info(crate = sails_rename::scale_info)]
 #[allow(dead_code)]
 struct __DefaultParams {}
 mod meta_in_program {
     use super::*;
     #[derive(__ProgramTypeInfo)]
-    #[scale_info(crate = sails_rs::scale_info)]
+    #[scale_info(crate = sails_rename::scale_info)]
     pub enum ConstructorsMeta {
         Default(__DefaultParams),
     }
@@ -77,7 +77,7 @@ pub mod wasm {
         }
         gstd::msg::reply_bytes(invocation_route, 0).expect("Failed to send output");
     }
-    #[gstd::async_main(handle_reply = my_handle_reply, handle_signal = my_handle_signal)]
+    #[gstd::async_main]
     async fn main() {
         let mut input: &[u8] = &gstd::msg::load_bytes().expect("Failed to read input");
         let output: Vec<u8> = {

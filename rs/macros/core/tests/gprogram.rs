@@ -103,3 +103,16 @@ fn generates_handle_with_gprogram_attributes() {
 
     insta::assert_snapshot!(result);
 }
+
+#[test]
+fn generates_handle_with_crate_path() {
+    let args = quote!(crate = sails_rename,);
+    let input = quote! {
+        impl MyProgram {}
+    };
+
+    let result = gprogram(args, input).to_string();
+    let result = prettyplease::unparse(&syn::parse_str(&result).unwrap());
+
+    insta::assert_snapshot!(result);
+}

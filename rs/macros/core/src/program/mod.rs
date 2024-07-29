@@ -1,5 +1,5 @@
 use crate::{
-    sails_paths,
+    sails_paths::SailsPath,
     shared::{self, Func},
 };
 use args::ProgramArgs;
@@ -63,6 +63,10 @@ fn ensure_single_gprogram(program_impl: &ItemImpl) {
 }
 
 fn gen_gprogram_impl(program_impl: ItemImpl, program_args: ProgramArgs) -> TokenStream2 {
+    let sails_path = program_args.sails_path();
+    let scale_codec_path = program_args.scale_codec_path();
+    let scale_info_path = program_args.scale_info_path();
+
     let services_ctors = discover_services_ctors(&program_impl);
 
     let mut program_impl = program_impl.clone();
@@ -86,7 +90,7 @@ fn gen_gprogram_impl(program_impl: ItemImpl, program_args: ProgramArgs) -> Token
             let service_meta = {
                 let service_type = shared::result_type(&ctor_fn.sig);
                 quote!(
-                    ( #route , sails_rs::meta::AnyServiceMeta::new::< #service_type >())
+                    ( #route , _sails::meta::AnyServiceMeta::new::< #service_type >())
                 )
             };
 
@@ -127,29 +131,27 @@ fn gen_gprogram_impl(program_impl: ItemImpl, program_args: ProgramArgs) -> Token
         quote!(#ctor_route(#ctor_params_struct_ident))
     });
 
-    let scale_types_path = sails_paths::scale_types_path();
-    let scale_codec_path = sails_paths::scale_codec_path();
-    let scale_info_path = sails_paths::scale_info_path();
-
     quote!(
+        use #sails_path as _sails;
+
         #(#services_routes)*
 
         #program_impl
 
-        impl #program_type_args sails_rs::meta::ProgramMeta for #program_type_path #program_type_constraints {
+        impl #program_type_args _sails::meta::ProgramMeta for #program_type_path #program_type_constraints {
             fn constructors() -> #scale_info_path::MetaType {
                 #scale_info_path::MetaType::new::<meta_in_program::ConstructorsMeta>()
             }
 
-            fn services() -> impl Iterator<Item = (&'static str, sails_rs::meta::AnyServiceMeta)> {
+            fn services() -> impl Iterator<Item = (&'static str, _sails::meta::AnyServiceMeta)> {
                 [
                     #(#services_meta),*
                 ].into_iter()
             }
         }
 
-        use #scale_types_path ::Decode as __ProgramDecode;
-        use #scale_types_path ::TypeInfo as __ProgramTypeInfo;
+        use #sails_path ::Decode as __ProgramDecode;
+        use #sails_path ::TypeInfo as __ProgramTypeInfo;
 
         #(
             #[derive(__ProgramDecode, __ProgramTypeInfo)]
@@ -172,7 +174,7 @@ fn gen_gprogram_impl(program_impl: ItemImpl, program_args: ProgramArgs) -> Token
         #[cfg(target_arch = "wasm32")]
         pub mod wasm {
             use super::*;
-            use sails_rs::{gstd, hex, prelude::*};
+            use _sails::{gstd, hex, prelude::*};
 
             static mut #program_ident: Option<#program_type_path> = None;
 
@@ -205,13 +207,13 @@ fn wire_up_service_exposure(
 
     let mut wrapping_service_ctor_fn = ctor_fn.clone();
     wrapping_service_ctor_fn.sig.output = parse_quote!(
-        -> < #service_type as sails_rs::gstd::services::Service>::Exposure
+        -> < #service_type as _sails::gstd::services::Service>::Exposure
     );
     wrapping_service_ctor_fn.block = parse_quote!({
         let service = self. #original_service_ctor_fn_ident ();
-        let exposure = < #service_type as sails_rs::gstd::services::Service>::expose(
+        let exposure = < #service_type as _sails::gstd::services::Service>::expose(
             service,
-            sails_rs::gstd::msg::id().into(),
+            _sails::gstd::msg::id().into(),
             #route_ident .as_ref(),
         );
         exposure
@@ -296,7 +298,7 @@ fn generate_init(
     let init = quote!(
         #[gstd::async_init]
         async fn init() {
-            sails_rs::gstd::events::__enable_events();
+            _sails::gstd::events::__enable_events();
             let mut #input_ident: &[u8] = &gstd::msg::load_bytes().expect("Failed to read input");
             let (program, invocation_route) = #(#invocation_dispatches)else*;
             unsafe {

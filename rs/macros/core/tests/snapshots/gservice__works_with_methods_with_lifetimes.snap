@@ -2,6 +2,7 @@
 source: rs/macros/core/tests/gservice.rs
 expression: result
 ---
+use sails_rs as _sails;
 impl ReferenceService {
     pub fn baked(&self) -> &'static str {
         "Static str!"
@@ -26,7 +27,7 @@ impl ReferenceService {
     }
 }
 pub struct Exposure<T> {
-    message_id: sails_rs::MessageId,
+    message_id: _sails::MessageId,
     route: &'static [u8],
     #[cfg(not(target_arch = "wasm32"))]
     inner: Box<T>,
@@ -37,23 +38,23 @@ pub struct Exposure<T> {
 }
 impl Exposure<ReferenceService> {
     pub fn add_byte(&mut self, byte: u8) -> &'static [u8] {
-        let exposure_scope = sails_rs::gstd::services::ExposureCallScope::new(self);
+        let exposure_scope = _sails::gstd::services::ExposureCallScope::new(self);
         self.inner.add_byte(byte)
     }
     pub fn baked(&self) -> &'static str {
-        let exposure_scope = sails_rs::gstd::services::ExposureCallScope::new(self);
+        let exposure_scope = _sails::gstd::services::ExposureCallScope::new(self);
         self.inner.baked()
     }
     pub async fn first_byte<'a>(&self) -> Option<&'a u8> {
-        let exposure_scope = sails_rs::gstd::services::ExposureCallScope::new(self);
+        let exposure_scope = _sails::gstd::services::ExposureCallScope::new(self);
         self.inner.first_byte().await
     }
     pub fn incr(&mut self) -> &'static ReferenceCount {
-        let exposure_scope = sails_rs::gstd::services::ExposureCallScope::new(self);
+        let exposure_scope = _sails::gstd::services::ExposureCallScope::new(self);
         self.inner.incr()
     }
     pub async fn last_byte<'a>(&self) -> Option<&'a u8> {
-        let exposure_scope = sails_rs::gstd::services::ExposureCallScope::new(self);
+        let exposure_scope = _sails::gstd::services::ExposureCallScope::new(self);
         self.inner.last_byte().await
     }
     pub async fn handle(&mut self, input: &[u8]) -> Vec<u8> {
@@ -65,11 +66,11 @@ impl Exposure<ReferenceService> {
                     let input = String::decode(&mut __input)
                         .unwrap_or_else(|_| {
                             if input.len() <= 8 {
-                                format!("0x{}", sails_rs::hex::encode(input))
+                                format!("0x{}", _sails::hex::encode(input))
                             } else {
                                 format!(
-                                    "0x{}..{}", sails_rs::hex::encode(& input[..4]),
-                                    sails_rs::hex::encode(& input[input.len() - 4..])
+                                    "0x{}..{}", _sails::hex::encode(& input[..4]),
+                                    _sails::hex::encode(& input[input.len() - 4..])
                                 )
                             }
                         });
@@ -179,19 +180,19 @@ impl Exposure<ReferenceService> {
         return result.encode();
     }
 }
-impl sails_rs::gstd::services::Exposure for Exposure<ReferenceService> {
-    fn message_id(&self) -> sails_rs::MessageId {
+impl _sails::gstd::services::Exposure for Exposure<ReferenceService> {
+    fn message_id(&self) -> _sails::MessageId {
         self.message_id
     }
     fn route(&self) -> &'static [u8] {
         self.route
     }
 }
-impl sails_rs::gstd::services::Service for ReferenceService {
+impl _sails::gstd::services::Service for ReferenceService {
     type Exposure = Exposure<ReferenceService>;
     fn expose(
         self,
-        message_id: sails_rs::MessageId,
+        message_id: _sails::MessageId,
         route: &'static [u8],
     ) -> Self::Exposure {
         #[cfg(not(target_arch = "wasm32"))]
@@ -212,7 +213,7 @@ impl sails_rs::gstd::services::Service for ReferenceService {
         }
     }
 }
-impl sails_rs::meta::ServiceMeta for ReferenceService {
+impl _sails::meta::ServiceMeta for ReferenceService {
     fn commands() -> sails_rs::scale_info::MetaType {
         sails_rs::scale_info::MetaType::new::<meta_in_service::CommandsMeta>()
     }
@@ -222,7 +223,7 @@ impl sails_rs::meta::ServiceMeta for ReferenceService {
     fn events() -> sails_rs::scale_info::MetaType {
         sails_rs::scale_info::MetaType::new::<meta_in_service::EventsMeta>()
     }
-    fn base_services() -> impl Iterator<Item = sails_rs::meta::AnyServiceMeta> {
+    fn base_services() -> impl Iterator<Item = _sails::meta::AnyServiceMeta> {
         [].into_iter()
     }
 }
