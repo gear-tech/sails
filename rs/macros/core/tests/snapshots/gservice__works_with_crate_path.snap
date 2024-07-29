@@ -12,7 +12,7 @@ impl SomeService {
     }
 }
 pub struct Exposure<T> {
-    message_id: _sails::MessageId,
+    message_id: sails_rename::MessageId,
     route: &'static [u8],
     #[cfg(not(target_arch = "wasm32"))]
     inner: Box<T>,
@@ -23,11 +23,11 @@ pub struct Exposure<T> {
 }
 impl Exposure<SomeService> {
     pub async fn do_this(&mut self, p1: u32, p2: String) -> u32 {
-        let exposure_scope = _sails::gstd::services::ExposureCallScope::new(self);
+        let exposure_scope = sails_rename::gstd::services::ExposureCallScope::new(self);
         self.inner.do_this(p1, p2).await
     }
     pub fn this(&self, p1: bool) -> bool {
-        let exposure_scope = _sails::gstd::services::ExposureCallScope::new(self);
+        let exposure_scope = sails_rename::gstd::services::ExposureCallScope::new(self);
         self.inner.this(p1)
     }
     pub async fn handle(&mut self, input: &[u8]) -> Vec<u8> {
@@ -39,11 +39,11 @@ impl Exposure<SomeService> {
                     let input = String::decode(&mut __input)
                         .unwrap_or_else(|_| {
                             if input.len() <= 8 {
-                                format!("0x{}", _sails::hex::encode(input))
+                                format!("0x{}", sails_rename::hex::encode(input))
                             } else {
                                 format!(
-                                    "0x{}..{}", _sails::hex::encode(& input[..4]),
-                                    _sails::hex::encode(& input[input.len() - 4..])
+                                    "0x{}..{}", sails_rename::hex::encode(& input[..4]),
+                                    sails_rename::hex::encode(& input[input.len() - 4..])
                                 )
                             }
                         });
@@ -85,19 +85,19 @@ impl Exposure<SomeService> {
         return result.encode();
     }
 }
-impl _sails::gstd::services::Exposure for Exposure<SomeService> {
-    fn message_id(&self) -> _sails::MessageId {
+impl sails_rename::gstd::services::Exposure for Exposure<SomeService> {
+    fn message_id(&self) -> sails_rename::MessageId {
         self.message_id
     }
     fn route(&self) -> &'static [u8] {
         self.route
     }
 }
-impl _sails::gstd::services::Service for SomeService {
+impl sails_rename::gstd::services::Service for SomeService {
     type Exposure = Exposure<SomeService>;
     fn expose(
         self,
-        message_id: _sails::MessageId,
+        message_id: sails_rename::MessageId,
         route: &'static [u8],
     ) -> Self::Exposure {
         #[cfg(not(target_arch = "wasm32"))]
@@ -118,7 +118,7 @@ impl _sails::gstd::services::Service for SomeService {
         }
     }
 }
-impl _sails::meta::ServiceMeta for SomeService {
+impl sails_rename::meta::ServiceMeta for SomeService {
     fn commands() -> sails_rename::scale_info::MetaType {
         sails_rename::scale_info::MetaType::new::<meta_in_service::CommandsMeta>()
     }
@@ -128,7 +128,7 @@ impl _sails::meta::ServiceMeta for SomeService {
     fn events() -> sails_rename::scale_info::MetaType {
         sails_rename::scale_info::MetaType::new::<meta_in_service::EventsMeta>()
     }
-    fn base_services() -> impl Iterator<Item = _sails::meta::AnyServiceMeta> {
+    fn base_services() -> impl Iterator<Item = sails_rename::meta::AnyServiceMeta> {
         [].into_iter()
     }
 }

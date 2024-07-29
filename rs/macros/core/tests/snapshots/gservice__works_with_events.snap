@@ -10,7 +10,7 @@ impl SomeService {
     pub fn this(&self) -> bool {
         true
     }
-    fn notify_on(&mut self, event: SomeEvents) -> _sails::errors::Result<()> {
+    fn notify_on(&mut self, event: SomeEvents) -> sails_rs::errors::Result<()> {
         #[cfg(not(target_arch = "wasm32"))]
         {
             let self_ptr = self as *const _ as usize;
@@ -23,11 +23,11 @@ impl SomeService {
                 event_listener(&event);
             }
         }
-        _sails::gstd::events::__notify_on(event)
+        sails_rs::gstd::events::__notify_on(event)
     }
 }
 pub struct Exposure<T> {
-    message_id: _sails::MessageId,
+    message_id: sails_rs::MessageId,
     route: &'static [u8],
     #[cfg(not(target_arch = "wasm32"))]
     inner: Box<T>,
@@ -48,11 +48,11 @@ impl<T> Drop for Exposure<T> {
 }
 impl Exposure<SomeService> {
     pub fn do_this(&mut self) -> u32 {
-        let exposure_scope = _sails::gstd::services::ExposureCallScope::new(self);
+        let exposure_scope = sails_rs::gstd::services::ExposureCallScope::new(self);
         self.inner.do_this()
     }
     pub fn this(&self) -> bool {
-        let exposure_scope = _sails::gstd::services::ExposureCallScope::new(self);
+        let exposure_scope = sails_rs::gstd::services::ExposureCallScope::new(self);
         self.inner.this()
     }
     pub async fn handle(&mut self, input: &[u8]) -> Vec<u8> {
@@ -64,11 +64,11 @@ impl Exposure<SomeService> {
                     let input = String::decode(&mut __input)
                         .unwrap_or_else(|_| {
                             if input.len() <= 8 {
-                                format!("0x{}", _sails::hex::encode(input))
+                                format!("0x{}", sails_rs::hex::encode(input))
                             } else {
                                 format!(
-                                    "0x{}..{}", _sails::hex::encode(& input[..4]),
-                                    _sails::hex::encode(& input[input.len() - 4..])
+                                    "0x{}..{}", sails_rs::hex::encode(& input[..4]),
+                                    sails_rs::hex::encode(& input[input.len() - 4..])
                                 )
                             }
                         });
@@ -135,19 +135,19 @@ impl Exposure<SomeService> {
         }
     }
 }
-impl _sails::gstd::services::Exposure for Exposure<SomeService> {
-    fn message_id(&self) -> _sails::MessageId {
+impl sails_rs::gstd::services::Exposure for Exposure<SomeService> {
+    fn message_id(&self) -> sails_rs::MessageId {
         self.message_id
     }
     fn route(&self) -> &'static [u8] {
         self.route
     }
 }
-impl _sails::gstd::services::Service for SomeService {
+impl sails_rs::gstd::services::Service for SomeService {
     type Exposure = Exposure<SomeService>;
     fn expose(
         self,
-        message_id: _sails::MessageId,
+        message_id: sails_rs::MessageId,
         route: &'static [u8],
     ) -> Self::Exposure {
         #[cfg(not(target_arch = "wasm32"))]
@@ -168,7 +168,7 @@ impl _sails::gstd::services::Service for SomeService {
         }
     }
 }
-impl _sails::meta::ServiceMeta for SomeService {
+impl sails_rs::meta::ServiceMeta for SomeService {
     fn commands() -> sails_rs::scale_info::MetaType {
         sails_rs::scale_info::MetaType::new::<meta_in_service::CommandsMeta>()
     }
@@ -178,12 +178,12 @@ impl _sails::meta::ServiceMeta for SomeService {
     fn events() -> sails_rs::scale_info::MetaType {
         sails_rs::scale_info::MetaType::new::<meta_in_service::EventsMeta>()
     }
-    fn base_services() -> impl Iterator<Item = _sails::meta::AnyServiceMeta> {
+    fn base_services() -> impl Iterator<Item = sails_rs::meta::AnyServiceMeta> {
         [].into_iter()
     }
 }
-type __EventlistenersMap = _sails::collections::BTreeMap<usize, usize>;
-type __Mutex<T> = _sails::spin::Mutex<T>;
+type __EventlistenersMap = sails_rs::collections::BTreeMap<usize, usize>;
+type __Mutex<T> = sails_rs::spin::Mutex<T>;
 #[cfg(not(target_arch = "wasm32"))]
 fn event_listeners() -> &'static __Mutex<__EventlistenersMap> {
     static EVENT_LISTENERS: __Mutex<__EventlistenersMap> = __Mutex::new(

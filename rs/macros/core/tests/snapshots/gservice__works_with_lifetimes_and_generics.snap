@@ -13,7 +13,7 @@ where
     }
 }
 pub struct Exposure<T> {
-    message_id: _sails::MessageId,
+    message_id: sails_rs::MessageId,
     route: &'static [u8],
     #[cfg(not(target_arch = "wasm32"))]
     inner: Box<T>,
@@ -28,7 +28,7 @@ where
     U: Iterator<Item = u32>,
 {
     pub fn do_this(&mut self) -> u32 {
-        let exposure_scope = _sails::gstd::services::ExposureCallScope::new(self);
+        let exposure_scope = sails_rs::gstd::services::ExposureCallScope::new(self);
         self.inner.do_this()
     }
     pub async fn handle(&mut self, input: &[u8]) -> Vec<u8> {
@@ -40,11 +40,11 @@ where
                     let input = String::decode(&mut __input)
                         .unwrap_or_else(|_| {
                             if input.len() <= 8 {
-                                format!("0x{}", _sails::hex::encode(input))
+                                format!("0x{}", sails_rs::hex::encode(input))
                             } else {
                                 format!(
-                                    "0x{}..{}", _sails::hex::encode(& input[..4]),
-                                    _sails::hex::encode(& input[input.len() - 4..])
+                                    "0x{}..{}", sails_rs::hex::encode(& input[..4]),
+                                    sails_rs::hex::encode(& input[input.len() - 4..])
                                 )
                             }
                         });
@@ -75,20 +75,20 @@ where
         return result.encode();
     }
 }
-impl<'a, 'b, T, U> _sails::gstd::services::Exposure
+impl<'a, 'b, T, U> sails_rs::gstd::services::Exposure
 for Exposure<SomeService<'a, 'b, T, U>>
 where
     T: Clone,
     U: Iterator<Item = u32>,
 {
-    fn message_id(&self) -> _sails::MessageId {
+    fn message_id(&self) -> sails_rs::MessageId {
         self.message_id
     }
     fn route(&self) -> &'static [u8] {
         self.route
     }
 }
-impl<'a, 'b, T, U> _sails::gstd::services::Service for SomeService<'a, 'b, T, U>
+impl<'a, 'b, T, U> sails_rs::gstd::services::Service for SomeService<'a, 'b, T, U>
 where
     T: Clone,
     U: Iterator<Item = u32>,
@@ -96,7 +96,7 @@ where
     type Exposure = Exposure<SomeService<'a, 'b, T, U>>;
     fn expose(
         self,
-        message_id: _sails::MessageId,
+        message_id: sails_rs::MessageId,
         route: &'static [u8],
     ) -> Self::Exposure {
         #[cfg(not(target_arch = "wasm32"))]
@@ -117,7 +117,7 @@ where
         }
     }
 }
-impl<'a, 'b, T, U> _sails::meta::ServiceMeta for SomeService<'a, 'b, T, U>
+impl<'a, 'b, T, U> sails_rs::meta::ServiceMeta for SomeService<'a, 'b, T, U>
 where
     T: Clone,
     U: Iterator<Item = u32>,
@@ -131,7 +131,7 @@ where
     fn events() -> sails_rs::scale_info::MetaType {
         sails_rs::scale_info::MetaType::new::<meta_in_service::EventsMeta>()
     }
-    fn base_services() -> impl Iterator<Item = _sails::meta::AnyServiceMeta> {
+    fn base_services() -> impl Iterator<Item = sails_rs::meta::AnyServiceMeta> {
         [].into_iter()
     }
 }
