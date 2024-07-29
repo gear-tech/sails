@@ -2,7 +2,6 @@
 source: rs/macros/core/tests/gservice.rs
 expression: result
 ---
-use sails_rs as _sails;
 impl<'a> ExtendedLifetime<'a> {
     pub fn extended_name(&self) -> String {
         "extended-name".to_string()

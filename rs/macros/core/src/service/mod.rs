@@ -290,8 +290,6 @@ fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
     };
 
     quote!(
-        use #sails_path as _sails;
-
         #service_impl
 
         pub struct Exposure<#exposure_generic_args> {

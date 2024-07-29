@@ -2,7 +2,6 @@
 source: rs/macros/core/tests/gservice.rs
 expression: result
 ---
-use sails_rs as _sails;
 impl SomeService {
     pub fn do_this(&mut self) -> u32 {
         42
