@@ -9,8 +9,8 @@ use proc_macro_error::abort;
 use quote::quote;
 use std::collections::BTreeMap;
 use syn::{
-    parse_quote, spanned::Spanned, Ident, ImplItem, ImplItemFn, ItemImpl, Receiver, ReturnType,
-    Type, TypePath, Visibility,
+    parse_quote, spanned::Spanned, Ident, ImplItem, ImplItemFn, ItemImpl, Path, Receiver,
+    ReturnType, Type, TypePath, Visibility,
 };
 
 mod args;
@@ -90,11 +90,17 @@ fn gen_gprogram_impl(program_impl: ItemImpl, program_args: ProgramArgs) -> Token
             let service_meta = {
                 let service_type = shared::result_type(&ctor_fn.sig);
                 quote!(
-                    ( #route , _sails::meta::AnyServiceMeta::new::< #service_type >())
+                    ( #route , #sails_path::meta::AnyServiceMeta::new::< #service_type >())
                 )
             };
 
-            wire_up_service_exposure(&mut program_impl, &route_ident, ctor_fn, ctor_idx);
+            wire_up_service_exposure(
+                &mut program_impl,
+                &route_ident,
+                ctor_fn,
+                ctor_idx,
+                &sails_path,
+            );
 
             (
                 route_static,
@@ -111,6 +117,7 @@ fn gen_gprogram_impl(program_impl: ItemImpl, program_args: ProgramArgs) -> Token
         &program_ident,
         services_data.iter().map(|item| (&item.3, &item.2)),
         program_args,
+        &sails_path,
     );
 
     let services_meta = services_data.iter().map(|item| &item.1);
@@ -120,8 +127,12 @@ fn gen_gprogram_impl(program_impl: ItemImpl, program_args: ProgramArgs) -> Token
     let (program_type_path, program_type_args) = shared::impl_type(&program_impl);
     let program_type_constraints = shared::impl_constraints(&program_impl);
 
-    let (ctors_data, init_fn) =
-        generate_init(&mut program_impl, &program_type_path, &program_ident);
+    let (ctors_data, init_fn) = generate_init(
+        &mut program_impl,
+        &program_type_path,
+        &program_ident,
+        &sails_path,
+    );
 
     let ctors_params_structs = ctors_data.clone().map(|item| item.2);
 
@@ -132,18 +143,16 @@ fn gen_gprogram_impl(program_impl: ItemImpl, program_args: ProgramArgs) -> Token
     });
 
     quote!(
-        use #sails_path as _sails;
-
         #(#services_routes)*
 
         #program_impl
 
-        impl #program_type_args _sails::meta::ProgramMeta for #program_type_path #program_type_constraints {
+        impl #program_type_args #sails_path::meta::ProgramMeta for #program_type_path #program_type_constraints {
             fn constructors() -> #scale_info_path::MetaType {
                 #scale_info_path::MetaType::new::<meta_in_program::ConstructorsMeta>()
             }
 
-            fn services() -> impl Iterator<Item = (&'static str, _sails::meta::AnyServiceMeta)> {
+            fn services() -> impl Iterator<Item = (&'static str, #sails_path::meta::AnyServiceMeta)> {
                 [
                     #(#services_meta),*
                 ].into_iter()
@@ -174,7 +183,7 @@ fn gen_gprogram_impl(program_impl: ItemImpl, program_args: ProgramArgs) -> Token
         #[cfg(target_arch = "wasm32")]
         pub mod wasm {
             use super::*;
-            use _sails::{gstd, hex, prelude::*};
+            use #sails_path::{gstd, hex, prelude::*};
 
             static mut #program_ident: Option<#program_type_path> = None;
 
@@ -190,6 +199,7 @@ fn wire_up_service_exposure(
     route_ident: &Ident,
     ctor_fn: &ImplItemFn,
     ctor_idx: usize,
+    sails_path: &Path,
 ) {
     let service_type = shared::result_type(&ctor_fn.sig);
 
@@ -207,13 +217,13 @@ fn wire_up_service_exposure(
 
     let mut wrapping_service_ctor_fn = ctor_fn.clone();
     wrapping_service_ctor_fn.sig.output = parse_quote!(
-        -> < #service_type as _sails::gstd::services::Service>::Exposure
+        -> < #service_type as #sails_path::gstd::services::Service>::Exposure
     );
     wrapping_service_ctor_fn.block = parse_quote!({
         let service = self. #original_service_ctor_fn_ident ();
-        let exposure = < #service_type as _sails::gstd::services::Service>::expose(
+        let exposure = < #service_type as #sails_path::gstd::services::Service>::expose(
             service,
-            _sails::gstd::msg::id().into(),
+            #sails_path::gstd::msg::id().into(),
             #route_ident .as_ref(),
         );
         exposure
@@ -225,6 +235,7 @@ fn generate_init(
     program_impl: &mut ItemImpl,
     program_type_path: &TypePath,
     program_ident: &Ident,
+    sails_path: &Path,
 ) -> (
     impl Iterator<Item = (String, Ident, TokenStream2)> + Clone,
     TokenStream2,
@@ -293,12 +304,13 @@ fn generate_init(
     invocation_dispatches.push(shared::generate_unexpected_input_panic(
         &input_ident,
         "Unexpected ctor",
+        sails_path,
     ));
 
     let init = quote!(
         #[gstd::async_init]
         async fn init() {
-            _sails::gstd::events::__enable_events();
+            #sails_path::gstd::events::__enable_events();
             let mut #input_ident: &[u8] = &gstd::msg::load_bytes().expect("Failed to read input");
             let (program, invocation_route) = #(#invocation_dispatches)else*;
             unsafe {
@@ -315,6 +327,7 @@ fn generate_handle<'a>(
     program_ident: &'a Ident,
     service_ctors: impl Iterator<Item = (&'a Ident, &'a Ident)>,
     program_args: ProgramArgs,
+    sails_path: &Path,
 ) -> TokenStream2 {
     let input_ident = Ident::new("input", Span::call_site());
 
@@ -336,6 +349,7 @@ fn generate_handle<'a>(
     invocation_dispatches.push(shared::generate_unexpected_input_panic(
         &input_ident,
         "Unexpected service",
+        sails_path,
     ));
 
     let mut args = Vec::with_capacity(2);
