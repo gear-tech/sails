@@ -1,6 +1,5 @@
 ---
 source: rs/macros/core/tests/gservice.rs
-assertion_line: 105
 expression: result
 ---
 impl<'a, T> MyGenericEventsService<'a, T>

@@ -98,6 +98,9 @@ fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
             err
         )
     });
+    let sails_path = service_args.sails_path();
+    let scale_codec_path = sails_paths::scale_codec_path(&sails_path);
+    let scale_info_path = sails_paths::scale_info_path(&sails_path);
 
     let (service_type_path, service_type_args) = shared::impl_type(&service_impl);
     let service_type_constraints = shared::impl_constraints(&service_impl);
@@ -116,7 +119,7 @@ fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
     let mut service_impl = service_impl.clone();
     if let Some(events_type) = events_type {
         service_impl.items.push(parse_quote!(
-            fn notify_on(&mut self, event: #events_type ) -> sails_rs::errors::Result<()>  {
+            fn notify_on(&mut self, event: #events_type ) -> #sails_path::errors::Result<()>  {
                 #[cfg(not(target_arch = "wasm32"))]
                 {
                     let self_ptr = self as *const _ as usize;
@@ -128,7 +131,7 @@ fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
                         event_listener(&event);
                     }
                 }
-                sails_rs::gstd::events::__notify_on(event)
+                #sails_path::gstd::events::__notify_on(event)
             }
         ));
     }
@@ -156,7 +159,7 @@ fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
             let handler_await_token = handler_func.is_async().then(|| quote!(.await));
             quote!(
                 pub #handler_fn {
-                    let exposure_scope = sails_rs::gstd::services::ExposureCallScope::new(self);
+                    let exposure_scope = #sails_path::gstd::services::ExposureCallScope::new(self);
                     self. #inner_ident . #handler_ident (#(#handler_params),*) #handler_await_token
                 }
             )
@@ -199,13 +202,13 @@ fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
             let as_base_ident = Ident::new(&format!("as_base_{}", idx), Span::call_site());
 
             let base_exposure_accessor = quote!(
-                pub fn #as_base_ident (&self) -> &< #base_type as sails_rs::gstd::services::Service>::Exposure {
+                pub fn #as_base_ident (&self) -> &< #base_type as #sails_path::gstd::services::Service>::Exposure {
                     &self. #base_ident
                 }
             );
 
             let base_exposure_member = quote!(
-                #base_ident : < #base_type as sails_rs::gstd::services::Service>::Exposure,
+                #base_ident : < #base_type as #sails_path::gstd::services::Service>::Exposure,
             );
 
             let base_exposure_instantiation = quote!(
@@ -219,7 +222,7 @@ fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
                 }
             );
 
-            let base_service_meta = quote!(sails_rs::meta::AnyServiceMeta::new::< #base_type >());
+            let base_service_meta = quote!(#sails_path::meta::AnyServiceMeta::new::< #base_type >());
 
             (base_exposure_accessor, base_exposure_member, base_exposure_instantiation, base_exposure_invocation, base_service_meta)
         });
@@ -243,7 +246,7 @@ fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
     let base_services_meta =
         code_for_base_types.map(|(_, _, _, _, base_service_meta)| base_service_meta);
 
-    let events_listeners_code = events_type.map(|_| generate_event_listeners());
+    let events_listeners_code = events_type.map(|_| generate_event_listeners(&sails_path));
 
     let lifetimes = shared::extract_lifetime_names(&service_type_args);
     let exposure_set_event_listener_code = events_type.map(|t| {
@@ -262,12 +265,8 @@ fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
     let no_events_type = Path::from(Ident::new("NoEvents", Span::call_site()));
     let events_type = events_type.unwrap_or(&no_events_type);
 
-    let scale_types_path = sails_paths::scale_types_path();
-    let scale_codec_path = sails_paths::scale_codec_path();
-    let scale_info_path = sails_paths::scale_info_path();
-
     let unexpected_route_panic =
-        shared::generate_unexpected_input_panic(&input_ident, "Unknown request");
+        shared::generate_unexpected_input_panic(&input_ident, "Unknown request", &sails_path);
 
     let mut exposure_lifetimes: Punctuated<Lifetime, Comma> = Punctuated::new();
     if !service_args.base_types().is_empty() {
@@ -294,7 +293,7 @@ fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
         #service_impl
 
         pub struct Exposure<#exposure_generic_args> {
-            #message_id_ident : sails_rs::MessageId,
+            #message_id_ident : #sails_path::MessageId,
             #route_ident : &'static [u8],
             #[cfg(not(target_arch = "wasm32"))]
             #inner_ident : Box<T>, // Ensure service is not movable
@@ -329,8 +328,8 @@ fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
             #exposure_set_event_listener_code
         }
 
-        impl #service_type_args sails_rs::gstd::services::Exposure for Exposure< #exposure_args > #service_type_constraints {
-            fn message_id(&self) -> sails_rs::MessageId {
+        impl #service_type_args #sails_path::gstd::services::Exposure for Exposure< #exposure_args > #service_type_constraints {
+            fn message_id(&self) -> #sails_path::MessageId {
                 self. #message_id_ident
             }
 
@@ -339,10 +338,10 @@ fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
             }
         }
 
-        impl #service_type_args sails_rs::gstd::services::Service for #service_type_path #service_type_constraints {
+        impl #service_type_args #sails_path::gstd::services::Service for #service_type_path #service_type_constraints {
             type Exposure = Exposure< #exposure_args >;
 
-            fn expose(self, #message_id_ident : sails_rs::MessageId, #route_ident : &'static [u8]) -> Self::Exposure {
+            fn expose(self, #message_id_ident : #sails_path::MessageId, #route_ident : &'static [u8]) -> Self::Exposure {
                 #[cfg(not(target_arch = "wasm32"))]
                 let inner_box = Box::new(self);
                 #[cfg(not(target_arch = "wasm32"))]
@@ -363,7 +362,7 @@ fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
             }
         }
 
-        impl #service_type_args sails_rs::meta::ServiceMeta for #service_type_path #service_type_constraints {
+        impl #service_type_args #sails_path::meta::ServiceMeta for #service_type_path #service_type_constraints {
             fn commands() -> #scale_info_path ::MetaType {
                 #scale_info_path ::MetaType::new::<meta_in_service::CommandsMeta>()
             }
@@ -376,7 +375,7 @@ fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
                 #scale_info_path ::MetaType::new::<meta_in_service::EventsMeta>()
             }
 
-            fn base_services() -> impl Iterator<Item = sails_rs::meta::AnyServiceMeta> {
+            fn base_services() -> impl Iterator<Item = #sails_path::meta::AnyServiceMeta> {
                 [
                     #( #base_services_meta ),*
                 ].into_iter()
@@ -385,9 +384,9 @@ fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
 
         #events_listeners_code
 
-        use #scale_types_path ::Decode as __ServiceDecode;
-        use #scale_types_path ::Encode as __ServiceEncode;
-        use #scale_types_path ::TypeInfo as __ServiceTypeInfo;
+        use #sails_path ::Decode as __ServiceDecode;
+        use #sails_path ::Encode as __ServiceEncode;
+        use #sails_path ::TypeInfo as __ServiceTypeInfo;
 
         #(
             #[derive(__ServiceDecode, __ServiceTypeInfo)]
@@ -421,10 +420,10 @@ fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
 }
 
 // Generates function for accessing event listeners map in non-wasm code.
-fn generate_event_listeners() -> TokenStream {
+fn generate_event_listeners(sails_path: &Path) -> TokenStream {
     quote!(
-        type __EventlistenersMap = sails_rs::collections::BTreeMap<usize, usize>;
-        type __Mutex<T> = sails_rs::spin::Mutex<T>;
+        type __EventlistenersMap = #sails_path::collections::BTreeMap<usize, usize>;
+        type __Mutex<T> = #sails_path::spin::Mutex<T>;
 
         #[cfg(not(target_arch = "wasm32"))]
         fn event_listeners() -> &'static __Mutex<__EventlistenersMap> {

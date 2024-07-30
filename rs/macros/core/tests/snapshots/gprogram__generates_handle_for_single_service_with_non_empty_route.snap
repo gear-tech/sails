@@ -1,6 +1,5 @@
 ---
 source: rs/macros/core/tests/gprogram.rs
-assertion_line: 67
 expression: result
 ---
 static __ROUTE_SERVICE: [u8; 8usize] = [

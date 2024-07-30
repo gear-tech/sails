@@ -34,6 +34,8 @@ sails-idl-parser = { path = "rs/idl-parser" }
 sails-client-gen = { path = "rs/client-gen" }
 sails-rs = { path = "rs" }
 sails-idl-gen = { path = "rs/idl-gen" }
+# Renamed sails-rs for `proxy` demo
+sails-rename = { package = "sails-rs", path = "rs" }
 
 # Gear deps
 gclient = "=1.4.2"

@@ -1,6 +1,5 @@
 ---
 source: rs/macros/core/tests/gprogram.rs
-assertion_line: 38
 expression: result
 ---
 impl MyProgram {

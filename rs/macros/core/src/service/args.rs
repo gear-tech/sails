@@ -1,15 +1,17 @@
+use crate::sails_paths;
 use proc_macro_error::abort;
 use syn::{
     bracketed,
     parse::{Parse, ParseStream},
     punctuated::Punctuated,
-    token, Ident, Path, Result as SynResult, Token,
+    token, Path, Result as SynResult, Token,
 };
 
 #[derive(PartialEq, Debug)]
 pub(super) struct ServiceArgs {
     base_types: Vec<Path>,
     events_type: Option<Path>,
+    sails_path: Option<Path>,
 }
 
 impl ServiceArgs {
@@ -19,6 +21,10 @@ impl ServiceArgs {
 
     pub fn events_type(&self) -> &Option<Path> {
         &self.events_type
+    }
+
+    pub fn sails_path(&self) -> syn::Path {
+        sails_paths::sails_path_or_default(self.sails_path.clone())
     }
 }
 
@@ -41,9 +47,14 @@ impl Parse for ServiceArgs {
         if let Some(path) = events_types.next() {
             abort!(path, "only one `events` argument is allowed")
         }
+        let sails_path = items.iter().find_map(|arg| match arg {
+            ServiceArg::SailsPath(path) => Some(path.clone()),
+            _ => None,
+        });
         Ok(Self {
             base_types,
             events_type,
+            sails_path,
         })
     }
 }
@@ -52,11 +63,13 @@ impl Parse for ServiceArgs {
 enum ServiceArg {
     Extends(Vec<Path>),
     Events(Path),
+    SailsPath(Path),
 }
 
 impl Parse for ServiceArg {
     fn parse(input: ParseStream) -> SynResult<Self> {
-        let ident = input.parse::<Ident>()?;
+        let path = input.parse::<Path>()?;
+        let ident = path.get_ident().unwrap();
         input.parse::<Token![=]>()?;
         match ident.to_string().as_str() {
             "extends" => {
@@ -78,6 +91,12 @@ impl Parse for ServiceArg {
                 }
                 abort!(ident, "unexpected value for `events` argument: {}", input)
             }
+            "crate" => {
+                if let Ok(path) = input.parse::<Path>() {
+                    return Ok(Self::SailsPath(path));
+                }
+                abort!(ident, "unexpected value for `crate` argument: {}", input)
+            }
             _ => abort!(ident, "unknown argument: {}", ident),
         }
     }
@@ -89,7 +108,7 @@ mod tests {
     use proc_macro2::Span;
     use quote::quote;
     use syn::{
-        punctuated::Punctuated, AngleBracketedGenericArguments, GenericArgument, Lifetime,
+        punctuated::Punctuated, AngleBracketedGenericArguments, GenericArgument, Ident, Lifetime,
         PathArguments, PathSegment, Token,
     };
 
@@ -101,6 +120,7 @@ mod tests {
         let expected = ServiceArgs {
             base_types: vec![],
             events_type: None,
+            sails_path: None,
         };
 
         // act
@@ -120,6 +140,7 @@ mod tests {
                 PathSegment::from(Ident::new("SomeService", Span::call_site())).into(),
             ],
             events_type: None,
+            sails_path: None,
         };
 
         // act
@@ -140,6 +161,7 @@ mod tests {
                 PathSegment::from(Ident::new("AnotherService", Span::call_site())).into(),
             ],
             events_type: None,
+            sails_path: None,
         };
 
         // act
@@ -171,6 +193,7 @@ mod tests {
             }
             .into()],
             events_type: None,
+            sails_path: None,
         };
 
         // act
@@ -205,6 +228,7 @@ mod tests {
                 .into(),
             ],
             events_type: None,
+            sails_path: None,
         };
 
         // act
