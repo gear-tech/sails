@@ -19,7 +19,7 @@
 //! Supporting functions and structures for the `gservice` macro.
 
 use crate::{
-    sails_paths::SailsPath,
+    sails_paths,
     shared::{self, Func},
 };
 use args::ServiceArgs;
@@ -99,8 +99,8 @@ fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
         )
     });
     let sails_path = service_args.sails_path();
-    let scale_codec_path = service_args.scale_codec_path();
-    let scale_info_path = service_args.scale_info_path();
+    let scale_codec_path = sails_paths::scale_codec_path(&sails_path);
+    let scale_info_path = sails_paths::scale_info_path(&sails_path);
 
     let (service_type_path, service_type_args) = shared::impl_type(&service_impl);
     let service_type_constraints = shared::impl_constraints(&service_impl);

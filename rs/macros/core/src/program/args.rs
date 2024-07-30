@@ -1,3 +1,4 @@
+use crate::sails_paths;
 use proc_macro2::Span;
 use proc_macro_error::abort;
 use std::collections::BTreeSet;
@@ -6,8 +7,6 @@ use syn::{
     punctuated::Punctuated,
     Path, Token,
 };
-
-use crate::sails_paths::SailsPath;
 
 #[derive(Debug, Default, PartialEq)]
 pub(super) struct ProgramArgs {
@@ -23,6 +22,10 @@ impl ProgramArgs {
 
     pub fn handle_signal(&self) -> &Option<Path> {
         &self.handle_signal
+    }
+
+    pub fn sails_path(&self) -> syn::Path {
+        sails_paths::sails_path_or_default(self.sails_path.clone())
     }
 }
 
@@ -65,12 +68,6 @@ impl Parse for ProgramArgs {
         }
 
         Ok(attrs)
-    }
-}
-
-impl SailsPath for ProgramArgs {
-    fn sails_custom_path(&self) -> Option<syn::Path> {
-        self.sails_path.clone()
     }
 }
 

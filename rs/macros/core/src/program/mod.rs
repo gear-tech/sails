@@ -1,5 +1,5 @@
 use crate::{
-    sails_paths::SailsPath,
+    sails_paths,
     shared::{self, Func},
 };
 use args::ProgramArgs;
@@ -64,8 +64,8 @@ fn ensure_single_gprogram(program_impl: &ItemImpl) {
 
 fn gen_gprogram_impl(program_impl: ItemImpl, program_args: ProgramArgs) -> TokenStream2 {
     let sails_path = program_args.sails_path();
-    let scale_codec_path = program_args.scale_codec_path();
-    let scale_info_path = program_args.scale_info_path();
+    let scale_codec_path = sails_paths::scale_codec_path(&sails_path);
+    let scale_info_path = sails_paths::scale_info_path(&sails_path);
 
     let services_ctors = discover_services_ctors(&program_impl);
 

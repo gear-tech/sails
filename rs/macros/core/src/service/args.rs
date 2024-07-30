@@ -1,3 +1,4 @@
+use crate::sails_paths;
 use proc_macro_error::abort;
 use syn::{
     bracketed,
@@ -5,8 +6,6 @@ use syn::{
     punctuated::Punctuated,
     token, Path, Result as SynResult, Token,
 };
-
-use crate::sails_paths::SailsPath;
 
 #[derive(PartialEq, Debug)]
 pub(super) struct ServiceArgs {
@@ -22,6 +21,10 @@ impl ServiceArgs {
 
     pub fn events_type(&self) -> &Option<Path> {
         &self.events_type
+    }
+
+    pub fn sails_path(&self) -> syn::Path {
+        sails_paths::sails_path_or_default(self.sails_path.clone())
     }
 }
 
@@ -53,12 +56,6 @@ impl Parse for ServiceArgs {
             events_type,
             sails_path,
         })
-    }
-}
-
-impl SailsPath for ServiceArgs {
-    fn sails_custom_path(&self) -> Option<syn::Path> {
-        self.sails_path.clone()
     }
 }
 
