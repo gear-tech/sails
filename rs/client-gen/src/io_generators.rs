@@ -1,18 +1,19 @@
+use crate::helpers::*;
+use crate::type_generators::generate_type_decl_with_path;
 use genco::prelude::*;
 use sails_idl_parser::{ast::visitor, ast::visitor::Visitor, ast::*};
 
-use crate::helpers::*;
-use crate::type_generators::generate_type_decl_with_path;
-
-pub(crate) struct IoModuleGenerator {
-    path: String,
+pub(crate) struct IoModuleGenerator<'a> {
+    path: &'a str,
+    sails_path: &'a str,
     tokens: rust::Tokens,
 }
 
-impl IoModuleGenerator {
-    pub(crate) fn new(path: String) -> Self {
+impl<'a> IoModuleGenerator<'a> {
+    pub(crate) fn new(path: &'a str, sails_path: &'a str) -> Self {
         Self {
             path,
+            sails_path,
             tokens: rust::Tokens::new(),
         }
     }
@@ -21,21 +22,21 @@ impl IoModuleGenerator {
         quote!(
             pub mod io {
                 use super::*;
-                use sails_rs::calls::ActionIo;
+                use $(self.sails_path)::calls::ActionIo;
                 $(self.tokens)
             }
         )
     }
 }
 
-impl<'ast> Visitor<'ast> for IoModuleGenerator {
+impl<'a, 'ast> Visitor<'ast> for IoModuleGenerator<'a> {
     fn visit_service(&mut self, service: &'ast Service) {
         visitor::accept_service(service, self);
     }
 
     fn visit_service_func(&mut self, func: &'ast ServiceFunc) {
         let fn_name = func.name();
-        let (service_path_bytes, _) = path_bytes(&self.path);
+        let (service_path_bytes, _) = path_bytes(self.path);
         let (route_bytes, _) = method_bytes(fn_name);
 
         let struct_tokens = generate_io_struct(

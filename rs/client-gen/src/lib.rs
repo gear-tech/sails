@@ -14,10 +14,13 @@ use convert_case::{Case, Casing};
 use sails_idl_parser::ast::{visitor, Program};
 use std::{ffi::OsStr, fs, io::Write, path::Path};
 
+const SAILS: &str = "sails_rs";
+
 pub fn generate_client_from_idl(
     idl_path: impl AsRef<Path>,
     out_path: impl AsRef<Path>,
     mocks_feature_name: Option<&str>,
+    sails_path: Option<&str>,
 ) -> Result<()> {
     let idl_path = idl_path.as_ref();
     let out_path = out_path.as_ref();
@@ -36,7 +39,7 @@ pub fn generate_client_from_idl(
     let file_name = idl_path.file_stem().unwrap_or(OsStr::new("service"));
     let service_name = file_name.to_string_lossy().to_case(Case::Pascal);
 
-    let buf = generate(program, &service_name, mocks_feature_name)
+    let buf = generate(program, &service_name, mocks_feature_name, sails_path)
         .context("failed to generate client")?;
 
     fs::write(out_path, buf)
@@ -49,8 +52,10 @@ pub fn generate(
     program: Program,
     anonymous_service_name: &str,
     mocks_feature_name: Option<&str>,
+    sails_path: Option<&str>,
 ) -> Result<String> {
-    let mut generator = RootGenerator::new(anonymous_service_name, mocks_feature_name);
+    let sails_path = sails_path.unwrap_or(SAILS);
+    let mut generator = RootGenerator::new(anonymous_service_name, mocks_feature_name, sails_path);
     visitor::accept_program(&program, &mut generator);
 
     let code = generator.finalize();

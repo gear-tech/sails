@@ -127,8 +127,56 @@ fn test_events_works() {
     insta::assert_snapshot!(gen(idl, "ServiceWithEvents"));
 }
 
-fn gen(program: &str, service_name: &str) -> String {
-    let program = sails_idl_parser::ast::parse_idl(program).expect("parse IDL");
+#[test]
+fn full_with_sails_path() {
+    const IDL: &str = r#"
+        type ThisThatSvcAppTupleStruct = struct {
+            bool,
+        };
 
-    sails_client_gen::generate(program, service_name, Some("with_mocks")).expect("generate client")
+        type ThisThatSvcAppDoThatParam = struct {
+            p1: u32,
+            p2: str,
+            p3: ThisThatSvcAppManyVariants,
+        };
+
+        type ThisThatSvcAppManyVariants = enum {
+            One,
+            Two: u32,
+            Three: opt u32,
+            Four: struct { a: u32, b: opt u16 },
+            Five: struct { str, u32 },
+            Six: struct { u32 },
+        };
+
+        type T = enum { One };
+
+        constructor {
+            New : (a: u32);
+        };
+
+        service {
+            DoThis : (p1: u32, p2: str, p3: struct { opt str, u8 }, p4: ThisThatSvcAppTupleStruct) -> struct { str, u32 };
+            DoThat : (param: ThisThatSvcAppDoThatParam) -> result (struct { str, u32 }, struct { str });
+            query This : (v1: vec u16) -> u32;
+            query That : (v1: null) -> result (str, str);
+        };
+        "#;
+
+    insta::assert_snapshot!(gen_with_path(IDL, "Service", None, Some("my_crate::sails")));
+}
+
+fn gen(program: &str, service_name: &str) -> String {
+    gen_with_path(program, service_name, Some("with_mocks"), None)
+}
+
+fn gen_with_path(
+    program: &str,
+    service_name: &str,
+    mocks_feature_name: Option<&str>,
+    sails_path: Option<&str>,
+) -> String {
+    let program = sails_idl_parser::ast::parse_idl(program).expect("parse IDL");
+    sails_client_gen::generate(program, service_name, mocks_feature_name, sails_path)
+        .expect("generate client")
 }

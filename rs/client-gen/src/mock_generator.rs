@@ -1,17 +1,16 @@
+use crate::type_generators::generate_type_decl_code;
 use convert_case::{Case, Casing};
 use genco::prelude::*;
 use rust::Tokens;
 use sails_idl_parser::{ast::visitor, ast::visitor::Visitor, ast::*};
 
-use crate::type_generators::generate_type_decl_code;
-
-pub(crate) struct MockGenerator {
-    service_name: String,
+pub(crate) struct MockGenerator<'a> {
+    service_name: &'a str,
     tokens: rust::Tokens,
 }
 
-impl MockGenerator {
-    pub(crate) fn new(service_name: String) -> Self {
+impl<'a> MockGenerator<'a> {
+    pub(crate) fn new(service_name: &'a str) -> Self {
         Self {
             service_name,
             tokens: rust::Tokens::new(),
@@ -21,11 +20,11 @@ impl MockGenerator {
     pub(crate) fn finalize(self) -> rust::Tokens {
         quote! {
             mock! {
-                pub $(&self.service_name)<A> {}
+                pub $(self.service_name)<A> {}
 
                 #[allow(refining_impl_trait)]
                 #[allow(clippy::type_complexity)]
-                impl<A> traits::$(&self.service_name) for $(&self.service_name)<A> {
+                impl<A> traits::$(self.service_name) for $(self.service_name)<A> {
                     type Args = A;
                     $(self.tokens)
                 }
@@ -34,7 +33,7 @@ impl MockGenerator {
     }
 }
 
-impl<'ast> Visitor<'ast> for MockGenerator {
+impl<'a, 'ast> Visitor<'ast> for MockGenerator<'a> {
     fn visit_service(&mut self, service: &'ast Service) {
         visitor::accept_service(service, self);
     }
