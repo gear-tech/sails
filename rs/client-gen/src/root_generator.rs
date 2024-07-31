@@ -13,18 +13,20 @@ pub(crate) struct RootGenerator<'a> {
     mocks_tokens: Tokens,
     anonymous_service_name: &'a str,
     mocks_feature_name: Option<&'a str>,
+    sails_path: &'a str,
 }
 
 impl<'a> RootGenerator<'a> {
     pub(crate) fn new(
         anonymous_service_name: &'a str,
         mocks_feature_name: Option<&'a str>,
+        sails_path: &'a str,
     ) -> Self {
         let tokens = quote! {
             #[allow(unused_imports)]
-            use sails_rs::{prelude::*, String, calls::{Activation, Call, Query, Remoting, RemotingAction}};
+            use $sails_path::{prelude::*, String, calls::{Activation, Call, Query, Remoting, RemotingAction}};
             #[allow(unused_imports)]
-            use sails_rs::collections::BTreeMap;
+            use $sails_path::collections::BTreeMap;
         };
 
         Self {
@@ -33,6 +35,7 @@ impl<'a> RootGenerator<'a> {
             traits_tokens: Tokens::new(),
             mocks_tokens: Tokens::new(),
             mocks_feature_name,
+            sails_path,
         }
     }
 
@@ -47,7 +50,7 @@ impl<'a> RootGenerator<'a> {
                 #[cfg(not(target_arch = "wasm32"))]
                 pub mod mockall {
                     use super::*;
-                    use sails_rs::mockall::*;
+                    use $(self.sails_path)::mockall::*;
                     $(self.mocks_tokens)
                 }
             }
@@ -81,7 +84,7 @@ impl<'a, 'ast> Visitor<'ast> for RootGenerator<'a> {
 
         self.traits_tokens.extend(ctor_gen.finalize());
 
-        let mut ctor_gen = CtorFactoryGenerator::new(self.anonymous_service_name.to_owned());
+        let mut ctor_gen = CtorFactoryGenerator::new(self.anonymous_service_name, self.sails_path);
         ctor_gen.visit_ctor(ctor);
         self.tokens.extend(ctor_gen.finalize());
     }
@@ -106,13 +109,13 @@ impl<'a, 'ast> Visitor<'ast> for RootGenerator<'a> {
 
         let mut service_tokens = Tokens::new();
 
-        let mut io_mod_gen = IoModuleGenerator::new(path.to_owned());
+        let mut io_mod_gen = IoModuleGenerator::new(path, self.sails_path);
         io_mod_gen.visit_service(service);
         service_tokens.extend(io_mod_gen.finalize());
 
         if !service.events().is_empty() {
             let mut events_mod_gen =
-                EventsModuleGenerator::new(service_name.to_owned(), path.to_owned());
+                EventsModuleGenerator::new(service_name, path, self.sails_path);
             events_mod_gen.visit_service(service);
             service_tokens.extend(events_mod_gen.finalize());
         }
@@ -124,13 +127,13 @@ impl<'a, 'ast> Visitor<'ast> for RootGenerator<'a> {
             }
         }
 
-        let mut mock_gen: MockGenerator = MockGenerator::new(service_name.to_owned());
+        let mut mock_gen: MockGenerator = MockGenerator::new(service_name);
         mock_gen.visit_service(service);
         self.mocks_tokens.extend(mock_gen.finalize());
     }
 
     fn visit_type(&mut self, t: &'ast Type) {
-        let mut type_gen = TopLevelTypeGenerator::new(t.name());
+        let mut type_gen = TopLevelTypeGenerator::new(t.name(), self.sails_path);
         type_gen.visit_type(t);
         self.tokens.extend(type_gen.finalize());
     }

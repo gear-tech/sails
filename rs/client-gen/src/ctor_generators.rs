@@ -1,22 +1,23 @@
+use crate::{
+    helpers::*, io_generators::generate_io_struct, type_generators::generate_type_decl_code,
+};
 use convert_case::{Case, Casing};
 use genco::prelude::*;
 use rust::Tokens;
 use sails_idl_parser::{ast::visitor, ast::visitor::Visitor, ast::*};
 
-use crate::{
-    helpers::*, io_generators::generate_io_struct, type_generators::generate_type_decl_code,
-};
-
-pub(crate) struct CtorFactoryGenerator {
-    service_name: String,
+pub(crate) struct CtorFactoryGenerator<'a> {
+    service_name: &'a str,
+    sails_path: &'a str,
     tokens: Tokens,
     io_tokens: Tokens,
 }
 
-impl CtorFactoryGenerator {
-    pub(crate) fn new(service_name: String) -> Self {
+impl<'a> CtorFactoryGenerator<'a> {
+    pub(crate) fn new(service_name: &'a str, sails_path: &'a str) -> Self {
         Self {
             service_name,
+            sails_path,
             tokens: Tokens::new(),
             io_tokens: Tokens::new(),
         }
@@ -30,7 +31,7 @@ impl CtorFactoryGenerator {
                 use super::*;
                 pub mod io {
                     use super::*;
-                    use sails_rs::calls::ActionIo;
+                    use $(self.sails_path)::calls::ActionIo;
                     $(self.io_tokens)
                 }
             }
@@ -38,15 +39,15 @@ impl CtorFactoryGenerator {
     }
 }
 
-impl<'ast> Visitor<'ast> for CtorFactoryGenerator {
+impl<'a, 'ast> Visitor<'ast> for CtorFactoryGenerator<'a> {
     fn visit_ctor(&mut self, ctor: &'ast Ctor) {
         quote_in! {self.tokens =>
-            pub struct $(&self.service_name)Factory<R> {
+            pub struct $(self.service_name)Factory<R> {
                 #[allow(dead_code)]
                 remoting: R,
             }
 
-            impl<R> $(&self.service_name)Factory<R> {
+            impl<R> $(self.service_name)Factory<R> {
                 #[allow(unused)]
                 pub fn new(remoting: R) -> Self {
                     Self {
@@ -55,7 +56,7 @@ impl<'ast> Visitor<'ast> for CtorFactoryGenerator {
                 }
             }
 
-            impl<R: Remoting + Clone> traits::$(&self.service_name)Factory for $(&self.service_name)Factory<R> $("{")
+            impl<R: Remoting + Clone> traits::$(self.service_name)Factory for $(self.service_name)Factory<R> $("{")
                 type Args = R::Args;
         };
 

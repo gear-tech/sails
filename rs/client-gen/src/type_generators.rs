@@ -19,13 +19,15 @@ pub(crate) fn generate_type_decl_with_path(type_decl: &TypeDecl, path: String) -
 
 pub(crate) struct TopLevelTypeGenerator<'a> {
     type_name: &'a str,
+    sails_path: &'a str,
     tokens: Tokens,
 }
 
 impl<'a> TopLevelTypeGenerator<'a> {
-    pub(crate) fn new(type_name: &'a str) -> Self {
+    pub(crate) fn new(type_name: &'a str, sails_path: &'a str) -> Self {
         Self {
             type_name,
+            sails_path,
             tokens: Tokens::new(),
         }
     }
@@ -48,8 +50,8 @@ impl<'a, 'ast> Visitor<'ast> for TopLevelTypeGenerator<'a> {
 
         quote_in!(self.tokens =>
             #[derive(PartialEq, Debug, Encode, Decode, TypeInfo)]
-            #[codec(crate = sails_rs::scale_codec)]
-            #[scale_info(crate = sails_rs::scale_info)]
+            #[codec(crate = $(self.sails_path)::scale_codec)]
+            #[scale_info(crate = $(self.sails_path)::scale_info)]
             pub struct $(self.type_name) $(struct_def_generator.code) $(semi)
         );
     }
@@ -60,8 +62,8 @@ impl<'a, 'ast> Visitor<'ast> for TopLevelTypeGenerator<'a> {
 
         quote_in!(self.tokens =>
             #[derive(PartialEq, Debug, Encode, Decode, TypeInfo)]
-            #[codec(crate = sails_rs::scale_codec)]
-            #[scale_info(crate = sails_rs::scale_info)]
+            #[codec(crate = $(self.sails_path)::scale_codec)]
+            #[scale_info(crate = $(self.sails_path)::scale_info)]
             pub enum $(self.type_name) $(enum_def_generator.code)
         );
     }

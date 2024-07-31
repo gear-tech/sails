@@ -1,19 +1,20 @@
+use crate::helpers::{method_bytes, path_bytes};
 use genco::prelude::*;
 use sails_idl_parser::{ast::visitor, ast::visitor::Visitor, ast::*};
 
-use crate::helpers::{method_bytes, path_bytes};
-
-pub(crate) struct EventsModuleGenerator {
-    service_name: String,
-    path: String,
+pub(crate) struct EventsModuleGenerator<'a> {
+    service_name: &'a str,
+    path: &'a str,
+    sails_path: &'a str,
     tokens: rust::Tokens,
 }
 
-impl EventsModuleGenerator {
-    pub(crate) fn new(service_name: String, path: String) -> Self {
+impl<'a> EventsModuleGenerator<'a> {
+    pub(crate) fn new(service_name: &'a str, path: &'a str, sails_path: &'a str) -> Self {
         Self {
             service_name,
             path,
+            sails_path,
             tokens: rust::Tokens::new(),
         }
     }
@@ -23,10 +24,10 @@ impl EventsModuleGenerator {
     }
 }
 
-impl<'ast> Visitor<'ast> for EventsModuleGenerator {
+impl<'a, 'ast> Visitor<'ast> for EventsModuleGenerator<'a> {
     fn visit_service(&mut self, service: &'ast Service) {
         let events_name = format!("{}Events", self.service_name);
-        let (service_path_bytes, _) = path_bytes(&self.path);
+        let (service_path_bytes, _) = path_bytes(self.path);
         let event_names_bytes = service
             .events()
             .iter()
@@ -39,9 +40,9 @@ impl<'ast> Visitor<'ast> for EventsModuleGenerator {
             #[cfg(not(target_arch = "wasm32"))]
             pub mod events $("{")
                 use super::*;
-                use sails_rs::events::*;
+                use $(self.sails_path)::events::*;
                 #[derive(PartialEq, Debug, Encode, Decode)]
-                #[codec(crate = sails_rs::scale_codec)]
+                #[codec(crate = $(self.sails_path)::scale_codec)]
                 pub enum $(&events_name) $("{")
         };
 
