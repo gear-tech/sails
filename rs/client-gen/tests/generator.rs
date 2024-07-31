@@ -1,3 +1,5 @@
+use sails_client_gen::ClientGenerator;
+
 #[test]
 fn full() {
     const IDL: &str = r#"
@@ -163,20 +165,16 @@ fn full_with_sails_path() {
         };
         "#;
 
-    insta::assert_snapshot!(gen_with_path(IDL, "Service", None, Some("my_crate::sails")));
+    let code = ClientGenerator::from_idl(IDL)
+        .with_sails_crate("my_crate::sails")
+        .generate("Service")
+        .expect("generate client");
+    insta::assert_snapshot!(code);
 }
 
 fn gen(program: &str, service_name: &str) -> String {
-    gen_with_path(program, service_name, Some("with_mocks"), None)
-}
-
-fn gen_with_path(
-    program: &str,
-    service_name: &str,
-    mocks_feature_name: Option<&str>,
-    sails_path: Option<&str>,
-) -> String {
-    let program = sails_idl_parser::ast::parse_idl(program).expect("parse IDL");
-    sails_client_gen::generate(program, service_name, mocks_feature_name, sails_path)
+    ClientGenerator::from_idl(program)
+        .with_mocks("with_mocks")
+        .generate(service_name)
         .expect("generate client")
 }

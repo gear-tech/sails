@@ -1,3 +1,4 @@
+use sails_client_gen::ClientGenerator;
 use std::{env, path::PathBuf};
 
 fn main() {
@@ -21,11 +22,8 @@ fn main() {
     let idl_file_path = PathBuf::from(env::var("CARGO_MANIFEST_DIR").unwrap())
         .join("..\\..\\catalog\\wasm\\rmrk-catalog.idl");
 
-    sails_client_gen::generate_client_from_idl(
-        idl_file_path,
-        client_rs_file_path,
-        Some("mockall"),
-        None,
-    )
-    .unwrap();
+    ClientGenerator::from_idl_path(&idl_file_path)
+        .with_mocks("mockall")
+        .generate_to(client_rs_file_path)
+        .unwrap();
 }
