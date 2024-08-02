@@ -19,7 +19,7 @@ async fn counter_add_works() {
     // using the `new` constructor and the `send_recv` method
     let demo_program_id = demo_factory
         .new(Some(42), None)
-        .with_args(GSdkArgs::default().with_gas_limit(gas_limit))
+        .with_gas_limit(gas_limit)
         .send_recv(demo_code_id, "123")
         .await
         .unwrap();
@@ -35,7 +35,7 @@ async fn counter_add_works() {
     // using the `send_recv` method
     let result = counter_client
         .add(10)
-        .with_args(GSdkArgs::default().with_gas_limit(gas_limit))
+        .with_gas_limit(gas_limit)
         .send_recv(demo_program_id)
         .await
         .unwrap();
@@ -62,7 +62,7 @@ async fn counter_sub_works() {
     // of methods
     let activation = demo_factory
         .new(Some(42), None)
-        .with_args(GSdkArgs::default().with_gas_limit(gas_limit))
+        .with_gas_limit(gas_limit)
         .send(demo_code_id, "123")
         .await
         .unwrap();
@@ -79,7 +79,7 @@ async fn counter_sub_works() {
     // using the `send`/`recv` pair of methods
     let response = counter_client
         .sub(10)
-        .with_args(GSdkArgs::default().with_gas_limit(gas_limit))
+        .with_gas_limit(gas_limit)
         .send(demo_program_id)
         .await
         .unwrap();
@@ -106,7 +106,7 @@ async fn ping_pong_works() {
     // using the `default` constructor and the `send_recv` method
     let demo_program_id = demo_factory
         .default()
-        .with_args(GSdkArgs::default().with_gas_limit(gas_limit))
+        .with_gas_limit(gas_limit)
         .send_recv(demo_code_id, "123")
         .await
         .unwrap();
@@ -121,8 +121,9 @@ async fn ping_pong_works() {
         .message(
             demo_program_id,
             ping_call_payload,
+            Some(gas_limit),
             0,
-            GSdkArgs::default().with_gas_limit(gas_limit),
+            GSdkArgs,
         )
         .await
         .unwrap()

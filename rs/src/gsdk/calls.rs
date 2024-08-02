@@ -10,20 +10,7 @@ use gclient::metadata::runtime_types::gear_core::message::user::UserMessage as G
 use gclient::{ext::sp_core::ByteArray, EventProcessor, GearApi};
 
 #[derive(Debug, Default, Clone)]
-pub struct GSdkArgs {
-    gas_limit: Option<GasUnit>,
-}
-
-impl GSdkArgs {
-    pub fn with_gas_limit(mut self, gas_limit: GasUnit) -> Self {
-        self.gas_limit = Some(gas_limit);
-        self
-    }
-
-    pub fn gas_limit(&self) -> Option<GasUnit> {
-        self.gas_limit
-    }
-}
+pub struct GSdkArgs;
 
 #[derive(Clone)]
 pub struct GSdkRemoting {
@@ -58,12 +45,13 @@ impl Remoting for GSdkRemoting {
         code_id: CodeId,
         salt: impl AsRef<[u8]>,
         payload: impl AsRef<[u8]>,
+        gas_limit: Option<GasUnit>,
         value: ValueUnit,
-        args: GSdkArgs,
+        _args: GSdkArgs,
     ) -> Result<impl Future<Output = Result<(ActorId, Vec<u8>)>>> {
         let api = self.api;
         // Do not Calculate gas amount needed
-        let gas_limit = args.gas_limit.unwrap_or_default();
+        let gas_limit = gas_limit.unwrap_or_default();
 
         let mut listener = api.subscribe().await?;
         let (message_id, program_id, ..) = api
@@ -81,12 +69,13 @@ impl Remoting for GSdkRemoting {
         self,
         target: ActorId,
         payload: impl AsRef<[u8]>,
+        gas_limit: Option<GasUnit>,
         value: ValueUnit,
-        args: GSdkArgs,
+        _args: GSdkArgs,
     ) -> Result<impl Future<Output = Result<Vec<u8>>>> {
         let api = self.api;
         // Do not Calculate gas amount needed
-        let gas_limit = args.gas_limit.unwrap_or_default();
+        let gas_limit = gas_limit.unwrap_or_default();
 
         let mut listener = api.subscribe().await?;
         let (message_id, ..) = api
@@ -104,12 +93,13 @@ impl Remoting for GSdkRemoting {
         self,
         target: ActorId,
         payload: impl AsRef<[u8]>,
+        gas_limit: Option<GasUnit>,
         value: ValueUnit,
-        args: GSdkArgs,
+        _args: GSdkArgs,
     ) -> Result<Vec<u8>> {
         let api = self.api;
         // Do not Calculate gas amount needed
-        let gas_limit = args.gas_limit.unwrap_or_default();
+        let gas_limit = gas_limit.unwrap_or_default();
         let origin = H256::from_slice(api.account_id().as_slice());
         let payload = payload.as_ref().to_vec();
 

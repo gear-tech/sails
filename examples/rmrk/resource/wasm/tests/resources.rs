@@ -347,6 +347,7 @@ impl<'a> Fixture<'a> {
                 code_id,
                 "123",
                 payload,
+                None,
                 0,
                 GTestArgs::new(self.admin_id.into()),
             )
@@ -393,6 +394,7 @@ impl<'a> Fixture<'a> {
             .message(
                 self.resource_program_for_async().id(),
                 encoded_request,
+                None,
                 0,
                 GTestArgs::new(actor_id.into()),
             )

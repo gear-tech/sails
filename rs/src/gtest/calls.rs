@@ -125,6 +125,7 @@ impl Remoting for GTestRemoting {
         code_id: CodeId,
         salt: impl AsRef<[u8]>,
         payload: impl AsRef<[u8]>,
+        _gas_limit: Option<GasUnit>,
         value: ValueUnit,
         args: GTestArgs,
     ) -> Result<impl Future<Output = Result<(ActorId, Vec<u8>)>>> {
@@ -147,6 +148,7 @@ impl Remoting for GTestRemoting {
         self,
         target: ActorId,
         payload: impl AsRef<[u8]>,
+        _gas_limit: Option<GasUnit>,
         value: ValueUnit,
         args: GTestArgs,
     ) -> Result<impl Future<Output = Result<Vec<u8>>>> {
@@ -159,6 +161,7 @@ impl Remoting for GTestRemoting {
         self,
         target: ActorId,
         payload: impl AsRef<[u8]>,
+        _gas_limit: Option<GasUnit>,
         value: ValueUnit,
         args: GTestArgs,
     ) -> Result<Vec<u8>> {

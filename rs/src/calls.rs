@@ -7,12 +7,12 @@ use core::{future::Future, marker::PhantomData};
 pub trait Action {
     type Args;
 
+    fn with_gas_limit(self, gas_limit: GasUnit) -> Self;
     fn with_value(self, value: ValueUnit) -> Self;
-
     fn with_args(self, args: Self::Args) -> Self;
 
+    fn gas_limit(&self) -> Option<GasUnit>;
     fn value(&self) -> ValueUnit;
-
     fn args(&self) -> &Self::Args;
 }
 
@@ -124,6 +124,7 @@ pub trait Remoting {
         code_id: CodeId,
         salt: impl AsRef<[u8]>,
         payload: impl AsRef<[u8]>,
+        gas_limit: Option<GasUnit>,
         value: ValueUnit,
         args: Self::Args,
     ) -> Result<impl Future<Output = Result<(ActorId, Vec<u8>)>>>;
@@ -132,6 +133,7 @@ pub trait Remoting {
         self,
         target: ActorId,
         payload: impl AsRef<[u8]>,
+        gas_limit: Option<GasUnit>,
         value: ValueUnit,
         args: Self::Args,
     ) -> Result<impl Future<Output = Result<Vec<u8>>>>;
@@ -140,6 +142,7 @@ pub trait Remoting {
         self,
         target: ActorId,
         payload: impl AsRef<[u8]>,
+        gas_limit: Option<GasUnit>,
         value: ValueUnit,
         args: Self::Args,
     ) -> Result<Vec<u8>>;
@@ -148,6 +151,7 @@ pub trait Remoting {
 pub struct RemotingAction<TRemoting: Remoting, TActionIo: ActionIo> {
     remoting: TRemoting,
     params: TActionIo::Params,
+    gas_limit: Option<GasUnit>,
     value: ValueUnit,
     args: TRemoting::Args,
 }
@@ -157,6 +161,7 @@ impl<TRemoting: Remoting, TActionIo: ActionIo> RemotingAction<TRemoting, TAction
         Self {
             remoting,
             params,
+            gas_limit: Default::default(),
             value: Default::default(),
             args: Default::default(),
         }
@@ -166,12 +171,23 @@ impl<TRemoting: Remoting, TActionIo: ActionIo> RemotingAction<TRemoting, TAction
 impl<TRemoting: Remoting, TActionIo: ActionIo> Action for RemotingAction<TRemoting, TActionIo> {
     type Args = TRemoting::Args;
 
+    fn with_gas_limit(self, gas_limit: GasUnit) -> Self {
+        Self {
+            gas_limit: Some(gas_limit),
+            ..self
+        }
+    }
+
     fn with_value(self, value: ValueUnit) -> Self {
         Self { value, ..self }
     }
 
     fn with_args(self, args: Self::Args) -> Self {
         Self { args, ..self }
+    }
+
+    fn gas_limit(&self) -> Option<GasUnit> {
+        self.gas_limit
     }
 
     fn value(&self) -> ValueUnit {
@@ -194,7 +210,7 @@ where
         let payload = TActionIo::encode_call(&self.params);
         let reply_future = self
             .remoting
-            .message(target, payload, self.value, self.args)
+            .message(target, payload, self.gas_limit, self.value, self.args)
             .await?;
         Ok(CallTicket::<_, TActionIo>::new(reply_future))
     }
@@ -213,7 +229,14 @@ where
         let payload = TActionIo::encode_call(&self.params);
         let reply_future = self
             .remoting
-            .activate(code_id, salt, payload, self.value, self.args)
+            .activate(
+                code_id,
+                salt,
+                payload,
+                self.gas_limit,
+                self.value,
+                self.args,
+            )
             .await?;
         Ok(ActivationTicket::<_, TActionIo>::new(reply_future))
     }
@@ -230,7 +253,7 @@ where
         let payload = TActionIo::encode_call(&self.params);
         let reply_bytes = self
             .remoting
-            .query(target, payload, self.value, self.args)
+            .query(target, payload, self.gas_limit, self.value, self.args)
             .await?;
         TActionIo::decode_reply(reply_bytes)
     }
