@@ -1,7 +1,7 @@
 use crate::{calls::Remoting, errors::Result, prelude::*};
 use core::future::Future;
 use futures::FutureExt;
-use gstd::{msg, prog, util};
+use gstd::{msg, prog};
 
 #[derive(Debug, Default, Clone)]
 pub struct GStdArgs {

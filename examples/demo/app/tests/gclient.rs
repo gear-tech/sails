@@ -1,6 +1,7 @@
 use demo_client::{counter::events::*, ping_pong, traits::*};
 use futures::stream::StreamExt;
 use gclient::GearApi;
+use gstd::errors::{ErrorReplyReason, SimpleExecutionError};
 use sails_rs::{calls::*, errors::RtlError, events::*, gsdk::calls::*, prelude::*};
 use std::panic;
 
@@ -148,7 +149,11 @@ async fn demo_returns_not_enough_gas_on_activation() {
 
     // Act
 
-    let activation_result = demo_factory.default().send_recv(demo_code_id, "123").await;
+    let activation_result = demo_factory
+        .default()
+        .with_gas_limit(0)
+        .send_recv(demo_code_id, "123")
+        .await;
 
     // Assert
 
@@ -157,6 +162,73 @@ async fn demo_returns_not_enough_gas_on_activation() {
         Err(sails_rs::errors::Error::Rtl(
             RtlError::ReplyHasErrorString(s)
         )) if s.as_str() == "Not enough gas to handle program data"
+    ));
+}
+
+#[tokio::test]
+#[ignore = "requires run gear node on GEAR_PATH"]
+async fn counter_query_works() {
+    // Arrange
+
+    let (remoting, demo_code_id, gas_limit) = spin_up_node_with_demo_code().await;
+
+    let demo_factory = demo_client::DemoFactory::new(remoting.clone());
+
+    // Use generated client code for activating Demo program
+    // using the `new` constructor and the `send_recv` method
+    let demo_program_id = demo_factory
+        .new(Some(42), None)
+        .with_gas_limit(gas_limit)
+        .send_recv(demo_code_id, "123")
+        .await
+        .unwrap();
+
+    let counter_client = demo_client::Counter::new(remoting.clone());
+
+    // Act
+
+    // Use generated client code for query Counter service using the `recv` method
+    let result = counter_client.value().recv(demo_program_id).await.unwrap();
+
+    // Asert
+    assert_eq!(result, 42);
+}
+
+#[tokio::test]
+#[ignore = "requires run gear node on GEAR_PATH"]
+async fn counter_query_not_enough_gas() {
+    // Arrange
+
+    let (remoting, demo_code_id, gas_limit) = spin_up_node_with_demo_code().await;
+
+    let demo_factory = demo_client::DemoFactory::new(remoting.clone());
+
+    // Use generated client code for activating Demo program
+    // using the `new` constructor and the `send_recv` method
+    let demo_program_id = demo_factory
+        .new(Some(42), None)
+        .with_gas_limit(gas_limit)
+        .send_recv(demo_code_id, "123")
+        .await
+        .unwrap();
+
+    let counter_client = demo_client::Counter::new(remoting.clone());
+
+    // Act
+
+    // Use generated client code for query Counter service using the `recv` method
+    let result = counter_client
+        .value()
+        .with_gas_limit(0) // Set gas_limit to 0
+        .recv(demo_program_id)
+        .await;
+
+    // Asert
+    assert!(matches!(
+        result,
+        Err(sails_rs::errors::Error::Rtl(RtlError::ReplyHasError(
+            ErrorReplyReason::Execution(SimpleExecutionError::RanOutOfGas)
+        )))
     ));
 }
 
