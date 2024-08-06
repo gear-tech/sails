@@ -8,22 +8,10 @@ use core::future::Future;
 use futures::{stream, Stream, StreamExt};
 use gclient::metadata::runtime_types::gear_core::message::user::UserMessage as GenUserMessage;
 use gclient::{ext::sp_core::ByteArray, EventProcessor, GearApi};
+use gear_core_errors::ReplyCode;
 
 #[derive(Debug, Default, Clone)]
-pub struct GSdkArgs {
-    gas_limit: Option<GasUnit>,
-}
-
-impl GSdkArgs {
-    pub fn with_gas_limit(mut self, gas_limit: GasUnit) -> Self {
-        self.gas_limit = Some(gas_limit);
-        self
-    }
-
-    pub fn gas_limit(&self) -> Option<GasUnit> {
-        self.gas_limit
-    }
-}
+pub struct GSdkArgs;
 
 #[derive(Clone)]
 pub struct GSdkRemoting {
@@ -58,12 +46,21 @@ impl Remoting for GSdkRemoting {
         code_id: CodeId,
         salt: impl AsRef<[u8]>,
         payload: impl AsRef<[u8]>,
+        gas_limit: Option<GasUnit>,
         value: ValueUnit,
-        args: GSdkArgs,
+        _args: GSdkArgs,
     ) -> Result<impl Future<Output = Result<(ActorId, Vec<u8>)>>> {
         let api = self.api;
-        // Do not Calculate gas amount needed
-        let gas_limit = args.gas_limit.unwrap_or_default();
+        // Calculate gas amount if it is not explicitly set
+        let gas_limit = if let Some(gas_limit) = gas_limit {
+            gas_limit
+        } else {
+            // Calculate gas amount needed for initialization
+            let gas_info = api
+                .calculate_create_gas(None, code_id, Vec::from(payload.as_ref()), value, true)
+                .await?;
+            gas_info.min_limit
+        };
 
         let mut listener = api.subscribe().await?;
         let (message_id, program_id, ..) = api
@@ -81,12 +78,21 @@ impl Remoting for GSdkRemoting {
         self,
         target: ActorId,
         payload: impl AsRef<[u8]>,
+        gas_limit: Option<GasUnit>,
         value: ValueUnit,
-        args: GSdkArgs,
+        _args: GSdkArgs,
     ) -> Result<impl Future<Output = Result<Vec<u8>>>> {
         let api = self.api;
-        // Do not Calculate gas amount needed
-        let gas_limit = args.gas_limit.unwrap_or_default();
+        // Calculate gas amount if it is not explicitly set
+        let gas_limit = if let Some(gas_limit) = gas_limit {
+            gas_limit
+        } else {
+            // Calculate gas amount needed for handling the message
+            let gas_info = api
+                .calculate_handle_gas(None, target, Vec::from(payload.as_ref()), value, true)
+                .await?;
+            gas_info.min_limit
+        };
 
         let mut listener = api.subscribe().await?;
         let (message_id, ..) = api
@@ -104,12 +110,17 @@ impl Remoting for GSdkRemoting {
         self,
         target: ActorId,
         payload: impl AsRef<[u8]>,
+        gas_limit: Option<GasUnit>,
         value: ValueUnit,
-        args: GSdkArgs,
+        _args: GSdkArgs,
     ) -> Result<Vec<u8>> {
         let api = self.api;
-        // Do not Calculate gas amount needed
-        let gas_limit = args.gas_limit.unwrap_or_default();
+        // Get Max gas amount if it is not explicitly set
+        let gas_limit = if let Some(gas_limit) = gas_limit {
+            gas_limit
+        } else {
+            api.block_gas_limit()?
+        };
         let origin = H256::from_slice(api.account_id().as_slice());
         let payload = payload.as_ref().to_vec();
 
@@ -117,7 +128,11 @@ impl Remoting for GSdkRemoting {
             .calculate_reply_for_handle(Some(origin), target, payload, gas_limit, value)
             .await?;
 
-        Ok(reply_info.payload)
+        match reply_info.code {
+            ReplyCode::Success(_) => Ok(reply_info.payload),
+            ReplyCode::Error(reason) => Err(RtlError::ReplyHasError(reason))?,
+            ReplyCode::Unsupported => Err(RtlError::ReplyIsMissing)?,
+        }
     }
 }
 

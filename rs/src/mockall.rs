@@ -8,8 +8,11 @@ mock! {
     impl<A> Action for Activation<A> {
         type Args = A;
 
+        fn with_gas_limit(self, gas_limit: GasUnit) -> Self;
         fn with_value(self, value: ValueUnit) -> Self;
         fn with_args(self, args: A) -> Self;
+
+        fn gas_limit(&self) -> Option<GasUnit>;
         fn value(&self) -> ValueUnit;
         fn args(&self) -> &A;
     }
@@ -30,8 +33,11 @@ mock! {
     impl<A, O> Action for Call<A, O> {
         type Args = A;
 
+        fn with_gas_limit(self, gas_limit: GasUnit) -> Self;
         fn with_value(self, value: ValueUnit) -> Self;
         fn with_args(self, args: A) -> Self;
+
+        fn gas_limit(&self) -> Option<GasUnit>;
         fn value(&self) -> ValueUnit;
         fn args(&self) -> &A;
     }
@@ -52,8 +58,11 @@ mock! {
     impl<A, O> Action for Query<A, O> {
         type Args = A;
 
+        fn with_gas_limit(self, gas_limit: GasUnit) -> Self;
         fn with_value(self, value: ValueUnit) -> Self;
         fn with_args(self, args: A) -> Self;
+
+        fn gas_limit(&self) -> Option<GasUnit>;
         fn value(&self) -> ValueUnit;
         fn args(&self) -> &A;
     }
