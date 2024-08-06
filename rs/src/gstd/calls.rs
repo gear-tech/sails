@@ -58,17 +58,28 @@ impl Remoting for GStdRemoting {
         code_id: CodeId,
         salt: impl AsRef<[u8]>,
         payload: impl AsRef<[u8]>,
-        _gas_limit: Option<GasUnit>,
+        gas_limit: Option<GasUnit>,
         value: ValueUnit,
         args: GStdArgs,
     ) -> Result<impl Future<Output = Result<(ActorId, Vec<u8>)>>> {
-        let reply_future = prog::create_program_bytes_for_reply(
-            code_id,
-            salt,
-            payload,
-            value,
-            args.reply_deposit.unwrap_or_default(),
-        )?;
+        let reply_future = if let Some(gas_limit) = gas_limit {
+            prog::create_program_bytes_with_gas_for_reply(
+                code_id,
+                salt,
+                payload,
+                gas_limit,
+                value,
+                args.reply_deposit.unwrap_or_default(),
+            )?
+        } else {
+            prog::create_program_bytes_for_reply(
+                code_id,
+                salt,
+                payload,
+                value,
+                args.reply_deposit.unwrap_or_default(),
+            )?
+        };
         let reply_future = reply_future.map(|result| result.map_err(Into::into));
         Ok(reply_future)
     }
