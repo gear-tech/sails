@@ -7,10 +7,10 @@ edition = "2021"
 rmrk-resource-app = { path = "../app" }
 
 [build-dependencies]
-gwasm-builder.workspace = true
 rmrk-resource-app = { path = "../app" }
 sails-client-gen.workspace = true
 sails-idl-gen.workspace = true
+sails-rs = { workspace = true, features = ["wasm-builder"] }
 
 [dev-dependencies]
 gtest.workspace = true

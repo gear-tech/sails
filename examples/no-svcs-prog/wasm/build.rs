@@ -3,7 +3,7 @@ use sails_client_gen::ClientGenerator;
 use std::{env, path::PathBuf};
 
 fn main() {
-    gwasm_builder::build();
+    sails_rs::build_wasm();
 
     let idl_file_path =
         PathBuf::from(env::var("CARGO_MANIFEST_DIR").unwrap()).join("no-svcs-prog.idl");

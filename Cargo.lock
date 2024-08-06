@@ -1435,7 +1435,6 @@ dependencies = [
  "demo-walker",
  "futures",
  "gclient",
- "gear-wasm-builder",
  "gstd",
  "gtest",
  "sails-rs",
@@ -4130,7 +4129,6 @@ checksum = "43794a0ace135be66a25d3ae77d41b91615fb68ae937f904090203e81f755b65"
 name = "no-svcs-prog"
 version = "0.1.0"
 dependencies = [
- "gear-wasm-builder",
  "no-svcs-prog-app",
  "sails-client-gen",
  "sails-idl-gen",
@@ -5074,9 +5072,9 @@ dependencies = [
 name = "rmrk-catalog"
 version = "0.1.0"
 dependencies = [
- "gear-wasm-builder",
  "rmrk-catalog-app",
  "sails-idl-gen",
+ "sails-rs",
 ]
 
 [[package]]
@@ -5092,7 +5090,6 @@ dependencies = [
 name = "rmrk-resource"
 version = "0.1.0"
 dependencies = [
- "gear-wasm-builder",
  "gtest",
  "rmrk-catalog",
  "rmrk-resource-app",
@@ -5323,6 +5320,7 @@ dependencies = [
  "futures",
  "gclient",
  "gear-core-errors",
+ "gear-wasm-builder",
  "gprimitives",
  "gstd",
  "gtest",
