@@ -105,15 +105,22 @@ impl GTestRemoting {
         &self,
         target: ActorId,
         payload: impl AsRef<[u8]>,
+        gas_limit: Option<GasUnit>,
         value: ValueUnit,
         args: GTestArgs,
     ) -> Result<RunResult> {
+        let gas_limit = gas_limit.unwrap_or(gtest::constants::GAS_ALLOWANCE);
         let program = self
             .system
             .get_program(target.as_ref())
             .ok_or(RtlError::ProgramIsNotFound)?;
         let actor_id = args.actor_id.unwrap_or(self.actor_id);
-        Ok(program.send_bytes_with_value(actor_id.as_ref(), payload.as_ref().to_vec(), value))
+        Ok(program.send_bytes_with_gas(
+            actor_id.as_ref(),
+            payload.as_ref().to_vec(),
+            gas_limit,
+            value,
+        ))
     }
 }
 
@@ -125,10 +132,11 @@ impl Remoting for GTestRemoting {
         code_id: CodeId,
         salt: impl AsRef<[u8]>,
         payload: impl AsRef<[u8]>,
-        _gas_limit: Option<GasUnit>,
+        gas_limit: Option<GasUnit>,
         value: ValueUnit,
         args: GTestArgs,
     ) -> Result<impl Future<Output = Result<(ActorId, Vec<u8>)>>> {
+        let gas_limit = gas_limit.unwrap_or(gtest::constants::GAS_ALLOWANCE);
         let code = self
             .system
             .submitted_code(code_id)
@@ -136,8 +144,12 @@ impl Remoting for GTestRemoting {
         let program_id = gtest::calculate_program_id(code_id, salt.as_ref(), None);
         let program = Program::from_binary_with_id(&self.system, program_id, code);
         let actor_id = args.actor_id.unwrap_or(self.actor_id);
-        let run_result =
-            program.send_bytes_with_value(actor_id.as_ref(), payload.as_ref().to_vec(), value);
+        let run_result = program.send_bytes_with_gas(
+            actor_id.as_ref(),
+            payload.as_ref().to_vec(),
+            gas_limit,
+            value,
+        );
         Ok(async move {
             let reply = Self::extract_reply(&run_result)?;
             Ok((program_id, reply))
@@ -148,11 +160,11 @@ impl Remoting for GTestRemoting {
         self,
         target: ActorId,
         payload: impl AsRef<[u8]>,
-        _gas_limit: Option<GasUnit>,
+        gas_limit: Option<GasUnit>,
         value: ValueUnit,
         args: GTestArgs,
     ) -> Result<impl Future<Output = Result<Vec<u8>>>> {
-        let run_result = self.send_and_get_result(target, payload, value, args)?;
+        let run_result = self.send_and_get_result(target, payload, gas_limit, value, args)?;
         Self::extract_and_send_events(&run_result, self.event_senders.borrow_mut().as_mut());
         Ok(async move { Self::extract_reply(&run_result) })
     }
@@ -161,11 +173,11 @@ impl Remoting for GTestRemoting {
         self,
         target: ActorId,
         payload: impl AsRef<[u8]>,
-        _gas_limit: Option<GasUnit>,
+        gas_limit: Option<GasUnit>,
         value: ValueUnit,
         args: GTestArgs,
     ) -> Result<Vec<u8>> {
-        let run_result = self.send_and_get_result(target, payload, value, args)?;
+        let run_result = self.send_and_get_result(target, payload, gas_limit, value, args)?;
         Self::extract_reply(&run_result)
     }
 }
