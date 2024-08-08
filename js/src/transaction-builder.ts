@@ -223,7 +223,7 @@ export class TransactionBuilder<ResponseType> {
    * ## Set value for transaction
    * @param value
    */
-  public async withValue(value: bigint) {
+  public withValue(value: bigint) {
     switch (this._tx.method.method) {
       case 'uploadProgram':
       case 'createProgram': {
@@ -245,7 +245,7 @@ export class TransactionBuilder<ResponseType> {
    * ## Set gas for transaction
    * @param gas
    */
-  public async withGas(gas: bigint) {
+  public withGas(gas: bigint) {
     switch (this._tx.method.method) {
       case 'uploadProgram':
       case 'createProgram': {
