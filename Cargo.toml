@@ -1,5 +1,5 @@
 [workspace.package]
-version = "0.2.0"
+version = "0.2.1"
 authors = ["Gear Technologies"]
 edition = "2021"
 license = "GPL-3.0"
@@ -47,7 +47,6 @@ gwasm-builder = { package = "gear-wasm-builder", version = "=1.4.2" }
 
 # Other deps in alphabetical order
 anyhow = "1"
-const-format = { package = "const_format", version = "0.2" }
 convert-case = { package = "convert_case", version = "0.6" }
 futures = { version = "0.3", default-features = false }
 genco = "0.17"
