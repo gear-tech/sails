@@ -1,0 +1,14 @@
+[package]
+name = "{{ client-project-name }}"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+mockall = { version = "{{ mockall-version }}", optional = true }
+sails-rs = "{{ sails-rs-version }}"
+
+[build-dependencies]
+{{ project-name }} = { path = ".." }
+
+[features]
+with-mocks = ["sails-rs/mockall", "dep:mockall"]
