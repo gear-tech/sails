@@ -12,5 +12,9 @@ sails-rs = "{{ sails-rs-version }}"
 sails-rs = { version = "{{ sails-rs-version }}", features = ["wasm-builder"] }
 
 [dev-dependencies]
+{{ project-name }} = { path = ".", features = ["wasm-binary"] }
 {{ client-project-name }} = { path = "client" }
 tokio = { version = "{{ tokio-version }}", features = ["rt", "macros"] }
+
+[features]
+wasm-binary = []

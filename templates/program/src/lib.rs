@@ -1,5 +1,9 @@
 #![no_std]
 
+#[cfg(feature = "wasm-binary")]
+#[cfg(not(target_arch = "wasm32"))]
+pub use code::WASM_BINARY_OPT as WASM_BINARY;
+
 use sails_rs::prelude::*;
 
 struct {{ program-name }}Service(());
@@ -26,4 +30,10 @@ impl {{ program-name }}Program {
     pub fn {{ program-name-snake}}(&self) -> {{ program-name }}Service {
         {{ program-name }}Service::new()
     }
+}
+
+#[cfg(feature = "wasm-binary")]
+#[cfg(not(target_arch = "wasm32"))]
+mod code {
+    include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 }

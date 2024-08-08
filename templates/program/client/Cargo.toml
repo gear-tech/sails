@@ -11,4 +11,4 @@ sails-rs = "{{ sails-rs-version }}"
 {{ project-name }} = { path = ".." }
 
 [features]
-with-mocks = ["sails-rs/mockall", "dep:mockall"]
+mocks = ["sails-rs/mockall", "dep:mockall"]
