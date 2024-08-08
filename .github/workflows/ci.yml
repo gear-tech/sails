@@ -118,14 +118,14 @@ jobs:
           sudo cp binaryen-$BINARYEN_VERSION/bin/wasm-opt /usr/bin/
 
       - name: Build CLI
-        run:
+        run: |
           cargo build -p sails-cli
 
       - name: Generate MyDemo via CLI
-        run:
+        run: |
           SAILS_CLI_TEMPLATES_BRANCH=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}} ./target/debug/cargo-sails new-program ~/tmp --name my-demo
 
       - name: Run Tests on MyDemo
-        run:
+        run: |
           cd ~/tmp/my-demo
           cargo test -p my-demo
