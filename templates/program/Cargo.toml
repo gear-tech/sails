@@ -4,7 +4,11 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-sails-rs = "{{sails-rs-version}}"
+sails-rs = "{{ sails-rs-version }}"
 
 [build-dependencies]
-sails-rs = { version = "{{sails-rs-version}}", features = ["wasm-builder"] }
+sails-rs = { version = "{{ sails-rs-version }}", features = ["wasm-builder"] }
+
+[dev-dependencies]
+{{ client-project-name }} = { path = "client" }
+tokio = { version = {{ tokio-version }}, features = ["rt", "macros"] }
