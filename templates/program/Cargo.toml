@@ -1,0 +1,20 @@
+[workspace]
+
+[package]
+name = "{{ project-name }}"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+sails-rs = "{{ sails-rs-version }}"
+
+[build-dependencies]
+sails-rs = { version = "{{ sails-rs-version }}", features = ["wasm-builder"] }
+
+[dev-dependencies]
+{{ project-name }} = { path = ".", features = ["wasm-binary"] }
+{{ client-project-name }} = { path = "client" }
+tokio = { version = "{{ tokio-version }}", features = ["rt", "macros"] }
+
+[features]
+wasm-binary = []

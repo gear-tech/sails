@@ -1,0 +1,9 @@
+[template]
+sub_templates = ["program", "program-with-client", "program-with-gtest"]
+
+# [placeholders]
+# program-name = { prompt = "Program name in PascalCase", type = "string" }
+# program-name-snake = { prompt = "Program name in snake-case", type = "string" }
+
+[hooks]
+pre = ["../set-vars.rhai"]
