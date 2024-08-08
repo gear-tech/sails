@@ -123,7 +123,7 @@ jobs:
 
       - name: Generate MyDemo via CLI
         run:
-          SAILS_CLI_TEMPLATES_BRANCH=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}} ./target/debug/sails-cli new-program ~/tmp --name my-demo
+          SAILS_CLI_TEMPLATES_BRANCH=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}} ./target/debug/cargo-sails new-program ~/tmp --name my-demo
 
       - name: Run Tests on MyDemo
         run:
