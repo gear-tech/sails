@@ -67,14 +67,14 @@ export class WasmParser {
     const decompressed = new Response(binaryBase64).body.pipeThrough<Uint8Array>(ds);
 
     const reader = decompressed.getReader();
-    const bytes = [];
+    let bytes = [];
 
     while (true) {
       const { value, done } = await reader.read();
 
       if (done) break;
 
-      bytes.push(...value);
+      bytes = bytes.concat(Array.from(value));
     }
 
     return new Uint8Array(bytes).buffer;
