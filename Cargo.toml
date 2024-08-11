@@ -41,8 +41,8 @@ sails-rename = { package = "sails-rs", path = "rs" }
 gclient = { git = "https://github.com/gear-tech/gear", tag = "v1.5.0" }
 gear-core-errors = { git = "https://github.com/gear-tech/gear", tag = "v1.5.0" }
 gprimitives = { git = "https://github.com/gear-tech/gear", tag = "v1.5.0" }
-gstd = { git = "https://github.com/gear-tech/gear", tag = "v1.5.0" }
-gtest= { git = "https://github.com/gear-tech/gear", tag = "v1.5.0" }
+gstd = { git = "https://github.com/gear-tech/gear", tag = "v1.5.0", features = ["debug"] }
+gtest = { git = "https://github.com/gear-tech/gear", tag = "v1.5.0" }
 gwasm-builder = { git = "https://github.com/gear-tech/gear", package = "gear-wasm-builder", tag = "v1.5.0" }
 
 # Other deps in alphabetical order
