@@ -6,7 +6,7 @@ use gstd::{msg, prog};
 #[derive(Default)]
 pub struct GStdArgs {
     reply_deposit: Option<GasUnit>,
-    handle_reply: Option<Box<dyn FnOnce()>>,
+    handle_reply: Option<fn() -> ()>,
 }
 
 impl GStdArgs {
@@ -15,8 +15,8 @@ impl GStdArgs {
         self
     }
 
-    pub fn handle_reply<F: FnOnce() + 'static>(mut self, f: F) -> Self {
-        self.handle_reply = Some(Box::new(f));
+    pub fn with_reply_hook(mut self, f: fn() -> ()) -> Self {
+        self.handle_reply = Some(f);
         self
     }
 
