@@ -6,7 +6,7 @@ use gstd::{msg, prog};
 #[derive(Debug, Default, Clone)]
 pub struct GStdArgs {
     reply_deposit: Option<GasUnit>,
-    handle_reply: Option<fn() -> ()>,
+    reply_hook: Option<fn()>,
 }
 
 impl GStdArgs {
@@ -15,8 +15,8 @@ impl GStdArgs {
         self
     }
 
-    pub fn with_reply_hook(mut self, f: fn() -> ()) -> Self {
-        self.handle_reply = Some(f);
+    pub fn with_reply_hook(mut self, f: fn()) -> Self {
+        self.reply_hook = Some(f);
         self
     }
 
@@ -52,8 +52,8 @@ impl GStdRemoting {
                 args.reply_deposit.unwrap_or_default(),
             )?
         };
-        if let Some(handle_reply) = args.handle_reply {
-            Ok(message_future.handle_reply(handle_reply)?)
+        if let Some(reply_hook) = args.reply_hook {
+            Ok(message_future.handle_reply(reply_hook)?)
         } else {
             Ok(message_future)
         }
@@ -90,8 +90,8 @@ impl Remoting for GStdRemoting {
                 args.reply_deposit.unwrap_or_default(),
             )?
         };
-        if let Some(handle_reply) = args.handle_reply {
-            reply_future = reply_future.handle_reply(handle_reply)?;
+        if let Some(reply_hook) = args.reply_hook {
+            reply_future = reply_future.handle_reply(reply_hook)?;
         }
         let reply_future = reply_future.map(|result| result.map_err(Into::into));
         Ok(reply_future)
