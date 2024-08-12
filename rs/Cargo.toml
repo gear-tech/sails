@@ -30,5 +30,6 @@ gclient.workspace = true
 gtest.workspace = true
 
 [features]
+debug = ["gstd/debug"]
 mockall = ["dep:mockall"]
 wasm-builder = ["dep:gwasm-builder"]
