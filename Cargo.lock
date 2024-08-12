@@ -5945,7 +5945,6 @@ name = "rmrk-resource-app"
 version = "0.1.0"
 dependencies = [
  "git-download",
- "gstd",
  "mockall",
  "rmrk-resource-app",
  "sails-client-gen",
