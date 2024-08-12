@@ -7,7 +7,7 @@ use parity_scale_codec::Encode;
 use proc_macro2::{Span, TokenStream as TokenStream2};
 use proc_macro_error::abort;
 use quote::quote;
-use std::collections::BTreeMap;
+use std::{collections::BTreeMap, env};
 use syn::{
     parse_quote, spanned::Spanned, Ident, ImplItem, ImplItemFn, ItemImpl, Path, Receiver,
     ReturnType, Type, TypePath, Visibility,
@@ -15,8 +15,8 @@ use syn::{
 
 mod args;
 
-/// Static Span of Program `impl` block
-static mut PROGRAM_SPAN: Option<Span> = None;
+/// Static Spans of Program `impl` block
+static mut PROGRAM_SPANS: BTreeMap<String, Span> = BTreeMap::new();
 
 pub fn gprogram(args: TokenStream2, program_impl_tokens: TokenStream2) -> TokenStream2 {
     let program_impl = parse_gprogram_impl(program_impl_tokens);
@@ -53,13 +53,14 @@ fn parse_gprogram_impl(program_impl_tokens: TokenStream2) -> ItemImpl {
 }
 
 fn ensure_single_gprogram(program_impl: &ItemImpl) {
-    if unsafe { PROGRAM_SPAN }.is_some() {
+    let crate_name = env::var("CARGO_CRATE_NAME").unwrap_or("crate".to_string());
+    if unsafe { PROGRAM_SPANS.get(&crate_name) }.is_some() {
         abort!(
             program_impl,
             "multiple `program` attributes are not allowed"
         )
     }
-    unsafe { PROGRAM_SPAN = Some(program_impl.span()) };
+    unsafe { PROGRAM_SPANS.insert(crate_name, program_impl.span()) };
 }
 
 fn gen_gprogram_impl(program_impl: ItemImpl, program_args: ProgramArgs) -> TokenStream2 {
