@@ -3,7 +3,7 @@ use core::future::Future;
 use futures::FutureExt;
 use gstd::{msg, prog};
 
-#[derive(Default)]
+#[derive(Debug, Default, Clone)]
 pub struct GStdArgs {
     reply_deposit: Option<GasUnit>,
     handle_reply: Option<fn() -> ()>,
