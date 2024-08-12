@@ -5,7 +5,6 @@ edition = "2021"
 resolver = "2"
 
 [dependencies]
-gstd.workspace = true
 mockall = { workspace = true, optional = true }
 sails-rs.workspace = true
 
