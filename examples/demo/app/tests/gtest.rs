@@ -1,12 +1,8 @@
-use demo_client::{
-    counter::events::CounterEvents,
-    dog::events::DogEvents,
-    ping_pong,
-    traits::{Counter, DemoFactory, Dog, References},
-};
+use demo_client::{counter::events::CounterEvents, dog::events::DogEvents, ping_pong, traits::*};
 use fixture::Fixture;
 use futures::stream::StreamExt;
-use sails_rs::{calls::*, events::*};
+use gstd::errors::{ErrorReplyReason, SimpleExecutionError};
+use sails_rs::{calls::*, errors::RtlError, events::*};
 
 mod fixture;
 
@@ -85,6 +81,67 @@ async fn counter_sub_works() {
 
     assert_eq!(result, 32);
     assert_eq!((demo_program_id, CounterEvents::Subtracted(10)), event);
+}
+
+#[tokio::test]
+async fn counter_query_works() {
+    // Arrange
+    let fixture = Fixture::new(fixture::ADMIN_ID);
+
+    let demo_factory = fixture.demo_factory();
+
+    // Use generated client code for activating Demo program
+    // using the `new` constructor and the `send_recv` method
+    let demo_program_id = demo_factory
+        .new(Some(42), None)
+        .send_recv(fixture.demo_code_id(), "123")
+        .await
+        .unwrap();
+
+    let counter_client = fixture.counter_client();
+
+    // Act
+
+    // Use generated client code for query Counter service using the `recv` method
+    let result = counter_client.value().recv(demo_program_id).await.unwrap();
+
+    // Asert
+    assert_eq!(result, 42);
+}
+
+#[tokio::test]
+async fn counter_query_not_enough_gas() {
+    // Arrange
+    let fixture = Fixture::new(fixture::ADMIN_ID);
+
+    let demo_factory = fixture.demo_factory();
+
+    // Use generated client code for activating Demo program
+    // using the `new` constructor and the `send_recv` method
+    let demo_program_id = demo_factory
+        .new(Some(42), None)
+        .send_recv(fixture.demo_code_id(), "123")
+        .await
+        .unwrap();
+
+    let counter_client = fixture.counter_client();
+
+    // Act
+
+    // Use generated client code for query Counter service using the `recv` method
+    let result = counter_client
+        .value()
+        .with_gas_limit(0) // Set gas_limit to 0
+        .recv(demo_program_id)
+        .await;
+
+    // Asert
+    assert!(matches!(
+        result,
+        Err(sails_rs::errors::Error::Rtl(RtlError::ReplyHasError(
+            ErrorReplyReason::Execution(SimpleExecutionError::RanOutOfGas)
+        )))
+    ));
 }
 
 #[tokio::test]
