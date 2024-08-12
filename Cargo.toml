@@ -19,6 +19,7 @@ members = [
     "examples/rmrk/resource/app",
     "examples/rmrk/resource/wasm",
     "rs",
+    "rs/cli",
     "rs/client-gen",
     "rs/idl-gen",
     "rs/idl-parser",
@@ -47,6 +48,8 @@ gwasm-builder = { package = "gear-wasm-builder", version = "=1.5.0" }
 
 # Other deps in alphabetical order
 anyhow = "1"
+cargo-generate = "0.21"
+clap = "4.5"
 convert-case = { package = "convert_case", version = "0.6" }
 futures = { version = "0.3", default-features = false }
 genco = "0.17"
