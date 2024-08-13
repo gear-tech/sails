@@ -200,20 +200,18 @@ mod tests {
         assert_eq!(actual_resource, resource);
 
         // add_part_to_resource
+        let mut part_query = MockQuery::new();
+        part_query.expect_recv().returning(move |_| {
+            Ok(Some(Part::Fixed(FixedPart {
+                z: None,
+                metadata_uri: "metadata_uri".to_string(),
+            })))
+        });
         resource_storage
             .catalog_client
             .expect_part()
             .with(mockall::predicate::eq(1))
-            .return_once(|_| {
-                let mut part_query = MockQuery::new();
-                part_query.expect_recv().returning(move |_| {
-                    Ok(Some(Part::Fixed(FixedPart {
-                        z: None,
-                        metadata_uri: "metadata_uri".to_string(),
-                    })))
-                });
-                part_query
-            });
+            .return_once(|_| part_query);
 
         let actual_part_id = resource_storage
             .add_part_to_resource(actual_resource_id, 1)

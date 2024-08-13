@@ -3,10 +3,10 @@ use core::future::Future;
 use futures::FutureExt;
 use gstd::{msg, prog};
 
-#[derive(Debug, Default, Clone)]
+#[derive(Default)]
 pub struct GStdArgs {
     reply_deposit: Option<GasUnit>,
-    reply_hook: Option<fn()>,
+    reply_hook: Option<Box<dyn FnOnce() + Send + 'static>>,
 }
 
 impl GStdArgs {
@@ -15,8 +15,8 @@ impl GStdArgs {
         self
     }
 
-    pub fn with_reply_hook(mut self, f: fn()) -> Self {
-        self.reply_hook = Some(f);
+    pub fn with_reply_hook<F: FnOnce() + Send + 'static>(mut self, f: F) -> Self {
+        self.reply_hook = Some(Box::new(f));
         self
     }
 
