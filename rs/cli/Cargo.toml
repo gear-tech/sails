@@ -1,5 +1,6 @@
 [package]
 name = "sails-cli"
+description = "CLI tools the Sails framework"
 version.workspace = true
 authors.workspace = true
 edition.workspace = true
