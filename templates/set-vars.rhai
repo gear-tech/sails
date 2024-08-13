@@ -14,5 +14,5 @@ variable::set("program-name-snake", project_name.to_snake_case());
 
 // Set versions of used crates
 variable::set("mockall-version", "0.12");
-variable::set("sails-rs-version", "0.2.1");
+variable::set("sails-rs-version", "0.3.0");
 variable::set("tokio-version", "1.39");

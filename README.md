@@ -16,11 +16,18 @@ different languages and executed in different runtimes
 > [!NOTE]
 > The Sails library is published under the name `sails-rs` on `crates-io`.
 >
-> Versions "<= 0.2.0" are pinned to v1.4.2 of gear libs.
+> Versions "version <= 0.2.1" are pinned to v1.4.2 of gear libs.
+> Versions "0.2.1 < version <= 0.3.0" are pinned to v1.5.0 of gear libs.
 
 ## Getting started
 
-Add the following to your `Cargo.toml`
+Either use Sails CLI:
+```bash
+cargo install sails-cli
+cargo sails new-program my-ping
+```
+
+Or add the following to your `Cargo.toml`
 ```toml
 [dependencies]
 sails-rs = "*"
