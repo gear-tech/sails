@@ -3,14 +3,20 @@ use core::future::Future;
 use futures::FutureExt;
 use gstd::{msg, prog};
 
-#[derive(Debug, Default, Clone)]
+#[derive(Default)]
 pub struct GStdArgs {
     reply_deposit: Option<GasUnit>,
+    reply_hook: Option<Box<dyn FnOnce() + Send + 'static>>,
 }
 
 impl GStdArgs {
     pub fn with_reply_deposit(mut self, reply_deposit: Option<GasUnit>) -> Self {
         self.reply_deposit = reply_deposit;
+        self
+    }
+
+    pub fn with_reply_hook<F: FnOnce() + Send + 'static>(mut self, f: F) -> Self {
+        self.reply_hook = Some(Box::new(f));
         self
     }
 
@@ -46,7 +52,11 @@ impl GStdRemoting {
                 args.reply_deposit.unwrap_or_default(),
             )?
         };
-        Ok(message_future)
+        if let Some(reply_hook) = args.reply_hook {
+            Ok(message_future.handle_reply(reply_hook)?)
+        } else {
+            Ok(message_future)
+        }
     }
 }
 
@@ -62,7 +72,7 @@ impl Remoting for GStdRemoting {
         value: ValueUnit,
         args: GStdArgs,
     ) -> Result<impl Future<Output = Result<(ActorId, Vec<u8>)>>> {
-        let reply_future = if let Some(gas_limit) = gas_limit {
+        let mut reply_future = if let Some(gas_limit) = gas_limit {
             prog::create_program_bytes_with_gas_for_reply(
                 code_id,
                 salt,
@@ -80,6 +90,9 @@ impl Remoting for GStdRemoting {
                 args.reply_deposit.unwrap_or_default(),
             )?
         };
+        if let Some(reply_hook) = args.reply_hook {
+            reply_future = reply_future.handle_reply(reply_hook)?;
+        }
         let reply_future = reply_future.map(|result| result.map_err(Into::into));
         Ok(reply_future)
     }

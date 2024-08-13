@@ -10,7 +10,7 @@ use gclient::metadata::runtime_types::gear_core::message::user::UserMessage as G
 use gclient::{ext::sp_core::ByteArray, EventProcessor, GearApi};
 use gear_core_errors::ReplyCode;
 
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default)]
 pub struct GSdkArgs;
 
 #[derive(Clone)]

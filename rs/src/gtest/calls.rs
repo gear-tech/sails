@@ -15,7 +15,7 @@ use gtest::{Program, RunResult, System};
 
 type EventSender = UnboundedSender<(ActorId, Vec<u8>)>;
 
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default)]
 pub struct GTestArgs {
     actor_id: Option<ActorId>,
 }
