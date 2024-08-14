@@ -8,9 +8,17 @@ let client_project_name = if project_name.to_snake_case() == project_name {
 
 variable::set("client-project-name", client_project_name);
 
-variable::set("program-name", project_name.to_pascal_case());
+variable::set("client_crate_name", client_project_name.to_snake_case());
 
-variable::set("program-name-snake", project_name.to_snake_case());
+variable::set("program-struct-name", project_name.to_pascal_case() + "Program");
+
+variable::set("service-struct-name", project_name.to_pascal_case() + "Service");
+
+variable::set("service-name", project_name.to_pascal_case());
+
+variable::set("service-name-snake", project_name.to_snake_case());
+
+variable::set("mocks-feature-name", "mocks");
 
 // Set versions of used crates
 variable::set("mockall-version", "0.12");

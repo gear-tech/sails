@@ -6,29 +6,32 @@ pub use code::WASM_BINARY_OPT as WASM_BINARY;
 
 use sails_rs::prelude::*;
 
-struct {{ program-name }}Service(());
+struct {{ service-struct-name }}(());
 
 #[sails_rs::service]
-impl {{ program-name }}Service {
+impl {{ service-struct-name }} {
     pub fn new() -> Self {
         Self(())
     }
 
+    // Service's method (command)
     pub fn do_something(&mut self) -> String {
-        "Hello from {{ program-name }}!".to_string()
+        "Hello from {{ service-name }}!".to_string()
     }
 }
 
-pub struct {{ program-name }}Program(());
+pub struct {{ program-struct-name }}(());
 
 #[sails_rs::program]
-impl {{ program-name }}Program {
+impl {{ program-struct-name }} {
+    // Program's constructor
     pub fn new() -> Self {
         Self(())
     }
 
-    pub fn {{ program-name-snake}}(&self) -> {{ program-name }}Service {
-        {{ program-name }}Service::new()
+    // Exposed service
+    pub fn {{ service-name-snake}}(&self) -> {{ service-struct-name }} {
+        {{ service-struct-name }}::new()
     }
 }
 

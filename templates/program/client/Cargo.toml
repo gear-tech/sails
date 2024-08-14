@@ -9,6 +9,8 @@ sails-rs = "{{ sails-rs-version }}"
 
 [build-dependencies]
 {{ project-name }} = { path = ".." }
+sails-client-gen = "{{ sails-rs-version }}"
+sails-idl-gen = "{{ sails-rs-version }}"
 
 [features]
-mocks = ["sails-rs/mockall", "dep:mockall"]
+{{ mocks-feature-name }} = ["sails-rs/mockall", "dep:mockall"]
