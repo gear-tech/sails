@@ -1,7 +1,7 @@
 //! Functionality for notifying off-chain subscribers on events happening in on-chain programs.
 
-use crate::{collections::HashMap, errors::*, gstd::services, ValueUnit, Vec};
-use core::any::TypeId;
+use crate::{collections::BTreeMap, errors::*, gstd::services, ValueUnit, Vec};
+use core::{any::TypeId, ops::DerefMut};
 use gstd::ActorId as GStdActorId;
 use parity_scale_codec::Encode;
 use scale_info::{StaticTypeInfo, TypeDef};
@@ -57,51 +57,63 @@ fn compose_payload<TEvents>(prefix: &[u8], event: TEvents) -> Result<Vec<u8>, Rt
 where
     TEvents: StaticTypeInfo + Encode,
 {
-    let encoded_event_names = encoded_event_names::<TEvents>()?;
+    let mut type_id_to_encoded_event_names_map = type_id_to_event_names_map();
+
+    let encoded_event_names = type_id_to_encoded_event_names_map
+        .entry(TypeId::of::<TEvents::Identity>())
+        .or_insert_with(extract_encoded_event_names::<TEvents>)
+        .as_ref()
+        .map_err(Clone::clone)?;
+
     let payload = event.encode();
     let event_idx = payload[0]; // It is safe to get this w/o any check as we know the type is a proper event type, i.e. enum
     let encoded_event_name = &encoded_event_names[event_idx as usize];
     Ok([prefix, &encoded_event_name[..], &payload[1..]].concat())
 }
 
-fn encoded_event_names<TEvents>() -> Result<&'static [Vec<u8>], RtlError>
+fn extract_encoded_event_names<TEvents>() -> Result<Vec<Vec<u8>>, RtlError>
 where
     TEvents: StaticTypeInfo,
 {
-    let type_id_to_encoded_event_names_map = type_id_to_event_names_map();
+    let type_meta = scale_info::meta_type::<TEvents>();
+    let type_info = type_meta.type_info();
+    let variant_type_def = match type_info.type_def {
+        TypeDef::Variant(variant_type_def) => variant_type_def,
+        _ => {
+            return Err(RtlError::EventTypeMustBeEnum {
+                type_name: type_info.path.ident().unwrap_or("N/A").into(),
+            })
+        }
+    };
+    Ok(variant_type_def
+        .variants
+        .iter()
+        .map(|variant| variant.name.encode())
+        .collect())
+}
 
-    let encoded_event_names = type_id_to_encoded_event_names_map
-        .entry(TypeId::of::<TEvents::Identity>())
-        .or_insert_with(|| {
-            let type_meta = scale_info::meta_type::<TEvents>();
-            let type_info = type_meta.type_info();
-            let variant_type_def = match type_info.type_def {
-                TypeDef::Variant(variant_type_def) => variant_type_def,
-                _ => {
-                    return Err(RtlError::EventTypeMustBeEnum {
-                        type_name: type_info.path.ident().unwrap_or("N/A").into(),
-                    })
-                }
-            };
-            Ok(variant_type_def
-                .variants
-                .iter()
-                .map(|variant| variant.name.encode())
-                .collect())
-        });
-    encoded_event_names
-        .as_ref()
-        .map_err(Clone::clone)
-        .map(|v| v.as_slice())
+type TypeIdToEncodedEventNamesMap = BTreeMap<TypeId, Result<Vec<Vec<u8>>, RtlError>>;
+
+#[cfg(not(target_arch = "wasm32"))]
+fn type_id_to_event_names_map() -> impl DerefMut<Target = TypeIdToEncodedEventNamesMap> {
+    use spin::Mutex;
+
+    static TYPE_ID_TO_EVENT_NAMES_MAP: Mutex<TypeIdToEncodedEventNamesMap> =
+        Mutex::new(TypeIdToEncodedEventNamesMap::new());
+    TYPE_ID_TO_EVENT_NAMES_MAP.lock()
 }
 
 // This code relies on the fact contracts are executed in a single-threaded environment
-fn type_id_to_event_names_map() -> &'static mut HashMap<TypeId, Result<Vec<Vec<u8>>, RtlError>> {
-    type TypeIdToEncodedEventNamesMap = HashMap<TypeId, Result<Vec<Vec<u8>>, RtlError>>;
+#[cfg(target_arch = "wasm32")]
+fn type_id_to_event_names_map() -> impl DerefMut<Target = TypeIdToEncodedEventNamesMap> {
     // It is not expected this to be ever big as there are not that many event types in a contract.
     // So it shouldn't incur too many memory operations
-    static mut TYPE_ID_TO_EVENT_NAMES_MAP: Option<TypeIdToEncodedEventNamesMap> = None;
-    unsafe { TYPE_ID_TO_EVENT_NAMES_MAP.get_or_insert_with(HashMap::new) }
+    static mut TYPE_ID_TO_EVENT_NAMES_MAP: TypeIdToEncodedEventNamesMap =
+        TypeIdToEncodedEventNamesMap::new();
+    #[allow(static_mut_refs)]
+    unsafe {
+        &mut TYPE_ID_TO_EVENT_NAMES_MAP
+    }
 }
 
 #[cfg(test)]
@@ -121,7 +133,7 @@ mod tests {
 
     #[test]
     fn encoded_event_names_returns_proper_names_for_enum_type() {
-        let encoded_event_names = encoded_event_names::<TestEvents>().unwrap();
+        let encoded_event_names = extract_encoded_event_names::<TestEvents>().unwrap();
 
         assert_eq!(encoded_event_names.len(), 2);
         assert_eq!(encoded_event_names[0], "Event1".encode());
@@ -130,7 +142,7 @@ mod tests {
 
     #[test]
     fn encoded_event_names_returns_error_for_non_enum_type() {
-        let result = encoded_event_names::<NotEnum>();
+        let result = extract_encoded_event_names::<NotEnum>();
 
         assert!(result.is_err());
         let err = result.unwrap_err();
