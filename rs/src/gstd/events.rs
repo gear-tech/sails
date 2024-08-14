@@ -1,6 +1,6 @@
 //! Functionality for notifying off-chain subscribers on events happening in on-chain programs.
 
-use crate::{collections::HashMap, errors::*, gstd::services, ValueUnit, Vec};
+use crate::{collections::BTreeMap, errors::*, gstd::services, ValueUnit, Vec};
 use core::{any::TypeId, ops::DerefMut};
 use gstd::ActorId as GStdActorId;
 use parity_scale_codec::Encode;
@@ -92,18 +92,15 @@ where
         .collect())
 }
 
-type TypeIdToEncodedEventNamesMap = HashMap<TypeId, Result<Vec<Vec<u8>>, RtlError>>;
+type TypeIdToEncodedEventNamesMap = BTreeMap<TypeId, Result<Vec<Vec<u8>>, RtlError>>;
 
 #[cfg(not(target_arch = "wasm32"))]
 fn type_id_to_event_names_map() -> impl DerefMut<Target = TypeIdToEncodedEventNamesMap> {
     use spin::Mutex;
 
-    static mut TYPE_ID_TO_EVENT_NAMES_MAP: Option<Mutex<TypeIdToEncodedEventNamesMap>> = None;
-    unsafe {
-        TYPE_ID_TO_EVENT_NAMES_MAP
-            .get_or_insert_with(|| Mutex::new(TypeIdToEncodedEventNamesMap::new()))
-            .lock()
-    }
+    static TYPE_ID_TO_EVENT_NAMES_MAP: Mutex<TypeIdToEncodedEventNamesMap> =
+        Mutex::new(TypeIdToEncodedEventNamesMap::new());
+    TYPE_ID_TO_EVENT_NAMES_MAP.lock()
 }
 
 // This code relies on the fact contracts are executed in a single-threaded environment
@@ -111,8 +108,12 @@ fn type_id_to_event_names_map() -> impl DerefMut<Target = TypeIdToEncodedEventNa
 fn type_id_to_event_names_map() -> impl DerefMut<Target = TypeIdToEncodedEventNamesMap> {
     // It is not expected this to be ever big as there are not that many event types in a contract.
     // So it shouldn't incur too many memory operations
-    static mut TYPE_ID_TO_EVENT_NAMES_MAP: Option<TypeIdToEncodedEventNamesMap> = None;
-    unsafe { TYPE_ID_TO_EVENT_NAMES_MAP.get_or_insert_with(TypeIdToEncodedEventNamesMap::new) }
+    static mut TYPE_ID_TO_EVENT_NAMES_MAP: TypeIdToEncodedEventNamesMap =
+        TypeIdToEncodedEventNamesMap::new();
+    #[allow(static_mut_refs)]
+    unsafe {
+        &mut TYPE_ID_TO_EVENT_NAMES_MAP
+    }
 }
 
 #[cfg(test)]
