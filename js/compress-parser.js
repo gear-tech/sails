@@ -7,16 +7,16 @@ const main = async () => {
 
   const compressedReadableStream = new Response(buf).body.pipeThrough(cs);
 
-  const resultArr = [];
-
   const reader = compressedReadableStream.getReader();
+
+  let resultArr = [];
 
   while (true) {
     const read = await reader.read();
 
     if (read.done) break;
 
-    resultArr.push(...read.value);
+    resultArr = resultArr.concat(Array.from(read.value));
   }
 
   const base64Bytes = Buffer.from(Uint8Array.from(resultArr).buffer).toString('base64');
