@@ -33,6 +33,9 @@ pub mod program {
                 return Ok(());
             }
         }
+        if let Some(dir_path) = path.as_ref().parent() {
+            fs::create_dir_all(dir_path)?;
+        }
         Ok(fs::write(&path, idl_new_content)?)
     }
 }
