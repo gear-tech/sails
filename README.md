@@ -3,13 +3,12 @@
 Sails is a library for bringing your experience of writing applications utilizing
 [Gear Protocol](https://gear-tech.io/) to the next level of simplicity and
 clarity. It deals with things like:
-- eliminating
-the necessity of writing some low-level boilerplate code and letting you to stay
-focused on your business problem
-- generated [IDL](https://en.wikipedia.org/wiki/Interface_description_language) file for
-your application
+- eliminating the necessity of writing some low-level boilerplate code and letting
+  you to stay focused on your business problem
+- generated [IDL](https://en.wikipedia.org/wiki/Interface_description_language) file
+  for your application
 - generated client allowing to interact with your application from code written in
-different languages and executed in different runtimes
+  different languages and executed in different runtimes
 
 ---
 
@@ -17,6 +16,7 @@ different languages and executed in different runtimes
 > The Sails library is published under the name `sails-rs` on `crates-io`.
 >
 > Versions "version <= 0.2.1" are pinned to v1.4.2 of gear libs.
+>
 > Versions "0.2.1 < version <= 0.3.0" are pinned to v1.5.0 of gear libs.
 
 ## Getting started
@@ -346,7 +346,7 @@ a clearer way. Currently, Sails can generate client code for Rust and TypeScript
 
 When it comes to Rust, there are two options:
 - Use generated code that can encode and decode byte payloads for you, allowing you
-to continue using functions that send raw bytes.
+  to continue using functions that send raw bytes.
 - Use fully generated code that can interact with your application in an RPC style.
 
 For TypeScript see [generated clients](js/README.md#generate-library-from-idl)
