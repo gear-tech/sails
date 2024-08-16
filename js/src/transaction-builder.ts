@@ -3,6 +3,7 @@ import { SignerOptions, SubmittableExtrinsic } from '@polkadot/api/types';
 import { IKeyringPair, ISubmittableResult } from '@polkadot/types/types';
 import { TypeRegistry, u128, u64 } from '@polkadot/types';
 import { getPayloadMethod } from './utils/index.js';
+import { ZERO_ADDRESS } from 'consts.js';
 
 export interface IMethodReturnType<T> {
   /**
@@ -154,9 +155,9 @@ export class TransactionBuilder<ResponseType> {
    * @returns
    */
   public async calculateGas(allowOtherPanics = false, increaseGas = 0) {
-    if (!this._account) throw new Error('Account is required. Use withAccount() method to set account.');
-
-    const source = decodeAddress(typeof this._account === 'string' ? this._account : this._account.address);
+    const source = this._account
+      ? decodeAddress(typeof this._account === 'string' ? this._account : this._account.address)
+      : ZERO_ADDRESS;
 
     switch (this._tx.method.method) {
       case 'uploadProgram': {
@@ -292,6 +293,10 @@ export class TransactionBuilder<ResponseType> {
    * ## Sign and send transaction
    */
   public async signAndSend(): Promise<IMethodReturnType<ResponseType>> {
+    if (!this._account) {
+      throw new Error('Account is required. Use withAccount() method to set account.');
+    }
+
     if (this._voucher) {
       const callParams: ICallOptions = { SendMessage: this._tx };
       this._tx = this._api.voucher.call(this._voucher, callParams);
