@@ -124,7 +124,7 @@ async fn ping_pong_works() {
             ping_call_payload,
             Some(gas_limit),
             0,
-            GSdkArgs,
+            GSdkArgs::default(),
         )
         .await
         .unwrap()
@@ -230,6 +230,73 @@ async fn counter_query_not_enough_gas() {
             ErrorReplyReason::Execution(SimpleExecutionError::RanOutOfGas)
         )))
     ));
+}
+
+#[tokio::test]
+#[ignore = "requires run gear node on GEAR_PATH"]
+async fn counter_add_with_voucher() {
+    // Arrange
+
+    let (remoting, demo_code_id, gas_limit) = spin_up_node_with_demo_code().await;
+
+    let demo_factory = demo_client::DemoFactory::new(remoting.clone());
+
+    // Use generated client code for activating Demo program
+    // using the `new` constructor and the `send_recv` method
+    let demo_program_id = demo_factory
+        .new(Some(42), None)
+        .with_gas_limit(gas_limit)
+        .send_recv(demo_code_id, "123")
+        .await
+        .unwrap();
+
+    let mut counter_client = demo_client::Counter::new(remoting.clone());
+    // Listen to Counter events
+    let mut counter_listener = demo_client::counter::events::listener(remoting.clone());
+    let mut counter_events = counter_listener.listen().await.unwrap();
+
+    let actor_id = ActorId::try_from(remoting.api().account_id().encode().as_ref())
+        .expect("failed to create actor id");
+    let voucher_initial_balance = 100_000_000_000_000;
+    // Issue voucher
+    let (voucher_id, ..) = remoting
+        .api()
+        .issue_voucher(actor_id, voucher_initial_balance, None, true, 100)
+        .await
+        .expect("failed to issue voucher");
+
+    let initial_balance = remoting
+        .api()
+        .free_balance(actor_id)
+        .await
+        .expect("failed to get balance");
+
+    // Act
+
+    // Use generated client code for calling Counter service
+    // using the `send_recv` method
+    let result = counter_client
+        .add(10)
+        .with_gas_limit(gas_limit)
+        .with_args(GSdkArgs::default().with_voucher(voucher_id, true))
+        .send_recv(demo_program_id)
+        .await
+        .unwrap();
+
+    // Asert
+
+    let event = counter_events.next().await.unwrap();
+
+    assert_eq!(result, 52);
+    assert_eq!((demo_program_id, CounterEvents::Added(10)), event);
+
+    let balance = remoting
+        .api()
+        .free_balance(actor_id)
+        .await
+        .expect("failed to get balance");
+    // account balance remain unchanged
+    assert_eq!(initial_balance, balance);
 }
 
 async fn spin_up_node_with_demo_code() -> (GSdkRemoting, CodeId, GasUnit) {

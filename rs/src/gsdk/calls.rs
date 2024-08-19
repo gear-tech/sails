@@ -6,12 +6,24 @@ use crate::{
 };
 use core::future::Future;
 use futures::{stream, Stream, StreamExt};
-use gclient::metadata::runtime_types::gear_core::message::user::UserMessage as GenUserMessage;
+use gclient::metadata::runtime_types::{
+    gear_core::message::user::UserMessage as GenUserMessage,
+    pallet_gear_voucher::internal::VoucherId,
+};
 use gclient::{ext::sp_core::ByteArray, EventProcessor, GearApi};
 use gear_core_errors::ReplyCode;
 
 #[derive(Debug, Default)]
-pub struct GSdkArgs;
+pub struct GSdkArgs {
+    voucher: Option<(VoucherId, bool)>,
+}
+
+impl GSdkArgs {
+    pub fn with_voucher(mut self, voucher_id: VoucherId, keep_alive: bool) -> Self {
+        self.voucher = Some((voucher_id, keep_alive));
+        self
+    }
+}
 
 #[derive(Clone)]
 pub struct GSdkRemoting {
@@ -80,7 +92,7 @@ impl Remoting for GSdkRemoting {
         payload: impl AsRef<[u8]>,
         gas_limit: Option<GasUnit>,
         value: ValueUnit,
-        _args: GSdkArgs,
+        args: GSdkArgs,
     ) -> Result<impl Future<Output = Result<Vec<u8>>>> {
         let api = self.api;
         // Calculate gas amount if it is not explicitly set
@@ -95,9 +107,15 @@ impl Remoting for GSdkRemoting {
         };
 
         let mut listener = api.subscribe().await?;
-        let (message_id, ..) = api
-            .send_message_bytes(target, payload, gas_limit, value)
-            .await?;
+        let (message_id, ..) = if let Some((voucher_id, keep_alive)) = args.voucher {
+            api.send_message_bytes_with_voucher(
+                voucher_id, target, payload, gas_limit, value, keep_alive,
+            )
+            .await?
+        } else {
+            api.send_message_bytes(target, payload, gas_limit, value)
+                .await?
+        };
 
         Ok(async move {
             let (_, result, _) = listener.reply_bytes_on(message_id).await?;
