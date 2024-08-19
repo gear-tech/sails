@@ -1,6 +1,6 @@
 use crate::resource_client::traits::RmrkResource;
 use core::cell::OnceCell;
-use gtest::{Program, RunResult};
+use gtest::{BlockRunResult, Program};
 use rmrk_catalog::services::parts::{FixedPart, Part};
 use rmrk_resource_app::services::{
     errors::{Error as ResourceStorageError, Result as ResourceStorageResult},
@@ -295,6 +295,10 @@ impl<'a> Fixture<'a> {
         }
     }
 
+    fn run_next_block(&self) -> BlockRunResult {
+        self.program_space.system().run_next_block()
+    }
+
     fn program_space(&self) -> &GTestRemoting {
         &self.program_space
     }
@@ -364,7 +368,7 @@ impl<'a> Fixture<'a> {
         actor_id: u64,
         resource_id: ResourceId,
         resource: &Resource,
-    ) -> RunResult {
+    ) -> BlockRunResult {
         let program = self.resource_program_for_sync();
         let encoded_request = [
             resources::RESOURCE_SERVICE_NAME.encode(),
@@ -373,7 +377,8 @@ impl<'a> Fixture<'a> {
             resource.encode(),
         ]
         .concat();
-        program.send_bytes(actor_id, encoded_request)
+        let _message_id = program.send_bytes(actor_id, encoded_request);
+        self.run_next_block()
     }
 
     async fn add_resource_async(
@@ -423,7 +428,7 @@ impl<'a> Fixture<'a> {
         actor_id: u64,
         resource_id: ResourceId,
         part_id: PartId,
-    ) -> RunResult {
+    ) -> BlockRunResult {
         let program = self.resource_program_for_sync();
         let encoded_request = [
             resources::RESOURCE_SERVICE_NAME.encode(),
@@ -432,7 +437,8 @@ impl<'a> Fixture<'a> {
             part_id.encode(),
         ]
         .concat();
-        program.send_bytes(actor_id, encoded_request)
+        let _message_id = program.send_bytes(actor_id, encoded_request);
+        self.run_next_block()
     }
 
     async fn add_part_to_resource_via_client(
@@ -465,7 +471,8 @@ impl<'a> Fixture<'a> {
             resource_id.encode(),
         ]
         .concat();
-        let run_result = program.send_bytes(actor_id, encoded_request);
+        let _message_id = program.send_bytes(actor_id, encoded_request);
+        let run_result = self.run_next_block();
         run_result
             .log()
             .iter()
@@ -496,7 +503,7 @@ impl<'a> Fixture<'a> {
             .await
     }
 
-    fn add_parts(&'a self, actor_id: u64, parts: &BTreeMap<PartId, Part>) -> RunResult {
+    fn add_parts(&'a self, actor_id: u64, parts: &BTreeMap<PartId, Part>) -> BlockRunResult {
         let program = self.catalog_program();
         let encoded_request = [
             catalog::CATALOG_SERVICE_NAME.encode(),
@@ -504,6 +511,7 @@ impl<'a> Fixture<'a> {
             parts.encode(),
         ]
         .concat();
-        program.send_bytes(actor_id, encoded_request)
+        let _message_id = program.send_bytes(actor_id, encoded_request);
+        self.run_next_block()
     }
 }
