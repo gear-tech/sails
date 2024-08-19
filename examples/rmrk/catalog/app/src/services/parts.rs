@@ -6,12 +6,16 @@ pub type ZIndex = u32;
 pub type PartId = u32;
 
 #[derive(Decode, Encode, TypeInfo, Clone)]
+#[codec(crate = sails_rs::scale_codec)]
+#[scale_info(crate = sails_rs::scale_info)]
 pub enum Part {
     Fixed(FixedPart),
     Slot(SlotPart),
 }
 
 #[derive(Decode, Encode, TypeInfo, Clone)]
+#[codec(crate = sails_rs::scale_codec)]
+#[scale_info(crate = sails_rs::scale_info)]
 pub struct FixedPart {
     /// An optional zIndex of base part layer.
     /// specifies the stack order of an element.
@@ -23,6 +27,8 @@ pub struct FixedPart {
 }
 
 #[derive(Decode, Encode, TypeInfo, Clone)]
+#[codec(crate = sails_rs::scale_codec)]
+#[scale_info(crate = sails_rs::scale_info)]
 pub struct SlotPart {
     /// Array of whitelisted collections that can be equipped in the given slot. Used with slot parts only.
     pub equippable: Vec<CollectionId>,

@@ -40,6 +40,7 @@ sails-rename = { package = "sails-rs", path = "rs" }
 
 # Gear deps
 gclient = "=1.5.0"
+gear-core = { version = "=1.5.0", default-features = false }
 gear-core-errors = "=1.5.0"
 gprimitives = { version = "=1.5.0", features = ["codec"] }
 gstd = "=1.5.0"
@@ -65,7 +66,6 @@ logos = "0.13"
 mockall = "0.12"
 parity-scale-codec = { version = "3.6", default-features = false }
 prettyplease = "0.2"
-primitive-types = { version = "0.12", default-features = false }
 proc-macro-error = "1.0"
 proc-macro2 = { version = "1", default-features = false }
 quote = "1.0"

@@ -15,9 +15,12 @@ pub mod calls;
 pub mod errors;
 #[cfg(not(target_arch = "wasm32"))]
 pub mod events;
+#[cfg(feature = "gclient")]
 #[cfg(not(target_arch = "wasm32"))]
 pub mod gsdk;
+#[cfg(feature = "gstd")]
 pub mod gstd;
+#[cfg(feature = "gtest")]
 #[cfg(not(target_arch = "wasm32"))]
 pub mod gtest;
 #[cfg(feature = "mockall")]

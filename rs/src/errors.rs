@@ -1,8 +1,7 @@
+use crate::String;
 use gear_core_errors::ErrorReplyReason;
-use gstd::{
-    errors::{CoreError as GCoreError, Error as GStdError},
-    String,
-};
+#[cfg(feature = "gstd")]
+use gstd::errors::{CoreError as GCoreError, Error as GStdError};
 use parity_scale_codec::Error as CodecError;
 use thiserror_no_std::Error as ThisError;
 
@@ -12,12 +11,15 @@ pub type Result<T, E = Error> = core::result::Result<T, E>;
 pub enum Error {
     #[error("rtl: {0}")]
     Rtl(#[from] RtlError),
+    #[cfg(feature = "gstd")]
     #[error("gstd: {0}")]
     GStd(#[from] GStdError),
+    #[cfg(feature = "gstd")]
     #[error("gcore: {0}")]
     GCore(#[from] GCoreError),
     #[error("codec: {0}")]
     Codec(#[from] CodecError),
+    #[cfg(feature = "gclient")]
     #[cfg(not(target_arch = "wasm32"))]
     #[error("codec: {0}")]
     GClient(#[from] gclient::Error),
