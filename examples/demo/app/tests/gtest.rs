@@ -164,12 +164,13 @@ async fn ping_pong_works() {
     // and send/receive bytes using `gtest` native means
     let ping_call_payload = ping_pong::io::Ping::encode_call("ping".into());
 
-    let run_result = demo_program.send_bytes(fixture.admin_id(), ping_call_payload);
+    let message_id = demo_program.send_bytes(fixture.admin_id(), ping_call_payload);
+    let run_result = fixture.run_next_block();
 
     let reply_log_record = run_result
         .log()
         .iter()
-        .find(|entry| entry.reply_to() == Some(run_result.sent_message_id()))
+        .find(|entry| entry.reply_to() == Some(message_id))
         .unwrap();
 
     let ping_reply_payload = reply_log_record.payload();

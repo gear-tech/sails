@@ -39,12 +39,14 @@ sails-idl-gen = { path = "rs/idl-gen" }
 sails-rename = { package = "sails-rs", path = "rs" }
 
 # Gear deps
-gclient = "=1.5.0"
-gear-core-errors = "=1.5.0"
-gprimitives = { version = "=1.5.0", features = ["codec"] }
-gstd = "=1.5.0"
-gtest = "=1.5.0"
-gwasm-builder = { package = "gear-wasm-builder", version = "=1.5.0" }
+gclient = { git = "https://github.com/gear-tech/gear", branch = "vo/gsdk_voucher" }
+gear-core-errors = { git = "https://github.com/gear-tech/gear", branch = "vo/gsdk_voucher" }
+gprimitives = { git = "https://github.com/gear-tech/gear", branch = "vo/gsdk_voucher", features = [
+    "codec",
+] }
+gstd = { git = "https://github.com/gear-tech/gear", branch = "vo/gsdk_voucher" }
+gtest = { git = "https://github.com/gear-tech/gear", branch = "vo/gsdk_voucher" }
+gwasm-builder = { package = "gear-wasm-builder", git = "https://github.com/gear-tech/gear", branch = "vo/gsdk_voucher" }
 
 # Other deps in alphabetical order
 anyhow = "1"

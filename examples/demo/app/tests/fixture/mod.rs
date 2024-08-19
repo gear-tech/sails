@@ -69,4 +69,8 @@ impl Fixture {
     pub(crate) fn references_client(&self) -> References<GTestRemoting> {
         References::new(self.program_space.clone())
     }
+
+    pub(crate) fn run_next_block(&self) -> gtest::BlockRunResult {
+        self.program_space.system().run_next_block()
+    }
 }

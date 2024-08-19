@@ -11,7 +11,7 @@ use futures::{
     Stream,
 };
 use gear_core_errors::{ReplyCode, SuccessReplyReason};
-use gtest::{Program, RunResult, System};
+use gtest::{BlockRunResult, Program, System};
 
 type EventSender = UnboundedSender<(ActorId, Vec<u8>)>;
 
@@ -67,11 +67,11 @@ impl GTestRemoting {
 }
 
 impl GTestRemoting {
-    fn extract_reply(run_result: &RunResult) -> Result<Vec<u8>> {
+    fn extract_reply(run_result: &BlockRunResult, message_id: MessageId) -> Result<Vec<u8>> {
         let mut reply_iter = run_result
             .log()
             .iter()
-            .filter(|entry| entry.reply_to() == Some(run_result.sent_message_id()));
+            .filter(|entry| entry.reply_to() == Some(message_id));
         let reply = reply_iter.next().ok_or(RtlError::ReplyIsMissing)?;
         if reply_iter.next().is_some() {
             Err(RtlError::ReplyIsAmbiguous)?
@@ -86,7 +86,7 @@ impl GTestRemoting {
         Ok(reply.payload().to_vec())
     }
 
-    fn extract_and_send_events(run_result: &RunResult, senders: &mut Vec<EventSender>) {
+    fn extract_and_send_events(run_result: &BlockRunResult, senders: &mut Vec<EventSender>) {
         let events: Vec<(ActorId, Vec<u8>)> = run_result
             .log()
             .iter()
@@ -108,19 +108,21 @@ impl GTestRemoting {
         gas_limit: Option<GasUnit>,
         value: ValueUnit,
         args: GTestArgs,
-    ) -> Result<RunResult> {
+    ) -> Result<(BlockRunResult, MessageId)> {
         let gas_limit = gas_limit.unwrap_or(gtest::constants::GAS_ALLOWANCE);
         let program = self
             .system
             .get_program(target.as_ref())
             .ok_or(RtlError::ProgramIsNotFound)?;
         let actor_id = args.actor_id.unwrap_or(self.actor_id);
-        Ok(program.send_bytes_with_gas(
+        let message_id = program.send_bytes_with_gas(
             actor_id.as_ref(),
             payload.as_ref().to_vec(),
             gas_limit,
             value,
-        ))
+        );
+        let run_result = self.system.run_next_block();
+        Ok((run_result, message_id))
     }
 }
 
@@ -144,14 +146,15 @@ impl Remoting for GTestRemoting {
         let program_id = gtest::calculate_program_id(code_id, salt.as_ref(), None);
         let program = Program::from_binary_with_id(&self.system, program_id, code);
         let actor_id = args.actor_id.unwrap_or(self.actor_id);
-        let run_result = program.send_bytes_with_gas(
+        let message_id = program.send_bytes_with_gas(
             actor_id.as_ref(),
             payload.as_ref().to_vec(),
             gas_limit,
             value,
         );
+        let run_result = self.system.run_next_block();
         Ok(async move {
-            let reply = Self::extract_reply(&run_result)?;
+            let reply = Self::extract_reply(&run_result, message_id)?;
             Ok((program_id, reply))
         })
     }
@@ -164,9 +167,10 @@ impl Remoting for GTestRemoting {
         value: ValueUnit,
         args: GTestArgs,
     ) -> Result<impl Future<Output = Result<Vec<u8>>>> {
-        let run_result = self.send_and_get_result(target, payload, gas_limit, value, args)?;
+        let (run_result, message_id) =
+            self.send_and_get_result(target, payload, gas_limit, value, args)?;
         Self::extract_and_send_events(&run_result, self.event_senders.borrow_mut().as_mut());
-        Ok(async move { Self::extract_reply(&run_result) })
+        Ok(async move { Self::extract_reply(&run_result, message_id) })
     }
 
     async fn query(
@@ -177,8 +181,9 @@ impl Remoting for GTestRemoting {
         value: ValueUnit,
         args: GTestArgs,
     ) -> Result<Vec<u8>> {
-        let run_result = self.send_and_get_result(target, payload, gas_limit, value, args)?;
-        Self::extract_reply(&run_result)
+        let (run_result, message_id) =
+            self.send_and_get_result(target, payload, gas_limit, value, args)?;
+        Self::extract_reply(&run_result, message_id)
     }
 }
 
