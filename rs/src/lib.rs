@@ -17,7 +17,7 @@ pub mod errors;
 pub mod events;
 #[cfg(feature = "gclient")]
 #[cfg(not(target_arch = "wasm32"))]
-pub mod gsdk;
+pub mod gclient;
 #[cfg(feature = "gstd")]
 pub mod gstd;
 #[cfg(feature = "gtest")]

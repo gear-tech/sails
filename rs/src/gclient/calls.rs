@@ -11,14 +11,14 @@ use gclient::{ext::sp_core::ByteArray, EventProcessor, GearApi};
 use gear_core_errors::ReplyCode;
 
 #[derive(Debug, Default)]
-pub struct GSdkArgs;
+pub struct GClientArgs;
 
 #[derive(Clone)]
-pub struct GSdkRemoting {
+pub struct GClientRemoting {
     api: GearApi,
 }
 
-impl GSdkRemoting {
+impl GClientRemoting {
     pub fn new(api: GearApi) -> Self {
         Self { api }
     }
@@ -38,8 +38,8 @@ impl GSdkRemoting {
     }
 }
 
-impl Remoting for GSdkRemoting {
-    type Args = GSdkArgs;
+impl Remoting for GClientRemoting {
+    type Args = GClientArgs;
 
     async fn activate(
         self,
@@ -48,7 +48,7 @@ impl Remoting for GSdkRemoting {
         payload: impl AsRef<[u8]>,
         gas_limit: Option<GasUnit>,
         value: ValueUnit,
-        _args: GSdkArgs,
+        _args: GClientArgs,
     ) -> Result<impl Future<Output = Result<(ActorId, Vec<u8>)>>> {
         let api = self.api;
         // Calculate gas amount if it is not explicitly set
@@ -80,7 +80,7 @@ impl Remoting for GSdkRemoting {
         payload: impl AsRef<[u8]>,
         gas_limit: Option<GasUnit>,
         value: ValueUnit,
-        _args: GSdkArgs,
+        _args: GClientArgs,
     ) -> Result<impl Future<Output = Result<Vec<u8>>>> {
         let api = self.api;
         // Calculate gas amount if it is not explicitly set
@@ -112,7 +112,7 @@ impl Remoting for GSdkRemoting {
         payload: impl AsRef<[u8]>,
         gas_limit: Option<GasUnit>,
         value: ValueUnit,
-        _args: GSdkArgs,
+        _args: GClientArgs,
     ) -> Result<Vec<u8>> {
         let api = self.api;
         // Get Max gas amount if it is not explicitly set
@@ -136,7 +136,7 @@ impl Remoting for GSdkRemoting {
     }
 }
 
-impl Listener<Vec<u8>> for GSdkRemoting {
+impl Listener<Vec<u8>> for GClientRemoting {
     async fn listen(&mut self) -> Result<impl Stream<Item = (ActorId, Vec<u8>)> + Unpin> {
         let listener = self.api.subscribe().await?;
         let stream = stream::unfold(listener, |mut l| async move {
