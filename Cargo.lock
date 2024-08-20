@@ -5912,9 +5912,7 @@ dependencies = [
 name = "rmrk-catalog-app"
 version = "0.1.0"
 dependencies = [
- "parity-scale-codec",
  "sails-rs",
- "scale-info",
 ]
 
 [[package]]
@@ -6157,6 +6155,7 @@ version = "0.3.0"
 dependencies = [
  "futures",
  "gclient",
+ "gear-core",
  "gear-core-errors",
  "gear-wasm-builder",
  "gprimitives",
@@ -6166,7 +6165,6 @@ dependencies = [
  "hex",
  "mockall",
  "parity-scale-codec",
- "primitive-types",
  "sails-macros",
  "scale-info",
  "spin",

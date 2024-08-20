@@ -11,9 +11,10 @@ sails-rs.workspace = true
 sails-rs = { workspace = true, features = ["wasm-builder"] }
 
 [dev-dependencies]
+demo-client = { path = "../client" }
 futures.workspace = true
 gclient.workspace = true
 gstd.workspace = true
 gtest.workspace = true
-demo-client = { path = "../client" }
+sails-rs = { workspace = true, features = ["gtest", "gclient"] }
 tokio = { workspace = true, features = ["rt", "macros"] }

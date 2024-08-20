@@ -15,6 +15,6 @@ sails-rs = { workspace = true, features = ["wasm-builder"] }
 [dev-dependencies]
 gtest.workspace = true
 rmrk-catalog = { path = "../../catalog/wasm" }
-sails-rs.workspace = true
+sails-rs = { workspace = true, features = ["gtest"] }
 thiserror-no-std.workspace = true
 tokio = { workspace = true, features = ["rt", "macros"] }
