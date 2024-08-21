@@ -2,8 +2,8 @@
 sub_templates = ["program"]
 
 [placeholders]
-with-client = { prompt = "Add client project?", type = "bool", default = "true" }
-with-gtest = { prompt = "Add gtest project?", type = "bool", default = "true" }
+with-client = { prompt = "Add client project?", type = "bool", default = true }
+with-gtest = { prompt = "Add gtest project?", type = "bool", default = true }
 
 [hooks]
 pre = ["../set-vars.rhai"]
