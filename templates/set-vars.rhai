@@ -24,12 +24,3 @@ variable::set("mocks-feature-name", "mocks");
 variable::set("mockall-version", "0.12");
 variable::set("sails-rs-version", "0.3.0");
 variable::set("tokio-version", "1.39");
-
-let with_client = variable::get("with-client");
-let with_gtest = variable::get("with-gtest");
-if !with_client {
-    file::delete("client")
-}
-if !with_client || !with_gtest {
-    file::delete("tests")
-}
