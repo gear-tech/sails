@@ -2,7 +2,7 @@ use demo_client::{counter::events::*, ping_pong, traits::*};
 use futures::stream::StreamExt;
 use gclient::GearApi;
 use gstd::errors::{ErrorReplyReason, SimpleExecutionError};
-use sails_rs::{calls::*, errors::RtlError, events::*, gsdk::calls::*, prelude::*};
+use sails_rs::{calls::*, errors::RtlError, events::*, gclient::calls::*, prelude::*};
 use std::panic;
 
 const DEMO_WASM_PATH: &str = "../../../target/wasm32-unknown-unknown/debug/demo.opt.wasm";
@@ -113,7 +113,7 @@ async fn ping_pong_works() {
         .unwrap();
 
     // Use generated `io` module for encoding/decoding calls and replies
-    // and send/receive bytes using `gsdk` native means (remoting is just a wrapper)
+    // and send/receive bytes using `gclient` native means (remoting is just a wrapper)
     let ping_call_payload = ping_pong::io::Ping::encode_call("ping".into());
 
     // Act
@@ -124,7 +124,7 @@ async fn ping_pong_works() {
             ping_call_payload,
             Some(gas_limit),
             0,
-            GSdkArgs,
+            GClientArgs,
         )
         .await
         .unwrap()
@@ -232,14 +232,14 @@ async fn counter_query_not_enough_gas() {
     ));
 }
 
-async fn spin_up_node_with_demo_code() -> (GSdkRemoting, CodeId, GasUnit) {
+async fn spin_up_node_with_demo_code() -> (GClientRemoting, CodeId, GasUnit) {
     let gear_path = option_env!("GEAR_PATH");
     if gear_path.is_none() {
         panic!("the 'GEAR_PATH' environment variable was not set during compile time");
     }
     let api = GearApi::dev_from_path(gear_path.unwrap()).await.unwrap();
     let gas_limit = api.block_gas_limit().unwrap();
-    let remoting = GSdkRemoting::new(api);
+    let remoting = GClientRemoting::new(api);
     let code_id = remoting.upload_code_by_path(DEMO_WASM_PATH).await.unwrap();
     (remoting, code_id, gas_limit)
 }
