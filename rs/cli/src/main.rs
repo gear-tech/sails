@@ -19,7 +19,7 @@ enum Commands {
     },
 }
 
-fn main() {
+fn main() -> Result<(), i32> {
     let command = Commands::parse();
 
     let result = match command {
@@ -39,5 +39,8 @@ fn main() {
 
     if let Err(e) = result {
         eprintln!("Error: {:#}", e);
+        return Err(-1);
     }
+
+    Ok(())
 }
