@@ -35,11 +35,7 @@ impl ProgramGenerator {
     }
 
     pub fn with_gtest(self, with_gtest: bool) -> Self {
-        Self {
-            with_gtest,
-            with_client: self.with_client | with_gtest,
-            ..self
-        }
+        Self { with_gtest, ..self }
     }
 
     pub fn generate(self) -> Result<()> {
@@ -69,6 +65,7 @@ impl ProgramGenerator {
             destination: path,
             silent: true,
             define: vec![
+                format!("sails-cli-version={}", env!("CARGO_PKG_VERSION")),
                 format!("with-client={}", self.with_client),
                 format!("with-gtest={}", self.with_gtest),
             ],
