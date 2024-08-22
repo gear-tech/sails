@@ -1,4 +1,4 @@
-let sails_cli_min_version_str = "0.4.0";
+let sails_cli_min_version_str = "0.3.0";
 let sails_cli_min_version = parse_sem_ver(sails_cli_min_version_str);
 
 let sails_cli_version_str = if variable::is_set("sails-cli-version") {
