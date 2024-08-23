@@ -10,11 +10,12 @@ sails-rs = "{{ sails-rs-version }}"
 
 [build-dependencies]
 sails-rs = { version = "{{ sails-rs-version }}", features = ["wasm-builder"] }
-
+{% if with-client and with-gtest %}
 [dev-dependencies]
 {{ project-name }} = { path = ".", features = ["wasm-binary"] }
 {{ client-project-name }} = { path = "client" }
+sails-rs = { version = "{{ sails-rs-version }}", features = ["gtest"] }
 tokio = { version = "{{ tokio-version }}", features = ["rt", "macros"] }
-
+{% endif %}
 [features]
 wasm-binary = []
