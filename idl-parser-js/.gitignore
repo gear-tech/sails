@@ -1,0 +1,4 @@
+lib/
+parser.wasm
+
+node_modules/
