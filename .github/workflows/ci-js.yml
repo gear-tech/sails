@@ -7,7 +7,7 @@ on:
   push:
     branches: [master]
     paths:
-      - js/**
+      - js/sails/**
   workflow_dispatch:
 
 env:
@@ -35,7 +35,7 @@ jobs:
           node-version: 20.x
 
       - name: "Install: pkg dependencies"
-        working-directory: js
+        working-directory: js/sails
         run: yarn install
 
       - name: "Install: binaryen"
@@ -46,10 +46,10 @@ jobs:
       - name: "Prepare: build parser"
         run: |
           cargo build -p sails-idl-parser --target=wasm32-unknown-unknown --release
-          wasm-opt -O4 -o ./js/parser.wasm ./target/wasm32-unknown-unknown/release/sails_idl_parser.wasm
+          wasm-opt -O4 -o ./js/sails/parser.wasm ./target/wasm32-unknown-unknown/release/sails_idl_parser.wasm
 
       - name: "Prepare: build sails-js"
-        working-directory: js
+        working-directory: js/sails
         run: yarn build
 
       - name: "Prepare: build demo app"
@@ -57,7 +57,7 @@ jobs:
           cargo build -p demo --release
 
       - name: "Prepare: build demo client lib"
-        working-directory: js
+        working-directory: js/sails
         run: |
           node lib/app.js generate ../examples/demo/client/demo.idl -o ./test/demo
 
@@ -74,7 +74,7 @@ jobs:
         run: sleep 180
 
       - name: "Test: run"
-        working-directory: js
+        working-directory: js/sails
         run: yarn test
 
   publish-to-npm:
@@ -89,7 +89,7 @@ jobs:
         uses: EndBug/version-check@v2
         id: check
         with:
-          file-name: js/package.json
+          file-name: js/sails/package.json
           file-url: https://unpkg.com/sails-js@latest/package.json
           static-checking: localIsNew
 
@@ -101,7 +101,7 @@ jobs:
 
       - name: "Prepare: install dependencies"
         if: steps.check.outputs.changed == 'true'
-        working-directory: js
+        working-directory: js/sails
         run: yarn install
 
       - name: "Install: binaryen"
@@ -114,16 +114,16 @@ jobs:
         if: steps.check.outputs.changed == 'true'
         run: |
           cargo build -p sails-idl-parser --target=wasm32-unknown-unknown --release
-          wasm-opt -O4 -o ./js/parser.wasm ./target/wasm32-unknown-unknown/release/sails_idl_parser.wasm
+          wasm-opt -O4 -o ./js/sails/parser.wasm ./target/wasm32-unknown-unknown/release/sails_idl_parser.wasm
 
       - name: "Prepare: build sails-js"
         if: steps.check.outputs.changed == 'true'
-        working-directory: js
+        working-directory: js/sails
         run: yarn build
 
       - name: Publish
         if: steps.check.outputs.changed == 'true'
-        working-directory: js/lib
+        working-directory: js/sails/lib
         run: |
           export token=$(printenv npm_token)
           npm config set //registry.npmjs.org/:_authToken=$token

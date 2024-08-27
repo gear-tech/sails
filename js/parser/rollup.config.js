@@ -17,7 +17,7 @@ function writePackageJson(type) {
 
 export default [
   {
-    input: ['index.ts'],
+    input: 'src/index.ts',
     output: [
       {
         dir: 'lib',
@@ -34,7 +34,7 @@ export default [
     ],
   },
   {
-    input: 'index.ts',
+    input: 'src/index.ts',
     output: [
       {
         dir: 'lib/cjs',
