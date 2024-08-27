@@ -1,5 +1,5 @@
 [template]
-sub_templates = ["program"]
+sub_templates = ["program", "program-alt"]
 
 [placeholders]
 with-client = { type = "bool", prompt = "Add client project?" }

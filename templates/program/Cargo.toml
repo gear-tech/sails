@@ -1,4 +1,7 @@
 [workspace]
+{% if with-client %}
+members = ["client"]
+{% endif %}
 
 [package]
 name = "{{ project-name }}"
@@ -6,10 +9,12 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-sails-rs = "{{ sails-rs-version }}"
+{{ app-project-name }} = { path = "app" }
 
 [build-dependencies]
+{{ app-project-name }} = { path = "app" }
 sails-rs = { version = "{{ sails-rs-version }}", features = ["wasm-builder"] }
+sails-idl-gen = "{{ sails-rs-version }}"
 {% if with-client and with-gtest %}
 [dev-dependencies]
 {{ project-name }} = { path = ".", features = ["wasm-binary"] }
