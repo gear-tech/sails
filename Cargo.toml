@@ -1,5 +1,5 @@
 [workspace.package]
-version = "0.3.0"
+version = "0.4.0"
 authors = ["Gear Technologies"]
 edition = "2021"
 license = "GPL-3.0"
@@ -40,6 +40,7 @@ sails-rename = { package = "sails-rs", path = "rs" }
 
 # Gear deps
 gclient = { git = "https://github.com/gear-tech/gear" }
+gear-core = { git = "https://github.com/gear-tech/gear", default-features = false }
 gear-core-errors = { git = "https://github.com/gear-tech/gear" }
 gprimitives = { git = "https://github.com/gear-tech/gear", features = [
     "codec",
@@ -67,7 +68,6 @@ logos = "0.13"
 mockall = "0.12"
 parity-scale-codec = { version = "3.6", default-features = false }
 prettyplease = "0.2"
-primitive-types = { version = "0.12", default-features = false }
 proc-macro-error = "1.0"
 proc-macro2 = { version = "1", default-features = false }
 quote = "1.0"

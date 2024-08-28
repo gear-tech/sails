@@ -286,6 +286,12 @@ impl<'a> Fixture<'a> {
     fn new(admin_id: u64) -> Self {
         let program_space = GTestRemoting::new(admin_id.into());
         program_space.system().init_logger();
+        program_space
+            .system()
+            .mint_to(ADMIN_ID, 100_000_000_000_000);
+        program_space
+            .system()
+            .mint_to(NON_ADMIN_ID, 100_000_000_000_000);
 
         Self {
             admin_id,

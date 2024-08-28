@@ -25,6 +25,7 @@ impl Fixture {
     pub(crate) fn new(admin_id: u64) -> Self {
         let program_space = GTestRemoting::new(admin_id.into());
         program_space.system().init_logger();
+        program_space.system().mint_to(admin_id, 10_000_000_000_000);
         Self {
             admin_id,
             program_space,

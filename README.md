@@ -17,7 +17,7 @@ clarity. It deals with things like:
 >
 > Versions "version <= 0.2.1" are pinned to v1.4.2 of gear libs.
 >
-> Versions "0.2.1 < version <= 0.3.0" are pinned to v1.5.0 of gear libs.
+> Versions "0.2.1 < version" are pinned to v1.5.0 of gear libs.
 
 ## Getting started
 
