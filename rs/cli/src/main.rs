@@ -1,7 +1,20 @@
-use clap::Parser;
+use clap::{Parser, Subcommand};
 use sails_cli::program::ProgramGenerator;
 
 #[derive(Parser)]
+#[command(bin_name = "cargo")]
+struct CargoCommands {
+    #[command(subcommand)]
+    cargo: SailsCommands,
+}
+
+#[derive(Subcommand)]
+enum SailsCommands {
+    #[command(name = "sails", subcommand)]
+    Sails(Commands),
+}
+
+#[derive(Subcommand)]
 enum Commands {
     #[command(name = "new-program")]
     NewProgram {
@@ -20,15 +33,15 @@ enum Commands {
 }
 
 fn main() -> Result<(), i32> {
-    let command = Commands::parse();
+    let command: CargoCommands = CargoCommands::parse();
 
-    let result = match command {
-        Commands::NewProgram {
+    let result = match command.cargo {
+        SailsCommands::Sails(Commands::NewProgram {
             path,
             name,
             no_client,
             no_gtest,
-        } => {
+        }) => {
             let program_generator = ProgramGenerator::new(path)
                 .with_name(name)
                 .with_client(!no_client)

@@ -21,7 +21,7 @@ pub enum Error {
     Codec(#[from] CodecError),
     #[cfg(feature = "gclient")]
     #[cfg(not(target_arch = "wasm32"))]
-    #[error("codec: {0}")]
+    #[error("gclient: {0}")]
     GClient(#[from] gclient::Error),
 }
 
