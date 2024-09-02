@@ -9,7 +9,7 @@ use core::{cell::RefCell, future::Future};
 use futures::{
     channel::{
         mpsc::{unbounded, UnboundedSender},
-        oneshot::{self, Sender as OneshotSender},
+        oneshot,
     },
     FutureExt, Stream, TryFutureExt,
 };
@@ -17,6 +17,7 @@ use gear_core_errors::{ReplyCode, SuccessReplyReason};
 use gtest::{BlockRunResult, Program, System};
 
 type EventSender = UnboundedSender<(ActorId, Vec<u8>)>;
+type ReplySender = oneshot::Sender<Result<Vec<u8>>>;
 
 #[derive(Debug, Default)]
 pub struct GTestArgs {
@@ -52,7 +53,7 @@ pub struct GTestRemoting {
     event_senders: Rc<RefCell<Vec<EventSender>>>,
     actor_id: ActorId,
     block_run_mode: BlockRunMode,
-    block_messages: Rc<RefCell<Vec<(MessageId, OneshotSender<Result<Vec<u8>>>)>>>,
+    block_messages: Rc<RefCell<Vec<(MessageId, ReplySender)>>>,
 }
 
 impl GTestRemoting {
@@ -154,7 +155,7 @@ impl GTestRemoting {
         Ok(message_id)
     }
 
-    fn message_from_next_block(
+    fn message_reply_from_next_block(
         &self,
         message_id: MessageId,
     ) -> impl Future<Output = Result<Vec<u8>>> {
@@ -213,8 +214,8 @@ impl Remoting for GTestRemoting {
             value,
         );
         Ok(self
-            .message_from_next_block(message_id)
-            .map(move |reply| reply.map(|vec| (program_id, vec))))
+            .message_reply_from_next_block(message_id)
+            .map(move |result| result.map(|reply| (program_id, reply))))
     }
 
     async fn message(
@@ -227,7 +228,7 @@ impl Remoting for GTestRemoting {
     ) -> Result<impl Future<Output = Result<Vec<u8>>>> {
         let message_id = self.send_message(target, payload, gas_limit, value, args)?;
 
-        Ok(self.message_from_next_block(message_id))
+        Ok(self.message_reply_from_next_block(message_id))
     }
 
     async fn query(
@@ -239,7 +240,7 @@ impl Remoting for GTestRemoting {
         args: GTestArgs,
     ) -> Result<Vec<u8>> {
         let message_id = self.send_message(target, payload, gas_limit, value, args)?;
-        self.message_from_next_block(message_id).await
+        self.message_reply_from_next_block(message_id).await
     }
 }
 
