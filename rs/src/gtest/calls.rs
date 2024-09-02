@@ -7,8 +7,11 @@ use crate::{
 };
 use core::{cell::RefCell, future::Future};
 use futures::{
-    channel::mpsc::{unbounded, UnboundedSender},
-    Stream,
+    channel::{
+        mpsc::{unbounded, UnboundedSender},
+        oneshot::{self, Sender as OneshotSender},
+    },
+    FutureExt, Stream, TryFutureExt,
 };
 use gear_core_errors::{ReplyCode, SuccessReplyReason};
 use gtest::{BlockRunResult, Program, System};
@@ -37,19 +40,46 @@ impl GTestArgs {
     }
 }
 
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum BlockRunMode {
+    Manual,
+    Auto,
+}
+
 #[derive(Clone)]
 pub struct GTestRemoting {
     system: Rc<System>,
     event_senders: Rc<RefCell<Vec<EventSender>>>,
     actor_id: ActorId,
+    block_run_mode: BlockRunMode,
+    block_messages: Rc<RefCell<Vec<(MessageId, OneshotSender<Result<Vec<u8>>>)>>>,
 }
 
 impl GTestRemoting {
     pub fn new(actor_id: ActorId) -> Self {
+        let system = System::new();
+        Self::new_from_system(system, actor_id, BlockRunMode::Auto)
+    }
+
+    pub fn new_from_system(
+        system: System,
+        actor_id: ActorId,
+        block_run_mode: BlockRunMode,
+    ) -> Self {
+        let system = Rc::new(system);
         Self {
-            system: Rc::new(System::new()),
+            system,
             event_senders: Default::default(),
             actor_id,
+            block_run_mode,
+            block_messages: Default::default(),
+        }
+    }
+
+    pub fn with_run_mode(self, block_run_mode: BlockRunMode) -> Self {
+        Self {
+            block_run_mode,
+            ..self
         }
     }
 
@@ -101,14 +131,14 @@ impl GTestRemoting {
         }
     }
 
-    fn send_and_get_result(
+    fn send_message(
         &self,
         target: ActorId,
         payload: impl AsRef<[u8]>,
         gas_limit: Option<GasUnit>,
         value: ValueUnit,
         args: GTestArgs,
-    ) -> Result<(BlockRunResult, MessageId)> {
+    ) -> Result<MessageId> {
         let gas_limit = gas_limit.unwrap_or(gtest::constants::GAS_ALLOWANCE);
         let program = self
             .system
@@ -121,8 +151,38 @@ impl GTestRemoting {
             gas_limit,
             value,
         );
+        Ok(message_id)
+    }
+
+    fn message_from_next_block(
+        &self,
+        message_id: MessageId,
+    ) -> impl Future<Output = Result<Vec<u8>>> {
+        let (tx, rx) = oneshot::channel::<Result<Vec<u8>>>();
+        self.block_messages.borrow_mut().push((message_id, tx));
+
+        if self.block_run_mode == BlockRunMode::Auto {
+            _ = self.run_next_block_and_extract();
+        }
+
+        rx.unwrap_or_else(|_| Err(RtlError::ReplyIsMissing.into()))
+    }
+
+    fn run_next_block_and_extract(&self) -> BlockRunResult {
         let run_result = self.system.run_next_block();
-        Ok((run_result, message_id))
+        Self::extract_and_send_events(&run_result, self.event_senders.borrow_mut().as_mut());
+        for (message_id, tx) in self.block_messages.borrow_mut().drain(..) {
+            let res = Self::extract_reply(&run_result, message_id);
+            let _ = tx.send(res);
+        }
+        run_result
+    }
+
+    pub fn run_next_block(&self) -> Result<BlockRunResult> {
+        match self.block_run_mode {
+            BlockRunMode::Auto => Err(RtlError::BlockRunModeIsAuto.into()),
+            BlockRunMode::Manual => Ok(self.run_next_block_and_extract()),
+        }
     }
 }
 
@@ -152,11 +212,9 @@ impl Remoting for GTestRemoting {
             gas_limit,
             value,
         );
-        let run_result = self.system.run_next_block();
-        Ok(async move {
-            let reply = Self::extract_reply(&run_result, message_id)?;
-            Ok((program_id, reply))
-        })
+        Ok(self
+            .message_from_next_block(message_id)
+            .map(move |reply| reply.map(|vec| (program_id, vec))))
     }
 
     async fn message(
@@ -167,10 +225,9 @@ impl Remoting for GTestRemoting {
         value: ValueUnit,
         args: GTestArgs,
     ) -> Result<impl Future<Output = Result<Vec<u8>>>> {
-        let (run_result, message_id) =
-            self.send_and_get_result(target, payload, gas_limit, value, args)?;
-        Self::extract_and_send_events(&run_result, self.event_senders.borrow_mut().as_mut());
-        Ok(async move { Self::extract_reply(&run_result, message_id) })
+        let message_id = self.send_message(target, payload, gas_limit, value, args)?;
+
+        Ok(self.message_from_next_block(message_id))
     }
 
     async fn query(
@@ -181,9 +238,8 @@ impl Remoting for GTestRemoting {
         value: ValueUnit,
         args: GTestArgs,
     ) -> Result<Vec<u8>> {
-        let (run_result, message_id) =
-            self.send_and_get_result(target, payload, gas_limit, value, args)?;
-        Self::extract_reply(&run_result, message_id)
+        let message_id = self.send_message(target, payload, gas_limit, value, args)?;
+        self.message_from_next_block(message_id).await
     }
 }
 
