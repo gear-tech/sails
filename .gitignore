@@ -1,11 +1,11 @@
 .binpath
 .DS_Store
 .vscode
-.vscode
+target/
+*.log
+
 js/**/lib/
 js/**/parser.wasm
 js/test/demo/
 
 node_modules/
-target/
-*.log
