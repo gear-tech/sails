@@ -1,5 +1,6 @@
 use crate::{
     calls::Remoting,
+    collections::HashMap,
     errors::{Result, RtlError},
     events::Listener,
     prelude::*,
@@ -53,7 +54,7 @@ pub struct GTestRemoting {
     event_senders: Rc<RefCell<Vec<EventSender>>>,
     actor_id: ActorId,
     block_run_mode: BlockRunMode,
-    block_messages: Rc<RefCell<Vec<(MessageId, ReplySender)>>>,
+    block_reply_senders: Rc<RefCell<HashMap<MessageId, ReplySender>>>,
 }
 
 impl GTestRemoting {
@@ -73,7 +74,7 @@ impl GTestRemoting {
             event_senders: Default::default(),
             actor_id,
             block_run_mode,
-            block_messages: Default::default(),
+            block_reply_senders: Default::default(),
         }
     }
 
@@ -98,37 +99,37 @@ impl GTestRemoting {
 }
 
 impl GTestRemoting {
-    fn extract_reply(run_result: &BlockRunResult, message_id: MessageId) -> Result<Vec<u8>> {
-        let mut reply_iter = run_result
-            .log()
-            .iter()
-            .filter(|entry| entry.reply_to() == Some(message_id));
-        let reply = reply_iter.next().ok_or(RtlError::ReplyIsMissing)?;
-        if reply_iter.next().is_some() {
-            Err(RtlError::ReplyIsAmbiguous)?
+    fn extract_events_and_replies(&self, run_result: &BlockRunResult) {
+        let mut event_senders = self.event_senders.borrow_mut();
+        let mut reply_senders = self.block_reply_senders.borrow_mut();
+        // remove closed event senders
+        event_senders.retain(|c| !c.is_closed());
+        for entry in run_result.log().iter() {
+            if entry.destination() == ActorId::zero() {
+                for sender in event_senders.iter() {
+                    _ = sender.unbounded_send((entry.source(), entry.payload().to_vec()));
+                }
+                continue;
+            }
+            if let Some(message_id) = entry.reply_to() {
+                if let Some(sender) = reply_senders.remove(&message_id) {
+                    let reply: result::Result<Vec<u8>, _> = match entry.reply_code() {
+                        None => Err(RtlError::ReplyCodeIsMissing.into()),
+                        Some(ReplyCode::Error(reason)) => {
+                            Err(RtlError::ReplyHasError(reason).into())
+                        }
+                        Some(ReplyCode::Success(SuccessReplyReason::Manual)) => {
+                            Ok(entry.payload().to_vec())
+                        }
+                        _ => Err(RtlError::ReplyIsMissing.into()),
+                    };
+                    _ = sender.send(reply);
+                }
+            }
         }
-        let reply_code = reply.reply_code().ok_or(RtlError::ReplyCodeIsMissing)?;
-        if let ReplyCode::Error(reason) = reply_code {
-            Err(RtlError::ReplyHasError(reason))?
-        }
-        if reply_code != ReplyCode::Success(SuccessReplyReason::Manual) {
-            Err(RtlError::ReplyIsMissing)?
-        }
-        Ok(reply.payload().to_vec())
-    }
-
-    fn extract_and_send_events(run_result: &BlockRunResult, senders: &mut Vec<EventSender>) {
-        let events: Vec<(ActorId, Vec<u8>)> = run_result
-            .log()
-            .iter()
-            .filter(|entry| entry.destination() == ActorId::zero())
-            .map(|entry| (entry.source(), entry.payload().to_vec()))
-            .collect();
-        senders.retain(|c| !c.is_closed());
-        for sender in senders.iter() {
-            events.clone().into_iter().for_each(move |ev| {
-                _ = sender.unbounded_send(ev);
-            });
+        // drain reply senders that not founded in block
+        for (_message_id, sender) in reply_senders.drain() {
+            _ = sender.send(Err(RtlError::ReplyIsMissing.into()));
         }
     }
 
@@ -160,7 +161,7 @@ impl GTestRemoting {
         message_id: MessageId,
     ) -> impl Future<Output = Result<Vec<u8>>> {
         let (tx, rx) = oneshot::channel::<Result<Vec<u8>>>();
-        self.block_messages.borrow_mut().push((message_id, tx));
+        self.block_reply_senders.borrow_mut().insert(message_id, tx);
 
         if self.block_run_mode == BlockRunMode::Auto {
             _ = self.run_next_block_and_extract();
@@ -171,11 +172,7 @@ impl GTestRemoting {
 
     fn run_next_block_and_extract(&self) -> BlockRunResult {
         let run_result = self.system.run_next_block();
-        Self::extract_and_send_events(&run_result, self.event_senders.borrow_mut().as_mut());
-        for (message_id, tx) in self.block_messages.borrow_mut().drain(..) {
-            let res = Self::extract_reply(&run_result, message_id);
-            let _ = tx.send(res);
-        }
+        self.extract_events_and_replies(&run_result);
         run_result
     }
 
