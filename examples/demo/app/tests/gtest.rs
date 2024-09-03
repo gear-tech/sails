@@ -2,12 +2,14 @@ use demo_client::{counter::events::CounterEvents, dog::events::DogEvents, ping_p
 use fixture::Fixture;
 use futures::stream::StreamExt;
 use gstd::errors::{ErrorReplyReason, SimpleExecutionError};
-use gtest::System;
 use sails_rs::{
     calls::*,
     errors::RtlError,
     events::*,
-    gtest::calls::{BlockRunMode, GTestRemoting},
+    gtest::{
+        calls::{BlockRunMode, GTestRemoting},
+        System,
+    },
 };
 
 mod fixture;
@@ -397,7 +399,7 @@ async fn counter_add_manual_mode_works() {
         .unwrap();
 
     // Run next Block
-    remoting.run_next_block().unwrap();
+    remoting.run_next_block();
 
     let demo_program_id = activation.recv().await.unwrap();
 
@@ -420,7 +422,7 @@ async fn counter_add_manual_mode_works() {
         .unwrap();
 
     // Run next Block
-    remoting.run_next_block().unwrap();
+    remoting.run_next_block();
 
     // Got replies
     let result_add = call_add.recv().await.unwrap();

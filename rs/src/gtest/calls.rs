@@ -3,6 +3,7 @@ use crate::{
     collections::HashMap,
     errors::{Result, RtlError},
     events::Listener,
+    gtest::{BlockRunResult, Program, System},
     prelude::*,
     rc::Rc,
 };
@@ -14,8 +15,8 @@ use futures::{
     },
     FutureExt, Stream, TryFutureExt,
 };
+use gear_core::ids::ProgramId;
 use gear_core_errors::{ReplyCode, SuccessReplyReason};
-use gtest::{BlockRunResult, Program, System};
 
 type EventSender = UnboundedSender<(ActorId, Vec<u8>)>;
 type ReplySender = oneshot::Sender<Result<Vec<u8>>>;
@@ -58,11 +59,6 @@ pub struct GTestRemoting {
 }
 
 impl GTestRemoting {
-    pub fn new(actor_id: ActorId) -> Self {
-        let system = System::new();
-        Self::new_from_system(system, actor_id, BlockRunMode::Auto)
-    }
-
     pub fn new_from_system(
         system: System,
         actor_id: ActorId,
@@ -89,12 +85,16 @@ impl GTestRemoting {
         Self { actor_id, ..self }
     }
 
-    pub fn system(&self) -> &System {
-        &self.system
-    }
-
     pub fn actor_id(&self) -> ActorId {
         self.actor_id
+    }
+
+    pub fn get_program(&self, program_id: ProgramId) -> Option<Program> {
+        self.system.get_program(program_id)
+    }
+
+    pub fn run_next_block(&self) -> BlockRunResult {
+        self.run_next_block_and_extract()
     }
 }
 
@@ -175,13 +175,6 @@ impl GTestRemoting {
         self.extract_events_and_replies(&run_result);
         run_result
     }
-
-    pub fn run_next_block(&self) -> Result<BlockRunResult> {
-        match self.block_run_mode {
-            BlockRunMode::Auto => Err(RtlError::BlockRunModeIsAuto.into()),
-            BlockRunMode::Manual => Ok(self.run_next_block_and_extract()),
-        }
-    }
 }
 
 impl Remoting for GTestRemoting {
@@ -224,7 +217,6 @@ impl Remoting for GTestRemoting {
         args: GTestArgs,
     ) -> Result<impl Future<Output = Result<Vec<u8>>>> {
         let message_id = self.send_message(target, payload, gas_limit, value, args)?;
-
         Ok(self.message_reply_from_next_block(message_id))
     }
 

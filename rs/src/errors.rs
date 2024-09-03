@@ -51,6 +51,4 @@ pub enum RtlError {
     EventIsNotFound,
     #[error("event prefix mismatches")]
     EventPrefixMismatches,
-    #[error("GTest block run mode is set to Auto")]
-    BlockRunModeIsAuto,
 }
