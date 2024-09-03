@@ -2,7 +2,13 @@ use demo_client::{counter::events::CounterEvents, dog::events::DogEvents, ping_p
 use fixture::Fixture;
 use futures::stream::StreamExt;
 use gstd::errors::{ErrorReplyReason, SimpleExecutionError};
-use sails_rs::{calls::*, errors::RtlError, events::*};
+use gtest::System;
+use sails_rs::{
+    calls::*,
+    errors::RtlError,
+    events::*,
+    gtest::calls::{BlockRunMode, GTestRemoting},
+};
 
 mod fixture;
 
@@ -367,4 +373,68 @@ async fn references_guess_num() {
     assert_eq!(Some("demo".to_owned()), res3);
     assert_eq!(Ok(()), res4);
     assert_eq!(Ok("demo".to_owned()), res5);
+}
+
+#[tokio::test]
+async fn counter_add_manual_mode_works() {
+    // Arrange
+    const DEMO_WASM_PATH: &str = "../../../target/wasm32-unknown-unknown/debug/demo.opt.wasm";
+    let system = System::new();
+    system.init_logger();
+    system.mint_to(fixture::ADMIN_ID, 100_000_000_000_000);
+    let demo_code_id = system.submit_code_file(DEMO_WASM_PATH);
+
+    let remoting =
+        GTestRemoting::new_from_system(system, fixture::ADMIN_ID.into(), BlockRunMode::Manual);
+
+    let demo_factory = demo_client::DemoFactory::new(remoting.clone());
+
+    // Use generated client code for activating Demo program
+    let activation = demo_factory
+        .new(Some(42), None)
+        .send(demo_code_id, "123")
+        .await
+        .unwrap();
+
+    // Run next Block
+    remoting.run_next_block().unwrap();
+
+    let demo_program_id = activation.recv().await.unwrap();
+
+    let mut counter_client_add = demo_client::Counter::new(remoting.clone());
+    let mut counter_client_sub = demo_client::Counter::new(remoting.clone());
+    // Listen to Counter events
+    let mut counter_listener = demo_client::counter::events::listener(remoting.clone());
+    let mut counter_events = counter_listener.listen().await.unwrap();
+
+    // Use generated client code for calling Counter service
+    let call_add = counter_client_add
+        .add(10)
+        .send(demo_program_id)
+        .await
+        .unwrap();
+    let call_sub = counter_client_sub
+        .sub(20)
+        .send(demo_program_id)
+        .await
+        .unwrap();
+
+    // Run next Block
+    remoting.run_next_block().unwrap();
+
+    // Got replies
+    let result_add = call_add.recv().await.unwrap();
+    assert_eq!(result_add, 52);
+    let result_sub = call_sub.recv().await.unwrap();
+    assert_eq!(result_sub, 32);
+
+    // Got events
+    assert_eq!(
+        (demo_program_id, CounterEvents::Added(10)),
+        counter_events.next().await.unwrap()
+    );
+    assert_eq!(
+        (demo_program_id, CounterEvents::Subtracted(20)),
+        counter_events.next().await.unwrap()
+    );
 }
