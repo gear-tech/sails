@@ -8,7 +8,7 @@ mockall = { version = "{{ mockall-version }}", optional = true }
 sails-rs = "{{ sails-rs-version }}"
 
 [build-dependencies]
-{{ app-project-name }} = { path = "../app" }
+{{ project-name }} = { path = ".." }
 sails-client-gen = "{{ sails-rs-version }}"
 sails-idl-gen = "{{ sails-rs-version }}"
 

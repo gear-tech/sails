@@ -17,7 +17,7 @@ clarity. It deals with things like:
 >
 > Versions "version <= 0.2.1" are pinned to v1.4.2 of gear libs.
 >
-> Versions "0.2.1 < version <= 0.3.0" are pinned to v1.5.0 of gear libs.
+> Versions "0.2.1 < version" are pinned to v1.5.0 of gear libs.
 
 ## Getting started
 
@@ -30,8 +30,7 @@ cargo sails new-program my-ping
 Or add the following to your `Cargo.toml`
 ```toml
 [dependencies]
-sails-rs = "*"
-gstd = { version = "*", features = ["debug"] }
+sails-rs = { version = "*", features = ["debug"] }
 ```
 
 And then in your `lib.rs`:
@@ -39,8 +38,7 @@ And then in your `lib.rs`:
 ```rust
 #![no_std]
 
-use sails_rs::prelude::*;
-use gstd::debug;
+use sails_rs::{gstd::debug, prelude::*};
 
 struct MyPing;
 
@@ -375,7 +373,7 @@ impl MyProgram {
 }
 ```
 
-Then in a client application provided the code generation happens in Rust build script,
+Then, in a client application, provided the code generation happens in a Rust build script,
 you can use the generated code like this (option 1):
 
 ```rust
@@ -407,8 +405,20 @@ fn some_client_code() {
 }
 ```
 
-The second option provides you with an option to have your code testable as the generated
+The second option provides you with an option to have your code testable, as the generated
 code depends on the trait which can be easily mocked.
+
+As you may have noticed, the option 2 uses the concept of a `remoting` object, which needs
+to be passed to the client instantiation code. This object should implement the `Remoting`
+trait from the `sails-rs` crate. It abstracts the low-level communication details
+between client and the application. The `sails-rs` crate provides three implementations of this
+trait:
+- `sails_rs::gstd::calls::GStdRemoting` should be used when the client code is executed
+  as a part of another on-chain application.
+- `sails_rs::gclient::calls::GClientRemoting` should be used when the client code is executed
+  as a part of an off-chain application.
+- `sails_rs::gstd::calls::GTestRemoting` should be used when the client code is executed
+  as a part of a tests utilizing the `gtest` crate.
 
 When it comes to TypeScript, `sails-js` library can be used to interact with the program. Check out [`sails-js` documentation](js/README.md) for more details.
 

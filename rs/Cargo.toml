@@ -11,7 +11,7 @@ repository.workspace = true
 
 [dependencies]
 futures.workspace = true
-gear-core-errors = { workspace = true, optional = true }
+gear-core-errors.workspace = true
 gprimitives.workspace = true
 gstd = { workspace = true, optional = true }
 gwasm-builder = { workspace = true, optional = true }
@@ -35,7 +35,7 @@ gtest = { workspace = true, optional = true }
 default = ["gstd"]
 debug = ["gstd?/debug"]
 gclient = ["dep:gclient"]
-gstd = ["dep:gstd", "dep:gear-core", "dep:gear-core-errors", "dep:sails-macros"]
+gstd = ["dep:gstd", "dep:gear-core", "dep:sails-macros"]
 gtest = ["dep:gtest"]
 mockall = ["dep:mockall"]
 wasm-builder = ["dep:gwasm-builder"]

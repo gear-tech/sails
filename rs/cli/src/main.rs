@@ -1,7 +1,20 @@
-use clap::Parser;
+use clap::{Parser, Subcommand};
 use sails_cli::program::ProgramGenerator;
 
 #[derive(Parser)]
+#[command(bin_name = "cargo")]
+struct CargoCommands {
+    #[command(subcommand)]
+    cargo: SailsCommands,
+}
+
+#[derive(Subcommand)]
+enum SailsCommands {
+    #[command(name = "sails", subcommand)]
+    Sails(Commands),
+}
+
+#[derive(Subcommand)]
 enum Commands {
     #[command(name = "new-program")]
     NewProgram {
@@ -9,35 +22,38 @@ enum Commands {
         path: String,
         #[arg(short, long, help = "Name of the new program")]
         name: Option<String>,
-        #[arg(long, help = "Generate client crate alongside the program")]
-        with_client: bool,
         #[arg(
             long,
-            help = "Generate program tests using 'gtest'. Implies '--with-client'"
+            help = "Disable generation of client package alongside the program. Implies '--no-gtest'"
         )]
-        with_gtest: bool,
+        no_client: bool,
+        #[arg(long, help = "Disable generation of program tests using 'gtest'")]
+        no_gtest: bool,
     },
 }
 
-fn main() {
-    let command = Commands::parse();
+fn main() -> Result<(), i32> {
+    let command: CargoCommands = CargoCommands::parse();
 
-    let result = match command {
-        Commands::NewProgram {
+    let result = match command.cargo {
+        SailsCommands::Sails(Commands::NewProgram {
             path,
             name,
-            with_client,
-            with_gtest,
-        } => {
+            no_client,
+            no_gtest,
+        }) => {
             let program_generator = ProgramGenerator::new(path)
                 .with_name(name)
-                .with_client(with_client)
-                .with_gtest(with_gtest);
+                .with_client(!no_client)
+                .with_gtest(!no_gtest);
             program_generator.generate()
         }
     };
 
     if let Err(e) = result {
-        eprintln!("Error: {}", e);
+        eprintln!("Error: {:#}", e);
+        return Err(-1);
     }
+
+    Ok(())
 }
