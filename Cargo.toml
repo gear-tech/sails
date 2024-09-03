@@ -76,5 +76,5 @@ spin = { version = "0.9", default-features = false, features = ["spin_mutex"] }
 syn = "2.0"
 thiserror = "1.0"
 thiserror-no-std = "2.0"
-tokio = "1.39"
+tokio = "1.40"
 trybuild = "1"
