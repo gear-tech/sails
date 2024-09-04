@@ -1,11 +1,14 @@
 .binpath
 .DS_Store
 .vscode
-target/
 *.log
 
-js/**/lib/
-js/**/parser.wasm
-js/test/demo/
+target/
 
+# js
 node_modules/
+js/sails/lib/
+js/sails/parser.wasm
+js/sails/test/demo/
+js/sails/.yarn/*
+!js/sails/.yarn/releases
