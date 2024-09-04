@@ -294,7 +294,7 @@ impl SystemFixture {
     }
 
     fn create_resource_program(system: &System) -> ActorId {
-        let resource_program = Program::from_file(&system, RESOURCE_PROGRAM_WASM_PATH);
+        let resource_program = Program::from_file(system, RESOURCE_PROGRAM_WASM_PATH);
         resource_program.send_bytes(ADMIN_ID, resources::CTOR_FUNC_NAME.encode());
         resource_program.id()
     }
@@ -413,7 +413,7 @@ impl Fixture {
     }
 
     fn create_catalog_program(system: &System) -> ActorId {
-        let catalog_program = Program::from_file(&system, CATALOG_PROGRAM_WASM_PATH);
+        let catalog_program = Program::from_file(system, CATALOG_PROGRAM_WASM_PATH);
         catalog_program.send_bytes(ADMIN_ID, catalog::CTOR_FUNC_NAME.encode());
 
         let mut parts = BTreeMap::new();
@@ -436,7 +436,7 @@ impl Fixture {
     }
 
     fn create_resource_program(system: &System) -> ActorId {
-        let resource_program = Program::from_file(&system, RESOURCE_PROGRAM_WASM_PATH);
+        let resource_program = Program::from_file(system, RESOURCE_PROGRAM_WASM_PATH);
         resource_program.send_bytes(ADMIN_ID, resources::CTOR_FUNC_NAME.encode());
         resource_program.id()
     }

@@ -6,11 +6,14 @@ use crate::{
 };
 use core::future::Future;
 use futures::{stream, Stream, StreamExt};
-use gclient::metadata::runtime_types::{
-    gear_core::message::user::UserMessage as GenUserMessage,
-    pallet_gear_voucher::internal::VoucherId,
+use gclient::{
+    ext::{sp_core::ByteArray, sp_runtime::AccountId32},
+    metadata::runtime_types::{
+        gear_core::message::user::UserMessage as GenUserMessage,
+        pallet_gear_voucher::internal::VoucherId,
+    },
+    EventProcessor, GearApi,
 };
-use gclient::{ext::sp_core::ByteArray, EventProcessor, GearApi};
 use gear_core_errors::ReplyCode;
 
 #[derive(Debug, Default)]
@@ -40,13 +43,8 @@ impl GClientRemoting {
         Self { api }
     }
 
-    pub fn api(&self) -> &GearApi {
-        &self.api
-    }
-
-    pub async fn upload_code_by_path(&self, path: &str) -> Result<CodeId> {
-        let (code_id, ..) = self.api.upload_code_by_path(path).await?;
-        Ok(code_id)
+    pub fn account_id(&self) -> &AccountId32 {
+        self.api.account_id()
     }
 }
 
