@@ -7,7 +7,7 @@ use crate::{
 use core::future::Future;
 use futures::{stream, Stream, StreamExt};
 use gclient::{
-    ext::{sp_core::ByteArray, sp_runtime::AccountId32},
+    ext::sp_core::ByteArray,
     metadata::runtime_types::{
         gear_core::message::user::UserMessage as GenUserMessage,
         pallet_gear_voucher::internal::VoucherId,
@@ -41,10 +41,6 @@ impl GClientRemoting {
     pub fn with_suri(self, suri: impl AsRef<str>) -> Self {
         let api = self.api.with(suri).unwrap();
         Self { api }
-    }
-
-    pub fn account_id(&self) -> &AccountId32 {
-        self.api.account_id()
     }
 }
 

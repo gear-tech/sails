@@ -376,7 +376,7 @@ async fn references_guess_num() {
 }
 
 #[tokio::test]
-async fn counter_add_manual_mode_works() {
+async fn counter_add_works_via_manual_mode() {
     // Arrange
     const DEMO_WASM_PATH: &str = "../../../target/wasm32-unknown-unknown/debug/demo.opt.wasm";
     let system = System::new();
@@ -384,8 +384,8 @@ async fn counter_add_manual_mode_works() {
     system.mint_to(fixture::ADMIN_ID, 100_000_000_000_000);
     let demo_code_id = system.submit_code_file(DEMO_WASM_PATH);
 
-    let remoting =
-        GTestRemoting::new(system, fixture::ADMIN_ID.into()).with_run_mode(BlockRunMode::Manual);
+    let remoting = GTestRemoting::new(system, fixture::ADMIN_ID.into())
+        .with_block_run_mode(BlockRunMode::Manual);
 
     let demo_factory = demo_client::DemoFactory::new(remoting.clone());
 

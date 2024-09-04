@@ -71,7 +71,7 @@ impl GTestRemoting {
         }
     }
 
-    pub fn with_run_mode(self, block_run_mode: BlockRunMode) -> Self {
+    pub fn with_block_run_mode(self, block_run_mode: BlockRunMode) -> Self {
         Self {
             block_run_mode,
             ..self
