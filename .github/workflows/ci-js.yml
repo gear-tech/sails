@@ -56,11 +56,6 @@ jobs:
         run: |
           cargo build -p demo --release
 
-      - name: "Prepare: build demo client lib"
-        working-directory: js
-        run: |
-          node lib/app.js generate ../examples/demo/client/demo.idl -o ./test/demo
-
       - name: "Prepare: download Gear node"
         run: |
           wget -O ./gear https://github.com/gear-tech/gear/releases/download/build/gear
@@ -72,6 +67,12 @@ jobs:
 
       - name: "Prepare: sleep 3 min"
         run: sleep 180
+
+      - name: "Prepare: generate ts lib"
+        working-directory: js
+        run: |
+          node lib/app.js generate ../examples/demo/client/demo.idl -o ./test/demo
+          node test/modify-import.js
 
       - name: "Test: run"
         working-directory: js

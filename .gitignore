@@ -1,11 +1,15 @@
 .binpath
 .DS_Store
 .vscode
-.vscode
+*.log
+
+
+target/
+
+# js
+node_modules/
 js/lib/
 js/parser.wasm
 js/test/demo/
-
-node_modules/
-target/
-*.log
+js/.yarn/*
+!js/.yarn/releases
