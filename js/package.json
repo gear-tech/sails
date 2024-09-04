@@ -19,9 +19,7 @@
     "gear",
     "sails"
   ],
-  "bin": {
-    "sails-js": "./app.js"
-  },
+  "bin": "./app.js",
   "exports": {
     "./cjs/package.json": "./cjs/package.json",
     "./cjs/*": "./cjs/*.js",
@@ -62,5 +60,6 @@
   },
   "dependencies": {
     "commander": "12.1.0"
-  }
+  },
+  "packageManager": "yarn@4.4.1"
 }
