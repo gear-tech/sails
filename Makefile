@@ -13,7 +13,8 @@ build-parser:
 	@echo "Building idlparser"
 	@cargo build -p sails-idl-parser --target=wasm32-unknown-unknown --release
 	@ls -lah ./target/wasm32-unknown-unknown/release/sails_idl_parser.wasm
-	@cp ./target/wasm32-unknown-unknown/release/sails_idl_parser.wasm js/parser.wasm
+	@cp ./target/wasm32-unknown-unknown/release/sails_idl_parser.wasm js/sails/parser.wasm
+	@cp ./target/wasm32-unknown-unknown/release/sails_idl_parser.wasm js/parser/parser.wasm
 
 build-proxy:
 # Just a regular build using the `wasm32-unknown-unknown` target.
@@ -28,4 +29,4 @@ build-proxy-idl:
 
 build-js:
 	@echo "Building sails-js"
-	@cd js && yarn build
+	@cd js/sails && yarn build

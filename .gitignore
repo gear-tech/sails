@@ -3,13 +3,12 @@
 .vscode
 *.log
 
-
 target/
 
 # js
 node_modules/
-js/lib/
-js/parser.wasm
-js/test/demo/
-js/.yarn/*
-!js/.yarn/releases
+js/sails/lib/
+js/sails/parser.wasm
+js/sails/test/demo/
+js/sails/.yarn/*
+!js/sails/.yarn/releases

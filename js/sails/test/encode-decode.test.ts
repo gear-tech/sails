@@ -1,7 +1,7 @@
 import { readFileSync } from 'fs';
 import { getCtorNamePrefix, getFnNamePrefix, getServiceNamePrefix, Sails } from '../lib';
 
-const DEMO_IDL_PATH = '../examples/demo/client/demo.idl';
+const DEMO_IDL_PATH = '../../examples/demo/client/demo.idl';
 
 let sails: Sails;
 const demoIdl = readFileSync(DEMO_IDL_PATH, 'utf-8');
