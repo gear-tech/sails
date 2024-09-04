@@ -14,13 +14,12 @@ async fn activating_program_succeeds() {
     system.mint_to(ADMIN_ID, 100_000_000_000_000);
     let program_code_id = system.submit_code_file(WASM_PATH);
 
-    let remoting = GTestRemoting::new_from_system(system, ADMIN_ID.into(), BlockRunMode::Auto);
+    let remoting = GTestRemoting::new(system, ADMIN_ID.into());
 
-    let program_id = NoSvcsProgFactory::new(remoting.clone())
+    let result = NoSvcsProgFactory::new(remoting.clone())
         .default()
         .send_recv(program_code_id, "123")
-        .await
-        .unwrap();
+        .await;
 
-    assert!(remoting.get_program(program_id).is_some());
+    assert!(result.is_ok());
 }

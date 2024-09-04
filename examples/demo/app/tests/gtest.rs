@@ -1,5 +1,7 @@
-use demo_client::{counter::events::CounterEvents, dog::events::DogEvents, ping_pong, traits::*};
-use fixture::Fixture;
+use demo_client::{
+    counter::events::CounterEvents, demo_factory, dog::events::DogEvents, ping_pong, traits::*,
+};
+use fixture::{Fixture, ADMIN_ID, DEMO_WASM_PATH};
 use futures::stream::StreamExt;
 use gstd::errors::{ErrorReplyReason, SimpleExecutionError};
 use sails_rs::{
@@ -8,7 +10,7 @@ use sails_rs::{
     events::*,
     gtest::{
         calls::{BlockRunMode, GTestRemoting},
-        System,
+        Program, System,
     },
 };
 
@@ -18,7 +20,7 @@ mod fixture;
 async fn counter_add_works() {
     // Arrange
 
-    let fixture = Fixture::new(fixture::ADMIN_ID);
+    let fixture = Fixture::new();
 
     let demo_factory = fixture.demo_factory();
 
@@ -57,7 +59,7 @@ async fn counter_add_works() {
 async fn counter_sub_works() {
     // Arrange
 
-    let fixture = Fixture::new(fixture::ADMIN_ID);
+    let fixture = Fixture::new();
 
     let demo_factory = fixture.demo_factory();
 
@@ -94,7 +96,7 @@ async fn counter_sub_works() {
 #[tokio::test]
 async fn counter_query_works() {
     // Arrange
-    let fixture = Fixture::new(fixture::ADMIN_ID);
+    let fixture = Fixture::new();
 
     let demo_factory = fixture.demo_factory();
 
@@ -120,7 +122,7 @@ async fn counter_query_works() {
 #[tokio::test]
 async fn counter_query_not_enough_gas() {
     // Arrange
-    let fixture = Fixture::new(fixture::ADMIN_ID);
+    let fixture = Fixture::new();
 
     let demo_factory = fixture.demo_factory();
 
@@ -152,28 +154,24 @@ async fn counter_query_not_enough_gas() {
     ));
 }
 
+/// Low level program test using `gtest::System` and call encoding/decoding with `io` module
 #[tokio::test]
-async fn ping_pong_works() {
-    let fixture = Fixture::new(fixture::ADMIN_ID);
+async fn ping_pong_low_level_works() {
+    let system = System::new();
+    system.init_logger();
+    system.mint_to(ADMIN_ID, 100_000_000_000_000);
 
-    let demo_factory = fixture.demo_factory();
+    let demo_program = Program::from_file(&system, DEMO_WASM_PATH);
 
-    // Use generated client code for activating Demo program
-    // using the `default` constructor and the `send_recv` method
-    let demo_program_id = demo_factory
-        .default()
-        .send_recv(fixture.demo_code_id(), "123")
-        .await
-        .unwrap();
-
-    let demo_program = fixture.demo_program(demo_program_id);
+    // Use generated `io` module to create a program
+    demo_program.send_bytes(ADMIN_ID, demo_factory::io::Default::encode_call());
 
     // Use generated `io` module for encoding/decoding calls and replies
     // and send/receive bytes using `gtest` native means
     let ping_call_payload = ping_pong::io::Ping::encode_call("ping".into());
 
-    let message_id = demo_program.send_bytes(fixture.admin_id(), ping_call_payload);
-    let run_result = fixture.run_next_block();
+    let message_id = demo_program.send_bytes(ADMIN_ID, ping_call_payload);
+    let run_result = system.run_next_block();
 
     let reply_log_record = run_result
         .log()
@@ -192,7 +190,7 @@ async fn ping_pong_works() {
 async fn dog_barks() {
     // Arrange
 
-    let fixture = Fixture::new(fixture::ADMIN_ID);
+    let fixture = Fixture::new();
 
     let demo_factory = fixture.demo_factory();
 
@@ -226,7 +224,7 @@ async fn dog_barks() {
 async fn dog_walks() {
     // Arrange
 
-    let fixture = Fixture::new(fixture::ADMIN_ID);
+    let fixture = Fixture::new();
 
     let demo_factory = fixture.demo_factory();
 
@@ -268,7 +266,7 @@ async fn dog_walks() {
 
 #[tokio::test]
 async fn dog_weights() {
-    let fixture = Fixture::new(fixture::ADMIN_ID);
+    let fixture = Fixture::new();
 
     let demo_factory = fixture.demo_factory();
 
@@ -287,7 +285,7 @@ async fn dog_weights() {
 
 #[tokio::test]
 async fn references_add() {
-    let fixture = Fixture::new(fixture::ADMIN_ID);
+    let fixture = Fixture::new();
 
     let demo_factory = fixture.demo_factory();
 
@@ -306,7 +304,7 @@ async fn references_add() {
 
 #[tokio::test]
 async fn references_bytes() {
-    let fixture = Fixture::new(fixture::ADMIN_ID);
+    let fixture = Fixture::new();
 
     let demo_factory = fixture.demo_factory();
 
@@ -340,7 +338,7 @@ async fn references_bytes() {
 
 #[tokio::test]
 async fn references_guess_num() {
-    let fixture = Fixture::new(fixture::ADMIN_ID);
+    let fixture = Fixture::new();
 
     let demo_factory = fixture.demo_factory();
 
@@ -387,7 +385,7 @@ async fn counter_add_manual_mode_works() {
     let demo_code_id = system.submit_code_file(DEMO_WASM_PATH);
 
     let remoting =
-        GTestRemoting::new_from_system(system, fixture::ADMIN_ID.into(), BlockRunMode::Manual);
+        GTestRemoting::new(system, fixture::ADMIN_ID.into()).with_run_mode(BlockRunMode::Manual);
 
     let demo_factory = demo_client::DemoFactory::new(remoting.clone());
 

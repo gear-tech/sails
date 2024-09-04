@@ -15,7 +15,6 @@ use futures::{
     },
     FutureExt, Stream, TryFutureExt,
 };
-use gear_core::ids::ProgramId;
 use gear_core_errors::{ReplyCode, SuccessReplyReason};
 
 type EventSender = UnboundedSender<(ActorId, Vec<u8>)>;
@@ -52,24 +51,22 @@ pub enum BlockRunMode {
 #[derive(Clone)]
 pub struct GTestRemoting {
     system: Rc<System>,
-    event_senders: Rc<RefCell<Vec<EventSender>>>,
     actor_id: ActorId,
+    event_senders: Rc<RefCell<Vec<EventSender>>>,
     block_run_mode: BlockRunMode,
     block_reply_senders: Rc<RefCell<HashMap<MessageId, ReplySender>>>,
 }
 
 impl GTestRemoting {
-    pub fn new_from_system(
-        system: System,
-        actor_id: ActorId,
-        block_run_mode: BlockRunMode,
-    ) -> Self {
+    /// Create new `GTestRemoting` instance from `gtest::System` with specified `actor_id`
+    /// and `Auto` block run mode
+    pub fn new(system: System, actor_id: ActorId) -> Self {
         let system = Rc::new(system);
         Self {
             system,
-            event_senders: Default::default(),
             actor_id,
-            block_run_mode,
+            event_senders: Default::default(),
+            block_run_mode: BlockRunMode::Auto,
             block_reply_senders: Default::default(),
         }
     }
@@ -89,12 +86,8 @@ impl GTestRemoting {
         self.actor_id
     }
 
-    pub fn get_program(&self, program_id: ProgramId) -> Option<Program> {
-        self.system.get_program(program_id)
-    }
-
-    pub fn run_next_block(&self) -> BlockRunResult {
-        self.run_next_block_and_extract()
+    pub fn run_next_block(&self) {
+        _ = self.run_next_block_and_extract();
     }
 }
 
@@ -104,6 +97,7 @@ impl GTestRemoting {
         let mut reply_senders = self.block_reply_senders.borrow_mut();
         // remove closed event senders
         event_senders.retain(|c| !c.is_closed());
+        // iterate over log
         for entry in run_result.log().iter() {
             if entry.destination() == ActorId::zero() {
                 for sender in event_senders.iter() {
