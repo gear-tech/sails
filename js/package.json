@@ -19,7 +19,9 @@
     "gear",
     "sails"
   ],
-  "bin": "./app.js",
+  "bin": {
+    "sails-js": "./app.js"
+  },
   "exports": {
     "./cjs/package.json": "./cjs/package.json",
     "./cjs/*": "./cjs/*.js",
