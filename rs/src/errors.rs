@@ -38,7 +38,7 @@ pub enum RtlError {
     #[error("reply code is missing")]
     ReplyCodeIsMissing,
     #[error("reply error: {0}")]
-    ReplyHasError(ErrorReplyReason),
+    ReplyHasError(ErrorReplyReason, String),
     #[error("program code is not found")]
     ProgramCodeIsNotFound,
     #[error("program is not found")]
