@@ -217,16 +217,28 @@ impl ByPathTypeName {
             },
         )?;
 
-        let possible_names =
-            Self::possible_names(type_info).fold(Vec::new(), |mut possible_names, name| {
+        let mut possible_names = Self::possible_names_by_path(type_info).fold(
+            Vec::with_capacity(type_info.path.segments.len() + 1),
+            |mut possible_names, name| {
                 possible_names.push((name.clone(), type_params.0.clone()));
                 let name_ref_count = by_path_type_names
-                    .entry((name, type_params.0.clone()))
+                    .entry((name.clone(), type_params.0.clone()))
                     .or_default();
                 *name_ref_count += 1;
                 possible_names
-            });
-        if possible_names.is_empty() {
+            },
+        );
+        if let Some(first_name) = possible_names.first() {
+            // add numbered type name like `TypeName1`, `TypeName2` as last name
+            // to solve name conflict with const generic parameters `<const N: size>`
+            let name_ref_count = by_path_type_names.get(first_name).unwrap_or(&0);
+            let name = format!("{}{}", first_name.0, name_ref_count);
+            possible_names.push((name.clone(), first_name.1.clone()));
+            let name_ref_count = by_path_type_names
+                .entry((name.clone(), type_params.0.clone()))
+                .or_default();
+            *name_ref_count += 1;
+        } else {
             return Err(Error::TypeIsUnsupported(format!("{type_info:?}")));
         }
 
@@ -236,7 +248,7 @@ impl ByPathTypeName {
         })
     }
 
-    fn possible_names(type_info: &Type<PortableForm>) -> impl Iterator<Item = String> + '_ {
+    fn possible_names_by_path(type_info: &Type<PortableForm>) -> impl Iterator<Item = String> + '_ {
         let mut name = String::default();
         type_info.path.segments.iter().rev().map(move |segment| {
             name = segment.to_case(Case::Pascal) + &name;
@@ -711,6 +723,13 @@ mod tests {
 
     #[allow(dead_code)]
     #[derive(TypeInfo)]
+    struct GenericConstStruct<const N: usize, const M: usize, T> {
+        field: [T; N],
+        field2: [T; M],
+    }
+
+    #[allow(dead_code)]
+    #[derive(TypeInfo)]
     enum GenericEnum<T1, T2> {
         Variant1(T1),
         Variant2(T2),
@@ -1016,5 +1035,42 @@ mod tests {
     #[test]
     fn nonzero_u256_type_name_resolution_works() {
         type_name_resolution_works!(NonZeroU256, nat256);
+    }
+
+    #[test]
+    fn generic_const_struct_type_name_resolution_works() {
+        let mut registry = Registry::new();
+        let n8_id = registry
+            .register_type(&MetaType::new::<GenericConstStruct<8, 8, u8>>())
+            .id;
+        let n8_id_2 = registry
+            .register_type(&MetaType::new::<GenericConstStruct<8, 8, u8>>())
+            .id;
+        let n32_id = registry
+            .register_type(&MetaType::new::<GenericConstStruct<32, 8, u8>>())
+            .id;
+        let n256_id = registry
+            .register_type(&MetaType::new::<GenericConstStruct<256, 832, u8>>())
+            .id;
+        let n32u256_id = registry
+            .register_type(&MetaType::new::<GenericConstStruct<32, 8, U256>>())
+            .id;
+        let portable_registry = PortableRegistry::from(registry);
+
+        let type_names = resolve(portable_registry.types.iter()).unwrap();
+
+        assert_eq!(n8_id, n8_id_2);
+        assert_ne!(n8_id, n32_id);
+        assert_ne!(n8_id, n256_id);
+        assert_eq!(type_names.get(&n8_id).unwrap(), "GenericConstStruct1ForU8");
+        assert_eq!(type_names.get(&n32_id).unwrap(), "GenericConstStruct2ForU8");
+        assert_eq!(
+            type_names.get(&n256_id).unwrap(),
+            "GenericConstStruct3ForU8"
+        );
+        assert_eq!(
+            type_names.get(&n32u256_id).unwrap(),
+            "GenericConstStructForU256"
+        );
     }
 }

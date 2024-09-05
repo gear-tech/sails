@@ -17,6 +17,11 @@ mod types {
     }
 
     #[derive(TypeInfo)]
+    pub struct GenericConstStruct<const N: usize> {
+        field: [u8; N],
+    }
+
+    #[derive(TypeInfo)]
     pub enum GenericEnum<T1, T2> {
         Variant1(T1),
         Variant2(T2),
@@ -62,6 +67,8 @@ mod meta_params {
         p4: TupleStruct,
         p5: GenericStruct<H256>,
         p6: GenericStruct<String>,
+        p7: GenericConstStruct<8>,
+        p8: GenericConstStruct<32>,
     }
 
     #[derive(TypeInfo)]
@@ -259,7 +266,7 @@ fn program_idl_works_with_empty_ctors() {
     assert!(generated_idl_program.ctor().is_none());
     assert_eq!(generated_idl_program.services().len(), 1);
     assert_eq!(generated_idl_program.services()[0].funcs().len(), 4);
-    assert_eq!(generated_idl_program.types().len(), 8);
+    assert_eq!(generated_idl_program.types().len(), 10);
 }
 
 #[test]
@@ -274,7 +281,7 @@ fn program_idl_works_with_non_empty_ctors() {
     assert_eq!(generated_idl_program.ctor().unwrap().funcs().len(), 2);
     assert_eq!(generated_idl_program.services().len(), 1);
     assert_eq!(generated_idl_program.services()[0].funcs().len(), 4);
-    assert_eq!(generated_idl_program.types().len(), 8);
+    assert_eq!(generated_idl_program.types().len(), 10);
 }
 
 #[test]
@@ -292,7 +299,7 @@ fn program_idl_works_with_multiple_services() {
     assert_eq!(generated_idl_program.services()[0].funcs().len(), 4);
     assert_eq!(generated_idl_program.services()[1].name(), "SomeService");
     assert_eq!(generated_idl_program.services()[1].funcs().len(), 4);
-    assert_eq!(generated_idl_program.types().len(), 8);
+    assert_eq!(generated_idl_program.types().len(), 10);
 }
 
 #[test]
@@ -307,7 +314,7 @@ fn service_idl_works_with_basics() {
     assert!(generated_idl_program.ctor().is_none());
     assert_eq!(generated_idl_program.services().len(), 1);
     assert_eq!(generated_idl_program.services()[0].funcs().len(), 4);
-    assert_eq!(generated_idl_program.types().len(), 8);
+    assert_eq!(generated_idl_program.types().len(), 10);
 }
 
 #[test]
@@ -330,7 +337,7 @@ fn service_idl_works_with_base_services() {
     assert!(generated_idl_program.ctor().is_none());
     assert_eq!(generated_idl_program.services().len(), 1);
     assert_eq!(generated_idl_program.services()[0].funcs().len(), 6);
-    assert_eq!(generated_idl_program.types().len(), 8);
+    assert_eq!(generated_idl_program.types().len(), 10);
 }
 
 #[test]
