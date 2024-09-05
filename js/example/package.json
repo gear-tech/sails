@@ -9,7 +9,7 @@
     "@gear-js/api": "0.37.2",
     "@polkadot/api": "10.12.6",
     "@polkadot/types": "10.12.6",
-    "sails-js": "0.1.10",
+    "sails-js": "workspace:*",
     "ts-node": "^10.9.2",
     "typescript": "^5.4.5"
   },

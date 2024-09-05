@@ -3226,9 +3226,9 @@ __metadata:
   linkType: hard
 
 "caniuse-lite@npm:^1.0.30001646":
-  version: 1.0.30001655
-  resolution: "caniuse-lite@npm:1.0.30001655"
-  checksum: 10c0/fff0c0c3ffcba89828bfa6b99f118e82c064f46f15bb8655b9f2a352a3f552ccac0b87a9fe9532f8c5a29e284aae5579791e196480ec717d11ef1d1a1c2e3ff9
+  version: 1.0.30001657
+  resolution: "caniuse-lite@npm:1.0.30001657"
+  checksum: 10c0/bf40189e41d0ae9bad59c8b4054ecda3a8603754ad85fc04999679a92e2bca506350573342c9397c14a8b877a50210a37e744d8fc06adf38d1af33686d41db69
   languageName: node
   linkType: hard
 
@@ -4020,7 +4020,7 @@ __metadata:
     "@gear-js/api": "npm:0.37.2"
     "@polkadot/api": "npm:10.12.6"
     "@polkadot/types": "npm:10.12.6"
-    sails-js: "npm:0.1.10"
+    sails-js: "workspace:*"
     ts-node: "npm:^10.9.2"
     typescript: "npm:^5.4.5"
   languageName: unknown
@@ -7617,22 +7617,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"sails-js@npm:0.1.10":
-  version: 0.1.10
-  resolution: "sails-js@npm:0.1.10"
-  dependencies:
-    commander: "npm:12.1.0"
-  peerDependencies:
-    "@gear-js/api": 0.38.2
-    "@polkadot/api": 12.0.1
-    "@polkadot/types": 12.0.1
-  bin:
-    sails-js: app.js
-  checksum: 10c0/8c2798145c33f9aa0dab44ebae664ebfb88ae19048f09661e1977d33eb2695a3e828c5f1898c080aadc3cf6d3fb409aa8c32b03c34117adc5309181f4666bbdc
-  languageName: node
-  linkType: hard
-
-"sails-js@workspace:js":
+"sails-js@workspace:*, sails-js@workspace:js":
   version: 0.0.0-use.local
   resolution: "sails-js@workspace:js"
   dependencies:
