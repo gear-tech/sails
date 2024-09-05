@@ -1,0 +1,40 @@
+{
+  "name": "sails",
+  "version": "1.0.0",
+  "private": true,
+  "repository": "git@github.com:gear-tech/sails.git",
+  "author": "Gear Technologies",
+  "license": "GPL-3.0",
+  "packageManager": "yarn@4.4.1",
+  "workspaces": [
+    "js",
+    "js/example",
+    "js/parser",
+    "js/types"
+  ],
+  "devDependencies": {
+    "@rollup/plugin-commonjs": "^26.0.1",
+    "@rollup/plugin-node-resolve": "^15.2.3",
+    "@rollup/plugin-typescript": "^11.1.6",
+    "@types/jest": "^29.5.12",
+    "@types/node": "^22.5.3",
+    "babel-jest": "^29.7.0",
+    "jest": "^29.7.0",
+    "lerna": "^8.1.8",
+    "rollup": "^4.21.2",
+    "rollup-plugin-peer-deps-external": "^2.2.4",
+    "rollup-plugin-typescript2": "^0.36.0",
+    "ts-jest": "^29.2.5",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.5.4"
+  },
+  "scripts": {
+    "build:parser": "lerna run build --scope=sails-js-parser",
+    "build:types": "lerna run build --scope=sails-js-types",
+    "build:sails": "lerna run build --scope=sails-js",
+    "build": "lerna run build",
+    "version": "lerna version --no-private",
+    "test": "lerna run test --scope=sails-js",
+    "publish": "lerna publish from-package --no-private"
+  }
+}

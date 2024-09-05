@@ -1,7 +1,23 @@
+import {
+  ISailsEnumDef,
+  ISailsEnumVariant,
+  ISailsFixedSizeArrayDef,
+  ISailsMapDef,
+  ISailsOptionalDef,
+  ISailsPrimitiveDef,
+  ISailsResultDef,
+  ISailsStructDef,
+  ISailsStructField,
+  ISailsType,
+  ISailsTypeDef,
+  ISailsUserDefinedDef,
+  ISailsVecDef,
+  IWithDefEntity,
+} from 'sails-js-types';
 import { getName, getText } from './util.js';
 import { Base } from './visitor.js';
 
-export class WithDef extends Base {
+export class WithDef extends Base implements IWithDefEntity {
   private _def: TypeDef;
 
   setDef(def: TypeDef): void {
@@ -15,7 +31,7 @@ export class WithDef extends Base {
   }
 }
 
-export class Type extends WithDef {
+export class Type extends WithDef implements ISailsType {
   public readonly name: string;
 
   constructor(ptr: number, memory: WebAssembly.Memory) {
@@ -51,7 +67,7 @@ type DefVariants =
   | MapDef
   | FixedSizeArrayDef;
 
-export class TypeDef {
+export class TypeDef implements ISailsTypeDef {
   private _def: DefVariants;
   private _kind: DefKind;
 
@@ -180,7 +196,7 @@ export enum EPrimitiveType {
   NonZeroU256,
 }
 
-export class PrimitiveDef {
+export class PrimitiveDef implements ISailsPrimitiveDef {
   constructor(private value: number) {}
 
   get isNull(): boolean {
@@ -288,11 +304,11 @@ export class PrimitiveDef {
   }
 }
 
-export class OptionalDef extends WithDef {}
+export class OptionalDef extends WithDef implements ISailsOptionalDef {}
 
-export class VecDef extends WithDef {}
+export class VecDef extends WithDef implements ISailsVecDef {}
 
-export class ResultDef {
+export class ResultDef implements ISailsResultDef {
   public readonly ok: WithDef;
   public readonly err: WithDef;
 
@@ -302,7 +318,7 @@ export class ResultDef {
   }
 }
 
-export class MapDef {
+export class MapDef implements ISailsMapDef {
   public readonly key: WithDef;
   public readonly value: WithDef;
 
@@ -312,7 +328,7 @@ export class MapDef {
   }
 }
 
-export class StructDef extends Base {
+export class StructDef extends Base implements ISailsStructDef {
   private _fields: Map<number, StructField>;
 
   constructor(ptr: number, memory: WebAssembly.Memory) {
@@ -336,7 +352,7 @@ export class StructDef extends Base {
   }
 }
 
-export class EnumDef extends Base {
+export class EnumDef extends Base implements ISailsEnumDef {
   private _variants: Map<number, EnumVariant>;
 
   constructor(ptr: number, memory: WebAssembly.Memory) {
@@ -360,7 +376,7 @@ export class EnumDef extends Base {
   }
 }
 
-export class StructField extends WithDef {
+export class StructField extends WithDef implements ISailsStructField {
   public readonly name: string;
 
   constructor(ptr: number, memory: WebAssembly.Memory) {
@@ -373,7 +389,7 @@ export class StructField extends WithDef {
   }
 }
 
-export class EnumVariant extends WithDef {
+export class EnumVariant extends WithDef implements ISailsEnumVariant {
   public readonly name: string;
 
   constructor(ptr: number, memory: WebAssembly.Memory) {
@@ -386,7 +402,7 @@ export class EnumVariant extends WithDef {
   }
 }
 
-export class FixedSizeArrayDef extends WithDef {
+export class FixedSizeArrayDef extends WithDef implements ISailsFixedSizeArrayDef {
   public readonly len: number;
 
   constructor(ptr: number, len: number, memory: WebAssembly.Memory) {
@@ -396,7 +412,7 @@ export class FixedSizeArrayDef extends WithDef {
   }
 }
 
-export class UserDefinedDef {
+export class UserDefinedDef implements ISailsUserDefinedDef {
   public readonly name: string;
 
   constructor(ptr: number, len: number, memory: WebAssembly.Memory) {

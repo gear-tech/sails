@@ -17,6 +17,7 @@ import {
 } from './types.js';
 import { Ctor, CtorFunc, Program } from './program.js';
 import { FuncParam, Service, ServiceEvent, ServiceFunc } from './service.js';
+import { ISailsIdlParser } from 'sails-js-types';
 
 const WASM_PAGE_SIZE = 0x10000;
 
@@ -40,7 +41,7 @@ interface ParserInstance extends WebAssembly.Instance {
   };
 }
 
-export class WasmParser {
+export class SailsIdlParser implements ISailsIdlParser {
   private _memory: WebAssembly.Memory;
   private _instance: ParserInstance;
   private _exports: ParserInstance['exports'];
@@ -80,7 +81,7 @@ export class WasmParser {
     return new Uint8Array(bytes).buffer;
   }
 
-  async init() {
+  async init(): Promise<void> {
     const wasmBuf = await this._decompressWasm();
 
     const $ = this;
@@ -223,13 +224,12 @@ export class WasmParser {
 
     $._instance = source.instance as ParserInstance;
     $._exports = $._instance.exports;
-
-    return $;
   }
 
-  static async new(): Promise<WasmParser> {
-    const parser = new WasmParser();
-    return parser.init();
+  static async new(): Promise<SailsIdlParser> {
+    const parser = new SailsIdlParser();
+    await parser.init();
+    return parser;
   }
 
   private fillMemory(idl: string) {

@@ -7,8 +7,16 @@ target/
 
 # js
 node_modules/
-js/sails/lib/
-js/sails/parser.wasm
-js/sails/test/demo/
-js/sails/.yarn/*
-!js/sails/.yarn/releases
+js/lib/
+js/types/lib
+js/parser/lib
+js/parser/parser.wasm
+js/test/demo/
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/sdks
+!.yarn/versions
+.npmrc
