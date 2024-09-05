@@ -1,6 +1,6 @@
 import { SailsIdlParser } from 'sails-js-parser';
 import { hexToU8a } from '@polkadot/util';
-import { Sails } from '../lib';
+import { Sails } from '..';
 
 let sails: Sails;
 

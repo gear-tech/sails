@@ -1,7 +1,7 @@
 {
   "$schema": "node_modules/lerna/schemas/lerna-schema.json",
   "version": "0.0.0",
-  "packages": ["js", "js/example", "js/parser", "js/types"],
+  "packages": ["js", "js/cli", "js/parser", "js/types", "js/util"],
   "command": {
     "publish": {
       "registry": "https://registry.npmjs.org/",

@@ -3,10 +3,9 @@ import { TypeRegistry } from '@polkadot/types/create';
 import { u8aToHex } from '@polkadot/util';
 import { ISailsIdlParser, ISailsProgram, ISailsService, ISailsTypeDef } from 'sails-js-types';
 
-// import { Program, Service, TypeDef, WasmParser } from './parser/index.js';
-import { getFnNamePrefix, getServiceNamePrefix } from './utils/prefix.js';
+import { getFnNamePrefix, getServiceNamePrefix } from './prefix.js';
 import { TransactionBuilder } from './transaction-builder.js';
-import { getScaleCodecDef } from './utils/types.js';
+import { getScaleCodecDef } from 'sails-js-util';
 import { ZERO_ADDRESS } from './consts.js';
 
 interface SailsService {

@@ -1,5 +1,5 @@
 import { readFileSync } from 'fs';
-import { getCtorNamePrefix, getFnNamePrefix, getServiceNamePrefix, Sails } from '../lib';
+import { getCtorNamePrefix, getFnNamePrefix, getServiceNamePrefix, Sails } from '..';
 import { SailsIdlParser } from 'sails-js-parser';
 
 const DEMO_IDL_PATH = '../examples/demo/client/demo.idl';

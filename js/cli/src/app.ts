@@ -1,11 +1,11 @@
 #!/usr/bin/env node
 
-import { Command } from 'commander';
 import { readFileSync, mkdirSync, existsSync } from 'fs';
 import { SailsIdlParser } from 'sails-js-parser';
+import { Command } from 'commander';
+import { Sails } from 'sails-js';
 
 import { generate } from './generate/index.js';
-import { Sails } from './sails.js';
 
 const program = new Command();
 

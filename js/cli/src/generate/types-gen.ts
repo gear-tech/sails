@@ -1,6 +1,6 @@
 import { ISailsEnumDef, ISailsEnumVariant, ISailsProgram, ISailsTypeDef } from 'sails-js-types';
+import { toLowerCaseFirst } from 'sails-js-util';
 
-import { toLowerCaseFirst } from '../utils/index.js';
 import { Output } from './output.js';
 import { BaseGenerator } from './base.js';
 

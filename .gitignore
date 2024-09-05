@@ -7,9 +7,8 @@ target/
 
 # js
 node_modules/
-js/lib/
-js/types/lib
-js/parser/lib
+js/**/lib/
+js/cli/build/
 js/parser/parser.wasm
 js/test/demo/
 .pnp.*

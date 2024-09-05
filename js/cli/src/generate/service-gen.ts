@@ -1,7 +1,8 @@
-import { getPayloadMethod, getScaleCodecDef, PayloadMethod, toLowerCaseFirst } from '../utils/index.js';
+import { getPayloadMethod, getScaleCodecDef, PayloadMethod, toLowerCaseFirst } from 'sails-js-util';
+import { ISailsFuncParam, ISailsProgram, ISailsService } from 'sails-js-types';
+
 import { Output } from './output.js';
 import { BaseGenerator } from './base.js';
-import { ISailsFuncParam, ISailsProgram, ISailsService } from 'sails-js-types';
 
 const HEX_STRING_TYPE = '`0x${string}`';
 

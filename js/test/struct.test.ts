@@ -1,5 +1,5 @@
 import { SailsIdlParser } from 'sails-js-parser';
-import { Sails } from '../lib';
+import { Sails } from '..';
 
 let sails: Sails;
 

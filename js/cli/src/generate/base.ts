@@ -1,6 +1,6 @@
+import { getJsTypeDef, PayloadMethod } from 'sails-js-util';
 import { ISailsTypeDef } from 'sails-js-types';
 import { Output } from './output.js';
-import { getJsTypeDef, PayloadMethod } from '../utils/index.js';
 
 export class BaseGenerator {
   constructor(protected _out: Output) {}

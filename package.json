@@ -8,9 +8,10 @@
   "packageManager": "yarn@4.4.1",
   "workspaces": [
     "js",
-    "js/example",
+    "js/cli",
     "js/parser",
-    "js/types"
+    "js/types",
+    "js/util"
   ],
   "devDependencies": {
     "@rollup/plugin-commonjs": "^26.0.1",
@@ -29,10 +30,12 @@
     "typescript": "^5.5.4"
   },
   "scripts": {
+    "build:sails": "lerna run build --scope=sails-js",
+    "build:cli": "lerna run build --scope=sails-js-cli",
     "build:parser": "lerna run build --scope=sails-js-parser",
     "build:types": "lerna run build --scope=sails-js-types",
-    "build:sails": "lerna run build --scope=sails-js",
-    "build": "lerna run build",
+    "build:util": "lerna run build --scope=sails-js-util",
+    "build": "lerna run build --no-private",
     "version": "lerna version --no-private",
     "test": "lerna run test --scope=sails-js",
     "publish": "lerna publish from-package --no-private"

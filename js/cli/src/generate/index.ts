@@ -1,10 +1,10 @@
 import { fileURLToPath } from 'url';
-import path from 'path';
+import { Sails } from 'sails-js';
+import * as path from 'path';
 
 import { ServiceGenerator } from './service-gen.js';
 import { TypesGenerator } from './types-gen.js';
 import { Output } from './output.js';
-import { Sails } from '../sails.js';
 
 const __filename = fileURLToPath(import.meta.url);
 

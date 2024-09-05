@@ -20,21 +20,15 @@ export default [
         dir: 'lib',
         format: 'es',
         preserveModules: true,
-        preserveModulesRoot: 'src',
       },
     ],
     plugins: [
       cleanOldBuild(),
       typescript({
-        tsconfig: 'tsconfig.build.json',
+        tsconfig: './tsconfig.json',
       }),
       nodeResolve({
         preferBuiltins: true,
-        resolveOnly: (module) =>
-          !module.includes('polkadot') &&
-          !module.includes('gear-js/api') &&
-          !module.includes('commander') &&
-          !module.includes('sails-js-parser'),
       }),
     ],
   },
@@ -46,19 +40,20 @@ export default [
         format: 'cjs',
         entryFileNames: '[name].cjs',
         preserveModules: true,
-        preserveModulesRoot: 'src',
         exports: 'named',
-        strict: false,
       },
     ],
     plugins: [
       typescript({
-        tsconfig: 'tsconfig.cjs.json',
+        tsconfig: './tsconfig.json',
+        tsconfigOverride: {
+          compilerOptions: {
+            declaration: false,
+          },
+        },
       }),
       nodeResolve({
         preferBuiltins: true,
-        resolveOnly: (module) =>
-          !module.includes('polkadot') && !module.includes('gear-js/api') && !module.includes('commander'),
       }),
       commonjs(),
     ],

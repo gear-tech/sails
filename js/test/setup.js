@@ -6,14 +6,14 @@ export default () => {
   execSync('cargo build -p demo --release');
 
   // Generate demo ts client
-  execSync('node lib/app.js generate ../examples/demo/client/demo.idl -o ./test/demo');
+  execSync('node cli/build/app.js generate ../examples/demo/client/demo.idl -o ./test/demo');
 
   // Modify client imports
 
   const filesToModify = ['test/demo/lib.ts'];
 
   for (const path of filesToModify) {
-    const data = fs.readFileSync(path, 'utf8').replace(`from 'sails-js'`, `from '../../lib'`);
+    const data = fs.readFileSync(path, 'utf8').replace(`from 'sails-js'`, `from '../..'`);
     fs.writeFileSync(path, data, 'utf8');
   }
 };
