@@ -1,0 +1,23 @@
+{
+  "tsconfig": {
+    "compilerOptions": {
+      "target": "ESNext",
+      "module": "ESNext",
+      "moduleResolution": "node",
+      "esModuleInterop": true,
+      "strict": false,
+      "noImplicitAny": false,
+      "skipLibCheck": true,
+      "outDir": "lib"
+    },
+    "include": [
+      "src"
+    ]
+  },
+  "versions": {
+    "gear-js": "0.38.2",
+    "polkadot-api": "12.0.1",
+    "sails-js": "0.1.10",
+    "typescript": "^5.5.4"
+  }
+}

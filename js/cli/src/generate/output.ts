@@ -65,7 +65,7 @@ export class Output {
     return this;
   }
 
-  save(path: string) {
+  finalize() {
     const result = [];
     const imports = Array.from(this._imports).map(
       ([module_, imports_]) => `import { ${Array.from(imports_).join(', ')} } from '${module_}';`,
@@ -76,6 +76,6 @@ export class Output {
 
     if (this._rows.length > 0) result.push(this._rows.join('\n'));
 
-    writeFileSync(path, result.join('\n\n'));
+    return result.join('\n\n');
   }
 }

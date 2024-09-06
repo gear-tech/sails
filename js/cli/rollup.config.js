@@ -1,8 +1,8 @@
-import { rmSync } from 'fs';
-import path from 'path';
+import { readFileSync, rmSync, writeFileSync } from 'fs';
 import commonjs from '@rollup/plugin-commonjs';
 import nodeResolve from '@rollup/plugin-node-resolve';
 import typescript from 'rollup-plugin-typescript2';
+import json from '@rollup/plugin-json';
 
 function cleanOldBuild() {
   return {
@@ -13,13 +13,23 @@ function cleanOldBuild() {
   };
 }
 
-const entries = ['x-bigint', 'x-fetch', 'x-global', 'x-randomvalues', 'x-textdecoder', 'x-textencoder', 'x-ws'].reduce(
-  (all, p) => ({
-    ...all,
-    [`@polkadot/${p}`]: path.resolve(process.cwd(), `node_modules/@polkadot/${p}`),
-  }),
-  {},
-);
+function updateConfigVersions() {
+  return {
+    name: 'update-config-versions',
+    buildStart() {
+      const sailsJs = JSON.parse(readFileSync('../package.json', 'utf-8'));
+      const rootPkgJson = JSON.parse(readFileSync('../../package.json', 'utf-8'));
+      const config = JSON.parse(readFileSync('src/config.json', 'utf-8'));
+
+      config.versions['gear-js'] = sailsJs.peerDependencies['@gear-js/api'];
+      config.versions['polkadot-api'] = sailsJs.peerDependencies['@polkadot/api'];
+      config.versions['sails-js'] = sailsJs.version;
+      config.versions['typescript'] = rootPkgJson.devDependencies.typescript;
+
+      writeFileSync('src/config.json', JSON.stringify(config, null, 2));
+    },
+  };
+}
 
 export default [
   {
@@ -27,8 +37,10 @@ export default [
     output: [{ file: 'build/app.js', format: 'module', preserveModules: false }],
     plugins: [
       cleanOldBuild(),
-      typescript({ tsconfig: 'tsconfig.cjs.json' }),
+      updateConfigVersions(),
+      typescript({ tsconfig: 'tsconfig.json' }),
       commonjs(),
+      json(),
       nodeResolve({ preferBuiltins: true, browser: true }),
     ],
   },

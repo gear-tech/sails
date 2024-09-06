@@ -6,7 +6,7 @@ export default () => {
   execSync('cargo build -p demo --release');
 
   // Generate demo ts client
-  execSync('node cli/build/app.js generate ../examples/demo/client/demo.idl -o ./test/demo');
+  execSync('node cli/build/app.js generate ../examples/demo/client/demo.idl -o ./test/demo --no-project');
 
   // Modify client imports
 
