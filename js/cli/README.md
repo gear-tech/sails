@@ -15,11 +15,24 @@ npx sails-js-cli command ...args
 ```
 
 # Generate typescript client library using the IDL file
+To generate a TypeScript client library run the following command:
+
 ```bash
 sails-js generate path/to/sails.idl -o path/to/out/dir
 ```
 
-This command generates a typescript `lib.ts` file with all functions available in the IDL file.
+In case you want to use the package w/o installing it globally, you can use `npx`:
+
+```bash
+npx sails-js-cli generate path/to/sails.idl -o path/to/out/dir
+```
+
+If you want to generate only `lib.ts` file without the whole project structure, you can use the `--no-project` flag.
+
+```bash
+sails-js generate path/to/sails.idl -o path/to/out/dir --no-project
+```
+
 
 # Use generated library
 
