@@ -1,8 +1,7 @@
 use demo_client::{counter::events::CounterEvents, dog::events::DogEvents, ping_pong, traits::*};
 use fixture::Fixture;
-use futures::stream::StreamExt;
 use gstd::errors::{ErrorReplyReason, SimpleExecutionError};
-use sails_rs::{calls::*, errors::RtlError, events::*};
+use sails_rs::{calls::*, errors::RtlError, events::*, prelude::*};
 
 mod fixture;
 

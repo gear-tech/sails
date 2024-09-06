@@ -1571,7 +1571,6 @@ version = "0.1.0"
 dependencies = [
  "demo-client",
  "demo-walker",
- "futures",
  "gclient",
  "gstd",
  "gtest",

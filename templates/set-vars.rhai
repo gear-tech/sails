@@ -24,6 +24,8 @@ variable::set("program-struct-name", project_name.to_pascal_case() + "Program");
 
 variable::set("service-struct-name", project_name.to_pascal_case() + "Service");
 
+variable::set("service-events-name", project_name.to_pascal_case() + "Events");
+
 variable::set("service-name", project_name.to_pascal_case());
 
 variable::set("service-name-snake", project_name.to_snake_case());

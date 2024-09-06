@@ -3,7 +3,6 @@ use crate::{
     prelude::*,
 };
 use core::marker::PhantomData;
-use futures::{Stream, StreamExt};
 
 #[allow(async_fn_in_trait)]
 pub trait Listener<E> {

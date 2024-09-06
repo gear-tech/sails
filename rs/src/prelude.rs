@@ -41,6 +41,8 @@ pub mod ffi {
     pub use core::ffi::*;
 }
 
+pub use futures::{Stream, StreamExt};
+
 #[cfg(feature = "gstd")]
 pub use crate::gstd::{program, route, service};
 pub use crate::types::*;

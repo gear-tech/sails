@@ -2,23 +2,48 @@
 
 use sails_rs::prelude::*;
 
+// Program's state
+static mut STATE: Option<String> = None;
+
+// Service's events
+#[derive(Encode, TypeInfo)]
+#[codec(crate = sails_rs::scale_codec)]
+#[scale_info(crate = sails_rs::scale_info)]
+enum {{ service-events-name }} {
+    SaidHello { name: String },
+    Forgot,
+}
+
 struct {{ service-struct-name }}(());
 
-#[sails_rs::service]
+#[sails_rs::service(events = {{ service-events-name }})]
 impl {{ service-struct-name }} {
     pub fn new() -> Self {
         Self(())
     }
 
     // Service's method (command)
-    pub fn do_something(&mut self) -> String {
-        "Hello from {{ service-name }}!".to_string()
+    pub fn say_hello(&mut self, name: String) -> String {
+        unsafe {
+            STATE = Some(name.clone());
+        }
+        self.notify_on({{ service-events-name }}::SaidHello { name: name.clone() })
+            .unwrap();
+        format!("Hello {} from {{ service-name }}!", name)
     }
 
-    // Service's query
-    pub fn get_something(&self) -> String {
-        "Hello from {{ service-name }}!".to_string()
-    }    
+    // Service's method (command)
+    pub fn forget(&mut self) {
+        unsafe {
+            STATE = None;
+        }
+        self.notify_on({{ service-events-name }}::Forgot).unwrap();
+    }
+
+    // Service's query with lifetime
+    pub fn last_name<'a>(&self) -> Option<&'a str> {
+        unsafe { STATE.as_deref() }
+    }
 }
 
 pub struct {{ program-struct-name }}(());
