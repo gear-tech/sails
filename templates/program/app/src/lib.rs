@@ -14,6 +14,11 @@ impl {{ service-struct-name }} {
     pub fn do_something(&mut self) -> String {
         "Hello from {{ service-name }}!".to_string()
     }
+
+    // Service's query
+    pub fn get_something(&self) -> String {
+        "Hello from {{ service-name }}!".to_string()
+    }    
 }
 
 pub struct {{ program-struct-name }}(());
