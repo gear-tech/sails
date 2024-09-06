@@ -15,7 +15,7 @@ async fn do_something_works() {
     let program_factory = {{ client_crate_name }}::{{ service-name }}Factory::new(remoting.clone());
 
     let program_id = program_factory
-        .new() // Call program's constructor (see src/lib.rs:29)
+        .new() // Call program's constructor (see app/src/lib.rs:29)
         .send_recv(program_code_id, b"salt")
         .await
         .unwrap();
@@ -23,7 +23,7 @@ async fn do_something_works() {
     let mut service_client = {{ client_crate_name }}::{{ service-name }}::new(remoting.clone());
 
     let result = service_client
-        .do_something() // Call service's method (see src/lib.rs:14)
+        .do_something() // Call service's method (see app/src/lib.rs:14)
         .send_recv(program_id)
         .await
         .unwrap();
@@ -42,7 +42,7 @@ async fn get_something_works() {
     let program_factory = {{ client_crate_name }}::{{ service-name }}Factory::new(remoting.clone());
 
     let program_id = program_factory
-        .new() // Call program's constructor (see src/lib.rs:29)
+        .new() // Call program's constructor (see app/src/lib.rs:29)
         .send_recv(program_code_id, b"salt")
         .await
         .unwrap();
@@ -50,7 +50,7 @@ async fn get_something_works() {
     let service_client = {{ client_crate_name }}::{{ service-name }}::new(remoting.clone());
 
     let result = service_client
-        .get_something() // Call service's query (see src/lib.rs:19)
+        .get_something() // Call service's query (see app/src/lib.rs:19)
         .recv(program_id)
         .await
         .unwrap();
