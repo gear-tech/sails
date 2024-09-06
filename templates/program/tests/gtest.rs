@@ -18,7 +18,7 @@ async fn {{ service-name-snake }}_works() {
         .new() // Call program's constructor (see app/src/lib.rs:29)
         .send_recv(program_code_id, b"salt")
         .await
-        .expect("Failed to activate program")();
+        .expect("Failed to activate program");
 
     let mut service_client = {{ client_crate_name }}::{{ service-name }}::new(remoting.clone());
 
@@ -26,26 +26,26 @@ async fn {{ service-name-snake }}_works() {
         .say_hello("World".to_string()) // Call service's method (see app/src/lib.rs:14)
         .send_recv(program_id)
         .await
-        .expect("Failed to call say_hello method")();
+        .expect("Failed to call say_hello method");
     assert_eq!(result, "Hello World from {{ service-name }}!".to_string());
 
     let result = service_client
         .last_name() // Call service's query (see app/src/lib.rs:19)
         .recv(program_id)
         .await
-        .expect("Failed to call last_name query")();
+        .expect("Failed to call last_name query");
     assert_eq!(result, Some("World".to_string()));
 
     let _ = service_client
         .forget() // Call service's method (see app/src/lib.rs:14)
         .send_recv(program_id)
         .await
-        .expect("Failed to call forget method")();
+        .expect("Failed to call forget method");
 
     let result = service_client
         .last_name() // Call service's query (see app/src/lib.rs:19)
         .recv(program_id)
         .await
-        .expect("Failed to call last_name query")();
+        .expect("Failed to call last_name query");
     assert_eq!(result, None);
 }
