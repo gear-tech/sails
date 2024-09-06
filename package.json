@@ -11,7 +11,8 @@
     "js/cli",
     "js/parser",
     "js/types",
-    "js/util"
+    "js/util",
+    "js/example"
   ],
   "devDependencies": {
     "@rollup/plugin-commonjs": "^26.0.1",

@@ -1,10 +1,7 @@
 import { GearApi } from '@gear-js/api';
 import { Keyring } from '@polkadot/api';
-
-import { catalogAddEquippables, catalogAddSlotPart, resourceAddResourceEntry } from './msg.js';
-import { uploadCatalog, uploadResource } from './upload.js';
-import { subscribeToResourceAddedEvent } from './events.js';
-import { catalogReadPart } from './state.js';
+import { Program } from './lib.js';
+import { readFileSync } from 'fs';
 
 const main = async () => {
   const api = await GearApi.create();
@@ -12,17 +9,29 @@ const main = async () => {
 
   const alice = keyring.addFromUri('//Alice');
 
-  const catalog = await uploadCatalog(api, alice);
+  const program = new Program(api);
 
-  const resource = await uploadResource(api, alice);
+  // Deploy the program
 
-  subscribeToResourceAddedEvent(resource);
+  const code = readFileSync('../../target/wasm32-unknown-unknown/release/demo.opt.wasm');
 
-  await catalogAddSlotPart(catalog, alice);
-  await catalogAddEquippables(catalog, alice);
-  await resourceAddResourceEntry(resource, alice);
+  const ctorBuilder = await program.newCtorFromCode(code, null, null).withAccount(alice).calculateGas();
+  const { blockHash, msgId, txHash } = await ctorBuilder.signAndSend();
 
-  await catalogReadPart(catalog, alice);
+  console.log(
+    `\nProgram deployed. \n\tprogram id ${program.programId}, \n\tblock hash: ${blockHash}, \n\ttx hash: ${txHash}, \n\tinit message id: ${msgId}`,
+  );
+
+  // Call the program
+
+  const pingBuilder = await program.pingPong.ping('ping').withAccount(alice).calculateGas();
+  const { blockHash: blockHashPing, msgId: msgIdPing, txHash: txHashPing, response } = await pingBuilder.signAndSend();
+
+  console.log(
+    `\nPing message sent. \p\tBlock hash: ${blockHashPing}, \n\ttx hash: ${txHashPing}, \n\tmessage id: ${msgIdPing}`,
+  );
+  const reply = await response();
+  console.log(`\nProgram replied: \n\t${JSON.stringify(reply)}`);
 };
 
 main()

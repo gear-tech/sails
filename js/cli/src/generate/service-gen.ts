@@ -32,17 +32,19 @@ export class ServiceGenerator extends BaseGenerator {
   }
 
   public generate(className = 'Program') {
+    const _classFromUpperLetter = className[0].toUpperCase() + className.slice(1);
+
     this._out
       .import('@gear-js/api', 'GearApi')
       .import(`@polkadot/types`, `TypeRegistry`)
       .import('sails-js', 'TransactionBuilder')
-      .block(`export class ${className}`, () => {
+      .block(`export class ${_classFromUpperLetter}`, () => {
         this._out.line(`public readonly registry: TypeRegistry`);
 
         for (const service of this._program.services) {
           this._out.line(
             `public readonly ${toLowerCaseFirst(service.name)}: ${
-              service.name === className ? service.name + 'Service' : service.name
+              service.name === _classFromUpperLetter ? service.name + 'Service' : service.name
             }`,
           );
         }
@@ -69,7 +71,7 @@ export class ServiceGenerator extends BaseGenerator {
           .line();
         this.generateProgramConstructor();
       });
-    this.generateServices(className);
+    this.generateServices(_classFromUpperLetter);
   }
 
   private generateProgramConstructor() {
