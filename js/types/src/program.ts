@@ -36,4 +36,4 @@ export interface ISailsFuncParam {
   readonly def: ISailsTypeDef;
 }
 
-export interface ISailsServiceEvent extends ISailsEnumVariant {}
+export type ISailsServiceEvent = ISailsEnumVariant;

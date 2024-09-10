@@ -1,5 +1,3 @@
-import { writeFileSync } from 'fs';
-
 export class Output {
   private _rows: string[] = [];
   private _firstRows: string[] = [];

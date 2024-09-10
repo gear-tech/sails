@@ -292,8 +292,6 @@ export class SailsIdlParser implements ISailsIdlParser {
   }
 
   private handleAcceptError(errorCode: number) {
-    const view = new DataView(this._memory.buffer);
-
     if (errorCode > 0) {
       throw new Error(`Error code: ${errorCode}`);
     }

@@ -28,7 +28,7 @@ const main = async () => {
   const { blockHash: blockHashPing, msgId: msgIdPing, txHash: txHashPing, response } = await pingBuilder.signAndSend();
 
   console.log(
-    `\nPing message sent. \p\tBlock hash: ${blockHashPing}, \n\ttx hash: ${txHashPing}, \n\tmessage id: ${msgIdPing}`,
+    `\nPing message sent. \n\tBlock hash: ${blockHashPing}, \n\ttx hash: ${txHashPing}, \n\tmessage id: ${msgIdPing}`,
   );
   const reply = await response();
   console.log(`\nProgram replied: \n\t${JSON.stringify(reply)}`);
