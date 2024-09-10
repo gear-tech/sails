@@ -1,9 +1,20 @@
 {
-  "name": "idl-parser-js",
-  "version": "0.1.0",
-  "description": "IDL parser for TypeScript",
-  "main": "index.js",
+  "name": "sails-js-parser",
+  "version": "0.0.1",
+  "description": "Sails-IDL parser for TypeScript",
+  "main": "lib/cjs/index.cjs",
+  "module": "lib/index.js",
+  "types": "lib/index.d.ts",
   "type": "module",
+  "exports": {
+    ".": {
+      "require": "./lib/cjs/index.cjs",
+      "import": "./lib/index.js"
+    }
+  },
+  "files": [
+    "lib"
+  ],
   "license": "GPL-3.0",
   "author": "Gear Technologies",
   "bugs": {
@@ -20,16 +31,9 @@
     "parser"
   ],
   "scripts": {
-    "build": "rm -rf lib && rollup --config rollup.config.js && node compress-parser.js"
+    "build": "rollup --config rollup.config.js"
   },
-  "devDependencies": {
-    "ts-node": "10.9.2",
-    "typescript": "5.5.4",
-    "@rollup/plugin-commonjs": "26.0.1",
-    "@rollup/plugin-typescript": "11.1.6",
-    "@types/node": "22.4.1",
-    "rollup": "4.21.0",
-    "rollup-plugin-peer-deps-external": "2.2.4",
-    "rollup-plugin-typescript2": "0.36.0"
+  "peerDependencies": {
+    "sails-js-types": "0.0.1"
   }
 }

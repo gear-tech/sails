@@ -1,0 +1,45 @@
+{
+  "name": "sails",
+  "version": "0.2.0",
+  "private": true,
+  "repository": "git@github.com:gear-tech/sails.git",
+  "author": "Gear Technologies",
+  "license": "GPL-3.0",
+  "packageManager": "yarn@4.4.1",
+  "workspaces": [
+    "js",
+    "js/cli",
+    "js/parser",
+    "js/types",
+    "js/util",
+    "js/example"
+  ],
+  "devDependencies": {
+    "@rollup/plugin-commonjs": "^26.0.1",
+    "@rollup/plugin-json": "^6.1.0",
+    "@rollup/plugin-node-resolve": "^15.2.3",
+    "@rollup/plugin-typescript": "^11.1.6",
+    "@types/jest": "^29.5.12",
+    "@types/node": "^22.5.3",
+    "babel-jest": "^29.7.0",
+    "jest": "^29.7.0",
+    "lerna": "^8.1.8",
+    "rollup": "^4.21.2",
+    "rollup-plugin-peer-deps-external": "^2.2.4",
+    "rollup-plugin-typescript2": "^0.36.0",
+    "ts-jest": "^29.2.5",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.5.4"
+  },
+  "scripts": {
+    "build:sails": "lerna run build --scope=sails-js",
+    "build:cli": "lerna run build --scope=sails-js-cli",
+    "build:parser": "lerna run build --scope=sails-js-parser",
+    "build:types": "lerna run build --scope=sails-js-types",
+    "build:util": "lerna run build --scope=sails-js-util",
+    "build": "lerna run build --no-private",
+    "version": "lerna version --no-private",
+    "test": "lerna run test --scope=sails-js",
+    "publish": "lerna publish from-package --no-private"
+  }
+}

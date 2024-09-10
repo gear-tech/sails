@@ -1,8 +1,9 @@
+import { ISailsFuncParam, ISailsService, ISailsServiceEvent, ISailsServiceFunc } from 'sails-js-types';
 import { EnumVariant, WithDef } from './types.js';
 import { getName } from './util.js';
 import { Base } from './visitor.js';
 
-export class Service extends Base {
+export class Service extends Base implements ISailsService {
   public readonly funcs: ServiceFunc[];
   public readonly events: ServiceEvent[];
   public readonly name: string;
@@ -28,9 +29,9 @@ export class Service extends Base {
   }
 }
 
-export class ServiceEvent extends EnumVariant {}
+export class ServiceEvent extends EnumVariant implements ISailsServiceEvent {}
 
-export class ServiceFunc extends WithDef {
+export class ServiceFunc extends WithDef implements ISailsServiceFunc {
   public readonly name: string;
   public readonly isQuery: boolean;
   private _params: Map<number, FuncParam>;
@@ -61,7 +62,7 @@ export class ServiceFunc extends WithDef {
   }
 }
 
-export class FuncParam extends WithDef {
+export class FuncParam extends WithDef implements ISailsFuncParam {
   public readonly name: string;
 
   constructor(ptr: number, memory: WebAssembly.Memory) {

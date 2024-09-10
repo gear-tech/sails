@@ -1,9 +1,10 @@
+import { ISailsCtor, ISailsCtorFunc, ISailsProgram } from 'sails-js-types';
 import { FuncParam, Service } from './service.js';
 import { Type, WithDef } from './types.js';
 import { getName } from './util.js';
 import { Base } from './visitor.js';
 
-export class Program {
+export class Program implements ISailsProgram {
   private _services: Service[];
   private _types: Map<number, Type>;
   private _context: Map<number, WithDef>;
@@ -63,7 +64,7 @@ export class Program {
   }
 }
 
-export class Ctor extends Base {
+export class Ctor extends Base implements ISailsCtor {
   public readonly funcs: CtorFunc[];
 
   constructor(ptr: number, memory: WebAssembly.Memory) {
@@ -77,7 +78,7 @@ export class Ctor extends Base {
   }
 }
 
-export class CtorFunc extends Base {
+export class CtorFunc extends Base implements ISailsCtorFunc {
   private _params: Map<number, FuncParam>;
   public readonly name: string;
 
