@@ -43,12 +43,31 @@ export class HooksGenerator extends BaseGenerator {
       .line();
   };
 
+  private generateUseEvent = (serviceName: string, eventName: string) => {
+    const name = `use${serviceName}${eventName}Event`;
+
+    this._out
+      // TODO: onData type
+      .block(`export function ${name}(programId: HexString | undefined, onData: any)`, () => {
+        this._out
+          .line('const { data: program } = useProgram(programId)')
+          .line()
+          .line(
+            `return useProgramEvent({ program, serviceName: '${serviceName}', functionName: '${eventName}', onData })`,
+          );
+      })
+      .line();
+  };
+
   public generate() {
     const LIB_FILE_NAME = 'lib'; // TODO: pass file name
 
     this._out
       .import('@gear-js/api', 'HexString')
-      .import('@gear-js/react-hooks', 'useProgram as useGearProgram, useSendProgramTransaction, useProgramQuery')
+      .import(
+        '@gear-js/react-hooks',
+        'useProgram as useGearProgram, useSendProgramTransaction, useProgramQuery, useProgramEvent',
+      )
       .import(`./${LIB_FILE_NAME}`, 'Program')
       .block(`export function useProgram(id: HexString | undefined)`, this.generateUseProgramReturn)
       .line();
@@ -60,6 +79,10 @@ export class HooksGenerator extends BaseGenerator {
         } else {
           this.generateUseSendTransaction(service.name, name);
         }
+      }
+
+      for (const { name } of service.events) {
+        this.generateUseEvent(service.name, name);
       }
     }
   }
