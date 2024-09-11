@@ -1,6 +1,6 @@
 #[doc(hidden)]
 pub use gstd::{async_init, async_main, handle_reply_with_hook, handle_signal, message_loop};
-pub use gstd::{debug, msg};
+pub use gstd::{debug, exec, msg};
 pub use sails_macros::*;
 
 use crate::{ActorId, MessageId};
