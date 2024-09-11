@@ -171,9 +171,9 @@ fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
             let handler_route_len = handler_route_bytes.len();
             quote!(
                 if #input_ident.starts_with(& [ #(#handler_route_bytes),* ]) {
-                    let output = self.#invocation_func_ident(&#input_ident[#handler_route_len..]).await;
+                    let (output, value) = self.#invocation_func_ident(&#input_ident[#handler_route_len..]).await;
                     static INVOCATION_ROUTE: [u8; #handler_route_len] = [ #(#handler_route_bytes),* ];
-                    return Some([INVOCATION_ROUTE.as_ref(), &output].concat());
+                    return Some(([INVOCATION_ROUTE.as_ref(), &output].concat(), value));
                 }
             )
         });
@@ -217,8 +217,8 @@ fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
             );
 
             let base_exposure_invocation = quote!(
-                if let Some(output) = self. #base_ident .try_handle(#input_ident).await {
-                    return Some(output);
+                if let Some((output, value)) = self. #base_ident .try_handle(#input_ident).await {
+                    return Some((output, value));
                 }
             );
 
@@ -311,13 +311,13 @@ fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
 
             #( #base_exposure_accessors )*
 
-            pub async fn handle(&mut self, #input_ident: &[u8]) -> Vec<u8> {
+            pub async fn handle(&mut self, #input_ident: &[u8]) -> (Vec<u8>, u128) {
                 self.try_handle( #input_ident ).await.unwrap_or_else(|| {
                     #unexpected_route_panic
                 })
             }
 
-            pub async fn try_handle(&mut self, #input_ident : &[u8]) -> Option<Vec<u8>> {
+            pub async fn try_handle(&mut self, #input_ident : &[u8]) -> Option<(Vec<u8>, u128)> {
                 #( #invocation_dispatches )*
                 #( #base_exposures_invocations )*
                 None
@@ -504,11 +504,21 @@ fn discover_service_handlers(service_impl: &ItemImpl) -> BTreeMap<String, (&Impl
 
 struct HandlerGenerator<'a> {
     handler: Func<'a>,
+    result_type: Type,
+    reply_with_value: bool,
 }
 
 impl<'a> HandlerGenerator<'a> {
     fn from(handler: Func<'a>) -> Self {
-        Self { handler }
+        // process result type to extact value and replace any lifetime with 'static
+        let (result_type, reply_with_value) =
+            shared::extract_result_type_with_value(handler.result().clone());
+        let result_type = shared::replace_any_lifetime_with_static(result_type);
+        Self {
+            handler,
+            result_type,
+            reply_with_value,
+        }
     }
 
     fn params_struct_ident(&self) -> Ident {
@@ -521,8 +531,8 @@ impl<'a> HandlerGenerator<'a> {
         )
     }
 
-    fn result_type(&self) -> Type {
-        shared::replace_any_lifetime_with_static(self.handler.result().clone())
+    fn result_type(&self) -> &Type {
+        &self.result_type
     }
 
     fn handler_func_ident(&self) -> Ident {
@@ -568,13 +578,23 @@ impl<'a> HandlerGenerator<'a> {
         });
 
         let await_token = self.handler.is_async().then(|| quote!(.await));
+        let handle_token = if self.reply_with_value {
+            quote! {
+                let (result, value) = self.#handler_func_ident(#(#handler_func_params),*)#await_token;
+            }
+        } else {
+            quote! {
+                let result = self.#handler_func_ident(#(#handler_func_params),*)#await_token;
+                let value = 0u128;
+            }
+        };
 
         quote!(
-            async fn #invocation_func_ident(#receiver, mut input: &[u8]) -> Vec<u8>
+            async fn #invocation_func_ident(#receiver, mut input: &[u8]) -> (Vec<u8>, u128)
             {
                 let request = #params_struct_ident::decode(&mut input).expect("Failed to decode request");
-                let result = self.#handler_func_ident(#(#handler_func_params),*)#await_token;
-                return result.encode();
+                #handle_token
+                return (result.encode(), value);
             }
         )
     }

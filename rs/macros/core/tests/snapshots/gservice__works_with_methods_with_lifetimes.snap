@@ -56,7 +56,7 @@ impl Exposure<ReferenceService> {
         let exposure_scope = sails_rs::gstd::services::ExposureCallScope::new(self);
         self.inner.last_byte().await
     }
-    pub async fn handle(&mut self, input: &[u8]) -> Vec<u8> {
+    pub async fn handle(&mut self, input: &[u8]) -> (Vec<u8>, u128) {
         self.try_handle(input)
             .await
             .unwrap_or_else(|| {
@@ -77,9 +77,9 @@ impl Exposure<ReferenceService> {
                 }
             })
     }
-    pub async fn try_handle(&mut self, input: &[u8]) -> Option<Vec<u8>> {
+    pub async fn try_handle(&mut self, input: &[u8]) -> Option<(Vec<u8>, u128)> {
         if input.starts_with(&[28u8, 65u8, 100u8, 100u8, 66u8, 121u8, 116u8, 101u8]) {
-            let output = self.__add_byte(&input[8usize..]).await;
+            let (output, value) = self.__add_byte(&input[8usize..]).await;
             static INVOCATION_ROUTE: [u8; 8usize] = [
                 28u8,
                 65u8,
@@ -90,10 +90,10 @@ impl Exposure<ReferenceService> {
                 116u8,
                 101u8,
             ];
-            return Some([INVOCATION_ROUTE.as_ref(), &output].concat());
+            return Some(([INVOCATION_ROUTE.as_ref(), &output].concat(), value));
         }
         if input.starts_with(&[20u8, 66u8, 97u8, 107u8, 101u8, 100u8]) {
-            let output = self.__baked(&input[6usize..]).await;
+            let (output, value) = self.__baked(&input[6usize..]).await;
             static INVOCATION_ROUTE: [u8; 6usize] = [
                 20u8,
                 66u8,
@@ -102,14 +102,14 @@ impl Exposure<ReferenceService> {
                 101u8,
                 100u8,
             ];
-            return Some([INVOCATION_ROUTE.as_ref(), &output].concat());
+            return Some(([INVOCATION_ROUTE.as_ref(), &output].concat(), value));
         }
         if input
             .starts_with(
                 &[36u8, 70u8, 105u8, 114u8, 115u8, 116u8, 66u8, 121u8, 116u8, 101u8],
             )
         {
-            let output = self.__first_byte(&input[10usize..]).await;
+            let (output, value) = self.__first_byte(&input[10usize..]).await;
             static INVOCATION_ROUTE: [u8; 10usize] = [
                 36u8,
                 70u8,
@@ -122,17 +122,17 @@ impl Exposure<ReferenceService> {
                 116u8,
                 101u8,
             ];
-            return Some([INVOCATION_ROUTE.as_ref(), &output].concat());
+            return Some(([INVOCATION_ROUTE.as_ref(), &output].concat(), value));
         }
         if input.starts_with(&[16u8, 73u8, 110u8, 99u8, 114u8]) {
-            let output = self.__incr(&input[5usize..]).await;
+            let (output, value) = self.__incr(&input[5usize..]).await;
             static INVOCATION_ROUTE: [u8; 5usize] = [16u8, 73u8, 110u8, 99u8, 114u8];
-            return Some([INVOCATION_ROUTE.as_ref(), &output].concat());
+            return Some(([INVOCATION_ROUTE.as_ref(), &output].concat(), value));
         }
         if input
             .starts_with(&[32u8, 76u8, 97u8, 115u8, 116u8, 66u8, 121u8, 116u8, 101u8])
         {
-            let output = self.__last_byte(&input[9usize..]).await;
+            let (output, value) = self.__last_byte(&input[9usize..]).await;
             static INVOCATION_ROUTE: [u8; 9usize] = [
                 32u8,
                 76u8,
@@ -144,39 +144,44 @@ impl Exposure<ReferenceService> {
                 116u8,
                 101u8,
             ];
-            return Some([INVOCATION_ROUTE.as_ref(), &output].concat());
+            return Some(([INVOCATION_ROUTE.as_ref(), &output].concat(), value));
         }
         None
     }
-    async fn __add_byte(&mut self, mut input: &[u8]) -> Vec<u8> {
+    async fn __add_byte(&mut self, mut input: &[u8]) -> (Vec<u8>, u128) {
         let request = __AddByteParams::decode(&mut input)
             .expect("Failed to decode request");
         let result = self.add_byte(request.byte);
-        return result.encode();
+        let value = 0u128;
+        return (result.encode(), value);
     }
-    async fn __baked(&self, mut input: &[u8]) -> Vec<u8> {
+    async fn __baked(&self, mut input: &[u8]) -> (Vec<u8>, u128) {
         let request = __BakedParams::decode(&mut input)
             .expect("Failed to decode request");
         let result = self.baked();
-        return result.encode();
+        let value = 0u128;
+        return (result.encode(), value);
     }
-    async fn __first_byte(&self, mut input: &[u8]) -> Vec<u8> {
+    async fn __first_byte(&self, mut input: &[u8]) -> (Vec<u8>, u128) {
         let request = __FirstByteParams::decode(&mut input)
             .expect("Failed to decode request");
         let result = self.first_byte().await;
-        return result.encode();
+        let value = 0u128;
+        return (result.encode(), value);
     }
-    async fn __incr(&mut self, mut input: &[u8]) -> Vec<u8> {
+    async fn __incr(&mut self, mut input: &[u8]) -> (Vec<u8>, u128) {
         let request = __IncrParams::decode(&mut input)
             .expect("Failed to decode request");
         let result = self.incr();
-        return result.encode();
+        let value = 0u128;
+        return (result.encode(), value);
     }
-    async fn __last_byte(&self, mut input: &[u8]) -> Vec<u8> {
+    async fn __last_byte(&self, mut input: &[u8]) -> (Vec<u8>, u128) {
         let request = __LastByteParams::decode(&mut input)
             .expect("Failed to decode request");
         let result = self.last_byte().await;
-        return result.encode();
+        let value = 0u128;
+        return (result.encode(), value);
     }
 }
 impl sails_rs::gstd::services::Exposure for Exposure<ReferenceService> {

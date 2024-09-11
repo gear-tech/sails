@@ -340,8 +340,8 @@ fn generate_handle<'a>(
                 if #input_ident.starts_with(& #service_route_ident) {
                     let program_ref = unsafe { #program_ident.as_ref() }.expect("Program not initialized");
                     let mut service = program_ref.#service_ctor_ident();
-                    let output = service.handle(&#input_ident[#service_route_ident .len()..]).await;
-                    [#service_route_ident .as_ref(), &output].concat()
+                    let (output, value) = service.handle(&#input_ident[#service_route_ident .len()..]).await;
+                    ([#service_route_ident .as_ref(), &output].concat(), value)
                 }
             )
         });
@@ -370,8 +370,8 @@ fn generate_handle<'a>(
         #[gstd::async_main #async_main_args]
         async fn main() {
             let mut #input_ident: &[u8] = &gstd::msg::load_bytes().expect("Failed to read input");
-            let output: Vec<u8> = #(#invocation_dispatches)else*;
-            gstd::msg::reply_bytes(output, 0).expect("Failed to send output");
+            let (output, value): (Vec<u8>, u128) = #(#invocation_dispatches)else*;
+            gstd::msg::reply_bytes(output, value).expect("Failed to send output");
         }
     )
 }

@@ -93,7 +93,7 @@ pub mod wasm {
     #[gstd::async_main]
     async fn main() {
         let mut input: &[u8] = &gstd::msg::load_bytes().expect("Failed to read input");
-        let output: Vec<u8> = {
+        let (output, value): (Vec<u8>, u128) = {
             let mut __input = input;
             let input = String::decode(&mut __input)
                 .unwrap_or_else(|_| {
@@ -108,6 +108,6 @@ pub mod wasm {
                 });
             panic!("Unexpected service: {}", input)
         };
-        gstd::msg::reply_bytes(output, 0).expect("Failed to send output");
+        gstd::msg::reply_bytes(output, value).expect("Failed to send output");
     }
 }
