@@ -33,9 +33,9 @@ interface ISailsServiceFuncParams {
   /** ### Encode payload to hex string */
   readonly encodePayload: (...args: any[]) => HexString;
   /** ### Decode payload from hex string */
-  readonly decodePayload: <T extends any = any>(bytes: HexString) => T;
+  readonly decodePayload: <T = any>(bytes: HexString) => T;
   /** ### Decode function result */
-  readonly decodeResult: <T extends any = any>(result: HexString) => T;
+  readonly decodeResult: <T = any>(result: HexString) => T;
 }
 
 type SailsServiceQuery = ISailsServiceFuncParams &
@@ -158,7 +158,7 @@ export class Sails {
       const params = func.params.map((p) => ({ name: p.name, type: getScaleCodecDef(p.def), typeDef: p.def }));
       const returnType = getScaleCodecDef(func.def);
       if (func.isQuery) {
-        queries[func.name] = (async <T extends any = any>(
+        queries[func.name] = (async <T = any>(
           origin: string,
           value: bigint = 0n,
           atBlock?: HexString,
@@ -191,7 +191,7 @@ export class Sails {
           return result[2].toJSON() as T;
         }) as SailsServiceQuery;
       } else {
-        funcs[func.name] = (<T extends any = any>(...args: any): TransactionBuilder<T> => {
+        funcs[func.name] = (<T = any>(...args: any): TransactionBuilder<T> => {
           if (!this._api) {
             throw new Error('API is not set. Use .setApi method to set API instance');
           }
@@ -273,7 +273,7 @@ export class Sails {
           const data = this.registry.createType(`(String, String, ${typeStr})`, payload);
           return data[2].toJSON();
         },
-        subscribe: <T extends any = any>(cb: (eventData: T) => void | Promise<void>): Promise<() => void> => {
+        subscribe: <T = any>(cb: (eventData: T) => void | Promise<void>): Promise<() => void> => {
           if (!this._api) {
             throw new Error('API is not set. Use .setApi method to set API instance');
           }

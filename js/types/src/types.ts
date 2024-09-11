@@ -74,14 +74,14 @@ export interface ISailsEnumVariant extends IWithDefEntity {
   readonly name: string;
 }
 
-export interface ISailsOptionalDef extends IWithDefEntity {}
+export type ISailsOptionalDef = IWithDefEntity;
 
 export interface ISailsResultDef {
   readonly ok: IWithDefEntity;
   readonly err: IWithDefEntity;
 }
 
-export interface ISailsVecDef extends IWithDefEntity {}
+export type ISailsVecDef = IWithDefEntity;
 
 export interface ISailsMapDef {
   readonly key: IWithDefEntity;

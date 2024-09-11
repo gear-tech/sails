@@ -1,5 +1,10 @@
 precommit: fmt clippy test
 
+precommit-js:
+	@yarn install
+	@yarn build
+	@yarn fmt
+
 fmt:
 	@__GEAR_WASM_BUILDER_NO_FEATURES_TRACKING=1 cargo fmt --all -- --check
 
