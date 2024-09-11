@@ -7,12 +7,18 @@ import { Sails } from 'sails-js';
 import * as _path from 'path';
 import { confirm } from '@inquirer/prompts';
 
-import { generateLib } from './generate/index.js';
+import { generateHooks, generateLib } from './generate/index.js';
 import * as config from './config.json';
 
 const program = new Command();
 
-const handler = async (path: string, out: string, name: string, project: boolean) => {
+const handler = async (
+  path: string,
+  out: string,
+  name: string,
+  project: boolean,
+  generate: (sails: Sails, className?: string) => string,
+) => {
   const parser = new SailsIdlParser();
   await parser.init();
   const sails = new Sails(parser);
@@ -43,7 +49,7 @@ const handler = async (path: string, out: string, name: string, project: boolean
   let libCode: string;
 
   try {
-    libCode = generateLib(sails.parseIdl(idl), name);
+    libCode = generate(sails.parseIdl(idl), name);
   } catch (e) {
     console.log(e.message, e.stack);
     process.exit(1);
@@ -129,7 +135,23 @@ program
   .description('Generate typescript library based on .sails.idl file')
   .action(async (path, options: { out: string; name: string; project: boolean }) => {
     try {
-      await handler(path, options.out, options.name, options.project);
+      await handler(path, options.out, options.name, options.project, generateLib);
+    } catch (error) {
+      console.error(error.message);
+      process.exit(1);
+    }
+    process.exit(0);
+  });
+
+program
+  .command('generateHooks <path-to-file.sails.idl>')
+  .option('--no-project', 'Generate single file without project structure')
+  .option('-n --name <name>', 'Name of the library', 'program')
+  .option('-o --out <path-to-dir>', 'Output directory')
+  .description('Generate typescript library based on .sails.idl file')
+  .action(async (path, options: { out: string; name: string; project: boolean }) => {
+    try {
+      await handler(path, options.out, options.name, options.project, generateHooks);
     } catch (error) {
       console.error(error.message);
       process.exit(1);
