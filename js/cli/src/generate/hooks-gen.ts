@@ -12,34 +12,55 @@ export class HooksGenerator extends BaseGenerator {
     this._out.line('return useGearProgram({ library: Program, id })');
   };
 
+  private generateUseSendTransaction = (serviceName: string, functionName: string) => {
+    const name = `useSend${serviceName}${functionName}Transaction`;
+
+    this._out
+      .block(`export function ${name}(programId: HexString | undefined)`, () => {
+        this._out
+          .line('const { data: program } = useProgram(programId)')
+          .line()
+          .line(
+            `return useSendProgramTransaction({ program, serviceName: '${serviceName}', functionName: '${functionName}' })`,
+          );
+      })
+      .line();
+  };
+
+  private generateUseQuery = (serviceName: string, functionName: string) => {
+    const name = `use${serviceName}${functionName}Query`;
+
+    this._out
+      // TODO: args type
+      .block(`export function ${name}(programId: HexString | undefined, args: any)`, () => {
+        this._out
+          .line('const { data: program } = useProgram(programId)')
+          .line()
+          .line(
+            `return useProgramQuery({ program, serviceName: '${serviceName}', functionName: '${functionName}', args })`,
+          );
+      })
+      .line();
+  };
+
   public generate() {
     const LIB_FILE_NAME = 'lib'; // TODO: pass file name
 
     this._out
       .import('@gear-js/api', 'HexString')
-      .import('@gear-js/react-hooks', 'useProgram as useGearProgram, useSendProgramTransaction')
+      .import('@gear-js/react-hooks', 'useProgram as useGearProgram, useSendProgramTransaction, useProgramQuery')
       .import(`./${LIB_FILE_NAME}`, 'Program')
       .block(`export function useProgram(id: HexString | undefined)`, this.generateUseProgramReturn)
       .line();
 
-    Object.values(this._program.services).forEach(({ funcs, ...service }) => {
-      funcs.forEach((func) => {
-        if (func.isQuery) return;
-
-        this._out
-          .block(
-            `export function useSend${service.name}${func.name}Transaction(programId: HexString | undefined)`,
-            () => {
-              this._out
-                .line('const { data: program } = useProgram(programId)')
-                .line()
-                .line(
-                  `return useSendProgramTransaction({ program, serviceName: '${service.name}', functionName: '${func.name}' })`,
-                );
-            },
-          )
-          .line();
-      });
-    });
+    for (const service of this._program.services) {
+      for (const { isQuery, name } of service.funcs) {
+        if (isQuery) {
+          this.generateUseQuery(service.name, name);
+        } else {
+          this.generateUseSendTransaction(service.name, name);
+        }
+      }
+    }
   }
 }
