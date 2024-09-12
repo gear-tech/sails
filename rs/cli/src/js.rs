@@ -1,6 +1,8 @@
 use anyhow::Result;
 use std::process::Command;
 
+const SAILS_JS_CLI_VERSION: &str = "0.1.0";
+
 pub struct JsClientGenerator {
     idl_path: String,
     out_path: String,
@@ -25,7 +27,7 @@ impl JsClientGenerator {
         let idl_path = self.idl_path.clone();
 
         let mut child = Command::new("npx")
-            .arg("sails-js-cli@0.1.0")
+            .arg(format!("sails-js-cli@{}", SAILS_JS_CLI_VERSION))
             .arg("generate")
             .arg(idl_path)
             .arg("-o")
