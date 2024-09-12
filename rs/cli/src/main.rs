@@ -1,5 +1,5 @@
 use clap::{Parser, Subcommand};
-use sails_cli::program::ProgramGenerator;
+use sails_cli::{js::JsClientGenerator, program::ProgramGenerator};
 
 #[derive(Parser)]
 #[command(bin_name = "cargo")]
@@ -12,6 +12,26 @@ struct CargoCommands {
 enum SailsCommands {
     #[command(name = "sails", subcommand)]
     Sails(Commands),
+    #[command(name = "sails-js", subcommand)]
+    SailsJs(JsCommands),
+}
+
+#[derive(Subcommand)]
+enum JsCommands {
+    #[command(name = "generate-client")]
+    GenerateClient {
+        #[arg(help = "Path to the IDL file")]
+        idl: String,
+        #[arg(
+            short,
+            long,
+            help = "Path to the output directory",
+            default_value = "."
+        )]
+        out: String,
+        #[arg(short, long, help = "Name of the program", default_value = "program")]
+        program_name: String,
+    },
 }
 
 #[derive(Subcommand)]
@@ -47,6 +67,14 @@ fn main() -> Result<(), i32> {
                 .with_client(!no_client)
                 .with_gtest(!no_gtest);
             program_generator.generate()
+        }
+        SailsCommands::SailsJs(JsCommands::GenerateClient {
+            idl,
+            out,
+            program_name,
+        }) => {
+            let generator = JsClientGenerator::new(idl, out, program_name);
+            generator.generate()
         }
     };
 
