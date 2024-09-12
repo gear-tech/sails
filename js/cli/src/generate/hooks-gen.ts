@@ -56,7 +56,7 @@ export class HooksGenerator extends BaseGenerator {
           .line(
             `return useProgramEvent({ program, serviceName: '${toLowerCaseFirst(
               serviceName,
-            )}', functionName: '${toLowerCaseFirst(eventName)}', onData })`,
+            )}', functionName: 'subscribeTo${eventName}Event', onData })`,
           );
       })
       .line();
