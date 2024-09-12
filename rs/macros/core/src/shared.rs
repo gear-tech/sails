@@ -227,7 +227,7 @@ fn replace_lifetime_with_static_in_path_args(path_args: PathArguments) -> PathAr
 /// Check if type is tuple `(T, ValueUnit)` and extract inner type `T`
 pub(crate) fn extract_result_type_with_value(ty: Type) -> (Type, bool) {
     match ty {
-        Type::Tuple(t) if t.elems.len() == 2 && is_value_unit(t.elems.last().unwrap()) => {
+        Type::Tuple(t) if t.elems.len() == 2 && t.elems.last().is_some_and(is_value_unit) => {
             (t.elems.first().unwrap().clone(), true)
         }
         _ => (ty, false),
@@ -237,9 +237,7 @@ pub(crate) fn extract_result_type_with_value(ty: Type) -> (Type, bool) {
 /// Check if type is `ValueUnit` only by ident name
 fn is_value_unit(ty: &Type) -> bool {
     match ty {
-        Type::Path(tp) => get_last_segment_ident(tp)
-            .map(|id| id == "ValueUnit")
-            .unwrap_or_default(),
+        Type::Path(tp) => get_last_segment_ident(tp).is_some_and(|id| id == "ValueUnit"),
         _ => false,
     }
 }
