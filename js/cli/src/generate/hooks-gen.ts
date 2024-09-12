@@ -4,6 +4,38 @@ import { toLowerCaseFirst } from 'sails-js-util';
 import { Output } from './output.js';
 import { BaseGenerator } from './base.js';
 
+// type UseProgramParameters = Omit<useSailsProgramParameters<Program>, 'library'>;
+
+// type ProgramType = InstanceType<typeof Program>;
+// type ServiceName = SailsServiceName<ProgramType>;
+
+// type UseQueryParameters<
+//   TServiceName extends ServiceName,
+//   TFunctionName extends QueryName<ProgramType[TServiceName]>,
+// > = Omit<
+//   UseProgramQueryParameters<
+//     ProgramType,
+//     TServiceName,
+//     TFunctionName,
+//     QueryArgs<ProgramType[TServiceName][TFunctionName]>,
+//     QueryReturn<ProgramType[TServiceName][TFunctionName]>
+//   >,
+//   'program' | 'serviceName' | 'functionName'
+// >;
+
+// type UseEventParameters<
+//   TServiceName extends ServiceName,
+//   TFunctionName extends FunctionName<ProgramType[TServiceName], EventReturn>,
+// > = Omit<
+//   UseProgramEventParameters<
+//     ProgramType,
+//     TServiceName,
+//     TFunctionName,
+//     EventCallbackArgs<Event<ProgramType[TServiceName][TFunctionName]>>
+//   >,
+//   'program' | 'serviceName' | 'functionName'
+// >;
+
 export class HooksGenerator extends BaseGenerator {
   constructor(out: Output, private _program: ISailsProgram) {
     super(out);
