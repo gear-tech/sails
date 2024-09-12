@@ -1,4 +1,5 @@
 import { ISailsProgram } from 'sails-js-types';
+import { toLowerCaseFirst } from 'sails-js-util';
 
 import { Output } from './output.js';
 import { BaseGenerator } from './base.js';
@@ -17,7 +18,9 @@ export class HooksGenerator extends BaseGenerator {
           .line('const { data: program } = useProgram(programId)')
           .line()
           .line(
-            `return useSendProgramTransaction({ program, serviceName: '${serviceName}', functionName: '${functionName}' })`,
+            `return useSendProgramTransaction({ program, serviceName: '${toLowerCaseFirst(
+              serviceName,
+            )}', functionName: '${toLowerCaseFirst(functionName)}' })`,
           );
       })
       .line();
@@ -33,7 +36,9 @@ export class HooksGenerator extends BaseGenerator {
           .line('const { data: program } = useProgram(programId)')
           .line()
           .line(
-            `return useProgramQuery({ program, serviceName: '${serviceName}', functionName: '${functionName}', args })`,
+            `return useProgramQuery({ program, serviceName: '${toLowerCaseFirst(
+              serviceName,
+            )}', functionName: '${toLowerCaseFirst(functionName)}', args })`,
           );
       })
       .line();
@@ -49,39 +54,36 @@ export class HooksGenerator extends BaseGenerator {
           .line('const { data: program } = useProgram(programId)')
           .line()
           .line(
-            `return useProgramEvent({ program, serviceName: '${serviceName}', functionName: '${eventName}', onData })`,
+            `return useProgramEvent({ program, serviceName: '${toLowerCaseFirst(
+              serviceName,
+            )}', functionName: '${toLowerCaseFirst(eventName)}', onData })`,
           );
       })
       .line();
   };
 
   public generate() {
+    const { services } = this._program;
     const LIB_FILE_NAME = 'lib'; // TODO: pass file name
 
     this._out
       .import('@gear-js/api', 'HexString')
       .import(
         '@gear-js/react-hooks',
-        'useProgram as useGearProgram, useSendProgramTransaction, useProgramQuery, useProgramEvent',
+        'useProgram as useSailsProgram, useSendProgramTransaction, useProgramQuery, useProgramEvent',
       )
       .import(`./${LIB_FILE_NAME}`, 'Program')
       .block('export function useProgram(id: HexString | undefined)', () =>
-        this._out.line('return useGearProgram({ library: Program, id })'),
+        this._out.line('return useSailsProgram({ library: Program, id })'),
       )
       .line();
 
-    for (const service of this._program.services) {
-      for (const { isQuery, name } of service.funcs) {
-        if (isQuery) {
-          this.generateUseQuery(service.name, name);
-        } else {
-          this.generateUseSendTransaction(service.name, name);
-        }
-      }
+    Object.values(services).forEach(({ funcs, events, ...service }) => {
+      funcs.forEach(({ isQuery, name }) =>
+        (isQuery ? this.generateUseQuery : this.generateUseSendTransaction)(service.name, name),
+      );
 
-      for (const { name } of service.events) {
-        this.generateUseEvent(service.name, name);
-      }
-    }
+      events.forEach(({ name }) => this.generateUseEvent(service.name, name));
+    });
   }
 }
