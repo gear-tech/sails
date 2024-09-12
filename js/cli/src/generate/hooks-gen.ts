@@ -8,10 +8,6 @@ export class HooksGenerator extends BaseGenerator {
     super(out);
   }
 
-  private generateUseProgramReturn = () => {
-    this._out.line('return useGearProgram({ library: Program, id })');
-  };
-
   private generateUseSendTransaction = (serviceName: string, functionName: string) => {
     const name = `useSend${serviceName}${functionName}Transaction`;
 
@@ -69,7 +65,9 @@ export class HooksGenerator extends BaseGenerator {
         'useProgram as useGearProgram, useSendProgramTransaction, useProgramQuery, useProgramEvent',
       )
       .import(`./${LIB_FILE_NAME}`, 'Program')
-      .block(`export function useProgram(id: HexString | undefined)`, this.generateUseProgramReturn)
+      .block('export function useProgram(id: HexString | undefined)', () =>
+        this._out.line('return useGearProgram({ library: Program, id })'),
+      )
       .line();
 
     for (const service of this._program.services) {
