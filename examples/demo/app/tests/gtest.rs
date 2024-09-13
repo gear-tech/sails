@@ -406,7 +406,12 @@ async fn value_fee_works() {
 
     assert!(result);
     let balance = fixture.balance_of(fixture::ADMIN_ID.into());
-    // should be
-    // assert_eq!(balance, initial_balance - 10_000_000_000_000);
+    // fee is 10_000_000_000_000 + spent gas
+    // `gtest`` 1.5.0 has an error here
+    // should work with after next `gtest` release
+    // assert!(
+    //     initial_balance - balance > 10_000_000_000_000
+    //         && initial_balance - balance < 10_100_000_000_000
+    // );
     assert_eq!(balance, initial_balance - 15_000_000_000_000);
 }
