@@ -41,13 +41,47 @@ export class HooksGenerator extends BaseGenerator {
     super(out);
   }
 
+  private generateTypes = () => {
+    this._out
+      .line("type UseProgramParameters = Omit<useSailsProgramParameters<Program>, 'library'>")
+      .line('type ProgramType = InstanceType<typeof Program>')
+      .line('type ServiceName = SailsServiceName<ProgramType>')
+      .line()
+      .line('type UseQueryParameters<', false)
+      .line('  TServiceName extends ServiceName,', false)
+      .line('  TFunctionName extends QueryName<ProgramType[TServiceName]>,', false)
+      .line('> = Omit<', false)
+      .line('  UseProgramQueryParameters<', false)
+      .line('    ProgramType,', false)
+      .line('    TServiceName,', false)
+      .line('    TFunctionName,', false)
+      .line('    QueryArgs<ProgramType[TServiceName][TFunctionName]>,', false)
+      .line('    QueryReturn<ProgramType[TServiceName][TFunctionName]>', false)
+      .line('  >,', false)
+      .line("  'program' | 'serviceName' | 'functionName'", false)
+      .line('>')
+      .line()
+      .line('type UseEventParameters<', false)
+      .line('  TServiceName extends ServiceName,', false)
+      .line('  TFunctionName extends FunctionName<ProgramType[TServiceName], EventReturn>,', false)
+      .line('> = Omit<', false)
+      .line('  UseProgramEventParameters<', false)
+      .line('    ProgramType,', false)
+      .line('    TServiceName,', false)
+      .line('    TFunctionName,', false)
+      .line('    EventCallbackArgs<Event<ProgramType[TServiceName][TFunctionName]>>', false)
+      .line('  >,', false)
+      .line("  'program' | 'serviceName' | 'functionName'", false)
+      .line('>;');
+  };
+
   private generateUseSendTransaction = (serviceName: string, functionName: string) => {
     const name = `useSend${serviceName}${functionName}Transaction`;
 
     this._out
       .block(`export function ${name}(programId: HexString | undefined)`, () => {
         this._out
-          .line('const { data: program } = useProgram(programId)')
+          .line('const { data: program } = useProgram({ id: programId })')
           .line()
           .line(
             `return useSendProgramTransaction({ program, serviceName: '${toLowerCaseFirst(
@@ -64,15 +98,14 @@ export class HooksGenerator extends BaseGenerator {
     const formattedFunctionName = toLowerCaseFirst(functionName);
 
     this._out
-      // TODO: rest parameters
       .block(
-        `export function ${name}(programId: HexString | undefined, args: QueryArgs<InstanceType<typeof Program>['${formattedServiceName}']['${formattedFunctionName}']>)`,
+        `export function ${name}(programId: HexString | undefined, parameters: UseQueryParameters<'${formattedServiceName}', '${formattedFunctionName}'>)`,
         () => {
           this._out
-            .line('const { data: program } = useProgram(programId)')
+            .line('const { data: program } = useProgram({ id: programId })')
             .line()
             .line(
-              `return useProgramQuery({ program, serviceName: '${formattedServiceName}', functionName: '${formattedFunctionName}', args })`,
+              `return useProgramQuery({ program, serviceName: '${formattedServiceName}', functionName: '${formattedFunctionName}', ...parameters })`,
             );
         },
       )
@@ -87,13 +120,13 @@ export class HooksGenerator extends BaseGenerator {
     this._out
       // TODO: rest parameters
       .block(
-        `export function ${name}(programId: HexString | undefined, onData: (...args: EventCallbackArgs<Event<InstanceType<typeof Program>['${formattedServiceName}']['${functionName}']>>) => void)`,
+        `export function ${name}(programId: HexString | undefined, parameters: UseEventParameters<'${formattedServiceName}', '${functionName}'>)`,
         () => {
           this._out
-            .line('const { data: program } = useProgram(programId)')
+            .line('const { data: program } = useProgram({ id: programId })')
             .line()
             .line(
-              `return useProgramEvent({ program, serviceName: '${formattedServiceName}', functionName: '${functionName}', onData })`,
+              `return useProgramEvent({ program, serviceName: '${formattedServiceName}', functionName: '${functionName}', ...parameters })`,
             );
         },
       )
@@ -108,15 +141,20 @@ export class HooksGenerator extends BaseGenerator {
       .import('@gear-js/api', 'HexString')
       .import(
         '@gear-js/react-hooks',
-        'useProgram as useSailsProgram, useSendProgramTransaction, useProgramQuery, useProgramEvent',
+        'useProgram as useSailsProgram, useSendProgramTransaction, useProgramQuery, useProgramEvent, UseProgramParameters as useSailsProgramParameters, UseProgramQueryParameters, UseProgramEventParameters',
       )
       // TODO: combine with above after hooks update
-      .import('@gear-js/react-hooks/dist/esm/hooks/sails/types', 'Event, EventCallbackArgs, QueryArgs')
+      .import(
+        '@gear-js/react-hooks/dist/esm/hooks/sails/types',
+        'Event, EventCallbackArgs, QueryArgs, ServiceName as SailsServiceName, FunctionName, QueryName, QueryReturn, EventReturn',
+      )
       .import(`./${LIB_FILE_NAME}`, 'Program')
-      .block('export function useProgram(id: HexString | undefined)', () =>
-        this._out.line('return useSailsProgram({ library: Program, id })'),
+      .block('export function useProgram({ id, ...parameters }: UseProgramParameters)', () =>
+        this._out.line('return useSailsProgram({ library: Program, id, ...parameters })'),
       )
       .line();
+
+    this.generateTypes();
 
     Object.values(services).forEach(({ funcs, events, ...service }) => {
       funcs.forEach(({ isQuery, name }) =>
