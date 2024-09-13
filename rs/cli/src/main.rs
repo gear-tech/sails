@@ -10,6 +10,7 @@ enum CliCommand {
 
 #[derive(Subcommand)]
 enum SailsCommands {
+    /// Create a new program from template
     #[command(name = "new-program")]
     NewProgram {
         #[arg(help = "Path to the new program")]
