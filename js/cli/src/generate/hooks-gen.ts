@@ -4,7 +4,7 @@ import { toLowerCaseFirst } from 'sails-js-util';
 import { Output } from './output.js';
 import { BaseGenerator } from './base.js';
 
-// type UseProgramParameters = Omit<useSailsProgramParameters<Program>, 'library'>;
+// type UseProgramParameters = Omit<useSailsProgramParameters<Program>, 'library' | 'id'>;
 
 // type ProgramType = InstanceType<typeof Program>;
 // type ServiceName = SailsServiceName<ProgramType>;
@@ -36,14 +36,46 @@ import { BaseGenerator } from './base.js';
 //   'program' | 'serviceName' | 'functionName'
 // >;
 
+// const ProgramIdContext = createContext<HexString | undefined>(undefined);
+// const useProgramId = () => useContext(ProgramIdContext);
+
+// const { Provider } = ProgramIdContext;
+
+// type Props = {
+//   value: HexString | undefined;
+//   children: ReactNode;
+// };
+
+// export function ProgramIdProvider({ children, value }: Props) {
+//   return <Provider value={value}>{children}</Provider>;
+// }
+
 export class HooksGenerator extends BaseGenerator {
   constructor(out: Output, private _program: ISailsProgram) {
     super(out);
   }
 
+  private generateImports = () => {
+    const LIB_FILE_NAME = 'lib'; // TODO: pass file name
+
+    this._out
+      .import('@gear-js/api', 'HexString')
+      .import(
+        '@gear-js/react-hooks',
+        'useProgram as useSailsProgram, useSendProgramTransaction, useProgramQuery, useProgramEvent, UseProgramParameters as useSailsProgramParameters, UseProgramQueryParameters, UseProgramEventParameters',
+      )
+      .import('react', 'createContext, ReactNode, useContext')
+      // TODO: combine with above after hooks update
+      .import(
+        '@gear-js/react-hooks/dist/esm/hooks/sails/types',
+        'Event, EventCallbackArgs, QueryArgs, ServiceName as SailsServiceName, FunctionName, QueryName, QueryReturn, EventReturn',
+      )
+      .import(`./${LIB_FILE_NAME}`, 'Program');
+  };
+
   private generateTypes = () => {
     this._out
-      .line("type UseProgramParameters = Omit<useSailsProgramParameters<Program>, 'library'>")
+      .line("type UseProgramParameters = Omit<useSailsProgramParameters<Program>, 'library' | 'id'>")
       .line('type ProgramType = InstanceType<typeof Program>')
       .line('type ServiceName = SailsServiceName<ProgramType>')
       .line()
@@ -72,16 +104,41 @@ export class HooksGenerator extends BaseGenerator {
       .line('    EventCallbackArgs<Event<ProgramType[TServiceName][TFunctionName]>>', false)
       .line('  >,', false)
       .line("  'program' | 'serviceName' | 'functionName'", false)
-      .line('>;');
+      .line('>')
+      .line();
+  };
+
+  private generateProgramIdContext = () => {
+    this._out
+      .line('const ProgramIdContext = createContext<HexString | undefined>(undefined)')
+      .line('const useProgramId = () => useContext(ProgramIdContext)')
+      .line('const { Provider } = ProgramIdContext')
+      .line()
+      .block('type Props =', () => this._out.line('value: HexString | undefined').line('children: ReactNode'))
+      .line()
+      .block('export function ProgramIdProvider({ children, value }: Props)', () =>
+        this._out.line('return <Provider value={value}>{children}</Provider>'),
+      )
+      .line();
+  };
+
+  private generateUseProgram = () => {
+    this._out
+      .block('export function useProgram(parameters?: UseProgramParameters)', () =>
+        this._out
+          .line('const id = useProgramId()')
+          .line('return useSailsProgram({ library: Program, id, ...parameters })'),
+      )
+      .line();
   };
 
   private generateUseSendTransaction = (serviceName: string, functionName: string) => {
     const name = `useSend${serviceName}${functionName}Transaction`;
 
     this._out
-      .block(`export function ${name}(programId: HexString | undefined)`, () => {
+      .block(`export function ${name}()`, () => {
         this._out
-          .line('const { data: program } = useProgram({ id: programId })')
+          .line('const { data: program } = useProgram()')
           .line()
           .line(
             `return useSendProgramTransaction({ program, serviceName: '${toLowerCaseFirst(
@@ -99,10 +156,10 @@ export class HooksGenerator extends BaseGenerator {
 
     this._out
       .block(
-        `export function ${name}(programId: HexString | undefined, parameters: UseQueryParameters<'${formattedServiceName}', '${formattedFunctionName}'>)`,
+        `export function ${name}(parameters: UseQueryParameters<'${formattedServiceName}', '${formattedFunctionName}'>)`,
         () => {
           this._out
-            .line('const { data: program } = useProgram({ id: programId })')
+            .line('const { data: program } = useProgram()')
             .line()
             .line(
               `return useProgramQuery({ program, serviceName: '${formattedServiceName}', functionName: '${formattedFunctionName}', ...parameters })`,
@@ -120,10 +177,10 @@ export class HooksGenerator extends BaseGenerator {
     this._out
       // TODO: rest parameters
       .block(
-        `export function ${name}(programId: HexString | undefined, parameters: UseEventParameters<'${formattedServiceName}', '${functionName}'>)`,
+        `export function ${name}(parameters: UseEventParameters<'${formattedServiceName}', '${functionName}'>)`,
         () => {
           this._out
-            .line('const { data: program } = useProgram({ id: programId })')
+            .line('const { data: program } = useProgram()')
             .line()
             .line(
               `return useProgramEvent({ program, serviceName: '${formattedServiceName}', functionName: '${functionName}', ...parameters })`,
@@ -135,26 +192,11 @@ export class HooksGenerator extends BaseGenerator {
 
   public generate() {
     const { services } = this._program;
-    const LIB_FILE_NAME = 'lib'; // TODO: pass file name
 
-    this._out
-      .import('@gear-js/api', 'HexString')
-      .import(
-        '@gear-js/react-hooks',
-        'useProgram as useSailsProgram, useSendProgramTransaction, useProgramQuery, useProgramEvent, UseProgramParameters as useSailsProgramParameters, UseProgramQueryParameters, UseProgramEventParameters',
-      )
-      // TODO: combine with above after hooks update
-      .import(
-        '@gear-js/react-hooks/dist/esm/hooks/sails/types',
-        'Event, EventCallbackArgs, QueryArgs, ServiceName as SailsServiceName, FunctionName, QueryName, QueryReturn, EventReturn',
-      )
-      .import(`./${LIB_FILE_NAME}`, 'Program')
-      .block('export function useProgram({ id, ...parameters }: UseProgramParameters)', () =>
-        this._out.line('return useSailsProgram({ library: Program, id, ...parameters })'),
-      )
-      .line();
-
+    this.generateImports();
     this.generateTypes();
+    this.generateProgramIdContext();
+    this.generateUseProgram();
 
     Object.values(services).forEach(({ funcs, events, ...service }) => {
       funcs.forEach(({ isQuery, name }) =>
