@@ -17,6 +17,7 @@ export class HooksGenerator extends BaseGenerator {
         '@gear-js/react-hooks',
         `useProgram as useSailsProgram,
         useSendProgramTransaction,
+        usePrepareProgramTransaction,
         useProgramQuery,
         useProgramEvent,
         UseProgramParameters as useSailsProgramParameters,
@@ -107,6 +108,20 @@ export class HooksGenerator extends BaseGenerator {
       .line();
   };
 
+  private generateUsePrepareTransaction = (serviceName: string, functionName: string) => {
+    const name = `usePrepare${serviceName}${functionName}Transaction`;
+
+    this._out
+      .block(`export function ${name}({ program }: ProgramParameter)`, () =>
+        this._out.line(
+          `return usePrepareProgramTransaction({ program, serviceName: '${toLowerCaseFirst(
+            serviceName,
+          )}', functionName: '${toLowerCaseFirst(functionName)}' })`,
+        ),
+      )
+      .line();
+  };
+
   private generateUseQuery = (serviceName: string, functionName: string) => {
     const name = `use${serviceName}${functionName}Query`;
     const formattedServiceName = toLowerCaseFirst(serviceName);
@@ -147,9 +162,12 @@ export class HooksGenerator extends BaseGenerator {
     this.generateUseProgram();
 
     Object.values(services).forEach(({ funcs, events, ...service }) => {
-      funcs.forEach(({ isQuery, name }) =>
-        (isQuery ? this.generateUseQuery : this.generateUseSendTransaction)(service.name, name),
-      );
+      funcs.forEach(({ isQuery, name }) => {
+        if (isQuery) return this.generateUseQuery(service.name, name);
+
+        this.generateUseSendTransaction(service.name, name);
+        this.generateUsePrepareTransaction(service.name, name);
+      });
 
       events.forEach(({ name }) => this.generateUseEvent(service.name, name));
     });
