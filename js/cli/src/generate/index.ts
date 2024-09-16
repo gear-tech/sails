@@ -10,7 +10,7 @@ export function generateLib(sails: Sails, className = 'Program', typesOnly = fal
   const typesGen = new TypesGenerator(out, sails.program);
   typesGen.generate();
 
-  if (typesOnly) {
+  if (!typesOnly) {
     const serviceGen = new ServiceGenerator(out, sails.program, sails.scaleCodecTypes);
 
     serviceGen.generate(className);
