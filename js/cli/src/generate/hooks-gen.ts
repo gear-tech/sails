@@ -44,7 +44,7 @@ export class HooksGenerator extends BaseGenerator {
       .line("type UseProgramParameters = Omit<useSailsProgramParameters<Program>, 'library'>")
       .line('type ProgramType = InstanceType<typeof Program>')
       .line('type ServiceName = SailsServiceName<ProgramType>')
-      .line('type ProgramParameter = { program: ProgramType }')
+      .line('type ProgramParameter = { program: ProgramType | undefined }')
       .line()
       .line('type UseQueryParameters<', false)
       .increaseIndent()

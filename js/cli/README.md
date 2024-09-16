@@ -1,7 +1,9 @@
 # Overview
+
 The `sails-js-cli` is a command-line tool designed to generate TypeScript client libraries from Sails IDL files. It automates the process of creating fully functional client libraries based on the interfaces defined in the Sails framework, streamlining development and ensuring consistency between client and on-chain programs.
 
 # Installation
+
 To install the `sails-js-cli` package globally, run the following command:
 
 ```bash
@@ -15,6 +17,7 @@ npx sails-js-cli command ...args
 ```
 
 # Generate typescript client library using the IDL file
+
 To generate a TypeScript client library run the following command:
 
 ```bash
@@ -33,12 +36,18 @@ If you want to generate only `lib.ts` file without the whole project structure, 
 sails-js generate path/to/sails.idl -o path/to/out/dir --no-project
 ```
 
+React hooks generation is available via `--with-hooks` flag:
+
+```bash
+sails-js generate path/to/sails.idl -o path/to/out/dir --with-hooks
+```
 
 # Use generated library
 
 ## Create an instance
 
 First, connect to the chain using `@gear-js/api`.
+
 ```javascript
 import { GearApi } from '@gear-js/api';
 
@@ -60,7 +69,6 @@ const program = new Program(api, programId);
 
 The `Program` class has all the functions available in the IDL file.
 
-
 ## Methods
 
 There are a few types of methods available in the `Program` class.
@@ -71,6 +79,7 @@ There are a few types of methods available in the `Program` class.
 - Event subscription methods
 
 ### Query methods
+
 Query methods are used to query the program state.
 These methods accept the arguments needed to call the function in the program and return the result. Apart from the arguments, these functions also accept optional parameters: `originAddress` is the address of the account that is calling the function (if this parameter isn't provided zero address is used as a default value), `value` is a parameter parameter can be used depending on the function to send some amount of tokens to the correct function execution and `atBlock` to query program state at a specific block.
 
@@ -81,6 +90,7 @@ console.log(result);
 ```
 
 ### Message methods
+
 Message methods are used to send messages to the program.
 These methods accept the arguments needed to send the message and return [transaction builder](../README.md#transaction-builder) that has a few methods to build and send the transaction.
 
@@ -93,7 +103,7 @@ const transaction = program.serviceName.functionName(arg1, arg2);
 import { Keyring } from '@polkadot/api';
 const keyring = new Keyring({ type: 'sr25519' });
 const pair = keyring.addFromUri('//Alice');
-transaction.withAccount(pair)
+transaction.withAccount(pair);
 
 // Or the address and signerOptions
 // This case is mostly used on the frontend with connected wallet.
@@ -122,10 +132,11 @@ const { msgId, blockHash, response } = await transaction.signAndSend();
 
 const result = await response();
 
-console.log(result)
+console.log(result);
 ```
 
 ### Constructor methods
+
 Constructor methods are postfixed with `CtorFromCode` and `CtorFromCodeId` in the `Program` class and are used to deploy the program on the chain.
 These methods accept either bytes of the wasm or the id of the uploaded code.
 They returns the same [transaction builder](../README.md#transaction-builder) as the message methods.
@@ -139,10 +150,71 @@ const transaction = program.newCtorFromCode(code);
 ```
 
 ### Event subscription methods
+
 Event subscription methods are used to subscribe to the specific events emitted by the program.
 
 ```javascript
 program.subscribeToSomeEvent((data) => {
   console.log(data);
 });
+```
+
+## React Hooks
+
+Library generation with the `--with-hooks` flag creates custom React hooks that facilitate interaction with a `sails-js` program. These hooks are essentially wrappers around the generic hooks provided by the `@gear-js/react-hooks` library. The custom hooks are generated based on the `Program` class defined in the `lib.ts` file, and they are based on the specific types and names derived from it.
+
+Feel free to refer to the `@gear-js/react-hooks` [README](https://github.com/gear-tech/gear-js/tree/main/utils/gear-hooks#sails) for a summary of the hooks' specifics.
+
+### useProgram
+
+Initializes the program with the provided parameters.
+
+```jsx
+import { useProgram } from './hooks';
+
+const { data: program } = useProgram({ id: '0x...' });
+```
+
+### useSend `serviceName` `functionName` Transaction
+
+Sends a transaction to a specified service and function.
+
+```jsx
+import { useProgram, useSendAdminMintTransaction } from './hooks';
+
+const { data: program } = useProgram({ id: '0x...' });
+const { sendTransaction } = useSendAdminMintTransaction({ program });
+```
+
+### usePrepare `serviceName` `functionName` Transaction
+
+Prepares a transaction for a specified service and function.
+
+```jsx
+import { useProgram, usePrepareAdminMintTransaction } from './hooks';
+
+const { data: program } = useProgram({ id: '0x...' });
+const { prepareTransaction } = usePrepareAdminMintTransaction({ program });
+```
+
+### use `serviceName` `functionName` Query
+
+Queries a specified service and function.
+
+```jsx
+import { useProgram, useErc20BalanceOfQuery } from './hooks';
+
+const { data: program } = useProgram({ id: '0x...' });
+const { data } = useErc20BalanceOfQuery({ program, args: ['0x...'] });
+```
+
+### use `serviceName` `functionName` Event
+
+Subscribes to events from a specified service and event name.
+
+```jsx
+import { useProgram, useAdminMintedEvent } from './hooks';
+
+const { data: program } = useProgram({ id: '0x...' });
+const { data } = useAdminMintedEvent({ program, onData: (value) => console.log(value) });
 ```

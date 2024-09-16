@@ -25,7 +25,7 @@ const handler = async (path: string, out: string, name: string, project: boolean
   let hooksFile = '';
 
   if (withHooks) {
-    hooksFile = project ? _path.join(dir, 'src', 'hooks.tsx') : _path.join(dir, 'hooks.tsx');
+    hooksFile = project ? _path.join(dir, 'src', 'hooks.ts') : _path.join(dir, 'hooks.ts');
   }
 
   if (!existsSync(dir)) {
