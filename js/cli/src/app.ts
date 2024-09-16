@@ -12,7 +12,7 @@ import * as config from './config.json';
 
 const program = new Command();
 
-const handler = async (path: string, out: string, name: string, project: boolean) => {
+const handler = async (path: string, out: string, name: string, project: boolean, typesOnly: boolean) => {
   const parser = new SailsIdlParser();
   await parser.init();
   const sails = new Sails(parser);
@@ -43,7 +43,7 @@ const handler = async (path: string, out: string, name: string, project: boolean
   let libCode: string;
 
   try {
-    libCode = generateLib(sails.parseIdl(idl), name);
+    libCode = generateLib(sails.parseIdl(idl), name, typesOnly);
   } catch (e) {
     console.log(e.message, e.stack);
     process.exit(1);
@@ -126,10 +126,11 @@ program
   .option('--no-project', 'Generate single file without project structure')
   .option('-n --name <name>', 'Name of the library', 'program')
   .option('-o --out <path-to-dir>', 'Output directory')
+  .option('-t --types-only', 'Generate only types defined', false)
   .description('Generate typescript library based on .sails.idl file')
-  .action(async (path, options: { out: string; name: string; project: boolean }) => {
+  .action(async (path, options: { out: string; name: string; project: boolean; typesOnly: boolean }) => {
     try {
-      await handler(path, options.out, options.name, options.project);
+      await handler(path, options.out, options.name, options.project, options.typesOnly);
     } catch (error) {
       console.error(error.message);
       process.exit(1);
