@@ -16,13 +16,26 @@ export class HooksGenerator extends BaseGenerator {
       .import('@gear-js/api', 'HexString')
       .import(
         '@gear-js/react-hooks',
-        'useProgram as useSailsProgram, useSendProgramTransaction, useProgramQuery, useProgramEvent, UseProgramParameters as useSailsProgramParameters, UseProgramQueryParameters, UseProgramEventParameters',
+        `useProgram as useSailsProgram,
+        useSendProgramTransaction,
+        useProgramQuery,
+        useProgramEvent,
+        UseProgramParameters as useSailsProgramParameters,
+        UseProgramQueryParameters,
+        UseProgramEventParameters`,
       )
       .import('react', 'createContext, ReactNode, useContext')
       // TODO: combine with above after hooks update
       .import(
         '@gear-js/react-hooks/dist/esm/hooks/sails/types',
-        'Event, EventCallbackArgs, QueryArgs, ServiceName as SailsServiceName, FunctionName, QueryName, QueryReturn, EventReturn',
+        `Event,
+        EventCallbackArgs,
+        QueryArgs,
+        ServiceName as SailsServiceName,
+        FunctionName,
+        QueryName,
+        QueryReturn,
+        EventReturn`,
       )
       .import(`./${LIB_FILE_NAME}`, 'Program');
   };
@@ -35,30 +48,42 @@ export class HooksGenerator extends BaseGenerator {
       .line('type ProgramId = { programId?: HexString | undefined }')
       .line()
       .line('type UseQueryParameters<', false)
-      .line('  TServiceName extends ServiceName,', false)
-      .line('  TFunctionName extends QueryName<ProgramType[TServiceName]>,', false)
+      .increaseIndent()
+      .line('TServiceName extends ServiceName,', false)
+      .line('TFunctionName extends QueryName<ProgramType[TServiceName]>,', false)
+      .reduceIndent()
       .line('> = Omit<', false)
-      .line('  UseProgramQueryParameters<', false)
-      .line('    ProgramType,', false)
-      .line('    TServiceName,', false)
-      .line('    TFunctionName,', false)
-      .line('    QueryArgs<ProgramType[TServiceName][TFunctionName]>,', false)
-      .line('    QueryReturn<ProgramType[TServiceName][TFunctionName]>', false)
-      .line('  >,', false)
-      .line("  'program' | 'serviceName' | 'functionName'", false)
+      .increaseIndent()
+      .line('UseProgramQueryParameters<', false)
+      .increaseIndent()
+      .line('ProgramType,', false)
+      .line('TServiceName,', false)
+      .line('TFunctionName,', false)
+      .line('QueryArgs<ProgramType[TServiceName][TFunctionName]>,', false)
+      .line('QueryReturn<ProgramType[TServiceName][TFunctionName]>', false)
+      .reduceIndent()
+      .line('>,', false)
+      .line("'program' | 'serviceName' | 'functionName'", false)
+      .reduceIndent()
       .line('> & ProgramId')
       .line()
       .line('type UseEventParameters<', false)
-      .line('  TServiceName extends ServiceName,', false)
-      .line('  TFunctionName extends FunctionName<ProgramType[TServiceName], EventReturn>,', false)
+      .increaseIndent()
+      .line('TServiceName extends ServiceName,', false)
+      .line('TFunctionName extends FunctionName<ProgramType[TServiceName], EventReturn>,', false)
+      .reduceIndent()
       .line('> = Omit<', false)
-      .line('  UseProgramEventParameters<', false)
-      .line('    ProgramType,', false)
-      .line('    TServiceName,', false)
-      .line('    TFunctionName,', false)
-      .line('    EventCallbackArgs<Event<ProgramType[TServiceName][TFunctionName]>>', false)
-      .line('  >,', false)
-      .line("  'program' | 'serviceName' | 'functionName'", false)
+      .increaseIndent()
+      .line('UseProgramEventParameters<', false)
+      .increaseIndent()
+      .line('ProgramType,', false)
+      .line('TServiceName,', false)
+      .line('TFunctionName,', false)
+      .line('EventCallbackArgs<Event<ProgramType[TServiceName][TFunctionName]>>', false)
+      .reduceIndent()
+      .line('>,', false)
+      .line("'program' | 'serviceName' | 'functionName'", false)
+      .reduceIndent()
       .line('> & ProgramId')
       .line();
   };
@@ -131,7 +156,6 @@ export class HooksGenerator extends BaseGenerator {
     const functionName = `subscribeTo${eventName}Event`;
 
     this._out
-      // TODO: rest parameters
       .block(
         `export function ${name}(parameters: UseEventParameters<'${formattedServiceName}', '${functionName}'>)`,
         () =>
