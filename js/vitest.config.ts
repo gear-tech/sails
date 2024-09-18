@@ -10,8 +10,6 @@ export default defineConfig({
     include: ['**/*-hooks.test.ts?(x)'], // targeting only hooks
     environment: 'happy-dom', // faster than jsdom
     watch: false, // fire one time
-
-    // patching esm to allow spying
-    server: { deps: { inline: ['@gear-js/react-hooks'] } },
+    server: { deps: { inline: ['@gear-js/react-hooks'] } }, // patching esm to allow spying
   },
 });
