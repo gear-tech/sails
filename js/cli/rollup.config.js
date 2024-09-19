@@ -25,6 +25,7 @@ function updateConfigVersions() {
       config.versions['polkadot-api'] = sailsJs.peerDependencies['@polkadot/api'];
       config.versions['sails-js'] = sailsJs.version;
       config.versions['typescript'] = rootPkgJson.devDependencies.typescript;
+      config.versions['@gear-js/react-hooks'] = sailsJs.devDependencies['@gear-js/react-hooks'];
 
       writeFileSync('src/config.json', JSON.stringify(config, null, 2));
     },

@@ -32,8 +32,8 @@
   "scripts": {
     "prebuild": "rm -rf lib",
     "build": "npx rollup --config rollup.config.js",
-    "test": "yarn node --no-warnings --experimental-vm-modules $(yarn bin jest) --detectOpenHandles",
-    "test-hooks": "vitest"
+    "test-hooks": "vitest",
+    "test": "yarn node --no-warnings --experimental-vm-modules $(yarn bin jest) --detectOpenHandles && yarn run test-hooks"
   },
   "peerDependencies": {
     "@gear-js/api": "0.38.2",
