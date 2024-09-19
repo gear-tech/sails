@@ -1,10 +1,8 @@
 #!/usr/bin/env node
 
-import { readFileSync, mkdirSync, existsSync, writeFileSync } from 'fs';
 import { SailsIdlParser } from 'sails-js-parser';
 import { Command } from 'commander';
 import { Sails } from 'sails-js';
-import * as _path from 'path';
 
 import { ProjectBuilder } from './generate/index.js';
 
