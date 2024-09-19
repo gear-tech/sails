@@ -22,7 +22,7 @@ export class HooksGenerator extends BaseGenerator {
         useProgramEvent,
         UseProgramParameters as useSailsProgramParameters,
         UseProgramQueryParameters,
-        UseProgramEventParameters`,
+        UseProgramEventParameters`
       )
       // TODO: combine with above after hooks update
       .import(
@@ -34,7 +34,7 @@ export class HooksGenerator extends BaseGenerator {
         FunctionName,
         QueryName,
         QueryReturn,
-        EventReturn`,
+        EventReturn`
       )
       .import(`./${LIB_FILE_NAME}`, 'Program');
   };
@@ -62,9 +62,9 @@ export class HooksGenerator extends BaseGenerator {
       .line('QueryReturn<ProgramType[TServiceName][TFunctionName]>', false)
       .reduceIndent()
       .line('>,', false)
-      .line("'program' | 'serviceName' | 'functionName'", false)
+      .line("'serviceName' | 'functionName'", false)
       .reduceIndent()
-      .line('> & ProgramParameter')
+      .line('>')
       .line()
       .line('type UseEventParameters<', false)
       .increaseIndent()
@@ -81,16 +81,16 @@ export class HooksGenerator extends BaseGenerator {
       .line('EventCallbackArgs<Event<ProgramType[TServiceName][TFunctionName]>>', false)
       .reduceIndent()
       .line('>,', false)
-      .line("'program' | 'serviceName' | 'functionName'", false)
+      .line("'serviceName' | 'functionName'", false)
       .reduceIndent()
-      .line('> & ProgramParameter')
+      .line('>')
       .line();
   };
 
   private generateUseProgram = () =>
     this._out
       .block('export function useProgram(parameters: UseProgramParameters)', () =>
-        this._out.line('return useSailsProgram({ library: Program, ...parameters })'),
+        this._out.line('return useSailsProgram({ library: Program, ...parameters })')
       )
       .line();
 
@@ -101,9 +101,9 @@ export class HooksGenerator extends BaseGenerator {
       .block(`export function ${name}({ program }: ProgramParameter)`, () =>
         this._out.line(
           `return useSendProgramTransaction({ program, serviceName: '${toLowerCaseFirst(
-            serviceName,
-          )}', functionName: '${toLowerCaseFirst(functionName)}' })`,
-        ),
+            serviceName
+          )}', functionName: '${toLowerCaseFirst(functionName)}' })`
+        )
       )
       .line();
   };
@@ -115,9 +115,9 @@ export class HooksGenerator extends BaseGenerator {
       .block(`export function ${name}({ program }: ProgramParameter)`, () =>
         this._out.line(
           `return usePrepareProgramTransaction({ program, serviceName: '${toLowerCaseFirst(
-            serviceName,
-          )}', functionName: '${toLowerCaseFirst(functionName)}' })`,
-        ),
+            serviceName
+          )}', functionName: '${toLowerCaseFirst(functionName)}' })`
+        )
       )
       .line();
   };
@@ -132,8 +132,8 @@ export class HooksGenerator extends BaseGenerator {
         `export function ${name}(parameters: UseQueryParameters<'${formattedServiceName}', '${formattedFunctionName}'>)`,
         () =>
           this._out.line(
-            `return useProgramQuery({ ...parameters, serviceName: '${formattedServiceName}', functionName: '${formattedFunctionName}' })`,
-          ),
+            `return useProgramQuery({ ...parameters, serviceName: '${formattedServiceName}', functionName: '${formattedFunctionName}' })`
+          )
       )
       .line();
   };
@@ -148,8 +148,8 @@ export class HooksGenerator extends BaseGenerator {
         `export function ${name}(parameters: UseEventParameters<'${formattedServiceName}', '${functionName}'>)`,
         () =>
           this._out.line(
-            `return useProgramEvent({...parameters, serviceName: '${formattedServiceName}', functionName: '${functionName}' })`,
-          ),
+            `return useProgramEvent({...parameters, serviceName: '${formattedServiceName}', functionName: '${functionName}' })`
+          )
       )
       .line();
   };
