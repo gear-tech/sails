@@ -3,8 +3,8 @@ source: rs/macros/core/tests/gservice.rs
 expression: result
 ---
 impl SomeService {
-    pub async fn do_this(&mut self, p1: u32, p2: String) -> u32 {
-        p1
+    pub async fn do_this(&mut self, p1: u32, p2: String) -> CommandReply<u32> {
+        (p1, 100_000_000_000).into()
     }
     pub fn this(&self, p1: bool) -> bool {
         p1
@@ -21,7 +21,7 @@ pub struct Exposure<T> {
     inner: T,
 }
 impl Exposure<SomeService> {
-    pub async fn do_this(&mut self, p1: u32, p2: String) -> u32 {
+    pub async fn do_this(&mut self, p1: u32, p2: String) -> CommandReply<u32> {
         let exposure_scope = sails_rs::gstd::services::ExposureCallScope::new(self);
         self.inner.do_this(p1, p2).await
     }
@@ -74,8 +74,11 @@ impl Exposure<SomeService> {
     async fn __do_this(&mut self, mut input: &[u8]) -> (Vec<u8>, u128) {
         let request = __DoThisParams::decode(&mut input)
             .expect("Failed to decode request");
-        let result = self.do_this(request.p1, request.p2).await;
-        let value = 0u128;
+        let command_reply: CommandReply<u32> = self
+            .do_this(request.p1, request.p2)
+            .await
+            .into();
+        let (result, value) = command_reply.to_tuple();
         return (result.encode(), value);
     }
     async fn __this(&self, mut input: &[u8]) -> (Vec<u8>, u128) {
