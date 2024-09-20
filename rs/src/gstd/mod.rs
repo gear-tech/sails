@@ -42,11 +42,11 @@ impl ExecContext for GStdExecContext {
     }
 }
 
-pub struct CommandResult<T>(T, ValueUnit);
+pub struct CommandReply<T>(T, ValueUnit);
 
-impl<T> CommandResult<T> {
-    pub fn new(value: T) -> Self {
-        Self(value, 0)
+impl<T> CommandReply<T> {
+    pub fn new(result: T) -> Self {
+        Self(result, 0)
     }
 
     pub fn with_value(self, value: ValueUnit) -> Self {
@@ -58,13 +58,13 @@ impl<T> CommandResult<T> {
     }
 }
 
-impl<T> From<T> for CommandResult<T> {
-    fn from(value: T) -> Self {
-        Self(value, 0)
+impl<T> From<T> for CommandReply<T> {
+    fn from(result: T) -> Self {
+        Self(result, 0)
     }
 }
 
-impl<T> From<(T, ValueUnit)> for CommandResult<T> {
+impl<T> From<(T, ValueUnit)> for CommandReply<T> {
     fn from(value: (T, ValueUnit)) -> Self {
         Self(value.0, value.1)
     }

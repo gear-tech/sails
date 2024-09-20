@@ -191,7 +191,7 @@ fn works_with_crate_path() {
 fn works_with_reply_with_value() {
     let input = quote! {
         impl SomeService {
-            pub async fn do_this(&mut self, p1: u32, p2: String) -> CommandResult<u32> {
+            pub async fn do_this(&mut self, p1: u32, p2: String) -> CommandReply<u32> {
                 (p1, 100_000_000_000).into()
             }
 

@@ -506,18 +506,27 @@ struct HandlerGenerator<'a> {
     handler: Func<'a>,
     result_type: Type,
     reply_with_value: bool,
+    is_query: bool,
 }
 
 impl<'a> HandlerGenerator<'a> {
     fn from(handler: Func<'a>) -> Self {
         // process result type to extact value and replace any lifetime with 'static
         let (result_type, reply_with_value) =
-            shared::extract_result_type_with_value(handler.result().clone());
+            shared::extract_reply_type_with_value(handler.result())
+                .map_or_else(|| (handler.result().clone(), false), |t| (t, true));
         let result_type = shared::replace_any_lifetime_with_static(result_type);
+        let is_query = handler.receiver().map_or(true, |r| r.mutability.is_none());
+
+        if reply_with_value && is_query {
+            panic!("using `CommandReply` type in a query is not allowed");
+        }
+
         Self {
             handler,
             result_type,
             reply_with_value,
+            is_query,
         }
     }
 
@@ -547,9 +556,11 @@ impl<'a> HandlerGenerator<'a> {
     }
 
     fn is_query(&self) -> bool {
-        self.handler
-            .receiver()
-            .map_or(true, |r| r.mutability.is_none())
+        self.is_query
+    }
+
+    fn reply_with_value(&self) -> bool {
+        self.reply_with_value
     }
 
     fn params_struct(&self) -> TokenStream {
@@ -577,10 +588,12 @@ impl<'a> HandlerGenerator<'a> {
             quote!(request.#param_ident)
         });
 
+        let result_type = self.result_type();
         let await_token = self.handler.is_async().then(|| quote!(.await));
-        let handle_token = if self.reply_with_value {
+        let handle_token = if self.reply_with_value() {
             quote! {
-                let (result, value) = self.#handler_func_ident(#(#handler_func_params),*)#await_token.to_tuple();
+                let command_reply: CommandReply<#result_type> = self.#handler_func_ident(#(#handler_func_params),*)#await_token.into();
+                let (result, value) = command_reply.to_tuple();
             }
         } else {
             quote! {
