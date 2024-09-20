@@ -1,4 +1,4 @@
-use sails_rs::gstd::{exec, msg, CommandReply};
+use sails_rs::gstd::{exec, msg};
 use sails_rs::prelude::*;
 
 #[derive(Encode, TypeInfo)]

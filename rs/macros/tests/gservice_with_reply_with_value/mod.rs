@@ -1,5 +1,5 @@
 use sails_macros::service;
-use sails_rs::{gstd::CommandReply, Encode};
+use sails_rs::{CommandReply, Encode};
 
 pub(super) struct MyServiceWithReplyWithValue;
 
