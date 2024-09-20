@@ -6,27 +6,12 @@ use crate::{
 };
 use core::future::Future;
 use futures::{stream, Stream, StreamExt};
-use gclient::{
-    ext::sp_core::ByteArray,
-    metadata::runtime_types::{
-        gear_core::message::user::UserMessage as GenUserMessage,
-        pallet_gear_voucher::internal::VoucherId,
-    },
-    EventProcessor, GearApi,
-};
+use gclient::metadata::runtime_types::gear_core::message::user::UserMessage as GenUserMessage;
+use gclient::{ext::sp_core::ByteArray, EventProcessor, GearApi};
 use gear_core_errors::ReplyCode;
 
 #[derive(Debug, Default)]
-pub struct GClientArgs {
-    voucher: Option<(VoucherId, bool)>,
-}
-
-impl GClientArgs {
-    pub fn with_voucher(mut self, voucher_id: VoucherId, keep_alive: bool) -> Self {
-        self.voucher = Some((voucher_id, keep_alive));
-        self
-    }
-}
+pub struct GClientArgs;
 
 #[derive(Clone)]
 pub struct GClientRemoting {
@@ -86,7 +71,7 @@ impl Remoting for GClientRemoting {
         payload: impl AsRef<[u8]>,
         gas_limit: Option<GasUnit>,
         value: ValueUnit,
-        args: GClientArgs,
+        _args: GClientArgs,
     ) -> Result<impl Future<Output = Result<Vec<u8>>>> {
         let api = self.api;
         // Calculate gas amount if it is not explicitly set
@@ -101,15 +86,9 @@ impl Remoting for GClientRemoting {
         };
 
         let mut listener = api.subscribe().await?;
-        let (message_id, ..) = if let Some((voucher_id, keep_alive)) = args.voucher {
-            api.send_message_bytes_with_voucher(
-                voucher_id, target, payload, gas_limit, value, keep_alive,
-            )
-            .await?
-        } else {
-            api.send_message_bytes(target, payload, gas_limit, value)
-                .await?
-        };
+        let (message_id, ..) = api
+            .send_message_bytes(target, payload, gas_limit, value)
+            .await?;
 
         Ok(async move {
             let (_, result, _) = listener.reply_bytes_on(message_id).await?;
@@ -142,7 +121,10 @@ impl Remoting for GClientRemoting {
 
         match reply_info.code {
             ReplyCode::Success(_) => Ok(reply_info.payload),
-            ReplyCode::Error(reason) => Err(RtlError::ReplyHasError(reason))?,
+            ReplyCode::Error(reason) => {
+                let message = String::from_utf8_lossy(&reply_info.payload).to_string();
+                Err(RtlError::ReplyHasError(reason, message))?
+            }
             ReplyCode::Unsupported => Err(RtlError::ReplyIsMissing)?,
         }
     }

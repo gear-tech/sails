@@ -149,8 +149,9 @@ async fn counter_query_not_enough_gas() {
     assert!(matches!(
         result,
         Err(sails_rs::errors::Error::Rtl(RtlError::ReplyHasError(
-            ErrorReplyReason::Execution(SimpleExecutionError::RanOutOfGas)
-        )))
+            ErrorReplyReason::Execution(SimpleExecutionError::RanOutOfGas),
+            message
+        ))) if message == "Not enough gas to handle program data"
     ));
 }
 

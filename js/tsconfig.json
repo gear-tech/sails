@@ -3,14 +3,10 @@
     "target": "ESNext",
     "module": "ESNext",
     "moduleResolution": "node",
-    "baseUrl": "./src",
-    "declaration": true,
-    "outDir": "./lib",
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
     "strict": false,
     "noImplicitAny": false,
     "skipLibCheck": true
-  },
-  "include": ["src", "test"]
+  }
 }

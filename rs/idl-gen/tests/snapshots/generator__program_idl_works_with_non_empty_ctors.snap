@@ -1,5 +1,5 @@
 ---
-source: idl-gen/tests/generator.rs
+source: rs/idl-gen/tests/generator.rs
 expression: generated_idl
 ---
 type TupleStruct = struct {
@@ -12,6 +12,14 @@ type GenericStructForH256 = struct {
 
 type GenericStructForStr = struct {
   p1: str,
+};
+
+type GenericConstStruct1 = struct {
+  field: [u8, 8],
+};
+
+type GenericConstStruct2 = struct {
+  field: [u8, 32],
 };
 
 type DoThatParam = struct {
@@ -51,7 +59,7 @@ constructor {
 };
 
 service {
-  DoThis : (p1: u32, p2: str, p3: struct { opt str, u8 }, p4: TupleStruct, p5: GenericStructForH256, p6: GenericStructForStr) -> str;
+  DoThis : (p1: u32, p2: str, p3: struct { opt str, u8 }, p4: TupleStruct, p5: GenericStructForH256, p6: GenericStructForStr, p7: GenericConstStruct1, p8: GenericConstStruct2) -> str;
   DoThat : (par1: DoThatParam) -> result (struct { str, u32 }, struct { str });
   query This : (p1: u32, p2: str, p3: struct { opt str, u8 }, p4: TupleStruct, p5: GenericEnumForBoolAndU32) -> result (struct { str, u32 }, str);
   query That : (pr1: ThatParam) -> str;

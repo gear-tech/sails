@@ -1,0 +1,9 @@
+{
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "declaration": false,
+    "resolveJsonModule": true,
+    "removeComments": true
+  },
+  "include": ["src"]
+}

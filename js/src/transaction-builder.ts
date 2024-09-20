@@ -2,8 +2,8 @@ import { GearApi, HexString, ICallOptions, MessageQueuedData, decodeAddress } fr
 import { SignerOptions, SubmittableExtrinsic } from '@polkadot/api/types';
 import { IKeyringPair, ISubmittableResult } from '@polkadot/types/types';
 import { TypeRegistry, u128, u64 } from '@polkadot/types';
-import { getPayloadMethod } from './utils/index.js';
-import { ZERO_ADDRESS } from 'consts.js';
+import { getPayloadMethod } from 'sails-js-util';
+import { ZERO_ADDRESS } from './consts.js';
 
 export interface IMethodReturnType<T> {
   /**
