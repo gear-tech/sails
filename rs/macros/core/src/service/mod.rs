@@ -513,7 +513,8 @@ impl<'a> HandlerGenerator<'a> {
     fn from(handler: Func<'a>) -> Self {
         // process result type to extact value and replace any lifetime with 'static
         let (result_type, reply_with_value) =
-            shared::extract_result_type_with_value(handler.result().clone());
+            shared::extract_reply_type_with_value(handler.result())
+                .map_or_else(|| (handler.result().clone(), false), |t| (t, true));
         let result_type = shared::replace_any_lifetime_with_static(result_type);
         let is_query = handler.receiver().map_or(true, |r| r.mutability.is_none());
 

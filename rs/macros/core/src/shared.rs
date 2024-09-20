@@ -225,13 +225,11 @@ fn replace_lifetime_with_static_in_path_args(path_args: PathArguments) -> PathAr
 }
 
 /// Check if type is `CommandReply<T>` and extract inner type `T`
-pub(crate) fn extract_result_type_with_value(ty: Type) -> (Type, bool) {
-    match &ty {
-        Type::Path(tp) => extract_reply_result_type(tp).map_or((ty, false), |t| (t, true)),
-        Type::ImplTrait(imp) => {
-            extract_reply_result_type_from_impl_into(imp).map_or((ty, false), |t| (t, true))
-        }
-        _ => (ty, false),
+pub(crate) fn extract_reply_type_with_value(ty: &Type) -> Option<Type> {
+    match ty {
+        Type::Path(tp) => extract_reply_result_type(tp),
+        Type::ImplTrait(imp) => extract_reply_result_type_from_impl_into(imp),
+        _ => None,
     }
 }
 
