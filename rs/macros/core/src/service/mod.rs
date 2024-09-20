@@ -580,7 +580,7 @@ impl<'a> HandlerGenerator<'a> {
         let await_token = self.handler.is_async().then(|| quote!(.await));
         let handle_token = if self.reply_with_value {
             quote! {
-                let (result, value) = self.#handler_func_ident(#(#handler_func_params),*)#await_token;
+                let (result, value) = self.#handler_func_ident(#(#handler_func_params),*)#await_token.to_tuple();
             }
         } else {
             quote! {

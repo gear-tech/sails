@@ -1,4 +1,4 @@
-use sails_rs::gstd::{exec, msg};
+use sails_rs::gstd::{exec, msg, CommandResult};
 use sails_rs::prelude::*;
 
 #[derive(Encode, TypeInfo)]
@@ -19,11 +19,11 @@ impl FeeService {
     }
 
     /// Return flag if fee taken and remain value,
-    /// using special tuple syntax `(T, ValueUnit)`
-    pub fn do_something_and_take_fee(&mut self) -> (bool, ValueUnit) {
+    /// using special type `CommandResult<T>`
+    pub fn do_something_and_take_fee(&mut self) -> CommandResult<bool> {
         let value = msg::value();
         if value == 0 {
-            return (false, value);
+            return false.into();
         }
         if value < self.fee {
             panic!("Not enough value");
@@ -31,10 +31,11 @@ impl FeeService {
         self.notify_on(FeeEvents::Withheld(self.fee)).unwrap();
         let to_return = value - self.fee;
         if to_return < exec::env_vars().existential_deposit {
-            (true, 0)
+            // return zero value with reply
+            true.into()
         } else {
             // return remaining value with reply
-            (true, to_return)
+            CommandResult::new(true).with_value(to_return)
         }
     }
 }

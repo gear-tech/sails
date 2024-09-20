@@ -3,7 +3,7 @@ pub use gstd::{async_init, async_main, handle_reply_with_hook, handle_signal, me
 pub use gstd::{debug, exec, msg};
 pub use sails_macros::*;
 
-use crate::{ActorId, MessageId};
+use crate::{ActorId, MessageId, ValueUnit};
 use core::cell::OnceCell;
 
 pub mod calls;
@@ -39,5 +39,33 @@ impl ExecContext for GStdExecContext {
 
     fn message_id(&self) -> MessageId {
         *self.msg_id.get_or_init(msg::id)
+    }
+}
+
+pub struct CommandResult<T>(T, ValueUnit);
+
+impl<T> CommandResult<T> {
+    pub fn new(value: T) -> Self {
+        Self(value, 0)
+    }
+
+    pub fn with_value(self, value: ValueUnit) -> Self {
+        Self(self.0, value)
+    }
+
+    pub fn to_tuple(self) -> (T, ValueUnit) {
+        (self.0, self.1)
+    }
+}
+
+impl<T> From<T> for CommandResult<T> {
+    fn from(value: T) -> Self {
+        Self(value, 0)
+    }
+}
+
+impl<T> From<(T, ValueUnit)> for CommandResult<T> {
+    fn from(value: (T, ValueUnit)) -> Self {
+        Self(value.0, value.1)
     }
 }
