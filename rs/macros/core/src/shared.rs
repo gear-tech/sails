@@ -6,7 +6,7 @@ use std::collections::BTreeMap;
 use syn::{
     punctuated::Punctuated, spanned::Spanned, FnArg, GenericArgument, Ident, ImplItem, ImplItemFn,
     ItemImpl, Lifetime, Pat, Path, PathArguments, PathSegment, Receiver, ReturnType, Signature,
-    Token, Type, TypePath, TypeReference, TypeTuple, WhereClause,
+    Token, Type, TypeImplTrait, TypeParamBound, TypePath, TypeReference, TypeTuple, WhereClause,
 };
 
 pub(crate) fn impl_type(item_impl: &ItemImpl) -> (TypePath, PathArguments) {
@@ -228,6 +228,9 @@ fn replace_lifetime_with_static_in_path_args(path_args: PathArguments) -> PathAr
 pub(crate) fn extract_result_type_with_value(ty: Type) -> (Type, bool) {
     match &ty {
         Type::Path(tp) => extract_reply_result_type(tp).map_or((ty, false), |t| (t, true)),
+        Type::ImplTrait(imp) => {
+            extract_reply_result_type_from_impl_into(imp).map_or((ty, false), |t| (t, true))
+        }
         _ => (ty, false),
     }
 }
@@ -242,6 +245,25 @@ fn extract_reply_result_type(tp: &TypePath) -> Option<Type> {
             if args.args.len() == 1 {
                 if let Some(GenericArgument::Type(ty)) = args.args.first() {
                     return Some(ty.clone());
+                }
+            }
+        }
+    }
+    None
+}
+
+/// Extract `T` type from `impl Into<CommandReply<T>>`
+fn extract_reply_result_type_from_impl_into(tit: &TypeImplTrait) -> Option<Type> {
+    if let Some(TypeParamBound::Trait(tr)) = tit.bounds.first() {
+        if let Some(last) = tr.path.segments.last() {
+            if last.ident != "Into" {
+                return None;
+            }
+            if let PathArguments::AngleBracketed(args) = &last.arguments {
+                if args.args.len() == 1 {
+                    if let Some(GenericArgument::Type(Type::Path(tp))) = args.args.first() {
+                        return extract_reply_result_type(tp);
+                    }
                 }
             }
         }

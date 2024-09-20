@@ -558,6 +558,10 @@ impl<'a> HandlerGenerator<'a> {
         self.is_query
     }
 
+    fn reply_with_value(&self) -> bool {
+        self.reply_with_value
+    }
+
     fn params_struct(&self) -> TokenStream {
         let params_struct_ident = self.params_struct_ident();
         let params_struct_members = self.handler.params().iter().map(|item| {
@@ -583,10 +587,12 @@ impl<'a> HandlerGenerator<'a> {
             quote!(request.#param_ident)
         });
 
+        let result_type = self.result_type();
         let await_token = self.handler.is_async().then(|| quote!(.await));
-        let handle_token = if self.reply_with_value {
+        let handle_token = if self.reply_with_value() {
             quote! {
-                let (result, value) = self.#handler_func_ident(#(#handler_func_params),*)#await_token.to_tuple();
+                let command_reply: CommandReply<#result_type> = self.#handler_func_ident(#(#handler_func_params),*)#await_token.into();
+                let (result, value) = command_reply.to_tuple();
             }
         } else {
             quote! {

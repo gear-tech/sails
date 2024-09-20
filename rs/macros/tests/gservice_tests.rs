@@ -278,3 +278,36 @@ async fn gservice_with_reply_with_value() {
 
     assert_eq!(output.len(), 0);
 }
+
+#[tokio::test]
+async fn gservice_with_reply_with_value_with_impl_from() {
+    use gservice_with_reply_with_value::MyDoThisParams;
+    use gservice_with_reply_with_value::MyServiceWithReplyWithValue;
+
+    const DO_THAT: &str = "DoThat";
+
+    let input = [
+        DO_THAT.encode(),
+        MyDoThisParams {
+            p1: 42,
+            p2: "correct".into(),
+        }
+        .encode(),
+    ]
+    .concat();
+    let (output, value) = MyServiceWithReplyWithValue
+        .expose(MessageId::from(123), &[1, 2, 3])
+        .handle(&input)
+        .await;
+
+    assert_eq!(value, 100_000_000_000);
+    let mut output = output.as_slice();
+
+    let func_name = String::decode(&mut output).unwrap();
+    assert_eq!(func_name, DO_THAT);
+
+    let result = String::decode(&mut output).unwrap();
+    assert_eq!(result, "42: correct");
+
+    assert_eq!(output.len(), 0);
+}

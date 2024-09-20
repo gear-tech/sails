@@ -1,0 +1,7 @@
+error: custom attribute panicked
+ --> tests/ui/gservice_fails_query_reply_with_value.rs:5:1
+  |
+5 | #[service]
+  | ^^^^^^^^^^
+  |
+  = help: message: using `CommandReply` type in a query is not allowed

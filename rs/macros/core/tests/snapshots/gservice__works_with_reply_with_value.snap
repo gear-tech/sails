@@ -74,7 +74,11 @@ impl Exposure<SomeService> {
     async fn __do_this(&mut self, mut input: &[u8]) -> (Vec<u8>, u128) {
         let request = __DoThisParams::decode(&mut input)
             .expect("Failed to decode request");
-        let (result, value) = self.do_this(request.p1, request.p2).await.to_tuple();
+        let command_reply: CommandReply<u32> = self
+            .do_this(request.p1, request.p2)
+            .await
+            .into();
+        let (result, value) = command_reply.to_tuple();
         return (result.encode(), value);
     }
     async fn __this(&self, mut input: &[u8]) -> (Vec<u8>, u128) {
