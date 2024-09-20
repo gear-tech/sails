@@ -240,7 +240,7 @@ async fn spin_up_node_with_demo_code() -> (GClientRemoting, CodeId, GasUnit) {
     }
     let api = GearApi::dev_from_path(gear_path.unwrap()).await.unwrap();
     let gas_limit = api.block_gas_limit().unwrap();
+    let (code_id, _) = api.upload_code_by_path(DEMO_WASM_PATH).await.unwrap();
     let remoting = GClientRemoting::new(api);
-    let code_id = remoting.upload_code_by_path(DEMO_WASM_PATH).await.unwrap();
     (remoting, code_id, gas_limit)
 }
