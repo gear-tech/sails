@@ -519,7 +519,10 @@ impl<'a> HandlerGenerator<'a> {
         let is_query = handler.receiver().map_or(true, |r| r.mutability.is_none());
 
         if reply_with_value && is_query {
-            panic!("using `CommandReply` type in a query is not allowed");
+            abort!(
+                handler.result().span(),
+                "using `CommandReply` type in a query is not allowed"
+            );
         }
 
         Self {
