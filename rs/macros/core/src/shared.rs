@@ -224,18 +224,18 @@ fn replace_lifetime_with_static_in_path_args(path_args: PathArguments) -> PathAr
     }
 }
 
-/// Check if type is `CommandResult<T>` and extract inner type `T`
+/// Check if type is `CommandReply<T>` and extract inner type `T`
 pub(crate) fn extract_result_type_with_value(ty: Type) -> (Type, bool) {
     match &ty {
-        Type::Path(tp) => extract_command_result_type(tp).map_or((ty, false), |t| (t, true)),
+        Type::Path(tp) => extract_reply_result_type(tp).map_or((ty, false), |t| (t, true)),
         _ => (ty, false),
     }
 }
 
-/// Extract `T` type from `CommandResult<T>`
-fn extract_command_result_type(tp: &TypePath) -> Option<Type> {
+/// Extract `T` type from `CommandReply<T>`
+fn extract_reply_result_type(tp: &TypePath) -> Option<Type> {
     if let Some(last) = tp.path.segments.last() {
-        if last.ident != "CommandResult" {
+        if last.ident != "CommandReply" {
             return None;
         }
         if let PathArguments::AngleBracketed(args) = &last.arguments {

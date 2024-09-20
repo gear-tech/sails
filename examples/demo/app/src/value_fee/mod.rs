@@ -1,4 +1,4 @@
-use sails_rs::gstd::{exec, msg, CommandResult};
+use sails_rs::gstd::{exec, msg, CommandReply};
 use sails_rs::prelude::*;
 
 #[derive(Encode, TypeInfo)]
@@ -19,8 +19,8 @@ impl FeeService {
     }
 
     /// Return flag if fee taken and remain value,
-    /// using special type `CommandResult<T>`
-    pub fn do_something_and_take_fee(&mut self) -> CommandResult<bool> {
+    /// using special type `CommandReply<T>`
+    pub fn do_something_and_take_fee(&mut self) -> CommandReply<bool> {
         let value = msg::value();
         if value == 0 {
             return false.into();
@@ -35,7 +35,7 @@ impl FeeService {
             true.into()
         } else {
             // return remaining value with reply
-            CommandResult::new(true).with_value(to_return)
+            CommandReply::new(true).with_value(to_return)
         }
     }
 }

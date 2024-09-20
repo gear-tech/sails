@@ -506,6 +506,7 @@ struct HandlerGenerator<'a> {
     handler: Func<'a>,
     result_type: Type,
     reply_with_value: bool,
+    is_query: bool,
 }
 
 impl<'a> HandlerGenerator<'a> {
@@ -514,10 +515,17 @@ impl<'a> HandlerGenerator<'a> {
         let (result_type, reply_with_value) =
             shared::extract_result_type_with_value(handler.result().clone());
         let result_type = shared::replace_any_lifetime_with_static(result_type);
+        let is_query = handler.receiver().map_or(true, |r| r.mutability.is_none());
+
+        if reply_with_value && is_query {
+            panic!("using `CommandReply` type in a query is not allowed");
+        }
+
         Self {
             handler,
             result_type,
             reply_with_value,
+            is_query,
         }
     }
 
@@ -547,9 +555,7 @@ impl<'a> HandlerGenerator<'a> {
     }
 
     fn is_query(&self) -> bool {
-        self.handler
-            .receiver()
-            .map_or(true, |r| r.mutability.is_none())
+        self.is_query
     }
 
     fn params_struct(&self) -> TokenStream {

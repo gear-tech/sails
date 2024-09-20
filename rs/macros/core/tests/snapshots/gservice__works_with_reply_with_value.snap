@@ -3,7 +3,7 @@ source: rs/macros/core/tests/gservice.rs
 expression: result
 ---
 impl SomeService {
-    pub async fn do_this(&mut self, p1: u32, p2: String) -> CommandResult<u32> {
+    pub async fn do_this(&mut self, p1: u32, p2: String) -> CommandReply<u32> {
         (p1, 100_000_000_000).into()
     }
     pub fn this(&self, p1: bool) -> bool {
@@ -21,7 +21,7 @@ pub struct Exposure<T> {
     inner: T,
 }
 impl Exposure<SomeService> {
-    pub async fn do_this(&mut self, p1: u32, p2: String) -> CommandResult<u32> {
+    pub async fn do_this(&mut self, p1: u32, p2: String) -> CommandReply<u32> {
         let exposure_scope = sails_rs::gstd::services::ExposureCallScope::new(self);
         self.inner.do_this(p1, p2).await
     }
