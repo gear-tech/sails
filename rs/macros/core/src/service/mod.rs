@@ -148,6 +148,11 @@ fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
     let mut queries_meta_variants = Vec::with_capacity(service_handlers.len());
 
     for (handler_route, (handler_fn, ..)) in &service_handlers {
+        // We propagate only known attributes as we don't know the consequences of unknown ones
+        let handler_allow_attrs = handler_fn
+            .attrs
+            .iter()
+            .filter(|attr| matches!(attr.path().get_ident(), Some(ident) if ident == "allow"));
         let handler_fn = &handler_fn.sig;
         let handler_func = Func::from(handler_fn);
         let handler_generator = HandlerGenerator::from(handler_func.clone());
@@ -158,6 +163,7 @@ fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
             let handler_params = handler_func.params().iter().map(|item| item.0);
             let handler_await_token = handler_func.is_async().then(|| quote!(.await));
             quote!(
+                #( #handler_allow_attrs )*
                 pub #handler_fn {
                     let exposure_scope = #sails_path::gstd::services::ExposureCallScope::new(self);
                     self. #inner_ident . #handler_ident (#(#handler_params),*) #handler_await_token
@@ -289,6 +295,12 @@ fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
         quote! { #exposure_lifetimes, #service_type_path }
     };
 
+    // We propagate only known attributes as we don't know the consequences of unknown ones
+    let exposure_allow_attrs = service_impl
+        .attrs
+        .iter()
+        .filter(|attr| matches!(attr.path().get_ident(), Some(ident) if ident == "allow"));
+
     quote!(
         #service_impl
 
@@ -306,6 +318,7 @@ fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
 
         #exposure_drop_code
 
+        #( #exposure_allow_attrs )*
         impl #service_type_args Exposure< #exposure_args > #service_type_constraints {
             #( #exposure_funcs )*
 
