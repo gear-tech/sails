@@ -1,11 +1,11 @@
 import "../set-vars";
 import "../check-version";
 
-file::rename("Project.toml", "Cargo.toml");
-if file::exists("app/AppProject.toml") {
-    file::rename("app/AppProject.toml", "app/Cargo.toml");
+file::rename("CargoTemplate.toml", "Cargo.toml");
+if file::exists("app/CargoTemplate.toml") {
+    file::rename("app/CargoTemplate.toml", "app/Cargo.toml");
 }
-file::rename("client/ClientProject.toml", "client/Cargo.toml");
+file::rename("client/CargoTemplate.toml", "client/Cargo.toml");
 
 let with_client = variable::get("with-client");
 let with_gtest = variable::get("with-gtest");
