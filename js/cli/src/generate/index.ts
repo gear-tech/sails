@@ -31,14 +31,19 @@ export class ProjectBuilder {
   private generateLib(): string {
     const out = new Output();
 
+    const serviceGen = new ServiceGenerator(out, this.sails.program, this.sails.scaleCodecTypes, {
+      noImplementation: this.typesOnly,
+    });
+    serviceGen.generate(this.name);
+
+    return out.finalize();
+  }
+
+  private generateTypes(): string {
+    const out = new Output();
+
     const typesGen = new TypesGenerator(out, this.sails.program);
     typesGen.generate();
-
-    if (!this.typesOnly) {
-      const serviceGen = new ServiceGenerator(out, this.sails.program, this.sails.scaleCodecTypes);
-
-      serviceGen.generate(this.name);
-    }
 
     return out.finalize();
   }
@@ -69,8 +74,6 @@ export class ProjectBuilder {
   }
 
   async build() {
-    const libCode = this.generateLib();
-
     const rootPath = this.projectPath[0];
     const srcPath = path.join(...this.projectPath);
 
@@ -80,9 +83,18 @@ export class ProjectBuilder {
       mkdirSync(libFilePath, { recursive: true });
     }
 
+    const libCode = this.generateLib();
     const libFile = path.join(libFilePath, 'lib.ts');
     if (await this.canCreateFile(libFile)) {
       writeFileSync(libFile, libCode);
+    } else {
+      process.exit(0);
+    }
+
+    const typesCode = this.generateTypes();
+    const typesFile = path.join(libFilePath, 'global.d.ts');
+    if (await this.canCreateFile(typesFile)) {
+      writeFileSync(typesFile, typesCode);
     } else {
       process.exit(0);
     }

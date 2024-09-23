@@ -27,6 +27,7 @@ export class ServiceGenerator extends BaseGenerator {
     out: Output,
     private _program: ISailsProgram,
     private scaleTypes: Record<string, any>,
+    private options?: { noImplementation?: boolean },
   ) {
     super(out);
   }
@@ -85,6 +86,10 @@ export class ServiceGenerator extends BaseGenerator {
             args !== null ? ', ' + args : ''
           }): TransactionBuilder<null>`,
           () => {
+            if (this.options?.noImplementation) {
+              this._out.line(`throw new Error('Not implemented')`);
+              return;
+            }
             this._out
               .line(`const builder = new TransactionBuilder<null>(`, false)
               .increaseIndent()
@@ -114,6 +119,10 @@ export class ServiceGenerator extends BaseGenerator {
         .block(
           `${getFuncName(name)}CtorFromCodeId(codeId: ${HEX_STRING_TYPE}${args !== null ? ', ' + args : ''})`,
           () => {
+            if (this.options?.noImplementation) {
+              this._out.line(`throw new Error('Not implemented')`);
+              return;
+            }
             this._out
               .line(`const builder = new TransactionBuilder<null>(`, false)
               .increaseIndent()
@@ -161,6 +170,10 @@ export class ServiceGenerator extends BaseGenerator {
       const returnType = this.getType(def, decodeMethod);
 
       this._out.line().block(this.getFuncSignature(name, params, returnType, isQuery), () => {
+        if (this.options?.noImplementation) {
+          this._out.line(`throw new Error('Not implemented')`);
+          return;
+        }
         if (isQuery) {
           this._out
             .line(createPayload(service.name, name, params))
@@ -228,6 +241,10 @@ export class ServiceGenerator extends BaseGenerator {
         .block(
           `public subscribeTo${event.name}Event(callback: (data: ${jsType}) => void | Promise<void>): Promise<() => void>`,
           () => {
+            if (this.options?.noImplementation) {
+              this._out.line(`throw new Error('Not implemented')`);
+              return;
+            }
             this._out
               .line(
                 `return this._program.api.gearEvents.subscribeToGearEvent('UserMessageSent', ({ data: { message } }) => {`,

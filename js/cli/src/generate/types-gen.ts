@@ -5,14 +5,12 @@ import { Output } from './output.js';
 import { BaseGenerator } from './base.js';
 
 export class TypesGenerator extends BaseGenerator {
-  constructor(
-    out: Output,
-    private _program: ISailsProgram,
-  ) {
+  constructor(out: Output, private _program: ISailsProgram) {
     super(out);
   }
 
   public generate() {
+    this._out.line('declare global {').increaseIndent();
     for (const { name, def } of this._program.types) {
       if (def.isStruct) {
         this.generateStruct(name, def);
@@ -24,6 +22,7 @@ export class TypesGenerator extends BaseGenerator {
         throw new Error(`Unknown type: ${JSON.stringify(def)}`);
       }
     }
+    this._out.reduceIndent().line('}');
   }
 
   private generateStruct(name: string, def: ISailsTypeDef) {
