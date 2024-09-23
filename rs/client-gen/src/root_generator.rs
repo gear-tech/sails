@@ -6,6 +6,7 @@ use convert_case::{Case, Casing};
 use genco::prelude::*;
 use rust::Tokens;
 use sails_idl_parser::{ast::visitor::Visitor, ast::*};
+use std::collections::HashMap;
 
 pub(crate) struct RootGenerator<'a> {
     tokens: Tokens,
@@ -14,6 +15,7 @@ pub(crate) struct RootGenerator<'a> {
     anonymous_service_name: &'a str,
     mocks_feature_name: Option<&'a str>,
     sails_path: &'a str,
+    external_types: HashMap<&'a str, &'a str>,
 }
 
 impl<'a> RootGenerator<'a> {
@@ -21,13 +23,21 @@ impl<'a> RootGenerator<'a> {
         anonymous_service_name: &'a str,
         mocks_feature_name: Option<&'a str>,
         sails_path: &'a str,
+        external_types: HashMap<&'a str, &'a str>,
     ) -> Self {
-        let tokens = quote! {
+        let mut tokens = quote! {
             #[allow(unused_imports)]
             use $sails_path::{prelude::*, String, calls::{Activation, Call, Query, Remoting, RemotingAction}};
             #[allow(unused_imports)]
             use $sails_path::collections::BTreeMap;
         };
+
+        for (&name, &path) in &external_types {
+            quote_in! { tokens =>
+                #[allow(unused_imports)]
+                use $path as $name;
+            };
+        }
 
         Self {
             anonymous_service_name,
@@ -36,6 +46,7 @@ impl<'a> RootGenerator<'a> {
             mocks_tokens: Tokens::new(),
             mocks_feature_name,
             sails_path,
+            external_types,
         }
     }
 
@@ -133,6 +144,9 @@ impl<'a, 'ast> Visitor<'ast> for RootGenerator<'a> {
     }
 
     fn visit_type(&mut self, t: &'ast Type) {
+        if self.external_types.contains_key(t.name()) {
+            return;
+        }
         let mut type_gen = TopLevelTypeGenerator::new(t.name(), self.sails_path);
         type_gen.visit_type(t);
         self.tokens.extend(type_gen.finalize());
