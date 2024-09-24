@@ -119,11 +119,12 @@ impl Ctor {
 pub struct CtorFunc {
     name: String,
     params: Vec<FuncParam>,
+    docs: Vec<String>,
 }
 
 impl CtorFunc {
-    pub(crate) fn new(name: String, params: Vec<FuncParam>) -> Self {
-        Self { name, params }
+    pub(crate) fn new(name: String, params: Vec<FuncParam>, docs: Vec<String>) -> Self {
+        Self { name, params, docs }
     }
 
     pub fn name(&self) -> &str {
@@ -186,6 +187,7 @@ pub struct ServiceFunc {
     params: Vec<FuncParam>,
     output: TypeDecl,
     is_query: bool,
+    docs: Vec<String>,
 }
 
 impl ServiceFunc {
@@ -194,12 +196,14 @@ impl ServiceFunc {
         params: Vec<FuncParam>,
         output: TypeDecl,
         is_query: bool,
+        docs: Vec<String>,
     ) -> Self {
         Self {
             name,
             params,
             output,
             is_query,
+            docs,
         }
     }
 
@@ -438,11 +442,16 @@ impl EnumDef {
 pub struct EnumVariant {
     name: String,
     type_decl: Option<TypeDecl>,
+    docs: Vec<String>,
 }
 
 impl EnumVariant {
-    pub(crate) fn new(name: String, type_decl: Option<TypeDecl>) -> Self {
-        Self { name, type_decl }
+    pub(crate) fn new(name: String, type_decl: Option<TypeDecl>, docs: Vec<String>) -> Self {
+        Self {
+            name,
+            type_decl,
+            docs,
+        }
     }
 
     pub fn name(&self) -> &str {
@@ -799,6 +808,7 @@ mod tests {
                 ],
                 TypeDecl::Id(TypeId::Primitive(PrimitiveType::Null)),
                 false,
+                vec![],
             )],
             vec![],
         )

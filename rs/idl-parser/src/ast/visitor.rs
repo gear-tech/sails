@@ -279,10 +279,11 @@ mod tests {
     #[test]
     fn accept_enum_def_works() {
         let enum_def = EnumDef::new(vec![
-            EnumVariant::new("Variant1".into(), None),
+            EnumVariant::new("Variant1".into(), None, vec![]),
             EnumVariant::new(
                 "Variant2".into(),
                 Some(TypeDecl::Id(TypeId::Primitive(PrimitiveType::U32))),
+                vec![],
             ),
         ])
         .unwrap();
