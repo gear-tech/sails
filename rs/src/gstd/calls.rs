@@ -33,7 +33,7 @@ impl GStdRemoting {
         target: ActorId,
         payload: impl AsRef<[u8]>,
         gas_limit: Option<GasUnit>,
-        value: u128,
+        value: ValueUnit,
         args: GStdArgs,
     ) -> Result<msg::MessageFuture, crate::errors::Error> {
         let message_future = if let Some(gas_limit) = gas_limit {

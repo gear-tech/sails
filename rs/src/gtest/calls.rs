@@ -71,6 +71,13 @@ impl GTestRemoting {
         }
     }
 
+    // Avoid calling methods of `System` related to block execution.
+    // Use `GTestRemoting::run_next_block` instead. This method can be used
+    // for obtaining reference data like balance, timestamp, etc.
+    pub fn system(&self) -> &System {
+        &self.system
+    }
+
     pub fn with_block_run_mode(self, block_run_mode: BlockRunMode) -> Self {
         Self {
             block_run_mode,

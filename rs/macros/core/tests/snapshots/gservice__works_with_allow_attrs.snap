@@ -2,7 +2,10 @@
 source: rs/macros/core/tests/gservice.rs
 expression: result
 ---
+#[allow(warnings)]
+#[allow(clippy::all)]
 impl SomeService {
+    #[allow(unused)]
     pub async fn do_this(&mut self, p1: u32, p2: String) -> u32 {
         p1
     }
@@ -20,7 +23,10 @@ pub struct Exposure<T> {
     #[cfg(target_arch = "wasm32")]
     inner: T,
 }
+#[allow(warnings)]
+#[allow(clippy::all)]
 impl Exposure<SomeService> {
+    #[allow(unused)]
     pub async fn do_this(&mut self, p1: u32, p2: String) -> u32 {
         let exposure_scope = sails_rs::gstd::services::ExposureCallScope::new(self);
         self.inner.do_this(p1, p2).await

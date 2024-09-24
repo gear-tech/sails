@@ -172,6 +172,37 @@ fn full_with_sails_path() {
     insta::assert_snapshot!(code);
 }
 
+#[test]
+fn test_external_types() {
+    const IDL: &str = r#"
+        type MyParam = struct {
+            f1: u32,
+            f2: vec str,
+            f3: opt struct { u8, u32 },
+        };
+
+        type MyParam2 = enum {
+            Variant1,
+            Variant2: u32,
+            Variant3: struct { u32 },
+            Variant4: struct { u8, u32 },
+            Variant5: struct { f1: str, f2: vec u8 },
+        };
+
+        service {
+            DoThis: (p1: u32, p2: MyParam) -> u16;
+            DoThat: (p1: struct { u8, u32 }) -> u8;
+        };
+        "#;
+
+    let code = ClientGenerator::from_idl(IDL)
+        .with_sails_crate("my_crate::sails")
+        .with_external_type("MyParam", "my_crate::MyParam")
+        .generate("Service")
+        .expect("generate client");
+    insta::assert_snapshot!(code);
+}
+
 fn gen(program: &str, service_name: &str) -> String {
     ClientGenerator::from_idl(program)
         .with_mocks("with_mocks")

@@ -72,3 +72,11 @@ service ThisThat {
   query This : () -> u32;
 };
 
+service ValueFee {
+  DoSomethingAndTakeFee : () -> bool;
+
+  events {
+    Withheld: u128;
+  }
+};
+

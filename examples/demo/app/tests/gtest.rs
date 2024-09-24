@@ -439,3 +439,47 @@ async fn counter_add_works_via_manual_mode() {
         counter_events.next().await.unwrap()
     );
 }
+
+#[tokio::test]
+async fn value_fee_works() {
+    // Arrange
+    let fixture = Fixture::new();
+
+    let demo_factory = fixture.demo_factory();
+    // Use generated client code for activating Demo program
+    // using the `new` constructor and the `send_recv` method
+    let program_id = demo_factory
+        .new(Some(42), None)
+        .send_recv(fixture.demo_code_id(), "123")
+        .await
+        .unwrap();
+
+    let initial_balance = fixture.balance_of(fixture::ADMIN_ID.into());
+    let mut client = fixture.value_fee_client();
+
+    // Act
+
+    // Use generated client code to call `do_something_and_take_fee` method with zero value
+    let result = client
+        .do_something_and_take_fee()
+        .send_recv(program_id)
+        .await
+        .unwrap();
+    assert!(!result);
+
+    // Use generated client code to call `do_something_and_take_fee` method with value
+    let result = client
+        .do_something_and_take_fee()
+        .with_value(15_000_000_000_000)
+        .send_recv(program_id)
+        .await
+        .unwrap();
+
+    assert!(result);
+    let balance = fixture.balance_of(fixture::ADMIN_ID.into());
+    // fee is 10_000_000_000_000 + spent gas
+    assert!(
+        initial_balance - balance > 10_000_000_000_000
+            && initial_balance - balance < 10_100_000_000_000
+    );
+}
