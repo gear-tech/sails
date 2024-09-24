@@ -34,7 +34,7 @@ pub struct DemoProgram {
 #[program]
 impl DemoProgram {
     #[allow(clippy::should_implement_trait)]
-    // Program constructor (called once at the very beginning of the program lifetime)
+    /// Program constructor (called once at the very beginning of the program lifetime)
     pub fn default() -> Self {
         unsafe {
             DOG_DATA = Some(RefCell::new(walker::WalkerData::new(
@@ -47,7 +47,7 @@ impl DemoProgram {
         }
     }
 
-    // Another program constructor (called once at the very beginning of the program lifetime)
+    /// Another program constructor (called once at the very beginning of the program lifetime)
     pub fn new(counter: Option<u32>, dog_position: Option<(i32, i32)>) -> Self {
         unsafe {
             let dog_position = dog_position.unwrap_or_default();

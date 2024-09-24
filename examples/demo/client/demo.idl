@@ -22,17 +22,24 @@ type TupleStruct = struct {
 };
 
 constructor {
+  /// Program constructor (called once at the very beginning of the program lifetime)
   Default : ();
+  /// Another program constructor (called once at the very beginning of the program lifetime)
   New : (counter: opt u32, dog_position: opt struct { i32, i32 });
 };
 
 service Counter {
+  /// Add a value to the counter
   Add : (value: u32) -> u32;
+  /// Substract a value from the counter
   Sub : (value: u32) -> u32;
+  /// Get the current value
   query Value : () -> u32;
 
   events {
+    /// Emitted when a new value is added to the counter
     Added: u32;
+    /// Emitted when a value is subtracted from the counter
     Subtracted: u32;
   }
 };
