@@ -234,13 +234,13 @@ fn works_with_allow_attrs() {
 fn works_with_docs() {
     let input = quote! {
         impl SomeService {
-            /// DoThis command
+            /// `DoThis` command
             /// Second line
             pub async fn do_this(&mut self, p1: u32, p2: String) -> u32 {
                 p1
             }
 
-            /// This query
+            /// `This` query
             pub fn this(&self, p1: bool) -> bool {
                 p1
             }

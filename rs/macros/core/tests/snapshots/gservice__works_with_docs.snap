@@ -3,12 +3,12 @@ source: rs/macros/core/tests/gservice.rs
 expression: result
 ---
 impl SomeService {
-    /// DoThis command
+    /// `DoThis` command
     /// Second line
     pub async fn do_this(&mut self, p1: u32, p2: String) -> u32 {
         p1
     }
-    /// This query
+    /// `This` query
     pub fn this(&self, p1: bool) -> bool {
         p1
     }
@@ -155,16 +155,16 @@ pub struct __ThisParams {
 mod meta_in_service {
     use super::*;
     #[derive(__ServiceTypeInfo)]
-    #[scale_info(crate = sails_rs::scale_info)]
+    #[scale_info(crate = sails_rs::scale_info, capture_docs = "always")]
     pub enum CommandsMeta {
-        /// DoThis command
+        /// `DoThis` command
         /// Second line
         DoThis(__DoThisParams, u32),
     }
     #[derive(__ServiceTypeInfo)]
-    #[scale_info(crate = sails_rs::scale_info)]
+    #[scale_info(crate = sails_rs::scale_info, capture_docs = "always")]
     pub enum QueriesMeta {
-        /// This query
+        /// `This` query
         This(__ThisParams, bool),
     }
     #[derive(__ServiceTypeInfo)]

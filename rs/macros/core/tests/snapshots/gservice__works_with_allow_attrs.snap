@@ -158,12 +158,12 @@ pub struct __ThisParams {
 mod meta_in_service {
     use super::*;
     #[derive(__ServiceTypeInfo)]
-    #[scale_info(crate = sails_rs::scale_info)]
+    #[scale_info(crate = sails_rs::scale_info, capture_docs = "always")]
     pub enum CommandsMeta {
         DoThis(__DoThisParams, u32),
     }
     #[derive(__ServiceTypeInfo)]
-    #[scale_info(crate = sails_rs::scale_info)]
+    #[scale_info(crate = sails_rs::scale_info, capture_docs = "always")]
     pub enum QueriesMeta {
         This(__ThisParams, bool),
     }

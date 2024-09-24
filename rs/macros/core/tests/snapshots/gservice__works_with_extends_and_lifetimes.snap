@@ -184,10 +184,10 @@ pub struct __NameParams {}
 mod meta_in_service {
     use super::*;
     #[derive(__ServiceTypeInfo)]
-    #[scale_info(crate = sails_rs::scale_info)]
+    #[scale_info(crate = sails_rs::scale_info, capture_docs = "always")]
     pub enum CommandsMeta {}
     #[derive(__ServiceTypeInfo)]
-    #[scale_info(crate = sails_rs::scale_info)]
+    #[scale_info(crate = sails_rs::scale_info, capture_docs = "always")]
     pub enum QueriesMeta {
         ExtendedName(__ExtendedNameParams, String),
         Name(__NameParams, String),

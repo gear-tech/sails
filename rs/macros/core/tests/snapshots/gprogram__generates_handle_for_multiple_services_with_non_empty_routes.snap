@@ -72,7 +72,7 @@ struct __DefaultParams {}
 mod meta_in_program {
     use super::*;
     #[derive(__ProgramTypeInfo)]
-    #[scale_info(crate = sails_rs::scale_info)]
+    #[scale_info(crate = sails_rs::scale_info, capture_docs = "always")]
     pub enum ConstructorsMeta {
         Default(__DefaultParams),
     }
