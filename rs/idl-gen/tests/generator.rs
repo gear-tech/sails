@@ -101,8 +101,13 @@ mod meta_params {
 
 #[allow(dead_code)]
 #[derive(TypeInfo)]
+#[scale_info(capture_docs = "always")]
 enum CommandsMeta {
+    /// Some description
     DoThis(DoThisParams, String),
+    /// Some multiline description
+    /// Second line
+    /// Third line
     DoThat(DoThatParams, StdResult<(String, u32), (String,)>),
 }
 
@@ -115,8 +120,12 @@ enum BaseCommandsMeta {
 
 #[allow(dead_code)]
 #[derive(TypeInfo)]
+#[scale_info(capture_docs = "always")]
 enum QueriesMeta {
+    /// This is a query
     This(ThisParams, StdResult<(String, u32), String>),
+    /// This is a second query
+    /// This is a second line
     That(ThatParams, String),
 }
 
@@ -129,8 +138,11 @@ enum BaseQueriesMeta {
 
 #[allow(dead_code)]
 #[derive(TypeInfo)]
+#[scale_info(capture_docs = "always")]
 enum EventsMeta {
+    /// This Done
     ThisDone(u32),
+    /// That Done too
     ThatDone { p1: String },
 }
 
@@ -221,8 +233,12 @@ impl ProgramMeta for TestProgramWithEmptyCtorsMeta {
 
 #[allow(dead_code)]
 #[derive(TypeInfo)]
+#[scale_info(capture_docs = "always")]
 enum NonEmptyCtorsMeta {
+    /// This is New constructor
     New(NoParams),
+    /// This is FromStr constructor
+    /// with second line
     FromStr(SingleParams<String>),
 }
 

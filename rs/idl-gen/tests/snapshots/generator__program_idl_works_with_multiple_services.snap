@@ -54,25 +54,43 @@ type ThatParam = struct {
 };
 
 service {
+  /// Some description
   DoThis : (p1: u32, p2: str, p3: struct { opt str, u8 }, p4: TupleStruct, p5: GenericStructForH256, p6: GenericStructForStr, p7: GenericConstStruct1, p8: GenericConstStruct2) -> str;
+  /// Some multiline description
+  /// Second line
+  /// Third line
   DoThat : (par1: DoThatParam) -> result (struct { str, u32 }, struct { str });
+  /// This is a query
   query This : (p1: u32, p2: str, p3: struct { opt str, u8 }, p4: TupleStruct, p5: GenericEnumForBoolAndU32) -> result (struct { str, u32 }, str);
+  /// This is a second query
+  /// This is a second line
   query That : (pr1: ThatParam) -> str;
 
   events {
+    /// This Done
     ThisDone: u32;
+    /// That Done too
     ThatDone: struct { p1: str };
   }
 };
 
 service SomeService {
+  /// Some description
   DoThis : (p1: u32, p2: str, p3: struct { opt str, u8 }, p4: TupleStruct, p5: GenericStructForH256, p6: GenericStructForStr, p7: GenericConstStruct1, p8: GenericConstStruct2) -> str;
+  /// Some multiline description
+  /// Second line
+  /// Third line
   DoThat : (par1: DoThatParam) -> result (struct { str, u32 }, struct { str });
+  /// This is a query
   query This : (p1: u32, p2: str, p3: struct { opt str, u8 }, p4: TupleStruct, p5: GenericEnumForBoolAndU32) -> result (struct { str, u32 }, str);
+  /// This is a second query
+  /// This is a second line
   query That : (pr1: ThatParam) -> str;
 
   events {
+    /// This Done
     ThisDone: u32;
+    /// That Done too
     ThatDone: struct { p1: str };
   }
 };

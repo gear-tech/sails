@@ -7,6 +7,9 @@
 {{#if (len ctors)}}
 constructor {
 {{#each ctors}}
+  {{#each ./[2]}}
+  /// {{this}}
+  {{/each}}
   {{./[0]}} : ({{#each ./[1]}}{{#if @index}}, {{/if}}{{name}}: {{{lookup @root/type_names type}}}{{/each}});
 {{/each}}
 };
@@ -15,15 +18,24 @@ constructor {
 {{#each services}}
 service {{#if name}}{{name}} {{/if}}{
 {{#each commands}}
+  {{#each ./[3]}}
+  /// {{this}}
+  {{/each}}
   {{./[0]}} : ({{#each ./[1]}}{{#if @index}}, {{/if}}{{name}}: {{{lookup @root/type_names type}}}{{/each}}) -> {{{lookup @root/type_names ./[2]}}};
 {{/each}}
 {{#each queries}}
+  {{#each ./[3]}}
+  /// {{this}}
+  {{/each}}
   query {{./[0]}} : ({{#each ./[1]}}{{#if @index}}, {{/if}}{{name}}: {{{lookup @root/type_names type}}}{{/each}}) -> {{{lookup @root/type_names ./[2]}}};
 {{/each}}
 {{#if (len events)}}
 
   events {
   {{#each events}}
+    {{#each docs}}
+    /// {{this}}
+    {{/each}}
     {{name}}
     {{~#if fields.[1]}}: struct { {{#each fields~}} {{#if @index}}, {{/if}}{{#if name}}{{name}}: {{/if}}{{{lookup @root/type_names type}}}{{/each}} }
     {{~else}}

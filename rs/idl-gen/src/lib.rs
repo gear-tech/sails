@@ -102,15 +102,15 @@ fn render_idl(program_meta: &ExpandedProgramMeta, idl_writer: impl Write) -> Res
 struct ProgramIdlData<'a> {
     type_names: Vec<String>,
     types: Vec<&'a PortableType>,
-    ctors: Vec<(&'a str, &'a Vec<Field<PortableForm>>)>,
+    ctors: Vec<(&'a str, &'a Vec<Field<PortableForm>>, &'a Vec<String>)>,
     services: Vec<ServiceIdlData<'a>>,
 }
 
 #[derive(Serialize)]
 struct ServiceIdlData<'a> {
     name: &'a str,
-    commands: Vec<(&'a str, &'a Vec<Field<PortableForm>>, u32)>,
-    queries: Vec<(&'a str, &'a Vec<Field<PortableForm>>, u32)>,
+    commands: Vec<(&'a str, &'a Vec<Field<PortableForm>>, u32, &'a Vec<String>)>,
+    queries: Vec<(&'a str, &'a Vec<Field<PortableForm>>, u32, &'a Vec<String>)>,
     events: Vec<&'a Variant<PortableForm>>,
 }
 
