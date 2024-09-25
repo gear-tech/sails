@@ -134,6 +134,10 @@ impl CtorFunc {
     pub fn params(&self) -> &[FuncParam] {
         &self.params
     }
+
+    pub fn docs(&self) -> &Vec<String> {
+        &self.docs
+    }
 }
 
 /// A structure describing one of program services
@@ -221,6 +225,10 @@ impl ServiceFunc {
 
     pub fn is_query(&self) -> bool {
         self.is_query
+    }
+
+    pub fn docs(&self) -> &Vec<String> {
+        &self.docs
     }
 }
 
@@ -460,6 +468,10 @@ impl EnumVariant {
 
     pub fn type_decl(&self) -> Option<&TypeDecl> {
         self.type_decl.as_ref()
+    }
+
+    pub fn docs(&self) -> &Vec<String> {
+        &self.docs
     }
 }
 

@@ -36,6 +36,7 @@ impl<'a, 'ast> Visitor<'ast> for EventsModuleGenerator<'a> {
             .join("], &[");
 
         quote_in! { self.tokens =>
+            $['\n']
             #[allow(dead_code)]
             #[cfg(not(target_arch = "wasm32"))]
             pub mod events $("{")
@@ -49,7 +50,7 @@ impl<'a, 'ast> Visitor<'ast> for EventsModuleGenerator<'a> {
         visitor::accept_service(service, self);
 
         quote_in! { self.tokens =>
-            $("}")
+            $['\r'] $("}")
         };
 
         quote_in! { self.tokens =>
@@ -65,25 +66,31 @@ impl<'a, 'ast> Visitor<'ast> for EventsModuleGenerator<'a> {
         }
 
         quote_in! { self.tokens =>
-            $("}")
+            $['\r'] $("}")
         };
     }
 
     fn visit_service_event(&mut self, event: &'ast ServiceEvent) {
         if let Some(type_decl) = event.type_decl().as_ref() {
+            for doc in event.docs() {
+                quote_in! { self.tokens =>
+                    $['\r'] $("///") $doc,
+                };
+            }
+
             let type_decl_code = crate::type_generators::generate_type_decl_code(type_decl);
             if type_decl_code.starts_with('{') {
                 quote_in! { self.tokens =>
-                    $(event.name()) $(type_decl_code),
+                    $['\r'] $(event.name()) $(type_decl_code),
                 };
             } else {
                 quote_in! { self.tokens =>
-                    $(event.name())($(type_decl_code)) ,
+                    $['\r'] $(event.name())($(type_decl_code)) ,
                 };
             }
         } else {
             quote_in! { self.tokens =>
-                $(event.name()),
+                $['\r'] $(event.name()),
             };
         }
     }

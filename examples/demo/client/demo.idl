@@ -81,7 +81,7 @@ service ThisThat {
 
 service ValueFee {
   /// Return flag if fee taken and remain value,
-  /// using special type &#x60;CommandReply&lt;T&gt;&#x60;
+  /// using special type `CommandReply<T>`
   DoSomethingAndTakeFee : () -> bool;
 
   events {

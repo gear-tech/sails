@@ -3,6 +3,7 @@ use sails_client_gen::ClientGenerator;
 #[test]
 fn full() {
     const IDL: &str = r#"
+        // Comments are supported but ignored by idl-parser
         type ThisThatSvcAppTupleStruct = struct {
             bool,
         };
@@ -25,14 +26,29 @@ fn full() {
         type T = enum { One };
 
         constructor {
+            /// New constructor
             New : (a: u32);
         };
 
         service {
+            /// Some description
             DoThis : (p1: u32, p2: str, p3: struct { opt str, u8 }, p4: ThisThatSvcAppTupleStruct) -> struct { str, u32 };
+            /// Some multiline description
+            /// Second line
+            /// Third line
             DoThat : (param: ThisThatSvcAppDoThatParam) -> result (struct { str, u32 }, struct { str });
+            /// This is a query
             query This : (v1: vec u16) -> u32;
+            /// This is a second query
+            /// This is a second line
             query That : (v1: null) -> result (str, str);
+
+            events {
+                /// `This` Done
+                ThisDone: u32;
+                /// `That` Done too
+                ThatDone: struct { p1: str };
+            }
         };
         "#;
 
