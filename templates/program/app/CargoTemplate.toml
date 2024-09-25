@@ -5,5 +5,3 @@ edition = "2021"
 
 [dependencies]
 sails-rs = "{{ sails-rs-version }}"
-# This needs be removed as soon as fixed version of Gear crates are released
-gear-wasm-instrument = "=1.5.0"
