@@ -6174,6 +6174,7 @@ dependencies = [
  "gear-core",
  "gear-core-errors",
  "gear-wasm-builder",
+ "gear-wasm-instrument",
  "gprimitives",
  "gstd",
  "gtest",
