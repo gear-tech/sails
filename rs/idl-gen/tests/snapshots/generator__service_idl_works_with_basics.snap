@@ -67,9 +67,9 @@ service {
   query That : (pr1: ThatParam) -> str;
 
   events {
-    /// This Done
+    /// `This` Done
     ThisDone: u32;
-    /// That Done too
+    /// `That` Done too
     ThatDone: struct { p1: str };
   }
 };

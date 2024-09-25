@@ -8,7 +8,7 @@
 constructor {
 {{#each ctors}}
   {{#each ./[2]}}
-  /// {{this}}
+  /// {{{this}}}
   {{/each}}
   {{./[0]}} : ({{#each ./[1]}}{{#if @index}}, {{/if}}{{name}}: {{{lookup @root/type_names type}}}{{/each}});
 {{/each}}
@@ -19,13 +19,13 @@ constructor {
 service {{#if name}}{{name}} {{/if}}{
 {{#each commands}}
   {{#each ./[3]}}
-  /// {{this}}
+  /// {{{this}}}
   {{/each}}
   {{./[0]}} : ({{#each ./[1]}}{{#if @index}}, {{/if}}{{name}}: {{{lookup @root/type_names type}}}{{/each}}) -> {{{lookup @root/type_names ./[2]}}};
 {{/each}}
 {{#each queries}}
   {{#each ./[3]}}
-  /// {{this}}
+  /// {{{this}}}
   {{/each}}
   query {{./[0]}} : ({{#each ./[1]}}{{#if @index}}, {{/if}}{{name}}: {{{lookup @root/type_names type}}}{{/each}}) -> {{{lookup @root/type_names ./[2]}}};
 {{/each}}
@@ -34,7 +34,7 @@ service {{#if name}}{{name}} {{/if}}{
   events {
   {{#each events}}
     {{#each docs}}
-    /// {{this}}
+    /// {{{this}}}
     {{/each}}
     {{name}}
     {{~#if fields.[1]}}: struct { {{#each fields~}} {{#if @index}}, {{/if}}{{#if name}}{{name}}: {{/if}}{{{lookup @root/type_names type}}}{{/each}} }

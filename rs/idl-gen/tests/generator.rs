@@ -140,9 +140,9 @@ enum BaseQueriesMeta {
 #[derive(TypeInfo)]
 #[scale_info(capture_docs = "always")]
 enum EventsMeta {
-    /// This Done
+    /// `This` Done
     ThisDone(u32),
-    /// That Done too
+    /// `That` Done too
     ThatDone { p1: String },
 }
 
