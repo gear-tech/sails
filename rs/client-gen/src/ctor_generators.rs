@@ -75,7 +75,7 @@ impl<'a, 'ast> Visitor<'ast> for CtorFactoryGenerator<'a> {
 
         for doc in func.docs() {
             quote_in! { self.tokens =>
-                $['\r'] $("///") $doc,
+                $['\r'] $("///") $doc
             };
         }
 

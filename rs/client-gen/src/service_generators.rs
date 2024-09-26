@@ -128,7 +128,7 @@ impl<'ast> Visitor<'ast> for ServiceClientGenerator {
 
         for doc in func.docs() {
             quote_in! { self.tokens =>
-                $['\r'] $("///") $doc,
+                $['\r'] $("///") $doc
             };
         }
 

@@ -23,7 +23,7 @@ impl<R> ServiceFactory<R> {
 }
 impl<R: Remoting + Clone> traits::ServiceFactory for ServiceFactory<R> {
     type Args = R::Args;
-    /// New constructor,
+    /// New constructor
     fn new(&self, a: u32) -> impl Activation<Args = R::Args> {
         RemotingAction::<_, service_factory::io::New>::new(self.remoting.clone(), a)
     }
@@ -58,7 +58,7 @@ impl<R> Service<R> {
 }
 impl<R: Remoting + Clone> traits::Service for Service<R> {
     type Args = R::Args;
-    /// Some description,
+    /// Some description
     fn do_this(
         &mut self,
         p1: u32,
@@ -68,21 +68,21 @@ impl<R: Remoting + Clone> traits::Service for Service<R> {
     ) -> impl Call<Output = (String, u32), Args = R::Args> {
         RemotingAction::<_, service::io::DoThis>::new(self.remoting.clone(), (p1, p2, p3, p4))
     }
-    /// Some multiline description,
-    /// Second line,
-    /// Third line,
+    /// Some multiline description
+    /// Second line
+    /// Third line
     fn do_that(
         &mut self,
         param: ThisThatSvcAppDoThatParam,
     ) -> impl Call<Output = Result<(String, u32), (String,)>, Args = R::Args> {
         RemotingAction::<_, service::io::DoThat>::new(self.remoting.clone(), param)
     }
-    /// This is a query,
+    /// This is a query
     fn this(&self, v1: Vec<u16>) -> impl Query<Output = u32, Args = R::Args> {
         RemotingAction::<_, service::io::This>::new(self.remoting.clone(), v1)
     }
-    /// This is a second query,
-    /// This is a second line,
+    /// This is a second query
+    /// This is a second line
     fn that(&self, v1: ()) -> impl Query<Output = Result<String, String>, Args = R::Args> {
         RemotingAction::<_, service::io::That>::new(self.remoting.clone(), v1)
     }
@@ -162,9 +162,9 @@ pub mod service {
         #[derive(PartialEq, Debug, Encode, Decode)]
         #[codec(crate = sails_rs::scale_codec)]
         pub enum ServiceEvents {
-            /// `This` Done,
+            /// `This` Done
             ThisDone(u32),
-            /// `That` Done too,
+            /// `That` Done too
             ThatDone { p1: String },
         }
         impl EventIo for ServiceEvents {
@@ -180,26 +180,40 @@ pub mod service {
         }
     }
 }
+/// ThisThatSvcAppTupleStruct docs
 #[derive(PartialEq, Debug, Encode, Decode, TypeInfo)]
 #[codec(crate = sails_rs::scale_codec)]
 #[scale_info(crate = sails_rs::scale_info)]
-pub struct ThisThatSvcAppTupleStruct(pub bool);
+pub struct ThisThatSvcAppTupleStruct(
+    /// field `bool`
+    pub bool,
+);
+/// ThisThatSvcAppDoThatParam docs
 #[derive(PartialEq, Debug, Encode, Decode, TypeInfo)]
 #[codec(crate = sails_rs::scale_codec)]
 #[scale_info(crate = sails_rs::scale_info)]
 pub struct ThisThatSvcAppDoThatParam {
-    pub p1: u32,
-    pub p2: String,
+    /// field `query`
+    pub query: u32,
+    /// field `result`
+    pub result: String,
+    /// field `p3`
     pub p3: ThisThatSvcAppManyVariants,
 }
+/// ThisThatSvcAppManyVariants docs
 #[derive(PartialEq, Debug, Encode, Decode, TypeInfo)]
 #[codec(crate = sails_rs::scale_codec)]
 #[scale_info(crate = sails_rs::scale_info)]
 pub enum ThisThatSvcAppManyVariants {
+    /// variant `One`
     One,
+    /// variant `Two`
     Two(u32),
     Three(Option<u32>),
-    Four { a: u32, b: Option<u16> },
+    Four {
+        a: u32,
+        b: Option<u16>,
+    },
     Five((String, u32)),
     Six((u32,)),
 }
