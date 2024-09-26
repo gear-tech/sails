@@ -125,8 +125,8 @@ fn gen_gprogram_impl(program_impl: ItemImpl, program_args: ProgramArgs) -> Token
 
     let services_routes = services_data.iter().map(|item| &item.0);
 
-    let (program_type_path, program_type_args) = shared::impl_type(&program_impl);
-    let program_type_constraints = shared::impl_constraints(&program_impl);
+    let (program_type_path, _program_type_args) = shared::impl_type(&program_impl);
+    let (generics, program_type_constraints) = shared::impl_constraints(&program_impl);
 
     let (ctors_data, init_fn) = generate_init(
         &mut program_impl,
@@ -148,7 +148,7 @@ fn gen_gprogram_impl(program_impl: ItemImpl, program_args: ProgramArgs) -> Token
 
         #program_impl
 
-        impl #program_type_args #sails_path::meta::ProgramMeta for #program_type_path #program_type_constraints {
+        impl #generics #sails_path::meta::ProgramMeta for #program_type_path #program_type_constraints {
             fn constructors() -> #scale_info_path::MetaType {
                 #scale_info_path::MetaType::new::<meta_in_program::ConstructorsMeta>()
             }
