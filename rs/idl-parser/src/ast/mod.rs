@@ -119,11 +119,12 @@ impl Ctor {
 pub struct CtorFunc {
     name: String,
     params: Vec<FuncParam>,
+    docs: Vec<String>,
 }
 
 impl CtorFunc {
-    pub(crate) fn new(name: String, params: Vec<FuncParam>) -> Self {
-        Self { name, params }
+    pub(crate) fn new(name: String, params: Vec<FuncParam>, docs: Vec<String>) -> Self {
+        Self { name, params, docs }
     }
 
     pub fn name(&self) -> &str {
@@ -132,6 +133,10 @@ impl CtorFunc {
 
     pub fn params(&self) -> &[FuncParam] {
         &self.params
+    }
+
+    pub fn docs(&self) -> &Vec<String> {
+        &self.docs
     }
 }
 
@@ -186,6 +191,7 @@ pub struct ServiceFunc {
     params: Vec<FuncParam>,
     output: TypeDecl,
     is_query: bool,
+    docs: Vec<String>,
 }
 
 impl ServiceFunc {
@@ -194,12 +200,14 @@ impl ServiceFunc {
         params: Vec<FuncParam>,
         output: TypeDecl,
         is_query: bool,
+        docs: Vec<String>,
     ) -> Self {
         Self {
             name,
             params,
             output,
             is_query,
+            docs,
         }
     }
 
@@ -217,6 +225,10 @@ impl ServiceFunc {
 
     pub fn is_query(&self) -> bool {
         self.is_query
+    }
+
+    pub fn docs(&self) -> &Vec<String> {
+        &self.docs
     }
 }
 
@@ -438,11 +450,16 @@ impl EnumDef {
 pub struct EnumVariant {
     name: String,
     type_decl: Option<TypeDecl>,
+    docs: Vec<String>,
 }
 
 impl EnumVariant {
-    pub(crate) fn new(name: String, type_decl: Option<TypeDecl>) -> Self {
-        Self { name, type_decl }
+    pub(crate) fn new(name: String, type_decl: Option<TypeDecl>, docs: Vec<String>) -> Self {
+        Self {
+            name,
+            type_decl,
+            docs,
+        }
     }
 
     pub fn name(&self) -> &str {
@@ -451,6 +468,10 @@ impl EnumVariant {
 
     pub fn type_decl(&self) -> Option<&TypeDecl> {
         self.type_decl.as_ref()
+    }
+
+    pub fn docs(&self) -> &Vec<String> {
+        &self.docs
     }
 }
 
@@ -799,6 +820,7 @@ mod tests {
                 ],
                 TypeDecl::Id(TypeId::Primitive(PrimitiveType::Null)),
                 false,
+                vec![],
             )],
             vec![],
         )

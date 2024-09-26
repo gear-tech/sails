@@ -53,10 +53,11 @@ impl<'a> RootGenerator<'a> {
     pub(crate) fn finalize(self) -> String {
         let mocks_tokens = if let Some(mocks_feature_name) = self.mocks_feature_name {
             quote! {
+                $['\n']
                 #[cfg(feature = $(quoted(mocks_feature_name)))]
                 #[cfg(not(target_arch = "wasm32"))]
                 extern crate std;
-
+                $['\n']
                 #[cfg(feature = $(quoted(mocks_feature_name)))]
                 #[cfg(not(target_arch = "wasm32"))]
                 pub mod mockall {
@@ -71,7 +72,7 @@ impl<'a> RootGenerator<'a> {
 
         let result: Tokens = quote! {
             $(self.tokens)
-
+            $['\n']
             pub mod traits {
                 use super::*;
                 $(self.traits_tokens)
@@ -132,6 +133,7 @@ impl<'a, 'ast> Visitor<'ast> for RootGenerator<'a> {
         }
 
         quote_in! { self.tokens =>
+            $['\n']
             pub mod $(service_name_snake) {
                 use super::*;
                 $(service_tokens)

@@ -30,8 +30,10 @@ impl<R: Remoting + Clone> traits::Service for Service<R> {
         RemotingAction::<_, service::io::DoThat>::new(self.remoting.clone(), p1)
     }
 }
+
 pub mod service {
     use super::*;
+
     pub mod io {
         use super::*;
         use my_crate::sails::calls::ActionIo;
@@ -71,8 +73,10 @@ pub enum MyParam2 {
     Variant4((u8, u32)),
     Variant5 { f1: String, f2: Vec<u8> },
 }
+
 pub mod traits {
     use super::*;
+
     #[allow(clippy::type_complexity)]
     pub trait Service {
         type Args;

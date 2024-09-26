@@ -116,3 +116,26 @@ fn generates_handle_with_crate_path() {
 
     insta::assert_snapshot!(result);
 }
+
+#[test]
+fn generates_ctors_meta_with_docs() {
+    let input = quote! {
+        impl MyProgram {
+            /// This is New ctor
+            pub async fn new(p1: u32, p2: String) -> Self {
+                Self { p1, p2 }
+            }
+
+            /// This is New2 ctor
+            /// With second line
+            pub fn new2(p2: String, p1: u32) -> Self {
+                Self { p1, p2 }
+            }
+        }
+    };
+
+    let result = gprogram(TokenStream::new(), input).to_string();
+    let result = prettyplease::unparse(&syn::parse_str(&result).unwrap());
+
+    insta::assert_snapshot!(result);
+}

@@ -152,7 +152,12 @@ fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
         let handler_allow_attrs = handler_fn
             .attrs
             .iter()
-            .filter(|attr| matches!(attr.path().get_ident(), Some(ident) if ident == "allow"));
+            .filter(|attr| attr.path().is_ident("allow"));
+        let handler_docs_attrs = handler_fn
+            .attrs
+            .iter()
+            .filter(|attr| attr.path().is_ident("doc"));
+
         let handler_fn = &handler_fn.sig;
         let handler_func = Func::from(handler_fn);
         let handler_generator = HandlerGenerator::from(handler_func.clone());
@@ -189,7 +194,10 @@ fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
             let result_type = handler_generator.result_type();
             let handler_route_ident = Ident::new(handler_route, Span::call_site());
 
-            quote!(#handler_route_ident(#params_struct_ident, #result_type))
+            quote!(
+                #( #handler_docs_attrs )*
+                #handler_route_ident(#params_struct_ident, #result_type)
+            )
         };
         if handler_generator.is_query() {
             queries_meta_variants.push(handler_meta_variant);
@@ -412,13 +420,13 @@ fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
             use super::*;
 
             #[derive(__ServiceTypeInfo)]
-            #[scale_info(crate = #scale_info_path )]
+            #[scale_info(crate = #scale_info_path)]
             pub enum CommandsMeta {
                 #(#commands_meta_variants),*
             }
 
             #[derive(__ServiceTypeInfo)]
-            #[scale_info(crate = #scale_info_path )]
+            #[scale_info(crate = #scale_info_path)]
             pub enum QueriesMeta {
                 #(#queries_meta_variants),*
             }

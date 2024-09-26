@@ -27,6 +27,7 @@ impl<R: Remoting + Clone> traits::RmrkCatalogFactory for RmrkCatalogFactory<R> {
         RemotingAction::<_, rmrk_catalog_factory::io::New>::new(self.remoting.clone(), ())
     }
 }
+
 pub mod rmrk_catalog_factory {
     use super::*;
     pub mod io {
@@ -117,8 +118,10 @@ impl<R: Remoting + Clone> traits::RmrkCatalog for RmrkCatalog<R> {
         RemotingAction::<_, rmrk_catalog::io::Part>::new(self.remoting.clone(), part_id)
     }
 }
+
 pub mod rmrk_catalog {
     use super::*;
+
     pub mod io {
         use super::*;
         use sails_rs::calls::ActionIo;
@@ -277,6 +280,7 @@ pub struct SlotPart {
     pub z: Option<u32>,
     pub metadata_uri: String,
 }
+
 pub mod traits {
     use super::*;
     #[allow(dead_code)]
@@ -286,6 +290,7 @@ pub mod traits {
         #[allow(clippy::wrong_self_convention)]
         fn new(&self) -> impl Activation<Args = Self::Args>;
     }
+
     #[allow(clippy::type_complexity)]
     pub trait RmrkCatalog {
         type Args;
@@ -323,9 +328,11 @@ pub mod traits {
         fn part(&self, part_id: u32) -> impl Query<Output = Option<Part>, Args = Self::Args>;
     }
 }
+
 #[cfg(feature = "with_mocks")]
 #[cfg(not(target_arch = "wasm32"))]
 extern crate std;
+
 #[cfg(feature = "with_mocks")]
 #[cfg(not(target_arch = "wasm32"))]
 pub mod mockall {
