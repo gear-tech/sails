@@ -11,26 +11,40 @@ use std::{collections::BTreeMap, result::Result as StdResult};
 mod types {
     use super::*;
 
+    /// GenericStruct docs
     #[derive(TypeInfo)]
+    #[scale_info(crate = sails_rs::scale_info)]
     pub struct GenericStruct<T> {
+        /// GenericStruct field `p1`
         pub p1: T,
     }
 
+    /// GenericConstStruct docs
     #[derive(TypeInfo)]
+    #[scale_info(crate = sails_rs::scale_info)]
     pub struct GenericConstStruct<const N: usize> {
+        /// GenericStruct field `field`
         field: [u8; N],
     }
 
+    /// GenericEnum docs
+    /// with two lines
     #[derive(TypeInfo)]
+    #[scale_info(crate = sails_rs::scale_info)]
     pub enum GenericEnum<T1, T2> {
+        /// GenericEnum `Variant1` of type 'T1'
         Variant1(T1),
+        /// GenericEnum `Variant2` of type 'T2'
         Variant2(T2),
     }
 
+    /// TupleStruct docs
     #[derive(TypeInfo)]
+    #[scale_info(crate = sails_rs::scale_info)]
     pub struct TupleStruct(bool);
 
     #[derive(TypeInfo)]
+    #[scale_info(crate = sails_rs::scale_info)]
     pub enum ManyVariants {
         One,
         Two(u32),
