@@ -93,7 +93,7 @@ FuncParam: FuncParam = {
 }
 
 Type: Type = {
-    "type" <name: "id"> "=" <def: TypeDef> => Type::new(name, def),
+    <docs: Docs> "type" <name: "id"> "=" <def: TypeDef> => Type::new(name, def, docs),
 }
 
 TypeDecl: TypeDecl = {
@@ -120,8 +120,8 @@ StructDef: StructDef = {
 }
 
 StructField: StructField = {
-    <name: Ident> ":" <r#type: TypeDecl> => StructField::new(Some(name), r#type),
-    <r#type: TypeDecl> => StructField::new(None, r#type),
+    <docs: Docs> <name: Ident> ":" <r#type: TypeDecl> => StructField::new(Some(name), r#type, docs),
+    <docs: Docs> <r#type: TypeDecl> => StructField::new(None, r#type, docs),
 }
 
 EnumDef: EnumDef = {

@@ -14,22 +14,35 @@ type Resource = enum {
 };
 
 type BasicResource = struct {
+  /// URI like IPFS hash
   src: str,
+  /// If the resource has the thumb property, this will be a URI to a thumbnail of the given
+  /// resource.
   thumb: opt str,
+  /// Reference to IPFS location of metadata
   metadata_uri: str,
 };
 
 type SlotResource = struct {
+  /// URI like ipfs hash
   src: str,
+  /// If the resource has the thumb property, this will be a URI to a thumbnail of the given
+  /// resource.
   thumb: str,
+  /// Reference to IPFS location of metadata
   metadata_uri: str,
   base: actor_id,
+  /// If the resource has the slot property, it was designed to fit into a specific Base's slot.
   slot: u32,
 };
 
 type ComposedResource = struct {
+  /// URI like ipfs hash
   src: str,
+  /// If the resource has the thumb property, this will be a URI to a thumbnail of the given
+  /// resource.
   thumb: str,
+  /// Reference to IPFS location of metadata
   metadata_uri: str,
   base: actor_id,
   parts: vec u32,
