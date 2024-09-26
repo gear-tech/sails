@@ -8,6 +8,7 @@ mod gservice_with_extends_and_lifetimes;
 mod gservice_with_lifecycles_and_generics;
 mod gservice_with_lifetimes_and_events;
 mod gservice_with_reply_with_value;
+mod gservice_with_trait_bounds;
 
 #[tokio::test]
 async fn gservice_with_basics() {
@@ -308,6 +309,27 @@ async fn gservice_with_reply_with_value_with_impl_from() {
 
     let result = String::decode(&mut output).unwrap();
     assert_eq!(result, "42: correct");
+
+    assert_eq!(output.len(), 0);
+}
+
+#[tokio::test]
+async fn gservice_with_trait_bounds() {
+    use gservice_with_trait_bounds::MyServiceWithTraitBounds;
+
+    const DO_THIS: &str = "DoThis";
+
+    let (output, _value) = MyServiceWithTraitBounds::<u32>::default()
+        .expose(MessageId::from(123), &[1, 2, 3])
+        .handle(&DO_THIS.encode())
+        .await;
+    let mut output = output.as_slice();
+
+    let func_name = String::decode(&mut output).unwrap();
+    assert_eq!(func_name, DO_THIS);
+
+    let result = u32::decode(&mut output).unwrap();
+    assert_eq!(result, 42);
 
     assert_eq!(output.len(), 0);
 }

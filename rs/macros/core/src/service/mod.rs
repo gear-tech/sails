@@ -103,7 +103,7 @@ fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
     let scale_info_path = sails_paths::scale_info_path(&sails_path);
 
     let (service_type_path, service_type_args) = shared::impl_type(&service_impl);
-    let service_type_constraints = shared::impl_constraints(&service_impl);
+    let (generics, service_type_constraints) = shared::impl_constraints(&service_impl);
 
     let service_handlers = discover_service_handlers(&service_impl);
 
@@ -319,7 +319,7 @@ fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
         #exposure_drop_code
 
         #( #exposure_allow_attrs )*
-        impl #service_type_args Exposure< #exposure_args > #service_type_constraints {
+        impl #generics Exposure< #exposure_args > #service_type_constraints {
             #( #exposure_funcs )*
 
             #( #base_exposure_accessors )*
@@ -341,7 +341,7 @@ fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
             #exposure_set_event_listener_code
         }
 
-        impl #service_type_args #sails_path::gstd::services::Exposure for Exposure< #exposure_args > #service_type_constraints {
+        impl #generics #sails_path::gstd::services::Exposure for Exposure< #exposure_args > #service_type_constraints {
             fn message_id(&self) -> #sails_path::MessageId {
                 self. #message_id_ident
             }
@@ -351,7 +351,7 @@ fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
             }
         }
 
-        impl #service_type_args #sails_path::gstd::services::Service for #service_type_path #service_type_constraints {
+        impl #generics #sails_path::gstd::services::Service for #service_type_path #service_type_constraints {
             type Exposure = Exposure< #exposure_args >;
 
             fn expose(self, #message_id_ident : #sails_path::MessageId, #route_ident : &'static [u8]) -> Self::Exposure {
@@ -375,7 +375,7 @@ fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
             }
         }
 
-        impl #service_type_args #sails_path::meta::ServiceMeta for #service_type_path #service_type_constraints {
+        impl #generics #sails_path::meta::ServiceMeta for #service_type_path #service_type_constraints {
             fn commands() -> #scale_info_path ::MetaType {
                 #scale_info_path ::MetaType::new::<meta_in_service::CommandsMeta>()
             }
