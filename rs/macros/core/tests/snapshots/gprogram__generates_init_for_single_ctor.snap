@@ -30,7 +30,7 @@ struct __NewParams {
 mod meta_in_program {
     use super::*;
     #[derive(__ProgramTypeInfo)]
-    #[scale_info(crate = sails_rs::scale_info, capture_docs = "always")]
+    #[scale_info(crate = sails_rs::scale_info)]
     pub enum ConstructorsMeta {
         New(__NewParams),
     }

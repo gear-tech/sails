@@ -179,7 +179,7 @@ fn gen_gprogram_impl(program_impl: ItemImpl, program_args: ProgramArgs) -> Token
             use super::*;
 
             #[derive(__ProgramTypeInfo)]
-            #[scale_info(crate = #scale_info_path, capture_docs = "always")]
+            #[scale_info(crate = #scale_info_path)]
             pub enum ConstructorsMeta {
                 #(#ctors_meta_variants),*
             }

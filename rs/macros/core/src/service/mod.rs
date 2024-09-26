@@ -420,13 +420,13 @@ fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
             use super::*;
 
             #[derive(__ServiceTypeInfo)]
-            #[scale_info(crate = #scale_info_path, capture_docs = "always")]
+            #[scale_info(crate = #scale_info_path)]
             pub enum CommandsMeta {
                 #(#commands_meta_variants),*
             }
 
             #[derive(__ServiceTypeInfo)]
-            #[scale_info(crate = #scale_info_path, capture_docs = "always")]
+            #[scale_info(crate = #scale_info_path)]
             pub enum QueriesMeta {
                 #(#queries_meta_variants),*
             }
