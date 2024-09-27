@@ -259,11 +259,12 @@ impl FuncParam {
 pub struct Type {
     name: String,
     def: TypeDef,
+    docs: Vec<String>,
 }
 
 impl Type {
-    pub(crate) fn new(name: String, def: TypeDef) -> Self {
-        Self { name, def }
+    pub(crate) fn new(name: String, def: TypeDef, docs: Vec<String>) -> Self {
+        Self { name, def, docs }
     }
 
     pub fn name(&self) -> &str {
@@ -272,6 +273,10 @@ impl Type {
 
     pub fn def(&self) -> &TypeDef {
         &self.def
+    }
+
+    pub fn docs(&self) -> &Vec<String> {
+        &self.docs
     }
 }
 
@@ -409,11 +414,16 @@ impl StructDef {
 pub struct StructField {
     name: Option<String>,
     type_decl: TypeDecl,
+    docs: Vec<String>,
 }
 
 impl StructField {
-    pub(crate) fn new(name: Option<String>, type_decl: TypeDecl) -> Self {
-        Self { name, type_decl }
+    pub(crate) fn new(name: Option<String>, type_decl: TypeDecl, docs: Vec<String>) -> Self {
+        Self {
+            name,
+            type_decl,
+            docs,
+        }
     }
 
     pub fn name(&self) -> Option<&str> {
@@ -422,6 +432,10 @@ impl StructField {
 
     pub fn type_decl(&self) -> &TypeDecl {
         &self.type_decl
+    }
+
+    pub fn docs(&self) -> &Vec<String> {
+        &self.docs
     }
 }
 
@@ -769,10 +783,12 @@ mod tests {
                 StructField::new(
                     Some("query".to_owned()),
                     TypeDecl::Id(TypeId::Primitive(PrimitiveType::U8)),
+                    vec![],
                 ),
                 StructField::new(
                     Some("result".to_owned()),
                     TypeDecl::Id(TypeId::Primitive(PrimitiveType::U8)),
+                    vec![],
                 ),
             ])
             .unwrap(),
@@ -838,8 +854,11 @@ mod tests {
     fn parser_accepts_nonzero_primitives() {
         const IDL: &str = r#"
         type MyStruct = struct {
+            /// field `query`
             query: nat32,
             data: nat256,
+            /// field `result`
+            /// second line
             result: nat8
         };
         "#;
@@ -849,14 +868,17 @@ mod tests {
                 StructField::new(
                     Some("query".to_owned()),
                     TypeDecl::Id(TypeId::Primitive(PrimitiveType::NonZeroU32)),
+                    vec!["field `query`".into()],
                 ),
                 StructField::new(
                     Some("data".to_owned()),
                     TypeDecl::Id(TypeId::Primitive(PrimitiveType::NonZeroU256)),
+                    vec![],
                 ),
                 StructField::new(
                     Some("result".to_owned()),
                     TypeDecl::Id(TypeId::Primitive(PrimitiveType::NonZeroU8)),
+                    vec!["field `result`".into(), "second line".into()],
                 ),
             ])
             .unwrap(),

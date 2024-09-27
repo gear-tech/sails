@@ -74,7 +74,7 @@ impl<'a, 'ast> Visitor<'ast> for EventsModuleGenerator<'a> {
         if let Some(type_decl) = event.type_decl().as_ref() {
             for doc in event.docs() {
                 quote_in! { self.tokens =>
-                    $['\r'] $("///") $doc,
+                    $['\r'] $("///") $doc
                 };
             }
 

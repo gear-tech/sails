@@ -4,18 +4,28 @@ use sails_client_gen::ClientGenerator;
 fn full() {
     const IDL: &str = r#"
         // Comments are supported but ignored by idl-parser
+        
+        /// ThisThatSvcAppTupleStruct docs
         type ThisThatSvcAppTupleStruct = struct {
+            /// field `bool`
             bool,
         };
 
+        /// ThisThatSvcAppDoThatParam docs
         type ThisThatSvcAppDoThatParam = struct {
-            p1: u32,
-            p2: str,
+            /// field `query`
+            query: u32,
+            /// field `result`
+            result: str,
+            /// field `p3`
             p3: ThisThatSvcAppManyVariants,
         };
 
+        /// ThisThatSvcAppManyVariants docs
         type ThisThatSvcAppManyVariants = enum {
+            /// variant `One` 
             One,
+            /// variant `Two`
             Two: u32,
             Three: opt u32,
             Four: struct { a: u32, b: opt u16 },

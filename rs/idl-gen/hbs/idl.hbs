@@ -1,6 +1,6 @@
 {{#each types as |type|}}
   {{#each type.type.def}}
-    {{~> (deref @key) id=type.id}}
+    {{~> (deref @key) id=type.id docs=type.type.docs}}
   {{/each}}
 
 {{/each}}

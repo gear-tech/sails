@@ -247,8 +247,13 @@ mod tests {
                 Type::new(
                     "Type1".into(),
                     TypeDef::Struct(StructDef::new(vec![]).unwrap()),
+                    vec![],
                 ),
-                Type::new("Type2".into(), TypeDef::Enum(EnumDef::new(vec![]).unwrap())),
+                Type::new(
+                    "Type2".into(),
+                    TypeDef::Enum(EnumDef::new(vec![]).unwrap()),
+                    vec![],
+                ),
             ],
         )
         .unwrap();

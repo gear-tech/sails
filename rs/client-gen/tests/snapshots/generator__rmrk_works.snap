@@ -269,15 +269,24 @@ pub enum Part {
 #[codec(crate = sails_rs::scale_codec)]
 #[scale_info(crate = sails_rs::scale_info)]
 pub struct FixedPart {
+    /// An optional zIndex of base part layer.
+    /// specifies the stack order of an element.
+    /// An element with greater stack order is always in front of an element with a lower stack order.
     pub z: Option<u32>,
+    /// The metadata URI of the part.
     pub metadata_uri: String,
 }
 #[derive(PartialEq, Debug, Encode, Decode, TypeInfo)]
 #[codec(crate = sails_rs::scale_codec)]
 #[scale_info(crate = sails_rs::scale_info)]
 pub struct SlotPart {
+    /// Array of whitelisted collections that can be equipped in the given slot. Used with slot parts only.
     pub equippable: Vec<ActorId>,
+    /// An optional zIndex of base part layer.
+    /// specifies the stack order of an element.
+    /// An element with greater stack order is always in front of an element with a lower stack order.
     pub z: Option<u32>,
+    /// The metadata URI of the part.
     pub metadata_uri: String,
 }
 
