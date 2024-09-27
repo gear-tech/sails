@@ -186,3 +186,69 @@ fn works_with_crate_path() {
 
     insta::assert_snapshot!(result);
 }
+
+#[test]
+fn works_with_reply_with_value() {
+    let input = quote! {
+        impl SomeService {
+            pub async fn do_this(&mut self, p1: u32, p2: String) -> CommandReply<u32> {
+                (p1, 100_000_000_000).into()
+            }
+
+            pub fn this(&self, p1: bool) -> bool {
+                p1
+            }
+        }
+    };
+
+    let result = gservice(TokenStream::new(), input).to_string();
+    let result = prettyplease::unparse(&syn::parse_str(&result).unwrap());
+
+    insta::assert_snapshot!(result);
+}
+
+#[test]
+fn works_with_allow_attrs() {
+    let input = quote! {
+        #[allow(warnings)]
+        #[allow(clippy::all)]
+        impl SomeService {
+            #[allow(unused)]
+            pub async fn do_this(&mut self, p1: u32, p2: String) -> u32 {
+                p1
+            }
+
+            pub fn this(&self, p1: bool) -> bool {
+                p1
+            }
+        }
+    };
+
+    let result = gservice(TokenStream::new(), input).to_string();
+    let result = prettyplease::unparse(&syn::parse_str(&result).unwrap());
+
+    insta::assert_snapshot!(result);
+}
+
+#[test]
+fn works_with_docs() {
+    let input = quote! {
+        impl SomeService {
+            /// `DoThis` command
+            /// Second line
+            pub async fn do_this(&mut self, p1: u32, p2: String) -> u32 {
+                p1
+            }
+
+            /// `This` query
+            pub fn this(&self, p1: bool) -> bool {
+                p1
+            }
+        }
+    };
+
+    let result = gservice(TokenStream::new(), input).to_string();
+    let result = prettyplease::unparse(&syn::parse_str(&result).unwrap());
+
+    insta::assert_snapshot!(result);
+}

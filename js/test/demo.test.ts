@@ -5,8 +5,9 @@ import { Keyring } from '@polkadot/api';
 import { hexToU8a } from '@polkadot/util';
 import { readFileSync } from 'fs';
 
-import { getFnNamePrefix, getServiceNamePrefix, H256, NonZeroU32, NonZeroU8, Sails, ZERO_ADDRESS } from '../lib';
+import { getFnNamePrefix, getServiceNamePrefix, H256, NonZeroU32, NonZeroU8, Sails, ZERO_ADDRESS } from '..';
 import { Program } from './demo/lib';
+import { SailsIdlParser } from 'sails-js-parser';
 
 let sails: Sails;
 let api: GearApi;
@@ -20,7 +21,8 @@ let codeId: HexString;
 const DEMO_WASM_PATH = '../target/wasm32-unknown-unknown/release/demo.opt.wasm';
 
 beforeAll(async () => {
-  sails = await Sails.new();
+  const parser = await SailsIdlParser.new();
+  sails = new Sails(parser);
   api = await GearApi.create({ providerAddress: 'ws://127.0.0.1:9944' });
   await waitReady();
   const keyring = new Keyring({ type: 'sr25519' });

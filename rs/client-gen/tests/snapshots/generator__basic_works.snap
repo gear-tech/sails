@@ -28,8 +28,10 @@ impl<R: Remoting + Clone> traits::Basic for Basic<R> {
         RemotingAction::<_, basic::io::DoThat>::new(self.remoting.clone(), p1)
     }
 }
+
 pub mod basic {
     use super::*;
+
     pub mod io {
         use super::*;
         use sails_rs::calls::ActionIo;
@@ -77,8 +79,10 @@ pub enum MyParam2 {
     Variant4((u8, u32)),
     Variant5 { f1: String, f2: Vec<u8> },
 }
+
 pub mod traits {
     use super::*;
+
     #[allow(clippy::type_complexity)]
     pub trait Basic {
         type Args;
@@ -86,9 +90,11 @@ pub mod traits {
         fn do_that(&mut self, p1: (u8, u32)) -> impl Call<Output = u8, Args = Self::Args>;
     }
 }
+
 #[cfg(feature = "with_mocks")]
 #[cfg(not(target_arch = "wasm32"))]
 extern crate std;
+
 #[cfg(feature = "with_mocks")]
 #[cfg(not(target_arch = "wasm32"))]
 pub mod mockall {

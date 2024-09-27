@@ -10,9 +10,8 @@ clarity. It deals with things like:
 - generated client allowing to interact with your application from code written in
   different languages and executed in different runtimes
 
----
-
-> [!NOTE]
+> **NOTE**
+>
 > The Sails library is published under the name `sails-rs` on `crates-io`.
 >
 > Versions "version <= 0.2.1" are pinned to v1.4.2 of gear libs.
@@ -94,6 +93,11 @@ generated behind the service by the `#[service]` attribute decodes an incoming
 request message and dispatches it to the appropriate method based on the method's
 name. On the method's completion, its result is encoded and returned as a response
 to a caller.
+> **NOTE**
+>
+> In some cases, a command might need to return a certain amount of tokens (value) from
+> the application's balance to the caller's one. This can be done via using a dedicated
+> type, `CommandReply<T>`.
 
 ```rust
 #[service]
@@ -103,13 +107,17 @@ impl MyService {
         ...
     }
 
+    // This is a command returning value along with the result
+    pub fn withdraw(&mut self, amount: u64) -> CommandReply<()> {
+        CommandReply::new(()).with_value(amount)
+    }
+
     // This is a query
-    pub fn some_value(&self, p1: Option<bool>) -> String {
+    pub fn something(&self, p1: Option<bool>) -> String {
         ...
     }
 }
 ```
-
 
 The second key concept is *__program__* which is similarly to the service represented
 by an impl of some Rust struct marked with the `#[program]` attribute. The program

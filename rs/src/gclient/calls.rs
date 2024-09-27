@@ -148,7 +148,10 @@ impl Remoting for GClientRemoting {
 
         match reply_info.code {
             ReplyCode::Success(_) => Ok(reply_info.payload),
-            ReplyCode::Error(reason) => Err(RtlError::ReplyHasError(reason))?,
+            ReplyCode::Error(reason) => {
+                let message = String::from_utf8_lossy(&reply_info.payload).to_string();
+                Err(RtlError::ReplyHasError(reason, message))?
+            }
             ReplyCode::Unsupported => Err(RtlError::ReplyIsMissing)?,
         }
     }

@@ -227,9 +227,55 @@ async fn counter_query_not_enough_gas() {
     assert!(matches!(
         result,
         Err(sails_rs::errors::Error::Rtl(RtlError::ReplyHasError(
-            ErrorReplyReason::Execution(SimpleExecutionError::RanOutOfGas)
-        )))
+            ErrorReplyReason::Execution(SimpleExecutionError::RanOutOfGas),
+            message
+        ))) if message == "Not enough gas to handle program data"
     ));
+}
+
+#[tokio::test]
+#[ignore = "requires run gear node on GEAR_PATH"]
+async fn value_fee_works() {
+    // Arrange
+    let (remoting, demo_code_id, _gas_limit) = spin_up_node_with_demo_code().await;
+    let admin_id = ActorId::try_from(remoting.api().account_id().encode().as_ref())
+        .expect("failed to create actor id");
+
+    let demo_factory = demo_client::DemoFactory::new(remoting.clone());
+    let program_id = demo_factory
+        .new(Some(42), None)
+        .send_recv(demo_code_id, "123")
+        .await
+        .unwrap();
+
+    let initial_balance = remoting.api().free_balance(admin_id).await.unwrap();
+    let mut client = demo_client::ValueFee::new(remoting.clone());
+
+    // Act
+
+    // Use generated client code to call `do_something_and_take_fee` method with zero value
+    let result = client
+        .do_something_and_take_fee()
+        .send_recv(program_id)
+        .await
+        .unwrap();
+    assert!(!result);
+
+    // Use generated client code to call `do_something_and_take_fee` method with value
+    let result = client
+        .do_something_and_take_fee()
+        .with_value(15_000_000_000_000)
+        .send_recv(program_id)
+        .await
+        .unwrap();
+
+    assert!(result);
+    let balance = remoting.api().free_balance(admin_id).await.unwrap();
+    // fee is 10_000_000_000_000 + spent gas
+    assert!(
+        initial_balance - balance > 10_000_000_000_000
+            && initial_balance - balance < 10_100_000_000_000
+    );
 }
 
 #[tokio::test]

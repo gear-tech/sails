@@ -103,7 +103,7 @@ fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
     let scale_info_path = sails_paths::scale_info_path(&sails_path);
 
     let (service_type_path, service_type_args) = shared::impl_type(&service_impl);
-    let service_type_constraints = shared::impl_constraints(&service_impl);
+    let (generics, service_type_constraints) = shared::impl_constraints(&service_impl);
 
     let service_handlers = discover_service_handlers(&service_impl);
 
@@ -148,6 +148,16 @@ fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
     let mut queries_meta_variants = Vec::with_capacity(service_handlers.len());
 
     for (handler_route, (handler_fn, ..)) in &service_handlers {
+        // We propagate only known attributes as we don't know the consequences of unknown ones
+        let handler_allow_attrs = handler_fn
+            .attrs
+            .iter()
+            .filter(|attr| attr.path().is_ident("allow"));
+        let handler_docs_attrs = handler_fn
+            .attrs
+            .iter()
+            .filter(|attr| attr.path().is_ident("doc"));
+
         let handler_fn = &handler_fn.sig;
         let handler_func = Func::from(handler_fn);
         let handler_generator = HandlerGenerator::from(handler_func.clone());
@@ -158,6 +168,7 @@ fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
             let handler_params = handler_func.params().iter().map(|item| item.0);
             let handler_await_token = handler_func.is_async().then(|| quote!(.await));
             quote!(
+                #( #handler_allow_attrs )*
                 pub #handler_fn {
                     let exposure_scope = #sails_path::gstd::services::ExposureCallScope::new(self);
                     self. #inner_ident . #handler_ident (#(#handler_params),*) #handler_await_token
@@ -171,9 +182,9 @@ fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
             let handler_route_len = handler_route_bytes.len();
             quote!(
                 if #input_ident.starts_with(& [ #(#handler_route_bytes),* ]) {
-                    let output = self.#invocation_func_ident(&#input_ident[#handler_route_len..]).await;
+                    let (output, value) = self.#invocation_func_ident(&#input_ident[#handler_route_len..]).await;
                     static INVOCATION_ROUTE: [u8; #handler_route_len] = [ #(#handler_route_bytes),* ];
-                    return Some([INVOCATION_ROUTE.as_ref(), &output].concat());
+                    return Some(([INVOCATION_ROUTE.as_ref(), &output].concat(), value));
                 }
             )
         });
@@ -183,7 +194,10 @@ fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
             let result_type = handler_generator.result_type();
             let handler_route_ident = Ident::new(handler_route, Span::call_site());
 
-            quote!(#handler_route_ident(#params_struct_ident, #result_type))
+            quote!(
+                #( #handler_docs_attrs )*
+                #handler_route_ident(#params_struct_ident, #result_type)
+            )
         };
         if handler_generator.is_query() {
             queries_meta_variants.push(handler_meta_variant);
@@ -217,8 +231,8 @@ fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
             );
 
             let base_exposure_invocation = quote!(
-                if let Some(output) = self. #base_ident .try_handle(#input_ident).await {
-                    return Some(output);
+                if let Some((output, value)) = self. #base_ident .try_handle(#input_ident).await {
+                    return Some((output, value));
                 }
             );
 
@@ -289,6 +303,12 @@ fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
         quote! { #exposure_lifetimes, #service_type_path }
     };
 
+    // We propagate only known attributes as we don't know the consequences of unknown ones
+    let exposure_allow_attrs = service_impl
+        .attrs
+        .iter()
+        .filter(|attr| matches!(attr.path().get_ident(), Some(ident) if ident == "allow"));
+
     quote!(
         #service_impl
 
@@ -306,18 +326,19 @@ fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
 
         #exposure_drop_code
 
-        impl #service_type_args Exposure< #exposure_args > #service_type_constraints {
+        #( #exposure_allow_attrs )*
+        impl #generics Exposure< #exposure_args > #service_type_constraints {
             #( #exposure_funcs )*
 
             #( #base_exposure_accessors )*
 
-            pub async fn handle(&mut self, #input_ident: &[u8]) -> Vec<u8> {
+            pub async fn handle(&mut self, #input_ident: &[u8]) -> (Vec<u8>, u128) {
                 self.try_handle( #input_ident ).await.unwrap_or_else(|| {
                     #unexpected_route_panic
                 })
             }
 
-            pub async fn try_handle(&mut self, #input_ident : &[u8]) -> Option<Vec<u8>> {
+            pub async fn try_handle(&mut self, #input_ident : &[u8]) -> Option<(Vec<u8>, u128)> {
                 #( #invocation_dispatches )*
                 #( #base_exposures_invocations )*
                 None
@@ -328,7 +349,7 @@ fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
             #exposure_set_event_listener_code
         }
 
-        impl #service_type_args #sails_path::gstd::services::Exposure for Exposure< #exposure_args > #service_type_constraints {
+        impl #generics #sails_path::gstd::services::Exposure for Exposure< #exposure_args > #service_type_constraints {
             fn message_id(&self) -> #sails_path::MessageId {
                 self. #message_id_ident
             }
@@ -338,7 +359,7 @@ fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
             }
         }
 
-        impl #service_type_args #sails_path::gstd::services::Service for #service_type_path #service_type_constraints {
+        impl #generics #sails_path::gstd::services::Service for #service_type_path #service_type_constraints {
             type Exposure = Exposure< #exposure_args >;
 
             fn expose(self, #message_id_ident : #sails_path::MessageId, #route_ident : &'static [u8]) -> Self::Exposure {
@@ -362,7 +383,7 @@ fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
             }
         }
 
-        impl #service_type_args #sails_path::meta::ServiceMeta for #service_type_path #service_type_constraints {
+        impl #generics #sails_path::meta::ServiceMeta for #service_type_path #service_type_constraints {
             fn commands() -> #scale_info_path ::MetaType {
                 #scale_info_path ::MetaType::new::<meta_in_service::CommandsMeta>()
             }
@@ -399,13 +420,13 @@ fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
             use super::*;
 
             #[derive(__ServiceTypeInfo)]
-            #[scale_info(crate = #scale_info_path )]
+            #[scale_info(crate = #scale_info_path)]
             pub enum CommandsMeta {
                 #(#commands_meta_variants),*
             }
 
             #[derive(__ServiceTypeInfo)]
-            #[scale_info(crate = #scale_info_path )]
+            #[scale_info(crate = #scale_info_path)]
             pub enum QueriesMeta {
                 #(#queries_meta_variants),*
             }
@@ -504,11 +525,33 @@ fn discover_service_handlers(service_impl: &ItemImpl) -> BTreeMap<String, (&Impl
 
 struct HandlerGenerator<'a> {
     handler: Func<'a>,
+    result_type: Type,
+    reply_with_value: bool,
+    is_query: bool,
 }
 
 impl<'a> HandlerGenerator<'a> {
     fn from(handler: Func<'a>) -> Self {
-        Self { handler }
+        // process result type to extact value and replace any lifetime with 'static
+        let (result_type, reply_with_value) =
+            shared::extract_reply_type_with_value(handler.result())
+                .map_or_else(|| (handler.result().clone(), false), |t| (t, true));
+        let result_type = shared::replace_any_lifetime_with_static(result_type);
+        let is_query = handler.receiver().map_or(true, |r| r.mutability.is_none());
+
+        if reply_with_value && is_query {
+            abort!(
+                handler.result().span(),
+                "using `CommandReply` type in a query is not allowed"
+            );
+        }
+
+        Self {
+            handler,
+            result_type,
+            reply_with_value,
+            is_query,
+        }
     }
 
     fn params_struct_ident(&self) -> Ident {
@@ -521,8 +564,8 @@ impl<'a> HandlerGenerator<'a> {
         )
     }
 
-    fn result_type(&self) -> Type {
-        shared::replace_any_lifetime_with_static(self.handler.result().clone())
+    fn result_type(&self) -> &Type {
+        &self.result_type
     }
 
     fn handler_func_ident(&self) -> Ident {
@@ -537,9 +580,11 @@ impl<'a> HandlerGenerator<'a> {
     }
 
     fn is_query(&self) -> bool {
-        self.handler
-            .receiver()
-            .map_or(true, |r| r.mutability.is_none())
+        self.is_query
+    }
+
+    fn reply_with_value(&self) -> bool {
+        self.reply_with_value
     }
 
     fn params_struct(&self) -> TokenStream {
@@ -567,14 +612,26 @@ impl<'a> HandlerGenerator<'a> {
             quote!(request.#param_ident)
         });
 
+        let result_type = self.result_type();
         let await_token = self.handler.is_async().then(|| quote!(.await));
+        let handle_token = if self.reply_with_value() {
+            quote! {
+                let command_reply: CommandReply<#result_type> = self.#handler_func_ident(#(#handler_func_params),*)#await_token.into();
+                let (result, value) = command_reply.to_tuple();
+            }
+        } else {
+            quote! {
+                let result = self.#handler_func_ident(#(#handler_func_params),*)#await_token;
+                let value = 0u128;
+            }
+        };
 
         quote!(
-            async fn #invocation_func_ident(#receiver, mut input: &[u8]) -> Vec<u8>
+            async fn #invocation_func_ident(#receiver, mut input: &[u8]) -> (Vec<u8>, u128)
             {
                 let request = #params_struct_ident::decode(&mut input).expect("Failed to decode request");
-                let result = self.#handler_func_ident(#(#handler_func_params),*)#await_token;
-                return result.encode();
+                #handle_token
+                return (result.encode(), value);
             }
         )
     }

@@ -1,11 +1,11 @@
 import { GearApi, HexString, UserMessageSent, decodeAddress } from '@gear-js/api';
 import { TypeRegistry } from '@polkadot/types/create';
 import { u8aToHex } from '@polkadot/util';
+import { ISailsIdlParser, ISailsProgram, ISailsService, ISailsTypeDef } from 'sails-js-types';
 
-import { Program, Service, TypeDef, WasmParser } from './parser/index.js';
-import { getFnNamePrefix, getServiceNamePrefix } from './utils/prefix.js';
+import { getFnNamePrefix, getServiceNamePrefix } from './prefix.js';
 import { TransactionBuilder } from './transaction-builder.js';
-import { getScaleCodecDef } from './utils/types.js';
+import { getScaleCodecDef } from 'sails-js-util';
 import { ZERO_ADDRESS } from './consts.js';
 
 interface SailsService {
@@ -20,7 +20,7 @@ interface ISailsFuncArg {
   /** ### Argument type */
   type: any;
   /** ### Argument type definition */
-  typeDef: TypeDef;
+  typeDef: ISailsTypeDef;
 }
 
 interface ISailsServiceFuncParams {
@@ -29,13 +29,13 @@ interface ISailsServiceFuncParams {
   /** ### Function return type */
   readonly returnType: any;
   /** ### Function return type definition */
-  readonly returnTypeDef: TypeDef;
+  readonly returnTypeDef: ISailsTypeDef;
   /** ### Encode payload to hex string */
   readonly encodePayload: (...args: any[]) => HexString;
   /** ### Decode payload from hex string */
-  readonly decodePayload: <T extends any = any>(bytes: HexString) => T;
+  readonly decodePayload: <T = any>(bytes: HexString) => T;
   /** ### Decode function result */
-  readonly decodeResult: <T extends any = any>(result: HexString) => T;
+  readonly decodeResult: <T = any>(result: HexString) => T;
 }
 
 type SailsServiceQuery = ISailsServiceFuncParams &
@@ -47,7 +47,7 @@ interface SailsServiceEvent {
   /** ### Event type */
   readonly type: any;
   /** ###  */
-  readonly typeDef: TypeDef;
+  readonly typeDef: ISailsTypeDef;
   /** ### Check if event is of this type */
   readonly is: (event: UserMessageSent) => boolean;
   /** ### Decode event payload */
@@ -72,21 +72,15 @@ interface ISailsCtorFuncParams {
 }
 
 export class Sails {
-  private _parser: WasmParser;
-  private _program: Program;
+  private _parser: ISailsIdlParser;
+  private _program: ISailsProgram;
   private _scaleTypes: Record<string, any>;
   private _registry: TypeRegistry;
   private _api?: GearApi;
   private _programId?: HexString;
 
-  constructor(parser: WasmParser) {
+  constructor(parser?: ISailsIdlParser) {
     this._parser = parser;
-  }
-
-  /** #### Create new Sails instance */
-  static async new() {
-    const parser = new WasmParser();
-    return new Sails(await parser.init());
   }
 
   /** ### Set api to use for transactions */
@@ -111,6 +105,11 @@ export class Sails {
    * @param idl - IDL string
    */
   parseIdl(idl: string) {
+    if (!this._parser) {
+      throw new Error(
+        'Parser not set. Use sails-js-parser package to initialize the parser and pass it to the Sails constructor.',
+      );
+    }
     this._program = this._parser.parse(idl);
     this.generateScaleCodeTypes();
     return this;
@@ -148,7 +147,7 @@ export class Sails {
     return this._registry;
   }
 
-  private _getFunctions(service: Service): {
+  private _getFunctions(service: ISailsService): {
     funcs: Record<string, SailsServiceFunc>;
     queries: Record<string, SailsServiceQuery>;
   } {
@@ -159,7 +158,7 @@ export class Sails {
       const params = func.params.map((p) => ({ name: p.name, type: getScaleCodecDef(p.def), typeDef: p.def }));
       const returnType = getScaleCodecDef(func.def);
       if (func.isQuery) {
-        queries[func.name] = (async <T extends any = any>(
+        queries[func.name] = (async <T = any>(
           origin: string,
           value: bigint = 0n,
           atBlock?: HexString,
@@ -192,7 +191,7 @@ export class Sails {
           return result[2].toJSON() as T;
         }) as SailsServiceQuery;
       } else {
-        funcs[func.name] = (<T extends any = any>(...args: any): TransactionBuilder<T> => {
+        funcs[func.name] = (<T = any>(...args: any): TransactionBuilder<T> => {
           if (!this._api) {
             throw new Error('API is not set. Use .setApi method to set API instance');
           }
@@ -246,7 +245,7 @@ export class Sails {
     return { funcs, queries };
   }
 
-  private _getEvents(service: Service): Record<string, SailsServiceEvent> {
+  private _getEvents(service: ISailsService): Record<string, SailsServiceEvent> {
     const events: Record<string, SailsServiceEvent> = {};
 
     for (const event of service.events) {
@@ -274,7 +273,7 @@ export class Sails {
           const data = this.registry.createType(`(String, String, ${typeStr})`, payload);
           return data[2].toJSON();
         },
-        subscribe: <T extends any = any>(cb: (eventData: T) => void | Promise<void>): Promise<() => void> => {
+        subscribe: <T = any>(cb: (eventData: T) => void | Promise<void>): Promise<() => void> => {
           if (!this._api) {
             throw new Error('API is not set. Use .setApi method to set API instance');
           }
@@ -413,7 +412,7 @@ export class Sails {
   }
 
   /** #### Get type definition by name */
-  getTypeDef(name: string): TypeDef {
+  getTypeDef(name: string): ISailsTypeDef {
     return this.program.getTypeByName(name).def;
   }
 }

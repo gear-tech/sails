@@ -2,7 +2,7 @@ use core::cell::OnceCell;
 use demo_client::{
     counter::{self, events::CounterEvents},
     dog::{self, events::DogEvents},
-    Counter, DemoFactory, Dog, References,
+    Counter, DemoFactory, Dog, References, ValueFee,
 };
 use gtest::Program;
 use sails_rs::{events::Listener, gtest::calls::*, prelude::*};
@@ -24,8 +24,8 @@ impl Fixture {
 
     pub(crate) fn new(admin_id: u64) -> Self {
         let program_space = GTestRemoting::new(admin_id.into());
+        program_space.system().mint_to(admin_id, 20_000_000_000_000);
         program_space.system().init_logger();
-        program_space.system().mint_to(admin_id, 10_000_000_000_000);
         Self {
             admin_id,
             program_space,
@@ -69,6 +69,14 @@ impl Fixture {
 
     pub(crate) fn references_client(&self) -> References<GTestRemoting> {
         References::new(self.program_space.clone())
+    }
+
+    pub(crate) fn value_fee_client(&self) -> ValueFee<GTestRemoting> {
+        ValueFee::new(self.program_space.clone())
+    }
+
+    pub(crate) fn balance_of(&self, id: ActorId) -> ValueUnit {
+        self.program_space.system().balance_of(id)
     }
 
     pub(crate) fn run_next_block(&self) -> gtest::BlockRunResult {

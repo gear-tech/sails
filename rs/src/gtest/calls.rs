@@ -78,7 +78,8 @@ impl GTestRemoting {
         }
         let reply_code = reply.reply_code().ok_or(RtlError::ReplyCodeIsMissing)?;
         if let ReplyCode::Error(reason) = reply_code {
-            Err(RtlError::ReplyHasError(reason))?
+            let message = String::from_utf8_lossy(reply.payload()).to_string();
+            Err(RtlError::ReplyHasError(reason, message))?
         }
         if reply_code != ReplyCode::Success(SuccessReplyReason::Manual) {
             Err(RtlError::ReplyIsMissing)?

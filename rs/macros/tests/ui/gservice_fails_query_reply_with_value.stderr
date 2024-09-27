@@ -1,0 +1,5 @@
+error: using `CommandReply` type in a query is not allowed
+ --> tests/ui/gservice_fails_query_reply_with_value.rs:7:37
+  |
+7 |     pub fn this(&self, p1: bool) -> CommandReply<bool> {
+  |                                     ^^^^^^^^^^^^

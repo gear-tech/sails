@@ -27,6 +27,7 @@ impl<'a> CtorFactoryGenerator<'a> {
         let service_name_snake = self.service_name.to_case(Case::Snake);
         quote! {
             $(self.tokens)
+            $['\n']
             pub mod $(service_name_snake)_factory {
                 use super::*;
                 pub mod io {
@@ -63,7 +64,7 @@ impl<'a, 'ast> Visitor<'ast> for CtorFactoryGenerator<'a> {
         visitor::accept_ctor(ctor, self);
 
         quote_in! { self.tokens =>
-            $("}")
+            $['\r'] $("}")
         };
     }
 
@@ -72,8 +73,14 @@ impl<'a, 'ast> Visitor<'ast> for CtorFactoryGenerator<'a> {
         let fn_name_snake = fn_name.to_case(Case::Snake);
         let fn_name_snake = fn_name_snake.as_str();
 
+        for doc in func.docs() {
+            quote_in! { self.tokens =>
+                $['\r'] $("///") $doc
+            };
+        }
+
         quote_in! { self.tokens =>
-            fn $fn_name_snake$("(")&self,
+            $['\r'] fn $fn_name_snake$("(")&self,
         };
 
         visitor::accept_ctor_func(func, self);
@@ -134,7 +141,7 @@ impl<'ast> Visitor<'ast> for CtorTraitGenerator {
         visitor::accept_ctor(ctor, self);
 
         quote_in! {self.tokens =>
-            $("}")
+            $['\r'] $("}")
         };
     }
 
@@ -151,7 +158,7 @@ impl<'ast> Visitor<'ast> for CtorTraitGenerator {
         }
 
         quote_in! {self.tokens =>
-            fn $fn_name_snake$("(")&self,
+            $['\r'] fn $fn_name_snake$("(")&self,
         };
 
         visitor::accept_ctor_func(func, self);

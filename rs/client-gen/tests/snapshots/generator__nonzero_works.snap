@@ -29,8 +29,10 @@ impl<R: Remoting + Clone> traits::NonZeroParams for NonZeroParams<R> {
         RemotingAction::<_, non_zero_params::io::DoThis>::new(self.remoting.clone(), (p1, p2))
     }
 }
+
 pub mod non_zero_params {
     use super::*;
+
     pub mod io {
         use super::*;
         use sails_rs::calls::ActionIo;
@@ -56,8 +58,10 @@ pub struct MyParam {
     pub f2: Vec<NonZeroU8>,
     pub f3: Option<(NonZeroU64, NonZeroU256)>,
 }
+
 pub mod traits {
     use super::*;
+
     #[allow(clippy::type_complexity)]
     pub trait NonZeroParams {
         type Args;
@@ -68,9 +72,11 @@ pub mod traits {
         ) -> impl Call<Output = NonZeroU64, Args = Self::Args>;
     }
 }
+
 #[cfg(feature = "with_mocks")]
 #[cfg(not(target_arch = "wasm32"))]
 extern crate std;
+
 #[cfg(feature = "with_mocks")]
 #[cfg(not(target_arch = "wasm32"))]
 pub mod mockall {

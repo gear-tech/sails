@@ -32,6 +32,8 @@ extern {
         "null" => Token::Null,
         "id" => Token::Id(<String>),
         "num" => Token::Num(<u32>),
+        "///" => Token::Doc(<String>),
+        "//" => Token::Comment,
     }
 }
 
@@ -61,13 +63,18 @@ pub Program: Program = {
         )?),
 }
 
+Docs: Vec<String> = {
+    <d:("///")*> => d,
+}
+
 Ctor: Ctor = {
     "constructor" "{" <Separated<CtorFunc, ";">> "}" =>? Ok(Ctor::new(<>)?),
 }
 
 CtorFunc : CtorFunc = {
+    <docs: Docs>
     <name: "id"> ":" "(" <params: Separated<FuncParam, ",">> ")" =>
-        CtorFunc::new(name, params),
+        CtorFunc::new(name, params, docs),
 }
 
 Service: Service = {
@@ -76,8 +83,9 @@ Service: Service = {
 }
 
 ServiceFunc: ServiceFunc = {
+    <docs: Docs>
     <query: "query"?> <name: "id"> ":" "(" <params: Separated<FuncParam, ",">> ")" "->" <output: TypeDecl> =>
-        ServiceFunc::new(name, params, output, query.is_some()),
+        ServiceFunc::new(name, params, output, query.is_some(), docs),
 }
 
 FuncParam: FuncParam = {
@@ -85,7 +93,7 @@ FuncParam: FuncParam = {
 }
 
 Type: Type = {
-    "type" <name: "id"> "=" <def: TypeDef> => Type::new(name, def),
+    <docs: Docs> "type" <name: "id"> "=" <def: TypeDef> => Type::new(name, def, docs),
 }
 
 TypeDecl: TypeDecl = {
@@ -112,8 +120,8 @@ StructDef: StructDef = {
 }
 
 StructField: StructField = {
-    <name: Ident> ":" <r#type: TypeDecl> => StructField::new(Some(name), r#type),
-    <r#type: TypeDecl> => StructField::new(None, r#type),
+    <docs: Docs> <name: Ident> ":" <r#type: TypeDecl> => StructField::new(Some(name), r#type, docs),
+    <docs: Docs> <r#type: TypeDecl> => StructField::new(None, r#type, docs),
 }
 
 EnumDef: EnumDef = {
@@ -121,8 +129,8 @@ EnumDef: EnumDef = {
 }
 
 EnumVariant: EnumVariant = {
-    <name: "id"> ":" <r#type: TypeDecl> => EnumVariant::new(name, Some(r#type)),
-    <name: "id"> => EnumVariant::new(name, None),
+    <docs: Docs> <name: "id"> ":" <r#type: TypeDecl> => EnumVariant::new(name, Some(r#type), docs),
+    <docs: Docs> <name: "id"> => EnumVariant::new(name, None, docs),
 }
 
 #[inline]

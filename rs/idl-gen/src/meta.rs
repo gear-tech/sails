@@ -27,9 +27,9 @@ use scale_info::{
     form::PortableForm, Field, MetaType, PortableRegistry, PortableType, Registry, TypeDef, Variant,
 };
 
-struct CtorFuncMeta(String, u32, Vec<Field<PortableForm>>);
+struct CtorFuncMeta(String, u32, Vec<Field<PortableForm>>, Vec<String>);
 
-struct ServiceFuncMeta(String, u32, Vec<Field<PortableForm>>, u32);
+struct ServiceFuncMeta(String, u32, Vec<Field<PortableForm>>, u32, Vec<String>);
 
 pub(crate) struct ExpandedProgramMeta {
     registry: PortableRegistry,
@@ -110,8 +110,8 @@ impl ExpandedProgramMeta {
         })
     }
 
-    pub fn ctors(&self) -> impl Iterator<Item = (&str, &Vec<Field<PortableForm>>)> {
-        self.ctors.iter().map(|c| (c.0.as_str(), &c.2))
+    pub fn ctors(&self) -> impl Iterator<Item = (&str, &Vec<Field<PortableForm>>, &Vec<String>)> {
+        self.ctors.iter().map(|c| (c.0.as_str(), &c.2, &c.3))
     }
 
     pub fn services(&self) -> impl Iterator<Item = &ExpandedServiceMeta> {
@@ -152,6 +152,7 @@ impl ExpandedProgramMeta {
                             c.name.to_string(),
                             c.fields[0].ty.id,
                             params_type.fields.to_vec(),
+                            c.docs.iter().map(|s| s.to_string()).collect(),
                         ))
                     } else {
                         Err(Error::FuncMetaIsInvalid(format!(
@@ -252,12 +253,18 @@ impl ExpandedServiceMeta {
         self.name
     }
 
-    pub fn commands(&self) -> impl Iterator<Item = (&str, &Vec<Field<PortableForm>>, u32)> {
-        self.commands.iter().map(|c| (c.0.as_str(), &c.2, c.3))
+    pub fn commands(
+        &self,
+    ) -> impl Iterator<Item = (&str, &Vec<Field<PortableForm>>, u32, &Vec<String>)> {
+        self.commands
+            .iter()
+            .map(|c| (c.0.as_str(), &c.2, c.3, &c.4))
     }
 
-    pub fn queries(&self) -> impl Iterator<Item = (&str, &Vec<Field<PortableForm>>, u32)> {
-        self.queries.iter().map(|c| (c.0.as_str(), &c.2, c.3))
+    pub fn queries(
+        &self,
+    ) -> impl Iterator<Item = (&str, &Vec<Field<PortableForm>>, u32, &Vec<String>)> {
+        self.queries.iter().map(|c| (c.0.as_str(), &c.2, c.3, &c.4))
     }
 
     pub fn events(&self) -> impl Iterator<Item = &Variant<PortableForm>> {
@@ -293,6 +300,7 @@ impl ExpandedServiceMeta {
                         func_descr.fields[0].ty.id,
                         func_params_type.fields.to_vec(),
                         func_descr.fields[1].ty.id,
+                        func_descr.docs.iter().map(|s| s.to_string()).collect(),
                     );
                     if !funcs_meta
                         .iter()

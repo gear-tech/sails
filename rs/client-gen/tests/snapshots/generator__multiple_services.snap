@@ -28,8 +28,10 @@ impl<R: Remoting + Clone> traits::Multiple for Multiple<R> {
         RemotingAction::<_, multiple::io::DoThat>::new(self.remoting.clone(), p1)
     }
 }
+
 pub mod multiple {
     use super::*;
+
     pub mod io {
         use super::*;
         use sails_rs::calls::ActionIo;
@@ -73,8 +75,10 @@ impl<R: Remoting + Clone> traits::Named for Named<R> {
         RemotingAction::<_, named::io::That>::new(self.remoting.clone(), p1)
     }
 }
+
 pub mod named {
     use super::*;
+
     pub mod io {
         use super::*;
         use sails_rs::calls::ActionIo;
@@ -92,23 +96,28 @@ pub mod named {
         }
     }
 }
+
 pub mod traits {
     use super::*;
+
     #[allow(clippy::type_complexity)]
     pub trait Multiple {
         type Args;
         fn do_this(&mut self, p1: u32, p2: MyParam) -> impl Call<Output = u16, Args = Self::Args>;
         fn do_that(&mut self, p1: (u8, u32)) -> impl Call<Output = u8, Args = Self::Args>;
     }
+
     #[allow(clippy::type_complexity)]
     pub trait Named {
         type Args;
         fn that(&self, p1: u32) -> impl Query<Output = String, Args = Self::Args>;
     }
 }
+
 #[cfg(feature = "with_mocks")]
 #[cfg(not(target_arch = "wasm32"))]
 extern crate std;
+
 #[cfg(feature = "with_mocks")]
 #[cfg(not(target_arch = "wasm32"))]
 pub mod mockall {

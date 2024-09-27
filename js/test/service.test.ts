@@ -1,10 +1,12 @@
-import { Sails } from '../lib';
+import { SailsIdlParser } from 'sails-js-parser';
 import { hexToU8a } from '@polkadot/util';
+import { Sails } from '..';
 
 let sails: Sails;
 
 beforeAll(async () => {
-  sails = await Sails.new();
+  const parser = await SailsIdlParser.new();
+  sails = new Sails(parser);
 });
 
 describe('service', () => {
