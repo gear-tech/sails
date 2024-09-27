@@ -9,6 +9,7 @@ mod mammal;
 mod ping;
 mod references;
 mod this_that;
+mod value_fee;
 
 // Dog data is stored as a global variable. However, it has exactly the same lifetime
 // the Counter data incapsulated in the program itself, i.e. there are no any benefits
@@ -85,5 +86,9 @@ impl DemoProgram {
 
     pub fn this_that(&self) -> this_that::MyService {
         this_that::MyService::default()
+    }
+
+    pub fn value_fee(&self) -> value_fee::FeeService {
+        value_fee::FeeService::new(10_000_000_000_000)
     }
 }

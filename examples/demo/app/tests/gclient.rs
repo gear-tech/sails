@@ -12,7 +12,7 @@ const DEMO_WASM_PATH: &str = "../../../target/wasm32-unknown-unknown/debug/demo.
 async fn counter_add_works() {
     // Arrange
 
-    let (remoting, demo_code_id, gas_limit) = spin_up_node_with_demo_code().await;
+    let (remoting, demo_code_id, gas_limit, ..) = spin_up_node_with_demo_code().await;
 
     let demo_factory = demo_client::DemoFactory::new(remoting.clone());
 
@@ -54,7 +54,7 @@ async fn counter_add_works() {
 async fn counter_sub_works() {
     // Arrange
 
-    let (remoting, demo_code_id, gas_limit) = spin_up_node_with_demo_code().await;
+    let (remoting, demo_code_id, gas_limit, ..) = spin_up_node_with_demo_code().await;
 
     let demo_factory = demo_client::DemoFactory::new(remoting.clone());
 
@@ -99,7 +99,7 @@ async fn counter_sub_works() {
 async fn ping_pong_works() {
     // Arrange
 
-    let (remoting, demo_code_id, gas_limit) = spin_up_node_with_demo_code().await;
+    let (remoting, demo_code_id, gas_limit, ..) = spin_up_node_with_demo_code().await;
 
     let demo_factory = demo_client::DemoFactory::new(remoting.clone());
 
@@ -124,7 +124,7 @@ async fn ping_pong_works() {
             ping_call_payload,
             Some(gas_limit),
             0,
-            GClientArgs::default(),
+            GClientArgs,
         )
         .await
         .unwrap()
@@ -170,7 +170,7 @@ async fn demo_returns_not_enough_gas_on_activation() {
 async fn counter_query_works() {
     // Arrange
 
-    let (remoting, demo_code_id, gas_limit) = spin_up_node_with_demo_code().await;
+    let (remoting, demo_code_id, gas_limit, ..) = spin_up_node_with_demo_code().await;
 
     let demo_factory = demo_client::DemoFactory::new(remoting.clone());
 
@@ -199,7 +199,7 @@ async fn counter_query_works() {
 async fn counter_query_not_enough_gas() {
     // Arrange
 
-    let (remoting, demo_code_id, gas_limit) = spin_up_node_with_demo_code().await;
+    let (remoting, demo_code_id, gas_limit, ..) = spin_up_node_with_demo_code().await;
 
     let demo_factory = demo_client::DemoFactory::new(remoting.clone());
 
@@ -227,86 +227,65 @@ async fn counter_query_not_enough_gas() {
     assert!(matches!(
         result,
         Err(sails_rs::errors::Error::Rtl(RtlError::ReplyHasError(
-            ErrorReplyReason::Execution(SimpleExecutionError::RanOutOfGas)
-        )))
+            ErrorReplyReason::Execution(SimpleExecutionError::RanOutOfGas),
+            message
+        ))) if message == "Not enough gas to handle program data"
     ));
 }
 
 #[tokio::test]
 #[ignore = "requires run gear node on GEAR_PATH"]
-async fn counter_add_with_voucher() {
+async fn value_fee_works() {
     // Arrange
-
-    let (remoting, demo_code_id, gas_limit) = spin_up_node_with_demo_code().await;
+    let (remoting, demo_code_id, _gas_limit, gear_api) = spin_up_node_with_demo_code().await;
+    let admin_id = ActorId::try_from(gear_api.account_id().encode().as_ref())
+        .expect("failed to create actor id");
 
     let demo_factory = demo_client::DemoFactory::new(remoting.clone());
-
-    // Use generated client code for activating Demo program
-    // using the `new` constructor and the `send_recv` method
-    let demo_program_id = demo_factory
+    let program_id = demo_factory
         .new(Some(42), None)
-        .with_gas_limit(gas_limit)
         .send_recv(demo_code_id, "123")
         .await
         .unwrap();
 
-    let mut counter_client = demo_client::Counter::new(remoting.clone());
-    // Listen to Counter events
-    let mut counter_listener = demo_client::counter::events::listener(remoting.clone());
-    let mut counter_events = counter_listener.listen().await.unwrap();
-
-    let actor_id = ActorId::try_from(remoting.api().account_id().encode().as_ref())
-        .expect("failed to create actor id");
-    let voucher_initial_balance = 100_000_000_000_000;
-    // Issue voucher
-    let (voucher_id, ..) = remoting
-        .api()
-        .issue_voucher(actor_id, voucher_initial_balance, None, true, 100)
-        .await
-        .expect("failed to issue voucher");
-
-    let initial_balance = remoting
-        .api()
-        .free_balance(actor_id)
-        .await
-        .expect("failed to get balance");
+    let initial_balance = gear_api.free_balance(admin_id).await.unwrap();
+    let mut client = demo_client::ValueFee::new(remoting.clone());
 
     // Act
 
-    // Use generated client code for calling Counter service
-    // using the `send_recv` method
-    let result = counter_client
-        .add(10)
-        .with_gas_limit(gas_limit)
-        .with_args(GClientArgs::default().with_voucher(voucher_id, true))
-        .send_recv(demo_program_id)
+    // Use generated client code to call `do_something_and_take_fee` method with zero value
+    let result = client
+        .do_something_and_take_fee()
+        .send_recv(program_id)
+        .await
+        .unwrap();
+    assert!(!result);
+
+    // Use generated client code to call `do_something_and_take_fee` method with value
+    let result = client
+        .do_something_and_take_fee()
+        .with_value(15_000_000_000_000)
+        .send_recv(program_id)
         .await
         .unwrap();
 
-    // Asert
-
-    let event = counter_events.next().await.unwrap();
-
-    assert_eq!(result, 52);
-    assert_eq!((demo_program_id, CounterEvents::Added(10)), event);
-
-    let balance = remoting
-        .api()
-        .free_balance(actor_id)
-        .await
-        .expect("failed to get balance");
-    // account balance remain unchanged
-    assert_eq!(initial_balance, balance);
+    assert!(result);
+    let balance = gear_api.free_balance(admin_id).await.unwrap();
+    // fee is 10_000_000_000_000 + spent gas
+    assert!(
+        initial_balance - balance > 10_000_000_000_000
+            && initial_balance - balance < 10_100_000_000_000
+    );
 }
 
-async fn spin_up_node_with_demo_code() -> (GClientRemoting, CodeId, GasUnit) {
+async fn spin_up_node_with_demo_code() -> (GClientRemoting, CodeId, GasUnit, GearApi) {
     let gear_path = option_env!("GEAR_PATH");
     if gear_path.is_none() {
         panic!("the 'GEAR_PATH' environment variable was not set during compile time");
     }
     let api = GearApi::dev_from_path(gear_path.unwrap()).await.unwrap();
     let gas_limit = api.block_gas_limit().unwrap();
-    let remoting = GClientRemoting::new(api);
-    let code_id = remoting.upload_code_by_path(DEMO_WASM_PATH).await.unwrap();
-    (remoting, code_id, gas_limit)
+    let (code_id, _) = api.upload_code_by_path(DEMO_WASM_PATH).await.unwrap();
+    let remoting = GClientRemoting::new(api.clone());
+    (remoting, code_id, gas_limit, api)
 }

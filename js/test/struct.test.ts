@@ -1,9 +1,11 @@
-import { Sails } from '../lib';
+import { SailsIdlParser } from 'sails-js-parser';
+import { Sails } from '..';
 
 let sails: Sails;
 
 beforeAll(async () => {
-  sails = await Sails.new();
+  const parser = await SailsIdlParser.new();
+  sails = new Sails(parser);
 });
 
 describe('struct', () => {
@@ -106,7 +108,7 @@ describe('struct', () => {
       a: struct { str, u32 },
       b: u32
     };
-    
+
     service TestService {}`;
 
     const result = sails.parseIdl(text);

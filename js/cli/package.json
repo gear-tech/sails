@@ -1,0 +1,37 @@
+{
+  "name": "sails-js-cli",
+  "version": "0.1.0",
+  "preferGlobal": true,
+  "type": "module",
+  "license": "GPL-3.0",
+  "author": "Gear Technologies",
+  "bugs": {
+    "url": "https://github.com/gear-tech/sails/issues"
+  },
+  "homepage": "https://github.com/gear-tech/sails/tree/master/js#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://githib.com/gear-tech/sails.git"
+  },
+  "keywords": [
+    "gear",
+    "sails"
+  ],
+  "bin": {
+    "sails-js": "./build/app.js"
+  },
+  "devDependencies": {
+    "@inquirer/prompts": "^5.4.0",
+    "commander": "^12.1.0",
+    "inquirer": "^10.2.0",
+    "sails-js": "workspace:*",
+    "sails-js-parser": "workspace:*",
+    "sails-js-util": "workspace:^"
+  },
+  "scripts": {
+    "build": "npx rollup --config rollup.config.js"
+  },
+  "files": [
+    "build"
+  ]
+}

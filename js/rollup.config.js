@@ -1,52 +1,41 @@
-import { cpSync, writeFileSync } from 'fs';
+import { rmSync } from 'fs';
 import commonjs from '@rollup/plugin-commonjs';
 import nodeResolve from '@rollup/plugin-node-resolve';
 import typescript from 'rollup-plugin-typescript2';
-import { strict } from 'assert';
 
-function writePackageJson(type) {
+function cleanOldBuild() {
   return {
-    name: 'write-package-json',
-    closeBundle() {
-      if (type === 'cjs') {
-        writeFileSync('./lib/cjs/package.json', JSON.stringify({ type: 'commonjs' }));
-      } else {
-        cpSync('./package.json', 'lib/package.json');
-      }
-    },
-  };
-}
-function cpReadme() {
-  return {
-    name: 'cp-readme',
-    closeBundle() {
-      cpSync('./README.md', 'lib/README.md');
+    name: 'clean-old-build',
+    buildStart() {
+      rmSync('./lib', { recursive: true, force: true });
     },
   };
 }
 
 export default [
   {
-    input: ['src/index.ts', 'src/app.ts'],
+    input: ['src/index.ts'],
     output: [
       {
         dir: 'lib',
         format: 'es',
         preserveModules: true,
-        strict: false,
+        preserveModulesRoot: 'src',
       },
     ],
     plugins: [
+      cleanOldBuild(),
       typescript({
         tsconfig: 'tsconfig.build.json',
       }),
       nodeResolve({
         preferBuiltins: true,
         resolveOnly: (module) =>
-          !module.includes('polkadot') && !module.includes('gear-js/api') && !module.includes('commander'),
+          !module.includes('polkadot') &&
+          !module.includes('gear-js/api') &&
+          !module.includes('commander') &&
+          !module.includes('sails-js-parser'),
       }),
-      writePackageJson('es'),
-      cpReadme(),
     ],
   },
   {
@@ -55,7 +44,9 @@ export default [
       {
         dir: 'lib/cjs',
         format: 'cjs',
+        entryFileNames: '[name].cjs',
         preserveModules: true,
+        preserveModulesRoot: 'src',
         exports: 'named',
         strict: false,
       },
@@ -70,7 +61,6 @@ export default [
           !module.includes('polkadot') && !module.includes('gear-js/api') && !module.includes('commander'),
       }),
       commonjs(),
-      writePackageJson('cjs'),
     ],
   },
 ];

@@ -39,15 +39,13 @@ sails-idl-gen = { path = "rs/idl-gen" }
 sails-rename = { package = "sails-rs", path = "rs" }
 
 # Gear deps
-gclient = { git = "https://github.com/gear-tech/gear" }
-gear-core = { git = "https://github.com/gear-tech/gear", default-features = false }
-gear-core-errors = { git = "https://github.com/gear-tech/gear" }
-gprimitives = { git = "https://github.com/gear-tech/gear", features = [
-    "codec",
-] }
-gstd = { git = "https://github.com/gear-tech/gear" }
-gtest = { git = "https://github.com/gear-tech/gear" }
-gwasm-builder = { package = "gear-wasm-builder", git = "https://github.com/gear-tech/gear" }
+gclient = "=1.6.0"
+gear-core = { version = "=1.6.0", default-features = false }
+gear-core-errors = "=1.6.0"
+gprimitives = { version = "=1.6.0", features = ["codec"] }
+gstd = "=1.6.0"
+gtest = "=1.6.0"
+gwasm-builder = { version = "=1.6.0", package = "gear-wasm-builder" }
 
 # Other deps in alphabetical order
 anyhow = "1"
@@ -60,7 +58,7 @@ git-download = "0.1"
 handlebars = "4.4"
 hashbrown = "0.14"
 hex = { version = "0.4", default-features = false }
-insta = "1.39"
+insta = "1.40"
 itertools = "0.13"
 lalrpop = { version = "0.20", default-features = false }
 lalrpop-util = "0.20"
@@ -78,5 +76,5 @@ spin = { version = "0.9", default-features = false, features = ["spin_mutex"] }
 syn = "2.0"
 thiserror = "1.0"
 thiserror-no-std = "2.0"
-tokio = "1.39"
+tokio = "1.40"
 trybuild = "1"

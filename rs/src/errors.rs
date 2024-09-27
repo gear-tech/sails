@@ -21,7 +21,7 @@ pub enum Error {
     Codec(#[from] CodecError),
     #[cfg(feature = "gclient")]
     #[cfg(not(target_arch = "wasm32"))]
-    #[error("codec: {0}")]
+    #[error("gclient: {0}")]
     GClient(#[from] gclient::Error),
 }
 
@@ -37,8 +37,8 @@ pub enum RtlError {
     ReplyIsAmbiguous,
     #[error("reply code is missing")]
     ReplyCodeIsMissing,
-    #[error("reply error: {0}")]
-    ReplyHasError(ErrorReplyReason),
+    #[error("reply error: {0} {1}")]
+    ReplyHasError(ErrorReplyReason, String),
     #[error("program code is not found")]
     ProgramCodeIsNotFound,
     #[error("program is not found")]
