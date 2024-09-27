@@ -8,6 +8,7 @@ const WASM_PATH: &str = "../../../target/wasm32-unknown-unknown/debug/no_svcs_pr
 async fn activating_program_succeeds() {
     let remoting = GTestRemoting::new(ADMIN_ID.into());
     remoting.system().init_logger();
+    remoting.system().mint_to(ADMIN_ID, 10_000_000_000_000);
 
     let program_code_id = remoting.system().submit_code_file(WASM_PATH);
 

@@ -78,4 +78,8 @@ impl Fixture {
     pub(crate) fn balance_of(&self, id: ActorId) -> ValueUnit {
         self.program_space.system().balance_of(id)
     }
+
+    pub(crate) fn run_next_block(&self) -> gtest::BlockRunResult {
+        self.program_space.system().run_next_block()
+    }
 }
