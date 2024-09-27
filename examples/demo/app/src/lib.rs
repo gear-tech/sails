@@ -9,6 +9,7 @@ mod mammal;
 mod ping;
 mod references;
 mod this_that;
+mod value_fee;
 
 // Dog data is stored as a global variable. However, it has exactly the same lifetime
 // the Counter data incapsulated in the program itself, i.e. there are no any benefits
@@ -33,7 +34,7 @@ pub struct DemoProgram {
 #[program]
 impl DemoProgram {
     #[allow(clippy::should_implement_trait)]
-    // Program constructor (called once at the very beginning of the program lifetime)
+    /// Program constructor (called once at the very beginning of the program lifetime)
     pub fn default() -> Self {
         unsafe {
             DOG_DATA = Some(RefCell::new(walker::WalkerData::new(
@@ -46,7 +47,7 @@ impl DemoProgram {
         }
     }
 
-    // Another program constructor (called once at the very beginning of the program lifetime)
+    /// Another program constructor (called once at the very beginning of the program lifetime)
     pub fn new(counter: Option<u32>, dog_position: Option<(i32, i32)>) -> Self {
         unsafe {
             let dog_position = dog_position.unwrap_or_default();
@@ -85,5 +86,9 @@ impl DemoProgram {
 
     pub fn this_that(&self) -> this_that::MyService {
         this_that::MyService::default()
+    }
+
+    pub fn value_fee(&self) -> value_fee::FeeService {
+        value_fee::FeeService::new(10_000_000_000_000)
     }
 }

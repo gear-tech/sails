@@ -2,30 +2,49 @@ use meta_params::*;
 use sails_idl_gen::{program, service};
 use sails_rs::{
     meta::{AnyServiceMeta, ProgramMeta, ServiceMeta as RtlServiceMeta},
+    scale_info::{MetaType, StaticTypeInfo, TypeInfo},
     H256, U256,
 };
-use scale_info::{MetaType, StaticTypeInfo, TypeInfo};
 use std::{collections::BTreeMap, result::Result as StdResult};
 
 #[allow(dead_code)]
 mod types {
     use super::*;
 
+    /// GenericStruct docs
     #[derive(TypeInfo)]
+    #[scale_info(crate = sails_rs::scale_info)]
     pub struct GenericStruct<T> {
+        /// GenericStruct field `p1`
         pub p1: T,
     }
 
+    /// GenericConstStruct docs
     #[derive(TypeInfo)]
+    #[scale_info(crate = sails_rs::scale_info)]
+    pub struct GenericConstStruct<const N: usize> {
+        /// GenericStruct field `field`
+        field: [u8; N],
+    }
+
+    /// GenericEnum docs
+    /// with two lines
+    #[derive(TypeInfo)]
+    #[scale_info(crate = sails_rs::scale_info)]
     pub enum GenericEnum<T1, T2> {
+        /// GenericEnum `Variant1` of type 'T1'
         Variant1(T1),
+        /// GenericEnum `Variant2` of type 'T2'
         Variant2(T2),
     }
 
+    /// TupleStruct docs
     #[derive(TypeInfo)]
+    #[scale_info(crate = sails_rs::scale_info)]
     pub struct TupleStruct(bool);
 
     #[derive(TypeInfo)]
+    #[scale_info(crate = sails_rs::scale_info)]
     pub enum ManyVariants {
         One,
         Two(u32),
@@ -62,6 +81,8 @@ mod meta_params {
         p4: TupleStruct,
         p5: GenericStruct<H256>,
         p6: GenericStruct<String>,
+        p7: GenericConstStruct<8>,
+        p8: GenericConstStruct<32>,
     }
 
     #[derive(TypeInfo)]
@@ -94,8 +115,13 @@ mod meta_params {
 
 #[allow(dead_code)]
 #[derive(TypeInfo)]
+#[scale_info(crate = sails_rs::scale_info)]
 enum CommandsMeta {
+    /// Some description
     DoThis(DoThisParams, String),
+    /// Some multiline description
+    /// Second line
+    /// Third line
     DoThat(DoThatParams, StdResult<(String, u32), (String,)>),
 }
 
@@ -108,8 +134,12 @@ enum BaseCommandsMeta {
 
 #[allow(dead_code)]
 #[derive(TypeInfo)]
+#[scale_info(crate = sails_rs::scale_info)]
 enum QueriesMeta {
+    /// This is a query
     This(ThisParams, StdResult<(String, u32), String>),
+    /// This is a second query
+    /// This is a second line
     That(ThatParams, String),
 }
 
@@ -122,8 +152,11 @@ enum BaseQueriesMeta {
 
 #[allow(dead_code)]
 #[derive(TypeInfo)]
+#[scale_info(crate = sails_rs::scale_info)]
 enum EventsMeta {
+    /// `This` Done
     ThisDone(u32),
+    /// `That` Done too
     ThatDone { p1: String },
 }
 
@@ -214,8 +247,12 @@ impl ProgramMeta for TestProgramWithEmptyCtorsMeta {
 
 #[allow(dead_code)]
 #[derive(TypeInfo)]
+#[scale_info(crate = sails_rs::scale_info)]
 enum NonEmptyCtorsMeta {
+    /// This is New constructor
     New(NoParams),
+    /// This is FromStr constructor
+    /// with second line
     FromStr(SingleParams<String>),
 }
 
@@ -259,7 +296,7 @@ fn program_idl_works_with_empty_ctors() {
     assert!(generated_idl_program.ctor().is_none());
     assert_eq!(generated_idl_program.services().len(), 1);
     assert_eq!(generated_idl_program.services()[0].funcs().len(), 4);
-    assert_eq!(generated_idl_program.types().len(), 8);
+    assert_eq!(generated_idl_program.types().len(), 10);
 }
 
 #[test]
@@ -274,7 +311,7 @@ fn program_idl_works_with_non_empty_ctors() {
     assert_eq!(generated_idl_program.ctor().unwrap().funcs().len(), 2);
     assert_eq!(generated_idl_program.services().len(), 1);
     assert_eq!(generated_idl_program.services()[0].funcs().len(), 4);
-    assert_eq!(generated_idl_program.types().len(), 8);
+    assert_eq!(generated_idl_program.types().len(), 10);
 }
 
 #[test]
@@ -292,7 +329,7 @@ fn program_idl_works_with_multiple_services() {
     assert_eq!(generated_idl_program.services()[0].funcs().len(), 4);
     assert_eq!(generated_idl_program.services()[1].name(), "SomeService");
     assert_eq!(generated_idl_program.services()[1].funcs().len(), 4);
-    assert_eq!(generated_idl_program.types().len(), 8);
+    assert_eq!(generated_idl_program.types().len(), 10);
 }
 
 #[test]
@@ -307,7 +344,7 @@ fn service_idl_works_with_basics() {
     assert!(generated_idl_program.ctor().is_none());
     assert_eq!(generated_idl_program.services().len(), 1);
     assert_eq!(generated_idl_program.services()[0].funcs().len(), 4);
-    assert_eq!(generated_idl_program.types().len(), 8);
+    assert_eq!(generated_idl_program.types().len(), 10);
 }
 
 #[test]
@@ -330,7 +367,7 @@ fn service_idl_works_with_base_services() {
     assert!(generated_idl_program.ctor().is_none());
     assert_eq!(generated_idl_program.services().len(), 1);
     assert_eq!(generated_idl_program.services()[0].funcs().len(), 6);
-    assert_eq!(generated_idl_program.types().len(), 8);
+    assert_eq!(generated_idl_program.types().len(), 10);
 }
 
 #[test]

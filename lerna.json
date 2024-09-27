@@ -1,0 +1,19 @@
+{
+  "$schema": "node_modules/lerna/schemas/lerna-schema.json",
+  "version": "0.2.0",
+  "packages": [
+    "js",
+    "js/cli",
+    "js/parser",
+    "js/types",
+    "js/util",
+    "js/example"
+  ],
+  "command": {
+    "publish": {
+      "registry": "https://registry.npmjs.org/",
+      "private": false
+    }
+  },
+  "npmClient": "yarn"
+}

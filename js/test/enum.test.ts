@@ -1,9 +1,11 @@
-import { Sails } from '../lib';
+import { SailsIdlParser } from 'sails-js-parser';
+import { Sails } from '..';
 
 let sails: Sails;
 
 beforeAll(async () => {
-  sails = await Sails.new();
+  const parser = await SailsIdlParser.new();
+  sails = new Sails(parser);
 });
 
 describe('enum', () => {
@@ -13,7 +15,7 @@ describe('enum', () => {
         Two,
         Three,
     };
-    
+
     service TestService {}`;
 
     sails.parseIdl(idl);
@@ -39,7 +41,7 @@ describe('enum', () => {
         Five: struct { str, u32 },
         Six: [map (str, u32), 3],
     };
-    
+
     service TestService {}`;
 
     const result = sails.parseIdl(text);

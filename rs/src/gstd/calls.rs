@@ -36,7 +36,7 @@ impl GStdRemoting {
         target: ActorId,
         payload: impl AsRef<[u8]>,
         #[cfg(not(feature = "ethexe"))] gas_limit: Option<GasUnit>,
-        value: u128,
+        value: ValueUnit,
         #[allow(unused_variables)] args: GStdArgs,
     ) -> Result<msg::MessageFuture, crate::errors::Error> {
         #[cfg(not(feature = "ethexe"))]

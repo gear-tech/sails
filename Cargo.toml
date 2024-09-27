@@ -1,5 +1,5 @@
 [workspace.package]
-version = "0.4.0"
+version = "0.5.1"
 authors = ["Gear Technologies"]
 edition = "2021"
 license = "GPL-3.0"
@@ -60,7 +60,7 @@ git-download = "0.1"
 handlebars = "4.4"
 hashbrown = "0.14"
 hex = { version = "0.4", default-features = false }
-insta = "1.39"
+insta = "1.40"
 itertools = "0.13"
 lalrpop = { version = "0.20", default-features = false }
 lalrpop-util = "0.20"
@@ -78,5 +78,5 @@ spin = { version = "0.9", default-features = false, features = ["spin_mutex"] }
 syn = "2.0"
 thiserror = "1.0"
 thiserror-no-std = "2.0"
-tokio = "1.39"
+tokio = "1.40"
 trybuild = "1"

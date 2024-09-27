@@ -1,0 +1,39 @@
+{
+  "name": "sails-js-parser",
+  "version": "0.0.1",
+  "description": "Sails-IDL parser for TypeScript",
+  "main": "lib/cjs/index.cjs",
+  "module": "lib/index.js",
+  "types": "lib/index.d.ts",
+  "type": "module",
+  "exports": {
+    ".": {
+      "require": "./lib/cjs/index.cjs",
+      "import": "./lib/index.js"
+    }
+  },
+  "files": [
+    "lib"
+  ],
+  "license": "GPL-3.0",
+  "author": "Gear Technologies",
+  "bugs": {
+    "url": "https://github.com/gear-tech/sails/issues"
+  },
+  "homepage": "https://github.com/gear-tech/sails/tree/master/js#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://githib.com/gear-tech/sails.git"
+  },
+  "keywords": [
+    "gear",
+    "sails",
+    "parser"
+  ],
+  "scripts": {
+    "build": "rollup --config rollup.config.js"
+  },
+  "peerDependencies": {
+    "sails-js-types": "0.0.1"
+  }
+}

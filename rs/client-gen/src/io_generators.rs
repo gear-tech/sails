@@ -20,6 +20,7 @@ impl<'a> IoModuleGenerator<'a> {
 
     pub(crate) fn finalize(self) -> rust::Tokens {
         quote!(
+            $['\n']
             pub mod io {
                 use super::*;
                 use $(self.sails_path)::calls::ActionIo;

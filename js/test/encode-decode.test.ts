@@ -1,5 +1,6 @@
 import { readFileSync } from 'fs';
-import { getCtorNamePrefix, getFnNamePrefix, getServiceNamePrefix, Sails } from '../lib';
+import { getCtorNamePrefix, getFnNamePrefix, getServiceNamePrefix, Sails } from '..';
+import { SailsIdlParser } from 'sails-js-parser';
 
 const DEMO_IDL_PATH = '../examples/demo/client/demo.idl';
 
@@ -7,7 +8,8 @@ let sails: Sails;
 const demoIdl = readFileSync(DEMO_IDL_PATH, 'utf-8');
 
 beforeAll(async () => {
-  sails = await Sails.new();
+  const parser = await SailsIdlParser.new();
+  sails = new Sails(parser);
   sails.parseIdl(demoIdl);
 });
 

@@ -34,7 +34,7 @@ impl Exposure<SomeService> {
     ) -> &<ExtendedService2 as sails_rs::gstd::services::Service>::Exposure {
         &self.base_1
     }
-    pub async fn handle(&mut self, input: &[u8]) -> Vec<u8> {
+    pub async fn handle(&mut self, input: &[u8]) -> (Vec<u8>, u128) {
         self.try_handle(input)
             .await
             .unwrap_or_else(|| {
@@ -55,9 +55,9 @@ impl Exposure<SomeService> {
                 }
             })
     }
-    pub async fn try_handle(&mut self, input: &[u8]) -> Option<Vec<u8>> {
+    pub async fn try_handle(&mut self, input: &[u8]) -> Option<(Vec<u8>, u128)> {
         if input.starts_with(&[24u8, 68u8, 111u8, 84u8, 104u8, 105u8, 115u8]) {
-            let output = self.__do_this(&input[7usize..]).await;
+            let (output, value) = self.__do_this(&input[7usize..]).await;
             static INVOCATION_ROUTE: [u8; 7usize] = [
                 24u8,
                 68u8,
@@ -67,21 +67,22 @@ impl Exposure<SomeService> {
                 105u8,
                 115u8,
             ];
-            return Some([INVOCATION_ROUTE.as_ref(), &output].concat());
+            return Some(([INVOCATION_ROUTE.as_ref(), &output].concat(), value));
         }
-        if let Some(output) = self.base_0.try_handle(input).await {
-            return Some(output);
+        if let Some((output, value)) = self.base_0.try_handle(input).await {
+            return Some((output, value));
         }
-        if let Some(output) = self.base_1.try_handle(input).await {
-            return Some(output);
+        if let Some((output, value)) = self.base_1.try_handle(input).await {
+            return Some((output, value));
         }
         None
     }
-    async fn __do_this(&mut self, mut input: &[u8]) -> Vec<u8> {
+    async fn __do_this(&mut self, mut input: &[u8]) -> (Vec<u8>, u128) {
         let request = __DoThisParams::decode(&mut input)
             .expect("Failed to decode request");
         let result = self.do_this();
-        return result.encode();
+        let value = 0u128;
+        return (result.encode(), value);
     }
 }
 impl sails_rs::gstd::services::Exposure for Exposure<SomeService> {
