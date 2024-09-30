@@ -1,54 +1,40 @@
-use core::cell::OnceCell;
 use demo_client::{
     counter::{self, events::CounterEvents},
     dog::{self, events::DogEvents},
     Counter, DemoFactory, Dog, References, ValueFee,
 };
-use gtest::Program;
-use sails_rs::{events::Listener, gtest::calls::*, prelude::*};
+use sails_rs::{events::Listener, gtest::calls::*, gtest::System, prelude::*};
 
-const DEMO_WASM_PATH: &str = "../../../target/wasm32-unknown-unknown/debug/demo.opt.wasm";
+pub(crate) const DEMO_WASM_PATH: &str =
+    "../../../target/wasm32-unknown-unknown/debug/demo.opt.wasm";
 
 pub(crate) const ADMIN_ID: u64 = 10;
 
 pub(crate) struct Fixture {
-    admin_id: u64,
     program_space: GTestRemoting,
-    demo_program_code_id: OnceCell<CodeId>,
+    demo_code_id: CodeId,
 }
 
 impl Fixture {
-    pub(crate) fn admin_id(&self) -> ActorId {
-        self.admin_id.into()
-    }
+    pub(crate) fn new() -> Self {
+        let system = System::new();
+        system.init_logger();
+        system.mint_to(ADMIN_ID, 100_000_000_000_000);
+        let demo_code_id = system.submit_code_file(DEMO_WASM_PATH);
 
-    pub(crate) fn new(admin_id: u64) -> Self {
-        let program_space = GTestRemoting::new(admin_id.into());
-        program_space.system().mint_to(admin_id, 20_000_000_000_000);
-        program_space.system().init_logger();
+        let program_space = GTestRemoting::new(system, ADMIN_ID.into());
         Self {
-            admin_id,
             program_space,
-            demo_program_code_id: OnceCell::new(),
+            demo_code_id,
         }
     }
 
     pub(crate) fn demo_code_id(&self) -> CodeId {
-        let demo_code_id = self
-            .demo_program_code_id
-            .get_or_init(|| self.program_space.system().submit_code_file(DEMO_WASM_PATH));
-        *demo_code_id
+        self.demo_code_id
     }
 
     pub(crate) fn demo_factory(&self) -> DemoFactory<GTestRemoting> {
         DemoFactory::new(self.program_space.clone())
-    }
-
-    pub(crate) fn demo_program(&self, program_id: ActorId) -> Program<'_> {
-        self.program_space
-            .system()
-            .get_program(program_id.as_ref())
-            .unwrap()
     }
 
     pub(crate) fn counter_client(&self) -> Counter<GTestRemoting> {
@@ -77,9 +63,5 @@ impl Fixture {
 
     pub(crate) fn balance_of(&self, id: ActorId) -> ValueUnit {
         self.program_space.system().balance_of(id)
-    }
-
-    pub(crate) fn run_next_block(&self) -> gtest::BlockRunResult {
-        self.program_space.system().run_next_block()
     }
 }
