@@ -8,7 +8,7 @@ const ACTOR_ID: u64 = 42;
 async fn do_something_works() {
     let system = System::new();
     system.init_logger();
-    system.mint_to(fixture::ADMIN_ID, 100_000_000_000_000);
+    system.mint_to(ACTOR_ID, 100_000_000_000_000);
 
     let remoting = GTestRemoting::new(system, ACTOR_ID.into());
     remoting.system().init_logger();
@@ -39,7 +39,7 @@ async fn do_something_works() {
 async fn get_something_works() {
     let system = System::new();
     system.init_logger();
-    system.mint_to(fixture::ADMIN_ID, 100_000_000_000_000);
+    system.mint_to(ACTOR_ID, 100_000_000_000_000);
 
     let remoting = GTestRemoting::new(system, ACTOR_ID.into());
     remoting.system().init_logger();
