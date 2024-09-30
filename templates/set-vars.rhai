@@ -32,7 +32,7 @@ variable::set("mocks-feature-name", "mocks");
 
 // Set versions of used crates
 variable::set("mockall-version", "0.12");
-variable::set("sails-rs-version", "0.5.1");
+variable::set("sails-rs-version", "0.6.0");
 variable::set("tokio-version", "1.40");
 
 fn is_kebab_case(name) {
