@@ -5,10 +5,13 @@ use gstd::{msg, prog};
 
 #[derive(Default)]
 pub struct GStdArgs {
+    #[cfg(not(feature = "ethexe"))]
     reply_deposit: Option<GasUnit>,
+    #[cfg(not(feature = "ethexe"))]
     reply_hook: Option<Box<dyn FnOnce() + Send + 'static>>,
 }
 
+#[cfg(not(feature = "ethexe"))]
 impl GStdArgs {
     pub fn with_reply_deposit(mut self, reply_deposit: Option<GasUnit>) -> Self {
         self.reply_deposit = reply_deposit;
@@ -32,10 +35,11 @@ impl GStdRemoting {
     fn send_for_reply(
         target: ActorId,
         payload: impl AsRef<[u8]>,
-        gas_limit: Option<GasUnit>,
+        #[cfg(not(feature = "ethexe"))] gas_limit: Option<GasUnit>,
         value: ValueUnit,
-        args: GStdArgs,
+        #[allow(unused_variables)] args: GStdArgs,
     ) -> Result<msg::MessageFuture, crate::errors::Error> {
+        #[cfg(not(feature = "ethexe"))]
         let message_future = if let Some(gas_limit) = gas_limit {
             msg::send_bytes_with_gas_for_reply(
                 target,
@@ -52,11 +56,15 @@ impl GStdRemoting {
                 args.reply_deposit.unwrap_or_default(),
             )?
         };
+        #[cfg(feature = "ethexe")]
+        let message_future = msg::send_bytes_for_reply(target, payload, value)?;
+
+        #[cfg(not(feature = "ethexe"))]
         if let Some(reply_hook) = args.reply_hook {
-            Ok(message_future.handle_reply(reply_hook)?)
-        } else {
-            Ok(message_future)
+            return Ok(message_future.handle_reply(reply_hook)?);
         }
+
+        Ok(message_future)
     }
 }
 
@@ -68,10 +76,11 @@ impl Remoting for GStdRemoting {
         code_id: CodeId,
         salt: impl AsRef<[u8]>,
         payload: impl AsRef<[u8]>,
-        gas_limit: Option<GasUnit>,
+        #[cfg(not(feature = "ethexe"))] gas_limit: Option<GasUnit>,
         value: ValueUnit,
-        args: GStdArgs,
+        #[allow(unused_variables)] args: GStdArgs,
     ) -> Result<impl Future<Output = Result<(ActorId, Vec<u8>)>>> {
+        #[cfg(not(feature = "ethexe"))]
         let mut reply_future = if let Some(gas_limit) = gas_limit {
             prog::create_program_bytes_with_gas_for_reply(
                 code_id,
@@ -90,9 +99,14 @@ impl Remoting for GStdRemoting {
                 args.reply_deposit.unwrap_or_default(),
             )?
         };
+        #[cfg(feature = "ethexe")]
+        let reply_future = prog::create_program_bytes_for_reply(code_id, salt, payload, value)?;
+
+        #[cfg(not(feature = "ethexe"))]
         if let Some(reply_hook) = args.reply_hook {
             reply_future = reply_future.handle_reply(reply_hook)?;
         }
+
         let reply_future = reply_future.map(|result| result.map_err(Into::into));
         Ok(reply_future)
     }
@@ -101,11 +115,18 @@ impl Remoting for GStdRemoting {
         self,
         target: ActorId,
         payload: impl AsRef<[u8]>,
-        gas_limit: Option<GasUnit>,
+        #[cfg(not(feature = "ethexe"))] gas_limit: Option<GasUnit>,
         value: ValueUnit,
         args: GStdArgs,
     ) -> Result<impl Future<Output = Result<Vec<u8>>>> {
-        let reply_future = GStdRemoting::send_for_reply(target, payload, gas_limit, value, args)?;
+        let reply_future = GStdRemoting::send_for_reply(
+            target,
+            payload,
+            #[cfg(not(feature = "ethexe"))]
+            gas_limit,
+            value,
+            args,
+        )?;
         let reply_future = reply_future.map(|result| result.map_err(Into::into));
         Ok(reply_future)
     }
@@ -114,11 +135,18 @@ impl Remoting for GStdRemoting {
         self,
         target: ActorId,
         payload: impl AsRef<[u8]>,
-        gas_limit: Option<GasUnit>,
+        #[cfg(not(feature = "ethexe"))] gas_limit: Option<GasUnit>,
         value: ValueUnit,
         args: GStdArgs,
     ) -> Result<Vec<u8>> {
-        let reply_future = GStdRemoting::send_for_reply(target, payload, gas_limit, value, args)?;
+        let reply_future = GStdRemoting::send_for_reply(
+            target,
+            payload,
+            #[cfg(not(feature = "ethexe"))]
+            gas_limit,
+            value,
+            args,
+        )?;
         let reply = reply_future.await?;
         Ok(reply)
     }

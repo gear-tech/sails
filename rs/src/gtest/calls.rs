@@ -139,11 +139,14 @@ impl GTestRemoting {
         &self,
         target: ActorId,
         payload: impl AsRef<[u8]>,
-        gas_limit: Option<GasUnit>,
+        #[cfg(not(feature = "ethexe"))] gas_limit: Option<GasUnit>,
         value: ValueUnit,
         args: GTestArgs,
     ) -> Result<MessageId> {
+        #[cfg(not(feature = "ethexe"))]
         let gas_limit = gas_limit.unwrap_or(gtest::constants::GAS_ALLOWANCE);
+        #[cfg(feature = "ethexe")]
+        let gas_limit = gtest::constants::GAS_ALLOWANCE;
         let program = self
             .system
             .get_program(target.as_ref())
@@ -187,11 +190,14 @@ impl Remoting for GTestRemoting {
         code_id: CodeId,
         salt: impl AsRef<[u8]>,
         payload: impl AsRef<[u8]>,
-        gas_limit: Option<GasUnit>,
+        #[cfg(not(feature = "ethexe"))] gas_limit: Option<GasUnit>,
         value: ValueUnit,
         args: GTestArgs,
     ) -> Result<impl Future<Output = Result<(ActorId, Vec<u8>)>>> {
+        #[cfg(not(feature = "ethexe"))]
         let gas_limit = gas_limit.unwrap_or(gtest::constants::GAS_ALLOWANCE);
+        #[cfg(feature = "ethexe")]
+        let gas_limit = gtest::constants::GAS_ALLOWANCE;
         let code = self
             .system
             .submitted_code(code_id)
@@ -214,11 +220,18 @@ impl Remoting for GTestRemoting {
         self,
         target: ActorId,
         payload: impl AsRef<[u8]>,
-        gas_limit: Option<GasUnit>,
+        #[cfg(not(feature = "ethexe"))] gas_limit: Option<GasUnit>,
         value: ValueUnit,
         args: GTestArgs,
     ) -> Result<impl Future<Output = Result<Vec<u8>>>> {
-        let message_id = self.send_message(target, payload, gas_limit, value, args)?;
+        let message_id = self.send_message(
+            target,
+            payload,
+            #[cfg(not(feature = "ethexe"))]
+            gas_limit,
+            value,
+            args,
+        )?;
         Ok(self.message_reply_from_next_block(message_id))
     }
 
@@ -226,11 +239,18 @@ impl Remoting for GTestRemoting {
         self,
         target: ActorId,
         payload: impl AsRef<[u8]>,
-        gas_limit: Option<GasUnit>,
+        #[cfg(not(feature = "ethexe"))] gas_limit: Option<GasUnit>,
         value: ValueUnit,
         args: GTestArgs,
     ) -> Result<Vec<u8>> {
-        let message_id = self.send_message(target, payload, gas_limit, value, args)?;
+        let message_id = self.send_message(
+            target,
+            payload,
+            #[cfg(not(feature = "ethexe"))]
+            gas_limit,
+            value,
+            args,
+        )?;
         self.message_reply_from_next_block(message_id).await
     }
 }

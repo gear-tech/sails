@@ -124,7 +124,7 @@ async fn ping_pong_works() {
             ping_call_payload,
             Some(gas_limit),
             0,
-            GClientArgs,
+            GClientArgs::default(),
         )
         .await
         .unwrap()
