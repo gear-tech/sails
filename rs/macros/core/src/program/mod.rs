@@ -9,8 +9,8 @@ use proc_macro_error::abort;
 use quote::quote;
 use std::{collections::BTreeMap, env};
 use syn::{
-    parse_quote, spanned::Spanned, Ident, ImplItem, ImplItemFn, ItemImpl, Path, Receiver,
-    ReturnType, Type, TypePath, Visibility,
+    parse_quote, spanned::Spanned, Attribute, Ident, ImplItem, ImplItemFn, ItemImpl, Path,
+    Receiver, ReturnType, Type, TypePath, Visibility,
 };
 
 mod args;
@@ -125,8 +125,8 @@ fn gen_gprogram_impl(program_impl: ItemImpl, program_args: ProgramArgs) -> Token
 
     let services_routes = services_data.iter().map(|item| &item.0);
 
-    let (program_type_path, program_type_args) = shared::impl_type(&program_impl);
-    let program_type_constraints = shared::impl_constraints(&program_impl);
+    let (program_type_path, _program_type_args) = shared::impl_type(&program_impl);
+    let (generics, program_type_constraints) = shared::impl_constraints(&program_impl);
 
     let (ctors_data, init_fn) = generate_init(
         &mut program_impl,
@@ -140,7 +140,11 @@ fn gen_gprogram_impl(program_impl: ItemImpl, program_args: ProgramArgs) -> Token
     let ctors_meta_variants = ctors_data.map(|item| {
         let ctor_route = Ident::new(&item.0, Span::call_site());
         let ctor_params_struct_ident = item.1;
-        quote!(#ctor_route(#ctor_params_struct_ident))
+        let ctor_docs_attrs = item.3;
+        quote!(
+            #( #ctor_docs_attrs )*
+            #ctor_route(#ctor_params_struct_ident)
+        )
     });
 
     quote!(
@@ -148,7 +152,7 @@ fn gen_gprogram_impl(program_impl: ItemImpl, program_args: ProgramArgs) -> Token
 
         #program_impl
 
-        impl #program_type_args #sails_path::meta::ProgramMeta for #program_type_path #program_type_constraints {
+        impl #generics #sails_path::meta::ProgramMeta for #program_type_path #program_type_constraints {
             fn constructors() -> #scale_info_path::MetaType {
                 #scale_info_path::MetaType::new::<meta_in_program::ConstructorsMeta>()
             }
@@ -175,7 +179,7 @@ fn gen_gprogram_impl(program_impl: ItemImpl, program_args: ProgramArgs) -> Token
             use super::*;
 
             #[derive(__ProgramTypeInfo)]
-            #[scale_info(crate = #scale_info_path )]
+            #[scale_info(crate = #scale_info_path)]
             pub enum ConstructorsMeta {
                 #(#ctors_meta_variants),*
             }
@@ -238,7 +242,7 @@ fn generate_init(
     program_ident: &Ident,
     sails_path: &Path,
 ) -> (
-    impl Iterator<Item = (String, Ident, TokenStream2)> + Clone,
+    impl Iterator<Item = (String, Ident, TokenStream2, Vec<Attribute>)> + Clone,
     TokenStream2,
 ) {
     if discover_program_ctors(program_impl, program_type_path).is_empty() {
@@ -257,6 +261,13 @@ fn generate_init(
     let mut invocation_params_structs = Vec::with_capacity(program_ctors.len());
 
     for (invocation_route, (program_ctor, ..)) in &program_ctors {
+        let ctor_docs_attrs: Vec<_> = program_ctor
+            .attrs
+            .iter()
+            .filter(|attr| attr.path().is_ident("doc"))
+            .cloned()
+            .collect();
+
         let program_ctor = &program_ctor.sig;
         let handler = Func::from(program_ctor);
 
@@ -298,6 +309,7 @@ fn generate_init(
                         #(#invocation_params_struct_members),*
                     }
                 ),
+                ctor_docs_attrs,
             )
         });
     }

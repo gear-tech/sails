@@ -4,9 +4,10 @@ use proc_macro_error::abort;
 use quote::{quote, ToTokens};
 use std::collections::BTreeMap;
 use syn::{
-    punctuated::Punctuated, spanned::Spanned, FnArg, GenericArgument, Ident, ImplItem, ImplItemFn,
-    ItemImpl, Lifetime, Pat, Path, PathArguments, PathSegment, Receiver, ReturnType, Signature,
-    Token, Type, TypeImplTrait, TypeParamBound, TypePath, TypeReference, TypeTuple, WhereClause,
+    punctuated::Punctuated, spanned::Spanned, FnArg, GenericArgument, Generics, Ident, ImplItem,
+    ImplItemFn, ItemImpl, Lifetime, Pat, Path, PathArguments, PathSegment, Receiver, ReturnType,
+    Signature, Token, Type, TypeImplTrait, TypeParamBound, TypePath, TypeReference, TypeTuple,
+    WhereClause,
 };
 
 pub(crate) fn impl_type(item_impl: &ItemImpl) -> (TypePath, PathArguments) {
@@ -24,8 +25,10 @@ pub(crate) fn impl_type(item_impl: &ItemImpl) -> (TypePath, PathArguments) {
     (path, args)
 }
 
-pub(crate) fn impl_constraints(item_impl: &ItemImpl) -> Option<WhereClause> {
-    item_impl.generics.where_clause.clone()
+pub(crate) fn impl_constraints(item_impl: &ItemImpl) -> (Generics, Option<WhereClause>) {
+    let mut generics = item_impl.generics.clone();
+    let where_clause = generics.where_clause.take();
+    (generics, where_clause)
 }
 
 /// Represents parts of a handler function.

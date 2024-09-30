@@ -103,7 +103,7 @@ fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
     let scale_info_path = sails_paths::scale_info_path(&sails_path);
 
     let (service_type_path, service_type_args) = shared::impl_type(&service_impl);
-    let service_type_constraints = shared::impl_constraints(&service_impl);
+    let (generics, service_type_constraints) = shared::impl_constraints(&service_impl);
 
     let service_handlers = discover_service_handlers(&service_impl);
 
@@ -152,7 +152,12 @@ fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
         let handler_allow_attrs = handler_fn
             .attrs
             .iter()
-            .filter(|attr| matches!(attr.path().get_ident(), Some(ident) if ident == "allow"));
+            .filter(|attr| attr.path().is_ident("allow"));
+        let handler_docs_attrs = handler_fn
+            .attrs
+            .iter()
+            .filter(|attr| attr.path().is_ident("doc"));
+
         let handler_fn = &handler_fn.sig;
         let handler_func = Func::from(handler_fn);
         let handler_generator = HandlerGenerator::from(handler_func.clone());
@@ -189,7 +194,10 @@ fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
             let result_type = handler_generator.result_type();
             let handler_route_ident = Ident::new(handler_route, Span::call_site());
 
-            quote!(#handler_route_ident(#params_struct_ident, #result_type))
+            quote!(
+                #( #handler_docs_attrs )*
+                #handler_route_ident(#params_struct_ident, #result_type)
+            )
         };
         if handler_generator.is_query() {
             queries_meta_variants.push(handler_meta_variant);
@@ -319,7 +327,7 @@ fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
         #exposure_drop_code
 
         #( #exposure_allow_attrs )*
-        impl #service_type_args Exposure< #exposure_args > #service_type_constraints {
+        impl #generics Exposure< #exposure_args > #service_type_constraints {
             #( #exposure_funcs )*
 
             #( #base_exposure_accessors )*
@@ -341,7 +349,7 @@ fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
             #exposure_set_event_listener_code
         }
 
-        impl #service_type_args #sails_path::gstd::services::Exposure for Exposure< #exposure_args > #service_type_constraints {
+        impl #generics #sails_path::gstd::services::Exposure for Exposure< #exposure_args > #service_type_constraints {
             fn message_id(&self) -> #sails_path::MessageId {
                 self. #message_id_ident
             }
@@ -351,7 +359,7 @@ fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
             }
         }
 
-        impl #service_type_args #sails_path::gstd::services::Service for #service_type_path #service_type_constraints {
+        impl #generics #sails_path::gstd::services::Service for #service_type_path #service_type_constraints {
             type Exposure = Exposure< #exposure_args >;
 
             fn expose(self, #message_id_ident : #sails_path::MessageId, #route_ident : &'static [u8]) -> Self::Exposure {
@@ -375,7 +383,7 @@ fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
             }
         }
 
-        impl #service_type_args #sails_path::meta::ServiceMeta for #service_type_path #service_type_constraints {
+        impl #generics #sails_path::meta::ServiceMeta for #service_type_path #service_type_constraints {
             fn commands() -> #scale_info_path ::MetaType {
                 #scale_info_path ::MetaType::new::<meta_in_service::CommandsMeta>()
             }
@@ -412,13 +420,13 @@ fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
             use super::*;
 
             #[derive(__ServiceTypeInfo)]
-            #[scale_info(crate = #scale_info_path )]
+            #[scale_info(crate = #scale_info_path)]
             pub enum CommandsMeta {
                 #(#commands_meta_variants),*
             }
 
             #[derive(__ServiceTypeInfo)]
-            #[scale_info(crate = #scale_info_path )]
+            #[scale_info(crate = #scale_info_path)]
             pub enum QueriesMeta {
                 #(#queries_meta_variants),*
             }

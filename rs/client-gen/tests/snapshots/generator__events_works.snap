@@ -29,8 +29,10 @@ impl<R: Remoting + Clone> traits::ServiceWithEvents for ServiceWithEvents<R> {
         RemotingAction::<_, service_with_events::io::DoThis>::new(self.remoting.clone(), (p1, p2))
     }
 }
+
 pub mod service_with_events {
     use super::*;
+
     pub mod io {
         use super::*;
         use sails_rs::calls::ActionIo;
@@ -47,6 +49,7 @@ pub mod service_with_events {
             type Reply = NonZeroU64;
         }
     }
+
     #[allow(dead_code)]
     #[cfg(not(target_arch = "wasm32"))]
     pub mod events {
@@ -85,8 +88,10 @@ pub struct MyParam {
     pub f2: Vec<NonZeroU8>,
     pub f3: Option<(NonZeroU64, NonZeroU256)>,
 }
+
 pub mod traits {
     use super::*;
+
     #[allow(clippy::type_complexity)]
     pub trait ServiceWithEvents {
         type Args;
@@ -97,9 +102,11 @@ pub mod traits {
         ) -> impl Call<Output = NonZeroU64, Args = Self::Args>;
     }
 }
+
 #[cfg(feature = "with_mocks")]
 #[cfg(not(target_arch = "wasm32"))]
 extern crate std;
+
 #[cfg(feature = "with_mocks")]
 #[cfg(not(target_arch = "wasm32"))]
 pub mod mockall {
