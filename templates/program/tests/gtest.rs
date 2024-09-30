@@ -1,4 +1,4 @@
-use sails_rs::{calls::*, gtest::calls::*};
+use sails_rs::{calls::*, gtest::{calls::*, System}};
 
 use {{ client_crate_name }}::traits::*;
 
@@ -6,7 +6,11 @@ const ACTOR_ID: u64 = 42;
 
 #[tokio::test]
 async fn do_something_works() {
-    let remoting = GTestRemoting::new(ACTOR_ID.into());
+    let system = System::new();
+    system.init_logger();
+    system.mint_to(fixture::ADMIN_ID, 100_000_000_000_000);
+
+    let remoting = GTestRemoting::new(system, ACTOR_ID.into());
     remoting.system().init_logger();
 
     // Submit program code into the system
@@ -33,7 +37,11 @@ async fn do_something_works() {
 
 #[tokio::test]
 async fn get_something_works() {
-    let remoting = GTestRemoting::new(ACTOR_ID.into());
+    let system = System::new();
+    system.init_logger();
+    system.mint_to(fixture::ADMIN_ID, 100_000_000_000_000);
+
+    let remoting = GTestRemoting::new(system, ACTOR_ID.into());
     remoting.system().init_logger();
 
     // Submit program code into the system
