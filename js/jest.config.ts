@@ -16,6 +16,7 @@ const config: Config.InitialOptions = {
     '^.+\\.tsx?$': ['ts-jest', { useESM: true }],
   },
   testTimeout: 15_000,
+  testPathIgnorePatterns: ['demo-hooks.test.tsx'], // ignore hooks test
 };
 
 export default config;

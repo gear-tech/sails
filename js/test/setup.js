@@ -2,11 +2,13 @@ import * as fs from 'fs';
 import { execSync } from 'child_process';
 
 export default () => {
+  execSync('rm -rf test/demo');
+
   // Build demo app
   execSync('cargo build -p demo --release');
 
   // Generate demo ts client
-  execSync('node cli/build/app.js generate ../examples/demo/client/demo.idl -o ./test/demo --no-project');
+  execSync('node cli/build/app.js generate ../examples/demo/client/demo.idl -o ./test/demo --no-project --with-hooks');
 
   // Modify client imports
 
