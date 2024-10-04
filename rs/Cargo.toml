@@ -20,7 +20,7 @@ hex.workspace = true
 mockall = { workspace = true, optional = true }
 parity-scale-codec = { workspace = true, features = ["derive"] }
 sails-macros = { workspace = true, optional = true }
-scale-info = { workspace = true, features = ["derive"] }
+scale-info = { workspace = true, features = ["derive", "docs"] }
 spin.workspace = true
 thiserror-no-std.workspace = true
 
@@ -34,6 +34,7 @@ gtest = { workspace = true, optional = true }
 [features]
 default = ["gstd"]
 debug = ["gstd?/debug"]
+ethexe = ["gstd?/ethexe"]
 gclient = ["dep:gclient"]
 gstd = ["dep:gstd", "dep:gear-core", "dep:sails-macros"]
 gtest = ["dep:gtest"]

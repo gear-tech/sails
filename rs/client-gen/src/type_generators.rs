@@ -38,113 +38,141 @@ impl<'a> TopLevelTypeGenerator<'a> {
 }
 
 impl<'a, 'ast> Visitor<'ast> for TopLevelTypeGenerator<'a> {
+    fn visit_type(&mut self, r#type: &'ast Type) {
+        for doc in r#type.docs() {
+            quote_in! { self.tokens =>
+                $['\r'] $("///") $doc
+            };
+        }
+        visitor::accept_type(r#type, self);
+    }
+
     fn visit_struct_def(&mut self, struct_def: &'ast StructDef) {
-        let mut struct_def_generator = StructDefGenerator::new(true, "".to_owned());
+        let mut struct_def_generator = StructDefGenerator::new(self.type_name, self.sails_path);
         struct_def_generator.visit_struct_def(struct_def);
-
-        let semi = if struct_def.fields().iter().all(|f| f.name().is_none()) {
-            ";"
-        } else {
-            ""
-        };
-
-        quote_in!(self.tokens =>
-            #[derive(PartialEq, Debug, Encode, Decode, TypeInfo)]
-            #[codec(crate = $(self.sails_path)::scale_codec)]
-            #[scale_info(crate = $(self.sails_path)::scale_info)]
-            pub struct $(self.type_name) $(struct_def_generator.code) $(semi)
-        );
+        self.tokens.extend(struct_def_generator.finalize());
     }
 
     fn visit_enum_def(&mut self, enum_def: &'ast EnumDef) {
-        let mut enum_def_generator = EnumDefGenerator::default();
+        let mut enum_def_generator = EnumDefGenerator::new(self.type_name, self.sails_path);
         enum_def_generator.visit_enum_def(enum_def);
-
-        quote_in!(self.tokens =>
-            #[derive(PartialEq, Debug, Encode, Decode, TypeInfo)]
-            #[codec(crate = $(self.sails_path)::scale_codec)]
-            #[scale_info(crate = $(self.sails_path)::scale_info)]
-            pub enum $(self.type_name) $(enum_def_generator.code)
-        );
+        self.tokens.extend(enum_def_generator.finalize());
     }
 }
 
 #[derive(Default)]
-struct StructDefGenerator {
-    code: String,
-    is_pub: bool,
-    path: String,
+struct StructDefGenerator<'a> {
+    type_name: &'a str,
+    sails_path: &'a str,
+    is_tuple_struct: bool,
+    tokens: Tokens,
 }
 
-impl StructDefGenerator {
-    fn new(is_pub: bool, path: String) -> Self {
+impl<'a> StructDefGenerator<'a> {
+    fn new(type_name: &'a str, sails_path: &'a str) -> Self {
         Self {
-            code: String::new(),
-            is_pub,
-            path,
+            type_name,
+            sails_path,
+            is_tuple_struct: false,
+            tokens: Tokens::new(),
+        }
+    }
+
+    pub(crate) fn finalize(self) -> Tokens {
+        let prefix = if self.is_tuple_struct { "(" } else { "{" };
+        let suffix = if self.is_tuple_struct { ");" } else { "}" };
+        quote! {
+            $['\r']
+            #[derive(PartialEq, Debug, Encode, Decode, TypeInfo)]
+            #[codec(crate = $(self.sails_path)::scale_codec)]
+            #[scale_info(crate = $(self.sails_path)::scale_info)]
+            pub struct $(self.type_name) $prefix $(self.tokens) $suffix
         }
     }
 }
 
-impl<'ast> Visitor<'ast> for StructDefGenerator {
+impl<'ast> Visitor<'ast> for StructDefGenerator<'ast> {
     fn visit_struct_def(&mut self, struct_def: &'ast StructDef) {
         let is_regular_struct = struct_def.fields().iter().all(|f| f.name().is_some());
         let is_tuple_struct = struct_def.fields().iter().all(|f| f.name().is_none());
         if !is_regular_struct && !is_tuple_struct {
             panic!("Struct must be either regular or tuple");
         }
-        if is_regular_struct {
-            self.code.push('{');
-        } else {
-            self.code.push('(');
-        }
+        self.is_tuple_struct = is_tuple_struct;
         visitor::accept_struct_def(struct_def, self);
-        if is_regular_struct {
-            self.code.push('}');
-        } else {
-            self.code.push(')');
-        }
     }
 
     fn visit_struct_field(&mut self, struct_field: &'ast StructField) {
-        let type_decl_code =
-            generate_type_decl_with_path(struct_field.type_decl(), self.path.clone());
+        let type_decl_code = generate_type_decl_with_path(struct_field.type_decl(), "".into());
 
-        let vis = self.is_pub.then_some("pub ").unwrap_or_default();
+        for doc in struct_field.docs() {
+            quote_in! { self.tokens =>
+                $['\r'] $("///") $doc
+            };
+        }
 
         if let Some(field_name) = struct_field.name() {
-            self.code
-                .push_str(&format!("{vis}{field_name}: {type_decl_code},"));
+            quote_in! { self.tokens =>
+                $['\r'] pub $field_name: $type_decl_code,
+            };
         } else {
-            self.code.push_str(&format!("{vis}{type_decl_code},"));
+            quote_in! { self.tokens =>
+                $['\r'] pub $type_decl_code,
+            };
         }
     }
 }
 
 #[derive(Default)]
-struct EnumDefGenerator {
-    code: String,
+struct EnumDefGenerator<'a> {
+    type_name: &'a str,
+    sails_path: &'a str,
+    tokens: Tokens,
 }
 
-impl<'ast> Visitor<'ast> for EnumDefGenerator {
-    fn visit_enum_def(&mut self, enum_def: &'ast EnumDef) {
-        self.code.push('{');
-        visitor::accept_enum_def(enum_def, self);
-        self.code.push('}');
+impl<'a> EnumDefGenerator<'a> {
+    pub(crate) fn new(type_name: &'a str, sails_path: &'a str) -> Self {
+        Self {
+            type_name,
+            sails_path,
+            tokens: Tokens::new(),
+        }
     }
 
+    pub(crate) fn finalize(self) -> Tokens {
+        quote!(
+            $['\r']
+            #[derive(PartialEq, Debug, Encode, Decode, TypeInfo)]
+            #[codec(crate = $(self.sails_path)::scale_codec)]
+            #[scale_info(crate = $(self.sails_path)::scale_info)]
+            pub enum $(self.type_name) { $(self.tokens) }
+        )
+    }
+}
+
+impl<'ast> Visitor<'ast> for EnumDefGenerator<'ast> {
     fn visit_enum_variant(&mut self, enum_variant: &'ast EnumVariant) {
+        for doc in enum_variant.docs() {
+            quote_in! { self.tokens =>
+                $['\r'] $("///") $doc
+            };
+        }
+
         if let Some(type_decl) = enum_variant.type_decl().as_ref() {
             let type_decl_code = generate_type_decl_code(type_decl);
             if type_decl_code.starts_with('{') {
-                self.code
-                    .push_str(&format!("{} {},", enum_variant.name(), type_decl_code));
+                quote_in! { self.tokens =>
+                    $['\r'] $(enum_variant.name()) $type_decl_code,
+                };
             } else {
-                self.code
-                    .push_str(&format!("{}({}),", enum_variant.name(), type_decl_code));
+                quote_in! { self.tokens =>
+                    $['\r'] $(enum_variant.name())($type_decl_code),
+                };
             }
         } else {
-            self.code.push_str(&format!("{},", enum_variant.name()));
+            quote_in! { self.tokens =>
+                $['\r'] $(enum_variant.name()),
+            };
         }
     }
 }
@@ -181,7 +209,7 @@ impl<'ast> Visitor<'ast> for TypeDeclGenerator {
     }
 
     fn visit_struct_def(&mut self, struct_def: &'ast StructDef) {
-        let mut struct_def_generator = StructDefGenerator::new(false, self.path.clone());
+        let mut struct_def_generator = StructTypeGenerator::new(self.path.clone());
         struct_def_generator.visit_struct_def(struct_def);
         self.code.push_str(&struct_def_generator.code);
     }
@@ -241,5 +269,52 @@ impl<'ast> Visitor<'ast> for TypeDeclGenerator {
         self.code.push('[');
         visitor::accept_type_decl(item_type_decl, self);
         self.code.push_str(&format!("; {len}]"));
+    }
+}
+
+struct StructTypeGenerator {
+    code: String,
+    path: String,
+}
+
+impl StructTypeGenerator {
+    fn new(path: String) -> Self {
+        Self {
+            code: String::new(),
+            path,
+        }
+    }
+}
+
+impl<'ast> Visitor<'ast> for StructTypeGenerator {
+    fn visit_struct_def(&mut self, struct_def: &'ast StructDef) {
+        let is_regular_struct = struct_def.fields().iter().all(|f| f.name().is_some());
+        let is_tuple_struct = struct_def.fields().iter().all(|f| f.name().is_none());
+        if !is_regular_struct && !is_tuple_struct {
+            panic!("Struct must be either regular or tuple");
+        }
+        if is_regular_struct {
+            self.code.push('{');
+        } else {
+            self.code.push('(');
+        }
+        visitor::accept_struct_def(struct_def, self);
+        if is_regular_struct {
+            self.code.push('}');
+        } else {
+            self.code.push(')');
+        }
+    }
+
+    fn visit_struct_field(&mut self, struct_field: &'ast StructField) {
+        let type_decl_code =
+            generate_type_decl_with_path(struct_field.type_decl(), self.path.clone());
+
+        if let Some(field_name) = struct_field.name() {
+            self.code
+                .push_str(&format!("{field_name}: {type_decl_code},"));
+        } else {
+            self.code.push_str(&format!("{type_decl_code},"));
+        }
     }
 }

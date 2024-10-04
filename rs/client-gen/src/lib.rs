@@ -2,7 +2,7 @@ use anyhow::{Context, Result};
 use convert_case::{Case, Casing};
 use root_generator::RootGenerator;
 use sails_idl_parser::ast::visitor;
-use std::{ffi::OsStr, fs, io::Write, path::Path};
+use std::{collections::HashMap, ffi::OsStr, fs, io::Write, path::Path};
 
 mod ctor_generators;
 mod events_generator;
@@ -20,6 +20,7 @@ pub struct IdlString<'a>(&'a str);
 pub struct ClientGenerator<'a, S> {
     sails_path: Option<&'a str>,
     mocks_feature_name: Option<&'a str>,
+    external_types: HashMap<&'a str, &'a str>,
     idl: S,
 }
 
@@ -37,6 +38,15 @@ impl<'a, S> ClientGenerator<'a, S> {
             ..self
         }
     }
+
+    pub fn with_external_type(self, name: &'a str, path: &'a str) -> Self {
+        let mut external_types = self.external_types;
+        external_types.insert(name, path);
+        Self {
+            external_types,
+            ..self
+        }
+    }
 }
 
 impl<'a> ClientGenerator<'a, IdlPath<'a>> {
@@ -44,6 +54,7 @@ impl<'a> ClientGenerator<'a, IdlPath<'a>> {
         Self {
             sails_path: None,
             mocks_feature_name: None,
+            external_types: HashMap::new(),
             idl: IdlPath(idl_path),
         }
     }
@@ -67,6 +78,7 @@ impl<'a> ClientGenerator<'a, IdlPath<'a>> {
         ClientGenerator {
             sails_path: self.sails_path,
             mocks_feature_name: self.mocks_feature_name,
+            external_types: self.external_types,
             idl: IdlString(idl),
         }
     }
@@ -77,15 +89,20 @@ impl<'a> ClientGenerator<'a, IdlString<'a>> {
         Self {
             sails_path: None,
             mocks_feature_name: None,
+            external_types: HashMap::new(),
             idl: IdlString(idl),
         }
     }
 
-    pub fn generate(&self, anonymous_service_name: &str) -> Result<String> {
+    pub fn generate(self, anonymous_service_name: &str) -> Result<String> {
         let idl = self.idl.0;
         let sails_path = self.sails_path.unwrap_or(SAILS);
-        let mut generator =
-            RootGenerator::new(anonymous_service_name, self.mocks_feature_name, sails_path);
+        let mut generator = RootGenerator::new(
+            anonymous_service_name,
+            self.mocks_feature_name,
+            sails_path,
+            self.external_types,
+        );
         let program = sails_idl_parser::ast::parse_idl(idl).context("Failed to parse IDL")?;
         visitor::accept_program(&program, &mut generator);
 

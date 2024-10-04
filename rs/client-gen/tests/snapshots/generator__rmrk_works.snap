@@ -27,6 +27,7 @@ impl<R: Remoting + Clone> traits::RmrkCatalogFactory for RmrkCatalogFactory<R> {
         RemotingAction::<_, rmrk_catalog_factory::io::New>::new(self.remoting.clone(), ())
     }
 }
+
 pub mod rmrk_catalog_factory {
     use super::*;
     pub mod io {
@@ -117,8 +118,10 @@ impl<R: Remoting + Clone> traits::RmrkCatalog for RmrkCatalog<R> {
         RemotingAction::<_, rmrk_catalog::io::Part>::new(self.remoting.clone(), part_id)
     }
 }
+
 pub mod rmrk_catalog {
     use super::*;
+
     pub mod io {
         use super::*;
         use sails_rs::calls::ActionIo;
@@ -266,17 +269,27 @@ pub enum Part {
 #[codec(crate = sails_rs::scale_codec)]
 #[scale_info(crate = sails_rs::scale_info)]
 pub struct FixedPart {
+    /// An optional zIndex of base part layer.
+    /// specifies the stack order of an element.
+    /// An element with greater stack order is always in front of an element with a lower stack order.
     pub z: Option<u32>,
+    /// The metadata URI of the part.
     pub metadata_uri: String,
 }
 #[derive(PartialEq, Debug, Encode, Decode, TypeInfo)]
 #[codec(crate = sails_rs::scale_codec)]
 #[scale_info(crate = sails_rs::scale_info)]
 pub struct SlotPart {
+    /// Array of whitelisted collections that can be equipped in the given slot. Used with slot parts only.
     pub equippable: Vec<ActorId>,
+    /// An optional zIndex of base part layer.
+    /// specifies the stack order of an element.
+    /// An element with greater stack order is always in front of an element with a lower stack order.
     pub z: Option<u32>,
+    /// The metadata URI of the part.
     pub metadata_uri: String,
 }
+
 pub mod traits {
     use super::*;
     #[allow(dead_code)]
@@ -286,6 +299,7 @@ pub mod traits {
         #[allow(clippy::wrong_self_convention)]
         fn new(&self) -> impl Activation<Args = Self::Args>;
     }
+
     #[allow(clippy::type_complexity)]
     pub trait RmrkCatalog {
         type Args;
@@ -323,9 +337,11 @@ pub mod traits {
         fn part(&self, part_id: u32) -> impl Query<Output = Option<Part>, Args = Self::Args>;
     }
 }
+
 #[cfg(feature = "with_mocks")]
 #[cfg(not(target_arch = "wasm32"))]
 extern crate std;
+
 #[cfg(feature = "with_mocks")]
 #[cfg(not(target_arch = "wasm32"))]
 pub mod mockall {

@@ -3,18 +3,29 @@ use sails_client_gen::ClientGenerator;
 #[test]
 fn full() {
     const IDL: &str = r#"
+        // Comments are supported but ignored by idl-parser
+        
+        /// ThisThatSvcAppTupleStruct docs
         type ThisThatSvcAppTupleStruct = struct {
+            /// field `bool`
             bool,
         };
 
+        /// ThisThatSvcAppDoThatParam docs
         type ThisThatSvcAppDoThatParam = struct {
-            p1: u32,
-            p2: str,
+            /// field `query`
+            query: u32,
+            /// field `result`
+            result: str,
+            /// field `p3`
             p3: ThisThatSvcAppManyVariants,
         };
 
+        /// ThisThatSvcAppManyVariants docs
         type ThisThatSvcAppManyVariants = enum {
+            /// variant `One` 
             One,
+            /// variant `Two`
             Two: u32,
             Three: opt u32,
             Four: struct { a: u32, b: opt u16 },
@@ -25,14 +36,29 @@ fn full() {
         type T = enum { One };
 
         constructor {
+            /// New constructor
             New : (a: u32);
         };
 
         service {
+            /// Some description
             DoThis : (p1: u32, p2: str, p3: struct { opt str, u8 }, p4: ThisThatSvcAppTupleStruct) -> struct { str, u32 };
+            /// Some multiline description
+            /// Second line
+            /// Third line
             DoThat : (param: ThisThatSvcAppDoThatParam) -> result (struct { str, u32 }, struct { str });
+            /// This is a query
             query This : (v1: vec u16) -> u32;
+            /// This is a second query
+            /// This is a second line
             query That : (v1: null) -> result (str, str);
+
+            events {
+                /// `This` Done
+                ThisDone: u32;
+                /// `That` Done too
+                ThatDone: struct { p1: str };
+            }
         };
         "#;
 
@@ -167,6 +193,37 @@ fn full_with_sails_path() {
 
     let code = ClientGenerator::from_idl(IDL)
         .with_sails_crate("my_crate::sails")
+        .generate("Service")
+        .expect("generate client");
+    insta::assert_snapshot!(code);
+}
+
+#[test]
+fn test_external_types() {
+    const IDL: &str = r#"
+        type MyParam = struct {
+            f1: u32,
+            f2: vec str,
+            f3: opt struct { u8, u32 },
+        };
+
+        type MyParam2 = enum {
+            Variant1,
+            Variant2: u32,
+            Variant3: struct { u32 },
+            Variant4: struct { u8, u32 },
+            Variant5: struct { f1: str, f2: vec u8 },
+        };
+
+        service {
+            DoThis: (p1: u32, p2: MyParam) -> u16;
+            DoThat: (p1: struct { u8, u32 }) -> u8;
+        };
+        "#;
+
+    let code = ClientGenerator::from_idl(IDL)
+        .with_sails_crate("my_crate::sails")
+        .with_external_type("MyParam", "my_crate::MyParam")
         .generate("Service")
         .expect("generate client");
     insta::assert_snapshot!(code);

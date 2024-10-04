@@ -2,35 +2,49 @@ use meta_params::*;
 use sails_idl_gen::{program, service};
 use sails_rs::{
     meta::{AnyServiceMeta, ProgramMeta, ServiceMeta as RtlServiceMeta},
+    scale_info::{MetaType, StaticTypeInfo, TypeInfo},
     H256, U256,
 };
-use scale_info::{MetaType, StaticTypeInfo, TypeInfo};
 use std::{collections::BTreeMap, result::Result as StdResult};
 
 #[allow(dead_code)]
 mod types {
     use super::*;
 
+    /// GenericStruct docs
     #[derive(TypeInfo)]
+    #[scale_info(crate = sails_rs::scale_info)]
     pub struct GenericStruct<T> {
+        /// GenericStruct field `p1`
         pub p1: T,
     }
 
+    /// GenericConstStruct docs
     #[derive(TypeInfo)]
+    #[scale_info(crate = sails_rs::scale_info)]
     pub struct GenericConstStruct<const N: usize> {
+        /// GenericStruct field `field`
         field: [u8; N],
     }
 
+    /// GenericEnum docs
+    /// with two lines
     #[derive(TypeInfo)]
+    #[scale_info(crate = sails_rs::scale_info)]
     pub enum GenericEnum<T1, T2> {
+        /// GenericEnum `Variant1` of type 'T1'
         Variant1(T1),
+        /// GenericEnum `Variant2` of type 'T2'
         Variant2(T2),
     }
 
+    /// TupleStruct docs
     #[derive(TypeInfo)]
+    #[scale_info(crate = sails_rs::scale_info)]
     pub struct TupleStruct(bool);
 
     #[derive(TypeInfo)]
+    #[scale_info(crate = sails_rs::scale_info)]
     pub enum ManyVariants {
         One,
         Two(u32),
@@ -101,8 +115,13 @@ mod meta_params {
 
 #[allow(dead_code)]
 #[derive(TypeInfo)]
+#[scale_info(crate = sails_rs::scale_info)]
 enum CommandsMeta {
+    /// Some description
     DoThis(DoThisParams, String),
+    /// Some multiline description
+    /// Second line
+    /// Third line
     DoThat(DoThatParams, StdResult<(String, u32), (String,)>),
 }
 
@@ -115,8 +134,12 @@ enum BaseCommandsMeta {
 
 #[allow(dead_code)]
 #[derive(TypeInfo)]
+#[scale_info(crate = sails_rs::scale_info)]
 enum QueriesMeta {
+    /// This is a query
     This(ThisParams, StdResult<(String, u32), String>),
+    /// This is a second query
+    /// This is a second line
     That(ThatParams, String),
 }
 
@@ -129,8 +152,11 @@ enum BaseQueriesMeta {
 
 #[allow(dead_code)]
 #[derive(TypeInfo)]
+#[scale_info(crate = sails_rs::scale_info)]
 enum EventsMeta {
+    /// `This` Done
     ThisDone(u32),
+    /// `That` Done too
     ThatDone { p1: String },
 }
 
@@ -221,8 +247,12 @@ impl ProgramMeta for TestProgramWithEmptyCtorsMeta {
 
 #[allow(dead_code)]
 #[derive(TypeInfo)]
+#[scale_info(crate = sails_rs::scale_info)]
 enum NonEmptyCtorsMeta {
+    /// This is New constructor
     New(NoParams),
+    /// This is FromStr constructor
+    /// with second line
     FromStr(SingleParams<String>),
 }
 

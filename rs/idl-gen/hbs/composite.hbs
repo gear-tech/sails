@@ -1,5 +1,11 @@
+{{#each docs}}
+/// {{{this}}}
+{{/each}}
 type {{{lookup @root/type_names id}}} = struct {
 {{#each fields}}
+  {{#each docs}}
+  /// {{{this}}}
+  {{/each}}
   {{#if name}}{{name}}: {{/if}}{{{lookup @root/type_names type}}},
 {{/each}}
 };

@@ -22,6 +22,7 @@ impl ServiceTraitGenerator {
 
     pub(crate) fn finalize(self) -> Tokens {
         quote! {
+            $['\n']
             #[allow(clippy::type_complexity)]
             pub trait $(&self.service_name) {
                 type Args;
@@ -52,7 +53,7 @@ impl<'ast> Visitor<'ast> for ServiceTraitGenerator {
         let output_trait = if func.is_query() { "Query" } else { "Call" };
 
         quote_in! { self.tokens=>
-            fn $fn_name (&$mutability self, $params_tokens) -> impl $output_trait<Output = $output_type_decl_code, Args = Self::Args>;
+            $['\r'] fn $fn_name (&$mutability self, $params_tokens) -> impl $output_trait<Output = $output_type_decl_code, Args = Self::Args>;
         };
     }
 }
@@ -125,8 +126,14 @@ impl<'ast> Visitor<'ast> for ServiceClientGenerator {
         let service_name_snake = self.service_name.to_case(Case::Snake);
         let params_type = format!("{service_name_snake}::io::{fn_name}");
 
+        for doc in func.docs() {
+            quote_in! { self.tokens =>
+                $['\r'] $("///") $doc
+            };
+        }
+
         quote_in! {self.tokens =>
-            fn $fn_name_snake (&$mutability self, $params_tokens) -> impl $output_trait<Output = $output_type_decl_code, Args = R::Args> {
+            $['\r'] fn $fn_name_snake (&$mutability self, $params_tokens) -> impl $output_trait<Output = $output_type_decl_code, Args = R::Args> {
                 RemotingAction::<_, $params_type>::new(self.remoting.clone(), $args)
             }
         };

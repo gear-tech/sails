@@ -2,23 +2,32 @@
 source: rs/idl-gen/tests/generator.rs
 expression: generated_idl
 ---
+/// TupleStruct docs
 type TupleStruct = struct {
   bool,
 };
 
+/// GenericStruct docs
 type GenericStructForH256 = struct {
+  /// GenericStruct field `p1`
   p1: h256,
 };
 
+/// GenericStruct docs
 type GenericStructForStr = struct {
+  /// GenericStruct field `p1`
   p1: str,
 };
 
+/// GenericConstStruct docs
 type GenericConstStruct1 = struct {
+  /// GenericStruct field `field`
   field: [u8, 8],
 };
 
+/// GenericConstStruct docs
 type GenericConstStruct2 = struct {
+  /// GenericStruct field `field`
   field: [u8, 32],
 };
 
@@ -39,13 +48,21 @@ type ManyVariants = enum {
   Eight: [map (u32, str), 10],
 };
 
+/// GenericEnum docs
+/// with two lines
 type GenericEnumForU32AndStr = enum {
+  /// GenericEnum `Variant1` of type 'T1'
   Variant1: u32,
+  /// GenericEnum `Variant2` of type 'T2'
   Variant2: str,
 };
 
+/// GenericEnum docs
+/// with two lines
 type GenericEnumForBoolAndU32 = enum {
+  /// GenericEnum `Variant1` of type 'T1'
   Variant1: bool,
+  /// GenericEnum `Variant2` of type 'T2'
   Variant2: u32,
 };
 
@@ -54,15 +71,24 @@ type ThatParam = struct {
 };
 
 service {
+  /// Some description
   DoThis : (p1: u32, p2: str, p3: struct { opt str, u8 }, p4: TupleStruct, p5: GenericStructForH256, p6: GenericStructForStr, p7: GenericConstStruct1, p8: GenericConstStruct2) -> str;
+  /// Some multiline description
+  /// Second line
+  /// Third line
   DoThat : (par1: DoThatParam) -> result (struct { str, u32 }, struct { str });
   DoThatBase : (p1: str) -> str;
+  /// This is a query
   query This : (p1: u32, p2: str, p3: struct { opt str, u8 }, p4: TupleStruct, p5: GenericEnumForBoolAndU32) -> result (struct { str, u32 }, str);
+  /// This is a second query
+  /// This is a second line
   query That : (pr1: ThatParam) -> str;
   query ThisBase : (p1: u16) -> u16;
 
   events {
+    /// `This` Done
     ThisDone: u32;
+    /// `That` Done too
     ThatDone: struct { p1: str };
     ThisDoneBase: u32;
     ThatDoneBase: struct { p1: u16 };

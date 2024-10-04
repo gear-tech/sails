@@ -1,8 +1,18 @@
-use demo_client::{counter::events::CounterEvents, dog::events::DogEvents, ping_pong, traits::*};
-use fixture::Fixture;
+use demo_client::{
+    counter::events::CounterEvents, demo_factory, dog::events::DogEvents, ping_pong, traits::*,
+};
+use fixture::{Fixture, ADMIN_ID, DEMO_WASM_PATH};
 use futures::stream::StreamExt;
 use gstd::errors::{ErrorReplyReason, SimpleExecutionError};
-use sails_rs::{calls::*, errors::RtlError, events::*};
+use sails_rs::{
+    calls::*,
+    errors::RtlError,
+    events::*,
+    gtest::{
+        calls::{BlockRunMode, GTestRemoting},
+        Program, System,
+    },
+};
 
 mod fixture;
 
@@ -10,7 +20,7 @@ mod fixture;
 async fn counter_add_works() {
     // Arrange
 
-    let fixture = Fixture::new(fixture::ADMIN_ID);
+    let fixture = Fixture::new();
 
     let demo_factory = fixture.demo_factory();
 
@@ -49,7 +59,7 @@ async fn counter_add_works() {
 async fn counter_sub_works() {
     // Arrange
 
-    let fixture = Fixture::new(fixture::ADMIN_ID);
+    let fixture = Fixture::new();
 
     let demo_factory = fixture.demo_factory();
 
@@ -86,7 +96,7 @@ async fn counter_sub_works() {
 #[tokio::test]
 async fn counter_query_works() {
     // Arrange
-    let fixture = Fixture::new(fixture::ADMIN_ID);
+    let fixture = Fixture::new();
 
     let demo_factory = fixture.demo_factory();
 
@@ -112,7 +122,7 @@ async fn counter_query_works() {
 #[tokio::test]
 async fn counter_query_not_enough_gas() {
     // Arrange
-    let fixture = Fixture::new(fixture::ADMIN_ID);
+    let fixture = Fixture::new();
 
     let demo_factory = fixture.demo_factory();
 
@@ -145,32 +155,29 @@ async fn counter_query_not_enough_gas() {
     ));
 }
 
+/// Low level program test using `gtest::System` and call encoding/decoding with `io` module
 #[tokio::test]
-async fn ping_pong_works() {
-    let fixture = Fixture::new(fixture::ADMIN_ID);
+async fn ping_pong_low_level_works() {
+    let system = System::new();
+    system.init_logger();
+    system.mint_to(ADMIN_ID, 100_000_000_000_000);
 
-    let demo_factory = fixture.demo_factory();
+    let demo_program = Program::from_file(&system, DEMO_WASM_PATH);
 
-    // Use generated client code for activating Demo program
-    // using the `default` constructor and the `send_recv` method
-    let demo_program_id = demo_factory
-        .default()
-        .send_recv(fixture.demo_code_id(), "123")
-        .await
-        .unwrap();
-
-    let demo_program = fixture.demo_program(demo_program_id);
+    // Use generated `io` module to create a program
+    demo_program.send_bytes(ADMIN_ID, demo_factory::io::Default::encode_call());
 
     // Use generated `io` module for encoding/decoding calls and replies
     // and send/receive bytes using `gtest` native means
     let ping_call_payload = ping_pong::io::Ping::encode_call("ping".into());
 
-    let run_result = demo_program.send_bytes(fixture.admin_id(), ping_call_payload);
+    let message_id = demo_program.send_bytes(ADMIN_ID, ping_call_payload);
+    let run_result = system.run_next_block();
 
     let reply_log_record = run_result
         .log()
         .iter()
-        .find(|entry| entry.reply_to() == Some(run_result.sent_message_id()))
+        .find(|entry| entry.reply_to() == Some(message_id))
         .unwrap();
 
     let ping_reply_payload = reply_log_record.payload();
@@ -184,7 +191,7 @@ async fn ping_pong_works() {
 async fn dog_barks() {
     // Arrange
 
-    let fixture = Fixture::new(fixture::ADMIN_ID);
+    let fixture = Fixture::new();
 
     let demo_factory = fixture.demo_factory();
 
@@ -218,7 +225,7 @@ async fn dog_barks() {
 async fn dog_walks() {
     // Arrange
 
-    let fixture = Fixture::new(fixture::ADMIN_ID);
+    let fixture = Fixture::new();
 
     let demo_factory = fixture.demo_factory();
 
@@ -260,7 +267,7 @@ async fn dog_walks() {
 
 #[tokio::test]
 async fn dog_weights() {
-    let fixture = Fixture::new(fixture::ADMIN_ID);
+    let fixture = Fixture::new();
 
     let demo_factory = fixture.demo_factory();
 
@@ -279,7 +286,7 @@ async fn dog_weights() {
 
 #[tokio::test]
 async fn references_add() {
-    let fixture = Fixture::new(fixture::ADMIN_ID);
+    let fixture = Fixture::new();
 
     let demo_factory = fixture.demo_factory();
 
@@ -298,7 +305,7 @@ async fn references_add() {
 
 #[tokio::test]
 async fn references_bytes() {
-    let fixture = Fixture::new(fixture::ADMIN_ID);
+    let fixture = Fixture::new();
 
     let demo_factory = fixture.demo_factory();
 
@@ -332,7 +339,7 @@ async fn references_bytes() {
 
 #[tokio::test]
 async fn references_guess_num() {
-    let fixture = Fixture::new(fixture::ADMIN_ID);
+    let fixture = Fixture::new();
 
     let demo_factory = fixture.demo_factory();
 
@@ -367,4 +374,112 @@ async fn references_guess_num() {
     assert_eq!(Some("demo".to_owned()), res3);
     assert_eq!(Ok(()), res4);
     assert_eq!(Ok("demo".to_owned()), res5);
+}
+
+#[tokio::test]
+async fn counter_add_works_via_manual_mode() {
+    // Arrange
+    const DEMO_WASM_PATH: &str = "../../../target/wasm32-unknown-unknown/debug/demo.opt.wasm";
+    let system = System::new();
+    system.init_logger();
+    system.mint_to(fixture::ADMIN_ID, 100_000_000_000_000);
+    let demo_code_id = system.submit_code_file(DEMO_WASM_PATH);
+
+    let remoting = GTestRemoting::new(system, fixture::ADMIN_ID.into())
+        .with_block_run_mode(BlockRunMode::Manual);
+
+    let demo_factory = demo_client::DemoFactory::new(remoting.clone());
+
+    // Use generated client code for activating Demo program
+    let activation = demo_factory
+        .new(Some(42), None)
+        .send(demo_code_id, "123")
+        .await
+        .unwrap();
+
+    // Run next Block
+    remoting.run_next_block();
+
+    let demo_program_id = activation.recv().await.unwrap();
+
+    let mut counter_client_add = demo_client::Counter::new(remoting.clone());
+    let mut counter_client_sub = demo_client::Counter::new(remoting.clone());
+    // Listen to Counter events
+    let mut counter_listener = demo_client::counter::events::listener(remoting.clone());
+    let mut counter_events = counter_listener.listen().await.unwrap();
+
+    // Use generated client code for calling Counter service
+    let call_add = counter_client_add
+        .add(10)
+        .send(demo_program_id)
+        .await
+        .unwrap();
+    let call_sub = counter_client_sub
+        .sub(20)
+        .send(demo_program_id)
+        .await
+        .unwrap();
+
+    // Run next Block
+    remoting.run_next_block();
+
+    // Got replies
+    let result_add = call_add.recv().await.unwrap();
+    assert_eq!(result_add, 52);
+    let result_sub = call_sub.recv().await.unwrap();
+    assert_eq!(result_sub, 32);
+
+    // Got events
+    assert_eq!(
+        (demo_program_id, CounterEvents::Added(10)),
+        counter_events.next().await.unwrap()
+    );
+    assert_eq!(
+        (demo_program_id, CounterEvents::Subtracted(20)),
+        counter_events.next().await.unwrap()
+    );
+}
+
+#[tokio::test]
+async fn value_fee_works() {
+    // Arrange
+    let fixture = Fixture::new();
+
+    let demo_factory = fixture.demo_factory();
+    // Use generated client code for activating Demo program
+    // using the `new` constructor and the `send_recv` method
+    let program_id = demo_factory
+        .new(Some(42), None)
+        .send_recv(fixture.demo_code_id(), "123")
+        .await
+        .unwrap();
+
+    let initial_balance = fixture.balance_of(fixture::ADMIN_ID.into());
+    let mut client = fixture.value_fee_client();
+
+    // Act
+
+    // Use generated client code to call `do_something_and_take_fee` method with zero value
+    let result = client
+        .do_something_and_take_fee()
+        .send_recv(program_id)
+        .await
+        .unwrap();
+    assert!(!result);
+
+    // Use generated client code to call `do_something_and_take_fee` method with value
+    let result = client
+        .do_something_and_take_fee()
+        .with_value(15_000_000_000_000)
+        .send_recv(program_id)
+        .await
+        .unwrap();
+
+    assert!(result);
+    let balance = fixture.balance_of(fixture::ADMIN_ID.into());
+    // fee is 10_000_000_000_000 + spent gas
+    assert!(
+        initial_balance - balance > 10_000_000_000_000
+            && initial_balance - balance < 10_100_000_000_000
+    );
 }

@@ -18,7 +18,9 @@ impl CounterData {
 #[codec(crate = sails_rs::scale_codec)]
 #[scale_info(crate = sails_rs::scale_info)]
 enum CounterEvents {
+    /// Emitted when a new value is added to the counter
     Added(u32),
+    /// Emitted when a value is subtracted from the counter
     Subtracted(u32),
 }
 
@@ -37,6 +39,7 @@ impl<'a> CounterService<'a> {
 // Declare the service can emit events of type CounterEvents.
 #[service(events = CounterEvents)]
 impl<'a> CounterService<'a> {
+    /// Add a value to the counter
     pub fn add(&mut self, value: u32) -> u32 {
         let mut data_mut = self.data.borrow_mut();
         data_mut.counter += value;
@@ -46,6 +49,7 @@ impl<'a> CounterService<'a> {
         data_mut.counter
     }
 
+    /// Substract a value from the counter
     pub fn sub(&mut self, value: u32) -> u32 {
         let mut data_mut = self.data.borrow_mut();
         data_mut.counter -= value;
@@ -55,6 +59,7 @@ impl<'a> CounterService<'a> {
         data_mut.counter
     }
 
+    /// Get the current value
     pub fn value(&self) -> u32 {
         self.data.borrow().counter
     }
