@@ -5,6 +5,7 @@ use gstd::{msg, prog};
 
 #[derive(Default)]
 pub struct GStdArgs {
+    wait_up_to: Option<BlockCount>,
     #[cfg(not(feature = "ethexe"))]
     reply_deposit: Option<GasUnit>,
     #[cfg(not(feature = "ethexe"))]
@@ -13,6 +14,11 @@ pub struct GStdArgs {
 
 #[cfg(not(feature = "ethexe"))]
 impl GStdArgs {
+    pub fn with_wait_up_to(mut self, block_count: Option<BlockCount>) -> Self {
+        self.wait_up_to = block_count;
+        self
+    }
+
     pub fn with_reply_deposit(mut self, reply_deposit: Option<GasUnit>) -> Self {
         self.reply_deposit = reply_deposit;
         self
@@ -21,6 +27,10 @@ impl GStdArgs {
     pub fn with_reply_hook<F: FnOnce() + Send + 'static>(mut self, f: F) -> Self {
         self.reply_hook = Some(Box::new(f));
         self
+    }
+
+    pub fn wait_up_to(&self) -> Option<BlockCount> {
+        self.wait_up_to
     }
 
     pub fn reply_deposit(&self) -> Option<GasUnit> {
@@ -40,7 +50,7 @@ impl GStdRemoting {
         #[allow(unused_variables)] args: GStdArgs,
     ) -> Result<msg::MessageFuture, crate::errors::Error> {
         #[cfg(not(feature = "ethexe"))]
-        let message_future = if let Some(gas_limit) = gas_limit {
+        let mut message_future = if let Some(gas_limit) = gas_limit {
             msg::send_bytes_with_gas_for_reply(
                 target,
                 payload,
@@ -57,7 +67,9 @@ impl GStdRemoting {
             )?
         };
         #[cfg(feature = "ethexe")]
-        let message_future = msg::send_bytes_for_reply(target, payload, value)?;
+        let mut message_future = msg::send_bytes_for_reply(target, payload, value)?;
+
+        message_future = message_future.up_to(args.wait_up_to)?;
 
         #[cfg(not(feature = "ethexe"))]
         if let Some(reply_hook) = args.reply_hook {
@@ -100,7 +112,9 @@ impl Remoting for GStdRemoting {
             )?
         };
         #[cfg(feature = "ethexe")]
-        let reply_future = prog::create_program_bytes_for_reply(code_id, salt, payload, value)?;
+        let mut reply_future = prog::create_program_bytes_for_reply(code_id, salt, payload, value)?;
+
+        reply_future = reply_future.up_to(args.wait_up_to)?;
 
         #[cfg(not(feature = "ethexe"))]
         if let Some(reply_hook) = args.reply_hook {
