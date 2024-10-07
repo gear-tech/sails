@@ -23,8 +23,6 @@ sails-macros = { workspace = true, optional = true }
 scale-info = { workspace = true, features = ["derive", "docs"] }
 spin.workspace = true
 thiserror-no-std.workspace = true
-# This needs be removed as soon as fixed version of Gear crates are released
-gear-wasm-instrument = "=1.5.0"
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 gear-core = { workspace = true, features = [
@@ -36,6 +34,7 @@ gtest = { workspace = true, optional = true }
 [features]
 default = ["gstd"]
 debug = ["gstd?/debug"]
+ethexe = ["gstd?/ethexe"]
 gclient = ["dep:gclient"]
 gstd = ["dep:gstd", "dep:gear-core", "dep:sails-macros"]
 gtest = ["dep:gtest"]

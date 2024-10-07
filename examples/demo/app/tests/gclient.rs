@@ -12,7 +12,7 @@ const DEMO_WASM_PATH: &str = "../../../target/wasm32-unknown-unknown/debug/demo.
 async fn counter_add_works() {
     // Arrange
 
-    let (remoting, demo_code_id, gas_limit) = spin_up_node_with_demo_code().await;
+    let (remoting, demo_code_id, gas_limit, ..) = spin_up_node_with_demo_code().await;
 
     let demo_factory = demo_client::DemoFactory::new(remoting.clone());
 
@@ -54,7 +54,7 @@ async fn counter_add_works() {
 async fn counter_sub_works() {
     // Arrange
 
-    let (remoting, demo_code_id, gas_limit) = spin_up_node_with_demo_code().await;
+    let (remoting, demo_code_id, gas_limit, ..) = spin_up_node_with_demo_code().await;
 
     let demo_factory = demo_client::DemoFactory::new(remoting.clone());
 
@@ -99,7 +99,7 @@ async fn counter_sub_works() {
 async fn ping_pong_works() {
     // Arrange
 
-    let (remoting, demo_code_id, gas_limit) = spin_up_node_with_demo_code().await;
+    let (remoting, demo_code_id, gas_limit, ..) = spin_up_node_with_demo_code().await;
 
     let demo_factory = demo_client::DemoFactory::new(remoting.clone());
 
@@ -124,7 +124,7 @@ async fn ping_pong_works() {
             ping_call_payload,
             Some(gas_limit),
             0,
-            GClientArgs,
+            GClientArgs::default(),
         )
         .await
         .unwrap()
@@ -170,7 +170,7 @@ async fn demo_returns_not_enough_gas_on_activation() {
 async fn counter_query_works() {
     // Arrange
 
-    let (remoting, demo_code_id, gas_limit) = spin_up_node_with_demo_code().await;
+    let (remoting, demo_code_id, gas_limit, ..) = spin_up_node_with_demo_code().await;
 
     let demo_factory = demo_client::DemoFactory::new(remoting.clone());
 
@@ -199,7 +199,7 @@ async fn counter_query_works() {
 async fn counter_query_not_enough_gas() {
     // Arrange
 
-    let (remoting, demo_code_id, gas_limit) = spin_up_node_with_demo_code().await;
+    let (remoting, demo_code_id, gas_limit, ..) = spin_up_node_with_demo_code().await;
 
     let demo_factory = demo_client::DemoFactory::new(remoting.clone());
 
@@ -237,8 +237,8 @@ async fn counter_query_not_enough_gas() {
 #[ignore = "requires run gear node on GEAR_PATH"]
 async fn value_fee_works() {
     // Arrange
-    let (remoting, demo_code_id, _gas_limit) = spin_up_node_with_demo_code().await;
-    let admin_id = ActorId::try_from(remoting.api().account_id().encode().as_ref())
+    let (remoting, demo_code_id, _gas_limit, gear_api) = spin_up_node_with_demo_code().await;
+    let admin_id = ActorId::try_from(gear_api.account_id().encode().as_ref())
         .expect("failed to create actor id");
 
     let demo_factory = demo_client::DemoFactory::new(remoting.clone());
@@ -248,7 +248,7 @@ async fn value_fee_works() {
         .await
         .unwrap();
 
-    let initial_balance = remoting.api().free_balance(admin_id).await.unwrap();
+    let initial_balance = gear_api.free_balance(admin_id).await.unwrap();
     let mut client = demo_client::ValueFee::new(remoting.clone());
 
     // Act
@@ -270,7 +270,7 @@ async fn value_fee_works() {
         .unwrap();
 
     assert!(result);
-    let balance = remoting.api().free_balance(admin_id).await.unwrap();
+    let balance = gear_api.free_balance(admin_id).await.unwrap();
     // fee is 10_000_000_000_000 + spent gas
     assert!(
         initial_balance - balance > 10_000_000_000_000
@@ -278,14 +278,14 @@ async fn value_fee_works() {
     );
 }
 
-async fn spin_up_node_with_demo_code() -> (GClientRemoting, CodeId, GasUnit) {
+async fn spin_up_node_with_demo_code() -> (GClientRemoting, CodeId, GasUnit, GearApi) {
     let gear_path = option_env!("GEAR_PATH");
     if gear_path.is_none() {
         panic!("the 'GEAR_PATH' environment variable was not set during compile time");
     }
     let api = GearApi::dev_from_path(gear_path.unwrap()).await.unwrap();
     let gas_limit = api.block_gas_limit().unwrap();
-    let remoting = GClientRemoting::new(api);
-    let code_id = remoting.upload_code_by_path(DEMO_WASM_PATH).await.unwrap();
-    (remoting, code_id, gas_limit)
+    let (code_id, _) = api.upload_code_by_path(DEMO_WASM_PATH).await.unwrap();
+    let remoting = GClientRemoting::new(api.clone());
+    (remoting, code_id, gas_limit, api)
 }

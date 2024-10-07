@@ -1,6 +1,4 @@
 use crate::resource_client::traits::RmrkResource;
-use core::cell::OnceCell;
-use gtest::{Program, RunResult};
 use rmrk_catalog::services::parts::{FixedPart, Part};
 use rmrk_resource_app::services::{
     errors::{Error as ResourceStorageError, Result as ResourceStorageResult},
@@ -11,7 +9,10 @@ use sails_rs::{
     calls::{Action, Call, Query, Remoting},
     collections::BTreeMap,
     errors::Result,
-    gtest::calls::{GTestArgs, GTestRemoting},
+    gtest::{
+        calls::{GTestArgs, GTestRemoting},
+        BlockRunResult, Program, System,
+    },
     ActorId, Decode, Encode,
 };
 
@@ -46,14 +47,14 @@ const PART_ID: PartId = 15;
 #[test]
 fn adding_resource_to_storage_by_admin_succeeds() {
     // Arrange
-    let fixture = Fixture::new(ADMIN_ID);
+    let fixture = SystemFixture::new();
 
     // Act
     let resource = Resource::Composed(ComposedResource {
         src: "<src_uri>".into(),
         thumb: "<thumb_uri>".into(),
         metadata_uri: "<metadata_uri>".into(),
-        base: ActorId::from(fixture.catalog_program().id().into_bytes()),
+        base: fixture.catalog_program_id,
         parts: vec![1, 2, 3],
     });
     let run_result = fixture.add_resource(ADMIN_ID, RESOURCE_ID, &resource);
@@ -92,14 +93,14 @@ fn adding_resource_to_storage_by_admin_succeeds() {
 #[tokio::test]
 async fn adding_resource_to_storage_by_admin_succeeds_async() {
     // Arrange
-    let fixture = Fixture::new(ADMIN_ID);
+    let fixture = Fixture::new();
 
     // Act
     let resource = Resource::Composed(ComposedResource {
         src: "<src_uri>".into(),
         thumb: "<thumb_uri>".into(),
         metadata_uri: "<metadata_uri>".into(),
-        base: ActorId::from(fixture.catalog_program().id().into_bytes()),
+        base: fixture.catalog_program_id,
         parts: vec![1, 2, 3],
     });
     let reply = fixture
@@ -122,15 +123,14 @@ async fn adding_resource_to_storage_by_admin_succeeds_async() {
 #[tokio::test]
 async fn adding_resource_to_storage_by_admin_via_client_succeeds() {
     // Arrange
-    let fixture = Fixture::new(ADMIN_ID);
-    let catalog_program_id = ActorId::from(fixture.catalog_program().id().into_bytes());
+    let fixture = Fixture::new();
 
     // Act
     let resource = resource_client::Resource::Composed(resource_client::ComposedResource {
         src: "<src_uri>".into(),
         thumb: "<thumb_uri>".into(),
         metadata_uri: "<metadata_uri>".into(),
-        base: catalog_program_id,
+        base: fixture.catalog_program_id,
         parts: vec![1, 2, 3],
     });
     let add_reply = fixture
@@ -145,7 +145,7 @@ async fn adding_resource_to_storage_by_admin_via_client_succeeds() {
 #[test]
 fn adding_existing_part_to_resource_by_admin_succeeds() {
     // Arrange
-    let fixture = Fixture::new(ADMIN_ID);
+    let fixture = SystemFixture::new();
 
     let mut parts = BTreeMap::new();
     parts.insert(
@@ -164,7 +164,7 @@ fn adding_existing_part_to_resource_by_admin_succeeds() {
             src: "<src_uri>".into(),
             thumb: "<thumb_uri>".into(),
             metadata_uri: "<metadata_uri>".into(),
-            base: ActorId::from(fixture.catalog_program().id().into_bytes()),
+            base: fixture.catalog_program_id,
             parts: vec![1, 2, 3],
         }),
     );
@@ -195,13 +195,12 @@ fn adding_existing_part_to_resource_by_admin_succeeds() {
 #[tokio::test]
 async fn adding_existing_part_to_resource_by_admin_via_client_succeeds() {
     // Arrange
-    let fixture = Fixture::new(ADMIN_ID);
-    let catalog_program_id = ActorId::from(fixture.catalog_program().id().into_bytes());
+    let fixture = Fixture::new();
     let resource = resource_client::Resource::Composed(resource_client::ComposedResource {
         src: "<src_uri>".into(),
         thumb: "<thumb_uri>".into(),
         metadata_uri: "<metadata_uri>".into(),
-        base: catalog_program_id,
+        base: fixture.catalog_program_id,
         parts: vec![1, 2, 3],
     });
     let _ = fixture
@@ -209,16 +208,6 @@ async fn adding_existing_part_to_resource_by_admin_via_client_succeeds() {
         .await
         .unwrap()
         .unwrap();
-
-    let mut parts = BTreeMap::new();
-    parts.insert(
-        PART_ID,
-        Part::Fixed(FixedPart {
-            z: Some(1),
-            metadata_uri: "<metadata_uri>".into(),
-        }),
-    );
-    fixture.add_parts(ADMIN_ID, &parts);
 
     // Act
     let add_part_reply = fixture
@@ -248,7 +237,7 @@ async fn adding_existing_part_to_resource_by_admin_via_client_succeeds() {
 #[test]
 fn adding_non_existing_part_to_resource_fails() {
     // Arrange
-    let fixture = Fixture::new(ADMIN_ID);
+    let fixture = SystemFixture::new();
 
     fixture.add_resource(
         ADMIN_ID,
@@ -257,7 +246,7 @@ fn adding_non_existing_part_to_resource_fails() {
             src: "<src_uri>".into(),
             thumb: "<thumb_uri>".into(),
             metadata_uri: "<metadata_uri>".into(),
-            base: ActorId::from(fixture.catalog_program().id().into_bytes()),
+            base: fixture.catalog_program_id,
             parts: vec![1, 2, 3],
         }),
     );
@@ -275,97 +264,56 @@ fn adding_non_existing_part_to_resource_fails() {
     assert!(run_result.contains(&(ADMIN_ID, expected_response)));
 }
 
-struct Fixture<'a> {
-    admin_id: u64,
-    program_space: GTestRemoting,
-    catalog_program: OnceCell<Program<'a>>,
-    resource_program: OnceCell<Program<'a>>,
+struct SystemFixture {
+    system: System,
+    catalog_program_id: ActorId,
+    resource_program_id: ActorId,
 }
 
-impl<'a> Fixture<'a> {
-    fn new(admin_id: u64) -> Self {
-        let program_space = GTestRemoting::new(admin_id.into());
-        program_space.system().init_logger();
+impl SystemFixture {
+    fn new() -> Self {
+        let system = System::new();
+        system.init_logger();
+        system.mint_to(ADMIN_ID, 100_000_000_000_000);
+        system.mint_to(NON_ADMIN_ID, 100_000_000_000_000);
+
+        let catalog_program_id = Self::create_catalog_program(&system);
+        let resource_program_id = Self::create_resource_program(&system);
 
         Self {
-            admin_id,
-            program_space,
-            catalog_program: OnceCell::new(),
-            resource_program: OnceCell::new(),
+            system,
+            catalog_program_id,
+            resource_program_id,
         }
     }
 
-    fn program_space(&self) -> &GTestRemoting {
-        &self.program_space
+    fn create_catalog_program(system: &System) -> ActorId {
+        let catalog_program = Program::from_file(system, CATALOG_PROGRAM_WASM_PATH);
+        catalog_program.send_bytes(ADMIN_ID, catalog::CTOR_FUNC_NAME.encode());
+        catalog_program.id()
     }
 
-    fn resource_client(&self) -> RmrkResourceClient {
-        RmrkResourceClient::new(self.program_space.clone())
+    fn create_resource_program(system: &System) -> ActorId {
+        let resource_program = Program::from_file(system, RESOURCE_PROGRAM_WASM_PATH);
+        resource_program.send_bytes(ADMIN_ID, resources::CTOR_FUNC_NAME.encode());
+        resource_program.id()
     }
 
-    fn catalog_program(&'a self) -> &Program<'a> {
-        self.catalog_program.get_or_init(|| {
-            let program =
-                Program::from_file(self.program_space.system(), CATALOG_PROGRAM_WASM_PATH);
-            let encoded_request = catalog::CTOR_FUNC_NAME.encode();
-            program.send_bytes(self.admin_id, encoded_request);
-            program
-        })
+    fn catalog_program(&self) -> Program {
+        self.system.get_program(self.catalog_program_id).unwrap()
     }
 
-    fn resource_program_for_async(&'a self) -> &Program<'a> {
-        self.resource_program.get_or_init(|| {
-            let program =
-                Program::from_file(self.program_space.system(), RESOURCE_PROGRAM_WASM_PATH);
-            let encoded_request = resources::CTOR_FUNC_NAME.encode();
-            program.send_bytes(self.admin_id, encoded_request);
-            program
-        })
-    }
-
-    fn resource_program_for_sync(&'a self) -> &Program<'a> {
-        self.resource_program.get_or_init(|| {
-            tokio::runtime::Builder::new_current_thread()
-                .enable_all()
-                .build()
-                .unwrap()
-                .block_on(async {
-                    self.__spin_up_program(
-                        RESOURCE_PROGRAM_WASM_PATH,
-                        &resources::CTOR_FUNC_NAME.encode(),
-                    )
-                    .await
-                })
-        })
-    }
-
-    async fn __spin_up_program(&'a self, program_path: &str, payload: &[u8]) -> Program<'a> {
-        let code_id = self.program_space().system().submit_code_file(program_path);
-        let program_space = self.program_space().clone();
-        let reply = program_space
-            .activate(
-                code_id,
-                "123",
-                payload,
-                None,
-                0,
-                GTestArgs::new(self.admin_id.into()),
-            )
-            .await
-            .unwrap();
-        self.program_space()
-            .system()
-            .get_program(reply.await.unwrap().0)
-            .unwrap()
+    fn resource_program(&self) -> Program {
+        self.system.get_program(self.resource_program_id).unwrap()
     }
 
     fn add_resource(
-        &'a self,
+        &self,
         actor_id: u64,
         resource_id: ResourceId,
         resource: &Resource,
-    ) -> RunResult {
-        let program = self.resource_program_for_sync();
+    ) -> BlockRunResult {
+        let program = self.resource_program();
         let encoded_request = [
             resources::RESOURCE_SERVICE_NAME.encode(),
             resources::ADD_RESOURCE_ENTRY_FUNC_NAME.encode(),
@@ -373,58 +321,17 @@ impl<'a> Fixture<'a> {
             resource.encode(),
         ]
         .concat();
-        program.send_bytes(actor_id, encoded_request)
-    }
-
-    async fn add_resource_async(
-        &'a self,
-        actor_id: u64,
-        resource_id: ResourceId,
-        resource: &Resource,
-    ) -> Result<Vec<u8>> {
-        let encoded_request = [
-            resources::RESOURCE_SERVICE_NAME.encode(),
-            resources::ADD_RESOURCE_ENTRY_FUNC_NAME.encode(),
-            resource_id.encode(),
-            resource.encode(),
-        ]
-        .concat();
-        let program_space = self.program_space().clone();
-        let reply = program_space
-            .message(
-                self.resource_program_for_async().id(),
-                encoded_request,
-                None,
-                0,
-                GTestArgs::new(actor_id.into()),
-            )
-            .await?;
-        reply.await
-    }
-
-    async fn add_resource_via_client(
-        &'a self,
-        actor_id: u64,
-        resource_id: u8,
-        resource: resource_client::Resource,
-    ) -> Result<Result<(u8, resource_client::Resource), resource_client::Error>> {
-        let resource_program_id =
-            ActorId::from(self.resource_program_for_async().id().into_bytes());
-        let mut resource_client = self.resource_client();
-        resource_client
-            .add_resource_entry(resource_id, resource)
-            .with_args(GTestArgs::new(actor_id.into()))
-            .send_recv(resource_program_id)
-            .await
+        let _message_id = program.send_bytes(actor_id, encoded_request);
+        self.system.run_next_block()
     }
 
     fn add_part_to_resource(
-        &'a self,
+        &self,
         actor_id: u64,
         resource_id: ResourceId,
         part_id: PartId,
-    ) -> RunResult {
-        let program = self.resource_program_for_sync();
+    ) -> BlockRunResult {
+        let program = self.resource_program();
         let encoded_request = [
             resources::RESOURCE_SERVICE_NAME.encode(),
             resources::ADD_PART_TO_RESOURCE_FUNC_NAME.encode(),
@@ -432,31 +339,16 @@ impl<'a> Fixture<'a> {
             part_id.encode(),
         ]
         .concat();
-        program.send_bytes(actor_id, encoded_request)
-    }
-
-    async fn add_part_to_resource_via_client(
-        &'a self,
-        actor_id: u64,
-        resource_id: u8,
-        part_id: u32,
-    ) -> Result<Result<u32, resource_client::Error>> {
-        let resource_program_id =
-            ActorId::from(self.resource_program_for_async().id().into_bytes());
-        let mut resource_client = self.resource_client();
-        resource_client
-            .add_part_to_resource(resource_id, part_id)
-            .with_args(GTestArgs::new(actor_id.into()))
-            .send_recv(resource_program_id)
-            .await
+        let _message_id = program.send_bytes(actor_id, encoded_request);
+        self.system.run_next_block()
     }
 
     fn get_resource(
-        &'a self,
+        &self,
         actor_id: u64,
         resource_id: ResourceId,
     ) -> Option<ResourceStorageResult<Resource>> {
-        let program = self.resource_program_for_sync();
+        let program = self.resource_program();
         let encoded_service_name = resources::RESOURCE_SERVICE_NAME.encode();
         let encoded_func_name = resources::RESOURCE_FUNC_NAME.encode();
         let encoded_request = [
@@ -465,7 +357,8 @@ impl<'a> Fixture<'a> {
             resource_id.encode(),
         ]
         .concat();
-        let run_result = program.send_bytes(actor_id, encoded_request);
+        let _message_id = program.send_bytes(actor_id, encoded_request);
+        let run_result = self.system.run_next_block();
         run_result
             .log()
             .iter()
@@ -481,22 +374,7 @@ impl<'a> Fixture<'a> {
             })
     }
 
-    async fn get_resource_via_client(
-        &'a self,
-        actor_id: u64,
-        resource_id: u8,
-    ) -> Result<Result<resource_client::Resource, resource_client::Error>> {
-        let resource_program_id =
-            ActorId::from(self.resource_program_for_async().id().into_bytes());
-        let resource_client = self.resource_client();
-        resource_client
-            .resource(resource_id)
-            .with_args(GTestArgs::new(actor_id.into()))
-            .recv(resource_program_id)
-            .await
-    }
-
-    fn add_parts(&'a self, actor_id: u64, parts: &BTreeMap<PartId, Part>) -> RunResult {
+    fn add_parts(&self, actor_id: u64, parts: &BTreeMap<PartId, Part>) -> BlockRunResult {
         let program = self.catalog_program();
         let encoded_request = [
             catalog::CATALOG_SERVICE_NAME.encode(),
@@ -504,6 +382,137 @@ impl<'a> Fixture<'a> {
             parts.encode(),
         ]
         .concat();
-        program.send_bytes(actor_id, encoded_request)
+        let _message_id = program.send_bytes(actor_id, encoded_request);
+        self.system.run_next_block()
+    }
+}
+
+struct Fixture {
+    program_space: GTestRemoting,
+    catalog_program_id: ActorId,
+    resource_program_id: ActorId,
+}
+
+impl Fixture {
+    fn new() -> Self {
+        let system = System::new();
+        system.init_logger();
+        system.mint_to(ADMIN_ID, 100_000_000_000_000);
+        system.mint_to(NON_ADMIN_ID, 100_000_000_000_000);
+
+        let catalog_program_id = Self::create_catalog_program(&system);
+        let resource_program_id = Self::create_resource_program(&system);
+
+        let program_space = GTestRemoting::new(system, ADMIN_ID.into());
+
+        Self {
+            program_space,
+            catalog_program_id,
+            resource_program_id,
+        }
+    }
+
+    fn create_catalog_program(system: &System) -> ActorId {
+        let catalog_program = Program::from_file(system, CATALOG_PROGRAM_WASM_PATH);
+        catalog_program.send_bytes(ADMIN_ID, catalog::CTOR_FUNC_NAME.encode());
+
+        let mut parts = BTreeMap::new();
+        parts.insert(
+            PART_ID,
+            Part::Fixed(FixedPart {
+                z: Some(1),
+                metadata_uri: "<metadata_uri>".into(),
+            }),
+        );
+        let encoded_request = [
+            catalog::CATALOG_SERVICE_NAME.encode(),
+            catalog::ADD_PARTS_FUNC_NAME.encode(),
+            parts.encode(),
+        ]
+        .concat();
+        let _message_id = catalog_program.send_bytes(ADMIN_ID, encoded_request);
+        system.run_next_block();
+        catalog_program.id()
+    }
+
+    fn create_resource_program(system: &System) -> ActorId {
+        let resource_program = Program::from_file(system, RESOURCE_PROGRAM_WASM_PATH);
+        resource_program.send_bytes(ADMIN_ID, resources::CTOR_FUNC_NAME.encode());
+        resource_program.id()
+    }
+
+    fn program_space(&self) -> &GTestRemoting {
+        &self.program_space
+    }
+
+    fn resource_client(&self) -> RmrkResourceClient {
+        RmrkResourceClient::new(self.program_space.clone())
+    }
+
+    async fn add_resource_async(
+        &self,
+        actor_id: u64,
+        resource_id: ResourceId,
+        resource: &Resource,
+    ) -> Result<Vec<u8>> {
+        let encoded_request = [
+            resources::RESOURCE_SERVICE_NAME.encode(),
+            resources::ADD_RESOURCE_ENTRY_FUNC_NAME.encode(),
+            resource_id.encode(),
+            resource.encode(),
+        ]
+        .concat();
+        let program_space = self.program_space().clone();
+        let reply = program_space
+            .message(
+                self.resource_program_id,
+                encoded_request,
+                None,
+                0,
+                GTestArgs::new(actor_id.into()),
+            )
+            .await?;
+        reply.await
+    }
+
+    async fn add_resource_via_client(
+        &self,
+        actor_id: u64,
+        resource_id: u8,
+        resource: resource_client::Resource,
+    ) -> Result<Result<(u8, resource_client::Resource), resource_client::Error>> {
+        let mut resource_client = self.resource_client();
+        resource_client
+            .add_resource_entry(resource_id, resource)
+            .with_args(GTestArgs::new(actor_id.into()))
+            .send_recv(self.resource_program_id)
+            .await
+    }
+
+    async fn add_part_to_resource_via_client(
+        &self,
+        actor_id: u64,
+        resource_id: u8,
+        part_id: u32,
+    ) -> Result<Result<u32, resource_client::Error>> {
+        let mut resource_client = self.resource_client();
+        resource_client
+            .add_part_to_resource(resource_id, part_id)
+            .with_args(GTestArgs::new(actor_id.into()))
+            .send_recv(self.resource_program_id)
+            .await
+    }
+
+    async fn get_resource_via_client(
+        &self,
+        actor_id: u64,
+        resource_id: u8,
+    ) -> Result<Result<resource_client::Resource, resource_client::Error>> {
+        let resource_client = self.resource_client();
+        resource_client
+            .resource(resource_id)
+            .with_args(GTestArgs::new(actor_id.into()))
+            .recv(self.resource_program_id)
+            .await
     }
 }

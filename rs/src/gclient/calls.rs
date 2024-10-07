@@ -6,12 +6,24 @@ use crate::{
 };
 use core::future::Future;
 use futures::{stream, Stream, StreamExt};
-use gclient::metadata::runtime_types::gear_core::message::user::UserMessage as GenUserMessage;
+use gclient::metadata::runtime_types::{
+    gear_core::message::user::UserMessage as GenUserMessage,
+    pallet_gear_voucher::internal::VoucherId,
+};
 use gclient::{ext::sp_core::ByteArray, EventProcessor, GearApi};
 use gear_core_errors::ReplyCode;
 
 #[derive(Debug, Default)]
-pub struct GClientArgs;
+pub struct GClientArgs {
+    voucher: Option<(VoucherId, bool)>,
+}
+
+impl GClientArgs {
+    pub fn with_voucher(mut self, voucher_id: VoucherId, keep_alive: bool) -> Self {
+        self.voucher = Some((voucher_id, keep_alive));
+        self
+    }
+}
 
 #[derive(Clone)]
 pub struct GClientRemoting {
@@ -27,15 +39,6 @@ impl GClientRemoting {
         let api = self.api.with(suri).unwrap();
         Self { api }
     }
-
-    pub fn api(&self) -> &GearApi {
-        &self.api
-    }
-
-    pub async fn upload_code_by_path(&self, path: &str) -> Result<CodeId> {
-        let (code_id, ..) = self.api.upload_code_by_path(path).await?;
-        Ok(code_id)
-    }
 }
 
 impl Remoting for GClientRemoting {
@@ -46,12 +49,13 @@ impl Remoting for GClientRemoting {
         code_id: CodeId,
         salt: impl AsRef<[u8]>,
         payload: impl AsRef<[u8]>,
-        gas_limit: Option<GasUnit>,
+        #[cfg(not(feature = "ethexe"))] gas_limit: Option<GasUnit>,
         value: ValueUnit,
         _args: GClientArgs,
     ) -> Result<impl Future<Output = Result<(ActorId, Vec<u8>)>>> {
         let api = self.api;
         // Calculate gas amount if it is not explicitly set
+        #[cfg(not(feature = "ethexe"))]
         let gas_limit = if let Some(gas_limit) = gas_limit {
             gas_limit
         } else {
@@ -61,6 +65,8 @@ impl Remoting for GClientRemoting {
                 .await?;
             gas_info.min_limit
         };
+        #[cfg(feature = "ethexe")]
+        let gas_limit = 0;
 
         let mut listener = api.subscribe().await?;
         let (message_id, program_id, ..) = api
@@ -78,12 +84,13 @@ impl Remoting for GClientRemoting {
         self,
         target: ActorId,
         payload: impl AsRef<[u8]>,
-        gas_limit: Option<GasUnit>,
+        #[cfg(not(feature = "ethexe"))] gas_limit: Option<GasUnit>,
         value: ValueUnit,
-        _args: GClientArgs,
+        args: GClientArgs,
     ) -> Result<impl Future<Output = Result<Vec<u8>>>> {
         let api = self.api;
         // Calculate gas amount if it is not explicitly set
+        #[cfg(not(feature = "ethexe"))]
         let gas_limit = if let Some(gas_limit) = gas_limit {
             gas_limit
         } else {
@@ -93,11 +100,19 @@ impl Remoting for GClientRemoting {
                 .await?;
             gas_info.min_limit
         };
+        #[cfg(feature = "ethexe")]
+        let gas_limit = 0;
 
         let mut listener = api.subscribe().await?;
-        let (message_id, ..) = api
-            .send_message_bytes(target, payload, gas_limit, value)
-            .await?;
+        let (message_id, ..) = if let Some((voucher_id, keep_alive)) = args.voucher {
+            api.send_message_bytes_with_voucher(
+                voucher_id, target, payload, gas_limit, value, keep_alive,
+            )
+            .await?
+        } else {
+            api.send_message_bytes(target, payload, gas_limit, value)
+                .await?
+        };
 
         Ok(async move {
             let (_, result, _) = listener.reply_bytes_on(message_id).await?;
@@ -110,17 +125,20 @@ impl Remoting for GClientRemoting {
         self,
         target: ActorId,
         payload: impl AsRef<[u8]>,
-        gas_limit: Option<GasUnit>,
+        #[cfg(not(feature = "ethexe"))] gas_limit: Option<GasUnit>,
         value: ValueUnit,
         _args: GClientArgs,
     ) -> Result<Vec<u8>> {
         let api = self.api;
         // Get Max gas amount if it is not explicitly set
+        #[cfg(not(feature = "ethexe"))]
         let gas_limit = if let Some(gas_limit) = gas_limit {
             gas_limit
         } else {
             api.block_gas_limit()?
         };
+        #[cfg(feature = "ethexe")]
+        let gas_limit = 0;
         let origin = H256::from_slice(api.account_id().as_slice());
         let payload = payload.as_ref().to_vec();
 
