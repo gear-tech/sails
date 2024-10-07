@@ -21,6 +21,7 @@ pub struct ClientGenerator<'a, S> {
     sails_path: Option<&'a str>,
     mocks_feature_name: Option<&'a str>,
     external_types: HashMap<&'a str, &'a str>,
+    no_derive_traits: bool,
     idl: S,
 }
 
@@ -47,6 +48,13 @@ impl<'a, S> ClientGenerator<'a, S> {
             ..self
         }
     }
+
+    pub fn with_no_derive_traits(self) -> Self {
+        Self {
+            no_derive_traits: true,
+            ..self
+        }
+    }
 }
 
 impl<'a> ClientGenerator<'a, IdlPath<'a>> {
@@ -55,6 +63,7 @@ impl<'a> ClientGenerator<'a, IdlPath<'a>> {
             sails_path: None,
             mocks_feature_name: None,
             external_types: HashMap::new(),
+            no_derive_traits: false,
             idl: IdlPath(idl_path),
         }
     }
@@ -79,6 +88,7 @@ impl<'a> ClientGenerator<'a, IdlPath<'a>> {
             sails_path: self.sails_path,
             mocks_feature_name: self.mocks_feature_name,
             external_types: self.external_types,
+            no_derive_traits: self.no_derive_traits,
             idl: IdlString(idl),
         }
     }
@@ -90,6 +100,7 @@ impl<'a> ClientGenerator<'a, IdlString<'a>> {
             sails_path: None,
             mocks_feature_name: None,
             external_types: HashMap::new(),
+            no_derive_traits: false,
             idl: IdlString(idl),
         }
     }
@@ -102,6 +113,7 @@ impl<'a> ClientGenerator<'a, IdlString<'a>> {
             self.mocks_feature_name,
             sails_path,
             self.external_types,
+            self.no_derive_traits,
         );
         let program = sails_idl_parser::ast::parse_idl(idl).context("Failed to parse IDL")?;
         visitor::accept_program(&program, &mut generator);
