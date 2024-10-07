@@ -1,7 +1,7 @@
 use clap::{Parser, Subcommand};
 use sails_cli::program::ProgramGenerator;
 use sails_client_gen::ClientGenerator;
-use std::{path::PathBuf, str::FromStr};
+use std::{error::Error, path::PathBuf};
 
 #[derive(Parser)]
 #[command(bin_name = "cargo")]
@@ -31,18 +31,36 @@ enum SailsCommands {
     /// Generate client code from IDL
     #[command(name = "client-rs")]
     ClientRs {
-        #[arg(help = "Path to the IDL file", value_parser(PathBuf::from_str))]
+        /// Path to the IDL file
+        #[arg(value_hint = clap::ValueHint::FilePath)]
         idl_path: PathBuf,
-        #[arg(
-            help = "Path to the output Rust client file",
-            value_parser(PathBuf::from_str)
-        )]
+        /// Path to the output Rust client file
+        #[arg(value_hint = clap::ValueHint::FilePath)]
         out_path: Option<PathBuf>,
-        #[arg(long, help = "Generate module with mocks with specified feature name")]
+        /// Generate module with mocks with specified feature name
+        #[arg(long)]
         mocks: Option<String>,
-        #[arg(long, help = "Custom path to the sails-rs crate")]
+        /// Custom path to the sails-rs crate
+        #[arg(long)]
         sails_crate: Option<String>,
+        /// Map type from IDL to crate path, separated by `=`, example `-T Part=crate::parts::Part`
+        #[arg(long, short = 'T', value_parser = parse_key_val::<String, String>)]
+        external_types: Vec<(String, String)>,
     },
+}
+
+/// Parse a single key-value pair
+fn parse_key_val<T, U>(s: &str) -> Result<(T, U), Box<dyn Error + Send + Sync + 'static>>
+where
+    T: std::str::FromStr,
+    T::Err: Error + Send + Sync + 'static,
+    U: std::str::FromStr,
+    U::Err: Error + Send + Sync + 'static,
+{
+    let pos = s
+        .find('=')
+        .ok_or_else(|| format!("invalid KEY=value: no `=` found in `{s}`"))?;
+    Ok((s[..pos].parse()?, s[pos + 1..].parse()?))
 }
 
 fn main() -> Result<(), i32> {
@@ -66,6 +84,7 @@ fn main() -> Result<(), i32> {
             out_path,
             mocks,
             sails_crate,
+            external_types,
         } => {
             let mut client_gen = ClientGenerator::from_idl_path(idl_path.as_ref());
             if let Some(mocks) = mocks.as_ref() {
@@ -73,6 +92,9 @@ fn main() -> Result<(), i32> {
             }
             if let Some(sails_crate) = sails_crate.as_ref() {
                 client_gen = client_gen.with_sails_crate(sails_crate);
+            }
+            for (name, path) in external_types.iter() {
+                client_gen = client_gen.with_external_type(name, path);
             }
             let out_path = out_path.unwrap_or_else(|| idl_path.with_extension("rs"));
             client_gen.generate_to(out_path)
