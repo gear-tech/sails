@@ -46,6 +46,9 @@ enum SailsCommands {
         /// Map type from IDL to crate path, separated by `=`, example `-T Part=crate::parts::Part`
         #[arg(long, short = 'T', value_parser = parse_key_val::<String, String>)]
         external_types: Vec<(String, String)>,
+        /// Derive only nessessary [`parity_scale_codec::Encode`], [`parity_scale_codec::Decode`] and [`scale_info::TypeInfo`] traits for the generated types
+        #[arg(long)]
+        no_derive_traits: bool,
     },
 }
 
@@ -85,6 +88,7 @@ fn main() -> Result<(), i32> {
             mocks,
             sails_crate,
             external_types,
+            no_derive_traits,
         } => {
             let mut client_gen = ClientGenerator::from_idl_path(idl_path.as_ref());
             if let Some(mocks) = mocks.as_ref() {
@@ -95,6 +99,9 @@ fn main() -> Result<(), i32> {
             }
             for (name, path) in external_types.iter() {
                 client_gen = client_gen.with_external_type(name, path);
+            }
+            if no_derive_traits {
+                client_gen = client_gen.with_no_derive_traits();
             }
             let out_path = out_path.unwrap_or_else(|| idl_path.with_extension("rs"));
             client_gen.generate_to(out_path)
