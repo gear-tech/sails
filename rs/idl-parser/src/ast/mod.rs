@@ -810,6 +810,7 @@ mod tests {
     fn parser_accepts_func_param_reserved_keywords() {
         const IDL: &str = r#"
             service {
+                /// DoThis comment
                 DoThis : (constructor: u8, service: u8, events: vec u8) -> null;
             }
         "#;
@@ -836,7 +837,7 @@ mod tests {
                 ],
                 TypeDecl::Id(TypeId::Primitive(PrimitiveType::Null)),
                 false,
-                vec![],
+                vec!["DoThis comment".to_owned()],
             )],
             vec![],
         )

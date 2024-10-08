@@ -1,20 +1,20 @@
 import { ISailsFuncParam, ISailsService, ISailsServiceEvent, ISailsServiceFunc } from 'sails-js-types';
 import { EnumVariant, WithDef } from './types.js';
-import { getName } from './util.js';
+import { getBool, getDocs, getName } from './util.js';
 import { Base } from './visitor.js';
 
 export class Service extends Base implements ISailsService {
-  public readonly funcs: ServiceFunc[];
+  public readonly funcs: ISailsServiceFunc[];
   public readonly events: ServiceEvent[];
   public readonly name: string;
 
   constructor(ptr: number, memory: WebAssembly.Memory) {
     super(ptr, memory);
 
-    const { name, offset } = getName(ptr, this.offset, memory);
+    const [name, nameOffset] = getName(ptr, this.offset, memory);
 
     this.name = name || 'Service';
-    this.offset = offset;
+    this.offset += nameOffset;
 
     this.funcs = [];
     this.events = [];
@@ -34,19 +34,23 @@ export class ServiceEvent extends EnumVariant implements ISailsServiceEvent {}
 export class ServiceFunc extends WithDef implements ISailsServiceFunc {
   public readonly name: string;
   public readonly isQuery: boolean;
+  public readonly docs?: string;
   private _params: Map<number, FuncParam>;
 
   constructor(ptr: number, memory: WebAssembly.Memory) {
     super(ptr, memory);
 
-    const { name, offset } = getName(ptr, this.offset, memory);
-
+    const [name, nameOffset] = getName(ptr, this.offset, memory);
     this.name = name;
-    this.offset = offset;
+    this.offset += nameOffset;
 
-    const is_query_buf = new Uint8Array(memory.buffer.slice(ptr + this.offset, ptr + this.offset + 1));
-    const is_query_dv = new DataView(is_query_buf.buffer, 0);
-    this.isQuery = is_query_dv.getUint8(0) === 1;
+    const [isQuery, isQueryOffset] = getBool(ptr, this.offset, memory);
+    this.isQuery = isQuery;
+    this.offset += isQueryOffset;
+
+    const [docs, docsOffset] = getDocs(ptr, this.offset, memory);
+    this.docs = docs;
+    this.offset += docsOffset;
 
     this._params = new Map();
   }
@@ -55,7 +59,7 @@ export class ServiceFunc extends WithDef implements ISailsServiceFunc {
     this._params.set(ptr, param);
   }
 
-  get params(): FuncParam[] {
+  get params(): ISailsFuncParam[] {
     if (this._params.size === 0) return [];
 
     return Array.from(this._params.values());
@@ -68,9 +72,9 @@ export class FuncParam extends WithDef implements ISailsFuncParam {
   constructor(ptr: number, memory: WebAssembly.Memory) {
     super(ptr, memory);
 
-    const { name, offset } = getName(ptr, this.offset, memory);
+    const [name, nameOffset] = getName(ptr, this.offset, memory);
 
     this.name = name;
-    this.offset = offset;
+    this.offset += nameOffset;
   }
 }

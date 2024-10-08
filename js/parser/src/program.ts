@@ -1,7 +1,7 @@
-import { ISailsCtor, ISailsCtorFunc, ISailsProgram } from 'sails-js-types';
+import { ISailsCtor, ISailsCtorFunc, ISailsProgram, ISailsService, ISailsType } from 'sails-js-types';
 import { FuncParam, Service } from './service.js';
 import { Type, WithDef } from './types.js';
-import { getName } from './util.js';
+import { getDocs, getName } from './util.js';
 import { Base } from './visitor.js';
 
 export class Program implements ISailsProgram {
@@ -27,15 +27,15 @@ export class Program implements ISailsProgram {
     return id;
   }
 
-  get services(): Service[] {
+  get services(): ISailsService[] {
     return this._services;
   }
 
-  get ctor(): Ctor {
+  get ctor(): ISailsCtor {
     return this._ctor;
   }
 
-  getType(id: number): Type {
+  getType(id: number): ISailsType {
     return this._types.get(id);
   }
 
@@ -81,13 +81,18 @@ export class Ctor extends Base implements ISailsCtor {
 export class CtorFunc extends Base implements ISailsCtorFunc {
   private _params: Map<number, FuncParam>;
   public readonly name: string;
+  public readonly docs?: string;
 
   constructor(ptr: number, memory: WebAssembly.Memory) {
     super(ptr, memory);
 
-    const { name, offset } = getName(ptr, this.offset, memory);
+    const [name, nameOffset] = getName(ptr, this.offset, memory);
     this.name = name;
-    this.offset = offset;
+    this.offset += nameOffset;
+
+    const [docs, docsOffset] = getDocs(ptr, this.offset, memory);
+    this.docs = docs;
+    this.offset += docsOffset;
 
     this._params = new Map();
   }

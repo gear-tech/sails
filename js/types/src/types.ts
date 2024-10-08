@@ -1,8 +1,10 @@
+import { ISailsDocs } from './idl';
+
 export interface IWithDefEntity {
   readonly def: ISailsTypeDef;
 }
 
-export interface ISailsType extends IWithDefEntity {
+export interface ISailsType extends IWithDefEntity, ISailsDocs {
   readonly name: string;
 }
 
@@ -61,7 +63,7 @@ export interface ISailsStructDef {
   readonly isTuple: boolean;
 }
 
-export interface ISailsStructField extends IWithDefEntity {
+export interface ISailsStructField extends IWithDefEntity, ISailsDocs {
   readonly name: string;
 }
 
@@ -70,7 +72,7 @@ export interface ISailsEnumDef {
   readonly isNesting: boolean;
 }
 
-export interface ISailsEnumVariant extends IWithDefEntity {
+export interface ISailsEnumVariant extends IWithDefEntity, ISailsDocs {
   readonly name: string;
 }
 
