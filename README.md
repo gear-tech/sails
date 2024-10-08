@@ -1,6 +1,6 @@
 # Sails &emsp;
 
-Sails is a library for bringing your experience of writing applications utilizing
+`Sails` is a library for bringing your experience of writing applications utilizing
 [Gear Protocol](https://gear-tech.io/) to the next level of simplicity and
 clarity. It deals with things like:
 - eliminating the necessity of writing some low-level boilerplate code and letting
@@ -12,15 +12,12 @@ clarity. It deals with things like:
 
 > **NOTE**
 >
-> The Sails library is published under the name `sails-rs` on `crates-io`.
+> The `Sails` library is published under the name `sails-rs` on `crates-io`.
 >
-> Versions "version <= 0.2.1" are pinned to v1.4.2 of gear libs.
->
-> Versions "0.2.1 < version" are pinned to v1.5.0 of gear libs.
 
 ## Getting started
 
-Either use Sails CLI:
+Either use `Sails` CLI:
 ```bash
 cargo install sails-cli
 cargo sails new-program my-ping
@@ -76,7 +73,7 @@ interacting with the network.
 
 ### Application
 
-Sails architecture for applications is based on a few key concepts.
+`Sails` architecture for applications is based on a few key concepts.
 
 The first one is *__service__* which is represented by an impl of some Rust struct
 marked with the `#[service]` attribute. The service main responsibility is
@@ -218,9 +215,9 @@ impl MyPing {
 
 ### Events
 
-Sails offers a mechanism to emit events from your service while processing commands.
+`Sails` offers a mechanism to emit events from your service while processing commands.
 These events serve as a means to notify off-chain subscribers about changes in
-the application state. In Sails, events are configured and emitted on a per-service
+the application state. In `Sails`, events are configured and emitted on a per-service
 basis through the `events` argument of the `#[service]` attribute. They are defined
 by a Rust enum, with each variant representing a separate event and its optional data.
 Once a service declares that it emits events, the `#[service]` attribute automatically
@@ -259,12 +256,12 @@ impl MyCounter {
 ```
 
 It's important to note that, internally, events use the same mechanism as any other
-message transmission in the Gear Protocol. This means an event is only published
-upon the successful completion of the command that emitted it.
+message transmission in the [Gear Protocol](https://gear-tech.io/). This means an
+event is only published upon the successful completion of the command that emitted it.
 
 ### Service Extending (Mixins)
 
-A standout feature of Sails is its capability to extend (or mix in) existing services.
+A standout feature of `Sails` is its capability to extend (or mix in) existing services.
 This is facilitated through the use of the `extends` argument in the `#[service]`
 attribute. Consider you have Service `A` and Service `B`, possibly sourced from
 external crates, and you aim to integrate their functionalities into a new
@@ -318,7 +315,7 @@ impl MyServiceC {
 
 ### Payload Encoding
 
-An application written with Sails uses [SCALE Codec](https://github.com/paritytech/parity-scale-codec) to encode/decode data
+An application written with `Sails` uses [SCALE Codec](https://github.com/paritytech/parity-scale-codec) to encode/decode data
 at its base.
 
 Every incoming request message is expected to have the following format:
@@ -335,10 +332,11 @@ __|__ *SCALE encoded service name* __|__ *SCALE encoded event name* __|__ *SCALE
 
 ### Client
 
-Having robust interaction capabilities with applications is crucial. Sails offers
+Having robust interaction capabilities with applications is crucial. `Sails` offers
 several options for interaction.
 
-Firstly, it supports manual interaction using the Gear Protocol. You can use:
+Firstly, it supports manual interaction using the [Gear Protocol](https://gear-tech.io/).
+You can use:
 - The `msg::send` functions from the `gstd` crate to interact between applications.
 - The `gclient` crate to interact from off-chain code with an on-chain application.
 - The `@gear-js/api` library to interact with your program from JavaScript.
@@ -346,9 +344,9 @@ Firstly, it supports manual interaction using the Gear Protocol. You can use:
 All you need to do is compose a byte payload according to the layout outlined in the
 [Payload Encoding](#payload-encoding) section and send it to the application.
 
-Thanks to the generated IDL, Sails provides a way to interact with your application
+Thanks to the generated IDL, `Sails` provides a way to interact with your application
 using generated clients with an interface similar to the one exposed by latter in
-a clearer way. Currently, Sails can generate client code for Rust and TypeScript.
+a clearer way. Currently, `Sails` can generate client code for Rust and TypeScript.
 
 When it comes to Rust, there are two options:
 - Use generated code that can encode and decode byte payloads for you, allowing you
@@ -430,6 +428,72 @@ trait:
 
 When it comes to TypeScript, `sails-js` library can be used to interact with the program. Check out [`sails-js` documentation](js/README.md) for more details.
 
+### Writing Sagas (Advanced)
+
+Occasionally, you may need to design a system where a business transaction spans multiple
+applications. In other words, a single business transaction may involve several local
+transactions within different applications. This challenge is typically addressed using
+a pattern called `Saga`. You can find detailed documentation about this pattern [here](https://microservices.io/patterns/data/saga.html)
+and implementation guidelines [here](https://livebook.manning.com/book/microservices-patterns/chapter-4/142).
+
+The process of addressing this issue in applications built with `Sails` is similar, but only
+the orchestration approach can be used, as `Sails` applications cannot catch events from each
+other. Additionally, it is important to handle infrastructure errors that can arise,
+particularly those related to the [Gear Protocol](https://gear-tech.io/) and its concept of gas.
+
+Let's refer to the guidelines and explore the nuances involved.
+
+First, it is important to note that all the errors mentioned in the guidelines are business
+errors — only business errors can trigger compensation actions. In contrast, infrastructure
+errors are expected to be resolved through retries. This applies to both retriable and
+compensatable transactions. The key difference is that the former should never return a
+business error.
+
+Normally, these retries are handled programmatically. However, when a `RunOutOfGas` error is
+received from another application, retrying is not an option. The only solution in this case
+is to propagate the error to the top-level caller, who will then need to attach more funds
+and attempt the entire business transaction again.
+
+For retries to function correctly, local transactions must be idempotent (i.e., safe to retry
+without causing side effects, such as sending duplicate events). This can be ensured by
+assigning a unique identifier to each business transaction, which is passed to all actions
+within the `Saga`, whether it’s the initial attempt or a retry.
+
+The Saga’s state must track this identifier to skip actions that were completed in previous
+attempts. Similarly, the actions themselves should recognize this identifier to prevent
+repeating changes that have already been made.
+
+Another issue to consider is the possibility of receiving a `Timeout` error while waiting for
+a response from another application. In some systems, timeouts can be treated as business errors,
+triggering compensation. However, if the timeout is caused by infrastructure issues (e.g.,
+network congestion), it can be handled similarly to the `RunOutOfGas` error.
+
+There are optimization opportunities in such cases. Since the [Gear Protocol](https://gear-tech.io/)
+guarantees that the caller will eventually receive a response (successful or not), one simple
+optimization is to increase the number of blocks allowed for waiting on a response. On the
+[Vara network](https://vara.network/), this value is set to 100 blocks by default. Increasing
+it to 10,000 blocks would mitigate most network load issues without significantly raising
+transaction costs. This adjustment can be made using the [with_wait_up_to](TBD) method.
+
+Another option is to use the [with_reply_hook](rs/src/gstd/calls.rs#L21) method, which involves
+additional logic to manage the `Saga`’s state. The reply hook can be triggered while the main
+code handles the `Timeout` error, allowing the caller to initiate another attempt. During this
+process, the timed-out action can be marked as completed in the `Saga`’s state, preventing it
+from being re-executed. However, it's worth considering whether this added complexity is
+necessary, as retrying an already completed idempotent action is harmless and only slightly
+increases the overall cost.
+
+To summarize:
+- Implement an orchestrating `Saga` (orchestrator application) by maintaining its state.
+- Design calls to other applications as either compensatable or retriable transactions.
+- Record a list of actions needed to execute the transactions in the `Saga`’s state, along
+  with the status of each action (e.g., not executed, succeeded, failed).
+- Ensure that each transaction's actions are implemented in an idempotent manner.
+- Prepare for 2 key infrastructure errors: `RunOutOfGas` and `Timeout`. The simplest approach
+  is to propagate these errors to the top-level caller for retries.
+  - For `Timeout` errors, optimize by increasing the number of blocks allowed for waiting on a response.
+- Keep in mind that every call to an application will eventually yield a response.
+
 ## Examples
 
 You can find all examples <a href="examples/">here</a> along with some descriptions
@@ -456,7 +520,7 @@ which can be used as parameters and return values in service methods.
 ### Working with Data
 
 In the real world, almost all apps work with some form of data, and apps developed
-using Sails are no exception. As discussed in the [Application](#application) section,
+using `Sails` are no exception. As discussed in the [Application](#application) section,
 services are instantiated for every incoming request message, indicating that these
 services are stateless. However, there are a few ways to enable your services to
 maintain some state. In this case, the state will be treated as external to the service.
@@ -529,6 +593,6 @@ Licensed under either of <a href="LICENSE-APACHE">Apache License, Version
 
 <sub>
 Unless you explicitly state otherwise, any contribution intentionally submitted
-for inclusion in Sails by you, as defined in the Apache-2.0 license, shall be
+for inclusion in `Sails` by you, as defined in the Apache-2.0 license, shall be
 dual licensed as above, without any additional terms or conditions.
 </sub>
