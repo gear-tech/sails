@@ -181,7 +181,7 @@ pub mod service {
     }
 }
 /// ThisThatSvcAppTupleStruct docs
-#[derive(PartialEq, Debug, Encode, Decode, TypeInfo)]
+#[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo)]
 #[codec(crate = sails_rs::scale_codec)]
 #[scale_info(crate = sails_rs::scale_info)]
 pub struct ThisThatSvcAppTupleStruct(
@@ -189,7 +189,7 @@ pub struct ThisThatSvcAppTupleStruct(
     pub bool,
 );
 /// ThisThatSvcAppDoThatParam docs
-#[derive(PartialEq, Debug, Encode, Decode, TypeInfo)]
+#[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo)]
 #[codec(crate = sails_rs::scale_codec)]
 #[scale_info(crate = sails_rs::scale_info)]
 pub struct ThisThatSvcAppDoThatParam {
@@ -201,7 +201,7 @@ pub struct ThisThatSvcAppDoThatParam {
     pub p3: ThisThatSvcAppManyVariants,
 }
 /// ThisThatSvcAppManyVariants docs
-#[derive(PartialEq, Debug, Encode, Decode, TypeInfo)]
+#[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo)]
 #[codec(crate = sails_rs::scale_codec)]
 #[scale_info(crate = sails_rs::scale_info)]
 pub enum ThisThatSvcAppManyVariants {
@@ -217,7 +217,7 @@ pub enum ThisThatSvcAppManyVariants {
     Five((String, u32)),
     Six((u32,)),
 }
-#[derive(PartialEq, Debug, Encode, Decode, TypeInfo)]
+#[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo)]
 #[codec(crate = sails_rs::scale_codec)]
 #[scale_info(crate = sails_rs::scale_info)]
 pub enum T {

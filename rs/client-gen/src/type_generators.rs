@@ -29,7 +29,7 @@ impl<'a> TopLevelTypeGenerator<'a> {
         let derive_traits = if no_derive_traits {
             "Encode, Decode, TypeInfo"
         } else {
-            "PartialEq, Debug, Encode, Decode, TypeInfo"
+            "PartialEq, Clone, Debug, Encode, Decode, TypeInfo"
         };
         Self {
             type_name,
