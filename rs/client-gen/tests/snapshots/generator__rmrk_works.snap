@@ -246,7 +246,7 @@ pub mod rmrk_catalog {
         }
     }
 }
-#[derive(PartialEq, Debug, Encode, Decode, TypeInfo)]
+#[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo)]
 #[codec(crate = sails_rs::scale_codec)]
 #[scale_info(crate = sails_rs::scale_info)]
 pub enum Error {
@@ -258,14 +258,14 @@ pub enum Error {
     WrongPartFormat,
     NotAllowedToCall,
 }
-#[derive(PartialEq, Debug, Encode, Decode, TypeInfo)]
+#[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo)]
 #[codec(crate = sails_rs::scale_codec)]
 #[scale_info(crate = sails_rs::scale_info)]
 pub enum Part {
     Fixed(FixedPart),
     Slot(SlotPart),
 }
-#[derive(PartialEq, Debug, Encode, Decode, TypeInfo)]
+#[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo)]
 #[codec(crate = sails_rs::scale_codec)]
 #[scale_info(crate = sails_rs::scale_info)]
 pub struct FixedPart {
@@ -276,7 +276,7 @@ pub struct FixedPart {
     /// The metadata URI of the part.
     pub metadata_uri: String,
 }
-#[derive(PartialEq, Debug, Encode, Decode, TypeInfo)]
+#[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo)]
 #[codec(crate = sails_rs::scale_codec)]
 #[scale_info(crate = sails_rs::scale_info)]
 pub struct SlotPart {

@@ -16,6 +16,7 @@ pub(crate) struct RootGenerator<'a> {
     mocks_feature_name: Option<&'a str>,
     sails_path: &'a str,
     external_types: HashMap<&'a str, &'a str>,
+    no_derive_traits: bool,
 }
 
 impl<'a> RootGenerator<'a> {
@@ -24,6 +25,7 @@ impl<'a> RootGenerator<'a> {
         mocks_feature_name: Option<&'a str>,
         sails_path: &'a str,
         external_types: HashMap<&'a str, &'a str>,
+        no_derive_traits: bool,
     ) -> Self {
         let mut tokens = quote! {
             #[allow(unused_imports)]
@@ -47,6 +49,7 @@ impl<'a> RootGenerator<'a> {
             mocks_feature_name,
             sails_path,
             external_types,
+            no_derive_traits,
         }
     }
 
@@ -149,7 +152,8 @@ impl<'a, 'ast> Visitor<'ast> for RootGenerator<'a> {
         if self.external_types.contains_key(t.name()) {
             return;
         }
-        let mut type_gen = TopLevelTypeGenerator::new(t.name(), self.sails_path);
+        let mut type_gen =
+            TopLevelTypeGenerator::new(t.name(), self.sails_path, self.no_derive_traits);
         type_gen.visit_type(t);
         self.tokens.extend(type_gen.finalize());
     }

@@ -63,7 +63,7 @@ pub mod service {
         }
     }
 }
-#[derive(PartialEq, Debug, Encode, Decode, TypeInfo)]
+#[derive(Encode, Decode, TypeInfo)]
 #[codec(crate = my_crate::sails::scale_codec)]
 #[scale_info(crate = my_crate::sails::scale_info)]
 pub enum MyParam2 {
