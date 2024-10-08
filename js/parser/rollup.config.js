@@ -1,4 +1,4 @@
-import { cpSync, writeFileSync, readFileSync, existsSync, rmSync } from 'fs';
+import { writeFileSync, readFileSync, existsSync, rmSync } from 'fs';
 import { execSync } from 'child_process';
 import commonjs from '@rollup/plugin-commonjs';
 import typescript from 'rollup-plugin-typescript2';
