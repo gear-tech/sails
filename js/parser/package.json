@@ -1,6 +1,6 @@
 {
   "name": "sails-js-parser",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Sails-IDL parser for TypeScript",
   "main": "lib/cjs/index.cjs",
   "module": "lib/index.js",

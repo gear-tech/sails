@@ -21,6 +21,7 @@ pub struct ClientGenerator<'a, S> {
     sails_path: Option<&'a str>,
     mocks_feature_name: Option<&'a str>,
     external_types: HashMap<&'a str, &'a str>,
+    no_derive_traits: bool,
     idl: S,
 }
 
@@ -39,11 +40,32 @@ impl<'a, S> ClientGenerator<'a, S> {
         }
     }
 
+    /// Add an map from IDL type to crate path
+    ///
+    /// Instead of generating type in client code, use type path from external crate
+    ///
+    /// # Example
+    ///
+    /// Following code generates `use my_crate::MyParam as MyFuncParam;`
+    /// ```
+    /// let code = sails_client_gen::ClientGenerator::from_idl("<idl>")
+    ///     .with_external_type("MyFuncParam", "my_crate::MyParam");
+    /// ```
     pub fn with_external_type(self, name: &'a str, path: &'a str) -> Self {
         let mut external_types = self.external_types;
         external_types.insert(name, path);
         Self {
             external_types,
+            ..self
+        }
+    }
+
+    /// Derive only nessessary [`parity_scale_codec::Encode`], [`parity_scale_codec::Decode`] and [`scale_info::TypeInfo`] traits for the generated types
+    ///
+    /// By default, types additionally derive [`PartialEq`], [`Clone`] and [`Debug`]
+    pub fn with_no_derive_traits(self) -> Self {
+        Self {
+            no_derive_traits: true,
             ..self
         }
     }
@@ -55,6 +77,7 @@ impl<'a> ClientGenerator<'a, IdlPath<'a>> {
             sails_path: None,
             mocks_feature_name: None,
             external_types: HashMap::new(),
+            no_derive_traits: false,
             idl: IdlPath(idl_path),
         }
     }
@@ -79,6 +102,7 @@ impl<'a> ClientGenerator<'a, IdlPath<'a>> {
             sails_path: self.sails_path,
             mocks_feature_name: self.mocks_feature_name,
             external_types: self.external_types,
+            no_derive_traits: self.no_derive_traits,
             idl: IdlString(idl),
         }
     }
@@ -90,6 +114,7 @@ impl<'a> ClientGenerator<'a, IdlString<'a>> {
             sails_path: None,
             mocks_feature_name: None,
             external_types: HashMap::new(),
+            no_derive_traits: false,
             idl: IdlString(idl),
         }
     }
@@ -102,6 +127,7 @@ impl<'a> ClientGenerator<'a, IdlString<'a>> {
             self.mocks_feature_name,
             sails_path,
             self.external_types,
+            self.no_derive_traits,
         );
         let program = sails_idl_parser::ast::parse_idl(idl).context("Failed to parse IDL")?;
         visitor::accept_program(&program, &mut generator);

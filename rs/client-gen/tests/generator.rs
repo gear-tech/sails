@@ -224,6 +224,7 @@ fn test_external_types() {
     let code = ClientGenerator::from_idl(IDL)
         .with_sails_crate("my_crate::sails")
         .with_external_type("MyParam", "my_crate::MyParam")
+        .with_no_derive_traits()
         .generate("Service")
         .expect("generate client");
     insta::assert_snapshot!(code);
