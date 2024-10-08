@@ -31,11 +31,11 @@ export class Program implements ISailsProgram {
     return this._services;
   }
 
-  get ctor(): ISailsCtor {
+  get ctor(): Ctor {
     return this._ctor;
   }
 
-  getType(id: number): ISailsType {
+  getType(id: number): Type {
     return this._types.get(id);
   }
 
@@ -47,11 +47,11 @@ export class Program implements ISailsProgram {
     this._context.set(id, ctx);
   }
 
-  get types(): Type[] {
+  get types(): ISailsType[] {
     return Array.from(this._types.values());
   }
 
-  getTypeByName(name: string): Type {
+  getTypeByName(name: string): ISailsType {
     const types = this.types.filter((type) => type.name === name);
     if (types.length > 1) throw new Error(`multiple types found with name ${name}`);
     if (types.length === 0) throw new Error(`no type found with name ${name}`);
