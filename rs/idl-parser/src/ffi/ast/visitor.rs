@@ -509,10 +509,15 @@ mod wrapper {
                 return raw_visitor::accept_type(r#type, self);
             }
             let name_bytes = r#type.name().as_bytes();
+            let docs = r#type.docs().join("\n");
+            let docs_bytes = docs.as_bytes();
+
             let r#type = Type {
                 name_ptr: name_bytes.as_ptr(),
                 name_len: name_bytes.len() as u32,
                 raw_ptr: r#type.into(),
+                docs_ptr: docs_bytes.as_ptr(),
+                docs_len: docs_bytes.len() as u32,
             };
             unsafe { (self.visitor.visit_type)(self.context, &r#type) };
         }
@@ -615,10 +620,15 @@ mod wrapper {
                 return raw_visitor::accept_ctor_func(func, self);
             }
             let func_name_bytes = func.name().as_bytes();
+            let docs = func.docs().join("\n");
+            let docs_bytes = docs.as_bytes();
+
             let func = CtorFunc {
                 name_ptr: func_name_bytes.as_ptr(),
                 name_len: func_name_bytes.len() as u32,
                 raw_ptr: func.into(),
+                docs_ptr: docs_bytes.as_ptr(),
+                docs_len: docs_bytes.len() as u32,
             };
             unsafe { (self.visitor.visit_ctor_func)(self.context, &func) };
         }
@@ -628,11 +638,16 @@ mod wrapper {
                 return raw_visitor::accept_service_func(func, self);
             }
             let func_name_bytes = func.name().as_bytes();
+            let docs = func.docs().join("\n");
+            let docs_bytes = docs.as_bytes();
+
             let func = ServiceFunc {
                 name_ptr: func_name_bytes.as_ptr(),
                 name_len: func_name_bytes.len() as u32,
                 is_query: func.is_query(),
                 raw_ptr: func.into(),
+                docs_ptr: docs_bytes.as_ptr(),
+                docs_len: docs_bytes.len() as u32,
             };
             unsafe { (self.visitor.visit_service_func)(self.context, &func) };
         }
@@ -642,10 +657,15 @@ mod wrapper {
                 return raw_visitor::accept_service_event(event, self);
             }
             let event_name_bytes = event.name().as_bytes();
+            let docs = event.docs().join("\n");
+            let docs_bytes = docs.as_bytes();
+
             let event = ServiceEvent {
                 name_ptr: event_name_bytes.as_ptr(),
                 name_len: event_name_bytes.len() as u32,
                 raw_ptr: event.into(),
+                docs_ptr: docs_bytes.as_ptr(),
+                docs_len: docs_bytes.len() as u32,
             };
             unsafe { (self.visitor.visit_service_event)(self.context, &event) };
         }
@@ -688,10 +708,15 @@ mod wrapper {
                 return raw_visitor::accept_struct_field(struct_field, self);
             }
             let struct_field_name_bytes = struct_field.name().map(|n| n.as_bytes());
+            let docs = struct_field.docs().join("\n");
+            let docs_bytes = docs.as_bytes();
+
             let struct_field = StructField {
                 name_ptr: struct_field_name_bytes.map_or(ptr::null(), |n| n.as_ptr()),
                 name_len: struct_field_name_bytes.map_or(0, |n| n.len() as u32),
                 raw_ptr: struct_field.into(),
+                docs_ptr: docs_bytes.as_ptr(),
+                docs_len: docs_bytes.len() as u32,
             };
             unsafe { (self.visitor.visit_struct_field)(self.context, &struct_field) };
         }
@@ -711,10 +736,15 @@ mod wrapper {
                 return raw_visitor::accept_enum_variant(enum_variant, self);
             }
             let enum_variant_name_bytes = enum_variant.name().as_bytes();
+            let docs = enum_variant.docs().join("\n");
+            let docs_bytes = docs.as_bytes();
+
             let enum_variant = EnumVariant {
                 name_ptr: enum_variant_name_bytes.as_ptr(),
                 name_len: enum_variant_name_bytes.len() as u32,
                 raw_ptr: enum_variant.into(),
+                docs_ptr: docs_bytes.as_ptr(),
+                docs_len: docs_bytes.len() as u32,
             };
             unsafe { (self.visitor.visit_enum_variant)(self.context, &enum_variant) };
         }

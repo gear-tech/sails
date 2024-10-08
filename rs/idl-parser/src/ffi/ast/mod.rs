@@ -99,6 +99,8 @@ pub struct CtorFunc {
     raw_ptr: Ptr,
     name_ptr: *const u8,
     name_len: u32,
+    docs_ptr: *const u8,
+    docs_len: u32,
 }
 
 #[repr(C)]
@@ -114,6 +116,8 @@ pub struct ServiceFunc {
     name_ptr: *const u8,
     name_len: u32,
     is_query: bool,
+    docs_ptr: *const u8,
+    docs_len: u32,
 }
 
 pub type ServiceEvent = EnumVariant;
@@ -130,6 +134,8 @@ pub struct Type {
     raw_ptr: Ptr,
     name_ptr: *const u8,
     name_len: u32,
+    docs_ptr: *const u8,
+    docs_len: u32,
 }
 
 #[repr(C)]
@@ -149,6 +155,8 @@ pub struct StructField {
     raw_ptr: Ptr,
     name_ptr: *const u8,
     name_len: u32,
+    docs_ptr: *const u8,
+    docs_len: u32,
 }
 
 #[repr(C)]
@@ -161,6 +169,8 @@ pub struct EnumVariant {
     raw_ptr: Ptr,
     name_ptr: *const u8,
     name_len: u32,
+    docs_ptr: *const u8,
+    docs_len: u32,
 }
 
 #[repr(transparent)]
