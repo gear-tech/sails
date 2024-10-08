@@ -6168,6 +6168,7 @@ dependencies = [
  "anyhow",
  "cargo-generate",
  "clap",
+ "sails-client-gen",
 ]
 
 [[package]]
