@@ -2,12 +2,12 @@
   "name": "program",
   "type": "module",
   "dependencies": {
-    "@gear-js/api": "0.38.2",
-    "@polkadot/api": "12.0.1",
-    "sails-js": "0.2.0"
+    "@gear-js/api": "0.38.3",
+    "@polkadot/api": "13.2.1",
+    "sails-js": "0.2.1"
   },
   "devDependencies": {
-    "typescript": "^5.5.4"
+    "typescript": "^5.6.2"
   },
   "scripts": {
     "build": "tsc"
