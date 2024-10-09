@@ -45,6 +45,7 @@
     "version": "lerna version --no-private",
     "test": "lerna run test --scope=sails-js",
     "publish": "lerna publish from-package --no-private",
-    "fmt": "npx eslint js/**/src/**/*.ts"
+    "fmt": "npx eslint js/**/src/**/*.ts",
+    "clean": "lerna clean && rm -rf js/cli/build js/{parser,.,types}/lib"
   }
 }

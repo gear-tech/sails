@@ -7585,7 +7585,7 @@ __metadata:
   dependencies:
     "@gear-js/api": "npm:0.38.3"
     "@polkadot/api": "npm:13.2.1"
-    sails-js: "npm:0.2.1"
+    sails-js: "npm:0.3.0"
     typescript: "npm:^5.6.2"
   languageName: unknown
   linkType: soft
@@ -8096,7 +8096,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"sails-js@npm:0.2.1, sails-js@workspace:*, sails-js@workspace:js":
+"sails-js@npm:0.3.0, sails-js@workspace:*, sails-js@workspace:js":
   version: 0.0.0-use.local
   resolution: "sails-js@workspace:js"
   dependencies:

@@ -36,6 +36,8 @@ interface ISailsServiceFuncParams {
   readonly decodePayload: <T = any>(bytes: HexString) => T;
   /** ### Decode function result */
   readonly decodeResult: <T = any>(result: HexString) => T;
+  /** ### Docs from the IDL file */
+  readonly docs?: string;
 }
 
 type SailsServiceQuery = ISailsServiceFuncParams &
@@ -56,6 +58,8 @@ interface SailsServiceEvent {
    * @returns Promise with unsubscribe function
    */
   readonly subscribe: <T>(cb: (event: T) => void | Promise<void>) => Promise<() => void>;
+  /** ### Docs from the IDL file */
+  readonly docs?: string;
 }
 
 interface ISailsCtorFuncParams {
@@ -69,6 +73,8 @@ interface ISailsCtorFuncParams {
   readonly fromCode: (code: Uint8Array | Buffer, ...args: unknown[]) => TransactionBuilder<any>;
   /** ### Create transaction builder from code id */
   readonly fromCodeId: (codeId: HexString, ...args: unknown[]) => TransactionBuilder<any>;
+  /** ### Docs from the IDL file */
+  readonly docs?: string;
 }
 
 export class Sails {
@@ -214,6 +220,7 @@ export class Sails {
         args: params,
         returnType,
         returnTypeDef: func.def,
+        docs: func.docs,
         encodePayload: (...args: unknown[]): HexString => {
           if (args.length !== args.length) {
             throw new Error(`Expected ${params.length} arguments, but got ${args.length}`);
@@ -254,6 +261,7 @@ export class Sails {
       events[event.name] = {
         type: t,
         typeDef: event.def,
+        docs: event.docs,
         is: ({ data: { message } }: UserMessageSent) => {
           if (!message.destination.eq(ZERO_ADDRESS)) {
             return false;
@@ -396,6 +404,7 @@ export class Sails {
           this._programId = builder.programId;
           return builder;
         },
+        docs: func.docs,
       };
     }
 

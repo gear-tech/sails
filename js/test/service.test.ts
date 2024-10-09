@@ -49,6 +49,8 @@ describe('service', () => {
     };
 
     service TestService {
+      /// DoThis function
+      /// @param a1 - first argument
       DoThis : (a1: u32, a2: struct { str, opt u8 }) -> result (str, u8);
       DoThat : (a1: ComplexEnum) -> str;
       query GetThis : (a1: str) -> u8;
@@ -66,6 +68,7 @@ describe('service', () => {
     expect(result.services.TestService.queries).toHaveProperty('GetThat');
 
     expect(result.services.TestService.functions.DoThis.args).toHaveLength(2);
+    expect(result.services.TestService.functions.DoThis.docs).toEqual('DoThis function\n@param a1 - first argument');
     expect(result.services.TestService.functions.DoThis.args[0].name).toEqual('a1');
     expect(result.services.TestService.functions.DoThis.args[0].type).toEqual('u32');
     expect(result.services.TestService.functions.DoThis.args[1].name).toEqual('a2');
@@ -116,6 +119,7 @@ describe('service', () => {
   test('service with ctor', () => {
     const idl = `
     constructor {
+      /// Program constructor (called once at the very beginning of the program lifetime)
       New : (p1: u32);
     };
 
@@ -127,6 +131,9 @@ describe('service', () => {
 
     expect(Object.keys(result.services.TestService.functions)).toHaveLength(1);
     expect(Object.keys(result.ctors).includes('New')).toBeTruthy();
+    expect(result.ctors.New.docs).toBe(
+      'Program constructor (called once at the very beginning of the program lifetime)',
+    );
     expect(Object.keys(result.ctors.New.args)).toHaveLength(1);
     expect([...hexToU8a(result.ctors.New.encodePayload(1))]).toEqual([12, 78, 101, 119, 1, 0, 0, 0]);
   });
