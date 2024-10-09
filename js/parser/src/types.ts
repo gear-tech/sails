@@ -14,7 +14,7 @@ import {
   ISailsVecDef,
   IWithDefEntity,
 } from 'sails-js-types';
-import { getName, getText } from './util.js';
+import { getDocs, getName, getText } from './util.js';
 import { Base } from './visitor.js';
 
 export class WithDef extends Base implements IWithDefEntity {
@@ -33,14 +33,18 @@ export class WithDef extends Base implements IWithDefEntity {
 
 export class Type extends WithDef implements ISailsType {
   public readonly name: string;
+  public readonly docs?: string;
 
   constructor(ptr: number, memory: WebAssembly.Memory) {
     super(ptr, memory);
 
-    const { name, offset } = getName(ptr, this.offset, memory);
-
+    const [name, nameOffset] = getName(ptr, this.offset, memory);
     this.name = name;
-    this.offset = offset;
+    this.offset += nameOffset;
+
+    const [docs, docsOffset] = getDocs(ptr, this.offset, memory);
+    this.docs = docs;
+    this.offset += docsOffset;
   }
 }
 
@@ -378,27 +382,35 @@ export class EnumDef extends Base implements ISailsEnumDef {
 
 export class StructField extends WithDef implements ISailsStructField {
   public readonly name: string;
+  public readonly docs?: string;
 
   constructor(ptr: number, memory: WebAssembly.Memory) {
     super(ptr, memory);
 
-    const { name, offset } = getName(ptr, this.offset, memory);
-
+    const [name, nameOffset] = getName(ptr, this.offset, memory);
     this.name = name;
-    this.offset = offset;
+    this.offset += nameOffset;
+
+    const [docs, docsOffset] = getDocs(ptr, this.offset, memory);
+    this.docs = docs;
+    this.offset += docsOffset;
   }
 }
 
 export class EnumVariant extends WithDef implements ISailsEnumVariant {
   public readonly name: string;
+  public readonly docs?: string;
 
   constructor(ptr: number, memory: WebAssembly.Memory) {
     super(ptr, memory);
 
-    const { name, offset } = getName(ptr, this.offset, memory);
-
+    const [name, nameOffset] = getName(ptr, this.offset, memory);
     this.name = name;
-    this.offset = offset;
+    this.offset += nameOffset;
+
+    const [docs, docsOffset] = getDocs(ptr, this.offset, memory);
+    this.docs = docs;
+    this.offset += docsOffset;
   }
 }
 

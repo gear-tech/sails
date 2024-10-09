@@ -5,6 +5,9 @@ export default () => {
   // Build demo app
   execSync('cargo build -p demo --release');
 
+  // Remove old generated files
+  execSync('rm -rf ./test/demo');
+
   // Generate demo ts client
   execSync('node cli/build/app.js generate ../examples/demo/client/demo.idl -o ./test/demo --no-project');
 

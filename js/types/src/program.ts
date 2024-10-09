@@ -1,3 +1,4 @@
+import { ISailsDocs } from './idl';
 import { ISailsEnumVariant, ISailsType, ISailsTypeDef } from './types';
 
 export interface ISailsProgram {
@@ -15,7 +16,7 @@ export interface ISailsService {
   readonly name: string;
 }
 
-export interface ISailsServiceFunc {
+export interface ISailsServiceFunc extends ISailsDocs {
   readonly name: string;
   readonly isQuery: boolean;
   readonly params: ISailsFuncParam[];
@@ -26,7 +27,7 @@ export interface ISailsCtor {
   readonly funcs: ISailsCtorFunc[];
 }
 
-export interface ISailsCtorFunc {
+export interface ISailsCtorFunc extends ISailsDocs {
   readonly name: string;
   readonly params: ISailsFuncParam[];
 }
