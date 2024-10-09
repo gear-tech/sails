@@ -1,10 +1,8 @@
+use gprimitives::*;
 use meta_params::*;
 use sails_idl_gen::{program, service};
-use sails_rs::{
-    meta::{AnyServiceMeta, ProgramMeta, ServiceMeta as RtlServiceMeta},
-    scale_info::{MetaType, StaticTypeInfo, TypeInfo},
-    H256, U256,
-};
+use sails_idl_meta::{AnyServiceMeta, ProgramMeta, ServiceMeta as RtlServiceMeta};
+use scale_info::{MetaType, StaticTypeInfo, TypeInfo};
 use std::{collections::BTreeMap, result::Result as StdResult};
 
 #[allow(dead_code)]
@@ -13,7 +11,6 @@ mod types {
 
     /// GenericStruct docs
     #[derive(TypeInfo)]
-    #[scale_info(crate = sails_rs::scale_info)]
     pub struct GenericStruct<T> {
         /// GenericStruct field `p1`
         pub p1: T,
@@ -21,7 +18,6 @@ mod types {
 
     /// GenericConstStruct docs
     #[derive(TypeInfo)]
-    #[scale_info(crate = sails_rs::scale_info)]
     pub struct GenericConstStruct<const N: usize> {
         /// GenericStruct field `field`
         field: [u8; N],
@@ -30,7 +26,6 @@ mod types {
     /// GenericEnum docs
     /// with two lines
     #[derive(TypeInfo)]
-    #[scale_info(crate = sails_rs::scale_info)]
     pub enum GenericEnum<T1, T2> {
         /// GenericEnum `Variant1` of type 'T1'
         Variant1(T1),
@@ -40,11 +35,9 @@ mod types {
 
     /// TupleStruct docs
     #[derive(TypeInfo)]
-    #[scale_info(crate = sails_rs::scale_info)]
     pub struct TupleStruct(bool);
 
     #[derive(TypeInfo)]
-    #[scale_info(crate = sails_rs::scale_info)]
     pub enum ManyVariants {
         One,
         Two(u32),
@@ -115,7 +108,6 @@ mod meta_params {
 
 #[allow(dead_code)]
 #[derive(TypeInfo)]
-#[scale_info(crate = sails_rs::scale_info)]
 enum CommandsMeta {
     /// Some description
     DoThis(DoThisParams, String),
@@ -134,7 +126,6 @@ enum BaseCommandsMeta {
 
 #[allow(dead_code)]
 #[derive(TypeInfo)]
-#[scale_info(crate = sails_rs::scale_info)]
 enum QueriesMeta {
     /// This is a query
     This(ThisParams, StdResult<(String, u32), String>),
@@ -152,7 +143,6 @@ enum BaseQueriesMeta {
 
 #[allow(dead_code)]
 #[derive(TypeInfo)]
-#[scale_info(crate = sails_rs::scale_info)]
 enum EventsMeta {
     /// `This` Done
     ThisDone(u32),
@@ -247,7 +237,6 @@ impl ProgramMeta for TestProgramWithEmptyCtorsMeta {
 
 #[allow(dead_code)]
 #[derive(TypeInfo)]
-#[scale_info(crate = sails_rs::scale_info)]
 enum NonEmptyCtorsMeta {
     /// This is New constructor
     New(NoParams),

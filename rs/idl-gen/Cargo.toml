@@ -10,14 +10,14 @@ repository.workspace = true
 
 [dependencies]
 convert-case.workspace = true
+gprimitives.workspace = true
 handlebars.workspace = true
-sails-rs.workspace = true
-scale-info = { workspace = true, features = ["serde"] }
-serde.workspace = true
+sails-idl-meta.workspace = true
+scale-info = { workspace = true, features = ["derive", "docs", "serde"] }
+serde = { workspace = true, features = ["derive"] }
 serde-json.workspace = true
 thiserror.workspace = true
 
 [dev-dependencies]
 insta.workspace = true
 sails-idl-parser.workspace = true
-scale-info = { workspace = true, features = ["derive"] }
