@@ -11,11 +11,12 @@ import * as config from '../config.json';
 export class ProjectBuilder {
   private projectPath = ['.', 'src'];
   private isProject: boolean = true;
+  private isAutomaricOverride: boolean = false;
 
   constructor(private sails: Sails, private name: string = 'Program') {}
 
   private async canCreateFile(filePath: string): Promise<boolean> {
-    if (!existsSync(filePath)) {
+    if (this.isAutomaricOverride || !existsSync(filePath)) {
       return true;
     }
 
@@ -60,6 +61,12 @@ export class ProjectBuilder {
 
   setIsProject(isProject: boolean) {
     this.isProject = isProject;
+
+    return this;
+  }
+
+  setAutomaticOverride(isAutomaricOverride: boolean) {
+    this.isAutomaricOverride = isAutomaricOverride;
 
     return this;
   }

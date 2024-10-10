@@ -8,7 +8,7 @@ import { ProjectBuilder } from './generate/index.js';
 
 const program = new Command();
 
-const handler = async (path: string, out: string, name: string, project: boolean) => {
+const handler = async (path: string, out: string, name: string, project: boolean, yes: boolean) => {
   const parser = new SailsIdlParser();
   await parser.init();
   const sails = new Sails(parser);
@@ -17,6 +17,7 @@ const handler = async (path: string, out: string, name: string, project: boolean
     .setRootPath(out)
     .setIdlPath(path)
     .setIsProject(project)
+    .setAutomaticOverride(yes);
 
   await projectBuilder.build();
 };
@@ -26,6 +27,7 @@ program
   .option('--no-project', 'Generate single file without project structure')
   .option('-n --name <name>', 'Name of the library', 'program')
   .option('-o --out <path-to-dir>', 'Output directory')
+  .option('-y --yes', 'Automatic yes to file override prompts')
   .description('Generate typescript library based on .sails.idl file')
   .action(
     async (
@@ -34,10 +36,11 @@ program
         out: string;
         name: string;
         project: boolean;
+        yes: boolean;
       },
     ) => {
       try {
-        await handler(path, options.out, options.name, options.project);
+        await handler(path, options.out, options.name, options.project, options.yes);
       } catch (error) {
         console.error(error.message);
         process.exit(1);
