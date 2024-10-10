@@ -6167,8 +6167,10 @@ version = "0.6.1"
 dependencies = [
  "anyhow",
  "cargo-generate",
+ "cargo_metadata",
  "clap",
  "sails-client-gen",
+ "toml_edit 0.22.22",
 ]
 
 [[package]]
