@@ -9,7 +9,7 @@ export default () => {
   execSync('rm -rf ./test/demo');
 
   // Generate demo ts client
-  execSync('node cli/build/app.js generate ../examples/demo/client/demo.idl -o ./test/demo --no-project');
+  execSync('node cli/build/app.js generate ../examples/demo/client/demo.idl -o ./test/demo --no-project --yes');
 
   // Modify client imports
 

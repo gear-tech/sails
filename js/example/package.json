@@ -1,5 +1,6 @@
 {
   "name": "program",
+  "private": true,
   "type": "module",
   "dependencies": {
     "@gear-js/api": "0.38.3",
