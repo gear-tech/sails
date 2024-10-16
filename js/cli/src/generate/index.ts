@@ -75,14 +75,14 @@ export class ProjectBuilder {
     const rootPath = this.projectPath[0];
     const srcPath = path.join(...this.projectPath);
 
-    const libFilePath = this.isProject ? path.join(...this.projectPath) : this.projectPath[0];
+    const libPath = this.isProject ? srcPath : rootPath;
 
-    if (!existsSync(libFilePath)) {
-      mkdirSync(libFilePath, { recursive: true });
+    if (!existsSync(libPath)) {
+      mkdirSync(libPath, { recursive: true });
     }
 
     const libCode = this.generateLib();
-    const libFile = path.join(libFilePath, 'lib.ts');
+    const libFile = path.join(libPath, 'lib.ts');
     if (await this.canCreateFile(libFile)) {
       writeFileSync(libFile, libCode);
     } else {
@@ -90,7 +90,7 @@ export class ProjectBuilder {
     }
 
     const typesCode = this.generateTypes();
-    const typesFile = path.join(libFilePath, 'global.d.ts');
+    const typesFile = path.join(libPath, 'global.d.ts');
     if (await this.canCreateFile(typesFile)) {
       writeFileSync(typesFile, typesCode);
     } else {
@@ -98,12 +98,8 @@ export class ProjectBuilder {
     }
 
     if (!this.isProject) {
-      console.log(`Lib generated at ${libFilePath}`);
+      console.log(`Lib generated at ${libPath}`);
       return;
-    }
-
-    if (!existsSync(srcPath)) {
-      mkdirSync(srcPath, { recursive: true });
     }
 
     const tsconfigPath = path.join(rootPath, 'tsconfig.json');
