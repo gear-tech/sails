@@ -37,6 +37,7 @@ impl CrateIdlGenerator {
         // print!("{:?}", sails_package);
 
         let program_package = metadata.root_package().unwrap();
+        let program_package_file_name = program_package.name.to_lowercase().replace('-', "_");
         // print!("{:?}", program_package);
 
         let target_dir = self
@@ -51,7 +52,7 @@ impl CrateIdlGenerator {
         _ = cargo_doc(&self.manifest_path, &target_dir)?;
         let docs_path = target_dir
             .join("doc")
-            .join(format!("{}.json", program_package.name));
+            .join(format!("{}.json", &program_package_file_name));
 
         println!("...reading docs: {:?}", docs_path);
         let json_string = std::fs::read_to_string(docs_path)?;
@@ -59,19 +60,63 @@ impl CrateIdlGenerator {
         let program_meta = doc_crate
             .paths
             .iter()
-            .find(|p| p.1.path == vec!["sails_idl_meta", "ProgramMeta"])
-            .context("failed to find sails_rs::ProgramMeta implemetation")?;
+            .find(|p| p.1.path == META_PATH_V2)
+            .context("failed to find `sails_rs::meta::ProgramMeta` definition in dependencies")?;
         // println!("{:?}", program_meta);
 
-        let program_struct_path = doc_crate.index.iter().filter_map(|idx| {
-            if let rustdoc_types::ItemEnum::Impl(item) = &idx.1.inner {
-                if let Some(tp) = &item.trait_ {
-                    if &tp.id == program_meta.0 {
-                        if let rustdoc_types::Type::ResolvedPath(path) = &item.for_ {
-                            Some(path)
-                        } else {
-                            None
-                        }
+        let program_struct_path = find_program_path(&doc_crate, program_meta)
+            .context("failed to find `sails_rs::meta::ProgramMeta` implemetation")?;
+        let program_struct = doc_crate
+            .paths
+            .get(&program_struct_path.id)
+            .context("failed to find Program path")?;
+        let program_struct_path = program_struct.path.join("::");
+        println!("...found Program implemetation: {:?}", program_struct_path);
+
+        let crate_name = get_crate_name(program_package);
+
+        let crate_dir = target_dir.join(&crate_name);
+        let src_dir = crate_dir.join("src");
+        fs::create_dir_all(&src_dir)?;
+
+        let gen_manifest_path = crate_dir.join("Cargo.toml");
+        write_file(&gen_manifest_path, gen_toml(program_package, sails_package))?;
+        let main_rs_path = src_dir.join("main.rs");
+
+        let out_file = target_dir.join(format!("{}.idl", program_package.name));
+        write_file(
+            main_rs_path,
+            gen_main_rs(&program_struct_path, out_file.as_path()),
+        )?;
+
+        // Copy original `Cargo.lock` if any
+        let from_lock = &metadata.workspace_root.join("Cargo.lock");
+        let to_lock = &crate_dir.join("Cargo.lock");
+        drop(fs::copy(from_lock, to_lock));
+
+        // execute cargo run on generated manifest
+        _ = cargo_run_bin(&gen_manifest_path, &crate_name, &target_dir)?;
+
+        // remove generated files
+        fs::remove_dir_all(crate_dir)?;
+
+        Ok(())
+    }
+}
+
+const META_PATH_V1: &[&str] = &["sails_rs", "meta", "ProgramMeta"];
+const META_PATH_V2: &[&str] = &["sails_idl_meta", "ProgramMeta"];
+
+fn find_program_path(
+    doc_crate: &rustdoc_types::Crate,
+    program_meta: (&rustdoc_types::Id, &rustdoc_types::ItemSummary),
+) -> Option<rustdoc_types::Path> {
+    let program_struct_path = doc_crate.index.values().find_map(|idx| {
+        if let rustdoc_types::ItemEnum::Impl(item) = &idx.inner {
+            if let Some(tp) = &item.trait_ {
+                if &tp.id == program_meta.0 {
+                    if let rustdoc_types::Type::ResolvedPath(path) = &item.for_ {
+                        Some(path)
                     } else {
                         None
                     }
@@ -81,36 +126,11 @@ impl CrateIdlGenerator {
             } else {
                 None
             }
-        });
-        println!("{:?}", program_struct_path);
-
-        let crate_name = get_crate_name(program_package);
-        let workspace_root = &metadata.workspace_root;
-
-        let crate_path = workspace_root.join(&crate_name);
-        let src_path = crate_path.join("src");
-        fs::create_dir_all(&src_path)?;
-
-        let gen_manifest_path = crate_path.join("Cargo.toml");
-        write_file(&gen_manifest_path, gen_toml(program_package, sails_package))?;
-        let main_rs_path = src_path.join("main.rs");
-
-        let out_file = target_dir.join(format!("{}.idl", program_package.name));
-        write_file(
-            main_rs_path,
-            gen_main_rs("proxy::ProxyProgram", out_file.as_path()),
-        )?;
-
-        workspace_members_add(&workspace_root.as_std_path(), &crate_name)?;
-
-        _ = cargo_run_bin(&gen_manifest_path, &crate_name)?;
-
-        workspace_members_remove(&workspace_root.as_std_path(), &crate_name)?;
-
-        fs::remove_dir_all(crate_path)?;
-
-        Ok(())
-    }
+        } else {
+            None
+        }
+    });
+    program_struct_path.cloned()
 }
 
 fn get_crate_name(program_package: &Package) -> String {
@@ -151,6 +171,8 @@ fn gen_toml(program_package: &Package, sails_package: &Package) -> String {
         .expect("bin is an array of tables")
         .push(bin);
 
+    manifest["workspace"] = toml_edit::Item::Table(toml_edit::Table::new());
+
     manifest.to_string()
 }
 
@@ -174,43 +196,6 @@ fn write_file<P: AsRef<Path>, C: AsRef<[u8]>>(path: P, contents: C) -> anyhow::R
         .with_context(|| format!("failed to write `{}`", path.display()))
 }
 
-fn workspace_members_add(path: &Path, name: &str) -> anyhow::Result<()> {
-    println!("...adding member to workspace: {:?}", name);
-
-    let workspace_cargo_toml = path.join("Cargo.toml");
-    let toml = fs::read_to_string(&workspace_cargo_toml).context("failed to read Cargo.toml")?;
-    let mut doc = toml
-        .parse::<toml_edit::DocumentMut>()
-        .context("failed to parse Cargo.toml")?;
-    let members =
-        doc["workspace"]["members"].or_insert(toml_edit::value(toml_edit::Array::default()));
-    members.as_array_mut().unwrap().push(name);
-    write_file(&workspace_cargo_toml, doc.to_string())
-}
-
-fn workspace_members_remove(path: &Path, name: &str) -> anyhow::Result<()> {
-    println!("...removing member from workspace: {:?}", name);
-
-    let workspace_cargo_toml = path.join("Cargo.toml");
-    let toml = fs::read_to_string(&workspace_cargo_toml).context("failed to read Cargo.toml")?;
-    let mut doc = toml
-        .parse::<toml_edit::DocumentMut>()
-        .context("failed to parse Cargo.toml")?;
-    let members = doc["workspace"]["members"].as_array_mut();
-
-    if let Some(members) = members {
-        let position = members.iter().position(|m| m.as_str() == Some(name));
-        if let Some(position) = position {
-            members.remove(position);
-            write_file(&workspace_cargo_toml, doc.to_string())
-        } else {
-            Ok(())
-        }
-    } else {
-        Ok(())
-    }
-}
-
 fn cargo_doc(
     manifest_path: &cargo_metadata::camino::Utf8Path,
     target_dir: &cargo_metadata::camino::Utf8Path,
@@ -223,6 +208,7 @@ fn cargo_doc(
             "RUSTDOCFLAGS",
             "-Z unstable-options --output-format=json --cap-lints=allow",
         )
+        .env("__GEAR_WASM_BUILDER_NO_BUILD", "1")
         .stdout(std::process::Stdio::null()) // Don't pollute output
         .arg("doc")
         .arg("--manifest-path")
@@ -232,24 +218,24 @@ fn cargo_doc(
         .arg("--no-deps");
 
     cmd.status()
-        .context("Failed to execute `cargo doc` command")
+        .context("failed to execute `cargo doc` command")
 }
 
 fn cargo_run_bin(
     manifest_path: &cargo_metadata::camino::Utf8Path,
     bin_name: &str,
+    target_dir: &cargo_metadata::camino::Utf8Path,
 ) -> anyhow::Result<ExitStatus> {
     let cargo_path = std::env::var("CARGO").unwrap_or("cargo".into());
 
-    let args = vec![
-        "run",
-        "--manifest-path",
-        manifest_path.as_str(),
-        "--bin",
-        bin_name,
-    ];
     let mut cmd = Command::new(cargo_path);
-    cmd.stdout(std::process::Stdio::null()) // Don't pollute output
-        .args(args);
-    cmd.status().context("Failed to execute `cargo` command")
+    cmd.env("CARGO_TARGET_DIR", &target_dir)
+        .env("__GEAR_WASM_BUILDER_NO_BUILD", "1")
+        .stdout(std::process::Stdio::null()) // Don't pollute output
+        .arg("run")
+        .arg("--manifest-path")
+        .arg(manifest_path.as_str())
+        .arg("--bin")
+        .arg(bin_name);
+    cmd.status().context("failed to execute `cargo` command")
 }
