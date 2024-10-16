@@ -80,8 +80,11 @@ export class ServiceGenerator extends BaseGenerator {
 
     for (const { name, params, docs } of this._program.ctor.funcs) {
       const args = this.getArgs(params);
-      formatDocs(docs).forEach(line => this._out.line(line, false));
+
+      const ctorDocs = formatDocs(docs)
+
       this._out
+        .lines(ctorDocs, false)
         .block(
           `${getFuncName(name)}CtorFromCode(code: Uint8Array | Buffer${
             args !== null ? ', ' + args : ''
@@ -113,6 +116,7 @@ export class ServiceGenerator extends BaseGenerator {
           },
         )
         .line()
+        .lines(ctorDocs, false)
         .block(
           `${getFuncName(name)}CtorFromCodeId(codeId: ${HEX_STRING_TYPE}${args !== null ? ', ' + args : ''})`,
           () => {
@@ -162,9 +166,10 @@ export class ServiceGenerator extends BaseGenerator {
       const decodeMethod = getPayloadMethod(returnScaleType);
       const returnType = this.getType(def, decodeMethod);
 
-      this._out.line();
-      formatDocs(docs).forEach(line => this._out.line(line, false));
-      this._out.block(this.getFuncSignature(name, params, returnType, isQuery), () => {
+      this._out
+      .line()
+      .lines(formatDocs(docs), false)
+      .block(this.getFuncSignature(name, params, returnType, isQuery), () => {
         if (isQuery) {
           this._out
             .line(createPayload(service.name, name, params))
@@ -227,9 +232,10 @@ export class ServiceGenerator extends BaseGenerator {
       const decodeMethod = event.def ? getPayloadMethod(getScaleCodecDef(event.def)) : PayloadMethod.toJSON;
       const jsType = event.def ? this.getType(event.def, decodeMethod) : 'null';
 
-      this._out.line();
-      formatDocs(event.docs).forEach(line => this._out.line(line, false));
-      this._out.block(
+      this._out
+      .line()
+      .lines(formatDocs(event.docs), false)
+      .block(
         `public subscribeTo${event.name}Event(callback: (data: ${jsType}) => void | Promise<void>): Promise<() => void>`,
         () => {
           this._out
