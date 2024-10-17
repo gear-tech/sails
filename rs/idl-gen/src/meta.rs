@@ -22,7 +22,8 @@ use crate::{
     errors::{Error, Result},
     type_names,
 };
-use sails_rs::{meta::AnyServiceMeta, ActorId, CodeId, MessageId, NonZeroU256, H160, H256, U256};
+use gprimitives::*;
+use sails_idl_meta::*;
 use scale_info::{
     form::PortableForm, Field, MetaType, PortableRegistry, PortableType, Registry, TypeDef, Variant,
 };

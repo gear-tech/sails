@@ -22,6 +22,7 @@ members = [
     "rs/cli",
     "rs/client-gen",
     "rs/idl-gen",
+    "rs/idl-meta",
     "rs/idl-parser",
     "rs/macros",
     "rs/macros/core",
@@ -35,6 +36,7 @@ sails-idl-parser = { path = "rs/idl-parser" }
 sails-client-gen = { path = "rs/client-gen" }
 sails-rs = { path = "rs" }
 sails-idl-gen = { path = "rs/idl-gen" }
+sails-idl-meta = { path = "rs/idl-meta" }
 # Renamed sails-rs for `proxy` demo
 sails-rename = { package = "sails-rs", path = "rs" }
 

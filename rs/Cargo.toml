@@ -19,6 +19,8 @@ hashbrown.workspace = true
 hex.workspace = true
 mockall = { workspace = true, optional = true }
 parity-scale-codec = { workspace = true, features = ["derive"] }
+sails-idl-gen = { workspace = true, optional = true }
+sails-idl-meta = { workspace = true }
 sails-macros = { workspace = true, optional = true }
 scale-info = { workspace = true, features = ["derive", "docs"] }
 spin.workspace = true
@@ -38,5 +40,6 @@ ethexe = ["gstd?/ethexe"]
 gclient = ["dep:gclient"]
 gstd = ["dep:gstd", "dep:gear-core", "dep:sails-macros"]
 gtest = ["dep:gtest"]
+idl-gen = ["dep:sails-idl-gen"]
 mockall = ["dep:mockall"]
 wasm-builder = ["dep:gwasm-builder"]
