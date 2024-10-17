@@ -14,6 +14,7 @@ export class TypesGenerator extends BaseGenerator {
   }
 
   public generate() {
+    this._out.line('declare global {').increaseIndent();
     for (const { name, def, docs } of this._program.types) {
       this._out.lines(formatDocs(docs), false)
 
@@ -27,6 +28,7 @@ export class TypesGenerator extends BaseGenerator {
         throw new Error(`Unknown type: ${JSON.stringify(def)}`);
       }
     }
+    this._out.reduceIndent().line('}');
   }
 
   private generateStruct(name: string, def: ISailsTypeDef) {

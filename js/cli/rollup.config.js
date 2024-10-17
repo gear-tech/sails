@@ -8,7 +8,7 @@ function cleanOldBuild() {
   return {
     name: 'clean-old-build',
     buildStart() {
-      rmSync('./lib', { recursive: true, force: true });
+      rmSync('./build', { recursive: true, force: true });
     },
   };
 }
