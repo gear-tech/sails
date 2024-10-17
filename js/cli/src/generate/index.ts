@@ -13,7 +13,10 @@ export class ProjectBuilder {
   private isProject: boolean = true;
   private isAutomaricOverride: boolean = false;
 
-  constructor(private sails: Sails, private name: string = 'Program') {}
+  constructor(
+    private sails: Sails,
+    private name: string = 'Program',
+  ) {}
 
   private async canCreateFile(filePath: string): Promise<boolean> {
     if (this.isAutomaricOverride || !existsSync(filePath)) {

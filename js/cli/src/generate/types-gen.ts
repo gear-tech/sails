@@ -16,7 +16,7 @@ export class TypesGenerator extends BaseGenerator {
   public generate() {
     this._out.line('declare global {').increaseIndent();
     for (const { name, def, docs } of this._program.types) {
-      this._out.lines(formatDocs(docs), false)
+      this._out.lines(formatDocs(docs), false);
 
       if (def.isStruct) {
         this.generateStruct(name, def);
@@ -39,9 +39,7 @@ export class TypesGenerator extends BaseGenerator {
     return this._out
       .block(`export interface ${name}`, () => {
         for (const field of def.asStruct.fields) {
-          this._out
-          .lines(formatDocs(field.docs), false)
-          .line(`${field.name}: ${this.getType(field.def)}`);
+          this._out.lines(formatDocs(field.docs), false).line(`${field.name}: ${this.getType(field.def)}`);
         }
       })
       .line();
@@ -52,8 +50,8 @@ export class TypesGenerator extends BaseGenerator {
       this._out.line(`export type ${typeName} = `, false).increaseIndent();
       for (const [i, variant] of def.variants.entries()) {
         this._out
-        .lines(formatDocs(variant.docs), false)
-        .line(`| ${this.getEnumFieldString(variant)}`, i === def.variants.length - 1);
+          .lines(formatDocs(variant.docs), false)
+          .line(`| ${this.getEnumFieldString(variant)}`, i === def.variants.length - 1);
       }
       this._out.reduceIndent().line();
     } else {

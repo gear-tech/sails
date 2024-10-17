@@ -1,4 +1,14 @@
-import { NonZeroU32, ActorId, H256, TransactionBuilder, getServiceNamePrefix, getFnNamePrefix, ZERO_ADDRESS, H160, NonZeroU8 } from 'sails-js';
+import {
+  NonZeroU32,
+  ActorId,
+  H256,
+  TransactionBuilder,
+  getServiceNamePrefix,
+  getFnNamePrefix,
+  ZERO_ADDRESS,
+  H160,
+  NonZeroU8,
+} from 'sails-js';
 import { GearApi, decodeAddress } from '@gear-js/api';
 import { TypeRegistry } from '@polkadot/types';
 
@@ -10,7 +20,7 @@ export interface DoThatParam {
   p3: ManyVariants;
 }
 
-export type ManyVariants = 
+export type ManyVariants =
   | { one: null }
   | { two: number }
   | { three: number | string | bigint | null }
@@ -28,13 +38,25 @@ export class Program {
   public readonly references: References;
   public readonly thisThat: ThisThat;
 
-  constructor(public api: GearApi, public programId?: `0x${string}`) {
+  constructor(
+    public api: GearApi,
+    public programId?: `0x${string}`,
+  ) {
     const types: Record<string, any> = {
-      ReferenceCount: "(u32)",
-      DoThatParam: {"p1":"u32","p2":"[u8;32]","p3":"ManyVariants"},
-      ManyVariants: {"_enum":{"One":"Null","Two":"u32","Three":"Option<U256>","Four":{"a":"u32","b":"Option<u16>"},"Five":"(String, H256)","Six":"(u32)"}},
-      TupleStruct: "(bool)",
-    }
+      ReferenceCount: '(u32)',
+      DoThatParam: { p1: 'u32', p2: '[u8;32]', p3: 'ManyVariants' },
+      ManyVariants: {
+        _enum: {
+          One: 'Null',
+          Two: 'u32',
+          Three: 'Option<U256>',
+          Four: { a: 'u32', b: 'Option<u16>' },
+          Five: '(String, H256)',
+          Six: '(u32)',
+        },
+      },
+      TupleStruct: '(bool)',
+    };
 
     this.registry = new TypeRegistry();
     this.registry.setKnownTypes({ types });
@@ -76,7 +98,11 @@ export class Program {
     this.programId = builder.programId;
     return builder;
   }
-  newCtorFromCode(code: Uint8Array | Buffer, counter: number | null, dog_position: [number, number] | null): TransactionBuilder<null> {
+  newCtorFromCode(
+    code: Uint8Array | Buffer,
+    counter: number | null,
+    dog_position: [number, number] | null,
+  ): TransactionBuilder<null> {
     const builder = new TransactionBuilder<null>(
       this.api,
       this.registry,
@@ -119,7 +145,7 @@ export class Counter {
       ['Counter', 'Add', value],
       '(String, String, u32)',
       'u32',
-      this._program.programId
+      this._program.programId,
     );
   }
 
@@ -132,11 +158,15 @@ export class Counter {
       ['Counter', 'Sub', value],
       '(String, String, u32)',
       'u32',
-      this._program.programId
+      this._program.programId,
     );
   }
 
-  public async value(originAddress?: string, value?: number | string | bigint, atBlock?: `0x${string}`): Promise<number> {
+  public async value(
+    originAddress?: string,
+    value?: number | string | bigint,
+    atBlock?: `0x${string}`,
+  ): Promise<number> {
     const payload = this._program.registry.createType('(String, String)', ['Counter', 'Value']).toHex();
     const reply = await this._program.api.message.calculateReply({
       destination: this._program.programId,
@@ -152,27 +182,35 @@ export class Counter {
   }
 
   public subscribeToAddedEvent(callback: (data: number) => void | Promise<void>): Promise<() => void> {
-    return this._program.api.gearEvents.subscribeToGearEvent('UserMessageSent', ({ data: { message } }) => {;
+    return this._program.api.gearEvents.subscribeToGearEvent('UserMessageSent', ({ data: { message } }) => {
       if (!message.source.eq(this._program.programId) || !message.destination.eq(ZERO_ADDRESS)) {
         return;
       }
 
       const payload = message.payload.toHex();
       if (getServiceNamePrefix(payload) === 'Counter' && getFnNamePrefix(payload) === 'Added') {
-        callback(this._program.registry.createType('(String, String, u32)', message.payload)[2].toNumber() as unknown as number);
+        callback(
+          this._program.registry
+            .createType('(String, String, u32)', message.payload)[2]
+            .toNumber() as unknown as number,
+        );
       }
     });
   }
 
   public subscribeToSubtractedEvent(callback: (data: number) => void | Promise<void>): Promise<() => void> {
-    return this._program.api.gearEvents.subscribeToGearEvent('UserMessageSent', ({ data: { message } }) => {;
+    return this._program.api.gearEvents.subscribeToGearEvent('UserMessageSent', ({ data: { message } }) => {
       if (!message.source.eq(this._program.programId) || !message.destination.eq(ZERO_ADDRESS)) {
         return;
       }
 
       const payload = message.payload.toHex();
       if (getServiceNamePrefix(payload) === 'Counter' && getFnNamePrefix(payload) === 'Subtracted') {
-        callback(this._program.registry.createType('(String, String, u32)', message.payload)[2].toNumber() as unknown as number);
+        callback(
+          this._program.registry
+            .createType('(String, String, u32)', message.payload)[2]
+            .toNumber() as unknown as number,
+        );
       }
     });
   }
@@ -190,7 +228,7 @@ export class Dog {
       ['Dog', 'MakeSound'],
       '(String, String)',
       'String',
-      this._program.programId
+      this._program.programId,
     );
   }
 
@@ -203,11 +241,15 @@ export class Dog {
       ['Dog', 'Walk', dx, dy],
       '(String, String, i32, i32)',
       'Null',
-      this._program.programId
+      this._program.programId,
     );
   }
 
-  public async avgWeight(originAddress?: string, value?: number | string | bigint, atBlock?: `0x${string}`): Promise<number> {
+  public async avgWeight(
+    originAddress?: string,
+    value?: number | string | bigint,
+    atBlock?: `0x${string}`,
+  ): Promise<number> {
     const payload = this._program.registry.createType('(String, String)', ['Dog', 'AvgWeight']).toHex();
     const reply = await this._program.api.message.calculateReply({
       destination: this._program.programId,
@@ -222,7 +264,11 @@ export class Dog {
     return result[2].toNumber() as unknown as number;
   }
 
-  public async position(originAddress?: string, value?: number | string | bigint, atBlock?: `0x${string}`): Promise<[number, number]> {
+  public async position(
+    originAddress?: string,
+    value?: number | string | bigint,
+    atBlock?: `0x${string}`,
+  ): Promise<[number, number]> {
     const payload = this._program.registry.createType('(String, String)', ['Dog', 'Position']).toHex();
     const reply = await this._program.api.message.calculateReply({
       destination: this._program.programId,
@@ -238,7 +284,7 @@ export class Dog {
   }
 
   public subscribeToBarkedEvent(callback: (data: null) => void | Promise<void>): Promise<() => void> {
-    return this._program.api.gearEvents.subscribeToGearEvent('UserMessageSent', ({ data: { message } }) => {;
+    return this._program.api.gearEvents.subscribeToGearEvent('UserMessageSent', ({ data: { message } }) => {
       if (!message.source.eq(this._program.programId) || !message.destination.eq(ZERO_ADDRESS)) {
         return;
       }
@@ -250,15 +296,21 @@ export class Dog {
     });
   }
 
-  public subscribeToWalkedEvent(callback: (data: { from: [number, number]; to: [number, number] }) => void | Promise<void>): Promise<() => void> {
-    return this._program.api.gearEvents.subscribeToGearEvent('UserMessageSent', ({ data: { message } }) => {;
+  public subscribeToWalkedEvent(
+    callback: (data: { from: [number, number]; to: [number, number] }) => void | Promise<void>,
+  ): Promise<() => void> {
+    return this._program.api.gearEvents.subscribeToGearEvent('UserMessageSent', ({ data: { message } }) => {
       if (!message.source.eq(this._program.programId) || !message.destination.eq(ZERO_ADDRESS)) {
         return;
       }
 
       const payload = message.payload.toHex();
       if (getServiceNamePrefix(payload) === 'Dog' && getFnNamePrefix(payload) === 'Walked') {
-        callback(this._program.registry.createType('(String, String, {"from":"(i32, i32)","to":"(i32, i32)"})', message.payload)[2].toJSON() as unknown as { from: [number, number]; to: [number, number] });
+        callback(
+          this._program.registry
+            .createType('(String, String, {"from":"(i32, i32)","to":"(i32, i32)"})', message.payload)[2]
+            .toJSON() as unknown as { from: [number, number]; to: [number, number] },
+        );
       }
     });
   }
@@ -276,7 +328,7 @@ export class PingPong {
       ['PingPong', 'Ping', input],
       '(String, String, String)',
       'Result<String, String>',
-      this._program.programId
+      this._program.programId,
     );
   }
 }
@@ -293,7 +345,7 @@ export class References {
       ['References', 'Add', v],
       '(String, String, u32)',
       'u32',
-      this._program.programId
+      this._program.programId,
     );
   }
 
@@ -306,7 +358,7 @@ export class References {
       ['References', 'AddByte', byte],
       '(String, String, u8)',
       'Vec<u8>',
-      this._program.programId
+      this._program.programId,
     );
   }
 
@@ -319,7 +371,7 @@ export class References {
       ['References', 'GuessNum', number],
       '(String, String, u8)',
       'Result<String, String>',
-      this._program.programId
+      this._program.programId,
     );
   }
 
@@ -332,7 +384,7 @@ export class References {
       ['References', 'Incr'],
       '(String, String)',
       'ReferenceCount',
-      this._program.programId
+      this._program.programId,
     );
   }
 
@@ -345,11 +397,15 @@ export class References {
       ['References', 'SetNum', number],
       '(String, String, u8)',
       'Result<Null, String>',
-      this._program.programId
+      this._program.programId,
     );
   }
 
-  public async baked(originAddress?: string, value?: number | string | bigint, atBlock?: `0x${string}`): Promise<string> {
+  public async baked(
+    originAddress?: string,
+    value?: number | string | bigint,
+    atBlock?: `0x${string}`,
+  ): Promise<string> {
     const payload = this._program.registry.createType('(String, String)', ['References', 'Baked']).toHex();
     const reply = await this._program.api.message.calculateReply({
       destination: this._program.programId,
@@ -364,7 +420,11 @@ export class References {
     return result[2].toString() as unknown as string;
   }
 
-  public async lastByte(originAddress?: string, value?: number | string | bigint, atBlock?: `0x${string}`): Promise<number | null> {
+  public async lastByte(
+    originAddress?: string,
+    value?: number | string | bigint,
+    atBlock?: `0x${string}`,
+  ): Promise<number | null> {
     const payload = this._program.registry.createType('(String, String)', ['References', 'LastByte']).toHex();
     const reply = await this._program.api.message.calculateReply({
       destination: this._program.programId,
@@ -379,7 +439,11 @@ export class References {
     return result[2].toJSON() as unknown as number | null;
   }
 
-  public async message(originAddress?: string, value?: number | string | bigint, atBlock?: `0x${string}`): Promise<string | null> {
+  public async message(
+    originAddress?: string,
+    value?: number | string | bigint,
+    atBlock?: `0x${string}`,
+  ): Promise<string | null> {
     const payload = this._program.registry.createType('(String, String)', ['References', 'Message']).toHex();
     const reply = await this._program.api.message.calculateReply({
       destination: this._program.programId,
@@ -407,11 +471,16 @@ export class ThisThat {
       ['ThisThat', 'DoThat', param],
       '(String, String, DoThatParam)',
       'Result<([u8;32], u32), (String)>',
-      this._program.programId
+      this._program.programId,
     );
   }
 
-  public doThis(p1: number, p2: string, p3: [H160 | null, NonZeroU8], p4: TupleStruct): TransactionBuilder<[string, number]> {
+  public doThis(
+    p1: number,
+    p2: string,
+    p3: [H160 | null, NonZeroU8],
+    p4: TupleStruct,
+  ): TransactionBuilder<[string, number]> {
     if (!this._program.programId) throw new Error('Program ID is not set');
     return new TransactionBuilder<[string, number]>(
       this._program.api,
@@ -420,7 +489,7 @@ export class ThisThat {
       ['ThisThat', 'DoThis', p1, p2, p3, p4],
       '(String, String, u32, String, (Option<H160>, u8), TupleStruct)',
       '(String, u32)',
-      this._program.programId
+      this._program.programId,
     );
   }
 
@@ -433,11 +502,15 @@ export class ThisThat {
       ['ThisThat', 'Noop'],
       '(String, String)',
       'Null',
-      this._program.programId
+      this._program.programId,
     );
   }
 
-  public async that(originAddress?: string, value?: number | string | bigint, atBlock?: `0x${string}`): Promise<{ ok: string } | { err: string }> {
+  public async that(
+    originAddress?: string,
+    value?: number | string | bigint,
+    atBlock?: `0x${string}`,
+  ): Promise<{ ok: string } | { err: string }> {
     const payload = this._program.registry.createType('(String, String)', ['ThisThat', 'That']).toHex();
     const reply = await this._program.api.message.calculateReply({
       destination: this._program.programId,
@@ -452,7 +525,11 @@ export class ThisThat {
     return result[2].toJSON() as unknown as { ok: string } | { err: string };
   }
 
-  public async this(originAddress?: string, value?: number | string | bigint, atBlock?: `0x${string}`): Promise<number> {
+  public async this(
+    originAddress?: string,
+    value?: number | string | bigint,
+    atBlock?: `0x${string}`,
+  ): Promise<number> {
     const payload = this._program.registry.createType('(String, String)', ['ThisThat', 'This']).toHex();
     const reply = await this._program.api.message.calculateReply({
       destination: this._program.programId,
