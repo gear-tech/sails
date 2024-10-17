@@ -40,6 +40,11 @@ export class Output {
     return this;
   }
 
+  lines(data: string[], semicolon = true) {
+    data.forEach((line) => this.line(line, semicolon));
+    return this;
+  }
+
   block(beginning: string, content?: () => void, bracket: '{' | '[' | '(' = '{') {
     const openBracket = bracket;
     const closeBracket = openBracket === '{' ? '}' : openBracket === '[' ? '];' : ');';
