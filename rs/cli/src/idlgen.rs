@@ -109,7 +109,7 @@ impl<'a> PackageIdlGenerator<'a> {
     fn read_program_path_from_doc(&self) -> anyhow::Result<(String, MetaPathVersion)> {
         let program_package_file_name = &self.program_package.name.to_lowercase().replace('-', "_");
         println!(
-            "...running `cargo doc --manifest-path {}`",
+            "...running doc generation for `{}`",
             &self.program_package.manifest_path
         );
         // run `cargo doc`
@@ -119,7 +119,7 @@ impl<'a> PackageIdlGenerator<'a> {
             .target_dir
             .join("doc")
             .join(format!("{}.json", &program_package_file_name));
-        println!("...reading docs: {}", docs_path);
+        println!("...reading doc: {}", docs_path);
         let json_string = std::fs::read_to_string(docs_path)?;
         let doc_crate: rustdoc_types::Crate = serde_json::from_str(&json_string)?;
 
@@ -155,7 +155,7 @@ impl<'a> PackageIdlGenerator<'a> {
         &self,
         program_struct_path: &str,
         meta_path_version: MetaPathVersion,
-    ) -> Result<Utf8PathBuf, anyhow::Error> {
+    ) -> anyhow::Result<Utf8PathBuf> {
         let crate_name = get_crate_name(self.program_package);
         let crate_dir = &self.target_dir.join(&crate_name);
         let src_dir = crate_dir.join("src");
@@ -177,11 +177,15 @@ impl<'a> PackageIdlGenerator<'a> {
         let to_lock = &crate_dir.join("Cargo.lock");
         drop(fs::copy(from_lock, to_lock));
 
-        _ = cargo_run_bin(&gen_manifest_path, &crate_name, self.target_dir)?;
+        let res = cargo_run_bin(&gen_manifest_path, &crate_name, self.target_dir);
 
         fs::remove_dir_all(crate_dir)?;
 
-        Ok(out_file)
+        match res {
+            Ok(exit_status) if exit_status.success() => Ok(out_file),
+            Ok(exit_status) => Err(anyhow::anyhow!("Exit status: {}", exit_status)),
+            Err(err) => Err(err),
+        }
     }
 }
 
