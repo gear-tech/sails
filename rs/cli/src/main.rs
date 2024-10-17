@@ -1,5 +1,5 @@
 use clap::{Parser, Subcommand};
-use sails_cli::program::ProgramGenerator;
+use sails_cli::{idlgen::CrateIdlGenerator, program::ProgramGenerator};
 use sails_client_gen::ClientGenerator;
 use std::{error::Error, path::PathBuf};
 
@@ -49,6 +49,20 @@ enum SailsCommands {
         /// Derive only nessessary [`parity_scale_codec::Encode`], [`parity_scale_codec::Decode`] and [`scale_info::TypeInfo`] traits for the generated types
         #[arg(long)]
         no_derive_traits: bool,
+    },
+
+    /// Generate IDL from Cargo manifest
+    #[command(name = "idl-gen")]
+    IdlGen {
+        /// Path to the crate with program
+        #[arg(long, value_hint = clap::ValueHint::FilePath)]
+        manifest_path: Option<PathBuf>,
+        /// Directory for all generated artifacts
+        #[arg(long, value_hint = clap::ValueHint::DirPath)]
+        target_dir: Option<PathBuf>,
+        /// Generate IDL for all packages in the workspace
+        #[arg(long)]
+        workspace: bool,
     },
 }
 
@@ -106,6 +120,11 @@ fn main() -> Result<(), i32> {
             let out_path = out_path.unwrap_or_else(|| idl_path.with_extension("rs"));
             client_gen.generate_to(out_path)
         }
+        SailsCommands::IdlGen {
+            manifest_path,
+            target_dir,
+            workspace,
+        } => CrateIdlGenerator::new(manifest_path, target_dir, workspace).generate(),
     };
 
     if let Err(e) = result {
