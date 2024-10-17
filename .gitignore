@@ -1,9 +1,15 @@
 .binpath
 .DS_Store
+.vs
 .vscode
 *.log
 
+# Rust
 target/
+
+# C#
+net/**/[Bb]in/
+net/**/[Oo]bj/
 
 # js
 node_modules/
