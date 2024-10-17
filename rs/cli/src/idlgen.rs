@@ -38,12 +38,12 @@ impl CrateIdlGenerator {
             .manifest_path(&self.manifest_path)
             .exec()?;
 
-        // find `sails-rs` package
-        let sails_package = metadata
+        // find `sails-rs` packages (any version )
+        let sails_packages = metadata
             .packages
             .iter()
-            .find(|p| p.name == "sails-rs")
-            .context("failed to find `sails-rs` package in dependencies")?;
+            .filter(|p| p.name == "sails-rs")
+            .collect::<Vec<_>>();
 
         let target_dir = self
             .target_dir
@@ -60,7 +60,7 @@ impl CrateIdlGenerator {
         for program_package in package_list {
             let idl_gen = PackageIdlGenerator::new(
                 program_package,
-                sails_package,
+                &sails_packages,
                 target_dir,
                 &metadata.workspace_root,
             );
@@ -86,7 +86,7 @@ impl CrateIdlGenerator {
 
 struct PackageIdlGenerator<'a> {
     program_package: &'a Package,
-    sails_package: &'a Package,
+    sails_packages: &'a Vec<&'a Package>,
     target_dir: &'a Utf8Path,
     workspace_root: &'a Utf8Path,
 }
@@ -94,13 +94,13 @@ struct PackageIdlGenerator<'a> {
 impl<'a> PackageIdlGenerator<'a> {
     fn new(
         program_package: &'a Package,
-        sails_package: &'a Package,
+        sails_packages: &'a Vec<&'a Package>,
         target_dir: &'a Utf8Path,
         workspace_root: &'a Utf8Path,
     ) -> Self {
         Self {
             program_package,
-            sails_package,
+            sails_packages,
             target_dir,
             workspace_root,
         }
@@ -156,6 +156,23 @@ impl<'a> PackageIdlGenerator<'a> {
         program_struct_path: &str,
         meta_path_version: MetaPathVersion,
     ) -> anyhow::Result<Utf8PathBuf> {
+        // find `sails-rs` dependency
+        let sails_dep = self
+            .program_package
+            .dependencies
+            .iter()
+            .find(|p| p.name == "sails-rs")
+            .context("failed to find `sails-rs` dependency")?;
+        // find `sails-rs` package matches dep version
+        let sails_package = self
+            .sails_packages
+            .iter()
+            .find(|p| sails_dep.req.matches(&p.version))
+            .context(format!(
+                "failed to find `sails-rs` package with matching version {}",
+                &sails_dep.req
+            ))?;
+
         let crate_name = get_crate_name(self.program_package);
         let crate_dir = &self.target_dir.join(&crate_name);
         let src_dir = crate_dir.join("src");
@@ -164,7 +181,7 @@ impl<'a> PackageIdlGenerator<'a> {
         let gen_manifest_path = crate_dir.join("Cargo.toml");
         write_file(
             &gen_manifest_path,
-            gen_cargo_toml(self.program_package, self.sails_package, meta_path_version),
+            gen_cargo_toml(self.program_package, sails_package, meta_path_version),
         )?;
 
         let out_file = self
