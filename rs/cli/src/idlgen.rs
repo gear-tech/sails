@@ -9,15 +9,10 @@ use std::{
 pub struct CrateIdlGenerator {
     manifest_path: Utf8PathBuf,
     target_dir: Option<Utf8PathBuf>,
-    workspace: bool,
 }
 
 impl CrateIdlGenerator {
-    pub fn new(
-        manifest_path: Option<PathBuf>,
-        target_dir: Option<PathBuf>,
-        workspace: bool,
-    ) -> Self {
+    pub fn new(manifest_path: Option<PathBuf>, target_dir: Option<PathBuf>) -> Self {
         Self {
             manifest_path: Utf8PathBuf::from_path_buf(
                 manifest_path.unwrap_or_else(|| env::current_dir().unwrap().join("Cargo.toml")),
@@ -27,7 +22,6 @@ impl CrateIdlGenerator {
                 .and_then(|p| p.canonicalize().ok())
                 .map(Utf8PathBuf::from_path_buf)
                 .and_then(|t| t.ok()),
-            workspace,
         }
     }
 
@@ -42,20 +36,37 @@ impl CrateIdlGenerator {
         let sails_packages = metadata
             .packages
             .iter()
-            .filter(|p| p.name == "sails-rs")
+            .filter(|&p| p.name == "sails-rs")
+            .collect::<Vec<_>>();
+
+        let resolve = &metadata
+            .resolve
+            .context("failed to get resolve from metadata")?;
+        let root_pacakge_id = resolve
+            .root
+            .as_ref()
+            .context("failed to find root package")?;
+        let root_node = resolve
+            .nodes
+            .iter()
+            .find(|&node| &node.id == root_pacakge_id)
+            .context("failed to find root package")?;
+
+        // find root package and it dependencies in workspace members
+        let package_list = &metadata
+            .packages
+            .iter()
+            .filter(|&p| {
+                &p.id == root_pacakge_id
+                    || (metadata.workspace_members.contains(&p.id)
+                        && root_node.dependencies.contains(&p.id))
+            })
             .collect::<Vec<_>>();
 
         let target_dir = self
             .target_dir
             .as_ref()
             .unwrap_or(&metadata.target_directory);
-
-        // get all workspace packages or only default
-        let package_list = if self.workspace {
-            metadata.workspace_packages()
-        } else {
-            metadata.workspace_default_packages()
-        };
 
         for program_package in package_list {
             let idl_gen = PackageIdlGenerator::new(
@@ -70,17 +81,15 @@ impl CrateIdlGenerator {
                     let file_path = idl_gen
                         .try_generate_for_package(&program_struct_path, meta_path_version)?;
                     println!("Generated IDL: {}", file_path);
+
+                    return Ok(());
                 }
                 Err(err) => {
                     println!("...no Program implementation found: {}", err);
-                    if !self.workspace {
-                        println!("Try run `cargo sails idl-gen --workspace` to generate IDL for all packages in the workspace");
-                    }
                 }
             }
         }
-
-        Ok(())
+        Err(anyhow::anyhow!("no Program implementation found"))
     }
 }
 

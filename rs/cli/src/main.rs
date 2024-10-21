@@ -60,9 +60,6 @@ enum SailsCommands {
         /// Directory for all generated artifacts
         #[arg(long, value_hint = clap::ValueHint::DirPath)]
         target_dir: Option<PathBuf>,
-        /// Generate IDL for all packages in the workspace
-        #[arg(long)]
-        workspace: bool,
     },
 }
 
@@ -123,8 +120,7 @@ fn main() -> Result<(), i32> {
         SailsCommands::IdlGen {
             manifest_path,
             target_dir,
-            workspace,
-        } => CrateIdlGenerator::new(manifest_path, target_dir, workspace).generate(),
+        } => CrateIdlGenerator::new(manifest_path, target_dir).generate(),
     };
 
     if let Err(e) = result {
