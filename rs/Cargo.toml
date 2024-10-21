@@ -20,7 +20,7 @@ hex.workspace = true
 mockall = { workspace = true, optional = true }
 parity-scale-codec = { workspace = true, features = ["derive"] }
 sails-idl-gen = { workspace = true, optional = true }
-sails-idl-meta = { workspace = true }
+sails-idl-meta.workspace = true
 sails-macros = { workspace = true, optional = true }
 scale-info = { workspace = true, features = ["derive", "docs"] }
 spin.workspace = true
