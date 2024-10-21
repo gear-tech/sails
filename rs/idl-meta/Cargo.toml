@@ -1,0 +1,12 @@
+[package]
+name = "sails-idl-meta"
+description = "IDL meta information for the Sails framework"
+documentation = "https://docs.rs/sails-idl-gen"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+scale-info.workspace = true

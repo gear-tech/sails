@@ -20,13 +20,11 @@
 
 use crate::errors::{Error, Result};
 use convert_case::{Case, Casing};
-use sails_rs::scale_info::{
+use core::num::{NonZeroU128, NonZeroU16, NonZeroU32, NonZeroU64, NonZeroU8};
+use gprimitives::*;
+use scale_info::{
     form::PortableForm, PortableType, Type, TypeDef, TypeDefArray, TypeDefPrimitive,
     TypeDefSequence, TypeDefTuple, TypeInfo,
-};
-use sails_rs::{
-    ActorId, CodeId, MessageId, NonZeroU128, NonZeroU16, NonZeroU256, NonZeroU32, NonZeroU64,
-    NonZeroU8, H160, H256, U256,
 };
 use std::{
     collections::{BTreeMap, HashMap},

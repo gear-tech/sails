@@ -6188,14 +6188,22 @@ name = "sails-idl-gen"
 version = "0.6.1"
 dependencies = [
  "convert_case 0.6.0",
+ "gprimitives",
  "handlebars",
  "insta",
+ "sails-idl-meta",
  "sails-idl-parser",
- "sails-rs",
  "scale-info",
  "serde",
  "serde_json",
  "thiserror",
+]
+
+[[package]]
+name = "sails-idl-meta"
+version = "0.6.1"
+dependencies = [
+ "scale-info",
 ]
 
 [[package]]
@@ -6252,6 +6260,8 @@ dependencies = [
  "hex",
  "mockall",
  "parity-scale-codec",
+ "sails-idl-gen",
+ "sails-idl-meta",
  "sails-macros",
  "scale-info",
  "spin",
