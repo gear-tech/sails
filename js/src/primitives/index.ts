@@ -1,2 +1,2 @@
-export * from "./non-zero.js"
-export * from "./hash.js"
+export * from './non-zero.js';
+export * from './hash.js';

@@ -81,7 +81,7 @@ export class ServiceGenerator extends BaseGenerator {
     for (const { name, params, docs } of this._program.ctor.funcs) {
       const args = this.getArgs(params);
 
-      const ctorDocs = formatDocs(docs)
+      const ctorDocs = formatDocs(docs);
 
       this._out
         .lines(ctorDocs, false)
@@ -167,56 +167,56 @@ export class ServiceGenerator extends BaseGenerator {
       const returnType = this.getType(def, decodeMethod);
 
       this._out
-      .line()
-      .lines(formatDocs(docs), false)
-      .block(this.getFuncSignature(name, params, returnType, isQuery), () => {
-        if (isQuery) {
-          this._out
-            .line(createPayload(service.name, name, params))
-            .import('@gear-js/api', 'decodeAddress')
-            .line(`const reply = await this._program.api.message.calculateReply({`, false)
-            .increaseIndent()
-            .line(`destination: this._program.programId,`, false)
-            .line(`origin: originAddress ? decodeAddress(originAddress) : ZERO_ADDRESS,`, false)
-            .line(`payload,`, false)
-            .line(`value: value || 0,`, false)
-            .line(`gasLimit: this._program.api.blockGasLimit.toBigInt(),`, false)
-            .line(`at: atBlock || null,`, false)
-            .reduceIndent()
-            .line(`})`)
-            .line(
-              "if (!reply.code.isSuccess) throw new Error(this._program.registry.createType('String', reply.payload).toString())",
-            )
-            .line(
-              `const result = this._program.registry.createType('(String, String, ${returnScaleType})', reply.payload)`,
-            )
-            .line(`return result[2].${decodeMethod}() as unknown as ${returnType}`);
-        } else {
-          this._out
-            .line(`if (!this._program.programId) throw new Error('Program ID is not set')`)
-            .line(`return new TransactionBuilder<${returnType}>(`, false)
-            .increaseIndent()
-            .line(`this._program.api,`, false)
-            .line(`this._program.registry,`, false)
-            .line(`'send_message',`, false)
-            .line(
-              params.length === 0
-                ? `['${service.name}', '${name}'],`
-                : `['${service.name}', '${name}', ${params.map(({ name }) => name).join(', ')}],`,
-              false,
-            )
-            .line(
-              params.length === 0
-                ? `'(String, String)',`
-                : `'(String, String, ${params.map(({ def }) => getScaleCodecDef(def)).join(', ')})',`,
-              false,
-            )
-            .line(`'${returnScaleType}',`, false)
-            .line(`this._program.programId`, false)
-            .reduceIndent()
-            .line(`)`);
-        }
-      });
+        .line()
+        .lines(formatDocs(docs), false)
+        .block(this.getFuncSignature(name, params, returnType, isQuery), () => {
+          if (isQuery) {
+            this._out
+              .line(createPayload(service.name, name, params))
+              .import('@gear-js/api', 'decodeAddress')
+              .line(`const reply = await this._program.api.message.calculateReply({`, false)
+              .increaseIndent()
+              .line(`destination: this._program.programId,`, false)
+              .line(`origin: originAddress ? decodeAddress(originAddress) : ZERO_ADDRESS,`, false)
+              .line(`payload,`, false)
+              .line(`value: value || 0,`, false)
+              .line(`gasLimit: this._program.api.blockGasLimit.toBigInt(),`, false)
+              .line(`at: atBlock || null,`, false)
+              .reduceIndent()
+              .line(`})`)
+              .line(
+                "if (!reply.code.isSuccess) throw new Error(this._program.registry.createType('String', reply.payload).toString())",
+              )
+              .line(
+                `const result = this._program.registry.createType('(String, String, ${returnScaleType})', reply.payload)`,
+              )
+              .line(`return result[2].${decodeMethod}() as unknown as ${returnType}`);
+          } else {
+            this._out
+              .line(`if (!this._program.programId) throw new Error('Program ID is not set')`)
+              .line(`return new TransactionBuilder<${returnType}>(`, false)
+              .increaseIndent()
+              .line(`this._program.api,`, false)
+              .line(`this._program.registry,`, false)
+              .line(`'send_message',`, false)
+              .line(
+                params.length === 0
+                  ? `['${service.name}', '${name}'],`
+                  : `['${service.name}', '${name}', ${params.map(({ name }) => name).join(', ')}],`,
+                false,
+              )
+              .line(
+                params.length === 0
+                  ? `'(String, String)',`
+                  : `'(String, String, ${params.map(({ def }) => getScaleCodecDef(def)).join(', ')})',`,
+                false,
+              )
+              .line(`'${returnScaleType}',`, false)
+              .line(`this._program.programId`, false)
+              .reduceIndent()
+              .line(`)`);
+          }
+        });
     }
   }
 
@@ -233,43 +233,43 @@ export class ServiceGenerator extends BaseGenerator {
       const jsType = event.def ? this.getType(event.def, decodeMethod) : 'null';
 
       this._out
-      .line()
-      .lines(formatDocs(event.docs), false)
-      .block(
-        `public subscribeTo${event.name}Event(callback: (data: ${jsType}) => void | Promise<void>): Promise<() => void>`,
-        () => {
-          this._out
-            .line(
-              `return this._program.api.gearEvents.subscribeToGearEvent('UserMessageSent', ({ data: { message } }) => {`,
-            )
-            .increaseIndent()
-            .block(
-              `if (!message.source.eq(this._program.programId) || !message.destination.eq(ZERO_ADDRESS))`,
-              () => {
-                this._out.line(`return`);
-              },
-            )
-            .line()
-            .line(`const payload = message.payload.toHex()`)
-            .block(
-              `if (getServiceNamePrefix(payload) === '${service.name}' && getFnNamePrefix(payload) === '${event.name}')`,
-              () => {
-                if (jsType === 'null') {
-                  this._out.line(`callback(null)`);
-                } else {
-                  this._out.line(
-                    `callback(this._program.registry.createType('(String, String, ${getScaleCodecDef(
-                      event.def,
-                      true,
-                    )})', message.payload)[2].${decodeMethod}() as unknown as ${jsType})`,
-                  );
-                }
-              },
-            )
-            .reduceIndent()
-            .line(`})`);
-        },
-      );
+        .line()
+        .lines(formatDocs(event.docs), false)
+        .block(
+          `public subscribeTo${event.name}Event(callback: (data: ${jsType}) => void | Promise<void>): Promise<() => void>`,
+          () => {
+            this._out
+              .line(
+                `return this._program.api.gearEvents.subscribeToGearEvent('UserMessageSent', ({ data: { message } }) => {`,
+              )
+              .increaseIndent()
+              .block(
+                `if (!message.source.eq(this._program.programId) || !message.destination.eq(ZERO_ADDRESS))`,
+                () => {
+                  this._out.line(`return`);
+                },
+              )
+              .line()
+              .line(`const payload = message.payload.toHex()`)
+              .block(
+                `if (getServiceNamePrefix(payload) === '${service.name}' && getFnNamePrefix(payload) === '${event.name}')`,
+                () => {
+                  if (jsType === 'null') {
+                    this._out.line(`callback(null)`);
+                  } else {
+                    this._out.line(
+                      `callback(this._program.registry.createType('(String, String, ${getScaleCodecDef(
+                        event.def,
+                        true,
+                      )})', message.payload)[2].${decodeMethod}() as unknown as ${jsType})`,
+                    );
+                  }
+                },
+              )
+              .reduceIndent()
+              .line(`})`);
+          },
+        );
     }
   }
 
