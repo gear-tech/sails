@@ -1,0 +1,14 @@
+  {
+    "projects": {
+      "net_api":         "Substrate.Gear.Api",
+      "rest_service":    "Substrate.Gear.Api.RestService",
+      "rest_client":     "Substrate.Gear.Api.RestClient",
+      "net_integration": "Substrate.Gear.Api.NetIntegration"
+    },
+    "metadata": {
+      "websocket": "wss://rpc.vara.network",
+    },
+    "rest_client_settings": {
+      "service_assembly": "Substrate.Gear.Api.RestService.dll"
+    }
+  }
