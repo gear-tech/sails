@@ -64,7 +64,7 @@ impl CrateIdlGenerator {
                 target_dir,
                 &metadata.workspace_root,
             );
-            match idl_gen.read_program_path_from_doc() {
+            match idl_gen.get_program_struct_path_from_doc() {
                 Ok((program_struct_path, meta_path_version)) => {
                     println!("...found Program implemetation: {}", program_struct_path);
                     let file_path = idl_gen
@@ -106,7 +106,7 @@ impl<'a> PackageIdlGenerator<'a> {
         }
     }
 
-    fn read_program_path_from_doc(&self) -> anyhow::Result<(String, MetaPathVersion)> {
+    fn get_program_struct_path_from_doc(&self) -> anyhow::Result<(String, MetaPathVersion)> {
         let program_package_file_name = &self.program_package.name.to_lowercase().replace('-', "_");
         println!(
             "...running doc generation for `{}`",
@@ -127,21 +127,13 @@ impl<'a> PackageIdlGenerator<'a> {
         let (program_meta_id, meta_path_version) = doc_crate
             .paths
             .iter()
-            .find_map(|p| {
-                if p.1.path == META_PATH_V1 {
-                    Some((p.0, MetaPathVersion::V1))
-                } else if p.1.path == META_PATH_V2 {
-                    Some((p.0, MetaPathVersion::V2))
-                } else {
-                    None
-                }
-            })
+            .find_map(|(id, summary)| MetaPathVersion::matches(&summary.path).map(|v| (id, v)))
             .context("failed to find `sails_rs::meta::ProgramMeta` definition in dependencies")?;
         // find struct implementing `sails_rs::meta::ProgramMeta`
         let program_struct_path = doc_crate
             .index
             .values()
-            .find_map(|idx| is_implement_trait_path(idx, program_meta_id))
+            .find_map(|idx| try_get_trait_implementation_path(idx, program_meta_id))
             .context("failed to find `sails_rs::meta::ProgramMeta` implemetation")?;
         let program_struct = doc_crate
             .paths
@@ -173,7 +165,7 @@ impl<'a> PackageIdlGenerator<'a> {
                 &sails_dep.req
             ))?;
 
-        let crate_name = get_crate_name(self.program_package);
+        let crate_name = get_idl_gen_crate_name(self.program_package);
         let crate_dir = &self.target_dir.join(&crate_name);
         let src_dir = crate_dir.join("src");
         fs::create_dir_all(&src_dir)?;
@@ -206,7 +198,7 @@ impl<'a> PackageIdlGenerator<'a> {
     }
 }
 
-fn is_implement_trait_path(
+fn try_get_trait_implementation_path(
     idx: &rustdoc_types::Item,
     program_meta_id: &rustdoc_types::Id,
 ) -> Option<rustdoc_types::Path> {
@@ -222,7 +214,7 @@ fn is_implement_trait_path(
     None
 }
 
-fn get_crate_name(program_package: &Package) -> String {
+fn get_idl_gen_crate_name(program_package: &Package) -> String {
     format!("{}-idl-gen", program_package.name)
 }
 
@@ -282,8 +274,20 @@ enum MetaPathVersion {
     V2,
 }
 
-pub const META_PATH_V1: &[&str] = &["sails_rs", "meta", "ProgramMeta"];
-pub const META_PATH_V2: &[&str] = &["sails_idl_meta", "ProgramMeta"];
+impl MetaPathVersion {
+    const META_PATH_V1: &[&str] = &["sails_rs", "meta", "ProgramMeta"];
+    const META_PATH_V2: &[&str] = &["sails_idl_meta", "ProgramMeta"];
+
+    fn matches(path: &Vec<String>) -> Option<Self> {
+        if path == Self::META_PATH_V1 {
+            Some(MetaPathVersion::V1)
+        } else if path == Self::META_PATH_V2 {
+            Some(MetaPathVersion::V2)
+        } else {
+            None
+        }
+    }
+}
 
 fn gen_cargo_toml(
     program_package: &Package,
@@ -292,7 +296,7 @@ fn gen_cargo_toml(
 ) -> String {
     let mut manifest = toml_edit::DocumentMut::new();
     manifest["package"] = toml_edit::Item::Table(toml_edit::Table::new());
-    manifest["package"]["name"] = toml_edit::value(get_crate_name(program_package));
+    manifest["package"]["name"] = toml_edit::value(get_idl_gen_crate_name(program_package));
     manifest["package"]["version"] = toml_edit::value("0.1.0");
     manifest["package"]["edition"] = toml_edit::value(program_package.edition.as_str());
 
@@ -311,7 +315,7 @@ fn gen_cargo_toml(
     manifest["dependencies"] = toml_edit::Item::Table(dep_table);
 
     let mut bin = toml_edit::Table::new();
-    bin["name"] = toml_edit::value(get_crate_name(program_package));
+    bin["name"] = toml_edit::value(get_idl_gen_crate_name(program_package));
     bin["path"] = toml_edit::value("src/main.rs");
     manifest["bin"]
         .or_insert(toml_edit::Item::ArrayOfTables(
