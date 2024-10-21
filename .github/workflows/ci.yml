@@ -34,11 +34,6 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Install Rust stable toolchain
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          components: rust-src
-
       - name: Install wasm-opt
         run: |
           sudo wget -c https://github.com/WebAssembly/binaryen/releases/download/$BINARYEN_VERSION/binaryen-$BINARYEN_VERSION-x86_64-linux.tar.gz -O - | sudo tar -xz -C .
@@ -76,11 +71,6 @@ jobs:
 
       - name: Checkout Code
         uses: actions/checkout@v4
-
-      - name: Install Rust stable toolchain
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          components: rust-src
 
       - name: Install wasm-opt
         run: |
@@ -121,11 +111,6 @@ jobs:
 
       - name: Checkout Code
         uses: actions/checkout@v4
-
-      - name: Install Rust stable toolchain
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          components: rust-src
 
       - name: Install wasm-opt
         run: |
