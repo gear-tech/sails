@@ -1,4 +1,5 @@
 * text auto
 
 *.cs text diff=csharp
-*.rs text diff=rust
+*.rs text diff=rust eol=lf
+*.toml text eol=lf
