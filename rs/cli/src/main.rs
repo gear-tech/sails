@@ -13,7 +13,7 @@ enum CliCommand {
 #[derive(Subcommand)]
 enum SailsCommands {
     /// Create a new program from template
-    #[command(name = "new-program")]
+    #[command(name = "program")]
     NewProgram {
         #[arg(help = "Path to the new program")]
         path: String,
@@ -52,7 +52,7 @@ enum SailsCommands {
     },
 
     /// Generate IDL from Cargo manifest
-    #[command(name = "idl-gen")]
+    #[command(name = "idl")]
     IdlGen {
         /// Path to the crate with program
         #[arg(long, value_hint = clap::ValueHint::FilePath)]
