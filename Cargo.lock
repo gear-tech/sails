@@ -6256,7 +6256,7 @@ dependencies = [
  "gprimitives",
  "gstd",
  "gtest",
- "hashbrown 0.14.5",
+ "hashbrown 0.15.0",
  "hex",
  "mockall",
  "parity-scale-codec",
