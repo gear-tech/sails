@@ -3,7 +3,13 @@ name: CI (Rust)
 on:
   push:
     branches: [master]
+    paths-ignore:
+      - 'net/**'
+      - 'Sails.Net.sln'
   pull_request:
+    paths-ignore:
+      - 'net/**'
+      - 'Sails.Net.sln'
 
 env:
   BINARYEN_VERSION: version_111

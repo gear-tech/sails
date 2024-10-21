@@ -4,6 +4,9 @@ on:
   pull_request:
     types: [opened, synchronize, reopened, labeled]
     branches: [master]
+    paths-ignore:
+      - 'net/**'
+      - 'Sails.Net.sln'
   push:
     branches: [master]
     paths:
