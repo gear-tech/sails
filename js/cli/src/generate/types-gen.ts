@@ -3,6 +3,7 @@ import { toLowerCaseFirst } from 'sails-js-util';
 
 import { Output } from './output.js';
 import { BaseGenerator } from './base.js';
+import { formatDocs } from './format.js';
 
 export class TypesGenerator extends BaseGenerator {
   constructor(
@@ -13,7 +14,10 @@ export class TypesGenerator extends BaseGenerator {
   }
 
   public generate() {
-    for (const { name, def } of this._program.types) {
+    this._out.line('declare global {').increaseIndent();
+    for (const { name, def, docs } of this._program.types) {
+      this._out.lines(formatDocs(docs), false)
+
       if (def.isStruct) {
         this.generateStruct(name, def);
       } else if (def.isEnum) {
@@ -24,6 +28,7 @@ export class TypesGenerator extends BaseGenerator {
         throw new Error(`Unknown type: ${JSON.stringify(def)}`);
       }
     }
+    this._out.reduceIndent().line('}');
   }
 
   private generateStruct(name: string, def: ISailsTypeDef) {
@@ -34,7 +39,9 @@ export class TypesGenerator extends BaseGenerator {
     return this._out
       .block(`export interface ${name}`, () => {
         for (const field of def.asStruct.fields) {
-          this._out.line(`${field.name}: ${this.getType(field.def)}`);
+          this._out
+          .lines(formatDocs(field.docs), false)
+          .line(`${field.name}: ${this.getType(field.def)}`);
         }
       })
       .line();
@@ -43,8 +50,10 @@ export class TypesGenerator extends BaseGenerator {
   private generateEnum(typeName: string, def: ISailsEnumDef) {
     if (def.isNesting) {
       this._out.line(`export type ${typeName} = `, false).increaseIndent();
-      for (let i = 0; i < def.variants.length; i++) {
-        this._out.line(`| ${this.getEnumFieldString(def.variants[i])}`, i === def.variants.length - 1);
+      for (const [i, variant] of def.variants.entries()) {
+        this._out
+        .lines(formatDocs(variant.docs), false)
+        .line(`| ${this.getEnumFieldString(variant)}`, i === def.variants.length - 1);
       }
       this._out.reduceIndent().line();
     } else {

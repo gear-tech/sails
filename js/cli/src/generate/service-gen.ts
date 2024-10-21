@@ -3,6 +3,7 @@ import { ISailsFuncParam, ISailsProgram, ISailsService } from 'sails-js-types';
 
 import { Output } from './output.js';
 import { BaseGenerator } from './base.js';
+import { formatDocs } from './format.js';
 
 const HEX_STRING_TYPE = '`0x${string}`';
 
@@ -77,9 +78,13 @@ export class ServiceGenerator extends BaseGenerator {
   private generateProgramConstructor() {
     if (!this._program.ctor || this._program.ctor.funcs.length === 0) return;
 
-    for (const { name, params } of this._program.ctor.funcs) {
+    for (const { name, params, docs } of this._program.ctor.funcs) {
       const args = this.getArgs(params);
+
+      const ctorDocs = formatDocs(docs)
+
       this._out
+        .lines(ctorDocs, false)
         .block(
           `${getFuncName(name)}CtorFromCode(code: Uint8Array | Buffer${
             args !== null ? ', ' + args : ''
@@ -111,6 +116,7 @@ export class ServiceGenerator extends BaseGenerator {
           },
         )
         .line()
+        .lines(ctorDocs, false)
         .block(
           `${getFuncName(name)}CtorFromCodeId(codeId: ${HEX_STRING_TYPE}${args !== null ? ', ' + args : ''})`,
           () => {
@@ -155,12 +161,15 @@ export class ServiceGenerator extends BaseGenerator {
   }
 
   private generateMethods(service: ISailsService) {
-    for (const { name, def, params, isQuery } of service.funcs) {
+    for (const { name, def, params, isQuery, docs } of service.funcs) {
       const returnScaleType = getScaleCodecDef(def);
       const decodeMethod = getPayloadMethod(returnScaleType);
       const returnType = this.getType(def, decodeMethod);
 
-      this._out.line().block(this.getFuncSignature(name, params, returnType, isQuery), () => {
+      this._out
+      .line()
+      .lines(formatDocs(docs), false)
+      .block(this.getFuncSignature(name, params, returnType, isQuery), () => {
         if (isQuery) {
           this._out
             .line(createPayload(service.name, name, params))
@@ -224,42 +233,43 @@ export class ServiceGenerator extends BaseGenerator {
       const jsType = event.def ? this.getType(event.def, decodeMethod) : 'null';
 
       this._out
-        .line()
-        .block(
-          `public subscribeTo${event.name}Event(callback: (data: ${jsType}) => void | Promise<void>): Promise<() => void>`,
-          () => {
-            this._out
-              .line(
-                `return this._program.api.gearEvents.subscribeToGearEvent('UserMessageSent', ({ data: { message } }) => {`,
-              )
-              .increaseIndent()
-              .block(
-                `if (!message.source.eq(this._program.programId) || !message.destination.eq(ZERO_ADDRESS))`,
-                () => {
-                  this._out.line(`return`);
-                },
-              )
-              .line()
-              .line(`const payload = message.payload.toHex()`)
-              .block(
-                `if (getServiceNamePrefix(payload) === '${service.name}' && getFnNamePrefix(payload) === '${event.name}')`,
-                () => {
-                  if (jsType === 'null') {
-                    this._out.line(`callback(null)`);
-                  } else {
-                    this._out.line(
-                      `callback(this._program.registry.createType('(String, String, ${getScaleCodecDef(
-                        event.def,
-                        true,
-                      )})', message.payload)[2].${decodeMethod}() as unknown as ${jsType})`,
-                    );
-                  }
-                },
-              )
-              .reduceIndent()
-              .line(`})`);
-          },
-        );
+      .line()
+      .lines(formatDocs(event.docs), false)
+      .block(
+        `public subscribeTo${event.name}Event(callback: (data: ${jsType}) => void | Promise<void>): Promise<() => void>`,
+        () => {
+          this._out
+            .line(
+              `return this._program.api.gearEvents.subscribeToGearEvent('UserMessageSent', ({ data: { message } }) => {`,
+            )
+            .increaseIndent()
+            .block(
+              `if (!message.source.eq(this._program.programId) || !message.destination.eq(ZERO_ADDRESS))`,
+              () => {
+                this._out.line(`return`);
+              },
+            )
+            .line()
+            .line(`const payload = message.payload.toHex()`)
+            .block(
+              `if (getServiceNamePrefix(payload) === '${service.name}' && getFnNamePrefix(payload) === '${event.name}')`,
+              () => {
+                if (jsType === 'null') {
+                  this._out.line(`callback(null)`);
+                } else {
+                  this._out.line(
+                    `callback(this._program.registry.createType('(String, String, ${getScaleCodecDef(
+                      event.def,
+                      true,
+                    )})', message.payload)[2].${decodeMethod}() as unknown as ${jsType})`,
+                  );
+                }
+              },
+            )
+            .reduceIndent()
+            .line(`})`);
+        },
+      );
     }
   }
 

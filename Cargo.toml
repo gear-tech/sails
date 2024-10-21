@@ -30,13 +30,13 @@ members = [
 
 [workspace.dependencies]
 # The order matches with publishing order.
-sails-macros-core = { path = "rs/macros/core" }
-sails-macros = { path = "rs/macros" }
+sails-idl-meta = { path = "rs/idl-meta" }
+sails-idl-gen = { path = "rs/idl-gen" }
 sails-idl-parser = { path = "rs/idl-parser" }
 sails-client-gen = { path = "rs/client-gen" }
+sails-macros-core = { path = "rs/macros/core" }
+sails-macros = { path = "rs/macros" }
 sails-rs = { path = "rs" }
-sails-idl-gen = { path = "rs/idl-gen" }
-sails-idl-meta = { path = "rs/idl-meta" }
 # Renamed sails-rs for `proxy` demo
 sails-rename = { package = "sails-rs", path = "rs" }
 
