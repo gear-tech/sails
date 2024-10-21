@@ -2,3 +2,4 @@
 
 *.cs text diff=csharp
 *.rs text diff=rust
+*.toml text
