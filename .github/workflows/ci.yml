@@ -37,7 +37,6 @@ jobs:
       - name: Install Rust stable toolchain
         uses: dtolnay/rust-toolchain@stable
         with:
-          targets: stable-x86_64-unknown-linux-gnu
           components: rust-src
 
       - name: Install wasm-opt
@@ -81,7 +80,6 @@ jobs:
       - name: Install Rust stable toolchain
         uses: dtolnay/rust-toolchain@stable
         with:
-          targets: stable-x86_64-unknown-linux-gnu
           components: rust-src
 
       - name: Install wasm-opt
@@ -127,7 +125,6 @@ jobs:
       - name: Install Rust stable toolchain
         uses: dtolnay/rust-toolchain@stable
         with:
-          targets: stable-x86_64-unknown-linux-gnu
           components: rust-src
 
       - name: Install wasm-opt
