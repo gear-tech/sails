@@ -3,6 +3,7 @@ precommit: fmt clippy test
 precommit-js:
 	@yarn install
 	@yarn build
+	@yarn format
 	@yarn lint
 
 fmt:
