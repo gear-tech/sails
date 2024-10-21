@@ -4,6 +4,7 @@ on:
   push:
     branches: [ master ]
     paths:
+      - './github/workflows/ci.yml'
       - 'examples/**'
       - 'rs/**'
       - 'templates/**'
@@ -12,6 +13,7 @@ on:
       - 'rust-toolchain.toml'
   pull_request:
     paths:
+      - './github/workflows/ci.yml'
       - 'examples/**'
       - 'rs/**'
       - 'templates/**'
