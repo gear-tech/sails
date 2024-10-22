@@ -58,7 +58,7 @@ futures = { version = "0.3", default-features = false }
 genco = "0.17"
 git-download = "0.1"
 handlebars = "4.4"
-hashbrown = "0.14"
+hashbrown = "0.15"
 hex = { version = "0.4", default-features = false }
 insta = "1.40"
 itertools = "0.13"

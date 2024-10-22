@@ -3,13 +3,25 @@ name: CI (Rust)
 on:
   push:
     branches: [master]
-    paths-ignore:
-      - 'net/**'
-      - 'Sails.Net.sln'
+    paths:
+      - '.cargo/**'
+      - '.github/workflows/ci.yml'
+      - 'examples/**'
+      - 'rs/**'
+      - 'templates/**'
+      - 'Cargo.lock'
+      - 'Cargo.toml'
+      - 'rust-toolchain.toml'
   pull_request:
-    paths-ignore:
-      - 'net/**'
-      - 'Sails.Net.sln'
+    paths:
+      - '.cargo/**'
+      - '.github/workflows/ci.yml'
+      - 'examples/**'
+      - 'rs/**'
+      - 'templates/**'
+      - 'Cargo.lock'
+      - 'Cargo.toml'
+      - 'rust-toolchain.toml'
 
 env:
   BINARYEN_VERSION: version_111
