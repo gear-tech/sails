@@ -1,4 +1,4 @@
-name: "CI-CD sails-js"
+name: 'CI-CD sails-js'
 
 on:
   pull_request:
@@ -32,38 +32,38 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: "Install: NodeJS 20.x"
+      - name: 'Install: NodeJS 20.x'
         uses: actions/setup-node@v4
         with:
           node-version: 20.x
 
-      - name: "Install: dependencies"
+      - name: 'Install: dependencies'
         run: yarn install
 
-      - name: "Install: binaryen"
+      - name: 'Install: binaryen'
         working-directory: /usr
         run: |
           sudo wget -c https://github.com/WebAssembly/binaryen/releases/download/$BINARYEN_VERSION/binaryen-$BINARYEN_VERSION-x86_64-linux.tar.gz -O - | sudo tar -xz -C .
           sudo cp binaryen-$BINARYEN_VERSION/bin/wasm-opt /usr/bin/
 
-      - name: "Prepare: build all"
+      - name: 'Prepare: build all'
         run: yarn build
 
-      - name: "Prepare: fmt"
-        run: yarn fmt
+      - name: 'Prepare: fmt'
+        run: yarn lint
 
-      - name: "Prepare: download Gear node"
+      - name: 'Prepare: download Gear node'
         run: |
           wget -O ./gear https://github.com/gear-tech/gear/releases/download/v1.5.0-1/gear
           chmod +x gear
 
-      - name: "Prepare: run Gear node"
+      - name: 'Prepare: run Gear node'
         run: nohup ./gear --dev --execution=wasm --tmp --unsafe-rpc-external --rpc-methods Unsafe --rpc-cors all &
 
-      - name: "Prepare: sleep 3 min"
+      - name: 'Prepare: sleep 3 min'
         run: sleep 180
 
-      - name: "Test: run"
+      - name: 'Test: run'
         run: yarn test
 
   publish-to-npm:
@@ -79,16 +79,16 @@ jobs:
         with:
           node-version: 20.x
 
-      - name: "Prepare: install dependencies"
+      - name: 'Prepare: install dependencies'
         run: yarn install
 
-      - name: "Install: binaryen"
+      - name: 'Install: binaryen'
         working-directory: /usr
         run: |
           sudo wget -c https://github.com/WebAssembly/binaryen/releases/download/$BINARYEN_VERSION/binaryen-$BINARYEN_VERSION-x86_64-linux.tar.gz -O - | sudo tar -xz -C .
           sudo cp binaryen-$BINARYEN_VERSION/bin/wasm-opt /usr/bin/
 
-      - name: "Prepare: build all"
+      - name: 'Prepare: build all'
         run: yarn build
 
       - name: Publish
