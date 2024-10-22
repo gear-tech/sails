@@ -60,6 +60,9 @@ enum SailsCommands {
         /// Directory for all generated artifacts
         #[arg(long, value_hint = clap::ValueHint::DirPath)]
         target_dir: Option<PathBuf>,
+        /// Level of dependencies to look for program implementation. Default: 1
+        #[arg(long)]
+        deps_level: Option<usize>,
     },
 }
 
@@ -120,7 +123,8 @@ fn main() -> Result<(), i32> {
         SailsCommands::IdlGen {
             manifest_path,
             target_dir,
-        } => CrateIdlGenerator::new(manifest_path, target_dir).generate(),
+            deps_level,
+        } => CrateIdlGenerator::new(manifest_path, target_dir, deps_level).generate(),
     };
 
     if let Err(e) = result {

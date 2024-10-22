@@ -1,6 +1,7 @@
 use anyhow::Context;
-use cargo_metadata::{camino::*, Package};
+use cargo_metadata::{camino::*, Package, PackageId};
 use std::{
+    collections::{HashMap, HashSet},
     env, fs,
     path::{Path, PathBuf},
     process::{Command, ExitStatus},
@@ -9,10 +10,15 @@ use std::{
 pub struct CrateIdlGenerator {
     manifest_path: Utf8PathBuf,
     target_dir: Option<Utf8PathBuf>,
+    deps_level: Option<usize>,
 }
 
 impl CrateIdlGenerator {
-    pub fn new(manifest_path: Option<PathBuf>, target_dir: Option<PathBuf>) -> Self {
+    pub fn new(
+        manifest_path: Option<PathBuf>,
+        target_dir: Option<PathBuf>,
+        deps_level: Option<usize>,
+    ) -> Self {
         Self {
             manifest_path: Utf8PathBuf::from_path_buf(
                 manifest_path.unwrap_or_else(|| env::current_dir().unwrap().join("Cargo.toml")),
@@ -22,6 +28,7 @@ impl CrateIdlGenerator {
                 .and_then(|p| p.canonicalize().ok())
                 .map(Utf8PathBuf::from_path_buf)
                 .and_then(|t| t.ok()),
+            deps_level,
         }
     }
 
@@ -39,35 +46,16 @@ impl CrateIdlGenerator {
             .filter(|&p| p.name == "sails-rs")
             .collect::<Vec<_>>();
 
-        let resolve = &metadata
-            .resolve
-            .context("failed to get resolve from metadata")?;
-        let root_pacakge_id = resolve
-            .root
-            .as_ref()
-            .context("failed to find root package")?;
-        let root_node = resolve
-            .nodes
-            .iter()
-            .find(|&node| &node.id == root_pacakge_id)
-            .context("failed to find root package")?;
-
-        // find root package and it dependencies in workspace members
-        let package_list = &metadata
-            .packages
-            .iter()
-            .filter(|&p| {
-                &p.id == root_pacakge_id
-                    || (metadata.workspace_members.contains(&p.id)
-                        && root_node.dependencies.contains(&p.id))
-            })
-            .collect::<Vec<_>>();
-
         let target_dir = self
             .target_dir
             .as_ref()
             .unwrap_or(&metadata.target_directory);
 
+        let package_list = get_package_list(&metadata, self.deps_level.unwrap_or(1))?;
+        println!(
+            "...looking for Program implemetation in {} packages",
+            package_list.len()
+        );
         for program_package in package_list {
             let idl_gen = PackageIdlGenerator::new(
                 program_package,
@@ -205,6 +193,54 @@ impl<'a> PackageIdlGenerator<'a> {
             Err(err) => Err(err),
         }
     }
+}
+
+/// Get list of packages from the root package and its dependencies
+fn get_package_list(
+    metadata: &cargo_metadata::Metadata,
+    deps_level: usize,
+) -> Result<Vec<&Package>, anyhow::Error> {
+    let resolve = metadata
+        .resolve
+        .as_ref()
+        .context("failed to get resolve from metadata")?;
+    let root_package_id = resolve
+        .root
+        .as_ref()
+        .context("failed to find root package")?;
+    let node_map = resolve
+        .nodes
+        .iter()
+        .map(|n| (&n.id, n))
+        .collect::<HashMap<_, _>>();
+    let package_map = metadata
+        .packages
+        .iter()
+        .map(|p| (&p.id, p))
+        .collect::<HashMap<_, _>>();
+
+    let mut deps_set: HashSet<&PackageId> = HashSet::new();
+    deps_set.insert(root_package_id);
+
+    let mut deps = vec![root_package_id];
+    for _ in 0..deps_level {
+        deps = deps
+            .iter()
+            .filter_map(|id| node_map.get(id))
+            .flat_map(|&n| &n.dependencies)
+            .filter(|&id| metadata.workspace_members.contains(id))
+            .collect();
+        if deps.is_empty() {
+            break;
+        }
+        deps_set.extend(deps.iter());
+    }
+    let package_list: Vec<&Package> = deps_set
+        .iter()
+        .filter_map(|id| package_map.get(id))
+        .copied()
+        .collect();
+    Ok(package_list)
 }
 
 fn try_get_trait_implementation_path(
