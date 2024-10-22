@@ -3,3 +3,8 @@
 *.cs text diff=csharp
 *.rs text diff=rust
 *.toml text
+
+*.js text
+*.ts text
+*.json text
+yarn.lock merge=union
