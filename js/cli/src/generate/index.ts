@@ -10,7 +10,6 @@ import * as config from '../config.json';
 
 export class ProjectBuilder {
   private projectPath = ['.', 'src'];
-  private isProject: boolean = true;
   private isAutomaricOverride: boolean = false;
 
   constructor(
@@ -62,12 +61,6 @@ export class ProjectBuilder {
     return this;
   }
 
-  setIsProject(isProject: boolean) {
-    this.isProject = isProject;
-
-    return this;
-  }
-
   setAutomaticOverride(isAutomaricOverride: boolean) {
     this.isAutomaricOverride = isAutomaricOverride;
 
@@ -78,14 +71,12 @@ export class ProjectBuilder {
     const rootPath = this.projectPath[0];
     const srcPath = path.join(...this.projectPath);
 
-    const libPath = this.isProject ? srcPath : rootPath;
-
-    if (!existsSync(libPath)) {
-      mkdirSync(libPath, { recursive: true });
+    if (!existsSync(srcPath)) {
+      mkdirSync(srcPath, { recursive: true });
     }
 
     const libCode = this.generateLib();
-    const libFile = path.join(libPath, 'lib.ts');
+    const libFile = path.join(srcPath, 'lib.ts');
     if (await this.canCreateFile(libFile)) {
       writeFileSync(libFile, libCode);
     } else {
@@ -93,16 +84,11 @@ export class ProjectBuilder {
     }
 
     const typesCode = this.generateTypes();
-    const typesFile = path.join(libPath, 'global.d.ts');
+    const typesFile = path.join(srcPath, 'global.d.ts');
     if (await this.canCreateFile(typesFile)) {
       writeFileSync(typesFile, typesCode);
     } else {
       process.exit(0);
-    }
-
-    if (!this.isProject) {
-      console.log(`Lib generated at ${libPath}`);
-      return;
     }
 
     const tsconfigPath = path.join(rootPath, 'tsconfig.json');
