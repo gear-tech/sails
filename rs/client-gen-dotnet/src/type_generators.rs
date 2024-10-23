@@ -1,3 +1,5 @@
+use crate::helpers::summary_comment;
+use convert_case::{Case, Casing};
 use csharp::Tokens;
 use genco::prelude::*;
 use sails_idl_parser::{ast::visitor, ast::visitor::Visitor, ast::*};
@@ -37,11 +39,10 @@ impl<'a> TopLevelTypeGenerator<'a> {
 
 impl<'a, 'ast> Visitor<'ast> for TopLevelTypeGenerator<'a> {
     fn visit_type(&mut self, r#type: &'ast Type) {
-        for doc in r#type.docs() {
-            quote_in! { self.tokens =>
-                $['\r'] $("///") $doc
-            };
-        }
+        quote_in! { self.tokens =>
+            $['\r']
+            $(summary_comment(r#type.docs()))
+        };
         visitor::accept_type(r#type, self);
     }
 
@@ -61,6 +62,7 @@ impl<'a, 'ast> Visitor<'ast> for TopLevelTypeGenerator<'a> {
 #[derive(Default)]
 struct StructDefGenerator<'a> {
     type_name: &'a str,
+    is_tuple_struct: bool,
     tokens: Tokens,
 }
 
@@ -69,40 +71,48 @@ impl<'a> StructDefGenerator<'a> {
         Self {
             type_name,
             tokens: Tokens::new(),
+            is_tuple_struct: false,
         }
     }
 
     pub(crate) fn finalize(self) -> Tokens {
         quote! {
+            $['\r']
             public partial record struct $(self.type_name)
-            {
+            (
                 $(self.tokens)
-            }
+            )
         }
     }
 }
 
 impl<'ast> Visitor<'ast> for StructDefGenerator<'ast> {
     fn visit_struct_def(&mut self, struct_def: &'ast StructDef) {
+        let is_regular_struct = struct_def.fields().iter().all(|f| f.name().is_some());
+        let is_tuple_struct = struct_def.fields().iter().all(|f| f.name().is_none());
+        if !is_regular_struct && !is_tuple_struct {
+            panic!("Struct must be either regular or tuple");
+        }
+        self.is_tuple_struct = is_tuple_struct;
+
         visitor::accept_struct_def(struct_def, self);
     }
 
     fn visit_struct_field(&mut self, struct_field: &'ast StructField) {
         let type_decl_code = generate_type_decl_with_path(struct_field.type_decl(), "".into());
 
-        for doc in struct_field.docs() {
-            quote_in! { self.tokens =>
-                $['\r'] $("///") $doc
-            };
-        }
+        quote_in! { self.tokens =>
+            $['\r']
+            $(csharp::block_comment(struct_field.docs()))
+        };
 
         if let Some(field_name) = struct_field.name() {
             quote_in! { self.tokens =>
-                $['\r'] pub $field_name: $type_decl_code,
+                $['\r'] $type_decl_code $(field_name.to_case(Case::Pascal)),
             };
         } else {
             quote_in! { self.tokens =>
-                $['\r'] pub $type_decl_code,
+                $['\r'] $type_decl_code,
             };
         }
     }
@@ -135,11 +145,9 @@ impl<'a> EnumDefGenerator<'a> {
 
 impl<'ast> Visitor<'ast> for EnumDefGenerator<'ast> {
     fn visit_enum_variant(&mut self, enum_variant: &'ast EnumVariant) {
-        for doc in enum_variant.docs() {
-            quote_in! { self.tokens =>
-                $['\r'] $("///") $doc
-            };
-        }
+        quote_in! { self.tokens =>
+            $['\r'] $(summary_comment(enum_variant.docs()))
+        };
         quote_in! { self.tokens =>
             $['\r'] $(enum_variant.name()),
         };

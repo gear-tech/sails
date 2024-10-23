@@ -1,3 +1,7 @@
+use genco::{
+    lang::{csharp::Tokens, Csharp},
+    tokens::{FormatInto, ItemStr},
+};
 use parity_scale_codec::Encode;
 use sails_idl_parser::ast::FuncParam;
 
@@ -47,4 +51,37 @@ pub(crate) fn encoded_args(params: &[FuncParam]) -> String {
     let arg_names = encoded_fn_args(params);
 
     format!("({arg_names})")
+}
+
+pub fn summary_comment<T>(comment: T) -> SummaryComment<T>
+where
+    T: IntoIterator,
+    T::Item: Into<ItemStr>,
+{
+    SummaryComment(comment)
+}
+
+pub struct SummaryComment<T>(pub T);
+
+impl<T> FormatInto<Csharp> for SummaryComment<T>
+where
+    T: IntoIterator,
+    T::Item: Into<ItemStr>,
+{
+    fn format_into(self, tokens: &mut Tokens) {
+        let mut iter = self.0.into_iter().peekable();
+        if iter.peek().is_none() {
+            return;
+        }
+        tokens.push();
+        tokens.append(ItemStr::Static("/// <summary>"));
+        for line in iter {
+            tokens.push();
+            tokens.append(ItemStr::Static("///"));
+            tokens.space();
+            tokens.append(line.into());
+        }
+        tokens.push();
+        tokens.append(ItemStr::Static("/// </summary>"));
+    }
 }
