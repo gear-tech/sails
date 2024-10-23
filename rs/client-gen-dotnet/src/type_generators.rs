@@ -121,23 +121,39 @@ impl<'ast> Visitor<'ast> for StructDefGenerator<'ast> {
 #[derive(Default)]
 struct EnumDefGenerator<'a> {
     type_name: &'a str,
-    tokens: Tokens,
+    enum_tokens: Tokens,
+    class_tokens: Tokens,
 }
 
 impl<'a> EnumDefGenerator<'a> {
     pub(crate) fn new(type_name: &'a str) -> Self {
         Self {
             type_name,
-            tokens: Tokens::new(),
+            enum_tokens: Tokens::new(),
+            class_tokens: Tokens::new(),
         }
     }
 
     pub(crate) fn finalize(self) -> Tokens {
+        let class_name = format!("Enum{}", self.type_name);
         quote!(
             $['\r']
             public enum $(self.type_name)
             {
-                $(self.tokens)
+                $(self.enum_tokens)
+            }
+
+            $['\r']
+            public sealed class $(&class_name) : global::Substrate.NetApi.Model.Types.Base.BaseEnumRust<$(self.type_name)>
+            {
+                $['\r']
+                public $(&class_name)()
+                $['\r']
+                {
+                    $['\r']
+                    $(self.class_tokens)
+                    $['\r']
+                }
             }
         )
     }
@@ -145,12 +161,16 @@ impl<'a> EnumDefGenerator<'a> {
 
 impl<'ast> Visitor<'ast> for EnumDefGenerator<'ast> {
     fn visit_enum_variant(&mut self, enum_variant: &'ast EnumVariant) {
-        quote_in! { self.tokens =>
+        quote_in! { self.enum_tokens =>
             $['\r'] $(summary_comment(enum_variant.docs()))
         };
-        quote_in! { self.tokens =>
+        quote_in! { self.enum_tokens =>
             $['\r'] $(enum_variant.name()),
         };
+
+        quote_in! { self.class_tokens =>
+            AddTypeDecoder<>($(self.type_name).$(enum_variant.name()));
+        }
     }
 }
 
