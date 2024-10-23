@@ -52,6 +52,7 @@ gwasm-builder = { version = "=1.6.2", package = "gear-wasm-builder" }
 # Other deps in alphabetical order
 anyhow = "1"
 cargo-generate = "0.21"
+cargo_metadata = "0.18"
 clap = "4.5"
 convert-case = { package = "convert_case", version = "0.6" }
 futures = { version = "0.3", default-features = false }
@@ -70,6 +71,7 @@ parity-scale-codec = { version = "3.6", default-features = false }
 prettyplease = "0.2"
 proc-macro-error = "1.0"
 proc-macro2 = { version = "1", default-features = false }
+rustdoc-types = "=0.29.1"
 quote = "1.0"
 scale-info = { version = "2.11", default-features = false }
 serde = "1.0"
@@ -78,5 +80,6 @@ spin = { version = "0.9", default-features = false, features = ["spin_mutex"] }
 syn = "2.0"
 thiserror = "1.0"
 thiserror-no-std = "2.0"
+toml_edit = "0.22"
 tokio = "1.40"
 trybuild = "1"
