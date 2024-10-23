@@ -21,6 +21,7 @@ members = [
     "rs",
     "rs/cli",
     "rs/client-gen",
+    "rs/client-gen-dotnet",
     "rs/idl-gen",
     "rs/idl-meta",
     "rs/idl-parser",

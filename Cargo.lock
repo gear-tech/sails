@@ -6184,6 +6184,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "sails-client-gen-dotnet"
+version = "0.6.1"
+dependencies = [
+ "anyhow",
+ "convert_case 0.6.0",
+ "genco",
+ "insta",
+ "parity-scale-codec",
+ "sails-idl-parser",
+]
+
+[[package]]
 name = "sails-idl-gen"
 version = "0.6.1"
 dependencies = [

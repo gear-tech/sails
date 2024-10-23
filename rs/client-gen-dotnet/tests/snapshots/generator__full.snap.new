@@ -1,0 +1,27 @@
+---
+source: rs/client-gen-dotnet/tests/generator.rs
+assertion_line: 65
+expression: "gen(IDL, \"Service\")"
+---
+ /// ThisThatSvcAppTupleStruct docspublic partial record struct ThisThatSvcAppTupleStruct {
+ /// field `bool`
+ pub bool, }
+ /// ThisThatSvcAppDoThatParam docspublic partial record struct ThisThatSvcAppDoThatParam {
+ /// field `query`
+ pub query: u32,
+ /// field `result`
+ pub result: String,
+ /// field `p3`
+ pub p3: ThisThatSvcAppManyVariants, }
+ /// ThisThatSvcAppManyVariants docs
+ public enum ThisThatSvcAppManyVariants {
+ /// variant `One`
+ One,
+ /// variant `Two`
+ Two,
+ Three,
+ Four,
+ Five,
+ Six, }
+ public enum T {
+ One, }
