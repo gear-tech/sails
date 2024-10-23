@@ -9,4 +9,8 @@
     <PackageReference Include="Substrate.NET.API" />
   </ItemGroup>
 
+  <ItemGroup>
+    <PackageReference Remove="Roslynator.Formatting.Analyzers" />
+  </ItemGroup>
+
 </Project>

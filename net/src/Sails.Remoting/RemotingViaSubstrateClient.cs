@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using EnsureThat;
-using Nito.AsyncEx;
 using Sails.Remoting.Abstractions;
 using Sails.Remoting.Options;
 using Substrate.Gear.Api.Generated;
@@ -21,29 +20,20 @@ internal sealed class RemotingViaSubstrateClient : IDisposable, IRemoting
         EnsureArg.IsNotNull(options, nameof(options));
         EnsureArg.IsNotNull(options.GearNodeUri, nameof(options.GearNodeUri));
 
-        this.nodeClient = new AsyncLazy<SubstrateClientExt>(
-            async () =>
-            {
-                this.nodeClientToDispose ??= new SubstrateClientExt(options.GearNodeUri, ChargeTransactionPayment.Default());
-                await this.nodeClientToDispose.ConnectAsync().ConfigureAwait(false);
-                return this.nodeClientToDispose;
-            },
-            AsyncLazyFlags.RetryOnFailure);
+        this.nodeClient = new SubstrateClientExt(options.GearNodeUri, ChargeTransactionPayment.Default());
+        this.isNodeClientConnected = false;
     }
 
-    private readonly AsyncLazy<SubstrateClientExt> nodeClient;
-    private SubstrateClientExt? nodeClientToDispose;
+    private readonly SubstrateClientExt nodeClient;
+    private bool isNodeClientConnected;
 
     public void Dispose()
     {
-        if (this.nodeClientToDispose is not null)
-        {
-            this.nodeClientToDispose.Dispose();
-            this.nodeClientToDispose = null;
-        }
+        this.nodeClient.Dispose();
+        GC.SuppressFinalize(this);
     }
 
-    public Task<(ActorId ProgramId, byte[] EncodedReply)> ActivateAsync(
+    public async Task<(ActorId ProgramId, byte[] EncodedReply)> ActivateAsync(
         CodeId codeId,
         IReadOnlyCollection<byte> salt,
         IReadOnlyCollection<byte> encodedPayload,
@@ -54,6 +44,8 @@ internal sealed class RemotingViaSubstrateClient : IDisposable, IRemoting
         EnsureArg.IsNotNull(codeId, nameof(codeId));
         EnsureArg.IsNotNull(salt, nameof(salt));
         EnsureArg.IsNotNull(encodedPayload, nameof(encodedPayload));
+
+        await this.GetConnectedNodeClientAsync(cancellationToken).ConfigureAwait(false);
 
         throw new NotImplementedException();
     }
@@ -82,5 +74,15 @@ internal sealed class RemotingViaSubstrateClient : IDisposable, IRemoting
         EnsureArg.IsNotNull(encodedPayload, nameof(encodedPayload));
 
         throw new NotImplementedException();
+    }
+
+    private async Task<SubstrateClientExt> GetConnectedNodeClientAsync(CancellationToken cancellationToken)
+    {
+        if (!this.isNodeClientConnected)
+        {
+            await this.nodeClient.ConnectAsync(cancellationToken).ConfigureAwait(false);
+            this.isNodeClientConnected = true;
+        }
+        return this.nodeClient;
     }
 }
