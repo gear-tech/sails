@@ -24,8 +24,23 @@ jobs:
           echo "VERSION=$VERSION" >> $GITHUB_ENV
           echo "TAG_NAME=js/$VERSION" >> $GITHUB_ENV
 
+      - name: 'Get previous version from npm registry'
+        run: |
+          PREVIOUS_VERSION=$(npm show @js/package version)
+          echo "PREVIOUS_VERSION=$PREVIOUS_VERSION" >> $GITHUB_ENV
+
+      - name: 'Compare versions'
+        run: |
+          if [ ${{ env.VERSION }} == ${{ env.PREVIOUS_VERSION }} ]; then
+            echo "No new version to release"
+            echo "skip=true" >> $GITHUB_ENV
+          else
+            echo "New version to release"
+            echo "skip=false" >> $GITHUB_ENV
+          fi
+
       - name: 'Get release notes'
-        id: release_notes
+        if: env.skip != 'true'
         run: |
           awk '/## ${{ env.VERSION }}/{flag=1;next}/---/{flag=0} flag' ./js/CHANGELOG.md >> release_notes.txt
           echo "RELEASE_NOTES<<EOF" >> $GITHUB_ENV
@@ -34,23 +49,26 @@ jobs:
           rm release_notes.txt
 
       - name: 'Create new tag'
+        if: env.skip != 'true'
         run: |
           git tag ${{ env.TAG_NAME }}
           git push origin ${{ env.TAG_NAME }}
 
       - name: 'Create Release'
-        id: create_release
+        if: env.skip != 'true'
         uses: softprops/action-gh-release@v2
         with:
           body: ${{ env.RELEASE_NOTES }}
           tag_name: ${{ env.TAG_NAME }}
 
       - name: 'Prepare: install dependencies and build pkgs'
+        if: env.skip != 'true'
         run: |
           yarn install
           yarn build
 
       - name: Publish
+        if: env.skip != 'true'
         run: |
           export token=$(printenv npm_token)
           echo "//registry.npmjs.org/:_authToken=$token" > .npmrc
