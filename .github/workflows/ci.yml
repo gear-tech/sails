@@ -151,3 +151,4 @@ jobs:
       - name: Generate IDL from MyDemo via CLI
         run: |
           ./target/debug/cargo-sails sails idl --manifest-path ~/tmp/my-demo/Cargo.toml
+          diff ~/tmp/my-demo/target/my-demo-app.idl ~/tmp/my-demo/target/wasm32-unknown-unknown/debug/my_demo.idl

@@ -71,7 +71,7 @@ parity-scale-codec = { version = "3.6", default-features = false }
 prettyplease = "0.2"
 proc-macro-error = "1.0"
 proc-macro2 = { version = "1", default-features = false }
-rustdoc-types = { version = "0.29.1" }                                          # replace with official `rustdoc_json_types` after stable release
+rustdoc-types = "=0.29.1"
 quote = "1.0"
 scale-info = { version = "2.11", default-features = false }
 serde = "1.0"

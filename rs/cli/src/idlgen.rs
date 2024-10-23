@@ -10,7 +10,7 @@ use std::{
 pub struct CrateIdlGenerator {
     manifest_path: Utf8PathBuf,
     target_dir: Option<Utf8PathBuf>,
-    deps_level: Option<usize>,
+    deps_level: usize,
 }
 
 impl CrateIdlGenerator {
@@ -28,7 +28,7 @@ impl CrateIdlGenerator {
                 .and_then(|p| p.canonicalize().ok())
                 .map(Utf8PathBuf::from_path_buf)
                 .and_then(|t| t.ok()),
-            deps_level,
+            deps_level: deps_level.unwrap_or(1),
         }
     }
 
@@ -51,9 +51,9 @@ impl CrateIdlGenerator {
             .as_ref()
             .unwrap_or(&metadata.target_directory);
 
-        let package_list = get_package_list(&metadata, self.deps_level.unwrap_or(1))?;
+        let package_list = get_package_list(&metadata, self.deps_level)?;
         println!(
-            "...looking for Program implemetation in {} packages",
+            "...looking for Program implemetation in {} package(s)",
             package_list.len()
         );
         for program_package in package_list {
@@ -63,7 +63,7 @@ impl CrateIdlGenerator {
                 target_dir,
                 &metadata.workspace_root,
             );
-            match idl_gen.get_program_struct_path_from_doc() {
+            match get_program_struct_path_from_doc(program_package, target_dir) {
                 Ok((program_struct_path, meta_path_version)) => {
                     println!("...found Program implemetation: {}", program_struct_path);
                     let file_path = idl_gen
@@ -101,43 +101,6 @@ impl<'a> PackageIdlGenerator<'a> {
             target_dir,
             workspace_root,
         }
-    }
-
-    fn get_program_struct_path_from_doc(&self) -> anyhow::Result<(String, MetaPathVersion)> {
-        let program_package_file_name = &self.program_package.name.to_lowercase().replace('-', "_");
-        println!(
-            "...running doc generation for `{}`",
-            &self.program_package.manifest_path
-        );
-        // run `cargo doc`
-        _ = cargo_doc(&self.program_package.manifest_path, self.target_dir)?;
-        // read doc
-        let docs_path = &self
-            .target_dir
-            .join("doc")
-            .join(format!("{}.json", &program_package_file_name));
-        println!("...reading doc: {}", docs_path);
-        let json_string = std::fs::read_to_string(docs_path)?;
-        let doc_crate: rustdoc_types::Crate = serde_json::from_str(&json_string)?;
-
-        // find `sails_rs::meta::ProgramMeta` path id
-        let (program_meta_id, meta_path_version) = doc_crate
-            .paths
-            .iter()
-            .find_map(|(id, summary)| MetaPathVersion::matches(&summary.path).map(|v| (id, v)))
-            .context("failed to find `sails_rs::meta::ProgramMeta` definition in dependencies")?;
-        // find struct implementing `sails_rs::meta::ProgramMeta`
-        let program_struct_path = doc_crate
-            .index
-            .values()
-            .find_map(|idx| try_get_trait_implementation_path(idx, program_meta_id))
-            .context("failed to find `sails_rs::meta::ProgramMeta` implemetation")?;
-        let program_struct = doc_crate
-            .paths
-            .get(&program_struct_path.id)
-            .context("failed to get Program struct by id")?;
-        let program_struct_path = program_struct.path.join("::");
-        Ok((program_struct_path, meta_path_version))
     }
 
     fn try_generate_for_package(
@@ -241,6 +204,45 @@ fn get_package_list(
         .copied()
         .collect();
     Ok(package_list)
+}
+
+fn get_program_struct_path_from_doc(
+    program_package: &Package,
+    target_dir: &Utf8Path,
+) -> anyhow::Result<(String, MetaPathVersion)> {
+    let program_package_file_name = program_package.name.to_lowercase().replace('-', "_");
+    println!(
+        "...running doc generation for `{}`",
+        program_package.manifest_path
+    );
+    // run `cargo doc`
+    _ = cargo_doc(&program_package.manifest_path, target_dir)?;
+    // read doc
+    let docs_path = target_dir
+        .join("doc")
+        .join(format!("{}.json", &program_package_file_name));
+    println!("...reading doc: {}", docs_path);
+    let json_string = std::fs::read_to_string(docs_path)?;
+    let doc_crate: rustdoc_types::Crate = serde_json::from_str(&json_string)?;
+
+    // find `sails_rs::meta::ProgramMeta` path id
+    let (program_meta_id, meta_path_version) = doc_crate
+        .paths
+        .iter()
+        .find_map(|(id, summary)| MetaPathVersion::matches(&summary.path).map(|v| (id, v)))
+        .context("failed to find `sails_rs::meta::ProgramMeta` definition in dependencies")?;
+    // find struct implementing `sails_rs::meta::ProgramMeta`
+    let program_struct_path = doc_crate
+        .index
+        .values()
+        .find_map(|idx| try_get_trait_implementation_path(idx, program_meta_id))
+        .context("failed to find `sails_rs::meta::ProgramMeta` implemetation")?;
+    let program_struct = doc_crate
+        .paths
+        .get(&program_struct_path.id)
+        .context("failed to get Program struct by id")?;
+    let program_struct_path = program_struct.path.join("::");
+    Ok((program_struct_path, meta_path_version))
 }
 
 fn try_get_trait_implementation_path(
