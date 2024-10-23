@@ -2,15 +2,14 @@
 
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
-    <Nullable>disable</Nullable>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Substrate.NET.API" />
+    <PackageReference Include="Ensure.That" />
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Remove="Roslynator.Formatting.Analyzers" />
+    <ProjectReference Include="..\Substrate.Gear.Api\Substrate.Gear.Api.csproj" />
   </ItemGroup>
 
 </Project>
