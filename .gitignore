@@ -15,7 +15,6 @@ net/**/[Oo]bj/
 node_modules/
 js/**/lib/
 js/cli/build/
-js/parser/parser.wasm
 js/test/demo/
 .pnp.*
 .yarn/*

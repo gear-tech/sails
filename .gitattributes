@@ -8,3 +8,4 @@
 *.ts text
 *.json text
 yarn.lock merge=union
+*.wasm binary merge=binary

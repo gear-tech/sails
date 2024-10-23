@@ -1,0 +1,59 @@
+on:
+  push:
+    branches:
+      - master
+
+name: JS release
+
+jobs:
+  release:
+    name: Create Release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: 'Setup NodeJS 20.x'
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20.x
+
+      - name: 'Get version from package.json'
+        run: |
+          VERSION=$(jq -r '.version' package.json)
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+          echo "TAG_NAME=js/$VERSION" >> $GITHUB_ENV
+
+      - name: 'Get release notes'
+        id: release_notes
+        run: |
+          awk '/## ${{ env.VERSION }}/{flag=1;next}/---/{flag=0} flag' ./js/CHANGELOG.md >> release_notes.txt
+          echo "RELEASE_NOTES<<EOF" >> $GITHUB_ENV
+          cat release_notes.txt >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
+          rm release_notes.txt
+
+      - name: 'Create new tag'
+        run: |
+          git tag ${{ env.TAG_NAME }}
+          git push origin ${{ env.TAG_NAME }}
+
+      - name: 'Create Release'
+        id: create_release
+        uses: softprops/action-gh-release@v2
+        with:
+          body: ${{ env.RELEASE_NOTES }}
+          tag_name: ${{ env.TAG_NAME }}
+
+      - name: 'Prepare: install dependencies and build pkgs'
+        run: |
+          yarn install
+          yarn build
+
+      - name: Publish
+        run: |
+          export token=$(printenv npm_token)
+          echo "//registry.npmjs.org/:_authToken=$token" > .npmrc
+          npx lerna publish from-package --yes --no-private
+        env:
+          npm_token: ${{ secrets.NPM_TOKEN }}

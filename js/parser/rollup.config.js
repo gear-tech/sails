@@ -59,16 +59,6 @@ function cleanOldBuild() {
   };
 }
 
-function buildParserWasm() {
-  return {
-    name: 'build-parser-wasm',
-    buildStart() {
-      execSync('cargo build -p sails-idl-parser --target=wasm32-unknown-unknown --release');
-      execSync('wasm-opt -O4 -o ./parser.wasm ../../target/wasm32-unknown-unknown/release/sails_idl_parser.wasm');
-    },
-  };
-}
-
 export default [
   {
     input: 'src/index.ts',
@@ -81,7 +71,6 @@ export default [
       },
     ],
     plugins: [
-      buildParserWasm(),
       checkParserFile(),
       cleanOldBuild(),
       typescript({
