@@ -4,16 +4,43 @@ use csharp::{block_comment, Tokens};
 use genco::prelude::*;
 use sails_idl_parser::{ast::visitor, ast::visitor::Visitor, ast::*};
 
-pub(crate) fn generate_type_decl_code(type_decl: &TypeDecl) -> String {
-    let mut type_decl_generator = TypeDeclGenerator::default();
+pub(crate) fn generate_type_decl_code<'a>(type_decl: &TypeDecl) -> String {
+    let mut type_decl_generator = TypeDeclGenerator {
+        code: String::new(),
+        generated_types: &Vec::new(),
+    };
     visitor::accept_type_decl(type_decl, &mut type_decl_generator);
+    type_decl_generator.code
+}
+
+pub(crate) fn generate_type_decl_code_with_enums<'a>(
+    type_decl: &TypeDecl,
+    generated_types: &'a Vec<&'a Type>,
+) -> String {
+    let mut type_decl_generator = TypeDeclGenerator {
+        code: String::new(),
+        generated_types,
+    };
+    visitor::accept_type_decl(type_decl, &mut type_decl_generator);
+    type_decl_generator.code
+}
+
+pub(crate) fn generate_struct_def_code_with_enums<'a>(
+    struct_def: &StructDef,
+    generated_types: &'a Vec<&'a Type>,
+) -> String {
+    let mut type_decl_generator = TypeDeclGenerator {
+        code: String::new(),
+        generated_types,
+    };
+    visitor::accept_struct_def(struct_def, &mut type_decl_generator);
     type_decl_generator.code
 }
 
 pub(crate) fn generate_type_decl_with_path(type_decl: &TypeDecl, path: String) -> String {
     let mut type_decl_generator = TypeDeclGenerator {
         code: String::new(),
-        path,
+        generated_types: &Vec::new(),
     };
     visitor::accept_type_decl(type_decl, &mut type_decl_generator);
     type_decl_generator.code
@@ -21,13 +48,15 @@ pub(crate) fn generate_type_decl_with_path(type_decl: &TypeDecl, path: String) -
 
 pub(crate) struct TopLevelTypeGenerator<'a> {
     type_name: &'a str,
+    generated_types: &'a Vec<&'a Type>,
     tokens: Tokens,
 }
 
 impl<'a> TopLevelTypeGenerator<'a> {
-    pub(crate) fn new(type_name: &'a str) -> Self {
+    pub(crate) fn new(type_name: &'a str, generated_types: &'a Vec<&'a Type>) -> Self {
         Self {
             type_name,
+            generated_types,
             tokens: Tokens::new(),
         }
     }
@@ -47,21 +76,22 @@ impl<'a> Visitor<'a> for TopLevelTypeGenerator<'a> {
     }
 
     fn visit_struct_def(&mut self, struct_def: &'a StructDef) {
-        let mut struct_def_generator = StructDefGenerator::new(self.type_name);
+        let mut struct_def_generator =
+            StructDefGenerator::new(self.type_name, self.generated_types);
         struct_def_generator.visit_struct_def(struct_def);
         self.tokens.extend(struct_def_generator.finalize());
     }
 
     fn visit_enum_def(&mut self, enum_def: &'a EnumDef) {
-        let mut enum_def_generator = EnumDefGenerator::new(self.type_name);
+        let mut enum_def_generator = EnumDefGenerator::new(self.type_name, self.generated_types);
         enum_def_generator.visit_enum_def(enum_def);
         self.tokens.extend(enum_def_generator.finalize());
     }
 }
 
-#[derive(Default)]
 struct StructDefGenerator<'a> {
     type_name: &'a str,
+    generated_types: &'a Vec<&'a Type>,
     is_tuple_struct: bool,
     props_tokens: Tokens,
     encode_tokens: Tokens,
@@ -69,9 +99,10 @@ struct StructDefGenerator<'a> {
 }
 
 impl<'a> StructDefGenerator<'a> {
-    fn new(type_name: &'a str) -> Self {
+    fn new(type_name: &'a str, generated_types: &'a Vec<&'a Type>) -> Self {
         Self {
             type_name,
+            generated_types,
             is_tuple_struct: false,
             props_tokens: Tokens::new(),
             encode_tokens: Tokens::new(),
@@ -80,44 +111,57 @@ impl<'a> StructDefGenerator<'a> {
     }
 
     pub(crate) fn finalize(self) -> Tokens {
-        if self.is_tuple_struct {
-            Tokens::new()
-        } else {
-            quote! {
-                [global::Substrate.NetApi.Attributes.SubstrateNodeType(global::Substrate.NetApi.Model.Types.Metadata.Base.TypeDefEnum.Composite)]
-                public sealed partial class $(self.type_name) : global::Substrate.NetApi.Model.Types.Base.BaseType
+        quote! {
+            [global::Substrate.NetApi.Attributes.SubstrateNodeType(global::Substrate.NetApi.Model.Types.Metadata.Base.TypeDefEnum.Composite)]
+            public sealed partial class $(self.type_name) : global::Substrate.NetApi.Model.Types.Base.BaseType
+            {
+                $(self.props_tokens)
+
+                $(block_comment(vec!["<inheritdoc/>"]))
+                public override string TypeName() => $(quoted(self.type_name));
+
+                $(block_comment(vec!["<inheritdoc/>"]))
+                public override byte[] Encode()
                 {
-                    $(self.props_tokens)
+                    var result = new List<byte>();
+                    $(self.encode_tokens)
+                    return result.ToArray();
+                }
 
-                    $(block_comment(vec!["<inheritdoc/>"]))
-                    public override string TypeName() => $(quoted(self.type_name));
-
-                    $(block_comment(vec!["<inheritdoc/>"]))
-                    public override byte[] Encode()
-                    {
-                        var result = new List<byte>();
-                        $(self.encode_tokens)
-                        return result.ToArray();
-                    }
-
-                    $(block_comment(vec!["<inheritdoc/>"]))
-                    public override void Decode(byte[] byteArray, ref int p)
-                    {
-                        var start = p;
-                        $(self.decode_tokens)
-                        var bytesLength = p - start;
-                        this.TypeSize = bytesLength;
-                        this.Bytes = new byte[bytesLength];
-                        global::System.Array.Copy(byteArray, start, Bytes, 0, bytesLength);
-                    }
+                $(block_comment(vec!["<inheritdoc/>"]))
+                public override void Decode(byte[] byteArray, ref int p)
+                {
+                    var start = p;
+                    $(self.decode_tokens)
+                    var bytesLength = p - start;
+                    this.TypeSize = bytesLength;
+                    this.Bytes = new byte[bytesLength];
+                    global::System.Array.Copy(byteArray, start, Bytes, 0, bytesLength);
                 }
             }
         }
     }
+
+    fn tuple_struct(&mut self, struct_def: &'a StructDef) {
+        if struct_def.fields().is_empty() {
+            return;
+        }
+        let value_type = generate_struct_def_code_with_enums(struct_def, self.generated_types);
+        quote_in! { self.props_tokens =>
+            public $(&value_type) Value { get; set; }$['\r']
+        };
+        quote_in! { self.encode_tokens =>
+            result.AddRange(Value.Encode());$['\r']
+        };
+        quote_in! { self.decode_tokens =>
+            Value = new $(&value_type)();$['\r']
+            Value.Decode(byteArray, ref p);$['\r']
+        };
+    }
 }
 
-impl<'ast> Visitor<'ast> for StructDefGenerator<'ast> {
-    fn visit_struct_def(&mut self, struct_def: &'ast StructDef) {
+impl<'a> Visitor<'a> for StructDefGenerator<'a> {
+    fn visit_struct_def(&mut self, struct_def: &'a StructDef) {
         let is_regular_struct = struct_def.fields().iter().all(|f| f.name().is_some());
         let is_tuple_struct = struct_def.fields().iter().all(|f| f.name().is_none());
         if !is_regular_struct && !is_tuple_struct {
@@ -125,11 +169,16 @@ impl<'ast> Visitor<'ast> for StructDefGenerator<'ast> {
         }
         self.is_tuple_struct = is_tuple_struct;
 
+        if is_tuple_struct {
+            self.tuple_struct(struct_def);
+            return;
+        }
         visitor::accept_struct_def(struct_def, self);
     }
 
-    fn visit_struct_field(&mut self, struct_field: &'ast StructField) {
-        let type_decl_code = generate_type_decl_code(struct_field.type_decl());
+    fn visit_struct_field(&mut self, struct_field: &'a StructField) {
+        let type_decl_code =
+            generate_type_decl_code_with_enums(struct_field.type_decl(), self.generated_types);
 
         self.props_tokens.push();
         self.props_tokens
@@ -147,25 +196,22 @@ impl<'ast> Visitor<'ast> for StructDefGenerator<'ast> {
                 $(&field_name_pascal) = new $(&type_decl_code)();$['\r']
                 $(&field_name_pascal).Decode(byteArray, ref p);$['\r']
             };
-        } else {
-            quote_in! { self.props_tokens =>
-                $(&type_decl_code),
-            };
         }
     }
 }
 
-#[derive(Default)]
 struct EnumDefGenerator<'a> {
     type_name: &'a str,
+    generated_types: &'a Vec<&'a Type>,
     enum_tokens: Tokens,
     class_tokens: Tokens,
 }
 
 impl<'a> EnumDefGenerator<'a> {
-    pub(crate) fn new(type_name: &'a str) -> Self {
+    pub(crate) fn new(type_name: &'a str, generated_types: &'a Vec<&'a Type>) -> Self {
         Self {
             type_name,
+            generated_types,
             enum_tokens: Tokens::new(),
             class_tokens: Tokens::new(),
         }
@@ -179,7 +225,7 @@ impl<'a> EnumDefGenerator<'a> {
                 $(self.enum_tokens)
             }
 
-            public sealed class $(&class_name) : global::Substrate.NetApi.Model.Types.Base.BaseEnumRust<$(self.type_name)>
+            public sealed partial class $(&class_name) : global::Substrate.NetApi.Model.Types.Base.BaseEnumRust<$(self.type_name)>
             {
                 public $(&class_name)()
                 {
@@ -196,11 +242,11 @@ impl<'ast> Visitor<'ast> for EnumDefGenerator<'ast> {
             $(summary_comment(enum_variant.docs()))
         };
         quote_in! { self.enum_tokens =>
-            $(enum_variant.name()),
+            $(enum_variant.name()),$['\r']
         };
 
         let type_decl_code = if let Some(type_decl) = enum_variant.type_decl().as_ref() {
-            generate_type_decl_code(type_decl)
+            generate_type_decl_code_with_enums(type_decl, self.generated_types)
         } else {
             primitive_type_to_dotnet(PrimitiveType::Null).into()
         };
@@ -210,25 +256,20 @@ impl<'ast> Visitor<'ast> for EnumDefGenerator<'ast> {
     }
 }
 
-#[derive(Default)]
-struct TypeDeclGenerator {
+struct TypeDeclGenerator<'a> {
     code: String,
-    path: String,
+    generated_types: &'a Vec<&'a Type>,
 }
 
-impl<'ast> Visitor<'ast> for TypeDeclGenerator {
-    fn visit_optional_type_decl(&mut self, optional_type_decl: &'ast TypeDecl) {
+impl<'a> Visitor<'a> for TypeDeclGenerator<'a> {
+    fn visit_optional_type_decl(&mut self, optional_type_decl: &'a TypeDecl) {
         self.code
             .push_str("global::Substrate.NetApi.Model.Types.Base.BaseOpt<");
         visitor::accept_type_decl(optional_type_decl, self);
         self.code.push('>');
     }
 
-    fn visit_result_type_decl(
-        &mut self,
-        ok_type_decl: &'ast TypeDecl,
-        err_type_decl: &'ast TypeDecl,
-    ) {
+    fn visit_result_type_decl(&mut self, ok_type_decl: &'a TypeDecl, err_type_decl: &'a TypeDecl) {
         self.code.push_str("Result<");
         visitor::accept_type_decl(ok_type_decl, self);
         self.code.push_str(", ");
@@ -236,16 +277,30 @@ impl<'ast> Visitor<'ast> for TypeDeclGenerator {
         self.code.push('>');
     }
 
-    fn visit_vector_type_decl(&mut self, vector_type_decl: &'ast TypeDecl) {
-        self.code.push_str("Vec<");
+    fn visit_vector_type_decl(&mut self, vector_type_decl: &'a TypeDecl) {
+        self.code
+            .push_str("global::Substrate.NetApi.Model.Types.Base.BaseVec<");
         visitor::accept_type_decl(vector_type_decl, self);
         self.code.push('>');
     }
 
-    fn visit_struct_def(&mut self, struct_def: &'ast StructDef) {
-        let mut struct_def_generator = StructTypeGenerator::new(self.path.clone());
-        struct_def_generator.visit_struct_def(struct_def);
-        self.code.push_str(&struct_def_generator.code);
+    fn visit_struct_def(&mut self, struct_def: &'a StructDef) {
+        if struct_def.fields().is_empty() {
+            return;
+        }
+        if struct_def.fields().len() == 1 {
+            visitor::accept_type_decl(struct_def.fields()[0].type_decl(), self);
+        } else {
+            self.code
+                .push_str("global::Substrate.NetApi.Model.Types.Base.BaseTuple<");
+            for field in struct_def.fields() {
+                visitor::accept_type_decl(field.type_decl(), self);
+                if struct_def.fields().last() != Some(field) {
+                    self.code.push(',');
+                }
+            }
+            self.code.push('>');
+        }
     }
 
     fn visit_primitive_type_id(&mut self, primitive_type_id: PrimitiveType) {
@@ -253,19 +308,22 @@ impl<'ast> Visitor<'ast> for TypeDeclGenerator {
             .push_str(primitive_type_to_dotnet(primitive_type_id));
     }
 
-    fn visit_user_defined_type_id(&mut self, user_defined_type_id: &'ast str) {
-        if !self.path.is_empty() {
-            self.code.push_str(&self.path);
-            self.code.push_str("::");
-        }
-        self.code.push_str(user_defined_type_id);
+    fn visit_user_defined_type_id(&mut self, user_defined_type_id: &'a str) {
+        let is_enum = self
+            .generated_types
+            .iter()
+            .find(|&&t| t.name() == user_defined_type_id)
+            .map(|&t| matches!(t.def(), TypeDef::Enum(_)))
+            .unwrap_or_default();
+        let type_id = if is_enum {
+            &format!("Enum{}", user_defined_type_id)
+        } else {
+            user_defined_type_id
+        };
+        self.code.push_str(type_id);
     }
 
-    fn visit_map_type_decl(
-        &mut self,
-        key_type_decl: &'ast TypeDecl,
-        value_type_decl: &'ast TypeDecl,
-    ) {
+    fn visit_map_type_decl(&mut self, key_type_decl: &'a TypeDecl, value_type_decl: &'a TypeDecl) {
         self.code.push_str("BTreeMap<");
         visitor::accept_type_decl(key_type_decl, self);
         self.code.push_str(", ");
@@ -273,57 +331,10 @@ impl<'ast> Visitor<'ast> for TypeDeclGenerator {
         self.code.push('>');
     }
 
-    fn visit_array_type_decl(&mut self, item_type_decl: &'ast TypeDecl, len: u32) {
+    fn visit_array_type_decl(&mut self, item_type_decl: &'a TypeDecl, len: u32) {
         self.code.push('[');
         visitor::accept_type_decl(item_type_decl, self);
         self.code.push_str(&format!("; {len}]"));
-    }
-}
-
-struct StructTypeGenerator {
-    code: String,
-    path: String,
-}
-
-impl StructTypeGenerator {
-    fn new(path: String) -> Self {
-        Self {
-            code: String::new(),
-            path,
-        }
-    }
-}
-
-impl<'ast> Visitor<'ast> for StructTypeGenerator {
-    fn visit_struct_def(&mut self, struct_def: &'ast StructDef) {
-        let is_regular_struct = struct_def.fields().iter().all(|f| f.name().is_some());
-        let is_tuple_struct = struct_def.fields().iter().all(|f| f.name().is_none());
-        if !is_regular_struct && !is_tuple_struct {
-            panic!("Struct must be either regular or tuple");
-        }
-        if is_regular_struct {
-            self.code.push('{');
-        } else {
-            self.code.push('(');
-        }
-        visitor::accept_struct_def(struct_def, self);
-        if is_regular_struct {
-            self.code.push('}');
-        } else {
-            self.code.push(')');
-        }
-    }
-
-    fn visit_struct_field(&mut self, struct_field: &'ast StructField) {
-        let type_decl_code =
-            generate_type_decl_with_path(struct_field.type_decl(), self.path.clone());
-
-        if let Some(field_name) = struct_field.name() {
-            self.code
-                .push_str(&format!("{field_name}: {type_decl_code},"));
-        } else {
-            self.code.push_str(&format!("{type_decl_code},"));
-        }
     }
 }
 
@@ -343,9 +354,11 @@ fn primitive_type_to_dotnet(primitive_type: PrimitiveType) -> &'static str {
         PrimitiveType::Str => "global::Substrate.NetApi.Model.Types.Primitive.Str",
         PrimitiveType::Char => "global::Substrate.NetApi.Model.Types.Primitive.PrimChar",
         PrimitiveType::Null => "global::Substrate.NetApi.Model.Types.Base.BaseVoid",
-        PrimitiveType::ActorId => "ActorId",
-        PrimitiveType::CodeId => "CodeId",
-        PrimitiveType::MessageId => "MessageId",
+        PrimitiveType::ActorId => "global::Substrate.Gear.Api.Generated.Model.gprimitives.ActorId",
+        PrimitiveType::CodeId => "global::Substrate.Gear.Api.Generated.Model.gprimitives.CodeId",
+        PrimitiveType::MessageId => {
+            "global::Substrate.Gear.Api.Generated.Model.gprimitives.MessageId"
+        }
         PrimitiveType::H160 => "H160",
         PrimitiveType::H256 => "H256",
         PrimitiveType::U256 => "U256",

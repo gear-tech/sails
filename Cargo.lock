@@ -6204,6 +6204,7 @@ dependencies = [
  "convert_case 0.6.0",
  "genco",
  "insta",
+ "itertools 0.13.0",
  "parity-scale-codec",
  "sails-idl-parser",
 ]
