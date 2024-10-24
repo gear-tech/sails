@@ -14,6 +14,16 @@ namespace Substrate.Gear.Client;
 
 public static class SubstrateClientExtExtensions
 {
+    /// <summary>
+    /// Calculates amount of gas required for creating a new program from previously uploaded code.
+    /// </summary>
+    /// <param name="nodeClient"></param>
+    /// <param name="signingAccountKey"></param>
+    /// <param name="codeId"></param>
+    /// <param name="encodedInitPayload"></param>
+    /// <param name="value"></param>
+    /// <param name="cancellationToken"></param>
+    /// <returns></returns>
     public static async Task<GasInfo> CalculateGasForCreateProgramAsync(
         this SubstrateClientExt nodeClient,
         PublicKey signingAccountKey,
@@ -51,6 +61,16 @@ public static class SubstrateClientExtExtensions
         return gasInfoJson.ToGasInfo();
     }
 
+    /// <summary>
+    /// Calculates amount of gas required for uploading code and creating a new program from it.
+    /// </summary>
+    /// <param name="nodeClient"></param>
+    /// <param name="signingAccountKey"></param>
+    /// <param name="wasm"></param>
+    /// <param name="encodedInitPayload"></param>
+    /// <param name="value"></param>
+    /// <param name="cancellationToken"></param>
+    /// <returns></returns>
     public static async Task<GasInfo> CalculateGasForUploadProgramAsync(
         this SubstrateClientExt nodeClient,
         PublicKey signingAccountKey,
@@ -92,6 +112,16 @@ public static class SubstrateClientExtExtensions
         return gasInfoJson.ToGasInfo();
     }
 
+    /// <summary>
+    /// Calculates amount of gas required for executing a message by specified program.
+    /// </summary>
+    /// <param name="nodeClient"></param>
+    /// <param name="signingAccountKey"></param>
+    /// <param name="programId"></param>
+    /// <param name="encodedPayload"></param>
+    /// <param name="value"></param>
+    /// <param name="cancellationToken"></param>
+    /// <returns></returns>
     public static async Task<GasInfo> CalculateGasForHandleAsync(
         this SubstrateClientExt nodeClient,
         PublicKey signingAccountKey,

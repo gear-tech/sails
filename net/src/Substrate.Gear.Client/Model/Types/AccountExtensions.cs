@@ -6,6 +6,11 @@ namespace Substrate.Gear.Client.Model.Types;
 
 public static class AccountExtensions
 {
+    /// <summary>
+    /// Returns a public key of the account.
+    /// </summary>
+    /// <param name="account"></param>
+    /// <returns></returns>
     public static PublicKey GetPublicKey(this Account account)
     {
         EnsureArg.IsNotNull(account, nameof(account));
