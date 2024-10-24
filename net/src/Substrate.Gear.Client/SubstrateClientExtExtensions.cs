@@ -5,7 +5,7 @@ using EnsureThat;
 using Newtonsoft.Json;
 using Substrate.Gear.Api.Generated;
 using Substrate.Gear.Api.Generated.Model.gprimitives;
-using Substrate.NET.Schnorrkel.Keys;
+using Substrate.NET.Schnorrkel;
 using Substrate.NetApi;
 using GasUnit = Substrate.NetApi.Model.Types.Primitive.U64;
 using ValueUnit = Substrate.NetApi.Model.Types.Primitive.U128;
@@ -14,20 +14,77 @@ namespace Substrate.Gear.Client;
 
 public static class SubstrateClientExtExtensions
 {
-    public static async Task<GasInfo> CalculateGasForUploadAsync(
+    /// <summary>
+    /// Calculates amount of gas required for creating a new program from previously uploaded code.
+    /// </summary>
+    /// <param name="nodeClient"></param>
+    /// <param name="signingAccountKey"></param>
+    /// <param name="codeId"></param>
+    /// <param name="encodedInitPayload"></param>
+    /// <param name="value"></param>
+    /// <param name="cancellationToken"></param>
+    /// <returns></returns>
+    public static async Task<GasInfo> CalculateGasForCreateProgramAsync(
         this SubstrateClientExt nodeClient,
-        MiniSecret accountSecret,
+        PublicKey signingAccountKey,
+        CodeId codeId,
+        IReadOnlyCollection<byte> encodedInitPayload,
+        ValueUnit value,
+        CancellationToken cancellationToken)
+    {
+        EnsureArg.IsNotNull(nodeClient, nameof(nodeClient));
+        EnsureArg.IsNotNull(signingAccountKey, nameof(signingAccountKey));
+        EnsureArg.IsNotNull(codeId, nameof(codeId));
+        EnsureArg.IsNotNull(encodedInitPayload, nameof(encodedInitPayload));
+
+        var accountPublicKeyStr = Utils.Bytes2HexString(signingAccountKey.Key);
+        var encodedInitPayloadStr = Utils.Bytes2HexString(
+            encodedInitPayload is byte[] encodedInitPayloadBytes
+                ? encodedInitPayloadBytes
+                : [.. encodedInitPayload]);
+        var valueBigInt = value.Value;
+        var parameters = new object[]
+        {
+            accountPublicKeyStr,
+            codeId,
+            encodedInitPayloadStr,
+            valueBigInt,
+            true
+        };
+
+        var gasInfoJson = await nodeClient.InvokeAsync<GasInfoJson>(
+                "gear_calculateInitCreateGas",
+                parameters,
+                cancellationToken)
+            .ConfigureAwait(false);
+
+        return gasInfoJson.ToGasInfo();
+    }
+
+    /// <summary>
+    /// Calculates amount of gas required for uploading code and creating a new program from it.
+    /// </summary>
+    /// <param name="nodeClient"></param>
+    /// <param name="signingAccountKey"></param>
+    /// <param name="wasm"></param>
+    /// <param name="encodedInitPayload"></param>
+    /// <param name="value"></param>
+    /// <param name="cancellationToken"></param>
+    /// <returns></returns>
+    public static async Task<GasInfo> CalculateGasForUploadProgramAsync(
+        this SubstrateClientExt nodeClient,
+        PublicKey signingAccountKey,
         IReadOnlyCollection<byte> wasm,
         IReadOnlyCollection<byte> encodedInitPayload,
         ValueUnit value,
         CancellationToken cancellationToken)
     {
         EnsureArg.IsNotNull(nodeClient, nameof(nodeClient));
-        EnsureArg.IsNotNull(accountSecret, nameof(accountSecret));
+        EnsureArg.IsNotNull(signingAccountKey, nameof(signingAccountKey));
         EnsureArg.HasItems(wasm, nameof(wasm));
         EnsureArg.IsNotNull(encodedInitPayload, nameof(encodedInitPayload));
 
-        var accountPublicKeyStr = Utils.Bytes2HexString(accountSecret.GetPair().Public.Key);
+        var accountPublicKeyStr = Utils.Bytes2HexString(signingAccountKey.Key);
         var wasmBytesStr = Utils.Bytes2HexString(
             wasm is byte[] wasmBytes
                 ? wasmBytes
@@ -55,25 +112,36 @@ public static class SubstrateClientExtExtensions
         return gasInfoJson.ToGasInfo();
     }
 
-    public static async Task<GasInfo> CalculateGasGorHandleAsync(
+    /// <summary>
+    /// Calculates amount of gas required for executing a message by specified program.
+    /// </summary>
+    /// <param name="nodeClient"></param>
+    /// <param name="signingAccountKey"></param>
+    /// <param name="programId"></param>
+    /// <param name="encodedPayload"></param>
+    /// <param name="value"></param>
+    /// <param name="cancellationToken"></param>
+    /// <returns></returns>
+    public static async Task<GasInfo> CalculateGasForHandleAsync(
         this SubstrateClientExt nodeClient,
-        MiniSecret accountSecret,
+        PublicKey signingAccountKey,
         ActorId programId,
         IReadOnlyCollection<byte> encodedPayload,
         ValueUnit value,
         CancellationToken cancellationToken)
     {
         EnsureArg.IsNotNull(nodeClient, nameof(nodeClient));
-        EnsureArg.IsNotNull(accountSecret, nameof(accountSecret));
+        EnsureArg.IsNotNull(signingAccountKey, nameof(signingAccountKey));
         EnsureArg.IsNotNull(programId, nameof(programId));
         EnsureArg.IsNotNull(encodedPayload, nameof(encodedPayload));
 
-        var accountPublicKeyStr = Utils.Bytes2HexString(accountSecret.GetPair().Public.Key);
+        var accountPublicKeyStr = Utils.Bytes2HexString(signingAccountKey.Key);
         var encodedPayloadStr = Utils.Bytes2HexString(
             encodedPayload is byte[] encodedPayloadBytes
                 ? encodedPayloadBytes
                 : [.. encodedPayload]);
-        var parameters = new object[] {
+        var parameters = new object[]
+        {
             accountPublicKeyStr,
             programId,
             encodedPayloadStr,
@@ -92,21 +160,20 @@ public static class SubstrateClientExtExtensions
 
     private sealed record GasInfoJson
     {
-        /// Represents minimum gas limit required for execution.
+        // Represents minimum gas limit required for execution.
         [JsonProperty("min_limit")]
         public ulong MinLimit { get; init; }
-        /// Gas amount that we reserve for some other on-chain interactions.
+        // Gas amount that we reserve for some other on-chain interactions.
         public ulong Reserved { get; init; }
-        /// Contains number of gas burned during message processing.
+        // Contains number of gas burned during message processing.
         public ulong Burned { get; init; }
-        /// The value may be returned if a program happens to be executed
-        /// the second or next time in a block.
+        // The value may be returned if a program happens to be executed
+        // the second or next time in a block.
         [JsonProperty("may_be_returned")]
         public ulong MayBeReturned { get; init; }
-        /// Was the message placed into waitlist at the end of calculating.
-        ///
-        /// This flag shows, that `min_limit` makes sense and have some guarantees
-        /// only before insertion into waitlist.
+        // Was the message placed into waitlist at the end of calculating.
+        // This flag shows, that `min_limit` makes sense and have some guarantees
+        // only before insertion into waitlist.
         [JsonProperty("waited")]
         public bool IsInWaitList { get; init; }
 
