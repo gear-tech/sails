@@ -9,14 +9,14 @@ export default () => {
   execSync('rm -rf ./test/demo');
 
   // Generate demo ts client
-  execSync('node cli/build/app.js generate ../examples/demo/client/demo.idl -o ./test/demo --no-project --yes');
+  execSync('node cli/build/app.js generate ../examples/demo/client/demo.idl -o ./test/demo --yes');
 
   // Modify client imports
 
-  const filesToModify = ['test/demo/lib.ts'];
+  const filesToModify = ['test/demo/src/lib.ts'];
 
   for (const path of filesToModify) {
-    const data = fs.readFileSync(path, 'utf8').replace(`from 'sails-js'`, `from '../..'`);
+    const data = fs.readFileSync(path, 'utf8').replace(`from 'sails-js'`, `from '../../..'`);
     fs.writeFileSync(path, data, 'utf8');
   }
 };
