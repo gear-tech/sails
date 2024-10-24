@@ -111,18 +111,20 @@ impl<'a> ClientGenerator<'a, IdlString<'a>> {
 
     pub fn generate(self, anonymous_service_name: &str) -> Result<String> {
         let idl = self.idl.0;
-        // let sails_path = self.sails_path.unwrap_or(SAILS);
-        let mut generator = RootGenerator::new(anonymous_service_name, self.external_types);
         let program = sails_idl_parser::ast::parse_idl(idl).context("Failed to parse IDL")?;
+
+        let mut generator = RootGenerator::new(anonymous_service_name, self.external_types);
         visitor::accept_program(&program, &mut generator);
+        let tokens = generator.finalize();
 
-        let code_tokens = generator.finalize();
-        let code = code_tokens.to_file_string()?;
+        let fmt = genco::fmt::Config::from_lang::<genco::lang::Csharp>()
+            .with_indentation(genco::fmt::Indentation::Space(4));
+        let config = genco::lang::csharp::Config::default();
+        let mut w = genco::fmt::FmtWriter::new(String::new());
 
-        // Check for parsing errors
-        // let code = pretty_with_rustfmt(&code);
+        tokens.format_file(&mut w.as_formatter(&fmt), &config)?;
 
-        Ok(code)
+        Ok(w.into_inner())
     }
 
     pub fn generate_to(

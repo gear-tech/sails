@@ -1,6 +1,6 @@
 use crate::helpers::summary_comment;
 use convert_case::{Case, Casing};
-use csharp::Tokens;
+use csharp::{block_comment, Tokens};
 use genco::prelude::*;
 use sails_idl_parser::{ast::visitor, ast::visitor::Visitor, ast::*};
 
@@ -37,22 +37,22 @@ impl<'a> TopLevelTypeGenerator<'a> {
     }
 }
 
-impl<'a, 'ast> Visitor<'ast> for TopLevelTypeGenerator<'a> {
-    fn visit_type(&mut self, r#type: &'ast Type) {
-        quote_in! { self.tokens =>
-            $['\r']
-            $(summary_comment(r#type.docs()))
-        };
-        visitor::accept_type(r#type, self);
+impl<'a> Visitor<'a> for TopLevelTypeGenerator<'a> {
+    fn visit_type(&mut self, type_: &'a Type) {
+        self.tokens.push();
+        self.tokens.append(summary_comment(type_.docs()));
+        self.tokens.push();
+        visitor::accept_type(type_, self);
+        self.tokens.line();
     }
 
-    fn visit_struct_def(&mut self, struct_def: &'ast StructDef) {
+    fn visit_struct_def(&mut self, struct_def: &'a StructDef) {
         let mut struct_def_generator = StructDefGenerator::new(self.type_name);
         struct_def_generator.visit_struct_def(struct_def);
         self.tokens.extend(struct_def_generator.finalize());
     }
 
-    fn visit_enum_def(&mut self, enum_def: &'ast EnumDef) {
+    fn visit_enum_def(&mut self, enum_def: &'a EnumDef) {
         let mut enum_def_generator = EnumDefGenerator::new(self.type_name);
         enum_def_generator.visit_enum_def(enum_def);
         self.tokens.extend(enum_def_generator.finalize());
@@ -63,25 +63,55 @@ impl<'a, 'ast> Visitor<'ast> for TopLevelTypeGenerator<'a> {
 struct StructDefGenerator<'a> {
     type_name: &'a str,
     is_tuple_struct: bool,
-    tokens: Tokens,
+    props_tokens: Tokens,
+    encode_tokens: Tokens,
+    decode_tokens: Tokens,
 }
 
 impl<'a> StructDefGenerator<'a> {
     fn new(type_name: &'a str) -> Self {
         Self {
             type_name,
-            tokens: Tokens::new(),
             is_tuple_struct: false,
+            props_tokens: Tokens::new(),
+            encode_tokens: Tokens::new(),
+            decode_tokens: Tokens::new(),
         }
     }
 
     pub(crate) fn finalize(self) -> Tokens {
-        quote! {
-            $['\r']
-            public partial record struct $(self.type_name)
-            (
-                $(self.tokens)
-            )
+        if self.is_tuple_struct {
+            Tokens::new()
+        } else {
+            quote! {
+                [global::Substrate.NetApi.Attributes.SubstrateNodeType(global::Substrate.NetApi.Model.Types.Metadata.Base.TypeDefEnum.Composite)]
+                public sealed partial class $(self.type_name) : global::Substrate.NetApi.Model.Types.Base.BaseType
+                {
+                    $(self.props_tokens)
+
+                    $(block_comment(vec!["<inheritdoc/>"]))
+                    public override string TypeName() => $(quoted(self.type_name));
+
+                    $(block_comment(vec!["<inheritdoc/>"]))
+                    public override byte[] Encode()
+                    {
+                        var result = new List<byte>();
+                        $(self.encode_tokens)
+                        return result.ToArray();
+                    }
+
+                    $(block_comment(vec!["<inheritdoc/>"]))
+                    public override void Decode(byte[] byteArray, ref int p)
+                    {
+                        var start = p;
+                        $(self.decode_tokens)
+                        var bytesLength = p - start;
+                        this.TypeSize = bytesLength;
+                        this.Bytes = new byte[bytesLength];
+                        global::System.Array.Copy(byteArray, start, Bytes, 0, bytesLength);
+                    }
+                }
+            }
         }
     }
 }
@@ -99,20 +129,27 @@ impl<'ast> Visitor<'ast> for StructDefGenerator<'ast> {
     }
 
     fn visit_struct_field(&mut self, struct_field: &'ast StructField) {
-        let type_decl_code = generate_type_decl_with_path(struct_field.type_decl(), "".into());
+        let type_decl_code = generate_type_decl_code(struct_field.type_decl());
 
-        quote_in! { self.tokens =>
-            $['\r']
-            $(csharp::block_comment(struct_field.docs()))
-        };
-
+        self.props_tokens.push();
+        self.props_tokens
+            .append(summary_comment(struct_field.docs()));
+        self.props_tokens.push();
         if let Some(field_name) = struct_field.name() {
-            quote_in! { self.tokens =>
-                $['\r'] $type_decl_code $(field_name.to_case(Case::Pascal)),
+            let field_name_pascal = field_name.to_case(Case::Pascal);
+            quote_in! { self.props_tokens =>
+                public $(&type_decl_code) $(&field_name_pascal) { get; set; }$['\r']
+            };
+            quote_in! { self.encode_tokens =>
+                result.AddRange($(&field_name_pascal).Encode());$['\r']
+            };
+            quote_in! { self.decode_tokens =>
+                $(&field_name_pascal) = new $(&type_decl_code)();$['\r']
+                $(&field_name_pascal).Decode(byteArray, ref p);$['\r']
             };
         } else {
-            quote_in! { self.tokens =>
-                $['\r'] $type_decl_code,
+            quote_in! { self.props_tokens =>
+                $(&type_decl_code),
             };
         }
     }
@@ -137,22 +174,16 @@ impl<'a> EnumDefGenerator<'a> {
     pub(crate) fn finalize(self) -> Tokens {
         let class_name = format!("Enum{}", self.type_name);
         quote!(
-            $['\r']
             public enum $(self.type_name)
             {
                 $(self.enum_tokens)
             }
 
-            $['\r']
             public sealed class $(&class_name) : global::Substrate.NetApi.Model.Types.Base.BaseEnumRust<$(self.type_name)>
             {
-                $['\r']
                 public $(&class_name)()
-                $['\r']
                 {
-                    $['\r']
                     $(self.class_tokens)
-                    $['\r']
                 }
             }
         )
@@ -162,14 +193,19 @@ impl<'a> EnumDefGenerator<'a> {
 impl<'ast> Visitor<'ast> for EnumDefGenerator<'ast> {
     fn visit_enum_variant(&mut self, enum_variant: &'ast EnumVariant) {
         quote_in! { self.enum_tokens =>
-            $['\r'] $(summary_comment(enum_variant.docs()))
+            $(summary_comment(enum_variant.docs()))
         };
         quote_in! { self.enum_tokens =>
-            $['\r'] $(enum_variant.name()),
+            $(enum_variant.name()),
         };
 
+        let type_decl_code = if let Some(type_decl) = enum_variant.type_decl().as_ref() {
+            generate_type_decl_code(type_decl)
+        } else {
+            primitive_type_to_dotnet(PrimitiveType::Null).into()
+        };
         quote_in! { self.class_tokens =>
-            AddTypeDecoder<>($(self.type_name).$(enum_variant.name()));
+            this.AddTypeDecoder<$(type_decl_code)>($(self.type_name).$(enum_variant.name()));$['\r']
         }
     }
 }
@@ -182,7 +218,8 @@ struct TypeDeclGenerator {
 
 impl<'ast> Visitor<'ast> for TypeDeclGenerator {
     fn visit_optional_type_decl(&mut self, optional_type_decl: &'ast TypeDecl) {
-        self.code.push_str("Option<");
+        self.code
+            .push_str("global::Substrate.NetApi.Model.Types.Base.BaseOpt<");
         visitor::accept_type_decl(optional_type_decl, self);
         self.code.push('>');
     }
@@ -212,34 +249,8 @@ impl<'ast> Visitor<'ast> for TypeDeclGenerator {
     }
 
     fn visit_primitive_type_id(&mut self, primitive_type_id: PrimitiveType) {
-        self.code.push_str(match primitive_type_id {
-            PrimitiveType::U8 => "u8",
-            PrimitiveType::U16 => "u16",
-            PrimitiveType::U32 => "u32",
-            PrimitiveType::U64 => "u64",
-            PrimitiveType::U128 => "u128",
-            PrimitiveType::I8 => "i8",
-            PrimitiveType::I16 => "i16",
-            PrimitiveType::I32 => "i32",
-            PrimitiveType::I64 => "i64",
-            PrimitiveType::I128 => "i128",
-            PrimitiveType::Bool => "bool",
-            PrimitiveType::Str => "String",
-            PrimitiveType::Char => "char",
-            PrimitiveType::Null => "()",
-            PrimitiveType::ActorId => "ActorId",
-            PrimitiveType::CodeId => "CodeId",
-            PrimitiveType::MessageId => "MessageId",
-            PrimitiveType::H160 => "H160",
-            PrimitiveType::H256 => "H256",
-            PrimitiveType::U256 => "U256",
-            PrimitiveType::NonZeroU8 => "NonZeroU8",
-            PrimitiveType::NonZeroU16 => "NonZeroU16",
-            PrimitiveType::NonZeroU32 => "NonZeroU32",
-            PrimitiveType::NonZeroU64 => "NonZeroU64",
-            PrimitiveType::NonZeroU128 => "NonZeroU128",
-            PrimitiveType::NonZeroU256 => "NonZeroU256",
-        });
+        self.code
+            .push_str(primitive_type_to_dotnet(primitive_type_id));
     }
 
     fn visit_user_defined_type_id(&mut self, user_defined_type_id: &'ast str) {
@@ -313,5 +324,36 @@ impl<'ast> Visitor<'ast> for StructTypeGenerator {
         } else {
             self.code.push_str(&format!("{type_decl_code},"));
         }
+    }
+}
+
+fn primitive_type_to_dotnet(primitive_type: PrimitiveType) -> &'static str {
+    match primitive_type {
+        PrimitiveType::U8 => "global::Substrate.NetApi.Model.Types.Primitive.U8",
+        PrimitiveType::U16 => "global::Substrate.NetApi.Model.Types.Primitive.U16",
+        PrimitiveType::U32 => "global::Substrate.NetApi.Model.Types.Primitive.U32",
+        PrimitiveType::U64 => "global::Substrate.NetApi.Model.Types.Primitive.U64",
+        PrimitiveType::U128 => "global::Substrate.NetApi.Model.Types.Primitive.U128",
+        PrimitiveType::I8 => "global::Substrate.NetApi.Model.Types.Primitive.I8",
+        PrimitiveType::I16 => "global::Substrate.NetApi.Model.Types.Primitive.I16",
+        PrimitiveType::I32 => "global::Substrate.NetApi.Model.Types.Primitive.I32",
+        PrimitiveType::I64 => "global::Substrate.NetApi.Model.Types.Primitive.I64",
+        PrimitiveType::I128 => "global::Substrate.NetApi.Model.Types.Primitive.I128",
+        PrimitiveType::Bool => "global::Substrate.NetApi.Model.Types.Primitive.Bool",
+        PrimitiveType::Str => "global::Substrate.NetApi.Model.Types.Primitive.Str",
+        PrimitiveType::Char => "global::Substrate.NetApi.Model.Types.Primitive.PrimChar",
+        PrimitiveType::Null => "global::Substrate.NetApi.Model.Types.Base.BaseVoid",
+        PrimitiveType::ActorId => "ActorId",
+        PrimitiveType::CodeId => "CodeId",
+        PrimitiveType::MessageId => "MessageId",
+        PrimitiveType::H160 => "H160",
+        PrimitiveType::H256 => "H256",
+        PrimitiveType::U256 => "U256",
+        PrimitiveType::NonZeroU8 => "NonZeroU8",
+        PrimitiveType::NonZeroU16 => "NonZeroU16",
+        PrimitiveType::NonZeroU32 => "NonZeroU32",
+        PrimitiveType::NonZeroU64 => "NonZeroU64",
+        PrimitiveType::NonZeroU128 => "NonZeroU128",
+        PrimitiveType::NonZeroU256 => "NonZeroU256",
     }
 }
