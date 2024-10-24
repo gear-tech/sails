@@ -12,6 +12,7 @@ repository.workspace = true
 anyhow.workspace = true
 convert-case.workspace = true
 genco.workspace = true
+itertools.workspace = true
 parity-scale-codec.workspace = true
 sails-idl-parser.workspace = true
 

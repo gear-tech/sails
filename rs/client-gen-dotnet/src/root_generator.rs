@@ -14,6 +14,7 @@ pub(crate) struct RootGenerator<'a> {
     mocks_tokens: Tokens,
     anonymous_service_name: &'a str,
     external_types: HashMap<&'a str, &'a str>,
+    generated_types: Vec<&'a Type>,
 }
 
 impl<'a> RootGenerator<'a> {
@@ -27,25 +28,31 @@ impl<'a> RootGenerator<'a> {
             traits_tokens: Tokens::new(),
             mocks_tokens: Tokens::new(),
             external_types,
+            generated_types: Vec::new(),
         }
     }
 
-    pub(crate) fn finalize(self) -> Tokens {
+    pub(crate) fn finalize(mut self) -> Tokens {
+        for &type_ in &self.generated_types {
+            let mut type_gen = TopLevelTypeGenerator::new(&type_.name(), &self.generated_types);
+            type_gen.visit_type(type_);
+            self.tokens.extend(type_gen.finalize());
+        }
         self.tokens
     }
 }
 
-impl<'a, 'ast> Visitor<'ast> for RootGenerator<'a> {
-    fn visit_ctor(&mut self, ctor: &'ast Ctor) {}
+impl<'a> Visitor<'a> for RootGenerator<'a> {
+    fn visit_ctor(&mut self, ctor: &'a Ctor) {}
 
-    fn visit_service(&mut self, service: &'ast Service) {}
+    fn visit_service(&mut self, service: &'a Service) {}
 
-    fn visit_type(&mut self, t: &'ast Type) {
+    fn visit_type(&mut self, t: &'a Type) {
         if self.external_types.contains_key(t.name()) {
             return;
         }
-        let mut type_gen = TopLevelTypeGenerator::new(t.name());
-        type_gen.visit_type(t);
-        self.tokens.extend(type_gen.finalize());
+        // collect all generated types
+        // used later to add prefix to enum types
+        self.generated_types.push(t);
     }
 }

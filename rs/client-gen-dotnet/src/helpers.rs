@@ -83,5 +83,6 @@ where
         }
         tokens.push();
         tokens.append(ItemStr::Static("/// </summary>"));
+        tokens.push();
     }
 }
