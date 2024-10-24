@@ -31,9 +31,7 @@ impl<'a> RootGenerator<'a> {
     }
 
     pub(crate) fn finalize(self) -> Tokens {
-        quote! {
-            $(self.tokens)
-        }
+        self.tokens
     }
 }
 

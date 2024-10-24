@@ -1,29 +1,13 @@
 ---
 source: rs/client-gen-dotnet/tests/generator.rs
-assertion_line: 65
-expression: "gen(IDL, \"Service\")"
+assertion_line: 198
+expression: code
 ---
-/// <summary>
-/// ThisThatSvcAppTupleStruct docs
-/// </summary>
-
-/// <summary>
-/// ThisThatSvcAppDoThatParam docs
-/// </summary>
 [global::Substrate.NetApi.Attributes.SubstrateNodeType(global::Substrate.NetApi.Model.Types.Metadata.Base.TypeDefEnum.Composite)]
 public sealed partial class ThisThatSvcAppDoThatParam : global::Substrate.NetApi.Model.Types.Base.BaseType
 {
-    /// <summary>
-    /// field `query`
-    /// </summary>
-    public global::Substrate.NetApi.Model.Types.Primitive.U32 Query { get; set; }
-    /// <summary>
-    /// field `result`
-    /// </summary>
-    public global::Substrate.NetApi.Model.Types.Primitive.Str Result { get; set; }
-    /// <summary>
-    /// field `p3`
-    /// </summary>
+    public global::Substrate.NetApi.Model.Types.Primitive.U32 P1 { get; set; }
+    public global::Substrate.NetApi.Model.Types.Primitive.Str P2 { get; set; }
     public ThisThatSvcAppManyVariants P3 { get; set; }
 
     /// <inheritdoc/>
@@ -33,8 +17,8 @@ public sealed partial class ThisThatSvcAppDoThatParam : global::Substrate.NetApi
     public override byte[] Encode()
     {
         var result = new List<byte>();
-        result.AddRange(Query.Encode());
-        result.AddRange(Result.Encode());
+        result.AddRange(P1.Encode());
+        result.AddRange(P2.Encode());
         result.AddRange(P3.Encode());
         return result.ToArray();
     }
@@ -43,10 +27,10 @@ public sealed partial class ThisThatSvcAppDoThatParam : global::Substrate.NetApi
     public override void Decode(byte[] byteArray, ref int p)
     {
         var start = p;
-        Query = new global::Substrate.NetApi.Model.Types.Primitive.U32();
-        Query.Decode(byteArray, ref p);
-        Result = new global::Substrate.NetApi.Model.Types.Primitive.Str();
-        Result.Decode(byteArray, ref p);
+        P1 = new global::Substrate.NetApi.Model.Types.Primitive.U32();
+        P1.Decode(byteArray, ref p);
+        P2 = new global::Substrate.NetApi.Model.Types.Primitive.Str();
+        P2.Decode(byteArray, ref p);
         P3 = new ThisThatSvcAppManyVariants();
         P3.Decode(byteArray, ref p);
         var bytesLength = p - start;
@@ -56,17 +40,9 @@ public sealed partial class ThisThatSvcAppDoThatParam : global::Substrate.NetApi
     }
 }
 
-/// <summary>
-/// ThisThatSvcAppManyVariants docs
-/// </summary>
 public enum ThisThatSvcAppManyVariants
 {
-    /// <summary>
-    /// variant `One`
-    /// </summary>One,
-    /// <summary>
-    /// variant `Two`
-    /// </summary>Two,Three,Four,Five,Six,
+    One,Two,Three,Four,Five,Six,
 }
 
 public sealed class EnumThisThatSvcAppManyVariants : global::Substrate.NetApi.Model.Types.Base.BaseEnumRust<ThisThatSvcAppManyVariants>
