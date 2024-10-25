@@ -48,15 +48,15 @@ pub(crate) fn generate_type_decl_with_path(type_decl: &TypeDecl, path: String) -
 
 pub(crate) struct TopLevelTypeGenerator<'a> {
     type_name: &'a str,
-    generated_types: &'a Vec<&'a Type>,
+    type_generator: TypeDeclGenerator<'a>,
     tokens: Tokens,
 }
 
 impl<'a> TopLevelTypeGenerator<'a> {
-    pub(crate) fn new(type_name: &'a str, generated_types: &'a Vec<&'a Type>) -> Self {
+    pub(crate) fn new(type_name: &'a str, type_generator: TypeDeclGenerator<'a>) -> Self {
         Self {
             type_name,
-            generated_types,
+            type_generator,
             tokens: Tokens::new(),
         }
     }
@@ -77,13 +77,14 @@ impl<'a> Visitor<'a> for TopLevelTypeGenerator<'a> {
 
     fn visit_struct_def(&mut self, struct_def: &'a StructDef) {
         let mut struct_def_generator =
-            StructDefGenerator::new(self.type_name, self.generated_types);
+            StructDefGenerator::new(self.type_name, self.type_generator.clone());
         struct_def_generator.visit_struct_def(struct_def);
         self.tokens.extend(struct_def_generator.finalize());
     }
 
     fn visit_enum_def(&mut self, enum_def: &'a EnumDef) {
-        let mut enum_def_generator = EnumDefGenerator::new(self.type_name, self.generated_types);
+        let mut enum_def_generator =
+            EnumDefGenerator::new(self.type_name, self.type_generator.clone());
         enum_def_generator.visit_enum_def(enum_def);
         self.tokens.extend(enum_def_generator.finalize());
     }
@@ -91,7 +92,7 @@ impl<'a> Visitor<'a> for TopLevelTypeGenerator<'a> {
 
 struct StructDefGenerator<'a> {
     type_name: &'a str,
-    generated_types: &'a Vec<&'a Type>,
+    type_generator: TypeDeclGenerator<'a>,
     is_tuple_struct: bool,
     props_tokens: Tokens,
     encode_tokens: Tokens,
@@ -99,10 +100,10 @@ struct StructDefGenerator<'a> {
 }
 
 impl<'a> StructDefGenerator<'a> {
-    fn new(type_name: &'a str, generated_types: &'a Vec<&'a Type>) -> Self {
+    fn new(type_name: &'a str, type_generator: TypeDeclGenerator<'a>) -> Self {
         Self {
             type_name,
-            generated_types,
+            type_generator,
             is_tuple_struct: false,
             props_tokens: Tokens::new(),
             encode_tokens: Tokens::new(),
@@ -146,7 +147,7 @@ impl<'a> StructDefGenerator<'a> {
         if struct_def.fields().is_empty() {
             return;
         }
-        let value_type = generate_struct_def_code_with_enums(struct_def, self.generated_types);
+        let value_type = self.type_generator.generate_struct_def(struct_def);
         quote_in! { self.props_tokens =>
             public $(&value_type) Value { get; set; }$['\r']
         };
@@ -177,8 +178,9 @@ impl<'a> Visitor<'a> for StructDefGenerator<'a> {
     }
 
     fn visit_struct_field(&mut self, struct_field: &'a StructField) {
-        let type_decl_code =
-            generate_type_decl_code_with_enums(struct_field.type_decl(), self.generated_types);
+        let type_decl_code = self
+            .type_generator
+            .generate_type_decl(struct_field.type_decl());
 
         self.props_tokens.push();
         self.props_tokens
@@ -202,16 +204,16 @@ impl<'a> Visitor<'a> for StructDefGenerator<'a> {
 
 struct EnumDefGenerator<'a> {
     type_name: &'a str,
-    generated_types: &'a Vec<&'a Type>,
+    type_generator: TypeDeclGenerator<'a>,
     enum_tokens: Tokens,
     class_tokens: Tokens,
 }
 
 impl<'a> EnumDefGenerator<'a> {
-    pub(crate) fn new(type_name: &'a str, generated_types: &'a Vec<&'a Type>) -> Self {
+    pub(crate) fn new(type_name: &'a str, type_generator: TypeDeclGenerator<'a>) -> Self {
         Self {
             type_name,
-            generated_types,
+            type_generator,
             enum_tokens: Tokens::new(),
             class_tokens: Tokens::new(),
         }
@@ -246,7 +248,7 @@ impl<'ast> Visitor<'ast> for EnumDefGenerator<'ast> {
         };
 
         let type_decl_code = if let Some(type_decl) = enum_variant.type_decl().as_ref() {
-            generate_type_decl_code_with_enums(type_decl, self.generated_types)
+            self.type_generator.generate_type_decl(type_decl)
         } else {
             primitive_type_to_dotnet(PrimitiveType::Null).into()
         };
@@ -256,6 +258,7 @@ impl<'ast> Visitor<'ast> for EnumDefGenerator<'ast> {
     }
 }
 
+#[derive(Clone)]
 pub(crate) struct TypeDeclGenerator<'a> {
     code: String,
     generated_types: &'a Vec<&'a Type>,
@@ -271,6 +274,12 @@ impl<'a> TypeDeclGenerator<'a> {
 
     pub(crate) fn generate_type_decl(&mut self, type_decl: &'a TypeDecl) -> String {
         visitor::accept_type_decl(type_decl, self);
+        let code = std::mem::take(&mut self.code);
+        code
+    }
+
+    pub(crate) fn generate_struct_def(&mut self, struct_def: &'a StructDef) -> String {
+        visitor::accept_struct_def(struct_def, self);
         let code = std::mem::take(&mut self.code);
         code
     }

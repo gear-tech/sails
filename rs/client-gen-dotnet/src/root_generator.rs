@@ -30,7 +30,10 @@ impl<'a> RootGenerator<'a> {
 
     pub(crate) fn finalize(mut self) -> Tokens {
         for &type_ in &self.generated_types {
-            let mut type_gen = TopLevelTypeGenerator::new(&type_.name(), &self.generated_types);
+            let mut type_gen = TopLevelTypeGenerator::new(
+                &type_.name(),
+                TypeDeclGenerator::new(&self.generated_types),
+            );
             type_gen.visit_type(type_);
             self.tokens.extend(type_gen.finalize());
         }
