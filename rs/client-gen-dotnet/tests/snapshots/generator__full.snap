@@ -32,7 +32,16 @@ public partial class ServiceFactory : IServiceFactory
 }
 
 public interface IService
-{}
+{
+    global::Sails.Remoting.Abstractions.ICall<global::Substrate.NetApi.Model.Types.Base.BaseTuple<global::Substrate.NetApi.Model.Types.Primitive.Str, global::Substrate.NetApi.Model.Types.Primitive.U32>> DoThis(
+        global::Substrate.NetApi.Model.Types.Primitive.U32 p1,global::Substrate.NetApi.Model.Types.Primitive.Str p2,global::Substrate.NetApi.Model.Types.Base.BaseTuple<global::Substrate.NetApi.Model.Types.Base.BaseOpt<global::Substrate.NetApi.Model.Types.Primitive.Str>, global::Substrate.NetApi.Model.Types.Primitive.U8> p3,ThisThatSvcAppTupleStruct p4);
+    global::Sails.Remoting.Abstractions.ICall<Result<global::Substrate.NetApi.Model.Types.Base.BaseTuple<global::Substrate.NetApi.Model.Types.Primitive.Str, global::Substrate.NetApi.Model.Types.Primitive.U32>, global::Substrate.NetApi.Model.Types.Primitive.Str>> DoThat(
+        ThisThatSvcAppDoThatParam param);
+    global::Sails.Remoting.Abstractions.IQuery<global::Substrate.NetApi.Model.Types.Primitive.U32> This(
+        global::Substrate.NetApi.Model.Types.Base.BaseVec<global::Substrate.NetApi.Model.Types.Primitive.U16> v1);
+    global::Sails.Remoting.Abstractions.IQuery<Result<global::Substrate.NetApi.Model.Types.Primitive.Str, global::Substrate.NetApi.Model.Types.Primitive.Str>> That(
+        global::Substrate.NetApi.Model.Types.Base.BaseVoid v1);
+}
 
 public partial class Service : IService
 {
@@ -41,6 +50,47 @@ public partial class Service : IService
     public Service(IRemoting remoting)
     {
         this.remoting = remoting;
+    }
+
+    /// <inheritdoc/>
+    public global::Sails.Remoting.Abstractions.ICall<global::Substrate.NetApi.Model.Types.Base.BaseTuple<global::Substrate.NetApi.Model.Types.Primitive.Str, global::Substrate.NetApi.Model.Types.Primitive.U32>> DoThis(
+        global::Substrate.NetApi.Model.Types.Primitive.U32 p1,global::Substrate.NetApi.Model.Types.Primitive.Str p2,global::Substrate.NetApi.Model.Types.Base.BaseTuple<global::Substrate.NetApi.Model.Types.Base.BaseOpt<global::Substrate.NetApi.Model.Types.Primitive.Str>, global::Substrate.NetApi.Model.Types.Primitive.U8> p3,ThisThatSvcAppTupleStruct p4)
+    {
+        return new RemotingAction<global::Substrate.NetApi.Model.Types.Base.BaseTuple<global::Substrate.NetApi.Model.Types.Primitive.Str, global::Substrate.NetApi.Model.Types.Primitive.U32>>(
+            this.remoting,
+            new byte[] { 28, 83, 101, 114, 118, 105, 99, 101, 24, 68, 111, 84, 104, 105, 115 },
+            new global::Substrate.NetApi.Model.Types.Base.BaseTupleRust(p1, p2, p3, p4)
+        );
+    }
+    /// <inheritdoc/>
+    public global::Sails.Remoting.Abstractions.ICall<Result<global::Substrate.NetApi.Model.Types.Base.BaseTuple<global::Substrate.NetApi.Model.Types.Primitive.Str, global::Substrate.NetApi.Model.Types.Primitive.U32>, global::Substrate.NetApi.Model.Types.Primitive.Str>> DoThat(
+        ThisThatSvcAppDoThatParam param)
+    {
+        return new RemotingAction<Result<global::Substrate.NetApi.Model.Types.Base.BaseTuple<global::Substrate.NetApi.Model.Types.Primitive.Str, global::Substrate.NetApi.Model.Types.Primitive.U32>, global::Substrate.NetApi.Model.Types.Primitive.Str>>(
+            this.remoting,
+            new byte[] { 28, 83, 101, 114, 118, 105, 99, 101, 24, 68, 111, 84, 104, 97, 116 },
+            new global::Substrate.NetApi.Model.Types.Base.BaseTupleRust(param)
+        );
+    }
+    /// <inheritdoc/>
+    public global::Sails.Remoting.Abstractions.IQuery<global::Substrate.NetApi.Model.Types.Primitive.U32> This(
+        global::Substrate.NetApi.Model.Types.Base.BaseVec<global::Substrate.NetApi.Model.Types.Primitive.U16> v1)
+    {
+        return new RemotingAction<global::Substrate.NetApi.Model.Types.Primitive.U32>(
+            this.remoting,
+            new byte[] { 28, 83, 101, 114, 118, 105, 99, 101, 16, 84, 104, 105, 115 },
+            new global::Substrate.NetApi.Model.Types.Base.BaseTupleRust(v1)
+        );
+    }
+    /// <inheritdoc/>
+    public global::Sails.Remoting.Abstractions.IQuery<Result<global::Substrate.NetApi.Model.Types.Primitive.Str, global::Substrate.NetApi.Model.Types.Primitive.Str>> That(
+        global::Substrate.NetApi.Model.Types.Base.BaseVoid v1)
+    {
+        return new RemotingAction<Result<global::Substrate.NetApi.Model.Types.Primitive.Str, global::Substrate.NetApi.Model.Types.Primitive.Str>>(
+            this.remoting,
+            new byte[] { 28, 83, 101, 114, 118, 105, 99, 101, 16, 84, 104, 97, 116 },
+            new global::Substrate.NetApi.Model.Types.Base.BaseTupleRust(v1)
+        );
     }
 }
 /// <summary>
@@ -58,7 +108,7 @@ public sealed partial class ThisThatSvcAppTupleStruct : global::Substrate.NetApi
     public override byte[] Encode()
     {
         var result = new List<byte>();
-        result.AddRange(Value.Encode());
+        result.AddRange(this.Value.Encode());
         return result.ToArray();
     }
 
@@ -66,12 +116,12 @@ public sealed partial class ThisThatSvcAppTupleStruct : global::Substrate.NetApi
     public override void Decode(byte[] byteArray, ref int p)
     {
         var start = p;
-        Value = new global::Substrate.NetApi.Model.Types.Primitive.Bool();
-        Value.Decode(byteArray, ref p);
+        this.Value = new global::Substrate.NetApi.Model.Types.Primitive.Bool();
+        this.Value.Decode(byteArray, ref p);
         var bytesLength = p - start;
         this.TypeSize = bytesLength;
         this.Bytes = new byte[bytesLength];
-        global::System.Array.Copy(byteArray, start, Bytes, 0, bytesLength);
+        global::System.Array.Copy(byteArray, start, this.Bytes, 0, bytesLength);
     }
 }
 
@@ -101,9 +151,9 @@ public sealed partial class ThisThatSvcAppDoThatParam : global::Substrate.NetApi
     public override byte[] Encode()
     {
         var result = new List<byte>();
-        result.AddRange(Query.Encode());
-        result.AddRange(Result.Encode());
-        result.AddRange(P3.Encode());
+        result.AddRange(this.Query.Encode());
+        result.AddRange(this.Result.Encode());
+        result.AddRange(this.P3.Encode());
         return result.ToArray();
     }
 
@@ -111,16 +161,16 @@ public sealed partial class ThisThatSvcAppDoThatParam : global::Substrate.NetApi
     public override void Decode(byte[] byteArray, ref int p)
     {
         var start = p;
-        Query = new global::Substrate.NetApi.Model.Types.Primitive.U32();
-        Query.Decode(byteArray, ref p);
-        Result = new global::Substrate.NetApi.Model.Types.Primitive.Str();
-        Result.Decode(byteArray, ref p);
-        P3 = new EnumThisThatSvcAppManyVariants();
-        P3.Decode(byteArray, ref p);
+        this.Query = new global::Substrate.NetApi.Model.Types.Primitive.U32();
+        this.Query.Decode(byteArray, ref p);
+        this.Result = new global::Substrate.NetApi.Model.Types.Primitive.Str();
+        this.Result.Decode(byteArray, ref p);
+        this.P3 = new EnumThisThatSvcAppManyVariants();
+        this.P3.Decode(byteArray, ref p);
         var bytesLength = p - start;
         this.TypeSize = bytesLength;
         this.Bytes = new byte[bytesLength];
-        global::System.Array.Copy(byteArray, start, Bytes, 0, bytesLength);
+        global::System.Array.Copy(byteArray, start, this.Bytes, 0, bytesLength);
     }
 }
 
