@@ -1,3 +1,4 @@
+use convert_case::Casing;
 use genco::{
     lang::{csharp::Tokens, Csharp},
     tokens::{FormatInto, ItemStr},
@@ -11,13 +12,11 @@ pub(crate) fn path_bytes(path: &str) -> (String, usize) {
     } else {
         let service_path_bytes = path.encode();
         let service_path_encoded_length = service_path_bytes.len();
-        let mut service_path_bytes = service_path_bytes
+        let service_path_bytes = service_path_bytes
             .into_iter()
             .map(|x| x.to_string())
             .collect::<Vec<_>>()
-            .join(",");
-
-        service_path_bytes.push(',');
+            .join(", ");
 
         (service_path_bytes, service_path_encoded_length)
     }
@@ -38,7 +37,7 @@ pub(crate) fn method_bytes(fn_name: &str) -> (String, usize) {
 pub(crate) fn encoded_fn_args(params: &[FuncParam]) -> String {
     params
         .iter()
-        .map(|a| a.name())
+        .map(|a| a.name().to_case(convert_case::Case::Camel))
         .collect::<Vec<_>>()
         .join(", ")
 }

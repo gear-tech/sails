@@ -1,178 +1,99 @@
-use crate::{
-    helpers::*, io_generators::generate_io_struct, type_generators::generate_type_decl_code,
-};
+use crate::{helpers::*, type_generators::TypeDeclGenerator};
 use convert_case::{Case, Casing};
+use csharp::{block_comment, Tokens};
 use genco::prelude::*;
-use rust::Tokens;
 use sails_idl_parser::{ast::visitor, ast::visitor::Visitor, ast::*};
 
 pub(crate) struct CtorFactoryGenerator<'a> {
-    service_name: &'a str,
-    sails_path: &'a str,
-    tokens: Tokens,
-    io_tokens: Tokens,
+    service_name: String,
+    type_generator: TypeDeclGenerator<'a>,
+    class_tokens: Tokens,
+    interface_tokens: Tokens,
 }
 
 impl<'a> CtorFactoryGenerator<'a> {
-    pub(crate) fn new(service_name: &'a str, sails_path: &'a str) -> Self {
+    pub(crate) fn new(service_name: String, type_generator: TypeDeclGenerator<'a>) -> Self {
         Self {
             service_name,
-            sails_path,
-            tokens: Tokens::new(),
-            io_tokens: Tokens::new(),
+            type_generator,
+            class_tokens: Tokens::new(),
+            interface_tokens: Tokens::new(),
         }
     }
 
     pub(crate) fn finalize(self) -> Tokens {
-        let service_name_snake = self.service_name.to_case(Case::Snake);
+        let class_name = format!("{}Factory", self.service_name);
         quote! {
-            $(self.tokens)
+            public interface I$(&class_name)
+            {
+                $(self.interface_tokens)
+            }
             $['\n']
-            pub mod $(service_name_snake)_factory {
-                use super::*;
-                pub mod io {
-                    use super::*;
-                    use $(self.sails_path)::calls::ActionIo;
-                    $(self.io_tokens)
+            public partial class $(&class_name) : I$(&class_name)
+            {
+                private readonly IRemoting remoting;
+
+                public $(&class_name)(IRemoting remoting)
+                {
+                    this.remoting = remoting;
                 }
+
+                $(self.class_tokens)
             }
+            $['\n']
         }
     }
 }
 
-impl<'a, 'ast> Visitor<'ast> for CtorFactoryGenerator<'a> {
-    fn visit_ctor(&mut self, ctor: &'ast Ctor) {
-        quote_in! {self.tokens =>
-            pub struct $(self.service_name)Factory<R> {
-                #[allow(dead_code)]
-                remoting: R,
-            }
-
-            impl<R> $(self.service_name)Factory<R> {
-                #[allow(unused)]
-                pub fn new(remoting: R) -> Self {
-                    Self {
-                        remoting,
-                    }
-                }
-            }
-
-            impl<R: Remoting + Clone> traits::$(self.service_name)Factory for $(self.service_name)Factory<R> $("{")
-                type Args = R::Args;
-        };
-
+impl<'a> Visitor<'a> for CtorFactoryGenerator<'a> {
+    fn visit_ctor(&mut self, ctor: &'a Ctor) {
         visitor::accept_ctor(ctor, self);
-
-        quote_in! { self.tokens =>
-            $['\r'] $("}")
-        };
     }
 
-    fn visit_ctor_func(&mut self, func: &'ast CtorFunc) {
-        let fn_name = func.name();
-        let fn_name_snake = fn_name.to_case(Case::Snake);
-        let fn_name_snake = fn_name_snake.as_str();
+    fn visit_ctor_func(&mut self, func: &'a CtorFunc) {
+        let func_name_pascal = func.name().to_case(Case::Pascal);
 
-        for doc in func.docs() {
-            quote_in! { self.tokens =>
-                $['\r'] $("///") $doc
-            };
-        }
+        self.interface_tokens.push();
+        self.interface_tokens.append(summary_comment(func.docs()));
+        self.interface_tokens.push();
 
-        quote_in! { self.tokens =>
-            $['\r'] fn $fn_name_snake$("(")&self,
+        let route_bytes = path_bytes(func.name()).0;
+        let args = encoded_fn_args(func.params());
+        let args_with_type = func
+            .params()
+            .iter()
+            .map(|p| {
+                format!(
+                    "{} {}",
+                    self.type_generator.generate_type_decl(p.type_decl()),
+                    p.name().to_case(Case::Camel)
+                )
+            })
+            .collect::<Vec<_>>()
+            .join(",\r");
+
+        let type_decls = func
+            .params()
+            .iter()
+            .map(|p| p.type_decl())
+            .collect::<Vec<_>>();
+        let tuple_arg_type = self.type_generator.generate_types_as_tuple(type_decls);
+
+        quote_in! { self.interface_tokens =>
+            IActivation $(&func_name_pascal)($['\r']
+                $(&args_with_type));$['\r']
         };
 
-        visitor::accept_ctor_func(func, self);
-
-        let args = encoded_args(func.params());
-
-        let service_name_snake = self.service_name.to_case(Case::Snake);
-        let params_type = format!("{service_name_snake}_factory::io::{fn_name}");
-
-        quote_in! { self.tokens =>
-            $(")") -> impl Activation<Args = R::Args> {
-                RemotingAction::<_, $params_type>::new(self.remoting.clone(), $args)
+        quote_in! { self.class_tokens =>
+            $(block_comment(vec!["<inheritdoc/>"]))
+            public IActivation $(&func_name_pascal)($['\r']
+                $(&args_with_type))
+            {
+                return new RemotingAction<$(&tuple_arg_type)>(
+                    this.remoting,
+                    new byte[] { $(&route_bytes) },
+                    new $(&tuple_arg_type)($(&args)));
             }
-        };
-
-        let route_bytes = path_bytes(fn_name).0;
-        let struct_tokens = generate_io_struct(fn_name, func.params(), None, route_bytes.as_str());
-
-        quote_in! { self.io_tokens =>
-            $struct_tokens
-        };
-    }
-
-    fn visit_func_param(&mut self, func_param: &'ast FuncParam) {
-        let type_decl_code = generate_type_decl_code(func_param.type_decl());
-        quote_in! { self.tokens =>
-            $(func_param.name()): $(type_decl_code),
-        };
-    }
-}
-
-pub(crate) struct CtorTraitGenerator {
-    service_name: String,
-    tokens: Tokens,
-}
-
-impl CtorTraitGenerator {
-    pub(crate) fn new(service_name: String) -> Self {
-        Self {
-            service_name,
-            tokens: Tokens::new(),
-        }
-    }
-
-    pub(crate) fn finalize(self) -> Tokens {
-        self.tokens
-    }
-}
-
-impl<'ast> Visitor<'ast> for CtorTraitGenerator {
-    fn visit_ctor(&mut self, ctor: &'ast Ctor) {
-        quote_in! {self.tokens =>
-            #[allow(dead_code)]
-            pub trait $(&self.service_name)Factory $("{")
-                type Args;
-        };
-
-        visitor::accept_ctor(ctor, self);
-
-        quote_in! {self.tokens =>
-            $['\r'] $("}")
-        };
-    }
-
-    fn visit_ctor_func(&mut self, func: &'ast CtorFunc) {
-        let fn_name = func.name();
-        let fn_name_snake = fn_name.to_case(Case::Snake);
-        let fn_name_snake = fn_name_snake.as_str();
-
-        if fn_name_snake == "new" {
-            quote_in! {self.tokens =>
-                #[allow(clippy::new_ret_no_self)]
-                #[allow(clippy::wrong_self_convention)]
-            };
-        }
-
-        quote_in! {self.tokens =>
-            $['\r'] fn $fn_name_snake$("(")&self,
-        };
-
-        visitor::accept_ctor_func(func, self);
-
-        quote_in! {self.tokens =>
-            $(")") -> impl Activation<Args = Self::Args>;
-        };
-    }
-
-    fn visit_func_param(&mut self, func_param: &'ast FuncParam) {
-        let type_decl_code = generate_type_decl_code(func_param.type_decl());
-
-        quote_in! { self.tokens =>
-            $(func_param.name()): $(type_decl_code),
         };
     }
 }

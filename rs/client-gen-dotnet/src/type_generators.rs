@@ -256,9 +256,54 @@ impl<'ast> Visitor<'ast> for EnumDefGenerator<'ast> {
     }
 }
 
-struct TypeDeclGenerator<'a> {
+pub(crate) struct TypeDeclGenerator<'a> {
     code: String,
     generated_types: &'a Vec<&'a Type>,
+}
+
+impl<'a> TypeDeclGenerator<'a> {
+    pub(crate) fn new(generated_types: &'a Vec<&'a Type>) -> Self {
+        Self {
+            code: String::new(),
+            generated_types,
+        }
+    }
+
+    pub(crate) fn generate_type_decl(&mut self, type_decl: &'a TypeDecl) -> String {
+        visitor::accept_type_decl(type_decl, self);
+        let code = std::mem::take(&mut self.code);
+        code
+    }
+
+    pub(crate) fn generate_types_as_tuple(&mut self, type_decls: Vec<&'a TypeDecl>) -> String {
+        if type_decls.is_empty() {
+        } else if type_decls.len() == 1 {
+            visitor::accept_type_decl(type_decls[0], self);
+        } else {
+            self.code
+                .push_str("global::Substrate.NetApi.Model.Types.Base.BaseTuple<");
+            self.join_type_decls(type_decls, ", ");
+            self.code.push('>');
+        }
+        let code = std::mem::take(&mut self.code);
+        code
+    }
+
+    fn join_type_decls<I: IntoIterator<Item = &'a TypeDecl>>(
+        &mut self,
+        type_decls: I,
+        separator: &str,
+    ) {
+        let prev_code = std::mem::take(&mut self.code);
+        let mut type_decls_str: Vec<String> = Vec::new();
+        let iter = type_decls.into_iter();
+        for type_decl in iter {
+            visitor::accept_type_decl(type_decl, self);
+            type_decls_str.push(std::mem::take(&mut self.code));
+        }
+        _ = std::mem::replace(&mut self.code, prev_code);
+        self.code.push_str(type_decls_str.join(separator).as_str());
+    }
 }
 
 impl<'a> Visitor<'a> for TypeDeclGenerator<'a> {
@@ -293,12 +338,7 @@ impl<'a> Visitor<'a> for TypeDeclGenerator<'a> {
         } else {
             self.code
                 .push_str("global::Substrate.NetApi.Model.Types.Base.BaseTuple<");
-            for field in struct_def.fields() {
-                visitor::accept_type_decl(field.type_decl(), self);
-                if struct_def.fields().last() != Some(field) {
-                    self.code.push(',');
-                }
-            }
+            self.join_type_decls(struct_def.fields().iter().map(|f| f.type_decl()), ", ");
             self.code.push('>');
         }
     }
