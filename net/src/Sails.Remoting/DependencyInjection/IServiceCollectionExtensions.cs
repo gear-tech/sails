@@ -14,9 +14,9 @@ public static class IServiceCollectionExtensions
         EnsureArg.IsNotNull(services, nameof(services));
         EnsureArg.IsNotNull(options, nameof(options));
 
-        services.AddSingleton(options);
-
-        services.AddTransient<IRemoting, RemotingViaSubstrateClient>();
+        services.AddTransient<IRemotingProvider>(
+            _ => new RemotingProvider(
+                signingAccount => new RemotingViaSubstrateClient(options, signingAccount)));
 
         return services;
     }
