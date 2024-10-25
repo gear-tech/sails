@@ -50,11 +50,14 @@ impl<'a> Visitor<'a> for RootGenerator<'a> {
 
     fn visit_service(&mut self, service: &'a Service) {
         let service_name = if service.name().is_empty() {
-            self.anonymous_service_name.to_case(Case::Pascal)
+            self.anonymous_service_name
         } else {
-            service.name().to_case(Case::Pascal)
+            service.name()
         };
-        let mut service_gen = ServiceClientGenerator::new(service_name);
+        let mut service_gen = ServiceClientGenerator::new(
+            service_name.to_owned(),
+            TypeDeclGenerator::new(&self.generated_types),
+        );
         service_gen.visit_service(service);
         self.tokens.extend(service_gen.finalize());
     }

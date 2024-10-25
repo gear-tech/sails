@@ -1,4 +1,4 @@
-use crate::helpers::summary_comment;
+use crate::helpers::*;
 use convert_case::{Case, Casing};
 use csharp::{block_comment, Tokens};
 use genco::prelude::*;
@@ -136,7 +136,7 @@ impl<'a> StructDefGenerator<'a> {
                     var bytesLength = p - start;
                     this.TypeSize = bytesLength;
                     this.Bytes = new byte[bytesLength];
-                    global::System.Array.Copy(byteArray, start, Bytes, 0, bytesLength);
+                    global::System.Array.Copy(byteArray, start, this.Bytes, 0, bytesLength);
                 }
             }
         }
@@ -151,11 +151,11 @@ impl<'a> StructDefGenerator<'a> {
             public $(&value_type) Value { get; set; }$['\r']
         };
         quote_in! { self.encode_tokens =>
-            result.AddRange(Value.Encode());$['\r']
+            result.AddRange(this.Value.Encode());$['\r']
         };
         quote_in! { self.decode_tokens =>
-            Value = new $(&value_type)();$['\r']
-            Value.Decode(byteArray, ref p);$['\r']
+            this.Value = new $(&value_type)();$['\r']
+            this.Value.Decode(byteArray, ref p);$['\r']
         };
     }
 }
@@ -190,11 +190,11 @@ impl<'a> Visitor<'a> for StructDefGenerator<'a> {
                 public $(&type_decl_code) $(&field_name_pascal) { get; set; }$['\r']
             };
             quote_in! { self.encode_tokens =>
-                result.AddRange($(&field_name_pascal).Encode());$['\r']
+                result.AddRange(this.$(&field_name_pascal).Encode());$['\r']
             };
             quote_in! { self.decode_tokens =>
-                $(&field_name_pascal) = new $(&type_decl_code)();$['\r']
-                $(&field_name_pascal).Decode(byteArray, ref p);$['\r']
+                this.$(&field_name_pascal) = new $(&type_decl_code)();$['\r']
+                this.$(&field_name_pascal).Decode(byteArray, ref p);$['\r']
             };
         }
     }
