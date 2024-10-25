@@ -2,6 +2,44 @@
 source: rs/client-gen-dotnet/tests/generator.rs
 expression: code
 ---
+public interface IServiceFactory
+{
+    IActivation New(
+        global::Substrate.NetApi.Model.Types.Primitive.U32 a);
+}
+
+public partial class ServiceFactory : IServiceFactory
+{
+    private readonly IRemoting remoting;
+
+    public ServiceFactory(IRemoting remoting)
+    {
+        this.remoting = remoting;
+    }
+
+    /// <inheritdoc/>
+    public IActivation New(
+        global::Substrate.NetApi.Model.Types.Primitive.U32 a)
+    {
+        return new RemotingAction<global::Substrate.NetApi.Model.Types.Primitive.U32>(
+            this.remoting,
+            new byte[] { 12, 78, 101, 119 },
+            new global::Substrate.NetApi.Model.Types.Primitive.U32(a));
+    }
+}
+
+public interface IService
+{}
+
+public partial class Service : IService
+{
+    private readonly IRemoting remoting;
+
+    public Service(IRemoting remoting)
+    {
+        this.remoting = remoting;
+    }
+}
 [global::Substrate.NetApi.Attributes.SubstrateNodeType(global::Substrate.NetApi.Model.Types.Metadata.Base.TypeDefEnum.Composite)]
 public sealed partial class ThisThatSvcAppTupleStruct : global::Substrate.NetApi.Model.Types.Base.BaseType
 {
@@ -85,8 +123,8 @@ public sealed partial class EnumThisThatSvcAppManyVariants : global::Substrate.N
         this.AddTypeDecoder<global::Substrate.NetApi.Model.Types.Base.BaseVoid>(ThisThatSvcAppManyVariants.One);
         this.AddTypeDecoder<global::Substrate.NetApi.Model.Types.Primitive.U32>(ThisThatSvcAppManyVariants.Two);
         this.AddTypeDecoder<global::Substrate.NetApi.Model.Types.Base.BaseOpt<global::Substrate.NetApi.Model.Types.Primitive.U32>>(ThisThatSvcAppManyVariants.Three);
-        this.AddTypeDecoder<global::Substrate.NetApi.Model.Types.Base.BaseTuple<global::Substrate.NetApi.Model.Types.Primitive.U32,global::Substrate.NetApi.Model.Types.Base.BaseOpt<global::Substrate.NetApi.Model.Types.Primitive.U16>>>(ThisThatSvcAppManyVariants.Four);
-        this.AddTypeDecoder<global::Substrate.NetApi.Model.Types.Base.BaseTuple<global::Substrate.NetApi.Model.Types.Primitive.Str,global::Substrate.NetApi.Model.Types.Primitive.U32>>(ThisThatSvcAppManyVariants.Five);
+        this.AddTypeDecoder<global::Substrate.NetApi.Model.Types.Base.BaseTuple<global::Substrate.NetApi.Model.Types.Primitive.U32, global::Substrate.NetApi.Model.Types.Base.BaseOpt<global::Substrate.NetApi.Model.Types.Primitive.U16>>>(ThisThatSvcAppManyVariants.Four);
+        this.AddTypeDecoder<global::Substrate.NetApi.Model.Types.Base.BaseTuple<global::Substrate.NetApi.Model.Types.Primitive.Str, global::Substrate.NetApi.Model.Types.Primitive.U32>>(ThisThatSvcAppManyVariants.Five);
         this.AddTypeDecoder<global::Substrate.NetApi.Model.Types.Primitive.U32>(ThisThatSvcAppManyVariants.Six);
     }
 }
