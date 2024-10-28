@@ -72,7 +72,7 @@ impl<'a> Visitor<'a> for CtorFactoryGenerator<'a> {
                 )
             })
             .collect::<Vec<_>>()
-            .join(",\r");
+            .join(", ");
 
         let type_decls = func
             .params()

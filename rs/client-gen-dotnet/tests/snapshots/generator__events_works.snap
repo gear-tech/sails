@@ -11,7 +11,7 @@ using global::System.Collections.Generic;
 public interface IServiceWithEvents
 {
     global::Sails.Remoting.Abstractions.ICall<NonZeroU64> DoThis(
-        NonZeroU256 p1,MyParam p2);
+        NonZeroU256 p1, MyParam p2);
 }
 
 public partial class ServiceWithEvents : IServiceWithEvents
@@ -25,7 +25,7 @@ public partial class ServiceWithEvents : IServiceWithEvents
 
     /// <inheritdoc/>
     public global::Sails.Remoting.Abstractions.ICall<NonZeroU64> DoThis(
-        NonZeroU256 p1,MyParam p2)
+        NonZeroU256 p1, MyParam p2)
     {
         return new RemotingAction<NonZeroU64>(
             this.remoting,
