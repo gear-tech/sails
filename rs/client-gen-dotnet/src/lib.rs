@@ -2,18 +2,14 @@ use anyhow::{Context, Result};
 use convert_case::{Case, Casing};
 use root_generator::RootGenerator;
 use sails_idl_parser::ast::visitor;
-use std::{collections::HashMap, ffi::OsStr, fs, io::Write, path::Path};
+use std::{collections::HashMap, ffi::OsStr, fs, path::Path};
 
 mod ctor_generators;
 mod events_generator;
 mod helpers;
-mod io_generators;
-mod mock_generator;
 mod root_generator;
 mod service_generators;
 mod type_generators;
-
-const BASE_NAMESPACE: &str = "sails_rs";
 
 pub struct IdlPath<'a>(&'a Path);
 pub struct IdlString<'a>(&'a str);
@@ -48,7 +44,7 @@ impl<'a, S> ClientGenerator<'a, S> {
     ///
     /// Following code generates `use my_crate::MyParam as MyFuncParam;`
     /// ```
-    /// let code = sails_client_gen::ClientGenerator::from_idl("<idl>")
+    /// let code = sails_client_gen_dotnet::ClientGenerator::from_idl("<idl>")
     ///     .with_external_type("MyFuncParam", "my_crate::MyParam");
     /// ```
     pub fn with_external_type(self, name: &'a str, path: &'a str) -> Self {
@@ -143,36 +139,4 @@ impl<'a> ClientGenerator<'a, IdlString<'a>> {
 
         Ok(())
     }
-}
-
-// not using prettyplease since it's bad at reporting syntax errors and also removes comments
-// TODO(holykol): Fallback if rustfmt is not in PATH would be nice
-fn pretty_with_rustfmt(code: &str) -> String {
-    use std::process::Command;
-    let mut child = Command::new("rustfmt")
-        .arg("--config")
-        .arg("format_strings=false")
-        .stdin(std::process::Stdio::piped())
-        .stdout(std::process::Stdio::piped())
-        .spawn()
-        .expect("Failed to spawn rustfmt");
-
-    let child_stdin = child.stdin.as_mut().expect("Failed to open stdin");
-    child_stdin
-        .write_all(code.as_bytes())
-        .expect("Failed to write to rustfmt");
-
-    let output = child
-        .wait_with_output()
-        .expect("Failed to wait for rustfmt");
-
-    if !output.status.success() {
-        panic!(
-            "rustfmt failed with status: {}\n{}",
-            output.status,
-            String::from_utf8(output.stderr).expect("Failed to read rustfmt stderr")
-        );
-    }
-
-    String::from_utf8(output.stdout).expect("Failed to read rustfmt output")
 }

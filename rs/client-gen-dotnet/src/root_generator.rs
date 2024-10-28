@@ -1,10 +1,7 @@
-use crate::{
-    ctor_generators::*, events_generator::*, io_generators::*, mock_generator::MockGenerator,
-    service_generators::*, type_generators::*,
-};
+use crate::{ctor_generators::*, events_generator::*, service_generators::*, type_generators::*};
 use convert_case::{Case, Casing};
 use csharp::Tokens;
-use genco::prelude::*;
+use genco::{prelude::*, tokens::ItemStr};
 use sails_idl_parser::{ast::visitor::Visitor, ast::*};
 use std::collections::HashMap;
 
@@ -20,8 +17,13 @@ impl<'a> RootGenerator<'a> {
         anonymous_service_name: &'a str,
         external_types: HashMap<&'a str, &'a str>,
     ) -> Self {
+        let mut tokens = Tokens::new();
+        tokens.append(ItemStr::Static(
+            "#pragma warning disable RCS0056 // A line is too long",
+        ));
+        tokens.line();
         Self {
-            tokens: Tokens::new(),
+            tokens,
             anonymous_service_name,
             external_types,
             generated_types: Vec::new(),
@@ -31,7 +33,7 @@ impl<'a> RootGenerator<'a> {
     pub(crate) fn finalize(mut self) -> Tokens {
         for &type_ in &self.generated_types {
             let mut type_gen = TopLevelTypeGenerator::new(
-                &type_.name(),
+                type_.name(),
                 TypeDeclGenerator::new(&self.generated_types),
             );
             type_gen.visit_type(type_);
@@ -63,6 +65,13 @@ impl<'a> Visitor<'a> for RootGenerator<'a> {
         );
         service_gen.visit_service(service);
         self.tokens.extend(service_gen.finalize());
+
+        if !service.events().is_empty() {
+            let mut events_mod_gen =
+                EventsGenerator::new(service_name, TypeDeclGenerator::new(&self.generated_types));
+            events_mod_gen.visit_service(service);
+            self.tokens.extend(events_mod_gen.finalize());
+        }
     }
 
     fn visit_type(&mut self, t: &'a Type) {
