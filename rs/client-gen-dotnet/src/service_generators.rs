@@ -28,24 +28,26 @@ impl<'a> ServiceClientGenerator<'a> {
 
     pub(crate) fn finalize(self) -> Tokens {
         let name = &self.service_name.to_case(Case::Pascal);
+        let remoting = &csharp::import("global::Sails.Remoting.Abstractions", "IRemoting");
 
         quote! {
-            public interface I$name
+            public interface I$name$['\r']
             {
-                $(self.interface_tokens)
+                $(self.interface_tokens)$['\r']
             }
-
-            public partial class $name : I$name
+            $['\n']
+            public partial class $name : I$name$['\r']
             {
-                private readonly IRemoting remoting;
+                private readonly $remoting remoting;
 
-                public $name(IRemoting remoting)
+                public $name($remoting remoting)
                 {
                     this.remoting = remoting;
                 }
 
                 $(self.class_tokens)
             }
+            $['\n']
         }
     }
 }
@@ -62,7 +64,7 @@ impl<'a> Visitor<'a> for ServiceClientGenerator<'a> {
 
         let service_route_bytes = path_bytes(self.service_name.as_str()).0;
         let func_route_bytes = path_bytes(func.name()).0;
-        let route_bytes = vec![service_route_bytes, func_route_bytes].join(", ");
+        let route_bytes = [service_route_bytes, func_route_bytes].join(", ");
 
         let args = encoded_fn_args(func.params());
         let args_with_type = func
@@ -78,13 +80,9 @@ impl<'a> Visitor<'a> for ServiceClientGenerator<'a> {
             .collect::<Vec<_>>()
             .join(",\r");
 
-        // let type_decls = func
-        //     .params()
-        //     .iter()
-        //     .map(|p| p.type_decl())
-        //     .collect::<Vec<_>>();
-        // let tuple_arg_type = self.type_generator.generate_types_as_tuple(type_decls);
         let func_return_type = &self.type_generator.generate_type_decl(func.output());
+
+        let action = &csharp::import("global::Sails.Remoting.Abstractions", "RemotingAction");
 
         quote_in! { self.interface_tokens =>
             $return_type<$func_return_type> $func_name_pascal($['\r']
@@ -96,9 +94,9 @@ impl<'a> Visitor<'a> for ServiceClientGenerator<'a> {
             public $return_type<$func_return_type> $func_name_pascal($['\r']
                 $(&args_with_type))
             {
-                return new RemotingAction<$func_return_type>(
+                return new $action<$func_return_type>(
                     this.remoting,
-                    new byte[] { $(&route_bytes) },
+                    [$(&route_bytes)],
                     new $(BASE_TUPLE_RUST)($(&args))
                 );
             }

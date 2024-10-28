@@ -4,46 +4,25 @@ use csharp::{block_comment, Tokens};
 use genco::prelude::*;
 use sails_idl_parser::{ast::visitor, ast::visitor::Visitor, ast::*};
 
-pub(crate) fn generate_type_decl_code<'a>(type_decl: &TypeDecl) -> String {
-    let mut type_decl_generator = TypeDeclGenerator {
-        code: String::new(),
-        generated_types: &Vec::new(),
+macro_rules! base {
+    ($t: expr) => {
+        concat!("global::Substrate.NetApi.Model.Types.Base.", $t)
     };
-    visitor::accept_type_decl(type_decl, &mut type_decl_generator);
-    type_decl_generator.code
 }
 
-pub(crate) fn generate_type_decl_code_with_enums<'a>(
-    type_decl: &TypeDecl,
-    generated_types: &'a Vec<&'a Type>,
-) -> String {
-    let mut type_decl_generator = TypeDeclGenerator {
-        code: String::new(),
-        generated_types,
+macro_rules! primitive {
+    ($t: expr) => {
+        concat!("global::Substrate.NetApi.Model.Types.Primitive.", $t)
     };
-    visitor::accept_type_decl(type_decl, &mut type_decl_generator);
-    type_decl_generator.code
 }
 
-pub(crate) fn generate_struct_def_code_with_enums<'a>(
-    struct_def: &StructDef,
-    generated_types: &'a Vec<&'a Type>,
-) -> String {
-    let mut type_decl_generator = TypeDeclGenerator {
-        code: String::new(),
-        generated_types,
+macro_rules! gprimitives {
+    ($t: expr) => {
+        concat!(
+            "global::Substrate.Gear.Api.Generated.Model.gprimitives.",
+            $t
+        )
     };
-    visitor::accept_struct_def(struct_def, &mut type_decl_generator);
-    type_decl_generator.code
-}
-
-pub(crate) fn generate_type_decl_with_path(type_decl: &TypeDecl, path: String) -> String {
-    let mut type_decl_generator = TypeDeclGenerator {
-        code: String::new(),
-        generated_types: &Vec::new(),
-    };
-    visitor::accept_type_decl(type_decl, &mut type_decl_generator);
-    type_decl_generator.code
 }
 
 pub(crate) struct TopLevelTypeGenerator<'a> {
@@ -112,6 +91,9 @@ impl<'a> StructDefGenerator<'a> {
     }
 
     pub(crate) fn finalize(self) -> Tokens {
+        let system_array = &csharp::import("global::System", "Array");
+        let generic_list = csharp::import("global::System.Collections.Generic", "List");
+
         quote! {
             [global::Substrate.NetApi.Attributes.SubstrateNodeType(global::Substrate.NetApi.Model.Types.Metadata.Base.TypeDefEnum.Composite)]
             public sealed partial class $(self.type_name) : global::Substrate.NetApi.Model.Types.Base.BaseType
@@ -124,7 +106,7 @@ impl<'a> StructDefGenerator<'a> {
                 $(block_comment(vec!["<inheritdoc/>"]))
                 public override byte[] Encode()
                 {
-                    var result = new List<byte>();
+                    var result = new $generic_list<byte>();
                     $(self.encode_tokens)
                     return result.ToArray();
                 }
@@ -137,7 +119,7 @@ impl<'a> StructDefGenerator<'a> {
                     var bytesLength = p - start;
                     this.TypeSize = bytesLength;
                     this.Bytes = new byte[bytesLength];
-                    global::System.Array.Copy(byteArray, start, this.Bytes, 0, bytesLength);
+                    $system_array.Copy(byteArray, start, this.Bytes, 0, bytesLength);
                 }
             }
         }
@@ -149,7 +131,7 @@ impl<'a> StructDefGenerator<'a> {
         }
         let value_type = self.type_generator.generate_struct_def(struct_def);
         quote_in! { self.props_tokens =>
-            public $(&value_type) Value { get; set; }$['\r']
+            public required $(&value_type) Value { get; set; }$['\r']
         };
         quote_in! { self.encode_tokens =>
             result.AddRange(this.Value.Encode());$['\r']
@@ -189,7 +171,7 @@ impl<'a> Visitor<'a> for StructDefGenerator<'a> {
         if let Some(field_name) = struct_field.name() {
             let field_name_pascal = field_name.to_case(Case::Pascal);
             quote_in! { self.props_tokens =>
-                public $(&type_decl_code) $(&field_name_pascal) { get; set; }$['\r']
+                public required $(&type_decl_code) $(&field_name_pascal) { get; set; }$['\r']
             };
             quote_in! { self.encode_tokens =>
                 result.AddRange(this.$(&field_name_pascal).Encode());$['\r']
@@ -242,8 +224,6 @@ impl<'ast> Visitor<'ast> for EnumDefGenerator<'ast> {
     fn visit_enum_variant(&mut self, enum_variant: &'ast EnumVariant) {
         quote_in! { self.enum_tokens =>
             $(summary_comment(enum_variant.docs()))
-        };
-        quote_in! { self.enum_tokens =>
             $(enum_variant.name()),$['\r']
         };
 
@@ -274,14 +254,12 @@ impl<'a> TypeDeclGenerator<'a> {
 
     pub(crate) fn generate_type_decl(&mut self, type_decl: &'a TypeDecl) -> String {
         visitor::accept_type_decl(type_decl, self);
-        let code = std::mem::take(&mut self.code);
-        code
+        std::mem::take(&mut self.code)
     }
 
     pub(crate) fn generate_struct_def(&mut self, struct_def: &'a StructDef) -> String {
         visitor::accept_struct_def(struct_def, self);
-        let code = std::mem::take(&mut self.code);
-        code
+        std::mem::take(&mut self.code)
     }
 
     pub(crate) fn generate_types_as_tuple(&mut self, type_decls: Vec<&'a TypeDecl>) -> String {
@@ -289,13 +267,11 @@ impl<'a> TypeDeclGenerator<'a> {
         } else if type_decls.len() == 1 {
             visitor::accept_type_decl(type_decls[0], self);
         } else {
-            self.code
-                .push_str("global::Substrate.NetApi.Model.Types.Base.BaseTuple<");
+            self.code.push_str(base!("BaseTuple<"));
             self.join_type_decls(type_decls, ", ");
             self.code.push('>');
         }
-        let code = std::mem::take(&mut self.code);
-        code
+        std::mem::take(&mut self.code)
     }
 
     fn join_type_decls<I: IntoIterator<Item = &'a TypeDecl>>(
@@ -317,8 +293,7 @@ impl<'a> TypeDeclGenerator<'a> {
 
 impl<'a> Visitor<'a> for TypeDeclGenerator<'a> {
     fn visit_optional_type_decl(&mut self, optional_type_decl: &'a TypeDecl) {
-        self.code
-            .push_str("global::Substrate.NetApi.Model.Types.Base.BaseOpt<");
+        self.code.push_str(base!("BaseOpt<"));
         visitor::accept_type_decl(optional_type_decl, self);
         self.code.push('>');
     }
@@ -332,8 +307,7 @@ impl<'a> Visitor<'a> for TypeDeclGenerator<'a> {
     }
 
     fn visit_vector_type_decl(&mut self, vector_type_decl: &'a TypeDecl) {
-        self.code
-            .push_str("global::Substrate.NetApi.Model.Types.Base.BaseVec<");
+        self.code.push_str(base!("BaseVec<"));
         visitor::accept_type_decl(vector_type_decl, self);
         self.code.push('>');
     }
@@ -345,8 +319,7 @@ impl<'a> Visitor<'a> for TypeDeclGenerator<'a> {
         if struct_def.fields().len() == 1 {
             visitor::accept_type_decl(struct_def.fields()[0].type_decl(), self);
         } else {
-            self.code
-                .push_str("global::Substrate.NetApi.Model.Types.Base.BaseTuple<");
+            self.code.push_str(base!("BaseTuple<"));
             self.join_type_decls(struct_def.fields().iter().map(|f| f.type_decl()), ", ");
             self.code.push('>');
         }
@@ -365,7 +338,7 @@ impl<'a> Visitor<'a> for TypeDeclGenerator<'a> {
             .map(|&t| matches!(t.def(), TypeDef::Enum(_)))
             .unwrap_or_default();
         let type_id = if is_enum {
-            &format!("Enum{}", user_defined_type_id)
+            &format!("Enum{}", user_defined_type_id) // Enum prefix
         } else {
             user_defined_type_id
         };
@@ -387,33 +360,31 @@ impl<'a> Visitor<'a> for TypeDeclGenerator<'a> {
     }
 }
 
-fn primitive_type_to_dotnet(primitive_type: PrimitiveType) -> &'static str {
+pub(crate) fn primitive_type_to_dotnet(primitive_type: PrimitiveType) -> &'static str {
     match primitive_type {
-        PrimitiveType::U8 => "global::Substrate.NetApi.Model.Types.Primitive.U8",
-        PrimitiveType::U16 => "global::Substrate.NetApi.Model.Types.Primitive.U16",
-        PrimitiveType::U32 => "global::Substrate.NetApi.Model.Types.Primitive.U32",
-        PrimitiveType::U64 => "global::Substrate.NetApi.Model.Types.Primitive.U64",
-        PrimitiveType::U128 => "global::Substrate.NetApi.Model.Types.Primitive.U128",
-        PrimitiveType::I8 => "global::Substrate.NetApi.Model.Types.Primitive.I8",
-        PrimitiveType::I16 => "global::Substrate.NetApi.Model.Types.Primitive.I16",
-        PrimitiveType::I32 => "global::Substrate.NetApi.Model.Types.Primitive.I32",
-        PrimitiveType::I64 => "global::Substrate.NetApi.Model.Types.Primitive.I64",
-        PrimitiveType::I128 => "global::Substrate.NetApi.Model.Types.Primitive.I128",
-        PrimitiveType::Bool => "global::Substrate.NetApi.Model.Types.Primitive.Bool",
-        PrimitiveType::Str => "global::Substrate.NetApi.Model.Types.Primitive.Str",
-        PrimitiveType::Char => "global::Substrate.NetApi.Model.Types.Primitive.PrimChar",
-        PrimitiveType::Null => "global::Substrate.NetApi.Model.Types.Base.BaseVoid",
-        PrimitiveType::ActorId => "global::Substrate.Gear.Api.Generated.Model.gprimitives.ActorId",
-        PrimitiveType::CodeId => "global::Substrate.Gear.Api.Generated.Model.gprimitives.CodeId",
-        PrimitiveType::MessageId => {
-            "global::Substrate.Gear.Api.Generated.Model.gprimitives.MessageId"
-        }
+        PrimitiveType::U8 => primitive!("U8"),
+        PrimitiveType::U16 => primitive!("U16"),
+        PrimitiveType::U32 => primitive!("U32"),
+        PrimitiveType::U64 => primitive!("U64"),
+        PrimitiveType::U128 => primitive!("U128"),
+        PrimitiveType::I8 => primitive!("I8"),
+        PrimitiveType::I16 => primitive!("I16"),
+        PrimitiveType::I32 => primitive!("I32"),
+        PrimitiveType::I64 => primitive!("I64"),
+        PrimitiveType::I128 => primitive!("I128"),
+        PrimitiveType::Bool => primitive!("Bool"),
+        PrimitiveType::Str => primitive!("Str"),
+        PrimitiveType::Char => primitive!("PrimChar"),
+        PrimitiveType::Null => base!("BaseVoid"),
+        PrimitiveType::ActorId => gprimitives!("ActorId"),
+        PrimitiveType::CodeId => gprimitives!("CodeId"),
+        PrimitiveType::MessageId => gprimitives!("MessageId"),
         PrimitiveType::H160 => "H160",
-        PrimitiveType::H256 => "H256",
+        PrimitiveType::H256 => "global::Substrate.Gear.Api.Generated.Model.primitive_types.H256",
         PrimitiveType::U256 => "U256",
         PrimitiveType::NonZeroU8 => "NonZeroU8",
         PrimitiveType::NonZeroU16 => "NonZeroU16",
-        PrimitiveType::NonZeroU32 => "NonZeroU32",
+        PrimitiveType::NonZeroU32 => "global::Substrate.Gear.Api.Generated.Types.Base.NonZeroU32",
         PrimitiveType::NonZeroU64 => "NonZeroU64",
         PrimitiveType::NonZeroU128 => "NonZeroU128",
         PrimitiveType::NonZeroU256 => "NonZeroU256",

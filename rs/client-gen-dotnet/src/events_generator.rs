@@ -1,97 +1,127 @@
-use crate::helpers::{method_bytes, path_bytes};
+use crate::helpers::*;
+use crate::type_generators::{primitive_type_to_dotnet, TypeDeclGenerator};
+use convert_case::{Case, Casing};
+use csharp::Tokens;
 use genco::prelude::*;
 use sails_idl_parser::{ast::visitor, ast::visitor::Visitor, ast::*};
 
-pub(crate) struct EventsModuleGenerator<'a> {
+pub(crate) struct EventsGenerator<'a> {
     service_name: &'a str,
-    path: &'a str,
-    sails_path: &'a str,
-    tokens: rust::Tokens,
+    type_generator: TypeDeclGenerator<'a>,
+    enum_tokens: Tokens,
+    class_tokens: Tokens,
+    listener_tokens: Tokens,
 }
 
-impl<'a> EventsModuleGenerator<'a> {
-    pub(crate) fn new(service_name: &'a str, path: &'a str, sails_path: &'a str) -> Self {
+impl<'a> EventsGenerator<'a> {
+    pub(crate) fn new(service_name: &'a str, type_generator: TypeDeclGenerator<'a>) -> Self {
         Self {
             service_name,
-            path,
-            sails_path,
-            tokens: rust::Tokens::new(),
+            type_generator,
+            enum_tokens: Tokens::new(),
+            class_tokens: Tokens::new(),
+            listener_tokens: Tokens::new(),
         }
     }
 
-    pub(crate) fn finalize(self) -> rust::Tokens {
-        self.tokens
+    pub(crate) fn finalize(self) -> Tokens {
+        let name = &self.service_name.to_case(Case::Pascal);
+        let enum_name = &format!("{}Events", name);
+        let class_name = &format!("Enum{}Events", name);
+        let listener_name = &format!("{}Listener", name);
+
+        let system_buffer = &csharp::import("global::System", "Buffer");
+        let listener = &csharp::import("global::Sails.Remoting.Abstractions", "IRemotingListener");
+
+        quote! {
+            public enum $enum_name
+            {
+                $(self.enum_tokens)
+            }
+            $['\n']
+            public sealed partial class $class_name : global::Substrate.NetApi.Model.Types.Base.BaseEnumRust<$enum_name>
+            {
+                public $class_name()
+                {
+                    $(self.class_tokens)
+                }
+            }
+            $['\n']
+            public partial class $listener_name : $listener<$class_name>
+            {
+                private static readonly byte[][] EventRoutes =
+                [
+                    $(self.listener_tokens)
+                ];
+
+                private readonly $listener remoting;
+
+                public $listener_name($listener remoting)
+                {
+                    this.remoting = remoting;
+                }
+
+                public async global::System.Collections.Generic.IAsyncEnumerable<$class_name> ListenAsync(
+                    [global::System.Runtime.CompilerServices.EnumeratorCancellation] global::System.Threading.CancellationToken cancellationToken = default)
+                {
+                    await foreach (var bytes in this.remoting.ListenAsync(cancellationToken))
+                    {
+                        byte idx = 0;
+                        foreach (var route in EventRoutes)
+                        {
+                            if (route.Length > bytes.Length)
+                            {
+                                continue;
+                            }
+                            if (route.AsSpan().SequenceEqual(bytes.AsSpan()[..route.Length]))
+                            {
+                                var bytesLength = bytes.Length - route.Length + 1;
+                                var data = new byte[bytesLength];
+                                data[0] = idx;
+                                $system_buffer.BlockCopy(bytes, route.Length, data, 1, bytes.Length - route.Length);
+
+                                var p = 0;
+                                $class_name ev = new();
+                                ev.Decode(bytes, ref p);
+                                yield return ev;
+                            }
+                            idx++;
+                        }
+                    }
+                }
+            }
+            $['\n']
+        }
     }
 }
 
-impl<'a, 'ast> Visitor<'ast> for EventsModuleGenerator<'a> {
-    fn visit_service(&mut self, service: &'ast Service) {
-        let events_name = format!("{}Events", self.service_name);
-        let (service_path_bytes, _) = path_bytes(self.path);
-        let event_names_bytes = service
-            .events()
-            .iter()
-            .map(|e| method_bytes(e.name()).0)
-            .collect::<Vec<_>>()
-            .join("], &[");
-
-        quote_in! { self.tokens =>
-            $['\n']
-            #[allow(dead_code)]
-            #[cfg(not(target_arch = "wasm32"))]
-            pub mod events $("{")
-                use super::*;
-                use $(self.sails_path)::events::*;
-                #[derive(PartialEq, Debug, Encode, Decode)]
-                #[codec(crate = $(self.sails_path)::scale_codec)]
-                pub enum $(&events_name) $("{")
-        };
-
+impl<'a> Visitor<'a> for EventsGenerator<'a> {
+    fn visit_service(&mut self, service: &'a Service) {
         visitor::accept_service(service, self);
-
-        quote_in! { self.tokens =>
-            $['\r'] $("}")
-        };
-
-        quote_in! { self.tokens =>
-            impl EventIo for $(&events_name) {
-                const ROUTE: &'static [u8] = &[$service_path_bytes];
-                const EVENT_NAMES: &'static [&'static [u8]] = &[&[$event_names_bytes]];
-                type Event = Self;
-            }
-
-            pub fn listener<R: Listener<Vec<u8>>>(remoting: R) -> impl Listener<$(&events_name)> {
-                RemotingListener::<_, $(&events_name)>::new(remoting)
-            }
-        }
-
-        quote_in! { self.tokens =>
-            $['\r'] $("}")
-        };
     }
 
-    fn visit_service_event(&mut self, event: &'ast ServiceEvent) {
-        if let Some(type_decl) = event.type_decl().as_ref() {
-            for doc in event.docs() {
-                quote_in! { self.tokens =>
-                    $['\r'] $("///") $doc
-                };
-            }
+    fn visit_service_event(&mut self, event: &'a ServiceEvent) {
+        let name = &self.service_name.to_case(Case::Pascal);
+        let service_route_bytes = path_bytes(self.service_name).0;
+        let event_route_bytes = path_bytes(event.name()).0;
+        let route_bytes = [service_route_bytes, event_route_bytes].join(", ");
 
-            let type_decl_code = crate::type_generators::generate_type_decl_code(type_decl);
-            if type_decl_code.starts_with('{') {
-                quote_in! { self.tokens =>
-                    $['\r'] $(event.name()) $(type_decl_code),
-                };
-            } else {
-                quote_in! { self.tokens =>
-                    $['\r'] $(event.name())($(type_decl_code)) ,
-                };
-            }
+        quote_in! { self.listener_tokens =>
+            [$(&route_bytes)],$['\r']
+        };
+
+        quote_in! { self.enum_tokens =>
+            $(summary_comment(event.docs()))
+            $(event.name()),$['\r']
+        };
+
+        let type_decl_code = if let Some(type_decl) = event.type_decl().as_ref() {
+            self.type_generator.generate_type_decl(type_decl)
         } else {
-            quote_in! { self.tokens =>
-                $['\r'] $(event.name()),
-            };
+            primitive_type_to_dotnet(PrimitiveType::Null).into()
+        };
+        quote_in! { self.class_tokens =>
+            this.AddTypeDecoder<$(type_decl_code)>($(name)Events.$(event.name()));$['\r']
         }
     }
 }
