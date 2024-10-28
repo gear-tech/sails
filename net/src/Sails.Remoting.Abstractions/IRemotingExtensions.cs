@@ -1,15 +1,17 @@
-﻿using Substrate.Gear.Api.Generated.Model.gprimitives;
-using System.Collections.Generic;
-using System.Threading.Tasks;
+﻿using System.Collections.Generic;
 using System.Threading;
+using System.Threading.Tasks;
 using EnsureThat;
+using Substrate.Gear.Api.Generated.Model.gprimitives;
+using GasUnit = Substrate.NetApi.Model.Types.Primitive.U64;
 using ValueUnit = Substrate.NetApi.Model.Types.Primitive.U128;
 
 namespace Sails.Remoting.Abstractions;
 
 public static class IRemotingExtensions
 {
-    public static Task<(ActorId ProgramId, byte[] EncodedReply)> ActivateAsync(
+    /// <inheritdoc cref="IRemoting.ActivateAsync(CodeId, IReadOnlyCollection{byte}, IReadOnlyCollection{byte}, GasUnit?, ValueUnit, CancellationToken)"/>
+    public static Task<Task<(ActorId ProgramId, byte[] EncodedReply)>> ActivateAsync(
         this IRemoting remoting,
         CodeId codeId,
         IReadOnlyCollection<byte> salt,
@@ -24,7 +26,8 @@ public static class IRemotingExtensions
                 ZeroValue,
                 cancellationToken);
 
-    public static Task<byte[]> MessageAsync(
+    /// <inheritdoc cref="IRemoting.MessageAsync(ActorId, IReadOnlyCollection{byte}, GasUnit?, ValueUnit, CancellationToken)"/>
+    public static Task<Task<byte[]>> MessageAsync(
         this IRemoting remoting,
         ActorId programId,
         IReadOnlyCollection<byte> encodedPayload,
@@ -37,6 +40,7 @@ public static class IRemotingExtensions
                 ZeroValue,
                 cancellationToken);
 
+    /// <inheritdoc cref="IRemoting.QueryAsync(ActorId, IReadOnlyCollection{byte}, GasUnit?, ValueUnit, CancellationToken)"/>
     public static Task<byte[]> QueryAsync(
         this IRemoting remoting,
         ActorId programId,
