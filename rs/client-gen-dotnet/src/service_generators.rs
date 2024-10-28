@@ -78,7 +78,7 @@ impl<'a> Visitor<'a> for ServiceClientGenerator<'a> {
                 )
             })
             .collect::<Vec<_>>()
-            .join(",\r");
+            .join(", ");
 
         let func_return_type = &self.type_generator.generate_type_decl(func.output());
 
