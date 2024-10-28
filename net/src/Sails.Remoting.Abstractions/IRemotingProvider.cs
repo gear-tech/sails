@@ -10,5 +10,5 @@ public interface IRemotingProvider
     /// </summary>
     /// <param name="signingAccount"></param>
     /// <returns></returns>
-    IRemoting GetRemoting(Account signingAccount);
+    IRemoting CreateRemoting(Account signingAccount);
 }

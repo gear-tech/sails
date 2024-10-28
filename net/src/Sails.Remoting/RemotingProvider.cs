@@ -17,7 +17,7 @@ internal sealed class RemotingProvider : IRemotingProvider
     private readonly Func<Account, IRemoting> remotingFactory;
 
     /// <inheritdoc/>
-    public IRemoting GetRemoting(Account signingAccount)
+    public IRemoting CreateRemoting(Account signingAccount)
     {
         EnsureArg.IsNotNull(signingAccount, nameof(signingAccount));
 
