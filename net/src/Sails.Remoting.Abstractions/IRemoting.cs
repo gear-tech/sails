@@ -2,7 +2,6 @@
 using System.Threading;
 using System.Threading.Tasks;
 using Substrate.Gear.Api.Generated.Model.gprimitives;
-using Substrate.NetApi.Model.Types;
 using GasUnit = Substrate.NetApi.Model.Types.Primitive.U64;
 using ValueUnit = Substrate.NetApi.Model.Types.Primitive.U128;
 
@@ -10,12 +9,6 @@ namespace Sails.Remoting.Abstractions;
 
 public interface IRemoting
 {
-    /// <summary>
-    /// Sets account for signing transactions.
-    /// </summary>
-    /// <param name="signingAccount"></param>
-    void SetSigningAccount(Account signingAccount);
-
     /// <summary>
     /// Activates/creates a program from previously uploaded code.
     /// </summary>

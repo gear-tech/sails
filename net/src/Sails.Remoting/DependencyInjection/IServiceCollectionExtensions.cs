@@ -7,16 +7,20 @@ namespace Sails.Remoting.DependencyInjection;
 
 public static class IServiceCollectionExtensions
 {
-    public static IServiceCollection AddRemotingViaSubstrateClient(
+    public static IServiceCollection AddRemotingViaNodeClient(
         this IServiceCollection services,
-        RemotingViaSubstrateClientOptions options)
+        NodeClientOptions options)
     {
         EnsureArg.IsNotNull(services, nameof(services));
         EnsureArg.IsNotNull(options, nameof(options));
 
+        services.AddSingleton<INodeClientProvider>(_ => new NodeClientProvider(options));
+
         services.AddTransient<IRemotingProvider>(
-            _ => new RemotingProvider(
-                signingAccount => new RemotingViaSubstrateClient(options, signingAccount)));
+            serviceProvicer => new RemotingProvider(
+                signingAccount => new RemotingViaNodeClient(
+                    serviceProvicer.GetRequiredService<INodeClientProvider>(),
+                    signingAccount)));
 
         return services;
     }

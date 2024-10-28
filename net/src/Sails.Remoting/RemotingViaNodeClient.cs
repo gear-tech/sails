@@ -5,7 +5,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using EnsureThat;
 using Sails.Remoting.Abstractions;
-using Sails.Remoting.Options;
 using Substrate.Gear.Api.Generated;
 using Substrate.Gear.Api.Generated.Model.frame_system;
 using Substrate.Gear.Api.Generated.Model.gprimitives;
@@ -14,7 +13,6 @@ using Substrate.Gear.Api.Generated.Storage;
 using Substrate.Gear.Client;
 using Substrate.Gear.Client.Model.Types;
 using Substrate.Gear.Client.Model.Types.Base;
-using Substrate.NetApi.Model.Extrinsics;
 using Substrate.NetApi.Model.Types;
 using Substrate.NetApi.Model.Types.Base;
 using Substrate.NetApi.Model.Types.Primitive;
@@ -30,24 +28,22 @@ using ValueUnit = Substrate.NetApi.Model.Types.Primitive.U128;
 
 namespace Sails.Remoting;
 
-internal sealed class RemotingViaSubstrateClient : IDisposable, IRemoting
+internal sealed class RemotingViaNodeClient : IRemoting
 {
     /// <summary>
     /// Creates an instance implementing the <see cref="IRemoting"/> interface via <see cref="SubstrateClientExt"/>
     /// with initial account for signing transactions.
     /// </summary>
-    /// <param name="options"></param>
+    /// <param name="nodeClientProvider"></param>
     /// <param name="signingAccount"></param>
-    public RemotingViaSubstrateClient(
-        RemotingViaSubstrateClientOptions options,
+    public RemotingViaNodeClient(
+        INodeClientProvider nodeClientProvider,
         Account signingAccount)
     {
-        EnsureArg.IsNotNull(options, nameof(options));
-        EnsureArg.IsNotNull(options.GearNodeUri, nameof(options.GearNodeUri));
+        EnsureArg.IsNotNull(nodeClientProvider, nameof(nodeClientProvider));
         EnsureArg.IsNotNull(signingAccount, nameof(signingAccount));
 
-        this.nodeClient = new SubstrateClientExt(options.GearNodeUri, ChargeTransactionPayment.Default());
-        this.isNodeClientConnected = false;
+        this.nodeClientProvider = nodeClientProvider;
         this.signingAccount = signingAccount;
     }
 
@@ -56,23 +52,8 @@ internal sealed class RemotingViaSubstrateClient : IDisposable, IRemoting
 
     private static readonly GasUnit BlockGasLimit = new GearGasConstants().BlockGasLimit();
 
-    private readonly SubstrateClientExt nodeClient;
-    private Account signingAccount;
-    private bool isNodeClientConnected;
-
-    public void Dispose()
-    {
-        this.nodeClient.Dispose();
-        GC.SuppressFinalize(this);
-    }
-
-    /// <inheritdoc/>
-    public void SetSigningAccount(Account signingAccount)
-    {
-        EnsureArg.IsNotNull(signingAccount, nameof(signingAccount));
-
-        this.signingAccount = signingAccount;
-    }
+    private readonly INodeClientProvider nodeClientProvider;
+    private readonly Account signingAccount;
 
     /// <inheritdoc/>
     public async Task<Task<(ActorId ProgramId, byte[] EncodedReply)>> ActivateAsync(
@@ -87,7 +68,7 @@ internal sealed class RemotingViaSubstrateClient : IDisposable, IRemoting
         EnsureArg.IsNotNull(salt, nameof(salt));
         EnsureArg.IsNotNull(encodedPayload, nameof(encodedPayload));
 
-        var nodeClient = await this.GetConnectedNodeClientAsync(cancellationToken).ConfigureAwait(false);
+        var nodeClient = await this.nodeClientProvider.GetNodeClientAsync(cancellationToken).ConfigureAwait(false);
 
         gasLimit ??= (await nodeClient.CalculateGasForCreateProgramAsync(
                     this.signingAccount.GetPublicKey(),
@@ -106,7 +87,7 @@ internal sealed class RemotingViaSubstrateClient : IDisposable, IRemoting
             value,
             keep_alive: new Bool(true));
 
-        var (blockHash, extrinsicHash, extrinsicIdx) = await this.nodeClient.ExecuteExtrinsicAsync(
+        var (blockHash, extrinsicHash, extrinsicIdx) = await nodeClient.ExecuteExtrinsicAsync(
                 this.signingAccount,
                 createProgram,
                 DefaultExtrinsicTtlInBlocks,
@@ -114,7 +95,7 @@ internal sealed class RemotingViaSubstrateClient : IDisposable, IRemoting
             .ConfigureAwait(false);
 
         // It can be moved inside the task to return.
-        var blockEvents = await this.nodeClient.ListBlockEventsAsync(
+        var blockEvents = await nodeClient.ListBlockEventsAsync(
                 blockHash,
                 cancellationToken)
             .ConfigureAwait(false);
@@ -159,7 +140,7 @@ internal sealed class RemotingViaSubstrateClient : IDisposable, IRemoting
         EnsureArg.IsNotNull(programId, nameof(programId));
         EnsureArg.IsNotNull(encodedPayload, nameof(encodedPayload));
 
-        var nodeClient = await this.GetConnectedNodeClientAsync(cancellationToken).ConfigureAwait(false);
+        var nodeClient = await this.nodeClientProvider.GetNodeClientAsync(cancellationToken).ConfigureAwait(false);
 
         gasLimit ??= (await nodeClient.CalculateGasForHandleAsync(
                     this.signingAccount.GetPublicKey(),
@@ -177,7 +158,7 @@ internal sealed class RemotingViaSubstrateClient : IDisposable, IRemoting
             value,
             keep_alive: new Bool(true));
 
-        var (blockHash, extrinsicHash, extrinsicIdx) = await this.nodeClient.ExecuteExtrinsicAsync(
+        var (blockHash, extrinsicHash, extrinsicIdx) = await nodeClient.ExecuteExtrinsicAsync(
                 this.signingAccount,
                 sendMessage,
                 DefaultExtrinsicTtlInBlocks,
@@ -204,7 +185,7 @@ internal sealed class RemotingViaSubstrateClient : IDisposable, IRemoting
         EnsureArg.IsNotNull(programId, nameof(programId));
         EnsureArg.IsNotNull(encodedPayload, nameof(encodedPayload));
 
-        var nodeClient = await this.GetConnectedNodeClientAsync(cancellationToken).ConfigureAwait(false);
+        var nodeClient = await this.nodeClientProvider.GetNodeClientAsync(cancellationToken).ConfigureAwait(false);
 
         gasLimit ??= BlockGasLimit;
 
@@ -220,15 +201,5 @@ internal sealed class RemotingViaSubstrateClient : IDisposable, IRemoting
         // TODO: Check for reply code
 
         return replyInfo.EncodedPayload;
-    }
-
-    private async Task<SubstrateClientExt> GetConnectedNodeClientAsync(CancellationToken cancellationToken)
-    {
-        if (!this.isNodeClientConnected)
-        {
-            await this.nodeClient.ConnectAsync(cancellationToken).ConfigureAwait(false);
-            this.isNodeClientConnected = true;
-        }
-        return this.nodeClient;
     }
 }
