@@ -10,8 +10,7 @@ using global::System.Collections.Generic;
 
 public interface IRmrkCatalogFactory
 {
-    IActivation New(
-        );
+    IActivation New();
 }
 
 public partial class RmrkCatalogFactory : IRmrkCatalogFactory
@@ -24,13 +23,12 @@ public partial class RmrkCatalogFactory : IRmrkCatalogFactory
     }
 
     /// <inheritdoc/>
-    public IActivation New(
-        )
+    public IActivation New()
     {
-        return new RemotingAction<>(
+        return new RemotingAction<global::Substrate.NetApi.Model.Types.Base.BaseVoid>(
             this.remoting,
             [12, 78, 101, 119],
-            new ());
+            new global::Substrate.NetApi.Model.Types.Base.BaseVoid());
     }
 }
 
