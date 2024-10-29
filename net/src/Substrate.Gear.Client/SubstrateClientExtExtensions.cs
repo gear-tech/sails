@@ -142,6 +142,26 @@ public static class SubstrateClientExtExtensions
     }
 
     /// <summary>
+    /// Subscribes to finalized block headers and returns them as a stream which can be read as an async enumerable.
+    /// </summary>
+    /// <param name="nodeClient"></param>
+    /// <param name="cancellationToken"></param>
+    /// <returns></returns>
+    public static Task<BlockHeadersStream> GetFinalizedBlockHeadersStreamAsync(
+        this SubstrateClientExt nodeClient,
+        CancellationToken cancellationToken)
+    {
+        EnsureArg.IsNotNull(nodeClient, nameof(nodeClient));
+
+        return BlockHeadersStream.CreateAsync(
+            nodeClient,
+            (nodeClient, callback) =>
+                nodeClient.Chain.SubscribeFinalizedHeadsAsync(callback, cancellationToken),
+            (nodeClient, subscriptionId) =>
+                nodeClient.Chain.UnsubscribeFinalizedHeadsAsync(subscriptionId, CancellationToken.None));
+    }
+
+    /// <summary>
     /// Calculates amount of gas required for creating a new program from previously uploaded code.
     /// </summary>
     /// <param name="nodeClient"></param>
