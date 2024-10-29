@@ -10,6 +10,7 @@
     <PackageVersion Include="Roslynator.Analyzers" Version="4.12.9" />
     <PackageVersion Include="Roslynator.Formatting.Analyzers" Version="4.12.9" />
     <PackageVersion Include="Substrate.NET.API" Version="0.9.24-rc6" />
+    <PackageVersion Include="System.Threading.Channels" Version="8.0.0" />
     <!-- tests -->
     <PackageVersion Include="coverlet.collector" Version="6.0.0" />
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.8.0" />
