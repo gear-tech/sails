@@ -9,7 +9,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Substrate.Gear.Api", "net\s
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Sails.Remoting.Abstractions", "net\src\Sails.Remoting.Abstractions\Sails.Remoting.Abstractions.csproj", "{0442F9DE-9775-4787-866B-22869C681995}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Sails.Remoting", "net\src\Sails.Remoting\Sails.Remoting.csproj", "{4C15C311-F328-480C-A102-3DCDC2C0AF11}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Sails.Remoting", "net\src\Sails.Remoting\Sails.Remoting.csproj", "{4C15C311-F328-480C-A102-3DCDC2C0AF11}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{17A264B0-419F-46D2-8ACE-662FB478E570}"
 	ProjectSection(SolutionItems) = preProject
@@ -17,9 +17,13 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 		net\Directory.Packages.props = net\Directory.Packages.props
 	EndProjectSection
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Substrate.Gear.Client", "net\src\Substrate.Gear.Client\Substrate.Gear.Client.csproj", "{1589D5A4-0CC4-4855-89E0-2E61BBC5E0B0}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Substrate.Gear.Client", "net\src\Substrate.Gear.Client\Substrate.Gear.Client.csproj", "{1589D5A4-0CC4-4855-89E0-2E61BBC5E0B0}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Sails.ClientGenerator", "net\src\Sails.ClientGenerator\Sails.ClientGenerator.csproj", "{F93FFE42-71C1-44BD-9DBA-3559B307370C}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Sails.ClientGenerator", "net\src\Sails.ClientGenerator\Sails.ClientGenerator.csproj", "{F93FFE42-71C1-44BD-9DBA-3559B307370C}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Sails.ClientGenerator.Tests", "net\tests\Sails.ClientGenerator.Tests\Sails.ClientGenerator.Tests.csproj", "{A6A2172B-8F8F-4BDC-B519-E7299FFCCA5F}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{19594BCA-94DB-44AD-ACBC-2ACFED242E9F}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -51,9 +55,16 @@ Global
 		{F93FFE42-71C1-44BD-9DBA-3559B307370C}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{F93FFE42-71C1-44BD-9DBA-3559B307370C}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{F93FFE42-71C1-44BD-9DBA-3559B307370C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A6A2172B-8F8F-4BDC-B519-E7299FFCCA5F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A6A2172B-8F8F-4BDC-B519-E7299FFCCA5F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A6A2172B-8F8F-4BDC-B519-E7299FFCCA5F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A6A2172B-8F8F-4BDC-B519-E7299FFCCA5F}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{A6A2172B-8F8F-4BDC-B519-E7299FFCCA5F} = {19594BCA-94DB-44AD-ACBC-2ACFED242E9F}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {0894C08B-8BB9-401D-8471-26F5EB5A4EA2}

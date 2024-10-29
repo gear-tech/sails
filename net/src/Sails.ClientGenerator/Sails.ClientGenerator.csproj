@@ -10,12 +10,37 @@
     <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
     <NoWarn>$(NoWarn);NU5128</NoWarn>
     <Description>Code generator for Sails.Net.</Description>
+    <EnableNETAnalyzers>True</EnableNETAnalyzers>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp" />
     <PackageReference Include="Microsoft.CodeAnalysis.Analyzers" />
+    <PackageReference Include="PolySharp" />
   </ItemGroup>
+
+  <ItemGroup>
+    <None Include="../../../target/release/sails_client_gen_dotnet.dll">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+  <!-- for debug perpose, if exists in debug, copy it -->
+  <ItemGroup Condition="'$(Configuration)' == 'Debug' and Exists('../../../target/debug/sails_client_gen_dotnet.dll')">
+    <None Include="../../../target/debug/sails_client_gen_dotnet.dll">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <Link>sails_client_gen_dotnet.dll</Link>
+    </None>
+    <None Include="../../../target/debug/sails_client_gen_dotnet.pdb">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <Link>sails_client_gen_dotnet.pdb</Link>
+    </None>
+  </ItemGroup>
+
+  <Target Name="PreBuild" BeforeTargets="PreBuildEvent">
+    <Exec Command="cargo +nightly build -p sails-client-gen-dotnet --release" />
+  </Target>
 
   <!-- for nuget publish -->
   <Target Name="PackBuildOutputs" DependsOnTargets="SatelliteDllsProjectOutputGroup;DebugSymbolsProjectOutputGroup">
