@@ -10,5 +10,12 @@
     <PackageVersion Include="Roslynator.Analyzers" Version="4.12.8" />
     <PackageVersion Include="Roslynator.Formatting.Analyzers" Version="4.12.8" />
     <PackageVersion Include="Substrate.NET.API" Version="0.9.24-rc6" />
+    <!-- tests -->
+    <PackageVersion Include="coverlet.collector" Version="6.0.0" />
+    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.8.0" />
+    <PackageVersion Include="Verify.SourceGenerators" Version="2.5.0" />
+    <PackageVersion Include="Verify.Xunit" Version="27.1.0" />
+    <PackageVersion Include="xunit" Version="2.9.2" />
+    <PackageVersion Include="xunit.runner.visualstudio" Version="2.8.2" />
   </ItemGroup>
 </Project>

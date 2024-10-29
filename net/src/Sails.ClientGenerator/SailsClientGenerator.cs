@@ -1,38 +1,42 @@
-﻿using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
+﻿using System.Text;
+using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.Text;
 
 namespace Sails.ClientGenerator;
 
 [Generator(LanguageNames.CSharp)]
 public partial class SailsClientGenerator : IIncrementalGenerator
 {
-    public const string SailsClientAttributeFullName = "Sails.ClientGenerator.SailsClientAttribute";
-
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
-        context.RegisterPostInitializationOutput(ctx =>
-        {
-            ctx.AddSource("SailsClientAttribute.g.cs", """
-namespace Sails.ClientGenerator
-{
-    [System.AttributeUsage(System.AttributeTargets.Class)]
-    public class SailsClientAttribute : System.Attribute
-    {
-    }
-}
-""");
-        });
-
-        var source = context.SyntaxProvider.ForAttributeWithMetadataName(
-            SailsClientAttributeFullName,
-            predicate: static (node, token) => node is ClassDeclarationSyntax,
-            transform: static (context, token) => context);
+        var source = context.AdditionalTextsProvider.Where(static file => file.Path.EndsWith(".idl"));
 
         context.RegisterSourceOutput(source, Generate);
     }
 
-    private static void Generate(SourceProductionContext context, GeneratorAttributeSyntaxContext source)
+    private static unsafe void Generate(SourceProductionContext context, AdditionalText source)
     {
+        var idl = source.GetText()!.ToString();
+        var idlBytes = Encoding.UTF8.GetBytes(idl);
 
+        var name = Path.GetFileNameWithoutExtension(source.Path);
+        var nameBytes = Encoding.UTF8.GetBytes(name);
+
+        fixed (byte* pIdl = idlBytes)
+        {
+            fixed (byte* pName = nameBytes)
+            {
+                var cstr = NativeMethods.generate_dotnet_client(pIdl, idlBytes.Length, pName, nameBytes.Length);
+                try
+                {
+                    var str = new string((sbyte*)cstr);
+                    context.AddSource($"{name}.g.cs", SourceText.From(str, encoding: Encoding.UTF8));
+                }
+                finally
+                {
+                    NativeMethods.free_c_string(cstr);
+                }
+            }
+        }
     }
 }
