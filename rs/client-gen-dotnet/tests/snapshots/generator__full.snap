@@ -13,8 +13,7 @@ public interface IServiceFactory
     /// <summary>
     /// New constructor
     /// </summary>
-    IActivation New(
-        global::Substrate.NetApi.Model.Types.Primitive.U32 a);
+    IActivation New(global::Substrate.NetApi.Model.Types.Primitive.U32 a);
 }
 
 public partial class ServiceFactory : IServiceFactory
@@ -27,8 +26,7 @@ public partial class ServiceFactory : IServiceFactory
     }
 
     /// <inheritdoc/>
-    public IActivation New(
-        global::Substrate.NetApi.Model.Types.Primitive.U32 a)
+    public IActivation New(global::Substrate.NetApi.Model.Types.Primitive.U32 a)
     {
         return new RemotingAction<global::Substrate.NetApi.Model.Types.Primitive.U32>(
             this.remoting,

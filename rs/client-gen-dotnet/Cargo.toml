@@ -8,6 +8,12 @@ edition.workspace = true
 license.workspace = true
 repository.workspace = true
 
+[lib]
+crate-type = ["cdylib", "lib"]
+
+[build-dependencies]
+csbindgen.workspace = true
+
 [dependencies]
 anyhow.workspace = true
 convert-case.workspace = true

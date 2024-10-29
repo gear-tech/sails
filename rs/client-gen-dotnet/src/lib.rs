@@ -140,3 +140,35 @@ impl<'a> ClientGenerator<'a, IdlString<'a>> {
         Ok(())
     }
 }
+
+/// # Safety
+///
+/// Function [`free_c_string`] should be called after this function
+#[no_mangle]
+pub unsafe extern "C" fn generate_dotnet_client(
+    program_utf8: *const u8,
+    program_len: i32,
+    service_name_utf8: *const u8,
+    service_name_len: i32,
+) -> *const std::ffi::c_char {
+    let slice = unsafe { std::slice::from_raw_parts(program_utf8, program_len as usize) };
+    let program = unsafe { String::from_utf8_unchecked(slice.to_vec()) };
+    let slice = unsafe { std::slice::from_raw_parts(service_name_utf8, service_name_len as usize) };
+    let service_name = unsafe { String::from_utf8_unchecked(slice.to_vec()) };
+
+    let res = ClientGenerator::from_idl(program.as_str())
+        .generate(service_name.as_str())
+        .expect("failed to generate client");
+    std::ffi::CString::new(res)
+        .expect("failed to create cstring")
+        .into_raw()
+}
+
+/// # Safety
+///
+/// This function should not be called before the [`generate_dotnet_client`]
+#[no_mangle]
+pub unsafe extern "C" fn free_c_string(str: *mut std::ffi::c_char) {
+    // drop
+    _ = unsafe { std::ffi::CString::from_raw(str) };
+}
