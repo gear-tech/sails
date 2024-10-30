@@ -18,8 +18,8 @@ public interface IRemoting
     /// <param name="gasLimit"></param>
     /// <param name="value"></param>
     /// <param name="cancellationToken"></param>
-    /// <returns>A task for obtaining activated program ID and SCALE-encoded reply.</returns>
-    Task<Task<(ActorId ProgramId, byte[] EncodedReply)>> ActivateAsync(
+    /// <returns></returns>
+    Task<ActivationResult> ActivateAsync(
         CodeId codeId,
         IReadOnlyCollection<byte> salt,
         IReadOnlyCollection<byte> encodedPayload,

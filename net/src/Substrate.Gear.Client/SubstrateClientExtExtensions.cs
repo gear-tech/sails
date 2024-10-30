@@ -19,6 +19,7 @@ using Substrate.NetApi.Model.Extrinsics;
 using Substrate.NetApi.Model.Rpc;
 using Substrate.NetApi.Model.Types;
 using Substrate.NetApi.Model.Types.Base;
+using Substrate.NetApi.Model.Types.Primitive;
 using GasUnit = Substrate.NetApi.Model.Types.Primitive.U64;
 using ValueUnit = Substrate.NetApi.Model.Types.Primitive.U128;
 
@@ -40,7 +41,7 @@ public static class SubstrateClientExtExtensions
     /// <param name="cancellationToken"></param>
     /// <returns></returns>
     /// <exception cref="TimeoutException"></exception>
-    public static async Task<(Hash BlockHash, Hash ExtrinsicHash, uint ExtrinsicIdx)> ExecuteExtrinsicAsync(
+    public static async Task<ExtrinsicInfo> ExecuteExtrinsicAsync(
             this SubstrateClient nodeClient,
             Account signingAccount,
             Method method,
@@ -109,7 +110,12 @@ public static class SubstrateClientExtExtensions
 
             var extrinsicId = blockData.Block.GetExtrinsicIdxByHash(extrinsicHash);
 
-            return (blockHash, extrinsicHash, extrinsicId);
+            return new ExtrinsicInfo
+            {
+                BlockHash = blockHash,
+                IndexInBlock = extrinsicId,
+                Hash = extrinsicHash
+            };
         }
         finally
         {
@@ -121,7 +127,7 @@ public static class SubstrateClientExtExtensions
     }
 
     /// <summary>
-    /// Lists events that occurred in the specified block.
+    /// Lists events occurred in the specified block.
     /// </summary>
     /// <param name="nodeClient"></param>
     /// <param name="blockHash"></param>
@@ -135,25 +141,72 @@ public static class SubstrateClientExtExtensions
         EnsureArg.IsNotNull(nodeClient, nameof(nodeClient));
         EnsureArg.IsNotNull(blockHash, nameof(blockHash));
 
-        return await nodeClient.SystemStorage.Events(
+        return (await nodeClient.SystemStorage.Events(
                 Utils.Bytes2HexString(blockHash),
+                cancellationToken)
+            .ConfigureAwait(false))?.Value // 0-th block doesn't have any events
+            ?? [];
+    }
+
+    /// <summary>
+    /// Lists events occurred in the specified block.
+    /// </summary>
+    /// <param name="nodeClient"></param>
+    /// <param name="blockNumber"></param>
+    /// <param name="cancellationToken"></param>
+    /// <returns></returns>
+    public static async Task<EventRecord[]> ListBlockEventsAsync(
+        this SubstrateClientExt nodeClient,
+        U64 blockNumber,
+        CancellationToken cancellationToken)
+    {
+        EnsureArg.IsNotNull(nodeClient, nameof(nodeClient));
+        EnsureArg.IsNotNull(blockNumber, nameof(blockNumber));
+
+        // TODO: Needs own implementation of GetBlockHashAsync accepting U64
+        var blockHash = await nodeClient.Chain.GetBlockHashAsync(
+                new BlockNumber((uint)blockNumber),
+                cancellationToken)
+            .ConfigureAwait(false);
+        return await nodeClient.ListBlockEventsAsync(
+                blockHash,
                 cancellationToken)
             .ConfigureAwait(false);
     }
 
     /// <summary>
-    /// Subscribes to finalized block headers and returns them as a stream which can be read as an async enumerable.
+    /// Subscribes to all blocks and returns them as a stream which can be read as an async enumerable.
     /// </summary>
     /// <param name="nodeClient"></param>
     /// <param name="cancellationToken"></param>
     /// <returns></returns>
-    public static Task<BlockHeadersStream> GetFinalizedBlockHeadersStreamAsync(
-        this SubstrateClientExt nodeClient,
+    public static Task<BlocksStream> GetAllBlocksStreamAsync(
+        this SubstrateClient nodeClient,
         CancellationToken cancellationToken)
     {
         EnsureArg.IsNotNull(nodeClient, nameof(nodeClient));
 
-        return BlockHeadersStream.CreateAsync(
+        return BlocksStream.CreateAsync(
+            nodeClient,
+            (nodeClient, callback) =>
+                nodeClient.Chain.SubscribeAllHeadsAsync(callback, cancellationToken),
+            (nodeClient, subscriptionId) =>
+                nodeClient.Chain.UnsubscribeAllHeadsAsync(subscriptionId, CancellationToken.None));
+    }
+
+    /// <summary>
+    /// Subscribes to finalized blocks and returns them as a stream which can be read as an async enumerable.
+    /// </summary>
+    /// <param name="nodeClient"></param>
+    /// <param name="cancellationToken"></param>
+    /// <returns></returns>
+    public static Task<BlocksStream> GetFinalizedBlocksStreamAsync(
+        this SubstrateClient nodeClient,
+        CancellationToken cancellationToken)
+    {
+        EnsureArg.IsNotNull(nodeClient, nameof(nodeClient));
+
+        return BlocksStream.CreateAsync(
             nodeClient,
             (nodeClient, callback) =>
                 nodeClient.Chain.SubscribeFinalizedHeadsAsync(callback, cancellationToken),

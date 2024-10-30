@@ -11,7 +11,7 @@ namespace Sails.Remoting.Abstractions;
 public static class IRemotingExtensions
 {
     /// <inheritdoc cref="IRemoting.ActivateAsync(CodeId, IReadOnlyCollection{byte}, IReadOnlyCollection{byte}, GasUnit?, ValueUnit, CancellationToken)"/>
-    public static Task<Task<(ActorId ProgramId, byte[] EncodedReply)>> ActivateAsync(
+    public static Task<ActivationResult> ActivateAsync(
         this IRemoting remoting,
         CodeId codeId,
         IReadOnlyCollection<byte> salt,

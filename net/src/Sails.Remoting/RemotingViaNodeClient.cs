@@ -6,24 +6,14 @@ using System.Threading.Tasks;
 using EnsureThat;
 using Sails.Remoting.Abstractions;
 using Substrate.Gear.Api.Generated;
-using Substrate.Gear.Api.Generated.Model.frame_system;
 using Substrate.Gear.Api.Generated.Model.gprimitives;
-using Substrate.Gear.Api.Generated.Model.vara_runtime;
 using Substrate.Gear.Api.Generated.Storage;
 using Substrate.Gear.Client;
 using Substrate.Gear.Client.Model.Types;
-using Substrate.Gear.Client.Model.Types.Base;
 using Substrate.NetApi.Model.Types;
 using Substrate.NetApi.Model.Types.Base;
 using Substrate.NetApi.Model.Types.Primitive;
-using EnumGearEvent = Substrate.Gear.Api.Generated.Model.pallet_gear.pallet.EnumEvent;
 using GasUnit = Substrate.NetApi.Model.Types.Primitive.U64;
-using GearEvent = Substrate.Gear.Api.Generated.Model.pallet_gear.pallet.Event;
-using MessageQueuedGearEventData = Substrate.NetApi.Model.Types.Base.BaseTuple<
-    Substrate.Gear.Api.Generated.Model.gprimitives.MessageId,
-    Substrate.Gear.Api.Generated.Model.sp_core.crypto.AccountId32,
-    Substrate.Gear.Api.Generated.Model.gprimitives.ActorId,
-    Substrate.Gear.Api.Generated.Model.gear_common.@event.EnumMessageEntry>;
 using ValueUnit = Substrate.NetApi.Model.Types.Primitive.U128;
 
 namespace Sails.Remoting;
@@ -56,7 +46,7 @@ internal sealed class RemotingViaNodeClient : IRemoting
     private readonly Account signingAccount;
 
     /// <inheritdoc/>
-    public async Task<Task<(ActorId ProgramId, byte[] EncodedReply)>> ActivateAsync(
+    public async Task<ActivationResult> ActivateAsync(
         CodeId codeId,
         IReadOnlyCollection<byte> salt,
         IReadOnlyCollection<byte> encodedPayload,
@@ -87,46 +77,16 @@ internal sealed class RemotingViaNodeClient : IRemoting
             value,
             keep_alive: new Bool(true));
 
-        var (blockHash, extrinsicHash, extrinsicIdx) = await nodeClient.ExecuteExtrinsicAsync(
-                this.signingAccount,
-                createProgram,
-                DefaultExtrinsicTtlInBlocks,
+        return await ActivationResultViaNodeClient.FromExecutionAsync(
+                nodeClient,
+                async nodeClient => await nodeClient.ExecuteExtrinsicAsync(
+                        this.signingAccount,
+                        createProgram,
+                        DefaultExtrinsicTtlInBlocks,
+                        cancellationToken)
+                    .ConfigureAwait(false),
                 cancellationToken)
             .ConfigureAwait(false);
-
-        // It can be moved inside the task to return.
-        var blockEvents = await nodeClient.ListBlockEventsAsync(
-                blockHash,
-                cancellationToken)
-            .ConfigureAwait(false);
-
-        var messageQueuedGearEventData = blockEvents
-            .Where(
-                blockEvent =>
-                    blockEvent.Phase.Matches(
-                        Phase.ApplyExtrinsic,
-                        (U32 blockExtrinsicIdx) => blockExtrinsicIdx.Value == extrinsicIdx))
-            .Select(
-                blockEvents =>
-                    blockEvents.Event)
-            .SelectIfMatches(
-                RuntimeEvent.Gear,
-                (EnumGearEvent gearEvent) => gearEvent)
-            .SelectIfMatches(
-                GearEvent.MessageQueued,
-                (MessageQueuedGearEventData data) => data)
-            .SingleOrDefault()
-            ?? throw new Exception("TODO: Custom exception. Something terrible happened.");
-
-        var programId = (ActorId)messageQueuedGearEventData.Value[2];
-
-        static Task<(ActorId ProgramId, byte[] EncodedPayload)> ReceiveReply(CancellationToken cancellationToken)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-            throw new NotImplementedException();
-        }
-
-        return ReceiveReply(cancellationToken);
     }
 
     /// <inheritdoc/>
@@ -158,7 +118,7 @@ internal sealed class RemotingViaNodeClient : IRemoting
             value,
             keep_alive: new Bool(true));
 
-        var (blockHash, extrinsicHash, extrinsicIdx) = await nodeClient.ExecuteExtrinsicAsync(
+        var extrinsicInfo = await nodeClient.ExecuteExtrinsicAsync(
                 this.signingAccount,
                 sendMessage,
                 DefaultExtrinsicTtlInBlocks,
