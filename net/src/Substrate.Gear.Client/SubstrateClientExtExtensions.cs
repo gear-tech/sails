@@ -152,7 +152,7 @@ public static class SubstrateClientExtExtensions
     /// Lists events occurred in the specified block.
     /// </summary>
     /// <param name="nodeClient"></param>
-    /// <param name="blockNumber"></param>
+    /// <param name="blockNumber">Block number which should be less or equal <see cref="uint.MaxValue"/>.</param>
     /// <param name="cancellationToken"></param>
     /// <returns></returns>
     public static async Task<EventRecord[]> ListBlockEventsAsync(
@@ -162,6 +162,7 @@ public static class SubstrateClientExtExtensions
     {
         EnsureArg.IsNotNull(nodeClient, nameof(nodeClient));
         EnsureArg.IsNotNull(blockNumber, nameof(blockNumber));
+        EnsureArg.IsLte(blockNumber.Value, uint.MaxValue, nameof(blockNumber));
 
         // TODO: Needs own implementation of GetBlockHashAsync accepting U64
         var blockHash = await nodeClient.Chain.GetBlockHashAsync(
