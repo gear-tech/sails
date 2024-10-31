@@ -108,12 +108,12 @@ public static class SubstrateClientExtExtensions
             var blockData = await nodeClient.Chain.GetBlockAsync(blockHash, cancellationToken)
                 .ConfigureAwait(false);
 
-            var extrinsicId = blockData.Block.GetExtrinsicIdxByHash(extrinsicHash);
+            var extrinsicIdx = blockData.Block.GetExtrinsicIdxByHash(extrinsicHash);
 
             return new ExtrinsicInfo
             {
                 BlockHash = blockHash,
-                IndexInBlock = extrinsicId,
+                IndexInBlock = extrinsicIdx,
                 Hash = extrinsicHash
             };
         }
@@ -195,7 +195,27 @@ public static class SubstrateClientExtExtensions
     }
 
     /// <summary>
-    /// Subscribes to finalized blocks and returns them as a stream which can be read as an async enumerable.
+    /// Subscribes to the best blocks and returns them as a stream which can be read as an async enumerable.
+    /// </summary>
+    /// <param name="nodeClient"></param>
+    /// <param name="cancellationToken"></param>
+    /// <returns></returns>
+    public static Task<BlocksStream> GetNewBlocksStreamAsync(
+        this SubstrateClient nodeClient,
+        CancellationToken cancellationToken)
+    {
+        EnsureArg.IsNotNull(nodeClient, nameof(nodeClient));
+
+        return BlocksStream.CreateAsync(
+            nodeClient,
+            (nodeClient, callback) =>
+                nodeClient.Chain.SubscribeNewHeadsAsync(callback, cancellationToken),
+            (nodeClient, subscriptionId) =>
+                nodeClient.Chain.UnsubscribeNewHeadsAsync(subscriptionId, CancellationToken.None));
+    }
+
+    /// <summary>
+    /// Subscribes to the best finalized blocks and returns them as a stream which can be read as an async enumerable.
     /// </summary>
     /// <param name="nodeClient"></param>
     /// <param name="cancellationToken"></param>
@@ -206,6 +226,9 @@ public static class SubstrateClientExtExtensions
     {
         EnsureArg.IsNotNull(nodeClient, nameof(nodeClient));
 
+        // TODO: It is noteworthy that some blocks may be skipped in the stream assuming they were finalized without sending a
+        //       notification, i.e., if you observe block X and then X + 2, it means that block X + 1 was finalized too.
+        //       Probably it should be accounted here and missed blocks should be fetched from the chain.
         return BlocksStream.CreateAsync(
             nodeClient,
             (nodeClient, callback) =>

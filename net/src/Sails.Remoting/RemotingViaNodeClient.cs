@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -46,7 +45,7 @@ internal sealed class RemotingViaNodeClient : IRemoting
     private readonly Account signingAccount;
 
     /// <inheritdoc/>
-    public async Task<ActivationResult> ActivateAsync(
+    public async Task<RemotingReply<(ActorId ProgramId, byte[] Payload)>> ActivateAsync(
         CodeId codeId,
         IReadOnlyCollection<byte> salt,
         IReadOnlyCollection<byte> encodedPayload,
@@ -77,20 +76,24 @@ internal sealed class RemotingViaNodeClient : IRemoting
             value,
             keep_alive: new Bool(true));
 
-        return await ActivationResultViaNodeClient.FromExecutionAsync(
+        return await RemotingReplyViaNodeClient<(ActorId, byte[])>.FromExecutionAsync(
                 nodeClient,
-                async nodeClient => await nodeClient.ExecuteExtrinsicAsync(
-                        this.signingAccount,
-                        createProgram,
-                        DefaultExtrinsicTtlInBlocks,
-                        cancellationToken)
-                    .ConfigureAwait(false),
+                nodeClient => nodeClient.ExecuteExtrinsicAsync(
+                    this.signingAccount,
+                    createProgram,
+                    DefaultExtrinsicTtlInBlocks,
+                    cancellationToken),
+                (queuedMessageData, replyMessage) => (
+                    (ActorId)queuedMessageData.Value[2],
+                    replyMessage.Payload.Value.Value
+                        .Select(@byte => @byte.Value)
+                        .ToArray()),
                 cancellationToken)
             .ConfigureAwait(false);
     }
 
     /// <inheritdoc/>
-    public async Task<Task<byte[]>> MessageAsync(
+    public async Task<RemotingReply<byte[]>> MessageAsync(
         ActorId programId,
         IReadOnlyCollection<byte> encodedPayload,
         GasUnit? gasLimit,
@@ -118,20 +121,18 @@ internal sealed class RemotingViaNodeClient : IRemoting
             value,
             keep_alive: new Bool(true));
 
-        var extrinsicInfo = await nodeClient.ExecuteExtrinsicAsync(
-                this.signingAccount,
-                sendMessage,
-                DefaultExtrinsicTtlInBlocks,
+        return await RemotingReplyViaNodeClient<byte[]>.FromExecutionAsync(
+                nodeClient,
+                nodeClient => nodeClient.ExecuteExtrinsicAsync(
+                    this.signingAccount,
+                    sendMessage,
+                    DefaultExtrinsicTtlInBlocks,
+                    cancellationToken),
+                (_, replyMessage) => replyMessage.Payload.Value.Value
+                    .Select(@byte => @byte.Value)
+                    .ToArray(),
                 cancellationToken)
             .ConfigureAwait(false);
-
-        static Task<byte[]> ReceiveReply(CancellationToken cancellationToken)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-            throw new NotImplementedException();
-        }
-
-        return ReceiveReply(cancellationToken);
     }
 
     /// <inheritdoc/>

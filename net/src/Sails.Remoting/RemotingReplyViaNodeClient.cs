@@ -14,7 +14,6 @@ using Substrate.Gear.Client;
 using Substrate.Gear.Client.Model.Types.Base;
 using Substrate.NetApi.Model.Types.Primitive;
 using EnumGearEvent = Substrate.Gear.Api.Generated.Model.pallet_gear.pallet.EnumEvent;
-using ExtrinsicInfo = Substrate.Gear.Client.ExtrinsicInfo;
 using GearEvent = Substrate.Gear.Api.Generated.Model.pallet_gear.pallet.Event;
 using MessageQueuedEventData = Substrate.NetApi.Model.Types.Base.BaseTuple<
     Substrate.Gear.Api.Generated.Model.gprimitives.MessageId,
@@ -27,17 +26,20 @@ using UserMessageSentEventData = Substrate.NetApi.Model.Types.Base.BaseTuple<
 
 namespace Sails.Remoting;
 
-internal sealed class ActivationResultViaNodeClient : ActivationResult
+internal sealed class RemotingReplyViaNodeClient<T> : RemotingReply<T>
 {
-    public static async Task<ActivationResultViaNodeClient> FromExecutionAsync(
+    public static async Task<RemotingReplyViaNodeClient<T>> FromExecutionAsync(
         SubstrateClientExt nodeClient,
         Func<SubstrateClientExt, Task<ExtrinsicInfo>> executeExtrinsic,
+        Func<MessageQueuedEventData, UserMessage, T> extractResult,
         CancellationToken cancellationToken)
     {
         EnsureArg.IsNotNull(nodeClient, nameof(nodeClient));
         EnsureArg.IsNotNull(executeExtrinsic, nameof(executeExtrinsic));
+        EnsureArg.IsNotNull(extractResult, nameof(extractResult));
 
-        var blocksStream = await nodeClient.GetAllBlocksStreamAsync(cancellationToken).ConfigureAwait(false);
+        // TODO: Might need be configurable whether to use best blocks or finalized ones
+        var blocksStream = await nodeClient.GetNewBlocksStreamAsync(cancellationToken).ConfigureAwait(false);
         try
         {
             var extrinsicInfo = await executeExtrinsic(nodeClient).ConfigureAwait(false);
@@ -50,7 +52,7 @@ internal sealed class ActivationResultViaNodeClient : ActivationResult
             // TODO: Requires checking for System.ExtrinsicFailed event and throwing an exception with
             //       details from it. (type + details)
 
-            var messageQueuedEventData = extrinsicBlockEvents
+            var queuedMessageData = extrinsicBlockEvents
                 .Where(
                     eventRecord =>
                         eventRecord.Phase.Matches(
@@ -67,8 +69,12 @@ internal sealed class ActivationResultViaNodeClient : ActivationResult
                 .SingleOrDefault()
                 ?? throw new Exception("TODO: Custom exception. Something terrible happened.");
 
-            var result = new ActivationResultViaNodeClient(nodeClient, blocksStream, messageQueuedEventData);
-            blocksStream = null;
+            var result = new RemotingReplyViaNodeClient<T>(
+                nodeClient,
+                blocksStream,
+                extractResult,
+                queuedMessageData);
+            blocksStream = null; // Prevent disposing the stream in the finally block
             return result;
         }
         finally
@@ -80,53 +86,69 @@ internal sealed class ActivationResultViaNodeClient : ActivationResult
         }
     }
 
-    private ActivationResultViaNodeClient(
+    private RemotingReplyViaNodeClient(
         SubstrateClientExt nodeClient,
         BlocksStream blocksStream,
-        MessageQueuedEventData messageQueuedEventData)
+        Func<MessageQueuedEventData, UserMessage, T> extractResult,
+        MessageQueuedEventData queuedMessageData)
     {
         this.nodeClient = nodeClient;
         this.blocksStream = blocksStream;
-        this.messageQueuedEventData = messageQueuedEventData;
+        this.extractResult = extractResult;
+        this.queuedMessageData = queuedMessageData;
+        this.replyMessage = null;
     }
 
     private readonly SubstrateClientExt nodeClient;
-    private readonly BlocksStream blocksStream;
-    private readonly MessageQueuedEventData messageQueuedEventData;
+    private BlocksStream? blocksStream;
+    private readonly Func<MessageQueuedEventData, UserMessage, T> extractResult;
+    private readonly MessageQueuedEventData queuedMessageData;
+    private UserMessage? replyMessage;
 
-    protected override ValueTask DisposeCoreAsync()
-        => this.blocksStream.DisposeAsync();
-
-    public override async Task<(ActorId ProgramId, byte[] EncodedPayload)> ReadReplyAsync(CancellationToken cancellationToken)
+    protected override async ValueTask DisposeCoreAsync()
     {
-        var queuedMessageId = (MessageId)this.messageQueuedEventData.Value[0];
-        var activatedProgramId = (ActorId)this.messageQueuedEventData.Value[2];
+        await base.DisposeCoreAsync().ConfigureAwait(false);
 
-        var replyMessage = await this.blocksStream.ReadAllHeadersAsync(cancellationToken)
-            .SelectAwait(
-                async blockHeader =>
-                    await this.nodeClient.ListBlockEventsAsync(blockHeader.Number, cancellationToken) // TODO: It is weird block header doesn't contain hash.
-                        .ConfigureAwait(false))
-            .SelectMany(
-                eventRecords => eventRecords.AsAsyncEnumerable())
-            .Select(
-                eventRecord => eventRecord.Event)
-            .SelectIfMatches(
-                RuntimeEvent.Gear,
-                (EnumGearEvent gearEvent) => gearEvent)
-            .SelectIfMatches(
-                GearEvent.UserMessageSent,
-                (UserMessageSentEventData data) => (UserMessage)data.Value[0])
-            .FirstAsync(
-                userMessage => userMessage.Details.OptionFlag
-                    && userMessage.Details.Value.To.IsEqualTo(queuedMessageId),
-                cancellationToken)
-            .ConfigureAwait(false);
+        if (this.blocksStream is not null)
+        {
+            await this.blocksStream.DisposeAsync().ConfigureAwait(false);
+            this.blocksStream = null;
+        }
+    }
 
-        var replyPayload = replyMessage.Payload.Value.Value
-            .Select(@byte => @byte.Value)
-            .ToArray();
+    public override async Task<T> ReadAsync(CancellationToken cancellationToken)
+    {
+        var queuedMessageId = (MessageId)this.queuedMessageData.Value[0];
 
-        return (activatedProgramId, replyPayload);
+        if (this.replyMessage is null)
+        {
+            Ensure.Any.IsNotNull(this.blocksStream, nameof(this.blocksStream));
+
+            this.replyMessage = await this.blocksStream.ReadAllHeadersAsync(cancellationToken)
+                .SelectAwait(
+                    async blockHeader =>
+                        await this.nodeClient.ListBlockEventsAsync(blockHeader.Number, cancellationToken) // TODO: It is weird block header doesn't contain hash.
+                            .ConfigureAwait(false))
+                .SelectMany(
+                    eventRecords => eventRecords.AsAsyncEnumerable())
+                .Select(
+                    eventRecord => eventRecord.Event)
+                .SelectIfMatches(
+                    RuntimeEvent.Gear,
+                    (EnumGearEvent gearEvent) => gearEvent)
+                .SelectIfMatches(
+                    GearEvent.UserMessageSent,
+                    (UserMessageSentEventData data) => (UserMessage)data.Value[0])
+                .FirstAsync(
+                    userMessage => userMessage.Details.OptionFlag
+                        && userMessage.Details.Value.To.IsEqualTo(queuedMessageId),
+                    cancellationToken)
+                .ConfigureAwait(false);
+
+            await this.blocksStream.DisposeAsync().ConfigureAwait(false);
+            this.blocksStream = null;
+        }
+
+        return this.extractResult(this.queuedMessageData, this.replyMessage);
     }
 }
