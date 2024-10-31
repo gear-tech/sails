@@ -8,7 +8,7 @@ namespace Substrate.Gear.Client.Model.Types.Base;
 public static class BaseTypeExtensions
 {
     /// <summary>
-    /// Compares two primitive types by their values
+    /// Compares two primitive types by their values.
     /// </summary>
     /// <param name="left"></param>
     /// <param name="right"></param>
@@ -19,9 +19,9 @@ public static class BaseTypeExtensions
         EnsureArg.IsNotNull(left, nameof(left));
         EnsureArg.IsNotNull(right, nameof(right));
         EnsureArg.IsTrue(left.GetType() == right.GetType(), "left/right");
+        EnsureArg.Is(left.TypeSize, right.TypeSize, "typeSize");
 
-        return left.TypeSize == right.TypeSize
-            && left.Bytes.Take(left.TypeSize)
-                .SequenceEqual(right.Bytes.Take(right.TypeSize));
+        return left.Bytes.AsSpan(0, left.TypeSize)
+            .SequenceEqual(right.Bytes.AsSpan(0, right.TypeSize));
     }
 }
