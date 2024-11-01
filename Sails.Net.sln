@@ -9,7 +9,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Substrate.Gear.Api", "net\s
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Sails.Remoting.Abstractions", "net\src\Sails.Remoting.Abstractions\Sails.Remoting.Abstractions.csproj", "{0442F9DE-9775-4787-866B-22869C681995}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Sails.Remoting", "net\src\Sails.Remoting\Sails.Remoting.csproj", "{4C15C311-F328-480C-A102-3DCDC2C0AF11}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Sails.Remoting", "net\src\Sails.Remoting\Sails.Remoting.csproj", "{4C15C311-F328-480C-A102-3DCDC2C0AF11}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{17A264B0-419F-46D2-8ACE-662FB478E570}"
 	ProjectSection(SolutionItems) = preProject
@@ -17,7 +17,9 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 		net\Directory.Packages.props = net\Directory.Packages.props
 	EndProjectSection
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Substrate.Gear.Client", "net\src\Substrate.Gear.Client\Substrate.Gear.Client.csproj", "{1589D5A4-0CC4-4855-89E0-2E61BBC5E0B0}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Substrate.Gear.Client", "net\src\Substrate.Gear.Client\Substrate.Gear.Client.csproj", "{1589D5A4-0CC4-4855-89E0-2E61BBC5E0B0}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Substrate.Gear.Client.Tests", "net\tests\Substrate.Gear.Client.Tests\Substrate.Gear.Client.Tests.csproj", "{42B621CE-C2B4-4911-961C-5B087A514AF5}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -45,6 +47,10 @@ Global
 		{1589D5A4-0CC4-4855-89E0-2E61BBC5E0B0}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{1589D5A4-0CC4-4855-89E0-2E61BBC5E0B0}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{1589D5A4-0CC4-4855-89E0-2E61BBC5E0B0}.Release|Any CPU.Build.0 = Release|Any CPU
+		{42B621CE-C2B4-4911-961C-5B087A514AF5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{42B621CE-C2B4-4911-961C-5B087A514AF5}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{42B621CE-C2B4-4911-961C-5B087A514AF5}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{42B621CE-C2B4-4911-961C-5B087A514AF5}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
