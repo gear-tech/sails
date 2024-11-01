@@ -3,19 +3,20 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using EnsureThat;
-using Sails.Remoting.Abstractions;
+using Sails.Remoting.Abstractions.Core;
 using Substrate.Gear.Api.Generated;
 using Substrate.Gear.Api.Generated.Model.gprimitives;
 using Substrate.Gear.Api.Generated.Storage;
 using Substrate.Gear.Client;
 using Substrate.Gear.Client.Model.Types;
+using Substrate.NetApi;
 using Substrate.NetApi.Model.Types;
 using Substrate.NetApi.Model.Types.Base;
 using Substrate.NetApi.Model.Types.Primitive;
 using GasUnit = Substrate.NetApi.Model.Types.Primitive.U64;
 using ValueUnit = Substrate.NetApi.Model.Types.Primitive.U128;
 
-namespace Sails.Remoting;
+namespace Sails.Remoting.Core;
 
 internal sealed class RemotingViaNodeClient : IRemoting
 {
@@ -36,8 +37,7 @@ internal sealed class RemotingViaNodeClient : IRemoting
         this.signingAccount = signingAccount;
     }
 
-    private const uint EraLengthInBlocks = 64; // Apparently this is the length of Era in blocks.
-    private const uint DefaultExtrinsicTtlInBlocks = EraLengthInBlocks; // TODO: Think of making it configurable.
+    private const uint DefaultExtrinsicTtlInBlocks = (uint)Constants.ExtrinsicEraPeriodDefault; // TODO: Think of making it configurable.
 
     private static readonly GasUnit BlockGasLimit = new GearGasConstants().BlockGasLimit();
 

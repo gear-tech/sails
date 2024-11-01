@@ -6,7 +6,7 @@ using Sails.Remoting.Options;
 using Substrate.Gear.Api.Generated;
 using Substrate.NetApi.Model.Extrinsics;
 
-namespace Sails.Remoting;
+namespace Sails.Remoting.Core;
 
 internal sealed class NodeClientProvider : IDisposable, INodeClientProvider
 {

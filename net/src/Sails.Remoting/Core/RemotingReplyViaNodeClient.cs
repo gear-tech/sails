@@ -3,7 +3,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using EnsureThat;
-using Sails.Remoting.Abstractions;
+using Sails.Remoting.Abstractions.Core;
 using StreamJsonRpc;
 using Substrate.Gear.Api.Generated;
 using Substrate.Gear.Api.Generated.Model.frame_system;
@@ -24,7 +24,7 @@ using UserMessageSentEventData = Substrate.NetApi.Model.Types.Base.BaseTuple<
     Substrate.Gear.Api.Generated.Model.gear_core.message.user.UserMessage,
     Substrate.NetApi.Model.Types.Base.BaseOpt<Substrate.NetApi.Model.Types.Primitive.U32>>;
 
-namespace Sails.Remoting;
+namespace Sails.Remoting.Core;
 
 internal sealed class RemotingReplyViaNodeClient<T> : RemotingReply<T>
 {

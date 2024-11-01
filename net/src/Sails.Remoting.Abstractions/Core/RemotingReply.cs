@@ -2,7 +2,7 @@
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Sails.Remoting.Abstractions;
+namespace Sails.Remoting.Abstractions.Core;
 
 /// <summary>
 /// Represents reply from a remoting call.

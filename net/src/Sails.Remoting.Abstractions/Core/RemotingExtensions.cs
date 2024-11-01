@@ -6,9 +6,9 @@ using Substrate.Gear.Api.Generated.Model.gprimitives;
 using GasUnit = Substrate.NetApi.Model.Types.Primitive.U64;
 using ValueUnit = Substrate.NetApi.Model.Types.Primitive.U128;
 
-namespace Sails.Remoting.Abstractions;
+namespace Sails.Remoting.Abstractions.Core;
 
-public static class IRemotingExtensions
+public static class RemotingExtensions
 {
     /// <inheritdoc cref="IRemoting.ActivateAsync(CodeId, IReadOnlyCollection{byte}, IReadOnlyCollection{byte}, GasUnit?, ValueUnit, CancellationToken)"/>
     public static Task<RemotingReply<(ActorId ProgramId, byte[] Payload)>> ActivateAsync(
