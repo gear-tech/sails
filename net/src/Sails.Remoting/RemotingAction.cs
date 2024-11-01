@@ -5,6 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using EnsureThat;
 using Sails.Remoting.Abstractions;
+using Sails.Remoting.Abstractions.Core;
 using Substrate.Gear.Api.Generated.Model.gprimitives;
 using Substrate.NetApi.Model.Types;
 using GasUnit = Substrate.NetApi.Model.Types.Primitive.U64;
@@ -12,7 +13,7 @@ using ValueUnit = Substrate.NetApi.Model.Types.Primitive.U128;
 
 namespace Sails.Remoting;
 
-public class RemotingAction<T>(IRemoting remoting, byte[] route, IType args) : IActivation, IQuery<T>, ICall<T>
+public sealed class RemotingAction<T>(IRemoting remoting, byte[] route, IType args) : IActivation, IQuery<T>, ICall<T>
     where T : IType, new()
 {
     private GasUnit? gasLimit;
@@ -29,7 +30,7 @@ public class RemotingAction<T>(IRemoting remoting, byte[] route, IType args) : I
 
         var encodedPayload = this.EncodePayload();
 
-        var replyTask = await remoting.ActivateAsync(
+        var remotingReply = await remoting.ActivateAsync(
             codeId,
             salt,
             encodedPayload,
@@ -37,7 +38,7 @@ public class RemotingAction<T>(IRemoting remoting, byte[] route, IType args) : I
             value: this.value,
             cancellationToken).ConfigureAwait(false);
 
-        return new RemotingReply<(ActorId ProgramId, byte[] EncodedReply), ActorId>(replyTask, res =>
+        return new DelegatingReply<(ActorId ProgramId, byte[] EncodedReply), ActorId>(remotingReply, res =>
         {
             EnsureRoute(res.EncodedReply, route);
             return res.ProgramId;
@@ -51,14 +52,14 @@ public class RemotingAction<T>(IRemoting remoting, byte[] route, IType args) : I
 
         var encodedPayload = this.EncodePayload();
 
-        var replyTask = await remoting.MessageAsync(
+        var remotingReply = await remoting.MessageAsync(
             programId,
             encodedPayload,
             gasLimit: this.gasLimit,
             value: this.value,
             cancellationToken).ConfigureAwait(false);
 
-        return new RemotingReply<byte[], T>(replyTask, this.DecodePayload);
+        return new DelegatingReply<byte[], T>(remotingReply, this.DecodePayload);
     }
 
     /// <inheritdoc />
@@ -126,6 +127,7 @@ public class RemotingAction<T>(IRemoting remoting, byte[] route, IType args) : I
     IActivation IActionBuilder<IActivation>.WithGasLimit(GasUnit gasLimit) => this.WithGasLimit(gasLimit);
     IQuery<T> IActionBuilder<IQuery<T>>.WithGasLimit(GasUnit gasLimit) => this.WithGasLimit(gasLimit);
     ICall<T> IActionBuilder<ICall<T>>.WithGasLimit(GasUnit gasLimit) => this.WithGasLimit(gasLimit);
+
     IActivation IActionBuilder<IActivation>.WithValue(ValueUnit value) => this.WithValue(value);
     IQuery<T> IActionBuilder<IQuery<T>>.WithValue(ValueUnit value) => this.WithValue(value);
     ICall<T> IActionBuilder<ICall<T>>.WithValue(ValueUnit value) => this.WithValue(value);

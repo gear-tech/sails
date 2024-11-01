@@ -11,7 +11,7 @@ public interface IQuery<T> : IActionBuilder<IQuery<T>> where T : IType, new()
     /// Queries a program for information.
     /// </summary>
     /// <param name="programId">Program identifier.</param>
-    /// <param name="cancellationToken">Propagates notification that operations should be canceled. <see cref="CancellationToken"/> </param>
+    /// <param name="cancellationToken"></param>
     /// <returns></returns>
     Task<T> QueryAsync(
         ActorId programId,

@@ -11,7 +11,7 @@ public interface ICall<T> : IActionBuilder<ICall<T>> where T : IType, new()
     /// Sends a message to a program for execution.
     /// </summary>
     /// <param name="programId">Program identifier.</param>
-    /// <param name="cancellationToken">Propagates notification that operations should be canceled. <see cref="CancellationToken"/> </param>
+    /// <param name="cancellationToken"></param>
     /// <returns>Reply <see cref="IReply{T}"/></returns>
     Task<IReply<T>> MessageAsync(
         ActorId programId,

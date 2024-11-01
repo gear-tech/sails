@@ -12,7 +12,7 @@ public interface IActivation : IActionBuilder<IActivation>
     /// </summary>
     /// <param name="codeId">Code identifier. This identifier can be obtained as a result of executing the gear.uploadCode extrinsic.</param>
     /// <param name="salt">Salt bytes</param>
-    /// <param name="cancellationToken">Propagates notification that operations should be canceled. <see cref="CancellationToken"/> </param>
+    /// <param name="cancellationToken"></param>
     /// <returns>Reply with Program identifier. <see cref="IReply{T}"/></returns>
     Task<IReply<ActorId>> ActivateAsync(
         CodeId codeId,
