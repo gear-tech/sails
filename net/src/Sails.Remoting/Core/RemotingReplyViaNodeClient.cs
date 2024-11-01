@@ -11,6 +11,7 @@ using Substrate.Gear.Api.Generated.Model.gear_core.message.user;
 using Substrate.Gear.Api.Generated.Model.gprimitives;
 using Substrate.Gear.Api.Generated.Model.vara_runtime;
 using Substrate.Gear.Client;
+using Substrate.Gear.Client.Model.Rpc;
 using Substrate.Gear.Client.Model.Types.Base;
 using Substrate.NetApi.Model.Types.Primitive;
 using EnumGearEvent = Substrate.Gear.Api.Generated.Model.pallet_gear.pallet.EnumEvent;
@@ -127,7 +128,7 @@ internal sealed class RemotingReplyViaNodeClient<T> : RemotingReply<T>
             this.replyMessage = await this.blocksStream.ReadAllHeadersAsync(cancellationToken)
                 .SelectAwait(
                     async blockHeader =>
-                        await this.nodeClient.ListBlockEventsAsync(blockHeader.Number, cancellationToken) // TODO: It is weird block header doesn't contain hash.
+                        await this.nodeClient.ListBlockEventsAsync(blockHeader.GetBlockHash(), cancellationToken)
                             .ConfigureAwait(false))
                 .SelectMany(
                     eventRecords => eventRecords.AsAsyncEnumerable())
