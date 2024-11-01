@@ -21,7 +21,21 @@ public static class BaseTypeExtensions
         EnsureArg.IsTrue(left.GetType() == right.GetType(), "left/right");
         EnsureArg.Is(left.TypeSize, right.TypeSize, "typeSize");
 
-        return left.Bytes.AsSpan(0, left.TypeSize)
-            .SequenceEqual(right.Bytes.AsSpan(0, right.TypeSize));
+        return left.AsBytesSpan()
+            .SequenceEqual(right.AsBytesSpan());
+    }
+
+    /// <summary>
+    /// Returns the exact span of bytes that represents the primitive type.
+    /// It is requied because the BaseType.Bytes property returns the whole array
+    /// which can be larger than the actual size of the primitive type.
+    /// </summary>
+    /// <param name="baseType"></param>
+    /// <returns></returns>
+    public static Span<byte> AsBytesSpan(this BaseType baseType)
+    {
+        EnsureArg.IsNotNull(baseType, nameof(baseType));
+
+        return baseType.Bytes.AsSpan(0, baseType.TypeSize);
     }
 }
