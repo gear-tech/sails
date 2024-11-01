@@ -2,7 +2,7 @@
 using System.Threading.Tasks;
 using Substrate.Gear.Api.Generated;
 
-namespace Sails.Remoting;
+namespace Sails.Remoting.Core;
 
 internal interface INodeClientProvider
 {

@@ -1,6 +1,6 @@
 ﻿using Substrate.NetApi.Model.Types;
 
-namespace Sails.Remoting.Abstractions;
+namespace Sails.Remoting.Abstractions.Core;
 
 public interface IRemotingProvider
 {
