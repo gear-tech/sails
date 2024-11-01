@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Threading;
+using Substrate.NetApi.Model.Types;
 
 namespace Sails.Remoting.Abstractions;
 
@@ -13,7 +14,7 @@ public interface IRemotingListener
     IAsyncEnumerable<byte[]> ListenAsync(CancellationToken cancellationToken);
 }
 
-public interface IRemotingListener<T>
+public interface IRemotingListener<T> where T : IType, new()
 {
     /// <summary>
     /// Listen to Service events

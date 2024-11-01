@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using EnsureThat;
 using Sails.Remoting.Abstractions;
 using Substrate.Gear.Api.Generated.Model.gprimitives;
 using Substrate.NetApi.Model.Types;
@@ -23,6 +24,9 @@ public class RemotingAction<T>(IRemoting remoting, byte[] route, IType args) : I
         IReadOnlyCollection<byte> salt,
         CancellationToken cancellationToken)
     {
+        EnsureArg.IsNotNull(codeId, nameof(codeId));
+        EnsureArg.IsNotNull(salt, nameof(salt));
+
         var encodedPayload = this.EncodePayload();
 
         var replyTask = await remoting.ActivateAsync(
@@ -43,6 +47,8 @@ public class RemotingAction<T>(IRemoting remoting, byte[] route, IType args) : I
     /// <inheritdoc />
     public async Task<IReply<T>> MessageAsync(ActorId programId, CancellationToken cancellationToken)
     {
+        EnsureArg.IsNotNull(programId, nameof(programId));
+
         var encodedPayload = this.EncodePayload();
 
         var replyTask = await remoting.MessageAsync(
@@ -58,6 +64,8 @@ public class RemotingAction<T>(IRemoting remoting, byte[] route, IType args) : I
     /// <inheritdoc />
     public async Task<T> QueryAsync(ActorId programId, CancellationToken cancellationToken)
     {
+        EnsureArg.IsNotNull(programId, nameof(programId));
+
         var encodedPayload = this.EncodePayload();
 
         var replyBytes = await remoting.QueryAsync(
@@ -71,8 +79,10 @@ public class RemotingAction<T>(IRemoting remoting, byte[] route, IType args) : I
     }
 
     /// <inheritdoc />
-    public RemotingAction<T> WithGasLimit(GasUnit? gasLimit)
+    public RemotingAction<T> WithGasLimit(GasUnit gasLimit)
     {
+        EnsureArg.IsNotNull(gasLimit, nameof(gasLimit));
+
         this.gasLimit = gasLimit;
         return this;
     }
@@ -80,6 +90,8 @@ public class RemotingAction<T>(IRemoting remoting, byte[] route, IType args) : I
     /// <inheritdoc />
     public RemotingAction<T> WithValue(ValueUnit value)
     {
+        EnsureArg.IsNotNull(value, nameof(value));
+
         this.value = value;
         return this;
     }
@@ -111,9 +123,9 @@ public class RemotingAction<T>(IRemoting remoting, byte[] route, IType args) : I
         }
     }
 
-    IActivation IActionBuilder<IActivation>.WithGasLimit(GasUnit? gasLimit) => this.WithGasLimit(gasLimit);
-    IQuery<T> IActionBuilder<IQuery<T>>.WithGasLimit(GasUnit? gasLimit) => this.WithGasLimit(gasLimit);
-    ICall<T> IActionBuilder<ICall<T>>.WithGasLimit(GasUnit? gasLimit) => this.WithGasLimit(gasLimit);
+    IActivation IActionBuilder<IActivation>.WithGasLimit(GasUnit gasLimit) => this.WithGasLimit(gasLimit);
+    IQuery<T> IActionBuilder<IQuery<T>>.WithGasLimit(GasUnit gasLimit) => this.WithGasLimit(gasLimit);
+    ICall<T> IActionBuilder<ICall<T>>.WithGasLimit(GasUnit gasLimit) => this.WithGasLimit(gasLimit);
     IActivation IActionBuilder<IActivation>.WithValue(ValueUnit value) => this.WithValue(value);
     IQuery<T> IActionBuilder<IQuery<T>>.WithValue(ValueUnit value) => this.WithValue(value);
     ICall<T> IActionBuilder<ICall<T>>.WithValue(ValueUnit value) => this.WithValue(value);

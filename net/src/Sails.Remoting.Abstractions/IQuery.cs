@@ -5,7 +5,7 @@ using Substrate.NetApi.Model.Types;
 
 namespace Sails.Remoting.Abstractions;
 
-public interface IQuery<T> : IActionBuilder<IQuery<T>> where T : IType
+public interface IQuery<T> : IActionBuilder<IQuery<T>> where T : IType, new()
 {
     /// <summary>
     /// Queries a program for information.

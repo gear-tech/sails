@@ -10,7 +10,7 @@ public interface IActionBuilder<TAction>
     /// </summary>
     /// <param name="gasLimit">Gas limit.</param>
     /// <returns></returns>
-    TAction WithGasLimit(GasUnit? gasLimit);
+    TAction WithGasLimit(GasUnit gasLimit);
 
     /// <summary>
     /// Sets the value of the message.
