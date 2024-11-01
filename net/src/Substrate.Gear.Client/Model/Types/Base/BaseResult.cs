@@ -1,12 +1,12 @@
 ﻿using Substrate.NetApi.Model.Types;
 using Substrate.NetApi.Model.Types.Base;
 
-namespace Substrate.Gear.Client.Model.Types;
+namespace Substrate.Gear.Client.Model.Types.Base;
 
 /// <summary>
 /// Result
 /// </summary>
-public enum Result
+public enum BaseResult
 {
 
     /// <summary>
@@ -23,16 +23,17 @@ public enum Result
 /// <summary>
 /// EnumResult
 /// </summary>
-public sealed class EnumResult<T1, T2> : BaseEnumRust<Result>
-    where T1 : IType, new() where T2 : IType, new()
+public sealed class EnumBaseResult<T1, T2> : BaseEnumRust<BaseResult>
+    where T1 : IType, new()
+    where T2 : IType, new()
 {
 
     /// <summary>
     /// Initializes a new instance of the class.
     /// </summary>
-    public EnumResult()
+    public EnumBaseResult()
     {
-        this.AddTypeDecoder<T1>(Result.Ok);
-        this.AddTypeDecoder<T2>(Result.Err);
+        this.AddTypeDecoder<T1>(BaseResult.Ok);
+        this.AddTypeDecoder<T2>(BaseResult.Err);
     }
 }

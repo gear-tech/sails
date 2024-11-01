@@ -3,7 +3,7 @@ using System.Numerics;
 using Substrate.NetApi;
 using Substrate.NetApi.Model.Types;
 
-namespace Substrate.Gear.Client.Model.Types;
+namespace Substrate.Gear.Client.Model.Types.Primitive;
 
 /// <summary>
 /// U256
@@ -47,7 +47,7 @@ public sealed class U256 : BasePrim<BigInteger>
 
     public override string TypeName() => nameof(U256);
 
-    public override byte[] Encode() => base.Bytes;
+    public override byte[] Encode() => this.Bytes;
 
     public override void CreateFromJson(string str)
     {
@@ -78,8 +78,8 @@ public sealed class U256 : BasePrim<BigInteger>
             array2[byteArray.Length - 1] = 0;
         }
 
-        base.Bytes = byteArray;
-        base.Value = new BigInteger(byteArray);
+        this.Bytes = byteArray;
+        this.Value = new BigInteger(byteArray);
     }
 
     public override void Create(BigInteger value)
@@ -97,7 +97,7 @@ public sealed class U256 : BasePrim<BigInteger>
 
         var array2 = new byte[this.TypeSize];
         array.CopyTo(array2, 0);
-        base.Bytes = array2;
-        base.Value = value;
+        this.Bytes = array2;
+        this.Value = value;
     }
 }

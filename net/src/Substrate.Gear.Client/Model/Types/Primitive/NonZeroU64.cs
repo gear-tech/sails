@@ -1,25 +1,25 @@
 ﻿using System;
-using Substrate.Gear.Api.Generated.Types.Base;
 using Substrate.NetApi.Attributes;
 using Substrate.NetApi.Model.Types.Base;
 using Substrate.NetApi.Model.Types.Metadata.Base;
+using Substrate.NetApi.Model.Types.Primitive;
 
-namespace Substrate.Gear.Client.Model.Types;
+namespace Substrate.Gear.Client.Model.Types.Primitive;
 
 /// <summary>
-/// H160
+/// NonZeroU64
 /// </summary>
 [SubstrateNodeType(TypeDefEnum.Composite)]
-public sealed class H160 : BaseType
+public sealed class NonZeroU64 : BaseType
 {
 
     /// <summary>
     /// >> value
     /// </summary>
-    public required Arr20U8 Value { get; set; }
+    public required U8 Value { get; set; }
 
     /// <inheritdoc/>
-    public override string TypeName() => nameof(H160);
+    public override string TypeName() => nameof(NonZeroU64);
 
     /// <inheritdoc/>
     public override byte[] Encode() => this.Value.Encode();

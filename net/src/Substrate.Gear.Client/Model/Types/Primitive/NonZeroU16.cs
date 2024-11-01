@@ -4,22 +4,22 @@ using Substrate.NetApi.Model.Types.Base;
 using Substrate.NetApi.Model.Types.Metadata.Base;
 using Substrate.NetApi.Model.Types.Primitive;
 
-namespace Substrate.Gear.Client.Model.Types;
+namespace Substrate.Gear.Client.Model.Types.Primitive;
 
 /// <summary>
-/// NonZeroU8
+/// NonZeroU16
 /// </summary>
 [SubstrateNodeType(TypeDefEnum.Composite)]
-public sealed class NonZeroU8 : BaseType
+public sealed class NonZeroU16 : BaseType
 {
 
     /// <summary>
     /// >> value
     /// </summary>
-    public required U8 Value { get; set; }
+    public required U16 Value { get; set; }
 
     /// <inheritdoc/>
-    public override string TypeName() => nameof(NonZeroU8);
+    public override string TypeName() => nameof(NonZeroU16);
 
     /// <inheritdoc/>
     public override byte[] Encode() => this.Value.Encode();
