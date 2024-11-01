@@ -6,7 +6,7 @@ internal static class SpanExtensions
 {
 
     /// <summary>
-    /// Retunr true if all bytes is zero
+    /// Returns true if all bytes are zero
     /// </summary>
     /// <param name="bytes"></param>
     /// <returns></returns>
