@@ -1,9 +1,9 @@
 ﻿using System;
 using EnsureThat;
-using Sails.Remoting.Abstractions;
+using Sails.Remoting.Abstractions.Core;
 using Substrate.NetApi.Model.Types;
 
-namespace Sails.Remoting;
+namespace Sails.Remoting.Core;
 
 internal sealed class RemotingProvider : IRemotingProvider
 {

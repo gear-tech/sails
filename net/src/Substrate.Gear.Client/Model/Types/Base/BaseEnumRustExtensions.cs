@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using EnsureThat;
 using Substrate.NetApi.Model.Types;
@@ -81,6 +82,34 @@ public static class BaseEnumRustExtensions
     /// </exception>
     public static IEnumerable<T> SelectIfMatches<TEnum, TData, T>(
         this IEnumerable<BaseEnumRust<TEnum>> rustEnums,
+        TEnum variant,
+        Func<TData, T> selector)
+        where TEnum : Enum
+        where TData : class, IType
+    {
+        EnsureArg.IsNotNull(rustEnums, nameof(rustEnums));
+        EnsureArg.IsNotNull(selector, nameof(selector));
+
+        return rustEnums.Where(rustEnum => rustEnum.Matches<TEnum, TData>(variant))
+            .Select(rustEnum => selector((rustEnum.Value2 as TData)!));
+    }
+
+    /// <summary>
+    /// Projects data associated with the "Rust" enums if they match the specified variant.
+    /// </summary>
+    /// <typeparam name="TEnum"></typeparam>
+    /// <typeparam name="TData"></typeparam>
+    /// <typeparam name="T"></typeparam>
+    /// <param name="rustEnums"></param>
+    /// <param name="variant"></param>
+    /// <param name="selector"></param>
+    /// <returns></returns>
+    [SuppressMessage(
+        "Style",
+        "VSTHRD200:Use \"Async\" suffix for async methods",
+        Justification = "To be consistent with system provided extensions")]
+    public static IAsyncEnumerable<T> SelectIfMatches<TEnum, TData, T>(
+        this IAsyncEnumerable<BaseEnumRust<TEnum>> rustEnums,
         TEnum variant,
         Func<TData, T> selector)
         where TEnum : Enum
