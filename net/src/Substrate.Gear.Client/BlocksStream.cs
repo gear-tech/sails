@@ -5,17 +5,17 @@ using System.Threading;
 using System.Threading.Channels;
 using System.Threading.Tasks;
 using EnsureThat;
-using Substrate.Gear.Api.Generated;
+using Substrate.NetApi;
 using Substrate.NetApi.Model.Rpc;
 
 namespace Substrate.Gear.Client;
 
-public sealed class BlockHeadersStream : IAsyncDisposable
+public sealed class BlocksStream : IAsyncDisposable
 {
-    internal static async Task<BlockHeadersStream> CreateAsync(
-        SubstrateClientExt nodeClient,
-        Func<SubstrateClientExt, Action<string, Header>, Task<string>> subscribe,
-        Func<SubstrateClientExt, string, Task> unsubscribe)
+    internal static async Task<BlocksStream> CreateAsync(
+        SubstrateClient nodeClient,
+        Func<SubstrateClient, Action<string, Header>, Task<string>> subscribe,
+        Func<SubstrateClient, string, Task> unsubscribe)
     {
         EnsureArg.IsNotNull(nodeClient, nameof(nodeClient));
         EnsureArg.IsNotNull(subscribe, nameof(subscribe));
@@ -32,12 +32,12 @@ public sealed class BlockHeadersStream : IAsyncDisposable
                 (_, blockHeader) => channel.Writer.TryWrite(blockHeader))
             .ConfigureAwait(false);
 
-        return new BlockHeadersStream(
+        return new BlocksStream(
             channel,
             () => unsubscribe(nodeClient, subscriptionId));
     }
 
-    private BlockHeadersStream(Channel<Header> channel, Func<Task> unsubscribe)
+    private BlocksStream(Channel<Header> channel, Func<Task> unsubscribe)
     {
         this.channel = channel;
         this.unsubscribe = unsubscribe;
@@ -57,12 +57,12 @@ public sealed class BlockHeadersStream : IAsyncDisposable
     }
 
     /// <summary>
-    /// Returns all finalized block headers since the stream was created.
+    /// Returns all block headers since the stream was created or the last call to this method.
     /// Only one read operation is allowed at a time.
     /// </summary>
     /// <param name="cancellationToken"></param>
     /// <returns></returns>
-    public IAsyncEnumerable<Header> ReadAllAsync(CancellationToken cancellationToken)
+    public IAsyncEnumerable<Header> ReadAllHeadersAsync(CancellationToken cancellationToken)
     {
         return Interlocked.CompareExchange(ref this.isReadInProgress, 1, 0) == 0
             ? ReadAllImpl(cancellationToken)
