@@ -12,7 +12,6 @@ namespace Substrate.Gear.Client.Model.Types.Primitive;
 [SubstrateNodeType(TypeDefEnum.Composite)]
 public sealed class H160 : BaseType
 {
-
     /// <summary>
     /// >> value
     /// </summary>

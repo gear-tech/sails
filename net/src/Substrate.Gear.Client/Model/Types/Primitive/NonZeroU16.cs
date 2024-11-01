@@ -1,6 +1,5 @@
-﻿using System;
+﻿using Substrate.Gear.Client.Model.Types.Base;
 using Substrate.NetApi.Attributes;
-using Substrate.NetApi.Model.Types.Base;
 using Substrate.NetApi.Model.Types.Metadata.Base;
 using Substrate.NetApi.Model.Types.Primitive;
 
@@ -10,29 +9,8 @@ namespace Substrate.Gear.Client.Model.Types.Primitive;
 /// NonZeroU16
 /// </summary>
 [SubstrateNodeType(TypeDefEnum.Composite)]
-public sealed class NonZeroU16 : BaseType
+public sealed class NonZeroU16 : BaseNonZero<U16>
 {
-
-    /// <summary>
-    /// >> value
-    /// </summary>
-    public required U16 Value { get; set; }
-
     /// <inheritdoc/>
     public override string TypeName() => nameof(NonZeroU16);
-
-    /// <inheritdoc/>
-    public override byte[] Encode() => this.Value.Encode();
-
-    /// <inheritdoc/>
-    public override void Decode(byte[] byteArray, ref int p)
-    {
-        var start = p;
-        this.Value = new();
-        this.Value.Decode(byteArray, ref p);
-        var bytesLength = p - start;
-        this.TypeSize = bytesLength;
-        this.Bytes = new byte[bytesLength];
-        Array.Copy(byteArray, start, this.Bytes, 0, bytesLength);
-    }
 }
