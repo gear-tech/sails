@@ -1,5 +1,5 @@
 [workspace.package]
-version = "0.6.1"
+version = "0.6.2"
 authors = ["Gear Technologies"]
 edition = "2021"
 license = "GPL-3.0"
@@ -32,8 +32,8 @@ members = [
 [workspace.dependencies]
 # The order matches with publishing order.
 sails-idl-meta = { path = "rs/idl-meta" }
-sails-idl-gen = { path = "rs/idl-gen" }
 sails-idl-parser = { path = "rs/idl-parser" }
+sails-idl-gen = { path = "rs/idl-gen" }
 sails-client-gen = { path = "rs/client-gen" }
 sails-macros-core = { path = "rs/macros/core" }
 sails-macros = { path = "rs/macros" }
@@ -63,7 +63,7 @@ git-download = "0.1"
 handlebars = "4.4"
 hashbrown = "0.15"
 hex = { version = "0.4", default-features = false }
-insta = "1.40"
+insta = "1.41"
 itertools = "0.13"
 lalrpop = { version = "0.20", default-features = false }
 lalrpop-util = "0.20"
@@ -83,5 +83,5 @@ syn = "2.0"
 thiserror = "1.0"
 thiserror-no-std = "2.0"
 toml_edit = "0.22"
-tokio = "1.40"
+tokio = "1.41"
 trybuild = "1"

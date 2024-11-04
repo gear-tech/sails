@@ -5,7 +5,7 @@ using Substrate.Gear.Api.Generated.Model.gprimitives;
 using GasUnit = Substrate.NetApi.Model.Types.Primitive.U64;
 using ValueUnit = Substrate.NetApi.Model.Types.Primitive.U128;
 
-namespace Sails.Remoting.Abstractions;
+namespace Sails.Remoting.Abstractions.Core;
 
 public interface IRemoting
 {
@@ -18,8 +18,8 @@ public interface IRemoting
     /// <param name="gasLimit"></param>
     /// <param name="value"></param>
     /// <param name="cancellationToken"></param>
-    /// <returns>A task for obtaining activated program ID and SCALE-encoded reply.</returns>
-    Task<Task<(ActorId ProgramId, byte[] EncodedReply)>> ActivateAsync(
+    /// <returns></returns>
+    Task<RemotingReply<(ActorId ProgramId, byte[] Payload)>> ActivateAsync(
         CodeId codeId,
         IReadOnlyCollection<byte> salt,
         IReadOnlyCollection<byte> encodedPayload,
@@ -35,8 +35,8 @@ public interface IRemoting
     /// <param name="gasLimit"></param>
     /// <param name="value"></param>
     /// <param name="cancellationToken"></param>
-    /// <returns>A task for obtaining SCALE-encoded reply.</returns>
-    Task<Task<byte[]>> MessageAsync(
+    /// <returns></returns>
+    Task<RemotingReply<byte[]>> MessageAsync(
         ActorId programId,
         IReadOnlyCollection<byte> encodedPayload,
         GasUnit? gasLimit,
@@ -51,7 +51,7 @@ public interface IRemoting
     /// <param name="gasLimit"></param>
     /// <param name="value"></param>
     /// <param name="cancellationToken"></param>
-    /// <returns>SCALE-encoded reply.</returns>
+    /// <returns></returns>
     Task<byte[]> QueryAsync(
         ActorId programId,
         IReadOnlyCollection<byte> encodedPayload,
