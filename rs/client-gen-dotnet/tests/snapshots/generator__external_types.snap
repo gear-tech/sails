@@ -6,12 +6,12 @@ using global::Sails.Remoting.Abstractions;
 
 #pragma warning disable RCS0056 // A line is too long
 
+namespace Service.Client;
+
 public interface IService
 {
-    global::Sails.Remoting.Abstractions.ICall<global::Substrate.NetApi.Model.Types.Primitive.U16> DoThis(
-        global::Substrate.NetApi.Model.Types.Primitive.U32 p1, MyParam p2);
-    global::Sails.Remoting.Abstractions.ICall<global::Substrate.NetApi.Model.Types.Primitive.U8> DoThat(
-        global::Substrate.NetApi.Model.Types.Base.BaseTuple<global::Substrate.NetApi.Model.Types.Primitive.U8, global::Substrate.NetApi.Model.Types.Primitive.U32> p1);
+    global::Sails.Remoting.Abstractions.ICall<global::Substrate.NetApi.Model.Types.Primitive.U16> DoThis(global::Substrate.NetApi.Model.Types.Primitive.U32 p1, MyParam p2);
+    global::Sails.Remoting.Abstractions.ICall<global::Substrate.NetApi.Model.Types.Primitive.U8> DoThat(global::Substrate.NetApi.Model.Types.Base.BaseTuple<global::Substrate.NetApi.Model.Types.Primitive.U8, global::Substrate.NetApi.Model.Types.Primitive.U32> p1);
 }
 
 public partial class Service : IService
@@ -24,8 +24,7 @@ public partial class Service : IService
     }
 
     /// <inheritdoc/>
-    public global::Sails.Remoting.Abstractions.ICall<global::Substrate.NetApi.Model.Types.Primitive.U16> DoThis(
-        global::Substrate.NetApi.Model.Types.Primitive.U32 p1, MyParam p2)
+    public global::Sails.Remoting.Abstractions.ICall<global::Substrate.NetApi.Model.Types.Primitive.U16> DoThis(global::Substrate.NetApi.Model.Types.Primitive.U32 p1, MyParam p2)
     {
         return new RemotingAction<global::Substrate.NetApi.Model.Types.Primitive.U16>(
             this.remoting,
@@ -34,8 +33,7 @@ public partial class Service : IService
         );
     }
     /// <inheritdoc/>
-    public global::Sails.Remoting.Abstractions.ICall<global::Substrate.NetApi.Model.Types.Primitive.U8> DoThat(
-        global::Substrate.NetApi.Model.Types.Base.BaseTuple<global::Substrate.NetApi.Model.Types.Primitive.U8, global::Substrate.NetApi.Model.Types.Primitive.U32> p1)
+    public global::Sails.Remoting.Abstractions.ICall<global::Substrate.NetApi.Model.Types.Primitive.U8> DoThat(global::Substrate.NetApi.Model.Types.Base.BaseTuple<global::Substrate.NetApi.Model.Types.Primitive.U8, global::Substrate.NetApi.Model.Types.Primitive.U32> p1)
     {
         return new RemotingAction<global::Substrate.NetApi.Model.Types.Primitive.U8>(
             this.remoting,

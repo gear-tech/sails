@@ -8,6 +8,8 @@ using global::System.Collections.Generic;
 
 #pragma warning disable RCS0056 // A line is too long
 
+namespace RmrkCatalog.Client;
+
 public interface IRmrkCatalogFactory
 {
     IActivation New();
@@ -34,22 +36,14 @@ public partial class RmrkCatalogFactory : IRmrkCatalogFactory
 
 public interface IRmrkCatalog
 {
-    global::Sails.Remoting.Abstractions.ICall<Result<global::Substrate.NetApi.Model.Types.Base.BaseTuple<global::Substrate.NetApi.Model.Types.Primitive.U32, global::Substrate.NetApi.Model.Types.Base.BaseVec<global::Substrate.Gear.Api.Generated.Model.gprimitives.ActorId>>, Error>> AddEquippables(
-        global::Substrate.NetApi.Model.Types.Primitive.U32 partId, global::Substrate.NetApi.Model.Types.Base.BaseVec<global::Substrate.Gear.Api.Generated.Model.gprimitives.ActorId> collectionIds);
-    global::Sails.Remoting.Abstractions.ICall<Result<BTreeMap<global::Substrate.NetApi.Model.Types.Primitive.U32, Part>, Error>> AddParts(
-        BTreeMap<global::Substrate.NetApi.Model.Types.Primitive.U32, Part> parts);
-    global::Sails.Remoting.Abstractions.ICall<Result<global::Substrate.NetApi.Model.Types.Base.BaseTuple<global::Substrate.NetApi.Model.Types.Primitive.U32, global::Substrate.Gear.Api.Generated.Model.gprimitives.ActorId>, Error>> RemoveEquippable(
-        global::Substrate.NetApi.Model.Types.Primitive.U32 partId, global::Substrate.Gear.Api.Generated.Model.gprimitives.ActorId collectionId);
-    global::Sails.Remoting.Abstractions.ICall<Result<global::Substrate.NetApi.Model.Types.Base.BaseVec<global::Substrate.NetApi.Model.Types.Primitive.U32>, Error>> RemoveParts(
-        global::Substrate.NetApi.Model.Types.Base.BaseVec<global::Substrate.NetApi.Model.Types.Primitive.U32> partIds);
-    global::Sails.Remoting.Abstractions.ICall<Result<global::Substrate.NetApi.Model.Types.Base.BaseVoid, Error>> ResetEquippables(
-        global::Substrate.NetApi.Model.Types.Primitive.U32 partId);
-    global::Sails.Remoting.Abstractions.ICall<Result<global::Substrate.NetApi.Model.Types.Base.BaseVoid, Error>> SetEquippablesToAll(
-        global::Substrate.NetApi.Model.Types.Primitive.U32 partId);
-    global::Sails.Remoting.Abstractions.IQuery<Result<global::Substrate.NetApi.Model.Types.Primitive.Bool, Error>> Equippable(
-        global::Substrate.NetApi.Model.Types.Primitive.U32 partId, global::Substrate.Gear.Api.Generated.Model.gprimitives.ActorId collectionId);
-    global::Sails.Remoting.Abstractions.IQuery<global::Substrate.NetApi.Model.Types.Base.BaseOpt<Part>> Part(
-        global::Substrate.NetApi.Model.Types.Primitive.U32 partId);
+    global::Sails.Remoting.Abstractions.ICall<global::Substrate.Gear.Client.Model.Types.Base.BaseResult<global::Substrate.NetApi.Model.Types.Base.BaseTuple<global::Substrate.NetApi.Model.Types.Primitive.U32, global::Substrate.NetApi.Model.Types.Base.BaseVec<global::Substrate.Gear.Api.Generated.Model.gprimitives.ActorId>>, Error>> AddEquippables(global::Substrate.NetApi.Model.Types.Primitive.U32 partId, global::Substrate.NetApi.Model.Types.Base.BaseVec<global::Substrate.Gear.Api.Generated.Model.gprimitives.ActorId> collectionIds);
+    global::Sails.Remoting.Abstractions.ICall<global::Substrate.Gear.Client.Model.Types.Base.BaseResult<global::Substrate.Gear.Client.Model.Types.Base.BaseDictionary<global::Substrate.NetApi.Model.Types.Primitive.U32, Part>, Error>> AddParts(global::Substrate.Gear.Client.Model.Types.Base.BaseDictionary<global::Substrate.NetApi.Model.Types.Primitive.U32, Part> parts);
+    global::Sails.Remoting.Abstractions.ICall<global::Substrate.Gear.Client.Model.Types.Base.BaseResult<global::Substrate.NetApi.Model.Types.Base.BaseTuple<global::Substrate.NetApi.Model.Types.Primitive.U32, global::Substrate.Gear.Api.Generated.Model.gprimitives.ActorId>, Error>> RemoveEquippable(global::Substrate.NetApi.Model.Types.Primitive.U32 partId, global::Substrate.Gear.Api.Generated.Model.gprimitives.ActorId collectionId);
+    global::Sails.Remoting.Abstractions.ICall<global::Substrate.Gear.Client.Model.Types.Base.BaseResult<global::Substrate.NetApi.Model.Types.Base.BaseVec<global::Substrate.NetApi.Model.Types.Primitive.U32>, Error>> RemoveParts(global::Substrate.NetApi.Model.Types.Base.BaseVec<global::Substrate.NetApi.Model.Types.Primitive.U32> partIds);
+    global::Sails.Remoting.Abstractions.ICall<global::Substrate.Gear.Client.Model.Types.Base.BaseResult<global::Substrate.NetApi.Model.Types.Base.BaseVoid, Error>> ResetEquippables(global::Substrate.NetApi.Model.Types.Primitive.U32 partId);
+    global::Sails.Remoting.Abstractions.ICall<global::Substrate.Gear.Client.Model.Types.Base.BaseResult<global::Substrate.NetApi.Model.Types.Base.BaseVoid, Error>> SetEquippablesToAll(global::Substrate.NetApi.Model.Types.Primitive.U32 partId);
+    global::Sails.Remoting.Abstractions.IQuery<global::Substrate.Gear.Client.Model.Types.Base.BaseResult<global::Substrate.NetApi.Model.Types.Primitive.Bool, Error>> Equippable(global::Substrate.NetApi.Model.Types.Primitive.U32 partId, global::Substrate.Gear.Api.Generated.Model.gprimitives.ActorId collectionId);
+    global::Sails.Remoting.Abstractions.IQuery<global::Substrate.NetApi.Model.Types.Base.BaseOpt<Part>> Part(global::Substrate.NetApi.Model.Types.Primitive.U32 partId);
 }
 
 public partial class RmrkCatalog : IRmrkCatalog
@@ -62,78 +56,70 @@ public partial class RmrkCatalog : IRmrkCatalog
     }
 
     /// <inheritdoc/>
-    public global::Sails.Remoting.Abstractions.ICall<Result<global::Substrate.NetApi.Model.Types.Base.BaseTuple<global::Substrate.NetApi.Model.Types.Primitive.U32, global::Substrate.NetApi.Model.Types.Base.BaseVec<global::Substrate.Gear.Api.Generated.Model.gprimitives.ActorId>>, Error>> AddEquippables(
-        global::Substrate.NetApi.Model.Types.Primitive.U32 partId, global::Substrate.NetApi.Model.Types.Base.BaseVec<global::Substrate.Gear.Api.Generated.Model.gprimitives.ActorId> collectionIds)
+    public global::Sails.Remoting.Abstractions.ICall<global::Substrate.Gear.Client.Model.Types.Base.BaseResult<global::Substrate.NetApi.Model.Types.Base.BaseTuple<global::Substrate.NetApi.Model.Types.Primitive.U32, global::Substrate.NetApi.Model.Types.Base.BaseVec<global::Substrate.Gear.Api.Generated.Model.gprimitives.ActorId>>, Error>> AddEquippables(global::Substrate.NetApi.Model.Types.Primitive.U32 partId, global::Substrate.NetApi.Model.Types.Base.BaseVec<global::Substrate.Gear.Api.Generated.Model.gprimitives.ActorId> collectionIds)
     {
-        return new RemotingAction<Result<global::Substrate.NetApi.Model.Types.Base.BaseTuple<global::Substrate.NetApi.Model.Types.Primitive.U32, global::Substrate.NetApi.Model.Types.Base.BaseVec<global::Substrate.Gear.Api.Generated.Model.gprimitives.ActorId>>, Error>>(
+        return new RemotingAction<global::Substrate.Gear.Client.Model.Types.Base.BaseResult<global::Substrate.NetApi.Model.Types.Base.BaseTuple<global::Substrate.NetApi.Model.Types.Primitive.U32, global::Substrate.NetApi.Model.Types.Base.BaseVec<global::Substrate.Gear.Api.Generated.Model.gprimitives.ActorId>>, Error>>(
             this.remoting,
             [44, 82, 109, 114, 107, 67, 97, 116, 97, 108, 111, 103, 56, 65, 100, 100, 69, 113, 117, 105, 112, 112, 97, 98, 108, 101, 115],
             new global::Substrate.NetApi.Model.Types.Base.BaseTupleRust(partId, collectionIds)
         );
     }
     /// <inheritdoc/>
-    public global::Sails.Remoting.Abstractions.ICall<Result<BTreeMap<global::Substrate.NetApi.Model.Types.Primitive.U32, Part>, Error>> AddParts(
-        BTreeMap<global::Substrate.NetApi.Model.Types.Primitive.U32, Part> parts)
+    public global::Sails.Remoting.Abstractions.ICall<global::Substrate.Gear.Client.Model.Types.Base.BaseResult<global::Substrate.Gear.Client.Model.Types.Base.BaseDictionary<global::Substrate.NetApi.Model.Types.Primitive.U32, Part>, Error>> AddParts(global::Substrate.Gear.Client.Model.Types.Base.BaseDictionary<global::Substrate.NetApi.Model.Types.Primitive.U32, Part> parts)
     {
-        return new RemotingAction<Result<BTreeMap<global::Substrate.NetApi.Model.Types.Primitive.U32, Part>, Error>>(
+        return new RemotingAction<global::Substrate.Gear.Client.Model.Types.Base.BaseResult<global::Substrate.Gear.Client.Model.Types.Base.BaseDictionary<global::Substrate.NetApi.Model.Types.Primitive.U32, Part>, Error>>(
             this.remoting,
             [44, 82, 109, 114, 107, 67, 97, 116, 97, 108, 111, 103, 32, 65, 100, 100, 80, 97, 114, 116, 115],
             new global::Substrate.NetApi.Model.Types.Base.BaseTupleRust(parts)
         );
     }
     /// <inheritdoc/>
-    public global::Sails.Remoting.Abstractions.ICall<Result<global::Substrate.NetApi.Model.Types.Base.BaseTuple<global::Substrate.NetApi.Model.Types.Primitive.U32, global::Substrate.Gear.Api.Generated.Model.gprimitives.ActorId>, Error>> RemoveEquippable(
-        global::Substrate.NetApi.Model.Types.Primitive.U32 partId, global::Substrate.Gear.Api.Generated.Model.gprimitives.ActorId collectionId)
+    public global::Sails.Remoting.Abstractions.ICall<global::Substrate.Gear.Client.Model.Types.Base.BaseResult<global::Substrate.NetApi.Model.Types.Base.BaseTuple<global::Substrate.NetApi.Model.Types.Primitive.U32, global::Substrate.Gear.Api.Generated.Model.gprimitives.ActorId>, Error>> RemoveEquippable(global::Substrate.NetApi.Model.Types.Primitive.U32 partId, global::Substrate.Gear.Api.Generated.Model.gprimitives.ActorId collectionId)
     {
-        return new RemotingAction<Result<global::Substrate.NetApi.Model.Types.Base.BaseTuple<global::Substrate.NetApi.Model.Types.Primitive.U32, global::Substrate.Gear.Api.Generated.Model.gprimitives.ActorId>, Error>>(
+        return new RemotingAction<global::Substrate.Gear.Client.Model.Types.Base.BaseResult<global::Substrate.NetApi.Model.Types.Base.BaseTuple<global::Substrate.NetApi.Model.Types.Primitive.U32, global::Substrate.Gear.Api.Generated.Model.gprimitives.ActorId>, Error>>(
             this.remoting,
             [44, 82, 109, 114, 107, 67, 97, 116, 97, 108, 111, 103, 64, 82, 101, 109, 111, 118, 101, 69, 113, 117, 105, 112, 112, 97, 98, 108, 101],
             new global::Substrate.NetApi.Model.Types.Base.BaseTupleRust(partId, collectionId)
         );
     }
     /// <inheritdoc/>
-    public global::Sails.Remoting.Abstractions.ICall<Result<global::Substrate.NetApi.Model.Types.Base.BaseVec<global::Substrate.NetApi.Model.Types.Primitive.U32>, Error>> RemoveParts(
-        global::Substrate.NetApi.Model.Types.Base.BaseVec<global::Substrate.NetApi.Model.Types.Primitive.U32> partIds)
+    public global::Sails.Remoting.Abstractions.ICall<global::Substrate.Gear.Client.Model.Types.Base.BaseResult<global::Substrate.NetApi.Model.Types.Base.BaseVec<global::Substrate.NetApi.Model.Types.Primitive.U32>, Error>> RemoveParts(global::Substrate.NetApi.Model.Types.Base.BaseVec<global::Substrate.NetApi.Model.Types.Primitive.U32> partIds)
     {
-        return new RemotingAction<Result<global::Substrate.NetApi.Model.Types.Base.BaseVec<global::Substrate.NetApi.Model.Types.Primitive.U32>, Error>>(
+        return new RemotingAction<global::Substrate.Gear.Client.Model.Types.Base.BaseResult<global::Substrate.NetApi.Model.Types.Base.BaseVec<global::Substrate.NetApi.Model.Types.Primitive.U32>, Error>>(
             this.remoting,
             [44, 82, 109, 114, 107, 67, 97, 116, 97, 108, 111, 103, 44, 82, 101, 109, 111, 118, 101, 80, 97, 114, 116, 115],
             new global::Substrate.NetApi.Model.Types.Base.BaseTupleRust(partIds)
         );
     }
     /// <inheritdoc/>
-    public global::Sails.Remoting.Abstractions.ICall<Result<global::Substrate.NetApi.Model.Types.Base.BaseVoid, Error>> ResetEquippables(
-        global::Substrate.NetApi.Model.Types.Primitive.U32 partId)
+    public global::Sails.Remoting.Abstractions.ICall<global::Substrate.Gear.Client.Model.Types.Base.BaseResult<global::Substrate.NetApi.Model.Types.Base.BaseVoid, Error>> ResetEquippables(global::Substrate.NetApi.Model.Types.Primitive.U32 partId)
     {
-        return new RemotingAction<Result<global::Substrate.NetApi.Model.Types.Base.BaseVoid, Error>>(
+        return new RemotingAction<global::Substrate.Gear.Client.Model.Types.Base.BaseResult<global::Substrate.NetApi.Model.Types.Base.BaseVoid, Error>>(
             this.remoting,
             [44, 82, 109, 114, 107, 67, 97, 116, 97, 108, 111, 103, 64, 82, 101, 115, 101, 116, 69, 113, 117, 105, 112, 112, 97, 98, 108, 101, 115],
             new global::Substrate.NetApi.Model.Types.Base.BaseTupleRust(partId)
         );
     }
     /// <inheritdoc/>
-    public global::Sails.Remoting.Abstractions.ICall<Result<global::Substrate.NetApi.Model.Types.Base.BaseVoid, Error>> SetEquippablesToAll(
-        global::Substrate.NetApi.Model.Types.Primitive.U32 partId)
+    public global::Sails.Remoting.Abstractions.ICall<global::Substrate.Gear.Client.Model.Types.Base.BaseResult<global::Substrate.NetApi.Model.Types.Base.BaseVoid, Error>> SetEquippablesToAll(global::Substrate.NetApi.Model.Types.Primitive.U32 partId)
     {
-        return new RemotingAction<Result<global::Substrate.NetApi.Model.Types.Base.BaseVoid, Error>>(
+        return new RemotingAction<global::Substrate.Gear.Client.Model.Types.Base.BaseResult<global::Substrate.NetApi.Model.Types.Base.BaseVoid, Error>>(
             this.remoting,
             [44, 82, 109, 114, 107, 67, 97, 116, 97, 108, 111, 103, 76, 83, 101, 116, 69, 113, 117, 105, 112, 112, 97, 98, 108, 101, 115, 84, 111, 65, 108, 108],
             new global::Substrate.NetApi.Model.Types.Base.BaseTupleRust(partId)
         );
     }
     /// <inheritdoc/>
-    public global::Sails.Remoting.Abstractions.IQuery<Result<global::Substrate.NetApi.Model.Types.Primitive.Bool, Error>> Equippable(
-        global::Substrate.NetApi.Model.Types.Primitive.U32 partId, global::Substrate.Gear.Api.Generated.Model.gprimitives.ActorId collectionId)
+    public global::Sails.Remoting.Abstractions.IQuery<global::Substrate.Gear.Client.Model.Types.Base.BaseResult<global::Substrate.NetApi.Model.Types.Primitive.Bool, Error>> Equippable(global::Substrate.NetApi.Model.Types.Primitive.U32 partId, global::Substrate.Gear.Api.Generated.Model.gprimitives.ActorId collectionId)
     {
-        return new RemotingAction<Result<global::Substrate.NetApi.Model.Types.Primitive.Bool, Error>>(
+        return new RemotingAction<global::Substrate.Gear.Client.Model.Types.Base.BaseResult<global::Substrate.NetApi.Model.Types.Primitive.Bool, Error>>(
             this.remoting,
             [44, 82, 109, 114, 107, 67, 97, 116, 97, 108, 111, 103, 40, 69, 113, 117, 105, 112, 112, 97, 98, 108, 101],
             new global::Substrate.NetApi.Model.Types.Base.BaseTupleRust(partId, collectionId)
         );
     }
     /// <inheritdoc/>
-    public global::Sails.Remoting.Abstractions.IQuery<global::Substrate.NetApi.Model.Types.Base.BaseOpt<Part>> Part(
-        global::Substrate.NetApi.Model.Types.Primitive.U32 partId)
+    public global::Sails.Remoting.Abstractions.IQuery<global::Substrate.NetApi.Model.Types.Base.BaseOpt<Part>> Part(global::Substrate.NetApi.Model.Types.Primitive.U32 partId)
     {
         return new RemotingAction<global::Substrate.NetApi.Model.Types.Base.BaseOpt<Part>>(
             this.remoting,
@@ -191,11 +177,13 @@ public sealed partial class FixedPart : global::Substrate.NetApi.Model.Types.Bas
     /// specifies the stack order of an element.
     /// An element with greater stack order is always in front of an element with a lower stack order.
     /// </summary>
-    public required global::Substrate.NetApi.Model.Types.Base.BaseOpt<global::Substrate.NetApi.Model.Types.Primitive.U32> Z { get; set; }
+    [System.Diagnostics.CodeAnalysis.AllowNull]
+    public global::Substrate.NetApi.Model.Types.Base.BaseOpt<global::Substrate.NetApi.Model.Types.Primitive.U32> Z { get; set; }
     /// <summary>
     /// The metadata URI of the part.
     /// </summary>
-    public required global::Substrate.NetApi.Model.Types.Primitive.Str MetadataUri { get; set; }
+    [System.Diagnostics.CodeAnalysis.AllowNull]
+    public global::Substrate.NetApi.Model.Types.Primitive.Str MetadataUri { get; set; }
 
     /// <inheritdoc/>
     public override string TypeName() => "FixedPart";
@@ -230,17 +218,20 @@ public sealed partial class SlotPart : global::Substrate.NetApi.Model.Types.Base
     /// <summary>
     /// Array of whitelisted collections that can be equipped in the given slot. Used with slot parts only.
     /// </summary>
-    public required global::Substrate.NetApi.Model.Types.Base.BaseVec<global::Substrate.Gear.Api.Generated.Model.gprimitives.ActorId> Equippable { get; set; }
+    [System.Diagnostics.CodeAnalysis.AllowNull]
+    public global::Substrate.NetApi.Model.Types.Base.BaseVec<global::Substrate.Gear.Api.Generated.Model.gprimitives.ActorId> Equippable { get; set; }
     /// <summary>
     /// An optional zIndex of base part layer.
     /// specifies the stack order of an element.
     /// An element with greater stack order is always in front of an element with a lower stack order.
     /// </summary>
-    public required global::Substrate.NetApi.Model.Types.Base.BaseOpt<global::Substrate.NetApi.Model.Types.Primitive.U32> Z { get; set; }
+    [System.Diagnostics.CodeAnalysis.AllowNull]
+    public global::Substrate.NetApi.Model.Types.Base.BaseOpt<global::Substrate.NetApi.Model.Types.Primitive.U32> Z { get; set; }
     /// <summary>
     /// The metadata URI of the part.
     /// </summary>
-    public required global::Substrate.NetApi.Model.Types.Primitive.Str MetadataUri { get; set; }
+    [System.Diagnostics.CodeAnalysis.AllowNull]
+    public global::Substrate.NetApi.Model.Types.Primitive.Str MetadataUri { get; set; }
 
     /// <inheritdoc/>
     public override string TypeName() => "SlotPart";

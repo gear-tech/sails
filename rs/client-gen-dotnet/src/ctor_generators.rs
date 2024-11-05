@@ -3,7 +3,7 @@ use crate::{
     type_generators::{primitive_type_to_dotnet, TypeDeclGenerator},
 };
 use convert_case::{Case, Casing};
-use csharp::{block_comment, Tokens};
+use csharp::Tokens;
 use genco::prelude::*;
 use sails_idl_parser::{ast::visitor, ast::visitor::Visitor, ast::*};
 
@@ -34,15 +34,15 @@ impl<'a> CtorFactoryGenerator<'a> {
                 $(self.interface_tokens)
             }
             $['\n']
-            public partial class $(&class_name) : I$(&class_name)
+            public partial class $(&class_name) : I$(&class_name)$['\r']
             {
                 private readonly $remoting remoting;
-
-                public $(&class_name)($remoting remoting)
+                $['\n']
+                public $(&class_name)($remoting remoting)$['\r']
                 {
                     this.remoting = remoting;
                 }
-
+                $['\n']
                 $(self.class_tokens)
             }
             $['\n']
@@ -63,19 +63,8 @@ impl<'a> Visitor<'a> for CtorFactoryGenerator<'a> {
         self.interface_tokens.push();
 
         let route_bytes = &path_bytes(func.name()).0;
-        let args = encoded_fn_args(func.params());
-        let args_with_type = func
-            .params()
-            .iter()
-            .map(|p| {
-                format!(
-                    "{} {}",
-                    self.type_generator.generate_type_decl(p.type_decl()),
-                    p.name().to_case(Case::Camel)
-                )
-            })
-            .collect::<Vec<_>>()
-            .join(", ");
+        let args = &encoded_fn_args(func.params());
+        let args_with_type = &self.type_generator.fn_params_with_types(func.params());
 
         let type_decls = func
             .params()
@@ -92,17 +81,17 @@ impl<'a> Visitor<'a> for CtorFactoryGenerator<'a> {
         let action = &csharp::import("global::Sails.Remoting.Abstractions", "RemotingAction");
 
         quote_in! { self.interface_tokens =>
-            $activation $func_name_pascal($(&args_with_type));$['\r']
+            $activation $func_name_pascal($args_with_type);$['\r']
         };
 
         quote_in! { self.class_tokens =>
-            $(block_comment(vec!["<inheritdoc/>"]))
-            public $activation $func_name_pascal($(&args_with_type))
+            $(inheritdoc())
+            public $activation $func_name_pascal($args_with_type)
             {
                 return new $action<$(&tuple_arg_type)>(
                     this.remoting,
                     [$route_bytes],
-                    new $(&tuple_arg_type)($(&args)));
+                    new $(&tuple_arg_type)($args));
             }
             $['\n']
         };

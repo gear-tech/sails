@@ -1,6 +1,6 @@
 use crate::helpers::*;
 use convert_case::{Case, Casing};
-use csharp::{block_comment, Tokens};
+use csharp::Tokens;
 use genco::prelude::*;
 use sails_idl_parser::{ast::visitor, ast::visitor::Visitor, ast::*};
 
@@ -112,10 +112,10 @@ impl<'a> StructDefGenerator<'a> {
             {
                 $(self.props_tokens)
 
-                $(block_comment(vec!["<inheritdoc/>"]))
+                $(inheritdoc())
                 public override string TypeName() => $(quoted(self.type_name));
 
-                $(block_comment(vec!["<inheritdoc/>"]))
+                $(inheritdoc())
                 public override byte[] Encode()
                 {
                     var result = new $generic_list<byte>();
@@ -123,7 +123,7 @@ impl<'a> StructDefGenerator<'a> {
                     return result.ToArray();
                 }
 
-                $(block_comment(vec!["<inheritdoc/>"]))
+                $(inheritdoc())
                 public override void Decode(byte[] byteArray, ref int p)
                 {
                     var start = p;
@@ -143,7 +143,8 @@ impl<'a> StructDefGenerator<'a> {
         }
         let value_type = self.type_generator.generate_struct_def(struct_def);
         quote_in! { self.props_tokens =>
-            public required $(&value_type) Value { get; set; }$['\r']
+            [System.Diagnostics.CodeAnalysis.AllowNull]$['\r']
+            public $(&value_type) Value { get; set; }$['\r']
         };
         quote_in! { self.encode_tokens =>
             result.AddRange(this.Value.Encode());$['\r']
@@ -183,7 +184,8 @@ impl<'a> Visitor<'a> for StructDefGenerator<'a> {
         if let Some(field_name) = struct_field.name() {
             let field_name_pascal = field_name.to_case(Case::Pascal);
             quote_in! { self.props_tokens =>
-                public required $(&type_decl_code) $(&field_name_pascal) { get; set; }$['\r']
+                [System.Diagnostics.CodeAnalysis.AllowNull]$['\r']
+                public $(&type_decl_code) $(&field_name_pascal) { get; set; }$['\r']
             };
             quote_in! { self.encode_tokens =>
                 result.AddRange(this.$(&field_name_pascal).Encode());$['\r']
@@ -300,6 +302,20 @@ impl<'a> TypeDeclGenerator<'a> {
         }
         _ = std::mem::replace(&mut self.code, prev_code);
         self.code.push_str(type_decls_str.join(separator).as_str());
+    }
+
+    pub(crate) fn fn_params_with_types(&mut self, params: &'a [FuncParam]) -> String {
+        params
+            .iter()
+            .map(|p| {
+                format!(
+                    "{} {}",
+                    self.generate_type_decl(p.type_decl()),
+                    escape_keywords(p.name().to_case(convert_case::Case::Camel))
+                )
+            })
+            .collect::<Vec<_>>()
+            .join(", ")
     }
 }
 

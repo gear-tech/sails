@@ -6,7 +6,7 @@ namespace Substrate.Gear.Client.Model.Types.Base;
 /// <summary>
 /// Result
 /// </summary>
-public enum BaseResult
+public enum BaseResultEnum
 {
 
     /// <summary>
@@ -23,7 +23,7 @@ public enum BaseResult
 /// <summary>
 /// EnumResult
 /// </summary>
-public sealed class EnumBaseResult<T1, T2> : BaseEnumRust<BaseResult>
+public sealed class BaseResult<T1, T2> : BaseEnumRust<BaseResultEnum>
     where T1 : IType, new()
     where T2 : IType, new()
 {
@@ -31,9 +31,9 @@ public sealed class EnumBaseResult<T1, T2> : BaseEnumRust<BaseResult>
     /// <summary>
     /// Initializes a new instance of the class.
     /// </summary>
-    public EnumBaseResult()
+    public BaseResult()
     {
-        this.AddTypeDecoder<T1>(BaseResult.Ok);
-        this.AddTypeDecoder<T2>(BaseResult.Err);
+        this.AddTypeDecoder<T1>(BaseResultEnum.Ok);
+        this.AddTypeDecoder<T2>(BaseResultEnum.Err);
     }
 }

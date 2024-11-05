@@ -17,8 +17,7 @@ public class BaseDictionary<TKey, TValue> : IType
     /// Explicit conversion from Dictionary<TKey, TValue> to BaseDictionary
     /// </summary>
     /// <param name="p"></param>
-    public static explicit operator BaseDictionary<TKey, TValue>(Dictionary<TKey, TValue> p)
-        => new BaseDictionary<TKey, TValue>(p);
+    public static explicit operator BaseDictionary<TKey, TValue>(Dictionary<TKey, TValue> p) => new(p);
 
     /// <summary>
     /// Implicit conversion from BaseDictionary to Dictionary<TKey, TValue>

@@ -31,7 +31,12 @@ impl<'a> EventsGenerator<'a> {
         let listener_name = &format!("{}Listener", name);
 
         let system_buffer = &csharp::import("global::System", "Buffer");
-        let listener = &csharp::import("global::Sails.Remoting.Abstractions", "IRemotingListener");
+        let core_listener = &csharp::import(
+            "global::Sails.Remoting.Abstractions.Core",
+            "IRemotingListener",
+        );
+        let service_listener =
+            &csharp::import("global::Sails.Remoting.Abstractions", "IRemotingListener");
 
         quote! {
             public enum $enum_name
@@ -47,22 +52,21 @@ impl<'a> EventsGenerator<'a> {
                 }
             }
             $['\n']
-            public partial class $listener_name : $listener<$class_name>
+            public partial class $listener_name : $service_listener<$class_name>
             {
                 private static readonly byte[][] EventRoutes =
                 [
                     $(self.listener_tokens)
                 ];
 
-                private readonly $listener remoting;
+                private readonly $core_listener remoting;
 
-                public $listener_name($listener remoting)
+                public $listener_name($core_listener remoting)
                 {
                     this.remoting = remoting;
                 }
 
-                public async global::System.Collections.Generic.IAsyncEnumerable<$class_name> ListenAsync(
-                    [global::System.Runtime.CompilerServices.EnumeratorCancellation] global::System.Threading.CancellationToken cancellationToken = default)
+                public async global::System.Collections.Generic.IAsyncEnumerable<$class_name> ListenAsync([global::System.Runtime.CompilerServices.EnumeratorCancellation] global::System.Threading.CancellationToken cancellationToken = default)
                 {
                     await foreach (var bytes in this.remoting.ListenAsync(cancellationToken))
                     {

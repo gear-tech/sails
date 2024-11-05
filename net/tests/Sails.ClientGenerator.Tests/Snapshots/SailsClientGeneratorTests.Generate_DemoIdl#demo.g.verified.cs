@@ -5,6 +5,8 @@ using global::System.Collections.Generic;
 
 #pragma warning disable RCS0056 // A line is too long
 
+namespace Demo.Client;
+
 public interface IDemoFactory
 {
     /// <summary>
@@ -47,12 +49,9 @@ public partial class DemoFactory : IDemoFactory
 
 public interface ICounter
 {
-    global::Sails.Remoting.Abstractions.ICall<global::Substrate.NetApi.Model.Types.Primitive.U32> Add(
-        global::Substrate.NetApi.Model.Types.Primitive.U32 value);
-    global::Sails.Remoting.Abstractions.ICall<global::Substrate.NetApi.Model.Types.Primitive.U32> Sub(
-        global::Substrate.NetApi.Model.Types.Primitive.U32 value);
-    global::Sails.Remoting.Abstractions.IQuery<global::Substrate.NetApi.Model.Types.Primitive.U32> Value(
-        );
+    global::Sails.Remoting.Abstractions.ICall<global::Substrate.NetApi.Model.Types.Primitive.U32> Add(global::Substrate.NetApi.Model.Types.Primitive.U32 value);
+    global::Sails.Remoting.Abstractions.ICall<global::Substrate.NetApi.Model.Types.Primitive.U32> Sub(global::Substrate.NetApi.Model.Types.Primitive.U32 value);
+    global::Sails.Remoting.Abstractions.IQuery<global::Substrate.NetApi.Model.Types.Primitive.U32> Value();
 }
 
 public partial class Counter : ICounter
@@ -65,8 +64,7 @@ public partial class Counter : ICounter
     }
 
     /// <inheritdoc/>
-    public global::Sails.Remoting.Abstractions.ICall<global::Substrate.NetApi.Model.Types.Primitive.U32> Add(
-        global::Substrate.NetApi.Model.Types.Primitive.U32 value)
+    public global::Sails.Remoting.Abstractions.ICall<global::Substrate.NetApi.Model.Types.Primitive.U32> Add(global::Substrate.NetApi.Model.Types.Primitive.U32 value)
     {
         return new RemotingAction<global::Substrate.NetApi.Model.Types.Primitive.U32>(
             this.remoting,
@@ -75,8 +73,7 @@ public partial class Counter : ICounter
         );
     }
     /// <inheritdoc/>
-    public global::Sails.Remoting.Abstractions.ICall<global::Substrate.NetApi.Model.Types.Primitive.U32> Sub(
-        global::Substrate.NetApi.Model.Types.Primitive.U32 value)
+    public global::Sails.Remoting.Abstractions.ICall<global::Substrate.NetApi.Model.Types.Primitive.U32> Sub(global::Substrate.NetApi.Model.Types.Primitive.U32 value)
     {
         return new RemotingAction<global::Substrate.NetApi.Model.Types.Primitive.U32>(
             this.remoting,
@@ -85,8 +82,7 @@ public partial class Counter : ICounter
         );
     }
     /// <inheritdoc/>
-    public global::Sails.Remoting.Abstractions.IQuery<global::Substrate.NetApi.Model.Types.Primitive.U32> Value(
-        )
+    public global::Sails.Remoting.Abstractions.IQuery<global::Substrate.NetApi.Model.Types.Primitive.U32> Value()
     {
         return new RemotingAction<global::Substrate.NetApi.Model.Types.Primitive.U32>(
             this.remoting,
@@ -125,15 +121,14 @@ public partial class CounterListener : IRemotingListener<EnumCounterEvents>
         [28, 67, 111, 117, 110, 116, 101, 114, 40, 83, 117, 98, 116, 114, 97, 99, 116, 101, 100],
     ];
 
-    private readonly IRemotingListener remoting;
+    private readonly global::Sails.Remoting.Abstractions.Core.IRemotingListener remoting;
 
-    public CounterListener(IRemotingListener remoting)
+    public CounterListener(global::Sails.Remoting.Abstractions.Core.IRemotingListener remoting)
     {
         this.remoting = remoting;
     }
 
-    public async global::System.Collections.Generic.IAsyncEnumerable<EnumCounterEvents> ListenAsync(
-        [global::System.Runtime.CompilerServices.EnumeratorCancellation] global::System.Threading.CancellationToken cancellationToken = default)
+    public async global::System.Collections.Generic.IAsyncEnumerable<EnumCounterEvents> ListenAsync([global::System.Runtime.CompilerServices.EnumeratorCancellation] global::System.Threading.CancellationToken cancellationToken = default)
     {
         await foreach (var bytes in this.remoting.ListenAsync(cancellationToken))
         {
@@ -164,14 +159,10 @@ public partial class CounterListener : IRemotingListener<EnumCounterEvents>
 
 public interface IDog
 {
-    global::Sails.Remoting.Abstractions.ICall<global::Substrate.NetApi.Model.Types.Primitive.Str> MakeSound(
-        );
-    global::Sails.Remoting.Abstractions.ICall<global::Substrate.NetApi.Model.Types.Base.BaseVoid> Walk(
-        global::Substrate.NetApi.Model.Types.Primitive.I32 dx, global::Substrate.NetApi.Model.Types.Primitive.I32 dy);
-    global::Sails.Remoting.Abstractions.IQuery<global::Substrate.NetApi.Model.Types.Primitive.U32> AvgWeight(
-        );
-    global::Sails.Remoting.Abstractions.IQuery<global::Substrate.NetApi.Model.Types.Base.BaseTuple<global::Substrate.NetApi.Model.Types.Primitive.I32, global::Substrate.NetApi.Model.Types.Primitive.I32>> Position(
-        );
+    global::Sails.Remoting.Abstractions.ICall<global::Substrate.NetApi.Model.Types.Primitive.Str> MakeSound();
+    global::Sails.Remoting.Abstractions.ICall<global::Substrate.NetApi.Model.Types.Base.BaseVoid> Walk(global::Substrate.NetApi.Model.Types.Primitive.I32 dx, global::Substrate.NetApi.Model.Types.Primitive.I32 dy);
+    global::Sails.Remoting.Abstractions.IQuery<global::Substrate.NetApi.Model.Types.Primitive.U32> AvgWeight();
+    global::Sails.Remoting.Abstractions.IQuery<global::Substrate.NetApi.Model.Types.Base.BaseTuple<global::Substrate.NetApi.Model.Types.Primitive.I32, global::Substrate.NetApi.Model.Types.Primitive.I32>> Position();
 }
 
 public partial class Dog : IDog
@@ -184,8 +175,7 @@ public partial class Dog : IDog
     }
 
     /// <inheritdoc/>
-    public global::Sails.Remoting.Abstractions.ICall<global::Substrate.NetApi.Model.Types.Primitive.Str> MakeSound(
-        )
+    public global::Sails.Remoting.Abstractions.ICall<global::Substrate.NetApi.Model.Types.Primitive.Str> MakeSound()
     {
         return new RemotingAction<global::Substrate.NetApi.Model.Types.Primitive.Str>(
             this.remoting,
@@ -194,8 +184,7 @@ public partial class Dog : IDog
         );
     }
     /// <inheritdoc/>
-    public global::Sails.Remoting.Abstractions.ICall<global::Substrate.NetApi.Model.Types.Base.BaseVoid> Walk(
-        global::Substrate.NetApi.Model.Types.Primitive.I32 dx, global::Substrate.NetApi.Model.Types.Primitive.I32 dy)
+    public global::Sails.Remoting.Abstractions.ICall<global::Substrate.NetApi.Model.Types.Base.BaseVoid> Walk(global::Substrate.NetApi.Model.Types.Primitive.I32 dx, global::Substrate.NetApi.Model.Types.Primitive.I32 dy)
     {
         return new RemotingAction<global::Substrate.NetApi.Model.Types.Base.BaseVoid>(
             this.remoting,
@@ -204,8 +193,7 @@ public partial class Dog : IDog
         );
     }
     /// <inheritdoc/>
-    public global::Sails.Remoting.Abstractions.IQuery<global::Substrate.NetApi.Model.Types.Primitive.U32> AvgWeight(
-        )
+    public global::Sails.Remoting.Abstractions.IQuery<global::Substrate.NetApi.Model.Types.Primitive.U32> AvgWeight()
     {
         return new RemotingAction<global::Substrate.NetApi.Model.Types.Primitive.U32>(
             this.remoting,
@@ -214,8 +202,7 @@ public partial class Dog : IDog
         );
     }
     /// <inheritdoc/>
-    public global::Sails.Remoting.Abstractions.IQuery<global::Substrate.NetApi.Model.Types.Base.BaseTuple<global::Substrate.NetApi.Model.Types.Primitive.I32, global::Substrate.NetApi.Model.Types.Primitive.I32>> Position(
-        )
+    public global::Sails.Remoting.Abstractions.IQuery<global::Substrate.NetApi.Model.Types.Base.BaseTuple<global::Substrate.NetApi.Model.Types.Primitive.I32, global::Substrate.NetApi.Model.Types.Primitive.I32>> Position()
     {
         return new RemotingAction<global::Substrate.NetApi.Model.Types.Base.BaseTuple<global::Substrate.NetApi.Model.Types.Primitive.I32, global::Substrate.NetApi.Model.Types.Primitive.I32>>(
             this.remoting,
@@ -248,15 +235,14 @@ public partial class DogListener : IRemotingListener<EnumDogEvents>
         [12, 68, 111, 103, 24, 87, 97, 108, 107, 101, 100],
     ];
 
-    private readonly IRemotingListener remoting;
+    private readonly global::Sails.Remoting.Abstractions.Core.IRemotingListener remoting;
 
-    public DogListener(IRemotingListener remoting)
+    public DogListener(global::Sails.Remoting.Abstractions.Core.IRemotingListener remoting)
     {
         this.remoting = remoting;
     }
 
-    public async global::System.Collections.Generic.IAsyncEnumerable<EnumDogEvents> ListenAsync(
-        [global::System.Runtime.CompilerServices.EnumeratorCancellation] global::System.Threading.CancellationToken cancellationToken = default)
+    public async global::System.Collections.Generic.IAsyncEnumerable<EnumDogEvents> ListenAsync([global::System.Runtime.CompilerServices.EnumeratorCancellation] global::System.Threading.CancellationToken cancellationToken = default)
     {
         await foreach (var bytes in this.remoting.ListenAsync(cancellationToken))
         {
@@ -287,8 +273,7 @@ public partial class DogListener : IRemotingListener<EnumDogEvents>
 
 public interface IPingPong
 {
-    global::Sails.Remoting.Abstractions.ICall<Result<global::Substrate.NetApi.Model.Types.Primitive.Str, global::Substrate.NetApi.Model.Types.Primitive.Str>> Ping(
-        global::Substrate.NetApi.Model.Types.Primitive.Str input);
+    global::Sails.Remoting.Abstractions.ICall<global::Substrate.Gear.Client.Model.Types.Base.BaseResult<global::Substrate.NetApi.Model.Types.Primitive.Str, global::Substrate.NetApi.Model.Types.Primitive.Str>> Ping(global::Substrate.NetApi.Model.Types.Primitive.Str input);
 }
 
 public partial class PingPong : IPingPong
@@ -301,10 +286,9 @@ public partial class PingPong : IPingPong
     }
 
     /// <inheritdoc/>
-    public global::Sails.Remoting.Abstractions.ICall<Result<global::Substrate.NetApi.Model.Types.Primitive.Str, global::Substrate.NetApi.Model.Types.Primitive.Str>> Ping(
-        global::Substrate.NetApi.Model.Types.Primitive.Str input)
+    public global::Sails.Remoting.Abstractions.ICall<global::Substrate.Gear.Client.Model.Types.Base.BaseResult<global::Substrate.NetApi.Model.Types.Primitive.Str, global::Substrate.NetApi.Model.Types.Primitive.Str>> Ping(global::Substrate.NetApi.Model.Types.Primitive.Str input)
     {
-        return new RemotingAction<Result<global::Substrate.NetApi.Model.Types.Primitive.Str, global::Substrate.NetApi.Model.Types.Primitive.Str>>(
+        return new RemotingAction<global::Substrate.Gear.Client.Model.Types.Base.BaseResult<global::Substrate.NetApi.Model.Types.Primitive.Str, global::Substrate.NetApi.Model.Types.Primitive.Str>>(
             this.remoting,
             [32, 80, 105, 110, 103, 80, 111, 110, 103, 16, 80, 105, 110, 103],
             new global::Substrate.NetApi.Model.Types.Base.BaseTupleRust(input)
@@ -314,22 +298,14 @@ public partial class PingPong : IPingPong
 
 public interface IReferences
 {
-    global::Sails.Remoting.Abstractions.ICall<global::Substrate.NetApi.Model.Types.Primitive.U32> Add(
-        global::Substrate.NetApi.Model.Types.Primitive.U32 v);
-    global::Sails.Remoting.Abstractions.ICall<global::Substrate.NetApi.Model.Types.Base.BaseVec<global::Substrate.NetApi.Model.Types.Primitive.U8>> AddByte(
-        global::Substrate.NetApi.Model.Types.Primitive.U8 byte);
-    global::Sails.Remoting.Abstractions.ICall<Result<global::Substrate.NetApi.Model.Types.Primitive.Str, global::Substrate.NetApi.Model.Types.Primitive.Str>> GuessNum(
-        global::Substrate.NetApi.Model.Types.Primitive.U8 number);
-    global::Sails.Remoting.Abstractions.ICall<ReferenceCount> Incr(
-        );
-    global::Sails.Remoting.Abstractions.ICall<Result<global::Substrate.NetApi.Model.Types.Base.BaseVoid, global::Substrate.NetApi.Model.Types.Primitive.Str>> SetNum(
-        global::Substrate.NetApi.Model.Types.Primitive.U8 number);
-    global::Sails.Remoting.Abstractions.IQuery<global::Substrate.NetApi.Model.Types.Primitive.Str> Baked(
-        );
-    global::Sails.Remoting.Abstractions.IQuery<global::Substrate.NetApi.Model.Types.Base.BaseOpt<global::Substrate.NetApi.Model.Types.Primitive.U8>> LastByte(
-        );
-    global::Sails.Remoting.Abstractions.IQuery<global::Substrate.NetApi.Model.Types.Base.BaseOpt<global::Substrate.NetApi.Model.Types.Primitive.Str>> Message(
-        );
+    global::Sails.Remoting.Abstractions.ICall<global::Substrate.NetApi.Model.Types.Primitive.U32> Add(global::Substrate.NetApi.Model.Types.Primitive.U32 v);
+    global::Sails.Remoting.Abstractions.ICall<global::Substrate.NetApi.Model.Types.Base.BaseVec<global::Substrate.NetApi.Model.Types.Primitive.U8>> AddByte(global::Substrate.NetApi.Model.Types.Primitive.U8 @byte);
+    global::Sails.Remoting.Abstractions.ICall<global::Substrate.Gear.Client.Model.Types.Base.BaseResult<global::Substrate.NetApi.Model.Types.Primitive.Str, global::Substrate.NetApi.Model.Types.Primitive.Str>> GuessNum(global::Substrate.NetApi.Model.Types.Primitive.U8 number);
+    global::Sails.Remoting.Abstractions.ICall<ReferenceCount> Incr();
+    global::Sails.Remoting.Abstractions.ICall<global::Substrate.Gear.Client.Model.Types.Base.BaseResult<global::Substrate.NetApi.Model.Types.Base.BaseVoid, global::Substrate.NetApi.Model.Types.Primitive.Str>> SetNum(global::Substrate.NetApi.Model.Types.Primitive.U8 number);
+    global::Sails.Remoting.Abstractions.IQuery<global::Substrate.NetApi.Model.Types.Primitive.Str> Baked();
+    global::Sails.Remoting.Abstractions.IQuery<global::Substrate.NetApi.Model.Types.Base.BaseOpt<global::Substrate.NetApi.Model.Types.Primitive.U8>> LastByte();
+    global::Sails.Remoting.Abstractions.IQuery<global::Substrate.NetApi.Model.Types.Base.BaseOpt<global::Substrate.NetApi.Model.Types.Primitive.Str>> Message();
 }
 
 public partial class References : IReferences
@@ -342,8 +318,7 @@ public partial class References : IReferences
     }
 
     /// <inheritdoc/>
-    public global::Sails.Remoting.Abstractions.ICall<global::Substrate.NetApi.Model.Types.Primitive.U32> Add(
-        global::Substrate.NetApi.Model.Types.Primitive.U32 v)
+    public global::Sails.Remoting.Abstractions.ICall<global::Substrate.NetApi.Model.Types.Primitive.U32> Add(global::Substrate.NetApi.Model.Types.Primitive.U32 v)
     {
         return new RemotingAction<global::Substrate.NetApi.Model.Types.Primitive.U32>(
             this.remoting,
@@ -352,28 +327,25 @@ public partial class References : IReferences
         );
     }
     /// <inheritdoc/>
-    public global::Sails.Remoting.Abstractions.ICall<global::Substrate.NetApi.Model.Types.Base.BaseVec<global::Substrate.NetApi.Model.Types.Primitive.U8>> AddByte(
-        global::Substrate.NetApi.Model.Types.Primitive.U8 byte)
+    public global::Sails.Remoting.Abstractions.ICall<global::Substrate.NetApi.Model.Types.Base.BaseVec<global::Substrate.NetApi.Model.Types.Primitive.U8>> AddByte(global::Substrate.NetApi.Model.Types.Primitive.U8 @byte)
     {
         return new RemotingAction<global::Substrate.NetApi.Model.Types.Base.BaseVec<global::Substrate.NetApi.Model.Types.Primitive.U8>>(
             this.remoting,
             [40, 82, 101, 102, 101, 114, 101, 110, 99, 101, 115, 28, 65, 100, 100, 66, 121, 116, 101],
-            new global::Substrate.NetApi.Model.Types.Base.BaseTupleRust(byte)
+            new global::Substrate.NetApi.Model.Types.Base.BaseTupleRust(@byte)
         );
     }
     /// <inheritdoc/>
-    public global::Sails.Remoting.Abstractions.ICall<Result<global::Substrate.NetApi.Model.Types.Primitive.Str, global::Substrate.NetApi.Model.Types.Primitive.Str>> GuessNum(
-        global::Substrate.NetApi.Model.Types.Primitive.U8 number)
+    public global::Sails.Remoting.Abstractions.ICall<global::Substrate.Gear.Client.Model.Types.Base.BaseResult<global::Substrate.NetApi.Model.Types.Primitive.Str, global::Substrate.NetApi.Model.Types.Primitive.Str>> GuessNum(global::Substrate.NetApi.Model.Types.Primitive.U8 number)
     {
-        return new RemotingAction<Result<global::Substrate.NetApi.Model.Types.Primitive.Str, global::Substrate.NetApi.Model.Types.Primitive.Str>>(
+        return new RemotingAction<global::Substrate.Gear.Client.Model.Types.Base.BaseResult<global::Substrate.NetApi.Model.Types.Primitive.Str, global::Substrate.NetApi.Model.Types.Primitive.Str>>(
             this.remoting,
             [40, 82, 101, 102, 101, 114, 101, 110, 99, 101, 115, 32, 71, 117, 101, 115, 115, 78, 117, 109],
             new global::Substrate.NetApi.Model.Types.Base.BaseTupleRust(number)
         );
     }
     /// <inheritdoc/>
-    public global::Sails.Remoting.Abstractions.ICall<ReferenceCount> Incr(
-        )
+    public global::Sails.Remoting.Abstractions.ICall<ReferenceCount> Incr()
     {
         return new RemotingAction<ReferenceCount>(
             this.remoting,
@@ -382,18 +354,16 @@ public partial class References : IReferences
         );
     }
     /// <inheritdoc/>
-    public global::Sails.Remoting.Abstractions.ICall<Result<global::Substrate.NetApi.Model.Types.Base.BaseVoid, global::Substrate.NetApi.Model.Types.Primitive.Str>> SetNum(
-        global::Substrate.NetApi.Model.Types.Primitive.U8 number)
+    public global::Sails.Remoting.Abstractions.ICall<global::Substrate.Gear.Client.Model.Types.Base.BaseResult<global::Substrate.NetApi.Model.Types.Base.BaseVoid, global::Substrate.NetApi.Model.Types.Primitive.Str>> SetNum(global::Substrate.NetApi.Model.Types.Primitive.U8 number)
     {
-        return new RemotingAction<Result<global::Substrate.NetApi.Model.Types.Base.BaseVoid, global::Substrate.NetApi.Model.Types.Primitive.Str>>(
+        return new RemotingAction<global::Substrate.Gear.Client.Model.Types.Base.BaseResult<global::Substrate.NetApi.Model.Types.Base.BaseVoid, global::Substrate.NetApi.Model.Types.Primitive.Str>>(
             this.remoting,
             [40, 82, 101, 102, 101, 114, 101, 110, 99, 101, 115, 24, 83, 101, 116, 78, 117, 109],
             new global::Substrate.NetApi.Model.Types.Base.BaseTupleRust(number)
         );
     }
     /// <inheritdoc/>
-    public global::Sails.Remoting.Abstractions.IQuery<global::Substrate.NetApi.Model.Types.Primitive.Str> Baked(
-        )
+    public global::Sails.Remoting.Abstractions.IQuery<global::Substrate.NetApi.Model.Types.Primitive.Str> Baked()
     {
         return new RemotingAction<global::Substrate.NetApi.Model.Types.Primitive.Str>(
             this.remoting,
@@ -402,8 +372,7 @@ public partial class References : IReferences
         );
     }
     /// <inheritdoc/>
-    public global::Sails.Remoting.Abstractions.IQuery<global::Substrate.NetApi.Model.Types.Base.BaseOpt<global::Substrate.NetApi.Model.Types.Primitive.U8>> LastByte(
-        )
+    public global::Sails.Remoting.Abstractions.IQuery<global::Substrate.NetApi.Model.Types.Base.BaseOpt<global::Substrate.NetApi.Model.Types.Primitive.U8>> LastByte()
     {
         return new RemotingAction<global::Substrate.NetApi.Model.Types.Base.BaseOpt<global::Substrate.NetApi.Model.Types.Primitive.U8>>(
             this.remoting,
@@ -412,8 +381,7 @@ public partial class References : IReferences
         );
     }
     /// <inheritdoc/>
-    public global::Sails.Remoting.Abstractions.IQuery<global::Substrate.NetApi.Model.Types.Base.BaseOpt<global::Substrate.NetApi.Model.Types.Primitive.Str>> Message(
-        )
+    public global::Sails.Remoting.Abstractions.IQuery<global::Substrate.NetApi.Model.Types.Base.BaseOpt<global::Substrate.NetApi.Model.Types.Primitive.Str>> Message()
     {
         return new RemotingAction<global::Substrate.NetApi.Model.Types.Base.BaseOpt<global::Substrate.NetApi.Model.Types.Primitive.Str>>(
             this.remoting,
@@ -425,16 +393,11 @@ public partial class References : IReferences
 
 public interface IThisThat
 {
-    global::Sails.Remoting.Abstractions.ICall<Result<global::Substrate.NetApi.Model.Types.Base.BaseTuple<global::Substrate.Gear.Api.Generated.Model.gprimitives.ActorId, global::Substrate.Gear.Api.Generated.Types.Base.NonZeroU32>, global::Substrate.NetApi.Model.Types.Primitive.Str>> DoThat(
-        DoThatParam param);
-    global::Sails.Remoting.Abstractions.ICall<global::Substrate.NetApi.Model.Types.Base.BaseTuple<global::Substrate.NetApi.Model.Types.Primitive.Str, global::Substrate.NetApi.Model.Types.Primitive.U32>> DoThis(
-        global::Substrate.NetApi.Model.Types.Primitive.U32 p1, global::Substrate.NetApi.Model.Types.Primitive.Str p2, global::Substrate.NetApi.Model.Types.Base.BaseTuple<global::Substrate.NetApi.Model.Types.Base.BaseOpt<H160>, NonZeroU8> p3, TupleStruct p4);
-    global::Sails.Remoting.Abstractions.ICall<global::Substrate.NetApi.Model.Types.Base.BaseVoid> Noop(
-        );
-    global::Sails.Remoting.Abstractions.IQuery<Result<global::Substrate.NetApi.Model.Types.Primitive.Str, global::Substrate.NetApi.Model.Types.Primitive.Str>> That(
-        );
-    global::Sails.Remoting.Abstractions.IQuery<global::Substrate.NetApi.Model.Types.Primitive.U32> This(
-        );
+    global::Sails.Remoting.Abstractions.ICall<global::Substrate.Gear.Client.Model.Types.Base.BaseResult<global::Substrate.NetApi.Model.Types.Base.BaseTuple<global::Substrate.Gear.Api.Generated.Model.gprimitives.ActorId, global::Substrate.Gear.Api.Generated.Types.Base.NonZeroU32>, global::Substrate.NetApi.Model.Types.Primitive.Str>> DoThat(DoThatParam param);
+    global::Sails.Remoting.Abstractions.ICall<global::Substrate.NetApi.Model.Types.Base.BaseTuple<global::Substrate.NetApi.Model.Types.Primitive.Str, global::Substrate.NetApi.Model.Types.Primitive.U32>> DoThis(global::Substrate.NetApi.Model.Types.Primitive.U32 p1, global::Substrate.NetApi.Model.Types.Primitive.Str p2, global::Substrate.NetApi.Model.Types.Base.BaseTuple<global::Substrate.NetApi.Model.Types.Base.BaseOpt<global::Substrate.Gear.Client.Model.Types.Primitive.H160>, global::Substrate.Gear.Client.Model.Types.Primitive.NonZeroU8> p3, TupleStruct p4);
+    global::Sails.Remoting.Abstractions.ICall<global::Substrate.NetApi.Model.Types.Base.BaseVoid> Noop();
+    global::Sails.Remoting.Abstractions.IQuery<global::Substrate.Gear.Client.Model.Types.Base.BaseResult<global::Substrate.NetApi.Model.Types.Primitive.Str, global::Substrate.NetApi.Model.Types.Primitive.Str>> That();
+    global::Sails.Remoting.Abstractions.IQuery<global::Substrate.NetApi.Model.Types.Primitive.U32> This();
 }
 
 public partial class ThisThat : IThisThat
@@ -447,18 +410,16 @@ public partial class ThisThat : IThisThat
     }
 
     /// <inheritdoc/>
-    public global::Sails.Remoting.Abstractions.ICall<Result<global::Substrate.NetApi.Model.Types.Base.BaseTuple<global::Substrate.Gear.Api.Generated.Model.gprimitives.ActorId, global::Substrate.Gear.Api.Generated.Types.Base.NonZeroU32>, global::Substrate.NetApi.Model.Types.Primitive.Str>> DoThat(
-        DoThatParam param)
+    public global::Sails.Remoting.Abstractions.ICall<global::Substrate.Gear.Client.Model.Types.Base.BaseResult<global::Substrate.NetApi.Model.Types.Base.BaseTuple<global::Substrate.Gear.Api.Generated.Model.gprimitives.ActorId, global::Substrate.Gear.Api.Generated.Types.Base.NonZeroU32>, global::Substrate.NetApi.Model.Types.Primitive.Str>> DoThat(DoThatParam param)
     {
-        return new RemotingAction<Result<global::Substrate.NetApi.Model.Types.Base.BaseTuple<global::Substrate.Gear.Api.Generated.Model.gprimitives.ActorId, global::Substrate.Gear.Api.Generated.Types.Base.NonZeroU32>, global::Substrate.NetApi.Model.Types.Primitive.Str>>(
+        return new RemotingAction<global::Substrate.Gear.Client.Model.Types.Base.BaseResult<global::Substrate.NetApi.Model.Types.Base.BaseTuple<global::Substrate.Gear.Api.Generated.Model.gprimitives.ActorId, global::Substrate.Gear.Api.Generated.Types.Base.NonZeroU32>, global::Substrate.NetApi.Model.Types.Primitive.Str>>(
             this.remoting,
             [32, 84, 104, 105, 115, 84, 104, 97, 116, 24, 68, 111, 84, 104, 97, 116],
             new global::Substrate.NetApi.Model.Types.Base.BaseTupleRust(param)
         );
     }
     /// <inheritdoc/>
-    public global::Sails.Remoting.Abstractions.ICall<global::Substrate.NetApi.Model.Types.Base.BaseTuple<global::Substrate.NetApi.Model.Types.Primitive.Str, global::Substrate.NetApi.Model.Types.Primitive.U32>> DoThis(
-        global::Substrate.NetApi.Model.Types.Primitive.U32 p1, global::Substrate.NetApi.Model.Types.Primitive.Str p2, global::Substrate.NetApi.Model.Types.Base.BaseTuple<global::Substrate.NetApi.Model.Types.Base.BaseOpt<H160>, NonZeroU8> p3, TupleStruct p4)
+    public global::Sails.Remoting.Abstractions.ICall<global::Substrate.NetApi.Model.Types.Base.BaseTuple<global::Substrate.NetApi.Model.Types.Primitive.Str, global::Substrate.NetApi.Model.Types.Primitive.U32>> DoThis(global::Substrate.NetApi.Model.Types.Primitive.U32 p1, global::Substrate.NetApi.Model.Types.Primitive.Str p2, global::Substrate.NetApi.Model.Types.Base.BaseTuple<global::Substrate.NetApi.Model.Types.Base.BaseOpt<global::Substrate.Gear.Client.Model.Types.Primitive.H160>, global::Substrate.Gear.Client.Model.Types.Primitive.NonZeroU8> p3, TupleStruct p4)
     {
         return new RemotingAction<global::Substrate.NetApi.Model.Types.Base.BaseTuple<global::Substrate.NetApi.Model.Types.Primitive.Str, global::Substrate.NetApi.Model.Types.Primitive.U32>>(
             this.remoting,
@@ -467,8 +428,7 @@ public partial class ThisThat : IThisThat
         );
     }
     /// <inheritdoc/>
-    public global::Sails.Remoting.Abstractions.ICall<global::Substrate.NetApi.Model.Types.Base.BaseVoid> Noop(
-        )
+    public global::Sails.Remoting.Abstractions.ICall<global::Substrate.NetApi.Model.Types.Base.BaseVoid> Noop()
     {
         return new RemotingAction<global::Substrate.NetApi.Model.Types.Base.BaseVoid>(
             this.remoting,
@@ -477,18 +437,16 @@ public partial class ThisThat : IThisThat
         );
     }
     /// <inheritdoc/>
-    public global::Sails.Remoting.Abstractions.IQuery<Result<global::Substrate.NetApi.Model.Types.Primitive.Str, global::Substrate.NetApi.Model.Types.Primitive.Str>> That(
-        )
+    public global::Sails.Remoting.Abstractions.IQuery<global::Substrate.Gear.Client.Model.Types.Base.BaseResult<global::Substrate.NetApi.Model.Types.Primitive.Str, global::Substrate.NetApi.Model.Types.Primitive.Str>> That()
     {
-        return new RemotingAction<Result<global::Substrate.NetApi.Model.Types.Primitive.Str, global::Substrate.NetApi.Model.Types.Primitive.Str>>(
+        return new RemotingAction<global::Substrate.Gear.Client.Model.Types.Base.BaseResult<global::Substrate.NetApi.Model.Types.Primitive.Str, global::Substrate.NetApi.Model.Types.Primitive.Str>>(
             this.remoting,
             [32, 84, 104, 105, 115, 84, 104, 97, 116, 16, 84, 104, 97, 116],
             new global::Substrate.NetApi.Model.Types.Base.BaseTupleRust()
         );
     }
     /// <inheritdoc/>
-    public global::Sails.Remoting.Abstractions.IQuery<global::Substrate.NetApi.Model.Types.Primitive.U32> This(
-        )
+    public global::Sails.Remoting.Abstractions.IQuery<global::Substrate.NetApi.Model.Types.Primitive.U32> This()
     {
         return new RemotingAction<global::Substrate.NetApi.Model.Types.Primitive.U32>(
             this.remoting,
@@ -500,8 +458,7 @@ public partial class ThisThat : IThisThat
 
 public interface IValueFee
 {
-    global::Sails.Remoting.Abstractions.ICall<global::Substrate.NetApi.Model.Types.Primitive.Bool> DoSomethingAndTakeFee(
-        );
+    global::Sails.Remoting.Abstractions.ICall<global::Substrate.NetApi.Model.Types.Primitive.Bool> DoSomethingAndTakeFee();
 }
 
 public partial class ValueFee : IValueFee
@@ -514,8 +471,7 @@ public partial class ValueFee : IValueFee
     }
 
     /// <inheritdoc/>
-    public global::Sails.Remoting.Abstractions.ICall<global::Substrate.NetApi.Model.Types.Primitive.Bool> DoSomethingAndTakeFee(
-        )
+    public global::Sails.Remoting.Abstractions.ICall<global::Substrate.NetApi.Model.Types.Primitive.Bool> DoSomethingAndTakeFee()
     {
         return new RemotingAction<global::Substrate.NetApi.Model.Types.Primitive.Bool>(
             this.remoting,
@@ -545,15 +501,14 @@ public partial class ValueFeeListener : IRemotingListener<EnumValueFeeEvents>
         [32, 86, 97, 108, 117, 101, 70, 101, 101, 32, 87, 105, 116, 104, 104, 101, 108, 100],
     ];
 
-    private readonly IRemotingListener remoting;
+    private readonly global::Sails.Remoting.Abstractions.Core.IRemotingListener remoting;
 
-    public ValueFeeListener(IRemotingListener remoting)
+    public ValueFeeListener(global::Sails.Remoting.Abstractions.Core.IRemotingListener remoting)
     {
         this.remoting = remoting;
     }
 
-    public async global::System.Collections.Generic.IAsyncEnumerable<EnumValueFeeEvents> ListenAsync(
-        [global::System.Runtime.CompilerServices.EnumeratorCancellation] global::System.Threading.CancellationToken cancellationToken = default)
+    public async global::System.Collections.Generic.IAsyncEnumerable<EnumValueFeeEvents> ListenAsync([global::System.Runtime.CompilerServices.EnumeratorCancellation] global::System.Threading.CancellationToken cancellationToken = default)
     {
         await foreach (var bytes in this.remoting.ListenAsync(cancellationToken))
         {
@@ -585,7 +540,8 @@ public partial class ValueFeeListener : IRemotingListener<EnumValueFeeEvents>
 [global::Substrate.NetApi.Attributes.SubstrateNodeType(global::Substrate.NetApi.Model.Types.Metadata.Base.TypeDefEnum.Composite)]
 public sealed partial class ReferenceCount : global::Substrate.NetApi.Model.Types.Base.BaseType
 {
-    public required global::Substrate.NetApi.Model.Types.Primitive.U32 Value { get; set; }
+    [System.Diagnostics.CodeAnalysis.AllowNull]
+    public global::Substrate.NetApi.Model.Types.Primitive.U32 Value { get; set; }
 
     /// <inheritdoc/>
     public override string TypeName() => "ReferenceCount";
@@ -614,9 +570,12 @@ public sealed partial class ReferenceCount : global::Substrate.NetApi.Model.Type
 [global::Substrate.NetApi.Attributes.SubstrateNodeType(global::Substrate.NetApi.Model.Types.Metadata.Base.TypeDefEnum.Composite)]
 public sealed partial class DoThatParam : global::Substrate.NetApi.Model.Types.Base.BaseType
 {
-    public required global::Substrate.Gear.Api.Generated.Types.Base.NonZeroU32 P1 { get; set; }
-    public required global::Substrate.Gear.Api.Generated.Model.gprimitives.ActorId P2 { get; set; }
-    public required EnumManyVariants P3 { get; set; }
+    [System.Diagnostics.CodeAnalysis.AllowNull]
+    public global::Substrate.Gear.Api.Generated.Types.Base.NonZeroU32 P1 { get; set; }
+    [System.Diagnostics.CodeAnalysis.AllowNull]
+    public global::Substrate.Gear.Api.Generated.Model.gprimitives.ActorId P2 { get; set; }
+    [System.Diagnostics.CodeAnalysis.AllowNull]
+    public EnumManyVariants P3 { get; set; }
 
     /// <inheritdoc/>
     public override string TypeName() => "DoThatParam";
@@ -664,7 +623,7 @@ public sealed partial class EnumManyVariants : global::Substrate.NetApi.Model.Ty
     {
         this.AddTypeDecoder<global::Substrate.NetApi.Model.Types.Base.BaseVoid>(ManyVariants.One);
         this.AddTypeDecoder<global::Substrate.NetApi.Model.Types.Primitive.U32>(ManyVariants.Two);
-        this.AddTypeDecoder<global::Substrate.NetApi.Model.Types.Base.BaseOpt<U256>>(ManyVariants.Three);
+        this.AddTypeDecoder<global::Substrate.NetApi.Model.Types.Base.BaseOpt<global::Substrate.NetApi.Model.Types.Primitive.U256>>(ManyVariants.Three);
         this.AddTypeDecoder<global::Substrate.NetApi.Model.Types.Base.BaseTuple<global::Substrate.NetApi.Model.Types.Primitive.U32, global::Substrate.NetApi.Model.Types.Base.BaseOpt<global::Substrate.NetApi.Model.Types.Primitive.U16>>>(ManyVariants.Four);
         this.AddTypeDecoder<global::Substrate.NetApi.Model.Types.Base.BaseTuple<global::Substrate.NetApi.Model.Types.Primitive.Str, global::Substrate.Gear.Api.Generated.Model.primitive_types.H256>>(ManyVariants.Five);
         this.AddTypeDecoder<global::Substrate.NetApi.Model.Types.Primitive.U32>(ManyVariants.Six);
@@ -674,7 +633,8 @@ public sealed partial class EnumManyVariants : global::Substrate.NetApi.Model.Ty
 [global::Substrate.NetApi.Attributes.SubstrateNodeType(global::Substrate.NetApi.Model.Types.Metadata.Base.TypeDefEnum.Composite)]
 public sealed partial class TupleStruct : global::Substrate.NetApi.Model.Types.Base.BaseType
 {
-    public required global::Substrate.NetApi.Model.Types.Primitive.Bool Value { get; set; }
+    [System.Diagnostics.CodeAnalysis.AllowNull]
+    public global::Substrate.NetApi.Model.Types.Primitive.Bool Value { get; set; }
 
     /// <inheritdoc/>
     public override string TypeName() => "TupleStruct";
