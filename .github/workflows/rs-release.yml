@@ -31,6 +31,7 @@ jobs:
         shell: bash
     outputs:
       rc_branch: ${{ steps.release_branch.outputs.rc_branch }}
+      r_version: ${{ steps.release_info.outputs.version }}
 
     steps:
       - name: Checkout Code
@@ -111,6 +112,8 @@ jobs:
 
       - name: Publish Crates to Crates.io
         run: |
-          for CRATE in $SAILS_CRATES; do
-            echo "Publishing $CRATE"
+          VERSION=${{ needs.prepare.outputs.r_version }}
+          for SAILS_CRATE in $SAILS_CRATES; do
+            sed -i "/^\s*${SAILS_CRATE} = {.*}/ s/}/, version = \"=${VERSION}\" }/" Cargo.toml
           done
+          cat Cargo.toml
