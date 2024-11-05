@@ -29,13 +29,13 @@ impl<'a> CtorFactoryGenerator<'a> {
         let remoting = &csharp::import("global::Sails.Remoting.Abstractions", "IRemoting");
 
         quote! {
-            public interface I$(&class_name)
+            public interface I$(&class_name)$['\r']
             {
                 $(self.interface_tokens)
             }
             $['\n']
             public partial class $(&class_name) : I$(&class_name)$['\r']
-            {
+            {$['\n']
                 private readonly $remoting remoting;
                 $['\n']
                 public $(&class_name)($remoting remoting)$['\r']

@@ -1,5 +1,6 @@
 ﻿using System.Text;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.Text;
 
 namespace Sails.ClientGenerator;
@@ -30,7 +31,8 @@ public partial class SailsClientGenerator : IIncrementalGenerator
                 try
                 {
                     var str = new string((sbyte*)cstr);
-                    context.AddSource($"{name}.g.cs", SourceText.From(str, encoding: Encoding.UTF8));
+                    var formatted = FormatCode(str);
+                    context.AddSource($"{name}.g.cs", SourceText.From(formatted, encoding: Encoding.UTF8));
                 }
                 finally
                 {
@@ -39,4 +41,12 @@ public partial class SailsClientGenerator : IIncrementalGenerator
             }
         }
     }
+
+    public static string FormatCode(string code, CancellationToken cancelToken = default)
+        => CSharpSyntaxTree.ParseText(code, cancellationToken: cancelToken)
+            .GetRoot(cancelToken)
+            .NormalizeWhitespace()
+            .SyntaxTree
+            .GetText(cancelToken)
+            .ToString();
 }
