@@ -115,6 +115,12 @@ jobs:
           wasm-opt -O4 -o ./assets/sails_idl_parser/sails_idl_parser.wasm ./target/wasm32-unknown-unknown/release/sails_idl_parser.wasm
           ls -l ./assets/sails_idl_parser/sails_idl_parser.wasm
 
+      - name: Upload Assets
+        uses: actions/upload-artifact@v4
+        with:
+          name: sails-assets
+          path: ./assets/
+
   release:
     name: Create Release
     runs-on: ubuntu-latest
@@ -143,3 +149,9 @@ jobs:
             sed -i "/^\s*${SAILS_CRATE} = {.*}/ s/}/, version = \"=${VERSION}\" }/" Cargo.toml
           done
           cat Cargo.toml
+
+      - name: Download Assets
+        uses: actions/download-artifact@v4
+        with:
+          name: sails-assets
+          path: ./assets
