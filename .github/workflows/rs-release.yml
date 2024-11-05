@@ -1,0 +1,62 @@
+name: Release (Rust)
+
+on:
+  push:
+    tags:
+      - 'rs/v*-rc'
+
+env:
+  GITHUB_USER_NAME: github-actions[bot]
+  GITHUB_USER_EMAIL: github-actions[bot]@users.noreply.github.com
+
+jobs:
+  prepare:
+    name: Prepare Release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    defaults:
+      run:
+        shell: bash
+    outputs:
+      rc_branch: ${{ steps.release_branch.outputs.rc_branch }}
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract Release Info
+        id: release_info
+        run: |
+          RELEASE_TAG=${GITHUB_REF#refs/tags/}
+          VERSION=${RELEASE_TAG#rs/v}
+          VERSION="${VERSION%-rc}"
+          if [[ ! $VERSION =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "'$VERSION' is not a valid semver version"
+            exit 1
+          fi
+          echo "Version: $VERSION"
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Set Workspace Version
+        run: |
+          sed -i "s/^version = \".*\"/version = \"${{ steps.release_info.outputs.version }}\"/" Cargo.toml
+
+      - name: Update Workspace Dependencies
+        run: |
+          cargo update
+
+      - name: Create Release Branch
+        id: release_branch
+        run: |
+          RC_BRANCH="rc/rs/v${{ steps.release_info.outputs.version }}"
+          git config --global user.name "$GITHUB_USER_NAME"
+          git config --global user.email "$GITHUB_USER_EMAIL"
+          git checkout -b "$RC_BRANCH"
+          git add Cargo.toml
+          git add Cargo.lock
+          git commit -m "build(rs): update version to v${{ steps.release_info.outputs.version }}"
+          git push origin "$RC_BRANCH"
+          echo "rc_branch=$RC_BRANCH" >> $GITHUB_OUTPUT
