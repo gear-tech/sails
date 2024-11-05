@@ -72,16 +72,8 @@ jobs:
 
   cli_tests:
     name: Run CLI Tests
-    runs-on: ubuntu-latest
     needs:
       prepare
-
-    steps:
-      - name: Say Hello
-        run: |
-          echo "Run CLI tests on branch ${{ needs.prepare.outputs.rc_branch }}"
-
-      - name: Checkout Code from Release Branch
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ needs.prepare.outputs.rc_branch }}
+    uses: ./.github/workflows/rs-run-cli-tests.yml
+    with:
+      sources_ref: ${{ needs.prepare.outputs.rc_branch }}

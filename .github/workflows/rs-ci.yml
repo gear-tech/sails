@@ -67,44 +67,10 @@ jobs:
         run: __GEAR_WASM_BUILDER_NO_FEATURES_TRACKING=1 cargo clippy -p sails-idl-parser --all-targets --locked --target=wasm32-unknown-unknown -- -D warnings
 
   test:
-    name: Run Tests
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Free Disk Space
-        uses: jlumbroso/free-disk-space@main
-        with:
-          # this might remove tools that are actually needed,
-          # if set to "true" but frees about 6 GB
-          tool-cache: false
-
-          # all of these default to true, but feel free to set to
-          # "false" if necessary for your workflow
-          android: true
-          dotnet: false
-          haskell: true
-          large-packages: false
-          docker-images: true
-          swap-storage: true
-
-      - name: Checkout Code
-        uses: actions/checkout@v4
-
-      - name: Install wasm-opt
-        run: |
-          sudo wget -c https://github.com/WebAssembly/binaryen/releases/download/$BINARYEN_VERSION/binaryen-$BINARYEN_VERSION-x86_64-linux.tar.gz -O - | sudo tar -xz -C .
-          sudo cp binaryen-$BINARYEN_VERSION/bin/wasm-opt /usr/bin/
-
-      - name: Download Gear Node
-        run: |
-          sudo wget -O ./gear https://github.com/gear-tech/gear/releases/download/v1.6.0/gear
-          sudo chmod +x gear
-          sudo mv gear /usr/bin/
-
-      - name: Run Tests
-        env:
-          GEAR_PATH: /usr/bin/gear
-        run: __GEAR_WASM_BUILDER_NO_FEATURES_TRACKING=1 cargo test --workspace --all-targets --locked --no-fail-fast -- --include-ignored
+    name: Run Workflow Tests
+    uses: ./.github/workflows/rs-run-ws-tests.yml
+    with:
+      gear_node_version: 1.6.0
 
   test-cli:
     name: Run CLI Tests

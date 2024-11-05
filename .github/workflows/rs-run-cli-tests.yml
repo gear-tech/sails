@@ -1,4 +1,4 @@
-name: '[rs] Run Workspace Tests'
+name: '[rs] Run CLI Tests'
 
 on:
   workflow_call:
@@ -7,17 +7,13 @@ on:
         description: 'Sources Ref'
         type: string
         required: false
-      gear_node_version:
-        description: 'Gear Node Version'
-        required: true
-        type: string
 
 env:
   BINARYEN_VERSION: version_111
 
 jobs:
-  test_ws:
-    name: Run Workspace Tests
+  test_cli:
+    name: Run CLI Tests
     runs-on: ubuntu-latest
 
     steps:
@@ -47,13 +43,22 @@ jobs:
           sudo wget -c https://github.com/WebAssembly/binaryen/releases/download/$BINARYEN_VERSION/binaryen-$BINARYEN_VERSION-x86_64-linux.tar.gz -O - | sudo tar -xz -C .
           sudo cp binaryen-$BINARYEN_VERSION/bin/wasm-opt /usr/bin/
 
-      - name: Download Gear Node
+      - name: Build CLI
         run: |
-          sudo wget -O ./gear https://github.com/gear-tech/gear/releases/download/v${{ inputs.gear_node_version }}/gear
-          sudo chmod +x gear
-          sudo mv gear /usr/bin/
+          cargo build -p sails-cli
 
-      - name: Run Tests
-        env:
-          GEAR_PATH: /usr/bin/gear
-        run: __GEAR_WASM_BUILDER_NO_FEATURES_TRACKING=1 cargo test --workspace --all-targets --locked --no-fail-fast -- --include-ignored
+      - name: Generate MyDemo via CLI
+        run: |
+          TEMPLATES_BRANCH=${{ inputs.sources_ref }}:-${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}
+          echo "TEMPLATES_BRANCH: $TEMPLATES_BRANCH"
+          SAILS_CLI_TEMPLATES_BRANCH=${TEMPLATES_BRANCH} ./target/debug/cargo-sails sails program ~/tmp --name my-demo
+
+      - name: Run Tests on MyDemo
+        run: |
+          cd ~/tmp/my-demo
+          cargo test -p my-demo
+
+      - name: Generate IDL from MyDemo via CLI
+        run: |
+          ./target/debug/cargo-sails sails idl --manifest-path ~/tmp/my-demo/Cargo.toml
+          diff ~/tmp/my-demo/target/my-demo-app.idl ~/tmp/my-demo/target/wasm32-unknown-unknown/debug/my_demo.idl
