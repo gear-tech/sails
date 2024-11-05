@@ -1,0 +1,18 @@
+name: Install WASM  Utils from Binaryen
+description: Install wasm-opt and other utilities from Binaryen
+inputs:
+  binaryen_version:
+    description: "Binaryen Version"
+    required: false
+    default: "111"
+
+runs:
+  using: composite
+
+  steps:
+    - name: Install wasm-opt
+      shell: bash
+      run: |
+        BINARYEN_VERSION=version_${{ inputs.binaryen_version }}
+        sudo wget -c https://github.com/WebAssembly/binaryen/releases/download/$BINARYEN_VERSION/binaryen-$BINARYEN_VERSION-x86_64-linux.tar.gz -O - | sudo tar -xz -C .
+        sudo cp binaryen-$BINARYEN_VERSION/bin/wasm-opt /usr/bin/
