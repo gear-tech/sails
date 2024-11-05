@@ -8,12 +8,12 @@ using global::System.Collections.Generic;
 
 #pragma warning disable RCS0056 // A line is too long
 
+namespace Basic.Client;
+
 public interface IBasic
 {
-    global::Sails.Remoting.Abstractions.ICall<global::Substrate.NetApi.Model.Types.Primitive.U16> DoThis(
-        global::Substrate.NetApi.Model.Types.Primitive.U32 p1, MyParam p2);
-    global::Sails.Remoting.Abstractions.ICall<global::Substrate.NetApi.Model.Types.Primitive.U8> DoThat(
-        global::Substrate.NetApi.Model.Types.Base.BaseTuple<global::Substrate.NetApi.Model.Types.Primitive.U8, global::Substrate.NetApi.Model.Types.Primitive.U32> p1);
+    global::Sails.Remoting.Abstractions.ICall<global::Substrate.NetApi.Model.Types.Primitive.U16> DoThis(global::Substrate.NetApi.Model.Types.Primitive.U32 p1, MyParam p2);
+    global::Sails.Remoting.Abstractions.ICall<global::Substrate.NetApi.Model.Types.Primitive.U8> DoThat(global::Substrate.NetApi.Model.Types.Base.BaseTuple<global::Substrate.NetApi.Model.Types.Primitive.U8, global::Substrate.NetApi.Model.Types.Primitive.U32> p1);
 }
 
 public partial class Basic : IBasic
@@ -26,8 +26,7 @@ public partial class Basic : IBasic
     }
 
     /// <inheritdoc/>
-    public global::Sails.Remoting.Abstractions.ICall<global::Substrate.NetApi.Model.Types.Primitive.U16> DoThis(
-        global::Substrate.NetApi.Model.Types.Primitive.U32 p1, MyParam p2)
+    public global::Sails.Remoting.Abstractions.ICall<global::Substrate.NetApi.Model.Types.Primitive.U16> DoThis(global::Substrate.NetApi.Model.Types.Primitive.U32 p1, MyParam p2)
     {
         return new RemotingAction<global::Substrate.NetApi.Model.Types.Primitive.U16>(
             this.remoting,
@@ -36,8 +35,7 @@ public partial class Basic : IBasic
         );
     }
     /// <inheritdoc/>
-    public global::Sails.Remoting.Abstractions.ICall<global::Substrate.NetApi.Model.Types.Primitive.U8> DoThat(
-        global::Substrate.NetApi.Model.Types.Base.BaseTuple<global::Substrate.NetApi.Model.Types.Primitive.U8, global::Substrate.NetApi.Model.Types.Primitive.U32> p1)
+    public global::Sails.Remoting.Abstractions.ICall<global::Substrate.NetApi.Model.Types.Primitive.U8> DoThat(global::Substrate.NetApi.Model.Types.Base.BaseTuple<global::Substrate.NetApi.Model.Types.Primitive.U8, global::Substrate.NetApi.Model.Types.Primitive.U32> p1)
     {
         return new RemotingAction<global::Substrate.NetApi.Model.Types.Primitive.U8>(
             this.remoting,
@@ -50,9 +48,12 @@ public partial class Basic : IBasic
 [global::Substrate.NetApi.Attributes.SubstrateNodeType(global::Substrate.NetApi.Model.Types.Metadata.Base.TypeDefEnum.Composite)]
 public sealed partial class MyParam : global::Substrate.NetApi.Model.Types.Base.BaseType
 {
-    public required global::Substrate.NetApi.Model.Types.Primitive.U32 F1 { get; set; }
-    public required global::Substrate.NetApi.Model.Types.Base.BaseVec<global::Substrate.NetApi.Model.Types.Primitive.Str> F2 { get; set; }
-    public required global::Substrate.NetApi.Model.Types.Base.BaseOpt<global::Substrate.NetApi.Model.Types.Base.BaseTuple<global::Substrate.NetApi.Model.Types.Primitive.U8, global::Substrate.NetApi.Model.Types.Primitive.U32>> F3 { get; set; }
+    [System.Diagnostics.CodeAnalysis.AllowNull]
+    public global::Substrate.NetApi.Model.Types.Primitive.U32 F1 { get; set; }
+    [System.Diagnostics.CodeAnalysis.AllowNull]
+    public global::Substrate.NetApi.Model.Types.Base.BaseVec<global::Substrate.NetApi.Model.Types.Primitive.Str> F2 { get; set; }
+    [System.Diagnostics.CodeAnalysis.AllowNull]
+    public global::Substrate.NetApi.Model.Types.Base.BaseOpt<global::Substrate.NetApi.Model.Types.Base.BaseTuple<global::Substrate.NetApi.Model.Types.Primitive.U8, global::Substrate.NetApi.Model.Types.Primitive.U32>> F3 { get; set; }
 
     /// <inheritdoc/>
     public override string TypeName() => "MyParam";

@@ -8,6 +8,8 @@ using global::System.Collections.Generic;
 
 #pragma warning disable RCS0056 // A line is too long
 
+namespace Service.Client;
+
 public interface IServiceFactory
 {
     /// <summary>
@@ -37,14 +39,10 @@ public partial class ServiceFactory : IServiceFactory
 
 public interface IService
 {
-    global::Sails.Remoting.Abstractions.ICall<global::Substrate.NetApi.Model.Types.Base.BaseTuple<global::Substrate.NetApi.Model.Types.Primitive.Str, global::Substrate.NetApi.Model.Types.Primitive.U32>> DoThis(
-        global::Substrate.NetApi.Model.Types.Primitive.U32 p1, global::Substrate.NetApi.Model.Types.Primitive.Str p2, global::Substrate.NetApi.Model.Types.Base.BaseTuple<global::Substrate.NetApi.Model.Types.Base.BaseOpt<global::Substrate.NetApi.Model.Types.Primitive.Str>, global::Substrate.NetApi.Model.Types.Primitive.U8> p3, ThisThatSvcAppTupleStruct p4);
-    global::Sails.Remoting.Abstractions.ICall<Result<global::Substrate.NetApi.Model.Types.Base.BaseTuple<global::Substrate.NetApi.Model.Types.Primitive.Str, global::Substrate.NetApi.Model.Types.Primitive.U32>, global::Substrate.NetApi.Model.Types.Primitive.Str>> DoThat(
-        ThisThatSvcAppDoThatParam param);
-    global::Sails.Remoting.Abstractions.IQuery<global::Substrate.NetApi.Model.Types.Primitive.U32> This(
-        global::Substrate.NetApi.Model.Types.Base.BaseVec<global::Substrate.NetApi.Model.Types.Primitive.U16> v1);
-    global::Sails.Remoting.Abstractions.IQuery<Result<global::Substrate.NetApi.Model.Types.Primitive.Str, global::Substrate.NetApi.Model.Types.Primitive.Str>> That(
-        global::Substrate.NetApi.Model.Types.Base.BaseVoid v1);
+    global::Sails.Remoting.Abstractions.ICall<global::Substrate.NetApi.Model.Types.Base.BaseTuple<global::Substrate.NetApi.Model.Types.Primitive.Str, global::Substrate.NetApi.Model.Types.Primitive.U32>> DoThis(global::Substrate.NetApi.Model.Types.Primitive.U32 p1, global::Substrate.NetApi.Model.Types.Primitive.Str p2, global::Substrate.NetApi.Model.Types.Base.BaseTuple<global::Substrate.NetApi.Model.Types.Base.BaseOpt<global::Substrate.NetApi.Model.Types.Primitive.Str>, global::Substrate.NetApi.Model.Types.Primitive.U8> p3, ThisThatSvcAppTupleStruct p4);
+    global::Sails.Remoting.Abstractions.ICall<global::Substrate.Gear.Client.Model.Types.Base.BaseResult<global::Substrate.NetApi.Model.Types.Base.BaseTuple<global::Substrate.NetApi.Model.Types.Primitive.Str, global::Substrate.NetApi.Model.Types.Primitive.U32>, global::Substrate.NetApi.Model.Types.Primitive.Str>> DoThat(ThisThatSvcAppDoThatParam param);
+    global::Sails.Remoting.Abstractions.IQuery<global::Substrate.NetApi.Model.Types.Primitive.U32> This(global::Substrate.NetApi.Model.Types.Base.BaseVec<global::Substrate.NetApi.Model.Types.Primitive.U16> v1);
+    global::Sails.Remoting.Abstractions.IQuery<global::Substrate.Gear.Client.Model.Types.Base.BaseResult<global::Substrate.NetApi.Model.Types.Primitive.Str, global::Substrate.NetApi.Model.Types.Primitive.Str>> That(global::Substrate.NetApi.Model.Types.Base.BaseVoid v1);
 }
 
 public partial class Service : IService
@@ -57,8 +55,7 @@ public partial class Service : IService
     }
 
     /// <inheritdoc/>
-    public global::Sails.Remoting.Abstractions.ICall<global::Substrate.NetApi.Model.Types.Base.BaseTuple<global::Substrate.NetApi.Model.Types.Primitive.Str, global::Substrate.NetApi.Model.Types.Primitive.U32>> DoThis(
-        global::Substrate.NetApi.Model.Types.Primitive.U32 p1, global::Substrate.NetApi.Model.Types.Primitive.Str p2, global::Substrate.NetApi.Model.Types.Base.BaseTuple<global::Substrate.NetApi.Model.Types.Base.BaseOpt<global::Substrate.NetApi.Model.Types.Primitive.Str>, global::Substrate.NetApi.Model.Types.Primitive.U8> p3, ThisThatSvcAppTupleStruct p4)
+    public global::Sails.Remoting.Abstractions.ICall<global::Substrate.NetApi.Model.Types.Base.BaseTuple<global::Substrate.NetApi.Model.Types.Primitive.Str, global::Substrate.NetApi.Model.Types.Primitive.U32>> DoThis(global::Substrate.NetApi.Model.Types.Primitive.U32 p1, global::Substrate.NetApi.Model.Types.Primitive.Str p2, global::Substrate.NetApi.Model.Types.Base.BaseTuple<global::Substrate.NetApi.Model.Types.Base.BaseOpt<global::Substrate.NetApi.Model.Types.Primitive.Str>, global::Substrate.NetApi.Model.Types.Primitive.U8> p3, ThisThatSvcAppTupleStruct p4)
     {
         return new RemotingAction<global::Substrate.NetApi.Model.Types.Base.BaseTuple<global::Substrate.NetApi.Model.Types.Primitive.Str, global::Substrate.NetApi.Model.Types.Primitive.U32>>(
             this.remoting,
@@ -67,18 +64,16 @@ public partial class Service : IService
         );
     }
     /// <inheritdoc/>
-    public global::Sails.Remoting.Abstractions.ICall<Result<global::Substrate.NetApi.Model.Types.Base.BaseTuple<global::Substrate.NetApi.Model.Types.Primitive.Str, global::Substrate.NetApi.Model.Types.Primitive.U32>, global::Substrate.NetApi.Model.Types.Primitive.Str>> DoThat(
-        ThisThatSvcAppDoThatParam param)
+    public global::Sails.Remoting.Abstractions.ICall<global::Substrate.Gear.Client.Model.Types.Base.BaseResult<global::Substrate.NetApi.Model.Types.Base.BaseTuple<global::Substrate.NetApi.Model.Types.Primitive.Str, global::Substrate.NetApi.Model.Types.Primitive.U32>, global::Substrate.NetApi.Model.Types.Primitive.Str>> DoThat(ThisThatSvcAppDoThatParam param)
     {
-        return new RemotingAction<Result<global::Substrate.NetApi.Model.Types.Base.BaseTuple<global::Substrate.NetApi.Model.Types.Primitive.Str, global::Substrate.NetApi.Model.Types.Primitive.U32>, global::Substrate.NetApi.Model.Types.Primitive.Str>>(
+        return new RemotingAction<global::Substrate.Gear.Client.Model.Types.Base.BaseResult<global::Substrate.NetApi.Model.Types.Base.BaseTuple<global::Substrate.NetApi.Model.Types.Primitive.Str, global::Substrate.NetApi.Model.Types.Primitive.U32>, global::Substrate.NetApi.Model.Types.Primitive.Str>>(
             this.remoting,
             [28, 83, 101, 114, 118, 105, 99, 101, 24, 68, 111, 84, 104, 97, 116],
             new global::Substrate.NetApi.Model.Types.Base.BaseTupleRust(param)
         );
     }
     /// <inheritdoc/>
-    public global::Sails.Remoting.Abstractions.IQuery<global::Substrate.NetApi.Model.Types.Primitive.U32> This(
-        global::Substrate.NetApi.Model.Types.Base.BaseVec<global::Substrate.NetApi.Model.Types.Primitive.U16> v1)
+    public global::Sails.Remoting.Abstractions.IQuery<global::Substrate.NetApi.Model.Types.Primitive.U32> This(global::Substrate.NetApi.Model.Types.Base.BaseVec<global::Substrate.NetApi.Model.Types.Primitive.U16> v1)
     {
         return new RemotingAction<global::Substrate.NetApi.Model.Types.Primitive.U32>(
             this.remoting,
@@ -87,10 +82,9 @@ public partial class Service : IService
         );
     }
     /// <inheritdoc/>
-    public global::Sails.Remoting.Abstractions.IQuery<Result<global::Substrate.NetApi.Model.Types.Primitive.Str, global::Substrate.NetApi.Model.Types.Primitive.Str>> That(
-        global::Substrate.NetApi.Model.Types.Base.BaseVoid v1)
+    public global::Sails.Remoting.Abstractions.IQuery<global::Substrate.Gear.Client.Model.Types.Base.BaseResult<global::Substrate.NetApi.Model.Types.Primitive.Str, global::Substrate.NetApi.Model.Types.Primitive.Str>> That(global::Substrate.NetApi.Model.Types.Base.BaseVoid v1)
     {
-        return new RemotingAction<Result<global::Substrate.NetApi.Model.Types.Primitive.Str, global::Substrate.NetApi.Model.Types.Primitive.Str>>(
+        return new RemotingAction<global::Substrate.Gear.Client.Model.Types.Base.BaseResult<global::Substrate.NetApi.Model.Types.Primitive.Str, global::Substrate.NetApi.Model.Types.Primitive.Str>>(
             this.remoting,
             [28, 83, 101, 114, 118, 105, 99, 101, 16, 84, 104, 97, 116],
             new global::Substrate.NetApi.Model.Types.Base.BaseTupleRust(v1)
@@ -127,15 +121,14 @@ public partial class ServiceListener : IRemotingListener<EnumServiceEvents>
         [28, 83, 101, 114, 118, 105, 99, 101, 32, 84, 104, 97, 116, 68, 111, 110, 101],
     ];
 
-    private readonly IRemotingListener remoting;
+    private readonly global::Sails.Remoting.Abstractions.Core.IRemotingListener remoting;
 
-    public ServiceListener(IRemotingListener remoting)
+    public ServiceListener(global::Sails.Remoting.Abstractions.Core.IRemotingListener remoting)
     {
         this.remoting = remoting;
     }
 
-    public async global::System.Collections.Generic.IAsyncEnumerable<EnumServiceEvents> ListenAsync(
-        [global::System.Runtime.CompilerServices.EnumeratorCancellation] global::System.Threading.CancellationToken cancellationToken = default)
+    public async global::System.Collections.Generic.IAsyncEnumerable<EnumServiceEvents> ListenAsync([global::System.Runtime.CompilerServices.EnumeratorCancellation] global::System.Threading.CancellationToken cancellationToken = default)
     {
         await foreach (var bytes in this.remoting.ListenAsync(cancellationToken))
         {
@@ -170,7 +163,8 @@ public partial class ServiceListener : IRemotingListener<EnumServiceEvents>
 [global::Substrate.NetApi.Attributes.SubstrateNodeType(global::Substrate.NetApi.Model.Types.Metadata.Base.TypeDefEnum.Composite)]
 public sealed partial class ThisThatSvcAppTupleStruct : global::Substrate.NetApi.Model.Types.Base.BaseType
 {
-    public required global::Substrate.NetApi.Model.Types.Primitive.Bool Value { get; set; }
+    [System.Diagnostics.CodeAnalysis.AllowNull]
+    public global::Substrate.NetApi.Model.Types.Primitive.Bool Value { get; set; }
 
     /// <inheritdoc/>
     public override string TypeName() => "ThisThatSvcAppTupleStruct";
@@ -205,15 +199,18 @@ public sealed partial class ThisThatSvcAppDoThatParam : global::Substrate.NetApi
     /// <summary>
     /// field `query`
     /// </summary>
-    public required global::Substrate.NetApi.Model.Types.Primitive.U32 Query { get; set; }
+    [System.Diagnostics.CodeAnalysis.AllowNull]
+    public global::Substrate.NetApi.Model.Types.Primitive.U32 Query { get; set; }
     /// <summary>
     /// field `result`
     /// </summary>
-    public required global::Substrate.NetApi.Model.Types.Primitive.Str Result { get; set; }
+    [System.Diagnostics.CodeAnalysis.AllowNull]
+    public global::Substrate.NetApi.Model.Types.Primitive.Str Result { get; set; }
     /// <summary>
     /// field `p3`
     /// </summary>
-    public required EnumThisThatSvcAppManyVariants P3 { get; set; }
+    [System.Diagnostics.CodeAnalysis.AllowNull]
+    public EnumThisThatSvcAppManyVariants P3 { get; set; }
 
     /// <inheritdoc/>
     public override string TypeName() => "ThisThatSvcAppDoThatParam";

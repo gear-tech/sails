@@ -15,7 +15,8 @@ public sealed class H160 : BaseType
     /// <summary>
     /// >> value
     /// </summary>
-    public required Arr20U8 Value { get; set; }
+    [System.Diagnostics.CodeAnalysis.AllowNull]
+    public Arr20U8 Value { get; set; }
 
     /// <inheritdoc/>
     public override string TypeName() => nameof(H160);
