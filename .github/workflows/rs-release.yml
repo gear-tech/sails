@@ -60,3 +60,35 @@ jobs:
           git commit -m "build(rs): update version to v${{ steps.release_info.outputs.version }}"
           git push origin "$RC_BRANCH"
           echo "rc_branch=$RC_BRANCH" >> $GITHUB_OUTPUT
+
+  ws_tests:
+    name: Run Workspace Tests
+    runs-on: ubuntu-latest
+    needs:
+      prepare
+
+    steps:
+      - name: Say Hello
+        run: |
+          echo "Run WS tests on branch ${{ needs.prepare.outputs.rc_branch }}"
+
+      - name: Checkout Code from Release Branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.prepare.outputs.rc_branch }}
+
+  cli_tests:
+    name: Run CLI Tests
+    runs-on: ubuntu-latest
+    needs:
+      prepare
+
+    steps:
+      - name: Say Hello
+        run: |
+          echo "Run CLI tests on branch ${{ needs.prepare.outputs.rc_branch }}"
+
+      - name: Checkout Code from Release Branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.prepare.outputs.rc_branch }}
