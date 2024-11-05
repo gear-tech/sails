@@ -105,12 +105,13 @@ jobs:
         with:
           ref: ${{ needs.prepare.outputs.rc_branch }}
 
-      - name: Install WASM Utils
+      - name: Install wasm-opt
         uses: ./.github/actions/install-wasm-utils
 
       - name: Build IDL Parser for WASM
         run: |
           cargo build -p sails-idl-parser --target wasm32-unknown-unknown --release
+          mkdir -p ./assets/sails_idl_parser
           wasm-opt -O4 -o ./assets/sails_idl_parser/sails_idl_parser.wasm ./target/wasm32-unknown-unknown/release/sails_idl_parser.wasm
           ls -l ./assets/sails_idl_parser/sails_idl_parser.wasm
 
