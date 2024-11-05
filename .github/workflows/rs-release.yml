@@ -155,3 +155,7 @@ jobs:
         with:
           name: sails-assets
           path: ./assets
+
+      - name: Check Assets
+        run: |
+          ls -l ./assets/sails_idl_parser/sails_idl_parser.wasm
