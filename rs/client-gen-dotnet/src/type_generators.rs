@@ -25,6 +25,18 @@ macro_rules! gprimitives {
     };
 }
 
+macro_rules! client_base {
+    ($t: expr) => {
+        concat!("global::Substrate.Gear.Client.Model.Types.Base.", $t)
+    };
+}
+
+macro_rules! client_primitive {
+    ($t: expr) => {
+        concat!("global::Substrate.Gear.Client.Model.Types.Primitive.", $t)
+    };
+}
+
 pub(crate) struct TopLevelTypeGenerator<'a> {
     type_name: &'a str,
     type_generator: TypeDeclGenerator<'a>,
@@ -92,7 +104,7 @@ impl<'a> StructDefGenerator<'a> {
 
     pub(crate) fn finalize(self) -> Tokens {
         let system_array = &csharp::import("global::System", "Array");
-        let generic_list = csharp::import("global::System.Collections.Generic", "List");
+        let generic_list = &csharp::import("global::System.Collections.Generic", "List");
 
         quote! {
             [global::Substrate.NetApi.Attributes.SubstrateNodeType(global::Substrate.NetApi.Model.Types.Metadata.Base.TypeDefEnum.Composite)]
@@ -299,7 +311,7 @@ impl<'a> Visitor<'a> for TypeDeclGenerator<'a> {
     }
 
     fn visit_result_type_decl(&mut self, ok_type_decl: &'a TypeDecl, err_type_decl: &'a TypeDecl) {
-        self.code.push_str("Result<");
+        self.code.push_str(client_base!("BaseResult<"));
         visitor::accept_type_decl(ok_type_decl, self);
         self.code.push_str(", ");
         visitor::accept_type_decl(err_type_decl, self);
@@ -346,17 +358,16 @@ impl<'a> Visitor<'a> for TypeDeclGenerator<'a> {
     }
 
     fn visit_map_type_decl(&mut self, key_type_decl: &'a TypeDecl, value_type_decl: &'a TypeDecl) {
-        self.code.push_str("BTreeMap<");
+        self.code.push_str(client_base!("BaseDictionary<"));
         visitor::accept_type_decl(key_type_decl, self);
         self.code.push_str(", ");
         visitor::accept_type_decl(value_type_decl, self);
         self.code.push('>');
     }
 
-    fn visit_array_type_decl(&mut self, item_type_decl: &'a TypeDecl, len: u32) {
-        self.code.push('[');
+    fn visit_array_type_decl(&mut self, item_type_decl: &'a TypeDecl, _len: u32) {
         visitor::accept_type_decl(item_type_decl, self);
-        self.code.push_str(&format!("; {len}]"));
+        self.code.push_str("[]");
     }
 }
 
@@ -379,14 +390,14 @@ pub(crate) fn primitive_type_to_dotnet(primitive_type: PrimitiveType) -> &'stati
         PrimitiveType::ActorId => gprimitives!("ActorId"),
         PrimitiveType::CodeId => gprimitives!("CodeId"),
         PrimitiveType::MessageId => gprimitives!("MessageId"),
-        PrimitiveType::H160 => "H160",
+        PrimitiveType::H160 => client_primitive!("H160"),
         PrimitiveType::H256 => "global::Substrate.Gear.Api.Generated.Model.primitive_types.H256",
-        PrimitiveType::U256 => "U256",
-        PrimitiveType::NonZeroU8 => "NonZeroU8",
-        PrimitiveType::NonZeroU16 => "NonZeroU16",
+        PrimitiveType::U256 => primitive!("U256"),
+        PrimitiveType::NonZeroU8 => client_primitive!("NonZeroU8"),
+        PrimitiveType::NonZeroU16 => client_primitive!("NonZeroU16"),
         PrimitiveType::NonZeroU32 => "global::Substrate.Gear.Api.Generated.Types.Base.NonZeroU32",
-        PrimitiveType::NonZeroU64 => "NonZeroU64",
-        PrimitiveType::NonZeroU128 => "NonZeroU128",
-        PrimitiveType::NonZeroU256 => "NonZeroU256",
+        PrimitiveType::NonZeroU64 => client_primitive!("NonZeroU64"),
+        PrimitiveType::NonZeroU128 => client_primitive!("NonZeroU128"),
+        PrimitiveType::NonZeroU256 => client_primitive!("NonZeroU256"),
     }
 }
