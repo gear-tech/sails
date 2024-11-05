@@ -58,14 +58,14 @@ impl<'a> EventsGenerator<'a> {
                 [
                     $(self.listener_tokens)
                 ];
-
+                $['\n']
                 private readonly $core_listener remoting;
-
+                $['\n']
                 public $listener_name($core_listener remoting)
                 {
                     this.remoting = remoting;
                 }
-
+                $['\n']
                 public async global::System.Collections.Generic.IAsyncEnumerable<$class_name> ListenAsync([global::System.Runtime.CompilerServices.EnumeratorCancellation] global::System.Threading.CancellationToken cancellationToken = default)
                 {
                     await foreach (var bytes in this.remoting.ListenAsync(cancellationToken))
@@ -111,7 +111,7 @@ impl<'a> Visitor<'a> for EventsGenerator<'a> {
         let route_bytes = [service_route_bytes, event_route_bytes].join(", ");
 
         quote_in! { self.listener_tokens =>
-            [$(&route_bytes)],$['\r']
+            [$(&route_bytes)],
         };
 
         quote_in! { self.enum_tokens =>

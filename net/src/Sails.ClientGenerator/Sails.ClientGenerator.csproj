@@ -39,7 +39,7 @@
   </ItemGroup>
 
   <Target Name="PreBuild" BeforeTargets="PreBuildEvent">
-    <Exec Command="cargo +nightly build -p sails-client-gen-dotnet --release" />
+    <Exec Command="cargo build -p sails-client-gen-dotnet --release" />
   </Target>
 
   <!-- for nuget publish -->

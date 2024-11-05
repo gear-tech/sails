@@ -39,12 +39,12 @@ impl<'a> ServiceClientGenerator<'a> {
             public partial class $name : I$name$['\r']
             {
                 private readonly $remoting remoting;
-
+                $['\n']
                 public $name($remoting remoting)
                 {
                     this.remoting = remoting;
                 }
-
+                $['\n']
                 $(self.class_tokens)
             }
             $['\n']
