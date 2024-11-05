@@ -6,8 +6,19 @@ on:
       - 'rs/v*-rc'
 
 env:
+  # see https://api.github.com/users/github-actions%5Bbot%5D
   GITHUB_USER_NAME: github-actions[bot]
-  GITHUB_USER_EMAIL: github-actions[bot]@users.noreply.github.com
+  GITHUB_USER_EMAIL: 41898282+github-actions[bot]@users.noreply.github.com
+  # crates in order of dependency (topological order), first the ones that are not dependent on any other
+  SAILS_CRATES: (
+    "sails-idl-meta"
+    "sails-idl-parser"
+    "sails-idl-gen"
+    "sails-client-gen"
+    "sails-macros-core"
+    "sails-macros"
+    "sails-rs"
+    "sails-cli")
 
 jobs:
   prepare:
@@ -64,7 +75,7 @@ jobs:
   ws_tests:
     name: Run Workspace Tests
     needs:
-      prepare
+      - prepare
     uses: ./.github/workflows/rs-run-ws-tests.yml
     with:
       sources_ref: ${{ needs.prepare.outputs.rc_branch }}
@@ -73,7 +84,33 @@ jobs:
   cli_tests:
     name: Run CLI Tests
     needs:
-      prepare
+      - prepare
     uses: ./.github/workflows/rs-run-cli-tests.yml
     with:
       sources_ref: ${{ needs.prepare.outputs.rc_branch }}
+
+  release:
+    name: Create Release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    needs:
+      - prepare
+      - ws_tests
+      - cli_tests
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+      - name: Checkout Code from Release Branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.prepare.outputs.rc_branch }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Publish Crates to Crates.io
+        run: |
+          for CRATE in $SAILS_CRATES; do
+            echo "Publishing $CRATE"
+          done
