@@ -160,6 +160,7 @@ jobs:
         with:
           name: Sails-RS v${{ needs.prepare.outputs.r_version }}
           tag_name: rs/v${{ needs.prepare.outputs.r_version }}
+          target_commitish: ${{ needs.prepare.outputs.rc_branch }}
           draft: true
           generate_release_notes: true
           fail_on_unmatched_files: true
