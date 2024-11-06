@@ -148,6 +148,17 @@ jobs:
           done
           cat Cargo.toml
           cargo login ${{ secrets.CRATES_IO_TOKEN }}
+          git checkout -- .
+
+      - name: Update Contract Template
+        run: |
+          VERSION=${{ needs.prepare.outputs.r_version }}
+          sed -i -E "s/(variable::set\(\"sails-rs-version\", \")([^\"]+)(\"\);)/\1=$VERSION\3/" templates/set-vars.rhai
+          git config --global user.name "$GITHUB_USER_NAME"
+          git config --global user.email "$GITHUB_USER_EMAIL"
+          git add templates/set-vars.rhai
+          git commit -m "build(tmpl): update version to v${{ needs.prepare.outputs.r_version }} in contract template"
+          git push origin "${{ needs.prepare.outputs.rc_branch }}"
 
   release:
     name: Create Release
