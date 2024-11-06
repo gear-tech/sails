@@ -202,9 +202,9 @@ jobs:
             -H "Accept: application/vnd.github+json" \
             https://api.github.com/repos/${{ github.repository }}/pulls \
             -d '{
-              "title": "chore: sync release v${{ needs.prepare.outputs.r_version }} to $MAIN_BRANCH",
+              "title": "chore: sync release v${{ needs.prepare.outputs.r_version }} to ${MAIN_BRANCH}",
               "head": "${{ needs.prepare.outputs.rc_branch }}",
-              "base": "$MAIN_BRANCH",
+              "base": "${MAIN_BRANCH}",
               "body": "This PR was created by GitHub Actions"
             }'
 
