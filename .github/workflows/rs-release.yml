@@ -76,7 +76,6 @@ jobs:
 
   ws_tests:
     name: Run Workspace Tests
-    if: false
     needs:
       - prepare
     uses: ./.github/workflows/rs-run-ws-tests.yml
@@ -86,7 +85,6 @@ jobs:
 
   cli_tests:
     name: Run CLI Tests
-    if: false
     needs:
       - prepare
     uses: ./.github/workflows/rs-run-cli-tests.yml
