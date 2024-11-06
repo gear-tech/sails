@@ -38,9 +38,9 @@
     </None>
   </ItemGroup>
 
-  <Target Name="PreBuild" BeforeTargets="PreBuildEvent">
+  <!-- <Target Name="PreBuild" BeforeTargets="PreBuildEvent">
     <Exec Command="cargo build -p sails-client-gen-dotnet --release" />
-  </Target>
+  </Target> -->
 
   <!-- for nuget publish -->
   <Target Name="PackBuildOutputs" DependsOnTargets="SatelliteDllsProjectOutputGroup;DebugSymbolsProjectOutputGroup">
