@@ -155,12 +155,19 @@ jobs:
           name: sails-assets
           path: ./assets
 
+      - name: Create Release Tag
+        run: |
+          R_TAG="rs/v${{ needs.prepare.outputs.r_version }}"
+          git config --global user.name "$GITHUB_USER_NAME"
+          git config --global user.email "$GITHUB_USER_EMAIL"
+          git tag -a "$R_TAG" -m "Release v${{ needs.prepare.outputs.r_version }}"
+          git push origin "$R_TAG"
+
       - name: Create Draft Release
         uses: softprops/action-gh-release@v2
         with:
           name: Sails-RS v${{ needs.prepare.outputs.r_version }}
           tag_name: rs/v${{ needs.prepare.outputs.r_version }}
-          target_commitish: ${{ needs.prepare.outputs.rc_branch }}
           draft: true
           generate_release_notes: true
           fail_on_unmatched_files: true
