@@ -20,12 +20,6 @@
     <PackageReference Include="PolySharp" />
   </ItemGroup>
 
-  <ItemGroup>
-    <None Include="../../../target/release/sails_client_gen_dotnet.dll">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-  </ItemGroup>
-
   <!-- for debug perpose, if exists in debug, copy it -->
   <ItemGroup Condition="'$(Configuration)' == 'Debug' and Exists('../../../target/debug/sails_client_gen_dotnet.dll')">
     <None Include="../../../target/debug/sails_client_gen_dotnet.dll">
@@ -37,10 +31,6 @@
       <Link>sails_client_gen_dotnet.pdb</Link>
     </None>
   </ItemGroup>
-
-  <!-- <Target Name="PreBuild" BeforeTargets="PreBuildEvent">
-    <Exec Command="cargo build -p sails-client-gen-dotnet --release" />
-  </Target> -->
 
   <!-- for nuget publish -->
   <Target Name="PackBuildOutputs" DependsOnTargets="SatelliteDllsProjectOutputGroup;DebugSymbolsProjectOutputGroup">
