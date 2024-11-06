@@ -113,7 +113,6 @@ jobs:
           cargo build -p sails-idl-parser --target wasm32-unknown-unknown --release
           mkdir -p ./assets/sails_idl_parser
           wasm-opt -O4 -o ./assets/sails_idl_parser/sails_idl_parser.wasm ./target/wasm32-unknown-unknown/release/sails_idl_parser.wasm
-          ls -l ./assets/sails_idl_parser/sails_idl_parser.wasm
 
       - name: Upload Assets
         uses: actions/upload-artifact@v4
@@ -142,7 +141,7 @@ jobs:
           ref: ${{ needs.prepare.outputs.rc_branch }}
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Publish Crates to Crates.io
+      - name: Publish Crates onto Crates.io
         run: |
           VERSION=${{ needs.prepare.outputs.r_version }}
           for SAILS_CRATE in $SAILS_CRATES; do
@@ -156,6 +155,15 @@ jobs:
           name: sails-assets
           path: ./assets
 
-      - name: Check Assets
-        run: |
-          ls -l ./assets/sails_idl_parser/sails_idl_parser.wasm
+      - name: Create Draft Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: Sails-RS v${{ needs.prepare.outputs.r_version }}
+          tag_name: rs/v${{ needs.prepare.outputs.r_version }}
+          draft: true
+          generate_release_notes: true
+          fail_on_unmatched_files: true
+          files: |
+            ./assets/sails_idl_parser/sails_idl_parser.wasm
+          token: ${{ secrets.GITHUB_TOKEN }}
+
