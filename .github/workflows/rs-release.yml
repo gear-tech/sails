@@ -19,7 +19,6 @@ env:
     sails-macros
     sails-rs
     sails-cli
-  MAIN_BRANCH: master
 
 jobs:
   prepare:
@@ -174,6 +173,8 @@ jobs:
     defaults:
       run:
         shell: bash
+    env:
+      R_NAME: Sails-RS v${{ needs.prepare.outputs.r_version }}
 
     steps:
       - name: Checkout Code from Release Branch
@@ -203,7 +204,7 @@ jobs:
         run: |
           echo "${{ secrets.GITHUB_TOKEN }}" | gh auth login --with-token
           gh pr create \
-            --title "chore: sync release v${{ needs.prepare.outputs.r_version }} to master" \
+            --title "release: sync $R_NAME to master" \
             --body "This PR was created by GitHub Actions" \
             --base master \
             --head ${{ needs.prepare.outputs.rc_branch }}
@@ -226,9 +227,13 @@ jobs:
       - name: Create Draft Release
         uses: softprops/action-gh-release@v2
         with:
-          name: Sails-RS v${{ needs.prepare.outputs.r_version }}
+          name: $R_NAME
           tag_name: ${{ needs.prepare.outputs.r_tag }}
           draft: true
+          body: |
+            !!! This is a draft release.
+            !!! Please review the changes and publish the release.
+            !!! Check this [PR]
           generate_release_notes: true
           fail_on_unmatched_files: true
           files: |
