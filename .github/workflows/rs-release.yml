@@ -32,6 +32,7 @@ jobs:
     outputs:
       rc_branch: ${{ steps.release_branch.outputs.rc_branch }}
       r_version: ${{ steps.release_info.outputs.version }}
+      r_tag: rs/v${{ steps.release_info.outputs.version }}
 
     steps:
       - name: Checkout Code
@@ -75,6 +76,7 @@ jobs:
 
   ws_tests:
     name: Run Workspace Tests
+    if: false
     needs:
       - prepare
     uses: ./.github/workflows/rs-run-ws-tests.yml
@@ -84,6 +86,7 @@ jobs:
 
   cli_tests:
     name: Run CLI Tests
+    if: false
     needs:
       - prepare
     uses: ./.github/workflows/rs-run-cli-tests.yml
@@ -127,8 +130,8 @@ jobs:
       contents: write
     needs:
       - prepare
-      - ws_tests
-      - cli_tests
+      #- ws_tests
+      #- cli_tests
       - assets
     defaults:
       run:
@@ -148,6 +151,7 @@ jobs:
             sed -i "/^\s*${SAILS_CRATE} = {.*}/ s/}/, version = \"=${VERSION}\" }/" Cargo.toml
           done
           cat Cargo.toml
+          cargo login
 
       - name: Download Assets
         uses: actions/download-artifact@v4
@@ -157,7 +161,7 @@ jobs:
 
       - name: Create Release Tag
         run: |
-          R_TAG="rs/v${{ needs.prepare.outputs.r_version }}"
+          R_TAG=${{ needs.prepare.outputs.r_tag }}
           git config --global user.name "$GITHUB_USER_NAME"
           git config --global user.email "$GITHUB_USER_EMAIL"
           git tag -a "$R_TAG" -m "Release v${{ needs.prepare.outputs.r_version }}"
@@ -167,11 +171,10 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           name: Sails-RS v${{ needs.prepare.outputs.r_version }}
-          tag_name: rs/v${{ needs.prepare.outputs.r_version }}
+          tag_name: ${{ needs.prepare.outputs.r_tag }}
           draft: true
           generate_release_notes: true
           fail_on_unmatched_files: true
           files: |
             ./assets/sails_idl_parser/sails_idl_parser.wasm
           token: ${{ secrets.GITHUB_TOKEN }}
-

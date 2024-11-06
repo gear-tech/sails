@@ -5,7 +5,7 @@ on:
     branches: [master]
     paths:
       - '.cargo/**'
-      - '.github/workflows/ci.yml'
+      - '.github/workflows/rs-ci.yml'
       - 'examples/**'
       - 'rs/**'
       - 'templates/**'
@@ -24,7 +24,6 @@ on:
       - 'rust-toolchain.toml'
 
 env:
-  BINARYEN_VERSION: version_111
   CARGO_TERM_COLOR: always
 
 jobs:
@@ -53,9 +52,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Install wasm-opt
-        run: |
-          sudo wget -c https://github.com/WebAssembly/binaryen/releases/download/$BINARYEN_VERSION/binaryen-$BINARYEN_VERSION-x86_64-linux.tar.gz -O - | sudo tar -xz -C .
-          sudo cp binaryen-$BINARYEN_VERSION/bin/wasm-opt /usr/bin/
+        uses: ./.github/actions/install-wasm-utils
 
       - name: Check Code Formatting
         run: __GEAR_WASM_BUILDER_NO_FEATURES_TRACKING=1 cargo fmt --all --check
