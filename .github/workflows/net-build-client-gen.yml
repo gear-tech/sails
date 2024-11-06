@@ -33,25 +33,23 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - run: rustup target add x86_64-unknown-linux-gnu
-      - run: cargo build -p sails-client-gen-dotnet --release --target x86_64-unknown-linux-gnu
+      - run: cargo build -p sails-client-gen-dotnet --release
       - uses: actions/upload-artifact@v4
         with:
           name: linux-x64
-          path: ./target/x86_64-unknown-linux-gnu/release/libsails_client_gen_dotnet.so
+          path: ./target/release/libsails_client_gen_dotnet.so
           retention-days: 1
           overwrite: true
   
   linux-arm64:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-arm
     steps:
       - uses: actions/checkout@v4
-      - run: rustup target add aarch64-unknown-linux-gnu
-      - run: cargo build -p sails-client-gen-dotnet --release --target aarch64-unknown-linux-gnu
+      - run: cargo build -p sails-client-gen-dotnet --release
       - uses: actions/upload-artifact@v4
         with:
           name: linux-arm64
-          path: ./target/aarch64-unknown-linux-gnu/release/libsails_client_gen_dotnet.so
+          path: ./target/release/libsails_client_gen_dotnet.so
           retention-days: 1
           overwrite: true
 
