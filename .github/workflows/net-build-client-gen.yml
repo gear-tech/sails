@@ -6,11 +6,13 @@ on:
       - master
     paths:
       - '.github/workflows/net-build-client-gen.yml'
-      - 'rs/**'
+      - 'rs/client-gen-dotnet/**'
+      - 'rs/idl-parser/**'
 
   pull_request:
     paths:
       - '.github/workflows/net-build-client-gen.yml'
+      - 'rs/client-gen-dotnet/**'
       - 'rs/**'
 
 jobs:
@@ -25,6 +27,7 @@ jobs:
           name: win-x64
           path: ./target/release/sails_client_gen_dotnet.dll
           retention-days: 1
+          overwrite: true
 
   linux-x64:
     runs-on: ubuntu-latest
@@ -36,14 +39,42 @@ jobs:
           name: linux-x64
           path: ./target/release/libsails_client_gen_dotnet.so
           retention-days: 1
+          overwrite: true
   
+  linux-arm64:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: rustup target add x86_64-apple-darwin
+      - run: cargo build -p sails-client-gen-dotnet --release --target aarch64-unknown-linux-gnu
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linux-arm64
+          path: ./target/aarch64-unknown-linux-gnu/release/libsails_client_gen_dotnet.so
+          retention-days: 1
+          overwrite: true
+
+  osx-x64:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: rustup target add x86_64-apple-darwin
+      - run: cargo build -p sails-client-gen-dotnet --release --target x86_64-apple-darwin
+      - uses: actions/upload-artifact@v4
+        with:
+          name: osx-x64
+          path: ./target/x86_64-apple-darwin/release/libsails_client_gen_dotnet.dylib
+          retention-days: 1
+          overwrite: true
+
   osx-arm64:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
-      - run: cargo build -p sails-client-gen-dotnet --release
+      - run: cargo build -p sails-client-gen-dotnet --release --target aarch64-apple-darwin
       - uses: actions/upload-artifact@v4
         with:
-          name: linux-x64
-          path: ./target/release/libsails_client_gen_dotnet.dylib
+          name: osx-arm64
+          path: ./target/aarch64-apple-darwin/release/libsails_client_gen_dotnet.dylib
           retention-days: 1
+          overwrite: true

@@ -16,7 +16,6 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp" />
-    <PackageReference Include="Microsoft.CodeAnalysis.Analyzers" />
     <PackageReference Include="PolySharp" />
   </ItemGroup>
 
@@ -35,6 +34,18 @@
   <Target Name="PreBuild" BeforeTargets="PreBuildEvent">
     <Exec Command="cargo build -p sails-client-gen-dotnet --release" />
   </Target>
+
+  <ItemGroup>
+    <None Include="../../../target/release/sails_client_gen_dotnet.dll" Condition="$([MSBuild]::IsOSPlatform('Windows')) and Exists('../../../target/release/sails_client_gen_dotnet.dll')">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="../../../target/release/libsails_client_gen_dotnet.so" Condition="$([MSBuild]::IsOSPlatform('Linux')) and Exists('../../../target/release/libsails_client_gen_dotnet.so')">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="../../../target/release/libsails_client_gen_dotnet.dylib" Condition="$([MSBuild]::IsOSPlatform('macOS')) and Exists('../../../target/release/libsails_client_gen_dotnet.dylib')">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
 
   <!-- for nuget publish -->
   <Target Name="PackBuildOutputs" DependsOnTargets="SatelliteDllsProjectOutputGroup;DebugSymbolsProjectOutputGroup">
