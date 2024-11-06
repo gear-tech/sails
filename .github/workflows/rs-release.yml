@@ -197,14 +197,16 @@ jobs:
 
       - name: Create Sync PR
         run: |
+          echo "GH_USER_NAME=${GITHUB_USER_NAME}"
+          echo "MAIN_BRANCH=${MAIN_BRANCH}"
           curl -X POST \
             -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
             -H "Accept: application/vnd.github+json" \
             https://api.github.com/repos/${{ github.repository }}/pulls \
             -d '{
-              "title": "chore: sync release v${{ needs.prepare.outputs.r_version }} to ${MAIN_BRANCH}",
+              "title": "chore: sync release v${{ needs.prepare.outputs.r_version }} to master",
               "head": "${{ needs.prepare.outputs.rc_branch }}",
-              "base": "${MAIN_BRANCH}",
+              "base": "master",
               "body": "This PR was created by GitHub Actions"
             }'
 
