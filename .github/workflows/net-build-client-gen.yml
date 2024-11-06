@@ -19,20 +19,20 @@ jobs:
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
-      - run: cargo build -p sails-client-gen-dotnet --target x86_64-pc-windows-msvc --release
+      - run: cargo build -p sails-client-gen-dotnet --release
       - uses: actions/upload-artifact@v4
         with:
           name: win-x64
-          path: ./target/x86_64-pc-windows-msvc/release/sails-client-gen-dotnet.dll
+          path: ./target/release/sails_client_gen_dotnet.dll
           retention-days: 1
 
   linux-x64:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - run: cargo build -p sails-client-gen-dotnet --target x86_64-unknown-linux-gnu --release
+      - run: cargo build -p sails-client-gen-dotnet --release
       - uses: actions/upload-artifact@v4
         with:
           name: linux-x64
-          path: ./target/x86_64-unknown-linux-gnu/release/sails-client-gen-dotnet.so
+          path: ./target/release/sails_client_gen_dotnet.so
           retention-days: 1
