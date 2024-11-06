@@ -15,7 +15,7 @@ on:
   pull_request:
     paths:
       - '.cargo/**'
-      - '.github/workflows/ci.yml'
+      - '.github/workflows/rs-ci.yml'
       - 'examples/**'
       - 'rs/**'
       - 'templates/**'

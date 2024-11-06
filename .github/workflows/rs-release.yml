@@ -128,8 +128,8 @@ jobs:
     runs-on: ubuntu-latest
     needs:
       - prepare
-      #- ws_tests
-      #- cli_tests
+      - ws_tests
+      - cli_tests
     defaults:
       run:
         shell: bash
@@ -160,6 +160,15 @@ jobs:
           git commit -m "build(tmpl): update version to v${{ needs.prepare.outputs.r_version }} in contract template"
           git push origin "${{ needs.prepare.outputs.rc_branch }}"
 
+  cli_tests_after_publish:
+    name: Run CLI Tests After Publish
+    needs:
+      - prepare
+      - publish
+    uses: ./.github/workflows/rs-run-cli-tests.yml
+    with:
+      sources_ref: ${{ needs.prepare.outputs.rc_branch }}
+
   release:
     name: Create Release
     runs-on: ubuntu-latest
@@ -168,7 +177,7 @@ jobs:
       pull-requests: write
     needs:
       - prepare
-      - publish
+      - cli_tests_after_publish
       - assets
     defaults:
       run:
@@ -219,10 +228,8 @@ jobs:
           draft: true
           body: |
             :exclamation: This is a draft release.
-            :exclamation: Please review the changes and publish the release.
+            :exclamation: Please write/generate change notes and publish the release.
             :exclamation: Please also check this [PR](${{ steps.sync_pr.outputs.url }}) to sync the changes to master.
-          generate_release_notes: true
-          append_body: true
           fail_on_unmatched_files: true
           files: |
             ./assets/sails_idl_parser/sails_idl_parser.wasm
