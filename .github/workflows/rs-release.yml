@@ -144,8 +144,10 @@ jobs:
           for SAILS_CRATE in $SAILS_CRATES; do
             sed -i "/^\s*${SAILS_CRATE} = {.*}/ s/}/, version = \"=${VERSION}\" }/" Cargo.toml
           done
-          cat Cargo.toml
           cargo login ${{ secrets.CRATES_IO_TOKEN }}
+          for SAILS_CRATE in $SAILS_CRATES; do
+            cargo publish -p $SAILS_CRATE
+          done
           git checkout -- .
 
       - name: Update Contract Template
