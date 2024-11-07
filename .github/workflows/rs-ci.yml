@@ -12,8 +12,6 @@ on:
       - 'Cargo.lock'
       - 'Cargo.toml'
       - 'rust-toolchain.toml'
-    paths-ignore:
-      - '.github/workflows/rs-release.yml'
   pull_request:
     paths:
       - '.cargo/**'
@@ -24,8 +22,6 @@ on:
       - 'Cargo.lock'
       - 'Cargo.toml'
       - 'rust-toolchain.toml'
-    paths-ignore:
-      - '.github/workflows/rs-release.yml'
 
 env:
   CARGO_TERM_COLOR: always
