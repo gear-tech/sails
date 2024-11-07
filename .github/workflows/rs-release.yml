@@ -40,7 +40,7 @@ jobs:
       run:
         shell: bash
     outputs:
-      rc_branch: ${{ steps.release_branch.outputs.rc_branch }}
+      rc_branch: ${{ steps.rc_branch.outputs.branch }}
       r_version: ${{ steps.release_info.outputs.version }}
       r_tag: rs/v${{ steps.release_info.outputs.version }}
 
@@ -53,13 +53,15 @@ jobs:
       - name: Extract Release Info
         id: release_info
         run: |
-          RELEASE_TAG=${GITHUB_REF#refs/tags/}
-          VERSION=${RELEASE_TAG#rs/v}
+          RC_TAG=${GITHUB_REF#refs/tags/}
+          VERSION=${RC_TAG#rs/v}
           VERSION="${VERSION%-rc}"
           if [[ ! $VERSION =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
             echo "'$VERSION' is not a valid semver version"
             exit 1
           fi
+          echo "RC Tag: $RC_TAG"
+          echo "rc_tag=$RC_TAG" >> $GITHUB_OUTPUT
           echo "Version: $VERSION"
           echo "version=$VERSION" >> $GITHUB_OUTPUT
 
@@ -71,8 +73,8 @@ jobs:
         run: |
           cargo update
 
-      - name: Create Release Branch
-        id: release_branch
+      - name: Create RC Branch
+        id: rc_branch
         run: |
           RC_BRANCH="rc/rs/v${{ steps.release_info.outputs.version }}"
           git config --global user.name "$GITHUB_USER_NAME"
@@ -82,7 +84,8 @@ jobs:
           git add Cargo.lock
           git commit -m "build(rs): update version to v${{ steps.release_info.outputs.version }}"
           git push origin "$RC_BRANCH"
-          echo "rc_branch=$RC_BRANCH" >> $GITHUB_OUTPUT
+          git push origin --delete "${{ steps.release_info.outputs.rc_tag }}"
+          echo "branch=$RC_BRANCH" >> $GITHUB_OUTPUT
 
   ws_tests:
     name: Run Workspace Tests
