@@ -81,7 +81,7 @@ pub unsafe extern "C" fn free_parse_result(result: *mut ParseResult) {
     unsafe {
         let result = Box::from_raw(result);
         if result.error.code != ErrorCode::Ok {
-            let details = CString::from_raw(result.error.details as *mut i8);
+            let details = CString::from_raw(result.error.details as *mut std::ffi::c_char);
             drop(details);
         }
     }

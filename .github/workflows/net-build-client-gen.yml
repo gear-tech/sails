@@ -41,19 +41,6 @@ jobs:
           retention-days: 1
           overwrite: true
   
-  linux-arm64:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - run: rustup target add aarch64-unknown-linux-gnu
-      - run: cargo build -p sails-client-gen-dotnet --release --target aarch64-unknown-linux-gnu
-      - uses: actions/upload-artifact@v4
-        with:
-          name: linux-arm64
-          path: ./target/aarch64-unknown-linux-gnu/release/libsails_client_gen_dotnet.so
-          retention-days: 1
-          overwrite: true
-
   osx-x64:
     runs-on: macos-latest
     steps:
@@ -79,3 +66,31 @@ jobs:
           path: ./target/aarch64-apple-darwin/release/libsails_client_gen_dotnet.dylib
           retention-days: 1
           overwrite: true
+
+  build-nuget-package:
+    needs:
+      - win-x64
+      - linux-x64
+      - osx-x64
+      - osx-arm64
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download native libraries
+        uses: actions/download-artifact@v4
+        with:
+          path: native-libraries
+
+      - name: Build package
+        run: dotnet pack ./net/src/Sails.ClientGenerator/ -c Release /p:LibraryRoot=${{ github.workspace }}/native-libraries -p:Version=0.6.3 -o ./publish
+
+      - name: Upload NuGet artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: nuget-package
+          path: ./publish/*.nupkg
+          retention-days: 1
+          overwrite: true
+
