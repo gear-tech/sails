@@ -45,6 +45,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - run: rustup target add aarch64-unknown-linux-gnu
       - run: cargo build -p sails-client-gen-dotnet --release --target aarch64-unknown-linux-gnu
       - uses: actions/upload-artifact@v4
         with:
