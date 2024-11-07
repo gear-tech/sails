@@ -32,11 +32,11 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Free Disk Space
-        uses: ./.github/actions/free-disk-space
-
       - name: Checkout Code
         uses: actions/checkout@v4
+
+      - name: Free Disk Space
+        uses: ./.github/actions/free-disk-space
 
       - name: Install wasm-opt
         uses: ./.github/actions/install-wasm-utils
