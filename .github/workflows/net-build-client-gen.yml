@@ -42,14 +42,14 @@ jobs:
           overwrite: true
   
   linux-arm64:
-    runs-on: ubuntu-arm
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - run: cargo build -p sails-client-gen-dotnet --release
+      - run: cargo build -p sails-client-gen-dotnet --release --target aarch64-unknown-linux-gnu
       - uses: actions/upload-artifact@v4
         with:
           name: linux-arm64
-          path: ./target/release/libsails_client_gen_dotnet.so
+          path: ./target/aarch64-unknown-linux-gnu/release/libsails_client_gen_dotnet.so
           retention-days: 1
           overwrite: true
 
