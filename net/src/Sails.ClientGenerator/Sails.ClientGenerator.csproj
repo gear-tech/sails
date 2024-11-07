@@ -32,41 +32,38 @@
   </ItemGroup>
 
   <!-- local build -->  
-  <Target Name="PreBuild" BeforeTargets="PreBuildEvent">
+  <Target Name="PreBuild" BeforeTargets="PreBuildEvent" Condition="'$(LibraryRoot)' == ''">
     <Exec Command="cargo build -p sails-client-gen-dotnet --release" />
   </Target>
 
   <!-- local lib -->
   <ItemGroup>
-    <Content Include="../../../target/release/sails_client_gen_dotnet.dll" Condition="$([MSBuild]::IsOSPlatform('Windows')) and Exists('../../../target/release/sails_client_gen_dotnet.dll')">
+    <None Include="../../../target/release/sails_client_gen_dotnet.dll" Condition="$([MSBuild]::IsOSPlatform('Windows')) and Exists('../../../target/release/sails_client_gen_dotnet.dll')">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      <PackagePath>runtimes/win-x64/native/sails_client_gen_dotnet.dll</PackagePath>
-    </Content>
-    <Content Include="../../../target/release/libsails_client_gen_dotnet.so" Condition="$([MSBuild]::IsOSPlatform('Linux')) and Exists('../../../target/release/libsails_client_gen_dotnet.so')">
+    </None>
+    <None Include="../../../target/release/libsails_client_gen_dotnet.so" Condition="$([MSBuild]::IsOSPlatform('Linux')) and Exists('../../../target/release/libsails_client_gen_dotnet.so')">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-    <Content Include="../../../target/release/libsails_client_gen_dotnet.dylib" Condition="$([MSBuild]::IsOSPlatform('OSX')) and Exists('../../../target/release/libsails_client_gen_dotnet.dylib')">
+    </None>
+    <None Include="../../../target/release/libsails_client_gen_dotnet.dylib" Condition="$([MSBuild]::IsOSPlatform('OSX')) and Exists('../../../target/release/libsails_client_gen_dotnet.dylib')">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-  </ItemGroup>
+    </None>  
+</ItemGroup>
 
   <!-- for nuget publish -->
-  <Target Name="PackBuildOutputs" Condition="'$(LibraryRoot)' != ''">
-    <ItemGroup>
-      <Content Include="$(LibraryRoot)/win-x64/sails_client_gen_dotnet.dll">
-        <PackagePath>runtimes/win-x64/native/sails_client_gen_dotnet.dll</PackagePath>
-      </Content>
-      <Content Include="$(LibraryRoot)/linux-x64/libsails_client_gen_dotnet.so">
-        <PackagePath>runtimes/linux-x64/native/libsails_client_gen_dotnet.so</PackagePath>
-      </Content>
-      <Content Include="$(LibraryRoot)/osx-x64/libsails_client_gen_dotnet.dylib">
-        <PackagePath>runtimes/osx-x64/native/libsails_client_gen_dotnet.dylib</PackagePath>
-      </Content>
-      <Content Include="$(LibraryRoot)/osx-arm64/libsails_client_gen_dotnet.dylib">
-        <PackagePath>runtimes/osx-arm64/native/libsails_client_gen_dotnet.dylib</PackagePath>
-      </Content>
-    </ItemGroup>
-  </Target>
+  <ItemGroup Condition="'$(LibraryRoot)' != ''">
+    <Content Include="$(LibraryRoot)/win-x64/sails_client_gen_dotnet.dll">
+      <PackagePath>runtimes/win-x64/native/sails_client_gen_dotnet.dll</PackagePath>
+    </Content>
+    <Content Include="$(LibraryRoot)/linux-x64/libsails_client_gen_dotnet.so">
+      <PackagePath>runtimes/linux-x64/native/libsails_client_gen_dotnet.so</PackagePath>
+    </Content>
+    <Content Include="$(LibraryRoot)/osx-x64/libsails_client_gen_dotnet.dylib">
+      <PackagePath>runtimes/osx-x64/native/libsails_client_gen_dotnet.dylib</PackagePath>
+    </Content>
+    <Content Include="$(LibraryRoot)/osx-arm64/libsails_client_gen_dotnet.dylib">
+      <PackagePath>runtimes/osx-arm64/native/libsails_client_gen_dotnet.dylib</PackagePath>
+    </Content>
+  </ItemGroup>
   
   <!-- for nuget publish -->
   <Target Name="PackBuildOutputs" DependsOnTargets="SatelliteDllsProjectOutputGroup;DebugSymbolsProjectOutputGroup">
