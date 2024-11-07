@@ -10,7 +10,7 @@
     <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
     <NoWarn>$(NoWarn);NU5128</NoWarn>
     <Description>Code generator for Sails.Net.</Description>
-    <EnableNETAnalyzers>True</EnableNETAnalyzers>
+    <EnableNETAnalyzers>true</EnableNETAnalyzers>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
 
@@ -42,7 +42,7 @@
     <None Include="../../../target/release/libsails_client_gen_dotnet.so" Condition="$([MSBuild]::IsOSPlatform('Linux')) and Exists('../../../target/release/libsails_client_gen_dotnet.so')">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
-    <None Include="../../../target/release/libsails_client_gen_dotnet.dylib" Condition="$([MSBuild]::IsOSPlatform('macOS')) and Exists('../../../target/release/libsails_client_gen_dotnet.dylib')">
+    <None Include="../../../target/release/libsails_client_gen_dotnet.dylib" Condition="$([MSBuild]::IsOSPlatform('OSX')) and Exists('../../../target/release/libsails_client_gen_dotnet.dylib')">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
   </ItemGroup>
