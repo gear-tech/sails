@@ -5,7 +5,7 @@ on:
     branches: [master]
     paths:
       - '.cargo/**'
-      - '.github/workflows/rs-*.yml'
+      - '.github/workflows/rs-*.yml' # No biggie to trigger this on changes in rs-release.yml
       - 'examples/**'
       - 'rs/**'
       - 'templates/**'
@@ -15,7 +15,7 @@ on:
   pull_request:
     paths:
       - '.cargo/**'
-      - '.github/workflows/rs-*.yml'
+      - '.github/workflows/rs-*.yml' # No biggie to trigger this on changes in rs-release.yml
       - 'examples/**'
       - 'rs/**'
       - 'templates/**'
