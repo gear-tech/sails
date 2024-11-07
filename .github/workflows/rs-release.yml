@@ -1,3 +1,13 @@
+# This workflow is triggered by a tag that matches the pattern rs/v*-rc.
+# Essentially it does the following:
+#   - gathers release info including its version using created tag
+#   - applies version to the workspace and updates crates dependencies
+#   - runs all tests before going further
+#   - builds assets for the release: IDL Parser for WASM
+#   - publishes 'sails-*' crates to crates.io
+#   - amends contract template with the new version and runs tests against it
+#   - crates PR with the changes, release tag and draft release
+# Merging PR and pubslishing release is supposed to be done manually.
 name: '[rs] Release (Rust)'
 
 on:
