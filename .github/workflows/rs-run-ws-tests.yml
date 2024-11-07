@@ -18,26 +18,13 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Free Disk Space
-        uses: jlumbroso/free-disk-space@main
-        with:
-          # this might remove tools that are actually needed,
-          # if set to "true" but frees about 6 GB
-          tool-cache: false
-
-          # all of these default to true, but feel free to set to
-          # "false" if necessary for your workflow
-          android: true
-          dotnet: false
-          haskell: true
-          large-packages: false
-          docker-images: true
-          swap-storage: true
-
       - name: Checkout Code
         uses: actions/checkout@v4
         with:
           ref: ${{ inputs.sources_ref }}
+
+      - name: Free Disk Space
+        uses: ./.github/actions/free-disk-space
 
       - name: Install wasm-opt
         uses: ./.github/actions/install-wasm-utils
