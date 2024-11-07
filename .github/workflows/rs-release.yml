@@ -1,0 +1,246 @@
+# This workflow is triggered by a tag that matches the pattern rs/v*-rc.
+# Essentially it does the following:
+#   - gathers release info including its version using created tag
+#   - applies version to the workspace and updates crates dependencies
+#   - runs all tests before going further
+#   - builds assets for the release: IDL Parser for WASM
+#   - publishes 'sails-*' crates to crates.io
+#   - amends contract template with the new version and runs tests against it
+#   - crates PR with the changes, release tag and draft release
+# Merging PR and pubslishing release is supposed to be done manually.
+name: '[rs] Release (Rust)'
+
+on:
+  push:
+    tags:
+      - 'rs/v*-rc'
+
+env:
+  # see https://api.github.com/users/github-actions%5Bbot%5D
+  GITHUB_USER_NAME: github-actions[bot]
+  GITHUB_USER_EMAIL: 41898282+github-actions[bot]@users.noreply.github.com
+  # crates in order of dependency (topological order), first the ones that are not dependent on any other
+  SAILS_CRATES: |
+    sails-idl-meta
+    sails-idl-parser
+    sails-idl-gen
+    sails-client-gen
+    sails-macros-core
+    sails-macros
+    sails-rs
+    sails-cli
+
+jobs:
+  prepare:
+    name: Prepare Release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    defaults:
+      run:
+        shell: bash
+    outputs:
+      rc_branch: ${{ steps.release_branch.outputs.rc_branch }}
+      r_version: ${{ steps.release_info.outputs.version }}
+      r_tag: rs/v${{ steps.release_info.outputs.version }}
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract Release Info
+        id: release_info
+        run: |
+          RELEASE_TAG=${GITHUB_REF#refs/tags/}
+          VERSION=${RELEASE_TAG#rs/v}
+          VERSION="${VERSION%-rc}"
+          if [[ ! $VERSION =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "'$VERSION' is not a valid semver version"
+            exit 1
+          fi
+          echo "Version: $VERSION"
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Set Workspace Version
+        run: |
+          sed -i "s/^version = \".*\"/version = \"${{ steps.release_info.outputs.version }}\"/" Cargo.toml
+
+      - name: Update Workspace Dependencies
+        run: |
+          cargo update
+
+      - name: Create Release Branch
+        id: release_branch
+        run: |
+          RC_BRANCH="rc/rs/v${{ steps.release_info.outputs.version }}"
+          git config --global user.name "$GITHUB_USER_NAME"
+          git config --global user.email "$GITHUB_USER_EMAIL"
+          git checkout -b "$RC_BRANCH"
+          git add Cargo.toml
+          git add Cargo.lock
+          git commit -m "build(rs): update version to v${{ steps.release_info.outputs.version }}"
+          git push origin "$RC_BRANCH"
+          echo "rc_branch=$RC_BRANCH" >> $GITHUB_OUTPUT
+
+  ws_tests:
+    name: Run Workspace Tests
+    needs:
+      - prepare
+    uses: ./.github/workflows/rs-run-ws-tests.yml
+    with:
+      sources_ref: ${{ needs.prepare.outputs.rc_branch }}
+      gear_node_version: 1.6.0
+
+  cli_tests:
+    name: Run CLI Tests
+    needs:
+      - prepare
+    uses: ./.github/workflows/rs-run-cli-tests.yml
+    with:
+      sources_ref: ${{ needs.prepare.outputs.rc_branch }}
+
+  assets:
+    name: Build Assets
+    runs-on: ubuntu-latest
+    needs:
+      - prepare
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+      - name: Checkout Code from Release Branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.prepare.outputs.rc_branch }}
+
+      - name: Install wasm-opt
+        uses: ./.github/actions/install-wasm-utils
+
+      - name: Build IDL Parser for WASM
+        run: |
+          cargo build -p sails-idl-parser --target wasm32-unknown-unknown --release
+          mkdir -p ./assets/sails_idl_parser
+          wasm-opt -O4 -o ./assets/sails_idl_parser/sails_idl_parser.wasm ./target/wasm32-unknown-unknown/release/sails_idl_parser.wasm
+
+      - name: Upload Assets
+        uses: actions/upload-artifact@v4
+        with:
+          name: sails-assets
+          path: ./assets/
+
+  publish:
+    name: Publish Crates
+    runs-on: ubuntu-latest
+    needs:
+      - prepare
+      - ws_tests
+      - cli_tests
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+      - name: Checkout Code from Release Branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.prepare.outputs.rc_branch }}
+
+      - name: Publish Crates
+        run: |
+          VERSION=${{ needs.prepare.outputs.r_version }}
+          for SAILS_CRATE in $SAILS_CRATES; do
+            sed -i "/^\s*${SAILS_CRATE} = {.*}/ s/}/, version = \"=${VERSION}\" }/" Cargo.toml
+          done
+          cargo login ${{ secrets.CRATES_IO_TOKEN }}
+          for SAILS_CRATE in $SAILS_CRATES; do
+            cargo publish -p $SAILS_CRATE
+          done
+          git checkout -- .
+
+      - name: Update Contract Template
+        run: |
+          VERSION=${{ needs.prepare.outputs.r_version }}
+          sed -i -E "s/(variable::set\(\"sails-rs-version\", \")([^\"]+)(\"\);)/\1$VERSION\3/" templates/set-vars.rhai
+          git config --global user.name "$GITHUB_USER_NAME"
+          git config --global user.email "$GITHUB_USER_EMAIL"
+          git add templates/set-vars.rhai
+          git commit -m "build(tmpl): update version to v${{ needs.prepare.outputs.r_version }} in contract template"
+          git push origin "${{ needs.prepare.outputs.rc_branch }}"
+
+  cli_tests_after_publish:
+    name: Run CLI Tests After Publish
+    needs:
+      - prepare
+      - publish
+    uses: ./.github/workflows/rs-run-cli-tests.yml
+    with:
+      sources_ref: ${{ needs.prepare.outputs.rc_branch }}
+
+  release:
+    name: Create Release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    needs:
+      - prepare
+      - cli_tests_after_publish
+      - assets
+    defaults:
+      run:
+        shell: bash
+    env:
+      R_NAME: Sails-RS v${{ needs.prepare.outputs.r_version }}
+
+    steps:
+      - name: Checkout Code from Release Branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.prepare.outputs.rc_branch }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Download Assets
+        uses: actions/download-artifact@v4
+        with:
+          name: sails-assets
+          path: ./assets
+
+      - name: Create Release Tag
+        run: |
+          R_TAG=${{ needs.prepare.outputs.r_tag }}
+          git config --global user.name "$GITHUB_USER_NAME"
+          git config --global user.email "$GITHUB_USER_EMAIL"
+          git tag -a "$R_TAG" -m "Release v${{ needs.prepare.outputs.r_version }}"
+          git push origin "$R_TAG"
+
+      - name: Install GitHub CLI
+        run: sudo apt-get install -y gh
+
+      - name: Create Sync PR
+        id: sync_pr
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | gh auth login --with-token
+          PR_URL=$(gh pr create \
+            --title "release: sync $R_NAME to master" \
+            --body "This PR was created by GitHub Actions" \
+            --base master \
+            --head ${{ needs.prepare.outputs.rc_branch }})
+          echo "url=$PR_URL" >> $GITHUB_OUTPUT
+
+      - name: Create Draft Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: ${{ env.R_NAME }}
+          tag_name: ${{ needs.prepare.outputs.r_tag }}
+          draft: true
+          body: |
+            :exclamation: This is a draft release.
+            :exclamation: Please write/generate change notes and publish the release.
+            :exclamation: Please also check this [PR](${{ steps.sync_pr.outputs.url }}) to sync the changes to master.
+          fail_on_unmatched_files: true
+          files: |
+            ./assets/sails_idl_parser/sails_idl_parser.wasm
+          token: ${{ secrets.GITHUB_TOKEN }}

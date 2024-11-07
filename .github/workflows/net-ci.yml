@@ -1,4 +1,4 @@
-name: CI (.Net)
+name: '[net] CI (.Net)'
 
 on:
   push:
@@ -17,6 +17,7 @@ on:
 
 jobs:
   check:
+    name: Check Code
     runs-on: ubuntu-latest
     defaults:
       run:
