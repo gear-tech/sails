@@ -17,6 +17,8 @@ public partial class SailsClientGenerator : IIncrementalGenerator
 
     private static unsafe void Generate(SourceProductionContext context, AdditionalText source)
     {
+        NativeMethods.LoadNativeLibrary();
+
         var idl = source.GetText()!.ToString();
         var idlBytes = Encoding.UTF8.GetBytes(idl);
 
@@ -32,7 +34,7 @@ public partial class SailsClientGenerator : IIncrementalGenerator
                 {
                     var str = new string((sbyte*)cstr);
                     var formatted = FormatCode(str);
-                    context.AddSource($"{name}.g.cs", SourceText.From(formatted, encoding: Encoding.UTF8));
+                    context.AddSource($"idl/{name}.g.cs", SourceText.From(formatted, encoding: Encoding.UTF8));
                 }
                 finally
                 {
