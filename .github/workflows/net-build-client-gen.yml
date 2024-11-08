@@ -83,8 +83,11 @@ jobs:
         with:
           path: native-libraries
 
-      - name: Build package
-        run: dotnet pack ./net/src/Sails.ClientGenerator/ -c Release /p:LibraryRoot=${{ github.workspace }}/native-libraries -p:Version=0.6.3 -o ./publish
+      - name: Build 
+        run: dotnet build ./net/src/Sails.ClientGenerator/ -c Release -p:Version=0.6.3-rc
+
+      - name: Pack
+        run: dotnet pack ./net/src/Sails.ClientGenerator/ -c Release --no-build -p:LibraryRoot=${{ github.workspace }}/native-libraries -p:Version=0.6.3-rc -o ./publish
 
       - name: Upload NuGet artifact
         uses: actions/upload-artifact@v4

@@ -26,7 +26,7 @@ impl<'a> CtorFactoryGenerator<'a> {
 
     pub(crate) fn finalize(self) -> Tokens {
         let class_name = format!("{}Factory", self.service_name);
-        let remoting = &csharp::import("global::Sails.Remoting.Abstractions", "IRemoting");
+        let remoting = &csharp::import("global::Sails.Remoting.Abstractions.Core", "IRemoting");
 
         quote! {
             public interface I$(&class_name)$['\r']
@@ -78,7 +78,7 @@ impl<'a> Visitor<'a> for CtorFactoryGenerator<'a> {
         };
 
         let activation = &csharp::import("global::Sails.Remoting.Abstractions", "IActivation");
-        let action = &csharp::import("global::Sails.Remoting.Abstractions", "RemotingAction");
+        let action = &csharp::import("global::Sails.Remoting", "RemotingAction");
 
         quote_in! { self.interface_tokens =>
             $activation $func_name_pascal($args_with_type);$['\r']

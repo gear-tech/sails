@@ -1,5 +1,7 @@
-﻿//HintName: demo.g.cs
+﻿//HintName: idl/demo.g.cs
+using global::Sails.Remoting;
 using global::Sails.Remoting.Abstractions;
+using global::Sails.Remoting.Abstractions.Core;
 using global::System;
 using global::System.Collections.Generic;
 

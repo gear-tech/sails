@@ -28,7 +28,7 @@ impl<'a> ServiceClientGenerator<'a> {
 
     pub(crate) fn finalize(self) -> Tokens {
         let name = &self.service_name.to_case(Case::Pascal);
-        let remoting = &csharp::import("global::Sails.Remoting.Abstractions", "IRemoting");
+        let remoting = &csharp::import("global::Sails.Remoting.Abstractions.Core", "IRemoting");
 
         quote! {
             public interface I$name$['\r']
@@ -70,7 +70,7 @@ impl<'a> Visitor<'a> for ServiceClientGenerator<'a> {
         let args_with_type = &self.type_generator.fn_params_with_types(func.params());
         let func_return_type = &self.type_generator.generate_type_decl(func.output());
 
-        let action = &csharp::import("global::Sails.Remoting.Abstractions", "RemotingAction");
+        let action = &csharp::import("global::Sails.Remoting", "RemotingAction");
 
         quote_in! { self.interface_tokens =>
             $return_type<$func_return_type> $func_name_pascal($args_with_type);$['\r']

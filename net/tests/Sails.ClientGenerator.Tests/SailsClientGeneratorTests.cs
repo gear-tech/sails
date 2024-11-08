@@ -10,7 +10,6 @@ public class SailsClientGeneratorTests
     [ModuleInitializer]
     internal static void Init() => VerifySourceGenerators.Initialize();
 
-
     [Fact]
     public Task Generate_DemoIdl() => Verify("idl/demo.idl");
 
@@ -20,7 +19,7 @@ public class SailsClientGeneratorTests
         var compilation = CSharpCompilation.Create(assemblyName: "Tests");
 
         var additionalFiles = fileNames
-            .Select(x => (file: x, content: File.ReadAllText(@$"./{x}")))
+            .Select(x => (file: x, content: File.ReadAllText($"./{x}")))
             .Select(x => new InMemoryAdditionalText(x.file, x.content))
             .ToImmutableArray();
 
