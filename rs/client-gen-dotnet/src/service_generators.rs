@@ -5,8 +5,6 @@ use genco::prelude::*;
 use sails_idl_parser::{ast::visitor, ast::visitor::Visitor, ast::*};
 
 const BASE_TUPLE_RUST: &str = "global::Substrate.NetApi.Model.Types.Base.BaseTupleRust";
-const IQUERY: &str = "global::Sails.Remoting.Abstractions.IQuery";
-const ICALL: &str = "global::Sails.Remoting.Abstractions.ICall";
 
 /// Generates a client that implements service trait
 pub(crate) struct ServiceClientGenerator<'a> {
@@ -60,7 +58,6 @@ impl<'a> Visitor<'a> for ServiceClientGenerator<'a> {
 
     fn visit_service_func(&mut self, func: &'a ServiceFunc) {
         let func_name_pascal = &func.name().to_case(Case::Pascal);
-        let return_type = if func.is_query() { IQUERY } else { ICALL };
 
         let service_route_bytes = path_bytes(self.service_name.as_str()).0;
         let func_route_bytes = path_bytes(func.name()).0;
@@ -71,6 +68,9 @@ impl<'a> Visitor<'a> for ServiceClientGenerator<'a> {
         let func_return_type = &self.type_generator.generate_type_decl(func.output());
 
         let action = &csharp::import("global::Sails.Remoting", "RemotingAction");
+        let call = &csharp::import("global::Sails.Remoting.Abstractions", "ICall");
+        let query = &csharp::import("global::Sails.Remoting.Abstractions", "IQuery");
+        let return_type = if func.is_query() { query } else { call };
 
         quote_in! { self.interface_tokens =>
             $return_type<$func_return_type> $func_name_pascal($args_with_type);$['\r']

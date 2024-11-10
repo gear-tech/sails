@@ -1,5 +1,8 @@
-#pragma warning disable RS1035
+#pragma warning disable RS1035 // Do not use APIs banned for analyzers
+
 using System.Reflection;
+using System.Runtime.InteropServices;
+using Sails.ClientGenerator.Loader;
 
 namespace Sails.ClientGenerator;
 
@@ -11,76 +14,68 @@ internal static unsafe partial class NativeMethods
         var tempDirectory = Path.Combine(Path.GetTempPath(), __DllName);
         Directory.CreateDirectory(tempDirectory);
 
-        var nativeLibraryPath = Path.Combine(tempDirectory, __DllName + ".dll");
+        var resource = GetResourceName(__DllName);
+        var nativeLibraryPath = Path.Combine(tempDirectory, __DllName);
         // Extract the DLL only if it doesn't already exist
         if (!File.Exists(nativeLibraryPath))
         {
-            ExtractResourceToFile(__DllName + ".dll", nativeLibraryPath);
+            ExtractResourceToFile(resource, nativeLibraryPath);
+        }
+        var ret = LibraryLoader.GetPlatformDefaultLoader().LoadNativeLibraryByPath(nativeLibraryPath);
+        if (ret == IntPtr.Zero)
+        {
+            throw new FileNotFoundException($"Could not find or load the native library: {nativeLibraryPath}");
+        }
+        return ret;
+    }
+
+    private static string GetResourceName(string dllName)
+    {
+        string platform;
+        string extension;
+
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+        {
+            platform = "win-";
+            extension = ".dll";
+        }
+        else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+        {
+            platform = "osx-";
+            extension = ".dylib";
+        }
+        else
+        {
+            platform = "linux-";
+            extension = ".so";
         }
 
-        //#if DEBUG
-        //            var combinedPath = Path.Combine(AppContext.BaseDirectory, __DllName);
-        //            if (File.Exists(combinedPath) || File.Exists(combinedPath + ".dll"))
-        //            {
-        //                return LibraryLoader.GetPlatformDefaultLoader().LoadNativeLibrary(__DllName);
-        //            }
-        //#endif
-
-        //    var path = "runtimes/";
-        //    var extension = "";
-
-        //    if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-        //    {
-        //        path += "win-";
-        //        extension = ".dll";
-        //    }
-        //    else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
-        //    {
-        //        path += "osx-";
-        //        extension = ".dylib";
-        //    }
-        //    else
-        //    {
-        //        path += "linux-";
-        //        extension = ".so";
-        //    }
-
-        //    if (RuntimeInformation.OSArchitecture == Architecture.X86)
-        //    {
-        //        path += "x86";
-        //    }
-        //    else if (RuntimeInformation.OSArchitecture == Architecture.X64)
-        //    {
-        //        path += "x64";
-        //    }
-        //    else if (RuntimeInformation.OSArchitecture == Architecture.Arm64)
-        //    {
-        //        path += "arm64";
-        //    }
-
-        //    path += "/native/" + __DllName + extension;
-
-        //    return LibraryLoader.GetPlatformDefaultLoader().LoadNativeLibrary(__DllName);
-        //}
-        return LibraryLoader.GetPlatformDefaultLoader().LoadNativeLibrary(__DllName, new TempPathResolver(nativeLibraryPath));
-        //return IntPtr.Zero;
+        if (RuntimeInformation.OSArchitecture == Architecture.X86)
+        {
+            platform += "x86";
+        }
+        else if (RuntimeInformation.OSArchitecture == Architecture.X64)
+        {
+            platform += "x64";
+        }
+        else if (RuntimeInformation.OSArchitecture == Architecture.Arm64)
+        {
+            platform += "arm64";
+        }
+        return $"{platform}.{dllName}{extension}";
     }
+
+    internal static void FreeNativeLibrary(IntPtr handle) => LibraryLoader.GetPlatformDefaultLoader().FreeNativeLibrary(handle);
 
     private static void ExtractResourceToFile(string resourceName, string filePath)
     {
         var assembly = Assembly.GetExecutingAssembly();
-        var resourceFullName = $"{assembly.GetName().Name}.{resourceName}";
-
-        using (var resourceStream = assembly.GetManifestResourceStream(resourceFullName))
+        using var resourceStream = assembly.GetManifestResourceStream(resourceName);
+        if (resourceStream == null)
         {
-            if (resourceStream == null)
-            {
-                throw new Exception($"Resource '{resourceFullName}' not found in assembly.");
-            }
-            using (var fileStream = new FileStream(filePath, FileMode.Create, FileAccess.Write))
-            {
-                resourceStream.CopyTo(fileStream);
-            }
+            throw new Exception($"Resource '{resourceName}' not found in assembly.");
         }
+        using var fileStream = new FileStream(filePath, FileMode.Create, FileAccess.Write);
+        resourceStream.CopyTo(fileStream);
     }
 }

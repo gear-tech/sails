@@ -17,30 +17,36 @@ public partial class SailsClientGenerator : IIncrementalGenerator
 
     private static unsafe void Generate(SourceProductionContext context, AdditionalText source)
     {
-        NativeMethods.LoadNativeLibrary();
-
-        var idl = source.GetText()!.ToString();
-        var idlBytes = Encoding.UTF8.GetBytes(idl);
-
-        var name = Path.GetFileNameWithoutExtension(source.Path);
-        var nameBytes = Encoding.UTF8.GetBytes(name);
-
-        fixed (byte* pIdl = idlBytes)
+        var handle = NativeMethods.LoadNativeLibrary();
+        try
         {
-            fixed (byte* pName = nameBytes)
+            var idl = source.GetText()!.ToString();
+            var idlBytes = Encoding.UTF8.GetBytes(idl);
+
+            var name = Path.GetFileNameWithoutExtension(source.Path);
+            var nameBytes = Encoding.UTF8.GetBytes(name);
+
+            fixed (byte* pIdl = idlBytes)
             {
-                var cstr = NativeMethods.generate_dotnet_client(pIdl, idlBytes.Length, pName, nameBytes.Length);
-                try
+                fixed (byte* pName = nameBytes)
                 {
-                    var str = new string((sbyte*)cstr);
-                    var formatted = FormatCode(str);
-                    context.AddSource($"idl/{name}.g.cs", SourceText.From(formatted, encoding: Encoding.UTF8));
-                }
-                finally
-                {
-                    NativeMethods.free_c_string(cstr);
+                    var cstr = NativeMethods.generate_dotnet_client(pIdl, idlBytes.Length, pName, nameBytes.Length);
+                    try
+                    {
+                        var str = new string((sbyte*)cstr);
+                        var formatted = FormatCode(str);
+                        context.AddSource($"{name}.g.cs", SourceText.From(formatted, encoding: Encoding.UTF8));
+                    }
+                    finally
+                    {
+                        NativeMethods.free_c_string(cstr);
+                    }
                 }
             }
+        }
+        finally
+        {
+            NativeMethods.FreeNativeLibrary(handle);
         }
     }
 

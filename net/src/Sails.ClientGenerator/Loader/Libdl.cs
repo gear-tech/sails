@@ -2,7 +2,7 @@
 
 using System.Runtime.InteropServices;
 
-namespace Sails.ClientGenerator;
+namespace Sails.ClientGenerator.Loader;
 
 internal static class Libdl
 {
