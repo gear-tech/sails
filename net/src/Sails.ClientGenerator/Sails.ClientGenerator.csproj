@@ -22,15 +22,15 @@
 
   <!-- local build -->  
   <Target Name="PreBuild" BeforeTargets="PreBuildEvent" Condition="'$(LibraryRoot)' == ''">
-    <Exec Command="cargo build -p sails-client-gen-dotnet --release" />
+    <Exec Command="cargo build --manifest-path ../../rs/Cargo.toml --release" />
   </Target>
 
   <!-- local lib -->
   <ItemGroup Condition="'$(LibraryRoot)' == ''">
-    <EmbeddedResource Include="../../../target/release/sails_client_gen_dotnet.dll" LogicalName="win-x64.sails_client_gen_dotnet.dll" Condition="$([MSBuild]::IsOSPlatform('Windows')) and Exists('../../../target/release/sails_client_gen_dotnet.dll')" />
-    <EmbeddedResource Include="../../../target/release/sails_client_gen_dotnet.so" LogicalName="linux-x64.sails_client_gen_dotnet.so" Condition="$([MSBuild]::IsOSPlatform('Linux')) and $([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture) == 'X64' and Exists('../../../target/release/sails_client_gen_dotnet.so')" />
-    <EmbeddedResource Include="../../../target/release/libsails_client_gen_dotnet.dylib" LogicalName="osx-x64.sails_client_gen_dotnet.dylib" Condition="$([MSBuild]::IsOSPlatform('OSX')) and $([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture) == 'X64' and Exists('../../../target/release/libsails_client_gen_dotnet.dylib')" />
-    <EmbeddedResource Include="../../../target/release/libsails_client_gen_dotnet.dylib" LogicalName="osx-arm64.sails_client_gen_dotnet.dylib" Condition="$([MSBuild]::IsOSPlatform('OSX')) and $([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture) == 'Arm64' and Exists('../../../target/release/libsails_client_gen_dotnet.dylib')" />
+    <EmbeddedResource Include="../../rs/target/release/sails_client_gen_dotnet.dll" LogicalName="win-x64.sails_client_gen_dotnet.dll" Condition="$([MSBuild]::IsOSPlatform('Windows')) and Exists('../../../target/release/sails_client_gen_dotnet.dll')" />
+    <EmbeddedResource Include="../../rs/target/release/sails_client_gen_dotnet.so" LogicalName="linux-x64.sails_client_gen_dotnet.so" Condition="$([MSBuild]::IsOSPlatform('Linux')) and $([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture) == 'X64' and Exists('../../../target/release/sails_client_gen_dotnet.so')" />
+    <EmbeddedResource Include="../../rs/target/release/libsails_client_gen_dotnet.dylib" LogicalName="osx-x64.sails_client_gen_dotnet.dylib" Condition="$([MSBuild]::IsOSPlatform('OSX')) and $([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture) == 'X64' and Exists('../../../target/release/libsails_client_gen_dotnet.dylib')" />
+    <EmbeddedResource Include="../../rs/target/release/libsails_client_gen_dotnet.dylib" LogicalName="osx-arm64.sails_client_gen_dotnet.dylib" Condition="$([MSBuild]::IsOSPlatform('OSX')) and $([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture) == 'Arm64' and Exists('../../../target/release/libsails_client_gen_dotnet.dylib')" />
 </ItemGroup>
 
   <!--for nuget publish-->
