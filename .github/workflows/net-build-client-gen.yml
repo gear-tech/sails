@@ -6,13 +6,13 @@ on:
       - master
     paths:
       - '.github/workflows/net-build-client-gen.yml'
-      - 'rs/client-gen-dotnet/**'
+      - 'net/rs/**'
       - 'rs/idl-parser/**'
 
   pull_request:
     paths:
       - '.github/workflows/net-build-client-gen.yml'
-      - 'rs/client-gen-dotnet/**'
+      - 'net/rs/**'
       - 'rs/idl-parser/**'
 
 jobs:
@@ -21,11 +21,11 @@ jobs:
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
-      - run: cargo build -p sails-client-gen-dotnet --release
+      - run: cargo build --manifest-path net/rs/Cargo.toml --release
       - uses: actions/upload-artifact@v4
         with:
           name: win-x64
-          path: ./target/release/sails_client_gen_dotnet.dll
+          path: ./net/rs/target/release/sails_client_gen_dotnet.dll
           retention-days: 1
           overwrite: true
 
@@ -33,11 +33,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - run: cargo build -p sails-client-gen-dotnet --release
+      - run: cargo build --manifest-path net/rs/Cargo.toml --release
       - uses: actions/upload-artifact@v4
         with:
           name: linux-x64
-          path: ./target/release/libsails_client_gen_dotnet.so
+          path: ./net/rs/target/release/libsails_client_gen_dotnet.so
           retention-days: 1
           overwrite: true
   
@@ -46,11 +46,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: rustup target add x86_64-apple-darwin
-      - run: cargo build -p sails-client-gen-dotnet --release --target x86_64-apple-darwin
+      - run: cargo build --manifest-path net/rs/Cargo.toml --release --target x86_64-apple-darwin
       - uses: actions/upload-artifact@v4
         with:
           name: osx-x64
-          path: ./target/x86_64-apple-darwin/release/libsails_client_gen_dotnet.dylib
+          path: ./net/rs/target/x86_64-apple-darwin/release/libsails_client_gen_dotnet.dylib
           retention-days: 1
           overwrite: true
 
@@ -59,11 +59,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: rustup target add aarch64-apple-darwin
-      - run: cargo build -p sails-client-gen-dotnet --release --target aarch64-apple-darwin
+      - run: cargo build --manifest-path net/rs/Cargo.toml --release --target aarch64-apple-darwin
       - uses: actions/upload-artifact@v4
         with:
           name: osx-arm64
-          path: ./target/aarch64-apple-darwin/release/libsails_client_gen_dotnet.dylib
+          path: ./net/rs/target/aarch64-apple-darwin/release/libsails_client_gen_dotnet.dylib
           retention-days: 1
           overwrite: true
 
