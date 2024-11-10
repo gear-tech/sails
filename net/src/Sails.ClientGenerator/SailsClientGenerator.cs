@@ -10,20 +10,21 @@ public partial class SailsClientGenerator : IIncrementalGenerator
 {
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
-        var source = context.AdditionalTextsProvider.Where(static file => file.Path.EndsWith(".idl"));
+        var source = context.AdditionalTextsProvider
+            .Where(static file => file.Path.EndsWith(".idl"))
+            .Select(static (text, cancellationToken) =>
+                GenerateCode(Path.GetFileNameWithoutExtension(text.Path), text.GetText(cancellationToken)!.ToString())
+            );
 
-        context.RegisterSourceOutput(source, Generate);
+        context.RegisterSourceOutput(source, AddSource);
     }
 
-    private static unsafe void Generate(SourceProductionContext context, AdditionalText source)
+    private static unsafe (string Name, string Code) GenerateCode(string name, string source)
     {
         var handle = NativeMethods.LoadNativeLibrary();
         try
         {
-            var idl = source.GetText()!.ToString();
-            var idlBytes = Encoding.UTF8.GetBytes(idl);
-
-            var name = Path.GetFileNameWithoutExtension(source.Path);
+            var idlBytes = Encoding.UTF8.GetBytes(source);
             var nameBytes = Encoding.UTF8.GetBytes(name);
 
             fixed (byte* pIdl = idlBytes)
@@ -34,8 +35,7 @@ public partial class SailsClientGenerator : IIncrementalGenerator
                     try
                     {
                         var str = new string((sbyte*)cstr);
-                        var formatted = FormatCode(str);
-                        context.AddSource($"{name}.g.cs", SourceText.From(formatted, encoding: Encoding.UTF8));
+                        return (name, FormatCode(str));
                     }
                     finally
                     {
@@ -48,6 +48,11 @@ public partial class SailsClientGenerator : IIncrementalGenerator
         {
             NativeMethods.FreeNativeLibrary(handle);
         }
+    }
+
+    private static void AddSource(SourceProductionContext context, (string Name, string Code) source)
+    {
+        context.AddSource($"{source.Name}.g.cs", SourceText.From(source.Code, encoding: Encoding.UTF8));
     }
 
     public static string FormatCode(string code, CancellationToken cancelToken = default)
