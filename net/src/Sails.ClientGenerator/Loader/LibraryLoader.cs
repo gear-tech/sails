@@ -1,10 +1,8 @@
-﻿#pragma warning disable RCS0056 // A line is too long
-#pragma warning disable RS1035 // Do not use APIs banned for analyzers
+﻿#pragma warning disable RS1035 // Do not use APIs banned for analyzers
 
-using System.Reflection;
 using System.Runtime.InteropServices;
 
-namespace Sails.ClientGenerator;
+namespace Sails.ClientGenerator.Loader;
 
 /// <summary>
 /// Exposes functionality for loading native libraries and function pointers.
@@ -14,103 +12,24 @@ public abstract class LibraryLoader
     /// <summary>
     /// Loads a native library by name and returns an operating system handle to it.
     /// </summary>
-    /// <param name="name">The name of the library to open.</param>
-    /// <returns>The operating system handle for the shared library.</returns>
-    public IntPtr LoadNativeLibrary(string name)
-    {
-        return this.LoadNativeLibrary(name, PathResolver.Default);
-    }
-
-    /// <summary>
-    /// Loads a native library by name and returns an operating system handle to it.
-    /// </summary>
-    /// <param name="names">An ordered list of names. Each name is tried in turn, until the library is successfully loaded.
-    /// </param>
-    /// <returns>The operating system handle for the shared library.</returns>
-    public IntPtr LoadNativeLibrary(string[] names)
-    {
-        return this.LoadNativeLibrary(names, PathResolver.Default);
-    }
-
-    /// <summary>
-    /// Loads a native library by name and returns an operating system handle to it.
-    /// </summary>
-    /// <param name="name">The name of the library to open.</param>
-    /// <param name="pathResolver">The path resolver to use.</param>
-    /// <returns>The operating system handle for the shared library.</returns>
-    public IntPtr LoadNativeLibrary(string name, PathResolver pathResolver)
-    {
-        if (string.IsNullOrEmpty(name))
-        {
-            throw new ArgumentException("Parameter must not be null or empty.", nameof(name));
-        }
-
-        var ret = this.LoadWithResolver(name, pathResolver);
-
-        if (ret == IntPtr.Zero)
-        {
-            throw new FileNotFoundException("Could not find or load the native library: " + name + ", Location: " + Assembly.GetExecutingAssembly().Location);
-        }
-
-        return ret;
-    }
-
-    /// <summary>
-    /// Loads a native library by name and returns an operating system handle to it.
-    /// </summary>
-    /// <param name="names">An ordered list of names. Each name is tried in turn, until the library is successfully loaded.
-    /// </param>
-    /// <param name="pathResolver">The path resolver to use.</param>
+    /// <param name="names">An ordered list of names. Each name is tried in turn, until the library is successfully loaded. </param>
     /// <returns>The operating system handle for the shared library.</returns>
     /// <exception cref="FileNotFoundException"></exception>
     /// <exception cref="ArgumentException"></exception>
-    public IntPtr LoadNativeLibrary(string[] names, PathResolver pathResolver)
+    public IntPtr LoadNativeLibraryByPath(params string[] names)
     {
-        if (names == null || names.Length == 0)
+        foreach (var loadTarget in names!)
         {
-            throw new ArgumentException("Parameter must not be null or empty.", nameof(names));
-        }
-
-        var ret = IntPtr.Zero;
-        foreach (var name in names)
-        {
-            ret = this.LoadWithResolver(name, pathResolver);
-            if (ret != IntPtr.Zero)
+            if (File.Exists(loadTarget))
             {
-                break;
-            }
-        }
-
-        if (ret == IntPtr.Zero)
-        {
-            throw new FileNotFoundException($"Could not find or load the native library from any name: [ {string.Join(", ", names)} ]");
-        }
-
-        return ret;
-    }
-
-    private IntPtr LoadWithResolver(string name, PathResolver pathResolver)
-    {
-        if (Path.IsPathRooted(name))
-        {
-            return this.CoreLoadNativeLibrary(name);
-        }
-        else
-        {
-            foreach (var loadTarget in pathResolver.EnumeratePossibleLibraryLoadTargets(name))
-            {
-                if (!Path.IsPathRooted(loadTarget) || File.Exists(loadTarget))
+                var ret = this.CoreLoadNativeLibrary(loadTarget);
+                if (ret != IntPtr.Zero)
                 {
-                    var ret = this.CoreLoadNativeLibrary(loadTarget);
-                    if (ret != IntPtr.Zero)
-                    {
-                        return ret;
-                    }
+                    return ret;
                 }
             }
-
-            return IntPtr.Zero;
         }
+        return IntPtr.Zero;
     }
 
     /// <summary>

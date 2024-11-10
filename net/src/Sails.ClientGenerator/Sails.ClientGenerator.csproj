@@ -20,18 +20,6 @@
     <PackageReference Include="PolySharp" />
   </ItemGroup>
 
-  <!-- for debug perpose, if exists in debug, copy it -->
-  <ItemGroup Condition="'$(Configuration)' == 'Debug' and Exists('../../../target/debug/sails_client_gen_dotnet.dll')">
-    <None Include="../../../target/debug/sails_client_gen_dotnet.dll">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-      <Link>sails_client_gen_dotnet.dll</Link>
-    </None>
-    <None Include="../../../target/debug/sails_client_gen_dotnet.pdb">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-      <Link>sails_client_gen_dotnet.pdb</Link>
-    </None>
-  </ItemGroup>
-
   <!-- local build -->  
   <Target Name="PreBuild" BeforeTargets="PreBuildEvent" Condition="'$(LibraryRoot)' == ''">
     <Exec Command="cargo build -p sails-client-gen-dotnet --release" />
@@ -39,40 +27,26 @@
 
   <!-- local lib -->
   <ItemGroup Condition="'$(LibraryRoot)' == ''">
-    <EmbeddedResource Include="../../../target/release/sails_client_gen_dotnet.dll" Condition="$([MSBuild]::IsOSPlatform('Windows')) and Exists('../../../target/release/sails_client_gen_dotnet.dll')">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      <PackagePath>sails_client_gen_dotnet.dll</PackagePath>
-    </EmbeddedResource>
-    <None Include="../../../target/release/libsails_client_gen_dotnet.so" Condition="$([MSBuild]::IsOSPlatform('Linux')) and Exists('../../../target/release/libsails_client_gen_dotnet.so')">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      <PackagePath>runtimes/linux-x64/native/libsails_client_gen_dotnet.so</PackagePath>
-    </None>
-    <None Include="../../../target/release/libsails_client_gen_dotnet.dylib" Condition="$([MSBuild]::IsOSPlatform('OSX')) and Exists('../../../target/release/libsails_client_gen_dotnet.dylib')">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>  
+    <EmbeddedResource Include="../../../target/release/sails_client_gen_dotnet.dll" LogicalName="win-x64.sails_client_gen_dotnet.dll" Condition="$([MSBuild]::IsOSPlatform('Windows')) and Exists('../../../target/release/sails_client_gen_dotnet.dll')" />
+    <EmbeddedResource Include="../../../target/release/sails_client_gen_dotnet.so" LogicalName="linux-x64.sails_client_gen_dotnet.so" Condition="$([MSBuild]::IsOSPlatform('Linux')) and $([MSBuild]::OSArchitecture('Arm64')) and Exists('../../../target/release/sails_client_gen_dotnet.so')" />
+    <EmbeddedResource Include="../../../target/release/libsails_client_gen_dotnet.dylib" LogicalName="osx-x64.sails_client_gen_dotnet.dylib" Condition="$([MSBuild]::IsOSPlatform('OSX')) and $([MSBuild]::OSArchitecture('X64')) and Exists('../../../target/release/libsails_client_gen_dotnet.dylib')" />
+    <EmbeddedResource Include="../../../target/release/libsails_client_gen_dotnet.dylib" LogicalName="osx-arm64.sails_client_gen_dotnet.dylib" Condition="$([MSBuild]::IsOSPlatform('OSX')) and $([MSBuild]::OSArchitecture('Arm64')) and Exists('../../../target/release/libsails_client_gen_dotnet.dylib')" />
 </ItemGroup>
 
-  <Target Name="PackBuildOutputs">
-    <!-- for nuget publish -->
+  <PropertyGroup>
+    <TargetsForTfmSpecificContentInPackage>$(TargetsForTfmSpecificContentInPackage);EmbedLibraries</TargetsForTfmSpecificContentInPackage>
+  </PropertyGroup>
+
+  <!--for nuget publish-->
+  <Target Name="EmbedLibraries">     
     <ItemGroup Condition="'$(LibraryRoot)' != ''">
-      <Content Include="$(LibraryRoot)/win-x64/sails_client_gen_dotnet.dll">
-        <PackagePath>runtimes/win-x64/native/sails_client_gen_dotnet.dll</PackagePath>
-      </Content>
-      <Content Include="$(LibraryRoot)/linux-x64/libsails_client_gen_dotnet.so">
-        <PackagePath>runtimes/linux-x64/native/libsails_client_gen_dotnet.so</PackagePath>
-      </Content>
-      <Content Include="$(LibraryRoot)/osx-x64/libsails_client_gen_dotnet.dylib">
-        <PackagePath>runtimes/osx-x64/native/libsails_client_gen_dotnet.dylib</PackagePath>
-      </Content>
-      <Content Include="$(LibraryRoot)/osx-arm64/libsails_client_gen_dotnet.dylib">
-        <PackagePath>runtimes/osx-arm64/native/libsails_client_gen_dotnet.dylib</PackagePath>
-      </Content>
+      <EmbeddedResource Include="$(LibraryRoot)/win-x64/sails_client_gen_dotnet.dll" LogicalName="win-x64.sails_client_gen_dotnet.dll" />
+      <EmbeddedResource Include="$(LibraryRoot)/linux-x64/libsails_client_gen_dotnet.so" LogicalName="linux-x64.sails_client_gen_dotnet.so" />
+      <EmbeddedResource Include="$(LibraryRoot)/osx-x64/libsails_client_gen_dotnet.dylib" LogicalName="osx-x64.libsails_client_gen_dotnet.dylib" />
+      <EmbeddedResource Include="$(LibraryRoot)/osx-arm64/libsails_client_gen_dotnet.dylib" LogicalName="osx-arm64.libsails_client_gen_dotnet.dylib" />
     </ItemGroup>
   </Target>
 
-  <PropertyGroup>
-    <TargetsForTfmSpecificContentInPackage>$(TargetsForTfmSpecificContentInPackage);PackBuildOutputs</TargetsForTfmSpecificContentInPackage>
-  </PropertyGroup>
   
   <!-- ensures the library will be packaged as a source generator when we use `dotnet pack` -->
   <ItemGroup>
