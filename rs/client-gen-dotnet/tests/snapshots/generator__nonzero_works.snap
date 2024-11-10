@@ -2,7 +2,9 @@
 source: rs/client-gen-dotnet/tests/generator.rs
 expression: "gen(idl, \"NonZeroParams\")"
 ---
+using global::Sails.Remoting;
 using global::Sails.Remoting.Abstractions;
+using global::Sails.Remoting.Abstractions.Core;
 using global::System;
 using global::System.Collections.Generic;
 
@@ -11,7 +13,7 @@ using global::System.Collections.Generic;
 namespace NonZeroParams.Client;
 
 public interface INonZeroParams
- { global::Sails.Remoting.Abstractions.ICall<global::Substrate.Gear.Client.Model.Types.Primitive.NonZeroU64> DoThis(global::Substrate.Gear.Client.Model.Types.Primitive.NonZeroU256 p1, MyParam p2);
+ { ICall<global::Substrate.Gear.Client.Model.Types.Primitive.NonZeroU64> DoThis(global::Substrate.Gear.Client.Model.Types.Primitive.NonZeroU256 p1, MyParam p2);
  }
 
  public partial class NonZeroParams : INonZeroParams
@@ -20,7 +22,7 @@ public interface INonZeroParams
  public NonZeroParams(IRemoting remoting) { this.remoting = remoting; }
 
 /// <inheritdoc/>
- public global::Sails.Remoting.Abstractions.ICall<global::Substrate.Gear.Client.Model.Types.Primitive.NonZeroU64> DoThis(global::Substrate.Gear.Client.Model.Types.Primitive.NonZeroU256 p1, MyParam p2) { return new RemotingAction<global::Substrate.Gear.Client.Model.Types.Primitive.NonZeroU64>( this.remoting, [52, 78, 111, 110, 90, 101, 114, 111, 80, 97, 114, 97, 109, 115, 24, 68, 111, 84, 104, 105, 115], new global::Substrate.NetApi.Model.Types.Base.BaseTupleRust(p1, p2) ); } }
+ public ICall<global::Substrate.Gear.Client.Model.Types.Primitive.NonZeroU64> DoThis(global::Substrate.Gear.Client.Model.Types.Primitive.NonZeroU256 p1, MyParam p2) { return new RemotingAction<global::Substrate.Gear.Client.Model.Types.Primitive.NonZeroU64>( this.remoting, [52, 78, 111, 110, 90, 101, 114, 111, 80, 97, 114, 97, 109, 115, 24, 68, 111, 84, 104, 105, 115], new global::Substrate.NetApi.Model.Types.Base.BaseTupleRust(p1, p2) ); } }
 
 [global::Substrate.NetApi.Attributes.SubstrateNodeType(global::Substrate.NetApi.Model.Types.Metadata.Base.TypeDefEnum.Composite)] public sealed partial class MyParam : global::Substrate.NetApi.Model.Types.Base.BaseType {
 [System.Diagnostics.CodeAnalysis.AllowNull]

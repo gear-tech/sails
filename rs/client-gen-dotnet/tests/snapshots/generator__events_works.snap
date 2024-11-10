@@ -2,7 +2,9 @@
 source: rs/client-gen-dotnet/tests/generator.rs
 expression: "gen(idl, \"ServiceWithEvents\")"
 ---
+using global::Sails.Remoting;
 using global::Sails.Remoting.Abstractions;
+using global::Sails.Remoting.Abstractions.Core;
 using global::System;
 using global::System.Collections.Generic;
 
@@ -11,7 +13,7 @@ using global::System.Collections.Generic;
 namespace ServiceWithEvents.Client;
 
 public interface IServiceWithEvents
- { global::Sails.Remoting.Abstractions.ICall<global::Substrate.Gear.Client.Model.Types.Primitive.NonZeroU64> DoThis(global::Substrate.Gear.Client.Model.Types.Primitive.NonZeroU256 p1, MyParam p2);
+ { ICall<global::Substrate.Gear.Client.Model.Types.Primitive.NonZeroU64> DoThis(global::Substrate.Gear.Client.Model.Types.Primitive.NonZeroU256 p1, MyParam p2);
  }
 
  public partial class ServiceWithEvents : IServiceWithEvents
@@ -20,7 +22,7 @@ public interface IServiceWithEvents
  public ServiceWithEvents(IRemoting remoting) { this.remoting = remoting; }
 
 /// <inheritdoc/>
- public global::Sails.Remoting.Abstractions.ICall<global::Substrate.Gear.Client.Model.Types.Primitive.NonZeroU64> DoThis(global::Substrate.Gear.Client.Model.Types.Primitive.NonZeroU256 p1, MyParam p2) { return new RemotingAction<global::Substrate.Gear.Client.Model.Types.Primitive.NonZeroU64>( this.remoting, [68, 83, 101, 114, 118, 105, 99, 101, 87, 105, 116, 104, 69, 118, 101, 110, 116, 115, 24, 68, 111, 84, 104, 105, 115], new global::Substrate.NetApi.Model.Types.Base.BaseTupleRust(p1, p2) ); } }
+ public ICall<global::Substrate.Gear.Client.Model.Types.Primitive.NonZeroU64> DoThis(global::Substrate.Gear.Client.Model.Types.Primitive.NonZeroU256 p1, MyParam p2) { return new RemotingAction<global::Substrate.Gear.Client.Model.Types.Primitive.NonZeroU64>( this.remoting, [68, 83, 101, 114, 118, 105, 99, 101, 87, 105, 116, 104, 69, 118, 101, 110, 116, 115, 24, 68, 111, 84, 104, 105, 115], new global::Substrate.NetApi.Model.Types.Base.BaseTupleRust(p1, p2) ); } }
 
 public enum ServiceWithEventsEvents { One,
  Two,
