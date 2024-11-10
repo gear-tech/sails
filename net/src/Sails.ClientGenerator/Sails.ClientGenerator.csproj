@@ -33,21 +33,14 @@
     <EmbeddedResource Include="../../../target/release/libsails_client_gen_dotnet.dylib" LogicalName="osx-arm64.sails_client_gen_dotnet.dylib" Condition="$([MSBuild]::IsOSPlatform('OSX')) and $([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture) == 'Arm64' and Exists('../../../target/release/libsails_client_gen_dotnet.dylib')" />
 </ItemGroup>
 
-  <PropertyGroup>
-    <TargetsForTfmSpecificContentInPackage>$(TargetsForTfmSpecificContentInPackage);EmbedLibraries</TargetsForTfmSpecificContentInPackage>
-  </PropertyGroup>
-
   <!--for nuget publish-->
-  <Target Name="EmbedLibraries">     
-    <ItemGroup Condition="'$(LibraryRoot)' != ''">
-      <EmbeddedResource Include="$(LibraryRoot)/win-x64/sails_client_gen_dotnet.dll" LogicalName="win-x64.sails_client_gen_dotnet.dll" />
-      <EmbeddedResource Include="$(LibraryRoot)/linux-x64/libsails_client_gen_dotnet.so" LogicalName="linux-x64.sails_client_gen_dotnet.so" />
-      <EmbeddedResource Include="$(LibraryRoot)/osx-x64/libsails_client_gen_dotnet.dylib" LogicalName="osx-x64.libsails_client_gen_dotnet.dylib" />
-      <EmbeddedResource Include="$(LibraryRoot)/osx-arm64/libsails_client_gen_dotnet.dylib" LogicalName="osx-arm64.libsails_client_gen_dotnet.dylib" />
-    </ItemGroup>
-  </Target>
-
-  
+  <ItemGroup Condition="'$(LibraryRoot)' != ''">
+    <EmbeddedResource Include="$(LibraryRoot)/win-x64/sails_client_gen_dotnet.dll" LogicalName="win-x64.sails_client_gen_dotnet.dll" />
+    <EmbeddedResource Include="$(LibraryRoot)/linux-x64/libsails_client_gen_dotnet.so" LogicalName="linux-x64.sails_client_gen_dotnet.so" />
+    <EmbeddedResource Include="$(LibraryRoot)/osx-x64/libsails_client_gen_dotnet.dylib" LogicalName="osx-x64.libsails_client_gen_dotnet.dylib" />
+    <EmbeddedResource Include="$(LibraryRoot)/osx-arm64/libsails_client_gen_dotnet.dylib" LogicalName="osx-arm64.libsails_client_gen_dotnet.dylib" />
+  </ItemGroup>
+ 
   <!-- ensures the library will be packaged as a source generator when we use `dotnet pack` -->
   <ItemGroup>
     <TfmSpecificPackageFile Include="$(OutputPath)\$(AssemblyName).dll" PackagePath="analyzers/dotnet/cs" />
