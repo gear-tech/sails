@@ -1,0 +1,22 @@
+[workspace.package]
+version = "0.6.3"
+authors = ["Gear Technologies"]
+edition = "2021"
+license = "GPL-3.0"
+repository = "https://github.com/gear-tech/sails"
+
+[workspace]
+resolver = "2"
+members = ["client-gen-dotnet"]
+
+[workspace.dependencies]
+# sails
+sails-idl-parser = "=0.6.3"
+# others
+anyhow = "1"
+convert-case = { package = "convert_case", version = "0.6" }
+csbindgen = "1.9.3"
+genco = "0.17"
+insta = "1.41"
+itertools = "0.13"
+parity-scale-codec = "3.6"

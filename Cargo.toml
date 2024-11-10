@@ -21,7 +21,6 @@ members = [
     "rs",
     "rs/cli",
     "rs/client-gen",
-    "rs/client-gen-dotnet",
     "rs/idl-gen",
     "rs/idl-meta",
     "rs/idl-parser",
@@ -56,7 +55,6 @@ cargo-generate = "0.21"
 cargo_metadata = "0.18"
 clap = "4.5"
 convert-case = { package = "convert_case", version = "0.6" }
-csbindgen = "1.9.3"
 futures = { version = "0.3", default-features = false }
 genco = "0.17"
 git-download = "0.1"

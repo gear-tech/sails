@@ -1332,16 +1332,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "csbindgen"
-version = "1.9.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c26b9831049b947d154bba920e4124053def72447be6fb106a96f483874b482a"
-dependencies = [
- "regex",
- "syn 2.0.87",
-]
-
-[[package]]
 name = "curve25519-dalek"
 version = "2.1.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6368,20 +6358,6 @@ dependencies = [
  "convert_case 0.6.0",
  "genco",
  "insta",
- "parity-scale-codec",
- "sails-idl-parser",
-]
-
-[[package]]
-name = "sails-client-gen-dotnet"
-version = "0.6.3"
-dependencies = [
- "anyhow",
- "convert_case 0.6.0",
- "csbindgen",
- "genco",
- "insta",
- "itertools 0.13.0",
  "parity-scale-codec",
  "sails-idl-parser",
 ]

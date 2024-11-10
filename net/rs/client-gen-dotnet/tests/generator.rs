@@ -4,7 +4,7 @@ use sails_client_gen_dotnet::ClientGenerator;
 fn full() {
     const IDL: &str = r#"
         // Comments are supported but ignored by idl-parser
-        
+
         /// ThisThatSvcAppTupleStruct docs
         type ThisThatSvcAppTupleStruct = struct {
             /// field `bool`
@@ -23,7 +23,7 @@ fn full() {
 
         /// ThisThatSvcAppManyVariants docs
         type ThisThatSvcAppManyVariants = enum {
-            /// variant `One` 
+            /// variant `One`
             One,
             /// variant `Two`
             Two: u32,
@@ -109,7 +109,7 @@ fn test_multiple_services() {
 
 #[test]
 fn test_rmrk_works() {
-    let idl = include_str!("../../../examples/rmrk/catalog/wasm/rmrk-catalog.idl");
+    let idl = include_str!("../../../../examples/rmrk/catalog/wasm/rmrk-catalog.idl");
 
     insta::assert_snapshot!(gen(idl, "RmrkCatalog"));
 }
