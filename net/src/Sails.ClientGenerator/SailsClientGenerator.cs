@@ -1,4 +1,6 @@
-﻿using System.Collections.Immutable;
+﻿#pragma warning disable RS1035 // Do not use APIs banned for analyzers
+
+using System.Collections.Immutable;
 using System.Text;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -14,22 +16,22 @@ public partial class SailsClientGenerator : IIncrementalGenerator
         var source = context.AdditionalTextsProvider
             .Where(static file => file.Path.EndsWith(".idl"));
 
-        var compilationAndFiles = context.CompilationProvider.Combine(source.Collect());
+        var compilationAndFiles = context.CompilationProvider
+            .Select((c, _) => c.AssemblyName)
+            .Combine(source.Collect());
 
         context.RegisterSourceOutput(compilationAndFiles, AddSource);
     }
 
     private static void AddSource(
         SourceProductionContext context,
-        (Compilation Left, ImmutableArray<AdditionalText> Right) tuple)
+        (string? AssemblyName, ImmutableArray<AdditionalText> Right) tuple)
     {
-        var assemblyName = tuple.Left.AssemblyName!;
+        var assemblyName = tuple.AssemblyName!;
         foreach (var source in tuple.Right)
         {
-            var parts = Path.GetDirectoryName(source.Path)
-                .Split(new[] { Path.DirectorySeparatorChar }, StringSplitOptions.RemoveEmptyEntries)
-                .Select(FirstUpper)
-                .ToList();
+            // TODO: add relative directory as namespace part
+            var parts = new List<string>();
             parts.Insert(0, assemblyName);
             var name = FirstUpper(Path.GetFileNameWithoutExtension(source.Path));
             parts.Add(name);

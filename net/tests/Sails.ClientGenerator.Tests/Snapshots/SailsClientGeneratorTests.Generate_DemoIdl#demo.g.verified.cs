@@ -7,7 +7,7 @@ using global::System.Collections.Generic;
 
 #pragma warning disable RCS0056 // A line is too long
 
-namespace Sails.ClientGenerator.Tests.Idl.Demo;
+namespace Sails.ClientGenerator.Tests.Demo;
 public interface IDemoFactory
 {
     /// <summary>
