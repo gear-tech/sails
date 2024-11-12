@@ -22,7 +22,7 @@ namespace Sails.ClientGenerator
         ///  Function [`free_c_string`] should be called after this function
         /// </summary>
         [DllImport(__DllName, EntryPoint = "generate_dotnet_client", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        internal static extern byte* generate_dotnet_client(byte* program_utf8, int program_len, byte* service_name_utf8, int service_name_len);
+        internal static extern byte* generate_dotnet_client(byte* program_utf8, int program_len, byte* config_utf8, int config_len);
 
         /// <summary>
         ///  # Safety

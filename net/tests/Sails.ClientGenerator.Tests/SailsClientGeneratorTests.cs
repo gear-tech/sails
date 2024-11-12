@@ -16,7 +16,7 @@ public class SailsClientGeneratorTests
     private static Task Verify(params string[] fileNames)
     {
         // Create a Roslyn compilation for the syntax tree.
-        var compilation = CSharpCompilation.Create(assemblyName: "Tests");
+        var compilation = CSharpCompilation.Create(assemblyName: "Sails.ClientGenerator.Tests");
 
         var additionalFiles = fileNames
             .Select(x => (file: x, content: File.ReadAllText($"./{x}")))

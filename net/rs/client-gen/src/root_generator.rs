@@ -15,6 +15,7 @@ pub(crate) struct RootGenerator<'a> {
 impl<'a> RootGenerator<'a> {
     pub(crate) fn new(
         anonymous_service_name: &'a str,
+        namespace: &'a str,
         external_types: HashMap<&'a str, &'a str>,
     ) -> Self {
         let mut tokens = Tokens::new();
@@ -22,10 +23,7 @@ impl<'a> RootGenerator<'a> {
             "#pragma warning disable RCS0056 // A line is too long",
         ));
         tokens.line();
-        tokens.append(format!(
-            "namespace {}.Client;",
-            anonymous_service_name.to_case(Case::Pascal)
-        ));
+        tokens.append(format!("namespace {};", namespace));
         tokens.line();
         Self {
             tokens,
