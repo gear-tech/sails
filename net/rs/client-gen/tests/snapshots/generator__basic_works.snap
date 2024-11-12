@@ -17,7 +17,7 @@ public interface IBasic
 ICall<global::Substrate.NetApi.Model.Types.Primitive.U8> DoThat(global::Substrate.NetApi.Model.Types.Base.BaseTuple<global::Substrate.NetApi.Model.Types.Primitive.U8, global::Substrate.NetApi.Model.Types.Primitive.U32> p1);
  }
 
- public partial class Basic : IBasic
+ public sealed partial class Basic : IBasic
  { private readonly IRemoting remoting;
 
  public Basic(IRemoting remoting) { this.remoting = remoting; }

@@ -15,7 +15,7 @@ public interface IMultiple
 ICall<global::Substrate.NetApi.Model.Types.Primitive.U8> DoThat(global::Substrate.NetApi.Model.Types.Base.BaseTuple<global::Substrate.NetApi.Model.Types.Primitive.U8, global::Substrate.NetApi.Model.Types.Primitive.U32> p1);
  }
 
- public partial class Multiple : IMultiple
+ public sealed partial class Multiple : IMultiple
  { private readonly IRemoting remoting;
 
  public Multiple(IRemoting remoting) { this.remoting = remoting; }
@@ -29,7 +29,7 @@ public interface INamed
  { IQuery<global::Substrate.NetApi.Model.Types.Primitive.Str> That(global::Substrate.NetApi.Model.Types.Primitive.U32 p1);
  }
 
- public partial class Named : INamed
+ public sealed partial class Named : INamed
  { private readonly IRemoting remoting;
 
  public Named(IRemoting remoting) { this.remoting = remoting; }

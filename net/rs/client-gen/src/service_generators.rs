@@ -34,7 +34,7 @@ impl<'a> ServiceClientGenerator<'a> {
                 $(self.interface_tokens)$['\r']
             }
             $['\n']
-            public partial class $name : I$name$['\r']
+            public sealed partial class $name : I$name$['\r']
             {
                 private readonly $remoting remoting;
                 $['\n']

@@ -20,7 +20,7 @@ public interface IServiceFactory
 IActivation New(global::Substrate.NetApi.Model.Types.Primitive.U32 a);
  }
 
- public partial class ServiceFactory : IServiceFactory
+ public sealed partial class ServiceFactory : IServiceFactory
  {
 
  private readonly IRemoting remoting;
@@ -40,7 +40,7 @@ IQuery<global::Substrate.NetApi.Model.Types.Primitive.U32> This(global::Substrat
 IQuery<global::Substrate.Gear.Client.Model.Types.Base.BaseResult<global::Substrate.NetApi.Model.Types.Primitive.Str, global::Substrate.NetApi.Model.Types.Primitive.Str>> That(global::Substrate.NetApi.Model.Types.Base.BaseVoid v1);
  }
 
- public partial class Service : IService
+ public sealed partial class Service : IService
  { private readonly IRemoting remoting;
 
  public Service(IRemoting remoting) { this.remoting = remoting; }
@@ -69,7 +69,7 @@ public enum ServiceEvents {
 this.AddTypeDecoder<global::Substrate.NetApi.Model.Types.Primitive.Str>(ServiceEvents.ThatDone);
  } }
 
- public partial class ServiceListener : IRemotingListener<EnumServiceEvents> { private static readonly byte[][] EventRoutes = [ [28, 83, 101, 114, 118, 105, 99, 101, 32, 84, 104, 105, 115, 68, 111, 110, 101],[28, 83, 101, 114, 118, 105, 99, 101, 32, 84, 104, 97, 116, 68, 111, 110, 101], ];
+ public sealed partial class ServiceListener : IRemotingListener<EnumServiceEvents> { private static readonly byte[][] EventRoutes = [ [28, 83, 101, 114, 118, 105, 99, 101, 32, 84, 104, 105, 115, 68, 111, 110, 101],[28, 83, 101, 114, 118, 105, 99, 101, 32, 84, 104, 97, 116, 68, 111, 110, 101], ];
 
  private readonly global::Sails.Remoting.Abstractions.Core.IRemotingListener remoting;
 

@@ -52,7 +52,7 @@ impl<'a> EventsGenerator<'a> {
                 }
             }
             $['\n']
-            public partial class $listener_name : $service_listener<$class_name>
+            public sealed partial class $listener_name : $service_listener<$class_name>
             {
                 private static readonly byte[][] EventRoutes =
                 [

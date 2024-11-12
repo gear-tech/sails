@@ -20,7 +20,7 @@ public interface IDemoFactory
     IActivation New(global::Substrate.NetApi.Model.Types.Base.BaseOpt<global::Substrate.NetApi.Model.Types.Primitive.U32> counter, global::Substrate.NetApi.Model.Types.Base.BaseOpt<global::Substrate.NetApi.Model.Types.Base.BaseTuple<global::Substrate.NetApi.Model.Types.Primitive.I32, global::Substrate.NetApi.Model.Types.Primitive.I32>> dogPosition);
 }
 
-public partial class DemoFactory : IDemoFactory
+public sealed partial class DemoFactory : IDemoFactory
 {
     private readonly IRemoting remoting;
     public DemoFactory(IRemoting remoting)
@@ -48,7 +48,7 @@ public interface ICounter
     IQuery<global::Substrate.NetApi.Model.Types.Primitive.U32> Value();
 }
 
-public partial class Counter : ICounter
+public sealed partial class Counter : ICounter
 {
     private readonly IRemoting remoting;
     public Counter(IRemoting remoting)
@@ -96,7 +96,7 @@ public sealed partial class EnumCounterEvents : global::Substrate.NetApi.Model.T
     }
 }
 
-public partial class CounterListener : IRemotingListener<EnumCounterEvents>
+public sealed partial class CounterListener : IRemotingListener<EnumCounterEvents>
 {
     private static readonly byte[][] EventRoutes = [[28, 67, 111, 117, 110, 116, 101, 114, 20, 65, 100, 100, 101, 100], [28, 67, 111, 117, 110, 116, 101, 114, 40, 83, 117, 98, 116, 114, 97, 99, 116, 101, 100], ];
     private readonly global::Sails.Remoting.Abstractions.Core.IRemotingListener remoting;
@@ -143,7 +143,7 @@ public interface IDog
     IQuery<global::Substrate.NetApi.Model.Types.Base.BaseTuple<global::Substrate.NetApi.Model.Types.Primitive.I32, global::Substrate.NetApi.Model.Types.Primitive.I32>> Position();
 }
 
-public partial class Dog : IDog
+public sealed partial class Dog : IDog
 {
     private readonly IRemoting remoting;
     public Dog(IRemoting remoting)
@@ -191,7 +191,7 @@ public sealed partial class EnumDogEvents : global::Substrate.NetApi.Model.Types
     }
 }
 
-public partial class DogListener : IRemotingListener<EnumDogEvents>
+public sealed partial class DogListener : IRemotingListener<EnumDogEvents>
 {
     private static readonly byte[][] EventRoutes = [[12, 68, 111, 103, 24, 66, 97, 114, 107, 101, 100], [12, 68, 111, 103, 24, 87, 97, 108, 107, 101, 100], ];
     private readonly global::Sails.Remoting.Abstractions.Core.IRemotingListener remoting;
@@ -235,7 +235,7 @@ public interface IPingPong
     ICall<global::Substrate.Gear.Client.Model.Types.Base.BaseResult<global::Substrate.NetApi.Model.Types.Primitive.Str, global::Substrate.NetApi.Model.Types.Primitive.Str>> Ping(global::Substrate.NetApi.Model.Types.Primitive.Str input);
 }
 
-public partial class PingPong : IPingPong
+public sealed partial class PingPong : IPingPong
 {
     private readonly IRemoting remoting;
     public PingPong(IRemoting remoting)
@@ -262,7 +262,7 @@ public interface IReferences
     IQuery<global::Substrate.NetApi.Model.Types.Base.BaseOpt<global::Substrate.NetApi.Model.Types.Primitive.Str>> Message();
 }
 
-public partial class References : IReferences
+public sealed partial class References : IReferences
 {
     private readonly IRemoting remoting;
     public References(IRemoting remoting)
@@ -328,7 +328,7 @@ public interface IThisThat
     IQuery<global::Substrate.NetApi.Model.Types.Primitive.U32> This();
 }
 
-public partial class ThisThat : IThisThat
+public sealed partial class ThisThat : IThisThat
 {
     private readonly IRemoting remoting;
     public ThisThat(IRemoting remoting)
@@ -372,7 +372,7 @@ public interface IValueFee
     ICall<global::Substrate.NetApi.Model.Types.Primitive.Bool> DoSomethingAndTakeFee();
 }
 
-public partial class ValueFee : IValueFee
+public sealed partial class ValueFee : IValueFee
 {
     private readonly IRemoting remoting;
     public ValueFee(IRemoting remoting)
@@ -400,7 +400,7 @@ public sealed partial class EnumValueFeeEvents : global::Substrate.NetApi.Model.
     }
 }
 
-public partial class ValueFeeListener : IRemotingListener<EnumValueFeeEvents>
+public sealed partial class ValueFeeListener : IRemotingListener<EnumValueFeeEvents>
 {
     private static readonly byte[][] EventRoutes = [[32, 86, 97, 108, 117, 101, 70, 101, 101, 32, 87, 105, 116, 104, 104, 101, 108, 100], ];
     private readonly global::Sails.Remoting.Abstractions.Core.IRemotingListener remoting;
