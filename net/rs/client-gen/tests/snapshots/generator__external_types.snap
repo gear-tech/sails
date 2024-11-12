@@ -1,5 +1,5 @@
 ---
-source: rs/client-gen-dotnet/tests/generator.rs
+source: client-gen/tests/generator.rs
 expression: code
 ---
 using global::Sails.Remoting;

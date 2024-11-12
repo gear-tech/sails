@@ -1,5 +1,5 @@
 ---
-source: rs/client-gen-dotnet/tests/generator.rs
+source: client-gen/tests/generator.rs
 expression: "gen(idl, \"Basic\")"
 ---
 using global::Sails.Remoting;

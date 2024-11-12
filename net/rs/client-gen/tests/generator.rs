@@ -1,4 +1,4 @@
-use sails_client_gen_dotnet::ClientGenerator;
+use sails_net_client_gen::ClientGenerator;
 
 #[test]
 fn full() {

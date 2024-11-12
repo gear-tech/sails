@@ -14,12 +14,12 @@ internal static unsafe partial class NativeMethods
         var tempDirectory = Path.Combine(Path.GetTempPath(), __DllName);
         Directory.CreateDirectory(tempDirectory);
 
-        var resource = GetResourceName(__DllName);
-        var nativeLibraryPath = Path.Combine(tempDirectory, __DllName);
+        var (platform, extension) = GetResourcePlatform();
+        var nativeLibraryPath = Path.Combine(tempDirectory, __DllName + extension);
         // Extract the DLL only if it doesn't already exist
         if (!File.Exists(nativeLibraryPath))
         {
-            ExtractResourceToFile(resource, nativeLibraryPath);
+            ExtractResourceToFile($"{platform}.{__DllName}{extension}", nativeLibraryPath);
         }
         var ret = LibraryLoader.GetPlatformDefaultLoader().LoadNativeLibraryByPath(nativeLibraryPath);
         if (ret == IntPtr.Zero)
@@ -29,7 +29,9 @@ internal static unsafe partial class NativeMethods
         return ret;
     }
 
-    private static string GetResourceName(string dllName)
+    internal static void FreeNativeLibrary(IntPtr handle) => LibraryLoader.GetPlatformDefaultLoader().FreeNativeLibrary(handle);
+
+    private static (string Platform, string Extension) GetResourcePlatform()
     {
         string platform;
         string extension;
@@ -62,10 +64,8 @@ internal static unsafe partial class NativeMethods
         {
             platform += "arm64";
         }
-        return $"{platform}.{dllName}{extension}";
+        return (platform, extension);
     }
-
-    internal static void FreeNativeLibrary(IntPtr handle) => LibraryLoader.GetPlatformDefaultLoader().FreeNativeLibrary(handle);
 
     private static void ExtractResourceToFile(string resourceName, string filePath)
     {
