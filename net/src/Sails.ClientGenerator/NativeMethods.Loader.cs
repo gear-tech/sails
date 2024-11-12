@@ -11,15 +11,15 @@ internal static unsafe partial class NativeMethods
     internal static IntPtr LoadNativeLibrary()
     {
         // Determine where to extract the DLL
-        var tempDirectory = Path.Combine(Path.GetTempPath(), __DllName);
+        var tempDirectory = Path.Combine(Path.GetTempPath(), DllName);
         Directory.CreateDirectory(tempDirectory);
 
         var (platform, extension) = GetResourcePlatform();
-        var nativeLibraryPath = Path.Combine(tempDirectory, __DllName + extension);
+        var nativeLibraryPath = Path.Combine(tempDirectory, DllName + extension);
         // Extract the DLL only if it doesn't already exist
         if (!File.Exists(nativeLibraryPath))
         {
-            ExtractResourceToFile($"{platform}.{__DllName}{extension}", nativeLibraryPath);
+            ExtractResourceToFile($"{platform}.{DllName}{extension}", nativeLibraryPath);
         }
         var ret = LibraryLoader.GetPlatformDefaultLoader().LoadNativeLibraryByPath(nativeLibraryPath);
         if (ret == IntPtr.Zero)

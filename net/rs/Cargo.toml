@@ -15,7 +15,6 @@ sails-idl-parser = "=0.6.3"
 # others
 anyhow = "1"
 convert-case = { package = "convert_case", version = "0.6" }
-csbindgen = "1.9"
 genco = "0.17"
 insta = "1.41"
 itertools = "0.13"

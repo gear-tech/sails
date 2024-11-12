@@ -1,6 +1,4 @@
-﻿#pragma warning disable RS1035 // Do not use APIs banned for analyzers
-
-using System.Collections.Immutable;
+﻿using System.Collections.Immutable;
 using System.Text;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
