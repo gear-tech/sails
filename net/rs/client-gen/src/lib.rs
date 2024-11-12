@@ -44,7 +44,7 @@ impl<'a, S> ClientGenerator<'a, S> {
     ///
     /// Following code generates `use my_crate::MyParam as MyFuncParam;`
     /// ```
-    /// let code = sails_client_gen_dotnet::ClientGenerator::from_idl("<idl>")
+    /// let code = sails_net_client_gen::ClientGenerator::from_idl("<idl>")
     ///     .with_external_type("MyFuncParam", "my_crate::MyParam");
     /// ```
     pub fn with_external_type(self, name: &'a str, path: &'a str) -> Self {

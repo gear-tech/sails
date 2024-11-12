@@ -7,7 +7,7 @@ repository = "https://github.com/gear-tech/sails"
 
 [workspace]
 resolver = "2"
-members = ["client-gen-dotnet"]
+members = ["client-gen"]
 
 [workspace.dependencies]
 # sails
@@ -15,7 +15,7 @@ sails-idl-parser = "=0.6.3"
 # others
 anyhow = "1"
 convert-case = { package = "convert_case", version = "0.6" }
-csbindgen = "1.9.3"
+csbindgen = "1.9"
 genco = "0.17"
 insta = "1.41"
 itertools = "0.13"

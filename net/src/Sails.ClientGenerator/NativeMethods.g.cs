@@ -12,7 +12,7 @@ namespace Sails.ClientGenerator
 {
     internal static unsafe partial class NativeMethods
     {
-        const string __DllName = "sails_client_gen_dotnet";
+        const string __DllName = "sails_net_client_gen";
 
 
 

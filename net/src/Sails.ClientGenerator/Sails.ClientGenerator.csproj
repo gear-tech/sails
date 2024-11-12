@@ -20,27 +20,27 @@
     <PackageReference Include="PolySharp" />
   </ItemGroup>
 
-  <!-- local build -->  
+  <!-- local build -->
   <Target Name="PreBuild" BeforeTargets="PreBuildEvent" Condition="'$(LibraryRoot)' == ''">
     <Exec Command="cargo build --manifest-path ../../rs/Cargo.toml --release" />
   </Target>
 
   <!-- local lib -->
   <ItemGroup Condition="'$(LibraryRoot)' == ''">
-    <EmbeddedResource Include="../../rs/target/release/sails_client_gen_dotnet.dll" LogicalName="win-x64.sails_client_gen_dotnet.dll" Condition="$([MSBuild]::IsOSPlatform('Windows')) and Exists('../../../target/release/sails_client_gen_dotnet.dll')" />
-    <EmbeddedResource Include="../../rs/target/release/sails_client_gen_dotnet.so" LogicalName="linux-x64.sails_client_gen_dotnet.so" Condition="$([MSBuild]::IsOSPlatform('Linux')) and $([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture) == 'X64' and Exists('../../../target/release/sails_client_gen_dotnet.so')" />
-    <EmbeddedResource Include="../../rs/target/release/libsails_client_gen_dotnet.dylib" LogicalName="osx-x64.sails_client_gen_dotnet.dylib" Condition="$([MSBuild]::IsOSPlatform('OSX')) and $([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture) == 'X64' and Exists('../../../target/release/libsails_client_gen_dotnet.dylib')" />
-    <EmbeddedResource Include="../../rs/target/release/libsails_client_gen_dotnet.dylib" LogicalName="osx-arm64.sails_client_gen_dotnet.dylib" Condition="$([MSBuild]::IsOSPlatform('OSX')) and $([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture) == 'Arm64' and Exists('../../../target/release/libsails_client_gen_dotnet.dylib')" />
-</ItemGroup>
+    <EmbeddedResource Include="../../rs/target/release/sails_net_client_gen.dll" LogicalName="win-x64.sails_net_client_gen.dll" Condition="$([MSBuild]::IsOSPlatform('Windows'))" />
+    <EmbeddedResource Include="../../rs/target/release/sails_net_client_gen.so" LogicalName="linux-x64.sails_net_client_gen.so" Condition="$([MSBuild]::IsOSPlatform('Linux')) and $([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture) == 'X64'" />
+    <EmbeddedResource Include="../../rs/target/release/libsails_net_client_gen.dylib" LogicalName="osx-x64.sails_net_client_gen.dylib" Condition="$([MSBuild]::IsOSPlatform('OSX')) and $([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture) == 'X64'" />
+    <EmbeddedResource Include="../../rs/target/release/libsails_net_client_gen.dylib" LogicalName="osx-arm64.sails_net_client_gen.dylib" Condition="$([MSBuild]::IsOSPlatform('OSX')) and $([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture) == 'Arm64'" />
+  </ItemGroup>
 
   <!--for nuget publish-->
   <ItemGroup Condition="'$(LibraryRoot)' != ''">
-    <EmbeddedResource Include="$(LibraryRoot)/win-x64/sails_client_gen_dotnet.dll" LogicalName="win-x64.sails_client_gen_dotnet.dll" />
-    <EmbeddedResource Include="$(LibraryRoot)/linux-x64/libsails_client_gen_dotnet.so" LogicalName="linux-x64.sails_client_gen_dotnet.so" />
-    <EmbeddedResource Include="$(LibraryRoot)/osx-x64/libsails_client_gen_dotnet.dylib" LogicalName="osx-x64.libsails_client_gen_dotnet.dylib" />
-    <EmbeddedResource Include="$(LibraryRoot)/osx-arm64/libsails_client_gen_dotnet.dylib" LogicalName="osx-arm64.libsails_client_gen_dotnet.dylib" />
+    <EmbeddedResource Include="$(LibraryRoot)/win-x64/sails_net_client_gen.dll" LogicalName="win-x64.sails_net_client_gen.dll" />
+    <EmbeddedResource Include="$(LibraryRoot)/linux-x64/libsails_net_client_gen.so" LogicalName="linux-x64.sails_net_client_gen.so" />
+    <EmbeddedResource Include="$(LibraryRoot)/osx-x64/libsails_net_client_gen.dylib" LogicalName="osx-x64.libsails_net_client_gen.dylib" />
+    <EmbeddedResource Include="$(LibraryRoot)/osx-arm64/libsails_net_client_gen.dylib" LogicalName="osx-arm64.libsails_net_client_gen.dylib" />
   </ItemGroup>
- 
+
   <!-- ensures the library will be packaged as a source generator when we use `dotnet pack` -->
   <ItemGroup>
     <TfmSpecificPackageFile Include="$(OutputPath)\$(AssemblyName).dll" PackagePath="analyzers/dotnet/cs" />

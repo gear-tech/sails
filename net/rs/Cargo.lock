@@ -559,7 +559,19 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0e819f2bc632f285be6d7cd36e25940d45b2391dd6d9b939e79de557f7014248"
 
 [[package]]
-name = "sails-client-gen-dotnet"
+name = "sails-idl-parser"
+version = "0.6.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "de89ffc59a12dbbc342b61a44264b4cf9e209da373b317ad556da6af0c3a65e1"
+dependencies = [
+ "lalrpop",
+ "lalrpop-util",
+ "logos",
+ "thiserror",
+]
+
+[[package]]
+name = "sails-net-client-gen"
 version = "0.6.3"
 dependencies = [
  "anyhow",
@@ -570,18 +582,6 @@ dependencies = [
  "itertools 0.13.0",
  "parity-scale-codec",
  "sails-idl-parser",
-]
-
-[[package]]
-name = "sails-idl-parser"
-version = "0.6.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "de89ffc59a12dbbc342b61a44264b4cf9e209da373b317ad556da6af0c3a65e1"
-dependencies = [
- "lalrpop",
- "lalrpop-util",
- "logos",
- "thiserror",
 ]
 
 [[package]]

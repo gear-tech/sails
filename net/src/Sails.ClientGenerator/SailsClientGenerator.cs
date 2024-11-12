@@ -16,6 +16,8 @@ public partial class SailsClientGenerator : IIncrementalGenerator
                 GenerateCode(Path.GetFileNameWithoutExtension(text.Path), text.GetText(cancellationToken)!.ToString())
             );
 
+        var compilationAndFiles = context.CompilationProvider.Combine(source.Collect());
+
         context.RegisterSourceOutput(source, AddSource);
     }
 
