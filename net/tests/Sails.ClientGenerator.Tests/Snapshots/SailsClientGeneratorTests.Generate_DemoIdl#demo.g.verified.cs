@@ -1,4 +1,4 @@
-﻿//HintName: demo.g.cs
+﻿//HintName: Demo.g.cs
 using global::Sails.Remoting;
 using global::Sails.Remoting.Abstractions;
 using global::Sails.Remoting.Abstractions.Core;
@@ -7,7 +7,7 @@ using global::System.Collections.Generic;
 
 #pragma warning disable RCS0056 // A line is too long
 
-namespace Demo.Client;
+namespace Sails.ClientGenerator.Tests.Idl.Demo;
 public interface IDemoFactory
 {
     /// <summary>

@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using System.Collections.Immutable;
+using System.Text;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.Text;
@@ -11,33 +12,51 @@ public partial class SailsClientGenerator : IIncrementalGenerator
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
         var source = context.AdditionalTextsProvider
-            .Where(static file => file.Path.EndsWith(".idl"))
-            .Select(static (text, cancellationToken) =>
-                GenerateCode(Path.GetFileNameWithoutExtension(text.Path), text.GetText(cancellationToken)!.ToString())
-            );
+            .Where(static file => file.Path.EndsWith(".idl"));
 
         var compilationAndFiles = context.CompilationProvider.Combine(source.Collect());
 
-        context.RegisterSourceOutput(source, AddSource);
+        context.RegisterSourceOutput(compilationAndFiles, AddSource);
     }
 
-    private static unsafe (string Name, string Code) GenerateCode(string name, string source)
+    private static void AddSource(
+        SourceProductionContext context,
+        (Compilation Left, ImmutableArray<AdditionalText> Right) tuple)
+    {
+        var assemblyName = tuple.Left.AssemblyName!;
+        foreach (var source in tuple.Right)
+        {
+            var parts = Path.GetDirectoryName(source.Path)
+                .Split(new[] { Path.DirectorySeparatorChar }, StringSplitOptions.RemoveEmptyEntries)
+                .Select(FirstUpper)
+                .ToList();
+            parts.Insert(0, assemblyName);
+            var name = FirstUpper(Path.GetFileNameWithoutExtension(source.Path));
+            parts.Add(name);
+            var ns = string.Join(".", parts);
+            var code = GenerateCode(source.GetText()!.ToString(), new GeneratorConfig(name, ns));
+
+            context.AddSource($"{name}.g.cs", SourceText.From(code, encoding: Encoding.UTF8));
+        }
+    }
+
+    private static unsafe string GenerateCode(string source, GeneratorConfig config)
     {
         var handle = NativeMethods.LoadNativeLibrary();
         try
         {
             var idlBytes = Encoding.UTF8.GetBytes(source);
-            var nameBytes = Encoding.UTF8.GetBytes(name);
+            var configBytes = Encoding.UTF8.GetBytes(config.ToString());
 
             fixed (byte* pIdl = idlBytes)
             {
-                fixed (byte* pName = nameBytes)
+                fixed (byte* pConfig = configBytes)
                 {
-                    var cstr = NativeMethods.generate_dotnet_client(pIdl, idlBytes.Length, pName, nameBytes.Length);
+                    var cstr = NativeMethods.generate_dotnet_client(pIdl, idlBytes.Length, pConfig, configBytes.Length);
                     try
                     {
                         var str = new string((sbyte*)cstr);
-                        return (name, FormatCode(str));
+                        return FormatCode(str);
                     }
                     finally
                     {
@@ -52,16 +71,27 @@ public partial class SailsClientGenerator : IIncrementalGenerator
         }
     }
 
-    private static void AddSource(SourceProductionContext context, (string Name, string Code) source)
-    {
-        context.AddSource($"{source.Name}.g.cs", SourceText.From(source.Code, encoding: Encoding.UTF8));
-    }
-
-    public static string FormatCode(string code, CancellationToken cancelToken = default)
-        => CSharpSyntaxTree.ParseText(code, cancellationToken: cancelToken)
-            .GetRoot(cancelToken)
+    private static string FormatCode(string code, CancellationToken cancellationToken = default)
+        => CSharpSyntaxTree.ParseText(code, cancellationToken: cancellationToken)
+            .GetRoot(cancellationToken)
             .NormalizeWhitespace()
             .SyntaxTree
-            .GetText(cancelToken)
+            .GetText(cancellationToken)
             .ToString();
+
+    private static string FirstUpper(string text)
+    {
+        if (text.Length == 0)
+        {
+            return text;
+        }
+        Span<char> res = stackalloc char[text.Length];
+        text.AsSpan().CopyTo(res);
+        var c = res[0];
+        if (char.IsLetter(c) && char.IsLower(c))
+        {
+            res[0] = char.ToUpperInvariant(c);
+        }
+        return res.ToString();
+    }
 }

@@ -20,3 +20,5 @@ genco = "0.17"
 insta = "1.41"
 itertools = "0.13"
 parity-scale-codec = "3.6"
+serde = { version = "1.0", features = ["derive"] }
+serde-json = { package = "serde_json", version = "1.0" }
