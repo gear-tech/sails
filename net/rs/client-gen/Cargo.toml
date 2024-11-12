@@ -11,9 +11,6 @@ repository.workspace = true
 [lib]
 crate-type = ["cdylib", "rlib"]
 
-[build-dependencies]
-csbindgen.workspace = true
-
 [dependencies]
 anyhow.workspace = true
 convert-case.workspace = true

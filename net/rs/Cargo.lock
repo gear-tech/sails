@@ -117,16 +117,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7a81dae078cea95a014a339291cec439d2f232ebe854a9d672b796c6afafa9b7"
 
 [[package]]
-name = "csbindgen"
-version = "1.9.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c26b9831049b947d154bba920e4124053def72447be6fb106a96f483874b482a"
-dependencies = [
- "regex",
- "syn 2.0.87",
-]
-
-[[package]]
 name = "dirs-next"
 version = "2.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -588,7 +578,6 @@ version = "0.6.3"
 dependencies = [
  "anyhow",
  "convert_case",
- "csbindgen",
  "genco",
  "insta",
  "itertools 0.13.0",
