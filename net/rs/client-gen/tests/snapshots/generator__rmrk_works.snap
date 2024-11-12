@@ -17,7 +17,7 @@ public interface IRmrkCatalogFactory
 IActivation New();
  }
 
- public partial class RmrkCatalogFactory : IRmrkCatalogFactory
+ public sealed partial class RmrkCatalogFactory : IRmrkCatalogFactory
  {
 
  private readonly IRemoting remoting;
@@ -41,7 +41,7 @@ IQuery<global::Substrate.Gear.Client.Model.Types.Base.BaseResult<global::Substra
 IQuery<global::Substrate.NetApi.Model.Types.Base.BaseOpt<Part>> Part(global::Substrate.NetApi.Model.Types.Primitive.U32 partId);
  }
 
- public partial class RmrkCatalog : IRmrkCatalog
+ public sealed partial class RmrkCatalog : IRmrkCatalog
  { private readonly IRemoting remoting;
 
  public RmrkCatalog(IRemoting remoting) { this.remoting = remoting; }

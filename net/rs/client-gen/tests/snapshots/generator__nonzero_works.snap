@@ -16,7 +16,7 @@ public interface INonZeroParams
  { ICall<global::Substrate.Gear.Client.Model.Types.Primitive.NonZeroU64> DoThis(global::Substrate.Gear.Client.Model.Types.Primitive.NonZeroU256 p1, MyParam p2);
  }
 
- public partial class NonZeroParams : INonZeroParams
+ public sealed partial class NonZeroParams : INonZeroParams
  { private readonly IRemoting remoting;
 
  public NonZeroParams(IRemoting remoting) { this.remoting = remoting; }

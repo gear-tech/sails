@@ -34,7 +34,7 @@ impl<'a> CtorFactoryGenerator<'a> {
                 $(self.interface_tokens)
             }
             $['\n']
-            public partial class $(&class_name) : I$(&class_name)$['\r']
+            public sealed partial class $(&class_name) : I$(&class_name)$['\r']
             {$['\n']
                 private readonly $remoting remoting;
                 $['\n']

@@ -16,7 +16,7 @@ public interface IServiceWithEvents
  { ICall<global::Substrate.Gear.Client.Model.Types.Primitive.NonZeroU64> DoThis(global::Substrate.Gear.Client.Model.Types.Primitive.NonZeroU256 p1, MyParam p2);
  }
 
- public partial class ServiceWithEvents : IServiceWithEvents
+ public sealed partial class ServiceWithEvents : IServiceWithEvents
  { private readonly IRemoting remoting;
 
  public ServiceWithEvents(IRemoting remoting) { this.remoting = remoting; }
@@ -36,7 +36,7 @@ this.AddTypeDecoder<MyParam>(ServiceWithEventsEvents.Three);
 this.AddTypeDecoder<global::Substrate.NetApi.Model.Types.Base.BaseVoid>(ServiceWithEventsEvents.Reset);
  } }
 
- public partial class ServiceWithEventsListener : IRemotingListener<EnumServiceWithEventsEvents> { private static readonly byte[][] EventRoutes = [ [68, 83, 101, 114, 118, 105, 99, 101, 87, 105, 116, 104, 69, 118, 101, 110, 116, 115, 12, 79, 110, 101],[68, 83, 101, 114, 118, 105, 99, 101, 87, 105, 116, 104, 69, 118, 101, 110, 116, 115, 12, 84, 119, 111],[68, 83, 101, 114, 118, 105, 99, 101, 87, 105, 116, 104, 69, 118, 101, 110, 116, 115, 20, 84, 104, 114, 101, 101],[68, 83, 101, 114, 118, 105, 99, 101, 87, 105, 116, 104, 69, 118, 101, 110, 116, 115, 20, 82, 101, 115, 101, 116], ];
+ public sealed partial class ServiceWithEventsListener : IRemotingListener<EnumServiceWithEventsEvents> { private static readonly byte[][] EventRoutes = [ [68, 83, 101, 114, 118, 105, 99, 101, 87, 105, 116, 104, 69, 118, 101, 110, 116, 115, 12, 79, 110, 101],[68, 83, 101, 114, 118, 105, 99, 101, 87, 105, 116, 104, 69, 118, 101, 110, 116, 115, 12, 84, 119, 111],[68, 83, 101, 114, 118, 105, 99, 101, 87, 105, 116, 104, 69, 118, 101, 110, 116, 115, 20, 84, 104, 114, 101, 101],[68, 83, 101, 114, 118, 105, 99, 101, 87, 105, 116, 104, 69, 118, 101, 110, 116, 115, 20, 82, 101, 115, 101, 116], ];
 
  private readonly global::Sails.Remoting.Abstractions.Core.IRemotingListener remoting;
 
