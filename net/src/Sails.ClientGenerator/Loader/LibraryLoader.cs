@@ -7,7 +7,7 @@ namespace Sails.ClientGenerator.Loader;
 /// <summary>
 /// Exposes functionality for loading native libraries and function pointers.
 /// </summary>
-public abstract class LibraryLoader
+internal abstract class LibraryLoader
 {
     /// <summary>
     /// Loads a native library by name and returns an operating system handle to it.
@@ -16,9 +16,9 @@ public abstract class LibraryLoader
     /// <returns>The operating system handle for the shared library.</returns>
     /// <exception cref="FileNotFoundException"></exception>
     /// <exception cref="ArgumentException"></exception>
-    public IntPtr LoadNativeLibraryByPath(params string[] names)
+    internal IntPtr LoadNativeLibraryByPath(params string[] names)
     {
-        foreach (var loadTarget in names!)
+        foreach (var loadTarget in names)
         {
             if (File.Exists(loadTarget))
             {
@@ -38,7 +38,7 @@ public abstract class LibraryLoader
     /// <param name="handle">The operating system handle of the opened shared library.</param>
     /// <param name="functionName">The name of the exported function to load.</param>
     /// <returns>A pointer to the loaded function.</returns>
-    public IntPtr LoadFunctionPointer(IntPtr handle, string functionName)
+    internal IntPtr LoadFunctionPointer(IntPtr handle, string functionName)
     {
         if (string.IsNullOrEmpty(functionName))
         {
@@ -52,7 +52,7 @@ public abstract class LibraryLoader
     /// Frees the library represented by the given operating system handle.
     /// </summary>
     /// <param name="handle">The handle of the open shared library.</param>
-    public void FreeNativeLibrary(IntPtr handle)
+    internal void FreeNativeLibrary(IntPtr handle)
     {
         if (handle == IntPtr.Zero)
         {
