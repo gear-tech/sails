@@ -21,11 +21,13 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Substrate.Gear.Client", "ne
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Sails.ClientGenerator", "net\src\Sails.ClientGenerator\Sails.ClientGenerator.csproj", "{F93FFE42-71C1-44BD-9DBA-3559B307370C}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Sails.ClientGenerator.Tests", "net\tests\Sails.ClientGenerator.Tests\Sails.ClientGenerator.Tests.csproj", "{A6A2172B-8F8F-4BDC-B519-E7299FFCCA5F}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Sails.ClientGenerator.Tests", "net\tests\Sails.ClientGenerator.Tests\Sails.ClientGenerator.Tests.csproj", "{A6A2172B-8F8F-4BDC-B519-E7299FFCCA5F}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{19594BCA-94DB-44AD-ACBC-2ACFED242E9F}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Substrate.Gear.Client.Tests", "net\tests\Substrate.Gear.Client.Tests\Substrate.Gear.Client.Tests.csproj", "{42B621CE-C2B4-4911-961C-5B087A514AF5}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Substrate.Gear.Client.Tests", "net\tests\Substrate.Gear.Client.Tests\Substrate.Gear.Client.Tests.csproj", "{42B621CE-C2B4-4911-961C-5B087A514AF5}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Sails.Client.Tests", "net\tests\Sails.Client.Tests\Sails.Client.Tests.csproj", "{BC248D44-14CD-4BB0-9AF9-4E0750574492}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -65,12 +67,17 @@ Global
 		{42B621CE-C2B4-4911-961C-5B087A514AF5}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{42B621CE-C2B4-4911-961C-5B087A514AF5}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{42B621CE-C2B4-4911-961C-5B087A514AF5}.Release|Any CPU.Build.0 = Release|Any CPU
+		{BC248D44-14CD-4BB0-9AF9-4E0750574492}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BC248D44-14CD-4BB0-9AF9-4E0750574492}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BC248D44-14CD-4BB0-9AF9-4E0750574492}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BC248D44-14CD-4BB0-9AF9-4E0750574492}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{A6A2172B-8F8F-4BDC-B519-E7299FFCCA5F} = {19594BCA-94DB-44AD-ACBC-2ACFED242E9F}
+		{BC248D44-14CD-4BB0-9AF9-4E0750574492} = {19594BCA-94DB-44AD-ACBC-2ACFED242E9F}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {0894C08B-8BB9-401D-8471-26F5EB5A4EA2}

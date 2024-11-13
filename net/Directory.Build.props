@@ -22,6 +22,9 @@
     <PackageVersion Include="Microsoft.CodeAnalysis.CSharp" Version="4.11.0" >
       <PrivateAssets>all</PrivateAssets>
     </PackageVersion>
+    <PackageVersion Include="NSubstitute.Analyzers.CSharp" Version="1.0.17" >
+      <PrivateAssets>all</PrivateAssets>
+    </PackageVersion>
   </ItemGroup>
 
 </Project>
