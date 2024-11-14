@@ -1,7 +1,5 @@
 ﻿#pragma warning disable RCS0056 // A line is too long
 
-using System.Runtime.InteropServices;
-
 namespace Sails.ClientGenerator.Loader;
 
 internal static class Libdl

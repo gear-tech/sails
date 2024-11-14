@@ -1,8 +1,4 @@
-﻿using System.Collections.Immutable;
-using System.Text;
-using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CSharp;
-using Microsoft.CodeAnalysis.Text;
+﻿using static Sails.ClientGenerator.NativeMethods;
 
 namespace Sails.ClientGenerator;
 
@@ -42,32 +38,28 @@ public partial class SailsClientGenerator : IIncrementalGenerator
 
     private static unsafe string GenerateCode(string source, GeneratorConfig config)
     {
-        var handle = NativeMethods.LoadNativeLibrary();
-        try
-        {
-            var idlBytes = Encoding.UTF8.GetBytes(source);
-            var configBytes = Encoding.UTF8.GetBytes(config.ToString());
+        using var library = LoadNativeLibrary();
+        var generateFunc = library.LoadFunction<GenerateDotnetClient>("generate_dotnet_client");
+        var freeFunc = library.LoadFunction<FreeCString>("free_c_string");
 
-            fixed (byte* pIdl = idlBytes)
+        var idlBytes = Encoding.UTF8.GetBytes(source);
+        var configBytes = Encoding.UTF8.GetBytes(config.ToString());
+
+        fixed (byte* idlPtr = idlBytes)
+        {
+            fixed (byte* configPtr = configBytes)
             {
-                fixed (byte* pConfig = configBytes)
+                var cstr = generateFunc(idlPtr, idlBytes.Length, configPtr, configBytes.Length);
+                try
                 {
-                    var cstr = NativeMethods.generate_dotnet_client(pIdl, idlBytes.Length, pConfig, configBytes.Length);
-                    try
-                    {
-                        var str = new string((sbyte*)cstr);
-                        return FormatCode(str);
-                    }
-                    finally
-                    {
-                        NativeMethods.free_c_string(cstr);
-                    }
+                    var str = new string((sbyte*)cstr);
+                    return FormatCode(str);
+                }
+                finally
+                {
+                    freeFunc(cstr);
                 }
             }
-        }
-        finally
-        {
-            NativeMethods.FreeNativeLibrary(handle);
         }
     }
 

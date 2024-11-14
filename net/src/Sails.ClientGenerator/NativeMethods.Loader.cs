@@ -1,14 +1,10 @@
 #pragma warning disable RS1035 // Do not use APIs banned for analyzers
 
-using System.Reflection;
-using System.Runtime.InteropServices;
-using Sails.ClientGenerator.Loader;
-
 namespace Sails.ClientGenerator;
 
 internal static unsafe partial class NativeMethods
 {
-    internal static IntPtr LoadNativeLibrary()
+    internal static NativeLibrary LoadNativeLibrary()
     {
         // Determine where to extract the DLL
         var tempDirectory = Path.Combine(Path.GetTempPath(), DllName);
@@ -21,12 +17,7 @@ internal static unsafe partial class NativeMethods
         {
             ExtractResourceToFile($"{platform}.{DllName}{extension}", nativeLibraryPath);
         }
-        var ret = LibraryLoader.GetPlatformDefaultLoader().LoadNativeLibraryByPath(nativeLibraryPath);
-        if (ret == IntPtr.Zero)
-        {
-            throw new FileNotFoundException($"Could not find or load the native library: {nativeLibraryPath}");
-        }
-        return ret;
+        return new NativeLibrary(nativeLibraryPath);
     }
 
     internal static void FreeNativeLibrary(IntPtr handle) => LibraryLoader.GetPlatformDefaultLoader().FreeNativeLibrary(handle);
