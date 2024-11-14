@@ -5,6 +5,6 @@ public record struct GeneratorConfig(
     string Namespace
 )
 {
-    public override string ToString()
+    public readonly string ToJsonString()
         => $"{{ \"service_name\": \"{this.ServiceName}\", \"namespace\": \"{this.Namespace}\" }}";
 }
