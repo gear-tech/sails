@@ -10,6 +10,9 @@ namespace Sails.Tests.Shared.Containers;
 //       for modules shipped along with Testcontainers library.
 public sealed class GearNodeContainer : IAsyncDisposable
 {
+    // TODO: Consider making 'Version' as an optional parameter.
+    //       By default the latest version should be taken which can be determined
+    //       from the downloaded 'Cargo.toml' file.
     public GearNodeContainer(string gearNodeVersion, bool reuse)
     {
         EnsureArg.IsNotNullOrWhiteSpace(gearNodeVersion, nameof(gearNodeVersion));
