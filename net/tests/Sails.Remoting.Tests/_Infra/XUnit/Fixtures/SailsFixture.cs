@@ -1,5 +1,5 @@
 ﻿using Sails.Remoting.Tests._Infra.XUnit.Fixtures;
-using Sails.TestUtils.XUnit;
+using Sails.Tests.Shared.XUnit;
 
 [assembly: AssemblyFixture(typeof(SailsFixture))]
 

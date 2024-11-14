@@ -5,8 +5,8 @@ using System.Threading;
 using System.Threading.Tasks;
 using EnsureThat;
 using Nito.AsyncEx;
-using Sails.TestUtils.Containers;
-using Sails.TestUtils.Git;
+using Sails.Tests.Shared.Containers;
+using Sails.Tests.Shared.Git;
 using Xunit;
 
 namespace Sails.TestUtils.XUnit.Fixtures;

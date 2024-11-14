@@ -3,11 +3,12 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Sails.TestUtils.XUnit;
 using Xunit;
 using Xunit.Abstractions;
 using Xunit.Sdk;
 
-namespace Sails.TestUtils.XUnit;
+namespace Sails.Tests.Shared.XUnit;
 
 public sealed class TestAssemblyRunner : XunitTestAssemblyRunner
 {

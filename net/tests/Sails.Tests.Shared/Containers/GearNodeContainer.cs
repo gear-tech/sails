@@ -4,7 +4,7 @@ using DotNet.Testcontainers.Builders;
 using DotNet.Testcontainers.Containers;
 using EnsureThat;
 
-namespace Sails.TestUtils.Containers;
+namespace Sails.Tests.Shared.Containers;
 
 public sealed class GearNodeContainer : IAsyncDisposable
 {

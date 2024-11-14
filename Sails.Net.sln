@@ -21,9 +21,9 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Substrate.Gear.Client", "ne
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Substrate.Gear.Client.Tests", "net\tests\Substrate.Gear.Client.Tests\Substrate.Gear.Client.Tests.csproj", "{42B621CE-C2B4-4911-961C-5B087A514AF5}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Sails.TestUtils", "net\tests\Sails.TestUtils\Sails.TestUtils.csproj", "{382EBE9F-C60C-4D20-A585-B3272113F944}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Sails.Tests.Shared", "net\tests\Sails.Tests.Shared\Sails.Tests.Shared.csproj", "{382EBE9F-C60C-4D20-A585-B3272113F944}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Sails.Remoting.Tests", "net\tests\Sails.Remoting.Tests\Sails.Remoting.Tests.csproj", "{DEEACFC0-EE4D-42E5-9616-232242913A39}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Sails.Remoting.Tests", "net\tests\Sails.Remoting.Tests\Sails.Remoting.Tests.csproj", "{DEEACFC0-EE4D-42E5-9616-232242913A39}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

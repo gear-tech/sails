@@ -1,9 +1,10 @@
 ﻿using System.Collections.Generic;
 using System.Reflection;
+using Sails.TestUtils.XUnit;
 using Xunit.Abstractions;
 using Xunit.Sdk;
 
-namespace Sails.TestUtils.XUnit;
+namespace Sails.Tests.Shared.XUnit;
 
 public sealed class TestFrameworkExecutor : XunitTestFrameworkExecutor
 {

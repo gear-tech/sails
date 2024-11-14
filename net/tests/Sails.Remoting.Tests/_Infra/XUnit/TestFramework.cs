@@ -6,7 +6,7 @@
 
 namespace Sails.Remoting.Tests._Infra.XUnit;
 
-internal sealed class TestFramework : TestUtils.XUnit.TestFramework
+internal sealed class TestFramework : Sails.Tests.Shared.XUnit.TestFramework
 {
     public TestFramework(IMessageSink messageSink)
         : base(messageSink)

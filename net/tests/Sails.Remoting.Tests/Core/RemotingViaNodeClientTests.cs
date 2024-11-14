@@ -1,6 +1,6 @@
 ﻿using System.Threading.Tasks;
 using Sails.Remoting.Tests._Infra.XUnit.Fixtures;
-using Sails.TestUtils.XUnit;
+using Sails.Tests.Shared.XUnit;
 using Xunit;
 
 namespace Sails.Remoting.Tests.Core;

@@ -6,7 +6,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using EnsureThat;
 
-namespace Sails.TestUtils.Git;
+namespace Sails.Tests.Shared.Git;
 
 public sealed class GithubDownloader
 {
