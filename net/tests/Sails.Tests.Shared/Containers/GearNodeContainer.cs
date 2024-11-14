@@ -6,6 +6,8 @@ using EnsureThat;
 
 namespace Sails.Tests.Shared.Containers;
 
+// TODO: Consider introducing ContainerBuilder similar to how it is done
+//       for modules shipped along with Testcontainers library.
 public sealed class GearNodeContainer : IAsyncDisposable
 {
     public GearNodeContainer(string gearNodeVersion, bool reuse)
