@@ -1,4 +1,4 @@
-name: '[net] Tests Report'
+name: '[net] Test Report'
 
 on:
   workflow_run:
@@ -13,12 +13,12 @@ permissions:
   checks: write
 
 jobs:
-  tests-report:
-    name: Generate Tests Report
+  test-report:
+    name: Generate Test Report
     runs-on: ubuntu-latest
 
     steps:
-      - name: Generate Tests Report
+      - name: Generate Test Report
         uses: dorny/test-reporter@v1
         with:
           artifact: test-results
