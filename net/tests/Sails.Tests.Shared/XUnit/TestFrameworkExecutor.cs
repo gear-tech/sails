@@ -1,6 +1,5 @@
 ﻿using System.Collections.Generic;
 using System.Reflection;
-using Sails.TestUtils.XUnit;
 using Xunit.Abstractions;
 using Xunit.Sdk;
 
