@@ -1,4 +1,5 @@
-﻿using System.Threading.Tasks;
+﻿using System;
+using System.Threading.Tasks;
 using Sails.Remoting.Tests._Infra.XUnit.Fixtures;
 using Sails.Tests.Shared.XUnit;
 using Substrate.Gear.Api.Generated;
@@ -23,6 +24,7 @@ public sealed class RemotingViaNodeClientTests : IAssemblyFixture<SailsFixture>
 
         using (var nodeClient = new SubstrateClientExt(gearNodeWsUrl, ChargeTransactionPayment.Default()))
         {
+            await Task.Delay(TimeSpan.FromSeconds(3));
             await nodeClient.ConnectAsync();
         }
     }
