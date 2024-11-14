@@ -1,0 +1,28 @@
+name: '[net] Tests Report'
+
+on:
+  workflow_run:
+    workflows:
+      - '[net] CI (.Net)'
+    types:
+      - completed
+
+permissions:
+  contents: read
+  actions: read
+  checks: write
+
+jobs:
+  tests-report:
+    name: Generate Tests Report
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Generate Tests Report
+        uses: dorny/test-reporter@v1
+        with:
+          artifact: test-results
+          name: .Net Tests
+          path: *.trx
+          reporter: dotnet-trx
+          badge-title: net-tests
