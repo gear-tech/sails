@@ -1,7 +1,5 @@
 ﻿#pragma warning disable RS1035 // Do not use APIs banned for analyzers
 
-using System.Runtime.InteropServices;
-
 namespace Sails.ClientGenerator.Loader;
 
 /// <summary>
