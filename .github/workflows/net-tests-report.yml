@@ -23,6 +23,5 @@ jobs:
         with:
           artifact: test-results
           name: .Net Tests
-          path: *.trx
+          path: '*.trx'
           reporter: dotnet-trx
-          badge-title: net-tests
