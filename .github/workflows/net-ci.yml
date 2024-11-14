@@ -16,8 +16,8 @@ on:
       - 'Sales.Net.sln'
 
 jobs:
-  check:
-    name: Check Code
+  build-test:
+    name: Build & Test
     runs-on: ubuntu-latest
     defaults:
       run:
