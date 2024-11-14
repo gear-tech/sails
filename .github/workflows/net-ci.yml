@@ -43,9 +43,10 @@ jobs:
       - name: Test Solution
         run: >-
           dotnet test --no-build --configuration Debug
-            --logger "trx;LogFileName=TestResults.trx"
+          --logger "trx;LogFileName=TestResults.trx"
 
       - name: Upload Test Results
+        if: ${{ success() || failure() }}
         uses: actions/upload-artifact@v4
         with:
           name: test-results
