@@ -3,15 +3,15 @@
 
   <!--Defining all the text files input parameters-->
   <ItemGroup>
-    <IdlFiles Include="$(RootFolder)\**\*.$(IdlExtensionFile)" />
+    <IdlFiles Include="**\*.$(IdlExtensionFile)" />
   </ItemGroup>
 
   <!--It is generated a target which is executed before the compilation-->
-  <Target Name="BeforeCompile" Inputs="@(IdlFiles)" Outputs="@(IdlGeneratedFiles)">
+  <Target Name="SailsIdlGenerate" BeforeTargets="BeforeCompile">
     <!--Calling our custom task-->
-    <Sails.ClientBuildTask NamespaceName="$(IdlGeneratedNamespace)" IdlFiles="@(IdlFiles)">
-      <Output TaskParameter="IdlGeneratedFiles" PropertyName="IdlGeneratedFiles" />
-    </Sails.ClientBuildTask>
+    <SailsIdl IdlNamespace="$(IdlNamespace)" IdlFiles="@(IdlFiles)">
+      <Output TaskParameter="IdlGeneratedFiles" ItemName="IdlGeneratedFiles" />
+    </SailsIdl>
     <!--Our generated file is included to be compiled-->
     <ItemGroup>
       <Compile Remove="@(IdlGeneratedFiles)" />
@@ -20,7 +20,13 @@
   </Target>
 
   <!--The generated file is deleted after a general clean. It will force the regeneration on rebuild-->
-  <Target Name="AfterClean">
-    <Delete Files="@(IdlGeneratedFiles)" />
+  <Target Name="SailsIdlClean" AfterTargets="AfterClean" >
+    <ItemGroup>
+      <FilesToDelete Include="**\*.$(IdlExtensionFile).generated.cs"/>
+    </ItemGroup>
+    <Delete Files="@(FilesToDelete)">
+      <Output TaskParameter="DeletedFiles" ItemName="FilesDeleted" />
+    </Delete>
+    <Message Text="Deleted: @(FilesDeleted)"/>
   </Target>
 </Project>
