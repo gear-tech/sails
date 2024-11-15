@@ -1,4 +1,5 @@
-﻿using System;
+﻿#nullable disable
+using System;
 using Substrate.NetApi.Model.Types.Base;
 
 namespace Substrate.Gear.Client.Model.Types.Base;
@@ -11,7 +12,6 @@ public class BaseNonZero<T> : BaseType
     /// <summary>
     /// >> value
     /// </summary>
-    [System.Diagnostics.CodeAnalysis.AllowNull]
     public T Value { get; set; }
 
     public BaseNonZero()
