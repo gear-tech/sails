@@ -66,13 +66,17 @@ public sealed class GearNodeContainer : IAsyncDisposable
         public NodeInitializationDetector()
         {
             this.isNodeInitialized = new TaskCompletionSource();
+            this.nodeStdout = new NodeOutput(this.HandleNodeOutput);
+            this.nodeStrerr = new NodeOutput(this.HandleNodeOutput);
         }
 
         private readonly TaskCompletionSource isNodeInitialized;
+        private readonly NodeOutput nodeStdout;
+        private readonly NodeOutput nodeStrerr;
 
         public bool Enabled => !this.isNodeInitialized.Task.IsCompleted;
-        Stream IOutputConsumer.Stdout => new NodeOutput(this.HandleNodeOutput);
-        Stream IOutputConsumer.Stderr => new NodeOutput(this.HandleNodeOutput);
+        Stream IOutputConsumer.Stdout => this.nodeStdout;
+        Stream IOutputConsumer.Stderr => this.nodeStrerr;
 
         public async Task IsInitializedAsync(TimeSpan maxWaitTime)
         {
@@ -87,7 +91,12 @@ public sealed class GearNodeContainer : IAsyncDisposable
         }
 
         public void Dispose()
-            => this.isNodeInitialized.SetCanceled();
+        {
+            this.isNodeInitialized.SetCanceled();
+            this.nodeStrerr.Dispose();
+            this.nodeStdout.Dispose();
+            GC.SuppressFinalize(this);
+        }
 
         private void HandleNodeOutput(string output)
         {
