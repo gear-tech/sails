@@ -10,6 +10,8 @@
     <Description>Code generator for Sails.Net.</Description>
     <EnableNETAnalyzers>true</EnableNETAnalyzers>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+
+    <VersionSuffix>build$([System.DateTime]::Now.ToString('yyyyMMdd-HHmm'))</VersionSuffix>
   </PropertyGroup>
 
   <ItemGroup>
@@ -41,6 +43,11 @@
   <ItemGroup>
     <!-- Package the generator in the analyzer directory of the nuget package -->
     <None Include="$(OutputPath)\$(AssemblyName).dll" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
+    <None Include="$(OutputPath)\Sails.ClientGenerator.Native.dll" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Sails.ClientGenerator.Native\Sails.ClientGenerator.Native.csproj" PrivateAssets="All" IncludeInPackage="true" />
   </ItemGroup>
 
 </Project>

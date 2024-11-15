@@ -11,7 +11,7 @@ public static class Generator
         var freeFunc = library.LoadFunction<FreeCString>("free_c_string");
 
         var idlBytes = Encoding.UTF8.GetBytes(source);
-        var configBytes = Encoding.UTF8.GetBytes(config.ToString());
+        var configBytes = Encoding.UTF8.GetBytes(config.ToJsonString());
 
         fixed (byte* idlPtr = idlBytes)
         {
