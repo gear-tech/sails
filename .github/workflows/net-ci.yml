@@ -5,26 +5,26 @@ on:
     branches:
       - master
     paths:
-      - '.github/workflows/ci-net.yml'
+      - '.github/workflows/net-ci.yml'
       - 'net/**'
       - 'Sales.Net.sln'
 
   pull_request:
     paths:
-      - '.github/workflows/ci-net.yml'
+      - '.github/workflows/net-ci.yml'
       - 'net/**'
       - 'Sales.Net.sln'
 
 jobs:
-  check:
-    name: Check Code
+  build-test:
+    name: Build & Test
     runs-on: ubuntu-latest
     defaults:
       run:
         shell: bash
 
     steps:
-      - name: Check Out Source
+      - name: Check Code
         uses: actions/checkout@v4
 
       - name: Set Up .NET
@@ -38,4 +38,18 @@ jobs:
 
       - name: Build Solution
         run: >-
-          dotnet build --no-restore
+          dotnet build --no-restore --configuration Debug
+
+      - name: Test Solution
+        run: >-
+          dotnet test --no-build --configuration Debug
+          --logger "trx;LogFileName=TestResults.trx"
+
+      - name: Upload Test Results
+        if: ${{ success() || failure() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: |
+            net/**/*.trx
+            !net/**/Sails.Tests.Shared/**/*.trx
