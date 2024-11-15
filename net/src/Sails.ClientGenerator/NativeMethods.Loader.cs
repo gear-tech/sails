@@ -1,23 +1,14 @@
 #pragma warning disable RS1035 // Do not use APIs banned for analyzers
 
+using System.Security.Cryptography;
+
 namespace Sails.ClientGenerator;
 
 internal static unsafe partial class NativeMethods
 {
     internal static NativeLibrary LoadNativeLibrary()
     {
-        // Determine where to extract the DLL
-        var version = typeof(NativeMethods).Assembly.GetName().Version.ToString();
-        var tempDirectory = Path.Combine(Path.GetTempPath(), DllName, version);
-        Directory.CreateDirectory(tempDirectory);
-
-        var (platform, extension) = GetResourcePlatform();
-        var nativeLibraryPath = Path.Combine(tempDirectory, DllName + extension);
-        // Extract the DLL only if it doesn't already exist
-        if (!File.Exists(nativeLibraryPath))
-        {
-            ExtractResourceToFile($"{platform}.{DllName}{extension}", nativeLibraryPath);
-        }
+        var nativeLibraryPath = ExtractResourceToFile(DllName);
         return new NativeLibrary(nativeLibraryPath);
     }
 
@@ -59,15 +50,40 @@ internal static unsafe partial class NativeMethods
         return (platform, extension);
     }
 
-    private static void ExtractResourceToFile(string resourceName, string filePath)
+    private static string ExtractResourceToFile(string dllName)
     {
+        var (platform, extension) = GetResourcePlatform();
+        var resourceName = $"{platform}.{DllName}{extension}";
+
+        // Get library bytes
         var assembly = Assembly.GetExecutingAssembly();
         using var resourceStream = assembly.GetManifestResourceStream(resourceName);
         if (resourceStream == null)
         {
             throw new Exception($"Resource '{resourceName}' not found in assembly.");
         }
-        using var fileStream = new FileStream(filePath, FileMode.Create, FileAccess.Write);
-        resourceStream.CopyTo(fileStream);
+        using var memoryStream = new MemoryStream();
+        resourceStream.CopyTo(memoryStream);
+        var bytes = memoryStream.ToArray();
+
+        var hash = SHA1.Create().ComputeHash(bytes);
+        var hashString = Convert.ToBase64String(hash)
+            .Replace('+', '-') // replace URL unsafe characters with safe ones
+            .Replace('/', '_') // replace URL unsafe characters with safe ones
+            .Replace("=", "") // no padding
+            .ToLowerInvariant();
+
+        // Determine where to extract the DLL
+        var tempDirectory = Path.Combine(Path.GetTempPath(), DllName, hashString);
+        Directory.CreateDirectory(tempDirectory);
+
+        var nativeLibraryPath = Path.Combine(tempDirectory, DllName + extension);
+        // Extract the DLL only if it doesn't already exist
+        if (!File.Exists(nativeLibraryPath))
+        {
+            using var fileStream = new FileStream(nativeLibraryPath, FileMode.Create, FileAccess.Write);
+            fileStream.Write(bytes, 0, bytes.Length);
+        }
+        return nativeLibraryPath;
     }
 }
