@@ -7,7 +7,8 @@ internal static unsafe partial class NativeMethods
     internal static NativeLibrary LoadNativeLibrary()
     {
         // Determine where to extract the DLL
-        var tempDirectory = Path.Combine(Path.GetTempPath(), DllName);
+        var version = typeof(NativeMethods).Assembly.GetName().Version.ToString();
+        var tempDirectory = Path.Combine(Path.GetTempPath(), DllName, version);
         Directory.CreateDirectory(tempDirectory);
 
         var (platform, extension) = GetResourcePlatform();

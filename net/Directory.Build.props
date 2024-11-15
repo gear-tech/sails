@@ -15,9 +15,6 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <PackageVersion Include="NSubstitute.Analyzers.CSharp" Version="1.0.17" >
-      <PrivateAssets>all</PrivateAssets>
-    </PackageVersion>
   </ItemGroup>
 
 </Project>

@@ -7,13 +7,11 @@ on:
     paths:
       - '.github/workflows/net-build-client-gen.yml'
       - 'net/rs/**'
-      - 'rs/idl-parser/**'
 
   pull_request:
     paths:
       - '.github/workflows/net-build-client-gen.yml'
       - 'net/rs/**'
-      - 'rs/idl-parser/**'
 
 jobs:
   win-x64:

@@ -19,18 +19,28 @@ public partial class SailsClientGenerator : IIncrementalGenerator
 
     private static void AddSource(
         SourceProductionContext context,
-        (string? AssemblyName, ImmutableArray<AdditionalText> Right) tuple)
+        (string? AssemblyName, ImmutableArray<AdditionalText> Texts) tuple)
     {
-        var assemblyName = tuple.AssemblyName!;
-        foreach (var source in tuple.Right)
+        if (tuple.AssemblyName is null)
         {
+            // Do not generated code without Assembly in Compilation
+            return;
+        }
+        var assemblyName = tuple.AssemblyName!;
+        foreach (var source in tuple.Texts)
+        {
+            var text = source.GetText();
+            if (text is null)
+            {
+                continue;
+            }
             // TODO: add relative directory as namespace part
             var parts = new List<string>();
             parts.Insert(0, assemblyName);
             var name = FirstUpper(Path.GetFileNameWithoutExtension(source.Path));
             parts.Add(name);
             var ns = string.Join(".", parts);
-            var code = GenerateCode(source.GetText()!.ToString(), new GeneratorConfig(name, ns));
+            var code = GenerateCode(text.ToString(), new GeneratorConfig(name, ns));
 
             context.AddSource($"{name}.g.cs", SourceText.From(code, encoding: Encoding.UTF8));
         }
@@ -43,7 +53,7 @@ public partial class SailsClientGenerator : IIncrementalGenerator
         var freeFunc = library.LoadFunction<FreeCString>("free_c_string");
 
         var idlBytes = Encoding.UTF8.GetBytes(source);
-        var configBytes = Encoding.UTF8.GetBytes(config.ToString());
+        var configBytes = Encoding.UTF8.GetBytes(config.ToJsonString());
 
         fixed (byte* idlPtr = idlBytes)
         {
