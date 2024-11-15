@@ -26,3 +26,7 @@ js/test/demo/
 !.yarn/sdks
 !.yarn/versions
 .npmrc
+
+# Verify
+*.received.*
+*.received/

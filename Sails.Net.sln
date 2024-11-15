@@ -31,7 +31,17 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Sails.Client.Tests", "net\t
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Sails.ClientBuildTask", "net\src\Sails.ClientBuildTask\Sails.ClientBuildTask.csproj", "{E5072C5C-F9F6-459F-970F-200D21E92677}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Sails.ClientGenerator.Native", "net\src\Sails.ClientGenerator.Native\Sails.ClientGenerator.Native.csproj", "{A5BDF026-737E-482C-9003-C604399EBE6F}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Sails.Remoting.Tests", "net\tests\Sails.Remoting.Tests\Sails.Remoting.Tests.csproj", "{DEEACFC0-EE4D-42E5-9616-232242913A39}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Sails.ClientGenerator", "net\src\Sails.ClientGenerator\Sails.ClientGenerator.csproj", "{F93FFE42-71C1-44BD-9DBA-3559B307370C}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Sails.ClientGenerator.Tests", "net\tests\Sails.ClientGenerator.Tests\Sails.ClientGenerator.Tests.csproj", "{A6A2172B-8F8F-4BDC-B519-E7299FFCCA5F}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{19594BCA-94DB-44AD-ACBC-2ACFED242E9F}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Substrate.Gear.Client.Tests", "net\tests\Substrate.Gear.Client.Tests\Substrate.Gear.Client.Tests.csproj", "{42B621CE-C2B4-4911-961C-5B087A514AF5}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Sails.Client.Tests", "net\tests\Sails.Client.Tests\Sails.Client.Tests.csproj", "{BC248D44-14CD-4BB0-9AF9-4E0750574492}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
