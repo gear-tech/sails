@@ -1,6 +1,9 @@
 ﻿using System;
+using System.IO;
+using System.Text;
 using System.Threading.Tasks;
 using DotNet.Testcontainers.Builders;
+using DotNet.Testcontainers.Configurations;
 using DotNet.Testcontainers.Containers;
 using EnsureThat;
 
@@ -17,6 +20,7 @@ public sealed class GearNodeContainer : IAsyncDisposable
     {
         EnsureArg.IsNotNullOrWhiteSpace(gearNodeVersion, nameof(gearNodeVersion));
 
+        this.nodeInitializationDetector = new NodeInitializationDetector();
         this.container = new ContainerBuilder()
             .WithName("gear-node-for-tests")
             .WithImage($"ghcr.io/gear-tech/node:v{gearNodeVersion}")
@@ -28,12 +32,15 @@ public sealed class GearNodeContainer : IAsyncDisposable
                 "--tmp")
             .WithEnvironment("RUST_LOG", "gear=debug,pallet_gear=debug,gwasm=debug")
             .WithReuse(reuse)
+            .WithOutputConsumer(this.nodeInitializationDetector)
             .Build();
         this.reuse = reuse;
     }
 
     private const ushort RpcPort = 9944;
+    private static readonly TimeSpan NodeInitializationTimeout = TimeSpan.FromSeconds(10);
 
+    private readonly NodeInitializationDetector nodeInitializationDetector;
     private readonly IContainer container;
     private readonly bool reuse;
 
@@ -48,6 +55,87 @@ public sealed class GearNodeContainer : IAsyncDisposable
             ? ValueTask.CompletedTask
             : this.container.DisposeAsync();
 
-    public Task StartAsync()
-        => this.container.StartAsync();
+    public async Task StartAsync()
+    {
+        await this.container.StartAsync();
+        await this.nodeInitializationDetector.IsInitializedAsync(NodeInitializationTimeout);
+    }
+
+    private sealed class NodeInitializationDetector : IOutputConsumer
+    {
+        public NodeInitializationDetector()
+        {
+            this.isNodeInitialized = new TaskCompletionSource();
+        }
+
+        private readonly TaskCompletionSource isNodeInitialized;
+
+        public bool Enabled => !this.isNodeInitialized.Task.IsCompleted;
+        Stream IOutputConsumer.Stdout => new NodeOutput(this.HandleNodeOutput);
+        Stream IOutputConsumer.Stderr => new NodeOutput(this.HandleNodeOutput);
+
+        public async Task IsInitializedAsync(TimeSpan maxWaitTime)
+        {
+            var timeoutTask = Task.Delay(maxWaitTime);
+            var completedTask = await Task.WhenAny(this.isNodeInitialized.Task, timeoutTask);
+            if (completedTask == timeoutTask)
+            {
+                this.isNodeInitialized.SetException(
+                    new TimeoutException($"Node initialization timed out after {maxWaitTime}."));
+                await this.isNodeInitialized.Task;
+            }
+        }
+
+        public void Dispose()
+            => this.isNodeInitialized.SetCanceled();
+
+        private void HandleNodeOutput(string output)
+        {
+            if (this.Enabled && output.Contains("Initialization of block #"))
+            {
+                this.isNodeInitialized.SetResult();
+            }
+        }
+
+        private sealed class NodeOutput : Stream
+        {
+            public NodeOutput(Action<string> output)
+            {
+                this.output = output;
+                this.length = 0;
+            }
+
+            private readonly Action<string> output;
+            private long length;
+
+            public override bool CanRead => false;
+            public override bool CanSeek => false;
+            public override bool CanWrite => true;
+            public override long Length => this.length;
+            public override long Position
+            {
+                get => this.Length;
+                set => throw new NotImplementedException();
+            }
+
+            public override void Write(byte[] buffer, int offset, int count)
+            {
+                var message = Encoding.UTF8.GetString(buffer, offset, count);
+                this.output(message);
+                this.length += count;
+            }
+
+            public override void Flush()
+                => throw new NotImplementedException();
+
+            public override int Read(byte[] buffer, int offset, int count)
+                => throw new NotImplementedException();
+
+            public override long Seek(long offset, SeekOrigin origin)
+                => throw new NotImplementedException();
+
+            public override void SetLength(long value)
+                => throw new NotImplementedException();
+        }
+    }
 }
