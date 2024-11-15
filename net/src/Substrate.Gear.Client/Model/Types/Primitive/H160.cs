@@ -1,4 +1,5 @@
-﻿using System;
+﻿#nullable disable
+using System;
 using Substrate.Gear.Api.Generated.Types.Base;
 using Substrate.NetApi.Attributes;
 using Substrate.NetApi.Model.Types.Base;
@@ -15,7 +16,7 @@ public sealed class H160 : BaseType
     /// <summary>
     /// >> value
     /// </summary>
-    public required Arr20U8 Value { get; set; }
+    public Arr20U8 Value { get; set; }
 
     /// <inheritdoc/>
     public override string TypeName() => nameof(H160);

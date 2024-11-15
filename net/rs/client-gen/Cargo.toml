@@ -1,0 +1,25 @@
+[package]
+name = "sails-net-client-gen"
+description = "Rust .NET client generator for the Sails framework"
+documentation = "https://docs.rs/sails-client-gen"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+anyhow.workspace = true
+convert-case.workspace = true
+genco.workspace = true
+itertools.workspace = true
+parity-scale-codec.workspace = true
+sails-idl-parser.workspace = true
+serde.workspace = true
+serde-json.workspace = true
+
+[dev-dependencies]
+insta.workspace = true

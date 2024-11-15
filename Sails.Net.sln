@@ -19,11 +19,19 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Substrate.Gear.Client", "net\src\Substrate.Gear.Client\Substrate.Gear.Client.csproj", "{1589D5A4-0CC4-4855-89E0-2E61BBC5E0B0}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Substrate.Gear.Client.Tests", "net\tests\Substrate.Gear.Client.Tests\Substrate.Gear.Client.Tests.csproj", "{42B621CE-C2B4-4911-961C-5B087A514AF5}"
-EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Sails.Tests.Shared", "net\tests\Sails.Tests.Shared\Sails.Tests.Shared.csproj", "{382EBE9F-C60C-4D20-A585-B3272113F944}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Sails.Remoting.Tests", "net\tests\Sails.Remoting.Tests\Sails.Remoting.Tests.csproj", "{DEEACFC0-EE4D-42E5-9616-232242913A39}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Sails.ClientGenerator", "net\src\Sails.ClientGenerator\Sails.ClientGenerator.csproj", "{F93FFE42-71C1-44BD-9DBA-3559B307370C}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Sails.ClientGenerator.Tests", "net\tests\Sails.ClientGenerator.Tests\Sails.ClientGenerator.Tests.csproj", "{A6A2172B-8F8F-4BDC-B519-E7299FFCCA5F}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{19594BCA-94DB-44AD-ACBC-2ACFED242E9F}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Substrate.Gear.Client.Tests", "net\tests\Substrate.Gear.Client.Tests\Substrate.Gear.Client.Tests.csproj", "{42B621CE-C2B4-4911-961C-5B087A514AF5}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Sails.Client.Tests", "net\tests\Sails.Client.Tests\Sails.Client.Tests.csproj", "{BC248D44-14CD-4BB0-9AF9-4E0750574492}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -51,6 +59,14 @@ Global
 		{1589D5A4-0CC4-4855-89E0-2E61BBC5E0B0}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{1589D5A4-0CC4-4855-89E0-2E61BBC5E0B0}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{1589D5A4-0CC4-4855-89E0-2E61BBC5E0B0}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F93FFE42-71C1-44BD-9DBA-3559B307370C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F93FFE42-71C1-44BD-9DBA-3559B307370C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F93FFE42-71C1-44BD-9DBA-3559B307370C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F93FFE42-71C1-44BD-9DBA-3559B307370C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A6A2172B-8F8F-4BDC-B519-E7299FFCCA5F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A6A2172B-8F8F-4BDC-B519-E7299FFCCA5F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A6A2172B-8F8F-4BDC-B519-E7299FFCCA5F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A6A2172B-8F8F-4BDC-B519-E7299FFCCA5F}.Release|Any CPU.Build.0 = Release|Any CPU
 		{42B621CE-C2B4-4911-961C-5B087A514AF5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{42B621CE-C2B4-4911-961C-5B087A514AF5}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{42B621CE-C2B4-4911-961C-5B087A514AF5}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -63,9 +79,17 @@ Global
 		{DEEACFC0-EE4D-42E5-9616-232242913A39}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{DEEACFC0-EE4D-42E5-9616-232242913A39}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{DEEACFC0-EE4D-42E5-9616-232242913A39}.Release|Any CPU.Build.0 = Release|Any CPU
+		{BC248D44-14CD-4BB0-9AF9-4E0750574492}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BC248D44-14CD-4BB0-9AF9-4E0750574492}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BC248D44-14CD-4BB0-9AF9-4E0750574492}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BC248D44-14CD-4BB0-9AF9-4E0750574492}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{A6A2172B-8F8F-4BDC-B519-E7299FFCCA5F} = {19594BCA-94DB-44AD-ACBC-2ACFED242E9F}
+		{BC248D44-14CD-4BB0-9AF9-4E0750574492} = {19594BCA-94DB-44AD-ACBC-2ACFED242E9F}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {0894C08B-8BB9-401D-8471-26F5EB5A4EA2}

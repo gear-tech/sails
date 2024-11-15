@@ -1,5 +1,5 @@
-﻿using System;
-using System.Diagnostics.CodeAnalysis;
+﻿#nullable disable
+using System;
 using Substrate.NetApi.Model.Types.Base;
 
 namespace Substrate.Gear.Client.Model.Types.Base;
@@ -12,13 +12,12 @@ public class BaseNonZero<T> : BaseType
     /// <summary>
     /// >> value
     /// </summary>
-    public required T Value { get; set; }
+    public T Value { get; set; }
 
     public BaseNonZero()
     {
     }
 
-    [SetsRequiredMembers]
     public BaseNonZero(T value)
     {
         var span = value.Bytes.AsSpan();

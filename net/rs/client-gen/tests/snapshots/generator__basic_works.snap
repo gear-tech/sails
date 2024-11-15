@@ -1,0 +1,63 @@
+---
+source: client-gen/tests/generator.rs
+expression: "gen(idl, \"Basic\")"
+---
+using global::Sails.Remoting;
+using global::Sails.Remoting.Abstractions;
+using global::Sails.Remoting.Abstractions.Core;
+using global::System;
+using global::System.Collections.Generic;
+
+#pragma warning disable RCS0056 // A line is too long
+
+namespace Basic.Client;
+
+public interface IBasic
+ { ICall<global::Substrate.NetApi.Model.Types.Primitive.U16> DoThis(global::Substrate.NetApi.Model.Types.Primitive.U32 p1, MyParam p2);
+ICall<global::Substrate.NetApi.Model.Types.Primitive.U8> DoThat(global::Substrate.NetApi.Model.Types.Base.BaseTuple<global::Substrate.NetApi.Model.Types.Primitive.U8, global::Substrate.NetApi.Model.Types.Primitive.U32> p1);
+ }
+
+ public sealed partial class Basic : IBasic
+ { private readonly IRemoting remoting;
+
+ public Basic(IRemoting remoting) { this.remoting = remoting; }
+
+/// <inheritdoc/>
+ public ICall<global::Substrate.NetApi.Model.Types.Primitive.U16> DoThis(global::Substrate.NetApi.Model.Types.Primitive.U32 p1, MyParam p2) { return new RemotingAction<global::Substrate.NetApi.Model.Types.Primitive.U16>( this.remoting, [20, 66, 97, 115, 105, 99, 24, 68, 111, 84, 104, 105, 115], new global::Substrate.NetApi.Model.Types.Base.BaseTupleRust(p1, p2) ); }
+/// <inheritdoc/>
+ public ICall<global::Substrate.NetApi.Model.Types.Primitive.U8> DoThat(global::Substrate.NetApi.Model.Types.Base.BaseTuple<global::Substrate.NetApi.Model.Types.Primitive.U8, global::Substrate.NetApi.Model.Types.Primitive.U32> p1) { return new RemotingAction<global::Substrate.NetApi.Model.Types.Primitive.U8>( this.remoting, [20, 66, 97, 115, 105, 99, 24, 68, 111, 84, 104, 97, 116], new global::Substrate.NetApi.Model.Types.Base.BaseTupleRust(p1) ); } }
+
+[global::Substrate.NetApi.Attributes.SubstrateNodeType(global::Substrate.NetApi.Model.Types.Metadata.Base.TypeDefEnum.Composite)] public sealed partial class MyParam : global::Substrate.NetApi.Model.Types.Base.BaseType {
+[System.Diagnostics.CodeAnalysis.AllowNull]
+ public global::Substrate.NetApi.Model.Types.Primitive.U32 F1 { get; set; }
+[System.Diagnostics.CodeAnalysis.AllowNull]
+ public global::Substrate.NetApi.Model.Types.Base.BaseVec<global::Substrate.NetApi.Model.Types.Primitive.Str> F2 { get; set; }
+[System.Diagnostics.CodeAnalysis.AllowNull]
+ public global::Substrate.NetApi.Model.Types.Base.BaseOpt<global::Substrate.NetApi.Model.Types.Base.BaseTuple<global::Substrate.NetApi.Model.Types.Primitive.U8, global::Substrate.NetApi.Model.Types.Primitive.U32>> F3 { get; set; }
+/// <inheritdoc/>
+ public override string TypeName() => "MyParam";
+/// <inheritdoc/>
+ public override byte[] Encode() { var result = new List<byte>(); result.AddRange(this.F1.Encode());
+result.AddRange(this.F2.Encode());
+result.AddRange(this.F3.Encode());
+ return result.ToArray(); }
+/// <inheritdoc/>
+ public override void Decode(byte[] byteArray, ref int p) { var start = p; this.F1 = new global::Substrate.NetApi.Model.Types.Primitive.U32();
+ this.F1.Decode(byteArray, ref p);
+this.F2 = new global::Substrate.NetApi.Model.Types.Base.BaseVec<global::Substrate.NetApi.Model.Types.Primitive.Str>();
+ this.F2.Decode(byteArray, ref p);
+this.F3 = new global::Substrate.NetApi.Model.Types.Base.BaseOpt<global::Substrate.NetApi.Model.Types.Base.BaseTuple<global::Substrate.NetApi.Model.Types.Primitive.U8, global::Substrate.NetApi.Model.Types.Primitive.U32>>();
+ this.F3.Decode(byteArray, ref p);
+ var bytesLength = p - start; this.TypeSize = bytesLength; this.Bytes = new byte[bytesLength]; Array.Copy(byteArray, start, this.Bytes, 0, bytesLength); } }
+
+public enum MyParam2 { Variant1,
+ Variant2,
+ Variant3,
+ Variant4,
+ Variant5,
+ } public sealed partial class EnumMyParam2 : global::Substrate.NetApi.Model.Types.Base.BaseEnumRust<MyParam2> { public EnumMyParam2() { this.AddTypeDecoder<global::Substrate.NetApi.Model.Types.Base.BaseVoid>(MyParam2.Variant1);
+this.AddTypeDecoder<global::Substrate.NetApi.Model.Types.Primitive.U32>(MyParam2.Variant2);
+this.AddTypeDecoder<global::Substrate.NetApi.Model.Types.Primitive.U32>(MyParam2.Variant3);
+this.AddTypeDecoder<global::Substrate.NetApi.Model.Types.Base.BaseTuple<global::Substrate.NetApi.Model.Types.Primitive.U8, global::Substrate.NetApi.Model.Types.Primitive.U32>>(MyParam2.Variant4);
+this.AddTypeDecoder<global::Substrate.NetApi.Model.Types.Base.BaseTuple<global::Substrate.NetApi.Model.Types.Primitive.Str, global::Substrate.NetApi.Model.Types.Base.BaseVec<global::Substrate.NetApi.Model.Types.Primitive.U8>>>(MyParam2.Variant5);
+ } }
