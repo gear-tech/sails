@@ -56,14 +56,14 @@ internal sealed class RemotingReplyViaNodeClient<T> : RemotingReply<T>
             var queuedMessageData = extrinsicBlockEvents
                 .Where(
                     eventRecord =>
-                        eventRecord.Phase.Matches(
+                        eventRecord.Phase.ToBaseEnumRust().Matches(
                             Phase.ApplyExtrinsic,
                             (U32 extrinsicIdxInBlock) => extrinsicIdxInBlock.Value == extrinsicInfo.IndexInBlock))
                 .Select(
-                    eventRecord => eventRecord.Event)
+                    eventRecord => eventRecord.Event.ToBaseEnumRust())
                 .SelectIfMatches(
                     RuntimeEvent.Gear,
-                    (EnumGearEvent gearEvent) => gearEvent)
+                    (EnumGearEvent gearEvent) => gearEvent.ToBaseEnumRust())
                 .SelectIfMatches(
                     GearEvent.MessageQueued,
                     (MessageQueuedEventData data) => data)
@@ -133,10 +133,10 @@ internal sealed class RemotingReplyViaNodeClient<T> : RemotingReply<T>
                 .SelectMany(
                     eventRecords => eventRecords.AsAsyncEnumerable())
                 .Select(
-                    eventRecord => eventRecord.Event)
+                    eventRecord => eventRecord.Event.ToBaseEnumRust())
                 .SelectIfMatches(
                     RuntimeEvent.Gear,
-                    (EnumGearEvent gearEvent) => gearEvent)
+                    (EnumGearEvent gearEvent) => gearEvent.ToBaseEnumRust())
                 .SelectIfMatches(
                     GearEvent.UserMessageSent,
                     (UserMessageSentEventData data) => (UserMessage)data.Value[0])

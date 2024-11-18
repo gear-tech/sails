@@ -40,17 +40,7 @@ namespace Substrate.Gear.Api.Generated.Model.frame_support.dispatch
     /// <summary>
     /// >> 121 - Variant[frame_support.dispatch.RawOrigin]
     /// </summary>
-    public sealed class EnumRawOrigin : BaseEnumRust<RawOrigin>
+    public sealed class EnumRawOrigin : BaseEnumExt<RawOrigin, BaseVoid, Substrate.Gear.Api.Generated.Model.sp_core.crypto.AccountId32, BaseVoid>
     {
-        
-        /// <summary>
-        /// Initializes a new instance of the class.
-        /// </summary>
-        public EnumRawOrigin()
-        {
-				AddTypeDecoder<BaseVoid>(RawOrigin.Root);
-				AddTypeDecoder<Substrate.Gear.Api.Generated.Model.sp_core.crypto.AccountId32>(RawOrigin.Signed);
-				AddTypeDecoder<BaseVoid>(RawOrigin.None);
-        }
     }
 }

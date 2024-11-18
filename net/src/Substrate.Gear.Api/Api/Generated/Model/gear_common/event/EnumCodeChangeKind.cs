@@ -40,17 +40,7 @@ namespace Substrate.Gear.Api.Generated.Model.gear_common.@event
     /// <summary>
     /// >> 331 - Variant[gear_common.@event.CodeChangeKind]
     /// </summary>
-    public sealed class EnumCodeChangeKind : BaseEnumRust<CodeChangeKind>
+    public sealed class EnumCodeChangeKind : BaseEnumExt<CodeChangeKind, Substrate.NetApi.Model.Types.Base.BaseOpt<Substrate.NetApi.Model.Types.Primitive.U32>, BaseVoid, BaseVoid>
     {
-        
-        /// <summary>
-        /// Initializes a new instance of the class.
-        /// </summary>
-        public EnumCodeChangeKind()
-        {
-				AddTypeDecoder<Substrate.NetApi.Model.Types.Base.BaseOpt<Substrate.NetApi.Model.Types.Primitive.U32>>(CodeChangeKind.Active);
-				AddTypeDecoder<BaseVoid>(CodeChangeKind.Inactive);
-				AddTypeDecoder<BaseVoid>(CodeChangeKind.Reinstrumented);
-        }
     }
 }

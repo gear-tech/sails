@@ -33,15 +33,7 @@ namespace Substrate.Gear.Api.Generated.Model.pallet_bags_list.pallet
     /// >> 399 - Variant[pallet_bags_list.pallet.Error]
     /// The `Error` enum of this pallet.
     /// </summary>
-    public sealed class EnumError : BaseEnumRust<Error>
+    public sealed class EnumError : BaseEnumExt<Error, Substrate.Gear.Api.Generated.Model.pallet_bags_list.list.EnumListError>
     {
-        
-        /// <summary>
-        /// Initializes a new instance of the class.
-        /// </summary>
-        public EnumError()
-        {
-				AddTypeDecoder<Substrate.Gear.Api.Generated.Model.pallet_bags_list.list.EnumListError>(Error.List);
-        }
     }
 }

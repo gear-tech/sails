@@ -57,19 +57,7 @@ namespace Substrate.Gear.Api.Generated.Model.pallet_gear_voucher.pallet
     /// >> 267 - Variant[pallet_gear_voucher.pallet.Call]
     /// Contains a variant per dispatchable extrinsic that this pallet has.
     /// </summary>
-    public sealed class EnumCall : BaseEnumRust<Call>
+    public sealed class EnumCall : BaseEnumExt<Call, BaseTuple<Substrate.Gear.Api.Generated.Model.sp_core.crypto.AccountId32, Substrate.NetApi.Model.Types.Primitive.U128, Substrate.NetApi.Model.Types.Base.BaseOpt<Substrate.Gear.Api.Generated.Types.Base.BTreeSetT1>, Substrate.NetApi.Model.Types.Primitive.Bool, Substrate.NetApi.Model.Types.Primitive.U32>, BaseTuple<Substrate.Gear.Api.Generated.Model.pallet_gear_voucher.@internal.VoucherId, Substrate.Gear.Api.Generated.Model.pallet_gear_voucher.@internal.EnumPrepaidCall>, BaseTuple<Substrate.Gear.Api.Generated.Model.sp_core.crypto.AccountId32, Substrate.Gear.Api.Generated.Model.pallet_gear_voucher.@internal.VoucherId>, BaseTuple<Substrate.Gear.Api.Generated.Model.sp_core.crypto.AccountId32, Substrate.Gear.Api.Generated.Model.pallet_gear_voucher.@internal.VoucherId, Substrate.NetApi.Model.Types.Base.BaseOpt<Substrate.Gear.Api.Generated.Model.sp_core.crypto.AccountId32>, Substrate.NetApi.Model.Types.Base.BaseOpt<Substrate.NetApi.Model.Types.Primitive.U128>, Substrate.NetApi.Model.Types.Base.BaseOpt<Substrate.NetApi.Model.Types.Base.BaseOpt<Substrate.Gear.Api.Generated.Types.Base.BTreeSetT1>>, Substrate.NetApi.Model.Types.Base.BaseOpt<Substrate.NetApi.Model.Types.Primitive.Bool>, Substrate.NetApi.Model.Types.Base.BaseOpt<Substrate.NetApi.Model.Types.Primitive.U32>>, Substrate.Gear.Api.Generated.Model.pallet_gear_voucher.@internal.VoucherId>
     {
-        
-        /// <summary>
-        /// Initializes a new instance of the class.
-        /// </summary>
-        public EnumCall()
-        {
-				AddTypeDecoder<BaseTuple<Substrate.Gear.Api.Generated.Model.sp_core.crypto.AccountId32, Substrate.NetApi.Model.Types.Primitive.U128, Substrate.NetApi.Model.Types.Base.BaseOpt<Substrate.Gear.Api.Generated.Types.Base.BTreeSetT1>, Substrate.NetApi.Model.Types.Primitive.Bool, Substrate.NetApi.Model.Types.Primitive.U32>>(Call.issue);
-				AddTypeDecoder<BaseTuple<Substrate.Gear.Api.Generated.Model.pallet_gear_voucher.@internal.VoucherId, Substrate.Gear.Api.Generated.Model.pallet_gear_voucher.@internal.EnumPrepaidCall>>(Call.call);
-				AddTypeDecoder<BaseTuple<Substrate.Gear.Api.Generated.Model.sp_core.crypto.AccountId32, Substrate.Gear.Api.Generated.Model.pallet_gear_voucher.@internal.VoucherId>>(Call.revoke);
-				AddTypeDecoder<BaseTuple<Substrate.Gear.Api.Generated.Model.sp_core.crypto.AccountId32, Substrate.Gear.Api.Generated.Model.pallet_gear_voucher.@internal.VoucherId, Substrate.NetApi.Model.Types.Base.BaseOpt<Substrate.Gear.Api.Generated.Model.sp_core.crypto.AccountId32>, Substrate.NetApi.Model.Types.Base.BaseOpt<Substrate.NetApi.Model.Types.Primitive.U128>, Substrate.NetApi.Model.Types.Base.BaseOpt<Substrate.NetApi.Model.Types.Base.BaseOpt<Substrate.Gear.Api.Generated.Types.Base.BTreeSetT1>>, Substrate.NetApi.Model.Types.Base.BaseOpt<Substrate.NetApi.Model.Types.Primitive.Bool>, Substrate.NetApi.Model.Types.Base.BaseOpt<Substrate.NetApi.Model.Types.Primitive.U32>>>(Call.update);
-				AddTypeDecoder<Substrate.Gear.Api.Generated.Model.pallet_gear_voucher.@internal.VoucherId>(Call.decline);
-        }
     }
 }

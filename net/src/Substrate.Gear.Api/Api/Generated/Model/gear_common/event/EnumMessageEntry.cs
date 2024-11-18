@@ -45,18 +45,7 @@ namespace Substrate.Gear.Api.Generated.Model.gear_common.@event
     /// <summary>
     /// >> 304 - Variant[gear_common.@event.MessageEntry]
     /// </summary>
-    public sealed class EnumMessageEntry : BaseEnumRust<MessageEntry>
+    public sealed class EnumMessageEntry : BaseEnumExt<MessageEntry, BaseVoid, BaseVoid, Substrate.Gear.Api.Generated.Model.gprimitives.MessageId, BaseVoid>
     {
-        
-        /// <summary>
-        /// Initializes a new instance of the class.
-        /// </summary>
-        public EnumMessageEntry()
-        {
-				AddTypeDecoder<BaseVoid>(MessageEntry.Init);
-				AddTypeDecoder<BaseVoid>(MessageEntry.Handle);
-				AddTypeDecoder<Substrate.Gear.Api.Generated.Model.gprimitives.MessageId>(MessageEntry.Reply);
-				AddTypeDecoder<BaseVoid>(MessageEntry.Signal);
-        }
     }
 }

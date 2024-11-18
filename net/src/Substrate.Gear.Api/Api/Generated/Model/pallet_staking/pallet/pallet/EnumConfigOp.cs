@@ -40,17 +40,7 @@ namespace Substrate.Gear.Api.Generated.Model.pallet_staking.pallet.pallet
     /// <summary>
     /// >> 112 - Variant[pallet_staking.pallet.pallet.ConfigOp]
     /// </summary>
-    public sealed class EnumConfigOp : BaseEnumRust<ConfigOp>
+    public sealed class EnumConfigOp : BaseEnumExt<ConfigOp, BaseVoid, Substrate.Gear.Api.Generated.Model.sp_arithmetic.per_things.Perbill, BaseVoid>
     {
-        
-        /// <summary>
-        /// Initializes a new instance of the class.
-        /// </summary>
-        public EnumConfigOp()
-        {
-				AddTypeDecoder<BaseVoid>(ConfigOp.Noop);
-				AddTypeDecoder<Substrate.Gear.Api.Generated.Model.sp_arithmetic.per_things.Perbill>(ConfigOp.Set);
-				AddTypeDecoder<BaseVoid>(ConfigOp.Remove);
-        }
     }
 }

@@ -85,7 +85,7 @@ public enum Part { Fixed,
 this.AddTypeDecoder<SlotPart>(Part.Slot);
  } }
 
-[global::Substrate.NetApi.Attributes.SubstrateNodeType(global::Substrate.NetApi.Model.Types.Metadata.Base.TypeDefEnum.Composite)] public sealed partial class FixedPart : global::Substrate.NetApi.Model.Types.Base.BaseType {
+public sealed partial class FixedPart : global::Substrate.NetApi.Model.Types.Base.BaseType {
 /// <summary>
 /// An optional zIndex of base part layer.
 /// specifies the stack order of an element.
@@ -111,7 +111,7 @@ this.MetadataUri = new global::Substrate.NetApi.Model.Types.Primitive.Str();
  this.MetadataUri.Decode(byteArray, ref p);
  var bytesLength = p - start; this.TypeSize = bytesLength; this.Bytes = new byte[bytesLength]; Array.Copy(byteArray, start, this.Bytes, 0, bytesLength); } }
 
-[global::Substrate.NetApi.Attributes.SubstrateNodeType(global::Substrate.NetApi.Model.Types.Metadata.Base.TypeDefEnum.Composite)] public sealed partial class SlotPart : global::Substrate.NetApi.Model.Types.Base.BaseType {
+public sealed partial class SlotPart : global::Substrate.NetApi.Model.Types.Base.BaseType {
 /// <summary>
 /// Array of whitelisted collections that can be equipped in the given slot. Used with slot parts only.
 /// </summary>

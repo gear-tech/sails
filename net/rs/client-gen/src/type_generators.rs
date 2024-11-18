@@ -107,7 +107,6 @@ impl<'a> StructDefGenerator<'a> {
         let generic_list = &csharp::import("global::System.Collections.Generic", "List");
 
         quote! {
-            [global::Substrate.NetApi.Attributes.SubstrateNodeType(global::Substrate.NetApi.Model.Types.Metadata.Base.TypeDefEnum.Composite)]
             public sealed partial class $(self.type_name) : global::Substrate.NetApi.Model.Types.Base.BaseType
             {
                 $(self.props_tokens)

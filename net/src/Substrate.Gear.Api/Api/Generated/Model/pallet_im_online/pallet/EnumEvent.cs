@@ -45,17 +45,7 @@ namespace Substrate.Gear.Api.Generated.Model.pallet_im_online.pallet
     /// >> 40 - Variant[pallet_im_online.pallet.Event]
     /// The `Event` enum of this pallet
     /// </summary>
-    public sealed class EnumEvent : BaseEnumRust<Event>
+    public sealed class EnumEvent : BaseEnumExt<Event, Substrate.Gear.Api.Generated.Model.pallet_im_online.sr25519.app_sr25519.Public, BaseVoid, Substrate.NetApi.Model.Types.Base.BaseVec<Substrate.NetApi.Model.Types.Base.BaseTuple<Substrate.Gear.Api.Generated.Model.sp_core.crypto.AccountId32, Substrate.Gear.Api.Generated.Model.sp_staking.Exposure>>>
     {
-        
-        /// <summary>
-        /// Initializes a new instance of the class.
-        /// </summary>
-        public EnumEvent()
-        {
-				AddTypeDecoder<Substrate.Gear.Api.Generated.Model.pallet_im_online.sr25519.app_sr25519.Public>(Event.HeartbeatReceived);
-				AddTypeDecoder<BaseVoid>(Event.AllGood);
-				AddTypeDecoder<Substrate.NetApi.Model.Types.Base.BaseVec<Substrate.NetApi.Model.Types.Base.BaseTuple<Substrate.Gear.Api.Generated.Model.sp_core.crypto.AccountId32, Substrate.Gear.Api.Generated.Model.sp_staking.Exposure>>>(Event.SomeOffline);
-        }
     }
 }

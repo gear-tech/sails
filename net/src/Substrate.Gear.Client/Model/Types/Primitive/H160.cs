@@ -1,16 +1,13 @@
 ﻿#nullable disable
 using System;
 using Substrate.Gear.Api.Generated.Types.Base;
-using Substrate.NetApi.Attributes;
 using Substrate.NetApi.Model.Types.Base;
-using Substrate.NetApi.Model.Types.Metadata.Base;
 
 namespace Substrate.Gear.Client.Model.Types.Primitive;
 
 /// <summary>
 /// H160
 /// </summary>
-[SubstrateNodeType(TypeDefEnum.Composite)]
 public sealed class H160 : BaseType
 {
     /// <summary>
