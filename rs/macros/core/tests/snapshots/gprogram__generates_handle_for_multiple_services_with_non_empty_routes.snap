@@ -105,7 +105,7 @@ pub mod wasm {
             (program, INVOCATION_ROUTE.as_ref())
         } else {
             let mut __input = input;
-            let input = String::decode(&mut __input)
+            let input: String = sails_rs::Decode::decode(&mut __input)
                 .unwrap_or_else(|_| {
                     if input.len() <= 8 {
                         format!("0x{}", sails_rs::hex::encode(input))
@@ -142,7 +142,7 @@ pub mod wasm {
             ([__ROUTE_SVC1.as_ref(), &output].concat(), value)
         } else {
             let mut __input = input;
-            let input = String::decode(&mut __input)
+            let input: String = sails_rs::Decode::decode(&mut __input)
                 .unwrap_or_else(|_| {
                     if input.len() <= 8 {
                         format!("0x{}", sails_rs::hex::encode(input))

@@ -121,6 +121,9 @@ fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
         ));
     }
 
+    let meta_module_name = format!("{}_meta", service_ident.to_string().to_case(Case::Snake));
+    let meta_module_ident = Ident::new(&meta_module_name, Span::call_site());
+
     let inner_ident = Ident::new("inner", Span::call_site());
     let inner_ptr_ident = Ident::new("inner_ptr", Span::call_site());
     let input_ident = Ident::new("input", Span::call_site());
@@ -161,7 +164,7 @@ fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
             )
         });
         invocation_params_structs.push(handler_generator.params_struct());
-        invocation_funcs.push(handler_generator.invocation_func());
+        invocation_funcs.push(handler_generator.invocation_func(&meta_module_ident, &sails_path));
         invocation_dispatches.push({
             let handler_route_bytes = handler_route.encode();
             let handler_route_len = handler_route_bytes.len();
@@ -376,15 +379,15 @@ fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
 
         impl #generics #sails_path::meta::ServiceMeta for #service_type_path #service_type_constraints {
             fn commands() -> #scale_info_path ::MetaType {
-                #scale_info_path ::MetaType::new::<meta_in_service::CommandsMeta>()
+                #scale_info_path ::MetaType::new::<#meta_module_ident::CommandsMeta>()
             }
 
             fn queries() -> #scale_info_path ::MetaType {
-                #scale_info_path ::MetaType::new::<meta_in_service::QueriesMeta>()
+                #scale_info_path ::MetaType::new::<#meta_module_ident::QueriesMeta>()
             }
 
             fn events() -> #scale_info_path ::MetaType {
-                #scale_info_path ::MetaType::new::<meta_in_service::EventsMeta>()
+                #scale_info_path ::MetaType::new::<#meta_module_ident::EventsMeta>()
             }
 
             fn base_services() -> impl Iterator<Item = #sails_path::meta::AnyServiceMeta> {
@@ -396,33 +399,30 @@ fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
 
         #events_listeners_code
 
-        use #sails_path ::Decode as __ServiceDecode;
-        use #sails_path ::Encode as __ServiceEncode;
-        use #sails_path ::TypeInfo as __ServiceTypeInfo;
-
-        #(
-            #[derive(__ServiceDecode, __ServiceTypeInfo)]
-            #[codec(crate = #scale_codec_path )]
-            #[scale_info(crate = #scale_info_path )]
-            #invocation_params_structs
-        )*
-
-        mod meta_in_service {
+        mod #meta_module_ident {
             use super::*;
+            use #sails_path::{Decode, TypeInfo};
 
-            #[derive(__ServiceTypeInfo)]
+            #(
+                #[derive(Decode, TypeInfo)]
+                #[codec(crate = #scale_codec_path )]
+                #[scale_info(crate = #scale_info_path )]
+                #invocation_params_structs
+            )*
+
+            #[derive(TypeInfo)]
             #[scale_info(crate = #scale_info_path)]
             pub enum CommandsMeta {
                 #(#commands_meta_variants),*
             }
 
-            #[derive(__ServiceTypeInfo)]
+            #[derive(TypeInfo)]
             #[scale_info(crate = #scale_info_path)]
             pub enum QueriesMeta {
                 #(#queries_meta_variants),*
             }
 
-            #[derive(__ServiceTypeInfo)]
+            #[derive(TypeInfo)]
             #[scale_info(crate = #scale_info_path )]
             pub enum #no_events_type {}
 
@@ -588,12 +588,12 @@ impl<'a> HandlerGenerator<'a> {
 
         quote!(
             pub struct #params_struct_ident {
-                #(#params_struct_members),*
+                #(pub(super) #params_struct_members),*
             }
         )
     }
 
-    fn invocation_func(&self) -> TokenStream {
+    fn invocation_func(&self, meta_module_ident: &Ident, sails_path: &Path) -> TokenStream {
         let invocation_func_ident = self.invocation_func_ident();
         let receiver = self.handler.receiver();
         let params_struct_ident = self.params_struct_ident();
@@ -620,9 +620,9 @@ impl<'a> HandlerGenerator<'a> {
         quote!(
             async fn #invocation_func_ident(#receiver, mut input: &[u8]) -> (Vec<u8>, u128)
             {
-                let request = #params_struct_ident::decode(&mut input).expect("Failed to decode request");
+                let request: #meta_module_ident::#params_struct_ident = #sails_path::Decode::decode(&mut input).expect("Failed to decode request");
                 #handle_token
-                return (result.encode(), value);
+                return (#sails_path::Encode::encode(&result), value);
             }
         )
     }

@@ -62,7 +62,7 @@ impl ReferenceServiceExposure<ReferenceService> {
             .unwrap_or_else(|| {
                 {
                     let mut __input = input;
-                    let input = String::decode(&mut __input)
+                    let input: String = sails_rs::Decode::decode(&mut __input)
                         .unwrap_or_else(|_| {
                             if input.len() <= 8 {
                                 format!("0x{}", sails_rs::hex::encode(input))
@@ -149,39 +149,49 @@ impl ReferenceServiceExposure<ReferenceService> {
         None
     }
     async fn __add_byte(&mut self, mut input: &[u8]) -> (Vec<u8>, u128) {
-        let request = __AddByteParams::decode(&mut input)
+        let request: reference_service_meta::__AddByteParams = sails_rs::Decode::decode(
+                &mut input,
+            )
             .expect("Failed to decode request");
         let result = self.add_byte(request.byte);
         let value = 0u128;
-        return (result.encode(), value);
+        return (sails_rs::Encode::encode(&result), value);
     }
     async fn __baked(&self, mut input: &[u8]) -> (Vec<u8>, u128) {
-        let request = __BakedParams::decode(&mut input)
+        let request: reference_service_meta::__BakedParams = sails_rs::Decode::decode(
+                &mut input,
+            )
             .expect("Failed to decode request");
         let result = self.baked();
         let value = 0u128;
-        return (result.encode(), value);
+        return (sails_rs::Encode::encode(&result), value);
     }
     async fn __first_byte(&self, mut input: &[u8]) -> (Vec<u8>, u128) {
-        let request = __FirstByteParams::decode(&mut input)
+        let request: reference_service_meta::__FirstByteParams = sails_rs::Decode::decode(
+                &mut input,
+            )
             .expect("Failed to decode request");
         let result = self.first_byte().await;
         let value = 0u128;
-        return (result.encode(), value);
+        return (sails_rs::Encode::encode(&result), value);
     }
     async fn __incr(&mut self, mut input: &[u8]) -> (Vec<u8>, u128) {
-        let request = __IncrParams::decode(&mut input)
+        let request: reference_service_meta::__IncrParams = sails_rs::Decode::decode(
+                &mut input,
+            )
             .expect("Failed to decode request");
         let result = self.incr();
         let value = 0u128;
-        return (result.encode(), value);
+        return (sails_rs::Encode::encode(&result), value);
     }
     async fn __last_byte(&self, mut input: &[u8]) -> (Vec<u8>, u128) {
-        let request = __LastByteParams::decode(&mut input)
+        let request: reference_service_meta::__LastByteParams = sails_rs::Decode::decode(
+                &mut input,
+            )
             .expect("Failed to decode request");
         let result = self.last_byte().await;
         let value = 0u128;
-        return (result.encode(), value);
+        return (sails_rs::Encode::encode(&result), value);
     }
 }
 impl sails_rs::gstd::services::Exposure for ReferenceServiceExposure<ReferenceService> {
@@ -219,59 +229,57 @@ impl sails_rs::gstd::services::Service for ReferenceService {
 }
 impl sails_rs::meta::ServiceMeta for ReferenceService {
     fn commands() -> sails_rs::scale_info::MetaType {
-        sails_rs::scale_info::MetaType::new::<meta_in_service::CommandsMeta>()
+        sails_rs::scale_info::MetaType::new::<reference_service_meta::CommandsMeta>()
     }
     fn queries() -> sails_rs::scale_info::MetaType {
-        sails_rs::scale_info::MetaType::new::<meta_in_service::QueriesMeta>()
+        sails_rs::scale_info::MetaType::new::<reference_service_meta::QueriesMeta>()
     }
     fn events() -> sails_rs::scale_info::MetaType {
-        sails_rs::scale_info::MetaType::new::<meta_in_service::EventsMeta>()
+        sails_rs::scale_info::MetaType::new::<reference_service_meta::EventsMeta>()
     }
     fn base_services() -> impl Iterator<Item = sails_rs::meta::AnyServiceMeta> {
         [].into_iter()
     }
 }
-use sails_rs::Decode as __ServiceDecode;
-use sails_rs::Encode as __ServiceEncode;
-use sails_rs::TypeInfo as __ServiceTypeInfo;
-#[derive(__ServiceDecode, __ServiceTypeInfo)]
-#[codec(crate = sails_rs::scale_codec)]
-#[scale_info(crate = sails_rs::scale_info)]
-pub struct __AddByteParams {
-    byte: u8,
-}
-#[derive(__ServiceDecode, __ServiceTypeInfo)]
-#[codec(crate = sails_rs::scale_codec)]
-#[scale_info(crate = sails_rs::scale_info)]
-pub struct __BakedParams {}
-#[derive(__ServiceDecode, __ServiceTypeInfo)]
-#[codec(crate = sails_rs::scale_codec)]
-#[scale_info(crate = sails_rs::scale_info)]
-pub struct __FirstByteParams {}
-#[derive(__ServiceDecode, __ServiceTypeInfo)]
-#[codec(crate = sails_rs::scale_codec)]
-#[scale_info(crate = sails_rs::scale_info)]
-pub struct __IncrParams {}
-#[derive(__ServiceDecode, __ServiceTypeInfo)]
-#[codec(crate = sails_rs::scale_codec)]
-#[scale_info(crate = sails_rs::scale_info)]
-pub struct __LastByteParams {}
-mod meta_in_service {
+mod reference_service_meta {
     use super::*;
-    #[derive(__ServiceTypeInfo)]
+    use sails_rs::{Decode, TypeInfo};
+    #[derive(Decode, TypeInfo)]
+    #[codec(crate = sails_rs::scale_codec)]
+    #[scale_info(crate = sails_rs::scale_info)]
+    pub struct __AddByteParams {
+        pub(super) byte: u8,
+    }
+    #[derive(Decode, TypeInfo)]
+    #[codec(crate = sails_rs::scale_codec)]
+    #[scale_info(crate = sails_rs::scale_info)]
+    pub struct __BakedParams {}
+    #[derive(Decode, TypeInfo)]
+    #[codec(crate = sails_rs::scale_codec)]
+    #[scale_info(crate = sails_rs::scale_info)]
+    pub struct __FirstByteParams {}
+    #[derive(Decode, TypeInfo)]
+    #[codec(crate = sails_rs::scale_codec)]
+    #[scale_info(crate = sails_rs::scale_info)]
+    pub struct __IncrParams {}
+    #[derive(Decode, TypeInfo)]
+    #[codec(crate = sails_rs::scale_codec)]
+    #[scale_info(crate = sails_rs::scale_info)]
+    pub struct __LastByteParams {}
+    #[derive(TypeInfo)]
     #[scale_info(crate = sails_rs::scale_info)]
     pub enum CommandsMeta {
         AddByte(__AddByteParams, &'static [u8]),
         Incr(__IncrParams, &'static ReferenceCount),
     }
-    #[derive(__ServiceTypeInfo)]
+    #[derive(TypeInfo)]
     #[scale_info(crate = sails_rs::scale_info)]
     pub enum QueriesMeta {
         Baked(__BakedParams, &'static str),
         FirstByte(__FirstByteParams, Option<&'static u8>),
         LastByte(__LastByteParams, Option<&'static u8>),
     }
-    #[derive(__ServiceTypeInfo)]
+    #[derive(TypeInfo)]
     #[scale_info(crate = sails_rs::scale_info)]
     pub enum NoEvents {}
     pub type EventsMeta = NoEvents;

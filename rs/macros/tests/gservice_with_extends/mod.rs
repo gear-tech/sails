@@ -1,4 +1,4 @@
-use sails_rs::{gstd::service, Decode, Encode};
+use sails_rs::gstd::service;
 
 pub(super) mod base {
     use super::*;

@@ -145,7 +145,7 @@ pub(crate) fn generate_unexpected_input_panic(
     let copy_ident = Ident::new(&format!("__{}", input_ident), Span::call_site());
     quote!({
         let mut #copy_ident = #input_ident;
-        let input = String::decode(&mut #copy_ident)
+        let input: String = #sails_path::Decode::decode(&mut #copy_ident)
             .unwrap_or_else(|_| {
                 if #input_ident.len() <= 8 {
                     format!("0x{}", #sails_path::hex::encode(#input_ident))
