@@ -36,12 +36,9 @@ use syn::{
 
 mod args;
 
-static mut SERVICE_SPANS: BTreeMap<String, Span> = BTreeMap::new();
-
 pub fn gservice(args: TokenStream, service_impl: TokenStream) -> TokenStream {
     let service_impl = parse_gservice_impl(service_impl);
     ensure_single_gservice_on_impl(&service_impl);
-    ensure_single_gservice_by_name(&service_impl);
     generate_gservice(args, service_impl)
 }
 
@@ -78,18 +75,6 @@ fn ensure_single_gservice_on_impl(service_impl: &ItemImpl) {
     }
 }
 
-fn ensure_single_gservice_by_name(service_impl: &ItemImpl) {
-    let (path, ..) = shared::impl_type(service_impl);
-    let type_ident = path.path.segments.last().unwrap().ident.to_string();
-    if unsafe { SERVICE_SPANS.get(&type_ident) }.is_some() {
-        abort!(
-            service_impl,
-            "multiple `service` attributes on a type with the same name are not allowed"
-        )
-    }
-    unsafe { SERVICE_SPANS.insert(type_ident, service_impl.span()) };
-}
-
 fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
     let service_args = syn::parse2::<ServiceArgs>(args).unwrap_or_else(|err| {
         abort!(
@@ -102,7 +87,7 @@ fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
     let scale_codec_path = sails_paths::scale_codec_path(&sails_path);
     let scale_info_path = sails_paths::scale_info_path(&sails_path);
 
-    let (service_type_path, service_type_args) = shared::impl_type(&service_impl);
+    let (service_type_path, service_type_args, service_ident) = shared::impl_type(&service_impl);
     let (generics, service_type_constraints) = shared::impl_constraints(&service_impl);
 
     let service_handlers = discover_service_handlers(&service_impl);
@@ -274,7 +259,13 @@ fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
         generate_exposure_set_event_listener(t, Lifetime::new(&lifetime_name, Span::call_site()))
     });
 
-    let exposure_drop_code = events_type.map(|_| generate_exposure_drop());
+    let exposure_name = format!(
+        "{}Exposure",
+        service_ident.to_string().to_case(Case::Pascal)
+    );
+    let exposure_type_path = Path::from(Ident::new(&exposure_name, Span::call_site()));
+
+    let exposure_drop_code = events_type.map(|_| generate_exposure_drop(&exposure_type_path));
 
     let no_events_type = Path::from(Ident::new("NoEvents", Span::call_site()));
     let events_type = events_type.unwrap_or(&no_events_type);
@@ -312,7 +303,7 @@ fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
     quote!(
         #service_impl
 
-        pub struct Exposure<#exposure_generic_args> {
+        pub struct #exposure_type_path<#exposure_generic_args> {
             #message_id_ident : #sails_path::MessageId,
             #route_ident : &'static [u8],
             #[cfg(not(target_arch = "wasm32"))]
@@ -327,7 +318,7 @@ fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
         #exposure_drop_code
 
         #( #exposure_allow_attrs )*
-        impl #generics Exposure< #exposure_args > #service_type_constraints {
+        impl #generics #exposure_type_path< #exposure_args > #service_type_constraints {
             #( #exposure_funcs )*
 
             #( #base_exposure_accessors )*
@@ -349,7 +340,7 @@ fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
             #exposure_set_event_listener_code
         }
 
-        impl #generics #sails_path::gstd::services::Exposure for Exposure< #exposure_args > #service_type_constraints {
+        impl #generics #sails_path::gstd::services::Exposure for #exposure_type_path< #exposure_args > #service_type_constraints {
             fn message_id(&self) -> #sails_path::MessageId {
                 self. #message_id_ident
             }
@@ -360,7 +351,7 @@ fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
         }
 
         impl #generics #sails_path::gstd::services::Service for #service_type_path #service_type_constraints {
-            type Exposure = Exposure< #exposure_args >;
+            type Exposure = #exposure_type_path< #exposure_args >;
 
             fn expose(self, #message_id_ident : #sails_path::MessageId, #route_ident : &'static [u8]) -> Self::Exposure {
                 #[cfg(not(target_arch = "wasm32"))]
@@ -473,10 +464,10 @@ fn generate_event_listeners(sails_path: &Path) -> TokenStream {
     )
 }
 
-fn generate_exposure_drop() -> TokenStream {
+fn generate_exposure_drop(exposure_type_path: &Path) -> TokenStream {
     quote!(
         #[cfg(not(target_arch = "wasm32"))]
-        impl<T> Drop for Exposure<T> {
+        impl<T> Drop for #exposure_type_path <T> {
             fn drop(&mut self) {
                 let service_ptr = self.inner_ptr as usize;
                 let mut event_listeners = event_listeners().lock();

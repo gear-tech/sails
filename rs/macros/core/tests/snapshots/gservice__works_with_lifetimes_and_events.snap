@@ -25,7 +25,7 @@ where
         sails_rs::gstd::events::__notify_on(event)
     }
 }
-pub struct Exposure<T> {
+pub struct MyGenericEventsServiceExposure<T> {
     message_id: sails_rs::MessageId,
     route: &'static [u8],
     #[cfg(not(target_arch = "wasm32"))]
@@ -36,7 +36,7 @@ pub struct Exposure<T> {
     inner: T,
 }
 #[cfg(not(target_arch = "wasm32"))]
-impl<T> Drop for Exposure<T> {
+impl<T> Drop for MyGenericEventsServiceExposure<T> {
     fn drop(&mut self) {
         let service_ptr = self.inner_ptr as usize;
         let mut event_listeners = event_listeners().lock();
@@ -45,7 +45,7 @@ impl<T> Drop for Exposure<T> {
         }
     }
 }
-impl<'a, T> Exposure<MyGenericEventsService<'a, T>>
+impl<'a, T> MyGenericEventsServiceExposure<MyGenericEventsService<'a, T>>
 where
     T: Clone,
 {
@@ -124,7 +124,7 @@ where
     }
 }
 impl<'a, T> sails_rs::gstd::services::Exposure
-for Exposure<MyGenericEventsService<'a, T>>
+for MyGenericEventsServiceExposure<MyGenericEventsService<'a, T>>
 where
     T: Clone,
 {
@@ -139,7 +139,7 @@ impl<'a, T> sails_rs::gstd::services::Service for MyGenericEventsService<'a, T>
 where
     T: Clone,
 {
-    type Exposure = Exposure<MyGenericEventsService<'a, T>>;
+    type Exposure = MyGenericEventsServiceExposure<MyGenericEventsService<'a, T>>;
     fn expose(
         self,
         message_id: sails_rs::MessageId,

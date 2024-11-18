@@ -10,7 +10,7 @@ impl SomeService {
         p1
     }
 }
-pub struct Exposure<T> {
+pub struct SomeServiceExposure<T> {
     message_id: sails_rs::MessageId,
     route: &'static [u8],
     #[cfg(not(target_arch = "wasm32"))]
@@ -20,7 +20,7 @@ pub struct Exposure<T> {
     #[cfg(target_arch = "wasm32")]
     inner: T,
 }
-impl Exposure<SomeService> {
+impl SomeServiceExposure<SomeService> {
     pub async fn do_this(&mut self, p1: u32, p2: String) -> u32 {
         let exposure_scope = sails_rs::gstd::services::ExposureCallScope::new(self);
         self.inner.do_this(p1, p2).await
@@ -86,7 +86,7 @@ impl Exposure<SomeService> {
         return (result.encode(), value);
     }
 }
-impl sails_rs::gstd::services::Exposure for Exposure<SomeService> {
+impl sails_rs::gstd::services::Exposure for SomeServiceExposure<SomeService> {
     fn message_id(&self) -> sails_rs::MessageId {
         self.message_id
     }
@@ -95,7 +95,7 @@ impl sails_rs::gstd::services::Exposure for Exposure<SomeService> {
     }
 }
 impl sails_rs::gstd::services::Service for SomeService {
-    type Exposure = Exposure<SomeService>;
+    type Exposure = SomeServiceExposure<SomeService>;
     fn expose(
         self,
         message_id: sails_rs::MessageId,

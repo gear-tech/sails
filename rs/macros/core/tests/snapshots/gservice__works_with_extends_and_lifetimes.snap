@@ -10,7 +10,7 @@ impl<'a> ExtendedLifetime<'a> {
         "extended".to_string()
     }
 }
-pub struct Exposure<'a, T> {
+pub struct ExtendedLifetimeExposure<'a, T> {
     message_id: sails_rs::MessageId,
     route: &'static [u8],
     #[cfg(not(target_arch = "wasm32"))]
@@ -21,7 +21,7 @@ pub struct Exposure<'a, T> {
     inner: T,
     base_0: <base::BaseLifetime<'a> as sails_rs::gstd::services::Service>::Exposure,
 }
-impl<'a> Exposure<'a, ExtendedLifetime<'a>> {
+impl<'a> ExtendedLifetimeExposure<'a, ExtendedLifetime<'a>> {
     pub fn extended_name(&self) -> String {
         let exposure_scope = sails_rs::gstd::services::ExposureCallScope::new(self);
         self.inner.extended_name()
@@ -119,7 +119,8 @@ impl<'a> Exposure<'a, ExtendedLifetime<'a>> {
         return (result.encode(), value);
     }
 }
-impl<'a> sails_rs::gstd::services::Exposure for Exposure<'a, ExtendedLifetime<'a>> {
+impl<'a> sails_rs::gstd::services::Exposure
+for ExtendedLifetimeExposure<'a, ExtendedLifetime<'a>> {
     fn message_id(&self) -> sails_rs::MessageId {
         self.message_id
     }
@@ -128,7 +129,7 @@ impl<'a> sails_rs::gstd::services::Exposure for Exposure<'a, ExtendedLifetime<'a
     }
 }
 impl<'a> sails_rs::gstd::services::Service for ExtendedLifetime<'a> {
-    type Exposure = Exposure<'a, ExtendedLifetime<'a>>;
+    type Exposure = ExtendedLifetimeExposure<'a, ExtendedLifetime<'a>>;
     fn expose(
         self,
         message_id: sails_rs::MessageId,

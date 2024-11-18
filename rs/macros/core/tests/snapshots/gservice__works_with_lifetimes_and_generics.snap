@@ -11,7 +11,7 @@ where
         42
     }
 }
-pub struct Exposure<T> {
+pub struct SomeServiceExposure<T> {
     message_id: sails_rs::MessageId,
     route: &'static [u8],
     #[cfg(not(target_arch = "wasm32"))]
@@ -21,7 +21,7 @@ pub struct Exposure<T> {
     #[cfg(target_arch = "wasm32")]
     inner: T,
 }
-impl<'a, 'b, T, U> Exposure<SomeService<'a, 'b, T, U>>
+impl<'a, 'b, T, U> SomeServiceExposure<SomeService<'a, 'b, T, U>>
 where
     T: Clone,
     U: Iterator<Item = u32>,
@@ -76,7 +76,7 @@ where
     }
 }
 impl<'a, 'b, T, U> sails_rs::gstd::services::Exposure
-for Exposure<SomeService<'a, 'b, T, U>>
+for SomeServiceExposure<SomeService<'a, 'b, T, U>>
 where
     T: Clone,
     U: Iterator<Item = u32>,
@@ -93,7 +93,7 @@ where
     T: Clone,
     U: Iterator<Item = u32>,
 {
-    type Exposure = Exposure<SomeService<'a, 'b, T, U>>;
+    type Exposure = SomeServiceExposure<SomeService<'a, 'b, T, U>>;
     fn expose(
         self,
         message_id: sails_rs::MessageId,

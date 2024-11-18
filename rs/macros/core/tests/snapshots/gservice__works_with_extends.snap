@@ -7,7 +7,7 @@ impl SomeService {
         42
     }
 }
-pub struct Exposure<T> {
+pub struct SomeServiceExposure<T> {
     message_id: sails_rs::MessageId,
     route: &'static [u8],
     #[cfg(not(target_arch = "wasm32"))]
@@ -19,7 +19,7 @@ pub struct Exposure<T> {
     base_0: <ExtendedService1 as sails_rs::gstd::services::Service>::Exposure,
     base_1: <ExtendedService2 as sails_rs::gstd::services::Service>::Exposure,
 }
-impl Exposure<SomeService> {
+impl SomeServiceExposure<SomeService> {
     pub fn do_this(&mut self) -> u32 {
         let exposure_scope = sails_rs::gstd::services::ExposureCallScope::new(self);
         self.inner.do_this()
@@ -85,7 +85,7 @@ impl Exposure<SomeService> {
         return (result.encode(), value);
     }
 }
-impl sails_rs::gstd::services::Exposure for Exposure<SomeService> {
+impl sails_rs::gstd::services::Exposure for SomeServiceExposure<SomeService> {
     fn message_id(&self) -> sails_rs::MessageId {
         self.message_id
     }
@@ -94,7 +94,7 @@ impl sails_rs::gstd::services::Exposure for Exposure<SomeService> {
     }
 }
 impl sails_rs::gstd::services::Service for SomeService {
-    type Exposure = Exposure<SomeService>;
+    type Exposure = SomeServiceExposure<SomeService>;
     fn expose(
         self,
         message_id: sails_rs::MessageId,
