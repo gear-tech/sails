@@ -45,17 +45,7 @@ namespace Substrate.Gear.Api.Generated.Model.pallet_babe.pallet
     /// >> 71 - Variant[pallet_babe.pallet.Call]
     /// Contains a variant per dispatchable extrinsic that this pallet has.
     /// </summary>
-    public sealed class EnumCall : BaseEnumRust<Call>
+    public sealed class EnumCall : BaseEnumExt<Call, BaseTuple<Substrate.Gear.Api.Generated.Model.sp_consensus_slots.EquivocationProof, Substrate.Gear.Api.Generated.Model.sp_session.MembershipProof>, BaseTuple<Substrate.Gear.Api.Generated.Model.sp_consensus_slots.EquivocationProof, Substrate.Gear.Api.Generated.Model.sp_session.MembershipProof>, Substrate.Gear.Api.Generated.Model.sp_consensus_babe.digests.EnumNextConfigDescriptor>
     {
-        
-        /// <summary>
-        /// Initializes a new instance of the class.
-        /// </summary>
-        public EnumCall()
-        {
-				AddTypeDecoder<BaseTuple<Substrate.Gear.Api.Generated.Model.sp_consensus_slots.EquivocationProof, Substrate.Gear.Api.Generated.Model.sp_session.MembershipProof>>(Call.report_equivocation);
-				AddTypeDecoder<BaseTuple<Substrate.Gear.Api.Generated.Model.sp_consensus_slots.EquivocationProof, Substrate.Gear.Api.Generated.Model.sp_session.MembershipProof>>(Call.report_equivocation_unsigned);
-				AddTypeDecoder<Substrate.Gear.Api.Generated.Model.sp_consensus_babe.digests.EnumNextConfigDescriptor>(Call.plan_config_change);
-        }
     }
 }

@@ -40,17 +40,7 @@ namespace Substrate.Gear.Api.Generated.Model.pallet_treasury
     /// <summary>
     /// >> 436 - Variant[pallet_treasury.PaymentState]
     /// </summary>
-    public sealed class EnumPaymentState : BaseEnumRust<PaymentState>
+    public sealed class EnumPaymentState : BaseEnumExt<PaymentState, BaseVoid, Substrate.NetApi.Model.Types.Base.BaseTuple, BaseVoid>
     {
-        
-        /// <summary>
-        /// Initializes a new instance of the class.
-        /// </summary>
-        public EnumPaymentState()
-        {
-				AddTypeDecoder<BaseVoid>(PaymentState.Pending);
-				AddTypeDecoder<Substrate.NetApi.Model.Types.Base.BaseTuple>(PaymentState.Attempted);
-				AddTypeDecoder<BaseVoid>(PaymentState.Failed);
-        }
     }
 }

@@ -35,16 +35,7 @@ namespace Substrate.Gear.Api.Generated.Model.gear_core_errors.simple
     /// <summary>
     /// >> 590 - Variant[gear_core_errors.simple.SignalCode]
     /// </summary>
-    public sealed class EnumSignalCode : BaseEnumRust<SignalCode>
+    public sealed class EnumSignalCode : BaseEnumExt<SignalCode, Substrate.Gear.Api.Generated.Model.gear_core_errors.simple.EnumSimpleExecutionError, BaseVoid>
     {
-        
-        /// <summary>
-        /// Initializes a new instance of the class.
-        /// </summary>
-        public EnumSignalCode()
-        {
-				AddTypeDecoder<Substrate.Gear.Api.Generated.Model.gear_core_errors.simple.EnumSimpleExecutionError>(SignalCode.Execution);
-				AddTypeDecoder<BaseVoid>(SignalCode.RemovedFromWaitlist);
-        }
     }
 }

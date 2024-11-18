@@ -35,16 +35,7 @@ namespace Substrate.Gear.Api.Generated.Model.sp_consensus_grandpa
     /// <summary>
     /// >> 83 - Variant[sp_consensus_grandpa.Equivocation]
     /// </summary>
-    public sealed class EnumEquivocation : BaseEnumRust<Equivocation>
+    public sealed class EnumEquivocation : BaseEnumExt<Equivocation, Substrate.Gear.Api.Generated.Model.finality_grandpa.EquivocationT1, Substrate.Gear.Api.Generated.Model.finality_grandpa.EquivocationT2>
     {
-        
-        /// <summary>
-        /// Initializes a new instance of the class.
-        /// </summary>
-        public EnumEquivocation()
-        {
-				AddTypeDecoder<Substrate.Gear.Api.Generated.Model.finality_grandpa.EquivocationT1>(Equivocation.Prevote);
-				AddTypeDecoder<Substrate.Gear.Api.Generated.Model.finality_grandpa.EquivocationT2>(Equivocation.Precommit);
-        }
     }
 }

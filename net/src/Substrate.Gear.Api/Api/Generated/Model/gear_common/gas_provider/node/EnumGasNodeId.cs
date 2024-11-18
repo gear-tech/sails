@@ -35,16 +35,7 @@ namespace Substrate.Gear.Api.Generated.Model.gear_common.gas_provider.node
     /// <summary>
     /// >> 323 - Variant[gear_common.gas_provider.node.GasNodeId]
     /// </summary>
-    public sealed class EnumGasNodeId : BaseEnumRust<GasNodeId>
+    public sealed class EnumGasNodeId : BaseEnumExt<GasNodeId, Substrate.Gear.Api.Generated.Model.gprimitives.MessageId, Substrate.Gear.Api.Generated.Model.gprimitives.ReservationId>
     {
-        
-        /// <summary>
-        /// Initializes a new instance of the class.
-        /// </summary>
-        public EnumGasNodeId()
-        {
-				AddTypeDecoder<Substrate.Gear.Api.Generated.Model.gprimitives.MessageId>(GasNodeId.Node);
-				AddTypeDecoder<Substrate.Gear.Api.Generated.Model.gprimitives.ReservationId>(GasNodeId.Reservation);
-        }
     }
 }

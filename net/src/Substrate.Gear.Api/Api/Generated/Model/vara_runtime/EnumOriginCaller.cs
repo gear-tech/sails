@@ -40,17 +40,7 @@ namespace Substrate.Gear.Api.Generated.Model.vara_runtime
     /// <summary>
     /// >> 120 - Variant[vara_runtime.OriginCaller]
     /// </summary>
-    public sealed class EnumOriginCaller : BaseEnumRust<OriginCaller>
+    public sealed class EnumOriginCaller : BaseEnumExt<OriginCaller, Substrate.Gear.Api.Generated.Model.frame_support.dispatch.EnumRawOrigin, BaseVoid, Substrate.NetApi.Model.Types.Base.BaseVoid, BaseVoid, BaseVoid, BaseVoid, BaseVoid, BaseVoid, BaseVoid, BaseVoid, BaseVoid, BaseVoid, BaseVoid, BaseVoid, BaseVoid, BaseVoid, BaseVoid, BaseVoid, BaseVoid, BaseVoid, Substrate.Gear.Api.Generated.Model.vara_runtime.governance.origins.pallet_custom_origins.EnumOrigin>
     {
-        
-        /// <summary>
-        /// Initializes a new instance of the class.
-        /// </summary>
-        public EnumOriginCaller()
-        {
-				AddTypeDecoder<Substrate.Gear.Api.Generated.Model.frame_support.dispatch.EnumRawOrigin>(OriginCaller.system);
-				AddTypeDecoder<Substrate.Gear.Api.Generated.Model.vara_runtime.governance.origins.pallet_custom_origins.EnumOrigin>(OriginCaller.Origins);
-				AddTypeDecoder<Substrate.NetApi.Model.Types.Base.BaseVoid>(OriginCaller.Void);
-        }
     }
 }

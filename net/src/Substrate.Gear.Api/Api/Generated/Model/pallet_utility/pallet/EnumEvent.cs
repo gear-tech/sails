@@ -64,20 +64,7 @@ namespace Substrate.Gear.Api.Generated.Model.pallet_utility.pallet
     /// >> 59 - Variant[pallet_utility.pallet.Event]
     /// The `Event` enum of this pallet
     /// </summary>
-    public sealed class EnumEvent : BaseEnumRust<Event>
+    public sealed class EnumEvent : BaseEnumExt<Event, BaseTuple<Substrate.NetApi.Model.Types.Primitive.U32, Substrate.Gear.Api.Generated.Model.sp_runtime.EnumDispatchError>, BaseVoid, BaseVoid, BaseVoid, Substrate.Gear.Api.Generated.Model.sp_runtime.EnumDispatchError, Substrate.Gear.Api.Generated.Types.Base.EnumResult>
     {
-        
-        /// <summary>
-        /// Initializes a new instance of the class.
-        /// </summary>
-        public EnumEvent()
-        {
-				AddTypeDecoder<BaseTuple<Substrate.NetApi.Model.Types.Primitive.U32, Substrate.Gear.Api.Generated.Model.sp_runtime.EnumDispatchError>>(Event.BatchInterrupted);
-				AddTypeDecoder<BaseVoid>(Event.BatchCompleted);
-				AddTypeDecoder<BaseVoid>(Event.BatchCompletedWithErrors);
-				AddTypeDecoder<BaseVoid>(Event.ItemCompleted);
-				AddTypeDecoder<Substrate.Gear.Api.Generated.Model.sp_runtime.EnumDispatchError>(Event.ItemFailed);
-				AddTypeDecoder<Substrate.Gear.Api.Generated.Types.Base.EnumResult>(Event.DispatchedAs);
-        }
     }
 }

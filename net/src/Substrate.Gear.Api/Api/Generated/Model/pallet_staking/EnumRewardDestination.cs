@@ -50,19 +50,7 @@ namespace Substrate.Gear.Api.Generated.Model.pallet_staking
     /// <summary>
     /// >> 50 - Variant[pallet_staking.RewardDestination]
     /// </summary>
-    public sealed class EnumRewardDestination : BaseEnumRust<RewardDestination>
+    public sealed class EnumRewardDestination : BaseEnumExt<RewardDestination, BaseVoid, BaseVoid, BaseVoid, Substrate.Gear.Api.Generated.Model.sp_core.crypto.AccountId32, BaseVoid>
     {
-        
-        /// <summary>
-        /// Initializes a new instance of the class.
-        /// </summary>
-        public EnumRewardDestination()
-        {
-				AddTypeDecoder<BaseVoid>(RewardDestination.Staked);
-				AddTypeDecoder<BaseVoid>(RewardDestination.Stash);
-				AddTypeDecoder<BaseVoid>(RewardDestination.Controller);
-				AddTypeDecoder<Substrate.Gear.Api.Generated.Model.sp_core.crypto.AccountId32>(RewardDestination.Account);
-				AddTypeDecoder<BaseVoid>(RewardDestination.None);
-        }
     }
 }

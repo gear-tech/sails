@@ -35,16 +35,7 @@ namespace Substrate.Gear.Api.Generated.Model.gear_common
     /// <summary>
     /// >> 612 - Variant[gear_common.GasMultiplier]
     /// </summary>
-    public sealed class EnumGasMultiplier : BaseEnumRust<GasMultiplier>
+    public sealed class EnumGasMultiplier : BaseEnumExt<GasMultiplier, Substrate.NetApi.Model.Types.Primitive.U128, Substrate.NetApi.Model.Types.Primitive.U64>
     {
-        
-        /// <summary>
-        /// Initializes a new instance of the class.
-        /// </summary>
-        public EnumGasMultiplier()
-        {
-				AddTypeDecoder<Substrate.NetApi.Model.Types.Primitive.U128>(GasMultiplier.ValuePerGas);
-				AddTypeDecoder<Substrate.NetApi.Model.Types.Primitive.U64>(GasMultiplier.GasPerValue);
-        }
     }
 }

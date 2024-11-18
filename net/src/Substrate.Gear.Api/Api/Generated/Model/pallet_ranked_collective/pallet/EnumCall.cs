@@ -63,20 +63,7 @@ namespace Substrate.Gear.Api.Generated.Model.pallet_ranked_collective.pallet
     /// >> 132 - Variant[pallet_ranked_collective.pallet.Call]
     /// Contains a variant per dispatchable extrinsic that this pallet has.
     /// </summary>
-    public sealed class EnumCall : BaseEnumRust<Call>
+    public sealed class EnumCall : BaseEnumExt<Call, Substrate.Gear.Api.Generated.Model.sp_runtime.multiaddress.EnumMultiAddress, Substrate.Gear.Api.Generated.Model.sp_runtime.multiaddress.EnumMultiAddress, Substrate.Gear.Api.Generated.Model.sp_runtime.multiaddress.EnumMultiAddress, BaseTuple<Substrate.Gear.Api.Generated.Model.sp_runtime.multiaddress.EnumMultiAddress, Substrate.NetApi.Model.Types.Primitive.U16>, BaseTuple<Substrate.NetApi.Model.Types.Primitive.U32, Substrate.NetApi.Model.Types.Primitive.Bool>, BaseTuple<Substrate.NetApi.Model.Types.Primitive.U32, Substrate.NetApi.Model.Types.Primitive.U32>>
     {
-        
-        /// <summary>
-        /// Initializes a new instance of the class.
-        /// </summary>
-        public EnumCall()
-        {
-				AddTypeDecoder<Substrate.Gear.Api.Generated.Model.sp_runtime.multiaddress.EnumMultiAddress>(Call.add_member);
-				AddTypeDecoder<Substrate.Gear.Api.Generated.Model.sp_runtime.multiaddress.EnumMultiAddress>(Call.promote_member);
-				AddTypeDecoder<Substrate.Gear.Api.Generated.Model.sp_runtime.multiaddress.EnumMultiAddress>(Call.demote_member);
-				AddTypeDecoder<BaseTuple<Substrate.Gear.Api.Generated.Model.sp_runtime.multiaddress.EnumMultiAddress, Substrate.NetApi.Model.Types.Primitive.U16>>(Call.remove_member);
-				AddTypeDecoder<BaseTuple<Substrate.NetApi.Model.Types.Primitive.U32, Substrate.NetApi.Model.Types.Primitive.Bool>>(Call.vote);
-				AddTypeDecoder<BaseTuple<Substrate.NetApi.Model.Types.Primitive.U32, Substrate.NetApi.Model.Types.Primitive.U32>>(Call.cleanup_poll);
-        }
     }
 }
