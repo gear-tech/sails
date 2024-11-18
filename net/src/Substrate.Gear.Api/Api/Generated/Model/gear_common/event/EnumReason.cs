@@ -35,16 +35,7 @@ namespace Substrate.Gear.Api.Generated.Model.gear_common.@event
     /// <summary>
     /// >> 328 - Variant[gear_common.@event.Reason]
     /// </summary>
-    public sealed class EnumReason : BaseEnumRust<Reason>
+    public sealed class EnumReason : BaseEnumExt<Reason, Substrate.Gear.Api.Generated.Model.gear_common.@event.EnumMessageWokenRuntimeReason, Substrate.Gear.Api.Generated.Model.gear_common.@event.EnumMessageWokenSystemReason>
     {
-        
-        /// <summary>
-        /// Initializes a new instance of the class.
-        /// </summary>
-        public EnumReason()
-        {
-				AddTypeDecoder<Substrate.Gear.Api.Generated.Model.gear_common.@event.EnumMessageWokenRuntimeReason>(Reason.Runtime);
-				AddTypeDecoder<Substrate.Gear.Api.Generated.Model.gear_common.@event.EnumMessageWokenSystemReason>(Reason.System);
-        }
     }
 }

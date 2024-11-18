@@ -439,7 +439,6 @@ public sealed partial class ValueFeeListener : IRemotingListener<EnumValueFeeEve
     }
 }
 
-[global::Substrate.NetApi.Attributes.SubstrateNodeType(global::Substrate.NetApi.Model.Types.Metadata.Base.TypeDefEnum.Composite)]
 public sealed partial class ReferenceCount : global::Substrate.NetApi.Model.Types.Base.BaseType
 {
     [System.Diagnostics.CodeAnalysis.AllowNull]
@@ -468,7 +467,6 @@ public sealed partial class ReferenceCount : global::Substrate.NetApi.Model.Type
     }
 }
 
-[global::Substrate.NetApi.Attributes.SubstrateNodeType(global::Substrate.NetApi.Model.Types.Metadata.Base.TypeDefEnum.Composite)]
 public sealed partial class DoThatParam : global::Substrate.NetApi.Model.Types.Base.BaseType
 {
     [System.Diagnostics.CodeAnalysis.AllowNull]
@@ -532,7 +530,6 @@ public sealed partial class EnumManyVariants : global::Substrate.NetApi.Model.Ty
     }
 }
 
-[global::Substrate.NetApi.Attributes.SubstrateNodeType(global::Substrate.NetApi.Model.Types.Metadata.Base.TypeDefEnum.Composite)]
 public sealed partial class TupleStruct : global::Substrate.NetApi.Model.Types.Base.BaseType
 {
     [System.Diagnostics.CodeAnalysis.AllowNull]

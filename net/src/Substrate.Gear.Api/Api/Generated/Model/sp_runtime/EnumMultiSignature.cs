@@ -40,17 +40,7 @@ namespace Substrate.Gear.Api.Generated.Model.sp_runtime
     /// <summary>
     /// >> 637 - Variant[sp_runtime.MultiSignature]
     /// </summary>
-    public sealed class EnumMultiSignature : BaseEnumRust<MultiSignature>
+    public sealed class EnumMultiSignature : BaseEnumExt<MultiSignature, Substrate.Gear.Api.Generated.Model.sp_core.ed25519.Signature, Substrate.Gear.Api.Generated.Model.sp_core.sr25519.Signature, Substrate.Gear.Api.Generated.Model.sp_core.ecdsa.Signature>
     {
-        
-        /// <summary>
-        /// Initializes a new instance of the class.
-        /// </summary>
-        public EnumMultiSignature()
-        {
-				AddTypeDecoder<Substrate.Gear.Api.Generated.Model.sp_core.ed25519.Signature>(MultiSignature.Ed25519);
-				AddTypeDecoder<Substrate.Gear.Api.Generated.Model.sp_core.sr25519.Signature>(MultiSignature.Sr25519);
-				AddTypeDecoder<Substrate.Gear.Api.Generated.Model.sp_core.ecdsa.Signature>(MultiSignature.Ecdsa);
-        }
     }
 }

@@ -51,18 +51,7 @@ namespace Substrate.Gear.Api.Generated.Model.pallet_gear_staking_rewards.pallet
     /// >> 333 - Variant[pallet_gear_staking_rewards.pallet.Event]
     /// The `Event` enum of this pallet
     /// </summary>
-    public sealed class EnumEvent : BaseEnumRust<Event>
+    public sealed class EnumEvent : BaseEnumExt<Event, Substrate.NetApi.Model.Types.Primitive.U128, Substrate.NetApi.Model.Types.Primitive.U128, Substrate.NetApi.Model.Types.Primitive.U128, Substrate.NetApi.Model.Types.Primitive.U128>
     {
-        
-        /// <summary>
-        /// Initializes a new instance of the class.
-        /// </summary>
-        public EnumEvent()
-        {
-				AddTypeDecoder<Substrate.NetApi.Model.Types.Primitive.U128>(Event.Deposited);
-				AddTypeDecoder<Substrate.NetApi.Model.Types.Primitive.U128>(Event.Withdrawn);
-				AddTypeDecoder<Substrate.NetApi.Model.Types.Primitive.U128>(Event.Burned);
-				AddTypeDecoder<Substrate.NetApi.Model.Types.Primitive.U128>(Event.Minted);
-        }
     }
 }

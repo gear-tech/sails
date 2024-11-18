@@ -35,16 +35,7 @@ namespace Substrate.Gear.Api.Generated.Model.pallet_nomination_pools
     /// <summary>
     /// >> 250 - Variant[pallet_nomination_pools.BondExtra]
     /// </summary>
-    public sealed class EnumBondExtra : BaseEnumRust<BondExtra>
+    public sealed class EnumBondExtra : BaseEnumExt<BondExtra, Substrate.NetApi.Model.Types.Primitive.U128, BaseVoid>
     {
-        
-        /// <summary>
-        /// Initializes a new instance of the class.
-        /// </summary>
-        public EnumBondExtra()
-        {
-				AddTypeDecoder<Substrate.NetApi.Model.Types.Primitive.U128>(BondExtra.FreeBalance);
-				AddTypeDecoder<BaseVoid>(BondExtra.Rewards);
-        }
     }
 }

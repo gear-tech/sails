@@ -40,17 +40,7 @@ namespace Substrate.Gear.Api.Generated.Model.pallet_referenda.types
     /// <summary>
     /// >> 469 - Variant[pallet_referenda.types.Curve]
     /// </summary>
-    public sealed class EnumCurve : BaseEnumRust<Curve>
+    public sealed class EnumCurve : BaseEnumExt<Curve, BaseTuple<Substrate.Gear.Api.Generated.Model.sp_arithmetic.per_things.Perbill, Substrate.Gear.Api.Generated.Model.sp_arithmetic.per_things.Perbill, Substrate.Gear.Api.Generated.Model.sp_arithmetic.per_things.Perbill>, BaseTuple<Substrate.Gear.Api.Generated.Model.sp_arithmetic.per_things.Perbill, Substrate.Gear.Api.Generated.Model.sp_arithmetic.per_things.Perbill, Substrate.Gear.Api.Generated.Model.sp_arithmetic.per_things.Perbill, Substrate.Gear.Api.Generated.Model.sp_arithmetic.per_things.Perbill>, BaseTuple<Substrate.Gear.Api.Generated.Model.sp_arithmetic.fixed_point.FixedI64, Substrate.Gear.Api.Generated.Model.sp_arithmetic.fixed_point.FixedI64, Substrate.Gear.Api.Generated.Model.sp_arithmetic.fixed_point.FixedI64>>
     {
-        
-        /// <summary>
-        /// Initializes a new instance of the class.
-        /// </summary>
-        public EnumCurve()
-        {
-				AddTypeDecoder<BaseTuple<Substrate.Gear.Api.Generated.Model.sp_arithmetic.per_things.Perbill, Substrate.Gear.Api.Generated.Model.sp_arithmetic.per_things.Perbill, Substrate.Gear.Api.Generated.Model.sp_arithmetic.per_things.Perbill>>(Curve.LinearDecreasing);
-				AddTypeDecoder<BaseTuple<Substrate.Gear.Api.Generated.Model.sp_arithmetic.per_things.Perbill, Substrate.Gear.Api.Generated.Model.sp_arithmetic.per_things.Perbill, Substrate.Gear.Api.Generated.Model.sp_arithmetic.per_things.Perbill, Substrate.Gear.Api.Generated.Model.sp_arithmetic.per_things.Perbill>>(Curve.SteppedDecreasing);
-				AddTypeDecoder<BaseTuple<Substrate.Gear.Api.Generated.Model.sp_arithmetic.fixed_point.FixedI64, Substrate.Gear.Api.Generated.Model.sp_arithmetic.fixed_point.FixedI64, Substrate.Gear.Api.Generated.Model.sp_arithmetic.fixed_point.FixedI64>>(Curve.Reciprocal);
-        }
     }
 }

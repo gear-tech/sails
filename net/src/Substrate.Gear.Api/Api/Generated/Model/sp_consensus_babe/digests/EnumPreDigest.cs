@@ -40,17 +40,7 @@ namespace Substrate.Gear.Api.Generated.Model.sp_consensus_babe.digests
     /// <summary>
     /// >> 358 - Variant[sp_consensus_babe.digests.PreDigest]
     /// </summary>
-    public sealed class EnumPreDigest : BaseEnumRust<PreDigest>
+    public sealed class EnumPreDigest : BaseEnumExt<PreDigest, BaseVoid, Substrate.Gear.Api.Generated.Model.sp_consensus_babe.digests.PrimaryPreDigest, Substrate.Gear.Api.Generated.Model.sp_consensus_babe.digests.SecondaryPlainPreDigest, Substrate.Gear.Api.Generated.Model.sp_consensus_babe.digests.SecondaryVRFPreDigest>
     {
-        
-        /// <summary>
-        /// Initializes a new instance of the class.
-        /// </summary>
-        public EnumPreDigest()
-        {
-				AddTypeDecoder<Substrate.Gear.Api.Generated.Model.sp_consensus_babe.digests.PrimaryPreDigest>(PreDigest.Primary);
-				AddTypeDecoder<Substrate.Gear.Api.Generated.Model.sp_consensus_babe.digests.SecondaryPlainPreDigest>(PreDigest.SecondaryPlain);
-				AddTypeDecoder<Substrate.Gear.Api.Generated.Model.sp_consensus_babe.digests.SecondaryVRFPreDigest>(PreDigest.SecondaryVRF);
-        }
     }
 }

@@ -170,43 +170,7 @@ namespace Substrate.Gear.Api.Generated.Model.vara_runtime
     /// <summary>
     /// >> 65 - Variant[vara_runtime.RuntimeCall]
     /// </summary>
-    public sealed class EnumRuntimeCall : BaseEnumRust<RuntimeCall>
+    public sealed class EnumRuntimeCall : BaseEnumExt<RuntimeCall, Substrate.Gear.Api.Generated.Model.frame_system.pallet.EnumCall, Substrate.Gear.Api.Generated.Model.pallet_timestamp.pallet.EnumCall, BaseVoid, Substrate.Gear.Api.Generated.Model.pallet_babe.pallet.EnumCall, Substrate.Gear.Api.Generated.Model.pallet_grandpa.pallet.EnumCall, Substrate.Gear.Api.Generated.Model.pallet_balances.pallet.EnumCall, BaseVoid, Substrate.Gear.Api.Generated.Model.pallet_session.pallet.EnumCall, Substrate.Gear.Api.Generated.Model.pallet_utility.pallet.EnumCall, BaseVoid, Substrate.Gear.Api.Generated.Model.pallet_vesting.pallet.EnumCall, Substrate.Gear.Api.Generated.Model.pallet_bags_list.pallet.EnumCall, Substrate.Gear.Api.Generated.Model.pallet_im_online.pallet.EnumCall, Substrate.Gear.Api.Generated.Model.pallet_staking.pallet.pallet.EnumCall, Substrate.Gear.Api.Generated.Model.pallet_treasury.pallet.EnumCall, BaseVoid, Substrate.Gear.Api.Generated.Model.pallet_conviction_voting.pallet.EnumCall, Substrate.Gear.Api.Generated.Model.pallet_referenda.pallet.EnumCall, Substrate.Gear.Api.Generated.Model.pallet_ranked_collective.pallet.EnumCall, Substrate.Gear.Api.Generated.Model.pallet_referenda.pallet.EnumCall, BaseVoid, Substrate.Gear.Api.Generated.Model.pallet_whitelist.pallet.EnumCall, Substrate.Gear.Api.Generated.Model.pallet_scheduler.pallet.EnumCall, Substrate.Gear.Api.Generated.Model.pallet_preimage.pallet.EnumCall, Substrate.Gear.Api.Generated.Model.pallet_identity.pallet.EnumCall, Substrate.Gear.Api.Generated.Model.pallet_proxy.pallet.EnumCall, Substrate.Gear.Api.Generated.Model.pallet_multisig.pallet.EnumCall, Substrate.Gear.Api.Generated.Model.pallet_election_provider_multi_phase.pallet.EnumCall, BaseVoid, Substrate.Gear.Api.Generated.Model.pallet_bounties.pallet.EnumCall, Substrate.Gear.Api.Generated.Model.pallet_child_bounties.pallet.EnumCall, Substrate.Gear.Api.Generated.Model.pallet_nomination_pools.pallet.EnumCall, BaseVoid, BaseVoid, BaseVoid, BaseVoid, BaseVoid, BaseVoid, BaseVoid, BaseVoid, BaseVoid, BaseVoid, BaseVoid, BaseVoid, BaseVoid, BaseVoid, BaseVoid, BaseVoid, BaseVoid, BaseVoid, BaseVoid, BaseVoid, BaseVoid, BaseVoid, BaseVoid, BaseVoid, BaseVoid, BaseVoid, BaseVoid, BaseVoid, BaseVoid, BaseVoid, BaseVoid, BaseVoid, BaseVoid, BaseVoid, BaseVoid, BaseVoid, BaseVoid, BaseVoid, BaseVoid, BaseVoid, BaseVoid, BaseVoid, BaseVoid, BaseVoid, BaseVoid, BaseVoid, BaseVoid, BaseVoid, BaseVoid, BaseVoid, BaseVoid, BaseVoid, BaseVoid, BaseVoid, BaseVoid, BaseVoid, BaseVoid, BaseVoid, BaseVoid, BaseVoid, BaseVoid, BaseVoid, BaseVoid, BaseVoid, BaseVoid, BaseVoid, BaseVoid, BaseVoid, BaseVoid, BaseVoid, BaseVoid, BaseVoid, Substrate.Gear.Api.Generated.Model.pallet_gear.pallet.EnumCall, BaseVoid, Substrate.Gear.Api.Generated.Model.pallet_gear_staking_rewards.pallet.EnumCall, Substrate.Gear.Api.Generated.Model.pallet_gear_voucher.pallet.EnumCall>
     {
-        
-        /// <summary>
-        /// Initializes a new instance of the class.
-        /// </summary>
-        public EnumRuntimeCall()
-        {
-				AddTypeDecoder<Substrate.Gear.Api.Generated.Model.frame_system.pallet.EnumCall>(RuntimeCall.System);
-				AddTypeDecoder<Substrate.Gear.Api.Generated.Model.pallet_timestamp.pallet.EnumCall>(RuntimeCall.Timestamp);
-				AddTypeDecoder<Substrate.Gear.Api.Generated.Model.pallet_babe.pallet.EnumCall>(RuntimeCall.Babe);
-				AddTypeDecoder<Substrate.Gear.Api.Generated.Model.pallet_grandpa.pallet.EnumCall>(RuntimeCall.Grandpa);
-				AddTypeDecoder<Substrate.Gear.Api.Generated.Model.pallet_balances.pallet.EnumCall>(RuntimeCall.Balances);
-				AddTypeDecoder<Substrate.Gear.Api.Generated.Model.pallet_vesting.pallet.EnumCall>(RuntimeCall.Vesting);
-				AddTypeDecoder<Substrate.Gear.Api.Generated.Model.pallet_bags_list.pallet.EnumCall>(RuntimeCall.BagsList);
-				AddTypeDecoder<Substrate.Gear.Api.Generated.Model.pallet_im_online.pallet.EnumCall>(RuntimeCall.ImOnline);
-				AddTypeDecoder<Substrate.Gear.Api.Generated.Model.pallet_staking.pallet.pallet.EnumCall>(RuntimeCall.Staking);
-				AddTypeDecoder<Substrate.Gear.Api.Generated.Model.pallet_session.pallet.EnumCall>(RuntimeCall.Session);
-				AddTypeDecoder<Substrate.Gear.Api.Generated.Model.pallet_treasury.pallet.EnumCall>(RuntimeCall.Treasury);
-				AddTypeDecoder<Substrate.Gear.Api.Generated.Model.pallet_utility.pallet.EnumCall>(RuntimeCall.Utility);
-				AddTypeDecoder<Substrate.Gear.Api.Generated.Model.pallet_conviction_voting.pallet.EnumCall>(RuntimeCall.ConvictionVoting);
-				AddTypeDecoder<Substrate.Gear.Api.Generated.Model.pallet_referenda.pallet.EnumCall>(RuntimeCall.Referenda);
-				AddTypeDecoder<Substrate.Gear.Api.Generated.Model.pallet_ranked_collective.pallet.EnumCall>(RuntimeCall.FellowshipCollective);
-				AddTypeDecoder<Substrate.Gear.Api.Generated.Model.pallet_referenda.pallet.EnumCall>(RuntimeCall.FellowshipReferenda);
-				AddTypeDecoder<Substrate.Gear.Api.Generated.Model.pallet_whitelist.pallet.EnumCall>(RuntimeCall.Whitelist);
-				AddTypeDecoder<Substrate.Gear.Api.Generated.Model.pallet_scheduler.pallet.EnumCall>(RuntimeCall.Scheduler);
-				AddTypeDecoder<Substrate.Gear.Api.Generated.Model.pallet_preimage.pallet.EnumCall>(RuntimeCall.Preimage);
-				AddTypeDecoder<Substrate.Gear.Api.Generated.Model.pallet_identity.pallet.EnumCall>(RuntimeCall.Identity);
-				AddTypeDecoder<Substrate.Gear.Api.Generated.Model.pallet_proxy.pallet.EnumCall>(RuntimeCall.Proxy);
-				AddTypeDecoder<Substrate.Gear.Api.Generated.Model.pallet_multisig.pallet.EnumCall>(RuntimeCall.Multisig);
-				AddTypeDecoder<Substrate.Gear.Api.Generated.Model.pallet_election_provider_multi_phase.pallet.EnumCall>(RuntimeCall.ElectionProviderMultiPhase);
-				AddTypeDecoder<Substrate.Gear.Api.Generated.Model.pallet_bounties.pallet.EnumCall>(RuntimeCall.Bounties);
-				AddTypeDecoder<Substrate.Gear.Api.Generated.Model.pallet_child_bounties.pallet.EnumCall>(RuntimeCall.ChildBounties);
-				AddTypeDecoder<Substrate.Gear.Api.Generated.Model.pallet_nomination_pools.pallet.EnumCall>(RuntimeCall.NominationPools);
-				AddTypeDecoder<Substrate.Gear.Api.Generated.Model.pallet_gear.pallet.EnumCall>(RuntimeCall.Gear);
-				AddTypeDecoder<Substrate.Gear.Api.Generated.Model.pallet_gear_staking_rewards.pallet.EnumCall>(RuntimeCall.StakingRewards);
-				AddTypeDecoder<Substrate.Gear.Api.Generated.Model.pallet_gear_voucher.pallet.EnumCall>(RuntimeCall.GearVoucher);
-        }
     }
 }

@@ -63,20 +63,7 @@ namespace Substrate.Gear.Api.Generated.Model.frame_system.pallet
     /// >> 21 - Variant[frame_system.pallet.Event]
     /// Event for the System pallet.
     /// </summary>
-    public sealed class EnumEvent : BaseEnumRust<Event>
+    public sealed class EnumEvent : BaseEnumExt<Event, Substrate.Gear.Api.Generated.Model.frame_support.dispatch.DispatchInfo, BaseTuple<Substrate.Gear.Api.Generated.Model.sp_runtime.EnumDispatchError, Substrate.Gear.Api.Generated.Model.frame_support.dispatch.DispatchInfo>, BaseVoid, Substrate.Gear.Api.Generated.Model.sp_core.crypto.AccountId32, Substrate.Gear.Api.Generated.Model.sp_core.crypto.AccountId32, BaseTuple<Substrate.Gear.Api.Generated.Model.sp_core.crypto.AccountId32, Substrate.Gear.Api.Generated.Model.primitive_types.H256>>
     {
-        
-        /// <summary>
-        /// Initializes a new instance of the class.
-        /// </summary>
-        public EnumEvent()
-        {
-				AddTypeDecoder<Substrate.Gear.Api.Generated.Model.frame_support.dispatch.DispatchInfo>(Event.ExtrinsicSuccess);
-				AddTypeDecoder<BaseTuple<Substrate.Gear.Api.Generated.Model.sp_runtime.EnumDispatchError, Substrate.Gear.Api.Generated.Model.frame_support.dispatch.DispatchInfo>>(Event.ExtrinsicFailed);
-				AddTypeDecoder<BaseVoid>(Event.CodeUpdated);
-				AddTypeDecoder<Substrate.Gear.Api.Generated.Model.sp_core.crypto.AccountId32>(Event.NewAccount);
-				AddTypeDecoder<Substrate.Gear.Api.Generated.Model.sp_core.crypto.AccountId32>(Event.KilledAccount);
-				AddTypeDecoder<BaseTuple<Substrate.Gear.Api.Generated.Model.sp_core.crypto.AccountId32, Substrate.Gear.Api.Generated.Model.primitive_types.H256>>(Event.Remarked);
-        }
     }
 }
