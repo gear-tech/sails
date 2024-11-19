@@ -276,7 +276,7 @@ fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
     let events_type = events_type.unwrap_or(&no_events_type);
 
     let unexpected_route_panic =
-        shared::generate_unexpected_input_panic(&sails_path, &input_ident, "Unknown request");
+        shared::generate_unexpected_input_panic(&input_ident, "Unknown request", &sails_path);
 
     let mut exposure_lifetimes: Punctuated<Lifetime, Comma> = Punctuated::new();
     if !service_args.base_types().is_empty() {

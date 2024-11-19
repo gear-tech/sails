@@ -315,9 +315,9 @@ fn generate_init(
     }
 
     invocation_dispatches.push(shared::generate_unexpected_input_panic(
-        sails_path,
         &input_ident,
         "Unexpected ctor",
+        sails_path,
     ));
 
     let init = quote!(
@@ -360,9 +360,9 @@ fn generate_handle<'a>(
     }
 
     invocation_dispatches.push(shared::generate_unexpected_input_panic(
-        sails_path,
         &input_ident,
         "Unexpected service",
+        sails_path,
     ));
 
     let mut args = Vec::with_capacity(2);
