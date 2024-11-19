@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -6,6 +7,7 @@ using EnsureThat;
 using Sails.Remoting.Abstractions.Core;
 using Substrate.Gear.Api.Generated;
 using Substrate.Gear.Api.Generated.Model.gprimitives;
+using Substrate.Gear.Api.Generated.Model.vara_runtime;
 using Substrate.Gear.Api.Generated.Storage;
 using Substrate.Gear.Client;
 using Substrate.Gear.Client.Model.Types;
@@ -13,8 +15,6 @@ using Substrate.Gear.Client.Model.Types.Base;
 using Substrate.NetApi.Model.Types;
 using Substrate.NetApi.Model.Types.Base;
 using Substrate.NetApi.Model.Types.Primitive;
-using GasUnit = Substrate.NetApi.Model.Types.Primitive.U64;
-using ValueUnit = Substrate.NetApi.Model.Types.Primitive.U128;
 
 namespace Sails.Remoting.Core;
 
@@ -78,12 +78,15 @@ internal sealed class RemotingViaNodeClient : IRemoting
 
         return await RemotingReplyViaNodeClient<(ActorId, byte[])>.FromExecutionAsync(
                 nodeClient,
-                nodeClient => nodeClient.ExecuteExtrinsicAsync(
+                executeExtrinsic: nodeClient => nodeClient.ExecuteExtrinsicAsync(
                     this.signingAccount,
                     createProgram,
                     DefaultExtrinsicTtlInBlocks,
+                    selectResultOnSuccess: SelectMessageQueuedEventData,
+                    selectResultOnError: (_) =>
+                        throw new Exception("TODO: Custom exception. Unable to create program."),
                     cancellationToken),
-                (queuedMessageData, replyMessage) => (
+                extractResult: (queuedMessageData, replyMessage) => (
                     (ActorId)queuedMessageData.Value[2],
                     replyMessage.Payload.Value.Value
                         .Select(@byte => @byte.Value)
@@ -123,12 +126,15 @@ internal sealed class RemotingViaNodeClient : IRemoting
 
         return await RemotingReplyViaNodeClient<byte[]>.FromExecutionAsync(
                 nodeClient,
-                nodeClient => nodeClient.ExecuteExtrinsicAsync(
+                executeExtrinsic: nodeClient => nodeClient.ExecuteExtrinsicAsync(
                     this.signingAccount,
                     sendMessage,
                     DefaultExtrinsicTtlInBlocks,
+                    selectResultOnSuccess: SelectMessageQueuedEventData,
+                    selectResultOnError: (_) =>
+                        throw new Exception("TODO: Custom exception. Unable to send message."),
                     cancellationToken),
-                (_, replyMessage) => replyMessage.Payload.Value.Value
+                extractResult: (_, replyMessage) => replyMessage.Payload.Value.Value
                     .Select(@byte => @byte.Value)
                     .ToArray(),
                 cancellationToken)
@@ -163,4 +169,15 @@ internal sealed class RemotingViaNodeClient : IRemoting
 
         return replyInfo.EncodedPayload;
     }
+
+    private static MessageQueuedEventData SelectMessageQueuedEventData(IEnumerable<BaseEnumRust<RuntimeEvent>> runtimeEvents)
+        => runtimeEvents
+            .SelectIfMatches(
+                RuntimeEvent.Gear,
+                (EnumGearEvent gearEvent) => gearEvent.ToBaseEnumRust())
+            .SelectIfMatches(
+                GearEvent.MessageQueued,
+                (MessageQueuedEventData data) => data)
+            .SingleOrDefault()
+            ?? throw new Exception("TODO: Custom exception. Something terrible happened.");
 }
