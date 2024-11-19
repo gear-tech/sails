@@ -9,7 +9,7 @@ using Substrate.Gear.Api.Generated.Model.gprimitives;
 using Substrate.Gear.Api.Generated.Storage;
 using Substrate.Gear.Client;
 using Substrate.Gear.Client.Model.Types;
-using Substrate.NetApi;
+using Substrate.Gear.Client.Model.Types.Base;
 using Substrate.NetApi.Model.Types;
 using Substrate.NetApi.Model.Types.Base;
 using Substrate.NetApi.Model.Types.Primitive;
@@ -37,7 +37,7 @@ internal sealed class RemotingViaNodeClient : IRemoting
         this.signingAccount = signingAccount;
     }
 
-    private const uint DefaultExtrinsicTtlInBlocks = (uint)Constants.ExtrinsicEraPeriodDefault; // TODO: Think of making it configurable.
+    private const uint DefaultExtrinsicTtlInBlocks = SubstrateClientExtExtensions.DefaultExtrinsicTtlInBlocks; // TODO: Think of making it configurable.
 
     private static readonly GasUnit BlockGasLimit = new GearGasConstants().BlockGasLimit();
 
@@ -70,8 +70,8 @@ internal sealed class RemotingViaNodeClient : IRemoting
 
         var createProgram = GearCalls.CreateProgram(
             codeId,
-            new BaseVec<U8>(salt.Select(@byte => new U8(@byte)).ToArray()),
-            new BaseVec<U8>(encodedPayload.Select(@byte => new U8(@byte)).ToArray()),
+            salt.ToBaseVecOfU8(),
+            encodedPayload.ToBaseVecOfU8(),
             gasLimit,
             value,
             keep_alive: new Bool(true));
@@ -116,7 +116,7 @@ internal sealed class RemotingViaNodeClient : IRemoting
 
         var sendMessage = GearCalls.SendMessage(
             programId,
-            new BaseVec<U8>(encodedPayload.Select(@byte => new U8(@byte)).ToArray()),
+            encodedPayload.ToBaseVecOfU8(),
             gasLimit,
             value,
             keep_alive: new Bool(true));
