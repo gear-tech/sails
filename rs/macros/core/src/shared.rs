@@ -137,9 +137,9 @@ pub(crate) fn discover_invocation_targets(
 }
 
 pub(crate) fn generate_unexpected_input_panic(
+    sails_path: &Path,
     input_ident: &Ident,
     message: &str,
-    sails_path: &Path,
 ) -> TokenStream2 {
     let message_pattern = message.to_owned() + ": {}";
     let copy_ident = Ident::new(&format!("__{}", input_ident), Span::call_site());

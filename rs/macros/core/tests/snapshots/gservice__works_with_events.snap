@@ -13,7 +13,7 @@ impl SomeService {
         #[cfg(not(target_arch = "wasm32"))]
         {
             let self_ptr = self as *const _ as usize;
-            let event_listeners = event_listeners().lock();
+            let event_listeners = sails_rs::gstd::events::event_listeners().lock();
             if let Some(event_listener_ptr) = event_listeners.get(&self_ptr) {
                 let event_listener = unsafe {
                     &mut *(*event_listener_ptr as *mut Box<dyn FnMut(&SomeEvents)>)
@@ -39,7 +39,7 @@ pub struct SomeServiceExposure<T> {
 impl<T> Drop for SomeServiceExposure<T> {
     fn drop(&mut self) {
         let service_ptr = self.inner_ptr as usize;
-        let mut event_listeners = event_listeners().lock();
+        let mut event_listeners = sails_rs::gstd::events::event_listeners().lock();
         if event_listeners.remove(&service_ptr).is_some() {
             panic!("there should be no any event listeners left by this time");
         }
@@ -118,7 +118,7 @@ impl SomeServiceExposure<SomeService> {
     pub fn set_event_listener<'__elg>(
         &self,
         listener: impl FnMut(&SomeEvents) + '__elg,
-    ) -> EventListenerGuard<'__elg> {
+    ) -> sails_rs::gstd::events::EventListenerGuard<'__elg> {
         if core::mem::size_of_val(self.inner.as_ref()) == 0 {
             panic!(
                 "setting event listener on a zero-sized service is not supported for now"
@@ -128,16 +128,7 @@ impl SomeServiceExposure<SomeService> {
         let listener: Box<dyn FnMut(&SomeEvents)> = Box::new(listener);
         let listener = Box::new(listener);
         let listener_ptr = Box::into_raw(listener) as usize;
-        let mut event_listeners = event_listeners().lock();
-        if event_listeners.contains_key(&service_ptr) {
-            panic!("event listener is already set");
-        }
-        event_listeners.insert(service_ptr, listener_ptr);
-        EventListenerGuard {
-            service_ptr,
-            listener_ptr,
-            _phantom: core::marker::PhantomData,
-        }
+        sails_rs::gstd::events::EventListenerGuard::new(service_ptr, listener_ptr)
     }
 }
 impl sails_rs::gstd::services::Exposure for SomeServiceExposure<SomeService> {
@@ -185,31 +176,6 @@ impl sails_rs::meta::ServiceMeta for SomeService {
     }
     fn base_services() -> impl Iterator<Item = sails_rs::meta::AnyServiceMeta> {
         [].into_iter()
-    }
-}
-type __EventlistenersMap = sails_rs::collections::BTreeMap<usize, usize>;
-type __Mutex<T> = sails_rs::spin::Mutex<T>;
-#[cfg(not(target_arch = "wasm32"))]
-fn event_listeners() -> &'static __Mutex<__EventlistenersMap> {
-    static EVENT_LISTENERS: __Mutex<__EventlistenersMap> = __Mutex::new(
-        __EventlistenersMap::new(),
-    );
-    &EVENT_LISTENERS
-}
-#[cfg(not(target_arch = "wasm32"))]
-pub struct EventListenerGuard<'a> {
-    service_ptr: usize,
-    listener_ptr: usize,
-    _phantom: core::marker::PhantomData<&'a ()>,
-}
-#[cfg(not(target_arch = "wasm32"))]
-impl<'a> Drop for EventListenerGuard<'a> {
-    fn drop(&mut self) {
-        let mut event_listeners = event_listeners().lock();
-        let listener_ptr = event_listeners.remove(&self.service_ptr);
-        if listener_ptr != Some(self.listener_ptr) {
-            panic!("event listener is being removed out of order");
-        }
     }
 }
 mod some_service_meta {

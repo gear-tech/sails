@@ -108,7 +108,7 @@ fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
                 #[cfg(not(target_arch = "wasm32"))]
                 {
                     let self_ptr = self as *const _ as usize;
-                    let event_listeners = event_listeners().lock();
+                    let event_listeners = #sails_path::gstd::events::event_listeners().lock();
                     if let Some(event_listener_ptr) = event_listeners.get(&self_ptr) {
                         let event_listener =
                             unsafe { &mut *(*event_listener_ptr as *mut Box<dyn FnMut(& #events_type )>) };
@@ -248,18 +248,19 @@ fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
     let base_services_meta =
         code_for_base_types.map(|(_, _, _, _, base_service_meta)| base_service_meta);
 
-    let events_listeners_code = events_type.map(|_| generate_event_listeners(&sails_path));
-
     let lifetimes = shared::extract_lifetime_names(&service_type_args);
-    let exposure_set_event_listener_code = events_type.map(|t| {
+    let exposure_set_event_listener_code = events_type.map(|event_type_path| {
         // get non conflicting lifetime name
-
         let mut lt = "__elg".to_owned();
         while lifetimes.contains(&lt) {
             lt = format!("_{}", lt);
         }
         let lifetime_name = format!("'{0}", lt);
-        generate_exposure_set_event_listener(t, Lifetime::new(&lifetime_name, Span::call_site()))
+        generate_exposure_set_event_listener(
+            &sails_path,
+            event_type_path,
+            Lifetime::new(&lifetime_name, Span::call_site()),
+        )
     });
 
     let exposure_name = format!(
@@ -268,13 +269,14 @@ fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
     );
     let exposure_type_path = Path::from(Ident::new(&exposure_name, Span::call_site()));
 
-    let exposure_drop_code = events_type.map(|_| generate_exposure_drop(&exposure_type_path));
+    let exposure_drop_code =
+        events_type.map(|_| generate_exposure_drop(&sails_path, &exposure_type_path));
 
     let no_events_type = Path::from(Ident::new("NoEvents", Span::call_site()));
     let events_type = events_type.unwrap_or(&no_events_type);
 
     let unexpected_route_panic =
-        shared::generate_unexpected_input_panic(&input_ident, "Unknown request", &sails_path);
+        shared::generate_unexpected_input_panic(&sails_path, &input_ident, "Unknown request");
 
     let mut exposure_lifetimes: Punctuated<Lifetime, Comma> = Punctuated::new();
     if !service_args.base_types().is_empty() {
@@ -397,8 +399,6 @@ fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
             }
         }
 
-        #events_listeners_code
-
         mod #meta_module_ident {
             use super::*;
             use #sails_path::{Decode, TypeInfo};
@@ -431,46 +431,13 @@ fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
     )
 }
 
-// Generates function for accessing event listeners map in non-wasm code.
-fn generate_event_listeners(sails_path: &Path) -> TokenStream {
-    quote!(
-        type __EventlistenersMap = #sails_path::collections::BTreeMap<usize, usize>;
-        type __Mutex<T> = #sails_path::spin::Mutex<T>;
-
-        #[cfg(not(target_arch = "wasm32"))]
-        fn event_listeners() -> &'static __Mutex<__EventlistenersMap> {
-            static EVENT_LISTENERS: __Mutex<__EventlistenersMap> =
-                __Mutex::new(__EventlistenersMap::new());
-            &EVENT_LISTENERS
-        }
-
-        #[cfg(not(target_arch = "wasm32"))]
-        pub struct EventListenerGuard<'a> {
-            service_ptr: usize,
-            listener_ptr: usize,
-            _phantom: core::marker::PhantomData<&'a ()>,
-        }
-
-        #[cfg(not(target_arch = "wasm32"))]
-        impl<'a> Drop for EventListenerGuard<'a> {
-            fn drop(&mut self) {
-                let mut event_listeners = event_listeners().lock();
-                let listener_ptr = event_listeners.remove(&self.service_ptr);
-                if listener_ptr != Some(self.listener_ptr) {
-                    panic!("event listener is being removed out of order");
-                }
-            }
-        }
-    )
-}
-
-fn generate_exposure_drop(exposure_type_path: &Path) -> TokenStream {
+fn generate_exposure_drop(sails_path: &Path, exposure_type_path: &Path) -> TokenStream {
     quote!(
         #[cfg(not(target_arch = "wasm32"))]
         impl<T> Drop for #exposure_type_path <T> {
             fn drop(&mut self) {
                 let service_ptr = self.inner_ptr as usize;
-                let mut event_listeners = event_listeners().lock();
+                let mut event_listeners = #sails_path::gstd::events::event_listeners().lock();
                 if event_listeners.remove(&service_ptr).is_some() {
                     panic!("there should be no any event listeners left by this time");
                 }
@@ -479,14 +446,18 @@ fn generate_exposure_drop(exposure_type_path: &Path) -> TokenStream {
     )
 }
 
-fn generate_exposure_set_event_listener(events_type: &Path, lifetime: Lifetime) -> TokenStream {
+fn generate_exposure_set_event_listener(
+    sails_path: &Path,
+    events_type: &Path,
+    lifetime: Lifetime,
+) -> TokenStream {
     quote!(
         #[cfg(not(target_arch = "wasm32"))]
         // Immutable so one can set it via AsRef when used with extending
         pub fn set_event_listener<#lifetime>(
             &self,
             listener: impl FnMut(& #events_type ) + #lifetime,
-        ) -> EventListenerGuard<#lifetime> {
+        ) -> #sails_path::gstd::events::EventListenerGuard<#lifetime> {
             if core::mem::size_of_val(self.inner.as_ref()) == 0 {
                 panic!("setting event listener on a zero-sized service is not supported for now");
             }
@@ -494,16 +465,7 @@ fn generate_exposure_set_event_listener(events_type: &Path, lifetime: Lifetime) 
             let listener: Box<dyn FnMut(& #events_type )> = Box::new(listener);
             let listener = Box::new(listener);
             let listener_ptr = Box::into_raw(listener) as usize;
-            let mut event_listeners = event_listeners().lock();
-            if event_listeners.contains_key(&service_ptr) {
-                panic!("event listener is already set");
-            }
-            event_listeners.insert(service_ptr, listener_ptr);
-            EventListenerGuard {
-                service_ptr,
-                listener_ptr,
-                _phantom: core::marker::PhantomData,
-            }
+            #sails_path::gstd::events::EventListenerGuard::new(service_ptr, listener_ptr)
         }
     )
 }
