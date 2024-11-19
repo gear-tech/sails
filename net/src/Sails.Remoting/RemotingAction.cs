@@ -8,8 +8,6 @@ using Sails.Remoting.Abstractions;
 using Sails.Remoting.Abstractions.Core;
 using Substrate.Gear.Api.Generated.Model.gprimitives;
 using Substrate.NetApi.Model.Types;
-using GasUnit = Substrate.NetApi.Model.Types.Primitive.U64;
-using ValueUnit = Substrate.NetApi.Model.Types.Primitive.U128;
 
 namespace Sails.Remoting;
 

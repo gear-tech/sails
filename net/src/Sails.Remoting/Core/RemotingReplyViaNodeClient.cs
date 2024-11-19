@@ -6,24 +6,12 @@ using EnsureThat;
 using Sails.Remoting.Abstractions.Core;
 using StreamJsonRpc;
 using Substrate.Gear.Api.Generated;
-using Substrate.Gear.Api.Generated.Model.frame_system;
 using Substrate.Gear.Api.Generated.Model.gear_core.message.user;
 using Substrate.Gear.Api.Generated.Model.gprimitives;
 using Substrate.Gear.Api.Generated.Model.vara_runtime;
 using Substrate.Gear.Client;
 using Substrate.Gear.Client.Model.Rpc;
 using Substrate.Gear.Client.Model.Types.Base;
-using Substrate.NetApi.Model.Types.Primitive;
-using EnumGearEvent = Substrate.Gear.Api.Generated.Model.pallet_gear.pallet.EnumEvent;
-using GearEvent = Substrate.Gear.Api.Generated.Model.pallet_gear.pallet.Event;
-using MessageQueuedEventData = Substrate.NetApi.Model.Types.Base.BaseTuple<
-    Substrate.Gear.Api.Generated.Model.gprimitives.MessageId,
-    Substrate.Gear.Api.Generated.Model.sp_core.crypto.AccountId32,
-    Substrate.Gear.Api.Generated.Model.gprimitives.ActorId,
-    Substrate.Gear.Api.Generated.Model.gear_common.@event.EnumMessageEntry>;
-using UserMessageSentEventData = Substrate.NetApi.Model.Types.Base.BaseTuple<
-    Substrate.Gear.Api.Generated.Model.gear_core.message.user.UserMessage,
-    Substrate.NetApi.Model.Types.Base.BaseOpt<Substrate.NetApi.Model.Types.Primitive.U32>>;
 
 namespace Sails.Remoting.Core;
 
@@ -31,7 +19,7 @@ internal sealed class RemotingReplyViaNodeClient<T> : RemotingReply<T>
 {
     public static async Task<RemotingReplyViaNodeClient<T>> FromExecutionAsync(
         SubstrateClientExt nodeClient,
-        Func<SubstrateClientExt, Task<ExtrinsicInfo>> executeExtrinsic,
+        Func<SubstrateClientExt, Task<MessageQueuedEventData>> executeExtrinsic,
         Func<MessageQueuedEventData, UserMessage, T> extractResult,
         CancellationToken cancellationToken)
     {
@@ -43,38 +31,13 @@ internal sealed class RemotingReplyViaNodeClient<T> : RemotingReply<T>
         var blocksStream = await nodeClient.GetNewBlocksStreamAsync(cancellationToken).ConfigureAwait(false);
         try
         {
-            var extrinsicInfo = await executeExtrinsic(nodeClient).ConfigureAwait(false);
-
-            var extrinsicBlockEvents = await nodeClient.ListBlockEventsAsync(
-                    extrinsicInfo.BlockHash,
-                    cancellationToken)
-                .ConfigureAwait(false);
-
-            // TODO: Requires checking for System.ExtrinsicFailed event and throwing an exception with
-            //       details from it. (type + details)
-
-            var queuedMessageData = extrinsicBlockEvents
-                .Where(
-                    eventRecord =>
-                        eventRecord.Phase.ToBaseEnumRust().Matches(
-                            Phase.ApplyExtrinsic,
-                            (U32 extrinsicIdxInBlock) => extrinsicIdxInBlock.Value == extrinsicInfo.IndexInBlock))
-                .Select(
-                    eventRecord => eventRecord.Event.ToBaseEnumRust())
-                .SelectIfMatches(
-                    RuntimeEvent.Gear,
-                    (EnumGearEvent gearEvent) => gearEvent.ToBaseEnumRust())
-                .SelectIfMatches(
-                    GearEvent.MessageQueued,
-                    (MessageQueuedEventData data) => data)
-                .SingleOrDefault()
-                ?? throw new Exception("TODO: Custom exception. Something terrible happened.");
+            var messageQueuedEventData = await executeExtrinsic(nodeClient).ConfigureAwait(false);
 
             var result = new RemotingReplyViaNodeClient<T>(
                 nodeClient,
                 blocksStream,
                 extractResult,
-                queuedMessageData);
+                messageQueuedEventData);
             blocksStream = null; // Prevent disposing the stream in the finally block
             return result;
         }

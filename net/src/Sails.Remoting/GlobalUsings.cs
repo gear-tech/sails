@@ -1,0 +1,12 @@
+﻿global using EnumGearEvent = Substrate.Gear.Api.Generated.Model.pallet_gear.pallet.EnumEvent;
+global using GasUnit = Substrate.NetApi.Model.Types.Primitive.U64;
+global using GearEvent = Substrate.Gear.Api.Generated.Model.pallet_gear.pallet.Event;
+global using MessageQueuedEventData = Substrate.NetApi.Model.Types.Base.BaseTuple<
+    Substrate.Gear.Api.Generated.Model.gprimitives.MessageId,
+    Substrate.Gear.Api.Generated.Model.sp_core.crypto.AccountId32,
+    Substrate.Gear.Api.Generated.Model.gprimitives.ActorId,
+    Substrate.Gear.Api.Generated.Model.gear_common.@event.EnumMessageEntry>;
+global using UserMessageSentEventData = Substrate.NetApi.Model.Types.Base.BaseTuple<
+    Substrate.Gear.Api.Generated.Model.gear_core.message.user.UserMessage,
+    Substrate.NetApi.Model.Types.Base.BaseOpt<Substrate.NetApi.Model.Types.Primitive.U32>>;
+global using ValueUnit = Substrate.NetApi.Model.Types.Primitive.U128;
