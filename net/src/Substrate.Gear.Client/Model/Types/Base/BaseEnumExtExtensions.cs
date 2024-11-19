@@ -6,6 +6,7 @@ using Substrate.NetApi.Model.Types.Base;
 
 namespace Substrate.Gear.Client.Model.Types.Base;
 
+[SuppressMessage("Roslynator", "RCS0056:A line is too long", Justification = "Foreign code")]
 public static class BaseEnumExtExtensions
 {
     public static BaseEnumRust<TEnum> ToBaseEnumRust<TEnum, T0, T1, T2>(
@@ -14,28 +15,44 @@ public static class BaseEnumExtExtensions
     {
         EnsureArg.IsNotNull(baseEnumExt, nameof(baseEnumExt));
 
-        var baseEnumRust = new BaseEnumRust<TEnum>()
-        {
-            Bytes = baseEnumExt.Bytes,
-        };
+        var baseEnumRust = new BaseEnumRust<TEnum>();
         baseEnumRust.AddTypeDecoder<T0>((TEnum)(object)0);
         baseEnumRust.AddTypeDecoder<T1>((TEnum)(object)1);
         baseEnumRust.AddTypeDecoder<T2>((TEnum)(object)2);
 
+        var idx = 0;
+        baseEnumRust.Decode(baseEnumExt.Bytes, ref idx);
+
         return baseEnumRust;
     }
 
-    [SuppressMessage("Roslynator", "RCS0056:A line is too long", Justification = "Foreign code")]
+    public static BaseEnumRust<TEnum> ToBaseEnumRust<TEnum, T0, T1, T2, T3, T4, T5>(
+        this BaseEnumExt<TEnum, T0, T1, T2, T3, T4, T5> baseEnumExt)
+        where TEnum : Enum where T0 : IType, new() where T1 : IType, new() where T2 : IType, new() where T3 : IType, new() where T4 : IType, new() where T5 : IType, new()
+    {
+        EnsureArg.IsNotNull(baseEnumExt, nameof(baseEnumExt));
+
+        var baseEnumRust = new BaseEnumRust<TEnum>();
+        baseEnumRust.AddTypeDecoder<T0>((TEnum)(object)0);
+        baseEnumRust.AddTypeDecoder<T1>((TEnum)(object)1);
+        baseEnumRust.AddTypeDecoder<T2>((TEnum)(object)2);
+        baseEnumRust.AddTypeDecoder<T3>((TEnum)(object)3);
+        baseEnumRust.AddTypeDecoder<T4>((TEnum)(object)4);
+        baseEnumRust.AddTypeDecoder<T5>((TEnum)(object)5);
+
+        var idx = 0;
+        baseEnumRust.Decode(baseEnumExt.Bytes, ref idx);
+
+        return baseEnumRust;
+    }
+
     public static BaseEnumRust<TEnum> ToBaseEnumRust<TEnum, T0, T1, T2, T3, T4, T5, T6, T7, T8>(
         this BaseEnumExt<TEnum, T0, T1, T2, T3, T4, T5, T6, T7, T8> baseEnumExt)
         where TEnum : Enum where T0 : IType, new() where T1 : IType, new() where T2 : IType, new() where T3 : IType, new() where T4 : IType, new() where T5 : IType, new() where T6 : IType, new() where T7 : IType, new() where T8 : IType, new()
     {
         EnsureArg.IsNotNull(baseEnumExt, nameof(baseEnumExt));
 
-        var baseEnumRust = new BaseEnumRust<TEnum>()
-        {
-            Bytes = baseEnumExt.Bytes,
-        };
+        var baseEnumRust = new BaseEnumRust<TEnum>();
         baseEnumRust.AddTypeDecoder<T0>((TEnum)(object)0);
         baseEnumRust.AddTypeDecoder<T1>((TEnum)(object)1);
         baseEnumRust.AddTypeDecoder<T2>((TEnum)(object)2);
@@ -46,20 +63,47 @@ public static class BaseEnumExtExtensions
         baseEnumRust.AddTypeDecoder<T7>((TEnum)(object)7);
         baseEnumRust.AddTypeDecoder<T8>((TEnum)(object)8);
 
+        var idx = 0;
+        baseEnumRust.Decode(baseEnumExt.Bytes, ref idx);
+
         return baseEnumRust;
     }
 
-    [SuppressMessage("Roslynator", "RCS0056:A line is too long", Justification = "Foreign code")]
+    public static BaseEnumRust<TEnum> ToBaseEnumRust<TEnum, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13>(
+        this BaseEnumExt<TEnum, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13> baseEnumExt)
+        where TEnum : Enum where T0 : IType, new() where T1 : IType, new() where T2 : IType, new() where T3 : IType, new() where T4 : IType, new() where T5 : IType, new() where T6 : IType, new() where T7 : IType, new() where T8 : IType, new() where T9 : IType, new() where T10 : IType, new() where T11 : IType, new() where T12 : IType, new() where T13 : IType, new()
+    {
+        EnsureArg.IsNotNull(baseEnumExt, nameof(baseEnumExt));
+
+        var baseEnumRust = new BaseEnumRust<TEnum>();
+        baseEnumRust.AddTypeDecoder<T0>((TEnum)(object)0);
+        baseEnumRust.AddTypeDecoder<T1>((TEnum)(object)1);
+        baseEnumRust.AddTypeDecoder<T2>((TEnum)(object)2);
+        baseEnumRust.AddTypeDecoder<T3>((TEnum)(object)3);
+        baseEnumRust.AddTypeDecoder<T4>((TEnum)(object)4);
+        baseEnumRust.AddTypeDecoder<T5>((TEnum)(object)5);
+        baseEnumRust.AddTypeDecoder<T6>((TEnum)(object)6);
+        baseEnumRust.AddTypeDecoder<T7>((TEnum)(object)7);
+        baseEnumRust.AddTypeDecoder<T8>((TEnum)(object)8);
+        baseEnumRust.AddTypeDecoder<T9>((TEnum)(object)9);
+        baseEnumRust.AddTypeDecoder<T10>((TEnum)(object)10);
+        baseEnumRust.AddTypeDecoder<T11>((TEnum)(object)11);
+        baseEnumRust.AddTypeDecoder<T12>((TEnum)(object)12);
+        baseEnumRust.AddTypeDecoder<T13>((TEnum)(object)13);
+
+        var idx = 0;
+        baseEnumRust.Decode(baseEnumExt.Bytes, ref idx);
+
+        return baseEnumRust;
+    }
+
     public static BaseEnumRust<TEnum> ToBaseEnumRust<TEnum, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20, T21, T22, T23, T24, T25, T26, T27, T28, T29, T30, T31, T32, T33, T34, T35, T36, T37, T38, T39, T40, T41, T42, T43, T44, T45, T46, T47, T48, T49, T50, T51, T52, T53, T54, T55, T56, T57, T58, T59, T60, T61, T62, T63, T64, T65, T66, T67, T68, T69, T70, T71, T72, T73, T74, T75, T76, T77, T78, T79, T80, T81, T82, T83, T84, T85, T86, T87, T88, T89, T90, T91, T92, T93, T94, T95, T96, T97, T98, T99, T100, T101, T102, T103, T104, T105, T106, T107>(
         this BaseEnumExt<TEnum, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20, T21, T22, T23, T24, T25, T26, T27, T28, T29, T30, T31, T32, T33, T34, T35, T36, T37, T38, T39, T40, T41, T42, T43, T44, T45, T46, T47, T48, T49, T50, T51, T52, T53, T54, T55, T56, T57, T58, T59, T60, T61, T62, T63, T64, T65, T66, T67, T68, T69, T70, T71, T72, T73, T74, T75, T76, T77, T78, T79, T80, T81, T82, T83, T84, T85, T86, T87, T88, T89, T90, T91, T92, T93, T94, T95, T96, T97, T98, T99, T100, T101, T102, T103, T104, T105, T106, T107> baseEnumExt)
         where TEnum : Enum where T0 : IType, new() where T1 : IType, new() where T2 : IType, new() where T3 : IType, new() where T4 : IType, new() where T5 : IType, new() where T6 : IType, new() where T7 : IType, new() where T8 : IType, new() where T9 : IType, new() where T10 : IType, new() where T11 : IType, new() where T12 : IType, new() where T13 : IType, new() where T14 : IType, new() where T15 : IType, new() where T16 : IType, new() where T17 : IType, new() where T18 : IType, new() where T19 : IType, new() where T20 : IType, new() where T21 : IType, new() where T22 : IType, new() where T23 : IType, new() where T24 : IType, new() where T25 : IType, new() where T26 : IType, new() where T27 : IType, new() where T28 : IType, new() where T29 : IType, new() where T30 : IType, new() where T31 : IType, new() where T32 : IType, new() where T33 : IType, new() where T34 : IType, new() where T35 : IType, new() where T36 : IType, new() where T37 : IType, new() where T38 : IType, new() where T39 : IType, new() where T40 : IType, new() where T41 : IType, new() where T42 : IType, new() where T43 : IType, new() where T44 : IType, new() where T45 : IType, new() where T46 : IType, new() where T47 : IType, new() where T48 : IType, new() where T49 : IType, new() where T50 : IType, new() where T51 : IType, new() where T52 : IType, new() where T53 : IType, new() where T54 : IType, new() where T55 : IType, new() where T56 : IType, new() where T57 : IType, new() where T58 : IType, new() where T59 : IType, new() where T60 : IType, new() where T61 : IType, new() where T62 : IType, new() where T63 : IType, new() where T64 : IType, new() where T65 : IType, new() where T66 : IType, new() where T67 : IType, new() where T68 : IType, new() where T69 : IType, new() where T70 : IType, new() where T71 : IType, new() where T72 : IType, new() where T73 : IType, new() where T74 : IType, new() where T75 : IType, new() where T76 : IType, new() where T77 : IType, new() where T78 : IType, new() where T79 : IType, new() where T80 : IType, new() where T81 : IType, new() where T82 : IType, new() where T83 : IType, new() where T84 : IType, new() where T85 : IType, new() where T86 : IType, new() where T87 : IType, new() where T88 : IType, new() where T89 : IType, new() where T90 : IType, new() where T91 : IType, new() where T92 : IType, new() where T93 : IType, new() where T94 : IType, new() where T95 : IType, new() where T96 : IType, new() where T97 : IType, new() where T98 : IType, new() where T99 : IType, new() where T100 : IType, new() where T101 : IType, new() where T102 : IType, new() where T103 : IType, new() where T104 : IType, new() where T105 : IType, new() where T106 : IType, new() where T107 : IType, new()
     {
         EnsureArg.IsNotNull(baseEnumExt, nameof(baseEnumExt));
 
-        var baseEnumRust = new BaseEnumRust<TEnum>()
-        {
-            Bytes = baseEnumExt.Bytes,
-        };
+        var baseEnumRust = new BaseEnumRust<TEnum>();
         baseEnumRust.AddTypeDecoder<T0>((TEnum)(object)0);
         baseEnumRust.AddTypeDecoder<T1>((TEnum)(object)1);
         baseEnumRust.AddTypeDecoder<T2>((TEnum)(object)2);
@@ -168,6 +212,9 @@ public static class BaseEnumExtExtensions
         baseEnumRust.AddTypeDecoder<T105>((TEnum)(object)105);
         baseEnumRust.AddTypeDecoder<T106>((TEnum)(object)106);
         baseEnumRust.AddTypeDecoder<T107>((TEnum)(object)107);
+
+        var idx = 0;
+        baseEnumRust.Decode(baseEnumExt.Bytes, ref idx);
 
         return baseEnumRust;
     }
