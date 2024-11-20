@@ -10,8 +10,8 @@ using Substrate.Gear.Api.Generated.Model.gear_core.message.user;
 using Substrate.Gear.Api.Generated.Model.gprimitives;
 using Substrate.Gear.Api.Generated.Model.vara_runtime;
 using Substrate.Gear.Client;
-using Substrate.Gear.Client.Model.Rpc;
-using Substrate.Gear.Client.Model.Types.Base;
+using Substrate.Gear.Client.NetApi.Model.Rpc;
+using Substrate.Gear.Client.NetApi.Model.Types.Base;
 
 namespace Sails.Remoting.Core;
 

@@ -2,7 +2,7 @@
 using EnsureThat;
 using Substrate.NetApi.Model.Types.Primitive;
 
-namespace Substrate.Gear.Client.Model.Types.Primitive;
+namespace Substrate.Gear.Client.NetApi.Model.Types.Primitive;
 
 public static class U8Extensions
 {

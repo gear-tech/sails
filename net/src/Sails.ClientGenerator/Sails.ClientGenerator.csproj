@@ -37,6 +37,9 @@
     <EmbeddedResource Include="$(LibraryRoot)/osx-x64/libsails_net_client_gen.dylib" LogicalName="osx-x64.libsails_net_client_gen.dylib" />
     <EmbeddedResource Include="$(LibraryRoot)/osx-arm64/libsails_net_client_gen.dylib" LogicalName="osx-arm64.libsails_net_client_gen.dylib" />
   </ItemGroup>
+  <ItemGroup>
+    <None Remove="bin\Debug\netstandard2.0\\Sails.ClientGenerator.dll" />
+  </ItemGroup>
 
   <ItemGroup>
     <!-- Package the generator in the analyzer directory of the nuget package -->

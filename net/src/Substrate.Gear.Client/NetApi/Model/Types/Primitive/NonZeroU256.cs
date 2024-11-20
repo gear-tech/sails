@@ -1,7 +1,7 @@
-﻿using Substrate.Gear.Client.Model.Types.Base;
+﻿using Substrate.Gear.Client.NetApi.Model.Types.Base;
 using Substrate.NetApi.Model.Types.Primitive;
 
-namespace Substrate.Gear.Client.Model.Types.Primitive;
+namespace Substrate.Gear.Client.NetApi.Model.Types.Primitive;
 
 /// <summary>
 /// NonZeroU256

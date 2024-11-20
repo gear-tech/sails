@@ -27,13 +27,13 @@ macro_rules! gprimitives {
 
 macro_rules! client_base {
     ($t: expr) => {
-        concat!("global::Substrate.Gear.Client.Model.Types.Base.", $t)
+        concat!("global::Substrate.Gear.Client.NetApi.Model.Types.Base.", $t)
     };
 }
 
 macro_rules! client_primitive {
     ($t: expr) => {
-        concat!("global::Substrate.Gear.Client.Model.Types.Primitive.", $t)
+        concat!("global::Substrate.Gear.Client.NetApi.Model.Types.Primitive.", $t)
     };
 }
 

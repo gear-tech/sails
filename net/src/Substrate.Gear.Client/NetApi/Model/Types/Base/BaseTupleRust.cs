@@ -62,8 +62,8 @@ public class BaseTupleRust : BaseType
     public override void Decode(byte[] byteArray, ref int p)
     {
         Value = new IType[_types.Length];
-        int o = p;
-        for (int i = 0; i < _types.Length; i++)
+        var o = p;
+        for (var i = 0; i < _types.Length; i++)
         {
             var instance = (IType)Activator.CreateInstance(_types[i]);
             instance.Decode(byteArray, ref p);
