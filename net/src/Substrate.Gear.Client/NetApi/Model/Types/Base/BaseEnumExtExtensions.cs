@@ -4,7 +4,7 @@ using EnsureThat;
 using Substrate.NetApi.Model.Types;
 using Substrate.NetApi.Model.Types.Base;
 
-namespace Substrate.Gear.Client.Model.Types.Base;
+namespace Substrate.Gear.Client.NetApi.Model.Types.Base;
 
 [SuppressMessage("Roslynator", "RCS0056:A line is too long", Justification = "Foreign code")]
 public static class BaseEnumExtExtensions

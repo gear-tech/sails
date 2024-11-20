@@ -1,12 +1,12 @@
 ﻿using System;
 using System.Linq;
 using EnsureThat;
-using Substrate.Gear.Client.Model.Types.Base;
+using Substrate.Gear.Client.NetApi.Model.Types.Base;
 using Substrate.NetApi;
 using Substrate.NetApi.Model.Rpc;
 using Substrate.NetApi.Model.Types.Base;
 
-namespace Substrate.Gear.Client.Model.Rpc;
+namespace Substrate.Gear.Client.NetApi.Model.Rpc;
 
 public static class HeaderExtensions
 {

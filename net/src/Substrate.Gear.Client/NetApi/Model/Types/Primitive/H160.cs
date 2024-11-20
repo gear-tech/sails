@@ -3,7 +3,7 @@ using System;
 using Substrate.Gear.Api.Generated.Types.Base;
 using Substrate.NetApi.Model.Types.Base;
 
-namespace Substrate.Gear.Client.Model.Types.Primitive;
+namespace Substrate.Gear.Client.NetApi.Model.Types.Primitive;
 
 /// <summary>
 /// H160

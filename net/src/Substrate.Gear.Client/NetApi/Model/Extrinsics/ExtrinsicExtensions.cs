@@ -3,7 +3,7 @@ using Substrate.NetApi;
 using Substrate.NetApi.Model.Extrinsics;
 using Substrate.NetApi.Model.Types.Base;
 
-namespace Substrate.Gear.Client.Model.Extrinsics;
+namespace Substrate.Gear.Client.NetApi.Model.Extrinsics;
 
 public static class ExtrinsicExtensions
 {
