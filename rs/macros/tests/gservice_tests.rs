@@ -7,6 +7,7 @@ mod gservice_with_extends;
 mod gservice_with_extends_and_lifetimes;
 mod gservice_with_lifecycles_and_generics;
 mod gservice_with_lifetimes_and_events;
+mod gservice_with_multiple_names;
 mod gservice_with_reply_with_value;
 mod gservice_with_trait_bounds;
 
@@ -332,4 +333,40 @@ async fn gservice_with_trait_bounds() {
     assert_eq!(result, 42);
 
     assert_eq!(output.len(), 0);
+}
+
+macro_rules! gservice_works {
+    ($service:expr) => {
+        let input = [
+            DO_THIS.encode(),
+            MyDoThisParams {
+                p1: 42,
+                p2: "correct".into(),
+            }
+            .encode(),
+        ]
+        .concat();
+        let (output, _value) = $service
+            .expose(MessageId::from(123), &[1, 2, 3])
+            .handle(&input)
+            .await;
+        let mut output = output.as_slice();
+
+        let func_name = String::decode(&mut output).unwrap();
+        assert_eq!(func_name, DO_THIS);
+
+        let result = String::decode(&mut output).unwrap();
+        assert_eq!(result, "42: correct");
+        assert_eq!(output.len(), 0);
+    };
+}
+
+#[tokio::test]
+async fn gservice_with_multiple_names() {
+    use gservice_with_multiple_names::MyDoThisParams;
+    const DO_THIS: &str = "DoThis";
+
+    gservice_works!(gservice_with_multiple_names::MyService);
+    gservice_works!(gservice_with_multiple_names::MyOtherService);
+    gservice_works!(gservice_with_multiple_names::yet_another_service::MyService);
 }

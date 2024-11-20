@@ -10,7 +10,7 @@ use syn::{
     WhereClause,
 };
 
-pub(crate) fn impl_type(item_impl: &ItemImpl) -> (TypePath, PathArguments) {
+pub(crate) fn impl_type(item_impl: &ItemImpl) -> (TypePath, PathArguments, Ident) {
     let item_impl_type = item_impl.self_ty.as_ref();
     let path = if let Type::Path(type_path) = item_impl_type {
         type_path.clone()
@@ -21,8 +21,10 @@ pub(crate) fn impl_type(item_impl: &ItemImpl) -> (TypePath, PathArguments) {
             item_impl_type.to_token_stream()
         )
     };
-    let args = path.path.segments.last().unwrap().arguments.clone();
-    (path, args)
+    let segment = path.path.segments.last().unwrap();
+    let args = segment.arguments.clone();
+    let ident = segment.ident.clone();
+    (path, args, ident)
 }
 
 pub(crate) fn impl_constraints(item_impl: &ItemImpl) -> (Generics, Option<WhereClause>) {
@@ -143,7 +145,7 @@ pub(crate) fn generate_unexpected_input_panic(
     let copy_ident = Ident::new(&format!("__{}", input_ident), Span::call_site());
     quote!({
         let mut #copy_ident = #input_ident;
-        let input = String::decode(&mut #copy_ident)
+        let input: String = #sails_path::Decode::decode(&mut #copy_ident)
             .unwrap_or_else(|_| {
                 if #input_ident.len() <= 8 {
                     format!("0x{}", #sails_path::hex::encode(#input_ident))
