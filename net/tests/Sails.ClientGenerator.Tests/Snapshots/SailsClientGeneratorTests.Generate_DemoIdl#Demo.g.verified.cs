@@ -232,7 +232,7 @@ public sealed partial class DogListener : IRemotingListener<EnumDogEvents>
 
 public interface IPingPong
 {
-    ICall<global::Substrate.Gear.Client.Model.Types.Base.BaseResult<global::Substrate.NetApi.Model.Types.Primitive.Str, global::Substrate.NetApi.Model.Types.Primitive.Str>> Ping(global::Substrate.NetApi.Model.Types.Primitive.Str input);
+    ICall<global::Substrate.Gear.Client.NetApi.Model.Types.Base.BaseResult<global::Substrate.NetApi.Model.Types.Primitive.Str, global::Substrate.NetApi.Model.Types.Primitive.Str>> Ping(global::Substrate.NetApi.Model.Types.Primitive.Str input);
 }
 
 public sealed partial class PingPong : IPingPong
@@ -244,9 +244,9 @@ public sealed partial class PingPong : IPingPong
     }
 
     /// <inheritdoc/>
-    public ICall<global::Substrate.Gear.Client.Model.Types.Base.BaseResult<global::Substrate.NetApi.Model.Types.Primitive.Str, global::Substrate.NetApi.Model.Types.Primitive.Str>> Ping(global::Substrate.NetApi.Model.Types.Primitive.Str input)
+    public ICall<global::Substrate.Gear.Client.NetApi.Model.Types.Base.BaseResult<global::Substrate.NetApi.Model.Types.Primitive.Str, global::Substrate.NetApi.Model.Types.Primitive.Str>> Ping(global::Substrate.NetApi.Model.Types.Primitive.Str input)
     {
-        return new RemotingAction<global::Substrate.Gear.Client.Model.Types.Base.BaseResult<global::Substrate.NetApi.Model.Types.Primitive.Str, global::Substrate.NetApi.Model.Types.Primitive.Str>>(this.remoting, [32, 80, 105, 110, 103, 80, 111, 110, 103, 16, 80, 105, 110, 103], new global::Substrate.NetApi.Model.Types.Base.BaseTupleRust(input));
+        return new RemotingAction<global::Substrate.Gear.Client.NetApi.Model.Types.Base.BaseResult<global::Substrate.NetApi.Model.Types.Primitive.Str, global::Substrate.NetApi.Model.Types.Primitive.Str>>(this.remoting, [32, 80, 105, 110, 103, 80, 111, 110, 103, 16, 80, 105, 110, 103], new global::Substrate.NetApi.Model.Types.Base.BaseTupleRust(input));
     }
 }
 
@@ -254,9 +254,9 @@ public interface IReferences
 {
     ICall<global::Substrate.NetApi.Model.Types.Primitive.U32> Add(global::Substrate.NetApi.Model.Types.Primitive.U32 v);
     ICall<global::Substrate.NetApi.Model.Types.Base.BaseVec<global::Substrate.NetApi.Model.Types.Primitive.U8>> AddByte(global::Substrate.NetApi.Model.Types.Primitive.U8 @byte);
-    ICall<global::Substrate.Gear.Client.Model.Types.Base.BaseResult<global::Substrate.NetApi.Model.Types.Primitive.Str, global::Substrate.NetApi.Model.Types.Primitive.Str>> GuessNum(global::Substrate.NetApi.Model.Types.Primitive.U8 number);
+    ICall<global::Substrate.Gear.Client.NetApi.Model.Types.Base.BaseResult<global::Substrate.NetApi.Model.Types.Primitive.Str, global::Substrate.NetApi.Model.Types.Primitive.Str>> GuessNum(global::Substrate.NetApi.Model.Types.Primitive.U8 number);
     ICall<ReferenceCount> Incr();
-    ICall<global::Substrate.Gear.Client.Model.Types.Base.BaseResult<global::Substrate.NetApi.Model.Types.Base.BaseVoid, global::Substrate.NetApi.Model.Types.Primitive.Str>> SetNum(global::Substrate.NetApi.Model.Types.Primitive.U8 number);
+    ICall<global::Substrate.Gear.Client.NetApi.Model.Types.Base.BaseResult<global::Substrate.NetApi.Model.Types.Base.BaseVoid, global::Substrate.NetApi.Model.Types.Primitive.Str>> SetNum(global::Substrate.NetApi.Model.Types.Primitive.U8 number);
     IQuery<global::Substrate.NetApi.Model.Types.Primitive.Str> Baked();
     IQuery<global::Substrate.NetApi.Model.Types.Base.BaseOpt<global::Substrate.NetApi.Model.Types.Primitive.U8>> LastByte();
     IQuery<global::Substrate.NetApi.Model.Types.Base.BaseOpt<global::Substrate.NetApi.Model.Types.Primitive.Str>> Message();
@@ -283,9 +283,9 @@ public sealed partial class References : IReferences
     }
 
     /// <inheritdoc/>
-    public ICall<global::Substrate.Gear.Client.Model.Types.Base.BaseResult<global::Substrate.NetApi.Model.Types.Primitive.Str, global::Substrate.NetApi.Model.Types.Primitive.Str>> GuessNum(global::Substrate.NetApi.Model.Types.Primitive.U8 number)
+    public ICall<global::Substrate.Gear.Client.NetApi.Model.Types.Base.BaseResult<global::Substrate.NetApi.Model.Types.Primitive.Str, global::Substrate.NetApi.Model.Types.Primitive.Str>> GuessNum(global::Substrate.NetApi.Model.Types.Primitive.U8 number)
     {
-        return new RemotingAction<global::Substrate.Gear.Client.Model.Types.Base.BaseResult<global::Substrate.NetApi.Model.Types.Primitive.Str, global::Substrate.NetApi.Model.Types.Primitive.Str>>(this.remoting, [40, 82, 101, 102, 101, 114, 101, 110, 99, 101, 115, 32, 71, 117, 101, 115, 115, 78, 117, 109], new global::Substrate.NetApi.Model.Types.Base.BaseTupleRust(number));
+        return new RemotingAction<global::Substrate.Gear.Client.NetApi.Model.Types.Base.BaseResult<global::Substrate.NetApi.Model.Types.Primitive.Str, global::Substrate.NetApi.Model.Types.Primitive.Str>>(this.remoting, [40, 82, 101, 102, 101, 114, 101, 110, 99, 101, 115, 32, 71, 117, 101, 115, 115, 78, 117, 109], new global::Substrate.NetApi.Model.Types.Base.BaseTupleRust(number));
     }
 
     /// <inheritdoc/>
@@ -295,9 +295,9 @@ public sealed partial class References : IReferences
     }
 
     /// <inheritdoc/>
-    public ICall<global::Substrate.Gear.Client.Model.Types.Base.BaseResult<global::Substrate.NetApi.Model.Types.Base.BaseVoid, global::Substrate.NetApi.Model.Types.Primitive.Str>> SetNum(global::Substrate.NetApi.Model.Types.Primitive.U8 number)
+    public ICall<global::Substrate.Gear.Client.NetApi.Model.Types.Base.BaseResult<global::Substrate.NetApi.Model.Types.Base.BaseVoid, global::Substrate.NetApi.Model.Types.Primitive.Str>> SetNum(global::Substrate.NetApi.Model.Types.Primitive.U8 number)
     {
-        return new RemotingAction<global::Substrate.Gear.Client.Model.Types.Base.BaseResult<global::Substrate.NetApi.Model.Types.Base.BaseVoid, global::Substrate.NetApi.Model.Types.Primitive.Str>>(this.remoting, [40, 82, 101, 102, 101, 114, 101, 110, 99, 101, 115, 24, 83, 101, 116, 78, 117, 109], new global::Substrate.NetApi.Model.Types.Base.BaseTupleRust(number));
+        return new RemotingAction<global::Substrate.Gear.Client.NetApi.Model.Types.Base.BaseResult<global::Substrate.NetApi.Model.Types.Base.BaseVoid, global::Substrate.NetApi.Model.Types.Primitive.Str>>(this.remoting, [40, 82, 101, 102, 101, 114, 101, 110, 99, 101, 115, 24, 83, 101, 116, 78, 117, 109], new global::Substrate.NetApi.Model.Types.Base.BaseTupleRust(number));
     }
 
     /// <inheritdoc/>
@@ -321,10 +321,10 @@ public sealed partial class References : IReferences
 
 public interface IThisThat
 {
-    ICall<global::Substrate.Gear.Client.Model.Types.Base.BaseResult<global::Substrate.NetApi.Model.Types.Base.BaseTuple<global::Substrate.Gear.Api.Generated.Model.gprimitives.ActorId, global::Substrate.Gear.Api.Generated.Types.Base.NonZeroU32>, global::Substrate.NetApi.Model.Types.Primitive.Str>> DoThat(DoThatParam param);
-    ICall<global::Substrate.NetApi.Model.Types.Base.BaseTuple<global::Substrate.NetApi.Model.Types.Primitive.Str, global::Substrate.NetApi.Model.Types.Primitive.U32>> DoThis(global::Substrate.NetApi.Model.Types.Primitive.U32 p1, global::Substrate.NetApi.Model.Types.Primitive.Str p2, global::Substrate.NetApi.Model.Types.Base.BaseTuple<global::Substrate.NetApi.Model.Types.Base.BaseOpt<global::Substrate.Gear.Client.Model.Types.Primitive.H160>, global::Substrate.Gear.Client.Model.Types.Primitive.NonZeroU8> p3, TupleStruct p4);
+    ICall<global::Substrate.Gear.Client.NetApi.Model.Types.Base.BaseResult<global::Substrate.NetApi.Model.Types.Base.BaseTuple<global::Substrate.Gear.Api.Generated.Model.gprimitives.ActorId, global::Substrate.Gear.Api.Generated.Types.Base.NonZeroU32>, global::Substrate.NetApi.Model.Types.Primitive.Str>> DoThat(DoThatParam param);
+    ICall<global::Substrate.NetApi.Model.Types.Base.BaseTuple<global::Substrate.NetApi.Model.Types.Primitive.Str, global::Substrate.NetApi.Model.Types.Primitive.U32>> DoThis(global::Substrate.NetApi.Model.Types.Primitive.U32 p1, global::Substrate.NetApi.Model.Types.Primitive.Str p2, global::Substrate.NetApi.Model.Types.Base.BaseTuple<global::Substrate.NetApi.Model.Types.Base.BaseOpt<global::Substrate.Gear.Client.NetApi.Model.Types.Primitive.H160>, global::Substrate.Gear.Client.NetApi.Model.Types.Primitive.NonZeroU8> p3, TupleStruct p4);
     ICall<global::Substrate.NetApi.Model.Types.Base.BaseVoid> Noop();
-    IQuery<global::Substrate.Gear.Client.Model.Types.Base.BaseResult<global::Substrate.NetApi.Model.Types.Primitive.Str, global::Substrate.NetApi.Model.Types.Primitive.Str>> That();
+    IQuery<global::Substrate.Gear.Client.NetApi.Model.Types.Base.BaseResult<global::Substrate.NetApi.Model.Types.Primitive.Str, global::Substrate.NetApi.Model.Types.Primitive.Str>> That();
     IQuery<global::Substrate.NetApi.Model.Types.Primitive.U32> This();
 }
 
@@ -337,13 +337,13 @@ public sealed partial class ThisThat : IThisThat
     }
 
     /// <inheritdoc/>
-    public ICall<global::Substrate.Gear.Client.Model.Types.Base.BaseResult<global::Substrate.NetApi.Model.Types.Base.BaseTuple<global::Substrate.Gear.Api.Generated.Model.gprimitives.ActorId, global::Substrate.Gear.Api.Generated.Types.Base.NonZeroU32>, global::Substrate.NetApi.Model.Types.Primitive.Str>> DoThat(DoThatParam param)
+    public ICall<global::Substrate.Gear.Client.NetApi.Model.Types.Base.BaseResult<global::Substrate.NetApi.Model.Types.Base.BaseTuple<global::Substrate.Gear.Api.Generated.Model.gprimitives.ActorId, global::Substrate.Gear.Api.Generated.Types.Base.NonZeroU32>, global::Substrate.NetApi.Model.Types.Primitive.Str>> DoThat(DoThatParam param)
     {
-        return new RemotingAction<global::Substrate.Gear.Client.Model.Types.Base.BaseResult<global::Substrate.NetApi.Model.Types.Base.BaseTuple<global::Substrate.Gear.Api.Generated.Model.gprimitives.ActorId, global::Substrate.Gear.Api.Generated.Types.Base.NonZeroU32>, global::Substrate.NetApi.Model.Types.Primitive.Str>>(this.remoting, [32, 84, 104, 105, 115, 84, 104, 97, 116, 24, 68, 111, 84, 104, 97, 116], new global::Substrate.NetApi.Model.Types.Base.BaseTupleRust(param));
+        return new RemotingAction<global::Substrate.Gear.Client.NetApi.Model.Types.Base.BaseResult<global::Substrate.NetApi.Model.Types.Base.BaseTuple<global::Substrate.Gear.Api.Generated.Model.gprimitives.ActorId, global::Substrate.Gear.Api.Generated.Types.Base.NonZeroU32>, global::Substrate.NetApi.Model.Types.Primitive.Str>>(this.remoting, [32, 84, 104, 105, 115, 84, 104, 97, 116, 24, 68, 111, 84, 104, 97, 116], new global::Substrate.NetApi.Model.Types.Base.BaseTupleRust(param));
     }
 
     /// <inheritdoc/>
-    public ICall<global::Substrate.NetApi.Model.Types.Base.BaseTuple<global::Substrate.NetApi.Model.Types.Primitive.Str, global::Substrate.NetApi.Model.Types.Primitive.U32>> DoThis(global::Substrate.NetApi.Model.Types.Primitive.U32 p1, global::Substrate.NetApi.Model.Types.Primitive.Str p2, global::Substrate.NetApi.Model.Types.Base.BaseTuple<global::Substrate.NetApi.Model.Types.Base.BaseOpt<global::Substrate.Gear.Client.Model.Types.Primitive.H160>, global::Substrate.Gear.Client.Model.Types.Primitive.NonZeroU8> p3, TupleStruct p4)
+    public ICall<global::Substrate.NetApi.Model.Types.Base.BaseTuple<global::Substrate.NetApi.Model.Types.Primitive.Str, global::Substrate.NetApi.Model.Types.Primitive.U32>> DoThis(global::Substrate.NetApi.Model.Types.Primitive.U32 p1, global::Substrate.NetApi.Model.Types.Primitive.Str p2, global::Substrate.NetApi.Model.Types.Base.BaseTuple<global::Substrate.NetApi.Model.Types.Base.BaseOpt<global::Substrate.Gear.Client.NetApi.Model.Types.Primitive.H160>, global::Substrate.Gear.Client.NetApi.Model.Types.Primitive.NonZeroU8> p3, TupleStruct p4)
     {
         return new RemotingAction<global::Substrate.NetApi.Model.Types.Base.BaseTuple<global::Substrate.NetApi.Model.Types.Primitive.Str, global::Substrate.NetApi.Model.Types.Primitive.U32>>(this.remoting, [32, 84, 104, 105, 115, 84, 104, 97, 116, 24, 68, 111, 84, 104, 105, 115], new global::Substrate.NetApi.Model.Types.Base.BaseTupleRust(p1, p2, p3, p4));
     }
@@ -355,9 +355,9 @@ public sealed partial class ThisThat : IThisThat
     }
 
     /// <inheritdoc/>
-    public IQuery<global::Substrate.Gear.Client.Model.Types.Base.BaseResult<global::Substrate.NetApi.Model.Types.Primitive.Str, global::Substrate.NetApi.Model.Types.Primitive.Str>> That()
+    public IQuery<global::Substrate.Gear.Client.NetApi.Model.Types.Base.BaseResult<global::Substrate.NetApi.Model.Types.Primitive.Str, global::Substrate.NetApi.Model.Types.Primitive.Str>> That()
     {
-        return new RemotingAction<global::Substrate.Gear.Client.Model.Types.Base.BaseResult<global::Substrate.NetApi.Model.Types.Primitive.Str, global::Substrate.NetApi.Model.Types.Primitive.Str>>(this.remoting, [32, 84, 104, 105, 115, 84, 104, 97, 116, 16, 84, 104, 97, 116], new global::Substrate.NetApi.Model.Types.Base.BaseTupleRust());
+        return new RemotingAction<global::Substrate.Gear.Client.NetApi.Model.Types.Base.BaseResult<global::Substrate.NetApi.Model.Types.Primitive.Str, global::Substrate.NetApi.Model.Types.Primitive.Str>>(this.remoting, [32, 84, 104, 105, 115, 84, 104, 97, 116, 16, 84, 104, 97, 116], new global::Substrate.NetApi.Model.Types.Base.BaseTupleRust());
     }
 
     /// <inheritdoc/>
