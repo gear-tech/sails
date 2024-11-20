@@ -67,7 +67,7 @@ lalrpop = { version = "0.20", default-features = false }
 lalrpop-util = "0.20"
 logos = "0.13"
 mockall = "0.12"
-parity-scale-codec = { version = "3.6", default-features = false }
+parity-scale-codec = { version = "3.7", default-features = false }
 prettyplease = "0.2"
 proc-macro-error = "1.0"
 proc-macro2 = { version = "1", default-features = false }
