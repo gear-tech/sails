@@ -4,7 +4,7 @@ using Newtonsoft.Json;
 using Substrate.NetApi;
 using Substrate.NetApi.Model.Types;
 
-namespace Substrate.Gear.Client.Model.Types.Base;
+namespace Substrate.Gear.Client.NetApi.Model.Types.Base;
 
 /// <summary>
 /// Base Dictionary Type

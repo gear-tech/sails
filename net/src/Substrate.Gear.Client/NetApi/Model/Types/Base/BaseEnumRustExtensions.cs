@@ -6,7 +6,7 @@ using EnsureThat;
 using Substrate.NetApi.Model.Types;
 using Substrate.NetApi.Model.Types.Base;
 
-namespace Substrate.Gear.Client.Model.Types.Base;
+namespace Substrate.Gear.Client.NetApi.Model.Types.Base;
 
 public static class BaseEnumRustExtensions
 {

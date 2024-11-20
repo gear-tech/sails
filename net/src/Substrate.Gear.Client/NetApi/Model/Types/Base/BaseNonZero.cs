@@ -2,7 +2,7 @@
 using System;
 using Substrate.NetApi.Model.Types.Base;
 
-namespace Substrate.Gear.Client.Model.Types.Base;
+namespace Substrate.Gear.Client.NetApi.Model.Types.Base;
 
 public class BaseNonZero<T> : BaseType
     where T : BaseType, new()

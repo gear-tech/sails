@@ -1,6 +1,6 @@
 ﻿using FluentAssertions;
-using Substrate.Gear.Client.Model.Rpc;
-using Substrate.Gear.Client.Model.Types.Base;
+using Substrate.Gear.Client.NetApi.Model.Rpc;
+using Substrate.Gear.Client.NetApi.Model.Types.Base;
 using Substrate.NetApi.Model.Rpc;
 using Substrate.NetApi.Model.Types.Base;
 using Substrate.NetApi.Model.Types.Primitive;

@@ -2,7 +2,7 @@
 using Substrate.NET.Schnorrkel;
 using Substrate.NetApi.Model.Types;
 
-namespace Substrate.Gear.Client.Model.Types;
+namespace Substrate.Gear.Client.NetApi.Model.Types;
 
 public static class AccountExtensions
 {
