@@ -21,27 +21,21 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Substrate.Gear.Client", "ne
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Sails.ClientGenerator", "net\src\Sails.ClientGenerator\Sails.ClientGenerator.csproj", "{F93FFE42-71C1-44BD-9DBA-3559B307370C}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Sails.ClientGenerator.Tests", "net\tests\Sails.ClientGenerator.Tests\Sails.ClientGenerator.Tests.csproj", "{A6A2172B-8F8F-4BDC-B519-E7299FFCCA5F}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Sails.ClientBuildTask", "net\src\Sails.ClientBuildTask\Sails.ClientBuildTask.csproj", "{E5072C5C-F9F6-459F-970F-200D21E92677}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{19594BCA-94DB-44AD-ACBC-2ACFED242E9F}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Sails.ClientGenerator.Tests", "net\tests\Sails.ClientGenerator.Tests\Sails.ClientGenerator.Tests.csproj", "{A6A2172B-8F8F-4BDC-B519-E7299FFCCA5F}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Substrate.Gear.Client.Tests", "net\tests\Substrate.Gear.Client.Tests\Substrate.Gear.Client.Tests.csproj", "{42B621CE-C2B4-4911-961C-5B087A514AF5}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Sails.Client.Tests", "net\tests\Sails.Client.Tests\Sails.Client.Tests.csproj", "{BC248D44-14CD-4BB0-9AF9-4E0750574492}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Sails.ClientBuildTask", "net\src\Sails.ClientBuildTask\Sails.ClientBuildTask.csproj", "{E5072C5C-F9F6-459F-970F-200D21E92677}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Sails.Remoting.Tests", "net\tests\Sails.Remoting.Tests\Sails.Remoting.Tests.csproj", "{DEEACFC0-EE4D-42E5-9616-232242913A39}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Sails.ClientGenerator", "net\src\Sails.ClientGenerator\Sails.ClientGenerator.csproj", "{F93FFE42-71C1-44BD-9DBA-3559B307370C}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Sails.ClientGenerator.Native", "net\src\Sails.ClientGenerator.Native\Sails.ClientGenerator.Native.csproj", "{55BE615D-B412-4160-8FBF-ADEE471624F4}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Sails.ClientGenerator.Tests", "net\tests\Sails.ClientGenerator.Tests\Sails.ClientGenerator.Tests.csproj", "{A6A2172B-8F8F-4BDC-B519-E7299FFCCA5F}"
-EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{19594BCA-94DB-44AD-ACBC-2ACFED242E9F}"
-EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Substrate.Gear.Client.Tests", "net\tests\Substrate.Gear.Client.Tests\Substrate.Gear.Client.Tests.csproj", "{42B621CE-C2B4-4911-961C-5B087A514AF5}"
-EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Sails.Client.Tests", "net\tests\Sails.Client.Tests\Sails.Client.Tests.csproj", "{BC248D44-14CD-4BB0-9AF9-4E0750574492}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Sails.Tests.Shared", "net\tests\Sails.Tests.Shared\Sails.Tests.Shared.csproj", "{2F54A17E-3260-4445-BE16-883534525E43}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -69,18 +63,14 @@ Global
 		{1589D5A4-0CC4-4855-89E0-2E61BBC5E0B0}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{1589D5A4-0CC4-4855-89E0-2E61BBC5E0B0}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{1589D5A4-0CC4-4855-89E0-2E61BBC5E0B0}.Release|Any CPU.Build.0 = Release|Any CPU
-		{382EBE9F-C60C-4D20-A585-B3272113F944}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{382EBE9F-C60C-4D20-A585-B3272113F944}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{382EBE9F-C60C-4D20-A585-B3272113F944}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{382EBE9F-C60C-4D20-A585-B3272113F944}.Release|Any CPU.Build.0 = Release|Any CPU
-		{DEEACFC0-EE4D-42E5-9616-232242913A39}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{DEEACFC0-EE4D-42E5-9616-232242913A39}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{DEEACFC0-EE4D-42E5-9616-232242913A39}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{DEEACFC0-EE4D-42E5-9616-232242913A39}.Release|Any CPU.Build.0 = Release|Any CPU
 		{F93FFE42-71C1-44BD-9DBA-3559B307370C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{F93FFE42-71C1-44BD-9DBA-3559B307370C}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{F93FFE42-71C1-44BD-9DBA-3559B307370C}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{F93FFE42-71C1-44BD-9DBA-3559B307370C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E5072C5C-F9F6-459F-970F-200D21E92677}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E5072C5C-F9F6-459F-970F-200D21E92677}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E5072C5C-F9F6-459F-970F-200D21E92677}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E5072C5C-F9F6-459F-970F-200D21E92677}.Release|Any CPU.Build.0 = Release|Any CPU
 		{A6A2172B-8F8F-4BDC-B519-E7299FFCCA5F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{A6A2172B-8F8F-4BDC-B519-E7299FFCCA5F}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{A6A2172B-8F8F-4BDC-B519-E7299FFCCA5F}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -93,24 +83,28 @@ Global
 		{BC248D44-14CD-4BB0-9AF9-4E0750574492}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{BC248D44-14CD-4BB0-9AF9-4E0750574492}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{BC248D44-14CD-4BB0-9AF9-4E0750574492}.Release|Any CPU.Build.0 = Release|Any CPU
-		{E5072C5C-F9F6-459F-970F-200D21E92677}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{E5072C5C-F9F6-459F-970F-200D21E92677}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{E5072C5C-F9F6-459F-970F-200D21E92677}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{E5072C5C-F9F6-459F-970F-200D21E92677}.Release|Any CPU.Build.0 = Release|Any CPU
-		{A5BDF026-737E-482C-9003-C604399EBE6F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{A5BDF026-737E-482C-9003-C604399EBE6F}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{A5BDF026-737E-482C-9003-C604399EBE6F}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{A5BDF026-737E-482C-9003-C604399EBE6F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{DEEACFC0-EE4D-42E5-9616-232242913A39}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DEEACFC0-EE4D-42E5-9616-232242913A39}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DEEACFC0-EE4D-42E5-9616-232242913A39}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DEEACFC0-EE4D-42E5-9616-232242913A39}.Release|Any CPU.Build.0 = Release|Any CPU
+		{55BE615D-B412-4160-8FBF-ADEE471624F4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{55BE615D-B412-4160-8FBF-ADEE471624F4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{55BE615D-B412-4160-8FBF-ADEE471624F4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{55BE615D-B412-4160-8FBF-ADEE471624F4}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2F54A17E-3260-4445-BE16-883534525E43}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2F54A17E-3260-4445-BE16-883534525E43}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2F54A17E-3260-4445-BE16-883534525E43}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2F54A17E-3260-4445-BE16-883534525E43}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
-		{382EBE9F-C60C-4D20-A585-B3272113F944} = {19594BCA-94DB-44AD-ACBC-2ACFED242E9F}
-		{DEEACFC0-EE4D-42E5-9616-232242913A39} = {19594BCA-94DB-44AD-ACBC-2ACFED242E9F}
 		{A6A2172B-8F8F-4BDC-B519-E7299FFCCA5F} = {19594BCA-94DB-44AD-ACBC-2ACFED242E9F}
 		{42B621CE-C2B4-4911-961C-5B087A514AF5} = {19594BCA-94DB-44AD-ACBC-2ACFED242E9F}
 		{BC248D44-14CD-4BB0-9AF9-4E0750574492} = {19594BCA-94DB-44AD-ACBC-2ACFED242E9F}
+		{DEEACFC0-EE4D-42E5-9616-232242913A39} = {19594BCA-94DB-44AD-ACBC-2ACFED242E9F}
+		{2F54A17E-3260-4445-BE16-883534525E43} = {19594BCA-94DB-44AD-ACBC-2ACFED242E9F}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {0894C08B-8BB9-401D-8471-26F5EB5A4EA2}
