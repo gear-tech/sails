@@ -6,17 +6,47 @@ on:
       - 'net/v*-pin'
 
 jobs:
+  prepare:
+      name: Prepare Release
+      runs-on: ubuntu-latest
+      permissions:
+        contents: write
+      defaults:
+        run:
+          shell: bash
+      outputs:
+        r_version: ${{ steps.release_info.outputs.version }}
+        r_tag: rs/v${{ steps.release_info.outputs.version }}
+
+      steps:
+        - name: Extract Release Info
+          id: release_info
+          run: |
+            PIN_TAG=${GITHUB_REF#refs/tags/}
+            VERSION=${PIN_TAG#net/v}
+            VERSION="${VERSION%-pin}"
+            if [[ ! $VERSION =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+              echo "'$VERSION' is not a valid semver version"
+              exit 1
+            fi
+            echo "Pin Tag: $PIN_TAG"
+            echo "pin_tag=$PIN_TAG" >> $GITHUB_OUTPUT
+            echo "Version: $VERSION"
+            echo "version=$VERSION" >> $GITHUB_OUTPUT
+
   build_win_x64:
     name: Build Native Libraries for Win x64
+    needs: prepare
     runs-on: windows-latest
 
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Build Client Generator
+      - name: Build & Test Client Generator
         run: |
             cargo build --manifest-path net/rs/Cargo.toml --release
+            cargo test --manifest-path net/rs/Cargo.toml --release
 
       - name: Upload Client Generator Artifacts
         uses: actions/upload-artifact@v4
@@ -26,15 +56,17 @@ jobs:
 
   build_linux_x64:
     name: Build Native Libraries for Linux x64
+    needs: prepare
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Build Client Generator
+      - name: Build & Test Client Generator
         run: |
             cargo build --manifest-path net/rs/Cargo.toml --release
+            cargo test --manifest-path net/rs/Cargo.toml --release
 
       - name: Upload Client Generator Artifacts
         uses: actions/upload-artifact@v4
@@ -42,18 +74,20 @@ jobs:
           name: linux_x64
           path: ./net/rs/target/release/libsails_net_client_gen.so
 
-  osx_x64:
+  build_osx_x64:
     name: Build Native Libraries for NacOS x64
+    needs: prepare
     runs-on: macos-latest
 
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Build Client Generator
+      - name: Build & Test Client Generator
         run: |
             rustup target add x86_64-apple-darwin
             cargo build --manifest-path net/rs/Cargo.toml --release --target x86_64-apple-darwin
+            cargo test --manifest-path net/rs/Cargo.toml --release --target x86_64-apple-darwin
 
       - name: Upload Client Generator Artifacts
         uses: actions/upload-artifact@v4
@@ -61,36 +95,23 @@ jobs:
           name: osx_x64
           path: ./net/rs/target/x86_64-apple-darwin/release/libsails_net_client_gen.dylib
 
-  osx_arm64:
+  build_osx_arm64:
     name: Build Native Libraries for MacOS ARM64
+    needs: prepare
     runs-on: macos-latest
 
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Build Client Generator
+      - name: Build & Test Client Generator
         run: |
             rustup target add aarch64-apple-darwin
             cargo build --manifest-path net/rs/Cargo.toml --release --target aarch64-apple-darwin
+            cargo test --manifest-path net/rs/Cargo.toml --release --target aarch64-apple-darwin
 
       - name: Upload Client Generator Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: osx_arm64
           path: ./net/rs/target/aarch64-apple-darwin/release/libsails_net_client_gen.dylib
-
-  prepare:
-    name: Prepare Release
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    defaults:
-      run:
-        shell: bash
-
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
