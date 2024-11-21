@@ -135,8 +135,10 @@ jobs:
           path: native_client_gens
           pattern: native_client_gen_*
 
-      - name: Build & Test Solution
-        run: >-
-          dotnet test --configuration Release
-          -p:LibraryRoot=${{ github.workspace }}/native_client_gens
-          --logger "trx;LogFileName=TestResults.trx"
+      - name: Build Solution
+        run: |
+          dotnet build --configuration Release -p:LibraryRoot=${{ github.workspace }}/native_client_gens
+
+      - name: Test Solution
+        run: |
+          dotnet test --no-build --configuration Release --logger "trx;LogFileName=TestResults.trx"
