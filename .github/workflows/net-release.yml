@@ -45,14 +45,16 @@ jobs:
 
       - name: Build & Test Client Generator
         run: |
-          cargo build --manifest-path net/rs/Cargo.toml --release
-          cargo test --manifest-path net/rs/Cargo.toml --release
+          cargo build --locked --manifest-path net/rs/Cargo.toml --release
+          cargo test --locked --manifest-path net/rs/Cargo.toml --release
+          mkdir -p ./net/rs/target/release/win-x64 && \
+            cp ./net/rs/target/release/sails_net_client_gen.dll ./net/rs/target/release/win-x64
 
       - name: Upload Client Generator Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: native_client_gen_win_x64
-          path: ./net/rs/target/release/sails_net_client_gen.dll
+          path: ./net/rs/target/release/win-x64
 
   build_linux_x64:
     name: Build Native Libraries for Linux x64
@@ -65,14 +67,16 @@ jobs:
 
       - name: Build & Test Client Generator
         run: |
-          cargo build --manifest-path net/rs/Cargo.toml --release
-          cargo test --manifest-path net/rs/Cargo.toml --release
+          cargo build --locked --manifest-path net/rs/Cargo.toml --release
+          cargo test --locked --manifest-path net/rs/Cargo.toml --release
+          mkdir -p ./net/rs/target/release/linux-x64 && \
+            cp ./net/rs/target/release/libsails_net_client_gen.so ./net/rs/target/release/linux-x64
 
       - name: Upload Client Generator Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: native_client_gen_linux_x64
-          path: ./net/rs/target/release/libsails_net_client_gen.so
+          path: ./net/rs/target/release/linux-x64
 
   build_osx_x64:
     name: Build Native Libraries for NacOS x64
@@ -86,14 +90,16 @@ jobs:
       - name: Build & Test Client Generator
         run: |
           rustup target add x86_64-apple-darwin
-          cargo build --manifest-path net/rs/Cargo.toml --release --target x86_64-apple-darwin
-          cargo test --manifest-path net/rs/Cargo.toml --release --target x86_64-apple-darwin
+          cargo build --locked --manifest-path net/rs/Cargo.toml --release --target x86_64-apple-darwin
+          cargo test --locked --manifest-path net/rs/Cargo.toml --release --target x86_64-apple-darwin
+          mkdir -p ./net/rs/target/release/osx-x64 && \
+            cp ./net/rs/target/x86_64-apple-darwin/release/libsails_net_client_gen.dylib ./net/rs/target/release/osx-x64
 
       - name: Upload Client Generator Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: native_client_gen_osx_x64
-          path: ./net/rs/target/x86_64-apple-darwin/release/libsails_net_client_gen.dylib
+          path: ./net/rs/target/release/osx-x64
 
   build_osx_arm64:
     name: Build Native Libraries for MacOS ARM64
@@ -107,14 +113,16 @@ jobs:
       - name: Build & Test Client Generator
         run: |
           rustup target add aarch64-apple-darwin
-          cargo build --manifest-path net/rs/Cargo.toml --release --target aarch64-apple-darwin
-          cargo test --manifest-path net/rs/Cargo.toml --release --target aarch64-apple-darwin
+          cargo build --locked --manifest-path net/rs/Cargo.toml --release --target aarch64-apple-darwin
+          cargo test --locked --manifest-path net/rs/Cargo.toml --release --target aarch64-apple-darwin
+          mkdir -p ./net/rs/target/release/osx-arm64 && \
+            cp ./net/rs/target/aarch64-apple-darwin/release/libsails_net_client_gen.dylib ./net/rs/target/release/osx-arm64
 
       - name: Upload Client Generator Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: native_client_gen_osx_arm64
-          path: ./net/rs/target/aarch64-apple-darwin/release/libsails_net_client_gen.dylib
+          path: ./net/rs/target/release/osx-arm64
 
   publish:
     name: Publish NuGet Packages
@@ -134,6 +142,7 @@ jobs:
         with:
           path: native_client_gens
           pattern: native_client_gen_*
+          merge-multiple: true
 
       - name: Build Solution
         run: |
