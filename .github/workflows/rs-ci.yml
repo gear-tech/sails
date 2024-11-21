@@ -1,4 +1,4 @@
-name: '[rs] CI (Rust)'
+name: '[rs] CI'
 
 on:
   push:

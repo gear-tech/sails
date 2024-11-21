@@ -8,7 +8,7 @@
 #   - amends contract template with the new version and runs tests against it
 #   - crates PR with the changes, release tag and draft release
 # Merging PR and pubslishing release is supposed to be done manually.
-name: '[rs] Release (Rust)'
+name: '[rs] Release'
 
 on:
   push:
