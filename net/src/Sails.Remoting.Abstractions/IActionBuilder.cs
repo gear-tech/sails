@@ -1,7 +1,4 @@
-﻿using GasUnit = Substrate.NetApi.Model.Types.Primitive.U64;
-using ValueUnit = Substrate.NetApi.Model.Types.Primitive.U128;
-
-namespace Sails.Remoting.Abstractions;
+﻿namespace Sails.Remoting.Abstractions;
 
 public interface IActionBuilder<TAction>
 {

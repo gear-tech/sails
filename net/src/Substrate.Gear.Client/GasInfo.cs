@@ -1,6 +1,4 @@
-﻿using GasUnit = Substrate.NetApi.Model.Types.Primitive.U64;
-
-namespace Substrate.Gear.Client;
+﻿namespace Substrate.Gear.Client;
 
 public sealed record GasInfo
 {

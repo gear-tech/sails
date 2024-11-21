@@ -25,19 +25,6 @@ using Substrate.NetApi.Model.Rpc;
 using Substrate.NetApi.Model.Types;
 using Substrate.NetApi.Model.Types.Base;
 using Substrate.NetApi.Model.Types.Primitive;
-using CodeChangedEventData = Substrate.NetApi.Model.Types.Base.BaseTuple<
-    Substrate.Gear.Api.Generated.Model.gprimitives.CodeId,
-    Substrate.Gear.Api.Generated.Model.gear_common.@event.EnumCodeChangeKind>;
-using CodeId = Substrate.Gear.Api.Generated.Model.gprimitives.CodeId;
-using EnumGearEvent = Substrate.Gear.Api.Generated.Model.pallet_gear.pallet.EnumEvent;
-using EnumSystemEvent = Substrate.Gear.Api.Generated.Model.frame_system.pallet.EnumEvent;
-using ExtrinsicFailedEventData = Substrate.NetApi.Model.Types.Base.BaseTuple<
-    Substrate.Gear.Api.Generated.Model.sp_runtime.EnumDispatchError,
-    Substrate.Gear.Api.Generated.Model.frame_support.dispatch.DispatchInfo>;
-using GasUnit = Substrate.NetApi.Model.Types.Primitive.U64;
-using GearEvent = Substrate.Gear.Api.Generated.Model.pallet_gear.pallet.Event;
-using SystemEvent = Substrate.Gear.Api.Generated.Model.frame_system.pallet.Event;
-using ValueUnit = Substrate.NetApi.Model.Types.Primitive.U128;
 
 namespace Substrate.Gear.Client;
 
