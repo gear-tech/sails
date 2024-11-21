@@ -18,4 +18,10 @@
     <ProjectReference Include="..\Substrate.Gear.Client\Substrate.Gear.Client.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleTo">
+      <_Parameter1>Sails.Remoting.Tests</_Parameter1>
+    </AssemblyAttribute>
+  </ItemGroup>
+
 </Project>

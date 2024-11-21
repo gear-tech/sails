@@ -14,6 +14,7 @@ using Substrate.Gear.Api.Generated.Model.gprimitives;
 using Substrate.Gear.Api.Generated.Model.sp_runtime;
 using Substrate.Gear.Api.Generated.Model.vara_runtime;
 using Substrate.Gear.Api.Generated.Storage;
+using Substrate.Gear.Client.GearApi.Model.gprimitives;
 using Substrate.Gear.Client.NetApi.Model.Extrinsics;
 using Substrate.Gear.Client.NetApi.Model.Rpc;
 using Substrate.Gear.Client.NetApi.Model.Types.Base;
@@ -27,6 +28,7 @@ using Substrate.NetApi.Model.Types.Primitive;
 using CodeChangedEventData = Substrate.NetApi.Model.Types.Base.BaseTuple<
     Substrate.Gear.Api.Generated.Model.gprimitives.CodeId,
     Substrate.Gear.Api.Generated.Model.gear_common.@event.EnumCodeChangeKind>;
+using CodeId = Substrate.Gear.Api.Generated.Model.gprimitives.CodeId;
 using EnumGearEvent = Substrate.Gear.Api.Generated.Model.pallet_gear.pallet.EnumEvent;
 using EnumSystemEvent = Substrate.Gear.Api.Generated.Model.frame_system.pallet.EnumEvent;
 using ExtrinsicFailedEventData = Substrate.NetApi.Model.Types.Base.BaseTuple<
@@ -340,6 +342,7 @@ public static class SubstrateClientExtExtensions
         EnsureArg.IsNotNull(encodedInitPayload, nameof(encodedInitPayload));
 
         var accountPublicKeyStr = Utils.Bytes2HexString(signingAccountKey.Key);
+        var codeIdStr = codeId.ToHexString();
         var encodedInitPayloadStr = Utils.Bytes2HexString(
             encodedInitPayload is byte[] encodedInitPayloadBytes
                 ? encodedInitPayloadBytes
@@ -348,7 +351,7 @@ public static class SubstrateClientExtExtensions
         var parameters = new object[]
         {
             accountPublicKeyStr,
-            codeId,
+            codeIdStr,
             encodedInitPayloadStr,
             valueBigInt,
             true
@@ -438,6 +441,7 @@ public static class SubstrateClientExtExtensions
         EnsureArg.IsNotNull(encodedPayload, nameof(encodedPayload));
 
         var accountPublicKeyStr = Utils.Bytes2HexString(signingAccountKey.Key);
+        var programIdStr = programId.ToHexString();
         var encodedPayloadStr = Utils.Bytes2HexString(
             encodedPayload is byte[] encodedPayloadBytes
                 ? encodedPayloadBytes
@@ -445,7 +449,7 @@ public static class SubstrateClientExtExtensions
         var parameters = new object[]
         {
             accountPublicKeyStr,
-            programId,
+            programIdStr,
             encodedPayloadStr,
             value.Value,
             true
@@ -487,6 +491,7 @@ public static class SubstrateClientExtExtensions
         EnsureArg.IsNotNull(encodedPayload, nameof(encodedPayload));
 
         var accountPublicKeyStr = Utils.Bytes2HexString(signingAccountKey.Key);
+        var programIdStr = programId.ToHexString();
         var encodedPayloadStr = Utils.Bytes2HexString(
             encodedPayload is byte[] encodedPayloadBytes
                 ? encodedPayloadBytes
@@ -494,7 +499,7 @@ public static class SubstrateClientExtExtensions
         var parameters = new object[]
         {
             accountPublicKeyStr,
-            programId,
+            programIdStr,
             encodedPayloadStr,
             gasLimit.Value,
             value.Value,
@@ -591,7 +596,7 @@ public static class SubstrateClientExtExtensions
     {
         // Payload of the reply.
         [JsonProperty("payload")]
-        public required byte[] EncodedPayload { get; init; }
+        public required string EncodedPayload { get; init; }
         // Value sent with the reply.
         public BigInteger Value { get; init; }
         // Reply code of the reply.
@@ -600,9 +605,9 @@ public static class SubstrateClientExtExtensions
         public ReplyInfo ToReplyInfo()
             => new()
             {
-                EncodedPayload = this.EncodedPayload,
+                EncodedPayload = Utils.HexToByteArray(this.EncodedPayload),
                 Value = (ValueUnit)this.Value,
-                // TODO: It is broken. Need to deserialize rust enum.
+                // TODO: It is broken. Need to deserialize rust enum (see serde).
                 Code = new EnumReplyCode()
                 {
                     Value = ReplyCode.Success
