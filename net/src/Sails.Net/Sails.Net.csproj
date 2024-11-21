@@ -4,4 +4,72 @@
     <TargetFramework>netstandard2.0</TargetFramework>
   </PropertyGroup>
 
+  <!-- Substrate.Gear.Api -->
+  <ItemGroup>
+    <PackageReference Include="Substrate.NET.API" />
+    <!-- Due to Vulnarabilties -->
+    <PackageReference Include="Microsoft.Bcl.AsyncInterfaces" />
+    <PackageReference Remove="Roslynator.Formatting.Analyzers" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="../Substrate.Gear.Api/**/*.cs">
+      <Link>Substrate.Gear.Api/%(RecursiveDir)%(FileName)%(Extension)</Link>
+    </Compile>
+    <Compile Remove="../Substrate.Gear.Api/obj/**/*.cs" />
+    <Compile Remove="../Substrate.Gear.Api/GlobalUsings.cs" />
+  </ItemGroup>
+  <!-- Substrate.Gear.Api -->
+
+  <!-- Substrate.Gear.Client -->
+  <ItemGroup>
+    <PackageReference Include="Ensure.That" />
+    <PackageReference Include="PolySharp">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="System.Linq.Async" />
+    <PackageReference Include="System.Threading.Channels" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="../Substrate.Gear.Client/**/*.cs">
+      <Link>Substrate.Gear.Client/%(RecursiveDir)%(FileName)%(Extension)</Link>
+    </Compile>
+    <Compile Remove="../Substrate.Gear.Client/obj/**/*.cs" />
+    <Compile Remove="../Substrate.Gear.Client/GlobalUsings.cs" />
+  </ItemGroup>
+  <!-- Substrate.Gear.Client -->
+
+  <!-- Sails.Remoting.Abstractions -->
+  <ItemGroup>
+    <Compile Include="../Sails.Remoting.Abstractions/**/*.cs">
+      <Link>Sails.Remoting.Abstractions/%(RecursiveDir)%(FileName)%(Extension)</Link>
+    </Compile>
+    <Compile Remove="../Sails.Remoting.Abstractions/obj/**/*.cs" />
+    <Compile Remove="../Sails.Remoting.Abstractions/GlobalUsings.cs" />
+  </ItemGroup>
+  <!-- Sails.Remoting.Abstractions -->
+
+  <!-- Sails.Remoting.Abstractions -->
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
+  </ItemGroup>
+  
+  <ItemGroup>
+    <Compile Include="../Sails.Remoting/**/*.cs">
+      <Link>Sails.Remoting/%(RecursiveDir)%(FileName)%(Extension)</Link>
+    </Compile>
+    <Compile Remove="../Sails.Remoting/obj/**/*.cs" />
+    <Compile Remove="../Sails.Remoting/GlobalUsings.cs" />
+  </ItemGroup>
+  <!-- Sails.Remoting.Abstractions -->
+
+  <!-- We do this because we want to run tests against the assembly we ship -->
+  <ItemGroup>
+    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleTo">
+      <_Parameter1>Sails.Remoting.Tests</_Parameter1>
+    </AssemblyAttribute>
+  </ItemGroup>
+
 </Project>
