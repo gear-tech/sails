@@ -1,6 +1,4 @@
-﻿using Xunit.Abstractions;
-
-[assembly: Xunit.TestFramework(
+﻿[assembly: TestFramework(
     "Sails.Remoting.Tests._Infra.XUnit.TestFramework",
     "Sails.Remoting.Tests")]
 
