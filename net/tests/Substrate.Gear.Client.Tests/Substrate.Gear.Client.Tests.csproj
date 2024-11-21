@@ -21,7 +21,11 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\Substrate.Gear.Client\Substrate.Gear.Client.csproj" />
+    <!--
+      Should be this one, but we use Sails.Net coz we ship it
+      <ProjectReference Include="..\..\src\Substrate.Gear.Client\Substrate.Gear.Client.csproj" />
+    -->
+    <ProjectReference Include="..\..\src\Sails.Net\Sails.Net.csproj" />
   </ItemGroup>
 
 </Project>
