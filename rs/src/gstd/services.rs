@@ -32,6 +32,8 @@ pub struct ServiceExposure<T, E> {
     message_id: MessageId,
     route: &'static [u8],
     #[cfg(not(target_arch = "wasm32"))]
+    inner_ptr: *const T, // Prevent exposure being Send + Sync
+    #[cfg(not(target_arch = "wasm32"))]
     pub inner: Box<T>,
     #[cfg(target_arch = "wasm32")]
     pub inner: T,
@@ -46,6 +48,8 @@ impl<T, E> ServiceExposure<T, E> {
         Self {
             message_id,
             route,
+            #[cfg(not(target_arch = "wasm32"))]
+            inner_ptr: inner.as_ref() as *const T,
             inner,
             extend,
         }
@@ -53,7 +57,7 @@ impl<T, E> ServiceExposure<T, E> {
 
     pub async fn handle(&mut self, input: &[u8]) -> (Vec<u8>, u128)
     where
-        T: ServiceHandle + Service2<Extend = E>,
+        T: ServiceHandle + Service<Extend = E>,
         E: ServiceHandle,
     {
         if let Some(result) = self.try_handle_inner(input).await {
@@ -79,7 +83,7 @@ impl<T, E> ServiceExposure<T, E> {
 
     async fn try_handle_inner(&mut self, input: &[u8]) -> Option<(Vec<u8>, u128)>
     where
-        T: ServiceHandle + Service2<Extend = E>,
+        T: ServiceHandle + Service<Extend = E>,
     {
         let _scope = ExposureCallScope::new2(self);
         self.inner.try_handle(input).await
@@ -96,15 +100,45 @@ impl<T, E> ServiceExposure<T, E> {
     //     let future = f(inner).into_future();
     //     future.await
     // }
+
+    pub fn extend(&self) -> &E {
+        &self.extend
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
+    pub fn set_event_listener<'e, V>(
+        &self,
+        listener: impl FnMut(&V) + 'e,
+    ) -> crate::gstd::events::EventListenerGuard<'e> {
+        if core::mem::size_of_val(self.inner.as_ref()) == 0 {
+            panic!("setting event listener on a zero-sized service is not supported for now");
+        }
+        let service_ptr = self.inner_ptr as usize;
+        let listener: Box<dyn FnMut(&V)> = Box::new(listener);
+        let listener = Box::new(listener);
+        let listener_ptr = Box::into_raw(listener) as usize;
+        crate::gstd::events::EventListenerGuard::new(service_ptr, listener_ptr)
+    }
 }
+
+#[cfg(not(target_arch = "wasm32"))]
+impl<T, E> Drop for ServiceExposure<T, E> {
+    fn drop(&mut self) {
+        let service_ptr = self.inner_ptr as usize;
+        let mut event_listeners = crate::gstd::events::event_listeners().lock();
+        if event_listeners.remove(&service_ptr).is_some() {
+            panic!("there should be no any event listeners left by this time");
+        }
+    }
+}
+
+// pub trait Service {
+//     type Exposure: Exposure;
+
+//     fn expose(self, message_id: MessageId, route: &'static [u8]) -> Self::Exposure;
+// }
 
 pub trait Service {
-    type Exposure: Exposure;
-
-    fn expose(self, message_id: MessageId, route: &'static [u8]) -> Self::Exposure;
-}
-
-pub trait Service2 {
     type Exposure: Exposure2;
     type Extend;
 
@@ -124,7 +158,7 @@ pub trait Exposure2 {
     fn route(&self) -> &'static [u8];
 }
 
-impl<T: Service2> Exposure2 for ServiceExposure<T, T::Extend> {
+impl<T: Service> Exposure2 for ServiceExposure<T, T::Extend> {
     type Service = T;
 
     fn message_id(&self) -> MessageId {
@@ -138,7 +172,7 @@ impl<T: Service2> Exposure2 for ServiceExposure<T, T::Extend> {
 
 impl<T, E> ServiceHandle for ServiceExposure<T, E>
 where
-    T: ServiceHandle + Service2<Extend = E>,
+    T: ServiceHandle + Service<Extend = E>,
 {
     async fn try_handle(&mut self, input: &[u8]) -> Option<(Vec<u8>, u128)> {
         self.try_handle_inner(input).await
@@ -222,6 +256,12 @@ impl Drop for ExposureCallScope {
         if routes.is_empty() {
             map.remove(&self.message_id);
         }
+    }
+}
+
+impl ServiceHandle for () {
+    async fn try_handle(&mut self, _input: &[u8]) -> Option<(Vec<u8>, u128)> {
+        None
     }
 }
 

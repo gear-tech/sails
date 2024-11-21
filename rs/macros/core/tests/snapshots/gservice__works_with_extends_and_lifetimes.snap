@@ -10,155 +10,62 @@ impl<'a> ExtendedLifetime<'a> {
         "extended".to_string()
     }
 }
-pub struct ExtendedLifetimeExposure<'a, T> {
-    message_id: sails_rs::MessageId,
-    route: &'static [u8],
-    #[cfg(not(target_arch = "wasm32"))]
-    inner: Box<T>,
-    #[cfg(not(target_arch = "wasm32"))]
-    inner_ptr: *const T,
-    #[cfg(target_arch = "wasm32")]
-    inner: T,
-    base_0: <base::BaseLifetime<'a> as sails_rs::gstd::services::Service>::Exposure,
+trait __ExtendedLifetimeImplTrait {
+    fn extended_name(&self) -> String;
+    fn name(&self) -> String;
 }
-impl<'a> ExtendedLifetimeExposure<'a, ExtendedLifetime<'a>> {
-    pub fn extended_name(&self) -> String {
-        let exposure_scope = sails_rs::gstd::services::ExposureCallScope::new(self);
+impl<'a> __ExtendedLifetimeImplTrait
+for sails_rs::gstd::services::ServiceExposure<'a, ExtendedLifetime<'a>, ()> {
+    fn extended_name(&self) -> String {
+        let exposure_scope = sails_rs::gstd::services::ExposureCallScope::new2(self);
         self.inner.extended_name()
     }
-    pub fn name(&self) -> String {
-        let exposure_scope = sails_rs::gstd::services::ExposureCallScope::new(self);
+    fn name(&self) -> String {
+        let exposure_scope = sails_rs::gstd::services::ExposureCallScope::new2(self);
         self.inner.name()
     }
-    pub fn as_base_0(
-        &self,
-    ) -> &<base::BaseLifetime<'a> as sails_rs::gstd::services::Service>::Exposure {
-        &self.base_0
-    }
-    pub async fn handle(&mut self, input: &[u8]) -> (Vec<u8>, u128) {
-        self.try_handle(input)
-            .await
-            .unwrap_or_else(|| {
-                {
-                    let mut __input = input;
-                    let input: String = sails_rs::Decode::decode(&mut __input)
-                        .unwrap_or_else(|_| {
-                            if input.len() <= 8 {
-                                format!("0x{}", sails_rs::hex::encode(input))
-                            } else {
-                                format!(
-                                    "0x{}..{}", sails_rs::hex::encode(& input[..4]),
-                                    sails_rs::hex::encode(& input[input.len() - 4..])
-                                )
-                            }
-                        });
-                    panic!("Unknown request: {}", input)
-                }
-            })
-    }
-    pub async fn try_handle(&mut self, input: &[u8]) -> Option<(Vec<u8>, u128)> {
-        if input
-            .starts_with(
-                &[
-                    48u8,
-                    69u8,
-                    120u8,
-                    116u8,
-                    101u8,
-                    110u8,
-                    100u8,
-                    101u8,
-                    100u8,
-                    78u8,
-                    97u8,
-                    109u8,
-                    101u8,
-                ],
-            )
-        {
-            let (output, value) = self.__extended_name(&input[13usize..]).await;
-            static INVOCATION_ROUTE: [u8; 13usize] = [
-                48u8,
-                69u8,
-                120u8,
-                116u8,
-                101u8,
-                110u8,
-                100u8,
-                101u8,
-                100u8,
-                78u8,
-                97u8,
-                109u8,
-                101u8,
-            ];
-            return Some(([INVOCATION_ROUTE.as_ref(), &output].concat(), value));
-        }
-        if input.starts_with(&[16u8, 78u8, 97u8, 109u8, 101u8]) {
-            let (output, value) = self.__name(&input[5usize..]).await;
-            static INVOCATION_ROUTE: [u8; 5usize] = [16u8, 78u8, 97u8, 109u8, 101u8];
-            return Some(([INVOCATION_ROUTE.as_ref(), &output].concat(), value));
-        }
-        if let Some((output, value)) = self.base_0.try_handle(input).await {
-            return Some((output, value));
-        }
-        None
-    }
-    async fn __extended_name(&self, mut input: &[u8]) -> (Vec<u8>, u128) {
-        let request: extended_lifetime_meta::__ExtendedNameParams = sails_rs::Decode::decode(
-                &mut input,
-            )
-            .expect("Failed to decode request");
-        let result = self.extended_name();
-        let value = 0u128;
-        return (sails_rs::Encode::encode(&result), value);
-    }
-    async fn __name(&self, mut input: &[u8]) -> (Vec<u8>, u128) {
-        let request: extended_lifetime_meta::__NameParams = sails_rs::Decode::decode(
-                &mut input,
-            )
-            .expect("Failed to decode request");
-        let result = self.name();
-        let value = 0u128;
-        return (sails_rs::Encode::encode(&result), value);
-    }
 }
-impl<'a> sails_rs::gstd::services::Exposure
-for ExtendedLifetimeExposure<'a, ExtendedLifetime<'a>> {
-    fn message_id(&self) -> sails_rs::MessageId {
-        self.message_id
-    }
-    fn route(&self) -> &'static [u8] {
-        self.route
+impl<'a> sails_rs::gstd::services::ServiceHandle for ExtendedLifetime<'a> {
+    async fn try_handle(&mut self, input: &[u8]) -> Option<(Vec<u8>, u128)> {
+        let mut __input = input;
+        let route: String = sails_rs::Decode::decode(&mut __input).ok()?;
+        match route.as_str() {
+            "ExtendedName" => {
+                let request: extended_lifetime_meta::__ExtendedNameParams = sails_rs::Decode::decode(
+                        &mut __input,
+                    )
+                    .expect("Failed to decode request");
+                let result = self.extended_name();
+                let value = 0u128;
+                Some((sails_rs::Encode::encode(&("ExtendedName", &result)), value))
+            }
+            "Name" => {
+                let request: extended_lifetime_meta::__NameParams = sails_rs::Decode::decode(
+                        &mut __input,
+                    )
+                    .expect("Failed to decode request");
+                let result = self.name();
+                let value = 0u128;
+                Some((sails_rs::Encode::encode(&("Name", &result)), value))
+            }
+            _ => None,
+        }
     }
 }
 impl<'a> sails_rs::gstd::services::Service for ExtendedLifetime<'a> {
-    type Exposure = ExtendedLifetimeExposure<'a, ExtendedLifetime<'a>>;
+    type Exposure = sails_rs::gstd::services::ServiceExposure<
+        'a,
+        ExtendedLifetime<'a>,
+        (),
+    >;
+    type Extend = ();
     fn expose(
         self,
         message_id: sails_rs::MessageId,
         route: &'static [u8],
     ) -> Self::Exposure {
-        #[cfg(not(target_arch = "wasm32"))]
-        let inner_box = Box::new(self);
-        #[cfg(not(target_arch = "wasm32"))]
-        let inner = inner_box.as_ref();
-        #[cfg(target_arch = "wasm32")]
-        let inner = &self;
-        Self::Exposure {
-            message_id,
-            route,
-            base_0: <base::BaseLifetime<
-                'a,
-            > as Clone>::clone(AsRef::<base::BaseLifetime<'a>>::as_ref(inner))
-                .expose(message_id, route),
-            #[cfg(not(target_arch = "wasm32"))]
-            inner_ptr: inner_box.as_ref() as *const Self,
-            #[cfg(not(target_arch = "wasm32"))]
-            inner: inner_box,
-            #[cfg(target_arch = "wasm32")]
-            inner: self,
-        }
+        let extend = ();
+        Self::Exposure::new(message_id, route, self, extend)
     }
 }
 impl<'a> sails_rs::meta::ServiceMeta for ExtendedLifetime<'a> {

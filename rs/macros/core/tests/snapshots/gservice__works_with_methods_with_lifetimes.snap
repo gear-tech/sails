@@ -25,206 +25,100 @@ impl ReferenceService {
         unsafe { BYTES.last() }
     }
 }
-pub struct ReferenceServiceExposure<T> {
-    message_id: sails_rs::MessageId,
-    route: &'static [u8],
-    #[cfg(not(target_arch = "wasm32"))]
-    inner: Box<T>,
-    #[cfg(not(target_arch = "wasm32"))]
-    inner_ptr: *const T,
-    #[cfg(target_arch = "wasm32")]
-    inner: T,
+pub trait ReferenceServiceImplTrait {
+    fn add_byte(&mut self, byte: u8) -> &'static [u8];
+    fn baked(&self) -> &'static str;
+    async fn first_byte<'a>(&self) -> Option<&'a u8>;
+    fn incr(&mut self) -> &'static ReferenceCount;
+    async fn last_byte<'a>(&self) -> Option<&'a u8>;
 }
-impl ReferenceServiceExposure<ReferenceService> {
-    pub fn add_byte(&mut self, byte: u8) -> &'static [u8] {
-        let exposure_scope = sails_rs::gstd::services::ExposureCallScope::new(self);
+impl ReferenceServiceImplTrait
+for sails_rs::gstd::services::ServiceExposure<ReferenceService, ()> {
+    fn add_byte(&mut self, byte: u8) -> &'static [u8] {
+        let exposure_scope = sails_rs::gstd::services::ExposureCallScope::new2(self);
         self.inner.add_byte(byte)
     }
-    pub fn baked(&self) -> &'static str {
-        let exposure_scope = sails_rs::gstd::services::ExposureCallScope::new(self);
+    fn baked(&self) -> &'static str {
+        let exposure_scope = sails_rs::gstd::services::ExposureCallScope::new2(self);
         self.inner.baked()
     }
-    pub async fn first_byte<'a>(&self) -> Option<&'a u8> {
-        let exposure_scope = sails_rs::gstd::services::ExposureCallScope::new(self);
+    async fn first_byte<'a>(&self) -> Option<&'a u8> {
+        let exposure_scope = sails_rs::gstd::services::ExposureCallScope::new2(self);
         self.inner.first_byte().await
     }
-    pub fn incr(&mut self) -> &'static ReferenceCount {
-        let exposure_scope = sails_rs::gstd::services::ExposureCallScope::new(self);
+    fn incr(&mut self) -> &'static ReferenceCount {
+        let exposure_scope = sails_rs::gstd::services::ExposureCallScope::new2(self);
         self.inner.incr()
     }
-    pub async fn last_byte<'a>(&self) -> Option<&'a u8> {
-        let exposure_scope = sails_rs::gstd::services::ExposureCallScope::new(self);
+    async fn last_byte<'a>(&self) -> Option<&'a u8> {
+        let exposure_scope = sails_rs::gstd::services::ExposureCallScope::new2(self);
         self.inner.last_byte().await
     }
-    pub async fn handle(&mut self, input: &[u8]) -> (Vec<u8>, u128) {
-        self.try_handle(input)
-            .await
-            .unwrap_or_else(|| {
-                {
-                    let mut __input = input;
-                    let input: String = sails_rs::Decode::decode(&mut __input)
-                        .unwrap_or_else(|_| {
-                            if input.len() <= 8 {
-                                format!("0x{}", sails_rs::hex::encode(input))
-                            } else {
-                                format!(
-                                    "0x{}..{}", sails_rs::hex::encode(& input[..4]),
-                                    sails_rs::hex::encode(& input[input.len() - 4..])
-                                )
-                            }
-                        });
-                    panic!("Unknown request: {}", input)
-                }
-            })
-    }
-    pub async fn try_handle(&mut self, input: &[u8]) -> Option<(Vec<u8>, u128)> {
-        if input.starts_with(&[28u8, 65u8, 100u8, 100u8, 66u8, 121u8, 116u8, 101u8]) {
-            let (output, value) = self.__add_byte(&input[8usize..]).await;
-            static INVOCATION_ROUTE: [u8; 8usize] = [
-                28u8,
-                65u8,
-                100u8,
-                100u8,
-                66u8,
-                121u8,
-                116u8,
-                101u8,
-            ];
-            return Some(([INVOCATION_ROUTE.as_ref(), &output].concat(), value));
-        }
-        if input.starts_with(&[20u8, 66u8, 97u8, 107u8, 101u8, 100u8]) {
-            let (output, value) = self.__baked(&input[6usize..]).await;
-            static INVOCATION_ROUTE: [u8; 6usize] = [
-                20u8,
-                66u8,
-                97u8,
-                107u8,
-                101u8,
-                100u8,
-            ];
-            return Some(([INVOCATION_ROUTE.as_ref(), &output].concat(), value));
-        }
-        if input
-            .starts_with(
-                &[36u8, 70u8, 105u8, 114u8, 115u8, 116u8, 66u8, 121u8, 116u8, 101u8],
-            )
-        {
-            let (output, value) = self.__first_byte(&input[10usize..]).await;
-            static INVOCATION_ROUTE: [u8; 10usize] = [
-                36u8,
-                70u8,
-                105u8,
-                114u8,
-                115u8,
-                116u8,
-                66u8,
-                121u8,
-                116u8,
-                101u8,
-            ];
-            return Some(([INVOCATION_ROUTE.as_ref(), &output].concat(), value));
-        }
-        if input.starts_with(&[16u8, 73u8, 110u8, 99u8, 114u8]) {
-            let (output, value) = self.__incr(&input[5usize..]).await;
-            static INVOCATION_ROUTE: [u8; 5usize] = [16u8, 73u8, 110u8, 99u8, 114u8];
-            return Some(([INVOCATION_ROUTE.as_ref(), &output].concat(), value));
-        }
-        if input
-            .starts_with(&[32u8, 76u8, 97u8, 115u8, 116u8, 66u8, 121u8, 116u8, 101u8])
-        {
-            let (output, value) = self.__last_byte(&input[9usize..]).await;
-            static INVOCATION_ROUTE: [u8; 9usize] = [
-                32u8,
-                76u8,
-                97u8,
-                115u8,
-                116u8,
-                66u8,
-                121u8,
-                116u8,
-                101u8,
-            ];
-            return Some(([INVOCATION_ROUTE.as_ref(), &output].concat(), value));
-        }
-        None
-    }
-    async fn __add_byte(&mut self, mut input: &[u8]) -> (Vec<u8>, u128) {
-        let request: reference_service_meta::__AddByteParams = sails_rs::Decode::decode(
-                &mut input,
-            )
-            .expect("Failed to decode request");
-        let result = self.add_byte(request.byte);
-        let value = 0u128;
-        return (sails_rs::Encode::encode(&result), value);
-    }
-    async fn __baked(&self, mut input: &[u8]) -> (Vec<u8>, u128) {
-        let request: reference_service_meta::__BakedParams = sails_rs::Decode::decode(
-                &mut input,
-            )
-            .expect("Failed to decode request");
-        let result = self.baked();
-        let value = 0u128;
-        return (sails_rs::Encode::encode(&result), value);
-    }
-    async fn __first_byte(&self, mut input: &[u8]) -> (Vec<u8>, u128) {
-        let request: reference_service_meta::__FirstByteParams = sails_rs::Decode::decode(
-                &mut input,
-            )
-            .expect("Failed to decode request");
-        let result = self.first_byte().await;
-        let value = 0u128;
-        return (sails_rs::Encode::encode(&result), value);
-    }
-    async fn __incr(&mut self, mut input: &[u8]) -> (Vec<u8>, u128) {
-        let request: reference_service_meta::__IncrParams = sails_rs::Decode::decode(
-                &mut input,
-            )
-            .expect("Failed to decode request");
-        let result = self.incr();
-        let value = 0u128;
-        return (sails_rs::Encode::encode(&result), value);
-    }
-    async fn __last_byte(&self, mut input: &[u8]) -> (Vec<u8>, u128) {
-        let request: reference_service_meta::__LastByteParams = sails_rs::Decode::decode(
-                &mut input,
-            )
-            .expect("Failed to decode request");
-        let result = self.last_byte().await;
-        let value = 0u128;
-        return (sails_rs::Encode::encode(&result), value);
-    }
 }
-impl sails_rs::gstd::services::Exposure for ReferenceServiceExposure<ReferenceService> {
-    fn message_id(&self) -> sails_rs::MessageId {
-        self.message_id
-    }
-    fn route(&self) -> &'static [u8] {
-        self.route
+impl sails_rs::gstd::services::ServiceHandle for ReferenceService {
+    async fn try_handle(&mut self, input: &[u8]) -> Option<(Vec<u8>, u128)> {
+        let mut __input = input;
+        let route: String = sails_rs::Decode::decode(&mut __input).ok()?;
+        match route.as_str() {
+            "AddByte" => {
+                let request: reference_service_meta::__AddByteParams = sails_rs::Decode::decode(
+                        &mut __input,
+                    )
+                    .expect("Failed to decode request");
+                let result = self.add_byte(request.byte);
+                let value = 0u128;
+                Some((sails_rs::Encode::encode(&("AddByte", &result)), value))
+            }
+            "Baked" => {
+                let request: reference_service_meta::__BakedParams = sails_rs::Decode::decode(
+                        &mut __input,
+                    )
+                    .expect("Failed to decode request");
+                let result = self.baked();
+                let value = 0u128;
+                Some((sails_rs::Encode::encode(&("Baked", &result)), value))
+            }
+            "FirstByte" => {
+                let request: reference_service_meta::__FirstByteParams = sails_rs::Decode::decode(
+                        &mut __input,
+                    )
+                    .expect("Failed to decode request");
+                let result = self.first_byte().await;
+                let value = 0u128;
+                Some((sails_rs::Encode::encode(&("FirstByte", &result)), value))
+            }
+            "Incr" => {
+                let request: reference_service_meta::__IncrParams = sails_rs::Decode::decode(
+                        &mut __input,
+                    )
+                    .expect("Failed to decode request");
+                let result = self.incr();
+                let value = 0u128;
+                Some((sails_rs::Encode::encode(&("Incr", &result)), value))
+            }
+            "LastByte" => {
+                let request: reference_service_meta::__LastByteParams = sails_rs::Decode::decode(
+                        &mut __input,
+                    )
+                    .expect("Failed to decode request");
+                let result = self.last_byte().await;
+                let value = 0u128;
+                Some((sails_rs::Encode::encode(&("LastByte", &result)), value))
+            }
+            _ => None,
+        }
     }
 }
 impl sails_rs::gstd::services::Service for ReferenceService {
-    type Exposure = ReferenceServiceExposure<ReferenceService>;
+    type Exposure = sails_rs::gstd::services::ServiceExposure<ReferenceService, ()>;
+    type Extend = ();
     fn expose(
         self,
         message_id: sails_rs::MessageId,
         route: &'static [u8],
     ) -> Self::Exposure {
-        #[cfg(not(target_arch = "wasm32"))]
-        let inner_box = Box::new(self);
-        #[cfg(not(target_arch = "wasm32"))]
-        let inner = inner_box.as_ref();
-        #[cfg(target_arch = "wasm32")]
-        let inner = &self;
-        Self::Exposure {
-            message_id,
-            route,
-            #[cfg(not(target_arch = "wasm32"))]
-            inner_ptr: inner_box.as_ref() as *const Self,
-            #[cfg(not(target_arch = "wasm32"))]
-            inner: inner_box,
-            #[cfg(target_arch = "wasm32")]
-            inner: self,
-        }
+        let extend = ();
+        Self::Exposure::new(message_id, route, self, extend)
     }
 }
 impl sails_rs::meta::ServiceMeta for ReferenceService {

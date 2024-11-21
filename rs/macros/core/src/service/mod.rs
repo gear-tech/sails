@@ -27,7 +27,7 @@ use convert_case::{Case, Casing};
 use parity_scale_codec::Encode;
 use proc_macro2::{Span, TokenStream};
 use proc_macro_error::abort;
-use quote::quote;
+use quote::{format_ident, quote};
 use std::collections::BTreeMap;
 use syn::{
     parse_quote, punctuated::Punctuated, spanned::Spanned, token::Comma, Ident, ImplItemFn,
@@ -305,77 +305,84 @@ fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
         .iter()
         .filter(|attr| matches!(attr.path().get_ident(), Some(ident) if ident == "allow"));
 
+    // V2
+    let trait_ident = format_ident!("{}ImplTrait", service_ident);
+
+    let mut trait_funcs = Vec::with_capacity(service_handlers.len());
+    let mut trait_funcs_impl = Vec::with_capacity(service_handlers.len());
+    let mut invocation_dispatches = Vec::with_capacity(service_handlers.len());
+    for (handler_route, (handler_fn, ..)) in &service_handlers {
+        let handler_allow_attrs = handler_fn
+            .attrs
+            .iter()
+            .filter(|attr| attr.path().is_ident("allow"));
+        let handler_docs_attrs = handler_fn
+            .attrs
+            .iter()
+            .filter(|attr| attr.path().is_ident("doc"));
+
+        let handler_sig = &handler_fn.sig;
+        let handler_func = Func::from(handler_sig);
+
+        trait_funcs.push(quote! {
+            #handler_sig;
+        });
+
+        let handler_ident = handler_func.ident();
+        let handler_params = handler_func.params().iter().map(|item| item.0);
+        let handler_await_token = handler_func.is_async().then(|| quote!(.await));
+        trait_funcs_impl.push({
+            quote!(
+                #( #handler_allow_attrs )*
+                #handler_sig {
+                    let exposure_scope = #sails_path::gstd::services::ExposureCallScope::new2(self);
+                    self. #inner_ident . #handler_ident (#(#handler_params),*) #handler_await_token
+                }
+            )
+        });
+
+        let handler_generator = HandlerGenerator::from(handler_func.clone());
+        let invocation_func = handler_generator.invocation_func_v2(&meta_module_ident, &sails_path);
+
+        invocation_dispatches.push({
+            quote!(
+                #handler_route => {
+                    #invocation_func
+                    Some((#sails_path::Encode::encode(&(#handler_route, &result)), value))
+                }
+            )
+        });
+    }
+
     quote!(
         #service_impl
 
-        pub struct #exposure_type_path<#exposure_generic_args> {
-            #message_id_ident : #sails_path::MessageId,
-            #route_ident : &'static [u8],
-            #[cfg(not(target_arch = "wasm32"))]
-            #inner_ident : Box<T>, // Ensure service is not movable
-            #[cfg(not(target_arch = "wasm32"))]
-            #inner_ptr_ident : *const T, // Prevent exposure being Send + Sync
-            #[cfg(target_arch = "wasm32")]
-            #inner_ident : T,
-            #( #base_exposures_members )*
+        pub trait #trait_ident #exposure_lifetimes {
+            #( #trait_funcs )*
         }
 
-        #exposure_drop_code
-
-        #( #exposure_allow_attrs )*
-        impl #generics #exposure_type_path< #exposure_args > #service_type_constraints {
-            #( #exposure_funcs )*
-
-            #( #base_exposure_accessors )*
-
-            pub async fn handle(&mut self, #input_ident: &[u8]) -> (Vec<u8>, u128) {
-                self.try_handle( #input_ident ).await.unwrap_or_else(|| {
-                    #unexpected_route_panic
-                })
-            }
-
-            pub async fn try_handle(&mut self, #input_ident : &[u8]) -> Option<(Vec<u8>, u128)> {
-                #( #invocation_dispatches )*
-                #( #base_exposures_invocations )*
-                None
-            }
-
-            #( #invocation_funcs )*
-
-            #exposure_set_event_listener_code
+        impl #generics #trait_ident #exposure_lifetimes for #sails_path::gstd::services::ServiceExposure< #exposure_args, () > #service_type_constraints {
+            #( #trait_funcs_impl )*
         }
 
-        impl #generics #sails_path::gstd::services::Exposure for #exposure_type_path< #exposure_args > #service_type_constraints {
-            fn message_id(&self) -> #sails_path::MessageId {
-                self. #message_id_ident
-            }
-
-            fn route(&self) -> &'static [u8] {
-                self. #route_ident
+        impl #generics #sails_path::gstd::services::ServiceHandle for #service_type_path #service_type_constraints {
+            async fn try_handle(&mut self, #input_ident : &[u8]) -> Option<(Vec<u8>, u128)> {
+                let mut __input = #input_ident;
+                let route: String = #sails_path::Decode::decode(&mut __input).ok()?;
+                match route.as_str() {
+                    #( #invocation_dispatches )*
+                    _ => None,
+                }
             }
         }
 
         impl #generics #sails_path::gstd::services::Service for #service_type_path #service_type_constraints {
-            type Exposure = #exposure_type_path< #exposure_args >;
+            type Exposure = #sails_path::gstd::services::ServiceExposure< #exposure_args, () >;
+            type Extend = ();
 
             fn expose(self, #message_id_ident : #sails_path::MessageId, #route_ident : &'static [u8]) -> Self::Exposure {
-                #[cfg(not(target_arch = "wasm32"))]
-                let inner_box = Box::new(self);
-                #[cfg(not(target_arch = "wasm32"))]
-                let #inner_ident = inner_box.as_ref();
-                #[cfg(target_arch = "wasm32")]
-                let #inner_ident = &self;
-                Self::Exposure {
-                    #message_id_ident ,
-                    #route_ident ,
-                    #( #base_exposures_instantiations )*
-                    #[cfg(not(target_arch = "wasm32"))]
-                    #inner_ptr_ident : inner_box.as_ref() as *const Self,
-                    #[cfg(not(target_arch = "wasm32"))]
-                    #inner_ident : inner_box ,
-                    #[cfg(target_arch = "wasm32")]
-                    #inner_ident : self,
-                }
+                let extend = ();
+                Self::Exposure::new(#message_id_ident, #route_ident, self, extend)
             }
         }
 
@@ -586,6 +593,34 @@ impl<'a> HandlerGenerator<'a> {
                 #handle_token
                 return (#sails_path::Encode::encode(&result), value);
             }
+        )
+    }
+
+    fn invocation_func_v2(&self, meta_module_ident: &Ident, sails_path: &Path) -> TokenStream {
+        let params_struct_ident = self.params_struct_ident();
+        let handler_func_ident = self.handler_func_ident();
+        let handler_func_params = self.handler.params().iter().map(|item| {
+            let param_ident = item.0;
+            quote!(request.#param_ident)
+        });
+
+        let result_type = self.result_type();
+        let await_token = self.handler.is_async().then(|| quote!(.await));
+        let handle_token = if self.reply_with_value() {
+            quote! {
+                let command_reply: CommandReply<#result_type> = self.#handler_func_ident(#(#handler_func_params),*)#await_token.into();
+                let (result, value) = command_reply.to_tuple();
+            }
+        } else {
+            quote! {
+                let result = self.#handler_func_ident(#(#handler_func_params),*)#await_token;
+                let value = 0u128;
+            }
+        };
+
+        quote!(
+                let request: #meta_module_ident::#params_struct_ident = #sails_path::Decode::decode(&mut __input).expect("Failed to decode request");
+                #handle_token
         )
     }
 }

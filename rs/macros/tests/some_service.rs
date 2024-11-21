@@ -1,6 +1,5 @@
 #![no_std]
 #![allow(unused_imports, dead_code, unused_variables)]
-use gclient::ext;
 use sails_rs::gstd::services::*;
 use sails_rs::prelude::*;
 
@@ -10,18 +9,18 @@ const __ROUTE_SERVICE2: [u8; 9usize] = [32u8, 83u8, 101u8, 114u8, 118u8, 105u8, 
 const __ROUTE_SVC1: [u8; 5usize] = [16u8, 83u8, 118u8, 99u8, 49u8];
 impl MyProgram {
     #[route("svc1")]
-    pub fn service1(&self) -> <SomeService as sails_rs::gstd::services::Service2>::Exposure {
+    pub fn service1(&self) -> <SomeService as sails_rs::gstd::services::Service>::Exposure {
         let service = self.__service1();
-        let exposure = <SomeService as sails_rs::gstd::services::Service2>::expose(
+        let exposure = <SomeService as sails_rs::gstd::services::Service>::expose(
             service,
             sails_rs::gstd::msg::id().into(),
             __ROUTE_SVC1.as_ref(),
         );
         exposure
     }
-    pub fn service2(&self) -> <SomeService as sails_rs::gstd::services::Service2>::Exposure {
+    pub fn service2(&self) -> <SomeService as sails_rs::gstd::services::Service>::Exposure {
         let service = self.__service2();
-        let exposure = <SomeService as sails_rs::gstd::services::Service2>::expose(
+        let exposure = <SomeService as sails_rs::gstd::services::Service>::expose(
             service,
             sails_rs::gstd::msg::id().into(),
             __ROUTE_SERVICE2.as_ref(),
@@ -243,7 +242,7 @@ impl __SomeServiceImplTrait
 }
 
 #[allow(unused_parens)]
-impl sails_rs::gstd::services::Service2 for SomeService {
+impl sails_rs::gstd::services::Service for SomeService {
     type Exposure = ServiceExposure<SomeService, (ServiceExposure<ExtendedService1, ()>)>;
     type Extend = (ServiceExposure<ExtendedService1, ()>);
 
@@ -329,7 +328,7 @@ pub struct ExtendedService1;
 impl ExtendedService1 {
     pub async fn none() {}
 }
-impl Service2 for ExtendedService1 {
+impl Service for ExtendedService1 {
     type Exposure = ServiceExposure<ExtendedService1, ()>;
     type Extend = ();
 
@@ -342,4 +341,120 @@ impl AsRef<ExtendedService1> for SomeService {
     fn as_ref(&self) -> &ExtendedService1 {
         todo!()
     }
+}
+
+pub struct ReferenceService<'a> {
+    data: Option<ReferenceData<'a>>,
+}
+struct ReferenceData<'a> {
+    num: &'a mut u8,
+    message: &'a str,
+}
+
+impl<'t> ReferenceService<'t> {
+    pub async fn guess_num(&mut self, number: u8) -> Result<&'t str, &'static str> {
+        if number > 42 {
+            Err("Number is too large")
+        } else if let Some(data) = &self.data.as_ref() {
+            if *data.num == number {
+                Ok(data.message)
+            } else {
+                Err("Try again")
+            }
+        } else {
+            Err("Data is not set")
+        }
+    }
+    pub async fn message(&self) -> Option<&'t str> {
+        self.data.as_ref().map(|d| d.message)
+    }
+}
+trait __ReferenceServiceImplTrait<'t> {
+    async fn guess_num(&mut self, number: u8) -> Result<&'t str, &'static str>;
+    async fn message(&self) -> Option<&'t str>;
+}
+impl<'t> __ReferenceServiceImplTrait<'t>
+    for sails_rs::gstd::services::ServiceExposure<ReferenceService<'t>, ()>
+{
+    async fn guess_num(&mut self, number: u8) -> Result<&'t str, &'static str> {
+        let exposure_scope = sails_rs::gstd::services::ExposureCallScope::new2(self);
+        self.inner.guess_num(number).await
+    }
+    async fn message(&self) -> Option<&'t str> {
+        let exposure_scope = sails_rs::gstd::services::ExposureCallScope::new2(self);
+        self.inner.message().await
+    }
+}
+impl<'t> sails_rs::gstd::services::ServiceHandle for ReferenceService<'t> {
+    async fn try_handle(&mut self, input: &[u8]) -> Option<(Vec<u8>, u128)> {
+        let mut __input = input;
+        let route: String = sails_rs::Decode::decode(&mut __input).ok()?;
+        match route.as_str() {
+            "GuessNum" => {
+                let request: reference_service_meta::__GuessNumParams =
+                    sails_rs::Decode::decode(&mut __input).expect("Failed to decode request");
+                let result = self.guess_num(request.number).await;
+                let value = 0u128;
+                Some((sails_rs::Encode::encode(&("GuessNum", &result)), value))
+            }
+            "Message" => {
+                let request: reference_service_meta::__MessageParams =
+                    sails_rs::Decode::decode(&mut __input).expect("Failed to decode request");
+                let result = self.message().await;
+                let value = 0u128;
+                Some((sails_rs::Encode::encode(&("Message", &result)), value))
+            }
+            _ => None,
+        }
+    }
+}
+impl<'t> sails_rs::gstd::services::Service for ReferenceService<'t> {
+    type Exposure = sails_rs::gstd::services::ServiceExposure<ReferenceService<'t>, ()>;
+    type Extend = ();
+    fn expose(self, message_id: sails_rs::MessageId, route: &'static [u8]) -> Self::Exposure {
+        let extend = ();
+        Self::Exposure::new(message_id, route, self, extend)
+    }
+}
+impl<'t> sails_rs::meta::ServiceMeta for ReferenceService<'t> {
+    fn commands() -> sails_rs::scale_info::MetaType {
+        sails_rs::scale_info::MetaType::new::<reference_service_meta::CommandsMeta>()
+    }
+    fn queries() -> sails_rs::scale_info::MetaType {
+        sails_rs::scale_info::MetaType::new::<reference_service_meta::QueriesMeta>()
+    }
+    fn events() -> sails_rs::scale_info::MetaType {
+        sails_rs::scale_info::MetaType::new::<reference_service_meta::EventsMeta>()
+    }
+    fn base_services() -> impl Iterator<Item = sails_rs::meta::AnyServiceMeta> {
+        [].into_iter()
+    }
+}
+mod reference_service_meta {
+    use super::*;
+    use sails_rs::{Decode, TypeInfo};
+    #[derive(Decode, TypeInfo)]
+    #[codec(crate = sails_rs::scale_codec)]
+    #[scale_info(crate = sails_rs::scale_info)]
+    pub struct __GuessNumParams {
+        pub(super) number: u8,
+    }
+    #[derive(Decode, TypeInfo)]
+    #[codec(crate = sails_rs::scale_codec)]
+    #[scale_info(crate = sails_rs::scale_info)]
+    pub struct __MessageParams {}
+    #[derive(TypeInfo)]
+    #[scale_info(crate = sails_rs::scale_info)]
+    pub enum CommandsMeta {
+        GuessNum(__GuessNumParams, Result<&'static str, &'static str>),
+    }
+    #[derive(TypeInfo)]
+    #[scale_info(crate = sails_rs::scale_info)]
+    pub enum QueriesMeta {
+        Message(__MessageParams, Option<&'static str>),
+    }
+    #[derive(TypeInfo)]
+    #[scale_info(crate = sails_rs::scale_info)]
+    pub enum NoEvents {}
+    pub type EventsMeta = NoEvents;
 }

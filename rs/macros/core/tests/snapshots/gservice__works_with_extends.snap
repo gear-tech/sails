@@ -7,125 +7,44 @@ impl SomeService {
         42
     }
 }
-pub struct SomeServiceExposure<T> {
-    message_id: sails_rs::MessageId,
-    route: &'static [u8],
-    #[cfg(not(target_arch = "wasm32"))]
-    inner: Box<T>,
-    #[cfg(not(target_arch = "wasm32"))]
-    inner_ptr: *const T,
-    #[cfg(target_arch = "wasm32")]
-    inner: T,
-    base_0: <ExtendedService1 as sails_rs::gstd::services::Service>::Exposure,
-    base_1: <ExtendedService2 as sails_rs::gstd::services::Service>::Exposure,
+pub trait SomeServiceImplTrait {
+    fn do_this(&mut self) -> u32;
 }
-impl SomeServiceExposure<SomeService> {
-    pub fn do_this(&mut self) -> u32 {
-        let exposure_scope = sails_rs::gstd::services::ExposureCallScope::new(self);
+impl SomeServiceImplTrait
+for sails_rs::gstd::services::ServiceExposure<SomeService, ()> {
+    fn do_this(&mut self) -> u32 {
+        let exposure_scope = sails_rs::gstd::services::ExposureCallScope::new2(self);
         self.inner.do_this()
     }
-    pub fn as_base_0(
-        &self,
-    ) -> &<ExtendedService1 as sails_rs::gstd::services::Service>::Exposure {
-        &self.base_0
-    }
-    pub fn as_base_1(
-        &self,
-    ) -> &<ExtendedService2 as sails_rs::gstd::services::Service>::Exposure {
-        &self.base_1
-    }
-    pub async fn handle(&mut self, input: &[u8]) -> (Vec<u8>, u128) {
-        self.try_handle(input)
-            .await
-            .unwrap_or_else(|| {
-                {
-                    let mut __input = input;
-                    let input: String = sails_rs::Decode::decode(&mut __input)
-                        .unwrap_or_else(|_| {
-                            if input.len() <= 8 {
-                                format!("0x{}", sails_rs::hex::encode(input))
-                            } else {
-                                format!(
-                                    "0x{}..{}", sails_rs::hex::encode(& input[..4]),
-                                    sails_rs::hex::encode(& input[input.len() - 4..])
-                                )
-                            }
-                        });
-                    panic!("Unknown request: {}", input)
-                }
-            })
-    }
-    pub async fn try_handle(&mut self, input: &[u8]) -> Option<(Vec<u8>, u128)> {
-        if input.starts_with(&[24u8, 68u8, 111u8, 84u8, 104u8, 105u8, 115u8]) {
-            let (output, value) = self.__do_this(&input[7usize..]).await;
-            static INVOCATION_ROUTE: [u8; 7usize] = [
-                24u8,
-                68u8,
-                111u8,
-                84u8,
-                104u8,
-                105u8,
-                115u8,
-            ];
-            return Some(([INVOCATION_ROUTE.as_ref(), &output].concat(), value));
-        }
-        if let Some((output, value)) = self.base_0.try_handle(input).await {
-            return Some((output, value));
-        }
-        if let Some((output, value)) = self.base_1.try_handle(input).await {
-            return Some((output, value));
-        }
-        None
-    }
-    async fn __do_this(&mut self, mut input: &[u8]) -> (Vec<u8>, u128) {
-        let request: some_service_meta::__DoThisParams = sails_rs::Decode::decode(
-                &mut input,
-            )
-            .expect("Failed to decode request");
-        let result = self.do_this();
-        let value = 0u128;
-        return (sails_rs::Encode::encode(&result), value);
-    }
 }
-impl sails_rs::gstd::services::Exposure for SomeServiceExposure<SomeService> {
-    fn message_id(&self) -> sails_rs::MessageId {
-        self.message_id
-    }
-    fn route(&self) -> &'static [u8] {
-        self.route
+impl sails_rs::gstd::services::ServiceHandle for SomeService {
+    async fn try_handle(&mut self, input: &[u8]) -> Option<(Vec<u8>, u128)> {
+        let mut __input = input;
+        let route: String = sails_rs::Decode::decode(&mut __input).ok()?;
+        match route.as_str() {
+            "DoThis" => {
+                let request: some_service_meta::__DoThisParams = sails_rs::Decode::decode(
+                        &mut __input,
+                    )
+                    .expect("Failed to decode request");
+                let result = self.do_this();
+                let value = 0u128;
+                Some((sails_rs::Encode::encode(&("DoThis", &result)), value))
+            }
+            _ => None,
+        }
     }
 }
 impl sails_rs::gstd::services::Service for SomeService {
-    type Exposure = SomeServiceExposure<SomeService>;
+    type Exposure = sails_rs::gstd::services::ServiceExposure<SomeService, ()>;
+    type Extend = ();
     fn expose(
         self,
         message_id: sails_rs::MessageId,
         route: &'static [u8],
     ) -> Self::Exposure {
-        #[cfg(not(target_arch = "wasm32"))]
-        let inner_box = Box::new(self);
-        #[cfg(not(target_arch = "wasm32"))]
-        let inner = inner_box.as_ref();
-        #[cfg(target_arch = "wasm32")]
-        let inner = &self;
-        Self::Exposure {
-            message_id,
-            route,
-            base_0: <ExtendedService1 as Clone>::clone(
-                    AsRef::<ExtendedService1>::as_ref(inner),
-                )
-                .expose(message_id, route),
-            base_1: <ExtendedService2 as Clone>::clone(
-                    AsRef::<ExtendedService2>::as_ref(inner),
-                )
-                .expose(message_id, route),
-            #[cfg(not(target_arch = "wasm32"))]
-            inner_ptr: inner_box.as_ref() as *const Self,
-            #[cfg(not(target_arch = "wasm32"))]
-            inner: inner_box,
-            #[cfg(target_arch = "wasm32")]
-            inner: self,
-        }
+        let extend = ();
+        Self::Exposure::new(message_id, route, self, extend)
     }
 }
 impl sails_rs::meta::ServiceMeta for SomeService {
