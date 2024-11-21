@@ -1,4 +1,4 @@
-﻿namespace Sails.ClientGenerator;
+﻿namespace Sails.ClientGenerator.Native;
 
 public record struct GeneratorConfig(
     string ServiceName,

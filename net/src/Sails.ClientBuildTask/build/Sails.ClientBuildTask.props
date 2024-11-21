@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+	<!--Register our custom task-->
+	<UsingTask TaskName="Sails.ClientBuildTask.SailsIdl" AssemblyFile="$(MSBuildThisFileDirectory)..\tasks\netstandard2.0\Sails.ClientBuildTask.dll"/>
+
+  <!--Task parameters default values, this can be overridden-->
+  <PropertyGroup>
+    <RootFolder Condition="'$(RootFolder)' == ''">$(MSBuildProjectDirectory)</RootFolder>
+    <IdlExtensionFile Condition="'$(IdlExtensionFile)' == ''">idl</IdlExtensionFile>
+    <IdlNamespace Condition="'$(IdlNamespace)' == '' and $(RootNamespace) != ''">$(RootNamespace)</IdlNamespace>
+    <IdlNamespace Condition="'$(IdlNamespace)' == '' and $(RootNamespace) == ''">$(MSBuildProjectName)</IdlNamespace>
+  </PropertyGroup>
+
+</Project>
