@@ -69,7 +69,8 @@ impl DemoProgram {
 
     // Exposing another service
     pub fn counter(&self) -> counter::CounterService {
-        counter::CounterService::new(&self.counter_data)
+        let exposure = self.ping();
+        counter::CounterService::new(&self.counter_data, exposure)
     }
 
     // Exposing yet another service

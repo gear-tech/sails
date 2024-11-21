@@ -1,5 +1,7 @@
 use sails_rs::{cell::RefCell, prelude::*};
 
+use crate::ping::{PingService, PingServiceExposure};
+
 // Model of the service's data. Only service knows what is the data
 // and how to manipulate it.
 pub struct CounterData {
@@ -26,13 +28,14 @@ enum CounterEvents {
 
 pub struct CounterService<'a> {
     data: &'a RefCell<CounterData>,
+    exposure: PingServiceExposure<PingService>,
 }
 
 impl<'a> CounterService<'a> {
     // Service constrctor demands a reference to the data to be passed
     // from the outside.
-    pub fn new(data: &'a RefCell<CounterData>) -> Self {
-        Self { data }
+    pub fn new(data: &'a RefCell<CounterData>, exposure: PingServiceExposure<PingService>) -> Self {
+        Self { data, exposure }
     }
 }
 

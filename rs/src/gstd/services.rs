@@ -1,3 +1,6 @@
+#[cfg(not(target_arch = "wasm32"))]
+use crate::boxed::Box;
+use crate::prelude::*;
 use crate::{collections::BTreeMap, MessageId, Vec};
 use core::ops::DerefMut;
 
@@ -25,10 +28,121 @@ fn get_message_id_to_service_route_map(
     }
 }
 
+pub struct ServiceExposure<T, E> {
+    message_id: MessageId,
+    route: &'static [u8],
+    #[cfg(not(target_arch = "wasm32"))]
+    pub inner: Box<T>,
+    #[cfg(target_arch = "wasm32")]
+    pub inner: T,
+    extend: E,
+}
+
+impl<T, E> ServiceExposure<T, E> {
+    pub fn new(message_id: MessageId, route: &'static [u8], inner: T, extend: E) -> Self {
+        #[cfg(not(target_arch = "wasm32"))]
+        let inner = Box::new(inner);
+
+        Self {
+            message_id,
+            route,
+            inner,
+            extend,
+        }
+    }
+
+    pub async fn handle(&mut self, input: &[u8]) -> (Vec<u8>, u128)
+    where
+        T: ServiceHandle + Service2<Extend = E>,
+        E: ServiceHandle,
+    {
+        if let Some(result) = self.try_handle_inner(input).await {
+            result
+        } else if let Some(result) = self.extend.try_handle(input).await {
+            result
+        } else {
+            let mut __input = input;
+            let input: String = Decode::decode(&mut __input).unwrap_or_else(|_| {
+                if input.len() <= 8 {
+                    format!("0x{}", hex::encode(input))
+                } else {
+                    format!(
+                        "0x{}..{}",
+                        hex::encode(&input[..4]),
+                        hex::encode(&input[input.len() - 4..])
+                    )
+                }
+            });
+            panic!("Unknown request: {}", input)
+        }
+    }
+
+    async fn try_handle_inner(&mut self, input: &[u8]) -> Option<(Vec<u8>, u128)>
+    where
+        T: ServiceHandle + Service2<Extend = E>,
+    {
+        let _scope = ExposureCallScope::new2(self);
+        self.inner.try_handle(input).await
+    }
+
+    // async fn call_scoped<F, P, R>(&mut self, f: F) -> P
+    // where
+    //     F: FnOnce(&mut T) -> R,
+    //     R: IntoFuture<Output = P>,
+    //     T: Service2<Extend = E>,
+    // {
+    //     let _scope = ExposureCallScope::new2(self);
+    //     let inner = &mut self.inner;
+    //     let future = f(inner).into_future();
+    //     future.await
+    // }
+}
+
 pub trait Service {
     type Exposure: Exposure;
 
     fn expose(self, message_id: MessageId, route: &'static [u8]) -> Self::Exposure;
+}
+
+pub trait Service2 {
+    type Exposure: Exposure2;
+    type Extend;
+
+    fn expose(self, message_id: MessageId, route: &'static [u8]) -> Self::Exposure;
+}
+
+#[allow(async_fn_in_trait)]
+pub trait ServiceHandle {
+    async fn try_handle(&mut self, input: &[u8]) -> Option<(Vec<u8>, u128)>;
+}
+
+#[allow(async_fn_in_trait)]
+pub trait Exposure2 {
+    type Service;
+
+    fn message_id(&self) -> MessageId;
+    fn route(&self) -> &'static [u8];
+}
+
+impl<T: Service2> Exposure2 for ServiceExposure<T, T::Extend> {
+    type Service = T;
+
+    fn message_id(&self) -> MessageId {
+        self.message_id
+    }
+
+    fn route(&self) -> &'static [u8] {
+        self.route
+    }
+}
+
+impl<T, E> ServiceHandle for ServiceExposure<T, E>
+where
+    T: ServiceHandle + Service2<Extend = E>,
+{
+    async fn try_handle(&mut self, input: &[u8]) -> Option<(Vec<u8>, u128)> {
+        self.try_handle_inner(input).await
+    }
 }
 
 pub trait Exposure {
@@ -81,6 +195,16 @@ impl ExposureCallScope {
             route: exposure.route(),
         }
     }
+
+    pub fn new2(exposure: &impl Exposure2) -> Self {
+        let mut map = get_message_id_to_service_route_map();
+        let routes = map.entry(exposure.message_id()).or_default();
+        routes.push(exposure.route());
+        Self {
+            message_id: exposure.message_id(),
+            route: exposure.route(),
+        }
+    }
 }
 
 impl Drop for ExposureCallScope {
@@ -97,6 +221,32 @@ impl Drop for ExposureCallScope {
         }
         if routes.is_empty() {
             map.remove(&self.message_id);
+        }
+    }
+}
+
+impl<T1: ServiceHandle, T2: ServiceHandle> ServiceHandle for (T1, T2) {
+    async fn try_handle(&mut self, input: &[u8]) -> Option<(Vec<u8>, u128)> {
+        if let Some(result) = self.0.try_handle(input).await {
+            Some(result)
+        } else if let Some(result) = self.1.try_handle(input).await {
+            Some(result)
+        } else {
+            None
+        }
+    }
+}
+
+impl<T1: ServiceHandle, T2: ServiceHandle, T3: ServiceHandle> ServiceHandle for (T1, T2, T3) {
+    async fn try_handle(&mut self, input: &[u8]) -> Option<(Vec<u8>, u128)> {
+        if let Some(result) = self.0.try_handle(input).await {
+            Some(result)
+        } else if let Some(result) = self.1.try_handle(input).await {
+            Some(result)
+        } else if let Some(result) = self.2.try_handle(input).await {
+            Some(result)
+        } else {
+            None
         }
     }
 }
