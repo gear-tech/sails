@@ -30,15 +30,7 @@ namespace Substrate.Gear.Api.Generated.Model.vara_runtime
     /// <summary>
     /// >> 386 - Variant[vara_runtime.RuntimeFreezeReason]
     /// </summary>
-    public sealed class EnumRuntimeFreezeReason : BaseEnumRust<RuntimeFreezeReason>
+    public sealed class EnumRuntimeFreezeReason : BaseEnumExt<RuntimeFreezeReason, BaseVoid, BaseVoid, BaseVoid, BaseVoid, BaseVoid, BaseVoid, BaseVoid, BaseVoid, BaseVoid, BaseVoid, BaseVoid, BaseVoid, BaseVoid, BaseVoid, BaseVoid, BaseVoid, BaseVoid, BaseVoid, BaseVoid, BaseVoid, BaseVoid, BaseVoid, BaseVoid, BaseVoid, BaseVoid, BaseVoid, BaseVoid, BaseVoid, BaseVoid, BaseVoid, BaseVoid, Substrate.Gear.Api.Generated.Model.pallet_nomination_pools.pallet.EnumFreezeReason>
     {
-        
-        /// <summary>
-        /// Initializes a new instance of the class.
-        /// </summary>
-        public EnumRuntimeFreezeReason()
-        {
-				AddTypeDecoder<Substrate.Gear.Api.Generated.Model.pallet_nomination_pools.pallet.EnumFreezeReason>(RuntimeFreezeReason.NominationPools);
-        }
     }
 }

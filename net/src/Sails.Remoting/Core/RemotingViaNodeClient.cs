@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -6,15 +7,14 @@ using EnsureThat;
 using Sails.Remoting.Abstractions.Core;
 using Substrate.Gear.Api.Generated;
 using Substrate.Gear.Api.Generated.Model.gprimitives;
+using Substrate.Gear.Api.Generated.Model.vara_runtime;
 using Substrate.Gear.Api.Generated.Storage;
 using Substrate.Gear.Client;
-using Substrate.Gear.Client.Model.Types;
-using Substrate.NetApi;
+using Substrate.Gear.Client.NetApi.Model.Types;
+using Substrate.Gear.Client.NetApi.Model.Types.Base;
 using Substrate.NetApi.Model.Types;
 using Substrate.NetApi.Model.Types.Base;
 using Substrate.NetApi.Model.Types.Primitive;
-using GasUnit = Substrate.NetApi.Model.Types.Primitive.U64;
-using ValueUnit = Substrate.NetApi.Model.Types.Primitive.U128;
 
 namespace Sails.Remoting.Core;
 
@@ -37,7 +37,7 @@ internal sealed class RemotingViaNodeClient : IRemoting
         this.signingAccount = signingAccount;
     }
 
-    private const uint DefaultExtrinsicTtlInBlocks = (uint)Constants.ExtrinsicEraPeriodDefault; // TODO: Think of making it configurable.
+    private const uint DefaultExtrinsicTtlInBlocks = SubstrateClientExtExtensions.DefaultExtrinsicTtlInBlocks; // TODO: Think of making it configurable.
 
     private static readonly GasUnit BlockGasLimit = new GearGasConstants().BlockGasLimit();
 
@@ -70,20 +70,23 @@ internal sealed class RemotingViaNodeClient : IRemoting
 
         var createProgram = GearCalls.CreateProgram(
             codeId,
-            new BaseVec<U8>(salt.Select(@byte => new U8(@byte)).ToArray()),
-            new BaseVec<U8>(encodedPayload.Select(@byte => new U8(@byte)).ToArray()),
+            salt.ToBaseVecOfU8(),
+            encodedPayload.ToBaseVecOfU8(),
             gasLimit,
             value,
             keep_alive: new Bool(true));
 
         return await RemotingReplyViaNodeClient<(ActorId, byte[])>.FromExecutionAsync(
                 nodeClient,
-                nodeClient => nodeClient.ExecuteExtrinsicAsync(
+                executeExtrinsic: nodeClient => nodeClient.ExecuteExtrinsicAsync(
                     this.signingAccount,
                     createProgram,
                     DefaultExtrinsicTtlInBlocks,
+                    selectResultOnSuccess: SelectMessageQueuedEventData,
+                    selectResultOnError: (_) =>
+                        throw new Exception("TODO: Custom exception. Unable to create program."),
                     cancellationToken),
-                (queuedMessageData, replyMessage) => (
+                extractResult: (queuedMessageData, replyMessage) => (
                     (ActorId)queuedMessageData.Value[2],
                     replyMessage.Payload.Value.Value
                         .Select(@byte => @byte.Value)
@@ -116,19 +119,22 @@ internal sealed class RemotingViaNodeClient : IRemoting
 
         var sendMessage = GearCalls.SendMessage(
             programId,
-            new BaseVec<U8>(encodedPayload.Select(@byte => new U8(@byte)).ToArray()),
+            encodedPayload.ToBaseVecOfU8(),
             gasLimit,
             value,
             keep_alive: new Bool(true));
 
         return await RemotingReplyViaNodeClient<byte[]>.FromExecutionAsync(
                 nodeClient,
-                nodeClient => nodeClient.ExecuteExtrinsicAsync(
+                executeExtrinsic: nodeClient => nodeClient.ExecuteExtrinsicAsync(
                     this.signingAccount,
                     sendMessage,
                     DefaultExtrinsicTtlInBlocks,
+                    selectResultOnSuccess: SelectMessageQueuedEventData,
+                    selectResultOnError: (_) =>
+                        throw new Exception("TODO: Custom exception. Unable to send message."),
                     cancellationToken),
-                (_, replyMessage) => replyMessage.Payload.Value.Value
+                extractResult: (_, replyMessage) => replyMessage.Payload.Value.Value
                     .Select(@byte => @byte.Value)
                     .ToArray(),
                 cancellationToken)
@@ -163,4 +169,15 @@ internal sealed class RemotingViaNodeClient : IRemoting
 
         return replyInfo.EncodedPayload;
     }
+
+    private static MessageQueuedEventData SelectMessageQueuedEventData(IEnumerable<BaseEnumRust<RuntimeEvent>> runtimeEvents)
+        => runtimeEvents
+            .SelectIfMatches(
+                RuntimeEvent.Gear,
+                (EnumGearEvent gearEvent) => gearEvent.ToBaseEnumRust())
+            .SelectIfMatches(
+                GearEvent.MessageQueued,
+                (MessageQueuedEventData data) => data)
+            .SingleOrDefault()
+            ?? throw new Exception("TODO: Custom exception. Something terrible happened.");
 }

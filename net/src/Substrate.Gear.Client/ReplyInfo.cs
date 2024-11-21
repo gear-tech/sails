@@ -1,5 +1,4 @@
 ﻿using Substrate.Gear.Api.Generated.Model.gear_core_errors.simple;
-using ValueUnit = Substrate.NetApi.Model.Types.Primitive.U128;
 
 namespace Substrate.Gear.Client;
 

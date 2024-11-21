@@ -45,18 +45,7 @@ namespace Substrate.Gear.Api.Generated.Model.pallet_gear_voucher.@internal
     /// <summary>
     /// >> 272 - Variant[pallet_gear_voucher.@internal.PrepaidCall]
     /// </summary>
-    public sealed class EnumPrepaidCall : BaseEnumRust<PrepaidCall>
+    public sealed class EnumPrepaidCall : BaseEnumExt<PrepaidCall, BaseTuple<Substrate.Gear.Api.Generated.Model.gprimitives.ActorId, Substrate.NetApi.Model.Types.Base.BaseVec<Substrate.NetApi.Model.Types.Primitive.U8>, Substrate.NetApi.Model.Types.Primitive.U64, Substrate.NetApi.Model.Types.Primitive.U128, Substrate.NetApi.Model.Types.Primitive.Bool>, BaseTuple<Substrate.Gear.Api.Generated.Model.gprimitives.MessageId, Substrate.NetApi.Model.Types.Base.BaseVec<Substrate.NetApi.Model.Types.Primitive.U8>, Substrate.NetApi.Model.Types.Primitive.U64, Substrate.NetApi.Model.Types.Primitive.U128, Substrate.NetApi.Model.Types.Primitive.Bool>, Substrate.NetApi.Model.Types.Base.BaseVec<Substrate.NetApi.Model.Types.Primitive.U8>, BaseVoid>
     {
-        
-        /// <summary>
-        /// Initializes a new instance of the class.
-        /// </summary>
-        public EnumPrepaidCall()
-        {
-				AddTypeDecoder<BaseTuple<Substrate.Gear.Api.Generated.Model.gprimitives.ActorId, Substrate.NetApi.Model.Types.Base.BaseVec<Substrate.NetApi.Model.Types.Primitive.U8>, Substrate.NetApi.Model.Types.Primitive.U64, Substrate.NetApi.Model.Types.Primitive.U128, Substrate.NetApi.Model.Types.Primitive.Bool>>(PrepaidCall.SendMessage);
-				AddTypeDecoder<BaseTuple<Substrate.Gear.Api.Generated.Model.gprimitives.MessageId, Substrate.NetApi.Model.Types.Base.BaseVec<Substrate.NetApi.Model.Types.Primitive.U8>, Substrate.NetApi.Model.Types.Primitive.U64, Substrate.NetApi.Model.Types.Primitive.U128, Substrate.NetApi.Model.Types.Primitive.Bool>>(PrepaidCall.SendReply);
-				AddTypeDecoder<Substrate.NetApi.Model.Types.Base.BaseVec<Substrate.NetApi.Model.Types.Primitive.U8>>(PrepaidCall.UploadCode);
-				AddTypeDecoder<BaseVoid>(PrepaidCall.DeclineVoucher);
-        }
     }
 }

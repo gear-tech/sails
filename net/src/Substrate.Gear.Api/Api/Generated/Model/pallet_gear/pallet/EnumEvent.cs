@@ -86,23 +86,7 @@ namespace Substrate.Gear.Api.Generated.Model.pallet_gear.pallet
     /// >> 303 - Variant[pallet_gear.pallet.Event]
     /// The `Event` enum of this pallet
     /// </summary>
-    public sealed class EnumEvent : BaseEnumRust<Event>
+    public sealed class EnumEvent : BaseEnumExt<Event, BaseTuple<Substrate.Gear.Api.Generated.Model.gprimitives.MessageId, Substrate.Gear.Api.Generated.Model.sp_core.crypto.AccountId32, Substrate.Gear.Api.Generated.Model.gprimitives.ActorId, Substrate.Gear.Api.Generated.Model.gear_common.@event.EnumMessageEntry>, BaseTuple<Substrate.Gear.Api.Generated.Model.gear_core.message.user.UserMessage, Substrate.NetApi.Model.Types.Base.BaseOpt<Substrate.NetApi.Model.Types.Primitive.U32>>, BaseTuple<Substrate.Gear.Api.Generated.Model.gprimitives.MessageId, Substrate.Gear.Api.Generated.Model.gear_common.@event.EnumReason>, BaseTuple<Substrate.NetApi.Model.Types.Primitive.U32, Substrate.Gear.Api.Generated.Types.Base.BTreeMapT1, Substrate.Gear.Api.Generated.Types.Base.BTreeSetT1>, BaseTuple<Substrate.Gear.Api.Generated.Model.gprimitives.MessageId, Substrate.NetApi.Model.Types.Base.BaseOpt<Substrate.Gear.Api.Generated.Model.gear_common.gas_provider.node.EnumGasNodeId>, Substrate.Gear.Api.Generated.Model.gear_common.@event.EnumReason, Substrate.NetApi.Model.Types.Primitive.U32>, BaseTuple<Substrate.Gear.Api.Generated.Model.gprimitives.MessageId, Substrate.Gear.Api.Generated.Model.gear_common.@event.EnumReason>, BaseTuple<Substrate.Gear.Api.Generated.Model.gprimitives.CodeId, Substrate.Gear.Api.Generated.Model.gear_common.@event.EnumCodeChangeKind>, BaseTuple<Substrate.Gear.Api.Generated.Model.gprimitives.ActorId, Substrate.Gear.Api.Generated.Model.gear_common.@event.EnumProgramChangeKind>, BaseVoid>
     {
-        
-        /// <summary>
-        /// Initializes a new instance of the class.
-        /// </summary>
-        public EnumEvent()
-        {
-				AddTypeDecoder<BaseTuple<Substrate.Gear.Api.Generated.Model.gprimitives.MessageId, Substrate.Gear.Api.Generated.Model.sp_core.crypto.AccountId32, Substrate.Gear.Api.Generated.Model.gprimitives.ActorId, Substrate.Gear.Api.Generated.Model.gear_common.@event.EnumMessageEntry>>(Event.MessageQueued);
-				AddTypeDecoder<BaseTuple<Substrate.Gear.Api.Generated.Model.gear_core.message.user.UserMessage, Substrate.NetApi.Model.Types.Base.BaseOpt<Substrate.NetApi.Model.Types.Primitive.U32>>>(Event.UserMessageSent);
-				AddTypeDecoder<BaseTuple<Substrate.Gear.Api.Generated.Model.gprimitives.MessageId, Substrate.Gear.Api.Generated.Model.gear_common.@event.EnumReason>>(Event.UserMessageRead);
-				AddTypeDecoder<BaseTuple<Substrate.NetApi.Model.Types.Primitive.U32, Substrate.Gear.Api.Generated.Types.Base.BTreeMapT1, Substrate.Gear.Api.Generated.Types.Base.BTreeSetT1>>(Event.MessagesDispatched);
-				AddTypeDecoder<BaseTuple<Substrate.Gear.Api.Generated.Model.gprimitives.MessageId, Substrate.NetApi.Model.Types.Base.BaseOpt<Substrate.Gear.Api.Generated.Model.gear_common.gas_provider.node.EnumGasNodeId>, Substrate.Gear.Api.Generated.Model.gear_common.@event.EnumReason, Substrate.NetApi.Model.Types.Primitive.U32>>(Event.MessageWaited);
-				AddTypeDecoder<BaseTuple<Substrate.Gear.Api.Generated.Model.gprimitives.MessageId, Substrate.Gear.Api.Generated.Model.gear_common.@event.EnumReason>>(Event.MessageWoken);
-				AddTypeDecoder<BaseTuple<Substrate.Gear.Api.Generated.Model.gprimitives.CodeId, Substrate.Gear.Api.Generated.Model.gear_common.@event.EnumCodeChangeKind>>(Event.CodeChanged);
-				AddTypeDecoder<BaseTuple<Substrate.Gear.Api.Generated.Model.gprimitives.ActorId, Substrate.Gear.Api.Generated.Model.gear_common.@event.EnumProgramChangeKind>>(Event.ProgramChanged);
-				AddTypeDecoder<BaseVoid>(Event.QueueNotProcessed);
-        }
     }
 }

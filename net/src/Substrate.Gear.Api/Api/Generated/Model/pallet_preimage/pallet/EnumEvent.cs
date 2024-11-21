@@ -45,17 +45,7 @@ namespace Substrate.Gear.Api.Generated.Model.pallet_preimage.pallet
     /// >> 291 - Variant[pallet_preimage.pallet.Event]
     /// The `Event` enum of this pallet
     /// </summary>
-    public sealed class EnumEvent : BaseEnumRust<Event>
+    public sealed class EnumEvent : BaseEnumExt<Event, Substrate.Gear.Api.Generated.Model.primitive_types.H256, Substrate.Gear.Api.Generated.Model.primitive_types.H256, Substrate.Gear.Api.Generated.Model.primitive_types.H256>
     {
-        
-        /// <summary>
-        /// Initializes a new instance of the class.
-        /// </summary>
-        public EnumEvent()
-        {
-				AddTypeDecoder<Substrate.Gear.Api.Generated.Model.primitive_types.H256>(Event.Noted);
-				AddTypeDecoder<Substrate.Gear.Api.Generated.Model.primitive_types.H256>(Event.Requested);
-				AddTypeDecoder<Substrate.Gear.Api.Generated.Model.primitive_types.H256>(Event.Cleared);
-        }
     }
 }

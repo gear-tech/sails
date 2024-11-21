@@ -45,17 +45,7 @@ namespace Substrate.Gear.Api.Generated.Model.pallet_bags_list.pallet
     /// >> 100 - Variant[pallet_bags_list.pallet.Call]
     /// Contains a variant per dispatchable extrinsic that this pallet has.
     /// </summary>
-    public sealed class EnumCall : BaseEnumRust<Call>
+    public sealed class EnumCall : BaseEnumExt<Call, Substrate.Gear.Api.Generated.Model.sp_runtime.multiaddress.EnumMultiAddress, Substrate.Gear.Api.Generated.Model.sp_runtime.multiaddress.EnumMultiAddress, BaseTuple<Substrate.Gear.Api.Generated.Model.sp_runtime.multiaddress.EnumMultiAddress, Substrate.Gear.Api.Generated.Model.sp_runtime.multiaddress.EnumMultiAddress>>
     {
-        
-        /// <summary>
-        /// Initializes a new instance of the class.
-        /// </summary>
-        public EnumCall()
-        {
-				AddTypeDecoder<Substrate.Gear.Api.Generated.Model.sp_runtime.multiaddress.EnumMultiAddress>(Call.rebag);
-				AddTypeDecoder<Substrate.Gear.Api.Generated.Model.sp_runtime.multiaddress.EnumMultiAddress>(Call.put_in_front_of);
-				AddTypeDecoder<BaseTuple<Substrate.Gear.Api.Generated.Model.sp_runtime.multiaddress.EnumMultiAddress, Substrate.Gear.Api.Generated.Model.sp_runtime.multiaddress.EnumMultiAddress>>(Call.put_in_front_of_other);
-        }
     }
 }

@@ -30,15 +30,7 @@ namespace Substrate.Gear.Api.Generated.Model.vara_runtime
     /// <summary>
     /// >> 381 - Variant[vara_runtime.RuntimeHoldReason]
     /// </summary>
-    public sealed class EnumRuntimeHoldReason : BaseEnumRust<RuntimeHoldReason>
+    public sealed class EnumRuntimeHoldReason : BaseEnumExt<RuntimeHoldReason, BaseVoid, BaseVoid, BaseVoid, BaseVoid, BaseVoid, BaseVoid, BaseVoid, BaseVoid, BaseVoid, BaseVoid, BaseVoid, BaseVoid, BaseVoid, BaseVoid, BaseVoid, BaseVoid, BaseVoid, BaseVoid, BaseVoid, BaseVoid, BaseVoid, BaseVoid, BaseVoid, Substrate.Gear.Api.Generated.Model.pallet_preimage.pallet.EnumHoldReason>
     {
-        
-        /// <summary>
-        /// Initializes a new instance of the class.
-        /// </summary>
-        public EnumRuntimeHoldReason()
-        {
-				AddTypeDecoder<Substrate.Gear.Api.Generated.Model.pallet_preimage.pallet.EnumHoldReason>(RuntimeHoldReason.Preimage);
-        }
     }
 }

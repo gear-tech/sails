@@ -75,24 +75,7 @@ namespace Substrate.Gear.Api.Generated.Model.gear_core.tasks
     /// <summary>
     /// >> 609 - Variant[gear_core.tasks.ScheduledTask]
     /// </summary>
-    public sealed class EnumScheduledTask : BaseEnumRust<ScheduledTask>
+    public sealed class EnumScheduledTask : BaseEnumExt<ScheduledTask, Substrate.Gear.Api.Generated.Model.gprimitives.ActorId, Substrate.Gear.Api.Generated.Model.gprimitives.CodeId, BaseTuple<Substrate.Gear.Api.Generated.Model.sp_core.crypto.AccountId32, Substrate.Gear.Api.Generated.Model.gprimitives.MessageId>, BaseTuple<Substrate.Gear.Api.Generated.Model.gprimitives.ActorId, Substrate.Gear.Api.Generated.Model.gprimitives.MessageId>, Substrate.Gear.Api.Generated.Model.gprimitives.ActorId, BaseTuple<Substrate.Gear.Api.Generated.Model.gprimitives.ActorId, Substrate.Gear.Api.Generated.Model.gprimitives.MessageId>, Substrate.Gear.Api.Generated.Model.gprimitives.MessageId, BaseTuple<Substrate.Gear.Api.Generated.Model.gprimitives.MessageId, Substrate.NetApi.Model.Types.Primitive.Bool>, BaseTuple<Substrate.Gear.Api.Generated.Model.gprimitives.ActorId, Substrate.Gear.Api.Generated.Model.gprimitives.ReservationId>, Substrate.NetApi.Model.Types.Primitive.U32>
     {
-        
-        /// <summary>
-        /// Initializes a new instance of the class.
-        /// </summary>
-        public EnumScheduledTask()
-        {
-				AddTypeDecoder<Substrate.Gear.Api.Generated.Model.gprimitives.ActorId>(ScheduledTask.PauseProgram);
-				AddTypeDecoder<Substrate.Gear.Api.Generated.Model.gprimitives.CodeId>(ScheduledTask.RemoveCode);
-				AddTypeDecoder<BaseTuple<Substrate.Gear.Api.Generated.Model.sp_core.crypto.AccountId32, Substrate.Gear.Api.Generated.Model.gprimitives.MessageId>>(ScheduledTask.RemoveFromMailbox);
-				AddTypeDecoder<BaseTuple<Substrate.Gear.Api.Generated.Model.gprimitives.ActorId, Substrate.Gear.Api.Generated.Model.gprimitives.MessageId>>(ScheduledTask.RemoveFromWaitlist);
-				AddTypeDecoder<Substrate.Gear.Api.Generated.Model.gprimitives.ActorId>(ScheduledTask.RemovePausedProgram);
-				AddTypeDecoder<BaseTuple<Substrate.Gear.Api.Generated.Model.gprimitives.ActorId, Substrate.Gear.Api.Generated.Model.gprimitives.MessageId>>(ScheduledTask.WakeMessage);
-				AddTypeDecoder<Substrate.Gear.Api.Generated.Model.gprimitives.MessageId>(ScheduledTask.SendDispatch);
-				AddTypeDecoder<BaseTuple<Substrate.Gear.Api.Generated.Model.gprimitives.MessageId, Substrate.NetApi.Model.Types.Primitive.Bool>>(ScheduledTask.SendUserMessage);
-				AddTypeDecoder<BaseTuple<Substrate.Gear.Api.Generated.Model.gprimitives.ActorId, Substrate.Gear.Api.Generated.Model.gprimitives.ReservationId>>(ScheduledTask.RemoveGasReservation);
-				AddTypeDecoder<Substrate.NetApi.Model.Types.Primitive.U32>(ScheduledTask.RemoveResumeSession);
-        }
     }
 }

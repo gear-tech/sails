@@ -7,6 +7,8 @@
 
   <ItemGroup>
     <PackageReference Include="Substrate.NET.API" />
+    <!-- Due to Vulnarabilties -->
+    <PackageReference Include="Microsoft.Bcl.AsyncInterfaces" />
   </ItemGroup>
 
   <ItemGroup>

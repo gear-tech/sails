@@ -35,16 +35,7 @@ namespace Substrate.Gear.Api.Generated.Model.pallet_preimage
     /// <summary>
     /// >> 490 - Variant[pallet_preimage.RequestStatus]
     /// </summary>
-    public sealed class EnumRequestStatus : BaseEnumRust<RequestStatus>
+    public sealed class EnumRequestStatus : BaseEnumExt<RequestStatus, BaseTuple<Substrate.NetApi.Model.Types.Base.BaseTuple<Substrate.Gear.Api.Generated.Model.sp_core.crypto.AccountId32, Substrate.Gear.Api.Generated.Model.frame_support.traits.tokens.fungible.HoldConsideration>, Substrate.NetApi.Model.Types.Primitive.U32>, BaseTuple<Substrate.NetApi.Model.Types.Base.BaseOpt<Substrate.NetApi.Model.Types.Base.BaseTuple<Substrate.Gear.Api.Generated.Model.sp_core.crypto.AccountId32, Substrate.Gear.Api.Generated.Model.frame_support.traits.tokens.fungible.HoldConsideration>>, Substrate.NetApi.Model.Types.Primitive.U32, Substrate.NetApi.Model.Types.Base.BaseOpt<Substrate.NetApi.Model.Types.Primitive.U32>>>
     {
-        
-        /// <summary>
-        /// Initializes a new instance of the class.
-        /// </summary>
-        public EnumRequestStatus()
-        {
-				AddTypeDecoder<BaseTuple<Substrate.NetApi.Model.Types.Base.BaseTuple<Substrate.Gear.Api.Generated.Model.sp_core.crypto.AccountId32, Substrate.Gear.Api.Generated.Model.frame_support.traits.tokens.fungible.HoldConsideration>, Substrate.NetApi.Model.Types.Primitive.U32>>(RequestStatus.Unrequested);
-				AddTypeDecoder<BaseTuple<Substrate.NetApi.Model.Types.Base.BaseOpt<Substrate.NetApi.Model.Types.Base.BaseTuple<Substrate.Gear.Api.Generated.Model.sp_core.crypto.AccountId32, Substrate.Gear.Api.Generated.Model.frame_support.traits.tokens.fungible.HoldConsideration>>, Substrate.NetApi.Model.Types.Primitive.U32, Substrate.NetApi.Model.Types.Base.BaseOpt<Substrate.NetApi.Model.Types.Primitive.U32>>>(RequestStatus.Requested);
-        }
     }
 }

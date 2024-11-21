@@ -116,6 +116,47 @@ fn type_id_to_event_names_map() -> impl DerefMut<Target = TypeIdToEncodedEventNa
     }
 }
 
+#[cfg(not(target_arch = "wasm32"))]
+pub fn event_listeners() -> &'static spin::Mutex<BTreeMap<usize, usize>> {
+    static EVENT_LISTENERS: spin::Mutex<BTreeMap<usize, usize>> = spin::Mutex::new(BTreeMap::new());
+    &EVENT_LISTENERS
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+pub struct EventListenerGuard<'a> {
+    service_ptr: usize,
+    listener_ptr: usize,
+    _phantom: core::marker::PhantomData<&'a ()>,
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+impl<'a> EventListenerGuard<'a> {
+    pub fn new(service_ptr: usize, listener_ptr: usize) -> Self {
+        let mut event_listeners = event_listeners().lock();
+        if event_listeners.contains_key(&service_ptr) {
+            panic!("event listener is already set");
+        }
+        event_listeners.insert(service_ptr, listener_ptr);
+
+        EventListenerGuard {
+            service_ptr,
+            listener_ptr,
+            _phantom: core::marker::PhantomData,
+        }
+    }
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+impl<'a> Drop for EventListenerGuard<'a> {
+    fn drop(&mut self) {
+        let mut event_listeners = event_listeners().lock();
+        let listener_ptr = event_listeners.remove(&self.service_ptr);
+        if listener_ptr != Some(self.listener_ptr) {
+            panic!("event listener is being removed out of order");
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

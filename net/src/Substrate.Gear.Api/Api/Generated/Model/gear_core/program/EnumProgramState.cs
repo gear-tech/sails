@@ -35,16 +35,7 @@ namespace Substrate.Gear.Api.Generated.Model.gear_core.program
     /// <summary>
     /// >> 577 - Variant[gear_core.program.ProgramState]
     /// </summary>
-    public sealed class EnumProgramState : BaseEnumRust<ProgramState>
+    public sealed class EnumProgramState : BaseEnumExt<ProgramState, Substrate.Gear.Api.Generated.Model.gprimitives.MessageId, BaseVoid>
     {
-        
-        /// <summary>
-        /// Initializes a new instance of the class.
-        /// </summary>
-        public EnumProgramState()
-        {
-				AddTypeDecoder<Substrate.Gear.Api.Generated.Model.gprimitives.MessageId>(ProgramState.Uninitialized);
-				AddTypeDecoder<BaseVoid>(ProgramState.Initialized);
-        }
     }
 }

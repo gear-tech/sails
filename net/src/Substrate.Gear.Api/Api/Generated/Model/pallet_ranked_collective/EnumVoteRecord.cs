@@ -35,16 +35,7 @@ namespace Substrate.Gear.Api.Generated.Model.pallet_ranked_collective
     /// <summary>
     /// >> 281 - Variant[pallet_ranked_collective.VoteRecord]
     /// </summary>
-    public sealed class EnumVoteRecord : BaseEnumRust<VoteRecord>
+    public sealed class EnumVoteRecord : BaseEnumExt<VoteRecord, Substrate.NetApi.Model.Types.Primitive.U32, Substrate.NetApi.Model.Types.Primitive.U32>
     {
-        
-        /// <summary>
-        /// Initializes a new instance of the class.
-        /// </summary>
-        public EnumVoteRecord()
-        {
-				AddTypeDecoder<Substrate.NetApi.Model.Types.Primitive.U32>(VoteRecord.Aye);
-				AddTypeDecoder<Substrate.NetApi.Model.Types.Primitive.U32>(VoteRecord.Nay);
-        }
     }
 }

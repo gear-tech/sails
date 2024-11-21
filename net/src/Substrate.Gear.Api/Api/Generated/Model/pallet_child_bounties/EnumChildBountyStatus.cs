@@ -45,18 +45,7 @@ namespace Substrate.Gear.Api.Generated.Model.pallet_child_bounties
     /// <summary>
     /// >> 537 - Variant[pallet_child_bounties.ChildBountyStatus]
     /// </summary>
-    public sealed class EnumChildBountyStatus : BaseEnumRust<ChildBountyStatus>
+    public sealed class EnumChildBountyStatus : BaseEnumExt<ChildBountyStatus, BaseVoid, Substrate.Gear.Api.Generated.Model.sp_core.crypto.AccountId32, Substrate.Gear.Api.Generated.Model.sp_core.crypto.AccountId32, BaseTuple<Substrate.Gear.Api.Generated.Model.sp_core.crypto.AccountId32, Substrate.Gear.Api.Generated.Model.sp_core.crypto.AccountId32, Substrate.NetApi.Model.Types.Primitive.U32>>
     {
-        
-        /// <summary>
-        /// Initializes a new instance of the class.
-        /// </summary>
-        public EnumChildBountyStatus()
-        {
-				AddTypeDecoder<BaseVoid>(ChildBountyStatus.Added);
-				AddTypeDecoder<Substrate.Gear.Api.Generated.Model.sp_core.crypto.AccountId32>(ChildBountyStatus.CuratorProposed);
-				AddTypeDecoder<Substrate.Gear.Api.Generated.Model.sp_core.crypto.AccountId32>(ChildBountyStatus.Active);
-				AddTypeDecoder<BaseTuple<Substrate.Gear.Api.Generated.Model.sp_core.crypto.AccountId32, Substrate.Gear.Api.Generated.Model.sp_core.crypto.AccountId32, Substrate.NetApi.Model.Types.Primitive.U32>>(ChildBountyStatus.PendingPayout);
-        }
     }
 }

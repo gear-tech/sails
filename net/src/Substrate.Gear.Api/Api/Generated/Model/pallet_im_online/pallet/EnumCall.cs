@@ -33,15 +33,7 @@ namespace Substrate.Gear.Api.Generated.Model.pallet_im_online.pallet
     /// >> 101 - Variant[pallet_im_online.pallet.Call]
     /// Contains a variant per dispatchable extrinsic that this pallet has.
     /// </summary>
-    public sealed class EnumCall : BaseEnumRust<Call>
+    public sealed class EnumCall : BaseEnumExt<Call, BaseTuple<Substrate.Gear.Api.Generated.Model.pallet_im_online.Heartbeat, Substrate.Gear.Api.Generated.Model.pallet_im_online.sr25519.app_sr25519.Signature>>
     {
-        
-        /// <summary>
-        /// Initializes a new instance of the class.
-        /// </summary>
-        public EnumCall()
-        {
-				AddTypeDecoder<BaseTuple<Substrate.Gear.Api.Generated.Model.pallet_im_online.Heartbeat, Substrate.Gear.Api.Generated.Model.pallet_im_online.sr25519.app_sr25519.Signature>>(Call.heartbeat);
-        }
     }
 }

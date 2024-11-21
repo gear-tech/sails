@@ -13,7 +13,7 @@ where
         #[cfg(not(target_arch = "wasm32"))]
         {
             let self_ptr = self as *const _ as usize;
-            let event_listeners = event_listeners().lock();
+            let event_listeners = sails_rs::gstd::events::event_listeners().lock();
             if let Some(event_listener_ptr) = event_listeners.get(&self_ptr) {
                 let event_listener = unsafe {
                     &mut *(*event_listener_ptr as *mut Box<dyn FnMut(&MyEvents)>)
@@ -25,7 +25,7 @@ where
         sails_rs::gstd::events::__notify_on(event)
     }
 }
-pub struct Exposure<T> {
+pub struct MyGenericEventsServiceExposure<T> {
     message_id: sails_rs::MessageId,
     route: &'static [u8],
     #[cfg(not(target_arch = "wasm32"))]
@@ -36,16 +36,16 @@ pub struct Exposure<T> {
     inner: T,
 }
 #[cfg(not(target_arch = "wasm32"))]
-impl<T> Drop for Exposure<T> {
+impl<T> Drop for MyGenericEventsServiceExposure<T> {
     fn drop(&mut self) {
         let service_ptr = self.inner_ptr as usize;
-        let mut event_listeners = event_listeners().lock();
+        let mut event_listeners = sails_rs::gstd::events::event_listeners().lock();
         if event_listeners.remove(&service_ptr).is_some() {
             panic!("there should be no any event listeners left by this time");
         }
     }
 }
-impl<'a, T> Exposure<MyGenericEventsService<'a, T>>
+impl<'a, T> MyGenericEventsServiceExposure<MyGenericEventsService<'a, T>>
 where
     T: Clone,
 {
@@ -59,7 +59,7 @@ where
             .unwrap_or_else(|| {
                 {
                     let mut __input = input;
-                    let input = String::decode(&mut __input)
+                    let input: String = sails_rs::Decode::decode(&mut __input)
                         .unwrap_or_else(|_| {
                             if input.len() <= 8 {
                                 format!("0x{}", sails_rs::hex::encode(input))
@@ -91,17 +91,19 @@ where
         None
     }
     async fn __do_this(&mut self, mut input: &[u8]) -> (Vec<u8>, u128) {
-        let request = __DoThisParams::decode(&mut input)
+        let request: my_generic_events_service_meta::__DoThisParams = sails_rs::Decode::decode(
+                &mut input,
+            )
             .expect("Failed to decode request");
         let result = self.do_this();
         let value = 0u128;
-        return (result.encode(), value);
+        return (sails_rs::Encode::encode(&result), value);
     }
     #[cfg(not(target_arch = "wasm32"))]
     pub fn set_event_listener<'__elg>(
         &self,
         listener: impl FnMut(&MyEvents) + '__elg,
-    ) -> EventListenerGuard<'__elg> {
+    ) -> sails_rs::gstd::events::EventListenerGuard<'__elg> {
         if core::mem::size_of_val(self.inner.as_ref()) == 0 {
             panic!(
                 "setting event listener on a zero-sized service is not supported for now"
@@ -111,20 +113,11 @@ where
         let listener: Box<dyn FnMut(&MyEvents)> = Box::new(listener);
         let listener = Box::new(listener);
         let listener_ptr = Box::into_raw(listener) as usize;
-        let mut event_listeners = event_listeners().lock();
-        if event_listeners.contains_key(&service_ptr) {
-            panic!("event listener is already set");
-        }
-        event_listeners.insert(service_ptr, listener_ptr);
-        EventListenerGuard {
-            service_ptr,
-            listener_ptr,
-            _phantom: core::marker::PhantomData,
-        }
+        sails_rs::gstd::events::EventListenerGuard::new(service_ptr, listener_ptr)
     }
 }
 impl<'a, T> sails_rs::gstd::services::Exposure
-for Exposure<MyGenericEventsService<'a, T>>
+for MyGenericEventsServiceExposure<MyGenericEventsService<'a, T>>
 where
     T: Clone,
 {
@@ -139,7 +132,7 @@ impl<'a, T> sails_rs::gstd::services::Service for MyGenericEventsService<'a, T>
 where
     T: Clone,
 {
-    type Exposure = Exposure<MyGenericEventsService<'a, T>>;
+    type Exposure = MyGenericEventsServiceExposure<MyGenericEventsService<'a, T>>;
     fn expose(
         self,
         message_id: sails_rs::MessageId,
@@ -168,61 +161,40 @@ where
     T: Clone,
 {
     fn commands() -> sails_rs::scale_info::MetaType {
-        sails_rs::scale_info::MetaType::new::<meta_in_service::CommandsMeta>()
+        sails_rs::scale_info::MetaType::new::<
+            my_generic_events_service_meta::CommandsMeta,
+        >()
     }
     fn queries() -> sails_rs::scale_info::MetaType {
-        sails_rs::scale_info::MetaType::new::<meta_in_service::QueriesMeta>()
+        sails_rs::scale_info::MetaType::new::<
+            my_generic_events_service_meta::QueriesMeta,
+        >()
     }
     fn events() -> sails_rs::scale_info::MetaType {
-        sails_rs::scale_info::MetaType::new::<meta_in_service::EventsMeta>()
+        sails_rs::scale_info::MetaType::new::<
+            my_generic_events_service_meta::EventsMeta,
+        >()
     }
     fn base_services() -> impl Iterator<Item = sails_rs::meta::AnyServiceMeta> {
         [].into_iter()
     }
 }
-type __EventlistenersMap = sails_rs::collections::BTreeMap<usize, usize>;
-type __Mutex<T> = sails_rs::spin::Mutex<T>;
-#[cfg(not(target_arch = "wasm32"))]
-fn event_listeners() -> &'static __Mutex<__EventlistenersMap> {
-    static EVENT_LISTENERS: __Mutex<__EventlistenersMap> = __Mutex::new(
-        __EventlistenersMap::new(),
-    );
-    &EVENT_LISTENERS
-}
-#[cfg(not(target_arch = "wasm32"))]
-pub struct EventListenerGuard<'a> {
-    service_ptr: usize,
-    listener_ptr: usize,
-    _phantom: core::marker::PhantomData<&'a ()>,
-}
-#[cfg(not(target_arch = "wasm32"))]
-impl<'a> Drop for EventListenerGuard<'a> {
-    fn drop(&mut self) {
-        let mut event_listeners = event_listeners().lock();
-        let listener_ptr = event_listeners.remove(&self.service_ptr);
-        if listener_ptr != Some(self.listener_ptr) {
-            panic!("event listener is being removed out of order");
-        }
-    }
-}
-use sails_rs::Decode as __ServiceDecode;
-use sails_rs::Encode as __ServiceEncode;
-use sails_rs::TypeInfo as __ServiceTypeInfo;
-#[derive(__ServiceDecode, __ServiceTypeInfo)]
-#[codec(crate = sails_rs::scale_codec)]
-#[scale_info(crate = sails_rs::scale_info)]
-pub struct __DoThisParams {}
-mod meta_in_service {
+mod my_generic_events_service_meta {
     use super::*;
-    #[derive(__ServiceTypeInfo)]
+    use sails_rs::{Decode, TypeInfo};
+    #[derive(Decode, TypeInfo)]
+    #[codec(crate = sails_rs::scale_codec)]
+    #[scale_info(crate = sails_rs::scale_info)]
+    pub struct __DoThisParams {}
+    #[derive(TypeInfo)]
     #[scale_info(crate = sails_rs::scale_info)]
     pub enum CommandsMeta {
         DoThis(__DoThisParams, u32),
     }
-    #[derive(__ServiceTypeInfo)]
+    #[derive(TypeInfo)]
     #[scale_info(crate = sails_rs::scale_info)]
     pub enum QueriesMeta {}
-    #[derive(__ServiceTypeInfo)]
+    #[derive(TypeInfo)]
     #[scale_info(crate = sails_rs::scale_info)]
     pub enum NoEvents {}
     pub type EventsMeta = MyEvents;

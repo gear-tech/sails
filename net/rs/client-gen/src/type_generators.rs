@@ -27,13 +27,13 @@ macro_rules! gprimitives {
 
 macro_rules! client_base {
     ($t: expr) => {
-        concat!("global::Substrate.Gear.Client.Model.Types.Base.", $t)
+        concat!("global::Substrate.Gear.Client.NetApi.Model.Types.Base.", $t)
     };
 }
 
 macro_rules! client_primitive {
     ($t: expr) => {
-        concat!("global::Substrate.Gear.Client.Model.Types.Primitive.", $t)
+        concat!("global::Substrate.Gear.Client.NetApi.Model.Types.Primitive.", $t)
     };
 }
 
@@ -107,7 +107,6 @@ impl<'a> StructDefGenerator<'a> {
         let generic_list = &csharp::import("global::System.Collections.Generic", "List");
 
         quote! {
-            [global::Substrate.NetApi.Attributes.SubstrateNodeType(global::Substrate.NetApi.Model.Types.Metadata.Base.TypeDefEnum.Composite)]
             public sealed partial class $(self.type_name) : global::Substrate.NetApi.Model.Types.Base.BaseType
             {
                 $(self.props_tokens)
