@@ -1,4 +1,4 @@
-name: '[net] CI (.Net)'
+name: '[net] CI'
 
 on:
   push:
