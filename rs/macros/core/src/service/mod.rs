@@ -354,14 +354,51 @@ fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
         });
     }
 
+    let mut exposure_lifetimes: Punctuated<Lifetime, Comma> = Punctuated::new();
+    for lt in lifetimes.iter().map(|lt| {
+        let lt = format!("'{lt}");
+        Lifetime::new(&lt, Span::call_site())
+    }) {
+        exposure_lifetimes.push(lt);
+    }
+    let trait_lifetimes = if !exposure_lifetimes.is_empty() {
+        quote! { < #exposure_lifetimes> }
+    } else {
+        quote! {}
+    };
+
+    let mut base_types_funcs = Vec::with_capacity(service_args.base_types().len());
+    let mut base_types_impl = Vec::with_capacity(service_args.base_types().len());
+    let mut base_exposure_instantiation = Vec::with_capacity(service_args.base_types().len());
+    // let mut invocation_dispatches = Vec::with_capacity(service_handlers.len());
+    service_args.base_types().iter()
+        .enumerate()
+        .for_each(|(idx, base_type)| {
+            let as_base_ident = Ident::new(&format!("as_base_{}", idx), Span::call_site());
+
+            base_types_funcs.push(quote!{
+                fn #as_base_ident (&self) -> &< #base_type as #sails_path::gstd::services::Service>::Exposure;
+            });
+
+            base_types_impl.push(quote!{
+                fn #as_base_ident (&self) -> &< #base_type as #sails_path::gstd::services::Service>::Exposure {
+                    &self.extend.#idx
+                }
+            });
+
+            base_exposure_instantiation.push(quote!(
+                < #base_type as Clone>::clone(AsRef::< #base_type >::as_ref( #inner_ident )).expose( #message_id_ident , #route_ident ),
+            ));
+        });
+
     quote!(
         #service_impl
 
-        pub trait #trait_ident #exposure_lifetimes {
+        pub trait #trait_ident #trait_lifetimes {
             #( #trait_funcs )*
         }
 
-        impl #generics #trait_ident #exposure_lifetimes for #sails_path::gstd::services::ServiceExposure< #exposure_args, () > #service_type_constraints {
+        impl #generics #trait_ident #trait_lifetimes for #sails_path::gstd::services::ServiceExposure< #exposure_args, () > #service_type_constraints {
             #( #trait_funcs_impl )*
         }
 

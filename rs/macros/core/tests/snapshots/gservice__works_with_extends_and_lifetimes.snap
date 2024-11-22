@@ -10,11 +10,11 @@ impl<'a> ExtendedLifetime<'a> {
         "extended".to_string()
     }
 }
-trait __ExtendedLifetimeImplTrait {
+pub trait ExtendedLifetimeImplTrait<'a> {
     fn extended_name(&self) -> String;
     fn name(&self) -> String;
 }
-impl<'a> __ExtendedLifetimeImplTrait
+impl<'a> ExtendedLifetimeImplTrait<'a>
 for sails_rs::gstd::services::ServiceExposure<'a, ExtendedLifetime<'a>, ()> {
     fn extended_name(&self) -> String {
         let exposure_scope = sails_rs::gstd::services::ExposureCallScope::new2(self);

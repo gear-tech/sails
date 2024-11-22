@@ -11,10 +11,10 @@ where
         42
     }
 }
-pub trait SomeServiceImplTrait {
+pub trait SomeServiceImplTrait<'a, 'b> {
     fn do_this(&mut self) -> u32;
 }
-impl<'a, 'b, T, U> SomeServiceImplTrait
+impl<'a, 'b, T, U> SomeServiceImplTrait<'a, 'b>
 for sails_rs::gstd::services::ServiceExposure<SomeService<'a, 'b, T, U>, ()>
 where
     T: Clone,

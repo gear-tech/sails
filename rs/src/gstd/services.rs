@@ -37,7 +37,7 @@ pub struct ServiceExposure<T, E> {
     pub inner: Box<T>,
     #[cfg(target_arch = "wasm32")]
     pub inner: T,
-    extend: E,
+    pub extend: E,
 }
 
 impl<T, E> ServiceExposure<T, E> {
@@ -277,6 +277,7 @@ impl<T1: ServiceHandle, T2: ServiceHandle> ServiceHandle for (T1, T2) {
     }
 }
 
+// todo: make macro_rules
 impl<T1: ServiceHandle, T2: ServiceHandle, T3: ServiceHandle> ServiceHandle for (T1, T2, T3) {
     async fn try_handle(&mut self, input: &[u8]) -> Option<(Vec<u8>, u128)> {
         if let Some(result) = self.0.try_handle(input).await {

@@ -25,10 +25,10 @@ where
         sails_rs::gstd::events::__notify_on(event)
     }
 }
-pub trait MyGenericEventsServiceImplTrait {
+pub trait MyGenericEventsServiceImplTrait<'a> {
     fn do_this(&mut self) -> u32;
 }
-impl<'a, T> MyGenericEventsServiceImplTrait
+impl<'a, T> MyGenericEventsServiceImplTrait<'a>
 for sails_rs::gstd::services::ServiceExposure<MyGenericEventsService<'a, T>, ()>
 where
     T: Clone,
