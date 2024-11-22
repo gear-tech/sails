@@ -33,6 +33,7 @@ jobs:
             echo "pin_tag=$PIN_TAG" >> $GITHUB_OUTPUT
             echo "Version: $VERSION"
             echo "version=$VERSION" >> $GITHUB_OUTPUT
+            echo "Repository Url : ${{ github.server_url }}/${{ github.repository }}"
 
   build_win_x64:
     name: Build Native Libraries for Win x64
@@ -127,6 +128,7 @@ jobs:
   publish:
     name: Publish NuGet Packages
     needs:
+      - prepare
       - build_win_x64
       - build_linux_x64
       - build_osx_x64
@@ -151,3 +153,10 @@ jobs:
       - name: Test Solution
         run: |
           dotnet test --no-build --configuration Release --logger "trx;LogFileName=TestResults.trx"
+
+      - name: Pack NuGet Packages
+        run: |
+          dotnet pack ./net/src/Sails.Net/Sails.Net.csproj --no-build --configuration Release --output ./nugets \
+            -p:Version=${{ needs.prepare.outputs.r_version }} \
+            -p:PackageVersion=${{ needs.prepare.outputs.r_version }} \
+            -p:RepositoryUrl=${{ github.server_url }}/${{ github.repository }}
