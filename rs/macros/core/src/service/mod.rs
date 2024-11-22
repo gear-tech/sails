@@ -367,34 +367,37 @@ fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
         quote! {}
     };
 
+    // base v2
+    let single_base_type = service_args.base_types().len() == 1;
+
     let mut base_expo_types = Vec::with_capacity(service_args.base_types().len());
     let mut base_types_funcs = Vec::with_capacity(service_args.base_types().len());
     let mut base_types_impl = Vec::with_capacity(service_args.base_types().len());
     let mut base_exposure_instantiation = Vec::with_capacity(service_args.base_types().len());
-    // let mut invocation_dispatches = Vec::with_capacity(service_handlers.len());
-    let single_base_type = service_args.base_types().len() == 1;
+
     service_args.base_types().iter()
         .enumerate()
         .for_each(|(idx, base_type)| {
             let as_base_ident = format_ident!("as_base_{}", idx);
-            let base_idx = Index::from(idx);
+            let base_expo_type = quote! { #sails_path::gstd::services::ServiceExposure< #base_type, () > };
 
             base_expo_types.push(quote! {
-                #sails_path::gstd::services::ServiceExposure< #base_type, () >
+                #base_expo_type
             });
 
             base_types_funcs.push(quote!{
-                fn #as_base_ident (&self) -> & #sails_path::gstd::services::ServiceExposure< #base_type, () >;
+                fn #as_base_ident (&self) -> & #base_expo_type;
             });
 
             let extend_ref = if single_base_type {
                 quote! { &self.extend }
             } else {
+                let base_idx = Index::from(idx);
                 quote! { &self.extend.#base_idx }
             };
 
             base_types_impl.push(quote!{
-                fn #as_base_ident (&self) -> & #sails_path::gstd::services::ServiceExposure< #base_type, () > {
+                fn #as_base_ident (&self) -> & #base_expo_type {
                     #extend_ref
                 }
             });
@@ -412,6 +415,9 @@ fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
     };
     let base_inst: TokenStream = quote! { ( #( #base_exposure_instantiation ),* ) };
 
+    let expo_type =
+        quote! { #sails_path::gstd::services::ServiceExposure< #service_type_path, #base_type > };
+
     quote!(
         #service_impl
 
@@ -421,7 +427,7 @@ fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
             #( #base_types_funcs )*
         }
 
-        impl #generics #trait_ident #trait_lifetimes for #sails_path::gstd::services::ServiceExposure< #service_type_path, #base_type > #service_type_constraints {
+        impl #generics #trait_ident #trait_lifetimes for #expo_type #service_type_constraints {
             #( #trait_funcs_impl )*
 
             #( #base_types_impl )*
@@ -439,7 +445,7 @@ fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
         }
 
         impl #generics #sails_path::gstd::services::Service for #service_type_path #service_type_constraints {
-            type Exposure = #sails_path::gstd::services::ServiceExposure< #service_type_path, #base_type >;
+            type Exposure = #expo_type;
             type Extend = #base_type;
 
             fn expose(self, #message_id_ident : #sails_path::MessageId, #route_ident : &'static [u8]) -> Self::Exposure {
