@@ -17,7 +17,7 @@
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 //! Supporting functions and structures for the `gservice` macro.
-
+#![allow(unused_variables)] // temporary
 use crate::{
     sails_paths,
     shared::{self, Func},
@@ -30,7 +30,7 @@ use proc_macro_error::abort;
 use quote::{format_ident, quote};
 use std::collections::BTreeMap;
 use syn::{
-    parse_quote, punctuated::Punctuated, spanned::Spanned, token::Comma, Ident, ImplItemFn,
+    parse_quote, punctuated::Punctuated, spanned::Spanned, token::Comma, Ident, ImplItemFn, Index,
     ItemImpl, Lifetime, Path, Type, Visibility,
 };
 
@@ -367,39 +367,64 @@ fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
         quote! {}
     };
 
+    let mut base_expo_types = Vec::with_capacity(service_args.base_types().len());
     let mut base_types_funcs = Vec::with_capacity(service_args.base_types().len());
     let mut base_types_impl = Vec::with_capacity(service_args.base_types().len());
     let mut base_exposure_instantiation = Vec::with_capacity(service_args.base_types().len());
     // let mut invocation_dispatches = Vec::with_capacity(service_handlers.len());
+    let single_base_type = service_args.base_types().len() == 1;
     service_args.base_types().iter()
         .enumerate()
         .for_each(|(idx, base_type)| {
-            let as_base_ident = Ident::new(&format!("as_base_{}", idx), Span::call_site());
+            let as_base_ident = format_ident!("as_base_{}", idx);
+            let base_idx = Index::from(idx);
 
-            base_types_funcs.push(quote!{
-                fn #as_base_ident (&self) -> &< #base_type as #sails_path::gstd::services::Service>::Exposure;
+            base_expo_types.push(quote! {
+                #sails_path::gstd::services::ServiceExposure< #base_type, () >
             });
 
+            base_types_funcs.push(quote!{
+                fn #as_base_ident (&self) -> & #sails_path::gstd::services::ServiceExposure< #base_type, () >;
+            });
+
+            let extend_ref = if single_base_type {
+                quote! { &self.extend }
+            } else {
+                quote! { &self.extend.#base_idx }
+            };
+
             base_types_impl.push(quote!{
-                fn #as_base_ident (&self) -> &< #base_type as #sails_path::gstd::services::Service>::Exposure {
-                    &self.extend.#idx
+                fn #as_base_ident (&self) -> & #sails_path::gstd::services::ServiceExposure< #base_type, () > {
+                    #extend_ref
                 }
             });
 
             base_exposure_instantiation.push(quote!(
-                < #base_type as Clone>::clone(AsRef::< #base_type >::as_ref( #inner_ident )).expose( #message_id_ident , #route_ident ),
+                < #base_type as Clone>::clone(AsRef::< #base_type >::as_ref( &self )).expose( #message_id_ident , #route_ident )
             ));
         });
+
+    let base_type = if single_base_type {
+        let single_type = &base_expo_types[0];
+        quote! { #single_type }
+    } else {
+        quote! { ( #( #base_expo_types ),* ) }
+    };
+    let base_inst: TokenStream = quote! { ( #( #base_exposure_instantiation ),* ) };
 
     quote!(
         #service_impl
 
         pub trait #trait_ident #trait_lifetimes {
             #( #trait_funcs )*
+
+            #( #base_types_funcs )*
         }
 
-        impl #generics #trait_ident #trait_lifetimes for #sails_path::gstd::services::ServiceExposure< #exposure_args, () > #service_type_constraints {
+        impl #generics #trait_ident #trait_lifetimes for #sails_path::gstd::services::ServiceExposure< #service_type_path, #base_type > #service_type_constraints {
             #( #trait_funcs_impl )*
+
+            #( #base_types_impl )*
         }
 
         impl #generics #sails_path::gstd::services::ServiceHandle for #service_type_path #service_type_constraints {
@@ -414,11 +439,11 @@ fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
         }
 
         impl #generics #sails_path::gstd::services::Service for #service_type_path #service_type_constraints {
-            type Exposure = #sails_path::gstd::services::ServiceExposure< #exposure_args, () >;
-            type Extend = ();
+            type Exposure = #sails_path::gstd::services::ServiceExposure< #service_type_path, #base_type >;
+            type Extend = #base_type;
 
             fn expose(self, #message_id_ident : #sails_path::MessageId, #route_ident : &'static [u8]) -> Self::Exposure {
-                let extend = ();
+                let extend = #base_inst;
                 Self::Exposure::new(#message_id_ident, #route_ident, self, extend)
             }
         }

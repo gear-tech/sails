@@ -9,12 +9,34 @@ impl SomeService {
 }
 pub trait SomeServiceImplTrait {
     fn do_this(&mut self) -> u32;
+    fn as_base_0(
+        &self,
+    ) -> &sails_rs::gstd::services::ServiceExposure<ExtendedService1, ()>;
+    fn as_base_1(
+        &self,
+    ) -> &sails_rs::gstd::services::ServiceExposure<ExtendedService2, ()>;
 }
 impl SomeServiceImplTrait
-for sails_rs::gstd::services::ServiceExposure<SomeService, ()> {
+for sails_rs::gstd::services::ServiceExposure<
+    SomeService,
+    (
+        sails_rs::gstd::services::ServiceExposure<ExtendedService1, ()>,
+        sails_rs::gstd::services::ServiceExposure<ExtendedService2, ()>,
+    ),
+> {
     fn do_this(&mut self) -> u32 {
         let exposure_scope = sails_rs::gstd::services::ExposureCallScope::new2(self);
         self.inner.do_this()
+    }
+    fn as_base_0(
+        &self,
+    ) -> &sails_rs::gstd::services::ServiceExposure<ExtendedService1, ()> {
+        &self.extend.0
+    }
+    fn as_base_1(
+        &self,
+    ) -> &sails_rs::gstd::services::ServiceExposure<ExtendedService2, ()> {
+        &self.extend.1
     }
 }
 impl sails_rs::gstd::services::ServiceHandle for SomeService {
@@ -36,14 +58,28 @@ impl sails_rs::gstd::services::ServiceHandle for SomeService {
     }
 }
 impl sails_rs::gstd::services::Service for SomeService {
-    type Exposure = sails_rs::gstd::services::ServiceExposure<SomeService, ()>;
-    type Extend = ();
+    type Exposure = sails_rs::gstd::services::ServiceExposure<
+        SomeService,
+        (
+            sails_rs::gstd::services::ServiceExposure<ExtendedService1, ()>,
+            sails_rs::gstd::services::ServiceExposure<ExtendedService2, ()>,
+        ),
+    >;
+    type Extend = (
+        sails_rs::gstd::services::ServiceExposure<ExtendedService1, ()>,
+        sails_rs::gstd::services::ServiceExposure<ExtendedService2, ()>,
+    );
     fn expose(
         self,
         message_id: sails_rs::MessageId,
         route: &'static [u8],
     ) -> Self::Exposure {
-        let extend = ();
+        let extend = (
+            <ExtendedService1 as Clone>::clone(AsRef::<ExtendedService1>::as_ref(&self))
+                .expose(message_id, route),
+            <ExtendedService2 as Clone>::clone(AsRef::<ExtendedService2>::as_ref(&self))
+                .expose(message_id, route),
+        );
         Self::Exposure::new(message_id, route, self, extend)
     }
 }
