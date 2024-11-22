@@ -28,14 +28,13 @@ enum CounterEvents {
 
 pub struct CounterService<'a> {
     data: &'a RefCell<CounterData>,
-    exposure: ServiceExposure<PingService, ()>,
 }
 
 impl<'a> CounterService<'a> {
     // Service constrctor demands a reference to the data to be passed
     // from the outside.
-    pub fn new(data: &'a RefCell<CounterData>, exposure: ServiceExposure<PingService, ()>) -> Self {
-        Self { data, exposure }
+    pub fn new(data: &'a RefCell<CounterData>) -> Self {
+        Self { data }
     }
 }
 
