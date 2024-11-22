@@ -1,6 +1,4 @@
-use sails_rs::{cell::RefCell, gstd::services::ServiceExposure, prelude::*};
-
-use crate::ping::PingService;
+use sails_rs::{cell::RefCell, prelude::*};
 
 // Model of the service's data. Only service knows what is the data
 // and how to manipulate it.

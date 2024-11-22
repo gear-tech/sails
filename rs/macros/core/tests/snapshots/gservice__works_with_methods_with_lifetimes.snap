@@ -25,6 +25,7 @@ impl ReferenceService {
         unsafe { BYTES.last() }
     }
 }
+#[allow(async_fn_in_trait)]
 pub trait ReferenceServiceImplTrait {
     fn add_byte(&mut self, byte: u8) -> &'static [u8];
     fn baked(&self) -> &'static str;

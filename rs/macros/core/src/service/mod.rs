@@ -421,6 +421,7 @@ fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
     quote!(
         #service_impl
 
+        #[allow(async_fn_in_trait)]
         pub trait #trait_ident #trait_lifetimes {
             #( #trait_funcs )*
 

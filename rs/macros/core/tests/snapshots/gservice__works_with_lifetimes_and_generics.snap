@@ -11,6 +11,7 @@ where
         42
     }
 }
+#[allow(async_fn_in_trait)]
 pub trait SomeServiceImplTrait<'a, 'b> {
     fn do_this(&mut self) -> u32;
 }

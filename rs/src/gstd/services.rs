@@ -269,10 +269,8 @@ impl<T1: ServiceHandle, T2: ServiceHandle> ServiceHandle for (T1, T2) {
     async fn try_handle(&mut self, input: &[u8]) -> Option<(Vec<u8>, u128)> {
         if let Some(result) = self.0.try_handle(input).await {
             Some(result)
-        } else if let Some(result) = self.1.try_handle(input).await {
-            Some(result)
         } else {
-            None
+            self.1.try_handle(input).await
         }
     }
 }
@@ -284,10 +282,8 @@ impl<T1: ServiceHandle, T2: ServiceHandle, T3: ServiceHandle> ServiceHandle for 
             Some(result)
         } else if let Some(result) = self.1.try_handle(input).await {
             Some(result)
-        } else if let Some(result) = self.2.try_handle(input).await {
-            Some(result)
         } else {
-            None
+            self.2.try_handle(input).await
         }
     }
 }

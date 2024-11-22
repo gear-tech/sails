@@ -10,6 +10,7 @@ impl<'a> ExtendedLifetime<'a> {
         "extended".to_string()
     }
 }
+#[allow(async_fn_in_trait)]
 pub trait ExtendedLifetimeImplTrait<'a> {
     fn extended_name(&self) -> String;
     fn name(&self) -> String;

@@ -25,6 +25,7 @@ where
         sails_rs::gstd::events::__notify_on(event)
     }
 }
+#[allow(async_fn_in_trait)]
 pub trait MyGenericEventsServiceImplTrait<'a> {
     fn do_this(&mut self) -> u32;
 }

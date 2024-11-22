@@ -7,6 +7,7 @@ impl SomeService {
         42
     }
 }
+#[allow(async_fn_in_trait)]
 pub trait SomeServiceImplTrait {
     fn do_this(&mut self) -> u32;
     fn as_base_0(
