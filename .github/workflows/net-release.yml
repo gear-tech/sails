@@ -17,7 +17,6 @@ jobs:
       outputs:
         r_version: ${{ steps.release_info.outputs.version }}
         r_tag: rs/v${{ steps.release_info.outputs.version }}
-        nuget_source_url: ${{ steps.release_info.outputs.nuget_source_url }}
 
       steps:
         - name: Extract Release Info
@@ -30,22 +29,10 @@ jobs:
               echo "'$VERSION' is not a valid semver version"
               exit 1
             fi
-            NUGET_SOURCE_URL="https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json"
             echo "Pin Tag: $PIN_TAG"
             echo "pin_tag=$PIN_TAG" >> $GITHUB_OUTPUT
             echo "Version: $VERSION"
             echo "version=$VERSION" >> $GITHUB_OUTPUT
-            echo "NuGet Source URL: $NUGET_SOURCE_URL"
-            echo "nuget_source_url=$NUGET_SOURCE_URL" >> $GITHUB_OUTPUT
-            exit 1
-
-        - name: Authenticate with GitHub NuGet Registry
-          run: |
-            dotnet nuget add source ${{ steps.release_info.outputs.nuget_source_url }} \
-              --name ${{ github.repository_owner }}-github \
-              --username "${{ github.workflow }}" \
-              --password ${{ secrets.GITHUB_TOKEN }} \
-              --store-password-in-clear-text
 
   build_win_x64:
     name: Build Native Libraries for Win x64
@@ -181,6 +168,11 @@ jobs:
 
       - name: Publish NuGet Packages
         run: |
+          NUGET_SOURCE_URL="https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json"
+          dotnet nuget add source $NUGET_SOURCE_URL \
+            --name ${{ github.repository_owner }}-github \
+            --username "${{ github.workflow }}" \
+            --password ${{ secrets.GITHUB_TOKEN }} \
+            --store-password-in-clear-text
           dotnet nuget push ./nugets/*.nupkg \
-            --source ${{ needs.prepare.outputs.nuget_source_url }}
-            --api-key ${{ secrets.GITHUB_TOKEN }}
+            --source $NUGET_SOURCE_URL
