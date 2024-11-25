@@ -35,7 +35,13 @@ jobs:
           dotnet-version: 8.0.x
 
       - name: Restore Solution
-        run: >-
+        run: |
+          NUGET_SOURCE_URL="https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json"
+          dotnet nuget add source $NUGET_SOURCE_URL \
+            --name ${{ github.repository_owner }}-github \
+            --username "${{ github.workflow }}" \
+            --password ${{ secrets.GITHUB_TOKEN }} \
+            --store-password-in-clear-text
           dotnet restore
 
       - name: Build Solution
