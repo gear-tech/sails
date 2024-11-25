@@ -30,7 +30,7 @@ public sealed class TestAssemblyRunner : XunitTestAssemblyRunner
 
     protected override async Task AfterTestAssemblyStartingAsync()
     {
-        await base.AfterTestAssemblyStartingAsync();
+        await base.AfterTestAssemblyStartingAsync().ConfigureAwait(false);
 
         var requiredFixtureTypes = new HashSet<Type>();
 
@@ -71,7 +71,7 @@ public sealed class TestAssemblyRunner : XunitTestAssemblyRunner
 
         foreach (var initializable in this.assemblyFixtureMappings.Values.OfType<IAsyncLifetime>())
         {
-            await this.Aggregator.RunAsync(initializable.InitializeAsync);
+            await this.Aggregator.RunAsync(initializable.InitializeAsync).ConfigureAwait(false);
         }
     }
 
