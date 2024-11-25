@@ -21,6 +21,7 @@ public class BaseTupleRust : BaseType
     /// </summary>
     public BaseTupleRust()
     {
+        Create();
     }
 
     /// <summary>

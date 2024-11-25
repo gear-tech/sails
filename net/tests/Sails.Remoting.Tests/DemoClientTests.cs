@@ -58,6 +58,27 @@ public class DemoClientTests : IAssemblyFixture<SailsFixture>
     }
 
     [Fact]
+    public async Task Demo_Activation_Throws_NotEnoughGas()
+    {
+        // arrange
+        var codeBytes = await this.sailsFixture.GetDemoContractWasmAsync();
+        var codeId = await this.UploadCodeAsync(codeBytes.AsReadOnlyCollection());
+
+        // act
+        var demoFactory = new Demo.DemoFactory(this.remoting);
+        var activate = await demoFactory
+            .Default()
+            .WithGasLimit(new GasUnit(0))
+            .ActivateAsync(codeId, BitConverter.GetBytes(Random.NextInt64()), CancellationToken.None);
+        // throws on ReceiveAsync
+        var ex = await Assert.ThrowsAsync<ArgumentException>(() => activate.ReceiveAsync(CancellationToken.None));
+
+        // assert
+        // TODO assert custom exception
+        Assert.NotNull(ex);
+    }
+
+    [Fact]
     public async Task PingPong_Works()
     {
         // arrange
@@ -128,6 +149,79 @@ public class DemoClientTests : IAssemblyFixture<SailsFixture>
         Assert.NotNull(result);
         Assert.Equal(32u, result.Value);
         // TODO add event assert
+    }
+
+    [Fact]
+    public async Task Counter_Query_Works()
+    {
+        // arrange
+        var codeBytes = await this.sailsFixture.GetDemoContractWasmAsync();
+        var codeId = await this.UploadCodeAsync(codeBytes.AsReadOnlyCollection());
+
+        var demoFactory = new Demo.DemoFactory(this.remoting);
+        var counterClient = new Demo.Counter(this.remoting);
+
+        // act
+        var dogPosition = new BaseOpt<BaseTuple<I32, I32>>(new BaseTuple<I32, I32>(new I32(0), new I32(0)));
+        var programId = await demoFactory
+            .New(counter: new U32(42), dogPosition: dogPosition)
+            .SendReceiveAsync(codeId, BitConverter.GetBytes(Random.NextInt64()), CancellationToken.None);
+
+        var result = await counterClient.Value().QueryAsync(programId, CancellationToken.None);
+
+        // assert
+        Assert.NotNull(result);
+        Assert.Equal(42u, result.Value);
+    }
+
+    [Fact]
+    public async Task Counter_Query_Throws_NotEnoughGas()
+    {
+        // arrange
+        var codeBytes = await this.sailsFixture.GetDemoContractWasmAsync();
+        var codeId = await this.UploadCodeAsync(codeBytes.AsReadOnlyCollection());
+
+        var demoFactory = new Demo.DemoFactory(this.remoting);
+        var counterClient = new Demo.Counter(this.remoting);
+
+        // act
+        var dogPosition = new BaseOpt<BaseTuple<I32, I32>>(new BaseTuple<I32, I32>(new I32(0), new I32(0)));
+        var programId = await demoFactory
+            .New(counter: new U32(42), dogPosition: dogPosition)
+            .SendReceiveAsync(codeId, BitConverter.GetBytes(Random.NextInt64()), CancellationToken.None);
+
+        var ex = await Assert.ThrowsAsync<ArgumentException>(() => counterClient.Value()
+            .WithGasLimit(new GasUnit(0))
+            .QueryAsync(programId, CancellationToken.None)
+        );
+
+        // assert
+        Assert.NotNull(ex);
+    }
+
+    [Fact]
+    public async Task ValueFee_Works()
+    {
+        // arrange
+        var codeBytes = await this.sailsFixture.GetDemoContractWasmAsync();
+        var codeId = await this.UploadCodeAsync(codeBytes.AsReadOnlyCollection());
+
+        var demoFactory = new Demo.DemoFactory(this.remoting);
+        var valueFeeClient = new Demo.ValueFee(this.remoting);
+
+        // act
+        var programId = await demoFactory
+            .Default()
+            .SendReceiveAsync(codeId, BitConverter.GetBytes(Random.NextInt64()), CancellationToken.None);
+
+        var result = await valueFeeClient
+            .DoSomethingAndTakeFee()
+            .WithValue(new ValueUnit(15_000_000_000_000))
+            .SendReceiveAsync(programId, CancellationToken.None);
+
+        // assert
+        Assert.True(result);
+        // TODO assert balances
     }
 
     private async Task<CodeId> UploadCodeAsync(IReadOnlyCollection<byte> codeBytes)
