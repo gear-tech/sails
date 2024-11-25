@@ -22,12 +22,17 @@ pub(crate) fn path_bytes(path: &str) -> (String, usize) {
     }
 }
 
-pub(crate) fn encoded_fn_args(params: &[FuncParam]) -> String {
+pub(crate) fn encoded_fn_args_comma_prefixed(params: &[FuncParam]) -> String {
     params
         .iter()
-        .map(|p| escape_keywords(p.name().to_case(convert_case::Case::Camel)))
+        .map(|p| {
+            format!(
+                ", {}",
+                escape_keywords(p.name().to_case(convert_case::Case::Camel))
+            )
+        })
         .collect::<Vec<_>>()
-        .join(", ")
+        .join("")
 }
 
 pub fn summary_comment<T>(comment: T) -> SummaryComment<T>

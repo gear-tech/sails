@@ -1,6 +1,3 @@
-using Substrate.Gear.Client.NetApi.Model.Types.Base;
-using Substrate.Gear.Client.NetApi.Model.Types.Primitive;
-
 namespace Sails.Client.Tests;
 
 public class DemoClientTests
