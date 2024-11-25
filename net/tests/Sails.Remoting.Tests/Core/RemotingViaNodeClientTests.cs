@@ -4,11 +4,7 @@ using Substrate.Gear.Client;
 using Substrate.Gear.Client.Extensions;
 using Substrate.Gear.Client.GearApi.Model.gprimitives;
 using Substrate.NET.Schnorrkel.Keys;
-using Substrate.NetApi;
 using Substrate.NetApi.Model.Extrinsics;
-using Substrate.NetApi.Model.Types;
-using Substrate.NetApi.Model.Types.Primitive;
-using CodeId = Substrate.Gear.Api.Generated.Model.gprimitives.CodeId;
 
 namespace Sails.Remoting.Tests.Core;
 

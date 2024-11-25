@@ -8,6 +8,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <AdditionalFiles Include="idl\demo.idl" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="coverlet.collector">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
@@ -27,9 +31,10 @@
     <!--
       Should be this one, but we use Sails.Net coz we ship it
       <ProjectReference Include="..\..\src\Sails.Remoting\Sails.Remoting.csproj" />
-    -->
+    -->    
     <ProjectReference Include="..\..\src\Sails.Net\Sails.Net.csproj" />
     <ProjectReference Include="..\Sails.Tests.Shared\Sails.Tests.Shared.csproj" />
+    <ProjectReference Include="..\..\src\Sails.ClientGenerator\Sails.ClientGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
   </ItemGroup>
 
 </Project>

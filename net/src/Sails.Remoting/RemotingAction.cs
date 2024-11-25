@@ -15,7 +15,7 @@ public sealed class RemotingAction<T>(IRemoting remoting, byte[] route, IType ar
     where T : IType, new()
 {
     private GasUnit? gasLimit;
-    private ValueUnit value = new();
+    private ValueUnit value = new(0);
 
     /// <inheritdoc />
     public async Task<IReply<ActorId>> ActivateAsync(
