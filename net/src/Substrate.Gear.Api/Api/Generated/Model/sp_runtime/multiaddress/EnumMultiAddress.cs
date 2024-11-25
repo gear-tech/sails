@@ -50,19 +50,7 @@ namespace Substrate.Gear.Api.Generated.Model.sp_runtime.multiaddress
     /// <summary>
     /// >> 94 - Variant[sp_runtime.multiaddress.MultiAddress]
     /// </summary>
-    public sealed class EnumMultiAddress : BaseEnumRust<MultiAddress>
+    public sealed class EnumMultiAddress : BaseEnumExt<MultiAddress, Substrate.Gear.Api.Generated.Model.sp_core.crypto.AccountId32, Substrate.NetApi.Model.Types.Base.BaseCom<Substrate.NetApi.Model.Types.Base.BaseTuple>, Substrate.NetApi.Model.Types.Base.BaseVec<Substrate.NetApi.Model.Types.Primitive.U8>, Substrate.Gear.Api.Generated.Types.Base.Arr32U8, Substrate.Gear.Api.Generated.Types.Base.Arr20U8>
     {
-        
-        /// <summary>
-        /// Initializes a new instance of the class.
-        /// </summary>
-        public EnumMultiAddress()
-        {
-				AddTypeDecoder<Substrate.Gear.Api.Generated.Model.sp_core.crypto.AccountId32>(MultiAddress.Id);
-				AddTypeDecoder<Substrate.NetApi.Model.Types.Base.BaseCom<Substrate.NetApi.Model.Types.Base.BaseTuple>>(MultiAddress.Index);
-				AddTypeDecoder<Substrate.NetApi.Model.Types.Base.BaseVec<Substrate.NetApi.Model.Types.Primitive.U8>>(MultiAddress.Raw);
-				AddTypeDecoder<Substrate.Gear.Api.Generated.Types.Base.Arr32U8>(MultiAddress.Address32);
-				AddTypeDecoder<Substrate.Gear.Api.Generated.Types.Base.Arr20U8>(MultiAddress.Address20);
-        }
     }
 }

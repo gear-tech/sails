@@ -1,5 +1,5 @@
 [workspace.package]
-version = "0.6.1"
+version = "0.6.3"
 authors = ["Gear Technologies"]
 edition = "2021"
 license = "GPL-3.0"
@@ -31,8 +31,8 @@ members = [
 [workspace.dependencies]
 # The order matches with publishing order.
 sails-idl-meta = { path = "rs/idl-meta" }
-sails-idl-gen = { path = "rs/idl-gen" }
 sails-idl-parser = { path = "rs/idl-parser" }
+sails-idl-gen = { path = "rs/idl-gen" }
 sails-client-gen = { path = "rs/client-gen" }
 sails-macros-core = { path = "rs/macros/core" }
 sails-macros = { path = "rs/macros" }
@@ -52,6 +52,7 @@ gwasm-builder = { version = "=1.6.2", package = "gear-wasm-builder" }
 # Other deps in alphabetical order
 anyhow = "1"
 cargo-generate = "0.21"
+cargo_metadata = "0.18"
 clap = "4.5"
 convert-case = { package = "convert_case", version = "0.6" }
 futures = { version = "0.3", default-features = false }
@@ -60,16 +61,17 @@ git-download = "0.1"
 handlebars = "4.4"
 hashbrown = "0.15"
 hex = { version = "0.4", default-features = false }
-insta = "1.40"
+insta = "1.41"
 itertools = "0.13"
 lalrpop = { version = "0.20", default-features = false }
 lalrpop-util = "0.20"
 logos = "0.13"
 mockall = "0.12"
-parity-scale-codec = { version = "3.6", default-features = false }
+parity-scale-codec = { version = "3.7", default-features = false }
 prettyplease = "0.2"
 proc-macro-error = "1.0"
 proc-macro2 = { version = "1", default-features = false }
+rustdoc-types = "=0.29.1"
 quote = "1.0"
 scale-info = { version = "2.11", default-features = false }
 serde = "1.0"
@@ -78,5 +80,6 @@ spin = { version = "0.9", default-features = false, features = ["spin_mutex"] }
 syn = "2.0"
 thiserror = "1.0"
 thiserror-no-std = "2.0"
-tokio = "1.40"
+toml_edit = "0.22"
+tokio = "1.41"
 trybuild = "1"

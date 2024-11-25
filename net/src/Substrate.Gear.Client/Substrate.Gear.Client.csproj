@@ -1,0 +1,21 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Ensure.That" />
+    <PackageReference Include="PolySharp">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="System.Linq.Async" />
+    <PackageReference Include="System.Threading.Channels" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Substrate.Gear.Api\Substrate.Gear.Api.csproj" />
+  </ItemGroup>
+
+</Project>

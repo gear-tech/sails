@@ -71,20 +71,7 @@ namespace Substrate.Gear.Api.Generated.Model.pallet_election_provider_multi_phas
     /// >> 295 - Variant[pallet_election_provider_multi_phase.pallet.Event]
     /// The `Event` enum of this pallet
     /// </summary>
-    public sealed class EnumEvent : BaseEnumRust<Event>
+    public sealed class EnumEvent : BaseEnumExt<Event, BaseTuple<Substrate.Gear.Api.Generated.Model.pallet_election_provider_multi_phase.EnumElectionCompute, Substrate.NetApi.Model.Types.Base.BaseOpt<Substrate.Gear.Api.Generated.Model.sp_core.crypto.AccountId32>, Substrate.NetApi.Model.Types.Primitive.Bool>, BaseTuple<Substrate.Gear.Api.Generated.Model.pallet_election_provider_multi_phase.EnumElectionCompute, Substrate.Gear.Api.Generated.Model.sp_npos_elections.ElectionScore>, BaseVoid, BaseTuple<Substrate.Gear.Api.Generated.Model.sp_core.crypto.AccountId32, Substrate.NetApi.Model.Types.Primitive.U128>, BaseTuple<Substrate.Gear.Api.Generated.Model.sp_core.crypto.AccountId32, Substrate.NetApi.Model.Types.Primitive.U128>, BaseTuple<Substrate.Gear.Api.Generated.Model.pallet_election_provider_multi_phase.EnumPhase, Substrate.Gear.Api.Generated.Model.pallet_election_provider_multi_phase.EnumPhase, Substrate.NetApi.Model.Types.Primitive.U32>>
     {
-        
-        /// <summary>
-        /// Initializes a new instance of the class.
-        /// </summary>
-        public EnumEvent()
-        {
-				AddTypeDecoder<BaseTuple<Substrate.Gear.Api.Generated.Model.pallet_election_provider_multi_phase.EnumElectionCompute, Substrate.NetApi.Model.Types.Base.BaseOpt<Substrate.Gear.Api.Generated.Model.sp_core.crypto.AccountId32>, Substrate.NetApi.Model.Types.Primitive.Bool>>(Event.SolutionStored);
-				AddTypeDecoder<BaseTuple<Substrate.Gear.Api.Generated.Model.pallet_election_provider_multi_phase.EnumElectionCompute, Substrate.Gear.Api.Generated.Model.sp_npos_elections.ElectionScore>>(Event.ElectionFinalized);
-				AddTypeDecoder<BaseVoid>(Event.ElectionFailed);
-				AddTypeDecoder<BaseTuple<Substrate.Gear.Api.Generated.Model.sp_core.crypto.AccountId32, Substrate.NetApi.Model.Types.Primitive.U128>>(Event.Rewarded);
-				AddTypeDecoder<BaseTuple<Substrate.Gear.Api.Generated.Model.sp_core.crypto.AccountId32, Substrate.NetApi.Model.Types.Primitive.U128>>(Event.Slashed);
-				AddTypeDecoder<BaseTuple<Substrate.Gear.Api.Generated.Model.pallet_election_provider_multi_phase.EnumPhase, Substrate.Gear.Api.Generated.Model.pallet_election_provider_multi_phase.EnumPhase, Substrate.NetApi.Model.Types.Primitive.U32>>(Event.PhaseTransitioned);
-        }
     }
 }

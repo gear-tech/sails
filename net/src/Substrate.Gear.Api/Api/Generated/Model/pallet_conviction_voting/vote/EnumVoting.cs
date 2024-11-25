@@ -35,16 +35,7 @@ namespace Substrate.Gear.Api.Generated.Model.pallet_conviction_voting.vote
     /// <summary>
     /// >> 443 - Variant[pallet_conviction_voting.vote.Voting]
     /// </summary>
-    public sealed class EnumVoting : BaseEnumRust<Voting>
+    public sealed class EnumVoting : BaseEnumExt<Voting, Substrate.Gear.Api.Generated.Model.pallet_conviction_voting.vote.Casting, Substrate.Gear.Api.Generated.Model.pallet_conviction_voting.vote.Delegating>
     {
-        
-        /// <summary>
-        /// Initializes a new instance of the class.
-        /// </summary>
-        public EnumVoting()
-        {
-				AddTypeDecoder<Substrate.Gear.Api.Generated.Model.pallet_conviction_voting.vote.Casting>(Voting.Casting);
-				AddTypeDecoder<Substrate.Gear.Api.Generated.Model.pallet_conviction_voting.vote.Delegating>(Voting.Delegating);
-        }
     }
 }

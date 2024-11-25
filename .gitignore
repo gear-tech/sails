@@ -10,6 +10,7 @@ target/
 # C#
 net/**/[Bb]in/
 net/**/[Oo]bj/
+net/**/*.trx
 
 # js
 node_modules/
@@ -24,3 +25,7 @@ js/test/demo/
 !.yarn/sdks
 !.yarn/versions
 .npmrc
+
+# Verify
+*.received.*
+*.received/

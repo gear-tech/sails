@@ -35,16 +35,7 @@ namespace Substrate.Gear.Api.Generated.Types.Base
     /// <summary>
     /// >> 285 - Variant[Result]
     /// </summary>
-    public sealed class EnumResult : BaseEnumRust<Result>
+    public sealed class EnumResult : BaseEnumExt<Result, Substrate.Gear.Api.Generated.Model.frame_support.dispatch.PostDispatchInfo, Substrate.Gear.Api.Generated.Model.sp_runtime.DispatchErrorWithPostInfo>
     {
-        
-        /// <summary>
-        /// Initializes a new instance of the class.
-        /// </summary>
-        public EnumResult()
-        {
-				AddTypeDecoder<Substrate.Gear.Api.Generated.Model.frame_support.dispatch.PostDispatchInfo>(Result.Ok);
-				AddTypeDecoder<Substrate.Gear.Api.Generated.Model.sp_runtime.DispatchErrorWithPostInfo>(Result.Err);
-        }
     }
 }

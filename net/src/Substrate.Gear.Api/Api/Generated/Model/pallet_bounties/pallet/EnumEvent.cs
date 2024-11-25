@@ -93,25 +93,7 @@ namespace Substrate.Gear.Api.Generated.Model.pallet_bounties.pallet
     /// >> 300 - Variant[pallet_bounties.pallet.Event]
     /// The `Event` enum of this pallet
     /// </summary>
-    public sealed class EnumEvent : BaseEnumRust<Event>
+    public sealed class EnumEvent : BaseEnumExt<Event, Substrate.NetApi.Model.Types.Primitive.U32, BaseTuple<Substrate.NetApi.Model.Types.Primitive.U32, Substrate.NetApi.Model.Types.Primitive.U128>, Substrate.NetApi.Model.Types.Primitive.U32, BaseTuple<Substrate.NetApi.Model.Types.Primitive.U32, Substrate.Gear.Api.Generated.Model.sp_core.crypto.AccountId32>, BaseTuple<Substrate.NetApi.Model.Types.Primitive.U32, Substrate.NetApi.Model.Types.Primitive.U128, Substrate.Gear.Api.Generated.Model.sp_core.crypto.AccountId32>, Substrate.NetApi.Model.Types.Primitive.U32, Substrate.NetApi.Model.Types.Primitive.U32, Substrate.NetApi.Model.Types.Primitive.U32, BaseTuple<Substrate.NetApi.Model.Types.Primitive.U32, Substrate.Gear.Api.Generated.Model.sp_core.crypto.AccountId32>, Substrate.NetApi.Model.Types.Primitive.U32, BaseTuple<Substrate.NetApi.Model.Types.Primitive.U32, Substrate.Gear.Api.Generated.Model.sp_core.crypto.AccountId32>>
     {
-        
-        /// <summary>
-        /// Initializes a new instance of the class.
-        /// </summary>
-        public EnumEvent()
-        {
-				AddTypeDecoder<Substrate.NetApi.Model.Types.Primitive.U32>(Event.BountyProposed);
-				AddTypeDecoder<BaseTuple<Substrate.NetApi.Model.Types.Primitive.U32, Substrate.NetApi.Model.Types.Primitive.U128>>(Event.BountyRejected);
-				AddTypeDecoder<Substrate.NetApi.Model.Types.Primitive.U32>(Event.BountyBecameActive);
-				AddTypeDecoder<BaseTuple<Substrate.NetApi.Model.Types.Primitive.U32, Substrate.Gear.Api.Generated.Model.sp_core.crypto.AccountId32>>(Event.BountyAwarded);
-				AddTypeDecoder<BaseTuple<Substrate.NetApi.Model.Types.Primitive.U32, Substrate.NetApi.Model.Types.Primitive.U128, Substrate.Gear.Api.Generated.Model.sp_core.crypto.AccountId32>>(Event.BountyClaimed);
-				AddTypeDecoder<Substrate.NetApi.Model.Types.Primitive.U32>(Event.BountyCanceled);
-				AddTypeDecoder<Substrate.NetApi.Model.Types.Primitive.U32>(Event.BountyExtended);
-				AddTypeDecoder<Substrate.NetApi.Model.Types.Primitive.U32>(Event.BountyApproved);
-				AddTypeDecoder<BaseTuple<Substrate.NetApi.Model.Types.Primitive.U32, Substrate.Gear.Api.Generated.Model.sp_core.crypto.AccountId32>>(Event.CuratorProposed);
-				AddTypeDecoder<Substrate.NetApi.Model.Types.Primitive.U32>(Event.CuratorUnassigned);
-				AddTypeDecoder<BaseTuple<Substrate.NetApi.Model.Types.Primitive.U32, Substrate.Gear.Api.Generated.Model.sp_core.crypto.AccountId32>>(Event.CuratorAccepted);
-        }
     }
 }

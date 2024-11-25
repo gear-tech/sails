@@ -35,16 +35,7 @@ namespace Substrate.Gear.Api.Generated.Model.gear_core.message.common
     /// <summary>
     /// >> 588 - Variant[gear_core.message.common.MessageDetails]
     /// </summary>
-    public sealed class EnumMessageDetails : BaseEnumRust<MessageDetails>
+    public sealed class EnumMessageDetails : BaseEnumExt<MessageDetails, Substrate.Gear.Api.Generated.Model.gear_core.message.common.ReplyDetails, Substrate.Gear.Api.Generated.Model.gear_core.message.common.SignalDetails>
     {
-        
-        /// <summary>
-        /// Initializes a new instance of the class.
-        /// </summary>
-        public EnumMessageDetails()
-        {
-				AddTypeDecoder<Substrate.Gear.Api.Generated.Model.gear_core.message.common.ReplyDetails>(MessageDetails.Reply);
-				AddTypeDecoder<Substrate.Gear.Api.Generated.Model.gear_core.message.common.SignalDetails>(MessageDetails.Signal);
-        }
     }
 }

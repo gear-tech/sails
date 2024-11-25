@@ -1,0 +1,17 @@
+﻿global using System;
+global using System.Collections.Generic;
+global using System.Linq;
+global using System.Threading;
+global using System.Threading.Tasks;
+global using NSubstitute;
+global using Sails.Remoting.Abstractions.Core;
+global using Substrate.Gear.Api.Generated.Model.gprimitives;
+global using Substrate.Gear.Api.Generated.Types.Base;
+global using Substrate.Gear.Client.NetApi.Model.Types.Base;
+global using Substrate.Gear.Client.NetApi.Model.Types.Primitive;
+global using Substrate.NetApi;
+global using Substrate.NetApi.Model.Types.Base;
+global using Substrate.NetApi.Model.Types.Primitive;
+global using Xunit;
+global using GasUnit = Substrate.NetApi.Model.Types.Primitive.U64;
+global using ValueUnit = Substrate.NetApi.Model.Types.Primitive.U128;

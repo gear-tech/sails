@@ -52,18 +52,7 @@ namespace Substrate.Gear.Api.Generated.Model.pallet_ranked_collective.pallet
     /// >> 280 - Variant[pallet_ranked_collective.pallet.Event]
     /// The `Event` enum of this pallet
     /// </summary>
-    public sealed class EnumEvent : BaseEnumRust<Event>
+    public sealed class EnumEvent : BaseEnumExt<Event, Substrate.Gear.Api.Generated.Model.sp_core.crypto.AccountId32, BaseTuple<Substrate.Gear.Api.Generated.Model.sp_core.crypto.AccountId32, Substrate.NetApi.Model.Types.Primitive.U16>, BaseTuple<Substrate.Gear.Api.Generated.Model.sp_core.crypto.AccountId32, Substrate.NetApi.Model.Types.Primitive.U16>, BaseTuple<Substrate.Gear.Api.Generated.Model.sp_core.crypto.AccountId32, Substrate.NetApi.Model.Types.Primitive.U32, Substrate.Gear.Api.Generated.Model.pallet_ranked_collective.EnumVoteRecord, Substrate.Gear.Api.Generated.Model.pallet_ranked_collective.Tally>>
     {
-        
-        /// <summary>
-        /// Initializes a new instance of the class.
-        /// </summary>
-        public EnumEvent()
-        {
-				AddTypeDecoder<Substrate.Gear.Api.Generated.Model.sp_core.crypto.AccountId32>(Event.MemberAdded);
-				AddTypeDecoder<BaseTuple<Substrate.Gear.Api.Generated.Model.sp_core.crypto.AccountId32, Substrate.NetApi.Model.Types.Primitive.U16>>(Event.RankChanged);
-				AddTypeDecoder<BaseTuple<Substrate.Gear.Api.Generated.Model.sp_core.crypto.AccountId32, Substrate.NetApi.Model.Types.Primitive.U16>>(Event.MemberRemoved);
-				AddTypeDecoder<BaseTuple<Substrate.Gear.Api.Generated.Model.sp_core.crypto.AccountId32, Substrate.NetApi.Model.Types.Primitive.U32, Substrate.Gear.Api.Generated.Model.pallet_ranked_collective.EnumVoteRecord, Substrate.Gear.Api.Generated.Model.pallet_ranked_collective.Tally>>(Event.Voted);
-        }
     }
 }

@@ -60,7 +60,7 @@ pub mod wasm {
             (program, INVOCATION_ROUTE.as_ref())
         } else {
             let mut __input = input;
-            let input = String::decode(&mut __input)
+            let input: String = sails_rename::Decode::decode(&mut __input)
                 .unwrap_or_else(|_| {
                     if input.len() <= 8 {
                         format!("0x{}", sails_rename::hex::encode(input))
@@ -83,7 +83,7 @@ pub mod wasm {
         let mut input: &[u8] = &gstd::msg::load_bytes().expect("Failed to read input");
         let (output, value): (Vec<u8>, ValueUnit) = {
             let mut __input = input;
-            let input = String::decode(&mut __input)
+            let input: String = sails_rename::Decode::decode(&mut __input)
                 .unwrap_or_else(|_| {
                     if input.len() <= 8 {
                         format!("0x{}", sails_rename::hex::encode(input))

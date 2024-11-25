@@ -36,12 +36,9 @@ use syn::{
 
 mod args;
 
-static mut SERVICE_SPANS: BTreeMap<String, Span> = BTreeMap::new();
-
 pub fn gservice(args: TokenStream, service_impl: TokenStream) -> TokenStream {
     let service_impl = parse_gservice_impl(service_impl);
     ensure_single_gservice_on_impl(&service_impl);
-    ensure_single_gservice_by_name(&service_impl);
     generate_gservice(args, service_impl)
 }
 
@@ -78,18 +75,6 @@ fn ensure_single_gservice_on_impl(service_impl: &ItemImpl) {
     }
 }
 
-fn ensure_single_gservice_by_name(service_impl: &ItemImpl) {
-    let (path, ..) = shared::impl_type(service_impl);
-    let type_ident = path.path.segments.last().unwrap().ident.to_string();
-    if unsafe { SERVICE_SPANS.get(&type_ident) }.is_some() {
-        abort!(
-            service_impl,
-            "multiple `service` attributes on a type with the same name are not allowed"
-        )
-    }
-    unsafe { SERVICE_SPANS.insert(type_ident, service_impl.span()) };
-}
-
 fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
     let service_args = syn::parse2::<ServiceArgs>(args).unwrap_or_else(|err| {
         abort!(
@@ -102,7 +87,7 @@ fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
     let scale_codec_path = sails_paths::scale_codec_path(&sails_path);
     let scale_info_path = sails_paths::scale_info_path(&sails_path);
 
-    let (service_type_path, service_type_args) = shared::impl_type(&service_impl);
+    let (service_type_path, service_type_args, service_ident) = shared::impl_type(&service_impl);
     let (generics, service_type_constraints) = shared::impl_constraints(&service_impl);
 
     let service_handlers = discover_service_handlers(&service_impl);
@@ -123,7 +108,7 @@ fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
                 #[cfg(not(target_arch = "wasm32"))]
                 {
                     let self_ptr = self as *const _ as usize;
-                    let event_listeners = event_listeners().lock();
+                    let event_listeners = #sails_path::gstd::events::event_listeners().lock();
                     if let Some(event_listener_ptr) = event_listeners.get(&self_ptr) {
                         let event_listener =
                             unsafe { &mut *(*event_listener_ptr as *mut Box<dyn FnMut(& #events_type )>) };
@@ -135,6 +120,9 @@ fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
             }
         ));
     }
+
+    let meta_module_name = format!("{}_meta", service_ident.to_string().to_case(Case::Snake));
+    let meta_module_ident = Ident::new(&meta_module_name, Span::call_site());
 
     let inner_ident = Ident::new("inner", Span::call_site());
     let inner_ptr_ident = Ident::new("inner_ptr", Span::call_site());
@@ -176,7 +164,7 @@ fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
             )
         });
         invocation_params_structs.push(handler_generator.params_struct());
-        invocation_funcs.push(handler_generator.invocation_func());
+        invocation_funcs.push(handler_generator.invocation_func(&meta_module_ident, &sails_path));
         invocation_dispatches.push({
             let handler_route_bytes = handler_route.encode();
             let handler_route_len = handler_route_bytes.len();
@@ -260,21 +248,29 @@ fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
     let base_services_meta =
         code_for_base_types.map(|(_, _, _, _, base_service_meta)| base_service_meta);
 
-    let events_listeners_code = events_type.map(|_| generate_event_listeners(&sails_path));
-
     let lifetimes = shared::extract_lifetime_names(&service_type_args);
-    let exposure_set_event_listener_code = events_type.map(|t| {
+    let exposure_set_event_listener_code = events_type.map(|event_type_path| {
         // get non conflicting lifetime name
-
         let mut lt = "__elg".to_owned();
         while lifetimes.contains(&lt) {
             lt = format!("_{}", lt);
         }
         let lifetime_name = format!("'{0}", lt);
-        generate_exposure_set_event_listener(t, Lifetime::new(&lifetime_name, Span::call_site()))
+        generate_exposure_set_event_listener(
+            &sails_path,
+            event_type_path,
+            Lifetime::new(&lifetime_name, Span::call_site()),
+        )
     });
 
-    let exposure_drop_code = events_type.map(|_| generate_exposure_drop());
+    let exposure_name = format!(
+        "{}Exposure",
+        service_ident.to_string().to_case(Case::Pascal)
+    );
+    let exposure_type_path = Path::from(Ident::new(&exposure_name, Span::call_site()));
+
+    let exposure_drop_code =
+        events_type.map(|_| generate_exposure_drop(&sails_path, &exposure_type_path));
 
     let no_events_type = Path::from(Ident::new("NoEvents", Span::call_site()));
     let events_type = events_type.unwrap_or(&no_events_type);
@@ -312,7 +308,7 @@ fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
     quote!(
         #service_impl
 
-        pub struct Exposure<#exposure_generic_args> {
+        pub struct #exposure_type_path<#exposure_generic_args> {
             #message_id_ident : #sails_path::MessageId,
             #route_ident : &'static [u8],
             #[cfg(not(target_arch = "wasm32"))]
@@ -327,7 +323,7 @@ fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
         #exposure_drop_code
 
         #( #exposure_allow_attrs )*
-        impl #generics Exposure< #exposure_args > #service_type_constraints {
+        impl #generics #exposure_type_path< #exposure_args > #service_type_constraints {
             #( #exposure_funcs )*
 
             #( #base_exposure_accessors )*
@@ -349,7 +345,7 @@ fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
             #exposure_set_event_listener_code
         }
 
-        impl #generics #sails_path::gstd::services::Exposure for Exposure< #exposure_args > #service_type_constraints {
+        impl #generics #sails_path::gstd::services::Exposure for #exposure_type_path< #exposure_args > #service_type_constraints {
             fn message_id(&self) -> #sails_path::MessageId {
                 self. #message_id_ident
             }
@@ -360,7 +356,7 @@ fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
         }
 
         impl #generics #sails_path::gstd::services::Service for #service_type_path #service_type_constraints {
-            type Exposure = Exposure< #exposure_args >;
+            type Exposure = #exposure_type_path< #exposure_args >;
 
             fn expose(self, #message_id_ident : #sails_path::MessageId, #route_ident : &'static [u8]) -> Self::Exposure {
                 #[cfg(not(target_arch = "wasm32"))]
@@ -385,15 +381,15 @@ fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
 
         impl #generics #sails_path::meta::ServiceMeta for #service_type_path #service_type_constraints {
             fn commands() -> #scale_info_path ::MetaType {
-                #scale_info_path ::MetaType::new::<meta_in_service::CommandsMeta>()
+                #scale_info_path ::MetaType::new::<#meta_module_ident::CommandsMeta>()
             }
 
             fn queries() -> #scale_info_path ::MetaType {
-                #scale_info_path ::MetaType::new::<meta_in_service::QueriesMeta>()
+                #scale_info_path ::MetaType::new::<#meta_module_ident::QueriesMeta>()
             }
 
             fn events() -> #scale_info_path ::MetaType {
-                #scale_info_path ::MetaType::new::<meta_in_service::EventsMeta>()
+                #scale_info_path ::MetaType::new::<#meta_module_ident::EventsMeta>()
             }
 
             fn base_services() -> impl Iterator<Item = #sails_path::meta::AnyServiceMeta> {
@@ -403,35 +399,30 @@ fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
             }
         }
 
-        #events_listeners_code
-
-        use #sails_path ::Decode as __ServiceDecode;
-        use #sails_path ::Encode as __ServiceEncode;
-        use #sails_path ::TypeInfo as __ServiceTypeInfo;
-
-        #(
-            #[derive(__ServiceDecode, __ServiceTypeInfo)]
-            #[codec(crate = #scale_codec_path )]
-            #[scale_info(crate = #scale_info_path )]
-            #invocation_params_structs
-        )*
-
-        mod meta_in_service {
+        mod #meta_module_ident {
             use super::*;
+            use #sails_path::{Decode, TypeInfo};
 
-            #[derive(__ServiceTypeInfo)]
+            #(
+                #[derive(Decode, TypeInfo)]
+                #[codec(crate = #scale_codec_path )]
+                #[scale_info(crate = #scale_info_path )]
+                #invocation_params_structs
+            )*
+
+            #[derive(TypeInfo)]
             #[scale_info(crate = #scale_info_path)]
             pub enum CommandsMeta {
                 #(#commands_meta_variants),*
             }
 
-            #[derive(__ServiceTypeInfo)]
+            #[derive(TypeInfo)]
             #[scale_info(crate = #scale_info_path)]
             pub enum QueriesMeta {
                 #(#queries_meta_variants),*
             }
 
-            #[derive(__ServiceTypeInfo)]
+            #[derive(TypeInfo)]
             #[scale_info(crate = #scale_info_path )]
             pub enum #no_events_type {}
 
@@ -440,46 +431,13 @@ fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
     )
 }
 
-// Generates function for accessing event listeners map in non-wasm code.
-fn generate_event_listeners(sails_path: &Path) -> TokenStream {
-    quote!(
-        type __EventlistenersMap = #sails_path::collections::BTreeMap<usize, usize>;
-        type __Mutex<T> = #sails_path::spin::Mutex<T>;
-
-        #[cfg(not(target_arch = "wasm32"))]
-        fn event_listeners() -> &'static __Mutex<__EventlistenersMap> {
-            static EVENT_LISTENERS: __Mutex<__EventlistenersMap> =
-                __Mutex::new(__EventlistenersMap::new());
-            &EVENT_LISTENERS
-        }
-
-        #[cfg(not(target_arch = "wasm32"))]
-        pub struct EventListenerGuard<'a> {
-            service_ptr: usize,
-            listener_ptr: usize,
-            _phantom: core::marker::PhantomData<&'a ()>,
-        }
-
-        #[cfg(not(target_arch = "wasm32"))]
-        impl<'a> Drop for EventListenerGuard<'a> {
-            fn drop(&mut self) {
-                let mut event_listeners = event_listeners().lock();
-                let listener_ptr = event_listeners.remove(&self.service_ptr);
-                if listener_ptr != Some(self.listener_ptr) {
-                    panic!("event listener is being removed out of order");
-                }
-            }
-        }
-    )
-}
-
-fn generate_exposure_drop() -> TokenStream {
+fn generate_exposure_drop(sails_path: &Path, exposure_type_path: &Path) -> TokenStream {
     quote!(
         #[cfg(not(target_arch = "wasm32"))]
-        impl<T> Drop for Exposure<T> {
+        impl<T> Drop for #exposure_type_path <T> {
             fn drop(&mut self) {
                 let service_ptr = self.inner_ptr as usize;
-                let mut event_listeners = event_listeners().lock();
+                let mut event_listeners = #sails_path::gstd::events::event_listeners().lock();
                 if event_listeners.remove(&service_ptr).is_some() {
                     panic!("there should be no any event listeners left by this time");
                 }
@@ -488,14 +446,18 @@ fn generate_exposure_drop() -> TokenStream {
     )
 }
 
-fn generate_exposure_set_event_listener(events_type: &Path, lifetime: Lifetime) -> TokenStream {
+fn generate_exposure_set_event_listener(
+    sails_path: &Path,
+    events_type: &Path,
+    lifetime: Lifetime,
+) -> TokenStream {
     quote!(
         #[cfg(not(target_arch = "wasm32"))]
         // Immutable so one can set it via AsRef when used with extending
         pub fn set_event_listener<#lifetime>(
             &self,
             listener: impl FnMut(& #events_type ) + #lifetime,
-        ) -> EventListenerGuard<#lifetime> {
+        ) -> #sails_path::gstd::events::EventListenerGuard<#lifetime> {
             if core::mem::size_of_val(self.inner.as_ref()) == 0 {
                 panic!("setting event listener on a zero-sized service is not supported for now");
             }
@@ -503,16 +465,7 @@ fn generate_exposure_set_event_listener(events_type: &Path, lifetime: Lifetime) 
             let listener: Box<dyn FnMut(& #events_type )> = Box::new(listener);
             let listener = Box::new(listener);
             let listener_ptr = Box::into_raw(listener) as usize;
-            let mut event_listeners = event_listeners().lock();
-            if event_listeners.contains_key(&service_ptr) {
-                panic!("event listener is already set");
-            }
-            event_listeners.insert(service_ptr, listener_ptr);
-            EventListenerGuard {
-                service_ptr,
-                listener_ptr,
-                _phantom: core::marker::PhantomData,
-            }
+            #sails_path::gstd::events::EventListenerGuard::new(service_ptr, listener_ptr)
         }
     )
 }
@@ -597,12 +550,12 @@ impl<'a> HandlerGenerator<'a> {
 
         quote!(
             pub struct #params_struct_ident {
-                #(#params_struct_members),*
+                #(pub(super) #params_struct_members),*
             }
         )
     }
 
-    fn invocation_func(&self) -> TokenStream {
+    fn invocation_func(&self, meta_module_ident: &Ident, sails_path: &Path) -> TokenStream {
         let invocation_func_ident = self.invocation_func_ident();
         let receiver = self.handler.receiver();
         let params_struct_ident = self.params_struct_ident();
@@ -629,9 +582,9 @@ impl<'a> HandlerGenerator<'a> {
         quote!(
             async fn #invocation_func_ident(#receiver, mut input: &[u8]) -> (Vec<u8>, u128)
             {
-                let request = #params_struct_ident::decode(&mut input).expect("Failed to decode request");
+                let request: #meta_module_ident::#params_struct_ident = #sails_path::Decode::decode(&mut input).expect("Failed to decode request");
                 #handle_token
-                return (result.encode(), value);
+                return (#sails_path::Encode::encode(&result), value);
             }
         )
     }

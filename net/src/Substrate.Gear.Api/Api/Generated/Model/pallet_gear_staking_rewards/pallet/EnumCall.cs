@@ -51,18 +51,7 @@ namespace Substrate.Gear.Api.Generated.Model.pallet_gear_staking_rewards.pallet
     /// >> 266 - Variant[pallet_gear_staking_rewards.pallet.Call]
     /// Contains a variant per dispatchable extrinsic that this pallet has.
     /// </summary>
-    public sealed class EnumCall : BaseEnumRust<Call>
+    public sealed class EnumCall : BaseEnumExt<Call, Substrate.NetApi.Model.Types.Primitive.U128, BaseTuple<Substrate.Gear.Api.Generated.Model.sp_runtime.multiaddress.EnumMultiAddress, Substrate.NetApi.Model.Types.Primitive.U128>, BaseTuple<Substrate.Gear.Api.Generated.Model.sp_runtime.multiaddress.EnumMultiAddress, Substrate.NetApi.Model.Types.Primitive.U128>, Substrate.NetApi.Model.Types.Primitive.U128>
     {
-        
-        /// <summary>
-        /// Initializes a new instance of the class.
-        /// </summary>
-        public EnumCall()
-        {
-				AddTypeDecoder<Substrate.NetApi.Model.Types.Primitive.U128>(Call.refill);
-				AddTypeDecoder<BaseTuple<Substrate.Gear.Api.Generated.Model.sp_runtime.multiaddress.EnumMultiAddress, Substrate.NetApi.Model.Types.Primitive.U128>>(Call.force_refill);
-				AddTypeDecoder<BaseTuple<Substrate.Gear.Api.Generated.Model.sp_runtime.multiaddress.EnumMultiAddress, Substrate.NetApi.Model.Types.Primitive.U128>>(Call.withdraw);
-				AddTypeDecoder<Substrate.NetApi.Model.Types.Primitive.U128>(Call.align_supply);
-        }
     }
 }

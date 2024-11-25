@@ -40,17 +40,7 @@ namespace Substrate.Gear.Api.Generated.Model.frame_support.traits.preimages
     /// <summary>
     /// >> 64 - Variant[frame_support.traits.preimages.Bounded]
     /// </summary>
-    public sealed class EnumBounded : BaseEnumRust<Bounded>
+    public sealed class EnumBounded : BaseEnumExt<Bounded, Substrate.Gear.Api.Generated.Model.primitive_types.H256, Substrate.Gear.Api.Generated.Model.bounded_collections.bounded_vec.BoundedVecT2, BaseTuple<Substrate.Gear.Api.Generated.Model.primitive_types.H256, Substrate.NetApi.Model.Types.Primitive.U32>>
     {
-        
-        /// <summary>
-        /// Initializes a new instance of the class.
-        /// </summary>
-        public EnumBounded()
-        {
-				AddTypeDecoder<Substrate.Gear.Api.Generated.Model.primitive_types.H256>(Bounded.Legacy);
-				AddTypeDecoder<Substrate.Gear.Api.Generated.Model.bounded_collections.bounded_vec.BoundedVecT2>(Bounded.Inline);
-				AddTypeDecoder<BaseTuple<Substrate.Gear.Api.Generated.Model.primitive_types.H256, Substrate.NetApi.Model.Types.Primitive.U32>>(Bounded.Lookup);
-        }
     }
 }

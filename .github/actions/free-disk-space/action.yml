@@ -1,0 +1,22 @@
+name: Free Disk Space
+description: Preconfigured action to free up disk space on GitHub Actions runners
+# Inputs might be added in the future, but for now, the defaults should be sufficient
+
+runs:
+  using: composite
+
+  steps:
+    - name: Free Disk Space
+      uses: jlumbroso/free-disk-space@main
+      with:
+        # this might remove tools that are actually needed,
+        # if set to "true" but frees about 6 GB
+        tool-cache: false
+        # all of these default to true, but feel free to set to
+        # "false" if necessary for your workflow
+        android: true
+        dotnet: false
+        haskell: true
+        large-packages: false
+        docker-images: true
+        swap-storage: true

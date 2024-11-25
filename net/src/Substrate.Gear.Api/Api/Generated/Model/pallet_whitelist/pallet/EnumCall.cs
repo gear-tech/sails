@@ -51,18 +51,7 @@ namespace Substrate.Gear.Api.Generated.Model.pallet_whitelist.pallet
     /// >> 134 - Variant[pallet_whitelist.pallet.Call]
     /// Contains a variant per dispatchable extrinsic that this pallet has.
     /// </summary>
-    public sealed class EnumCall : BaseEnumRust<Call>
+    public sealed class EnumCall : BaseEnumExt<Call, Substrate.Gear.Api.Generated.Model.primitive_types.H256, Substrate.Gear.Api.Generated.Model.primitive_types.H256, BaseTuple<Substrate.Gear.Api.Generated.Model.primitive_types.H256, Substrate.NetApi.Model.Types.Primitive.U32, Substrate.Gear.Api.Generated.Model.sp_weights.weight_v2.Weight>, Substrate.Gear.Api.Generated.Model.vara_runtime.EnumRuntimeCall>
     {
-        
-        /// <summary>
-        /// Initializes a new instance of the class.
-        /// </summary>
-        public EnumCall()
-        {
-				AddTypeDecoder<Substrate.Gear.Api.Generated.Model.primitive_types.H256>(Call.whitelist_call);
-				AddTypeDecoder<Substrate.Gear.Api.Generated.Model.primitive_types.H256>(Call.remove_whitelisted_call);
-				AddTypeDecoder<BaseTuple<Substrate.Gear.Api.Generated.Model.primitive_types.H256, Substrate.NetApi.Model.Types.Primitive.U32, Substrate.Gear.Api.Generated.Model.sp_weights.weight_v2.Weight>>(Call.dispatch_whitelisted_call);
-				AddTypeDecoder<Substrate.Gear.Api.Generated.Model.vara_runtime.EnumRuntimeCall>(Call.dispatch_whitelisted_call_with_preimage);
-        }
     }
 }

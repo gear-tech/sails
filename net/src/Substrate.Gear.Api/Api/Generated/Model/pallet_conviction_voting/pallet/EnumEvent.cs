@@ -39,16 +39,7 @@ namespace Substrate.Gear.Api.Generated.Model.pallet_conviction_voting.pallet
     /// >> 61 - Variant[pallet_conviction_voting.pallet.Event]
     /// The `Event` enum of this pallet
     /// </summary>
-    public sealed class EnumEvent : BaseEnumRust<Event>
+    public sealed class EnumEvent : BaseEnumExt<Event, BaseTuple<Substrate.Gear.Api.Generated.Model.sp_core.crypto.AccountId32, Substrate.Gear.Api.Generated.Model.sp_core.crypto.AccountId32>, Substrate.Gear.Api.Generated.Model.sp_core.crypto.AccountId32>
     {
-        
-        /// <summary>
-        /// Initializes a new instance of the class.
-        /// </summary>
-        public EnumEvent()
-        {
-				AddTypeDecoder<BaseTuple<Substrate.Gear.Api.Generated.Model.sp_core.crypto.AccountId32, Substrate.Gear.Api.Generated.Model.sp_core.crypto.AccountId32>>(Event.Delegated);
-				AddTypeDecoder<Substrate.Gear.Api.Generated.Model.sp_core.crypto.AccountId32>(Event.Undelegated);
-        }
     }
 }

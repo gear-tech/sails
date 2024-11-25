@@ -1,0 +1,38 @@
+---
+source: client-gen/tests/generator.rs
+expression: "gen(idl, \"Multiple\")"
+---
+using global::Sails.Remoting;
+using global::Sails.Remoting.Abstractions;
+using global::Sails.Remoting.Abstractions.Core;
+
+#pragma warning disable RCS0056 // A line is too long
+
+namespace Multiple.Client;
+
+public interface IMultiple
+ { ICall<global::Substrate.NetApi.Model.Types.Primitive.U16> DoThis(global::Substrate.NetApi.Model.Types.Primitive.U32 p1, MyParam p2);
+ICall<global::Substrate.NetApi.Model.Types.Primitive.U8> DoThat(global::Substrate.NetApi.Model.Types.Base.BaseTuple<global::Substrate.NetApi.Model.Types.Primitive.U8, global::Substrate.NetApi.Model.Types.Primitive.U32> p1);
+ }
+
+ public sealed partial class Multiple : IMultiple
+ { private readonly IRemoting remoting;
+
+ public Multiple(IRemoting remoting) { this.remoting = remoting; }
+
+/// <inheritdoc/>
+ public ICall<global::Substrate.NetApi.Model.Types.Primitive.U16> DoThis(global::Substrate.NetApi.Model.Types.Primitive.U32 p1, MyParam p2) { return new RemotingAction<global::Substrate.NetApi.Model.Types.Primitive.U16>( this.remoting, [32, 77, 117, 108, 116, 105, 112, 108, 101, 24, 68, 111, 84, 104, 105, 115], new global::Substrate.NetApi.Model.Types.Base.BaseTupleRust(p1, p2) ); }
+/// <inheritdoc/>
+ public ICall<global::Substrate.NetApi.Model.Types.Primitive.U8> DoThat(global::Substrate.NetApi.Model.Types.Base.BaseTuple<global::Substrate.NetApi.Model.Types.Primitive.U8, global::Substrate.NetApi.Model.Types.Primitive.U32> p1) { return new RemotingAction<global::Substrate.NetApi.Model.Types.Primitive.U8>( this.remoting, [32, 77, 117, 108, 116, 105, 112, 108, 101, 24, 68, 111, 84, 104, 97, 116], new global::Substrate.NetApi.Model.Types.Base.BaseTupleRust(p1) ); } }
+
+public interface INamed
+ { IQuery<global::Substrate.NetApi.Model.Types.Primitive.Str> That(global::Substrate.NetApi.Model.Types.Primitive.U32 p1);
+ }
+
+ public sealed partial class Named : INamed
+ { private readonly IRemoting remoting;
+
+ public Named(IRemoting remoting) { this.remoting = remoting; }
+
+/// <inheritdoc/>
+ public IQuery<global::Substrate.NetApi.Model.Types.Primitive.Str> That(global::Substrate.NetApi.Model.Types.Primitive.U32 p1) { return new RemotingAction<global::Substrate.NetApi.Model.Types.Primitive.Str>( this.remoting, [20, 78, 97, 109, 101, 100, 16, 84, 104, 97, 116], new global::Substrate.NetApi.Model.Types.Base.BaseTupleRust(p1) ); } }

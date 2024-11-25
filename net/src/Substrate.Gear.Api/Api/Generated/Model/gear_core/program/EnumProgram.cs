@@ -40,17 +40,7 @@ namespace Substrate.Gear.Api.Generated.Model.gear_core.program
     /// <summary>
     /// >> 570 - Variant[gear_core.program.Program]
     /// </summary>
-    public sealed class EnumProgram : BaseEnumRust<Program>
+    public sealed class EnumProgram : BaseEnumExt<Program, Substrate.Gear.Api.Generated.Model.gear_core.program.ActiveProgram, Substrate.Gear.Api.Generated.Model.gprimitives.ActorId, Substrate.Gear.Api.Generated.Model.gprimitives.ActorId>
     {
-        
-        /// <summary>
-        /// Initializes a new instance of the class.
-        /// </summary>
-        public EnumProgram()
-        {
-				AddTypeDecoder<Substrate.Gear.Api.Generated.Model.gear_core.program.ActiveProgram>(Program.Active);
-				AddTypeDecoder<Substrate.Gear.Api.Generated.Model.gprimitives.ActorId>(Program.Exited);
-				AddTypeDecoder<Substrate.Gear.Api.Generated.Model.gprimitives.ActorId>(Program.Terminated);
-        }
     }
 }

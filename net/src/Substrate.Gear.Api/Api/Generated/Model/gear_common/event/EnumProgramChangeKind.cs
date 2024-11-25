@@ -55,20 +55,7 @@ namespace Substrate.Gear.Api.Generated.Model.gear_common.@event
     /// <summary>
     /// >> 332 - Variant[gear_common.@event.ProgramChangeKind]
     /// </summary>
-    public sealed class EnumProgramChangeKind : BaseEnumRust<ProgramChangeKind>
+    public sealed class EnumProgramChangeKind : BaseEnumExt<ProgramChangeKind, Substrate.NetApi.Model.Types.Primitive.U32, BaseVoid, BaseVoid, BaseVoid, Substrate.NetApi.Model.Types.Primitive.U32, Substrate.NetApi.Model.Types.Primitive.U32>
     {
-        
-        /// <summary>
-        /// Initializes a new instance of the class.
-        /// </summary>
-        public EnumProgramChangeKind()
-        {
-				AddTypeDecoder<Substrate.NetApi.Model.Types.Primitive.U32>(ProgramChangeKind.Active);
-				AddTypeDecoder<BaseVoid>(ProgramChangeKind.Inactive);
-				AddTypeDecoder<BaseVoid>(ProgramChangeKind.Paused);
-				AddTypeDecoder<BaseVoid>(ProgramChangeKind.Terminated);
-				AddTypeDecoder<Substrate.NetApi.Model.Types.Primitive.U32>(ProgramChangeKind.ExpirationChanged);
-				AddTypeDecoder<Substrate.NetApi.Model.Types.Primitive.U32>(ProgramChangeKind.ProgramSet);
-        }
     }
 }

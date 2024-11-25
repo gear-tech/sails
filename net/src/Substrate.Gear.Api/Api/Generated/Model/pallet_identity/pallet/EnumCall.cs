@@ -117,29 +117,7 @@ namespace Substrate.Gear.Api.Generated.Model.pallet_identity.pallet
     /// >> 140 - Variant[pallet_identity.pallet.Call]
     /// Identity pallet declaration.
     /// </summary>
-    public sealed class EnumCall : BaseEnumRust<Call>
+    public sealed class EnumCall : BaseEnumExt<Call, Substrate.Gear.Api.Generated.Model.sp_runtime.multiaddress.EnumMultiAddress, Substrate.Gear.Api.Generated.Model.pallet_identity.legacy.IdentityInfo, Substrate.NetApi.Model.Types.Base.BaseVec<Substrate.NetApi.Model.Types.Base.BaseTuple<Substrate.Gear.Api.Generated.Model.sp_core.crypto.AccountId32, Substrate.Gear.Api.Generated.Model.pallet_identity.types.EnumData>>, BaseVoid, BaseTuple<Substrate.NetApi.Model.Types.Base.BaseCom<Substrate.NetApi.Model.Types.Primitive.U32>, Substrate.NetApi.Model.Types.Base.BaseCom<Substrate.NetApi.Model.Types.Primitive.U128>>, Substrate.NetApi.Model.Types.Primitive.U32, BaseTuple<Substrate.NetApi.Model.Types.Base.BaseCom<Substrate.NetApi.Model.Types.Primitive.U32>, Substrate.NetApi.Model.Types.Base.BaseCom<Substrate.NetApi.Model.Types.Primitive.U128>>, BaseTuple<Substrate.NetApi.Model.Types.Base.BaseCom<Substrate.NetApi.Model.Types.Primitive.U32>, Substrate.Gear.Api.Generated.Model.sp_runtime.multiaddress.EnumMultiAddress>, BaseTuple<Substrate.NetApi.Model.Types.Base.BaseCom<Substrate.NetApi.Model.Types.Primitive.U32>, Substrate.NetApi.Model.Types.Primitive.U64>, BaseTuple<Substrate.NetApi.Model.Types.Base.BaseCom<Substrate.NetApi.Model.Types.Primitive.U32>, Substrate.Gear.Api.Generated.Model.sp_runtime.multiaddress.EnumMultiAddress, Substrate.Gear.Api.Generated.Model.pallet_identity.types.EnumJudgement, Substrate.Gear.Api.Generated.Model.primitive_types.H256>, Substrate.Gear.Api.Generated.Model.sp_runtime.multiaddress.EnumMultiAddress, BaseTuple<Substrate.Gear.Api.Generated.Model.sp_runtime.multiaddress.EnumMultiAddress, Substrate.Gear.Api.Generated.Model.pallet_identity.types.EnumData>, BaseTuple<Substrate.Gear.Api.Generated.Model.sp_runtime.multiaddress.EnumMultiAddress, Substrate.Gear.Api.Generated.Model.pallet_identity.types.EnumData>, Substrate.Gear.Api.Generated.Model.sp_runtime.multiaddress.EnumMultiAddress, BaseVoid>
     {
-        
-        /// <summary>
-        /// Initializes a new instance of the class.
-        /// </summary>
-        public EnumCall()
-        {
-				AddTypeDecoder<Substrate.Gear.Api.Generated.Model.sp_runtime.multiaddress.EnumMultiAddress>(Call.add_registrar);
-				AddTypeDecoder<Substrate.Gear.Api.Generated.Model.pallet_identity.legacy.IdentityInfo>(Call.set_identity);
-				AddTypeDecoder<Substrate.NetApi.Model.Types.Base.BaseVec<Substrate.NetApi.Model.Types.Base.BaseTuple<Substrate.Gear.Api.Generated.Model.sp_core.crypto.AccountId32, Substrate.Gear.Api.Generated.Model.pallet_identity.types.EnumData>>>(Call.set_subs);
-				AddTypeDecoder<BaseVoid>(Call.clear_identity);
-				AddTypeDecoder<BaseTuple<Substrate.NetApi.Model.Types.Base.BaseCom<Substrate.NetApi.Model.Types.Primitive.U32>, Substrate.NetApi.Model.Types.Base.BaseCom<Substrate.NetApi.Model.Types.Primitive.U128>>>(Call.request_judgement);
-				AddTypeDecoder<Substrate.NetApi.Model.Types.Primitive.U32>(Call.cancel_request);
-				AddTypeDecoder<BaseTuple<Substrate.NetApi.Model.Types.Base.BaseCom<Substrate.NetApi.Model.Types.Primitive.U32>, Substrate.NetApi.Model.Types.Base.BaseCom<Substrate.NetApi.Model.Types.Primitive.U128>>>(Call.set_fee);
-				AddTypeDecoder<BaseTuple<Substrate.NetApi.Model.Types.Base.BaseCom<Substrate.NetApi.Model.Types.Primitive.U32>, Substrate.Gear.Api.Generated.Model.sp_runtime.multiaddress.EnumMultiAddress>>(Call.set_account_id);
-				AddTypeDecoder<BaseTuple<Substrate.NetApi.Model.Types.Base.BaseCom<Substrate.NetApi.Model.Types.Primitive.U32>, Substrate.NetApi.Model.Types.Primitive.U64>>(Call.set_fields);
-				AddTypeDecoder<BaseTuple<Substrate.NetApi.Model.Types.Base.BaseCom<Substrate.NetApi.Model.Types.Primitive.U32>, Substrate.Gear.Api.Generated.Model.sp_runtime.multiaddress.EnumMultiAddress, Substrate.Gear.Api.Generated.Model.pallet_identity.types.EnumJudgement, Substrate.Gear.Api.Generated.Model.primitive_types.H256>>(Call.provide_judgement);
-				AddTypeDecoder<Substrate.Gear.Api.Generated.Model.sp_runtime.multiaddress.EnumMultiAddress>(Call.kill_identity);
-				AddTypeDecoder<BaseTuple<Substrate.Gear.Api.Generated.Model.sp_runtime.multiaddress.EnumMultiAddress, Substrate.Gear.Api.Generated.Model.pallet_identity.types.EnumData>>(Call.add_sub);
-				AddTypeDecoder<BaseTuple<Substrate.Gear.Api.Generated.Model.sp_runtime.multiaddress.EnumMultiAddress, Substrate.Gear.Api.Generated.Model.pallet_identity.types.EnumData>>(Call.rename_sub);
-				AddTypeDecoder<Substrate.Gear.Api.Generated.Model.sp_runtime.multiaddress.EnumMultiAddress>(Call.remove_sub);
-				AddTypeDecoder<BaseVoid>(Call.quit_sub);
-        }
     }
 }

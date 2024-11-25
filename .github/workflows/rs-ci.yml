@@ -1,0 +1,64 @@
+name: '[rs] CI'
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - '.cargo/**'
+      - '.github/workflows/rs-*.yml' # No biggie to trigger this on changes in rs-release.yml
+      - 'examples/**'
+      - 'rs/**'
+      - 'templates/**'
+      - 'Cargo.lock'
+      - 'Cargo.toml'
+      - 'rust-toolchain.toml'
+  pull_request:
+    paths:
+      - '.cargo/**'
+      - '.github/workflows/rs-*.yml' # No biggie to trigger this on changes in rs-release.yml
+      - 'examples/**'
+      - 'rs/**'
+      - 'templates/**'
+      - 'Cargo.lock'
+      - 'Cargo.toml'
+      - 'rust-toolchain.toml'
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  check:
+    name: Check Code
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Free Disk Space
+        uses: ./.github/actions/free-disk-space
+
+      - name: Install wasm-opt
+        uses: ./.github/actions/install-wasm-utils
+
+      - name: Check Code Formatting
+        run: |
+          __GEAR_WASM_BUILDER_NO_FEATURES_TRACKING=1 cargo fmt --all --check
+
+      - name: Check Code With Clippy
+        run: |
+          __GEAR_WASM_BUILDER_NO_FEATURES_TRACKING=1 cargo clippy --workspace --all-targets --locked -- -D warnings
+
+      - name: Check IDL Parser For WASM With Clippy
+        run: |
+          __GEAR_WASM_BUILDER_NO_FEATURES_TRACKING=1 cargo clippy -p sails-idl-parser --all-targets --locked --target=wasm32-unknown-unknown -- -D warnings
+
+  test:
+    name: Run Workflow Tests
+    uses: ./.github/workflows/rs-run-ws-tests.yml
+    with:
+      gear_node_version: 1.6.0
+
+  test-cli:
+    name: Run CLI Tests
+    uses: ./.github/workflows/rs-run-cli-tests.yml

@@ -2,10 +2,17 @@
 
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
+    <Nullable>disable</Nullable>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Substrate.NET.API" Version="0.9.24-rc6" />
+    <PackageReference Include="Substrate.NET.API" />
+    <!-- Due to Vulnarabilties -->
+    <PackageReference Include="Microsoft.Bcl.AsyncInterfaces" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Remove="Roslynator.Formatting.Analyzers" />
   </ItemGroup>
 
 </Project>
