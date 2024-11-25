@@ -1,42 +1,50 @@
-import { writeFileSync, readFileSync, existsSync, rmSync } from 'fs';
-import { execSync } from 'child_process';
+import { writeFileSync, rmSync, readFileSync } from 'fs';
 import commonjs from '@rollup/plugin-commonjs';
 import typescript from 'rollup-plugin-typescript2';
+import config from '../config.json' assert { type: 'json' };
 
-function checkParserFile() {
-  return {
-    name: 'check-parser-file',
-    buildStart() {
-      if (!existsSync('./parser.wasm')) {
-        throw new Error('parser.wasm file not found');
-      }
-    },
-  };
+async function getStreamFromRelease(version, cs) {
+  const link = `https://github.com/gear-tech/sails/releases/download/rs%2Fv${version}/sails_idl_parser.wasm`;
+  const res = await fetch(link);
+
+  if (!res.ok) {
+    throw new Error(`Failed to fetch parser from ${link}`);
+  }
+
+  return res.body.pipeThrough(cs);
 }
 
-function compressParser(type) {
+async function getStreamFromFile(cs) {
+  const file = readFileSync('./parser.wasm');
+  return new Response(file).body.pipeThrough(cs);
+}
+
+async function getBase64Parser(version) {
+  const cs = new CompressionStream('gzip');
+
+  const compressedReadableStream =
+    process.env.BUILD_MODE.toLowerCase() === 'release' ? getStreamFromRelease(version, cs) : getStreamFromFile(cs);
+
+  const reader = compressedReadableStream.getReader();
+
+  let resultArr = [];
+
+  while (true) {
+    const read = await reader.read();
+
+    if (read.done) break;
+
+    resultArr = resultArr.concat(Array.from(read.value));
+  }
+
+  return Buffer.from(Uint8Array.from(resultArr).buffer).toString('base64');
+}
+
+function writeCompressedWasmParser(type) {
   return {
-    name: 'compress-parser',
+    name: 'write-wasm-parser',
     async closeBundle() {
-      const buf = readFileSync('./parser.wasm');
-
-      const cs = new CompressionStream('gzip');
-
-      const compressedReadableStream = new Response(buf).body.pipeThrough(cs);
-
-      const reader = compressedReadableStream.getReader();
-
-      let resultArr = [];
-
-      while (true) {
-        const read = await reader.read();
-
-        if (read.done) break;
-
-        resultArr = resultArr.concat(Array.from(read.value));
-      }
-
-      const base64Bytes = Buffer.from(Uint8Array.from(resultArr).buffer).toString('base64');
+      const base64Bytes = await getBase64Parser(config['sails-rs']);
 
       if (type === 'cjs') {
         writeFileSync(
@@ -71,12 +79,11 @@ export default [
       },
     ],
     plugins: [
-      checkParserFile(),
       cleanOldBuild(),
       typescript({
         tsconfig: 'tsconfig.build.json',
       }),
-      compressParser('es'),
+      writeCompressedWasmParser('es'),
     ],
   },
   {
@@ -96,7 +103,7 @@ export default [
         tsconfig: 'tsconfig.cjs.json',
       }),
       commonjs(),
-      compressParser('cjs'),
+      writeCompressedWasmParser('cjs'),
     ],
   },
 ];

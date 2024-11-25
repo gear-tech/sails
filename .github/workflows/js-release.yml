@@ -1,3 +1,5 @@
+name: '[js] Release'
+
 on:
   push:
     branches:
@@ -5,7 +7,8 @@ on:
     paths:
       - package.json
 
-name: JS release
+env:
+  BUILD_MODE: release
 
 jobs:
   release:
@@ -24,7 +27,7 @@ jobs:
         run: |
           VERSION=$(jq -r '.version' package.json)
           echo "VERSION=$VERSION" >> $GITHUB_ENV
-          echo "TAG_NAME=js/$VERSION" >> $GITHUB_ENV
+          echo "TAG_NAME=Sails-JS/v$VERSION" >> $GITHUB_ENV
 
       - name: 'Get previous version from npm registry'
         run: |

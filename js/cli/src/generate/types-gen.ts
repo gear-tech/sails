@@ -14,7 +14,7 @@ export class TypesGenerator extends BaseGenerator {
   }
 
   public generate() {
-    this._out.line('declare global {').increaseIndent();
+    this._out.line('declare global {', false).increaseIndent();
     for (const { name, def, docs } of this._program.types) {
       this._out.lines(formatDocs(docs), false);
 
