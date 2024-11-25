@@ -3,4 +3,4 @@
     "Sails.Tests.Shared")]
 
 [assembly: AssemblyFixture(
-    typeof(Sails.Tests.Shared.XUnit.Fixtures.SailsFixture))]
+    typeof(Sails.Remoting.Tests._Infra.XUnit.Fixtures.SailsFixture))]

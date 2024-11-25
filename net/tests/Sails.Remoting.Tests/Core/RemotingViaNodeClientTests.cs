@@ -1,4 +1,4 @@
-﻿using Sails.Tests.Shared.XUnit.Fixtures;
+﻿using Sails.Remoting.Tests._Infra.XUnit.Fixtures;
 using Substrate.Gear.Client.GearApi.Model.gprimitives;
 using Substrate.NetApi.Model.Types.Primitive;
 

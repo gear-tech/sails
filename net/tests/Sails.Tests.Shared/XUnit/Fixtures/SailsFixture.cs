@@ -23,15 +23,17 @@ namespace Sails.Tests.Shared.XUnit.Fixtures;
 
 public partial class SailsFixture : IAsyncLifetime
 {
-    public SailsFixture()
-        : this(sailsRsVersion: "0.6.3")
+    public SailsFixture(string consumerName)
+        : this(consumerName, sailsRsVersion: "0.6.3")
     {
     }
 
-    public SailsFixture(string sailsRsVersion)
+    public SailsFixture(string consumerName, string sailsRsVersion)
     {
+        EnsureArg.IsNotNullOrWhiteSpace(consumerName, nameof(consumerName));
         EnsureArg.IsNotNullOrWhiteSpace(sailsRsVersion, nameof(sailsRsVersion));
 
+        this.consumerName = consumerName;
         this.sailsRsReleaseTag = $"rs/v{sailsRsVersion}";
         this.demoContractIdl = new AsyncLazy<string>(
             () => this.DownloadStringAssetAsync("demo.idl"),
@@ -74,6 +76,7 @@ public partial class SailsFixture : IAsyncLifetime
             10,
             retry => retry * TimeSpan.FromSeconds(1));
 
+    private readonly string consumerName;
     private readonly string sailsRsReleaseTag;
     private readonly AsyncLazy<string> demoContractIdl;
     private readonly AsyncLazy<MemoryStream> demoContractWasm;
@@ -137,7 +140,7 @@ public partial class SailsFixture : IAsyncLifetime
         var gearNodeVersion = matchResult.Groups[1].Value;
 
         // The `reuse` parameter can be made configurable if needed
-        this.gearNodeContainer = new GearNodeContainer(gearNodeVersion, reuse: true);
+        this.gearNodeContainer = new GearNodeContainer(this.consumerName, gearNodeVersion, reuse: true);
         await this.gearNodeContainer.StartAsync().ConfigureAwait(false);
     }
 

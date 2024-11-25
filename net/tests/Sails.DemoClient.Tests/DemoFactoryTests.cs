@@ -1,7 +1,4 @@
-using System.Threading.Tasks;
-using Sails.Tests.Shared.XUnit;
-using Sails.Tests.Shared.XUnit.Fixtures;
-using Xunit;
+using Sails.DemoClient.Tests._Infra.XUnit.Fixtures;
 
 namespace Sails.DemoClient.Tests;
 
