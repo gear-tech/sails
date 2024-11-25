@@ -33,7 +33,10 @@ macro_rules! client_base {
 
 macro_rules! client_primitive {
     ($t: expr) => {
-        concat!("global::Substrate.Gear.Client.NetApi.Model.Types.Primitive.", $t)
+        concat!(
+            "global::Substrate.Gear.Client.NetApi.Model.Types.Primitive.",
+            $t
+        )
     };
 }
 
@@ -142,7 +145,6 @@ impl<'a> StructDefGenerator<'a> {
         }
         let value_type = self.type_generator.generate_struct_def(struct_def);
         quote_in! { self.props_tokens =>
-            [System.Diagnostics.CodeAnalysis.AllowNull]$['\r']
             public $(&value_type) Value { get; set; }$['\r']
         };
         quote_in! { self.encode_tokens =>
@@ -183,7 +185,6 @@ impl<'a> Visitor<'a> for StructDefGenerator<'a> {
         if let Some(field_name) = struct_field.name() {
             let field_name_pascal = field_name.to_case(Case::Pascal);
             quote_in! { self.props_tokens =>
-                [System.Diagnostics.CodeAnalysis.AllowNull]$['\r']
                 public $(&type_decl_code) $(&field_name_pascal) { get; set; }$['\r']
             };
             quote_in! { self.encode_tokens =>
@@ -272,18 +273,6 @@ impl<'a> TypeDeclGenerator<'a> {
 
     pub(crate) fn generate_struct_def(&mut self, struct_def: &'a StructDef) -> String {
         visitor::accept_struct_def(struct_def, self);
-        std::mem::take(&mut self.code)
-    }
-
-    pub(crate) fn generate_types_as_tuple(&mut self, type_decls: Vec<&'a TypeDecl>) -> String {
-        if type_decls.is_empty() {
-        } else if type_decls.len() == 1 {
-            visitor::accept_type_decl(type_decls[0], self);
-        } else {
-            self.code.push_str(base!("BaseTuple<"));
-            self.join_type_decls(type_decls, ", ");
-            self.code.push('>');
-        }
         std::mem::take(&mut self.code)
     }
 
