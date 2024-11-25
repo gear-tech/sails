@@ -34,7 +34,7 @@ jobs:
         run: yarn install
 
       - name: 'Prepare: build parser'
-        run: node ./js/scripts/build-parser.js
+        run: ./js/scripts/build-parser.sh
 
       - name: 'Prepare: build all'
         run: yarn build
