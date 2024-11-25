@@ -39,7 +39,7 @@ public sealed class GearNodeContainer : IAsyncDisposable
     }
 
     private const ushort RpcPort = 9944;
-    private static readonly TimeSpan NodeInitializationTimeout = TimeSpan.FromSeconds(10);
+    private static readonly TimeSpan NodeInitializationTimeout = TimeSpan.FromSeconds(30);
 
     private readonly NodeInitializationDetector nodeInitializationDetector;
     private readonly IContainer container;
