@@ -57,8 +57,8 @@ public sealed class GearNodeContainer : IAsyncDisposable
 
     public async Task StartAsync()
     {
-        await this.container.StartAsync();
-        await this.nodeInitializationDetector.IsInitializedAsync(NodeInitializationTimeout);
+        await this.container.StartAsync().ConfigureAwait(false);
+        await this.nodeInitializationDetector.IsInitializedAsync(NodeInitializationTimeout).ConfigureAwait(false);
     }
 
     private sealed class NodeInitializationDetector : IOutputConsumer
@@ -81,12 +81,12 @@ public sealed class GearNodeContainer : IAsyncDisposable
         public async Task IsInitializedAsync(TimeSpan maxWaitTime)
         {
             var timeoutTask = Task.Delay(maxWaitTime);
-            var completedTask = await Task.WhenAny(this.isNodeInitialized.Task, timeoutTask);
+            var completedTask = await Task.WhenAny(this.isNodeInitialized.Task, timeoutTask).ConfigureAwait(false);
             if (completedTask == timeoutTask)
             {
                 this.isNodeInitialized.SetException(
                     new TimeoutException($"Node initialization timed out after {maxWaitTime}."));
-                await this.isNodeInitialized.Task;
+                await this.isNodeInitialized.Task.ConfigureAwait(false);
             }
         }
 
