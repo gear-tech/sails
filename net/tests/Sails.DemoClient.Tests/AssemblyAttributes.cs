@@ -4,3 +4,5 @@
 
 [assembly: AssemblyFixture(
     typeof(Sails.DemoClient.Tests._Infra.XUnit.Fixtures.SailsFixture))]
+
+[assembly: CollectionBehavior(DisableTestParallelization = true)]
