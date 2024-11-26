@@ -53,6 +53,12 @@ jobs:
           echo "EOF" >> $GITHUB_ENV
           rm release_notes.txt
 
+      - name: 'Prepare: install dependencies and build pkgs'
+        if: env.skip != 'true'
+        run: |
+          yarn install
+          yarn build
+
       - name: 'Create new tag'
         if: env.skip != 'true'
         run: |
@@ -66,13 +72,7 @@ jobs:
           body: ${{ env.RELEASE_NOTES }}
           tag_name: ${{ env.TAG_NAME }}
 
-      - name: 'Prepare: install dependencies and build pkgs'
-        if: env.skip != 'true'
-        run: |
-          yarn install
-          yarn build
-
-      - name: Publish
+      - name: 'Publish to npm registry'
         if: env.skip != 'true'
         run: |
           export token=$(printenv npm_token)
