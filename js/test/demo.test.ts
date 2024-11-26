@@ -6,7 +6,7 @@ import { hexToU8a } from '@polkadot/util';
 import { readFileSync } from 'fs';
 
 import { getFnNamePrefix, getServiceNamePrefix, H256, NonZeroU32, NonZeroU8, Sails, ZERO_ADDRESS } from '..';
-import { Program } from './demo/lib';
+import { Program } from './demo/src/lib';
 import { SailsIdlParser } from 'sails-js-parser';
 
 let sails: Sails;
