@@ -5,12 +5,13 @@ using Substrate.NetApi.Model.Types;
 
 namespace Sails.Remoting.Abstractions;
 
-public interface IRemotingListener<T> where T : IType, new()
+public interface IRemotingListener<T>
+    where T : IType, new()
 {
     /// <summary>
     /// Listen to Service events
     /// </summary>
     /// <param name="cancellationToken"></param>
     /// <returns></returns>
-    IAsyncEnumerable<(ActorId, T)> ListenAsync(CancellationToken cancellationToken);
+    IAsyncEnumerable<(ActorId Source, T Event)> ListenAsync(CancellationToken cancellationToken);
 }

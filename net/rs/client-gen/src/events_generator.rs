@@ -10,7 +10,7 @@ pub(crate) struct EventsGenerator<'a> {
     type_generator: TypeDeclGenerator<'a>,
     enum_tokens: Tokens,
     class_tokens: Tokens,
-    listener_tokens: Tokens,
+    event_routes_tokens: Tokens,
 }
 
 impl<'a> EventsGenerator<'a> {
@@ -20,24 +20,25 @@ impl<'a> EventsGenerator<'a> {
             type_generator,
             enum_tokens: Tokens::new(),
             class_tokens: Tokens::new(),
-            listener_tokens: Tokens::new(),
+            event_routes_tokens: Tokens::new(),
         }
     }
 
     pub(crate) fn finalize(self) -> Tokens {
-        let name = &self.service_name.to_case(Case::Pascal);
+        let name = self.service_name;
         let enum_name = &format!("{}Events", name);
         let class_name = &format!("Enum{}Events", name);
         let listener_name = &format!("{}Listener", name);
 
-        let system_buffer = &csharp::import("global::System", "Buffer");
         let core_listener = &csharp::import(
             "global::Sails.Remoting.Abstractions.Core",
             "IRemotingListener",
         );
         let service_listener =
             &csharp::import("global::Sails.Remoting.Abstractions", "IRemotingListener");
-        let actor_id_type = primitive_type_to_dotnet(PrimitiveType::ActorId);
+        let client_listener = &csharp::import("global::Sails.Remoting", "RemotingListener");
+        let task = &csharp::import("global::System.Threading.Tasks", "Task");
+        let cancellation_token = &csharp::import("global::System.Threading", "CancellationToken");
 
         quote! {
             public enum $enum_name
@@ -53,46 +54,20 @@ impl<'a> EventsGenerator<'a> {
                 }
             }
             $['\n']
-            public sealed partial class $listener_name : $service_listener<$class_name>
+            public static class $listener_name
             {
-                private static readonly byte[][] EventRoutes =
+                $['\n']
+                private const string ROUTE = $(quoted(name));
+                $['\n']
+                private static readonly string[] EventRoutes =
                 [
-                    $(self.listener_tokens)
+                    $(self.event_routes_tokens)
                 ];
                 $['\n']
-                private readonly $core_listener remoting;
-                $['\n']
-                public $listener_name($core_listener remoting)
-                {
-                    this.remoting = remoting;
-                }
-                $['\n']
-                public async global::System.Collections.Generic.IAsyncEnumerable<($actor_id_type, $class_name)> ListenAsync([global::System.Runtime.CompilerServices.EnumeratorCancellation] global::System.Threading.CancellationToken cancellationToken = default)
-                {
-                    await foreach (var (source, bytes) in this.remoting.ListenAsync(cancellationToken))
-                    {
-                        byte idx = 0;
-                        foreach (var route in EventRoutes)
-                        {
-                            if (route.Length > bytes.Length)
-                            {
-                                continue;
-                            }
-                            if (route.AsSpan().SequenceEqual(bytes.AsSpan()[..route.Length]))
-                            {
-                                var bytesLength = bytes.Length - route.Length + 1;
-                                var data = new byte[bytesLength];
-                                data[0] = idx;
-                                $system_buffer.BlockCopy(bytes, route.Length, data, 1, bytes.Length - route.Length);
-
-                                var p = 0;
-                                $class_name ev = new();
-                                ev.Decode(bytes, ref p);
-                                yield return (source, ev);
-                            }
-                            idx++;
-                        }
-                    }
+                public static async $task<$service_listener<$class_name>> SubscribeAsync($core_listener remoting, $cancellation_token cancellationToken = default)
+                {$['\r']
+                    var eventStream = await remoting.ListenAsync(cancellationToken);$['\r']
+                    return new $client_listener<$class_name>(eventStream, ROUTE, EventRoutes);$['\r']
                 }
             }
             $['\n']
@@ -107,12 +82,9 @@ impl<'a> Visitor<'a> for EventsGenerator<'a> {
 
     fn visit_service_event(&mut self, event: &'a ServiceEvent) {
         let name = &self.service_name.to_case(Case::Pascal);
-        let service_route_bytes = path_bytes(self.service_name).0;
-        let event_route_bytes = path_bytes(event.name()).0;
-        let route_bytes = [service_route_bytes, event_route_bytes].join(", ");
 
-        quote_in! { self.listener_tokens =>
-            [$(&route_bytes)],
+        quote_in! { self.event_routes_tokens =>
+            $(quoted(event.name())),
         };
 
         quote_in! { self.enum_tokens =>

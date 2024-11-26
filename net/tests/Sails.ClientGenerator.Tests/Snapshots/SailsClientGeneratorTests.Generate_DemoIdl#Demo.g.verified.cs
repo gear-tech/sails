@@ -4,6 +4,8 @@ using global::Sails.Remoting.Abstractions;
 using global::Sails.Remoting.Abstractions.Core;
 using global::System;
 using global::System.Collections.Generic;
+using global::System.Threading;
+using global::System.Threading.Tasks;
 
 #nullable disable
 #pragma warning disable RCS0056 // A line is too long
@@ -97,42 +99,14 @@ public sealed partial class EnumCounterEvents : global::Substrate.NetApi.Model.T
     }
 }
 
-public sealed partial class CounterListener : IRemotingListener<EnumCounterEvents>
+public static class CounterListener
 {
-    private static readonly byte[][] EventRoutes = [[28, 67, 111, 117, 110, 116, 101, 114, 20, 65, 100, 100, 101, 100], [28, 67, 111, 117, 110, 116, 101, 114, 40, 83, 117, 98, 116, 114, 97, 99, 116, 101, 100], ];
-    private readonly global::Sails.Remoting.Abstractions.Core.IRemotingListener remoting;
-    public CounterListener(global::Sails.Remoting.Abstractions.Core.IRemotingListener remoting)
+    private const string ROUTE = "Counter";
+    private static readonly string[] EventRoutes = ["Added", "Subtracted", ];
+    public static async Task<IRemotingListener<EnumCounterEvents>> SubscribeAsync(global::Sails.Remoting.Abstractions.Core.IRemotingListener remoting, CancellationToken cancellationToken = default)
     {
-        this.remoting = remoting;
-    }
-
-    public async global::System.Collections.Generic.IAsyncEnumerable<(global::Substrate.Gear.Api.Generated.Model.gprimitives.ActorId, EnumCounterEvents)> ListenAsync([global::System.Runtime.CompilerServices.EnumeratorCancellation] global::System.Threading.CancellationToken cancellationToken = default)
-    {
-        await foreach (var(source, bytes)in this.remoting.ListenAsync(cancellationToken))
-        {
-            byte idx = 0;
-            foreach (var route in EventRoutes)
-            {
-                if (route.Length > bytes.Length)
-                {
-                    continue;
-                }
-
-                if (route.AsSpan().SequenceEqual(bytes.AsSpan()[..route.Length]))
-                {
-                    var bytesLength = bytes.Length - route.Length + 1;
-                    var data = new byte[bytesLength];
-                    data[0] = idx;
-                    Buffer.BlockCopy(bytes, route.Length, data, 1, bytes.Length - route.Length);
-                    var p = 0;
-                    EnumCounterEvents ev = new();
-                    ev.Decode(bytes, ref p);
-                    yield return (source, ev);
-                }
-
-                idx++;
-            }
-        }
+        var eventStream = await remoting.ListenAsync(cancellationToken);
+        return new RemotingListener<EnumCounterEvents>(eventStream, ROUTE, EventRoutes);
     }
 }
 
@@ -192,42 +166,14 @@ public sealed partial class EnumDogEvents : global::Substrate.NetApi.Model.Types
     }
 }
 
-public sealed partial class DogListener : IRemotingListener<EnumDogEvents>
+public static class DogListener
 {
-    private static readonly byte[][] EventRoutes = [[12, 68, 111, 103, 24, 66, 97, 114, 107, 101, 100], [12, 68, 111, 103, 24, 87, 97, 108, 107, 101, 100], ];
-    private readonly global::Sails.Remoting.Abstractions.Core.IRemotingListener remoting;
-    public DogListener(global::Sails.Remoting.Abstractions.Core.IRemotingListener remoting)
+    private const string ROUTE = "Dog";
+    private static readonly string[] EventRoutes = ["Barked", "Walked", ];
+    public static async Task<IRemotingListener<EnumDogEvents>> SubscribeAsync(global::Sails.Remoting.Abstractions.Core.IRemotingListener remoting, CancellationToken cancellationToken = default)
     {
-        this.remoting = remoting;
-    }
-
-    public async global::System.Collections.Generic.IAsyncEnumerable<(global::Substrate.Gear.Api.Generated.Model.gprimitives.ActorId, EnumDogEvents)> ListenAsync([global::System.Runtime.CompilerServices.EnumeratorCancellation] global::System.Threading.CancellationToken cancellationToken = default)
-    {
-        await foreach (var(source, bytes)in this.remoting.ListenAsync(cancellationToken))
-        {
-            byte idx = 0;
-            foreach (var route in EventRoutes)
-            {
-                if (route.Length > bytes.Length)
-                {
-                    continue;
-                }
-
-                if (route.AsSpan().SequenceEqual(bytes.AsSpan()[..route.Length]))
-                {
-                    var bytesLength = bytes.Length - route.Length + 1;
-                    var data = new byte[bytesLength];
-                    data[0] = idx;
-                    Buffer.BlockCopy(bytes, route.Length, data, 1, bytes.Length - route.Length);
-                    var p = 0;
-                    EnumDogEvents ev = new();
-                    ev.Decode(bytes, ref p);
-                    yield return (source, ev);
-                }
-
-                idx++;
-            }
-        }
+        var eventStream = await remoting.ListenAsync(cancellationToken);
+        return new RemotingListener<EnumDogEvents>(eventStream, ROUTE, EventRoutes);
     }
 }
 
@@ -401,42 +347,14 @@ public sealed partial class EnumValueFeeEvents : global::Substrate.NetApi.Model.
     }
 }
 
-public sealed partial class ValueFeeListener : IRemotingListener<EnumValueFeeEvents>
+public static class ValueFeeListener
 {
-    private static readonly byte[][] EventRoutes = [[32, 86, 97, 108, 117, 101, 70, 101, 101, 32, 87, 105, 116, 104, 104, 101, 108, 100], ];
-    private readonly global::Sails.Remoting.Abstractions.Core.IRemotingListener remoting;
-    public ValueFeeListener(global::Sails.Remoting.Abstractions.Core.IRemotingListener remoting)
+    private const string ROUTE = "ValueFee";
+    private static readonly string[] EventRoutes = ["Withheld", ];
+    public static async Task<IRemotingListener<EnumValueFeeEvents>> SubscribeAsync(global::Sails.Remoting.Abstractions.Core.IRemotingListener remoting, CancellationToken cancellationToken = default)
     {
-        this.remoting = remoting;
-    }
-
-    public async global::System.Collections.Generic.IAsyncEnumerable<(global::Substrate.Gear.Api.Generated.Model.gprimitives.ActorId, EnumValueFeeEvents)> ListenAsync([global::System.Runtime.CompilerServices.EnumeratorCancellation] global::System.Threading.CancellationToken cancellationToken = default)
-    {
-        await foreach (var(source, bytes)in this.remoting.ListenAsync(cancellationToken))
-        {
-            byte idx = 0;
-            foreach (var route in EventRoutes)
-            {
-                if (route.Length > bytes.Length)
-                {
-                    continue;
-                }
-
-                if (route.AsSpan().SequenceEqual(bytes.AsSpan()[..route.Length]))
-                {
-                    var bytesLength = bytes.Length - route.Length + 1;
-                    var data = new byte[bytesLength];
-                    data[0] = idx;
-                    Buffer.BlockCopy(bytes, route.Length, data, 1, bytes.Length - route.Length);
-                    var p = 0;
-                    EnumValueFeeEvents ev = new();
-                    ev.Decode(bytes, ref p);
-                    yield return (source, ev);
-                }
-
-                idx++;
-            }
-        }
+        var eventStream = await remoting.ListenAsync(cancellationToken);
+        return new RemotingListener<EnumValueFeeEvents>(eventStream, ROUTE, EventRoutes);
     }
 }
 

@@ -7,6 +7,8 @@ using global::Sails.Remoting.Abstractions;
 using global::Sails.Remoting.Abstractions.Core;
 using global::System;
 using global::System.Collections.Generic;
+using global::System.Threading;
+using global::System.Threading.Tasks;
 
 #nullable disable
 
@@ -71,13 +73,16 @@ public enum ServiceEvents {
 this.AddTypeDecoder<global::Substrate.NetApi.Model.Types.Primitive.Str>(ServiceEvents.ThatDone);
  } }
 
- public sealed partial class ServiceListener : IRemotingListener<EnumServiceEvents> { private static readonly byte[][] EventRoutes = [ [28, 83, 101, 114, 118, 105, 99, 101, 32, 84, 104, 105, 115, 68, 111, 110, 101],[28, 83, 101, 114, 118, 105, 99, 101, 32, 84, 104, 97, 116, 68, 111, 110, 101], ];
+ public static class ServiceListener {
 
- private readonly global::Sails.Remoting.Abstractions.Core.IRemotingListener remoting;
+ private const string ROUTE = "Service";
 
- public ServiceListener(global::Sails.Remoting.Abstractions.Core.IRemotingListener remoting) { this.remoting = remoting; }
+ private static readonly string[] EventRoutes = [ "ThisDone","ThatDone", ];
 
- public async global::System.Collections.Generic.IAsyncEnumerable<(global::Substrate.Gear.Api.Generated.Model.gprimitives.ActorId, EnumServiceEvents)> ListenAsync([global::System.Runtime.CompilerServices.EnumeratorCancellation] global::System.Threading.CancellationToken cancellationToken = default) { await foreach (var (source, bytes) in this.remoting.ListenAsync(cancellationToken)) { byte idx = 0; foreach (var route in EventRoutes) { if (route.Length > bytes.Length) { continue; } if (route.AsSpan().SequenceEqual(bytes.AsSpan()[..route.Length])) { var bytesLength = bytes.Length - route.Length + 1; var data = new byte[bytesLength]; data[0] = idx; Buffer.BlockCopy(bytes, route.Length, data, 1, bytes.Length - route.Length); var p = 0; EnumServiceEvents ev = new(); ev.Decode(bytes, ref p); yield return (source, ev); } idx++; } } } }
+ public static async Task<IRemotingListener<EnumServiceEvents>> SubscribeAsync(global::Sails.Remoting.Abstractions.Core.IRemotingListener remoting, CancellationToken cancellationToken = default) {
+ var eventStream = await remoting.ListenAsync(cancellationToken);
+ return new RemotingListener<EnumServiceEvents>(eventStream, ROUTE, EventRoutes);
+ } }
 
 /// <summary>
 /// ThisThatSvcAppTupleStruct docs

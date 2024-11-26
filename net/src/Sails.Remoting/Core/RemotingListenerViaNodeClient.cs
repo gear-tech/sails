@@ -1,7 +1,8 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
-using System.Runtime.CompilerServices;
 using System.Threading;
+using System.Threading.Tasks;
 using EnsureThat;
 using Sails.Remoting.Abstractions.Core;
 using StreamJsonRpc;
@@ -15,7 +16,7 @@ using Substrate.Gear.Client.NetApi.Model.Types.Base;
 
 namespace Sails.Remoting.Core;
 
-internal sealed class RemotingListenerViaNodeClient : IRemotingListener
+internal sealed class RemotingListenerViaNodeClient : IRemotingListener, IAsyncDisposable
 {
     public RemotingListenerViaNodeClient(INodeClientProvider nodeClientProvider)
     {
@@ -25,16 +26,18 @@ internal sealed class RemotingListenerViaNodeClient : IRemotingListener
     }
 
     private readonly INodeClientProvider nodeClientProvider;
+    private Substrate.Gear.Api.Generated.SubstrateClientExt? nodeClient;
+    private BlocksStream? blocksStream;
 
-    public async IAsyncEnumerable<(ActorId, byte[])> ListenAsync([EnumeratorCancellation] CancellationToken cancellationToken)
+    public async Task<IAsyncEnumerable<(ActorId Source, byte[] Payload)>> ListenAsync(CancellationToken cancellationToken)
     {
-        var nodeClient = await this.nodeClientProvider.GetNodeClientAsync(cancellationToken).ConfigureAwait(false);
-        await using var blocksStream = await nodeClient.GetNewBlocksStreamAsync(cancellationToken).ConfigureAwait(false);
+        this.nodeClient ??= await this.nodeClientProvider.GetNodeClientAsync(cancellationToken).ConfigureAwait(false);
+        this.blocksStream ??= await this.nodeClient.GetNewBlocksStreamAsync(cancellationToken).ConfigureAwait(false);
 
-        var eventStream = blocksStream.ReadAllHeadersAsync(cancellationToken)
+        return this.blocksStream.ReadAllHeadersAsync(cancellationToken)
             .SelectAwait(
                 async blockHeader =>
-                    await nodeClient.ListBlockEventsAsync(blockHeader.GetBlockHash(), cancellationToken)
+                    await this.nodeClient.ListBlockEventsAsync(blockHeader.GetBlockHash(), cancellationToken)
                         .ConfigureAwait(false))
             .SelectMany(eventRecords => eventRecords.AsAsyncEnumerable())
             .Select(eventRecord => eventRecord.Event.ToBaseEnumRust())
@@ -45,11 +48,17 @@ internal sealed class RemotingListenerViaNodeClient : IRemotingListener
                 GearEvent.UserMessageSent,
                 (UserMessageSentEventData data) => (UserMessage)data.Value[0])
             .Where(userMessage => userMessage.Destination.IsEqualTo(ActorIdExtensions.Zero))
-            .Select(userMessage => (userMessage.Source, userMessage.Payload.Bytes));
+            .Select(userMessage => (userMessage.Source, userMessage.Payload.Value.Value.Select(@byte => @byte.Value).ToArray()));
+    }
 
-        await foreach (var message in eventStream)
+    public async ValueTask DisposeAsync()
+    {
+        var bs = Interlocked.Exchange(ref this.blocksStream, null);
+        if (bs is not null)
         {
-            yield return message;
+            await bs.DisposeAsync().ConfigureAwait(false);
         }
+        var nc = Interlocked.Exchange(ref this.nodeClient, null);
+        nc?.Dispose();
     }
 }
