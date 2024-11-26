@@ -8,8 +8,14 @@
     <PackageReference Include="Ensure.That" />
     <!-- This dependency is required for tests discovery to work -->
     <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="Nito.AsyncEx" />
+    <PackageReference Include="Polly" />
     <PackageReference Include="Testcontainers" />
     <PackageReference Include="xunit" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Sails.Net\Sails.Net.csproj" />
   </ItemGroup>
 
 </Project>

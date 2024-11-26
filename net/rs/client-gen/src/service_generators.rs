@@ -1,10 +1,8 @@
-use crate::{helpers::*, type_generators::TypeDeclGenerator};
+use crate::{helpers::*, type_decl_generators::*};
 use convert_case::{Case, Casing};
 use csharp::Tokens;
 use genco::prelude::*;
 use sails_idl_parser::{ast::visitor, ast::visitor::Visitor, ast::*};
-
-const BASE_TUPLE_RUST: &str = "global::Substrate.NetApi.Model.Types.Base.BaseTupleRust";
 
 /// Generates a client that implements service trait
 pub(crate) struct ServiceClientGenerator<'a> {
@@ -63,7 +61,7 @@ impl<'a> Visitor<'a> for ServiceClientGenerator<'a> {
         let func_route_bytes = path_bytes(func.name()).0;
         let route_bytes = [service_route_bytes, func_route_bytes].join(", ");
 
-        let args = encoded_fn_args(func.params());
+        let args = &encoded_fn_args_comma_prefixed(func.params());
         let args_with_type = &self.type_generator.fn_params_with_types(func.params());
         let func_return_type = &self.type_generator.generate_type_decl(func.output());
 
@@ -80,11 +78,7 @@ impl<'a> Visitor<'a> for ServiceClientGenerator<'a> {
             $(inheritdoc())
             public $return_type<$func_return_type> $func_name_pascal($args_with_type)
             {
-                return new $action<$func_return_type>(
-                    this.remoting,
-                    [$(&route_bytes)],
-                    new $(BASE_TUPLE_RUST)($(&args))
-                );
+                return new $action<$func_return_type>(this.remoting, [$(&route_bytes)]$args);
             }
         };
     }

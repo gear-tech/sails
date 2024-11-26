@@ -1,7 +1,4 @@
-use crate::{
-    helpers::*,
-    type_generators::{primitive_type_to_dotnet, TypeDeclGenerator},
-};
+use crate::{helpers::*, type_decl_generators::*};
 use convert_case::{Case, Casing};
 use csharp::Tokens;
 use genco::prelude::*;
@@ -63,19 +60,9 @@ impl<'a> Visitor<'a> for CtorFactoryGenerator<'a> {
         self.interface_tokens.push();
 
         let route_bytes = &path_bytes(func.name()).0;
-        let args = &encoded_fn_args(func.params());
+        let args = &encoded_fn_args_comma_prefixed(func.params());
         let args_with_type = &self.type_generator.fn_params_with_types(func.params());
-
-        let type_decls = func
-            .params()
-            .iter()
-            .map(|p| p.type_decl())
-            .collect::<Vec<_>>();
-        let tuple_arg_type = if type_decls.is_empty() {
-            primitive_type_to_dotnet(PrimitiveType::Null).to_string()
-        } else {
-            self.type_generator.generate_types_as_tuple(type_decls)
-        };
+        let void_type = primitive_type_to_dotnet(PrimitiveType::Null);
 
         let activation = &csharp::import("global::Sails.Remoting.Abstractions", "IActivation");
         let action = &csharp::import("global::Sails.Remoting", "RemotingAction");
@@ -88,10 +75,7 @@ impl<'a> Visitor<'a> for CtorFactoryGenerator<'a> {
             $(inheritdoc())
             public $activation $func_name_pascal($args_with_type)
             {
-                return new $action<$(&tuple_arg_type)>(
-                    this.remoting,
-                    [$route_bytes],
-                    new $(&tuple_arg_type)($args));
+                return new $action<$(void_type)>(this.remoting, [$route_bytes]$args);
             }
             $['\n']
         };

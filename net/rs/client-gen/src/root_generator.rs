@@ -1,4 +1,7 @@
-use crate::{ctor_generators::*, events_generator::*, service_generators::*, type_generators::*};
+use crate::{
+    ctor_generators::*, events_generator::*, service_generators::*, tol_level_type_generators::*,
+    type_decl_generators::*,
+};
 use convert_case::{Case, Casing};
 use csharp::Tokens;
 use genco::{prelude::*, tokens::ItemStr};
@@ -19,6 +22,8 @@ impl<'a> RootGenerator<'a> {
         external_types: HashMap<&'a str, &'a str>,
     ) -> Self {
         let mut tokens = Tokens::new();
+        tokens.append(ItemStr::Static("#nullable enable"));
+        tokens.line();
         tokens.append(ItemStr::Static(
             "#pragma warning disable RCS0056 // A line is too long",
         ));

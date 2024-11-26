@@ -16,15 +16,16 @@ public sealed class GearNodeContainer : IAsyncDisposable
     // TODO: Consider making 'Version' as an optional parameter.
     //       By default the latest version should be taken which can be determined
     //       from the downloaded 'Cargo.toml' file.
-    public GearNodeContainer(string gearNodeVersion, bool reuse)
+    public GearNodeContainer(string consumerName, string gearNodeVersion, bool reuse)
     {
+        EnsureArg.IsNotNullOrWhiteSpace(consumerName, nameof(consumerName));
         EnsureArg.IsNotNullOrWhiteSpace(gearNodeVersion, nameof(gearNodeVersion));
 
         this.nodeInitializationDetector = new NodeInitializationDetector();
         this.container = new ContainerBuilder()
-            .WithName("gear-node-for-tests")
+            .WithName($"gear-node-for-{consumerName.ToLower()}")
             .WithImage($"ghcr.io/gear-tech/node:v{gearNodeVersion}")
-            .WithPortBinding(RpcPort, RpcPort) // Use WithPortBinding(RpcPort, true) if random host port is required
+            .WithPortBinding(RpcPort, true)
             .WithEntrypoint("gear")
             .WithCommand(
                 "--rpc-external", // --rpc-external is required for listening on all interfaces
@@ -38,13 +39,13 @@ public sealed class GearNodeContainer : IAsyncDisposable
     }
 
     private const ushort RpcPort = 9944;
-    private static readonly TimeSpan NodeInitializationTimeout = TimeSpan.FromSeconds(10);
+    private static readonly TimeSpan NodeInitializationTimeout = TimeSpan.FromSeconds(30);
 
     private readonly NodeInitializationDetector nodeInitializationDetector;
     private readonly IContainer container;
     private readonly bool reuse;
 
-    public Uri WsUrl => new($"ws://localhost:{this.container.GetMappedPublicPort(9944)}");
+    public Uri WsUrl => new($"ws://localhost:{this.container.GetMappedPublicPort(RpcPort)}");
 
     public ValueTask DisposeAsync()
         // Do not dispose container if it is reused otherwise it will be stopped
@@ -57,8 +58,8 @@ public sealed class GearNodeContainer : IAsyncDisposable
 
     public async Task StartAsync()
     {
-        await this.container.StartAsync();
-        await this.nodeInitializationDetector.IsInitializedAsync(NodeInitializationTimeout);
+        await this.container.StartAsync().ConfigureAwait(false);
+        await this.nodeInitializationDetector.IsInitializedAsync(NodeInitializationTimeout).ConfigureAwait(false);
     }
 
     private sealed class NodeInitializationDetector : IOutputConsumer
@@ -81,12 +82,12 @@ public sealed class GearNodeContainer : IAsyncDisposable
         public async Task IsInitializedAsync(TimeSpan maxWaitTime)
         {
             var timeoutTask = Task.Delay(maxWaitTime);
-            var completedTask = await Task.WhenAny(this.isNodeInitialized.Task, timeoutTask);
+            var completedTask = await Task.WhenAny(this.isNodeInitialized.Task, timeoutTask).ConfigureAwait(false);
             if (completedTask == timeoutTask)
             {
                 this.isNodeInitialized.SetException(
                     new TimeoutException($"Node initialization timed out after {maxWaitTime}."));
-                await this.isNodeInitialized.Task;
+                await this.isNodeInitialized.Task.ConfigureAwait(false);
             }
         }
 

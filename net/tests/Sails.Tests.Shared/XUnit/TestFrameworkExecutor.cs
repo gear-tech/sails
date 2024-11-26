@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using Xunit.Abstractions;
 using Xunit.Sdk;
@@ -15,6 +16,9 @@ public sealed class TestFrameworkExecutor : XunitTestFrameworkExecutor
     {
     }
 
+    [SuppressMessage(
+        "Usage", "VSTHRD100:Avoid async void methods",
+        Justification = "All exceptions should be added into the aggregator")]
     protected override async void RunTestCases(
         IEnumerable<IXunitTestCase> testCases,
         IMessageSink executionMessageSink,
@@ -27,7 +31,7 @@ public sealed class TestFrameworkExecutor : XunitTestFrameworkExecutor
                    executionMessageSink,
                    executionOptions))
         {
-            await assemblyRunner.RunAsync();
+            await assemblyRunner.RunAsync().ConfigureAwait(false);
         }
     }
 }
