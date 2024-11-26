@@ -443,20 +443,15 @@ public sealed partial class ValueFeeListener : IRemotingListener<EnumValueFeeEve
 
 public sealed partial class ReferenceCount : global::Substrate.NetApi.Model.Types.Base.BaseType
 {
-    public global::Substrate.NetApi.Model.Types.Primitive.U32? Value { get; set; }
+    public global::Substrate.NetApi.Model.Types.Primitive.U32 Value { get; init; } = new();
 
     /// <inheritdoc/>
     public override string TypeName() => "ReferenceCount";
     /// <inheritdoc/>
     public override byte[] Encode()
     {
-        if (this.Value is null)
-        {
-            throw new ArgumentNullException(nameof(this.Value), "Property cannot be null");
-        }
-
         var result = new List<byte>();
-        result.AddRange(this.Value!.Encode());
+        result.AddRange(this.Value.Encode());
         return result.ToArray();
     }
 
@@ -464,7 +459,6 @@ public sealed partial class ReferenceCount : global::Substrate.NetApi.Model.Type
     public override void Decode(byte[] byteArray, ref int p)
     {
         var start = p;
-        this.Value = new global::Substrate.NetApi.Model.Types.Primitive.U32();
         this.Value.Decode(byteArray, ref p);
         var bytesLength = p - start;
         this.TypeSize = bytesLength;
@@ -475,34 +469,19 @@ public sealed partial class ReferenceCount : global::Substrate.NetApi.Model.Type
 
 public sealed partial class DoThatParam : global::Substrate.NetApi.Model.Types.Base.BaseType
 {
-    public global::Substrate.Gear.Api.Generated.Types.Base.NonZeroU32? P1 { get; set; }
-    public global::Substrate.Gear.Api.Generated.Model.gprimitives.ActorId? P2 { get; set; }
-    public EnumManyVariants? P3 { get; set; }
+    public global::Substrate.Gear.Api.Generated.Types.Base.NonZeroU32 P1 { get; init; } = new();
+    public global::Substrate.Gear.Api.Generated.Model.gprimitives.ActorId P2 { get; init; } = new();
+    public EnumManyVariants P3 { get; init; } = new();
 
     /// <inheritdoc/>
     public override string TypeName() => "DoThatParam";
     /// <inheritdoc/>
     public override byte[] Encode()
     {
-        if (this.P1 is null)
-        {
-            throw new ArgumentNullException(nameof(this.P1), "Property cannot be null");
-        }
-
-        if (this.P2 is null)
-        {
-            throw new ArgumentNullException(nameof(this.P2), "Property cannot be null");
-        }
-
-        if (this.P3 is null)
-        {
-            throw new ArgumentNullException(nameof(this.P3), "Property cannot be null");
-        }
-
         var result = new List<byte>();
-        result.AddRange(this.P1!.Encode());
-        result.AddRange(this.P2!.Encode());
-        result.AddRange(this.P3!.Encode());
+        result.AddRange(this.P1.Encode());
+        result.AddRange(this.P2.Encode());
+        result.AddRange(this.P3.Encode());
         return result.ToArray();
     }
 
@@ -510,11 +489,8 @@ public sealed partial class DoThatParam : global::Substrate.NetApi.Model.Types.B
     public override void Decode(byte[] byteArray, ref int p)
     {
         var start = p;
-        this.P1 = new global::Substrate.Gear.Api.Generated.Types.Base.NonZeroU32();
         this.P1.Decode(byteArray, ref p);
-        this.P2 = new global::Substrate.Gear.Api.Generated.Model.gprimitives.ActorId();
         this.P2.Decode(byteArray, ref p);
-        this.P3 = new EnumManyVariants();
         this.P3.Decode(byteArray, ref p);
         var bytesLength = p - start;
         this.TypeSize = bytesLength;
@@ -548,20 +524,15 @@ public sealed partial class EnumManyVariants : global::Substrate.NetApi.Model.Ty
 
 public sealed partial class TupleStruct : global::Substrate.NetApi.Model.Types.Base.BaseType
 {
-    public global::Substrate.NetApi.Model.Types.Primitive.Bool? Value { get; set; }
+    public global::Substrate.NetApi.Model.Types.Primitive.Bool Value { get; init; } = new();
 
     /// <inheritdoc/>
     public override string TypeName() => "TupleStruct";
     /// <inheritdoc/>
     public override byte[] Encode()
     {
-        if (this.Value is null)
-        {
-            throw new ArgumentNullException(nameof(this.Value), "Property cannot be null");
-        }
-
         var result = new List<byte>();
-        result.AddRange(this.Value!.Encode());
+        result.AddRange(this.Value.Encode());
         return result.ToArray();
     }
 
@@ -569,7 +540,6 @@ public sealed partial class TupleStruct : global::Substrate.NetApi.Model.Types.B
     public override void Decode(byte[] byteArray, ref int p)
     {
         var start = p;
-        this.Value = new global::Substrate.NetApi.Model.Types.Primitive.Bool();
         this.Value.Decode(byteArray, ref p);
         var bytesLength = p - start;
         this.TypeSize = bytesLength;

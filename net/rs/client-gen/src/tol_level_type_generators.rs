@@ -56,7 +56,6 @@ struct StructDefGenerator<'a> {
     type_generator: TypeDeclGenerator<'a>,
     is_tuple_struct: bool,
     props_tokens: Tokens,
-    ensure_tokens: Tokens,
     encode_tokens: Tokens,
     decode_tokens: Tokens,
 }
@@ -68,7 +67,6 @@ impl<'a> StructDefGenerator<'a> {
             type_generator,
             is_tuple_struct: false,
             props_tokens: Tokens::new(),
-            ensure_tokens: Tokens::new(),
             encode_tokens: Tokens::new(),
             decode_tokens: Tokens::new(),
         }
@@ -89,7 +87,6 @@ impl<'a> StructDefGenerator<'a> {
                 $(inheritdoc())
                 public override byte[] Encode()
                 {
-                    $(self.ensure_tokens)
                     var result = new $generic_list<byte>();$['\r']
                     $(self.encode_tokens)
                     return result.ToArray();$['\r']
@@ -115,19 +112,12 @@ impl<'a> StructDefGenerator<'a> {
         }
         let value_type = &self.type_generator.generate_struct_def(struct_def);
         quote_in! { self.props_tokens =>
-            public $value_type? Value { get; set; }$['\r']
-        };
-        quote_in! { self.ensure_tokens =>
-            if (this.Value is null)
-            {
-                throw new ArgumentNullException(nameof(this.Value), "Property cannot be null");
-            }$['\r']
+            public $value_type Value { get; init; } = new();$['\r']
         };
         quote_in! { self.encode_tokens =>
-            result.AddRange(this.Value!.Encode());$['\r']
+            result.AddRange(this.Value.Encode());$['\r']
         };
         quote_in! { self.decode_tokens =>
-            this.Value = new $value_type();$['\r']
             this.Value.Decode(byteArray, ref p);$['\r']
         };
     }
@@ -161,19 +151,12 @@ impl<'a> Visitor<'a> for StructDefGenerator<'a> {
         if let Some(field_name) = struct_field.name() {
             let field_name_pascal = &field_name.to_case(Case::Pascal);
             quote_in! { self.props_tokens =>
-                public $type_decl_code? $field_name_pascal { get; set; }$['\r']
-            };
-            quote_in! { self.ensure_tokens =>
-                if (this.$field_name_pascal is null)
-                {
-                    throw new ArgumentNullException(nameof(this.$field_name_pascal), "Property cannot be null");
-                }$['\r']
+                public $type_decl_code $field_name_pascal { get; init; } = new();$['\r']
             };
             quote_in! { self.encode_tokens =>
-                result.AddRange(this.$field_name_pascal!.Encode());$['\r']
+                result.AddRange(this.$field_name_pascal.Encode());$['\r']
             };
             quote_in! { self.decode_tokens =>
-                this.$field_name_pascal = new $type_decl_code();$['\r']
                 this.$field_name_pascal.Decode(byteArray, ref p);$['\r']
             };
         }

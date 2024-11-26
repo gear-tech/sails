@@ -83,18 +83,16 @@ this.AddTypeDecoder<global::Substrate.NetApi.Model.Types.Primitive.Str>(ServiceE
 /// <summary>
 /// ThisThatSvcAppTupleStruct docs
 /// </summary>
-public sealed partial class ThisThatSvcAppTupleStruct : global::Substrate.NetApi.Model.Types.Base.BaseType { public global::Substrate.NetApi.Model.Types.Primitive.Bool? Value { get; set; }
+public sealed partial class ThisThatSvcAppTupleStruct : global::Substrate.NetApi.Model.Types.Base.BaseType { public global::Substrate.NetApi.Model.Types.Primitive.Bool Value { get; init; } = new();
 /// <inheritdoc/>
  public override string TypeName() => "ThisThatSvcAppTupleStruct";
 /// <inheritdoc/>
- public override byte[] Encode() { if (this.Value is null) { throw new ArgumentNullException(nameof(this.Value), "Property cannot be null"); }
- var result = new List<byte>();
- result.AddRange(this.Value!.Encode());
+ public override byte[] Encode() { var result = new List<byte>();
+ result.AddRange(this.Value.Encode());
  return result.ToArray();
  }
 /// <inheritdoc/>
  public override void Decode(byte[] byteArray, ref int p) { var start = p;
- this.Value = new global::Substrate.NetApi.Model.Types.Primitive.Bool();
  this.Value.Decode(byteArray, ref p);
  var bytesLength = p - start; this.TypeSize = bytesLength; this.Bytes = new byte[bytesLength]; Array.Copy(byteArray, start, this.Bytes, 0, bytesLength); } }
 
@@ -105,35 +103,29 @@ public sealed partial class ThisThatSvcAppDoThatParam : global::Substrate.NetApi
 /// <summary>
 /// field `query`
 /// </summary>
-public global::Substrate.NetApi.Model.Types.Primitive.U32? Query { get; set; }
+public global::Substrate.NetApi.Model.Types.Primitive.U32 Query { get; init; } = new();
 /// <summary>
 /// field `result`
 /// </summary>
-public global::Substrate.NetApi.Model.Types.Primitive.Str? Result { get; set; }
+public global::Substrate.NetApi.Model.Types.Primitive.Str Result { get; init; } = new();
 /// <summary>
 /// field `p3`
 /// </summary>
-public EnumThisThatSvcAppManyVariants? P3 { get; set; }
+public EnumThisThatSvcAppManyVariants P3 { get; init; } = new();
 /// <inheritdoc/>
  public override string TypeName() => "ThisThatSvcAppDoThatParam";
 /// <inheritdoc/>
- public override byte[] Encode() { if (this.Query is null) { throw new ArgumentNullException(nameof(this.Query), "Property cannot be null"); }
-if (this.Result is null) { throw new ArgumentNullException(nameof(this.Result), "Property cannot be null"); }
-if (this.P3 is null) { throw new ArgumentNullException(nameof(this.P3), "Property cannot be null"); }
- var result = new List<byte>();
- result.AddRange(this.Query!.Encode());
-result.AddRange(this.Result!.Encode());
-result.AddRange(this.P3!.Encode());
+ public override byte[] Encode() { var result = new List<byte>();
+ result.AddRange(this.Query.Encode());
+result.AddRange(this.Result.Encode());
+result.AddRange(this.P3.Encode());
  return result.ToArray();
  }
 /// <inheritdoc/>
  public override void Decode(byte[] byteArray, ref int p) { var start = p;
- this.Query = new global::Substrate.NetApi.Model.Types.Primitive.U32();
  this.Query.Decode(byteArray, ref p);
-this.Result = new global::Substrate.NetApi.Model.Types.Primitive.Str();
- this.Result.Decode(byteArray, ref p);
-this.P3 = new EnumThisThatSvcAppManyVariants();
- this.P3.Decode(byteArray, ref p);
+this.Result.Decode(byteArray, ref p);
+this.P3.Decode(byteArray, ref p);
  var bytesLength = p - start; this.TypeSize = bytesLength; this.Bytes = new byte[bytesLength]; Array.Copy(byteArray, start, this.Bytes, 0, bytesLength); } }
 
 /// <summary>
