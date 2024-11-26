@@ -8,6 +8,8 @@ using global::Sails.Remoting.Abstractions.Core;
 using global::System;
 using global::System.Collections.Generic;
 
+#nullable disable
+
 #pragma warning disable RCS0056 // A line is too long
 
 namespace Service.Client;
@@ -29,7 +31,7 @@ IActivation New(global::Substrate.NetApi.Model.Types.Primitive.U32 a);
  { this.remoting = remoting; }
 
 /// <inheritdoc/>
- public IActivation New(global::Substrate.NetApi.Model.Types.Primitive.U32 a) { return new RemotingAction<global::Substrate.NetApi.Model.Types.Primitive.U32>( this.remoting, [12, 78, 101, 119], new global::Substrate.NetApi.Model.Types.Primitive.U32(a)); }
+ public IActivation New(global::Substrate.NetApi.Model.Types.Primitive.U32 a) { return new RemotingAction<global::Substrate.NetApi.Model.Types.Base.BaseVoid>(this.remoting, [12, 78, 101, 119], a); }
 
  }
 
@@ -46,13 +48,13 @@ IQuery<global::Substrate.Gear.Client.NetApi.Model.Types.Base.BaseResult<global::
  public Service(IRemoting remoting) { this.remoting = remoting; }
 
 /// <inheritdoc/>
- public ICall<global::Substrate.NetApi.Model.Types.Base.BaseTuple<global::Substrate.NetApi.Model.Types.Primitive.Str, global::Substrate.NetApi.Model.Types.Primitive.U32>> DoThis(global::Substrate.NetApi.Model.Types.Primitive.U32 p1, global::Substrate.NetApi.Model.Types.Primitive.Str p2, global::Substrate.NetApi.Model.Types.Base.BaseTuple<global::Substrate.NetApi.Model.Types.Base.BaseOpt<global::Substrate.NetApi.Model.Types.Primitive.Str>, global::Substrate.NetApi.Model.Types.Primitive.U8> p3, ThisThatSvcAppTupleStruct p4) { return new RemotingAction<global::Substrate.NetApi.Model.Types.Base.BaseTuple<global::Substrate.NetApi.Model.Types.Primitive.Str, global::Substrate.NetApi.Model.Types.Primitive.U32>>( this.remoting, [28, 83, 101, 114, 118, 105, 99, 101, 24, 68, 111, 84, 104, 105, 115], new global::Substrate.NetApi.Model.Types.Base.BaseTupleRust(p1, p2, p3, p4) ); }
+ public ICall<global::Substrate.NetApi.Model.Types.Base.BaseTuple<global::Substrate.NetApi.Model.Types.Primitive.Str, global::Substrate.NetApi.Model.Types.Primitive.U32>> DoThis(global::Substrate.NetApi.Model.Types.Primitive.U32 p1, global::Substrate.NetApi.Model.Types.Primitive.Str p2, global::Substrate.NetApi.Model.Types.Base.BaseTuple<global::Substrate.NetApi.Model.Types.Base.BaseOpt<global::Substrate.NetApi.Model.Types.Primitive.Str>, global::Substrate.NetApi.Model.Types.Primitive.U8> p3, ThisThatSvcAppTupleStruct p4) { return new RemotingAction<global::Substrate.NetApi.Model.Types.Base.BaseTuple<global::Substrate.NetApi.Model.Types.Primitive.Str, global::Substrate.NetApi.Model.Types.Primitive.U32>>(this.remoting, [28, 83, 101, 114, 118, 105, 99, 101, 24, 68, 111, 84, 104, 105, 115], p1, p2, p3, p4); }
 /// <inheritdoc/>
- public ICall<global::Substrate.Gear.Client.NetApi.Model.Types.Base.BaseResult<global::Substrate.NetApi.Model.Types.Base.BaseTuple<global::Substrate.NetApi.Model.Types.Primitive.Str, global::Substrate.NetApi.Model.Types.Primitive.U32>, global::Substrate.NetApi.Model.Types.Primitive.Str>> DoThat(ThisThatSvcAppDoThatParam param) { return new RemotingAction<global::Substrate.Gear.Client.NetApi.Model.Types.Base.BaseResult<global::Substrate.NetApi.Model.Types.Base.BaseTuple<global::Substrate.NetApi.Model.Types.Primitive.Str, global::Substrate.NetApi.Model.Types.Primitive.U32>, global::Substrate.NetApi.Model.Types.Primitive.Str>>( this.remoting, [28, 83, 101, 114, 118, 105, 99, 101, 24, 68, 111, 84, 104, 97, 116], new global::Substrate.NetApi.Model.Types.Base.BaseTupleRust(param) ); }
+ public ICall<global::Substrate.Gear.Client.NetApi.Model.Types.Base.BaseResult<global::Substrate.NetApi.Model.Types.Base.BaseTuple<global::Substrate.NetApi.Model.Types.Primitive.Str, global::Substrate.NetApi.Model.Types.Primitive.U32>, global::Substrate.NetApi.Model.Types.Primitive.Str>> DoThat(ThisThatSvcAppDoThatParam param) { return new RemotingAction<global::Substrate.Gear.Client.NetApi.Model.Types.Base.BaseResult<global::Substrate.NetApi.Model.Types.Base.BaseTuple<global::Substrate.NetApi.Model.Types.Primitive.Str, global::Substrate.NetApi.Model.Types.Primitive.U32>, global::Substrate.NetApi.Model.Types.Primitive.Str>>(this.remoting, [28, 83, 101, 114, 118, 105, 99, 101, 24, 68, 111, 84, 104, 97, 116], param); }
 /// <inheritdoc/>
- public IQuery<global::Substrate.NetApi.Model.Types.Primitive.U32> This(global::Substrate.NetApi.Model.Types.Base.BaseVec<global::Substrate.NetApi.Model.Types.Primitive.U16> v1) { return new RemotingAction<global::Substrate.NetApi.Model.Types.Primitive.U32>( this.remoting, [28, 83, 101, 114, 118, 105, 99, 101, 16, 84, 104, 105, 115], new global::Substrate.NetApi.Model.Types.Base.BaseTupleRust(v1) ); }
+ public IQuery<global::Substrate.NetApi.Model.Types.Primitive.U32> This(global::Substrate.NetApi.Model.Types.Base.BaseVec<global::Substrate.NetApi.Model.Types.Primitive.U16> v1) { return new RemotingAction<global::Substrate.NetApi.Model.Types.Primitive.U32>(this.remoting, [28, 83, 101, 114, 118, 105, 99, 101, 16, 84, 104, 105, 115], v1); }
 /// <inheritdoc/>
- public IQuery<global::Substrate.Gear.Client.NetApi.Model.Types.Base.BaseResult<global::Substrate.NetApi.Model.Types.Primitive.Str, global::Substrate.NetApi.Model.Types.Primitive.Str>> That(global::Substrate.NetApi.Model.Types.Base.BaseVoid v1) { return new RemotingAction<global::Substrate.Gear.Client.NetApi.Model.Types.Base.BaseResult<global::Substrate.NetApi.Model.Types.Primitive.Str, global::Substrate.NetApi.Model.Types.Primitive.Str>>( this.remoting, [28, 83, 101, 114, 118, 105, 99, 101, 16, 84, 104, 97, 116], new global::Substrate.NetApi.Model.Types.Base.BaseTupleRust(v1) ); } }
+ public IQuery<global::Substrate.Gear.Client.NetApi.Model.Types.Base.BaseResult<global::Substrate.NetApi.Model.Types.Primitive.Str, global::Substrate.NetApi.Model.Types.Primitive.Str>> That(global::Substrate.NetApi.Model.Types.Base.BaseVoid v1) { return new RemotingAction<global::Substrate.Gear.Client.NetApi.Model.Types.Base.BaseResult<global::Substrate.NetApi.Model.Types.Primitive.Str, global::Substrate.NetApi.Model.Types.Primitive.Str>>(this.remoting, [28, 83, 101, 114, 118, 105, 99, 101, 16, 84, 104, 97, 116], v1); } }
 
 public enum ServiceEvents {
 /// <summary>
@@ -80,8 +82,7 @@ this.AddTypeDecoder<global::Substrate.NetApi.Model.Types.Primitive.Str>(ServiceE
 /// <summary>
 /// ThisThatSvcAppTupleStruct docs
 /// </summary>
-public sealed partial class ThisThatSvcAppTupleStruct : global::Substrate.NetApi.Model.Types.Base.BaseType { [System.Diagnostics.CodeAnalysis.AllowNull]
- public global::Substrate.NetApi.Model.Types.Primitive.Bool Value { get; set; }
+public sealed partial class ThisThatSvcAppTupleStruct : global::Substrate.NetApi.Model.Types.Base.BaseType { public global::Substrate.NetApi.Model.Types.Primitive.Bool Value { get; set; }
 /// <inheritdoc/>
  public override string TypeName() => "ThisThatSvcAppTupleStruct";
 /// <inheritdoc/>
@@ -99,18 +100,15 @@ public sealed partial class ThisThatSvcAppDoThatParam : global::Substrate.NetApi
 /// <summary>
 /// field `query`
 /// </summary>
-[System.Diagnostics.CodeAnalysis.AllowNull]
- public global::Substrate.NetApi.Model.Types.Primitive.U32 Query { get; set; }
+public global::Substrate.NetApi.Model.Types.Primitive.U32 Query { get; set; }
 /// <summary>
 /// field `result`
 /// </summary>
-[System.Diagnostics.CodeAnalysis.AllowNull]
- public global::Substrate.NetApi.Model.Types.Primitive.Str Result { get; set; }
+public global::Substrate.NetApi.Model.Types.Primitive.Str Result { get; set; }
 /// <summary>
 /// field `p3`
 /// </summary>
-[System.Diagnostics.CodeAnalysis.AllowNull]
- public EnumThisThatSvcAppManyVariants P3 { get; set; }
+public EnumThisThatSvcAppManyVariants P3 { get; set; }
 /// <inheritdoc/>
  public override string TypeName() => "ThisThatSvcAppDoThatParam";
 /// <inheritdoc/>

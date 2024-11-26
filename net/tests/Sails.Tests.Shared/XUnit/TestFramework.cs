@@ -4,9 +4,9 @@ using Xunit.Sdk;
 
 namespace Sails.Tests.Shared.XUnit;
 
-public abstract class TestFramework : XunitTestFramework
+public class TestFramework : XunitTestFramework
 {
-    protected TestFramework(IMessageSink messageSink)
+    public TestFramework(IMessageSink messageSink)
         : base(messageSink)
     {
     }

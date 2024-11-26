@@ -19,6 +19,8 @@ impl<'a> RootGenerator<'a> {
         external_types: HashMap<&'a str, &'a str>,
     ) -> Self {
         let mut tokens = Tokens::new();
+        tokens.append(ItemStr::Static("#nullable disable"));
+        tokens.line();
         tokens.append(ItemStr::Static(
             "#pragma warning disable RCS0056 // A line is too long",
         ));

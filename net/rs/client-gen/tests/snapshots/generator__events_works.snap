@@ -8,6 +8,8 @@ using global::Sails.Remoting.Abstractions.Core;
 using global::System;
 using global::System.Collections.Generic;
 
+#nullable disable
+
 #pragma warning disable RCS0056 // A line is too long
 
 namespace ServiceWithEvents.Client;
@@ -22,7 +24,7 @@ public interface IServiceWithEvents
  public ServiceWithEvents(IRemoting remoting) { this.remoting = remoting; }
 
 /// <inheritdoc/>
- public ICall<global::Substrate.Gear.Client.NetApi.Model.Types.Primitive.NonZeroU64> DoThis(global::Substrate.Gear.Client.NetApi.Model.Types.Primitive.NonZeroU256 p1, MyParam p2) { return new RemotingAction<global::Substrate.Gear.Client.NetApi.Model.Types.Primitive.NonZeroU64>( this.remoting, [68, 83, 101, 114, 118, 105, 99, 101, 87, 105, 116, 104, 69, 118, 101, 110, 116, 115, 24, 68, 111, 84, 104, 105, 115], new global::Substrate.NetApi.Model.Types.Base.BaseTupleRust(p1, p2) ); } }
+ public ICall<global::Substrate.Gear.Client.NetApi.Model.Types.Primitive.NonZeroU64> DoThis(global::Substrate.Gear.Client.NetApi.Model.Types.Primitive.NonZeroU256 p1, MyParam p2) { return new RemotingAction<global::Substrate.Gear.Client.NetApi.Model.Types.Primitive.NonZeroU64>(this.remoting, [68, 83, 101, 114, 118, 105, 99, 101, 87, 105, 116, 104, 69, 118, 101, 110, 116, 115, 24, 68, 111, 84, 104, 105, 115], p1, p2); } }
 
 public enum ServiceWithEventsEvents { One,
  Two,
@@ -45,12 +47,9 @@ this.AddTypeDecoder<global::Substrate.NetApi.Model.Types.Base.BaseVoid>(ServiceW
  public async global::System.Collections.Generic.IAsyncEnumerable<EnumServiceWithEventsEvents> ListenAsync([global::System.Runtime.CompilerServices.EnumeratorCancellation] global::System.Threading.CancellationToken cancellationToken = default) { await foreach (var bytes in this.remoting.ListenAsync(cancellationToken)) { byte idx = 0; foreach (var route in EventRoutes) { if (route.Length > bytes.Length) { continue; } if (route.AsSpan().SequenceEqual(bytes.AsSpan()[..route.Length])) { var bytesLength = bytes.Length - route.Length + 1; var data = new byte[bytesLength]; data[0] = idx; Buffer.BlockCopy(bytes, route.Length, data, 1, bytes.Length - route.Length); var p = 0; EnumServiceWithEventsEvents ev = new(); ev.Decode(bytes, ref p); yield return ev; } idx++; } } } }
 
 public sealed partial class MyParam : global::Substrate.NetApi.Model.Types.Base.BaseType {
-[System.Diagnostics.CodeAnalysis.AllowNull]
- public global::Substrate.Gear.Client.NetApi.Model.Types.Primitive.NonZeroU256 F1 { get; set; }
-[System.Diagnostics.CodeAnalysis.AllowNull]
- public global::Substrate.NetApi.Model.Types.Base.BaseVec<global::Substrate.Gear.Client.NetApi.Model.Types.Primitive.NonZeroU8> F2 { get; set; }
-[System.Diagnostics.CodeAnalysis.AllowNull]
- public global::Substrate.NetApi.Model.Types.Base.BaseOpt<global::Substrate.NetApi.Model.Types.Base.BaseTuple<global::Substrate.Gear.Client.NetApi.Model.Types.Primitive.NonZeroU64, global::Substrate.Gear.Client.NetApi.Model.Types.Primitive.NonZeroU256>> F3 { get; set; }
+public global::Substrate.Gear.Client.NetApi.Model.Types.Primitive.NonZeroU256 F1 { get; set; }
+public global::Substrate.NetApi.Model.Types.Base.BaseVec<global::Substrate.Gear.Client.NetApi.Model.Types.Primitive.NonZeroU8> F2 { get; set; }
+public global::Substrate.NetApi.Model.Types.Base.BaseOpt<global::Substrate.NetApi.Model.Types.Base.BaseTuple<global::Substrate.Gear.Client.NetApi.Model.Types.Primitive.NonZeroU64, global::Substrate.Gear.Client.NetApi.Model.Types.Primitive.NonZeroU256>> F3 { get; set; }
 /// <inheritdoc/>
  public override string TypeName() => "MyParam";
 /// <inheritdoc/>

@@ -11,7 +11,7 @@ using Substrate.NetApi.Model.Types;
 
 namespace Sails.Remoting;
 
-public sealed class RemotingAction<T>(IRemoting remoting, byte[] route, IType args) : IActivation, IQuery<T>, ICall<T>
+public sealed class RemotingAction<T>(IRemoting remoting, byte[] route, params IType[] args) : IActivation, IQuery<T>, ICall<T>
     where T : IType, new()
 {
     private GasUnit? gasLimit;
@@ -97,11 +97,13 @@ public sealed class RemotingAction<T>(IRemoting remoting, byte[] route, IType ar
 
     private byte[] EncodePayload()
     {
-        var encodedArgs = args.Encode();
-        var payload = new byte[route.Length + encodedArgs.Length];
-        Buffer.BlockCopy(route.ToArray(), 0, payload, 0, route.Length);
-        Buffer.BlockCopy(encodedArgs, 0, payload, route.Length, encodedArgs.Length);
-        return payload;
+        var byteList = new List<byte>();
+        byteList.AddRange(route);
+        foreach (var arg in args)
+        {
+            byteList.AddRange(arg.Encode());
+        }
+        return [.. byteList];
     }
 
     private T DecodePayload(byte[] bytes)
