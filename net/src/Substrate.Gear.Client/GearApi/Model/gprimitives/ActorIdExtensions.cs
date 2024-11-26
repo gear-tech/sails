@@ -1,11 +1,20 @@
 ﻿using System.Linq;
 using EnsureThat;
+using Substrate.Gear.Client.NetApi.Model.Types.Primitive;
 using Substrate.NetApi;
 
 namespace Substrate.Gear.Client.GearApi.Model.gprimitives;
 
 public static class ActorIdExtensions
 {
+    public static Api.Generated.Model.gprimitives.ActorId Zero = new()
+    {
+        Value = new Api.Generated.Types.Base.Arr32U8
+        {
+            Value = new byte[32].ToArrayOfU8()
+        }
+    };
+
     public static string ToHexString(this Api.Generated.Model.gprimitives.ActorId actorId)
     {
         EnsureArg.IsNotNull(actorId, nameof(actorId));

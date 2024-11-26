@@ -37,6 +37,7 @@ impl<'a> EventsGenerator<'a> {
         );
         let service_listener =
             &csharp::import("global::Sails.Remoting.Abstractions", "IRemotingListener");
+        let actor_id_type = primitive_type_to_dotnet(PrimitiveType::ActorId);
 
         quote! {
             public enum $enum_name
@@ -66,9 +67,9 @@ impl<'a> EventsGenerator<'a> {
                     this.remoting = remoting;
                 }
                 $['\n']
-                public async global::System.Collections.Generic.IAsyncEnumerable<$class_name> ListenAsync([global::System.Runtime.CompilerServices.EnumeratorCancellation] global::System.Threading.CancellationToken cancellationToken = default)
+                public async global::System.Collections.Generic.IAsyncEnumerable<($actor_id_type, $class_name)> ListenAsync([global::System.Runtime.CompilerServices.EnumeratorCancellation] global::System.Threading.CancellationToken cancellationToken = default)
                 {
-                    await foreach (var bytes in this.remoting.ListenAsync(cancellationToken))
+                    await foreach (var (source, bytes) in this.remoting.ListenAsync(cancellationToken))
                     {
                         byte idx = 0;
                         foreach (var route in EventRoutes)
@@ -87,7 +88,7 @@ impl<'a> EventsGenerator<'a> {
                                 var p = 0;
                                 $class_name ev = new();
                                 ev.Decode(bytes, ref p);
-                                yield return ev;
+                                yield return (source, ev);
                             }
                             idx++;
                         }

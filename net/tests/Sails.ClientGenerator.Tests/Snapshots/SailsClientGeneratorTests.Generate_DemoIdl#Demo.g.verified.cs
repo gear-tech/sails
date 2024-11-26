@@ -106,9 +106,9 @@ public sealed partial class CounterListener : IRemotingListener<EnumCounterEvent
         this.remoting = remoting;
     }
 
-    public async global::System.Collections.Generic.IAsyncEnumerable<EnumCounterEvents> ListenAsync([global::System.Runtime.CompilerServices.EnumeratorCancellation] global::System.Threading.CancellationToken cancellationToken = default)
+    public async global::System.Collections.Generic.IAsyncEnumerable<(global::Substrate.Gear.Api.Generated.Model.gprimitives.ActorId, EnumCounterEvents)> ListenAsync([global::System.Runtime.CompilerServices.EnumeratorCancellation] global::System.Threading.CancellationToken cancellationToken = default)
     {
-        await foreach (var bytes in this.remoting.ListenAsync(cancellationToken))
+        await foreach (var(source, bytes)in this.remoting.ListenAsync(cancellationToken))
         {
             byte idx = 0;
             foreach (var route in EventRoutes)
@@ -127,7 +127,7 @@ public sealed partial class CounterListener : IRemotingListener<EnumCounterEvent
                     var p = 0;
                     EnumCounterEvents ev = new();
                     ev.Decode(bytes, ref p);
-                    yield return ev;
+                    yield return (source, ev);
                 }
 
                 idx++;
@@ -201,9 +201,9 @@ public sealed partial class DogListener : IRemotingListener<EnumDogEvents>
         this.remoting = remoting;
     }
 
-    public async global::System.Collections.Generic.IAsyncEnumerable<EnumDogEvents> ListenAsync([global::System.Runtime.CompilerServices.EnumeratorCancellation] global::System.Threading.CancellationToken cancellationToken = default)
+    public async global::System.Collections.Generic.IAsyncEnumerable<(global::Substrate.Gear.Api.Generated.Model.gprimitives.ActorId, EnumDogEvents)> ListenAsync([global::System.Runtime.CompilerServices.EnumeratorCancellation] global::System.Threading.CancellationToken cancellationToken = default)
     {
-        await foreach (var bytes in this.remoting.ListenAsync(cancellationToken))
+        await foreach (var(source, bytes)in this.remoting.ListenAsync(cancellationToken))
         {
             byte idx = 0;
             foreach (var route in EventRoutes)
@@ -222,7 +222,7 @@ public sealed partial class DogListener : IRemotingListener<EnumDogEvents>
                     var p = 0;
                     EnumDogEvents ev = new();
                     ev.Decode(bytes, ref p);
-                    yield return ev;
+                    yield return (source, ev);
                 }
 
                 idx++;
@@ -410,9 +410,9 @@ public sealed partial class ValueFeeListener : IRemotingListener<EnumValueFeeEve
         this.remoting = remoting;
     }
 
-    public async global::System.Collections.Generic.IAsyncEnumerable<EnumValueFeeEvents> ListenAsync([global::System.Runtime.CompilerServices.EnumeratorCancellation] global::System.Threading.CancellationToken cancellationToken = default)
+    public async global::System.Collections.Generic.IAsyncEnumerable<(global::Substrate.Gear.Api.Generated.Model.gprimitives.ActorId, EnumValueFeeEvents)> ListenAsync([global::System.Runtime.CompilerServices.EnumeratorCancellation] global::System.Threading.CancellationToken cancellationToken = default)
     {
-        await foreach (var bytes in this.remoting.ListenAsync(cancellationToken))
+        await foreach (var(source, bytes)in this.remoting.ListenAsync(cancellationToken))
         {
             byte idx = 0;
             foreach (var route in EventRoutes)
@@ -431,7 +431,7 @@ public sealed partial class ValueFeeListener : IRemotingListener<EnumValueFeeEve
                     var p = 0;
                     EnumValueFeeEvents ev = new();
                     ev.Decode(bytes, ref p);
-                    yield return ev;
+                    yield return (source, ev);
                 }
 
                 idx++;

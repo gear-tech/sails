@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Threading;
+using Substrate.Gear.Api.Generated.Model.gprimitives;
 
 namespace Sails.Remoting.Abstractions.Core;
 
@@ -10,5 +11,5 @@ public interface IRemotingListener
     /// </summary>
     /// <param name="cancellationToken"></param>
     /// <returns></returns>
-    IAsyncEnumerable<byte[]> ListenAsync(CancellationToken cancellationToken);
+    IAsyncEnumerable<(ActorId, byte[])> ListenAsync(CancellationToken cancellationToken);
 }
