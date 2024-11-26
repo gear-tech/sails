@@ -145,6 +145,16 @@ jobs:
           pattern: native_client_gen_*
           merge-multiple: true
 
+      - name: Set Up NuGet Sources
+        run: |
+          NUGET_SOURCE_URL="https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json"
+          dotnet nuget remove source ${{ github.repository_owner }}-github || true
+          dotnet nuget add source $NUGET_SOURCE_URL \
+            --name ${{ github.repository_owner }}-github \
+            --username "${{ github.workflow }}" \
+            --password ${{ secrets.GITHUB_TOKEN }} \
+            --store-password-in-clear-text
+
       - name: Build Solution
         run: |
           dotnet build --configuration Release -p:LibraryRoot=${{ github.workspace }}/native_client_gens
@@ -168,11 +178,5 @@ jobs:
 
       - name: Publish NuGet Packages
         run: |
-          NUGET_SOURCE_URL="https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json"
-          dotnet nuget add source $NUGET_SOURCE_URL \
-            --name ${{ github.repository_owner }}-github \
-            --username "${{ github.workflow }}" \
-            --password ${{ secrets.GITHUB_TOKEN }} \
-            --store-password-in-clear-text
           dotnet nuget push ./nugets/*.nupkg \
             --source $NUGET_SOURCE_URL
