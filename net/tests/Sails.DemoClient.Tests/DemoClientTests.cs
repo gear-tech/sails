@@ -1,12 +1,16 @@
-using Sails.Remoting.Tests._Infra.XUnit.Fixtures;
-using Substrate.Gear.Api.Generated;
-using Substrate.Gear.Client;
-using Substrate.Gear.Client.Extensions;
+using System;
+using System.Threading;
+using Microsoft.Extensions.DependencyInjection;
+using Sails.DemoClient.Tests._Infra.XUnit.Fixtures;
+using Sails.Remoting.Abstractions;
+using Sails.Remoting.Abstractions.Core;
+using Sails.Remoting.DependencyInjection;
+using Sails.Remoting.Options;
 using Substrate.Gear.Client.NetApi.Model.Types.Base;
-using Substrate.NET.Schnorrkel.Keys;
-using Substrate.NetApi.Model.Extrinsics;
+using Substrate.NetApi.Model.Types.Base;
+using Substrate.NetApi.Model.Types.Primitive;
 
-namespace Sails.Remoting.Tests;
+namespace Sails.DemoClient.Tests;
 
 public class DemoClientTests : IAssemblyFixture<SailsFixture>
 {
@@ -21,30 +25,21 @@ public class DemoClientTests : IAssemblyFixture<SailsFixture>
             });
         var serviceProvider = serviceCollection.BuildServiceProvider();
         this.remotingProvider = serviceProvider.GetRequiredService<IRemotingProvider>();
-        this.remoting = this.remotingProvider.CreateRemoting(AliceAccount);
-    }
+        this.remoting = this.remotingProvider.CreateRemoting(SailsFixture.AliceAccount);
 
-    private static readonly MiniSecret AliceMiniSecret
-        = new(
-            Utils.HexToByteArray("0xe5be9a5092b81bca64be81d212e7f2f9eba183bb7a90954f7b76361f6edb5c0a"),
-            ExpandMode.Ed25519);
-    private static readonly Account AliceAccount
-        = Account.Build(
-            KeyType.Sr25519,
-            AliceMiniSecret.ExpandToSecret().ToEd25519Bytes(),
-            AliceMiniSecret.GetPair().Public.Key);
+    }
     private static readonly Random Random = new((int)DateTime.UtcNow.Ticks);
 
     private readonly SailsFixture sailsFixture;
     private readonly IRemotingProvider remotingProvider;
     private readonly IRemoting remoting;
 
+
     [Fact]
     public async Task Demo_DefaultConstructor_Works()
     {
         // arrange
-        var codeBytes = await this.sailsFixture.GetDemoContractWasmAsync();
-        var codeId = await this.UploadCodeAsync(codeBytes.AsReadOnlyCollection());
+        var codeId = await this.sailsFixture.GetDemoContractCodeIdAsync();
 
         // act
         var demoFactory = new Demo.DemoFactory(this.remoting);
@@ -61,8 +56,7 @@ public class DemoClientTests : IAssemblyFixture<SailsFixture>
     public async Task Demo_Activation_Throws_NotEnoughGas()
     {
         // arrange
-        var codeBytes = await this.sailsFixture.GetDemoContractWasmAsync();
-        var codeId = await this.UploadCodeAsync(codeBytes.AsReadOnlyCollection());
+        var codeId = await this.sailsFixture.GetDemoContractCodeIdAsync();
 
         // act
         var demoFactory = new Demo.DemoFactory(this.remoting);
@@ -82,8 +76,7 @@ public class DemoClientTests : IAssemblyFixture<SailsFixture>
     public async Task PingPong_Works()
     {
         // arrange
-        var codeBytes = await this.sailsFixture.GetDemoContractWasmAsync();
-        var codeId = await this.UploadCodeAsync(codeBytes.AsReadOnlyCollection());
+        var codeId = await this.sailsFixture.GetDemoContractCodeIdAsync();
 
         var demoFactory = new Demo.DemoFactory(this.remoting);
         var pingPongClient = new Demo.PingPong(this.remoting);
@@ -103,8 +96,7 @@ public class DemoClientTests : IAssemblyFixture<SailsFixture>
     public async Task Counter_Add_Works()
     {
         // arrange
-        var codeBytes = await this.sailsFixture.GetDemoContractWasmAsync();
-        var codeId = await this.UploadCodeAsync(codeBytes.AsReadOnlyCollection());
+        var codeId = await this.sailsFixture.GetDemoContractCodeIdAsync();
 
         var demoFactory = new Demo.DemoFactory(this.remoting);
         var counterClient = new Demo.Counter(this.remoting);
@@ -129,8 +121,7 @@ public class DemoClientTests : IAssemblyFixture<SailsFixture>
     public async Task Counter_Sub_Works()
     {
         // arrange
-        var codeBytes = await this.sailsFixture.GetDemoContractWasmAsync();
-        var codeId = await this.UploadCodeAsync(codeBytes.AsReadOnlyCollection());
+        var codeId = await this.sailsFixture.GetDemoContractCodeIdAsync();
 
         var demoFactory = new Demo.DemoFactory(this.remoting);
         var counterClient = new Demo.Counter(this.remoting);
@@ -155,8 +146,7 @@ public class DemoClientTests : IAssemblyFixture<SailsFixture>
     public async Task Counter_Query_Works()
     {
         // arrange
-        var codeBytes = await this.sailsFixture.GetDemoContractWasmAsync();
-        var codeId = await this.UploadCodeAsync(codeBytes.AsReadOnlyCollection());
+        var codeId = await this.sailsFixture.GetDemoContractCodeIdAsync();
 
         var demoFactory = new Demo.DemoFactory(this.remoting);
         var counterClient = new Demo.Counter(this.remoting);
@@ -178,8 +168,7 @@ public class DemoClientTests : IAssemblyFixture<SailsFixture>
     public async Task Counter_Query_Throws_NotEnoughGas()
     {
         // arrange
-        var codeBytes = await this.sailsFixture.GetDemoContractWasmAsync();
-        var codeId = await this.UploadCodeAsync(codeBytes.AsReadOnlyCollection());
+        var codeId = await this.sailsFixture.GetDemoContractCodeIdAsync();
 
         var demoFactory = new Demo.DemoFactory(this.remoting);
         var counterClient = new Demo.Counter(this.remoting);
@@ -203,8 +192,7 @@ public class DemoClientTests : IAssemblyFixture<SailsFixture>
     public async Task ValueFee_Works()
     {
         // arrange
-        var codeBytes = await this.sailsFixture.GetDemoContractWasmAsync();
-        var codeId = await this.UploadCodeAsync(codeBytes.AsReadOnlyCollection());
+        var codeId = await this.sailsFixture.GetDemoContractCodeIdAsync();
 
         var demoFactory = new Demo.DemoFactory(this.remoting);
         var valueFeeClient = new Demo.ValueFee(this.remoting);
@@ -222,20 +210,5 @@ public class DemoClientTests : IAssemblyFixture<SailsFixture>
         // assert
         Assert.True(result);
         // TODO assert balances
-    }
-
-    private async Task<CodeId> UploadCodeAsync(IReadOnlyCollection<byte> codeBytes)
-    {
-        using (var nodeClient = new SubstrateClientExt(
-            this.sailsFixture.GearNodeWsUrl,
-            ChargeTransactionPayment.Default()))
-        {
-            await nodeClient.ConnectAsync();
-
-            return await nodeClient.UploadCodeAsync(
-                AliceAccount,
-                codeBytes,
-                CancellationToken.None);
-        }
     }
 }
