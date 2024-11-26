@@ -133,6 +133,8 @@ jobs:
       - build_osx_x64
       - build_osx_arm64
     runs-on: ubuntu-latest
+    env:
+      NUGET_SOURCE_URL: "https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json"
 
     steps:
       - name: Checkout Code
@@ -147,7 +149,6 @@ jobs:
 
       - name: Set Up NuGet Sources
         run: |
-          NUGET_SOURCE_URL="https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json"
           dotnet nuget remove source ${{ github.repository_owner }}-github || true
           dotnet nuget add source $NUGET_SOURCE_URL \
             --name ${{ github.repository_owner }}-github \
