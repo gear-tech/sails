@@ -183,10 +183,16 @@ jobs:
             -p:RepositoryUrl=${{ github.server_url }}/${{ github.repository }} \
             -p:Authors=Gear
 
-      - name: Publish NuGet Packages
+      # - name: Publish NuGet Packages
+      #   run: |
+      #     dotnet nuget push ./nugets/*.nupkg \
+      #       --source $NUGET_SOURCE_URL
+
+      - name: Publish NuGet Packages to NuGet.org
         run: |
           dotnet nuget push ./nugets/*.nupkg \
-            --source $NUGET_SOURCE_URL
+            --source https://api.nuget.org/v3/index.json \
+            --api-key ${{ secrets.NUGET_ORG_API_KEY }}
 
   release:
     name: Create Release
