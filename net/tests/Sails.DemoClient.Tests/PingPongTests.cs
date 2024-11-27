@@ -13,13 +13,15 @@ public class PingPongTests(SailsFixture sailsFixture) : RemotingTestsBase(sailsF
     public async Task PingPong_Works()
     {
         // arrange
+        var codeId = await this.SailsFixture.GetDemoContractCodeIdAsync();
+
         var demoFactory = new Demo.DemoFactory(this.Remoting);
         var pingPongClient = new Demo.PingPong(this.Remoting);
 
         // act
         var programId = await demoFactory
             .Default()
-            .SendReceiveAsync(this.codeId!, BitConverter.GetBytes(Random.NextInt64()), CancellationToken.None);
+            .SendReceiveAsync(codeId, BitConverter.GetBytes(Random.NextInt64()), CancellationToken.None);
 
         var result = await pingPongClient.Ping(new Str("ping")).SendReceiveAsync(programId, CancellationToken.None);
 

@@ -10,7 +10,11 @@ public sealed class RemotingViaNodeClientTests : IAssemblyFixture<SailsFixture>
     {
         this.sailsFixture = sailsFixture;
         var serviceCollection = new ServiceCollection();
-        serviceCollection.AddRemotingViaNodeClient(c => c.GearNodeUri = this.sailsFixture.GearNodeWsUrl);
+        serviceCollection.AddRemotingViaNodeClient(
+            new NodeClientOptions
+            {
+                GearNodeUri = this.sailsFixture.GearNodeWsUrl,
+            });
         var serviceProvider = serviceCollection.BuildServiceProvider();
         this.remotingProvider = serviceProvider.GetRequiredService<IRemotingProvider>();
         this.remoting = this.remotingProvider.CreateRemoting(SailsFixture.AliceAccount);
