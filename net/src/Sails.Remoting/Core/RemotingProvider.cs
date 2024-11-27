@@ -7,17 +7,14 @@ namespace Sails.Remoting.Core;
 
 internal sealed class RemotingProvider : IRemotingProvider
 {
-    public RemotingProvider(Func<Account, IRemoting> remotingFactory, Func<IRemotingListener> remotingListenerFactory)
+    public RemotingProvider(Func<Account, IRemoting> remotingFactory)
     {
         EnsureArg.IsNotNull(remotingFactory, nameof(remotingFactory));
-        EnsureArg.IsNotNull(remotingListenerFactory, nameof(remotingListenerFactory));
 
         this.remotingFactory = remotingFactory;
-        this.remotingListenerFactory = remotingListenerFactory;
     }
 
     private readonly Func<Account, IRemoting> remotingFactory;
-    private readonly Func<IRemotingListener> remotingListenerFactory;
 
     /// <inheritdoc/>
     public IRemoting CreateRemoting(Account signingAccount)
@@ -26,6 +23,4 @@ internal sealed class RemotingProvider : IRemotingProvider
 
         return this.remotingFactory(signingAccount);
     }
-
-    public IRemotingListener CreateRemotingListener() => this.remotingListenerFactory();
 }

@@ -21,10 +21,7 @@ public static class ServiceCollectionExtensions
             serviceProvicer => new RemotingProvider(
                 signingAccount => new RemotingViaNodeClient(
                     serviceProvicer.GetRequiredService<INodeClientProvider>(),
-                    signingAccount),
-                () => new RemotingListenerViaNodeClient(serviceProvicer.GetRequiredService<INodeClientProvider>())
-            )
-        );
+                    signingAccount)));
 
         return services;
     }

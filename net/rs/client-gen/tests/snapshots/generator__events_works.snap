@@ -22,12 +22,16 @@ public interface IServiceWithEvents
  }
 
  public sealed partial class ServiceWithEvents : IServiceWithEvents
- { private readonly IRemoting remoting;
+ {
+
+ private const string ROUTE = nameof(ServiceWithEvents);
+
+ private readonly IRemoting remoting;
 
  public ServiceWithEvents(IRemoting remoting) { this.remoting = remoting; }
 
 /// <inheritdoc/>
- public ICall<global::Substrate.Gear.Client.NetApi.Model.Types.Primitive.NonZeroU64> DoThis(global::Substrate.Gear.Client.NetApi.Model.Types.Primitive.NonZeroU256 p1, MyParam p2) { return new RemotingAction<global::Substrate.Gear.Client.NetApi.Model.Types.Primitive.NonZeroU64>(this.remoting, [68, 83, 101, 114, 118, 105, 99, 101, 87, 105, 116, 104, 69, 118, 101, 110, 116, 115, 24, 68, 111, 84, 104, 105, 115], p1, p2); } }
+ public ICall<global::Substrate.Gear.Client.NetApi.Model.Types.Primitive.NonZeroU64> DoThis(global::Substrate.Gear.Client.NetApi.Model.Types.Primitive.NonZeroU256 p1, MyParam p2) { return new RemotingAction<global::Substrate.Gear.Client.NetApi.Model.Types.Primitive.NonZeroU64>(this.remoting, ROUTE, nameof(DoThis) , p1, p2); } }
 
 public enum ServiceWithEventsEvents { One,
  Two,
@@ -41,14 +45,18 @@ this.AddTypeDecoder<MyParam>(ServiceWithEventsEvents.Three);
 this.AddTypeDecoder<global::Substrate.NetApi.Model.Types.Base.BaseVoid>(ServiceWithEventsEvents.Reset);
  } }
 
- public static class ServiceWithEventsListener {
+ public sealed partial class ServiceWithEventsListener {
 
  private const string ROUTE = "ServiceWithEvents";
 
  private static readonly string[] EventRoutes = [ "One","Two","Three","Reset", ];
 
- public static async Task<IAsyncEnumerable<(global::Substrate.Gear.Api.Generated.Model.gprimitives.ActorId, EnumServiceWithEventsEvents)>> ListenAsync(IRemotingListener remoting, CancellationToken cancellationToken = default) {
- var eventStream = await remoting.ListenAsync(cancellationToken);
+ private readonly IRemoting remoting;
+
+ public ServiceWithEventsListener(IRemoting remoting) { this.remoting = remoting; }
+
+ public async Task<IAsyncEnumerable<(global::Substrate.Gear.Api.Generated.Model.gprimitives.ActorId, EnumServiceWithEventsEvents)>> ListenAsync(CancellationToken cancellationToken = default) {
+ var eventStream = await this.remoting.ListenAsync(cancellationToken);
  return eventStream.SelectEvent<EnumServiceWithEventsEvents>(ROUTE, EventRoutes);
  } }
 

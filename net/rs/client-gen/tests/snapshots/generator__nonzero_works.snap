@@ -20,12 +20,16 @@ public interface INonZeroParams
  }
 
  public sealed partial class NonZeroParams : INonZeroParams
- { private readonly IRemoting remoting;
+ {
+
+ private const string ROUTE = nameof(NonZeroParams);
+
+ private readonly IRemoting remoting;
 
  public NonZeroParams(IRemoting remoting) { this.remoting = remoting; }
 
 /// <inheritdoc/>
- public ICall<global::Substrate.Gear.Client.NetApi.Model.Types.Primitive.NonZeroU64> DoThis(global::Substrate.Gear.Client.NetApi.Model.Types.Primitive.NonZeroU256 p1, MyParam p2) { return new RemotingAction<global::Substrate.Gear.Client.NetApi.Model.Types.Primitive.NonZeroU64>(this.remoting, [52, 78, 111, 110, 90, 101, 114, 111, 80, 97, 114, 97, 109, 115, 24, 68, 111, 84, 104, 105, 115], p1, p2); } }
+ public ICall<global::Substrate.Gear.Client.NetApi.Model.Types.Primitive.NonZeroU64> DoThis(global::Substrate.Gear.Client.NetApi.Model.Types.Primitive.NonZeroU256 p1, MyParam p2) { return new RemotingAction<global::Substrate.Gear.Client.NetApi.Model.Types.Primitive.NonZeroU64>(this.remoting, ROUTE, nameof(DoThis) , p1, p2); } }
 
 public sealed partial class MyParam : global::Substrate.NetApi.Model.Types.Base.BaseType {
 public global::Substrate.Gear.Client.NetApi.Model.Types.Primitive.NonZeroU256 F1 { get; init; } = new();

@@ -29,10 +29,7 @@ impl<'a> EventsGenerator<'a> {
         let class_name = &format!("Enum{}Events", name);
         let listener_name = &format!("{}Listener", name);
 
-        let core_listener = &csharp::import(
-            "global::Sails.Remoting.Abstractions.Core",
-            "IRemotingListener",
-        );
+        let remoting = &csharp::import("global::Sails.Remoting.Abstractions.Core", "IRemoting");
         let task = &csharp::import("global::System.Threading.Tasks", "Task");
         let cancellation_token = &csharp::import("global::System.Threading", "CancellationToken");
         let async_enumerable =
@@ -53,7 +50,7 @@ impl<'a> EventsGenerator<'a> {
                 }
             }
             $['\n']
-            public static class $listener_name
+            public sealed partial class $listener_name
             {
                 $['\n']
                 private const string ROUTE = $(quoted(name));
@@ -63,9 +60,16 @@ impl<'a> EventsGenerator<'a> {
                     $(self.event_routes_tokens)
                 ];
                 $['\n']
-                public static async $task<$async_enumerable<($actor_id_type, $class_name)>> ListenAsync($core_listener remoting, $cancellation_token cancellationToken = default)
+                private readonly $remoting remoting;
+                $['\n']
+                public $listener_name($remoting remoting)
+                {
+                    this.remoting = remoting;
+                }
+                $['\n']
+                public async $task<$async_enumerable<($actor_id_type, $class_name)>> ListenAsync($cancellation_token cancellationToken = default)
                 {$['\r']
-                    var eventStream = await remoting.ListenAsync(cancellationToken);$['\r']
+                    var eventStream = await this.remoting.ListenAsync(cancellationToken);$['\r']
                     return eventStream.SelectEvent<$class_name>(ROUTE, EventRoutes);$['\r']
                 }
             }

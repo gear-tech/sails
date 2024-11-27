@@ -56,4 +56,11 @@ public interface IRemoting
         GasUnit? gasLimit,
         ValueUnit value,
         CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Asynchronously subscribe to Gear events.
+    /// </summary>
+    /// <param name="cancellationToken"></param>
+    /// <returns></returns>
+    Task<IAsyncEnumerable<(ActorId Source, byte[] Payload)>> ListenAsync(CancellationToken cancellationToken);
 }
