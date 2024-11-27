@@ -1,9 +1,11 @@
 using System;
+using System.Linq;
 using System.Threading;
 using Sails.DemoClient.Tests._Infra.XUnit.Fixtures;
 using Sails.Remoting.Abstractions;
 using Substrate.NetApi.Model.Types.Base;
 using Substrate.NetApi.Model.Types.Primitive;
+using Substrate.Gear.Client.NetApi.Model.Types.Base;
 
 namespace Sails.DemoClient.Tests;
 
@@ -34,7 +36,7 @@ public class CounterTests(SailsFixture sailsFixture) : RemotingTestsBase(sailsFi
 
         var (source, ev) = await counterListener.ListenAsync(CancellationToken.None).FirstAsync();
         Assert.True(source.IsEqualTo(programId));
-        Assert.True(ev.Matches<Demo.CounterEvents, U32>(Demo.CounterEvents.Added, v => v.Value == 10));
+        Assert.True(ev.Matches<Demo.CounterEvents, U32>(Demo.CounterEvents.Added, static v => v.Value == 10));
     }
 
     [Fact]

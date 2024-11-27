@@ -4,6 +4,7 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
+using EnsureThat;
 using Sails.Remoting.Abstractions;
 using Substrate.Gear.Api.Generated.Model.gprimitives;
 using Substrate.NetApi.Model.Types;
@@ -23,6 +24,10 @@ public class RemotingListener<T> : IRemotingListener<T>
         string serviceRoute,
         string[] eventRoutes)
     {
+        EnsureArg.IsNotNull(eventStream, nameof(eventStream));
+        EnsureArg.IsNotNull(serviceRoute, nameof(serviceRoute));
+        EnsureArg.IsNotNull(eventRoutes, nameof(eventRoutes));
+
         this.eventStream = eventStream;
         this.serviceRoute = new Str(serviceRoute).Encode();
         this.eventRoutes = eventRoutes.Select(r => new Str(r).Encode()).ToArray();
