@@ -204,7 +204,7 @@ jobs:
       pull-requests: write
     needs:
       - prepare
-      # - cli_tests_after_publish
+      - cli_tests_after_publish
       - assets
     defaults:
       run:
