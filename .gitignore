@@ -25,7 +25,6 @@ js/test/demo/
 !.yarn/sdks
 !.yarn/versions
 .npmrc
-js/parser/parser.wasm
 
 # Verify
 *.received.*

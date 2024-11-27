@@ -7,18 +7,10 @@ on:
     paths:
       - 'js/**'
       - 'package.json'
-  workflow_dispatch:
-
-env:
-  BINARYEN_VERSION: version_111
 
 jobs:
   test:
-    if: github.event_name == 'pull_request'
-
     runs-on: ubuntu-22.04
-    env:
-      RUSTUP_HOME: /tmp/rustup_home
     steps:
       - name: Cancel previous workflow runs
         uses: styfle/cancel-workflow-action@0.12.1

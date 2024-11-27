@@ -20,20 +20,18 @@ jobs:
         with:
           node-version: 20.x
 
-      - name: 'Get version from package.json'
+      - name: 'Get info'
+        id: info
         run: |
           VERSION=$(jq -r '.version' package.json)
-          echo "VERSION=$VERSION" >> $GITHUB_ENV
-          echo "TAG_NAME=Sails-JS/v$VERSION" >> $GITHUB_ENV
-
-      - name: 'Get previous version from npm registry'
-        run: |
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "tag_name=js/v$VERSION" >> $GITHUB_OUTPUT
           PREVIOUS_VERSION=$(npm show @js/package version)
-          echo "PREVIOUS_VERSION=$PREVIOUS_VERSION" >> $GITHUB_ENV
+          echo "prev_version=$PREVIOUS_VERSION" >> $GITHUB_OUTPUT
 
       - name: 'Compare versions'
         run: |
-          if [ ${{ env.VERSION }} == ${{ env.PREVIOUS_VERSION }} ]; then
+          if [ ${{ steps.info.outputs.version }} == ${{ steps.info.outputs.prev_version }} ]; then
             echo "No new version to release"
             echo "skip=true" >> $GITHUB_ENV
           else
@@ -42,12 +40,13 @@ jobs:
           fi
 
       - name: 'Get release notes'
+        id: release_notes
         if: env.skip != 'true'
         run: |
-          awk '/## ${{ env.VERSION }}/{flag=1;next}/---/{flag=0} flag' ./js/CHANGELOG.md >> release_notes.txt
-          echo "RELEASE_NOTES<<EOF" >> $GITHUB_ENV
-          cat release_notes.txt >> $GITHUB_ENV
-          echo "EOF" >> $GITHUB_ENV
+          awk '/## ${{ steps.info.outputs.version }}/{flag=1;next}/---/{flag=0} flag' ./js/CHANGELOG.md >> release_notes.txt
+          echo "release_notes<<EOF" >> $GITHUB_OUTPUT
+          cat release_notes.txt >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
           rm release_notes.txt
 
       - name: 'Prepare: install dependencies and build pkgs'
@@ -59,15 +58,16 @@ jobs:
       - name: 'Create new tag'
         if: env.skip != 'true'
         run: |
-          git tag ${{ env.TAG_NAME }}
-          git push origin ${{ env.TAG_NAME }}
+          git tag ${{ steps.info.outputs.tag_name }}
+          git push origin ${{ steps.info.outputs.tag_name }}
 
       - name: 'Create Release'
         if: env.skip != 'true'
         uses: softprops/action-gh-release@v2
         with:
-          body: ${{ env.RELEASE_NOTES }}
-          tag_name: ${{ env.TAG_NAME }}
+          body: ${{ steps.release_notes.outputs.release_notes }}
+          tag_name: ${{ steps.info.outputs.tag_name }}
+          name: 'Sails-JS v${{ steps.info.outputs.version }}'
 
       - name: 'Publish to npm registry'
         if: env.skip != 'true'
