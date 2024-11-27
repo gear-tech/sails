@@ -30,18 +30,19 @@ jobs:
           echo "prev_version=$PREVIOUS_VERSION" >> $GITHUB_OUTPUT
 
       - name: 'Compare versions'
+        id: release
         run: |
           if [ ${{ steps.info.outputs.version }} == ${{ steps.info.outputs.prev_version }} ]; then
             echo "No new version to release"
-            echo "skip=true" >> $GITHUB_ENV
+            echo "skip=true" >> $GITHUB_OUTPUT
           else
             echo "New version to release"
-            echo "skip=false" >> $GITHUB_ENV
+            echo "skip=false" >> $GITHUB_OUTPUT
           fi
 
       - name: 'Get release notes'
         id: release_notes
-        if: env.skip != 'true'
+        if: steps.release.outputs.skip != 'true'
         run: |
           awk '/## ${{ steps.info.outputs.version }}/{flag=1;next}/---/{flag=0} flag' ./js/CHANGELOG.md >> release_notes.txt
           echo "release_notes<<EOF" >> $GITHUB_OUTPUT
@@ -50,19 +51,19 @@ jobs:
           rm release_notes.txt
 
       - name: 'Prepare: install dependencies and build pkgs'
-        if: env.skip != 'true'
+        if: steps.release.outputs.skip != 'true'
         run: |
           yarn install
           yarn build
 
       - name: 'Create new tag'
-        if: env.skip != 'true'
+        if: steps.release.outputs.skip != 'true'
         run: |
           git tag ${{ steps.info.outputs.tag_name }}
           git push origin ${{ steps.info.outputs.tag_name }}
 
       - name: 'Create Release'
-        if: env.skip != 'true'
+        if: steps.release.outputs.skip != 'true'
         uses: softprops/action-gh-release@v2
         with:
           body: ${{ steps.release_notes.outputs.release_notes }}
@@ -70,7 +71,7 @@ jobs:
           name: 'Sails-JS v${{ steps.info.outputs.version }}'
 
       - name: 'Publish to npm registry'
-        if: env.skip != 'true'
+        if: steps.release.outputs.skip != 'true'
         run: |
           export token=$(printenv npm_token)
           echo "//registry.npmjs.org/:_authToken=$token" > .npmrc
