@@ -1,0 +1,80 @@
+name: '[js] Release'
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - package.json
+
+jobs:
+  release:
+    name: Create Release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: 'Setup NodeJS 20.x'
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20.x
+
+      - name: 'Get info'
+        id: info
+        run: |
+          VERSION=$(jq -r '.version' package.json)
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "tag_name=js/v$VERSION" >> $GITHUB_OUTPUT
+          PREVIOUS_VERSION=$(npm show @js/package version)
+          echo "prev_version=$PREVIOUS_VERSION" >> $GITHUB_OUTPUT
+
+      - name: 'Compare versions'
+        id: release
+        run: |
+          if [ ${{ steps.info.outputs.version }} == ${{ steps.info.outputs.prev_version }} ]; then
+            echo "No new version to release"
+            echo "skip=true" >> $GITHUB_OUTPUT
+          else
+            echo "New version to release"
+            echo "skip=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: 'Get release notes'
+        id: release_notes
+        if: steps.release.outputs.skip != 'true'
+        run: |
+          awk '/## ${{ steps.info.outputs.version }}/{flag=1;next}/---/{flag=0} flag' ./js/CHANGELOG.md >> release_notes.txt
+          echo "release_notes<<EOF" >> $GITHUB_OUTPUT
+          cat release_notes.txt >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+          rm release_notes.txt
+
+      - name: 'Prepare: install dependencies and build pkgs'
+        if: steps.release.outputs.skip != 'true'
+        run: |
+          yarn install
+          yarn build
+
+      - name: 'Create new tag'
+        if: steps.release.outputs.skip != 'true'
+        run: |
+          git tag ${{ steps.info.outputs.tag_name }}
+          git push origin ${{ steps.info.outputs.tag_name }}
+
+      - name: 'Create Release'
+        if: steps.release.outputs.skip != 'true'
+        uses: softprops/action-gh-release@v2
+        with:
+          body: ${{ steps.release_notes.outputs.release_notes }}
+          tag_name: ${{ steps.info.outputs.tag_name }}
+          name: 'Sails-JS v${{ steps.info.outputs.version }}'
+
+      - name: 'Publish to npm registry'
+        if: steps.release.outputs.skip != 'true'
+        run: |
+          export token=$(printenv npm_token)
+          echo "//registry.npmjs.org/:_authToken=$token" > .npmrc
+          npx lerna publish from-package --yes --no-private
+        env:
+          npm_token: ${{ secrets.NPM_TOKEN }}

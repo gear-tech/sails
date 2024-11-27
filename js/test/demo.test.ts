@@ -18,7 +18,7 @@ let charlieRaw: HexString;
 let code: Buffer;
 let codeId: HexString;
 
-const DEMO_WASM_PATH = '../target/wasm32-unknown-unknown/release/demo.opt.wasm';
+const DEMO_WASM_PATH = 'test/demo/demo.wasm';
 
 beforeAll(async () => {
   const parser = await SailsIdlParser.new();
