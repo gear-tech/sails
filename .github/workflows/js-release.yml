@@ -7,9 +7,6 @@ on:
     paths:
       - package.json
 
-env:
-  BUILD_MODE: release
-
 jobs:
   release:
     name: Create Release
