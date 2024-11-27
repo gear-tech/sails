@@ -3,11 +3,11 @@ using Microsoft.Extensions.DependencyInjection;
 using Sails.DemoClient.Tests._Infra.XUnit.Fixtures;
 using Sails.Remoting.Abstractions.Core;
 using Sails.Remoting.DependencyInjection;
-using Sails.Remoting.Options;
+using Substrate.Gear.Api.Generated.Model.gprimitives;
 
 namespace Sails.DemoClient.Tests;
 
-public class RemotingTestsBase : IAssemblyFixture<SailsFixture>
+public class RemotingTestsBase : IAssemblyFixture<SailsFixture>, IAsyncLifetime
 {
     public RemotingTestsBase(SailsFixture fixture)
     {
@@ -15,11 +15,8 @@ public class RemotingTestsBase : IAssemblyFixture<SailsFixture>
         // Assert that IDL file from the Sails.DemoClient project is the same as the one
         // from the SailsFixture
         var serviceCollection = new ServiceCollection();
-        serviceCollection.AddRemotingViaNodeClient(
-            new NodeClientOptions
-            {
-                GearNodeUri = this.SailsFixture.GearNodeWsUrl,
-            });
+
+        serviceCollection.AddRemotingViaNodeClient(c => c.GearNodeUri = this.SailsFixture.GearNodeWsUrl);
         var serviceProvider = serviceCollection.BuildServiceProvider();
         this.RemotingProvider = serviceProvider.GetRequiredService<IRemotingProvider>();
         this.Remoting = this.RemotingProvider.CreateRemoting(SailsFixture.AliceAccount);
@@ -32,4 +29,10 @@ public class RemotingTestsBase : IAssemblyFixture<SailsFixture>
     protected readonly IRemotingProvider RemotingProvider;
     protected readonly IRemoting Remoting;
     protected readonly IRemotingListener RemotingListener;
+    protected CodeId? codeId;
+
+    protected static byte[] RandomSalt() => BitConverter.GetBytes(Random.NextInt64());
+
+    public async Task InitializeAsync() => this.codeId = await this.SailsFixture.GetDemoContractCodeIdAsync();
+    public async Task DisposeAsync() => await this.RemotingListener.DisposeAsync();
 }

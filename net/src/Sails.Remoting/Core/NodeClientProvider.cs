@@ -2,6 +2,7 @@
 using System.Threading;
 using System.Threading.Tasks;
 using EnsureThat;
+using Microsoft.Extensions.Options;
 using Sails.Remoting.Options;
 using Substrate.Gear.Api.Generated;
 using Substrate.NetApi.Model.Extrinsics;
@@ -10,12 +11,12 @@ namespace Sails.Remoting.Core;
 
 internal sealed class NodeClientProvider : IDisposable, INodeClientProvider
 {
-    public NodeClientProvider(NodeClientOptions options)
+    public NodeClientProvider(IOptions<NodeClientOptions> options)
     {
         EnsureArg.IsNotNull(options, nameof(options));
-        EnsureArg.IsNotNull(options.GearNodeUri, nameof(options.GearNodeUri));
+        EnsureArg.IsNotNull(options.Value.GearNodeUri, nameof(options.Value.GearNodeUri));
 
-        this.nodeClient = new SubstrateClientExt(options.GearNodeUri, ChargeTransactionPayment.Default());
+        this.nodeClient = new SubstrateClientExt(options.Value.GearNodeUri, ChargeTransactionPayment.Default());
     }
 
     private readonly SubstrateClientExt nodeClient;

@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -16,7 +15,7 @@ using Substrate.Gear.Client.NetApi.Model.Types.Base;
 
 namespace Sails.Remoting.Core;
 
-internal sealed class RemotingListenerViaNodeClient : IRemotingListener, IAsyncDisposable
+internal sealed class RemotingListenerViaNodeClient : IRemotingListener
 {
     public RemotingListenerViaNodeClient(INodeClientProvider nodeClientProvider)
     {

@@ -54,6 +54,7 @@
   <!-- Sails.Remoting.Abstractions -->
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
+    <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" />
   </ItemGroup>
   
   <ItemGroup>
