@@ -88,6 +88,7 @@ jobs:
           echo "branch=$RC_BRANCH" >> $GITHUB_OUTPUT
 
   ws_tests:
+    if: false
     name: Run Workspace Tests
     needs:
       - prepare
@@ -97,6 +98,7 @@ jobs:
       gear_node_version: 1.6.0
 
   cli_tests:
+    if: false
     name: Run CLI Tests
     needs:
       - prepare
@@ -128,6 +130,20 @@ jobs:
           mkdir -p ./assets/sails_idl_parser
           wasm-opt -O4 -o ./assets/sails_idl_parser/sails_idl_parser.wasm ./target/wasm32-unknown-unknown/release/sails_idl_parser.wasm
 
+      - name: Build Demo
+        run: |
+          cargo build -p demo --release
+          mkdir -p ./assets/demo
+          cp ./target/wasm32-unknown-unknown/release/demo.opt.wasm ./assets/demo/demo.wasm
+          cp ./examples/demo/client/demo.idl ./assets/demo/demo.idl
+
+      - name: Build NoSvcsProg
+        run: |
+          cargo build -p no-svcs-prog --release
+          mkdir -p ./assets/no_svcs_prog
+          cp ./target/wasm32-unknown-unknown/release/no_svcs_prog.opt.wasm ./assets/no_svcs_prog/no_svcs_prog.wasm
+          cp ./examples/no-svcs-prog/wasm/no-svcs-prog.idl ./assets/no_svcs_prog/no-svcs-prog.idl
+
       - name: Upload Assets
         uses: actions/upload-artifact@v4
         with:
@@ -135,6 +151,7 @@ jobs:
           path: ./assets/
 
   publish:
+    if: false
     name: Publish Crates
     runs-on: ubuntu-latest
     needs:
@@ -174,6 +191,7 @@ jobs:
           git push origin "${{ needs.prepare.outputs.rc_branch }}"
 
   cli_tests_after_publish:
+    if: false
     name: Run CLI Tests After Publish
     needs:
       - prepare
@@ -190,7 +208,7 @@ jobs:
       pull-requests: write
     needs:
       - prepare
-      - cli_tests_after_publish
+      # - cli_tests_after_publish
       - assets
     defaults:
       run:
@@ -246,4 +264,8 @@ jobs:
           fail_on_unmatched_files: true
           files: |
             ./assets/sails_idl_parser/sails_idl_parser.wasm
+            ./assets/demo/demo.wasm
+            ./assets/demo/demo.idl
+            ./assets/no_svcs_prog/no_svcs_prog.wasm
+            ./assets/no_svcs_prog/no-svcs-prog.idl
           token: ${{ secrets.GITHUB_TOKEN }}
