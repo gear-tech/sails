@@ -128,6 +128,20 @@ jobs:
           mkdir -p ./assets/sails_idl_parser
           wasm-opt -O4 -o ./assets/sails_idl_parser/sails_idl_parser.wasm ./target/wasm32-unknown-unknown/release/sails_idl_parser.wasm
 
+      - name: Build Demo
+        run: |
+          cargo build -p demo --release
+          mkdir -p ./assets/demo
+          cp ./target/wasm32-unknown-unknown/release/demo.opt.wasm ./assets/demo/demo.wasm
+          cp ./examples/demo/client/demo.idl ./assets/demo/demo.idl
+
+      - name: Build NoSvcsProg
+        run: |
+          cargo build -p no-svcs-prog --release
+          mkdir -p ./assets/no_svcs_prog
+          cp ./target/wasm32-unknown-unknown/release/no_svcs_prog.opt.wasm ./assets/no_svcs_prog/no_svcs_prog.wasm
+          cp ./examples/no-svcs-prog/wasm/no-svcs-prog.idl ./assets/no_svcs_prog/no-svcs-prog.idl
+
       - name: Upload Assets
         uses: actions/upload-artifact@v4
         with:
@@ -246,4 +260,8 @@ jobs:
           fail_on_unmatched_files: true
           files: |
             ./assets/sails_idl_parser/sails_idl_parser.wasm
+            ./assets/demo/demo.wasm
+            ./assets/demo/demo.idl
+            ./assets/no_svcs_prog/no_svcs_prog.wasm
+            ./assets/no_svcs_prog/no-svcs-prog.idl
           token: ${{ secrets.GITHUB_TOKEN }}
