@@ -4,5 +4,5 @@ namespace Sails.Remoting.Options;
 
 public sealed record NodeClientOptions
 {
-    public Uri? GearNodeUri { get; set; }
+    public Uri? GearNodeUri { get; init; }
 }

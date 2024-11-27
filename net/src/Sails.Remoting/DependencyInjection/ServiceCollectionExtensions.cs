@@ -1,5 +1,4 @@
-﻿using System;
-using EnsureThat;
+﻿using EnsureThat;
 using Microsoft.Extensions.DependencyInjection;
 using Sails.Remoting.Abstractions.Core;
 using Sails.Remoting.Core;
@@ -11,13 +10,12 @@ public static class ServiceCollectionExtensions
 {
     public static IServiceCollection AddRemotingViaNodeClient(
         this IServiceCollection services,
-        Action<NodeClientOptions> configure)
+        NodeClientOptions options)
     {
         EnsureArg.IsNotNull(services, nameof(services));
-        EnsureArg.IsNotNull(configure, nameof(configure));
+        EnsureArg.IsNotNull(options, nameof(options));
 
-        var serviceCollection = services.Configure(configure);
-        services.AddSingleton<INodeClientProvider, NodeClientProvider>();
+        services.AddSingleton<INodeClientProvider>(_ => new NodeClientProvider(options));
 
         services.AddTransient<IRemotingProvider>(
             serviceProvicer => new RemotingProvider(
