@@ -1,9 +1,7 @@
-﻿using System;
-using System.Linq;
+using System;
 using System.Threading;
 using Sails.DemoClient.Tests._Infra.XUnit.Fixtures;
 using Sails.Remoting.Abstractions;
-using Substrate.Gear.Client.NetApi.Model.Types.Base;
 using Substrate.NetApi.Model.Types.Base;
 using Substrate.NetApi.Model.Types.Primitive;
 
@@ -21,7 +19,6 @@ public class CounterTests(SailsFixture sailsFixture) : RemotingTestsBase(sailsFi
         var counterClient = new Demo.Counter(this.Remoting);
 
         var counterListener = await Demo.CounterListener.SubscribeAsync(this.RemotingListener);
-        //var events = await this.RemotingListener.ListenAsync(CancellationToken.None);
 
         // act
         var dogPosition = new BaseOpt<BaseTuple<I32, I32>>(new BaseTuple<I32, I32>(new I32(0), new I32(0)));

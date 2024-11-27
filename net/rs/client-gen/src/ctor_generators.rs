@@ -1,7 +1,4 @@
-use crate::{
-    helpers::*,
-    type_generators::{primitive_type_to_dotnet, TypeDeclGenerator},
-};
+use crate::{helpers::*, type_decl_generators::*};
 use convert_case::{Case, Casing};
 use csharp::Tokens;
 use genco::prelude::*;
