@@ -20,7 +20,7 @@ public class CounterTests(SailsFixture sailsFixture) : RemotingTestsBase(sailsFi
         var demoFactory = new Demo.DemoFactory(this.Remoting);
         var counterClient = new Demo.Counter(this.Remoting);
 
-        var counterListener = await Demo.CounterListener.SubscribeAsync(this.RemotingListener);
+        var eventStream = await Demo.CounterListener.ListenAsync(this.RemotingListener);
 
         // act
         var dogPosition = new BaseOpt<BaseTuple<I32, I32>>(new BaseTuple<I32, I32>(new I32(0), new I32(0)));
@@ -34,7 +34,7 @@ public class CounterTests(SailsFixture sailsFixture) : RemotingTestsBase(sailsFi
         Assert.NotNull(result);
         Assert.Equal(52u, result.Value);
 
-        var (source, ev) = await counterListener.ListenAsync(CancellationToken.None).FirstAsync();
+        var (source, ev) = await eventStream.FirstAsync();
         Assert.True(source.IsEqualTo(programId));
         Assert.True(ev.Matches<Demo.CounterEvents, U32>(Demo.CounterEvents.Added, static v => v.Value == 10));
     }

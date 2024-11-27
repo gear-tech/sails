@@ -33,11 +33,11 @@ impl<'a> EventsGenerator<'a> {
             "global::Sails.Remoting.Abstractions.Core",
             "IRemotingListener",
         );
-        let service_listener =
-            &csharp::import("global::Sails.Remoting.Abstractions", "IRemotingListener");
-        let client_listener = &csharp::import("global::Sails.Remoting", "RemotingListener");
         let task = &csharp::import("global::System.Threading.Tasks", "Task");
         let cancellation_token = &csharp::import("global::System.Threading", "CancellationToken");
+        let async_enumerable =
+            &csharp::import("global::System.Collections.Generic", "IAsyncEnumerable");
+        let actor_id_type = primitive_type_to_dotnet(PrimitiveType::ActorId);
 
         quote! {
             public enum $enum_name
@@ -63,10 +63,10 @@ impl<'a> EventsGenerator<'a> {
                     $(self.event_routes_tokens)
                 ];
                 $['\n']
-                public static async $task<$service_listener<$class_name>> SubscribeAsync($core_listener remoting, $cancellation_token cancellationToken = default)
+                public static async $task<$async_enumerable<($actor_id_type, $class_name)>> ListenAsync($core_listener remoting, $cancellation_token cancellationToken = default)
                 {$['\r']
                     var eventStream = await remoting.ListenAsync(cancellationToken);$['\r']
-                    return new $client_listener<$class_name>(eventStream, ROUTE, EventRoutes);$['\r']
+                    return eventStream.SelectEvent<$class_name>(ROUTE, EventRoutes);$['\r']
                 }
             }
             $['\n']

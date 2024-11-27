@@ -104,10 +104,10 @@ public static class CounterListener
 {
     private const string ROUTE = "Counter";
     private static readonly string[] EventRoutes = ["Added", "Subtracted", ];
-    public static async Task<IRemotingListener<EnumCounterEvents>> SubscribeAsync(global::Sails.Remoting.Abstractions.Core.IRemotingListener remoting, CancellationToken cancellationToken = default)
+    public static async Task<IAsyncEnumerable<(global::Substrate.Gear.Api.Generated.Model.gprimitives.ActorId, EnumCounterEvents)>> ListenAsync(IRemotingListener remoting, CancellationToken cancellationToken = default)
     {
         var eventStream = await remoting.ListenAsync(cancellationToken);
-        return new RemotingListener<EnumCounterEvents>(eventStream, ROUTE, EventRoutes);
+        return eventStream.SelectEvent<EnumCounterEvents>(ROUTE, EventRoutes);
     }
 }
 
@@ -171,10 +171,10 @@ public static class DogListener
 {
     private const string ROUTE = "Dog";
     private static readonly string[] EventRoutes = ["Barked", "Walked", ];
-    public static async Task<IRemotingListener<EnumDogEvents>> SubscribeAsync(global::Sails.Remoting.Abstractions.Core.IRemotingListener remoting, CancellationToken cancellationToken = default)
+    public static async Task<IAsyncEnumerable<(global::Substrate.Gear.Api.Generated.Model.gprimitives.ActorId, EnumDogEvents)>> ListenAsync(IRemotingListener remoting, CancellationToken cancellationToken = default)
     {
         var eventStream = await remoting.ListenAsync(cancellationToken);
-        return new RemotingListener<EnumDogEvents>(eventStream, ROUTE, EventRoutes);
+        return eventStream.SelectEvent<EnumDogEvents>(ROUTE, EventRoutes);
     }
 }
 
@@ -352,10 +352,10 @@ public static class ValueFeeListener
 {
     private const string ROUTE = "ValueFee";
     private static readonly string[] EventRoutes = ["Withheld", ];
-    public static async Task<IRemotingListener<EnumValueFeeEvents>> SubscribeAsync(global::Sails.Remoting.Abstractions.Core.IRemotingListener remoting, CancellationToken cancellationToken = default)
+    public static async Task<IAsyncEnumerable<(global::Substrate.Gear.Api.Generated.Model.gprimitives.ActorId, EnumValueFeeEvents)>> ListenAsync(IRemotingListener remoting, CancellationToken cancellationToken = default)
     {
         var eventStream = await remoting.ListenAsync(cancellationToken);
-        return new RemotingListener<EnumValueFeeEvents>(eventStream, ROUTE, EventRoutes);
+        return eventStream.SelectEvent<EnumValueFeeEvents>(ROUTE, EventRoutes);
     }
 }
 

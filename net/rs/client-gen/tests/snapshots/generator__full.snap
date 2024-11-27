@@ -80,9 +80,9 @@ this.AddTypeDecoder<global::Substrate.NetApi.Model.Types.Primitive.Str>(ServiceE
 
  private static readonly string[] EventRoutes = [ "ThisDone","ThatDone", ];
 
- public static async Task<IRemotingListener<EnumServiceEvents>> SubscribeAsync(global::Sails.Remoting.Abstractions.Core.IRemotingListener remoting, CancellationToken cancellationToken = default) {
+ public static async Task<IAsyncEnumerable<(global::Substrate.Gear.Api.Generated.Model.gprimitives.ActorId, EnumServiceEvents)>> ListenAsync(IRemotingListener remoting, CancellationToken cancellationToken = default) {
  var eventStream = await remoting.ListenAsync(cancellationToken);
- return new RemotingListener<EnumServiceEvents>(eventStream, ROUTE, EventRoutes);
+ return eventStream.SelectEvent<EnumServiceEvents>(ROUTE, EventRoutes);
  } }
 
 /// <summary>

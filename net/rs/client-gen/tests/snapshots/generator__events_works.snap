@@ -47,9 +47,9 @@ this.AddTypeDecoder<global::Substrate.NetApi.Model.Types.Base.BaseVoid>(ServiceW
 
  private static readonly string[] EventRoutes = [ "One","Two","Three","Reset", ];
 
- public static async Task<IRemotingListener<EnumServiceWithEventsEvents>> SubscribeAsync(global::Sails.Remoting.Abstractions.Core.IRemotingListener remoting, CancellationToken cancellationToken = default) {
+ public static async Task<IAsyncEnumerable<(global::Substrate.Gear.Api.Generated.Model.gprimitives.ActorId, EnumServiceWithEventsEvents)>> ListenAsync(IRemotingListener remoting, CancellationToken cancellationToken = default) {
  var eventStream = await remoting.ListenAsync(cancellationToken);
- return new RemotingListener<EnumServiceWithEventsEvents>(eventStream, ROUTE, EventRoutes);
+ return eventStream.SelectEvent<EnumServiceWithEventsEvents>(ROUTE, EventRoutes);
  } }
 
 public sealed partial class MyParam : global::Substrate.NetApi.Model.Types.Base.BaseType {
