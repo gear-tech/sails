@@ -65,7 +65,7 @@ jobs:
 
   build_win_x64:
     name: Build Native Libraries for Win x64
-    runs-on: windows-lates
+    runs-on: windows-latest
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -76,7 +76,7 @@ jobs:
 
   build_linux_x64:
     name: Build Native Libraries for Linux x64
-    runs-on: ubuntu-lates
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -87,7 +87,7 @@ jobs:
 
   build_osx_x64:
     name: Build Native Libraries for NacOS x64
-    runs-on: macos-lates
+    runs-on: macos-latest
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -99,7 +99,7 @@ jobs:
 
   build_osx_arm64:
     name: Build Native Libraries for MacOS ARM64
-    runs-on: macos-lates
+    runs-on: macos-latest
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
