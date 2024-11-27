@@ -33,7 +33,7 @@
     <PackageVersion Include="MessagePack" Version="2.5.192" />
     <PackageVersion Include="System.Text.Json" Version="9.0.0" />
     <!-- Examples -->
-    <PackageVersion Include="Sails.ClientGenerator" Version="0.0.1-beta.1" />
-    <PackageVersion Include="Sails.Net" Version="0.0.1-beta.1" />
+    <PackageVersion Include="Sails.ClientGenerator" Version="0.0.1-beta.2" />
+    <PackageVersion Include="Sails.Net" Version="0.0.1-beta.2" />
   </ItemGroup>
 </Project>

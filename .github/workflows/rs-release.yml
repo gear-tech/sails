@@ -1,4 +1,4 @@
-# This workflow is triggered by a tag that matches the pattern rs/v*-rc.
+# This workflow is triggered by a tag that matches the pattern rs/v*-pin.
 # Essentially it does the following:
 #   - gathers release info including its version using created tag
 #   - applies version to the workspace and updates crates dependencies
@@ -13,7 +13,7 @@ name: '[rs] Release'
 on:
   push:
     tags:
-      - 'rs/v*-rc'
+      - 'rs/v*-pin'
 
 env:
   # see https://api.github.com/users/github-actions%5Bbot%5D
@@ -53,15 +53,15 @@ jobs:
       - name: Extract Release Info
         id: release_info
         run: |
-          RC_TAG=${GITHUB_REF#refs/tags/}
-          VERSION=${RC_TAG#rs/v}
-          VERSION="${VERSION%-rc}"
-          if [[ ! $VERSION =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+          PIN_TAG=${GITHUB_REF#refs/tags/}
+          VERSION=${PIN_TAG#rs/v}
+          VERSION="${VERSION%-pin}"
+          if [[ ! $VERSION =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[a-z]+\.[0-9]+)?$ ]]; then
             echo "'$VERSION' is not a valid semver version"
             exit 1
           fi
-          echo "RC Tag: $RC_TAG"
-          echo "rc_tag=$RC_TAG" >> $GITHUB_OUTPUT
+          echo "Pin Tag: $PIN_TAG"
+          echo "pin_tag=$PIN_TAG" >> $GITHUB_OUTPUT
           echo "Version: $VERSION"
           echo "version=$VERSION" >> $GITHUB_OUTPUT
 
@@ -84,7 +84,7 @@ jobs:
           git add Cargo.lock
           git commit -m "build(rs): update version to v${{ steps.release_info.outputs.version }}"
           git push origin "$RC_BRANCH"
-          git push origin --delete "${{ steps.release_info.outputs.rc_tag }}"
+          git push origin --delete "${{ steps.release_info.outputs.pin_tag }}"
           echo "branch=$RC_BRANCH" >> $GITHUB_OUTPUT
 
   ws_tests:
@@ -127,6 +127,20 @@ jobs:
           cargo build -p sails-idl-parser --target wasm32-unknown-unknown --release
           mkdir -p ./assets/sails_idl_parser
           wasm-opt -O4 -o ./assets/sails_idl_parser/sails_idl_parser.wasm ./target/wasm32-unknown-unknown/release/sails_idl_parser.wasm
+
+      - name: Build Demo
+        run: |
+          cargo build -p demo --release
+          mkdir -p ./assets/demo
+          cp ./target/wasm32-unknown-unknown/release/demo.opt.wasm ./assets/demo/demo.wasm
+          cp ./examples/demo/client/demo.idl ./assets/demo/demo.idl
+
+      - name: Build NoSvcsProg
+        run: |
+          cargo build -p no-svcs-prog --release
+          mkdir -p ./assets/no_svcs_prog
+          cp ./target/wasm32-unknown-unknown/release/no_svcs_prog.opt.wasm ./assets/no_svcs_prog/no_svcs_prog.wasm
+          cp ./examples/no-svcs-prog/wasm/no-svcs-prog.idl ./assets/no_svcs_prog/no-svcs-prog.idl
 
       - name: Upload Assets
         uses: actions/upload-artifact@v4
@@ -246,4 +260,8 @@ jobs:
           fail_on_unmatched_files: true
           files: |
             ./assets/sails_idl_parser/sails_idl_parser.wasm
+            ./assets/demo/demo.wasm
+            ./assets/demo/demo.idl
+            ./assets/no_svcs_prog/no_svcs_prog.wasm
+            ./assets/no_svcs_prog/no-svcs-prog.idl
           token: ${{ secrets.GITHUB_TOKEN }}

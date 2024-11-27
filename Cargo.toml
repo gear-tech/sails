@@ -1,5 +1,5 @@
 [workspace.package]
-version = "0.6.3"
+version = "0.7.0"
 authors = ["Gear Technologies"]
 edition = "2021"
 license = "GPL-3.0"
@@ -41,13 +41,13 @@ sails-rs = { path = "rs" }
 sails-rename = { package = "sails-rs", path = "rs" }
 
 # Gear deps
-gclient = "=1.6.2"
-gear-core = { version = "=1.6.2", default-features = false }
-gear-core-errors = "=1.6.2"
-gprimitives = { version = "=1.6.2", features = ["codec"] }
-gstd = "=1.6.2"
-gtest = "=1.6.2"
-gwasm-builder = { version = "=1.6.2", package = "gear-wasm-builder" }
+gclient = "=1.7.0"
+gear-core = { version = "=1.7.0", default-features = false }
+gear-core-errors = "=1.7.0"
+gprimitives = { version = "=1.7.0", features = ["codec"] }
+gstd = "=1.7.0"
+gtest = "=1.7.0"
+gwasm-builder = { version = "=1.7.0", package = "gear-wasm-builder" }
 
 # Other deps in alphabetical order
 anyhow = "1"
