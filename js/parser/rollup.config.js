@@ -2,7 +2,6 @@ import { writeFileSync, rmSync } from 'fs';
 import commonjs from '@rollup/plugin-commonjs';
 import typescript from 'rollup-plugin-typescript2';
 import config from '../config.json' assert { type: 'json' };
-import { readFile } from 'fs/promises';
 
 async function getStreamFromRelease(version, cs) {
   const link = `https://github.com/gear-tech/sails/releases/download/rs%2Fv${version}/sails_idl_parser.wasm`;
@@ -15,18 +14,10 @@ async function getStreamFromRelease(version, cs) {
   return res.body.pipeThrough(cs);
 }
 
-async function getStreamFromFile(cs) {
-  const file = await readFile('./parser.wasm');
-  return new Response(file).body.pipeThrough(cs);
-}
-
 async function getBase64Parser(version) {
   const cs = new CompressionStream('gzip');
 
-  const stream =
-    process.env.BUILD_MODE?.toLowerCase() === 'release'
-      ? await getStreamFromRelease(version, cs)
-      : await getStreamFromFile(cs);
+  const stream = await getStreamFromRelease(version, cs);
 
   const reader = stream.getReader();
 
