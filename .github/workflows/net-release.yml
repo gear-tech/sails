@@ -5,6 +5,11 @@ on:
     tags:
       - 'net/v*-pin'
 
+env:
+  # see https://api.github.com/users/github-actions%5Bbot%5D
+  GITHUB_USER_NAME: github-actions[bot]
+  GITHUB_USER_EMAIL: 41898282+github-actions[bot]@users.noreply.github.com
+
 jobs:
   prepare:
       name: Prepare Release
@@ -16,7 +21,8 @@ jobs:
           shell: bash
       outputs:
         r_version: ${{ steps.release_info.outputs.version }}
-        r_tag: rs/v${{ steps.release_info.outputs.version }}
+        r_tag: net/v${{ steps.release_info.outputs.version }}
+        pin_tag: ${{ steps.release_info.outputs.pin_tag }}
 
       steps:
         - name: Extract Release Info
@@ -178,6 +184,46 @@ jobs:
             -p:Authors=Gear
 
       - name: Publish NuGet Packages
+        if: false
         run: |
           dotnet nuget push ./nugets/*.nupkg \
             --source $NUGET_SOURCE_URL
+
+  release:
+    name: Create Release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    needs:
+      - prepare
+      - publish
+    defaults:
+      run:
+        shell: bash
+    env:
+      R_NAME: Sails-Net v${{ needs.prepare.outputs.r_version }}
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Create Release Tag
+        run: |
+          R_TAG=${{ needs.prepare.outputs.r_tag }}
+          git config user.name "$GITHUB_USER_NAME"
+          git config user.email "$GITHUB_USER_EMAIL"
+          git tag -a "$R_TAG" -m "Release .Net v${{ needs.prepare.outputs.r_version }}"
+          git push origin "$R_TAG"
+          git push origin --delete "${{ needs.prepare.outputs.pin_tag }}"
+
+      - name: Create Draft Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: ${{ env.R_NAME }}
+          tag_name: ${{ needs.prepare.outputs.r_tag }}
+          draft: true
+          body: |
+            :exclamation: This is a draft release.
+            :exclamation: Please write/generate change notes and publish the release.
+          fail_on_unmatched_files: true
+          token: ${{ secrets.GITHUB_TOKEN }}
