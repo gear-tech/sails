@@ -17,7 +17,7 @@ on:
 
 jobs:
   build-test:
-    name: Build & Test
+    name: Test Managed Code
     runs-on: ubuntu-latest
     permissions:
       packages: read
@@ -36,23 +36,16 @@ jobs:
 
       - name: Restore Solution
         run: |
-          NUGET_SOURCE_URL="https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json"
-          dotnet nuget remove source ${{ github.repository_owner }}-github || true
-          dotnet nuget add source $NUGET_SOURCE_URL \
-            --name ${{ github.repository_owner }}-github \
-            --username "${{ github.workflow }}" \
-            --password ${{ secrets.GITHUB_TOKEN }} \
-            --store-password-in-clear-text
           dotnet restore
 
       - name: Build Solution
-        run: >-
+        run: |
           dotnet build --no-restore --configuration Debug
 
       - name: Test Solution
-        run: >-
-          dotnet test --no-build --configuration Debug
-          --logger "trx;LogFileName=TestResults.trx"
+        run: |
+          dotnet test --no-build --configuration Debug \
+            --logger "trx;LogFileName=TestResults.trx"
 
       - name: Upload Test Results
         if: ${{ success() || failure() }}
@@ -64,7 +57,7 @@ jobs:
             !net/**/Sails.Tests.Shared/**/*.trx
 
   build_win_x64:
-    name: Build Native Libraries for Win x64
+    name: Test Native Libraries for Win x64
     runs-on: windows-latest
     steps:
       - name: Checkout Code
@@ -75,7 +68,7 @@ jobs:
           cargo test --locked --manifest-path net/rs/Cargo.toml --release
 
   build_linux_x64:
-    name: Build Native Libraries for Linux x64
+    name: Test Native Libraries for Linux x64
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
@@ -86,7 +79,7 @@ jobs:
           cargo test --locked --manifest-path net/rs/Cargo.toml --release
 
   build_osx_x64:
-    name: Build Native Libraries for NacOS x64
+    name: Test Native Libraries for NacOS x64
     runs-on: macos-latest
     steps:
       - name: Checkout Code
@@ -98,7 +91,7 @@ jobs:
           cargo test --locked --manifest-path net/rs/Cargo.toml --release --target x86_64-apple-darwin
 
   build_osx_arm64:
-    name: Build Native Libraries for MacOS ARM64
+    name: Test Native Libraries for MacOS ARM64
     runs-on: macos-latest
     steps:
       - name: Checkout Code
