@@ -184,7 +184,6 @@ jobs:
             -p:Authors=Gear
 
       - name: Publish NuGet Packages
-        if: false
         run: |
           dotnet nuget push ./nugets/*.nupkg \
             --source $NUGET_SOURCE_URL
