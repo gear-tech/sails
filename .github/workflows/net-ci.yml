@@ -62,3 +62,48 @@ jobs:
           path: |
             net/**/*.trx
             !net/**/Sails.Tests.Shared/**/*.trx
+
+  build_win_x64:
+    name: Build Native Libraries for Win x64
+    runs-on: windows-lates
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Build & Test Client Generator
+        run: |
+          cargo test --locked --manifest-path net/rs/Cargo.toml --release
+
+  build_linux_x64:
+    name: Build Native Libraries for Linux x64
+    runs-on: ubuntu-lates
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Build & Test Client Generator
+        run: |
+          cargo test --locked --manifest-path net/rs/Cargo.toml --release
+
+  build_osx_x64:
+    name: Build Native Libraries for NacOS x64
+    runs-on: macos-lates
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Build & Test Client Generator
+        run: |
+          rustup target add x86_64-apple-darwin
+          cargo test --locked --manifest-path net/rs/Cargo.toml --release --target x86_64-apple-darwin
+
+  build_osx_arm64:
+    name: Build Native Libraries for MacOS ARM64
+    runs-on: macos-lates
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+      - name: Build & Test Client Generator
+        run: |
+          rustup target add aarch64-apple-darwin
+          cargo test --locked --manifest-path net/rs/Cargo.toml --release --target aarch64-apple-darwin
