@@ -249,13 +249,12 @@ public static class SubstrateClientExtExtensions
     /// <param name="cancellationToken"></param>
     /// <returns></returns>
     public static Task<BlocksStream> GetAllBlocksStreamAsync(
-        this SubstrateClient nodeClient,
+        this SubstrateClientExt nodeClient,
         CancellationToken cancellationToken)
     {
         EnsureArg.IsNotNull(nodeClient, nameof(nodeClient));
 
-        return BlocksStream.CreateAsync(
-            nodeClient,
+        return BlocksStreamBuilder.FromNode(nodeClient).CreateAsync(
             (nodeClient, callback) =>
                 nodeClient.Chain.SubscribeAllHeadsAsync(callback, cancellationToken),
             (nodeClient, subscriptionId) =>
@@ -269,13 +268,12 @@ public static class SubstrateClientExtExtensions
     /// <param name="cancellationToken"></param>
     /// <returns></returns>
     public static Task<BlocksStream> GetNewBlocksStreamAsync(
-        this SubstrateClient nodeClient,
+        this SubstrateClientExt nodeClient,
         CancellationToken cancellationToken)
     {
         EnsureArg.IsNotNull(nodeClient, nameof(nodeClient));
 
-        return BlocksStream.CreateAsync(
-            nodeClient,
+        return BlocksStreamBuilder.FromNode(nodeClient).CreateAsync(
             (nodeClient, callback) =>
                 nodeClient.Chain.SubscribeNewHeadsAsync(callback, cancellationToken),
             (nodeClient, subscriptionId) =>
@@ -289,7 +287,7 @@ public static class SubstrateClientExtExtensions
     /// <param name="cancellationToken"></param>
     /// <returns></returns>
     public static Task<BlocksStream> GetFinalizedBlocksStreamAsync(
-        this SubstrateClient nodeClient,
+        this SubstrateClientExt nodeClient,
         CancellationToken cancellationToken)
     {
         EnsureArg.IsNotNull(nodeClient, nameof(nodeClient));
@@ -297,8 +295,7 @@ public static class SubstrateClientExtExtensions
         // TODO: It is noteworthy that some blocks may be skipped in the stream assuming they were finalized without sending a
         //       notification, i.e., if you observe block X and then X + 2, it means that block X + 1 was finalized too.
         //       Probably it should be accounted here and missed blocks should be fetched from the chain.
-        return BlocksStream.CreateAsync(
-            nodeClient,
+        return BlocksStreamBuilder.FromNode(nodeClient).CreateAsync(
             (nodeClient, callback) =>
                 nodeClient.Chain.SubscribeFinalizedHeadsAsync(callback, cancellationToken),
             (nodeClient, subscriptionId) =>
@@ -533,17 +530,17 @@ public static class SubstrateClientExtExtensions
                     .Single()
                     .Value[0],
             selectResultOnError: (extrinsicFailedEventData) =>
-                {
-                    var dispatchError = ((EnumDispatchError)extrinsicFailedEventData.Value[0]).ToBaseEnumRust();
-                    // TODO: Do proper error parsing using node metadata.
-                    return dispatchError.Matches(
-                        DispatchError.Module,
-                        (ModuleError moduleError) =>
-                            moduleError.Index == 104 // Gear
-                            && moduleError.Error.Value[0] == 6) // CodeAlreadyExists
-                        ? GearApi.Model.gprimitives.CodeId.FromCodeBytes(wasm)
-                        : throw new Exception("TODO: Custom exception.");
-                },
+            {
+                var dispatchError = ((EnumDispatchError)extrinsicFailedEventData.Value[0]).ToBaseEnumRust();
+                // TODO: Do proper error parsing using node metadata.
+                return dispatchError.Matches(
+                    DispatchError.Module,
+                    (ModuleError moduleError) =>
+                        moduleError.Index == 104 // Gear
+                        && moduleError.Error.Value[0] == 6) // CodeAlreadyExists
+                    ? GearApi.Model.gprimitives.CodeId.FromCodeBytes(wasm)
+                    : throw new Exception("TODO: Custom exception.");
+            },
             cancellationToken);
     }
 
