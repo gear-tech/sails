@@ -8,7 +8,7 @@ using Substrate.Gear.Client;
 
 namespace Sails.Remoting.Core;
 
-internal class BlockStreamEventListener : EventListener<(ActorId Source, byte[] Bytes)>
+internal sealed class BlockStreamEventListener : EventListener<(ActorId Source, byte[] Bytes)>
 {
     private readonly SubstrateClientExt nodeClient;
     private readonly BlocksStream blocksStream;
