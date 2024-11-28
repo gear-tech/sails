@@ -249,7 +249,7 @@ public static class SubstrateClientExtExtensions
     /// <param name="cancellationToken"></param>
     /// <returns></returns>
     public static Task<BlocksStream> GetAllBlocksStreamAsync(
-        this SubstrateClient nodeClient,
+        this SubstrateClientExt nodeClient,
         CancellationToken cancellationToken)
     {
         EnsureArg.IsNotNull(nodeClient, nameof(nodeClient));
@@ -269,7 +269,7 @@ public static class SubstrateClientExtExtensions
     /// <param name="cancellationToken"></param>
     /// <returns></returns>
     public static Task<BlocksStream> GetNewBlocksStreamAsync(
-        this SubstrateClient nodeClient,
+        this SubstrateClientExt nodeClient,
         CancellationToken cancellationToken)
     {
         EnsureArg.IsNotNull(nodeClient, nameof(nodeClient));
@@ -289,7 +289,7 @@ public static class SubstrateClientExtExtensions
     /// <param name="cancellationToken"></param>
     /// <returns></returns>
     public static Task<BlocksStream> GetFinalizedBlocksStreamAsync(
-        this SubstrateClient nodeClient,
+        this SubstrateClientExt nodeClient,
         CancellationToken cancellationToken)
     {
         EnsureArg.IsNotNull(nodeClient, nameof(nodeClient));
