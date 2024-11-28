@@ -8,7 +8,7 @@ using EnsureThat;
 using Xunit.Abstractions;
 using Xunit.Sdk;
 
-namespace Sails.Tests.Shared.XUnit;
+namespace Sails.Testing.XUnit;
 
 public sealed class TestCollectionRunner : XunitTestCollectionRunner
 {

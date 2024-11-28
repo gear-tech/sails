@@ -15,7 +15,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\Sails.Net\Sails.Net.csproj" />
+    <ProjectReference Include="..\..\src\Substrate.Gear.Client\Substrate.Gear.Client.csproj" />
   </ItemGroup>
 
 </Project>

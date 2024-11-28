@@ -17,7 +17,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\examples\Sails.DemoClient\Sails.DemoClient.csproj" />
-    <ProjectReference Include="..\Sails.Tests.Shared\Sails.Tests.Shared.csproj" />
+    <ProjectReference Include="..\Sails.Net.Testing\Sails.Net.Testing.csproj" />
   </ItemGroup>
 
 </Project>
