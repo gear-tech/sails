@@ -32,8 +32,7 @@ impl<'a> EventsGenerator<'a> {
         let remoting = &csharp::import("global::Sails.Remoting.Abstractions.Core", "IRemoting");
         let task = &csharp::import("global::System.Threading.Tasks", "Task");
         let cancellation_token = &csharp::import("global::System.Threading", "CancellationToken");
-        let async_enumerable =
-            &csharp::import("global::System.Collections.Generic", "IAsyncEnumerable");
+        let listener = &csharp::import("global::Sails.Remoting.Abstractions.Core", "EventListener");
         let actor_id_type = primitive_type_to_dotnet(PrimitiveType::ActorId);
 
         quote! {
@@ -67,10 +66,10 @@ impl<'a> EventsGenerator<'a> {
                     this.remoting = remoting;
                 }
                 $['\n']
-                public async $task<$async_enumerable<($actor_id_type, $class_name)>> ListenAsync($cancellation_token cancellationToken = default)
+                public async $task<$listener<($actor_id_type, $class_name)>> ListenAsync($cancellation_token cancellationToken = default)
                 {$['\r']
-                    var eventStream = await this.remoting.ListenAsync(cancellationToken);$['\r']
-                    return eventStream.SelectEvent<$class_name>(ROUTE, EventRoutes);$['\r']
+                    var listener = await this.remoting.ListenAsync(cancellationToken);$['\r']
+                    return listener.SelectEvents<$class_name>(ROUTE, EventRoutes);$['\r']
                 }
             }
             $['\n']

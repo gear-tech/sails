@@ -62,5 +62,5 @@ public interface IRemoting
     /// </summary>
     /// <param name="cancellationToken"></param>
     /// <returns></returns>
-    Task<IAsyncEnumerable<(ActorId Source, byte[] Payload)>> ListenAsync(CancellationToken cancellationToken);
+    Task<EventListener<(ActorId Source, byte[] Payload)>> ListenAsync(CancellationToken cancellationToken);
 }

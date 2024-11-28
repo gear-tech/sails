@@ -2,22 +2,23 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
+using System.Threading.Tasks;
+using Sails.Remoting.Abstractions.Core;
 using Substrate.Gear.Api.Generated.Model.gprimitives;
 using Substrate.NetApi.Model.Types;
 using Substrate.NetApi.Model.Types.Primitive;
 
 namespace Sails.Remoting;
 
-internal class EventAsyncIterator<T> : IAsyncEnumerable<(ActorId Source, T Event)>
+internal class ServiceEventListener<T> : EventListener<(ActorId Source, T Event)>
      where T : IType, new()
 {
-
-    private readonly IAsyncEnumerable<(ActorId Source, byte[] Payload)> source;
+    private readonly EventListener<(ActorId Source, byte[] Payload)> source;
     private readonly byte[] serviceRoute;
     private readonly byte[][] eventRoutes;
 
-    internal EventAsyncIterator(
-        IAsyncEnumerable<(ActorId Source, byte[] Payload)> source,
+    internal ServiceEventListener(
+        EventListener<(ActorId Source, byte[] Payload)> source,
         string serviceRoute,
         string[] eventRoutes)
     {
@@ -26,12 +27,14 @@ internal class EventAsyncIterator<T> : IAsyncEnumerable<(ActorId Source, T Event
         this.eventRoutes = eventRoutes.Select(r => new Str(r).Encode()).ToArray();
     }
 
-    public IAsyncEnumerator<(ActorId Source, T Event)> GetAsyncEnumerator(CancellationToken cancellationToken = default)
+    public override IAsyncEnumerator<(ActorId Source, T Event)> GetAsyncEnumerator(CancellationToken cancellationToken = default)
         => this.source
             .Select(this.Map)
             .Where(x => x != null)
             .Select(x => x!.Value)
             .GetAsyncEnumerator(cancellationToken);
+
+    protected override ValueTask DisposeCoreAsync() => this.source.DisposeAsync();
 
     private (ActorId Source, T Event)? Map((ActorId, byte[]) tuple)
     {

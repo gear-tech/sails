@@ -88,9 +88,9 @@ this.AddTypeDecoder<global::Substrate.NetApi.Model.Types.Primitive.Str>(ServiceE
 
  public ServiceListener(IRemoting remoting) { this.remoting = remoting; }
 
- public async Task<IAsyncEnumerable<(global::Substrate.Gear.Api.Generated.Model.gprimitives.ActorId, EnumServiceEvents)>> ListenAsync(CancellationToken cancellationToken = default) {
- var eventStream = await this.remoting.ListenAsync(cancellationToken);
- return eventStream.SelectEvent<EnumServiceEvents>(ROUTE, EventRoutes);
+ public async Task<EventListener<(global::Substrate.Gear.Api.Generated.Model.gprimitives.ActorId, EnumServiceEvents)>> ListenAsync(CancellationToken cancellationToken = default) {
+ var listener = await this.remoting.ListenAsync(cancellationToken);
+ return listener.SelectEvents<EnumServiceEvents>(ROUTE, EventRoutes);
  } }
 
 /// <summary>
