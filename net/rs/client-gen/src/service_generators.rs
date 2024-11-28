@@ -1,5 +1,4 @@
 use crate::{helpers::*, type_decl_generators::*};
-use convert_case::{Case, Casing};
 use csharp::Tokens;
 use genco::prelude::*;
 use sails_idl_parser::{ast::visitor, ast::visitor::Visitor, ast::*};
@@ -23,7 +22,7 @@ impl<'a> ServiceClientGenerator<'a> {
     }
 
     pub(crate) fn finalize(self) -> Tokens {
-        let name = &self.service_name.to_case(Case::Pascal);
+        let name = &self.service_name;
         let remoting = &csharp::import("global::Sails.Remoting.Abstractions.Core", "IRemoting");
 
         quote! {
@@ -34,6 +33,9 @@ impl<'a> ServiceClientGenerator<'a> {
             $['\n']
             public sealed partial class $name : I$name$['\r']
             {
+                $['\n']
+                private const string ROUTE = nameof($name);
+                $['\n']
                 private readonly $remoting remoting;
                 $['\n']
                 public $name($remoting remoting)
@@ -55,11 +57,7 @@ impl<'a> Visitor<'a> for ServiceClientGenerator<'a> {
     }
 
     fn visit_service_func(&mut self, func: &'a ServiceFunc) {
-        let func_name_pascal = &func.name().to_case(Case::Pascal);
-
-        let service_route_bytes = path_bytes(self.service_name.as_str()).0;
-        let func_route_bytes = path_bytes(func.name()).0;
-        let route_bytes = [service_route_bytes, func_route_bytes].join(", ");
+        let func_name_pascal = func.name();
 
         let args = &encoded_fn_args_comma_prefixed(func.params());
         let args_with_type = &self.type_generator.fn_params_with_types(func.params());
@@ -78,7 +76,7 @@ impl<'a> Visitor<'a> for ServiceClientGenerator<'a> {
             $(inheritdoc())
             public $return_type<$func_return_type> $func_name_pascal($args_with_type)
             {
-                return new $action<$func_return_type>(this.remoting, [$(&route_bytes)]$args);
+                return new $action<$func_return_type>(this.remoting, ROUTE, nameof($func_name_pascal) $args);
             }
         };
     }

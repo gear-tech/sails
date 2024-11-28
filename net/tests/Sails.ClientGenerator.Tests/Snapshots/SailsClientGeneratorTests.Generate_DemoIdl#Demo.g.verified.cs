@@ -5,6 +5,8 @@ using global::Sails.Remoting.Abstractions;
 using global::Sails.Remoting.Abstractions.Core;
 using global::System;
 using global::System.Collections.Generic;
+using global::System.Threading;
+using global::System.Threading.Tasks;
 
 #nullable enable
 #pragma warning disable RCS0056 // A line is too long
@@ -33,13 +35,13 @@ public sealed partial class DemoFactory : IDemoFactory
     /// <inheritdoc/>
     public IActivation Default()
     {
-        return new RemotingAction<global::Substrate.NetApi.Model.Types.Base.BaseVoid>(this.remoting, [28, 68, 101, 102, 97, 117, 108, 116]);
+        return new RemotingAction<global::Substrate.NetApi.Model.Types.Base.BaseVoid>(this.remoting, nameof(Default), string.Empty);
     }
 
     /// <inheritdoc/>
     public IActivation New(global::Substrate.NetApi.Model.Types.Base.BaseOpt<global::Substrate.NetApi.Model.Types.Primitive.U32> counter, global::Substrate.NetApi.Model.Types.Base.BaseOpt<global::Substrate.NetApi.Model.Types.Base.BaseTuple<global::Substrate.NetApi.Model.Types.Primitive.I32, global::Substrate.NetApi.Model.Types.Primitive.I32>> dogPosition)
     {
-        return new RemotingAction<global::Substrate.NetApi.Model.Types.Base.BaseVoid>(this.remoting, [12, 78, 101, 119], counter, dogPosition);
+        return new RemotingAction<global::Substrate.NetApi.Model.Types.Base.BaseVoid>(this.remoting, nameof(New), string.Empty, counter, dogPosition);
     }
 }
 
@@ -52,6 +54,7 @@ public interface ICounter
 
 public sealed partial class Counter : ICounter
 {
+    private const string ROUTE = nameof(Counter);
     private readonly IRemoting remoting;
     public Counter(IRemoting remoting)
     {
@@ -61,19 +64,19 @@ public sealed partial class Counter : ICounter
     /// <inheritdoc/>
     public ICall<global::Substrate.NetApi.Model.Types.Primitive.U32> Add(global::Substrate.NetApi.Model.Types.Primitive.U32 value)
     {
-        return new RemotingAction<global::Substrate.NetApi.Model.Types.Primitive.U32>(this.remoting, [28, 67, 111, 117, 110, 116, 101, 114, 12, 65, 100, 100], value);
+        return new RemotingAction<global::Substrate.NetApi.Model.Types.Primitive.U32>(this.remoting, ROUTE, nameof(Add), value);
     }
 
     /// <inheritdoc/>
     public ICall<global::Substrate.NetApi.Model.Types.Primitive.U32> Sub(global::Substrate.NetApi.Model.Types.Primitive.U32 value)
     {
-        return new RemotingAction<global::Substrate.NetApi.Model.Types.Primitive.U32>(this.remoting, [28, 67, 111, 117, 110, 116, 101, 114, 12, 83, 117, 98], value);
+        return new RemotingAction<global::Substrate.NetApi.Model.Types.Primitive.U32>(this.remoting, ROUTE, nameof(Sub), value);
     }
 
     /// <inheritdoc/>
     public IQuery<global::Substrate.NetApi.Model.Types.Primitive.U32> Value()
     {
-        return new RemotingAction<global::Substrate.NetApi.Model.Types.Primitive.U32>(this.remoting, [28, 67, 111, 117, 110, 116, 101, 114, 20, 86, 97, 108, 117, 101]);
+        return new RemotingAction<global::Substrate.NetApi.Model.Types.Primitive.U32>(this.remoting, ROUTE, nameof(Value));
     }
 }
 
@@ -98,42 +101,20 @@ public sealed partial class EnumCounterEvents : global::Substrate.NetApi.Model.T
     }
 }
 
-public sealed partial class CounterListener : IRemotingListener<EnumCounterEvents>
+public sealed partial class CounterListener
 {
-    private static readonly byte[][] EventRoutes = [[28, 67, 111, 117, 110, 116, 101, 114, 20, 65, 100, 100, 101, 100], [28, 67, 111, 117, 110, 116, 101, 114, 40, 83, 117, 98, 116, 114, 97, 99, 116, 101, 100], ];
-    private readonly global::Sails.Remoting.Abstractions.Core.IRemotingListener remoting;
-    public CounterListener(global::Sails.Remoting.Abstractions.Core.IRemotingListener remoting)
+    private const string ROUTE = "Counter";
+    private static readonly string[] EventRoutes = ["Added", "Subtracted", ];
+    private readonly IRemoting remoting;
+    public CounterListener(IRemoting remoting)
     {
         this.remoting = remoting;
     }
 
-    public async global::System.Collections.Generic.IAsyncEnumerable<EnumCounterEvents> ListenAsync([global::System.Runtime.CompilerServices.EnumeratorCancellation] global::System.Threading.CancellationToken cancellationToken = default)
+    public async Task<EventListener<(global::Substrate.Gear.Api.Generated.Model.gprimitives.ActorId, EnumCounterEvents)>> ListenAsync(CancellationToken cancellationToken = default)
     {
-        await foreach (var bytes in this.remoting.ListenAsync(cancellationToken))
-        {
-            byte idx = 0;
-            foreach (var route in EventRoutes)
-            {
-                if (route.Length > bytes.Length)
-                {
-                    continue;
-                }
-
-                if (route.AsSpan().SequenceEqual(bytes.AsSpan()[..route.Length]))
-                {
-                    var bytesLength = bytes.Length - route.Length + 1;
-                    var data = new byte[bytesLength];
-                    data[0] = idx;
-                    Buffer.BlockCopy(bytes, route.Length, data, 1, bytes.Length - route.Length);
-                    var p = 0;
-                    EnumCounterEvents ev = new();
-                    ev.Decode(bytes, ref p);
-                    yield return ev;
-                }
-
-                idx++;
-            }
-        }
+        var listener = await this.remoting.ListenAsync(cancellationToken);
+        return listener.ToServiceEventListener<EnumCounterEvents>(ROUTE, EventRoutes);
     }
 }
 
@@ -147,6 +128,7 @@ public interface IDog
 
 public sealed partial class Dog : IDog
 {
+    private const string ROUTE = nameof(Dog);
     private readonly IRemoting remoting;
     public Dog(IRemoting remoting)
     {
@@ -156,25 +138,25 @@ public sealed partial class Dog : IDog
     /// <inheritdoc/>
     public ICall<global::Substrate.NetApi.Model.Types.Primitive.Str> MakeSound()
     {
-        return new RemotingAction<global::Substrate.NetApi.Model.Types.Primitive.Str>(this.remoting, [12, 68, 111, 103, 36, 77, 97, 107, 101, 83, 111, 117, 110, 100]);
+        return new RemotingAction<global::Substrate.NetApi.Model.Types.Primitive.Str>(this.remoting, ROUTE, nameof(MakeSound));
     }
 
     /// <inheritdoc/>
     public ICall<global::Substrate.NetApi.Model.Types.Base.BaseVoid> Walk(global::Substrate.NetApi.Model.Types.Primitive.I32 dx, global::Substrate.NetApi.Model.Types.Primitive.I32 dy)
     {
-        return new RemotingAction<global::Substrate.NetApi.Model.Types.Base.BaseVoid>(this.remoting, [12, 68, 111, 103, 16, 87, 97, 108, 107], dx, dy);
+        return new RemotingAction<global::Substrate.NetApi.Model.Types.Base.BaseVoid>(this.remoting, ROUTE, nameof(Walk), dx, dy);
     }
 
     /// <inheritdoc/>
     public IQuery<global::Substrate.NetApi.Model.Types.Primitive.U32> AvgWeight()
     {
-        return new RemotingAction<global::Substrate.NetApi.Model.Types.Primitive.U32>(this.remoting, [12, 68, 111, 103, 36, 65, 118, 103, 87, 101, 105, 103, 104, 116]);
+        return new RemotingAction<global::Substrate.NetApi.Model.Types.Primitive.U32>(this.remoting, ROUTE, nameof(AvgWeight));
     }
 
     /// <inheritdoc/>
     public IQuery<global::Substrate.NetApi.Model.Types.Base.BaseTuple<global::Substrate.NetApi.Model.Types.Primitive.I32, global::Substrate.NetApi.Model.Types.Primitive.I32>> Position()
     {
-        return new RemotingAction<global::Substrate.NetApi.Model.Types.Base.BaseTuple<global::Substrate.NetApi.Model.Types.Primitive.I32, global::Substrate.NetApi.Model.Types.Primitive.I32>>(this.remoting, [12, 68, 111, 103, 32, 80, 111, 115, 105, 116, 105, 111, 110]);
+        return new RemotingAction<global::Substrate.NetApi.Model.Types.Base.BaseTuple<global::Substrate.NetApi.Model.Types.Primitive.I32, global::Substrate.NetApi.Model.Types.Primitive.I32>>(this.remoting, ROUTE, nameof(Position));
     }
 }
 
@@ -193,42 +175,20 @@ public sealed partial class EnumDogEvents : global::Substrate.NetApi.Model.Types
     }
 }
 
-public sealed partial class DogListener : IRemotingListener<EnumDogEvents>
+public sealed partial class DogListener
 {
-    private static readonly byte[][] EventRoutes = [[12, 68, 111, 103, 24, 66, 97, 114, 107, 101, 100], [12, 68, 111, 103, 24, 87, 97, 108, 107, 101, 100], ];
-    private readonly global::Sails.Remoting.Abstractions.Core.IRemotingListener remoting;
-    public DogListener(global::Sails.Remoting.Abstractions.Core.IRemotingListener remoting)
+    private const string ROUTE = "Dog";
+    private static readonly string[] EventRoutes = ["Barked", "Walked", ];
+    private readonly IRemoting remoting;
+    public DogListener(IRemoting remoting)
     {
         this.remoting = remoting;
     }
 
-    public async global::System.Collections.Generic.IAsyncEnumerable<EnumDogEvents> ListenAsync([global::System.Runtime.CompilerServices.EnumeratorCancellation] global::System.Threading.CancellationToken cancellationToken = default)
+    public async Task<EventListener<(global::Substrate.Gear.Api.Generated.Model.gprimitives.ActorId, EnumDogEvents)>> ListenAsync(CancellationToken cancellationToken = default)
     {
-        await foreach (var bytes in this.remoting.ListenAsync(cancellationToken))
-        {
-            byte idx = 0;
-            foreach (var route in EventRoutes)
-            {
-                if (route.Length > bytes.Length)
-                {
-                    continue;
-                }
-
-                if (route.AsSpan().SequenceEqual(bytes.AsSpan()[..route.Length]))
-                {
-                    var bytesLength = bytes.Length - route.Length + 1;
-                    var data = new byte[bytesLength];
-                    data[0] = idx;
-                    Buffer.BlockCopy(bytes, route.Length, data, 1, bytes.Length - route.Length);
-                    var p = 0;
-                    EnumDogEvents ev = new();
-                    ev.Decode(bytes, ref p);
-                    yield return ev;
-                }
-
-                idx++;
-            }
-        }
+        var listener = await this.remoting.ListenAsync(cancellationToken);
+        return listener.ToServiceEventListener<EnumDogEvents>(ROUTE, EventRoutes);
     }
 }
 
@@ -239,6 +199,7 @@ public interface IPingPong
 
 public sealed partial class PingPong : IPingPong
 {
+    private const string ROUTE = nameof(PingPong);
     private readonly IRemoting remoting;
     public PingPong(IRemoting remoting)
     {
@@ -248,7 +209,7 @@ public sealed partial class PingPong : IPingPong
     /// <inheritdoc/>
     public ICall<global::Substrate.Gear.Client.NetApi.Model.Types.Base.BaseResult<global::Substrate.NetApi.Model.Types.Primitive.Str, global::Substrate.NetApi.Model.Types.Primitive.Str>> Ping(global::Substrate.NetApi.Model.Types.Primitive.Str input)
     {
-        return new RemotingAction<global::Substrate.Gear.Client.NetApi.Model.Types.Base.BaseResult<global::Substrate.NetApi.Model.Types.Primitive.Str, global::Substrate.NetApi.Model.Types.Primitive.Str>>(this.remoting, [32, 80, 105, 110, 103, 80, 111, 110, 103, 16, 80, 105, 110, 103], input);
+        return new RemotingAction<global::Substrate.Gear.Client.NetApi.Model.Types.Base.BaseResult<global::Substrate.NetApi.Model.Types.Primitive.Str, global::Substrate.NetApi.Model.Types.Primitive.Str>>(this.remoting, ROUTE, nameof(Ping), input);
     }
 }
 
@@ -266,6 +227,7 @@ public interface IReferences
 
 public sealed partial class References : IReferences
 {
+    private const string ROUTE = nameof(References);
     private readonly IRemoting remoting;
     public References(IRemoting remoting)
     {
@@ -275,49 +237,49 @@ public sealed partial class References : IReferences
     /// <inheritdoc/>
     public ICall<global::Substrate.NetApi.Model.Types.Primitive.U32> Add(global::Substrate.NetApi.Model.Types.Primitive.U32 v)
     {
-        return new RemotingAction<global::Substrate.NetApi.Model.Types.Primitive.U32>(this.remoting, [40, 82, 101, 102, 101, 114, 101, 110, 99, 101, 115, 12, 65, 100, 100], v);
+        return new RemotingAction<global::Substrate.NetApi.Model.Types.Primitive.U32>(this.remoting, ROUTE, nameof(Add), v);
     }
 
     /// <inheritdoc/>
     public ICall<global::Substrate.NetApi.Model.Types.Base.BaseVec<global::Substrate.NetApi.Model.Types.Primitive.U8>> AddByte(global::Substrate.NetApi.Model.Types.Primitive.U8 @byte)
     {
-        return new RemotingAction<global::Substrate.NetApi.Model.Types.Base.BaseVec<global::Substrate.NetApi.Model.Types.Primitive.U8>>(this.remoting, [40, 82, 101, 102, 101, 114, 101, 110, 99, 101, 115, 28, 65, 100, 100, 66, 121, 116, 101], @byte);
+        return new RemotingAction<global::Substrate.NetApi.Model.Types.Base.BaseVec<global::Substrate.NetApi.Model.Types.Primitive.U8>>(this.remoting, ROUTE, nameof(AddByte), @byte);
     }
 
     /// <inheritdoc/>
     public ICall<global::Substrate.Gear.Client.NetApi.Model.Types.Base.BaseResult<global::Substrate.NetApi.Model.Types.Primitive.Str, global::Substrate.NetApi.Model.Types.Primitive.Str>> GuessNum(global::Substrate.NetApi.Model.Types.Primitive.U8 number)
     {
-        return new RemotingAction<global::Substrate.Gear.Client.NetApi.Model.Types.Base.BaseResult<global::Substrate.NetApi.Model.Types.Primitive.Str, global::Substrate.NetApi.Model.Types.Primitive.Str>>(this.remoting, [40, 82, 101, 102, 101, 114, 101, 110, 99, 101, 115, 32, 71, 117, 101, 115, 115, 78, 117, 109], number);
+        return new RemotingAction<global::Substrate.Gear.Client.NetApi.Model.Types.Base.BaseResult<global::Substrate.NetApi.Model.Types.Primitive.Str, global::Substrate.NetApi.Model.Types.Primitive.Str>>(this.remoting, ROUTE, nameof(GuessNum), number);
     }
 
     /// <inheritdoc/>
     public ICall<ReferenceCount> Incr()
     {
-        return new RemotingAction<ReferenceCount>(this.remoting, [40, 82, 101, 102, 101, 114, 101, 110, 99, 101, 115, 16, 73, 110, 99, 114]);
+        return new RemotingAction<ReferenceCount>(this.remoting, ROUTE, nameof(Incr));
     }
 
     /// <inheritdoc/>
     public ICall<global::Substrate.Gear.Client.NetApi.Model.Types.Base.BaseResult<global::Substrate.NetApi.Model.Types.Base.BaseVoid, global::Substrate.NetApi.Model.Types.Primitive.Str>> SetNum(global::Substrate.NetApi.Model.Types.Primitive.U8 number)
     {
-        return new RemotingAction<global::Substrate.Gear.Client.NetApi.Model.Types.Base.BaseResult<global::Substrate.NetApi.Model.Types.Base.BaseVoid, global::Substrate.NetApi.Model.Types.Primitive.Str>>(this.remoting, [40, 82, 101, 102, 101, 114, 101, 110, 99, 101, 115, 24, 83, 101, 116, 78, 117, 109], number);
+        return new RemotingAction<global::Substrate.Gear.Client.NetApi.Model.Types.Base.BaseResult<global::Substrate.NetApi.Model.Types.Base.BaseVoid, global::Substrate.NetApi.Model.Types.Primitive.Str>>(this.remoting, ROUTE, nameof(SetNum), number);
     }
 
     /// <inheritdoc/>
     public IQuery<global::Substrate.NetApi.Model.Types.Primitive.Str> Baked()
     {
-        return new RemotingAction<global::Substrate.NetApi.Model.Types.Primitive.Str>(this.remoting, [40, 82, 101, 102, 101, 114, 101, 110, 99, 101, 115, 20, 66, 97, 107, 101, 100]);
+        return new RemotingAction<global::Substrate.NetApi.Model.Types.Primitive.Str>(this.remoting, ROUTE, nameof(Baked));
     }
 
     /// <inheritdoc/>
     public IQuery<global::Substrate.NetApi.Model.Types.Base.BaseOpt<global::Substrate.NetApi.Model.Types.Primitive.U8>> LastByte()
     {
-        return new RemotingAction<global::Substrate.NetApi.Model.Types.Base.BaseOpt<global::Substrate.NetApi.Model.Types.Primitive.U8>>(this.remoting, [40, 82, 101, 102, 101, 114, 101, 110, 99, 101, 115, 32, 76, 97, 115, 116, 66, 121, 116, 101]);
+        return new RemotingAction<global::Substrate.NetApi.Model.Types.Base.BaseOpt<global::Substrate.NetApi.Model.Types.Primitive.U8>>(this.remoting, ROUTE, nameof(LastByte));
     }
 
     /// <inheritdoc/>
     public IQuery<global::Substrate.NetApi.Model.Types.Base.BaseOpt<global::Substrate.NetApi.Model.Types.Primitive.Str>> Message()
     {
-        return new RemotingAction<global::Substrate.NetApi.Model.Types.Base.BaseOpt<global::Substrate.NetApi.Model.Types.Primitive.Str>>(this.remoting, [40, 82, 101, 102, 101, 114, 101, 110, 99, 101, 115, 28, 77, 101, 115, 115, 97, 103, 101]);
+        return new RemotingAction<global::Substrate.NetApi.Model.Types.Base.BaseOpt<global::Substrate.NetApi.Model.Types.Primitive.Str>>(this.remoting, ROUTE, nameof(Message));
     }
 }
 
@@ -332,6 +294,7 @@ public interface IThisThat
 
 public sealed partial class ThisThat : IThisThat
 {
+    private const string ROUTE = nameof(ThisThat);
     private readonly IRemoting remoting;
     public ThisThat(IRemoting remoting)
     {
@@ -341,31 +304,31 @@ public sealed partial class ThisThat : IThisThat
     /// <inheritdoc/>
     public ICall<global::Substrate.Gear.Client.NetApi.Model.Types.Base.BaseResult<global::Substrate.NetApi.Model.Types.Base.BaseTuple<global::Substrate.Gear.Api.Generated.Model.gprimitives.ActorId, global::Substrate.Gear.Api.Generated.Types.Base.NonZeroU32>, global::Substrate.NetApi.Model.Types.Primitive.Str>> DoThat(DoThatParam param)
     {
-        return new RemotingAction<global::Substrate.Gear.Client.NetApi.Model.Types.Base.BaseResult<global::Substrate.NetApi.Model.Types.Base.BaseTuple<global::Substrate.Gear.Api.Generated.Model.gprimitives.ActorId, global::Substrate.Gear.Api.Generated.Types.Base.NonZeroU32>, global::Substrate.NetApi.Model.Types.Primitive.Str>>(this.remoting, [32, 84, 104, 105, 115, 84, 104, 97, 116, 24, 68, 111, 84, 104, 97, 116], param);
+        return new RemotingAction<global::Substrate.Gear.Client.NetApi.Model.Types.Base.BaseResult<global::Substrate.NetApi.Model.Types.Base.BaseTuple<global::Substrate.Gear.Api.Generated.Model.gprimitives.ActorId, global::Substrate.Gear.Api.Generated.Types.Base.NonZeroU32>, global::Substrate.NetApi.Model.Types.Primitive.Str>>(this.remoting, ROUTE, nameof(DoThat), param);
     }
 
     /// <inheritdoc/>
     public ICall<global::Substrate.NetApi.Model.Types.Base.BaseTuple<global::Substrate.NetApi.Model.Types.Primitive.Str, global::Substrate.NetApi.Model.Types.Primitive.U32>> DoThis(global::Substrate.NetApi.Model.Types.Primitive.U32 p1, global::Substrate.NetApi.Model.Types.Primitive.Str p2, global::Substrate.NetApi.Model.Types.Base.BaseTuple<global::Substrate.NetApi.Model.Types.Base.BaseOpt<global::Substrate.Gear.Client.NetApi.Model.Types.Primitive.H160>, global::Substrate.Gear.Client.NetApi.Model.Types.Primitive.NonZeroU8> p3, TupleStruct p4)
     {
-        return new RemotingAction<global::Substrate.NetApi.Model.Types.Base.BaseTuple<global::Substrate.NetApi.Model.Types.Primitive.Str, global::Substrate.NetApi.Model.Types.Primitive.U32>>(this.remoting, [32, 84, 104, 105, 115, 84, 104, 97, 116, 24, 68, 111, 84, 104, 105, 115], p1, p2, p3, p4);
+        return new RemotingAction<global::Substrate.NetApi.Model.Types.Base.BaseTuple<global::Substrate.NetApi.Model.Types.Primitive.Str, global::Substrate.NetApi.Model.Types.Primitive.U32>>(this.remoting, ROUTE, nameof(DoThis), p1, p2, p3, p4);
     }
 
     /// <inheritdoc/>
     public ICall<global::Substrate.NetApi.Model.Types.Base.BaseVoid> Noop()
     {
-        return new RemotingAction<global::Substrate.NetApi.Model.Types.Base.BaseVoid>(this.remoting, [32, 84, 104, 105, 115, 84, 104, 97, 116, 16, 78, 111, 111, 112]);
+        return new RemotingAction<global::Substrate.NetApi.Model.Types.Base.BaseVoid>(this.remoting, ROUTE, nameof(Noop));
     }
 
     /// <inheritdoc/>
     public IQuery<global::Substrate.Gear.Client.NetApi.Model.Types.Base.BaseResult<global::Substrate.NetApi.Model.Types.Primitive.Str, global::Substrate.NetApi.Model.Types.Primitive.Str>> That()
     {
-        return new RemotingAction<global::Substrate.Gear.Client.NetApi.Model.Types.Base.BaseResult<global::Substrate.NetApi.Model.Types.Primitive.Str, global::Substrate.NetApi.Model.Types.Primitive.Str>>(this.remoting, [32, 84, 104, 105, 115, 84, 104, 97, 116, 16, 84, 104, 97, 116]);
+        return new RemotingAction<global::Substrate.Gear.Client.NetApi.Model.Types.Base.BaseResult<global::Substrate.NetApi.Model.Types.Primitive.Str, global::Substrate.NetApi.Model.Types.Primitive.Str>>(this.remoting, ROUTE, nameof(That));
     }
 
     /// <inheritdoc/>
     public IQuery<global::Substrate.NetApi.Model.Types.Primitive.U32> This()
     {
-        return new RemotingAction<global::Substrate.NetApi.Model.Types.Primitive.U32>(this.remoting, [32, 84, 104, 105, 115, 84, 104, 97, 116, 16, 84, 104, 105, 115]);
+        return new RemotingAction<global::Substrate.NetApi.Model.Types.Primitive.U32>(this.remoting, ROUTE, nameof(This));
     }
 }
 
@@ -376,6 +339,7 @@ public interface IValueFee
 
 public sealed partial class ValueFee : IValueFee
 {
+    private const string ROUTE = nameof(ValueFee);
     private readonly IRemoting remoting;
     public ValueFee(IRemoting remoting)
     {
@@ -385,7 +349,7 @@ public sealed partial class ValueFee : IValueFee
     /// <inheritdoc/>
     public ICall<global::Substrate.NetApi.Model.Types.Primitive.Bool> DoSomethingAndTakeFee()
     {
-        return new RemotingAction<global::Substrate.NetApi.Model.Types.Primitive.Bool>(this.remoting, [32, 86, 97, 108, 117, 101, 70, 101, 101, 84, 68, 111, 83, 111, 109, 101, 116, 104, 105, 110, 103, 65, 110, 100, 84, 97, 107, 101, 70, 101, 101]);
+        return new RemotingAction<global::Substrate.NetApi.Model.Types.Primitive.Bool>(this.remoting, ROUTE, nameof(DoSomethingAndTakeFee));
     }
 }
 
@@ -402,42 +366,20 @@ public sealed partial class EnumValueFeeEvents : global::Substrate.NetApi.Model.
     }
 }
 
-public sealed partial class ValueFeeListener : IRemotingListener<EnumValueFeeEvents>
+public sealed partial class ValueFeeListener
 {
-    private static readonly byte[][] EventRoutes = [[32, 86, 97, 108, 117, 101, 70, 101, 101, 32, 87, 105, 116, 104, 104, 101, 108, 100], ];
-    private readonly global::Sails.Remoting.Abstractions.Core.IRemotingListener remoting;
-    public ValueFeeListener(global::Sails.Remoting.Abstractions.Core.IRemotingListener remoting)
+    private const string ROUTE = "ValueFee";
+    private static readonly string[] EventRoutes = ["Withheld", ];
+    private readonly IRemoting remoting;
+    public ValueFeeListener(IRemoting remoting)
     {
         this.remoting = remoting;
     }
 
-    public async global::System.Collections.Generic.IAsyncEnumerable<EnumValueFeeEvents> ListenAsync([global::System.Runtime.CompilerServices.EnumeratorCancellation] global::System.Threading.CancellationToken cancellationToken = default)
+    public async Task<EventListener<(global::Substrate.Gear.Api.Generated.Model.gprimitives.ActorId, EnumValueFeeEvents)>> ListenAsync(CancellationToken cancellationToken = default)
     {
-        await foreach (var bytes in this.remoting.ListenAsync(cancellationToken))
-        {
-            byte idx = 0;
-            foreach (var route in EventRoutes)
-            {
-                if (route.Length > bytes.Length)
-                {
-                    continue;
-                }
-
-                if (route.AsSpan().SequenceEqual(bytes.AsSpan()[..route.Length]))
-                {
-                    var bytesLength = bytes.Length - route.Length + 1;
-                    var data = new byte[bytesLength];
-                    data[0] = idx;
-                    Buffer.BlockCopy(bytes, route.Length, data, 1, bytes.Length - route.Length);
-                    var p = 0;
-                    EnumValueFeeEvents ev = new();
-                    ev.Decode(bytes, ref p);
-                    yield return ev;
-                }
-
-                idx++;
-            }
-        }
+        var listener = await this.remoting.ListenAsync(cancellationToken);
+        return listener.ToServiceEventListener<EnumValueFeeEvents>(ROUTE, EventRoutes);
     }
 }
 

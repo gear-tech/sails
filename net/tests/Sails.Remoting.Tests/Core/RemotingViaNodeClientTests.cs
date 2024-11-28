@@ -1,4 +1,5 @@
-﻿using Sails.Remoting.Tests._Infra.XUnit.Fixtures;
+﻿using System.Collections.Generic;
+using Sails.Remoting.Tests._Infra.XUnit.Fixtures;
 using Substrate.Gear.Client.GearApi.Model.gprimitives;
 using Substrate.NetApi.Model.Types.Primitive;
 
@@ -115,5 +116,42 @@ public sealed class RemotingViaNodeClientTests : IAssemblyFixture<SailsFixture>
         queryResult.Should().BeEquivalentTo(
             [.. encodedPayload, .. new U32(42).Encode()],
             options => options.WithStrictOrdering());
+    }
+
+    [Fact]
+    public async Task EventListener_Works()
+    {
+        // Arrange
+        var codeId = await this.sailsFixture.GetDemoContractCodeIdAsync();
+        var activationReply = await this.remoting.ActivateAsync(
+            codeId,
+            salt: BitConverter.GetBytes(Random.NextInt64()),
+            new Str("Default").Encode(),
+            CancellationToken.None);
+        var (programId, _) = await activationReply.ReadAsync(CancellationToken.None);
+
+        var encodedPayload = new Str("Counter").Encode()
+            .Concat(new Str("Add").Encode())
+            .Concat(new U32(42).Encode())
+            .ToArray();
+
+        var expectedEventPayload = new List<byte>();
+        expectedEventPayload.AddRange(new Str("Counter").Encode());
+        expectedEventPayload.AddRange(new Str("Added").Encode());
+        expectedEventPayload.AddRange(new U32(42).Encode());
+
+        await using var listener = await this.remoting.ListenAsync(CancellationToken.None);
+
+        // Act
+        var messageReply = await this.remoting.MessageAsync(
+            programId,
+            encodedPayload,
+            CancellationToken.None);
+
+        var (source, payload) = await listener.ReadAllAsync(CancellationToken.None).FirstAsync(CancellationToken.None);
+
+        // Assert
+        source.Should().BeEquivalentTo(programId);
+        payload.Should().BeEquivalentTo(expectedEventPayload, options => options.WithStrictOrdering());
     }
 }

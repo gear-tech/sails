@@ -170,6 +170,14 @@ internal sealed class RemotingViaNodeClient : IRemoting
         return replyInfo.EncodedPayload;
     }
 
+    public async Task<EventListener<(ActorId Source, byte[] Payload)>> ListenAsync(CancellationToken cancellationToken)
+    {
+        var nodeClient = await this.nodeClientProvider.GetNodeClientAsync(cancellationToken).ConfigureAwait(false);
+        var blocksStream = await nodeClient.GetNewBlocksStreamAsync(cancellationToken).ConfigureAwait(false);
+
+        return new BlockStreamEventListener(nodeClient, blocksStream);
+    }
+
     private static MessageQueuedEventData SelectMessageQueuedEventData(IEnumerable<BaseEnumRust<RuntimeEvent>> runtimeEvents)
         => runtimeEvents
             .SelectIfMatches(

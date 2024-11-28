@@ -21,14 +21,18 @@ ICall<global::Substrate.NetApi.Model.Types.Primitive.U8> DoThat(global::Substrat
  }
 
  public sealed partial class Basic : IBasic
- { private readonly IRemoting remoting;
+ {
+
+ private const string ROUTE = nameof(Basic);
+
+ private readonly IRemoting remoting;
 
  public Basic(IRemoting remoting) { this.remoting = remoting; }
 
 /// <inheritdoc/>
- public ICall<global::Substrate.NetApi.Model.Types.Primitive.U16> DoThis(global::Substrate.NetApi.Model.Types.Primitive.U32 p1, MyParam p2) { return new RemotingAction<global::Substrate.NetApi.Model.Types.Primitive.U16>(this.remoting, [20, 66, 97, 115, 105, 99, 24, 68, 111, 84, 104, 105, 115], p1, p2); }
+ public ICall<global::Substrate.NetApi.Model.Types.Primitive.U16> DoThis(global::Substrate.NetApi.Model.Types.Primitive.U32 p1, MyParam p2) { return new RemotingAction<global::Substrate.NetApi.Model.Types.Primitive.U16>(this.remoting, ROUTE, nameof(DoThis) , p1, p2); }
 /// <inheritdoc/>
- public ICall<global::Substrate.NetApi.Model.Types.Primitive.U8> DoThat(global::Substrate.NetApi.Model.Types.Base.BaseTuple<global::Substrate.NetApi.Model.Types.Primitive.U8, global::Substrate.NetApi.Model.Types.Primitive.U32> p1) { return new RemotingAction<global::Substrate.NetApi.Model.Types.Primitive.U8>(this.remoting, [20, 66, 97, 115, 105, 99, 24, 68, 111, 84, 104, 97, 116], p1); } }
+ public ICall<global::Substrate.NetApi.Model.Types.Primitive.U8> DoThat(global::Substrate.NetApi.Model.Types.Base.BaseTuple<global::Substrate.NetApi.Model.Types.Primitive.U8, global::Substrate.NetApi.Model.Types.Primitive.U32> p1) { return new RemotingAction<global::Substrate.NetApi.Model.Types.Primitive.U8>(this.remoting, ROUTE, nameof(DoThat) , p1); } }
 
 public sealed partial class MyParam : global::Substrate.NetApi.Model.Types.Base.BaseType {
 public global::Substrate.NetApi.Model.Types.Primitive.U32 F1 { get; init; } = new();

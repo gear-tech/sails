@@ -26,7 +26,6 @@ public static class ActionExtensions
         return await reply.ReceiveAsync(cancellationToken).ConfigureAwait(false);
     }
 
-
     /// <summary>
     /// Sends a message to a program for execution and receive reply
     /// </summary>

@@ -8,6 +8,8 @@ using global::Sails.Remoting.Abstractions;
 using global::Sails.Remoting.Abstractions.Core;
 using global::System;
 using global::System.Collections.Generic;
+using global::System.Threading;
+using global::System.Threading.Tasks;
 
 #nullable enable
 
@@ -32,7 +34,7 @@ IActivation New(global::Substrate.NetApi.Model.Types.Primitive.U32 a);
  { this.remoting = remoting; }
 
 /// <inheritdoc/>
- public IActivation New(global::Substrate.NetApi.Model.Types.Primitive.U32 a) { return new RemotingAction<global::Substrate.NetApi.Model.Types.Base.BaseVoid>(this.remoting, [12, 78, 101, 119], a); }
+ public IActivation New(global::Substrate.NetApi.Model.Types.Primitive.U32 a) { return new RemotingAction<global::Substrate.NetApi.Model.Types.Base.BaseVoid>(this.remoting, nameof(New), string.Empty , a); }
 
  }
 
@@ -44,18 +46,22 @@ IQuery<global::Substrate.Gear.Client.NetApi.Model.Types.Base.BaseResult<global::
  }
 
  public sealed partial class Service : IService
- { private readonly IRemoting remoting;
+ {
+
+ private const string ROUTE = nameof(Service);
+
+ private readonly IRemoting remoting;
 
  public Service(IRemoting remoting) { this.remoting = remoting; }
 
 /// <inheritdoc/>
- public ICall<global::Substrate.NetApi.Model.Types.Base.BaseTuple<global::Substrate.NetApi.Model.Types.Primitive.Str, global::Substrate.NetApi.Model.Types.Primitive.U32>> DoThis(global::Substrate.NetApi.Model.Types.Primitive.U32 p1, global::Substrate.NetApi.Model.Types.Primitive.Str p2, global::Substrate.NetApi.Model.Types.Base.BaseTuple<global::Substrate.NetApi.Model.Types.Base.BaseOpt<global::Substrate.NetApi.Model.Types.Primitive.Str>, global::Substrate.NetApi.Model.Types.Primitive.U8> p3, ThisThatSvcAppTupleStruct p4) { return new RemotingAction<global::Substrate.NetApi.Model.Types.Base.BaseTuple<global::Substrate.NetApi.Model.Types.Primitive.Str, global::Substrate.NetApi.Model.Types.Primitive.U32>>(this.remoting, [28, 83, 101, 114, 118, 105, 99, 101, 24, 68, 111, 84, 104, 105, 115], p1, p2, p3, p4); }
+ public ICall<global::Substrate.NetApi.Model.Types.Base.BaseTuple<global::Substrate.NetApi.Model.Types.Primitive.Str, global::Substrate.NetApi.Model.Types.Primitive.U32>> DoThis(global::Substrate.NetApi.Model.Types.Primitive.U32 p1, global::Substrate.NetApi.Model.Types.Primitive.Str p2, global::Substrate.NetApi.Model.Types.Base.BaseTuple<global::Substrate.NetApi.Model.Types.Base.BaseOpt<global::Substrate.NetApi.Model.Types.Primitive.Str>, global::Substrate.NetApi.Model.Types.Primitive.U8> p3, ThisThatSvcAppTupleStruct p4) { return new RemotingAction<global::Substrate.NetApi.Model.Types.Base.BaseTuple<global::Substrate.NetApi.Model.Types.Primitive.Str, global::Substrate.NetApi.Model.Types.Primitive.U32>>(this.remoting, ROUTE, nameof(DoThis) , p1, p2, p3, p4); }
 /// <inheritdoc/>
- public ICall<global::Substrate.Gear.Client.NetApi.Model.Types.Base.BaseResult<global::Substrate.NetApi.Model.Types.Base.BaseTuple<global::Substrate.NetApi.Model.Types.Primitive.Str, global::Substrate.NetApi.Model.Types.Primitive.U32>, global::Substrate.NetApi.Model.Types.Primitive.Str>> DoThat(ThisThatSvcAppDoThatParam param) { return new RemotingAction<global::Substrate.Gear.Client.NetApi.Model.Types.Base.BaseResult<global::Substrate.NetApi.Model.Types.Base.BaseTuple<global::Substrate.NetApi.Model.Types.Primitive.Str, global::Substrate.NetApi.Model.Types.Primitive.U32>, global::Substrate.NetApi.Model.Types.Primitive.Str>>(this.remoting, [28, 83, 101, 114, 118, 105, 99, 101, 24, 68, 111, 84, 104, 97, 116], param); }
+ public ICall<global::Substrate.Gear.Client.NetApi.Model.Types.Base.BaseResult<global::Substrate.NetApi.Model.Types.Base.BaseTuple<global::Substrate.NetApi.Model.Types.Primitive.Str, global::Substrate.NetApi.Model.Types.Primitive.U32>, global::Substrate.NetApi.Model.Types.Primitive.Str>> DoThat(ThisThatSvcAppDoThatParam param) { return new RemotingAction<global::Substrate.Gear.Client.NetApi.Model.Types.Base.BaseResult<global::Substrate.NetApi.Model.Types.Base.BaseTuple<global::Substrate.NetApi.Model.Types.Primitive.Str, global::Substrate.NetApi.Model.Types.Primitive.U32>, global::Substrate.NetApi.Model.Types.Primitive.Str>>(this.remoting, ROUTE, nameof(DoThat) , param); }
 /// <inheritdoc/>
- public IQuery<global::Substrate.NetApi.Model.Types.Primitive.U32> This(global::Substrate.NetApi.Model.Types.Base.BaseVec<global::Substrate.NetApi.Model.Types.Primitive.U16> v1) { return new RemotingAction<global::Substrate.NetApi.Model.Types.Primitive.U32>(this.remoting, [28, 83, 101, 114, 118, 105, 99, 101, 16, 84, 104, 105, 115], v1); }
+ public IQuery<global::Substrate.NetApi.Model.Types.Primitive.U32> This(global::Substrate.NetApi.Model.Types.Base.BaseVec<global::Substrate.NetApi.Model.Types.Primitive.U16> v1) { return new RemotingAction<global::Substrate.NetApi.Model.Types.Primitive.U32>(this.remoting, ROUTE, nameof(This) , v1); }
 /// <inheritdoc/>
- public IQuery<global::Substrate.Gear.Client.NetApi.Model.Types.Base.BaseResult<global::Substrate.NetApi.Model.Types.Primitive.Str, global::Substrate.NetApi.Model.Types.Primitive.Str>> That(global::Substrate.NetApi.Model.Types.Base.BaseVoid v1) { return new RemotingAction<global::Substrate.Gear.Client.NetApi.Model.Types.Base.BaseResult<global::Substrate.NetApi.Model.Types.Primitive.Str, global::Substrate.NetApi.Model.Types.Primitive.Str>>(this.remoting, [28, 83, 101, 114, 118, 105, 99, 101, 16, 84, 104, 97, 116], v1); } }
+ public IQuery<global::Substrate.Gear.Client.NetApi.Model.Types.Base.BaseResult<global::Substrate.NetApi.Model.Types.Primitive.Str, global::Substrate.NetApi.Model.Types.Primitive.Str>> That(global::Substrate.NetApi.Model.Types.Base.BaseVoid v1) { return new RemotingAction<global::Substrate.Gear.Client.NetApi.Model.Types.Base.BaseResult<global::Substrate.NetApi.Model.Types.Primitive.Str, global::Substrate.NetApi.Model.Types.Primitive.Str>>(this.remoting, ROUTE, nameof(That) , v1); } }
 
 public enum ServiceEvents {
 /// <summary>
@@ -72,13 +78,20 @@ public enum ServiceEvents {
 this.AddTypeDecoder<global::Substrate.NetApi.Model.Types.Primitive.Str>(ServiceEvents.ThatDone);
  } }
 
- public sealed partial class ServiceListener : IRemotingListener<EnumServiceEvents> { private static readonly byte[][] EventRoutes = [ [28, 83, 101, 114, 118, 105, 99, 101, 32, 84, 104, 105, 115, 68, 111, 110, 101],[28, 83, 101, 114, 118, 105, 99, 101, 32, 84, 104, 97, 116, 68, 111, 110, 101], ];
+ public sealed partial class ServiceListener {
 
- private readonly global::Sails.Remoting.Abstractions.Core.IRemotingListener remoting;
+ private const string ROUTE = "Service";
 
- public ServiceListener(global::Sails.Remoting.Abstractions.Core.IRemotingListener remoting) { this.remoting = remoting; }
+ private static readonly string[] EventRoutes = [ "ThisDone","ThatDone", ];
 
- public async global::System.Collections.Generic.IAsyncEnumerable<EnumServiceEvents> ListenAsync([global::System.Runtime.CompilerServices.EnumeratorCancellation] global::System.Threading.CancellationToken cancellationToken = default) { await foreach (var bytes in this.remoting.ListenAsync(cancellationToken)) { byte idx = 0; foreach (var route in EventRoutes) { if (route.Length > bytes.Length) { continue; } if (route.AsSpan().SequenceEqual(bytes.AsSpan()[..route.Length])) { var bytesLength = bytes.Length - route.Length + 1; var data = new byte[bytesLength]; data[0] = idx; Buffer.BlockCopy(bytes, route.Length, data, 1, bytes.Length - route.Length); var p = 0; EnumServiceEvents ev = new(); ev.Decode(bytes, ref p); yield return ev; } idx++; } } } }
+ private readonly IRemoting remoting;
+
+ public ServiceListener(IRemoting remoting) { this.remoting = remoting; }
+
+ public async Task<EventListener<(global::Substrate.Gear.Api.Generated.Model.gprimitives.ActorId, EnumServiceEvents)>> ListenAsync(CancellationToken cancellationToken = default) {
+ var listener = await this.remoting.ListenAsync(cancellationToken);
+ return listener.ToServiceEventListener<EnumServiceEvents>(ROUTE, EventRoutes);
+ } }
 
 /// <summary>
 /// ThisThatSvcAppTupleStruct docs

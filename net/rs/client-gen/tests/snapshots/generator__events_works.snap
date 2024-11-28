@@ -8,6 +8,8 @@ using global::Sails.Remoting.Abstractions;
 using global::Sails.Remoting.Abstractions.Core;
 using global::System;
 using global::System.Collections.Generic;
+using global::System.Threading;
+using global::System.Threading.Tasks;
 
 #nullable enable
 
@@ -20,12 +22,16 @@ public interface IServiceWithEvents
  }
 
  public sealed partial class ServiceWithEvents : IServiceWithEvents
- { private readonly IRemoting remoting;
+ {
+
+ private const string ROUTE = nameof(ServiceWithEvents);
+
+ private readonly IRemoting remoting;
 
  public ServiceWithEvents(IRemoting remoting) { this.remoting = remoting; }
 
 /// <inheritdoc/>
- public ICall<global::Substrate.Gear.Client.NetApi.Model.Types.Primitive.NonZeroU64> DoThis(global::Substrate.Gear.Client.NetApi.Model.Types.Primitive.NonZeroU256 p1, MyParam p2) { return new RemotingAction<global::Substrate.Gear.Client.NetApi.Model.Types.Primitive.NonZeroU64>(this.remoting, [68, 83, 101, 114, 118, 105, 99, 101, 87, 105, 116, 104, 69, 118, 101, 110, 116, 115, 24, 68, 111, 84, 104, 105, 115], p1, p2); } }
+ public ICall<global::Substrate.Gear.Client.NetApi.Model.Types.Primitive.NonZeroU64> DoThis(global::Substrate.Gear.Client.NetApi.Model.Types.Primitive.NonZeroU256 p1, MyParam p2) { return new RemotingAction<global::Substrate.Gear.Client.NetApi.Model.Types.Primitive.NonZeroU64>(this.remoting, ROUTE, nameof(DoThis) , p1, p2); } }
 
 public enum ServiceWithEventsEvents { One,
  Two,
@@ -39,13 +45,20 @@ this.AddTypeDecoder<MyParam>(ServiceWithEventsEvents.Three);
 this.AddTypeDecoder<global::Substrate.NetApi.Model.Types.Base.BaseVoid>(ServiceWithEventsEvents.Reset);
  } }
 
- public sealed partial class ServiceWithEventsListener : IRemotingListener<EnumServiceWithEventsEvents> { private static readonly byte[][] EventRoutes = [ [68, 83, 101, 114, 118, 105, 99, 101, 87, 105, 116, 104, 69, 118, 101, 110, 116, 115, 12, 79, 110, 101],[68, 83, 101, 114, 118, 105, 99, 101, 87, 105, 116, 104, 69, 118, 101, 110, 116, 115, 12, 84, 119, 111],[68, 83, 101, 114, 118, 105, 99, 101, 87, 105, 116, 104, 69, 118, 101, 110, 116, 115, 20, 84, 104, 114, 101, 101],[68, 83, 101, 114, 118, 105, 99, 101, 87, 105, 116, 104, 69, 118, 101, 110, 116, 115, 20, 82, 101, 115, 101, 116], ];
+ public sealed partial class ServiceWithEventsListener {
 
- private readonly global::Sails.Remoting.Abstractions.Core.IRemotingListener remoting;
+ private const string ROUTE = "ServiceWithEvents";
 
- public ServiceWithEventsListener(global::Sails.Remoting.Abstractions.Core.IRemotingListener remoting) { this.remoting = remoting; }
+ private static readonly string[] EventRoutes = [ "One","Two","Three","Reset", ];
 
- public async global::System.Collections.Generic.IAsyncEnumerable<EnumServiceWithEventsEvents> ListenAsync([global::System.Runtime.CompilerServices.EnumeratorCancellation] global::System.Threading.CancellationToken cancellationToken = default) { await foreach (var bytes in this.remoting.ListenAsync(cancellationToken)) { byte idx = 0; foreach (var route in EventRoutes) { if (route.Length > bytes.Length) { continue; } if (route.AsSpan().SequenceEqual(bytes.AsSpan()[..route.Length])) { var bytesLength = bytes.Length - route.Length + 1; var data = new byte[bytesLength]; data[0] = idx; Buffer.BlockCopy(bytes, route.Length, data, 1, bytes.Length - route.Length); var p = 0; EnumServiceWithEventsEvents ev = new(); ev.Decode(bytes, ref p); yield return ev; } idx++; } } } }
+ private readonly IRemoting remoting;
+
+ public ServiceWithEventsListener(IRemoting remoting) { this.remoting = remoting; }
+
+ public async Task<EventListener<(global::Substrate.Gear.Api.Generated.Model.gprimitives.ActorId, EnumServiceWithEventsEvents)>> ListenAsync(CancellationToken cancellationToken = default) {
+ var listener = await this.remoting.ListenAsync(cancellationToken);
+ return listener.ToServiceEventListener<EnumServiceWithEventsEvents>(ROUTE, EventRoutes);
+ } }
 
 public sealed partial class MyParam : global::Substrate.NetApi.Model.Types.Base.BaseType {
 public global::Substrate.Gear.Client.NetApi.Model.Types.Primitive.NonZeroU256 F1 { get; init; } = new();

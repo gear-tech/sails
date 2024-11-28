@@ -4,13 +4,10 @@ using System.Threading;
 using System.Threading.Tasks;
 using EnsureThat;
 using Sails.Remoting.Abstractions.Core;
-using StreamJsonRpc;
 using Substrate.Gear.Api.Generated;
 using Substrate.Gear.Api.Generated.Model.gear_core.message.user;
 using Substrate.Gear.Api.Generated.Model.gprimitives;
-using Substrate.Gear.Api.Generated.Model.vara_runtime;
 using Substrate.Gear.Client;
-using Substrate.Gear.Client.NetApi.Model.Rpc;
 using Substrate.Gear.Client.NetApi.Model.Types.Base;
 
 namespace Sails.Remoting.Core;
@@ -89,17 +86,7 @@ internal sealed class RemotingReplyViaNodeClient<T> : RemotingReply<T>
             Ensure.Any.IsNotNull(this.blocksStream, nameof(this.blocksStream));
 
             this.replyMessage = await this.blocksStream.ReadAllHeadersAsync(cancellationToken)
-                .SelectAwait(
-                    async blockHeader =>
-                        await this.nodeClient.ListBlockEventsAsync(blockHeader.GetBlockHash(), cancellationToken)
-                            .ConfigureAwait(false))
-                .SelectMany(
-                    eventRecords => eventRecords.AsAsyncEnumerable())
-                .Select(
-                    eventRecord => eventRecord.Event.ToBaseEnumRust())
-                .SelectIfMatches(
-                    RuntimeEvent.Gear,
-                    (EnumGearEvent gearEvent) => gearEvent.ToBaseEnumRust())
+                .SelectGearEvents(this.nodeClient, cancellationToken)
                 .SelectIfMatches(
                     GearEvent.UserMessageSent,
                     (UserMessageSentEventData data) => (UserMessage)data.Value[0])
