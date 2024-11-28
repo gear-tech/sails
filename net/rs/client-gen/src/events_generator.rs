@@ -69,7 +69,7 @@ impl<'a> EventsGenerator<'a> {
                 public async $task<$listener<($actor_id_type, $class_name)>> ListenAsync($cancellation_token cancellationToken = default)
                 {$['\r']
                     var listener = await this.remoting.ListenAsync(cancellationToken);$['\r']
-                    return listener.SelectEvents<$class_name>(ROUTE, EventRoutes);$['\r']
+                    return listener.ToServiceEventListener<$class_name>(ROUTE, EventRoutes);$['\r']
                 }
             }
             $['\n']

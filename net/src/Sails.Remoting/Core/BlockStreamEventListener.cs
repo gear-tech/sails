@@ -19,8 +19,7 @@ internal sealed class BlockStreamEventListener : EventListener<(ActorId Source, 
         this.blocksStream = blocksStream;
     }
 
-    public override IAsyncEnumerable<(ActorId Source, byte[] Bytes)> ReadAllAsync(
-        CancellationToken cancellationToken = default)
+    public override IAsyncEnumerable<(ActorId Source, byte[] Bytes)> ReadAllAsync(CancellationToken cancellationToken)
         => this.blocksStream.ReadAllHeadersAsync(cancellationToken)
             .SelectGearEvents(this.nodeClient, cancellationToken)
             .SelectServiceEvents();

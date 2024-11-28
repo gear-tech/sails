@@ -27,10 +27,10 @@ internal sealed class ServiceEventListener<T> : EventListener<(ActorId Source, T
         this.eventRoutes = eventRoutes.Select(r => new Str(r).Encode()).ToArray();
     }
 
-    public override IAsyncEnumerable<(ActorId Source, T Event)> ReadAllAsync(CancellationToken cancellationToken = default)
+    public override IAsyncEnumerable<(ActorId Source, T Event)> ReadAllAsync(CancellationToken cancellationToken)
         => this.source
             .ReadAllAsync(cancellationToken)
-            .Select(this.Map)
+            .Select(this.Decode)
             .Where(x => x != null)
             .Select(x => x!.Value);
 

@@ -114,7 +114,7 @@ public sealed partial class CounterListener
     public async Task<EventListener<(global::Substrate.Gear.Api.Generated.Model.gprimitives.ActorId, EnumCounterEvents)>> ListenAsync(CancellationToken cancellationToken = default)
     {
         var listener = await this.remoting.ListenAsync(cancellationToken);
-        return listener.SelectEvents<EnumCounterEvents>(ROUTE, EventRoutes);
+        return listener.ToServiceEventListener<EnumCounterEvents>(ROUTE, EventRoutes);
     }
 }
 
@@ -188,7 +188,7 @@ public sealed partial class DogListener
     public async Task<EventListener<(global::Substrate.Gear.Api.Generated.Model.gprimitives.ActorId, EnumDogEvents)>> ListenAsync(CancellationToken cancellationToken = default)
     {
         var listener = await this.remoting.ListenAsync(cancellationToken);
-        return listener.SelectEvents<EnumDogEvents>(ROUTE, EventRoutes);
+        return listener.ToServiceEventListener<EnumDogEvents>(ROUTE, EventRoutes);
     }
 }
 
@@ -379,7 +379,7 @@ public sealed partial class ValueFeeListener
     public async Task<EventListener<(global::Substrate.Gear.Api.Generated.Model.gprimitives.ActorId, EnumValueFeeEvents)>> ListenAsync(CancellationToken cancellationToken = default)
     {
         var listener = await this.remoting.ListenAsync(cancellationToken);
-        return listener.SelectEvents<EnumValueFeeEvents>(ROUTE, EventRoutes);
+        return listener.ToServiceEventListener<EnumValueFeeEvents>(ROUTE, EventRoutes);
     }
 }
 

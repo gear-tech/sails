@@ -7,7 +7,7 @@ namespace Substrate.Gear.Client.GearApi.Model.gprimitives;
 
 public static class ActorIdExtensions
 {
-    public static readonly ActorId Zero = new();
+    public static ActorId Zero { get; } = new();
 
     static ActorIdExtensions()
     {

@@ -57,7 +57,7 @@ this.AddTypeDecoder<global::Substrate.NetApi.Model.Types.Base.BaseVoid>(ServiceW
 
  public async Task<EventListener<(global::Substrate.Gear.Api.Generated.Model.gprimitives.ActorId, EnumServiceWithEventsEvents)>> ListenAsync(CancellationToken cancellationToken = default) {
  var listener = await this.remoting.ListenAsync(cancellationToken);
- return listener.SelectEvents<EnumServiceWithEventsEvents>(ROUTE, EventRoutes);
+ return listener.ToServiceEventListener<EnumServiceWithEventsEvents>(ROUTE, EventRoutes);
  } }
 
 public sealed partial class MyParam : global::Substrate.NetApi.Model.Types.Base.BaseType {

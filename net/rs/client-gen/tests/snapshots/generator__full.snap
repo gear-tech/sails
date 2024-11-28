@@ -90,7 +90,7 @@ this.AddTypeDecoder<global::Substrate.NetApi.Model.Types.Primitive.Str>(ServiceE
 
  public async Task<EventListener<(global::Substrate.Gear.Api.Generated.Model.gprimitives.ActorId, EnumServiceEvents)>> ListenAsync(CancellationToken cancellationToken = default) {
  var listener = await this.remoting.ListenAsync(cancellationToken);
- return listener.SelectEvents<EnumServiceEvents>(ROUTE, EventRoutes);
+ return listener.ToServiceEventListener<EnumServiceEvents>(ROUTE, EventRoutes);
  } }
 
 /// <summary>

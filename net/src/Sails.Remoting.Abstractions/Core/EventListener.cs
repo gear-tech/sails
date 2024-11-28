@@ -16,5 +16,5 @@ public abstract class EventListener<T> : IAsyncDisposable
 
     protected abstract ValueTask DisposeCoreAsync();
 
-    public abstract IAsyncEnumerable<T> ReadAllAsync(CancellationToken cancellationToken = default);
+    public abstract IAsyncEnumerable<T> ReadAllAsync(CancellationToken cancellationToken);
 }

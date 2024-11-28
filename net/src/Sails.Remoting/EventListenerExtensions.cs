@@ -10,7 +10,7 @@ public static class EventListenerExtensions
     /// <summary>
     /// Projects Gear event to Typed Service Event
     /// </summary>
-    public static EventListener<(ActorId Source, T Event)> SelectEvents<T>(
+    public static EventListener<(ActorId Source, T Event)> ToServiceEventListener<T>(
         this EventListener<(ActorId Source, byte[] Payload)> source,
         string serviceRoute,
         string[] eventRoutes)
