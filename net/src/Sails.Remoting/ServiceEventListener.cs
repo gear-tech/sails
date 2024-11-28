@@ -36,7 +36,7 @@ internal class ServiceEventListener<T> : EventListener<(ActorId Source, T Event)
 
     protected override ValueTask DisposeCoreAsync() => this.source.DisposeAsync();
 
-    private (ActorId Source, T Event)? Map((ActorId, byte[]) tuple)
+    private (ActorId Source, T Event)? Decode((ActorId, byte[]) tuple)
     {
         var (source, bytes) = tuple;
         var serviceLength = this.serviceRoute.Length;
