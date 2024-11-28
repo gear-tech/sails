@@ -10,7 +10,7 @@ using Substrate.NetApi.Model.Types.Primitive;
 
 namespace Sails.Remoting;
 
-internal class ServiceEventListener<T> : EventListener<(ActorId Source, T Event)>
+internal sealed class ServiceEventListener<T> : EventListener<(ActorId Source, T Event)>
      where T : IType, new()
 {
     private readonly EventListener<(ActorId Source, byte[] Payload)> source;
