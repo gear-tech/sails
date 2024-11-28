@@ -1,3 +1,3 @@
-﻿namespace Sails.Tests.Shared.XUnit;
+﻿namespace Sails.Testing.XUnit;
 
 public interface IAssemblyFixture<TFixture>;

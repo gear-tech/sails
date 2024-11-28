@@ -8,5 +8,5 @@ global using Sails.Remoting.Abstractions.Core;
 global using Sails.Remoting.Core;
 global using Sails.Remoting.DependencyInjection;
 global using Sails.Remoting.Options;
-global using Sails.Tests.Shared.XUnit;
+global using Sails.Testing.XUnit;
 global using Xunit;

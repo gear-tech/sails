@@ -8,8 +8,8 @@ using EnsureThat;
 using Nito.AsyncEx;
 using Polly;
 using Polly.Retry;
-using Sails.Tests.Shared.Containers;
-using Sails.Tests.Shared.Git;
+using Sails.Testing.Containers;
+using Sails.Testing.Git;
 using Substrate.Gear.Api.Generated;
 using Substrate.Gear.Api.Generated.Model.gprimitives;
 using Substrate.Gear.Client;
@@ -19,7 +19,7 @@ using Substrate.NetApi.Model.Extrinsics;
 using Substrate.NetApi.Model.Types;
 using Xunit;
 
-namespace Sails.Tests.Shared.XUnit.Fixtures;
+namespace Sails.Testing.XUnit.Fixtures;
 
 public partial class SailsFixture : IAsyncLifetime
 {

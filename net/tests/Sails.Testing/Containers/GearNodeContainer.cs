@@ -7,7 +7,7 @@ using DotNet.Testcontainers.Configurations;
 using DotNet.Testcontainers.Containers;
 using EnsureThat;
 
-namespace Sails.Tests.Shared.Containers;
+namespace Sails.Testing.Containers;
 
 // TODO: Consider introducing ContainerBuilder similar to how it is done
 //       for modules shipped along with Testcontainers library.

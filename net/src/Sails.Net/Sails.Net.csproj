@@ -7,7 +7,7 @@
   <!-- Substrate.Gear.Api -->
   <ItemGroup>
     <PackageReference Include="Substrate.NET.API" />
-    <!-- Due to Vulnarabilties -->
+    <!-- Vulnarabilties -->
     <PackageReference Include="Microsoft.Bcl.AsyncInterfaces" />
     <PackageReference Remove="Roslynator.Formatting.Analyzers" />
   </ItemGroup>

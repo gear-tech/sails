@@ -19,7 +19,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Substrate.Gear.Client", "net\src\Substrate.Gear.Client\Substrate.Gear.Client.csproj", "{1589D5A4-0CC4-4855-89E0-2E61BBC5E0B0}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Sails.Tests.Shared", "net\tests\Sails.Tests.Shared\Sails.Tests.Shared.csproj", "{382EBE9F-C60C-4D20-A585-B3272113F944}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Sails.Testing", "net\tests\Sails.Testing\Sails.Testing.csproj", "{382EBE9F-C60C-4D20-A585-B3272113F944}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Sails.Remoting.Tests", "net\tests\Sails.Remoting.Tests\Sails.Remoting.Tests.csproj", "{DEEACFC0-EE4D-42E5-9616-232242913A39}"
 EndProject
@@ -38,6 +38,8 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Sails.DemoClient", "net\examples\Sails.DemoClient\Sails.DemoClient.csproj", "{C9D87AD3-612B-43A0-89BD-9211FE2FB310}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Sails.DemoClient.Tests", "net\tests\Sails.DemoClient.Tests\Sails.DemoClient.Tests.csproj", "{5ED8CDB7-F896-4ACE-8B7B-A128CCBBCFA4}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Sails.Net.Testing", "net\tests\Sails.Net.Testing\Sails.Net.Testing.csproj", "{48E8B888-AAB5-4CC3-A5E1-D6899878176C}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -97,6 +99,10 @@ Global
 		{5ED8CDB7-F896-4ACE-8B7B-A128CCBBCFA4}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{5ED8CDB7-F896-4ACE-8B7B-A128CCBBCFA4}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{5ED8CDB7-F896-4ACE-8B7B-A128CCBBCFA4}.Release|Any CPU.Build.0 = Release|Any CPU
+		{48E8B888-AAB5-4CC3-A5E1-D6899878176C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{48E8B888-AAB5-4CC3-A5E1-D6899878176C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{48E8B888-AAB5-4CC3-A5E1-D6899878176C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{48E8B888-AAB5-4CC3-A5E1-D6899878176C}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -109,6 +115,7 @@ Global
 		{BC248D44-14CD-4BB0-9AF9-4E0750574492} = {19594BCA-94DB-44AD-ACBC-2ACFED242E9F}
 		{C9D87AD3-612B-43A0-89BD-9211FE2FB310} = {4D457454-ED79-4BC3-8B6B-AC6934AAF048}
 		{5ED8CDB7-F896-4ACE-8B7B-A128CCBBCFA4} = {19594BCA-94DB-44AD-ACBC-2ACFED242E9F}
+		{48E8B888-AAB5-4CC3-A5E1-D6899878176C} = {19594BCA-94DB-44AD-ACBC-2ACFED242E9F}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {0894C08B-8BB9-401D-8471-26F5EB5A4EA2}

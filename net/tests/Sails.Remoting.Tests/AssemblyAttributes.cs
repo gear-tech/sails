@@ -1,6 +1,6 @@
 ﻿[assembly: TestFramework(
-    "Sails.Tests.Shared.XUnit.TestFramework",
-    "Sails.Tests.Shared")]
+    "Sails.Testing.XUnit.TestFramework",
+    "Sails.Testing")]
 
 [assembly: AssemblyFixture(
     typeof(Sails.Remoting.Tests._Infra.XUnit.Fixtures.SailsFixture))]
