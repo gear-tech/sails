@@ -23,7 +23,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Sails.Tests.Shared\Sails.Tests.Shared.csproj" />
+    <ProjectReference Include="..\..\src\Sails.Remoting\Sails.Remoting.csproj" />
+    <ProjectReference Include="..\Sails.Testing\Sails.Testing.csproj" />
   </ItemGroup>
 
 </Project>

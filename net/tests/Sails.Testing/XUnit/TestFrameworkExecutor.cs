@@ -4,7 +4,7 @@ using System.Reflection;
 using Xunit.Abstractions;
 using Xunit.Sdk;
 
-namespace Sails.Tests.Shared.XUnit;
+namespace Sails.Testing.XUnit;
 
 public sealed class TestFrameworkExecutor : XunitTestFrameworkExecutor
 {

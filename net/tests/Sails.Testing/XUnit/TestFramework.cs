@@ -2,7 +2,7 @@
 using Xunit.Abstractions;
 using Xunit.Sdk;
 
-namespace Sails.Tests.Shared.XUnit;
+namespace Sails.Testing.XUnit;
 
 public class TestFramework : XunitTestFramework
 {

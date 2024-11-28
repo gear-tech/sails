@@ -1,7 +1,7 @@
 ﻿using System;
 using EnsureThat;
 
-namespace Sails.Tests.Shared.XUnit;
+namespace Sails.Testing.XUnit;
 
 [AttributeUsage(AttributeTargets.Assembly)]
 public sealed class AssemblyFixtureAttribute : Attribute

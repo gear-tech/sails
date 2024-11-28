@@ -1,0 +1,30 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Ensure.That" />
+    <!-- This dependency is required for tests discovery to work -->
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="Nito.AsyncEx" />
+    <PackageReference Include="Polly" />
+    <PackageReference Include="Testcontainers" />
+    <PackageReference Include="xunit" />
+    <!-- Vulnarabilties -->
+    <PackageReference Include="System.Net.Http" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Sails.Net" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="../Sails.Testing/**/*.cs">
+      <Link>%(RecursiveDir)%(FileName)%(Extension)</Link>
+    </Compile>
+    <Compile Remove="../Sails.Testing/obj/**/*.cs" />
+  </ItemGroup>
+
+</Project>
