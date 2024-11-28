@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Threading;
 using System.Threading.Channels;
 using System.Threading.Tasks;
 using EnsureThat;
@@ -17,8 +18,9 @@ internal sealed class BlocksStreamBuilder(SubstrateClientExt nodeClient)
     }
 
     internal async Task<BlocksStream> CreateAsync(
-        Func<SubstrateClientExt, Action<string, Header>, Task<string>> subscribe,
-        Func<SubstrateClientExt, string, Task> unsubscribe)
+        Func<SubstrateClientExt, Action<string, Header>, CancellationToken, Task<string>> subscribe,
+        Func<SubstrateClientExt, string, Task> unsubscribe,
+        CancellationToken cancellationToken)
     {
         var channel = Channel.CreateUnbounded<Header>(
             new UnboundedChannelOptions
@@ -27,7 +29,7 @@ internal sealed class BlocksStreamBuilder(SubstrateClientExt nodeClient)
             });
 
         void Callback(string _, Header blockHeader) => channel.Writer.TryWrite(blockHeader);
-        var subscriptionId = await subscribe(nodeClient, Callback).ConfigureAwait(false);
+        var subscriptionId = await subscribe(nodeClient, Callback, cancellationToken).ConfigureAwait(false);
 
         return new BlocksStream(nodeClient, subscriptionId, channel, unsubscribe);
     }

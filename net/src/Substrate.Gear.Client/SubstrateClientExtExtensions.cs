@@ -255,10 +255,11 @@ public static class SubstrateClientExtExtensions
         EnsureArg.IsNotNull(nodeClient, nameof(nodeClient));
 
         return BlocksStreamBuilder.FromNode(nodeClient).CreateAsync(
-            (nodeClient, callback) =>
+            static (nodeClient, callback, cancellationToken) =>
                 nodeClient.Chain.SubscribeAllHeadsAsync(callback, cancellationToken),
-            (nodeClient, subscriptionId) =>
-                nodeClient.Chain.UnsubscribeAllHeadsAsync(subscriptionId, CancellationToken.None));
+            static (nodeClient, subscriptionId) =>
+                nodeClient.Chain.UnsubscribeAllHeadsAsync(subscriptionId, CancellationToken.None),
+            cancellationToken);
     }
 
     /// <summary>
@@ -274,10 +275,11 @@ public static class SubstrateClientExtExtensions
         EnsureArg.IsNotNull(nodeClient, nameof(nodeClient));
 
         return BlocksStreamBuilder.FromNode(nodeClient).CreateAsync(
-            (nodeClient, callback) =>
+            static (nodeClient, callback, cancellationToken) =>
                 nodeClient.Chain.SubscribeNewHeadsAsync(callback, cancellationToken),
-            (nodeClient, subscriptionId) =>
-                nodeClient.Chain.UnsubscribeNewHeadsAsync(subscriptionId, CancellationToken.None));
+            static (nodeClient, subscriptionId) =>
+                nodeClient.Chain.UnsubscribeNewHeadsAsync(subscriptionId, CancellationToken.None),
+            cancellationToken);
     }
 
     /// <summary>
@@ -296,10 +298,11 @@ public static class SubstrateClientExtExtensions
         //       notification, i.e., if you observe block X and then X + 2, it means that block X + 1 was finalized too.
         //       Probably it should be accounted here and missed blocks should be fetched from the chain.
         return BlocksStreamBuilder.FromNode(nodeClient).CreateAsync(
-            (nodeClient, callback) =>
+            static (nodeClient, callback, cancellationToken) =>
                 nodeClient.Chain.SubscribeFinalizedHeadsAsync(callback, cancellationToken),
-            (nodeClient, subscriptionId) =>
-                nodeClient.Chain.UnsubscribeFinalizedHeadsAsync(subscriptionId, CancellationToken.None));
+            static (nodeClient, subscriptionId) =>
+                nodeClient.Chain.UnsubscribeFinalizedHeadsAsync(subscriptionId, CancellationToken.None),
+            cancellationToken);
     }
 
     /// <summary>

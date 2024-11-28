@@ -81,7 +81,8 @@ internal sealed class RemotingReplyViaNodeClient<T> : RemotingReply<T>
         {
             Ensure.Any.IsNotNull(this.blocksStream, nameof(this.blocksStream));
 
-            this.replyMessage = await this.blocksStream.ReadAllEventsAsync(cancellationToken)
+            this.replyMessage = await this.blocksStream
+                .ReadAllEventsAsync(cancellationToken)
                 .SelectGearEvents()
                 .SelectIfMatches(
                     GearEvent.UserMessageSent,
