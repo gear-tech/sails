@@ -19,12 +19,11 @@ internal class BlockStreamEventListener : EventListener<(ActorId Source, byte[] 
         this.blocksStream = blocksStream;
     }
 
-    public override IAsyncEnumerator<(ActorId Source, byte[] Bytes)> GetAsyncEnumerator(
+    public override IAsyncEnumerable<(ActorId Source, byte[] Bytes)> ReadAllAsync(
         CancellationToken cancellationToken = default)
         => this.blocksStream.ReadAllHeadersAsync(cancellationToken)
             .SelectGearEvents(this.nodeClient, cancellationToken)
-            .SelectServiceEvents()
-            .GetAsyncEnumerator(cancellationToken);
+            .SelectServiceEvents();
 
     protected override ValueTask DisposeCoreAsync() => this.blocksStream.DisposeAsync();
 }

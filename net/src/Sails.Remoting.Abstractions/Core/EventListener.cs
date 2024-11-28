@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 
 namespace Sails.Remoting.Abstractions.Core;
 
-public abstract class EventListener<T> : IAsyncEnumerable<T>, IAsyncDisposable
+public abstract class EventListener<T> : IAsyncDisposable
 {
     public async ValueTask DisposeAsync()
     {
@@ -16,5 +16,5 @@ public abstract class EventListener<T> : IAsyncEnumerable<T>, IAsyncDisposable
 
     protected abstract ValueTask DisposeCoreAsync();
 
-    public abstract IAsyncEnumerator<T> GetAsyncEnumerator(CancellationToken cancellationToken = default);
+    public abstract IAsyncEnumerable<T> ReadAllAsync(CancellationToken cancellationToken = default);
 }

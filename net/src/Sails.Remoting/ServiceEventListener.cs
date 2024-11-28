@@ -27,12 +27,12 @@ internal class ServiceEventListener<T> : EventListener<(ActorId Source, T Event)
         this.eventRoutes = eventRoutes.Select(r => new Str(r).Encode()).ToArray();
     }
 
-    public override IAsyncEnumerator<(ActorId Source, T Event)> GetAsyncEnumerator(CancellationToken cancellationToken = default)
+    public override IAsyncEnumerable<(ActorId Source, T Event)> ReadAllAsync(CancellationToken cancellationToken = default)
         => this.source
+            .ReadAllAsync(cancellationToken)
             .Select(this.Map)
             .Where(x => x != null)
-            .Select(x => x!.Value)
-            .GetAsyncEnumerator(cancellationToken);
+            .Select(x => x!.Value);
 
     protected override ValueTask DisposeCoreAsync() => this.source.DisposeAsync();
 
