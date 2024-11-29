@@ -170,7 +170,7 @@ jobs:
 
       - name: Build & Test Solution with New NuGet Packages
         run: |
-          dotnet nuget add source ./nugets --name local
+          dotnet nuget add source ${{ github.workspace }}/nugets --name local
           dotnet build --configuration Release \
             -p:LibraryRoot=${{ github.workspace }}/native_client_gens \
             -p:SailsPackagesVersion=${{ needs.prepare.outputs.r_version }}
