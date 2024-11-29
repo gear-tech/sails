@@ -42,10 +42,9 @@ public sealed class DemoFactoryTests(SailsFixture fixture) : RemotingTestsBase(f
             .WithGasLimit(new GasUnit(0))
             .ActivateAsync(codeId, BitConverter.GetBytes(Random.NextInt64()), CancellationToken.None);
         // throws on ReceiveAsync
-        var ex = await Assert.ThrowsAsync<ArgumentException>(() => activate.ReceiveAsync(CancellationToken.None));
+        var ex = await Assert.ThrowsAsync<Exception>(() => activate.ReceiveAsync(CancellationToken.None));
 
         // assert
-        // TODO assert custom exception
-        Assert.NotNull(ex);
+        // TODO Assert ReplyException
     }
 }
