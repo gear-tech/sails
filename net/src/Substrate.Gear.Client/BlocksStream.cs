@@ -1,10 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Channels;
 using System.Threading.Tasks;
 using EnsureThat;
+using Substrate.Gear.Api.Generated;
 using Substrate.NetApi;
 using Substrate.NetApi.Model.Rpc;
 
@@ -13,7 +15,7 @@ namespace Substrate.Gear.Client;
 public sealed class BlocksStream : IAsyncDisposable
 {
     internal static async Task<BlocksStream> CreateAsync(
-        SubstrateClient nodeClient,
+        SubstrateClientExt nodeClient,
         Func<SubstrateClient, Action<string, Header>, Task<string>> subscribe,
         Func<SubstrateClient, string, Task> unsubscribe)
     {
@@ -33,24 +35,27 @@ public sealed class BlocksStream : IAsyncDisposable
             .ConfigureAwait(false);
 
         return new BlocksStream(
+            nodeClient,
             channel,
-            () => unsubscribe(nodeClient, subscriptionId));
+            nodeClient => unsubscribe(nodeClient, subscriptionId));
     }
 
-    private BlocksStream(Channel<Header> channel, Func<Task> unsubscribe)
+    private BlocksStream(SubstrateClientExt nodeClient, Channel<Header> channel, Func<SubstrateClient, Task> unsubscribe)
     {
+        this.nodeClient = nodeClient;
         this.channel = channel;
         this.unsubscribe = unsubscribe;
         this.isReadInProgress = 0;
     }
 
+    private readonly SubstrateClientExt nodeClient;
     private readonly Channel<Header> channel;
-    private readonly Func<Task> unsubscribe;
+    private readonly Func<SubstrateClient, Task> unsubscribe;
     private int isReadInProgress;
 
     public async ValueTask DisposeAsync()
     {
-        await this.unsubscribe().ConfigureAwait(false);
+        await this.unsubscribe(this.nodeClient).ConfigureAwait(false);
         this.channel.Writer.Complete();
 
         GC.SuppressFinalize(this);
@@ -82,5 +87,23 @@ public sealed class BlocksStream : IAsyncDisposable
                 Interlocked.Exchange(ref this.isReadInProgress, 0);
             }
         }
+    }
+
+    /// <summary>
+    /// Reads all block headers and applies the provided selector to each header.
+    /// Only one read operation is allowed at a time.
+    /// </summary>
+    /// <typeparam name="T"></typeparam>
+    /// <param name="selectAsync"></param>
+    /// <param name="cancellationToken"></param>
+    /// <returns></returns>
+    public IAsyncEnumerable<T> ReadAllAsync<T>(
+        Func<SubstrateClientExt, Header, ValueTask<T>> selectAsync,
+        CancellationToken cancellationToken)
+    {
+        EnsureArg.IsNotNull(selectAsync, nameof(selectAsync));
+
+        return this.ReadAllHeadersAsync(cancellationToken)
+            .SelectAwait(header => selectAsync(this.nodeClient, header));
     }
 }

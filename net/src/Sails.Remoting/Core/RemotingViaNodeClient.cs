@@ -175,7 +175,7 @@ internal sealed class RemotingViaNodeClient : IRemoting
         var nodeClient = await this.nodeClientProvider.GetNodeClientAsync(cancellationToken).ConfigureAwait(false);
         var blocksStream = await nodeClient.GetNewBlocksStreamAsync(cancellationToken).ConfigureAwait(false);
 
-        return new BlockStreamEventListener(nodeClient, blocksStream);
+        return new BlockStreamEventListener(blocksStream);
     }
 
     private static MessageQueuedEventData SelectMessageQueuedEventData(IEnumerable<BaseEnumRust<RuntimeEvent>> runtimeEvents)

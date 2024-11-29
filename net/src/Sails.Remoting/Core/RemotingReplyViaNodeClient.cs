@@ -31,7 +31,6 @@ internal sealed class RemotingReplyViaNodeClient<T> : RemotingReply<T>
             var messageQueuedEventData = await executeExtrinsic(nodeClient).ConfigureAwait(false);
 
             var result = new RemotingReplyViaNodeClient<T>(
-                nodeClient,
                 blocksStream,
                 extractResult,
                 messageQueuedEventData);
@@ -48,19 +47,16 @@ internal sealed class RemotingReplyViaNodeClient<T> : RemotingReply<T>
     }
 
     private RemotingReplyViaNodeClient(
-        SubstrateClientExt nodeClient,
         BlocksStream blocksStream,
         Func<MessageQueuedEventData, UserMessage, T> extractResult,
         MessageQueuedEventData queuedMessageData)
     {
-        this.nodeClient = nodeClient;
         this.blocksStream = blocksStream;
         this.extractResult = extractResult;
         this.queuedMessageData = queuedMessageData;
         this.replyMessage = null;
     }
 
-    private readonly SubstrateClientExt nodeClient;
     private BlocksStream? blocksStream;
     private readonly Func<MessageQueuedEventData, UserMessage, T> extractResult;
     private readonly MessageQueuedEventData queuedMessageData;
@@ -85,8 +81,7 @@ internal sealed class RemotingReplyViaNodeClient<T> : RemotingReply<T>
         {
             Ensure.Any.IsNotNull(this.blocksStream, nameof(this.blocksStream));
 
-            this.replyMessage = await this.blocksStream.ReadAllHeadersAsync(cancellationToken)
-                .SelectGearEvents(this.nodeClient, cancellationToken)
+            this.replyMessage = await this.blocksStream.ReadAllGearRuntimeEventsAsync(cancellationToken)
                 .SelectIfMatches(
                     GearEvent.UserMessageSent,
                     (UserMessageSentEventData data) => (UserMessage)data.Value[0])
