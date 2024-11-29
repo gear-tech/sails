@@ -5,7 +5,9 @@ using System.Threading;
 using System.Threading.Tasks;
 using EnsureThat;
 using Sails.Remoting.Abstractions.Core;
+using Sails.Remoting.Exceptions;
 using Substrate.Gear.Api.Generated;
+using Substrate.Gear.Api.Generated.Model.gear_core_errors.simple;
 using Substrate.Gear.Api.Generated.Model.gprimitives;
 using Substrate.Gear.Api.Generated.Model.vara_runtime;
 using Substrate.Gear.Api.Generated.Storage;
@@ -83,14 +85,17 @@ internal sealed class RemotingViaNodeClient : IRemoting
                     createProgram,
                     DefaultExtrinsicTtlInBlocks,
                     selectResultOnSuccess: SelectMessageQueuedEventData,
-                    selectResultOnError: (_) =>
+                    selectResultOnError: static (_) =>
                         throw new Exception("TODO: Custom exception. Unable to create program."),
                     cancellationToken),
-                extractResult: (queuedMessageData, replyMessage) => (
-                    (ActorId)queuedMessageData.Value[2],
-                    replyMessage.Payload.Value.Value
-                        .Select(@byte => @byte.Value)
-                        .ToArray()),
+                extractResult: static (queuedMessageData, replyMessage) =>
+                {
+                    EnsureSuccessOrThrowReplyException(replyMessage.Details.Value.Code, replyMessage.Payload.Bytes);
+                    return (
+                        (ActorId)queuedMessageData.Value[2],
+                        replyMessage.Payload.Value.Value.Select(@byte => @byte.Value).ToArray()
+                    );
+                },
                 cancellationToken)
             .ConfigureAwait(false);
     }
@@ -131,12 +136,14 @@ internal sealed class RemotingViaNodeClient : IRemoting
                     sendMessage,
                     DefaultExtrinsicTtlInBlocks,
                     selectResultOnSuccess: SelectMessageQueuedEventData,
-                    selectResultOnError: (_) =>
+                    selectResultOnError: static (_) =>
                         throw new Exception("TODO: Custom exception. Unable to send message."),
                     cancellationToken),
-                extractResult: (_, replyMessage) => replyMessage.Payload.Value.Value
-                    .Select(@byte => @byte.Value)
-                    .ToArray(),
+                extractResult: static (_, replyMessage) =>
+                {
+                    EnsureSuccessOrThrowReplyException(replyMessage.Details.Value.Code, replyMessage.Payload.Bytes);
+                    return replyMessage.Payload.Value.Value.Select(@byte => @byte.Value).ToArray();
+                },
                 cancellationToken)
             .ConfigureAwait(false);
     }
@@ -165,7 +172,7 @@ internal sealed class RemotingViaNodeClient : IRemoting
                 cancellationToken)
             .ConfigureAwait(false);
 
-        // TODO: Check for reply code
+        EnsureSuccessOrThrowReplyException(replyInfo.Code, replyInfo.EncodedPayload);
 
         return replyInfo.EncodedPayload;
     }
@@ -188,4 +195,51 @@ internal sealed class RemotingViaNodeClient : IRemoting
                 (MessageQueuedEventData data) => data)
             .SingleOrDefault()
             ?? throw new Exception("TODO: Custom exception. Something terrible happened.");
+
+    private static void EnsureSuccessOrThrowReplyException(EnumReplyCode replyCode, byte[] payload)
+    {
+        if (replyCode.Value == ReplyCode.Success)
+        {
+            return;
+        }
+        var errorString = ParseErrorString(payload);
+        ThrowReplyException(replyCode, errorString);
+    }
+
+    private static string ParseErrorString(byte[] payload)
+    {
+        var p = 0;
+        var errorStr = new Str();
+        try
+        {
+            errorStr.Decode(payload, ref p);
+        }
+        catch
+        {
+            errorStr = new Str("Unexpected reply error");
+        }
+        return errorStr;
+    }
+
+    private static void ThrowReplyException(EnumReplyCode replyCode, string message)
+    {
+        var reason = ErrorReplyReason.Unsupported;
+        if (replyCode.Value == ReplyCode.Error)
+        {
+            var enumReason = (EnumErrorReplyReason)replyCode.Value2;
+            reason = enumReason.Value;
+
+            if (reason == ErrorReplyReason.Execution)
+            {
+                var error = (EnumSimpleExecutionError)enumReason.Value2;
+                throw new ExecutionReplyException(message, reason, error);
+            }
+            if (reason == ErrorReplyReason.FailedToCreateProgram)
+            {
+                var error = (EnumSimpleProgramCreationError)enumReason.Value2;
+                throw new ProgramCreationReplyException(message, reason, error);
+            }
+        }
+        throw new ReplyException(message, reason);
+    }
 }

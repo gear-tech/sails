@@ -1,5 +1,7 @@
 ﻿using System.Collections.Generic;
+using Sails.Remoting.Exceptions;
 using Sails.Remoting.Tests._Infra.XUnit.Fixtures;
+using Substrate.Gear.Api.Generated.Model.gear_core_errors.simple;
 using Substrate.Gear.Client.GearApi.Model.gprimitives;
 using Substrate.NetApi.Model.Types.Primitive;
 
@@ -153,5 +155,33 @@ public sealed class RemotingViaNodeClientTests : IAssemblyFixture<SailsFixture>
         // Assert
         source.Should().BeEquivalentTo(programId);
         payload.Should().BeEquivalentTo(expectedEventPayload, options => options.WithStrictOrdering());
+    }
+
+    [Fact]
+    public async Task Program_Activation_Throws_NotEnoughGas()
+    {
+        // Arrange
+        var codeId = await this.sailsFixture.GetDemoContractCodeIdAsync();
+
+        // Act
+        var encodedPayload = new Str("Default").Encode();
+        var activationReply = await this.remoting.ActivateAsync(
+            codeId,
+            salt: BitConverter.GetBytes(Random.NextInt64()),
+            encodedPayload,
+            gasLimit: new(0),
+            value: new(0),
+            CancellationToken.None);
+
+        // throws on ReadAsync
+        var ex = await Assert.ThrowsAsync<ExecutionReplyException>(() => activationReply.ReadAsync(CancellationToken.None));
+
+        // Assert
+        ex.Should().BeEquivalentTo(new
+        {
+            Message = "Not enough gas to handle program data",
+            Reason = ErrorReplyReason.Execution,
+            ExecutionError = SimpleExecutionError.RanOutOfGas,
+        });
     }
 }
