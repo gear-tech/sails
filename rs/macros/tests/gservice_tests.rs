@@ -1,4 +1,4 @@
-use sails_rs::gstd::services::Service;
+use sails_rs::gstd::services::*;
 use sails_rs::{Decode, Encode, MessageId};
 
 mod gservice_with_basics;
@@ -46,7 +46,7 @@ async fn gservice_with_basics() {
 async fn gservice_with_extends() {
     use gservice_with_extends::{
         base::{Base, BASE_NAME_RESULT},
-        extended::{Extended, EXTENDED_NAME_RESULT, NAME_RESULT},
+        extended::{Extended, ExtendedImplTrait, EXTENDED_NAME_RESULT, NAME_RESULT},
     };
 
     const NAME_METHOD: &str = "Name";
@@ -155,13 +155,14 @@ async fn gservice_panic_on_unexpected_input_double_encoded() {
 
 #[test]
 fn gservice_with_events() {
-    use gservice_with_events::{MyEvents, MyServiceWithEvents};
+    use gservice_with_events::{MyEvents, MyServiceWithEvents, MyServiceWithEventsImplTrait};
 
     let mut exposure = MyServiceWithEvents(0).expose(MessageId::from(142), &[1, 4, 2]);
 
     let mut events = Vec::new();
     {
-        let _event_listener_guard = exposure.set_event_listener(|event| events.push(event.clone()));
+        let _event_listener_guard =
+            exposure.set_event_listener(|event: &MyEvents| events.push(event.clone()));
 
         exposure.my_method();
     }
@@ -181,7 +182,8 @@ async fn gservice_with_lifetimes_and_events() {
 
     let mut events = Vec::new();
     {
-        let _event_listener_guard = exposure.set_event_listener(|event| events.push(event.clone()));
+        let _event_listener_guard =
+            exposure.set_event_listener(|event: &MyEvents| events.push(event.clone()));
 
         let (output, _value) = exposure.handle(&DO_THIS.encode()).await;
 
@@ -203,7 +205,9 @@ async fn gservice_with_lifetimes_and_events() {
 async fn gservice_with_extends_and_lifetimes() {
     use gservice_with_extends_and_lifetimes::{
         base::{BaseWithLifetime, BASE_NAME_RESULT},
-        extended::{ExtendedWithLifetime, EXTENDED_NAME_RESULT, NAME_RESULT},
+        extended::{
+            ExtendedWithLifetime, ExtendedWithLifetimeImplTrait, EXTENDED_NAME_RESULT, NAME_RESULT,
+        },
     };
 
     const NAME_METHOD: &str = "Name";
