@@ -5,50 +5,31 @@ namespace Sails.Remoting.Exceptions;
 
 public class ReplyException : Exception
 {
-    public ErrorReplyReason Reason { get; }
+    public ErrorReplyReason Reason { get; } = ErrorReplyReason.Unsupported;
 
-    public SimpleExecutionError? ExecutionError { get; }
-
-    public SimpleProgramCreationError? ProgramCreationError { get; }
-
-    public ReplyException()
+    protected ReplyException()
     {
     }
 
-    public ReplyException(string message) : base(message)
+    protected ReplyException(string message)
+        : base(message)
     {
     }
 
-    public ReplyException(string message, ErrorReplyReason reason) : base(message)
+    public ReplyException(string message, ErrorReplyReason reason)
+        : base(message)
     {
         this.Reason = reason;
     }
 
-    public ReplyException(
-        string message,
-        ErrorReplyReason reason,
-        SimpleExecutionError? executionError,
-        SimpleProgramCreationError? programCreationError) : base(message)
+    public ReplyException(string message, ErrorReplyReason reason, Exception innerException)
+        : base(message, innerException)
     {
         this.Reason = reason;
-        this.ExecutionError = executionError;
-        this.ProgramCreationError = programCreationError;
     }
 
-
-    public ReplyException(
-        string message,
-        ErrorReplyReason reason,
-        SimpleExecutionError? executionError,
-        SimpleProgramCreationError? programCreationError,
-        Exception innerException) : base(message, innerException)
-    {
-        this.Reason = reason;
-        this.ExecutionError = executionError;
-        this.ProgramCreationError = programCreationError;
-    }
-
-    public ReplyException(string message, Exception innerException) : base(message, innerException)
+    protected ReplyException(string message, Exception innerException)
+        : base(message, innerException)
     {
     }
 }

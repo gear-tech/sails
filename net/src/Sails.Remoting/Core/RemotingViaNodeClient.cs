@@ -90,7 +90,7 @@ internal sealed class RemotingViaNodeClient : IRemoting
                     cancellationToken),
                 extractResult: static (queuedMessageData, replyMessage) =>
                 {
-                    EnsureSuccessOrThrowsReplyException(replyMessage.Details.Value.Code, replyMessage.Payload.Bytes);
+                    EnsureSuccessOrThrowReplyException(replyMessage.Details.Value.Code, replyMessage.Payload.Bytes);
                     return (
                         (ActorId)queuedMessageData.Value[2],
                         replyMessage.Payload.Value.Value.Select(@byte => @byte.Value).ToArray()
@@ -141,7 +141,7 @@ internal sealed class RemotingViaNodeClient : IRemoting
                     cancellationToken),
                 extractResult: static (_, replyMessage) =>
                 {
-                    EnsureSuccessOrThrowsReplyException(replyMessage.Details.Value.Code, replyMessage.Payload.Bytes);
+                    EnsureSuccessOrThrowReplyException(replyMessage.Details.Value.Code, replyMessage.Payload.Bytes);
                     return replyMessage.Payload.Value.Value.Select(@byte => @byte.Value).ToArray();
                 },
                 cancellationToken)
@@ -172,7 +172,7 @@ internal sealed class RemotingViaNodeClient : IRemoting
                 cancellationToken)
             .ConfigureAwait(false);
 
-        EnsureSuccessOrThrowsReplyException(replyInfo.Code, replyInfo.EncodedPayload);
+        EnsureSuccessOrThrowReplyException(replyInfo.Code, replyInfo.EncodedPayload);
 
         return replyInfo.EncodedPayload;
     }
@@ -196,15 +196,14 @@ internal sealed class RemotingViaNodeClient : IRemoting
             .SingleOrDefault()
             ?? throw new Exception("TODO: Custom exception. Something terrible happened.");
 
-    private static void EnsureSuccessOrThrowsReplyException(EnumReplyCode replyCode, byte[] payload)
+    private static void EnsureSuccessOrThrowReplyException(EnumReplyCode replyCode, byte[] payload)
     {
         if (replyCode.Value == ReplyCode.Success)
         {
             return;
         }
         var errorString = ParseErrorString(payload);
-        var (reason, executionError, programCreationError) = ParseReplyCode(replyCode);
-        throw new ReplyException(errorString, reason, executionError, programCreationError);
+        ThrowReplyException(replyCode, errorString);
     }
 
     private static string ParseErrorString(byte[] payload)
@@ -222,11 +221,9 @@ internal sealed class RemotingViaNodeClient : IRemoting
         return errorStr;
     }
 
-    private static (ErrorReplyReason, SimpleExecutionError?, SimpleProgramCreationError?) ParseReplyCode(EnumReplyCode replyCode)
+    private static void ThrowReplyException(EnumReplyCode replyCode, string message)
     {
         var reason = ErrorReplyReason.Unsupported;
-        SimpleExecutionError? executionError = null;
-        SimpleProgramCreationError? programCreationError = null;
         if (replyCode.Value == ReplyCode.Error)
         {
             var enumReason = (EnumErrorReplyReason)replyCode.Value2;
@@ -235,14 +232,14 @@ internal sealed class RemotingViaNodeClient : IRemoting
             if (reason == ErrorReplyReason.Execution)
             {
                 var error = (EnumSimpleExecutionError)enumReason.Value2;
-                executionError = error.Value;
+                throw new ExecutionReplyException(message, reason, error);
             }
             if (reason == ErrorReplyReason.FailedToCreateProgram)
             {
                 var error = (EnumSimpleProgramCreationError)enumReason.Value2;
-                programCreationError = error.Value;
+                throw new ProgramCreationReplyException(message, reason, error);
             }
         }
-        return (reason, executionError, programCreationError);
+        throw new ReplyException(message, reason);
     }
 }

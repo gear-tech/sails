@@ -174,7 +174,7 @@ public sealed class RemotingViaNodeClientTests : IAssemblyFixture<SailsFixture>
             CancellationToken.None);
 
         // throws on ReadAsync
-        var ex = await Assert.ThrowsAsync<ReplyException>(() => activationReply.ReadAsync(CancellationToken.None));
+        var ex = await Assert.ThrowsAsync<ExecutionReplyException>(() => activationReply.ReadAsync(CancellationToken.None));
 
         // Assert
         ex.Should().BeEquivalentTo(new
