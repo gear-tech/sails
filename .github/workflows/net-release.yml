@@ -3,7 +3,7 @@ name: '[net] Release'
 on:
   push:
     tags:
-      - 'net/v*-pin'
+      - 'net/v*'
 
 env:
   # see https://api.github.com/users/github-actions%5Bbot%5D
@@ -21,22 +21,20 @@ jobs:
           shell: bash
       outputs:
         r_version: ${{ steps.release_info.outputs.version }}
-        r_tag: net/v${{ steps.release_info.outputs.version }}
-        pin_tag: ${{ steps.release_info.outputs.pin_tag }}
+        r_tag: ${{ steps.release_info.outputs.r_tag }}
 
       steps:
         - name: Extract Release Info
           id: release_info
           run: |
-            PIN_TAG=${GITHUB_REF#refs/tags/}
-            VERSION=${PIN_TAG#net/v}
-            VERSION="${VERSION%-pin}"
+            R_TAG=${GITHUB_REF#refs/tags/}
+            VERSION=${R_TAG#net/v}
             if [[ ! $VERSION =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[a-z]+\.[0-9]+)?$ ]]; then
               echo "'$VERSION' is not a valid semver version"
               exit 1
             fi
-            echo "Pin Tag: $PIN_TAG"
-            echo "pin_tag=$PIN_TAG" >> $GITHUB_OUTPUT
+            echo "Release Tag: $R_TAG"
+            echo "r_tag=$R_TAG" >> $GITHUB_OUTPUT
             echo "Version: $VERSION"
             echo "version=$VERSION" >> $GITHUB_OUTPUT
 
@@ -151,12 +149,10 @@ jobs:
           pattern: native_client_gen_*
           merge-multiple: true
 
-      - name: Build Solution
+      - name: Build & Test Solution
         run: |
-          dotnet build --configuration Release -p:LibraryRoot=${{ github.workspace }}/native_client_gens
-
-      - name: Test Solution
-        run: |
+          dotnet build --configuration Release \
+            -p:LibraryRoot=${{ github.workspace }}/native_client_gens
           dotnet test --no-build --configuration Release --logger "trx;LogFileName=TestResults.trx"
 
       - name: Pack NuGet Packages
@@ -171,6 +167,14 @@ jobs:
             -p:PackageVersion=${{ needs.prepare.outputs.r_version }} \
             -p:RepositoryUrl=${{ github.server_url }}/${{ github.repository }} \
             -p:Authors=Gear
+
+      - name: Build & Test Solution with New NuGet Packages
+        run: |
+          dotnet nuget add source ./nugets --name local
+          dotnet build --configuration Release \
+            -p:LibraryRoot=${{ github.workspace }}/native_client_gens
+            -p:SailsPackagesVersion=${{ needs.prepare.outputs.r_version }}
+          dotnet test --no-build --configuration Release --logger "trx;LogFileName=TestResults.trx"
 
       - name: Publish NuGet Packages to NuGet.org
         run: |
@@ -203,7 +207,6 @@ jobs:
           git config user.email "$GITHUB_USER_EMAIL"
           git tag -a "$R_TAG" -m "Release .Net v${{ needs.prepare.outputs.r_version }}"
           git push origin "$R_TAG"
-          git push origin --delete "${{ needs.prepare.outputs.pin_tag }}"
 
       - name: Create Draft Release
         uses: softprops/action-gh-release@v2

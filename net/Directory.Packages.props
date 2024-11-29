@@ -34,7 +34,7 @@
     <PackageVersion Include="System.Net.Http" Version="4.3.4" />
     <PackageVersion Include="System.Text.Json" Version="9.0.0" />
     <!-- Examples -->
-    <PackageVersion Include="Sails.ClientGenerator" Version="0.0.1-beta.3" />
-    <PackageVersion Include="Sails.Net" Version="0.0.1-beta.3" />
+    <PackageVersion Include="Sails.ClientGenerator" Version="$(SailsPackagesVersion)" />
+    <PackageVersion Include="Sails.Net" Version="$(SailsPackagesVersion)" />
   </ItemGroup>
 </Project>
