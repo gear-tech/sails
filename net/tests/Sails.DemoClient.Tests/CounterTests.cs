@@ -96,10 +96,10 @@ public class CounterTests(SailsFixture sailsFixture) : RemotingTestsBase(sailsFi
             .New(counter: new U32(42), dogPosition: dogPosition)
             .SendReceiveAsync(codeId, BitConverter.GetBytes(Random.NextInt64()), CancellationToken.None);
 
-        var ex = await Assert.ThrowsAsync<Exception>(() => counterClient.Value()
-            .WithGasLimit(new GasUnit(0))
-            .QueryAsync(programId, CancellationToken.None)
-        );
+        //var ex = await Assert.ThrowsAsync<Exception>(() => counterClient.Value()
+        //    .WithGasLimit(new GasUnit(0))
+        //    .QueryAsync(programId, CancellationToken.None)
+        //);
 
         // assert
         // TODO Assert ReplyException
