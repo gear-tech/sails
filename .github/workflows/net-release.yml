@@ -172,7 +172,7 @@ jobs:
         run: |
           dotnet nuget add source ./nugets --name local
           dotnet build --configuration Release \
-            -p:LibraryRoot=${{ github.workspace }}/native_client_gens
+            -p:LibraryRoot=${{ github.workspace }}/native_client_gens \
             -p:SailsPackagesVersion=${{ needs.prepare.outputs.r_version }}
           dotnet test --no-build --configuration Release --logger "trx;LogFileName=TestResults.trx"
 
