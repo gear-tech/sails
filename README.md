@@ -20,7 +20,7 @@ clarity. It deals with things like:
 Either use `Sails` CLI:
 ```bash
 cargo install sails-cli
-cargo sails new-program my-ping
+cargo sails program my-ping
 ```
 
 Or add the following to your `Cargo.toml`
