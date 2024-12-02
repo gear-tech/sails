@@ -35,14 +35,14 @@
     "test": "yarn node --no-warnings --experimental-vm-modules $(yarn bin jest) --detectOpenHandles"
   },
   "peerDependencies": {
-    "@gear-js/api": "0.38.3",
+    "@gear-js/api": "0.40.0",
     "@polkadot/api": "13.2.1",
     "@polkadot/types": "13.2.1",
     "sails-js-types": "0.0.1",
     "sails-js-util": "0.0.1"
   },
   "devDependencies": {
-    "@gear-js/api": "0.38.3",
+    "@gear-js/api": "0.40.0",
     "@polkadot/api": "13.2.1",
     "@polkadot/types": "13.2.1",
     "jest": "^29.7.0"
