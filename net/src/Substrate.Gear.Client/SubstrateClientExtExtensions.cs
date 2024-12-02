@@ -605,7 +605,7 @@ public static class SubstrateClientExtExtensions
     /// <returns></returns>
     /// <exception cref="InvalidOperationException"></exception>
     /// <exception cref="NotImplementedException"></exception>
-    public static EnumReplyCode DeserializeEnumReplyCode(this JToken? token)
+    internal static EnumReplyCode DeserializeEnumReplyCode(this JToken? token)
     {
         if (token?.First is not JProperty prop || !Enum.TryParse<ReplyCode>(prop.Name, out var replyCode))
         {
@@ -630,7 +630,7 @@ public static class SubstrateClientExtExtensions
     /// <returns></returns>
     /// <exception cref="InvalidOperationException"></exception>
     /// <exception cref="NotImplementedException"></exception>
-    public static EnumErrorReplyReason DeserializeEnumErrorReplyReason(this JToken? token)
+    internal static EnumErrorReplyReason DeserializeEnumErrorReplyReason(this JToken? token)
     {
         if (token?.First is not JProperty prop || !Enum.TryParse<ErrorReplyReason>(prop.Name, out var replyReason))
         {
@@ -653,7 +653,7 @@ public static class SubstrateClientExtExtensions
         return enumValue;
     }
 
-    public static T DeserializeBaseEnum<T, TEnum>(this JToken? token)
+    internal static T DeserializeBaseEnum<T, TEnum>(this JToken? token)
         where T : BaseEnum<TEnum>, new()
         where TEnum : struct, Enum
     {
