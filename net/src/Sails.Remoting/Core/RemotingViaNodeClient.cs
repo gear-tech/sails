@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using EnsureThat;
@@ -90,11 +91,9 @@ internal sealed class RemotingViaNodeClient : IRemoting
                     cancellationToken),
                 extractResult: static (queuedMessageData, replyMessage) =>
                 {
-                    EnsureSuccessOrThrowReplyException(replyMessage.Details.Value.Code, replyMessage.Payload.Bytes);
-                    return (
-                        (ActorId)queuedMessageData.Value[2],
-                        replyMessage.Payload.Value.Value.Select(@byte => @byte.Value).ToArray()
-                    );
+                    var payload = replyMessage.Payload.Value.Value.Select(@byte => @byte.Value).ToArray();
+                    EnsureSuccessOrThrowReplyException(replyMessage.Details.Value.Code, payload);
+                    return ((ActorId)queuedMessageData.Value[2], payload);
                 },
                 cancellationToken)
             .ConfigureAwait(false);
@@ -141,8 +140,9 @@ internal sealed class RemotingViaNodeClient : IRemoting
                     cancellationToken),
                 extractResult: static (_, replyMessage) =>
                 {
-                    EnsureSuccessOrThrowReplyException(replyMessage.Details.Value.Code, replyMessage.Payload.Bytes);
-                    return replyMessage.Payload.Value.Value.Select(@byte => @byte.Value).ToArray();
+                    var payload = replyMessage.Payload.Value.Value.Select(@byte => @byte.Value).ToArray();
+                    EnsureSuccessOrThrowReplyException(replyMessage.Details.Value.Code, payload);
+                    return payload;
                 },
                 cancellationToken)
             .ConfigureAwait(false);
@@ -208,17 +208,16 @@ internal sealed class RemotingViaNodeClient : IRemoting
 
     private static string ParseErrorString(byte[] payload)
     {
-        var p = 0;
-        var errorStr = new Str();
+        string errorString;
         try
         {
-            errorStr.Decode(payload, ref p);
+            errorString = Encoding.UTF8.GetString(payload);
         }
         catch
         {
-            errorStr = new Str("Unexpected reply error");
+            errorString = "Unexpected reply error";
         }
-        return errorStr;
+        return errorString;
     }
 
     private static void ThrowReplyException(EnumReplyCode replyCode, string message)

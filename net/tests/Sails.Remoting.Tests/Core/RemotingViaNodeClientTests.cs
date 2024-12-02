@@ -184,4 +184,46 @@ public sealed class RemotingViaNodeClientTests : IAssemblyFixture<SailsFixture>
             ExecutionError = SimpleExecutionError.RanOutOfGas,
         });
     }
+
+    [Fact]
+    public async Task Program_Query_Throws_NotEnoughGas()
+    {
+        // Arrange
+        var codeId = await this.sailsFixture.GetDemoContractCodeIdAsync();
+        var activationReply = await this.remoting.ActivateAsync(
+            codeId,
+            salt: BitConverter.GetBytes(Random.NextInt64()),
+            new Str("Default").Encode(),
+            CancellationToken.None);
+        var (programId, _) = await activationReply.ReadAsync(CancellationToken.None);
+        var messageReply = await this.remoting.MessageAsync(
+            programId,
+            encodedPayload: new Str("Counter").Encode()
+                .Concat(new Str("Add").Encode())
+                .Concat(new U32(42).Encode())
+                .ToArray(),
+            CancellationToken.None);
+        await messageReply.ReadAsync(CancellationToken.None);
+
+        // Act
+        var encodedPayload = new Str("Counter").Encode()
+            .Concat(new Str("Value").Encode())
+            .ToArray();
+
+        // throws on QueryAsync
+        var ex = await Assert.ThrowsAsync<ExecutionReplyException>(() => this.remoting.QueryAsync(
+            programId,
+            encodedPayload,
+            new(0),
+            new(0),
+            CancellationToken.None));
+
+        // Assert
+        ex.Should().BeEquivalentTo(new
+        {
+            Message = "Not enough gas to handle program data",
+            Reason = ErrorReplyReason.Execution,
+            ExecutionError = SimpleExecutionError.RanOutOfGas,
+        });
+    }
 }
