@@ -8196,7 +8196,22 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"sails-js@npm:0.3.0, sails-js@workspace:*, sails-js@workspace:js":
+"sails-js@npm:0.3.0":
+  version: 0.3.0
+  resolution: "sails-js@npm:0.3.0"
+  peerDependencies:
+    "@gear-js/api": 0.38.3
+    "@polkadot/api": 13.2.1
+    "@polkadot/types": 13.2.1
+    sails-js-types: 0.0.1
+    sails-js-util: 0.0.1
+  bin:
+    sails-js: ./lib/app.js
+  checksum: 10c0/499901835fc1b843b6bcaf77b9c93370d2031b45d65a6732c4acd91502667fbdbc206a3ba0a9f49227a31367e8dcddd205e8c0f38fbe7eeecce78f0c9d44e300
+  languageName: node
+  linkType: hard
+
+"sails-js@workspace:*, sails-js@workspace:js":
   version: 0.0.0-use.local
   resolution: "sails-js@workspace:js"
   dependencies:
