@@ -594,11 +594,75 @@ public static class SubstrateClientExtExtensions
             {
                 EncodedPayload = Utils.HexToByteArray(this.EncodedPayload),
                 Value = (ValueUnit)this.Value,
-                // TODO: It is broken. Need to deserialize rust enum (see serde).
-                Code = new EnumReplyCode()
-                {
-                    Value = ReplyCode.Success
-                }
+                Code = this.Code.DeserializeEnumReplyCode(),
             };
+    }
+
+    /// <summary>
+    /// Convert JToken (JObject) wtih single property to EnumReplyCode
+    /// </summary>
+    /// <param name="token">JObject with single property</param>
+    /// <returns></returns>
+    /// <exception cref="InvalidOperationException"></exception>
+    /// <exception cref="NotImplementedException"></exception>
+    internal static EnumReplyCode DeserializeEnumReplyCode(this JToken? token)
+    {
+        if (token?.First is not JProperty prop || !Enum.TryParse<ReplyCode>(prop.Name, out var replyCode))
+        {
+            throw new InvalidOperationException("Failed to convert JToken to EnumReplyCode");
+        }
+        IType value = replyCode switch
+        {
+            ReplyCode.Success => DeserializeBaseEnum<EnumSuccessReplyReason, SuccessReplyReason>(prop.Value),
+            ReplyCode.Error => DeserializeEnumErrorReplyReason(prop.Value),
+            ReplyCode.Unsupported => new BaseVoid(),
+            _ => throw new NotImplementedException(),
+        };
+        var enumValue = new EnumReplyCode();
+        enumValue.Create(replyCode, value);
+        return enumValue;
+    }
+
+    /// <summary>
+    /// Convert JToken (JObject) wtih single property to EnumErrorReplyReason
+    /// </summary>
+    /// <param name="token">JObject with single property</param>
+    /// <returns></returns>
+    /// <exception cref="InvalidOperationException"></exception>
+    /// <exception cref="NotImplementedException"></exception>
+    internal static EnumErrorReplyReason DeserializeEnumErrorReplyReason(this JToken? token)
+    {
+        if (token?.First is not JProperty prop || !Enum.TryParse<ErrorReplyReason>(prop.Name, out var replyReason))
+        {
+            throw new InvalidOperationException("Failed to convert JToken to EnumErrorReplyReason");
+        }
+        IType value = replyReason switch
+        {
+            ErrorReplyReason.Execution
+                => DeserializeBaseEnum<EnumSimpleExecutionError, SimpleExecutionError>(prop.Value),
+            ErrorReplyReason.FailedToCreateProgram
+                => DeserializeBaseEnum<EnumSimpleProgramCreationError, SimpleProgramCreationError>(prop.Value),
+            ErrorReplyReason.InactiveActor => new BaseVoid(),
+            ErrorReplyReason.RemovedFromWaitlist => new BaseVoid(),
+            ErrorReplyReason.ReinstrumentationFailure => new BaseVoid(),
+            ErrorReplyReason.Unsupported => new BaseVoid(),
+            _ => throw new NotImplementedException(),
+        };
+        var enumValue = new EnumErrorReplyReason();
+        enumValue.Create(replyReason, value);
+        return enumValue;
+    }
+
+    internal static T DeserializeBaseEnum<T, TEnum>(this JToken? token)
+        where T : BaseEnum<TEnum>, new()
+        where TEnum : struct, Enum
+    {
+        if (token is not JValue val || !Enum.TryParse<TEnum>(val.ToString(), out var enumValue))
+        {
+            throw new InvalidOperationException($"Failed to convert JToken to {typeof(T).FullName}");
+        }
+        var value = new T();
+        value.Create(enumValue);
+        return value;
     }
 }
