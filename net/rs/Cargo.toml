@@ -18,6 +18,6 @@ convert-case = { package = "convert_case", version = "0.6" }
 genco = "0.17"
 insta = "1.41"
 itertools = "0.13"
-parity-scale-codec = "3.7"
+parity-scale-codec = "=3.6.12"
 serde = { version = "1.0", features = ["derive"] }
 serde-json = { package = "serde_json", version = "1.0" }
