@@ -1,5 +1,4 @@
-﻿using System;
-using System.Threading;
+﻿using System.Threading;
 using Sails.DemoClient.Tests._Infra.XUnit.Fixtures;
 using Sails.Remoting.Abstractions;
 
@@ -11,15 +10,13 @@ public class ValueFeeTests(SailsFixture sailsFixture) : RemotingTestsBase(sailsF
     public async Task ValueFee_Works()
     {
         // arrange
-        var codeId = await this.SailsFixture.GetDemoContractCodeIdAsync();
-
         var demoFactory = new Demo.DemoFactory(this.Remoting);
         var valueFeeClient = new Demo.ValueFee(this.Remoting);
 
         // act
         var programId = await demoFactory
             .Default()
-            .SendReceiveAsync(codeId, BitConverter.GetBytes(Random.NextInt64()), CancellationToken.None);
+            .SendReceiveAsync(this.codeId!, RandomSalt(), CancellationToken.None);
 
         var result = await valueFeeClient
             .DoSomethingAndTakeFee()
