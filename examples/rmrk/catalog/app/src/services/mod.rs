@@ -47,10 +47,12 @@ where
         Self { exec_context }
     }
 
+    #[allow(static_mut_refs)]
     fn data(&self) -> &CatalogData {
         unsafe { CATALOG_DATA.as_ref().unwrap() }
     }
 
+    #[allow(static_mut_refs)]
     fn data_mut(&mut self) -> &mut CatalogData {
         unsafe { CATALOG_DATA.as_mut().unwrap() }
     }

@@ -54,13 +54,14 @@ fn parse_gprogram_impl(program_impl_tokens: TokenStream2) -> ItemImpl {
 
 fn ensure_single_gprogram(program_impl: &ItemImpl) {
     let crate_name = env::var("CARGO_CRATE_NAME").unwrap_or("crate".to_string());
-    if unsafe { PROGRAM_SPANS.get(&crate_name) }.is_some() {
+    let raw_map = &raw const PROGRAM_SPANS;
+    if unsafe { raw_map.read().get(&crate_name) }.is_some() {
         abort!(
             program_impl,
             "multiple `program` attributes are not allowed"
         )
     }
-    unsafe { PROGRAM_SPANS.insert(crate_name, program_impl.span()) };
+    unsafe { raw_map.read().insert(crate_name, program_impl.span()) };
 }
 
 fn gen_gprogram_impl(program_impl: ItemImpl, program_args: ProgramArgs) -> TokenStream2 {

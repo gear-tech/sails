@@ -31,6 +31,7 @@ impl SysCalls {
         }
     }
 
+    #[allow(static_mut_refs)]
     fn as_ref() -> Option<&'static SysCalls> {
         unsafe { SYS_CALLS.as_ref() }
     }
