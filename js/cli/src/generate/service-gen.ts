@@ -33,32 +33,30 @@ export class ServiceGenerator extends BaseGenerator {
   }
 
   public generate(className = 'Program') {
-    const _classFromUpperLetter = className[0].toUpperCase() + className.slice(1);
+    const $ = this._out;
+    const _classNameTitled = className[0].toUpperCase() + className.slice(1);
 
-    this._out
-      .import('@gear-js/api', 'GearApi')
+    $.import('@gear-js/api', 'GearApi')
       .import(`@polkadot/types`, `TypeRegistry`)
       .import('sails-js', 'TransactionBuilder')
-      .block(`export class ${_classFromUpperLetter}`, () => {
-        this._out.line(`public readonly registry: TypeRegistry`);
+      .block(`export class ${_classNameTitled}`, () => {
+        $.line(`public readonly registry: TypeRegistry`);
 
         for (const service of this._program.services) {
-          this._out.line(
+          $.line(
             `public readonly ${toLowerCaseFirst(service.name)}: ${
-              service.name === _classFromUpperLetter ? service.name + 'Service' : service.name
+              service.name === _classNameTitled ? service.name + 'Service' : service.name
             }`,
           );
         }
 
-        this._out
-          .line()
-          .block(`constructor(public api: GearApi, public programId?: ${HEX_STRING_TYPE})`, () => {
-            this._out
-              .block(`const types: Record<string, any> =`, () => {
-                for (const [name, type] of Object.entries(this.scaleTypes)) {
-                  this._out.line(`${name}: ${JSON.stringify(type)},`, false);
-                }
-              })
+        $.line()
+          .block(`constructor(public api: GearApi, private _programId?: ${HEX_STRING_TYPE})`, () => {
+            $.block(`const types: Record<string, any> =`, () => {
+              for (const [name, type] of Object.entries(this.scaleTypes)) {
+                $.line(`${name}: ${JSON.stringify(type)},`, false);
+              }
+            })
               .line()
               .line(`this.registry = new TypeRegistry()`)
               .line(`this.registry.setKnownTypes({ types })`)
@@ -66,32 +64,36 @@ export class ServiceGenerator extends BaseGenerator {
               .line();
 
             for (const service of this._program.services) {
-              this._out.line(`this.${toLowerCaseFirst(service.name)} = new ${service.name}(this)`);
+              $.line(`this.${toLowerCaseFirst(service.name)} = new ${service.name}(this)`);
             }
+          })
+          .line()
+          .block(`public get programId(): ${HEX_STRING_TYPE}`, () => {
+            $.line('if (!this._programId) throw new Error(`Program ID is not set`)').line('return this._programId');
           })
           .line();
         this.generateProgramConstructor();
       });
-    this.generateServices(_classFromUpperLetter);
+    this.generateServices(_classNameTitled);
   }
 
   private generateProgramConstructor() {
     if (!this._program.ctor || this._program.ctor.funcs.length === 0) return;
+
+    const $ = this._out;
 
     for (const { name, params, docs } of this._program.ctor.funcs) {
       const args = this.getArgs(params);
 
       const ctorDocs = formatDocs(docs);
 
-      this._out
-        .lines(ctorDocs, false)
+      $.lines(ctorDocs, false)
         .block(
           `${getFuncName(name)}CtorFromCode(code: Uint8Array | Buffer${
             args !== null ? ', ' + args : ''
           }): TransactionBuilder<null>`,
           () => {
-            this._out
-              .line(`const builder = new TransactionBuilder<null>(`, false)
+            $.line(`const builder = new TransactionBuilder<null>(`, false)
               .increaseIndent()
               .line(`this.api,`, false)
               .line(`this.registry,`, false)
@@ -111,7 +113,7 @@ export class ServiceGenerator extends BaseGenerator {
               .reduceIndent()
               .line(`)`)
               .line()
-              .line('this.programId = builder.programId')
+              .line('this._programId = builder.programId')
               .line('return builder');
           },
         )
@@ -120,8 +122,7 @@ export class ServiceGenerator extends BaseGenerator {
         .block(
           `${getFuncName(name)}CtorFromCodeId(codeId: ${HEX_STRING_TYPE}${args !== null ? ', ' + args : ''})`,
           () => {
-            this._out
-              .line(`const builder = new TransactionBuilder<null>(`, false)
+            $.line(`const builder = new TransactionBuilder<null>(`, false)
               .increaseIndent()
               .line(`this.api,`, false)
               .line(`this.registry,`, false)
@@ -141,7 +142,7 @@ export class ServiceGenerator extends BaseGenerator {
               .reduceIndent()
               .line(`)`)
               .line()
-              .line('this.programId = builder.programId')
+              .line('this._programId = builder.programId')
               .line('return builder');
           },
         );
@@ -181,7 +182,7 @@ export class ServiceGenerator extends BaseGenerator {
               .line(`payload,`, false)
               .line(`value: value || 0,`, false)
               .line(`gasLimit: this._program.api.blockGasLimit.toBigInt(),`, false)
-              .line(`at: atBlock || null,`, false)
+              .line(`at: atBlock,`, false)
               .reduceIndent()
               .line(`})`)
               .line(
@@ -221,9 +222,9 @@ export class ServiceGenerator extends BaseGenerator {
   }
 
   private generateSubscriptions(service: ISailsService) {
+    const $ = this._out;
     if (service.events.length > 0) {
-      this._out
-        .import('sails-js', 'getServiceNamePrefix')
+      $.import('sails-js', 'getServiceNamePrefix')
         .import('sails-js', 'getFnNamePrefix')
         .import('sails-js', 'ZERO_ADDRESS');
     }
@@ -232,21 +233,19 @@ export class ServiceGenerator extends BaseGenerator {
       const decodeMethod = event.def ? getPayloadMethod(getScaleCodecDef(event.def)) : PayloadMethod.toJSON;
       const jsType = event.def ? this.getType(event.def, decodeMethod) : 'null';
 
-      this._out
-        .line()
+      $.line()
         .lines(formatDocs(event.docs), false)
         .block(
           `public subscribeTo${event.name}Event(callback: (data: ${jsType}) => void | Promise<void>): Promise<() => void>`,
           () => {
-            this._out
-              .line(
-                `return this._program.api.gearEvents.subscribeToGearEvent('UserMessageSent', ({ data: { message } }) => {`,
-              )
+            $.line(
+              `return this._program.api.gearEvents.subscribeToGearEvent('UserMessageSent', ({ data: { message } }) => {`,
+            )
               .increaseIndent()
               .block(
                 `if (!message.source.eq(this._program.programId) || !message.destination.eq(ZERO_ADDRESS))`,
                 () => {
-                  this._out.line(`return`);
+                  $.line(`return`);
                 },
               )
               .line()
@@ -255,9 +254,9 @@ export class ServiceGenerator extends BaseGenerator {
                 `if (getServiceNamePrefix(payload) === '${service.name}' && getFnNamePrefix(payload) === '${event.name}')`,
                 () => {
                   if (jsType === 'null') {
-                    this._out.line(`callback(null)`);
+                    $.line(`callback(null)`);
                   } else {
-                    this._out.line(
+                    $.line(
                       `callback(this._program.registry.createType('(String, String, ${getScaleCodecDef(
                         event.def,
                         true,
