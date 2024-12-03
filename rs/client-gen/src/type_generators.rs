@@ -44,7 +44,7 @@ impl<'a> TopLevelTypeGenerator<'a> {
     }
 }
 
-impl<'a, 'ast> Visitor<'ast> for TopLevelTypeGenerator<'a> {
+impl<'ast> Visitor<'ast> for TopLevelTypeGenerator<'_> {
     fn visit_type(&mut self, r#type: &'ast Type) {
         for doc in r#type.docs() {
             quote_in! { self.tokens =>

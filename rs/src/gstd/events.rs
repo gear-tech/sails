@@ -130,7 +130,7 @@ pub struct EventListenerGuard<'a> {
 }
 
 #[cfg(not(target_arch = "wasm32"))]
-impl<'a> EventListenerGuard<'a> {
+impl EventListenerGuard<'_> {
     pub fn new(service_ptr: usize, listener_ptr: usize) -> Self {
         let mut event_listeners = event_listeners().lock();
         if event_listeners.contains_key(&service_ptr) {
@@ -147,7 +147,7 @@ impl<'a> EventListenerGuard<'a> {
 }
 
 #[cfg(not(target_arch = "wasm32"))]
-impl<'a> Drop for EventListenerGuard<'a> {
+impl Drop for EventListenerGuard<'_> {
     fn drop(&mut self) {
         let mut event_listeners = event_listeners().lock();
         let listener_ptr = event_listeners.remove(&self.service_ptr);

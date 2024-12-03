@@ -92,7 +92,7 @@ impl<'a> RootGenerator<'a> {
     }
 }
 
-impl<'a, 'ast> Visitor<'ast> for RootGenerator<'a> {
+impl<'ast> Visitor<'ast> for RootGenerator<'_> {
     fn visit_ctor(&mut self, ctor: &'ast Ctor) {
         let mut ctor_gen = CtorTraitGenerator::new(self.anonymous_service_name.to_owned());
         ctor_gen.visit_ctor(ctor);

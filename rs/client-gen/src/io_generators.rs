@@ -30,7 +30,7 @@ impl<'a> IoModuleGenerator<'a> {
     }
 }
 
-impl<'a, 'ast> Visitor<'ast> for IoModuleGenerator<'a> {
+impl<'ast> Visitor<'ast> for IoModuleGenerator<'_> {
     fn visit_service(&mut self, service: &'ast Service) {
         visitor::accept_service(service, self);
     }

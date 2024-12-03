@@ -40,7 +40,7 @@ impl<'a> CtorFactoryGenerator<'a> {
     }
 }
 
-impl<'a, 'ast> Visitor<'ast> for CtorFactoryGenerator<'a> {
+impl<'ast> Visitor<'ast> for CtorFactoryGenerator<'_> {
     fn visit_ctor(&mut self, ctor: &'ast Ctor) {
         quote_in! {self.tokens =>
             pub struct $(self.service_name)Factory<R> {
