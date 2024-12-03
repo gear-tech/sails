@@ -7,8 +7,8 @@
   </PropertyGroup>
 
   <PropertyGroup>
-    <SailsPackagesVersionInternal Condition="'$(SailsPackagesVersion)' == ''">0.0.1-beta.6</SailsPackagesVersionInternal>
-    <SailsPackagesVersionInternal Condition="'$(SailsPackagesVersion)' != ''">$(SailsPackagesVersion)</SailsPackagesVersionInternal>
+    <SailsPackagesVersion Condition="'$(SailsPackagesVersionOverride)' == ''">0.0.1-beta.6</SailsPackagesVersion>
+    <SailsPackagesVersion Condition="'$(SailsPackagesVersionOverride)' != ''">$(SailsPackagesVersionOverride)</SailsPackagesVersion>
   </PropertyGroup>
 
   <ItemGroup>
