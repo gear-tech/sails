@@ -2,8 +2,8 @@
   "name": "sails",
   "version": "0.3.1",
   "private": true,
-  "repository": "git@github.com:gear-tech/sails.git",
   "author": "Gear Technologies",
+  "repository": "git@github.com:gear-tech/sails.git",
   "license": "GPL-3.0",
   "packageManager": "yarn@4.4.1",
   "workspaces": [
