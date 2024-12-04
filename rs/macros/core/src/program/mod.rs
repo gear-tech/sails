@@ -52,6 +52,7 @@ fn parse_gprogram_impl(program_impl_tokens: TokenStream2) -> ItemImpl {
     })
 }
 
+#[allow(static_mut_refs)]
 fn ensure_single_gprogram(program_impl: &ItemImpl) {
     let crate_name = env::var("CARGO_CRATE_NAME").unwrap_or("crate".to_string());
     if unsafe { PROGRAM_SPANS.get(&crate_name) }.is_some() {

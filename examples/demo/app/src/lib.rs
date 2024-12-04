@@ -17,6 +17,7 @@ mod value_fee;
 static mut DOG_DATA: Option<RefCell<walker::WalkerData>> = None;
 static mut REF_DATA: u8 = 42;
 
+#[allow(static_mut_refs)]
 fn dog_data() -> &'static RefCell<walker::WalkerData> {
     unsafe {
         DOG_DATA

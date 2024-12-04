@@ -467,7 +467,7 @@ mod wrapper {
         visitor: &'a Visitor,
     }
 
-    impl<'a> VisitorWrapper<'a> {
+    impl VisitorWrapper<'_> {
         pub fn new(context: *const (), visitor: *const Visitor) -> Result<Self, ErrorCode> {
             if visitor.is_null() {
                 return Err(ErrorCode::NullPtr);
@@ -480,7 +480,7 @@ mod wrapper {
         }
     }
 
-    impl<'a, 'ast> RawVisitor<'ast> for VisitorWrapper<'a> {
+    impl<'ast> RawVisitor<'ast> for VisitorWrapper<'_> {
         fn visit_ctor(&mut self, ctor: &'ast raw_ast::Ctor) {
             if fn_ptr_addr!(self.visitor.visit_ctor).is_null() {
                 return raw_visitor::accept_ctor(ctor, self);

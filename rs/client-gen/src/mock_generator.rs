@@ -33,7 +33,7 @@ impl<'a> MockGenerator<'a> {
     }
 }
 
-impl<'a, 'ast> Visitor<'ast> for MockGenerator<'a> {
+impl<'ast> Visitor<'ast> for MockGenerator<'_> {
     fn visit_service(&mut self, service: &'ast Service) {
         visitor::accept_service(service, self);
     }

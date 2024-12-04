@@ -38,6 +38,7 @@ impl<'t> ReferenceService<'t> {
         }
     }
 
+    #[allow(static_mut_refs)]
     pub fn add<'a>(&mut self, v: u32) -> &'a u32 {
         unsafe {
             COUNTER.0 += v;
@@ -45,6 +46,7 @@ impl<'t> ReferenceService<'t> {
         }
     }
 
+    #[allow(static_mut_refs)]
     pub fn add_byte(&mut self, byte: u8) -> &'static [u8] {
         unsafe {
             BYTES.push(byte);
@@ -52,6 +54,7 @@ impl<'t> ReferenceService<'t> {
         }
     }
 
+    #[allow(static_mut_refs)]
     pub async fn last_byte<'a>(&self) -> Option<&'a u8> {
         unsafe { BYTES.last() }
     }

@@ -100,7 +100,7 @@ impl ExpandedProgramMeta {
     pub fn types(&self) -> impl Iterator<Item = &PortableType> {
         self.registry.types.iter().filter(|ty| {
             !ty.ty.path.namespace().is_empty()
-                && !self.ctors_type_id.is_some_and(|id| id == ty.id)
+                && self.ctors_type_id.is_none_or(|id| id != ty.id)
                 && !self.commands_type_ids().any(|id| id == ty.id)
                 && !self.queries_type_ids().any(|id| id == ty.id)
                 && !self.events_type_ids().any(|id| id == ty.id)

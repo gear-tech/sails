@@ -24,7 +24,7 @@ impl<'a> EventsModuleGenerator<'a> {
     }
 }
 
-impl<'a, 'ast> Visitor<'ast> for EventsModuleGenerator<'a> {
+impl<'ast> Visitor<'ast> for EventsModuleGenerator<'_> {
     fn visit_service(&mut self, service: &'ast Service) {
         let events_name = format!("{}Events", self.service_name);
         let (service_path_bytes, _) = path_bytes(self.path);

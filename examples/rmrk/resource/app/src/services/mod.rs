@@ -152,10 +152,12 @@ where
         Ok(())
     }
 
+    #[allow(static_mut_refs)]
     fn data(&self) -> &'static ResourceStorageData {
         unsafe { RESOURCE_STORAGE_DATA.as_ref().unwrap() }
     }
 
+    #[allow(static_mut_refs)]
     fn data_mut(&mut self) -> &'static mut ResourceStorageData {
         unsafe { RESOURCE_STORAGE_DATA.as_mut().unwrap() }
     }
