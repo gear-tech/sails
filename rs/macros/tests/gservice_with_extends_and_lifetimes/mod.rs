@@ -18,7 +18,6 @@ pub(super) mod base {
         }
     }
 
-    #[allow(clippy::needless_lifetimes)]
     #[service]
     impl<'a> BaseWithLifetime<'a> {
         pub fn base_name(&self) -> String {
@@ -47,7 +46,6 @@ pub(super) mod extended {
         }
     }
 
-    #[allow(clippy::needless_lifetimes)]
     #[service(extends = base::BaseWithLifetime<'a>)]
     impl<'a> ExtendedWithLifetime<'a> {
         pub fn extended_name(&self) -> String {
