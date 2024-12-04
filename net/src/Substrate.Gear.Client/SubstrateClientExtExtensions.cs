@@ -173,16 +173,16 @@ public static class SubstrateClientExtExtensions
         var extrinsicRuntimeEvents = extrinsicBlockEvents
             .Where(
                 eventRecord =>
-                    eventRecord.Phase.ToBaseEnumRust().Matches(
+                    eventRecord.Phase.Matches(
                         Phase.ApplyExtrinsic,
                         (U32 extrinsicIdxInBlock) => extrinsicIdxInBlock.Value == extrinsicInfo.IndexInBlock))
             .Select(
-                eventRecord => eventRecord.Event.ToBaseEnumRust());
+                eventRecord => eventRecord.Event);
 
         var extrinsicDispatchError = extrinsicRuntimeEvents
             .SelectIfMatches(
                 RuntimeEvent.System,
-                (EnumSystemEvent systemEvent) => systemEvent.ToBaseEnumRust())
+                (EnumSystemEvent systemEvent) => systemEvent)
             .SelectIfMatches(
                 SystemEvent.ExtrinsicFailed,
                 (ExtrinsicFailedEventData data) => data)
@@ -526,7 +526,7 @@ public static class SubstrateClientExtExtensions
                 (CodeId)runtimeEvents
                     .SelectIfMatches(
                         RuntimeEvent.Gear,
-                        (EnumGearEvent gearEvent) => gearEvent.ToBaseEnumRust())
+                        (EnumGearEvent gearEvent) => gearEvent)
                     .SelectIfMatches(
                         GearEvent.CodeChanged,
                         (CodeChangedEventData data) => data)
@@ -534,7 +534,7 @@ public static class SubstrateClientExtExtensions
                     .Value[0],
             selectResultOnError: (extrinsicFailedEventData) =>
                 {
-                    var dispatchError = ((EnumDispatchError)extrinsicFailedEventData.Value[0]).ToBaseEnumRust();
+                    var dispatchError = (EnumDispatchError)extrinsicFailedEventData.Value[0];
                     // TODO: Do proper error parsing using node metadata.
                     return dispatchError.Matches(
                         DispatchError.Module,

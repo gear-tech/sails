@@ -23,11 +23,6 @@ namespace Sails.Testing.XUnit.Fixtures;
 
 public partial class SailsFixture : IAsyncLifetime
 {
-    public SailsFixture(string consumerName)
-        : this(consumerName, sailsRsVersion: "0.6.3")
-    {
-    }
-
     public SailsFixture(string consumerName, string sailsRsVersion)
     {
         EnsureArg.IsNotNullOrWhiteSpace(consumerName, nameof(consumerName));
