@@ -3,7 +3,11 @@
 public sealed class SailsFixture : Testing.XUnit.Fixtures.SailsFixture
 {
     public SailsFixture()
-        : base("demo-client-tests")
+#if SailsPackagesVersionOverride
+        : base("demo-client-tests", "0.7.0")
+#else
+        : base("demo-client-tests", "0.6.3")
+#endif
     {
     }
 }

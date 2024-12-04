@@ -18,6 +18,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="Substrate.NET.API" VersionOverride="0.9.23" Condition="'$(SailsPackagesVersionOverride)' == ''" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\..\examples\Sails.DemoClient\Sails.DemoClient.csproj" />
     <ProjectReference Include="..\Sails.Net.Testing\Sails.Net.Testing.csproj" />
   </ItemGroup>

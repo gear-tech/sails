@@ -3,7 +3,7 @@
 public sealed class SailsFixture : Testing.XUnit.Fixtures.SailsFixture
 {
     public SailsFixture()
-        : base("remoting-tests")
+        : base("remoting-tests", "0.7.0")
     {
     }
 }

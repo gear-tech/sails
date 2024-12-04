@@ -189,7 +189,7 @@ internal sealed class RemotingViaNodeClient : IRemoting
         => runtimeEvents
             .SelectIfMatches(
                 RuntimeEvent.Gear,
-                (EnumGearEvent gearEvent) => gearEvent.ToBaseEnumRust())
+                (EnumGearEvent gearEvent) => gearEvent)
             .SelectIfMatches(
                 GearEvent.MessageQueued,
                 (MessageQueuedEventData data) => data)

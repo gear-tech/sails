@@ -26,7 +26,7 @@ public static class BlocksStreamExtensions
                         .ConfigureAwait(false),
                 cancellationToken);
         return eventRecords.SelectMany(eventRecords => eventRecords.ToAsyncEnumerable())
-            .Select(eventRecord => eventRecord.Event.ToBaseEnumRust());
+            .Select(eventRecord => eventRecord.Event);
     }
 
     public static IAsyncEnumerable<BaseEnumRust<GearEvent>> ReadAllGearRuntimeEventsAsync(
@@ -36,5 +36,5 @@ public static class BlocksStreamExtensions
             .ReadAllRuntimeEventsAsync(cancellationToken)
             .SelectIfMatches(
                 RuntimeEvent.Gear,
-                (EnumGearEvent gearEvent) => gearEvent.ToBaseEnumRust());
+                (EnumGearEvent gearEvent) => gearEvent);
 }

@@ -23,7 +23,7 @@ public sealed class GearNodeContainer : IAsyncDisposable
 
         this.nodeInitializationDetector = new NodeInitializationDetector();
         this.container = new ContainerBuilder()
-            .WithName($"gear-node-for-{consumerName.ToLower()}")
+            .WithName($"gear-node-{gearNodeVersion}-for-{consumerName.ToLower()}")
             .WithImage($"ghcr.io/gear-tech/node:v{gearNodeVersion}")
             .WithPortBinding(RpcPort, true)
             .WithEntrypoint("gear")

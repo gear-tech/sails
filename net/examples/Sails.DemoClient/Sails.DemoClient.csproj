@@ -2,15 +2,29 @@
 
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
+    <UseSailsProjectRefences>false</UseSailsProjectRefences>
   </PropertyGroup>
 
   <ItemGroup>
     <AdditionalFiles Include="demo.idl" />
   </ItemGroup>
 
-  <ItemGroup>
+  <ItemGroup Condition="'$(UseSailsProjectRefences)' != 'true'">
     <PackageReference Include="Sails.ClientGenerator" />
     <PackageReference Include="Sails.Net" />
+    <PackageReference Include="Substrate.NET.API" VersionOverride="0.9.23" Condition="'$(SailsPackagesVersionOverride)' == ''" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(UseSailsProjectRefences)' == 'true'">
+    <PackageReference Include="PolySharp">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(UseSailsProjectRefences)' == 'true'">
+    <ProjectReference Include="..\..\src\Sails.ClientGenerator\Sails.ClientGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+    <ProjectReference Include="..\..\src\Sails.Net\Sails.Net.csproj" />
   </ItemGroup>
 
 </Project>
