@@ -13,7 +13,7 @@ pub enum MyEvents {
 }
 
 #[service(events = MyEvents)]
-impl<'l, T> MyGenericEventsService<'l, T>
+impl<T> MyGenericEventsService<'_, T>
 where
     T: Clone,
 {

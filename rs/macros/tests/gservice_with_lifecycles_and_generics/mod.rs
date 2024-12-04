@@ -7,7 +7,7 @@ pub(super) struct MyGenericService<'a, T> {
 }
 
 #[service]
-impl<'a, T> MyGenericService<'a, T>
+impl<T> MyGenericService<'_, T>
 where
     T: Clone,
 {
