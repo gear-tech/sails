@@ -12,6 +12,7 @@ pub enum MyEvents {
     Event1,
 }
 
+#[allow(clippy::needless_lifetimes)]
 #[service(events = MyEvents)]
 impl<'l, T> MyGenericEventsService<'l, T>
 where
