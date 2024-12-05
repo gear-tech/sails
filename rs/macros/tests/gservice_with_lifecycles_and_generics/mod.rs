@@ -6,9 +6,8 @@ pub(super) struct MyGenericService<'a, T> {
     _a: PhantomData<&'a T>,
 }
 
-#[allow(clippy::needless_lifetimes)]
 #[service]
-impl<'a, T> MyGenericService<'a, T>
+impl<T> MyGenericService<'_, T>
 where
     T: Clone,
 {

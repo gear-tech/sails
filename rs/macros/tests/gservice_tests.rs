@@ -202,8 +202,7 @@ async fn gservice_with_lifetimes_and_events() {
 #[tokio::test]
 async fn gservice_with_extends_and_lifetimes() {
     use gservice_with_extends_and_lifetimes::{
-        base::{BaseWithLifetime, BASE_NAME_RESULT},
-        extended::{ExtendedWithLifetime, EXTENDED_NAME_RESULT, NAME_RESULT},
+        BaseWithLifetime, ExtendedWithLifetime, BASE_NAME_RESULT, EXTENDED_NAME_RESULT, NAME_RESULT,
     };
 
     const NAME_METHOD: &str = "Name";

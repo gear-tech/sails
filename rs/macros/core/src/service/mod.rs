@@ -30,8 +30,9 @@ use proc_macro_error::abort;
 use quote::quote;
 use std::collections::BTreeMap;
 use syn::{
-    parse_quote, punctuated::Punctuated, spanned::Spanned, token::Comma, Ident, ImplItemFn,
-    ItemImpl, Lifetime, Path, Type, Visibility,
+    parse_quote, punctuated::Punctuated, spanned::Spanned, token::Comma, GenericArgument,
+    GenericParam, Ident, ImplItemFn, ItemImpl, Lifetime, LifetimeParam, Path, PathArguments, Type,
+    Visibility,
 };
 
 mod args;
@@ -248,6 +249,7 @@ fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
     let base_services_meta =
         code_for_base_types.map(|(_, _, _, _, base_service_meta)| base_service_meta);
 
+    // lifetime names like '_', 'a', 'b' etc.
     let lifetimes = shared::extract_lifetime_names(&service_type_args);
     let exposure_set_event_listener_code = events_type.map(|event_type_path| {
         // get non conflicting lifetime name
@@ -297,6 +299,36 @@ fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
         quote! { #service_type_path }
     } else {
         quote! { #exposure_lifetimes, #service_type_path }
+    };
+
+    // Replace special "_" lifetimes with '_1', '_2' etc.
+    let mut service_impl_generics = generics.clone();
+    let mut service_impl_type_path = service_type_path.clone();
+    if let PathArguments::AngleBracketed(mut type_args) = service_type_args {
+        for (idx, a) in type_args.args.iter_mut().enumerate() {
+            if let GenericArgument::Lifetime(lifetime) = a {
+                if lifetime.ident == "_" {
+                    let ident = Ident::new(&format!("_{idx}"), Span::call_site());
+                    lifetime.ident = ident;
+                    service_impl_generics
+                        .params
+                        .push(GenericParam::Lifetime(LifetimeParam::new(lifetime.clone())));
+                }
+            }
+        }
+
+        service_impl_type_path
+            .path
+            .segments
+            .last_mut()
+            .unwrap()
+            .arguments = PathArguments::AngleBracketed(type_args);
+    }
+
+    let service_impl_exposure_args = if exposure_lifetimes.is_empty() {
+        quote! { #service_impl_type_path }
+    } else {
+        quote! { #exposure_lifetimes, #service_impl_type_path }
     };
 
     // We propagate only known attributes as we don't know the consequences of unknown ones
@@ -355,8 +387,8 @@ fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
             }
         }
 
-        impl #generics #sails_path::gstd::services::Service for #service_type_path #service_type_constraints {
-            type Exposure = #exposure_type_path< #exposure_args >;
+        impl #service_impl_generics #sails_path::gstd::services::Service for #service_impl_type_path #service_type_constraints {
+            type Exposure = #exposure_type_path< #service_impl_exposure_args >;
 
             fn expose(self, #message_id_ident : #sails_path::MessageId, #route_ident : &'static [u8]) -> Self::Exposure {
                 #[cfg(not(target_arch = "wasm32"))]
