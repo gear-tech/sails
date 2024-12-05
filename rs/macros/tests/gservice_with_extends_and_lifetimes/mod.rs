@@ -38,6 +38,7 @@ impl<'a> ExtendedWithLifetime<'a> {
     }
 }
 
+#[allow(clippy::needless_lifetimes)]
 #[service(extends = BaseWithLifetime<'a>)]
 impl<'a> ExtendedWithLifetime<'a> {
     pub fn extended_name(&self) -> String {
