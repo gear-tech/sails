@@ -7,7 +7,7 @@ using Substrate.NetApi.Model.Types;
 
 namespace Sails.Remoting;
 
-public sealed class DelegatingReply<TResult, T>(RemotingReply<TResult> innerReply, Func<TResult, T> map) : IReply<T>
+internal sealed class DelegatingReply<TResult, T>(RemotingReply<TResult> innerReply, Func<TResult, T> map) : IReply<T>
     where T : IType, new()
 {
     /// <inheritdoc />
