@@ -18,7 +18,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Substrate.NET.API" VersionOverride="0.9.23" Condition="'$(SailsPackagesVersionOverride)' == ''" />
+    <PackageReference Include="Substrate.NET.API" VersionOverride="$(SubstrateNetApiVersionOverride)" Condition="'$(SubstrateNetApiVersionOverride)' != ''" />
   </ItemGroup>
 
   <ItemGroup>
