@@ -11,6 +11,11 @@
     <SailsPackagesVersion Condition="'$(SailsPackagesVersionOverride)' != ''">$(SailsPackagesVersionOverride)</SailsPackagesVersion>
   </PropertyGroup>
 
+  <PropertyGroup>
+    <SubstrateNetApiVersion>[0.9.24-rc8]</SubstrateNetApiVersion>
+    <SubstrateNetApiVersionOverride>[0.9.23]</SubstrateNetApiVersionOverride>
+  </PropertyGroup>
+
   <ItemGroup>
     <PackageReference Include="Roslynator.Analyzers">
       <PrivateAssets>all</PrivateAssets>
