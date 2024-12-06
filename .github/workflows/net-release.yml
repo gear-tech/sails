@@ -173,7 +173,7 @@ jobs:
           dotnet nuget add source ${{ github.workspace }}/nugets --name local
           dotnet build --configuration Release \
             -p:LibraryRoot=${{ github.workspace }}/native_client_gens \
-            -p:SailsPackagesVersionOverride=${{ needs.prepare.outputs.r_version }}
+            -p:SailsPackagesVersionOverride=${{ needs.prepare.outputs.r_version }} \
             -p:SubstrateNetApiVersionOverride=""
           dotnet test --no-build --configuration Release --logger "trx;LogFileName=TestResults.trx"
 
