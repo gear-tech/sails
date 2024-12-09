@@ -38,8 +38,7 @@ impl<'a> CounterService<'a> {
 
 // Declare the service can emit events of type CounterEvents.
 #[service(events = CounterEvents)]
-#[allow(clippy::needless_lifetimes)]
-impl<'a> CounterService<'a> {
+impl CounterService<'_> {
     /// Add a value to the counter
     pub fn add(&mut self, value: u32) -> u32 {
         let mut data_mut = self.data.borrow_mut();

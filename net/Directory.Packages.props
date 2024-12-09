@@ -8,7 +8,7 @@
     <PackageVersion Include="Microsoft.CodeAnalysis" Version="4.11.0" />
     <PackageVersion Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="9.0.0" />
     <PackageVersion Include="PolySharp" Version="1.15.0" />
-    <PackageVersion Include="Substrate.NET.API" Version="0.9.24-rc8" />
+    <PackageVersion Include="Substrate.NET.API" Version="$(SubstrateNetApiVersion)" />
     <PackageVersion Include="System.Linq.Async" Version="6.0.1" />
     <PackageVersion Include="System.Threading.Channels" Version="9.0.0" />
     <!-- Tests -->

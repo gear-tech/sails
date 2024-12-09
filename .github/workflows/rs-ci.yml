@@ -22,6 +22,7 @@ on:
       - 'Cargo.lock'
       - 'Cargo.toml'
       - 'rust-toolchain.toml'
+  workflow_dispatch:
 
 env:
   CARGO_TERM_COLOR: always
