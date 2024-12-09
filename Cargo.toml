@@ -26,6 +26,7 @@ members = [
     "rs/idl-parser",
     "rs/macros",
     "rs/macros/core",
+    "rs/net-client-gen",
 ]
 
 [workspace.dependencies]
@@ -36,6 +37,7 @@ sails-idl-gen = { path = "rs/idl-gen" }
 sails-client-gen = { path = "rs/client-gen" }
 sails-macros-core = { path = "rs/macros/core" }
 sails-macros = { path = "rs/macros" }
+sails-net-client-gen = { path = "rs/net-client-gen" }
 sails-rs = { path = "rs" }
 # Renamed sails-rs for `proxy` demo
 sails-rename = { package = "sails-rs", path = "rs" }
@@ -74,7 +76,7 @@ proc-macro2 = { version = "1", default-features = false }
 rustdoc-types = "=0.31.0"
 quote = "1.0"
 scale-info = { version = "2.11", default-features = false }
-serde = "1.0"
+serde = { version = "1.0", features = ["derive"] }
 serde-json = { package = "serde_json", version = "1.0" }
 spin = { version = "0.9", default-features = false, features = ["spin_mutex"] }
 syn = "2.0"

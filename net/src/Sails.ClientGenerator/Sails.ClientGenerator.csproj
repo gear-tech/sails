@@ -19,15 +19,15 @@
 
   <!-- local build -->
   <Target Name="PreBuild" BeforeTargets="PreBuildEvent" Condition="'$(LibraryRoot)' == ''">
-    <Exec Command="cargo build --manifest-path ../../rs/Cargo.toml --release" />
+    <Exec Command="cargo build --manifest-path ../../../rs/net-client-gen/Cargo.toml --release" />
   </Target>
 
   <!-- local lib -->
   <ItemGroup Condition="'$(LibraryRoot)' == ''">
-    <EmbeddedResource Include="../../rs/target/release/sails_net_client_gen.dll" LogicalName="win-x64.libsails_net_client_gen.dll" Condition="$([MSBuild]::IsOSPlatform('Windows'))" />
-    <EmbeddedResource Include="../../rs/target/release/libsails_net_client_gen.so" LogicalName="linux-x64.libsails_net_client_gen.so" Condition="$([MSBuild]::IsOSPlatform('Linux')) and $([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture) == 'X64'" />
-    <EmbeddedResource Include="../../rs/target/release/libsails_net_client_gen.dylib" LogicalName="osx-x64.libsails_net_client_gen.dylib" Condition="$([MSBuild]::IsOSPlatform('OSX')) and $([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture) == 'X64'" />
-    <EmbeddedResource Include="../../rs/target/release/libsails_net_client_gen.dylib" LogicalName="osx-arm64.libsails_net_client_gen.dylib" Condition="$([MSBuild]::IsOSPlatform('OSX')) and $([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture) == 'Arm64'" />
+    <EmbeddedResource Include="../../../target/release/sails_net_client_gen.dll" LogicalName="win-x64.libsails_net_client_gen.dll" Condition="$([MSBuild]::IsOSPlatform('Windows'))" />
+    <EmbeddedResource Include="../../../target/release/libsails_net_client_gen.so" LogicalName="linux-x64.libsails_net_client_gen.so" Condition="$([MSBuild]::IsOSPlatform('Linux')) and $([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture) == 'X64'" />
+    <EmbeddedResource Include="../../../target/release/libsails_net_client_gen.dylib" LogicalName="osx-x64.libsails_net_client_gen.dylib" Condition="$([MSBuild]::IsOSPlatform('OSX')) and $([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture) == 'X64'" />
+    <EmbeddedResource Include="../../../target/release/libsails_net_client_gen.dylib" LogicalName="osx-arm64.libsails_net_client_gen.dylib" Condition="$([MSBuild]::IsOSPlatform('OSX')) and $([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture) == 'Arm64'" />
   </ItemGroup>
 
   <!--for nuget publish-->

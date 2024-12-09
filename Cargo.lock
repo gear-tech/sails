@@ -6440,6 +6440,7 @@ dependencies = [
  "clap",
  "rustdoc-types",
  "sails-client-gen",
+ "sails-net-client-gen",
  "serde_json",
  "toml_edit 0.22.22",
 ]
@@ -6515,6 +6516,21 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 2.0.90",
+]
+
+[[package]]
+name = "sails-net-client-gen"
+version = "0.7.1"
+dependencies = [
+ "anyhow",
+ "convert_case 0.6.0",
+ "genco",
+ "insta",
+ "itertools 0.13.0",
+ "parity-scale-codec",
+ "sails-idl-parser",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]

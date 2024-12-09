@@ -109,7 +109,7 @@ fn test_multiple_services() {
 
 #[test]
 fn test_rmrk_works() {
-    let idl = include_str!("../../../../examples/rmrk/catalog/wasm/rmrk-catalog.idl");
+    let idl = include_str!("../../../examples/rmrk/catalog/wasm/rmrk-catalog.idl");
 
     insta::assert_snapshot!(gen(idl, "RmrkCatalog"));
 }
@@ -156,8 +156,9 @@ fn test_events_works() {
 }
 
 fn gen(program: &str, service_name: &str) -> String {
-    let namepace = format!("{}.Client", service_name);
+    let namespace = format!("{}.Client", service_name);
     ClientGenerator::from_idl(program)
-        .generate(service_name, &namepace)
+        .with_namespace(namespace.as_str())
+        .generate(service_name)
         .expect("generate client")
 }
