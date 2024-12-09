@@ -18,6 +18,6 @@ cargo_metadata.workspace = true
 clap = { workspace = true, features = ["derive"] }
 rustdoc-types.workspace = true
 sails-client-gen.workspace = true
-sails-net-client-gen.workspace = true
+sails-client-gen-net.workspace = true
 serde-json.workspace = true
 toml_edit.workspace = true

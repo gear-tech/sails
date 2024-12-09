@@ -148,7 +148,7 @@ fn main() -> Result<(), i32> {
             namespace,
         } => {
             let mut client_gen =
-                sails_net_client_gen::ClientGenerator::from_idl_path(idl_path.as_ref());
+                sails_client_gen_net::ClientGenerator::from_idl_path(idl_path.as_ref());
             if let Some(namespace) = namespace.as_ref() {
                 client_gen = client_gen.with_namespace(namespace);
             }
