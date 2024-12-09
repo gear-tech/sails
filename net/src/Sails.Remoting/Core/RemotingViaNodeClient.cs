@@ -86,8 +86,8 @@ internal sealed class RemotingViaNodeClient : IRemoting
                     createProgram,
                     DefaultExtrinsicTtlInBlocks,
                     selectResultOnSuccess: SelectMessageQueuedEventData,
-                    selectResultOnError: static (_) =>
-                        throw new Exception("TODO: Custom exception. Unable to create program."),
+                    selectResultOnError: static (error) =>
+                        throw new ExtrinsicDispatchException("Unable to create program", error),
                     cancellationToken),
                 extractResult: static (queuedMessageData, replyMessage) =>
                 {
@@ -135,8 +135,8 @@ internal sealed class RemotingViaNodeClient : IRemoting
                     sendMessage,
                     DefaultExtrinsicTtlInBlocks,
                     selectResultOnSuccess: SelectMessageQueuedEventData,
-                    selectResultOnError: static (_) =>
-                        throw new Exception("TODO: Custom exception. Unable to send message."),
+                    selectResultOnError: static (error) =>
+                        throw new ExtrinsicDispatchException("Unable to send message", error),
                     cancellationToken),
                 extractResult: static (_, replyMessage) =>
                 {
@@ -194,7 +194,7 @@ internal sealed class RemotingViaNodeClient : IRemoting
                 GearEvent.MessageQueued,
                 (MessageQueuedEventData data) => data)
             .SingleOrDefault()
-            ?? throw new Exception("TODO: Custom exception. Something terrible happened.");
+            ?? throw new ExtrinsicDispatchException("Something terrible happened - MessageQueued event not found");
 
     private static void EnsureSuccessOrThrowReplyException(EnumReplyCode replyCode, byte[] payload)
     {

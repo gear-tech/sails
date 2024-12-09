@@ -1,10 +1,10 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using EnsureThat;
 using Sails.Remoting.Abstractions;
 using Sails.Remoting.Abstractions.Core;
+using Sails.Remoting.Exceptions;
 using Substrate.Gear.Api.Generated.Model.gprimitives;
 using Substrate.NetApi.Model.Types;
 using Substrate.NetApi.Model.Types.Primitive;
@@ -128,8 +128,7 @@ public sealed class RemotingAction<T>(IRemoting remoting, string programRoute, s
             str.Decode(bytes, ref p);
             if (str != route)
             {
-                // TODO: custom invalid route exception
-                throw new ArgumentException();
+                throw new SailsException("Reply route mismatches");
             }
         }
     }

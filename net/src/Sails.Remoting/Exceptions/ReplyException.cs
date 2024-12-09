@@ -3,7 +3,7 @@ using Substrate.Gear.Api.Generated.Model.gear_core_errors.simple;
 
 namespace Sails.Remoting.Exceptions;
 
-public class ReplyException : Exception
+public class ReplyException : SailsException
 {
     public ErrorReplyReason Reason { get; } = ErrorReplyReason.Unsupported;
 
