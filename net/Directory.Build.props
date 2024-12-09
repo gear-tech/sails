@@ -11,6 +11,14 @@
     <SailsPackagesVersion Condition="'$(SailsPackagesVersionOverride)' != ''">$(SailsPackagesVersionOverride)</SailsPackagesVersion>
   </PropertyGroup>
 
+  <PropertyGroup>
+    <SubstrateNetApiVersion>[0.9.24-rc8]</SubstrateNetApiVersion>
+    <!-- Temp override -->
+    <SubstrateNetApiVersionOverride>[0.9.23]</SubstrateNetApiVersionOverride>
+    <!-- Set constant to use sails-rs 0.7.0 and node 1.7.0 -->
+    <DefineConstants Condition="'$(SubstrateNetApiVersionOverride)' == ''">SAILSRS07</DefineConstants>
+  </PropertyGroup>
+
   <ItemGroup>
     <PackageReference Include="Roslynator.Analyzers">
       <PrivateAssets>all</PrivateAssets>
