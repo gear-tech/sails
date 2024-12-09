@@ -1,5 +1,5 @@
 [package]
-name = "sails-net-client-gen"
+name = "sails-client-gen-net"
 description = "Rust .NET client generator for the Sails framework"
 documentation = "https://docs.rs/sails-client-gen"
 version.workspace = true

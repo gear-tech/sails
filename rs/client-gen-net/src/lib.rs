@@ -18,13 +18,24 @@ pub struct IdlPath<'a>(&'a Path);
 pub struct IdlString<'a>(&'a str);
 
 pub struct ClientGenerator<'a, S> {
+    namespace: Option<&'a str>,
     external_types: HashMap<&'a str, &'a str>,
     idl: S,
+}
+
+impl<'a, S> ClientGenerator<'a, S> {
+    pub fn with_namespace(self, namespace: &'a str) -> Self {
+        Self {
+            namespace: Some(namespace),
+            ..self
+        }
+    }
 }
 
 impl<'a> ClientGenerator<'a, IdlPath<'a>> {
     pub fn from_idl_path(idl_path: &'a Path) -> Self {
         Self {
+            namespace: None,
             external_types: HashMap::new(),
             idl: IdlPath(idl_path),
         }
@@ -38,16 +49,16 @@ impl<'a> ClientGenerator<'a, IdlPath<'a>> {
 
         let file_name = idl_path.file_stem().unwrap_or(OsStr::new("service"));
         let service_name = file_name.to_string_lossy().to_case(Case::Pascal);
-        let namepace = format!("{}.Client", service_name);
 
         self.with_idl(&idl)
-            .generate_to(&service_name, &namepace, out_path)
+            .generate_to(&service_name, out_path)
             .context("failed to generate client")?;
         Ok(())
     }
 
     fn with_idl(self, idl: &'a str) -> ClientGenerator<'a, IdlString<'a>> {
         ClientGenerator {
+            namespace: self.namespace,
             external_types: self.external_types,
             idl: IdlString(idl),
         }
@@ -57,14 +68,16 @@ impl<'a> ClientGenerator<'a, IdlPath<'a>> {
 impl<'a> ClientGenerator<'a, IdlString<'a>> {
     pub fn from_idl(idl: &'a str) -> Self {
         Self {
+            namespace: None,
             external_types: HashMap::new(),
             idl: IdlString(idl),
         }
     }
 
-    pub fn generate(self, anonymous_service_name: &str, namespace: &str) -> Result<String> {
+    pub fn generate(self, anonymous_service_name: &str) -> Result<String> {
         let idl = self.idl.0;
         let program = sails_idl_parser::ast::parse_idl(idl).context("Failed to parse IDL")?;
+        let namespace = self.namespace.unwrap_or(anonymous_service_name);
 
         let mut generator =
             RootGenerator::new(anonymous_service_name, namespace, self.external_types);
@@ -78,12 +91,11 @@ impl<'a> ClientGenerator<'a, IdlString<'a>> {
     pub fn generate_to(
         self,
         anonymous_service_name: &str,
-        namespace: &str,
         out_path: impl AsRef<Path>,
     ) -> Result<()> {
         let out_path = out_path.as_ref();
         let code = self
-            .generate(anonymous_service_name, namespace)
+            .generate(anonymous_service_name)
             .context("failed to generate client")?;
 
         fs::write(out_path, code).with_context(|| {
@@ -110,7 +122,8 @@ pub unsafe extern "C" fn generate_dotnet_client(
     let config: GeneratorConfig = serde_json::from_slice(slice).expect("failed to parse config");
 
     let res = ClientGenerator::from_idl(program.as_str())
-        .generate(&config.service_name, &config.namespace)
+        .with_namespace(&config.namespace)
+        .generate(&config.service_name)
         .expect("failed to generate client");
     std::ffi::CString::new(res)
         .expect("failed to create cstring")
