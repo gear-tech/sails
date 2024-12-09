@@ -4,7 +4,7 @@ using Substrate.Gear.Api.Generated.Model.sp_runtime;
 
 namespace Sails.Remoting.Exceptions;
 
-public class ExtrinsicDispatchException : Exception
+public class ExtrinsicDispatchException : SailsException
 {
     public EnumDispatchError? DispatchError { get; }
     public DispatchInfo? DispatchInfo { get; }

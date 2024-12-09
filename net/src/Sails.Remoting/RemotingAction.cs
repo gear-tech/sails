@@ -128,7 +128,7 @@ public sealed class RemotingAction<T>(IRemoting remoting, string programRoute, s
             str.Decode(bytes, ref p);
             if (str != route)
             {
-                throw new ReplyRouteException("Reply route mismatches");
+                throw new SailsException("Reply route mismatches");
             }
         }
     }
