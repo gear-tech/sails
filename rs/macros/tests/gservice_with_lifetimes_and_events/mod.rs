@@ -12,9 +12,8 @@ pub enum MyEvents {
     Event1,
 }
 
-#[allow(clippy::needless_lifetimes)]
 #[service(events = MyEvents)]
-impl<'l, T> MyGenericEventsService<'l, T>
+impl<T> MyGenericEventsService<'_, T>
 where
     T: Clone,
 {

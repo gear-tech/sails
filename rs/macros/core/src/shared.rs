@@ -161,10 +161,10 @@ pub(crate) fn generate_unexpected_input_panic(
 }
 
 pub(crate) fn extract_lifetime_names(path_args: &PathArguments) -> Vec<String> {
-    if let PathArguments::AngleBracketed(type_args) = path_args.clone() {
+    if let PathArguments::AngleBracketed(type_args) = path_args {
         type_args
             .args
-            .into_iter()
+            .iter()
             .filter_map(|a| {
                 if let GenericArgument::Lifetime(lifetime) = a {
                     Some(lifetime.ident.to_string())
