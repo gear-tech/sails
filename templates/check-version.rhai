@@ -37,9 +37,14 @@ let sails_version = parse_sem_ver(sails_version_str);
 print(`Major ${sails_version[0]}, Minor ${sails_version[1]}, Patch ${sails_version[2]}`);
 print(`Major ${sails_min_version[0]}, Minor ${sails_min_version[1]}, Patch ${sails_min_version[2]}`);
 
-if sails_version[0] < sails_min_version[0]
-    || sails_version[1] < sails_min_version[1]
-    || sails_version[2] < sails_min_version[2] {
+if sails_version[0] < sails_min_version[0] {
+    abort("Sails version '" + sails_version_str + "' is not supported. Please specify version equal or higher than '" + sails_min_version_str + "'");
+} else if sails_version[0] == sails_min_version[0]
+    && sails_version[1] < sails_min_version[1] {
+    abort("Sails version '" + sails_version_str + "' is not supported. Please specify version equal or higher than '" + sails_min_version_str + "'");
+} else if sails_version[0] == sails_min_version[0]
+    && sails_version[1] == sails_min_version[1]
+    && sails_version[2] < sails_min_version[2] {
     abort("Sails version '" + sails_version_str + "' is not supported. Please specify version equal or higher than '" + sails_min_version_str + "'");
 }
 
