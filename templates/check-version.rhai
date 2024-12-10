@@ -31,7 +31,7 @@ let sails_version_str = if variable::is_set("sails-version") {
 if sails_version_str == "" {
     sails_version_str = variable::get("sails-rs-version");
 }
-print(`SAILS VERSION-1: '{sails_version_str}'`);
+print(`SAILS VERSION-1: '${sails_version_str}'`);
 let sails_version = parse_sem_ver(sails_version_str);
 
 if sails_version[0] < sails_min_version[0]
