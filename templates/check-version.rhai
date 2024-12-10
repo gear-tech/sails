@@ -34,6 +34,8 @@ if sails_version_str == "" {
 print(`SAILS VERSION-1: '${sails_version_str}'`);
 let sails_version = parse_sem_ver(sails_version_str);
 
+print(`Major ${sails_version[0]}, Minor ${sails_version[1]}, Patch ${sails_version[2]}`);
+
 if sails_version[0] < sails_min_version[0]
     || sails_version[1] < sails_min_version[1]
     || sails_version[2] < sails_min_version[2] {
