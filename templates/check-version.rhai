@@ -23,13 +23,16 @@ if sails_cli_version[0] < sails_cli_min_version[0]
 let sails_min_version_str = "0.6.3";
 let sails_min_version = parse_sem_ver(sails_min_version_str);
 
-let sails_version = if variable::is_set("sails-version") {
+let sails_version_str = if variable::is_set("sails-version") {
     variable::get("sails-version")
 } else {
-    variable::get("sails-rs-version")
+    ""
 };
+if sails_version_str == "" {
+    sails_version_str = variable::get("sails-rs-version");
+}
 
-print("SAILS VERSION: '" + sails_version + "'");
+print("SAILS VERSION: '" + sails_version_str + "'");
 
 fn parse_sem_ver(version) {
     let dot_idx = 0;
