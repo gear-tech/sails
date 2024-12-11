@@ -34,16 +34,20 @@ if sails_version_str == "" {
 print(`SAILS VERSION-1: '${sails_version_str}'`);
 let sails_version = parse_sem_ver(sails_version_str);
 
-if sails_version[0] < sails_min_version[0] {
-    abort("Sails version '" + sails_version_str + "' is not supported. Please specify version equal or higher than '" + sails_min_version_str + "'");
-} else if sails_version[0] == sails_min_version[0]
-    && sails_version[1] < sails_min_version[1] {
-    abort(`Sails version '${sails_version_str}' is not supported. Please specify version equal or higher than '${sails_min_version_str}'`);
-} else if sails_version[0] == sails_min_version[0]
-    && sails_version[1] == sails_min_version[1]
-    && sails_version[2] < sails_min_version[2] {
-    abort("Sails version '" + sails_version_str + "' is not supported. Please specify version equal or higher than '" + sails_min_version_str + "'");
+if is_sem_ver_less(sails_version, sails_min_version) {
+    abort(`Sails version '${sails_version_str}' is not supported. Please specify version equal to or higher than '${sails_min_version_str}'`);
 }
+
+// if sails_version[0] < sails_min_version[0] {
+//     abort(`Sails version '${sails_version_str}' is not supported. Please specify version equal to or higher than '${sails_min_version_str}'`);
+// } else if sails_version[0] == sails_min_version[0]
+//     && sails_version[1] < sails_min_version[1] {
+//     abort(`Sails version '${sails_version_str}' is not supported. Please specify version equal to or higher than '${sails_min_version_str}'`);
+// } else if sails_version[0] == sails_min_version[0]
+//     && sails_version[1] == sails_min_version[1]
+//     && sails_version[2] < sails_min_version[2] {
+//     abort(`Sails version '${sails_version_str}' is not supported. Please specify version equal to or higher than '${sails_min_version_str}'`);
+// }
 
 print("SAILS VERSION-2: '" + sails_version_str + "'");
 
@@ -80,4 +84,15 @@ fn parse_sem_ver(version) {
     patch = parse_int(patch);
 
     [major, minor, patch]
+}
+
+fn is_sem_ver_less(version1, version2) {
+    if version1[0] < version2[0] {
+        return true;
+    } else if version1[0] == version2[0] && version1[1] < version2[1] {
+        return true;
+    } else if version1[0] == version2[0] && version1[1] == version2[1] && version1[2] < version2[2] {
+        return true;
+    }
+    false
 }
