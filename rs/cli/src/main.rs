@@ -26,6 +26,8 @@ enum SailsCommands {
         no_client: bool,
         #[arg(long, help = "Disable generation of program tests using 'gtest'")]
         no_gtest: bool,
+        #[arg(long, help = "Use 'sails-rs' crate of the specified version")]
+        sails_version: Option<String>,
     },
 
     /// Generate client code from IDL
@@ -89,11 +91,13 @@ fn main() -> Result<(), i32> {
             name,
             no_client,
             no_gtest,
+            sails_version,
         } => {
             let program_generator = ProgramGenerator::new(path)
                 .with_name(name)
                 .with_client(!no_client)
-                .with_gtest(!no_gtest);
+                .with_gtest(!no_gtest)
+                .with_sails_version(sails_version);
             program_generator.generate()
         }
         SailsCommands::ClientRs {

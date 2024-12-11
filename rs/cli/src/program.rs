@@ -11,6 +11,7 @@ pub struct ProgramGenerator {
     name: Option<String>,
     with_client: bool,
     with_gtest: bool,
+    sails_version: Option<String>,
 }
 
 impl ProgramGenerator {
@@ -20,6 +21,7 @@ impl ProgramGenerator {
             name: None,
             with_client: false,
             with_gtest: false,
+            sails_version: None,
         }
     }
 
@@ -36,6 +38,13 @@ impl ProgramGenerator {
 
     pub fn with_gtest(self, with_gtest: bool) -> Self {
         Self { with_gtest, ..self }
+    }
+
+    pub fn with_sails_version(self, sails_version: Option<String>) -> Self {
+        Self {
+            sails_version,
+            ..self
+        }
     }
 
     pub fn generate(self) -> Result<()> {
@@ -68,6 +77,7 @@ impl ProgramGenerator {
                 format!("sails-cli-version={}", env!("CARGO_PKG_VERSION")),
                 format!("with-client={}", self.with_client),
                 format!("with-gtest={}", self.with_gtest),
+                format!("sails-version={}", self.sails_version.unwrap_or_default()),
             ],
             ..GenerateArgs::default()
         };
