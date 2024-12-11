@@ -3,6 +3,7 @@ use sails_rs::{Decode, Encode, MessageId};
 
 mod gservice_with_basics;
 mod gservice_with_events;
+mod gservice_with_export_unwrap_result;
 mod gservice_with_extends;
 mod gservice_with_extends_and_lifetimes;
 mod gservice_with_lifecycles_and_generics;
@@ -368,4 +369,49 @@ async fn gservice_with_multiple_names() {
     gservice_works!(gservice_with_multiple_names::MyService);
     gservice_works!(gservice_with_multiple_names::MyOtherService);
     gservice_works!(gservice_with_multiple_names::yet_another_service::MyService);
+}
+
+#[tokio::test]
+async fn gservice_with_export_unwrap_result() {
+    use gservice_with_export_unwrap_result::MyDoThisParams;
+    use gservice_with_export_unwrap_result::MyService;
+
+    const DO_THIS: &str = "DoThis";
+
+    let input = [
+        DO_THIS.encode(),
+        MyDoThisParams {
+            p1: 42,
+            p2: "correct".into(),
+        }
+        .encode(),
+    ]
+    .concat();
+    let (output, _value) = MyService
+        .expose(MessageId::from(123), &[1, 2, 3])
+        .handle(&input)
+        .await;
+    let mut output = output.as_slice();
+
+    let func_name = String::decode(&mut output).unwrap();
+    assert_eq!(func_name, DO_THIS);
+
+    let result = String::decode(&mut output).unwrap();
+    assert_eq!(result, "42: correct");
+
+    assert_eq!(output.len(), 0);
+}
+
+#[tokio::test]
+#[should_panic(expected = "failed to parse `not a number`")]
+async fn gservice_with_export_unwrap_result_panic() {
+    use gservice_with_export_unwrap_result::MyService;
+
+    const PARSE: &str = "Parse";
+
+    let input = (PARSE, "not a number").encode();
+    _ = MyService
+        .expose(MessageId::from(123), &[1, 2, 3])
+        .handle(&input)
+        .await;
 }

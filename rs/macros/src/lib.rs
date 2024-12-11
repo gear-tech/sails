@@ -140,6 +140,26 @@ pub fn route(args: TokenStream, impl_item_fn_tokens: TokenStream) -> TokenStream
     sails_macros_core::groute(args.into(), impl_item_fn_tokens.into()).into()
 }
 
+/// Changes default route to methods exposed by Sails services
+/// and specifies that the result should be unwrapped.
+///
+/// # Examples
+///
+/// ```rust
+/// mod my_service {
+///    use sails_rs::{export, service};
+///
+///    struct MyService;
+///
+///    #[service]
+///    impl MyService {
+///        #[export(route = "something", unwrap_result)]
+///        pub fn do_something(&mut self) -> Result<u32, String> {
+///            Ok(0)
+///        }
+///    }
+/// }
+/// ```
 #[proc_macro_error]
 #[proc_macro_attribute]
 pub fn export(args: TokenStream, impl_item_fn_tokens: TokenStream) -> TokenStream {

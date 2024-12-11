@@ -274,3 +274,24 @@ fn works_with_special_lifetimes_and_events() {
 
     insta::assert_snapshot!(result);
 }
+
+#[test]
+fn works_with_export() {
+    let input = quote! {
+        impl SomeService {
+            #[export(route = "DoSomething", unwrap_result)]
+            pub async fn do_this(&mut self, p1: u32, p2: String) -> Result<u32, String> {
+                p1
+            }
+
+            pub fn this(&self, p1: bool) -> bool {
+                p1
+            }
+        }
+    };
+
+    let result = gservice(TokenStream::new(), input).to_string();
+    let result = prettyplease::unparse(&syn::parse_str(&result).unwrap());
+
+    insta::assert_snapshot!(result);
+}
