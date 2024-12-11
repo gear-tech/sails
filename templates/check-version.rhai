@@ -35,7 +35,7 @@ let sails_version = if sails_version_str == "" {
     sails_max_version
 } else {
     parse_sem_ver(sails_version_str)
-}
+};
 
 if is_sem_ver_less(sails_version, sails_min_version) {
     abort(`Sails version '${sails_version_str}' is not supported. Please specify version equal to or higher than '${sails_min_version_str}'`);
