@@ -23,31 +23,23 @@ if sails_cli_version[0] < sails_cli_min_version[0]
 let sails_min_version_str = "0.6.3";
 let sails_min_version = parse_sem_ver(sails_min_version_str);
 
+let sails_max_version_str = variable::get("sails-rs-version");
+let sails_max_version = parse_sem_ver(sails_max_version_str);
+
 let sails_version_str = if variable::is_set("sails-version") {
     variable::get("sails-version")
 } else {
     ""
 };
-if sails_version_str == "" {
-    sails_version_str = variable::get("sails-rs-version");
+let sails_version = if sails_version_str == "" {
+    sails_max_version
+} else {
+    parse_sem_ver(sails_version_str)
 }
-print(`SAILS VERSION-1: '${sails_version_str}'`);
-let sails_version = parse_sem_ver(sails_version_str);
 
 if is_sem_ver_less(sails_version, sails_min_version) {
     abort(`Sails version '${sails_version_str}' is not supported. Please specify version equal to or higher than '${sails_min_version_str}'`);
 }
-
-// if sails_version[0] < sails_min_version[0] {
-//     abort(`Sails version '${sails_version_str}' is not supported. Please specify version equal to or higher than '${sails_min_version_str}'`);
-// } else if sails_version[0] == sails_min_version[0]
-//     && sails_version[1] < sails_min_version[1] {
-//     abort(`Sails version '${sails_version_str}' is not supported. Please specify version equal to or higher than '${sails_min_version_str}'`);
-// } else if sails_version[0] == sails_min_version[0]
-//     && sails_version[1] == sails_min_version[1]
-//     && sails_version[2] < sails_min_version[2] {
-//     abort(`Sails version '${sails_version_str}' is not supported. Please specify version equal to or higher than '${sails_min_version_str}'`);
-// }
 
 print("SAILS VERSION-2: '" + sails_version_str + "'");
 
