@@ -11,10 +11,8 @@ let sails_cli_version_str = if variable::is_set("sails-cli-version") {
 };
 let sails_cli_version = parse_sem_ver(sails_cli_version_str);
 
-if sails_cli_version[0] < sails_cli_min_version[0]
-    || sails_cli_version[1] < sails_cli_min_version[1]
-    || sails_cli_version[2] < sails_cli_min_version[2] {
-    abort("Sails CLI version '" + sails_cli_version_str + "' is not supported. Please upgrade to version '" + sails_cli_min_version_str + "' or higher");
+if is_sem_ver_less(sails_cli_version, sails_cli_min_version) {
+    abort(`Sails CLI version '${sails_cli_version_str}' is not supported. Please upgrade to version '{sails_cli_min_version_str}' or higher`);
 }
 
 //
@@ -47,8 +45,9 @@ if is_sem_ver_less(sails_max_version, sails_version) {
 
 variable::set("sails-rs-version", `${sails_version[0]}.${sails_version[1]}.${sails_version[2]}`);
 
-print("Sails version: " + variable::get("sails-rs-version"));
-
+//
+// Functions
+//
 fn parse_sem_ver(version) {
     let dot_idx = 0;
     let dot_idx_next = index_of(version, ".", dot_idx);
