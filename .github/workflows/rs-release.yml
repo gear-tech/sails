@@ -162,7 +162,6 @@ jobs:
           ref: ${{ needs.prepare.outputs.rc_branch }}
 
       - name: Publish Crates
-        if: false
         run: |
           VERSION=${{ needs.prepare.outputs.r_version }}
           for SAILS_CRATE in $SAILS_CRATES; do
@@ -186,7 +185,6 @@ jobs:
           git push origin "${{ needs.prepare.outputs.rc_branch }}"
 
   cli_tests_after_publish:
-    if: false
     name: Run CLI Tests After Publish
     needs:
       - prepare
@@ -203,7 +201,7 @@ jobs:
       pull-requests: write
     needs:
       - prepare
-      #- cli_tests_after_publish
+      - cli_tests_after_publish
       - assets
     defaults:
       run:
