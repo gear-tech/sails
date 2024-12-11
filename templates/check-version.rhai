@@ -41,7 +41,13 @@ if is_sem_ver_less(sails_version, sails_min_version) {
     abort(`Sails version '${sails_version_str}' is not supported. Please specify version equal to or higher than '${sails_min_version_str}'`);
 }
 
-print("SAILS VERSION-2: '" + sails_version_str + "'");
+if is_sem_ver_less(sails_max_version, sails_version) {
+    abort(`Sails version '${sails_version_str}' is not supported. Please specify version equal to or lower than '${sails_max_version_str}'`);
+}
+
+variable::set("sails-rs-version", `${sails_version[0]}.${sails_version[1]}.${sails_version[2]}`);
+
+println("Sails version: " + variable::get("sails-rs-version"));
 
 fn parse_sem_ver(version) {
     let dot_idx = 0;
