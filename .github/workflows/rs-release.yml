@@ -81,21 +81,7 @@ jobs:
           git add Cargo.toml
           git add Cargo.lock
           git commit -m "build(rs): update version to v${{ steps.release_info.outputs.version }}"
-          git push origin "${{ steps.release_info.outputs.rc_branch }}"
-
-      # - name: Create RC Branch
-      #   id: rc_branch
-      #   run: |
-      #     RC_BRANCH="rc/rs/v${{ steps.release_info.outputs.version }}"
-      #     git config --global user.name "$GITHUB_USER_NAME"
-      #     git config --global user.email "$GITHUB_USER_EMAIL"
-      #     git checkout -b "$RC_BRANCH"
-      #     git add Cargo.toml
-      #     git add Cargo.lock
-      #     git commit -m "build(rs): update version to v${{ steps.release_info.outputs.version }}"
-      #     git push origin "$RC_BRANCH"
-      #     git push origin --delete "${{ steps.release_info.outputs.pin_tag }}"
-      #     echo "branch=$RC_BRANCH" >> $GITHUB_OUTPUT
+          git push origin "${{ steps.rc_branch.outputs.branch }}"
 
   ws_tests:
     name: Run Workspace Tests
