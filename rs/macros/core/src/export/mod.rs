@@ -40,7 +40,7 @@ fn ensure_return_result_type_if_unwrap_result(fn_impl: &ImplItemFn, unwrap_resul
     if unwrap_result && shared::extract_result_type_from_path(&ty).is_none() {
         abort!(
             fn_impl.span(),
-            "`export` attribute with `unwrap_result` can be applied to impls returns result only"
+            "`export` attribute with `unwrap_result` can only be applied to impls returning `Result<T, E>`"
         )
     }
 }

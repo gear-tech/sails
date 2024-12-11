@@ -4,8 +4,12 @@ expression: result
 ---
 impl SomeService {
     #[export(route = "DoSomething", unwrap_result)]
-    pub async fn do_this(&mut self, p1: u32, p2: String) -> Result<u32, String> {
-        p1
+    pub async fn do_this(
+        &mut self,
+        p1: u32,
+        p2: String,
+    ) -> Result<(u32, String), String> {
+        Ok((p1, p2))
     }
     pub fn this(&self, p1: bool) -> bool {
         p1
@@ -22,7 +26,11 @@ pub struct SomeServiceExposure<T> {
     inner: T,
 }
 impl SomeServiceExposure<SomeService> {
-    pub async fn do_this(&mut self, p1: u32, p2: String) -> Result<u32, String> {
+    pub async fn do_this(
+        &mut self,
+        p1: u32,
+        p2: String,
+    ) -> Result<(u32, String), String> {
         let exposure_scope = sails_rs::gstd::services::ExposureCallScope::new(self);
         self.inner.do_this(p1, p2).await
     }
@@ -179,7 +187,7 @@ mod some_service_meta {
     #[derive(TypeInfo)]
     #[scale_info(crate = sails_rs::scale_info)]
     pub enum CommandsMeta {
-        DoSomething(__DoThisParams, u32),
+        DoSomething(__DoThisParams, (u32, String)),
     }
     #[derive(TypeInfo)]
     #[scale_info(crate = sails_rs::scale_info)]

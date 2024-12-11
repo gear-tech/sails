@@ -63,7 +63,7 @@ impl DemoProgram {
     }
 
     // Exposing service with overriden route
-    #[route("ping_pong")]
+    #[export(route = "ping_pong")]
     pub fn ping(&self) -> ping::PingService {
         ping::PingService::default()
     }

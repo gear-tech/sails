@@ -1,3 +1,5 @@
+#![allow(deprecated)]
+
 use sails_macros::{route, service};
 
 struct MyService;

@@ -280,8 +280,8 @@ fn works_with_export() {
     let input = quote! {
         impl SomeService {
             #[export(route = "DoSomething", unwrap_result)]
-            pub async fn do_this(&mut self, p1: u32, p2: String) -> Result<u32, String> {
-                p1
+            pub async fn do_this(&mut self, p1: u32, p2: String) -> Result<(u32, String), String> {
+                Ok((p1, p2))
             }
 
             pub fn this(&self, p1: bool) -> bool {

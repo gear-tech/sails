@@ -136,14 +136,32 @@ pub fn program(args: TokenStream, impl_tokens: TokenStream) -> TokenStream {
 /// ```
 #[proc_macro_error]
 #[proc_macro_attribute]
+#[deprecated(
+    since = "0.8.0",
+    note = "use `export` attribute with `route` parameter instead"
+)]
 pub fn route(args: TokenStream, impl_item_fn_tokens: TokenStream) -> TokenStream {
     sails_macros_core::groute(args.into(), impl_item_fn_tokens.into()).into()
 }
 
-/// Changes default route to methods exposed by Sails services
-/// and specifies that the result should be unwrapped.
+/// Customizes the default route for methods exposed by Sails services
+/// and optionally unwraps the result of the method.
+///
+/// The attribute accepts two optional arguments:
+/// - `route` - Defines  a custom route for the method.
+/// - `unwrap_result` - Indicates that the method's `Result<T, E>` return value should be unwrapped.
+///   If specified, the method will panic if the result is an `Err`.
+///
+/// By default, every exposed service method is accessible via a route derived from its name,
+/// converted to PascalCase. This attribute allows you to override the default route with a
+/// string of your choice.
 ///
 /// # Examples
+///
+/// The following example demonstrates the use of the `export` attribute applied to the `do_something` method.
+/// - The `route` argument customizes the route to "Something" (convertered to PascalCase).
+/// - The `unwrap_result` argument ensures that the method's result is unwrapped, causing it to panic
+///   with the message "Something went wrong" if the result is an `Err`.
 ///
 /// ```rust
 /// mod my_service {
@@ -155,7 +173,7 @@ pub fn route(args: TokenStream, impl_item_fn_tokens: TokenStream) -> TokenStream
 ///    impl MyService {
 ///        #[export(route = "something", unwrap_result)]
 ///        pub fn do_something(&mut self) -> Result<u32, String> {
-///            Ok(0)
+///            Err("Something went wrong".to_string())
 ///        }
 ///    }
 /// }
