@@ -139,3 +139,9 @@ pub fn program(args: TokenStream, impl_tokens: TokenStream) -> TokenStream {
 pub fn route(args: TokenStream, impl_item_fn_tokens: TokenStream) -> TokenStream {
     sails_macros_core::groute(args.into(), impl_item_fn_tokens.into()).into()
 }
+
+#[proc_macro_error]
+#[proc_macro_attribute]
+pub fn export(args: TokenStream, impl_item_fn_tokens: TokenStream) -> TokenStream {
+    sails_macros_core::export(args.into(), impl_item_fn_tokens.into()).into()
+}

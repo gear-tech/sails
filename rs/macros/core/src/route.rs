@@ -1,3 +1,4 @@
+use crate::export;
 use convert_case::{Case, Casing};
 use proc_macro2::{Span, TokenStream};
 use proc_macro_error::abort;
@@ -12,6 +13,7 @@ pub fn groute(_attrs: TokenStream, impl_item_fn_tokens: TokenStream) -> TokenStr
                 err
             )
         });
+    export::ensure_single_export_or_route_on_impl(&route_fn_impl);
     match route_fn_impl.vis {
         syn::Visibility::Public(_) => impl_item_fn_tokens,
         _ => abort!(

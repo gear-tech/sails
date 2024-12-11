@@ -75,7 +75,7 @@ fn gen_gprogram_impl(program_impl: ItemImpl, program_args: ProgramArgs) -> Token
 
     let services_data = services_ctors
         .into_iter()
-        .map(|(route, (ctor_fn, ctor_idx))| {
+        .map(|(route, (ctor_fn, ctor_idx, ..))| {
             let route_ident = Ident::new(
                 &format!("__ROUTE_{}", route.to_ascii_uppercase()),
                 Span::call_site(),
@@ -392,7 +392,7 @@ fn generate_handle<'a>(
 fn discover_program_ctors<'a>(
     program_impl: &'a ItemImpl,
     program_type_path: &'a TypePath,
-) -> BTreeMap<String, (&'a ImplItemFn, usize)> {
+) -> BTreeMap<String, (&'a ImplItemFn, usize, bool)> {
     let self_type_path = syn::parse_str::<TypePath>("Self").unwrap();
     shared::discover_invocation_targets(program_impl, |fn_item| {
         if matches!(fn_item.vis, Visibility::Public(_)) && fn_item.sig.receiver().is_none() {
@@ -409,7 +409,9 @@ fn discover_program_ctors<'a>(
     })
 }
 
-fn discover_services_ctors(program_impl: &ItemImpl) -> BTreeMap<String, (&ImplItemFn, usize)> {
+fn discover_services_ctors(
+    program_impl: &ItemImpl,
+) -> BTreeMap<String, (&ImplItemFn, usize, bool)> {
     shared::discover_invocation_targets(program_impl, |fn_item| {
         matches!(fn_item.vis, Visibility::Public(_))
             && matches!(
@@ -480,7 +482,7 @@ mod tests {
 
         let discovered_services = discover_services_ctors(&program_impl)
             .iter()
-            .map(|(_, (fn_impl, _))| fn_impl.sig.ident.to_string())
+            .map(|(_, (fn_impl, ..))| fn_impl.sig.ident.to_string())
             .collect::<Vec<_>>();
 
         assert_eq!(discovered_services.len(), 1);
