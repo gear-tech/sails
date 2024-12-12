@@ -1,7 +1,4 @@
-﻿using System;
-using System.Linq;
-using EnsureThat;
-using Substrate.NetApi.Model.Types.Base;
+﻿using Substrate.NetApi.Model.Types.Base;
 
 namespace Substrate.Gear.Client.NetApi.Model.Types.Base;
 

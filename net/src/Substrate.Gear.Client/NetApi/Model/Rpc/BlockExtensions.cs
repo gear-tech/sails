@@ -1,5 +1,5 @@
-﻿using System;
-using EnsureThat;
+﻿using EnsureThat;
+using Substrate.Gear.Client.Exceptions;
 using Substrate.Gear.Client.NetApi.Model.Extrinsics;
 using Substrate.Gear.Client.NetApi.Model.Types.Base;
 using Substrate.NetApi.Model.Rpc;
@@ -22,7 +22,8 @@ public static class BlockExtensions
         EnsureArg.IsNotNull(extrinsicHash, nameof(extrinsicHash));
 
         return block.FindExtrinsicIdxByHash(extrinsicHash)
-            ?? throw new Exception("TODO: Custom exception.");
+            ?? throw new GearException(
+                $"Block {block.Header.Number} doesn't contain extrinsic with hash {extrinsicHash}.");
     }
 
     /// <summary>

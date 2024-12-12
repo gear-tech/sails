@@ -1,4 +1,15 @@
-﻿global using CodeChangedEventData = Substrate.NetApi.Model.Types.Base.BaseTuple<
+﻿global using System;
+global using System.Collections;
+global using System.Collections.Generic;
+global using System.Diagnostics.CodeAnalysis;
+global using System.Linq;
+global using System.Numerics;
+global using System.Runtime.CompilerServices;
+global using System.Threading;
+global using System.Threading.Channels;
+global using System.Threading.Tasks;
+global using EnsureThat;
+global using CodeChangedEventData = Substrate.NetApi.Model.Types.Base.BaseTuple<
     Substrate.Gear.Api.Generated.Model.gprimitives.CodeId,
     Substrate.Gear.Api.Generated.Model.gear_common.@event.EnumCodeChangeKind>;
 global using CodeId = Substrate.Gear.Api.Generated.Model.gprimitives.CodeId;

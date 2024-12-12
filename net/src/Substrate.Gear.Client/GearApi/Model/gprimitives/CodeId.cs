@@ -1,6 +1,4 @@
-﻿using System.Collections.Generic;
-using EnsureThat;
-using Substrate.Gear.Client.NetApi.Model.Types.Primitive;
+﻿using Substrate.Gear.Client.NetApi.Model.Types.Primitive;
 using Substrate.NetApi;
 
 namespace Substrate.Gear.Client.GearApi.Model.gprimitives;

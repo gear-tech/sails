@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections;
-using System.Collections.Generic;
-
-namespace Substrate.Gear.Client.Extensions;
+﻿namespace Substrate.Gear.Client.Extensions;
 
 public static class ReadOnlyMemoryExtensions
 {
