@@ -1,12 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Runtime.CompilerServices;
-using System.Threading;
-using System.Threading.Channels;
-using System.Threading.Tasks;
-using EnsureThat;
-using Substrate.Gear.Api.Generated;
+﻿using Substrate.Gear.Api.Generated;
 using Substrate.NetApi;
 using Substrate.NetApi.Model.Rpc;
 
@@ -71,7 +63,7 @@ public sealed class BlocksStream : IAsyncDisposable
     {
         return Interlocked.CompareExchange(ref this.isReadInProgress, 1, 0) == 0
             ? ReadAllImpl(cancellationToken)
-            : throw new InvalidOperationException("TODO: Custom exception. Only one read operation is allowed at a time.");
+            : throw new InvalidOperationException("Only one read operation is allowed at a time.");
 
         async IAsyncEnumerable<Header> ReadAllImpl([EnumeratorCancellation] CancellationToken cancellationToken)
         {

@@ -1,5 +1,5 @@
 ﻿#nullable disable
-using System;
+
 using Substrate.Gear.Api.Generated.Types.Base;
 using Substrate.NetApi.Model.Types.Base;
 

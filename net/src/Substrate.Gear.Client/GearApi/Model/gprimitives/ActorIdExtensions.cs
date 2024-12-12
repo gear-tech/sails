@@ -1,6 +1,4 @@
-﻿using System.Linq;
-using EnsureThat;
-using Substrate.Gear.Api.Generated.Model.gprimitives;
+﻿using Substrate.Gear.Api.Generated.Model.gprimitives;
 using Substrate.NetApi;
 
 namespace Substrate.Gear.Client.GearApi.Model.gprimitives;

@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace Substrate.Gear.Client.NetApi.Model.Types.Base;
+﻿namespace Substrate.Gear.Client.NetApi.Model.Types.Base;
 
 internal static class SpanExtensions
 {

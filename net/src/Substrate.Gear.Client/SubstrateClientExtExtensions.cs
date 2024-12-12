@@ -1,11 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Numerics;
-using System.Threading;
-using System.Threading.Tasks;
-using EnsureThat;
-using Newtonsoft.Json;
+﻿using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Substrate.Gear.Api.Generated;
 using Substrate.Gear.Api.Generated.Model.frame_system;
@@ -14,6 +7,7 @@ using Substrate.Gear.Api.Generated.Model.gprimitives;
 using Substrate.Gear.Api.Generated.Model.sp_runtime;
 using Substrate.Gear.Api.Generated.Model.vara_runtime;
 using Substrate.Gear.Api.Generated.Storage;
+using Substrate.Gear.Client.Exceptions;
 using Substrate.Gear.Client.GearApi.Model.gprimitives;
 using Substrate.Gear.Client.NetApi.Model.Extrinsics;
 using Substrate.Gear.Client.NetApi.Model.Rpc;
@@ -90,7 +84,10 @@ public static class SubstrateClientExtExtensions
                             case ExtrinsicState.Dropped:
                             case ExtrinsicState.Invalid:
                             default:
-                                taskCompletionSource.SetException(new Exception("TODO: Custom exception."));
+                                taskCompletionSource.SetException(
+                                    new GearException(
+                                        $"Execution of the '{method.ModuleName}:{method.CallName}' extrinsic ended up "
+                                        + $"with unexpected state {extrinsicStatus.ExtrinsicState}."));
                                 break;
                         }
                     },

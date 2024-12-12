@@ -1,6 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using Newtonsoft.Json;
+﻿using Newtonsoft.Json;
 using Substrate.NetApi;
 using Substrate.NetApi.Model.Types;
 
