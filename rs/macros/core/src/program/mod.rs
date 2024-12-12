@@ -75,7 +75,7 @@ fn gen_gprogram_impl(program_impl: ItemImpl, program_args: ProgramArgs) -> Token
 
     let services_data = services_ctors
         .into_iter()
-        .map(|(route, (ctor_fn, ctor_idx, ..))| {
+        .map(|(route, (ctor_fn, ctor_idx, unwrap_result))| {
             let route_ident = Ident::new(
                 &format!("__ROUTE_{}", route.to_ascii_uppercase()),
                 Span::call_site(),
@@ -90,7 +90,7 @@ fn gen_gprogram_impl(program_impl: ItemImpl, program_args: ProgramArgs) -> Token
             };
 
             let service_meta = {
-                let service_type = shared::result_type(&ctor_fn.sig);
+                let service_type = shared::unwrap_result_type(&ctor_fn.sig, unwrap_result);
                 quote!(
                     ( #route , #sails_path::meta::AnyServiceMeta::new::< #service_type >())
                 )
@@ -102,6 +102,7 @@ fn gen_gprogram_impl(program_impl: ItemImpl, program_args: ProgramArgs) -> Token
                 ctor_fn,
                 ctor_idx,
                 &sails_path,
+                unwrap_result,
             );
 
             (
@@ -206,8 +207,10 @@ fn wire_up_service_exposure(
     ctor_fn: &ImplItemFn,
     ctor_idx: usize,
     sails_path: &Path,
+    unwrap_result: bool,
 ) {
-    let service_type = shared::result_type(&ctor_fn.sig);
+    let service_type = shared::unwrap_result_type(&ctor_fn.sig, unwrap_result);
+    let unwrap_token = unwrap_result.then(|| quote!(.unwrap()));
 
     let mut original_service_ctor_fn = ctor_fn.clone();
     let original_service_ctor_fn_ident = Ident::new(
@@ -222,11 +225,15 @@ fn wire_up_service_exposure(
         .push(ImplItem::Fn(original_service_ctor_fn));
 
     let mut wrapping_service_ctor_fn = ctor_fn.clone();
+    // We propagate only known attributes as we don't know the consequences of unknown ones
+    wrapping_service_ctor_fn
+        .attrs
+        .retain(|attr| attr.path().is_ident("allow") || attr.path().is_ident("doc"));
     wrapping_service_ctor_fn.sig.output = parse_quote!(
         -> < #service_type as #sails_path::gstd::services::Service>::Exposure
     );
     wrapping_service_ctor_fn.block = parse_quote!({
-        let service = self. #original_service_ctor_fn_ident ();
+        let service = self. #original_service_ctor_fn_ident () #unwrap_token;
         let exposure = < #service_type as #sails_path::gstd::services::Service>::expose(
             service,
             #sails_path::gstd::msg::id().into(),
@@ -261,7 +268,7 @@ fn generate_init(
     let mut invocation_dispatches = Vec::with_capacity(program_ctors.len());
     let mut invocation_params_structs = Vec::with_capacity(program_ctors.len());
 
-    for (invocation_route, (program_ctor, ..)) in &program_ctors {
+    for (invocation_route, (program_ctor, _, unwrap_result)) in program_ctors {
         let ctor_docs_attrs: Vec<_> = program_ctor
             .attrs
             .iter()
@@ -280,6 +287,7 @@ fn generate_init(
             let invocation_route_len = invocation_route_bytes.len();
             let handler_ident = handler.ident();
             let handler_await = handler.is_async().then(|| quote!(.await));
+            let unwrap_token = unwrap_result.then(|| quote!(.unwrap()));
             let handler_args = handler.params().iter().map(|item| {
                 let param_ident = item.0;
                 quote!(request.#param_ident)
@@ -289,7 +297,7 @@ fn generate_init(
                 if #input_ident.starts_with(& [ #(#invocation_route_bytes),* ]) {
                     static INVOCATION_ROUTE: [u8; #invocation_route_len] = [ #(#invocation_route_bytes),* ];
                     let request = #invocation_params_struct_ident::decode(&mut &#input_ident[#invocation_route_len..]).expect("Failed to decode request");
-                    let program = #program_type_path :: #handler_ident (#(#handler_args),*) #handler_await;
+                    let program = #program_type_path :: #handler_ident (#(#handler_args),*) #handler_await #unwrap_token;
                     (program, INVOCATION_ROUTE.as_ref())
                 }
             )
@@ -401,6 +409,15 @@ fn discover_program_ctors<'a>(
                     if output_type_path == &self_type_path || output_type_path == program_type_path
                     {
                         return true;
+                    }
+                    if let Some(Type::Path(output_type_path)) =
+                        shared::extract_result_type(output_type_path)
+                    {
+                        if output_type_path == &self_type_path
+                            || output_type_path == program_type_path
+                        {
+                            return true;
+                        }
                     }
                 }
             }

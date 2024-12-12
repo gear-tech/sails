@@ -18,7 +18,7 @@ impl MyProgram {
     pub fn service1(
         &self,
     ) -> <MyService as sails_rs::gstd::services::Service>::Exposure {
-        let service = self.__service1();
+        let service = self.__service1().unwrap();
         let exposure = <MyService as sails_rs::gstd::services::Service>::expose(
             service,
             sails_rs::gstd::msg::id().into(),
@@ -40,8 +40,8 @@ impl MyProgram {
     fn __service2(&self) -> MyService {
         MyService
     }
-    fn __service1(&self) -> MyService {
-        MyService
+    fn __service1(&self) -> Result<MyService, String> {
+        Ok(MyService)
     }
     pub fn default() -> Self {
         Self

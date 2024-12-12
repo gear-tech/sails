@@ -530,11 +530,11 @@ impl<'a> HandlerGenerator<'a> {
                     )
                 })
             })
-            .unwrap_or_else(|| handler.result().clone());
+            .unwrap_or_else(|| handler.result());
         // process result type to extact value and replace any lifetime with 'static
-        let (result_type, reply_with_value) = shared::extract_reply_type_with_value(&result_type)
-            .map_or_else(|| (result_type, false), |t| (t, true));
-        let result_type = shared::replace_any_lifetime_with_static(result_type);
+        let (result_type, reply_with_value) = shared::extract_reply_type_with_value(result_type)
+            .map_or_else(|| (result_type, false), |ty| (ty, true));
+        let result_type = shared::replace_any_lifetime_with_static(result_type.clone());
         let is_query = handler.receiver().map_or(true, |r| r.mutability.is_none());
 
         if reply_with_value && is_query {

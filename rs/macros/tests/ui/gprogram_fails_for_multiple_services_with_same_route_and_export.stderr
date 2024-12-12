@@ -1,5 +1,5 @@
 error: `export` or `route` attribute conflicts with one assigned to 'service1'
-  --> tests/ui/gprogram_fails_for_multiple_services_with_same_route_and_export.rs:14:14
+  --> tests/ui/gprogram_fails_for_multiple_services_with_same_route_and_export.rs:14:7
    |
 14 |     #[export(route = "svc")]
-   |              ^^^^^
+   |       ^^^^^^

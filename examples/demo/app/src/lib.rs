@@ -49,7 +49,8 @@ impl DemoProgram {
     }
 
     /// Another program constructor (called once at the very beginning of the program lifetime)
-    pub fn new(counter: Option<u32>, dog_position: Option<(i32, i32)>) -> Self {
+    #[export(unwrap_result)]
+    pub fn new(counter: Option<u32>, dog_position: Option<(i32, i32)>) -> Result<Self, String> {
         unsafe {
             let dog_position = dog_position.unwrap_or_default();
             DOG_DATA = Some(RefCell::new(walker::WalkerData::new(
@@ -57,15 +58,15 @@ impl DemoProgram {
                 dog_position.1,
             )));
         }
-        Self {
+        Ok(Self {
             counter_data: RefCell::new(counter::CounterData::new(counter.unwrap_or_default())),
-        }
+        })
     }
 
     // Exposing service with overriden route
-    #[export(route = "ping_pong")]
-    pub fn ping(&self) -> ping::PingService {
-        ping::PingService::default()
+    #[export(route = "ping_pong", unwrap_result)]
+    pub fn ping(&self) -> Result<ping::PingService, String> {
+        Ok(ping::PingService::default())
     }
 
     // Exposing another service

@@ -139,3 +139,46 @@ fn generates_ctors_meta_with_docs() {
 
     insta::assert_snapshot!(result);
 }
+
+#[test]
+fn generates_init_with_unwrap_result() {
+    let input = quote! {
+        impl MyProgram {
+            #[export(unwrap_result)]
+            pub async fn new(p1: u32, p2: String) -> Result<Self, String> {
+                Self { p1, p2 }
+            }
+
+            #[export(unwrap_result)]
+            pub fn new2(p2: String, p1: u32) -> Result<Self, String> {
+                Self { p1, p2 }
+            }
+        }
+    };
+
+    let result = gprogram(TokenStream::new(), input).to_string();
+    let result = prettyplease::unparse(&syn::parse_str(&result).unwrap());
+
+    insta::assert_snapshot!(result);
+}
+
+#[test]
+fn generates_handle_for_services_with_unwrap_result() {
+    let input = quote! {
+        impl MyProgram {
+            #[export(route = "svc1", unwrap_result)]
+            pub fn service1(&self) -> Result<MyService, String> {
+                Ok(MyService)
+            }
+
+            pub fn service2(&self) -> MyService {
+                MyService
+            }
+        }
+    };
+
+    let result = gprogram(TokenStream::new(), input).to_string();
+    let result = prettyplease::unparse(&syn::parse_str(&result).unwrap());
+
+    insta::assert_snapshot!(result);
+}
