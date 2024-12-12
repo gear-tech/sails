@@ -10,7 +10,9 @@
   </ItemGroup>
 
   <ItemGroup Condition="'$(UseSailsProjectRefences)' != 'true'">
-    <PackageReference Include="Sails.ClientGenerator" />
+    <PackageReference Include="Sails.ClientGenerator">
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
     <PackageReference Include="Sails.Net" />
     <PackageReference Include="Substrate.NET.API" VersionOverride="$(SubstrateNetApiVersionOverride)" Condition="'$(SubstrateNetApiVersionOverride)' != ''" />
   </ItemGroup>
