@@ -161,13 +161,9 @@ jobs:
       - name: Pack NuGet Packages
         run: |
           dotnet pack ./net/src/Sails.Net/Sails.Net.csproj --no-build --configuration Release --output ./nugets \
-            -p:Version=${{ needs.prepare.outputs.r_version }} \
-            -p:PackageVersion=${{ needs.prepare.outputs.r_version }} \
             -p:RepositoryUrl=${{ github.server_url }}/${{ github.repository }} \
             -p:Authors=Gear
           dotnet pack ./net/src/Sails.ClientGenerator/Sails.ClientGenerator.csproj --no-build --configuration Release --output ./nugets \
-            -p:Version=${{ needs.prepare.outputs.r_version }} \
-            -p:PackageVersion=${{ needs.prepare.outputs.r_version }} \
             -p:RepositoryUrl=${{ github.server_url }}/${{ github.repository }} \
             -p:Authors=Gear
 
