@@ -145,6 +145,11 @@ jobs:
           fetch-depth: 0 # for MinVer
           filter: tree:0 # for MinVer
 
+      - name: Set Up .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 9.0.x
+
       - name: Download Native Libraries
         uses: actions/download-artifact@v4
         with:
