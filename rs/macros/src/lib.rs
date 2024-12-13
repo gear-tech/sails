@@ -136,10 +136,7 @@ pub fn program(args: TokenStream, impl_tokens: TokenStream) -> TokenStream {
 /// ```
 #[proc_macro_error]
 #[proc_macro_attribute]
-#[deprecated(
-    since = "0.8.0",
-    note = "use `export` attribute with `route` parameter instead"
-)]
+#[deprecated(note = "use `export` attribute with `route` parameter instead")]
 pub fn route(args: TokenStream, impl_item_fn_tokens: TokenStream) -> TokenStream {
     sails_macros_core::groute(args.into(), impl_item_fn_tokens.into()).into()
 }

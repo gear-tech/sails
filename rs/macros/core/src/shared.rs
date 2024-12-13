@@ -116,7 +116,7 @@ pub(crate) fn unwrap_result_type(handler_signature: &Signature, unwrap_result: b
                 .unwrap_or_else(|| {
                     abort!(
                         handler_signature.output.span(),
-                        "`unwrap_result` can be applied to impls returns result only"
+                        "`unwrap_result` can be applied to methods returns result only"
                     )
                 })
                 .clone()

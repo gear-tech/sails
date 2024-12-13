@@ -526,7 +526,7 @@ impl<'a> HandlerGenerator<'a> {
                 shared::extract_result_type_from_path(handler.result()).unwrap_or_else(|| {
                     abort!(
                         handler.result().span(),
-                        "`unwrap_result` can be applied to impls returns result only"
+                        "`unwrap_result` can be applied to methods returns result only"
                     )
                 })
             })
