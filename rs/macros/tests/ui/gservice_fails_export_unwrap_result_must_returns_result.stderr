@@ -1,0 +1,5 @@
+error: `unwrap_result` can be applied to methods returns result only
+ --> tests/ui/gservice_fails_export_unwrap_result_must_returns_result.rs:8:37
+  |
+8 |     pub fn this(&self, p1: bool) -> bool {
+  |                                     ^^^^

@@ -136,7 +136,7 @@ fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
     let mut commands_meta_variants = Vec::with_capacity(service_handlers.len());
     let mut queries_meta_variants = Vec::with_capacity(service_handlers.len());
 
-    for (handler_route, (handler_fn, ..)) in &service_handlers {
+    for (handler_route, (handler_fn, _, unwrap_result)) in service_handlers {
         // We propagate only known attributes as we don't know the consequences of unknown ones
         let handler_allow_attrs = handler_fn
             .attrs
@@ -149,7 +149,7 @@ fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
 
         let handler_fn = &handler_fn.sig;
         let handler_func = Func::from(handler_fn);
-        let handler_generator = HandlerGenerator::from(handler_func.clone());
+        let handler_generator = HandlerGenerator::from(handler_func.clone(), unwrap_result);
         let invocation_func_ident = handler_generator.invocation_func_ident();
 
         exposure_funcs.push({
@@ -181,7 +181,7 @@ fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
         let handler_meta_variant = {
             let params_struct_ident = handler_generator.params_struct_ident();
             let result_type = handler_generator.result_type();
-            let handler_route_ident = Ident::new(handler_route, Span::call_site());
+            let handler_route_ident = Ident::new(handler_route.as_str(), Span::call_site());
 
             quote!(
                 #( #handler_docs_attrs )*
@@ -502,7 +502,9 @@ fn generate_exposure_set_event_listener(
     )
 }
 
-fn discover_service_handlers(service_impl: &ItemImpl) -> BTreeMap<String, (&ImplItemFn, usize)> {
+fn discover_service_handlers(
+    service_impl: &ItemImpl,
+) -> BTreeMap<String, (&ImplItemFn, usize, bool)> {
     shared::discover_invocation_targets(service_impl, |fn_item| {
         matches!(fn_item.vis, Visibility::Public(_)) && fn_item.sig.receiver().is_some()
     })
@@ -511,17 +513,28 @@ fn discover_service_handlers(service_impl: &ItemImpl) -> BTreeMap<String, (&Impl
 struct HandlerGenerator<'a> {
     handler: Func<'a>,
     result_type: Type,
+    unwrap_result: bool,
     reply_with_value: bool,
     is_query: bool,
 }
 
 impl<'a> HandlerGenerator<'a> {
-    fn from(handler: Func<'a>) -> Self {
+    fn from(handler: Func<'a>, unwrap_result: bool) -> Self {
+        // process result type if set unwrap result
+        let result_type = unwrap_result
+            .then(|| {
+                shared::extract_result_type_from_path(handler.result()).unwrap_or_else(|| {
+                    abort!(
+                        handler.result().span(),
+                        "`unwrap_result` can be applied to methods returns result only"
+                    )
+                })
+            })
+            .unwrap_or_else(|| handler.result());
         // process result type to extact value and replace any lifetime with 'static
-        let (result_type, reply_with_value) =
-            shared::extract_reply_type_with_value(handler.result())
-                .map_or_else(|| (handler.result().clone(), false), |t| (t, true));
-        let result_type = shared::replace_any_lifetime_with_static(result_type);
+        let (result_type, reply_with_value) = shared::extract_reply_type_with_value(result_type)
+            .map_or_else(|| (result_type, false), |ty| (ty, true));
+        let result_type = shared::replace_any_lifetime_with_static(result_type.clone());
         let is_query = handler.receiver().map_or(true, |r| r.mutability.is_none());
 
         if reply_with_value && is_query {
@@ -534,6 +547,7 @@ impl<'a> HandlerGenerator<'a> {
         Self {
             handler,
             result_type,
+            unwrap_result,
             reply_with_value,
             is_query,
         }
@@ -599,14 +613,16 @@ impl<'a> HandlerGenerator<'a> {
 
         let result_type = self.result_type();
         let await_token = self.handler.is_async().then(|| quote!(.await));
+        let unwrap_token = self.unwrap_result.then(|| quote!(.unwrap()));
+
         let handle_token = if self.reply_with_value() {
             quote! {
-                let command_reply: CommandReply<#result_type> = self.#handler_func_ident(#(#handler_func_params),*)#await_token.into();
+                let command_reply: CommandReply<#result_type> = self.#handler_func_ident(#(#handler_func_params),*)#await_token #unwrap_token.into();
                 let (result, value) = command_reply.to_tuple();
             }
         } else {
             quote! {
-                let result = self.#handler_func_ident(#(#handler_func_params),*)#await_token;
+                let result = self.#handler_func_ident(#(#handler_func_params),*)#await_token #unwrap_token;
                 let value = 0u128;
             }
         };

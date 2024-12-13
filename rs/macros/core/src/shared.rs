@@ -1,4 +1,4 @@
-use crate::route;
+use crate::export;
 use proc_macro2::{Span, TokenStream as TokenStream2};
 use proc_macro_error::abort;
 use quote::{quote, ToTokens};
@@ -107,10 +107,27 @@ pub(crate) fn result_type(handler_signature: &Signature) -> Type {
     }
 }
 
+pub(crate) fn unwrap_result_type(handler_signature: &Signature, unwrap_result: bool) -> Type {
+    let result_type = result_type(handler_signature);
+    // process result type if set unwrap result
+    unwrap_result
+        .then(|| {
+            extract_result_type_from_path(&result_type)
+                .unwrap_or_else(|| {
+                    abort!(
+                        handler_signature.output.span(),
+                        "`unwrap_result` can be applied to methods returns result only"
+                    )
+                })
+                .clone()
+        })
+        .unwrap_or(result_type)
+}
+
 pub(crate) fn discover_invocation_targets(
     item_impl: &ItemImpl,
     filter: impl Fn(&ImplItemFn) -> bool,
-) -> BTreeMap<String, (&ImplItemFn, usize)> {
+) -> BTreeMap<String, (&ImplItemFn, usize, bool)> {
     item_impl
         .items
         .iter()
@@ -118,8 +135,8 @@ pub(crate) fn discover_invocation_targets(
         .filter_map(|item| {
             if let ImplItem::Fn(fn_item) = item.1 {
                 if filter(fn_item) {
-                    let route = route::invocation_route(fn_item);
-                    return Some((route, (fn_item, item.0)));
+                    let (span, route, unwrap_result) = export::invocation_export(fn_item);
+                    return Some(((span, route), (fn_item, item.0, unwrap_result)));
                 }
             }
             None
@@ -128,7 +145,7 @@ pub(crate) fn discover_invocation_targets(
             if let Some(duplicate) = result.insert(route.1, target) {
                 abort!(
                     route.0,
-                    "`route` attribute conflicts with one assigned to '{}'",
+                    "`export` or `route` attribute conflicts with one already assigned to '{}'",
                     duplicate.0.sig.ident.to_string()
                 );
             }
@@ -230,7 +247,7 @@ fn replace_lifetime_with_static_in_path_args(path_args: PathArguments) -> PathAr
 }
 
 /// Check if type is `CommandReply<T>` and extract inner type `T`
-pub(crate) fn extract_reply_type_with_value(ty: &Type) -> Option<Type> {
+pub(crate) fn extract_reply_type_with_value(ty: &Type) -> Option<&Type> {
     match ty {
         Type::Path(tp) => extract_reply_result_type(tp),
         Type::ImplTrait(imp) => extract_reply_result_type_from_impl_into(imp),
@@ -239,7 +256,7 @@ pub(crate) fn extract_reply_type_with_value(ty: &Type) -> Option<Type> {
 }
 
 /// Extract `T` type from `CommandReply<T>`
-fn extract_reply_result_type(tp: &TypePath) -> Option<Type> {
+fn extract_reply_result_type(tp: &TypePath) -> Option<&Type> {
     if let Some(last) = tp.path.segments.last() {
         if last.ident != "CommandReply" {
             return None;
@@ -247,7 +264,7 @@ fn extract_reply_result_type(tp: &TypePath) -> Option<Type> {
         if let PathArguments::AngleBracketed(args) = &last.arguments {
             if args.args.len() == 1 {
                 if let Some(GenericArgument::Type(ty)) = args.args.first() {
-                    return Some(ty.clone());
+                    return Some(ty);
                 }
             }
         }
@@ -256,7 +273,7 @@ fn extract_reply_result_type(tp: &TypePath) -> Option<Type> {
 }
 
 /// Extract `T` type from `impl Into<CommandReply<T>>`
-fn extract_reply_result_type_from_impl_into(tit: &TypeImplTrait) -> Option<Type> {
+fn extract_reply_result_type_from_impl_into(tit: &TypeImplTrait) -> Option<&Type> {
     if let Some(TypeParamBound::Trait(tr)) = tit.bounds.first() {
         if let Some(last) = tr.path.segments.last() {
             if last.ident != "Into" {
@@ -267,6 +284,31 @@ fn extract_reply_result_type_from_impl_into(tit: &TypeImplTrait) -> Option<Type>
                     if let Some(GenericArgument::Type(Type::Path(tp))) = args.args.first() {
                         return extract_reply_result_type(tp);
                     }
+                }
+            }
+        }
+    }
+    None
+}
+
+/// Check if type is `Result<T, E>` and extract inner type `T`
+pub(crate) fn extract_result_type_from_path(ty: &Type) -> Option<&Type> {
+    match ty {
+        Type::Path(tp) if tp.qself.is_none() => extract_result_type(tp),
+        _ => None,
+    }
+}
+
+/// Extract `T` type from `Result<T, E>`
+pub(crate) fn extract_result_type(tp: &TypePath) -> Option<&Type> {
+    if let Some(last) = tp.path.segments.last() {
+        if last.ident != "Result" {
+            return None;
+        }
+        if let PathArguments::AngleBracketed(args) = &last.arguments {
+            if args.args.len() == 2 {
+                if let Some(GenericArgument::Type(ty)) = args.args.first() {
+                    return Some(ty);
                 }
             }
         }

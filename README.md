@@ -55,7 +55,7 @@ struct MyProgram;
 
 #[program]
 impl MyProgram {
-    #[route("ping")]
+    #[export(route = "ping")]
     pub fn ping_svc(&self) -> MyPing {
         MyPing::new()
     }
@@ -96,6 +96,11 @@ to a caller.
 > the application's balance to the caller's one. This can be done via using a dedicated
 > type, `CommandReply<T>`.
 
+Sometimes it is convenient to have a method that returns the `Result<T, E>` type,
+but not expose it to clients. This allows using the `?` operator
+in the method body. For this purpose, you can use the `#[export]` attribute macro with
+the `unwrap_result` parameter.
+
 ```rust
 #[service]
 impl MyService {
@@ -107,6 +112,13 @@ impl MyService {
     // This is a command returning value along with the result
     pub fn withdraw(&mut self, amount: u64) -> CommandReply<()> {
         CommandReply::new(()).with_value(amount)
+    }
+
+    // This is a command returning `()` or panicking
+    #[export(unwrap_result)]
+    pub fn do_somethig_with_unwrap_result(&mut self, amount: u64) -> Result<(), String> {
+        do_somethig_returning_result()?;
+        Ok(())
     }
 
     // This is a query
@@ -165,7 +177,7 @@ impl MyProgram {
 
 
 And the final key concept is message *__routing__*. This concept doesn't have a
-mandatory representation in code, but can be altered by using the `#[route]`
+mandatory representation in code, but can be altered by using the `#[export]`
 attribute applied to those public methods and associated functions described above.
 The concept itself is about rules for dispatching an incoming request message to
 a specific service's method using service and method names. By default, every
@@ -182,13 +194,13 @@ impl MyProgram {
 }
 ```
 
-This behavior can be changed by applying the `#[route]` attribute:
+This behavior can be changed by applying the `#[export]` attribute with `route` parameter:
 
 ```rust
 #[program]
 impl MyProgram {
     // The `MyPing` service is exposed as `Ping`
-    #[route("ping")] // The specified name will be converted into PascalCase
+    #[export(route = "ping")] // The specified name will be converted into PascalCase
     pub fn ping_svc(&self) -> MyPing {
         ...
     }
@@ -201,7 +213,7 @@ The same rules are applicable to service method names:
 #[service]
 impl MyPing {
     // The `do_ping` method is exposed as `Ping`
-    #[route("ping")]
+    #[export(route = "ping")]
     pub fn do_ping(&mut self) {
         ...
     }
@@ -504,7 +516,7 @@ Here is a brief overview of features mentioned above and showcased by the exampl
 
 The examples are composed on a principle of a few programs exposing several services.
 See [DemoProgram](/examples/demo/app/src/lib.rs) which demonstrates this, including
-the use of program's multiple constructors and the `#[route]` attribute for one of
+the use of program's multiple constructors and the `#[export]` attribute for one of
 the exposed services. The example also includes Rust [build script](/examples/demo/app/build.rs)
 building the program as a WASM app ready for loading onto Gear network.
 

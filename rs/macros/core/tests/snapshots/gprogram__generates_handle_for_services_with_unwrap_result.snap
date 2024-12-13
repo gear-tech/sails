@@ -1,0 +1,159 @@
+---
+source: rs/macros/core/tests/gprogram.rs
+expression: result
+---
+static __ROUTE_SERVICE2: [u8; 9usize] = [
+    32u8,
+    83u8,
+    101u8,
+    114u8,
+    118u8,
+    105u8,
+    99u8,
+    101u8,
+    50u8,
+];
+static __ROUTE_SVC1: [u8; 5usize] = [16u8, 83u8, 118u8, 99u8, 49u8];
+impl MyProgram {
+    pub fn service1(
+        &self,
+    ) -> <MyService as sails_rs::gstd::services::Service>::Exposure {
+        let service = self.__service1().unwrap();
+        let exposure = <MyService as sails_rs::gstd::services::Service>::expose(
+            service,
+            sails_rs::gstd::msg::id().into(),
+            __ROUTE_SVC1.as_ref(),
+        );
+        exposure
+    }
+    pub fn service2(
+        &self,
+    ) -> <MyService as sails_rs::gstd::services::Service>::Exposure {
+        let service = self.__service2();
+        let exposure = <MyService as sails_rs::gstd::services::Service>::expose(
+            service,
+            sails_rs::gstd::msg::id().into(),
+            __ROUTE_SERVICE2.as_ref(),
+        );
+        exposure
+    }
+    fn __service2(&self) -> MyService {
+        MyService
+    }
+    fn __service1(&self) -> Result<MyService, String> {
+        Ok(MyService)
+    }
+    pub fn default() -> Self {
+        Self
+    }
+}
+impl sails_rs::meta::ProgramMeta for MyProgram {
+    fn constructors() -> sails_rs::scale_info::MetaType {
+        sails_rs::scale_info::MetaType::new::<meta_in_program::ConstructorsMeta>()
+    }
+    fn services() -> impl Iterator<
+        Item = (&'static str, sails_rs::meta::AnyServiceMeta),
+    > {
+        [
+            ("Service2", sails_rs::meta::AnyServiceMeta::new::<MyService>()),
+            ("Svc1", sails_rs::meta::AnyServiceMeta::new::<MyService>()),
+        ]
+            .into_iter()
+    }
+}
+use sails_rs::Decode as __ProgramDecode;
+use sails_rs::TypeInfo as __ProgramTypeInfo;
+#[derive(__ProgramDecode, __ProgramTypeInfo)]
+#[codec(crate = sails_rs::scale_codec)]
+#[scale_info(crate = sails_rs::scale_info)]
+#[allow(dead_code)]
+struct __DefaultParams {}
+mod meta_in_program {
+    use super::*;
+    #[derive(__ProgramTypeInfo)]
+    #[scale_info(crate = sails_rs::scale_info)]
+    pub enum ConstructorsMeta {
+        Default(__DefaultParams),
+    }
+}
+#[cfg(target_arch = "wasm32")]
+pub mod wasm {
+    use super::*;
+    use sails_rs::{gstd, hex, prelude::*};
+    static mut PROGRAM: Option<MyProgram> = None;
+    #[gstd::async_init]
+    async fn init() {
+        sails_rs::gstd::events::__enable_events();
+        let mut input: &[u8] = &gstd::msg::load_bytes().expect("Failed to read input");
+        let (program, invocation_route) = if input
+            .starts_with(&[28u8, 68u8, 101u8, 102u8, 97u8, 117u8, 108u8, 116u8])
+        {
+            static INVOCATION_ROUTE: [u8; 8usize] = [
+                28u8,
+                68u8,
+                101u8,
+                102u8,
+                97u8,
+                117u8,
+                108u8,
+                116u8,
+            ];
+            let request = __DefaultParams::decode(&mut &input[8usize..])
+                .expect("Failed to decode request");
+            let program = MyProgram::default();
+            (program, INVOCATION_ROUTE.as_ref())
+        } else {
+            let mut __input = input;
+            let input: String = sails_rs::Decode::decode(&mut __input)
+                .unwrap_or_else(|_| {
+                    if input.len() <= 8 {
+                        format!("0x{}", sails_rs::hex::encode(input))
+                    } else {
+                        format!(
+                            "0x{}..{}", sails_rs::hex::encode(& input[..4]),
+                            sails_rs::hex::encode(& input[input.len() - 4..])
+                        )
+                    }
+                });
+            panic!("Unexpected ctor: {}", input)
+        };
+        unsafe {
+            PROGRAM = Some(program);
+        }
+        gstd::msg::reply_bytes(invocation_route, 0).expect("Failed to send output");
+    }
+    #[gstd::async_main]
+    async fn main() {
+        let mut input: &[u8] = &gstd::msg::load_bytes().expect("Failed to read input");
+        let (output, value): (Vec<u8>, ValueUnit) = if input
+            .starts_with(&__ROUTE_SERVICE2)
+        {
+            let program_ref = unsafe { PROGRAM.as_ref() }
+                .expect("Program not initialized");
+            let mut service = program_ref.service2();
+            let (output, value) = service.handle(&input[__ROUTE_SERVICE2.len()..]).await;
+            ([__ROUTE_SERVICE2.as_ref(), &output].concat(), value)
+        } else if input.starts_with(&__ROUTE_SVC1) {
+            let program_ref = unsafe { PROGRAM.as_ref() }
+                .expect("Program not initialized");
+            let mut service = program_ref.service1();
+            let (output, value) = service.handle(&input[__ROUTE_SVC1.len()..]).await;
+            ([__ROUTE_SVC1.as_ref(), &output].concat(), value)
+        } else {
+            let mut __input = input;
+            let input: String = sails_rs::Decode::decode(&mut __input)
+                .unwrap_or_else(|_| {
+                    if input.len() <= 8 {
+                        format!("0x{}", sails_rs::hex::encode(input))
+                    } else {
+                        format!(
+                            "0x{}..{}", sails_rs::hex::encode(& input[..4]),
+                            sails_rs::hex::encode(& input[input.len() - 4..])
+                        )
+                    }
+                });
+            panic!("Unexpected service: {}", input)
+        };
+        gstd::msg::reply_bytes(output, value).expect("Failed to send output");
+    }
+}

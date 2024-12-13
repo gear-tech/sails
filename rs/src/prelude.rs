@@ -42,7 +42,7 @@ pub mod ffi {
 }
 
 #[cfg(feature = "gstd")]
-pub use crate::gstd::{program, route, service, CommandReply};
+pub use crate::gstd::{export, program, route, service, CommandReply};
 pub use crate::types::*;
 
 pub use parity_scale_codec::{self as scale_codec, Decode, Encode, EncodeLike};

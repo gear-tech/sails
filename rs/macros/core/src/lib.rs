@@ -18,12 +18,14 @@
 
 //! Implemntation of the procedural macros exposed via the `sails-macros` crate.
 
+pub use export::export;
 pub use program::__gprogram_internal;
 pub use program::gprogram;
 pub use route::groute;
 pub use service::__gservice_internal;
 pub use service::gservice;
 
+mod export;
 mod program;
 mod route;
 mod sails_paths;
