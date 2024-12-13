@@ -141,6 +141,9 @@ jobs:
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # for MinVer
+          filter: tree:0 # for MinVer
 
       - name: Download Native Libraries
         uses: actions/download-artifact@v4
