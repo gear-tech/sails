@@ -96,7 +96,7 @@ to a caller.
 > the application's balance to the caller's one. This can be done via using a dedicated
 > type, `CommandReply<T>`.
 
-It is convenient to have a method that returns a `Result<T, E>` type,
+Sometimes it is convenient to have a method that returns the `Result<T, E>` type,
 but not expose it to clients. Then it is possible to use the question mark operator
 in the method body. For this purpose, you can use the `#[export]` attribute macro with
 the `unwrap_result` parameter.
