@@ -144,17 +144,15 @@ pub fn route(args: TokenStream, impl_item_fn_tokens: TokenStream) -> TokenStream
     sails_macros_core::groute(args.into(), impl_item_fn_tokens.into()).into()
 }
 
-/// Customizes the default route for methods exposed by Sails services
-/// and optionally unwraps the result of the method.
+/// Customizes how a service/program method is exposed based on specified arguments.
 ///
 /// The attribute accepts two optional arguments:
 /// - `route` - Defines  a custom route for the method.
+///    By default, every exposed service method is accessible via a route derived from its name,
+///    converted to PascalCase. This argument allows you to override the default route with a
+///    string of your choice.
 /// - `unwrap_result` - Indicates that the method's `Result<T, E>` return value should be unwrapped.
 ///   If specified, the method will panic if the result is an `Err`.
-///
-/// By default, every exposed service method is accessible via a route derived from its name,
-/// converted to PascalCase. This attribute allows you to override the default route with a
-/// string of your choice.
 ///
 /// # Examples
 ///

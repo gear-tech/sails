@@ -1,4 +1,4 @@
-#![allow(deprecated)]
+#![allow(deprecated)] // for testing deprecated `route` attribute
 
 use sails_macros::{route, service};
 

@@ -1,4 +1,4 @@
-error: multiple `export` or `route` attributes on the same impl are not allowed
+error: multiple `export` or `route` attributes on the same method are not allowed
   --> tests/ui/gservice_fails_export_and_route_not_allowed_on_one_impl.rs:8:5
    |
 8  | /     #[route("this")]
