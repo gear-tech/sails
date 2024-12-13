@@ -36,5 +36,7 @@
     <!-- Examples -->
     <PackageVersion Include="Sails.ClientGenerator" Version="$(SailsPackagesVersion)" />
     <PackageVersion Include="Sails.Net" Version="$(SailsPackagesVersion)" />
+    <!-- Build -->
+    <PackageVersion Include="MinVer" Version="6.0.0" />
   </ItemGroup>
 </Project>
