@@ -1,5 +1,5 @@
 use crate::{
-    sails_paths,
+    export, sails_paths,
     shared::{self, Func},
 };
 use args::ProgramArgs;
@@ -225,10 +225,10 @@ fn wire_up_service_exposure(
         .push(ImplItem::Fn(original_service_ctor_fn));
 
     let mut wrapping_service_ctor_fn = ctor_fn.clone();
-    // We propagate only known attributes as we don't know the consequences of unknown ones
+    // Filter out `export  attribute
     wrapping_service_ctor_fn
         .attrs
-        .retain(|attr| attr.path().is_ident("allow") || attr.path().is_ident("doc"));
+        .retain(|attr| export::parse_attr(attr).is_none());
     wrapping_service_ctor_fn.sig.output = parse_quote!(
         -> < #service_type as #sails_path::gstd::services::Service>::Exposure
     );
