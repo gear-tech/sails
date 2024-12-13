@@ -145,7 +145,7 @@ pub(crate) fn discover_invocation_targets(
             if let Some(duplicate) = result.insert(route.1, target) {
                 abort!(
                     route.0,
-                    "`export` or `route` attribute conflicts with one assigned to '{}'",
+                    "`export` or `route` attribute conflicts with one already assigned to '{}'",
                     duplicate.0.sig.ident.to_string()
                 );
             }
