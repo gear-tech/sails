@@ -12,6 +12,7 @@ use core::cell::OnceCell;
 pub mod calls;
 pub mod events;
 pub mod services;
+pub mod storage;
 
 // TODO: To be renamed into SysCalls or something similar
 pub trait ExecContext {

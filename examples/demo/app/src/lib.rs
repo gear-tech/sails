@@ -4,6 +4,7 @@ use demo_walker as walker;
 use sails_rs::{cell::RefCell, prelude::*};
 
 mod counter;
+mod counter_storage;
 mod dog;
 mod mammal;
 mod ping;
@@ -30,6 +31,7 @@ pub struct DemoProgram {
     // Counter data has the same lifetime as the program itself, i.e. it will
     // live as long as the program is available on the network.
     counter_data: RefCell<counter::CounterData>,
+    counter_storage: RefCell<u128>,
 }
 
 #[program]
@@ -45,6 +47,7 @@ impl DemoProgram {
         }
         Self {
             counter_data: RefCell::new(counter::CounterData::new(Default::default())),
+            counter_storage: RefCell::new(0u128),
         }
     }
 
@@ -60,6 +63,7 @@ impl DemoProgram {
         }
         Ok(Self {
             counter_data: RefCell::new(counter::CounterData::new(counter.unwrap_or_default())),
+            counter_storage: RefCell::new(0u128),
         })
     }
 
@@ -72,6 +76,11 @@ impl DemoProgram {
     // Exposing another service
     pub fn counter(&self) -> counter::CounterService {
         counter::CounterService::new(&self.counter_data)
+    }
+
+    pub fn counter_storage(&'static self) -> counter_storage::Service {
+        let data = self.counter_storage.borrow_mut();
+        counter_storage::Service::new(data)
     }
 
     // Exposing yet another service
