@@ -11,9 +11,9 @@ impl Service {
         }
     }
 
-    pub fn from_accessor<T: StorageAccessor<u128>>() -> Self {
+    pub fn from_accessor<T: StorageAccessor<u128>>(accessor: &'static T) -> Self {
         Self {
-            storage: T::boxed(),
+            storage: accessor.boxed(),
         }
     }
 }

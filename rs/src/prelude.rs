@@ -44,7 +44,7 @@ pub mod ffi {
 #[cfg(feature = "gstd")]
 pub use crate::gstd::{
     export, program, route, service, storage::BoxedStorage, storage::Storage,
-    storage::StorageAccessor, CommandReply,
+    storage::StorageAccessor, storage::SyncUnsafeCell, CommandReply,
 };
 pub use crate::types::*;
 

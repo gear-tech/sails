@@ -17,6 +17,7 @@ mod value_fee;
 // of using a global variable here. It is just a demonstration of how to use global variables.
 static mut DOG_DATA: Option<RefCell<walker::WalkerData>> = None;
 static mut REF_DATA: u8 = 42;
+static STORAGE_CELL: SyncUnsafeCell<u128> = SyncUnsafeCell::new(0u128);
 
 #[allow(static_mut_refs)]
 fn dog_data() -> &'static RefCell<walker::WalkerData> {
@@ -81,6 +82,12 @@ impl DemoProgram {
     pub fn counter_storage(&'static self) -> counter_storage::Service {
         let data = self.counter_storage.borrow_mut();
         counter_storage::Service::new(data)
+        // can be simplified to
+        //counter_storage::Service::from_accessor(&self.counter_storage)
+    }
+
+    pub fn counter_storage_cell(&'static self) -> counter_storage::Service {
+        counter_storage::Service::from_accessor(&STORAGE_CELL)
     }
 
     // Exposing yet another service

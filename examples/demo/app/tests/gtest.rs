@@ -513,3 +513,33 @@ async fn counter_storage_works() {
     // Asert
     assert_eq!(result, 1);
 }
+
+#[tokio::test]
+async fn counter_storage_cell_works() {
+    // Arrange
+    let fixture = Fixture::new();
+
+    let demo_factory = fixture.demo_factory();
+
+    // Use generated client code for activating Demo program
+    // using the `new` constructor and the `send_recv` method
+    let demo_program_id = demo_factory
+        .new(Some(42), None)
+        .send_recv(fixture.demo_code_id(), "123")
+        .await
+        .unwrap();
+
+    let mut counter_client = fixture.counter_storage_cell_client();
+
+    // Act
+    counter_client
+        .bump()
+        .send_recv(demo_program_id)
+        .await
+        .unwrap();
+
+    let result = counter_client.get().recv(demo_program_id).await.unwrap();
+
+    // Asert
+    assert_eq!(result, 1);
+}
