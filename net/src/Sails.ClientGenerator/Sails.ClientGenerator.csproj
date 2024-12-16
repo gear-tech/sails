@@ -10,9 +10,12 @@
     <EnableNETAnalyzers>true</EnableNETAnalyzers>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <Description>Code generator for clients to communictae with Sails programs</Description>
+    <Deterministic>true</Deterministic>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageLicenseExpression>MIT OR Apache-2.0</PackageLicenseExpression>
-    <PackageTags>Sails, Vara, Gear, Substrate</PackageTags>
+    <PackageTags>Sails;Vara;Gear;Substrate</PackageTags>
     <MinVerTagPrefix>net/v</MinVerTagPrefix>
   </PropertyGroup>
 

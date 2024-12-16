@@ -12,13 +12,13 @@ public class BaseDictionary<TKey, TValue> : IType
         where TValue : IType, new()
 {
     /// <summary>
-    /// Explicit conversion from Dictionary<TKey, TValue> to BaseDictionary
+    /// Explicit conversion from <see cref="Dictionary{TKey, TValue}"></see> to BaseDictionary
     /// </summary>
     /// <param name="p"></param>
     public static explicit operator BaseDictionary<TKey, TValue>(Dictionary<TKey, TValue> p) => new(p);
 
     /// <summary>
-    /// Implicit conversion from BaseDictionary to Dictionary<TKey, TValue>
+    /// Implicit conversion from BaseDictionary to <see cref="Dictionary{TKey, TValue}"></see>
     /// </summary>
     /// <param name="p"></param>
     public static implicit operator Dictionary<TKey, TValue>(BaseDictionary<TKey, TValue> p) => p.Value;
@@ -68,7 +68,7 @@ public class BaseDictionary<TKey, TValue> : IType
             result.AddRange(kv.Key.Encode());
             result.AddRange(kv.Value.Encode());
         }
-        return result.ToArray();
+        return [.. result];
     }
 
     /// <summary>
