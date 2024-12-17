@@ -10,10 +10,10 @@ public sealed record ReplyInfo
     public required byte[] EncodedPayload { get; init; }
     /// <summary>
     /// Value sent with the reply.
-    /// /// </summary>
+    /// </summary>
     public required ValueUnit Value { get; init; }
     /// <summary>
     /// Reply code of the reply.
-    /// <summary>
+    /// </summary>
     public required EnumReplyCode Code { get; init; }
 }
