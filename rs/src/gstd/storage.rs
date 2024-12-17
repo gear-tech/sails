@@ -15,10 +15,10 @@ pub trait Storage {
     fn get_mut(&mut self) -> &mut Self::Item;
 }
 
-pub trait StorageAccessor<T> {
-    fn get(&'static self) -> impl Storage<Item = T> + 'static;
+pub trait StorageAccessor<'a, T> {
+    fn get(&'a self) -> impl Storage<Item = T> + 'a;
 
-    fn boxed(&'static self) -> BoxedStorage<T> {
+    fn boxed(&'a self) -> Box<dyn Storage<Item = T> + 'a> {
         Box::new(self.get())
     }
 }
@@ -59,8 +59,8 @@ impl<T> Storage for NonNull<T> {
     }
 }
 
-impl<T> StorageAccessor<T> for RefCell<T> {
-    fn get(&'static self) -> impl Storage<Item = T> + 'static {
+impl<'a, T> StorageAccessor<'a, T> for RefCell<T> {
+    fn get(&'a self) -> impl Storage<Item = T> + 'a {
         self.borrow_mut()
     }
 }
@@ -129,8 +129,8 @@ impl<T> From<T> for SyncUnsafeCell<T> {
     }
 }
 
-impl<T> StorageAccessor<T> for SyncUnsafeCell<T> {
-    fn get(&'static self) -> impl Storage<Item = T> + 'static {
+impl<'a, T> StorageAccessor<'a, T> for SyncUnsafeCell<T> {
+    fn get(&'a self) -> impl Storage<Item = T> + 'a {
         unsafe { NonNull::new_unchecked(self.get()) }
     }
 }

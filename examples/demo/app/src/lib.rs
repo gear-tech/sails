@@ -79,14 +79,14 @@ impl DemoProgram {
         counter::CounterService::new(&self.counter_data)
     }
 
-    pub fn counter_storage(&'static self) -> counter_storage::Service {
+    pub fn counter_storage(&self) -> counter_storage::Service<'_> {
         let data = self.counter_storage.borrow_mut();
         counter_storage::Service::new(data)
         // can be simplified to
         //counter_storage::Service::from_accessor(&self.counter_storage)
     }
 
-    pub fn counter_storage_cell(&'static self) -> counter_storage::Service {
+    pub fn counter_storage_cell(&self) -> counter_storage::Service<'_> {
         counter_storage::Service::from_accessor(&STORAGE_CELL)
     }
 

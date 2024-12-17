@@ -1,17 +1,17 @@
 use sails_rs::prelude::*;
 
-pub struct Service {
-    storage: BoxedStorage<u128>,
+pub struct Service<'a> {
+    storage: Box<dyn Storage<Item = u128> + 'a>,
 }
 
-impl Service {
-    pub fn new(storage: impl Storage<Item = u128> + 'static) -> Self {
+impl<'a> Service<'a> {
+    pub fn new(storage: impl Storage<Item = u128> + 'a) -> Self {
         Self {
             storage: Box::new(storage),
         }
     }
 
-    pub fn from_accessor<T: StorageAccessor<u128>>(accessor: &'static T) -> Self {
+    pub fn from_accessor<T: StorageAccessor<'a, u128>>(accessor: &'a T) -> Self {
         Self {
             storage: accessor.boxed(),
         }
@@ -19,7 +19,7 @@ impl Service {
 }
 
 #[service(events = Event)]
-impl Service {
+impl Service<'_> {
     pub fn bump(&mut self) {
         let state = self.storage.get_mut();
 
