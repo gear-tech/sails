@@ -1,3 +1,4 @@
+use bitvec::prelude::*;
 use gprimitives::*;
 use meta_params::*;
 use sails_idl_gen::{program, service};
@@ -64,6 +65,8 @@ mod types {
 
 #[allow(dead_code)]
 mod meta_params {
+    use bitvec::vec::BitVec;
+
     use super::{types::*, *};
 
     #[derive(TypeInfo)]
@@ -104,6 +107,11 @@ mod meta_params {
 
     #[derive(TypeInfo)]
     pub struct NoParams;
+
+    #[derive(TypeInfo)]
+    pub struct BitVecParams {
+        pub bit_vec: BitVec<u8, Lsb0>,
+    }
 }
 
 #[allow(dead_code)]
@@ -243,6 +251,7 @@ enum NonEmptyCtorsMeta {
     /// This is FromStr constructor
     /// with second line
     FromStr(SingleParams<String>),
+    FromBitVec(BitVecParams),
 }
 
 struct TestProgramWithNonEmptyCtorsMeta;

@@ -9,11 +9,17 @@ license.workspace = true
 repository.workspace = true
 
 [dependencies]
+bitvec.workspace = true
 convert-case.workspace = true
 gprimitives.workspace = true
 handlebars.workspace = true
 sails-idl-meta.workspace = true
-scale-info = { workspace = true, features = ["derive", "docs", "serde"] }
+scale-info = { workspace = true, features = [
+    "derive",
+    "docs",
+    "serde",
+    "bit-vec",
+] }
 serde = { workspace = true, features = ["derive"] }
 serde-json.workspace = true
 thiserror.workspace = true

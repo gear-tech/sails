@@ -55,6 +55,8 @@ impl ExpandedProgramMeta {
                 MetaType::new::<H256>(),
                 MetaType::new::<U256>(),
                 MetaType::new::<NonZeroU256>(),
+                MetaType::new::<bitvec::order::Lsb0>(),
+                MetaType::new::<bitvec::order::Msb0>(),
             ])
             .iter()
             .map(|t| t.id)

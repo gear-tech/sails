@@ -23,8 +23,8 @@ use convert_case::{Case, Casing};
 use core::num::{NonZeroU128, NonZeroU16, NonZeroU32, NonZeroU64, NonZeroU8};
 use gprimitives::*;
 use scale_info::{
-    form::PortableForm, PortableType, Type, TypeDef, TypeDefArray, TypeDefPrimitive,
-    TypeDefSequence, TypeDefTuple, TypeInfo,
+    form::PortableForm, PortableType, Type, TypeDef, TypeDefArray, TypeDefBitSequence,
+    TypeDefPrimitive, TypeDefSequence, TypeDefTuple, TypeInfo,
 };
 use std::{
     collections::{BTreeMap, HashMap},
@@ -158,6 +158,12 @@ fn resolve_type_name(
             }
         }
         TypeDef::Primitive(primitive_def) => Rc::new(PrimitiveTypeName::new(primitive_def)?),
+        TypeDef::BitSequence(bit_sequence_def) => Rc::new(BitSequenceTypeName::new(
+            types,
+            bit_sequence_def,
+            resolved_type_names,
+            by_path_type_names,
+        )?),
         _ => {
             return Err(Error::TypeIsUnsupported(format!("{type_info:?}")));
         }
@@ -705,6 +711,71 @@ impl_primitive_alias_type_name!(NonZeroU32, nat32);
 impl_primitive_alias_type_name!(NonZeroU64, nat64);
 impl_primitive_alias_type_name!(NonZeroU128, nat128);
 impl_primitive_alias_type_name!(NonZeroU256, nat256);
+
+/// BitSequence type name resolution.
+struct BitSequenceTypeName {
+    bit_store_type: RcTypeName,
+    bit_order: BitSequenceOrder,
+}
+
+enum BitSequenceOrder {
+    Lsb,
+    Msb,
+}
+
+impl BitSequenceTypeName {
+    pub fn new(
+        types: &BTreeMap<u32, &PortableType>,
+        bit_sequence_def: &TypeDefBitSequence<PortableForm>,
+        resolved_type_names: &mut BTreeMap<u32, RcTypeName>,
+        by_path_type_names: &mut HashMap<(String, Vec<u32>), u32>,
+    ) -> Result<Self> {
+        let bit_store_type = resolve_type_name(
+            types,
+            bit_sequence_def.bit_store_type.id,
+            resolved_type_names,
+            by_path_type_names,
+        )?;
+        let order_type_id = bit_sequence_def.bit_order_type.id;
+        let bit_order_type_info = types
+            .get(&order_type_id)
+            .map(|t| &t.ty)
+            .ok_or_else(|| Error::TypeIdIsUnknown(order_type_id))?;
+        let bit_order = match bit_order_type_info.path.segments.join("::").as_str() {
+            "bitvec::order::Lsb0" => Ok(BitSequenceOrder::Lsb),
+            "bitvec::order::Msb0" => Ok(BitSequenceOrder::Msb),
+            _ => Err(Error::TypeIsUnsupported(format!("{bit_order_type_info:?}"))),
+        }?;
+
+        Ok(Self {
+            bit_store_type,
+            bit_order,
+        })
+    }
+}
+
+impl TypeName for BitSequenceTypeName {
+    fn as_string(
+        &self,
+        for_generic_param: bool,
+        by_path_type_names: &HashMap<(String, Vec<u32>), u32>,
+    ) -> String {
+        let bit_store_type = self
+            .bit_store_type
+            .as_string(for_generic_param, by_path_type_names);
+        if for_generic_param {
+            match self.bit_order {
+                BitSequenceOrder::Lsb => format!("BitVecLsbOf{}", bit_store_type),
+                BitSequenceOrder::Msb => format!("BitVecMsbOf{}", bit_store_type),
+            }
+        } else {
+            match self.bit_order {
+                BitSequenceOrder::Lsb => format!("bitvec_lsb {}", bit_store_type),
+                BitSequenceOrder::Msb => format!("bitvec_msb {}", bit_store_type),
+            }
+        }
+    }
+}
 
 #[cfg(test)]
 mod tests {

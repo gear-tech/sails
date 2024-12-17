@@ -6460,6 +6460,7 @@ dependencies = [
 name = "sails-idl-gen"
 version = "0.7.1"
 dependencies = [
+ "bitvec",
  "convert_case 0.6.0",
  "gprimitives",
  "handlebars",

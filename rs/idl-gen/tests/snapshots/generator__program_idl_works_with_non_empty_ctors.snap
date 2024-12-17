@@ -76,6 +76,7 @@ constructor {
   /// This is FromStr constructor
   /// with second line
   FromStr : (p1: str);
+  FromBitVec : (bit_vec: bitvec_lsb u8);
 };
 
 service {
