@@ -483,3 +483,28 @@ async fn value_fee_works() {
             && initial_balance - balance < 10_100_000_000_000
     );
 }
+
+#[tokio::test]
+async fn ping_bitvec_query() {
+    // Arrange
+
+    let fixture = Fixture::new();
+
+    let demo_factory = fixture.demo_factory();
+
+    let demo_program_id = demo_factory
+        .new(Some(42), None)
+        .send_recv(fixture.demo_code_id(), "123")
+        .await
+        .unwrap();
+
+    let client = fixture.ping_pong_client();
+
+    // Act
+    let result = client.bit_vec_query().recv(demo_program_id).await.unwrap();
+
+    // Asert
+    let slice = &[1u8, 1, 2, 3, 5];
+
+    assert_eq!(result.as_raw_slice(), slice);
+}

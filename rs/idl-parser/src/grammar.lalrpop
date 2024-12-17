@@ -34,6 +34,8 @@ extern {
         "num" => Token::Num(<u32>),
         "///" => Token::Doc(<String>),
         "//" => Token::Comment,
+        "bitvec_lsb" => Token::BitVecLsb,
+        "bitvec_msb" => Token::BitVecMsb,
     }
 }
 
@@ -98,6 +100,8 @@ Type: Type = {
 
 TypeDecl: TypeDecl = {
     "vec" <TypeDecl> => TypeDecl::Vector(Box::new(<>)),
+    "bitvec_lsb" <TypeDecl> => TypeDecl::BitVecLsb(Box::new(<>)),
+    "bitvec_msb" <TypeDecl> => TypeDecl::BitVecMsb(Box::new(<>)),
     "[" <item: TypeDecl> "," <len: "num"> "]" => TypeDecl::Array { item: Box::new(item), len },
     "map" "(" <key: TypeDecl> "," <value: TypeDecl> ")" => TypeDecl::Map { key: Box::new(key), value: Box::new(value) },
     "opt" <TypeDecl> => TypeDecl::Optional(Box::new(<>)),

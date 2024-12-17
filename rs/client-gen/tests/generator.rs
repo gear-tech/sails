@@ -230,6 +230,17 @@ fn test_external_types() {
     insta::assert_snapshot!(code);
 }
 
+#[test]
+fn test_bitvec_works() {
+    let idl = r"
+            service {
+                DoThis: (p1: bitvec_lsb u8) -> nat64;
+            };
+        ";
+
+    insta::assert_snapshot!(gen(idl, "BitVecParams"));
+}
+
 fn gen(program: &str, service_name: &str) -> String {
     ClientGenerator::from_idl(program)
         .with_mocks("with_mocks")

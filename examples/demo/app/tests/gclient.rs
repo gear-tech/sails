@@ -289,3 +289,32 @@ async fn spin_up_node_with_demo_code() -> (GClientRemoting, CodeId, GasUnit, Gea
     let remoting = GClientRemoting::new(api.clone());
     (remoting, code_id, gas_limit, api)
 }
+
+#[tokio::test]
+#[ignore = "requires run gear node on GEAR_PATH"]
+async fn ping_bitvec_query() {
+    // Arrange
+
+    let (remoting, demo_code_id, gas_limit, ..) = spin_up_node_with_demo_code().await;
+
+    let demo_factory = demo_client::DemoFactory::new(remoting.clone());
+
+    // Use generated client code for activating Demo program
+    // using the `default` constructor and the `send_recv` method
+    let demo_program_id = demo_factory
+        .default()
+        .with_gas_limit(gas_limit)
+        .send_recv(demo_code_id, "123")
+        .await
+        .unwrap();
+
+    let client = demo_client::PingPong::new(remoting.clone());
+
+    // Act
+    let result = client.bit_vec_query().recv(demo_program_id).await.unwrap();
+
+    // Asert
+    let slice = &[1u8, 1, 2, 3, 5];
+
+    assert_eq!(result.as_raw_slice(), slice);
+}

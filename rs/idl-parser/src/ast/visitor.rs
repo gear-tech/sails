@@ -82,6 +82,10 @@ pub trait Visitor<'ast> {
     fn visit_enum_variant(&mut self, enum_variant: &'ast EnumVariant) {
         accept_enum_variant(enum_variant, self);
     }
+
+    fn visit_bitvec_type_decl(&mut self, type_decl: &'ast TypeDecl, _bit_order: BitSequenceOrder) {
+        accept_type_decl(type_decl, self);
+    }
 }
 
 pub fn accept_program<'ast>(program: &'ast Program, visitor: &mut (impl Visitor<'ast> + ?Sized)) {
@@ -173,6 +177,12 @@ pub fn accept_type_decl<'ast>(
         }
         TypeDecl::Def(type_def) => {
             accept_type_def(type_def, visitor);
+        }
+        TypeDecl::BitVecLsb(type_decl) => {
+            visitor.visit_bitvec_type_decl(type_decl, BitSequenceOrder::Lsb);
+        }
+        TypeDecl::BitVecMsb(type_decl) => {
+            visitor.visit_bitvec_type_decl(type_decl, BitSequenceOrder::Msb);
         }
     }
 }

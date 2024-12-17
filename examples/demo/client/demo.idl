@@ -58,6 +58,7 @@ service Dog {
 
 service PingPong {
   Ping : (input: str) -> result (str, str);
+  query BitVecQuery : () -> bitvec_lsb u8;
 };
 
 service References {

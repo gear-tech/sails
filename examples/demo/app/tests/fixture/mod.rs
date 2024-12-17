@@ -1,7 +1,7 @@
 use demo_client::{
     counter::{self, events::CounterEvents},
     dog::{self, events::DogEvents},
-    Counter, DemoFactory, Dog, References, ValueFee,
+    Counter, DemoFactory, Dog, PingPong, References, ValueFee,
 };
 use sails_rs::{events::Listener, gtest::calls::*, gtest::System, prelude::*};
 
@@ -63,5 +63,9 @@ impl Fixture {
 
     pub(crate) fn balance_of(&self, id: ActorId) -> ValueUnit {
         self.program_space.system().balance_of(id)
+    }
+
+    pub(crate) fn ping_pong_client(&self) -> PingPong<GTestRemoting> {
+        PingPong::new(self.program_space.clone())
     }
 }

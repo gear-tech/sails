@@ -298,6 +298,8 @@ pub enum TypeDecl {
     },
     Id(TypeId),
     Def(TypeDef),
+    BitVecLsb(Box<TypeDecl>),
+    BitVecMsb(Box<TypeDecl>),
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -487,6 +489,12 @@ impl EnumVariant {
     pub fn docs(&self) -> &Vec<String> {
         &self.docs
     }
+}
+
+#[derive(Debug, PartialEq, Clone)]
+pub enum BitSequenceOrder {
+    Lsb,
+    Msb,
 }
 
 #[cfg(test)]
@@ -882,6 +890,36 @@ mod tests {
                     vec!["field `result`".into(), "second line".into()],
                 ),
             ])
+            .unwrap(),
+        );
+
+        // act
+        let program = parse_idl(IDL).unwrap();
+
+        // assert
+        let my_struct = program
+            .types()
+            .iter()
+            .find(|t| t.name() == "MyStruct")
+            .unwrap();
+        assert_eq!(&expected, my_struct.def());
+    }
+
+    #[test]
+    fn parser_accepts_bitvec() {
+        const IDL: &str = r#"
+        type MyStruct = struct {
+            /// field `bit_vec`
+            bit_vec: bitvec_lsb u8,
+        };
+        "#;
+
+        let expected = TypeDef::Struct(
+            StructDef::new(vec![StructField::new(
+                Some("bit_vec".to_owned()),
+                TypeDecl::BitVecLsb(Box::new(TypeDecl::Id(TypeId::Primitive(PrimitiveType::U8)))),
+                vec!["field `bit_vec`".into()],
+            )])
             .unwrap(),
         );
 

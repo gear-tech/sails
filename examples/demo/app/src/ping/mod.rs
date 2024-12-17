@@ -13,4 +13,9 @@ impl PingService {
             Ok("pong".into())
         }
     }
+
+    pub fn bit_vec_query(&self) -> BitVec<u8, Lsb0> {
+        let slice = &[1u8, 1, 2, 3, 5];
+        BitVec::<_, Lsb0>::from_slice(slice)
+    }
 }

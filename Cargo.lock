@@ -6522,6 +6522,7 @@ dependencies = [
 name = "sails-rs"
 version = "0.7.1"
 dependencies = [
+ "bitvec",
  "futures",
  "gclient",
  "gear-core",

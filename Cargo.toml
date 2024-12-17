@@ -51,7 +51,7 @@ gwasm-builder = { version = "=1.7.0", package = "gear-wasm-builder" }
 
 # Other deps in alphabetical order
 anyhow = "1"
-bitvec = "1"
+bitvec = { version = "1", default-features = false, features = ["alloc"] }
 cargo-generate = "0.21"
 cargo_metadata = "0.18"
 clap = "4.5"

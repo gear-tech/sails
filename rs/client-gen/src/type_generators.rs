@@ -283,6 +283,16 @@ impl<'ast> Visitor<'ast> for TypeDeclGenerator {
         visitor::accept_type_decl(item_type_decl, self);
         self.code.push_str(&format!("; {len}]"));
     }
+
+    fn visit_bitvec_type_decl(&mut self, type_decl: &'ast TypeDecl, bit_order: BitSequenceOrder) {
+        self.code.push_str("BitVec<");
+        visitor::accept_type_decl(type_decl, self);
+        let order = match bit_order {
+            BitSequenceOrder::Lsb => "Lsb0",
+            BitSequenceOrder::Msb => "Msb0",
+        };
+        self.code.push_str(&format!(", {order}>"));
+    }
 }
 
 struct StructTypeGenerator {

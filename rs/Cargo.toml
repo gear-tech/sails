@@ -10,6 +10,7 @@ license.workspace = true
 repository.workspace = true
 
 [dependencies]
+bitvec.workspace = true
 futures.workspace = true
 gear-core-errors.workspace = true
 gprimitives.workspace = true
@@ -18,11 +19,11 @@ gwasm-builder = { workspace = true, optional = true }
 hashbrown.workspace = true
 hex.workspace = true
 mockall = { workspace = true, optional = true }
-parity-scale-codec = { workspace = true, features = ["derive"] }
+parity-scale-codec = { workspace = true, features = ["derive", "bit-vec"] }
 sails-idl-gen = { workspace = true, optional = true }
 sails-idl-meta.workspace = true
 sails-macros = { workspace = true, optional = true }
-scale-info = { workspace = true, features = ["derive", "docs"] }
+scale-info = { workspace = true, features = ["derive", "docs", "bit-vec"] }
 spin.workspace = true
 thiserror-no-std.workspace = true
 
