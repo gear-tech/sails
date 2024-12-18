@@ -10,7 +10,7 @@ sails-rs.workspace = true
 [build-dependencies]
 demo = { path = "../app" }
 sails-client-gen.workspace = true
-sails-idl-gen.workspace = true
+sails-idl-gen = { workspace = true, features = ["bit-vec"] }
 
 [features]
 with_mocks = ["sails-rs/mockall", "dep:mockall"]

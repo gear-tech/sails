@@ -55,7 +55,9 @@ impl ExpandedProgramMeta {
                 MetaType::new::<H256>(),
                 MetaType::new::<U256>(),
                 MetaType::new::<NonZeroU256>(),
+                #[cfg(feature = "bit-vec")]
                 MetaType::new::<bitvec::order::Lsb0>(),
+                #[cfg(feature = "bit-vec")]
                 MetaType::new::<bitvec::order::Msb0>(),
             ])
             .iter()

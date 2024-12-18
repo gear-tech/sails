@@ -5,7 +5,7 @@ edition = "2021"
 
 [dependencies]
 demo-walker = { path = "../walker" }
-sails-rs.workspace = true
+sails-rs = { workspace = true, features = ["bit-vec"] }
 
 [build-dependencies]
 sails-rs = { workspace = true, features = ["wasm-builder"] }

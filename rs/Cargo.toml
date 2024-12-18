@@ -19,11 +19,11 @@ gwasm-builder = { workspace = true, optional = true }
 hashbrown.workspace = true
 hex.workspace = true
 mockall = { workspace = true, optional = true }
-parity-scale-codec = { workspace = true, features = ["derive", "bit-vec"] }
+parity-scale-codec = { workspace = true, features = ["derive"] }
 sails-idl-gen = { workspace = true, optional = true }
 sails-idl-meta.workspace = true
 sails-macros = { workspace = true, optional = true }
-scale-info = { workspace = true, features = ["derive", "docs", "bit-vec"] }
+scale-info = { workspace = true, features = ["derive", "docs"] }
 spin.workspace = true
 thiserror-no-std.workspace = true
 
@@ -35,6 +35,11 @@ gclient = { workspace = true, optional = true }
 gtest = { workspace = true, optional = true }
 
 [features]
+bit-vec = [
+    "scale-info/bit-vec",
+    "parity-scale-codec/bit-vec",
+    "sails-idl-gen?/bit-vec",
+]
 default = ["gstd"]
 debug = ["gstd?/debug"]
 ethexe = ["gstd?/ethexe"]

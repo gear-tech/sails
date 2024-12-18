@@ -48,4 +48,5 @@ pub use crate::types::*;
 pub use parity_scale_codec::{self as scale_codec, Decode, Encode, EncodeLike};
 pub use scale_info::{self as scale_info, TypeInfo};
 
+#[cfg(feature = "bit-vec")]
 pub use bitvec::prelude::*;
