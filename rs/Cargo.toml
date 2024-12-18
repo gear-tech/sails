@@ -10,7 +10,7 @@ license.workspace = true
 repository.workspace = true
 
 [dependencies]
-bitvec.workspace = true
+bitvec = { workspace = true, optional = true }
 futures.workspace = true
 gear-core-errors.workspace = true
 gprimitives.workspace = true
@@ -36,6 +36,7 @@ gtest = { workspace = true, optional = true }
 
 [features]
 bit-vec = [
+    "dep:bitvec",
     "scale-info/bit-vec",
     "parity-scale-codec/bit-vec",
     "sails-idl-gen?/bit-vec",
