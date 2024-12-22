@@ -50,6 +50,7 @@ describe('Ping', () => {
 
     const { msgId, blockHash, response } = await transaction.signAndSend();
 
+    expect(transaction.gasInfo).toBeDefined();
     expect(msgId).toBeDefined();
     expect(blockHash).toBeDefined();
 
@@ -62,6 +63,7 @@ describe('Ping', () => {
 
     const { msgId, blockHash, response } = await transaction.signAndSend();
 
+    expect(transaction.gasInfo).toBeDefined();
     expect(msgId).toBeDefined();
     expect(blockHash).toBeDefined();
 
@@ -91,6 +93,7 @@ describe('Ping', () => {
 
     const result = await response();
 
+    expect(transaction.gasInfo).toBeDefined();
     expect(result).toHaveProperty('ok', 'pong');
   });
 });
@@ -104,6 +107,7 @@ describe('Counter', () => {
 
     const { msgId, blockHash, response } = await transaction.signAndSend();
 
+    expect(transaction.gasInfo).toBeDefined();
     expect(msgId).toBeDefined();
     expect(blockHash).toBeDefined();
 
@@ -121,6 +125,7 @@ describe('Counter', () => {
 
     const { msgId, blockHash, response } = await transaction.signAndSend();
 
+    expect(transaction.gasInfo).toBeDefined();
     expect(msgId).toBeDefined();
     expect(blockHash).toBeDefined();
 
@@ -143,6 +148,7 @@ describe('Counter', () => {
 
     const { msgId, blockHash, response } = await transaction.signAndSend();
 
+    expect(transaction.gasInfo).toBeDefined();
     expect(msgId).toBeDefined();
     expect(blockHash).toBeDefined();
 
@@ -171,6 +177,7 @@ describe('Dog', () => {
 
     const { msgId, blockHash, response } = await transaction.signAndSend();
 
+    expect(transaction.gasInfo).toBeDefined();
     expect(msgId).toBeDefined();
     expect(blockHash).toBeDefined();
 
@@ -188,6 +195,7 @@ describe('Dog', () => {
 
     const { msgId, blockHash, response } = await transaction.signAndSend();
 
+    expect(transaction.gasInfo).toBeDefined();
     expect(msgId).toBeDefined();
     expect(blockHash).toBeDefined();
 
@@ -212,6 +220,7 @@ describe('Dog', () => {
 
     const { msgId, blockHash, response } = await transaction.signAndSend();
 
+    expect(transaction.gasInfo).toBeDefined();
     expect(msgId).toBeDefined();
     expect(blockHash).toBeDefined();
 
@@ -242,6 +251,7 @@ describe('ThisThat', () => {
 
     const { msgId, blockHash, response } = await transaction.signAndSend();
 
+    expect(transaction.gasInfo).toBeDefined();
     expect(msgId).toBeDefined();
     expect(blockHash).toBeDefined();
 
@@ -256,6 +266,7 @@ describe('ThisThat', () => {
 
     const { msgId, blockHash, response } = await tx.signAndSend();
 
+    expect(tx.gasInfo).toBeDefined();
     expect(msgId).toBeDefined();
     expect(blockHash).toBeDefined();
 
@@ -272,6 +283,7 @@ describe('ThisThat', () => {
 
     const { msgId, blockHash, response } = await tx.signAndSend();
 
+    expect(tx.gasInfo).toBeDefined();
     expect(msgId).toBeDefined();
     expect(blockHash).toBeDefined();
 
