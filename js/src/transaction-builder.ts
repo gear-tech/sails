@@ -1,4 +1,4 @@
-import { GearApi, HexString, ICallOptions, MessageQueuedData, decodeAddress } from '@gear-js/api';
+import { GasInfo, GearApi, HexString, ICallOptions, MessageQueuedData, decodeAddress } from '@gear-js/api';
 import { SignerOptions, SubmittableExtrinsic } from '@polkadot/api/types';
 import { IKeyringPair, ISubmittableResult } from '@polkadot/types/types';
 import { TypeRegistry, u128, u64 } from '@polkadot/types';
@@ -34,6 +34,7 @@ export class TransactionBuilder<ResponseType> {
   private _signerOptions: Partial<SignerOptions>;
   private _tx: SubmittableExtrinsic<'promise', ISubmittableResult>;
   private _voucher: string;
+  private _gasInfo: GasInfo;
   public readonly programId: HexString;
 
   constructor(
@@ -159,9 +160,11 @@ export class TransactionBuilder<ResponseType> {
       ? decodeAddress(typeof this._account === 'string' ? this._account : this._account.address)
       : ZERO_ADDRESS;
 
+    let gas: GasInfo;
+
     switch (this._tx.method.method) {
       case 'uploadProgram': {
-        const gas = await this._api.program.calculateGas.initUpload(
+        gas = await this._api.program.calculateGas.initUpload(
           source,
           this._tx.args[0].toHex(),
           this._tx.args[2].toHex(),
@@ -174,7 +177,7 @@ export class TransactionBuilder<ResponseType> {
         break;
       }
       case 'createProgram': {
-        const gas = await this._api.program.calculateGas.initCreate(
+        gas = await this._api.program.calculateGas.initCreate(
           source,
           this._tx.args[0].toHex(),
           this._tx.args[2].toHex(),
@@ -187,7 +190,7 @@ export class TransactionBuilder<ResponseType> {
         break;
       }
       case 'sendMessage': {
-        const gas = await this._api.program.calculateGas.handle(
+        gas = await this._api.program.calculateGas.handle(
           source,
           this._tx.args[0].toHex(),
           this._tx.args[1].toHex(),
@@ -203,6 +206,8 @@ export class TransactionBuilder<ResponseType> {
         throw new Error('Unknown extrinsic');
       }
     }
+
+    this._gasInfo = gas;
 
     return this;
   }
@@ -356,5 +361,9 @@ export class TransactionBuilder<ResponseType> {
           [getPayloadMethod(this._responseType)]();
       },
     };
+  }
+
+  get gasInfo() {
+    return this._gasInfo;
   }
 }
