@@ -27,7 +27,7 @@
     <PackageVersion Include="xunit.runner.visualstudio" Version="2.8.2" />
     <!-- Code Analysis -->
     <PackageVersion Include="NSubstitute.Analyzers.CSharp" Version="1.0.17" />
-    <PackageVersion Include="Roslynator.Analyzers" Version="4.12.9" />
+    <PackageVersion Include="Roslynator.Analyzers" Version="4.12.10" />
     <PackageVersion Include="Roslynator.Formatting.Analyzers" Version="4.12.9" />
     <!-- Vulnarabilties -->
     <PackageVersion Include="MessagePack" Version="2.5.192" />
