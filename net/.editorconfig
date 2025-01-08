@@ -502,6 +502,12 @@ csharp_style_unused_value_assignment_preference = discard_variable:none
 dotnet_diagnostic.IDE0059.severity = none
 dotnet_diagnostic.CA1416.severity = warning
 
+# Disable some checks for generated code
+[**/Substrate.Gear.Api/Api/**/*.cs]
+dotnet_diagnostic.CS1570.severity = none
+dotnet_diagnostic.CS1573.severity = none
+dotnet_diagnostic.CS1587.severity = none
+
 # Verify settings
 [*.{received,verified}.{json,txt,xml,cs}]
 charset = "utf-8-bom"

@@ -3,13 +3,25 @@
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
     <Description>Low-level abstractions for communicating with Sails programs</Description>
+    <Deterministic>true</Deterministic>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageLicenseExpression>MIT OR Apache-2.0</PackageLicenseExpression>
-    <PackageTags>Sails, Vara, Gear, Substrate</PackageTags>
+    <PackageTags>Sails;Vara;Gear;Substrate</PackageTags>
+    <MinVerTagPrefix>net/v</MinVerTagPrefix>
   </PropertyGroup>
 
   <ItemGroup>
-    <None Include="README.md" Pack="true" PackagePath="\" />
+    <None Include="README.md" Pack="true" PackagePath="/" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="MinVer">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
+    </PackageReference>
   </ItemGroup>
 
   <!-- Substrate.Gear.Api -->

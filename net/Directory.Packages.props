@@ -22,13 +22,13 @@
     <PackageVersion Include="Polly" Version="8.5.0" />
     <PackageVersion Include="Testcontainers" Version="4.0.0" />
     <PackageVersion Include="Verify.SourceGenerators" Version="2.5.0" />
-    <PackageVersion Include="Verify.Xunit" Version="28.4.0" />
+    <PackageVersion Include="Verify.Xunit" Version="28.7.0" />
     <PackageVersion Include="xunit" Version="2.9.2" />
-    <PackageVersion Include="xunit.runner.visualstudio" Version="2.8.2" />
+    <PackageVersion Include="xunit.runner.visualstudio" Version="3.0.0" />
     <!-- Code Analysis -->
     <PackageVersion Include="NSubstitute.Analyzers.CSharp" Version="1.0.17" />
-    <PackageVersion Include="Roslynator.Analyzers" Version="4.12.9" />
-    <PackageVersion Include="Roslynator.Formatting.Analyzers" Version="4.12.9" />
+    <PackageVersion Include="Roslynator.Analyzers" Version="4.12.10" />
+    <PackageVersion Include="Roslynator.Formatting.Analyzers" Version="4.12.10" />
     <!-- Vulnarabilties -->
     <PackageVersion Include="MessagePack" Version="2.5.192" />
     <PackageVersion Include="System.Net.Http" Version="4.3.4" />
@@ -36,5 +36,7 @@
     <!-- Examples -->
     <PackageVersion Include="Sails.ClientGenerator" Version="$(SailsPackagesVersion)" />
     <PackageVersion Include="Sails.Net" Version="$(SailsPackagesVersion)" />
+    <!-- Build -->
+    <PackageVersion Include="MinVer" Version="6.0.0" />
   </ItemGroup>
 </Project>
