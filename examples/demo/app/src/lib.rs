@@ -17,7 +17,8 @@ mod value_fee;
 // of using a global variable here. It is just a demonstration of how to use global variables.
 static mut DOG_DATA: Option<RefCell<walker::WalkerData>> = None;
 static mut REF_DATA: u8 = 42;
-static STORAGE_CELL: SyncUnsafeCell<u128> = SyncUnsafeCell::new(0u128);
+static STORAGE_CELL: SyncUnsafeCell<counter_storage::Data> =
+    SyncUnsafeCell::new(counter_storage::Data(0u128));
 
 #[allow(static_mut_refs)]
 fn dog_data() -> &'static RefCell<walker::WalkerData> {
@@ -32,7 +33,7 @@ pub struct DemoProgram {
     // Counter data has the same lifetime as the program itself, i.e. it will
     // live as long as the program is available on the network.
     counter_data: RefCell<counter::CounterData>,
-    counter_storage: RefCell<u128>,
+    counter_storage: RefCell<counter_storage::Data>,
 }
 
 #[program]
@@ -48,7 +49,7 @@ impl DemoProgram {
         }
         Self {
             counter_data: RefCell::new(counter::CounterData::new(Default::default())),
-            counter_storage: RefCell::new(0u128),
+            counter_storage: RefCell::new(counter_storage::Data(0u128)),
         }
     }
 
@@ -64,7 +65,7 @@ impl DemoProgram {
         }
         Ok(Self {
             counter_data: RefCell::new(counter::CounterData::new(counter.unwrap_or_default())),
-            counter_storage: RefCell::new(0u128),
+            counter_storage: RefCell::new(counter_storage::Data(0u128)),
         })
     }
 
@@ -88,6 +89,10 @@ impl DemoProgram {
 
     pub fn counter_storage_cell(&self) -> counter_storage::Service<'_> {
         counter_storage::Service::from_accessor(&STORAGE_CELL)
+    }
+
+    pub fn counter_storage_static(&self) -> counter_storage::Service<'_> {
+        counter_storage::Service::new(counter_storage::Data::storage())
     }
 
     // Exposing yet another service

@@ -1,7 +1,8 @@
 use demo_client::{
     counter::{self, events::CounterEvents},
     dog::{self, events::DogEvents},
-    Counter, CounterStorage, CounterStorageCell, DemoFactory, Dog, References, ValueFee,
+    Counter, CounterStorage, CounterStorageCell, CounterStorageStatic, DemoFactory, Dog,
+    References, ValueFee,
 };
 use sails_rs::{events::Listener, gtest::calls::*, gtest::System, prelude::*};
 
@@ -51,6 +52,10 @@ impl Fixture {
 
     pub(crate) fn counter_storage_cell_client(&self) -> CounterStorageCell<GTestRemoting> {
         CounterStorageCell::new(self.program_space.clone())
+    }
+
+    pub(crate) fn counter_storage_static_client(&self) -> CounterStorageStatic<GTestRemoting> {
+        CounterStorageStatic::new(self.program_space.clone())
     }
 
     pub(crate) fn dog_client(&self) -> Dog<GTestRemoting> {

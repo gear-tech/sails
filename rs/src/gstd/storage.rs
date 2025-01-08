@@ -59,6 +59,18 @@ impl<T> Storage for NonNull<T> {
     }
 }
 
+impl<T> Storage for Option<T> {
+    type Item = T;
+
+    fn get(&self) -> &Self::Item {
+        self.as_ref().expect("storage is not initialized")
+    }
+
+    fn get_mut(&mut self) -> &mut Self::Item {
+        self.as_mut().expect("storage is not initialized")
+    }
+}
+
 impl<'a, T> StorageAccessor<'a, T> for RefCell<T> {
     fn get(&'a self) -> impl Storage<Item = T> + 'a {
         self.borrow_mut()
@@ -133,4 +145,35 @@ impl<'a, T> StorageAccessor<'a, T> for SyncUnsafeCell<T> {
     fn get(&'a self) -> impl Storage<Item = T> + 'a {
         unsafe { NonNull::new_unchecked(self.get()) }
     }
+}
+
+#[macro_export]
+macro_rules! static_storage {
+    ($type:ty, $init:expr) => {
+        impl $type {
+            pub(crate) fn storage() -> impl Storage<Item = $type> + 'static {
+                static mut STORAGE: $type = $init;
+                unsafe { &mut *core::ptr::addr_of_mut!(STORAGE) }
+            }
+        }
+    };
+}
+
+#[macro_export]
+macro_rules! static_option_storage {
+    ($type:ty) => {
+        static mut STORAGE: Option<$type> = None;
+
+        impl $type {
+            pub(crate) fn init(init_value: $type) {
+                unsafe {
+                    STORAGE = Some(init_value);
+                };
+            }
+
+            pub(crate) fn storage() -> impl Storage<Item = $type> + 'static {
+                unsafe { STORAGE.as_mut().expect("storage is not initialized") }
+            }
+        }
+    };
 }
