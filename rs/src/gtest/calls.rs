@@ -44,8 +44,14 @@ impl GTestArgs {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum BlockRunMode {
-    Manual,
+    /// Run blocks automatically until all pending replies are received.
     Auto,
+    /// Run only next block and exract events and replies from it.
+    /// If there is no reply in this block then `RtlError::ReplyIsMissing` error will be returned.
+    Next,
+    /// Sending messages does not cause blocks to run.
+    /// Use `GTestRemoting::run_next_block` method to run the next block and extract events and replies.
+    Manual,
 }
 
 #[derive(Clone)]
@@ -129,10 +135,6 @@ impl GTestRemoting {
                 }
             }
         }
-        // drain reply senders that not founded in block
-        for (_message_id, sender) in reply_senders.drain() {
-            _ = sender.send(Err(RtlError::ReplyIsMissing.into()));
-        }
     }
 
     fn send_message(
@@ -161,16 +163,23 @@ impl GTestRemoting {
         Ok(message_id)
     }
 
-    fn message_reply_from_next_block(
+    fn message_reply_from_next_blocks(
         &self,
         message_id: MessageId,
     ) -> impl Future<Output = Result<Vec<u8>>> {
         let (tx, rx) = oneshot::channel::<Result<Vec<u8>>>();
         self.block_reply_senders.borrow_mut().insert(message_id, tx);
 
-        if self.block_run_mode == BlockRunMode::Auto {
-            _ = self.run_next_block_and_extract();
-        }
+        match self.block_run_mode {
+            BlockRunMode::Auto => {
+                self.run_until_extract_replies();
+            }
+            BlockRunMode::Next => {
+                self.run_next_block_and_extract();
+                self.drain_reply_senders();
+            }
+            BlockRunMode::Manual => (),
+        };
 
         rx.unwrap_or_else(|_| Err(RtlError::ReplyIsMissing.into()))
     }
@@ -179,6 +188,20 @@ impl GTestRemoting {
         let run_result = self.system.run_next_block();
         self.extract_events_and_replies(&run_result);
         run_result
+    }
+
+    fn run_until_extract_replies(&self) {
+        while !self.block_reply_senders.borrow().is_empty() {
+            self.run_next_block_and_extract();
+        }
+    }
+
+    fn drain_reply_senders(&self) {
+        let mut reply_senders = self.block_reply_senders.borrow_mut();
+        // drain reply senders that not founded in block
+        for (_message_id, sender) in reply_senders.drain() {
+            _ = sender.send(Err(RtlError::ReplyIsMissing.into()));
+        }
     }
 }
 
@@ -212,7 +235,7 @@ impl Remoting for GTestRemoting {
             value,
         );
         Ok(self
-            .message_reply_from_next_block(message_id)
+            .message_reply_from_next_blocks(message_id)
             .map(move |result| result.map(|reply| (program_id, reply))))
     }
 
@@ -232,7 +255,7 @@ impl Remoting for GTestRemoting {
             value,
             args,
         )?;
-        Ok(self.message_reply_from_next_block(message_id))
+        Ok(self.message_reply_from_next_blocks(message_id))
     }
 
     async fn query(
@@ -251,7 +274,7 @@ impl Remoting for GTestRemoting {
             value,
             args,
         )?;
-        self.message_reply_from_next_block(message_id).await
+        self.message_reply_from_next_blocks(message_id).await
     }
 }
 

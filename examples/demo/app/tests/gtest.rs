@@ -377,6 +377,45 @@ async fn references_guess_num() {
 }
 
 #[tokio::test]
+async fn counter_add_works_via_next_mode() {
+    // Arrange
+    const DEMO_WASM_PATH: &str = "../../../target/wasm32-unknown-unknown/debug/demo.opt.wasm";
+    let system = System::new();
+    system.init_logger();
+    system.mint_to(fixture::ADMIN_ID, 100_000_000_000_000);
+    let demo_code_id = system.submit_code_file(DEMO_WASM_PATH);
+
+    let remoting = GTestRemoting::new(system, fixture::ADMIN_ID.into())
+        .with_block_run_mode(BlockRunMode::Next);
+
+    let demo_factory = demo_client::DemoFactory::new(remoting.clone());
+
+    let demo_program_id = demo_factory
+        .new(Some(42), None)
+        .send_recv(demo_code_id, "123")
+        .await
+        .unwrap();
+
+    let mut counter_client = demo_client::Counter::new(remoting.clone());
+    // Listen to Counter events
+    let mut counter_listener = demo_client::counter::events::listener(remoting.clone());
+    let mut counter_events = counter_listener.listen().await.unwrap();
+
+    // Act
+    let result = counter_client
+        .add(10)
+        .send_recv(demo_program_id)
+        .await
+        .unwrap();
+
+    // Asert
+    let event = counter_events.next().await.unwrap();
+
+    assert_eq!(result, 52);
+    assert_eq!((demo_program_id, CounterEvents::Added(10)), event);
+}
+
+#[tokio::test]
 async fn counter_add_works_via_manual_mode() {
     // Arrange
     const DEMO_WASM_PATH: &str = "../../../target/wasm32-unknown-unknown/debug/demo.opt.wasm";
