@@ -6531,6 +6531,7 @@ dependencies = [
  "gtest",
  "hashbrown 0.15.2",
  "hex",
+ "log",
  "mockall",
  "parity-scale-codec",
  "sails-idl-gen",

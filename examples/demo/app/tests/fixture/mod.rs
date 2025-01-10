@@ -18,7 +18,7 @@ pub(crate) struct Fixture {
 impl Fixture {
     pub(crate) fn new() -> Self {
         let system = System::new();
-        system.init_logger();
+        system.init_logger_with_default_filter("gwasm=debug,gtest=info,sails_rs=debug");
         system.mint_to(ADMIN_ID, 100_000_000_000_000);
         let demo_code_id = system.submit_code_file(DEMO_WASM_PATH);
 

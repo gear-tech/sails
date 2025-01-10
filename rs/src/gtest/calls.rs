@@ -106,6 +106,11 @@ impl GTestRemoting {
 
 impl GTestRemoting {
     fn extract_events_and_replies(&self, run_result: &BlockRunResult) {
+        log::debug!(
+            "Process block #{} run result, mode {:?}",
+            run_result.block_info.height,
+            &self.block_run_mode
+        );
         let mut event_senders = self.event_senders.borrow_mut();
         let mut reply_senders = self.block_reply_senders.borrow_mut();
         // remove closed event senders
@@ -113,6 +118,7 @@ impl GTestRemoting {
         // iterate over log
         for entry in run_result.log().iter() {
             if entry.destination() == ActorId::zero() {
+                log::debug!("Extract event from entry {:?}", entry);
                 for sender in event_senders.iter() {
                     _ = sender.unbounded_send((entry.source(), entry.payload().to_vec()));
                 }
@@ -120,6 +126,7 @@ impl GTestRemoting {
             }
             if let Some(message_id) = entry.reply_to() {
                 if let Some(sender) = reply_senders.remove(&message_id) {
+                    log::debug!("Extract reply from entry {:?}", entry);
                     let reply: result::Result<Vec<u8>, _> = match entry.reply_code() {
                         None => Err(RtlError::ReplyCodeIsMissing.into()),
                         Some(ReplyCode::Error(reason)) => {
@@ -160,6 +167,7 @@ impl GTestRemoting {
             gas_limit,
             value,
         );
+        log::debug!("Send message id: {message_id}, to: {target}");
         Ok(message_id)
     }
 
@@ -199,7 +207,8 @@ impl GTestRemoting {
     fn drain_reply_senders(&self) {
         let mut reply_senders = self.block_reply_senders.borrow_mut();
         // drain reply senders that not founded in block
-        for (_message_id, sender) in reply_senders.drain() {
+        for (message_id, sender) in reply_senders.drain() {
+            log::debug!("Reply is missing in block for message {}", message_id);
             _ = sender.send(Err(RtlError::ReplyIsMissing.into()));
         }
     }
@@ -234,6 +243,7 @@ impl Remoting for GTestRemoting {
             gas_limit,
             value,
         );
+        log::debug!("Send activation id: {message_id}, to program: {program_id}");
         Ok(self
             .message_reply_from_next_blocks(message_id)
             .map(move |result| result.map(|reply| (program_id, reply))))
