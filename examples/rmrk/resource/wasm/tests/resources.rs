@@ -273,7 +273,7 @@ struct SystemFixture {
 impl SystemFixture {
     fn new() -> Self {
         let system = System::new();
-        system.init_logger();
+        system.init_logger_with_default_filter("gwasm=debug,gtest=info,sails_rs=debug");
         system.mint_to(ADMIN_ID, 100_000_000_000_000);
         system.mint_to(NON_ADMIN_ID, 100_000_000_000_000);
 
