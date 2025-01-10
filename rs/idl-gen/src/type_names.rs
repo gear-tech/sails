@@ -267,7 +267,7 @@ impl TypeName for ByPathTypeName {
             .find(|possible_name| {
                 by_path_type_names
                     .get(possible_name)
-                    .map_or(false, |ref_count| *ref_count == 1)
+                    .is_some_and(|ref_count| *ref_count == 1)
             })
             .unwrap_or_else(|| self.possible_names.last().unwrap());
         if self.type_param_type_names.is_empty() {
