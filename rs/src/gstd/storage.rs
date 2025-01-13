@@ -177,3 +177,50 @@ macro_rules! static_option_storage {
         }
     };
 }
+
+#[macro_export]
+macro_rules! static_storage2 {
+    ($($id:ident: $type:ty $(,)?)*) => {
+        mod static_storage {
+            use super::*;
+            use core::mem::MaybeUninit;
+
+            struct InnerStorage {
+                $($id: $type,)*
+            }
+            static mut __STORAGE: MaybeUninit<InnerStorage> = MaybeUninit::uninit();
+
+            pub(crate) fn init_storage($($id: $type,)*) {
+                unsafe {
+                    let ptr = &mut *core::ptr::addr_of_mut!(__STORAGE);
+                    ptr.write(InnerStorage { $($id,) * })
+                };
+            }
+
+            $(pub(crate) fn $id() -> &'static mut $type { unsafe { let ptr = &mut *core::ptr::addr_of_mut!(__STORAGE); &mut *core::ptr::addr_of_mut!((*ptr.assume_init_mut()).$id) } })*
+        }
+    };
+}
+
+#[macro_export]
+macro_rules! static_storage3 {
+    ($($id:ident: $type:ty = $init:expr $(,)?)*) => {
+        mod static_storage {
+            use super::*;
+
+            $(pub(crate) fn $id() -> &'static mut $type { static mut $id: $type = $init; unsafe { &mut *core::ptr::addr_of_mut!($id) } })*
+        }
+    };
+}
+
+mod tests {
+    use super::*;
+
+    #[test]
+    fn static_storage2_test() {
+        static_storage2!(
+            a: u32,
+            b: u64
+        );
+    }
+}

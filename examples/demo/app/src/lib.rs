@@ -1,7 +1,7 @@
 #![no_std]
 
 use demo_walker as walker;
-use sails_rs::{cell::RefCell, prelude::*};
+use sails_rs::{cell::RefCell, prelude::*, static_storage2};
 
 mod counter;
 mod counter_storage;
@@ -19,6 +19,10 @@ static mut DOG_DATA: Option<RefCell<walker::WalkerData>> = None;
 static mut REF_DATA: u8 = 42;
 static STORAGE_CELL: SyncUnsafeCell<counter_storage::Data> =
     SyncUnsafeCell::new(counter_storage::Data(0u128));
+
+static_storage2!(
+    counter_data: counter_storage::Data,
+);
 
 #[allow(static_mut_refs)]
 fn dog_data() -> &'static RefCell<walker::WalkerData> {
@@ -47,6 +51,7 @@ impl DemoProgram {
                 Default::default(),
             )));
         }
+        static_storage::init_storage(counter_storage::Data(0u128));
         Self {
             counter_data: RefCell::new(counter::CounterData::new(Default::default())),
             counter_storage: RefCell::new(counter_storage::Data(0u128)),
@@ -63,6 +68,7 @@ impl DemoProgram {
                 dog_position.1,
             )));
         }
+        static_storage::init_storage(counter_storage::Data(0u128));
         Ok(Self {
             counter_data: RefCell::new(counter::CounterData::new(counter.unwrap_or_default())),
             counter_storage: RefCell::new(counter_storage::Data(0u128)),
@@ -92,7 +98,7 @@ impl DemoProgram {
     }
 
     pub fn counter_storage_static(&self) -> counter_storage::Service<'_> {
-        counter_storage::Service::new(counter_storage::Data::storage())
+        counter_storage::Service::new(static_storage::counter_data())
     }
 
     // Exposing yet another service

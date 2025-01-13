@@ -1,8 +1,7 @@
-use sails_rs::{prelude::*, static_storage};
+use sails_rs::prelude::*;
 
 #[derive(Default)]
 pub struct Data(pub u128);
-static_storage!(Data, Data(0u128));
 
 pub struct Service<'a> {
     storage: Box<dyn Storage<Item = Data> + 'a>,
