@@ -6,8 +6,10 @@ const ACTOR_ID: u64 = 42;
 
 #[tokio::test]
 async fn do_something_works() {
-    let remoting = GTestRemoting::new(ACTOR_ID.into());
-    remoting.system().init_logger();
+    let system = System::new();
+    system.init_logger_with_default_filter("gwasm=debug,gtest=info,sails_rs=debug");
+    system.mint_to(ACTOR_ID, 100_000_000_000_000);
+    let remoting = GTestRemoting::new(system, ACTOR_ID.into());
 
     // Submit program code into the system
     let program_code_id = remoting.system().submit_code({{ crate_name }}::WASM_BINARY);

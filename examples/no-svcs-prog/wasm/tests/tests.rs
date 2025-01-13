@@ -10,7 +10,7 @@ const WASM_PATH: &str = "../../../target/wasm32-unknown-unknown/debug/no_svcs_pr
 #[tokio::test]
 async fn activating_program_succeeds() {
     let system = System::new();
-    system.init_logger();
+    system.init_logger_with_default_filter("gwasm=debug,gtest=info,sails_rs=debug");
     system.mint_to(ADMIN_ID, 100_000_000_000_000);
     let program_code_id = system.submit_code_file(WASM_PATH);
 

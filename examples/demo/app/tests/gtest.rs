@@ -159,7 +159,7 @@ async fn counter_query_not_enough_gas() {
 #[tokio::test]
 async fn ping_pong_low_level_works() {
     let system = System::new();
-    system.init_logger();
+    system.init_logger_with_default_filter("gwasm=debug,gtest=info,sails_rs=debug");
     system.mint_to(ADMIN_ID, 100_000_000_000_000);
 
     let demo_program = Program::from_file(&system, DEMO_WASM_PATH);
@@ -381,7 +381,7 @@ async fn counter_add_works_via_next_mode() {
     // Arrange
     const DEMO_WASM_PATH: &str = "../../../target/wasm32-unknown-unknown/debug/demo.opt.wasm";
     let system = System::new();
-    system.init_logger();
+    system.init_logger_with_default_filter("gwasm=debug,gtest=info,sails_rs=debug");
     system.mint_to(fixture::ADMIN_ID, 100_000_000_000_000);
     let demo_code_id = system.submit_code_file(DEMO_WASM_PATH);
 
@@ -420,7 +420,7 @@ async fn counter_add_works_via_manual_mode() {
     // Arrange
     const DEMO_WASM_PATH: &str = "../../../target/wasm32-unknown-unknown/debug/demo.opt.wasm";
     let system = System::new();
-    system.init_logger();
+    system.init_logger_with_default_filter("gwasm=debug,gtest=info,sails_rs=debug");
     system.mint_to(fixture::ADMIN_ID, 100_000_000_000_000);
     let demo_code_id = system.submit_code_file(DEMO_WASM_PATH);
 
