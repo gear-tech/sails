@@ -25,7 +25,7 @@ impl GClientArgs {
         self
     }
 
-    pub fn at_block(mut self, hash: H256) -> Self {
+    fn at_block(mut self, hash: H256) -> Self {
         self.at_block = Some(hash);
         self
     }
@@ -218,7 +218,6 @@ async fn get_events_from_block(
 
 pub trait QueryAtBlock {
     /// Query at a specific block.
-    /// Is equivalent to `.with_args(GClientArgs::default().at_block(hash))`
     fn at_block(self, hash: H256) -> Self;
 }
 
