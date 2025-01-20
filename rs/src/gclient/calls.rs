@@ -1,5 +1,5 @@
 use crate::{
-    calls::Remoting,
+    calls::{Query, Remoting},
     errors::{Result, RtlError},
     events::Listener,
     prelude::*,
@@ -16,11 +16,17 @@ use gear_core_errors::ReplyCode;
 #[derive(Debug, Default)]
 pub struct GClientArgs {
     voucher: Option<(VoucherId, bool)>,
+    at_block: Option<H256>,
 }
 
 impl GClientArgs {
     pub fn with_voucher(mut self, voucher_id: VoucherId, keep_alive: bool) -> Self {
         self.voucher = Some((voucher_id, keep_alive));
+        self
+    }
+
+    fn at_block(mut self, hash: H256) -> Self {
+        self.at_block = Some(hash);
         self
     }
 }
@@ -127,7 +133,7 @@ impl Remoting for GClientRemoting {
         payload: impl AsRef<[u8]>,
         #[cfg(not(feature = "ethexe"))] gas_limit: Option<GasUnit>,
         value: ValueUnit,
-        _args: GClientArgs,
+        args: GClientArgs,
     ) -> Result<Vec<u8>> {
         let api = self.api;
         // Get Max gas amount if it is not explicitly set
@@ -143,7 +149,14 @@ impl Remoting for GClientRemoting {
         let payload = payload.as_ref().to_vec();
 
         let reply_info = api
-            .calculate_reply_for_handle(Some(origin), target, payload, gas_limit, value)
+            .calculate_reply_for_handle_at(
+                Some(origin),
+                target,
+                payload,
+                gas_limit,
+                value,
+                args.at_block,
+            )
             .await?;
 
         match reply_info.code {
@@ -201,4 +214,18 @@ async fn get_events_from_block(
         )
         .await?;
     Ok(vec)
+}
+
+pub trait QueryAtBlock {
+    /// Query at a specific block.
+    fn at_block(self, hash: H256) -> Self;
+}
+
+impl<T> QueryAtBlock for T
+where
+    T: Query<Args = GClientArgs>,
+{
+    fn at_block(self, hash: H256) -> Self {
+        self.with_args(GClientArgs::default().at_block(hash))
+    }
 }
