@@ -1,5 +1,6 @@
 {
   "name": "sails-js-cli",
+  "description": "CLI allowing to generate Typescript library based on Sails IDL files",
   "version": "0.3.1",
   "preferGlobal": true,
   "type": "module",
@@ -11,7 +12,8 @@
   "homepage": "https://github.com/gear-tech/sails/tree/master/js#readme",
   "repository": {
     "type": "git",
-    "url": "git+https://githib.com/gear-tech/sails.git"
+    "url": "git+https://githib.com/gear-tech/sails.git",
+    "directory": "js/cli"
   },
   "keywords": [
     "gear",
@@ -21,15 +23,16 @@
     "sails-js": "./build/app.js"
   },
   "devDependencies": {
-    "@inquirer/prompts": "^7.1.0",
-    "commander": "^12.1.0",
-    "inquirer": "^12.1.0",
+    "@inquirer/prompts": "^7.2.3",
+    "commander": "^13.1.0",
+    "inquirer": "^12.3.2",
     "sails-js": "workspace:*",
     "sails-js-parser": "workspace:*",
     "sails-js-util": "workspace:^"
   },
   "scripts": {
-    "build": "npx rollup --config rollup.config.js"
+    "build": "npx rollup --config rollup.config.js",
+    "clean": "rm -rf build"
   },
   "files": [
     "build"

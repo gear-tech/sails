@@ -15,6 +15,7 @@
     "sails-js-types": "workspace:^"
   },
   "scripts": {
-    "build": "npx rollup --config rollup.config.js"
+    "build": "npx rollup --config rollup.config.js",
+    "clean": "rm -rf lib"
   }
 }

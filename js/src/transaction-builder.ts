@@ -313,13 +313,16 @@ export class TransactionBuilder<ResponseType> {
       resolveFinalized = resolve;
     });
 
-    const { msgId, blockHash } = await new Promise<{ msgId: HexString; blockHash: HexString }>((resolve, reject) =>
+    const { msgId, blockHash } = await new Promise<{
+      msgId: HexString;
+      blockHash: HexString;
+    }>((resolve, reject) =>
       this._tx
         .signAndSend(this._account, this._signerOptions, ({ events, status }) => {
           if (status.isInBlock) {
             let msgId: HexString;
 
-            events.forEach(({ event }) => {
+            for (const { event } of events) {
               const { method, section, data } = event;
               if (method === 'MessageQueued' && section === 'gear') {
                 msgId = (data as MessageQueuedData).id.toHex();
@@ -328,7 +331,7 @@ export class TransactionBuilder<ResponseType> {
               } else if (method === 'ExtrinsicFailed') {
                 reject(this._api.getExtrinsicFailedError(event));
               }
-            });
+            }
           } else if (status.isFinalized) {
             resolveFinalized(true);
           }
@@ -356,9 +359,8 @@ export class TransactionBuilder<ResponseType> {
           return message.payload.toHex();
         }
 
-        return this._registry
-          .createType<any>(`(String, String, ${this._responseType})`, message.payload)[2]
-          [getPayloadMethod(this._responseType)]();
+        // prettier-ignore
+        return this._registry.createType<any>(`(String, String, ${this._responseType})`, message.payload)[2][getPayloadMethod(this._responseType)]();
       },
     };
   }

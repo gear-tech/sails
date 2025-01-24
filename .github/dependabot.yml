@@ -17,7 +17,12 @@ updates:
     schedule:
       interval: "weekly"
   - package-ecosystem: "npm"
-    directory: "./js"
+    directory: "/"
     schedule:
       interval: "weekly"
     versioning-strategy: "increase"
+    groups:
+      development:
+        dependency-type: "development"
+      production:
+        dependency-type: "production"

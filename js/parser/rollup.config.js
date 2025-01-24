@@ -1,7 +1,7 @@
-import { writeFileSync, rmSync } from 'fs';
+import { writeFileSync, rmSync } from 'node:fs';
 import commonjs from '@rollup/plugin-commonjs';
 import typescript from 'rollup-plugin-typescript2';
-import config from '../config.json' assert { type: 'json' };
+import config from '../config.json' with { type: 'json' };
 
 async function getStreamFromRelease(version, cs) {
   const link = `https://github.com/gear-tech/sails/releases/download/rs%2Fv${version}/sails_idl_parser.wasm`;
@@ -21,17 +21,17 @@ async function getBase64Parser(version) {
 
   const reader = stream.getReader();
 
-  let resultArr = [];
+  let resultArray = [];
 
   while (true) {
     const read = await reader.read();
 
     if (read.done) break;
 
-    resultArr = resultArr.concat(Array.from(read.value));
+    resultArray = [...resultArray, ...read.value];
   }
 
-  return Buffer.from(Uint8Array.from(resultArr).buffer).toString('base64');
+  return Buffer.from(Uint8Array.from(resultArray).buffer).toString('base64');
 }
 
 function writeCompressedWasmParser(type) {

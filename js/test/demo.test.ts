@@ -3,13 +3,18 @@ import { KeyringPair } from '@polkadot/keyring/types';
 import { waitReady } from '@polkadot/wasm-crypto';
 import { Keyring } from '@polkadot/api';
 import { hexToU8a } from '@polkadot/util';
-import { readFileSync } from 'fs';
+import { readFileSync } from 'node:fs';
 
-import { getFnNamePrefix, getServiceNamePrefix, H256, NonZeroU32, NonZeroU8, Sails, ZERO_ADDRESS } from '..';
+import {
+  getFnNamePrefix as getFunctionNamePrefix,
+  getServiceNamePrefix,
+  H256,
+  NonZeroU32,
+  NonZeroU8,
+  ZERO_ADDRESS,
+} from '..';
 import { Program } from './demo/lib';
-import { SailsIdlParser } from 'sails-js-parser';
 
-let sails: Sails;
 let api: GearApi;
 let alice: KeyringPair;
 let aliceRaw: HexString;
@@ -21,8 +26,6 @@ let codeId: HexString;
 const DEMO_WASM_PATH = 'test/demo/demo.wasm';
 
 beforeAll(async () => {
-  const parser = await SailsIdlParser.new();
-  sails = new Sails(parser);
   api = await GearApi.create({ providerAddress: 'ws://127.0.0.1:9944' });
   await waitReady();
   const keyring = new Keyring({ type: 'sr25519' });
@@ -189,7 +192,7 @@ describe('Dog', () => {
 
     let barked: boolean;
 
-    const unsub = await program.dog.subscribeToBarkedEvent((data) => {
+    const unsub = await program.dog.subscribeToBarkedEvent(() => {
       barked = true;
     });
 
@@ -290,11 +293,11 @@ describe('ThisThat', () => {
     const result = await response(true);
 
     const service = getServiceNamePrefix(result, true);
-    const fn = getFnNamePrefix(result, true);
+    const function_ = getFunctionNamePrefix(result, true);
 
     const u8aResult = hexToU8a(result);
 
-    const woPrefix = u8aResult.slice(service.bytesLength + fn.bytesLength);
+    const woPrefix = u8aResult.slice(service.bytesLength + function_.bytesLength);
 
     // TODO: figure out how to decode such complicated types out of the box
     const decoded = program.registry.createType(`Result<([u8;32], u32), (String)>`, woPrefix).toJSON();

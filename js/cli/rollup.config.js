@@ -1,4 +1,4 @@
-import { readFileSync, rmSync, writeFileSync } from 'fs';
+import { readFileSync, rmSync, writeFileSync } from 'node:fs';
 import commonjs from '@rollup/plugin-commonjs';
 import nodeResolve from '@rollup/plugin-node-resolve';
 import typescript from 'rollup-plugin-typescript2';
@@ -17,14 +17,14 @@ function updateConfigVersions() {
   return {
     name: 'update-config-versions',
     buildStart() {
-      const sailsJs = JSON.parse(readFileSync('../package.json', 'utf-8'));
-      const rootPkgJson = JSON.parse(readFileSync('../../package.json', 'utf-8'));
-      const config = JSON.parse(readFileSync('src/config.json', 'utf-8'));
+      const sailsJs = JSON.parse(readFileSync('../package.json', 'utf8'));
+      const rootPackageJson = JSON.parse(readFileSync('../../package.json', 'utf8'));
+      const config = JSON.parse(readFileSync('src/config.json', 'utf8'));
 
       config.versions['gear-js'] = sailsJs.peerDependencies['@gear-js/api'];
       config.versions['polkadot-api'] = sailsJs.peerDependencies['@polkadot/api'];
       config.versions['sails-js'] = sailsJs.version;
-      config.versions['typescript'] = rootPkgJson.devDependencies.typescript;
+      config.versions['typescript'] = rootPackageJson.devDependencies.typescript;
 
       writeFileSync('src/config.json', JSON.stringify(config, null, 2));
     },

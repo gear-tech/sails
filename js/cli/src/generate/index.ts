@@ -1,11 +1,10 @@
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { confirm } from '@inquirer/prompts';
 import { Sails } from 'sails-js';
-
+import path from 'node:path';
 import { ServiceGenerator } from './service-gen.js';
 import { TypesGenerator } from './types-gen.js';
 import { Output } from './output.js';
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs';
-import path from 'path';
-import { confirm } from '@inquirer/prompts';
 import * as config from '../config.json';
 
 export class ProjectBuilder {
@@ -50,14 +49,14 @@ export class ProjectBuilder {
   }
 
   setIdlPath(path: string) {
-    const idl = readFileSync(path, 'utf-8');
+    const idl = readFileSync(path, 'utf8');
     this.sails.parseIdl(idl);
 
     return this;
   }
 
   setRootPath(path: string) {
-    this.projectPath[0] = path ? path : '.';
+    this.projectPath[0] = path ?? '.';
 
     return this;
   }
@@ -89,7 +88,7 @@ export class ProjectBuilder {
     if (await this.canCreateFile(libFile)) {
       writeFileSync(libFile, libCode);
     } else {
-      process.exit(0);
+      throw new Error(`Failed to write file ${libFile}`);
     }
 
     const typesCode = this.generateTypes();
@@ -97,7 +96,7 @@ export class ProjectBuilder {
     if (await this.canCreateFile(typesFile)) {
       writeFileSync(typesFile, typesCode);
     } else {
-      process.exit(0);
+      throw new Error(`Failed to write file ${typesFile}`);
     }
 
     if (!this.isProject) {

@@ -122,7 +122,7 @@ describe('struct', () => {
 
     expect(result.services.TestService.functions).toEqual({});
 
-    let encoded = result.registry.createType('StructWithTuple', { a: ['hello', 123], b: 123 });
+    const encoded = result.registry.createType('StructWithTuple', { a: ['hello', 123], b: 123 });
     expect(encoded.toJSON()).toEqual({
       a: ['hello', 123],
       b: 123,
@@ -148,7 +148,7 @@ describe('struct', () => {
 
     expect(result.services.TestService.functions).toEqual({});
 
-    let encoded = result.registry.createType('StructWithVec', { a: ['hello', 'world'], b: 123 });
+    const encoded = result.registry.createType('StructWithVec', { a: ['hello', 'world'], b: 123 });
 
     expect(encoded.toJSON()).toEqual({
       a: ['hello', 'world'],
@@ -175,7 +175,7 @@ describe('struct', () => {
 
     expect(result.services.TestService.functions).toEqual({});
 
-    let encoded = result.registry.createType('StructWithArray', { a: [1, 2, 3], b: 123 });
+    const encoded = result.registry.createType('StructWithArray', { a: [1, 2, 3], b: 123 });
 
     expect(encoded.toJSON()).toEqual({
       a: [1, 2, 3],
@@ -202,7 +202,7 @@ describe('struct', () => {
 
     expect(result.services.TestService.functions).toEqual({});
 
-    let encoded = result.registry.createType('StructWithMap', { a: { foo: 123, bar: 456 }, b: 123 });
+    const encoded = result.registry.createType('StructWithMap', { a: { foo: 123, bar: 456 }, b: 123 });
 
     expect(encoded.toJSON()).toEqual({
       a: { foo: 123, bar: 456 },

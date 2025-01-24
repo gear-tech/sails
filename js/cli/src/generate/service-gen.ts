@@ -1,6 +1,5 @@
 import { getPayloadMethod, getScaleCodecDef, PayloadMethod, toLowerCaseFirst } from 'sails-js-util';
 import { ISailsFuncParam, ISailsProgram, ISailsService } from 'sails-js-types';
-
 import { Output } from './output.js';
 import { BaseGenerator } from './base.js';
 import { formatDocs } from './format.js';
@@ -14,13 +13,11 @@ const getFuncName = (name: string) => {
 };
 
 const createPayload = (serviceName: string, fnName: string, params: ISailsFuncParam[]) => {
-  if (params.length === 0) {
-    return `const payload = this._program.registry.createType('(String, String)', ['${serviceName}', '${fnName}']).toHex()`;
-  } else {
-    return `const payload = this._program.registry.createType('(String, String, ${params
-      .map(({ def }) => getScaleCodecDef(def))
-      .join(', ')})', ['${serviceName}', '${fnName}', ${params.map(({ name }) => name).join(', ')}]).toHex()`;
-  }
+  return params.length === 0
+    ? `const payload = this._program.registry.createType('(String, String)', ['${serviceName}', '${fnName}']).toHex()`
+    : `const payload = this._program.registry.createType('(String, String, ${params
+        .map(({ def }) => getScaleCodecDef(def))
+        .join(', ')})', ['${serviceName}', '${fnName}', ${params.map(({ name }) => name).join(', ')}]).toHex()`;
 };
 
 export class ServiceGenerator extends BaseGenerator {
@@ -90,7 +87,7 @@ export class ServiceGenerator extends BaseGenerator {
       $.lines(ctorDocs, false)
         .block(
           `${getFuncName(name)}CtorFromCode(code: Uint8Array | Buffer${
-            args !== null ? ', ' + args : ''
+            args === null ? '' : ', ' + args
           }): TransactionBuilder<null>`,
           () => {
             $.line(`const builder = new TransactionBuilder<null>(`, false)
@@ -120,7 +117,7 @@ export class ServiceGenerator extends BaseGenerator {
         .line()
         .lines(ctorDocs, false)
         .block(
-          `${getFuncName(name)}CtorFromCodeId(codeId: ${HEX_STRING_TYPE}${args !== null ? ', ' + args : ''})`,
+          `${getFuncName(name)}CtorFromCodeId(codeId: ${HEX_STRING_TYPE}${args === null ? '' : ', ' + args})`,
           () => {
             $.line(`const builder = new TransactionBuilder<null>(`, false)
               .increaseIndent()

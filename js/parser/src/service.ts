@@ -62,7 +62,7 @@ export class ServiceFunc extends WithDef implements ISailsServiceFunc {
   get params(): ISailsFuncParam[] {
     if (this._params.size === 0) return [];
 
-    return Array.from(this._params.values());
+    return [...this._params.values()];
   }
 }
 
