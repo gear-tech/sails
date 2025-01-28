@@ -237,9 +237,9 @@ export class Sails {
         decodePayload: <T = any>(bytes: HexString) => {
           const payload = this.registry.createType(`(String, String, ${params.map((p) => p.type).join(', ')})`, bytes);
           const result = {} as Record<string, any>;
-          params.forEach((param, i) => {
+          for (const [i, param] of params.entries()) {
             result[param.name] = payload[i + 2].toJSON();
-          });
+          }
           return result as T;
         },
         decodeResult: <T = any>(result: HexString) => {
@@ -363,9 +363,9 @@ export class Sails {
         decodePayload: <T = any>(bytes: Uint8Array | string) => {
           const payload = this.registry.createType(`(String, ${params.map((p) => p.type).join(', ')})`, bytes);
           const result = {} as Record<string, any>;
-          params.forEach((param, i) => {
+          for (const [i, param] of params.entries()) {
             result[param.name] = payload[i + 1].toJSON();
-          });
+          }
           return result as T;
         },
         fromCode: (code: Uint8Array | Buffer, ...args: unknown[]) => {

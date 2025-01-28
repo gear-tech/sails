@@ -41,14 +41,14 @@ export class Output {
   }
 
   lines(data: string[], semicolon = true) {
-    data.forEach((line) => this.line(line, semicolon));
+    for (const line of data) this.line(line, semicolon);
     return this;
   }
 
   block(beginning: string, content?: () => void, bracket: '{' | '[' | '(' = '{') {
     const openBracket = bracket;
-    const closeBracket = openBracket === '{' ? '}' : openBracket === '[' ? '];' : ');';
-    this._rows.push(`${this._indent}${beginning} ${openBracket}${!content ? ' ' + closeBracket : ''}`);
+    const closeBracket = openBracket === '{' ? '}' : (openBracket === '[' ? '];' : ');');
+    this._rows.push(`${this._indent}${beginning} ${openBracket}${content ? '' : ' ' + closeBracket}`);
     if (content) {
       this.increaseIndent();
       content();
@@ -64,14 +64,14 @@ export class Output {
   }
 
   reduceIndent() {
-    this._indent = this._indent.substring(2);
+    this._indent = this._indent.slice(2);
     return this;
   }
 
   finalize() {
     const result = [];
-    const imports = Array.from(this._imports).map(
-      ([module_, imports_]) => `import { ${Array.from(imports_).join(', ')} } from '${module_}';`,
+    const imports = [...this._imports].map(
+      ([module_, imports_]) => `import { ${[...imports_].join(', ')} } from '${module_}';`,
     );
     if (imports.length > 0) result.push(imports.join('\n'));
 

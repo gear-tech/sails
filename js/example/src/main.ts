@@ -1,7 +1,7 @@
 import { GearApi } from '@gear-js/api';
 import { Keyring } from '@polkadot/api';
 import { Program } from './lib.js';
-import { readFileSync } from 'fs';
+import { readFileSync } from 'node:fs';
 
 const main = async () => {
   const api = await GearApi.create();
@@ -34,9 +34,4 @@ const main = async () => {
   console.log(`\nProgram replied: \n\t${JSON.stringify(reply)}`);
 };
 
-main()
-  .then(() => process.exit(0))
-  .catch((error) => {
-    console.log(error);
-    process.exit(1);
-  });
+await main();

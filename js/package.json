@@ -1,8 +1,7 @@
 {
   "name": "sails-js",
   "version": "0.3.1",
-  "description": "Parser and typescript code generator from Sails IDL files",
-  "preferGlobal": true,
+  "description": "Typescript library for working with Sails programs",
   "type": "module",
   "license": "GPL-3.0",
   "author": "Gear Technologies",
@@ -12,13 +11,13 @@
   "homepage": "https://github.com/gear-tech/sails/tree/master/js#readme",
   "repository": {
     "type": "git",
-    "url": "git+https://githib.com/gear-tech/sails.git"
+    "url": "git+https://githib.com/gear-tech/sails.git",
+    "directory": "js"
   },
   "keywords": [
     "gear",
     "sails"
   ],
-  "bin": "./lib/app.js",
   "main": "./lib/cjs/index.cjs",
   "module": "./lib/index.js",
   "types": "./lib/index.d.ts",
@@ -32,19 +31,21 @@
   "scripts": {
     "prebuild": "rm -rf lib",
     "build": "npx rollup --config rollup.config.js",
-    "test": "yarn node --no-warnings --experimental-vm-modules $(yarn bin jest) --detectOpenHandles"
+    "test": "yarn node --no-warnings --experimental-vm-modules $(yarn bin jest) --detectOpenHandles",
+    "clean": "rm -rf lib"
   },
   "peerDependencies": {
-    "@gear-js/api": "0.38.3",
-    "@polkadot/api": "13.2.1",
-    "@polkadot/types": "13.2.1",
-    "sails-js-types": "0.0.1",
-    "sails-js-util": "0.0.1"
+    "@gear-js/api": "0.40.0",
+    "@polkadot/api": "15.4.1"
+  },
+  "optionalDependencies": {
+    "sails-js-types": "0.3.1",
+    "sails-js-util": "0.3.1"
   },
   "devDependencies": {
-    "@gear-js/api": "0.40.0",
-    "@polkadot/api": "15.0.1",
-    "@polkadot/types": "15.0.1",
+    "@gear-js/api": "0.41.0",
+    "@polkadot/api": "15.4.1",
+    "@polkadot/types": "15.4.1",
     "jest": "^29.7.0"
   },
   "files": [

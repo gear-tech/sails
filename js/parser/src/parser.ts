@@ -19,7 +19,7 @@ import { Ctor, CtorFunc, Program } from './program.js';
 import { FuncParam, Service, ServiceEvent, ServiceFunc } from './service.js';
 import { ISailsIdlParser } from 'sails-js-types';
 
-const WASM_PAGE_SIZE = 0x10000;
+const WASM_PAGE_SIZE = 0x1_00_00;
 
 interface ParserInstance extends WebAssembly.Instance {
   exports: {
@@ -61,7 +61,7 @@ export class SailsIdlParser implements ISailsIdlParser {
     const binaryBase64 = new Uint8Array(binaryStr.length);
 
     for (let i = 0; i < binaryStr.length; i++) {
-      binaryBase64[i] = binaryStr.charCodeAt(i);
+      binaryBase64[i] = binaryStr.codePointAt(i);
     }
 
     const ds = new DecompressionStream('gzip');
@@ -75,7 +75,7 @@ export class SailsIdlParser implements ISailsIdlParser {
 
       if (done) break;
 
-      bytes = bytes.concat(Array.from(value));
+      bytes = [...bytes, ...value];
     }
 
     return new Uint8Array(bytes).buffer;
@@ -84,61 +84,59 @@ export class SailsIdlParser implements ISailsIdlParser {
   async init(): Promise<void> {
     const wasmBuf = await this._decompressWasm();
 
-    const $ = this;
-
-    $._memory = new WebAssembly.Memory({ initial: 17 });
+    this._memory = new WebAssembly.Memory({ initial: 17 });
 
     const source = await WebAssembly.instantiate(wasmBuf, {
       env: {
-        memory: $._memory,
+        memory: this._memory,
         visit_type: (_, type_ptr: number) => {
-          const type = new Type(type_ptr, $._memory);
-          const id = $._program.addType(type);
-          this.handleAcceptError($._instance.exports.accept_type(type_ptr, id));
+          const type = new Type(type_ptr, this._memory);
+          const id = this._program.addType(type);
+          this.handleAcceptError(this._instance.exports.accept_type(type_ptr, id));
         },
         visit_optional_type_decl: (ctx: number, optional_type_decl_ptr: number) => {
-          const type = $._program.getContext(ctx);
-          const def = new OptionalDef(optional_type_decl_ptr, $._memory);
+          const type = this._program.getContext(ctx);
+          const def = new OptionalDef(optional_type_decl_ptr, this._memory);
           type.setDef(new TypeDef(def, DefKind.Optional));
-          $._program.addContext(def.rawPtr, def);
-          this.handleAcceptError($._exports.accept_type_decl(optional_type_decl_ptr, def.rawPtr));
+          this._program.addContext(def.rawPtr, def);
+          this.handleAcceptError(this._exports.accept_type_decl(optional_type_decl_ptr, def.rawPtr));
         },
         visit_vector_type_decl: (ctx: number, vector_type_decl_ptr: number) => {
-          const type = $._program.getContext(ctx);
-          const def = new VecDef(vector_type_decl_ptr, $._memory);
+          const type = this._program.getContext(ctx);
+          const def = new VecDef(vector_type_decl_ptr, this._memory);
           type.setDef(new TypeDef(def, DefKind.Vec));
-          $._program.addContext(def.rawPtr, def);
-          this.handleAcceptError($._exports.accept_type_decl(vector_type_decl_ptr, def.rawPtr));
+          this._program.addContext(def.rawPtr, def);
+          this.handleAcceptError(this._exports.accept_type_decl(vector_type_decl_ptr, def.rawPtr));
         },
         visit_array_type_decl: (ctx: number, array_type_decl_ptr: number, len: number) => {
-          const type = $._program.getContext(ctx);
-          const def = new FixedSizeArrayDef(array_type_decl_ptr, len, $._memory);
+          const type = this._program.getContext(ctx);
+          const def = new FixedSizeArrayDef(array_type_decl_ptr, len, this._memory);
           type.setDef(new TypeDef(def, DefKind.FixedSizeArray));
-          $._program.addContext(def.rawPtr, def);
-          this.handleAcceptError($._exports.accept_type_decl(array_type_decl_ptr, def.rawPtr));
+          this._program.addContext(def.rawPtr, def);
+          this.handleAcceptError(this._exports.accept_type_decl(array_type_decl_ptr, def.rawPtr));
         },
         visit_map_type_decl: (ctx: number, key_type_decl_ptr: number, value_type_decl_ptr: number) => {
-          const type = $._program.getContext(ctx);
-          const def = new MapDef(key_type_decl_ptr, value_type_decl_ptr, $._memory);
+          const type = this._program.getContext(ctx);
+          const def = new MapDef(key_type_decl_ptr, value_type_decl_ptr, this._memory);
           type.setDef(new TypeDef(def, DefKind.Map));
-          $._program.addContext(def.key.rawPtr, def.key);
-          $._program.addContext(def.value.rawPtr, def.value);
+          this._program.addContext(def.key.rawPtr, def.key);
+          this._program.addContext(def.value.rawPtr, def.value);
 
-          this.handleAcceptError($._exports.accept_type_decl(key_type_decl_ptr, def.key.rawPtr));
-          this.handleAcceptError($._exports.accept_type_decl(value_type_decl_ptr, def.value.rawPtr));
+          this.handleAcceptError(this._exports.accept_type_decl(key_type_decl_ptr, def.key.rawPtr));
+          this.handleAcceptError(this._exports.accept_type_decl(value_type_decl_ptr, def.value.rawPtr));
         },
         visit_result_type_decl: (ctx: number, ok_type_decl_ptr: number, err_type_decl_ptr: number) => {
-          const type = $._program.getContext(ctx);
-          const def = new ResultDef(ok_type_decl_ptr, err_type_decl_ptr, $._memory);
+          const type = this._program.getContext(ctx);
+          const def = new ResultDef(ok_type_decl_ptr, err_type_decl_ptr, this._memory);
           type.setDef(new TypeDef(def, DefKind.Result));
-          $._program.addContext(def.ok.rawPtr, def.ok);
-          $._program.addContext(def.err.rawPtr, def.err);
+          this._program.addContext(def.ok.rawPtr, def.ok);
+          this._program.addContext(def.err.rawPtr, def.err);
 
-          this.handleAcceptError($._exports.accept_type_decl(ok_type_decl_ptr, def.ok.rawPtr));
-          this.handleAcceptError($._exports.accept_type_decl(err_type_decl_ptr, def.err.rawPtr));
+          this.handleAcceptError(this._exports.accept_type_decl(ok_type_decl_ptr, def.ok.rawPtr));
+          this.handleAcceptError(this._exports.accept_type_decl(err_type_decl_ptr, def.err.rawPtr));
         },
         visit_primitive_type_id: (ctx: number, primitive_type_id: number) => {
-          const type = $._program.getContext(ctx);
+          const type = this._program.getContext(ctx);
           const def = new PrimitiveDef(primitive_type_id);
           type.setDef(new TypeDef(def, DefKind.Primitive));
         },
@@ -147,83 +145,83 @@ export class SailsIdlParser implements ISailsIdlParser {
           user_defined_type_id_ptr: number,
           user_defined_type_id_len: number,
         ) => {
-          const type = $._program.getContext(ctx);
-          const def = new UserDefinedDef(user_defined_type_id_ptr, user_defined_type_id_len, $._memory);
+          const type = this._program.getContext(ctx);
+          const def = new UserDefinedDef(user_defined_type_id_ptr, user_defined_type_id_len, this._memory);
           type.setDef(new TypeDef(def, DefKind.UserDefined));
         },
         visit_struct_def: (ctx: number, struct_def_ptr: number) => {
-          const type = $._program.getContext(ctx);
-          const def = new StructDef(struct_def_ptr, $._memory);
-          $._program.addContext(def.rawPtr, def);
+          const type = this._program.getContext(ctx);
+          const def = new StructDef(struct_def_ptr, this._memory);
+          this._program.addContext(def.rawPtr, def);
           type.setDef(new TypeDef(def, DefKind.Struct));
-          this.handleAcceptError($._exports.accept_struct_def(struct_def_ptr, def.rawPtr));
+          this.handleAcceptError(this._exports.accept_struct_def(struct_def_ptr, def.rawPtr));
         },
         visit_struct_field: (ctx: number, struct_field_ptr: number) => {
-          const def = $._program.getContext(ctx);
-          const field = new StructField(struct_field_ptr, $._memory);
+          const def = this._program.getContext(ctx);
+          const field = new StructField(struct_field_ptr, this._memory);
           const id = def.addField(field);
-          $._program.addContext(id, field);
-          this.handleAcceptError($._exports.accept_struct_field(struct_field_ptr, id));
+          this._program.addContext(id, field);
+          this.handleAcceptError(this._exports.accept_struct_field(struct_field_ptr, id));
         },
         visit_enum_def: (ctx: number, enum_def_ptr: number) => {
-          const type = $._program.getType(ctx);
-          const def = new EnumDef(enum_def_ptr, $._memory);
-          $._program.addContext(def.rawPtr, def);
+          const type = this._program.getType(ctx);
+          const def = new EnumDef(enum_def_ptr, this._memory);
+          this._program.addContext(def.rawPtr, def);
           type.setDef(new TypeDef(def, DefKind.Enum));
-          $._exports.accept_enum_def(enum_def_ptr, def.rawPtr);
+          this._exports.accept_enum_def(enum_def_ptr, def.rawPtr);
         },
         visit_enum_variant: (ctx: number, enum_variant_ptr: number) => {
-          const def = $._program.getContext(ctx);
-          const variant = new EnumVariant(enum_variant_ptr, $._memory);
+          const def = this._program.getContext(ctx);
+          const variant = new EnumVariant(enum_variant_ptr, this._memory);
           const id = def.addVariant(variant);
-          $._program.addContext(id, variant);
-          this.handleAcceptError($._exports.accept_enum_variant(enum_variant_ptr, id));
+          this._program.addContext(id, variant);
+          this.handleAcceptError(this._exports.accept_enum_variant(enum_variant_ptr, id));
         },
         visit_ctor: (_, ctor_ptr: number) => {
-          $._program.addCtor(new Ctor(ctor_ptr, $._memory));
-          this.handleAcceptError($._exports.accept_ctor(ctor_ptr, 0));
+          this._program.addCtor(new Ctor(ctor_ptr, this._memory));
+          this.handleAcceptError(this._exports.accept_ctor(ctor_ptr, 0));
         },
         visit_ctor_func: (_, func_ptr: number) => {
-          const func = new CtorFunc(func_ptr, $._memory);
-          $._program.ctor.addFunc(func);
-          $._program.addContext(func.rawPtr, func);
-          this.handleAcceptError($._exports.accept_ctor_func(func_ptr, func.rawPtr));
+          const func = new CtorFunc(func_ptr, this._memory);
+          this._program.ctor.addFunc(func);
+          this._program.addContext(func.rawPtr, func);
+          this.handleAcceptError(this._exports.accept_ctor_func(func_ptr, func.rawPtr));
         },
         visit_service: (_, service_ptr: number) => {
-          const service = new Service(service_ptr, $._memory);
-          $._program.addContext(service.rawPtr, service);
-          $._program.addService(service);
-          this.handleAcceptError($._exports.accept_service(service_ptr, service.rawPtr));
+          const service = new Service(service_ptr, this._memory);
+          this._program.addContext(service.rawPtr, service);
+          this._program.addService(service);
+          this.handleAcceptError(this._exports.accept_service(service_ptr, service.rawPtr));
         },
         visit_service_func: (ctx: number, func_ptr: number) => {
-          const func = new ServiceFunc(func_ptr, $._memory);
-          const service = $._program.getContext(ctx);
+          const func = new ServiceFunc(func_ptr, this._memory);
+          const service = this._program.getContext(ctx);
           service.addFunc(func);
-          $._program.addContext(func.rawPtr, func);
-          this.handleAcceptError($._exports.accept_service_func(func_ptr, func.rawPtr));
+          this._program.addContext(func.rawPtr, func);
+          this.handleAcceptError(this._exports.accept_service_func(func_ptr, func.rawPtr));
         },
         visit_service_event: (ctx: number, event_ptr: number) => {
-          const event = new ServiceEvent(event_ptr, $._memory);
-          const service = $._program.getContext(ctx);
+          const event = new ServiceEvent(event_ptr, this._memory);
+          const service = this._program.getContext(ctx);
           service.addEvent(event);
-          $._program.addContext(event.rawPtr, event);
-          this.handleAcceptError($._exports.accept_service_event(event_ptr, event.rawPtr));
+          this._program.addContext(event.rawPtr, event);
+          this.handleAcceptError(this._exports.accept_service_event(event_ptr, event.rawPtr));
         },
         visit_func_param: (ctx: number, func_param_ptr: number) => {
-          const param = new FuncParam(func_param_ptr, $._memory);
-          const func = $._program.getContext(ctx);
+          const param = new FuncParam(func_param_ptr, this._memory);
+          const func = this._program.getContext(ctx);
           func.addFuncParam(param.rawPtr, param);
-          $._program.addContext(param.rawPtr, param);
-          this.handleAcceptError($._exports.accept_func_param(func_param_ptr, param.rawPtr));
+          this._program.addContext(param.rawPtr, param);
+          this.handleAcceptError(this._exports.accept_func_param(func_param_ptr, param.rawPtr));
         },
         visit_func_output: (ctx: number, func_output_ptr: number) => {
-          this.handleAcceptError($._exports.accept_type_decl(func_output_ptr, ctx));
+          this.handleAcceptError(this._exports.accept_type_decl(func_output_ptr, ctx));
         },
       },
     });
 
-    $._instance = source.instance as ParserInstance;
-    $._exports = $._instance.exports;
+    this._instance = source.instance as ParserInstance;
+    this._exports = this._instance.exports;
   }
 
   static async new(): Promise<SailsIdlParser> {
@@ -243,8 +241,8 @@ export class SailsIdlParser implements ISailsIdlParser {
       this._numberOfGrownPages = numberOfPages;
     }
 
-    for (let i = 0; i < buf.length; i++) {
-      new Uint8Array(this._memory.buffer)[i + this._memPtr] = buf[i];
+    for (const [i, element] of buf.entries()) {
+      new Uint8Array(this._memory.buffer)[i + this._memPtr] = element;
     }
   }
 
@@ -293,7 +291,7 @@ export class SailsIdlParser implements ISailsIdlParser {
 
   private handleAcceptError(errorCode: number) {
     if (errorCode > 0) {
-      throw new Error(`Error code: ${errorCode}`);
+      throw new Error(`Error code: this{errorCode}`);
     }
   }
 }

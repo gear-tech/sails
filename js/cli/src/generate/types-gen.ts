@@ -62,10 +62,6 @@ export class TypesGenerator extends BaseGenerator {
   }
 
   private getEnumFieldString(f: ISailsEnumVariant) {
-    if (!f.def) {
-      return `{ ${toLowerCaseFirst(f.name)}: null }`;
-    } else {
-      return `{ ${toLowerCaseFirst(f.name)}: ${this.getType(f.def)} }`;
-    }
+    return f.def ? `{ ${toLowerCaseFirst(f.name)}: ${this.getType(f.def)} }` : `{ ${toLowerCaseFirst(f.name)}: null }`;
   }
 }

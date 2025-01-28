@@ -1,6 +1,6 @@
-import * as fs from 'fs';
-import { execSync } from 'child_process';
-import config from '../config.json' assert { type: 'json' };
+import * as fs from 'node:fs';
+import { execSync } from 'node:child_process';
+import config from '../config.json' with { type: 'json' };
 
 const downloadAndWriteFile = async (fileName, writeTo) => {
   const link = `https://github.com/gear-tech/sails/releases/download/rs%2Fv${config['sails-rs']}/${fileName}`;
@@ -16,7 +16,7 @@ const downloadAndWriteFile = async (fileName, writeTo) => {
   fs.writeFileSync(writeTo, Buffer.from(buf));
 };
 
-export default async () => {
+export default async function () {
   if (!fs.existsSync('test/demo')) {
     fs.mkdirSync('test/demo');
   }
@@ -36,4 +36,4 @@ export default async () => {
     const data = fs.readFileSync(path, 'utf8').replace(`from 'sails-js'`, `from '../..'`);
     fs.writeFileSync(path, data, 'utf8');
   }
-};
+}

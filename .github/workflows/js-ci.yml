@@ -28,11 +28,11 @@ jobs:
       - name: 'Install: dependencies'
         run: yarn install
 
-      - name: 'Prepare: build all'
-        run: yarn build
-
-      - name: 'Prepare: fmt'
+      - name: 'Check lint'
         run: yarn lint
+
+      - name: 'Build'
+        run: yarn build
 
       - name: 'Prepare: download Gear node'
         run: |

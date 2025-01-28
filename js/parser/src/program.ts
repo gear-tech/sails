@@ -48,7 +48,7 @@ export class Program implements ISailsProgram {
   }
 
   get types(): ISailsType[] {
-    return Array.from(this._types.values());
+    return [...this._types.values()];
   }
 
   getTypeByName(name: string): ISailsType {
@@ -104,6 +104,6 @@ export class CtorFunc extends Base implements ISailsCtorFunc {
   get params(): FuncParam[] {
     if (this._params.size === 0) return [];
 
-    return Array.from(this._params.values());
+    return [...this._params.values()];
   }
 }

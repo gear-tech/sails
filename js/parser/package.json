@@ -9,7 +9,8 @@
   "exports": {
     ".": {
       "require": "./lib/cjs/index.cjs",
-      "import": "./lib/index.js"
+      "import": "./lib/index.js",
+      "types": "./index.d.ts"
     }
   },
   "files": [
@@ -23,7 +24,8 @@
   "homepage": "https://github.com/gear-tech/sails/tree/master/js#readme",
   "repository": {
     "type": "git",
-    "url": "git+https://githib.com/gear-tech/sails.git"
+    "url": "git+https://githib.com/gear-tech/sails.git",
+    "directory": "js/parser"
   },
   "keywords": [
     "gear",
@@ -31,9 +33,10 @@
     "parser"
   ],
   "scripts": {
-    "build": "rollup --config rollup.config.js"
+    "build": "rollup --config rollup.config.js",
+    "clean": "rm -rf lib"
   },
   "peerDependencies": {
-    "sails-js-types": "0.0.1"
+    "sails-js-types": "0.3.1"
   }
 }

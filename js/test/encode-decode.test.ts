@@ -1,11 +1,11 @@
-import { readFileSync } from 'fs';
-import { getCtorNamePrefix, getFnNamePrefix, getServiceNamePrefix, Sails } from '..';
+import { readFileSync } from 'node:fs';
+import { getCtorNamePrefix, getFnNamePrefix as getFunctionNamePrefix, getServiceNamePrefix, Sails } from '..';
 import { SailsIdlParser } from 'sails-js-parser';
 
 const DEMO_IDL_PATH = '../examples/demo/client/demo.idl';
 
 let sails: Sails;
-const demoIdl = readFileSync(DEMO_IDL_PATH, 'utf-8');
+const demoIdl = readFileSync(DEMO_IDL_PATH, 'utf8');
 
 beforeAll(async () => {
   const parser = await SailsIdlParser.new();
@@ -36,6 +36,6 @@ describe('Encode/Decode', () => {
     expect(walkDecoded).toEqual({ dx: 10, dy: 10 });
 
     expect(getServiceNamePrefix(walkEncoded)).toBe('Dog');
-    expect(getFnNamePrefix(walkEncoded)).toBe('Walk');
+    expect(getFunctionNamePrefix(walkEncoded)).toBe('Walk');
   });
 });

@@ -348,7 +348,7 @@ export class StructDef extends Base implements ISailsStructDef {
   }
 
   get fields(): StructField[] {
-    return Array.from(this._fields.values());
+    return [...this._fields.values()];
   }
 
   get isTuple(): boolean {
@@ -372,7 +372,7 @@ export class EnumDef extends Base implements ISailsEnumDef {
   }
 
   get variants(): EnumVariant[] {
-    return Array.from(this._variants.values());
+    return [...this._variants.values()];
   }
 
   get isNesting(): boolean {
