@@ -4,7 +4,7 @@
   "type": "module",
   "dependencies": {
     "@gear-js/api": "0.41.0",
-    "@polkadot/api": "15.4.1",
+    "@polkadot/api": "15.5.1",
     "sails-js": "0.3.1"
   },
   "devDependencies": {
