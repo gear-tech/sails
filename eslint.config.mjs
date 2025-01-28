@@ -7,7 +7,7 @@ const files = ['js/**/src/**/*.ts', 'js/test/*.ts'];
 
 export default [
   {
-    ignores: ['js/cli/build/**', '.yarn/**', '**/lib/**'],
+    ignores: ['js/cli/build/**', '.yarn/**', '**/lib/**', 'js/test/demo/**'],
   },
   ...[eslint.configs.recommended, ...tseslint.configs.recommended, eslintPluginUnicorn.configs['flat/recommended']].map(
     (config) => ({
