@@ -44,6 +44,33 @@ service Counter {
   }
 };
 
+service CounterStorage {
+  Bump : () -> null;
+  query Get : () -> u128;
+
+  events {
+    Bumped;
+  }
+};
+
+service CounterStorageCell {
+  Bump : () -> null;
+  query Get : () -> u128;
+
+  events {
+    Bumped;
+  }
+};
+
+service CounterStorageStatic {
+  Bump : () -> null;
+  query Get : () -> u128;
+
+  events {
+    Bumped;
+  }
+};
+
 service Dog {
   MakeSound : () -> str;
   Walk : (dx: i32, dy: i32) -> null;
