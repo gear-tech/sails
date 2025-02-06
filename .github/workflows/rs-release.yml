@@ -13,7 +13,7 @@ name: '[rs] Release'
 on:
   push:
     tags:
-      - 'rs/v*'
+      - 'rs-pin/v*'
 
 env:
   # see https://api.github.com/users/github-actions%5Bbot%5D
@@ -42,7 +42,7 @@ jobs:
     outputs:
       rc_branch: ${{ steps.rc_branch.outputs.branch }}
       r_version: ${{ steps.release_info.outputs.version }}
-      r_tag: ${{ steps.release_info.outputs.r_tag }}
+      r_tag: rs/v${{ steps.release_info.outputs.version }}
 
     steps:
       - name: Checkout Code
@@ -53,14 +53,14 @@ jobs:
       - name: Extract Release Info
         id: release_info
         run: |
-          R_TAG=${GITHUB_REF#refs/tags/}
-          VERSION=${R_TAG#rs/v}
+          PIN_TAG=${GITHUB_REF#refs/tags/}
+          VERSION=${PIN_TAG#rs-pin/v}
           if [[ ! $VERSION =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[a-z]+\.[0-9]+)?$ ]]; then
             echo "'$VERSION' is not a valid semver version"
             exit 1
           fi
-          echo "Release Tag: $R_TAG"
-          echo "r_tag=$R_TAG" >> $GITHUB_OUTPUT
+          echo "Pin Tag: $PIN_TAG"
+          echo "pin_tag=$PIN_TAG" >> $GITHUB_OUTPUT
           echo "Version: $VERSION"
           echo "version=$VERSION" >> $GITHUB_OUTPUT
 
@@ -82,6 +82,7 @@ jobs:
           git add Cargo.lock
           git commit -m "build(rs): update version to v${{ steps.release_info.outputs.version }}"
           git push origin "${{ steps.rc_branch.outputs.branch }}"
+          git push origin --delete "${{ steps.release_info.outputs.pin_tag }}"
 
   ws_tests:
     name: Run Workspace Tests
@@ -90,7 +91,7 @@ jobs:
     uses: ./.github/workflows/rs-run-ws-tests.yml
     with:
       sources_ref: ${{ needs.prepare.outputs.rc_branch }}
-      gear_node_version: 1.7.0
+      gear_node_version: 1.7.1
 
   cli_tests:
     name: Run CLI Tests
@@ -222,12 +223,11 @@ jobs:
           name: sails-assets
           path: ./assets
 
-      - name: Re-create Release Tag
+      - name: Create Release Tag
         run: |
           R_TAG=${{ needs.prepare.outputs.r_tag }}
           git config --global user.name "$GITHUB_USER_NAME"
           git config --global user.email "$GITHUB_USER_EMAIL"
-          git push origin --delete "$R_TAG"
           git tag -a "$R_TAG" -m "Release v${{ needs.prepare.outputs.r_version }}"
           git push origin "$R_TAG"
 
