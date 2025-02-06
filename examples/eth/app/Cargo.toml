@@ -1,0 +1,10 @@
+[package]
+name = "eth-app"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+sails-rs.workspace = true
+
+[build-dependencies]
+sails-rs = { workspace = true, features = ["wasm-builder"] }

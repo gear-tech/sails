@@ -6,7 +6,7 @@ pub use gstd::{async_init, async_main, handle_reply_with_hook, message_loop};
 pub use gstd::{debug, exec, msg};
 pub use sails_macros::*;
 
-use crate::{ActorId, MessageId, ValueUnit};
+use crate::prelude::*;
 use core::cell::OnceCell;
 
 pub mod calls;
@@ -71,4 +71,20 @@ impl<T> From<(T, ValueUnit)> for CommandReply<T> {
     fn from(value: (T, ValueUnit)) -> Self {
         Self(value.0, value.1)
     }
+}
+
+pub fn unknown_input_panic(message: &str, input: &[u8]) -> ! {
+    let mut __input = input;
+    let input: String = crate::Decode::decode(&mut __input).unwrap_or_else(|_| {
+        if input.len() <= 8 {
+            format!("0x{}", crate::hex::encode(input))
+        } else {
+            format!(
+                "0x{}..{}",
+                crate::hex::encode(&input[..4]),
+                crate::hex::encode(&input[input.len() - 4..])
+            )
+        }
+    });
+    panic!("{}: {}", message, input)
 }

@@ -10,6 +10,8 @@ license.workspace = true
 repository.workspace = true
 
 [dependencies]
+alloy-primitives = { workspace = true, optional = true }
+alloy-sol-types = { workspace = true, optional = true }
 futures.workspace = true
 gear-core-errors.workspace = true
 gprimitives.workspace = true
@@ -35,7 +37,7 @@ gtest = { workspace = true, optional = true }
 log = { workspace = true, optional = true }
 
 [features]
-default = ["gstd"]
+default = ["gstd", "solidity"]
 debug = ["gstd?/debug"]
 ethexe = ["gstd?/ethexe"]
 gclient = ["dep:gclient"]
@@ -43,4 +45,5 @@ gstd = ["dep:gstd", "dep:gear-core", "dep:sails-macros"]
 gtest = ["dep:gtest", "dep:log"]
 idl-gen = ["dep:sails-idl-gen"]
 mockall = ["dep:mockall"]
+solidity = ["dep:alloy-primitives", "dep:alloy-sol-types"]
 wasm-builder = ["dep:gwasm-builder"]

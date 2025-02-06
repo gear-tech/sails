@@ -31,4 +31,6 @@ pub mod gtest;
 #[cfg(not(target_arch = "wasm32"))]
 pub mod mockall;
 pub mod prelude;
+#[cfg(feature = "solidity")]
+pub mod solidity;
 mod types;

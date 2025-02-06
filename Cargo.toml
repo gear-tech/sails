@@ -18,6 +18,7 @@ members = [
     "examples/rmrk/catalog/wasm",
     "examples/rmrk/resource/app",
     "examples/rmrk/resource/wasm",
+    "examples/eth/app",
     "rs",
     "rs/cli",
     "rs/client-gen",
@@ -50,6 +51,8 @@ gtest = "=1.7.0"
 gwasm-builder = { version = "=1.7.0", package = "gear-wasm-builder" }
 
 # Other deps in alphabetical order
+alloy-primitives = { version = "0.8.19", default-features = false }
+alloy-sol-types = { version = "0.8.19", default-features = false }
 anyhow = "1"
 cargo-generate = "0.21"
 cargo_metadata = "0.18"
