@@ -1,6 +1,6 @@
+use crate::collections::BTreeMap;
 use crate::prelude::*;
-use crate::{collections::BTreeMap, gstd::services::Service};
-use alloy_primitives::Address;
+use alloy_primitives::{Address, Selector};
 use alloy_sol_types::{SolCall, SolType, SolValue};
 
 pub trait SolFunction {
@@ -77,7 +77,7 @@ pub trait ProgramSignatures {
     fn constructors() -> impl Iterator<Item = (String, &'static [u8])>;
     fn methods() -> impl Iterator<Item = (String, &'static [u8], &'static [u8])>;
 
-    fn constructors_map() -> BTreeMap<[u8; 4], &'static [u8]> {
+    fn constructors_map() -> BTreeMap<Selector, &'static [u8]> {
         let mut map = BTreeMap::new();
         Self::constructors().into_iter().for_each(|(name, route)| {
             map.insert(selector(&name), route);
@@ -85,8 +85,8 @@ pub trait ProgramSignatures {
         map
     }
 
-    fn methods_map() -> BTreeMap<[u8; 4], (&'static [u8], &'static [u8])> {
-        let mut map: BTreeMap<[u8; 4], (&'static [u8], &'static [u8])> = BTreeMap::new();
+    fn methods_map() -> BTreeMap<Selector, (&'static [u8], &'static [u8])> {
+        let mut map = BTreeMap::new();
         Self::methods().for_each(|(name, service, method)| {
             map.insert(selector(&name), (service, method));
         });
@@ -94,8 +94,8 @@ pub trait ProgramSignatures {
     }
 }
 
-pub fn selector(s: &str) -> [u8; 4] {
-    alloy_primitives::keccak256(s.as_bytes())[..4]
+pub fn selector(s: impl AsRef<str>) -> Selector {
+    alloy_primitives::keccak256(s.as_ref().as_bytes())[..4]
         .try_into()
         .unwrap()
 }
