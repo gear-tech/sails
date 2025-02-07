@@ -72,6 +72,7 @@ mod meta_in_program {
 pub mod wasm {
     use super::*;
     use sails_rs::{
+        alloy_primitives::Selector,
         collections::btree_map::BTreeMap,
         gstd::{self, services},
         hex,
@@ -79,7 +80,7 @@ pub mod wasm {
         prelude::*,
     };
     static mut PROGRAM: Option<MyProgram> = None;
-    static mut __SOL_SIGNATURES: BTreeMap<[u8; 4], (&'static [u8], &'static [u8])> =
+    static mut __SOL_SIGNATURES: BTreeMap<Selector, (&'static [u8], &'static [u8])> =
         BTreeMap::new();
 
     #[gstd::async_init]
