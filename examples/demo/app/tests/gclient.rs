@@ -278,6 +278,50 @@ async fn value_fee_works() {
     );
 }
 
+#[tokio::test]
+#[ignore = "requires run gear node on GEAR_PATH"]
+async fn counter_storage_static_works() {
+    // Arrange
+
+    let (remoting, demo_code_id, gas_limit, ..) = spin_up_node_with_demo_code().await;
+
+    let demo_factory = demo_client::DemoFactory::new(remoting.clone());
+
+    // Use generated client code for activating Demo program
+    // using the `new` constructor and the `send_recv` method
+    let demo_program_id = demo_factory
+        .new(Some(42), None)
+        .with_gas_limit(gas_limit)
+        .send_recv(demo_code_id, "123")
+        .await
+        .unwrap();
+
+    let mut counter_client = demo_client::CounterStorageStatic::new(remoting.clone());
+
+    // Act
+
+    // Use generated client code for calling Counter service
+    // using the `send_recv` method
+    counter_client
+        .bump()
+        .with_gas_limit(gas_limit)
+        .send_recv(demo_program_id)
+        .await
+        .unwrap();
+
+    counter_client
+        .bump()
+        .with_gas_limit(gas_limit)
+        .send_recv(demo_program_id)
+        .await
+        .unwrap();
+
+    let result = counter_client.get().recv(demo_program_id).await.unwrap();
+
+    // Asert
+    assert_eq!(result, 2);
+}
+
 async fn spin_up_node_with_demo_code() -> (GClientRemoting, CodeId, GasUnit, GearApi) {
     let gear_path = option_env!("GEAR_PATH");
     if gear_path.is_none() {
