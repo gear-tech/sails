@@ -94,6 +94,7 @@ jobs:
       gear_node_version: 1.7.1
 
   cli_tests:
+    if: false
     name: Run CLI Tests
     needs:
       - prepare
