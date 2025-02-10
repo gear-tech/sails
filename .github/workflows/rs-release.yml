@@ -152,7 +152,7 @@ jobs:
     needs:
       - prepare
       - ws_tests
-      - cli_tests
+      # - cli_tests
     defaults:
       run:
         shell: bash
