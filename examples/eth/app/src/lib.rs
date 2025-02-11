@@ -1,4 +1,7 @@
 #![no_std]
+use sails_rs::alloy_sol_types::SolType;
+use sails_rs::alloy_sol_types::SolValue;
+use sails_rs::gstd::debug;
 use sails_rs::prelude::*;
 
 pub struct MyProgram;
@@ -50,8 +53,6 @@ const _: () = {
     }
 };
 
-use sails_rs::solidity::SolSignature;
-use sails_rs::solidity::SolTypeMarker;
 use sails_rs::Decode as __ProgramDecode;
 use sails_rs::TypeInfo as __ProgramTypeInfo;
 #[derive(__ProgramDecode, __ProgramTypeInfo)]
@@ -124,7 +125,7 @@ pub mod wasm {
     async fn match_ctor_solidity(ctor: &[u8], input: &[u8]) -> Option<MyProgram> {
         match ctor {
             &[28u8, 68u8, 101u8, 102u8, 97u8, 117u8, 108u8, 116u8] => {
-                let _request = SolTypeMarker::<()>::decode(input);
+                // let _request = <()>::decode(input);
                 let program = MyProgram::default();
                 Some(program)
             }
@@ -240,16 +241,17 @@ impl SomeServiceExposure<SomeService> {
         input: &[u8],
     ) -> Option<(Vec<u8>, u128)> {
         if method == &[24u8, 68u8, 111u8, 84u8, 104u8, 105u8, 115u8] {
-            let (p1, p2): (u32, String) = SolTypeMarker::<(u32, String)>::decode(input);
+            let (p1, p2): (u32, String) = <(u32, String)>::abi_decode_params(input, false).unwrap();
             let result: u32 = self.do_this(p1, p2).await;
             let value = 0u128;
-            return Some((SolTypeMarker::<u32>::encode(&result), value));
+            debug!("{}", result);
+            return Some((<(u32,)>::abi_encode_params(&(result,)), value));
         }
         if method == &[16u8, 84u8, 104u8, 105u8, 115u8] {
-            let p1: bool = SolTypeMarker::<bool>::decode(input);
+            let (p1,): (bool,) = <(bool,)>::abi_decode_params(input, false).unwrap();
             let result = self.this(p1);
             let value = 0u128;
-            return Some((SolTypeMarker::<bool>::encode(&result), value));
+            return Some((<(bool,)>::abi_encode_params(&(result,)), value));
         }
         None
     }
@@ -356,13 +358,17 @@ impl solidity::ServiceSignatures for SomeService {
                 format!(
                     "{}_do_this({},{})",
                     route,
-                    SolTypeMarker::<u32>::SIGNATURE,
-                    SolTypeMarker::<String>::SIGNATURE
+                    <<u32 as SolValue>::SolType as SolType>::SOL_NAME,
+                    <<String as SolValue>::SolType as SolType>::SOL_NAME,
                 ),
                 &[24u8, 68u8, 111u8, 84u8, 104u8, 105u8, 115u8] as &[u8],
             ),
             (
-                format!("{}_this({})", route, SolTypeMarker::<bool>::SIGNATURE),
+                format!(
+                    "{}_this({})",
+                    route,
+                    <<bool as SolValue>::SolType as SolType>::SOL_NAME
+                ),
                 &[16u8, 84u8, 104u8, 105u8, 115u8] as &[u8],
             ),
         ]

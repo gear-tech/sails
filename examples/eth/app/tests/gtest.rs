@@ -1,5 +1,5 @@
 use sails_rs::{
-    alloy_sol_types::SolValue,
+    alloy_sol_types::{SolType, SolValue},
     gtest::{Program, System},
 };
 pub(crate) const DEMO_WASM_PATH: &str =
@@ -18,7 +18,7 @@ async fn eth_app_sol_works() {
     program.send_bytes(ADMIN_ID, ctor.as_slice());
 
     let do_this_sig = sails_rs::solidity::selector("svc1_do_this(uint32,string)");
-    let do_this_params = (42, "hello").abi_encode();
+    let do_this_params = (42, "hello").abi_encode_params();
     let payload = [do_this_sig.as_slice(), do_this_params.as_slice()].concat();
 
     let message_id = program.send_bytes(ADMIN_ID, payload);
