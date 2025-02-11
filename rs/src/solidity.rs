@@ -155,12 +155,8 @@ impl SolValue for ActorId2 {
 impl ::alloy_sol_types::private::SolTypeValue<alloy_sol_types::sol_data::Address> for ActorId2 {
     #[inline]
     fn stv_to_tokens(&self) -> alloy_sol_types::abi::token::WordToken {
-        // let bytes: [u8; 32] = self.0.into_bytes();
-        // let address = Address::from_word(bytes.into());
-
-        //<::alloy_sol_types::sol_data::Address as alloy_sol_types::SolType>::tokenize(&address)
         let bytes = self.0.into_bytes();
-        alloy_sol_types::abi::token::WordToken(alloy_sol_types::Word::from(bytes))
+        ::alloy_sol_types::abi::token::WordToken(::alloy_sol_types::Word::from(bytes))
     }
 
     #[inline]
@@ -186,12 +182,16 @@ mod tests {
         let address = Address::from(U160::from(42));
         let address_encoded = address.abi_encode();
 
-        let id = ActorId::from(42);
+        let bytes: [u8; 32] = address.into_word().into();
+        let id = ActorId::from(bytes);
         let actor_encoded = ActorId2(id).abi_encode();
 
-        assert_eq!(address_encoded.as_slice(), actor_encoded.as_slice())
+        assert_eq!(address_encoded.as_slice(), actor_encoded.as_slice());
 
-        // let actor2 = ActorId2::abi_decode(encoded.as_slice(), false);
-        // assert_eq!(id, actor2.unwrap().0);
+        let actor2 = ActorId2::abi_decode(actor_encoded.as_slice(), false);
+        assert_eq!(id, actor2.unwrap().0);
+
+        let address2 = Address::abi_decode(actor_encoded.as_slice(), false);
+        assert_eq!(address, address2.unwrap());
     }
 }
