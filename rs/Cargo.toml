@@ -12,6 +12,7 @@ repository.workspace = true
 [dependencies]
 alloy-primitives = { workspace = true, optional = true }
 alloy-sol-types = { workspace = true, optional = true }
+const_format.workspace = true
 futures.workspace = true
 gear-core-errors.workspace = true
 gprimitives.workspace = true

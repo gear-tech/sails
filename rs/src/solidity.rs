@@ -109,26 +109,37 @@ impl SolSignature for SolTypeMarker<ActorId, Address> {
 // }
 
 pub trait ServiceSignatures {
-    fn methods(route: &str) -> impl Iterator<Item = (String, &'static [u8])>;
+    const METHODS: &[(&'static str, &'static [u8])];
 }
 
 pub trait ProgramSignatures {
-    fn constructors() -> impl Iterator<Item = (String, &'static [u8])>;
-    fn methods() -> impl Iterator<Item = (String, &'static [u8], &'static [u8])>;
+    const METHODS: &[(
+        &'static str,
+        &'static [u8],
+        &[(&'static str, &'static [u8])],
+    )];
+    const CONSTRUCTORS: &[(&'static str, &'static [u8])];
 
     fn constructors_map() -> BTreeMap<Selector, &'static [u8]> {
         let mut map = BTreeMap::new();
-        Self::constructors().into_iter().for_each(|(name, route)| {
-            map.insert(selector(&name), route);
+        Self::CONSTRUCTORS.into_iter().for_each(|(name, route)| {
+            map.insert(selector(name), *route);
         });
         map
     }
 
     fn methods_map() -> BTreeMap<Selector, (&'static [u8], &'static [u8])> {
         let mut map = BTreeMap::new();
-        Self::methods().for_each(|(name, service, method)| {
-            map.insert(selector(&name), (service, method));
-        });
+        Self::METHODS
+            .into_iter()
+            .for_each(|(svc_name, svc_route, methods)| {
+                methods.into_iter().for_each(|(name, route)| {
+                    map.insert(
+                        selector(format!("{}_{}", svc_name, name)),
+                        (*svc_route, *route),
+                    );
+                });
+            });
         map
     }
 }
@@ -193,5 +204,17 @@ mod tests {
 
         let address2 = Address::abi_decode(actor_encoded.as_slice(), false);
         assert_eq!(address, address2.unwrap());
+    }
+
+    #[test]
+    fn sig() {
+        let s = <(u32,) as SolValue>::SolType::SOL_NAME;
+        assert_eq!("(uint32)", s);
+
+        let s = <(u32, String) as SolValue>::SolType::SOL_NAME;
+        assert_eq!("(uint32,string)", s);
+
+        let s = <(u32, String, ActorId2) as SolValue>::SolType::SOL_NAME;
+        assert_eq!("(uint32,string,address)", s);
     }
 }

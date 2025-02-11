@@ -1,4 +1,5 @@
 #![no_std]
+
 use sails_rs::alloy_sol_types::SolType;
 use sails_rs::alloy_sol_types::SolValue;
 use sails_rs::gstd::debug;
@@ -33,22 +34,6 @@ const _: () = {
         }
         fn services() -> impl Iterator<Item = (&'static str, sails_rs::meta::AnyServiceMeta)> {
             [("Svc1", sails_rs::meta::AnyServiceMeta::new::<SomeService>())].into_iter()
-        }
-    }
-
-    impl solidity::ProgramSignatures for MyProgram {
-        fn constructors() -> impl Iterator<Item = (String, &'static [u8])> {
-            [(
-                format!("default()"),
-                &[28u8, 68u8, 101u8, 102u8, 97u8, 117u8, 108u8, 116u8] as &[u8],
-            )]
-            .into_iter()
-        }
-
-        fn methods() -> impl Iterator<Item = (String, &'static [u8], &'static [u8])> {
-            <SomeService as solidity::ServiceSignatures>::methods("svc1")
-                .into_iter()
-                .map(|(sig, route)| (sig, &__ROUTE_SVC1 as &[u8], route))
         }
     }
 };
@@ -175,6 +160,10 @@ impl SomeService {
     }
     pub fn this(&self, p1: bool) -> bool {
         p1
+    }
+
+    pub const fn st(s: &'static str) -> &'static str {
+        s
     }
 }
 pub struct SomeServiceExposure<T> {
@@ -351,27 +340,38 @@ mod some_service_meta {
     // }
 }
 
+impl solidity::ProgramSignatures for MyProgram {
+    const CONSTRUCTORS: &[(&'static str, &'static [u8])] = &[(
+        concatcp!("default", <<() as SolValue>::SolType as SolType>::SOL_NAME,),
+        &[28u8, 68u8, 101u8, 102u8, 97u8, 117u8, 108u8, 116u8] as &[u8],
+    )];
+
+    const METHODS: &[(
+        &'static str,
+        &'static [u8],
+        &[(&'static str, &'static [u8])],
+    )] = &[(
+        "svc1",
+        &__ROUTE_SVC1 as &[u8],
+        <SomeService as solidity::ServiceSignatures>::METHODS,
+    )];
+}
+
 impl solidity::ServiceSignatures for SomeService {
-    fn methods(route: &str) -> impl Iterator<Item = (String, &'static [u8])> {
-        [
-            (
-                format!(
-                    "{}_do_this({},{})",
-                    route,
-                    <<u32 as SolValue>::SolType as SolType>::SOL_NAME,
-                    <<String as SolValue>::SolType as SolType>::SOL_NAME,
-                ),
-                &[24u8, 68u8, 111u8, 84u8, 104u8, 105u8, 115u8] as &[u8],
+    const METHODS: &[(&'static str, &'static [u8])] = &[
+        (
+            concatcp!(
+                "do_this",
+                <<(u32, String) as SolValue>::SolType as SolType>::SOL_NAME,
             ),
-            (
-                format!(
-                    "{}_this({})",
-                    route,
-                    <<bool as SolValue>::SolType as SolType>::SOL_NAME
-                ),
-                &[16u8, 84u8, 104u8, 105u8, 115u8] as &[u8],
+            &[24u8, 68u8, 111u8, 84u8, 104u8, 105u8, 115u8] as &[u8],
+        ),
+        (
+            concatcp!(
+                "this",
+                <<(bool,) as SolValue>::SolType as SolType>::SOL_NAME
             ),
-        ]
-        .into_iter()
-    }
+            &[16u8, 84u8, 104u8, 105u8, 115u8] as &[u8],
+        ),
+    ];
 }

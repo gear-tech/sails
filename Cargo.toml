@@ -57,6 +57,7 @@ anyhow = "1"
 cargo-generate = "0.21"
 cargo_metadata = "0.19"
 clap = "4.5"
+const_format = "0.2"
 convert-case = { package = "convert_case", version = "0.6" }
 futures = { version = "0.3", default-features = false }
 genco = "0.17"

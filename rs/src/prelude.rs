@@ -51,6 +51,7 @@ pub use scale_info::{self as scale_info, TypeInfo};
 #[cfg(feature = "solidity")]
 pub use crate::solidity;
 #[cfg(feature = "solidity")]
-pub use alloy_sol_types;
-#[cfg(feature = "solidity")]
 pub use alloy_primitives;
+#[cfg(feature = "solidity")]
+pub use alloy_sol_types;
+pub use const_format::*;
