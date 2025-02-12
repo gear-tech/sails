@@ -20,6 +20,7 @@ gstd = { workspace = true, optional = true }
 gwasm-builder = { workspace = true, optional = true }
 hashbrown.workspace = true
 hex.workspace = true
+keccak-const = { workspace = true, optional = true }
 mockall = { workspace = true, optional = true }
 parity-scale-codec = { workspace = true, features = ["derive"] }
 sails-idl-gen = { workspace = true, optional = true }
@@ -46,5 +47,5 @@ gstd = ["dep:gstd", "dep:gear-core", "dep:sails-macros"]
 gtest = ["dep:gtest", "dep:log"]
 idl-gen = ["dep:sails-idl-gen"]
 mockall = ["dep:mockall"]
-solidity = ["dep:alloy-primitives", "dep:alloy-sol-types"]
+solidity = ["dep:alloy-primitives", "dep:alloy-sol-types", "dep:keccak-const"]
 wasm-builder = ["dep:gwasm-builder"]

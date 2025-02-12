@@ -4604,6 +4604,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "keccak-const"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "57d8d8ce877200136358e0bbff3a77965875db3af755a11e1fa6b1b3e2df13ea"
+
+[[package]]
 name = "kstring"
 version = "2.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6700,6 +6706,7 @@ dependencies = [
  "gtest",
  "hashbrown 0.15.2",
  "hex",
+ "keccak-const",
  "log",
  "mockall",
  "parity-scale-codec",

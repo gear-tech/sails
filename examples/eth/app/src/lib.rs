@@ -66,21 +66,15 @@ pub mod wasm {
         prelude::*,
     };
     static mut PROGRAM: Option<MyProgram> = None;
-    static mut __SOL_SIGNATURES: BTreeMap<Selector, (&'static [u8], &'static [u8])> =
-        BTreeMap::new();
 
     #[gstd::async_init]
     async fn init() {
         // sails_rs::gstd::events::__enable_events();
         let input: &[u8] = &gstd::msg::load_bytes().expect("Failed to read input");
 
-        let ctors = <MyProgram as solidity::ProgramSignatures>::constructors_map();
-        unsafe {
-            __SOL_SIGNATURES = <MyProgram as solidity::ProgramSignatures>::methods_map();
-        }
-
         if let Ok(sig) = TryInto::<[u8; 4]>::try_into(&input[..4]) {
-            if let Some(&ctor) = ctors.get(&sig) {
+            if let Some(idx) = __CTOR_SIGS.iter().position(|s| s == &sig) {
+                let (_, ctor) = <MyProgram as solidity::ProgramSignature>::CTORS[idx];
                 unsafe {
                     PROGRAM = match_ctor_solidity(ctor, &input[4..]).await;
                 }
@@ -124,7 +118,8 @@ pub mod wasm {
         let program_ref = unsafe { PROGRAM.as_ref() }.expect("Program not initialized");
 
         if let Ok(sig) = TryInto::<[u8; 4]>::try_into(&input[..4]) {
-            if let Some(&(route, method)) = unsafe { __SOL_SIGNATURES.get(&sig) } {
+            if let Some(idx) = __METHOD_SIGS.iter().position(|s| s == &sig) {
+                let (route, method) = __METHOD_ROUTES[idx];
                 if route == &__ROUTE_SVC1 {
                     let mut service = program_ref.svc1();
                     let (output, value) = service
@@ -186,21 +181,9 @@ impl SomeServiceExposure<SomeService> {
         self.inner.this(p1)
     }
     pub async fn handle(&mut self, input: &[u8]) -> (Vec<u8>, u128) {
-        self.try_handle(input).await.unwrap_or_else(|| {
-            let mut __input = input;
-            let input: String = sails_rs::Decode::decode(&mut __input).unwrap_or_else(|_| {
-                if input.len() <= 8 {
-                    format!("0x{}", sails_rs::hex::encode(input))
-                } else {
-                    format!(
-                        "0x{}..{}",
-                        sails_rs::hex::encode(&input[..4]),
-                        sails_rs::hex::encode(&input[input.len() - 4..])
-                    )
-                }
-            });
-            panic!("Unknown request: {}", input)
-        })
+        self.try_handle(input)
+            .await
+            .unwrap_or_else(|| sails_rs::gstd::unknown_input_panic("Unknown request", input))
     }
     pub async fn try_handle(&mut self, input: &[u8]) -> Option<(Vec<u8>, u128)> {
         if input.starts_with(&[24u8, 68u8, 111u8, 84u8, 104u8, 105u8, 115u8]) {
@@ -213,14 +196,6 @@ impl SomeServiceExposure<SomeService> {
             static INVOCATION_ROUTE: [u8; 5usize] = [16u8, 84u8, 104u8, 105u8, 115u8];
             return Some(([INVOCATION_ROUTE.as_ref(), &output].concat(), value));
         }
-        // if input.starts_with(&some_service_meta::__DoThisParams::SELECTOR) {
-        //     let mut input = &input[4usize..];
-        //     let request: some_service_meta::__DoThisParams =
-        //         sails_rs::Decode::decode(&mut input).expect("Failed to decode request");
-        //     let result: u32 = self.do_this(request.p1, request.p2).await;
-        //     let value = 0u128;
-        //     return Some((sails_rs::Encode::encode(&result), value));
-        // }
         None
     }
 
@@ -333,32 +308,25 @@ mod some_service_meta {
     #[scale_info(crate = sails_rs::scale_info)]
     pub enum NoEvents {}
     pub type EventsMeta = NoEvents;
-
-    // impl SolFunction for __DoThisParams {
-    //     const SIGNATURE: &'static str = "do_this(uint32,string)";
-    //     const SELECTOR: &[u8] = &[72, 187, 45, 101];
-    // }
 }
 
-impl solidity::ProgramSignatures for MyProgram {
-    const CONSTRUCTORS: &[(&'static str, &'static [u8])] = &[(
+impl solidity::ProgramSignature for MyProgram {
+    const METHODS_LEN: usize = <SomeService as solidity::ServiceSignature>::METHODS.len();
+
+    const CTORS: &[(&'static str, &'static [u8])] = &[(
         concatcp!("default", <<() as SolValue>::SolType as SolType>::SOL_NAME,),
         &[28u8, 68u8, 101u8, 102u8, 97u8, 117u8, 108u8, 116u8] as &[u8],
     )];
 
-    const METHODS: &[(
-        &'static str,
-        &'static [u8],
-        &[(&'static str, &'static [u8])],
-    )] = &[(
+    const SERVICES: &[(&'static str, &'static [u8], &[solidity::MethodRoute])] = &[(
         "svc1",
         &__ROUTE_SVC1 as &[u8],
-        <SomeService as solidity::ServiceSignatures>::METHODS,
+        <SomeService as solidity::ServiceSignature>::METHODS,
     )];
 }
 
-impl solidity::ServiceSignatures for SomeService {
-    const METHODS: &[(&'static str, &'static [u8])] = &[
+impl solidity::ServiceSignature for SomeService {
+    const METHODS: &[solidity::MethodRoute] = &[
         (
             concatcp!(
                 "do_this",
@@ -375,3 +343,13 @@ impl solidity::ServiceSignatures for SomeService {
         ),
     ];
 }
+
+const __METHOD_SIGS: [[u8; 4]; <MyProgram as solidity::ProgramSignature>::METHODS_LEN] =
+    solidity::ProgramMeta::<MyProgram>::method_sigs();
+
+const __METHOD_ROUTES: [(&'static [u8], &'static [u8]);
+    <MyProgram as solidity::ProgramSignature>::METHODS_LEN] =
+    solidity::ProgramMeta::<MyProgram>::method_routes();
+
+const __CTOR_SIGS: [[u8; 4]; <MyProgram as solidity::ProgramSignature>::CTORS.len()] =
+    solidity::ProgramMeta::<MyProgram>::ctor_sigs();

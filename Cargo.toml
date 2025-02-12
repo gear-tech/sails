@@ -67,6 +67,7 @@ hashbrown = "0.15"
 hex = { version = "0.4", default-features = false }
 insta = "1.42"
 itertools = "0.13"
+keccak-const = "0.2"
 lalrpop = { version = "0.20", default-features = false }
 lalrpop-util = "0.20"
 log = { version = "0.4", default-features = false }

@@ -55,3 +55,5 @@ pub use alloy_primitives;
 #[cfg(feature = "solidity")]
 pub use alloy_sol_types;
 pub use const_format::*;
+#[cfg(feature = "solidity")]
+pub use keccak_const;
