@@ -1,5 +1,5 @@
 use sails_rs::{
-    alloy_sol_types::{SolType, SolValue},
+    alloy_sol_types::SolValue,
     gtest::{Program, System},
 };
 pub(crate) const DEMO_WASM_PATH: &str =

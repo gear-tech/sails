@@ -39,13 +39,18 @@ gtest = { workspace = true, optional = true }
 log = { workspace = true, optional = true }
 
 [features]
-default = ["gstd", "solidity"]
+default = ["gstd"]
 debug = ["gstd?/debug"]
-ethexe = ["gstd?/ethexe"]
+ethexe = ["gstd?/ethexe", "solidity"]
 gclient = ["dep:gclient"]
 gstd = ["dep:gstd", "dep:gear-core", "dep:sails-macros"]
 gtest = ["dep:gtest", "dep:log"]
 idl-gen = ["dep:sails-idl-gen"]
 mockall = ["dep:mockall"]
-solidity = ["dep:alloy-primitives", "dep:alloy-sol-types", "dep:keccak-const"]
+solidity = [
+    "dep:alloy-primitives",
+    "dep:alloy-sol-types",
+    "dep:keccak-const",
+    "sails-macros?/solidity",
+]
 wasm-builder = ["dep:gwasm-builder"]

@@ -21,3 +21,6 @@ sails-rs = { path = ".." }
 scale-info = { workspace = true, features = ["derive"] }
 tokio = { workspace = true, features = ["full"] }
 trybuild.workspace = true
+
+[features]
+solidity = ["sails-macros-core/solidity"]

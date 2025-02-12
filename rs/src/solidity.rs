@@ -123,9 +123,9 @@ macro_rules! const_selector {
     }};
 }
 
-pub struct ProgramMeta<T>(marker::PhantomData<T>);
+pub struct ConstProgramMeta<T>(marker::PhantomData<T>);
 
-impl<T> ProgramMeta<T>
+impl<T> ConstProgramMeta<T>
 where
     T: ProgramSignature,
 {
@@ -294,7 +294,7 @@ mod tests {
     fn program_signature() {
         const S1: [u8; 4] = [16, 223, 169, 238];
         const S2: [u8; 4] = [173, 172, 115, 149];
-        let sigs = solidity::ProgramMeta::<Prg>::method_sigs::<
+        let sigs = solidity::ConstProgramMeta::<Prg>::method_sigs::<
             { <Prg as solidity::ProgramSignature>::METHODS_LEN },
         >();
         assert_eq!(4, sigs.len());

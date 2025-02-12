@@ -345,11 +345,11 @@ impl solidity::ServiceSignature for SomeService {
 }
 
 const __METHOD_SIGS: [[u8; 4]; <MyProgram as solidity::ProgramSignature>::METHODS_LEN] =
-    solidity::ProgramMeta::<MyProgram>::method_sigs();
+    solidity::ConstProgramMeta::<MyProgram>::method_sigs();
 
 const __METHOD_ROUTES: [(&'static [u8], &'static [u8]);
     <MyProgram as solidity::ProgramSignature>::METHODS_LEN] =
-    solidity::ProgramMeta::<MyProgram>::method_routes();
+    solidity::ConstProgramMeta::<MyProgram>::method_routes();
 
 const __CTOR_SIGS: [[u8; 4]; <MyProgram as solidity::ProgramSignature>::CTORS.len()] =
-    solidity::ProgramMeta::<MyProgram>::ctor_sigs();
+    solidity::ConstProgramMeta::<MyProgram>::ctor_sigs();
