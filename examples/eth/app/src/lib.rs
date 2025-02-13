@@ -206,18 +206,25 @@ impl SomeServiceExposure<SomeService> {
     ) -> Option<(Vec<u8>, u128)> {
         if method == &[24u8, 68u8, 111u8, 84u8, 104u8, 105u8, 115u8] {
             let (p1, p2): (u32, String) =
-                SolValue::abi_decode_params(input, false).expect("Failed to decode request");
-            let result: u32 = self.do_this(p1, p2).await;
+                sails_rs::alloy_sol_types::SolValue::abi_decode_params(input, false)
+                    .expect("Failed to decode request");
+            let result = self.do_this(p1, p2).await;
             let value = 0u128;
-            debug!("{}", result);
-            return Some((SolValue::abi_encode(&result), value));
+            return Some((
+                sails_rs::alloy_sol_types::SolValue::abi_encode(&result),
+                value,
+            ));
         }
         if method == &[16u8, 84u8, 104u8, 105u8, 115u8] {
             let (p1,): (bool,) =
-                SolValue::abi_decode_params(input, false).expect("Failed to decode request");
+                sails_rs::alloy_sol_types::SolValue::abi_decode_params(input, false)
+                    .expect("Failed to decode request");
             let result = self.this(p1);
             let value = 0u128;
-            return Some((SolValue::abi_encode(&result), value));
+            return Some((
+                sails_rs::alloy_sol_types::SolValue::abi_encode(&result),
+                value,
+            ));
         }
         None
     }

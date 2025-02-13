@@ -1,6 +1,6 @@
 // This file is part of Gear.
 
-// Copyright (C) 2021-2023 Gear Technologies Inc.
+// Copyright (C) 2021-2025 Gear Technologies Inc.
 // SPDX-License-Identifier: GPL-3.0-or-later WITH Classpath-exception-2.0
 
 // This program is free software: you can redistribute it and/or modify
@@ -344,6 +344,10 @@ fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
     let service_signature_impl = ethexe::service_signature_impl(&service_impl, &sails_path);
     #[cfg(not(feature = "ethexe"))]
     let service_signature_impl = quote!();
+    #[cfg(feature = "ethexe")]
+    let try_handle_solidity_impl = ethexe::try_handle_impl(&service_impl, &sails_path);
+    #[cfg(not(feature = "ethexe"))]
+    let try_handle_solidity_impl = quote!();
 
     quote!(
         #service_impl
@@ -381,6 +385,8 @@ fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
             }
 
             #( #invocation_funcs )*
+
+            #try_handle_solidity_impl
 
             #exposure_set_event_listener_code
         }
@@ -645,5 +651,51 @@ impl<'a> HandlerGenerator<'a> {
                 return (#sails_path::Encode::encode(&result), value);
             }
         )
+    }
+
+    /// Generates code for encode/decode parameters and handler invocation
+    /// ```rust
+    /// let (p1, p2): (u32, String) = SolValue::abi_decode_params(input, false).expect("Failed to decode request");
+    /// let result: u32 = self.do_this(p1, p2).await;
+    /// let value = 0u128;
+    /// return Some((SolValue::abi_encode(&result), value));
+    /// ```
+    #[cfg(feature = "ethexe")]
+    fn invocation_func_solidity(&self, sails_path: &Path) -> TokenStream {
+        let handler_func_ident = self.handler_func_ident();
+        let handler_params = self.handler.params().iter().map(|item| {
+            let param_ident = item.0;
+            quote!(#param_ident)
+        });
+        let handler_params_comma = self.handler.params().iter().map(|item| {
+            let param_ident = item.0;
+            quote!(#param_ident,)
+        });
+        let handler_types = self.handler.params().iter().map(|item| {
+            let param_type = item.1;
+            quote!(#param_type,)
+        });
+
+        let result_type = self.result_type();
+        let await_token = self.handler.is_async().then(|| quote!(.await));
+        let unwrap_token = self.unwrap_result.then(|| quote!(.unwrap()));
+
+        let handle_token = if self.reply_with_value() {
+            quote! {
+                let command_reply: CommandReply<#result_type> = self.#handler_func_ident(#(#handler_params),*)#await_token #unwrap_token.into();
+                let (result, value) = command_reply.to_tuple();
+            }
+        } else {
+            quote! {
+                let result = self.#handler_func_ident(#(#handler_params),*)#await_token #unwrap_token;
+                let value = 0u128;
+            }
+        };
+
+        quote! {
+            let (#(#handler_params_comma)*) : (#(#handler_types)*) = #sails_path::alloy_sol_types::SolValue::abi_decode_params(input, false).expect("Failed to decode request");
+            #handle_token
+            return Some((#sails_path::alloy_sol_types::SolValue::abi_encode(&result), value));
+        }
     }
 }
