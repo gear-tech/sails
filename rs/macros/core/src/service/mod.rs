@@ -36,6 +36,8 @@ use syn::{
 };
 
 mod args;
+#[cfg(feature = "ethexe")]
+mod ethexe;
 
 pub fn gservice(args: TokenStream, service_impl: TokenStream) -> TokenStream {
     let service_impl = parse_gservice_impl(service_impl);
@@ -337,6 +339,12 @@ fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
         .iter()
         .filter(|attr| matches!(attr.path().get_ident(), Some(ident) if ident == "allow"));
 
+    // ethexe
+    #[cfg(feature = "ethexe")]
+    let service_signature_impl = ethexe::service_signature_impl(&service_impl, &sails_path);
+    #[cfg(not(feature = "ethexe"))]
+    let service_signature_impl = quote!();
+
     quote!(
         #service_impl
 
@@ -460,6 +468,8 @@ fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
 
             pub type EventsMeta = #events_type;
         }
+
+        #service_signature_impl
     )
 }
 

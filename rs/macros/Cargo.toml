@@ -23,4 +23,4 @@ tokio = { workspace = true, features = ["full"] }
 trybuild.workspace = true
 
 [features]
-solidity = ["sails-macros-core/solidity"]
+ethexe = ["sails-macros-core/ethexe", "sails-rs/ethexe"]

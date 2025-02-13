@@ -21,4 +21,4 @@ insta.workspace = true
 prettyplease.workspace = true
 
 [features]
-solidity = []
+ethexe = []

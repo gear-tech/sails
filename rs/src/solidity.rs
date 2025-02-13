@@ -77,13 +77,13 @@ impl SolSignature for SolTypeMarker<ActorId, Address> {
 pub type MethodRoute = (&'static str, &'static [u8]);
 
 pub trait ServiceSignature {
-    const METHODS: &[MethodRoute];
+    const METHODS: &'static [MethodRoute];
 }
 
 pub trait ProgramSignature {
     const METHODS_LEN: usize;
-    const SERVICES: &[(&'static str, &'static [u8], &[MethodRoute])];
-    const CTORS: &[MethodRoute];
+    const SERVICES: &'static [(&'static str, &'static [u8], &'static [MethodRoute])];
+    const CTORS: &'static [MethodRoute];
 }
 
 pub fn selector(s: impl AsRef<str>) -> Selector {
@@ -235,6 +235,9 @@ mod tests {
 
     #[test]
     fn type_names() {
+        let s = <() as SolValue>::SolType::SOL_NAME;
+        assert_eq!("()", s);
+
         let s = <(u32,) as SolValue>::SolType::SOL_NAME;
         assert_eq!("(uint32)", s);
 
@@ -267,9 +270,9 @@ mod tests {
         ];
     }
 
-    impl solidity::ProgramSignature for Prg {
-        const METHODS_LEN: usize = <Svc as solidity::ServiceSignature>::METHODS.len()
-            + <Svc as solidity::ServiceSignature>::METHODS.len();
+    impl ProgramSignature for Prg {
+        const METHODS_LEN: usize =
+            <Svc as ServiceSignature>::METHODS.len() + <Svc as ServiceSignature>::METHODS.len();
 
         const CTORS: &[MethodRoute] = &[(
             concatcp!("default", <<() as SolValue>::SolType as SolType>::SOL_NAME,),
@@ -280,12 +283,12 @@ mod tests {
             (
                 "svc1",
                 &[16u8, 83u8, 118u8, 99u8, 49u8] as &[u8],
-                <Svc as solidity::ServiceSignature>::METHODS,
+                <Svc as ServiceSignature>::METHODS,
             ),
             (
                 "svc2",
                 &[16u8, 83u8, 118u8, 99u8, 49u8] as &[u8],
-                <Svc as solidity::ServiceSignature>::METHODS,
+                <Svc as ServiceSignature>::METHODS,
             ),
         ];
     }
@@ -294,26 +297,25 @@ mod tests {
     fn program_signature() {
         const S1: [u8; 4] = [16, 223, 169, 238];
         const S2: [u8; 4] = [173, 172, 115, 149];
-        let sigs = solidity::ConstProgramMeta::<Prg>::method_sigs::<
-            { <Prg as solidity::ProgramSignature>::METHODS_LEN },
-        >();
-        assert_eq!(4, sigs.len());
+        const SIGS: [[u8; 4]; <Prg as solidity::ProgramSignature>::METHODS_LEN] =
+            solidity::ConstProgramMeta::<Prg>::method_sigs();
+        assert_eq!(4, SIGS.len());
 
         let sig1 = selector("svc1_do_this(uint32,string)");
         assert_eq!(S1, sig1.as_slice());
-        assert_eq!(S1, sigs[0]);
+        assert_eq!(S1, SIGS[0]);
 
         let sig2 = selector("svc1_this(bool)");
         assert_eq!(S2, sig2.as_slice());
-        assert_eq!(S2, sigs[1]);
+        assert_eq!(S2, SIGS[1]);
 
-        assert_eq!(Some(0), sigs.iter().position(|s| s == &S1));
-        assert_eq!(Some(1), sigs.iter().position(|s| s == &S2));
+        assert_eq!(Some(0), SIGS.iter().position(|s| s == &S1));
+        assert_eq!(Some(1), SIGS.iter().position(|s| s == &S2));
 
         let sig3 = selector("svc2_do_this(uint32,string)");
-        assert_eq!(Some(2), sigs.iter().position(|s| s == sig3.as_slice()));
+        assert_eq!(Some(2), SIGS.iter().position(|s| s == sig3.as_slice()));
 
         let sig4 = selector("svc2_this(bool)");
-        assert_eq!(Some(3), sigs.iter().position(|s| s == sig4.as_slice()));
+        assert_eq!(Some(3), SIGS.iter().position(|s| s == sig4.as_slice()));
     }
 }

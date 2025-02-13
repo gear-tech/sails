@@ -205,17 +205,19 @@ impl SomeServiceExposure<SomeService> {
         input: &[u8],
     ) -> Option<(Vec<u8>, u128)> {
         if method == &[24u8, 68u8, 111u8, 84u8, 104u8, 105u8, 115u8] {
-            let (p1, p2): (u32, String) = <(u32, String)>::abi_decode_params(input, false).unwrap();
+            let (p1, p2): (u32, String) =
+                SolValue::abi_decode_params(input, false).expect("Failed to decode request");
             let result: u32 = self.do_this(p1, p2).await;
             let value = 0u128;
             debug!("{}", result);
-            return Some((<(u32,)>::abi_encode_params(&(result,)), value));
+            return Some((SolValue::abi_encode(&result), value));
         }
         if method == &[16u8, 84u8, 104u8, 105u8, 115u8] {
-            let (p1,): (bool,) = <(bool,)>::abi_decode_params(input, false).unwrap();
+            let (p1,): (bool,) =
+                SolValue::abi_decode_params(input, false).expect("Failed to decode request");
             let result = self.this(p1);
             let value = 0u128;
-            return Some((<(bool,)>::abi_encode_params(&(result,)), value));
+            return Some((SolValue::abi_encode(&result), value));
         }
         None
     }
@@ -325,20 +327,20 @@ impl solidity::ProgramSignature for MyProgram {
     )];
 }
 
-impl solidity::ServiceSignature for SomeService {
-    const METHODS: &[solidity::MethodRoute] = &[
+impl sails_rs::solidity::ServiceSignature for SomeService {
+    const METHODS: &[sails_rs::solidity::MethodRoute] = &[
         (
-            concatcp!(
-                "do_this",
-                <<(u32, String) as SolValue>::SolType as SolType>::SOL_NAME,
-            ),
+            sails_rs::concatcp!(
+                    "do_this", << (u32, String,) as sails_rs::alloy_sol_types::SolValue >
+                    ::SolType as sails_rs::alloy_sol_types::SolType > ::SOL_NAME,
+                ),
             &[24u8, 68u8, 111u8, 84u8, 104u8, 105u8, 115u8] as &[u8],
         ),
         (
-            concatcp!(
-                "this",
-                <<(bool,) as SolValue>::SolType as SolType>::SOL_NAME
-            ),
+            sails_rs::concatcp!(
+                    "this", << (bool,) as sails_rs::alloy_sol_types::SolValue > ::SolType as
+                    sails_rs::alloy_sol_types::SolType > ::SOL_NAME,
+                ),
             &[16u8, 84u8, 104u8, 105u8, 115u8] as &[u8],
         ),
     ];

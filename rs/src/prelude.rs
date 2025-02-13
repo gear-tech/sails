@@ -48,12 +48,12 @@ pub use crate::types::*;
 pub use parity_scale_codec::{self as scale_codec, Decode, Encode, EncodeLike};
 pub use scale_info::{self as scale_info, TypeInfo};
 
-#[cfg(feature = "solidity")]
+#[cfg(feature = "ethexe")]
 pub use crate::solidity;
-#[cfg(feature = "solidity")]
+#[cfg(feature = "ethexe")]
 pub use alloy_primitives;
-#[cfg(feature = "solidity")]
+#[cfg(feature = "ethexe")]
 pub use alloy_sol_types;
 pub use const_format::*;
-#[cfg(feature = "solidity")]
+#[cfg(feature = "ethexe")]
 pub use keccak_const;

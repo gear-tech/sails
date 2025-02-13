@@ -27,6 +27,25 @@ pub(crate) fn impl_type(item_impl: &ItemImpl) -> (TypePath, PathArguments, Ident
     (path, args, ident)
 }
 
+pub(crate) fn impl_type_refs<'a>(
+    item_impl: &'a ItemImpl,
+) -> (&'a TypePath, &'a PathArguments, &'a Ident) {
+    let item_impl_type = item_impl.self_ty.as_ref();
+    let path = if let Type::Path(type_path) = item_impl_type {
+        type_path
+    } else {
+        abort!(
+            item_impl_type,
+            "failed to parse impl type: {}",
+            item_impl_type.to_token_stream()
+        )
+    };
+    let segment = path.path.segments.last().unwrap();
+    let args = &segment.arguments;
+    let ident = &segment.ident;
+    (path, args, ident)
+}
+
 pub(crate) fn impl_constraints(item_impl: &ItemImpl) -> (Generics, Option<WhereClause>) {
     let mut generics = item_impl.generics.clone();
     let where_clause = generics.where_clause.take();
