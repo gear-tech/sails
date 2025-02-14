@@ -14,6 +14,8 @@ use syn::{
 };
 
 mod args;
+#[cfg(feature = "ethexe")]
+mod ethexe;
 
 /// Static Spans of Program `impl` block
 static mut PROGRAM_SPANS: BTreeMap<String, Span> = BTreeMap::new();
@@ -72,6 +74,13 @@ fn gen_gprogram_impl(program_impl: ItemImpl, program_args: ProgramArgs) -> Token
     let services_ctors = discover_services_ctors(&program_impl);
 
     let mut program_impl = program_impl.clone();
+    ensure_default_program_ctor(&mut program_impl);
+
+    // Call this before `wire_up_service_exposure`
+    #[cfg(feature = "ethexe")]
+    let program_signature_impl = ethexe::program_signature_impl(&program_impl, &sails_path);
+    #[cfg(not(feature = "ethexe"))]
+    let program_signature_impl = quote!();
 
     let services_data = services_ctors
         .into_iter()
@@ -130,8 +139,9 @@ fn gen_gprogram_impl(program_impl: ItemImpl, program_args: ProgramArgs) -> Token
     let (program_type_path, _program_type_args, _) = shared::impl_type(&program_impl);
     let (generics, program_type_constraints) = shared::impl_constraints(&program_impl);
 
+    let program_ctors = discover_program_ctors(&program_impl);
     let (ctors_data, init_fn) = generate_init(
-        &mut program_impl,
+        &program_ctors,
         &program_type_path,
         &program_ident,
         &sails_path,
@@ -186,6 +196,8 @@ fn gen_gprogram_impl(program_impl: ItemImpl, program_args: ProgramArgs) -> Token
                 #(#ctors_meta_variants),*
             }
         }
+
+        #program_signature_impl
 
         #[cfg(target_arch = "wasm32")]
         pub mod wasm {
@@ -245,7 +257,7 @@ fn wire_up_service_exposure(
 }
 
 fn generate_init(
-    program_impl: &mut ItemImpl,
+    program_ctors: &BTreeMap<String, (&ImplItemFn, usize, bool)>,
     program_type_path: &TypePath,
     program_ident: &Ident,
     sails_path: &Path,
@@ -253,16 +265,6 @@ fn generate_init(
     impl Iterator<Item = (String, Ident, TokenStream2, Vec<Attribute>)> + Clone,
     TokenStream2,
 ) {
-    if discover_program_ctors(program_impl, program_type_path).is_empty() {
-        program_impl.items.push(ImplItem::Fn(parse_quote!(
-            pub fn default() -> Self {
-                Self
-            }
-        )));
-    }
-
-    let program_ctors = discover_program_ctors(program_impl, program_type_path);
-
     let input_ident = Ident::new("input", Span::call_site());
 
     let mut invocation_dispatches = Vec::with_capacity(program_ctors.len());
@@ -397,33 +399,53 @@ fn generate_handle<'a>(
     )
 }
 
-fn discover_program_ctors<'a>(
-    program_impl: &'a ItemImpl,
-    program_type_path: &'a TypePath,
-) -> BTreeMap<String, (&'a ImplItemFn, usize, bool)> {
-    let self_type_path = syn::parse_str::<TypePath>("Self").unwrap();
+fn ensure_default_program_ctor(program_impl: &mut ItemImpl) {
+    let self_type_path: TypePath = parse_quote!(Self);
+    let (program_type_path, _, _) = shared::impl_type_refs(program_impl.self_ty.as_ref());
+
+    if shared::discover_invocation_targets(program_impl, |fn_item| {
+        filter_program_ctors(fn_item, &self_type_path, program_type_path)
+    })
+    .is_empty()
+    {
+        program_impl.items.push(ImplItem::Fn(parse_quote!(
+            pub fn default() -> Self {
+                Self
+            }
+        )));
+    }
+}
+
+fn discover_program_ctors(program_impl: &ItemImpl) -> BTreeMap<String, (&ImplItemFn, usize, bool)> {
+    let self_type_path: TypePath = parse_quote!(Self);
+    let (program_type_path, _, _) = shared::impl_type_refs(program_impl.self_ty.as_ref());
     shared::discover_invocation_targets(program_impl, |fn_item| {
-        if matches!(fn_item.vis, Visibility::Public(_)) && fn_item.sig.receiver().is_none() {
-            if let ReturnType::Type(_, output_type) = &fn_item.sig.output {
-                if let Type::Path(output_type_path) = output_type.as_ref() {
-                    if output_type_path == &self_type_path || output_type_path == program_type_path
-                    {
+        filter_program_ctors(fn_item, &self_type_path, program_type_path)
+    })
+}
+
+fn filter_program_ctors(
+    fn_item: &ImplItemFn,
+    self_type_path: &TypePath,
+    program_type_path: &TypePath,
+) -> bool {
+    if matches!(fn_item.vis, Visibility::Public(_)) && fn_item.sig.receiver().is_none() {
+        if let ReturnType::Type(_, output_type) = &fn_item.sig.output {
+            if let Type::Path(output_type_path) = output_type.as_ref() {
+                if output_type_path == self_type_path || output_type_path == program_type_path {
+                    return true;
+                }
+                if let Some(Type::Path(output_type_path)) =
+                    shared::extract_result_type(output_type_path)
+                {
+                    if output_type_path == self_type_path || output_type_path == program_type_path {
                         return true;
-                    }
-                    if let Some(Type::Path(output_type_path)) =
-                        shared::extract_result_type(output_type_path)
-                    {
-                        if output_type_path == &self_type_path
-                            || output_type_path == program_type_path
-                        {
-                            return true;
-                        }
                     }
                 }
             }
         }
-        false
-    })
+    }
+    false
 }
 
 fn discover_services_ctors(
@@ -468,9 +490,8 @@ mod tests {
             }
         ))
         .unwrap();
-        let (program_type_path, ..) = shared::impl_type(&program_impl);
 
-        let discovered_ctors = discover_program_ctors(&program_impl, &program_type_path)
+        let discovered_ctors = discover_program_ctors(&program_impl)
             .iter()
             .map(|(.., (ctor_fn, ..))| ctor_fn.sig.ident.to_string())
             .collect::<Vec<_>>();

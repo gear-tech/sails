@@ -27,10 +27,7 @@ pub(crate) fn impl_type(item_impl: &ItemImpl) -> (TypePath, PathArguments, Ident
     (path, args, ident)
 }
 
-pub(crate) fn impl_type_refs<'a>(
-    item_impl: &'a ItemImpl,
-) -> (&'a TypePath, &'a PathArguments, &'a Ident) {
-    let item_impl_type = item_impl.self_ty.as_ref();
+pub(crate) fn impl_type_refs(item_impl_type: &Type) -> (&TypePath, &PathArguments, &Ident) {
     let path = if let Type::Path(type_path) = item_impl_type {
         type_path
     } else {
@@ -333,4 +330,39 @@ pub(crate) fn extract_result_type(tp: &TypePath) -> Option<&Type> {
         }
     }
     None
+}
+
+#[cfg(feature = "ethexe")]
+pub mod ethexe {
+    use super::*;
+    use convert_case::{Case, Casing};
+    use parity_scale_codec::Encode;
+
+    pub(crate) fn handler_signature(
+        handler_route: &str,
+        handler_fn: &ImplItemFn,
+        sails_path: &Path,
+    ) -> TokenStream2 {
+        let handler_route_bytes = handler_route.encode();
+        let handler_name = handler_route.to_case(Case::Snake);
+        let handler_func = Func::from(&handler_fn.sig);
+        let handler_types = handler_func
+            .params()
+            .iter()
+            .map(|item| {
+                let param_type = item.1;
+                quote!(#param_type,)
+            })
+            .chain([quote!(u128,)]);
+
+        quote! {
+            (
+                #sails_path::concatcp!(
+                    #handler_name,
+                    <<(#(#handler_types)*) as #sails_path::alloy_sol_types::SolValue>::SolType as #sails_path::alloy_sol_types::SolType>::SOL_NAME,
+                ),
+                &[ #(#handler_route_bytes),* ] as &[u8],
+            ),
+        }
+    }
 }
