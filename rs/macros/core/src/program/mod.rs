@@ -82,6 +82,16 @@ fn gen_gprogram_impl(program_impl: ItemImpl, program_args: ProgramArgs) -> Token
     #[cfg(not(feature = "ethexe"))]
     let program_signature_impl = quote!();
 
+    #[cfg(feature = "ethexe")]
+    let match_ctor_impl = ethexe::match_ctor_impl(&program_impl, &sails_path);
+    #[cfg(not(feature = "ethexe"))]
+    let match_ctor_impl = quote!();
+
+    #[cfg(feature = "ethexe")]
+    let program_const = ethexe::program_const(&program_impl, &sails_path);
+    #[cfg(not(feature = "ethexe"))]
+    let program_const = quote!();
+
     let services_data = services_ctors
         .into_iter()
         .map(|(route, (ctor_fn, ctor_idx, unwrap_result))| {
@@ -199,6 +209,8 @@ fn gen_gprogram_impl(program_impl: ItemImpl, program_args: ProgramArgs) -> Token
 
         #program_signature_impl
 
+        #program_const
+
         #[cfg(target_arch = "wasm32")]
         pub mod wasm {
             use super::*;
@@ -207,6 +219,8 @@ fn gen_gprogram_impl(program_impl: ItemImpl, program_args: ProgramArgs) -> Token
             static mut #program_ident: Option<#program_type_path> = None;
 
             #init_fn
+
+            #match_ctor_impl
 
             #handle_fn
         }

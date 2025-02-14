@@ -353,7 +353,7 @@ pub mod ethexe {
                 let param_type = item.1;
                 quote!(#param_type,)
             })
-            .chain([quote!(u128,)]);
+            .chain([quote!(u128,)]); // add uint128 to method signature
 
         quote! {
             (

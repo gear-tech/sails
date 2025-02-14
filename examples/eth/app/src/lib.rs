@@ -156,10 +156,6 @@ impl SomeService {
     pub fn this(&self, p1: bool) -> bool {
         p1
     }
-
-    pub const fn st(s: &'static str) -> &'static str {
-        s
-    }
 }
 pub struct SomeServiceExposure<T> {
     message_id: sails_rs::MessageId,

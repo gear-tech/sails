@@ -74,6 +74,76 @@ pub fn program_signature_impl(program_impl: &ItemImpl, sails_path: &Path) -> Tok
     }
 }
 
+pub fn program_const(program_impl: &ItemImpl, sails_path: &Path) -> TokenStream {
+    let (program_type_path, _, _) = shared::impl_type_refs(program_impl.self_ty.as_ref());
+    quote! {
+        const __CTOR_SIGS: [[u8; 4]; <#program_type_path as #sails_path::solidity::ProgramSignature>::CTORS.len()]
+            = #sails_path::solidity::ConstProgramMeta::<#program_type_path>::ctor_sigs();
+        const __METHOD_SIGS: [[u8; 4]; <#program_type_path as #sails_path::solidity::ProgramSignature>::METHODS_LEN]
+            = #sails_path::solidity::ConstProgramMeta::<#program_type_path>::method_sigs();
+        const __METHOD_ROUTES: [(&'static [u8], &'static [u8]); <#program_type_path as #sails_path::solidity::ProgramSignature>::METHODS_LEN]
+            = #sails_path::solidity::ConstProgramMeta::<#program_type_path>::method_routes();
+    }
+}
+
+pub fn match_ctor_impl(program_impl: &ItemImpl, sails_path: &Path) -> TokenStream {
+    let (program_type_path, _, _) = shared::impl_type_refs(program_impl.self_ty.as_ref());
+    let program_ctors = discover_program_ctors(program_impl);
+    let ctor_branches =
+        program_ctors
+            .iter()
+            .map(|(handler_route, (handler_fn, _, unwrap_result))| {
+                ctor_branch_impl(
+                    program_type_path,
+                    handler_route,
+                    handler_fn,
+                    *unwrap_result,
+                    sails_path,
+                )
+            });
+    quote! {
+        async fn match_ctor_solidity(ctor: &[u8], input: &[u8]) -> Option<#program_type_path> {
+            #( #ctor_branches )*
+            None
+        }
+    }
+}
+
+fn ctor_branch_impl(
+    program_type_path: &TypePath,
+    ctor_route: &str,
+    ctor_fn: &ImplItemFn,
+    unwrap_result: bool,
+    sails_path: &Path,
+) -> TokenStream {
+    let handler_route_bytes = ctor_route.encode();
+    let handler_func = Func::from(&ctor_fn.sig);
+    let handler_ident = handler_func.ident();
+    let handler_params = handler_func.params().iter().map(|item| {
+        let param_ident = item.0;
+        quote!(#param_ident)
+    });
+    let handler_params_comma = handler_func.params().iter().map(|item| {
+        let param_ident = item.0;
+        quote!(#param_ident,)
+    });
+    let handler_types = handler_func.params().iter().map(|item| {
+        let param_type = item.1;
+        quote!(#param_type,)
+    });
+
+    let await_token = handler_func.is_async().then(|| quote!(.await));
+    let unwrap_token = unwrap_result.then(|| quote!(.unwrap()));
+
+    quote! {
+        if ctor == &[ #(#handler_route_bytes),* ] {
+            let (#(#handler_params_comma)*) : (#(#handler_types)*) = #sails_path::alloy_sol_types::SolValue::abi_decode_params(input, false).expect("Failed to decode request");
+            let program = #program_type_path :: #handler_ident (#(#handler_params),*) #await_token #unwrap_token;
+            return Some(program);
+        }
+    }
+}
+
 fn service_signature(
     service_route: &str,
     service_fn: &ImplItemFn,
