@@ -6655,7 +6655,7 @@ dependencies = [
 name = "sails-idl-parser"
 version = "0.7.3"
 dependencies = [
- "itertools 0.13.0",
+ "itertools 0.14.0",
  "lalrpop",
  "lalrpop-util",
  "logos",
