@@ -14,10 +14,20 @@ async fn eth_app_sol_works() {
 
     let program = Program::from_file(&system, DEMO_WASM_PATH);
 
-    let ctor = sails_rs::solidity::selector("default()");
-    program.send_bytes(ADMIN_ID, ctor.as_slice());
+    let ctor = sails_rs::solidity::selector("default(uint128)");
+    let message_id = program.send_bytes(ADMIN_ID, ctor.as_slice());
+    let run_result = system.run_next_block();
+    let reply_log_record = run_result
+        .log()
+        .iter()
+        .find(|entry| entry.reply_to() == Some(message_id))
+        .unwrap();
+    assert!(matches!(
+        reply_log_record.reply_code(),
+        Some(sails_rs::gear_core_errors::ReplyCode::Success(_))
+    ));
 
-    let do_this_sig = sails_rs::solidity::selector("svc1_do_this(uint32,string)");
+    let do_this_sig = sails_rs::solidity::selector("svc1_do_this(uint32,string,uint128)");
     let do_this_params = (42, "hello").abi_encode_params();
     let payload = [do_this_sig.as_slice(), do_this_params.as_slice()].concat();
 

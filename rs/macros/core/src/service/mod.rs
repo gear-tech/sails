@@ -261,9 +261,6 @@ fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
     let no_events_type = Path::from(Ident::new("NoEvents", Span::call_site()));
     let events_type = events_type.unwrap_or(&no_events_type);
 
-    let unexpected_route_panic =
-        shared::generate_unexpected_input_panic(&input_ident, "Unknown request", &sails_path);
-
     let mut exposure_lifetimes: Punctuated<Lifetime, Comma> = Punctuated::new();
     if !service_args.base_types().is_empty() {
         for lt in lifetimes.iter().map(|lt| {
@@ -353,12 +350,6 @@ fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
             #( #exposure_funcs )*
 
             #( #base_exposure_accessors )*
-
-            pub async fn handle(&mut self, #input_ident: &[u8]) -> (Vec<u8>, u128) {
-                self.try_handle( #input_ident ).await.unwrap_or_else(|| {
-                    #unexpected_route_panic
-                })
-            }
 
             pub async fn try_handle(&mut self, #input_ident : &[u8]) -> Option<(Vec<u8>, u128)> {
                 #( #invocation_dispatches )*

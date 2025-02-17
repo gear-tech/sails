@@ -1,7 +1,7 @@
 use crate::export;
-use proc_macro2::{Span, TokenStream as TokenStream2};
+use proc_macro2::Span;
 use proc_macro_error::abort;
-use quote::{quote, ToTokens};
+use quote::ToTokens;
 use std::collections::BTreeMap;
 use syn::{
     punctuated::Punctuated, spanned::Spanned, FnArg, GenericArgument, Generics, Ident, ImplItem,
@@ -169,30 +169,6 @@ pub(crate) fn discover_invocation_targets(
         })
 }
 
-pub(crate) fn generate_unexpected_input_panic(
-    input_ident: &Ident,
-    message: &str,
-    sails_path: &Path,
-) -> TokenStream2 {
-    let message_pattern = message.to_owned() + ": {}";
-    let copy_ident = Ident::new(&format!("__{}", input_ident), Span::call_site());
-    quote!({
-        let mut #copy_ident = #input_ident;
-        let input: String = #sails_path::Decode::decode(&mut #copy_ident)
-            .unwrap_or_else(|_| {
-                if #input_ident.len() <= 8 {
-                    format!("0x{}", #sails_path::hex::encode(#input_ident))
-                } else {
-                    format!(
-                        "0x{}..{}",
-                        #sails_path::hex::encode(&#input_ident[..4]),
-                        #sails_path::hex::encode(&#input_ident[#input_ident.len() - 4..]))
-                }
-            });
-        panic!(#message_pattern, input)
-    })
-}
-
 pub(crate) fn extract_lifetime_names(path_args: &PathArguments) -> Vec<String> {
     if let PathArguments::AngleBracketed(type_args) = path_args {
         type_args
@@ -337,12 +313,14 @@ pub mod ethexe {
     use super::*;
     use convert_case::{Case, Casing};
     use parity_scale_codec::Encode;
+    use proc_macro2::TokenStream;
+    use quote::quote;
 
     pub(crate) fn handler_signature(
         handler_route: &str,
         handler_fn: &ImplItemFn,
         sails_path: &Path,
-    ) -> TokenStream2 {
+    ) -> TokenStream {
         let handler_route_bytes = handler_route.encode();
         let handler_name = handler_route.to_case(Case::Snake);
         let handler_func = Func::from(&handler_fn.sig);

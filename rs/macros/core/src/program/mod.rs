@@ -281,7 +281,7 @@ fn generate_init(
 ) {
     let input_ident = Ident::new("input", Span::call_site());
 
-    let mut invocation_dispatches = Vec::with_capacity(program_ctors.len());
+    let mut invocation_dispatches = Vec::with_capacity(program_ctors.len() + 1);
     let mut invocation_params_structs = Vec::with_capacity(program_ctors.len());
 
     for (invocation_route, (program_ctor, _, unwrap_result)) in program_ctors {
@@ -339,22 +339,43 @@ fn generate_init(
         });
     }
 
-    invocation_dispatches.push(shared::generate_unexpected_input_panic(
-        &input_ident,
-        "Unexpected ctor",
-        sails_path,
-    ));
+    invocation_dispatches.push(quote! {
+        { #sails_path::gstd::unknown_input_panic("Unexpected ctor", input) }
+    });
+
+    #[cfg(feature = "ethexe")]
+    let solidity_init = {
+        quote! {
+            if let Ok(sig) = TryInto::<[u8; 4]>::try_into(&#input_ident[..4]) {
+                if let Some(idx) = __CTOR_SIGS.iter().position(|s| s == &sig) {
+                    let (_, ctor_route) = <#program_type_path as #sails_path::solidity::ProgramSignature>::CTORS[idx];
+                    unsafe {
+                        #program_ident = match_ctor_solidity(ctor_route, &#input_ident[4..]).await;
+                    }
+                    if unsafe { #program_ident.is_some() } {
+                        #sails_path::gstd::msg::reply_bytes(ctor_route, 0).expect("Failed to send output");
+                        return;
+                    }
+                }
+            }
+        }
+    };
+    #[cfg(not(feature = "ethexe"))]
+    let solidity_init = quote!();
 
     let init = quote!(
         #[gstd::async_init]
         async fn init() {
             #sails_path::gstd::events::__enable_events();
-            let mut #input_ident: &[u8] = &gstd::msg::load_bytes().expect("Failed to read input");
+            let mut #input_ident: &[u8] = &#sails_path::gstd::msg::load_bytes().expect("Failed to read input");
+
+            #solidity_init
+
             let (program, invocation_route) = #(#invocation_dispatches)else*;
             unsafe {
                 #program_ident = Some(program);
             }
-            gstd::msg::reply_bytes(invocation_route, 0).expect("Failed to send output");
+            #sails_path::gstd::msg::reply_bytes(invocation_route, 0).expect("Failed to send output");
         }
     );
 
@@ -371,24 +392,41 @@ fn generate_handle<'a>(
 
     let mut invocation_dispatches = Vec::new();
 
+    #[cfg(feature = "ethexe")]
+    let mut solidity_dispatchers = Vec::new();
+
     for (service_route_ident, service_ctor_ident) in service_ctors {
         invocation_dispatches.push({
             quote!(
                 if #input_ident.starts_with(& #service_route_ident) {
-                    let program_ref = unsafe { #program_ident.as_ref() }.expect("Program not initialized");
                     let mut service = program_ref.#service_ctor_ident();
-                    let (output, value) = service.handle(&#input_ident[#service_route_ident .len()..]).await;
+                    let (output, value) = service.try_handle(&#input_ident[#service_route_ident .len()..]).await.unwrap_or_else(|| {
+                        #sails_path::gstd::unknown_input_panic("Unknown request", input)
+                    });
                     ([#service_route_ident .as_ref(), &output].concat(), value)
                 }
             )
         });
+
+        #[cfg(feature = "ethexe")]
+        solidity_dispatchers.push(quote! {
+            if route == & #service_route_ident {
+                let mut service = program_ref.#service_ctor_ident();
+                let (output, value) = service
+                    .try_handle_solidity(method, &input[4..])
+                    .await
+                    .unwrap_or_else(|| {
+                        #sails_path::gstd::unknown_input_panic("Unknown request", input)
+                    });
+                #sails_path::gstd::msg::reply_bytes(output, value).expect("Failed to send output");
+                return;
+            }
+        });
     }
 
-    invocation_dispatches.push(shared::generate_unexpected_input_panic(
-        &input_ident,
-        "Unexpected service",
-        sails_path,
-    ));
+    invocation_dispatches.push(quote! {
+        { #sails_path::gstd::unknown_input_panic("Unexpected service", input) }
+    });
 
     let mut args = Vec::with_capacity(2);
     if let Some(handle_reply) = program_args.handle_reply() {
@@ -403,12 +441,30 @@ fn generate_handle<'a>(
         quote!((#(#args),*))
     };
 
+    #[cfg(feature = "ethexe")]
+    let solidity_main = {
+        quote! {
+            if let Ok(sig) = TryInto::<[u8; 4]>::try_into(&#input_ident[..4]) {
+                if let Some(idx) = __METHOD_SIGS.iter().position(|s| s == &sig) {
+                    let (route, method) = __METHOD_ROUTES[idx];
+                    #(#solidity_dispatchers)*
+                }
+            }
+        }
+    };
+    #[cfg(not(feature = "ethexe"))]
+    let solidity_main = quote!();
+
     quote!(
         #[gstd::async_main #async_main_args]
         async fn main() {
-            let mut #input_ident: &[u8] = &gstd::msg::load_bytes().expect("Failed to read input");
+            let mut #input_ident: &[u8] = &#sails_path::gstd::msg::load_bytes().expect("Failed to read input");
+            let program_ref = unsafe { #program_ident.as_ref() }.expect("Program not initialized");
+
+            #solidity_main
+
             let (output, value): (Vec<u8>, ValueUnit) = #(#invocation_dispatches)else*;
-            gstd::msg::reply_bytes(output, value).expect("Failed to send output");
+            #sails_path::gstd::msg::reply_bytes(output, value).expect("Failed to send output");
         }
     )
 }
