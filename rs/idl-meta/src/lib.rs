@@ -1,6 +1,6 @@
 #![no_std]
 
-use scale_info::{prelude::vec::Vec, MetaType};
+use scale_info::{prelude::vec::Vec, MetaType, TypeInfo};
 
 pub trait ServiceMeta {
     fn commands() -> MetaType;
@@ -43,7 +43,13 @@ impl AnyServiceMeta {
     }
 }
 
-pub trait ProgramMeta {
-    fn constructors() -> MetaType;
+pub trait ProgramMeta
+where
+    Self::ConstructorsMeta: TypeInfo + 'static,
+{
+    type ConstructorsMeta;
+    fn constructors() -> MetaType {
+        MetaType::new::<Self::ConstructorsMeta>()
+    }
     fn services() -> impl Iterator<Item = (&'static str, AnyServiceMeta)>;
 }

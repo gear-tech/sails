@@ -1,6 +1,6 @@
 use syn::{parse_quote, Path};
 
-const SAILS: &str = "sails_rs";
+pub const SAILS: &str = "sails_rs";
 
 pub(crate) fn sails_path_or_default(sails_custom_path: Option<syn::Path>) -> syn::Path {
     sails_custom_path.unwrap_or_else(|| syn::parse_str(SAILS).unwrap())

@@ -226,9 +226,7 @@ enum EmptyCtorsMeta {}
 struct TestProgramWithEmptyCtorsMeta;
 
 impl ProgramMeta for TestProgramWithEmptyCtorsMeta {
-    fn constructors() -> MetaType {
-        scale_info::meta_type::<EmptyCtorsMeta>()
-    }
+    type ConstructorsMeta = EmptyCtorsMeta;
 
     fn services() -> impl Iterator<Item = (&'static str, AnyServiceMeta)> {
         [("", AnyServiceMeta::new::<TestServiceMeta>())].into_iter()
@@ -248,9 +246,7 @@ enum NonEmptyCtorsMeta {
 struct TestProgramWithNonEmptyCtorsMeta;
 
 impl ProgramMeta for TestProgramWithNonEmptyCtorsMeta {
-    fn constructors() -> MetaType {
-        scale_info::meta_type::<NonEmptyCtorsMeta>()
-    }
+    type ConstructorsMeta = NonEmptyCtorsMeta;
 
     fn services() -> impl Iterator<Item = (&'static str, AnyServiceMeta)> {
         [("", AnyServiceMeta::new::<TestServiceMeta>())].into_iter()
@@ -260,9 +256,7 @@ impl ProgramMeta for TestProgramWithNonEmptyCtorsMeta {
 struct TestProgramWithMultipleServicesMeta;
 
 impl ProgramMeta for TestProgramWithMultipleServicesMeta {
-    fn constructors() -> MetaType {
-        scale_info::meta_type::<EmptyCtorsMeta>()
-    }
+    type ConstructorsMeta = EmptyCtorsMeta;
 
     fn services() -> impl Iterator<Item = (&'static str, AnyServiceMeta)> {
         [

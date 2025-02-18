@@ -8,24 +8,25 @@ use syn::{
     Path, Token,
 };
 
-#[derive(Debug, Default, PartialEq)]
+#[derive(Debug, PartialEq)]
 pub(super) struct ProgramArgs {
     handle_reply: Option<Path>,
     handle_signal: Option<Path>,
     sails_path: Option<Path>,
+    default_sails_path: Path,
 }
 
 impl ProgramArgs {
-    pub fn handle_reply(&self) -> &Option<Path> {
-        &self.handle_reply
+    pub fn handle_reply(&self) -> Option<&Path> {
+        self.handle_reply.as_ref()
     }
 
-    pub fn handle_signal(&self) -> &Option<Path> {
-        &self.handle_signal
+    pub fn handle_signal(&self) -> Option<&Path> {
+        self.handle_signal.as_ref()
     }
 
-    pub fn sails_path(&self) -> syn::Path {
-        sails_paths::sails_path_or_default(self.sails_path.clone())
+    pub fn sails_path(&self) -> &syn::Path {
+        self.sails_path.as_ref().unwrap_or(&self.default_sails_path)
     }
 }
 
@@ -36,6 +37,7 @@ impl Parse for ProgramArgs {
             handle_reply: None,
             handle_signal: None,
             sails_path: None,
+            default_sails_path: syn::parse_str(sails_paths::SAILS).unwrap(),
         };
         let mut existing_attrs = BTreeSet::new();
 
@@ -110,6 +112,7 @@ mod tests {
                 PathSegment::from(Ident::new("my_handle_signal", Span::call_site())).into(),
             ),
             sails_path: None,
+            default_sails_path: syn::parse_str(sails_paths::SAILS).unwrap(),
         };
 
         // act
@@ -129,6 +132,7 @@ mod tests {
             sails_path: Some(
                 PathSegment::from(Ident::new("sails_rename", Span::call_site())).into(),
             ),
+            default_sails_path: syn::parse_str(sails_paths::SAILS).unwrap(),
         };
 
         // act

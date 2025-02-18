@@ -42,7 +42,7 @@ pub fn program_signature_impl(program_impl: &ItemImpl, sails_path: &Path) -> Tok
             shared::ethexe::handler_signature(handler_route, handler_fn, sails_path)
         });
 
-    let services_ctors = discover_services_ctors(program_impl);
+    let services_ctors = shared::discover_invocation_targets(program_impl, service_ctor_predicate);
     let service_signatures =
         services_ctors
             .iter()
@@ -74,8 +74,7 @@ pub fn program_signature_impl(program_impl: &ItemImpl, sails_path: &Path) -> Tok
     }
 }
 
-pub fn program_const(program_impl: &ItemImpl, sails_path: &Path) -> TokenStream {
-    let (program_type_path, _, _) = shared::impl_type_refs(program_impl.self_ty.as_ref());
+pub fn program_const(program_type_path: &TypePath, sails_path: &Path) -> TokenStream {
     quote! {
         const __CTOR_SIGS: [[u8; 4]; <#program_type_path as #sails_path::solidity::ProgramSignature>::CTORS.len()]
             = #sails_path::solidity::ConstProgramMeta::<#program_type_path>::ctor_sigs();

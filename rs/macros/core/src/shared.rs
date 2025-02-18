@@ -1,7 +1,8 @@
 use crate::export;
-use proc_macro2::Span;
+use parity_scale_codec::Encode;
+use proc_macro2::{Span, TokenStream};
 use proc_macro_error::abort;
-use quote::ToTokens;
+use quote::{quote, ToTokens};
 use std::collections::BTreeMap;
 use syn::{
     punctuated::Punctuated, spanned::Spanned, FnArg, GenericArgument, Generics, Ident, ImplItem,
@@ -63,8 +64,8 @@ impl<'a> Func<'a> {
     pub(crate) fn from(handler_signature: &'a Signature) -> Self {
         let func = &handler_signature.ident;
         let receiver = handler_signature.receiver();
-        let params = Self::extract_params(handler_signature).collect();
-        let result = Self::extract_result(handler_signature);
+        let params = extract_params(handler_signature).collect();
+        let result = result_type(handler_signature);
         Self {
             ident: func,
             receiver,
@@ -93,24 +94,20 @@ impl<'a> Func<'a> {
     pub(crate) fn is_async(&self) -> bool {
         self.is_async
     }
+}
 
-    fn extract_params(handler_signature: &Signature) -> impl Iterator<Item = (&Ident, &Type)> {
-        handler_signature.inputs.iter().filter_map(|arg| {
-            if let FnArg::Typed(arg) = arg {
-                let arg_ident = if let Pat::Ident(arg_ident) = arg.pat.as_ref() {
-                    &arg_ident.ident
-                } else {
-                    abort!(arg.span(), "unnamed arguments are not supported");
-                };
-                return Some((arg_ident, arg.ty.as_ref()));
-            }
-            None
-        })
-    }
-
-    fn extract_result(handler_signature: &Signature) -> Type {
-        result_type(handler_signature)
-    }
+fn extract_params(handler_signature: &Signature) -> impl Iterator<Item = (&Ident, &Type)> {
+    handler_signature.inputs.iter().filter_map(|arg| {
+        if let FnArg::Typed(arg) = arg {
+            let arg_ident = if let Pat::Ident(arg_ident) = arg.pat.as_ref() {
+                &arg_ident.ident
+            } else {
+                abort!(arg.span(), "unnamed arguments are not supported");
+            };
+            return Some((arg_ident, arg.ty.as_ref()));
+        }
+        None
+    })
 }
 
 pub(crate) fn result_type(handler_signature: &Signature) -> Type {
@@ -308,13 +305,81 @@ pub(crate) fn extract_result_type(tp: &TypePath) -> Option<&Type> {
     None
 }
 
+/// Represents parts of a handler function.
+#[derive(Clone)]
+pub(crate) struct FnBuilder<'a> {
+    pub route: String,
+    pub encoded_route: Vec<u8>,
+    pub impl_fn: &'a ImplItemFn,
+    pub ident: &'a Ident,
+    pub receiver: Option<&'a Receiver>,
+    pub params: Vec<(&'a Ident, &'a Type)>,
+    pub result_type: Type,
+    pub is_async: bool,
+    pub unwrap_result: bool,
+    pub sails_path: &'a Path,
+}
+
+impl<'a> FnBuilder<'a> {
+    pub(crate) fn from(
+        route: String,
+        impl_fn: &'a ImplItemFn,
+        unwrap_result: bool,
+        sails_path: &'a Path,
+    ) -> Self {
+        let encoded_route = route.encode();
+        let handler_signature = &impl_fn.sig;
+        let ident = &handler_signature.ident;
+        let receiver = handler_signature.receiver();
+        let params = extract_params(handler_signature).collect();
+        let result_type = unwrap_result_type(handler_signature, unwrap_result);
+        Self {
+            route,
+            encoded_route,
+            impl_fn,
+            ident,
+            receiver,
+            params,
+            result_type,
+            is_async: handler_signature.asyncness.is_some(),
+            unwrap_result,
+            sails_path,
+        }
+    }
+
+    #[cfg(feature = "ethexe")]
+    pub(crate) fn sol_handler_signature(&self) -> TokenStream {
+        use convert_case::{Case, Casing};
+
+        let sails_path = self.sails_path;
+        let handler_route_bytes = self.encoded_route.as_slice();
+        let handler_name = self.route.to_case(Case::Snake);
+        let handler_types = self
+            .params
+            .iter()
+            .map(|item| {
+                let param_type = item.1;
+                quote!(#param_type,)
+            })
+            .chain([quote!(u128,)]); // add uint128 to method signature
+
+        quote! {
+            (
+                #sails_path::concatcp!(
+                    #handler_name,
+                    <<(#(#handler_types)*) as #sails_path::alloy_sol_types::SolValue>::SolType as #sails_path::alloy_sol_types::SolType>::SOL_NAME,
+                ),
+                &[ #(#handler_route_bytes),* ] as &[u8],
+            ),
+        }
+    }
+}
+
 #[cfg(feature = "ethexe")]
 pub mod ethexe {
     use super::*;
     use convert_case::{Case, Casing};
     use parity_scale_codec::Encode;
-    use proc_macro2::TokenStream;
-    use quote::quote;
 
     pub(crate) fn handler_signature(
         handler_route: &str,
