@@ -8,9 +8,7 @@ use proc_macro2::{Span, TokenStream as TokenStream2};
 use proc_macro_error::abort;
 use quote::quote;
 use std::{
-    collections::BTreeMap,
-    env,
-    ops::{Deref, DerefMut},
+    collections::BTreeMap, env, ops::{Deref, DerefMut}
 };
 use syn::{
     parse_quote, spanned::Spanned, Attribute, Generics, Ident, ImplItem, ImplItemFn, ItemImpl,
@@ -99,6 +97,20 @@ impl ProgramBuilder {
 
     fn impl_constraints(&self) -> (&Generics, Option<&WhereClause>) {
         (&self.program_impl.generics, self.type_constraints.as_ref())
+    }
+
+    fn program_ctors(&self) -> Vec<FnBuilder<'_>> {
+        discover_program_ctors(&self.program_impl)
+            .into_iter()
+            .map(|(route, (fn_impl, _idx,  unwrap_result))| FnBuilder::from(route, fn_impl, unwrap_result, self.sails_path()))
+            .collect::<Vec<_>>()
+    }
+
+    fn service_ctors(&self) -> Vec<FnBuilder<'_>> {
+        shared::discover_invocation_targets(self, service_ctor_predicate)
+            .into_iter()
+            .map(|(route, (fn_impl, _idx,  unwrap_result))| FnBuilder::from(route, fn_impl, unwrap_result, self.sails_path()))
+            .collect::<Vec<_>>()
     }
 }
 
@@ -246,30 +258,30 @@ fn gen_gprogram_impl(program_impl: ItemImpl, program_args: ProgramArgs) -> Token
 
     // Call this before `wire_up_service_exposure`
     #[cfg(feature = "ethexe")]
-    let program_signature_impl = ethexe::program_signature_impl(&program_builder, &sails_path);
+    let program_signature_impl = program_builder.program_signature_impl();
     #[cfg(not(feature = "ethexe"))]
     let program_signature_impl = quote!();
 
     #[cfg(feature = "ethexe")]
-    let match_ctor_impl = ethexe::match_ctor_impl(&program_builder, &sails_path);
+    let match_ctor_impl = program_builder.match_ctor_impl();
     #[cfg(not(feature = "ethexe"))]
     let match_ctor_impl = quote!();
 
     #[cfg(feature = "ethexe")]
-    let program_const = ethexe::program_const(&program_builder.impl_type().0, &sails_path);
+    let program_const = program_builder.program_const();
     #[cfg(not(feature = "ethexe"))]
     let program_const = quote!();
 
     let program_ident = Ident::new("PROGRAM", Span::call_site());
-
-    let (service_tokens, main_fn) = program_builder.wire_up_service_exposure(&program_ident);
+    
+    let (program_meta, main_fn) = program_builder.wire_up_service_exposure(&program_ident);
 
     let (program_type_path, _program_type_args, _) = program_builder.impl_type();
 
     let program_ctors = discover_program_ctors(&program_builder);
     let (ctors_data, init_fn) = generate_init(
         &program_ctors,
-        &program_type_path,
+        program_type_path,
         &program_ident,
         &sails_path,
     );
@@ -291,7 +303,7 @@ fn gen_gprogram_impl(program_impl: ItemImpl, program_args: ProgramArgs) -> Token
     quote!(
         #program_impl
 
-        #service_tokens
+        #program_meta
 
         #(
             #[derive(#sails_path ::Decode, #sails_path ::TypeInfo)]
@@ -506,7 +518,7 @@ fn service_ctor_predicate(fn_item: &ImplItemFn) -> bool {
         && !matches!(fn_item.sig.output, ReturnType::Default)
 }
 
-impl<'a> FnBuilder<'a> {
+impl FnBuilder<'_> {
     fn route_ident(&self) -> Ident {
         Ident::new(
             &format!("__ROUTE_{}", self.route.to_ascii_uppercase()),
@@ -524,7 +536,7 @@ impl<'a> FnBuilder<'a> {
     }
 
     fn service_const_route(&self) -> TokenStream2 {
-        let route_ident = self.route_ident();
+        let route_ident = &self.route_ident();
         let ctor_route_bytes = self.encoded_route.as_slice();
         let ctor_route_len = ctor_route_bytes.len();
         quote!(

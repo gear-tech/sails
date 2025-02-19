@@ -1,8 +1,8 @@
 use crate::export;
 use parity_scale_codec::Encode;
-use proc_macro2::{Span, TokenStream};
+use proc_macro2::Span;
 use proc_macro_error::abort;
-use quote::{quote, ToTokens};
+use quote::ToTokens;
 use std::collections::BTreeMap;
 use syn::{
     punctuated::Punctuated, spanned::Spanned, FnArg, GenericArgument, Generics, Ident, ImplItem,
@@ -344,68 +344,6 @@ impl<'a> FnBuilder<'a> {
             is_async: handler_signature.asyncness.is_some(),
             unwrap_result,
             sails_path,
-        }
-    }
-
-    #[cfg(feature = "ethexe")]
-    pub(crate) fn sol_handler_signature(&self) -> TokenStream {
-        use convert_case::{Case, Casing};
-
-        let sails_path = self.sails_path;
-        let handler_route_bytes = self.encoded_route.as_slice();
-        let handler_name = self.route.to_case(Case::Snake);
-        let handler_types = self
-            .params
-            .iter()
-            .map(|item| {
-                let param_type = item.1;
-                quote!(#param_type,)
-            })
-            .chain([quote!(u128,)]); // add uint128 to method signature
-
-        quote! {
-            (
-                #sails_path::concatcp!(
-                    #handler_name,
-                    <<(#(#handler_types)*) as #sails_path::alloy_sol_types::SolValue>::SolType as #sails_path::alloy_sol_types::SolType>::SOL_NAME,
-                ),
-                &[ #(#handler_route_bytes),* ] as &[u8],
-            ),
-        }
-    }
-}
-
-#[cfg(feature = "ethexe")]
-pub mod ethexe {
-    use super::*;
-    use convert_case::{Case, Casing};
-    use parity_scale_codec::Encode;
-
-    pub(crate) fn handler_signature(
-        handler_route: &str,
-        handler_fn: &ImplItemFn,
-        sails_path: &Path,
-    ) -> TokenStream {
-        let handler_route_bytes = handler_route.encode();
-        let handler_name = handler_route.to_case(Case::Snake);
-        let handler_func = Func::from(&handler_fn.sig);
-        let handler_types = handler_func
-            .params()
-            .iter()
-            .map(|item| {
-                let param_type = item.1;
-                quote!(#param_type,)
-            })
-            .chain([quote!(u128,)]); // add uint128 to method signature
-
-        quote! {
-            (
-                #sails_path::concatcp!(
-                    #handler_name,
-                    <<(#(#handler_types)*) as #sails_path::alloy_sol_types::SolValue>::SolType as #sails_path::alloy_sol_types::SolType>::SOL_NAME,
-                ),
-                &[ #(#handler_route_bytes),* ] as &[u8],
-            ),
         }
     }
 }

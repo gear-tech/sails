@@ -17,7 +17,7 @@ pub fn service_signature_impl(service_impl: &ItemImpl, sails_path: &Path) -> Tok
         service_handlers
             .iter()
             .map(|(handler_route, (handler_fn, _, _))| {
-                shared::ethexe::handler_signature(handler_route, handler_fn, sails_path)
+                handler_signature(handler_route, handler_fn, sails_path)
             });
 
     quote! {
@@ -73,5 +73,33 @@ fn try_handle_branch_impl(
         if method == &[ #(#handler_route_bytes),* ] {
             #invocation
         }
+    }
+}
+
+fn handler_signature(
+    handler_route: &str,
+    handler_fn: &ImplItemFn,
+    sails_path: &Path,
+) -> TokenStream {
+    let handler_route_bytes = handler_route.encode();
+    let handler_name = handler_route.to_case(Case::Snake);
+    let handler_func = Func::from(&handler_fn.sig);
+    let handler_types = handler_func
+        .params()
+        .iter()
+        .map(|item| {
+            let param_type = item.1;
+            quote!(#param_type,)
+        })
+        .chain([quote!(u128,)]); // add uint128 to method signature
+
+    quote! {
+        (
+            #sails_path::concatcp!(
+                #handler_name,
+                <<(#(#handler_types)*) as #sails_path::alloy_sol_types::SolValue>::SolType as #sails_path::alloy_sol_types::SolType>::SOL_NAME,
+            ),
+            &[ #(#handler_route_bytes),* ] as &[u8],
+        ),
     }
 }
