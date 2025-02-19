@@ -16,11 +16,11 @@ pub(super) struct ServiceArgs {
 
 impl ServiceArgs {
     pub fn base_types(&self) -> &[Path] {
-        &self.base_types
+        self.base_types.as_slice()
     }
 
-    pub fn events_type(&self) -> &Option<Path> {
-        &self.events_type
+    pub fn events_type(&self) -> Option<&Path> {
+        self.events_type.as_ref()
     }
 
     pub fn sails_path(&self) -> syn::Path {

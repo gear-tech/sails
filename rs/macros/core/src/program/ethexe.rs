@@ -159,7 +159,7 @@ impl FnBuilder<'_> {
             quote!(#param_type,)
         });
 
-        let await_token = self.is_async.then(|| quote!(.await));
+        let await_token = self.is_async().then(|| quote!(.await));
         let unwrap_token = self.unwrap_result.then(|| quote!(.unwrap()));
 
         quote! {

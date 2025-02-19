@@ -1,105 +1,109 @@
 use super::*;
-use crate::{
-    service::HandlerGenerator,
-    shared::{self, Func},
-};
-use parity_scale_codec::Encode;
 use proc_macro2::TokenStream;
 use quote::quote;
 
-pub fn service_signature_impl(service_impl: &ItemImpl, sails_path: &Path) -> TokenStream {
-    let (service_type_path, _, _) = shared::impl_type_refs(service_impl.self_ty.as_ref());
-    let (generics, service_type_constraints) = shared::impl_constraints(service_impl);
-    let service_handlers = shared::discover_invocation_targets(service_impl, |fn_item| {
-        matches!(fn_item.vis, Visibility::Public(_)) && fn_item.sig.receiver().is_some()
-    });
-    let service_method_routes =
-        service_handlers
+impl ServiceBuilder<'_> {
+    pub fn service_signature_impl(&self) -> TokenStream {
+        let sails_path = self.sails_path;
+        let service_type_path = self.type_path;
+        let generics = &self.generics;
+        let service_type_constraints = self.type_constraints.as_ref();
+        let service_method_routes = self
+            .service_handlers
             .iter()
-            .map(|(handler_route, (handler_fn, _, _))| {
-                handler_signature(handler_route, handler_fn, sails_path)
-            });
+            .map(|fn_builder| fn_builder.sol_handler_signature());
 
-    quote! {
-        impl #generics #sails_path::solidity::ServiceSignature for #service_type_path #service_type_constraints {
-            const METHODS: &'static [#sails_path::solidity::MethodRoute] = &[
-                #( #service_method_routes )*
-            ];
+        quote! {
+            impl #generics #sails_path::solidity::ServiceSignature for #service_type_path #service_type_constraints {
+                const METHODS: &'static [#sails_path::solidity::MethodRoute] = &[
+                    #( #service_method_routes )*
+                ];
+            }
         }
     }
-}
 
-pub fn try_handle_impl(service_impl: &ItemImpl, sails_path: &Path) -> TokenStream {
-    let service_handlers = shared::discover_invocation_targets(service_impl, |fn_item| {
-        matches!(fn_item.vis, Visibility::Public(_)) && fn_item.sig.receiver().is_some()
-    });
-    let service_method_branches =
-        service_handlers
+    pub fn try_handle_impl(&self) -> TokenStream {
+        let service_method_branches = self
+            .service_handlers
             .iter()
-            .map(|(handler_route, (handler_fn, _, unwrap_result))| {
-                try_handle_branch_impl(handler_route, handler_fn, *unwrap_result, sails_path)
-            });
+            .map(|fn_builder| fn_builder.try_handle_branch_impl());
 
-    quote! {
-        pub async fn try_handle_solidity(
-            &mut self,
-            method: &[u8],
-            input: &[u8],
-        ) -> Option<(Vec<u8>, u128)> {
-            #( #service_method_branches )*
-            None
+        quote! {
+            pub async fn try_handle_solidity(
+                &mut self,
+                method: &[u8],
+                input: &[u8],
+            ) -> Option<(Vec<u8>, u128)> {
+                #( #service_method_branches )*
+                None
+            }
         }
     }
 }
 
-/// Generates code
-/// ```rust
-/// if method == &[24u8, 68u8, 111u8, 84u8, 104u8, 105u8, 115u8] {
-///     // invocation
-/// }
-/// ```
-fn try_handle_branch_impl(
-    handler_route: &str,
-    handler_fn: &ImplItemFn,
-    unwrap_result: bool,
-    sails_path: &Path,
-) -> TokenStream {
-    let handler_route_bytes = handler_route.encode();
-    let handler_func = Func::from(&handler_fn.sig);
-    let handler_generator = HandlerGenerator::from(handler_func.clone(), unwrap_result);
-    let invocation = handler_generator.invocation_func_solidity(sails_path);
+impl FnBuilder<'_> {
+    /// Generates code
+    /// ```rust
+    /// if method == &[24u8, 68u8, 111u8, 84u8, 104u8, 105u8, 115u8] {
+    ///     // invocation
+    /// }
+    /// ```
+    fn try_handle_branch_impl(&self) -> TokenStream {
+        let handler_route_bytes = self.encoded_route.as_slice();
+        let invocation = self.sol_invocation_func();
 
-    quote! {
-        if method == &[ #(#handler_route_bytes),* ] {
-            #invocation
+        quote! {
+            if method == &[ #(#handler_route_bytes),* ] {
+                #invocation
+            }
         }
     }
-}
 
-fn handler_signature(
-    handler_route: &str,
-    handler_fn: &ImplItemFn,
-    sails_path: &Path,
-) -> TokenStream {
-    let handler_route_bytes = handler_route.encode();
-    let handler_name = handler_route.to_case(Case::Snake);
-    let handler_func = Func::from(&handler_fn.sig);
-    let handler_types = handler_func
-        .params()
-        .iter()
-        .map(|item| {
+    /// Generates code for encode/decode parameters and fn invocation
+    /// ```rust
+    /// let (p1, p2): (u32, String) = SolValue::abi_decode_params(input, false).expect("Failed to decode request");
+    /// let result: u32 = self.do_this(p1, p2).await;
+    /// let value = 0u128;
+    /// return Some((SolValue::abi_encode(&result), value));
+    /// ```
+    fn sol_invocation_func(&self) -> TokenStream {
+        let sails_path = self.sails_path;
+        let handler_func_ident = self.ident;
+
+        let handler_params = self.params.iter().map(|item| {
+            let param_ident = item.0;
+            quote!(#param_ident)
+        });
+        let handler_params_comma = self.params.iter().map(|item| {
+            let param_ident = item.0;
+            quote!(#param_ident,)
+        });
+        let handler_types = self.params.iter().map(|item| {
             let param_type = item.1;
             quote!(#param_type,)
-        })
-        .chain([quote!(u128,)]); // add uint128 to method signature
+        });
 
-    quote! {
-        (
-            #sails_path::concatcp!(
-                #handler_name,
-                <<(#(#handler_types)*) as #sails_path::alloy_sol_types::SolValue>::SolType as #sails_path::alloy_sol_types::SolType>::SOL_NAME,
-            ),
-            &[ #(#handler_route_bytes),* ] as &[u8],
-        ),
+        let (result_type, reply_with_value) = self.handler_result_type();
+
+        let await_token = self.is_async().then(|| quote!(.await));
+        let unwrap_token = self.unwrap_result.then(|| quote!(.unwrap()));
+
+        let handle_token = if reply_with_value {
+            quote! {
+                let command_reply: CommandReply<#result_type> = self.#handler_func_ident(#(#handler_params),*)#await_token #unwrap_token.into();
+                let (result, value) = command_reply.to_tuple();
+            }
+        } else {
+            quote! {
+                let result = self.#handler_func_ident(#(#handler_params),*)#await_token #unwrap_token;
+                let value = 0u128;
+            }
+        };
+
+        quote! {
+            let (#(#handler_params_comma)*) : (#(#handler_types)*) = #sails_path::alloy_sol_types::SolValue::abi_decode_params(input, false).expect("Failed to decode request");
+            #handle_token
+            return Some((#sails_path::alloy_sol_types::SolValue::abi_encode(&result), value));
+        }
     }
 }

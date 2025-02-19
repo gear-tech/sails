@@ -2,7 +2,7 @@
 
 use crate::{
     sails_paths,
-    shared::{self, Func},
+    shared::{self, FnBuilder, Func},
 };
 use args::ServiceArgs;
 use convert_case::{Case, Casing};
@@ -13,8 +13,8 @@ use quote::quote;
 use std::collections::BTreeMap;
 use syn::{
     parse_quote, punctuated::Punctuated, spanned::Spanned, token::Comma, GenericArgument,
-    GenericParam, Ident, ImplItemFn, ItemImpl, Lifetime, LifetimeParam, Path, PathArguments, Type,
-    Visibility,
+    GenericParam, Generics, Ident, ImplItemFn, ItemImpl, Lifetime, LifetimeParam, Path,
+    PathArguments, Type, TypePath, Visibility, WhereClause,
 };
 
 mod args;
@@ -60,6 +60,41 @@ fn ensure_single_gservice_on_impl(service_impl: &ItemImpl) {
     }
 }
 
+struct ServiceBuilder<'a> {
+    sails_path: &'a Path,
+    service_impl: &'a ItemImpl,
+    generics: Generics,
+    type_constraints: Option<WhereClause>,
+    type_path: &'a TypePath,
+    pub type_args: &'a PathArguments,
+    pub ident: &'a Ident,
+    pub service_handlers: Vec<FnBuilder<'a>>,
+}
+
+impl<'a> ServiceBuilder<'a> {
+    fn from(service_impl: &'a ItemImpl, sails_path: &'a Path) -> Self {
+        let (generics, type_constraints) = shared::impl_constraints(&service_impl);
+        let (type_path, type_args, ident) = shared::impl_type_refs(service_impl.self_ty.as_ref());
+        let service_handlers = discover_service_handlers(service_impl)
+            .into_iter()
+            .map(|(route, (fn_impl, _idx, unwrap_result))| {
+                FnBuilder::from(route, fn_impl, unwrap_result, &sails_path)
+            })
+            .collect::<Vec<_>>();
+
+        Self {
+            sails_path,
+            service_impl,
+            generics,
+            type_constraints,
+            type_path,
+            type_args,
+            ident,
+            service_handlers,
+        }
+    }
+}
+
 fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
     let service_args = syn::parse2::<ServiceArgs>(args).unwrap_or_else(|err| {
         abort!(
@@ -71,6 +106,8 @@ fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
     let sails_path = service_args.sails_path();
     let scale_codec_path = sails_paths::scale_codec_path(&sails_path);
     let scale_info_path = sails_paths::scale_info_path(&sails_path);
+
+    let service_builder = ServiceBuilder::from(&service_impl, &sails_path);
 
     let (service_type_path, service_type_args, service_ident) = shared::impl_type(&service_impl);
     let (generics, service_type_constraints) = shared::impl_constraints(&service_impl);
@@ -84,7 +121,7 @@ fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
         );
     }
 
-    let events_type = service_args.events_type().as_ref();
+    let events_type = service_args.events_type();
 
     let mut service_impl = service_impl.clone();
     if let Some(events_type) = events_type {
@@ -320,11 +357,11 @@ fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
 
     // ethexe
     #[cfg(feature = "ethexe")]
-    let service_signature_impl = ethexe::service_signature_impl(&service_impl, &sails_path);
+    let service_signature_impl = service_builder.service_signature_impl();
     #[cfg(not(feature = "ethexe"))]
     let service_signature_impl = quote!();
     #[cfg(feature = "ethexe")]
-    let try_handle_solidity_impl = ethexe::try_handle_impl(&service_impl, &sails_path);
+    let try_handle_solidity_impl = service_builder.try_handle_impl();
     #[cfg(not(feature = "ethexe"))]
     let try_handle_solidity_impl = quote!();
 
@@ -614,50 +651,21 @@ impl<'a> HandlerGenerator<'a> {
             }
         )
     }
+}
 
-    /// Generates code for encode/decode parameters and fn invocation
-    /// ```rust
-    /// let (p1, p2): (u32, String) = SolValue::abi_decode_params(input, false).expect("Failed to decode request");
-    /// let result: u32 = self.do_this(p1, p2).await;
-    /// let value = 0u128;
-    /// return Some((SolValue::abi_encode(&result), value));
-    /// ```
-    #[cfg(feature = "ethexe")]
-    fn invocation_func_solidity(&self, sails_path: &Path) -> TokenStream {
-        let handler_func_ident = self.handler_func_ident();
-        let handler_params = self.handler.params().iter().map(|item| {
-            let param_ident = item.0;
-            quote!(#param_ident)
-        });
-        let handler_params_comma = self.handler.params().iter().map(|item| {
-            let param_ident = item.0;
-            quote!(#param_ident,)
-        });
-        let handler_types = self.handler.params().iter().map(|item| {
-            let param_type = item.1;
-            quote!(#param_type,)
-        });
+impl FnBuilder<'_> {
+    fn handler_result_type(&self) -> (Type, bool) {
+        let result_type = &self.result_type;
+        let (result_type, reply_with_value) = shared::extract_reply_type_with_value(result_type)
+            .map_or_else(|| (result_type, false), |ty| (ty, true));
+        let result_type = shared::replace_any_lifetime_with_static(result_type.clone());
 
-        let result_type = self.result_type();
-        let await_token = self.handler.is_async().then(|| quote!(.await));
-        let unwrap_token = self.unwrap_result.then(|| quote!(.unwrap()));
-
-        let handle_token = if self.reply_with_value() {
-            quote! {
-                let command_reply: CommandReply<#result_type> = self.#handler_func_ident(#(#handler_params),*)#await_token #unwrap_token.into();
-                let (result, value) = command_reply.to_tuple();
-            }
-        } else {
-            quote! {
-                let result = self.#handler_func_ident(#(#handler_params),*)#await_token #unwrap_token;
-                let value = 0u128;
-            }
-        };
-
-        quote! {
-            let (#(#handler_params_comma)*) : (#(#handler_types)*) = #sails_path::alloy_sol_types::SolValue::abi_decode_params(input, false).expect("Failed to decode request");
-            #handle_token
-            return Some((#sails_path::alloy_sol_types::SolValue::abi_encode(&result), value));
+        if reply_with_value && self.is_query() {
+            abort!(
+                self.result_type.span(),
+                "using `CommandReply` type in a query is not allowed"
+            );
         }
+        (result_type, reply_with_value)
     }
 }

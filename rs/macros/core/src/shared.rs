@@ -312,10 +312,8 @@ pub(crate) struct FnBuilder<'a> {
     pub encoded_route: Vec<u8>,
     pub impl_fn: &'a ImplItemFn,
     pub ident: &'a Ident,
-    pub receiver: Option<&'a Receiver>,
     pub params: Vec<(&'a Ident, &'a Type)>,
     pub result_type: Type,
-    pub is_async: bool,
     pub unwrap_result: bool,
     pub sails_path: &'a Path,
 }
@@ -328,22 +326,31 @@ impl<'a> FnBuilder<'a> {
         sails_path: &'a Path,
     ) -> Self {
         let encoded_route = route.encode();
-        let handler_signature = &impl_fn.sig;
-        let ident = &handler_signature.ident;
-        let receiver = handler_signature.receiver();
-        let params = extract_params(handler_signature).collect();
-        let result_type = unwrap_result_type(handler_signature, unwrap_result);
+        let signature = &impl_fn.sig;
+        let ident = &signature.ident;
+        let params = extract_params(signature).collect();
+        let result_type = unwrap_result_type(signature, unwrap_result);
+
         Self {
             route,
             encoded_route,
             impl_fn,
             ident,
-            receiver,
             params,
             result_type,
-            is_async: handler_signature.asyncness.is_some(),
             unwrap_result,
             sails_path,
         }
+    }
+
+    pub(crate) fn is_async(&self) -> bool {
+        self.impl_fn.sig.asyncness.is_some()
+    }
+
+    pub(crate) fn is_query(&self) -> bool {
+        self.impl_fn
+            .sig
+            .receiver()
+            .map_or(true, |r| r.mutability.is_none())
     }
 }
