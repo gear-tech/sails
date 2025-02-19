@@ -179,11 +179,9 @@ impl ProgramBuilder {
             impl #generics #sails_path::meta::ProgramMeta for #program_type_path #program_type_constraints {
                 type ConstructorsMeta = meta_in_program::ConstructorsMeta;
 
-                fn services() -> impl Iterator<Item = (&'static str, #sails_path::meta::AnyServiceMeta)> {
-                    [
-                        #(#services_meta),*
-                    ].into_iter()
-                }
+                const SERVICES: &'static [(&'static str, fn() -> #sails_path::meta::AnyServiceMeta)] = &[
+                    #(#services_meta),*
+                ];
             }
         };
 
@@ -531,7 +529,7 @@ impl FnBuilder<'_> {
         let route = &self.route;
         let service_type = &self.result_type;
         quote!(
-            ( #route , #sails_path::meta::AnyServiceMeta::new::< #service_type >())
+            ( #route , #sails_path::meta::AnyServiceMeta::new::< #service_type >)
         )
     }
 

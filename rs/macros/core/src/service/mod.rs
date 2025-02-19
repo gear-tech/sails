@@ -209,7 +209,7 @@ fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
                 }
             );
 
-            let base_service_meta = quote!(#sails_path::meta::AnyServiceMeta::new::< #base_type >());
+            let base_service_meta = quote!(#sails_path::meta::AnyServiceMeta::new::< #base_type >);
 
             (base_exposure_accessor, base_exposure_member, base_exposure_instantiation, base_exposure_invocation, base_service_meta)
         });
@@ -399,23 +399,12 @@ fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
         }
 
         impl #generics #sails_path::meta::ServiceMeta for #service_type_path #service_type_constraints {
-            fn commands() -> #scale_info_path ::MetaType {
-                #scale_info_path ::MetaType::new::<#meta_module_ident::CommandsMeta>()
-            }
-
-            fn queries() -> #scale_info_path ::MetaType {
-                #scale_info_path ::MetaType::new::<#meta_module_ident::QueriesMeta>()
-            }
-
-            fn events() -> #scale_info_path ::MetaType {
-                #scale_info_path ::MetaType::new::<#meta_module_ident::EventsMeta>()
-            }
-
-            fn base_services() -> impl Iterator<Item = #sails_path::meta::AnyServiceMeta> {
-                [
-                    #( #base_services_meta ),*
-                ].into_iter()
-            }
+            type CommandsMeta = #meta_module_ident::CommandsMeta;
+            type QueriesMeta = #meta_module_ident::QueriesMeta;
+            type EventsMeta = #meta_module_ident::EventsMeta;
+            const BASE_SERVICES: &'static [fn() -> #sails_path::meta::AnyServiceMeta] = &[
+                #( #base_services_meta ),*
+            ];
         }
 
         mod #meta_module_ident {

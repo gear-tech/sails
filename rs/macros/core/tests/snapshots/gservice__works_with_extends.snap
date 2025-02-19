@@ -108,22 +108,13 @@ impl sails_rs::gstd::services::Service for SomeService {
     }
 }
 impl sails_rs::meta::ServiceMeta for SomeService {
-    fn commands() -> sails_rs::scale_info::MetaType {
-        sails_rs::scale_info::MetaType::new::<some_service_meta::CommandsMeta>()
-    }
-    fn queries() -> sails_rs::scale_info::MetaType {
-        sails_rs::scale_info::MetaType::new::<some_service_meta::QueriesMeta>()
-    }
-    fn events() -> sails_rs::scale_info::MetaType {
-        sails_rs::scale_info::MetaType::new::<some_service_meta::EventsMeta>()
-    }
-    fn base_services() -> impl Iterator<Item = sails_rs::meta::AnyServiceMeta> {
-        [
-            sails_rs::meta::AnyServiceMeta::new::<ExtendedService1>(),
-            sails_rs::meta::AnyServiceMeta::new::<ExtendedService2>(),
-        ]
-            .into_iter()
-    }
+    type CommandsMeta = some_service_meta::CommandsMeta;
+    type QueriesMeta = some_service_meta::QueriesMeta;
+    type EventsMeta = some_service_meta::EventsMeta;
+    const BASE_SERVICES: &'static [fn() -> sails_rs::meta::AnyServiceMeta] = &[
+        sails_rs::meta::AnyServiceMeta::new::<ExtendedService1>,
+        sails_rs::meta::AnyServiceMeta::new::<ExtendedService2>,
+    ];
 }
 mod some_service_meta {
     use super::*;

@@ -26,7 +26,7 @@ use proc_macro_error::proc_macro_error;
 ///     use sails_rs::service;
 ///
 ///     #[derive(parity_scale_codec::Encode, scale_info::TypeInfo)]
-///     enum MyServiceEvents {
+///     pub enum MyServiceEvents {
 ///         SomethingDone,
 ///     }
 ///

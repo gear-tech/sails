@@ -31,11 +31,9 @@ const __ROUTE_SERVICE: [u8; 8usize] = [
 ];
 impl sails_rs::meta::ProgramMeta for MyProgram {
     type ConstructorsMeta = meta_in_program::ConstructorsMeta;
-    fn services() -> impl Iterator<
-        Item = (&'static str, sails_rs::meta::AnyServiceMeta),
-    > {
-        [("Service", sails_rs::meta::AnyServiceMeta::new::<MyService>())].into_iter()
-    }
+    const SERVICES: &'static [(&'static str, fn() -> sails_rs::meta::AnyServiceMeta)] = &[
+        ("Service", sails_rs::meta::AnyServiceMeta::new::<MyService>),
+    ];
 }
 #[derive(sails_rs::Decode, sails_rs::TypeInfo)]
 #[codec(crate = sails_rs::scale_codec)]

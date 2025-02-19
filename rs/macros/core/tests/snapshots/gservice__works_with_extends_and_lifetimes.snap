@@ -141,18 +141,12 @@ impl<'a> sails_rs::gstd::services::Service for ExtendedLifetime<'a> {
     }
 }
 impl<'a> sails_rs::meta::ServiceMeta for ExtendedLifetime<'a> {
-    fn commands() -> sails_rs::scale_info::MetaType {
-        sails_rs::scale_info::MetaType::new::<extended_lifetime_meta::CommandsMeta>()
-    }
-    fn queries() -> sails_rs::scale_info::MetaType {
-        sails_rs::scale_info::MetaType::new::<extended_lifetime_meta::QueriesMeta>()
-    }
-    fn events() -> sails_rs::scale_info::MetaType {
-        sails_rs::scale_info::MetaType::new::<extended_lifetime_meta::EventsMeta>()
-    }
-    fn base_services() -> impl Iterator<Item = sails_rs::meta::AnyServiceMeta> {
-        [sails_rs::meta::AnyServiceMeta::new::<base::BaseLifetime<'a>>()].into_iter()
-    }
+    type CommandsMeta = extended_lifetime_meta::CommandsMeta;
+    type QueriesMeta = extended_lifetime_meta::QueriesMeta;
+    type EventsMeta = extended_lifetime_meta::EventsMeta;
+    const BASE_SERVICES: &'static [fn() -> sails_rs::meta::AnyServiceMeta] = &[
+        sails_rs::meta::AnyServiceMeta::new::<base::BaseLifetime<'a>>,
+    ];
 }
 mod extended_lifetime_meta {
     use super::*;

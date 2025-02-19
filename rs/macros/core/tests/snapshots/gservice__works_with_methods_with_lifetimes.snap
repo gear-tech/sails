@@ -207,18 +207,10 @@ impl sails_rs::gstd::services::Service for ReferenceService {
     }
 }
 impl sails_rs::meta::ServiceMeta for ReferenceService {
-    fn commands() -> sails_rs::scale_info::MetaType {
-        sails_rs::scale_info::MetaType::new::<reference_service_meta::CommandsMeta>()
-    }
-    fn queries() -> sails_rs::scale_info::MetaType {
-        sails_rs::scale_info::MetaType::new::<reference_service_meta::QueriesMeta>()
-    }
-    fn events() -> sails_rs::scale_info::MetaType {
-        sails_rs::scale_info::MetaType::new::<reference_service_meta::EventsMeta>()
-    }
-    fn base_services() -> impl Iterator<Item = sails_rs::meta::AnyServiceMeta> {
-        [].into_iter()
-    }
+    type CommandsMeta = reference_service_meta::CommandsMeta;
+    type QueriesMeta = reference_service_meta::QueriesMeta;
+    type EventsMeta = reference_service_meta::EventsMeta;
+    const BASE_SERVICES: &'static [fn() -> sails_rs::meta::AnyServiceMeta] = &[];
 }
 mod reference_service_meta {
     use super::*;

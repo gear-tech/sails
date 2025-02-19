@@ -5,7 +5,7 @@ use sails_rs::prelude::*;
 #[derive(Encode, TypeInfo)]
 #[codec(crate = sails_rs::scale_codec)]
 #[scale_info(crate = sails_rs::scale_info)]
-enum DogEvents {
+pub enum DogEvents {
     Barked,
 }
 

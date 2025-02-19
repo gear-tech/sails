@@ -9,11 +9,10 @@ impl MyProgram {
 }
 impl sails_rename::meta::ProgramMeta for MyProgram {
     type ConstructorsMeta = meta_in_program::ConstructorsMeta;
-    fn services() -> impl Iterator<
-        Item = (&'static str, sails_rename::meta::AnyServiceMeta),
-    > {
-        [].into_iter()
-    }
+    const SERVICES: &'static [(
+        &'static str,
+        fn() -> sails_rename::meta::AnyServiceMeta,
+    )] = &[];
 }
 #[derive(sails_rename::Decode, sails_rename::TypeInfo)]
 #[codec(crate = sails_rename::scale_codec)]

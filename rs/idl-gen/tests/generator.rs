@@ -2,7 +2,7 @@ use gprimitives::*;
 use meta_params::*;
 use sails_idl_gen::{program, service};
 use sails_idl_meta::{AnyServiceMeta, ProgramMeta, ServiceMeta as RtlServiceMeta};
-use scale_info::{MetaType, StaticTypeInfo, TypeInfo};
+use scale_info::{StaticTypeInfo, TypeInfo};
 use std::{collections::BTreeMap, result::Result as StdResult};
 
 #[allow(dead_code)]
@@ -173,21 +173,10 @@ struct ServiceMeta<C, Q, E> {
 impl<C: StaticTypeInfo, Q: StaticTypeInfo, E: StaticTypeInfo> RtlServiceMeta
     for ServiceMeta<C, Q, E>
 {
-    fn commands() -> MetaType {
-        scale_info::meta_type::<C>()
-    }
-
-    fn queries() -> MetaType {
-        scale_info::meta_type::<Q>()
-    }
-
-    fn events() -> MetaType {
-        scale_info::meta_type::<E>()
-    }
-
-    fn base_services() -> impl Iterator<Item = AnyServiceMeta> {
-        [].into_iter()
-    }
+    type CommandsMeta = C;
+    type QueriesMeta = Q;
+    type EventsMeta = E;
+    const BASE_SERVICES: &'static [fn() -> AnyServiceMeta] = &[];
 }
 
 struct ServiceMetaWithBase<C, Q, E, B> {
@@ -200,21 +189,10 @@ struct ServiceMetaWithBase<C, Q, E, B> {
 impl<C: StaticTypeInfo, Q: StaticTypeInfo, E: StaticTypeInfo, B: RtlServiceMeta> RtlServiceMeta
     for ServiceMetaWithBase<C, Q, E, B>
 {
-    fn commands() -> MetaType {
-        scale_info::meta_type::<C>()
-    }
-
-    fn queries() -> MetaType {
-        scale_info::meta_type::<Q>()
-    }
-
-    fn events() -> MetaType {
-        scale_info::meta_type::<E>()
-    }
-
-    fn base_services() -> impl Iterator<Item = AnyServiceMeta> {
-        [AnyServiceMeta::new::<B>()].into_iter()
-    }
+    type CommandsMeta = C;
+    type QueriesMeta = Q;
+    type EventsMeta = E;
+    const BASE_SERVICES: &'static [fn() -> AnyServiceMeta] = &[AnyServiceMeta::new::<B>];
 }
 
 type TestServiceMeta = ServiceMeta<CommandsMeta, QueriesMeta, EventsMeta>;
@@ -228,9 +206,8 @@ struct TestProgramWithEmptyCtorsMeta;
 impl ProgramMeta for TestProgramWithEmptyCtorsMeta {
     type ConstructorsMeta = EmptyCtorsMeta;
 
-    fn services() -> impl Iterator<Item = (&'static str, AnyServiceMeta)> {
-        [("", AnyServiceMeta::new::<TestServiceMeta>())].into_iter()
-    }
+    const SERVICES: &'static [(&'static str, fn() -> AnyServiceMeta)] =
+        &[("", AnyServiceMeta::new::<TestServiceMeta>)];
 }
 
 #[allow(dead_code)]
@@ -248,9 +225,8 @@ struct TestProgramWithNonEmptyCtorsMeta;
 impl ProgramMeta for TestProgramWithNonEmptyCtorsMeta {
     type ConstructorsMeta = NonEmptyCtorsMeta;
 
-    fn services() -> impl Iterator<Item = (&'static str, AnyServiceMeta)> {
-        [("", AnyServiceMeta::new::<TestServiceMeta>())].into_iter()
-    }
+    const SERVICES: &'static [(&'static str, fn() -> AnyServiceMeta)] =
+        &[("", AnyServiceMeta::new::<TestServiceMeta>)];
 }
 
 struct TestProgramWithMultipleServicesMeta;
@@ -258,13 +234,10 @@ struct TestProgramWithMultipleServicesMeta;
 impl ProgramMeta for TestProgramWithMultipleServicesMeta {
     type ConstructorsMeta = EmptyCtorsMeta;
 
-    fn services() -> impl Iterator<Item = (&'static str, AnyServiceMeta)> {
-        [
-            ("", AnyServiceMeta::new::<TestServiceMeta>()),
-            ("SomeService", AnyServiceMeta::new::<TestServiceMeta>()),
-        ]
-        .into_iter()
-    }
+    const SERVICES: &'static [(&'static str, fn() -> AnyServiceMeta)] = &[
+        ("", AnyServiceMeta::new::<TestServiceMeta>),
+        ("SomeService", AnyServiceMeta::new::<TestServiceMeta>),
+    ];
 }
 
 #[test]
