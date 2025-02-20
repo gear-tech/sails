@@ -2,19 +2,18 @@
 
 use crate::{
     sails_paths,
-    shared::{self, FnBuilder, Func},
+    shared::{self, FnBuilder},
 };
 use args::ServiceArgs;
 use convert_case::{Case, Casing};
-use parity_scale_codec::Encode;
 use proc_macro2::{Span, TokenStream};
 use proc_macro_error::abort;
 use quote::quote;
 use std::collections::BTreeMap;
 use syn::{
-    parse_quote, punctuated::Punctuated, spanned::Spanned, token::Comma, GenericArgument,
-    GenericParam, Generics, Ident, ImplItemFn, ItemImpl, Lifetime, LifetimeParam, Path,
-    PathArguments, Type, TypePath, Visibility, WhereClause,
+    parse_quote, punctuated::Punctuated, token::Comma, GenericArgument, GenericParam, Generics,
+    Ident, ImplItemFn, ItemImpl, Lifetime, LifetimeParam, Path, PathArguments, Type, TypePath,
+    Visibility, WhereClause,
 };
 
 mod args;
@@ -152,64 +151,19 @@ fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
 
     let mut exposure_funcs = Vec::with_capacity(service_handlers.len());
     let mut invocation_params_structs = Vec::with_capacity(service_handlers.len());
-    let mut invocation_funcs = Vec::with_capacity(service_handlers.len());
     let mut invocation_dispatches = Vec::with_capacity(service_handlers.len());
     let mut commands_meta_variants = Vec::with_capacity(service_handlers.len());
     let mut queries_meta_variants = Vec::with_capacity(service_handlers.len());
 
-    for (handler_route, (handler_fn, _, unwrap_result)) in service_handlers {
-        // We propagate only known attributes as we don't know the consequences of unknown ones
-        let handler_allow_attrs = handler_fn
-            .attrs
-            .iter()
-            .filter(|attr| attr.path().is_ident("allow"));
-        let handler_docs_attrs = handler_fn
-            .attrs
-            .iter()
-            .filter(|attr| attr.path().is_ident("doc"));
+    for fn_builder in &service_builder.service_handlers {
+        exposure_funcs.push(fn_builder.exposure_func(&inner_ident));
+        invocation_params_structs
+            .push(fn_builder.params_struct(&scale_codec_path, &scale_info_path));
+        invocation_dispatches
+            .push(fn_builder.try_handle_branch_impl(&meta_module_ident, &input_ident));
 
-        let handler_fn = &handler_fn.sig;
-        let handler_func = Func::from(handler_fn);
-        let handler_generator = HandlerGenerator::from(handler_func.clone(), unwrap_result);
-        let invocation_func_ident = handler_generator.invocation_func_ident();
-
-        exposure_funcs.push({
-            let handler_ident = handler_func.ident();
-            let handler_params = handler_func.params().iter().map(|item| item.0);
-            let handler_await_token = handler_func.is_async().then(|| quote!(.await));
-            quote!(
-                #( #handler_allow_attrs )*
-                pub #handler_fn {
-                    let exposure_scope = #sails_path::gstd::services::ExposureCallScope::new(self);
-                    self. #inner_ident . #handler_ident (#(#handler_params),*) #handler_await_token
-                }
-            )
-        });
-        invocation_params_structs.push(handler_generator.params_struct());
-        invocation_funcs.push(handler_generator.invocation_func(&meta_module_ident, &sails_path));
-        invocation_dispatches.push({
-            let handler_route_bytes = handler_route.encode();
-            let handler_route_len = handler_route_bytes.len();
-            quote!(
-                if #input_ident.starts_with(& [ #(#handler_route_bytes),* ]) {
-                    let (output, value) = self.#invocation_func_ident(&#input_ident[#handler_route_len..]).await;
-                    static INVOCATION_ROUTE: [u8; #handler_route_len] = [ #(#handler_route_bytes),* ];
-                    return Some(([INVOCATION_ROUTE.as_ref(), &output].concat(), value));
-                }
-            )
-        });
-
-        let handler_meta_variant = {
-            let params_struct_ident = handler_generator.params_struct_ident();
-            let result_type = handler_generator.result_type();
-            let handler_route_ident = Ident::new(handler_route.as_str(), Span::call_site());
-
-            quote!(
-                #( #handler_docs_attrs )*
-                #handler_route_ident(#params_struct_ident, #result_type)
-            )
-        };
-        if handler_generator.is_query() {
+        let handler_meta_variant = fn_builder.handler_meta_variant();
+        if fn_builder.is_query() {
             queries_meta_variants.push(handler_meta_variant);
         } else {
             commands_meta_variants.push(handler_meta_variant);
@@ -389,12 +343,11 @@ fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
             #( #base_exposure_accessors )*
 
             pub async fn try_handle(&mut self, #input_ident : &[u8]) -> Option<(Vec<u8>, u128)> {
+                use #sails_path::gstd::InvocationIo;
                 #( #invocation_dispatches )*
                 #( #base_exposures_invocations )*
                 None
             }
-
-            #( #invocation_funcs )*
 
             #try_handle_solidity_impl
 
@@ -448,12 +401,7 @@ fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
             use super::*;
             use #sails_path::{Decode, TypeInfo};
 
-            #(
-                #[derive(Decode, TypeInfo)]
-                #[codec(crate = #scale_codec_path )]
-                #[scale_info(crate = #scale_info_path )]
-                #invocation_params_structs
-            )*
+            #( #invocation_params_structs )*
 
             #[derive(TypeInfo)]
             #[scale_info(crate = #scale_info_path)]
@@ -525,114 +473,74 @@ fn discover_service_handlers(
     })
 }
 
-struct HandlerGenerator<'a> {
-    handler: Func<'a>,
-    result_type: Type,
-    unwrap_result: bool,
-    reply_with_value: bool,
-    is_query: bool,
-}
-
-impl<'a> HandlerGenerator<'a> {
-    fn from(handler: Func<'a>, unwrap_result: bool) -> Self {
-        // process result type if set unwrap result
-        let result_type = unwrap_result
-            .then(|| {
-                shared::extract_result_type_from_path(handler.result()).unwrap_or_else(|| {
-                    abort!(
-                        handler.result().span(),
-                        "`unwrap_result` can be applied to methods returns result only"
-                    )
-                })
-            })
-            .unwrap_or_else(|| handler.result());
-        // process result type to extact value and replace any lifetime with 'static
-        let (result_type, reply_with_value) = shared::extract_reply_type_with_value(result_type)
-            .map_or_else(|| (result_type, false), |ty| (ty, true));
+impl FnBuilder<'_> {
+    fn result_type_with_static_lifetime(&self) -> Type {
+        let (result_type, _) = self.result_type_with_value();
         let result_type = shared::replace_any_lifetime_with_static(result_type.clone());
-        let is_query = handler.receiver().map_or(true, |r| r.mutability.is_none());
-
-        if reply_with_value && is_query {
-            abort!(
-                handler.result().span(),
-                "using `CommandReply` type in a query is not allowed"
-            );
-        }
-
-        Self {
-            handler,
-            result_type,
-            unwrap_result,
-            reply_with_value,
-            is_query,
-        }
+        result_type
     }
 
-    fn params_struct_ident(&self) -> Ident {
-        Ident::new(
-            &format!(
-                "__{}Params",
-                self.handler.ident().to_string().to_case(Case::Pascal)
-            ),
-            Span::call_site(),
-        )
-    }
-
-    fn result_type(&self) -> &Type {
-        &self.result_type
-    }
-
-    fn handler_func_ident(&self) -> Ident {
-        self.handler.ident().clone()
-    }
-
-    fn invocation_func_ident(&self) -> Ident {
-        Ident::new(
-            &format!("__{}", self.handler_func_ident()),
-            Span::call_site(),
-        )
-    }
-
-    fn is_query(&self) -> bool {
-        self.is_query
-    }
-
-    fn reply_with_value(&self) -> bool {
-        self.reply_with_value
-    }
-
-    fn params_struct(&self) -> TokenStream {
-        let params_struct_ident = self.params_struct_ident();
-        let params_struct_members = self.handler.params().iter().map(|item| {
-            let arg_ident = item.0;
-            let arg_type = item.1;
-            quote!(#arg_ident: #arg_type)
-        });
+    fn handler_meta_variant(&self) -> TokenStream {
+        let handler_route_ident = Ident::new(self.route.as_str(), Span::call_site());
+        let handler_docs_attrs = self
+            .impl_fn
+            .attrs
+            .iter()
+            .filter(|attr| attr.path().is_ident("doc"));
+        let params_struct_ident = &self.params_struct_ident;
+        let result_type = self.result_type_with_static_lifetime();
 
         quote!(
+            #( #handler_docs_attrs )*
+            #handler_route_ident(#params_struct_ident, #result_type)
+        )
+    }
+
+    fn params_struct(&self, scale_codec_path: &Path, scale_info_path: &Path) -> TokenStream {
+        let sails_path = self.sails_path;
+        let params_struct_ident = &self.params_struct_ident;
+        let params_struct_members = self.params.iter().map(|item| {
+            let arg_ident = item.0;
+            let arg_type = item.1;
+            quote!(#arg_ident: #arg_type,)
+        });
+        let handler_route_bytes = self.encoded_route.as_slice();
+
+        quote!(
+            #[derive(Decode, TypeInfo)]
+            #[codec(crate = #scale_codec_path )]
+            #[scale_info(crate = #scale_info_path )]
             pub struct #params_struct_ident {
-                #(pub(super) #params_struct_members),*
+                #(pub(super) #params_struct_members)*
+            }
+
+            impl #sails_path::gstd::InvocationIo for #params_struct_ident {
+                const ROUTE: &'static [u8] = &[ #(#handler_route_bytes),* ];
+                type Params = Self;
             }
         )
     }
 
-    fn invocation_func(&self, meta_module_ident: &Ident, sails_path: &Path) -> TokenStream {
-        let invocation_func_ident = self.invocation_func_ident();
-        let receiver = self.handler.receiver();
-        let params_struct_ident = self.params_struct_ident();
-        let handler_func_ident = self.handler_func_ident();
-        let handler_func_params = self.handler.params().iter().map(|item| {
+    fn try_handle_branch_impl(
+        &self,
+        meta_module_ident: &Ident,
+        input_ident: &Ident,
+    ) -> TokenStream {
+        let handler_func_ident = self.ident;
+
+        let params_struct_ident = &self.params_struct_ident;
+        let handler_func_params = self.params.iter().map(|item| {
             let param_ident = item.0;
             quote!(request.#param_ident)
         });
 
-        let result_type = self.result_type();
-        let await_token = self.handler.is_async().then(|| quote!(.await));
+        let (result_type, reply_with_value) = self.result_type_with_value();
+        let await_token = self.is_async().then(|| quote!(.await));
         let unwrap_token = self.unwrap_result.then(|| quote!(.unwrap()));
 
-        let handle_token = if self.reply_with_value() {
+        let handle_token = if reply_with_value {
             quote! {
-                let command_reply: CommandReply<#result_type> = self.#handler_func_ident(#(#handler_func_params),*)#await_token #unwrap_token.into();
+                let command_reply: CommandReply< #result_type > = self.#handler_func_ident(#(#handler_func_params),*)#await_token #unwrap_token.into();
                 let (result, value) = command_reply.to_tuple();
             }
         } else {
@@ -642,30 +550,33 @@ impl<'a> HandlerGenerator<'a> {
             }
         };
 
-        quote!(
-            async fn #invocation_func_ident(#receiver, mut input: &[u8]) -> (Vec<u8>, u128)
-            {
-                let request: #meta_module_ident::#params_struct_ident = #sails_path::Decode::decode(&mut input).expect("Failed to decode request");
+        quote! {
+            if let Ok(request) = #meta_module_ident::#params_struct_ident::decode_params(& #input_ident) {
                 #handle_token
-                return (#sails_path::Encode::encode(&result), value);
+                let output = #meta_module_ident::#params_struct_ident::encode_reply(&result);
+                return Some((output, value));
+            }
+        }
+    }
+
+    fn exposure_func(&self, inner_ident: &Ident) -> TokenStream {
+        let sails_path = self.sails_path;
+        let handler_ident = self.ident;
+        let handler_fn_sig = &self.impl_fn.sig;
+        let handler_params = self.params.iter().map(|item| item.0);
+        let handler_await_token = self.is_async().then(|| quote!(.await));
+        let handler_allow_attrs = self
+            .impl_fn
+            .attrs
+            .iter()
+            .filter(|attr| attr.path().is_ident("allow"));
+
+        quote!(
+            #( #handler_allow_attrs )*
+            pub #handler_fn_sig {
+                let exposure_scope = #sails_path::gstd::services::ExposureCallScope::new(self);
+                self. #inner_ident . #handler_ident (#(#handler_params),*) #handler_await_token
             }
         )
-    }
-}
-
-impl FnBuilder<'_> {
-    fn handler_result_type(&self) -> (Type, bool) {
-        let result_type = &self.result_type;
-        let (result_type, reply_with_value) = shared::extract_reply_type_with_value(result_type)
-            .map_or_else(|| (result_type, false), |ty| (ty, true));
-        let result_type = shared::replace_any_lifetime_with_static(result_type.clone());
-
-        if reply_with_value && self.is_query() {
-            abort!(
-                self.result_type.span(),
-                "using `CommandReply` type in a query is not allowed"
-            );
-        }
-        (result_type, reply_with_value)
     }
 }

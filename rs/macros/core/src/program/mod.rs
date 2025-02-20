@@ -233,15 +233,9 @@ impl ProgramBuilder {
         let mut ctor_meta_variants = Vec::with_capacity(program_ctors.len());
     
         for fn_builder in program_ctors {
-   
-            let ctor_params_struct_ident =
-                Ident::new(&format!("__{}Params", fn_builder.route), Span::call_site());
-    
-            ctor_dispatches.push(fn_builder.ctor_branch_impl(program_type_path, &input_ident, &ctor_params_struct_ident));
-    
-            ctor_params_structs.push(fn_builder.ctor_params_struct(&ctor_params_struct_ident, &scale_codec_path, &scale_info_path));
-
-            ctor_meta_variants.push(fn_builder.ctor_meta_variant(&ctor_params_struct_ident));
+            ctor_dispatches.push(fn_builder.ctor_branch_impl(program_type_path, &input_ident));    
+            ctor_params_structs.push(fn_builder.ctor_params_struct( &scale_codec_path, &scale_info_path));
+            ctor_meta_variants.push(fn_builder.ctor_meta_variant());
         }
     
         ctor_dispatches.push(quote! {
@@ -510,7 +504,7 @@ impl FnBuilder<'_> {
         wrapping_service_ctor_fn
     }
 
-    fn ctor_branch_impl(&self, program_type_path: &TypePath, input_ident: &Ident, invocation_params_struct_ident: &Ident) -> TokenStream2 {
+    fn ctor_branch_impl(&self, program_type_path: &TypePath, input_ident: &Ident) -> TokenStream2 {
         let invocation_route_bytes = self.encoded_route.as_slice();
         let invocation_route_len = invocation_route_bytes.len();
         let handler_ident = self.ident;
@@ -520,19 +514,21 @@ impl FnBuilder<'_> {
             let param_ident = item.0;
             quote!(request.#param_ident)
         });
+        let params_struct_ident= &self.params_struct_ident;
 
         quote!(
             if #input_ident.starts_with(& [ #(#invocation_route_bytes),* ]) {
                 const INVOCATION_ROUTE: &[u8] = &[ #(#invocation_route_bytes),* ];
-                let request = meta_in_program:: #invocation_params_struct_ident::decode(&mut &#input_ident[#invocation_route_len..]).expect("Failed to decode request");
+                let request = meta_in_program:: #params_struct_ident::decode(&mut &#input_ident[#invocation_route_len..]).expect("Failed to decode request");
                 let program = #program_type_path :: #handler_ident (#(#handler_args),*) #handler_await #unwrap_token;
                 (program, INVOCATION_ROUTE)
             }
         )
     }
 
-    fn ctor_params_struct(&self, ctor_params_struct_ident: &Ident, scale_codec_path: &Path, scale_info_path: &Path) -> TokenStream2 {
+    fn ctor_params_struct(&self, scale_codec_path: &Path, scale_info_path: &Path) -> TokenStream2 {
         let sails_path = self.sails_path;
+        let params_struct_ident= &self.params_struct_ident;
         let ctor_params_struct_members = self.params.iter().map(|item| {
             let param_ident = item.0;
             let param_type = item.1;
@@ -544,22 +540,23 @@ impl FnBuilder<'_> {
             #[codec(crate = #scale_codec_path )]
             #[scale_info(crate = #scale_info_path )]
             #[allow(dead_code)]            
-            pub struct #ctor_params_struct_ident {
+            pub struct #params_struct_ident {
                 #(pub(super) #ctor_params_struct_members)*
             }
         }
     }
 
-    fn ctor_meta_variant(&self, ctor_params_struct_ident: &Ident) -> TokenStream2{
+    fn ctor_meta_variant(&self) -> TokenStream2{
         let ctor_route = Ident::new(self.route.as_str(), Span::call_site());
         let ctor_docs_attrs = self.impl_fn
             .attrs
             .iter()
             .filter(|attr| attr.path().is_ident("doc"));
+        let params_struct_ident= &self.params_struct_ident;
 
         quote! {
             #( #ctor_docs_attrs )*
-            #ctor_route(#ctor_params_struct_ident)
+            #ctor_route(#params_struct_ident)
         }
     }
 }

@@ -6,7 +6,10 @@ pub use gstd::{async_init, async_main, handle_reply_with_hook, message_loop};
 pub use gstd::{debug, exec, msg};
 pub use sails_macros::*;
 
-use crate::prelude::*;
+use crate::{
+    errors::{Error, Result, RtlError},
+    prelude::*,
+};
 use core::cell::OnceCell;
 
 pub mod calls;
@@ -87,4 +90,26 @@ pub fn unknown_input_panic(message: &str, input: &[u8]) -> ! {
         }
     });
     panic!("{}: {}", message, input)
+}
+
+pub trait InvocationIo {
+    const ROUTE: &'static [u8];
+    type Params: Decode;
+
+    fn decode_params(payload: impl AsRef<[u8]>) -> Result<Self::Params> {
+        let mut value = payload.as_ref();
+        if !value.starts_with(Self::ROUTE) {
+            return Err(Error::Rtl(RtlError::InvocationPrefixMismatches));
+        }
+        value = &value[Self::ROUTE.len()..];
+        Decode::decode(&mut value).map_err(Error::Codec)
+    }
+
+    // Type `T` is not specified in the trait to accept any lifetime
+    fn encode_reply<T: Encode>(value: &T) -> Vec<u8> {
+        let mut result = Vec::with_capacity(Self::ROUTE.len() + Encode::size_hint(value));
+        result.extend_from_slice(Self::ROUTE);
+        Encode::encode_to(value, &mut result);
+        result
+    }
 }

@@ -57,120 +57,50 @@ impl ReferenceServiceExposure<ReferenceService> {
         self.inner.last_byte().await
     }
     pub async fn try_handle(&mut self, input: &[u8]) -> Option<(Vec<u8>, u128)> {
-        if input.starts_with(&[28u8, 65u8, 100u8, 100u8, 66u8, 121u8, 116u8, 101u8]) {
-            let (output, value) = self.__add_byte(&input[8usize..]).await;
-            static INVOCATION_ROUTE: [u8; 8usize] = [
-                28u8,
-                65u8,
-                100u8,
-                100u8,
-                66u8,
-                121u8,
-                116u8,
-                101u8,
-            ];
-            return Some(([INVOCATION_ROUTE.as_ref(), &output].concat(), value));
+        use sails_rs::gstd::InvocationIo;
+        if let Ok(request) = reference_service_meta::__AddByteParams::decode_params(
+            &input,
+        ) {
+            let result = self.add_byte(request.byte);
+            let value = 0u128;
+            let output = reference_service_meta::__AddByteParams::encode_reply(&result);
+            return Some((output, value));
         }
-        if input.starts_with(&[20u8, 66u8, 97u8, 107u8, 101u8, 100u8]) {
-            let (output, value) = self.__baked(&input[6usize..]).await;
-            static INVOCATION_ROUTE: [u8; 6usize] = [
-                20u8,
-                66u8,
-                97u8,
-                107u8,
-                101u8,
-                100u8,
-            ];
-            return Some(([INVOCATION_ROUTE.as_ref(), &output].concat(), value));
+        if let Ok(request) = reference_service_meta::__BakedParams::decode_params(
+            &input,
+        ) {
+            let result = self.baked();
+            let value = 0u128;
+            let output = reference_service_meta::__BakedParams::encode_reply(&result);
+            return Some((output, value));
         }
-        if input
-            .starts_with(
-                &[36u8, 70u8, 105u8, 114u8, 115u8, 116u8, 66u8, 121u8, 116u8, 101u8],
-            )
-        {
-            let (output, value) = self.__first_byte(&input[10usize..]).await;
-            static INVOCATION_ROUTE: [u8; 10usize] = [
-                36u8,
-                70u8,
-                105u8,
-                114u8,
-                115u8,
-                116u8,
-                66u8,
-                121u8,
-                116u8,
-                101u8,
-            ];
-            return Some(([INVOCATION_ROUTE.as_ref(), &output].concat(), value));
+        if let Ok(request) = reference_service_meta::__FirstByteParams::decode_params(
+            &input,
+        ) {
+            let result = self.first_byte().await;
+            let value = 0u128;
+            let output = reference_service_meta::__FirstByteParams::encode_reply(
+                &result,
+            );
+            return Some((output, value));
         }
-        if input.starts_with(&[16u8, 73u8, 110u8, 99u8, 114u8]) {
-            let (output, value) = self.__incr(&input[5usize..]).await;
-            static INVOCATION_ROUTE: [u8; 5usize] = [16u8, 73u8, 110u8, 99u8, 114u8];
-            return Some(([INVOCATION_ROUTE.as_ref(), &output].concat(), value));
+        if let Ok(request) = reference_service_meta::__IncrParams::decode_params(
+            &input,
+        ) {
+            let result = self.incr();
+            let value = 0u128;
+            let output = reference_service_meta::__IncrParams::encode_reply(&result);
+            return Some((output, value));
         }
-        if input
-            .starts_with(&[32u8, 76u8, 97u8, 115u8, 116u8, 66u8, 121u8, 116u8, 101u8])
-        {
-            let (output, value) = self.__last_byte(&input[9usize..]).await;
-            static INVOCATION_ROUTE: [u8; 9usize] = [
-                32u8,
-                76u8,
-                97u8,
-                115u8,
-                116u8,
-                66u8,
-                121u8,
-                116u8,
-                101u8,
-            ];
-            return Some(([INVOCATION_ROUTE.as_ref(), &output].concat(), value));
+        if let Ok(request) = reference_service_meta::__LastByteParams::decode_params(
+            &input,
+        ) {
+            let result = self.last_byte().await;
+            let value = 0u128;
+            let output = reference_service_meta::__LastByteParams::encode_reply(&result);
+            return Some((output, value));
         }
         None
-    }
-    async fn __add_byte(&mut self, mut input: &[u8]) -> (Vec<u8>, u128) {
-        let request: reference_service_meta::__AddByteParams = sails_rs::Decode::decode(
-                &mut input,
-            )
-            .expect("Failed to decode request");
-        let result = self.add_byte(request.byte);
-        let value = 0u128;
-        return (sails_rs::Encode::encode(&result), value);
-    }
-    async fn __baked(&self, mut input: &[u8]) -> (Vec<u8>, u128) {
-        let request: reference_service_meta::__BakedParams = sails_rs::Decode::decode(
-                &mut input,
-            )
-            .expect("Failed to decode request");
-        let result = self.baked();
-        let value = 0u128;
-        return (sails_rs::Encode::encode(&result), value);
-    }
-    async fn __first_byte(&self, mut input: &[u8]) -> (Vec<u8>, u128) {
-        let request: reference_service_meta::__FirstByteParams = sails_rs::Decode::decode(
-                &mut input,
-            )
-            .expect("Failed to decode request");
-        let result = self.first_byte().await;
-        let value = 0u128;
-        return (sails_rs::Encode::encode(&result), value);
-    }
-    async fn __incr(&mut self, mut input: &[u8]) -> (Vec<u8>, u128) {
-        let request: reference_service_meta::__IncrParams = sails_rs::Decode::decode(
-                &mut input,
-            )
-            .expect("Failed to decode request");
-        let result = self.incr();
-        let value = 0u128;
-        return (sails_rs::Encode::encode(&result), value);
-    }
-    async fn __last_byte(&self, mut input: &[u8]) -> (Vec<u8>, u128) {
-        let request: reference_service_meta::__LastByteParams = sails_rs::Decode::decode(
-                &mut input,
-            )
-            .expect("Failed to decode request");
-        let result = self.last_byte().await;
-        let value = 0u128;
-        return (sails_rs::Encode::encode(&result), value);
     }
 }
 impl sails_rs::gstd::services::Exposure for ReferenceServiceExposure<ReferenceService> {
@@ -221,22 +151,72 @@ mod reference_service_meta {
     pub struct __AddByteParams {
         pub(super) byte: u8,
     }
+    impl sails_rs::gstd::InvocationIo for __AddByteParams {
+        const ROUTE: &'static [u8] = &[
+            28u8,
+            65u8,
+            100u8,
+            100u8,
+            66u8,
+            121u8,
+            116u8,
+            101u8,
+        ];
+        type Params = Self;
+    }
     #[derive(Decode, TypeInfo)]
     #[codec(crate = sails_rs::scale_codec)]
     #[scale_info(crate = sails_rs::scale_info)]
     pub struct __BakedParams {}
+    impl sails_rs::gstd::InvocationIo for __BakedParams {
+        const ROUTE: &'static [u8] = &[20u8, 66u8, 97u8, 107u8, 101u8, 100u8];
+        type Params = Self;
+    }
     #[derive(Decode, TypeInfo)]
     #[codec(crate = sails_rs::scale_codec)]
     #[scale_info(crate = sails_rs::scale_info)]
     pub struct __FirstByteParams {}
+    impl sails_rs::gstd::InvocationIo for __FirstByteParams {
+        const ROUTE: &'static [u8] = &[
+            36u8,
+            70u8,
+            105u8,
+            114u8,
+            115u8,
+            116u8,
+            66u8,
+            121u8,
+            116u8,
+            101u8,
+        ];
+        type Params = Self;
+    }
     #[derive(Decode, TypeInfo)]
     #[codec(crate = sails_rs::scale_codec)]
     #[scale_info(crate = sails_rs::scale_info)]
     pub struct __IncrParams {}
+    impl sails_rs::gstd::InvocationIo for __IncrParams {
+        const ROUTE: &'static [u8] = &[16u8, 73u8, 110u8, 99u8, 114u8];
+        type Params = Self;
+    }
     #[derive(Decode, TypeInfo)]
     #[codec(crate = sails_rs::scale_codec)]
     #[scale_info(crate = sails_rs::scale_info)]
     pub struct __LastByteParams {}
+    impl sails_rs::gstd::InvocationIo for __LastByteParams {
+        const ROUTE: &'static [u8] = &[
+            32u8,
+            76u8,
+            97u8,
+            115u8,
+            116u8,
+            66u8,
+            121u8,
+            116u8,
+            101u8,
+        ];
+        type Params = Self;
+    }
     #[derive(TypeInfo)]
     #[scale_info(crate = sails_rs::scale_info)]
     pub enum CommandsMeta {

@@ -6,9 +6,8 @@ use quote::ToTokens;
 use std::collections::BTreeMap;
 use syn::{
     punctuated::Punctuated, spanned::Spanned, FnArg, GenericArgument, Generics, Ident, ImplItem,
-    ImplItemFn, ItemImpl, Lifetime, Pat, Path, PathArguments, PathSegment, Receiver, ReturnType,
-    Signature, Token, Type, TypeImplTrait, TypeParamBound, TypePath, TypeReference, TypeTuple,
-    WhereClause,
+    ImplItemFn, ItemImpl, Lifetime, Pat, Path, PathArguments, PathSegment, ReturnType, Signature,
+    Token, Type, TypeImplTrait, TypeParamBound, TypePath, TypeReference, TypeTuple, WhereClause,
 };
 
 pub(crate) fn impl_type(item_impl: &ItemImpl) -> (TypePath, PathArguments, Ident) {
@@ -50,52 +49,6 @@ pub(crate) fn impl_constraints(item_impl: &ItemImpl) -> (Generics, Option<WhereC
     (generics, where_clause)
 }
 
-/// Represents parts of a handler function.
-#[derive(Clone)]
-pub(crate) struct Func<'a> {
-    ident: &'a Ident,
-    receiver: Option<&'a Receiver>,
-    params: Vec<(&'a Ident, &'a Type)>,
-    result: Type,
-    is_async: bool,
-}
-
-impl<'a> Func<'a> {
-    pub(crate) fn from(handler_signature: &'a Signature) -> Self {
-        let func = &handler_signature.ident;
-        let receiver = handler_signature.receiver();
-        let params = extract_params(handler_signature).collect();
-        let result = result_type(handler_signature);
-        Self {
-            ident: func,
-            receiver,
-            params,
-            result,
-            is_async: handler_signature.asyncness.is_some(),
-        }
-    }
-
-    pub(crate) fn ident(&self) -> &Ident {
-        self.ident
-    }
-
-    pub(crate) fn receiver(&self) -> Option<&Receiver> {
-        self.receiver
-    }
-
-    pub(crate) fn params(&self) -> &[(&Ident, &Type)] {
-        &self.params
-    }
-
-    pub(crate) fn result(&self) -> &Type {
-        &self.result
-    }
-
-    pub(crate) fn is_async(&self) -> bool {
-        self.is_async
-    }
-}
-
 fn extract_params(handler_signature: &Signature) -> impl Iterator<Item = (&Ident, &Type)> {
     handler_signature.inputs.iter().filter_map(|arg| {
         if let FnArg::Typed(arg) = arg {
@@ -128,7 +81,7 @@ pub(crate) fn unwrap_result_type(handler_signature: &Signature, unwrap_result: b
             extract_result_type_from_path(&result_type)
                 .unwrap_or_else(|| {
                     abort!(
-                        handler_signature.output.span(),
+                        result_type.span(),
                         "`unwrap_result` can be applied to methods returns result only"
                     )
                 })
@@ -312,6 +265,7 @@ pub(crate) struct FnBuilder<'a> {
     pub encoded_route: Vec<u8>,
     pub impl_fn: &'a ImplItemFn,
     pub ident: &'a Ident,
+    pub params_struct_ident: Ident,
     pub params: Vec<(&'a Ident, &'a Type)>,
     pub result_type: Type,
     pub unwrap_result: bool,
@@ -328,6 +282,7 @@ impl<'a> FnBuilder<'a> {
         let encoded_route = route.encode();
         let signature = &impl_fn.sig;
         let ident = &signature.ident;
+        let params_struct_ident = Ident::new(&format!("__{}Params", route), Span::call_site());
         let params = extract_params(signature).collect();
         let result_type = unwrap_result_type(signature, unwrap_result);
 
@@ -336,6 +291,7 @@ impl<'a> FnBuilder<'a> {
             encoded_route,
             impl_fn,
             ident,
+            params_struct_ident,
             params,
             result_type,
             unwrap_result,
@@ -352,5 +308,19 @@ impl<'a> FnBuilder<'a> {
             .sig
             .receiver()
             .map_or(true, |r| r.mutability.is_none())
+    }
+
+    pub(crate) fn result_type_with_value(&self) -> (&Type, bool) {
+        let result_type = &self.result_type;
+        let (result_type, reply_with_value) = extract_reply_type_with_value(result_type)
+            .map_or_else(|| (result_type, false), |ty| (ty, true));
+
+        if reply_with_value && self.is_query() {
+            abort!(
+                self.result_type.span(),
+                "using `CommandReply` type in a query is not allowed"
+            );
+        }
+        (result_type, reply_with_value)
     }
 }

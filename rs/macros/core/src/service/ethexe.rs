@@ -26,7 +26,7 @@ impl ServiceBuilder<'_> {
         let service_method_branches = self
             .service_handlers
             .iter()
-            .map(|fn_builder| fn_builder.try_handle_branch_impl());
+            .map(|fn_builder| fn_builder.sol_try_handle_branch_impl());
 
         quote! {
             pub async fn try_handle_solidity(
@@ -48,23 +48,24 @@ impl FnBuilder<'_> {
     ///     // invocation
     /// }
     /// ```
-    fn try_handle_branch_impl(&self) -> TokenStream {
+    fn sol_try_handle_branch_impl(&self) -> TokenStream {
+        let sails_path = self.sails_path;
         let handler_route_bytes = self.encoded_route.as_slice();
         let invocation = self.sol_invocation_func();
 
         quote! {
             if method == &[ #(#handler_route_bytes),* ] {
                 #invocation
+                return Some((#sails_path::alloy_sol_types::SolValue::abi_encode(&result), value));
             }
         }
     }
 
     /// Generates code for encode/decode parameters and fn invocation
     /// ```rust
-    /// let (p1, p2): (u32, String) = SolValue::abi_decode_params(input, false).expect("Failed to decode request");
+    /// let (p1, p2): (u32, String) = sails_rs::alloy_sol_types::SolValue::abi_decode_params(input, false).expect("Failed to decode request");
     /// let result: u32 = self.do_this(p1, p2).await;
     /// let value = 0u128;
-    /// return Some((SolValue::abi_encode(&result), value));
     /// ```
     fn sol_invocation_func(&self) -> TokenStream {
         let sails_path = self.sails_path;
@@ -83,14 +84,14 @@ impl FnBuilder<'_> {
             quote!(#param_type,)
         });
 
-        let (result_type, reply_with_value) = self.handler_result_type();
+        let (result_type, reply_with_value) = self.result_type_with_value();
 
         let await_token = self.is_async().then(|| quote!(.await));
         let unwrap_token = self.unwrap_result.then(|| quote!(.unwrap()));
 
         let handle_token = if reply_with_value {
             quote! {
-                let command_reply: CommandReply<#result_type> = self.#handler_func_ident(#(#handler_params),*)#await_token #unwrap_token.into();
+                let command_reply: CommandReply< #result_type > = self.#handler_func_ident(#(#handler_params),*)#await_token #unwrap_token.into();
                 let (result, value) = command_reply.to_tuple();
             }
         } else {
@@ -103,7 +104,6 @@ impl FnBuilder<'_> {
         quote! {
             let (#(#handler_params_comma)*) : (#(#handler_types)*) = #sails_path::alloy_sol_types::SolValue::abi_decode_params(input, false).expect("Failed to decode request");
             #handle_token
-            return Some((#sails_path::alloy_sol_types::SolValue::abi_encode(&result), value));
         }
     }
 }
