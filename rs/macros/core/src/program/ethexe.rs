@@ -70,7 +70,7 @@ impl ProgramBuilder {
 
     pub fn program_const(&self) -> TokenStream {
         let sails_path = self.sails_path();
-        let (program_type_path, _, _) = self.impl_type();
+        let (program_type_path, ..) = self.impl_type();
 
         quote! {
             const __CTOR_SIGS: [[u8; 4]; <#program_type_path as #sails_path::solidity::ProgramSignature>::CTORS.len()]
@@ -83,15 +83,47 @@ impl ProgramBuilder {
     }
 
     pub fn match_ctor_impl(&self) -> TokenStream {
-        let (program_type_path, _, _) = self.impl_type();
+        let (program_type_path, ..) = self.impl_type();
         let program_ctors = self.program_ctors();
         let ctor_branches = program_ctors
             .iter()
-            .map(|fn_builder| fn_builder.ctor_branch_impl(program_type_path));
+            .map(|fn_builder| fn_builder.sol_ctor_branch_impl(program_type_path));
+
         quote! {
             async fn match_ctor_solidity(ctor: &[u8], input: &[u8]) -> Option<#program_type_path> {
                 #( #ctor_branches )*
                 None
+            }
+        }
+    }
+
+    pub fn sol_init(&self, input_ident: &Ident, program_ident: &Ident) -> TokenStream {
+        let sails_path = self.sails_path();
+        let (program_type_path, ..) = self.impl_type();
+
+        quote! {
+            if let Ok(sig) = TryInto::<[u8; 4]>::try_into(&#input_ident[..4]) {
+                if let Some(idx) = __CTOR_SIGS.iter().position(|s| s == &sig) {
+                    let (_, ctor_route) = <#program_type_path as #sails_path::solidity::ProgramSignature>::CTORS[idx];
+                    unsafe {
+                        #program_ident = match_ctor_solidity(ctor_route, &#input_ident[4..]).await;
+                    }
+                    if unsafe { #program_ident.is_some() } {
+                        #sails_path::gstd::msg::reply_bytes(ctor_route, 0).expect("Failed to send output");
+                        return;
+                    }
+                }
+            }
+        }
+    }
+
+    pub fn sol_main(&self, solidity_dispatchers: &[TokenStream]) -> TokenStream {
+        quote! {
+            if let Ok(sig) = TryInto::<[u8; 4]>::try_into(&input[..4]) {
+                if let Some(idx) = __METHOD_SIGS.iter().position(|s| s == &sig) {
+                    let (route, method) = __METHOD_ROUTES[idx];
+                    #(#solidity_dispatchers)*
+                }
             }
         }
     }
@@ -142,7 +174,7 @@ impl FnBuilder<'_> {
         }
     }
 
-    fn ctor_branch_impl(&self, program_type_path: &TypePath) -> TokenStream {
+    fn sol_ctor_branch_impl(&self, program_type_path: &TypePath) -> TokenStream {
         let sails_path = self.sails_path;
         let handler_route_bytes = self.encoded_route.as_slice();
         let handler_ident = self.ident;
@@ -167,6 +199,25 @@ impl FnBuilder<'_> {
                 let (#(#handler_params_comma)*) : (#(#handler_types)*) = #sails_path::alloy_sol_types::SolValue::abi_decode_params(input, false).expect("Failed to decode request");
                 let program = #program_type_path :: #handler_ident (#(#handler_params),*) #await_token #unwrap_token;
                 return Some(program);
+            }
+        }
+    }
+
+    pub(crate) fn sol_service_invocation(&self) -> TokenStream2 {
+        let sails_path = self.sails_path;
+        let route_ident = &self.route_ident();
+        let service_ctor_ident = self.ident;
+        quote! {
+            if route == & #route_ident {
+                let mut service = program_ref.#service_ctor_ident();
+                let (output, value) = service
+                    .try_handle_solidity(method, &input[4..])
+                    .await
+                    .unwrap_or_else(|| {
+                        #sails_path::gstd::unknown_input_panic("Unknown request", input)
+                    });
+                #sails_path::gstd::msg::reply_bytes(output, value).expect("Failed to send output");
+                return;
             }
         }
     }

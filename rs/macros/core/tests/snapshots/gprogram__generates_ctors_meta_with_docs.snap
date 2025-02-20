@@ -17,24 +17,24 @@ impl sails_rs::meta::ProgramMeta for MyProgram {
     type ConstructorsMeta = meta_in_program::ConstructorsMeta;
     const SERVICES: &'static [(&'static str, fn() -> sails_rs::meta::AnyServiceMeta)] = &[];
 }
-#[derive(sails_rs::Decode, sails_rs::TypeInfo)]
-#[codec(crate = sails_rs::scale_codec)]
-#[scale_info(crate = sails_rs::scale_info)]
-#[allow(dead_code)]
-struct __NewParams {
-    p1: u32,
-    p2: String,
-}
-#[derive(sails_rs::Decode, sails_rs::TypeInfo)]
-#[codec(crate = sails_rs::scale_codec)]
-#[scale_info(crate = sails_rs::scale_info)]
-#[allow(dead_code)]
-struct __New2Params {
-    p2: String,
-    p1: u32,
-}
 mod meta_in_program {
     use super::*;
+    #[derive(sails_rs::Decode, sails_rs::TypeInfo)]
+    #[codec(crate = sails_rs::scale_codec)]
+    #[scale_info(crate = sails_rs::scale_info)]
+    #[allow(dead_code)]
+    pub struct __NewParams {
+        pub(super) p1: u32,
+        pub(super) p2: String,
+    }
+    #[derive(sails_rs::Decode, sails_rs::TypeInfo)]
+    #[codec(crate = sails_rs::scale_codec)]
+    #[scale_info(crate = sails_rs::scale_info)]
+    #[allow(dead_code)]
+    pub struct __New2Params {
+        pub(super) p2: String,
+        pub(super) p1: u32,
+    }
     #[derive(sails_rs::TypeInfo)]
     #[scale_info(crate = sails_rs::scale_info)]
     pub enum ConstructorsMeta {
@@ -58,17 +58,17 @@ pub mod wasm {
         let (program, invocation_route) = if input
             .starts_with(&[12u8, 78u8, 101u8, 119u8])
         {
-            static INVOCATION_ROUTE: [u8; 4usize] = [12u8, 78u8, 101u8, 119u8];
-            let request = __NewParams::decode(&mut &input[4usize..])
+            const INVOCATION_ROUTE: &[u8] = &[12u8, 78u8, 101u8, 119u8];
+            let request = meta_in_program::__NewParams::decode(&mut &input[4usize..])
                 .expect("Failed to decode request");
             let program = MyProgram::new(request.p1, request.p2).await;
-            (program, INVOCATION_ROUTE.as_ref())
+            (program, INVOCATION_ROUTE)
         } else if input.starts_with(&[16u8, 78u8, 101u8, 119u8, 50u8]) {
-            static INVOCATION_ROUTE: [u8; 5usize] = [16u8, 78u8, 101u8, 119u8, 50u8];
-            let request = __New2Params::decode(&mut &input[5usize..])
+            const INVOCATION_ROUTE: &[u8] = &[16u8, 78u8, 101u8, 119u8, 50u8];
+            let request = meta_in_program::__New2Params::decode(&mut &input[5usize..])
                 .expect("Failed to decode request");
             let program = MyProgram::new2(request.p2, request.p1);
-            (program, INVOCATION_ROUTE.as_ref())
+            (program, INVOCATION_ROUTE)
         } else {
             sails_rs::gstd::unknown_input_panic("Unexpected ctor", input)
         };

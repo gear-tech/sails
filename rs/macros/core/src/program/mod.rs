@@ -1,9 +1,8 @@
 use crate::{
     export, sails_paths,
-    shared::{self, FnBuilder, Func},
+    shared::{self, FnBuilder},
 };
 use args::ProgramArgs;
-use parity_scale_codec::Encode;
 use proc_macro2::{Span, TokenStream as TokenStream2};
 use proc_macro_error::abort;
 use quote::quote;
@@ -11,7 +10,7 @@ use std::{
     collections::BTreeMap, env, ops::{Deref, DerefMut}
 };
 use syn::{
-    parse_quote, spanned::Spanned, Attribute, Generics, Ident, ImplItem, ImplItemFn, ItemImpl,
+    parse_quote, spanned::Spanned, Generics, Ident, ImplItem, ImplItemFn, ItemImpl,
     Path, PathArguments, Receiver, ReturnType, Type, TypePath, Visibility, WhereClause,
 };
 
@@ -120,8 +119,7 @@ impl ProgramBuilder {
         let mut services_meta = Vec::new();
         let mut invocation_dispatches = Vec::new();
         let mut routes = BTreeMap::new();
-        #[cfg(feature = "ethexe")]
-        let mut solidity_dispatchers = Vec::new();
+        let mut solidity_dispatchers: Vec<TokenStream2> = Vec::new();
 
         let item_impl = self
             .program_impl
@@ -173,7 +171,7 @@ impl ProgramBuilder {
         let (program_type_path, _program_type_args, _) = self.impl_type();
         let (generics, program_type_constraints) = self.impl_constraints();
 
-        let program_meta = quote! {
+        let program_meta_impl = quote! {
             #(#services_route)*
 
             impl #generics #sails_path::meta::ProgramMeta for #program_type_path #program_type_constraints {
@@ -202,19 +200,7 @@ impl ProgramBuilder {
             quote!((#(#args),*))
         };
 
-        #[cfg(feature = "ethexe")]
-        let solidity_main = {
-            quote! {
-                if let Ok(sig) = TryInto::<[u8; 4]>::try_into(&input[..4]) {
-                    if let Some(idx) = __METHOD_SIGS.iter().position(|s| s == &sig) {
-                        let (route, method) = __METHOD_ROUTES[idx];
-                        #(#solidity_dispatchers)*
-                    }
-                }
-            }
-        };
-        #[cfg(not(feature = "ethexe"))]
-        let solidity_main = quote!();
+        let solidity_main = self.sol_main(solidity_dispatchers.as_slice());
 
         let main_fn = quote!(
             #[gstd::async_main #async_main_args]
@@ -229,7 +215,95 @@ impl ProgramBuilder {
             }
         );
 
-        (program_meta, main_fn)
+        (program_meta_impl, main_fn)
+    }
+
+    fn generate_init(&self, program_ident: &Ident) -> (TokenStream2, TokenStream2) {
+        let sails_path = self.sails_path();
+        let scale_codec_path = sails_paths::scale_codec_path(sails_path);
+        let scale_info_path = sails_paths::scale_info_path(sails_path);
+    
+        let (program_type_path, ..) = self.impl_type();
+        let input_ident = Ident::new("input", Span::call_site());
+
+        let program_ctors = self.program_ctors();
+
+        let mut ctor_dispatches = Vec::with_capacity(program_ctors.len() + 1);
+        let mut ctor_params_structs = Vec::with_capacity(program_ctors.len());
+        let mut ctor_meta_variants = Vec::with_capacity(program_ctors.len());
+    
+        for fn_builder in program_ctors {
+   
+            let ctor_params_struct_ident =
+                Ident::new(&format!("__{}Params", fn_builder.route), Span::call_site());
+    
+            ctor_dispatches.push(fn_builder.ctor_branch_impl(program_type_path, &input_ident, &ctor_params_struct_ident));
+    
+            ctor_params_structs.push(fn_builder.ctor_params_struct(&ctor_params_struct_ident, &scale_codec_path, &scale_info_path));
+
+            ctor_meta_variants.push(fn_builder.ctor_meta_variant(&ctor_params_struct_ident));
+        }
+    
+        ctor_dispatches.push(quote! {
+            { #sails_path::gstd::unknown_input_panic("Unexpected ctor", input) }
+        });
+    
+        let solidity_init = self.sol_init(&input_ident, program_ident);
+    
+        let init_fn = quote! {
+            #[gstd::async_init]
+            async fn init() {
+                #sails_path::gstd::events::__enable_events();
+                let mut #input_ident: &[u8] = &#sails_path::gstd::msg::load_bytes().expect("Failed to read input");
+    
+                #solidity_init
+    
+                let (program, invocation_route) = #(#ctor_dispatches)else*;
+                unsafe {
+                    #program_ident = Some(program);
+                }
+                #sails_path::gstd::msg::reply_bytes(invocation_route, 0).expect("Failed to send output");
+            }
+        };
+
+        let meta_in_program = quote! {
+            mod meta_in_program {
+                use super::*;
+
+                #( #ctor_params_structs )*    
+
+                #[derive(#sails_path ::TypeInfo)]
+                #[scale_info(crate = #scale_info_path)]
+                pub enum ConstructorsMeta {
+                    #( #ctor_meta_variants ),*
+                }
+            }    
+        };
+        (meta_in_program, init_fn)
+    }
+}
+
+// Empty ProgramBuilder Implementations without `ethexe` feature
+#[cfg(not(feature = "ethexe"))]
+impl ProgramBuilder {
+    fn program_signature_impl(&self) -> TokenStream2 {
+        quote!()
+    }
+
+    fn match_ctor_impl(&self) -> TokenStream2 {
+        quote!()
+    }
+
+    fn program_const(&self) -> TokenStream2 {
+        quote!()
+    }
+
+    fn sol_init(&self, _input_ident: &Ident, _program_ident: &Ident) -> TokenStream2 {
+        quote!()
+    }
+
+    fn sol_main(&self, _solidity_dispatchers: &[TokenStream2]) -> TokenStream2 {
+        quote!()
     }
 }
 
@@ -251,75 +325,28 @@ fn gen_gprogram_impl(program_impl: ItemImpl, program_args: ProgramArgs) -> Token
     let mut program_builder = ProgramBuilder::new(program_impl, program_args);
 
     let sails_path = program_builder.sails_path().clone();
-    let scale_codec_path = sails_paths::scale_codec_path(&sails_path);
-    let scale_info_path = sails_paths::scale_info_path(&sails_path);
 
     // Call this before `wire_up_service_exposure`
-    #[cfg(feature = "ethexe")]
     let program_signature_impl = program_builder.program_signature_impl();
-    #[cfg(not(feature = "ethexe"))]
-    let program_signature_impl = quote!();
-
-    #[cfg(feature = "ethexe")]
     let match_ctor_impl = program_builder.match_ctor_impl();
-    #[cfg(not(feature = "ethexe"))]
-    let match_ctor_impl = quote!();
-
-    #[cfg(feature = "ethexe")]
     let program_const = program_builder.program_const();
-    #[cfg(not(feature = "ethexe"))]
-    let program_const = quote!();
 
     let program_ident = Ident::new("PROGRAM", Span::call_site());
     
-    let (program_meta, main_fn) = program_builder.wire_up_service_exposure(&program_ident);
+    let (program_meta_impl, main_fn) = program_builder.wire_up_service_exposure(&program_ident);
 
-    let (program_type_path, _program_type_args, _) = program_builder.impl_type();
+    let (meta_in_program, init_fn) = program_builder.generate_init(&program_ident);
 
-    let program_ctors = discover_program_ctors(&program_builder);
-    let (ctors_data, init_fn) = generate_init(
-        &program_ctors,
-        program_type_path,
-        &program_ident,
-        &sails_path,
-    );
-
-    let ctors_params_structs = ctors_data.clone().map(|item| item.2);
-
-    let ctors_meta_variants = ctors_data.map(|item| {
-        let ctor_route = Ident::new(&item.0, Span::call_site());
-        let ctor_params_struct_ident = item.1;
-        let ctor_docs_attrs = item.3;
-        quote!(
-            #( #ctor_docs_attrs )*
-            #ctor_route(#ctor_params_struct_ident)
-        )
-    });
+    let (program_type_path, ..) = program_builder.impl_type();
 
     let program_impl = program_builder.deref();
 
     quote!(
         #program_impl
 
-        #program_meta
+        #program_meta_impl
 
-        #(
-            #[derive(#sails_path ::Decode, #sails_path ::TypeInfo)]
-            #[codec(crate = #scale_codec_path )]
-            #[scale_info(crate = #scale_info_path )]
-            #[allow(dead_code)]
-            #ctors_params_structs
-        )*
-
-        mod meta_in_program {
-            use super::*;
-
-            #[derive(#sails_path ::TypeInfo)]
-            #[scale_info(crate = #scale_info_path)]
-            pub enum ConstructorsMeta {
-                #(#ctors_meta_variants),*
-            }
-        }
+        #meta_in_program
 
         #program_signature_impl
 
@@ -339,118 +366,6 @@ fn gen_gprogram_impl(program_impl: ItemImpl, program_args: ProgramArgs) -> Token
             #main_fn
         }
     )
-}
-
-fn generate_init(
-    program_ctors: &BTreeMap<String, (&ImplItemFn, usize, bool)>,
-    program_type_path: &TypePath,
-    program_ident: &Ident,
-    sails_path: &Path,
-) -> (
-    impl Iterator<Item = (String, Ident, TokenStream2, Vec<Attribute>)> + Clone,
-    TokenStream2,
-) {
-    let input_ident = Ident::new("input", Span::call_site());
-
-    let mut invocation_dispatches = Vec::with_capacity(program_ctors.len() + 1);
-    let mut invocation_params_structs = Vec::with_capacity(program_ctors.len());
-
-    for (invocation_route, (program_ctor, _, unwrap_result)) in program_ctors {
-        let ctor_docs_attrs: Vec<_> = program_ctor
-            .attrs
-            .iter()
-            .filter(|attr| attr.path().is_ident("doc"))
-            .cloned()
-            .collect();
-
-        let program_ctor = &program_ctor.sig;
-        let handler = Func::from(program_ctor);
-
-        let invocation_params_struct_ident =
-            Ident::new(&format!("__{}Params", invocation_route), Span::call_site());
-
-        invocation_dispatches.push({
-            let invocation_route_bytes = invocation_route.encode();
-            let invocation_route_len = invocation_route_bytes.len();
-            let handler_ident = handler.ident();
-            let handler_await = handler.is_async().then(|| quote!(.await));
-            let unwrap_token = unwrap_result.then(|| quote!(.unwrap()));
-            let handler_args = handler.params().iter().map(|item| {
-                let param_ident = item.0;
-                quote!(request.#param_ident)
-            });
-
-            quote!(
-                if #input_ident.starts_with(& [ #(#invocation_route_bytes),* ]) {
-                    static INVOCATION_ROUTE: [u8; #invocation_route_len] = [ #(#invocation_route_bytes),* ];
-                    let request = #invocation_params_struct_ident::decode(&mut &#input_ident[#invocation_route_len..]).expect("Failed to decode request");
-                    let program = #program_type_path :: #handler_ident (#(#handler_args),*) #handler_await #unwrap_token;
-                    (program, INVOCATION_ROUTE.as_ref())
-                }
-            )
-        });
-
-        invocation_params_structs.push({
-            let invocation_params_struct_members = handler.params().iter().map(|item| {
-                let param_ident = item.0;
-                let param_type = item.1;
-                quote!(#param_ident: #param_type)
-            });
-
-            (
-                invocation_route.clone(),
-                invocation_params_struct_ident.clone(),
-                quote!(
-                    struct #invocation_params_struct_ident {
-                        #(#invocation_params_struct_members),*
-                    }
-                ),
-                ctor_docs_attrs,
-            )
-        });
-    }
-
-    invocation_dispatches.push(quote! {
-        { #sails_path::gstd::unknown_input_panic("Unexpected ctor", input) }
-    });
-
-    #[cfg(feature = "ethexe")]
-    let solidity_init = {
-        quote! {
-            if let Ok(sig) = TryInto::<[u8; 4]>::try_into(&#input_ident[..4]) {
-                if let Some(idx) = __CTOR_SIGS.iter().position(|s| s == &sig) {
-                    let (_, ctor_route) = <#program_type_path as #sails_path::solidity::ProgramSignature>::CTORS[idx];
-                    unsafe {
-                        #program_ident = match_ctor_solidity(ctor_route, &#input_ident[4..]).await;
-                    }
-                    if unsafe { #program_ident.is_some() } {
-                        #sails_path::gstd::msg::reply_bytes(ctor_route, 0).expect("Failed to send output");
-                        return;
-                    }
-                }
-            }
-        }
-    };
-    #[cfg(not(feature = "ethexe"))]
-    let solidity_init = quote!();
-
-    let init = quote!(
-        #[gstd::async_init]
-        async fn init() {
-            #sails_path::gstd::events::__enable_events();
-            let mut #input_ident: &[u8] = &#sails_path::gstd::msg::load_bytes().expect("Failed to read input");
-
-            #solidity_init
-
-            let (program, invocation_route) = #(#invocation_dispatches)else*;
-            unsafe {
-                #program_ident = Some(program);
-            }
-            #sails_path::gstd::msg::reply_bytes(invocation_route, 0).expect("Failed to send output");
-        }
-    );
-
-    (invocation_params_structs.into_iter(), init)
 }
 
 fn ensure_default_program_ctor(program_impl: &mut ItemImpl) {
@@ -557,26 +472,6 @@ impl FnBuilder<'_> {
         }
     }
 
-    #[cfg(feature = "ethexe")]
-    fn sol_service_invocation(&self) -> TokenStream2 {
-        let sails_path = self.sails_path;
-        let route_ident = &self.route_ident();
-        let service_ctor_ident = self.ident;
-        quote! {
-            if route == & #route_ident {
-                let mut service = program_ref.#service_ctor_ident();
-                let (output, value) = service
-                    .try_handle_solidity(method, &input[4..])
-                    .await
-                    .unwrap_or_else(|| {
-                        #sails_path::gstd::unknown_input_panic("Unknown request", input)
-                    });
-                #sails_path::gstd::msg::reply_bytes(output, value).expect("Failed to send output");
-                return;
-            }
-        }
-    }
-
     fn original_service_ctor_fn(&self) -> ImplItemFn {
         let mut original_service_ctor_fn = self.impl_fn.clone();
         let original_service_ctor_fn_ident = Ident::new(
@@ -613,6 +508,59 @@ impl FnBuilder<'_> {
             exposure
         });
         wrapping_service_ctor_fn
+    }
+
+    fn ctor_branch_impl(&self, program_type_path: &TypePath, input_ident: &Ident, invocation_params_struct_ident: &Ident) -> TokenStream2 {
+        let invocation_route_bytes = self.encoded_route.as_slice();
+        let invocation_route_len = invocation_route_bytes.len();
+        let handler_ident = self.ident;
+        let handler_await = self.is_async().then(|| quote!(.await));
+        let unwrap_token = self.unwrap_result.then(|| quote!(.unwrap()));
+        let handler_args = self.params.iter().map(|item| {
+            let param_ident = item.0;
+            quote!(request.#param_ident)
+        });
+
+        quote!(
+            if #input_ident.starts_with(& [ #(#invocation_route_bytes),* ]) {
+                const INVOCATION_ROUTE: &[u8] = &[ #(#invocation_route_bytes),* ];
+                let request = meta_in_program:: #invocation_params_struct_ident::decode(&mut &#input_ident[#invocation_route_len..]).expect("Failed to decode request");
+                let program = #program_type_path :: #handler_ident (#(#handler_args),*) #handler_await #unwrap_token;
+                (program, INVOCATION_ROUTE)
+            }
+        )
+    }
+
+    fn ctor_params_struct(&self, ctor_params_struct_ident: &Ident, scale_codec_path: &Path, scale_info_path: &Path) -> TokenStream2 {
+        let sails_path = self.sails_path;
+        let ctor_params_struct_members = self.params.iter().map(|item| {
+            let param_ident = item.0;
+            let param_type = item.1;
+            quote!(#param_ident: #param_type,)
+        });
+
+        quote! {
+            #[derive(#sails_path ::Decode, #sails_path ::TypeInfo)]
+            #[codec(crate = #scale_codec_path )]
+            #[scale_info(crate = #scale_info_path )]
+            #[allow(dead_code)]            
+            pub struct #ctor_params_struct_ident {
+                #(pub(super) #ctor_params_struct_members)*
+            }
+        }
+    }
+
+    fn ctor_meta_variant(&self, ctor_params_struct_ident: &Ident) -> TokenStream2{
+        let ctor_route = Ident::new(self.route.as_str(), Span::call_site());
+        let ctor_docs_attrs = self.impl_fn
+            .attrs
+            .iter()
+            .filter(|attr| attr.path().is_ident("doc"));
+
+        quote! {
+            #( #ctor_docs_attrs )*
+            #ctor_route(#ctor_params_struct_ident)
+        }
     }
 }
 
