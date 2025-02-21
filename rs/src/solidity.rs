@@ -216,7 +216,7 @@ mod tests {
             (
                 "svc2",
                 &[16u8, 83u8, 118u8, 99u8, 49u8] as &[u8],
-                <ExtendedSvc as ServiceSignature>::METHODS.len(),
+                <ExtendedSvc as ServiceSignature>::METHODS,
             ),
         ];
     }
