@@ -75,12 +75,12 @@ struct ServiceBuilder<'a> {
 
 impl<'a> ServiceBuilder<'a> {
     fn from(service_impl: &'a ItemImpl, sails_path: &'a Path, base_types: &'a [Path]) -> Self {
-        let (generics, type_constraints) = shared::impl_constraints(&service_impl);
+        let (generics, type_constraints) = shared::impl_constraints(service_impl);
         let (type_path, type_args, ident) = shared::impl_type_refs(service_impl.self_ty.as_ref());
         let service_handlers = discover_service_handlers(service_impl)
             .into_iter()
             .map(|(route, (fn_impl, _idx, unwrap_result))| {
-                FnBuilder::from(route, fn_impl, unwrap_result, &sails_path)
+                FnBuilder::from(route, fn_impl, unwrap_result, sails_path)
             })
             .collect::<Vec<_>>();
 
@@ -486,8 +486,8 @@ fn discover_service_handlers(
 impl FnBuilder<'_> {
     fn result_type_with_static_lifetime(&self) -> Type {
         let (result_type, _) = self.result_type_with_value();
-        let result_type = shared::replace_any_lifetime_with_static(result_type.clone());
-        result_type
+
+        shared::replace_any_lifetime_with_static(result_type.clone())
     }
 
     fn handler_meta_variant(&self) -> TokenStream {

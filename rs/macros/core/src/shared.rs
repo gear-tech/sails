@@ -307,7 +307,7 @@ impl<'a> FnBuilder<'a> {
         self.impl_fn
             .sig
             .receiver()
-            .map_or(true, |r| r.mutability.is_none())
+            .is_none_or(|r| r.mutability.is_none())
     }
 
     pub(crate) fn result_type_with_value(&self) -> (&Type, bool) {

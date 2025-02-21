@@ -160,13 +160,12 @@ mod some_service_meta {
     pub type EventsMeta = NoEvents;
 }
 impl sails_rs::solidity::ServiceSignature for SomeService {
-    const METHODS: &'static [sails_rs::solidity::MethodRoute] = &[
-        (
-            sails_rs::concatcp!(
-                "do_this", << (u128,) as sails_rs::alloy_sol_types::SolValue > ::SolType
-                as sails_rs::alloy_sol_types::SolType > ::SOL_NAME,
-            ),
-            &[24u8, 68u8, 111u8, 84u8, 104u8, 105u8, 115u8] as &[u8],
-        ),
-    ];
+    const METHODS: &'static [sails_rs::solidity::MethodRoute] = sails_rs::const_concat_slices!(
+        < sails_rs::solidity::MethodRoute >, & [(sails_rs::concatcp!("do_this", <<
+        (u128,) as sails_rs::alloy_sol_types::SolValue > ::SolType as
+        sails_rs::alloy_sol_types::SolType > ::SOL_NAME,), & [24u8, 68u8, 111u8, 84u8,
+        104u8, 105u8, 115u8] as & [u8],),], < ExtendedService1 as
+        sails_rs::solidity::ServiceSignature > ::METHODS, < ExtendedService2 as
+        sails_rs::solidity::ServiceSignature > ::METHODS
+    );
 }

@@ -13,11 +13,28 @@ impl ServiceBuilder<'_> {
             .iter()
             .map(|fn_builder| fn_builder.sol_handler_signature());
 
+        let combined_methods = if self.base_types.is_empty() {
+            quote! {
+                &[#( #service_method_routes )*]
+            }
+        } else {
+            let base_methods = self.base_types.iter().map(|path| {
+                quote! {
+                    <#path as #sails_path::solidity::ServiceSignature>::METHODS
+                }
+            });
+            quote! {
+                #sails_path::const_concat_slices!(
+                    <#sails_path::solidity::MethodRoute>,
+                    &[#( #service_method_routes )*],
+                    #( #base_methods ),*
+                )
+            }
+        };
+
         quote! {
             impl #generics #sails_path::solidity::ServiceSignature for #service_type_path #service_type_constraints {
-                const METHODS: &'static [#sails_path::solidity::MethodRoute] = &[
-                    #( #service_method_routes )*
-                ];
+                const METHODS: &'static [#sails_path::solidity::MethodRoute] = #combined_methods;
             }
         }
     }

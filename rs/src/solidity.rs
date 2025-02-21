@@ -51,29 +51,21 @@ macro_rules! const_selector {
 }
 
 #[macro_export]
-macro_rules! const_sum_len {
-    // Base case:
-    ($x:expr) => ($x.len());
-    // Recursive case:
-    ($x:expr, $($y:expr),+) => (
-        $x.len() + const_sum_len!($($y),+)
-    );
-}
-
-#[macro_export]
 macro_rules! const_concat_slices {
-    ($T:ty, $D:expr, $($A:expr),+ $(,)?) => {{
-        const LEN: usize = const_sum_len!($($A),+);
+    (<$T:ty>, $($A:expr),+ $(,)?) => {{
+        use core::mem::MaybeUninit;
+
+        const LEN: usize = $( $A.len() + )* 0;
         const fn combined() -> [$T; LEN] {
-            let mut output: [$T; LEN] = [$D; LEN];
+            let mut output: [MaybeUninit<$T>; LEN] = [const { MaybeUninit::uninit() }; LEN];
             let _offset = 0;
             $(let _offset = copy_slice(&mut output, $A, _offset);)*
-            output
+            unsafe { core::mem::transmute::<_, [$T; LEN]>(output) }
         }
-        const fn copy_slice(output: &mut [$T; LEN], input: &[$T], offset: usize) -> usize {
+        const fn copy_slice(output: &mut [MaybeUninit<$T>], input: &[$T], offset: usize) -> usize {
             let mut index = 0;
             while index < input.len() {
-                output[offset + index] = input[index];
+                output[offset + index].write(input[index]);
                 index += 1;
             }
             offset + index
@@ -182,8 +174,7 @@ mod tests {
 
     impl ServiceSignature for ExtendedSvc {
         const METHODS: &[MethodRoute] = const_concat_slices!(
-            MethodRoute,
-            ("", &[]),
+            <MethodRoute>,
             &[
                 (
                     concatcp!(
@@ -225,7 +216,7 @@ mod tests {
             (
                 "svc2",
                 &[16u8, 83u8, 118u8, 99u8, 49u8] as &[u8],
-                <ExtendedSvc as ServiceSignature>::METHODS,
+                <ExtendedSvc as ServiceSignature>::METHODS.len(),
             ),
         ];
     }

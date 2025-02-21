@@ -211,34 +211,14 @@ mod extended_lifetime_meta {
     pub type EventsMeta = NoEvents;
 }
 impl<'a> sails_rs::solidity::ServiceSignature for ExtendedLifetime<'a> {
-    const METHODS: &'static [sails_rs::solidity::MethodRoute] = &[
-        (
-            sails_rs::concatcp!(
-                "extended_name", << (u128,) as sails_rs::alloy_sol_types::SolValue >
-                ::SolType as sails_rs::alloy_sol_types::SolType > ::SOL_NAME,
-            ),
-            &[
-                48u8,
-                69u8,
-                120u8,
-                116u8,
-                101u8,
-                110u8,
-                100u8,
-                101u8,
-                100u8,
-                78u8,
-                97u8,
-                109u8,
-                101u8,
-            ] as &[u8],
-        ),
-        (
-            sails_rs::concatcp!(
-                "name", << (u128,) as sails_rs::alloy_sol_types::SolValue > ::SolType as
-                sails_rs::alloy_sol_types::SolType > ::SOL_NAME,
-            ),
-            &[16u8, 78u8, 97u8, 109u8, 101u8] as &[u8],
-        ),
-    ];
+    const METHODS: &'static [sails_rs::solidity::MethodRoute] = sails_rs::const_concat_slices!(
+        < sails_rs::solidity::MethodRoute >, & [(sails_rs::concatcp!("extended_name", <<
+        (u128,) as sails_rs::alloy_sol_types::SolValue > ::SolType as
+        sails_rs::alloy_sol_types::SolType > ::SOL_NAME,), & [48u8, 69u8, 120u8, 116u8,
+        101u8, 110u8, 100u8, 101u8, 100u8, 78u8, 97u8, 109u8, 101u8] as & [u8],),
+        (sails_rs::concatcp!("name", << (u128,) as sails_rs::alloy_sol_types::SolValue >
+        ::SolType as sails_rs::alloy_sol_types::SolType > ::SOL_NAME,), & [16u8, 78u8,
+        97u8, 109u8, 101u8] as & [u8],),], < base::BaseLifetime < 'a > as
+        sails_rs::solidity::ServiceSignature > ::METHODS
+    );
 }
