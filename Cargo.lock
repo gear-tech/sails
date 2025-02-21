@@ -6690,6 +6690,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "sails-macros-ethexe"
+version = "0.7.3"
+dependencies = [
+ "insta",
+ "prettyplease",
+ "proc-macro2",
+ "quote",
+ "sails-macros",
+ "sails-macros-core",
+ "sails-rs",
+ "syn 2.0.98",
+ "tokio",
+]
+
+[[package]]
 name = "sails-rs"
 version = "0.7.3"
 dependencies = [

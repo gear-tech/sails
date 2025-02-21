@@ -22,11 +22,19 @@ impl ServiceBuilder<'_> {
         }
     }
 
-    pub fn try_handle_impl(&self) -> TokenStream {
+    pub fn try_handle_solidity_impl(&self) -> TokenStream {
         let service_method_branches = self
             .service_handlers
             .iter()
             .map(|fn_builder| fn_builder.sol_try_handle_branch_impl());
+        let base_types_try_handle = self.base_types.iter().enumerate().map(|(idx, _path)| {
+            let base_ident = Ident::new(&format!("base_{}", idx), Span::call_site());
+            quote! {
+                if let Some((output, value)) = self. #base_ident .try_handle_solidity(method, input).await {
+                    return Some((output, value));
+                }
+            }
+        });
 
         quote! {
             pub async fn try_handle_solidity(
@@ -35,6 +43,7 @@ impl ServiceBuilder<'_> {
                 input: &[u8],
             ) -> Option<(Vec<u8>, u128)> {
                 #( #service_method_branches )*
+                #( #base_types_try_handle )*
                 None
             }
         }

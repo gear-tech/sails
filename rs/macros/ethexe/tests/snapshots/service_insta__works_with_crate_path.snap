@@ -1,0 +1,178 @@
+---
+source: rs/macros/ethexe/tests/service_insta.rs
+expression: result
+---
+impl SomeService {
+    pub async fn do_this(&mut self, p1: u32, p2: String) -> u32 {
+        p1
+    }
+    pub fn this(&self, p1: bool) -> bool {
+        p1
+    }
+}
+pub struct SomeServiceExposure<T> {
+    message_id: sails_rename::MessageId,
+    route: &'static [u8],
+    #[cfg(not(target_arch = "wasm32"))]
+    inner: Box<T>,
+    #[cfg(not(target_arch = "wasm32"))]
+    inner_ptr: *const T,
+    #[cfg(target_arch = "wasm32")]
+    inner: T,
+}
+impl SomeServiceExposure<SomeService> {
+    pub async fn do_this(&mut self, p1: u32, p2: String) -> u32 {
+        let exposure_scope = sails_rename::gstd::services::ExposureCallScope::new(self);
+        self.inner.do_this(p1, p2).await
+    }
+    pub fn this(&self, p1: bool) -> bool {
+        let exposure_scope = sails_rename::gstd::services::ExposureCallScope::new(self);
+        self.inner.this(p1)
+    }
+    pub async fn try_handle(&mut self, input: &[u8]) -> Option<(Vec<u8>, u128)> {
+        use sails_rename::gstd::InvocationIo;
+        if let Ok(request) = some_service_meta::__DoThisParams::decode_params(&input) {
+            let result = self.do_this(request.p1, request.p2).await;
+            let value = 0u128;
+            let output = some_service_meta::__DoThisParams::encode_reply(&result);
+            return Some((output, value));
+        }
+        if let Ok(request) = some_service_meta::__ThisParams::decode_params(&input) {
+            let result = self.this(request.p1);
+            let value = 0u128;
+            let output = some_service_meta::__ThisParams::encode_reply(&result);
+            return Some((output, value));
+        }
+        None
+    }
+    pub async fn try_handle_solidity(
+        &mut self,
+        method: &[u8],
+        input: &[u8],
+    ) -> Option<(Vec<u8>, u128)> {
+        if method == &[24u8, 68u8, 111u8, 84u8, 104u8, 105u8, 115u8] {
+            let (p1, p2): (u32, String) = sails_rename::alloy_sol_types::SolValue::abi_decode_params(
+                    input,
+                    false,
+                )
+                .expect("Failed to decode request");
+            let result = self.do_this(p1, p2).await;
+            let value = 0u128;
+            return Some((
+                sails_rename::alloy_sol_types::SolValue::abi_encode(&result),
+                value,
+            ));
+        }
+        if method == &[16u8, 84u8, 104u8, 105u8, 115u8] {
+            let (p1,): (bool,) = sails_rename::alloy_sol_types::SolValue::abi_decode_params(
+                    input,
+                    false,
+                )
+                .expect("Failed to decode request");
+            let result = self.this(p1);
+            let value = 0u128;
+            return Some((
+                sails_rename::alloy_sol_types::SolValue::abi_encode(&result),
+                value,
+            ));
+        }
+        None
+    }
+}
+impl sails_rename::gstd::services::Exposure for SomeServiceExposure<SomeService> {
+    fn message_id(&self) -> sails_rename::MessageId {
+        self.message_id
+    }
+    fn route(&self) -> &'static [u8] {
+        self.route
+    }
+}
+impl sails_rename::gstd::services::Service for SomeService {
+    type Exposure = SomeServiceExposure<SomeService>;
+    fn expose(
+        self,
+        message_id: sails_rename::MessageId,
+        route: &'static [u8],
+    ) -> Self::Exposure {
+        #[cfg(not(target_arch = "wasm32"))]
+        let inner_box = Box::new(self);
+        #[cfg(not(target_arch = "wasm32"))]
+        let inner = inner_box.as_ref();
+        #[cfg(target_arch = "wasm32")]
+        let inner = &self;
+        Self::Exposure {
+            message_id,
+            route,
+            #[cfg(not(target_arch = "wasm32"))]
+            inner_ptr: inner_box.as_ref() as *const Self,
+            #[cfg(not(target_arch = "wasm32"))]
+            inner: inner_box,
+            #[cfg(target_arch = "wasm32")]
+            inner: self,
+        }
+    }
+}
+impl sails_rename::meta::ServiceMeta for SomeService {
+    type CommandsMeta = some_service_meta::CommandsMeta;
+    type QueriesMeta = some_service_meta::QueriesMeta;
+    type EventsMeta = some_service_meta::EventsMeta;
+    const BASE_SERVICES: &'static [fn() -> sails_rename::meta::AnyServiceMeta] = &[];
+}
+mod some_service_meta {
+    use super::*;
+    use sails_rename::{Decode, TypeInfo};
+    #[derive(Decode, TypeInfo)]
+    #[codec(crate = sails_rename::scale_codec)]
+    #[scale_info(crate = sails_rename::scale_info)]
+    pub struct __DoThisParams {
+        pub(super) p1: u32,
+        pub(super) p2: String,
+    }
+    impl sails_rename::gstd::InvocationIo for __DoThisParams {
+        const ROUTE: &'static [u8] = &[24u8, 68u8, 111u8, 84u8, 104u8, 105u8, 115u8];
+        type Params = Self;
+    }
+    #[derive(Decode, TypeInfo)]
+    #[codec(crate = sails_rename::scale_codec)]
+    #[scale_info(crate = sails_rename::scale_info)]
+    pub struct __ThisParams {
+        pub(super) p1: bool,
+    }
+    impl sails_rename::gstd::InvocationIo for __ThisParams {
+        const ROUTE: &'static [u8] = &[16u8, 84u8, 104u8, 105u8, 115u8];
+        type Params = Self;
+    }
+    #[derive(TypeInfo)]
+    #[scale_info(crate = sails_rename::scale_info)]
+    pub enum CommandsMeta {
+        DoThis(__DoThisParams, u32),
+    }
+    #[derive(TypeInfo)]
+    #[scale_info(crate = sails_rename::scale_info)]
+    pub enum QueriesMeta {
+        This(__ThisParams, bool),
+    }
+    #[derive(TypeInfo)]
+    #[scale_info(crate = sails_rename::scale_info)]
+    pub enum NoEvents {}
+    pub type EventsMeta = NoEvents;
+}
+impl sails_rename::solidity::ServiceSignature for SomeService {
+    const METHODS: &'static [sails_rename::solidity::MethodRoute] = &[
+        (
+            sails_rename::concatcp!(
+                "do_this", << (u32, String, u128,) as
+                sails_rename::alloy_sol_types::SolValue > ::SolType as
+                sails_rename::alloy_sol_types::SolType > ::SOL_NAME,
+            ),
+            &[24u8, 68u8, 111u8, 84u8, 104u8, 105u8, 115u8] as &[u8],
+        ),
+        (
+            sails_rename::concatcp!(
+                "this", << (bool, u128,) as sails_rename::alloy_sol_types::SolValue >
+                ::SolType as sails_rename::alloy_sol_types::SolType > ::SOL_NAME,
+            ),
+            &[16u8, 84u8, 104u8, 105u8, 115u8] as &[u8],
+        ),
+    ];
+}

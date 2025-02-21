@@ -59,9 +59,12 @@ fn ensure_single_gservice_on_impl(service_impl: &ItemImpl) {
     }
 }
 
+// Allow unused fields
+#[allow(dead_code)]
 struct ServiceBuilder<'a> {
-    sails_path: &'a Path,
     service_impl: &'a ItemImpl,
+    sails_path: &'a Path,
+    base_types: &'a [Path],
     generics: Generics,
     type_constraints: Option<WhereClause>,
     type_path: &'a TypePath,
@@ -71,7 +74,7 @@ struct ServiceBuilder<'a> {
 }
 
 impl<'a> ServiceBuilder<'a> {
-    fn from(service_impl: &'a ItemImpl, sails_path: &'a Path) -> Self {
+    fn from(service_impl: &'a ItemImpl, sails_path: &'a Path, base_types: &'a [Path]) -> Self {
         let (generics, type_constraints) = shared::impl_constraints(&service_impl);
         let (type_path, type_args, ident) = shared::impl_type_refs(service_impl.self_ty.as_ref());
         let service_handlers = discover_service_handlers(service_impl)
@@ -82,8 +85,9 @@ impl<'a> ServiceBuilder<'a> {
             .collect::<Vec<_>>();
 
         Self {
-            sails_path,
             service_impl,
+            sails_path,
+            base_types,
             generics,
             type_constraints,
             type_path,
@@ -91,6 +95,17 @@ impl<'a> ServiceBuilder<'a> {
             ident,
             service_handlers,
         }
+    }
+}
+
+#[cfg(not(feature = "ethexe"))]
+impl ServiceBuilder<'_> {
+    fn service_signature_impl(&self) -> TokenStream {
+        quote!()
+    }
+
+    fn try_handle_solidity_impl(&self) -> TokenStream {
+        quote!()
     }
 }
 
@@ -106,7 +121,8 @@ fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
     let scale_codec_path = sails_paths::scale_codec_path(&sails_path);
     let scale_info_path = sails_paths::scale_info_path(&sails_path);
 
-    let service_builder = ServiceBuilder::from(&service_impl, &sails_path);
+    let service_builder =
+        ServiceBuilder::from(&service_impl, &sails_path, service_args.base_types());
 
     let (service_type_path, service_type_args, service_ident) = shared::impl_type(&service_impl);
     let (generics, service_type_constraints) = shared::impl_constraints(&service_impl);
@@ -310,14 +326,8 @@ fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
         .filter(|attr| matches!(attr.path().get_ident(), Some(ident) if ident == "allow"));
 
     // ethexe
-    #[cfg(feature = "ethexe")]
     let service_signature_impl = service_builder.service_signature_impl();
-    #[cfg(not(feature = "ethexe"))]
-    let service_signature_impl = quote!();
-    #[cfg(feature = "ethexe")]
-    let try_handle_solidity_impl = service_builder.try_handle_impl();
-    #[cfg(not(feature = "ethexe"))]
-    let try_handle_solidity_impl = quote!();
+    let try_handle_solidity_impl = service_builder.try_handle_solidity_impl();
 
     quote!(
         #service_impl

@@ -1,79 +1,6 @@
 use crate::prelude::*;
-use alloy_primitives::{Address, Selector};
-use alloy_sol_types::{abi::TokenSeq, SolType, SolValue};
+use alloy_primitives::Selector;
 
-pub trait SolSignature {
-    /// The Solidity type that this type corresponds to.
-    type SolType: SolType;
-    /// The corresponding Rust type.
-    type RustType;
-    /// The type signature.
-    const SIGNATURE: &'static str;
-
-    fn decode<'a>(data: &'a [u8]) -> Self::RustType
-    where
-        <Self::SolType as SolType>::Token<'a>: TokenSeq<'a>;
-
-    fn encode(value: &Self::RustType) -> Vec<u8>
-    where
-        for<'a> <Self::SolType as SolType>::Token<'a>: TokenSeq<'a>;
-}
-
-pub struct SolTypeMarker<T, V> {
-    _t: marker::PhantomData<T>,
-    _v: marker::PhantomData<V>,
-}
-
-impl<T> SolSignature for SolTypeMarker<T, T>
-where
-    T: SolValue,
-    T: From<<<T as SolValue>::SolType as SolType>::RustType>,
-{
-    type SolType = T::SolType;
-    type RustType = T;
-    const SIGNATURE: &'static str = T::SolType::SOL_NAME;
-
-    fn decode<'a>(data: &'a [u8]) -> T
-    where
-        <Self::SolType as SolType>::Token<'a>: TokenSeq<'a>,
-    {
-        Self::SolType::abi_decode_params(data, false)
-            .expect("Failed to decode request")
-            .into()
-    }
-
-    fn encode(value: &T) -> Vec<u8>
-    where
-        for<'a> <Self::SolType as SolType>::Token<'a>: TokenSeq<'a>,
-    {
-        Self::SolType::abi_encode_params(value)
-    }
-}
-
-impl SolSignature for SolTypeMarker<ActorId, Address> {
-    type SolType = <Address as SolValue>::SolType;
-    type RustType = ActorId;
-    const SIGNATURE: &'static str = <Address as SolValue>::SolType::SOL_NAME;
-
-    fn decode<'a>(data: &'a [u8]) -> ActorId
-    where
-        <Self::SolType as SolType>::Token<'a>: TokenSeq<'a>,
-    {
-        let value =
-            Self::SolType::abi_decode_params(data, false).expect("Failed to decode request");
-        let bytes: [u8; 32] = value.into_word().into();
-        ActorId::from(bytes)
-    }
-
-    fn encode(value: &ActorId) -> Vec<u8>
-    where
-        for<'a> <Self::SolType as SolType>::Token<'a>: TokenSeq<'a>,
-    {
-        let bytes: [u8; 32] = value.into_bytes();
-        Address::from_word(bytes.into()).abi_encode()
-        // Self::SolType::abi_encode_params(value)
-    }
-}
 pub type MethodRoute = (&'static str, &'static [u8]);
 
 pub trait ServiceSignature {
@@ -123,6 +50,39 @@ macro_rules! const_selector {
     }};
 }
 
+#[macro_export]
+macro_rules! const_sum_len {
+    // Base case:
+    ($x:expr) => ($x.len());
+    // Recursive case:
+    ($x:expr, $($y:expr),+) => (
+        $x.len() + const_sum_len!($($y),+)
+    );
+}
+
+#[macro_export]
+macro_rules! const_concat_slices {
+    ($T:ty, $D:expr, $($A:expr),+ $(,)?) => {{
+        const LEN: usize = const_sum_len!($($A),+);
+        const fn combined() -> [$T; LEN] {
+            let mut output: [$T; LEN] = [$D; LEN];
+            let _offset = 0;
+            $(let _offset = copy_slice(&mut output, $A, _offset);)*
+            output
+        }
+        const fn copy_slice(output: &mut [$T; LEN], input: &[$T], offset: usize) -> usize {
+            let mut index = 0;
+            while index < input.len() {
+                output[offset + index] = input[index];
+                index += 1;
+            }
+            offset + index
+        }
+        const RESULT: &[$T] = &combined();
+        RESULT
+    }};
+}
+
 pub struct ConstProgramMeta<T>(marker::PhantomData<T>);
 
 impl<T> ConstProgramMeta<T>
@@ -159,7 +119,7 @@ where
     }
 
     pub const fn method_routes<const N: usize>() -> [(&'static [u8], &'static [u8]); N] {
-        let mut routes: [(&'static [u8], &'static [u8]); N] = [(b"", b""); N];
+        let mut routes: [(&'static [u8], &'static [u8]); N] = [(&[], &[]); N];
         let mut map_idx = 0;
         let mut svc_idx = 0;
         while svc_idx < <T as ProgramSignature>::SERVICES.len() {
@@ -177,61 +137,10 @@ where
     }
 }
 
-pub struct ActorId2(pub ActorId);
-
-impl From<Address> for ActorId2 {
-    fn from(value: Address) -> Self {
-        let bytes: [u8; 32] = value.into_word().into();
-        ActorId2(ActorId::from(bytes))
-    }
-}
-
-impl SolValue for ActorId2 {
-    type SolType = <alloy_primitives::Address as SolValue>::SolType;
-}
-
-impl ::alloy_sol_types::private::SolTypeValue<alloy_sol_types::sol_data::Address> for ActorId2 {
-    #[inline]
-    fn stv_to_tokens(&self) -> alloy_sol_types::abi::token::WordToken {
-        let bytes = self.0.into_bytes();
-        ::alloy_sol_types::abi::token::WordToken(::alloy_sol_types::Word::from(bytes))
-    }
-
-    #[inline]
-    fn stv_abi_encode_packed_to(&self, out: &mut Vec<u8>) {
-        let bytes: &[u8] = &self.0.into_bytes()[12..];
-        out.extend_from_slice(bytes);
-    }
-
-    #[inline]
-    fn stv_eip712_data_word(&self) -> alloy_sol_types::Word {
-        ::alloy_sol_types::private::SolTypeValue::<alloy_sol_types::sol_data::Address>::stv_to_tokens(self).0
-    }
-}
-
 #[cfg(test)]
 mod tests {
-    use alloy_primitives::U160;
-
     use super::*;
-
-    #[test]
-    fn actor_encode_decode() {
-        let address = Address::from(U160::from(42));
-        let address_encoded = address.abi_encode();
-
-        let bytes: [u8; 32] = address.into_word().into();
-        let id = ActorId::from(bytes);
-        let actor_encoded = ActorId2(id).abi_encode();
-
-        assert_eq!(address_encoded.as_slice(), actor_encoded.as_slice());
-
-        let actor2 = ActorId2::abi_decode(actor_encoded.as_slice(), false);
-        assert_eq!(id, actor2.unwrap().0);
-
-        let address2 = Address::abi_decode(actor_encoded.as_slice(), false);
-        assert_eq!(address, address2.unwrap());
-    }
+    use alloy_sol_types::{SolType, SolValue};
 
     #[test]
     fn type_names() {
@@ -244,12 +153,13 @@ mod tests {
         let s = <(u32, String) as SolValue>::SolType::SOL_NAME;
         assert_eq!("(uint32,string)", s);
 
-        let s = <(u32, String, ActorId2) as SolValue>::SolType::SOL_NAME;
-        assert_eq!("(uint32,string,address)", s);
+        // let s = <(u32, String, ActorId) as SolValue>::SolType::SOL_NAME;
+        // assert_eq!("(uint32,string,address)", s);
     }
 
     struct Prg;
     struct Svc;
+    struct ExtendedSvc;
 
     impl ServiceSignature for Svc {
         const METHODS: &[MethodRoute] = &[
@@ -270,9 +180,33 @@ mod tests {
         ];
     }
 
+    impl ServiceSignature for ExtendedSvc {
+        const METHODS: &[MethodRoute] = const_concat_slices!(
+            MethodRoute,
+            ("", &[]),
+            &[
+                (
+                    concatcp!(
+                        "do_this",
+                        <<(u32, String, u128,) as SolValue>::SolType as SolType>::SOL_NAME,
+                    ),
+                    &[24u8, 68u8, 111u8, 84u8, 104u8, 105u8, 115u8] as &[u8],
+                ),
+                (
+                    concatcp!(
+                        "this",
+                        <<(bool, u128,) as SolValue>::SolType as SolType>::SOL_NAME
+                    ),
+                    &[16u8, 84u8, 104u8, 105u8, 115u8] as &[u8],
+                ),
+            ],
+            <Svc as ServiceSignature>::METHODS
+        );
+    }
+
     impl ProgramSignature for Prg {
-        const METHODS_LEN: usize =
-            <Svc as ServiceSignature>::METHODS.len() + <Svc as ServiceSignature>::METHODS.len();
+        const METHODS_LEN: usize = <Svc as ServiceSignature>::METHODS.len()
+            + <ExtendedSvc as ServiceSignature>::METHODS.len();
 
         const CTORS: &[MethodRoute] = &[(
             concatcp!(
@@ -291,9 +225,30 @@ mod tests {
             (
                 "svc2",
                 &[16u8, 83u8, 118u8, 99u8, 49u8] as &[u8],
-                <Svc as ServiceSignature>::METHODS,
+                <ExtendedSvc as ServiceSignature>::METHODS,
             ),
         ];
+    }
+
+    #[test]
+    fn service_signature_extended() {
+        assert_eq!(4, ExtendedSvc::METHODS.len());
+
+        let do_this = (
+            "do_this(uint32,string,uint128)",
+            &[24u8, 68u8, 111u8, 84u8, 104u8, 105u8, 115u8] as &[u8],
+        );
+        let this = (
+            concatcp!(
+                "this",
+                <<(bool, u128,) as SolValue>::SolType as SolType>::SOL_NAME
+            ),
+            &[16u8, 84u8, 104u8, 105u8, 115u8] as &[u8],
+        );
+        assert_eq!(do_this, ExtendedSvc::METHODS[0]);
+        assert_eq!(this, ExtendedSvc::METHODS[1]);
+        assert_eq!(do_this, ExtendedSvc::METHODS[2]);
+        assert_eq!(this, ExtendedSvc::METHODS[3]);
     }
 
     #[test]
@@ -302,7 +257,7 @@ mod tests {
         const S2: [u8; 4] = [141, 22, 87, 153];
         const SIGS: [[u8; 4]; <Prg as solidity::ProgramSignature>::METHODS_LEN] =
             solidity::ConstProgramMeta::<Prg>::method_sigs();
-        assert_eq!(4, SIGS.len());
+        assert_eq!(6, SIGS.len());
 
         let sig1 = selector("svc1_do_this(uint32,string,uint128)");
         assert_eq!(S1, sig1.as_slice());

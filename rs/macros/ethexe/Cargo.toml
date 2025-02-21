@@ -1,0 +1,19 @@
+[package]
+name = "sails-macros-ethexe"
+documentation = "https://docs.rs/sails-macros-core"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dev-dependencies]
+insta.workspace = true
+prettyplease.workspace = true
+proc-macro2.workspace = true
+quote.workspace = true
+sails-macros = { workspace = true, features = ["ethexe"] }
+sails-macros-core = { workspace = true, features = ["ethexe"] }
+sails-rs = { workspace = true, features = ["ethexe"] }
+syn = { workspace = true, features = ["full", "extra-traits"] }
+tokio = { workspace = true, features = ["full"] }

@@ -1,0 +1,161 @@
+---
+source: rs/macros/ethexe/tests/program_insta.rs
+expression: result
+---
+impl MyProgram {
+    #[export(unwrap_result)]
+    pub async fn new(p1: u32, p2: String) -> Result<Self, String> {
+        Self { p1, p2 }
+    }
+    #[export(unwrap_result)]
+    pub fn new2(p2: String, p1: u32) -> Result<Self, String> {
+        Self { p1, p2 }
+    }
+}
+impl sails_rs::meta::ProgramMeta for MyProgram {
+    type ConstructorsMeta = meta_in_program::ConstructorsMeta;
+    const SERVICES: &'static [(&'static str, fn() -> sails_rs::meta::AnyServiceMeta)] = &[];
+}
+mod meta_in_program {
+    use super::*;
+    #[derive(sails_rs::Decode, sails_rs::TypeInfo)]
+    #[codec(crate = sails_rs::scale_codec)]
+    #[scale_info(crate = sails_rs::scale_info)]
+    #[allow(dead_code)]
+    pub struct __NewParams {
+        pub(super) p1: u32,
+        pub(super) p2: String,
+    }
+    #[derive(sails_rs::Decode, sails_rs::TypeInfo)]
+    #[codec(crate = sails_rs::scale_codec)]
+    #[scale_info(crate = sails_rs::scale_info)]
+    #[allow(dead_code)]
+    pub struct __New2Params {
+        pub(super) p2: String,
+        pub(super) p1: u32,
+    }
+    #[derive(sails_rs::TypeInfo)]
+    #[scale_info(crate = sails_rs::scale_info)]
+    pub enum ConstructorsMeta {
+        New(__NewParams),
+        New2(__New2Params),
+    }
+}
+impl sails_rs::solidity::ProgramSignature for MyProgram {
+    const CTORS: &'static [sails_rs::solidity::MethodRoute] = &[
+        (
+            sails_rs::concatcp!(
+                "new", << (u32, String, u128,) as sails_rs::alloy_sol_types::SolValue >
+                ::SolType as sails_rs::alloy_sol_types::SolType > ::SOL_NAME,
+            ),
+            &[12u8, 78u8, 101u8, 119u8] as &[u8],
+        ),
+        (
+            sails_rs::concatcp!(
+                "new_2", << (String, u32, u128,) as sails_rs::alloy_sol_types::SolValue >
+                ::SolType as sails_rs::alloy_sol_types::SolType > ::SOL_NAME,
+            ),
+            &[16u8, 78u8, 101u8, 119u8, 50u8] as &[u8],
+        ),
+    ];
+    const SERVICES: &'static [(
+        &'static str,
+        &'static [u8],
+        &'static [sails_rs::solidity::MethodRoute],
+    )] = &[];
+    const METHODS_LEN: usize = 0;
+}
+const __CTOR_SIGS: [[u8; 4]; <MyProgram as sails_rs::solidity::ProgramSignature>::CTORS
+    .len()] = sails_rs::solidity::ConstProgramMeta::<MyProgram>::ctor_sigs();
+const __METHOD_SIGS: [[u8; 4]; <MyProgram as sails_rs::solidity::ProgramSignature>::METHODS_LEN] = sails_rs::solidity::ConstProgramMeta::<
+    MyProgram,
+>::method_sigs();
+const __METHOD_ROUTES: [(
+    &'static [u8],
+    &'static [u8],
+); <MyProgram as sails_rs::solidity::ProgramSignature>::METHODS_LEN] = sails_rs::solidity::ConstProgramMeta::<
+    MyProgram,
+>::method_routes();
+#[cfg(target_arch = "wasm32")]
+pub mod wasm {
+    use super::*;
+    use sails_rs::{gstd, hex, prelude::*};
+    static mut PROGRAM: Option<MyProgram> = None;
+    #[gstd::async_init]
+    async fn init() {
+        sails_rs::gstd::events::__enable_events();
+        let mut input: &[u8] = &sails_rs::gstd::msg::load_bytes()
+            .expect("Failed to read input");
+        if let Ok(sig) = TryInto::<[u8; 4]>::try_into(&input[..4]) {
+            if let Some(idx) = __CTOR_SIGS.iter().position(|s| s == &sig) {
+                let (_, ctor_route) = <MyProgram as sails_rs::solidity::ProgramSignature>::CTORS[idx];
+                unsafe {
+                    PROGRAM = match_ctor_solidity(ctor_route, &input[4..]).await;
+                }
+                if unsafe { PROGRAM.is_some() } {
+                    sails_rs::gstd::msg::reply_bytes(ctor_route, 0)
+                        .expect("Failed to send output");
+                    return;
+                }
+            }
+        }
+        let (program, invocation_route) = if input
+            .starts_with(&[12u8, 78u8, 101u8, 119u8])
+        {
+            const INVOCATION_ROUTE: &[u8] = &[12u8, 78u8, 101u8, 119u8];
+            let request = meta_in_program::__NewParams::decode(&mut &input[4usize..])
+                .expect("Failed to decode request");
+            let program = MyProgram::new(request.p1, request.p2).await.unwrap();
+            (program, INVOCATION_ROUTE)
+        } else if input.starts_with(&[16u8, 78u8, 101u8, 119u8, 50u8]) {
+            const INVOCATION_ROUTE: &[u8] = &[16u8, 78u8, 101u8, 119u8, 50u8];
+            let request = meta_in_program::__New2Params::decode(&mut &input[5usize..])
+                .expect("Failed to decode request");
+            let program = MyProgram::new2(request.p2, request.p1).unwrap();
+            (program, INVOCATION_ROUTE)
+        } else {
+            sails_rs::gstd::unknown_input_panic("Unexpected ctor", input)
+        };
+        unsafe {
+            PROGRAM = Some(program);
+        }
+        sails_rs::gstd::msg::reply_bytes(invocation_route, 0)
+            .expect("Failed to send output");
+    }
+    async fn match_ctor_solidity(ctor: &[u8], input: &[u8]) -> Option<MyProgram> {
+        if ctor == &[12u8, 78u8, 101u8, 119u8] {
+            let (p1, p2): (u32, String) = sails_rs::alloy_sol_types::SolValue::abi_decode_params(
+                    input,
+                    false,
+                )
+                .expect("Failed to decode request");
+            let program = MyProgram::new(p1, p2).await.unwrap();
+            return Some(program);
+        }
+        if ctor == &[16u8, 78u8, 101u8, 119u8, 50u8] {
+            let (p2, p1): (String, u32) = sails_rs::alloy_sol_types::SolValue::abi_decode_params(
+                    input,
+                    false,
+                )
+                .expect("Failed to decode request");
+            let program = MyProgram::new2(p2, p1).unwrap();
+            return Some(program);
+        }
+        None
+    }
+    #[gstd::async_main]
+    async fn main() {
+        let mut input: &[u8] = &sails_rs::gstd::msg::load_bytes()
+            .expect("Failed to read input");
+        let program_ref = unsafe { PROGRAM.as_ref() }.expect("Program not initialized");
+        if let Ok(sig) = TryInto::<[u8; 4]>::try_into(&input[..4]) {
+            if let Some(idx) = __METHOD_SIGS.iter().position(|s| s == &sig) {
+                let (route, method) = __METHOD_ROUTES[idx];
+            }
+        }
+        let (output, value): (Vec<u8>, ValueUnit) = {
+            sails_rs::gstd::unknown_input_panic("Unexpected service", input)
+        };
+        sails_rs::gstd::msg::reply_bytes(output, value).expect("Failed to send output");
+    }
+}
