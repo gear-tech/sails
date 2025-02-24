@@ -2094,18 +2094,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1b241177c7107d9829286c2ffdc5eee98d992d6356f3515e7f412f988b1a72fd"
 
 [[package]]
-name = "ethapp"
-version = "0.1.0"
-dependencies = [
- "futures",
- "gclient",
- "gstd",
- "gtest",
- "sails-rs",
- "tokio",
-]
-
-[[package]]
 name = "event-listener"
 version = "4.0.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"

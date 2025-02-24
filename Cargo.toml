@@ -18,7 +18,7 @@ members = [
     "examples/rmrk/catalog/wasm",
     "examples/rmrk/resource/app",
     "examples/rmrk/resource/wasm",
-    "examples/ethapp",
+    # "examples/ethapp",
     "rs",
     "rs/cli",
     "rs/client-gen",
@@ -37,7 +37,6 @@ sails-idl-parser = { path = "rs/idl-parser" }
 sails-idl-gen = { path = "rs/idl-gen" }
 sails-client-gen = { path = "rs/client-gen" }
 sails-macros-core = { path = "rs/macros/core" }
-sails-macros-ethexe = { path = "rs/macros/ethexe" }
 sails-macros = { path = "rs/macros" }
 sails-rs = { path = "rs" }
 # Renamed sails-rs for `proxy` demo

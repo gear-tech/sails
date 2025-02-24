@@ -12,8 +12,11 @@ insta.workspace = true
 prettyplease.workspace = true
 proc-macro2.workspace = true
 quote.workspace = true
-sails-macros = { workspace = true, features = ["ethexe"] }
-sails-macros-core = { workspace = true, features = ["ethexe"] }
-sails-rs = { workspace = true, features = ["ethexe"] }
+sails-macros = { workspace = true }
+sails-macros-core = { workspace = true }
+sails-rs = { workspace = true }
 syn = { workspace = true, features = ["full", "extra-traits"] }
 tokio = { workspace = true, features = ["full"] }
+
+[features]
+ethexe = ["sails-macros/ethexe", "sails-macros-core/ethexe", "sails-rs/ethexe"]
