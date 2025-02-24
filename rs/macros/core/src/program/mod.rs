@@ -105,6 +105,7 @@ impl ProgramBuilder {
             .collect::<Vec<_>>()
     }
 
+    #[cfg(feature = "ethexe")]
     fn service_ctors(&self) -> Vec<FnBuilder<'_>> {
         shared::discover_invocation_targets(self, service_ctor_predicate)
             .into_iter()
@@ -119,6 +120,8 @@ impl ProgramBuilder {
         let mut services_meta = Vec::new();
         let mut invocation_dispatches = Vec::new();
         let mut routes = BTreeMap::new();
+        // only used for ethexe
+        #[allow(unused_mut)]
         let mut solidity_dispatchers: Vec<TokenStream2> = Vec::new();
 
         let item_impl = self

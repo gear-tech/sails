@@ -2,11 +2,13 @@
 
 use scale_info::{prelude::vec::Vec, MetaType, StaticTypeInfo};
 
+pub type AnyServiceMetaFn = fn() -> AnyServiceMeta;
+
 pub trait ServiceMeta {
     type CommandsMeta: StaticTypeInfo;
     type QueriesMeta: StaticTypeInfo;
     type EventsMeta: StaticTypeInfo;
-    const BASE_SERVICES: &'static [fn() -> AnyServiceMeta];
+    const BASE_SERVICES: &'static [AnyServiceMetaFn];
 
     fn commands() -> MetaType {
         MetaType::new::<Self::CommandsMeta>()
@@ -61,7 +63,7 @@ impl AnyServiceMeta {
 
 pub trait ProgramMeta {
     type ConstructorsMeta: StaticTypeInfo;
-    const SERVICES: &'static [(&'static str, fn() -> AnyServiceMeta)];
+    const SERVICES: &'static [(&'static str, AnyServiceMetaFn)];
 
     fn constructors() -> MetaType {
         MetaType::new::<Self::ConstructorsMeta>()

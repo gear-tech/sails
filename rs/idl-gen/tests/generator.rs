@@ -1,7 +1,9 @@
 use gprimitives::*;
 use meta_params::*;
 use sails_idl_gen::{program, service};
-use sails_idl_meta::{AnyServiceMeta, ProgramMeta, ServiceMeta as RtlServiceMeta};
+use sails_idl_meta::{
+    AnyServiceMeta, AnyServiceMetaFn, ProgramMeta, ServiceMeta as RtlServiceMeta,
+};
 use scale_info::{StaticTypeInfo, TypeInfo};
 use std::{collections::BTreeMap, result::Result as StdResult};
 
@@ -176,7 +178,7 @@ impl<C: StaticTypeInfo, Q: StaticTypeInfo, E: StaticTypeInfo> RtlServiceMeta
     type CommandsMeta = C;
     type QueriesMeta = Q;
     type EventsMeta = E;
-    const BASE_SERVICES: &'static [fn() -> AnyServiceMeta] = &[];
+    const BASE_SERVICES: &'static [AnyServiceMetaFn] = &[];
 }
 
 struct ServiceMetaWithBase<C, Q, E, B> {
@@ -192,7 +194,7 @@ impl<C: StaticTypeInfo, Q: StaticTypeInfo, E: StaticTypeInfo, B: RtlServiceMeta>
     type CommandsMeta = C;
     type QueriesMeta = Q;
     type EventsMeta = E;
-    const BASE_SERVICES: &'static [fn() -> AnyServiceMeta] = &[AnyServiceMeta::new::<B>];
+    const BASE_SERVICES: &'static [AnyServiceMetaFn] = &[AnyServiceMeta::new::<B>];
 }
 
 type TestServiceMeta = ServiceMeta<CommandsMeta, QueriesMeta, EventsMeta>;
@@ -206,7 +208,7 @@ struct TestProgramWithEmptyCtorsMeta;
 impl ProgramMeta for TestProgramWithEmptyCtorsMeta {
     type ConstructorsMeta = EmptyCtorsMeta;
 
-    const SERVICES: &'static [(&'static str, fn() -> AnyServiceMeta)] =
+    const SERVICES: &'static [(&'static str, AnyServiceMetaFn)] =
         &[("", AnyServiceMeta::new::<TestServiceMeta>)];
 }
 
@@ -225,7 +227,7 @@ struct TestProgramWithNonEmptyCtorsMeta;
 impl ProgramMeta for TestProgramWithNonEmptyCtorsMeta {
     type ConstructorsMeta = NonEmptyCtorsMeta;
 
-    const SERVICES: &'static [(&'static str, fn() -> AnyServiceMeta)] =
+    const SERVICES: &'static [(&'static str, AnyServiceMetaFn)] =
         &[("", AnyServiceMeta::new::<TestServiceMeta>)];
 }
 
@@ -234,7 +236,7 @@ struct TestProgramWithMultipleServicesMeta;
 impl ProgramMeta for TestProgramWithMultipleServicesMeta {
     type ConstructorsMeta = EmptyCtorsMeta;
 
-    const SERVICES: &'static [(&'static str, fn() -> AnyServiceMeta)] = &[
+    const SERVICES: &'static [(&'static str, AnyServiceMetaFn)] = &[
         ("", AnyServiceMeta::new::<TestServiceMeta>),
         ("SomeService", AnyServiceMeta::new::<TestServiceMeta>),
     ];

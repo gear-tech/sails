@@ -188,6 +188,7 @@ fn replace_lifetime_with_static_in_path_args(path_args: PathArguments) -> PathAr
     }
 }
 
+#[allow(unused)]
 pub(crate) fn remove_lifetimes(path: &Path) -> Path {
     let mut segments: Punctuated<PathSegment, Token![::]> = Punctuated::new();
     for s in &path.segments {
