@@ -19,8 +19,9 @@ impl ServiceBuilder<'_> {
             }
         } else {
             let base_methods = self.base_types.iter().map(|path| {
+                let path_wo_lifetimes = shared::remove_lifetimes(path);
                 quote! {
-                    <#path as #sails_path::solidity::ServiceSignature>::METHODS
+                    <#path_wo_lifetimes as #sails_path::solidity::ServiceSignature>::METHODS
                 }
             });
             quote! {

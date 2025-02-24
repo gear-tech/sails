@@ -188,6 +188,20 @@ fn replace_lifetime_with_static_in_path_args(path_args: PathArguments) -> PathAr
     }
 }
 
+pub(crate) fn remove_lifetimes(path: &Path) -> Path {
+    let mut segments: Punctuated<PathSegment, Token![::]> = Punctuated::new();
+    for s in &path.segments {
+        segments.push(PathSegment {
+            ident: s.ident.clone(),
+            arguments: PathArguments::None,
+        });
+    }
+    Path {
+        leading_colon: path.leading_colon,
+        segments,
+    }
+}
+
 /// Check if type is `CommandReply<T>` and extract inner type `T`
 pub(crate) fn extract_reply_type_with_value(ty: &Type) -> Option<&Type> {
     match ty {

@@ -4,6 +4,8 @@ use sails_rs::{Encode, MessageId};
 
 mod service_with_basics;
 mod service_with_extends;
+mod service_with_extends_and_lifetimes;
+mod service_with_lifecycles_and_generics;
 
 #[tokio::test]
 async fn service_with_basics() {
@@ -50,6 +52,65 @@ async fn service_with_extends() {
         .try_handle_solidity(&BASE_NAME_METHOD.encode(), &[])
         .await
         .unwrap();
+    let result = sails_rs::alloy_sol_types::SolValue::abi_decode(output.as_slice(), false);
+    assert_eq!(Ok(BASE_NAME_RESULT.to_owned()), result);
+
+    let (output, _value) = extended_svc
+        .try_handle_solidity(&NAME_METHOD.encode(), &[])
+        .await
+        .unwrap();
+
+    let result = sails_rs::alloy_sol_types::SolValue::abi_decode(output.as_slice(), false);
+    assert_eq!(Ok(NAME_RESULT.to_owned()), result);
+}
+
+#[tokio::test]
+async fn service_with_lifecycles_and_generics() {
+    use service_with_lifecycles_and_generics::MyGenericService;
+
+    const DO_THIS: &str = "DoThis";
+
+    let my_service = MyGenericService::<'_, String>::default();
+
+    let (output, _value) = my_service
+        .expose(MessageId::from(123), &[1, 2, 3])
+        .try_handle_solidity(&DO_THIS.encode(), &[])
+        .await
+        .unwrap();
+
+    let result = sails_rs::alloy_sol_types::SolValue::abi_decode(output.as_slice(), false);
+    assert_eq!(Ok(42), result);
+}
+
+#[tokio::test]
+async fn service_with_extends_and_lifetimes() {
+    use service_with_extends_and_lifetimes::{
+        BaseWithLifetime, ExtendedWithLifetime, BASE_NAME_RESULT, EXTENDED_NAME_RESULT, NAME_RESULT,
+    };
+
+    const NAME_METHOD: &str = "Name";
+    const BASE_NAME_METHOD: &str = "BaseName";
+    const EXTENDED_NAME_METHOD: &str = "ExtendedName";
+
+    let int = 42u64;
+    let mut extended_svc =
+        ExtendedWithLifetime::new(BaseWithLifetime::new(&int)).expose(123.into(), &[1, 2, 3]);
+
+    let _base: &<BaseWithLifetime as Service>::Exposure = extended_svc.as_base_0();
+
+    let (output, _value) = extended_svc
+        .try_handle_solidity(&EXTENDED_NAME_METHOD.encode(), &[])
+        .await
+        .unwrap();
+
+    let result = sails_rs::alloy_sol_types::SolValue::abi_decode(output.as_slice(), false);
+    assert_eq!(Ok(EXTENDED_NAME_RESULT.to_owned()), result);
+
+    let (output, _value) = extended_svc
+        .try_handle_solidity(&BASE_NAME_METHOD.encode(), &[])
+        .await
+        .unwrap();
+
     let result = sails_rs::alloy_sol_types::SolValue::abi_decode(output.as_slice(), false);
     assert_eq!(Ok(BASE_NAME_RESULT.to_owned()), result);
 

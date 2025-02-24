@@ -1,3 +1,5 @@
+#![cfg(not(feature = "ethexe"))]
+
 mod gprogram_basic;
 
 #[test]

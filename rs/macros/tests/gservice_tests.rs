@@ -1,3 +1,5 @@
+#![cfg(not(feature = "ethexe"))]
+
 use sails_rs::gstd::services::Service;
 use sails_rs::{Decode, Encode, MessageId};
 
