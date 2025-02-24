@@ -2,8 +2,7 @@ use sails_rs::{
     alloy_sol_types::SolValue,
     gtest::{Program, System},
 };
-pub(crate) const DEMO_WASM_PATH: &str =
-    "../../../target/wasm32-unknown-unknown/debug/eth_app.opt.wasm";
+pub(crate) const DEMO_WASM_PATH: &str = "../../target/wasm32-unknown-unknown/debug/ethapp.opt.wasm";
 pub(crate) const ADMIN_ID: u64 = 10;
 
 #[tokio::test]

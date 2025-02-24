@@ -7,11 +7,13 @@ use proc_macro2::{Span, TokenStream as TokenStream2};
 use proc_macro_error::abort;
 use quote::quote;
 use std::{
-    collections::BTreeMap, env, ops::{Deref, DerefMut}
+    collections::BTreeMap,
+    env,
+    ops::{Deref, DerefMut},
 };
 use syn::{
-    parse_quote, spanned::Spanned, Generics, Ident, ImplItem, ImplItemFn, ItemImpl,
-    Path, PathArguments, Receiver, ReturnType, Type, TypePath, Visibility, WhereClause,
+    parse_quote, spanned::Spanned, Generics, Ident, ImplItem, ImplItemFn, ItemImpl, Path,
+    PathArguments, Receiver, ReturnType, Type, TypePath, Visibility, WhereClause,
 };
 
 mod args;
@@ -101,7 +103,9 @@ impl ProgramBuilder {
     fn program_ctors(&self) -> Vec<FnBuilder<'_>> {
         discover_program_ctors(&self.program_impl)
             .into_iter()
-            .map(|(route, (fn_impl, _idx,  unwrap_result))| FnBuilder::from(route, fn_impl, unwrap_result, self.sails_path()))
+            .map(|(route, (fn_impl, _idx, unwrap_result))| {
+                FnBuilder::from(route, fn_impl, unwrap_result, self.sails_path())
+            })
             .collect::<Vec<_>>()
     }
 
@@ -109,7 +113,9 @@ impl ProgramBuilder {
     fn service_ctors(&self) -> Vec<FnBuilder<'_>> {
         shared::discover_invocation_targets(self, service_ctor_predicate)
             .into_iter()
-            .map(|(route, (fn_impl, _idx,  unwrap_result))| FnBuilder::from(route, fn_impl, unwrap_result, self.sails_path()))
+            .map(|(route, (fn_impl, _idx, unwrap_result))| {
+                FnBuilder::from(route, fn_impl, unwrap_result, self.sails_path())
+            })
             .collect::<Vec<_>>()
     }
 }
@@ -153,7 +159,6 @@ impl ProgramBuilder {
                 services_route.push(fn_builder.service_const_route());
                 services_meta.push(fn_builder.service_meta());
                 invocation_dispatches.push(fn_builder.service_invocation());
-                
                 #[cfg(feature = "ethexe")]
                 solidity_dispatchers.push(fn_builder.sol_service_invocation());
 
@@ -225,7 +230,7 @@ impl ProgramBuilder {
         let sails_path = self.sails_path();
         let scale_codec_path = sails_paths::scale_codec_path(sails_path);
         let scale_info_path = sails_paths::scale_info_path(sails_path);
-    
+
         let (program_type_path, ..) = self.impl_type();
         let input_ident = Ident::new("input", Span::call_site());
 
@@ -234,27 +239,28 @@ impl ProgramBuilder {
         let mut ctor_dispatches = Vec::with_capacity(program_ctors.len() + 1);
         let mut ctor_params_structs = Vec::with_capacity(program_ctors.len());
         let mut ctor_meta_variants = Vec::with_capacity(program_ctors.len());
-    
+
         for fn_builder in program_ctors {
-            ctor_dispatches.push(fn_builder.ctor_branch_impl(program_type_path, &input_ident));    
-            ctor_params_structs.push(fn_builder.ctor_params_struct( &scale_codec_path, &scale_info_path));
+            ctor_dispatches.push(fn_builder.ctor_branch_impl(program_type_path, &input_ident));
+            ctor_params_structs
+                .push(fn_builder.ctor_params_struct(&scale_codec_path, &scale_info_path));
             ctor_meta_variants.push(fn_builder.ctor_meta_variant());
         }
-    
+
         ctor_dispatches.push(quote! {
             { #sails_path::gstd::unknown_input_panic("Unexpected ctor", input) }
         });
-    
+
         let solidity_init = self.sol_init(&input_ident, program_ident);
-    
+
         let init_fn = quote! {
             #[gstd::async_init]
             async fn init() {
                 #sails_path::gstd::events::__enable_events();
                 let mut #input_ident: &[u8] = &#sails_path::gstd::msg::load_bytes().expect("Failed to read input");
-    
+
                 #solidity_init
-    
+
                 let (program, invocation_route) = #(#ctor_dispatches)else*;
                 unsafe {
                     #program_ident = Some(program);
@@ -267,14 +273,14 @@ impl ProgramBuilder {
             mod meta_in_program {
                 use super::*;
 
-                #( #ctor_params_structs )*    
+                #( #ctor_params_structs )*
 
                 #[derive(#sails_path ::TypeInfo)]
                 #[scale_info(crate = #scale_info_path)]
                 pub enum ConstructorsMeta {
                     #( #ctor_meta_variants ),*
                 }
-            }    
+            }
         };
         (meta_in_program, init_fn)
     }
@@ -329,7 +335,7 @@ fn gen_gprogram_impl(program_impl: ItemImpl, program_args: ProgramArgs) -> Token
     let program_const = program_builder.program_const();
 
     let program_ident = Ident::new("PROGRAM", Span::call_site());
-    
+
     let (program_meta_impl, main_fn) = program_builder.wire_up_service_exposure(&program_ident);
 
     let (meta_in_program, init_fn) = program_builder.generate_init(&program_ident);
@@ -517,7 +523,7 @@ impl FnBuilder<'_> {
             let param_ident = item.0;
             quote!(request.#param_ident)
         });
-        let params_struct_ident= &self.params_struct_ident;
+        let params_struct_ident = &self.params_struct_ident;
 
         quote!(
             if #input_ident.starts_with(& [ #(#invocation_route_bytes),* ]) {
@@ -531,7 +537,7 @@ impl FnBuilder<'_> {
 
     fn ctor_params_struct(&self, scale_codec_path: &Path, scale_info_path: &Path) -> TokenStream2 {
         let sails_path = self.sails_path;
-        let params_struct_ident= &self.params_struct_ident;
+        let params_struct_ident = &self.params_struct_ident;
         let ctor_params_struct_members = self.params.iter().map(|item| {
             let param_ident = item.0;
             let param_type = item.1;
@@ -542,20 +548,21 @@ impl FnBuilder<'_> {
             #[derive(#sails_path ::Decode, #sails_path ::TypeInfo)]
             #[codec(crate = #scale_codec_path )]
             #[scale_info(crate = #scale_info_path )]
-            #[allow(dead_code)]            
+            #[allow(dead_code)]
             pub struct #params_struct_ident {
                 #(pub(super) #ctor_params_struct_members)*
             }
         }
     }
 
-    fn ctor_meta_variant(&self) -> TokenStream2{
+    fn ctor_meta_variant(&self) -> TokenStream2 {
         let ctor_route = Ident::new(self.route.as_str(), Span::call_site());
-        let ctor_docs_attrs = self.impl_fn
+        let ctor_docs_attrs = self
+            .impl_fn
             .attrs
             .iter()
             .filter(|attr| attr.path().is_ident("doc"));
-        let params_struct_ident= &self.params_struct_ident;
+        let params_struct_ident = &self.params_struct_ident;
 
         quote! {
             #( #ctor_docs_attrs )*
