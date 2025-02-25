@@ -83,7 +83,7 @@ impl sails_rename::meta::ServiceMeta for SomeService {
     type CommandsMeta = some_service_meta::CommandsMeta;
     type QueriesMeta = some_service_meta::QueriesMeta;
     type EventsMeta = some_service_meta::EventsMeta;
-    const BASE_SERVICES: &'static [fn() -> sails_rename::meta::AnyServiceMeta] = &[];
+    const BASE_SERVICES: &'static [sails_rename::meta::AnyServiceMetaFn] = &[];
 }
 mod some_service_meta {
     use super::*;

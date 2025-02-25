@@ -132,7 +132,7 @@ where
     type CommandsMeta = my_generic_events_service_meta::CommandsMeta;
     type QueriesMeta = my_generic_events_service_meta::QueriesMeta;
     type EventsMeta = my_generic_events_service_meta::EventsMeta;
-    const BASE_SERVICES: &'static [fn() -> sails_rs::meta::AnyServiceMeta] = &[];
+    const BASE_SERVICES: &'static [sails_rs::meta::AnyServiceMetaFn] = &[];
 }
 mod my_generic_events_service_meta {
     use super::*;
