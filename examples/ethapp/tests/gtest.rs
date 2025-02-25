@@ -6,7 +6,7 @@ pub(crate) const DEMO_WASM_PATH: &str = "../../target/wasm32-unknown-unknown/deb
 pub(crate) const ADMIN_ID: u64 = 10;
 
 #[tokio::test]
-async fn eth_app_sol_works() {
+async fn ethapp_sol_works() {
     let system = System::new();
     system.init_logger_with_default_filter("gwasm=debug,gtest=debug,sails_rs=debug");
     system.mint_to(ADMIN_ID, 100_000_000_000_000);

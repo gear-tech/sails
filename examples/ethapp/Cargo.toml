@@ -14,5 +14,5 @@ futures.workspace = true
 gclient.workspace = true
 gstd.workspace = true
 gtest.workspace = true
-sails-rs = { workspace = true, features = ["gtest", "gclient"] }
+sails-rs = { workspace = true, features = ["ethexe", "gtest"] }
 tokio = { workspace = true, features = ["rt", "macros"] }

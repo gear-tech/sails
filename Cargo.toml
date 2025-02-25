@@ -18,7 +18,7 @@ members = [
     "examples/rmrk/catalog/wasm",
     "examples/rmrk/resource/app",
     "examples/rmrk/resource/wasm",
-    # "examples/ethapp",
+    "examples/ethapp",
     "rs",
     "rs/cli",
     "rs/client-gen",
