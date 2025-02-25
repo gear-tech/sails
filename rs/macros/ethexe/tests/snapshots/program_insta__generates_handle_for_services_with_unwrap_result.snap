@@ -49,7 +49,7 @@ const __ROUTE_SERVICE2: [u8; 9usize] = [
 ];
 impl sails_rs::meta::ProgramMeta for MyProgram {
     type ConstructorsMeta = meta_in_program::ConstructorsMeta;
-    const SERVICES: &'static [(&'static str, fn() -> sails_rs::meta::AnyServiceMeta)] = &[
+    const SERVICES: &'static [(&'static str, sails_rs::meta::AnyServiceMetaFn)] = &[
         ("Svc1", sails_rs::meta::AnyServiceMeta::new::<MyService>),
         ("Service2", sails_rs::meta::AnyServiceMeta::new::<MyService>),
     ];

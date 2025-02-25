@@ -9,10 +9,7 @@ impl MyProgram {
 }
 impl sails_rename::meta::ProgramMeta for MyProgram {
     type ConstructorsMeta = meta_in_program::ConstructorsMeta;
-    const SERVICES: &'static [(
-        &'static str,
-        fn() -> sails_rename::meta::AnyServiceMeta,
-    )] = &[];
+    const SERVICES: &'static [(&'static str, sails_rename::meta::AnyServiceMetaFn)] = &[];
 }
 mod meta_in_program {
     use super::*;

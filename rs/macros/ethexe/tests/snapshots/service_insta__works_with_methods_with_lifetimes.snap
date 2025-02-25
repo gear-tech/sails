@@ -213,7 +213,7 @@ impl sails_rs::meta::ServiceMeta for ReferenceService {
     type CommandsMeta = reference_service_meta::CommandsMeta;
     type QueriesMeta = reference_service_meta::QueriesMeta;
     type EventsMeta = reference_service_meta::EventsMeta;
-    const BASE_SERVICES: &'static [fn() -> sails_rs::meta::AnyServiceMeta] = &[];
+    const BASE_SERVICES: &'static [sails_rs::meta::AnyServiceMetaFn] = &[];
 }
 mod reference_service_meta {
     use super::*;

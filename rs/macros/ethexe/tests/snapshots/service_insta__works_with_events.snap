@@ -157,7 +157,7 @@ impl sails_rs::meta::ServiceMeta for SomeService {
     type CommandsMeta = some_service_meta::CommandsMeta;
     type QueriesMeta = some_service_meta::QueriesMeta;
     type EventsMeta = some_service_meta::EventsMeta;
-    const BASE_SERVICES: &'static [fn() -> sails_rs::meta::AnyServiceMeta] = &[];
+    const BASE_SERVICES: &'static [sails_rs::meta::AnyServiceMetaFn] = &[];
 }
 mod some_service_meta {
     use super::*;

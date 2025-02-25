@@ -43,4 +43,4 @@ jobs:
       - name: Run Tests with Ethexe Feature
         env:
           GEAR_PATH: /usr/bin/gear
-        run: __GEAR_WASM_BUILDER_NO_FEATURES_TRACKING=1 cargo test -p sails-rs -p sails-macros-ethexe -p ethapp --features ethexe
+        run: __GEAR_WASM_BUILDER_NO_FEATURES_TRACKING=1 cargo test -p sails-rs -p sails-macros-ethexe -p ethapp --features ethexe --all-targets --locked --no-fail-fast

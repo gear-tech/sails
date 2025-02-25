@@ -402,7 +402,7 @@ fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
             type CommandsMeta = #meta_module_ident::CommandsMeta;
             type QueriesMeta = #meta_module_ident::QueriesMeta;
             type EventsMeta = #meta_module_ident::EventsMeta;
-            const BASE_SERVICES: &'static [fn() -> #sails_path::meta::AnyServiceMeta] = &[
+            const BASE_SERVICES: &'static [#sails_path::meta::AnyServiceMetaFn] = &[
                 #( #base_services_meta ),*
             ];
         }

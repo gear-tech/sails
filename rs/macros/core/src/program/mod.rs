@@ -185,7 +185,7 @@ impl ProgramBuilder {
             impl #generics #sails_path::meta::ProgramMeta for #program_type_path #program_type_constraints {
                 type ConstructorsMeta = meta_in_program::ConstructorsMeta;
 
-                const SERVICES: &'static [(&'static str, fn() -> #sails_path::meta::AnyServiceMeta)] = &[
+                const SERVICES: &'static [(&'static str, #sails_path::meta::AnyServiceMetaFn)] = &[
                     #(#services_meta),*
                 ];
             }
