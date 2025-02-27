@@ -137,6 +137,22 @@ pub(crate) fn extract_lifetime_names(path_args: &PathArguments) -> Vec<String> {
     }
 }
 
+pub(crate) fn extract_lifetimes(
+    path_args: &PathArguments,
+) -> Option<impl Iterator<Item = &Lifetime>> {
+    if let PathArguments::AngleBracketed(type_args) = path_args {
+        Some(type_args.args.iter().filter_map(|a| {
+            if let GenericArgument::Lifetime(lifetime) = a {
+                Some(lifetime)
+            } else {
+                None
+            }
+        }))
+    } else {
+        None
+    }
+}
+
 pub(crate) fn replace_any_lifetime_with_static(ty: Type) -> Type {
     match ty {
         Type::Reference(r) => {

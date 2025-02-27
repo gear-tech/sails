@@ -41,12 +41,11 @@ impl ServiceBuilder<'_> {
     }
 
     pub(super) fn try_handle_solidity_impl(&self, base_ident: &Ident) -> TokenStream {
-
         let service_method_branches = self
             .service_handlers
             .iter()
             .map(|fn_builder| fn_builder.sol_try_handle_branch_impl());
-        let base_types_try_handle = self.base_types.iter().enumerate().map(|(idx, _)| {            
+        let base_types_try_handle = self.base_types.iter().enumerate().map(|(idx, _)| {
             let idx = Literal::usize_unsuffixed(idx);
             quote! {
                 if let Some((output, value)) = self. #base_ident . #idx .try_handle_solidity(method, input).await {

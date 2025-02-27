@@ -202,11 +202,7 @@ impl ProgramBuilder {
         if let Some(handle_signal) = self.program_args.handle_signal() {
             args.push(quote!(handle_signal = #handle_signal));
         }
-        let async_main_args = if args.is_empty() {
-            quote!()
-        } else {
-            quote!((#(#args),*))
-        };
+        let async_main_args = (!args.is_empty()).then_some(quote!((#(#args),*)));
 
         let solidity_main = self.sol_main(solidity_dispatchers.as_slice());
 
