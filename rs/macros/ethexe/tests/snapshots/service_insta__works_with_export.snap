@@ -24,6 +24,7 @@ pub struct SomeServiceExposure<T> {
     inner_ptr: *const T,
     #[cfg(target_arch = "wasm32")]
     inner: T,
+    base: (),
 }
 impl SomeServiceExposure<SomeService> {
     pub async fn do_this(
@@ -129,6 +130,7 @@ impl sails_rs::gstd::services::Service for SomeService {
         Self::Exposure {
             message_id,
             route,
+            base: (),
             #[cfg(not(target_arch = "wasm32"))]
             inner_ptr: inner_box.as_ref() as *const Self,
             #[cfg(not(target_arch = "wasm32"))]

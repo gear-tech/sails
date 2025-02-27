@@ -19,7 +19,7 @@ pub struct ExtendedLifetimeExposure<'a, T> {
     inner_ptr: *const T,
     #[cfg(target_arch = "wasm32")]
     inner: T,
-    base_0: <base::BaseLifetime<'a> as sails_rs::gstd::services::Service>::Exposure,
+    base: (<base::BaseLifetime<'a> as sails_rs::gstd::services::Service>::Exposure,),
 }
 impl<'a> ExtendedLifetimeExposure<'a, ExtendedLifetime<'a>> {
     pub fn extended_name(&self) -> String {
@@ -33,7 +33,7 @@ impl<'a> ExtendedLifetimeExposure<'a, ExtendedLifetime<'a>> {
     pub fn as_base_0(
         &self,
     ) -> &<base::BaseLifetime<'a> as sails_rs::gstd::services::Service>::Exposure {
-        &self.base_0
+        &self.base.0
     }
     pub async fn try_handle(&mut self, input: &[u8]) -> Option<(Vec<u8>, u128)> {
         use sails_rs::gstd::InvocationIo;
@@ -55,7 +55,7 @@ impl<'a> ExtendedLifetimeExposure<'a, ExtendedLifetime<'a>> {
             let output = extended_lifetime_meta::__NameParams::encode_reply(&result);
             return Some((output, value));
         }
-        if let Some((output, value)) = self.base_0.try_handle(input).await {
+        if let Some((output, value)) = self.base.0.try_handle(input).await {
             return Some((output, value));
         }
         None
@@ -86,10 +86,12 @@ impl<'a> sails_rs::gstd::services::Service for ExtendedLifetime<'a> {
         Self::Exposure {
             message_id,
             route,
-            base_0: <base::BaseLifetime<
-                'a,
-            > as Clone>::clone(AsRef::<base::BaseLifetime<'a>>::as_ref(inner))
-                .expose(message_id, route),
+            base: (
+                <base::BaseLifetime<
+                    'a,
+                > as Clone>::clone(AsRef::<base::BaseLifetime<'a>>::as_ref(inner))
+                    .expose(message_id, route),
+            ),
             #[cfg(not(target_arch = "wasm32"))]
             inner_ptr: inner_box.as_ref() as *const Self,
             #[cfg(not(target_arch = "wasm32"))]

@@ -3,7 +3,7 @@ use proc_macro2::TokenStream;
 use quote::quote;
 
 impl ServiceBuilder<'_> {
-    pub fn service_signature_impl(&self) -> TokenStream {
+    pub(super) fn service_signature_impl(&self) -> TokenStream {
         let sails_path = self.sails_path;
         let service_type_path = self.type_path;
         let generics = &self.generics;
@@ -40,15 +40,16 @@ impl ServiceBuilder<'_> {
         }
     }
 
-    pub fn try_handle_solidity_impl(&self) -> TokenStream {
+    pub(super) fn try_handle_solidity_impl(&self, base_ident: &Ident) -> TokenStream {
+
         let service_method_branches = self
             .service_handlers
             .iter()
             .map(|fn_builder| fn_builder.sol_try_handle_branch_impl());
-        let base_types_try_handle = self.base_types.iter().enumerate().map(|(idx, _path)| {
-            let base_ident = Ident::new(&format!("base_{}", idx), Span::call_site());
+        let base_types_try_handle = self.base_types.iter().enumerate().map(|(idx, _)| {            
+            let idx = Literal::usize_unsuffixed(idx);
             quote! {
-                if let Some((output, value)) = self. #base_ident .try_handle_solidity(method, input).await {
+                if let Some((output, value)) = self. #base_ident . #idx .try_handle_solidity(method, input).await {
                     return Some((output, value));
                 }
             }

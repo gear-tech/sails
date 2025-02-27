@@ -16,8 +16,10 @@ pub struct SomeServiceExposure<T> {
     inner_ptr: *const T,
     #[cfg(target_arch = "wasm32")]
     inner: T,
-    base_0: <ExtendedService1 as sails_rs::gstd::services::Service>::Exposure,
-    base_1: <ExtendedService2 as sails_rs::gstd::services::Service>::Exposure,
+    base: (
+        <ExtendedService1 as sails_rs::gstd::services::Service>::Exposure,
+        <ExtendedService2 as sails_rs::gstd::services::Service>::Exposure,
+    ),
 }
 impl SomeServiceExposure<SomeService> {
     pub fn do_this(&mut self) -> u32 {
@@ -27,12 +29,12 @@ impl SomeServiceExposure<SomeService> {
     pub fn as_base_0(
         &self,
     ) -> &<ExtendedService1 as sails_rs::gstd::services::Service>::Exposure {
-        &self.base_0
+        &self.base.0
     }
     pub fn as_base_1(
         &self,
     ) -> &<ExtendedService2 as sails_rs::gstd::services::Service>::Exposure {
-        &self.base_1
+        &self.base.1
     }
     pub async fn try_handle(&mut self, input: &[u8]) -> Option<(Vec<u8>, u128)> {
         use sails_rs::gstd::InvocationIo;
@@ -42,10 +44,10 @@ impl SomeServiceExposure<SomeService> {
             let output = some_service_meta::__DoThisParams::encode_reply(&result);
             return Some((output, value));
         }
-        if let Some((output, value)) = self.base_0.try_handle(input).await {
+        if let Some((output, value)) = self.base.0.try_handle(input).await {
             return Some((output, value));
         }
-        if let Some((output, value)) = self.base_1.try_handle(input).await {
+        if let Some((output, value)) = self.base.1.try_handle(input).await {
             return Some((output, value));
         }
         None
@@ -69,14 +71,16 @@ impl SomeServiceExposure<SomeService> {
             ));
         }
         if let Some((output, value)) = self
-            .base_0
+            .base
+            .0
             .try_handle_solidity(method, input)
             .await
         {
             return Some((output, value));
         }
         if let Some((output, value)) = self
-            .base_1
+            .base
+            .1
             .try_handle_solidity(method, input)
             .await
         {
@@ -109,14 +113,16 @@ impl sails_rs::gstd::services::Service for SomeService {
         Self::Exposure {
             message_id,
             route,
-            base_0: <ExtendedService1 as Clone>::clone(
-                    AsRef::<ExtendedService1>::as_ref(inner),
-                )
-                .expose(message_id, route),
-            base_1: <ExtendedService2 as Clone>::clone(
-                    AsRef::<ExtendedService2>::as_ref(inner),
-                )
-                .expose(message_id, route),
+            base: (
+                <ExtendedService1 as Clone>::clone(
+                        AsRef::<ExtendedService1>::as_ref(inner),
+                    )
+                    .expose(message_id, route),
+                <ExtendedService2 as Clone>::clone(
+                        AsRef::<ExtendedService2>::as_ref(inner),
+                    )
+                    .expose(message_id, route),
+            ),
             #[cfg(not(target_arch = "wasm32"))]
             inner_ptr: inner_box.as_ref() as *const Self,
             #[cfg(not(target_arch = "wasm32"))]
