@@ -16,8 +16,20 @@ mod meta_in_program {
     #[derive(sails_rename::Decode, sails_rename::TypeInfo)]
     #[codec(crate = sails_rename::scale_codec)]
     #[scale_info(crate = sails_rename::scale_info)]
-    #[allow(dead_code)]
     pub struct __DefaultParams {}
+    impl sails_rename::gstd::InvocationIo for __DefaultParams {
+        const ROUTE: &'static [u8] = &[
+            28u8,
+            68u8,
+            101u8,
+            102u8,
+            97u8,
+            117u8,
+            108u8,
+            116u8,
+        ];
+        type Params = Self;
+    }
     #[derive(sails_rename::TypeInfo)]
     #[scale_info(crate = sails_rename::scale_info)]
     pub enum ConstructorsMeta {
@@ -59,6 +71,7 @@ pub mod wasm {
     static mut PROGRAM: Option<MyProgram> = None;
     #[gstd::async_init]
     async fn init() {
+        use sails_rename::gstd::InvocationIo;
         sails_rename::gstd::events::__enable_events();
         let mut input: &[u8] = &sails_rename::gstd::msg::load_bytes()
             .expect("Failed to read input");
@@ -75,23 +88,11 @@ pub mod wasm {
                 }
             }
         }
-        let (program, invocation_route) = if input
-            .starts_with(&[28u8, 68u8, 101u8, 102u8, 97u8, 117u8, 108u8, 116u8])
-        {
-            const INVOCATION_ROUTE: &[u8] = &[
-                28u8,
-                68u8,
-                101u8,
-                102u8,
-                97u8,
-                117u8,
-                108u8,
-                116u8,
-            ];
-            let request = meta_in_program::__DefaultParams::decode(&mut &input[8usize..])
-                .expect("Failed to decode request");
+        let (program, invocation_route) = if let Ok(request) = meta_in_program::__DefaultParams::decode_params(
+            &input,
+        ) {
             let program = MyProgram::default();
-            (program, INVOCATION_ROUTE)
+            (program, meta_in_program::__DefaultParams::ROUTE)
         } else {
             sails_rename::gstd::unknown_input_panic("Unexpected ctor", input)
         };

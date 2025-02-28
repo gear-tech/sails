@@ -252,6 +252,7 @@ impl ProgramBuilder {
         let init_fn = quote! {
             #[gstd::async_init]
             async fn init() {
+                use #sails_path::gstd::InvocationIo;
                 #sails_path::gstd::events::__enable_events();
                 let mut #input_ident: &[u8] = &#sails_path::gstd::msg::load_bytes().expect("Failed to read input");
 
@@ -510,8 +511,6 @@ impl FnBuilder<'_> {
     }
 
     fn ctor_branch_impl(&self, program_type_path: &TypePath, input_ident: &Ident) -> TokenStream2 {
-        let invocation_route_bytes = self.encoded_route.as_slice();
-        let invocation_route_len = invocation_route_bytes.len();
         let handler_ident = self.ident;
         let handler_await = self.is_async().then(|| quote!(.await));
         let unwrap_token = self.unwrap_result.then(|| quote!(.unwrap()));
@@ -522,11 +521,9 @@ impl FnBuilder<'_> {
         let params_struct_ident = &self.params_struct_ident;
 
         quote!(
-            if #input_ident.starts_with(& [ #(#invocation_route_bytes),* ]) {
-                const INVOCATION_ROUTE: &[u8] = &[ #(#invocation_route_bytes),* ];
-                let request = meta_in_program:: #params_struct_ident::decode(&mut &#input_ident[#invocation_route_len..]).expect("Failed to decode request");
+            if let Ok(request) = meta_in_program::#params_struct_ident::decode_params(& #input_ident) {
                 let program = #program_type_path :: #handler_ident (#(#handler_args),*) #handler_await #unwrap_token;
-                (program, INVOCATION_ROUTE)
+                (program, meta_in_program::#params_struct_ident::ROUTE)
             }
         )
     }
@@ -539,14 +536,19 @@ impl FnBuilder<'_> {
             let param_type = item.1;
             quote!(#param_ident: #param_type,)
         });
+        let ctor_route_bytes = self.encoded_route.as_slice();
 
         quote! {
             #[derive(#sails_path ::Decode, #sails_path ::TypeInfo)]
             #[codec(crate = #scale_codec_path )]
             #[scale_info(crate = #scale_info_path )]
-            #[allow(dead_code)]
             pub struct #params_struct_ident {
                 #(pub(super) #ctor_params_struct_members)*
+            }
+
+            impl #sails_path::gstd::InvocationIo for #params_struct_ident {
+                const ROUTE: &'static [u8] = &[ #(#ctor_route_bytes),* ];
+                type Params = Self;
             }
         }
     }

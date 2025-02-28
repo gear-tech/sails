@@ -120,20 +120,11 @@ pub(crate) fn discover_invocation_targets(
 }
 
 pub(crate) fn extract_lifetime_names(path_args: &PathArguments) -> Vec<String> {
-    if let PathArguments::AngleBracketed(type_args) = path_args {
-        type_args
-            .args
-            .iter()
-            .filter_map(|a| {
-                if let GenericArgument::Lifetime(lifetime) = a {
-                    Some(lifetime.ident.to_string())
-                } else {
-                    None
-                }
-            })
+    if let Some(lts) = extract_lifetimes(path_args) {
+        lts.map(|lifetime| lifetime.ident.to_string())
             .collect::<Vec<_>>()
     } else {
-        Vec::<String>::new()
+        vec![]
     }
 }
 
