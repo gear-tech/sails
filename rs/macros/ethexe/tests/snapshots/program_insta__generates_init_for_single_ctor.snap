@@ -83,7 +83,7 @@ pub mod wasm {
             }
         }
         let (program, invocation_route) = if let Ok(request) = meta_in_program::__NewParams::decode_params(
-            &input,
+            input,
         ) {
             let program = MyProgram::new(request.p1, request.p2).await;
             (program, meta_in_program::__NewParams::ROUTE)

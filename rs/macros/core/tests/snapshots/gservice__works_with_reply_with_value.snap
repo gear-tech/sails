@@ -32,7 +32,7 @@ impl SomeServiceExposure<SomeService> {
     }
     pub async fn try_handle(&mut self, input: &[u8]) -> Option<(Vec<u8>, u128)> {
         use sails_rs::gstd::InvocationIo;
-        if let Ok(request) = some_service_meta::__DoThisParams::decode_params(&input) {
+        if let Ok(request) = some_service_meta::__DoThisParams::decode_params(input) {
             let command_reply: CommandReply<u32> = self
                 .do_this(request.p1, request.p2)
                 .await
@@ -41,7 +41,7 @@ impl SomeServiceExposure<SomeService> {
             let output = some_service_meta::__DoThisParams::encode_reply(&result);
             return Some((output, value));
         }
-        if let Ok(request) = some_service_meta::__ThisParams::decode_params(&input) {
+        if let Ok(request) = some_service_meta::__ThisParams::decode_params(input) {
             let result = self.this(request.p1);
             let value = 0u128;
             let output = some_service_meta::__ThisParams::encode_reply(&result);
@@ -59,7 +59,7 @@ impl sails_rs::gstd::services::Exposure for SomeServiceExposure<SomeService> {
     }
 }
 impl sails_rs::gstd::services::Service for SomeService {
-    type Exposure = SomeServiceExposure<SomeService>;
+    type Exposure = SomeServiceExposure<Self>;
     fn expose(
         self,
         message_id: sails_rs::MessageId,

@@ -33,7 +33,7 @@ where
     }
     pub async fn try_handle(&mut self, input: &[u8]) -> Option<(Vec<u8>, u128)> {
         use sails_rs::gstd::InvocationIo;
-        if let Ok(request) = some_service_meta::__DoThisParams::decode_params(&input) {
+        if let Ok(request) = some_service_meta::__DoThisParams::decode_params(input) {
             let result = self.do_this();
             let value = 0u128;
             let output = some_service_meta::__DoThisParams::encode_reply(&result);
@@ -60,7 +60,7 @@ where
     T: Clone,
     U: Iterator<Item = u32>,
 {
-    type Exposure = SomeServiceExposure<SomeService<'a, 'b, T, U>>;
+    type Exposure = SomeServiceExposure<Self>;
     fn expose(
         self,
         message_id: sails_rs::MessageId,

@@ -60,7 +60,7 @@ impl ReferenceServiceExposure<ReferenceService> {
     pub async fn try_handle(&mut self, input: &[u8]) -> Option<(Vec<u8>, u128)> {
         use sails_rs::gstd::InvocationIo;
         if let Ok(request) = reference_service_meta::__AddByteParams::decode_params(
-            &input,
+            input,
         ) {
             let result = self.add_byte(request.byte);
             let value = 0u128;
@@ -68,7 +68,7 @@ impl ReferenceServiceExposure<ReferenceService> {
             return Some((output, value));
         }
         if let Ok(request) = reference_service_meta::__BakedParams::decode_params(
-            &input,
+            input,
         ) {
             let result = self.baked();
             let value = 0u128;
@@ -76,7 +76,7 @@ impl ReferenceServiceExposure<ReferenceService> {
             return Some((output, value));
         }
         if let Ok(request) = reference_service_meta::__FirstByteParams::decode_params(
-            &input,
+            input,
         ) {
             let result = self.first_byte().await;
             let value = 0u128;
@@ -85,16 +85,14 @@ impl ReferenceServiceExposure<ReferenceService> {
             );
             return Some((output, value));
         }
-        if let Ok(request) = reference_service_meta::__IncrParams::decode_params(
-            &input,
-        ) {
+        if let Ok(request) = reference_service_meta::__IncrParams::decode_params(input) {
             let result = self.incr();
             let value = 0u128;
             let output = reference_service_meta::__IncrParams::encode_reply(&result);
             return Some((output, value));
         }
         if let Ok(request) = reference_service_meta::__LastByteParams::decode_params(
-            &input,
+            input,
         ) {
             let result = self.last_byte().await;
             let value = 0u128;
@@ -113,7 +111,7 @@ impl sails_rs::gstd::services::Exposure for ReferenceServiceExposure<ReferenceSe
     }
 }
 impl sails_rs::gstd::services::Service for ReferenceService {
-    type Exposure = ReferenceServiceExposure<ReferenceService>;
+    type Exposure = ReferenceServiceExposure<Self>;
     fn expose(
         self,
         message_id: sails_rs::MessageId,

@@ -57,7 +57,7 @@ where
     pub async fn try_handle(&mut self, input: &[u8]) -> Option<(Vec<u8>, u128)> {
         use sails_rs::gstd::InvocationIo;
         if let Ok(request) = my_generic_events_service_meta::__DoThisParams::decode_params(
-            &input,
+            input,
         ) {
             let result = self.do_this();
             let value = 0u128;
@@ -122,7 +122,7 @@ for MyGenericEventsService<'_0, '_1, T>
 where
     T: Clone,
 {
-    type Exposure = MyGenericEventsServiceExposure<MyGenericEventsService<'_0, '_1, T>>;
+    type Exposure = MyGenericEventsServiceExposure<Self>;
     fn expose(
         self,
         message_id: sails_rs::MessageId,

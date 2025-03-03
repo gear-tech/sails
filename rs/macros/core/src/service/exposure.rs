@@ -9,11 +9,7 @@ impl ServiceBuilder<'_> {
         let lifetimes = (!self.base_types.is_empty())
             .then(|| shared::extract_lifetimes(self.type_args))
             .flatten();
-        let exposure_generic_args = if let Some(lifetimes) = lifetimes {
-            quote! { #( #lifetimes, )* T }
-        } else {
-            quote! { T }
-        };
+        let exposure_lifetimes = lifetimes.map(|lifetimes| quote! { #( #lifetimes, )* });
 
         let message_id_ident = &self.message_id_ident;
         let route_ident = &self.route_ident;
@@ -28,7 +24,7 @@ impl ServiceBuilder<'_> {
         });
 
         quote! {
-            pub struct #exposure_ident<#exposure_generic_args> {
+            pub struct #exposure_ident<#exposure_lifetimes T> {
                 #message_id_ident : #sails_path::MessageId,
                 #route_ident : &'static [u8],
                 #[cfg(not(target_arch = "wasm32"))]
@@ -100,6 +96,7 @@ impl ServiceBuilder<'_> {
         let lifetimes = (!self.base_types.is_empty())
             .then(|| shared::extract_lifetimes(self.type_args))
             .flatten();
+        let exposure_lifetimes = lifetimes.map(|lifetimes| quote! { #( #lifetimes, )* });
 
         // Replace special "_" lifetimes with '_1', '_2' etc.
         let mut service_impl_generics = self.generics.clone();
@@ -126,11 +123,6 @@ impl ServiceBuilder<'_> {
                 .arguments = PathArguments::AngleBracketed(type_args);
         }
 
-        let service_impl_exposure_args = if let Some(lifetimes) = lifetimes {
-            quote! { #( #lifetimes, )* #service_impl_type_path }
-        } else {
-            quote! { #service_impl_type_path }
-        };
         let message_id_ident = &self.message_id_ident;
         let route_ident = &self.route_ident;
         let inner_ident = &self.inner_ident;
@@ -138,14 +130,15 @@ impl ServiceBuilder<'_> {
         let base_ident = &self.base_ident;
 
         let base_exposure_instantiations = self.base_types.iter().map(|base_type| {
+            let path_wo_lifetimes = shared::remove_lifetimes(base_type);
             quote! {
-                < #base_type as Clone>::clone(AsRef::< #base_type >::as_ref( #inner_ident )).expose( #message_id_ident , #route_ident )
+                < #path_wo_lifetimes as Clone>::clone(AsRef::< #path_wo_lifetimes >::as_ref( #inner_ident )).expose( #message_id_ident , #route_ident )
             }
         });
 
         quote!(
             impl #service_impl_generics #sails_path::gstd::services::Service for #service_impl_type_path #service_type_constraints {
-                type Exposure = #exposure_ident< #service_impl_exposure_args >;
+                type Exposure = #exposure_ident< #exposure_lifetimes Self>;
 
                 fn expose(self, #message_id_ident : #sails_path::MessageId, #route_ident : &'static [u8]) -> Self::Exposure {
                     #[cfg(not(target_arch = "wasm32"))]

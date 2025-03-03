@@ -91,7 +91,7 @@ pub mod wasm {
         let mut input: &[u8] = &sails_rs::gstd::msg::load_bytes()
             .expect("Failed to read input");
         let (program, invocation_route) = if let Ok(request) = meta_in_program::__DefaultParams::decode_params(
-            &input,
+            input,
         ) {
             let program = MyProgram::default();
             (program, meta_in_program::__DefaultParams::ROUTE)

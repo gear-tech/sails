@@ -38,7 +38,7 @@ impl<'a> ExtendedLifetimeExposure<'a, ExtendedLifetime<'a>> {
     pub async fn try_handle(&mut self, input: &[u8]) -> Option<(Vec<u8>, u128)> {
         use sails_rs::gstd::InvocationIo;
         if let Ok(request) = extended_lifetime_meta::__ExtendedNameParams::decode_params(
-            &input,
+            input,
         ) {
             let result = self.extended_name();
             let value = 0u128;
@@ -47,9 +47,7 @@ impl<'a> ExtendedLifetimeExposure<'a, ExtendedLifetime<'a>> {
             );
             return Some((output, value));
         }
-        if let Ok(request) = extended_lifetime_meta::__NameParams::decode_params(
-            &input,
-        ) {
+        if let Ok(request) = extended_lifetime_meta::__NameParams::decode_params(input) {
             let result = self.name();
             let value = 0u128;
             let output = extended_lifetime_meta::__NameParams::encode_reply(&result);
@@ -128,7 +126,7 @@ for ExtendedLifetimeExposure<'a, ExtendedLifetime<'a>> {
     }
 }
 impl<'a> sails_rs::gstd::services::Service for ExtendedLifetime<'a> {
-    type Exposure = ExtendedLifetimeExposure<'a, ExtendedLifetime<'a>>;
+    type Exposure = ExtendedLifetimeExposure<'a, Self>;
     fn expose(
         self,
         message_id: sails_rs::MessageId,
@@ -144,9 +142,9 @@ impl<'a> sails_rs::gstd::services::Service for ExtendedLifetime<'a> {
             message_id,
             route,
             base: (
-                <base::BaseLifetime<
-                    'a,
-                > as Clone>::clone(AsRef::<base::BaseLifetime<'a>>::as_ref(inner))
+                <base::BaseLifetime as Clone>::clone(
+                        AsRef::<base::BaseLifetime>::as_ref(inner),
+                    )
                     .expose(message_id, route),
             ),
             #[cfg(not(target_arch = "wasm32"))]
@@ -163,7 +161,7 @@ impl<'a> sails_rs::meta::ServiceMeta for ExtendedLifetime<'a> {
     type QueriesMeta = extended_lifetime_meta::QueriesMeta;
     type EventsMeta = extended_lifetime_meta::EventsMeta;
     const BASE_SERVICES: &'static [sails_rs::meta::AnyServiceMetaFn] = &[
-        sails_rs::meta::AnyServiceMeta::new::<base::BaseLifetime<'a>>,
+        sails_rs::meta::AnyServiceMeta::new::<base::BaseLifetime>,
     ];
 }
 mod extended_lifetime_meta {

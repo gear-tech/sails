@@ -89,7 +89,7 @@ pub mod wasm {
             }
         }
         let (program, invocation_route) = if let Ok(request) = meta_in_program::__DefaultParams::decode_params(
-            &input,
+            input,
         ) {
             let program = MyProgram::default();
             (program, meta_in_program::__DefaultParams::ROUTE)

@@ -3,15 +3,17 @@ use proc_macro2::TokenStream;
 use quote::quote;
 
 impl ServiceBuilder<'_> {
-    pub(super) fn meta_trait_impl(&self, meta_module_ident: &Ident) -> TokenStream {
+    pub(super) fn meta_trait_impl(&self) -> TokenStream {
         let sails_path = self.sails_path;
         let generics = &self.generics;
         let service_type_path = self.type_path;
         let service_type_constraints = self.type_constraints();
+        let meta_module_ident = &self.meta_module_ident;
 
         let base_services_meta = self.base_types.iter().map(|base_type| {
+            let path_wo_lifetimes = shared::remove_lifetimes(base_type);
             quote! {
-                #sails_path::meta::AnyServiceMeta::new::< #base_type >
+                #sails_path::meta::AnyServiceMeta::new::< #path_wo_lifetimes >
             }
         });
 
@@ -27,10 +29,11 @@ impl ServiceBuilder<'_> {
         }
     }
 
-    pub(super) fn meta_module(&self, meta_module_ident: &Ident) -> TokenStream {
+    pub(super) fn meta_module(&self) -> TokenStream {
         let sails_path = self.sails_path;
         let scale_codec_path = &sails_paths::scale_codec_path(sails_path);
         let scale_info_path = &sails_paths::scale_info_path(sails_path);
+        let meta_module_ident = &self.meta_module_ident;
 
         let no_events_type = Path::from(Ident::new("NoEvents", Span::call_site()));
         let events_type = self.events_type.unwrap_or(&no_events_type);

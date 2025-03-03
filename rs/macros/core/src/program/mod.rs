@@ -521,7 +521,7 @@ impl FnBuilder<'_> {
         let params_struct_ident = &self.params_struct_ident;
 
         quote!(
-            if let Ok(request) = meta_in_program::#params_struct_ident::decode_params(& #input_ident) {
+            if let Ok(request) = meta_in_program::#params_struct_ident::decode_params( #input_ident) {
                 let program = #program_type_path :: #handler_ident (#(#handler_args),*) #handler_await #unwrap_token;
                 (program, meta_in_program::#params_struct_ident::ROUTE)
             }

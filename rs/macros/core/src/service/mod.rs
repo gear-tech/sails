@@ -80,6 +80,7 @@ struct ServiceBuilder<'a> {
     pub inner_ident: Ident,
     pub inner_ptr_ident: Ident,
     pub base_ident: Ident,
+    pub meta_module_ident: Ident,
 }
 
 impl<'a> ServiceBuilder<'a> {
@@ -107,6 +108,8 @@ impl<'a> ServiceBuilder<'a> {
         let inner_ident = Ident::new("inner", Span::call_site());
         let inner_ptr_ident = Ident::new("inner_ptr", Span::call_site());
         let base_ident = Ident::new("base", Span::call_site());
+        let meta_module_name = format!("{}_meta", service_ident.to_string().to_case(Case::Snake));
+        let meta_module_ident = Ident::new(&meta_module_name, Span::call_site());
 
         Self {
             service_impl,
@@ -125,6 +128,7 @@ impl<'a> ServiceBuilder<'a> {
             inner_ident,
             inner_ptr_ident,
             base_ident,
+            meta_module_ident,
         }
     }
 
@@ -191,11 +195,8 @@ fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
         ));
     }
 
-    let meta_module_name = format!("{}_meta", service_ident.to_string().to_case(Case::Snake));
-    let meta_module_ident = &Ident::new(&meta_module_name, Span::call_site());
-
-    let meta_trait_impl = service_builder.meta_trait_impl(meta_module_ident);
-    let meta_module = service_builder.meta_module(meta_module_ident);
+    let meta_trait_impl = service_builder.meta_trait_impl();
+    let meta_module = service_builder.meta_module();
 
     let input_ident = &Ident::new("input", Span::call_site());
 
@@ -214,8 +215,9 @@ fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
         exposure_funcs.push(fn_builder.exposure_func(inner_ident));
         invocation_params_structs
             .push(fn_builder.params_struct(&scale_codec_path, &scale_info_path));
-        invocation_dispatches
-            .push(fn_builder.try_handle_branch_impl(meta_module_ident, input_ident));
+        invocation_dispatches.push(
+            fn_builder.try_handle_branch_impl(&service_builder.meta_module_ident, input_ident),
+        );
 
         let handler_meta_variant = fn_builder.handler_meta_variant();
         if fn_builder.is_query() {
@@ -416,7 +418,7 @@ impl FnBuilder<'_> {
         };
 
         quote! {
-            if let Ok(request) = #meta_module_ident::#params_struct_ident::decode_params(& #input_ident) {
+            if let Ok(request) = #meta_module_ident::#params_struct_ident::decode_params( #input_ident) {
                 #handle_token
                 let output = #meta_module_ident::#params_struct_ident::encode_reply(&result);
                 return Some((output, value));

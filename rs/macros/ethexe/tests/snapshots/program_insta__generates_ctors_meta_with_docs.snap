@@ -111,13 +111,11 @@ pub mod wasm {
             }
         }
         let (program, invocation_route) = if let Ok(request) = meta_in_program::__NewParams::decode_params(
-            &input,
+            input,
         ) {
             let program = MyProgram::new(request.p1, request.p2).await;
             (program, meta_in_program::__NewParams::ROUTE)
-        } else if let Ok(request) = meta_in_program::__New2Params::decode_params(
-            &input,
-        ) {
+        } else if let Ok(request) = meta_in_program::__New2Params::decode_params(input) {
             let program = MyProgram::new2(request.p2, request.p1);
             (program, meta_in_program::__New2Params::ROUTE)
         } else {
