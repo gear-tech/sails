@@ -11,9 +11,8 @@ use proc_macro_error::abort;
 use quote::quote;
 use std::collections::BTreeMap;
 use syn::{
-    parse_quote, punctuated::Punctuated, token::Comma, GenericArgument, GenericParam, Generics,
-    Ident, ImplItemFn, ItemImpl, Lifetime, LifetimeParam, Path, PathArguments, Type, TypePath,
-    Visibility, WhereClause,
+    parse_quote, Generics, Ident, ImplItemFn, ItemImpl, Lifetime, Path, PathArguments, Type,
+    TypePath, Visibility, WhereClause,
 };
 
 mod args;
@@ -80,6 +79,7 @@ struct ServiceBuilder<'a> {
     pub inner_ident: Ident,
     pub inner_ptr_ident: Ident,
     pub base_ident: Ident,
+    pub input_ident: Ident,
     pub meta_module_ident: Ident,
 }
 
@@ -108,6 +108,7 @@ impl<'a> ServiceBuilder<'a> {
         let inner_ident = Ident::new("inner", Span::call_site());
         let inner_ptr_ident = Ident::new("inner_ptr", Span::call_site());
         let base_ident = Ident::new("base", Span::call_site());
+        let input_ident = Ident::new("input", Span::call_site());
         let meta_module_name = format!("{}_meta", service_ident.to_string().to_case(Case::Snake));
         let meta_module_ident = Ident::new(&meta_module_name, Span::call_site());
 
@@ -128,6 +129,7 @@ impl<'a> ServiceBuilder<'a> {
             inner_ident,
             inner_ptr_ident,
             base_ident,
+            input_ident,
             meta_module_ident,
         }
     }
@@ -157,14 +159,9 @@ fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
         )
     });
     let sails_path = service_args.sails_path();
-    let scale_codec_path = sails_paths::scale_codec_path(&sails_path);
-    let scale_info_path = sails_paths::scale_info_path(&sails_path);
     let events_type = service_args.events_type();
 
     let service_builder = ServiceBuilder::from(&service_impl, &sails_path, &service_args);
-
-    let (service_type_path, service_type_args, service_ident) = shared::impl_type(&service_impl);
-    let (generics, service_type_constraints) = shared::impl_constraints(&service_impl);
 
     let service_handlers = discover_service_handlers(&service_impl);
 
@@ -198,94 +195,13 @@ fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
     let meta_trait_impl = service_builder.meta_trait_impl();
     let meta_module = service_builder.meta_module();
 
-    let input_ident = &Ident::new("input", Span::call_site());
-
-    let message_id_ident = &service_builder.message_id_ident;
-    let route_ident = &service_builder.route_ident;
-    let inner_ident = &service_builder.inner_ident;
-    let base_ident = &service_builder.base_ident;
-
-    let mut exposure_funcs = Vec::with_capacity(service_handlers.len());
-    let mut invocation_params_structs = Vec::with_capacity(service_handlers.len());
-    let mut invocation_dispatches = Vec::with_capacity(service_handlers.len());
-    let mut commands_meta_variants = Vec::with_capacity(service_handlers.len());
-    let mut queries_meta_variants = Vec::with_capacity(service_handlers.len());
-
-    for fn_builder in &service_builder.service_handlers {
-        exposure_funcs.push(fn_builder.exposure_func(inner_ident));
-        invocation_params_structs
-            .push(fn_builder.params_struct(&scale_codec_path, &scale_info_path));
-        invocation_dispatches.push(
-            fn_builder.try_handle_branch_impl(&service_builder.meta_module_ident, input_ident),
-        );
-
-        let handler_meta_variant = fn_builder.handler_meta_variant();
-        if fn_builder.is_query() {
-            queries_meta_variants.push(handler_meta_variant);
-        } else {
-            commands_meta_variants.push(handler_meta_variant);
-        }
-    }
-
-    // Base Services, as tuple in exposure `base: (...)`
-    let base_exposure_invocations = service_builder.base_types.iter().enumerate().map(|(idx, _)| {
-        let idx = Literal::usize_unsuffixed(idx);
-        quote! {
-            if let Some((output, value)) = self. #base_ident . #idx .try_handle(#input_ident).await {
-                return Some((output, value));
-            }
-        }
-    });
-    let base_exposure_accessors = service_builder.base_types.iter().enumerate().map(|(idx, base_type)| {
-        let as_base_ident = Ident::new(&format!("as_base_{}", idx), Span::call_site());
-        let idx = Literal::usize_unsuffixed(idx);
-        quote! {
-            pub fn #as_base_ident (&self) -> &< #base_type as #sails_path::gstd::services::Service>::Exposure {
-                &self. #base_ident . #idx
-            }
-        }
-    });
-
-    // lifetime names like '_', 'a', 'b' etc.
-    let lifetimes = shared::extract_lifetime_names(&service_type_args);
-    let exposure_set_event_listener_code = service_builder.exposure_set_event_listener();
-
-    let exposure_name = format!(
-        "{}Exposure",
-        service_ident.to_string().to_case(Case::Pascal)
-    );
-    let exposure_type_path = Path::from(Ident::new(&exposure_name, Span::call_site()));
-
-    let exposure_drop_code = events_type.map(|_| service_builder.exposure_drop());
-
-    let mut exposure_lifetimes: Punctuated<Lifetime, Comma> = Punctuated::new();
-    if !service_args.base_types().is_empty() {
-        for lt in lifetimes.iter().map(|lt| {
-            let lt = format!("'{lt}");
-            Lifetime::new(&lt, Span::call_site())
-        }) {
-            exposure_lifetimes.push(lt);
-        }
-    };
-
-    let exposure_args = if exposure_lifetimes.is_empty() {
-        quote! { #service_type_path }
-    } else {
-        quote! { #exposure_lifetimes, #service_type_path }
-    };
-
     let exposure_struct = service_builder.exposure_struct();
+    let exposure_drop_code = events_type.map(|_| service_builder.exposure_drop());
+    let exposure_impl = service_builder.exposure_impl();
     let service_trait_impl = service_builder.service_trait_impl();
-
-    // We propagate only known attributes as we don't know the consequences of unknown ones
-    let exposure_allow_attrs = service_impl
-        .attrs
-        .iter()
-        .filter(|attr| matches!(attr.path().get_ident(), Some(ident) if ident == "allow"));
 
     // ethexe
     let service_signature_impl = service_builder.service_signature_impl();
-    let try_handle_solidity_impl = service_builder.try_handle_solidity_impl(base_ident);
 
     quote!(
         #service_impl
@@ -294,33 +210,7 @@ fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
 
         #exposure_drop_code
 
-        #( #exposure_allow_attrs )*
-        impl #generics #exposure_type_path< #exposure_args > #service_type_constraints {
-            #( #exposure_funcs )*
-
-            #( #base_exposure_accessors )*
-
-            pub async fn try_handle(&mut self, #input_ident : &[u8]) -> Option<(Vec<u8>, u128)> {
-                use #sails_path::gstd::InvocationIo;
-                #( #invocation_dispatches )*
-                #( #base_exposure_invocations )*
-                None
-            }
-
-            #try_handle_solidity_impl
-
-            #exposure_set_event_listener_code
-        }
-
-        impl #generics #sails_path::gstd::services::Exposure for #exposure_type_path< #exposure_args > #service_type_constraints {
-            fn message_id(&self) -> #sails_path::MessageId {
-                self. #message_id_ident
-            }
-
-            fn route(&self) -> &'static [u8] {
-                self. #route_ident
-            }
-        }
+        #exposure_impl
 
         #service_trait_impl
 

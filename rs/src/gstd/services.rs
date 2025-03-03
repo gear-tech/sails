@@ -27,6 +27,7 @@ fn get_message_id_to_service_route_map(
 
 pub trait Service {
     type Exposure: Exposure;
+    type BaseExposures;
 
     fn expose(self, message_id: MessageId, route: &'static [u8]) -> Self::Exposure;
 }

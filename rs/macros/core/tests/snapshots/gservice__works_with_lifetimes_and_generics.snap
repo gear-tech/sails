@@ -11,7 +11,7 @@ where
         42
     }
 }
-pub struct SomeServiceExposure<T> {
+pub struct SomeServiceExposure<T: sails_rs::gstd::services::Service> {
     message_id: sails_rs::MessageId,
     route: &'static [u8],
     #[cfg(not(target_arch = "wasm32"))]
@@ -20,7 +20,16 @@ pub struct SomeServiceExposure<T> {
     inner_ptr: *const T,
     #[cfg(target_arch = "wasm32")]
     inner: T,
-    base: (),
+    base: T::BaseExposures,
+}
+impl<T: sails_rs::gstd::services::Service> sails_rs::gstd::services::Exposure
+for SomeServiceExposure<T> {
+    fn message_id(&self) -> sails_rs::MessageId {
+        self.message_id
+    }
+    fn route(&self) -> &'static [u8] {
+        self.route
+    }
 }
 impl<'a, 'b, T, U> SomeServiceExposure<SomeService<'a, 'b, T, U>>
 where
@@ -42,25 +51,13 @@ where
         None
     }
 }
-impl<'a, 'b, T, U> sails_rs::gstd::services::Exposure
-for SomeServiceExposure<SomeService<'a, 'b, T, U>>
-where
-    T: Clone,
-    U: Iterator<Item = u32>,
-{
-    fn message_id(&self) -> sails_rs::MessageId {
-        self.message_id
-    }
-    fn route(&self) -> &'static [u8] {
-        self.route
-    }
-}
 impl<'a, 'b, T, U> sails_rs::gstd::services::Service for SomeService<'a, 'b, T, U>
 where
     T: Clone,
     U: Iterator<Item = u32>,
 {
     type Exposure = SomeServiceExposure<Self>;
+    type BaseExposures = ();
     fn expose(
         self,
         message_id: sails_rs::MessageId,

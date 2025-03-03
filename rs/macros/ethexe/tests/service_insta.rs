@@ -110,10 +110,10 @@ fn works_with_lifetimes_and_events() {
 #[test]
 fn works_with_extends_and_lifetimes() {
     let args = quote! {
-        extends = [base::BaseLifetime<'a>]
+        extends = [BaseWithLifetime<'a>]
     };
     let input = quote! {
-        impl<'a> ExtendedLifetime<'a> {
+        impl<'a> ExtendedWithLifetime<'a> {
             pub fn extended_name(&self) -> String {
                 "extended-name".to_string()
             }

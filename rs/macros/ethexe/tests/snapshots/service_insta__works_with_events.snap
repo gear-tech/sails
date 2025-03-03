@@ -25,7 +25,7 @@ impl SomeService {
         sails_rs::gstd::events::__notify_on(event)
     }
 }
-pub struct SomeServiceExposure<T> {
+pub struct SomeServiceExposure<T: sails_rs::gstd::services::Service> {
     message_id: sails_rs::MessageId,
     route: &'static [u8],
     #[cfg(not(target_arch = "wasm32"))]
@@ -34,10 +34,19 @@ pub struct SomeServiceExposure<T> {
     inner_ptr: *const T,
     #[cfg(target_arch = "wasm32")]
     inner: T,
-    base: (),
+    base: T::BaseExposures,
+}
+impl<T: sails_rs::gstd::services::Service> sails_rs::gstd::services::Exposure
+for SomeServiceExposure<T> {
+    fn message_id(&self) -> sails_rs::MessageId {
+        self.message_id
+    }
+    fn route(&self) -> &'static [u8] {
+        self.route
+    }
 }
 #[cfg(not(target_arch = "wasm32"))]
-impl<T> Drop for SomeServiceExposure<T> {
+impl<T: sails_rs::gstd::services::Service> Drop for SomeServiceExposure<T> {
     fn drop(&mut self) {
         let service_ptr = self.inner_ptr as usize;
         let mut event_listeners = sails_rs::gstd::events::event_listeners().lock();
@@ -121,16 +130,9 @@ impl SomeServiceExposure<SomeService> {
         sails_rs::gstd::events::EventListenerGuard::new(service_ptr, listener_ptr)
     }
 }
-impl sails_rs::gstd::services::Exposure for SomeServiceExposure<SomeService> {
-    fn message_id(&self) -> sails_rs::MessageId {
-        self.message_id
-    }
-    fn route(&self) -> &'static [u8] {
-        self.route
-    }
-}
 impl sails_rs::gstd::services::Service for SomeService {
     type Exposure = SomeServiceExposure<Self>;
+    type BaseExposures = ();
     fn expose(
         self,
         message_id: sails_rs::MessageId,

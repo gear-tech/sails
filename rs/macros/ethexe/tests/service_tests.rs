@@ -129,7 +129,7 @@ async fn service_with_extends_and_lifetimes() {
 }
 
 #[tokio::test]
-async fn gservice_with_export_unwrap_result() {
+async fn service_with_export_unwrap_result() {
     use service_with_export_unwrap_result::MyService;
 
     const DO_THIS: &str = "DoThis";
@@ -147,7 +147,7 @@ async fn gservice_with_export_unwrap_result() {
 
 #[tokio::test]
 #[should_panic(expected = "failed to parse `not a number`")]
-async fn gservice_with_export_unwrap_result_panic() {
+async fn service_with_export_unwrap_result_panic() {
     use service_with_export_unwrap_result::MyService;
 
     const PARSE: &str = "Parse";
@@ -161,7 +161,7 @@ async fn gservice_with_export_unwrap_result_panic() {
 }
 
 #[tokio::test]
-async fn gservice_with_reply_with_value() {
+async fn service_with_reply_with_value() {
     use service_with_reply_with_value::MyServiceWithReplyWithValue;
 
     const DO_THIS: &str = "DoThis";
@@ -180,7 +180,7 @@ async fn gservice_with_reply_with_value() {
 }
 
 #[tokio::test]
-async fn gservice_with_reply_with_value_with_impl_from() {
+async fn service_with_reply_with_value_with_impl_from() {
     use service_with_reply_with_value::MyServiceWithReplyWithValue;
 
     const DO_THAT: &str = "DoThat";
@@ -199,7 +199,7 @@ async fn gservice_with_reply_with_value_with_impl_from() {
 }
 
 #[tokio::test]
-async fn gservice_with_trait_bounds() {
+async fn service_with_trait_bounds() {
     use service_with_trait_bounds::MyServiceWithTraitBounds;
 
     const DO_THIS: &str = "DoThis";
