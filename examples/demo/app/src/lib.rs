@@ -1,9 +1,10 @@
 #![no_std]
 
 use demo_walker as walker;
-use sails_rs::{cell::RefCell, prelude::*};
+use sails_rs::{cell::RefCell, prelude::*, static_storage2};
 
 mod counter;
+mod counter_storage;
 mod dog;
 mod mammal;
 mod ping;
@@ -16,6 +17,12 @@ mod value_fee;
 // of using a global variable here. It is just a demonstration of how to use global variables.
 static mut DOG_DATA: Option<RefCell<walker::WalkerData>> = None;
 static mut REF_DATA: u8 = 42;
+static STORAGE_CELL: SyncUnsafeCell<counter_storage::Data> =
+    SyncUnsafeCell::new(counter_storage::Data(0u128));
+
+static_storage2!(
+    counter_data: counter_storage::Data,
+);
 
 #[allow(static_mut_refs)]
 fn dog_data() -> &'static RefCell<walker::WalkerData> {
@@ -30,6 +37,7 @@ pub struct DemoProgram {
     // Counter data has the same lifetime as the program itself, i.e. it will
     // live as long as the program is available on the network.
     counter_data: RefCell<counter::CounterData>,
+    counter_storage: RefCell<counter_storage::Data>,
 }
 
 #[program]
@@ -43,8 +51,10 @@ impl DemoProgram {
                 Default::default(),
             )));
         }
+        static_storage::init_storage(counter_storage::Data(0u128));
         Self {
             counter_data: RefCell::new(counter::CounterData::new(Default::default())),
+            counter_storage: RefCell::new(counter_storage::Data(0u128)),
         }
     }
 
@@ -58,8 +68,10 @@ impl DemoProgram {
                 dog_position.1,
             )));
         }
+        static_storage::init_storage(counter_storage::Data(0u128));
         Ok(Self {
             counter_data: RefCell::new(counter::CounterData::new(counter.unwrap_or_default())),
+            counter_storage: RefCell::new(counter_storage::Data(0u128)),
         })
     }
 
@@ -72,6 +84,21 @@ impl DemoProgram {
     // Exposing another service
     pub fn counter(&self) -> counter::CounterService {
         counter::CounterService::new(&self.counter_data)
+    }
+
+    pub fn counter_storage(&self) -> counter_storage::Service<'_> {
+        let data = self.counter_storage.borrow_mut();
+        counter_storage::Service::new(data)
+        // can be simplified to
+        //counter_storage::Service::from_accessor(&self.counter_storage)
+    }
+
+    pub fn counter_storage_cell(&self) -> counter_storage::Service<'_> {
+        counter_storage::Service::from_accessor(&STORAGE_CELL)
+    }
+
+    pub fn counter_storage_static(&self) -> counter_storage::Service<'_> {
+        counter_storage::Service::new(static_storage::counter_data())
     }
 
     // Exposing yet another service
