@@ -81,6 +81,7 @@ struct ServiceBuilder<'a> {
     pub base_ident: Ident,
     pub input_ident: Ident,
     pub meta_module_ident: Ident,
+    pub sender_map_ident: Ident,
 }
 
 impl<'a> ServiceBuilder<'a> {
@@ -111,6 +112,11 @@ impl<'a> ServiceBuilder<'a> {
         let input_ident = Ident::new("input", Span::call_site());
         let meta_module_name = format!("{}_meta", service_ident.to_string().to_case(Case::Snake));
         let meta_module_ident = Ident::new(&meta_module_name, Span::call_site());
+        let sender_map_name = format!(
+            "{}_SENDER_MAP",
+            service_ident.to_string().to_case(Case::UpperSnake)
+        );
+        let sender_map_ident = Ident::new(&sender_map_name, Span::call_site());
 
         Self {
             service_impl,
@@ -131,6 +137,7 @@ impl<'a> ServiceBuilder<'a> {
             base_ident,
             input_ident,
             meta_module_ident,
+            sender_map_ident,
         }
     }
 
@@ -174,18 +181,11 @@ fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
 
     let mut service_impl = service_impl.clone();
     if let Some(events_type) = events_type {
-        let exposure_ident = &service_builder.exposure_ident;
-
         service_impl.items.push(parse_quote!(
             fn notify_on(&mut self, event: #events_type ) -> #sails_path::errors::Result<()>  {
                 #[cfg(not(target_arch = "wasm32"))]
                 {
-                    let self_ptr = self as *const _ as usize;
-                    let mut map = #exposure_ident ::<Self>::event_senders();
-                    if let Some(sender) = map.get_mut(&self_ptr) {
-                        sender.try_send(event).expect("Failed to send event");
-                    }
-                    Ok(())
+                    #sails_path::gstd::services::ServiceWithEvents::notify_on(self, event)
                 }
                 #[cfg(target_arch = "wasm32")]
                 #sails_path::gstd::events::__notify_on(event)
@@ -197,9 +197,10 @@ fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
     let meta_module = service_builder.meta_module();
 
     let exposure_struct = service_builder.exposure_struct();
-    let exposure_drop_code = events_type.map(|_| service_builder.exposure_drop());
+    let exposure_drop_code = service_builder.exposure_drop();
     let exposure_impl = service_builder.exposure_impl();
     let service_trait_impl = service_builder.service_trait_impl();
+    let service_with_events_impls = service_builder.service_with_events_impls();
 
     // ethexe
     let service_signature_impl = service_builder.service_signature_impl();
@@ -214,6 +215,8 @@ fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
         #exposure_impl
 
         #service_trait_impl
+
+        #service_with_events_impls
 
         #meta_trait_impl
 

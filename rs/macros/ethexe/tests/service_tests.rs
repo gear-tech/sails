@@ -3,10 +3,11 @@
 use sails_rs::alloy_sol_types::SolValue;
 use sails_rs::futures::StreamExt;
 use sails_rs::gstd::services::Service;
-use sails_rs::{Encode, MessageId};
+use sails_rs::{Decode, Encode, MessageId};
 
 mod service_with_basics;
 mod service_with_events;
+mod service_with_events_and_lifetimes;
 mod service_with_export_unwrap_result;
 mod service_with_extends;
 mod service_with_extends_and_lifetimes;
@@ -44,6 +45,34 @@ async fn service_with_events() {
     let events: Vec<SomeEvents> = events.collect().await;
     assert_eq!(events.len(), 1);
     assert_eq!(events[0], SomeEvents::Event1);
+}
+
+#[tokio::test]
+async fn service_with_events_and_lifetimes() {
+    use service_with_events_and_lifetimes::{MyEvents, MyGenericEventsService};
+
+    const DO_THIS: &str = "DoThis";
+
+    let my_service = MyGenericEventsService::<'_, String>::default();
+    let mut exposure = my_service.expose(MessageId::from(123), &[1, 2, 3]);
+    let events = exposure.listen();
+
+    let (output, _value) = exposure.try_handle(&DO_THIS.encode()).await.unwrap();
+
+    let mut output = output.as_slice();
+
+    let func_name = String::decode(&mut output).unwrap();
+    assert_eq!(func_name, DO_THIS);
+
+    let result = u32::decode(&mut output).unwrap();
+    assert_eq!(result, 42);
+
+    assert_eq!(output.len(), 0);
+
+    events.close();
+    let events: Vec<MyEvents> = events.collect().await;
+    assert_eq!(events.len(), 1);
+    assert_eq!(events[0], MyEvents::Event1);
 }
 
 #[tokio::test]

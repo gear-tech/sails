@@ -32,6 +32,23 @@ pub trait Service {
     fn expose(self, message_id: MessageId, route: &'static [u8]) -> Self::Exposure;
 }
 
+#[cfg(not(target_arch = "wasm32"))]
+pub trait ServiceWithEvents: Service {
+    type Events;
+
+    fn event_senders(
+    ) -> impl core::ops::DerefMut<Target = BTreeMap<usize, async_channel::Sender<Self::Events>>>;
+
+    fn notify_on(&mut self, event: Self::Events) -> crate::errors::Result<()> {
+        let self_ptr = self as *const _ as *const () as usize;
+        let mut map = Self::event_senders();
+        if let Some(sender) = map.get_mut(&self_ptr) {
+            sender.try_send(event).expect("Failed to send event");
+        }
+        Ok(())
+    }
+}
+
 pub trait Exposure {
     fn message_id(&self) -> MessageId;
     fn route(&self) -> &'static [u8];
