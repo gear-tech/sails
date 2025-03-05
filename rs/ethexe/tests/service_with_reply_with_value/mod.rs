@@ -1,5 +1,4 @@
-use sails_macros::service;
-use sails_rs::CommandReply;
+use sails_rs::{service, CommandReply};
 
 pub(super) struct MyServiceWithReplyWithValue;
 

@@ -1,5 +1,3 @@
-#![cfg(feature = "ethexe")]
-
 use proc_macro2::TokenStream;
 use quote::quote;
 use sails_macros_core::__gservice_internal as gservice;
@@ -65,10 +63,10 @@ fn works_with_extends() {
 #[test]
 fn works_with_events() {
     let args = quote! {
-        events = SomeEvents,
+        events = MyEvents,
     };
     let input = quote! {
-        impl SomeService {
+        impl MyServiceWithEvents {
             pub fn do_this(&mut self) -> u32 {
                 42
             }

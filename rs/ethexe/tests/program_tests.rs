@@ -1,5 +1,3 @@
-#![cfg(feature = "ethexe")]
-
 mod program_basic;
 
 #[test]

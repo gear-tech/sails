@@ -1,5 +1,3 @@
-#![cfg(feature = "ethexe")]
-
 use proc_macro2::TokenStream;
 use quote::quote;
 use sails_macros_core::__gprogram_internal as gprogram;

@@ -1,5 +1,5 @@
 use core::marker::PhantomData;
-use sails_rs::gstd::service;
+use sails_rs::service;
 
 #[derive(Default)]
 pub(super) struct MyServiceWithTraitBounds<'a, T> {

@@ -1,4 +1,4 @@
-use sails_macros::{export, program};
+use sails_rs::{export, program};
 
 #[allow(dead_code)]
 pub(super) struct MyProgram {

@@ -1,22 +1,22 @@
 ---
-source: rs/macros/ethexe/tests/service_insta.rs
+source: tests/service_insta.rs
 expression: result
 ---
-impl SomeService {
+impl MyServiceWithEvents {
     pub fn do_this(&mut self) -> u32 {
         42
     }
     pub fn this(&self) -> bool {
         true
     }
-    fn notify_on(&mut self, event: SomeEvents) -> sails_rs::errors::Result<()> {
+    fn notify_on(&mut self, event: MyEvents) -> sails_rs::errors::Result<()> {
         #[cfg(not(target_arch = "wasm32"))]
         {
             let self_ptr = self as *const _ as usize;
             let event_listeners = sails_rs::gstd::events::event_listeners().lock();
             if let Some(event_listener_ptr) = event_listeners.get(&self_ptr) {
                 let event_listener = unsafe {
-                    &mut *(*event_listener_ptr as *mut Box<dyn FnMut(&SomeEvents)>)
+                    &mut *(*event_listener_ptr as *mut Box<dyn FnMut(&MyEvents)>)
                 };
                 core::mem::drop(event_listeners);
                 event_listener(&event);
@@ -25,7 +25,7 @@ impl SomeService {
         sails_rs::gstd::events::__notify_on(event)
     }
 }
-pub struct SomeServiceExposure<T: sails_rs::gstd::services::Service> {
+pub struct MyServiceWithEventsExposure<T: sails_rs::gstd::services::Service> {
     message_id: sails_rs::MessageId,
     route: &'static [u8],
     #[cfg(not(target_arch = "wasm32"))]
@@ -37,7 +37,7 @@ pub struct SomeServiceExposure<T: sails_rs::gstd::services::Service> {
     base: T::BaseExposures,
 }
 impl<T: sails_rs::gstd::services::Service> sails_rs::gstd::services::Exposure
-for SomeServiceExposure<T> {
+for MyServiceWithEventsExposure<T> {
     fn message_id(&self) -> sails_rs::MessageId {
         self.message_id
     }
@@ -46,7 +46,7 @@ for SomeServiceExposure<T> {
     }
 }
 #[cfg(not(target_arch = "wasm32"))]
-impl<T: sails_rs::gstd::services::Service> Drop for SomeServiceExposure<T> {
+impl<T: sails_rs::gstd::services::Service> Drop for MyServiceWithEventsExposure<T> {
     fn drop(&mut self) {
         let service_ptr = self.inner_ptr as usize;
         let mut event_listeners = sails_rs::gstd::events::event_listeners().lock();
@@ -55,7 +55,7 @@ impl<T: sails_rs::gstd::services::Service> Drop for SomeServiceExposure<T> {
         }
     }
 }
-impl SomeServiceExposure<SomeService> {
+impl MyServiceWithEventsExposure<MyServiceWithEvents> {
     pub fn do_this(&mut self) -> u32 {
         let exposure_scope = sails_rs::gstd::services::ExposureCallScope::new(self);
         self.inner.do_this()
@@ -66,16 +66,24 @@ impl SomeServiceExposure<SomeService> {
     }
     pub async fn try_handle(&mut self, input: &[u8]) -> Option<(Vec<u8>, u128)> {
         use sails_rs::gstd::InvocationIo;
-        if let Ok(request) = some_service_meta::__DoThisParams::decode_params(input) {
+        if let Ok(request) = my_service_with_events_meta::__DoThisParams::decode_params(
+            input,
+        ) {
             let result = self.do_this();
             let value = 0u128;
-            let output = some_service_meta::__DoThisParams::encode_reply(&result);
+            let output = my_service_with_events_meta::__DoThisParams::encode_reply(
+                &result,
+            );
             return Some((output, value));
         }
-        if let Ok(request) = some_service_meta::__ThisParams::decode_params(input) {
+        if let Ok(request) = my_service_with_events_meta::__ThisParams::decode_params(
+            input,
+        ) {
             let result = self.this();
             let value = 0u128;
-            let output = some_service_meta::__ThisParams::encode_reply(&result);
+            let output = my_service_with_events_meta::__ThisParams::encode_reply(
+                &result,
+            );
             return Some((output, value));
         }
         None
@@ -116,7 +124,7 @@ impl SomeServiceExposure<SomeService> {
     #[cfg(not(target_arch = "wasm32"))]
     pub fn set_event_listener<'__elg>(
         &self,
-        listener: impl FnMut(&SomeEvents) + '__elg,
+        listener: impl FnMut(&MyEvents) + '__elg,
     ) -> sails_rs::gstd::events::EventListenerGuard<'__elg> {
         if core::mem::size_of_val(self.inner.as_ref()) == 0 {
             panic!(
@@ -124,14 +132,14 @@ impl SomeServiceExposure<SomeService> {
             );
         }
         let service_ptr = self.inner_ptr as usize;
-        let listener: Box<dyn FnMut(&SomeEvents)> = Box::new(listener);
+        let listener: Box<dyn FnMut(&MyEvents)> = Box::new(listener);
         let listener = Box::new(listener);
         let listener_ptr = Box::into_raw(listener) as usize;
         sails_rs::gstd::events::EventListenerGuard::new(service_ptr, listener_ptr)
     }
 }
-impl sails_rs::gstd::services::Service for SomeService {
-    type Exposure = SomeServiceExposure<Self>;
+impl sails_rs::gstd::services::Service for MyServiceWithEvents {
+    type Exposure = MyServiceWithEventsExposure<Self>;
     type BaseExposures = ();
     fn expose(
         self,
@@ -157,13 +165,13 @@ impl sails_rs::gstd::services::Service for SomeService {
         }
     }
 }
-impl sails_rs::meta::ServiceMeta for SomeService {
-    type CommandsMeta = some_service_meta::CommandsMeta;
-    type QueriesMeta = some_service_meta::QueriesMeta;
-    type EventsMeta = some_service_meta::EventsMeta;
+impl sails_rs::meta::ServiceMeta for MyServiceWithEvents {
+    type CommandsMeta = my_service_with_events_meta::CommandsMeta;
+    type QueriesMeta = my_service_with_events_meta::QueriesMeta;
+    type EventsMeta = my_service_with_events_meta::EventsMeta;
     const BASE_SERVICES: &'static [sails_rs::meta::AnyServiceMetaFn] = &[];
 }
-mod some_service_meta {
+mod my_service_with_events_meta {
     use super::*;
     use sails_rs::{Decode, TypeInfo};
     #[derive(Decode, TypeInfo)]
@@ -195,9 +203,9 @@ mod some_service_meta {
     #[derive(TypeInfo)]
     #[scale_info(crate = sails_rs::scale_info)]
     pub enum NoEvents {}
-    pub type EventsMeta = SomeEvents;
+    pub type EventsMeta = MyEvents;
 }
-impl sails_rs::solidity::ServiceSignature for SomeService {
+impl sails_rs::solidity::ServiceSignature for MyServiceWithEvents {
     const METHODS: &'static [sails_rs::solidity::MethodRoute] = &[
         (
             sails_rs::concatcp!(

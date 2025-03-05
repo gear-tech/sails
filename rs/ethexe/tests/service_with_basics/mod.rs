@@ -1,4 +1,4 @@
-use sails_macros::service;
+use sails_rs::service;
 
 pub(super) struct MyService;
 

@@ -1,4 +1,4 @@
-use sails_macros::{export, service};
+use sails_rs::{export, service};
 
 pub(super) struct MyService;
 
