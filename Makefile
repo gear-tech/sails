@@ -10,10 +10,10 @@ fmt:
 	@__GEAR_WASM_BUILDER_NO_FEATURES_TRACKING=1 cargo fmt --all -- --check
 
 test:
-	@__GEAR_WASM_BUILDER_NO_FEATURES_TRACKING=1 cargo test --workspace --all-targets --exclude ethapp
+	@__GEAR_WASM_BUILDER_NO_FEATURES_TRACKING=1 cargo test --workspace --all-targets
 
 clippy:
-	@__GEAR_WASM_BUILDER_NO_FEATURES_TRACKING=1 cargo clippy --workspace --all-targets --exclude ethapp -- -D warnings
+	@__GEAR_WASM_BUILDER_NO_FEATURES_TRACKING=1 cargo clippy --workspace --all-targets -- -D warnings
 
 build-parser:
 	@echo "Building idlparser"

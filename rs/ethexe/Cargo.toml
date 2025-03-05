@@ -9,15 +9,6 @@ resolver = "2"
 members = [".", "ethapp"]
 
 [workspace.dependencies]
-# gear deps
-gclient = "=1.7.1"
-gear-core = { version = "=1.7.1", default-features = false }
-gear-core-errors = "=1.7.1"
-gprimitives = { version = "=1.7.1", features = ["codec"] }
-gstd = "=1.7.1"
-gtest = "=1.7.1"
-gwasm-builder = { version = "=1.7.1", package = "gear-wasm-builder" }
-
 # sails
 sails-rs = { path = ".." }
 sails-macros-core = { path = "../macros/core" }
