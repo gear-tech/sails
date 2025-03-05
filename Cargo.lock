@@ -6710,6 +6710,7 @@ version = "0.7.3"
 dependencies = [
  "alloy-primitives",
  "alloy-sol-types",
+ "async-channel",
  "const_format",
  "futures",
  "gclient",

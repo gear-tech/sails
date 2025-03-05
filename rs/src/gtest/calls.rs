@@ -3,18 +3,12 @@ use crate::{
     collections::HashMap,
     errors::{Result, RtlError},
     events::Listener,
+    futures::*,
     gtest::{BlockRunResult, Program, System},
     prelude::*,
     rc::Rc,
 };
 use core::{cell::RefCell, future::Future};
-use futures::{
-    channel::{
-        mpsc::{unbounded, UnboundedSender},
-        oneshot,
-    },
-    FutureExt, Stream, TryFutureExt,
-};
 use gear_core_errors::{ReplyCode, SuccessReplyReason};
 
 type EventSender = UnboundedSender<(ActorId, Vec<u8>)>;

@@ -60,3 +60,18 @@ pub use alloy_sol_types;
 pub use const_format::*;
 #[cfg(feature = "ethexe")]
 pub use keccak_const;
+
+/// Channels, Streams and Futures extensions types
+///
+/// See [`futures::stream`], [`futures::channel::oneshot`]
+pub mod futures {
+    #[cfg(feature = "std")]
+    #[cfg(not(target_arch = "wasm32"))]
+    pub use futures::channel::mpsc::{unbounded, UnboundedReceiver, UnboundedSender};
+
+    pub use futures::{
+        self as futures, channel::oneshot, stream, FutureExt, Stream, StreamExt, TryFutureExt,
+    };
+}
+
+pub use async_channel;

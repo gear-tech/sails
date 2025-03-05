@@ -37,33 +37,33 @@ impl ServiceBuilder<'_> {
         }
     }
 
-    pub(super) fn exposure_set_event_listener(&self) -> Option<TokenStream> {
+    pub(super) fn exposure_event_listener(&self) -> Option<TokenStream> {
         let sails_path = self.sails_path;
 
         self.events_type.map(|events_type| {
-            // get non conflicting lifetime name
-            let lifetimes = shared::extract_lifetime_names(self.type_args);
-            let mut lt = "__elg".to_owned();
-            while lifetimes.contains(&lt) {
-                lt = format!("_{}", lt);
-            }
-            let lifetime = Lifetime::new(&format!("'{0}", lt), Span::call_site());            
-
             quote! {
                 #[cfg(not(target_arch = "wasm32"))]
                 // Immutable so one can set it via AsRef when used with extending
-                pub fn set_event_listener<#lifetime>(
-                    &self,
-                    listener: impl FnMut(& #events_type ) + #lifetime,
-                ) -> #sails_path::gstd::events::EventListenerGuard<#lifetime> {
+                #[cfg(not(target_arch = "wasm32"))]
+                pub fn listen(&self) -> #sails_path::async_channel::Receiver< #events_type > {
                     if core::mem::size_of_val(self.inner.as_ref()) == 0 {
                         panic!("setting event listener on a zero-sized service is not supported for now");
                     }
                     let service_ptr = self.inner_ptr as usize;
-                    let listener: Box<dyn FnMut(& #events_type )> = Box::new(listener);
-                    let listener = Box::new(listener);
-                    let listener_ptr = Box::into_raw(listener) as usize;
-                    #sails_path::gstd::events::EventListenerGuard::new(service_ptr, listener_ptr)
+                    let (tx, rx) = #sails_path::async_channel::unbounded::< #events_type >();
+                    let mut map = Self::event_senders();
+                    map.insert(service_ptr, tx);
+                    rx
+                }
+
+                #[cfg(not(target_arch = "wasm32"))]
+                fn event_senders() -> impl core::ops::DerefMut<
+                    Target = #sails_path::collections::BTreeMap<usize, #sails_path::async_channel::Sender< #events_type >>,
+                > {
+                    static MAP: #sails_path::spin::Mutex<
+                        #sails_path::collections::BTreeMap<usize, sails_rs::async_channel::Sender< #events_type >>,
+                    > = #sails_path::spin::Mutex::new(#sails_path::collections::BTreeMap::new());
+                    MAP.lock()
                 }
             }
         })
@@ -72,16 +72,15 @@ impl ServiceBuilder<'_> {
     pub(super) fn exposure_drop(&self) -> TokenStream {
         let sails_path = self.sails_path;
         let exposure_ident = &self.exposure_ident;
+        let _service_type_path = self.type_path;
 
         quote!(
             #[cfg(not(target_arch = "wasm32"))]
             impl<T: #sails_path::gstd::services::Service> Drop for #exposure_ident <T> {
                 fn drop(&mut self) {
-                    let service_ptr = self.inner_ptr as usize;
-                    let mut event_listeners = #sails_path::gstd::events::event_listeners().lock();
-                    if event_listeners.remove(&service_ptr).is_some() {
-                        panic!("there should be no any event listeners left by this time");
-                    }
+                    // let service_ptr = self.inner_ptr as usize;
+                    // let mut map = #exposure_ident ::< #service_type_path >::event_senders();
+                    // map.remove(&service_ptr);
                 }
             }
         )
@@ -123,7 +122,7 @@ impl ServiceBuilder<'_> {
                     }
                 });
 
-        let exposure_set_event_listener_code = self.exposure_set_event_listener();
+        let exposure_set_event_listener_code = self.exposure_event_listener();
         let try_handle_impl = self.try_handle_impl();
         // ethexe
         let try_handle_solidity_impl = self.try_handle_solidity_impl(base_ident);

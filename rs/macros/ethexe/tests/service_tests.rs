@@ -1,10 +1,12 @@
 #![cfg(feature = "ethexe")]
 
 use sails_rs::alloy_sol_types::SolValue;
+use sails_rs::futures::StreamExt;
 use sails_rs::gstd::services::Service;
 use sails_rs::{Encode, MessageId};
 
 mod service_with_basics;
+mod service_with_events;
 mod service_with_export_unwrap_result;
 mod service_with_extends;
 mod service_with_extends_and_lifetimes;
@@ -28,6 +30,20 @@ async fn service_with_basics() {
 
     let result = sails_rs::alloy_sol_types::SolValue::abi_decode(output.as_slice(), false);
     assert_eq!(Ok("42: correct".to_owned()), result);
+}
+
+#[tokio::test]
+async fn service_with_events() {
+    use service_with_events::{SomeEvents, SomeService};
+
+    let mut exposure = SomeService(0).expose(MessageId::from(142), &[1, 4, 2]);
+    let events = exposure.listen();
+    exposure.do_this();
+    events.close();
+
+    let events: Vec<SomeEvents> = events.collect().await;
+    assert_eq!(events.len(), 1);
+    assert_eq!(events[0], SomeEvents::Event1);
 }
 
 #[tokio::test]

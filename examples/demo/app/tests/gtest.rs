@@ -2,12 +2,12 @@ use demo_client::{
     counter::events::CounterEvents, demo_factory, dog::events::DogEvents, ping_pong, traits::*,
 };
 use fixture::{Fixture, ADMIN_ID, DEMO_WASM_PATH};
-use futures::stream::StreamExt;
 use gstd::errors::{ErrorReplyReason, SimpleExecutionError};
 use sails_rs::{
     calls::*,
     errors::RtlError,
     events::*,
+    futures::StreamExt,
     gtest::{
         calls::{BlockRunMode, GTestRemoting},
         Program, System,

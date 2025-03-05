@@ -12,6 +12,7 @@ repository.workspace = true
 [dependencies]
 alloy-primitives = { workspace = true, optional = true }
 alloy-sol-types = { workspace = true, optional = true }
+async-channel.workspace = true
 const_format.workspace = true
 futures.workspace = true
 gear-core-errors.workspace = true
@@ -48,9 +49,10 @@ ethexe = [
     "dep:keccak-const",
     "sails-macros?/ethexe",
 ]
+std = ["futures/std"]
 gclient = ["dep:gclient"]
 gstd = ["dep:gstd", "dep:gear-core", "dep:sails-macros"]
-gtest = ["dep:gtest", "dep:log"]
+gtest = ["std", "dep:gtest", "dep:log"]
 idl-gen = ["dep:sails-idl-gen"]
-mockall = ["dep:mockall"]
+mockall = ["std", "dep:mockall"]
 wasm-builder = ["dep:gwasm-builder"]

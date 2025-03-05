@@ -13,16 +13,13 @@ where
         #[cfg(not(target_arch = "wasm32"))]
         {
             let self_ptr = self as *const _ as usize;
-            let event_listeners = sails_rs::gstd::events::event_listeners().lock();
-            if let Some(event_listener_ptr) = event_listeners.get(&self_ptr) {
-                let event_listener = unsafe {
-                    &mut *(*event_listener_ptr as *mut Box<dyn FnMut(&MyEvents)>)
-                };
-                core::mem::drop(event_listeners);
-                event_listener(&event);
+            let mut map = MyGenericEventsServiceExposure::<Self>::event_senders();
+            if let Some(sender) = map.get_mut(&self_ptr) {
+                sender.try_send(event).expect("Failed to send event");
             }
+            Ok(())
         }
-        sails_rs::gstd::events::__notify_on(event)
+        #[cfg(target_arch = "wasm32")] sails_rs::gstd::events::__notify_on(event)
     }
 }
 pub struct MyGenericEventsServiceExposure<T: sails_rs::gstd::services::Service> {
@@ -49,10 +46,10 @@ for MyGenericEventsServiceExposure<T> {
 impl<T: sails_rs::gstd::services::Service> Drop for MyGenericEventsServiceExposure<T> {
     fn drop(&mut self) {
         let service_ptr = self.inner_ptr as usize;
-        let mut event_listeners = sails_rs::gstd::events::event_listeners().lock();
-        if event_listeners.remove(&service_ptr).is_some() {
-            panic!("there should be no any event listeners left by this time");
-        }
+        let mut map = MyGenericEventsServiceExposure::<
+            MyGenericEventsService<'_, '_, T>,
+        >::event_senders();
+        map.remove(&service_ptr);
     }
 }
 impl<T> MyGenericEventsServiceExposure<MyGenericEventsService<'_, '_, T>>
@@ -98,20 +95,33 @@ where
         None
     }
     #[cfg(not(target_arch = "wasm32"))]
-    pub fn set_event_listener<'__elg>(
-        &self,
-        listener: impl FnMut(&MyEvents) + '__elg,
-    ) -> sails_rs::gstd::events::EventListenerGuard<'__elg> {
+    #[cfg(not(target_arch = "wasm32"))]
+    pub fn listen(&self) -> sails_rs::async_channel::Receiver<MyEvents> {
         if core::mem::size_of_val(self.inner.as_ref()) == 0 {
             panic!(
                 "setting event listener on a zero-sized service is not supported for now"
             );
         }
         let service_ptr = self.inner_ptr as usize;
-        let listener: Box<dyn FnMut(&MyEvents)> = Box::new(listener);
-        let listener = Box::new(listener);
-        let listener_ptr = Box::into_raw(listener) as usize;
-        sails_rs::gstd::events::EventListenerGuard::new(service_ptr, listener_ptr)
+        let (tx, rx) = sails_rs::async_channel::unbounded::<MyEvents>();
+        let mut map = Self::event_senders();
+        map.insert(service_ptr, tx);
+        rx
+    }
+    #[cfg(not(target_arch = "wasm32"))]
+    fn event_senders() -> impl core::ops::DerefMut<
+        Target = sails_rs::collections::BTreeMap<
+            usize,
+            sails_rs::async_channel::Sender<MyEvents>,
+        >,
+    > {
+        static MAP: sails_rs::spin::Mutex<
+            sails_rs::collections::BTreeMap<
+                usize,
+                sails_rs::async_channel::Sender<MyEvents>,
+            >,
+        > = sails_rs::spin::Mutex::new(sails_rs::collections::BTreeMap::new());
+        MAP.lock()
     }
 }
 impl<T> sails_rs::gstd::services::Service for MyGenericEventsService<'_, '_, T>

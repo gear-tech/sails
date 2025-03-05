@@ -11,8 +11,8 @@ use proc_macro_error::abort;
 use quote::quote;
 use std::collections::BTreeMap;
 use syn::{
-    parse_quote, Generics, Ident, ImplItemFn, ItemImpl, Lifetime, Path, PathArguments, Type,
-    TypePath, Visibility, WhereClause,
+    parse_quote, Generics, Ident, ImplItemFn, ItemImpl, Path, PathArguments, Type, TypePath,
+    Visibility, WhereClause,
 };
 
 mod args;
@@ -174,19 +174,20 @@ fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
 
     let mut service_impl = service_impl.clone();
     if let Some(events_type) = events_type {
+        let exposure_ident = &service_builder.exposure_ident;
+
         service_impl.items.push(parse_quote!(
             fn notify_on(&mut self, event: #events_type ) -> #sails_path::errors::Result<()>  {
                 #[cfg(not(target_arch = "wasm32"))]
                 {
                     let self_ptr = self as *const _ as usize;
-                    let event_listeners = #sails_path::gstd::events::event_listeners().lock();
-                    if let Some(event_listener_ptr) = event_listeners.get(&self_ptr) {
-                        let event_listener =
-                            unsafe { &mut *(*event_listener_ptr as *mut Box<dyn FnMut(& #events_type )>) };
-                        core::mem::drop(event_listeners);
-                        event_listener(&event);
+                    let mut map = #exposure_ident ::<Self>::event_senders();
+                    if let Some(sender) = map.get_mut(&self_ptr) {
+                        sender.try_send(event).expect("Failed to send event");
                     }
+                    Ok(())
                 }
+                #[cfg(target_arch = "wasm32")]
                 #sails_path::gstd::events::__notify_on(event)
             }
         ));

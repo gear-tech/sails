@@ -1,9 +1,9 @@
 use crate::{
     errors::{Error, Result, RtlError},
+    futures::{Stream, StreamExt},
     prelude::*,
 };
 use core::marker::PhantomData;
-use futures::{Stream, StreamExt};
 
 #[allow(async_fn_in_trait)]
 pub trait Listener<E> {

@@ -1,5 +1,6 @@
 #![cfg(not(feature = "ethexe"))]
 
+use sails_rs::futures::*;
 use sails_rs::gstd::services::Service;
 use sails_rs::{Decode, Encode, MessageId};
 
@@ -172,19 +173,16 @@ async fn gservice_panic_on_unexpected_input_double_encoded() {
         .unwrap_or_else(|| sails_rs::gstd::unknown_input_panic("Unknown request", &input));
 }
 
-#[test]
-fn gservice_with_events() {
+#[tokio::test]
+async fn gservice_with_events() {
     use gservice_with_events::{MyEvents, MyServiceWithEvents};
 
     let mut exposure = MyServiceWithEvents(0).expose(MessageId::from(142), &[1, 4, 2]);
+    let events = exposure.listen();
+    exposure.my_method();
 
-    let mut events = Vec::new();
-    {
-        let _event_listener_guard = exposure.set_event_listener(|event| events.push(event.clone()));
-
-        exposure.my_method();
-    }
-
+    events.close();
+    let events: Vec<MyEvents> = events.collect().await;
     assert_eq!(events.len(), 1);
     assert_eq!(events[0], MyEvents::Event1);
 }
@@ -197,23 +195,22 @@ async fn gservice_with_lifetimes_and_events() {
 
     let my_service = MyGenericEventsService::<'_, String>::default();
     let mut exposure = my_service.expose(MessageId::from(123), &[1, 2, 3]);
+    let events = exposure.listen();
 
-    let mut events = Vec::new();
-    {
-        let _event_listener_guard = exposure.set_event_listener(|event| events.push(event.clone()));
+    let (output, _value) = exposure.try_handle(&DO_THIS.encode()).await.unwrap();
 
-        let (output, _value) = exposure.try_handle(&DO_THIS.encode()).await.unwrap();
+    let mut output = output.as_slice();
 
-        let mut output = output.as_slice();
+    let func_name = String::decode(&mut output).unwrap();
+    assert_eq!(func_name, DO_THIS);
 
-        let func_name = String::decode(&mut output).unwrap();
-        assert_eq!(func_name, DO_THIS);
+    let result = u32::decode(&mut output).unwrap();
+    assert_eq!(result, 42);
 
-        let result = u32::decode(&mut output).unwrap();
-        assert_eq!(result, 42);
+    assert_eq!(output.len(), 0);
 
-        assert_eq!(output.len(), 0);
-    }
+    events.close();
+    let events: Vec<MyEvents> = events.collect().await;
     assert_eq!(events.len(), 1);
     assert_eq!(events[0], MyEvents::Event1);
 }
