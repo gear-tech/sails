@@ -18,7 +18,6 @@ members = [
     "examples/rmrk/catalog/wasm",
     "examples/rmrk/resource/app",
     "examples/rmrk/resource/wasm",
-    "examples/ethapp",
     "rs",
     "rs/cli",
     "rs/client-gen",
@@ -27,7 +26,6 @@ members = [
     "rs/idl-parser",
     "rs/macros",
     "rs/macros/core",
-    "rs/macros/ethexe",
 ]
 
 [workspace.dependencies]
