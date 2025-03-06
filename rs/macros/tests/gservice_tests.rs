@@ -181,7 +181,7 @@ async fn gservice_with_events() {
     let events = exposure.listen();
     exposure.my_method();
 
-    events.close();
+    drop(exposure); // close sender
     let events: Vec<MyEvents> = events.collect().await;
     assert_eq!(events.len(), 1);
     assert_eq!(events[0], MyEvents::Event1);
@@ -209,7 +209,7 @@ async fn gservice_with_lifetimes_and_events() {
 
     assert_eq!(output.len(), 0);
 
-    events.close();
+    drop(exposure); // close sender
     let events: Vec<MyEvents> = events.collect().await;
     assert_eq!(events.len(), 1);
     assert_eq!(events[0], MyEvents::Event1);

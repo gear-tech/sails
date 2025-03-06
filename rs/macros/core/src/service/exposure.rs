@@ -37,42 +37,36 @@ impl ServiceBuilder<'_> {
         }
     }
 
-    pub(super) fn exposure_event_listener(&self) -> Option<TokenStream> {
-        let sails_path = self.sails_path;
-        let service_type_path = self.type_path;
-
-        self.events_type.map(|events_type| {
-            quote! {
-                // Immutable so one can set it via AsRef when used with extending
-                #[cfg(not(target_arch = "wasm32"))]
-                pub fn listen(&self) -> #sails_path::async_channel::Receiver< #events_type > {
-                    if core::mem::size_of_val(self.inner.as_ref()) == 0 {
-                        panic!("setting event listener on a zero-sized service is not supported for now");
-                    }
-                    let service_ptr = self.inner_ptr as usize;
-                    let (tx, rx) = #sails_path::async_channel::unbounded::< #events_type >();
-                    let mut map = <#service_type_path as #sails_path::gstd::services::ServiceWithEvents>::event_senders();
-                    map.insert(service_ptr, tx);
-                    rx
-                }
-            }
-        })
-    }
-
-    pub(super) fn exposure_drop(&self) -> Option<TokenStream> {
+    pub(super) fn exposure_listen_and_drop(&self) -> Option<TokenStream> {
         let sails_path = self.sails_path;
         let exposure_ident = &self.exposure_ident;
-        let _service_type_path = self.type_path;
         let sender_map_ident = &self.sender_map_ident;
 
         self.events_type.map(|_events_type| {
             quote! {
                 #[cfg(not(target_arch = "wasm32"))]
+                impl<T: #sails_path::gstd::services::ServiceWithEvents> #exposure_ident <T> {
+                    // Immutable so one can set it via AsRef when used with extending
+                    pub fn listen(&self) -> impl #sails_path::futures::Stream<Item = T::Events> {
+                        if core::mem::size_of_val(self.inner.as_ref()) == 0 {
+                            panic!("setting event listener on a zero-sized service is not supported for now");
+                        }
+                        let service_ptr = self.inner_ptr as usize;
+                        let (tx, rx) = #sails_path::async_channel::unbounded::< T::Events >();
+                        let mut map = <T as #sails_path::gstd::services::ServiceWithEvents>::event_senders();
+                        map.insert(service_ptr, tx);
+                        rx
+                    }
+                }
+
+                #[cfg(not(target_arch = "wasm32"))]
                 impl<T: #sails_path::gstd::services::Service> Drop for #exposure_ident <T> {
                     fn drop(&mut self) {
                         let service_ptr = self.inner_ptr as usize;
                         let mut map = #sender_map_ident .lock();
-                        map.remove(&service_ptr);
+                        if let Some(tx) = map.remove(&service_ptr) {
+                            tx.close();
+                        }
                     }
                 }
             }
@@ -143,7 +137,6 @@ impl ServiceBuilder<'_> {
                     }
                 });
 
-        let exposure_set_event_listener_code = self.exposure_event_listener();
         let try_handle_impl = self.try_handle_impl();
         // ethexe
         let try_handle_solidity_impl = self.try_handle_solidity_impl(base_ident);
@@ -158,8 +151,6 @@ impl ServiceBuilder<'_> {
                 #try_handle_impl
 
                 #try_handle_solidity_impl
-
-                #exposure_set_event_listener_code
             }
         }
     }

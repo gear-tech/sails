@@ -197,7 +197,7 @@ fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
     let meta_module = service_builder.meta_module();
 
     let exposure_struct = service_builder.exposure_struct();
-    let exposure_drop_code = service_builder.exposure_drop();
+    let exposure_listen_and_drop = service_builder.exposure_listen_and_drop();
     let exposure_impl = service_builder.exposure_impl();
     let service_trait_impl = service_builder.service_trait_impl();
     let service_with_events_impls = service_builder.service_with_events_impls();
@@ -210,7 +210,7 @@ fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
 
         #exposure_struct
 
-        #exposure_drop_code
+        #exposure_listen_and_drop
 
         #exposure_impl
 

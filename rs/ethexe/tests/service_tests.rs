@@ -38,8 +38,8 @@ async fn service_with_events() {
     let mut exposure = MyServiceWithEvents(0).expose(MessageId::from(142), &[1, 4, 2]);
     let events = exposure.listen();
     exposure.my_method();
-    events.close();
 
+    drop(exposure); // close sender
     let events: Vec<MyEvents> = events.collect().await;
     assert_eq!(events.len(), 1);
     assert_eq!(events[0], MyEvents::Event1);
@@ -67,7 +67,7 @@ async fn service_with_events_and_lifetimes() {
 
     assert_eq!(output.len(), 0);
 
-    events.close();
+    drop(exposure); // close sender
     let events: Vec<MyEvents> = events.collect().await;
     assert_eq!(events.len(), 1);
     assert_eq!(events[0], MyEvents::Event1);

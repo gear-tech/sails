@@ -1,5 +1,5 @@
 ---
-source: rs/macros/ethexe/tests/service_insta.rs
+source: tests/service_insta.rs
 expression: result
 ---
 impl<T> MyGenericEventsService<'_, '_, T>
@@ -36,11 +36,28 @@ for MyGenericEventsServiceExposure<T> {
     }
 }
 #[cfg(not(target_arch = "wasm32"))]
+impl<T: sails_rs::gstd::services::ServiceWithEvents> MyGenericEventsServiceExposure<T> {
+    pub fn listen(&self) -> impl sails_rs::futures::Stream<Item = T::Events> {
+        if core::mem::size_of_val(self.inner.as_ref()) == 0 {
+            panic!(
+                "setting event listener on a zero-sized service is not supported for now"
+            );
+        }
+        let service_ptr = self.inner_ptr as usize;
+        let (tx, rx) = sails_rs::async_channel::unbounded::<T::Events>();
+        let mut map = <T as sails_rs::gstd::services::ServiceWithEvents>::event_senders();
+        map.insert(service_ptr, tx);
+        rx
+    }
+}
+#[cfg(not(target_arch = "wasm32"))]
 impl<T: sails_rs::gstd::services::Service> Drop for MyGenericEventsServiceExposure<T> {
     fn drop(&mut self) {
         let service_ptr = self.inner_ptr as usize;
         let mut map = MY_GENERIC_EVENTS_SERVICE_SENDER_MAP.lock();
-        map.remove(&service_ptr);
+        if let Some(tx) = map.remove(&service_ptr) {
+            tx.close();
+        }
     }
 }
 impl<T> MyGenericEventsServiceExposure<MyGenericEventsService<'_, '_, T>>
@@ -84,23 +101,6 @@ where
             ));
         }
         None
-    }
-    #[cfg(not(target_arch = "wasm32"))]
-    pub fn listen(&self) -> sails_rs::async_channel::Receiver<MyEvents> {
-        if core::mem::size_of_val(self.inner.as_ref()) == 0 {
-            panic!(
-                "setting event listener on a zero-sized service is not supported for now"
-            );
-        }
-        let service_ptr = self.inner_ptr as usize;
-        let (tx, rx) = sails_rs::async_channel::unbounded::<MyEvents>();
-        let mut map = <MyGenericEventsService<
-            '_,
-            '_,
-            T,
-        > as sails_rs::gstd::services::ServiceWithEvents>::event_senders();
-        map.insert(service_ptr, tx);
-        rx
     }
 }
 impl<T> sails_rs::gstd::services::Service for MyGenericEventsService<'_, '_, T>

@@ -64,14 +64,7 @@ pub use keccak_const;
 /// Channels, Streams and Futures extensions types
 ///
 /// See [`futures::stream`], [`futures::channel::oneshot`]
-pub mod futures {
-    #[cfg(feature = "std")]
-    #[cfg(not(target_arch = "wasm32"))]
-    pub use futures::channel::mpsc::{unbounded, UnboundedReceiver, UnboundedSender};
+pub use futures;
 
-    pub use futures::{
-        self as futures, channel::oneshot, stream, FutureExt, Stream, StreamExt, TryFutureExt,
-    };
-}
-
+/// 'no_std' Async Channel
 pub use async_channel;
