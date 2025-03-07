@@ -1,5 +1,5 @@
 ---
-source: rs/macros/ethexe/tests/service_insta.rs
+source: tests/service_insta.rs
 expression: result
 ---
 impl SomeService {
@@ -68,7 +68,7 @@ impl SomeServiceExposure<SomeService> {
                     input,
                     false,
                 )
-                .expect("Failed to decode request");
+                .ok()?;
             let command_reply: CommandReply<u32> = self.do_this(p1, p2).await.into();
             let (result, value) = command_reply.to_tuple();
             return Some((
@@ -81,7 +81,7 @@ impl SomeServiceExposure<SomeService> {
                     input,
                     false,
                 )
-                .expect("Failed to decode request");
+                .ok()?;
             let result = self.this(p1);
             let value = 0u128;
             return Some((

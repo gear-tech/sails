@@ -82,6 +82,19 @@ impl ServiceBuilder<'_> {
 
         self.events_type.map(|events_type| {
             quote! {
+                impl #generics #service_type_path #service_type_constraints {
+                    fn notify_on(&mut self, event: #events_type ) -> #sails_path::errors::Result<()>  {
+                        #[cfg(not(target_arch = "wasm32"))]
+                        {
+                            #sails_path::gstd::services::ServiceWithEvents::notify_on(self, event)
+                        }
+                        #[cfg(target_arch = "wasm32")]
+                        {
+                            #sails_path::gstd::events::__notify_on(event)
+                        }
+                    }
+                }
+
                 #[cfg(not(target_arch = "wasm32"))]
                 static #sender_map_ident : #sails_path::spin::Mutex<
                     #sails_path::collections::BTreeMap<usize, #sails_path::async_channel::Sender<#events_type>>,

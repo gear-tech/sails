@@ -11,8 +11,8 @@ use proc_macro_error::abort;
 use quote::quote;
 use std::collections::BTreeMap;
 use syn::{
-    parse_quote, Generics, Ident, ImplItemFn, ItemImpl, Path, PathArguments, Type, TypePath,
-    Visibility, WhereClause,
+    Generics, Ident, ImplItemFn, ItemImpl, Path, PathArguments, Type, TypePath, Visibility,
+    WhereClause,
 };
 
 mod args;
@@ -166,7 +166,6 @@ fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
         )
     });
     let sails_path = service_args.sails_path();
-    let events_type = service_args.events_type();
 
     let service_builder = ServiceBuilder::from(&service_impl, &sails_path, &service_args);
 
@@ -177,20 +176,6 @@ fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
             service_impl,
             "`service` attribute requires impl to define at least one public method or extend another service"
         );
-    }
-
-    let mut service_impl = service_impl.clone();
-    if let Some(events_type) = events_type {
-        service_impl.items.push(parse_quote!(
-            fn notify_on(&mut self, event: #events_type ) -> #sails_path::errors::Result<()>  {
-                #[cfg(not(target_arch = "wasm32"))]
-                {
-                    #sails_path::gstd::services::ServiceWithEvents::notify_on(self, event)
-                }
-                #[cfg(target_arch = "wasm32")]
-                #sails_path::gstd::events::__notify_on(event)
-            }
-        ));
     }
 
     let meta_trait_impl = service_builder.meta_trait_impl();
@@ -210,11 +195,11 @@ fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
 
         #exposure_struct
 
-        #exposure_listen_and_drop
-
         #exposure_impl
 
         #service_trait_impl
+
+        #exposure_listen_and_drop
 
         #service_with_events_impls
 

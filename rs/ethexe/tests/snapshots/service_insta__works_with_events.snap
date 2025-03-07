@@ -9,11 +9,6 @@ impl MyServiceWithEvents {
     pub fn this(&self) -> bool {
         true
     }
-    fn notify_on(&mut self, event: MyEvents) -> sails_rs::errors::Result<()> {
-        #[cfg(not(target_arch = "wasm32"))]
-        { sails_rs::gstd::services::ServiceWithEvents::notify_on(self, event) }
-        #[cfg(target_arch = "wasm32")] sails_rs::gstd::events::__notify_on(event)
-    }
 }
 pub struct MyServiceWithEventsExposure<T: sails_rs::gstd::services::Service> {
     message_id: sails_rs::MessageId,
@@ -33,31 +28,6 @@ for MyServiceWithEventsExposure<T> {
     }
     fn route(&self) -> &'static [u8] {
         self.route
-    }
-}
-#[cfg(not(target_arch = "wasm32"))]
-impl<T: sails_rs::gstd::services::ServiceWithEvents> MyServiceWithEventsExposure<T> {
-    pub fn listen(&self) -> impl sails_rs::futures::Stream<Item = T::Events> {
-        if core::mem::size_of_val(self.inner.as_ref()) == 0 {
-            panic!(
-                "setting event listener on a zero-sized service is not supported for now"
-            );
-        }
-        let service_ptr = self.inner_ptr as usize;
-        let (tx, rx) = sails_rs::async_channel::unbounded::<T::Events>();
-        let mut map = <T as sails_rs::gstd::services::ServiceWithEvents>::event_senders();
-        map.insert(service_ptr, tx);
-        rx
-    }
-}
-#[cfg(not(target_arch = "wasm32"))]
-impl<T: sails_rs::gstd::services::Service> Drop for MyServiceWithEventsExposure<T> {
-    fn drop(&mut self) {
-        let service_ptr = self.inner_ptr as usize;
-        let mut map = MY_SERVICE_WITH_EVENTS_SENDER_MAP.lock();
-        if let Some(tx) = map.remove(&service_ptr) {
-            tx.close();
-        }
     }
 }
 impl MyServiceWithEventsExposure<MyServiceWithEvents> {
@@ -103,7 +73,7 @@ impl MyServiceWithEventsExposure<MyServiceWithEvents> {
                     input,
                     false,
                 )
-                .expect("Failed to decode request");
+                .ok()?;
             let result = self.do_this();
             let value = 0u128;
             return Some((
@@ -116,7 +86,7 @@ impl MyServiceWithEventsExposure<MyServiceWithEvents> {
                     input,
                     false,
                 )
-                .expect("Failed to decode request");
+                .ok()?;
             let result = self.this();
             let value = 0u128;
             return Some((
@@ -152,6 +122,38 @@ impl sails_rs::gstd::services::Service for MyServiceWithEvents {
             #[cfg(target_arch = "wasm32")]
             inner: self,
         }
+    }
+}
+#[cfg(not(target_arch = "wasm32"))]
+impl<T: sails_rs::gstd::services::ServiceWithEvents> MyServiceWithEventsExposure<T> {
+    pub fn listen(&self) -> impl sails_rs::futures::Stream<Item = T::Events> {
+        if core::mem::size_of_val(self.inner.as_ref()) == 0 {
+            panic!(
+                "setting event listener on a zero-sized service is not supported for now"
+            );
+        }
+        let service_ptr = self.inner_ptr as usize;
+        let (tx, rx) = sails_rs::async_channel::unbounded::<T::Events>();
+        let mut map = <T as sails_rs::gstd::services::ServiceWithEvents>::event_senders();
+        map.insert(service_ptr, tx);
+        rx
+    }
+}
+#[cfg(not(target_arch = "wasm32"))]
+impl<T: sails_rs::gstd::services::Service> Drop for MyServiceWithEventsExposure<T> {
+    fn drop(&mut self) {
+        let service_ptr = self.inner_ptr as usize;
+        let mut map = MY_SERVICE_WITH_EVENTS_SENDER_MAP.lock();
+        if let Some(tx) = map.remove(&service_ptr) {
+            tx.close();
+        }
+    }
+}
+impl MyServiceWithEvents {
+    fn notify_on(&mut self, event: MyEvents) -> sails_rs::errors::Result<()> {
+        #[cfg(not(target_arch = "wasm32"))]
+        { sails_rs::gstd::services::ServiceWithEvents::notify_on(self, event) }
+        #[cfg(target_arch = "wasm32")] { sails_rs::gstd::events::__notify_on(event) }
     }
 }
 #[cfg(not(target_arch = "wasm32"))]

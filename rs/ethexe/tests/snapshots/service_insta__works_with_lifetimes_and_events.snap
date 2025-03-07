@@ -2,17 +2,12 @@
 source: tests/service_insta.rs
 expression: result
 ---
-impl<'a, T> MyGenericEventsService<'a, T>
+impl<T> MyGenericEventsService<'_, T>
 where
     T: Clone,
 {
     pub fn do_this(&mut self) -> u32 {
         42
-    }
-    fn notify_on(&mut self, event: MyEvents) -> sails_rs::errors::Result<()> {
-        #[cfg(not(target_arch = "wasm32"))]
-        { sails_rs::gstd::services::ServiceWithEvents::notify_on(self, event) }
-        #[cfg(target_arch = "wasm32")] sails_rs::gstd::events::__notify_on(event)
     }
 }
 pub struct MyGenericEventsServiceExposure<T: sails_rs::gstd::services::Service> {
@@ -35,32 +30,7 @@ for MyGenericEventsServiceExposure<T> {
         self.route
     }
 }
-#[cfg(not(target_arch = "wasm32"))]
-impl<T: sails_rs::gstd::services::ServiceWithEvents> MyGenericEventsServiceExposure<T> {
-    pub fn listen(&self) -> impl sails_rs::futures::Stream<Item = T::Events> {
-        if core::mem::size_of_val(self.inner.as_ref()) == 0 {
-            panic!(
-                "setting event listener on a zero-sized service is not supported for now"
-            );
-        }
-        let service_ptr = self.inner_ptr as usize;
-        let (tx, rx) = sails_rs::async_channel::unbounded::<T::Events>();
-        let mut map = <T as sails_rs::gstd::services::ServiceWithEvents>::event_senders();
-        map.insert(service_ptr, tx);
-        rx
-    }
-}
-#[cfg(not(target_arch = "wasm32"))]
-impl<T: sails_rs::gstd::services::Service> Drop for MyGenericEventsServiceExposure<T> {
-    fn drop(&mut self) {
-        let service_ptr = self.inner_ptr as usize;
-        let mut map = MY_GENERIC_EVENTS_SERVICE_SENDER_MAP.lock();
-        if let Some(tx) = map.remove(&service_ptr) {
-            tx.close();
-        }
-    }
-}
-impl<'a, T> MyGenericEventsServiceExposure<MyGenericEventsService<'a, T>>
+impl<T> MyGenericEventsServiceExposure<MyGenericEventsService<'_, T>>
 where
     T: Clone,
 {
@@ -92,7 +62,7 @@ where
                     input,
                     false,
                 )
-                .expect("Failed to decode request");
+                .ok()?;
             let result = self.do_this();
             let value = 0u128;
             return Some((
@@ -103,7 +73,7 @@ where
         None
     }
 }
-impl<'a, T> sails_rs::gstd::services::Service for MyGenericEventsService<'a, T>
+impl<T> sails_rs::gstd::services::Service for MyGenericEventsService<'_, T>
 where
     T: Clone,
 {
@@ -134,11 +104,46 @@ where
     }
 }
 #[cfg(not(target_arch = "wasm32"))]
+impl<T: sails_rs::gstd::services::ServiceWithEvents> MyGenericEventsServiceExposure<T> {
+    pub fn listen(&self) -> impl sails_rs::futures::Stream<Item = T::Events> {
+        if core::mem::size_of_val(self.inner.as_ref()) == 0 {
+            panic!(
+                "setting event listener on a zero-sized service is not supported for now"
+            );
+        }
+        let service_ptr = self.inner_ptr as usize;
+        let (tx, rx) = sails_rs::async_channel::unbounded::<T::Events>();
+        let mut map = <T as sails_rs::gstd::services::ServiceWithEvents>::event_senders();
+        map.insert(service_ptr, tx);
+        rx
+    }
+}
+#[cfg(not(target_arch = "wasm32"))]
+impl<T: sails_rs::gstd::services::Service> Drop for MyGenericEventsServiceExposure<T> {
+    fn drop(&mut self) {
+        let service_ptr = self.inner_ptr as usize;
+        let mut map = MY_GENERIC_EVENTS_SERVICE_SENDER_MAP.lock();
+        if let Some(tx) = map.remove(&service_ptr) {
+            tx.close();
+        }
+    }
+}
+impl<T> MyGenericEventsService<'_, T>
+where
+    T: Clone,
+{
+    fn notify_on(&mut self, event: MyEvents) -> sails_rs::errors::Result<()> {
+        #[cfg(not(target_arch = "wasm32"))]
+        { sails_rs::gstd::services::ServiceWithEvents::notify_on(self, event) }
+        #[cfg(target_arch = "wasm32")] { sails_rs::gstd::events::__notify_on(event) }
+    }
+}
+#[cfg(not(target_arch = "wasm32"))]
 static MY_GENERIC_EVENTS_SERVICE_SENDER_MAP: sails_rs::spin::Mutex<
     sails_rs::collections::BTreeMap<usize, sails_rs::async_channel::Sender<MyEvents>>,
 > = sails_rs::spin::Mutex::new(sails_rs::collections::BTreeMap::new());
 #[cfg(not(target_arch = "wasm32"))]
-impl<'a, T> sails_rs::gstd::services::ServiceWithEvents for MyGenericEventsService<'a, T>
+impl<T> sails_rs::gstd::services::ServiceWithEvents for MyGenericEventsService<'_, T>
 where
     T: Clone,
 {
@@ -152,7 +157,7 @@ where
         MY_GENERIC_EVENTS_SERVICE_SENDER_MAP.lock()
     }
 }
-impl<'a, T> sails_rs::meta::ServiceMeta for MyGenericEventsService<'a, T>
+impl<T> sails_rs::meta::ServiceMeta for MyGenericEventsService<'_, T>
 where
     T: Clone,
 {
@@ -185,7 +190,7 @@ mod my_generic_events_service_meta {
     pub enum NoEvents {}
     pub type EventsMeta = MyEvents;
 }
-impl<'a, T> sails_rs::solidity::ServiceSignature for MyGenericEventsService<'a, T>
+impl<T> sails_rs::solidity::ServiceSignature for MyGenericEventsService<'_, T>
 where
     T: Clone,
 {

@@ -5,13 +5,13 @@ use sails_macros_core::__gservice_internal as gservice;
 #[test]
 fn works_with_basics() {
     let input = quote! {
-        impl SomeService {
-            pub async fn do_this(&mut self, p1: u32, p2: String) -> u32 {
-                p1
+        impl MyService {
+            pub async fn do_this(&mut self, p1: u32, p2: String) -> String {
+                format!("{p1}: ") + &p2
             }
 
             pub fn this(&self, p1: bool) -> bool {
-                p1
+                !p1
             }
         }
     };
@@ -89,7 +89,7 @@ fn works_with_lifetimes_and_events() {
         events = MyEvents,
     };
     let input = quote! {
-        impl<'a, T> MyGenericEventsService<'a, T>
+        impl<T> MyGenericEventsService<'_, T>
         where
             T: Clone,
         {
