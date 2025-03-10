@@ -147,7 +147,9 @@ const _: () = {
             let service_ptr = self.inner_ptr as usize;
             let (tx, rx) = sails_rs::async_channel::unbounded::<SomeEvents>();
             let mut map = Self::event_senders();
-            map.insert(service_ptr, tx);
+            if let Some(old) = map.insert(service_ptr, tx) {
+                old.close();
+            }
             rx
         }
         fn notify_on(svc: &mut T, event: SomeEvents) -> sails_rs::errors::Result<()> {

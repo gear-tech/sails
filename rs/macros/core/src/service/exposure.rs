@@ -58,7 +58,9 @@ impl ServiceBuilder<'_> {
                             let service_ptr = self.inner_ptr as usize;
                             let (tx, rx) = #sails_path::async_channel::unbounded::< #events_type >();
                             let mut map = Self::event_senders();
-                            map.insert(service_ptr, tx);
+                            if let Some(old) = map.insert(service_ptr, tx) {
+                                old.close();
+                            }
                             rx
                         }
 
