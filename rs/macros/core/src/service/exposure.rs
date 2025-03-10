@@ -40,35 +40,53 @@ impl ServiceBuilder<'_> {
     pub(super) fn exposure_listen_and_drop(&self) -> Option<TokenStream> {
         let sails_path = self.sails_path;
         let exposure_ident = &self.exposure_ident;
-        let sender_map_ident = &self.sender_map_ident;
 
-        self.events_type.map(|_events_type| {
+        self.events_type.map(|events_type| {
             quote! {
                 #[cfg(not(target_arch = "wasm32"))]
-                impl<T: #sails_path::gstd::services::ServiceWithEvents> #exposure_ident <T> {
-                    // Immutable so one can set it via AsRef when used with extending
-                    pub fn listen(&self) -> impl #sails_path::futures::Stream<Item = T::Events> {
-                        if core::mem::size_of_val(self.inner.as_ref()) == 0 {
-                            panic!("setting event listener on a zero-sized service is not supported for now");
-                        }
-                        let service_ptr = self.inner_ptr as usize;
-                        let (tx, rx) = #sails_path::async_channel::unbounded::< T::Events >();
-                        let mut map = <T as #sails_path::gstd::services::ServiceWithEvents>::event_senders();
-                        map.insert(service_ptr, tx);
-                        rx
-                    }
-                }
+                const _: () = {
+                    type ServiceSenderMap = #sails_path::collections::BTreeMap<usize, #sails_path::async_channel::Sender< #events_type >>;
+                    type Mutex<T> = #sails_path::spin::Mutex<T>;
 
-                #[cfg(not(target_arch = "wasm32"))]
-                impl<T: #sails_path::gstd::services::Service> Drop for #exposure_ident <T> {
-                    fn drop(&mut self) {
-                        let service_ptr = self.inner_ptr as usize;
-                        let mut map = #sender_map_ident .lock();
-                        if let Some(tx) = map.remove(&service_ptr) {
-                            tx.close();
+                    // Impl for `Exposure<T>` with concrete events type for cleanup via Drop
+                    impl<T: #sails_path::gstd::services::Service> #exposure_ident <T> {
+                        // Immutable so one can set it via AsRef when used with extending
+                        pub fn listen(&self) -> impl #sails_path::futures::Stream<Item = #events_type> {
+                            if core::mem::size_of_val(self.inner.as_ref()) == 0 {
+                                panic!("setting event listener on a zero-sized service is not supported for now");
+                            }
+                            let service_ptr = self.inner_ptr as usize;
+                            let (tx, rx) = #sails_path::async_channel::unbounded::< #events_type >();
+                            let mut map = Self::event_senders();
+                            map.insert(service_ptr, tx);
+                            rx
+                        }
+
+                        fn notify_on(svc: &mut T, event: #events_type) -> #sails_path::errors::Result<()> {
+                            let service_ptr = svc as *const _ as *const () as usize;
+                            let mut map = Self::event_senders();
+                            if let Some(sender) = map.get_mut(&service_ptr) {
+                                sender.try_send(event).expect("Failed to send event");
+                            }
+                            Ok(())
+                        }
+
+                        fn event_senders() -> impl core::ops::DerefMut<Target = ServiceSenderMap> {
+                            static MAP: Mutex<ServiceSenderMap> = Mutex::new(ServiceSenderMap::new());
+                            MAP.lock()            
                         }
                     }
-                }
+    
+                    impl<T: #sails_path::gstd::services::Service> Drop for #exposure_ident <T> {
+                        fn drop(&mut self) {
+                            let service_ptr = self.inner_ptr as usize;
+                            let mut map = Self::event_senders();
+                            if let Some(tx) = map.remove(&service_ptr) {
+                                tx.close();
+                            }
+                        }
+                    }    
+                };    
             }
         })
     }
@@ -78,7 +96,7 @@ impl ServiceBuilder<'_> {
         let generics = &self.generics;
         let service_type_path = self.type_path;
         let service_type_constraints = self.type_constraints();
-        let sender_map_ident = &self.sender_map_ident;
+        let exposure_ident = &self.exposure_ident;
 
         self.events_type.map(|events_type| {
             quote! {
@@ -86,28 +104,12 @@ impl ServiceBuilder<'_> {
                     fn notify_on(&mut self, event: #events_type ) -> #sails_path::errors::Result<()>  {
                         #[cfg(not(target_arch = "wasm32"))]
                         {
-                            #sails_path::gstd::services::ServiceWithEvents::notify_on(self, event)
+                            #exposure_ident::<Self>::notify_on(self, event)
                         }
                         #[cfg(target_arch = "wasm32")]
                         {
                             #sails_path::gstd::events::__notify_on(event)
                         }
-                    }
-                }
-
-                #[cfg(not(target_arch = "wasm32"))]
-                static #sender_map_ident : #sails_path::spin::Mutex<
-                    #sails_path::collections::BTreeMap<usize, #sails_path::async_channel::Sender<#events_type>>,
-                > = #sails_path::spin::Mutex::new(#sails_path::collections::BTreeMap::new());
-
-                #[cfg(not(target_arch = "wasm32"))]
-                impl #generics #sails_path::gstd::services::ServiceWithEvents for #service_type_path #service_type_constraints {
-                    type Events = #events_type;
-
-                    fn event_senders() -> impl core::ops::DerefMut<
-                        Target = sails_rs::collections::BTreeMap<usize, sails_rs::async_channel::Sender<Self::Events>>,
-                    > {
-                        #sender_map_ident .lock()
                     }
                 }
             }

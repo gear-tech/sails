@@ -70,18 +70,17 @@ struct ServiceBuilder<'a> {
     type_constraints: Option<WhereClause>,
     type_path: &'a TypePath,
     events_type: Option<&'a Path>,
-    pub type_args: &'a PathArguments,
-    pub service_ident: &'a Ident,
-    pub service_handlers: Vec<FnBuilder<'a>>,
-    pub exposure_ident: Ident,
-    pub message_id_ident: Ident,
-    pub route_ident: Ident,
-    pub inner_ident: Ident,
-    pub inner_ptr_ident: Ident,
-    pub base_ident: Ident,
-    pub input_ident: Ident,
-    pub meta_module_ident: Ident,
-    pub sender_map_ident: Ident,
+    type_args: &'a PathArguments,
+    service_ident: &'a Ident,
+    service_handlers: Vec<FnBuilder<'a>>,
+    exposure_ident: Ident,
+    message_id_ident: Ident,
+    route_ident: Ident,
+    inner_ident: Ident,
+    inner_ptr_ident: Ident,
+    base_ident: Ident,
+    input_ident: Ident,
+    meta_module_ident: Ident,
 }
 
 impl<'a> ServiceBuilder<'a> {
@@ -112,11 +111,6 @@ impl<'a> ServiceBuilder<'a> {
         let input_ident = Ident::new("input", Span::call_site());
         let meta_module_name = format!("{}_meta", service_ident.to_string().to_case(Case::Snake));
         let meta_module_ident = Ident::new(&meta_module_name, Span::call_site());
-        let sender_map_name = format!(
-            "{}_SENDER_MAP",
-            service_ident.to_string().to_case(Case::UpperSnake)
-        );
-        let sender_map_ident = Ident::new(&sender_map_name, Span::call_site());
 
         Self {
             service_impl,
@@ -137,7 +131,6 @@ impl<'a> ServiceBuilder<'a> {
             base_ident,
             input_ident,
             meta_module_ident,
-            sender_map_ident,
         }
     }
 
@@ -182,10 +175,10 @@ fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
     let meta_module = service_builder.meta_module();
 
     let exposure_struct = service_builder.exposure_struct();
-    let exposure_listen_and_drop = service_builder.exposure_listen_and_drop();
     let exposure_impl = service_builder.exposure_impl();
     let service_trait_impl = service_builder.service_trait_impl();
-    let service_with_events_impls = service_builder.service_with_events_impls();
+    let service_notify_impl = service_builder.service_with_events_impls();
+    let exposure_listen_and_drop = service_builder.exposure_listen_and_drop();
 
     // ethexe
     let service_signature_impl = service_builder.service_signature_impl();
@@ -199,15 +192,15 @@ fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
 
         #service_trait_impl
 
-        #exposure_listen_and_drop
-
-        #service_with_events_impls
-
         #meta_trait_impl
 
         #meta_module
 
         #service_signature_impl
+
+        #service_notify_impl
+
+        #exposure_listen_and_drop
     )
 }
 
