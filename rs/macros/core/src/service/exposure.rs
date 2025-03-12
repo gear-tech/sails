@@ -75,10 +75,10 @@ impl ServiceBuilder<'_> {
 
                         fn event_senders() -> impl core::ops::DerefMut<Target = ServiceSenderMap> {
                             static MAP: Mutex<ServiceSenderMap> = Mutex::new(ServiceSenderMap::new());
-                            MAP.lock()            
+                            MAP.lock()
                         }
                     }
-    
+
                     impl<T: #sails_path::gstd::services::Service> Drop for #exposure_ident <T> {
                         fn drop(&mut self) {
                             let service_ptr = self.inner_ptr as usize;
@@ -87,8 +87,8 @@ impl ServiceBuilder<'_> {
                                 tx.close();
                             }
                         }
-                    }    
-                };    
+                    }
+                };
             }
         })
     }
