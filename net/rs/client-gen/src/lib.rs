@@ -97,7 +97,7 @@ impl<'a> ClientGenerator<'a, IdlString<'a>> {
 /// # Safety
 ///
 /// Function [`free_c_string`] should be called after this function
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn generate_dotnet_client(
     program_utf8: *const u8,
     program_len: i32,
@@ -120,7 +120,7 @@ pub unsafe extern "C" fn generate_dotnet_client(
 /// # Safety
 ///
 /// This function should not be called before the [`generate_dotnet_client`]
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn free_c_string(str: *mut std::ffi::c_char) {
     // drop
     _ = unsafe { std::ffi::CString::from_raw(str) };

@@ -1,10 +1,10 @@
 use crate::sails_paths;
 use proc_macro_error::abort;
 use syn::{
-    bracketed,
+    Path, Result as SynResult, Token, bracketed,
     parse::{Parse, ParseStream},
     punctuated::Punctuated,
-    token, Path, Result as SynResult, Token,
+    token,
 };
 
 #[derive(PartialEq, Debug)]
@@ -108,8 +108,8 @@ mod tests {
     use proc_macro2::Span;
     use quote::quote;
     use syn::{
-        punctuated::Punctuated, AngleBracketedGenericArguments, GenericArgument, Ident, Lifetime,
-        PathArguments, PathSegment, Token,
+        AngleBracketedGenericArguments, GenericArgument, Ident, Lifetime, PathArguments,
+        PathSegment, Token, punctuated::Punctuated,
     };
 
     #[test]
@@ -187,11 +187,13 @@ mod tests {
         };
 
         let expected = ServiceArgs {
-            base_types: vec![PathSegment {
-                ident: Ident::new("SomeService", Span::call_site()),
-                arguments: PathArguments::AngleBracketed(arguments),
-            }
-            .into()],
+            base_types: vec![
+                PathSegment {
+                    ident: Ident::new("SomeService", Span::call_site()),
+                    arguments: PathArguments::AngleBracketed(arguments),
+                }
+                .into(),
+            ],
             events_type: None,
             sails_path: None,
         };

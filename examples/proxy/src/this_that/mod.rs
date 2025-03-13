@@ -1,4 +1,4 @@
-use demo_client::{traits::ThisThat, TupleStruct};
+use demo_client::{TupleStruct, traits::ThisThat};
 use sails_rename::{calls::*, prelude::*};
 #[derive(Clone)]
 pub struct ThisThatCaller<ThisThatClient> {

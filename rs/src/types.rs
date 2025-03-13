@@ -1,5 +1,5 @@
-pub use core::num::{NonZeroU128, NonZeroU16, NonZeroU32, NonZeroU64, NonZeroU8};
-pub use gprimitives::{ActorId, CodeId, MessageId, NonZeroU256, H160, H256, U256};
+pub use core::num::{NonZeroU8, NonZeroU16, NonZeroU32, NonZeroU64, NonZeroU128};
+pub use gprimitives::{ActorId, CodeId, H160, H256, MessageId, NonZeroU256, U256};
 #[cfg(feature = "gstd")]
 pub use gstd::BlockCount;
 

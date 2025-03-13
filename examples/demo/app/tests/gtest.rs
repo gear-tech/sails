@@ -1,7 +1,7 @@
 use demo_client::{
     counter::events::CounterEvents, demo_factory, dog::events::DogEvents, ping_pong, traits::*,
 };
-use fixture::{Fixture, ADMIN_ID, DEMO_WASM_PATH};
+use fixture::{ADMIN_ID, DEMO_WASM_PATH, Fixture};
 use gstd::errors::{ErrorReplyReason, SimpleExecutionError};
 use sails_rs::{
     calls::*,
@@ -9,8 +9,8 @@ use sails_rs::{
     events::*,
     futures::StreamExt,
     gtest::{
-        calls::{BlockRunMode, GTestRemoting},
         Program, System,
+        calls::{BlockRunMode, GTestRemoting},
     },
 };
 

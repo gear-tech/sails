@@ -1,8 +1,8 @@
 pub use errors::*;
-use handlebars::{handlebars_helper, Handlebars};
+use handlebars::{Handlebars, handlebars_helper};
 use meta::ExpandedProgramMeta;
 pub use program::*;
-use scale_info::{form::PortableForm, Field, PortableType, Variant};
+use scale_info::{Field, PortableType, Variant, form::PortableForm};
 use serde::Serialize;
 use std::{fs, io::Write, path::Path};
 

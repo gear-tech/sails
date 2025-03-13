@@ -1,8 +1,8 @@
 use proc_macro_error::abort;
 use syn::{
+    LitBool, LitStr, Path, Token,
     parse::{Parse, ParseStream},
     punctuated::Punctuated,
-    LitBool, LitStr, Path, Token,
 };
 
 #[derive(PartialEq, Debug, Default)]

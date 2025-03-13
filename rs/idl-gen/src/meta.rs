@@ -25,7 +25,7 @@ use crate::{
 use gprimitives::*;
 use sails_idl_meta::*;
 use scale_info::{
-    form::PortableForm, Field, MetaType, PortableRegistry, PortableType, Registry, TypeDef, Variant,
+    Field, MetaType, PortableRegistry, PortableType, Registry, TypeDef, Variant, form::PortableForm,
 };
 
 struct CtorFuncMeta(String, u32, Vec<Field<PortableForm>>, Vec<String>);
@@ -286,15 +286,14 @@ impl ExpandedServiceMeta {
                         func_descr.name
                     )));
                 }
-                let func_params_type =
-                    registry
-                        .resolve(func_descr.fields[0].ty.id)
-                        .unwrap_or_else(|| {
-                            panic!(
+                let func_params_type = registry.resolve(func_descr.fields[0].ty.id).unwrap_or_else(
+                    || {
+                        panic!(
                             "func params type id {} not found while it was registered previously",
                             func_descr.fields[0].ty.id
                         )
-                        });
+                    },
+                );
                 if let TypeDef::Composite(func_params_type) = &func_params_type.type_def {
                     let func_meta = ServiceFuncMeta(
                         func_descr.name.to_string(),

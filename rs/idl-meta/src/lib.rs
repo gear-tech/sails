@@ -1,6 +1,6 @@
 #![no_std]
 
-use scale_info::{prelude::vec::Vec, MetaType, StaticTypeInfo};
+use scale_info::{MetaType, StaticTypeInfo, prelude::vec::Vec};
 
 pub type AnyServiceMetaFn = fn() -> AnyServiceMeta;
 

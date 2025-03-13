@@ -3,8 +3,8 @@ use crate::{
     shared::{self, FnBuilder},
 };
 use args::ProgramArgs;
-use proc_macro2::{Span, TokenStream as TokenStream2};
 use proc_macro_error::abort;
+use proc_macro2::{Span, TokenStream as TokenStream2};
 use quote::quote;
 use std::{
     collections::BTreeMap,
@@ -12,8 +12,8 @@ use std::{
     ops::{Deref, DerefMut},
 };
 use syn::{
-    parse_quote, spanned::Spanned, Generics, Ident, ImplItem, ImplItemFn, ItemImpl, Path,
-    PathArguments, Receiver, ReturnType, Type, TypePath, Visibility, WhereClause,
+    Generics, Ident, ImplItem, ImplItemFn, ItemImpl, Path, PathArguments, Receiver, ReturnType,
+    Type, TypePath, Visibility, WhereClause, parse_quote, spanned::Spanned,
 };
 
 mod args;

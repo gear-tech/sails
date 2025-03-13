@@ -1,11 +1,11 @@
 use crate::sails_paths;
-use proc_macro2::Span;
 use proc_macro_error::abort;
+use proc_macro2::Span;
 use std::collections::BTreeSet;
 use syn::{
+    Path, Token,
     parse::{Parse, ParseStream},
     punctuated::Punctuated,
-    Path, Token,
 };
 
 #[derive(Debug, PartialEq)]

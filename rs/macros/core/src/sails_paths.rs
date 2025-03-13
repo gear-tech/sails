@@ -1,4 +1,4 @@
-use syn::{parse_quote, Path};
+use syn::{Path, parse_quote};
 
 pub const SAILS: &str = "sails_rs";
 

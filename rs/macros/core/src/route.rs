@@ -1,8 +1,8 @@
 use crate::export;
 use convert_case::{Case, Casing};
-use proc_macro2::{Span, TokenStream};
 use proc_macro_error::abort;
-use syn::{spanned::Spanned, Ident, ImplItemFn, Lit};
+use proc_macro2::{Span, TokenStream};
+use syn::{Ident, ImplItemFn, Lit, spanned::Spanned};
 
 pub fn groute(_attrs: TokenStream, impl_item_fn_tokens: TokenStream) -> TokenStream {
     let route_fn_impl: ImplItemFn = syn::parse2::<ImplItemFn>(impl_item_fn_tokens.clone())
