@@ -1,6 +1,5 @@
 #![cfg(not(feature = "ethexe"))]
 
-use sails_rs::futures::*;
 use sails_rs::gstd::services::Service;
 use sails_rs::{Decode, Encode, MessageId};
 
@@ -173,16 +172,14 @@ async fn gservice_panic_on_unexpected_input_double_encoded() {
         .unwrap_or_else(|| sails_rs::gstd::unknown_input_panic("Unknown request", &input));
 }
 
-#[tokio::test]
-async fn gservice_with_events() {
+#[test]
+fn gservice_with_events() {
     use gservice_with_events::{MyEvents, MyServiceWithEvents};
 
     let mut exposure = MyServiceWithEvents(0).expose(MessageId::from(142), &[1, 4, 2]);
-    let events = exposure.listen();
     exposure.my_method();
 
-    drop(exposure); // close sender
-    let events: Vec<MyEvents> = events.collect().await;
+    let events = exposure.take_events();
     assert_eq!(events.len(), 1);
     assert_eq!(events[0], MyEvents::Event1);
 }
@@ -195,7 +192,6 @@ async fn gservice_with_lifetimes_and_events() {
 
     let my_service = MyGenericEventsService::<'_, String>::default();
     let mut exposure = my_service.expose(MessageId::from(123), &[1, 2, 3]);
-    let events = exposure.listen();
 
     let (output, _value) = exposure.try_handle(&DO_THIS.encode()).await.unwrap();
 
@@ -209,8 +205,7 @@ async fn gservice_with_lifetimes_and_events() {
 
     assert_eq!(output.len(), 0);
 
-    drop(exposure); // close sender
-    let events: Vec<MyEvents> = events.collect().await;
+    let events = exposure.take_events();
     assert_eq!(events.len(), 1);
     assert_eq!(events[0], MyEvents::Event1);
 }

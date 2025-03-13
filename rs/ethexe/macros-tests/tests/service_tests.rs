@@ -1,6 +1,6 @@
 use sails_rs::alloy_sol_types::SolValue;
 use sails_rs::gstd::services::Service;
-use sails_rs::{futures::StreamExt, Decode, Encode, MessageId};
+use sails_rs::{Decode, Encode, MessageId};
 
 mod service_with_basics;
 mod service_with_events;
@@ -30,16 +30,14 @@ async fn service_with_basics() {
     assert_eq!(Ok("42: correct".to_owned()), result);
 }
 
-#[tokio::test]
-async fn service_with_events() {
+#[test]
+fn service_with_events() {
     use service_with_events::{MyEvents, MyServiceWithEvents};
 
     let mut exposure = MyServiceWithEvents(0).expose(MessageId::from(142), &[1, 4, 2]);
-    let events = exposure.listen();
     exposure.my_method();
 
-    drop(exposure); // close sender
-    let events: Vec<MyEvents> = events.collect().await;
+    let events = exposure.take_events();
     assert_eq!(events.len(), 1);
     assert_eq!(events[0], MyEvents::Event1);
 }
@@ -52,7 +50,6 @@ async fn service_with_lifetimes_and_events() {
 
     let my_service = MyGenericEventsService::<'_, String>::default();
     let mut exposure = my_service.expose(MessageId::from(123), &[1, 2, 3]);
-    let events = exposure.listen();
 
     let (output, _value) = exposure.try_handle(&DO_THIS.encode()).await.unwrap();
 
@@ -66,8 +63,7 @@ async fn service_with_lifetimes_and_events() {
 
     assert_eq!(output.len(), 0);
 
-    drop(exposure); // close sender
-    let events: Vec<MyEvents> = events.collect().await;
+    let events = exposure.take_events();
     assert_eq!(events.len(), 1);
     assert_eq!(events[0], MyEvents::Event1);
 }

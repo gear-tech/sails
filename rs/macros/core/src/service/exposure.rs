@@ -45,36 +45,30 @@ impl ServiceBuilder<'_> {
             quote! {
                 #[cfg(not(target_arch = "wasm32"))]
                 const _: () = {
-                    type ServiceSenderMap = #sails_path::collections::BTreeMap<usize, #sails_path::async_channel::Sender< #events_type >>;
+                    type ServiceEventsMap = #sails_path::collections::BTreeMap<usize, #sails_path::Vec< #events_type >>;
                     type Mutex<T> = #sails_path::spin::Mutex<T>;
 
                     // Impl for `Exposure<T>` with concrete events type for cleanup via Drop
                     impl<T: #sails_path::gstd::services::Service> #exposure_ident <T> {
-                        // Immutable so one can set it via AsRef when used with extending
-                        pub fn listen(&self) -> impl #sails_path::futures::Stream<Item = #events_type> {
+                        pub fn take_events(&mut self) -> Vec< #events_type > {
                             if core::mem::size_of_val(self.inner.as_ref()) == 0 {
                                 panic!("setting event listener on a zero-sized service is not supported for now");
                             }
+
                             let service_ptr = self.inner_ptr as usize;
-                            let (tx, rx) = #sails_path::async_channel::unbounded::< #events_type >();
-                            let mut map = Self::event_senders();
-                            if let Some(old) = map.insert(service_ptr, tx) {
-                                old.close();
-                            }
-                            rx
+                            let mut map = Self::events_map();
+                            map.remove(&service_ptr).unwrap_or_default()
                         }
 
                         fn notify_on(svc: &mut T, event: #events_type) -> #sails_path::errors::Result<()> {
                             let service_ptr = svc as *const _ as *const () as usize;
-                            let mut map = Self::event_senders();
-                            if let Some(sender) = map.get_mut(&service_ptr) {
-                                sender.try_send(event).expect("Failed to send event");
-                            }
+                            let mut map = Self::events_map();
+                            map.entry(service_ptr).or_default().push(event);
                             Ok(())
                         }
 
-                        fn event_senders() -> impl core::ops::DerefMut<Target = ServiceSenderMap> {
-                            static MAP: Mutex<ServiceSenderMap> = Mutex::new(ServiceSenderMap::new());
+                        fn events_map() -> impl core::ops::DerefMut<Target = ServiceEventsMap> {
+                            static MAP: Mutex<ServiceEventsMap> = Mutex::new(ServiceEventsMap::new());
                             MAP.lock()
                         }
                     }
@@ -82,10 +76,8 @@ impl ServiceBuilder<'_> {
                     impl<T: #sails_path::gstd::services::Service> Drop for #exposure_ident <T> {
                         fn drop(&mut self) {
                             let service_ptr = self.inner_ptr as usize;
-                            let mut map = Self::event_senders();
-                            if let Some(tx) = map.remove(&service_ptr) {
-                                tx.close();
-                            }
+                            let mut map = Self::events_map();
+                            _ = map.remove(&service_ptr);
                         }
                     }
                 };

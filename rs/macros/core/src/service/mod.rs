@@ -10,10 +10,7 @@ use proc_macro2::{Literal, Span, TokenStream};
 use proc_macro_error::abort;
 use quote::quote;
 use std::collections::BTreeMap;
-use syn::{
-    Generics, Ident, ImplItemFn, ItemImpl, Path, PathArguments, Type, TypePath, Visibility,
-    WhereClause,
-};
+use syn::{Generics, Ident, ImplItemFn, ItemImpl, Path, Type, TypePath, Visibility, WhereClause};
 
 mod args;
 #[cfg(feature = "ethexe")]
@@ -68,7 +65,6 @@ struct ServiceBuilder<'a> {
     type_constraints: Option<WhereClause>,
     type_path: &'a TypePath,
     events_type: Option<&'a Path>,
-    type_args: &'a PathArguments,
     service_handlers: Vec<FnBuilder<'a>>,
     exposure_ident: Ident,
     message_id_ident: Ident,
@@ -87,7 +83,7 @@ impl<'a> ServiceBuilder<'a> {
         service_args: &'a ServiceArgs,
     ) -> Self {
         let (generics, type_constraints) = shared::impl_constraints(service_impl);
-        let (type_path, type_args, service_ident) =
+        let (type_path, _type_args, service_ident) =
             shared::impl_type_refs(service_impl.self_ty.as_ref());
         let service_handlers = discover_service_handlers(service_impl)
             .into_iter()
@@ -117,7 +113,6 @@ impl<'a> ServiceBuilder<'a> {
             type_constraints,
             type_path,
             events_type: service_args.events_type(),
-            type_args,
             service_handlers,
             exposure_ident,
             message_id_ident,

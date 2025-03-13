@@ -65,6 +65,3 @@ pub use keccak_const;
 ///
 /// See [`futures::stream`], [`futures::channel::oneshot`]
 pub use futures;
-
-/// 'no_std' Async Channel
-pub use async_channel;
