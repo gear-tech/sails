@@ -286,9 +286,9 @@ pub trait ActionIo {
     type Reply: Decode;
 
     fn encode_call(value: &Self::Params) -> Vec<u8> {
-        let mut result = Vec::with_capacity(Self::ROUTE.len() + value.encoded_size());
+        let mut result = Vec::with_capacity(Self::ROUTE.len() + Encode::size_hint(value));
         result.extend_from_slice(Self::ROUTE);
-        value.encode_to(&mut result);
+        Encode::encode_to(value, &mut result);
         result
     }
 

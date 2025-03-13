@@ -50,6 +50,10 @@ jobs:
         run: |
           __GEAR_WASM_BUILDER_NO_FEATURES_TRACKING=1 cargo clippy --workspace --all-targets --locked -- -D warnings
 
+      - name: Check Code With Clippy in Ethexe Workspace
+        run: |
+          __GEAR_WASM_BUILDER_NO_FEATURES_TRACKING=1 cargo clippy --workspace --all-targets --locked --manifest-path ./rs/ethexe/Cargo.toml -- -D warnings
+
       - name: Check IDL Parser For WASM With Clippy
         run: |
           __GEAR_WASM_BUILDER_NO_FEATURES_TRACKING=1 cargo clippy -p sails-idl-parser --all-targets --locked --target=wasm32-unknown-unknown -- -D warnings

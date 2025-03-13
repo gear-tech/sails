@@ -28,6 +28,10 @@ constructor {
   New : (counter: opt u32, dog_position: opt struct { i32, i32 });
 };
 
+service PingPong {
+  Ping : (input: str) -> result (str, str);
+};
+
 service Counter {
   /// Add a value to the counter
   Add : (value: u32) -> u32;
@@ -54,10 +58,6 @@ service Dog {
     Barked;
     Walked: struct { from: struct { i32, i32 }, to: struct { i32, i32 } };
   }
-};
-
-service PingPong {
-  Ping : (input: str) -> result (str, str);
 };
 
 service References {

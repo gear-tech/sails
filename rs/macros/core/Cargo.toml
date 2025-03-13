@@ -19,3 +19,6 @@ syn = { workspace = true, features = ["full", "extra-traits"] }
 [dev-dependencies]
 insta.workspace = true
 prettyplease.workspace = true
+
+[features]
+ethexe = []

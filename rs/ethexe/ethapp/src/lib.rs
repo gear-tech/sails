@@ -1,0 +1,24 @@
+#![no_std]
+
+use sails_rs::prelude::*;
+
+pub struct MyProgram;
+
+#[program]
+impl MyProgram {
+    pub fn svc1(&self) -> SomeService {
+        SomeService
+    }
+}
+
+pub struct SomeService;
+
+#[service]
+impl SomeService {
+    pub async fn do_this(&mut self, p1: u32, _p2: String) -> u32 {
+        p1
+    }
+    pub fn this(&self, p1: bool) -> bool {
+        p1
+    }
+}

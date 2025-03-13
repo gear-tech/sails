@@ -1,12 +1,30 @@
 #![no_std]
 
-use scale_info::{prelude::vec::Vec, MetaType};
+use scale_info::{prelude::vec::Vec, MetaType, StaticTypeInfo};
+
+pub type AnyServiceMetaFn = fn() -> AnyServiceMeta;
 
 pub trait ServiceMeta {
-    fn commands() -> MetaType;
-    fn queries() -> MetaType;
-    fn events() -> MetaType;
-    fn base_services() -> impl Iterator<Item = AnyServiceMeta>;
+    type CommandsMeta: StaticTypeInfo;
+    type QueriesMeta: StaticTypeInfo;
+    type EventsMeta: StaticTypeInfo;
+    const BASE_SERVICES: &'static [AnyServiceMetaFn];
+
+    fn commands() -> MetaType {
+        MetaType::new::<Self::CommandsMeta>()
+    }
+
+    fn queries() -> MetaType {
+        MetaType::new::<Self::QueriesMeta>()
+    }
+
+    fn events() -> MetaType {
+        MetaType::new::<Self::EventsMeta>()
+    }
+
+    fn base_services() -> impl Iterator<Item = AnyServiceMeta> {
+        Self::BASE_SERVICES.iter().map(|f| f())
+    }
 }
 
 pub struct AnyServiceMeta {
@@ -44,6 +62,14 @@ impl AnyServiceMeta {
 }
 
 pub trait ProgramMeta {
-    fn constructors() -> MetaType;
-    fn services() -> impl Iterator<Item = (&'static str, AnyServiceMeta)>;
+    type ConstructorsMeta: StaticTypeInfo;
+    const SERVICES: &'static [(&'static str, AnyServiceMetaFn)];
+
+    fn constructors() -> MetaType {
+        MetaType::new::<Self::ConstructorsMeta>()
+    }
+
+    fn services() -> impl Iterator<Item = (&'static str, AnyServiceMeta)> {
+        Self::SERVICES.iter().map(|(s, f)| (*s, f()))
+    }
 }

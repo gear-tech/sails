@@ -44,6 +44,19 @@ pub mod ffi {
 #[cfg(feature = "gstd")]
 pub use crate::gstd::{export, program, route, service, CommandReply};
 pub use crate::types::*;
+pub use gear_core_errors::{
+    self as gear_core_errors, ErrorReplyReason, ReplyCode, SimpleExecutionError, SuccessReplyReason,
+};
 
 pub use parity_scale_codec::{self as scale_codec, Decode, Encode, EncodeLike};
 pub use scale_info::{self as scale_info, TypeInfo};
+
+#[cfg(feature = "ethexe")]
+pub use crate::solidity;
+#[cfg(feature = "ethexe")]
+pub use alloy_primitives;
+#[cfg(feature = "ethexe")]
+pub use alloy_sol_types;
+pub use const_format::*;
+#[cfg(feature = "ethexe")]
+pub use keccak_const;

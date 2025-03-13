@@ -1,19 +1,24 @@
 use crate::{
     export, sails_paths,
-    shared::{self, Func},
+    shared::{self, FnBuilder},
 };
 use args::ProgramArgs;
-use parity_scale_codec::Encode;
 use proc_macro2::{Span, TokenStream as TokenStream2};
 use proc_macro_error::abort;
 use quote::quote;
-use std::{collections::BTreeMap, env};
+use std::{
+    collections::BTreeMap,
+    env,
+    ops::{Deref, DerefMut},
+};
 use syn::{
-    parse_quote, spanned::Spanned, Attribute, Ident, ImplItem, ImplItemFn, ItemImpl, Path,
-    Receiver, ReturnType, Type, TypePath, Visibility,
+    parse_quote, spanned::Spanned, Generics, Ident, ImplItem, ImplItemFn, ItemImpl, Path,
+    PathArguments, Receiver, ReturnType, Type, TypePath, Visibility, WhereClause,
 };
 
 mod args;
+#[cfg(feature = "ethexe")]
+mod ethexe;
 
 /// Static Spans of Program `impl` block
 static mut PROGRAM_SPANS: BTreeMap<String, Span> = BTreeMap::new();
@@ -64,128 +69,288 @@ fn ensure_single_gprogram(program_impl: &ItemImpl) {
     unsafe { PROGRAM_SPANS.insert(crate_name, program_impl.span()) };
 }
 
+struct ProgramBuilder {
+    program_impl: ItemImpl,
+    program_args: ProgramArgs,
+    type_constraints: Option<WhereClause>,
+}
+
+impl ProgramBuilder {
+    fn new(program_impl: ItemImpl, program_args: ProgramArgs) -> Self {
+        let mut program_impl = program_impl;
+        let type_constraints = program_impl.generics.where_clause.take();
+        ensure_default_program_ctor(&mut program_impl);
+
+        Self {
+            program_impl,
+            program_args,
+            type_constraints,
+        }
+    }
+
+    fn sails_path(&self) -> &Path {
+        self.program_args.sails_path()
+    }
+
+    fn impl_type(&self) -> (&TypePath, &PathArguments, &Ident) {
+        shared::impl_type_refs(self.program_impl.self_ty.as_ref())
+    }
+
+    fn impl_constraints(&self) -> (&Generics, Option<&WhereClause>) {
+        (&self.program_impl.generics, self.type_constraints.as_ref())
+    }
+
+    fn program_ctors(&self) -> Vec<FnBuilder<'_>> {
+        discover_program_ctors(&self.program_impl)
+            .into_iter()
+            .map(|(route, (fn_impl, _idx, unwrap_result))| {
+                FnBuilder::from(route, fn_impl, unwrap_result, self.sails_path())
+            })
+            .collect::<Vec<_>>()
+    }
+
+    #[cfg(feature = "ethexe")]
+    fn service_ctors(&self) -> Vec<FnBuilder<'_>> {
+        shared::discover_invocation_targets(self, service_ctor_predicate)
+            .into_iter()
+            .map(|(route, (fn_impl, _idx, unwrap_result))| {
+                FnBuilder::from(route, fn_impl, unwrap_result, self.sails_path())
+            })
+            .collect::<Vec<_>>()
+    }
+}
+
+impl ProgramBuilder {
+    fn wire_up_service_exposure(&mut self, program_ident: &Ident) -> (TokenStream2, TokenStream2) {
+        let mut services_route = Vec::new();
+        let mut services_meta = Vec::new();
+        let mut invocation_dispatches = Vec::new();
+        let mut routes = BTreeMap::new();
+        // only used for ethexe
+        #[allow(unused_mut)]
+        let mut solidity_dispatchers: Vec<TokenStream2> = Vec::new();
+
+        let item_impl = self
+            .program_impl
+            .items
+            .iter()
+            .enumerate()
+            .filter_map(|(idx, impl_item)| {
+                if let ImplItem::Fn(fn_item) = impl_item {
+                    if service_ctor_predicate(fn_item) {
+                        let (span, route, unwrap_result) = export::invocation_export(fn_item);
+                        if let Some(duplicate) = routes.insert(route.clone(), fn_item.sig.ident.to_string()) {
+                            abort!(
+                                span,
+                                "`export` or `route` attribute conflicts with one already assigned to '{}'",
+                                duplicate
+                            );
+                        }
+                        return Some((idx, route, fn_item, unwrap_result));
+                    }
+                }
+                None
+            }).map(|(idx, route, fn_item, unwrap_result)| {
+                let fn_builder = FnBuilder::from(route, fn_item, unwrap_result, self.sails_path());
+                let original_service_ctor_fn = fn_builder.original_service_ctor_fn();
+                let wrapping_service_ctor_fn =
+                    fn_builder.wrapping_service_ctor_fn(&original_service_ctor_fn.sig.ident);
+
+                services_route.push(fn_builder.service_const_route());
+                services_meta.push(fn_builder.service_meta());
+                invocation_dispatches.push(fn_builder.service_invocation());
+                #[cfg(feature = "ethexe")]
+                solidity_dispatchers.push(fn_builder.sol_service_invocation());
+
+                (idx, original_service_ctor_fn, wrapping_service_ctor_fn)
+
+            })
+            .collect::<Vec<_>>();
+
+        // replace service ctor fn impls
+        for (idx, original_service_ctor_fn, wrapping_service_ctor_fn, ..) in item_impl {
+            self.program_impl.items[idx] = ImplItem::Fn(original_service_ctor_fn);
+            self.program_impl
+                .items
+                .push(ImplItem::Fn(wrapping_service_ctor_fn));
+        }
+
+        let sails_path = &self.sails_path();
+        let (program_type_path, _program_type_args, _) = self.impl_type();
+        let (generics, program_type_constraints) = self.impl_constraints();
+
+        let program_meta_impl = quote! {
+            #(#services_route)*
+
+            impl #generics #sails_path::meta::ProgramMeta for #program_type_path #program_type_constraints {
+                type ConstructorsMeta = meta_in_program::ConstructorsMeta;
+
+                const SERVICES: &'static [(&'static str, #sails_path::meta::AnyServiceMetaFn)] = &[
+                    #(#services_meta),*
+                ];
+            }
+        };
+
+        invocation_dispatches.push(quote! {
+            { #sails_path::gstd::unknown_input_panic("Unexpected service", input) }
+        });
+
+        let mut args = Vec::with_capacity(2);
+        if let Some(handle_reply) = self.program_args.handle_reply() {
+            args.push(quote!(handle_reply = #handle_reply));
+        }
+        if let Some(handle_signal) = self.program_args.handle_signal() {
+            args.push(quote!(handle_signal = #handle_signal));
+        }
+        let async_main_args = (!args.is_empty()).then_some(quote!((#(#args),*)));
+
+        let solidity_main = self.sol_main(solidity_dispatchers.as_slice());
+
+        let main_fn = quote!(
+            #[gstd::async_main #async_main_args]
+            async fn main() {
+                let mut input: &[u8] = &#sails_path::gstd::msg::load_bytes().expect("Failed to read input");
+                let program_ref = unsafe { #program_ident.as_ref() }.expect("Program not initialized");
+
+                #solidity_main
+
+                let (output, value): (Vec<u8>, ValueUnit) = #(#invocation_dispatches)else*;
+                #sails_path::gstd::msg::reply_bytes(output, value).expect("Failed to send output");
+            }
+        );
+
+        (program_meta_impl, main_fn)
+    }
+
+    fn generate_init(&self, program_ident: &Ident) -> (TokenStream2, TokenStream2) {
+        let sails_path = self.sails_path();
+        let scale_codec_path = sails_paths::scale_codec_path(sails_path);
+        let scale_info_path = sails_paths::scale_info_path(sails_path);
+
+        let (program_type_path, ..) = self.impl_type();
+        let input_ident = Ident::new("input", Span::call_site());
+
+        let program_ctors = self.program_ctors();
+
+        let mut ctor_dispatches = Vec::with_capacity(program_ctors.len() + 1);
+        let mut ctor_params_structs = Vec::with_capacity(program_ctors.len());
+        let mut ctor_meta_variants = Vec::with_capacity(program_ctors.len());
+
+        for fn_builder in program_ctors {
+            ctor_dispatches.push(fn_builder.ctor_branch_impl(program_type_path, &input_ident));
+            ctor_params_structs
+                .push(fn_builder.ctor_params_struct(&scale_codec_path, &scale_info_path));
+            ctor_meta_variants.push(fn_builder.ctor_meta_variant());
+        }
+
+        ctor_dispatches.push(quote! {
+            { #sails_path::gstd::unknown_input_panic("Unexpected ctor", input) }
+        });
+
+        let solidity_init = self.sol_init(&input_ident, program_ident);
+
+        let init_fn = quote! {
+            #[gstd::async_init]
+            async fn init() {
+                use #sails_path::gstd::InvocationIo;
+                #sails_path::gstd::events::__enable_events();
+                let mut #input_ident: &[u8] = &#sails_path::gstd::msg::load_bytes().expect("Failed to read input");
+
+                #solidity_init
+
+                let (program, invocation_route) = #(#ctor_dispatches)else*;
+                unsafe {
+                    #program_ident = Some(program);
+                }
+                #sails_path::gstd::msg::reply_bytes(invocation_route, 0).expect("Failed to send output");
+            }
+        };
+
+        let meta_in_program = quote! {
+            mod meta_in_program {
+                use super::*;
+
+                #( #ctor_params_structs )*
+
+                #[derive(#sails_path ::TypeInfo)]
+                #[scale_info(crate = #scale_info_path)]
+                pub enum ConstructorsMeta {
+                    #( #ctor_meta_variants ),*
+                }
+            }
+        };
+        (meta_in_program, init_fn)
+    }
+}
+
+// Empty ProgramBuilder Implementations without `ethexe` feature
+#[cfg(not(feature = "ethexe"))]
+impl ProgramBuilder {
+    fn program_signature_impl(&self) -> TokenStream2 {
+        quote!()
+    }
+
+    fn match_ctor_impl(&self) -> TokenStream2 {
+        quote!()
+    }
+
+    fn program_const(&self) -> TokenStream2 {
+        quote!()
+    }
+
+    fn sol_init(&self, _input_ident: &Ident, _program_ident: &Ident) -> TokenStream2 {
+        quote!()
+    }
+
+    fn sol_main(&self, _solidity_dispatchers: &[TokenStream2]) -> TokenStream2 {
+        quote!()
+    }
+}
+
+impl Deref for ProgramBuilder {
+    type Target = ItemImpl;
+
+    fn deref(&self) -> &Self::Target {
+        &self.program_impl
+    }
+}
+
+impl DerefMut for ProgramBuilder {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.program_impl
+    }
+}
+
 fn gen_gprogram_impl(program_impl: ItemImpl, program_args: ProgramArgs) -> TokenStream2 {
-    let sails_path = program_args.sails_path();
-    let scale_codec_path = sails_paths::scale_codec_path(&sails_path);
-    let scale_info_path = sails_paths::scale_info_path(&sails_path);
+    let mut program_builder = ProgramBuilder::new(program_impl, program_args);
 
-    let services_ctors = discover_services_ctors(&program_impl);
+    let sails_path = program_builder.sails_path().clone();
 
-    let mut program_impl = program_impl.clone();
-
-    let services_data = services_ctors
-        .into_iter()
-        .map(|(route, (ctor_fn, ctor_idx, unwrap_result))| {
-            let route_ident = Ident::new(
-                &format!("__ROUTE_{}", route.to_ascii_uppercase()),
-                Span::call_site(),
-            );
-
-            let route_static = {
-                let ctor_route_bytes = route.encode();
-                let ctor_route_len = ctor_route_bytes.len();
-                quote!(
-                    static #route_ident: [u8; #ctor_route_len] = [ #(#ctor_route_bytes),* ];
-                )
-            };
-
-            let service_meta = {
-                let service_type = shared::unwrap_result_type(&ctor_fn.sig, unwrap_result);
-                quote!(
-                    ( #route , #sails_path::meta::AnyServiceMeta::new::< #service_type >())
-                )
-            };
-
-            wire_up_service_exposure(
-                &mut program_impl,
-                &route_ident,
-                ctor_fn,
-                ctor_idx,
-                &sails_path,
-                unwrap_result,
-            );
-
-            (
-                route_static,
-                service_meta,
-                ctor_fn.sig.ident.clone(),
-                route_ident,
-            )
-        })
-        .collect::<Vec<_>>();
+    // Call this before `wire_up_service_exposure`
+    let program_signature_impl = program_builder.program_signature_impl();
+    let match_ctor_impl = program_builder.match_ctor_impl();
+    let program_const = program_builder.program_const();
 
     let program_ident = Ident::new("PROGRAM", Span::call_site());
 
-    let handle_fn = generate_handle(
-        &program_ident,
-        services_data.iter().map(|item| (&item.3, &item.2)),
-        program_args,
-        &sails_path,
-    );
+    let (program_meta_impl, main_fn) = program_builder.wire_up_service_exposure(&program_ident);
 
-    let services_meta = services_data.iter().map(|item| &item.1);
+    let (meta_in_program, init_fn) = program_builder.generate_init(&program_ident);
 
-    let services_routes = services_data.iter().map(|item| &item.0);
+    let (program_type_path, ..) = program_builder.impl_type();
 
-    let (program_type_path, _program_type_args, _) = shared::impl_type(&program_impl);
-    let (generics, program_type_constraints) = shared::impl_constraints(&program_impl);
-
-    let (ctors_data, init_fn) = generate_init(
-        &mut program_impl,
-        &program_type_path,
-        &program_ident,
-        &sails_path,
-    );
-
-    let ctors_params_structs = ctors_data.clone().map(|item| item.2);
-
-    let ctors_meta_variants = ctors_data.map(|item| {
-        let ctor_route = Ident::new(&item.0, Span::call_site());
-        let ctor_params_struct_ident = item.1;
-        let ctor_docs_attrs = item.3;
-        quote!(
-            #( #ctor_docs_attrs )*
-            #ctor_route(#ctor_params_struct_ident)
-        )
-    });
+    let program_impl = program_builder.deref();
 
     quote!(
-        #(#services_routes)*
-
         #program_impl
 
-        impl #generics #sails_path::meta::ProgramMeta for #program_type_path #program_type_constraints {
-            fn constructors() -> #scale_info_path::MetaType {
-                #scale_info_path::MetaType::new::<meta_in_program::ConstructorsMeta>()
-            }
+        #program_meta_impl
 
-            fn services() -> impl Iterator<Item = (&'static str, #sails_path::meta::AnyServiceMeta)> {
-                [
-                    #(#services_meta),*
-                ].into_iter()
-            }
-        }
+        #meta_in_program
 
-        use #sails_path ::Decode as __ProgramDecode;
-        use #sails_path ::TypeInfo as __ProgramTypeInfo;
+        #program_signature_impl
 
-        #(
-            #[derive(__ProgramDecode, __ProgramTypeInfo)]
-            #[codec(crate = #scale_codec_path )]
-            #[scale_info(crate = #scale_info_path )]
-            #[allow(dead_code)]
-            #ctors_params_structs
-        )*
-
-        mod meta_in_program {
-            use super::*;
-
-            #[derive(__ProgramTypeInfo)]
-            #[scale_info(crate = #scale_info_path)]
-            pub enum ConstructorsMeta {
-                #(#ctors_meta_variants),*
-            }
-        }
+        #program_const
 
         #[cfg(target_arch = "wasm32")]
         pub mod wasm {
@@ -196,252 +361,212 @@ fn gen_gprogram_impl(program_impl: ItemImpl, program_args: ProgramArgs) -> Token
 
             #init_fn
 
-            #handle_fn
+            #match_ctor_impl
+
+            #main_fn
         }
     )
 }
 
-fn wire_up_service_exposure(
-    program_impl: &mut ItemImpl,
-    route_ident: &Ident,
-    ctor_fn: &ImplItemFn,
-    ctor_idx: usize,
-    sails_path: &Path,
-    unwrap_result: bool,
-) {
-    let service_type = shared::unwrap_result_type(&ctor_fn.sig, unwrap_result);
-    let unwrap_token = unwrap_result.then(|| quote!(.unwrap()));
+fn ensure_default_program_ctor(program_impl: &mut ItemImpl) {
+    let self_type_path: TypePath = parse_quote!(Self);
+    let (program_type_path, _, _) = shared::impl_type_refs(program_impl.self_ty.as_ref());
 
-    let mut original_service_ctor_fn = ctor_fn.clone();
-    let original_service_ctor_fn_ident = Ident::new(
-        &format!("__{}", original_service_ctor_fn.sig.ident),
-        original_service_ctor_fn.sig.ident.span(),
-    );
-    original_service_ctor_fn.attrs.clear();
-    original_service_ctor_fn.vis = Visibility::Inherited;
-    original_service_ctor_fn.sig.ident = original_service_ctor_fn_ident.clone();
-    program_impl
-        .items
-        .push(ImplItem::Fn(original_service_ctor_fn));
-
-    let mut wrapping_service_ctor_fn = ctor_fn.clone();
-    // Filter out `export  attribute
-    wrapping_service_ctor_fn
-        .attrs
-        .retain(|attr| export::parse_attr(attr).is_none());
-    wrapping_service_ctor_fn.sig.output = parse_quote!(
-        -> < #service_type as #sails_path::gstd::services::Service>::Exposure
-    );
-    wrapping_service_ctor_fn.block = parse_quote!({
-        let service = self. #original_service_ctor_fn_ident () #unwrap_token;
-        let exposure = < #service_type as #sails_path::gstd::services::Service>::expose(
-            service,
-            #sails_path::gstd::msg::id().into(),
-            #route_ident .as_ref(),
-        );
-        exposure
-    });
-    program_impl.items[ctor_idx] = ImplItem::Fn(wrapping_service_ctor_fn);
-}
-
-fn generate_init(
-    program_impl: &mut ItemImpl,
-    program_type_path: &TypePath,
-    program_ident: &Ident,
-    sails_path: &Path,
-) -> (
-    impl Iterator<Item = (String, Ident, TokenStream2, Vec<Attribute>)> + Clone,
-    TokenStream2,
-) {
-    if discover_program_ctors(program_impl, program_type_path).is_empty() {
+    if shared::discover_invocation_targets(program_impl, |fn_item| {
+        program_ctor_predicate(fn_item, &self_type_path, program_type_path)
+    })
+    .is_empty()
+    {
         program_impl.items.push(ImplItem::Fn(parse_quote!(
             pub fn default() -> Self {
                 Self
             }
         )));
     }
-
-    let program_ctors = discover_program_ctors(program_impl, program_type_path);
-
-    let input_ident = Ident::new("input", Span::call_site());
-
-    let mut invocation_dispatches = Vec::with_capacity(program_ctors.len());
-    let mut invocation_params_structs = Vec::with_capacity(program_ctors.len());
-
-    for (invocation_route, (program_ctor, _, unwrap_result)) in program_ctors {
-        let ctor_docs_attrs: Vec<_> = program_ctor
-            .attrs
-            .iter()
-            .filter(|attr| attr.path().is_ident("doc"))
-            .cloned()
-            .collect();
-
-        let program_ctor = &program_ctor.sig;
-        let handler = Func::from(program_ctor);
-
-        let invocation_params_struct_ident =
-            Ident::new(&format!("__{}Params", invocation_route), Span::call_site());
-
-        invocation_dispatches.push({
-            let invocation_route_bytes = invocation_route.encode();
-            let invocation_route_len = invocation_route_bytes.len();
-            let handler_ident = handler.ident();
-            let handler_await = handler.is_async().then(|| quote!(.await));
-            let unwrap_token = unwrap_result.then(|| quote!(.unwrap()));
-            let handler_args = handler.params().iter().map(|item| {
-                let param_ident = item.0;
-                quote!(request.#param_ident)
-            });
-
-            quote!(
-                if #input_ident.starts_with(& [ #(#invocation_route_bytes),* ]) {
-                    static INVOCATION_ROUTE: [u8; #invocation_route_len] = [ #(#invocation_route_bytes),* ];
-                    let request = #invocation_params_struct_ident::decode(&mut &#input_ident[#invocation_route_len..]).expect("Failed to decode request");
-                    let program = #program_type_path :: #handler_ident (#(#handler_args),*) #handler_await #unwrap_token;
-                    (program, INVOCATION_ROUTE.as_ref())
-                }
-            )
-        });
-
-        invocation_params_structs.push({
-            let invocation_params_struct_members = handler.params().iter().map(|item| {
-                let param_ident = item.0;
-                let param_type = item.1;
-                quote!(#param_ident: #param_type)
-            });
-
-            (
-                invocation_route.clone(),
-                invocation_params_struct_ident.clone(),
-                quote!(
-                    struct #invocation_params_struct_ident {
-                        #(#invocation_params_struct_members),*
-                    }
-                ),
-                ctor_docs_attrs,
-            )
-        });
-    }
-
-    invocation_dispatches.push(shared::generate_unexpected_input_panic(
-        &input_ident,
-        "Unexpected ctor",
-        sails_path,
-    ));
-
-    let init = quote!(
-        #[gstd::async_init]
-        async fn init() {
-            #sails_path::gstd::events::__enable_events();
-            let mut #input_ident: &[u8] = &gstd::msg::load_bytes().expect("Failed to read input");
-            let (program, invocation_route) = #(#invocation_dispatches)else*;
-            unsafe {
-                #program_ident = Some(program);
-            }
-            gstd::msg::reply_bytes(invocation_route, 0).expect("Failed to send output");
-        }
-    );
-
-    (invocation_params_structs.into_iter(), init)
 }
 
-fn generate_handle<'a>(
-    program_ident: &'a Ident,
-    service_ctors: impl Iterator<Item = (&'a Ident, &'a Ident)>,
-    program_args: ProgramArgs,
-    sails_path: &Path,
-) -> TokenStream2 {
-    let input_ident = Ident::new("input", Span::call_site());
-
-    let mut invocation_dispatches = Vec::new();
-
-    for (service_route_ident, service_ctor_ident) in service_ctors {
-        invocation_dispatches.push({
-            quote!(
-                if #input_ident.starts_with(& #service_route_ident) {
-                    let program_ref = unsafe { #program_ident.as_ref() }.expect("Program not initialized");
-                    let mut service = program_ref.#service_ctor_ident();
-                    let (output, value) = service.handle(&#input_ident[#service_route_ident .len()..]).await;
-                    ([#service_route_ident .as_ref(), &output].concat(), value)
-                }
-            )
-        });
-    }
-
-    invocation_dispatches.push(shared::generate_unexpected_input_panic(
-        &input_ident,
-        "Unexpected service",
-        sails_path,
-    ));
-
-    let mut args = Vec::with_capacity(2);
-    if let Some(handle_reply) = program_args.handle_reply() {
-        args.push(quote!(handle_reply = #handle_reply));
-    }
-    if let Some(handle_signal) = program_args.handle_signal() {
-        args.push(quote!(handle_signal = #handle_signal));
-    }
-    let async_main_args = if args.is_empty() {
-        quote!()
-    } else {
-        quote!((#(#args),*))
-    };
-
-    quote!(
-        #[gstd::async_main #async_main_args]
-        async fn main() {
-            let mut #input_ident: &[u8] = &gstd::msg::load_bytes().expect("Failed to read input");
-            let (output, value): (Vec<u8>, ValueUnit) = #(#invocation_dispatches)else*;
-            gstd::msg::reply_bytes(output, value).expect("Failed to send output");
-        }
-    )
-}
-
-fn discover_program_ctors<'a>(
-    program_impl: &'a ItemImpl,
-    program_type_path: &'a TypePath,
-) -> BTreeMap<String, (&'a ImplItemFn, usize, bool)> {
-    let self_type_path = syn::parse_str::<TypePath>("Self").unwrap();
+fn discover_program_ctors(program_impl: &ItemImpl) -> BTreeMap<String, (&ImplItemFn, usize, bool)> {
+    let self_type_path: TypePath = parse_quote!(Self);
+    let (program_type_path, _, _) = shared::impl_type_refs(program_impl.self_ty.as_ref());
     shared::discover_invocation_targets(program_impl, |fn_item| {
-        if matches!(fn_item.vis, Visibility::Public(_)) && fn_item.sig.receiver().is_none() {
-            if let ReturnType::Type(_, output_type) = &fn_item.sig.output {
-                if let Type::Path(output_type_path) = output_type.as_ref() {
-                    if output_type_path == &self_type_path || output_type_path == program_type_path
-                    {
+        program_ctor_predicate(fn_item, &self_type_path, program_type_path)
+    })
+}
+
+fn program_ctor_predicate(
+    fn_item: &ImplItemFn,
+    self_type_path: &TypePath,
+    program_type_path: &TypePath,
+) -> bool {
+    if matches!(fn_item.vis, Visibility::Public(_)) && fn_item.sig.receiver().is_none() {
+        if let ReturnType::Type(_, output_type) = &fn_item.sig.output {
+            if let Type::Path(output_type_path) = output_type.as_ref() {
+                if output_type_path == self_type_path || output_type_path == program_type_path {
+                    return true;
+                }
+                if let Some(Type::Path(output_type_path)) =
+                    shared::extract_result_type(output_type_path)
+                {
+                    if output_type_path == self_type_path || output_type_path == program_type_path {
                         return true;
                     }
-                    if let Some(Type::Path(output_type_path)) =
-                        shared::extract_result_type(output_type_path)
-                    {
-                        if output_type_path == &self_type_path
-                            || output_type_path == program_type_path
-                        {
-                            return true;
-                        }
-                    }
                 }
             }
         }
-        false
-    })
+    }
+    false
 }
 
-fn discover_services_ctors(
-    program_impl: &ItemImpl,
-) -> BTreeMap<String, (&ImplItemFn, usize, bool)> {
-    shared::discover_invocation_targets(program_impl, |fn_item| {
-        matches!(fn_item.vis, Visibility::Public(_))
-            && matches!(
-                fn_item.sig.receiver(),
-                Some(Receiver {
-                    mutability: None,
-                    reference: Some(_),
-                    ..
-                })
-            )
-            && fn_item.sig.inputs.len() == 1
-            && !matches!(fn_item.sig.output, ReturnType::Default)
-    })
+fn service_ctor_predicate(fn_item: &ImplItemFn) -> bool {
+    matches!(fn_item.vis, Visibility::Public(_))
+        && matches!(
+            fn_item.sig.receiver(),
+            Some(Receiver {
+                mutability: None,
+                reference: Some(_),
+                ..
+            })
+        )
+        && fn_item.sig.inputs.len() == 1
+        && !matches!(fn_item.sig.output, ReturnType::Default)
+}
+
+impl FnBuilder<'_> {
+    fn route_ident(&self) -> Ident {
+        Ident::new(
+            &format!("__ROUTE_{}", self.route.to_ascii_uppercase()),
+            Span::call_site(),
+        )
+    }
+
+    fn service_meta(&self) -> TokenStream2 {
+        let sails_path = self.sails_path;
+        let route = &self.route;
+        let service_type = &self.result_type;
+        quote!(
+            ( #route , #sails_path::meta::AnyServiceMeta::new::< #service_type >)
+        )
+    }
+
+    fn service_const_route(&self) -> TokenStream2 {
+        let route_ident = &self.route_ident();
+        let ctor_route_bytes = self.encoded_route.as_slice();
+        let ctor_route_len = ctor_route_bytes.len();
+        quote!(
+            const #route_ident: [u8; #ctor_route_len] = [ #(#ctor_route_bytes),* ];
+        )
+    }
+
+    fn service_invocation(&self) -> TokenStream2 {
+        let sails_path = self.sails_path;
+        let route_ident = &self.route_ident();
+        let service_ctor_ident = self.ident;
+        quote! {
+            if input.starts_with(& #route_ident) {
+                let mut service = program_ref.#service_ctor_ident();
+                let (output, value) = service.try_handle(&input[#route_ident .len()..]).await.unwrap_or_else(|| {
+                    #sails_path::gstd::unknown_input_panic("Unknown request", input)
+                });
+                ([#route_ident .as_ref(), &output].concat(), value)
+            }
+        }
+    }
+
+    fn original_service_ctor_fn(&self) -> ImplItemFn {
+        let mut original_service_ctor_fn = self.impl_fn.clone();
+        let original_service_ctor_fn_ident = Ident::new(
+            &format!("__{}", original_service_ctor_fn.sig.ident),
+            original_service_ctor_fn.sig.ident.span(),
+        );
+        original_service_ctor_fn.attrs.clear();
+        original_service_ctor_fn.vis = Visibility::Inherited;
+        original_service_ctor_fn.sig.ident = original_service_ctor_fn_ident;
+        original_service_ctor_fn
+    }
+
+    fn wrapping_service_ctor_fn(&self, original_service_ctor_fn_ident: &Ident) -> ImplItemFn {
+        let sails_path = self.sails_path;
+        let service_type = &self.result_type;
+        let route_ident = &self.route_ident();
+        let unwrap_token = self.unwrap_result.then(|| quote!(.unwrap()));
+
+        let mut wrapping_service_ctor_fn = self.impl_fn.clone();
+        // Filter out `export  attribute
+        wrapping_service_ctor_fn
+            .attrs
+            .retain(|attr| export::parse_attr(attr).is_none());
+        wrapping_service_ctor_fn.sig.output = parse_quote!(
+            -> < #service_type as #sails_path::gstd::services::Service>::Exposure
+        );
+        wrapping_service_ctor_fn.block = parse_quote!({
+            let service = self. #original_service_ctor_fn_ident () #unwrap_token;
+            let exposure = < #service_type as #sails_path::gstd::services::Service>::expose(
+                service,
+                #sails_path::gstd::msg::id().into(),
+                #route_ident .as_ref(),
+            );
+            exposure
+        });
+        wrapping_service_ctor_fn
+    }
+
+    fn ctor_branch_impl(&self, program_type_path: &TypePath, input_ident: &Ident) -> TokenStream2 {
+        let handler_ident = self.ident;
+        let handler_await = self.is_async().then(|| quote!(.await));
+        let unwrap_token = self.unwrap_result.then(|| quote!(.unwrap()));
+        let handler_args = self.params.iter().map(|item| {
+            let param_ident = item.0;
+            quote!(request.#param_ident)
+        });
+        let params_struct_ident = &self.params_struct_ident;
+
+        quote!(
+            if let Ok(request) = meta_in_program::#params_struct_ident::decode_params( #input_ident) {
+                let program = #program_type_path :: #handler_ident (#(#handler_args),*) #handler_await #unwrap_token;
+                (program, meta_in_program::#params_struct_ident::ROUTE)
+            }
+        )
+    }
+
+    fn ctor_params_struct(&self, scale_codec_path: &Path, scale_info_path: &Path) -> TokenStream2 {
+        let sails_path = self.sails_path;
+        let params_struct_ident = &self.params_struct_ident;
+        let ctor_params_struct_members = self.params.iter().map(|item| {
+            let param_ident = item.0;
+            let param_type = item.1;
+            quote!(#param_ident: #param_type,)
+        });
+        let ctor_route_bytes = self.encoded_route.as_slice();
+
+        quote! {
+            #[derive(#sails_path ::Decode, #sails_path ::TypeInfo)]
+            #[codec(crate = #scale_codec_path )]
+            #[scale_info(crate = #scale_info_path )]
+            pub struct #params_struct_ident {
+                #(pub(super) #ctor_params_struct_members)*
+            }
+
+            impl #sails_path::gstd::InvocationIo for #params_struct_ident {
+                const ROUTE: &'static [u8] = &[ #(#ctor_route_bytes),* ];
+                type Params = Self;
+            }
+        }
+    }
+
+    fn ctor_meta_variant(&self) -> TokenStream2 {
+        let ctor_route = Ident::new(self.route.as_str(), Span::call_site());
+        let ctor_docs_attrs = self
+            .impl_fn
+            .attrs
+            .iter()
+            .filter(|attr| attr.path().is_ident("doc"));
+        let params_struct_ident = &self.params_struct_ident;
+
+        quote! {
+            #( #ctor_docs_attrs )*
+            #ctor_route(#params_struct_ident)
+        }
+    }
 }
 
 #[cfg(test)]
@@ -468,9 +593,8 @@ mod tests {
             }
         ))
         .unwrap();
-        let (program_type_path, ..) = shared::impl_type(&program_impl);
 
-        let discovered_ctors = discover_program_ctors(&program_impl, &program_type_path)
+        let discovered_ctors = discover_program_ctors(&program_impl)
             .iter()
             .map(|(.., (ctor_fn, ..))| ctor_fn.sig.ident.to_string())
             .collect::<Vec<_>>();
@@ -497,10 +621,11 @@ mod tests {
         ))
         .unwrap();
 
-        let discovered_services = discover_services_ctors(&program_impl)
-            .iter()
-            .map(|(_, (fn_impl, ..))| fn_impl.sig.ident.to_string())
-            .collect::<Vec<_>>();
+        let discovered_services =
+            shared::discover_invocation_targets(&program_impl, service_ctor_predicate)
+                .iter()
+                .map(|(_, (fn_impl, ..))| fn_impl.sig.ident.to_string())
+                .collect::<Vec<_>>();
 
         assert_eq!(discovered_services.len(), 1);
         assert!(discovered_services.contains(&String::from("public_method_returning_smth")));

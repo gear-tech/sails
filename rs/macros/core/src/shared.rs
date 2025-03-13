@@ -1,19 +1,18 @@
 use crate::export;
-use proc_macro2::{Span, TokenStream as TokenStream2};
+use parity_scale_codec::Encode;
+use proc_macro2::Span;
 use proc_macro_error::abort;
-use quote::{quote, ToTokens};
+use quote::ToTokens;
 use std::collections::BTreeMap;
 use syn::{
     punctuated::Punctuated, spanned::Spanned, FnArg, GenericArgument, Generics, Ident, ImplItem,
-    ImplItemFn, ItemImpl, Lifetime, Pat, Path, PathArguments, PathSegment, Receiver, ReturnType,
-    Signature, Token, Type, TypeImplTrait, TypeParamBound, TypePath, TypeReference, TypeTuple,
-    WhereClause,
+    ImplItemFn, ItemImpl, Lifetime, Pat, Path, PathArguments, PathSegment, ReturnType, Signature,
+    Token, Type, TypeImplTrait, TypeParamBound, TypePath, TypeReference, TypeTuple, WhereClause,
 };
 
-pub(crate) fn impl_type(item_impl: &ItemImpl) -> (TypePath, PathArguments, Ident) {
-    let item_impl_type = item_impl.self_ty.as_ref();
+pub(crate) fn impl_type_refs(item_impl_type: &Type) -> (&TypePath, &PathArguments, &Ident) {
     let path = if let Type::Path(type_path) = item_impl_type {
-        type_path.clone()
+        type_path
     } else {
         abort!(
             item_impl_type,
@@ -22,8 +21,8 @@ pub(crate) fn impl_type(item_impl: &ItemImpl) -> (TypePath, PathArguments, Ident
         )
     };
     let segment = path.path.segments.last().unwrap();
-    let args = segment.arguments.clone();
-    let ident = segment.ident.clone();
+    let args = &segment.arguments;
+    let ident = &segment.ident;
     (path, args, ident)
 }
 
@@ -33,68 +32,18 @@ pub(crate) fn impl_constraints(item_impl: &ItemImpl) -> (Generics, Option<WhereC
     (generics, where_clause)
 }
 
-/// Represents parts of a handler function.
-#[derive(Clone)]
-pub(crate) struct Func<'a> {
-    ident: &'a Ident,
-    receiver: Option<&'a Receiver>,
-    params: Vec<(&'a Ident, &'a Type)>,
-    result: Type,
-    is_async: bool,
-}
-
-impl<'a> Func<'a> {
-    pub(crate) fn from(handler_signature: &'a Signature) -> Self {
-        let func = &handler_signature.ident;
-        let receiver = handler_signature.receiver();
-        let params = Self::extract_params(handler_signature).collect();
-        let result = Self::extract_result(handler_signature);
-        Self {
-            ident: func,
-            receiver,
-            params,
-            result,
-            is_async: handler_signature.asyncness.is_some(),
+fn extract_params(handler_signature: &Signature) -> impl Iterator<Item = (&Ident, &Type)> {
+    handler_signature.inputs.iter().filter_map(|arg| {
+        if let FnArg::Typed(arg) = arg {
+            let arg_ident = if let Pat::Ident(arg_ident) = arg.pat.as_ref() {
+                &arg_ident.ident
+            } else {
+                abort!(arg.span(), "unnamed arguments are not supported");
+            };
+            return Some((arg_ident, arg.ty.as_ref()));
         }
-    }
-
-    pub(crate) fn ident(&self) -> &Ident {
-        self.ident
-    }
-
-    pub(crate) fn receiver(&self) -> Option<&Receiver> {
-        self.receiver
-    }
-
-    pub(crate) fn params(&self) -> &[(&Ident, &Type)] {
-        &self.params
-    }
-
-    pub(crate) fn result(&self) -> &Type {
-        &self.result
-    }
-
-    pub(crate) fn is_async(&self) -> bool {
-        self.is_async
-    }
-
-    fn extract_params(handler_signature: &Signature) -> impl Iterator<Item = (&Ident, &Type)> {
-        handler_signature.inputs.iter().filter_map(|arg| {
-            if let FnArg::Typed(arg) = arg {
-                let arg_ident = if let Pat::Ident(arg_ident) = arg.pat.as_ref() {
-                    &arg_ident.ident
-                } else {
-                    abort!(arg.span(), "unnamed arguments are not supported");
-                };
-                return Some((arg_ident, arg.ty.as_ref()));
-            }
-            None
-        })
-    }
-
-    fn extract_result(handler_signature: &Signature) -> Type {
-        result_type(handler_signature)
-    }
+        None
+    })
 }
 
 pub(crate) fn result_type(handler_signature: &Signature) -> Type {
@@ -115,7 +64,7 @@ pub(crate) fn unwrap_result_type(handler_signature: &Signature, unwrap_result: b
             extract_result_type_from_path(&result_type)
                 .unwrap_or_else(|| {
                     abort!(
-                        handler_signature.output.span(),
+                        result_type.span(),
                         "`unwrap_result` can be applied to methods returns result only"
                     )
                 })
@@ -153,45 +102,28 @@ pub(crate) fn discover_invocation_targets(
         })
 }
 
-pub(crate) fn generate_unexpected_input_panic(
-    input_ident: &Ident,
-    message: &str,
-    sails_path: &Path,
-) -> TokenStream2 {
-    let message_pattern = message.to_owned() + ": {}";
-    let copy_ident = Ident::new(&format!("__{}", input_ident), Span::call_site());
-    quote!({
-        let mut #copy_ident = #input_ident;
-        let input: String = #sails_path::Decode::decode(&mut #copy_ident)
-            .unwrap_or_else(|_| {
-                if #input_ident.len() <= 8 {
-                    format!("0x{}", #sails_path::hex::encode(#input_ident))
-                } else {
-                    format!(
-                        "0x{}..{}",
-                        #sails_path::hex::encode(&#input_ident[..4]),
-                        #sails_path::hex::encode(&#input_ident[#input_ident.len() - 4..]))
-                }
-            });
-        panic!(#message_pattern, input)
-    })
-}
-
 pub(crate) fn extract_lifetime_names(path_args: &PathArguments) -> Vec<String> {
-    if let PathArguments::AngleBracketed(type_args) = path_args {
-        type_args
-            .args
-            .iter()
-            .filter_map(|a| {
-                if let GenericArgument::Lifetime(lifetime) = a {
-                    Some(lifetime.ident.to_string())
-                } else {
-                    None
-                }
-            })
+    if let Some(lts) = extract_lifetimes(path_args) {
+        lts.map(|lifetime| lifetime.ident.to_string())
             .collect::<Vec<_>>()
     } else {
-        Vec::<String>::new()
+        vec![]
+    }
+}
+
+pub(crate) fn extract_lifetimes(
+    path_args: &PathArguments,
+) -> Option<impl Iterator<Item = &Lifetime>> {
+    if let PathArguments::AngleBracketed(type_args) = path_args {
+        Some(type_args.args.iter().filter_map(|a| {
+            if let GenericArgument::Lifetime(lifetime) = a {
+                Some(lifetime)
+            } else {
+                None
+            }
+        }))
+    } else {
+        None
     }
 }
 
@@ -243,6 +175,20 @@ fn replace_lifetime_with_static_in_path_args(path_args: PathArguments) -> PathAr
         PathArguments::AngleBracketed(type_args)
     } else {
         path_args
+    }
+}
+
+pub(crate) fn remove_lifetimes(path: &Path) -> Path {
+    let mut segments: Punctuated<PathSegment, Token![::]> = Punctuated::new();
+    for s in &path.segments {
+        segments.push(PathSegment {
+            ident: s.ident.clone(),
+            arguments: PathArguments::None,
+        });
+    }
+    Path {
+        leading_colon: path.leading_colon,
+        segments,
     }
 }
 
@@ -314,4 +260,71 @@ pub(crate) fn extract_result_type(tp: &TypePath) -> Option<&Type> {
         }
     }
     None
+}
+
+/// Represents parts of a handler function.
+#[derive(Clone)]
+pub(crate) struct FnBuilder<'a> {
+    pub route: String,
+    pub encoded_route: Vec<u8>,
+    pub impl_fn: &'a ImplItemFn,
+    pub ident: &'a Ident,
+    pub params_struct_ident: Ident,
+    pub params: Vec<(&'a Ident, &'a Type)>,
+    pub result_type: Type,
+    pub unwrap_result: bool,
+    pub sails_path: &'a Path,
+}
+
+impl<'a> FnBuilder<'a> {
+    pub(crate) fn from(
+        route: String,
+        impl_fn: &'a ImplItemFn,
+        unwrap_result: bool,
+        sails_path: &'a Path,
+    ) -> Self {
+        let encoded_route = route.encode();
+        let signature = &impl_fn.sig;
+        let ident = &signature.ident;
+        let params_struct_ident = Ident::new(&format!("__{}Params", route), Span::call_site());
+        let params = extract_params(signature).collect();
+        let result_type = unwrap_result_type(signature, unwrap_result);
+
+        Self {
+            route,
+            encoded_route,
+            impl_fn,
+            ident,
+            params_struct_ident,
+            params,
+            result_type,
+            unwrap_result,
+            sails_path,
+        }
+    }
+
+    pub(crate) fn is_async(&self) -> bool {
+        self.impl_fn.sig.asyncness.is_some()
+    }
+
+    pub(crate) fn is_query(&self) -> bool {
+        self.impl_fn
+            .sig
+            .receiver()
+            .is_none_or(|r| r.mutability.is_none())
+    }
+
+    pub(crate) fn result_type_with_value(&self) -> (&Type, bool) {
+        let result_type = &self.result_type;
+        let (result_type, reply_with_value) = extract_reply_type_with_value(result_type)
+            .map_or_else(|| (result_type, false), |ty| (ty, true));
+
+        if reply_with_value && self.is_query() {
+            abort!(
+                self.result_type.span(),
+                "using `CommandReply` type in a query is not allowed"
+            );
+        }
+        (result_type, reply_with_value)
+    }
 }

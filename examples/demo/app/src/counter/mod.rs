@@ -17,7 +17,7 @@ impl CounterData {
 #[derive(Encode, TypeInfo)]
 #[codec(crate = sails_rs::scale_codec)]
 #[scale_info(crate = sails_rs::scale_info)]
-enum CounterEvents {
+pub enum CounterEvents {
     /// Emitted when a new value is added to the counter
     Added(u32),
     /// Emitted when a value is subtracted from the counter

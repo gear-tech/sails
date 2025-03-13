@@ -10,7 +10,7 @@ impl SomeService {
         p1
     }
 }
-pub struct SomeServiceExposure<T> {
+pub struct SomeServiceExposure<T: sails_rename::gstd::services::Service> {
     message_id: sails_rename::MessageId,
     route: &'static [u8],
     #[cfg(not(target_arch = "wasm32"))]
@@ -19,6 +19,16 @@ pub struct SomeServiceExposure<T> {
     inner_ptr: *const T,
     #[cfg(target_arch = "wasm32")]
     inner: T,
+    base: T::BaseExposures,
+}
+impl<T: sails_rename::gstd::services::Service> sails_rename::gstd::services::Exposure
+for SomeServiceExposure<T> {
+    fn message_id(&self) -> sails_rename::MessageId {
+        self.message_id
+    }
+    fn route(&self) -> &'static [u8] {
+        self.route
+    }
 }
 impl SomeServiceExposure<SomeService> {
     pub async fn do_this(&mut self, p1: u32, p2: String) -> u32 {
@@ -29,77 +39,26 @@ impl SomeServiceExposure<SomeService> {
         let exposure_scope = sails_rename::gstd::services::ExposureCallScope::new(self);
         self.inner.this(p1)
     }
-    pub async fn handle(&mut self, input: &[u8]) -> (Vec<u8>, u128) {
-        self.try_handle(input)
-            .await
-            .unwrap_or_else(|| {
-                {
-                    let mut __input = input;
-                    let input: String = sails_rename::Decode::decode(&mut __input)
-                        .unwrap_or_else(|_| {
-                            if input.len() <= 8 {
-                                format!("0x{}", sails_rename::hex::encode(input))
-                            } else {
-                                format!(
-                                    "0x{}..{}", sails_rename::hex::encode(& input[..4]),
-                                    sails_rename::hex::encode(& input[input.len() - 4..])
-                                )
-                            }
-                        });
-                    panic!("Unknown request: {}", input)
-                }
-            })
-    }
     pub async fn try_handle(&mut self, input: &[u8]) -> Option<(Vec<u8>, u128)> {
-        if input.starts_with(&[24u8, 68u8, 111u8, 84u8, 104u8, 105u8, 115u8]) {
-            let (output, value) = self.__do_this(&input[7usize..]).await;
-            static INVOCATION_ROUTE: [u8; 7usize] = [
-                24u8,
-                68u8,
-                111u8,
-                84u8,
-                104u8,
-                105u8,
-                115u8,
-            ];
-            return Some(([INVOCATION_ROUTE.as_ref(), &output].concat(), value));
+        use sails_rename::gstd::InvocationIo;
+        if let Ok(request) = some_service_meta::__DoThisParams::decode_params(input) {
+            let result = self.do_this(request.p1, request.p2).await;
+            let value = 0u128;
+            let output = some_service_meta::__DoThisParams::encode_reply(&result);
+            return Some((output, value));
         }
-        if input.starts_with(&[16u8, 84u8, 104u8, 105u8, 115u8]) {
-            let (output, value) = self.__this(&input[5usize..]).await;
-            static INVOCATION_ROUTE: [u8; 5usize] = [16u8, 84u8, 104u8, 105u8, 115u8];
-            return Some(([INVOCATION_ROUTE.as_ref(), &output].concat(), value));
+        if let Ok(request) = some_service_meta::__ThisParams::decode_params(input) {
+            let result = self.this(request.p1);
+            let value = 0u128;
+            let output = some_service_meta::__ThisParams::encode_reply(&result);
+            return Some((output, value));
         }
         None
     }
-    async fn __do_this(&mut self, mut input: &[u8]) -> (Vec<u8>, u128) {
-        let request: some_service_meta::__DoThisParams = sails_rename::Decode::decode(
-                &mut input,
-            )
-            .expect("Failed to decode request");
-        let result = self.do_this(request.p1, request.p2).await;
-        let value = 0u128;
-        return (sails_rename::Encode::encode(&result), value);
-    }
-    async fn __this(&self, mut input: &[u8]) -> (Vec<u8>, u128) {
-        let request: some_service_meta::__ThisParams = sails_rename::Decode::decode(
-                &mut input,
-            )
-            .expect("Failed to decode request");
-        let result = self.this(request.p1);
-        let value = 0u128;
-        return (sails_rename::Encode::encode(&result), value);
-    }
-}
-impl sails_rename::gstd::services::Exposure for SomeServiceExposure<SomeService> {
-    fn message_id(&self) -> sails_rename::MessageId {
-        self.message_id
-    }
-    fn route(&self) -> &'static [u8] {
-        self.route
-    }
 }
 impl sails_rename::gstd::services::Service for SomeService {
-    type Exposure = SomeServiceExposure<SomeService>;
+    type Exposure = SomeServiceExposure<Self>;
+    type BaseExposures = ();
     fn expose(
         self,
         message_id: sails_rename::MessageId,
@@ -114,6 +73,7 @@ impl sails_rename::gstd::services::Service for SomeService {
         Self::Exposure {
             message_id,
             route,
+            base: (),
             #[cfg(not(target_arch = "wasm32"))]
             inner_ptr: inner_box.as_ref() as *const Self,
             #[cfg(not(target_arch = "wasm32"))]
@@ -124,18 +84,10 @@ impl sails_rename::gstd::services::Service for SomeService {
     }
 }
 impl sails_rename::meta::ServiceMeta for SomeService {
-    fn commands() -> sails_rename::scale_info::MetaType {
-        sails_rename::scale_info::MetaType::new::<some_service_meta::CommandsMeta>()
-    }
-    fn queries() -> sails_rename::scale_info::MetaType {
-        sails_rename::scale_info::MetaType::new::<some_service_meta::QueriesMeta>()
-    }
-    fn events() -> sails_rename::scale_info::MetaType {
-        sails_rename::scale_info::MetaType::new::<some_service_meta::EventsMeta>()
-    }
-    fn base_services() -> impl Iterator<Item = sails_rename::meta::AnyServiceMeta> {
-        [].into_iter()
-    }
+    type CommandsMeta = some_service_meta::CommandsMeta;
+    type QueriesMeta = some_service_meta::QueriesMeta;
+    type EventsMeta = some_service_meta::EventsMeta;
+    const BASE_SERVICES: &'static [sails_rename::meta::AnyServiceMetaFn] = &[];
 }
 mod some_service_meta {
     use super::*;
@@ -147,11 +99,19 @@ mod some_service_meta {
         pub(super) p1: u32,
         pub(super) p2: String,
     }
+    impl sails_rename::gstd::InvocationIo for __DoThisParams {
+        const ROUTE: &'static [u8] = &[24u8, 68u8, 111u8, 84u8, 104u8, 105u8, 115u8];
+        type Params = Self;
+    }
     #[derive(Decode, TypeInfo)]
     #[codec(crate = sails_rename::scale_codec)]
     #[scale_info(crate = sails_rename::scale_info)]
     pub struct __ThisParams {
         pub(super) p1: bool,
+    }
+    impl sails_rename::gstd::InvocationIo for __ThisParams {
+        const ROUTE: &'static [u8] = &[16u8, 84u8, 104u8, 105u8, 115u8];
+        type Params = Self;
     }
     #[derive(TypeInfo)]
     #[scale_info(crate = sails_rename::scale_info)]

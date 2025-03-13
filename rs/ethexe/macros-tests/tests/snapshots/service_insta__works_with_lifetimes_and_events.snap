@@ -1,0 +1,193 @@
+---
+source: rs/macros/ethexe/tests/service_insta.rs
+expression: result
+---
+impl<'a, T> MyGenericEventsService<'a, T>
+where
+    T: Clone,
+{
+    pub fn do_this(&mut self) -> u32 {
+        42
+    }
+    fn notify_on(&mut self, event: MyEvents) -> sails_rs::errors::Result<()> {
+        #[cfg(not(target_arch = "wasm32"))]
+        {
+            let self_ptr = self as *const _ as usize;
+            let event_listeners = sails_rs::gstd::events::event_listeners().lock();
+            if let Some(event_listener_ptr) = event_listeners.get(&self_ptr) {
+                let event_listener = unsafe {
+                    &mut *(*event_listener_ptr as *mut Box<dyn FnMut(&MyEvents)>)
+                };
+                core::mem::drop(event_listeners);
+                event_listener(&event);
+            }
+        }
+        sails_rs::gstd::events::__notify_on(event)
+    }
+}
+pub struct MyGenericEventsServiceExposure<T: sails_rs::gstd::services::Service> {
+    message_id: sails_rs::MessageId,
+    route: &'static [u8],
+    #[cfg(not(target_arch = "wasm32"))]
+    inner: Box<T>,
+    #[cfg(not(target_arch = "wasm32"))]
+    inner_ptr: *const T,
+    #[cfg(target_arch = "wasm32")]
+    inner: T,
+    base: T::BaseExposures,
+}
+impl<T: sails_rs::gstd::services::Service> sails_rs::gstd::services::Exposure
+for MyGenericEventsServiceExposure<T> {
+    fn message_id(&self) -> sails_rs::MessageId {
+        self.message_id
+    }
+    fn route(&self) -> &'static [u8] {
+        self.route
+    }
+}
+#[cfg(not(target_arch = "wasm32"))]
+impl<T: sails_rs::gstd::services::Service> Drop for MyGenericEventsServiceExposure<T> {
+    fn drop(&mut self) {
+        let service_ptr = self.inner_ptr as usize;
+        let mut event_listeners = sails_rs::gstd::events::event_listeners().lock();
+        if event_listeners.remove(&service_ptr).is_some() {
+            panic!("there should be no any event listeners left by this time");
+        }
+    }
+}
+impl<'a, T> MyGenericEventsServiceExposure<MyGenericEventsService<'a, T>>
+where
+    T: Clone,
+{
+    pub fn do_this(&mut self) -> u32 {
+        let exposure_scope = sails_rs::gstd::services::ExposureCallScope::new(self);
+        self.inner.do_this()
+    }
+    pub async fn try_handle(&mut self, input: &[u8]) -> Option<(Vec<u8>, u128)> {
+        use sails_rs::gstd::InvocationIo;
+        if let Ok(request) = my_generic_events_service_meta::__DoThisParams::decode_params(
+            input,
+        ) {
+            let result = self.do_this();
+            let value = 0u128;
+            let output = my_generic_events_service_meta::__DoThisParams::encode_reply(
+                &result,
+            );
+            return Some((output, value));
+        }
+        None
+    }
+    pub async fn try_handle_solidity(
+        &mut self,
+        method: &[u8],
+        input: &[u8],
+    ) -> Option<(Vec<u8>, u128)> {
+        if method == &[24u8, 68u8, 111u8, 84u8, 104u8, 105u8, 115u8] {
+            let (): () = sails_rs::alloy_sol_types::SolValue::abi_decode_params(
+                    input,
+                    false,
+                )
+                .expect("Failed to decode request");
+            let result = self.do_this();
+            let value = 0u128;
+            return Some((
+                sails_rs::alloy_sol_types::SolValue::abi_encode(&result),
+                value,
+            ));
+        }
+        None
+    }
+    #[cfg(not(target_arch = "wasm32"))]
+    pub fn set_event_listener<'__elg>(
+        &self,
+        listener: impl FnMut(&MyEvents) + '__elg,
+    ) -> sails_rs::gstd::events::EventListenerGuard<'__elg> {
+        if core::mem::size_of_val(self.inner.as_ref()) == 0 {
+            panic!(
+                "setting event listener on a zero-sized service is not supported for now"
+            );
+        }
+        let service_ptr = self.inner_ptr as usize;
+        let listener: Box<dyn FnMut(&MyEvents)> = Box::new(listener);
+        let listener = Box::new(listener);
+        let listener_ptr = Box::into_raw(listener) as usize;
+        sails_rs::gstd::events::EventListenerGuard::new(service_ptr, listener_ptr)
+    }
+}
+impl<'a, T> sails_rs::gstd::services::Service for MyGenericEventsService<'a, T>
+where
+    T: Clone,
+{
+    type Exposure = MyGenericEventsServiceExposure<Self>;
+    type BaseExposures = ();
+    fn expose(
+        self,
+        message_id: sails_rs::MessageId,
+        route: &'static [u8],
+    ) -> Self::Exposure {
+        #[cfg(not(target_arch = "wasm32"))]
+        let inner_box = Box::new(self);
+        #[cfg(not(target_arch = "wasm32"))]
+        let inner = inner_box.as_ref();
+        #[cfg(target_arch = "wasm32")]
+        let inner = &self;
+        Self::Exposure {
+            message_id,
+            route,
+            base: (),
+            #[cfg(not(target_arch = "wasm32"))]
+            inner_ptr: inner_box.as_ref() as *const Self,
+            #[cfg(not(target_arch = "wasm32"))]
+            inner: inner_box,
+            #[cfg(target_arch = "wasm32")]
+            inner: self,
+        }
+    }
+}
+impl<'a, T> sails_rs::meta::ServiceMeta for MyGenericEventsService<'a, T>
+where
+    T: Clone,
+{
+    type CommandsMeta = my_generic_events_service_meta::CommandsMeta;
+    type QueriesMeta = my_generic_events_service_meta::QueriesMeta;
+    type EventsMeta = my_generic_events_service_meta::EventsMeta;
+    const BASE_SERVICES: &'static [sails_rs::meta::AnyServiceMetaFn] = &[];
+}
+mod my_generic_events_service_meta {
+    use super::*;
+    use sails_rs::{Decode, TypeInfo};
+    #[derive(Decode, TypeInfo)]
+    #[codec(crate = sails_rs::scale_codec)]
+    #[scale_info(crate = sails_rs::scale_info)]
+    pub struct __DoThisParams {}
+    impl sails_rs::gstd::InvocationIo for __DoThisParams {
+        const ROUTE: &'static [u8] = &[24u8, 68u8, 111u8, 84u8, 104u8, 105u8, 115u8];
+        type Params = Self;
+    }
+    #[derive(TypeInfo)]
+    #[scale_info(crate = sails_rs::scale_info)]
+    pub enum CommandsMeta {
+        DoThis(__DoThisParams, u32),
+    }
+    #[derive(TypeInfo)]
+    #[scale_info(crate = sails_rs::scale_info)]
+    pub enum QueriesMeta {}
+    #[derive(TypeInfo)]
+    #[scale_info(crate = sails_rs::scale_info)]
+    pub enum NoEvents {}
+    pub type EventsMeta = MyEvents;
+}
+impl<'a, T> sails_rs::solidity::ServiceSignature for MyGenericEventsService<'a, T>
+where
+    T: Clone,
+{
+    const METHODS: &'static [sails_rs::solidity::MethodRoute] = &[
+        (
+            sails_rs::concatcp!(
+                "do_this", << (u128,) as sails_rs::alloy_sol_types::SolValue > ::SolType
+                as sails_rs::alloy_sol_types::SolType > ::SOL_NAME,
+            ),
+            &[24u8, 68u8, 111u8, 84u8, 104u8, 105u8, 115u8] as &[u8],
+        ),
+    ];
+}

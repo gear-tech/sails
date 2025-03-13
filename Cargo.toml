@@ -50,10 +50,13 @@ gtest = "=1.7.1"
 gwasm-builder = { version = "=1.7.1", package = "gear-wasm-builder" }
 
 # Other deps in alphabetical order
+alloy-primitives = { version = "0.8.19", default-features = false }
+alloy-sol-types = { version = "0.8.19", default-features = false }
 anyhow = "1"
 cargo-generate = "0.21"
 cargo_metadata = "0.19"
 clap = "4.5"
+const_format = "0.2"
 convert-case = { package = "convert_case", version = "0.6" }
 futures = { version = "0.3", default-features = false }
 genco = "0.17"
@@ -63,6 +66,7 @@ hashbrown = "0.15"
 hex = { version = "0.4", default-features = false }
 insta = "1.42"
 itertools = "0.14"
+keccak-const = "0.2"
 lalrpop = { version = "0.20", default-features = false }
 lalrpop-util = "0.20"
 log = { version = "0.4", default-features = false }
