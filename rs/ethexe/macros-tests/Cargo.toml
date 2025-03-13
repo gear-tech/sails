@@ -1,0 +1,18 @@
+[package]
+name = "macros-tests"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+sails-rs = { workspace = true, features = ["ethexe"] }
+sails-macros-core = { workspace = true, features = ["ethexe"] }
+
+[dev-dependencies]
+insta.workspace = true
+prettyplease.workspace = true
+proc-macro2.workspace = true
+quote.workspace = true
+sails-macros-core = { workspace = true }
+sails-rs = { workspace = true }
+syn = { workspace = true, features = ["full", "extra-traits"] }
+tokio = { workspace = true, features = ["full"] }

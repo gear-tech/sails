@@ -60,8 +60,6 @@ fn ensure_single_gservice_on_impl(service_impl: &ItemImpl) {
     }
 }
 
-// Allow unused fields
-#[allow(dead_code)]
 struct ServiceBuilder<'a> {
     service_impl: &'a ItemImpl,
     sails_path: &'a Path,
@@ -70,17 +68,16 @@ struct ServiceBuilder<'a> {
     type_constraints: Option<WhereClause>,
     type_path: &'a TypePath,
     events_type: Option<&'a Path>,
-    pub type_args: &'a PathArguments,
-    pub service_ident: &'a Ident,
-    pub service_handlers: Vec<FnBuilder<'a>>,
-    pub exposure_ident: Ident,
-    pub message_id_ident: Ident,
-    pub route_ident: Ident,
-    pub inner_ident: Ident,
-    pub inner_ptr_ident: Ident,
-    pub base_ident: Ident,
-    pub input_ident: Ident,
-    pub meta_module_ident: Ident,
+    type_args: &'a PathArguments,
+    service_handlers: Vec<FnBuilder<'a>>,
+    exposure_ident: Ident,
+    message_id_ident: Ident,
+    route_ident: Ident,
+    inner_ident: Ident,
+    inner_ptr_ident: Ident,
+    base_ident: Ident,
+    input_ident: Ident,
+    meta_module_ident: Ident,
 }
 
 impl<'a> ServiceBuilder<'a> {
@@ -121,7 +118,6 @@ impl<'a> ServiceBuilder<'a> {
             type_path,
             events_type: service_args.events_type(),
             type_args,
-            service_ident,
             service_handlers,
             exposure_ident,
             message_id_ident,
