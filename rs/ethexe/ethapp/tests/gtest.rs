@@ -2,7 +2,11 @@ use sails_rs::{
     alloy_sol_types::SolValue,
     gtest::{Program, System},
 };
-pub(crate) const DEMO_WASM_PATH: &str = "../target/wasm32-unknown-unknown/debug/ethapp.opt.wasm";
+#[cfg(debug_assertions)]
+pub(crate) const WASM_PATH: &str = "../target/wasm32-unknown-unknown/debug/ethapp.opt.wasm";
+#[cfg(not(debug_assertions))]
+pub(crate) const WASM_PATH: &str = "../target/wasm32-unknown-unknown/release/ethapp.opt.wasm";
+
 pub(crate) const ADMIN_ID: u64 = 10;
 
 #[tokio::test]
@@ -11,7 +15,7 @@ async fn ethapp_sol_works() {
     system.init_logger_with_default_filter("gwasm=debug,gtest=debug,sails_rs=debug");
     system.mint_to(ADMIN_ID, 100_000_000_000_000);
 
-    let program = Program::from_file(&system, DEMO_WASM_PATH);
+    let program = Program::from_file(&system, WASM_PATH);
 
     let ctor = sails_rs::solidity::selector("default(uint128)");
     let message_id = program.send_bytes(ADMIN_ID, ctor.as_slice());
