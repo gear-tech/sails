@@ -10,10 +10,7 @@ use proc_macro2::{Literal, Span, TokenStream};
 use proc_macro_error::abort;
 use quote::quote;
 use std::collections::BTreeMap;
-use syn::{
-    parse_quote, Generics, Ident, ImplItemFn, ItemImpl, Lifetime, Path, PathArguments, Type,
-    TypePath, Visibility, WhereClause,
-};
+use syn::{Generics, Ident, ImplItemFn, ItemImpl, Path, Type, TypePath, Visibility, WhereClause};
 
 mod args;
 #[cfg(feature = "ethexe")]
@@ -68,7 +65,6 @@ struct ServiceBuilder<'a> {
     type_constraints: Option<WhereClause>,
     type_path: &'a TypePath,
     events_type: Option<&'a Path>,
-    type_args: &'a PathArguments,
     service_handlers: Vec<FnBuilder<'a>>,
     exposure_ident: Ident,
     message_id_ident: Ident,
@@ -87,7 +83,7 @@ impl<'a> ServiceBuilder<'a> {
         service_args: &'a ServiceArgs,
     ) -> Self {
         let (generics, type_constraints) = shared::impl_constraints(service_impl);
-        let (type_path, type_args, service_ident) =
+        let (type_path, _type_args, service_ident) =
             shared::impl_type_refs(service_impl.self_ty.as_ref());
         let service_handlers = discover_service_handlers(service_impl)
             .into_iter()
@@ -117,7 +113,6 @@ impl<'a> ServiceBuilder<'a> {
             type_constraints,
             type_path,
             events_type: service_args.events_type(),
-            type_args,
             service_handlers,
             exposure_ident,
             message_id_ident,
@@ -155,7 +150,6 @@ fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
         )
     });
     let sails_path = service_args.sails_path();
-    let events_type = service_args.events_type();
 
     let service_builder = ServiceBuilder::from(&service_impl, &sails_path, &service_args);
 
@@ -168,33 +162,14 @@ fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
         );
     }
 
-    let mut service_impl = service_impl.clone();
-    if let Some(events_type) = events_type {
-        service_impl.items.push(parse_quote!(
-            fn notify_on(&mut self, event: #events_type ) -> #sails_path::errors::Result<()>  {
-                #[cfg(not(target_arch = "wasm32"))]
-                {
-                    let self_ptr = self as *const _ as usize;
-                    let event_listeners = #sails_path::gstd::events::event_listeners().lock();
-                    if let Some(event_listener_ptr) = event_listeners.get(&self_ptr) {
-                        let event_listener =
-                            unsafe { &mut *(*event_listener_ptr as *mut Box<dyn FnMut(& #events_type )>) };
-                        core::mem::drop(event_listeners);
-                        event_listener(&event);
-                    }
-                }
-                #sails_path::gstd::events::__notify_on(event)
-            }
-        ));
-    }
-
     let meta_trait_impl = service_builder.meta_trait_impl();
     let meta_module = service_builder.meta_module();
 
     let exposure_struct = service_builder.exposure_struct();
-    let exposure_drop_code = events_type.map(|_| service_builder.exposure_drop());
     let exposure_impl = service_builder.exposure_impl();
     let service_trait_impl = service_builder.service_trait_impl();
+    let service_notify_impl = service_builder.service_with_events_impls();
+    let exposure_listen_and_drop = service_builder.exposure_listen_and_drop();
 
     // ethexe
     let service_signature_impl = service_builder.service_signature_impl();
@@ -203,8 +178,6 @@ fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
         #service_impl
 
         #exposure_struct
-
-        #exposure_drop_code
 
         #exposure_impl
 
@@ -215,6 +188,10 @@ fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
         #meta_module
 
         #service_signature_impl
+
+        #service_notify_impl
+
+        #exposure_listen_and_drop
     )
 }
 

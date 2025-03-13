@@ -1,5 +1,5 @@
 ---
-source: rs/macros/ethexe/tests/service_insta.rs
+source: macros-tests/tests/service_insta.rs
 expression: result
 ---
 impl<'a> ExtendedWithLifetime<'a> {
@@ -97,7 +97,7 @@ impl<'a> ExtendedWithLifetimeExposure<ExtendedWithLifetime<'a>> {
                     input,
                     false,
                 )
-                .expect("Failed to decode request");
+                .ok()?;
             let result = self.extended_name();
             let value = 0u128;
             return Some((
@@ -110,7 +110,7 @@ impl<'a> ExtendedWithLifetimeExposure<ExtendedWithLifetime<'a>> {
                     input,
                     false,
                 )
-                .expect("Failed to decode request");
+                .ok()?;
             let result = self.name();
             let value = 0u128;
             return Some((

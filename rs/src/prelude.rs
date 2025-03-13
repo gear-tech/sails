@@ -60,3 +60,8 @@ pub use alloy_sol_types;
 pub use const_format::*;
 #[cfg(feature = "ethexe")]
 pub use keccak_const;
+
+/// Channels, Streams and Futures extensions types
+///
+/// See [`futures::stream`], [`futures::channel::oneshot`]
+pub use futures;

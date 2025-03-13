@@ -1,6 +1,5 @@
-use crate::{calls::Remoting, errors::Result, prelude::*};
+use crate::{calls::Remoting, errors::Result, futures::FutureExt, prelude::*};
 use core::future::Future;
-use futures::FutureExt;
 use gstd::{msg, prog};
 
 #[derive(Default)]

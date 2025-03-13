@@ -1,8 +1,9 @@
 use demo_client::{counter::events::*, ping_pong, traits::*};
-use futures::stream::StreamExt;
 use gclient::GearApi;
 use gstd::errors::{ErrorReplyReason, SimpleExecutionError};
-use sails_rs::{calls::*, errors::RtlError, events::*, gclient::calls::*, prelude::*};
+use sails_rs::{
+    calls::*, errors::RtlError, events::*, futures::StreamExt, gclient::calls::*, prelude::*,
+};
 use std::panic;
 
 const DEMO_WASM_PATH: &str = "../../../target/wasm32-unknown-unknown/debug/demo.opt.wasm";

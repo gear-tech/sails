@@ -102,31 +102,6 @@ pub(crate) fn discover_invocation_targets(
         })
 }
 
-pub(crate) fn extract_lifetime_names(path_args: &PathArguments) -> Vec<String> {
-    if let Some(lts) = extract_lifetimes(path_args) {
-        lts.map(|lifetime| lifetime.ident.to_string())
-            .collect::<Vec<_>>()
-    } else {
-        vec![]
-    }
-}
-
-pub(crate) fn extract_lifetimes(
-    path_args: &PathArguments,
-) -> Option<impl Iterator<Item = &Lifetime>> {
-    if let PathArguments::AngleBracketed(type_args) = path_args {
-        Some(type_args.args.iter().filter_map(|a| {
-            if let GenericArgument::Lifetime(lifetime) = a {
-                Some(lifetime)
-            } else {
-                None
-            }
-        }))
-    } else {
-        None
-    }
-}
-
 pub(crate) fn replace_any_lifetime_with_static(ty: Type) -> Type {
     match ty {
         Type::Reference(r) => {

@@ -1,5 +1,5 @@
 ---
-source: rs/macros/ethexe/tests/service_insta.rs
+source: macros-tests/tests/service_insta.rs
 expression: result
 ---
 impl<T> MyGenericEventsService<'_, '_, T>
@@ -8,21 +8,6 @@ where
 {
     pub fn do_this(&mut self) -> u32 {
         42
-    }
-    fn notify_on(&mut self, event: MyEvents) -> sails_rs::errors::Result<()> {
-        #[cfg(not(target_arch = "wasm32"))]
-        {
-            let self_ptr = self as *const _ as usize;
-            let event_listeners = sails_rs::gstd::events::event_listeners().lock();
-            if let Some(event_listener_ptr) = event_listeners.get(&self_ptr) {
-                let event_listener = unsafe {
-                    &mut *(*event_listener_ptr as *mut Box<dyn FnMut(&MyEvents)>)
-                };
-                core::mem::drop(event_listeners);
-                event_listener(&event);
-            }
-        }
-        sails_rs::gstd::events::__notify_on(event)
     }
 }
 pub struct MyGenericEventsServiceExposure<T: sails_rs::gstd::services::Service> {
@@ -43,16 +28,6 @@ for MyGenericEventsServiceExposure<T> {
     }
     fn route(&self) -> &'static [u8] {
         self.route
-    }
-}
-#[cfg(not(target_arch = "wasm32"))]
-impl<T: sails_rs::gstd::services::Service> Drop for MyGenericEventsServiceExposure<T> {
-    fn drop(&mut self) {
-        let service_ptr = self.inner_ptr as usize;
-        let mut event_listeners = sails_rs::gstd::events::event_listeners().lock();
-        if event_listeners.remove(&service_ptr).is_some() {
-            panic!("there should be no any event listeners left by this time");
-        }
     }
 }
 impl<T> MyGenericEventsServiceExposure<MyGenericEventsService<'_, '_, T>>
@@ -87,7 +62,7 @@ where
                     input,
                     false,
                 )
-                .expect("Failed to decode request");
+                .ok()?;
             let result = self.do_this();
             let value = 0u128;
             return Some((
@@ -96,22 +71,6 @@ where
             ));
         }
         None
-    }
-    #[cfg(not(target_arch = "wasm32"))]
-    pub fn set_event_listener<'__elg>(
-        &self,
-        listener: impl FnMut(&MyEvents) + '__elg,
-    ) -> sails_rs::gstd::events::EventListenerGuard<'__elg> {
-        if core::mem::size_of_val(self.inner.as_ref()) == 0 {
-            panic!(
-                "setting event listener on a zero-sized service is not supported for now"
-            );
-        }
-        let service_ptr = self.inner_ptr as usize;
-        let listener: Box<dyn FnMut(&MyEvents)> = Box::new(listener);
-        let listener = Box::new(listener);
-        let listener_ptr = Box::into_raw(listener) as usize;
-        sails_rs::gstd::events::EventListenerGuard::new(service_ptr, listener_ptr)
     }
 }
 impl<T> sails_rs::gstd::services::Service for MyGenericEventsService<'_, '_, T>
@@ -191,3 +150,51 @@ where
         ),
     ];
 }
+impl<T> MyGenericEventsService<'_, '_, T>
+where
+    T: Clone,
+{
+    fn notify_on(&mut self, event: MyEvents) -> sails_rs::errors::Result<()> {
+        #[cfg(not(target_arch = "wasm32"))]
+        { MyGenericEventsServiceExposure::<Self>::notify_on(self, event) }
+        #[cfg(target_arch = "wasm32")] { sails_rs::gstd::events::__notify_on(event) }
+    }
+}
+#[cfg(not(target_arch = "wasm32"))]
+const _: () = {
+    type ServiceEventsMap = sails_rs::collections::BTreeMap<
+        usize,
+        sails_rs::Vec<MyEvents>,
+    >;
+    type Mutex<T> = sails_rs::spin::Mutex<T>;
+    impl<T: sails_rs::gstd::services::Service> MyGenericEventsServiceExposure<T> {
+        pub fn take_events(&mut self) -> Vec<MyEvents> {
+            if core::mem::size_of_val(self.inner.as_ref()) == 0 {
+                panic!(
+                    "setting event listener on a zero-sized service is not supported for now"
+                );
+            }
+            let service_ptr = self.inner_ptr as usize;
+            let mut map = Self::events_map();
+            map.remove(&service_ptr).unwrap_or_default()
+        }
+        fn notify_on(svc: &mut T, event: MyEvents) -> sails_rs::errors::Result<()> {
+            let service_ptr = svc as *const _ as *const () as usize;
+            let mut map = Self::events_map();
+            map.entry(service_ptr).or_default().push(event);
+            Ok(())
+        }
+        fn events_map() -> impl core::ops::DerefMut<Target = ServiceEventsMap> {
+            static MAP: Mutex<ServiceEventsMap> = Mutex::new(ServiceEventsMap::new());
+            MAP.lock()
+        }
+    }
+    impl<T: sails_rs::gstd::services::Service> Drop
+    for MyGenericEventsServiceExposure<T> {
+        fn drop(&mut self) {
+            let service_ptr = self.inner_ptr as usize;
+            let mut map = Self::events_map();
+            _ = map.remove(&service_ptr);
+        }
+    }
+};

@@ -90,7 +90,7 @@ impl FnBuilder<'_> {
 
     /// Generates code for encode/decode parameters and fn invocation
     /// ```rust
-    /// let (p1, p2): (u32, String) = sails_rs::alloy_sol_types::SolValue::abi_decode_params(input, false).expect("Failed to decode request");
+    /// let (p1, p2): (u32, String) = sails_rs::alloy_sol_types::SolValue::abi_decode_params(input, false).ok()?;
     /// let result: u32 = self.do_this(p1, p2).await;
     /// let value = 0u128;
     /// ```
@@ -129,7 +129,7 @@ impl FnBuilder<'_> {
         };
 
         quote! {
-            let (#(#handler_params_comma)*) : (#(#handler_types)*) = #sails_path::alloy_sol_types::SolValue::abi_decode_params(input, false).expect("Failed to decode request");
+            let (#(#handler_params_comma)*) : (#(#handler_types)*) = #sails_path::alloy_sol_types::SolValue::abi_decode_params(input, false).ok()?;
             #handle_token
         }
     }

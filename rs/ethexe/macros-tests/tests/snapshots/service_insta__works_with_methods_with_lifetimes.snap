@@ -1,5 +1,5 @@
 ---
-source: rs/macros/ethexe/tests/service_insta.rs
+source: macros-tests/tests/service_insta.rs
 expression: result
 ---
 impl ReferenceService {
@@ -120,7 +120,7 @@ impl ReferenceServiceExposure<ReferenceService> {
                     input,
                     false,
                 )
-                .expect("Failed to decode request");
+                .ok()?;
             let result = self.add_byte(byte);
             let value = 0u128;
             return Some((
@@ -133,7 +133,7 @@ impl ReferenceServiceExposure<ReferenceService> {
                     input,
                     false,
                 )
-                .expect("Failed to decode request");
+                .ok()?;
             let result = self.baked();
             let value = 0u128;
             return Some((
@@ -147,7 +147,7 @@ impl ReferenceServiceExposure<ReferenceService> {
                     input,
                     false,
                 )
-                .expect("Failed to decode request");
+                .ok()?;
             let result = self.first_byte().await;
             let value = 0u128;
             return Some((
@@ -160,7 +160,7 @@ impl ReferenceServiceExposure<ReferenceService> {
                     input,
                     false,
                 )
-                .expect("Failed to decode request");
+                .ok()?;
             let result = self.incr();
             let value = 0u128;
             return Some((
@@ -173,7 +173,7 @@ impl ReferenceServiceExposure<ReferenceService> {
                     input,
                     false,
                 )
-                .expect("Failed to decode request");
+                .ok()?;
             let result = self.last_byte().await;
             let value = 0u128;
             return Some((

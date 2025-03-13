@@ -37,54 +37,77 @@ impl ServiceBuilder<'_> {
         }
     }
 
-    pub(super) fn exposure_set_event_listener(&self) -> Option<TokenStream> {
+    pub(super) fn exposure_listen_and_drop(&self) -> Option<TokenStream> {
         let sails_path = self.sails_path;
+        let exposure_ident = &self.exposure_ident;
 
         self.events_type.map(|events_type| {
-            // get non conflicting lifetime name
-            let lifetimes = shared::extract_lifetime_names(self.type_args);
-            let mut lt = "__elg".to_owned();
-            while lifetimes.contains(&lt) {
-                lt = format!("_{}", lt);
-            }
-            let lifetime = Lifetime::new(&format!("'{0}", lt), Span::call_site());            
-
             quote! {
                 #[cfg(not(target_arch = "wasm32"))]
-                // Immutable so one can set it via AsRef when used with extending
-                pub fn set_event_listener<#lifetime>(
-                    &self,
-                    listener: impl FnMut(& #events_type ) + #lifetime,
-                ) -> #sails_path::gstd::events::EventListenerGuard<#lifetime> {
-                    if core::mem::size_of_val(self.inner.as_ref()) == 0 {
-                        panic!("setting event listener on a zero-sized service is not supported for now");
+                const _: () = {
+                    type ServiceEventsMap = #sails_path::collections::BTreeMap<usize, #sails_path::Vec< #events_type >>;
+                    type Mutex<T> = #sails_path::spin::Mutex<T>;
+
+                    // Impl for `Exposure<T>` with concrete events type for cleanup via Drop
+                    impl<T: #sails_path::gstd::services::Service> #exposure_ident <T> {
+                        pub fn take_events(&mut self) -> Vec< #events_type > {
+                            if core::mem::size_of_val(self.inner.as_ref()) == 0 {
+                                panic!("setting event listener on a zero-sized service is not supported for now");
+                            }
+
+                            let service_ptr = self.inner_ptr as usize;
+                            let mut map = Self::events_map();
+                            map.remove(&service_ptr).unwrap_or_default()
+                        }
+
+                        fn notify_on(svc: &mut T, event: #events_type) -> #sails_path::errors::Result<()> {
+                            let service_ptr = svc as *const _ as *const () as usize;
+                            let mut map = Self::events_map();
+                            map.entry(service_ptr).or_default().push(event);
+                            Ok(())
+                        }
+
+                        fn events_map() -> impl core::ops::DerefMut<Target = ServiceEventsMap> {
+                            static MAP: Mutex<ServiceEventsMap> = Mutex::new(ServiceEventsMap::new());
+                            MAP.lock()
+                        }
                     }
-                    let service_ptr = self.inner_ptr as usize;
-                    let listener: Box<dyn FnMut(& #events_type )> = Box::new(listener);
-                    let listener = Box::new(listener);
-                    let listener_ptr = Box::into_raw(listener) as usize;
-                    #sails_path::gstd::events::EventListenerGuard::new(service_ptr, listener_ptr)
-                }
+
+                    impl<T: #sails_path::gstd::services::Service> Drop for #exposure_ident <T> {
+                        fn drop(&mut self) {
+                            let service_ptr = self.inner_ptr as usize;
+                            let mut map = Self::events_map();
+                            _ = map.remove(&service_ptr);
+                        }
+                    }
+                };
             }
         })
     }
 
-    pub(super) fn exposure_drop(&self) -> TokenStream {
+    pub(super) fn service_with_events_impls(&self) -> Option<TokenStream> {
         let sails_path = self.sails_path;
+        let generics = &self.generics;
+        let service_type_path = self.type_path;
+        let service_type_constraints = self.type_constraints();
         let exposure_ident = &self.exposure_ident;
 
-        quote!(
-            #[cfg(not(target_arch = "wasm32"))]
-            impl<T: #sails_path::gstd::services::Service> Drop for #exposure_ident <T> {
-                fn drop(&mut self) {
-                    let service_ptr = self.inner_ptr as usize;
-                    let mut event_listeners = #sails_path::gstd::events::event_listeners().lock();
-                    if event_listeners.remove(&service_ptr).is_some() {
-                        panic!("there should be no any event listeners left by this time");
+        self.events_type.map(|events_type| {
+            quote! {
+                impl #generics #service_type_path #service_type_constraints {
+                    fn notify_on(&mut self, event: #events_type ) -> #sails_path::errors::Result<()>  {
+                        #[cfg(not(target_arch = "wasm32"))]
+                        {
+                            #exposure_ident::<Self>::notify_on(self, event)
+                        }
+                        #[cfg(target_arch = "wasm32")]
+                        {
+                            #sails_path::gstd::events::__notify_on(event)
+                        }
                     }
                 }
             }
-        )
+        })
     }
 
     pub(super) fn exposure_impl(&self) -> TokenStream {
@@ -123,7 +146,6 @@ impl ServiceBuilder<'_> {
                     }
                 });
 
-        let exposure_set_event_listener_code = self.exposure_set_event_listener();
         let try_handle_impl = self.try_handle_impl();
         // ethexe
         let try_handle_solidity_impl = self.try_handle_solidity_impl(base_ident);
@@ -138,8 +160,6 @@ impl ServiceBuilder<'_> {
                 #try_handle_impl
 
                 #try_handle_solidity_impl
-
-                #exposure_set_event_listener_code
             }
         }
     }

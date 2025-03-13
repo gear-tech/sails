@@ -2,10 +2,10 @@ use crate::{
     calls::{Query, Remoting},
     errors::{Result, RtlError},
     events::Listener,
+    futures::{stream, Stream, StreamExt},
     prelude::*,
 };
 use core::future::Future;
-use futures::{stream, Stream, StreamExt};
 use gclient::metadata::runtime_types::{
     gear_core::message::user::UserMessage as GenUserMessage,
     pallet_gear_voucher::internal::VoucherId,

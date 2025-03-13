@@ -3,22 +3,16 @@ use crate::{
     collections::HashMap,
     errors::{Result, RtlError},
     events::Listener,
+    futures::*,
     gtest::{BlockRunResult, Program, System},
     prelude::*,
     rc::Rc,
 };
 use core::{cell::RefCell, future::Future};
-use futures::{
-    channel::{
-        mpsc::{unbounded, UnboundedSender},
-        oneshot,
-    },
-    FutureExt, Stream, TryFutureExt,
-};
 use gear_core_errors::{ReplyCode, SuccessReplyReason};
 
-type EventSender = UnboundedSender<(ActorId, Vec<u8>)>;
-type ReplySender = oneshot::Sender<Result<Vec<u8>>>;
+type EventSender = channel::mpsc::UnboundedSender<(ActorId, Vec<u8>)>;
+type ReplySender = channel::oneshot::Sender<Result<Vec<u8>>>;
 
 #[derive(Debug, Default)]
 pub struct GTestArgs {
@@ -175,7 +169,7 @@ impl GTestRemoting {
         &self,
         message_id: MessageId,
     ) -> impl Future<Output = Result<Vec<u8>>> {
-        let (tx, rx) = oneshot::channel::<Result<Vec<u8>>>();
+        let (tx, rx) = channel::oneshot::channel::<Result<Vec<u8>>>();
         self.block_reply_senders.borrow_mut().insert(message_id, tx);
 
         match self.block_run_mode {
@@ -290,7 +284,7 @@ impl Remoting for GTestRemoting {
 
 impl Listener<Vec<u8>> for GTestRemoting {
     async fn listen(&mut self) -> Result<impl Stream<Item = (ActorId, Vec<u8>)>> {
-        let (tx, rx) = unbounded::<(ActorId, Vec<u8>)>();
+        let (tx, rx) = channel::mpsc::unbounded::<(ActorId, Vec<u8>)>();
         self.event_senders.borrow_mut().push(tx);
         Ok(rx)
     }
