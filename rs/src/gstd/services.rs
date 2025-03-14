@@ -1,9 +1,9 @@
-use crate::{collections::BTreeMap, MessageId, Vec};
+use crate::{MessageId, Vec, collections::BTreeMap};
 use core::ops::DerefMut;
 
 #[cfg(not(target_arch = "wasm32"))]
-fn get_message_id_to_service_route_map(
-) -> impl DerefMut<Target = BTreeMap<MessageId, Vec<&'static [u8]>>> {
+fn get_message_id_to_service_route_map()
+-> impl DerefMut<Target = BTreeMap<MessageId, Vec<&'static [u8]>>> {
     use spin::Mutex;
 
     static MESSAGE_ID_TO_SERVICE_ROUTE: Mutex<BTreeMap<MessageId, Vec<&'static [u8]>>> =
@@ -13,8 +13,8 @@ fn get_message_id_to_service_route_map(
 }
 
 #[cfg(target_arch = "wasm32")]
-fn get_message_id_to_service_route_map(
-) -> impl DerefMut<Target = BTreeMap<MessageId, Vec<&'static [u8]>>> {
+fn get_message_id_to_service_route_map()
+-> impl DerefMut<Target = BTreeMap<MessageId, Vec<&'static [u8]>>> {
     static mut MESSAGE_ID_TO_SERVICE_ROUTE: BTreeMap<MessageId, Vec<&'static [u8]>> =
         BTreeMap::new();
 

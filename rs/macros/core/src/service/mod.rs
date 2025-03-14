@@ -6,8 +6,8 @@ use crate::{
 };
 use args::ServiceArgs;
 use convert_case::{Case, Casing};
-use proc_macro2::{Literal, Span, TokenStream};
 use proc_macro_error::abort;
+use proc_macro2::{Literal, Span, TokenStream};
 use quote::quote;
 use std::collections::BTreeMap;
 use syn::{Generics, Ident, ImplItemFn, ItemImpl, Path, Type, TypePath, Visibility, WhereClause};

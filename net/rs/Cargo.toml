@@ -1,12 +1,12 @@
 [workspace.package]
 version = "0.0.1"
 authors = ["Gear Technologies"]
-edition = "2021"
+edition = "2024"
 license = "GPL-3.0"
 repository = "https://github.com/gear-tech/sails"
 
 [workspace]
-resolver = "2"
+resolver = "3"
 members = ["client-gen"]
 
 [workspace.dependencies]

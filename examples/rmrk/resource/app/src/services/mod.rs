@@ -4,7 +4,7 @@ use resources::{ComposedResource, PartId, Resource, ResourceId};
 use sails_rs::{
     calls::Query,
     collections::HashMap,
-    gstd::{service, ExecContext},
+    gstd::{ExecContext, service},
     prelude::*,
 };
 
@@ -170,9 +170,9 @@ fn resource_storage_admin() -> ActorId {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::catalogs::{mockall::MockRmrkCatalog, FixedPart, Part};
+    use crate::catalogs::{FixedPart, Part, mockall::MockRmrkCatalog};
     use resources::ComposedResource;
-    use sails_rs::{gstd::calls::GStdArgs, mockall::MockQuery, ActorId};
+    use sails_rs::{ActorId, gstd::calls::GStdArgs, mockall::MockQuery};
 
     #[tokio::test]
     async fn test_add_resource_entry() {

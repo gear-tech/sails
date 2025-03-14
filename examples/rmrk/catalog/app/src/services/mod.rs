@@ -1,10 +1,10 @@
 use errors::Error;
 use parts::{CollectionId, Part, PartId, SlotPart};
 use sails_rs::{
-    collections::{BTreeMap, BTreeSet},
-    gstd::{service, ExecContext},
-    prelude::*,
     Result as RtlResult,
+    collections::{BTreeMap, BTreeSet},
+    gstd::{ExecContext, service},
+    prelude::*,
 };
 
 pub mod errors;

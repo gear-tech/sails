@@ -1,9 +1,9 @@
 use demo_client::{
+    Counter, DemoFactory, Dog, References, ValueFee,
     counter::{self, events::CounterEvents},
     dog::{self, events::DogEvents},
-    Counter, DemoFactory, Dog, References, ValueFee,
 };
-use sails_rs::{events::Listener, gtest::calls::*, gtest::System, prelude::*};
+use sails_rs::{events::Listener, gtest::System, gtest::calls::*, prelude::*};
 
 pub(crate) const DEMO_WASM_PATH: &str =
     "../../../target/wasm32-unknown-unknown/debug/demo.opt.wasm";

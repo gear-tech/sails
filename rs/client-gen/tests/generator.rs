@@ -62,7 +62,7 @@ fn full() {
         };
         "#;
 
-    insta::assert_snapshot!(gen(IDL, "Service"));
+    insta::assert_snapshot!(gen_client(IDL, "Service"));
 }
 
 #[test]
@@ -88,7 +88,7 @@ fn test_basic_works() {
         };
     ";
 
-    insta::assert_snapshot!(gen(idl, "Basic"));
+    insta::assert_snapshot!(gen_client(idl, "Basic"));
 }
 
 #[test]
@@ -104,14 +104,14 @@ fn test_multiple_services() {
         };
     ";
 
-    insta::assert_snapshot!(gen(idl, "Multiple"));
+    insta::assert_snapshot!(gen_client(idl, "Multiple"));
 }
 
 #[test]
 fn test_rmrk_works() {
     let idl = include_str!("../../../examples/rmrk/catalog/wasm/rmrk-catalog.idl");
 
-    insta::assert_snapshot!(gen(idl, "RmrkCatalog"));
+    insta::assert_snapshot!(gen_client(idl, "RmrkCatalog"));
 }
 
 #[test]
@@ -128,7 +128,7 @@ fn test_nonzero_works() {
             };
         ";
 
-    insta::assert_snapshot!(gen(idl, "NonZeroParams"));
+    insta::assert_snapshot!(gen_client(idl, "NonZeroParams"));
 }
 
 #[test]
@@ -152,7 +152,7 @@ fn test_events_works() {
             };
         ";
 
-    insta::assert_snapshot!(gen(idl, "ServiceWithEvents"));
+    insta::assert_snapshot!(gen_client(idl, "ServiceWithEvents"));
 }
 
 #[test]
@@ -230,7 +230,7 @@ fn test_external_types() {
     insta::assert_snapshot!(code);
 }
 
-fn gen(program: &str, service_name: &str) -> String {
+fn gen_client(program: &str, service_name: &str) -> String {
     ClientGenerator::from_idl(program)
         .with_mocks("with_mocks")
         .generate(service_name)

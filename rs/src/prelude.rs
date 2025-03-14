@@ -23,7 +23,7 @@ pub use core::{
 pub mod collections {
     extern crate alloc;
 
-    pub use ::hashbrown::{hash_map, hash_set, HashMap, HashSet};
+    pub use ::hashbrown::{HashMap, HashSet, hash_map, hash_set};
     pub use alloc::collections::*;
 
     /// Reexports from [`hashbrown`].
@@ -42,7 +42,7 @@ pub mod ffi {
 }
 
 #[cfg(feature = "gstd")]
-pub use crate::gstd::{export, program, route, service, CommandReply};
+pub use crate::gstd::{CommandReply, export, program, route, service};
 pub use crate::types::*;
 pub use gear_core_errors::{
     self as gear_core_errors, ErrorReplyReason, ReplyCode, SimpleExecutionError, SuccessReplyReason,

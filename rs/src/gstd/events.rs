@@ -1,6 +1,6 @@
 //! Functionality for notifying off-chain subscribers on events happening in on-chain programs.
 
-use crate::{collections::BTreeMap, errors::*, gstd::services, ValueUnit, Vec};
+use crate::{ValueUnit, Vec, collections::BTreeMap, errors::*, gstd::services};
 use core::{any::TypeId, ops::DerefMut};
 use gstd::ActorId as GStdActorId;
 use parity_scale_codec::Encode;
@@ -83,7 +83,7 @@ where
         _ => {
             return Err(RtlError::EventTypeMustBeEnum {
                 type_name: type_info.path.ident().unwrap_or("N/A").into(),
-            })
+            });
         }
     };
     Ok(variant_type_def

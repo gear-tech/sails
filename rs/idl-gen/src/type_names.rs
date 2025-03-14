@@ -20,11 +20,11 @@
 
 use crate::errors::{Error, Result};
 use convert_case::{Case, Casing};
-use core::num::{NonZeroU128, NonZeroU16, NonZeroU32, NonZeroU64, NonZeroU8};
+use core::num::{NonZeroU8, NonZeroU16, NonZeroU32, NonZeroU64, NonZeroU128};
 use gprimitives::*;
 use scale_info::{
-    form::PortableForm, PortableType, Type, TypeDef, TypeDefArray, TypeDefPrimitive,
-    TypeDefSequence, TypeDefTuple, TypeInfo,
+    PortableType, Type, TypeDef, TypeDefArray, TypeDefPrimitive, TypeDefSequence, TypeDefTuple,
+    TypeInfo, form::PortableForm,
 };
 use std::{
     collections::{BTreeMap, HashMap},

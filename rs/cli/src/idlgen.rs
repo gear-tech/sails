@@ -1,5 +1,5 @@
 use anyhow::Context;
-use cargo_metadata::{camino::*, Package, PackageId};
+use cargo_metadata::{Package, PackageId, camino::*};
 use std::{
     collections::{HashMap, HashSet},
     env, fs,

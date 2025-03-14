@@ -28,7 +28,7 @@ pub struct Visitor {
 }
 
 #[cfg(target_arch = "wasm32")]
-extern "C" {
+unsafe extern "C" {
     fn visit_ctor(context: *const (), ctor: *const Ctor);
     fn visit_service(context: *const (), service: *const Service);
     fn visit_type(context: *const (), r#type: *const Type);
@@ -104,13 +104,13 @@ macro_rules! deref_visitor {
 }
 
 #[cfg(target_arch = "wasm32")]
-#[no_mangle]
+#[unsafe(no_mangle)]
 extern "C" fn accept_program(program: *const Program, context: *const ()) -> ErrorCode {
     accept_program_impl(program, context, &VISITOR)
 }
 
 #[cfg(not(target_arch = "wasm32"))]
-#[no_mangle]
+#[unsafe(no_mangle)]
 extern "C" fn accept_program(
     program: *const Program,
     context: *const (),
@@ -131,13 +131,13 @@ fn accept_program_impl(
 }
 
 #[cfg(target_arch = "wasm32")]
-#[no_mangle]
+#[unsafe(no_mangle)]
 extern "C" fn accept_ctor(ctor: *const Ctor, context: *const ()) -> ErrorCode {
     accept_ctor_impl(ctor, context, &VISITOR)
 }
 
 #[cfg(not(target_arch = "wasm32"))]
-#[no_mangle]
+#[unsafe(no_mangle)]
 extern "C" fn accept_ctor(
     ctor: *const Ctor,
     context: *const (),
@@ -154,13 +154,13 @@ fn accept_ctor_impl(ctor: *const Ctor, context: *const (), visitor: *const Visit
 }
 
 #[cfg(target_arch = "wasm32")]
-#[no_mangle]
+#[unsafe(no_mangle)]
 extern "C" fn accept_ctor_func(func: *const CtorFunc, context: *const ()) -> ErrorCode {
     accept_ctor_func_impl(func, context, &VISITOR)
 }
 
 #[cfg(not(target_arch = "wasm32"))]
-#[no_mangle]
+#[unsafe(no_mangle)]
 extern "C" fn accept_ctor_func(
     func: *const CtorFunc,
     context: *const (),
@@ -181,13 +181,13 @@ fn accept_ctor_func_impl(
 }
 
 #[cfg(target_arch = "wasm32")]
-#[no_mangle]
+#[unsafe(no_mangle)]
 extern "C" fn accept_service(service: *const Service, context: *const ()) -> ErrorCode {
     accept_service_impl(service, context, &VISITOR)
 }
 
 #[cfg(not(target_arch = "wasm32"))]
-#[no_mangle]
+#[unsafe(no_mangle)]
 extern "C" fn accept_service(
     service: *const Service,
     context: *const (),
@@ -208,13 +208,13 @@ fn accept_service_impl(
 }
 
 #[cfg(target_arch = "wasm32")]
-#[no_mangle]
+#[unsafe(no_mangle)]
 extern "C" fn accept_service_func(func: *const ServiceFunc, context: *const ()) -> ErrorCode {
     accept_service_func_impl(func, context, &VISITOR)
 }
 
 #[cfg(not(target_arch = "wasm32"))]
-#[no_mangle]
+#[unsafe(no_mangle)]
 extern "C" fn accept_service_func(
     func: *const ServiceFunc,
     context: *const (),
@@ -235,13 +235,13 @@ fn accept_service_func_impl(
 }
 
 #[cfg(target_arch = "wasm32")]
-#[no_mangle]
+#[unsafe(no_mangle)]
 extern "C" fn accept_service_event(event: *const ServiceEvent, context: *const ()) -> ErrorCode {
     accept_service_event_impl(event, context, &VISITOR)
 }
 
 #[cfg(not(target_arch = "wasm32"))]
-#[no_mangle]
+#[unsafe(no_mangle)]
 extern "C" fn accept_service_event(
     event: *const ServiceEvent,
     context: *const (),
@@ -262,13 +262,13 @@ fn accept_service_event_impl(
 }
 
 #[cfg(target_arch = "wasm32")]
-#[no_mangle]
+#[unsafe(no_mangle)]
 extern "C" fn accept_func_param(func_param: *const FuncParam, context: *const ()) -> ErrorCode {
     accept_func_param_impl(func_param, context, &VISITOR)
 }
 
 #[cfg(not(target_arch = "wasm32"))]
-#[no_mangle]
+#[unsafe(no_mangle)]
 extern "C" fn accept_func_param(
     func_param: *const FuncParam,
     context: *const (),
@@ -289,13 +289,13 @@ fn accept_func_param_impl(
 }
 
 #[cfg(target_arch = "wasm32")]
-#[no_mangle]
+#[unsafe(no_mangle)]
 extern "C" fn accept_type(r#type: *const Type, context: *const ()) -> ErrorCode {
     accept_type_impl(r#type, context, &VISITOR)
 }
 
 #[cfg(not(target_arch = "wasm32"))]
-#[no_mangle]
+#[unsafe(no_mangle)]
 extern "C" fn accept_type(
     r#type: *const Type,
     context: *const (),
@@ -312,13 +312,13 @@ fn accept_type_impl(r#type: *const Type, context: *const (), visitor: *const Vis
 }
 
 #[cfg(target_arch = "wasm32")]
-#[no_mangle]
+#[unsafe(no_mangle)]
 extern "C" fn accept_type_decl(type_decl: *const TypeDecl, context: *const ()) -> ErrorCode {
     accept_type_decl_impl(type_decl, context, &VISITOR)
 }
 
 #[cfg(not(target_arch = "wasm32"))]
-#[no_mangle]
+#[unsafe(no_mangle)]
 extern "C" fn accept_type_decl(
     type_decl: *const TypeDecl,
     context: *const (),
@@ -339,13 +339,13 @@ fn accept_type_decl_impl(
 }
 
 #[cfg(target_arch = "wasm32")]
-#[no_mangle]
+#[unsafe(no_mangle)]
 extern "C" fn accept_struct_def(struct_def: *const StructDef, context: *const ()) -> ErrorCode {
     accept_struct_def_impl(struct_def, context, &VISITOR)
 }
 
 #[cfg(not(target_arch = "wasm32"))]
-#[no_mangle]
+#[unsafe(no_mangle)]
 extern "C" fn accept_struct_def(
     struct_def: *const StructDef,
     context: *const (),
@@ -366,7 +366,7 @@ fn accept_struct_def_impl(
 }
 
 #[cfg(target_arch = "wasm32")]
-#[no_mangle]
+#[unsafe(no_mangle)]
 extern "C" fn accept_struct_field(
     struct_field: *const StructField,
     context: *const (),
@@ -375,7 +375,7 @@ extern "C" fn accept_struct_field(
 }
 
 #[cfg(not(target_arch = "wasm32"))]
-#[no_mangle]
+#[unsafe(no_mangle)]
 extern "C" fn accept_struct_field(
     struct_field: *const StructField,
     context: *const (),
@@ -396,13 +396,13 @@ fn accept_struct_field_impl(
 }
 
 #[cfg(target_arch = "wasm32")]
-#[no_mangle]
+#[unsafe(no_mangle)]
 extern "C" fn accept_enum_def(enum_def: *const EnumDef, context: *const ()) -> ErrorCode {
     accept_enum_def_impl(enum_def, context, &VISITOR)
 }
 
 #[cfg(not(target_arch = "wasm32"))]
-#[no_mangle]
+#[unsafe(no_mangle)]
 extern "C" fn accept_enum_def(
     enum_def: *const EnumDef,
     context: *const (),
@@ -423,7 +423,7 @@ fn accept_enum_def_impl(
 }
 
 #[cfg(target_arch = "wasm32")]
-#[no_mangle]
+#[unsafe(no_mangle)]
 extern "C" fn accept_enum_variant(
     enum_variant: *const EnumVariant,
     context: *const (),
@@ -432,7 +432,7 @@ extern "C" fn accept_enum_variant(
 }
 
 #[cfg(not(target_arch = "wasm32"))]
-#[no_mangle]
+#[unsafe(no_mangle)]
 extern "C" fn accept_enum_variant(
     enum_variant: *const EnumVariant,
     context: *const (),

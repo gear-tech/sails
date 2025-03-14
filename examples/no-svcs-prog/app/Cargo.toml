@@ -1,7 +1,7 @@
 [package]
 name = "no-svcs-prog-app"
 version = "0.1.0"
-edition = "2021"
+edition.workspace = true
 
 [dependencies]
 sails-rs.workspace = true

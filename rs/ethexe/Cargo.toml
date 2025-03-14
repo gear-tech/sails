@@ -1,12 +1,12 @@
 [workspace.package]
 version = "0.1.0"
-edition = "2021"
+edition = "2024"
 authors = ["Gear Technologies"]
 license = "GPL-3.0"
 repository = "https://github.com/gear-tech/sails"
 
 [workspace]
-resolver = "2"
+resolver = "3"
 members = ["ethapp", "macros-tests"]
 
 [workspace.dependencies]

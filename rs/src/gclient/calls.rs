@@ -2,7 +2,7 @@ use crate::{
     calls::{Query, Remoting},
     errors::{Result, RtlError},
     events::Listener,
-    futures::{stream, Stream, StreamExt},
+    futures::{Stream, StreamExt, stream},
     prelude::*,
 };
 use core::future::Future;
@@ -10,7 +10,7 @@ use gclient::metadata::runtime_types::{
     gear_core::message::user::UserMessage as GenUserMessage,
     pallet_gear_voucher::internal::VoucherId,
 };
-use gclient::{ext::sp_core::ByteArray, EventProcessor, GearApi};
+use gclient::{EventProcessor, GearApi, ext::sp_core::ByteArray};
 use gear_core_errors::ReplyCode;
 
 #[derive(Debug, Default)]

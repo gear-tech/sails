@@ -1,13 +1,13 @@
 use crate::export;
 use parity_scale_codec::Encode;
-use proc_macro2::Span;
 use proc_macro_error::abort;
+use proc_macro2::Span;
 use quote::ToTokens;
 use std::collections::BTreeMap;
 use syn::{
-    punctuated::Punctuated, spanned::Spanned, FnArg, GenericArgument, Generics, Ident, ImplItem,
-    ImplItemFn, ItemImpl, Lifetime, Pat, Path, PathArguments, PathSegment, ReturnType, Signature,
-    Token, Type, TypeImplTrait, TypeParamBound, TypePath, TypeReference, TypeTuple, WhereClause,
+    FnArg, GenericArgument, Generics, Ident, ImplItem, ImplItemFn, ItemImpl, Lifetime, Pat, Path,
+    PathArguments, PathSegment, ReturnType, Signature, Token, Type, TypeImplTrait, TypeParamBound,
+    TypePath, TypeReference, TypeTuple, WhereClause, punctuated::Punctuated, spanned::Spanned,
 };
 
 pub(crate) fn impl_type_refs(item_impl_type: &Type) -> (&TypePath, &PathArguments, &Ident) {

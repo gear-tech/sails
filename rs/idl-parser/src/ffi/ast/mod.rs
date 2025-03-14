@@ -1,6 +1,6 @@
 use crate::ast;
 use std::{
-    ffi::{c_char, CString},
+    ffi::{CString, c_char},
     slice, str,
 };
 
@@ -30,7 +30,7 @@ pub enum ErrorCode {
 /// # Safety
 ///
 /// See the safety documentation of [`slice::from_raw_parts`].
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn parse_idl(idl_ptr: *const u8, idl_len: u32) -> *mut ParseResult {
     let idl_slice = unsafe { slice::from_raw_parts(idl_ptr, idl_len as usize) };
     let idl_str = match str::from_utf8(idl_slice) {
@@ -73,7 +73,7 @@ fn create_parse_error(
 /// # Safety
 ///
 /// Pointer must be obtained from [`parse_idl`].
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn free_parse_result(result: *mut ParseResult) {
     if result.is_null() {
         return;

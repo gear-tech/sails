@@ -1,7 +1,7 @@
 use no_svcs_prog::client::{traits::NoSvcsProgFactory as NoSvcsProgFactoryTrait, *};
 use sails_rs::{
     calls::*,
-    gtest::{calls::*, System},
+    gtest::{System, calls::*},
 };
 
 const ADMIN_ID: u64 = 10;

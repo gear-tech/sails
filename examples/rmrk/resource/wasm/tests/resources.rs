@@ -1,19 +1,19 @@
 use crate::resource_client::traits::RmrkResource;
 use rmrk_catalog::services::parts::{FixedPart, Part};
 use rmrk_resource_app::services::{
+    ResourceStorageEvent,
     errors::{Error as ResourceStorageError, Result as ResourceStorageResult},
     resources::{ComposedResource, PartId, Resource, ResourceId},
-    ResourceStorageEvent,
 };
 use sails_rs::{
+    ActorId, Decode, Encode,
     calls::{Action, Call, Query, Remoting},
     collections::BTreeMap,
     errors::Result,
     gtest::{
-        calls::{GTestArgs, GTestRemoting},
         BlockRunResult, Program, System,
+        calls::{GTestArgs, GTestRemoting},
     },
-    ActorId, Decode, Encode,
 };
 
 mod resource_client;

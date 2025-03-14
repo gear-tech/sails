@@ -168,7 +168,7 @@ impl GTestRemoting {
     fn message_reply_from_next_blocks(
         &self,
         message_id: MessageId,
-    ) -> impl Future<Output = Result<Vec<u8>>> {
+    ) -> impl Future<Output = Result<Vec<u8>>> + use<> {
         let (tx, rx) = channel::oneshot::channel::<Result<Vec<u8>>>();
         self.block_reply_senders.borrow_mut().insert(message_id, tx);
 
