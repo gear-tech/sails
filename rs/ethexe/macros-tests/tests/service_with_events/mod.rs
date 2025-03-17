@@ -1,4 +1,4 @@
-use sails_rs::{service, Encode, TypeInfo};
+use sails_rs::{Encode, TypeInfo, service};
 
 #[allow(dead_code)]
 pub struct MyServiceWithEvents(pub u8);

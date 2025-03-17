@@ -52,7 +52,7 @@ pub use parity_scale_codec::{self as scale_codec, Decode, Encode, EncodeLike};
 pub use scale_info::{self as scale_info, TypeInfo};
 
 #[cfg(feature = "ethexe")]
-pub use crate::solidity;
+pub use crate::solidity::{self, EvmEvent};
 #[cfg(feature = "ethexe")]
 pub use alloy_primitives;
 #[cfg(feature = "ethexe")]
@@ -60,6 +60,8 @@ pub use alloy_sol_types;
 pub use const_format::*;
 #[cfg(feature = "ethexe")]
 pub use keccak_const;
+#[cfg(feature = "ethexe")]
+pub use sails_macros::EvmEvent;
 
 /// Channels, Streams and Futures extensions types
 ///

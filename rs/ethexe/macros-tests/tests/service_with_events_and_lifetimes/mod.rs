@@ -1,5 +1,5 @@
 use core::marker::PhantomData;
-use sails_rs::{service, Encode, TypeInfo};
+use sails_rs::{Encode, TypeInfo, service};
 
 #[derive(Default)]
 pub(super) struct MyGenericEventsService<'l, T> {

@@ -71,8 +71,8 @@ async fn service_with_lifetimes_and_events() {
 #[tokio::test]
 async fn service_with_extends() {
     use service_with_extends::{
-        base::{Base, BASE_NAME_RESULT},
-        extended::{Extended, EXTENDED_NAME_RESULT, NAME_RESULT},
+        base::{BASE_NAME_RESULT, Base},
+        extended::{EXTENDED_NAME_RESULT, Extended, NAME_RESULT},
     };
 
     const NAME_METHOD: &str = "Name";
@@ -128,7 +128,7 @@ async fn service_with_lifecycles_and_generics() {
 #[tokio::test]
 async fn service_with_extends_and_lifetimes() {
     use service_with_extends_and_lifetimes::{
-        BaseWithLifetime, ExtendedWithLifetime, BASE_NAME_RESULT, EXTENDED_NAME_RESULT, NAME_RESULT,
+        BASE_NAME_RESULT, BaseWithLifetime, EXTENDED_NAME_RESULT, ExtendedWithLifetime, NAME_RESULT,
     };
 
     const NAME_METHOD: &str = "Name";
