@@ -4,6 +4,7 @@ pub use gstd::handle_signal;
 #[doc(hidden)]
 pub use gstd::{async_init, async_main, handle_reply_with_hook, message_loop};
 pub use gstd::{debug, exec, msg};
+#[doc(hidden)]
 pub use sails_macros::{export, program, route, service};
 
 use crate::{

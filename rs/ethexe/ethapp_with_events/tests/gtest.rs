@@ -1,6 +1,15 @@
+use ethapp_with_events::Events;
 use sails_rs::{
+    EvmEvent,
     alloy_sol_types::SolValue,
-    gtest::{Program, System},
+    calls::Remoting,
+    events::Listener,
+    futures::StreamExt,
+    gtest::{
+        Program, System,
+        calls::{GTestArgs, GTestRemoting},
+    },
+    solidity::EthFixedHeader,
 };
 #[cfg(debug_assertions)]
 pub(crate) const WASM_PATH: &str =
@@ -12,7 +21,7 @@ pub(crate) const WASM_PATH: &str =
 pub(crate) const ADMIN_ID: u64 = 10;
 
 #[tokio::test]
-async fn ethapp_sol_works() {
+async fn ethapp_with_events_low_level_works() {
     let system = System::new();
     system.init_logger_with_default_filter("gwasm=debug,gtest=debug,sails_rs=debug");
     system.mint_to(ADMIN_ID, 100_000_000_000_000);
@@ -49,4 +58,61 @@ async fn ethapp_sol_works() {
     let reply = u32::abi_decode(reply_payload, true);
 
     assert_eq!(reply, Ok(42));
+}
+
+#[tokio::test]
+async fn ethapp_with_events_remoting_works() {
+    let system = System::new();
+    system.init_logger_with_default_filter("gwasm=debug,gtest=debug,sails_rs=debug");
+    system.mint_to(ADMIN_ID, 100_000_000_000_000);
+    let code_id = system.submit_code_file(WASM_PATH);
+
+    let remoting = GTestRemoting::new(system, ADMIN_ID.into());
+    let mut binding = remoting.clone();
+    let mut listener = binding.listen().await.unwrap();
+
+    let ctor = sails_rs::solidity::selector("default(uint128)");
+    let (program_id, _) = remoting
+        .clone()
+        .activate(code_id, vec![], ctor.as_slice(), 0, GTestArgs::default())
+        .await
+        .unwrap()
+        .await
+        .unwrap();
+
+    let do_this_sig = sails_rs::solidity::selector("svc1_do_this(uint32,string,uint128)");
+    let do_this_params = (42, "hello").abi_encode_params();
+    let payload = [do_this_sig.as_slice(), do_this_params.as_slice()].concat();
+
+    let reply_payload = remoting
+        .clone()
+        .message(program_id, payload, 0, GTestArgs::default())
+        .await
+        .unwrap()
+        .await
+        .unwrap();
+
+    let reply = u32::abi_decode(reply_payload.as_slice(), true);
+    assert_eq!(reply, Ok(42));
+
+    let (from, event_payload) = listener.next().await.unwrap();
+    assert_eq!(from, program_id);
+
+    let event_header = EthFixedHeader::from_bytes(event_payload.as_slice());
+    assert_eq!(1u16, event_header.version());
+    assert_eq!(2u8, event_header.header_type());
+    assert_eq!(Some(2 * 32), event_header.header_size());
+    assert_eq!(1u8, event_header.data_type());
+
+    let sig = sails_rs::alloy_primitives::keccak256(b"DoThisEvent(uint32,string)");
+    let topic1 = &event_payload[4..4 + 32];
+    assert_eq!(sig.as_slice(), topic1);
+
+    let hash2 = Events::topic_hash(&42u32);
+    let topic2 = &event_payload[4 + 32..4 + 32 + 32];
+    assert_eq!(hash2.as_slice(), topic2);
+
+    let (s,): (String,) =
+        SolValue::abi_decode_sequence(&event_payload[4 + 32 + 32..], false).unwrap();
+    assert_eq!("hello", s);
 }

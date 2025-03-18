@@ -53,6 +53,7 @@ impl ExposureContext {
     }
 }
 
+#[cfg(not(feature = "ethexe"))]
 pub(crate) fn exposure_context(message_id: MessageId) -> ExposureContext {
     let map = get_message_id_to_service_route_map();
     let route = map
