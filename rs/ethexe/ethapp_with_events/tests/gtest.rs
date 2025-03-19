@@ -1,6 +1,5 @@
 use ethapp_with_events::Events;
 use sails_rs::{
-    EvmEvent,
     alloy_sol_types::SolValue,
     calls::Remoting,
     events::Listener,
@@ -9,8 +8,9 @@ use sails_rs::{
         Program, System,
         calls::{GTestArgs, GTestRemoting},
     },
-    solidity::EthFixedHeader,
+    prelude::*,
 };
+
 #[cfg(debug_assertions)]
 pub(crate) const WASM_PATH: &str =
     "../target/wasm32-unknown-unknown/debug/ethapp_with_events.opt.wasm";

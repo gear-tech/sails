@@ -1,3 +1,14 @@
+#[doc(hidden)]
+#[cfg(target_arch = "wasm32")]
+#[cfg(feature = "ethexe")]
+pub use ethexe::__notify_on;
+#[doc(hidden)]
+#[cfg(feature = "ethexe")]
+pub use ethexe::EvmEvent;
+#[doc(hidden)]
+#[cfg(target_arch = "wasm32")]
+#[cfg(not(feature = "ethexe"))]
+pub use events::__notify_on;
 #[cfg(not(feature = "ethexe"))]
 #[doc(hidden)]
 pub use gstd::handle_signal;
@@ -14,7 +25,10 @@ use crate::{
 use core::cell::OnceCell;
 
 pub mod calls;
-pub mod events;
+#[cfg(feature = "ethexe")]
+mod ethexe;
+#[cfg(not(feature = "ethexe"))]
+mod events;
 pub mod services;
 
 // TODO: To be renamed into SysCalls or something similar

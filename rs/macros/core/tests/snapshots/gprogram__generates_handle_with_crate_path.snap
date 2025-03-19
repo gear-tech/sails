@@ -44,7 +44,6 @@ pub mod wasm {
     #[gstd::async_init]
     async fn init() {
         use sails_rename::gstd::InvocationIo;
-        sails_rename::gstd::events::__enable_events();
         let mut input: &[u8] = &sails_rename::gstd::msg::load_bytes()
             .expect("Failed to read input");
         let (program, invocation_route) = if let Ok(request) = meta_in_program::__DefaultParams::decode_params(

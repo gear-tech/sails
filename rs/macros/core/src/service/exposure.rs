@@ -102,7 +102,7 @@ impl ServiceBuilder<'_> {
                         }
                         #[cfg(target_arch = "wasm32")]
                         {
-                            #sails_path::gstd::events::__notify_on(event)
+                            #sails_path::gstd::__notify_on(event)
                         }
                     }
                 }

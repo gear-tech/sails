@@ -127,7 +127,7 @@ impl SomeService {
     fn notify_on(&mut self, event: SomeEvents) -> sails_rs::errors::Result<()> {
         #[cfg(not(target_arch = "wasm32"))]
         { SomeServiceExposure::<Self>::notify_on(self, event) }
-        #[cfg(target_arch = "wasm32")] { sails_rs::gstd::events::__notify_on(event) }
+        #[cfg(target_arch = "wasm32")] { sails_rs::gstd::__notify_on(event) }
     }
 }
 #[cfg(not(target_arch = "wasm32"))]

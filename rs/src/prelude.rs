@@ -51,8 +51,10 @@ pub use gear_core_errors::{
 pub use parity_scale_codec::{self as scale_codec, Decode, Encode, EncodeLike};
 pub use scale_info::{self as scale_info, TypeInfo};
 
+#[cfg(all(feature = "gstd", feature = "ethexe"))]
+pub use crate::gstd::EvmEvent;
 #[cfg(feature = "ethexe")]
-pub use crate::solidity::{self, EvmEvent};
+pub use crate::solidity::{self, EthFixedHeader};
 #[cfg(feature = "ethexe")]
 pub use alloy_primitives;
 #[cfg(feature = "ethexe")]
@@ -60,7 +62,7 @@ pub use alloy_sol_types;
 pub use const_format::*;
 #[cfg(feature = "ethexe")]
 pub use keccak_const;
-#[cfg(feature = "ethexe")]
+#[cfg(all(feature = "gstd", feature = "ethexe"))]
 pub use sails_macros::EvmEvent;
 
 /// Channels, Streams and Futures extensions types

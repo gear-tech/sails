@@ -123,7 +123,7 @@ where
     fn notify_on(&mut self, event: MyEvents) -> sails_rs::errors::Result<()> {
         #[cfg(not(target_arch = "wasm32"))]
         { MyGenericEventsServiceExposure::<Self>::notify_on(self, event) }
-        #[cfg(target_arch = "wasm32")] { sails_rs::gstd::events::__notify_on(event) }
+        #[cfg(target_arch = "wasm32")] { sails_rs::gstd::__notify_on(event) }
     }
 }
 #[cfg(not(target_arch = "wasm32"))]
