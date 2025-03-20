@@ -54,7 +54,7 @@ pub use scale_info::{self as scale_info, TypeInfo};
 #[cfg(all(feature = "gstd", feature = "ethexe"))]
 pub use crate::gstd::EvmEvent;
 #[cfg(feature = "ethexe")]
-pub use crate::solidity::{self, EthFixedHeader};
+pub use crate::solidity;
 #[cfg(feature = "ethexe")]
 pub use alloy_primitives;
 #[cfg(feature = "ethexe")]

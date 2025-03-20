@@ -98,21 +98,14 @@ async fn ethapp_with_events_remoting_works() {
     let (from, event_payload) = listener.next().await.unwrap();
     assert_eq!(from, program_id);
 
-    let event_header = EthFixedHeader::from_bytes(event_payload.as_slice());
-    assert_eq!(1u16, event_header.version());
-    assert_eq!(2u8, event_header.header_type());
-    assert_eq!(Some(2 * 32), event_header.header_size());
-    assert_eq!(1u8, event_header.data_type());
-
     let sig = sails_rs::alloy_primitives::keccak256(b"DoThisEvent(uint32,string)");
-    let topic1 = &event_payload[4..4 + 32];
+    let topic1 = &event_payload[..32];
     assert_eq!(sig.as_slice(), topic1);
 
     let hash2 = Events::topic_hash(&42u32);
-    let topic2 = &event_payload[4 + 32..4 + 32 + 32];
+    let topic2 = &event_payload[32..32 + 32];
     assert_eq!(hash2.as_slice(), topic2);
 
-    let (s,): (String,) =
-        SolValue::abi_decode_sequence(&event_payload[4 + 32 + 32..], false).unwrap();
+    let (s,): (String,) = SolValue::abi_decode_sequence(&event_payload[32 + 32..], false).unwrap();
     assert_eq!("hello", s);
 }

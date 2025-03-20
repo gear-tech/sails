@@ -6,7 +6,7 @@ pub fn __notify_on<TEvents>(event: TEvents) -> crate::errors::Result<()>
 where
     TEvents: crate::EvmEvent,
 {
-    let payload = event.encode_with_header();
+    let payload = event.encode();
     gstd::msg::send_bytes(gstd::ActorId::zero(), payload, 0)?;
     Ok(())
 }
@@ -116,16 +116,12 @@ pub trait EvmEvent {
         alloy_sol_types::SolValue::abi_encode_sequence(value)
     }
 
-    /// Encodes the event with a header that includes the number of topics and the data type.
-    fn encode_with_header(&self) -> Vec<u8> {
+    /// Encodes the event.
+    fn encode(&self) -> Vec<u8> {
         let mut payload = Vec::new();
         let topics = self.topics();
         let data = self.data();
-        let mut header = EthFixedHeader::new();
-        header.set_header_type(topics.len() as u8);
-        header.set_data_type(1);
 
-        payload.extend_from_slice(header.as_bytes());
         for topic in topics {
             payload.extend_from_slice(topic.as_slice());
         }
@@ -199,14 +195,5 @@ mod tests {
             note: "hello".to_string(),
         };
         assert_eq!(DATA, ev.data().as_slice());
-    }
-
-    #[test]
-    fn eth_header() {
-        let h = EthFixedHeader::new();
-        assert_eq!(1, h.version());
-        assert_eq!(0u8, h.header_type());
-        assert_eq!(0u8, h.data_type());
-        assert_eq!(Some(0), h.header_size());
     }
 }
