@@ -6,6 +6,10 @@ pub struct MyProgram;
 
 #[program]
 impl MyProgram {
+    pub fn create_prg() -> Self {
+        MyProgram
+    }
+
     pub fn svc1(&self) -> SomeService {
         SomeService
     }

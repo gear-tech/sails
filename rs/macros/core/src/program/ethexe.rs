@@ -154,20 +154,14 @@ impl FnBuilder<'_> {
         let sails_path = self.sails_path;
         let handler_route_bytes = self.encoded_route.as_slice();
         let handler_name = self.route.to_case(Case::Snake);
-        let handler_types = self
-            .params
-            .iter()
-            .map(|item| {
-                let param_type = item.1;
-                quote!(#param_type,)
-            })
-            .chain([quote!(u128,)]); // add uint128 to method signature
+        let handler_types = self.params.iter().map(|item| item.1);
 
+        // add uint128 to method signature as first parameter
         quote! {
             (
                 #sails_path::concatcp!(
                     #handler_name,
-                    <<(#(#handler_types)*) as #sails_path::alloy_sol_types::SolValue>::SolType as #sails_path::alloy_sol_types::SolType>::SOL_NAME,
+                    <<(u128, #(#handler_types,)*) as #sails_path::alloy_sol_types::SolValue>::SolType as #sails_path::alloy_sol_types::SolType>::SOL_NAME,
                 ),
                 &[ #(#handler_route_bytes),* ] as &[u8],
             ),

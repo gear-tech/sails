@@ -93,7 +93,7 @@ impl<'a> ExtendedWithLifetimeExposure<ExtendedWithLifetime<'a>> {
                 101u8,
             ]
         {
-            let (): () = sails_rs::alloy_sol_types::SolValue::abi_decode_params(
+            let (_,): (u128,) = sails_rs::alloy_sol_types::SolValue::abi_decode_params(
                     input,
                     false,
                 )
@@ -106,7 +106,7 @@ impl<'a> ExtendedWithLifetimeExposure<ExtendedWithLifetime<'a>> {
             ));
         }
         if method == &[16u8, 78u8, 97u8, 109u8, 101u8] {
-            let (): () = sails_rs::alloy_sol_types::SolValue::abi_decode_params(
+            let (_,): (u128,) = sails_rs::alloy_sol_types::SolValue::abi_decode_params(
                     input,
                     false,
                 )

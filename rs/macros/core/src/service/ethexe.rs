@@ -102,14 +102,8 @@ impl FnBuilder<'_> {
             let param_ident = item.0;
             quote!(#param_ident)
         });
-        let handler_params_comma = self.params.iter().map(|item| {
-            let param_ident = item.0;
-            quote!(#param_ident,)
-        });
-        let handler_types = self.params.iter().map(|item| {
-            let param_type = item.1;
-            quote!(#param_type,)
-        });
+        let handler_params_2 = handler_params.clone();
+        let handler_types = self.params.iter().map(|item| item.1);
 
         let (result_type, reply_with_value) = self.result_type_with_value();
 
@@ -129,7 +123,7 @@ impl FnBuilder<'_> {
         };
 
         quote! {
-            let (#(#handler_params_comma)*) : (#(#handler_types)*) = #sails_path::alloy_sol_types::SolValue::abi_decode_params(input, false).ok()?;
+            let (_, #(#handler_params_2,)*) : (u128, #(#handler_types,)*) = #sails_path::alloy_sol_types::SolValue::abi_decode_params(input, false).ok()?;
             #handle_token
         }
     }
