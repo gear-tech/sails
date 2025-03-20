@@ -75,6 +75,13 @@ pub fn derive_evm_event(input: TokenStream) -> TokenStream {
                         non_idx_exprs.push(quote!(#field_ident));
                     }
                 }
+                if idx_exprs.len() > 3 {
+                    abort!(
+                        variant,
+                        "too many indexed fields (max 3): {}",
+                        idx_exprs.len()
+                    );
+                }
                 (pat, idx_exprs, non_idx_exprs)
             }
             // For unnamed (tuple) fields, create synthetic identifiers.
@@ -101,6 +108,13 @@ pub fn derive_evm_event(input: TokenStream) -> TokenStream {
                     } else {
                         non_idx_exprs.push(quote!(#field_ident));
                     }
+                }
+                if idx_exprs.len() > 3 {
+                    abort!(
+                        variant,
+                        "too many indexed fields (max 3): {}",
+                        idx_exprs.len()
+                    );
                 }
                 (pat, idx_exprs, non_idx_exprs)
             }
