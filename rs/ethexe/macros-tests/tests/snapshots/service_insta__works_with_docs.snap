@@ -17,7 +17,7 @@ pub struct SomeServiceExposure<T: sails_rs::gstd::services::Service> {
     message_id: sails_rs::MessageId,
     route: &'static [u8],
     #[cfg(not(target_arch = "wasm32"))]
-    inner: Box<T>,
+    inner: sails_rs::Box<T>,
     #[cfg(not(target_arch = "wasm32"))]
     inner_ptr: *const T,
     #[cfg(target_arch = "wasm32")]
@@ -42,7 +42,10 @@ impl SomeServiceExposure<SomeService> {
         let exposure_scope = sails_rs::gstd::services::ExposureCallScope::new(self);
         self.inner.this(p1)
     }
-    pub async fn try_handle(&mut self, input: &[u8]) -> Option<(Vec<u8>, u128)> {
+    pub async fn try_handle(
+        &mut self,
+        input: &[u8],
+    ) -> Option<(sails_rs::Vec<u8>, u128)> {
         use sails_rs::gstd::InvocationIo;
         if let Ok(request) = some_service_meta::__DoThisParams::decode_params(input) {
             let result = self.do_this(request.p1, request.p2).await;
@@ -62,7 +65,7 @@ impl SomeServiceExposure<SomeService> {
         &mut self,
         method: &[u8],
         input: &[u8],
-    ) -> Option<(Vec<u8>, u128)> {
+    ) -> Option<(sails_rs::Vec<u8>, u128)> {
         if method == &[24u8, 68u8, 111u8, 84u8, 104u8, 105u8, 115u8] {
             let (_, p1, p2): (u128, u32, String) = sails_rs::alloy_sol_types::SolValue::abi_decode_params(
                     input,
@@ -101,7 +104,7 @@ impl sails_rs::gstd::services::Service for SomeService {
         route: &'static [u8],
     ) -> Self::Exposure {
         #[cfg(not(target_arch = "wasm32"))]
-        let inner_box = Box::new(self);
+        let inner_box = sails_rs::Box::new(self);
         #[cfg(not(target_arch = "wasm32"))]
         let inner = inner_box.as_ref();
         #[cfg(target_arch = "wasm32")]

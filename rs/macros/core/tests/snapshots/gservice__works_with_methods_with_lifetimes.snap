@@ -29,7 +29,7 @@ pub struct ReferenceServiceExposure<T: sails_rs::gstd::services::Service> {
     message_id: sails_rs::MessageId,
     route: &'static [u8],
     #[cfg(not(target_arch = "wasm32"))]
-    inner: Box<T>,
+    inner: sails_rs::Box<T>,
     #[cfg(not(target_arch = "wasm32"))]
     inner_ptr: *const T,
     #[cfg(target_arch = "wasm32")]
@@ -66,7 +66,10 @@ impl ReferenceServiceExposure<ReferenceService> {
         let exposure_scope = sails_rs::gstd::services::ExposureCallScope::new(self);
         self.inner.last_byte().await
     }
-    pub async fn try_handle(&mut self, input: &[u8]) -> Option<(Vec<u8>, u128)> {
+    pub async fn try_handle(
+        &mut self,
+        input: &[u8],
+    ) -> Option<(sails_rs::Vec<u8>, u128)> {
         use sails_rs::gstd::InvocationIo;
         if let Ok(request) = reference_service_meta::__AddByteParams::decode_params(
             input,
@@ -120,7 +123,7 @@ impl sails_rs::gstd::services::Service for ReferenceService {
         route: &'static [u8],
     ) -> Self::Exposure {
         #[cfg(not(target_arch = "wasm32"))]
-        let inner_box = Box::new(self);
+        let inner_box = sails_rs::Box::new(self);
         #[cfg(not(target_arch = "wasm32"))]
         let inner = inner_box.as_ref();
         #[cfg(target_arch = "wasm32")]

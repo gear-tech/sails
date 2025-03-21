@@ -145,6 +145,9 @@ mod tests {
         let s = <(u32, String) as SolValue>::SolType::SOL_NAME;
         assert_eq!("(uint32,string)", s);
 
+        let s = <(Vec<u8>, String) as SolValue>::SolType::SOL_NAME;
+        assert_eq!("(bytes,string)", s);
+
         // let s = <(u32, String, ActorId) as SolValue>::SolType::SOL_NAME;
         // assert_eq!("(uint32,string,address)", s);
     }

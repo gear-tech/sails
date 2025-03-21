@@ -253,7 +253,6 @@ impl ProgramBuilder {
             #[gstd::async_init]
             async fn init() {
                 use #sails_path::gstd::InvocationIo;
-                #sails_path::gstd::events::__enable_events();
                 let mut #input_ident: &[u8] = &#sails_path::gstd::msg::load_bytes().expect("Failed to read input");
 
                 #solidity_init

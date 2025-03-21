@@ -14,7 +14,7 @@ pub struct ExtendedWithLifetimeExposure<T: sails_rs::gstd::services::Service> {
     message_id: sails_rs::MessageId,
     route: &'static [u8],
     #[cfg(not(target_arch = "wasm32"))]
-    inner: Box<T>,
+    inner: sails_rs::Box<T>,
     #[cfg(not(target_arch = "wasm32"))]
     inner_ptr: *const T,
     #[cfg(target_arch = "wasm32")]
@@ -44,7 +44,10 @@ impl<'a> ExtendedWithLifetimeExposure<ExtendedWithLifetime<'a>> {
     ) -> &<BaseWithLifetime<'a> as sails_rs::gstd::services::Service>::Exposure {
         &self.base.0
     }
-    pub async fn try_handle(&mut self, input: &[u8]) -> Option<(Vec<u8>, u128)> {
+    pub async fn try_handle(
+        &mut self,
+        input: &[u8],
+    ) -> Option<(sails_rs::Vec<u8>, u128)> {
         use sails_rs::gstd::InvocationIo;
         if let Ok(request) = extended_with_lifetime_meta::__ExtendedNameParams::decode_params(
             input,
@@ -75,7 +78,7 @@ impl<'a> ExtendedWithLifetimeExposure<ExtendedWithLifetime<'a>> {
         &mut self,
         method: &[u8],
         input: &[u8],
-    ) -> Option<(Vec<u8>, u128)> {
+    ) -> Option<(sails_rs::Vec<u8>, u128)> {
         if method
             == &[
                 48u8,
@@ -140,7 +143,7 @@ impl<'a> sails_rs::gstd::services::Service for ExtendedWithLifetime<'a> {
         route: &'static [u8],
     ) -> Self::Exposure {
         #[cfg(not(target_arch = "wasm32"))]
-        let inner_box = Box::new(self);
+        let inner_box = sails_rs::Box::new(self);
         #[cfg(not(target_arch = "wasm32"))]
         let inner = inner_box.as_ref();
         #[cfg(target_arch = "wasm32")]

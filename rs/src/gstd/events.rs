@@ -1,59 +1,24 @@
 //! Functionality for notifying off-chain subscribers on events happening in on-chain programs.
 
-use crate::{ValueUnit, Vec, collections::BTreeMap, errors::*, gstd::services};
+use crate::{Encode, Vec, collections::BTreeMap, errors::*};
 use core::{any::TypeId, ops::DerefMut};
-use gstd::ActorId as GStdActorId;
-use parity_scale_codec::Encode;
 use scale_info::{StaticTypeInfo, TypeDef};
 
+#[doc(hidden)]
 #[cfg(target_arch = "wasm32")]
-#[doc(hidden)]
-pub fn __enable_events() {
-    SysCalls::init()
-}
-
-static mut SYS_CALLS: Option<SysCalls> = None;
-
-struct SysCalls {
-    msg_id: fn() -> gstd::MessageId,
-    msg_send_bytes:
-        fn(gstd::ActorId, Vec<u8>, ValueUnit) -> Result<gstd::MessageId, gstd::errors::CoreError>,
-}
-
-impl SysCalls {
-    #[cfg(target_arch = "wasm32")]
-    fn init() {
-        unsafe {
-            SYS_CALLS = Some(SysCalls {
-                msg_id: gstd::msg::id,
-                msg_send_bytes: gstd::msg::send_bytes::<Vec<u8>>,
-            })
-        }
-    }
-
-    #[allow(static_mut_refs)]
-    fn as_ref() -> Option<&'static SysCalls> {
-        unsafe { SYS_CALLS.as_ref() }
-    }
-}
-
-#[doc(hidden)]
 pub fn __notify_on<TEvents>(event: TEvents) -> Result<()>
 where
-    TEvents: Encode + StaticTypeInfo,
+    TEvents: parity_scale_codec::Encode + scale_info::StaticTypeInfo,
 {
-    if let Some(sys_calls) = SysCalls::as_ref() {
-        let payload = compose_payload::<TEvents>(
-            services::exposure_context((sys_calls.msg_id)()).route(),
-            event,
-        )?;
-        (sys_calls.msg_send_bytes)(GStdActorId::zero(), payload, 0)?;
-    } else {
-        compose_payload::<TEvents>(&[], event)?;
-    }
+    let payload = compose_payload::<TEvents>(
+        crate::gstd::services::exposure_context(gstd::msg::id()).route(),
+        event,
+    )?;
+    gstd::msg::send_bytes(gstd::ActorId::zero(), payload, 0)?;
     Ok(())
 }
 
+#[allow(dead_code)] // use in wasm32 and tests
 fn compose_payload<TEvents>(prefix: &[u8], event: TEvents) -> Result<Vec<u8>, RtlError>
 where
     TEvents: StaticTypeInfo + Encode,

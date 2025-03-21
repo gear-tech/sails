@@ -1,0 +1,14 @@
+[package]
+name = "ethapp-with-events"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+sails-rs = { workspace = true, features = ["ethexe"] }
+
+[build-dependencies]
+sails-rs = { workspace = true, features = ["ethexe", "wasm-builder"] }
+
+[dev-dependencies]
+sails-rs = { workspace = true, features = ["ethexe", "gtest"] }
+tokio = { workspace = true, features = ["rt", "macros"] }

@@ -17,7 +17,7 @@ impl ServiceBuilder<'_> {
                 #message_id_ident : #sails_path::MessageId,
                 #route_ident : &'static [u8],
                 #[cfg(not(target_arch = "wasm32"))]
-                #inner_ident : Box<T>, // Ensure service is not movable
+                #inner_ident : #sails_path::Box<T>, // Ensure service is not movable
                 #[cfg(not(target_arch = "wasm32"))]
                 #inner_ptr_ident : *const T, // Prevent exposure being Send + Sync
                 #[cfg(target_arch = "wasm32")]
@@ -50,7 +50,7 @@ impl ServiceBuilder<'_> {
 
                     // Impl for `Exposure<T>` with concrete events type for cleanup via Drop
                     impl<T: #sails_path::gstd::services::Service> #exposure_ident <T> {
-                        pub fn take_events(&mut self) -> Vec< #events_type > {
+                        pub fn take_events(&mut self) -> #sails_path::Vec< #events_type > {
                             if core::mem::size_of_val(self.inner.as_ref()) == 0 {
                                 panic!("setting event listener on a zero-sized service is not supported for now");
                             }
@@ -85,7 +85,7 @@ impl ServiceBuilder<'_> {
         })
     }
 
-    pub(super) fn service_with_events_impls(&self) -> Option<TokenStream> {
+    pub(super) fn service_notify_impls(&self) -> Option<TokenStream> {
         let sails_path = self.sails_path;
         let generics = &self.generics;
         let service_type_path = self.type_path;
@@ -102,7 +102,7 @@ impl ServiceBuilder<'_> {
                         }
                         #[cfg(target_arch = "wasm32")]
                         {
-                            #sails_path::gstd::events::__notify_on(event)
+                            #sails_path::gstd::__notify_on(event)
                         }
                     }
                 }
@@ -183,7 +183,7 @@ impl ServiceBuilder<'_> {
         });
 
         quote! {
-            pub async fn try_handle(&mut self, #input_ident : &[u8]) -> Option<(Vec<u8>, u128)> {
+            pub async fn try_handle(&mut self, #input_ident : &[u8]) -> Option<(#sails_path::Vec<u8>, u128)> {
                 use #sails_path::gstd::InvocationIo;
                 #( #invocation_dispatches )*
                 #( #base_exposure_invocations )*
@@ -224,7 +224,7 @@ impl ServiceBuilder<'_> {
 
                 fn expose(self, #message_id_ident : #sails_path::MessageId, #route_ident : &'static [u8]) -> Self::Exposure {
                     #[cfg(not(target_arch = "wasm32"))]
-                    let inner_box = Box::new(self);
+                    let inner_box = #sails_path::Box::new(self);
                     #[cfg(not(target_arch = "wasm32"))]
                     let #inner_ident = inner_box.as_ref();
                     #[cfg(target_arch = "wasm32")]

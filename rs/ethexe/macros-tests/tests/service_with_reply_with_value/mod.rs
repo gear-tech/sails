@@ -1,4 +1,4 @@
-use sails_rs::{service, CommandReply};
+use sails_rs::{CommandReply, service};
 
 pub(super) struct MyServiceWithReplyWithValue;
 
