@@ -1,13 +1,12 @@
 #[doc(hidden)]
 #[cfg(target_arch = "wasm32")]
 #[cfg(feature = "ethexe")]
-pub use ethexe::__notify_on;
+pub use ethexe::__emit_eth_event;
 #[doc(hidden)]
 #[cfg(feature = "ethexe")]
 pub use ethexe::EthEvent;
 #[doc(hidden)]
 #[cfg(target_arch = "wasm32")]
-#[cfg(not(feature = "ethexe"))]
 pub use events::__notify_on;
 #[cfg(not(feature = "ethexe"))]
 #[doc(hidden)]
@@ -27,7 +26,6 @@ use core::cell::OnceCell;
 pub mod calls;
 #[cfg(feature = "ethexe")]
 mod ethexe;
-#[cfg(not(feature = "ethexe"))]
 mod events;
 pub mod services;
 

@@ -85,7 +85,7 @@ impl ServiceBuilder<'_> {
         })
     }
 
-    pub(super) fn service_with_events_impls(&self) -> Option<TokenStream> {
+    pub(super) fn service_notify_impls(&self) -> Option<TokenStream> {
         let sails_path = self.sails_path;
         let generics = &self.generics;
         let service_type_path = self.type_path;

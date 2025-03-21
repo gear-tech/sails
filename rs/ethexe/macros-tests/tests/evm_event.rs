@@ -1,21 +1,21 @@
 use quote::quote;
-use sails_macros_core::derive_evm_event;
+use sails_macros_core::derive_eth_event;
 
 #[test]
-fn evm_event_basic() {
+fn eth_event_basic() {
     let input = quote! {
         pub enum MyEvent {
             MyEvent1,
         }
     };
-    let result = derive_evm_event(input).to_string();
+    let result = derive_eth_event(input).to_string();
     let result = prettyplease::unparse(&syn::parse_str(&result).unwrap());
 
     insta::assert_snapshot!(result);
 }
 
 #[test]
-fn evm_event_indexed() {
+fn eth_event_indexed() {
     let input = quote! {
         pub enum Events {
             MyEvent1 {
@@ -29,14 +29,14 @@ fn evm_event_indexed() {
             MyEvent3,
         }
     };
-    let result = derive_evm_event(input).to_string();
+    let result = derive_eth_event(input).to_string();
     let result = prettyplease::unparse(&syn::parse_str(&result).unwrap());
 
     insta::assert_snapshot!(result);
 }
 
 #[test]
-fn evm_event_sails_rename() {
+fn eth_event_sails_rename() {
     let input = quote! {
         #[sails_path(crate = sails_rename)]
         pub enum Events {
@@ -51,7 +51,7 @@ fn evm_event_sails_rename() {
             MyEvent3,
         }
     };
-    let result = derive_evm_event(input).to_string();
+    let result = derive_eth_event(input).to_string();
     let result = prettyplease::unparse(&syn::parse_str(&result).unwrap());
 
     insta::assert_snapshot!(result);

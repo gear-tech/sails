@@ -189,6 +189,13 @@ impl MyServiceWithEvents {
         #[cfg(target_arch = "wasm32")] { sails_rs::gstd::__notify_on(event) }
     }
 }
+impl MyServiceWithEvents {
+    fn emit_eth_event(&mut self, event: MyEvents) -> sails_rs::errors::Result<()> {
+        #[cfg(not(target_arch = "wasm32"))]
+        { MyServiceWithEventsExposure::<Self>::notify_on(self, event) }
+        #[cfg(target_arch = "wasm32")] { sails_rs::gstd::__emit_eth_event(event) }
+    }
+}
 #[cfg(not(target_arch = "wasm32"))]
 const _: () = {
     type ServiceEventsMap = sails_rs::collections::BTreeMap<

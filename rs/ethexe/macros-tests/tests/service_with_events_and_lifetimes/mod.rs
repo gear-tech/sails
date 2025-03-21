@@ -20,7 +20,7 @@ where
     T: Clone,
 {
     pub fn do_this(&mut self) -> u32 {
-        self.notify_on(MyEvents::Event1).unwrap();
+        self.emit_eth_event(MyEvents::Event1).unwrap();
         42
     }
 }

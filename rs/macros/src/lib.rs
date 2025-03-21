@@ -232,6 +232,6 @@ pub fn export(args: TokenStream, impl_item_fn_tokens: TokenStream) -> TokenStrea
 /// - `data()`: Returns the ABI-encoded data payload (a `Vec<u8>`) for the non-indexed fields.
 #[proc_macro_error]
 #[proc_macro_derive(EthEvent, attributes(indexed, sails_path))]
-pub fn derive_evm_event(input: TokenStream) -> TokenStream {
-    sails_macros_core::derive_evm_event(input.into()).into()
+pub fn derive_eth_event(input: TokenStream) -> TokenStream {
+    sails_macros_core::derive_eth_event(input.into()).into()
 }

@@ -23,7 +23,7 @@ pub struct SomeService;
 #[service(events = Events)]
 impl SomeService {
     pub async fn do_this(&mut self, p1: u32, p2: String) -> u32 {
-        self.notify_on(Events::DoThisEvent(p1, p2)).unwrap();
+        self.emit_eth_event(Events::DoThisEvent(p1, p2)).unwrap();
         p1
     }
     pub fn this(&self, p1: bool) -> bool {

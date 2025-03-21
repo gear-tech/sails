@@ -2,12 +2,13 @@ use crate::prelude::*;
 
 #[doc(hidden)]
 #[cfg(target_arch = "wasm32")]
-pub fn __notify_on<TEvents>(event: TEvents) -> crate::errors::Result<()>
+pub fn __emit_eth_event<TEvents>(event: TEvents) -> crate::errors::Result<()>
 where
     TEvents: crate::EthEvent,
 {
+    const ETH_ADDR: gstd::ActorId = gstd::ActorId::new([0xff; 32]);
     let payload = event.encode();
-    gstd::msg::send_bytes(gstd::ActorId::zero(), payload, 0)?;
+    gstd::msg::send_bytes(ETH_ADDR, payload, 0)?;
     Ok(())
 }
 
@@ -154,7 +155,7 @@ mod tests {
     }
 
     #[test]
-    fn evm_event_sig() {
+    fn eth_event_sig() {
         const SIG_TOPIC: [u8; 32] = [
             148, 157, 201, 65, 144, 217, 114, 52, 67, 86, 206, 75, 197, 220, 61, 74, 138, 251, 52,
             61, 243, 110, 252, 93, 62, 91, 109, 51, 209, 107, 68, 200,
@@ -168,7 +169,7 @@ mod tests {
     }
 
     #[test]
-    fn evm_event_topic_1() {
+    fn eth_event_topic_1() {
         const SENDER_TOPIC: [u8; 32] = [
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 1,
@@ -182,7 +183,7 @@ mod tests {
     }
 
     #[test]
-    fn evm_event_data() {
+    fn eth_event_data() {
         const DATA: &[u8] = &[
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 32, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,

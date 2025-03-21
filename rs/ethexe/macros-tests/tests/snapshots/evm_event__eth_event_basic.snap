@@ -1,5 +1,5 @@
 ---
-source: macros-tests/tests/eth_event.rs
+source: macros-tests/tests/evm_event.rs
 expression: result
 ---
 impl EthEvent for MyEvent {

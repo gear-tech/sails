@@ -139,6 +139,10 @@ impl ServiceBuilder<'_> {
     fn try_handle_solidity_impl(&self, _base_ident: &Ident) -> TokenStream {
         quote!()
     }
+
+    fn service_emit_eth_impls(&self) -> Option<TokenStream> {
+        None
+    }
 }
 
 fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
@@ -168,7 +172,8 @@ fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
     let exposure_struct = service_builder.exposure_struct();
     let exposure_impl = service_builder.exposure_impl();
     let service_trait_impl = service_builder.service_trait_impl();
-    let service_notify_impl = service_builder.service_with_events_impls();
+    let service_notify_impl = service_builder.service_notify_impls();
+    let service_emit_eth_impls = service_builder.service_emit_eth_impls();
     let exposure_listen_and_drop = service_builder.exposure_listen_and_drop();
 
     // ethexe
@@ -190,6 +195,8 @@ fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
         #service_signature_impl
 
         #service_notify_impl
+
+        #service_emit_eth_impls
 
         #exposure_listen_and_drop
     )

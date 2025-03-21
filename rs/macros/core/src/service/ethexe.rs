@@ -66,6 +66,31 @@ impl ServiceBuilder<'_> {
             }
         }
     }
+
+    pub(super) fn service_emit_eth_impls(&self) -> Option<TokenStream> {
+        let sails_path = self.sails_path;
+        let generics = &self.generics;
+        let service_type_path = self.type_path;
+        let service_type_constraints = self.type_constraints();
+        let exposure_ident = &self.exposure_ident;
+
+        self.events_type.map(|events_type| {
+            quote! {
+                impl #generics #service_type_path #service_type_constraints {
+                    fn emit_eth_event(&mut self, event: #events_type) -> #sails_path::errors::Result<()> {
+                        #[cfg(not(target_arch = "wasm32"))]
+                        {
+                            #exposure_ident::<Self>::notify_on(self, event)
+                        }
+                        #[cfg(target_arch = "wasm32")]
+                        {
+                            #sails_path::gstd::__emit_eth_event(event)
+                        }
+                    }
+                }
+            }
+        })
+    }
 }
 
 impl FnBuilder<'_> {

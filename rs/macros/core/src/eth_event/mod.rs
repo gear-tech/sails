@@ -7,7 +7,7 @@ use syn::{Data, DeriveInput, Fields, Ident, Path, Type, Variant, parse::Parse};
 
 mod args;
 
-pub fn derive_evm_event(input: TokenStream) -> TokenStream {
+pub fn derive_eth_event(input: TokenStream) -> TokenStream {
     // Parse the input tokens into a syntax tree.
     let input: DeriveInput = syn::parse2(input).unwrap_or_else(|err| {
         abort!(
