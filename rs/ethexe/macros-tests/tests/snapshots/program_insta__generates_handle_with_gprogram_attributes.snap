@@ -81,7 +81,7 @@ pub mod wasm {
                     PROGRAM = match_ctor_solidity(ctor_route, &input[4..]).await;
                 }
                 if unsafe { PROGRAM.is_some() } {
-                    sails_rs::gstd::msg::reply_bytes(ctor_route, 0)
+                    sails_rs::gstd::msg::reply_bytes(&[], 0)
                         .expect("Failed to send output");
                     return;
                 }
@@ -103,7 +103,7 @@ pub mod wasm {
     }
     async fn match_ctor_solidity(ctor: &[u8], input: &[u8]) -> Option<MyProgram> {
         if ctor == &[28u8, 68u8, 101u8, 102u8, 97u8, 117u8, 108u8, 116u8] {
-            let (): () = sails_rs::alloy_sol_types::SolValue::abi_decode_params(
+            let (_,): (u128,) = sails_rs::alloy_sol_types::SolValue::abi_decode_params(
                     input,
                     false,
                 )

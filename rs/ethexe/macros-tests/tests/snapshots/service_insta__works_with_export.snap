@@ -87,7 +87,7 @@ impl SomeServiceExposure<SomeService> {
                 103u8,
             ]
         {
-            let (p1, p2): (u32, String) = sails_rs::alloy_sol_types::SolValue::abi_decode_params(
+            let (_, p1, p2): (u128, u32, String) = sails_rs::alloy_sol_types::SolValue::abi_decode_params(
                     input,
                     false,
                 )
@@ -100,7 +100,7 @@ impl SomeServiceExposure<SomeService> {
             ));
         }
         if method == &[16u8, 84u8, 104u8, 105u8, 115u8] {
-            let (p1,): (bool,) = sails_rs::alloy_sol_types::SolValue::abi_decode_params(
+            let (_, p1): (u128, bool) = sails_rs::alloy_sol_types::SolValue::abi_decode_params(
                     input,
                     false,
                 )
@@ -204,7 +204,7 @@ impl sails_rs::solidity::ServiceSignature for SomeService {
     const METHODS: &'static [sails_rs::solidity::MethodRoute] = &[
         (
             sails_rs::concatcp!(
-                "do_something", << (u32, String, u128,) as
+                "do_something", << (u128, u32, String,) as
                 sails_rs::alloy_sol_types::SolValue > ::SolType as
                 sails_rs::alloy_sol_types::SolType > ::SOL_NAME,
             ),
@@ -225,7 +225,7 @@ impl sails_rs::solidity::ServiceSignature for SomeService {
         ),
         (
             sails_rs::concatcp!(
-                "this", << (bool, u128,) as sails_rs::alloy_sol_types::SolValue >
+                "this", << (u128, bool,) as sails_rs::alloy_sol_types::SolValue >
                 ::SolType as sails_rs::alloy_sol_types::SolType > ::SOL_NAME,
             ),
             &[16u8, 84u8, 104u8, 105u8, 115u8] as &[u8],

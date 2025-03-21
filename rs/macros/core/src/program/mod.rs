@@ -513,10 +513,10 @@ impl FnBuilder<'_> {
         let handler_ident = self.ident;
         let handler_await = self.is_async().then(|| quote!(.await));
         let unwrap_token = self.unwrap_result.then(|| quote!(.unwrap()));
-        let handler_args = self.params.iter().map(|item| {
-            let param_ident = item.0;
-            quote!(request.#param_ident)
-        });
+        let handler_args = self
+            .params_idents()
+            .iter()
+            .map(|ident| quote!(request.#ident));
         let params_struct_ident = &self.params_struct_ident;
 
         quote!(
@@ -530,11 +530,7 @@ impl FnBuilder<'_> {
     fn ctor_params_struct(&self, scale_codec_path: &Path, scale_info_path: &Path) -> TokenStream2 {
         let sails_path = self.sails_path;
         let params_struct_ident = &self.params_struct_ident;
-        let ctor_params_struct_members = self.params.iter().map(|item| {
-            let param_ident = item.0;
-            let param_type = item.1;
-            quote!(#param_ident: #param_type,)
-        });
+        let params_struct_members = self.params().map(|(ident, ty)| quote!(#ident: #ty));
         let ctor_route_bytes = self.encoded_route.as_slice();
 
         quote! {
@@ -542,7 +538,7 @@ impl FnBuilder<'_> {
             #[codec(crate = #scale_codec_path )]
             #[scale_info(crate = #scale_info_path )]
             pub struct #params_struct_ident {
-                #(pub(super) #ctor_params_struct_members)*
+                #(pub(super) #params_struct_members,)*
             }
 
             impl #sails_path::gstd::InvocationIo for #params_struct_ident {

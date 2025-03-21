@@ -245,7 +245,8 @@ pub(crate) struct FnBuilder<'a> {
     pub impl_fn: &'a ImplItemFn,
     pub ident: &'a Ident,
     pub params_struct_ident: Ident,
-    pub params: Vec<(&'a Ident, &'a Type)>,
+    params_idents: Vec<&'a Ident>,
+    params_types: Vec<&'a Type>,
     pub result_type: Type,
     pub unwrap_result: bool,
     pub sails_path: &'a Path,
@@ -262,7 +263,7 @@ impl<'a> FnBuilder<'a> {
         let signature = &impl_fn.sig;
         let ident = &signature.ident;
         let params_struct_ident = Ident::new(&format!("__{}Params", route), Span::call_site());
-        let params = extract_params(signature).collect();
+        let (params_idents, params_types): (Vec<_>, Vec<_>) = extract_params(signature).unzip();
         let result_type = unwrap_result_type(signature, unwrap_result);
 
         Self {
@@ -271,7 +272,8 @@ impl<'a> FnBuilder<'a> {
             impl_fn,
             ident,
             params_struct_ident,
-            params,
+            params_idents,
+            params_types,
             result_type,
             unwrap_result,
             sails_path,
@@ -301,5 +303,18 @@ impl<'a> FnBuilder<'a> {
             );
         }
         (result_type, reply_with_value)
+    }
+
+    pub(crate) fn params(&self) -> impl Iterator<Item = (&&Ident, &&Type)> {
+        self.params_idents.iter().zip(self.params_types.iter())
+    }
+
+    pub(crate) fn params_idents(&self) -> &[&Ident] {
+        self.params_idents.as_slice()
+    }
+
+    #[cfg(feature = "ethexe")]
+    pub(crate) fn params_types(&self) -> &[&Type] {
+        self.params_types.as_slice()
     }
 }

@@ -90,26 +90,15 @@ impl FnBuilder<'_> {
 
     /// Generates code for encode/decode parameters and fn invocation
     /// ```rust
-    /// let (p1, p2): (u32, String) = sails_rs::alloy_sol_types::SolValue::abi_decode_params(input, false).ok()?;
+    /// let (_, p1, p2): (u128, u32, String) = sails_rs::alloy_sol_types::SolValue::abi_decode_params(input, false).ok()?;
     /// let result: u32 = self.do_this(p1, p2).await;
     /// let value = 0u128;
     /// ```
     fn sol_invocation_func(&self) -> TokenStream {
         let sails_path = self.sails_path;
-        let handler_func_ident = self.ident;
-
-        let handler_params = self.params.iter().map(|item| {
-            let param_ident = item.0;
-            quote!(#param_ident)
-        });
-        let handler_params_comma = self.params.iter().map(|item| {
-            let param_ident = item.0;
-            quote!(#param_ident,)
-        });
-        let handler_types = self.params.iter().map(|item| {
-            let param_type = item.1;
-            quote!(#param_type,)
-        });
+        let handler_ident = self.ident;
+        let handler_params = self.params_idents();
+        let handler_types = self.params_types();
 
         let (result_type, reply_with_value) = self.result_type_with_value();
 
@@ -118,18 +107,18 @@ impl FnBuilder<'_> {
 
         let handle_token = if reply_with_value {
             quote! {
-                let command_reply: CommandReply< #result_type > = self.#handler_func_ident(#(#handler_params),*)#await_token #unwrap_token.into();
+                let command_reply: CommandReply< #result_type > = self.#handler_ident(#(#handler_params),*)#await_token #unwrap_token.into();
                 let (result, value) = command_reply.to_tuple();
             }
         } else {
             quote! {
-                let result = self.#handler_func_ident(#(#handler_params),*)#await_token #unwrap_token;
+                let result = self.#handler_ident(#(#handler_params),*)#await_token #unwrap_token;
                 let value = 0u128;
             }
         };
 
         quote! {
-            let (#(#handler_params_comma)*) : (#(#handler_types)*) = #sails_path::alloy_sol_types::SolValue::abi_decode_params(input, false).ok()?;
+            let (_, #(#handler_params,)*) : (u128, #(#handler_types,)*) = #sails_path::alloy_sol_types::SolValue::abi_decode_params(input, false).ok()?;
             #handle_token
         }
     }

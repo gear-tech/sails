@@ -229,11 +229,7 @@ impl FnBuilder<'_> {
     fn params_struct(&self, scale_codec_path: &Path, scale_info_path: &Path) -> TokenStream {
         let sails_path = self.sails_path;
         let params_struct_ident = &self.params_struct_ident;
-        let params_struct_members = self.params.iter().map(|item| {
-            let arg_ident = item.0;
-            let arg_type = item.1;
-            quote!(#arg_ident: #arg_type,)
-        });
+        let params_struct_members = self.params().map(|(ident, ty)| quote!(#ident: #ty));
         let handler_route_bytes = self.encoded_route.as_slice();
 
         quote!(
@@ -241,7 +237,7 @@ impl FnBuilder<'_> {
             #[codec(crate = #scale_codec_path )]
             #[scale_info(crate = #scale_info_path )]
             pub struct #params_struct_ident {
-                #(pub(super) #params_struct_members)*
+                #(pub(super) #params_struct_members,)*
             }
 
             impl #sails_path::gstd::InvocationIo for #params_struct_ident {
@@ -259,10 +255,10 @@ impl FnBuilder<'_> {
         let handler_func_ident = self.ident;
 
         let params_struct_ident = &self.params_struct_ident;
-        let handler_func_params = self.params.iter().map(|item| {
-            let param_ident = item.0;
-            quote!(request.#param_ident)
-        });
+        let handler_func_params = self
+            .params_idents()
+            .iter()
+            .map(|ident| quote!(request.#ident));
 
         let (result_type, reply_with_value) = self.result_type_with_value();
         let await_token = self.is_async().then(|| quote!(.await));
@@ -293,7 +289,8 @@ impl FnBuilder<'_> {
         let sails_path = self.sails_path;
         let handler_ident = self.ident;
         let handler_fn_sig = &self.impl_fn.sig;
-        let handler_params = self.params.iter().map(|item| item.0);
+        let handler_params = self.params_idents();
+
         let handler_await_token = self.is_async().then(|| quote!(.await));
         let handler_allow_attrs = self
             .impl_fn
