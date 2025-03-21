@@ -98,7 +98,7 @@ pub mod wasm {
     }
     async fn match_ctor_solidity(ctor: &[u8], input: &[u8]) -> Option<MyProgram> {
         if ctor == &[12u8, 78u8, 101u8, 119u8] {
-            let (p1, p2): (u32, String) = sails_rs::alloy_sol_types::SolValue::abi_decode_params(
+            let (_, p1, p2): (u128, u32, String) = sails_rs::alloy_sol_types::SolValue::abi_decode_params(
                     input,
                     false,
                 )
