@@ -109,7 +109,7 @@ impl ProgramBuilder {
                         #program_ident = match_ctor_solidity(ctor_route, &#input_ident[4..]).await;
                     }
                     if unsafe { #program_ident.is_some() } {
-                        #sails_path::gstd::msg::reply_bytes(ctor_route, 0).expect("Failed to send output");
+                        #sails_path::gstd::msg::reply_bytes(&[], 0).expect("Failed to send output");
                         return;
                     }
                 }
