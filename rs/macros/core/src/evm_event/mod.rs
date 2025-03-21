@@ -12,7 +12,7 @@ pub fn derive_evm_event(input: TokenStream) -> TokenStream {
     let input: DeriveInput = syn::parse2(input).unwrap_or_else(|err| {
         abort!(
             err.span(),
-            "EvmEvent can only be derived for enums: {}",
+            "EthEvent can only be derived for enums: {}",
             err
         )
     });
@@ -20,7 +20,7 @@ pub fn derive_evm_event(input: TokenStream) -> TokenStream {
     // Ensure the input is an enum.
     let data_enum = match input.data {
         Data::Enum(data) => data,
-        _ => abort!(input, "EvmEvent can only be derived for enums"),
+        _ => abort!(input, "EthEvent can only be derived for enums"),
     };
 
     let enum_ident = &input.ident;
@@ -152,9 +152,9 @@ pub fn derive_evm_event(input: TokenStream) -> TokenStream {
         data_match_arms.push(data_arm);
     }
 
-    // Generate the implementation for the EvmEvent trait.
+    // Generate the implementation for the EthEvent trait.
     quote! {
-        impl EvmEvent for #enum_ident {
+        impl EthEvent for #enum_ident {
             const SIGNATURES: &'static [&'static str] = &[
                 #( #sigs_const ),*
             ];

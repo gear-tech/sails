@@ -2,7 +2,7 @@
 source: macros-tests/tests/evm_event.rs
 expression: result
 ---
-impl EvmEvent for Events {
+impl EthEvent for Events {
     const SIGNATURES: &'static [&'static str] = &[
         concatcp!(
             "MyEvent1", << (u128, u128, String,) as

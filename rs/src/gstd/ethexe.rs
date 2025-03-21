@@ -4,7 +4,7 @@ use crate::prelude::*;
 #[cfg(target_arch = "wasm32")]
 pub fn __notify_on<TEvents>(event: TEvents) -> crate::errors::Result<()>
 where
-    TEvents: crate::EvmEvent,
+    TEvents: crate::EthEvent,
 {
     let payload = event.encode();
     gstd::msg::send_bytes(gstd::ActorId::zero(), payload, 0)?;
@@ -23,7 +23,7 @@ where
 ///   For static types, the ABI-encoded value is left-padded with zeros to 32 bytes.
 /// - **Data:** A byte array containing the ABI-encoded non-indexed fields of the event, encoded as a tuple.
 ///
-/// This trait is intended to be used with the `#[derive(EvmEvent)]` procedural macro, which automatically
+/// This trait is intended to be used with the `#[derive(EthEvent)]` procedural macro, which automatically
 /// implements the trait for your enum-based event definitions.
 ///
 /// # Examples
@@ -31,7 +31,7 @@ where
 /// Given an event definition:
 ///
 /// ```rust
-/// #[derive(EvmEvent)]
+/// #[derive(EthEvent)]
 /// pub enum Events {
 ///     MyEvent {
 ///         #[indexed]
@@ -62,7 +62,7 @@ where
 ///
 /// - `topics()`: Returns a vector of 32-byte topics (`alloy_primitives::B256`) for the event.
 /// - `data()`: Returns the ABI-encoded data payload (a `Vec<u8>`) for the non-indexed fields.
-pub trait EvmEvent {
+pub trait EthEvent {
     /// The signature(s) associated with the event.
     ///
     /// The signature is the event name and its parameter types, e.g. `MyEvent(uint128,uint128,string)`.
@@ -136,10 +136,10 @@ mod tests {
     use super::*;
     use crate::String;
     use gstd::TypeInfo;
-    use sails_macros::EvmEvent;
+    use sails_macros::EthEvent;
 
     #[allow(unused)]
-    #[derive(EvmEvent, TypeInfo)]
+    #[derive(EthEvent, TypeInfo)]
     #[sails_path(crate = crate)]
     enum Events {
         MyEvent1 {

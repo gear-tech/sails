@@ -52,7 +52,7 @@ pub use parity_scale_codec::{self as scale_codec, Decode, Encode, EncodeLike};
 pub use scale_info::{self as scale_info, TypeInfo};
 
 #[cfg(all(feature = "gstd", feature = "ethexe"))]
-pub use crate::gstd::EvmEvent;
+pub use crate::gstd::EthEvent;
 #[cfg(feature = "ethexe")]
 pub use crate::solidity;
 #[cfg(feature = "ethexe")]
@@ -63,7 +63,7 @@ pub use const_format::*;
 #[cfg(feature = "ethexe")]
 pub use keccak_const;
 #[cfg(all(feature = "gstd", feature = "ethexe"))]
-pub use sails_macros::EvmEvent;
+pub use sails_macros::EthEvent;
 
 /// Channels, Streams and Futures extensions types
 ///

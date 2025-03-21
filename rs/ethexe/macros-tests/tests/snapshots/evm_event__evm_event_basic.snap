@@ -2,7 +2,7 @@
 source: macros-tests/tests/evm_event.rs
 expression: result
 ---
-impl EvmEvent for MyEvent {
+impl EthEvent for MyEvent {
     const SIGNATURES: &'static [&'static str] = &[
         concatcp!(
             "MyEvent1", << () as sails_rs::alloy_sol_types::SolValue > ::SolType as

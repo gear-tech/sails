@@ -191,7 +191,7 @@ pub fn export(args: TokenStream, impl_item_fn_tokens: TokenStream) -> TokenStrea
 ///   For static types, the ABI-encoded value is left-padded with zeros to 32 bytes.
 /// - **Data:** A byte array containing the ABI-encoded non-indexed fields of the event, encoded as a tuple.
 ///
-/// This trait is intended to be used with the `#[derive(EvmEvent)]` procedural macro, which automatically
+/// This trait is intended to be used with the `#[derive(EthEvent)]` procedural macro, which automatically
 /// implements the trait for your enum-based event definitions.
 ///
 /// # Examples
@@ -199,7 +199,7 @@ pub fn export(args: TokenStream, impl_item_fn_tokens: TokenStream) -> TokenStrea
 /// Given an event definition:
 ///
 /// ```rust
-/// #[derive(EvmEvent)]
+/// #[derive(EthEvent)]
 /// pub enum Events {
 ///     MyEvent {
 ///         #[indexed]
@@ -231,7 +231,7 @@ pub fn export(args: TokenStream, impl_item_fn_tokens: TokenStream) -> TokenStrea
 /// - `topics()`: Returns a vector of 32-byte topics (`alloy_primitives::B256`) for the event.
 /// - `data()`: Returns the ABI-encoded data payload (a `Vec<u8>`) for the non-indexed fields.
 #[proc_macro_error]
-#[proc_macro_derive(EvmEvent, attributes(indexed, sails_path))]
+#[proc_macro_derive(EthEvent, attributes(indexed, sails_path))]
 pub fn derive_evm_event(input: TokenStream) -> TokenStream {
     sails_macros_core::derive_evm_event(input.into()).into()
 }

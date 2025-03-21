@@ -4,7 +4,7 @@
 pub use ethexe::__notify_on;
 #[doc(hidden)]
 #[cfg(feature = "ethexe")]
-pub use ethexe::EvmEvent;
+pub use ethexe::EthEvent;
 #[doc(hidden)]
 #[cfg(target_arch = "wasm32")]
 #[cfg(not(feature = "ethexe"))]

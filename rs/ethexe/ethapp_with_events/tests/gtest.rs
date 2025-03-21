@@ -29,7 +29,10 @@ async fn ethapp_with_events_low_level_works() {
     let program = Program::from_file(&system, WASM_PATH);
 
     let ctor = sails_rs::solidity::selector("default(uint128)");
-    let message_id = program.send_bytes(ADMIN_ID, ctor.as_slice());
+    let input = (0u128,).abi_encode_params();
+    let payload = [ctor.as_slice(), input.as_slice()].concat();
+
+    let message_id = program.send_bytes(ADMIN_ID, payload.as_slice());
     let run_result = system.run_next_block();
     let reply_log_record = run_result
         .log()
@@ -41,8 +44,8 @@ async fn ethapp_with_events_low_level_works() {
         Some(sails_rs::gear_core_errors::ReplyCode::Success(_))
     ));
 
-    let do_this_sig = sails_rs::solidity::selector("svc1_do_this(uint32,string,uint128)");
-    let do_this_params = (42, "hello").abi_encode_params();
+    let do_this_sig = sails_rs::solidity::selector("svc1_do_this(uint128,uint32,string)");
+    let do_this_params = (0u128, 42, "hello").abi_encode_params();
     let payload = [do_this_sig.as_slice(), do_this_params.as_slice()].concat();
 
     let message_id = program.send_bytes(ADMIN_ID, payload);
@@ -72,16 +75,19 @@ async fn ethapp_with_events_remoting_works() {
     let mut listener = binding.listen().await.unwrap();
 
     let ctor = sails_rs::solidity::selector("default(uint128)");
+    let input = (0u128,).abi_encode_params();
+    let payload = [ctor.as_slice(), input.as_slice()].concat();
+
     let (program_id, _) = remoting
         .clone()
-        .activate(code_id, vec![], ctor.as_slice(), 0, GTestArgs::default())
+        .activate(code_id, vec![], payload.as_slice(), 0, GTestArgs::default())
         .await
         .unwrap()
         .await
         .unwrap();
 
-    let do_this_sig = sails_rs::solidity::selector("svc1_do_this(uint32,string,uint128)");
-    let do_this_params = (42, "hello").abi_encode_params();
+    let do_this_sig = sails_rs::solidity::selector("svc1_do_this(uint128,uint32,string)");
+    let do_this_params = (0u128, 42, "hello").abi_encode_params();
     let payload = [do_this_sig.as_slice(), do_this_params.as_slice()].concat();
 
     let reply_payload = remoting

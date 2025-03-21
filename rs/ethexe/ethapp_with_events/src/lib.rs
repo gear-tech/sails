@@ -2,7 +2,7 @@
 
 use sails_rs::prelude::*;
 
-#[derive(Encode, TypeInfo, EvmEvent)]
+#[derive(Encode, TypeInfo, EthEvent)]
 #[codec(crate = sails_rs::scale_codec)]
 #[scale_info(crate = sails_rs::scale_info)]
 pub enum Events {
