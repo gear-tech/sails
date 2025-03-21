@@ -116,7 +116,7 @@ impl ReferenceServiceExposure<ReferenceService> {
         input: &[u8],
     ) -> Option<(Vec<u8>, u128)> {
         if method == &[28u8, 65u8, 100u8, 100u8, 66u8, 121u8, 116u8, 101u8] {
-            let (byte,): (u8,) = sails_rs::alloy_sol_types::SolValue::abi_decode_params(
+            let (_, byte): (u128, u8) = sails_rs::alloy_sol_types::SolValue::abi_decode_params(
                     input,
                     false,
                 )
@@ -129,7 +129,7 @@ impl ReferenceServiceExposure<ReferenceService> {
             ));
         }
         if method == &[20u8, 66u8, 97u8, 107u8, 101u8, 100u8] {
-            let (): () = sails_rs::alloy_sol_types::SolValue::abi_decode_params(
+            let (_,): (u128,) = sails_rs::alloy_sol_types::SolValue::abi_decode_params(
                     input,
                     false,
                 )
@@ -143,7 +143,7 @@ impl ReferenceServiceExposure<ReferenceService> {
         }
         if method == &[36u8, 70u8, 105u8, 114u8, 115u8, 116u8, 66u8, 121u8, 116u8, 101u8]
         {
-            let (): () = sails_rs::alloy_sol_types::SolValue::abi_decode_params(
+            let (_,): (u128,) = sails_rs::alloy_sol_types::SolValue::abi_decode_params(
                     input,
                     false,
                 )
@@ -156,7 +156,7 @@ impl ReferenceServiceExposure<ReferenceService> {
             ));
         }
         if method == &[16u8, 73u8, 110u8, 99u8, 114u8] {
-            let (): () = sails_rs::alloy_sol_types::SolValue::abi_decode_params(
+            let (_,): (u128,) = sails_rs::alloy_sol_types::SolValue::abi_decode_params(
                     input,
                     false,
                 )
@@ -169,7 +169,7 @@ impl ReferenceServiceExposure<ReferenceService> {
             ));
         }
         if method == &[32u8, 76u8, 97u8, 115u8, 116u8, 66u8, 121u8, 116u8, 101u8] {
-            let (): () = sails_rs::alloy_sol_types::SolValue::abi_decode_params(
+            let (_,): (u128,) = sails_rs::alloy_sol_types::SolValue::abi_decode_params(
                     input,
                     false,
                 )
@@ -314,7 +314,7 @@ impl sails_rs::solidity::ServiceSignature for ReferenceService {
     const METHODS: &'static [sails_rs::solidity::MethodRoute] = &[
         (
             sails_rs::concatcp!(
-                "add_byte", << (u8, u128,) as sails_rs::alloy_sol_types::SolValue >
+                "add_byte", << (u128, u8,) as sails_rs::alloy_sol_types::SolValue >
                 ::SolType as sails_rs::alloy_sol_types::SolType > ::SOL_NAME,
             ),
             &[28u8, 65u8, 100u8, 100u8, 66u8, 121u8, 116u8, 101u8] as &[u8],

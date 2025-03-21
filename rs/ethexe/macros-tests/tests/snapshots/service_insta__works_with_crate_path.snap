@@ -61,7 +61,7 @@ impl SomeServiceExposure<SomeService> {
         input: &[u8],
     ) -> Option<(Vec<u8>, u128)> {
         if method == &[24u8, 68u8, 111u8, 84u8, 104u8, 105u8, 115u8] {
-            let (p1, p2): (u32, String) = sails_rename::alloy_sol_types::SolValue::abi_decode_params(
+            let (_, p1, p2): (u128, u32, String) = sails_rename::alloy_sol_types::SolValue::abi_decode_params(
                     input,
                     false,
                 )
@@ -74,7 +74,7 @@ impl SomeServiceExposure<SomeService> {
             ));
         }
         if method == &[16u8, 84u8, 104u8, 105u8, 115u8] {
-            let (p1,): (bool,) = sails_rename::alloy_sol_types::SolValue::abi_decode_params(
+            let (_, p1): (u128, bool) = sails_rename::alloy_sol_types::SolValue::abi_decode_params(
                     input,
                     false,
                 )
@@ -165,7 +165,7 @@ impl sails_rename::solidity::ServiceSignature for SomeService {
     const METHODS: &'static [sails_rename::solidity::MethodRoute] = &[
         (
             sails_rename::concatcp!(
-                "do_this", << (u32, String, u128,) as
+                "do_this", << (u128, u32, String,) as
                 sails_rename::alloy_sol_types::SolValue > ::SolType as
                 sails_rename::alloy_sol_types::SolType > ::SOL_NAME,
             ),
@@ -173,7 +173,7 @@ impl sails_rename::solidity::ServiceSignature for SomeService {
         ),
         (
             sails_rename::concatcp!(
-                "this", << (bool, u128,) as sails_rename::alloy_sol_types::SolValue >
+                "this", << (u128, bool,) as sails_rename::alloy_sol_types::SolValue >
                 ::SolType as sails_rename::alloy_sol_types::SolType > ::SOL_NAME,
             ),
             &[16u8, 84u8, 104u8, 105u8, 115u8] as &[u8],

@@ -109,7 +109,7 @@ impl ProgramBuilder {
                         #program_ident = match_ctor_solidity(ctor_route, &#input_ident[4..]).await;
                     }
                     if unsafe { #program_ident.is_some() } {
-                        #sails_path::gstd::msg::reply_bytes(ctor_route, 0).expect("Failed to send output");
+                        #sails_path::gstd::msg::reply_bytes(&[], 0).expect("Failed to send output");
                         return;
                     }
                 }
@@ -154,20 +154,14 @@ impl FnBuilder<'_> {
         let sails_path = self.sails_path;
         let handler_route_bytes = self.encoded_route.as_slice();
         let handler_name = self.route.to_case(Case::Snake);
-        let handler_types = self
-            .params
-            .iter()
-            .map(|item| {
-                let param_type = item.1;
-                quote!(#param_type,)
-            })
-            .chain([quote!(u128,)]); // add uint128 to method signature
+        let handler_types = self.params_types();
 
+        // add uint128 to method signature as first parameter
         quote! {
             (
                 #sails_path::concatcp!(
                     #handler_name,
-                    <<(#(#handler_types)*) as #sails_path::alloy_sol_types::SolValue>::SolType as #sails_path::alloy_sol_types::SolType>::SOL_NAME,
+                    <<(u128, #(#handler_types,)*) as #sails_path::alloy_sol_types::SolValue>::SolType as #sails_path::alloy_sol_types::SolType>::SOL_NAME,
                 ),
                 &[ #(#handler_route_bytes),* ] as &[u8],
             ),
@@ -178,25 +172,16 @@ impl FnBuilder<'_> {
         let sails_path = self.sails_path;
         let handler_route_bytes = self.encoded_route.as_slice();
         let handler_ident = self.ident;
-        let handler_params = self.params.iter().map(|item| {
-            let param_ident = item.0;
-            quote!(#param_ident)
-        });
-        let handler_params_comma = self.params.iter().map(|item| {
-            let param_ident = item.0;
-            quote!(#param_ident,)
-        });
-        let handler_types = self.params.iter().map(|item| {
-            let param_type = item.1;
-            quote!(#param_type,)
-        });
+        let handler_params = self.params_idents();
+        let handler_types = self.params_types();
 
         let await_token = self.is_async().then(|| quote!(.await));
         let unwrap_token = self.unwrap_result.then(|| quote!(.unwrap()));
 
+        // read uint128 as first parameter
         quote! {
             if ctor == &[ #(#handler_route_bytes),* ] {
-                let (#(#handler_params_comma)*) : (#(#handler_types)*) = #sails_path::alloy_sol_types::SolValue::abi_decode_params(input, false).expect("Failed to decode request");
+                let (_, #(#handler_params,)*) : (u128, #(#handler_types,)*) = #sails_path::alloy_sol_types::SolValue::abi_decode_params(input, false).expect("Failed to decode request");
                 let program = #program_type_path :: #handler_ident (#(#handler_params),*) #await_token #unwrap_token;
                 return Some(program);
             }
