@@ -135,7 +135,7 @@ pub fn derive_eth_event(input: TokenStream) -> TokenStream {
         let cap = 1 + indexed_exprs.len();
         let topics_arm = quote! {
             #pattern => {
-                let mut topics = Vec::with_capacity( #cap );
+                let mut topics = #sails_path::Vec::with_capacity( #cap );
                 topics.push(#sails_path::alloy_primitives::keccak256( Self::SIGNATURES[ # idx ] ));
                 #( topics.push(#indexed_exprs); )*
                 topics
@@ -154,20 +154,20 @@ pub fn derive_eth_event(input: TokenStream) -> TokenStream {
 
     // Generate the implementation for the EthEvent trait.
     quote! {
-        impl EthEvent for #enum_ident {
+        impl #sails_path::EthEvent for #enum_ident {
             const SIGNATURES: &'static [&'static str] = &[
                 #( #sigs_const ),*
             ];
 
             #[allow(unused_variables)]
-            fn topics(&self) -> Vec<#sails_path::alloy_primitives::B256> {
+            fn topics(&self) -> #sails_path::Vec<#sails_path::alloy_primitives::B256> {
                 match self {
                     #( #topics_match_arms ),*
                 }
             }
 
             #[allow(unused_variables)]
-            fn data(&self) -> Vec<u8> {
+            fn data(&self) -> #sails_path::Vec<u8> {
                 match self {
                     #( #data_match_arms ),*
                 }
@@ -192,7 +192,7 @@ fn variant_signature(variant: &Variant, sails_path: &Path) -> TokenStream {
     };
 
     quote! {
-        concatcp!(
+        #sails_path::concatcp!(
             #variant_ident,
             <<( #( #field_types, )* ) as #sails_path::alloy_sol_types::SolValue>::SolType as #sails_path::alloy_sol_types::SolType>::SOL_NAME,
         )

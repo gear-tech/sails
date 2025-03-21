@@ -2,28 +2,28 @@
 source: macros-tests/tests/evm_event.rs
 expression: result
 ---
-impl EthEvent for Events {
+impl sails_rename::EthEvent for Events {
     const SIGNATURES: &'static [&'static str] = &[
-        concatcp!(
+        sails_rename::concatcp!(
             "MyEvent1", << (u128, u128, String,) as
             sails_rename::alloy_sol_types::SolValue > ::SolType as
             sails_rename::alloy_sol_types::SolType > ::SOL_NAME,
         ),
-        concatcp!(
+        sails_rename::concatcp!(
             "MyEvent2", << (u128, u128, String,) as
             sails_rename::alloy_sol_types::SolValue > ::SolType as
             sails_rename::alloy_sol_types::SolType > ::SOL_NAME,
         ),
-        concatcp!(
+        sails_rename::concatcp!(
             "MyEvent3", << () as sails_rename::alloy_sol_types::SolValue > ::SolType as
             sails_rename::alloy_sol_types::SolType > ::SOL_NAME,
         ),
     ];
     #[allow(unused_variables)]
-    fn topics(&self) -> Vec<sails_rename::alloy_primitives::B256> {
+    fn topics(&self) -> sails_rename::Vec<sails_rename::alloy_primitives::B256> {
         match self {
             Events::MyEvent1 { sender, amount, note } => {
-                let mut topics = Vec::with_capacity(3usize);
+                let mut topics = sails_rename::Vec::with_capacity(3usize);
                 topics
                     .push(
                         sails_rename::alloy_primitives::keccak256(
@@ -35,7 +35,7 @@ impl EthEvent for Events {
                 topics
             }
             Events::MyEvent2(f0, f1, f2) => {
-                let mut topics = Vec::with_capacity(2usize);
+                let mut topics = sails_rename::Vec::with_capacity(2usize);
                 topics
                     .push(
                         sails_rename::alloy_primitives::keccak256(
@@ -46,7 +46,7 @@ impl EthEvent for Events {
                 topics
             }
             Events::MyEvent3 => {
-                let mut topics = Vec::with_capacity(1usize);
+                let mut topics = sails_rename::Vec::with_capacity(1usize);
                 topics
                     .push(
                         sails_rename::alloy_primitives::keccak256(
@@ -58,7 +58,7 @@ impl EthEvent for Events {
         }
     }
     #[allow(unused_variables)]
-    fn data(&self) -> Vec<u8> {
+    fn data(&self) -> sails_rename::Vec<u8> {
         match self {
             Events::MyEvent1 { sender, amount, note } => Self::encode_sequence(&(note,)),
             Events::MyEvent2(f0, f1, f2) => Self::encode_sequence(&(f1, f2)),

@@ -41,6 +41,7 @@ impl ServiceBuilder<'_> {
     }
 
     pub(super) fn try_handle_solidity_impl(&self, base_ident: &Ident) -> TokenStream {
+        let sails_path = self.sails_path;
         let service_method_branches = self
             .service_handlers
             .iter()
@@ -59,7 +60,7 @@ impl ServiceBuilder<'_> {
                 &mut self,
                 method: &[u8],
                 input: &[u8],
-            ) -> Option<(Vec<u8>, u128)> {
+            ) -> Option<(#sails_path::Vec<u8>, u128)> {
                 #( #service_method_branches )*
                 #( #base_types_try_handle )*
                 None

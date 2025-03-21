@@ -2,18 +2,18 @@
 source: macros-tests/tests/evm_event.rs
 expression: result
 ---
-impl EthEvent for MyEvent {
+impl sails_rs::EthEvent for MyEvent {
     const SIGNATURES: &'static [&'static str] = &[
-        concatcp!(
+        sails_rs::concatcp!(
             "MyEvent1", << () as sails_rs::alloy_sol_types::SolValue > ::SolType as
             sails_rs::alloy_sol_types::SolType > ::SOL_NAME,
         ),
     ];
     #[allow(unused_variables)]
-    fn topics(&self) -> Vec<sails_rs::alloy_primitives::B256> {
+    fn topics(&self) -> sails_rs::Vec<sails_rs::alloy_primitives::B256> {
         match self {
             MyEvent::MyEvent1 => {
-                let mut topics = Vec::with_capacity(1usize);
+                let mut topics = sails_rs::Vec::with_capacity(1usize);
                 topics
                     .push(
                         sails_rs::alloy_primitives::keccak256(Self::SIGNATURES[0usize]),
@@ -23,7 +23,7 @@ impl EthEvent for MyEvent {
         }
     }
     #[allow(unused_variables)]
-    fn data(&self) -> Vec<u8> {
+    fn data(&self) -> sails_rs::Vec<u8> {
         match self {
             MyEvent::MyEvent1 => Self::encode_sequence(&()),
         }

@@ -14,7 +14,7 @@ pub struct MyGenericEventsServiceExposure<T: sails_rs::gstd::services::Service> 
     message_id: sails_rs::MessageId,
     route: &'static [u8],
     #[cfg(not(target_arch = "wasm32"))]
-    inner: Box<T>,
+    inner: sails_rs::Box<T>,
     #[cfg(not(target_arch = "wasm32"))]
     inner_ptr: *const T,
     #[cfg(target_arch = "wasm32")]
@@ -38,7 +38,10 @@ where
         let exposure_scope = sails_rs::gstd::services::ExposureCallScope::new(self);
         self.inner.do_this()
     }
-    pub async fn try_handle(&mut self, input: &[u8]) -> Option<(Vec<u8>, u128)> {
+    pub async fn try_handle(
+        &mut self,
+        input: &[u8],
+    ) -> Option<(sails_rs::Vec<u8>, u128)> {
         use sails_rs::gstd::InvocationIo;
         if let Ok(request) = my_generic_events_service_meta::__DoThisParams::decode_params(
             input,
@@ -56,7 +59,7 @@ where
         &mut self,
         method: &[u8],
         input: &[u8],
-    ) -> Option<(Vec<u8>, u128)> {
+    ) -> Option<(sails_rs::Vec<u8>, u128)> {
         if method == &[24u8, 68u8, 111u8, 84u8, 104u8, 105u8, 115u8] {
             let (_,): (u128,) = sails_rs::alloy_sol_types::SolValue::abi_decode_params(
                     input,
@@ -85,7 +88,7 @@ where
         route: &'static [u8],
     ) -> Self::Exposure {
         #[cfg(not(target_arch = "wasm32"))]
-        let inner_box = Box::new(self);
+        let inner_box = sails_rs::Box::new(self);
         #[cfg(not(target_arch = "wasm32"))]
         let inner = inner_box.as_ref();
         #[cfg(target_arch = "wasm32")]
@@ -178,7 +181,7 @@ const _: () = {
     >;
     type Mutex<T> = sails_rs::spin::Mutex<T>;
     impl<T: sails_rs::gstd::services::Service> MyGenericEventsServiceExposure<T> {
-        pub fn take_events(&mut self) -> Vec<MyEvents> {
+        pub fn take_events(&mut self) -> sails_rs::Vec<MyEvents> {
             if core::mem::size_of_val(self.inner.as_ref()) == 0 {
                 panic!(
                     "setting event listener on a zero-sized service is not supported for now"
