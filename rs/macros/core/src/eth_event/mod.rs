@@ -43,6 +43,7 @@ pub fn derive_eth_event(input: TokenStream) -> TokenStream {
     // Process each variant.
     for (idx, variant) in data_enum.variants.iter().enumerate() {
         let variant_ident = &variant.ident;
+        check_forbidden_event_idents(variant_ident);
 
         // Prepare pattern, and vectors for indexed and non-indexed field expressions.
         let (pattern, indexed_exprs, non_indexed_exprs): (
@@ -196,5 +197,26 @@ fn variant_signature(variant: &Variant, sails_path: &Path) -> TokenStream {
             #variant_ident,
             <<( #( #field_types, )* ) as #sails_path::alloy_sol_types::SolValue>::SolType as #sails_path::alloy_sol_types::SolType>::SOL_NAME,
         )
+    }
+}
+
+fn check_forbidden_event_idents(ident: &Ident) {
+    const FORBIDDEN_IDENTS: &[&str] = &[
+        "ExecutableBalanceTopUpRequested",
+        "Message",
+        "MessageQueueingRequested",
+        "Reply",
+        "ReplyQueueingRequested",
+        "StateChanged",
+        "ValueClaimed",
+        "ValueClaimingRequested",
+    ];
+    if FORBIDDEN_IDENTS.contains(&ident.to_string().as_str()) {
+        abort!(
+            ident,
+            "`{}` is not allowed as an identifier of EthEvent variant, not allowed identifiers are: {:?}",
+            ident,
+            FORBIDDEN_IDENTS
+        );
     }
 }
