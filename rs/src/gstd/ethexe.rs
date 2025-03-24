@@ -123,6 +123,8 @@ pub trait EthEvent {
         let topics = self.topics();
         let data = self.data();
 
+        // encode topics lenght as u8
+        payload.push(topics.len() as u8);
         for topic in topics {
             payload.extend_from_slice(topic.as_slice());
         }

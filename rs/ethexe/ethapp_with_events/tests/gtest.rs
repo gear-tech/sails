@@ -2,6 +2,8 @@ use ethapp_with_events::Events;
 use sails_rs::{
     alloy_sol_types::SolValue,
     calls::Remoting,
+    events::Listener,
+    futures::StreamExt,
     gtest::{
         Program, System,
         calls::{GTestArgs, GTestRemoting},
@@ -72,16 +74,18 @@ async fn ethapp_with_events_low_level_works() {
     assert_eq!(program.id(), event_log_record.source());
 
     let event_payload = event_log_record.payload();
+    assert_eq!(2u8, event_payload[0]);
 
     let sig = sails_rs::alloy_primitives::keccak256(b"DoThisEvent(uint32,string)");
-    let topic1 = &event_payload[..32];
+    let topic1 = &event_payload[1..1 + 32];
     assert_eq!(sig.as_slice(), topic1);
 
     let hash2 = Events::topic_hash(&42u32);
-    let topic2 = &event_payload[32..32 + 32];
+    let topic2 = &event_payload[1 + 32..1 + 32 + 32];
     assert_eq!(hash2.as_slice(), topic2);
 
-    let (s,): (String,) = SolValue::abi_decode_sequence(&event_payload[32 + 32..], false).unwrap();
+    let (s,): (String,) =
+        SolValue::abi_decode_sequence(&event_payload[1 + 32 + 32..], false).unwrap();
     assert_eq!("hello", s);
 }
 
@@ -93,8 +97,8 @@ async fn ethapp_with_events_remoting_works() {
     let code_id = system.submit_code_file(WASM_PATH);
 
     let remoting = GTestRemoting::new(system, ADMIN_ID.into());
-    // let mut binding = remoting.clone();
-    // let mut listener = binding.listen().await.unwrap();
+    let mut binding = remoting.clone();
+    let mut listener = binding.listen().await.unwrap();
 
     let ctor = sails_rs::solidity::selector("default(uint128)");
     let input = (0u128,).abi_encode_params();
@@ -123,18 +127,19 @@ async fn ethapp_with_events_remoting_works() {
     let reply = u32::abi_decode(reply_payload.as_slice(), true);
     assert_eq!(reply, Ok(42));
 
-    // TODO: dicuss listener implemetation for EthEvent
-    // let (from, event_payload) = listener.next().await.unwrap();
-    // assert_eq!(from, program_id);
+    let (from, event_payload) = listener.next().await.unwrap();
+    assert_eq!(from, program_id);
+    assert_eq!(2u8, event_payload[0]);
 
-    // let sig = sails_rs::alloy_primitives::keccak256(b"DoThisEvent(uint32,string)");
-    // let topic1 = &event_payload[..32];
-    // assert_eq!(sig.as_slice(), topic1);
+    let sig = sails_rs::alloy_primitives::keccak256(b"DoThisEvent(uint32,string)");
+    let topic1 = &event_payload[1..1 + 32];
+    assert_eq!(sig.as_slice(), topic1);
 
-    // let hash2 = Events::topic_hash(&42u32);
-    // let topic2 = &event_payload[32..32 + 32];
-    // assert_eq!(hash2.as_slice(), topic2);
+    let hash2 = Events::topic_hash(&42u32);
+    let topic2 = &event_payload[1 + 32..1 + 32 + 32];
+    assert_eq!(hash2.as_slice(), topic2);
 
-    // let (s,): (String,) = SolValue::abi_decode_sequence(&event_payload[32 + 32..], false).unwrap();
-    // assert_eq!("hello", s);
+    let (s,): (String,) =
+        SolValue::abi_decode_sequence(&event_payload[1 + 32 + 32..], false).unwrap();
+    assert_eq!("hello", s);
 }
