@@ -65,11 +65,15 @@ async fn ethapp_with_events_low_level_works() {
     assert_eq!(reply, Ok(42));
 
     // assert event
-    let dest = ActorId::new([0xff; 32]);
+    const ETH_EVENT_ADDR: ActorId = ActorId::new([
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0xff, 0xff,
+        0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+        0xff, 0xff,
+    ]);
     let event_log_record = run_result
         .log()
         .iter()
-        .find(|entry| entry.destination() == dest)
+        .find(|entry| entry.destination() == ETH_EVENT_ADDR)
         .unwrap();
     assert_eq!(program.id(), event_log_record.source());
 

@@ -6,9 +6,8 @@ pub fn __emit_eth_event<TEvents>(event: TEvents) -> crate::errors::Result<()>
 where
     TEvents: crate::EthEvent,
 {
-    const ETH_ADDR: gstd::ActorId = gstd::ActorId::new([0xff; 32]);
     let payload = event.encode();
-    gstd::msg::send_bytes(ETH_ADDR, payload, 0)?;
+    gstd::msg::send_bytes(crate::solidity::ETH_EVENT_ADDR, payload, 0)?;
     Ok(())
 }
 

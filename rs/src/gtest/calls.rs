@@ -119,9 +119,7 @@ impl GTestRemoting {
                 continue;
             }
             #[cfg(feature = "ethexe")]
-            const ETH_ADDR: gstd::ActorId = gstd::ActorId::new([0xff; 32]);
-            #[cfg(feature = "ethexe")]
-            if entry.destination() == ETH_ADDR {
+            if entry.destination() == crate::solidity::ETH_EVENT_ADDR {
                 log::debug!("Extract event from entry {:?}", entry);
                 for sender in event_senders.iter() {
                     _ = sender.unbounded_send((entry.source(), entry.payload().to_vec()));
