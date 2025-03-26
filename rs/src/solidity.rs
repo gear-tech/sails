@@ -7,15 +7,25 @@ pub(crate) const ETH_EVENT_ADDR: gstd::ActorId = gstd::ActorId::new([
     0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
 ]);
 
-pub type MethodRoute = (&'static str, &'static [u8]);
+pub type MethodExpo = (
+    &'static str,  // Method name
+    &'static [u8], // Method route
+);
+pub type ServiceExpo = (
+    &'static str,            // Service expo name
+    &'static [u8],           // Service route
+    &'static [MethodExpo],   // Method routes
+    &'static [&'static str], // Callback names
+);
 
 pub trait ServiceSignature {
-    const METHODS: &'static [MethodRoute];
+    const METHODS: &'static [MethodExpo];
+    const CALLBACKS: &'static [&'static str];
 }
 
 pub trait ProgramSignature {
-    const CTORS: &'static [MethodRoute];
-    const SERVICES: &'static [(&'static str, &'static [u8], &'static [MethodRoute])];
+    const CTORS: &'static [MethodExpo];
+    const SERVICES: &'static [ServiceExpo];
     const METHODS_LEN: usize;
 }
 
@@ -64,8 +74,9 @@ macro_rules! const_concat_slices {
         const LEN: usize = $( $A.len() + )* 0;
         const fn combined() -> [$T; LEN] {
             let mut output: [MaybeUninit<$T>; LEN] = [const { MaybeUninit::uninit() }; LEN];
-            let _offset = 0;
-            $(let _offset = copy_slice(&mut output, $A, _offset);)*
+            let offset = 0;
+            $(let offset = copy_slice(&mut output, $A, offset);)*
+            assert!(offset == LEN);
             unsafe { core::mem::transmute::<_, [$T; LEN]>(output) }
         }
         const fn copy_slice(output: &mut [MaybeUninit<$T>], input: &[$T], offset: usize) -> usize {
@@ -103,7 +114,7 @@ where
         let mut sigs_idx = 0;
         let mut svc_idx = 0;
         while svc_idx < <T as ProgramSignature>::SERVICES.len() {
-            let (svc_name, _, methods) = <T as ProgramSignature>::SERVICES[svc_idx];
+            let (svc_name, _, methods, _) = <T as ProgramSignature>::SERVICES[svc_idx];
             let mut method_idx = 0;
             while method_idx < methods.len() {
                 let (name, _) = methods[method_idx];
@@ -121,7 +132,7 @@ where
         let mut map_idx = 0;
         let mut svc_idx = 0;
         while svc_idx < <T as ProgramSignature>::SERVICES.len() {
-            let (_, svc_route, methods) = <T as ProgramSignature>::SERVICES[svc_idx];
+            let (_, svc_route, methods, _) = <T as ProgramSignature>::SERVICES[svc_idx];
             let mut method_idx = 0;
             while method_idx < methods.len() {
                 let (_, route) = methods[method_idx];
@@ -132,6 +143,24 @@ where
             svc_idx += 1;
         }
         routes
+    }
+
+    pub const fn callback_sigs<const N: usize>() -> [[u8; 4]; N] {
+        let mut sigs = [[0u8; 4]; N];
+        let mut sigs_idx = 0;
+        let mut svc_idx = 0;
+        while svc_idx < <T as ProgramSignature>::SERVICES.len() {
+            let (svc_name, _, _, callbacks) = <T as ProgramSignature>::SERVICES[svc_idx];
+            let mut method_idx = 0;
+            while method_idx < callbacks.len() {
+                let name = callbacks[method_idx];
+                sigs[sigs_idx] = const_selector!("reply_on_", svc_name, "_", name);
+                method_idx += 1;
+                sigs_idx += 1;
+            }
+            svc_idx += 1;
+        }
+        sigs
     }
 }
 
@@ -163,7 +192,7 @@ mod tests {
     struct ExtendedSvc;
 
     impl ServiceSignature for Svc {
-        const METHODS: &[MethodRoute] = &[
+        const METHODS: &[MethodExpo] = &[
             (
                 concatcp!(
                     "do_this",
@@ -179,11 +208,13 @@ mod tests {
                 &[16u8, 84u8, 104u8, 105u8, 115u8] as &[u8],
             ),
         ];
+
+        const CALLBACKS: &'static [&'static str] = &[];
     }
 
     impl ServiceSignature for ExtendedSvc {
-        const METHODS: &[MethodRoute] = const_concat_slices!(
-            <MethodRoute>,
+        const METHODS: &[MethodExpo] = const_concat_slices!(
+            <MethodExpo>,
             &[
                 (
                     concatcp!(
@@ -202,13 +233,15 @@ mod tests {
             ],
             <Svc as ServiceSignature>::METHODS
         );
+
+        const CALLBACKS: &'static [&'static str] = &[];
     }
 
     impl ProgramSignature for Prg {
         const METHODS_LEN: usize = <Svc as ServiceSignature>::METHODS.len()
             + <ExtendedSvc as ServiceSignature>::METHODS.len();
 
-        const CTORS: &[MethodRoute] = &[(
+        const CTORS: &[MethodExpo] = &[(
             concatcp!(
                 "default",
                 <<(u128,) as SolValue>::SolType as SolType>::SOL_NAME,
@@ -216,16 +249,18 @@ mod tests {
             &[28u8, 68u8, 101u8, 102u8, 97u8, 117u8, 108u8, 116u8] as &[u8],
         )];
 
-        const SERVICES: &[(&'static str, &'static [u8], &[MethodRoute])] = &[
+        const SERVICES: &[(&'static str, &'static [u8], &[MethodExpo], &[&str])] = &[
             (
                 "svc1",
                 &[16u8, 83u8, 118u8, 99u8, 49u8] as &[u8],
                 <Svc as ServiceSignature>::METHODS,
+                <Svc as ServiceSignature>::CALLBACKS,
             ),
             (
                 "svc2",
                 &[16u8, 83u8, 118u8, 99u8, 49u8] as &[u8],
                 <ExtendedSvc as ServiceSignature>::METHODS,
+                <ExtendedSvc as ServiceSignature>::CALLBACKS,
             ),
         ];
     }

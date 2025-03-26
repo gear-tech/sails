@@ -1,4 +1,5 @@
 use sails_rs::{
+    alloy_primitives::B256,
     alloy_sol_types::SolValue,
     calls::Remoting,
     gtest::{
@@ -23,7 +24,7 @@ async fn ethapp_sol_works() {
     let program = Program::from_file(&system, WASM_PATH);
 
     let ctor = sails_rs::solidity::selector("create_prg(uint128)");
-    let input = (0u128,).abi_encode_params();
+    let input = (0u128,).abi_encode_sequence();
     let payload = [ctor.as_slice(), input.as_slice()].concat();
 
     let message_id = program.send_bytes(ADMIN_ID, payload.as_slice());
@@ -38,8 +39,8 @@ async fn ethapp_sol_works() {
         Some(sails_rs::gear_core_errors::ReplyCode::Success(_))
     ));
 
-    let do_this_sig = sails_rs::solidity::selector("svc1_do_this(uint128,uint32,string)");
-    let do_this_params = (0u128, 42, "hello").abi_encode_params();
+    let do_this_sig = sails_rs::solidity::selector("svc1_do_this(uint128,bool,uint32,string)");
+    let do_this_params = (0u128, false, 42, "hello").abi_encode_sequence();
     let payload = [do_this_sig.as_slice(), do_this_params.as_slice()].concat();
 
     let message_id = program.send_bytes(ADMIN_ID, payload);
@@ -66,7 +67,7 @@ async fn ethapp_remoting_works() {
     let remoting = GTestRemoting::new(system, ADMIN_ID.into());
 
     let ctor = sails_rs::solidity::selector("create_prg(uint128)");
-    let input = (0u128,).abi_encode_params();
+    let input = (0u128,).abi_encode_sequence();
     let payload = [ctor.as_slice(), input.as_slice()].concat();
 
     let (program_id, _) = remoting
@@ -77,8 +78,8 @@ async fn ethapp_remoting_works() {
         .await
         .unwrap();
 
-    let do_this_sig = sails_rs::solidity::selector("svc1_do_this(uint128,uint32,string)");
-    let do_this_params = (0u128, 42, "hello").abi_encode_params();
+    let do_this_sig = sails_rs::solidity::selector("svc1_do_this(uint128,bool,uint32,string)");
+    let do_this_params = (0u128, false, 42, "hello").abi_encode_sequence();
     let payload = [do_this_sig.as_slice(), do_this_params.as_slice()].concat();
 
     let reply_payload = remoting
@@ -91,4 +92,46 @@ async fn ethapp_remoting_works() {
 
     let reply = u32::abi_decode(reply_payload.as_slice(), true);
     assert_eq!(reply, Ok(42));
+}
+
+#[tokio::test]
+async fn ethapp_remoting_encode_reply_works() {
+    let system = System::new();
+    system.init_logger_with_default_filter("gwasm=debug,gtest=debug,sails_rs=debug");
+    system.mint_to(ADMIN_ID, 100_000_000_000_000);
+    let code_id = system.submit_code_file(WASM_PATH);
+    let remoting = GTestRemoting::new(system, ADMIN_ID.into());
+
+    let ctor = sails_rs::solidity::selector("create_prg(uint128)");
+    let input = (0u128,).abi_encode_sequence();
+    let payload = [ctor.as_slice(), input.as_slice()].concat();
+
+    let (program_id, _) = remoting
+        .clone()
+        .activate(code_id, vec![], payload.as_slice(), 0, GTestArgs::default())
+        .await
+        .unwrap()
+        .await
+        .unwrap();
+
+    let do_this_sig = sails_rs::solidity::selector("svc1_do_this(uint128,bool,uint32,string)");
+    let do_this_params = (0u128, true, 42, "hello").abi_encode_sequence();
+    let payload = [do_this_sig.as_slice(), do_this_params.as_slice()].concat();
+
+    // act
+    let reply_payload = remoting
+        .clone()
+        .message(program_id, payload, 0, GTestArgs::default())
+        .await
+        .unwrap()
+        .await
+        .unwrap();
+
+    // assert
+    let callback_selector = sails_rs::solidity::selector("reply_on_svc1_do_this(bytes32,uint32)");
+    assert_eq!(callback_selector.as_slice(), &reply_payload[..4]);
+
+    let (_message_id, result) =
+        <(B256, u32)>::abi_decode_sequence(&reply_payload[4..], false).unwrap();
+    assert_eq!(42, result);
 }

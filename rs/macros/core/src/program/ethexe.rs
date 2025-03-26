@@ -7,7 +7,7 @@ impl ProgramBuilder {
     /// Generates code
     /// ```rust
     /// impl sails_rs::solidity::ProgramSignature for MyProgram {
-    ///     const CTORS: &'static [sails_rs::solidity::MethodRoute] = &[(
+    ///     const CTORS: &'static [sails_rs::solidity::MethodExpo] = &[(
     ///         sails_rs::concatcp!(
     ///             "default", << (u128) as sails_rs::alloy_sol_types::SolValue > ::SolType
     ///             as sails_rs::alloy_sol_types::SolType > ::SOL_NAME,
@@ -15,15 +15,12 @@ impl ProgramBuilder {
     ///         &[28u8, 68u8, 101u8, 102u8, 97u8, 117u8, 108u8, 116u8] as &[u8],
     ///     ),
     /// ];
-    /// const SERVICES: &'static [(
-    ///     &'static str,
-    ///     &'static [u8],
-    ///     &'static [sails_rs::solidity::MethodRoute],
-    /// )] = &[
+    /// const SERVICES: &'static [sails_rs::solidity::ServiceExpo] = &[
     ///     (
     ///         "service",
     ///         &[28u8, 83u8, 101u8, 114u8, 118u8, 105u8, 99u8, 101u8] as &[u8],
     ///         <MyService as sails_rs::solidity::ServiceSignature>::METHODS,
+    ///         <MyService as sails_rs::solidity::ServiceSignature>::CALLBACKS,
     ///     ),
     /// ];
     /// const METHODS_LEN: usize = <MyService as sails_rs::solidity::ServiceSignature>::METHODS
@@ -38,7 +35,7 @@ impl ProgramBuilder {
         let program_ctors = self.program_ctors();
         let program_ctor_sigs = program_ctors
             .iter()
-            .map(|fn_builder| fn_builder.sol_handler_signature());
+            .map(|fn_builder| fn_builder.sol_handler_signature(false));
 
         let service_ctors = self.service_ctors();
         let service_ctor_sigs = service_ctors
@@ -57,10 +54,10 @@ impl ProgramBuilder {
 
         quote! {
             impl #generics #sails_path::solidity::ProgramSignature for #program_type_path #program_type_constraints {
-                const CTORS: &'static [#sails_path::solidity::MethodRoute] = &[
+                const CTORS: &'static [#sails_path::solidity::MethodExpo] = &[
                     #( #program_ctor_sigs )*
                 ];
-                const SERVICES: &'static [(&'static str, &'static [u8], &'static [#sails_path::solidity::MethodRoute])] = &[
+                const SERVICES: &'static [#sails_path::solidity::ServiceExpo] = &[
                     #( #service_ctor_sigs )*
                 ];
                 const METHODS_LEN: usize = #methods_len;
@@ -79,6 +76,8 @@ impl ProgramBuilder {
                 = #sails_path::solidity::ConstProgramMeta::<#program_type_path>::method_sigs();
             const __METHOD_ROUTES: [(&'static [u8], &'static [u8]); <#program_type_path as #sails_path::solidity::ProgramSignature>::METHODS_LEN]
                 = #sails_path::solidity::ConstProgramMeta::<#program_type_path>::method_routes();
+            const __CALLBACK_SIGS: [[u8; 4]; <#program_type_path as #sails_path::solidity::ProgramSignature>::METHODS_LEN]
+                = #sails_path::solidity::ConstProgramMeta::<#program_type_path>::callback_sigs();
         }
     }
 
@@ -144,11 +143,12 @@ impl FnBuilder<'_> {
                 #service_name,
                 &[ #(#service_route_bytes),* ] as &[u8],
                 <#service_type as #sails_path::solidity::ServiceSignature>::METHODS,
+                <#service_type as #sails_path::solidity::ServiceSignature>::CALLBACKS,
             ),
         }
     }
 
-    pub(crate) fn sol_handler_signature(&self) -> TokenStream {
+    pub(crate) fn sol_handler_signature(&self, add_encode_reply_parameter: bool) -> TokenStream {
         use convert_case::{Case, Casing};
 
         let sails_path = self.sails_path;
@@ -156,15 +156,37 @@ impl FnBuilder<'_> {
         let handler_name = self.route.to_case(Case::Snake);
         let handler_types = self.params_types();
 
-        // add uint128 to method signature as first parameter
+        // add uint128 to method signature as first parameter and bool if encode_reply passed
+        let prefix_params = if add_encode_reply_parameter {
+            quote! { u128, bool }
+        } else {
+            quote! { u128 }
+        };
         quote! {
             (
                 #sails_path::concatcp!(
                     #handler_name,
-                    <<(u128, #(#handler_types,)*) as #sails_path::alloy_sol_types::SolValue>::SolType as #sails_path::alloy_sol_types::SolType>::SOL_NAME,
+                    <<(#prefix_params, #(#handler_types,)*) as #sails_path::alloy_sol_types::SolValue>::SolType as #sails_path::alloy_sol_types::SolType>::SOL_NAME,
                 ),
                 &[ #(#handler_route_bytes),* ] as &[u8],
             ),
+        }
+    }
+
+    pub(crate) fn sol_callback_signature(&self) -> TokenStream {
+        use convert_case::{Case, Casing};
+
+        let sails_path = self.sails_path;
+        // NOTE: Program adds prefix, result "reply_on_{service_name}_{handler_name}"
+        let handler_name = self.route.to_case(Case::Snake);
+        let (result_type, _) = self.result_type_with_value();
+
+        // add MessageId (alloy_primitives::B256) to callback signature as first parameter
+        quote! {
+            #sails_path::concatcp!(
+                #handler_name,
+                <<(#sails_path::alloy_primitives::B256, #result_type) as #sails_path::alloy_sol_types::SolValue>::SolType as #sails_path::alloy_sol_types::SolType>::SOL_NAME,
+            )
         }
     }
 
@@ -195,12 +217,19 @@ impl FnBuilder<'_> {
         quote! {
             if route == & #route_ident {
                 let mut service = program_ref.#service_ctor_ident();
-                let (output, value) = service
+                let (output, value, encode_reply) = service
                     .try_handle_solidity(method, &input[4..])
                     .await
                     .unwrap_or_else(|| {
                         #sails_path::gstd::unknown_input_panic("Unknown request", input)
                     });
+                // add callbak selector if `encode_reply` is set`
+                let output = if encode_reply {
+                    let selector = __CALLBACK_SIGS[idx];
+                    [selector.as_slice(), output.as_slice()].concat()
+                } else {
+                    output
+                };
                 #sails_path::gstd::msg::reply_bytes(output, value).expect("Failed to send output");
                 return;
             }

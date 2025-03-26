@@ -61,7 +61,7 @@ mod meta_in_program {
     }
 }
 impl sails_rs::solidity::ProgramSignature for MyProgram {
-    const CTORS: &'static [sails_rs::solidity::MethodRoute] = &[
+    const CTORS: &'static [sails_rs::solidity::MethodExpo] = &[
         (
             sails_rs::concatcp!(
                 "default", << (u128,) as sails_rs::alloy_sol_types::SolValue > ::SolType
@@ -70,15 +70,12 @@ impl sails_rs::solidity::ProgramSignature for MyProgram {
             &[28u8, 68u8, 101u8, 102u8, 97u8, 117u8, 108u8, 116u8] as &[u8],
         ),
     ];
-    const SERVICES: &'static [(
-        &'static str,
-        &'static [u8],
-        &'static [sails_rs::solidity::MethodRoute],
-    )] = &[
+    const SERVICES: &'static [sails_rs::solidity::ServiceExpo] = &[
         (
             "service",
             &[28u8, 83u8, 101u8, 114u8, 118u8, 105u8, 99u8, 101u8] as &[u8],
             <MyService as sails_rs::solidity::ServiceSignature>::METHODS,
+            <MyService as sails_rs::solidity::ServiceSignature>::CALLBACKS,
         ),
     ];
     const METHODS_LEN: usize = <MyService as sails_rs::solidity::ServiceSignature>::METHODS
@@ -95,6 +92,9 @@ const __METHOD_ROUTES: [(
 ); <MyProgram as sails_rs::solidity::ProgramSignature>::METHODS_LEN] = sails_rs::solidity::ConstProgramMeta::<
     MyProgram,
 >::method_routes();
+const __CALLBACK_SIGS: [[u8; 4]; <MyProgram as sails_rs::solidity::ProgramSignature>::METHODS_LEN] = sails_rs::solidity::ConstProgramMeta::<
+    MyProgram,
+>::callback_sigs();
 #[cfg(target_arch = "wasm32")]
 pub mod wasm {
     use super::*;
@@ -154,12 +154,18 @@ pub mod wasm {
                 let (route, method) = __METHOD_ROUTES[idx];
                 if route == &__ROUTE_SERVICE {
                     let mut service = program_ref.service();
-                    let (output, value) = service
+                    let (output, value, encode_reply) = service
                         .try_handle_solidity(method, &input[4..])
                         .await
                         .unwrap_or_else(|| {
                             sails_rs::gstd::unknown_input_panic("Unknown request", input)
                         });
+                    let output = if encode_reply {
+                        let selector = __CALLBACK_SIGS[idx];
+                        [selector.as_slice(), output.as_slice()].concat()
+                    } else {
+                        output
+                    };
                     sails_rs::gstd::msg::reply_bytes(output, value)
                         .expect("Failed to send output");
                     return;

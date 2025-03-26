@@ -48,7 +48,7 @@ mod meta_in_program {
     }
 }
 impl sails_rs::solidity::ProgramSignature for MyProgram {
-    const CTORS: &'static [sails_rs::solidity::MethodRoute] = &[
+    const CTORS: &'static [sails_rs::solidity::MethodExpo] = &[
         (
             sails_rs::concatcp!(
                 "new", << (u128, u32, String,) as sails_rs::alloy_sol_types::SolValue >
@@ -64,11 +64,7 @@ impl sails_rs::solidity::ProgramSignature for MyProgram {
             &[16u8, 78u8, 101u8, 119u8, 50u8] as &[u8],
         ),
     ];
-    const SERVICES: &'static [(
-        &'static str,
-        &'static [u8],
-        &'static [sails_rs::solidity::MethodRoute],
-    )] = &[];
+    const SERVICES: &'static [sails_rs::solidity::ServiceExpo] = &[];
     const METHODS_LEN: usize = 0;
 }
 const __CTOR_SIGS: [[u8; 4]; <MyProgram as sails_rs::solidity::ProgramSignature>::CTORS
@@ -82,6 +78,9 @@ const __METHOD_ROUTES: [(
 ); <MyProgram as sails_rs::solidity::ProgramSignature>::METHODS_LEN] = sails_rs::solidity::ConstProgramMeta::<
     MyProgram,
 >::method_routes();
+const __CALLBACK_SIGS: [[u8; 4]; <MyProgram as sails_rs::solidity::ProgramSignature>::METHODS_LEN] = sails_rs::solidity::ConstProgramMeta::<
+    MyProgram,
+>::callback_sigs();
 #[cfg(target_arch = "wasm32")]
 pub mod wasm {
     use super::*;

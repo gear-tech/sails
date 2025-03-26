@@ -73,7 +73,7 @@ impl SomeServiceExposure<SomeService> {
         &mut self,
         method: &[u8],
         input: &[u8],
-    ) -> Option<(sails_rs::Vec<u8>, u128)> {
+    ) -> Option<(sails_rs::Vec<u8>, u128, bool)> {
         if method
             == &[
                 44u8,
@@ -90,30 +90,44 @@ impl SomeServiceExposure<SomeService> {
                 103u8,
             ]
         {
-            let (_, p1, p2): (u128, u32, String) = sails_rs::alloy_sol_types::SolValue::abi_decode_params(
+            let (_, _encode_reply, p1, p2): (u128, bool, u32, String) = sails_rs::alloy_sol_types::SolValue::abi_decode_params(
                     input,
                     false,
                 )
                 .ok()?;
             let result = self.do_this(p1, p2).await.unwrap();
             let value = 0u128;
-            return Some((
-                sails_rs::alloy_sol_types::SolValue::abi_encode(&result),
-                value,
-            ));
+            let output = if _encode_reply {
+                let message_id = sails_rs::alloy_primitives::B256::new(
+                    self.message_id.into_bytes(),
+                );
+                sails_rs::alloy_sol_types::SolValue::abi_encode_sequence(
+                    &(message_id, result),
+                )
+            } else {
+                sails_rs::alloy_sol_types::SolValue::abi_encode_sequence(&(result,))
+            };
+            return Some((output, value, _encode_reply));
         }
         if method == &[16u8, 84u8, 104u8, 105u8, 115u8] {
-            let (_, p1): (u128, bool) = sails_rs::alloy_sol_types::SolValue::abi_decode_params(
+            let (_, _encode_reply, p1): (u128, bool, bool) = sails_rs::alloy_sol_types::SolValue::abi_decode_params(
                     input,
                     false,
                 )
                 .ok()?;
             let result = self.this(p1);
             let value = 0u128;
-            return Some((
-                sails_rs::alloy_sol_types::SolValue::abi_encode(&result),
-                value,
-            ));
+            let output = if _encode_reply {
+                let message_id = sails_rs::alloy_primitives::B256::new(
+                    self.message_id.into_bytes(),
+                );
+                sails_rs::alloy_sol_types::SolValue::abi_encode_sequence(
+                    &(message_id, result),
+                )
+            } else {
+                sails_rs::alloy_sol_types::SolValue::abi_encode_sequence(&(result,))
+            };
+            return Some((output, value, _encode_reply));
         }
         None
     }
@@ -204,10 +218,10 @@ mod some_service_meta {
     pub type EventsMeta = NoEvents;
 }
 impl sails_rs::solidity::ServiceSignature for SomeService {
-    const METHODS: &'static [sails_rs::solidity::MethodRoute] = &[
+    const METHODS: &'static [sails_rs::solidity::MethodExpo] = &[
         (
             sails_rs::concatcp!(
-                "do_something", << (u128, u32, String,) as
+                "do_something", << (u128, bool, u32, String,) as
                 sails_rs::alloy_sol_types::SolValue > ::SolType as
                 sails_rs::alloy_sol_types::SolType > ::SOL_NAME,
             ),
@@ -228,10 +242,22 @@ impl sails_rs::solidity::ServiceSignature for SomeService {
         ),
         (
             sails_rs::concatcp!(
-                "this", << (u128, bool,) as sails_rs::alloy_sol_types::SolValue >
+                "this", << (u128, bool, bool,) as sails_rs::alloy_sol_types::SolValue >
                 ::SolType as sails_rs::alloy_sol_types::SolType > ::SOL_NAME,
             ),
             &[16u8, 84u8, 104u8, 105u8, 115u8] as &[u8],
+        ),
+    ];
+    const CALLBACKS: &'static [&'static str] = &[
+        sails_rs::concatcp!(
+            "do_something", << (sails_rs::alloy_primitives::B256, (u32, String)) as
+            sails_rs::alloy_sol_types::SolValue > ::SolType as
+            sails_rs::alloy_sol_types::SolType > ::SOL_NAME,
+        ),
+        sails_rs::concatcp!(
+            "this", << (sails_rs::alloy_primitives::B256, bool) as
+            sails_rs::alloy_sol_types::SolValue > ::SolType as
+            sails_rs::alloy_sol_types::SolType > ::SOL_NAME,
         ),
     ];
 }

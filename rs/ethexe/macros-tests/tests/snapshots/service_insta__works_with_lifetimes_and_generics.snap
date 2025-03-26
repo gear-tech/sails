@@ -57,19 +57,26 @@ where
         &mut self,
         method: &[u8],
         input: &[u8],
-    ) -> Option<(sails_rs::Vec<u8>, u128)> {
+    ) -> Option<(sails_rs::Vec<u8>, u128, bool)> {
         if method == &[24u8, 68u8, 111u8, 84u8, 104u8, 105u8, 115u8] {
-            let (_,): (u128,) = sails_rs::alloy_sol_types::SolValue::abi_decode_params(
+            let (_, _encode_reply): (u128, bool) = sails_rs::alloy_sol_types::SolValue::abi_decode_params(
                     input,
                     false,
                 )
                 .ok()?;
             let result = self.do_this();
             let value = 0u128;
-            return Some((
-                sails_rs::alloy_sol_types::SolValue::abi_encode(&result),
-                value,
-            ));
+            let output = if _encode_reply {
+                let message_id = sails_rs::alloy_primitives::B256::new(
+                    self.message_id.into_bytes(),
+                );
+                sails_rs::alloy_sol_types::SolValue::abi_encode_sequence(
+                    &(message_id, result),
+                )
+            } else {
+                sails_rs::alloy_sol_types::SolValue::abi_encode_sequence(&(result,))
+            };
+            return Some((output, value, _encode_reply));
         }
         None
     }
@@ -144,13 +151,20 @@ where
     T: Clone,
     U: Iterator<Item = u32>,
 {
-    const METHODS: &'static [sails_rs::solidity::MethodRoute] = &[
+    const METHODS: &'static [sails_rs::solidity::MethodExpo] = &[
         (
             sails_rs::concatcp!(
-                "do_this", << (u128,) as sails_rs::alloy_sol_types::SolValue > ::SolType
-                as sails_rs::alloy_sol_types::SolType > ::SOL_NAME,
+                "do_this", << (u128, bool,) as sails_rs::alloy_sol_types::SolValue >
+                ::SolType as sails_rs::alloy_sol_types::SolType > ::SOL_NAME,
             ),
             &[24u8, 68u8, 111u8, 84u8, 104u8, 105u8, 115u8] as &[u8],
+        ),
+    ];
+    const CALLBACKS: &'static [&'static str] = &[
+        sails_rs::concatcp!(
+            "do_this", << (sails_rs::alloy_primitives::B256, u32) as
+            sails_rs::alloy_sol_types::SolValue > ::SolType as
+            sails_rs::alloy_sol_types::SolType > ::SOL_NAME,
         ),
     ];
 }
