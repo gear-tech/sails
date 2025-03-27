@@ -103,7 +103,9 @@ where
         let mut ctor_idx = 0;
         while ctor_idx < <T as ProgramSignature>::CTORS.len() {
             let (name, _) = <T as ProgramSignature>::CTORS[ctor_idx];
-            sigs[ctor_idx] = const_selector!(name);
+            let selector = const_selector!(name);
+            Self::assert_selector_not_equals_ctor_routes(selector);
+            sigs[ctor_idx] = selector;
             ctor_idx += 1;
         }
         sigs
@@ -118,7 +120,9 @@ where
             let mut method_idx = 0;
             while method_idx < methods.len() {
                 let (name, _) = methods[method_idx];
-                sigs[sigs_idx] = const_selector!(svc_name, "_", name);
+                let selector = const_selector!(svc_name, "_", name);
+                Self::assert_selector_not_equals_method_routes(selector);
+                sigs[sigs_idx] = selector;
                 method_idx += 1;
                 sigs_idx += 1;
             }
@@ -162,6 +166,56 @@ where
         }
         sigs
     }
+
+    const fn assert_selector_not_equals_method_routes(selector: [u8; 4]) {
+        let mut svc_idx = 0;
+        while svc_idx < <T as ProgramSignature>::SERVICES.len() {
+            let (_, svc_route, methods, _) = <T as ProgramSignature>::SERVICES[svc_idx];
+            let mut method_idx = 0;
+            while method_idx < methods.len() {
+                let (_, route) = methods[method_idx];
+                assert!(!selector_equals(selector, svc_route, route));
+                method_idx += 1;
+            }
+            svc_idx += 1;
+        }
+    }
+
+    const fn assert_selector_not_equals_ctor_routes(selector: [u8; 4]) {
+        let mut ctor_idx = 0;
+        while ctor_idx < <T as ProgramSignature>::CTORS.len() {
+            let (_, route) = <T as ProgramSignature>::CTORS[ctor_idx];
+            assert!(!selector_equals(selector, route, &[]));
+            ctor_idx += 1;
+        }
+    }
+}
+
+/// Compares a 4-byte selector array against the concatenation of two input byte slices.
+///
+/// This function checks whether the **first 4 bytes** of the concatenated `first` and `second` slices
+/// exactly match the `selector`. It does not require `first` or `second` to be of any specific length,
+/// but the **combined length must be at least 4** for the function to return `true`.
+///
+/// Any mismatch in the first 4 bytes results in `false`.
+const fn selector_equals(selector: [u8; 4], first: &[u8], second: &[u8]) -> bool {
+    let mut i = 0;
+    while i < first.len() && i < selector.len() {
+        if selector[i] != first[i] {
+            return false;
+        }
+        i += 1;
+    }
+    let mut j = 0;
+    while j < second.len() && i < selector.len() {
+        if selector[i] != second[j] {
+            return false;
+        }
+        i += 1;
+        j += 1;
+    }
+    // False if we didn't match full len
+    i == selector.len()
 }
 
 #[cfg(test)]
@@ -318,5 +372,48 @@ mod tests {
             solidity::ConstProgramMeta::<Prg>::ctor_sigs();
         let sig_ctor = selector("default(uint128)");
         assert_eq!(CTOR_SIGS[0], sig_ctor.as_slice());
+    }
+
+    #[test]
+    fn selector_equals_test_exact_match() {
+        let sel = *b"ABCD";
+        assert!(selector_equals(sel, b"AB", b"CD"));
+    }
+
+    #[test]
+    fn selector_equals_test_longer_second() {
+        let sel = *b"ABCD";
+        assert!(selector_equals(sel, b"AB", b"CDEF"));
+    }
+
+    #[test]
+    fn selector_equals_test_longer_first() {
+        let sel = *b"ABCD";
+        assert!(selector_equals(sel, b"ABCDX", b""));
+    }
+
+    #[test]
+    fn selector_equals_test_short_inputs() {
+        let sel = *b"ABCD";
+        assert!(selector_equals(sel, b"A", b"BCD"));
+        assert!(selector_equals(sel, b"", b"ABCD"));
+    }
+
+    #[test]
+    fn selector_equals_test_mismatch_in_first() {
+        let sel = *b"XBCD";
+        assert!(!selector_equals(sel, b"AB", b"CD"));
+    }
+
+    #[test]
+    fn selector_equals_test_mismatch_in_second() {
+        let sel = *b"ABXD";
+        assert!(!selector_equals(sel, b"AB", b"CD"));
+    }
+
+    #[test]
+    fn selector_equals_test_mismatch_due_to_short_concat() {
+        let sel = *b"ABCD";
+        assert!(!selector_equals(sel, b"A", b"B")); // only "AB" < 4 bytes
     }
 }
