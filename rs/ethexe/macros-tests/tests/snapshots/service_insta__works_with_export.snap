@@ -234,7 +234,7 @@ impl sails_rs::solidity::ServiceSignature for SomeService {
                 110u8,
                 103u8,
             ] as &[u8],
-            "do_something",
+            "DoSomething",
             <<(
                 u128,
                 bool,
@@ -248,7 +248,7 @@ impl sails_rs::solidity::ServiceSignature for SomeService {
         ),
         (
             &[16u8, 84u8, 104u8, 105u8, 115u8] as &[u8],
-            "this",
+            "This",
             <<(
                 u128,
                 bool,

@@ -121,7 +121,7 @@ where
             let mut method_idx = 0;
             while method_idx < methods.len() {
                 let (_, name, params, _) = methods[method_idx];
-                let selector = const_selector!(svc_name, "_", name, params);
+                let selector = const_selector!(svc_name, name, params);
                 Self::assert_selector_not_equals_method_routes(selector);
                 sigs[sigs_idx] = selector;
                 method_idx += 1;
@@ -159,7 +159,7 @@ where
             let mut method_idx = 0;
             while method_idx < methods.len() {
                 let (_, name, _, callback) = methods[method_idx];
-                sigs[sigs_idx] = const_selector!("reply_on_", svc_name, "_", name, callback);
+                sigs[sigs_idx] = const_selector!("replyOn_", svc_name, name, callback);
                 method_idx += 1;
                 sigs_idx += 1;
             }
@@ -251,13 +251,13 @@ mod tests {
         const METHODS: &[MethodExpo] = &[
             (
                 &[24u8, 68u8, 111u8, 84u8, 104u8, 105u8, 115u8] as &[u8],
-                "do_this",
+                "DoThis",
                 <<(u32, String, u128) as SolValue>::SolType as SolType>::SOL_NAME,
                 <<(B256, u32) as SolValue>::SolType as SolType>::SOL_NAME,
             ),
             (
                 &[16u8, 84u8, 104u8, 105u8, 115u8] as &[u8],
-                "this",
+                "This",
                 <<(bool, u128) as SolValue>::SolType as SolType>::SOL_NAME,
                 <<(B256, u32) as SolValue>::SolType as SolType>::SOL_NAME,
             ),
@@ -270,13 +270,13 @@ mod tests {
             &[
                 (
                     &[24u8, 68u8, 111u8, 84u8, 104u8, 105u8, 115u8] as &[u8],
-                    "do_this",
+                    "DoThis",
                     <<(u32, String, u128,) as SolValue>::SolType as SolType>::SOL_NAME,
                     <<(B256, u32) as SolValue>::SolType as SolType>::SOL_NAME,
                 ),
                 (
                     &[16u8, 84u8, 104u8, 105u8, 115u8] as &[u8],
-                    "this",
+                    "This",
                     <<(bool, u128,) as SolValue>::SolType as SolType>::SOL_NAME,
                     <<(B256, u32) as SolValue>::SolType as SolType>::SOL_NAME,
                 ),
@@ -291,7 +291,7 @@ mod tests {
 
         const CTORS: &[MethodExpo] = &[(
             &[28u8, 68u8, 101u8, 102u8, 97u8, 117u8, 108u8, 116u8] as &[u8],
-            "default",
+            "create",
             <<(u128,) as SolValue>::SolType as SolType>::SOL_NAME,
             "",
         )];
@@ -316,13 +316,13 @@ mod tests {
 
         let do_this = (
             &[24u8, 68u8, 111u8, 84u8, 104u8, 105u8, 115u8] as &[u8],
-            "do_this",
+            "DoThis",
             "(uint32,string,uint128)",
             "(bytes32,uint32)",
         );
         let this = (
             &[16u8, 84u8, 104u8, 105u8, 115u8] as &[u8],
-            "this",
+            "This",
             <<(bool, u128) as SolValue>::SolType as SolType>::SOL_NAME,
             <<(B256, u32) as SolValue>::SolType as SolType>::SOL_NAME,
         );
@@ -334,27 +334,27 @@ mod tests {
 
     #[test]
     fn program_signature() {
-        const S1: [u8; 4] = [107, 214, 203, 248];
-        const S2: [u8; 4] = [141, 22, 87, 153];
+        const S1: [u8; 4] = [236, 140, 92, 145];
+        const S2: [u8; 4] = [27, 178, 77, 160];
         const SIGS: [[u8; 4]; <Prg as solidity::ProgramSignature>::METHODS_LEN] =
             solidity::ConstProgramMeta::<Prg>::method_sigs();
         assert_eq!(6, SIGS.len());
 
-        let sig1 = selector("svc1_do_this(uint32,string,uint128)");
+        let sig1 = selector("svc1DoThis(uint32,string,uint128)");
         assert_eq!(S1, sig1.as_slice());
         assert_eq!(S1, SIGS[0]);
 
-        let sig2 = selector("svc1_this(bool,uint128)");
+        let sig2 = selector("svc1This(bool,uint128)");
         assert_eq!(S2, sig2.as_slice());
         assert_eq!(S2, SIGS[1]);
 
         assert_eq!(Some(0), SIGS.iter().position(|s| s == &S1));
         assert_eq!(Some(1), SIGS.iter().position(|s| s == &S2));
 
-        let sig3 = selector("svc2_do_this(uint32,string,uint128)");
+        let sig3 = selector("svc2DoThis(uint32,string,uint128)");
         assert_eq!(Some(2), SIGS.iter().position(|s| s == sig3.as_slice()));
 
-        let sig4 = selector("svc2_this(bool,uint128)");
+        let sig4 = selector("svc2This(bool,uint128)");
         assert_eq!(Some(3), SIGS.iter().position(|s| s == sig4.as_slice()));
     }
 
@@ -362,7 +362,7 @@ mod tests {
     fn program_ctor_sigs() {
         const CTOR_SIGS: [[u8; 4]; <Prg as solidity::ProgramSignature>::CTORS.len()] =
             solidity::ConstProgramMeta::<Prg>::ctor_sigs();
-        let sig_ctor = selector("default(uint128)");
+        let sig_ctor = selector("create(uint128)");
         assert_eq!(CTOR_SIGS[0], sig_ctor.as_slice());
     }
 

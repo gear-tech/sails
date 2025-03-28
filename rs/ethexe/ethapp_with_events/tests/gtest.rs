@@ -45,7 +45,7 @@ async fn ethapp_with_events_low_level_works() {
         Some(sails_rs::gear_core_errors::ReplyCode::Success(_))
     ));
 
-    let do_this_sig = sails_rs::solidity::selector("svc1_do_this(uint128,bool,uint32,string)");
+    let do_this_sig = sails_rs::solidity::selector("svc1DoThis(uint128,bool,uint32,string)");
     let do_this_params = (0u128, false, 42, "hello").abi_encode_sequence();
     let payload = [do_this_sig.as_slice(), do_this_params.as_slice()].concat();
 
@@ -116,7 +116,7 @@ async fn ethapp_with_events_remoting_works() {
         .await
         .unwrap();
 
-    let do_this_sig = sails_rs::solidity::selector("svc1_do_this(uint128,bool,uint32,string)");
+    let do_this_sig = sails_rs::solidity::selector("svc1DoThis(uint128,bool,uint32,string)");
     let do_this_params = (0u128, false, 42, "hello").abi_encode_sequence();
     let payload = [do_this_sig.as_slice(), do_this_params.as_slice()].concat();
 

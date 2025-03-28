@@ -170,7 +170,7 @@ mod some_service_meta {
 impl sails_rs::solidity::ServiceSignature for SomeService {
     const METHODS: &'static [sails_rs::solidity::MethodExpo] = sails_rs::const_concat_slices!(
         < sails_rs::solidity::MethodExpo >, & [(& [24u8, 68u8, 111u8, 84u8, 104u8, 105u8,
-        115u8] as & [u8], "do_this", << (u128, bool,) as
+        115u8] as & [u8], "DoThis", << (u128, bool,) as
         sails_rs::alloy_sol_types::SolValue > ::SolType as
         sails_rs::alloy_sol_types::SolType > ::SOL_NAME, <<
         (sails_rs::alloy_primitives::B256, u32) as sails_rs::alloy_sol_types::SolValue >

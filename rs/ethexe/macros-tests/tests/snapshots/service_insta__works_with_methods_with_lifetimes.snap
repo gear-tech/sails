@@ -352,7 +352,7 @@ impl sails_rs::solidity::ServiceSignature for ReferenceService {
     const METHODS: &'static [sails_rs::solidity::MethodExpo] = &[
         (
             &[28u8, 65u8, 100u8, 100u8, 66u8, 121u8, 116u8, 101u8] as &[u8],
-            "add_byte",
+            "AddByte",
             <<(
                 u128,
                 bool,
@@ -365,7 +365,7 @@ impl sails_rs::solidity::ServiceSignature for ReferenceService {
         ),
         (
             &[20u8, 66u8, 97u8, 107u8, 101u8, 100u8] as &[u8],
-            "baked",
+            "Baked",
             <<(
                 u128,
                 bool,
@@ -378,7 +378,7 @@ impl sails_rs::solidity::ServiceSignature for ReferenceService {
         (
             &[36u8, 70u8, 105u8, 114u8, 115u8, 116u8, 66u8, 121u8, 116u8, 101u8]
                 as &[u8],
-            "first_byte",
+            "FirstByte",
             <<(
                 u128,
                 bool,
@@ -390,7 +390,7 @@ impl sails_rs::solidity::ServiceSignature for ReferenceService {
         ),
         (
             &[16u8, 73u8, 110u8, 99u8, 114u8] as &[u8],
-            "incr",
+            "Incr",
             <<(
                 u128,
                 bool,
@@ -402,7 +402,7 @@ impl sails_rs::solidity::ServiceSignature for ReferenceService {
         ),
         (
             &[32u8, 76u8, 97u8, 115u8, 116u8, 66u8, 121u8, 116u8, 101u8] as &[u8],
-            "last_byte",
+            "LastByte",
             <<(
                 u128,
                 bool,

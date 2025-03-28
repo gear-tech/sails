@@ -233,12 +233,12 @@ mod extended_with_lifetime_meta {
 impl<'a> sails_rs::solidity::ServiceSignature for ExtendedWithLifetime<'a> {
     const METHODS: &'static [sails_rs::solidity::MethodExpo] = sails_rs::const_concat_slices!(
         < sails_rs::solidity::MethodExpo >, & [(& [48u8, 69u8, 120u8, 116u8, 101u8,
-        110u8, 100u8, 101u8, 100u8, 78u8, 97u8, 109u8, 101u8] as & [u8], "extended_name",
+        110u8, 100u8, 101u8, 100u8, 78u8, 97u8, 109u8, 101u8] as & [u8], "ExtendedName",
         << (u128, bool,) as sails_rs::alloy_sol_types::SolValue > ::SolType as
         sails_rs::alloy_sol_types::SolType > ::SOL_NAME, <<
         (sails_rs::alloy_primitives::B256, String) as sails_rs::alloy_sol_types::SolValue
         > ::SolType as sails_rs::alloy_sol_types::SolType > ::SOL_NAME,), (& [16u8, 78u8,
-        97u8, 109u8, 101u8] as & [u8], "name", << (u128, bool,) as
+        97u8, 109u8, 101u8] as & [u8], "Name", << (u128, bool,) as
         sails_rs::alloy_sol_types::SolValue > ::SolType as
         sails_rs::alloy_sol_types::SolType > ::SOL_NAME, <<
         (sails_rs::alloy_primitives::B256, String) as sails_rs::alloy_sol_types::SolValue

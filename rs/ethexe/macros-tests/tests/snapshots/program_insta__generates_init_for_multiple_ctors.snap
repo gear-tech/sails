@@ -59,7 +59,7 @@ impl sails_rs::solidity::ProgramSignature for MyProgram {
         ),
         (
             &[16u8, 78u8, 101u8, 119u8, 50u8] as &[u8],
-            "new_2",
+            "new2",
             <<(
                 u128,
                 String,

@@ -1,5 +1,4 @@
 use super::*;
-use convert_case::{Boundary, Case, Casing};
 use proc_macro2::TokenStream;
 use quote::quote;
 
@@ -129,10 +128,7 @@ impl FnBuilder<'_> {
     fn sol_service_signature(&self) -> TokenStream {
         let sails_path = self.sails_path;
         let service_route_bytes = self.encoded_route.as_slice();
-        let service_name = self
-            .route
-            .with_boundaries(&[Boundary::DigitUpper, Boundary::UpperDigit])
-            .to_case(Case::Snake);
+        let service_name = self.route_camel_case();
         let service_type = &self.result_type;
 
         quote! {
@@ -145,11 +141,15 @@ impl FnBuilder<'_> {
     }
 
     pub(crate) fn sol_handler_signature(&self, is_service: bool) -> TokenStream {
-        use convert_case::{Case, Casing};
-
         let sails_path = self.sails_path;
         let handler_route_bytes = self.encoded_route.as_slice();
-        let handler_name = self.route.to_case(Case::Snake);
+        let handler_name = if is_service {
+            // method name as PascalCase
+            &self.route
+        } else {
+            // ctor name as camelCase
+            &self.route_camel_case()
+        };
         let handler_types = self.params_types();
         let (result_type, _) = self.result_type_with_value();
 

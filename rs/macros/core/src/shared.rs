@@ -317,4 +317,13 @@ impl<'a> FnBuilder<'a> {
     pub(crate) fn params_types(&self) -> &[&Type] {
         self.params_types.as_slice()
     }
+
+    #[cfg(feature = "ethexe")]
+    pub(crate) fn route_camel_case(&self) -> String {
+        use convert_case::{Boundary, Case, Casing};
+
+        self.route
+            .with_boundaries(&[Boundary::Underscore, Boundary::LowerUpper])
+            .to_case(Case::Camel)
+    }
 }

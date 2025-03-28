@@ -188,7 +188,7 @@ impl sails_rs::solidity::ServiceSignature for SomeService {
     const METHODS: &'static [sails_rs::solidity::MethodExpo] = &[
         (
             &[24u8, 68u8, 111u8, 84u8, 104u8, 105u8, 115u8] as &[u8],
-            "do_this",
+            "DoThis",
             <<(
                 u128,
                 bool,
@@ -202,7 +202,7 @@ impl sails_rs::solidity::ServiceSignature for SomeService {
         ),
         (
             &[16u8, 84u8, 104u8, 105u8, 115u8] as &[u8],
-            "this",
+            "This",
             <<(
                 u128,
                 bool,
