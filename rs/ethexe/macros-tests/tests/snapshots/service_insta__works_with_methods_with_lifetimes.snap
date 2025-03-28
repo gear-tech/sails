@@ -351,66 +351,66 @@ mod reference_service_meta {
 impl sails_rs::solidity::ServiceSignature for ReferenceService {
     const METHODS: &'static [sails_rs::solidity::MethodExpo] = &[
         (
-            sails_rs::concatcp!(
-                "add_byte", << (u128, bool, u8,) as sails_rs::alloy_sol_types::SolValue >
-                ::SolType as sails_rs::alloy_sol_types::SolType > ::SOL_NAME,
-            ),
             &[28u8, 65u8, 100u8, 100u8, 66u8, 121u8, 116u8, 101u8] as &[u8],
+            "add_byte",
+            <<(
+                u128,
+                bool,
+                u8,
+            ) as sails_rs::alloy_sol_types::SolValue>::SolType as sails_rs::alloy_sol_types::SolType>::SOL_NAME,
+            <<(
+                sails_rs::alloy_primitives::B256,
+                &'static [u8],
+            ) as sails_rs::alloy_sol_types::SolValue>::SolType as sails_rs::alloy_sol_types::SolType>::SOL_NAME,
         ),
         (
-            sails_rs::concatcp!(
-                "baked", << (u128, bool,) as sails_rs::alloy_sol_types::SolValue >
-                ::SolType as sails_rs::alloy_sol_types::SolType > ::SOL_NAME,
-            ),
             &[20u8, 66u8, 97u8, 107u8, 101u8, 100u8] as &[u8],
+            "baked",
+            <<(
+                u128,
+                bool,
+            ) as sails_rs::alloy_sol_types::SolValue>::SolType as sails_rs::alloy_sol_types::SolType>::SOL_NAME,
+            <<(
+                sails_rs::alloy_primitives::B256,
+                &'static str,
+            ) as sails_rs::alloy_sol_types::SolValue>::SolType as sails_rs::alloy_sol_types::SolType>::SOL_NAME,
         ),
         (
-            sails_rs::concatcp!(
-                "first_byte", << (u128, bool,) as sails_rs::alloy_sol_types::SolValue >
-                ::SolType as sails_rs::alloy_sol_types::SolType > ::SOL_NAME,
-            ),
-            &[36u8, 70u8, 105u8, 114u8, 115u8, 116u8, 66u8, 121u8, 116u8, 101u8] as &[u8],
+            &[36u8, 70u8, 105u8, 114u8, 115u8, 116u8, 66u8, 121u8, 116u8, 101u8]
+                as &[u8],
+            "first_byte",
+            <<(
+                u128,
+                bool,
+            ) as sails_rs::alloy_sol_types::SolValue>::SolType as sails_rs::alloy_sol_types::SolType>::SOL_NAME,
+            <<(
+                sails_rs::alloy_primitives::B256,
+                Option<&'a u8>,
+            ) as sails_rs::alloy_sol_types::SolValue>::SolType as sails_rs::alloy_sol_types::SolType>::SOL_NAME,
         ),
         (
-            sails_rs::concatcp!(
-                "incr", << (u128, bool,) as sails_rs::alloy_sol_types::SolValue >
-                ::SolType as sails_rs::alloy_sol_types::SolType > ::SOL_NAME,
-            ),
             &[16u8, 73u8, 110u8, 99u8, 114u8] as &[u8],
+            "incr",
+            <<(
+                u128,
+                bool,
+            ) as sails_rs::alloy_sol_types::SolValue>::SolType as sails_rs::alloy_sol_types::SolType>::SOL_NAME,
+            <<(
+                sails_rs::alloy_primitives::B256,
+                &'static ReferenceCount,
+            ) as sails_rs::alloy_sol_types::SolValue>::SolType as sails_rs::alloy_sol_types::SolType>::SOL_NAME,
         ),
         (
-            sails_rs::concatcp!(
-                "last_byte", << (u128, bool,) as sails_rs::alloy_sol_types::SolValue >
-                ::SolType as sails_rs::alloy_sol_types::SolType > ::SOL_NAME,
-            ),
             &[32u8, 76u8, 97u8, 115u8, 116u8, 66u8, 121u8, 116u8, 101u8] as &[u8],
-        ),
-    ];
-    const CALLBACKS: &'static [&'static str] = &[
-        sails_rs::concatcp!(
-            "add_byte", << (sails_rs::alloy_primitives::B256, & 'static [u8]) as
-            sails_rs::alloy_sol_types::SolValue > ::SolType as
-            sails_rs::alloy_sol_types::SolType > ::SOL_NAME,
-        ),
-        sails_rs::concatcp!(
-            "baked", << (sails_rs::alloy_primitives::B256, & 'static str) as
-            sails_rs::alloy_sol_types::SolValue > ::SolType as
-            sails_rs::alloy_sol_types::SolType > ::SOL_NAME,
-        ),
-        sails_rs::concatcp!(
-            "first_byte", << (sails_rs::alloy_primitives::B256, Option < & 'a u8 >) as
-            sails_rs::alloy_sol_types::SolValue > ::SolType as
-            sails_rs::alloy_sol_types::SolType > ::SOL_NAME,
-        ),
-        sails_rs::concatcp!(
-            "incr", << (sails_rs::alloy_primitives::B256, & 'static ReferenceCount) as
-            sails_rs::alloy_sol_types::SolValue > ::SolType as
-            sails_rs::alloy_sol_types::SolType > ::SOL_NAME,
-        ),
-        sails_rs::concatcp!(
-            "last_byte", << (sails_rs::alloy_primitives::B256, Option < & 'a u8 >) as
-            sails_rs::alloy_sol_types::SolValue > ::SolType as
-            sails_rs::alloy_sol_types::SolType > ::SOL_NAME,
+            "last_byte",
+            <<(
+                u128,
+                bool,
+            ) as sails_rs::alloy_sol_types::SolValue>::SolType as sails_rs::alloy_sol_types::SolType>::SOL_NAME,
+            <<(
+                sails_rs::alloy_primitives::B256,
+                Option<&'a u8>,
+            ) as sails_rs::alloy_sol_types::SolValue>::SolType as sails_rs::alloy_sol_types::SolType>::SOL_NAME,
         ),
     ];
 }

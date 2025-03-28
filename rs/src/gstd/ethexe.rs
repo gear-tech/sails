@@ -11,6 +11,12 @@ where
     Ok(())
 }
 
+pub type EthEventExpo = (
+    &'static str, // Event name
+    &'static str, // Event parameters types
+    [u8; 32],     // Topic hash
+);
+
 /// Trait for encoding Ethereum events for the EVM.
 ///
 /// This trait provides a uniform interface to convert an event into the topics and data payload
@@ -65,9 +71,9 @@ where
 pub trait EthEvent {
     /// The signature(s) associated with the event.
     ///
-    /// The signature is the event name and its parameter types, e.g. `MyEvent(uint128,uint128,string)`.
+    /// The signature is the event name and its parameter types, e.g. `MyEvent` and `(uint128,uint128,string)`.
     /// The signature is used as the first topic in the log.
-    const SIGNATURES: &'static [&'static str];
+    const SIGNATURES: &'static [EthEventExpo];
 
     /// Returns the topics associated with the event.
     ///

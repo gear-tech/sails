@@ -8,19 +8,20 @@ pub(crate) const ETH_EVENT_ADDR: gstd::ActorId = gstd::ActorId::new([
 ]);
 
 pub type MethodExpo = (
-    &'static str,  // Method name
     &'static [u8], // Method route
+    &'static str,  // Method name
+    &'static str,  // Method parameters types
+    &'static str,  // Method callback parameters types
 );
+
 pub type ServiceExpo = (
-    &'static str,            // Service expo name
-    &'static [u8],           // Service route
-    &'static [MethodExpo],   // Method routes
-    &'static [&'static str], // Callback names
+    &'static str,          // Service expo name
+    &'static [u8],         // Service route
+    &'static [MethodExpo], // Method routes
 );
 
 pub trait ServiceSignature {
     const METHODS: &'static [MethodExpo];
-    const CALLBACKS: &'static [&'static str];
 }
 
 pub trait ProgramSignature {
@@ -102,8 +103,8 @@ where
         let mut sigs = [[0u8; 4]; N];
         let mut ctor_idx = 0;
         while ctor_idx < <T as ProgramSignature>::CTORS.len() {
-            let (name, _) = <T as ProgramSignature>::CTORS[ctor_idx];
-            let selector = const_selector!(name);
+            let (_, name, params, _) = <T as ProgramSignature>::CTORS[ctor_idx];
+            let selector = const_selector!(name, params);
             Self::assert_selector_not_equals_ctor_routes(selector);
             sigs[ctor_idx] = selector;
             ctor_idx += 1;
@@ -116,11 +117,11 @@ where
         let mut sigs_idx = 0;
         let mut svc_idx = 0;
         while svc_idx < <T as ProgramSignature>::SERVICES.len() {
-            let (svc_name, _, methods, _) = <T as ProgramSignature>::SERVICES[svc_idx];
+            let (svc_name, _, methods) = <T as ProgramSignature>::SERVICES[svc_idx];
             let mut method_idx = 0;
             while method_idx < methods.len() {
-                let (name, _) = methods[method_idx];
-                let selector = const_selector!(svc_name, "_", name);
+                let (_, name, params, _) = methods[method_idx];
+                let selector = const_selector!(svc_name, "_", name, params);
                 Self::assert_selector_not_equals_method_routes(selector);
                 sigs[sigs_idx] = selector;
                 method_idx += 1;
@@ -136,10 +137,10 @@ where
         let mut map_idx = 0;
         let mut svc_idx = 0;
         while svc_idx < <T as ProgramSignature>::SERVICES.len() {
-            let (_, svc_route, methods, _) = <T as ProgramSignature>::SERVICES[svc_idx];
+            let (_, svc_route, methods) = <T as ProgramSignature>::SERVICES[svc_idx];
             let mut method_idx = 0;
             while method_idx < methods.len() {
-                let (_, route) = methods[method_idx];
+                let (route, ..) = methods[method_idx];
                 routes[map_idx] = (svc_route, route);
                 method_idx += 1;
                 map_idx += 1;
@@ -154,11 +155,11 @@ where
         let mut sigs_idx = 0;
         let mut svc_idx = 0;
         while svc_idx < <T as ProgramSignature>::SERVICES.len() {
-            let (svc_name, _, _, callbacks) = <T as ProgramSignature>::SERVICES[svc_idx];
+            let (svc_name, _, methods) = <T as ProgramSignature>::SERVICES[svc_idx];
             let mut method_idx = 0;
-            while method_idx < callbacks.len() {
-                let name = callbacks[method_idx];
-                sigs[sigs_idx] = const_selector!("reply_on_", svc_name, "_", name);
+            while method_idx < methods.len() {
+                let (_, name, _, callback) = methods[method_idx];
+                sigs[sigs_idx] = const_selector!("reply_on_", svc_name, "_", name, callback);
                 method_idx += 1;
                 sigs_idx += 1;
             }
@@ -170,10 +171,10 @@ where
     const fn assert_selector_not_equals_method_routes(selector: [u8; 4]) {
         let mut svc_idx = 0;
         while svc_idx < <T as ProgramSignature>::SERVICES.len() {
-            let (_, svc_route, methods, _) = <T as ProgramSignature>::SERVICES[svc_idx];
+            let (_, svc_route, methods) = <T as ProgramSignature>::SERVICES[svc_idx];
             let mut method_idx = 0;
             while method_idx < methods.len() {
-                let (_, route) = methods[method_idx];
+                let (route, ..) = methods[method_idx];
                 assert!(!selector_equals(selector, svc_route, route));
                 method_idx += 1;
             }
@@ -184,7 +185,7 @@ where
     const fn assert_selector_not_equals_ctor_routes(selector: [u8; 4]) {
         let mut ctor_idx = 0;
         while ctor_idx < <T as ProgramSignature>::CTORS.len() {
-            let (_, route) = <T as ProgramSignature>::CTORS[ctor_idx];
+            let (route, ..) = <T as ProgramSignature>::CTORS[ctor_idx];
             assert!(!selector_equals(selector, route, &[]));
             ctor_idx += 1;
         }
@@ -221,6 +222,7 @@ const fn selector_equals(selector: [u8; 4], first: &[u8], second: &[u8]) -> bool
 #[cfg(test)]
 mod tests {
     use super::*;
+    use alloy_primitives::B256;
     use alloy_sol_types::{SolType, SolValue};
 
     #[test]
@@ -248,22 +250,18 @@ mod tests {
     impl ServiceSignature for Svc {
         const METHODS: &[MethodExpo] = &[
             (
-                concatcp!(
-                    "do_this",
-                    <<(u32, String, u128,) as SolValue>::SolType as SolType>::SOL_NAME,
-                ),
                 &[24u8, 68u8, 111u8, 84u8, 104u8, 105u8, 115u8] as &[u8],
+                "do_this",
+                <<(u32, String, u128) as SolValue>::SolType as SolType>::SOL_NAME,
+                <<(B256, u32) as SolValue>::SolType as SolType>::SOL_NAME,
             ),
             (
-                concatcp!(
-                    "this",
-                    <<(bool, u128,) as SolValue>::SolType as SolType>::SOL_NAME
-                ),
                 &[16u8, 84u8, 104u8, 105u8, 115u8] as &[u8],
+                "this",
+                <<(bool, u128) as SolValue>::SolType as SolType>::SOL_NAME,
+                <<(B256, u32) as SolValue>::SolType as SolType>::SOL_NAME,
             ),
         ];
-
-        const CALLBACKS: &'static [&'static str] = &[];
     }
 
     impl ServiceSignature for ExtendedSvc {
@@ -271,24 +269,20 @@ mod tests {
             <MethodExpo>,
             &[
                 (
-                    concatcp!(
-                        "do_this",
-                        <<(u32, String, u128,) as SolValue>::SolType as SolType>::SOL_NAME,
-                    ),
                     &[24u8, 68u8, 111u8, 84u8, 104u8, 105u8, 115u8] as &[u8],
+                    "do_this",
+                    <<(u32, String, u128,) as SolValue>::SolType as SolType>::SOL_NAME,
+                    <<(B256, u32) as SolValue>::SolType as SolType>::SOL_NAME,
                 ),
                 (
-                    concatcp!(
-                        "this",
-                        <<(bool, u128,) as SolValue>::SolType as SolType>::SOL_NAME
-                    ),
                     &[16u8, 84u8, 104u8, 105u8, 115u8] as &[u8],
+                    "this",
+                    <<(bool, u128,) as SolValue>::SolType as SolType>::SOL_NAME,
+                    <<(B256, u32) as SolValue>::SolType as SolType>::SOL_NAME,
                 ),
             ],
             <Svc as ServiceSignature>::METHODS
         );
-
-        const CALLBACKS: &'static [&'static str] = &[];
     }
 
     impl ProgramSignature for Prg {
@@ -296,25 +290,22 @@ mod tests {
             + <ExtendedSvc as ServiceSignature>::METHODS.len();
 
         const CTORS: &[MethodExpo] = &[(
-            concatcp!(
-                "default",
-                <<(u128,) as SolValue>::SolType as SolType>::SOL_NAME,
-            ),
             &[28u8, 68u8, 101u8, 102u8, 97u8, 117u8, 108u8, 116u8] as &[u8],
+            "default",
+            <<(u128,) as SolValue>::SolType as SolType>::SOL_NAME,
+            "",
         )];
 
-        const SERVICES: &[(&'static str, &'static [u8], &[MethodExpo], &[&str])] = &[
+        const SERVICES: &[ServiceExpo] = &[
             (
                 "svc1",
                 &[16u8, 83u8, 118u8, 99u8, 49u8] as &[u8],
                 <Svc as ServiceSignature>::METHODS,
-                <Svc as ServiceSignature>::CALLBACKS,
             ),
             (
                 "svc2",
                 &[16u8, 83u8, 118u8, 99u8, 49u8] as &[u8],
                 <ExtendedSvc as ServiceSignature>::METHODS,
-                <ExtendedSvc as ServiceSignature>::CALLBACKS,
             ),
         ];
     }
@@ -324,15 +315,16 @@ mod tests {
         assert_eq!(4, ExtendedSvc::METHODS.len());
 
         let do_this = (
-            "do_this(uint32,string,uint128)",
             &[24u8, 68u8, 111u8, 84u8, 104u8, 105u8, 115u8] as &[u8],
+            "do_this",
+            "(uint32,string,uint128)",
+            "(bytes32,uint32)",
         );
         let this = (
-            concatcp!(
-                "this",
-                <<(bool, u128,) as SolValue>::SolType as SolType>::SOL_NAME
-            ),
             &[16u8, 84u8, 104u8, 105u8, 115u8] as &[u8],
+            "this",
+            <<(bool, u128) as SolValue>::SolType as SolType>::SOL_NAME,
+            <<(B256, u32) as SolValue>::SolType as SolType>::SOL_NAME,
         );
         assert_eq!(do_this, ExtendedSvc::METHODS[0]);
         assert_eq!(this, ExtendedSvc::METHODS[1]);

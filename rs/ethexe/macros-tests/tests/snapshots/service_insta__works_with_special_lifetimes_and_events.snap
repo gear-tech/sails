@@ -152,18 +152,16 @@ where
 {
     const METHODS: &'static [sails_rs::solidity::MethodExpo] = &[
         (
-            sails_rs::concatcp!(
-                "do_this", << (u128, bool,) as sails_rs::alloy_sol_types::SolValue >
-                ::SolType as sails_rs::alloy_sol_types::SolType > ::SOL_NAME,
-            ),
             &[24u8, 68u8, 111u8, 84u8, 104u8, 105u8, 115u8] as &[u8],
-        ),
-    ];
-    const CALLBACKS: &'static [&'static str] = &[
-        sails_rs::concatcp!(
-            "do_this", << (sails_rs::alloy_primitives::B256, u32) as
-            sails_rs::alloy_sol_types::SolValue > ::SolType as
-            sails_rs::alloy_sol_types::SolType > ::SOL_NAME,
+            "do_this",
+            <<(
+                u128,
+                bool,
+            ) as sails_rs::alloy_sol_types::SolValue>::SolType as sails_rs::alloy_sol_types::SolType>::SOL_NAME,
+            <<(
+                sails_rs::alloy_primitives::B256,
+                u32,
+            ) as sails_rs::alloy_sol_types::SolValue>::SolType as sails_rs::alloy_sol_types::SolType>::SOL_NAME,
         ),
     ];
 }

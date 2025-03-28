@@ -59,7 +59,6 @@ pub use crate::solidity;
 pub use alloy_primitives;
 #[cfg(feature = "ethexe")]
 pub use alloy_sol_types;
-pub use const_format::*;
 #[cfg(feature = "ethexe")]
 pub use keccak_const;
 #[cfg(all(feature = "gstd", feature = "ethexe"))]

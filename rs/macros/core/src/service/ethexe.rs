@@ -8,18 +8,14 @@ impl ServiceBuilder<'_> {
         let service_type_path = self.type_path;
         let generics = &self.generics;
         let service_type_constraints = self.type_constraints.as_ref();
-        let service_method_routes = self
+        let service_method_expo = self
             .service_handlers
             .iter()
             .map(|fn_builder| fn_builder.sol_handler_signature(true));
-        let service_callback_sigs = self
-            .service_handlers
-            .iter()
-            .map(|fn_builder| fn_builder.sol_callback_signature());
 
         let combined_methods = if self.base_types.is_empty() {
             quote! {
-                &[#( #service_method_routes )*]
+                &[#( #service_method_expo, )*]
             }
         } else {
             let base_methods = self.base_types.iter().map(|path| {
@@ -31,27 +27,7 @@ impl ServiceBuilder<'_> {
             quote! {
                 #sails_path::const_concat_slices!(
                     <#sails_path::solidity::MethodExpo>,
-                    &[#( #service_method_routes )*],
-                    #( #base_methods ),*
-                )
-            }
-        };
-
-        let combined_callbacks = if self.base_types.is_empty() {
-            quote! {
-                &[#( #service_callback_sigs, )*]
-            }
-        } else {
-            let base_methods = self.base_types.iter().map(|path| {
-                let path_wo_lifetimes = shared::remove_lifetimes(path);
-                quote! {
-                    <#path_wo_lifetimes as #sails_path::solidity::ServiceSignature>::CALLBACKS
-                }
-            });
-            quote! {
-                #sails_path::const_concat_slices!(
-                    <&'static str>,
-                    &[#( #service_callback_sigs, )*],
+                    &[#( #service_method_expo, )*],
                     #( #base_methods ),*
                 )
             }
@@ -60,7 +36,6 @@ impl ServiceBuilder<'_> {
         quote! {
             impl #generics #sails_path::solidity::ServiceSignature for #service_type_path #service_type_constraints {
                 const METHODS: &'static [#sails_path::solidity::MethodExpo] = #combined_methods;
-                const CALLBACKS: &'static [&'static str] = #combined_callbacks;
             }
         }
     }

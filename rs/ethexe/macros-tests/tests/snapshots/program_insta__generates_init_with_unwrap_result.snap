@@ -50,18 +50,24 @@ mod meta_in_program {
 impl sails_rs::solidity::ProgramSignature for MyProgram {
     const CTORS: &'static [sails_rs::solidity::MethodExpo] = &[
         (
-            sails_rs::concatcp!(
-                "new", << (u128, u32, String,) as sails_rs::alloy_sol_types::SolValue >
-                ::SolType as sails_rs::alloy_sol_types::SolType > ::SOL_NAME,
-            ),
             &[12u8, 78u8, 101u8, 119u8] as &[u8],
+            "new",
+            <<(
+                u128,
+                u32,
+                String,
+            ) as sails_rs::alloy_sol_types::SolValue>::SolType as sails_rs::alloy_sol_types::SolType>::SOL_NAME,
+            <<() as sails_rs::alloy_sol_types::SolValue>::SolType as sails_rs::alloy_sol_types::SolType>::SOL_NAME,
         ),
         (
-            sails_rs::concatcp!(
-                "new_2", << (u128, String, u32,) as sails_rs::alloy_sol_types::SolValue >
-                ::SolType as sails_rs::alloy_sol_types::SolType > ::SOL_NAME,
-            ),
             &[16u8, 78u8, 101u8, 119u8, 50u8] as &[u8],
+            "new_2",
+            <<(
+                u128,
+                String,
+                u32,
+            ) as sails_rs::alloy_sol_types::SolValue>::SolType as sails_rs::alloy_sol_types::SolType>::SOL_NAME,
+            <<() as sails_rs::alloy_sol_types::SolValue>::SolType as sails_rs::alloy_sol_types::SolType>::SOL_NAME,
         ),
     ];
     const SERVICES: &'static [sails_rs::solidity::ServiceExpo] = &[];
@@ -93,7 +99,7 @@ pub mod wasm {
             .expect("Failed to read input");
         if let Ok(sig) = TryInto::<[u8; 4]>::try_into(&input[..4]) {
             if let Some(idx) = __CTOR_SIGS.iter().position(|s| s == &sig) {
-                let (_, ctor_route) = <MyProgram as sails_rs::solidity::ProgramSignature>::CTORS[idx];
+                let (ctor_route, ..) = <MyProgram as sails_rs::solidity::ProgramSignature>::CTORS[idx];
                 unsafe {
                     PROGRAM = match_ctor_solidity(ctor_route, &input[4..]).await;
                 }
