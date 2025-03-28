@@ -9,7 +9,7 @@ impl MyProgram {
     fn __service2(&self) -> MyService {
         MyService
     }
-    pub fn default() -> Self {
+    pub fn create() -> Self {
         Self
     }
     #[route("svc1")]
@@ -60,31 +60,22 @@ mod meta_in_program {
     #[derive(sails_rs::Decode, sails_rs::TypeInfo)]
     #[codec(crate = sails_rs::scale_codec)]
     #[scale_info(crate = sails_rs::scale_info)]
-    pub struct __DefaultParams {}
-    impl sails_rs::gstd::InvocationIo for __DefaultParams {
-        const ROUTE: &'static [u8] = &[
-            28u8,
-            68u8,
-            101u8,
-            102u8,
-            97u8,
-            117u8,
-            108u8,
-            116u8,
-        ];
+    pub struct __CreateParams {}
+    impl sails_rs::gstd::InvocationIo for __CreateParams {
+        const ROUTE: &'static [u8] = &[24u8, 67u8, 114u8, 101u8, 97u8, 116u8, 101u8];
         type Params = Self;
     }
     #[derive(sails_rs::TypeInfo)]
     #[scale_info(crate = sails_rs::scale_info)]
     pub enum ConstructorsMeta {
-        Default(__DefaultParams),
+        Create(__CreateParams),
     }
 }
 impl sails_rs::solidity::ProgramSignature for MyProgram {
     const CTORS: &'static [sails_rs::solidity::MethodExpo] = &[
         (
-            &[28u8, 68u8, 101u8, 102u8, 97u8, 117u8, 108u8, 116u8] as &[u8],
-            "default",
+            &[24u8, 67u8, 114u8, 101u8, 97u8, 116u8, 101u8] as &[u8],
+            "create",
             <<(
                 u128,
             ) as sails_rs::alloy_sol_types::SolValue>::SolType as sails_rs::alloy_sol_types::SolType>::SOL_NAME,
@@ -143,11 +134,11 @@ pub mod wasm {
                 }
             }
         }
-        let (program, invocation_route) = if let Ok(request) = meta_in_program::__DefaultParams::decode_params(
+        let (program, invocation_route) = if let Ok(request) = meta_in_program::__CreateParams::decode_params(
             input,
         ) {
-            let program = MyProgram::default();
-            (program, meta_in_program::__DefaultParams::ROUTE)
+            let program = MyProgram::create();
+            (program, meta_in_program::__CreateParams::ROUTE)
         } else {
             sails_rs::gstd::unknown_input_panic("Unexpected ctor", input)
         };
@@ -158,13 +149,13 @@ pub mod wasm {
             .expect("Failed to send output");
     }
     async fn match_ctor_solidity(ctor: &[u8], input: &[u8]) -> Option<MyProgram> {
-        if ctor == &[28u8, 68u8, 101u8, 102u8, 97u8, 117u8, 108u8, 116u8] {
+        if ctor == &[24u8, 67u8, 114u8, 101u8, 97u8, 116u8, 101u8] {
             let (_,): (u128,) = sails_rs::alloy_sol_types::SolValue::abi_decode_params(
                     input,
                     false,
                 )
                 .expect("Failed to decode request");
-            let program = MyProgram::default();
+            let program = MyProgram::create();
             return Some(program);
         }
         None

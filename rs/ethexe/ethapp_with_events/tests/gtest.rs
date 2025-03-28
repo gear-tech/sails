@@ -29,7 +29,7 @@ async fn ethapp_with_events_low_level_works() {
 
     let program = Program::from_file(&system, WASM_PATH);
 
-    let ctor = sails_rs::solidity::selector("default(uint128)");
+    let ctor = sails_rs::solidity::selector("create(uint128)");
     let input = (0u128,).abi_encode_sequence();
     let payload = [ctor.as_slice(), input.as_slice()].concat();
 
@@ -104,7 +104,7 @@ async fn ethapp_with_events_remoting_works() {
     let mut binding = remoting.clone();
     let mut listener = binding.listen().await.unwrap();
 
-    let ctor = sails_rs::solidity::selector("default(uint128)");
+    let ctor = sails_rs::solidity::selector("create(uint128)");
     let input = (0u128,).abi_encode_sequence();
     let payload = [ctor.as_slice(), input.as_slice()].concat();
 
