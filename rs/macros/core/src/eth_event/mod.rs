@@ -38,7 +38,8 @@ pub fn derive_eth_event(input: TokenStream) -> TokenStream {
     // Vectors to collect match arms for topics and data.
     let mut sigs_const = Vec::new();
     let mut topics_match_arms = Vec::new();
-    let mut data_match_arms = Vec::new();
+    let mut data_encoded_size_arms = Vec::new();
+    let mut data_encode_to_arms = Vec::new();
 
     // Process each variant.
     for (idx, variant) in data_enum.variants.iter().enumerate() {
@@ -146,12 +147,16 @@ pub fn derive_eth_event(input: TokenStream) -> TokenStream {
         topics_match_arms.push(topics_arm);
 
         // Build the data match arm: non-indexed fields are ABI-encoded as a tuple.
-        let data_arm = quote! {
+        data_encoded_size_arms.push(quote! {
             #pattern => {
-                Self::encode_sequence(&( #( #non_indexed_exprs, )* ))
+                Self::abi_encoded_size(&( #( #non_indexed_exprs, )* ))
             }
-        };
-        data_match_arms.push(data_arm);
+        });
+        data_encode_to_arms.push(quote! {
+            #pattern => {
+                Self::encode_sequence(&( #( #non_indexed_exprs, )* ), __output)
+            }
+        });
     }
 
     // Generate the implementation for the EthEvent trait.
@@ -169,9 +174,17 @@ pub fn derive_eth_event(input: TokenStream) -> TokenStream {
             }
 
             #[allow(unused_variables)]
-            fn data(&self) -> #sails_path::Vec<u8> {
+            fn data_encoded_size(&self) -> usize {
                 match self {
-                    #( #data_match_arms ),*
+                    #( #data_encoded_size_arms ),*
+                }
+            }
+
+            #[allow(unused_variables)]
+            fn data_encode_to<T: #sails_path::Output>(&self, __output: &mut T) {
+                use #sails_path::alloy_sol_types::private::SolTypeValue;
+                match self {
+                    #( #data_encode_to_arms ),*
                 }
             }
         }

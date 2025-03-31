@@ -48,7 +48,7 @@ pub use gear_core_errors::{
     self as gear_core_errors, ErrorReplyReason, ReplyCode, SimpleExecutionError, SuccessReplyReason,
 };
 
-pub use parity_scale_codec::{self as scale_codec, Decode, Encode, EncodeLike};
+pub use parity_scale_codec::{self as scale_codec, Decode, Encode, EncodeLike, Output};
 pub use scale_info::{self as scale_info, TypeInfo};
 
 #[cfg(all(feature = "gstd", feature = "ethexe"))]

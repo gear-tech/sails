@@ -6685,6 +6685,7 @@ dependencies = [
  "alloy-sol-types",
  "futures",
  "gclient",
+ "gcore",
  "gear-core",
  "gear-core-errors",
  "gear-wasm-builder",

@@ -14,6 +14,7 @@ alloy-primitives = { workspace = true, optional = true }
 alloy-sol-types = { workspace = true, optional = true }
 futures.workspace = true
 gear-core-errors.workspace = true
+gcore.workspace = true
 gprimitives.workspace = true
 gstd = { workspace = true, optional = true }
 gwasm-builder = { workspace = true, optional = true }

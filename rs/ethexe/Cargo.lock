@@ -4064,6 +4064,7 @@ dependencies = [
  "alloy-primitives",
  "alloy-sol-types",
  "futures",
+ "gcore",
  "gear-core",
  "gear-core-errors",
  "gear-wasm-builder",
