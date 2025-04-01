@@ -81,22 +81,11 @@ impl sails_rs::EthEvent for Events {
         }
     }
     #[allow(unused_variables)]
-    fn data_encoded_size(&self) -> usize {
+    fn data(&self) -> sails_rs::Vec<u8> {
         match self {
-            Events::MyEvent1 { sender, amount, note } => Self::abi_encoded_size(&(note,)),
-            Events::MyEvent2(f0, f1, f2) => Self::abi_encoded_size(&(f1, f2)),
-            Events::MyEvent3 => Self::abi_encoded_size(&()),
-        }
-    }
-    #[allow(unused_variables)]
-    fn data_encode_to<T: sails_rs::Output>(&self, __output: &mut T) {
-        use sails_rs::alloy_sol_types::private::SolTypeValue;
-        match self {
-            Events::MyEvent1 { sender, amount, note } => {
-                Self::encode_sequence(&(note,), __output)
-            }
-            Events::MyEvent2(f0, f1, f2) => Self::encode_sequence(&(f1, f2), __output),
-            Events::MyEvent3 => Self::encode_sequence(&(), __output),
+            Events::MyEvent1 { sender, amount, note } => Self::encode_sequence(&(note,)),
+            Events::MyEvent2(f0, f1, f2) => Self::encode_sequence(&(f1, f2)),
+            Events::MyEvent3 => Self::encode_sequence(&()),
         }
     }
 }

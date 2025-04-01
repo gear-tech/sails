@@ -1,8 +1,5 @@
 use crate::prelude::*;
-use alloy_sol_types::{
-    SolType, SolValue,
-    abi::{Token, TokenSeq},
-};
+use alloy_sol_types::{SolType, SolValue, abi::TokenSeq};
 
 #[doc(hidden)]
 #[cfg(target_arch = "wasm32")]
@@ -41,7 +38,8 @@ fn with_optimized_encode<T, E: EthEvent>(event: E, f: impl FnOnce(&[u8]) -> T) -
     }
 
     let topics = event.topics();
-    let size = 1 + topics.len() * 32 + event.data_encoded_size();
+    let data = event.data();
+    let size = 1 + topics.len() * 32 + data.len();
 
     gcore::stack_buffer::with_byte_buffer(size, |buffer| {
         let mut output = ExternalBufferOutput { buffer, offset: 0 };
@@ -51,7 +49,7 @@ fn with_optimized_encode<T, E: EthEvent>(event: E, f: impl FnOnce(&[u8]) -> T) -
         for topic in topics {
             output.write(topic.as_slice());
         }
-        event.data_encode_to(&mut output);
+        output.write(data.as_slice());
 
         let ExternalBufferOutput { buffer, offset } = output;
         // SAFETY: same as `MaybeUninit::slice_assume_init_ref(&buffer[..offset])`.
@@ -141,17 +139,6 @@ pub trait EthEvent {
     /// A vector of topics (`alloy_primitives::B256`) that represent the event.
     fn topics(&self) -> Vec<alloy_primitives::B256>;
 
-    /// Calculate the ABI-encoded size of the data.
-    ///
-    /// See [`SolType::abi_encoded_size`] for more information.
-    fn data_encoded_size(&self) -> usize;
-
-    /// Encodes the ABI-encoded data payload of the event.
-    ///
-    /// The non-indexed fields of the event are ABI-encoded together as a tuple. If there are no non-indexed
-    /// fields, no data is encoded.
-    fn data_encode_to<T: Output>(&self, output: &mut T);
-
     /// Returns the ABI-encoded data payload of the event.
     ///
     /// The non-indexed fields of the event are ABI-encoded together as a tuple. If there are no non-indexed
@@ -160,11 +147,7 @@ pub trait EthEvent {
     /// # Returns
     ///
     /// A `Vec<u8>` containing the ABI-encoded data of the non-indexed fields.
-    fn data(&self) -> Vec<u8> {
-        let mut vec = Vec::with_capacity(self.data_encoded_size());
-        self.data_encode_to(&mut vec);
-        vec
-    }
+    fn data(&self) -> Vec<u8>;
 
     /// Returns the topic hash for a given value.
     fn topic_hash<T: SolValue>(value: &T) -> alloy_primitives::B256 {
@@ -180,24 +163,15 @@ pub trait EthEvent {
         }
     }
 
-    /// Encodes a sequence of values and append it to the output.
+    /// Encodes a sequence of values into a single byte vector.
     #[inline]
-    fn encode_sequence<T: SolValue, O: Output>(value: &T, output: &mut O)
+    fn encode_sequence<T: SolValue>(value: &T) -> Vec<u8>
     where
         for<'a> <T::SolType as SolType>::Token<'a>: TokenSeq<'a>,
     {
-        let token: <T::SolType as SolType>::Token<'_> = value.tokenize();
-        let mut enc = alloy_sol_types::abi::Encoder::with_capacity(token.total_words());
-        token.encode_sequence(&mut enc);
-        output.write(enc.bytes());
-    }
-
-    #[inline]
-    fn abi_encoded_size<T: SolValue>(value: &T) -> usize
-    where
-        for<'a> <T::SolType as SolType>::Token<'a>: TokenSeq<'a>,
-    {
-        SolValue::abi_encoded_size(value)
+        // this method always allocates `Vec<Word>` and transmutes it to `Vec<u8>`
+        // there is no point in using `parity_scale_codec::Output`
+        alloy_sol_types::SolValue::abi_encode_sequence(value)
     }
 }
 
