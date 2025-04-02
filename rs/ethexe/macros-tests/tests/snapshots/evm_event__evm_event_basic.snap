@@ -1,0 +1,31 @@
+---
+source: macros-tests/tests/eth_event.rs
+expression: result
+---
+impl EthEvent for MyEvent {
+    const SIGNATURES: &'static [&'static str] = &[
+        concatcp!(
+            "MyEvent1", << () as sails_rs::alloy_sol_types::SolValue > ::SolType as
+            sails_rs::alloy_sol_types::SolType > ::SOL_NAME,
+        ),
+    ];
+    #[allow(unused_variables)]
+    fn topics(&self) -> Vec<sails_rs::alloy_primitives::B256> {
+        match self {
+            MyEvent::MyEvent1 => {
+                let mut topics = Vec::with_capacity(1usize);
+                topics
+                    .push(
+                        sails_rs::alloy_primitives::keccak256(Self::SIGNATURES[0usize]),
+                    );
+                topics
+            }
+        }
+    }
+    #[allow(unused_variables)]
+    fn data(&self) -> Vec<u8> {
+        match self {
+            MyEvent::MyEvent1 => Self::encode_sequence(&()),
+        }
+    }
+}

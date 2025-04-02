@@ -14,7 +14,7 @@ pub struct SomeServiceExposure<T: sails_rs::gstd::services::Service> {
     message_id: sails_rs::MessageId,
     route: &'static [u8],
     #[cfg(not(target_arch = "wasm32"))]
-    inner: Box<T>,
+    inner: sails_rs::Box<T>,
     #[cfg(not(target_arch = "wasm32"))]
     inner_ptr: *const T,
     #[cfg(target_arch = "wasm32")]
@@ -39,7 +39,10 @@ impl SomeServiceExposure<SomeService> {
         let exposure_scope = sails_rs::gstd::services::ExposureCallScope::new(self);
         self.inner.this()
     }
-    pub async fn try_handle(&mut self, input: &[u8]) -> Option<(Vec<u8>, u128)> {
+    pub async fn try_handle(
+        &mut self,
+        input: &[u8],
+    ) -> Option<(sails_rs::Vec<u8>, u128)> {
         use sails_rs::gstd::InvocationIo;
         if let Ok(request) = some_service_meta::__DoThisParams::decode_params(input) {
             let result = self.do_this();
@@ -65,7 +68,7 @@ impl sails_rs::gstd::services::Service for SomeService {
         route: &'static [u8],
     ) -> Self::Exposure {
         #[cfg(not(target_arch = "wasm32"))]
-        let inner_box = Box::new(self);
+        let inner_box = sails_rs::Box::new(self);
         #[cfg(not(target_arch = "wasm32"))]
         let inner = inner_box.as_ref();
         #[cfg(target_arch = "wasm32")]
@@ -127,7 +130,7 @@ impl SomeService {
     fn notify_on(&mut self, event: SomeEvents) -> sails_rs::errors::Result<()> {
         #[cfg(not(target_arch = "wasm32"))]
         { SomeServiceExposure::<Self>::notify_on(self, event) }
-        #[cfg(target_arch = "wasm32")] { sails_rs::gstd::events::__notify_on(event) }
+        #[cfg(target_arch = "wasm32")] { sails_rs::gstd::__notify_on(event) }
     }
 }
 #[cfg(not(target_arch = "wasm32"))]
@@ -138,7 +141,7 @@ const _: () = {
     >;
     type Mutex<T> = sails_rs::spin::Mutex<T>;
     impl<T: sails_rs::gstd::services::Service> SomeServiceExposure<T> {
-        pub fn take_events(&mut self) -> Vec<SomeEvents> {
+        pub fn take_events(&mut self) -> sails_rs::Vec<SomeEvents> {
             if core::mem::size_of_val(self.inner.as_ref()) == 0 {
                 panic!(
                     "setting event listener on a zero-sized service is not supported for now"

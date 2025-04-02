@@ -72,7 +72,6 @@ pub mod wasm {
     #[gstd::async_init]
     async fn init() {
         use sails_rs::gstd::InvocationIo;
-        sails_rs::gstd::events::__enable_events();
         let mut input: &[u8] = &sails_rs::gstd::msg::load_bytes()
             .expect("Failed to read input");
         if let Ok(sig) = TryInto::<[u8; 4]>::try_into(&input[..4]) {

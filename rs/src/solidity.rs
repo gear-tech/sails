@@ -1,6 +1,12 @@
 use crate::prelude::*;
 use alloy_primitives::Selector;
 
+#[cfg(any(feature = "gtest", all(feature = "gstd", target_arch = "wasm32")))]
+pub(crate) const ETH_EVENT_ADDR: gstd::ActorId = gstd::ActorId::new([
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0xff, 0xff, 0xff,
+    0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+]);
+
 pub type MethodRoute = (&'static str, &'static [u8]);
 
 pub trait ServiceSignature {
@@ -144,6 +150,9 @@ mod tests {
 
         let s = <(u32, String) as SolValue>::SolType::SOL_NAME;
         assert_eq!("(uint32,string)", s);
+
+        let s = <(Vec<u8>, String) as SolValue>::SolType::SOL_NAME;
+        assert_eq!("(bytes,string)", s);
 
         // let s = <(u32, String, ActorId) as SolValue>::SolType::SOL_NAME;
         // assert_eq!("(uint32,string,address)", s);
