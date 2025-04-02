@@ -26,6 +26,7 @@ members = [
     "rs/idl-parser",
     "rs/macros",
     "rs/macros/core",
+    "rs/sol-gen"
 ]
 
 [workspace.dependencies]
@@ -37,6 +38,7 @@ sails-client-gen = { path = "rs/client-gen" }
 sails-macros-core = { path = "rs/macros/core" }
 sails-macros = { path = "rs/macros" }
 sails-rs = { path = "rs" }
+sails-sol-gen = { path = "rs/sol-gen" }
 # Renamed sails-rs for `proxy` demo
 sails-rename = { package = "sails-rs", path = "rs" }
 
@@ -63,6 +65,7 @@ genco = "0.17"
 git-download = "0.1"
 handlebars = "4.4"
 hashbrown = "0.15"
+heck = "0.5"
 hex = { version = "0.4", default-features = false }
 insta = "1.42"
 itertools = "0.14"

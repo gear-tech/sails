@@ -1,6 +1,7 @@
 use clap::{Parser, Subcommand};
 use sails_cli::{idlgen::CrateIdlGenerator, program::ProgramGenerator};
 use sails_client_gen::ClientGenerator;
+use sails_sol_gen::generate_solidity_contract;
 use std::{error::Error, path::PathBuf};
 
 #[derive(Parser)]
@@ -66,6 +67,19 @@ enum SailsCommands {
         #[arg(long)]
         deps_level: Option<usize>,
     },
+
+    #[command(name = "sol")]
+    SolGen {
+        /// Path to the IDL file
+        #[arg(long, value_hint = clap::ValueHint::FilePath)]
+        idl_path: String,
+        /// Directory for all generated artifacts
+        #[arg(long, value_hint = clap::ValueHint::DirPath)]
+        target_dir: Option<PathBuf>,
+        /// Name of the contract to generate
+        #[arg(long, short = 'n')]
+        contract_name: String,
+    },
 }
 
 /// Parse a single key-value pair
@@ -129,6 +143,11 @@ fn main() -> Result<(), i32> {
             target_dir,
             deps_level,
         } => CrateIdlGenerator::new(manifest_path, target_dir, deps_level).generate(),
+        SailsCommands::SolGen {
+            idl_path,
+            target_dir,
+            contract_name,
+        } => generate_solidity_contract(&idl_path, contract_name, target_dir.unwrap_or_default()),
     };
 
     if let Err(e) = result {

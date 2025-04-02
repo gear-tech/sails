@@ -1,0 +1,46 @@
+// SPDX-License-Identifier: UNLICENSED
+pragma solidity ^{{pragma_version}};
+
+interface I{{contract_name}} {
+    {{#each events}}
+    event {{name}}({{#each args}}{{#if @index}}, {{/if}}{{ty}} {{#if indexed}}indexed {{/if}}{{name}}{{/each}});
+    {{/each}}
+    {{#each functions}}
+    function {{name}}(uint128 _value{{#if args}}, {{#each args}}{{#if @index}}, {{/if}}{{ty}} {{name}}{{/each}}{{/if}}) external returns (bytes32);
+    {{/each}}
+}
+
+contract {{contract_name}} is I{{contract_name}} {
+    {{#each functions}}
+    function {{name}}(uint128 _value{{#if args}}, {{#each args}}{{#if @index}}, {{/if}}{{ty}} {{name}}{{/each}}{{/if}}) external returns (bytes32) {}
+    {{/each}}
+}
+
+interface I{{contract_name}}Callback {
+    {{#each functions}}
+    function replyOn_{{name}}(bytes32 _messageId{{#if reply_type}}, {{reply_type}} _reply{{/if}}) external;
+    {{/each}}
+    function errorReply(bytes32 _messageId, bytes4 _replyCode) external;
+}
+
+contract {{contract_name}}Callback {
+    I{{contract_name}} public immutable gearexeProgram;
+
+    constructor(I{{contract_name}} _gearexeProgram) {
+        gearexeProgram = _gearexeProgram;
+    }
+
+    modifier onlyGearexeProgram() {
+        require(msg.sender == address(gearexeProgram), "Only gearexe program can call this function");
+        _;
+    }
+
+    {{#each functions}}
+    function replyOn_{{name}}(bytes32 _messageId{{#if reply_type}}, {{reply_type}} _reply{{/if}}) external onlyGearexeProgram {
+        // TODO: implement this
+    }
+    {{/each}}
+    function errorReply(bytes32 _messageId, bytes4 _replyCode) external onlyGearexeProgram {
+        // TODO: implement this
+    }
+}

@@ -1,0 +1,12 @@
+[package]
+name = "sails-sol-gen"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+sails-idl-parser.workspace = true
+handlebars.workspace = true
+anyhow.workspace = true
+serde.workspace = true
+sails-idl-meta.workspace = true
+heck.workspace = true
