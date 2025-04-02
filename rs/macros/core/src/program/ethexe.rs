@@ -1,5 +1,4 @@
 use super::*;
-use convert_case::{Boundary, Case, Casing};
 use proc_macro2::TokenStream;
 use quote::quote;
 
@@ -7,19 +6,13 @@ impl ProgramBuilder {
     /// Generates code
     /// ```rust
     /// impl sails_rs::solidity::ProgramSignature for MyProgram {
-    ///     const CTORS: &'static [sails_rs::solidity::MethodRoute] = &[(
-    ///         sails_rs::concatcp!(
-    ///             "default", << (u128) as sails_rs::alloy_sol_types::SolValue > ::SolType
-    ///             as sails_rs::alloy_sol_types::SolType > ::SOL_NAME,
-    ///         ),
+    ///     const CTORS: &'static [sails_rs::solidity::MethodExpo] = &[(    
     ///         &[28u8, 68u8, 101u8, 102u8, 97u8, 117u8, 108u8, 116u8] as &[u8],
-    ///     ),
-    /// ];
-    /// const SERVICES: &'static [(
-    ///     &'static str,
-    ///     &'static [u8],
-    ///     &'static [sails_rs::solidity::MethodRoute],
-    /// )] = &[
+    ///         "default",
+    ///         <<(u128) as sails_rs::alloy_sol_types::SolValue>::SolType as sails_rs::alloy_sol_types::SolType>::SOL_NAME,
+    ///         <<() as sails_rs::alloy_sol_types::SolValue>::SolType as sails_rs::alloy_sol_types::SolType>::SOL_NAME,
+    ///     ),];
+    /// const SERVICES: &'static [sails_rs::solidity::ServiceExpo] = &[
     ///     (
     ///         "service",
     ///         &[28u8, 83u8, 101u8, 114u8, 118u8, 105u8, 99u8, 101u8] as &[u8],
@@ -38,7 +31,7 @@ impl ProgramBuilder {
         let program_ctors = self.program_ctors();
         let program_ctor_sigs = program_ctors
             .iter()
-            .map(|fn_builder| fn_builder.sol_handler_signature());
+            .map(|fn_builder| fn_builder.sol_handler_signature(false));
 
         let service_ctors = self.service_ctors();
         let service_ctor_sigs = service_ctors
@@ -57,11 +50,11 @@ impl ProgramBuilder {
 
         quote! {
             impl #generics #sails_path::solidity::ProgramSignature for #program_type_path #program_type_constraints {
-                const CTORS: &'static [#sails_path::solidity::MethodRoute] = &[
-                    #( #program_ctor_sigs )*
+                const CTORS: &'static [#sails_path::solidity::MethodExpo] = &[
+                    #( #program_ctor_sigs, )*
                 ];
-                const SERVICES: &'static [(&'static str, &'static [u8], &'static [#sails_path::solidity::MethodRoute])] = &[
-                    #( #service_ctor_sigs )*
+                const SERVICES: &'static [#sails_path::solidity::ServiceExpo] = &[
+                    #( #service_ctor_sigs, )*
                 ];
                 const METHODS_LEN: usize = #methods_len;
             }
@@ -79,6 +72,8 @@ impl ProgramBuilder {
                 = #sails_path::solidity::ConstProgramMeta::<#program_type_path>::method_sigs();
             const __METHOD_ROUTES: [(&'static [u8], &'static [u8]); <#program_type_path as #sails_path::solidity::ProgramSignature>::METHODS_LEN]
                 = #sails_path::solidity::ConstProgramMeta::<#program_type_path>::method_routes();
+            const __CALLBACK_SIGS: [[u8; 4]; <#program_type_path as #sails_path::solidity::ProgramSignature>::METHODS_LEN]
+                = #sails_path::solidity::ConstProgramMeta::<#program_type_path>::callback_sigs();
         }
     }
 
@@ -104,7 +99,7 @@ impl ProgramBuilder {
         quote! {
             if let Ok(sig) = TryInto::<[u8; 4]>::try_into(&#input_ident[..4]) {
                 if let Some(idx) = __CTOR_SIGS.iter().position(|s| s == &sig) {
-                    let (_, ctor_route) = <#program_type_path as #sails_path::solidity::ProgramSignature>::CTORS[idx];
+                    let (ctor_route, ..) = <#program_type_path as #sails_path::solidity::ProgramSignature>::CTORS[idx];
                     unsafe {
                         #program_ident = match_ctor_solidity(ctor_route, &#input_ident[4..]).await;
                     }
@@ -133,10 +128,7 @@ impl FnBuilder<'_> {
     fn sol_service_signature(&self) -> TokenStream {
         let sails_path = self.sails_path;
         let service_route_bytes = self.encoded_route.as_slice();
-        let service_name = self
-            .route
-            .with_boundaries(&[Boundary::DigitUpper, Boundary::UpperDigit])
-            .to_case(Case::Snake);
+        let service_name = self.route_camel_case();
         let service_type = &self.result_type;
 
         quote! {
@@ -144,27 +136,44 @@ impl FnBuilder<'_> {
                 #service_name,
                 &[ #(#service_route_bytes),* ] as &[u8],
                 <#service_type as #sails_path::solidity::ServiceSignature>::METHODS,
-            ),
+            )
         }
     }
 
-    pub(crate) fn sol_handler_signature(&self) -> TokenStream {
-        use convert_case::{Case, Casing};
-
+    pub(crate) fn sol_handler_signature(&self, is_service: bool) -> TokenStream {
         let sails_path = self.sails_path;
         let handler_route_bytes = self.encoded_route.as_slice();
-        let handler_name = self.route.to_case(Case::Snake);
+        let handler_name = if is_service {
+            // method name as PascalCase
+            &self.route
+        } else {
+            // ctor name as camelCase
+            &self.route_camel_case()
+        };
         let handler_types = self.params_types();
+        let (result_type, _) = self.result_type_with_value();
 
-        // add uint128 to method signature as first parameter
+        // add uint128 to method signature as first parameter and bool if is_service passed
+        let handler_types = if is_service {
+            quote! { u128, bool, #(#handler_types,)* }
+        } else {
+            quote! { u128, #(#handler_types,)* }
+        };
+
+        // add MessageId (alloy_primitives::B256) to callback signature as first parameter
+        let callback_types = if is_service {
+            quote! { #sails_path::alloy_primitives::B256, #result_type }
+        } else {
+            quote!()
+        };
+
         quote! {
             (
-                #sails_path::concatcp!(
-                    #handler_name,
-                    <<(u128, #(#handler_types,)*) as #sails_path::alloy_sol_types::SolValue>::SolType as #sails_path::alloy_sol_types::SolType>::SOL_NAME,
-                ),
                 &[ #(#handler_route_bytes),* ] as &[u8],
-            ),
+                #handler_name,
+                <<(#handler_types) as #sails_path::alloy_sol_types::SolValue>::SolType as #sails_path::alloy_sol_types::SolType>::SOL_NAME,
+                <<(#callback_types) as #sails_path::alloy_sol_types::SolValue>::SolType as #sails_path::alloy_sol_types::SolType>::SOL_NAME,
+            )
         }
     }
 
@@ -195,12 +204,19 @@ impl FnBuilder<'_> {
         quote! {
             if route == & #route_ident {
                 let mut service = program_ref.#service_ctor_ident();
-                let (output, value) = service
+                let (output, value, encode_reply) = service
                     .try_handle_solidity(method, &input[4..])
                     .await
                     .unwrap_or_else(|| {
                         #sails_path::gstd::unknown_input_panic("Unknown request", input)
                     });
+                // add callbak selector if `encode_reply` is set`
+                let output = if encode_reply {
+                    let selector = __CALLBACK_SIGS[idx];
+                    [selector.as_slice(), output.as_slice()].concat()
+                } else {
+                    output
+                };
                 #sails_path::gstd::msg::reply_bytes(output, value).expect("Failed to send output");
                 return;
             }

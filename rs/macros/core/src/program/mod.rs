@@ -377,7 +377,7 @@ fn ensure_default_program_ctor(program_impl: &mut ItemImpl) {
     .is_empty()
     {
         program_impl.items.push(ImplItem::Fn(parse_quote!(
-            pub fn default() -> Self {
+            pub fn create() -> Self {
                 Self
             }
         )));

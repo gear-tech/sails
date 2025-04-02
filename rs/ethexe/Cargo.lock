@@ -4063,8 +4063,8 @@ version = "0.7.3"
 dependencies = [
  "alloy-primitives",
  "alloy-sol-types",
- "const_format",
  "futures",
+ "gcore",
  "gear-core",
  "gear-core-errors",
  "gear-wasm-builder",

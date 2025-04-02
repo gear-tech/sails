@@ -137,7 +137,8 @@ pub fn derive_eth_event(input: TokenStream) -> TokenStream {
         let topics_arm = quote! {
             #pattern => {
                 let mut topics = #sails_path::Vec::with_capacity( #cap );
-                topics.push(#sails_path::alloy_primitives::keccak256( Self::SIGNATURES[ # idx ] ));
+                let (_, _, hash) = Self::SIGNATURES[ # idx ];
+                topics.push(#sails_path::alloy_primitives::B256::new(hash));
                 #( topics.push(#indexed_exprs); )*
                 topics
             }
@@ -145,18 +146,17 @@ pub fn derive_eth_event(input: TokenStream) -> TokenStream {
         topics_match_arms.push(topics_arm);
 
         // Build the data match arm: non-indexed fields are ABI-encoded as a tuple.
-        let data_arm = quote! {
+        data_match_arms.push(quote! {
             #pattern => {
                 Self::encode_sequence(&( #( #non_indexed_exprs, )* ))
             }
-        };
-        data_match_arms.push(data_arm);
+        });
     }
 
     // Generate the implementation for the EthEvent trait.
     quote! {
         impl #sails_path::EthEvent for #enum_ident {
-            const SIGNATURES: &'static [&'static str] = &[
+            const SIGNATURES: &'static [#sails_path::gstd::EthEventExpo] = &[
                 #( #sigs_const ),*
             ];
 
@@ -191,11 +191,15 @@ fn variant_signature(variant: &Variant, sails_path: &Path) -> TokenStream {
         Fields::Unnamed(unnamed) => unnamed.unnamed.iter().map(|f| &f.ty).collect(),
         Fields::Unit => Vec::new(),
     };
+    let sol_types = quote! {
+        <<( #( #field_types, )* ) as #sails_path::alloy_sol_types::SolValue>::SolType as #sails_path::alloy_sol_types::SolType>::SOL_NAME
+    };
 
     quote! {
-        #sails_path::concatcp!(
+        (
             #variant_ident,
-            <<( #( #field_types, )* ) as #sails_path::alloy_sol_types::SolValue>::SolType as #sails_path::alloy_sol_types::SolType>::SOL_NAME,
+            #sol_types,
+            #sails_path::keccak_const::Keccak256::new().update(#variant_ident .as_bytes()).update(#sol_types  .as_bytes()).finalize()
         )
     }
 }

@@ -8,14 +8,14 @@ impl ServiceBuilder<'_> {
         let service_type_path = self.type_path;
         let generics = &self.generics;
         let service_type_constraints = self.type_constraints.as_ref();
-        let service_method_routes = self
+        let service_method_expo = self
             .service_handlers
             .iter()
-            .map(|fn_builder| fn_builder.sol_handler_signature());
+            .map(|fn_builder| fn_builder.sol_handler_signature(true));
 
         let combined_methods = if self.base_types.is_empty() {
             quote! {
-                &[#( #service_method_routes )*]
+                &[#( #service_method_expo, )*]
             }
         } else {
             let base_methods = self.base_types.iter().map(|path| {
@@ -26,8 +26,8 @@ impl ServiceBuilder<'_> {
             });
             quote! {
                 #sails_path::const_concat_slices!(
-                    <#sails_path::solidity::MethodRoute>,
-                    &[#( #service_method_routes )*],
+                    <#sails_path::solidity::MethodExpo>,
+                    &[#( #service_method_expo, )*],
                     #( #base_methods ),*
                 )
             }
@@ -35,7 +35,7 @@ impl ServiceBuilder<'_> {
 
         quote! {
             impl #generics #sails_path::solidity::ServiceSignature for #service_type_path #service_type_constraints {
-                const METHODS: &'static [#sails_path::solidity::MethodRoute] = #combined_methods;
+                const METHODS: &'static [#sails_path::solidity::MethodExpo] = #combined_methods;
             }
         }
     }
@@ -49,8 +49,8 @@ impl ServiceBuilder<'_> {
         let base_types_try_handle = self.base_types.iter().enumerate().map(|(idx, _)| {
             let idx = Literal::usize_unsuffixed(idx);
             quote! {
-                if let Some((output, value)) = self. #base_ident . #idx .try_handle_solidity(method, input).await {
-                    return Some((output, value));
+                if let Some(result) = self. #base_ident . #idx .try_handle_solidity(method, input).await {
+                    return Some(result);
                 }
             }
         });
@@ -60,7 +60,7 @@ impl ServiceBuilder<'_> {
                 &mut self,
                 method: &[u8],
                 input: &[u8],
-            ) -> Option<(#sails_path::Vec<u8>, u128)> {
+            ) -> Option<(#sails_path::Vec<u8>, u128, bool)> {
                 #( #service_method_branches )*
                 #( #base_types_try_handle )*
                 None
@@ -102,21 +102,19 @@ impl FnBuilder<'_> {
     /// }
     /// ```
     fn sol_try_handle_branch_impl(&self) -> TokenStream {
-        let sails_path = self.sails_path;
         let handler_route_bytes = self.encoded_route.as_slice();
         let invocation = self.sol_invocation_func();
 
         quote! {
             if method == &[ #(#handler_route_bytes),* ] {
                 #invocation
-                return Some((#sails_path::alloy_sol_types::SolValue::abi_encode(&result), value));
             }
         }
     }
 
     /// Generates code for encode/decode parameters and fn invocation
     /// ```rust
-    /// let (_, p1, p2): (u128, u32, String) = sails_rs::alloy_sol_types::SolValue::abi_decode_params(input, false).ok()?;
+    /// let (_, encode_reply, p1, p2): (u128, bool, u32, String) = sails_rs::alloy_sol_types::SolValue::abi_decode_params(input, false).ok()?;
     /// let result: u32 = self.do_this(p1, p2).await;
     /// let value = 0u128;
     /// ```
@@ -144,8 +142,17 @@ impl FnBuilder<'_> {
         };
 
         quote! {
-            let (_, #(#handler_params,)*) : (u128, #(#handler_types,)*) = #sails_path::alloy_sol_types::SolValue::abi_decode_params(input, false).ok()?;
+            let (_, _encode_reply, #(#handler_params,)*) : (u128, bool, #(#handler_types,)*) = #sails_path::alloy_sol_types::SolValue::abi_decode_params(input, false).ok()?;
             #handle_token
+            let output = if _encode_reply {
+                // encode MessageId and result if passed `encode_reply`
+                let message_id = #sails_path::alloy_primitives::B256::new(self.message_id.into_bytes());
+                #sails_path::alloy_sol_types::SolValue::abi_encode_sequence(&(message_id, result,))
+            } else {
+                #sails_path::alloy_sol_types::SolValue::abi_encode_sequence(&(result,))
+            };
+            return Some((output, value, _encode_reply));
+
         }
     }
 }

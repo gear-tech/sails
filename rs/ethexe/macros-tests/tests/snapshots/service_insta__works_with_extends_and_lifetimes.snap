@@ -78,7 +78,7 @@ impl<'a> ExtendedWithLifetimeExposure<ExtendedWithLifetime<'a>> {
         &mut self,
         method: &[u8],
         input: &[u8],
-    ) -> Option<(sails_rs::Vec<u8>, u128)> {
+    ) -> Option<(sails_rs::Vec<u8>, u128, bool)> {
         if method
             == &[
                 48u8,
@@ -96,38 +96,47 @@ impl<'a> ExtendedWithLifetimeExposure<ExtendedWithLifetime<'a>> {
                 101u8,
             ]
         {
-            let (_,): (u128,) = sails_rs::alloy_sol_types::SolValue::abi_decode_params(
+            let (_, _encode_reply): (u128, bool) = sails_rs::alloy_sol_types::SolValue::abi_decode_params(
                     input,
                     false,
                 )
                 .ok()?;
             let result = self.extended_name();
             let value = 0u128;
-            return Some((
-                sails_rs::alloy_sol_types::SolValue::abi_encode(&result),
-                value,
-            ));
+            let output = if _encode_reply {
+                let message_id = sails_rs::alloy_primitives::B256::new(
+                    self.message_id.into_bytes(),
+                );
+                sails_rs::alloy_sol_types::SolValue::abi_encode_sequence(
+                    &(message_id, result),
+                )
+            } else {
+                sails_rs::alloy_sol_types::SolValue::abi_encode_sequence(&(result,))
+            };
+            return Some((output, value, _encode_reply));
         }
         if method == &[16u8, 78u8, 97u8, 109u8, 101u8] {
-            let (_,): (u128,) = sails_rs::alloy_sol_types::SolValue::abi_decode_params(
+            let (_, _encode_reply): (u128, bool) = sails_rs::alloy_sol_types::SolValue::abi_decode_params(
                     input,
                     false,
                 )
                 .ok()?;
             let result = self.name();
             let value = 0u128;
-            return Some((
-                sails_rs::alloy_sol_types::SolValue::abi_encode(&result),
-                value,
-            ));
+            let output = if _encode_reply {
+                let message_id = sails_rs::alloy_primitives::B256::new(
+                    self.message_id.into_bytes(),
+                );
+                sails_rs::alloy_sol_types::SolValue::abi_encode_sequence(
+                    &(message_id, result),
+                )
+            } else {
+                sails_rs::alloy_sol_types::SolValue::abi_encode_sequence(&(result,))
+            };
+            return Some((output, value, _encode_reply));
         }
-        if let Some((output, value)) = self
-            .base
-            .0
-            .try_handle_solidity(method, input)
-            .await
-        {
-            return Some((output, value));
+        if let Some(result) = self.base.0.try_handle_solidity(method, input).await {
+            return Some(result);
         }
         None
     }
@@ -222,14 +231,18 @@ mod extended_with_lifetime_meta {
     pub type EventsMeta = NoEvents;
 }
 impl<'a> sails_rs::solidity::ServiceSignature for ExtendedWithLifetime<'a> {
-    const METHODS: &'static [sails_rs::solidity::MethodRoute] = sails_rs::const_concat_slices!(
-        < sails_rs::solidity::MethodRoute >, & [(sails_rs::concatcp!("extended_name", <<
-        (u128,) as sails_rs::alloy_sol_types::SolValue > ::SolType as
-        sails_rs::alloy_sol_types::SolType > ::SOL_NAME,), & [48u8, 69u8, 120u8, 116u8,
-        101u8, 110u8, 100u8, 101u8, 100u8, 78u8, 97u8, 109u8, 101u8] as & [u8],),
-        (sails_rs::concatcp!("name", << (u128,) as sails_rs::alloy_sol_types::SolValue >
-        ::SolType as sails_rs::alloy_sol_types::SolType > ::SOL_NAME,), & [16u8, 78u8,
-        97u8, 109u8, 101u8] as & [u8],),], < BaseWithLifetime as
-        sails_rs::solidity::ServiceSignature > ::METHODS
+    const METHODS: &'static [sails_rs::solidity::MethodExpo] = sails_rs::const_concat_slices!(
+        < sails_rs::solidity::MethodExpo >, & [(& [48u8, 69u8, 120u8, 116u8, 101u8,
+        110u8, 100u8, 101u8, 100u8, 78u8, 97u8, 109u8, 101u8] as & [u8], "ExtendedName",
+        << (u128, bool,) as sails_rs::alloy_sol_types::SolValue > ::SolType as
+        sails_rs::alloy_sol_types::SolType > ::SOL_NAME, <<
+        (sails_rs::alloy_primitives::B256, String) as sails_rs::alloy_sol_types::SolValue
+        > ::SolType as sails_rs::alloy_sol_types::SolType > ::SOL_NAME,), (& [16u8, 78u8,
+        97u8, 109u8, 101u8] as & [u8], "Name", << (u128, bool,) as
+        sails_rs::alloy_sol_types::SolValue > ::SolType as
+        sails_rs::alloy_sol_types::SolType > ::SOL_NAME, <<
+        (sails_rs::alloy_primitives::B256, String) as sails_rs::alloy_sol_types::SolValue
+        > ::SolType as sails_rs::alloy_sol_types::SolType > ::SOL_NAME,),], <
+        BaseWithLifetime as sails_rs::solidity::ServiceSignature > ::METHODS
     );
 }

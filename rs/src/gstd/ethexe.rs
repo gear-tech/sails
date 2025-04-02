@@ -1,4 +1,5 @@
 use crate::prelude::*;
+use alloy_sol_types::{SolType, SolValue, abi::TokenSeq};
 
 #[doc(hidden)]
 #[cfg(target_arch = "wasm32")]
@@ -6,10 +7,65 @@ pub fn __emit_eth_event<TEvents>(event: TEvents) -> crate::errors::Result<()>
 where
     TEvents: crate::EthEvent,
 {
-    let payload = event.encode();
-    gstd::msg::send_bytes(crate::solidity::ETH_EVENT_ADDR, payload, 0)?;
-    Ok(())
+    with_optimized_encode(event, |payload| {
+        gstd::msg::send_bytes(crate::solidity::ETH_EVENT_ADDR, payload, 0)?;
+        Ok(())
+    })
 }
+
+#[cfg(target_arch = "wasm32")]
+fn with_optimized_encode<T, E: EthEvent>(event: E, f: impl FnOnce(&[u8]) -> T) -> T {
+    struct ExternalBufferOutput<'a> {
+        buffer: &'a mut [mem::MaybeUninit<u8>],
+        offset: usize,
+    }
+
+    // use `parity_scale_codec::Output` trait to not add a custom trait
+    impl Output for ExternalBufferOutput<'_> {
+        fn write(&mut self, bytes: &[u8]) {
+            // SAFETY: same as
+            // `MaybeUninit::write_slice(&mut self.buffer[self.offset..end_offset], bytes)`.
+            // This code transmutes `bytes: &[T]` to `bytes: &[MaybeUninit<T>]`. These types
+            // can be safely transmuted since they have the same layout. Then `bytes:
+            // &[MaybeUninit<T>]` is written to uninitialized memory via `copy_from_slice`.
+            let end_offset = self.offset + bytes.len();
+            let this = unsafe { self.buffer.get_unchecked_mut(self.offset..end_offset) };
+            this.copy_from_slice(unsafe {
+                mem::transmute::<&[u8], &[core::mem::MaybeUninit<u8>]>(bytes)
+            });
+            self.offset = end_offset;
+        }
+    }
+
+    let topics = event.topics();
+    let data = event.data();
+    let size = 1 + topics.len() * 32 + data.len();
+
+    gcore::stack_buffer::with_byte_buffer(size, |buffer| {
+        let mut output = ExternalBufferOutput { buffer, offset: 0 };
+
+        // encode topics lenght as u8
+        output.write(&[topics.len() as u8]);
+        for topic in topics {
+            output.write(topic.as_slice());
+        }
+        output.write(data.as_slice());
+
+        let ExternalBufferOutput { buffer, offset } = output;
+        // SAFETY: same as `MaybeUninit::slice_assume_init_ref(&buffer[..offset])`.
+        // `ExternalBufferOutput` writes data to uninitialized memory. So we can take
+        // slice `&buffer[..offset]` and say that it was initialized earlier
+        // because the buffer from `0` to `offset` was initialized.
+        let payload = unsafe { &*(&buffer[..offset] as *const _ as *const [u8]) };
+        f(payload)
+    })
+}
+
+pub type EthEventExpo = (
+    &'static str, // Event name
+    &'static str, // Event parameters types
+    [u8; 32],     // Topic hash
+);
 
 /// Trait for encoding Ethereum events for the EVM.
 ///
@@ -65,9 +121,9 @@ where
 pub trait EthEvent {
     /// The signature(s) associated with the event.
     ///
-    /// The signature is the event name and its parameter types, e.g. `MyEvent(uint128,uint128,string)`.
+    /// The signature is the event name and its parameter types, e.g. `MyEvent` and `(uint128,uint128,string)`.
     /// The signature is used as the first topic in the log.
-    const SIGNATURES: &'static [&'static str];
+    const SIGNATURES: &'static [EthEventExpo];
 
     /// Returns the topics associated with the event.
     ///
@@ -94,11 +150,11 @@ pub trait EthEvent {
     fn data(&self) -> Vec<u8>;
 
     /// Returns the topic hash for a given value.
-    fn topic_hash<T: alloy_sol_types::SolValue>(value: &T) -> alloy_primitives::B256 {
-        if <T::SolType as alloy_sol_types::SolType>::DYNAMIC {
-            alloy_primitives::keccak256(alloy_sol_types::SolValue::abi_encode(value))
+    fn topic_hash<T: SolValue>(value: &T) -> alloy_primitives::B256 {
+        if <T::SolType as SolType>::DYNAMIC {
+            alloy_primitives::keccak256(SolValue::abi_encode(value))
         } else {
-            let encoded = alloy_sol_types::SolValue::abi_encode(value);
+            let encoded = SolValue::abi_encode(value);
             // Assume ABI encoding gives us a byte vector no longer than 32 bytes.
             let mut topic = [0u8; 32];
             // Right-align (pad on the left) if needed.
@@ -108,28 +164,14 @@ pub trait EthEvent {
     }
 
     /// Encodes a sequence of values into a single byte vector.
-    fn encode_sequence<T: alloy_sol_types::SolValue>(value: &T) -> Vec<u8>
+    #[inline]
+    fn encode_sequence<T: SolValue>(value: &T) -> Vec<u8>
     where
-        for<'a> <T::SolType as alloy_sol_types::SolType>::Token<'a>:
-            alloy_sol_types::abi::token::TokenSeq<'a>,
+        for<'a> <T::SolType as SolType>::Token<'a>: TokenSeq<'a>,
     {
+        // this method always allocates `Vec<Word>` and transmutes it to `Vec<u8>`
+        // there is no point in using `parity_scale_codec::Output`
         alloy_sol_types::SolValue::abi_encode_sequence(value)
-    }
-
-    /// Encodes the event.
-    fn encode(&self) -> Vec<u8> {
-        let mut payload = Vec::new();
-        let topics = self.topics();
-        let data = self.data();
-
-        // encode topics lenght as u8
-        payload.push(topics.len() as u8);
-        for topic in topics {
-            payload.extend_from_slice(topic.as_slice());
-        }
-        payload.extend_from_slice(data.as_slice());
-
-        payload
     }
 }
 
