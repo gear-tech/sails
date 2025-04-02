@@ -8,6 +8,11 @@ on:
         type: string
         required: false
 
+env:
+  CARGO_TERM_COLOR: always
+  # fix wabt build, remove after bump Gear version https://github.com/gear-tech/gear/pull/4494
+  CMAKE_POLICY_VERSION_MINIMUM: 3.5
+
 jobs:
   test_cli:
     name: Run CLI Tests
