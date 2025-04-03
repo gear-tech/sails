@@ -3,18 +3,23 @@ pragma solidity ^0.8.28;
 
 interface ITestContract {
     event DoThisEvent(uint32, string);
+
     function create(uint128 _value) external returns (bytes32);
+
     function svc1DoThis(uint128 _value, uint32 p1, string memory p2) external returns (bytes32);
 }
 
 contract TestContract is ITestContract {
     function create(uint128 _value) external returns (bytes32) {}
+
     function svc1DoThis(uint128 _value, uint32 p1, string memory p2) external returns (bytes32) {}
 }
 
 interface ITestContractCallback {
     function replyOn_create(bytes32 _messageId) external;
+
     function replyOn_svc1DoThis(bytes32 _messageId, uint32 _reply) external;
+
     function onErrorReply(bytes32 _messageId, bytes calldata _payload, bytes4 _replyCode) external;
 }
 
@@ -33,9 +38,11 @@ contract TestContractCallback {
     function replyOn_create(bytes32 _messageId) external onlyGearexeProgram {
         // TODO: implement this
     }
+
     function replyOn_svc1DoThis(bytes32 _messageId, uint32 _reply) external onlyGearexeProgram {
         // TODO: implement this
     }
+
     function onErrorReply(bytes32 _messageId, bytes calldata _payload, bytes4 _replyCode) external onlyGearexeProgram {
         // TODO: implement this
     }

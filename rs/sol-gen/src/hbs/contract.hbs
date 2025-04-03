@@ -4,14 +4,21 @@ pragma solidity ^{{pragma_version}};
 interface I{{contract_name}} {
     {{#each events}}
     event {{name}}({{#each args}}{{#if @index}}, {{/if}}{{ty}}{{#if indexed}} indexed{{/if}}{{name}}{{/each}});
+
     {{/each}}
     {{#each functions}}
+    {{#if @index}}
+
+    {{/if}}
     function {{name}}(uint128 _value{{#if args}}, {{#each args}}{{#if @index}}, {{/if}}{{ty}}{{#if mem_location}} {{mem_location}}{{/if}} {{name}}{{/each}}{{/if}}) external returns (bytes32);
     {{/each}}
 }
 
 contract {{contract_name}} is I{{contract_name}} {
     {{#each functions}}
+    {{#if @index}}
+
+    {{/if}}
     function {{name}}(uint128 _value{{#if args}}, {{#each args}}{{#if @index}}, {{/if}}{{ty}}{{#if mem_location}} {{mem_location}}{{/if}} {{name}}{{/each}}{{/if}}) external returns (bytes32) {}
     {{/each}}
 }
@@ -19,6 +26,7 @@ contract {{contract_name}} is I{{contract_name}} {
 interface I{{contract_name}}Callback {
     {{#each functions}}
     function replyOn_{{name}}(bytes32 _messageId{{#if reply_type}}, {{reply_type}} _reply{{/if}}) external;
+
     {{/each}}
     function onErrorReply(bytes32 _messageId, bytes calldata _payload, bytes4 _replyCode) external;
 }
@@ -39,6 +47,7 @@ contract {{contract_name}}Callback {
     function replyOn_{{name}}(bytes32 _messageId{{#if reply_type}}, {{reply_type}} _reply{{/if}}) external onlyGearexeProgram {
         // TODO: implement this
     }
+
     {{/each}}
     function onErrorReply(bytes32 _messageId, bytes calldata _payload, bytes4 _replyCode) external onlyGearexeProgram {
         // TODO: implement this
