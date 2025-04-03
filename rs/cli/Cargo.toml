@@ -20,3 +20,4 @@ rustdoc-types.workspace = true
 sails-client-gen.workspace = true
 serde-json.workspace = true
 toml_edit.workspace = true
+sails-sol-gen.workspace = true

@@ -1,0 +1,18 @@
+[package]
+name = "sails-sol-gen"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+sails-idl-parser.workspace = true
+handlebars.workspace = true
+anyhow.workspace = true
+serde = { workspace = true, features = ["derive"] }
+sails-idl-meta.workspace = true
+convert-case.workspace = true
+
+[dev-dependencies]
+insta.workspace = true
