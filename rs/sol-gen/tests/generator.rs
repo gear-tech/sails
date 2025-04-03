@@ -1,3 +1,4 @@
+use pretty_assertions::assert_eq;
 use sails_sol_gen::generate_solidity_contract;
 
 const SIMPLE_IDL: &str = r#"
@@ -29,7 +30,10 @@ fn test_generate_simple_contract() {
     let contract = generate_solidity_contract(SIMPLE_IDL, "TestContract");
 
     assert!(contract.is_ok());
-    assert_eq!(contract.unwrap(), SIMPLE_CONTRACT);
+    assert_eq!(
+        String::from_utf8(contract.unwrap()),
+        String::from_utf8(SIMPLE_CONTRACT.to_vec())
+    );
 }
 
 #[test]
@@ -37,5 +41,8 @@ fn test_generate_contract_w_events() {
     let contract = generate_solidity_contract(IDL_W_EVENTS, "TestContract");
 
     assert!(contract.is_ok());
-    assert_eq!(contract.unwrap(), CONTRACT_W_EVENTS);
+    assert_eq!(
+        String::from_utf8(contract.unwrap()),
+        String::from_utf8(CONTRACT_W_EVENTS.to_vec())
+    );
 }
