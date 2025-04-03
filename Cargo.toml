@@ -65,7 +65,6 @@ genco = "0.17"
 git-download = "0.1"
 handlebars = "4.4"
 hashbrown = "0.15"
-heck = "0.5"
 hex = { version = "0.4", default-features = false }
 insta = "1.42"
 itertools = "0.14"

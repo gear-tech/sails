@@ -1,6 +1,6 @@
 use anyhow::{Result, bail};
+use convert_case::{Case, Casing};
 use handlebars::Handlebars;
-use heck::ToLowerCamelCase;
 use sails_idl_parser::ast::{Program, TypeDecl, TypeDef, parse_idl};
 use serde::Serialize;
 use typedecl_to_sol::TypeDeclToSol;
@@ -48,7 +48,7 @@ pub fn generate_solidity_contract(idl_content: &str, name: &str) -> Result<Vec<u
     let program = parse_idl(idl_content)?;
 
     let contract_data = ContractData {
-        contract_name: name.to_string(),
+        contract_name: name.to_string().to_case(Case::UpperCamel),
         pragma_version: consts::PRAGMA_VERSION.to_string(),
         functions: functions_from_idl(&program)?,
         events: events_from_idl(&program)?,
@@ -73,13 +73,13 @@ fn functions_from_idl(program: &Program) -> Result<Vec<FunctionData>> {
             for p in func.params() {
                 let arg = ArgData {
                     ty: p.type_decl().get_ty()?,
-                    name: p.name().to_lower_camel_case(),
+                    name: p.name().to_case(Case::Camel),
                     mem_location: p.type_decl().get_mem_location(),
                 };
                 args.push(arg);
             }
             functions.push(FunctionData {
-                name: func.name().to_lower_camel_case(),
+                name: func.name().to_case(Case::Camel),
                 reply_type: None,
                 reply_mem_location: None,
                 args,
@@ -93,7 +93,7 @@ fn functions_from_idl(program: &Program) -> Result<Vec<FunctionData>> {
             for p in f.params() {
                 let arg = ArgData {
                     ty: p.type_decl().get_ty()?,
-                    name: p.name().to_lower_camel_case(),
+                    name: p.name().to_case(Case::Camel),
                     mem_location: p.type_decl().get_mem_location(),
                 };
                 args.push(arg);
@@ -101,7 +101,7 @@ fn functions_from_idl(program: &Program) -> Result<Vec<FunctionData>> {
             functions.push(FunctionData {
                 name: format!("{}{}", svc.name(), f.name())
                     .as_str()
-                    .to_lower_camel_case(),
+                    .to_case(Case::Camel),
                 reply_type: f.output().get_ty().ok(),
                 reply_mem_location: f.output().get_mem_location(),
                 args,
@@ -124,7 +124,7 @@ fn events_from_idl(program: &Program) -> Result<Vec<EventData>> {
                         let arg = EventArgData {
                             ty: f.type_decl().get_ty()?,
                             indexed: false, // TODO: get this from the IDL
-                            name: f.name().map(|name| name.to_lower_camel_case()),
+                            name: f.name().map(|name| name.to_case(Case::Camel)),
                         };
                         args.push(arg);
                     }

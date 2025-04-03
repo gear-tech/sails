@@ -12,7 +12,7 @@ handlebars.workspace = true
 anyhow.workspace = true
 serde = { workspace = true, features = ["derive"] }
 sails-idl-meta.workspace = true
-heck.workspace = true
+convert-case.workspace = true
 
 [dev-dependencies]
 pretty_assertions.workspace = true

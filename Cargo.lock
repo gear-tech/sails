@@ -6728,8 +6728,8 @@ name = "sails-sol-gen"
 version = "0.7.3"
 dependencies = [
  "anyhow",
+ "convert_case 0.6.0",
  "handlebars",
- "heck",
  "pretty_assertions",
  "sails-idl-meta",
  "sails-idl-parser",

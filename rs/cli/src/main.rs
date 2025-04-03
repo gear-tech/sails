@@ -71,13 +71,13 @@ enum SailsCommands {
     SolGen {
         /// Path to the IDL file
         #[arg(long, value_hint = clap::ValueHint::FilePath)]
-        idl_path: String,
+        idl_path: PathBuf,
         /// Directory for all generated artifacts
         #[arg(long, value_hint = clap::ValueHint::DirPath)]
         target_dir: Option<PathBuf>,
         /// Name of the contract to generate
         #[arg(long, short = 'n')]
-        contract_name: String,
+        contract_name: Option<String>,
     },
 }
 
