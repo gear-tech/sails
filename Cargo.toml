@@ -75,7 +75,6 @@ log = { version = "0.4", default-features = false }
 logos = "0.13"
 mockall = "0.12"
 parity-scale-codec = { version = "=3.7.4", default-features = false }
-pretty_assertions = "1.4"
 prettyplease = "0.2"
 proc-macro-error = "1.0"
 proc-macro2 = { version = "1", default-features = false }

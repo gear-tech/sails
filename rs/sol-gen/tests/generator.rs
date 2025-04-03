@@ -1,4 +1,4 @@
-use pretty_assertions::assert_eq;
+use insta::assert_snapshot;
 use sails_sol_gen::generate_solidity_contract;
 
 const SIMPLE_IDL: &str = r#"
@@ -22,18 +22,12 @@ service Svc1 {
   }
 };"#;
 
-const SIMPLE_CONTRACT: &[u8] = include_bytes!("./contracts/simple_contract.sol");
-const CONTRACT_W_EVENTS: &[u8] = include_bytes!("./contracts/contract_w_events.sol");
-
 #[test]
 fn test_generate_simple_contract() {
     let contract = generate_solidity_contract(SIMPLE_IDL, "TestContract");
 
     assert!(contract.is_ok());
-    assert_eq!(
-        String::from_utf8(contract.unwrap()),
-        String::from_utf8(SIMPLE_CONTRACT.to_vec())
-    );
+    assert_snapshot!(String::from_utf8(contract.unwrap()).unwrap());
 }
 
 #[test]
@@ -41,8 +35,5 @@ fn test_generate_contract_w_events() {
     let contract = generate_solidity_contract(IDL_W_EVENTS, "TestContract");
 
     assert!(contract.is_ok());
-    assert_eq!(
-        String::from_utf8(contract.unwrap()),
-        String::from_utf8(CONTRACT_W_EVENTS.to_vec())
-    );
+    assert_snapshot!(String::from_utf8(contract.unwrap()).unwrap());
 }

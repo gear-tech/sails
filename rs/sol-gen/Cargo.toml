@@ -15,4 +15,4 @@ sails-idl-meta.workspace = true
 convert-case.workspace = true
 
 [dev-dependencies]
-pretty_assertions.workspace = true
+insta.workspace = true
