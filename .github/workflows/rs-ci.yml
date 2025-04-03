@@ -26,6 +26,8 @@ on:
 
 env:
   CARGO_TERM_COLOR: always
+  # fix wabt build, remove after bump Gear version https://github.com/gear-tech/gear/pull/4494
+  CMAKE_POLICY_VERSION_MINIMUM: 3.5
 
 jobs:
   check:
@@ -65,6 +67,5 @@ jobs:
       gear_node_version: 1.7.1
 
   test-cli:
-    if: false
     name: Run CLI Tests
     uses: ./.github/workflows/rs-run-cli-tests.yml

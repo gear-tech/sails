@@ -11,7 +11,7 @@ pub struct SomeServiceExposure<T: sails_rs::gstd::services::Service> {
     message_id: sails_rs::MessageId,
     route: &'static [u8],
     #[cfg(not(target_arch = "wasm32"))]
-    inner: Box<T>,
+    inner: sails_rs::Box<T>,
     #[cfg(not(target_arch = "wasm32"))]
     inner_ptr: *const T,
     #[cfg(target_arch = "wasm32")]
@@ -42,7 +42,10 @@ impl SomeServiceExposure<SomeService> {
     ) -> &<ExtendedService2 as sails_rs::gstd::services::Service>::Exposure {
         &self.base.1
     }
-    pub async fn try_handle(&mut self, input: &[u8]) -> Option<(Vec<u8>, u128)> {
+    pub async fn try_handle(
+        &mut self,
+        input: &[u8],
+    ) -> Option<(sails_rs::Vec<u8>, u128)> {
         use sails_rs::gstd::InvocationIo;
         if let Ok(request) = some_service_meta::__DoThisParams::decode_params(input) {
             let result = self.do_this();
@@ -62,35 +65,32 @@ impl SomeServiceExposure<SomeService> {
         &mut self,
         method: &[u8],
         input: &[u8],
-    ) -> Option<(Vec<u8>, u128)> {
+    ) -> Option<(sails_rs::Vec<u8>, u128, bool)> {
         if method == &[24u8, 68u8, 111u8, 84u8, 104u8, 105u8, 115u8] {
-            let (_,): (u128,) = sails_rs::alloy_sol_types::SolValue::abi_decode_params(
+            let (_, _encode_reply): (u128, bool) = sails_rs::alloy_sol_types::SolValue::abi_decode_params(
                     input,
                     false,
                 )
                 .ok()?;
             let result = self.do_this();
             let value = 0u128;
-            return Some((
-                sails_rs::alloy_sol_types::SolValue::abi_encode(&result),
-                value,
-            ));
+            let output = if _encode_reply {
+                let message_id = sails_rs::alloy_primitives::B256::new(
+                    self.message_id.into_bytes(),
+                );
+                sails_rs::alloy_sol_types::SolValue::abi_encode_sequence(
+                    &(message_id, result),
+                )
+            } else {
+                sails_rs::alloy_sol_types::SolValue::abi_encode_sequence(&(result,))
+            };
+            return Some((output, value, _encode_reply));
         }
-        if let Some((output, value)) = self
-            .base
-            .0
-            .try_handle_solidity(method, input)
-            .await
-        {
-            return Some((output, value));
+        if let Some(result) = self.base.0.try_handle_solidity(method, input).await {
+            return Some(result);
         }
-        if let Some((output, value)) = self
-            .base
-            .1
-            .try_handle_solidity(method, input)
-            .await
-        {
-            return Some((output, value));
+        if let Some(result) = self.base.1.try_handle_solidity(method, input).await {
+            return Some(result);
         }
         None
     }
@@ -107,7 +107,7 @@ impl sails_rs::gstd::services::Service for SomeService {
         route: &'static [u8],
     ) -> Self::Exposure {
         #[cfg(not(target_arch = "wasm32"))]
-        let inner_box = Box::new(self);
+        let inner_box = sails_rs::Box::new(self);
         #[cfg(not(target_arch = "wasm32"))]
         let inner = inner_box.as_ref();
         #[cfg(target_arch = "wasm32")]
@@ -168,12 +168,14 @@ mod some_service_meta {
     pub type EventsMeta = NoEvents;
 }
 impl sails_rs::solidity::ServiceSignature for SomeService {
-    const METHODS: &'static [sails_rs::solidity::MethodRoute] = sails_rs::const_concat_slices!(
-        < sails_rs::solidity::MethodRoute >, & [(sails_rs::concatcp!("do_this", <<
-        (u128,) as sails_rs::alloy_sol_types::SolValue > ::SolType as
-        sails_rs::alloy_sol_types::SolType > ::SOL_NAME,), & [24u8, 68u8, 111u8, 84u8,
-        104u8, 105u8, 115u8] as & [u8],),], < ExtendedService1 as
-        sails_rs::solidity::ServiceSignature > ::METHODS, < ExtendedService2 as
-        sails_rs::solidity::ServiceSignature > ::METHODS
+    const METHODS: &'static [sails_rs::solidity::MethodExpo] = sails_rs::const_concat_slices!(
+        < sails_rs::solidity::MethodExpo >, & [(& [24u8, 68u8, 111u8, 84u8, 104u8, 105u8,
+        115u8] as & [u8], "DoThis", << (u128, bool,) as
+        sails_rs::alloy_sol_types::SolValue > ::SolType as
+        sails_rs::alloy_sol_types::SolType > ::SOL_NAME, <<
+        (sails_rs::alloy_primitives::B256, u32) as sails_rs::alloy_sol_types::SolValue >
+        ::SolType as sails_rs::alloy_sol_types::SolType > ::SOL_NAME,),], <
+        ExtendedService1 as sails_rs::solidity::ServiceSignature > ::METHODS, <
+        ExtendedService2 as sails_rs::solidity::ServiceSignature > ::METHODS
     );
 }

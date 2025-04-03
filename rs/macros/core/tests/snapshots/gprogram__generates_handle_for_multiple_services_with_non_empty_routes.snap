@@ -9,7 +9,7 @@ impl MyProgram {
     fn __service2(&self) -> MyService {
         MyService
     }
-    pub fn default() -> Self {
+    pub fn create() -> Self {
         Self
     }
     #[route("svc1")]
@@ -60,24 +60,15 @@ mod meta_in_program {
     #[derive(sails_rs::Decode, sails_rs::TypeInfo)]
     #[codec(crate = sails_rs::scale_codec)]
     #[scale_info(crate = sails_rs::scale_info)]
-    pub struct __DefaultParams {}
-    impl sails_rs::gstd::InvocationIo for __DefaultParams {
-        const ROUTE: &'static [u8] = &[
-            28u8,
-            68u8,
-            101u8,
-            102u8,
-            97u8,
-            117u8,
-            108u8,
-            116u8,
-        ];
+    pub struct __CreateParams {}
+    impl sails_rs::gstd::InvocationIo for __CreateParams {
+        const ROUTE: &'static [u8] = &[24u8, 67u8, 114u8, 101u8, 97u8, 116u8, 101u8];
         type Params = Self;
     }
     #[derive(sails_rs::TypeInfo)]
     #[scale_info(crate = sails_rs::scale_info)]
     pub enum ConstructorsMeta {
-        Default(__DefaultParams),
+        Create(__CreateParams),
     }
 }
 #[cfg(target_arch = "wasm32")]
@@ -88,14 +79,13 @@ pub mod wasm {
     #[gstd::async_init]
     async fn init() {
         use sails_rs::gstd::InvocationIo;
-        sails_rs::gstd::events::__enable_events();
         let mut input: &[u8] = &sails_rs::gstd::msg::load_bytes()
             .expect("Failed to read input");
-        let (program, invocation_route) = if let Ok(request) = meta_in_program::__DefaultParams::decode_params(
+        let (program, invocation_route) = if let Ok(request) = meta_in_program::__CreateParams::decode_params(
             input,
         ) {
-            let program = MyProgram::default();
-            (program, meta_in_program::__DefaultParams::ROUTE)
+            let program = MyProgram::create();
+            (program, meta_in_program::__CreateParams::ROUTE)
         } else {
             sails_rs::gstd::unknown_input_panic("Unexpected ctor", input)
         };

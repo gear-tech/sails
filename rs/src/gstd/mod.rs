@@ -1,10 +1,21 @@
+#[doc(hidden)]
+#[cfg(target_arch = "wasm32")]
+#[cfg(feature = "ethexe")]
+pub use ethexe::__emit_eth_event;
+#[doc(hidden)]
+#[cfg(feature = "ethexe")]
+pub use ethexe::{EthEvent, EthEventExpo};
+#[doc(hidden)]
+#[cfg(target_arch = "wasm32")]
+pub use events::__notify_on;
 #[cfg(not(feature = "ethexe"))]
 #[doc(hidden)]
 pub use gstd::handle_signal;
 #[doc(hidden)]
 pub use gstd::{async_init, async_main, handle_reply_with_hook, message_loop};
 pub use gstd::{debug, exec, msg};
-pub use sails_macros::*;
+#[doc(hidden)]
+pub use sails_macros::{export, program, route, service};
 
 use crate::{
     errors::{Error, Result, RtlError},
@@ -13,7 +24,9 @@ use crate::{
 use core::cell::OnceCell;
 
 pub mod calls;
-pub mod events;
+#[cfg(feature = "ethexe")]
+mod ethexe;
+mod events;
 pub mod services;
 
 // TODO: To be renamed into SysCalls or something similar

@@ -17,7 +17,7 @@ async fn activating_program_succeeds() {
     let remoting = GTestRemoting::new(system, ADMIN_ID.into());
 
     let result = NoSvcsProgFactory::new(remoting.clone())
-        .default()
+        .create()
         .send_recv(program_code_id, "123")
         .await;
 

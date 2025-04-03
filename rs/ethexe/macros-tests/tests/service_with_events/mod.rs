@@ -1,4 +1,4 @@
-use sails_rs::{service, Encode, TypeInfo};
+use sails_rs::{Encode, TypeInfo, service};
 
 #[allow(dead_code)]
 pub struct MyServiceWithEvents(pub u8);
@@ -13,6 +13,6 @@ pub enum MyEvents {
 #[service(events = MyEvents)]
 impl MyServiceWithEvents {
     pub fn my_method(&mut self) {
-        self.notify_on(MyEvents::Event1).unwrap();
+        self.emit_eth_event(MyEvents::Event1).unwrap();
     }
 }

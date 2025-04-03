@@ -52,27 +52,29 @@ mod meta_in_program {
     }
 }
 impl sails_rs::solidity::ProgramSignature for MyProgram {
-    const CTORS: &'static [sails_rs::solidity::MethodRoute] = &[
+    const CTORS: &'static [sails_rs::solidity::MethodExpo] = &[
         (
-            sails_rs::concatcp!(
-                "new", << (u128, u32, String,) as sails_rs::alloy_sol_types::SolValue >
-                ::SolType as sails_rs::alloy_sol_types::SolType > ::SOL_NAME,
-            ),
             &[12u8, 78u8, 101u8, 119u8] as &[u8],
+            "new",
+            <<(
+                u128,
+                u32,
+                String,
+            ) as sails_rs::alloy_sol_types::SolValue>::SolType as sails_rs::alloy_sol_types::SolType>::SOL_NAME,
+            <<() as sails_rs::alloy_sol_types::SolValue>::SolType as sails_rs::alloy_sol_types::SolType>::SOL_NAME,
         ),
         (
-            sails_rs::concatcp!(
-                "new_2", << (u128, String, u32,) as sails_rs::alloy_sol_types::SolValue >
-                ::SolType as sails_rs::alloy_sol_types::SolType > ::SOL_NAME,
-            ),
             &[16u8, 78u8, 101u8, 119u8, 50u8] as &[u8],
+            "new2",
+            <<(
+                u128,
+                String,
+                u32,
+            ) as sails_rs::alloy_sol_types::SolValue>::SolType as sails_rs::alloy_sol_types::SolType>::SOL_NAME,
+            <<() as sails_rs::alloy_sol_types::SolValue>::SolType as sails_rs::alloy_sol_types::SolType>::SOL_NAME,
         ),
     ];
-    const SERVICES: &'static [(
-        &'static str,
-        &'static [u8],
-        &'static [sails_rs::solidity::MethodRoute],
-    )] = &[];
+    const SERVICES: &'static [sails_rs::solidity::ServiceExpo] = &[];
     const METHODS_LEN: usize = 0;
 }
 const __CTOR_SIGS: [[u8; 4]; <MyProgram as sails_rs::solidity::ProgramSignature>::CTORS
@@ -86,6 +88,9 @@ const __METHOD_ROUTES: [(
 ); <MyProgram as sails_rs::solidity::ProgramSignature>::METHODS_LEN] = sails_rs::solidity::ConstProgramMeta::<
     MyProgram,
 >::method_routes();
+const __CALLBACK_SIGS: [[u8; 4]; <MyProgram as sails_rs::solidity::ProgramSignature>::METHODS_LEN] = sails_rs::solidity::ConstProgramMeta::<
+    MyProgram,
+>::callback_sigs();
 #[cfg(target_arch = "wasm32")]
 pub mod wasm {
     use super::*;
@@ -94,12 +99,11 @@ pub mod wasm {
     #[gstd::async_init]
     async fn init() {
         use sails_rs::gstd::InvocationIo;
-        sails_rs::gstd::events::__enable_events();
         let mut input: &[u8] = &sails_rs::gstd::msg::load_bytes()
             .expect("Failed to read input");
         if let Ok(sig) = TryInto::<[u8; 4]>::try_into(&input[..4]) {
             if let Some(idx) = __CTOR_SIGS.iter().position(|s| s == &sig) {
-                let (_, ctor_route) = <MyProgram as sails_rs::solidity::ProgramSignature>::CTORS[idx];
+                let (ctor_route, ..) = <MyProgram as sails_rs::solidity::ProgramSignature>::CTORS[idx];
                 unsafe {
                     PROGRAM = match_ctor_solidity(ctor_route, &input[4..]).await;
                 }

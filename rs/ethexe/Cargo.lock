@@ -1425,6 +1425,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "ethapp-with-events"
+version = "0.1.0"
+dependencies = [
+ "sails-rs",
+ "tokio",
+]
+
+[[package]]
 name = "expander"
 version = "2.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4055,8 +4063,8 @@ version = "0.7.3"
 dependencies = [
  "alloy-primitives",
  "alloy-sol-types",
- "const_format",
  "futures",
+ "gcore",
  "gear-core",
  "gear-core-errors",
  "gear-wasm-builder",

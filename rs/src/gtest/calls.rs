@@ -118,6 +118,14 @@ impl GTestRemoting {
                 }
                 continue;
             }
+            #[cfg(feature = "ethexe")]
+            if entry.destination() == crate::solidity::ETH_EVENT_ADDR {
+                log::debug!("Extract event from entry {:?}", entry);
+                for sender in event_senders.iter() {
+                    _ = sender.unbounded_send((entry.source(), entry.payload().to_vec()));
+                }
+                continue;
+            }
             if let Some(message_id) = entry.reply_to() {
                 if let Some(sender) = reply_senders.remove(&message_id) {
                     log::debug!("Extract reply from entry {:?}", entry);

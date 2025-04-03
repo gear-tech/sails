@@ -9,7 +9,7 @@ impl MyProgram {
     fn __service2(&self) -> MyService {
         MyService
     }
-    pub fn default() -> Self {
+    pub fn create() -> Self {
         Self
     }
     pub fn service1(
@@ -59,41 +59,29 @@ mod meta_in_program {
     #[derive(sails_rs::Decode, sails_rs::TypeInfo)]
     #[codec(crate = sails_rs::scale_codec)]
     #[scale_info(crate = sails_rs::scale_info)]
-    pub struct __DefaultParams {}
-    impl sails_rs::gstd::InvocationIo for __DefaultParams {
-        const ROUTE: &'static [u8] = &[
-            28u8,
-            68u8,
-            101u8,
-            102u8,
-            97u8,
-            117u8,
-            108u8,
-            116u8,
-        ];
+    pub struct __CreateParams {}
+    impl sails_rs::gstd::InvocationIo for __CreateParams {
+        const ROUTE: &'static [u8] = &[24u8, 67u8, 114u8, 101u8, 97u8, 116u8, 101u8];
         type Params = Self;
     }
     #[derive(sails_rs::TypeInfo)]
     #[scale_info(crate = sails_rs::scale_info)]
     pub enum ConstructorsMeta {
-        Default(__DefaultParams),
+        Create(__CreateParams),
     }
 }
 impl sails_rs::solidity::ProgramSignature for MyProgram {
-    const CTORS: &'static [sails_rs::solidity::MethodRoute] = &[
+    const CTORS: &'static [sails_rs::solidity::MethodExpo] = &[
         (
-            sails_rs::concatcp!(
-                "default", << (u128,) as sails_rs::alloy_sol_types::SolValue > ::SolType
-                as sails_rs::alloy_sol_types::SolType > ::SOL_NAME,
-            ),
-            &[28u8, 68u8, 101u8, 102u8, 97u8, 117u8, 108u8, 116u8] as &[u8],
+            &[24u8, 67u8, 114u8, 101u8, 97u8, 116u8, 101u8] as &[u8],
+            "create",
+            <<(
+                u128,
+            ) as sails_rs::alloy_sol_types::SolValue>::SolType as sails_rs::alloy_sol_types::SolType>::SOL_NAME,
+            <<() as sails_rs::alloy_sol_types::SolValue>::SolType as sails_rs::alloy_sol_types::SolType>::SOL_NAME,
         ),
     ];
-    const SERVICES: &'static [(
-        &'static str,
-        &'static [u8],
-        &'static [sails_rs::solidity::MethodRoute],
-    )] = &[
+    const SERVICES: &'static [sails_rs::solidity::ServiceExpo] = &[
         (
             "service2",
             &[32u8, 83u8, 101u8, 114u8, 118u8, 105u8, 99u8, 101u8, 50u8] as &[u8],
@@ -119,6 +107,9 @@ const __METHOD_ROUTES: [(
 ); <MyProgram as sails_rs::solidity::ProgramSignature>::METHODS_LEN] = sails_rs::solidity::ConstProgramMeta::<
     MyProgram,
 >::method_routes();
+const __CALLBACK_SIGS: [[u8; 4]; <MyProgram as sails_rs::solidity::ProgramSignature>::METHODS_LEN] = sails_rs::solidity::ConstProgramMeta::<
+    MyProgram,
+>::callback_sigs();
 #[cfg(target_arch = "wasm32")]
 pub mod wasm {
     use super::*;
@@ -127,12 +118,11 @@ pub mod wasm {
     #[gstd::async_init]
     async fn init() {
         use sails_rs::gstd::InvocationIo;
-        sails_rs::gstd::events::__enable_events();
         let mut input: &[u8] = &sails_rs::gstd::msg::load_bytes()
             .expect("Failed to read input");
         if let Ok(sig) = TryInto::<[u8; 4]>::try_into(&input[..4]) {
             if let Some(idx) = __CTOR_SIGS.iter().position(|s| s == &sig) {
-                let (_, ctor_route) = <MyProgram as sails_rs::solidity::ProgramSignature>::CTORS[idx];
+                let (ctor_route, ..) = <MyProgram as sails_rs::solidity::ProgramSignature>::CTORS[idx];
                 unsafe {
                     PROGRAM = match_ctor_solidity(ctor_route, &input[4..]).await;
                 }
@@ -143,11 +133,11 @@ pub mod wasm {
                 }
             }
         }
-        let (program, invocation_route) = if let Ok(request) = meta_in_program::__DefaultParams::decode_params(
+        let (program, invocation_route) = if let Ok(request) = meta_in_program::__CreateParams::decode_params(
             input,
         ) {
-            let program = MyProgram::default();
-            (program, meta_in_program::__DefaultParams::ROUTE)
+            let program = MyProgram::create();
+            (program, meta_in_program::__CreateParams::ROUTE)
         } else {
             sails_rs::gstd::unknown_input_panic("Unexpected ctor", input)
         };
@@ -158,13 +148,13 @@ pub mod wasm {
             .expect("Failed to send output");
     }
     async fn match_ctor_solidity(ctor: &[u8], input: &[u8]) -> Option<MyProgram> {
-        if ctor == &[28u8, 68u8, 101u8, 102u8, 97u8, 117u8, 108u8, 116u8] {
+        if ctor == &[24u8, 67u8, 114u8, 101u8, 97u8, 116u8, 101u8] {
             let (_,): (u128,) = sails_rs::alloy_sol_types::SolValue::abi_decode_params(
                     input,
                     false,
                 )
                 .expect("Failed to decode request");
-            let program = MyProgram::default();
+            let program = MyProgram::create();
             return Some(program);
         }
         None
@@ -179,24 +169,36 @@ pub mod wasm {
                 let (route, method) = __METHOD_ROUTES[idx];
                 if route == &__ROUTE_SVC1 {
                     let mut service = program_ref.service1();
-                    let (output, value) = service
+                    let (output, value, encode_reply) = service
                         .try_handle_solidity(method, &input[4..])
                         .await
                         .unwrap_or_else(|| {
                             sails_rs::gstd::unknown_input_panic("Unknown request", input)
                         });
+                    let output = if encode_reply {
+                        let selector = __CALLBACK_SIGS[idx];
+                        [selector.as_slice(), output.as_slice()].concat()
+                    } else {
+                        output
+                    };
                     sails_rs::gstd::msg::reply_bytes(output, value)
                         .expect("Failed to send output");
                     return;
                 }
                 if route == &__ROUTE_SERVICE2 {
                     let mut service = program_ref.service2();
-                    let (output, value) = service
+                    let (output, value, encode_reply) = service
                         .try_handle_solidity(method, &input[4..])
                         .await
                         .unwrap_or_else(|| {
                             sails_rs::gstd::unknown_input_panic("Unknown request", input)
                         });
+                    let output = if encode_reply {
+                        let selector = __CALLBACK_SIGS[idx];
+                        [selector.as_slice(), output.as_slice()].concat()
+                    } else {
+                        output
+                    };
                     sails_rs::gstd::msg::reply_bytes(output, value)
                         .expect("Failed to send output");
                     return;
