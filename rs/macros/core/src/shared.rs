@@ -59,8 +59,8 @@ pub(crate) fn result_type(handler_signature: &Signature) -> Type {
 pub(crate) fn unwrap_result_type(handler_signature: &Signature, unwrap_result: bool) -> Type {
     let result_type = result_type(handler_signature);
     // process result type if set unwrap result
-    unwrap_result
-        .then(|| {
+    if unwrap_result {
+        {
             extract_result_type_from_path(&result_type)
                 .unwrap_or_else(|| {
                     abort!(
@@ -69,8 +69,10 @@ pub(crate) fn unwrap_result_type(handler_signature: &Signature, unwrap_result: b
                     )
                 })
                 .clone()
-        })
-        .unwrap_or(result_type)
+        }
+    } else {
+        result_type
+    }
 }
 
 pub(crate) fn discover_invocation_targets(
