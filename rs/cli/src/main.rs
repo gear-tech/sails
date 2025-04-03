@@ -1,7 +1,6 @@
 use clap::{Parser, Subcommand};
-use sails_cli::{idlgen::CrateIdlGenerator, program::ProgramGenerator};
+use sails_cli::{idlgen::CrateIdlGenerator, program::ProgramGenerator, solgen::SolidityGenerator};
 use sails_client_gen::ClientGenerator;
-use sails_sol_gen::generate_solidity_contract;
 use std::{error::Error, path::PathBuf};
 
 #[derive(Parser)]
@@ -147,7 +146,7 @@ fn main() -> Result<(), i32> {
             idl_path,
             target_dir,
             contract_name,
-        } => generate_solidity_contract(&idl_path, contract_name, target_dir.unwrap_or_default()),
+        } => SolidityGenerator::new(idl_path, target_dir, contract_name).generate(),
     };
 
     if let Err(e) = result {

@@ -3,7 +3,6 @@ use handlebars::Handlebars;
 use heck::ToLowerCamelCase;
 use sails_idl_parser::ast::{Program, TypeDecl, TypeDef, parse_idl};
 use serde::Serialize;
-use std::path::PathBuf;
 use typedecl_to_sol::TypeDeclToSol;
 
 mod consts;
@@ -45,13 +44,8 @@ struct ContractData {
     pub events: Vec<EventData>,
 }
 
-pub fn generate_solidity_contract(
-    path_to_idl: &str,
-    name: String,
-    target_dir: PathBuf,
-) -> Result<()> {
-    let idl_data = std::fs::read_to_string(path_to_idl)?;
-    let program = parse_idl(&idl_data)?;
+pub fn generate_solidity_contract(idl_content: &str, name: &str) -> Result<Vec<u8>> {
+    let program = parse_idl(idl_content)?;
 
     let contract_data = ContractData {
         contract_name: name.to_string(),
@@ -67,13 +61,7 @@ pub fn generate_solidity_contract(
 
     handlebars.render_to_write("contract", &contract_data, &mut contract)?;
 
-    let target_file = target_dir.join(format!("{}.sol", name));
-
-    std::fs::write(&target_file, contract)?;
-
-    println!("Generated contract: {:?}", target_file);
-
-    Ok(())
+    Ok(contract)
 }
 
 fn functions_from_idl(program: &Program) -> Result<Vec<FunctionData>> {

@@ -6709,7 +6709,7 @@ dependencies = [
 
 [[package]]
 name = "sails-sol-gen"
-version = "0.1.0"
+version = "0.7.3"
 dependencies = [
  "anyhow",
  "handlebars",
