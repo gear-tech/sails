@@ -3,6 +3,7 @@ use sails_idl_parser::ast::{PrimitiveType, TypeDecl, TypeId};
 
 pub trait TypeDeclToSol {
     fn get_ty(&self) -> Result<String>;
+    fn get_mem_location(&self) -> Option<String>;
 }
 
 impl TypeDeclToSol for TypeDecl {
@@ -12,6 +13,15 @@ impl TypeDeclToSol for TypeDecl {
             TypeDecl::Array { item, len } => Ok(format!("{}[{}]", item.get_ty()?, len)),
             TypeDecl::Vector(item) => Ok(format!("{}[]", item.get_ty()?)),
             _ => Err(anyhow!("type is not supported")),
+        }
+    }
+
+    fn get_mem_location(&self) -> Option<String> {
+        match self {
+            TypeDecl::Id(ty) => ty.get_mem_location(),
+            TypeDecl::Array { item: _, len: _ } => Some("memory".to_string()),
+            TypeDecl::Vector(_) => Some("memory".to_string()),
+            _ => None,
         }
     }
 }
@@ -31,12 +41,19 @@ impl TypeDeclToSol for PrimitiveType {
             Self::I32 => "int32",
             Self::I64 => "int64",
             Self::I128 => "int128",
-            Self::Str => "string memory",
+            Self::Str => "string",
             Self::ActorId | Self::H256 | Self::CodeId | Self::MessageId => "bytes32",
             Self::H160 => "bytes20",
             _ => return Err(anyhow!("type is not supported")),
         }
         .to_string())
+    }
+
+    fn get_mem_location(&self) -> Option<String> {
+        match self {
+            Self::Str => Some("memory".to_string()),
+            _ => None,
+        }
     }
 }
 
@@ -45,6 +62,13 @@ impl TypeDeclToSol for TypeId {
         match self {
             Self::Primitive(ty) => ty.get_ty(),
             _ => Err(anyhow!("type is not supported")),
+        }
+    }
+
+    fn get_mem_location(&self) -> Option<String> {
+        match self {
+            Self::Primitive(ty) => ty.get_mem_location(),
+            _ => None,
         }
     }
 }

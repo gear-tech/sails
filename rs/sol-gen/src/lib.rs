@@ -13,6 +13,7 @@ mod typedecl_to_sol;
 struct ArgData {
     pub ty: String,
     pub name: String,
+    pub mem_location: Option<String>,
 }
 
 #[derive(Serialize)]
@@ -20,6 +21,7 @@ struct FunctionData {
     pub name: String,
     pub args: Vec<ArgData>,
     pub reply_type: Option<String>,
+    pub reply_mem_location: Option<String>,
 }
 
 #[derive(Serialize)]
@@ -84,12 +86,14 @@ fn functions_from_idl(program: &Program) -> Result<Vec<FunctionData>> {
                 let arg = ArgData {
                     ty: p.type_decl().get_ty()?,
                     name: p.name().to_lower_camel_case(),
+                    mem_location: p.type_decl().get_mem_location(),
                 };
                 args.push(arg);
             }
             functions.push(FunctionData {
                 name: func.name().to_lower_camel_case(),
                 reply_type: None,
+                reply_mem_location: None,
                 args,
             });
         }
@@ -102,6 +106,7 @@ fn functions_from_idl(program: &Program) -> Result<Vec<FunctionData>> {
                 let arg = ArgData {
                     ty: p.type_decl().get_ty()?,
                     name: p.name().to_lower_camel_case(),
+                    mem_location: p.type_decl().get_mem_location(),
                 };
                 args.push(arg);
             }
@@ -110,6 +115,7 @@ fn functions_from_idl(program: &Program) -> Result<Vec<FunctionData>> {
                     .as_str()
                     .to_lower_camel_case(),
                 reply_type: f.output().get_ty().ok(),
+                reply_mem_location: f.output().get_mem_location(),
                 args,
             });
         }

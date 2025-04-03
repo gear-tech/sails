@@ -3,16 +3,16 @@ pragma solidity ^{{pragma_version}};
 
 interface I{{contract_name}} {
     {{#each events}}
-    event {{name}}({{#each args}}{{#if @index}}, {{/if}}{{ty}} {{#if indexed}}indexed {{/if}}{{name}}{{/each}});
+    event {{name}}({{#each args}}{{#if @index}}, {{/if}}{{ty}}{{#if indexed}} indexed{{/if}}{{name}}{{/each}});
     {{/each}}
     {{#each functions}}
-    function {{name}}(uint128 _value{{#if args}}, {{#each args}}{{#if @index}}, {{/if}}{{ty}} {{name}}{{/each}}{{/if}}) external returns (bytes32);
+    function {{name}}(uint128 _value{{#if args}}, {{#each args}}{{#if @index}}, {{/if}}{{ty}}{{#if mem_location}} {{mem_location}}{{/if}} {{name}}{{/each}}{{/if}}) external returns (bytes32);
     {{/each}}
 }
 
 contract {{contract_name}} is I{{contract_name}} {
     {{#each functions}}
-    function {{name}}(uint128 _value{{#if args}}, {{#each args}}{{#if @index}}, {{/if}}{{ty}} {{name}}{{/each}}{{/if}}) external returns (bytes32) {}
+    function {{name}}(uint128 _value{{#if args}}, {{#each args}}{{#if @index}}, {{/if}}{{ty}}{{#if mem_location}} {{mem_location}}{{/if}} {{name}}{{/each}}{{/if}}) external returns (bytes32) {}
     {{/each}}
 }
 
