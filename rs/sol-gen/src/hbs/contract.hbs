@@ -20,7 +20,7 @@ interface I{{contract_name}}Callback {
     {{#each functions}}
     function replyOn_{{name}}(bytes32 _messageId{{#if reply_type}}, {{reply_type}} _reply{{/if}}) external;
     {{/each}}
-    function errorReply(bytes32 _messageId, bytes4 _replyCode) external;
+    function onErrorReply(bytes32 _messageId, bytes calldata _payload, bytes4 _replyCode) external;
 }
 
 contract {{contract_name}}Callback {
@@ -31,7 +31,7 @@ contract {{contract_name}}Callback {
     }
 
     modifier onlyGearexeProgram() {
-        require(msg.sender == address(gearexeProgram), "Only gearexe program can call this function");
+        require(msg.sender == address(gearexeProgram), "Only Gear.exe program can call this function");
         _;
     }
 
@@ -40,7 +40,7 @@ contract {{contract_name}}Callback {
         // TODO: implement this
     }
     {{/each}}
-    function errorReply(bytes32 _messageId, bytes4 _replyCode) external onlyGearexeProgram {
+    function onErrorReply(bytes32 _messageId, bytes calldata _payload, bytes4 _replyCode) external onlyGearexeProgram {
         // TODO: implement this
     }
 }

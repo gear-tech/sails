@@ -15,7 +15,7 @@ contract TestContract is ITestContract {
 interface ITestContractCallback {
     function replyOn_create(bytes32 _messageId) external;
     function replyOn_svc1DoThis(bytes32 _messageId, uint32 _reply) external;
-    function errorReply(bytes32 _messageId, bytes4 _replyCode) external;
+    function onErrorReply(bytes32 _messageId, bytes calldata _payload, bytes4 _replyCode) external;
 }
 
 contract TestContractCallback {
@@ -26,7 +26,7 @@ contract TestContractCallback {
     }
 
     modifier onlyGearexeProgram() {
-        require(msg.sender == address(gearexeProgram), "Only gearexe program can call this function");
+        require(msg.sender == address(gearexeProgram), "Only Gear.exe program can call this function");
         _;
     }
 
@@ -36,7 +36,7 @@ contract TestContractCallback {
     function replyOn_svc1DoThis(bytes32 _messageId, uint32 _reply) external onlyGearexeProgram {
         // TODO: implement this
     }
-    function errorReply(bytes32 _messageId, bytes4 _replyCode) external onlyGearexeProgram {
+    function onErrorReply(bytes32 _messageId, bytes calldata _payload, bytes4 _replyCode) external onlyGearexeProgram {
         // TODO: implement this
     }
 }
