@@ -60,14 +60,16 @@ pub(crate) fn unwrap_result_type(handler_signature: &Signature, unwrap_result: b
     let result_type = result_type(handler_signature);
     // process result type if set unwrap result
     if unwrap_result {
-        extract_result_type_from_path(&result_type)
-            .unwrap_or_else(|| {
-                abort!(
-                    result_type.span(),
-                    "`unwrap_result` can be applied to methods returns result only"
-                )
-            })
-            .clone()
+        {
+            extract_result_type_from_path(&result_type)
+                .unwrap_or_else(|| {
+                    abort!(
+                        result_type.span(),
+                        "`unwrap_result` can be applied to methods returns result only"
+                    )
+                })
+                .clone()
+        }
     } else {
         result_type
     }
