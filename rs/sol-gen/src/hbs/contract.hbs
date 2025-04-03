@@ -1,55 +1,55 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^{{pragma_version}};
 
-interface I{{contract_name}} {
+interface I{{contract_name}}Abi {
     {{#each events}}
-    event {{name}}({{#each args}}{{#if @index}}, {{/if}}{{ty}}{{#if indexed}} indexed{{/if}}{{name}}{{/each}});
+    event {{name}}({{#each args}}{{#if @index}}, {{/if}}{{ty}}{{#if indexed}} indexed{{/if}}{{#if name}} {{name}}{{/if}}{{/each}});
 
     {{/each}}
     {{#each functions}}
     {{#if @index}}
 
     {{/if}}
-    function {{name}}(uint128 _value{{#if args}}, {{#each args}}{{#if @index}}, {{/if}}{{ty}}{{#if mem_location}} {{mem_location}}{{/if}} {{name}}{{/each}}{{/if}}) external returns (bytes32);
+    function {{name}}(uint128 _value, bool _encodeReply{{#if args}}, {{#each args}}{{#if @index}}, {{/if}}{{ty}}{{#if mem_location}} {{mem_location}}{{/if}} {{name}}{{/each}}{{/if}}) external returns (bytes32 messageId);
     {{/each}}
 }
 
-contract {{contract_name}} is I{{contract_name}} {
+contract {{contract_name}}Abi is I{{contract_name}}Abi {
     {{#each functions}}
     {{#if @index}}
 
     {{/if}}
-    function {{name}}(uint128 _value{{#if args}}, {{#each args}}{{#if @index}}, {{/if}}{{ty}}{{#if mem_location}} {{mem_location}}{{/if}} {{name}}{{/each}}{{/if}}) external returns (bytes32) {}
+    function {{name}}(uint128 _value, bool _encodeReply{{#if args}}, {{#each args}}{{#if @index}}, {{/if}}{{ty}}{{#if mem_location}} {{mem_location}}{{/if}} {{name}}{{/each}}{{/if}}) external returns (bytes32 messageId) {}
     {{/each}}
 }
 
 interface I{{contract_name}}Callback {
     {{#each functions}}
-    function replyOn_{{name}}(bytes32 _messageId{{#if reply_type}}, {{reply_type}} _reply{{/if}}) external;
+    function replyOn_{{name}}(bytes32 messageId{{#if reply_type}}, {{reply_type}} reply{{/if}}) external;
 
     {{/each}}
-    function onErrorReply(bytes32 _messageId, bytes calldata _payload, bytes4 _replyCode) external;
+    function onErrorReply(bytes32 messageId, bytes calldata payload, bytes4 replyCode) external;
 }
 
 contract {{contract_name}}Callback {
-    I{{contract_name}} public immutable gearexeProgram;
+    I{{contract_name}}Abi public immutable gearExeProgram;
 
-    constructor(I{{contract_name}} _gearexeProgram) {
-        gearexeProgram = _gearexeProgram;
+    constructor(I{{contract_name}}Abi _gearExeProgram) {
+        gearExeProgram = _gearExeProgram;
     }
 
-    modifier onlyGearexeProgram() {
-        require(msg.sender == address(gearexeProgram), "Only Gear.exe program can call this function");
+    modifier onlyGearExeProgram() {
+        require(msg.sender == address(gearExeProgram), "Only Gear.exe program can call this function");
         _;
     }
 
     {{#each functions}}
-    function replyOn_{{name}}(bytes32 _messageId{{#if reply_type}}, {{reply_type}} _reply{{/if}}) external onlyGearexeProgram {
+    function replyOn_{{name}}(bytes32 messageId{{#if reply_type}}, {{reply_type}} reply{{/if}}) external onlyGearExeProgram {
         // TODO: implement this
     }
 
     {{/each}}
-    function onErrorReply(bytes32 _messageId, bytes calldata _payload, bytes4 _replyCode) external onlyGearexeProgram {
+    function onErrorReply(bytes32 messageId, bytes calldata payload, bytes4 replyCode) external onlyGearExeProgram {
         // TODO: implement this
     }
 }

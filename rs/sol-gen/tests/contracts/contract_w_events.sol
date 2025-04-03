@@ -1,49 +1,51 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.28;
 
-interface ITestContract {
-    event DoThisEvent(uint32, string);
+interface ITestContractAbi {
+    event DoThisEvent(uint32 p1, string p2);
 
-    function create(uint128 _value) external returns (bytes32);
+    event DoThisEvent2(uint32, string);
 
-    function svc1DoThis(uint128 _value, uint32 p1, string memory p2) external returns (bytes32);
+    function create(uint128 _value, bool _encodeReply) external returns (bytes32 messageId);
+
+    function svc1DoThis(uint128 _value, bool _encodeReply, uint32 p1, string memory p2) external returns (bytes32 messageId);
 }
 
-contract TestContract is ITestContract {
-    function create(uint128 _value) external returns (bytes32) {}
+contract TestContractAbi is ITestContractAbi {
+    function create(uint128 _value, bool _encodeReply) external returns (bytes32 messageId) {}
 
-    function svc1DoThis(uint128 _value, uint32 p1, string memory p2) external returns (bytes32) {}
+    function svc1DoThis(uint128 _value, bool _encodeReply, uint32 p1, string memory p2) external returns (bytes32 messageId) {}
 }
 
 interface ITestContractCallback {
-    function replyOn_create(bytes32 _messageId) external;
+    function replyOn_create(bytes32 messageId) external;
 
-    function replyOn_svc1DoThis(bytes32 _messageId, uint32 _reply) external;
+    function replyOn_svc1DoThis(bytes32 messageId, uint32 reply) external;
 
-    function onErrorReply(bytes32 _messageId, bytes calldata _payload, bytes4 _replyCode) external;
+    function onErrorReply(bytes32 messageId, bytes calldata payload, bytes4 replyCode) external;
 }
 
 contract TestContractCallback {
-    ITestContract public immutable gearexeProgram;
+    ITestContractAbi public immutable gearExeProgram;
 
-    constructor(ITestContract _gearexeProgram) {
-        gearexeProgram = _gearexeProgram;
+    constructor(ITestContractAbi _gearExeProgram) {
+        gearExeProgram = _gearExeProgram;
     }
 
-    modifier onlyGearexeProgram() {
-        require(msg.sender == address(gearexeProgram), "Only Gear.exe program can call this function");
+    modifier onlyGearExeProgram() {
+        require(msg.sender == address(gearExeProgram), "Only Gear.exe program can call this function");
         _;
     }
 
-    function replyOn_create(bytes32 _messageId) external onlyGearexeProgram {
+    function replyOn_create(bytes32 messageId) external onlyGearExeProgram {
         // TODO: implement this
     }
 
-    function replyOn_svc1DoThis(bytes32 _messageId, uint32 _reply) external onlyGearexeProgram {
+    function replyOn_svc1DoThis(bytes32 messageId, uint32 reply) external onlyGearExeProgram {
         // TODO: implement this
     }
 
-    function onErrorReply(bytes32 _messageId, bytes calldata _payload, bytes4 _replyCode) external onlyGearexeProgram {
+    function onErrorReply(bytes32 messageId, bytes calldata payload, bytes4 replyCode) external onlyGearExeProgram {
         // TODO: implement this
     }
 }
