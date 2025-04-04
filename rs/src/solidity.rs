@@ -112,6 +112,17 @@ where
         sigs
     }
 
+    pub const fn ctor_callback_sigs<const N: usize>() -> [[u8; 4]; N] {
+        let mut sigs = [[0u8; 4]; N];
+        let mut ctor_idx = 0;
+        while ctor_idx < <T as ProgramSignature>::CTORS.len() {
+            let (_, name, _, callback) = <T as ProgramSignature>::CTORS[ctor_idx];
+            sigs[ctor_idx] = const_selector!("replyOn_", name, callback);
+            ctor_idx += 1;
+        }
+        sigs
+    }
+
     pub const fn method_sigs<const N: usize>() -> [[u8; 4]; N] {
         let mut sigs = [[0u8; 4]; N];
         let mut sigs_idx = 0;
@@ -293,7 +304,7 @@ mod tests {
             &[28u8, 68u8, 101u8, 102u8, 97u8, 117u8, 108u8, 116u8] as &[u8],
             "create",
             <<(u128,) as SolValue>::SolType as SolType>::SOL_NAME,
-            "",
+            <<(B256,) as SolValue>::SolType as SolType>::SOL_NAME,
         )];
 
         const SERVICES: &[ServiceExpo] = &[
@@ -364,6 +375,14 @@ mod tests {
             solidity::ConstProgramMeta::<Prg>::ctor_sigs();
         let sig_ctor = selector("create(uint128)");
         assert_eq!(CTOR_SIGS[0], sig_ctor.as_slice());
+    }
+
+    #[test]
+    fn program_ctor_callback_sigs() {
+        const CTOR_CALLBACK_SIGS: [[u8; 4]; <Prg as solidity::ProgramSignature>::CTORS.len()] =
+            solidity::ConstProgramMeta::<Prg>::ctor_callback_sigs();
+        let sig_ctor = selector("replyOn_create(bytes32)");
+        assert_eq!(CTOR_CALLBACK_SIGS[0], sig_ctor.as_slice());
     }
 
     #[test]

@@ -68,6 +68,8 @@ impl ProgramBuilder {
         quote! {
             const __CTOR_SIGS: [[u8; 4]; <#program_type_path as #sails_path::solidity::ProgramSignature>::CTORS.len()]
                 = #sails_path::solidity::ConstProgramMeta::<#program_type_path>::ctor_sigs();
+            const __CTOR_CALLBACK_SIGS: [[u8; 4]; <#program_type_path as #sails_path::solidity::ProgramSignature>::CTORS.len()]
+                = #sails_path::solidity::ConstProgramMeta::<#program_type_path>::ctor_callback_sigs();
             const __METHOD_SIGS: [[u8; 4]; <#program_type_path as #sails_path::solidity::ProgramSignature>::METHODS_LEN]
                 = #sails_path::solidity::ConstProgramMeta::<#program_type_path>::method_sigs();
             const __METHOD_ROUTES: [(&'static [u8], &'static [u8]); <#program_type_path as #sails_path::solidity::ProgramSignature>::METHODS_LEN]
@@ -85,7 +87,7 @@ impl ProgramBuilder {
             .map(|fn_builder| fn_builder.sol_ctor_branch_impl(program_type_path));
 
         quote! {
-            async fn match_ctor_solidity(ctor: &[u8], input: &[u8]) -> Option<#program_type_path> {
+            async fn match_ctor_solidity(ctor: &[u8], input: &[u8]) -> Option<(#program_type_path, bool)> {
                 #( #ctor_branches )*
                 None
             }
@@ -100,11 +102,15 @@ impl ProgramBuilder {
             if let Ok(sig) = TryInto::<[u8; 4]>::try_into(&#input_ident[..4]) {
                 if let Some(idx) = __CTOR_SIGS.iter().position(|s| s == &sig) {
                     let (ctor_route, ..) = <#program_type_path as #sails_path::solidity::ProgramSignature>::CTORS[idx];
-                    unsafe {
-                        #program_ident = match_ctor_solidity(ctor_route, &#input_ident[4..]).await;
-                    }
-                    if unsafe { #program_ident.is_some() } {
-                        #sails_path::gstd::msg::reply_bytes(&[], 0).expect("Failed to send output");
+                    if let Some((program, encode_reply)) = match_ctor_solidity(ctor_route, &#input_ident[4..]).await{
+                        unsafe { #program_ident = Some(program) };
+                        // add callbak selector if `encode_reply` is set
+                        let output = if encode_reply {
+                            [__CTOR_CALLBACK_SIGS[idx].as_slice(), #sails_path::gstd::msg::id().into_bytes().as_slice()].concat()
+                        } else {
+                            #sails_path::Vec::with_capacity(0)
+                        };
+                        #sails_path::gstd::msg::reply_bytes(output, 0).expect("Failed to send output");
                         return;
                     }
                 }
@@ -153,18 +159,14 @@ impl FnBuilder<'_> {
         let handler_types = self.params_types();
         let (result_type, _) = self.result_type_with_value();
 
-        // add uint128 to method signature as first parameter and bool if is_service passed
-        let handler_types = if is_service {
-            quote! { u128, bool, #(#handler_types,)* }
-        } else {
-            quote! { u128, #(#handler_types,)* }
-        };
+        // add `uint128` to method signature as first parameter and `bool` as encode reply
+        let handler_types = quote! { u128, bool, #(#handler_types,)* };
 
         // add MessageId (alloy_primitives::B256) to callback signature as first parameter
         let callback_types = if is_service {
             quote! { #sails_path::alloy_primitives::B256, #result_type }
         } else {
-            quote!()
+            quote! { #sails_path::alloy_primitives::B256, }
         };
 
         quote! {
@@ -190,9 +192,9 @@ impl FnBuilder<'_> {
         // read uint128 as first parameter
         quote! {
             if ctor == &[ #(#handler_route_bytes),* ] {
-                let (_, #(#handler_params,)*) : (u128, #(#handler_types,)*) = #sails_path::alloy_sol_types::SolValue::abi_decode_params(input, false).expect("Failed to decode request");
+                let (_, _encode_reply, #(#handler_params,)*) : (u128, bool, #(#handler_types,)*) = #sails_path::alloy_sol_types::SolValue::abi_decode_params(input, false).expect("Failed to decode request");
                 let program = #program_type_path :: #handler_ident (#(#handler_params),*) #await_token #unwrap_token;
-                return Some(program);
+                return Some((program, _encode_reply));
             }
         }
     }
@@ -210,7 +212,7 @@ impl FnBuilder<'_> {
                     .unwrap_or_else(|| {
                         #sails_path::gstd::unknown_input_panic("Unknown request", input)
                     });
-                // add callbak selector if `encode_reply` is set`
+                // add callbak selector if `encode_reply` is set
                 let output = if encode_reply {
                     let selector = __CALLBACK_SIGS[idx];
                     [selector.as_slice(), output.as_slice()].concat()

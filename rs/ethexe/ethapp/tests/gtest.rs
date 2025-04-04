@@ -23,8 +23,8 @@ async fn ethapp_sol_works() {
 
     let program = Program::from_file(&system, WASM_PATH);
 
-    let ctor = sails_rs::solidity::selector("createPrg(uint128)");
-    let input = (0u128,).abi_encode_sequence();
+    let ctor = sails_rs::solidity::selector("createPrg(uint128,bool)");
+    let input = (0u128, false).abi_encode_sequence();
     let payload = [ctor.as_slice(), input.as_slice()].concat();
 
     let message_id = program.send_bytes(ADMIN_ID, payload.as_slice());
@@ -66,8 +66,8 @@ async fn ethapp_remoting_works() {
     let code_id = system.submit_code_file(WASM_PATH);
     let remoting = GTestRemoting::new(system, ADMIN_ID.into());
 
-    let ctor = sails_rs::solidity::selector("createPrg(uint128)");
-    let input = (0u128,).abi_encode_sequence();
+    let ctor = sails_rs::solidity::selector("createPrg(uint128,bool)");
+    let input = (0u128, false).abi_encode_sequence();
     let payload = [ctor.as_slice(), input.as_slice()].concat();
 
     let (program_id, _) = remoting
@@ -102,11 +102,12 @@ async fn ethapp_remoting_encode_reply_works() {
     let code_id = system.submit_code_file(WASM_PATH);
     let remoting = GTestRemoting::new(system, ADMIN_ID.into());
 
-    let ctor = sails_rs::solidity::selector("createPrg(uint128)");
-    let input = (0u128,).abi_encode_sequence();
+    let ctor = sails_rs::solidity::selector("createPrg(uint128,bool)");
+    let input = (0u128, true).abi_encode_sequence();
     let payload = [ctor.as_slice(), input.as_slice()].concat();
 
-    let (program_id, _) = remoting
+    // act
+    let (program_id, reply_payload) = remoting
         .clone()
         .activate(code_id, vec![], payload.as_slice(), 0, GTestArgs::default())
         .await
@@ -114,6 +115,12 @@ async fn ethapp_remoting_encode_reply_works() {
         .await
         .unwrap();
 
+    // assert
+    let callback_selector = sails_rs::solidity::selector("replyOn_createPrg(bytes32)");
+    assert_eq!(callback_selector.as_slice(), &reply_payload[..4]);
+    let (_message_id,) = <(B256,)>::abi_decode_sequence(&reply_payload[4..], false).unwrap();
+
+    // arrange
     let do_this_sig = sails_rs::solidity::selector("svc1DoThis(uint128,bool,uint32,string)");
     let do_this_params = (0u128, true, 42, "hello").abi_encode_sequence();
     let payload = [do_this_sig.as_slice(), do_this_params.as_slice()].concat();
