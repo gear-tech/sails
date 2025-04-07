@@ -14,6 +14,8 @@ use gear_core_errors::{ReplyCode, SuccessReplyReason};
 type EventSender = channel::mpsc::UnboundedSender<(ActorId, Vec<u8>)>;
 type ReplySender = channel::oneshot::Sender<Result<Vec<u8>>>;
 
+const GAS_LIMIT_DEFAULT: gtest::constants::Gas = gtest::constants::MAX_USER_GAS_LIMIT;
+
 #[derive(Debug, Default)]
 pub struct GTestArgs {
     actor_id: Option<ActorId>,
@@ -155,9 +157,9 @@ impl GTestRemoting {
         args: GTestArgs,
     ) -> Result<MessageId> {
         #[cfg(not(feature = "ethexe"))]
-        let gas_limit = gas_limit.unwrap_or(gtest::constants::GAS_ALLOWANCE);
+        let gas_limit = gas_limit.unwrap_or(GAS_LIMIT_DEFAULT);
         #[cfg(feature = "ethexe")]
-        let gas_limit = gtest::constants::GAS_ALLOWANCE;
+        let gas_limit = GAS_LIMIT_DEFAULT;
         let program = self
             .system
             .get_program(target.as_ref())
@@ -229,9 +231,9 @@ impl Remoting for GTestRemoting {
         args: GTestArgs,
     ) -> Result<impl Future<Output = Result<(ActorId, Vec<u8>)>>> {
         #[cfg(not(feature = "ethexe"))]
-        let gas_limit = gas_limit.unwrap_or(gtest::constants::GAS_ALLOWANCE);
+        let gas_limit = gas_limit.unwrap_or(GAS_LIMIT_DEFAULT);
         #[cfg(feature = "ethexe")]
-        let gas_limit = gtest::constants::GAS_ALLOWANCE;
+        let gas_limit = GAS_LIMIT_DEFAULT;
         let code = self
             .system
             .submitted_code(code_id)
