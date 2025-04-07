@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^{{pragma_version}};
 
-interface I{{contract_name}}Abi {
+interface I{{contract_name}} {
     {{#each events}}
     event {{name}}({{#each args}}{{#if @index}}, {{/if}}{{ty}}{{#if indexed}} indexed{{/if}}{{#if name}} {{name}}{{/if}}{{/each}});
 
@@ -14,7 +14,7 @@ interface I{{contract_name}}Abi {
     {{/each}}
 }
 
-contract {{contract_name}}Abi is I{{contract_name}}Abi {
+contract {{contract_name}}Abi is I{{contract_name}} {
     {{#each functions}}
     {{#if @index}}
 
@@ -23,7 +23,7 @@ contract {{contract_name}}Abi is I{{contract_name}}Abi {
     {{/each}}
 }
 
-interface I{{contract_name}}Callback {
+interface I{{contract_name}}Callbacks {
     {{#each functions}}
     function replyOn_{{name}}(bytes32 messageId{{#if reply_type}}, {{reply_type}} reply{{/if}}) external;
 
@@ -31,10 +31,10 @@ interface I{{contract_name}}Callback {
     function onErrorReply(bytes32 messageId, bytes calldata payload, bytes4 replyCode) external;
 }
 
-contract {{contract_name}}Callback {
-    I{{contract_name}}Abi public immutable gearExeProgram;
+contract {{contract_name}}Caller is I{{contract_name}}Callbacks {
+    I{{contract_name}} public immutable gearExeProgram;
 
-    constructor(I{{contract_name}}Abi _gearExeProgram) {
+    constructor(I{{contract_name}} _gearExeProgram) {
         gearExeProgram = _gearExeProgram;
     }
 

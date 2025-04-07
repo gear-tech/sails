@@ -19,8 +19,8 @@ impl TypeDeclToSol for TypeDecl {
     fn get_mem_location(&self) -> Option<String> {
         match self {
             TypeDecl::Id(ty) => ty.get_mem_location(),
-            TypeDecl::Array { item: _, len: _ } => Some("memory".to_string()),
-            TypeDecl::Vector(_) => Some("memory".to_string()),
+            TypeDecl::Array { item: _, len: _ } => Some("calldata".to_string()),
+            TypeDecl::Vector(_) => Some("calldata".to_string()),
             _ => None,
         }
     }
@@ -51,7 +51,7 @@ impl TypeDeclToSol for PrimitiveType {
 
     fn get_mem_location(&self) -> Option<String> {
         match self {
-            Self::Str => Some("memory".to_string()),
+            Self::Str => Some("calldata".to_string()),
             _ => None,
         }
     }
