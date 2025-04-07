@@ -6,14 +6,21 @@ use scale_info::{StaticTypeInfo, TypeDef};
 
 #[doc(hidden)]
 #[cfg(target_arch = "wasm32")]
-pub fn __notify_on<TEvents>(event: TEvents) -> Result<()>
+pub fn __emit_event<TEvents>(event: TEvents) -> Result<()>
 where
     TEvents: parity_scale_codec::Encode + scale_info::StaticTypeInfo,
 {
-    let payload = compose_payload::<TEvents>(
-        crate::gstd::services::exposure_context(gstd::msg::id()).route(),
-        event,
-    )?;
+    let route = crate::gstd::services::exposure_context(gstd::msg::id()).route();
+    __emit_event_with_route(route, event)
+}
+
+#[doc(hidden)]
+#[cfg(target_arch = "wasm32")]
+pub fn __emit_event_with_route<TEvents>(route: &[u8], event: TEvents) -> Result<()>
+where
+    TEvents: parity_scale_codec::Encode + scale_info::StaticTypeInfo,
+{
+    let payload = compose_payload::<TEvents>(route, event)?;
     gstd::msg::send_bytes(gstd::ActorId::zero(), payload, 0)?;
     Ok(())
 }

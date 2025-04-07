@@ -60,7 +60,7 @@ impl ServiceBuilder<'_> {
                             map.remove(&service_ptr).unwrap_or_default()
                         }
 
-                        fn notify_on(svc: &mut T, event: #events_type) -> #sails_path::errors::Result<()> {
+                        fn __emit_event(svc: &mut T, event: #events_type) -> #sails_path::errors::Result<()> {
                             let service_ptr = svc as *const _ as *const () as usize;
                             let mut map = Self::events_map();
                             map.entry(service_ptr).or_default().push(event);
@@ -85,7 +85,7 @@ impl ServiceBuilder<'_> {
         })
     }
 
-    pub(super) fn service_notify_impls(&self) -> Option<TokenStream> {
+    pub(super) fn service_emit_event_impls(&self) -> Option<TokenStream> {
         let sails_path = self.sails_path;
         let generics = &self.generics;
         let service_type_path = self.type_path;
@@ -95,15 +95,35 @@ impl ServiceBuilder<'_> {
         self.events_type.map(|events_type| {
             quote! {
                 impl #generics #service_type_path #service_type_constraints {
-                    fn notify_on(&mut self, event: #events_type ) -> #sails_path::errors::Result<()>  {
+                    fn emit_event(&mut self, event: #events_type ) -> #sails_path::errors::Result<()>  {
                         #[cfg(not(target_arch = "wasm32"))]
                         {
-                            #exposure_ident::<Self>::notify_on(self, event)
+                            #exposure_ident::<Self>::__emit_event(self, event)
                         }
                         #[cfg(target_arch = "wasm32")]
                         {
-                            #sails_path::gstd::__notify_on(event)
+                            #sails_path::gstd::__emit_event(event)
                         }
+                    }
+                }
+            }
+        })
+    }
+
+    fn exposure_emit_event_impls(&self) -> Option<TokenStream> {
+        let sails_path = self.sails_path;
+        let route_ident = &self.route_ident;
+
+        self.events_type.map(|events_type| {
+            quote! {
+                pub fn emit_event(&mut self, event: #events_type) -> #sails_path::errors::Result<()> {
+                    #[cfg(not(target_arch = "wasm32"))]
+                    {
+                        Self::__emit_event(&mut self.inner, event)
+                    }
+                    #[cfg(target_arch = "wasm32")]
+                    {
+                        #sails_path::gstd::__emit_event_with_route(self. #route_ident, event)
                     }
                 }
             }
@@ -150,6 +170,9 @@ impl ServiceBuilder<'_> {
         // ethexe
         let try_handle_solidity_impl = self.try_handle_solidity_impl(base_ident);
 
+        let exposure_emit_event_impls = self.exposure_emit_event_impls();
+        let exposure_emit_eth_impls = self.exposure_emit_eth_impls();
+
         quote! {
             #( #exposure_allow_attrs )*
             impl #generics #exposure_ident< #service_type_path > #service_type_constraints {
@@ -160,6 +183,10 @@ impl ServiceBuilder<'_> {
                 #try_handle_impl
 
                 #try_handle_solidity_impl
+
+                #exposure_emit_event_impls
+
+                #exposure_emit_eth_impls
             }
         }
     }

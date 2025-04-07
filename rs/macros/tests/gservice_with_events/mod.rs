@@ -11,6 +11,6 @@ pub enum MyEvents {
 #[service(events = MyEvents)]
 impl MyServiceWithEvents {
     pub fn my_method(&mut self) {
-        self.notify_on(MyEvents::Event1).unwrap();
+        self.emit_event(MyEvents::Event1).unwrap();
     }
 }

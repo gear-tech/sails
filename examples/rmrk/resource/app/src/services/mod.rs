@@ -82,8 +82,8 @@ where
         }
 
         // Emit event right before the method returns via
-        // the generated `notify_on` method
-        self.notify_on(ResourceStorageEvent::ResourceAdded { resource_id })
+        // the generated `emit_event` method
+        self.emit_event(ResourceStorageEvent::ResourceAdded { resource_id })
             .unwrap();
 
         Ok((resource_id, resource))
@@ -127,8 +127,8 @@ where
         }
 
         // Emit event right before the method returns via
-        // the generated `notify_on` method
-        self.notify_on(ResourceStorageEvent::PartAdded {
+        // the generated `emit_event` method
+        self.emit_event(ResourceStorageEvent::PartAdded {
             resource_id,
             part_id,
         })

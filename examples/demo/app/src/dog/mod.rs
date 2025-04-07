@@ -49,7 +49,7 @@ impl AsRef<MammalService> for DogService {
 #[service(extends = [MammalService, WalkerService], events = DogEvents)]
 impl DogService {
     pub fn make_sound(&mut self) -> &'static str {
-        self.notify_on(DogEvents::Barked).unwrap();
+        self.emit_event(DogEvents::Barked).unwrap();
         "Woof! Woof!"
     }
 }

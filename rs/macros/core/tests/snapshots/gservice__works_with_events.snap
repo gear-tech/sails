@@ -58,6 +58,12 @@ impl SomeServiceExposure<SomeService> {
         }
         None
     }
+    pub fn emit_event(&mut self, event: SomeEvents) -> sails_rs::errors::Result<()> {
+        #[cfg(not(target_arch = "wasm32"))]
+        { Self::__emit_event(&mut self.inner, event) }
+        #[cfg(target_arch = "wasm32")]
+        { sails_rs::gstd::__emit_event_with_route(self.route, event) }
+    }
 }
 impl sails_rs::gstd::services::Service for SomeService {
     type Exposure = SomeServiceExposure<Self>;
@@ -127,10 +133,10 @@ mod some_service_meta {
     pub type EventsMeta = SomeEvents;
 }
 impl SomeService {
-    fn notify_on(&mut self, event: SomeEvents) -> sails_rs::errors::Result<()> {
+    fn emit_event(&mut self, event: SomeEvents) -> sails_rs::errors::Result<()> {
         #[cfg(not(target_arch = "wasm32"))]
-        { SomeServiceExposure::<Self>::notify_on(self, event) }
-        #[cfg(target_arch = "wasm32")] { sails_rs::gstd::__notify_on(event) }
+        { SomeServiceExposure::<Self>::__emit_event(self, event) }
+        #[cfg(target_arch = "wasm32")] { sails_rs::gstd::__emit_event(event) }
     }
 }
 #[cfg(not(target_arch = "wasm32"))]
@@ -151,7 +157,7 @@ const _: () = {
             let mut map = Self::events_map();
             map.remove(&service_ptr).unwrap_or_default()
         }
-        fn notify_on(svc: &mut T, event: SomeEvents) -> sails_rs::errors::Result<()> {
+        fn __emit_event(svc: &mut T, event: SomeEvents) -> sails_rs::errors::Result<()> {
             let service_ptr = svc as *const _ as *const () as usize;
             let mut map = Self::events_map();
             map.entry(service_ptr).or_default().push(event);

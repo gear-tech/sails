@@ -35,7 +35,7 @@ use proc_macro_error::proc_macro_error;
 ///     #[service(events = MyServiceEvents)]
 ///     impl MyService {
 ///         pub fn do_something(&mut self) -> u32 {
-///             self.notify_on(MyServiceEvents::SomethingDone).unwrap();
+///             self.emit_event(MyServiceEvents::SomethingDone).unwrap();
 ///             0
 ///         }
 ///

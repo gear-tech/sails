@@ -28,7 +28,7 @@ impl FeeService {
         if value < self.fee {
             panic!("Not enough value");
         }
-        self.notify_on(FeeEvents::Withheld(self.fee)).unwrap();
+        self.emit_event(FeeEvents::Withheld(self.fee)).unwrap();
         let to_return = value - self.fee;
         if to_return < exec::env_vars().existential_deposit {
             // return zero value with reply

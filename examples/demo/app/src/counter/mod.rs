@@ -44,8 +44,8 @@ impl CounterService<'_> {
         let mut data_mut = self.data.borrow_mut();
         data_mut.counter += value;
         // Emit event right before the method returns via
-        // the generated `notify_on` method.
-        self.notify_on(CounterEvents::Added(value)).unwrap();
+        // the generated `emit_event` method.
+        self.emit_event(CounterEvents::Added(value)).unwrap();
         data_mut.counter
     }
 
@@ -54,8 +54,8 @@ impl CounterService<'_> {
         let mut data_mut = self.data.borrow_mut();
         data_mut.counter -= value;
         // Emit event right before the method returns via
-        // the generated `notify_on` method.
-        self.notify_on(CounterEvents::Subtracted(value)).unwrap();
+        // the generated `emit_event` method.
+        self.emit_event(CounterEvents::Subtracted(value)).unwrap();
         data_mut.counter
     }
 
