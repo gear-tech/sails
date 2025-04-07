@@ -1,0 +1,55 @@
+// SPDX-License-Identifier: UNLICENSED
+pragma solidity ^{{pragma_version}};
+
+interface I{{contract_name}} {
+    {{#each events}}
+    event {{name}}({{#each args}}{{#if @index}}, {{/if}}{{ty}}{{#if indexed}} indexed{{/if}}{{#if name}} {{name}}{{/if}}{{/each}});
+
+    {{/each}}
+    {{#each functions}}
+    {{#if @index}}
+
+    {{/if}}
+    function {{name}}(uint128 _value, bool _encodeReply{{#if args}}, {{#each args}}{{#if @index}}, {{/if}}{{ty}}{{#if mem_location}} {{mem_location}}{{/if}} {{name}}{{/each}}{{/if}}) external returns (bytes32 messageId);
+    {{/each}}
+}
+
+contract {{contract_name}}Abi is I{{contract_name}} {
+    {{#each functions}}
+    {{#if @index}}
+
+    {{/if}}
+    function {{name}}(uint128 _value, bool _encodeReply{{#if args}}, {{#each args}}{{#if @index}}, {{/if}}{{ty}}{{#if mem_location}} {{mem_location}}{{/if}} {{name}}{{/each}}{{/if}}) external returns (bytes32 messageId) {}
+    {{/each}}
+}
+
+interface I{{contract_name}}Callbacks {
+    {{#each functions}}
+    function replyOn_{{name}}(bytes32 messageId{{#if reply_type}}, {{reply_type}} reply{{/if}}) external;
+
+    {{/each}}
+    function onErrorReply(bytes32 messageId, bytes calldata payload, bytes4 replyCode) external;
+}
+
+contract {{contract_name}}Caller is I{{contract_name}}Callbacks {
+    I{{contract_name}} public immutable gearExeProgram;
+
+    constructor(I{{contract_name}} _gearExeProgram) {
+        gearExeProgram = _gearExeProgram;
+    }
+
+    modifier onlyGearExeProgram() {
+        require(msg.sender == address(gearExeProgram), "Only Gear.exe program can call this function");
+        _;
+    }
+
+    {{#each functions}}
+    function replyOn_{{name}}(bytes32 messageId{{#if reply_type}}, {{reply_type}} reply{{/if}}) external onlyGearExeProgram {
+        // TODO: implement this
+    }
+
+    {{/each}}
+    function onErrorReply(bytes32 messageId, bytes calldata payload, bytes4 replyCode) external onlyGearExeProgram {
+        // TODO: implement this
+    }
+}

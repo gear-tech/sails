@@ -6600,6 +6600,7 @@ dependencies = [
  "clap",
  "rustdoc-types",
  "sails-client-gen",
+ "sails-sol-gen",
  "serde_json",
  "toml_edit 0.22.23",
 ]
@@ -6704,6 +6705,19 @@ dependencies = [
  "scale-info",
  "spin",
  "thiserror-no-std",
+]
+
+[[package]]
+name = "sails-sol-gen"
+version = "0.7.3"
+dependencies = [
+ "anyhow",
+ "convert_case 0.6.0",
+ "handlebars",
+ "insta",
+ "sails-idl-meta",
+ "sails-idl-parser",
+ "serde",
 ]
 
 [[package]]
