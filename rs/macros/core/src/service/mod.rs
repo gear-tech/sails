@@ -143,6 +143,10 @@ impl ServiceBuilder<'_> {
     fn service_emit_eth_impls(&self) -> Option<TokenStream> {
         None
     }
+
+    fn exposure_emit_eth_impls(&self) -> Option<TokenStream> {
+        None
+    }
 }
 
 fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
@@ -172,7 +176,7 @@ fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
     let exposure_struct = service_builder.exposure_struct();
     let exposure_impl = service_builder.exposure_impl();
     let service_trait_impl = service_builder.service_trait_impl();
-    let service_notify_impl = service_builder.service_notify_impls();
+    let service_emit_event_impls = service_builder.service_emit_event_impls();
     let service_emit_eth_impls = service_builder.service_emit_eth_impls();
     let exposure_listen_and_drop = service_builder.exposure_listen_and_drop();
 
@@ -194,8 +198,7 @@ fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
 
         #service_signature_impl
 
-        #service_notify_impl
-
+        #service_emit_event_impls
         #service_emit_eth_impls
 
         #exposure_listen_and_drop

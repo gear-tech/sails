@@ -7,7 +7,7 @@ pub use ethexe::__emit_eth_event;
 pub use ethexe::{EthEvent, EthEventExpo};
 #[doc(hidden)]
 #[cfg(target_arch = "wasm32")]
-pub use events::__notify_on;
+pub use events::{__emit_event, __emit_event_with_route};
 #[cfg(not(feature = "ethexe"))]
 #[doc(hidden)]
 pub use gstd::handle_signal;

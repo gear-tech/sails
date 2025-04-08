@@ -147,3 +147,70 @@ async fn ethapp_with_events_remoting_works() {
         SolValue::abi_decode_sequence(&event_payload[1 + 32 + 32..], false).unwrap();
     assert_eq!("hello", s);
 }
+
+#[tokio::test]
+async fn ethapp_with_events_exposure_emit_works() {
+    let system = System::new();
+    system.init_logger_with_default_filter("gwasm=debug,gtest=debug,sails_rs=debug");
+    system.mint_to(ADMIN_ID, 100_000_000_000_000);
+    let code_id = system.submit_code_file(WASM_PATH);
+
+    let remoting = GTestRemoting::new(system, ADMIN_ID.into());
+    let mut binding = remoting.clone();
+    let mut listener = binding.listen().await.unwrap();
+
+    let ctor = sails_rs::solidity::selector("create(uint128,bool)");
+    let input = (0u128, false).abi_encode_sequence();
+    let payload = [ctor.as_slice(), input.as_slice()].concat();
+
+    let (program_id, _) = remoting
+        .clone()
+        .activate(code_id, vec![], payload.as_slice(), 0, GTestArgs::default())
+        .await
+        .unwrap()
+        .await
+        .unwrap();
+
+    let do_this_sig = sails_rs::solidity::selector("svc2DoThis(uint128,bool,uint32,string)");
+    let do_this_params = (0u128, false, 42, "hello").abi_encode_sequence();
+    let payload = [do_this_sig.as_slice(), do_this_params.as_slice()].concat();
+
+    let reply_payload = remoting
+        .clone()
+        .message(program_id, payload, 0, GTestArgs::default())
+        .await
+        .unwrap()
+        .await
+        .unwrap();
+
+    let reply = u32::abi_decode(reply_payload.as_slice(), true);
+    assert_eq!(reply, Ok(42));
+
+    // assert eth event
+    let (from, event_payload) = listener.next().await.unwrap();
+    assert_eq!(from, program_id);
+    assert_eq!(2u8, event_payload[0]);
+
+    let sig = sails_rs::alloy_primitives::keccak256(b"DoThisEvent(uint32,string)");
+    let topic1 = &event_payload[1..1 + 32];
+    assert_eq!(sig.as_slice(), topic1);
+
+    let hash2 = Events::topic_hash(&42u32);
+    let topic2 = &event_payload[1 + 32..1 + 32 + 32];
+    assert_eq!(hash2.as_slice(), topic2);
+
+    let (s,): (String,) =
+        SolValue::abi_decode_sequence(&event_payload[1 + 32 + 32..], false).unwrap();
+    assert_eq!("hello", s);
+
+    // assert gear event
+    let (from, event_payload) = listener.next().await.unwrap();
+    assert_eq!(from, program_id);
+
+    let (route, event_name, p1, p2): (String, String, u32, String) =
+        Decode::decode(&mut event_payload.as_slice()).unwrap();
+    assert_eq!(route, "Svc1");
+    assert_eq!(event_name, "DoThisEvent");
+    assert_eq!(p1, 42);
+    assert_eq!(p2, "hello");
+}

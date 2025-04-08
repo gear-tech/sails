@@ -113,6 +113,17 @@ impl MyServiceWithEventsExposure<MyServiceWithEvents> {
         }
         None
     }
+    pub fn emit_event(&mut self, event: MyEvents) -> sails_rs::errors::Result<()> {
+        #[cfg(not(target_arch = "wasm32"))]
+        { Self::__emit_event(&mut self.inner, event) }
+        #[cfg(target_arch = "wasm32")]
+        { sails_rs::gstd::__emit_event_with_route(self.route, event) }
+    }
+    fn emit_eth_event(&mut self, event: MyEvents) -> sails_rs::errors::Result<()> {
+        #[cfg(not(target_arch = "wasm32"))]
+        { Self::__emit_event(&mut self.inner, event) }
+        #[cfg(target_arch = "wasm32")] { sails_rs::gstd::__emit_eth_event(event) }
+    }
 }
 impl sails_rs::gstd::services::Service for MyServiceWithEvents {
     type Exposure = MyServiceWithEventsExposure<Self>;
@@ -210,16 +221,16 @@ impl sails_rs::solidity::ServiceSignature for MyServiceWithEvents {
     ];
 }
 impl MyServiceWithEvents {
-    fn notify_on(&mut self, event: MyEvents) -> sails_rs::errors::Result<()> {
+    fn emit_event(&mut self, event: MyEvents) -> sails_rs::errors::Result<()> {
         #[cfg(not(target_arch = "wasm32"))]
-        { MyServiceWithEventsExposure::<Self>::notify_on(self, event) }
-        #[cfg(target_arch = "wasm32")] { sails_rs::gstd::__notify_on(event) }
+        { MyServiceWithEventsExposure::<Self>::__emit_event(self, event) }
+        #[cfg(target_arch = "wasm32")] { sails_rs::gstd::__emit_event(event) }
     }
 }
 impl MyServiceWithEvents {
     fn emit_eth_event(&mut self, event: MyEvents) -> sails_rs::errors::Result<()> {
         #[cfg(not(target_arch = "wasm32"))]
-        { MyServiceWithEventsExposure::<Self>::notify_on(self, event) }
+        { MyServiceWithEventsExposure::<Self>::__emit_event(self, event) }
         #[cfg(target_arch = "wasm32")] { sails_rs::gstd::__emit_eth_event(event) }
     }
 }
@@ -241,7 +252,7 @@ const _: () = {
             let mut map = Self::events_map();
             map.remove(&service_ptr).unwrap_or_default()
         }
-        fn notify_on(svc: &mut T, event: MyEvents) -> sails_rs::errors::Result<()> {
+        fn __emit_event(svc: &mut T, event: MyEvents) -> sails_rs::errors::Result<()> {
             let service_ptr = svc as *const _ as *const () as usize;
             let mut map = Self::events_map();
             map.entry(service_ptr).or_default().push(event);

@@ -46,7 +46,7 @@ impl WalkerService {
             data.y += dy;
         }
         let to = self.position();
-        self.notify_on(WalkerEvents::Walked { from, to }).unwrap();
+        self.emit_event(WalkerEvents::Walked { from, to }).unwrap();
     }
 
     pub fn position(&self) -> (i32, i32) {
