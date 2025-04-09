@@ -224,7 +224,12 @@ impl<'ast> Visitor<'ast> for TypeDeclGenerator {
     fn visit_struct_def(&mut self, struct_def: &'ast StructDef) {
         let mut struct_def_generator = StructTypeGenerator::new(self.path.clone());
         struct_def_generator.visit_struct_def(struct_def);
-        self.code.push_str(&struct_def_generator.code);
+        let tokens = struct_def_generator.finalize();
+        self.code.push_str(
+            &tokens
+                .to_string()
+                .expect("Failed to convert tokens to string"),
+        );
     }
 
     fn visit_primitive_type_id(&mut self, primitive_type_id: PrimitiveType) {
@@ -286,15 +291,25 @@ impl<'ast> Visitor<'ast> for TypeDeclGenerator {
 }
 
 struct StructTypeGenerator {
-    code: String,
     path: String,
+    is_tuple_struct: bool,
+    tokens: Tokens,
 }
 
 impl StructTypeGenerator {
     fn new(path: String) -> Self {
         Self {
-            code: String::new(),
             path,
+            is_tuple_struct: false,
+            tokens: Tokens::new(),
+        }
+    }
+
+    fn finalize(self) -> Tokens {
+        let prefix = if self.is_tuple_struct { "(" } else { "{ " };
+        let suffix = if self.is_tuple_struct { ")" } else { " }" };
+        quote! {
+            $prefix$(self.tokens)$suffix
         }
     }
 }
@@ -306,28 +321,32 @@ impl<'ast> Visitor<'ast> for StructTypeGenerator {
         if !is_regular_struct && !is_tuple_struct {
             panic!("Struct must be either regular or tuple");
         }
-        if is_regular_struct {
-            self.code.push('{');
-        } else {
-            self.code.push('(');
-        }
+        self.is_tuple_struct = is_tuple_struct;
         visitor::accept_struct_def(struct_def, self);
-        if is_regular_struct {
-            self.code.push('}');
-        } else {
-            self.code.push(')');
-        }
     }
 
     fn visit_struct_field(&mut self, struct_field: &'ast StructField) {
         let type_decl_code =
             generate_type_decl_with_path(struct_field.type_decl(), self.path.clone());
 
+        for doc in struct_field.docs() {
+            quote_in! { self.tokens =>
+                $['\r'] $("///") $doc
+            };
+        }
+        if !struct_field.docs().is_empty() || struct_field.name().is_some() {
+            quote_in! { self.tokens =>
+                $['\r']
+            };
+        }
         if let Some(field_name) = struct_field.name() {
-            self.code
-                .push_str(&format!("{field_name}: {type_decl_code},"));
+            quote_in! { self.tokens =>
+                $field_name: $type_decl_code,
+            };
         } else {
-            self.code.push_str(&format!("{type_decl_code},"));
+            quote_in! { self.tokens =>
+                $type_decl_code,
+            };
         }
     }
 }

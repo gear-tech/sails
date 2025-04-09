@@ -3,13 +3,13 @@ use args::{CratePathAttr, SAILS_PATH};
 use proc_macro_error::abort;
 use proc_macro2::{Span, TokenStream};
 use quote::quote;
-use syn::{Data, DeriveInput, Fields, Ident, Path, Type, Variant, parse::Parse};
+use syn::{Fields, Ident, ItemEnum, Path, Type, Variant, parse::Parse};
 
 mod args;
 
-pub fn derive_eth_event(input: TokenStream) -> TokenStream {
+pub fn event(attrs: TokenStream, input: TokenStream) -> TokenStream {
     // Parse the input tokens into a syntax tree.
-    let input: DeriveInput = syn::parse2(input).unwrap_or_else(|err| {
+    let input: ItemEnum = syn::parse2(input).unwrap_or_else(|err| {
         abort!(
             err.span(),
             "EthEvent can only be derived for enums: {}",
@@ -17,13 +17,30 @@ pub fn derive_eth_event(input: TokenStream) -> TokenStream {
         )
     });
 
-    // Ensure the input is an enum.
-    let data_enum = match input.data {
-        Data::Enum(data) => data,
-        _ => abort!(input, "EthEvent can only be derived for enums"),
-    };
+    // Parse the attributes into a syntax tree.
+    let sails_path_attr = syn::parse2::<CratePathAttr>(attrs).ok();
+    let sails_path = &sails_path_or_default(sails_path_attr.map(|attr| attr.path()));
 
-    let enum_ident = &input.ident;
+    let event_impl = generate_event_impl(&input, sails_path);
+
+    let output = process_indexed(input);
+
+    quote! {
+        #output
+
+        #event_impl
+    }
+}
+
+pub fn derive_eth_event(input: TokenStream) -> TokenStream {
+    // Parse the input tokens into a syntax tree.
+    let input: ItemEnum = syn::parse2(input).unwrap_or_else(|err| {
+        abort!(
+            err.span(),
+            "EthEvent can only be derived for enums: {}",
+            err
+        )
+    });
 
     let sails_path_attr = input
         .attrs
@@ -35,13 +52,19 @@ pub fn derive_eth_event(input: TokenStream) -> TokenStream {
         });
     let sails_path = &sails_path_or_default(sails_path_attr.map(|attr| attr.path()));
 
+    generate_event_impl(&input, sails_path)
+}
+
+fn generate_event_impl(input: &ItemEnum, sails_path: &Path) -> TokenStream {
+    let enum_ident = &input.ident;
+
     // Vectors to collect match arms for topics and data.
     let mut sigs_const = Vec::new();
     let mut topics_match_arms = Vec::new();
     let mut data_match_arms = Vec::new();
 
     // Process each variant.
-    for (idx, variant) in data_enum.variants.iter().enumerate() {
+    for (idx, variant) in input.variants.iter().enumerate() {
         let variant_ident = &variant.ident;
         check_forbidden_event_idents(variant_ident);
 
@@ -87,37 +110,26 @@ pub fn derive_eth_event(input: TokenStream) -> TokenStream {
             }
             // For unnamed (tuple) fields, create synthetic identifiers.
             Fields::Unnamed(unnamed) => {
-                let field_idents: Vec<Ident> = unnamed
+                if unnamed.unnamed.iter().any(is_indexed) {
+                    abort!(
+                        unnamed,
+                        "unnamed fields cannot be `#[indexed]`, use named fields instead"
+                    );
+                }
+
+                let non_idx_exprs: Vec<TokenStream> = unnamed
                     .unnamed
                     .iter()
                     .enumerate()
                     .map(|(i, _)| Ident::new(&format!("f{}", i), Span::call_site()))
+                    .map(|field_ident| quote!(#field_ident))
                     .collect();
                 // Build the pattern: Enum::Variant(f0, f1, ...)
                 let pat = quote! {
-                    #enum_ident::#variant_ident( #( #field_idents ),* )
+                    #enum_ident::#variant_ident( #( #non_idx_exprs ),* )
                 };
 
-                let mut idx_exprs = Vec::new();
-                let mut non_idx_exprs = Vec::new();
-                for (i, field) in unnamed.unnamed.iter().enumerate() {
-                    let field_ident = &field_idents[i];
-                    if is_indexed(field) {
-                        idx_exprs.push(quote! {
-                            Self::topic_hash(#field_ident)
-                        });
-                    } else {
-                        non_idx_exprs.push(quote!(#field_ident));
-                    }
-                }
-                if idx_exprs.len() > 3 {
-                    abort!(
-                        variant,
-                        "too many indexed fields (max 3): {}",
-                        idx_exprs.len()
-                    );
-                }
-                (pat, idx_exprs, non_idx_exprs)
+                (pat, vec![], non_idx_exprs)
             }
             // For unit variants, no fields exist.
             Fields::Unit => {
@@ -222,5 +234,80 @@ fn check_forbidden_event_idents(ident: &Ident) {
             ident,
             FORBIDDEN_IDENTS
         );
+    }
+}
+
+fn process_indexed(input: ItemEnum) -> TokenStream {
+    let mut input = input;
+    // Process each variant.
+    for variant in input.variants.iter_mut() {
+        match &mut variant.fields {
+            // For named fields, use the field identifiers directly.
+            Fields::Named(named) => {
+                for field in named.named.iter_mut().filter(|f| is_indexed(f)) {
+                    remove_indexed_and_add_comment(field);
+                }
+            }
+            // For unnamed (tuple) fields, create synthetic identifiers.
+            Fields::Unnamed(unnamed) => {
+                for field in unnamed.unnamed.iter_mut().filter(|f| is_indexed(f)) {
+                    remove_indexed_and_add_comment(field);
+                }
+            }
+            // For unit variants, no fields exist.
+            Fields::Unit => {}
+        }
+    }
+
+    quote! {
+        #input
+    }
+}
+
+/// remove indexed attribute from field and add comment
+fn remove_indexed_and_add_comment(field: &mut syn::Field) {
+    field.attrs.retain(|attr| !attr.path().is_ident("indexed"));
+    field.attrs.push(syn::parse_quote! {
+        #[doc = r" #[indexed]"]
+    });
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn event_process_indexed() {
+        // arrange
+        let input = quote! {
+            pub enum SomeService {
+                SomeEvent
+                {
+                    /// Some comment
+                    #[indexed]
+                    sender: u128
+                },
+            }
+        };
+        let input: ItemEnum = syn::parse2(input).unwrap();
+
+        let expected = quote! {
+            pub enum SomeService {
+                SomeEvent
+                {
+                    /// Some comment
+                    /// #[indexed]
+                    sender: u128
+                },
+            }
+        };
+        let expected: ItemEnum = syn::parse2(expected).unwrap();
+
+        // act
+        let output = process_indexed(input.clone());
+        let output: ItemEnum = syn::parse2(output).unwrap();
+
+        // arrange
+        assert_eq!(expected, output);
     }
 }

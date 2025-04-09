@@ -1,0 +1,25 @@
+---
+source: ethapp_with_events/tests/insta.rs
+expression: idl
+---
+constructor {
+  Create : ();
+};
+
+service Svc1 {
+  DoThis : (p1: u32, p2: str) -> u32;
+  query This : (p1: bool) -> bool;
+
+  events {
+    DoThisEvent: struct {
+      /// Some u32 value
+      /// #[indexed]
+      p1: u32,
+      p2: str,
+    };
+  }
+};
+
+service Svc2 {
+  DoThis : (p1: u32, p2: str) -> u32;
+};

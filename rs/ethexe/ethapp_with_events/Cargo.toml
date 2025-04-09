@@ -10,5 +10,6 @@ sails-rs = { workspace = true, features = ["ethexe"] }
 sails-rs = { workspace = true, features = ["ethexe", "wasm-builder"] }
 
 [dev-dependencies]
-sails-rs = { workspace = true, features = ["ethexe", "gtest"] }
+insta.workspace = true
+sails-rs = { workspace = true, features = ["ethexe", "gtest", "idl-gen"] }
 tokio = { workspace = true, features = ["rt", "macros"] }

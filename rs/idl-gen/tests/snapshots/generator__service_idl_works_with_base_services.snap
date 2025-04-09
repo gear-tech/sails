@@ -41,8 +41,14 @@ type ManyVariants = enum {
   One,
   Two: u32,
   Three: opt vec u256,
-  Four: struct { a: u32, b: opt u16 },
-  Five: struct { str, vec u8 },
+  Four: struct {
+    a: u32,
+    b: opt u16,
+  },
+  Five: struct {
+    str,
+    vec u8,
+  },
   Six: struct { u32 },
   Seven: GenericEnumForU32AndStr,
   Eight: [map (u32, str), 10],
@@ -89,8 +95,13 @@ service {
     /// `This` Done
     ThisDone: u32;
     /// `That` Done too
-    ThatDone: struct { p1: str };
+    ThatDone: struct {
+      /// This is `p1` field
+      p1: str
+    };
     ThisDoneBase: u32;
-    ThatDoneBase: struct { p1: u16 };
+    ThatDoneBase: struct {
+      p1: u16
+    };
   }
 };
