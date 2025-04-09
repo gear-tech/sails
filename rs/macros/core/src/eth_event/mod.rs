@@ -9,7 +9,7 @@ mod args;
 
 pub fn event(attrs: TokenStream, input: TokenStream) -> TokenStream {
     // Parse the input tokens into a syntax tree.
-    let input: ItemEnum = syn::parse2(input).unwrap_or_else(|err| {
+    let mut input: ItemEnum = syn::parse2(input).unwrap_or_else(|err| {
         abort!(
             err.span(),
             "EthEvent can only be derived for enums: {}",
@@ -23,10 +23,10 @@ pub fn event(attrs: TokenStream, input: TokenStream) -> TokenStream {
 
     let event_impl = generate_event_impl(&input, sails_path);
 
-    let output = process_indexed(input);
+    process_indexed(&mut input);
 
     quote! {
-        #output
+        #input
 
         #event_impl
     }
@@ -237,8 +237,7 @@ fn check_forbidden_event_idents(ident: &Ident) {
     }
 }
 
-fn process_indexed(input: ItemEnum) -> TokenStream {
-    let mut input = input;
+fn process_indexed(input: &mut ItemEnum) {
     // Process each variant.
     for variant in input.variants.iter_mut() {
         match &mut variant.fields {
@@ -257,10 +256,6 @@ fn process_indexed(input: ItemEnum) -> TokenStream {
             // For unit variants, no fields exist.
             Fields::Unit => {}
         }
-    }
-
-    quote! {
-        #input
     }
 }
 
@@ -289,7 +284,7 @@ mod tests {
                 },
             }
         };
-        let input: ItemEnum = syn::parse2(input).unwrap();
+        let mut input: ItemEnum = syn::parse2(input).unwrap();
 
         let expected = quote! {
             pub enum SomeService {
@@ -304,10 +299,9 @@ mod tests {
         let expected: ItemEnum = syn::parse2(expected).unwrap();
 
         // act
-        let output = process_indexed(input.clone());
-        let output: ItemEnum = syn::parse2(output).unwrap();
+        process_indexed(&mut input);
 
         // arrange
-        assert_eq!(expected, output);
+        assert_eq!(expected, input);
     }
 }
