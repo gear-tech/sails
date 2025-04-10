@@ -27,6 +27,7 @@ pub mod calls;
 #[cfg(feature = "ethexe")]
 mod ethexe;
 mod events;
+mod message_future;
 pub mod services;
 
 // TODO: To be renamed into SysCalls or something similar

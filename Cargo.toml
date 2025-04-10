@@ -26,7 +26,7 @@ members = [
     "rs/idl-parser",
     "rs/macros",
     "rs/macros/core",
-    "rs/sol-gen"
+    "rs/sol-gen",
 ]
 
 [workspace.dependencies]
@@ -74,6 +74,7 @@ lalrpop-util = "0.20"
 log = { version = "0.4", default-features = false }
 logos = "0.13"
 mockall = "0.12"
+pin-project-lite = "0.2"
 parity-scale-codec = { version = "=3.7.4", default-features = false }
 prettyplease = "0.2"
 proc-macro-error = "1.0"

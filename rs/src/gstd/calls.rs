@@ -1,5 +1,8 @@
-use crate::{calls::Remoting, errors::Result, futures::FutureExt, prelude::*};
-use core::future::Future;
+use super::message_future::MessageFutureWithRedirect;
+use crate::{
+    calls::Remoting, collections::BTreeMap, errors::Result, futures::FutureExt, prelude::*, rc::Rc,
+};
+use core::{cell::RefCell, future::Future};
 use gstd::{msg, prog};
 
 #[derive(Default)]
@@ -38,21 +41,29 @@ impl GStdArgs {
 }
 
 #[derive(Debug, Default, Clone)]
-pub struct GStdRemoting;
+pub struct GStdRemoting {
+    redirects: Rc<RefCell<BTreeMap<ActorId, ActorId>>>,
+}
 
 impl GStdRemoting {
-    fn send_for_reply(
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    pub(crate) fn send_for_reply<T: AsRef<[u8]>>(
         target: ActorId,
-        payload: impl AsRef<[u8]>,
+        payload: T,
         #[cfg(not(feature = "ethexe"))] gas_limit: Option<GasUnit>,
         value: ValueUnit,
         #[allow(unused_variables)] args: GStdArgs,
-    ) -> Result<msg::MessageFuture, crate::errors::Error> {
+        redirects: Rc<RefCell<BTreeMap<ActorId, ActorId>>>,
+    ) -> Result<MessageFutureWithRedirect<T>> {
+        let target = GStdRemoting::redirect_target(&redirects.borrow(), &target);
         #[cfg(not(feature = "ethexe"))]
         let mut message_future = if let Some(gas_limit) = gas_limit {
             msg::send_bytes_with_gas_for_reply(
                 target,
-                payload,
+                payload.as_ref(),
                 gas_limit,
                 value,
                 args.reply_deposit.unwrap_or_default(),
@@ -60,22 +71,40 @@ impl GStdRemoting {
         } else {
             msg::send_bytes_for_reply(
                 target,
-                payload,
+                payload.as_ref(),
                 value,
                 args.reply_deposit.unwrap_or_default(),
             )?
         };
         #[cfg(feature = "ethexe")]
-        let mut message_future = msg::send_bytes_for_reply(target, payload, value)?;
+        let mut message_future = msg::send_bytes_for_reply(target, payload.as_ref(), value)?;
 
         message_future = message_future.up_to(args.wait_up_to)?;
 
         #[cfg(not(feature = "ethexe"))]
         if let Some(reply_hook) = args.reply_hook {
-            return Ok(message_future.handle_reply(reply_hook)?);
+            message_future = message_future.handle_reply(reply_hook)?;
         }
 
-        Ok(message_future)
+        Ok(MessageFutureWithRedirect::new(
+            message_future,
+            target,
+            payload,
+            #[cfg(not(feature = "ethexe"))]
+            gas_limit,
+            value,
+            #[cfg(not(feature = "ethexe"))]
+            args.reply_deposit,
+            redirects,
+        ))
+    }
+
+    fn redirect_target(redirects: &BTreeMap<ActorId, ActorId>, target: &ActorId) -> ActorId {
+        let mut target = target;
+        while let Some(redirect) = redirects.get(&target) {
+            target = redirect;
+        }
+        *target
     }
 }
 
@@ -139,8 +168,8 @@ impl Remoting for GStdRemoting {
             gas_limit,
             value,
             args,
+            self.redirects,
         )?;
-        let reply_future = reply_future.map(|result| result.map_err(Into::into));
         Ok(reply_future)
     }
 
@@ -159,6 +188,7 @@ impl Remoting for GStdRemoting {
             gas_limit,
             value,
             args,
+            self.redirects,
         )?;
         let reply = reply_future.await?;
         Ok(reply)
