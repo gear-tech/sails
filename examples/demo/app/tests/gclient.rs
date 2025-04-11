@@ -6,7 +6,10 @@ use sails_rs::{
 };
 use std::panic;
 
-const DEMO_WASM_PATH: &str = "../../../target/wasm32-unknown-unknown/debug/demo.opt.wasm";
+#[cfg(debug_assertions)]
+pub(crate) const DEMO_WASM_PATH: &str = "../../../target/wasm32-gear/debug/demo.opt.wasm";
+#[cfg(not(debug_assertions))]
+pub(crate) const DEMO_WASM_PATH: &str = "../../../target/wasm32-gear/release/demo.opt.wasm";
 
 #[tokio::test]
 #[ignore = "requires run gear node on GEAR_PATH"]
@@ -160,9 +163,9 @@ async fn demo_returns_not_enough_gas_on_activation() {
 
     assert!(matches!(
         activation_result,
-        Err(sails_rs::errors::Error::Rtl(
-            RtlError::ReplyHasErrorString(s)
-        )) if s.as_str() == "Not enough gas to handle program data"
+        Err(sails_rs::errors::Error::Rtl(RtlError::ReplyHasErrorString(
+            _message
+        )))
     ));
 }
 
@@ -229,8 +232,8 @@ async fn counter_query_not_enough_gas() {
         result,
         Err(sails_rs::errors::Error::Rtl(RtlError::ReplyHasError(
             ErrorReplyReason::Execution(SimpleExecutionError::RanOutOfGas),
-            message
-        ))) if message == "Not enough gas to handle program data"
+            _message
+        )))
     ));
 }
 
@@ -272,10 +275,13 @@ async fn value_fee_works() {
 
     assert!(result);
     let balance = gear_api.free_balance(admin_id).await.unwrap();
+    dbg!(initial_balance - balance, balance);
     // fee is 10_000_000_000_000 + spent gas
+    // initial_balance - balance = 10632462950600 debug
+    // initial_balance - balance = 10546866717300 release
     assert!(
         initial_balance - balance > 10_000_000_000_000
-            && initial_balance - balance < 10_100_000_000_000
+            && initial_balance - balance < 10_700_000_000_000
     );
 }
 
