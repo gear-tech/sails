@@ -57,7 +57,10 @@ fn full() {
                 /// `This` Done
                 ThisDone: u32;
                 /// `That` Done too
-                ThatDone: struct { p1: str };
+                ThatDone: struct {
+                    /// This is `p1` field
+                    p1: str
+                };
             }
         };
         "#;

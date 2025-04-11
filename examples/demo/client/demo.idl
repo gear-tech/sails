@@ -12,8 +12,14 @@ type ManyVariants = enum {
   One,
   Two: u32,
   Three: opt u256,
-  Four: struct { a: u32, b: opt u16 },
-  Five: struct { str, h256 },
+  Four: struct {
+    a: u32,
+    b: opt u16,
+  },
+  Five: struct {
+    str,
+    h256,
+  },
   Six: struct { u32 },
 };
 
@@ -56,7 +62,10 @@ service Dog {
 
   events {
     Barked;
-    Walked: struct { from: struct { i32, i32 }, to: struct { i32, i32 } };
+    Walked: struct {
+      from: struct { i32, i32 },
+      to: struct { i32, i32 },
+    };
   }
 };
 
