@@ -152,9 +152,9 @@ enum EventsMeta {
         u32,
     ),
     ThisDoneTwice(
-        /// This is firs unnamed field
+        /// This is the first unnamed field
         u32,
-        /// This is second unnamed field
+        /// This is the second unnamed field
         u32,
     ),
     /// `That` Done too
