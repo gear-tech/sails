@@ -272,8 +272,8 @@ impl SystemFixture {
     fn new() -> Self {
         let system = System::new();
         system.init_logger_with_default_filter("gwasm=debug,gtest=info,sails_rs=debug");
-        system.mint_to(ADMIN_ID, 100_000_000_000_000);
-        system.mint_to(NON_ADMIN_ID, 100_000_000_000_000);
+        system.mint_to(ADMIN_ID, 1_000_000_000_000_000);
+        system.mint_to(NON_ADMIN_ID, 1_000_000_000_000_000);
 
         let catalog_program_id = Self::create_catalog_program(&system);
         let resource_program_id = Self::create_resource_program(&system);
@@ -395,8 +395,8 @@ impl Fixture {
     fn new() -> Self {
         let system = System::new();
         system.init_logger();
-        system.mint_to(ADMIN_ID, 100_000_000_000_000);
-        system.mint_to(NON_ADMIN_ID, 100_000_000_000_000);
+        system.mint_to(ADMIN_ID, 1_000_000_000_000_000);
+        system.mint_to(NON_ADMIN_ID, 1_000_000_000_000_000);
 
         let catalog_program_id = Self::create_catalog_program(&system);
         let resource_program_id = Self::create_resource_program(&system);
