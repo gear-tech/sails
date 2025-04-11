@@ -307,7 +307,7 @@ impl StructTypeGenerator {
 
     fn finalize(self) -> Tokens {
         let prefix = if self.is_tuple_struct { "(" } else { "{ " };
-        let suffix = if self.is_tuple_struct { ")" } else { " }" };
+        let postfix = if self.is_tuple_struct { ")" } else { " }" };
         quote! {
             $prefix$(self.tokens)$suffix
         }
