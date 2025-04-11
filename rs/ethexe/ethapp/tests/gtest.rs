@@ -9,9 +9,9 @@ use sails_rs::{
 };
 
 #[cfg(debug_assertions)]
-pub(crate) const WASM_PATH: &str = "../target/wasm32-unknown-unknown/debug/ethapp.opt.wasm";
+pub(crate) const WASM_PATH: &str = "../target/wasm32-gear/debug/ethapp.opt.wasm";
 #[cfg(not(debug_assertions))]
-pub(crate) const WASM_PATH: &str = "../target/wasm32-unknown-unknown/release/ethapp.opt.wasm";
+pub(crate) const WASM_PATH: &str = "../target/wasm32-gear/release/ethapp.opt.wasm";
 
 pub(crate) const ADMIN_ID: u64 = 10;
 

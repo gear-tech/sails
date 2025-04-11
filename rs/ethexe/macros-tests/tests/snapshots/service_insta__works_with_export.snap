@@ -76,17 +76,7 @@ impl SomeServiceExposure<SomeService> {
     ) -> Option<(sails_rs::Vec<u8>, u128, bool)> {
         if method
             == &[
-                44u8,
-                68u8,
-                111u8,
-                83u8,
-                111u8,
-                109u8,
-                101u8,
-                116u8,
-                104u8,
-                105u8,
-                110u8,
+                44u8, 68u8, 111u8, 83u8, 111u8, 109u8, 101u8, 116u8, 104u8, 105u8, 110u8,
                 103u8,
             ]
         {
@@ -177,17 +167,7 @@ mod some_service_meta {
     }
     impl sails_rs::gstd::InvocationIo for __DoSomethingParams {
         const ROUTE: &'static [u8] = &[
-            44u8,
-            68u8,
-            111u8,
-            83u8,
-            111u8,
-            109u8,
-            101u8,
-            116u8,
-            104u8,
-            105u8,
-            110u8,
+            44u8, 68u8, 111u8, 83u8, 111u8, 109u8, 101u8, 116u8, 104u8, 105u8, 110u8,
             103u8,
         ];
         type Params = Self;
@@ -221,17 +201,7 @@ impl sails_rs::solidity::ServiceSignature for SomeService {
     const METHODS: &'static [sails_rs::solidity::MethodExpo] = &[
         (
             &[
-                44u8,
-                68u8,
-                111u8,
-                83u8,
-                111u8,
-                109u8,
-                101u8,
-                116u8,
-                104u8,
-                105u8,
-                110u8,
+                44u8, 68u8, 111u8, 83u8, 111u8, 109u8, 101u8, 116u8, 104u8, 105u8, 110u8,
                 103u8,
             ] as &[u8],
             "DoSomething",

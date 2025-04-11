@@ -5,7 +5,7 @@ use sails_rs::{
 };
 
 const ADMIN_ID: u64 = 10;
-const WASM_PATH: &str = "../../../target/wasm32-unknown-unknown/debug/no_svcs_prog.opt.wasm";
+const WASM_PATH: &str = "../../../target/wasm32-gear/debug/no_svcs_prog.opt.wasm";
 
 #[tokio::test]
 async fn activating_program_succeeds() {

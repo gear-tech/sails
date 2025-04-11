@@ -122,19 +122,8 @@ mod extended_lifetime_meta {
     pub struct __ExtendedNameParams {}
     impl sails_rs::gstd::InvocationIo for __ExtendedNameParams {
         const ROUTE: &'static [u8] = &[
-            48u8,
-            69u8,
-            120u8,
-            116u8,
-            101u8,
-            110u8,
-            100u8,
-            101u8,
-            100u8,
-            78u8,
-            97u8,
-            109u8,
-            101u8,
+            48u8, 69u8, 120u8, 116u8, 101u8, 110u8, 100u8, 101u8, 100u8, 78u8, 97u8,
+            109u8, 101u8,
         ];
         type Params = Self;
     }
