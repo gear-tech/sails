@@ -100,6 +100,12 @@ service {
   events {
     /// `This` Done
     ThisDone: u32;
+    ThisDoneTwice: struct {
+      /// This is firs unnamed field
+      u32,
+      /// This is second unnamed field
+      u32,
+    };
     /// `That` Done too
     ThatDone: struct {
       /// This is `p1` field

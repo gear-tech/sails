@@ -151,6 +151,12 @@ enum EventsMeta {
         /// This is unnamed field, comments ignored
         u32,
     ),
+    ThisDoneTwice(
+        /// This is firs unnamed field
+        u32,
+        /// This is second unnamed field
+        u32,
+    ),
     /// `That` Done too
     ThatDone {
         /// This is `p1` field

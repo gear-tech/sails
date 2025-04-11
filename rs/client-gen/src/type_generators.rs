@@ -91,13 +91,13 @@ impl<'a> StructDefGenerator<'a> {
 
     pub(crate) fn finalize(self) -> Tokens {
         let prefix = if self.is_tuple_struct { "(" } else { "{" };
-        let suffix = if self.is_tuple_struct { ");" } else { "}" };
+        let postfix = if self.is_tuple_struct { ");" } else { "}" };
         quote! {
             $['\r']
             #[derive($(self.derive_traits))]
             #[codec(crate = $(self.sails_path)::scale_codec)]
             #[scale_info(crate = $(self.sails_path)::scale_info)]
-            pub struct $(self.type_name) $prefix $(self.tokens) $suffix
+            pub struct $(self.type_name) $prefix $(self.tokens) $postfix
         }
     }
 }
@@ -309,7 +309,7 @@ impl StructTypeGenerator {
         let prefix = if self.is_tuple_struct { "(" } else { "{ " };
         let postfix = if self.is_tuple_struct { ")" } else { " }" };
         quote! {
-            $prefix$(self.tokens)$suffix
+            $prefix$(self.tokens)$postfix
         }
     }
 }
