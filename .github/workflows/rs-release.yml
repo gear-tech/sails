@@ -77,7 +77,7 @@ jobs:
       - name: Set Workspace Version & Update Its Dependencies
         run: |
           sed -i "s/^version = \".*\"/version = \"${{ steps.release_info.outputs.version }}\"/" Cargo.toml
-          cargo update
+          cargo update sails-rs
           git add Cargo.toml
           git add Cargo.lock
           git commit -m "build(rs): update version to v${{ steps.release_info.outputs.version }}"
@@ -91,7 +91,7 @@ jobs:
     uses: ./.github/workflows/rs-run-ws-tests.yml
     with:
       sources_ref: ${{ needs.prepare.outputs.rc_branch }}
-      gear_node_version: 1.7.1
+      gear_node_version: 1.8.0
 
   cli_tests:
     if: false
