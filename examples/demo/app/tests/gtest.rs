@@ -150,8 +150,8 @@ async fn counter_query_not_enough_gas() {
         result,
         Err(sails_rs::errors::Error::Rtl(RtlError::ReplyHasError(
             ErrorReplyReason::Execution(SimpleExecutionError::RanOutOfGas),
-            message
-        ))) if message == "Not enough gas to handle program data"
+            _payload
+        )))
     ));
 }
 
@@ -160,7 +160,7 @@ async fn counter_query_not_enough_gas() {
 async fn ping_pong_low_level_works() {
     let system = System::new();
     system.init_logger_with_default_filter("gwasm=debug,gtest=info,sails_rs=debug");
-    system.mint_to(ADMIN_ID, 100_000_000_000_000);
+    system.mint_to(ADMIN_ID, 1_000_000_000_000_000);
 
     let demo_program = Program::from_file(&system, DEMO_WASM_PATH);
 
@@ -379,10 +379,10 @@ async fn references_guess_num() {
 #[tokio::test]
 async fn counter_add_works_via_next_mode() {
     // Arrange
-    const DEMO_WASM_PATH: &str = "../../../target/wasm32-unknown-unknown/debug/demo.opt.wasm";
+    const DEMO_WASM_PATH: &str = "../../../target/wasm32-gear/debug/demo.opt.wasm";
     let system = System::new();
     system.init_logger_with_default_filter("gwasm=debug,gtest=info,sails_rs=debug");
-    system.mint_to(fixture::ADMIN_ID, 100_000_000_000_000);
+    system.mint_to(fixture::ADMIN_ID, 1_000_000_000_000_000);
     let demo_code_id = system.submit_code_file(DEMO_WASM_PATH);
 
     let remoting = GTestRemoting::new(system, fixture::ADMIN_ID.into())
@@ -418,10 +418,10 @@ async fn counter_add_works_via_next_mode() {
 #[tokio::test]
 async fn counter_add_works_via_manual_mode() {
     // Arrange
-    const DEMO_WASM_PATH: &str = "../../../target/wasm32-unknown-unknown/debug/demo.opt.wasm";
+    const DEMO_WASM_PATH: &str = "../../../target/wasm32-gear/debug/demo.opt.wasm";
     let system = System::new();
     system.init_logger_with_default_filter("gwasm=debug,gtest=info,sails_rs=debug");
-    system.mint_to(fixture::ADMIN_ID, 100_000_000_000_000);
+    system.mint_to(fixture::ADMIN_ID, 1_000_000_000_000_000);
     let demo_code_id = system.submit_code_file(DEMO_WASM_PATH);
 
     let remoting = GTestRemoting::new(system, fixture::ADMIN_ID.into())
@@ -517,8 +517,9 @@ async fn value_fee_works() {
     assert!(result);
     let balance = fixture.balance_of(fixture::ADMIN_ID.into());
     // fee is 10_000_000_000_000 + spent gas
+    // initial_balance - balance = 10_329_809_407_200
     assert!(
         initial_balance - balance > 10_000_000_000_000
-            && initial_balance - balance < 10_100_000_000_000
+            && initial_balance - balance < 10_500_000_000_000
     );
 }

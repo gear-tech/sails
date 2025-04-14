@@ -37,15 +37,7 @@ impl MyProgram {
 }
 const __ROUTE_SVC1: [u8; 5usize] = [16u8, 83u8, 118u8, 99u8, 49u8];
 const __ROUTE_SERVICE2: [u8; 9usize] = [
-    32u8,
-    83u8,
-    101u8,
-    114u8,
-    118u8,
-    105u8,
-    99u8,
-    101u8,
-    50u8,
+    32u8, 83u8, 101u8, 114u8, 118u8, 105u8, 99u8, 101u8, 50u8,
 ];
 impl sails_rs::meta::ProgramMeta for MyProgram {
     type ConstructorsMeta = meta_in_program::ConstructorsMeta;
