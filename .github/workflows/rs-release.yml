@@ -24,6 +24,7 @@ env:
     sails-idl-meta
     sails-idl-parser
     sails-idl-gen
+    sails-sol-gen
     sails-client-gen
     sails-macros-core
     sails-macros
@@ -78,8 +79,10 @@ jobs:
         run: |
           sed -i "s/^version = \".*\"/version = \"${{ steps.release_info.outputs.version }}\"/" Cargo.toml
           cargo update sails-rs
+          cargo update sails-rs --manifest-path ./rs/ethexe/Cargo.toml
           git add Cargo.toml
           git add Cargo.lock
+          git add ./rs/ethexe/Cargo.lock
           git commit -m "build(rs): update version to v${{ steps.release_info.outputs.version }}"
           git push origin "${{ steps.rc_branch.outputs.branch }}"
           git push origin --delete "${{ steps.release_info.outputs.pin_tag }}"
