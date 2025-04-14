@@ -37,11 +37,25 @@ service {{#if name}}{{name}} {{/if}}{
     /// {{{this}}}
     {{/each}}
     {{name}}
-    {{~#if fields.[1]}}: struct { {{#each fields~}} {{#if @index}}, {{/if}}{{#if name}}{{name}}: {{/if}}{{{lookup @root/type_names type}}}{{/each}} }
-    {{~else}}
-	    {{~#if fields.[0]}}: {{#with fields.[0]}} {{~#if name~}} struct { {{name}}: {{{lookup @root/type_names type}}} } {{~else~}} {{{lookup @root/type_names type}}} {{~/if}}{{/with}}
-      {{~/if}}
-    {{/if~}}
+    {{~#if fields.[1]}}: struct {
+      {{#each fields}}
+      {{#each docs}}
+      /// {{{this}}}
+      {{/each}}
+      {{#if name}}{{name}}: {{/if~}}{{{lookup @root/type_names type}}},
+      {{/each}}
+    } {{~else}}
+    {{~#if fields.[0]}}: {{#with fields.[0]}} {{~#if name~}} struct {
+      {{#each docs}}
+      /// {{{this}}}
+      {{/each}}
+      {{name}}: {{{lookup @root/type_names type}}}
+    }{{else~}}
+      {{{lookup @root/type_names type}}}
+    {{~/if}}
+    {{~/with~}}
+    {{~/if~}}
+    {{~/if~}}
     ;
   {{/each}}
   }

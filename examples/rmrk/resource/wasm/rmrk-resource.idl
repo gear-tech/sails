@@ -58,8 +58,13 @@ service RmrkResource {
   query Resource : (resource_id: u8) -> result (Resource, Error);
 
   events {
-    ResourceAdded: struct { resource_id: u8 };
-    PartAdded: struct { resource_id: u8, part_id: u32 };
+    ResourceAdded: struct {
+      resource_id: u8
+    };
+    PartAdded: struct {
+      resource_id: u8,
+      part_id: u32,
+    };
   }
 };
 

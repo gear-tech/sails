@@ -2,6 +2,9 @@
 source: macros-tests/tests/eth_event.rs
 expression: result
 ---
+pub enum MyEvent {
+    MyEvent1,
+}
 impl sails_rs::EthEvent for MyEvent {
     const SIGNATURES: &'static [sails_rs::gstd::EthEventExpo] = &[
         (

@@ -15,6 +15,9 @@ pub use gstd::handle_signal;
 pub use gstd::{async_init, async_main, handle_reply_with_hook, message_loop};
 pub use gstd::{debug, exec, msg};
 #[doc(hidden)]
+#[cfg(feature = "ethexe")]
+pub use sails_macros::event;
+#[doc(hidden)]
 pub use sails_macros::{export, program, route, service};
 
 use crate::{

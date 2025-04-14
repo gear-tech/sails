@@ -147,9 +147,21 @@ enum BaseQueriesMeta {
 #[derive(TypeInfo)]
 enum EventsMeta {
     /// `This` Done
-    ThisDone(u32),
+    ThisDone(
+        /// This is unnamed field, comments ignored
+        u32,
+    ),
+    ThisDoneTwice(
+        /// This is the first unnamed field
+        u32,
+        /// This is the second unnamed field
+        u32,
+    ),
     /// `That` Done too
-    ThatDone { p1: String },
+    ThatDone {
+        /// This is `p1` field
+        p1: String,
+    },
 }
 
 #[allow(dead_code)]
