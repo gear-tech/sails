@@ -130,14 +130,14 @@ jobs:
         run: |
           cargo build -p demo --release
           mkdir -p ./assets/demo
-          cp ./target/wasm32-unknown-unknown/release/demo.opt.wasm ./assets/demo/demo.wasm
+          cp ./target/wasm32-gear/release/demo.opt.wasm ./assets/demo/demo.wasm
           cp ./examples/demo/client/demo.idl ./assets/demo/demo.idl
 
       - name: Build NoSvcsProg
         run: |
           cargo build -p no-svcs-prog --release
           mkdir -p ./assets/no_svcs_prog
-          cp ./target/wasm32-unknown-unknown/release/no_svcs_prog.opt.wasm ./assets/no_svcs_prog/no_svcs_prog.wasm
+          cp ./target/wasm32-gear/release/no_svcs_prog.opt.wasm ./assets/no_svcs_prog/no_svcs_prog.wasm
           cp ./examples/no-svcs-prog/wasm/no-svcs-prog.idl ./assets/no_svcs_prog/no-svcs-prog.idl
 
       - name: Upload Assets
