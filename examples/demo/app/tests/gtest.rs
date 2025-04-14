@@ -150,7 +150,7 @@ async fn counter_query_not_enough_gas() {
         result,
         Err(sails_rs::errors::Error::Rtl(RtlError::ReplyHasError(
             ErrorReplyReason::Execution(SimpleExecutionError::RanOutOfGas),
-            _message
+            _payload
         )))
     ));
 }

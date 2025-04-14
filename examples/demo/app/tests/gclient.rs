@@ -16,7 +16,9 @@ pub(crate) const DEMO_WASM_PATH: &str = "../../../target/wasm32-gear/release/dem
 async fn counter_add_works() {
     // Arrange
 
-    let (remoting, demo_code_id, gas_limit, ..) = spin_up_node_with_demo_code().await;
+    let (remoting, demo_code_id, gas_limit, gear_api) = spin_up_node_with_demo_code().await;
+    let admin_id = ActorId::try_from(gear_api.account_id().encode().as_ref())
+        .expect("failed to create actor id");
 
     let demo_factory = demo_client::DemoFactory::new(remoting.clone());
 
@@ -28,6 +30,8 @@ async fn counter_add_works() {
         .send_recv(demo_code_id, "123")
         .await
         .unwrap();
+
+    let initial_balance = gear_api.free_balance(admin_id).await.unwrap();
 
     let mut counter_client = demo_client::Counter::new(remoting.clone());
     // Listen to Counter events
@@ -46,6 +50,9 @@ async fn counter_add_works() {
         .unwrap();
 
     // Asert
+    let balance = gear_api.free_balance(admin_id).await.unwrap();
+    // initial_balance - balance = 287_416_465_000, release, node 1.8.0
+    dbg!(initial_balance, balance, initial_balance - balance);
 
     let event = counter_events.next().await.unwrap();
 
@@ -232,7 +239,7 @@ async fn counter_query_not_enough_gas() {
         result,
         Err(sails_rs::errors::Error::Rtl(RtlError::ReplyHasError(
             ErrorReplyReason::Execution(SimpleExecutionError::RanOutOfGas),
-            _message
+            _payload
         )))
     ));
 }
@@ -274,11 +281,11 @@ async fn value_fee_works() {
         .unwrap();
 
     assert!(result);
+    let fee = 10_000_000_000_000;
     let balance = gear_api.free_balance(admin_id).await.unwrap();
-    dbg!(initial_balance - balance, balance);
+    dbg!(initial_balance, balance, initial_balance - balance - fee);
     // fee is 10_000_000_000_000 + spent gas
-    // initial_balance - balance = 10632462950600 debug
-    // initial_balance - balance = 10546866717300 release
+    // initial_balance - balance - fee = 546_866_717_300, release, node 1.8.0
     assert!(
         initial_balance - balance > 10_000_000_000_000
             && initial_balance - balance < 10_700_000_000_000
