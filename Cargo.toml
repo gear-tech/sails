@@ -69,10 +69,10 @@ hex = { version = "0.4", default-features = false }
 insta = "1.42"
 itertools = "0.14"
 keccak-const = "0.2"
-lalrpop = { version = "0.22", default-features = false }
-lalrpop-util = "0.22"
+lalrpop = { version = "0.20", default-features = false }
+lalrpop-util = "0.20"
 log = { version = "0.4", default-features = false }
-logos = "0.15"
+logos = "0.13"
 mockall = "0.12"
 parity-scale-codec = { version = "=3.7.4", default-features = false }
 prettyplease = "0.2"
