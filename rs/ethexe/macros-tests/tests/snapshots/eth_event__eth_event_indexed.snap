@@ -2,6 +2,17 @@
 source: macros-tests/tests/eth_event.rs
 expression: result
 ---
+pub enum Events {
+    MyEvent1 {
+        /// #[indexed]
+        sender: u128,
+        /// #[indexed]
+        amount: u128,
+        note: String,
+    },
+    MyEvent2(u128, u128, String),
+    MyEvent3,
+}
 impl sails_rs::EthEvent for Events {
     const SIGNATURES: &'static [sails_rs::gstd::EthEventExpo] = &[
         (
@@ -66,10 +77,9 @@ impl sails_rs::EthEvent for Events {
                 topics
             }
             Events::MyEvent2(f0, f1, f2) => {
-                let mut topics = sails_rs::Vec::with_capacity(2usize);
+                let mut topics = sails_rs::Vec::with_capacity(1usize);
                 let (_, _, hash) = Self::SIGNATURES[1usize];
                 topics.push(sails_rs::alloy_primitives::B256::new(hash));
-                topics.push(Self::topic_hash(f0));
                 topics
             }
             Events::MyEvent3 => {
@@ -84,7 +94,7 @@ impl sails_rs::EthEvent for Events {
     fn data(&self) -> sails_rs::Vec<u8> {
         match self {
             Events::MyEvent1 { sender, amount, note } => Self::encode_sequence(&(note,)),
-            Events::MyEvent2(f0, f1, f2) => Self::encode_sequence(&(f1, f2)),
+            Events::MyEvent2(f0, f1, f2) => Self::encode_sequence(&(f0, f1, f2)),
             Events::MyEvent3 => Self::encode_sequence(&()),
         }
     }

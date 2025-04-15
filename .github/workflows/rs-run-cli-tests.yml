@@ -10,8 +10,6 @@ on:
 
 env:
   CARGO_TERM_COLOR: always
-  # fix wabt build, remove after bump Gear version https://github.com/gear-tech/gear/pull/4494
-  CMAKE_POLICY_VERSION_MINIMUM: 3.5
 
 jobs:
   test_cli:
@@ -49,4 +47,4 @@ jobs:
       - name: Generate IDL from MyDemo via CLI
         run: |
           ./target/debug/cargo-sails sails idl --manifest-path ~/tmp/my-demo/Cargo.toml
-          diff ~/tmp/my-demo/target/my-demo-app.idl ~/tmp/my-demo/target/wasm32-unknown-unknown/debug/my_demo.idl
+          diff ~/tmp/my-demo/target/my-demo-app.idl ~/tmp/my-demo/target/wasm32-gear/debug/my_demo.idl

@@ -1,5 +1,5 @@
 [workspace.package]
-version = "0.7.3"
+version = "0.8.0"
 authors = ["Gear Technologies"]
 edition = "2024"
 license = "GPL-3.0"
@@ -43,14 +43,14 @@ sails-sol-gen = { path = "rs/sol-gen" }
 sails-rename = { package = "sails-rs", path = "rs" }
 
 # Gear deps
-gclient = "=1.7.1"
-gcore = "=1.7.1"
-gear-core = { version = "=1.7.1", default-features = false }
-gear-core-errors = "=1.7.1"
-gprimitives = { version = "=1.7.1", features = ["codec"] }
-gstd = "=1.7.1"
-gtest = "=1.7.1"
-gwasm-builder = { version = "=1.7.1", package = "gear-wasm-builder" }
+gclient = "=1.8.0"
+gcore = "=1.8.0"
+gear-core = { version = "=1.8.0", default-features = false }
+gear-core-errors = "=1.8.0"
+gprimitives = { version = "=1.8.0", features = ["codec"] }
+gstd = "=1.8.0"
+gtest = "=1.8.0"
+gwasm-builder = { version = "=1.8.0", package = "gear-wasm-builder" }
 
 # Other deps in alphabetical order
 alloy-primitives = { version = "0.8.19", default-features = false }

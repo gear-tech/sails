@@ -19,10 +19,8 @@ use sails_rs::{
 mod resource_client;
 type RmrkResourceClient = crate::resource_client::RmrkResource<GTestRemoting>;
 
-const CATALOG_PROGRAM_WASM_PATH: &str =
-    "../../../../target/wasm32-unknown-unknown/debug/rmrk_catalog.wasm";
-const RESOURCE_PROGRAM_WASM_PATH: &str =
-    "../../../../target/wasm32-unknown-unknown/debug/rmrk_resource.wasm";
+const CATALOG_PROGRAM_WASM_PATH: &str = "../../../../target/wasm32-gear/debug/rmrk_catalog.wasm";
+const RESOURCE_PROGRAM_WASM_PATH: &str = "../../../../target/wasm32-gear/debug/rmrk_resource.wasm";
 
 const ADMIN_ID: u64 = 10;
 const NON_ADMIN_ID: u64 = 11;
@@ -274,8 +272,8 @@ impl SystemFixture {
     fn new() -> Self {
         let system = System::new();
         system.init_logger_with_default_filter("gwasm=debug,gtest=info,sails_rs=debug");
-        system.mint_to(ADMIN_ID, 100_000_000_000_000);
-        system.mint_to(NON_ADMIN_ID, 100_000_000_000_000);
+        system.mint_to(ADMIN_ID, 1_000_000_000_000_000);
+        system.mint_to(NON_ADMIN_ID, 1_000_000_000_000_000);
 
         let catalog_program_id = Self::create_catalog_program(&system);
         let resource_program_id = Self::create_resource_program(&system);
@@ -397,8 +395,8 @@ impl Fixture {
     fn new() -> Self {
         let system = System::new();
         system.init_logger();
-        system.mint_to(ADMIN_ID, 100_000_000_000_000);
-        system.mint_to(NON_ADMIN_ID, 100_000_000_000_000);
+        system.mint_to(ADMIN_ID, 1_000_000_000_000_000);
+        system.mint_to(NON_ADMIN_ID, 1_000_000_000_000_000);
 
         let catalog_program_id = Self::create_catalog_program(&system);
         let resource_program_id = Self::create_resource_program(&system);

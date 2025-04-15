@@ -5,8 +5,10 @@ use demo_client::{
 };
 use sails_rs::{events::Listener, gtest::System, gtest::calls::*, prelude::*};
 
-pub(crate) const DEMO_WASM_PATH: &str =
-    "../../../target/wasm32-unknown-unknown/debug/demo.opt.wasm";
+#[cfg(debug_assertions)]
+pub(crate) const DEMO_WASM_PATH: &str = "../../../target/wasm32-gear/debug/demo.opt.wasm";
+#[cfg(not(debug_assertions))]
+pub(crate) const DEMO_WASM_PATH: &str = "../../../target/wasm32-gear/release/demo.opt.wasm";
 
 pub(crate) const ADMIN_ID: u64 = 10;
 
@@ -19,7 +21,7 @@ impl Fixture {
     pub(crate) fn new() -> Self {
         let system = System::new();
         system.init_logger_with_default_filter("gwasm=debug,gtest=info,sails_rs=debug");
-        system.mint_to(ADMIN_ID, 100_000_000_000_000);
+        system.mint_to(ADMIN_ID, 1_000_000_000_000_000);
         let demo_code_id = system.submit_code_file(DEMO_WASM_PATH);
 
         let program_space = GTestRemoting::new(system, ADMIN_ID.into());

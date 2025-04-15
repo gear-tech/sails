@@ -1,10 +1,17 @@
 #![no_std]
 
-#[derive(sails_rs::Encode, sails_rs::TypeInfo, sails_rs::EthEvent)]
+/// Service Events
+#[sails_rs::event]
+#[derive(sails_rs::Encode, sails_rs::TypeInfo)]
 #[codec(crate = sails_rs::scale_codec)]
 #[scale_info(crate = sails_rs::scale_info)]
 pub enum Events {
-    DoThisEvent(#[indexed] u32, sails_rs::String),
+    DoThisEvent {
+        /// Some u32 value
+        #[indexed]
+        p1: u32,
+        p2: sails_rs::String,
+    },
 }
 
 pub struct MyProgram;
@@ -26,7 +33,7 @@ pub struct SomeService;
 #[sails_rs::service(events = Events)]
 impl SomeService {
     pub async fn do_this(&mut self, p1: u32, p2: sails_rs::String) -> u32 {
-        self.emit_eth_event(Events::DoThisEvent(p1, p2)).unwrap();
+        self.emit_eth_event(Events::DoThisEvent { p1, p2 }).unwrap();
         p1
     }
 
@@ -44,10 +51,12 @@ impl SomeService2 {
     pub async fn do_this(&mut self, p1: u32, p2: sails_rs::String) -> u32 {
         // Emit EthEvent via Svc1 Exposure
         self.svc1
-            .emit_eth_event(Events::DoThisEvent(p1, p2.clone()))
+            .emit_eth_event(Events::DoThisEvent { p1, p2: p2.clone() })
             .unwrap();
         // Emit gear event via Svc1 Exposure
-        self.svc1.emit_event(Events::DoThisEvent(p1, p2)).unwrap();
+        self.svc1
+            .emit_event(Events::DoThisEvent { p1, p2 })
+            .unwrap();
         p1
     }
 }

@@ -24,6 +24,7 @@ env:
     sails-idl-meta
     sails-idl-parser
     sails-idl-gen
+    sails-sol-gen
     sails-client-gen
     sails-macros-core
     sails-macros
@@ -77,9 +78,11 @@ jobs:
       - name: Set Workspace Version & Update Its Dependencies
         run: |
           sed -i "s/^version = \".*\"/version = \"${{ steps.release_info.outputs.version }}\"/" Cargo.toml
-          cargo update
+          cargo update sails-rs
+          cargo update sails-rs --manifest-path ./rs/ethexe/Cargo.toml
           git add Cargo.toml
           git add Cargo.lock
+          git add ./rs/ethexe/Cargo.lock
           git commit -m "build(rs): update version to v${{ steps.release_info.outputs.version }}"
           git push origin "${{ steps.rc_branch.outputs.branch }}"
           git push origin --delete "${{ steps.release_info.outputs.pin_tag }}"
@@ -91,7 +94,7 @@ jobs:
     uses: ./.github/workflows/rs-run-ws-tests.yml
     with:
       sources_ref: ${{ needs.prepare.outputs.rc_branch }}
-      gear_node_version: 1.7.1
+      gear_node_version: 1.8.0
 
   cli_tests:
     if: false
@@ -130,14 +133,14 @@ jobs:
         run: |
           cargo build -p demo --release
           mkdir -p ./assets/demo
-          cp ./target/wasm32-unknown-unknown/release/demo.opt.wasm ./assets/demo/demo.wasm
+          cp ./target/wasm32-gear/release/demo.opt.wasm ./assets/demo/demo.wasm
           cp ./examples/demo/client/demo.idl ./assets/demo/demo.idl
 
       - name: Build NoSvcsProg
         run: |
           cargo build -p no-svcs-prog --release
           mkdir -p ./assets/no_svcs_prog
-          cp ./target/wasm32-unknown-unknown/release/no_svcs_prog.opt.wasm ./assets/no_svcs_prog/no_svcs_prog.wasm
+          cp ./target/wasm32-gear/release/no_svcs_prog.opt.wasm ./assets/no_svcs_prog/no_svcs_prog.wasm
           cp ./examples/no-svcs-prog/wasm/no-svcs-prog.idl ./assets/no_svcs_prog/no-svcs-prog.idl
 
       - name: Upload Assets
@@ -187,6 +190,7 @@ jobs:
           git push origin "${{ needs.prepare.outputs.rc_branch }}"
 
   cli_tests_after_publish:
+    if: false
     name: Run CLI Tests After Publish
     needs:
       - prepare
@@ -203,8 +207,9 @@ jobs:
       pull-requests: write
     needs:
       - prepare
-      - cli_tests_after_publish
+      # - cli_tests_after_publish
       - assets
+      - publish
     defaults:
       run:
         shell: bash

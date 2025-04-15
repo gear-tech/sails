@@ -134,8 +134,7 @@ impl GTestRemoting {
                     let reply: result::Result<Vec<u8>, _> = match entry.reply_code() {
                         None => Err(RtlError::ReplyCodeIsMissing.into()),
                         Some(ReplyCode::Error(reason)) => {
-                            let message = String::from_utf8_lossy(entry.payload()).to_string();
-                            Err(RtlError::ReplyHasError(reason, message).into())
+                            Err(RtlError::ReplyHasError(reason, entry.payload().to_vec()).into())
                         }
                         Some(ReplyCode::Success(SuccessReplyReason::Manual)) => {
                             Ok(entry.payload().to_vec())
