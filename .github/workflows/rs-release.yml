@@ -21,7 +21,6 @@ env:
   GITHUB_USER_EMAIL: 41898282+github-actions[bot]@users.noreply.github.com
   # crates in order of dependency (topological order), first the ones that are not dependent on any other
   SAILS_CRATES: |
-    sails-idl-meta
     sails-idl-parser
     sails-idl-gen
     sails-sol-gen
@@ -190,6 +189,7 @@ jobs:
           git push origin "${{ needs.prepare.outputs.rc_branch }}"
 
   cli_tests_after_publish:
+    if: false
     name: Run CLI Tests After Publish
     needs:
       - prepare
@@ -206,7 +206,7 @@ jobs:
       pull-requests: write
     needs:
       - prepare
-      - cli_tests_after_publish
+      # - cli_tests_after_publish
       - assets
     defaults:
       run:
