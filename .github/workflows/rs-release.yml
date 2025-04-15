@@ -88,7 +88,6 @@ jobs:
           git push origin --delete "${{ steps.release_info.outputs.pin_tag }}"
 
   ws_tests:
-    if: false
     name: Run Workspace Tests
     needs:
       - prepare
@@ -155,7 +154,7 @@ jobs:
     runs-on: ubuntu-latest
     needs:
       - prepare
-      # - ws_tests
+      - ws_tests
       # - cli_tests
     defaults:
       run:
@@ -175,19 +174,6 @@ jobs:
           done
           cargo login ${{ secrets.CRATES_IO_TOKEN }}
           for SAILS_CRATE in $SAILS_CRATES; do
-            if [ "$SAILS_CRATE" = "sails-idl-meta" ]; then
-              echo "Skipping $SAILS_CRATE"
-              continue
-            fi
-            if [ "$SAILS_CRATE" = "sails-idl-parser" ]; then
-              echo "Skipping $SAILS_CRATE"
-              continue
-            fi
-            if [ "$SAILS_CRATE" = "sails-idl-gen" ]; then
-              echo "Skipping $SAILS_CRATE"
-              continue
-            fi
-
             cargo publish -p $SAILS_CRATE
           done
           # Revert temporary changes to Cargo.toml
