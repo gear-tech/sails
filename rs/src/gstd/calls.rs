@@ -1,8 +1,6 @@
-use super::message_future::MessageFutureWithRedirect;
-use crate::{
-    calls::Remoting, collections::BTreeMap, errors::Result, futures::FutureExt, prelude::*, rc::Rc,
-};
-use core::{cell::RefCell, future::Future};
+use super::message_future::{MessageFutureWithRedirect, redirect_target};
+use crate::{calls::Remoting, errors::Result, futures::FutureExt, prelude::*};
+use core::future::Future;
 use gstd::{msg, prog};
 
 #[derive(Default)]
@@ -41,13 +39,11 @@ impl GStdArgs {
 }
 
 #[derive(Debug, Default, Clone)]
-pub struct GStdRemoting {
-    redirects: Rc<RefCell<BTreeMap<ActorId, ActorId>>>,
-}
+pub struct GStdRemoting;
 
 impl GStdRemoting {
     pub fn new() -> Self {
-        Self::default()
+        Self
     }
 
     pub(crate) fn send_for_reply<T: AsRef<[u8]>>(
@@ -56,9 +52,8 @@ impl GStdRemoting {
         #[cfg(not(feature = "ethexe"))] gas_limit: Option<GasUnit>,
         value: ValueUnit,
         #[allow(unused_variables)] args: GStdArgs,
-        redirects: Rc<RefCell<BTreeMap<ActorId, ActorId>>>,
     ) -> Result<MessageFutureWithRedirect<T>> {
-        let target = GStdRemoting::redirect_target(&redirects.borrow(), &target);
+        let target = redirect_target(&target);
         #[cfg(not(feature = "ethexe"))]
         let mut message_future = if let Some(gas_limit) = gas_limit {
             msg::send_bytes_with_gas_for_reply(
@@ -95,16 +90,7 @@ impl GStdRemoting {
             value,
             #[cfg(not(feature = "ethexe"))]
             args.reply_deposit,
-            redirects,
         ))
-    }
-
-    fn redirect_target(redirects: &BTreeMap<ActorId, ActorId>, target: &ActorId) -> ActorId {
-        let mut target = target;
-        while let Some(redirect) = redirects.get(&target) {
-            target = redirect;
-        }
-        *target
     }
 }
 
@@ -168,7 +154,6 @@ impl Remoting for GStdRemoting {
             gas_limit,
             value,
             args,
-            self.redirects,
         )?;
         Ok(reply_future)
     }
@@ -188,7 +173,6 @@ impl Remoting for GStdRemoting {
             gas_limit,
             value,
             args,
-            self.redirects,
         )?;
         let reply = reply_future.await?;
         Ok(reply)

@@ -1,13 +1,42 @@
 use super::calls::{GStdArgs, GStdRemoting};
-use crate::{collections::BTreeMap, errors::Result, prelude::*, rc::Rc};
+use crate::{collections::BTreeMap, errors::Result, prelude::*};
+use core::ops::DerefMut;
 use core::{
-    cell::RefCell,
     future::Future,
     pin::Pin,
     task::{Context, Poll, ready},
 };
 use gstd::msg;
 use pin_project_lite::pin_project;
+
+type RedirectMap = BTreeMap<ActorId, ActorId>;
+
+#[cfg(not(target_arch = "wasm32"))]
+fn redirect_map() -> impl DerefMut<Target = RedirectMap> {
+    use spin::Mutex;
+
+    static MAP: Mutex<RedirectMap> = Mutex::new(RedirectMap::new());
+    MAP.lock()
+}
+
+// This code relies on the fact contracts are executed in a single-threaded environment
+#[cfg(target_arch = "wasm32")]
+fn redirect_map() -> impl DerefMut<Target = RedirectMap> {
+    static mut MAP: RedirectMap = RedirectMap::new();
+    #[allow(static_mut_refs)]
+    unsafe {
+        &mut MAP
+    }
+}
+
+pub(crate) fn redirect_target(target: &ActorId) -> ActorId {
+    let redirect_map = redirect_map();
+    let mut target = target;
+    while let Some(redirect) = redirect_map.get(target) {
+        target = redirect;
+    }
+    *target
+}
 
 pin_project! {
     #[project = Projection]
@@ -22,7 +51,6 @@ pin_project! {
             gas_limit: Option<GasUnit>,
             value: ValueUnit,
             reply_deposit: Option<GasUnit>,
-            redirects: Rc<RefCell<BTreeMap<ActorId, ActorId>>>,
         },
         Dummy,
     }
@@ -37,7 +65,6 @@ impl<T: AsRef<[u8]>> MessageFutureWithRedirect<T> {
         gas_limit: Option<GasUnit>,
         value: ValueUnit,
         reply_deposit: Option<GasUnit>,
-        redirects: Rc<RefCell<BTreeMap<ActorId, ActorId>>>,
     ) -> Self {
         Self::Incomplete {
             future,
@@ -46,7 +73,6 @@ impl<T: AsRef<[u8]>> MessageFutureWithRedirect<T> {
             gas_limit,
             value,
             reply_deposit,
-            redirects,
         }
     }
 
@@ -56,7 +82,6 @@ impl<T: AsRef<[u8]>> MessageFutureWithRedirect<T> {
         target: ActorId,
         payload: T,
         value: ValueUnit,
-        redirects: Rc<RefCell<BTreeMap<ActorId, ActorId>>>,
     ) -> Self {
         Self::Incomplete {
             future,
@@ -65,7 +90,6 @@ impl<T: AsRef<[u8]>> MessageFutureWithRedirect<T> {
             gas_limit: None,
             value,
             reply_deposit: None,
-            redirects,
         }
     }
 }
@@ -96,7 +120,10 @@ impl<T: AsRef<[u8]>> Future for MessageFutureWithRedirect<T> {
         match output {
             Ok(_) => Poll::Ready(output.map_err(Into::into)),
             Err(err) => match err {
-                gstd::errors::Error::ErrorReply(error_payload, ErrorReplyReason::InactiveActor) => {
+                gstd::errors::Error::ErrorReply(
+                    error_payload,
+                    ErrorReplyReason::UnavailableActor(SimpleUnavailableActorError::ProgramExited),
+                ) => {
                     if let Ok(new_target) = ActorId::try_from(error_payload.0.as_ref()) {
                         // Safely extract values by replacing with Dummy
                         let Replace::Incomplete {
@@ -105,7 +132,6 @@ impl<T: AsRef<[u8]>> Future for MessageFutureWithRedirect<T> {
                             gas_limit,
                             value,
                             reply_deposit,
-                            redirects,
                             ..
                         } = this
                             .as_mut()
@@ -114,7 +140,7 @@ impl<T: AsRef<[u8]>> Future for MessageFutureWithRedirect<T> {
                             unreachable!("Invalid state during replacement")
                         };
                         // Insert new target into redirects
-                        redirects.borrow_mut().insert(target, new_target);
+                        redirect_map().insert(target, new_target);
                         // Get new future
                         #[cfg(not(feature = "ethexe"))]
                         let args = GStdArgs::default().with_reply_deposit(reply_deposit);
@@ -127,7 +153,6 @@ impl<T: AsRef<[u8]>> Future for MessageFutureWithRedirect<T> {
                             gas_limit,
                             value,
                             args,
-                            redirects,
                         )
                         .unwrap();
                         // Replace the future with a new one
@@ -136,7 +161,7 @@ impl<T: AsRef<[u8]>> Future for MessageFutureWithRedirect<T> {
                         match this.as_mut().project() {
                             Projection::Incomplete { future, .. } => {
                                 let output = ready!(future.poll(cx));
-                                return Poll::Ready(output.map_err(Into::into));
+                                Poll::Ready(output.map_err(Into::into))
                             }
                             Projection::Dummy => {
                                 unreachable!("Invalid state during replacement")
@@ -145,7 +170,9 @@ impl<T: AsRef<[u8]>> Future for MessageFutureWithRedirect<T> {
                     } else {
                         Poll::Ready(Err(gstd::errors::Error::ErrorReply(
                             error_payload,
-                            ErrorReplyReason::InactiveActor,
+                            ErrorReplyReason::UnavailableActor(
+                                SimpleUnavailableActorError::ProgramExited,
+                            ),
                         )
                         .into()))
                     }

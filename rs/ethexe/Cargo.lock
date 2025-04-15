@@ -4169,6 +4169,7 @@ dependencies = [
  "keccak-const",
  "log",
  "parity-scale-codec",
+ "pin-project-lite",
  "sails-idl-gen",
  "sails-idl-meta",
  "sails-macros",
