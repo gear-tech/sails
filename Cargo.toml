@@ -53,7 +53,7 @@ gtest = "=1.8.0"
 gwasm-builder = { version = "=1.8.0", package = "gear-wasm-builder" }
 
 # Other deps in alphabetical order
-alloy-primitives = { version = "0.8.19", default-features = false }
+alloy-primitives = { version = "0.8.25", default-features = false }
 alloy-sol-types = { version = "0.8.19", default-features = false }
 anyhow = "1"
 cargo-generate = "0.21"
