@@ -183,6 +183,10 @@ jobs:
               echo "Skipping $SAILS_CRATE"
               continue
             fi
+            if [ "$SAILS_CRATE" = "sails-idl-gen" ]; then
+              echo "Skipping $SAILS_CRATE"
+              continue
+            fi
 
             cargo publish -p $SAILS_CRATE
           done
