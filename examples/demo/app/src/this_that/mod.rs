@@ -6,6 +6,7 @@ pub struct MyService(());
 #[service]
 impl MyService {
     // This is a service command as it works over `&mut self`
+    #[allow(unused_variables)]
     pub async fn do_this(
         &mut self,
         p1: u32,

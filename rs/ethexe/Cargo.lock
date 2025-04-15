@@ -4111,7 +4111,7 @@ dependencies = [
 
 [[package]]
 name = "sails-idl-gen"
-version = "0.7.3"
+version = "0.8.0"
 dependencies = [
  "convert_case 0.6.0",
  "gprimitives",
@@ -4125,14 +4125,14 @@ dependencies = [
 
 [[package]]
 name = "sails-idl-meta"
-version = "0.7.3"
+version = "0.8.0"
 dependencies = [
  "scale-info",
 ]
 
 [[package]]
 name = "sails-macros"
-version = "0.7.3"
+version = "0.8.0"
 dependencies = [
  "proc-macro-error",
  "sails-macros-core",
@@ -4140,7 +4140,7 @@ dependencies = [
 
 [[package]]
 name = "sails-macros-core"
-version = "0.7.3"
+version = "0.8.0"
 dependencies = [
  "convert_case 0.6.0",
  "parity-scale-codec",
@@ -4152,7 +4152,7 @@ dependencies = [
 
 [[package]]
 name = "sails-rs"
-version = "0.7.3"
+version = "0.8.0"
 dependencies = [
  "alloy-primitives",
  "alloy-sol-types",
