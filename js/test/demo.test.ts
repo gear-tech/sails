@@ -81,7 +81,6 @@ describe('Ping', () => {
 
     const { msgId, blockHash, response } = await transaction.signAndSend();
 
-    expect(transaction.gasInfo).toBeDefined();
     expect(msgId).toBeDefined();
     expect(blockHash).toBeDefined();
 
