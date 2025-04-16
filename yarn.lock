@@ -7808,6 +7808,7 @@ __metadata:
     "@gear-js/api": "npm:0.41.1"
     "@polkadot/api": "npm:15.9.1"
     sails-js: "npm:*"
+    sails-js-cli: "npm:*"
     typescript: "npm:^5.7.3"
   languageName: unknown
   linkType: soft
@@ -8308,7 +8309,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"sails-js-cli@workspace:js/cli":
+"sails-js-cli@npm:*, sails-js-cli@workspace:js/cli":
   version: 0.0.0-use.local
   resolution: "sails-js-cli@workspace:js/cli"
   dependencies:
