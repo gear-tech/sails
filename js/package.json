@@ -35,8 +35,8 @@
     "clean": "rm -rf lib"
   },
   "peerDependencies": {
-    "@gear-js/api": "0.41.1",
-    "@polkadot/api": "15.9.1"
+    "@gear-js/api": "^0.41.1",
+    "@polkadot/api": "^15.9.1"
   },
   "optionalDependencies": {
     "sails-js-types": "0.4.0"

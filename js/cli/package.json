@@ -26,13 +26,15 @@
     "@inquirer/prompts": "^7.2.3",
     "commander": "^13.1.0",
     "inquirer": "^12.3.2",
+    "jest": "^29.7.0",
     "sails-js": "*",
     "sails-js-parser": "*",
     "sails-js-util": "*"
   },
   "scripts": {
     "build": "npx rollup --config rollup.config.js",
-    "clean": "rm -rf build"
+    "clean": "rm -rf build",
+    "test": "TEST_ENV=true npx rollup --config rollup.config.js && node --experimental-vm-modules ../../node_modules/.bin/jest"
   },
   "files": [
     "build"

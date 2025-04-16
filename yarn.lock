@@ -8316,6 +8316,7 @@ __metadata:
     "@inquirer/prompts": "npm:^7.2.3"
     commander: "npm:^13.1.0"
     inquirer: "npm:^12.3.2"
+    jest: "npm:^29.7.0"
     sails-js: "npm:*"
     sails-js-parser: "npm:*"
     sails-js-util: "npm:*"
@@ -8362,8 +8363,8 @@ __metadata:
     sails-js-types: "npm:*"
     sails-js-util: "npm:0.4.0"
   peerDependencies:
-    "@gear-js/api": 0.41.1
-    "@polkadot/api": 15.9.1
+    "@gear-js/api": ^0.41.1
+    "@polkadot/api": ^15.9.1
   dependenciesMeta:
     sails-js-types:
       optional: true

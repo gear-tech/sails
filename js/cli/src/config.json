@@ -15,8 +15,8 @@
     ]
   },
   "versions": {
-    "gear-js": "0.41.1",
-    "polkadot-api": "15.9.1",
+    "gear-js": "^0.41.1",
+    "polkadot-api": "^15.9.1",
     "sails-js": "0.4.0",
     "typescript": "^5.7.3"
   }
