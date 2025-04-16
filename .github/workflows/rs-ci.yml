@@ -50,6 +50,10 @@ jobs:
         run: |
           __GEAR_WASM_BUILDER_NO_FEATURES_TRACKING=1 cargo clippy --workspace --all-targets --locked -- -D warnings
 
+      - name: Check Code With Clippy on the `sails-rs` package with `ethexe` Feature
+        run: |
+          __GEAR_WASM_BUILDER_NO_FEATURES_TRACKING=1 cargo clippy -p sails-rs --all-targets --locked  --features ethexe -- -D warnings
+
       - name: Check Code With Clippy in Ethexe Workspace
         run: |
           __GEAR_WASM_BUILDER_NO_FEATURES_TRACKING=1 cargo clippy --workspace --all-targets --locked --manifest-path ./rs/ethexe/Cargo.toml -- -D warnings
