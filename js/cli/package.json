@@ -1,7 +1,7 @@
 {
   "name": "sails-js-cli",
   "description": "CLI allowing to generate Typescript library based on Sails IDL files",
-  "version": "0.3.1",
+  "version": "0.4.0",
   "preferGlobal": true,
   "type": "module",
   "license": "GPL-3.0",
@@ -26,9 +26,9 @@
     "@inquirer/prompts": "^7.2.3",
     "commander": "^13.1.0",
     "inquirer": "^12.3.2",
-    "sails-js": "workspace:*",
-    "sails-js-parser": "workspace:*",
-    "sails-js-util": "workspace:^"
+    "sails-js": "*",
+    "sails-js-parser": "*",
+    "sails-js-util": "*"
   },
   "scripts": {
     "build": "npx rollup --config rollup.config.js",

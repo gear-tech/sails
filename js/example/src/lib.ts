@@ -1,74 +1,44 @@
-import {
-  NonZeroU32,
-  ActorId,
-  H256,
-  TransactionBuilder,
-  getServiceNamePrefix,
-  getFnNamePrefix,
-  ZERO_ADDRESS,
-  H160,
-  NonZeroU8,
-} from 'sails-js';
 import { GearApi, decodeAddress } from '@gear-js/api';
 import { TypeRegistry } from '@polkadot/types';
-
-export type ReferenceCount = [number];
-
-export interface DoThatParam {
-  p1: NonZeroU32;
-  p2: ActorId;
-  p3: ManyVariants;
-}
-
-export type ManyVariants =
-  | { one: null }
-  | { two: number }
-  | { three: number | string | bigint | null }
-  | { four: { a: number; b: number | null } }
-  | { five: [string, H256] }
-  | { six: [number] };
-
-export type TupleStruct = [boolean];
+import { TransactionBuilder, throwOnErrorReply, getServiceNamePrefix, getFnNamePrefix, ZERO_ADDRESS, ActorId, NonZeroU32, H160, NonZeroU8 } from 'sails-js';
 
 export class Program {
   public readonly registry: TypeRegistry;
+  public readonly pingPong: PingPong;
   public readonly counter: Counter;
   public readonly dog: Dog;
-  public readonly pingPong: PingPong;
   public readonly references: References;
   public readonly thisThat: ThisThat;
+  public readonly valueFee: ValueFee;
 
-  constructor(
-    public api: GearApi,
-    public programId?: `0x${string}`,
-  ) {
+  constructor(public api: GearApi, private _programId?: `0x${string}`) {
     const types: Record<string, any> = {
-      ReferenceCount: '(u32)',
-      DoThatParam: { p1: 'u32', p2: '[u8;32]', p3: 'ManyVariants' },
-      ManyVariants: {
-        _enum: {
-          One: 'Null',
-          Two: 'u32',
-          Three: 'Option<U256>',
-          Four: { a: 'u32', b: 'Option<u16>' },
-          Five: '(String, H256)',
-          Six: '(u32)',
-        },
-      },
-      TupleStruct: '(bool)',
-    };
+      ReferenceCount: "(u32)",
+      DoThatParam: {"p1":"u32","p2":"[u8;32]","p3":"ManyVariants"},
+      ManyVariants: {"_enum":{"One":"Null","Two":"u32","Three":"Option<U256>","Four":{"a":"u32","b":"Option<u16>"},"Five":"(String, H256)","Six":"(u32)"}},
+      TupleStruct: "(bool)",
+    }
 
     this.registry = new TypeRegistry();
     this.registry.setKnownTypes({ types });
     this.registry.register(types);
 
+    this.pingPong = new PingPong(this);
     this.counter = new Counter(this);
     this.dog = new Dog(this);
-    this.pingPong = new PingPong(this);
     this.references = new References(this);
     this.thisThat = new ThisThat(this);
+    this.valueFee = new ValueFee(this);
   }
 
+  public get programId(): `0x${string}` {
+    if (!this._programId) throw new Error(`Program ID is not set`);
+    return this._programId;
+  }
+
+  /**
+   * Program constructor (called once at the very beginning of the program lifetime)
+  */
   defaultCtorFromCode(code: Uint8Array | Buffer): TransactionBuilder<null> {
     const builder = new TransactionBuilder<null>(
       this.api,
@@ -80,10 +50,13 @@ export class Program {
       code,
     );
 
-    this.programId = builder.programId;
+    this._programId = builder.programId;
     return builder;
   }
 
+  /**
+   * Program constructor (called once at the very beginning of the program lifetime)
+  */
   defaultCtorFromCodeId(codeId: `0x${string}`) {
     const builder = new TransactionBuilder<null>(
       this.api,
@@ -95,14 +68,13 @@ export class Program {
       codeId,
     );
 
-    this.programId = builder.programId;
+    this._programId = builder.programId;
     return builder;
   }
-  newCtorFromCode(
-    code: Uint8Array | Buffer,
-    counter: number | null,
-    dog_position: [number, number] | null,
-  ): TransactionBuilder<null> {
+  /**
+   * Another program constructor (called once at the very beginning of the program lifetime)
+  */
+  newCtorFromCode(code: Uint8Array | Buffer, counter: number | null, dog_position: [number, number] | null): TransactionBuilder<null> {
     const builder = new TransactionBuilder<null>(
       this.api,
       this.registry,
@@ -113,10 +85,13 @@ export class Program {
       code,
     );
 
-    this.programId = builder.programId;
+    this._programId = builder.programId;
     return builder;
   }
 
+  /**
+   * Another program constructor (called once at the very beginning of the program lifetime)
+  */
   newCtorFromCodeId(codeId: `0x${string}`, counter: number | null, dog_position: [number, number] | null) {
     const builder = new TransactionBuilder<null>(
       this.api,
@@ -128,14 +103,34 @@ export class Program {
       codeId,
     );
 
-    this.programId = builder.programId;
+    this._programId = builder.programId;
     return builder;
+  }
+}
+
+export class PingPong {
+  constructor(private _program: Program) {}
+
+  public ping(input: string): TransactionBuilder<{ ok: string } | { err: string }> {
+    if (!this._program.programId) throw new Error('Program ID is not set');
+    return new TransactionBuilder<{ ok: string } | { err: string }>(
+      this._program.api,
+      this._program.registry,
+      'send_message',
+      ['PingPong', 'Ping', input],
+      '(String, String, String)',
+      'Result<String, String>',
+      this._program.programId
+    );
   }
 }
 
 export class Counter {
   constructor(private _program: Program) {}
 
+  /**
+   * Add a value to the counter
+  */
   public add(value: number): TransactionBuilder<number> {
     if (!this._program.programId) throw new Error('Program ID is not set');
     return new TransactionBuilder<number>(
@@ -145,10 +140,13 @@ export class Counter {
       ['Counter', 'Add', value],
       '(String, String, u32)',
       'u32',
-      this._program.programId,
+      this._program.programId
     );
   }
 
+  /**
+   * Substract a value from the counter
+  */
   public sub(value: number): TransactionBuilder<number> {
     if (!this._program.programId) throw new Error('Program ID is not set');
     return new TransactionBuilder<number>(
@@ -158,15 +156,14 @@ export class Counter {
       ['Counter', 'Sub', value],
       '(String, String, u32)',
       'u32',
-      this._program.programId,
+      this._program.programId
     );
   }
 
-  public async value(
-    originAddress?: string,
-    value?: number | string | bigint,
-    atBlock?: `0x${string}`,
-  ): Promise<number> {
+  /**
+   * Get the current value
+  */
+  public async value(originAddress?: string, value?: number | string | bigint, atBlock?: `0x${string}`): Promise<number> {
     const payload = this._program.registry.createType('(String, String)', ['Counter', 'Value']).toHex();
     const reply = await this._program.api.message.calculateReply({
       destination: this._program.programId,
@@ -174,43 +171,41 @@ export class Counter {
       payload,
       value: value || 0,
       gasLimit: this._program.api.blockGasLimit.toBigInt(),
-      at: atBlock || null,
+      at: atBlock,
     });
-    if (!reply.code.isSuccess) throw new Error(this._program.registry.createType('String', reply.payload).toString());
+    throwOnErrorReply(reply.code, reply.payload.toU8a(), this._program.api.specVersion, this._program.registry);
     const result = this._program.registry.createType('(String, String, u32)', reply.payload);
     return result[2].toNumber() as unknown as number;
   }
 
+  /**
+   * Emitted when a new value is added to the counter
+  */
   public subscribeToAddedEvent(callback: (data: number) => void | Promise<void>): Promise<() => void> {
-    return this._program.api.gearEvents.subscribeToGearEvent('UserMessageSent', ({ data: { message } }) => {
+    return this._program.api.gearEvents.subscribeToGearEvent('UserMessageSent', ({ data: { message } }) => {;
       if (!message.source.eq(this._program.programId) || !message.destination.eq(ZERO_ADDRESS)) {
         return;
       }
 
       const payload = message.payload.toHex();
       if (getServiceNamePrefix(payload) === 'Counter' && getFnNamePrefix(payload) === 'Added') {
-        callback(
-          this._program.registry
-            .createType('(String, String, u32)', message.payload)[2]
-            .toNumber() as unknown as number,
-        );
+        callback(this._program.registry.createType('(String, String, u32)', message.payload)[2].toNumber() as unknown as number);
       }
     });
   }
 
+  /**
+   * Emitted when a value is subtracted from the counter
+  */
   public subscribeToSubtractedEvent(callback: (data: number) => void | Promise<void>): Promise<() => void> {
-    return this._program.api.gearEvents.subscribeToGearEvent('UserMessageSent', ({ data: { message } }) => {
+    return this._program.api.gearEvents.subscribeToGearEvent('UserMessageSent', ({ data: { message } }) => {;
       if (!message.source.eq(this._program.programId) || !message.destination.eq(ZERO_ADDRESS)) {
         return;
       }
 
       const payload = message.payload.toHex();
       if (getServiceNamePrefix(payload) === 'Counter' && getFnNamePrefix(payload) === 'Subtracted') {
-        callback(
-          this._program.registry
-            .createType('(String, String, u32)', message.payload)[2]
-            .toNumber() as unknown as number,
-        );
+        callback(this._program.registry.createType('(String, String, u32)', message.payload)[2].toNumber() as unknown as number);
       }
     });
   }
@@ -228,7 +223,7 @@ export class Dog {
       ['Dog', 'MakeSound'],
       '(String, String)',
       'String',
-      this._program.programId,
+      this._program.programId
     );
   }
 
@@ -241,15 +236,11 @@ export class Dog {
       ['Dog', 'Walk', dx, dy],
       '(String, String, i32, i32)',
       'Null',
-      this._program.programId,
+      this._program.programId
     );
   }
 
-  public async avgWeight(
-    originAddress?: string,
-    value?: number | string | bigint,
-    atBlock?: `0x${string}`,
-  ): Promise<number> {
+  public async avgWeight(originAddress?: string, value?: number | string | bigint, atBlock?: `0x${string}`): Promise<number> {
     const payload = this._program.registry.createType('(String, String)', ['Dog', 'AvgWeight']).toHex();
     const reply = await this._program.api.message.calculateReply({
       destination: this._program.programId,
@@ -257,18 +248,14 @@ export class Dog {
       payload,
       value: value || 0,
       gasLimit: this._program.api.blockGasLimit.toBigInt(),
-      at: atBlock || null,
+      at: atBlock,
     });
-    if (!reply.code.isSuccess) throw new Error(this._program.registry.createType('String', reply.payload).toString());
+    throwOnErrorReply(reply.code, reply.payload.toU8a(), this._program.api.specVersion, this._program.registry);
     const result = this._program.registry.createType('(String, String, u32)', reply.payload);
     return result[2].toNumber() as unknown as number;
   }
 
-  public async position(
-    originAddress?: string,
-    value?: number | string | bigint,
-    atBlock?: `0x${string}`,
-  ): Promise<[number, number]> {
+  public async position(originAddress?: string, value?: number | string | bigint, atBlock?: `0x${string}`): Promise<[number, number]> {
     const payload = this._program.registry.createType('(String, String)', ['Dog', 'Position']).toHex();
     const reply = await this._program.api.message.calculateReply({
       destination: this._program.programId,
@@ -276,15 +263,15 @@ export class Dog {
       payload,
       value: value || 0,
       gasLimit: this._program.api.blockGasLimit.toBigInt(),
-      at: atBlock || null,
+      at: atBlock,
     });
-    if (!reply.code.isSuccess) throw new Error(this._program.registry.createType('String', reply.payload).toString());
+    throwOnErrorReply(reply.code, reply.payload.toU8a(), this._program.api.specVersion, this._program.registry);
     const result = this._program.registry.createType('(String, String, (i32, i32))', reply.payload);
     return result[2].toJSON() as unknown as [number, number];
   }
 
   public subscribeToBarkedEvent(callback: (data: null) => void | Promise<void>): Promise<() => void> {
-    return this._program.api.gearEvents.subscribeToGearEvent('UserMessageSent', ({ data: { message } }) => {
+    return this._program.api.gearEvents.subscribeToGearEvent('UserMessageSent', ({ data: { message } }) => {;
       if (!message.source.eq(this._program.programId) || !message.destination.eq(ZERO_ADDRESS)) {
         return;
       }
@@ -296,40 +283,17 @@ export class Dog {
     });
   }
 
-  public subscribeToWalkedEvent(
-    callback: (data: { from: [number, number]; to: [number, number] }) => void | Promise<void>,
-  ): Promise<() => void> {
-    return this._program.api.gearEvents.subscribeToGearEvent('UserMessageSent', ({ data: { message } }) => {
+  public subscribeToWalkedEvent(callback: (data: { from: [number, number]; to: [number, number] }) => void | Promise<void>): Promise<() => void> {
+    return this._program.api.gearEvents.subscribeToGearEvent('UserMessageSent', ({ data: { message } }) => {;
       if (!message.source.eq(this._program.programId) || !message.destination.eq(ZERO_ADDRESS)) {
         return;
       }
 
       const payload = message.payload.toHex();
       if (getServiceNamePrefix(payload) === 'Dog' && getFnNamePrefix(payload) === 'Walked') {
-        callback(
-          this._program.registry
-            .createType('(String, String, {"from":"(i32, i32)","to":"(i32, i32)"})', message.payload)[2]
-            .toJSON() as unknown as { from: [number, number]; to: [number, number] },
-        );
+        callback(this._program.registry.createType('(String, String, {"from":"(i32, i32)","to":"(i32, i32)"})', message.payload)[2].toJSON() as unknown as { from: [number, number]; to: [number, number] });
       }
     });
-  }
-}
-
-export class PingPong {
-  constructor(private _program: Program) {}
-
-  public ping(input: string): TransactionBuilder<{ ok: string } | { err: string }> {
-    if (!this._program.programId) throw new Error('Program ID is not set');
-    return new TransactionBuilder<{ ok: string } | { err: string }>(
-      this._program.api,
-      this._program.registry,
-      'send_message',
-      ['PingPong', 'Ping', input],
-      '(String, String, String)',
-      'Result<String, String>',
-      this._program.programId,
-    );
   }
 }
 
@@ -345,7 +309,7 @@ export class References {
       ['References', 'Add', v],
       '(String, String, u32)',
       'u32',
-      this._program.programId,
+      this._program.programId
     );
   }
 
@@ -358,7 +322,7 @@ export class References {
       ['References', 'AddByte', byte],
       '(String, String, u8)',
       'Vec<u8>',
-      this._program.programId,
+      this._program.programId
     );
   }
 
@@ -371,7 +335,7 @@ export class References {
       ['References', 'GuessNum', number],
       '(String, String, u8)',
       'Result<String, String>',
-      this._program.programId,
+      this._program.programId
     );
   }
 
@@ -384,7 +348,7 @@ export class References {
       ['References', 'Incr'],
       '(String, String)',
       'ReferenceCount',
-      this._program.programId,
+      this._program.programId
     );
   }
 
@@ -397,15 +361,11 @@ export class References {
       ['References', 'SetNum', number],
       '(String, String, u8)',
       'Result<Null, String>',
-      this._program.programId,
+      this._program.programId
     );
   }
 
-  public async baked(
-    originAddress?: string,
-    value?: number | string | bigint,
-    atBlock?: `0x${string}`,
-  ): Promise<string> {
+  public async baked(originAddress?: string, value?: number | string | bigint, atBlock?: `0x${string}`): Promise<string> {
     const payload = this._program.registry.createType('(String, String)', ['References', 'Baked']).toHex();
     const reply = await this._program.api.message.calculateReply({
       destination: this._program.programId,
@@ -413,18 +373,14 @@ export class References {
       payload,
       value: value || 0,
       gasLimit: this._program.api.blockGasLimit.toBigInt(),
-      at: atBlock || null,
+      at: atBlock,
     });
-    if (!reply.code.isSuccess) throw new Error(this._program.registry.createType('String', reply.payload).toString());
+    throwOnErrorReply(reply.code, reply.payload.toU8a(), this._program.api.specVersion, this._program.registry);
     const result = this._program.registry.createType('(String, String, String)', reply.payload);
     return result[2].toString() as unknown as string;
   }
 
-  public async lastByte(
-    originAddress?: string,
-    value?: number | string | bigint,
-    atBlock?: `0x${string}`,
-  ): Promise<number | null> {
+  public async lastByte(originAddress?: string, value?: number | string | bigint, atBlock?: `0x${string}`): Promise<number | null> {
     const payload = this._program.registry.createType('(String, String)', ['References', 'LastByte']).toHex();
     const reply = await this._program.api.message.calculateReply({
       destination: this._program.programId,
@@ -432,18 +388,14 @@ export class References {
       payload,
       value: value || 0,
       gasLimit: this._program.api.blockGasLimit.toBigInt(),
-      at: atBlock || null,
+      at: atBlock,
     });
-    if (!reply.code.isSuccess) throw new Error(this._program.registry.createType('String', reply.payload).toString());
+    throwOnErrorReply(reply.code, reply.payload.toU8a(), this._program.api.specVersion, this._program.registry);
     const result = this._program.registry.createType('(String, String, Option<u8>)', reply.payload);
     return result[2].toJSON() as unknown as number | null;
   }
 
-  public async message(
-    originAddress?: string,
-    value?: number | string | bigint,
-    atBlock?: `0x${string}`,
-  ): Promise<string | null> {
+  public async message(originAddress?: string, value?: number | string | bigint, atBlock?: `0x${string}`): Promise<string | null> {
     const payload = this._program.registry.createType('(String, String)', ['References', 'Message']).toHex();
     const reply = await this._program.api.message.calculateReply({
       destination: this._program.programId,
@@ -451,9 +403,9 @@ export class References {
       payload,
       value: value || 0,
       gasLimit: this._program.api.blockGasLimit.toBigInt(),
-      at: atBlock || null,
+      at: atBlock,
     });
-    if (!reply.code.isSuccess) throw new Error(this._program.registry.createType('String', reply.payload).toString());
+    throwOnErrorReply(reply.code, reply.payload.toU8a(), this._program.api.specVersion, this._program.registry);
     const result = this._program.registry.createType('(String, String, Option<String>)', reply.payload);
     return result[2].toJSON() as unknown as string | null;
   }
@@ -471,16 +423,11 @@ export class ThisThat {
       ['ThisThat', 'DoThat', param],
       '(String, String, DoThatParam)',
       'Result<([u8;32], u32), (String)>',
-      this._program.programId,
+      this._program.programId
     );
   }
 
-  public doThis(
-    p1: number,
-    p2: string,
-    p3: [H160 | null, NonZeroU8],
-    p4: TupleStruct,
-  ): TransactionBuilder<[string, number]> {
+  public doThis(p1: number, p2: string, p3: [H160 | null, NonZeroU8], p4: TupleStruct): TransactionBuilder<[string, number]> {
     if (!this._program.programId) throw new Error('Program ID is not set');
     return new TransactionBuilder<[string, number]>(
       this._program.api,
@@ -489,7 +436,7 @@ export class ThisThat {
       ['ThisThat', 'DoThis', p1, p2, p3, p4],
       '(String, String, u32, String, (Option<H160>, u8), TupleStruct)',
       '(String, u32)',
-      this._program.programId,
+      this._program.programId
     );
   }
 
@@ -502,15 +449,11 @@ export class ThisThat {
       ['ThisThat', 'Noop'],
       '(String, String)',
       'Null',
-      this._program.programId,
+      this._program.programId
     );
   }
 
-  public async that(
-    originAddress?: string,
-    value?: number | string | bigint,
-    atBlock?: `0x${string}`,
-  ): Promise<{ ok: string } | { err: string }> {
+  public async that(originAddress?: string, value?: number | string | bigint, atBlock?: `0x${string}`): Promise<{ ok: string } | { err: string }> {
     const payload = this._program.registry.createType('(String, String)', ['ThisThat', 'That']).toHex();
     const reply = await this._program.api.message.calculateReply({
       destination: this._program.programId,
@@ -518,18 +461,14 @@ export class ThisThat {
       payload,
       value: value || 0,
       gasLimit: this._program.api.blockGasLimit.toBigInt(),
-      at: atBlock || null,
+      at: atBlock,
     });
-    if (!reply.code.isSuccess) throw new Error(this._program.registry.createType('String', reply.payload).toString());
+    throwOnErrorReply(reply.code, reply.payload.toU8a(), this._program.api.specVersion, this._program.registry);
     const result = this._program.registry.createType('(String, String, Result<String, String>)', reply.payload);
     return result[2].toJSON() as unknown as { ok: string } | { err: string };
   }
 
-  public async this(
-    originAddress?: string,
-    value?: number | string | bigint,
-    atBlock?: `0x${string}`,
-  ): Promise<number> {
+  public async this(originAddress?: string, value?: number | string | bigint, atBlock?: `0x${string}`): Promise<number> {
     const payload = this._program.registry.createType('(String, String)', ['ThisThat', 'This']).toHex();
     const reply = await this._program.api.message.calculateReply({
       destination: this._program.programId,
@@ -537,10 +476,44 @@ export class ThisThat {
       payload,
       value: value || 0,
       gasLimit: this._program.api.blockGasLimit.toBigInt(),
-      at: atBlock || null,
+      at: atBlock,
     });
-    if (!reply.code.isSuccess) throw new Error(this._program.registry.createType('String', reply.payload).toString());
+    throwOnErrorReply(reply.code, reply.payload.toU8a(), this._program.api.specVersion, this._program.registry);
     const result = this._program.registry.createType('(String, String, u32)', reply.payload);
     return result[2].toNumber() as unknown as number;
+  }
+}
+
+export class ValueFee {
+  constructor(private _program: Program) {}
+
+  /**
+   * Return flag if fee taken and remain value,
+   * using special type `CommandReply<T>`
+  */
+  public doSomethingAndTakeFee(): TransactionBuilder<boolean> {
+    if (!this._program.programId) throw new Error('Program ID is not set');
+    return new TransactionBuilder<boolean>(
+      this._program.api,
+      this._program.registry,
+      'send_message',
+      ['ValueFee', 'DoSomethingAndTakeFee'],
+      '(String, String)',
+      'bool',
+      this._program.programId
+    );
+  }
+
+  public subscribeToWithheldEvent(callback: (data: bigint) => void | Promise<void>): Promise<() => void> {
+    return this._program.api.gearEvents.subscribeToGearEvent('UserMessageSent', ({ data: { message } }) => {;
+      if (!message.source.eq(this._program.programId) || !message.destination.eq(ZERO_ADDRESS)) {
+        return;
+      }
+
+      const payload = message.payload.toHex();
+      if (getServiceNamePrefix(payload) === 'ValueFee' && getFnNamePrefix(payload) === 'Withheld') {
+        callback(this._program.registry.createType('(String, String, u128)', message.payload)[2].toBigInt() as unknown as bigint);
+      }
+    });
   }
 }
