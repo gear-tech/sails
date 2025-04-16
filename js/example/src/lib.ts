@@ -1,4 +1,4 @@
-import { GearApi, decodeAddress } from '@gear-js/api';
+import { GearApi, HexString, decodeAddress } from '@gear-js/api';
 import { TypeRegistry } from '@polkadot/types';
 import { TransactionBuilder, throwOnErrorReply, getServiceNamePrefix, getFnNamePrefix, ZERO_ADDRESS, ActorId, NonZeroU32, H160, NonZeroU8 } from 'sails-js';
 
@@ -39,7 +39,7 @@ export class Program {
   /**
    * Program constructor (called once at the very beginning of the program lifetime)
   */
-  defaultCtorFromCode(code: Uint8Array | Buffer): TransactionBuilder<null> {
+  defaultCtorFromCode(code: Uint8Array | Buffer | HexString): TransactionBuilder<null> {
     const builder = new TransactionBuilder<null>(
       this.api,
       this.registry,
@@ -74,7 +74,7 @@ export class Program {
   /**
    * Another program constructor (called once at the very beginning of the program lifetime)
   */
-  newCtorFromCode(code: Uint8Array | Buffer, counter: number | null, dog_position: [number, number] | null): TransactionBuilder<null> {
+  newCtorFromCode(code: Uint8Array | Buffer | HexString, counter: number | null, dog_position: [number, number] | null): TransactionBuilder<null> {
     const builder = new TransactionBuilder<null>(
       this.api,
       this.registry,

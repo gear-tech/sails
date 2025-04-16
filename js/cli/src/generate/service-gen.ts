@@ -85,6 +85,7 @@ export class ServiceGenerator extends BaseGenerator {
       const ctorDocs = formatDocs(docs);
 
       $.lines(ctorDocs, false)
+        .import('@gear-js/api', 'HexString')
         .block(
           `${getFuncName(name)}CtorFromCode(code: Uint8Array | Buffer | HexString${
             args === null ? '' : ', ' + args
