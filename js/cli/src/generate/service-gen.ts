@@ -86,7 +86,7 @@ export class ServiceGenerator extends BaseGenerator {
 
       $.lines(ctorDocs, false)
         .block(
-          `${getFuncName(name)}CtorFromCode(code: Uint8Array | Buffer${
+          `${getFuncName(name)}CtorFromCode(code: Uint8Array | Buffer | HexString${
             args === null ? '' : ', ' + args
           }): TransactionBuilder<null>`,
           () => {
