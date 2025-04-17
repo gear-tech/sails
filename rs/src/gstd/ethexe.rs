@@ -180,11 +180,10 @@ mod tests {
     use super::*;
     use crate::String;
     use gstd::TypeInfo;
-    use sails_macros::EthEvent;
 
     #[allow(unused)]
-    #[derive(EthEvent, TypeInfo)]
-    #[sails_path(crate = crate)]
+    #[derive(TypeInfo)]
+    #[event(crate = crate)]
     enum Events {
         MyEvent1 {
             #[indexed]
@@ -193,7 +192,7 @@ mod tests {
             amount: u128,
             note: String,
         },
-        MyEvent2(#[indexed] u128, u128, String),
+        MyEvent2(u128, u128, String),
         MyEvent3,
     }
 
