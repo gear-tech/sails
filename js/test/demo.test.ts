@@ -75,6 +75,18 @@ describe('Ping', () => {
     expect(result).toHaveProperty('ok', 'pong');
   });
 
+  test('ping w/ low gas should fail', async () => {
+    expect(program.programId).toBeDefined();
+    const transaction = program.pingPong.ping('ping').withAccount(alice).withGas(1000n);
+
+    const { msgId, blockHash, response } = await transaction.signAndSend();
+
+    expect(msgId).toBeDefined();
+    expect(blockHash).toBeDefined();
+
+    await expect(response()).rejects.toThrow('Message ran out of gas while executing.');
+  });
+
   test('ping with voucher', async () => {
     expect(program.programId).toBeDefined();
     const { extrinsic, voucherId } = await api.voucher.issue(charlieRaw, 10 * 1e12);

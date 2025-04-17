@@ -1,6 +1,6 @@
 {
   "name": "sails",
-  "version": "0.3.1",
+  "version": "0.4.0",
   "private": true,
   "author": "Gear Technologies",
   "repository": {
@@ -50,7 +50,7 @@
     "build:util": "lerna run build --scope=sails-js-util",
     "build": "lerna run build",
     "version": "lerna version --no-private",
-    "test": "lerna run test --scope=sails-js",
+    "test": "lerna run test --scope=sails-js --scope=sails-js-cli --parallel",
     "publish": "lerna publish from-package --no-private",
     "lint": "npx eslint -c eslint.config.mjs",
     "lint:fix": "npx eslint --fix",

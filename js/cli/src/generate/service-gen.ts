@@ -85,8 +85,9 @@ export class ServiceGenerator extends BaseGenerator {
       const ctorDocs = formatDocs(docs);
 
       $.lines(ctorDocs, false)
+        .import('@gear-js/api', 'HexString')
         .block(
-          `${getFuncName(name)}CtorFromCode(code: Uint8Array | Buffer${
+          `${getFuncName(name)}CtorFromCode(code: Uint8Array | Buffer | HexString${
             args === null ? '' : ', ' + args
           }): TransactionBuilder<null>`,
           () => {
@@ -183,8 +184,9 @@ export class ServiceGenerator extends BaseGenerator {
               .reduceIndent()
               .line(`})`)
               .line(
-                "if (!reply.code.isSuccess) throw new Error(this._program.registry.createType('String', reply.payload).toString())",
+                'throwOnErrorReply(reply.code, reply.payload.toU8a(), this._program.api.specVersion, this._program.registry)',
               )
+              .import('sails-js', 'throwOnErrorReply')
               .line(
                 `const result = this._program.registry.createType('(String, String, ${returnScaleType})', reply.payload)`,
               )

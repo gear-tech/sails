@@ -7,6 +7,7 @@ import { getFnNamePrefix, getServiceNamePrefix } from './prefix.js';
 import { TransactionBuilder } from './transaction-builder.js';
 import { getScaleCodecDef } from 'sails-js-util';
 import { ZERO_ADDRESS } from './consts.js';
+import { throwOnErrorReply } from './utils.js';
 
 interface SailsService {
   readonly functions: Record<string, SailsServiceFunc>;
@@ -189,9 +190,7 @@ export class Sails {
             at: atBlock || null,
           });
 
-          if (!reply.code.isSuccess) {
-            throw new Error(this.registry.createType('String', reply.payload).toString());
-          }
+          throwOnErrorReply(reply.code, reply.payload.toU8a(), this._api.specVersion, this._registry);
 
           const result = this.registry.createType(`(String, String, ${returnType})`, reply.payload.toHex());
           return result[2].toJSON() as T;
