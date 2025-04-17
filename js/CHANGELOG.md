@@ -1,5 +1,17 @@
 # CHANGELOG
 
+## 0.4.0
+
+### Compatibility
+- Sails-RS v0.8.0
+- Gear v1.8.0
+
+### Changes
+- Support ReplyCode from `@gear-js/api` in https://github.com/gear-tech/sails/pull/893
+From now on, `response` function will throw an error if the program's reply is successful.
+- Update types in ctor generation (https://github.com/gear-tech/sails/issues/786)
+- Unpin `sails-js` peer dependencies
+
 ## 0.3.2
 
 ### Compatibility

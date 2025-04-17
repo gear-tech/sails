@@ -4,6 +4,7 @@ import { IKeyringPair, ISubmittableResult } from '@polkadot/types/types';
 import { TypeRegistry, u128, u64 } from '@polkadot/types';
 import { getPayloadMethod } from 'sails-js-util';
 import { ZERO_ADDRESS } from './consts.js';
+import { throwOnErrorReply } from './utils.js';
 
 export interface IMethodReturnType<T> {
   /**
@@ -348,19 +349,19 @@ export class TransactionBuilder<ResponseType> {
       isFinalized,
       response: async (rawResult = false) => {
         const {
-          data: { message },
+          data: {
+            message: { payload, details },
+          },
         } = await this._api.message.getReplyEvent(this.programId, msgId, blockHash);
 
-        if (!message.details.unwrap().code.isSuccess) {
-          throw new Error(this._registry.createType('String', message.payload).toString());
-        }
+        throwOnErrorReply(details.unwrap().code, payload, this._api.specVersion, this._registry);
 
         if (rawResult) {
-          return message.payload.toHex();
+          return payload.toHex();
         }
 
         // prettier-ignore
-        return this._registry.createType<any>(`(String, String, ${this._responseType})`, message.payload)[2][getPayloadMethod(this._responseType)]();
+        return this._registry.createType<any>(`(String, String, ${this._responseType})`, payload)[2][getPayloadMethod(this._responseType)]();
       },
     };
   }

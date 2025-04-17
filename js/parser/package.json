@@ -1,6 +1,6 @@
 {
   "name": "sails-js-parser",
-  "version": "0.3.1",
+  "version": "0.4.0",
   "description": "Sails-IDL parser for TypeScript",
   "main": "lib/cjs/index.cjs",
   "module": "lib/index.js",
@@ -36,7 +36,10 @@
     "build": "rollup --config rollup.config.js",
     "clean": "rm -rf lib"
   },
+  "optionalDependencies": {
+    "sails-js-types": "0.4.0"
+  },
   "peerDependencies": {
-    "sails-js-types": "0.3.1"
+    "sails-js-types": "0.4.0"
   }
 }

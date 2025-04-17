@@ -31,17 +31,30 @@ function updateConfigVersions() {
   };
 }
 
-export default [
-  {
-    input: 'src/app.ts',
-    output: [{ file: 'build/app.js', format: 'module', preserveModules: false }],
-    plugins: [
-      cleanOldBuild(),
-      updateConfigVersions(),
-      typescript({ tsconfig: 'tsconfig.json' }),
-      commonjs(),
-      json(),
-      nodeResolve({ preferBuiltins: true, browser: true }),
-    ],
-  },
-];
+export default process.env.TEST_ENV == 'true'
+  ? [
+      {
+        input: 'src/index.ts',
+        output: [{ file: 'build/index.js', format: 'module', preserveModules: false }],
+        plugins: [
+          typescript({ tsconfig: 'tsconfig.json' }),
+          commonjs(),
+          json(),
+          nodeResolve({ preferBuiltins: true, browser: true }),
+        ],
+      },
+    ]
+  : [
+      {
+        input: 'src/app.ts',
+        output: [{ file: 'build/app.js', format: 'module', preserveModules: false }],
+        plugins: [
+          cleanOldBuild(),
+          updateConfigVersions(),
+          typescript({ tsconfig: 'tsconfig.json' }),
+          commonjs(),
+          json(),
+          nodeResolve({ preferBuiltins: true, browser: true }),
+        ],
+      },
+    ];

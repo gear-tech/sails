@@ -1,4 +1,7 @@
-import { GearApi, HexString, decodeAddress } from '@gear-js/api';
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`generator demo lib 1`] = `
+"import { GearApi, HexString, decodeAddress } from '@gear-js/api';
 import { TypeRegistry } from '@polkadot/types';
 import { TransactionBuilder, throwOnErrorReply, getServiceNamePrefix, getFnNamePrefix, ZERO_ADDRESS, ActorId, NonZeroU32, H160, NonZeroU8 } from 'sails-js';
 
@@ -11,7 +14,7 @@ export class Program {
   public readonly thisThat: ThisThat;
   public readonly valueFee: ValueFee;
 
-  constructor(public api: GearApi, private _programId?: `0x${string}`) {
+  constructor(public api: GearApi, private _programId?: \`0x\${string}\`) {
     const types: Record<string, any> = {
       ReferenceCount: "(u32)",
       DoThatParam: {"p1":"u32","p2":"[u8;32]","p3":"ManyVariants"},
@@ -31,8 +34,8 @@ export class Program {
     this.valueFee = new ValueFee(this);
   }
 
-  public get programId(): `0x${string}` {
-    if (!this._programId) throw new Error(`Program ID is not set`);
+  public get programId(): \`0x\${string}\` {
+    if (!this._programId) throw new Error(\`Program ID is not set\`);
     return this._programId;
   }
 
@@ -57,7 +60,7 @@ export class Program {
   /**
    * Program constructor (called once at the very beginning of the program lifetime)
   */
-  defaultCtorFromCodeId(codeId: `0x${string}`) {
+  defaultCtorFromCodeId(codeId: \`0x\${string}\`) {
     const builder = new TransactionBuilder<null>(
       this.api,
       this.registry,
@@ -92,7 +95,7 @@ export class Program {
   /**
    * Another program constructor (called once at the very beginning of the program lifetime)
   */
-  newCtorFromCodeId(codeId: `0x${string}`, counter: number | null, dog_position: [number, number] | null) {
+  newCtorFromCodeId(codeId: \`0x\${string}\`, counter: number | null, dog_position: [number, number] | null) {
     const builder = new TransactionBuilder<null>(
       this.api,
       this.registry,
@@ -163,7 +166,7 @@ export class Counter {
   /**
    * Get the current value
   */
-  public async value(originAddress?: string, value?: number | string | bigint, atBlock?: `0x${string}`): Promise<number> {
+  public async value(originAddress?: string, value?: number | string | bigint, atBlock?: \`0x\${string}\`): Promise<number> {
     const payload = this._program.registry.createType('(String, String)', ['Counter', 'Value']).toHex();
     const reply = await this._program.api.message.calculateReply({
       destination: this._program.programId,
@@ -240,7 +243,7 @@ export class Dog {
     );
   }
 
-  public async avgWeight(originAddress?: string, value?: number | string | bigint, atBlock?: `0x${string}`): Promise<number> {
+  public async avgWeight(originAddress?: string, value?: number | string | bigint, atBlock?: \`0x\${string}\`): Promise<number> {
     const payload = this._program.registry.createType('(String, String)', ['Dog', 'AvgWeight']).toHex();
     const reply = await this._program.api.message.calculateReply({
       destination: this._program.programId,
@@ -255,7 +258,7 @@ export class Dog {
     return result[2].toNumber() as unknown as number;
   }
 
-  public async position(originAddress?: string, value?: number | string | bigint, atBlock?: `0x${string}`): Promise<[number, number]> {
+  public async position(originAddress?: string, value?: number | string | bigint, atBlock?: \`0x\${string}\`): Promise<[number, number]> {
     const payload = this._program.registry.createType('(String, String)', ['Dog', 'Position']).toHex();
     const reply = await this._program.api.message.calculateReply({
       destination: this._program.programId,
@@ -313,9 +316,9 @@ export class References {
     );
   }
 
-  public addByte(byte: number): TransactionBuilder<`0x${string}`> {
+  public addByte(byte: number): TransactionBuilder<\`0x\${string}\`> {
     if (!this._program.programId) throw new Error('Program ID is not set');
-    return new TransactionBuilder<`0x${string}`>(
+    return new TransactionBuilder<\`0x\${string}\`>(
       this._program.api,
       this._program.registry,
       'send_message',
@@ -365,7 +368,7 @@ export class References {
     );
   }
 
-  public async baked(originAddress?: string, value?: number | string | bigint, atBlock?: `0x${string}`): Promise<string> {
+  public async baked(originAddress?: string, value?: number | string | bigint, atBlock?: \`0x\${string}\`): Promise<string> {
     const payload = this._program.registry.createType('(String, String)', ['References', 'Baked']).toHex();
     const reply = await this._program.api.message.calculateReply({
       destination: this._program.programId,
@@ -380,7 +383,7 @@ export class References {
     return result[2].toString() as unknown as string;
   }
 
-  public async lastByte(originAddress?: string, value?: number | string | bigint, atBlock?: `0x${string}`): Promise<number | null> {
+  public async lastByte(originAddress?: string, value?: number | string | bigint, atBlock?: \`0x\${string}\`): Promise<number | null> {
     const payload = this._program.registry.createType('(String, String)', ['References', 'LastByte']).toHex();
     const reply = await this._program.api.message.calculateReply({
       destination: this._program.programId,
@@ -395,7 +398,7 @@ export class References {
     return result[2].toJSON() as unknown as number | null;
   }
 
-  public async message(originAddress?: string, value?: number | string | bigint, atBlock?: `0x${string}`): Promise<string | null> {
+  public async message(originAddress?: string, value?: number | string | bigint, atBlock?: \`0x\${string}\`): Promise<string | null> {
     const payload = this._program.registry.createType('(String, String)', ['References', 'Message']).toHex();
     const reply = await this._program.api.message.calculateReply({
       destination: this._program.programId,
@@ -453,7 +456,7 @@ export class ThisThat {
     );
   }
 
-  public async that(originAddress?: string, value?: number | string | bigint, atBlock?: `0x${string}`): Promise<{ ok: string } | { err: string }> {
+  public async that(originAddress?: string, value?: number | string | bigint, atBlock?: \`0x\${string}\`): Promise<{ ok: string } | { err: string }> {
     const payload = this._program.registry.createType('(String, String)', ['ThisThat', 'That']).toHex();
     const reply = await this._program.api.message.calculateReply({
       destination: this._program.programId,
@@ -468,7 +471,7 @@ export class ThisThat {
     return result[2].toJSON() as unknown as { ok: string } | { err: string };
   }
 
-  public async this(originAddress?: string, value?: number | string | bigint, atBlock?: `0x${string}`): Promise<number> {
+  public async this(originAddress?: string, value?: number | string | bigint, atBlock?: \`0x\${string}\`): Promise<number> {
     const payload = this._program.registry.createType('(String, String)', ['ThisThat', 'This']).toHex();
     const reply = await this._program.api.message.calculateReply({
       destination: this._program.programId,
@@ -489,7 +492,7 @@ export class ValueFee {
 
   /**
    * Return flag if fee taken and remain value,
-   * using special type `CommandReply<T>`
+   * using special type \`CommandReply<T>\`
   */
   public doSomethingAndTakeFee(): TransactionBuilder<boolean> {
     if (!this._program.programId) throw new Error('Program ID is not set');
@@ -516,4 +519,29 @@ export class ValueFee {
       }
     });
   }
-}
+}"
+`;
+
+exports[`generator demo lib 2`] = `
+"import { NonZeroU32, ActorId, H256 } from 'sails-js';
+
+declare global {
+  export type ReferenceCount = [number];
+
+  export interface DoThatParam {
+    p1: NonZeroU32;
+    p2: ActorId;
+    p3: ManyVariants;
+  }
+
+  export type ManyVariants = 
+    | { one: null }
+    | { two: number }
+    | { three: number | string | bigint | null }
+    | { four: { a: number; b: number | null } }
+    | { five: [string, H256] }
+    | { six: [number] };
+
+  export type TupleStruct = [boolean];
+};"
+`;

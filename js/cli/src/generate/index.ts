@@ -30,7 +30,7 @@ export class ProjectBuilder {
     return answer;
   }
 
-  private generateLib(): string {
+  public generateLib(): string {
     const out = new Output();
 
     const serviceGen = new ServiceGenerator(out, this.sails.program, this.sails.scaleCodecTypes);
@@ -39,7 +39,7 @@ export class ProjectBuilder {
     return out.finalize();
   }
 
-  private generateTypes(): string {
+  public generateTypes(): string {
     const out = new Output();
 
     const typesGen = new TypesGenerator(out, this.sails.program);

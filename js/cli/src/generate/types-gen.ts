@@ -15,7 +15,8 @@ export class TypesGenerator extends BaseGenerator {
 
   public generate() {
     this._out.line('declare global {', false).increaseIndent();
-    for (const { name, def, docs } of this._program.types) {
+    for (let i = 0; i < this._program.types.length; i++) {
+      const { name, def, docs } = this._program.types[i];
       this._out.lines(formatDocs(docs), false);
 
       if (def.isStruct) {
@@ -23,9 +24,12 @@ export class TypesGenerator extends BaseGenerator {
       } else if (def.isEnum) {
         this.generateEnum(name, def.asEnum);
       } else if (def.isPrimitive || def.isOptional || def.isResult || def.asVec) {
-        this._out.line(`export type ${name} = ${this.getType(def)}`).line();
+        this._out.line(`export type ${name} = ${this.getType(def)}`);
       } else {
         throw new Error(`Unknown type: ${JSON.stringify(def)}`);
+      }
+      if (i < this._program.types.length - 1) {
+        this._out.line();
       }
     }
     this._out.reduceIndent().line('}');
@@ -33,16 +37,14 @@ export class TypesGenerator extends BaseGenerator {
 
   private generateStruct(name: string, def: ISailsTypeDef) {
     if (def.asStruct.isTuple) {
-      return this._out.line(`export type ${name} = ${this.getType(def)}`).line();
+      return this._out.line(`export type ${name} = ${this.getType(def)}`);
     }
 
-    return this._out
-      .block(`export interface ${name}`, () => {
-        for (const field of def.asStruct.fields) {
-          this._out.lines(formatDocs(field.docs), false).line(`${field.name}: ${this.getType(field.def)}`);
-        }
-      })
-      .line();
+    return this._out.block(`export interface ${name}`, () => {
+      for (const field of def.asStruct.fields) {
+        this._out.lines(formatDocs(field.docs), false).line(`${field.name}: ${this.getType(field.def)}`);
+      }
+    });
   }
 
   private generateEnum(typeName: string, def: ISailsEnumDef) {
@@ -53,11 +55,11 @@ export class TypesGenerator extends BaseGenerator {
           .lines(formatDocs(variant.docs), false)
           .line(`| ${this.getEnumFieldString(variant)}`, i === def.variants.length - 1);
       }
-      this._out.reduceIndent().line();
+      this._out.reduceIndent();
     } else {
-      this._out
-        .line(`export type ${typeName} = ${def.variants.map((v) => `"${toLowerCaseFirst(v.name)}"`).join(' | ')}`)
-        .line();
+      this._out.line(
+        `export type ${typeName} = ${def.variants.map((v) => `"${toLowerCaseFirst(v.name)}"`).join(' | ')}`,
+      );
     }
   }
 

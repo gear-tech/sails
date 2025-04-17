@@ -50,3 +50,5 @@ program
   );
 
 program.parse();
+
+export { ProjectBuilder } from './generate/index.js';
