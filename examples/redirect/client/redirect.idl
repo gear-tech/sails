@@ -1,0 +1,9 @@
+constructor {
+  New : ();
+};
+
+service Redirect {
+  Exit : (inheritor_id: actor_id) -> null;
+  query GetProgramId : () -> actor_id;
+};
+

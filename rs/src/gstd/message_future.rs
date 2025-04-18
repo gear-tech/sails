@@ -129,8 +129,10 @@ impl<T: AsRef<[u8]>> Future for MessageFutureWithRedirect<T> {
                         let Replace::Incomplete {
                             target,
                             payload,
+                            #[cfg(not(feature = "ethexe"))]
                             gas_limit,
                             value,
+                            #[cfg(not(feature = "ethexe"))]
                             reply_deposit,
                             ..
                         } = this
@@ -139,6 +141,7 @@ impl<T: AsRef<[u8]>> Future for MessageFutureWithRedirect<T> {
                         else {
                             unreachable!("Invalid state during replacement")
                         };
+                        gstd::debug!("Redirecting message from {} to {}", target, new_target);
                         // Insert new target into redirects
                         redirect_map().insert(target, new_target);
                         // Get new future

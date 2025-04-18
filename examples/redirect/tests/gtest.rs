@@ -1,0 +1,100 @@
+use redirect_client::traits::{Redirect as _, RedirectFactory as _};
+use redirect_proxy_client::traits::{Redirect as _, RedirectProxyFactory as _};
+use sails_rs::{CodeId, GasUnit, calls::*};
+
+const ACTOR_ID: u64 = 42;
+
+#[tokio::test]
+async fn exit_works() {
+    let (remoting, program_code_id, proxy_code_id, gas_limit) = create_remoting();
+
+    let program_factory = redirect_client::RedirectFactory::new(remoting.clone());
+    let proxy_factory = redirect_proxy_client::RedirectProxyFactory::new(remoting.clone());
+
+    let program_id_1 = program_factory
+        .new() // Call program's constructor
+        .with_gas_limit(gas_limit)
+        .send_recv(program_code_id, b"program_1")
+        .await
+        .unwrap();
+
+    let program_id_2 = program_factory
+        .new() // Call program's constructor
+        .with_gas_limit(gas_limit)
+        .send_recv(program_code_id, b"program_2")
+        .await
+        .unwrap();
+
+    let proxy_program_id = proxy_factory
+        .new(program_id_1) // Call program's constructor
+        .with_gas_limit(gas_limit)
+        .send_recv(proxy_code_id, b"proxy")
+        .await
+        .unwrap();
+
+    let mut redirect_client = redirect_client::Redirect::new(remoting.clone());
+    let proxy_client = redirect_proxy_client::Redirect::new(remoting.clone());
+
+    let result = proxy_client
+        .get_program_id() // Call service's query (see app/src/lib.rs:19)
+        .with_gas_limit(gas_limit)
+        .recv(proxy_program_id)
+        .await
+        .unwrap();
+
+    assert_eq!(result, program_id_1);
+
+    // Here we don't receive any reply on `Exit` call, which is very frustrating.
+    let _ = redirect_client
+        .exit(program_id_2)
+        .with_gas_limit(gas_limit)
+        .send(program_id_1)
+        .await
+        .unwrap();
+
+    let result = proxy_client
+        .get_program_id() // Call service's query (see app/src/lib.rs:19)
+        .with_gas_limit(gas_limit)
+        .recv(proxy_program_id)
+        .await
+        .unwrap();
+
+    assert_eq!(result, program_id_2);
+}
+
+fn create_remoting() -> (impl Remoting + Clone, CodeId, CodeId, GasUnit) {
+    use sails_rs::gtest::{
+        MAX_USER_GAS_LIMIT, System,
+        calls::{BlockRunMode, GTestRemoting},
+    };
+
+    let system = System::new();
+    system.init_logger_with_default_filter("gwasm=debug,gtest=info,sails_rs=debug");
+    system.mint_to(ACTOR_ID, 100_000_000_000_000);
+    // Submit program code into the system
+    let program_code_id = system.submit_code(redirect_app::WASM_BINARY);
+    let proxy_code_id = system.submit_code(redirect_proxy::WASM_BINARY);
+
+    // Create a remoting instance for the system
+    // and set the block run mode to Next,
+    // cause we don't receive any reply on `Exit` call
+    let remoting =
+        GTestRemoting::new(system, ACTOR_ID.into()).with_block_run_mode(BlockRunMode::Next);
+    (remoting, program_code_id, proxy_code_id, MAX_USER_GAS_LIMIT)
+}
+
+// async fn create_gclient_remoting() -> (impl Remoting + Clone, CodeId, CodeId, GasUnit) {
+//     use gclient::GearApi;
+//     use sails_rs::gclient::calls::GClientRemoting;
+
+//     let gear_path = option_env!("GEAR_PATH");
+//     if gear_path.is_none() {
+//         panic!("the 'GEAR_PATH' environment variable was not set during compile time");
+//     }
+//     let api = GearApi::dev_from_path(gear_path.unwrap()).await.unwrap();
+//     let gas_limit = api.block_gas_limit().unwrap();
+//     let (program_code_id, _) = api.upload_code(redirect_app::WASM_BINARY).await.unwrap();
+//     let (proxy_code_id, _) = api.upload_code(redirect_proxy::WASM_BINARY).await.unwrap();
+//     let remoting = GClientRemoting::new(api.clone());
+//     (remoting, program_code_id, proxy_code_id, gas_limit)
+// }
