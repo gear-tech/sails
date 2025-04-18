@@ -23,6 +23,7 @@ hex.workspace = true
 keccak-const = { workspace = true, optional = true }
 mockall = { workspace = true, optional = true }
 parity-scale-codec = { workspace = true, features = ["derive"] }
+pin-project-lite.workspace = true
 sails-idl-gen = { workspace = true, optional = true }
 sails-idl-meta.workspace = true
 sails-macros = { workspace = true, optional = true }

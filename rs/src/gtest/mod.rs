@@ -1,3 +1,3 @@
-pub use gtest::{BlockRunResult, Program, System};
+pub use gtest::{BlockRunResult, Program, System, constants::*};
 
 pub mod calls;

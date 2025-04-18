@@ -1,0 +1,8 @@
+constructor {
+  New : (target: actor_id);
+};
+
+service Redirect {
+  query GetProgramId : () -> actor_id;
+};
+
