@@ -10,7 +10,7 @@ pub trait Action {
     #[cfg(not(feature = "ethexe"))]
     fn with_gas_limit(self, gas_limit: GasUnit) -> Self;
     fn with_value(self, value: ValueUnit) -> Self;
-    fn with_args(self, args: Self::Args) -> Self;
+    fn with_args<F: FnOnce(Self::Args) -> Self::Args>(self, args_fn: F) -> Self;
 
     #[cfg(not(feature = "ethexe"))]
     fn gas_limit(&self) -> Option<GasUnit>;
@@ -187,7 +187,9 @@ impl<TRemoting: Remoting, TActionIo: ActionIo> Action for RemotingAction<TRemoti
         Self { value, ..self }
     }
 
-    fn with_args(self, args: Self::Args) -> Self {
+    fn with_args<F: FnOnce(Self::Args) -> Self::Args>(self, args_fn: F) -> Self {
+        let RemotingAction { args, .. } = self;
+        let args = args_fn(args);
         Self { args, ..self }
     }
 

@@ -223,6 +223,6 @@ where
     T: Query<Args = GClientArgs>,
 {
     fn at_block(self, hash: H256) -> Self {
-        self.with_args(GClientArgs::default().at_block(hash))
+        self.with_args(|args| args.at_block(hash))
     }
 }
