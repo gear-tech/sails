@@ -159,17 +159,9 @@ impl<T: AsRef<[u8]>> Future for MessageFutureWithRedirect<T> {
                         )
                         .unwrap();
                         // Replace the future with a new one
-                        this.set(future);
-                        // Immediately poll the new future instead of returning `Poll::Pending`
-                        match this.as_mut().project() {
-                            Projection::Incomplete { future, .. } => {
-                                let output = ready!(future.poll(cx));
-                                Poll::Ready(output.map_err(Into::into))
-                            }
-                            Projection::Dummy => {
-                                unreachable!("Invalid state during replacement")
-                            }
-                        }
+                        _ = this.as_mut().project_replace(future);
+                        // Return Pending to allow the new future to be polled
+                        Poll::Pending
                     } else {
                         Poll::Ready(Err(gstd::errors::Error::ErrorReply(
                             error_payload,

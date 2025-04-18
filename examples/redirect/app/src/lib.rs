@@ -2,6 +2,7 @@
 
 use sails_rs::{gstd, prelude::*};
 
+#[derive(Default)]
 struct RedirectService;
 
 #[sails_rs::service]
@@ -25,13 +26,14 @@ impl RedirectService {
     }
 }
 
-pub struct RedirectProgram(());
+#[derive(Default)]
+pub struct RedirectProgram;
 
 #[sails_rs::program]
 impl RedirectProgram {
     // Program's constructor
     pub fn new() -> Self {
-        Self(())
+        Self
     }
 
     // Exposed service
