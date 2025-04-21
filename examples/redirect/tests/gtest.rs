@@ -1,11 +1,11 @@
 use redirect_client::traits::{Redirect as _, RedirectFactory as _};
-use redirect_proxy_client::traits::{Redirect as _, RedirectProxyFactory as _};
+use redirect_proxy_client::traits::{Proxy as _, RedirectProxyFactory as _};
 use sails_rs::{CodeId, GasUnit, calls::*};
 
 const ACTOR_ID: u64 = 42;
 
 #[tokio::test]
-async fn exit_works() {
+async fn redirect_on_exit_works() {
     let (remoting, program_code_id, proxy_code_id, gas_limit) = create_remoting();
 
     let program_factory = redirect_client::RedirectFactory::new(remoting.clone());
@@ -24,6 +24,12 @@ async fn exit_works() {
         .send_recv(program_code_id, b"program_2")
         .await
         .unwrap();
+    let program_id_3 = program_factory
+        .new() // Call program's constructor
+        .with_gas_limit(gas_limit)
+        .send_recv(program_code_id, b"program_3")
+        .await
+        .unwrap();
 
     let proxy_program_id = proxy_factory
         .new(program_id_1) // Call program's constructor
@@ -33,7 +39,7 @@ async fn exit_works() {
         .unwrap();
 
     let mut redirect_client = redirect_client::Redirect::new(remoting.clone());
-    let proxy_client = redirect_proxy_client::Redirect::new(remoting.clone());
+    let proxy_client = redirect_proxy_client::Proxy::new(remoting.clone());
 
     let result = proxy_client
         .get_program_id() // Call service's query (see app/src/lib.rs:19)
@@ -60,6 +66,22 @@ async fn exit_works() {
         .unwrap();
 
     assert_eq!(result, program_id_2);
+
+    let _ = redirect_client
+        .exit(program_id_3)
+        .with_gas_limit(gas_limit)
+        .send(program_id_2)
+        .await
+        .unwrap();
+
+    let result = proxy_client
+        .get_program_id() // Call service's query (see app/src/lib.rs:19)
+        .with_gas_limit(gas_limit)
+        .recv(proxy_program_id)
+        .await
+        .unwrap();
+
+    assert_eq!(result, program_id_3);
 }
 
 fn create_remoting() -> (impl Remoting + Clone, CodeId, CodeId, GasUnit) {

@@ -2,7 +2,7 @@ constructor {
   New : (target: actor_id);
 };
 
-service Redirect {
+service Proxy {
   query GetProgramId : () -> actor_id;
 };
 

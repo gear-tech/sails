@@ -10,6 +10,7 @@ pub struct GStdArgs {
     reply_deposit: Option<GasUnit>,
     #[cfg(not(feature = "ethexe"))]
     reply_hook: Option<Box<dyn FnOnce() + Send + 'static>>,
+    redirect_on_exit: bool,
 }
 
 #[cfg(not(feature = "ethexe"))]
@@ -29,12 +30,23 @@ impl GStdArgs {
         self
     }
 
+    pub fn with_redirect_on_exit(self, redirect_on_exit: bool) -> Self {
+        Self {
+            redirect_on_exit,
+            ..self
+        }
+    }
+
     pub fn wait_up_to(&self) -> Option<BlockCount> {
         self.wait_up_to
     }
 
     pub fn reply_deposit(&self) -> Option<GasUnit> {
         self.reply_deposit
+    }
+
+    pub fn redirect_on_exit(&self) -> bool {
+        self.redirect_on_exit
     }
 }
 
@@ -90,6 +102,7 @@ impl GStdRemoting {
             value,
             #[cfg(not(feature = "ethexe"))]
             args.reply_deposit,
+            args.redirect_on_exit,
         ))
     }
 }

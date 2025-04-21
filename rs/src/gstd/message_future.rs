@@ -51,6 +51,7 @@ pin_project! {
             gas_limit: Option<GasUnit>,
             value: ValueUnit,
             reply_deposit: Option<GasUnit>,
+            redirect_on_exit: bool,
         },
         Dummy,
     }
@@ -65,6 +66,7 @@ impl<T: AsRef<[u8]>> MessageFutureWithRedirect<T> {
         gas_limit: Option<GasUnit>,
         value: ValueUnit,
         reply_deposit: Option<GasUnit>,
+        redirect_on_exit: bool,
     ) -> Self {
         Self::Incomplete {
             future,
@@ -73,6 +75,7 @@ impl<T: AsRef<[u8]>> MessageFutureWithRedirect<T> {
             gas_limit,
             value,
             reply_deposit,
+            redirect_on_exit,
         }
     }
 
@@ -82,6 +85,7 @@ impl<T: AsRef<[u8]>> MessageFutureWithRedirect<T> {
         target: ActorId,
         payload: T,
         value: ValueUnit,
+        redirect_on_exit: bool,
     ) -> Self {
         Self::Incomplete {
             future,
@@ -90,6 +94,7 @@ impl<T: AsRef<[u8]>> MessageFutureWithRedirect<T> {
             gas_limit: None,
             value,
             reply_deposit: None,
+            redirect_on_exit,
         }
     }
 }
@@ -109,14 +114,20 @@ impl<T: AsRef<[u8]>> Future for MessageFutureWithRedirect<T> {
     fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
         let mut this = self;
 
-        let output = match this.as_mut().project() {
-            Projection::Incomplete { future, .. } => {
-                ready!(future.poll(cx))
-            }
+        let (output, redirect_on_exit) = match this.as_mut().project() {
+            Projection::Incomplete {
+                future,
+                redirect_on_exit,
+                ..
+            } => (ready!(future.poll(cx)), *redirect_on_exit),
             Projection::Dummy => {
                 unreachable!("polled after completion or invalid state")
             }
         };
+        // Return if not redirecting on exit
+        if !redirect_on_exit {
+            return Poll::Ready(output.map_err(Into::into));
+        }
         match output {
             Ok(_) => Poll::Ready(output.map_err(Into::into)),
             Err(err) => match err {
@@ -146,22 +157,28 @@ impl<T: AsRef<[u8]>> Future for MessageFutureWithRedirect<T> {
                         redirect_map().insert(target, new_target);
                         // Get new future
                         #[cfg(not(feature = "ethexe"))]
-                        let args = GStdArgs::default().with_reply_deposit(reply_deposit);
+                        let args = GStdArgs::default()
+                            .with_reply_deposit(reply_deposit)
+                            .with_redirect_on_exit(true);
                         #[cfg(feature = "ethexe")]
-                        let args = GStdArgs::default();
-                        let future = GStdRemoting::send_for_reply(
+                        let args = GStdArgs::default().with_redirect_on_exit(true);
+                        let future_res = GStdRemoting::send_for_reply(
                             new_target,
                             payload,
                             #[cfg(not(feature = "ethexe"))]
                             gas_limit,
                             value,
                             args,
-                        )
-                        .unwrap();
-                        // Replace the future with a new one
-                        _ = this.as_mut().project_replace(future);
-                        // Return Pending to allow the new future to be polled
-                        Poll::Pending
+                        );
+                        match future_res {
+                            Ok(future) => {
+                                // Replace the future with a new one
+                                _ = this.as_mut().project_replace(future);
+                                // Return Pending to allow the new future to be polled
+                                Poll::Pending
+                            }
+                            Err(err) => Poll::Ready(Err(err)),
+                        }
                     } else {
                         Poll::Ready(Err(gstd::errors::Error::ErrorReply(
                             error_payload,

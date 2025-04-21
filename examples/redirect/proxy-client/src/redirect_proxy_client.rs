@@ -43,22 +43,22 @@ pub mod redirect_proxy_factory {
         }
     }
 }
-pub struct Redirect<R> {
+pub struct Proxy<R> {
     remoting: R,
 }
-impl<R> Redirect<R> {
+impl<R> Proxy<R> {
     pub fn new(remoting: R) -> Self {
         Self { remoting }
     }
 }
-impl<R: Remoting + Clone> traits::Redirect for Redirect<R> {
+impl<R: Remoting + Clone> traits::Proxy for Proxy<R> {
     type Args = R::Args;
     fn get_program_id(&self) -> impl Query<Output = ActorId, Args = R::Args> {
-        RemotingAction::<_, redirect::io::GetProgramId>::new(self.remoting.clone(), ())
+        RemotingAction::<_, proxy::io::GetProgramId>::new(self.remoting.clone(), ())
     }
 }
 
-pub mod redirect {
+pub mod proxy {
     use super::*;
 
     pub mod io {
@@ -73,8 +73,8 @@ pub mod redirect {
         }
         impl ActionIo for GetProgramId {
             const ROUTE: &'static [u8] = &[
-                32, 82, 101, 100, 105, 114, 101, 99, 116, 48, 71, 101, 116, 80, 114, 111, 103, 114,
-                97, 109, 73, 100,
+                20, 80, 114, 111, 120, 121, 48, 71, 101, 116, 80, 114, 111, 103, 114, 97, 109, 73,
+                100,
             ];
             type Params = ();
             type Reply = ActorId;
@@ -93,7 +93,7 @@ pub mod traits {
     }
 
     #[allow(clippy::type_complexity)]
-    pub trait Redirect {
+    pub trait Proxy {
         type Args;
         fn get_program_id(&self) -> impl Query<Output = ActorId, Args = Self::Args>;
     }

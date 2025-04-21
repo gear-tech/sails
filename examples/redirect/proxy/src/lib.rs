@@ -1,7 +1,11 @@
 #![no_std]
 
 use redirect_client::{Redirect, traits::Redirect as _};
-use sails_rs::{calls::Query as _, gstd::calls::GStdRemoting, prelude::*};
+use sails_rs::{
+    calls::{Action, Query as _},
+    gstd::calls::*,
+    prelude::*,
+};
 
 struct ProxyService(ActorId);
 
@@ -14,7 +18,12 @@ impl ProxyService {
     // Service's query
     pub async fn get_program_id(&self) -> ActorId {
         let client = Redirect::new(GStdRemoting::new());
-        client.get_program_id().recv(self.0).await.unwrap()
+        client
+            .get_program_id()
+            .with_args(GStdArgs::default().with_redirect_on_exit(true))
+            .recv(self.0)
+            .await
+            .unwrap()
     }
 }
 
@@ -28,7 +37,7 @@ impl ProxyProgram {
     }
 
     // Exposed service
-    pub fn redirect(&self) -> ProxyService {
+    pub fn proxy(&self) -> ProxyService {
         ProxyService::new(self.0)
     }
 }
