@@ -1,4 +1,9 @@
-use crate::{calls::Remoting, errors::Result, futures::FutureExt, prelude::*};
+use crate::{
+    calls::{Action, Remoting},
+    errors::Result,
+    futures::FutureExt,
+    prelude::*,
+};
 use core::future::Future;
 use gstd::{msg, prog};
 
@@ -13,19 +18,22 @@ pub struct GStdArgs {
 
 #[cfg(not(feature = "ethexe"))]
 impl GStdArgs {
-    pub fn with_wait_up_to(mut self, block_count: Option<BlockCount>) -> Self {
-        self.wait_up_to = block_count;
-        self
+    pub fn with_wait_up_to(self, wait_up_to: Option<BlockCount>) -> Self {
+        Self { wait_up_to, ..self }
     }
 
-    pub fn with_reply_deposit(mut self, reply_deposit: Option<GasUnit>) -> Self {
-        self.reply_deposit = reply_deposit;
-        self
+    pub fn with_reply_deposit(self, reply_deposit: Option<GasUnit>) -> Self {
+        Self {
+            reply_deposit,
+            ..self
+        }
     }
 
-    pub fn with_reply_hook<F: FnOnce() + Send + 'static>(mut self, f: F) -> Self {
-        self.reply_hook = Some(Box::new(f));
-        self
+    pub fn with_reply_hook<F: FnOnce() + Send + 'static>(self, f: F) -> Self {
+        Self {
+            reply_hook: Some(Box::new(f)),
+            ..self
+        }
     }
 
     pub fn wait_up_to(&self) -> Option<BlockCount> {
@@ -162,5 +170,28 @@ impl Remoting for GStdRemoting {
         )?;
         let reply = reply_future.await?;
         Ok(reply)
+    }
+}
+
+pub trait WithArgs {
+    fn with_wait_up_to(self, wait_up_to: Option<BlockCount>) -> Self;
+    fn with_reply_deposit(self, reply_deposit: Option<GasUnit>) -> Self;
+    fn with_reply_hook<F: FnOnce() + Send + 'static>(self, f: F) -> Self;
+}
+
+impl<T> WithArgs for T
+where
+    T: Action<Args = GStdArgs>,
+{
+    fn with_wait_up_to(self, wait_up_to: Option<BlockCount>) -> Self {
+        self.with_args(|args| args.with_wait_up_to(wait_up_to))
+    }
+
+    fn with_reply_deposit(self, reply_deposit: Option<GasUnit>) -> Self {
+        self.with_args(|args| args.with_reply_deposit(reply_deposit))
+    }
+
+    fn with_reply_hook<F: FnOnce() + Send + 'static>(self, f: F) -> Self {
+        self.with_args(|args| args.with_reply_hook(f))
     }
 }

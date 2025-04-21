@@ -20,14 +20,18 @@ pub struct GClientArgs {
 }
 
 impl GClientArgs {
-    pub fn with_voucher(mut self, voucher_id: VoucherId, keep_alive: bool) -> Self {
-        self.voucher = Some((voucher_id, keep_alive));
-        self
+    pub fn with_voucher(self, voucher_id: VoucherId, keep_alive: bool) -> Self {
+        Self {
+            voucher: Some((voucher_id, keep_alive)),
+            ..self
+        }
     }
 
-    fn at_block(mut self, hash: H256) -> Self {
-        self.at_block = Some(hash);
-        self
+    fn at_block(self, hash: H256) -> Self {
+        Self {
+            at_block: Some(hash),
+            ..self
+        }
     }
 }
 

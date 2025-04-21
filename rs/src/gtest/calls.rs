@@ -1,5 +1,5 @@
 use crate::{
-    calls::Remoting,
+    calls::{Action, Remoting},
     collections::HashMap,
     errors::{Result, RtlError},
     events::Listener,
@@ -28,9 +28,10 @@ impl GTestArgs {
         }
     }
 
-    pub fn with_actor_id(mut self, actor_id: ActorId) -> Self {
-        self.actor_id = Some(actor_id);
-        self
+    pub fn with_actor_id(self, actor_id: ActorId) -> Self {
+        Self {
+            actor_id: Some(actor_id),
+        }
     }
 
     pub fn actor_id(&self) -> Option<ActorId> {
@@ -296,5 +297,18 @@ impl Listener<Vec<u8>> for GTestRemoting {
         let (tx, rx) = channel::mpsc::unbounded::<(ActorId, Vec<u8>)>();
         self.event_senders.borrow_mut().push(tx);
         Ok(rx)
+    }
+}
+
+pub trait WithArgs {
+    fn with_actor_id(self, actor_id: ActorId) -> Self;
+}
+
+impl<T> WithArgs for T
+where
+    T: Action<Args = GTestArgs>,
+{
+    fn with_actor_id(self, actor_id: ActorId) -> Self {
+        self.with_args(|args| args.with_actor_id(actor_id))
     }
 }

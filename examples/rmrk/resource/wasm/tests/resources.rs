@@ -7,12 +7,12 @@ use rmrk_resource_app::services::{
 };
 use sails_rs::{
     ActorId, Decode, Encode,
-    calls::{Action, Call, Query, Remoting},
+    calls::{Call, Query, Remoting},
     collections::BTreeMap,
     errors::Result,
     gtest::{
         BlockRunResult, Program, System,
-        calls::{GTestArgs, GTestRemoting},
+        calls::{GTestArgs, GTestRemoting, WithArgs as _},
     },
 };
 
@@ -482,7 +482,7 @@ impl Fixture {
         let mut resource_client = self.resource_client();
         resource_client
             .add_resource_entry(resource_id, resource)
-            .with_args(|args| args.with_actor_id(actor_id.into()))
+            .with_actor_id(actor_id.into())
             .send_recv(self.resource_program_id)
             .await
     }
@@ -496,7 +496,7 @@ impl Fixture {
         let mut resource_client = self.resource_client();
         resource_client
             .add_part_to_resource(resource_id, part_id)
-            .with_args(|args| args.with_actor_id(actor_id.into()))
+            .with_actor_id(actor_id.into())
             .send_recv(self.resource_program_id)
             .await
     }
@@ -509,7 +509,7 @@ impl Fixture {
         let resource_client = self.resource_client();
         resource_client
             .resource(resource_id)
-            .with_args(|args| args.with_actor_id(actor_id.into()))
+            .with_actor_id(actor_id.into())
             .recv(self.resource_program_id)
             .await
     }
