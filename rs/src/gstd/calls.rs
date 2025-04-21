@@ -16,12 +16,13 @@ pub struct GStdArgs {
     reply_hook: Option<Box<dyn FnOnce() + Send + 'static>>,
 }
 
-#[cfg(not(feature = "ethexe"))]
 impl GStdArgs {
+    #[allow(clippy::needless_update)]
     pub fn with_wait_up_to(self, wait_up_to: Option<BlockCount>) -> Self {
         Self { wait_up_to, ..self }
     }
 
+    #[cfg(not(feature = "ethexe"))]
     pub fn with_reply_deposit(self, reply_deposit: Option<GasUnit>) -> Self {
         Self {
             reply_deposit,
@@ -29,6 +30,7 @@ impl GStdArgs {
         }
     }
 
+    #[cfg(not(feature = "ethexe"))]
     pub fn with_reply_hook<F: FnOnce() + Send + 'static>(self, f: F) -> Self {
         Self {
             reply_hook: Some(Box::new(f)),
@@ -40,6 +42,7 @@ impl GStdArgs {
         self.wait_up_to
     }
 
+    #[cfg(not(feature = "ethexe"))]
     pub fn reply_deposit(&self) -> Option<GasUnit> {
         self.reply_deposit
     }
@@ -175,7 +178,11 @@ impl Remoting for GStdRemoting {
 
 pub trait WithArgs {
     fn with_wait_up_to(self, wait_up_to: Option<BlockCount>) -> Self;
+
+    #[cfg(not(feature = "ethexe"))]
     fn with_reply_deposit(self, reply_deposit: Option<GasUnit>) -> Self;
+
+    #[cfg(not(feature = "ethexe"))]
     fn with_reply_hook<F: FnOnce() + Send + 'static>(self, f: F) -> Self;
 }
 
@@ -187,10 +194,12 @@ where
         self.with_args(|args| args.with_wait_up_to(wait_up_to))
     }
 
+    #[cfg(not(feature = "ethexe"))]
     fn with_reply_deposit(self, reply_deposit: Option<GasUnit>) -> Self {
         self.with_args(|args| args.with_reply_deposit(reply_deposit))
     }
 
+    #[cfg(not(feature = "ethexe"))]
     fn with_reply_hook<F: FnOnce() + Send + 'static>(self, f: F) -> Self {
         self.with_args(|args| args.with_reply_hook(f))
     }
