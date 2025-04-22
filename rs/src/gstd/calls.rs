@@ -13,18 +13,19 @@ pub struct GStdArgs {
     redirect_on_exit: bool,
 }
 
-#[cfg(not(feature = "ethexe"))]
 impl GStdArgs {
     pub fn with_wait_up_to(mut self, block_count: Option<BlockCount>) -> Self {
         self.wait_up_to = block_count;
         self
     }
 
+    #[cfg(not(feature = "ethexe"))]
     pub fn with_reply_deposit(mut self, reply_deposit: Option<GasUnit>) -> Self {
         self.reply_deposit = reply_deposit;
         self
     }
 
+    #[cfg(not(feature = "ethexe"))]
     pub fn with_reply_hook<F: FnOnce() + Send + 'static>(mut self, f: F) -> Self {
         self.reply_hook = Some(Box::new(f));
         self
@@ -41,6 +42,7 @@ impl GStdArgs {
         self.wait_up_to
     }
 
+    #[cfg(not(feature = "ethexe"))]
     pub fn reply_deposit(&self) -> Option<GasUnit> {
         self.reply_deposit
     }
