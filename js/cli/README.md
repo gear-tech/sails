@@ -101,7 +101,6 @@ import { web3FromSource, web3Accounts } from '@polkadot/extension-dapp';
 const allAccounts = await web3Accounts();
 const account = allAccounts[0];
 const injector = await web3FromSource(account.meta.source);
-const signer = web3FromSource();
 transaction.withAccount(account.address, { signer: injector.signer });
 
 // ## Set the value of the message
