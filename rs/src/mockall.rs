@@ -11,7 +11,8 @@ mock! {
         #[cfg(not(feature = "ethexe"))]
         fn with_gas_limit(self, gas_limit: GasUnit) -> Self;
         fn with_value(self, value: ValueUnit) -> Self;
-        fn with_args(self, args: A) -> Self;
+        #[mockall::concretize]
+        fn with_args<F: FnOnce(A) -> A>(self, args_fn: F) -> Self;
 
         #[cfg(not(feature = "ethexe"))]
         fn gas_limit(&self) -> Option<GasUnit>;
@@ -38,7 +39,8 @@ mock! {
         #[cfg(not(feature = "ethexe"))]
         fn with_gas_limit(self, gas_limit: GasUnit) -> Self;
         fn with_value(self, value: ValueUnit) -> Self;
-        fn with_args(self, args: A) -> Self;
+        #[mockall::concretize]
+        fn with_args<F: FnOnce(A) -> A>(self, args_fn: F) -> Self;
 
         #[cfg(not(feature = "ethexe"))]
         fn gas_limit(&self) -> Option<GasUnit>;
@@ -65,7 +67,8 @@ mock! {
         #[cfg(not(feature = "ethexe"))]
         fn with_gas_limit(self, gas_limit: GasUnit) -> Self;
         fn with_value(self, value: ValueUnit) -> Self;
-        fn with_args(self, args: A) -> Self;
+        #[mockall::concretize]
+        fn with_args<F: FnOnce(A) -> A>(self, args_fn: F) -> Self;
 
         #[cfg(not(feature = "ethexe"))]
         fn gas_limit(&self) -> Option<GasUnit>;
