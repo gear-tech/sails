@@ -1,4 +1,4 @@
-use super::message_future::{MessageFutureWithRedirect, redirect_target};
+use super::message_future::MessageFutureWithRedirect;
 use crate::{calls::Remoting, errors::Result, futures::FutureExt, prelude::*};
 use core::future::Future;
 use gstd::{msg, prog};
@@ -67,7 +67,7 @@ impl GStdRemoting {
         value: ValueUnit,
         #[allow(unused_variables)] args: GStdArgs,
     ) -> Result<MessageFutureWithRedirect<T>> {
-        let target = redirect_target(&target);
+        // here can be a redirect target
         #[cfg(not(feature = "ethexe"))]
         let mut message_future = if let Some(gas_limit) = gas_limit {
             msg::send_bytes_with_gas_for_reply(

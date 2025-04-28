@@ -13,27 +13,23 @@ async fn redirect_on_exit_works() {
 
     let program_id_1 = program_factory
         .new() // Call program's constructor
-        .with_gas_limit(gas_limit)
         .send_recv(program_code_id, b"program_1")
         .await
         .unwrap();
 
     let program_id_2 = program_factory
         .new() // Call program's constructor
-        .with_gas_limit(gas_limit)
         .send_recv(program_code_id, b"program_2")
         .await
         .unwrap();
     let program_id_3 = program_factory
         .new() // Call program's constructor
-        .with_gas_limit(gas_limit)
         .send_recv(program_code_id, b"program_3")
         .await
         .unwrap();
 
     let proxy_program_id = proxy_factory
         .new(program_id_1) // Call program's constructor
-        .with_gas_limit(gas_limit)
         .send_recv(proxy_code_id, b"proxy")
         .await
         .unwrap();
@@ -43,7 +39,6 @@ async fn redirect_on_exit_works() {
 
     let result = proxy_client
         .get_program_id() // Call service's query (see app/src/lib.rs:19)
-        .with_gas_limit(gas_limit)
         .recv(proxy_program_id)
         .await
         .unwrap();
@@ -53,14 +48,12 @@ async fn redirect_on_exit_works() {
     // Here we don't receive any reply on `Exit` call, which is very frustrating.
     let _ = redirect_client
         .exit(program_id_2)
-        .with_gas_limit(gas_limit)
         .send(program_id_1)
         .await
         .unwrap();
 
     let result = proxy_client
         .get_program_id() // Call service's query (see app/src/lib.rs:19)
-        .with_gas_limit(gas_limit)
         .recv(proxy_program_id)
         .await
         .unwrap();
@@ -69,14 +62,12 @@ async fn redirect_on_exit_works() {
 
     let _ = redirect_client
         .exit(program_id_3)
-        .with_gas_limit(gas_limit)
         .send(program_id_2)
         .await
         .unwrap();
 
     let result = proxy_client
         .get_program_id() // Call service's query (see app/src/lib.rs:19)
-        .with_gas_limit(gas_limit)
         .recv(proxy_program_id)
         .await
         .unwrap();
@@ -91,7 +82,7 @@ fn create_remoting() -> (impl Remoting + Clone, CodeId, CodeId, GasUnit) {
     };
 
     let system = System::new();
-    system.init_logger_with_default_filter("gwasm=debug,gtest=info,sails_rs=debug");
+    system.init_logger_with_default_filter("gwasm=debug,gtest=info,sails_rs=debug,redirect=debug");
     system.mint_to(ACTOR_ID, 100_000_000_000_000);
     // Submit program code into the system
     let program_code_id = system.submit_code(redirect_app::WASM_BINARY);

@@ -1,6 +1,5 @@
 use super::calls::{GStdArgs, GStdRemoting};
-use crate::{collections::BTreeMap, errors::Result, prelude::*};
-use core::ops::DerefMut;
+use crate::{errors::Result, prelude::*};
 use core::{
     future::Future,
     pin::Pin,
@@ -8,35 +7,6 @@ use core::{
 };
 use gstd::msg;
 use pin_project_lite::pin_project;
-
-type RedirectMap = BTreeMap<ActorId, ActorId>;
-
-#[cfg(not(target_arch = "wasm32"))]
-fn redirect_map() -> impl DerefMut<Target = RedirectMap> {
-    use spin::Mutex;
-
-    static MAP: Mutex<RedirectMap> = Mutex::new(RedirectMap::new());
-    MAP.lock()
-}
-
-// This code relies on the fact contracts are executed in a single-threaded environment
-#[cfg(target_arch = "wasm32")]
-fn redirect_map() -> impl DerefMut<Target = RedirectMap> {
-    static mut MAP: RedirectMap = RedirectMap::new();
-    #[allow(static_mut_refs)]
-    unsafe {
-        &mut MAP
-    }
-}
-
-pub(crate) fn redirect_target(target: &ActorId) -> ActorId {
-    let redirect_map = redirect_map();
-    let mut target = target;
-    while let Some(redirect) = redirect_map.get(target) {
-        target = redirect;
-    }
-    *target
-}
 
 pin_project! {
     #[project = Projection]
@@ -153,8 +123,7 @@ impl<T: AsRef<[u8]>> Future for MessageFutureWithRedirect<T> {
                             unreachable!("Invalid state during replacement")
                         };
                         gstd::debug!("Redirecting message from {} to {}", target, new_target);
-                        // Insert new target into redirects
-                        redirect_map().insert(target, new_target);
+                        // here can be insert new target into redirects
                         // Get new future
                         #[cfg(not(feature = "ethexe"))]
                         let args = GStdArgs::default()
