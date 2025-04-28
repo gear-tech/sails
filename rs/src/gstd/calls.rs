@@ -113,6 +113,7 @@ impl GStdRemoting {
             value,
             #[cfg(not(feature = "ethexe"))]
             args.reply_deposit,
+            args.wait_up_to,
             args.redirect_on_exit,
         ))
     }
@@ -211,6 +212,8 @@ pub trait WithArgs {
 
     #[cfg(not(feature = "ethexe"))]
     fn with_reply_hook<F: FnOnce() + Send + 'static>(self, f: F) -> Self;
+
+    fn with_redirect_on_exit(self, redirect_on_exit: bool) -> Self;
 }
 
 impl<T> WithArgs for T
@@ -229,5 +232,9 @@ where
     #[cfg(not(feature = "ethexe"))]
     fn with_reply_hook<F: FnOnce() + Send + 'static>(self, f: F) -> Self {
         self.with_args(|args| args.with_reply_hook(f))
+    }
+
+    fn with_redirect_on_exit(self, redirect_on_exit: bool) -> Self {
+        self.with_args(|args| args.with_redirect_on_exit(redirect_on_exit))
     }
 }

@@ -21,6 +21,7 @@ pin_project! {
             gas_limit: Option<GasUnit>,
             value: ValueUnit,
             reply_deposit: Option<GasUnit>,
+            wait_up_to_and_crated: Option<(BlockCount, BlockCount)>,
             redirect_on_exit: bool,
         },
         Dummy,
@@ -28,42 +29,35 @@ pin_project! {
 }
 
 impl<T: AsRef<[u8]>> MessageFutureWithRedirect<T> {
-    #[cfg(not(feature = "ethexe"))]
+    #[allow(clippy::too_many_arguments)]
     pub(crate) fn new(
         future: msg::MessageFuture,
         target: ActorId,
         payload: T,
-        gas_limit: Option<GasUnit>,
+        #[cfg(not(feature = "ethexe"))] gas_limit: Option<GasUnit>,
         value: ValueUnit,
-        reply_deposit: Option<GasUnit>,
+        #[cfg(not(feature = "ethexe"))] reply_deposit: Option<GasUnit>,
+        wait_up_to: Option<BlockCount>,
         redirect_on_exit: bool,
     ) -> Self {
+        let wait_up_to_and_crated = wait_up_to.map(|wait_up_to| {
+            let current_block = gstd::exec::block_height();
+            (wait_up_to, current_block)
+        });
         Self::Incomplete {
             future,
             target,
             payload,
+            #[cfg(not(feature = "ethexe"))]
             gas_limit,
-            value,
-            reply_deposit,
-            redirect_on_exit,
-        }
-    }
-
-    #[cfg(feature = "ethexe")]
-    pub(crate) fn new(
-        future: msg::MessageFuture,
-        target: ActorId,
-        payload: T,
-        value: ValueUnit,
-        redirect_on_exit: bool,
-    ) -> Self {
-        Self::Incomplete {
-            future,
-            target,
-            payload,
+            #[cfg(feature = "ethexe")]
             gas_limit: None,
             value,
+            #[cfg(not(feature = "ethexe"))]
+            reply_deposit,
+            #[cfg(feature = "ethexe")]
             reply_deposit: None,
+            wait_up_to_and_crated,
             redirect_on_exit,
         }
     }
@@ -115,6 +109,7 @@ impl<T: AsRef<[u8]>> Future for MessageFutureWithRedirect<T> {
                             value,
                             #[cfg(not(feature = "ethexe"))]
                             reply_deposit,
+                            wait_up_to_and_crated,
                             ..
                         } = this
                             .as_mut()
@@ -123,14 +118,26 @@ impl<T: AsRef<[u8]>> Future for MessageFutureWithRedirect<T> {
                             unreachable!("Invalid state during replacement")
                         };
                         gstd::debug!("Redirecting message from {} to {}", target, new_target);
-                        // here can be insert new target into redirects
-                        // Get new future
+                        // here can insert new target into redirects
+
+                        // Calculate updated `wait_up_to` if provided
+                        // wait_up_to = wait_up_to - (current_block - created_block)
+                        let wait_up_to =
+                            wait_up_to_and_crated.map(|(wait_up_to, created_block)| {
+                                let current_block = gstd::exec::block_height();
+                                wait_up_to
+                                    .saturating_sub(current_block.saturating_sub(created_block))
+                            });
                         #[cfg(not(feature = "ethexe"))]
                         let args = GStdArgs::default()
                             .with_reply_deposit(reply_deposit)
+                            .with_wait_up_to(wait_up_to)
                             .with_redirect_on_exit(true);
                         #[cfg(feature = "ethexe")]
-                        let args = GStdArgs::default().with_redirect_on_exit(true);
+                        let args = GStdArgs::default()
+                            .with_wait_up_to(wait_up_to)
+                            .with_redirect_on_exit(true);
+                        // Get new future
                         let future_res = GStdRemoting::send_for_reply(
                             new_target,
                             payload,

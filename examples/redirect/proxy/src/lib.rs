@@ -20,7 +20,7 @@ impl ProxyService {
         let client = Redirect::new(GStdRemoting::new());
         client
             .get_program_id()
-            .with_args(GStdArgs::default().with_redirect_on_exit(true))
+            .with_redirect_on_exit(true)
             .recv(self.0)
             .await
             .unwrap()

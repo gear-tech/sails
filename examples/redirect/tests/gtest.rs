@@ -6,7 +6,7 @@ const ACTOR_ID: u64 = 42;
 
 #[tokio::test]
 async fn redirect_on_exit_works() {
-    let (remoting, program_code_id, proxy_code_id, gas_limit) = create_remoting();
+    let (remoting, program_code_id, proxy_code_id, _gas_limit) = create_remoting();
 
     let program_factory = redirect_client::RedirectFactory::new(remoting.clone());
     let proxy_factory = redirect_proxy_client::RedirectProxyFactory::new(remoting.clone());
