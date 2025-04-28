@@ -8329,22 +8329,22 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "sails-js-parser@workspace:js/parser"
   dependencies:
-    sails-js-types: "npm:0.4.0"
+    sails-js-types: "npm:0.4.1"
   peerDependencies:
-    sails-js-types: 0.4.0
+    sails-js-types: 0.4.1
   dependenciesMeta:
     sails-js-types:
       optional: true
   languageName: unknown
   linkType: soft
 
-"sails-js-types@npm:*, sails-js-types@npm:0.4.0, sails-js-types@workspace:js/types":
+"sails-js-types@npm:*, sails-js-types@npm:0.4.1, sails-js-types@workspace:js/types":
   version: 0.0.0-use.local
   resolution: "sails-js-types@workspace:js/types"
   languageName: unknown
   linkType: soft
 
-"sails-js-util@npm:*, sails-js-util@npm:0.4.0, sails-js-util@workspace:js/util":
+"sails-js-util@npm:*, sails-js-util@npm:0.4.1, sails-js-util@workspace:js/util":
   version: 0.0.0-use.local
   resolution: "sails-js-util@workspace:js/util"
   dependencies:
@@ -8361,7 +8361,7 @@ __metadata:
     "@polkadot/types": "npm:15.9.1"
     jest: "npm:^29.7.0"
     sails-js-types: "npm:*"
-    sails-js-util: "npm:0.4.0"
+    sails-js-util: "npm:0.4.1"
   peerDependencies:
     "@gear-js/api": ^0.41.1
     "@polkadot/api": ^15.9.1

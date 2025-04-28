@@ -1,5 +1,14 @@
 # CHANGELOG
 
+## 0.4.1
+
+### Compatibility
+- Sails-RS v0.8.0
+- Gear v1.8.0
+
+### Changes
+- Add explicit export of `IMethodReturnType` from `TransactionBuilder`
+
 ## 0.4.0
 
 ### Compatibility
