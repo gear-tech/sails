@@ -94,19 +94,3 @@ fn create_remoting() -> (impl Remoting + Clone, CodeId, CodeId, GasUnit) {
         GTestRemoting::new(system, ACTOR_ID.into()).with_block_run_mode(BlockRunMode::Next);
     (remoting, program_code_id, proxy_code_id, MAX_USER_GAS_LIMIT)
 }
-
-// async fn create_gclient_remoting() -> (impl Remoting + Clone, CodeId, CodeId, GasUnit) {
-//     use gclient::GearApi;
-//     use sails_rs::gclient::calls::GClientRemoting;
-
-//     let gear_path = option_env!("GEAR_PATH");
-//     if gear_path.is_none() {
-//         panic!("the 'GEAR_PATH' environment variable was not set during compile time");
-//     }
-//     let api = GearApi::dev_from_path(gear_path.unwrap()).await.unwrap();
-//     let gas_limit = api.block_gas_limit().unwrap();
-//     let (program_code_id, _) = api.upload_code(redirect_app::WASM_BINARY).await.unwrap();
-//     let (proxy_code_id, _) = api.upload_code(redirect_proxy::WASM_BINARY).await.unwrap();
-//     let remoting = GClientRemoting::new(api.clone());
-//     (remoting, program_code_id, proxy_code_id, gas_limit)
-// }

@@ -15,7 +15,7 @@ pin_project! {
     pub(crate) enum MessageFutureWithRedirect<T: AsRef<[u8]>> {
         Incomplete {
             #[pin]
-            future: msg::MessageFuture,
+            message_future: msg::MessageFuture,
             target: ActorId,
             payload: T,
             gas_limit: Option<GasUnit>,
@@ -31,7 +31,7 @@ pin_project! {
 impl<T: AsRef<[u8]>> MessageFutureWithRedirect<T> {
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn new(
-        future: msg::MessageFuture,
+        message_future: msg::MessageFuture,
         target: ActorId,
         payload: T,
         #[cfg(not(feature = "ethexe"))] gas_limit: Option<GasUnit>,
@@ -45,7 +45,7 @@ impl<T: AsRef<[u8]>> MessageFutureWithRedirect<T> {
             (wait_up_to, current_block)
         });
         Self::Incomplete {
-            future,
+            message_future,
             target,
             payload,
             #[cfg(not(feature = "ethexe"))]
@@ -66,7 +66,7 @@ impl<T: AsRef<[u8]>> MessageFutureWithRedirect<T> {
 impl<T: AsRef<[u8]>> futures::future::FusedFuture for MessageFutureWithRedirect<T> {
     fn is_terminated(&self) -> bool {
         match self {
-            Self::Incomplete { future, .. } => future.is_terminated(),
+            Self::Incomplete { message_future, .. } => message_future.is_terminated(),
             Self::Dummy => true,
         }
     }
@@ -80,10 +80,10 @@ impl<T: AsRef<[u8]>> Future for MessageFutureWithRedirect<T> {
 
         let (output, redirect_on_exit) = match this.as_mut().project() {
             Projection::Incomplete {
-                future,
+                message_future,
                 redirect_on_exit,
                 ..
-            } => (ready!(future.poll(cx)), *redirect_on_exit),
+            } => (ready!(message_future.poll(cx)), *redirect_on_exit),
             Projection::Dummy => {
                 unreachable!("polled after completion or invalid state")
             }
