@@ -38,14 +38,13 @@ async fn redirect_on_exit_works() {
     let proxy_client = redirect_proxy_client::Proxy::new(remoting.clone());
 
     let result = proxy_client
-        .get_program_id() // Call service's query (see app/src/lib.rs:19)
+        .get_program_id()
         .recv(proxy_program_id)
         .await
         .unwrap();
 
     assert_eq!(result, program_id_1);
 
-    // Here we don't receive any reply on `Exit` call, which is very frustrating.
     let _ = redirect_client
         .exit(program_id_2)
         .send(program_id_1)
@@ -53,7 +52,7 @@ async fn redirect_on_exit_works() {
         .unwrap();
 
     let result = proxy_client
-        .get_program_id() // Call service's query (see app/src/lib.rs:19)
+        .get_program_id()
         .recv(proxy_program_id)
         .await
         .unwrap();
@@ -67,7 +66,7 @@ async fn redirect_on_exit_works() {
         .unwrap();
 
     let result = proxy_client
-        .get_program_id() // Call service's query (see app/src/lib.rs:19)
+        .get_program_id()
         .recv(proxy_program_id)
         .await
         .unwrap();

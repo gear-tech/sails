@@ -21,7 +21,7 @@ pin_project! {
             gas_limit: Option<GasUnit>,
             value: ValueUnit,
             reply_deposit: Option<GasUnit>,
-            wait_up_to_and_crated: Option<(BlockCount, BlockCount)>,
+            wait_up_to_and_created: Option<(BlockCount, BlockCount)>,
             redirect_on_exit: bool,
         },
         Dummy,
@@ -40,7 +40,7 @@ impl<T: AsRef<[u8]>> MessageFutureWithRedirect<T> {
         wait_up_to: Option<BlockCount>,
         redirect_on_exit: bool,
     ) -> Self {
-        let wait_up_to_and_crated = wait_up_to.map(|wait_up_to| {
+        let wait_up_to_and_created = wait_up_to.map(|wait_up_to| {
             let current_block = gstd::exec::block_height();
             (wait_up_to, current_block)
         });
@@ -57,7 +57,7 @@ impl<T: AsRef<[u8]>> MessageFutureWithRedirect<T> {
             reply_deposit,
             #[cfg(feature = "ethexe")]
             reply_deposit: None,
-            wait_up_to_and_crated,
+            wait_up_to_and_created,
             redirect_on_exit,
         }
     }
@@ -109,7 +109,7 @@ impl<T: AsRef<[u8]>> Future for MessageFutureWithRedirect<T> {
                             value,
                             #[cfg(not(feature = "ethexe"))]
                             reply_deposit,
-                            wait_up_to_and_crated,
+                            wait_up_to_and_created,
                             ..
                         } = this
                             .as_mut()
@@ -123,7 +123,7 @@ impl<T: AsRef<[u8]>> Future for MessageFutureWithRedirect<T> {
                         // Calculate updated `wait_up_to` if provided
                         // wait_up_to = wait_up_to - (current_block - created_block)
                         let wait_up_to =
-                            wait_up_to_and_crated.map(|(wait_up_to, created_block)| {
+                            wait_up_to_and_created.map(|(wait_up_to, created_block)| {
                                 let current_block = gstd::exec::block_height();
                                 wait_up_to
                                     .saturating_sub(current_block.saturating_sub(created_block))

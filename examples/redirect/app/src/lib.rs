@@ -11,16 +11,15 @@ impl RedirectService {
         Self
     }
 
-    // Service's method (command)
+    // Exit from program with inheritor ID
     pub fn exit(&mut self, inheritor_id: ActorId) {
         let program_id = gstd::exec::program_id();
         if program_id != inheritor_id {
-            // panic!("Program ID: {} => {}", program_id, inheritor_id);
             gstd::exec::exit(inheritor_id)
         }
     }
 
-    // Service's query
+    // Query program ID of the current program
     pub async fn get_program_id(&self) -> ActorId {
         gstd::exec::program_id()
     }
@@ -31,12 +30,12 @@ pub struct RedirectProgram;
 
 #[sails_rs::program]
 impl RedirectProgram {
-    // Program's constructor
+    // Redirect Program's constructor
     pub fn new() -> Self {
         Self
     }
 
-    // Exposed service
+    // Exposed Redirect service
     pub fn redirect(&self) -> RedirectService {
         RedirectService::new()
     }
