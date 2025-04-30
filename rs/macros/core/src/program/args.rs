@@ -1,9 +1,7 @@
 use crate::sails_paths;
 use proc_macro_error::abort;
-use proc_macro2::Span;
-use std::collections::BTreeSet;
 use syn::{
-    Path, Token,
+    LitBool, Path, Token,
     parse::{Parse, ParseStream},
     punctuated::Punctuated,
 };
@@ -13,6 +11,7 @@ pub(super) struct ProgramArgs {
     handle_reply: Option<Path>,
     handle_signal: Option<Path>,
     sails_path: Option<Path>,
+    accept_transfer: bool,
     default_sails_path: Path,
 }
 
@@ -28,6 +27,10 @@ impl ProgramArgs {
     pub fn sails_path(&self) -> &syn::Path {
         self.sails_path.as_ref().unwrap_or(&self.default_sails_path)
     }
+
+    pub fn accept_transfer(&self) -> bool {
+        self.accept_transfer
+    }
 }
 
 impl Parse for ProgramArgs {
@@ -37,56 +40,71 @@ impl Parse for ProgramArgs {
             handle_reply: None,
             handle_signal: None,
             sails_path: None,
+            accept_transfer: false,
             default_sails_path: syn::parse_str(sails_paths::SAILS).unwrap(),
         };
-        let mut existing_attrs = BTreeSet::new();
 
-        for ProgramArg {
-            name, path, span, ..
-        } in punctuated
-        {
-            let name = name.get_ident().unwrap().to_string();
-            if existing_attrs.contains(&name) {
-                abort!(span, "parameter already defined");
-            }
-
-            match &*name {
-                "handle_reply" => {
+        for arg in punctuated {
+            match arg {
+                ProgramArg::HandleReply(path) => {
                     attrs.handle_reply = Some(path);
                 }
-                "handle_signal" => {
+                ProgramArg::HandleSignal(path) => {
                     attrs.handle_signal = Some(path);
                 }
-                "crate" => {
+                ProgramArg::SailsPath(path) => {
                     attrs.sails_path = Some(path);
                 }
-                _ => abort!(
-                    span,
-                    "`program` attribute can only contain `handle_reply`, `handle_signal` and `crate` parameters",
-                ),
+                ProgramArg::AcceptTransfer(val) => {
+                    attrs.accept_transfer = val;
+                }
             }
-
-            existing_attrs.insert(name);
         }
 
         Ok(attrs)
     }
 }
 
-struct ProgramArg {
-    name: Path,
-    path: Path,
-    span: Span,
+enum ProgramArg {
+    HandleReply(Path),
+    HandleSignal(Path),
+    SailsPath(Path),
+    AcceptTransfer(bool),
 }
 
 impl Parse for ProgramArg {
     fn parse(input: ParseStream<'_>) -> syn::Result<Self> {
-        let span = input.span();
-        let name: Path = input.parse()?;
-        let _: Token![=] = input.parse()?;
         let path: Path = input.parse()?;
-
-        Ok(Self { name, path, span })
+        let ident = path.get_ident().unwrap();
+        match ident.to_string().as_str() {
+            "handle_reply" => {
+                input.parse::<Token![=]>()?;
+                let path: Path = input.parse()?;
+                Ok(Self::HandleReply(path))
+            }
+            "handle_signal" => {
+                input.parse::<Token![=]>()?;
+                let path: Path = input.parse()?;
+                Ok(Self::HandleSignal(path))
+            }
+            "crate" => {
+                input.parse::<Token![=]>()?;
+                let path: Path = input.parse()?;
+                Ok(Self::SailsPath(path))
+            }
+            "accept_transfer" => {
+                if input.parse::<Token![=]>().is_ok() {
+                    if let Ok(val) = input.parse::<LitBool>() {
+                        return Ok(Self::AcceptTransfer(val.value()));
+                    }
+                }
+                Ok(Self::AcceptTransfer(true))
+            }
+            _ => abort!(
+                ident,
+                "`program` attribute can only contain `handle_reply`, `handle_signal`, `crate`, `accept_transfer` parameters",
+            ),
+        }
     }
 }
 
@@ -112,6 +130,7 @@ mod tests {
                 PathSegment::from(Ident::new("my_handle_signal", Span::call_site())).into(),
             ),
             sails_path: None,
+            accept_transfer: false,
             default_sails_path: syn::parse_str(sails_paths::SAILS).unwrap(),
         };
 
@@ -132,6 +151,26 @@ mod tests {
             sails_path: Some(
                 PathSegment::from(Ident::new("sails_rename", Span::call_site())).into(),
             ),
+            accept_transfer: false,
+            default_sails_path: syn::parse_str(sails_paths::SAILS).unwrap(),
+        };
+
+        // act
+        let args = syn::parse2::<ProgramArgs>(input).unwrap();
+
+        // arrange
+        assert_eq!(expected, args);
+    }
+
+    #[test]
+    fn program_parse_accept_transfer() {
+        // arrange
+        let input = quote!(accept_transfer,);
+        let expected = ProgramArgs {
+            handle_reply: None,
+            handle_signal: None,
+            sails_path: None,
+            accept_transfer: true,
             default_sails_path: syn::parse_str(sails_paths::SAILS).unwrap(),
         };
 
