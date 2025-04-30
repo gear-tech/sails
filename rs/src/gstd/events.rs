@@ -1,7 +1,7 @@
 //! Functionality for notifying off-chain subscribers on events happening in on-chain programs.
 
-use crate::{Encode, Vec, collections::BTreeMap, errors::*};
-use core::{any::TypeId, ops::DerefMut};
+use crate::{Encode, Output, Vec, collections::BTreeMap, errors::*};
+use core::{mem, any::TypeId, ops::DerefMut};
 use scale_info::{StaticTypeInfo, TypeDef};
 
 #[doc(hidden)]
@@ -41,7 +41,64 @@ where
     let payload = event.encode();
     let event_idx = payload[0]; // It is safe to get this w/o any check as we know the type is a proper event type, i.e. enum
     let encoded_event_name = &encoded_event_names[event_idx as usize];
-    Ok([prefix, &encoded_event_name[..], &payload[1..]].concat())
+
+    // todo to be benchmarked
+    let event_size = event.encoded_size();
+
+    gcore::stack_buffer::with_byte_buffer(event_size, |buffer| {
+        struct ExternalBufferOutput<'a> {
+            buffer: &'a mut [mem::MaybeUninit<u8>],
+            offset: usize,
+        }
+    
+        // use `parity_scale_codec::Output` trait to not add a custom trait
+        impl Output for ExternalBufferOutput<'_> {
+            fn write(&mut self, bytes: &[u8]) {
+                // SAFETY: same as
+                // `MaybeUninit::write_slice(&mut self.buffer[self.offset..end_offset], bytes)`.
+                // This code transmutes `bytes: &[T]` to `bytes: &[MaybeUninit<T>]`. These types
+                // can be safely transmuted since they have the same layout. Then `bytes:
+                // &[MaybeUninit<T>]` is written to uninitialized memory via `copy_from_slice`.
+                let end_offset = self.offset + bytes.len();
+                let this = unsafe { self.buffer.get_unchecked_mut(self.offset..end_offset) };
+                this.copy_from_slice(unsafe {
+                    mem::transmute::<&[u8], &[core::mem::MaybeUninit<u8>]>(bytes)
+                });
+                self.offset = end_offset;
+            }
+        }
+
+        let mut output = ExternalBufferOutput { buffer, offset: 0 };
+        event.encode_to(&mut output);
+        let ExternalBufferOutput { buffer, offset } = output;
+        // SAFETY: same as `MaybeUninit::slice_assume_init_ref(&buffer[..offset])`.
+        // `ExternalBufferOutput` writes data to uninitialized memory. So we can take
+        // slice `&buffer[..offset]` and say that it was initialized earlier
+        // because the buffer from `0` to `offset` was initialized.
+        let payload = unsafe { &*(&buffer[0..offset] as *const _ as *const [u8]) };
+
+        let event_idx = payload[0] as usize;
+
+        let encoding_payload = &payload[1..];
+        let encoded_event_name = &encoded_event_names[event_idx];
+
+        let final_payload_size = prefix.len() + encoded_event_name.len() + encoding_payload.len();
+        gcore::stack_buffer::with_byte_buffer(final_payload_size, |buffer| {
+            let mut output = ExternalBufferOutput { buffer, offset: 0 };
+            output.write(prefix);
+            output.write(encoded_event_name);
+            output.write(encoding_payload);
+            let ExternalBufferOutput { buffer, offset } = output;
+
+            // SAFETY: same as `MaybeUninit::slice_assume_init_ref(&buffer[..offset])`.
+            // `ExternalBufferOutput` writes data to uninitialized memory. So we can take
+            // slice `&buffer[..offset]` and say that it was initialized earlier
+            // because the buffer from `0` to `offset` was initialized.
+            let final_payload = unsafe { &*(&buffer[0..offset] as *const _ as *const [u8]) };
+
+            gstd::msg::send_bytes(gstd::ActorId::zero(), final_payload, 0)?;
+        })
+    });
 }
 
 fn extract_encoded_event_names<TEvents>() -> Result<Vec<Vec<u8>>, RtlError>
