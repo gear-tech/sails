@@ -175,7 +175,7 @@ impl ProgramBuilder {
                 .push(ImplItem::Fn(wrapping_service_ctor_fn));
         }
 
-        let sails_path = &self.sails_path();
+        let sails_path = self.sails_path();
         let (program_type_path, _program_type_args, _) = self.impl_type();
         let (generics, program_type_constraints) = self.impl_constraints();
 
@@ -206,9 +206,19 @@ impl ProgramBuilder {
 
         let solidity_main = self.sol_main(solidity_dispatchers.as_slice());
 
+        let accept_transfer = self.program_args.accept_transfer().then(|| {
+            quote! {
+                if #sails_path::gstd::msg::value() > 0 && #sails_path::gstd::msg::size() == 0 {
+                    return;
+                }
+            }
+        });
+
         let main_fn = quote!(
             #[gstd::async_main #async_main_args]
             async fn main() {
+                #accept_transfer
+
                 let mut input: &[u8] = &#sails_path::gstd::msg::load_bytes().expect("Failed to read input");
                 let program_ref = unsafe { #program_ident.as_ref() }.expect("Program not initialized");
 
