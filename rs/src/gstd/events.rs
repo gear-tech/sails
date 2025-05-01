@@ -9,7 +9,7 @@ use scale_info::{StaticTypeInfo, TypeDef};
 #[cfg(target_arch = "wasm32")]
 pub fn __emit_event<TEvents>(event: TEvents) -> Result<()>
 where
-    TEvents: parity_scale_codec::Encode + scale_info::StaticTypeInfo,
+    TEvents: Encode + StaticTypeInfo,
 {
     let route = crate::gstd::services::exposure_context(gstd::msg::id()).route();
     __emit_event_with_route(route, event)
@@ -19,7 +19,7 @@ where
 #[cfg(target_arch = "wasm32")]
 pub fn __emit_event_with_route<TEvents>(route: &[u8], event: TEvents) -> Result<()>
 where
-    TEvents: parity_scale_codec::Encode + scale_info::StaticTypeInfo,
+    TEvents: Encode + StaticTypeInfo,
 {
     with_optimized_encode::<_, _>(route, event, |payload| {
         gstd::msg::send_bytes(gstd::ActorId::zero(), payload, 0)?;
@@ -35,7 +35,7 @@ fn with_optimized_encode<T, TEvents>(
     f: impl FnOnce(&[u8]) -> T,
 ) -> Result<T>
 where
-    TEvents: parity_scale_codec::Encode + scale_info::StaticTypeInfo,
+    TEvents: Encode + StaticTypeInfo,
 {
     let mut type_id_to_encoded_event_names_map = type_id_to_event_names_map();
     let encoded_event_names = type_id_to_encoded_event_names_map
@@ -46,6 +46,10 @@ where
 
     // todo to be benchmarked
     let event_size = event.encoded_size();
+
+    // The event is first encoded as this way it's possible to easily
+    // access the actual event encoded payload bytes, which are those
+    // after the first byte. The latter is the index of the event name.
     let res = gcore::stack_buffer::with_byte_buffer(event_size, |buffer| {
         let mut output = MaybeUninitBufferWriter::new(buffer);
         event.encode_to(&mut output);
