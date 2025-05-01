@@ -15,14 +15,14 @@ where
 
 #[cfg(target_arch = "wasm32")]
 fn with_optimized_encode<T, E: EthEvent>(event: E, f: impl FnOnce(&[u8]) -> T) -> T {
-    use super::utils::MaybeUninitBufferOutput;
+    use super::utils::MaybeUninitBufferWriter;
 
     let topics = event.topics();
     let data = event.data();
     let size = 1 + topics.len() * 32 + data.len();
 
     gcore::stack_buffer::with_byte_buffer(size, |buffer| {
-        let mut output = MaybeUninitBufferOutput::new(buffer);
+        let mut output = MaybeUninitBufferWriter::new(buffer);
 
         // encode topics lenght as u8
         output.write(&[topics.len() as u8]);
