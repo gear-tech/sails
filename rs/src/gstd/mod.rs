@@ -31,6 +31,7 @@ pub mod calls;
 mod ethexe;
 mod events;
 pub mod services;
+mod utils;
 
 // TODO: To be renamed into SysCalls or something similar
 pub trait ExecContext {

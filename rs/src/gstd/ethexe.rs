@@ -15,34 +15,14 @@ where
 
 #[cfg(target_arch = "wasm32")]
 fn with_optimized_encode<T, E: EthEvent>(event: E, f: impl FnOnce(&[u8]) -> T) -> T {
-    struct ExternalBufferOutput<'a> {
-        buffer: &'a mut [mem::MaybeUninit<u8>],
-        offset: usize,
-    }
-
-    // use `parity_scale_codec::Output` trait to not add a custom trait
-    impl Output for ExternalBufferOutput<'_> {
-        fn write(&mut self, bytes: &[u8]) {
-            // SAFETY: same as
-            // `MaybeUninit::write_slice(&mut self.buffer[self.offset..end_offset], bytes)`.
-            // This code transmutes `bytes: &[T]` to `bytes: &[MaybeUninit<T>]`. These types
-            // can be safely transmuted since they have the same layout. Then `bytes:
-            // &[MaybeUninit<T>]` is written to uninitialized memory via `copy_from_slice`.
-            let end_offset = self.offset + bytes.len();
-            let this = unsafe { self.buffer.get_unchecked_mut(self.offset..end_offset) };
-            this.copy_from_slice(unsafe {
-                mem::transmute::<&[u8], &[core::mem::MaybeUninit<u8>]>(bytes)
-            });
-            self.offset = end_offset;
-        }
-    }
+    use super::utils::MaybeUninitBufferOutput;
 
     let topics = event.topics();
     let data = event.data();
     let size = 1 + topics.len() * 32 + data.len();
 
     gcore::stack_buffer::with_byte_buffer(size, |buffer| {
-        let mut output = ExternalBufferOutput { buffer, offset: 0 };
+        let mut output = MaybeUninitBufferOutput::new(buffer);
 
         // encode topics lenght as u8
         output.write(&[topics.len() as u8]);
@@ -51,13 +31,9 @@ fn with_optimized_encode<T, E: EthEvent>(event: E, f: impl FnOnce(&[u8]) -> T) -
         }
         output.write(data.as_slice());
 
-        let ExternalBufferOutput { buffer, offset } = output;
-        // SAFETY: same as `MaybeUninit::slice_assume_init_ref(&buffer[..offset])`.
-        // `ExternalBufferOutput` writes data to uninitialized memory. So we can take
-        // slice `&buffer[..offset]` and say that it was initialized earlier
-        // because the buffer from `0` to `offset` was initialized.
-        let payload = unsafe { &*(&buffer[..offset] as *const _ as *const [u8]) };
-        f(payload)
+        output
+            .access_buffer(f)
+            .expect("the output buffer is initialized previously")
     })
 }
 
