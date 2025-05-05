@@ -206,7 +206,7 @@ impl ProgramBuilder {
 
         let solidity_main = self.sol_main(solidity_dispatchers.as_slice());
 
-        let accept_transfers = self.program_args.accept_transfers().then(|| {
+        let payable = self.program_args.payable().then(|| {
             quote! {
                 if gstd::msg::value() > 0 && gstd::msg::size() == 0 {
                     return;
@@ -217,7 +217,7 @@ impl ProgramBuilder {
         let main_fn = quote!(
             #[gstd::async_main #async_main_args]
             async fn main() {
-                #accept_transfers
+                #payable
 
                 let mut input: &[u8] = &gstd::msg::load_bytes().expect("Failed to read input");
                 let program_ref = unsafe { #program_ident.as_ref() }.expect("Program not initialized");

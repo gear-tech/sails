@@ -1,4 +1,4 @@
-error: `program` attribute can only contain `handle_reply`, `handle_signal`, `crate`, `accept_transfers` parameters
+error: `program` attribute can only contain `handle_reply`, `handle_signal`, `crate`, `payable` parameters
  --> tests/ui/gprogram_fails_unknown_args.rs:5:11
   |
 5 | #[program(_handle_reply = my_handle_reply, handle_signal = my_handle_signal)]

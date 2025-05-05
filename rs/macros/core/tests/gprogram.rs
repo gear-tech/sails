@@ -186,8 +186,8 @@ fn generates_handle_for_services_with_unwrap_result() {
 }
 
 #[test]
-fn generates_handle_with_accept_transfers() {
-    let args = quote!(accept_transfers,);
+fn generates_handle_with_payable() {
+    let args = quote!(payable,);
     let input = quote! {
         impl MyProgram {}
     };
