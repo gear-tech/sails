@@ -106,11 +106,11 @@ impl ProgramBuilder {
                         unsafe { #program_ident = Some(program) };
                         // add callbak selector if `encode_reply` is set
                         let output = if encode_reply {
-                            [__CTOR_CALLBACK_SIGS[idx].as_slice(), #sails_path::gstd::msg::id().into_bytes().as_slice()].concat()
+                            [__CTOR_CALLBACK_SIGS[idx].as_slice(), gstd::msg::id().into_bytes().as_slice()].concat()
                         } else {
-                            #sails_path::Vec::with_capacity(0)
+                            Vec::with_capacity(0)
                         };
-                        #sails_path::gstd::msg::reply_bytes(output, 0).expect("Failed to send output");
+                        gstd::msg::reply_bytes(output, 0).expect("Failed to send output");
                         return;
                     }
                 }
@@ -200,7 +200,6 @@ impl FnBuilder<'_> {
     }
 
     pub(crate) fn sol_service_invocation(&self) -> TokenStream2 {
-        let sails_path = self.sails_path;
         let route_ident = &self.route_ident();
         let service_ctor_ident = self.ident;
         quote! {
@@ -210,7 +209,7 @@ impl FnBuilder<'_> {
                     .try_handle_solidity(method, &input[4..])
                     .await
                     .unwrap_or_else(|| {
-                        #sails_path::gstd::unknown_input_panic("Unknown request", input)
+                        gstd::unknown_input_panic("Unknown request", input)
                     });
                 // add callbak selector if `encode_reply` is set
                 let output = if encode_reply {
@@ -219,7 +218,7 @@ impl FnBuilder<'_> {
                 } else {
                     output
                 };
-                #sails_path::gstd::msg::reply_bytes(output, value).expect("Failed to send output");
+                gstd::msg::reply_bytes(output, value).expect("Failed to send output");
                 return;
             }
         }

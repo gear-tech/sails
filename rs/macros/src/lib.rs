@@ -198,7 +198,7 @@ pub fn export(args: TokenStream, impl_item_fn_tokens: TokenStream) -> TokenStrea
 ///
 /// Given an event definition:
 ///
-/// ```rust
+/// ```rust,ignore
 /// #[sails_rs::event]
 /// pub enum Events {
 ///     MyEvent {
@@ -212,7 +212,7 @@ pub fn export(args: TokenStream, impl_item_fn_tokens: TokenStream) -> TokenStrea
 ///
 /// Calling the methods:
 ///
-/// ```rust
+/// ```rust,ignore
 /// let event = Events::MyEvent {
 ///     sender: 123,
 ///     amount: 1000,

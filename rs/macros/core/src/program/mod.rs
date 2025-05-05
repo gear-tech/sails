@@ -192,7 +192,7 @@ impl ProgramBuilder {
         };
 
         invocation_dispatches.push(quote! {
-            { #sails_path::gstd::unknown_input_panic("Unexpected service", input) }
+            { gstd::unknown_input_panic("Unexpected service", input) }
         });
 
         let mut args = Vec::with_capacity(2);
@@ -206,9 +206,9 @@ impl ProgramBuilder {
 
         let solidity_main = self.sol_main(solidity_dispatchers.as_slice());
 
-        let accept_transfer = self.program_args.accept_transfer().then(|| {
+        let accept_transfers = self.program_args.accept_transfers().then(|| {
             quote! {
-                if #sails_path::gstd::msg::value() > 0 && #sails_path::gstd::msg::size() == 0 {
+                if gstd::msg::value() > 0 && gstd::msg::size() == 0 {
                     return;
                 }
             }
@@ -217,15 +217,15 @@ impl ProgramBuilder {
         let main_fn = quote!(
             #[gstd::async_main #async_main_args]
             async fn main() {
-                #accept_transfer
+                #accept_transfers
 
-                let mut input: &[u8] = &#sails_path::gstd::msg::load_bytes().expect("Failed to read input");
+                let mut input: &[u8] = &gstd::msg::load_bytes().expect("Failed to read input");
                 let program_ref = unsafe { #program_ident.as_ref() }.expect("Program not initialized");
 
                 #solidity_main
 
                 let (output, value): (Vec<u8>, ValueUnit) = #(#invocation_dispatches)else*;
-                #sails_path::gstd::msg::reply_bytes(output, value).expect("Failed to send output");
+                gstd::msg::reply_bytes(output, value).expect("Failed to send output");
             }
         );
 
@@ -254,7 +254,7 @@ impl ProgramBuilder {
         }
 
         ctor_dispatches.push(quote! {
-            { #sails_path::gstd::unknown_input_panic("Unexpected ctor", input) }
+            { gstd::unknown_input_panic("Unexpected ctor", input) }
         });
 
         let solidity_init = self.sol_init(&input_ident, program_ident);
@@ -262,8 +262,8 @@ impl ProgramBuilder {
         let init_fn = quote! {
             #[gstd::async_init]
             async fn init() {
-                use #sails_path::gstd::InvocationIo;
-                let mut #input_ident: &[u8] = &#sails_path::gstd::msg::load_bytes().expect("Failed to read input");
+                use gstd::InvocationIo;
+                let mut #input_ident: &[u8] = &gstd::msg::load_bytes().expect("Failed to read input");
 
                 #solidity_init
 
@@ -271,7 +271,7 @@ impl ProgramBuilder {
                 unsafe {
                     #program_ident = Some(program);
                 }
-                #sails_path::gstd::msg::reply_bytes(invocation_route, 0).expect("Failed to send output");
+                gstd::msg::reply_bytes(invocation_route, 0).expect("Failed to send output");
             }
         };
 
@@ -467,14 +467,13 @@ impl FnBuilder<'_> {
     }
 
     fn service_invocation(&self) -> TokenStream2 {
-        let sails_path = self.sails_path;
         let route_ident = &self.route_ident();
         let service_ctor_ident = self.ident;
         quote! {
             if input.starts_with(& #route_ident) {
                 let mut service = program_ref.#service_ctor_ident();
                 let (output, value) = service.try_handle(&input[#route_ident .len()..]).await.unwrap_or_else(|| {
-                    #sails_path::gstd::unknown_input_panic("Unknown request", input)
+                    gstd::unknown_input_panic("Unknown request", input)
                 });
                 ([#route_ident .as_ref(), &output].concat(), value)
             }
