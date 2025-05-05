@@ -16,7 +16,7 @@ where
 }
 
 #[doc(hidden)]
-#[cfg(target_arch = "wasm32")]
+// #[cfg(target_arch = "wasm32")]
 pub fn __emit_event_with_route<TEvents>(route: &[u8], event: TEvents) -> Result<()>
 where
     TEvents: Encode + StaticTypeInfo,
@@ -54,26 +54,22 @@ where
         let mut output = MaybeUninitBufferWriter::new(buffer);
         event.encode_to(&mut output);
 
-        output
-            .access_buffer(|event_bytes| {
-                let event_idx = event_bytes[0] as usize;
-                let encoded_event_name = &encoded_event_names[event_idx];
-                let encoding_event_bytes = &event_bytes[1..];
+        output.access_buffer(|event_bytes| {
+            let event_idx = event_bytes[0] as usize;
+            let encoded_event_name = &encoded_event_names[event_idx];
+            let encoding_event_bytes = &event_bytes[1..];
 
-                let final_payload_size =
-                    prefix.len() + encoded_event_name.len() + encoding_event_bytes.len();
-                gcore::stack_buffer::with_byte_buffer(final_payload_size, |buffer| {
-                    let mut output = MaybeUninitBufferWriter::new(buffer);
-                    output.write(prefix);
-                    output.write(encoded_event_name);
-                    output.write(encoding_event_bytes);
+            let final_payload_size =
+                prefix.len() + encoded_event_name.len() + encoding_event_bytes.len();
+            gcore::stack_buffer::with_byte_buffer(final_payload_size, |buffer| {
+                let mut output = MaybeUninitBufferWriter::new(buffer);
+                output.write(prefix);
+                output.write(encoded_event_name);
+                output.write(encoding_event_bytes);
 
-                    output
-                        .access_buffer(f)
-                        .expect("the output buffer is initialized previously")
-                })
+                output.access_buffer(f)
             })
-            .expect("the output buffer is initialized when event is encoded")
+        })
     });
 
     Ok(res)

@@ -1,39 +1,24 @@
 use crate::Output;
 use core::mem::{self, MaybeUninit};
 
-#[derive(Debug)]
-pub(crate) struct MaybeUninitBufferAccessError;
-
 /// A writer that writes to a buffer of `MaybeUninit<u8>` bytes
 /// safely using the `parity-scale-codec::Output` impl.
 pub(crate) struct MaybeUninitBufferWriter<'a> {
     buffer: &'a mut [MaybeUninit<u8>],
     offset: usize,
-    initialized: bool,
 }
 
 impl<'a> MaybeUninitBufferWriter<'a> {
     pub(crate) fn new(buffer: &'a mut [MaybeUninit<u8>]) -> Self {
-        Self {
-            buffer,
-            offset: 0,
-            initialized: false,
-        }
+        Self { buffer, offset: 0 }
     }
 
     /// Gives an access to the internal buffer by providing
     /// it as a param for the given closure.
     ///
     /// Returns an error if the buffer is not initialized.
-    pub(crate) fn access_buffer<T>(
-        &self,
-        f: impl FnOnce(&'a [u8]) -> T,
-    ) -> Result<T, MaybeUninitBufferAccessError> {
-        if !self.initialized {
-            return Err(MaybeUninitBufferAccessError);
-        }
-
-        Ok(f(self.access_buffer_inner()))
+    pub(crate) fn access_buffer<T>(&self, f: impl FnOnce(&'a [u8]) -> T) -> T {
+        f(self.access_buffer_inner())
     }
 
     /// Safe wrapper for the access to the internal buffer, which itself
@@ -43,9 +28,11 @@ impl<'a> MaybeUninitBufferWriter<'a> {
             // SAFETY:
             //
             // Same as `MaybeUninit::slice_assume_init_ref(&buffer[..offset])`.
-            // 1. Method ensures that values of inner buffer were initialized.
-            // 2. `&[T]` and `&[MaybeUninit<T>]` have the same layout.
-            // 3. Size and other params of `MaybeUninit<T>` won't be changed safely.
+            // 1. `&[T]` and `&[MaybeUninit<T>]` have the same layout.
+            // 2. Size and other params of `MaybeUninit<T>` won't be changed safely.
+            // 3. The offset is only changed by the `write` method, and set to the
+            //    position of the last written/initialized byte. Therefore, accessing
+            //    the buffer up to the offset is safe, even if offset is 0.
             &*(&self.buffer[0..self.offset] as *const _ as *const [u8])
         }
     }
@@ -64,6 +51,5 @@ impl Output for MaybeUninitBufferWriter<'_> {
         let this = unsafe { self.buffer.get_unchecked_mut(self.offset..end_offset) };
         this.copy_from_slice(unsafe { mem::transmute::<&[u8], &[MaybeUninit<u8>]>(bytes) });
         self.offset = end_offset;
-        self.initialized = true;
     }
 }
