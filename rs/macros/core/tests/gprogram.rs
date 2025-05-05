@@ -184,3 +184,16 @@ fn generates_handle_for_services_with_unwrap_result() {
 
     insta::assert_snapshot!(result);
 }
+
+#[test]
+fn generates_handle_with_payable() {
+    let args = quote!(payable,);
+    let input = quote! {
+        impl MyProgram {}
+    };
+
+    let result = gprogram(args, input).to_string();
+    let result = prettyplease::unparse(&syn::parse_str(&result).unwrap());
+
+    insta::assert_snapshot!(result);
+}

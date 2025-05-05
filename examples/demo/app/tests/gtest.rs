@@ -523,3 +523,31 @@ async fn value_fee_works() {
             && initial_balance - balance < 10_500_000_000_000
     );
 }
+
+#[tokio::test]
+async fn program_value_transfer_works() {
+    // Arrange
+    let fixture = Fixture::new();
+
+    let demo_factory = fixture.demo_factory();
+    // Use generated client code for activating Demo program
+    // using the `new` constructor and the `send_recv` method
+    let program_id = demo_factory
+        .new(Some(42), None)
+        .send_recv(fixture.demo_code_id(), "123")
+        .await
+        .unwrap();
+
+    let initial_balance = fixture.balance_of(program_id);
+
+    // Act
+    // send empty bytes with value 1_000_000_000_000 to the program
+    _ = fixture
+        .get_program(program_id)
+        .map(|prg| prg.send_bytes_with_value(ADMIN_ID, Vec::<u8>::new(), 1_000_000_000_000));
+    fixture.remoting().run_next_block();
+
+    // Assert
+    let balance = fixture.balance_of(program_id);
+    assert_eq!(initial_balance + 1_000_000_000_000, balance);
+}
