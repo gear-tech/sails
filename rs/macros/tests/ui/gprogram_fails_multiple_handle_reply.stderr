@@ -1,0 +1,5 @@
+error: only one `handle_reply` function is allowed
+  --> tests/ui/gprogram_fails_multiple_handle_reply.rs:15:5
+   |
+15 |     fn handle_reply_2(&self) {}
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^

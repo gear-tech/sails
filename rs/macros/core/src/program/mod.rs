@@ -109,6 +109,32 @@ impl ProgramBuilder {
             .collect::<Vec<_>>()
     }
 
+    fn handle_reply_fn(&mut self) -> Option<&mut ImplItemFn> {
+        let mut fn_iter = self.program_impl.items.iter_mut().filter_map(|item| {
+            if let ImplItem::Fn(fn_item) = item {
+                if has_handle_reply_attr(fn_item) {
+                    fn_item
+                        .attrs
+                        .retain(|attr| !attr.path().is_ident("handle_reply"));
+                    if handle_reply_predicate(fn_item) {
+                        return Some(fn_item);
+                    } else {
+                        abort!(
+                            fn_item,
+                            "`handle_reply` function must have a single `&self` argument and no return type"
+                        );
+                    }
+                }
+            }
+            None
+        });
+        let handle_reply_fn = fn_iter.next();
+        if let Some(duplicate) = fn_iter.next() {
+            abort!(duplicate, "only one `handle_reply` function is allowed");
+        }
+        handle_reply_fn
+    }
+
     #[cfg(feature = "ethexe")]
     fn service_ctors(&self) -> Vec<FnBuilder<'_>> {
         shared::discover_invocation_targets(self, service_ctor_predicate)
@@ -195,9 +221,19 @@ impl ProgramBuilder {
             { gstd::unknown_input_panic("Unexpected service", input) }
         });
 
+        let handle_reply_fn = self.handle_reply_fn().map(|item_fn| {
+            let handle_reply_fn_ident = &item_fn.sig.ident;
+            quote! {
+                fn __handle_reply() {
+                    let program_ref = unsafe { #program_ident.as_ref() }.expect("Program not initialized");
+                    program_ref.#handle_reply_fn_ident();
+                }
+            }
+        });
+
         let mut args = Vec::with_capacity(2);
-        if let Some(handle_reply) = self.program_args.handle_reply() {
-            args.push(quote!(handle_reply = #handle_reply));
+        if handle_reply_fn.is_some() {
+            args.push(quote!(handle_reply = __handle_reply));
         }
         if let Some(handle_signal) = self.program_args.handle_signal() {
             args.push(quote!(handle_signal = #handle_signal));
@@ -227,6 +263,8 @@ impl ProgramBuilder {
                 let (output, value): (Vec<u8>, ValueUnit) = #(#invocation_dispatches)else*;
                 gstd::msg::reply_bytes(output, value).expect("Failed to send output");
             }
+
+            #handle_reply_fn
         );
 
         (program_meta_impl, main_fn)
@@ -438,6 +476,27 @@ fn service_ctor_predicate(fn_item: &ImplItemFn) -> bool {
         )
         && fn_item.sig.inputs.len() == 1
         && !matches!(fn_item.sig.output, ReturnType::Default)
+}
+
+fn has_handle_reply_attr(fn_item: &ImplItemFn) -> bool {
+    fn_item
+        .attrs
+        .iter()
+        .any(|attr| attr.path().is_ident("handle_reply"))
+}
+
+fn handle_reply_predicate(fn_item: &ImplItemFn) -> bool {
+    matches!(fn_item.vis, Visibility::Inherited)
+        && matches!(
+            fn_item.sig.receiver(),
+            Some(Receiver {
+                mutability: None,
+                reference: Some(_),
+                ..
+            })
+        )
+        && fn_item.sig.inputs.len() == 1
+        && matches!(fn_item.sig.output, ReturnType::Default)
 }
 
 impl FnBuilder<'_> {

@@ -8,7 +8,6 @@ use syn::{
 
 #[derive(Debug, PartialEq)]
 pub(super) struct ProgramArgs {
-    handle_reply: Option<Path>,
     handle_signal: Option<Path>,
     sails_path: Option<Path>,
     payable: bool,
@@ -16,10 +15,6 @@ pub(super) struct ProgramArgs {
 }
 
 impl ProgramArgs {
-    pub fn handle_reply(&self) -> Option<&Path> {
-        self.handle_reply.as_ref()
-    }
-
     pub fn handle_signal(&self) -> Option<&Path> {
         self.handle_signal.as_ref()
     }
@@ -37,7 +32,6 @@ impl Parse for ProgramArgs {
     fn parse(input: ParseStream<'_>) -> syn::Result<Self> {
         let punctuated: Punctuated<ProgramArg, Token![,]> = Punctuated::parse_terminated(input)?;
         let mut attrs = ProgramArgs {
-            handle_reply: None,
             handle_signal: None,
             sails_path: None,
             payable: false,
@@ -46,9 +40,6 @@ impl Parse for ProgramArgs {
 
         for arg in punctuated {
             match arg {
-                ProgramArg::HandleReply(path) => {
-                    attrs.handle_reply = Some(path);
-                }
                 ProgramArg::HandleSignal(path) => {
                     attrs.handle_signal = Some(path);
                 }
@@ -66,7 +57,6 @@ impl Parse for ProgramArgs {
 }
 
 enum ProgramArg {
-    HandleReply(Path),
     HandleSignal(Path),
     SailsPath(Path),
     AcceptTransfer(bool),
@@ -77,11 +67,6 @@ impl Parse for ProgramArg {
         let path: Path = input.parse()?;
         let ident = path.get_ident().unwrap();
         match ident.to_string().as_str() {
-            "handle_reply" => {
-                input.parse::<Token![=]>()?;
-                let path: Path = input.parse()?;
-                Ok(Self::HandleReply(path))
-            }
             "handle_signal" => {
                 input.parse::<Token![=]>()?;
                 let path: Path = input.parse()?;
@@ -102,7 +87,7 @@ impl Parse for ProgramArg {
             }
             _ => abort!(
                 ident,
-                "`program` attribute can only contain `handle_reply`, `handle_signal`, `crate`, `payable` parameters",
+                "`program` attribute can only contain `handle_signal`, `crate`, `payable` parameters",
             ),
         }
     }
@@ -118,14 +103,8 @@ mod tests {
     #[test]
     fn gprogram_parse_attrs() {
         // arrange
-        let input = quote!(
-            handle_reply = my_handle_reply,
-            handle_signal = my_handle_signal,
-        );
+        let input = quote!(handle_signal = my_handle_signal,);
         let expected = ProgramArgs {
-            handle_reply: Some(
-                PathSegment::from(Ident::new("my_handle_reply", Span::call_site())).into(),
-            ),
             handle_signal: Some(
                 PathSegment::from(Ident::new("my_handle_signal", Span::call_site())).into(),
             ),
@@ -146,7 +125,6 @@ mod tests {
         // arrange
         let input = quote!(crate = sails_rename,);
         let expected = ProgramArgs {
-            handle_reply: None,
             handle_signal: None,
             sails_path: Some(
                 PathSegment::from(Ident::new("sails_rename", Span::call_site())).into(),
@@ -167,7 +145,6 @@ mod tests {
         // arrange
         let input = quote!(payable,);
         let expected = ProgramArgs {
-            handle_reply: None,
             handle_signal: None,
             sails_path: None,
             payable: true,
