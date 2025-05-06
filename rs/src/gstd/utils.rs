@@ -15,15 +15,13 @@ impl<'a> MaybeUninitBufferWriter<'a> {
 
     /// Gives an access to the internal buffer by providing
     /// it as a param for the given closure.
-    ///
-    /// Returns an error if the buffer is not initialized.
-    pub(crate) fn access_buffer<T>(&self, f: impl FnOnce(&'a [u8]) -> T) -> T {
-        f(self.access_buffer_inner())
+    pub(crate) fn with_buffer<T>(&self, f: impl FnOnce(&'a [u8]) -> T) -> T {
+        f(self.buffer_slice())
     }
 
     /// Safe wrapper for the access to the internal buffer, which itself
     /// is not a safe op.
-    fn access_buffer_inner(&self) -> &'a [u8] {
+    fn buffer_slice(&self) -> &'a [u8] {
         unsafe {
             // SAFETY:
             //

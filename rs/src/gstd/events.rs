@@ -54,7 +54,7 @@ where
         let mut output = MaybeUninitBufferWriter::new(buffer);
         event.encode_to(&mut output);
 
-        output.access_buffer(|event_bytes| {
+        output.with_buffer(|event_bytes| {
             let event_idx = event_bytes[0] as usize;
             let encoded_event_name = &encoded_event_names[event_idx];
             let encoding_event_bytes = &event_bytes[1..];
@@ -67,7 +67,7 @@ where
                 output.write(encoded_event_name);
                 output.write(encoding_event_bytes);
 
-                output.access_buffer(f)
+                output.with_buffer(f)
             })
         })
     });

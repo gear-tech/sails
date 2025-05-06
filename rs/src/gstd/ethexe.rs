@@ -31,7 +31,7 @@ fn with_optimized_encode<T, E: EthEvent>(event: E, f: impl FnOnce(&[u8]) -> T) -
         }
         output.write(data.as_slice());
 
-        output.access_buffer(f)
+        output.with_buffer(f)
     })
 }
 
