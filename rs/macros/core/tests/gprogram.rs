@@ -92,10 +92,7 @@ fn generates_handle_for_multiple_services_with_non_empty_routes() {
 
 #[test]
 fn generates_handle_with_gprogram_attributes() {
-    let args = quote!(
-        handle_reply = my_handle_reply,
-        handle_signal = my_handle_signal
-    );
+    let args = quote!(handle_signal = my_handle_signal);
     let input = quote! {
         impl MyProgram {}
     };
@@ -190,6 +187,24 @@ fn generates_handle_with_payable() {
     let args = quote!(payable,);
     let input = quote! {
         impl MyProgram {}
+    };
+
+    let result = gprogram(args, input).to_string();
+    let result = prettyplease::unparse(&syn::parse_str(&result).unwrap());
+
+    insta::assert_snapshot!(result);
+}
+
+#[test]
+fn generates_async_main_with_handle_reply() {
+    let args = quote!();
+    let input = quote! {
+        impl MyProgram {
+            #[handle_reply]
+            fn handle_reply(&self) {
+                // Handle reply
+            }
+        }
     };
 
     let result = gprogram(args, input).to_string();
