@@ -25,6 +25,8 @@ use crate::{
     prelude::*,
 };
 use core::cell::OnceCell;
+use gcore::stack_buffer;
+use utils::MaybeUninitBufferWriter;
 
 pub mod calls;
 #[cfg(feature = "ethexe")]
@@ -128,5 +130,22 @@ pub trait InvocationIo {
         result.extend_from_slice(Self::ROUTE);
         Encode::encode_to(value, &mut result);
         result
+    }
+
+    fn with_optimized_encode<T: Encode, R>(
+        value: &T,
+        prefix: &[u8],
+        f: impl FnOnce(&[u8]) -> R,
+    ) -> R {
+        let size = prefix.len() + Self::ROUTE.len() + Encode::size_hint(value);
+        stack_buffer::with_byte_buffer(size, |buffer| {
+            let mut buffer_writer = MaybeUninitBufferWriter::new(buffer);
+
+            buffer_writer.write(prefix);
+            buffer_writer.write(Self::ROUTE);
+            Encode::encode_to(value, &mut buffer_writer);
+
+            buffer_writer.with_buffer(f)
+        })
     }
 }

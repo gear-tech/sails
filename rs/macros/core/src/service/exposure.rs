@@ -203,14 +203,17 @@ impl ServiceBuilder<'_> {
         let base_exposure_invocations = self.base_types.iter().enumerate().map(|(idx, _)| {
             let idx = Literal::usize_unsuffixed(idx);
             quote! {
-                if let Some((output, value)) = self. #base_ident . #idx .try_handle(#input_ident).await {
-                    return Some((output, value));
+                if self. #base_ident . #idx .try_handle(#input_ident, result_handler)
+                    .await
+                    .is_some()
+                {
+                    return Some(());
                 }
             }
         });
 
         quote! {
-            pub async fn try_handle(&mut self, #input_ident : &[u8]) -> Option<(#sails_path::Vec<u8>, u128)> {
+            pub async fn try_handle(&mut self, #input_ident : &[u8], result_handler: fn(&[u8], u128)) -> Option<(())> {
                 use #sails_path::gstd::InvocationIo;
                 #( #invocation_dispatches )*
                 #( #base_exposure_invocations )*

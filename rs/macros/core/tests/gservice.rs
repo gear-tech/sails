@@ -20,6 +20,7 @@ fn works_with_basics() {
 
     let result = gservice(TokenStream::new(), input).to_string();
     let result = prettyplease::unparse(&syn::parse_str(&result).unwrap());
+    println!("{}", result);
 
     insta::assert_snapshot!(result);
 }
