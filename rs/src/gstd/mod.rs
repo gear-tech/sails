@@ -30,6 +30,7 @@ pub mod calls;
 #[cfg(feature = "ethexe")]
 mod ethexe;
 mod events;
+mod message_future;
 pub mod services;
 mod utils;
 

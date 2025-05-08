@@ -1,3 +1,4 @@
+use super::message_future::MessageFutureWithRedirect;
 use crate::{
     calls::{Action, Remoting},
     errors::Result,
@@ -14,6 +15,7 @@ pub struct GStdArgs {
     reply_deposit: Option<GasUnit>,
     #[cfg(not(feature = "ethexe"))]
     reply_hook: Option<Box<dyn FnOnce() + Send + 'static>>,
+    redirect_on_exit: bool,
 }
 
 impl GStdArgs {
@@ -38,6 +40,13 @@ impl GStdArgs {
         }
     }
 
+    pub fn with_redirect_on_exit(self, redirect_on_exit: bool) -> Self {
+        Self {
+            redirect_on_exit,
+            ..self
+        }
+    }
+
     pub fn wait_up_to(&self) -> Option<BlockCount> {
         self.wait_up_to
     }
@@ -46,24 +55,33 @@ impl GStdArgs {
     pub fn reply_deposit(&self) -> Option<GasUnit> {
         self.reply_deposit
     }
+
+    pub fn redirect_on_exit(&self) -> bool {
+        self.redirect_on_exit
+    }
 }
 
 #[derive(Debug, Default, Clone)]
 pub struct GStdRemoting;
 
 impl GStdRemoting {
-    fn send_for_reply(
+    pub fn new() -> Self {
+        Self
+    }
+
+    pub(crate) fn send_for_reply<T: AsRef<[u8]>>(
         target: ActorId,
-        payload: impl AsRef<[u8]>,
+        payload: T,
         #[cfg(not(feature = "ethexe"))] gas_limit: Option<GasUnit>,
         value: ValueUnit,
         #[allow(unused_variables)] args: GStdArgs,
-    ) -> Result<msg::MessageFuture, crate::errors::Error> {
+    ) -> Result<MessageFutureWithRedirect<T>> {
+        // here can be a redirect target
         #[cfg(not(feature = "ethexe"))]
         let mut message_future = if let Some(gas_limit) = gas_limit {
             msg::send_bytes_with_gas_for_reply(
                 target,
-                payload,
+                payload.as_ref(),
                 gas_limit,
                 value,
                 args.reply_deposit.unwrap_or_default(),
@@ -71,22 +89,33 @@ impl GStdRemoting {
         } else {
             msg::send_bytes_for_reply(
                 target,
-                payload,
+                payload.as_ref(),
                 value,
                 args.reply_deposit.unwrap_or_default(),
             )?
         };
         #[cfg(feature = "ethexe")]
-        let mut message_future = msg::send_bytes_for_reply(target, payload, value)?;
+        let mut message_future = msg::send_bytes_for_reply(target, payload.as_ref(), value)?;
 
         message_future = message_future.up_to(args.wait_up_to)?;
 
         #[cfg(not(feature = "ethexe"))]
         if let Some(reply_hook) = args.reply_hook {
-            return Ok(message_future.handle_reply(reply_hook)?);
+            message_future = message_future.handle_reply(reply_hook)?;
         }
 
-        Ok(message_future)
+        Ok(MessageFutureWithRedirect::new(
+            message_future,
+            target,
+            payload,
+            #[cfg(not(feature = "ethexe"))]
+            gas_limit,
+            value,
+            #[cfg(not(feature = "ethexe"))]
+            args.reply_deposit,
+            args.wait_up_to,
+            args.redirect_on_exit,
+        ))
     }
 }
 
@@ -151,7 +180,6 @@ impl Remoting for GStdRemoting {
             value,
             args,
         )?;
-        let reply_future = reply_future.map(|result| result.map_err(Into::into));
         Ok(reply_future)
     }
 
@@ -184,6 +212,8 @@ pub trait WithArgs {
 
     #[cfg(not(feature = "ethexe"))]
     fn with_reply_hook<F: FnOnce() + Send + 'static>(self, f: F) -> Self;
+
+    fn with_redirect_on_exit(self, redirect_on_exit: bool) -> Self;
 }
 
 impl<T> WithArgs for T
@@ -202,5 +232,9 @@ where
     #[cfg(not(feature = "ethexe"))]
     fn with_reply_hook<F: FnOnce() + Send + 'static>(self, f: F) -> Self {
         self.with_args(|args| args.with_reply_hook(f))
+    }
+
+    fn with_redirect_on_exit(self, redirect_on_exit: bool) -> Self {
+        self.with_args(|args| args.with_redirect_on_exit(redirect_on_exit))
     }
 }
