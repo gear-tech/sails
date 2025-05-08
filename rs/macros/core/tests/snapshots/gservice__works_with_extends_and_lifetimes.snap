@@ -47,26 +47,33 @@ impl<'a> ExtendedLifetimeExposure<ExtendedLifetime<'a>> {
     pub async fn try_handle(
         &mut self,
         input: &[u8],
-    ) -> Option<(sails_rs::Vec<u8>, u128)> {
+        result_handler: fn(&[u8], u128),
+    ) -> Option<(())> {
         use sails_rs::gstd::InvocationIo;
         if let Ok(request) = extended_lifetime_meta::__ExtendedNameParams::decode_params(
             input,
         ) {
             let result = self.extended_name();
             let value = 0u128;
-            let output = extended_lifetime_meta::__ExtendedNameParams::encode_reply(
+            extended_lifetime_meta::__ExtendedNameParams::with_optimized_encode(
                 &result,
+                <Self as sails_rs::gstd::services::Exposure>::route(self).as_ref(),
+                |encoded_result| result_handler(encoded_result, value),
             );
-            return Some((output, value));
+            return Some(());
         }
         if let Ok(request) = extended_lifetime_meta::__NameParams::decode_params(input) {
             let result = self.name();
             let value = 0u128;
-            let output = extended_lifetime_meta::__NameParams::encode_reply(&result);
-            return Some((output, value));
+            extended_lifetime_meta::__NameParams::with_optimized_encode(
+                &result,
+                <Self as sails_rs::gstd::services::Exposure>::route(self).as_ref(),
+                |encoded_result| result_handler(encoded_result, value),
+            );
+            return Some(());
         }
-        if let Some((output, value)) = self.base.0.try_handle(input).await {
-            return Some((output, value));
+        if self.base.0.try_handle(input, result_handler).await.is_some() {
+            return Some(());
         }
         None
     }

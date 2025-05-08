@@ -532,12 +532,12 @@ impl FnBuilder<'_> {
                 let mut service = program_ref.#service_ctor_ident();
                 service
                     .try_handle(&input[#route_ident .len()..], |encoded_result, value| {
-                        #sails_path::gstd::msg::reply_bytes(encoded_result, value)
+                        gstd::msg::reply_bytes(encoded_result, value)
                             .expect("Failed to send output");
                     })
                     .await
                     .unwrap_or_else(|| {
-                        #sails_path::gstd::unknown_input_panic("Unknown request", input)
+                        gstd::unknown_input_panic("Unknown request", input)
                     });
             }
         }

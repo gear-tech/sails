@@ -41,17 +41,20 @@ where
     pub async fn try_handle(
         &mut self,
         input: &[u8],
-    ) -> Option<(sails_rs::Vec<u8>, u128)> {
+        result_handler: fn(&[u8], u128),
+    ) -> Option<(())> {
         use sails_rs::gstd::InvocationIo;
         if let Ok(request) = my_generic_events_service_meta::__DoThisParams::decode_params(
             input,
         ) {
             let result = self.do_this();
             let value = 0u128;
-            let output = my_generic_events_service_meta::__DoThisParams::encode_reply(
+            my_generic_events_service_meta::__DoThisParams::with_optimized_encode(
                 &result,
+                <Self as sails_rs::gstd::services::Exposure>::route(self).as_ref(),
+                |encoded_result| result_handler(encoded_result, value),
             );
-            return Some((output, value));
+            return Some(());
         }
         None
     }

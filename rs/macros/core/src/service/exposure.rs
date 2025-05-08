@@ -212,6 +212,7 @@ impl ServiceBuilder<'_> {
             }
         });
 
+        // todo [sab] add use for exposure trait
         quote! {
             pub async fn try_handle(&mut self, #input_ident : &[u8], result_handler: fn(&[u8], u128)) -> Option<(())> {
                 use #sails_path::gstd::InvocationIo;
