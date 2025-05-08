@@ -72,6 +72,7 @@ impl ReferenceServiceExposure<ReferenceService> {
         result_handler: fn(&[u8], u128),
     ) -> Option<(())> {
         use sails_rs::gstd::InvocationIo;
+        use sails_rs::gstd::services::Exposure;
         if let Ok(request) = reference_service_meta::__AddByteParams::decode_params(
             input,
         ) {
@@ -79,7 +80,7 @@ impl ReferenceServiceExposure<ReferenceService> {
             let value = 0u128;
             reference_service_meta::__AddByteParams::with_optimized_encode(
                 &result,
-                <Self as sails_rs::gstd::services::Exposure>::route(self).as_ref(),
+                self.route().as_ref(),
                 |encoded_result| result_handler(encoded_result, value),
             );
             return Some(());
@@ -91,7 +92,7 @@ impl ReferenceServiceExposure<ReferenceService> {
             let value = 0u128;
             reference_service_meta::__BakedParams::with_optimized_encode(
                 &result,
-                <Self as sails_rs::gstd::services::Exposure>::route(self).as_ref(),
+                self.route().as_ref(),
                 |encoded_result| result_handler(encoded_result, value),
             );
             return Some(());
@@ -103,7 +104,7 @@ impl ReferenceServiceExposure<ReferenceService> {
             let value = 0u128;
             reference_service_meta::__FirstByteParams::with_optimized_encode(
                 &result,
-                <Self as sails_rs::gstd::services::Exposure>::route(self).as_ref(),
+                self.route().as_ref(),
                 |encoded_result| result_handler(encoded_result, value),
             );
             return Some(());
@@ -113,7 +114,7 @@ impl ReferenceServiceExposure<ReferenceService> {
             let value = 0u128;
             reference_service_meta::__IncrParams::with_optimized_encode(
                 &result,
-                <Self as sails_rs::gstd::services::Exposure>::route(self).as_ref(),
+                self.route().as_ref(),
                 |encoded_result| result_handler(encoded_result, value),
             );
             return Some(());
@@ -125,7 +126,7 @@ impl ReferenceServiceExposure<ReferenceService> {
             let value = 0u128;
             reference_service_meta::__LastByteParams::with_optimized_encode(
                 &result,
-                <Self as sails_rs::gstd::services::Exposure>::route(self).as_ref(),
+                self.route().as_ref(),
                 |encoded_result| result_handler(encoded_result, value),
             );
             return Some(());

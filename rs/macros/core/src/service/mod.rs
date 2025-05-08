@@ -262,7 +262,6 @@ impl FnBuilder<'_> {
         meta_module_ident: &Ident,
         input_ident: &Ident,
     ) -> TokenStream {
-        let sails_path = self.sails_path;
         let handler_func_ident = self.ident;
 
         let params_struct_ident = &self.params_struct_ident;
@@ -292,7 +291,7 @@ impl FnBuilder<'_> {
                 #handle_token
                 #meta_module_ident::#params_struct_ident::with_optimized_encode(
                     &result,
-                    <Self as #sails_path::gstd::services::Exposure>::route(self).as_ref(),
+                    self.route().as_ref(),
                     |encoded_result| result_handler(encoded_result, value),
                 );
                 return Some(());

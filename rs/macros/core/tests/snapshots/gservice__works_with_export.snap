@@ -54,6 +54,7 @@ impl SomeServiceExposure<SomeService> {
         result_handler: fn(&[u8], u128),
     ) -> Option<(())> {
         use sails_rs::gstd::InvocationIo;
+        use sails_rs::gstd::services::Exposure;
         if let Ok(request) = some_service_meta::__DoSomethingParams::decode_params(
             input,
         ) {
@@ -61,7 +62,7 @@ impl SomeServiceExposure<SomeService> {
             let value = 0u128;
             some_service_meta::__DoSomethingParams::with_optimized_encode(
                 &result,
-                <Self as sails_rs::gstd::services::Exposure>::route(self).as_ref(),
+                self.route().as_ref(),
                 |encoded_result| result_handler(encoded_result, value),
             );
             return Some(());
@@ -71,7 +72,7 @@ impl SomeServiceExposure<SomeService> {
             let value = 0u128;
             some_service_meta::__ThisParams::with_optimized_encode(
                 &result,
-                <Self as sails_rs::gstd::services::Exposure>::route(self).as_ref(),
+                self.route().as_ref(),
                 |encoded_result| result_handler(encoded_result, value),
             );
             return Some(());
