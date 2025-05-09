@@ -289,8 +289,12 @@ impl FnBuilder<'_> {
         quote! {
             if let Ok(request) = #meta_module_ident::#params_struct_ident::decode_params( #input_ident) {
                 #handle_token
-                let output = #meta_module_ident::#params_struct_ident::encode_reply(&result);
-                return Some((output, value));
+                #meta_module_ident::#params_struct_ident::with_optimized_encode(
+                    &result,
+                    self.route().as_ref(),
+                    |encoded_result| result_handler(encoded_result, value),
+                );
+                return Some(());
             }
         }
     }

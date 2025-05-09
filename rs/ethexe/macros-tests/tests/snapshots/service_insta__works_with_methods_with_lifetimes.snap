@@ -69,47 +69,67 @@ impl ReferenceServiceExposure<ReferenceService> {
     pub async fn try_handle(
         &mut self,
         input: &[u8],
-    ) -> Option<(sails_rs::Vec<u8>, u128)> {
+        result_handler: fn(&[u8], u128),
+    ) -> Option<(())> {
         use sails_rs::gstd::InvocationIo;
+        use sails_rs::gstd::services::Exposure;
         if let Ok(request) = reference_service_meta::__AddByteParams::decode_params(
             input,
         ) {
             let result = self.add_byte(request.byte);
             let value = 0u128;
-            let output = reference_service_meta::__AddByteParams::encode_reply(&result);
-            return Some((output, value));
+            reference_service_meta::__AddByteParams::with_optimized_encode(
+                &result,
+                self.route().as_ref(),
+                |encoded_result| result_handler(encoded_result, value),
+            );
+            return Some(());
         }
         if let Ok(request) = reference_service_meta::__BakedParams::decode_params(
             input,
         ) {
             let result = self.baked();
             let value = 0u128;
-            let output = reference_service_meta::__BakedParams::encode_reply(&result);
-            return Some((output, value));
+            reference_service_meta::__BakedParams::with_optimized_encode(
+                &result,
+                self.route().as_ref(),
+                |encoded_result| result_handler(encoded_result, value),
+            );
+            return Some(());
         }
         if let Ok(request) = reference_service_meta::__FirstByteParams::decode_params(
             input,
         ) {
             let result = self.first_byte().await;
             let value = 0u128;
-            let output = reference_service_meta::__FirstByteParams::encode_reply(
+            reference_service_meta::__FirstByteParams::with_optimized_encode(
                 &result,
+                self.route().as_ref(),
+                |encoded_result| result_handler(encoded_result, value),
             );
-            return Some((output, value));
+            return Some(());
         }
         if let Ok(request) = reference_service_meta::__IncrParams::decode_params(input) {
             let result = self.incr();
             let value = 0u128;
-            let output = reference_service_meta::__IncrParams::encode_reply(&result);
-            return Some((output, value));
+            reference_service_meta::__IncrParams::with_optimized_encode(
+                &result,
+                self.route().as_ref(),
+                |encoded_result| result_handler(encoded_result, value),
+            );
+            return Some(());
         }
         if let Ok(request) = reference_service_meta::__LastByteParams::decode_params(
             input,
         ) {
             let result = self.last_byte().await;
             let value = 0u128;
-            let output = reference_service_meta::__LastByteParams::encode_reply(&result);
-            return Some((output, value));
+            reference_service_meta::__LastByteParams::with_optimized_encode(
+                &result,
+                self.route().as_ref(),
+                |encoded_result| result_handler(encoded_result, value),
+            );
+            return Some(());
         }
         None
     }

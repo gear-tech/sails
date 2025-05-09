@@ -3,6 +3,7 @@
 use super::utils::MaybeUninitBufferWriter;
 use crate::{Encode, Output, Vec, collections::BTreeMap, errors::*};
 use core::{any::TypeId, ops::DerefMut};
+use gcore::stack_buffer;
 use scale_info::{StaticTypeInfo, TypeDef};
 
 #[doc(hidden)]
@@ -44,30 +45,30 @@ where
         .as_ref()
         .map_err(Clone::clone)?;
 
-    // todo to be benchmarked
+    // TODO #919 to be benchmarked
     let event_size = event.encoded_size();
 
     // The event is first encoded as this way it's possible to easily
     // access the actual event encoded payload bytes, which are those
     // after the first byte. The latter is the index of the event name.
-    let res = gcore::stack_buffer::with_byte_buffer(event_size, |buffer| {
-        let mut output = MaybeUninitBufferWriter::new(buffer);
-        event.encode_to(&mut output);
+    let res = stack_buffer::with_byte_buffer(event_size, |buffer| {
+        let mut buffer_writer = MaybeUninitBufferWriter::new(buffer);
+        event.encode_to(&mut buffer_writer);
 
-        output.with_buffer(|event_bytes| {
+        buffer_writer.with_buffer(|event_bytes| {
             let event_idx = event_bytes[0] as usize;
             let encoded_event_name = &encoded_event_names[event_idx];
             let encoding_event_bytes = &event_bytes[1..];
 
             let final_payload_size =
                 prefix.len() + encoded_event_name.len() + encoding_event_bytes.len();
-            gcore::stack_buffer::with_byte_buffer(final_payload_size, |buffer| {
-                let mut output = MaybeUninitBufferWriter::new(buffer);
-                output.write(prefix);
-                output.write(encoded_event_name);
-                output.write(encoding_event_bytes);
+            stack_buffer::with_byte_buffer(final_payload_size, |buffer| {
+                let mut buffer_writer = MaybeUninitBufferWriter::new(buffer);
+                buffer_writer.write(prefix);
+                buffer_writer.write(encoded_event_name);
+                buffer_writer.write(encoding_event_bytes);
 
-                output.with_buffer(f)
+                buffer_writer.with_buffer(f)
             })
         })
     });
