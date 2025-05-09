@@ -124,14 +124,6 @@ pub trait InvocationIo {
         Decode::decode(&mut value).map_err(Error::Codec)
     }
 
-    // Type `T` is not specified in the trait to accept any lifetime
-    fn encode_reply<T: Encode>(value: &T) -> Vec<u8> {
-        let mut result = Vec::with_capacity(Self::ROUTE.len() + Encode::size_hint(value));
-        result.extend_from_slice(Self::ROUTE);
-        Encode::encode_to(value, &mut result);
-        result
-    }
-
     fn with_optimized_encode<T: Encode, R>(
         value: &T,
         prefix: &[u8],
