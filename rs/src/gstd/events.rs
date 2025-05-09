@@ -45,7 +45,7 @@ where
         .as_ref()
         .map_err(Clone::clone)?;
 
-    // todo to be benchmarked
+    // TODO #919 to be benchmarked
     let event_size = event.encoded_size();
 
     // The event is first encoded as this way it's possible to easily
