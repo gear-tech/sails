@@ -1,6 +1,5 @@
 use crate::prelude::*;
 use alloy_sol_types::{SolType, SolValue, abi::TokenSeq};
-use gcore::stack_buffer;
 
 #[doc(hidden)]
 #[cfg(target_arch = "wasm32")]
@@ -22,7 +21,7 @@ fn with_optimized_encode<T, E: EthEvent>(event: E, f: impl FnOnce(&[u8]) -> T) -
     let data = event.data();
     let size = 1 + topics.len() * 32 + data.len();
 
-    stack_buffer::with_byte_buffer(size, |buffer| {
+    gcore::stack_buffer::with_byte_buffer(size, |buffer| {
         let mut buffer_writer = MaybeUninitBufferWriter::new(buffer);
 
         // encode topics lenght as u8
