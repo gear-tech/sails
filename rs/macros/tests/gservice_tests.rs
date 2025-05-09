@@ -74,29 +74,27 @@ async fn gservice_with_extends() {
     let mut extended_svc = Extended::new(Base).expose(MessageId::from(123), service_route());
 
     extended_svc
-        .try_handle(
-            &EXTENDED_NAME_METHOD.encode(),
-            |mut output, _| {
-                let actual = output.to_vec();
-                let expected = [
-                    SERVICE_NAME.encode(),
-                    EXTENDED_NAME_METHOD.encode(),
-                    EXTENDED_NAME_RESULT.encode(),
-                ].concat();
+        .try_handle(&EXTENDED_NAME_METHOD.encode(), |mut output, _| {
+            let actual = output.to_vec();
+            let expected = [
+                SERVICE_NAME.encode(),
+                EXTENDED_NAME_METHOD.encode(),
+                EXTENDED_NAME_RESULT.encode(),
+            ]
+            .concat();
 
-                assert_eq!(actual, expected);
+            assert_eq!(actual, expected);
 
-                let service_route = String::decode(&mut output).unwrap();
-                assert_eq!(service_route, SERVICE_NAME);
+            let service_route = String::decode(&mut output).unwrap();
+            assert_eq!(service_route, SERVICE_NAME);
 
-                let func_name = String::decode(&mut output).unwrap();
-                assert_eq!(func_name, EXTENDED_NAME_METHOD);
+            let func_name = String::decode(&mut output).unwrap();
+            assert_eq!(func_name, EXTENDED_NAME_METHOD);
 
-                let result = String::decode(&mut output).unwrap();
-                assert_eq!(result, EXTENDED_NAME_RESULT);
-                assert_eq!(output.len(), 0);
-            }
-        )
+            let result = String::decode(&mut output).unwrap();
+            assert_eq!(result, EXTENDED_NAME_RESULT);
+            assert_eq!(output.len(), 0);
+        })
         .await
         .unwrap();
 
