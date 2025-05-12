@@ -53,7 +53,7 @@ mod tests {
         let (data, value) = fee_service.do_something_and_take_fee().to_tuple();
 
         // Assert: should return false with no extra value.
-        assert_eq!(data, false);
+        assert!(!data);
         assert_eq!(value, 0);
     }
 
@@ -79,7 +79,7 @@ mod tests {
         let (data, value) = fee_service.do_something_and_take_fee().to_tuple();
 
         // Assert: reply indicates success (true) but without carrying extra value.
-        assert_eq!(data, true);
+        assert!(data);
         assert_eq!(value, 0);
     }
 
@@ -97,7 +97,7 @@ mod tests {
 
         // Assert: reply indicates success (true) and carries the remaining value (message_value - fee)
         // in its value field.
-        assert_eq!(data, true);
+        assert!(data);
         assert_eq!(value, message_value - fee);
     }
 }

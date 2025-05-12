@@ -33,6 +33,7 @@ mod ethexe;
 mod events;
 pub mod services;
 mod sys_calls;
+mod utils;
 
 pub struct CommandReply<T>(T, ValueUnit);
 
