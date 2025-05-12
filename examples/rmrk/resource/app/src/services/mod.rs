@@ -4,7 +4,7 @@ use resources::{ComposedResource, PartId, Resource, ResourceId};
 use sails_rs::{
     calls::Query,
     collections::HashMap,
-    gstd::{ExecContext, service},
+    gstd::{Syscall, service},
     prelude::*,
 };
 
@@ -34,31 +34,26 @@ pub enum ResourceStorageEvent {
     },
 }
 
-pub struct ResourceStorage<TExecContext, TCatalogClient> {
-    exec_context: TExecContext,
+pub struct ResourceStorage<TCatalogClient> {
     catalog_client: TCatalogClient,
 }
 
 // Declare the service can emit events of type ResourceStorageEvent
 #[service(events = ResourceStorageEvent)]
-impl<TExecContext, TCatalogClient> ResourceStorage<TExecContext, TCatalogClient>
+impl<TCatalogClient> ResourceStorage<TCatalogClient>
 where
-    TExecContext: ExecContext,
     TCatalogClient: RmrkCatalog,
 {
     // This function needs to be called before any other function
-    pub fn seed(exec_context: TExecContext) {
+    pub fn seed() {
         unsafe {
             RESOURCE_STORAGE_DATA = Some(ResourceStorageData::default());
-            RESOURCE_STORAGE_ADMIN = Some(exec_context.actor_id());
+            RESOURCE_STORAGE_ADMIN = Some(Syscall::message_source());
         }
     }
 
-    pub fn new(exec_context: TExecContext, catalog_client: TCatalogClient) -> Self {
-        Self {
-            exec_context,
-            catalog_client,
-        }
+    pub fn new(catalog_client: TCatalogClient) -> Self {
+        Self { catalog_client }
     }
 
     pub fn add_resource_entry(
@@ -146,7 +141,7 @@ where
     }
 
     fn require_admin(&self) -> Result<()> {
-        if self.exec_context.actor_id() != resource_storage_admin() {
+        if Syscall::message_source() != resource_storage_admin() {
             return Err(Error::NotAuthorized);
         }
         Ok(())
@@ -172,21 +167,14 @@ mod tests {
     use super::*;
     use crate::catalogs::{FixedPart, Part, mockall::MockRmrkCatalog};
     use resources::ComposedResource;
-    use sails_rs::{ActorId, gstd::calls::GStdArgs, mockall::MockQuery};
+    use sails_rs::{gstd::calls::GStdArgs, mockall::MockQuery};
 
     #[tokio::test]
     async fn test_add_resource_entry() {
-        ResourceStorage::<ExecContextMock, MockRmrkCatalog<GStdArgs>>::seed(ExecContextMock {
-            actor_id: 1.into(),
-            message_id: 1.into(),
-        });
-        let mut resource_storage = ResourceStorage::new(
-            ExecContextMock {
-                actor_id: 1.into(),
-                message_id: 1.into(),
-            },
-            MockRmrkCatalog::<GStdArgs>::new(),
-        );
+        Syscall::with_message_source(ActorId::from(1));
+
+        ResourceStorage::<MockRmrkCatalog<GStdArgs>>::seed();
+        let mut resource_storage = ResourceStorage::new(MockRmrkCatalog::<GStdArgs>::new());
 
         let resource = Resource::Composed(ComposedResource {
             src: "src".to_string(),
@@ -220,20 +208,5 @@ mod tests {
             .await
             .unwrap();
         assert_eq!(actual_part_id, 1);
-    }
-
-    struct ExecContextMock {
-        actor_id: ActorId,
-        message_id: MessageId,
-    }
-
-    impl ExecContext for ExecContextMock {
-        fn actor_id(&self) -> ActorId {
-            self.actor_id
-        }
-
-        fn message_id(&self) -> MessageId {
-            self.message_id
-        }
     }
 }
