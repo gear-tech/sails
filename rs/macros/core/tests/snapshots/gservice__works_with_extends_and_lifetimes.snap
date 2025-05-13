@@ -48,7 +48,7 @@ impl<'a> ExtendedLifetimeExposure<ExtendedLifetime<'a>> {
         &mut self,
         input: &[u8],
         result_handler: fn(&[u8], u128),
-    ) -> Option<(())> {
+    ) -> Option<()> {
         use sails_rs::gstd::InvocationIo;
         use sails_rs::gstd::services::Exposure;
         if let Ok(request) = extended_lifetime_meta::__ExtendedNameParams::decode_params(

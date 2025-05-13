@@ -14,7 +14,6 @@ mod gservice_with_multiple_names;
 mod gservice_with_reply_with_value;
 mod gservice_with_trait_bounds;
 
-// todo [sab] fix it
 /// Same service name is used for all the tests,
 /// because under the hood exposure call context
 /// stores service names in a static map, which is
@@ -22,9 +21,8 @@ mod gservice_with_trait_bounds;
 /// environment. This leads to test's failure in case
 /// race condition occurs.
 const SERVICE_NAME: &str = "TestService";
-fn service_route() -> &'static [u8] {
-    SERVICE_NAME.encode().leak()
-}
+/// Service route which is same as `SERVICE_NAME.encode()`
+const SERVICE_ROUTE: &[u8] = &[44, 84, 101, 115, 116, 83, 101, 114, 118, 105, 99, 101];
 
 #[tokio::test]
 async fn gservice_with_basics() {
@@ -43,7 +41,7 @@ async fn gservice_with_basics() {
     ]
     .concat();
     MyService
-        .expose(MessageId::from(123), service_route())
+        .expose(MessageId::from(123), SERVICE_ROUTE)
         .try_handle(&input, |mut output, _| {
             let service_route = String::decode(&mut output).unwrap();
             assert_eq!(service_route, SERVICE_NAME);
@@ -71,13 +69,13 @@ async fn gservice_with_extends() {
     const BASE_NAME_METHOD: &str = "BaseName";
     const EXTENDED_NAME_METHOD: &str = "ExtendedName";
 
-    let mut extended_svc = Extended::new(Base).expose(MessageId::from(123), service_route());
+    let mut extended_svc = Extended::new(Base).expose(MessageId::from(123), SERVICE_ROUTE);
 
     extended_svc
         .try_handle(&EXTENDED_NAME_METHOD.encode(), |mut output, _| {
             let actual = output.to_vec();
             let expected = [
-                SERVICE_NAME.encode(),
+                SERVICE_ROUTE.to_vec(),
                 EXTENDED_NAME_METHOD.encode(),
                 EXTENDED_NAME_RESULT.encode(),
             ]
@@ -140,7 +138,7 @@ async fn gservice_with_lifecycles_and_generics() {
     let my_service = MyGenericService::<'_, String>::default();
 
     my_service
-        .expose(MessageId::from(123), service_route())
+        .expose(MessageId::from(123), SERVICE_ROUTE)
         .try_handle(&DO_THIS.encode(), |mut output, _| {
             let service_route = String::decode(&mut output).unwrap();
             assert_eq!(service_route, SERVICE_NAME);
@@ -164,7 +162,7 @@ async fn gservice_panic_on_unexpected_input() {
 
     let input = [0xffu8; 16];
     MyService
-        .expose(MessageId::from(123), service_route())
+        .expose(MessageId::from(123), SERVICE_ROUTE)
         .try_handle(&input, |_, _| {
             panic!("Should not reach here");
         })
@@ -196,7 +194,7 @@ async fn gservice_panic_on_unexpected_input_double_encoded() {
     .encode();
 
     MyService
-        .expose(MessageId::from(123), service_route())
+        .expose(MessageId::from(123), SERVICE_ROUTE)
         .try_handle(&input, |_, _| {
             panic!("Should not reach here");
         })
@@ -208,7 +206,7 @@ async fn gservice_panic_on_unexpected_input_double_encoded() {
 fn gservice_with_events() {
     use gservice_with_events::{MyEvents, MyServiceWithEvents};
 
-    let mut exposure = MyServiceWithEvents(0).expose(MessageId::from(142), service_route());
+    let mut exposure = MyServiceWithEvents(0).expose(MessageId::from(142), SERVICE_ROUTE);
     exposure.my_method();
 
     let events = exposure.take_events();
@@ -223,7 +221,7 @@ async fn gservice_with_lifetimes_and_events() {
     const DO_THIS: &str = "DoThis";
 
     let my_service = MyGenericEventsService::<'_, String>::default();
-    let mut exposure = my_service.expose(MessageId::from(123), service_route());
+    let mut exposure = my_service.expose(MessageId::from(123), SERVICE_ROUTE);
 
     exposure
         .try_handle(&DO_THIS.encode(), |mut output, _| {
@@ -258,7 +256,7 @@ async fn gservice_with_extends_and_lifetimes() {
 
     let int = 42u64;
     let mut extended_svc = ExtendedWithLifetime::new(BaseWithLifetime::new(&int))
-        .expose(MessageId::from(123), service_route());
+        .expose(MessageId::from(123), SERVICE_ROUTE);
 
     extended_svc
         .try_handle(&EXTENDED_NAME_METHOD.encode(), |mut output, _| {
@@ -326,7 +324,7 @@ async fn gservice_with_reply_with_value() {
     .concat();
 
     MyServiceWithReplyWithValue
-        .expose(MessageId::from(123), service_route())
+        .expose(MessageId::from(123), SERVICE_ROUTE)
         .try_handle(&input, |mut output, value| {
             let service_route = String::decode(&mut output).unwrap();
             assert_eq!(service_route, SERVICE_NAME);
@@ -362,7 +360,7 @@ async fn gservice_with_reply_with_value_with_impl_from() {
     .concat();
 
     MyServiceWithReplyWithValue
-        .expose(MessageId::from(123), service_route())
+        .expose(MessageId::from(123), SERVICE_ROUTE)
         .try_handle(&input, |mut output, value| {
             let service_route = String::decode(&mut output).unwrap();
             assert_eq!(service_route, SERVICE_NAME);
@@ -387,7 +385,7 @@ async fn gservice_with_trait_bounds() {
     const DO_THIS: &str = "DoThis";
 
     MyServiceWithTraitBounds::<u32>::default()
-        .expose(MessageId::from(123), service_route())
+        .expose(MessageId::from(123), SERVICE_ROUTE)
         .try_handle(&DO_THIS.encode(), |mut output, _| {
             let service_route = String::decode(&mut output).unwrap();
             assert_eq!(service_route, SERVICE_NAME);
@@ -416,7 +414,7 @@ macro_rules! gservice_works {
         ]
         .concat();
         $service
-            .expose(MessageId::from(123), service_route())
+            .expose(MessageId::from(123), SERVICE_ROUTE)
             .try_handle(&input, |mut output, _| {
                 let service_route = String::decode(&mut output).unwrap();
                 assert_eq!(service_route, SERVICE_NAME);
@@ -461,7 +459,7 @@ async fn gservice_with_export_unwrap_result() {
     .concat();
 
     MyService
-        .expose(MessageId::from(123), service_route())
+        .expose(MessageId::from(123), SERVICE_ROUTE)
         .try_handle(&input, |mut output, _| {
             let service_route = String::decode(&mut output).unwrap();
             assert_eq!(service_route, SERVICE_NAME);
@@ -488,7 +486,7 @@ async fn gservice_with_export_unwrap_result_panic() {
     let input = (PARSE, "not a number").encode();
 
     MyService
-        .expose(MessageId::from(123), service_route())
+        .expose(MessageId::from(123), SERVICE_ROUTE)
         .try_handle(&input, |_, _| {
             panic!("Should not reach here");
         })

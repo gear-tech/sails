@@ -42,7 +42,7 @@ where
         &mut self,
         input: &[u8],
         result_handler: fn(&[u8], u128),
-    ) -> Option<(())> {
+    ) -> Option<()> {
         use sails_rs::gstd::InvocationIo;
         use sails_rs::gstd::services::Exposure;
         if let Ok(request) = my_generic_events_service_meta::__DoThisParams::decode_params(

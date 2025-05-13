@@ -70,7 +70,7 @@ impl ReferenceServiceExposure<ReferenceService> {
         &mut self,
         input: &[u8],
         result_handler: fn(&[u8], u128),
-    ) -> Option<(())> {
+    ) -> Option<()> {
         use sails_rs::gstd::InvocationIo;
         use sails_rs::gstd::services::Exposure;
         if let Ok(request) = reference_service_meta::__AddByteParams::decode_params(

@@ -129,7 +129,7 @@ pub trait InvocationIo {
         prefix: &[u8],
         f: impl FnOnce(&[u8]) -> R,
     ) -> R {
-        let size = prefix.len() + Self::ROUTE.len() + Encode::size_hint(value);
+        let size = prefix.len() + Self::ROUTE.len() + Encode::encoded_size(value);
         stack_buffer::with_byte_buffer(size, |buffer| {
             let mut buffer_writer = MaybeUninitBufferWriter::new(buffer);
 
