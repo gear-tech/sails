@@ -225,7 +225,7 @@ impl ProgramBuilder {
             let handle_reply_fn_ident = &item_fn.sig.ident;
             quote! {
                 fn __handle_reply() {
-                    let program_ref = unsafe { #program_ident.as_ref() }.expect("Program not initialized");
+                    let program_ref = unsafe { #program_ident.as_mut() }.expect("Program not initialized");
                     program_ref.#handle_reply_fn_ident();
                 }
             }
@@ -256,7 +256,7 @@ impl ProgramBuilder {
                 #payable
 
                 let mut input: &[u8] = &gstd::msg::load_bytes().expect("Failed to read input");
-                let program_ref = unsafe { #program_ident.as_ref() }.expect("Program not initialized");
+                let program_ref = unsafe { #program_ident.as_mut() }.expect("Program not initialized");
 
                 #solidity_main
 
@@ -469,7 +469,6 @@ fn service_ctor_predicate(fn_item: &ImplItemFn) -> bool {
         && matches!(
             fn_item.sig.receiver(),
             Some(Receiver {
-                mutability: None,
                 reference: Some(_),
                 ..
             })

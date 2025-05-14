@@ -29,7 +29,7 @@ fn dog_data() -> &'static RefCell<walker::WalkerData> {
 pub struct DemoProgram {
     // Counter data has the same lifetime as the program itself, i.e. it will
     // live as long as the program is available on the network.
-    counter_data: RefCell<counter::CounterData>,
+    counter_data: counter::CounterData,
 }
 
 #[program(payable)]
@@ -44,7 +44,7 @@ impl DemoProgram {
             )));
         }
         Self {
-            counter_data: RefCell::new(counter::CounterData::new(Default::default())),
+            counter_data: counter::CounterData::new(Default::default()),
         }
     }
 
@@ -59,7 +59,7 @@ impl DemoProgram {
             )));
         }
         Ok(Self {
-            counter_data: RefCell::new(counter::CounterData::new(counter.unwrap_or_default())),
+            counter_data: counter::CounterData::new(counter.unwrap_or_default()),
         })
     }
 
@@ -70,8 +70,8 @@ impl DemoProgram {
     }
 
     // Exposing another service
-    pub fn counter(&self) -> counter::CounterService {
-        counter::CounterService::new(&self.counter_data)
+    pub fn counter(&mut self) -> counter::CounterService {
+        counter::CounterService::new(&mut self.counter_data)
     }
 
     // Exposing yet another service
