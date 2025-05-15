@@ -14,7 +14,7 @@ impl CounterData {
 }
 
 // Service event type definition.
-#[derive(Encode, TypeInfo)]
+#[derive(Encode, TypeInfo, Clone, Debug, PartialEq)]
 #[codec(crate = sails_rs::scale_codec)]
 #[scale_info(crate = sails_rs::scale_info)]
 pub enum CounterEvents {

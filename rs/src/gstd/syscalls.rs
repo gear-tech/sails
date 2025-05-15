@@ -62,45 +62,49 @@ impl Syscall {
 
 #[cfg(not(target_arch = "wasm32"))]
 #[cfg(not(feature = "std"))]
+const ERROR: &str = "Syscall is implemented only for the wasm32 architecture and the std future";
+
+#[cfg(not(target_arch = "wasm32"))]
+#[cfg(not(feature = "std"))]
 impl Syscall {
     pub fn message_id() -> MessageId {
-        unimplemented!("Syscall is implemented only for the wasm32 architecture and the std future")
+        unimplemented!("{ERROR}")
     }
 
     pub fn message_size() -> usize {
-        unimplemented!("Syscall is implemented only for the wasm32 architecture and the std future")
+        unimplemented!("{ERROR}")
     }
 
     pub fn message_source() -> ActorId {
-        unimplemented!("Syscall is implemented only for the wasm32 architecture and the std future")
+        unimplemented!("{ERROR}")
     }
 
     pub fn message_value() -> u128 {
-        unimplemented!("Syscall is implemented only for the wasm32 architecture and the std future")
+        unimplemented!("{ERROR}")
     }
 
     pub fn program_id() -> ActorId {
-        unimplemented!("Syscall is implemented only for the wasm32 architecture and the std future")
+        unimplemented!("{ERROR}")
     }
 
     pub fn block_height() -> u32 {
-        unimplemented!("Syscall is implemented only for the wasm32 architecture and the std future")
+        unimplemented!("{ERROR}")
     }
 
     pub fn block_timestamp() -> u64 {
-        unimplemented!("Syscall is implemented only for the wasm32 architecture and the std future")
+        unimplemented!("{ERROR}")
     }
 
     pub fn value_available() -> u128 {
-        unimplemented!("Syscall is implemented only for the wasm32 architecture and the std future")
+        unimplemented!("{ERROR}")
     }
 
     pub fn env_vars() -> gstd::EnvVars {
-        unimplemented!("Syscall is implemented only for the wasm32 architecture and the std future")
+        unimplemented!("{ERROR}")
     }
 
     pub fn exit(_inheritor_id: ActorId) -> ! {
-        unimplemented!("Syscall is implemented only for the wasm32 architecture and the std future")
+        unimplemented!("{ERROR}")
     }
 }
 
