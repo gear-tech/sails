@@ -25,14 +25,14 @@ use crate::{
     prelude::*,
 };
 
-pub use sys_calls::Syscall;
+pub use syscalls::Syscall;
 
 pub mod calls;
 #[cfg(feature = "ethexe")]
 mod ethexe;
 mod events;
 pub mod services;
-mod sys_calls;
+mod syscalls;
 mod utils;
 
 pub struct CommandReply<T>(T, ValueUnit);

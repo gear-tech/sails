@@ -64,43 +64,43 @@ impl Syscall {
 #[cfg(not(feature = "std"))]
 impl Syscall {
     pub fn message_id() -> MessageId {
-        unreachable!()
+        unimplemented!("Syscall is implemented only for the wasm32 architecture and the std future")
     }
 
     pub fn message_size() -> usize {
-        unreachable!()
+        unimplemented!("Syscall is implemented only for the wasm32 architecture and the std future")
     }
 
     pub fn message_source() -> ActorId {
-        unreachable!()
+        unimplemented!("Syscall is implemented only for the wasm32 architecture and the std future")
     }
 
     pub fn message_value() -> u128 {
-        unreachable!()
+        unimplemented!("Syscall is implemented only for the wasm32 architecture and the std future")
     }
 
     pub fn program_id() -> ActorId {
-        unreachable!()
+        unimplemented!("Syscall is implemented only for the wasm32 architecture and the std future")
     }
 
     pub fn block_height() -> u32 {
-        unreachable!()
+        unimplemented!("Syscall is implemented only for the wasm32 architecture and the std future")
     }
 
     pub fn block_timestamp() -> u64 {
-        unreachable!()
+        unimplemented!("Syscall is implemented only for the wasm32 architecture and the std future")
     }
 
     pub fn value_available() -> u128 {
-        unreachable!()
+        unimplemented!("Syscall is implemented only for the wasm32 architecture and the std future")
     }
 
     pub fn env_vars() -> gstd::EnvVars {
-        unreachable!()
+        unimplemented!("Syscall is implemented only for the wasm32 architecture and the std future")
     }
 
     pub fn exit(_inheritor_id: ActorId) -> ! {
-        unreachable!();
+        unimplemented!("Syscall is implemented only for the wasm32 architecture and the std future")
     }
 }
 
