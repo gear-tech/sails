@@ -11,7 +11,7 @@ use crate::prelude::*;
 ///
 /// - For the WASM target, direct calls are made to `gstd::msg` and `gstd::exec` to fetch runtime data.
 /// - In standard (`std`) environments, a mock implementation uses thread-local state for testing purposes.
-/// - In `no_std` configurations without the `std` feature and and not WASM target, the functions are marked as unreachable.
+/// - In `no_std` configurations without the `std` feature and and not WASM target, the functions are marked as unimplemented.
 ///
 /// Use these methods to retrieve contextual information about the current execution environment,
 /// ensuring that your program logic remains agnostic of the underlying platform specifics.
@@ -177,8 +177,6 @@ const _: () = {
         }
     }
 
-    #[cfg(not(target_arch = "wasm32"))]
-    #[cfg(feature = "std")]
     impl Syscall {
         pub fn with_message_id(message_id: MessageId) {
             SYSCALL_STATE.with_borrow_mut(|state| state.message_id = message_id);
