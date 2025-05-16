@@ -1,4 +1,4 @@
-use sails_rs::prelude::*;
+use sails_rs::{cell::RefCell, prelude::*};
 
 // Model of the service's data. Only service knows what is the data
 // and how to manipulate it.
@@ -14,7 +14,7 @@ impl CounterData {
 }
 
 // Service event type definition.
-#[derive(Encode, TypeInfo)]
+#[derive(Encode, TypeInfo, Clone, Debug, PartialEq)]
 #[codec(crate = sails_rs::scale_codec)]
 #[scale_info(crate = sails_rs::scale_info)]
 pub enum CounterEvents {
@@ -25,13 +25,13 @@ pub enum CounterEvents {
 }
 
 pub struct CounterService<'a> {
-    data: &'a mut CounterData,
+    data: &'a RefCell<CounterData>,
 }
 
 impl<'a> CounterService<'a> {
     // Service constrctor demands a reference to the data to be passed
     // from the outside.
-    pub fn new(data: &'a mut CounterData) -> Self {
+    pub fn new(data: &'a RefCell<CounterData>) -> Self {
         Self { data }
     }
 }
@@ -41,24 +41,26 @@ impl<'a> CounterService<'a> {
 impl CounterService<'_> {
     /// Add a value to the counter
     pub fn add(&mut self, value: u32) -> u32 {
-        self.data.counter += value;
+        let mut data_mut = self.data.borrow_mut();
+        data_mut.counter += value;
         // Emit event right before the method returns via
         // the generated `emit_event` method.
         self.emit_event(CounterEvents::Added(value)).unwrap();
-        self.data.counter
+        data_mut.counter
     }
 
     /// Substract a value from the counter
     pub fn sub(&mut self, value: u32) -> u32 {
-        self.data.counter -= value;
+        let mut data_mut = self.data.borrow_mut();
+        data_mut.counter -= value;
         // Emit event right before the method returns via
         // the generated `emit_event` method.
         self.emit_event(CounterEvents::Subtracted(value)).unwrap();
-        self.data.counter
+        data_mut.counter
     }
 
     /// Get the current value
     pub fn value(&self) -> u32 {
-        self.data.counter
+        self.data.borrow().counter
     }
 }

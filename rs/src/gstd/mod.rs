@@ -24,46 +24,17 @@ use crate::{
     errors::{Error, Result, RtlError},
     prelude::*,
 };
-use core::cell::OnceCell;
+use gcore::stack_buffer;
+pub use syscalls::Syscall;
+use utils::MaybeUninitBufferWriter;
 
 pub mod calls;
 #[cfg(feature = "ethexe")]
 mod ethexe;
 mod events;
 pub mod services;
+mod syscalls;
 mod utils;
-
-// TODO: To be renamed into SysCalls or something similar
-pub trait ExecContext {
-    fn actor_id(&self) -> ActorId;
-
-    fn message_id(&self) -> MessageId;
-}
-
-#[derive(Default, Clone)]
-pub struct GStdExecContext {
-    msg_source: OnceCell<ActorId>,
-    msg_id: OnceCell<MessageId>,
-}
-
-impl GStdExecContext {
-    pub fn new() -> Self {
-        Self {
-            msg_source: OnceCell::new(),
-            msg_id: OnceCell::new(),
-        }
-    }
-}
-
-impl ExecContext for GStdExecContext {
-    fn actor_id(&self) -> ActorId {
-        *self.msg_source.get_or_init(msg::source)
-    }
-
-    fn message_id(&self) -> MessageId {
-        *self.msg_id.get_or_init(msg::id)
-    }
-}
 
 pub struct CommandReply<T>(T, ValueUnit);
 
@@ -122,11 +93,20 @@ pub trait InvocationIo {
         Decode::decode(&mut value).map_err(Error::Codec)
     }
 
-    // Type `T` is not specified in the trait to accept any lifetime
-    fn encode_reply<T: Encode>(value: &T) -> Vec<u8> {
-        let mut result = Vec::with_capacity(Self::ROUTE.len() + Encode::size_hint(value));
-        result.extend_from_slice(Self::ROUTE);
-        Encode::encode_to(value, &mut result);
-        result
+    fn with_optimized_encode<T: Encode, R>(
+        value: &T,
+        prefix: &[u8],
+        f: impl FnOnce(&[u8]) -> R,
+    ) -> R {
+        let size = prefix.len() + Self::ROUTE.len() + Encode::encoded_size(value);
+        stack_buffer::with_byte_buffer(size, |buffer| {
+            let mut buffer_writer = MaybeUninitBufferWriter::new(buffer);
+
+            buffer_writer.write(prefix);
+            buffer_writer.write(Self::ROUTE);
+            Encode::encode_to(value, &mut buffer_writer);
+
+            buffer_writer.with_buffer(f)
+        })
     }
 }

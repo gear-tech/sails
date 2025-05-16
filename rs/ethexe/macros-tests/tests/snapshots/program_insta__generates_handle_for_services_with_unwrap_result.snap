@@ -18,7 +18,7 @@ impl MyProgram {
         let service = self.__service1().unwrap();
         let exposure = <MyService as sails_rs::gstd::services::Service>::expose(
             service,
-            sails_rs::gstd::msg::id().into(),
+            sails_rs::gstd::Syscall::message_id(),
             __ROUTE_SVC1.as_ref(),
         );
         exposure
@@ -29,7 +29,7 @@ impl MyProgram {
         let service = self.__service2();
         let exposure = <MyService as sails_rs::gstd::services::Service>::expose(
             service,
-            sails_rs::gstd::msg::id().into(),
+            sails_rs::gstd::Syscall::message_id(),
             __ROUTE_SERVICE2.as_ref(),
         );
         exposure
@@ -213,27 +213,36 @@ pub mod wasm {
                 }
             }
         }
-        let (output, value): (Vec<u8>, ValueUnit) = if input.starts_with(&__ROUTE_SVC1) {
+        if input.starts_with(&__ROUTE_SVC1) {
             let mut service = program_ref.service1();
-            let (output, value) = service
-                .try_handle(&input[__ROUTE_SVC1.len()..])
+            service
+                .try_handle(
+                    &input[__ROUTE_SVC1.len()..],
+                    |encoded_result, value| {
+                        gstd::msg::reply_bytes(encoded_result, value)
+                            .expect("Failed to send output");
+                    },
+                )
                 .await
                 .unwrap_or_else(|| {
                     gstd::unknown_input_panic("Unknown request", input)
                 });
-            ([__ROUTE_SVC1.as_ref(), &output].concat(), value)
         } else if input.starts_with(&__ROUTE_SERVICE2) {
             let mut service = program_ref.service2();
-            let (output, value) = service
-                .try_handle(&input[__ROUTE_SERVICE2.len()..])
+            service
+                .try_handle(
+                    &input[__ROUTE_SERVICE2.len()..],
+                    |encoded_result, value| {
+                        gstd::msg::reply_bytes(encoded_result, value)
+                            .expect("Failed to send output");
+                    },
+                )
                 .await
                 .unwrap_or_else(|| {
                     gstd::unknown_input_panic("Unknown request", input)
                 });
-            ([__ROUTE_SERVICE2.as_ref(), &output].concat(), value)
         } else {
             gstd::unknown_input_panic("Unexpected service", input)
         };
-        gstd::msg::reply_bytes(output, value).expect("Failed to send output");
     }
 }

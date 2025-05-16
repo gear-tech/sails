@@ -260,8 +260,7 @@ impl ProgramBuilder {
 
                 #solidity_main
 
-                let (output, value): (Vec<u8>, ValueUnit) = #(#invocation_dispatches)else*;
-                gstd::msg::reply_bytes(output, value).expect("Failed to send output");
+                #(#invocation_dispatches)else*;
             }
 
             #handle_reply_fn
@@ -530,10 +529,15 @@ impl FnBuilder<'_> {
         quote! {
             if input.starts_with(& #route_ident) {
                 let mut service = program_ref.#service_ctor_ident();
-                let (output, value) = service.try_handle(&input[#route_ident .len()..]).await.unwrap_or_else(|| {
-                    gstd::unknown_input_panic("Unknown request", input)
-                });
-                ([#route_ident .as_ref(), &output].concat(), value)
+                service
+                    .try_handle(&input[#route_ident .len()..], |encoded_result, value| {
+                        gstd::msg::reply_bytes(encoded_result, value)
+                            .expect("Failed to send output");
+                    })
+                    .await
+                    .unwrap_or_else(|| {
+                        gstd::unknown_input_panic("Unknown request", input)
+                    });
             }
         }
     }
@@ -568,7 +572,7 @@ impl FnBuilder<'_> {
             let service = self. #original_service_ctor_fn_ident () #unwrap_token;
             let exposure = < #service_type as #sails_path::gstd::services::Service>::expose(
                 service,
-                #sails_path::gstd::msg::id().into(),
+                #sails_path::gstd::Syscall::message_id(),
                 #route_ident .as_ref(),
             );
             exposure

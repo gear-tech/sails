@@ -53,9 +53,6 @@ pub mod wasm {
     async fn main() {
         let mut input: &[u8] = &gstd::msg::load_bytes().expect("Failed to read input");
         let program_ref = unsafe { PROGRAM.as_mut() }.expect("Program not initialized");
-        let (output, value): (Vec<u8>, ValueUnit) = {
-            gstd::unknown_input_panic("Unexpected service", input)
-        };
-        gstd::msg::reply_bytes(output, value).expect("Failed to send output");
+        { gstd::unknown_input_panic("Unexpected service", input) };
     }
 }

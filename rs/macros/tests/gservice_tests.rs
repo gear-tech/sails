@@ -14,6 +14,16 @@ mod gservice_with_multiple_names;
 mod gservice_with_reply_with_value;
 mod gservice_with_trait_bounds;
 
+/// Same service name is used for all the tests,
+/// because under the hood exposure call context
+/// stores service names in a static map, which is
+/// accessed by different tests in a multi-threaded
+/// environment. This leads to test's failure in case
+/// race condition occurs.
+const SERVICE_NAME: &str = "TestService";
+/// Service route which is same as `SERVICE_NAME.encode()`
+const SERVICE_ROUTE: &[u8] = &[44, 84, 101, 115, 116, 83, 101, 114, 118, 105, 99, 101];
+
 #[tokio::test]
 async fn gservice_with_basics() {
     use gservice_with_basics::MyDoThisParams;
@@ -30,20 +40,22 @@ async fn gservice_with_basics() {
         .encode(),
     ]
     .concat();
-    let (output, _value) = MyService
-        .expose(MessageId::from(123), &[1, 2, 3])
-        .try_handle(&input)
+    MyService
+        .expose(MessageId::from(123), SERVICE_ROUTE)
+        .try_handle(&input, |mut output, _| {
+            let service_route = String::decode(&mut output).unwrap();
+            assert_eq!(service_route, SERVICE_NAME);
+
+            let func_name = String::decode(&mut output).unwrap();
+            assert_eq!(func_name, DO_THIS);
+
+            let result = String::decode(&mut output).unwrap();
+            assert_eq!(result, "42: correct");
+
+            assert_eq!(output.len(), 0);
+        })
         .await
         .unwrap();
-    let mut output = output.as_slice();
-
-    let func_name = String::decode(&mut output).unwrap();
-    assert_eq!(func_name, DO_THIS);
-
-    let result = String::decode(&mut output).unwrap();
-    assert_eq!(result, "42: correct");
-
-    assert_eq!(output.len(), 0);
 }
 
 #[tokio::test]
@@ -57,52 +69,64 @@ async fn gservice_with_extends() {
     const BASE_NAME_METHOD: &str = "BaseName";
     const EXTENDED_NAME_METHOD: &str = "ExtendedName";
 
-    let mut extended_svc = Extended::new(Base).expose(123.into(), &[1, 2, 3]);
+    let mut extended_svc = Extended::new(Base).expose(MessageId::from(123), SERVICE_ROUTE);
 
-    let (output, _value) = extended_svc
-        .try_handle(&EXTENDED_NAME_METHOD.encode())
+    extended_svc
+        .try_handle(&EXTENDED_NAME_METHOD.encode(), |mut output, _| {
+            let actual = output.to_vec();
+            let expected = [
+                SERVICE_ROUTE.to_vec(),
+                EXTENDED_NAME_METHOD.encode(),
+                EXTENDED_NAME_RESULT.encode(),
+            ]
+            .concat();
+
+            assert_eq!(actual, expected);
+
+            let service_route = String::decode(&mut output).unwrap();
+            assert_eq!(service_route, SERVICE_NAME);
+
+            let func_name = String::decode(&mut output).unwrap();
+            assert_eq!(func_name, EXTENDED_NAME_METHOD);
+
+            let result = String::decode(&mut output).unwrap();
+            assert_eq!(result, EXTENDED_NAME_RESULT);
+            assert_eq!(output.len(), 0);
+        })
         .await
         .unwrap();
-
-    assert_eq!(
-        output,
-        [EXTENDED_NAME_METHOD.encode(), EXTENDED_NAME_RESULT.encode()].concat()
-    );
 
     let _base: &<Base as Service>::Exposure = extended_svc.as_base_0();
 
-    let (output, _value) = extended_svc
-        .try_handle(&BASE_NAME_METHOD.encode())
+    extended_svc
+        .try_handle(&BASE_NAME_METHOD.encode(), |mut output, _| {
+            // Even if base service method is called, the service route
+            // will be the same as extended service route.
+            let service_route = String::decode(&mut output).unwrap();
+            assert_eq!(service_route, SERVICE_NAME);
+
+            let func_name = String::decode(&mut output).unwrap();
+            assert_eq!(func_name, BASE_NAME_METHOD);
+
+            let result = String::decode(&mut output).unwrap();
+            assert_eq!(result, BASE_NAME_RESULT);
+        })
         .await
         .unwrap();
-    let mut output = output.as_slice();
-    let func_name = String::decode(&mut output).unwrap();
-    assert_eq!(func_name, BASE_NAME_METHOD);
 
-    let result = String::decode(&mut output).unwrap();
-    assert_eq!(result, BASE_NAME_RESULT);
+    extended_svc
+        .try_handle(&NAME_METHOD.encode(), |mut output, _| {
+            let service_route = String::decode(&mut output).unwrap();
+            assert_eq!(service_route, SERVICE_NAME);
 
-    let (output, _value) = extended_svc
-        .try_handle(&EXTENDED_NAME_METHOD.encode())
+            let func_name = String::decode(&mut output).unwrap();
+            assert_eq!(func_name, NAME_METHOD);
+
+            let result = String::decode(&mut output).unwrap();
+            assert_eq!(result, NAME_RESULT);
+        })
         .await
         .unwrap();
-    let mut output = output.as_slice();
-    let func_name = String::decode(&mut output).unwrap();
-    assert_eq!(func_name, EXTENDED_NAME_METHOD);
-
-    let result = String::decode(&mut output).unwrap();
-    assert_eq!(result, EXTENDED_NAME_RESULT);
-
-    let (output, _value) = extended_svc
-        .try_handle(&NAME_METHOD.encode())
-        .await
-        .unwrap();
-    let mut output = output.as_slice();
-    let func_name = String::decode(&mut output).unwrap();
-    assert_eq!(func_name, NAME_METHOD);
-
-    let result = String::decode(&mut output).unwrap();
-    assert_eq!(result, NAME_RESULT);
 }
 
 #[tokio::test]
@@ -113,20 +137,22 @@ async fn gservice_with_lifecycles_and_generics() {
 
     let my_service = MyGenericService::<'_, String>::default();
 
-    let (output, _value) = my_service
-        .expose(MessageId::from(123), &[1, 2, 3])
-        .try_handle(&DO_THIS.encode())
+    my_service
+        .expose(MessageId::from(123), SERVICE_ROUTE)
+        .try_handle(&DO_THIS.encode(), |mut output, _| {
+            let service_route = String::decode(&mut output).unwrap();
+            assert_eq!(service_route, SERVICE_NAME);
+
+            let func_name = String::decode(&mut output).unwrap();
+            assert_eq!(func_name, DO_THIS);
+
+            let result = u32::decode(&mut output).unwrap();
+            assert_eq!(result, 42);
+
+            assert_eq!(output.len(), 0);
+        })
         .await
         .unwrap();
-    let mut output = output.as_slice();
-
-    let func_name = String::decode(&mut output).unwrap();
-    assert_eq!(func_name, DO_THIS);
-
-    let result = u32::decode(&mut output).unwrap();
-    assert_eq!(result, 42);
-
-    assert_eq!(output.len(), 0);
 }
 
 #[tokio::test]
@@ -136,8 +162,10 @@ async fn gservice_panic_on_unexpected_input() {
 
     let input = [0xffu8; 16];
     MyService
-        .expose(MessageId::from(123), &[1, 2, 3])
-        .try_handle(&input)
+        .expose(MessageId::from(123), SERVICE_ROUTE)
+        .try_handle(&input, |_, _| {
+            panic!("Should not reach here");
+        })
         .await
         .unwrap_or_else(|| sails_rs::gstd::unknown_input_panic("Unknown request", &input));
 }
@@ -166,8 +194,10 @@ async fn gservice_panic_on_unexpected_input_double_encoded() {
     .encode();
 
     MyService
-        .expose(MessageId::from(123), &[1, 2, 3])
-        .try_handle(&input)
+        .expose(MessageId::from(123), SERVICE_ROUTE)
+        .try_handle(&input, |_, _| {
+            panic!("Should not reach here");
+        })
         .await
         .unwrap_or_else(|| sails_rs::gstd::unknown_input_panic("Unknown request", &input));
 }
@@ -176,7 +206,7 @@ async fn gservice_panic_on_unexpected_input_double_encoded() {
 fn gservice_with_events() {
     use gservice_with_events::{MyEvents, MyServiceWithEvents};
 
-    let mut exposure = MyServiceWithEvents(0).expose(MessageId::from(142), &[1, 4, 2]);
+    let mut exposure = MyServiceWithEvents(0).expose(MessageId::from(142), SERVICE_ROUTE);
     exposure.my_method();
 
     let events = exposure.take_events();
@@ -191,19 +221,23 @@ async fn gservice_with_lifetimes_and_events() {
     const DO_THIS: &str = "DoThis";
 
     let my_service = MyGenericEventsService::<'_, String>::default();
-    let mut exposure = my_service.expose(MessageId::from(123), &[1, 2, 3]);
+    let mut exposure = my_service.expose(MessageId::from(123), SERVICE_ROUTE);
 
-    let (output, _value) = exposure.try_handle(&DO_THIS.encode()).await.unwrap();
+    exposure
+        .try_handle(&DO_THIS.encode(), |mut output, _| {
+            let service_route = String::decode(&mut output).unwrap();
+            assert_eq!(service_route, SERVICE_NAME);
 
-    let mut output = output.as_slice();
+            let func_name = String::decode(&mut output).unwrap();
+            assert_eq!(func_name, DO_THIS);
 
-    let func_name = String::decode(&mut output).unwrap();
-    assert_eq!(func_name, DO_THIS);
+            let result = u32::decode(&mut output).unwrap();
+            assert_eq!(result, 42);
 
-    let result = u32::decode(&mut output).unwrap();
-    assert_eq!(result, 42);
-
-    assert_eq!(output.len(), 0);
+            assert_eq!(output.len(), 0);
+        })
+        .await
+        .unwrap();
 
     let events = exposure.take_events();
     assert_eq!(events.len(), 1);
@@ -221,53 +255,55 @@ async fn gservice_with_extends_and_lifetimes() {
     const EXTENDED_NAME_METHOD: &str = "ExtendedName";
 
     let int = 42u64;
-    let mut extended_svc =
-        ExtendedWithLifetime::new(BaseWithLifetime::new(&int)).expose(123.into(), &[1, 2, 3]);
+    let mut extended_svc = ExtendedWithLifetime::new(BaseWithLifetime::new(&int))
+        .expose(MessageId::from(123), SERVICE_ROUTE);
 
-    let (output, _value) = extended_svc
-        .try_handle(&EXTENDED_NAME_METHOD.encode())
+    extended_svc
+        .try_handle(&EXTENDED_NAME_METHOD.encode(), |mut output, _| {
+            let service_route = String::decode(&mut output).unwrap();
+            assert_eq!(service_route, SERVICE_NAME);
+
+            let func_name = String::decode(&mut output).unwrap();
+            assert_eq!(func_name, EXTENDED_NAME_METHOD);
+
+            let result = String::decode(&mut output).unwrap();
+            assert_eq!(result, EXTENDED_NAME_RESULT);
+            assert_eq!(output.len(), 0);
+        })
         .await
         .unwrap();
-
-    assert_eq!(
-        output,
-        [EXTENDED_NAME_METHOD.encode(), EXTENDED_NAME_RESULT.encode()].concat()
-    );
 
     let _base: &<BaseWithLifetime as Service>::Exposure = extended_svc.as_base_0();
 
-    let (output, _value) = extended_svc
-        .try_handle(&BASE_NAME_METHOD.encode())
+    extended_svc
+        .try_handle(&BASE_NAME_METHOD.encode(), |mut output, _| {
+            let service_route = String::decode(&mut output).unwrap();
+            assert_eq!(service_route, SERVICE_NAME);
+
+            let func_name = String::decode(&mut output).unwrap();
+            assert_eq!(func_name, BASE_NAME_METHOD);
+
+            let result = String::decode(&mut output).unwrap();
+            assert_eq!(result, BASE_NAME_RESULT);
+            assert_eq!(output.len(), 0);
+        })
         .await
         .unwrap();
-    let mut output = output.as_slice();
-    let func_name = String::decode(&mut output).unwrap();
-    assert_eq!(func_name, BASE_NAME_METHOD);
 
-    let result = String::decode(&mut output).unwrap();
-    assert_eq!(result, BASE_NAME_RESULT);
+    extended_svc
+        .try_handle(&NAME_METHOD.encode(), |mut output, _| {
+            let service_route = String::decode(&mut output).unwrap();
+            assert_eq!(service_route, SERVICE_NAME);
 
-    let (output, _value) = extended_svc
-        .try_handle(&EXTENDED_NAME_METHOD.encode())
+            let func_name = String::decode(&mut output).unwrap();
+            assert_eq!(func_name, NAME_METHOD);
+
+            let result = String::decode(&mut output).unwrap();
+            assert_eq!(result, NAME_RESULT);
+            assert_eq!(output.len(), 0);
+        })
         .await
         .unwrap();
-    let mut output = output.as_slice();
-    let func_name = String::decode(&mut output).unwrap();
-    assert_eq!(func_name, EXTENDED_NAME_METHOD);
-
-    let result = String::decode(&mut output).unwrap();
-    assert_eq!(result, EXTENDED_NAME_RESULT);
-
-    let (output, _value) = extended_svc
-        .try_handle(&NAME_METHOD.encode())
-        .await
-        .unwrap();
-    let mut output = output.as_slice();
-    let func_name = String::decode(&mut output).unwrap();
-    assert_eq!(func_name, NAME_METHOD);
-
-    let result = String::decode(&mut output).unwrap();
-    assert_eq!(result, NAME_RESULT);
 }
 
 #[tokio::test]
@@ -286,22 +322,24 @@ async fn gservice_with_reply_with_value() {
         .encode(),
     ]
     .concat();
-    let (output, value) = MyServiceWithReplyWithValue
-        .expose(MessageId::from(123), &[1, 2, 3])
-        .try_handle(&input)
+
+    MyServiceWithReplyWithValue
+        .expose(MessageId::from(123), SERVICE_ROUTE)
+        .try_handle(&input, |mut output, value| {
+            let service_route = String::decode(&mut output).unwrap();
+            assert_eq!(service_route, SERVICE_NAME);
+
+            let func_name = String::decode(&mut output).unwrap();
+            assert_eq!(func_name, DO_THIS);
+
+            let result = String::decode(&mut output).unwrap();
+            assert_eq!(result, "42: correct");
+            assert_eq!(output.len(), 0);
+
+            assert_eq!(value, 100_000_000_000);
+        })
         .await
         .unwrap();
-
-    assert_eq!(value, 100_000_000_000);
-    let mut output = output.as_slice();
-
-    let func_name = String::decode(&mut output).unwrap();
-    assert_eq!(func_name, DO_THIS);
-
-    let result = String::decode(&mut output).unwrap();
-    assert_eq!(result, "42: correct");
-
-    assert_eq!(output.len(), 0);
 }
 
 #[tokio::test]
@@ -320,22 +358,24 @@ async fn gservice_with_reply_with_value_with_impl_from() {
         .encode(),
     ]
     .concat();
-    let (output, value) = MyServiceWithReplyWithValue
-        .expose(MessageId::from(123), &[1, 2, 3])
-        .try_handle(&input)
+
+    MyServiceWithReplyWithValue
+        .expose(MessageId::from(123), SERVICE_ROUTE)
+        .try_handle(&input, |mut output, value| {
+            let service_route = String::decode(&mut output).unwrap();
+            assert_eq!(service_route, SERVICE_NAME);
+
+            let func_name = String::decode(&mut output).unwrap();
+            assert_eq!(func_name, DO_THAT);
+
+            let result = String::decode(&mut output).unwrap();
+            assert_eq!(result, "42: correct");
+            assert_eq!(output.len(), 0);
+
+            assert_eq!(value, 100_000_000_000);
+        })
         .await
         .unwrap();
-
-    assert_eq!(value, 100_000_000_000);
-    let mut output = output.as_slice();
-
-    let func_name = String::decode(&mut output).unwrap();
-    assert_eq!(func_name, DO_THAT);
-
-    let result = String::decode(&mut output).unwrap();
-    assert_eq!(result, "42: correct");
-
-    assert_eq!(output.len(), 0);
 }
 
 #[tokio::test]
@@ -344,20 +384,22 @@ async fn gservice_with_trait_bounds() {
 
     const DO_THIS: &str = "DoThis";
 
-    let (output, _value) = MyServiceWithTraitBounds::<u32>::default()
-        .expose(MessageId::from(123), &[1, 2, 3])
-        .try_handle(&DO_THIS.encode())
+    MyServiceWithTraitBounds::<u32>::default()
+        .expose(MessageId::from(123), SERVICE_ROUTE)
+        .try_handle(&DO_THIS.encode(), |mut output, _| {
+            let service_route = String::decode(&mut output).unwrap();
+            assert_eq!(service_route, SERVICE_NAME);
+
+            let func_name = String::decode(&mut output).unwrap();
+            assert_eq!(func_name, DO_THIS);
+
+            let result = u32::decode(&mut output).unwrap();
+            assert_eq!(result, 42);
+
+            assert_eq!(output.len(), 0);
+        })
         .await
         .unwrap();
-    let mut output = output.as_slice();
-
-    let func_name = String::decode(&mut output).unwrap();
-    assert_eq!(func_name, DO_THIS);
-
-    let result = u32::decode(&mut output).unwrap();
-    assert_eq!(result, 42);
-
-    assert_eq!(output.len(), 0);
 }
 
 macro_rules! gservice_works {
@@ -371,19 +413,21 @@ macro_rules! gservice_works {
             .encode(),
         ]
         .concat();
-        let (output, _value) = $service
-            .expose(MessageId::from(123), &[1, 2, 3])
-            .try_handle(&input)
+        $service
+            .expose(MessageId::from(123), SERVICE_ROUTE)
+            .try_handle(&input, |mut output, _| {
+                let service_route = String::decode(&mut output).unwrap();
+                assert_eq!(service_route, SERVICE_NAME);
+
+                let func_name = String::decode(&mut output).unwrap();
+                assert_eq!(func_name, DO_THIS);
+
+                let result = String::decode(&mut output).unwrap();
+                assert_eq!(result, "42: correct");
+                assert_eq!(output.len(), 0);
+            })
             .await
             .unwrap();
-        let mut output = output.as_slice();
-
-        let func_name = String::decode(&mut output).unwrap();
-        assert_eq!(func_name, DO_THIS);
-
-        let result = String::decode(&mut output).unwrap();
-        assert_eq!(result, "42: correct");
-        assert_eq!(output.len(), 0);
     };
 }
 
@@ -413,20 +457,23 @@ async fn gservice_with_export_unwrap_result() {
         .encode(),
     ]
     .concat();
-    let (output, _value) = MyService
-        .expose(MessageId::from(123), &[1, 2, 3])
-        .try_handle(&input)
+
+    MyService
+        .expose(MessageId::from(123), SERVICE_ROUTE)
+        .try_handle(&input, |mut output, _| {
+            let service_route = String::decode(&mut output).unwrap();
+            assert_eq!(service_route, SERVICE_NAME);
+
+            let func_name = String::decode(&mut output).unwrap();
+            assert_eq!(func_name, DO_THIS);
+
+            let result = String::decode(&mut output).unwrap();
+            assert_eq!(result, "42: correct");
+
+            assert_eq!(output.len(), 0);
+        })
         .await
         .unwrap();
-    let mut output = output.as_slice();
-
-    let func_name = String::decode(&mut output).unwrap();
-    assert_eq!(func_name, DO_THIS);
-
-    let result = String::decode(&mut output).unwrap();
-    assert_eq!(result, "42: correct");
-
-    assert_eq!(output.len(), 0);
 }
 
 #[tokio::test]
@@ -437,9 +484,12 @@ async fn gservice_with_export_unwrap_result_panic() {
     const PARSE: &str = "Parse";
 
     let input = (PARSE, "not a number").encode();
-    _ = MyService
-        .expose(MessageId::from(123), &[1, 2, 3])
-        .try_handle(&input)
+
+    MyService
+        .expose(MessageId::from(123), SERVICE_ROUTE)
+        .try_handle(&input, |_, _| {
+            panic!("Should not reach here");
+        })
         .await
         .unwrap();
 }
