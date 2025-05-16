@@ -53,9 +53,11 @@ impl<R> Redirect<R> {
 }
 impl<R: Remoting + Clone> traits::Redirect for Redirect<R> {
     type Args = R::Args;
+    /// Exit from program with inheritor ID
     fn exit(&mut self, inheritor_id: ActorId) -> impl Call<Output = (), Args = R::Args> {
         RemotingAction::<_, redirect::io::Exit>::new(self.remoting.clone(), inheritor_id)
     }
+    /// Returns program ID of the current program
     fn get_program_id(&self) -> impl Query<Output = ActorId, Args = R::Args> {
         RemotingAction::<_, redirect::io::GetProgramId>::new(self.remoting.clone(), ())
     }

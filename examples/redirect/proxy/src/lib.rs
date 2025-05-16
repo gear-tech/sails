@@ -11,11 +11,12 @@ impl ProxyService {
         Self(target)
     }
 
-    // Get program ID of the target program via client
+    /// Get program ID of the target program via client
     pub async fn get_program_id(&self) -> ActorId {
         let client = Redirect::new(GStdRemoting::new());
         client
             .get_program_id()
+            // Set flag to redirect on exit
             .with_redirect_on_exit(true)
             .recv(self.0)
             .await
@@ -27,12 +28,12 @@ pub struct ProxyProgram(ActorId);
 
 #[sails_rs::program]
 impl ProxyProgram {
-    // Proxy Program's constructor
+    /// Proxy Program's constructor
     pub fn new(target: ActorId) -> Self {
         Self(target)
     }
 
-    // Exposed Proxy Service
+    /// Exposed Proxy Service
     pub fn proxy(&self) -> ProxyService {
         ProxyService::new(self.0)
     }

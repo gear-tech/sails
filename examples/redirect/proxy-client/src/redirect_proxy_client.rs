@@ -19,6 +19,7 @@ impl<R> RedirectProxyFactory<R> {
 }
 impl<R: Remoting + Clone> traits::RedirectProxyFactory for RedirectProxyFactory<R> {
     type Args = R::Args;
+    /// Proxy Program's constructor
     fn new(&self, target: ActorId) -> impl Activation<Args = R::Args> {
         RemotingAction::<_, redirect_proxy_factory::io::New>::new(self.remoting.clone(), target)
     }
@@ -53,6 +54,7 @@ impl<R> Proxy<R> {
 }
 impl<R: Remoting + Clone> traits::Proxy for Proxy<R> {
     type Args = R::Args;
+    /// Get program ID of the target program via client
     fn get_program_id(&self) -> impl Query<Output = ActorId, Args = R::Args> {
         RemotingAction::<_, proxy::io::GetProgramId>::new(self.remoting.clone(), ())
     }

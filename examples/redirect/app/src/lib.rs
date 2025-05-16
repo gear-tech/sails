@@ -11,7 +11,7 @@ impl RedirectService {
         Self
     }
 
-    // Exit from program with inheritor ID
+    /// Exit from program with inheritor ID
     pub fn exit(&mut self, inheritor_id: ActorId) {
         let program_id = gstd::exec::program_id();
         if program_id != inheritor_id {
@@ -19,7 +19,7 @@ impl RedirectService {
         }
     }
 
-    // Query program ID of the current program
+    /// Returns program ID of the current program
     pub async fn get_program_id(&self) -> ActorId {
         gstd::exec::program_id()
     }

@@ -1,8 +1,10 @@
 constructor {
+  /// Proxy Program's constructor
   New : (target: actor_id);
 };
 
 service Proxy {
+  /// Get program ID of the target program via client
   query GetProgramId : () -> actor_id;
 };
 

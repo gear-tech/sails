@@ -1,4 +1,4 @@
-use super::message_future::MessageFutureWithRedirect;
+use super::message_future::MessageFutureExtended;
 use crate::{
     calls::{Action, Remoting},
     errors::Result,
@@ -19,25 +19,8 @@ pub struct GStdArgs {
 }
 
 impl GStdArgs {
-    #[allow(clippy::needless_update)]
     pub fn with_wait_up_to(self, wait_up_to: Option<BlockCount>) -> Self {
         Self { wait_up_to, ..self }
-    }
-
-    #[cfg(not(feature = "ethexe"))]
-    pub fn with_reply_deposit(self, reply_deposit: Option<GasUnit>) -> Self {
-        Self {
-            reply_deposit,
-            ..self
-        }
-    }
-
-    #[cfg(not(feature = "ethexe"))]
-    pub fn with_reply_hook<F: FnOnce() + Send + 'static>(self, f: F) -> Self {
-        Self {
-            reply_hook: Some(Box::new(f)),
-            ..self
-        }
     }
 
     pub fn with_redirect_on_exit(self, redirect_on_exit: bool) -> Self {
@@ -51,13 +34,29 @@ impl GStdArgs {
         self.wait_up_to
     }
 
-    #[cfg(not(feature = "ethexe"))]
-    pub fn reply_deposit(&self) -> Option<GasUnit> {
-        self.reply_deposit
-    }
-
     pub fn redirect_on_exit(&self) -> bool {
         self.redirect_on_exit
+    }
+}
+
+#[cfg(not(feature = "ethexe"))]
+impl GStdArgs {
+    pub fn with_reply_deposit(self, reply_deposit: Option<GasUnit>) -> Self {
+        Self {
+            reply_deposit,
+            ..self
+        }
+    }
+
+    pub fn with_reply_hook<F: FnOnce() + Send + 'static>(self, f: F) -> Self {
+        Self {
+            reply_hook: Some(Box::new(f)),
+            ..self
+        }
+    }
+
+    pub fn reply_deposit(&self) -> Option<GasUnit> {
+        self.reply_deposit
     }
 }
 
@@ -67,55 +66,6 @@ pub struct GStdRemoting;
 impl GStdRemoting {
     pub fn new() -> Self {
         Self
-    }
-
-    pub(crate) fn send_for_reply<T: AsRef<[u8]>>(
-        target: ActorId,
-        payload: T,
-        #[cfg(not(feature = "ethexe"))] gas_limit: Option<GasUnit>,
-        value: ValueUnit,
-        #[allow(unused_variables)] args: GStdArgs,
-    ) -> Result<MessageFutureWithRedirect<T>> {
-        // here can be a redirect target
-        #[cfg(not(feature = "ethexe"))]
-        let mut message_future = if let Some(gas_limit) = gas_limit {
-            msg::send_bytes_with_gas_for_reply(
-                target,
-                payload.as_ref(),
-                gas_limit,
-                value,
-                args.reply_deposit.unwrap_or_default(),
-            )?
-        } else {
-            msg::send_bytes_for_reply(
-                target,
-                payload.as_ref(),
-                value,
-                args.reply_deposit.unwrap_or_default(),
-            )?
-        };
-        #[cfg(feature = "ethexe")]
-        let mut message_future = msg::send_bytes_for_reply(target, payload.as_ref(), value)?;
-
-        message_future = message_future.up_to(args.wait_up_to)?;
-
-        #[cfg(not(feature = "ethexe"))]
-        if let Some(reply_hook) = args.reply_hook {
-            message_future = message_future.handle_reply(reply_hook)?;
-        }
-
-        Ok(MessageFutureWithRedirect::new(
-            message_future,
-            target,
-            payload,
-            #[cfg(not(feature = "ethexe"))]
-            gas_limit,
-            value,
-            #[cfg(not(feature = "ethexe"))]
-            args.reply_deposit,
-            args.wait_up_to,
-            args.redirect_on_exit,
-        ))
     }
 }
 
@@ -172,7 +122,7 @@ impl Remoting for GStdRemoting {
         value: ValueUnit,
         args: GStdArgs,
     ) -> Result<impl Future<Output = Result<Vec<u8>>>> {
-        let reply_future = GStdRemoting::send_for_reply(
+        let reply_future = send_for_reply(
             target,
             payload,
             #[cfg(not(feature = "ethexe"))]
@@ -191,7 +141,7 @@ impl Remoting for GStdRemoting {
         value: ValueUnit,
         args: GStdArgs,
     ) -> Result<Vec<u8>> {
-        let reply_future = GStdRemoting::send_for_reply(
+        let reply_future = send_for_reply(
             target,
             payload,
             #[cfg(not(feature = "ethexe"))]
@@ -201,6 +151,92 @@ impl Remoting for GStdRemoting {
         )?;
         let reply = reply_future.await?;
         Ok(reply)
+    }
+}
+
+#[cfg(not(feature = "ethexe"))]
+pub(crate) fn send_for_reply_future(
+    target: ActorId,
+    payload: &[u8],
+    gas_limit: Option<GasUnit>,
+    value: ValueUnit,
+    args: GStdArgs,
+) -> Result<msg::MessageFuture> {
+    // here can be a redirect target
+    let mut message_future = if let Some(gas_limit) = gas_limit {
+        msg::send_bytes_with_gas_for_reply(
+            target,
+            payload,
+            gas_limit,
+            value,
+            args.reply_deposit.unwrap_or_default(),
+        )?
+    } else {
+        msg::send_bytes_for_reply(
+            target,
+            payload,
+            value,
+            args.reply_deposit.unwrap_or_default(),
+        )?
+    };
+
+    message_future = message_future.up_to(args.wait_up_to)?;
+
+    if let Some(reply_hook) = args.reply_hook {
+        message_future = message_future.handle_reply(reply_hook)?;
+    }
+    Ok(message_future)
+}
+
+#[cfg(feature = "ethexe")]
+pub(crate) fn send_for_reply_future(
+    target: ActorId,
+    payload: &[u8],
+    value: ValueUnit,
+    args: GStdArgs,
+) -> Result<msg::MessageFuture> {
+    // here can be a redirect target
+    let mut message_future = msg::send_bytes_for_reply(target, payload, value)?;
+
+    message_future = message_future.up_to(args.wait_up_to)?;
+
+    Ok(message_future)
+}
+
+pub(crate) fn send_for_reply<T: AsRef<[u8]>>(
+    target: ActorId,
+    payload: T,
+    #[cfg(not(feature = "ethexe"))] gas_limit: Option<GasUnit>,
+    value: ValueUnit,
+    args: GStdArgs,
+) -> Result<MessageFutureExtended<T>> {
+    #[cfg(not(feature = "ethexe"))]
+    let reply_deposit = args.reply_deposit;
+    let wait_up_to = args.wait_up_to;
+    let redirect_on_exit = args.redirect_on_exit;
+    let message_future = send_for_reply_future(
+        target,
+        payload.as_ref(),
+        #[cfg(not(feature = "ethexe"))]
+        gas_limit,
+        value,
+        args,
+    )?;
+
+    if redirect_on_exit {
+        Ok(MessageFutureExtended::with_redirect(
+            message_future,
+            target,
+            payload,
+            #[cfg(not(feature = "ethexe"))]
+            gas_limit,
+            value,
+            #[cfg(not(feature = "ethexe"))]
+            reply_deposit,
+            wait_up_to,
+        ))
+    } else {
+        Ok(MessageFutureExtended::without_redirect(message_future))
     }
 }
 
@@ -234,6 +270,15 @@ where
         self.with_args(|args| args.with_reply_hook(f))
     }
 
+    /// Set `redirect_on_exit` flag to `true``
+    ///
+    /// This flag is used to redirect a message to a new program when the target program exits
+    /// with an inheritor.
+    ///
+    /// WARNING: When this flag is set, the message future captures the payload and other arguments,
+    /// potentially resulting in multiple messages being sent. This can lead to increased gas consumption.
+    ///
+    /// This flag is set to `false`` by default.
     fn with_redirect_on_exit(self, redirect_on_exit: bool) -> Self {
         self.with_args(|args| args.with_redirect_on_exit(redirect_on_exit))
     }
