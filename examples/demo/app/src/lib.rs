@@ -15,7 +15,6 @@ mod value_fee;
 // the Counter data incapsulated in the program itself, i.e. there are no any benefits
 // of using a global variable here. It is just a demonstration of how to use global variables.
 static mut DOG_DATA: Option<RefCell<walker::WalkerData>> = None;
-static mut REF_DATA: u8 = 42;
 
 #[allow(static_mut_refs)]
 fn dog_data() -> &'static RefCell<walker::WalkerData> {
@@ -30,6 +29,7 @@ pub struct DemoProgram {
     // Counter data has the same lifetime as the program itself, i.e. it will
     // live as long as the program is available on the network.
     counter_data: RefCell<counter::CounterData>,
+    ref_data: u8,
 }
 
 #[program(payable)]
@@ -45,6 +45,7 @@ impl DemoProgram {
         }
         Self {
             counter_data: RefCell::new(counter::CounterData::new(Default::default())),
+            ref_data: 42,
         }
     }
 
@@ -60,6 +61,7 @@ impl DemoProgram {
         }
         Ok(Self {
             counter_data: RefCell::new(counter::CounterData::new(counter.unwrap_or_default())),
+            ref_data: 42,
         })
     }
 
@@ -79,11 +81,8 @@ impl DemoProgram {
         dog::DogService::new(walker::WalkerService::new(dog_data()))
     }
 
-    pub fn references(&self) -> references::ReferenceService {
-        #[allow(static_mut_refs)]
-        unsafe {
-            references::ReferenceService::new(&mut REF_DATA, "demo")
-        }
+    pub fn references(&mut self) -> references::ReferenceService {
+        references::ReferenceService::new(&mut self.ref_data, "demo")
     }
 
     pub fn this_that(&self) -> this_that::MyService {
