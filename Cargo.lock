@@ -6111,6 +6111,52 @@ dependencies = [
 ]
 
 [[package]]
+name = "redirect"
+version = "0.1.0"
+dependencies = [
+ "gclient",
+ "redirect-app",
+ "redirect-client",
+ "redirect-proxy",
+ "redirect-proxy-client",
+ "sails-rs",
+ "tokio",
+]
+
+[[package]]
+name = "redirect-app"
+version = "0.1.0"
+dependencies = [
+ "sails-rs",
+]
+
+[[package]]
+name = "redirect-client"
+version = "0.1.0"
+dependencies = [
+ "redirect-app",
+ "sails-client-gen",
+ "sails-rs",
+]
+
+[[package]]
+name = "redirect-proxy"
+version = "0.1.0"
+dependencies = [
+ "redirect-client",
+ "sails-rs",
+]
+
+[[package]]
+name = "redirect-proxy-client"
+version = "0.1.0"
+dependencies = [
+ "redirect-proxy",
+ "sails-client-gen",
+ "sails-rs",
+]
+
+[[package]]
 name = "redox_syscall"
 version = "0.5.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6728,6 +6774,7 @@ dependencies = [
  "log",
  "mockall",
  "parity-scale-codec",
+ "pin-project-lite",
  "sails-idl-gen",
  "sails-idl-meta",
  "sails-macros",

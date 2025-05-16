@@ -18,6 +18,11 @@ members = [
     "examples/rmrk/catalog/wasm",
     "examples/rmrk/resource/app",
     "examples/rmrk/resource/wasm",
+    "examples/redirect",
+    "examples/redirect/app",
+    "examples/redirect/client",
+    "examples/redirect/proxy",
+    "examples/redirect/proxy-client",
     "rs",
     "rs/cli",
     "rs/client-gen",
@@ -74,6 +79,7 @@ lalrpop-util = "0.20"
 log = { version = "0.4", default-features = false }
 logos = "0.13"
 mockall = "0.12"
+pin-project-lite = "0.2"
 parity-scale-codec = { version = "=3.7.4", default-features = false }
 prettyplease = "0.2"
 proc-macro-error = "1.0"

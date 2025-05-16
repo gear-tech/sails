@@ -424,9 +424,9 @@ fn some_client_code() {
     let mut my_service = MyService::new(remoting); // remoting is an abstraction provided by Sails
     let reply_ticket = client.do_something(42, "Hello".to_string())
         .with_reply_deposit(42)
-        .publish(target_app_id)
+        .send(target_app_id)
         .await.unwrap();
-    let reply = reply_ticket.reply().await.unwrap();
+    let reply = reply_ticket.recv().await.unwrap();
     let m1 = reply.m1;
     let m2 = reply.m2;
 }
