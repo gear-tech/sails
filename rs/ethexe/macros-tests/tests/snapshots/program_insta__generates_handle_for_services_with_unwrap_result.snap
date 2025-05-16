@@ -18,7 +18,7 @@ impl MyProgram {
         let service = self.__service1().unwrap();
         let exposure = <MyService as sails_rs::gstd::services::Service>::expose(
             service,
-            sails_rs::gstd::msg::id().into(),
+            sails_rs::gstd::Syscall::message_id(),
             __ROUTE_SVC1.as_ref(),
         );
         exposure
@@ -29,7 +29,7 @@ impl MyProgram {
         let service = self.__service2();
         let exposure = <MyService as sails_rs::gstd::services::Service>::expose(
             service,
-            sails_rs::gstd::msg::id().into(),
+            sails_rs::gstd::Syscall::message_id(),
             __ROUTE_SERVICE2.as_ref(),
         );
         exposure

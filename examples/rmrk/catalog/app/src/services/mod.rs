@@ -3,7 +3,7 @@ use parts::{CollectionId, Part, PartId, SlotPart};
 use sails_rs::{
     Result as RtlResult,
     collections::{BTreeMap, BTreeSet},
-    gstd::{ExecContext, service},
+    gstd::{Syscall, service},
     prelude::*,
 };
 
@@ -24,27 +24,15 @@ struct CatalogData {
     is_equippable_to_all: BTreeSet<PartId>,
 }
 
-pub struct Catalog<TExecContext>
-where
-    TExecContext: ExecContext,
-{
-    exec_context: TExecContext,
-}
+pub struct Catalog;
 
-impl<TExecContext: ExecContext> Catalog<TExecContext>
-where
-    TExecContext: ExecContext,
-{
+impl Catalog {
     // This function needs to be called before any other function
-    pub fn seed(exec_context: TExecContext) {
+    pub fn seed() {
         unsafe {
             CATALOG_DATA = Some(CatalogData::default());
-            CATALOG_ADMIN = Some(exec_context.actor_id());
+            CATALOG_ADMIN = Some(Syscall::message_source());
         }
-    }
-
-    pub fn new(exec_context: TExecContext) -> Self {
-        Self { exec_context }
     }
 
     #[allow(static_mut_refs)]
@@ -59,10 +47,7 @@ where
 }
 
 #[service]
-impl<TExecContext> Catalog<TExecContext>
-where
-    TExecContext: ExecContext,
-{
+impl Catalog {
     pub fn add_parts(&mut self, parts: PartMap<PartId, Part>) -> Result<PartMap<PartId, Part>> {
         self.require_admin()?;
 
@@ -226,7 +211,7 @@ where
     }
 
     fn require_admin(&self) -> Result<()> {
-        if self.exec_context.actor_id() != catalog_admin() {
+        if Syscall::message_source() != catalog_admin() {
             return Err(Error::NotAllowedToCall);
         }
 

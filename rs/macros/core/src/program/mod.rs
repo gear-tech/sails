@@ -573,7 +573,7 @@ impl FnBuilder<'_> {
             let service = self. #original_service_ctor_fn_ident () #unwrap_token;
             let exposure = < #service_type as #sails_path::gstd::services::Service>::expose(
                 service,
-                #sails_path::gstd::msg::id().into(),
+                #sails_path::gstd::Syscall::message_id(),
                 #route_ident .as_ref(),
             );
             exposure

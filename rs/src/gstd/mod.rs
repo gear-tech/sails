@@ -24,8 +24,8 @@ use crate::{
     errors::{Error, Result, RtlError},
     prelude::*,
 };
-use core::cell::OnceCell;
 use gcore::stack_buffer;
+pub use syscalls::Syscall;
 use utils::MaybeUninitBufferWriter;
 
 pub mod calls;
@@ -33,39 +33,8 @@ pub mod calls;
 mod ethexe;
 mod events;
 pub mod services;
+mod syscalls;
 mod utils;
-
-// TODO: To be renamed into SysCalls or something similar
-pub trait ExecContext {
-    fn actor_id(&self) -> ActorId;
-
-    fn message_id(&self) -> MessageId;
-}
-
-#[derive(Default, Clone)]
-pub struct GStdExecContext {
-    msg_source: OnceCell<ActorId>,
-    msg_id: OnceCell<MessageId>,
-}
-
-impl GStdExecContext {
-    pub fn new() -> Self {
-        Self {
-            msg_source: OnceCell::new(),
-            msg_id: OnceCell::new(),
-        }
-    }
-}
-
-impl ExecContext for GStdExecContext {
-    fn actor_id(&self) -> ActorId {
-        *self.msg_source.get_or_init(msg::source)
-    }
-
-    fn message_id(&self) -> MessageId {
-        *self.msg_id.get_or_init(msg::id)
-    }
-}
 
 pub struct CommandReply<T>(T, ValueUnit);
 
