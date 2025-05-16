@@ -1,47 +1,79 @@
 //! Functionality for notifying off-chain subscribers on events happening in on-chain programs.
 
-use crate::{Encode, Vec, collections::BTreeMap, errors::*};
+use super::utils::MaybeUninitBufferWriter;
+use crate::{Encode, Output, Vec, collections::BTreeMap, errors::*};
 use core::{any::TypeId, ops::DerefMut};
+use gcore::stack_buffer;
 use scale_info::{StaticTypeInfo, TypeDef};
 
 #[doc(hidden)]
 #[cfg(target_arch = "wasm32")]
 pub fn __emit_event<TEvents>(event: TEvents) -> Result<()>
 where
-    TEvents: parity_scale_codec::Encode + scale_info::StaticTypeInfo,
+    TEvents: Encode + StaticTypeInfo,
 {
     let route = crate::gstd::services::exposure_context(gstd::msg::id()).route();
     __emit_event_with_route(route, event)
 }
 
 #[doc(hidden)]
-#[cfg(target_arch = "wasm32")]
+// #[cfg(target_arch = "wasm32")]
 pub fn __emit_event_with_route<TEvents>(route: &[u8], event: TEvents) -> Result<()>
 where
-    TEvents: parity_scale_codec::Encode + scale_info::StaticTypeInfo,
+    TEvents: Encode + StaticTypeInfo,
 {
-    let payload = compose_payload::<TEvents>(route, event)?;
-    gstd::msg::send_bytes(gstd::ActorId::zero(), payload, 0)?;
-    Ok(())
+    with_optimized_encode::<_, _>(route, event, |payload| {
+        gstd::msg::send_bytes(gstd::ActorId::zero(), payload, 0)?;
+
+        Ok::<_, Error>(())
+    })?
 }
 
-#[allow(dead_code)] // use in wasm32 and tests
-fn compose_payload<TEvents>(prefix: &[u8], event: TEvents) -> Result<Vec<u8>, RtlError>
+#[allow(dead_code)]
+fn with_optimized_encode<T, TEvents>(
+    prefix: &[u8],
+    event: TEvents,
+    f: impl FnOnce(&[u8]) -> T,
+) -> Result<T>
 where
-    TEvents: StaticTypeInfo + Encode,
+    TEvents: Encode + StaticTypeInfo,
 {
     let mut type_id_to_encoded_event_names_map = type_id_to_event_names_map();
-
     let encoded_event_names = type_id_to_encoded_event_names_map
         .entry(TypeId::of::<TEvents::Identity>())
         .or_insert_with(extract_encoded_event_names::<TEvents>)
         .as_ref()
         .map_err(Clone::clone)?;
 
-    let payload = event.encode();
-    let event_idx = payload[0]; // It is safe to get this w/o any check as we know the type is a proper event type, i.e. enum
-    let encoded_event_name = &encoded_event_names[event_idx as usize];
-    Ok([prefix, &encoded_event_name[..], &payload[1..]].concat())
+    // TODO #919 to be benchmarked
+    let event_size = event.encoded_size();
+
+    // The event is first encoded as this way it's possible to easily
+    // access the actual event encoded payload bytes, which are those
+    // after the first byte. The latter is the index of the event name.
+    let res = stack_buffer::with_byte_buffer(event_size, |buffer| {
+        let mut buffer_writer = MaybeUninitBufferWriter::new(buffer);
+        event.encode_to(&mut buffer_writer);
+
+        buffer_writer.with_buffer(|event_bytes| {
+            let event_idx = event_bytes[0] as usize;
+            let encoded_event_name = &encoded_event_names[event_idx];
+            let encoding_event_bytes = &event_bytes[1..];
+
+            let final_payload_size =
+                prefix.len() + encoded_event_name.len() + encoding_event_bytes.len();
+            stack_buffer::with_byte_buffer(final_payload_size, |buffer| {
+                let mut buffer_writer = MaybeUninitBufferWriter::new(buffer);
+                buffer_writer.write(prefix);
+                buffer_writer.write(encoded_event_name);
+                buffer_writer.write(encoding_event_bytes);
+
+                buffer_writer.with_buffer(f)
+            })
+        })
+    });
+
+    Ok(res)
 }
 
 fn extract_encoded_event_names<TEvents>() -> Result<Vec<Vec<u8>>, RtlError>
@@ -126,18 +158,20 @@ mod tests {
     }
 
     #[test]
-    fn compose_payload_returns_proper_payload() {
+    fn optimized_payload_encoding_returns_proper_payload() {
         let event = TestEvents::Event1(42);
-        let payload = compose_payload::<TestEvents>(&[1, 2, 3], event).unwrap();
-
-        assert_eq!(
-            payload,
-            [1, 2, 3, 24, 69, 118, 101, 110, 116, 49, 42, 00, 00, 00]
-        );
+        let res = with_optimized_encode::<_, _>(&[1, 2, 3], event, |payload| {
+            assert_eq!(
+                payload,
+                [1, 2, 3, 24, 69, 118, 101, 110, 116, 49, 42, 00, 00, 00]
+            );
+        });
+        assert!(res.is_ok());
 
         let event = TestEvents::Event2 { p1: 43 };
-        let payload = compose_payload::<TestEvents>(&[], event).unwrap();
-
-        assert_eq!(payload, [24, 69, 118, 101, 110, 116, 50, 43, 00]);
+        let res = with_optimized_encode::<_, _>(&[], event, |payload| {
+            assert_eq!(payload, [24, 69, 118, 101, 110, 116, 50, 43, 00]);
+        });
+        assert!(res.is_ok());
     }
 }

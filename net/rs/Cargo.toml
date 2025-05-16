@@ -16,7 +16,7 @@ sails-idl-parser = "=0.6.3"
 anyhow = "1"
 convert-case = { package = "convert_case", version = "0.6" }
 genco = "0.17"
-insta = "1.42"
+insta = "1.43"
 itertools = "0.13"
 parity-scale-codec = "=3.6.12"
 serde = { version = "1.0", features = ["derive"] }

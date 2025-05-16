@@ -109,6 +109,32 @@ impl ProgramBuilder {
             .collect::<Vec<_>>()
     }
 
+    fn handle_reply_fn(&mut self) -> Option<&mut ImplItemFn> {
+        let mut fn_iter = self.program_impl.items.iter_mut().filter_map(|item| {
+            if let ImplItem::Fn(fn_item) = item {
+                if has_handle_reply_attr(fn_item) {
+                    fn_item
+                        .attrs
+                        .retain(|attr| !attr.path().is_ident("handle_reply"));
+                    if handle_reply_predicate(fn_item) {
+                        return Some(fn_item);
+                    } else {
+                        abort!(
+                            fn_item,
+                            "`handle_reply` function must have a single `&self` argument and no return type"
+                        );
+                    }
+                }
+            }
+            None
+        });
+        let handle_reply_fn = fn_iter.next();
+        if let Some(duplicate) = fn_iter.next() {
+            abort!(duplicate, "only one `handle_reply` function is allowed");
+        }
+        handle_reply_fn
+    }
+
     #[cfg(feature = "ethexe")]
     fn service_ctors(&self) -> Vec<FnBuilder<'_>> {
         shared::discover_invocation_targets(self, service_ctor_predicate)
@@ -175,7 +201,7 @@ impl ProgramBuilder {
                 .push(ImplItem::Fn(wrapping_service_ctor_fn));
         }
 
-        let sails_path = &self.sails_path();
+        let sails_path = self.sails_path();
         let (program_type_path, _program_type_args, _) = self.impl_type();
         let (generics, program_type_constraints) = self.impl_constraints();
 
@@ -192,12 +218,22 @@ impl ProgramBuilder {
         };
 
         invocation_dispatches.push(quote! {
-            { #sails_path::gstd::unknown_input_panic("Unexpected service", input) }
+            { gstd::unknown_input_panic("Unexpected service", input) }
+        });
+
+        let handle_reply_fn = self.handle_reply_fn().map(|item_fn| {
+            let handle_reply_fn_ident = &item_fn.sig.ident;
+            quote! {
+                fn __handle_reply() {
+                    let program_ref = unsafe { #program_ident.as_mut() }.expect("Program not initialized");
+                    program_ref.#handle_reply_fn_ident();
+                }
+            }
         });
 
         let mut args = Vec::with_capacity(2);
-        if let Some(handle_reply) = self.program_args.handle_reply() {
-            args.push(quote!(handle_reply = #handle_reply));
+        if handle_reply_fn.is_some() {
+            args.push(quote!(handle_reply = __handle_reply));
         }
         if let Some(handle_signal) = self.program_args.handle_signal() {
             args.push(quote!(handle_signal = #handle_signal));
@@ -206,17 +242,28 @@ impl ProgramBuilder {
 
         let solidity_main = self.sol_main(solidity_dispatchers.as_slice());
 
+        let payable = self.program_args.payable().then(|| {
+            quote! {
+                if gstd::msg::value() > 0 && gstd::msg::size() == 0 {
+                    return;
+                }
+            }
+        });
+
         let main_fn = quote!(
             #[gstd::async_main #async_main_args]
             async fn main() {
-                let mut input: &[u8] = &#sails_path::gstd::msg::load_bytes().expect("Failed to read input");
-                let program_ref = unsafe { #program_ident.as_ref() }.expect("Program not initialized");
+                #payable
+
+                let mut input: &[u8] = &gstd::msg::load_bytes().expect("Failed to read input");
+                let program_ref = unsafe { #program_ident.as_mut() }.expect("Program not initialized");
 
                 #solidity_main
 
-                let (output, value): (Vec<u8>, ValueUnit) = #(#invocation_dispatches)else*;
-                #sails_path::gstd::msg::reply_bytes(output, value).expect("Failed to send output");
+                #(#invocation_dispatches)else*;
             }
+
+            #handle_reply_fn
         );
 
         (program_meta_impl, main_fn)
@@ -244,7 +291,7 @@ impl ProgramBuilder {
         }
 
         ctor_dispatches.push(quote! {
-            { #sails_path::gstd::unknown_input_panic("Unexpected ctor", input) }
+            { gstd::unknown_input_panic("Unexpected ctor", input) }
         });
 
         let solidity_init = self.sol_init(&input_ident, program_ident);
@@ -252,8 +299,8 @@ impl ProgramBuilder {
         let init_fn = quote! {
             #[gstd::async_init]
             async fn init() {
-                use #sails_path::gstd::InvocationIo;
-                let mut #input_ident: &[u8] = &#sails_path::gstd::msg::load_bytes().expect("Failed to read input");
+                use gstd::InvocationIo;
+                let mut #input_ident: &[u8] = &gstd::msg::load_bytes().expect("Failed to read input");
 
                 #solidity_init
 
@@ -261,7 +308,7 @@ impl ProgramBuilder {
                 unsafe {
                     #program_ident = Some(program);
                 }
-                #sails_path::gstd::msg::reply_bytes(invocation_route, 0).expect("Failed to send output");
+                gstd::msg::reply_bytes(invocation_route, 0).expect("Failed to send output");
             }
         };
 
@@ -421,13 +468,33 @@ fn service_ctor_predicate(fn_item: &ImplItemFn) -> bool {
         && matches!(
             fn_item.sig.receiver(),
             Some(Receiver {
-                mutability: None,
                 reference: Some(_),
                 ..
             })
         )
         && fn_item.sig.inputs.len() == 1
         && !matches!(fn_item.sig.output, ReturnType::Default)
+}
+
+fn has_handle_reply_attr(fn_item: &ImplItemFn) -> bool {
+    fn_item
+        .attrs
+        .iter()
+        .any(|attr| attr.path().is_ident("handle_reply"))
+}
+
+fn handle_reply_predicate(fn_item: &ImplItemFn) -> bool {
+    matches!(fn_item.vis, Visibility::Inherited)
+        && matches!(
+            fn_item.sig.receiver(),
+            Some(Receiver {
+                mutability: None,
+                reference: Some(_),
+                ..
+            })
+        )
+        && fn_item.sig.inputs.len() == 1
+        && matches!(fn_item.sig.output, ReturnType::Default)
 }
 
 impl FnBuilder<'_> {
@@ -457,16 +524,20 @@ impl FnBuilder<'_> {
     }
 
     fn service_invocation(&self) -> TokenStream2 {
-        let sails_path = self.sails_path;
         let route_ident = &self.route_ident();
         let service_ctor_ident = self.ident;
         quote! {
             if input.starts_with(& #route_ident) {
                 let mut service = program_ref.#service_ctor_ident();
-                let (output, value) = service.try_handle(&input[#route_ident .len()..]).await.unwrap_or_else(|| {
-                    #sails_path::gstd::unknown_input_panic("Unknown request", input)
-                });
-                ([#route_ident .as_ref(), &output].concat(), value)
+                service
+                    .try_handle(&input[#route_ident .len()..], |encoded_result, value| {
+                        gstd::msg::reply_bytes(encoded_result, value)
+                            .expect("Failed to send output");
+                    })
+                    .await
+                    .unwrap_or_else(|| {
+                        gstd::unknown_input_panic("Unknown request", input)
+                    });
             }
         }
     }
@@ -501,7 +572,7 @@ impl FnBuilder<'_> {
             let service = self. #original_service_ctor_fn_ident () #unwrap_token;
             let exposure = < #service_type as #sails_path::gstd::services::Service>::expose(
                 service,
-                #sails_path::gstd::msg::id().into(),
+                #sails_path::gstd::Syscall::message_id(),
                 #route_ident .as_ref(),
             );
             exposure

@@ -13,7 +13,7 @@ impl MyProgram {
         let service = self.__service();
         let exposure = <MyService as sails_rs::gstd::services::Service>::expose(
             service,
-            sails_rs::gstd::msg::id().into(),
+            sails_rs::gstd::Syscall::message_id(),
             __ROUTE_SERVICE.as_ref(),
         );
         exposure
@@ -91,9 +91,8 @@ pub mod wasm {
     static mut PROGRAM: Option<MyProgram> = None;
     #[gstd::async_init]
     async fn init() {
-        use sails_rs::gstd::InvocationIo;
-        let mut input: &[u8] = &sails_rs::gstd::msg::load_bytes()
-            .expect("Failed to read input");
+        use gstd::InvocationIo;
+        let mut input: &[u8] = &gstd::msg::load_bytes().expect("Failed to read input");
         if let Ok(sig) = TryInto::<[u8; 4]>::try_into(&input[..4]) {
             if let Some(idx) = __CTOR_SIGS.iter().position(|s| s == &sig) {
                 let (ctor_route, ..) = <MyProgram as sails_rs::solidity::ProgramSignature>::CTORS[idx];
@@ -107,14 +106,13 @@ pub mod wasm {
                     let output = if encode_reply {
                         [
                             __CTOR_CALLBACK_SIGS[idx].as_slice(),
-                            sails_rs::gstd::msg::id().into_bytes().as_slice(),
+                            gstd::msg::id().into_bytes().as_slice(),
                         ]
                             .concat()
                     } else {
-                        sails_rs::Vec::with_capacity(0)
+                        Vec::with_capacity(0)
                     };
-                    sails_rs::gstd::msg::reply_bytes(output, 0)
-                        .expect("Failed to send output");
+                    gstd::msg::reply_bytes(output, 0).expect("Failed to send output");
                     return;
                 }
             }
@@ -125,13 +123,12 @@ pub mod wasm {
             let program = MyProgram::create();
             (program, meta_in_program::__CreateParams::ROUTE)
         } else {
-            sails_rs::gstd::unknown_input_panic("Unexpected ctor", input)
+            gstd::unknown_input_panic("Unexpected ctor", input)
         };
         unsafe {
             PROGRAM = Some(program);
         }
-        sails_rs::gstd::msg::reply_bytes(invocation_route, 0)
-            .expect("Failed to send output");
+        gstd::msg::reply_bytes(invocation_route, 0).expect("Failed to send output");
     }
     async fn match_ctor_solidity(
         ctor: &[u8],
@@ -150,9 +147,8 @@ pub mod wasm {
     }
     #[gstd::async_main]
     async fn main() {
-        let mut input: &[u8] = &sails_rs::gstd::msg::load_bytes()
-            .expect("Failed to read input");
-        let program_ref = unsafe { PROGRAM.as_ref() }.expect("Program not initialized");
+        let mut input: &[u8] = &gstd::msg::load_bytes().expect("Failed to read input");
+        let program_ref = unsafe { PROGRAM.as_mut() }.expect("Program not initialized");
         if let Ok(sig) = TryInto::<[u8; 4]>::try_into(&input[..4]) {
             if let Some(idx) = __METHOD_SIGS.iter().position(|s| s == &sig) {
                 let (route, method) = __METHOD_ROUTES[idx];
@@ -162,7 +158,7 @@ pub mod wasm {
                         .try_handle_solidity(method, &input[4..])
                         .await
                         .unwrap_or_else(|| {
-                            sails_rs::gstd::unknown_input_panic("Unknown request", input)
+                            gstd::unknown_input_panic("Unknown request", input)
                         });
                     let output = if encode_reply {
                         let selector = __CALLBACK_SIGS[idx];
@@ -170,26 +166,28 @@ pub mod wasm {
                     } else {
                         output
                     };
-                    sails_rs::gstd::msg::reply_bytes(output, value)
+                    gstd::msg::reply_bytes(output, value)
                         .expect("Failed to send output");
                     return;
                 }
             }
         }
-        let (output, value): (Vec<u8>, ValueUnit) = if input
-            .starts_with(&__ROUTE_SERVICE)
-        {
+        if input.starts_with(&__ROUTE_SERVICE) {
             let mut service = program_ref.service();
-            let (output, value) = service
-                .try_handle(&input[__ROUTE_SERVICE.len()..])
+            service
+                .try_handle(
+                    &input[__ROUTE_SERVICE.len()..],
+                    |encoded_result, value| {
+                        gstd::msg::reply_bytes(encoded_result, value)
+                            .expect("Failed to send output");
+                    },
+                )
                 .await
                 .unwrap_or_else(|| {
-                    sails_rs::gstd::unknown_input_panic("Unknown request", input)
+                    gstd::unknown_input_panic("Unknown request", input)
                 });
-            ([__ROUTE_SERVICE.as_ref(), &output].concat(), value)
         } else {
-            sails_rs::gstd::unknown_input_panic("Unexpected service", input)
+            gstd::unknown_input_panic("Unexpected service", input)
         };
-        sails_rs::gstd::msg::reply_bytes(output, value).expect("Failed to send output");
     }
 }

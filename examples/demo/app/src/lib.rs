@@ -15,7 +15,6 @@ mod value_fee;
 // the Counter data incapsulated in the program itself, i.e. there are no any benefits
 // of using a global variable here. It is just a demonstration of how to use global variables.
 static mut DOG_DATA: Option<RefCell<walker::WalkerData>> = None;
-static mut REF_DATA: u8 = 42;
 
 #[allow(static_mut_refs)]
 fn dog_data() -> &'static RefCell<walker::WalkerData> {
@@ -30,9 +29,10 @@ pub struct DemoProgram {
     // Counter data has the same lifetime as the program itself, i.e. it will
     // live as long as the program is available on the network.
     counter_data: RefCell<counter::CounterData>,
+    ref_data: u8,
 }
 
-#[program]
+#[program(payable)]
 impl DemoProgram {
     #[allow(clippy::should_implement_trait)]
     /// Program constructor (called once at the very beginning of the program lifetime)
@@ -45,6 +45,7 @@ impl DemoProgram {
         }
         Self {
             counter_data: RefCell::new(counter::CounterData::new(Default::default())),
+            ref_data: 42,
         }
     }
 
@@ -60,6 +61,7 @@ impl DemoProgram {
         }
         Ok(Self {
             counter_data: RefCell::new(counter::CounterData::new(counter.unwrap_or_default())),
+            ref_data: 42,
         })
     }
 
@@ -79,11 +81,8 @@ impl DemoProgram {
         dog::DogService::new(walker::WalkerService::new(dog_data()))
     }
 
-    pub fn references(&self) -> references::ReferenceService {
-        #[allow(static_mut_refs)]
-        unsafe {
-            references::ReferenceService::new(&mut REF_DATA, "demo")
-        }
+    pub fn references(&mut self) -> references::ReferenceService {
+        references::ReferenceService::new(&mut self.ref_data, "demo")
     }
 
     pub fn this_that(&self) -> this_that::MyService {
@@ -92,5 +91,48 @@ impl DemoProgram {
 
     pub fn value_fee(&self) -> value_fee::FeeService {
         value_fee::FeeService::new(10_000_000_000_000)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use sails_rs::gstd::services::Exposure;
+
+    // Test program constructor and exposed service
+    // Mock `Syscall` to simulate the environment
+    #[tokio::test]
+    async fn program_service_exposure() {
+        // Arrange
+        let program = DemoProgram::new(Some(42), None).unwrap();
+
+        // First call
+        let message_value = 100_000_000_000_000;
+        Syscall::with_message_value(message_value);
+        Syscall::with_message_id(MessageId::from(1));
+
+        let mut service_exposure = program.value_fee();
+        let (data, value) = service_exposure.do_something_and_take_fee().to_tuple();
+
+        // Assert
+        assert_eq!(MessageId::from(1), service_exposure.message_id());
+        assert_eq!("ValueFee".encode().as_slice(), service_exposure.route());
+        assert!(data);
+        assert_eq!(value, message_value - 10_000_000_000_000);
+
+        // Next call
+        Syscall::with_message_value(0);
+        Syscall::with_message_id(MessageId::from(2));
+
+        let mut service_exposure = program.counter();
+        let data = service_exposure.add(10);
+
+        // Assert
+        assert_eq!(MessageId::from(2), service_exposure.message_id());
+        assert_eq!("Counter".encode().as_slice(), service_exposure.route());
+        assert_eq!(52, data);
+        let events = service_exposure.take_events();
+        assert_eq!(events.len(), 1);
+        assert_eq!(events[0], counter::CounterEvents::Added(10));
     }
 }

@@ -3,11 +3,9 @@ source: rs/macros/core/tests/gprogram.rs
 expression: result
 ---
 impl MyProgram {
-    pub async fn new(p1: u32, p2: String) -> Self {
-        Self { p1, p2 }
-    }
-    pub fn new2(p2: String, p1: u32) -> Self {
-        Self { p1, p2 }
+    fn handle_reply(&self) {}
+    pub fn create() -> Self {
+        Self
     }
 }
 impl sails_rs::meta::ProgramMeta for MyProgram {
@@ -19,30 +17,15 @@ mod meta_in_program {
     #[derive(sails_rs::Decode, sails_rs::TypeInfo)]
     #[codec(crate = sails_rs::scale_codec)]
     #[scale_info(crate = sails_rs::scale_info)]
-    pub struct __NewParams {
-        pub(super) p1: u32,
-        pub(super) p2: String,
-    }
-    impl sails_rs::gstd::InvocationIo for __NewParams {
-        const ROUTE: &'static [u8] = &[12u8, 78u8, 101u8, 119u8];
-        type Params = Self;
-    }
-    #[derive(sails_rs::Decode, sails_rs::TypeInfo)]
-    #[codec(crate = sails_rs::scale_codec)]
-    #[scale_info(crate = sails_rs::scale_info)]
-    pub struct __New2Params {
-        pub(super) p2: String,
-        pub(super) p1: u32,
-    }
-    impl sails_rs::gstd::InvocationIo for __New2Params {
-        const ROUTE: &'static [u8] = &[16u8, 78u8, 101u8, 119u8, 50u8];
+    pub struct __CreateParams {}
+    impl sails_rs::gstd::InvocationIo for __CreateParams {
+        const ROUTE: &'static [u8] = &[24u8, 67u8, 114u8, 101u8, 97u8, 116u8, 101u8];
         type Params = Self;
     }
     #[derive(sails_rs::TypeInfo)]
     #[scale_info(crate = sails_rs::scale_info)]
     pub enum ConstructorsMeta {
-        New(__NewParams),
-        New2(__New2Params),
+        Create(__CreateParams),
     }
 }
 #[cfg(target_arch = "wasm32")]
@@ -54,14 +37,11 @@ pub mod wasm {
     async fn init() {
         use gstd::InvocationIo;
         let mut input: &[u8] = &gstd::msg::load_bytes().expect("Failed to read input");
-        let (program, invocation_route) = if let Ok(request) = meta_in_program::__NewParams::decode_params(
+        let (program, invocation_route) = if let Ok(request) = meta_in_program::__CreateParams::decode_params(
             input,
         ) {
-            let program = MyProgram::new(request.p1, request.p2).await;
-            (program, meta_in_program::__NewParams::ROUTE)
-        } else if let Ok(request) = meta_in_program::__New2Params::decode_params(input) {
-            let program = MyProgram::new2(request.p2, request.p1);
-            (program, meta_in_program::__New2Params::ROUTE)
+            let program = MyProgram::create();
+            (program, meta_in_program::__CreateParams::ROUTE)
         } else {
             gstd::unknown_input_panic("Unexpected ctor", input)
         };
@@ -70,10 +50,14 @@ pub mod wasm {
         }
         gstd::msg::reply_bytes(invocation_route, 0).expect("Failed to send output");
     }
-    #[gstd::async_main]
+    #[gstd::async_main(handle_reply = __handle_reply)]
     async fn main() {
         let mut input: &[u8] = &gstd::msg::load_bytes().expect("Failed to read input");
         let program_ref = unsafe { PROGRAM.as_mut() }.expect("Program not initialized");
         { gstd::unknown_input_panic("Unexpected service", input) };
+    }
+    fn __handle_reply() {
+        let program_ref = unsafe { PROGRAM.as_mut() }.expect("Program not initialized");
+        program_ref.handle_reply();
     }
 }

@@ -60,10 +60,13 @@ pub fn service(args: TokenStream, impl_tokens: TokenStream) -> TokenStream {
 /// - `crate` - specifies path to the `sails-rs` crate allowing the latter
 ///             to be imported with a different name, for example, when the
 ///             `sails-rs` create is re-exprted from another crate.
-/// - `handle_reply` - specifies a path to a function that will be called
-///                    after standrd reply handling provided by the `gstd` crate.
 /// - `handle_signal` - specifies a path to a function that will be called
 ///                     after standard signal handling provided by the `gstd` crate.
+/// - `payable` - specifies that the program can accept transfers of value.
+///
+/// The macro also accepts a `handle_reply` attribute that can be used to specify a function
+/// that will handle replies. This function should be defined within the program and accepts `&self`.
+/// The function will be called automatically when a reply is received.
 ///
 /// # Examples
 ///
@@ -73,7 +76,7 @@ pub fn service(args: TokenStream, impl_tokens: TokenStream) -> TokenStream {
 ///
 ///     pub struct MyProgram;
 ///
-///     #[program(handle_reply = inspect_reply)]
+///     #[program(payable)]
 ///     impl MyProgram {
 ///         pub fn default() -> Self {
 ///             Self
@@ -82,9 +85,11 @@ pub fn service(args: TokenStream, impl_tokens: TokenStream) -> TokenStream {
 ///         pub fn from_seed(_seed: u32) -> Self {
 ///             Self
 ///         }
-///     }
 ///
-///     fn inspect_reply() {
+///         #[handle_reply]
+///         fn inspect_reply(&self) {
+///             // Handle reply here
+///         }
 ///     }
 /// }
 /// ```
@@ -198,7 +203,7 @@ pub fn export(args: TokenStream, impl_item_fn_tokens: TokenStream) -> TokenStrea
 ///
 /// Given an event definition:
 ///
-/// ```rust
+/// ```rust,ignore
 /// #[sails_rs::event]
 /// pub enum Events {
 ///     MyEvent {
@@ -212,7 +217,7 @@ pub fn export(args: TokenStream, impl_item_fn_tokens: TokenStream) -> TokenStrea
 ///
 /// Calling the methods:
 ///
-/// ```rust
+/// ```rust,ignore
 /// let event = Events::MyEvent {
 ///     sender: 123,
 ///     amount: 1000,

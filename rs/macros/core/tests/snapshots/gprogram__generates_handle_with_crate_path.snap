@@ -34,32 +34,25 @@ pub mod wasm {
     static mut PROGRAM: Option<MyProgram> = None;
     #[gstd::async_init]
     async fn init() {
-        use sails_rename::gstd::InvocationIo;
-        let mut input: &[u8] = &sails_rename::gstd::msg::load_bytes()
-            .expect("Failed to read input");
+        use gstd::InvocationIo;
+        let mut input: &[u8] = &gstd::msg::load_bytes().expect("Failed to read input");
         let (program, invocation_route) = if let Ok(request) = meta_in_program::__CreateParams::decode_params(
             input,
         ) {
             let program = MyProgram::create();
             (program, meta_in_program::__CreateParams::ROUTE)
         } else {
-            sails_rename::gstd::unknown_input_panic("Unexpected ctor", input)
+            gstd::unknown_input_panic("Unexpected ctor", input)
         };
         unsafe {
             PROGRAM = Some(program);
         }
-        sails_rename::gstd::msg::reply_bytes(invocation_route, 0)
-            .expect("Failed to send output");
+        gstd::msg::reply_bytes(invocation_route, 0).expect("Failed to send output");
     }
     #[gstd::async_main]
     async fn main() {
-        let mut input: &[u8] = &sails_rename::gstd::msg::load_bytes()
-            .expect("Failed to read input");
-        let program_ref = unsafe { PROGRAM.as_ref() }.expect("Program not initialized");
-        let (output, value): (Vec<u8>, ValueUnit) = {
-            sails_rename::gstd::unknown_input_panic("Unexpected service", input)
-        };
-        sails_rename::gstd::msg::reply_bytes(output, value)
-            .expect("Failed to send output");
+        let mut input: &[u8] = &gstd::msg::load_bytes().expect("Failed to read input");
+        let program_ref = unsafe { PROGRAM.as_mut() }.expect("Program not initialized");
+        { gstd::unknown_input_panic("Unexpected service", input) };
     }
 }

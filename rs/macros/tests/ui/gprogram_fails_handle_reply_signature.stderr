@@ -1,0 +1,5 @@
+error: `handle_reply` function must have a single `&self` argument and no return type
+  --> tests/ui/gprogram_fails_handle_reply_signature.rs:12:5
+   |
+12 |     fn handle_reply() {}
+   |     ^^^^^^^^^^^^^^^^^^^^

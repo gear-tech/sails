@@ -3,7 +3,12 @@ use demo_client::{
     counter::{self, events::CounterEvents},
     dog::{self, events::DogEvents},
 };
-use sails_rs::{events::Listener, gtest::System, gtest::calls::*, prelude::*};
+use sails_rs::{
+    events::Listener,
+    gtest::calls::*,
+    gtest::{Program, System},
+    prelude::*,
+};
 
 #[cfg(debug_assertions)]
 pub(crate) const DEMO_WASM_PATH: &str = "../../../target/wasm32-gear/debug/demo.opt.wasm";
@@ -65,5 +70,13 @@ impl Fixture {
 
     pub(crate) fn balance_of(&self, id: ActorId) -> ValueUnit {
         self.program_space.system().balance_of(id)
+    }
+
+    pub(crate) fn get_program(&self, id: ActorId) -> Option<Program> {
+        self.program_space.system().get_program(id)
+    }
+
+    pub(crate) fn remoting(&self) -> &GTestRemoting {
+        &self.program_space
     }
 }
