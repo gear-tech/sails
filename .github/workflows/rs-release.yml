@@ -94,7 +94,7 @@ jobs:
     uses: ./.github/workflows/rs-run-ws-tests.yml
     with:
       sources_ref: ${{ needs.prepare.outputs.rc_branch }}
-      gear_node_version: 1.8.0
+      gear_node_version: 1.8.1
 
   cli_tests:
     if: false
@@ -174,7 +174,7 @@ jobs:
           done
           cargo login ${{ secrets.CRATES_IO_TOKEN }}
           for SAILS_CRATE in $SAILS_CRATES; do
-            cargo publish -p $SAILS_CRATE
+            cargo publish -p $SAILS_CRATE --allow-dirty
           done
           # Revert temporary changes to Cargo.toml
           git checkout -- .
