@@ -1,0 +1,13 @@
+[package]
+name = "redirect"
+version = "0.1.0"
+edition.workspace = true
+
+[dev-dependencies]
+gclient.workspace = true
+redirect-app = { path = "app" }
+redirect-client = { path = "client" }
+redirect-proxy = { path = "proxy" }
+redirect-proxy-client = { path = "proxy-client" }
+sails-rs = { workspace = true, features = ["gtest", "gclient"] }
+tokio = { workspace = true, features = ["rt", "macros"] }

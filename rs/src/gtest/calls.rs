@@ -162,15 +162,10 @@ impl GTestRemoting {
         let gas_limit = GAS_LIMIT_DEFAULT;
         let program = self
             .system
-            .get_program(target.as_ref())
+            .get_program(target)
             .ok_or(RtlError::ProgramIsNotFound)?;
         let actor_id = args.actor_id.unwrap_or(self.actor_id);
-        let message_id = program.send_bytes_with_gas(
-            actor_id.as_ref(),
-            payload.as_ref().to_vec(),
-            gas_limit,
-            value,
-        );
+        let message_id = program.send_bytes_with_gas(actor_id, payload.as_ref(), gas_limit, value);
         log::debug!("Send message id: {message_id}, to: {target}");
         Ok(message_id)
     }
@@ -241,12 +236,7 @@ impl Remoting for GTestRemoting {
         let program_id = gtest::calculate_program_id(code_id, salt.as_ref(), None);
         let program = Program::from_binary_with_id(&self.system, program_id, code);
         let actor_id = args.actor_id.unwrap_or(self.actor_id);
-        let message_id = program.send_bytes_with_gas(
-            actor_id.as_ref(),
-            payload.as_ref().to_vec(),
-            gas_limit,
-            value,
-        );
+        let message_id = program.send_bytes_with_gas(actor_id, payload.as_ref(), gas_limit, value);
         log::debug!("Send activation id: {message_id}, to program: {program_id}");
         Ok(self
             .message_reply_from_next_blocks(message_id)
