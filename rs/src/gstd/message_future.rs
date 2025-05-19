@@ -55,7 +55,6 @@ impl<T: AsRef<[u8]>> MessageFutureExtended<T> {
             gas_limit,
             #[cfg(feature = "ethexe")]
             gas_limit: None,
-
             value,
             #[cfg(not(feature = "ethexe"))]
             reply_deposit,
