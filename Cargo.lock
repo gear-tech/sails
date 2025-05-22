@@ -2232,6 +2232,36 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "28dea519a9695b9977216879a3ebfddf92f1c08c05d984f8996aecd6ecdc811d"
 
 [[package]]
+name = "fibo-bench-sails-app"
+version = "0.8.1"
+dependencies = [
+ "fibo-bench-sails-client",
+ "gtest",
+ "sails-rs",
+ "tokio",
+]
+
+[[package]]
+name = "fibo-bench-sails-app-plain"
+version = "0.8.1"
+dependencies = [
+ "gear-wasm-builder",
+ "gstd",
+ "gtest",
+ "parity-scale-codec",
+]
+
+[[package]]
+name = "fibo-bench-sails-client"
+version = "0.8.1"
+dependencies = [
+ "fibo-bench-sails-app",
+ "sails-client-gen",
+ "sails-idl-gen",
+ "sails-rs",
+]
+
+[[package]]
 name = "file-guard"
 version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"

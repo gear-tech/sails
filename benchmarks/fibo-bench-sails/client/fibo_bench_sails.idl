@@ -1,0 +1,12 @@
+type FiboStressResult = struct {
+  inner: vec u8,
+};
+
+constructor {
+  New : ();
+};
+
+service FiboStress {
+  Stress : (n: u32) -> FiboStressResult;
+};
+
