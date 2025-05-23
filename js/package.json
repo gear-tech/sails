@@ -32,7 +32,8 @@
     "prebuild": "rm -rf lib",
     "build": "npx rollup --config rollup.config.js",
     "test": "yarn node --no-warnings --experimental-vm-modules $(yarn bin jest) --detectOpenHandles",
-    "clean": "rm -rf lib"
+    "clean": "rm -rf lib",
+    "pack-build": "yarn pack --out sails-js.tgz"
   },
   "peerDependencies": {
     "@gear-js/api": "^0.42.0",

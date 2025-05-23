@@ -34,7 +34,8 @@
   "scripts": {
     "build": "npx rollup --config rollup.config.js",
     "clean": "rm -rf build",
-    "test": "TEST_ENV=true npx rollup --config rollup.config.js && node --experimental-vm-modules ../../node_modules/.bin/jest"
+    "test": "TEST_ENV=true npx rollup --config rollup.config.js && node --experimental-vm-modules ../../node_modules/.bin/jest",
+    "pack-build": "yarn pack --out ../sails-js-cli.tgz"
   },
   "files": [
     "build"

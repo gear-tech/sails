@@ -16,7 +16,8 @@
   },
   "scripts": {
     "build": "rm -rf lib && rollup --config rollup.config.js",
-    "clean": "rm -rf lib"
+    "clean": "rm -rf lib",
+    "pack-build": "yarn pack --out ../sails-js-types.tgz"
   },
   "files": [
     "lib"

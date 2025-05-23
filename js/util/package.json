@@ -16,6 +16,7 @@
   },
   "scripts": {
     "build": "npx rollup --config rollup.config.js",
-    "clean": "rm -rf lib"
+    "clean": "rm -rf lib",
+    "pack-build": "yarn pack --out ../sails-js-util.tgz"
   }
 }

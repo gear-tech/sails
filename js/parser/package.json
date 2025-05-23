@@ -34,7 +34,8 @@
   ],
   "scripts": {
     "build": "rollup --config rollup.config.js",
-    "clean": "rm -rf lib"
+    "clean": "rm -rf lib",
+    "pack-build": "yarn pack --out ../sails-js-parser.tgz"
   },
   "optionalDependencies": {
     "sails-js-types": "0.4.1"
