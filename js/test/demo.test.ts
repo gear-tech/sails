@@ -13,7 +13,7 @@ import {
   NonZeroU8,
   ZERO_ADDRESS,
 } from '..';
-import { Program } from './demo/lib';
+import { SailsProgram } from './demo/lib';
 
 let api: GearApi;
 let alice: KeyringPair;
@@ -44,10 +44,10 @@ afterAll(async () => {
 });
 
 describe('Ping', () => {
-  let program: Program;
+  let program: SailsProgram;
 
   test('create program', async () => {
-    program = new Program(api);
+    program = new SailsProgram(api);
     const transaction = await program.defaultCtorFromCode(code).withAccount(alice).calculateGas();
     codeId = generateCodeHash(code);
 
@@ -114,10 +114,10 @@ describe('Ping', () => {
 });
 
 describe('Counter', () => {
-  let program: Program;
+  let program: SailsProgram;
 
   test('create program from code id', async () => {
-    program = new Program(api);
+    program = new SailsProgram(api);
     const transaction = await program.defaultCtorFromCodeId(codeId).withAccount(alice).calculateGas();
 
     const { msgId, blockHash, response } = await transaction.signAndSend();
@@ -183,10 +183,10 @@ describe('Counter', () => {
 });
 
 describe('Dog', () => {
-  let program: Program;
+  let program: SailsProgram;
 
   test('create program from code id', async () => {
-    program = new Program(api);
+    program = new SailsProgram(api);
 
     const transaction = await program.newCtorFromCodeId(codeId, null, [5, 5]).withAccount(alice).calculateGas();
 
@@ -257,10 +257,10 @@ describe('Dog', () => {
 });
 
 describe('ThisThat', () => {
-  let program: Program;
+  let program: SailsProgram;
 
   test('create program from code id', async () => {
-    program = new Program(api);
+    program = new SailsProgram(api);
 
     const transaction = await program.defaultCtorFromCodeId(codeId).withAccount(alice).calculateGas();
 

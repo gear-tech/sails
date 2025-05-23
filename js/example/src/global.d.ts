@@ -18,5 +18,4 @@ declare global {
     | { six: [number] };
 
   export type TupleStruct = [boolean];
-
 };

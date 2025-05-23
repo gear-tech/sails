@@ -29,11 +29,12 @@ export class ServiceGenerator extends BaseGenerator {
     super(out);
   }
 
-  public generate(className = 'Program') {
+  public generate(className = 'SailsProgram') {
     const $ = this._out;
     const _classNameTitled = className[0].toUpperCase() + className.slice(1);
 
     $.import('@gear-js/api', 'GearApi')
+      .import('@gear-js/api', 'Program')
       .import(`@polkadot/types`, `TypeRegistry`)
       .import('sails-js', 'TransactionBuilder')
       .block(`export class ${_classNameTitled}`, () => {
@@ -46,9 +47,10 @@ export class ServiceGenerator extends BaseGenerator {
             }`,
           );
         }
+        $.line(`private _program: Program`);
 
         $.line()
-          .block(`constructor(public api: GearApi, private _programId?: ${HEX_STRING_TYPE})`, () => {
+          .block(`constructor(public api: GearApi, programId?: ${HEX_STRING_TYPE})`, () => {
             $.block(`const types: Record<string, any> =`, () => {
               for (const [name, type] of Object.entries(this.scaleTypes)) {
                 $.line(`${name}: ${JSON.stringify(type)},`, false);
@@ -58,6 +60,9 @@ export class ServiceGenerator extends BaseGenerator {
               .line(`this.registry = new TypeRegistry()`)
               .line(`this.registry.setKnownTypes({ types })`)
               .line(`this.registry.register(types)`)
+              .block(`if (programId)`, () => {
+                $.line(`this._program = new Program(programId, api)`);
+              })
               .line();
 
             for (const service of this._program.services) {
@@ -66,7 +71,7 @@ export class ServiceGenerator extends BaseGenerator {
           })
           .line()
           .block(`public get programId(): ${HEX_STRING_TYPE}`, () => {
-            $.line('if (!this._programId) throw new Error(`Program ID is not set`)').line('return this._programId');
+            $.line('if (!this._program) throw new Error(`Program ID is not set`)').line('return this._program.id');
           })
           .line();
         this.generateProgramConstructor();
@@ -108,10 +113,11 @@ export class ServiceGenerator extends BaseGenerator {
               )
               .line(`'String',`, false)
               .line(`code,`, false)
+              .block(`async (programId) => `, () => {
+                $.line(`this._program = await Program.new(programId, this.api)`);
+              })
               .reduceIndent()
               .line(`)`)
-              .line()
-              .line('this._programId = builder.programId')
               .line('return builder');
           },
         )
@@ -137,10 +143,11 @@ export class ServiceGenerator extends BaseGenerator {
               )
               .line(`'String',`, false)
               .line(`codeId,`, false)
+              .block(`async (programId) => `, () => {
+                $.line(`this._program = await Program.new(programId, this.api)`);
+              })
               .reduceIndent()
               .line(`)`)
-              .line()
-              .line('this._programId = builder.programId')
               .line('return builder');
           },
         );

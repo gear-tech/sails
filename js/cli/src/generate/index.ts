@@ -14,7 +14,7 @@ export class ProjectBuilder {
 
   constructor(
     private sails: Sails,
-    private name: string = 'Program',
+    private name: string,
   ) {}
 
   private async canCreateFile(filePath: string): Promise<boolean> {

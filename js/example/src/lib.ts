@@ -1,8 +1,8 @@
-import { GearApi, HexString, decodeAddress } from '@gear-js/api';
+import { GearApi, Program, HexString, decodeAddress } from '@gear-js/api';
 import { TypeRegistry } from '@polkadot/types';
 import { TransactionBuilder, throwOnErrorReply, getServiceNamePrefix, getFnNamePrefix, ZERO_ADDRESS, ActorId, NonZeroU32, H160, NonZeroU8 } from 'sails-js';
 
-export class Program {
+export class SailsProgram {
   public readonly registry: TypeRegistry;
   public readonly pingPong: PingPong;
   public readonly counter: Counter;
@@ -10,8 +10,9 @@ export class Program {
   public readonly references: References;
   public readonly thisThat: ThisThat;
   public readonly valueFee: ValueFee;
+  private _program: Program;
 
-  constructor(public api: GearApi, private _programId?: `0x${string}`) {
+  constructor(public api: GearApi, programId?: `0x${string}`) {
     const types: Record<string, any> = {
       ReferenceCount: "(u32)",
       DoThatParam: {"p1":"u32","p2":"[u8;32]","p3":"ManyVariants"},
@@ -22,6 +23,9 @@ export class Program {
     this.registry = new TypeRegistry();
     this.registry.setKnownTypes({ types });
     this.registry.register(types);
+    if (programId) {
+      this._program = new Program(programId, api);
+    }
 
     this.pingPong = new PingPong(this);
     this.counter = new Counter(this);
@@ -32,8 +36,8 @@ export class Program {
   }
 
   public get programId(): `0x${string}` {
-    if (!this._programId) throw new Error(`Program ID is not set`);
-    return this._programId;
+    if (!this._program) throw new Error(`Program ID is not set`);
+    return this._program.id;
   }
 
   /**
@@ -48,9 +52,10 @@ export class Program {
       'String',
       'String',
       code,
+      async (programId) =>  {
+        this._program = await Program.new(programId, this.api);
+      }
     );
-
-    this._programId = builder.programId;
     return builder;
   }
 
@@ -66,9 +71,10 @@ export class Program {
       'String',
       'String',
       codeId,
+      async (programId) =>  {
+        this._program = await Program.new(programId, this.api);
+      }
     );
-
-    this._programId = builder.programId;
     return builder;
   }
   /**
@@ -83,9 +89,10 @@ export class Program {
       '(String, Option<u32>, Option<(i32, i32)>)',
       'String',
       code,
+      async (programId) =>  {
+        this._program = await Program.new(programId, this.api);
+      }
     );
-
-    this._programId = builder.programId;
     return builder;
   }
 
@@ -101,15 +108,16 @@ export class Program {
       '(String, Option<u32>, Option<(i32, i32)>)',
       'String',
       codeId,
+      async (programId) =>  {
+        this._program = await Program.new(programId, this.api);
+      }
     );
-
-    this._programId = builder.programId;
     return builder;
   }
 }
 
 export class PingPong {
-  constructor(private _program: Program) {}
+  constructor(private _program: SailsProgram) {}
 
   public ping(input: string): TransactionBuilder<{ ok: string } | { err: string }> {
     if (!this._program.programId) throw new Error('Program ID is not set');
@@ -126,7 +134,7 @@ export class PingPong {
 }
 
 export class Counter {
-  constructor(private _program: Program) {}
+  constructor(private _program: SailsProgram) {}
 
   /**
    * Add a value to the counter
@@ -212,7 +220,7 @@ export class Counter {
 }
 
 export class Dog {
-  constructor(private _program: Program) {}
+  constructor(private _program: SailsProgram) {}
 
   public makeSound(): TransactionBuilder<string> {
     if (!this._program.programId) throw new Error('Program ID is not set');
@@ -298,7 +306,7 @@ export class Dog {
 }
 
 export class References {
-  constructor(private _program: Program) {}
+  constructor(private _program: SailsProgram) {}
 
   public add(v: number): TransactionBuilder<number> {
     if (!this._program.programId) throw new Error('Program ID is not set');
@@ -412,7 +420,7 @@ export class References {
 }
 
 export class ThisThat {
-  constructor(private _program: Program) {}
+  constructor(private _program: SailsProgram) {}
 
   public doThat(param: DoThatParam): TransactionBuilder<{ ok: [ActorId, NonZeroU32] } | { err: [string] }> {
     if (!this._program.programId) throw new Error('Program ID is not set');
@@ -485,7 +493,7 @@ export class ThisThat {
 }
 
 export class ValueFee {
-  constructor(private _program: Program) {}
+  constructor(private _program: SailsProgram) {}
 
   /**
    * Return flag if fee taken and remain value,

@@ -1,6 +1,6 @@
 import { GearApi } from '@gear-js/api';
 import { Keyring } from '@polkadot/api';
-import { Program } from './lib.js';
+import { SailsProgram } from './lib.js';
 import { readFileSync } from 'node:fs';
 
 const main = async () => {
@@ -9,7 +9,7 @@ const main = async () => {
 
   const alice = keyring.addFromUri('//Alice');
 
-  const program = new Program(api);
+  const program = new SailsProgram(api);
 
   // Deploy the program
 
