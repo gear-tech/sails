@@ -9,6 +9,8 @@
 ### Changes
 - Add explicit export of `IMethodReturnType` from `TransactionBuilder`
 
+---
+
 ## 0.4.0
 
 ### Compatibility
@@ -21,6 +23,8 @@ From now on, `response` function will throw an error if the program's reply is s
 - Update types in ctor generation (https://github.com/gear-tech/sails/issues/786)
 - Unpin `sails-js` peer dependencies
 
+---
+
 ## 0.3.2
 
 ### Compatibility
@@ -28,6 +32,8 @@ From now on, `response` function will throw an error if the program's reply is s
 
 ### Changes
 - Ability to get `gasInfo` in `TransactionBuilder` in https://github.com/gear-tech/sails/pull/745
+
+---
 
 ## 0.3.1
 

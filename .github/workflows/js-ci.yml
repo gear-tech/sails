@@ -1,14 +1,36 @@
-name: '[js] CI'
+name: "[js] CI"
 
 on:
   pull_request:
     types: [opened, synchronize, reopened, labeled]
     branches: [master]
     paths:
-      - 'js/**'
-      - 'package.json'
+      - "js/**"
+      - "package.json"
 
 jobs:
+  lint:
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Cancel previous workflow runs
+        uses: styfle/cancel-workflow-action@0.12.1
+        with:
+          access_token: ${{ github.token }}
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: "Install: NodeJS 20.x"
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20.x
+
+      - name: "Install: dependencies"
+        run: yarn install
+
+      - name: "Run linter"
+        run: yarn lint
+
   test:
     runs-on: ubuntu-22.04
     steps:
@@ -20,30 +42,27 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: 'Install: NodeJS 20.x'
+      - name: "Install: NodeJS 20.x"
         uses: actions/setup-node@v4
         with:
           node-version: 20.x
 
-      - name: 'Install: dependencies'
+      - name: "Install: dependencies"
         run: yarn install
 
-      - name: 'Check lint'
-        run: yarn lint
-
-      - name: 'Build'
+      - name: "Build"
         run: yarn build
 
-      - name: 'Prepare: download Gear node'
+      - name: "Prepare: download Gear node"
         run: |
           wget -O ./gear https://github.com/gear-tech/gear/releases/download/build/gear
           chmod +x gear
 
-      - name: 'Prepare: run Gear node'
+      - name: "Prepare: run Gear node"
         run: nohup ./gear --dev --execution=wasm --tmp --unsafe-rpc-external --rpc-methods Unsafe --rpc-cors all &
 
-      - name: 'Prepare: sleep 3 min'
+      - name: "Prepare: sleep 3 min"
         run: sleep 180
 
-      - name: 'Test: run'
+      - name: "Test: run"
         run: yarn test
