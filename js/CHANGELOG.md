@@ -1,5 +1,14 @@
 # CHANGELOG
 
+## 0.4.2
+### Compatibility
+- Sails-RS v0.8.1
+- Gear v1.8.1
+
+### Changes
+- Bump `@gear-js/api` to `v0.42.0` in https://github.com/gear-tech/sails/pull/933
+- Support `Program` class from `@gear-js/api` to keep track on program upgrades in https://github.com/gear-tech/sails/pull/933
+
 ## 0.4.1
 
 ### Compatibility

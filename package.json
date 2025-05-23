@@ -49,12 +49,13 @@
     "build:types": "lerna run build --scope=sails-js-types",
     "build:util": "lerna run build --scope=sails-js-util",
     "build": "lerna run build",
+    "pack": "lerna run pack-build --parallel",
     "version": "lerna version --no-private",
     "test": "lerna run test --scope=sails-js --scope=sails-js-cli --parallel",
     "publish": "lerna publish from-package --no-private",
     "lint": "npx eslint -c eslint.config.mjs",
     "lint:fix": "npx eslint --fix",
     "format": "prettier --write \"js/**/src/**/*.ts\"",
-    "clean": "lerna clean -y && rm -rf node_modules && rm -rf js/cli/build js/{parser,.,types}/lib"
+    "clean": "lerna clean -y && rm -rf node_modules && rm -rf js/cli/build js/{parser,.,types}/lib && rm -rf js/**/*.tgz"
   }
 }
