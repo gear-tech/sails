@@ -10,7 +10,9 @@
       "skipLibCheck": true,
       "outDir": "lib"
     },
-    "include": ["src"]
+    "include": [
+      "src"
+    ]
   },
   "versions": {
     "gear-js": "^0.42.0",
