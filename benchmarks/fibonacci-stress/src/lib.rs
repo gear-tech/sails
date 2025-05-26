@@ -1,6 +1,6 @@
 //! Entry point for fibonacci stress benchmarking.
-//!
-//! TODO
+//! 
+//! TODO add docs
 
 #![cfg(test)]
 
