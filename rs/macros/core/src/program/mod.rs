@@ -260,8 +260,6 @@ impl ProgramBuilder {
 
                 #solidity_main
 
-                // let (output, value): (Vec<u8>, ValueUnit) = #(#invocation_dispatches)else*;
-                // gstd::msg::reply_bytes(output, value).expect("Failed to send output");
                 #(#invocation_dispatches)else*;
             }
 
@@ -531,10 +529,6 @@ impl FnBuilder<'_> {
         quote! {
             if input.starts_with(& #route_ident) {
                 let mut service = program_ref.#service_ctor_ident();
-                // let (output, value) = service.try_handle(&input[#route_ident .len()..]).await.unwrap_or_else(|| {
-                //     gstd::unknown_input_panic("Unknown request", input)
-                // });
-                // ([#route_ident .as_ref(), &output].concat(), value)
                 service
                     .try_handle(&input[#route_ident .len()..], |encoded_result, value| {
                         gstd::msg::reply_bytes(encoded_result, value)

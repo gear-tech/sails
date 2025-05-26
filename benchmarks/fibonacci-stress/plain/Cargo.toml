@@ -1,5 +1,5 @@
 [package]
-name = "fibo-bench-sails-app-plain"
+name = "fibonacci-stress-plain"
 version.workspace = true
 authors.workspace = true
 edition.workspace = true
@@ -9,9 +9,7 @@ repository.workspace = true
 [dependencies]
 gstd.workspace = true
 parity-scale-codec.workspace = true
-
-[dev-dependencies]
-gtest.workspace = true
+fibonacci-stress-core ={ path = "../core" }
 
 [build-dependencies]
 gwasm-builder.workspace = true

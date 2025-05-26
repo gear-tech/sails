@@ -7,24 +7,24 @@ use sails_rs::{
     prelude::*,
     String,
 };
-pub struct FiboBenchSailsFactory<R> {
+pub struct FibonacciStressSailsFactory<R> {
     #[allow(dead_code)]
     remoting: R,
 }
-impl<R> FiboBenchSailsFactory<R> {
+impl<R> FibonacciStressSailsFactory<R> {
     #[allow(unused)]
     pub fn new(remoting: R) -> Self {
         Self { remoting }
     }
 }
-impl<R: Remoting + Clone> traits::FiboBenchSailsFactory for FiboBenchSailsFactory<R> {
+impl<R: Remoting + Clone> traits::FibonacciStressSailsFactory for FibonacciStressSailsFactory<R> {
     type Args = R::Args;
     fn new(&self) -> impl Activation<Args = R::Args> {
-        RemotingAction::<_, fibo_bench_sails_factory::io::New>::new(self.remoting.clone(), ())
+        RemotingAction::<_, fibonacci_stress_sails_factory::io::New>::new(self.remoting.clone(), ())
     }
 }
 
-pub mod fibo_bench_sails_factory {
+pub mod fibonacci_stress_sails_factory {
     use super::*;
     pub mod io {
         use super::*;
@@ -53,8 +53,11 @@ impl<R> FiboStress<R> {
 }
 impl<R: Remoting + Clone> traits::FiboStress for FiboStress<R> {
     type Args = R::Args;
-    fn stress(&mut self, n: u32) -> impl Call<Output = FiboStressResult, Args = R::Args> {
-        RemotingAction::<_, fibo_stress::io::Stress>::new(self.remoting.clone(), n)
+    fn stress_bytes(&mut self, n: u32) -> impl Call<Output = Vec<u8>, Args = R::Args> {
+        RemotingAction::<_, fibo_stress::io::StressBytes>::new(self.remoting.clone(), n)
+    }
+    fn stress_fibo(&mut self, n: u32) -> impl Call<Output = FiboStressResult, Args = R::Args> {
+        RemotingAction::<_, fibo_stress::io::StressFibo>::new(self.remoting.clone(), n)
     }
 }
 
@@ -64,22 +67,39 @@ pub mod fibo_stress {
     pub mod io {
         use super::*;
         use sails_rs::calls::ActionIo;
-        pub struct Stress(());
-        impl Stress {
+        pub struct StressBytes(());
+        impl StressBytes {
             #[allow(dead_code)]
             pub fn encode_call(n: u32) -> Vec<u8> {
-                <Stress as ActionIo>::encode_call(&n)
+                <StressBytes as ActionIo>::encode_call(&n)
             }
         }
-        impl ActionIo for Stress {
+        impl ActionIo for StressBytes {
             const ROUTE: &'static [u8] = &[
-                40, 70, 105, 98, 111, 83, 116, 114, 101, 115, 115, 24, 83, 116, 114, 101, 115, 115,
+                40, 70, 105, 98, 111, 83, 116, 114, 101, 115, 115, 44, 83, 116, 114, 101, 115, 115,
+                66, 121, 116, 101, 115,
+            ];
+            type Params = u32;
+            type Reply = Vec<u8>;
+        }
+        pub struct StressFibo(());
+        impl StressFibo {
+            #[allow(dead_code)]
+            pub fn encode_call(n: u32) -> Vec<u8> {
+                <StressFibo as ActionIo>::encode_call(&n)
+            }
+        }
+        impl ActionIo for StressFibo {
+            const ROUTE: &'static [u8] = &[
+                40, 70, 105, 98, 111, 83, 116, 114, 101, 115, 115, 40, 83, 116, 114, 101, 115, 115,
+                70, 105, 98, 111,
             ];
             type Params = u32;
             type Reply = super::FiboStressResult;
         }
     }
 }
+/// Wrapper over a [`stress_fibo`] buffer result.
 #[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo)]
 #[codec(crate = sails_rs::scale_codec)]
 #[scale_info(crate = sails_rs::scale_info)]
@@ -90,7 +110,7 @@ pub struct FiboStressResult {
 pub mod traits {
     use super::*;
     #[allow(dead_code)]
-    pub trait FiboBenchSailsFactory {
+    pub trait FibonacciStressSailsFactory {
         type Args;
         #[allow(clippy::new_ret_no_self)]
         #[allow(clippy::wrong_self_convention)]
@@ -100,7 +120,11 @@ pub mod traits {
     #[allow(clippy::type_complexity)]
     pub trait FiboStress {
         type Args;
-        fn stress(&mut self, n: u32) -> impl Call<Output = FiboStressResult, Args = Self::Args>;
+        fn stress_bytes(&mut self, n: u32) -> impl Call<Output = Vec<u8>, Args = Self::Args>;
+        fn stress_fibo(
+            &mut self,
+            n: u32,
+        ) -> impl Call<Output = FiboStressResult, Args = Self::Args>;
     }
 }
 
@@ -113,5 +137,5 @@ extern crate std;
 pub mod mockall {
     use super::*;
     use sails_rs::mockall::*;
-    mock! { pub FiboStress<A> {} #[allow(refining_impl_trait)] #[allow(clippy::type_complexity)] impl<A> traits::FiboStress for FiboStress<A> { type Args = A; fn stress (&mut self, n: u32,) -> MockCall<A, FiboStressResult>; } }
+    mock! { pub FiboStress<A> {} #[allow(refining_impl_trait)] #[allow(clippy::type_complexity)] impl<A> traits::FiboStress for FiboStress<A> { type Args = A; fn stress_bytes (&mut self, n: u32,) -> MockCall<A, Vec<u8>>;fn stress_fibo (&mut self, n: u32,) -> MockCall<A, FiboStressResult>; } }
 }

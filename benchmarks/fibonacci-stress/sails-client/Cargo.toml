@@ -1,5 +1,5 @@
 [package]
-name = "fibo-bench-sails-client"
+name = "fibonacci-stress-sails-client"
 version.workspace = true
 authors.workspace = true
 edition.workspace = true
@@ -10,6 +10,6 @@ repository.workspace = true
 sails-rs.workspace = true
 
 [build-dependencies]
-fibo-bench-sails-app = { path = "../app" }
+fibonacci-stress-sails = { path = "../sails" }
 sails-client-gen.workspace = true
 sails-idl-gen.workspace = true

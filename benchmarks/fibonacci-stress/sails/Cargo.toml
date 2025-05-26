@@ -1,5 +1,5 @@
 [package]
-name = "fibo-bench-sails-app"
+name = "fibonacci-stress-sails"
 version.workspace = true
 authors.workspace = true
 edition.workspace = true
@@ -8,12 +8,7 @@ repository.workspace = true
 
 [dependencies]
 sails-rs.workspace = true
+fibonacci-stress-core = { path = "../core" }
 
 [build-dependencies]
 sails-rs = { workspace = true, features = ["wasm-builder"] }
-
-[dev-dependencies]
-fibo-bench-sails-client = { path = "../client" }
-gtest.workspace = true
-sails-rs = { workspace = true, features = ["gtest"] }
-tokio = { workspace = true, features = ["rt", "macros"] }
