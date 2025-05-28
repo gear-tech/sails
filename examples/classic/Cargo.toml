@@ -1,0 +1,19 @@
+[package]
+name = "classic"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+sails-rs.workspace = true
+
+[build-dependencies]
+sails-rs = { workspace = true, features = ["wasm-builder"] }
+
+[dev-dependencies]
+sails-rs = { workspace = true, features = ["gtest"] }
+tokio = { workspace = true, features = ["rt", "macros"] }
+gtest.workspace = true
+classic-client = { path = "../classic-client" }

@@ -1,0 +1,12 @@
+constructor {
+  New : ();
+};
+
+service AsyncService {
+  SomeAsyncMethod : () -> str;
+};
+
+service NoAsyncService {
+  query SomeMethod : () -> str;
+};
+

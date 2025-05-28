@@ -1,0 +1,15 @@
+[package]
+name = "async-plain-gen-client"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+sails-rs.workspace = true
+
+[build-dependencies]
+async-plain-gen = { path = "../async-plain-gen" }
+sails-client-gen.workspace = true
+sails-idl-gen.workspace = true
