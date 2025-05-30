@@ -5,6 +5,8 @@
 #[cfg(not(target_arch = "wasm32"))]
 extern crate std;
 
+#[cfg(feature = "builder")]
+pub use builder::{Builder, build_client, build_client_as_lib};
 #[cfg(feature = "wasm-builder")]
 pub use gwasm_builder::build as build_wasm;
 pub use hex::{self};
@@ -15,6 +17,8 @@ pub use sails_idl_gen::{generate_idl, generate_idl_to_file};
 pub use sails_idl_meta::{self as meta};
 pub use spin::{self};
 
+#[cfg(feature = "builder")]
+mod builder;
 pub mod calls;
 pub mod errors;
 #[cfg(not(target_arch = "wasm32"))]
