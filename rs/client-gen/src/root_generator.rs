@@ -29,7 +29,7 @@ impl<'a> RootGenerator<'a> {
     ) -> Self {
         let mut tokens = quote! {
             #[allow(unused_imports)]
-            use $sails_path::{prelude::*, String, calls::{Activation, Call, Query, Remoting, RemotingAction}};
+            use $sails_path::{String, calls::{Activation, Call, Query, Remoting, RemotingAction}, prelude::*};
             #[allow(unused_imports)]
             use $sails_path::collections::BTreeMap;
         };

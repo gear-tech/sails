@@ -1,3 +1,3 @@
 fn main() {
-    sails_rs::build_client_as_lib::<redirect_app::RedirectProgram>();
+    sails_rs::build_client::<redirect_app::RedirectProgram>();
 }

@@ -1,3 +1,3 @@
 fn main() {
-    sails_rs::build_client_as_lib::<redirect_proxy::ProxyProgram>();
+    sails_rs::build_client::<redirect_proxy::ProxyProgram>();
 }
