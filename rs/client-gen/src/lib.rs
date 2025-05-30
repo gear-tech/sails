@@ -175,7 +175,7 @@ fn pretty_with_rustfmt(code: &str) -> String {
     use std::process::Command;
     let mut child = Command::new("rustfmt")
         .arg("--config")
-        .arg("format_strings=false")
+        .arg("style_edition=2024")
         .stdin(std::process::Stdio::piped())
         .stdout(std::process::Stdio::piped())
         .spawn()
