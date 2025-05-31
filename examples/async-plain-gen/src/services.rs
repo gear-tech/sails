@@ -1,18 +1,30 @@
-use sails_rs::prelude::Box;
+use sails_rs::prelude::{String, format};
 use sails_rs::{
     MessageId,
     gstd::{
         InvocationIo,
-        services::{Exposure, ExposureCallScope, ExposureContext, Service},
+        services::{Exposure, ExposureCallScope, Service},
     },
     meta::{AnyServiceMetaFn, ServiceMeta},
 };
+
+fn sum_fibonacci(n: u32) -> u32 {
+    fn fibonacci(n: u32) -> u32 {
+        if n <= 1 {
+            return n as u32;
+        }
+        fibonacci(n - 1) + fibonacci(n - 2)
+    }
+
+    (0..n).fold(0, |sum, i| sum + fibonacci(i))
+}
 
 pub struct NoAsyncMethodsService;
 
 impl NoAsyncMethodsService {
     pub fn some_method(&self) -> &'static str {
-        "This is a synchronous method"
+        sum_fibonacci(10);
+        "Non async some method"
     }
 }
 
@@ -34,7 +46,7 @@ impl<T: Service> Exposure for NoAsyncMethodsServiceExposure<T> {
 
 impl NoAsyncMethodsServiceExposure<NoAsyncMethodsService> {
     pub fn some_method(&self) -> &'static str {
-        let exposure_scope = ExposureCallScope::new(self);
+        let _exposure_scope = ExposureCallScope::new(self);
         self.inner.some_method()
     }
 
@@ -50,7 +62,7 @@ impl NoAsyncMethodsServiceExposure<NoAsyncMethodsService> {
     pub fn try_handle(&mut self, input: &[u8], result_handler: fn(&[u8], u128)) -> Option<()> {
         use sails_rs::gstd::InvocationIo;
         use sails_rs::gstd::services::Exposure;
-        if let Ok(request) = no_async_methods_service_meta::__SomeMethodParams::decode_params(input)
+        if let Ok(_request) = no_async_methods_service_meta::__SomeMethodParams::decode_params(input)
         {
             let result = self.some_method();
             let value = 0u128;
@@ -66,8 +78,8 @@ impl NoAsyncMethodsServiceExposure<NoAsyncMethodsService> {
 
     pub async fn try_handle_async(
         &mut self,
-        input: &[u8],
-        result_handler: fn(&[u8], u128),
+        _input: &[u8],
+        _result_handler: fn(&[u8], u128),
     ) -> Option<()> {
         None
     }
@@ -94,7 +106,7 @@ impl ServiceMeta for NoAsyncMethodsService {
 }
 mod no_async_methods_service_meta {
     use super::*;
-    use sails_rs::{Decode, TypeInfo};
+    use sails_rs::{Decode, TypeInfo, prelude::String};
 
     #[derive(Decode, TypeInfo)]
     #[codec(crate = sails_rs::scale_codec)]
@@ -141,7 +153,8 @@ pub struct AsyncService;
 
 impl AsyncService {
     pub async fn some_async_method(&mut self) -> &'static str {
-        "This is an asynchronous method"
+        sum_fibonacci(10);
+        "Async some method"
     }
 }
 
@@ -163,7 +176,7 @@ impl<T: Service> Exposure for AsyncMethodsServiceExposure<T> {
 
 impl AsyncMethodsServiceExposure<AsyncService> {
     pub async fn some_async_method(&mut self) -> &'static str {
-        let exposure_scope = ExposureCallScope::new(self);
+        let _exposure_scope = ExposureCallScope::new(self);
         self.inner.some_async_method().await
     }
 
@@ -175,7 +188,7 @@ impl AsyncMethodsServiceExposure<AsyncService> {
         None
     }
 
-    pub fn try_handle(&mut self, input: &[u8], result_handler: fn(&[u8], u128)) -> Option<()> {
+    pub fn try_handle(&mut self, _input: &[u8], _result_handler: fn(&[u8], u128)) -> Option<()> {
         None
     }
 
@@ -184,7 +197,7 @@ impl AsyncMethodsServiceExposure<AsyncService> {
         input: &[u8],
         result_handler: fn(&[u8], u128),
     ) -> Option<()> {
-        if let Ok(request) =
+        if let Ok(_request) =
             async_methods_service_meta::__SomeAsyncMethodParams::decode_params(input)
         {
             let result = self.some_async_method().await;
@@ -222,7 +235,7 @@ impl ServiceMeta for AsyncService {
 
 mod async_methods_service_meta {
     use super::*;
-    use sails_rs::{Decode, TypeInfo};
+    use sails_rs::{Decode, TypeInfo, prelude::String};
 
     #[derive(Decode, TypeInfo)]
     #[codec(crate = sails_rs::scale_codec)]

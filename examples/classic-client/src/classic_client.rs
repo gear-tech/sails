@@ -53,8 +53,8 @@ impl<R> AsyncService<R> {
 }
 impl<R: Remoting + Clone> traits::AsyncService for AsyncService<R> {
     type Args = R::Args;
-    fn async_method(&self) -> impl Query<Output = String, Args = R::Args> {
-        RemotingAction::<_, async_service::io::AsyncMethod>::new(self.remoting.clone(), ())
+    fn some_async_method(&self) -> impl Query<Output = String, Args = R::Args> {
+        RemotingAction::<_, async_service::io::SomeAsyncMethod>::new(self.remoting.clone(), ())
     }
 }
 
@@ -64,17 +64,17 @@ pub mod async_service {
     pub mod io {
         use super::*;
         use sails_rs::calls::ActionIo;
-        pub struct AsyncMethod(());
-        impl AsyncMethod {
+        pub struct SomeAsyncMethod(());
+        impl SomeAsyncMethod {
             #[allow(dead_code)]
             pub fn encode_call() -> Vec<u8> {
-                <AsyncMethod as ActionIo>::encode_call(&())
+                <SomeAsyncMethod as ActionIo>::encode_call(&())
             }
         }
-        impl ActionIo for AsyncMethod {
+        impl ActionIo for SomeAsyncMethod {
             const ROUTE: &'static [u8] = &[
-                48, 65, 115, 121, 110, 99, 83, 101, 114, 118, 105, 99, 101, 44, 65, 115, 121, 110,
-                99, 77, 101, 116, 104, 111, 100,
+                48, 65, 115, 121, 110, 99, 83, 101, 114, 118, 105, 99, 101, 60, 83, 111, 109, 101,
+                65, 115, 121, 110, 99, 77, 101, 116, 104, 111, 100,
             ];
             type Params = ();
             type Reply = String;
@@ -91,8 +91,8 @@ impl<R> NoAsyncService<R> {
 }
 impl<R: Remoting + Clone> traits::NoAsyncService for NoAsyncService<R> {
     type Args = R::Args;
-    fn sync_method(&self) -> impl Query<Output = String, Args = R::Args> {
-        RemotingAction::<_, no_async_service::io::SyncMethod>::new(self.remoting.clone(), ())
+    fn some_method(&self) -> impl Query<Output = String, Args = R::Args> {
+        RemotingAction::<_, no_async_service::io::SomeMethod>::new(self.remoting.clone(), ())
     }
 }
 
@@ -102,17 +102,17 @@ pub mod no_async_service {
     pub mod io {
         use super::*;
         use sails_rs::calls::ActionIo;
-        pub struct SyncMethod(());
-        impl SyncMethod {
+        pub struct SomeMethod(());
+        impl SomeMethod {
             #[allow(dead_code)]
             pub fn encode_call() -> Vec<u8> {
-                <SyncMethod as ActionIo>::encode_call(&())
+                <SomeMethod as ActionIo>::encode_call(&())
             }
         }
-        impl ActionIo for SyncMethod {
+        impl ActionIo for SomeMethod {
             const ROUTE: &'static [u8] = &[
-                56, 78, 111, 65, 115, 121, 110, 99, 83, 101, 114, 118, 105, 99, 101, 40, 83, 121,
-                110, 99, 77, 101, 116, 104, 111, 100,
+                56, 78, 111, 65, 115, 121, 110, 99, 83, 101, 114, 118, 105, 99, 101, 40, 83, 111,
+                109, 101, 77, 101, 116, 104, 111, 100,
             ];
             type Params = ();
             type Reply = String;
@@ -133,12 +133,12 @@ pub mod traits {
     #[allow(clippy::type_complexity)]
     pub trait AsyncService {
         type Args;
-        fn async_method(&self) -> impl Query<Output = String, Args = Self::Args>;
+        fn some_async_method(&self) -> impl Query<Output = String, Args = Self::Args>;
     }
 
     #[allow(clippy::type_complexity)]
     pub trait NoAsyncService {
         type Args;
-        fn sync_method(&self) -> impl Query<Output = String, Args = Self::Args>;
+        fn some_method(&self) -> impl Query<Output = String, Args = Self::Args>;
     }
 }

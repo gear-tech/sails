@@ -84,16 +84,16 @@ pub fn unknown_input_panic(message: &str, input: &[u8]) -> ! {
 pub trait InvocationIo {
     const ROUTE: &'static [u8];
     type Params: Decode;
-    // const ASYNCNESS: bool;
+    const ASYNCNESS: bool;
 
-    // fn check_route(payload: impl AsRef<[u8]>) -> Result<()> {
-    //     let value = payload.as_ref();
-    //     if !value.starts_with(Self::ROUTE) {
-    //         return Err(Error::Rtl(RtlError::InvocationPrefixMismatches));
-    //     }
+    fn check_route(payload: impl AsRef<[u8]>) -> Result<()> {
+        let value = payload.as_ref();
+        if !value.starts_with(Self::ROUTE) {
+            return Err(Error::Rtl(RtlError::InvocationPrefixMismatches));
+        }
 
-    //     Ok(())
-    // }
+        Ok(())
+    }
 
     fn decode_params(payload: impl AsRef<[u8]>) -> Result<Self::Params> {
         let mut value = payload.as_ref();

@@ -3,10 +3,10 @@ constructor {
 };
 
 service AsyncService {
-  query AsyncMethod : () -> str;
+  query SomeAsyncMethod : () -> str;
 };
 
 service NoAsyncService {
-  query SyncMethod : () -> str;
+  query SomeMethod : () -> str;
 };
 
