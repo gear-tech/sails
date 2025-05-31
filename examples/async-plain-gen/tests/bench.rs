@@ -91,6 +91,8 @@ async fn simple_bench() {
 }
 
 /*
+Version with leak usage
+
 Fibo (23)
 Async some method
 10987237122
@@ -102,4 +104,10 @@ Async some method
 1158261265
 Non async some method
 979330395
+
+With async_init and with clone (no leak)
+Async some method
+1254469636
+Non async some method
+1063733483
 */

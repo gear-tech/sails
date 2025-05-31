@@ -99,4 +99,10 @@ Async some method
 1239325841
 Non async some method
 1238708466
+
+try_handle sync in sails
+Async some method
+1262261914
+Non async some method
+1072831598
 */
