@@ -209,7 +209,7 @@ impl FnBuilder<'_> {
                     .try_handle_solidity(method, &input[4..])
                     .await
                     .unwrap_or_else(|| {
-                        gstd::unknown_input_panic("Unknown request", input)
+                        gstd::unknown_input_panic("Unknown request", &input)
                     });
                 // add callbak selector if `encode_reply` is set
                 let output = if encode_reply {

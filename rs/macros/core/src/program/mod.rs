@@ -218,7 +218,7 @@ impl ProgramBuilder {
         };
 
         invocation_dispatches.push(quote! {
-            { gstd::unknown_input_panic("Unexpected service", input) }
+            { gstd::unknown_input_panic("Unexpected service", &input) }
         });
 
         let handle_reply_fn = self.handle_reply_fn().map(|item_fn| {
@@ -251,11 +251,11 @@ impl ProgramBuilder {
         });
 
         let main_fn = quote!(
-            #[gstd::async_main #async_main_args]
-            async fn main() {
+            #[unsafe(no_mangle)]
+            extern "C" fn handle() {
                 #payable
 
-                let mut input: &[u8] = &gstd::msg::load_bytes().expect("Failed to read input");
+                let mut input = gstd::msg::load_bytes().expect("Failed to read input");
                 let program_ref = unsafe { #program_ident.as_mut() }.expect("Program not initialized");
 
                 #solidity_main
@@ -532,15 +532,28 @@ impl FnBuilder<'_> {
                 let Some(is_async) = service.check_asyncness(&input[#route_ident .len()..]) else {
                     gstd::unknown_input_panic("Unknown call", &input[#route_ident .len()..])
                 };
-                service
-                    .try_handle_async(&input[#route_ident .len()..], |encoded_result, value| {
-                        gstd::msg::reply_bytes(encoded_result, value)
-                            .expect("Failed to send output");
-                    })
-                    .await
-                    .unwrap_or_else(|| {
-                        gstd::unknown_input_panic("Unknown request", input)
+                if is_async {
+                    gstd::message_loop(async move {
+                        // TODO [sab] add todo
+                        let input = input.clone();
+                        service
+                            .try_handle_async(&input[#route_ident .len()..], |encoded_result, value| {
+                                gstd::msg::reply_bytes(encoded_result, value)
+                                    .expect("Failed to send output");
+                            })
+                            .await
+                            .unwrap_or_else(|| {
+                                gstd::unknown_input_panic("Unknown request", &input)
+                            });
                     });
+                } else {
+                    service
+                        .try_handle(&input[#route_ident .len()..], |encoded_result, value| {
+                            gstd::msg::reply_bytes(encoded_result, value)
+                                .expect("Failed to send output");
+                        })
+                        .unwrap_or_else(|| gstd::unknown_input_panic("Unknown request", &input));
+                }
             }
         }
     }
