@@ -53,7 +53,7 @@ impl NoAsyncMethodsServiceExposure<NoAsyncMethodsService> {
     pub fn check_asyncness(&self, payload: impl AsRef<[u8]>) -> Option<bool> {
         let payload = payload.as_ref();
         if no_async_methods_service_meta::__SomeMethodParams::check_route(payload).is_ok() {
-            return Some(no_async_methods_service_meta::__SomeMethodParams::ASYNCNESS);
+            return Some(no_async_methods_service_meta::__SomeMethodParams::ASYNC);
         }
 
         None
@@ -62,7 +62,8 @@ impl NoAsyncMethodsServiceExposure<NoAsyncMethodsService> {
     pub fn try_handle(&mut self, input: &[u8], result_handler: fn(&[u8], u128)) -> Option<()> {
         use sails_rs::gstd::InvocationIo;
         use sails_rs::gstd::services::Exposure;
-        if let Ok(_request) = no_async_methods_service_meta::__SomeMethodParams::decode_params(input)
+        if let Ok(_request) =
+            no_async_methods_service_meta::__SomeMethodParams::decode_params(input)
         {
             let result = self.some_method();
             let value = 0u128;
@@ -118,7 +119,7 @@ mod no_async_methods_service_meta {
             40u8, 83u8, 111u8, 109u8, 101u8, 77u8, 101u8, 116u8, 104u8, 111u8, 100u8,
         ];
         type Params = Self;
-        const ASYNCNESS: bool = false;
+        const ASYNC: bool = false;
     }
 
     #[derive(TypeInfo)]
@@ -183,7 +184,7 @@ impl AsyncMethodsServiceExposure<AsyncService> {
     pub fn check_asyncness(&self, payload: impl AsRef<[u8]>) -> Option<bool> {
         let payload = payload.as_ref();
         if async_methods_service_meta::__SomeAsyncMethodParams::check_route(payload).is_ok() {
-            return Some(async_methods_service_meta::__SomeAsyncMethodParams::ASYNCNESS);
+            return Some(async_methods_service_meta::__SomeAsyncMethodParams::ASYNC);
         }
         None
     }
@@ -248,7 +249,7 @@ mod async_methods_service_meta {
             104u8, 111u8, 100u8,
         ];
         type Params = Self;
-        const ASYNCNESS: bool = true;
+        const ASYNC: bool = true;
     }
 
     #[derive(TypeInfo)]

@@ -2,10 +2,7 @@
 
 use sails_rs::{gstd, prelude::*};
 use sails_rs::{
-    gstd::{
-        Syscall,
-        services::Service,
-    },
+    gstd::{Syscall, services::Service},
     meta::{AnyServiceMeta, AnyServiceMetaFn, ProgramMeta},
 };
 use services::{
@@ -72,7 +69,7 @@ mod meta_in_program {
     impl sails_rs::gstd::InvocationIo for __NewParams {
         const ROUTE: &'static [u8] = &[12u8, 78u8, 101u8, 119u8];
         type Params = Self;
-        const ASYNCNESS: bool = false;
+        const ASYNC: bool = false;
     }
 
     #[derive(TypeInfo)]
@@ -132,7 +129,9 @@ pub mod wasm {
                             },
                         )
                         .await
-                        .unwrap_or_else(|| gstd::unknown_input_panic("Unknown request", input_clone_ref));
+                        .unwrap_or_else(|| {
+                            gstd::unknown_input_panic("Unknown request", input_clone_ref)
+                        });
                 });
             } else {
                 service

@@ -90,7 +90,6 @@ async fn simple_bench() {
     println!("{gas}"); // GAS 959520092
 }
 
-
 /*
 Fibo (23)
 Async some method

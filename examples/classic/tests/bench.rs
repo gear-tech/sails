@@ -52,7 +52,6 @@ async fn simple_bench() {
 
     println!("{decoded}");
 
-
     let gas = block_res
         .gas_burned
         .get(&mid)

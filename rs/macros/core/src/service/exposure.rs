@@ -170,6 +170,8 @@ impl ServiceBuilder<'_> {
         // ethexe
         let try_handle_solidity_impl = self.try_handle_solidity_impl(base_ident);
 
+        let check_asyncness_impl = self.check_asyncness_impl();
+
         let exposure_emit_event_impls = self.exposure_emit_event_impls();
         let exposure_emit_eth_impls = self.exposure_emit_eth_impls();
 
@@ -183,6 +185,8 @@ impl ServiceBuilder<'_> {
                 #try_handle_impl
 
                 #try_handle_solidity_impl
+
+                #check_asyncness_impl
 
                 #exposure_emit_event_impls
 
@@ -274,5 +278,25 @@ impl ServiceBuilder<'_> {
                 }
             }
         )
+    }
+
+    fn check_asyncness_impl(&self) -> TokenStream {
+        let sails_path = self.sails_path;
+        let input_ident = &self.input_ident;
+
+        let asyncness_checks = self.service_handlers.iter().map(|fn_builder| {
+            fn_builder.check_asyncness_branch_impl(&self.meta_module_ident, input_ident)
+        });
+
+        quote! {
+            pub fn check_asyncness(&self, #input_ident : &[u8]) -> Option<bool> {
+                use #sails_path::gstd::InvocationIo;
+
+                #( #asyncness_checks )*
+
+                None
+            }
+
+        }
     }
 }

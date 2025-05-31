@@ -84,7 +84,7 @@ pub fn unknown_input_panic(message: &str, input: &[u8]) -> ! {
 pub trait InvocationIo {
     const ROUTE: &'static [u8];
     type Params: Decode;
-    const ASYNCNESS: bool;
+    const ASYNC: bool;
 
     fn check_route(payload: impl AsRef<[u8]>) -> Result<()> {
         let value = payload.as_ref();

@@ -529,6 +529,9 @@ impl FnBuilder<'_> {
         quote! {
             if input.starts_with(& #route_ident) {
                 let mut service = program_ref.#service_ctor_ident();
+                let Some(is_async) = service.check_asyncness(&input[#route_ident .len()..]) else {
+                    gstd::unknown_input_panic("Unknown call", &input[#route_ident .len()..])
+                };
                 service
                     .try_handle(&input[#route_ident .len()..], |encoded_result, value| {
                         gstd::msg::reply_bytes(encoded_result, value)
@@ -603,6 +606,7 @@ impl FnBuilder<'_> {
         let params_struct_ident = &self.params_struct_ident;
         let params_struct_members = self.params().map(|(ident, ty)| quote!(#ident: #ty));
         let ctor_route_bytes = self.encoded_route.as_slice();
+        let is_async = self.is_async();
 
         quote! {
             #[derive(#sails_path ::Decode, #sails_path ::TypeInfo)]
@@ -615,6 +619,7 @@ impl FnBuilder<'_> {
             impl #sails_path::gstd::InvocationIo for #params_struct_ident {
                 const ROUTE: &'static [u8] = &[ #(#ctor_route_bytes),* ];
                 type Params = Self;
+                const ASYNC: bool = #is_async;
             }
         }
     }
