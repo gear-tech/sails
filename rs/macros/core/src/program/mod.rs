@@ -533,7 +533,7 @@ impl FnBuilder<'_> {
                     gstd::unknown_input_panic("Unknown call", &input[#route_ident .len()..])
                 };
                 service
-                    .try_handle(&input[#route_ident .len()..], |encoded_result, value| {
+                    .try_handle_async(&input[#route_ident .len()..], |encoded_result, value| {
                         gstd::msg::reply_bytes(encoded_result, value)
                             .expect("Failed to send output");
                     })

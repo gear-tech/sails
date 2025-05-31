@@ -196,34 +196,59 @@ impl ServiceBuilder<'_> {
     }
 
     pub(super) fn try_handle_impl(&self) -> TokenStream {
-        let sails_path = self.sails_path;
-        let base_ident = &self.base_ident;
-        let input_ident = &self.input_ident;
+        let impl_inner = |is_async: bool| {
+            let sails_path = self.sails_path;
+            let base_ident = &self.base_ident;
+            let input_ident = &self.input_ident;
 
-        let invocation_dispatches = self.service_handlers.iter().map(|fn_builder| {
-            fn_builder.try_handle_branch_impl(&self.meta_module_ident, input_ident)
-        });
-        // Base Services, as tuple in exposure `base: (...)`
-        let base_exposure_invocations = self.base_types.iter().enumerate().map(|(idx, _)| {
-            let idx = Literal::usize_unsuffixed(idx);
+            let (name_ident, asyncness, await_token) = if is_async {
+                (
+                    quote!(try_handle_async),
+                    Some(quote!(async)),
+                    Some(quote!(.await)),
+                )
+            } else {
+                (quote!(try_handle), None, None)
+            };
+
+            let invocation_dispatches = self
+                .service_handlers
+                .iter()
+                .filter(|fn_builder| is_async == fn_builder.is_async())
+                .map(|fn_builder| {
+                    fn_builder.try_handle_branch_impl(&self.meta_module_ident, input_ident)
+                });
+
+            // Base Services, as tuple in exposure `base: (...)`
+            let base_exposure_invocations = self.base_types.iter().enumerate().map(|(idx, _)| {
+                let idx = Literal::usize_unsuffixed(idx);
+
+                quote! {
+                    if self. #base_ident . #idx . #name_ident(#input_ident, result_handler)#await_token
+                        .is_some()
+                    {
+                        return Some(());
+                    }
+                }
+            });
+
             quote! {
-                if self. #base_ident . #idx .try_handle(#input_ident, result_handler)
-                    .await
-                    .is_some()
-                {
-                    return Some(());
+                pub #asyncness fn #name_ident(&mut self, #input_ident : &[u8], result_handler: fn(&[u8], u128)) -> Option<()> {
+                    use #sails_path::gstd::InvocationIo;
+                    use #sails_path::gstd::services::Exposure;
+                    #( #invocation_dispatches )*
+                    #( #base_exposure_invocations )*
+                    None
                 }
             }
-        });
+        };
+
+        let sync_impl = impl_inner(false);
+        let async_impl = impl_inner(true);
 
         quote! {
-            pub async fn try_handle(&mut self, #input_ident : &[u8], result_handler: fn(&[u8], u128)) -> Option<()> {
-                use #sails_path::gstd::InvocationIo;
-                use #sails_path::gstd::services::Exposure;
-                #( #invocation_dispatches )*
-                #( #base_exposure_invocations )*
-                None
-            }
+            #sync_impl
+            #async_impl
         }
     }
 
