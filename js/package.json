@@ -48,7 +48,7 @@
   "devDependencies": {
     "@gear-js/api": "^0.42.0",
     "@polkadot/api": "^15.9.1",
-    "@polkadot/types": "^15.9.1",
+    "@polkadot/types": "^16.1.1",
     "jest": "^29.7.0",
     "sails-js-types": "*"
   },
