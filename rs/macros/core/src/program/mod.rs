@@ -297,9 +297,12 @@ impl ProgramBuilder {
         let solidity_init = self.sol_init(&input_ident, program_ident);
 
         let init_fn = quote! {
-            #[gstd::async_init]
-            async fn init() {
+            #[unsafe(no_mangle)]
+            extern "C" fn init() {
                 use gstd::InvocationIo;
+                use rc::Rc;
+                use cell::RefCell;
+
                 let mut #input_ident: &[u8] = &gstd::msg::load_bytes().expect("Failed to read input");
 
                 #solidity_init
@@ -598,17 +601,36 @@ impl FnBuilder<'_> {
 
     fn ctor_branch_impl(&self, program_type_path: &TypePath, input_ident: &Ident) -> TokenStream2 {
         let handler_ident = self.ident;
-        let handler_await = self.is_async().then(|| quote!(.await));
         let unwrap_token = self.unwrap_result.then(|| quote!(.unwrap()));
         let handler_args = self
             .params_idents()
             .iter()
             .map(|ident| quote!(request.#ident));
         let params_struct_ident = &self.params_struct_ident;
+        let ctor_call_impl = if self.is_async() {
+            quote! {
+                {
+                    let program_wrapped = Rc::new(RefCell::new(None));
+                    let program_wrapped_clone = Rc::clone(&program_wrapped);
+                    gstd::message_loop(async move {
+                        let program = #program_type_path :: #handler_ident (#(#handler_args),*) .await #unwrap_token ;
+                        program_wrapped_clone.replace(Some(program));
+                    });
+                    
+                    Rc::into_inner(program_wrapped)
+                        .and_then(|cell| cell.into_inner())
+                        .expect("Program not initialized")
+                }
+            }
+        } else {
+            quote! {
+                #program_type_path :: #handler_ident (#(#handler_args),*) #unwrap_token
+            }
+        };
 
         quote!(
             if let Ok(request) = meta_in_program::#params_struct_ident::decode_params( #input_ident) {
-                let program = #program_type_path :: #handler_ident (#(#handler_args),*) #handler_await #unwrap_token;
+                let program = #ctor_call_impl ;
                 (program, meta_in_program::#params_struct_ident::ROUTE)
             }
         )
