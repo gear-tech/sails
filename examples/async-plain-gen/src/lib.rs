@@ -363,8 +363,9 @@ pub mod wasm {
 
     static mut PROGRAM: Option<MyProgram> = None;
 
-    #[gstd::async_init]
-    async fn init() {
+    // #[gstd::async_init]
+    #[unsafe(no_mangle)]
+    extern "C" fn init() {
         use gstd::InvocationIo;
         use sails_rs::gstd;
         let input: &[u8] = &gstd::msg::load_bytes().expect("Failed to read input");

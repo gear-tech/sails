@@ -106,3 +106,35 @@ Async some method
 Non async some method
 1072831598
 */
+
+/*
+Selectable async in init
+
+No async ctors
+---- simple_bench stdout ----
+Async some method
+1181260435
+Non async some method
+998349648
+
+Async ctors
+Async some method
+1337823334
+Non async some method
+1162937065
+*/
+
+/*
+Non async init (!)
+Async some method
+1181374375
+Non async some method
+998463588
+
+Async init (!)
+Async some method
+1193931031
+Non async some method
+1004600172
+
+*/

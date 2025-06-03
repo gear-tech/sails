@@ -105,6 +105,12 @@ Async some method
 Non async some method
 979330395
 
+With non async init and with clone (no leak)
+Async some method
+1168120450
+Non async some method
+984636165
+
 With async_init and with clone (no leak)
 Async some method
 1254469636

@@ -284,7 +284,11 @@ impl ProgramBuilder {
         let mut ctor_meta_variants = Vec::with_capacity(program_ctors.len());
 
         for fn_builder in program_ctors {
-            ctor_dispatches.push(fn_builder.ctor_branch_impl(program_type_path, &input_ident));
+            ctor_dispatches.push(fn_builder.ctor_branch_impl(
+                program_type_path,
+                &input_ident,
+                program_ident,
+            ));
             ctor_params_structs
                 .push(fn_builder.ctor_params_struct(&scale_codec_path, &scale_info_path));
             ctor_meta_variants.push(fn_builder.ctor_meta_variant());
@@ -300,17 +304,12 @@ impl ProgramBuilder {
             #[unsafe(no_mangle)]
             extern "C" fn init() {
                 use gstd::InvocationIo;
-                use rc::Rc;
-                use cell::RefCell;
 
                 let mut #input_ident: &[u8] = &gstd::msg::load_bytes().expect("Failed to read input");
 
                 #solidity_init
 
-                let (program, invocation_route) = #(#ctor_dispatches)else*;
-                unsafe {
-                    #program_ident = Some(program);
-                }
+                let invocation_route = #(#ctor_dispatches)else*;
                 gstd::msg::reply_bytes(invocation_route, 0).expect("Failed to send output");
             }
         };
@@ -599,7 +598,12 @@ impl FnBuilder<'_> {
         wrapping_service_ctor_fn
     }
 
-    fn ctor_branch_impl(&self, program_type_path: &TypePath, input_ident: &Ident) -> TokenStream2 {
+    fn ctor_branch_impl(
+        &self,
+        program_type_path: &TypePath,
+        input_ident: &Ident,
+        program_ident: &Ident,
+    ) -> TokenStream2 {
         let handler_ident = self.ident;
         let unwrap_token = self.unwrap_result.then(|| quote!(.unwrap()));
         let handler_args = self
@@ -609,29 +613,27 @@ impl FnBuilder<'_> {
         let params_struct_ident = &self.params_struct_ident;
         let ctor_call_impl = if self.is_async() {
             quote! {
-                {
-                    let program_wrapped = Rc::new(RefCell::new(None));
-                    let program_wrapped_clone = Rc::clone(&program_wrapped);
-                    gstd::message_loop(async move {
-                        let program = #program_type_path :: #handler_ident (#(#handler_args),*) .await #unwrap_token ;
-                        program_wrapped_clone.replace(Some(program));
-                    });
-                    
-                    Rc::into_inner(program_wrapped)
-                        .and_then(|cell| cell.into_inner())
-                        .expect("Program not initialized")
-                }
+                gstd::message_loop(async move {
+                    let program = #program_type_path :: #handler_ident (#(#handler_args),*) .await #unwrap_token ;
+
+                    unsafe {
+                        #program_ident = Some(program);
+                    }
+                });
             }
         } else {
             quote! {
-                #program_type_path :: #handler_ident (#(#handler_args),*) #unwrap_token
+                let program = #program_type_path :: #handler_ident (#(#handler_args),*) #unwrap_token;
+                unsafe {
+                    #program_ident = Some(program);
+                }
             }
         };
 
         quote!(
             if let Ok(request) = meta_in_program::#params_struct_ident::decode_params( #input_ident) {
-                let program = #ctor_call_impl ;
-                (program, meta_in_program::#params_struct_ident::ROUTE)
+                #ctor_call_impl
+                meta_in_program::#params_struct_ident::ROUTE
             }
         )
     }
