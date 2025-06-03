@@ -23,6 +23,7 @@ pub struct ClientGenerator<'a, S> {
     external_types: HashMap<&'a str, &'a str>,
     no_derive_traits: bool,
     with_no_std: bool,
+    client_path: Option<&'a Path>,
     idl: S,
 }
 
@@ -77,6 +78,13 @@ impl<'a, S> ClientGenerator<'a, S> {
             ..self
         }
     }
+
+    pub fn with_client_path(self, client_path: &'a Path) -> Self {
+        Self {
+            client_path: Some(client_path),
+            ..self
+        }
+    }
 }
 
 impl<'a> ClientGenerator<'a, IdlPath<'a>> {
@@ -87,8 +95,25 @@ impl<'a> ClientGenerator<'a, IdlPath<'a>> {
             external_types: HashMap::new(),
             no_derive_traits: false,
             with_no_std: false,
+            client_path: None,
             idl: IdlPath(idl_path),
         }
+    }
+
+    pub fn generate(self) -> Result<()> {
+        let client_path = self.client_path.context("client path not set")?;
+        let idl_path = self.idl.0;
+
+        let idl = fs::read_to_string(idl_path)
+            .with_context(|| format!("Failed to open {} for reading", idl_path.display()))?;
+
+        let file_name = idl_path.file_stem().unwrap_or(OsStr::new("service"));
+        let service_name = file_name.to_string_lossy().to_case(Case::Pascal);
+
+        self.with_idl(&idl)
+            .generate_to(&service_name, client_path)
+            .context("failed to generate client")?;
+        Ok(())
     }
 
     pub fn generate_to(self, out_path: impl AsRef<Path>) -> Result<()> {
@@ -113,6 +138,7 @@ impl<'a> ClientGenerator<'a, IdlPath<'a>> {
             external_types: self.external_types,
             no_derive_traits: self.no_derive_traits,
             with_no_std: self.with_no_std,
+            client_path: self.client_path,
             idl: IdlString(idl),
         }
     }
@@ -126,6 +152,7 @@ impl<'a> ClientGenerator<'a, IdlString<'a>> {
             external_types: HashMap::new(),
             no_derive_traits: false,
             with_no_std: false,
+            client_path: None,
             idl: IdlString(idl),
         }
     }

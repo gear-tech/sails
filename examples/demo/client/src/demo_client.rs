@@ -7,21 +7,21 @@ use sails_rs::{
     calls::{Activation, Call, Query, Remoting, RemotingAction},
     prelude::*,
 };
-pub struct DemoFactory<R> {
+pub struct DemoClientFactory<R> {
     #[allow(dead_code)]
     remoting: R,
 }
-impl<R> DemoFactory<R> {
+impl<R> DemoClientFactory<R> {
     #[allow(unused)]
     pub fn new(remoting: R) -> Self {
         Self { remoting }
     }
 }
-impl<R: Remoting + Clone> traits::DemoFactory for DemoFactory<R> {
+impl<R: Remoting + Clone> traits::DemoClientFactory for DemoClientFactory<R> {
     type Args = R::Args;
     /// Program constructor (called once at the very beginning of the program lifetime)
     fn default(&self) -> impl Activation<Args = R::Args> {
-        RemotingAction::<_, demo_factory::io::Default>::new(self.remoting.clone(), ())
+        RemotingAction::<_, demo_client_factory::io::Default>::new(self.remoting.clone(), ())
     }
     /// Another program constructor (called once at the very beginning of the program lifetime)
     fn new(
@@ -29,14 +29,14 @@ impl<R: Remoting + Clone> traits::DemoFactory for DemoFactory<R> {
         counter: Option<u32>,
         dog_position: Option<(i32, i32)>,
     ) -> impl Activation<Args = R::Args> {
-        RemotingAction::<_, demo_factory::io::New>::new(
+        RemotingAction::<_, demo_client_factory::io::New>::new(
             self.remoting.clone(),
             (counter, dog_position),
         )
     }
 }
 
-pub mod demo_factory {
+pub mod demo_client_factory {
     use super::*;
     pub mod io {
         use super::*;
@@ -686,7 +686,7 @@ pub struct TupleStruct(pub bool);
 pub mod traits {
     use super::*;
     #[allow(dead_code)]
-    pub trait DemoFactory {
+    pub trait DemoClientFactory {
         type Args;
         fn default(&self) -> impl Activation<Args = Self::Args>;
         #[allow(clippy::new_ret_no_self)]

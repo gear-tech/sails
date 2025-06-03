@@ -1,1 +1,1 @@
-include!(concat!(env!("OUT_DIR"), "/no_svcs_prog.rs"));
+include!("no_svcs_prog.rs");

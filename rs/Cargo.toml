@@ -43,7 +43,7 @@ log = { workspace = true, optional = true }
 
 [features]
 default = ["gstd"]
-builder = ["std", "client-gen", "idl-gen", "dep:convert-case"]
+build = ["std", "client-gen", "idl-gen", "dep:convert-case"]
 debug = ["gstd?/debug"]
 ethexe = [
     "gstd?/ethexe",

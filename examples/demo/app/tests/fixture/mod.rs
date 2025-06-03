@@ -1,5 +1,5 @@
 use demo_client::{
-    Counter, DemoFactory, Dog, References, ValueFee,
+    Counter, DemoClientFactory, Dog, References, ValueFee,
     counter::{self, events::CounterEvents},
     dog::{self, events::DogEvents},
 };
@@ -40,8 +40,8 @@ impl Fixture {
         self.demo_code_id
     }
 
-    pub(crate) fn demo_factory(&self) -> DemoFactory<GTestRemoting> {
-        DemoFactory::new(self.program_space.clone())
+    pub(crate) fn demo_factory(&self) -> DemoClientFactory<GTestRemoting> {
+        DemoClientFactory::new(self.program_space.clone())
     }
 
     pub(crate) fn counter_client(&self) -> Counter<GTestRemoting> {

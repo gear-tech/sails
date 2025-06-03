@@ -1595,8 +1595,6 @@ version = "0.1.0"
 dependencies = [
  "demo",
  "mockall",
- "sails-client-gen",
- "sails-idl-gen",
  "sails-rs",
 ]
 
@@ -5227,8 +5225,6 @@ name = "no-svcs-prog"
 version = "0.1.0"
 dependencies = [
  "no-svcs-prog-app",
- "sails-client-gen",
- "sails-idl-gen",
  "sails-rs",
  "tokio",
 ]
@@ -6157,7 +6153,6 @@ name = "redirect-client"
 version = "0.1.0"
 dependencies = [
  "redirect-app",
- "sails-client-gen",
  "sails-rs",
 ]
 
@@ -6409,8 +6404,6 @@ dependencies = [
  "gtest",
  "rmrk-catalog",
  "rmrk-resource-app",
- "sails-client-gen",
- "sails-idl-gen",
  "sails-rs",
  "thiserror-no-std",
  "tokio",

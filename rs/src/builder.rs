@@ -1,9 +1,10 @@
 use convert_case::{Case, Casing};
 use core::marker::PhantomData;
-use sails_client_gen::ClientGenerator;
+use sails_client_gen::{ClientGenerator, IdlPath};
 use sails_idl_meta::ProgramMeta;
 use std::{
     env,
+    ffi::OsStr,
     path::{Path, PathBuf},
     string::{String, ToString},
     vec::Vec,
@@ -103,9 +104,25 @@ impl<P: ProgramMeta> Builder<P> {
         }
     }
 
+    pub fn with_idl_file_name<S: AsRef<OsStr>>(self, file_name: S) -> Self {
+        let Self { idl_path, .. } = self;
+        Self {
+            idl_path: idl_path.map(|p| p.with_file_name(file_name)),
+            ..self
+        }
+    }
+
     pub fn with_client_path<T: AsRef<Path>>(self, path: T) -> Self {
         Self {
             client_path: Some(PathBuf::from(path.as_ref())),
+            ..self
+        }
+    }
+
+    pub fn with_client_file_name<S: AsRef<OsStr>>(self, file_name: S) -> Self {
+        let Self { client_path, .. } = self;
+        Self {
+            client_path: client_path.map(|p| p.with_file_name(file_name)),
             ..self
         }
     }
@@ -125,6 +142,19 @@ impl<P: ProgramMeta> Builder<P> {
             no_std: true,
             ..self
         }
+    }
+
+    /// Build the program IDL.
+    ///
+    /// Returns client code generator.
+    pub fn build_idl<'a>(&'a self) -> ClientGenerator<'a, IdlPath<'a>> {
+        let idl_path = self.idl_path.as_ref().expect("idl path not set");
+        let client_path = self.client_path.as_ref().expect("client path not set");
+        // Generate IDL file for the program
+        sails_idl_gen::generate_idl_to_file::<P>(idl_path.as_path())
+            .expect("Error generating IDL from program");
+
+        ClientGenerator::from_idl_path(idl_path.as_path()).with_client_path(client_path.as_path())
     }
 
     /// Build the program IDL and generate client code.
