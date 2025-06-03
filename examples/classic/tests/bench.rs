@@ -138,3 +138,9 @@ Non async some method
 1004600172
 
 */
+
+// Generating handle_reply/signal gives more 70kk gas
+// Async some method
+// 1263562880
+// Non async some method
+// 1074197556

@@ -25,6 +25,7 @@ impl ServiceBuilder<'_> {
                 const BASE_SERVICES: &'static [#sails_path::meta::AnyServiceMetaFn] = &[
                     #( #base_services_meta ),*
                 ];
+                const ASYNC: bool = #meta_module_ident::CommandsMeta::ASYNC || #meta_module_ident::QueriesMeta::ASYNC;
             }
         }
     }
@@ -49,10 +50,49 @@ impl ServiceBuilder<'_> {
             (fn_builder.is_query()).then_some(fn_builder.handler_meta_variant())
         });
 
+        let commands_asyncness = {
+            let mut handlers = self
+                .service_handlers
+                .iter()
+                .filter(|fn_builder| !fn_builder.is_query())
+                .peekable();
+
+            if handlers.peek().is_none() {
+                quote!(false)
+            } else {
+                let commands_asyncness = handlers.map(|fn_builder| {
+                    let param_struct_ident = &fn_builder.params_struct_ident;
+                    quote!(#param_struct_ident::ASYNC)
+                });
+
+                quote!(#( #commands_asyncness )||*)
+            }
+        };
+
+        let queries_asyncness = {
+            let mut handlers = self
+                .service_handlers
+                .iter()
+                .filter(|fn_builder| fn_builder.is_query())
+                .peekable();
+
+            if handlers.peek().is_none() {
+                quote!(false)
+            } else {
+                let queries_asyncness = handlers.map(|fn_builder| {
+                    let param_struct_ident = &fn_builder.params_struct_ident;
+                    quote!(#param_struct_ident::ASYNC)
+                });
+
+                quote!(#( #queries_asyncness )||*)
+            }
+        };
+
         quote! {
             mod #meta_module_ident {
                 use super::*;
                 use #sails_path::{Decode, TypeInfo};
+                use #sails_path::gstd::InvocationIo;
 
                 #( #invocation_params_structs )*
 
@@ -62,10 +102,18 @@ impl ServiceBuilder<'_> {
                     #(#commands_meta_variants),*
                 }
 
+                impl CommandsMeta {
+                    pub const ASYNC: bool = #commands_asyncness;
+                }
+
                 #[derive(TypeInfo)]
                 #[scale_info(crate = #scale_info_path)]
                 pub enum QueriesMeta {
                     #(#queries_meta_variants),*
+                }
+
+                impl QueriesMeta {
+                    pub const ASYNC: bool = #queries_asyncness;
                 }
 
                 #[derive(TypeInfo)]

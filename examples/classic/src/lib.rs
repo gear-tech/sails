@@ -43,10 +43,6 @@ pub struct MyProgram;
 
 #[sails_rs::program]
 impl MyProgram {
-    pub async fn new() -> Self {
-        MyProgram
-    }
-
     pub fn async_service(&self) -> AsyncService {
         AsyncService
     }

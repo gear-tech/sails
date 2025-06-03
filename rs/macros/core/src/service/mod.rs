@@ -237,7 +237,6 @@ impl FnBuilder<'_> {
     }
 
     fn params_struct(&self, scale_codec_path: &Path, scale_info_path: &Path) -> TokenStream {
-        let sails_path = self.sails_path;
         let params_struct_ident = &self.params_struct_ident;
         let params_struct_members = self.params().map(|(ident, ty)| quote!(#ident: #ty));
         let handler_route_bytes = self.encoded_route.as_slice();
@@ -251,7 +250,7 @@ impl FnBuilder<'_> {
                 #(pub(super) #params_struct_members,)*
             }
 
-            impl #sails_path::gstd::InvocationIo for #params_struct_ident {
+            impl InvocationIo for #params_struct_ident {
                 const ROUTE: &'static [u8] = &[ #(#handler_route_bytes),* ];
                 type Params = Self;
                 const ASYNC: bool = #is_async;

@@ -147,14 +147,20 @@ impl ProgramBuilder {
 }
 
 impl ProgramBuilder {
-    fn wire_up_service_exposure(&mut self, program_ident: &Ident) -> (TokenStream2, TokenStream2) {
+    fn wire_up_service_exposure(
+        &mut self,
+        program_ident: &Ident,
+    ) -> (TokenStream2, TokenStream2, TokenStream2, TokenStream2) {
         let mut services_route = Vec::new();
         let mut services_meta = Vec::new();
+        let mut meta_asyncness = Vec::new();
         let mut invocation_dispatches = Vec::new();
         let mut routes = BTreeMap::new();
         // only used for ethexe
         #[allow(unused_mut)]
         let mut solidity_dispatchers: Vec<TokenStream2> = Vec::new();
+
+        meta_asyncness.push(quote!(meta_in_program::ConstructorsMeta::ASYNC));
 
         let item_impl = self
             .program_impl
@@ -184,6 +190,7 @@ impl ProgramBuilder {
 
                 services_route.push(fn_builder.service_const_route());
                 services_meta.push(fn_builder.service_meta());
+                meta_asyncness.push(fn_builder.service_meta_asyncness());
                 invocation_dispatches.push(fn_builder.service_invocation());
                 #[cfg(feature = "ethexe")]
                 solidity_dispatchers.push(fn_builder.sol_service_invocation());
@@ -201,6 +208,25 @@ impl ProgramBuilder {
                 .push(ImplItem::Fn(wrapping_service_ctor_fn));
         }
 
+        let handle_reply_fn = self.handle_reply_fn().map(|item_fn| {
+            let handle_reply_fn_ident = &item_fn.sig.ident;
+            quote! {
+                let program_ref = unsafe { #program_ident.as_mut() }.expect("Program not initialized");
+                program_ref.#handle_reply_fn_ident();
+            }
+        })
+        .unwrap_or_default();
+
+        let handle_signal_fn = self
+            .program_args
+            .handle_signal()
+            .map(|handle_signal_path| {
+                quote! {
+                    #handle_signal_path ();
+                }
+            })
+            .unwrap_or_default();
+
         let sails_path = self.sails_path();
         let (program_type_path, _program_type_args, _) = self.impl_type();
         let (generics, program_type_constraints) = self.impl_constraints();
@@ -214,31 +240,13 @@ impl ProgramBuilder {
                 const SERVICES: &'static [(&'static str, #sails_path::meta::AnyServiceMetaFn)] = &[
                     #(#services_meta),*
                 ];
+                const ASYNC: bool = #( #meta_asyncness )||*;
             }
         };
 
         invocation_dispatches.push(quote! {
             { gstd::unknown_input_panic("Unexpected service", &input) }
         });
-
-        let handle_reply_fn = self.handle_reply_fn().map(|item_fn| {
-            let handle_reply_fn_ident = &item_fn.sig.ident;
-            quote! {
-                fn __handle_reply() {
-                    let program_ref = unsafe { #program_ident.as_mut() }.expect("Program not initialized");
-                    program_ref.#handle_reply_fn_ident();
-                }
-            }
-        });
-
-        let mut args = Vec::with_capacity(2);
-        if handle_reply_fn.is_some() {
-            args.push(quote!(handle_reply = __handle_reply));
-        }
-        if let Some(handle_signal) = self.program_args.handle_signal() {
-            args.push(quote!(handle_signal = #handle_signal));
-        }
-        let async_main_args = (!args.is_empty()).then_some(quote!((#(#args),*)));
 
         let solidity_main = self.sol_main(solidity_dispatchers.as_slice());
 
@@ -263,10 +271,40 @@ impl ProgramBuilder {
                 #(#invocation_dispatches)else*;
             }
 
-            #handle_reply_fn
         );
 
-        (program_meta_impl, main_fn)
+        let handle_reply_fn = quote! {
+            #[unsafe(no_mangle)]
+            extern "C" fn handle_reply() {
+                use #sails_path::meta::ProgramMeta;
+
+                if #program_type_path::ASYNC {
+                    gstd::handle_reply_with_hook();
+                }
+
+                #handle_reply_fn
+            }
+        };
+
+        let handle_signal_fn = quote! {
+            #[unsafe(no_mangle)]
+            extern "C" fn handle_signal() {
+                use #sails_path::meta::ProgramMeta;
+
+                if #program_type_path::ASYNC {
+                    gstd::handle_signal();
+                }
+
+                #handle_signal_fn
+            }
+        };
+
+        (
+            program_meta_impl,
+            main_fn,
+            handle_reply_fn,
+            handle_signal_fn,
+        )
     }
 
     fn generate_init(&self, program_ident: &Ident) -> (TokenStream2, TokenStream2) {
@@ -282,6 +320,7 @@ impl ProgramBuilder {
         let mut ctor_dispatches = Vec::with_capacity(program_ctors.len() + 1);
         let mut ctor_params_structs = Vec::with_capacity(program_ctors.len());
         let mut ctor_meta_variants = Vec::with_capacity(program_ctors.len());
+        let mut ctors_asyncness = Vec::with_capacity(program_ctors.len());
 
         for fn_builder in program_ctors {
             ctor_dispatches.push(fn_builder.ctor_branch_impl(
@@ -291,6 +330,8 @@ impl ProgramBuilder {
             ));
             ctor_params_structs
                 .push(fn_builder.ctor_params_struct(&scale_codec_path, &scale_info_path));
+
+            ctors_asyncness.push(fn_builder.ctor_params_struct_asyncness());
             ctor_meta_variants.push(fn_builder.ctor_meta_variant());
         }
 
@@ -317,6 +358,7 @@ impl ProgramBuilder {
         let meta_in_program = quote! {
             mod meta_in_program {
                 use super::*;
+                use #sails_path::gstd::InvocationIo;
 
                 #( #ctor_params_structs )*
 
@@ -324,6 +366,10 @@ impl ProgramBuilder {
                 #[scale_info(crate = #scale_info_path)]
                 pub enum ConstructorsMeta {
                     #( #ctor_meta_variants ),*
+                }
+
+                impl ConstructorsMeta {
+                    pub const ASYNC: bool = #( #ctors_asyncness )||*;
                 }
             }
         };
@@ -381,8 +427,8 @@ fn gen_gprogram_impl(program_impl: ItemImpl, program_args: ProgramArgs) -> Token
 
     let program_ident = Ident::new("PROGRAM", Span::call_site());
 
-    let (program_meta_impl, main_fn) = program_builder.wire_up_service_exposure(&program_ident);
-
+    let (program_meta_impl, main_fn, handle_reply_fn, handle_signal_fn) =
+        program_builder.wire_up_service_exposure(&program_ident);
     let (meta_in_program, init_fn) = program_builder.generate_init(&program_ident);
 
     let (program_type_path, ..) = program_builder.impl_type();
@@ -412,6 +458,10 @@ fn gen_gprogram_impl(program_impl: ItemImpl, program_args: ProgramArgs) -> Token
             #match_ctor_impl
 
             #main_fn
+
+            #handle_reply_fn
+
+            #handle_signal_fn
         }
     )
 }
@@ -514,6 +564,12 @@ impl FnBuilder<'_> {
         quote!(
             ( #route , #sails_path::meta::AnyServiceMeta::new::< #service_type >)
         )
+    }
+
+    fn service_meta_asyncness(&self) -> TokenStream2 {
+        let sails_path = self.sails_path;
+        let service_type = &self.result_type;
+        quote!(< #service_type as  #sails_path::meta::ServiceMeta>::ASYNC )
     }
 
     fn service_const_route(&self) -> TokenStream2 {
@@ -653,7 +709,7 @@ impl FnBuilder<'_> {
                 #(pub(super) #params_struct_members,)*
             }
 
-            impl #sails_path::gstd::InvocationIo for #params_struct_ident {
+            impl InvocationIo for #params_struct_ident {
                 const ROUTE: &'static [u8] = &[ #(#ctor_route_bytes),* ];
                 type Params = Self;
                 const ASYNC: bool = #is_async;
@@ -673,6 +729,14 @@ impl FnBuilder<'_> {
         quote! {
             #( #ctor_docs_attrs )*
             #ctor_route(#params_struct_ident)
+        }
+    }
+
+    fn ctor_params_struct_asyncness(&self) -> TokenStream2 {
+        let params_struct_ident = &self.params_struct_ident;
+
+        quote! {
+            #params_struct_ident ::ASYNC
         }
     }
 }
