@@ -220,11 +220,7 @@ impl ProgramBuilder {
         let handle_signal_fn = self
             .program_args
             .handle_signal()
-            .map(|handle_signal_path| {
-                quote! {
-                    #handle_signal_path ();
-                }
-            })
+            .map(|handle_signal_path| quote!( #handle_signal_path ();))
             .unwrap_or_default();
 
         let sails_path = self.sails_path();
@@ -286,6 +282,7 @@ impl ProgramBuilder {
             }
         };
 
+        #[cfg(not(feature = "ethexe"))]
         let handle_signal_fn = quote! {
             #[unsafe(no_mangle)]
             extern "C" fn handle_signal() {
@@ -298,6 +295,8 @@ impl ProgramBuilder {
                 #handle_signal_fn
             }
         };
+        #[cfg(feature = "ethexe")]
+        let handle_signal_fn = quote!();
 
         (
             program_meta_impl,
