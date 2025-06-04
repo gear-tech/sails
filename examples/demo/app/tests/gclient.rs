@@ -207,6 +207,41 @@ async fn counter_query_works() {
 
 #[tokio::test]
 #[ignore = "requires run gear node on GEAR_PATH"]
+async fn counter_query_with_message_works() {
+    // Arrange
+
+    let (remoting, demo_code_id, gas_limit, ..) = spin_up_node_with_demo_code().await;
+
+    let demo_factory = demo_client::DemoFactory::new(remoting.clone());
+
+    // Use generated client code for activating Demo program
+    // using the `new` constructor and the `send_recv` method
+    let demo_program_id = demo_factory
+        .new(Some(42), None)
+        .with_gas_limit(gas_limit)
+        .send_recv(demo_code_id, "123")
+        .await
+        .unwrap();
+
+    let counter_client = demo_client::Counter::new(remoting.clone());
+
+    // Act
+
+    // Use generated client code for query Counter service using the `recv` method
+    // Set `query_with_message` to `true`
+    let result = counter_client
+        .value()
+        .query_with_message(true)
+        .recv(demo_program_id)
+        .await
+        .unwrap();
+
+    // Asert
+    assert_eq!(result, 42);
+}
+
+#[tokio::test]
+#[ignore = "requires run gear node on GEAR_PATH"]
 async fn counter_query_not_enough_gas() {
     // Arrange
 
