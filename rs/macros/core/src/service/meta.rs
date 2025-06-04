@@ -17,6 +17,18 @@ impl ServiceBuilder<'_> {
             }
         });
 
+        let service_meta_asyncness = [
+            quote!(#meta_module_ident::CommandsMeta::ASYNC),
+            quote!(#meta_module_ident::QueriesMeta::ASYNC),
+        ]
+        .into_iter()
+        .chain(self.base_types.iter().map(|base_type| {
+            let path_wo_lifetimes = shared::remove_lifetimes(base_type);
+            quote! {
+                <#path_wo_lifetimes as #sails_path::meta::ServiceMeta>::ASYNC
+            }
+        }));
+
         quote! {
             impl #generics #sails_path::meta::ServiceMeta for #service_type_path #service_type_constraints {
                 type CommandsMeta = #meta_module_ident::CommandsMeta;
@@ -25,7 +37,7 @@ impl ServiceBuilder<'_> {
                 const BASE_SERVICES: &'static [#sails_path::meta::AnyServiceMetaFn] = &[
                     #( #base_services_meta ),*
                 ];
-                const ASYNC: bool = #meta_module_ident::CommandsMeta::ASYNC || #meta_module_ident::QueriesMeta::ASYNC;
+                const ASYNC: bool = #( #service_meta_asyncness )||*;
             }
         }
     }
