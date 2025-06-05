@@ -67,18 +67,43 @@ impl<T> From<(T, ValueUnit)> for CommandReply<T> {
 
 pub fn unknown_input_panic(message: &str, input: &[u8]) -> ! {
     let mut __input = input;
-    let input: String = crate::Decode::decode(&mut __input).unwrap_or_else(|_| {
-        if input.len() <= 8 {
-            format!("0x{}", crate::hex::encode(input))
-        } else {
-            format!(
-                "0x{}..{}",
-                crate::hex::encode(&input[..4]),
-                crate::hex::encode(&input[input.len() - 4..])
-            )
-        }
-    });
-    panic!("{}: {}", message, input)
+    match String::decode(&mut __input) {
+        Ok(s) => panic!("{}: {}", message, s),
+        Err(_) => panic!("{}: {}", message, HexSlice(input)),
+    }
+}
+
+struct HexSlice<T: AsRef<[u8]>>(T);
+
+impl<T: AsRef<[u8]>> core::fmt::Display for HexSlice<T> {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        let slice = self.0.as_ref();
+        let len = slice.len();
+        f.write_str("0x")?;
+        match len {
+            ..8 => {
+                for byte in slice {
+                    write!(f, "{:02x}", byte)?;
+                }
+            }
+            _ => {
+                for byte in &slice[..4] {
+                    write!(f, "{:02x}", byte)?;
+                }
+                f.write_str("..")?;
+                for byte in &slice[len - 4..] {
+                    write!(f, "{:02x}", byte)?;
+                }
+            }
+        };
+        Ok(())
+    }
+}
+
+impl<T: AsRef<[u8]>> core::fmt::Debug for HexSlice<T> {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        core::fmt::Display::fmt(self, f)
+    }
 }
 
 pub trait InvocationIo {
