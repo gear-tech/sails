@@ -165,7 +165,14 @@ async fn ping_pong_low_level_works() {
     let demo_program = Program::from_file(&system, DEMO_WASM_PATH);
 
     // Use generated `io` module to create a program
-    demo_program.send_bytes(ADMIN_ID, demo_factory::io::Default::encode_call());
+    let message_id = demo_program.send_bytes(ADMIN_ID, demo_factory::io::Default::encode_call());
+    let run_result = system.run_next_block();
+    let gas_burned = *run_result
+        .gas_burned
+        .get(&message_id)
+        .expect("message not found");
+    let wasm_size = std::fs::metadata(DEMO_WASM_PATH).unwrap().len();
+    println!("[ping_pong_low_level_works] Init Gas: {gas_burned:>14}, Size: {wasm_size}");
 
     // Use generated `io` module for encoding/decoding calls and replies
     // and send/receive bytes using `gtest` native means
@@ -180,18 +187,17 @@ async fn ping_pong_low_level_works() {
         .find(|entry| entry.reply_to() == Some(message_id))
         .unwrap();
 
-    let gas_burned = *run_result
-        .gas_burned
-        .get(&message_id)
-        .expect("message not found");
-
     let ping_reply_payload = reply_log_record.payload();
 
     let ping_reply = ping_pong::io::Ping::decode_reply(ping_reply_payload).unwrap();
 
     assert_eq!(ping_reply, Ok("pong".to_string()));
-    let wasm_size = std::fs::metadata(DEMO_WASM_PATH).unwrap().len();
-    println!("[ping_pong_low_level_works] Gas: {gas_burned:>14}, Size: {wasm_size}");
+
+    let gas_burned = *run_result
+        .gas_burned
+        .get(&message_id)
+        .expect("message not found");
+    println!("[ping_pong_low_level_works] Handle Gas: {gas_burned:>14}, Size: {wasm_size}");
 }
 
 #[tokio::test]
