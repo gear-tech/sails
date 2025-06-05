@@ -79,23 +79,22 @@ impl<T: AsRef<[u8]>> core::fmt::Display for HexSlice<T> {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         let slice = self.0.as_ref();
         let len = slice.len();
+        let precision = f.precision().unwrap_or(4);
+
         f.write_str("0x")?;
-        match len {
-            ..8 => {
-                for byte in slice {
-                    write!(f, "{:02x}", byte)?;
-                }
+        if len <= precision * 2 {
+            for byte in slice {
+                write!(f, "{:02x}", byte)?;
             }
-            _ => {
-                for byte in &slice[..4] {
-                    write!(f, "{:02x}", byte)?;
-                }
-                f.write_str("..")?;
-                for byte in &slice[len - 4..] {
-                    write!(f, "{:02x}", byte)?;
-                }
+        } else {
+            for byte in &slice[..precision] {
+                write!(f, "{:02x}", byte)?;
             }
-        };
+            f.write_str("..")?;
+            for byte in &slice[len - precision..] {
+                write!(f, "{:02x}", byte)?;
+            }
+        }
         Ok(())
     }
 }
