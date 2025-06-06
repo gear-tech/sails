@@ -6,11 +6,16 @@ use core::mem::{self, MaybeUninit};
 pub(crate) struct MaybeUninitBufferWriter<'a> {
     buffer: &'a mut [MaybeUninit<u8>],
     offset: usize,
+    skip: usize,
 }
 
 impl<'a> MaybeUninitBufferWriter<'a> {
     pub(crate) fn new(buffer: &'a mut [MaybeUninit<u8>]) -> Self {
-        Self { buffer, offset: 0 }
+        Self {
+            buffer,
+            offset: 0,
+            skip: 0,
+        }
     }
 
     /// Gives an access to the internal buffer by providing
@@ -34,6 +39,16 @@ impl<'a> MaybeUninitBufferWriter<'a> {
             &*(&self.buffer[0..self.offset] as *const _ as *const [u8])
         }
     }
+
+    /// Sets the number of bytes to be skipped on next write.
+    ///
+    /// This value will be reset to 0 after the next write.
+    ///
+    /// SAFETY: Calling `write` after this method is safe as long as the `skip` value
+    /// is less than or equal to the length of the bytes slice to be written.
+    pub(crate) fn skip(&mut self, skip: usize) {
+        self.skip = skip;
+    }
 }
 
 // use `parity_scale_codec::Output` trait to not add a custom trait
@@ -45,9 +60,12 @@ impl Output for MaybeUninitBufferWriter<'_> {
         // This code transmutes `bytes: &[T]` to `bytes: &[MaybeUninit<T>]`. These types
         // can be safely transmuted since they have the same layout. Then `bytes:
         // &[MaybeUninit<T>]` is written to uninitialized memory via `copy_from_slice`.
-        let end_offset = self.offset + bytes.len();
+        let end_offset = self.offset + bytes.len() - self.skip;
         let this = unsafe { self.buffer.get_unchecked_mut(self.offset..end_offset) };
-        this.copy_from_slice(unsafe { mem::transmute::<&[u8], &[MaybeUninit<u8>]>(bytes) });
+        this.copy_from_slice(unsafe {
+            mem::transmute::<&[u8], &[MaybeUninit<u8>]>(&bytes[self.skip..])
+        });
         self.offset = end_offset;
+        self.skip = 0;
     }
 }

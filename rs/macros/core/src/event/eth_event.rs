@@ -1,36 +1,9 @@
+use super::args::{CratePathAttr, SAILS_PATH};
 use crate::sails_paths::sails_path_or_default;
-use args::{CratePathAttr, SAILS_PATH};
 use proc_macro_error::abort;
 use proc_macro2::{Span, TokenStream};
 use quote::quote;
 use syn::{Fields, Ident, ItemEnum, Path, Type, Variant, parse::Parse};
-
-mod args;
-
-pub fn event(attrs: TokenStream, input: TokenStream) -> TokenStream {
-    // Parse the input tokens into a syntax tree.
-    let mut input: ItemEnum = syn::parse2(input).unwrap_or_else(|err| {
-        abort!(
-            err.span(),
-            "EthEvent can only be derived for enums: {}",
-            err
-        )
-    });
-
-    // Parse the attributes into a syntax tree.
-    let sails_path_attr = syn::parse2::<CratePathAttr>(attrs).ok();
-    let sails_path = &sails_path_or_default(sails_path_attr.map(|attr| attr.path()));
-
-    let event_impl = generate_event_impl(&input, sails_path);
-
-    process_indexed(&mut input);
-
-    quote! {
-        #input
-
-        #event_impl
-    }
-}
 
 pub fn derive_eth_event(input: TokenStream) -> TokenStream {
     // Parse the input tokens into a syntax tree.
@@ -52,10 +25,10 @@ pub fn derive_eth_event(input: TokenStream) -> TokenStream {
         });
     let sails_path = &sails_path_or_default(sails_path_attr.map(|attr| attr.path()));
 
-    generate_event_impl(&input, sails_path)
+    generate_eth_event_impl(&input, sails_path)
 }
 
-fn generate_event_impl(input: &ItemEnum, sails_path: &Path) -> TokenStream {
+pub(super) fn generate_eth_event_impl(input: &ItemEnum, sails_path: &Path) -> TokenStream {
     let enum_ident = &input.ident;
 
     // Vectors to collect match arms for topics and data.
@@ -237,7 +210,7 @@ fn check_forbidden_event_idents(ident: &Ident) {
     }
 }
 
-fn process_indexed(input: &mut ItemEnum) {
+pub(super) fn process_indexed(input: &mut ItemEnum) {
     // Process each variant.
     for variant in input.variants.iter_mut() {
         match &mut variant.fields {

@@ -2,9 +2,6 @@
 
 /// Service Events
 #[sails_rs::event]
-#[derive(sails_rs::Encode, sails_rs::TypeInfo)]
-#[codec(crate = sails_rs::scale_codec)]
-#[scale_info(crate = sails_rs::scale_info)]
 pub enum Events {
     DoThisEvent {
         /// Some u32 value

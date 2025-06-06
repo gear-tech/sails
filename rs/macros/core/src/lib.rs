@@ -18,13 +18,13 @@
 
 //! Implemntation of the procedural macros exposed via the `sails-macros` crate.
 
-pub use eth_event::{derive_eth_event, event};
+pub use event::{derive_sails_event, event};
 pub use export::export;
 pub use program::{__gprogram_internal, gprogram};
 pub use route::groute;
 pub use service::{__gservice_internal, gservice};
 
-mod eth_event;
+mod event;
 mod export;
 mod program;
 mod route;

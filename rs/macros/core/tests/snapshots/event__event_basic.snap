@@ -1,0 +1,22 @@
+---
+source: rs/macros/core/tests/event.rs
+expression: result
+---
+#[derive(sails_rs::Encode, sails_rs::TypeInfo)]
+#[codec(crate = sails_rs::scale_codec)]
+#[scale_info(crate = sails_rs::scale_info)]
+pub enum MyEvent {
+    MyEvent1,
+}
+impl sails_rs::SailsEvent for MyEvent {
+    fn encoded_event_name(&self) -> &'static [u8] {
+        match self {
+            MyEvent::MyEvent1 => {
+                &[32u8, 77u8, 121u8, 69u8, 118u8, 101u8, 110u8, 116u8, 49u8]
+            }
+        }
+    }
+    fn skip_first_bytes() -> usize {
+        1
+    }
+}
