@@ -295,8 +295,6 @@ impl ProgramBuilder {
                 #handle_signal_fn
             }
         };
-        #[cfg(feature = "ethexe")]
-        let handle_signal_fn = quote!();
 
         (
             program_meta_impl,
@@ -338,7 +336,7 @@ impl ProgramBuilder {
             { gstd::unknown_input_panic("Unexpected ctor", input) }
         });
 
-        let solidity_init = self.sol_init(&input_ident, program_ident);
+        let solidity_init = self.sol_init(&input_ident);
 
         let init_fn = quote! {
             #[unsafe(no_mangle)]
@@ -383,7 +381,7 @@ impl ProgramBuilder {
         quote!()
     }
 
-    fn match_ctor_impl(&self) -> TokenStream2 {
+    fn match_ctor_impl(&self, _program_ident: &Ident) -> TokenStream2 {
         quote!()
     }
 
@@ -391,7 +389,7 @@ impl ProgramBuilder {
         quote!()
     }
 
-    fn sol_init(&self, _input_ident: &Ident, _program_ident: &Ident) -> TokenStream2 {
+    fn sol_init(&self, _input_ident: &Ident) -> TokenStream2 {
         quote!()
     }
 
@@ -419,12 +417,12 @@ fn gen_gprogram_impl(program_impl: ItemImpl, program_args: ProgramArgs) -> Token
 
     let sails_path = program_builder.sails_path().clone();
 
+    let program_ident = Ident::new("PROGRAM", Span::call_site());
+
     // Call this before `wire_up_service_exposure`
     let program_signature_impl = program_builder.program_signature_impl();
-    let match_ctor_impl = program_builder.match_ctor_impl();
+    let match_ctor_impl = program_builder.match_ctor_impl(&program_ident);
     let program_const = program_builder.program_const();
-
-    let program_ident = Ident::new("PROGRAM", Span::call_site());
 
     let (program_meta_impl, main_fn, handle_reply_fn, handle_signal_fn) =
         program_builder.wire_up_service_exposure(&program_ident);

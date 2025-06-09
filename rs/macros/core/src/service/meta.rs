@@ -62,43 +62,8 @@ impl ServiceBuilder<'_> {
             (fn_builder.is_query()).then_some(fn_builder.handler_meta_variant())
         });
 
-        let commands_asyncness = {
-            let mut handlers = self
-                .service_handlers
-                .iter()
-                .filter(|fn_builder| !fn_builder.is_query())
-                .peekable();
-
-            if handlers.peek().is_none() {
-                quote!(false)
-            } else {
-                let commands_asyncness = handlers.map(|fn_builder| {
-                    let param_struct_ident = &fn_builder.params_struct_ident;
-                    quote!(#param_struct_ident::ASYNC)
-                });
-
-                quote!(#( #commands_asyncness )||*)
-            }
-        };
-
-        let queries_asyncness = {
-            let mut handlers = self
-                .service_handlers
-                .iter()
-                .filter(|fn_builder| fn_builder.is_query())
-                .peekable();
-
-            if handlers.peek().is_none() {
-                quote!(false)
-            } else {
-                let queries_asyncness = handlers.map(|fn_builder| {
-                    let param_struct_ident = &fn_builder.params_struct_ident;
-                    quote!(#param_struct_ident::ASYNC)
-                });
-
-                quote!(#( #queries_asyncness )||*)
-            }
-        };
+        let commands_asyncness = self.service_handler_asyncness(false);
+        let queries_asyncness = self.service_handler_asyncness(true);
 
         quote! {
             mod #meta_module_ident {
@@ -134,6 +99,25 @@ impl ServiceBuilder<'_> {
 
                 pub type EventsMeta = #events_type;
             }
+        }
+    }
+
+    fn service_handler_asyncness(&self, is_query: bool) -> TokenStream {
+        let mut handlers = self
+            .service_handlers
+            .iter()
+            .filter(|fn_builder| is_query && fn_builder.is_query())
+            .peekable();
+
+        if handlers.peek().is_none() {
+            quote!(false)
+        } else {
+            let handlers_asyncness = handlers.map(|fn_builder| {
+                let param_struct_ident = &fn_builder.params_struct_ident;
+                quote!(#param_struct_ident::ASYNC)
+            });
+
+            quote!(#( #handlers_asyncness )||*)
         }
     }
 }

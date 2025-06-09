@@ -10,7 +10,7 @@ repository.workspace = true
 sails-rs.workspace = true
 
 [build-dependencies]
-sails-rs = { workspace = true, features = ["wasm-builder", "ethexe"] }
+sails-rs = { workspace = true, features = ["wasm-builder"] }
 
 [dev-dependencies]
 sails-rs = { workspace = true, features = ["gtest"] }

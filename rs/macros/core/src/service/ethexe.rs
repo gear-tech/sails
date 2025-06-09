@@ -42,29 +42,53 @@ impl ServiceBuilder<'_> {
 
     pub(super) fn try_handle_solidity_impl(&self, base_ident: &Ident) -> TokenStream {
         let sails_path = self.sails_path;
-        let service_method_branches = self
-            .service_handlers
-            .iter()
-            .map(|fn_builder| fn_builder.sol_try_handle_branch_impl());
-        let base_types_try_handle = self.base_types.iter().enumerate().map(|(idx, _)| {
-            let idx = Literal::usize_unsuffixed(idx);
+        let impl_inner = |is_async: bool| {
+            let (name_ident, asyncness, await_token) = if is_async {
+                (
+                    quote!(try_handle_solidity_async),
+                    Some(quote!(async)),
+                    Some(quote!(.await)),
+                )
+            } else {
+                (quote!(try_handle_solidity), None, None)
+            };
+
+            let service_method_branches = self.service_handlers.iter().filter_map(|fn_builder| {
+                if is_async == fn_builder.is_async() {
+                    Some(fn_builder.sol_try_handle_branch_impl())
+                } else {
+                    None
+                }
+            });
+
+            let base_types_try_handle = self.base_types.iter().enumerate().map(|(idx, _)| {
+                let idx = Literal::usize_unsuffixed(idx);
+                quote! {
+                    if let Some(result) = self. #base_ident . #idx . #name_ident(method, input) #await_token {
+                        return Some(result);
+                    }
+                }
+            });
+
             quote! {
-                if let Some(result) = self. #base_ident . #idx .try_handle_solidity(method, input).await {
-                    return Some(result);
+                pub #asyncness fn #name_ident(
+                    &mut self,
+                    method: &[u8],
+                    input: &[u8],
+                ) -> Option<(#sails_path::Vec<u8>, u128, bool)> {
+                    #( #service_method_branches )*
+                    #( #base_types_try_handle )*
+                    None
                 }
             }
-        });
+        };
+
+        let sync_impl = impl_inner(false);
+        let async_impl = impl_inner(true);
 
         quote! {
-            pub async fn try_handle_solidity(
-                &mut self,
-                method: &[u8],
-                input: &[u8],
-            ) -> Option<(#sails_path::Vec<u8>, u128, bool)> {
-                #( #service_method_branches )*
-                #( #base_types_try_handle )*
-                None
-            }
+            #sync_impl
+            #async_impl
         }
     }
 

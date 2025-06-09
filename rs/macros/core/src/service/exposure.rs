@@ -196,11 +196,10 @@ impl ServiceBuilder<'_> {
     }
 
     pub(super) fn try_handle_impl(&self) -> TokenStream {
+        let sails_path = self.sails_path;
+        let base_ident = &self.base_ident;
+        let input_ident = &self.input_ident;
         let impl_inner = |is_async: bool| {
-            let sails_path = self.sails_path;
-            let base_ident = &self.base_ident;
-            let input_ident = &self.input_ident;
-
             let (name_ident, asyncness, await_token) = if is_async {
                 (
                     quote!(try_handle_async),
@@ -211,20 +210,20 @@ impl ServiceBuilder<'_> {
                 (quote!(try_handle), None, None)
             };
 
-            let invocation_dispatches = self
-                .service_handlers
-                .iter()
-                .filter(|fn_builder| is_async == fn_builder.is_async())
-                .map(|fn_builder| {
-                    fn_builder.try_handle_branch_impl(&self.meta_module_ident, input_ident)
-                });
+            let invocation_dispatches = self.service_handlers.iter().filter_map(|fn_builder| {
+                if is_async == fn_builder.is_async() {
+                    Some(fn_builder.try_handle_branch_impl(&self.meta_module_ident, input_ident))
+                } else {
+                    None
+                }
+            });
 
             // Base Services, as tuple in exposure `base: (...)`
             let base_exposure_invocations = self.base_types.iter().enumerate().map(|(idx, _)| {
                 let idx = Literal::usize_unsuffixed(idx);
 
                 quote! {
-                    if self. #base_ident . #idx . #name_ident(#input_ident, result_handler)#await_token
+                    if self. #base_ident . #idx . #name_ident(#input_ident, result_handler) #await_token
                         .is_some()
                     {
                         return Some(());
