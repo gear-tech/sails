@@ -12,7 +12,7 @@ mod eth_event;
 
 pub fn event(attrs: TokenStream, input: TokenStream) -> TokenStream {
     // Parse the input tokens into a syntax tree.
-    #[allow(unused_mut)]
+    #[cfg_attr(not(feature = "ethexe"), allow(unused_mut))]
     let mut input: ItemEnum = syn::parse2(input).unwrap_or_else(|err| {
         abort!(
             err.span(),
@@ -49,6 +49,14 @@ fn generate_sails_event_impl(input: &ItemEnum, sails_path: &Path) -> TokenStream
     // Parse the input enum
     let enum_ident = &input.ident;
     let variants = &input.variants;
+    // Check that the enum has at most 256 variants
+    if variants.len() > 256 {
+        abort!(
+            input,
+            "`event` enum can have at most 256 variants, but found {}",
+            variants.len()
+        )
+    }
 
     // Build match arms for each variant
     let mut match_arms = Vec::new();
@@ -89,7 +97,7 @@ fn generate_sails_event_impl(input: &ItemEnum, sails_path: &Path) -> TokenStream
                 }
             }
 
-            fn skip_first_bytes() -> usize {
+            fn skip_bytes() -> usize {
                 1 // The first byte is reserved for the index of the event enum variant
             }
         }
@@ -101,7 +109,7 @@ pub fn derive_sails_event(input: TokenStream) -> TokenStream {
     let input: ItemEnum = syn::parse2(input).unwrap_or_else(|err| {
         abort!(
             err.span(),
-            "EthEvent can only be derived for enums: {}",
+            "`SailsEvent` can only be derived for enums: {}",
             err
         )
     });

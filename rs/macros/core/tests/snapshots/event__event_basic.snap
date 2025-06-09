@@ -16,7 +16,7 @@ impl sails_rs::SailsEvent for MyEvent {
             }
         }
     }
-    fn skip_first_bytes() -> usize {
+    fn skip_bytes() -> usize {
         1
     }
 }

@@ -24,7 +24,7 @@ impl sails_rename::SailsEvent for Events {
             }
         }
     }
-    fn skip_first_bytes() -> usize {
+    fn skip_bytes() -> usize {
         1
     }
 }

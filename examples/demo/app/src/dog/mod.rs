@@ -2,9 +2,7 @@ use crate::mammal::MammalService;
 use demo_walker::WalkerService;
 use sails_rs::prelude::*;
 
-#[derive(Encode, TypeInfo)]
-#[codec(crate = sails_rs::scale_codec)]
-#[scale_info(crate = sails_rs::scale_info)]
+#[event]
 pub enum DogEvents {
     Barked,
 }

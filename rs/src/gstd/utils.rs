@@ -43,10 +43,7 @@ impl<'a> MaybeUninitBufferWriter<'a> {
     /// Sets the number of bytes to be skipped on next write.
     ///
     /// This value will be reset to 0 after the next write.
-    ///
-    /// SAFETY: Calling `write` after this method is safe as long as the `skip` value
-    /// is less than or equal to the length of the bytes slice to be written.
-    pub(crate) fn skip(&mut self, skip: usize) {
+    pub(crate) fn skip_next(&mut self, skip: usize) {
         self.skip = skip;
     }
 }
@@ -60,6 +57,9 @@ impl Output for MaybeUninitBufferWriter<'_> {
         // This code transmutes `bytes: &[T]` to `bytes: &[MaybeUninit<T>]`. These types
         // can be safely transmuted since they have the same layout. Then `bytes:
         // &[MaybeUninit<T>]` is written to uninitialized memory via `copy_from_slice`.
+        if self.skip >= bytes.len() {
+            return; // Skip writing if skip is greater than bytes length
+        }
         let end_offset = self.offset + bytes.len() - self.skip;
         let this = unsafe { self.buffer.get_unchecked_mut(self.offset..end_offset) };
         this.copy_from_slice(unsafe {
