@@ -1,29 +1,4 @@
-use crate::{MessageId, Vec, collections::BTreeMap};
-use core::ops::DerefMut;
-
-#[cfg(not(target_arch = "wasm32"))]
-fn get_message_id_to_service_route_map()
--> impl DerefMut<Target = BTreeMap<MessageId, Vec<&'static [u8]>>> {
-    use spin::Mutex;
-
-    static MESSAGE_ID_TO_SERVICE_ROUTE: Mutex<BTreeMap<MessageId, Vec<&'static [u8]>>> =
-        Mutex::new(BTreeMap::new());
-
-    MESSAGE_ID_TO_SERVICE_ROUTE.lock()
-}
-
-#[cfg(target_arch = "wasm32")]
-fn get_message_id_to_service_route_map()
--> impl DerefMut<Target = BTreeMap<MessageId, Vec<&'static [u8]>>> {
-    static mut MESSAGE_ID_TO_SERVICE_ROUTE: BTreeMap<MessageId, Vec<&'static [u8]>> =
-        BTreeMap::new();
-
-    // SAFETY: only for wasm32 target
-    #[allow(static_mut_refs)]
-    unsafe {
-        &mut MESSAGE_ID_TO_SERVICE_ROUTE
-    }
-}
+use crate::MessageId;
 
 pub trait Service {
     type Exposure: Exposure;
@@ -35,70 +10,39 @@ pub trait Service {
 pub trait Exposure {
     fn message_id(&self) -> MessageId;
     fn route(&self) -> &'static [u8];
+
+    fn scope(&self) -> ExposureCallScope {
+        ExposureCallScope::new(self.route())
+    }
 }
 
-#[derive(Debug, Clone, Copy)]
-pub struct ExposureContext {
-    message_id: MessageId,
-    route: &'static [u8],
-}
+#[cfg(not(feature = "std"))]
+static ROUTE_CELL: crate::gstd::utils::SyncCell<Option<&'static [u8]>> =
+    crate::gstd::utils::SyncCell::new(None);
 
-impl ExposureContext {
-    pub fn message_id(&self) -> MessageId {
-        self.message_id
-    }
-
-    pub fn route(&self) -> &'static [u8] {
-        self.route
-    }
+#[cfg(feature = "std")]
+std::thread_local! {
+    static ROUTE_CELL: core::cell::Cell<Option<&'static [u8]>> = core::cell::Cell::new(None);
 }
 
 #[cfg(target_arch = "wasm32")]
-pub(crate) fn exposure_context(message_id: MessageId) -> ExposureContext {
-    let map = get_message_id_to_service_route_map();
-    let route = map
-        .get(&message_id)
-        .and_then(|routes| routes.last().copied())
-        .unwrap_or_else(|| {
-            panic!(
-                "Exposure context is not found for message id {:?}",
-                message_id
-            )
-        });
-    ExposureContext { message_id, route }
+pub(crate) fn route() -> Option<&'static [u8]> {
+    ROUTE_CELL.get()
 }
 
 pub struct ExposureCallScope {
-    message_id: MessageId,
-    route: &'static [u8],
+    prev_route: Option<&'static [u8]>,
 }
 
 impl ExposureCallScope {
-    pub fn new(exposure: &impl Exposure) -> Self {
-        let mut map = get_message_id_to_service_route_map();
-        let routes = map.entry(exposure.message_id()).or_default();
-        routes.push(exposure.route());
-        Self {
-            message_id: exposure.message_id(),
-            route: exposure.route(),
-        }
+    pub fn new(route: &'static [u8]) -> Self {
+        let prev_route = ROUTE_CELL.replace(Some(route));
+        Self { prev_route }
     }
 }
 
 impl Drop for ExposureCallScope {
     fn drop(&mut self) {
-        let mut map = get_message_id_to_service_route_map();
-        let routes = map
-            .get_mut(&self.message_id)
-            .unwrap_or_else(|| unreachable!("Entry for message should always exist"));
-        let route = routes
-            .pop()
-            .unwrap_or_else(|| unreachable!("Route should always exist"));
-        if route != self.route {
-            unreachable!("Route should always match");
-        }
-        if routes.is_empty() {
-            map.remove(&self.message_id);
-        }
+        _ = ROUTE_CELL.replace(self.prev_route);
     }
 }

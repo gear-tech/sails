@@ -1,5 +1,8 @@
 use crate::Output;
-use core::mem::{self, MaybeUninit};
+use core::{
+    cell::Cell,
+    mem::{self, MaybeUninit},
+};
 
 /// A writer that writes to a buffer of `MaybeUninit<u8>` bytes
 /// safely using the `parity-scale-codec::Output` impl.
@@ -43,6 +46,9 @@ impl<'a> MaybeUninitBufferWriter<'a> {
     /// Sets the number of bytes to be skipped on next write.
     ///
     /// This value will be reset to 0 after the next write.
+    ///
+    /// SAFETY: Calling `write` after this method is safe as long as the `skip` value
+    /// is less than or equal to the length of the bytes slice to be written.
     pub(crate) fn skip_next(&mut self, skip: usize) {
         self.skip = skip;
     }
@@ -57,9 +63,10 @@ impl Output for MaybeUninitBufferWriter<'_> {
         // This code transmutes `bytes: &[T]` to `bytes: &[MaybeUninit<T>]`. These types
         // can be safely transmuted since they have the same layout. Then `bytes:
         // &[MaybeUninit<T>]` is written to uninitialized memory via `copy_from_slice`.
-        if self.skip >= bytes.len() {
-            return; // Skip writing if skip is greater than bytes length
-        }
+        debug_assert!(
+            self.skip <= bytes.len(),
+            "Skip value must be less than or equal to the length of the bytes slice"
+        );
         let end_offset = self.offset + bytes.len() - self.skip;
         let this = unsafe { self.buffer.get_unchecked_mut(self.offset..end_offset) };
         this.copy_from_slice(unsafe {
@@ -67,5 +74,38 @@ impl Output for MaybeUninitBufferWriter<'_> {
         });
         self.offset = end_offset;
         self.skip = 0;
+    }
+}
+
+/// [`Cell`], but [`Sync`].
+///
+/// See [`Cell`] for details.
+pub(crate) struct SyncCell<T: ?Sized>(Cell<T>);
+
+unsafe impl<T: ?Sized + Sync> Sync for SyncCell<T> {}
+
+#[allow(unused)]
+impl<T> SyncCell<T> {
+    pub const fn new(value: T) -> Self {
+        Self(Cell::new(value))
+    }
+
+    pub fn get(&self) -> T
+    where
+        T: Copy,
+    {
+        self.0.get()
+    }
+
+    pub fn set(&self, value: T) {
+        self.0.set(value);
+    }
+
+    pub fn replace(&self, val: T) -> T {
+        self.0.replace(val)
+    }
+
+    pub fn into_inner(self) -> T {
+        self.0.into_inner()
     }
 }

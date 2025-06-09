@@ -27,13 +27,14 @@ pub fn event(attrs: TokenStream, input: TokenStream) -> TokenStream {
     let scale_codec_path = scale_codec_path(sails_path);
     let scale_info_path = scale_info_path(sails_path);
 
-    #[cfg(not(feature = "ethexe"))]
     let event_impl = generate_sails_event_impl(&input, sails_path);
 
     #[cfg(feature = "ethexe")]
-    let event_impl = eth_event::generate_eth_event_impl(&input, sails_path);
+    let eth_event_impl = eth_event::generate_eth_event_impl(&input, sails_path);
     #[cfg(feature = "ethexe")]
     eth_event::process_indexed(&mut input);
+    #[cfg(not(feature = "ethexe"))]
+    let eth_event_impl = quote!();
 
     quote! {
         #[derive(#sails_path ::Encode, #sails_path ::TypeInfo)]
@@ -42,6 +43,8 @@ pub fn event(attrs: TokenStream, input: TokenStream) -> TokenStream {
         #input
 
         #event_impl
+
+        #eth_event_impl
     }
 }
 

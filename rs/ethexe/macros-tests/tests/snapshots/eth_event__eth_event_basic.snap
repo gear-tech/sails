@@ -8,6 +8,18 @@ expression: result
 pub enum MyEvent {
     MyEvent1,
 }
+impl sails_rs::SailsEvent for MyEvent {
+    fn encoded_event_name(&self) -> &'static [u8] {
+        match self {
+            MyEvent::MyEvent1 => {
+                &[32u8, 77u8, 121u8, 69u8, 118u8, 101u8, 110u8, 116u8, 49u8]
+            }
+        }
+    }
+    fn skip_bytes() -> usize {
+        1
+    }
+}
 impl sails_rs::EthEvent for MyEvent {
     const SIGNATURES: &'static [sails_rs::gstd::EthEventExpo] = &[
         (

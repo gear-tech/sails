@@ -62,8 +62,6 @@ pub use alloy_primitives;
 pub use alloy_sol_types;
 #[cfg(feature = "ethexe")]
 pub use keccak_const;
-#[cfg(all(feature = "gstd", feature = "ethexe"))]
-pub use sails_macros::event;
 
 /// Channels, Streams and Futures extensions types
 ///

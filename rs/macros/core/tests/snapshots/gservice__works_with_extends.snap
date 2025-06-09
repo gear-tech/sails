@@ -29,7 +29,8 @@ for SomeServiceExposure<T> {
 }
 impl SomeServiceExposure<SomeService> {
     pub fn do_this(&mut self) -> u32 {
-        let exposure_scope = sails_rs::gstd::services::ExposureCallScope::new(self);
+        use sails_rs::gstd::services::Exposure;
+        let exposure_scope = self.scope();
         self.inner.do_this()
     }
     pub fn as_base_0(
