@@ -3,29 +3,32 @@
 use sails_rs::collections::BTreeMap;
 #[allow(unused_imports)]
 use sails_rs::{
+    String,
     calls::{Activation, Call, Query, Remoting, RemotingAction},
     prelude::*,
-    String,
 };
-pub struct RedirectProxyFactory<R> {
+pub struct RedirectProxyClientFactory<R> {
     #[allow(dead_code)]
     remoting: R,
 }
-impl<R> RedirectProxyFactory<R> {
+impl<R> RedirectProxyClientFactory<R> {
     #[allow(unused)]
     pub fn new(remoting: R) -> Self {
         Self { remoting }
     }
 }
-impl<R: Remoting + Clone> traits::RedirectProxyFactory for RedirectProxyFactory<R> {
+impl<R: Remoting + Clone> traits::RedirectProxyClientFactory for RedirectProxyClientFactory<R> {
     type Args = R::Args;
     /// Proxy Program's constructor
     fn new(&self, target: ActorId) -> impl Activation<Args = R::Args> {
-        RemotingAction::<_, redirect_proxy_factory::io::New>::new(self.remoting.clone(), target)
+        RemotingAction::<_, redirect_proxy_client_factory::io::New>::new(
+            self.remoting.clone(),
+            target,
+        )
     }
 }
 
-pub mod redirect_proxy_factory {
+pub mod redirect_proxy_client_factory {
     use super::*;
     pub mod io {
         use super::*;
@@ -87,7 +90,7 @@ pub mod proxy {
 pub mod traits {
     use super::*;
     #[allow(dead_code)]
-    pub trait RedirectProxyFactory {
+    pub trait RedirectProxyClientFactory {
         type Args;
         #[allow(clippy::new_ret_no_self)]
         #[allow(clippy::wrong_self_convention)]

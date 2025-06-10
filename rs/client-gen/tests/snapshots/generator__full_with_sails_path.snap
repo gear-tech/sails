@@ -7,9 +7,9 @@ expression: code
 use my_crate::sails::collections::BTreeMap;
 #[allow(unused_imports)]
 use my_crate::sails::{
+    String,
     calls::{Activation, Call, Query, Remoting, RemotingAction},
     prelude::*,
-    String,
 };
 pub struct ServiceFactory<R> {
     #[allow(dead_code)]

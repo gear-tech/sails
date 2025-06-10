@@ -1,5 +1,5 @@
-use redirect_client::traits::{Redirect as _, RedirectFactory as _};
-use redirect_proxy_client::traits::{Proxy as _, RedirectProxyFactory as _};
+use redirect_client::traits::{Redirect as _, RedirectClientFactory as _};
+use redirect_proxy_client::traits::{Proxy as _, RedirectProxyClientFactory as _};
 use sails_rs::{CodeId, GasUnit, calls::*};
 
 const ACTOR_ID: u64 = 42;
@@ -8,8 +8,8 @@ const ACTOR_ID: u64 = 42;
 async fn redirect_on_exit_works() {
     let (remoting, program_code_id, proxy_code_id, _gas_limit) = create_remoting();
 
-    let program_factory = redirect_client::RedirectFactory::new(remoting.clone());
-    let proxy_factory = redirect_proxy_client::RedirectProxyFactory::new(remoting.clone());
+    let program_factory = redirect_client::RedirectClientFactory::new(remoting.clone());
+    let proxy_factory = redirect_proxy_client::RedirectProxyClientFactory::new(remoting.clone());
 
     let program_id_1 = program_factory
         .new() // Call program's constructor

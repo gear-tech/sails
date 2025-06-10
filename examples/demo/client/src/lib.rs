@@ -1,7 +1,7 @@
 #![no_std]
 
 // Incorporate code generated based on the [IDL](/examples/demo/wasm/demo.idl) file
-include!(concat!(env!("OUT_DIR"), "/demo_client.rs"));
+include!("demo_client.rs");
 
 #[cfg(test)]
 mod tests {

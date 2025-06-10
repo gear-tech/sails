@@ -1286,15 +1286,6 @@ checksum = "6245d59a3e82a7fc217c5828a6692dbc6dfb63a0c8c90495621f7b9d79704a0e"
 
 [[package]]
 name = "convert_case"
-version = "0.6.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ec182b0ca2f35d8fc196cf3404988fd8b8c739a4d270ff118a398feb0cbec1ca"
-dependencies = [
- "unicode-segmentation",
-]
-
-[[package]]
-name = "convert_case"
 version = "0.7.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bb402b8d4c85569410425650ce3eddc7d698ed96d39a73f941b08fb63082f1e7"
@@ -1604,8 +1595,6 @@ version = "0.1.0"
 dependencies = [
  "demo",
  "mockall",
- "sails-client-gen",
- "sails-idl-gen",
  "sails-rs",
 ]
 
@@ -5236,8 +5225,6 @@ name = "no-svcs-prog"
 version = "0.1.0"
 dependencies = [
  "no-svcs-prog-app",
- "sails-client-gen",
- "sails-idl-gen",
  "sails-rs",
  "tokio",
 ]
@@ -6166,7 +6153,6 @@ name = "redirect-client"
 version = "0.1.0"
 dependencies = [
  "redirect-app",
- "sails-client-gen",
  "sails-rs",
 ]
 
@@ -6418,8 +6404,6 @@ dependencies = [
  "gtest",
  "rmrk-catalog",
  "rmrk-resource-app",
- "sails-client-gen",
- "sails-idl-gen",
  "sails-rs",
  "thiserror-no-std",
  "tokio",
@@ -6716,7 +6700,7 @@ name = "sails-client-gen"
 version = "0.8.1"
 dependencies = [
  "anyhow",
- "convert_case 0.6.0",
+ "convert_case 0.7.1",
  "genco",
  "insta",
  "parity-scale-codec",
@@ -6727,7 +6711,7 @@ dependencies = [
 name = "sails-idl-gen"
 version = "0.8.1"
 dependencies = [
- "convert_case 0.6.0",
+ "convert_case 0.7.1",
  "gprimitives",
  "handlebars",
  "insta",
@@ -6774,7 +6758,7 @@ dependencies = [
 name = "sails-macros-core"
 version = "0.8.1"
 dependencies = [
- "convert_case 0.6.0",
+ "convert_case 0.7.1",
  "insta",
  "parity-scale-codec",
  "prettyplease",
@@ -6790,6 +6774,7 @@ version = "0.8.1"
 dependencies = [
  "alloy-primitives",
  "alloy-sol-types",
+ "convert_case 0.7.1",
  "futures",
  "gclient",
  "gcore",
@@ -6806,6 +6791,7 @@ dependencies = [
  "mockall",
  "parity-scale-codec",
  "pin-project-lite",
+ "sails-client-gen",
  "sails-idl-gen",
  "sails-idl-meta",
  "sails-macros",
@@ -6819,7 +6805,7 @@ name = "sails-sol-gen"
 version = "0.8.1"
 dependencies = [
  "anyhow",
- "convert_case 0.6.0",
+ "convert_case 0.7.1",
  "handlebars",
  "insta",
  "sails-idl-meta",

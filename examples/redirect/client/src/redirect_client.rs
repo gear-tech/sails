@@ -3,28 +3,28 @@
 use sails_rs::collections::BTreeMap;
 #[allow(unused_imports)]
 use sails_rs::{
+    String,
     calls::{Activation, Call, Query, Remoting, RemotingAction},
     prelude::*,
-    String,
 };
-pub struct RedirectFactory<R> {
+pub struct RedirectClientFactory<R> {
     #[allow(dead_code)]
     remoting: R,
 }
-impl<R> RedirectFactory<R> {
+impl<R> RedirectClientFactory<R> {
     #[allow(unused)]
     pub fn new(remoting: R) -> Self {
         Self { remoting }
     }
 }
-impl<R: Remoting + Clone> traits::RedirectFactory for RedirectFactory<R> {
+impl<R: Remoting + Clone> traits::RedirectClientFactory for RedirectClientFactory<R> {
     type Args = R::Args;
     fn new(&self) -> impl Activation<Args = R::Args> {
-        RemotingAction::<_, redirect_factory::io::New>::new(self.remoting.clone(), ())
+        RemotingAction::<_, redirect_client_factory::io::New>::new(self.remoting.clone(), ())
     }
 }
 
-pub mod redirect_factory {
+pub mod redirect_client_factory {
     use super::*;
     pub mod io {
         use super::*;
@@ -104,7 +104,7 @@ pub mod redirect {
 pub mod traits {
     use super::*;
     #[allow(dead_code)]
-    pub trait RedirectFactory {
+    pub trait RedirectClientFactory {
         type Args;
         #[allow(clippy::new_ret_no_self)]
         #[allow(clippy::wrong_self_convention)]

@@ -1,4 +1,4 @@
-use no_svcs_prog::client::{traits::NoSvcsProgFactory as NoSvcsProgFactoryTrait, *};
+use no_svcs_prog::client::{NoSvcsProgFactory, traits::NoSvcsProgFactory as _};
 use sails_rs::{
     calls::*,
     gtest::{System, calls::*},

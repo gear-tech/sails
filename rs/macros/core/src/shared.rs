@@ -325,7 +325,7 @@ impl<'a> FnBuilder<'a> {
         use convert_case::{Boundary, Case, Casing};
 
         self.route
-            .with_boundaries(&[Boundary::Underscore, Boundary::LowerUpper])
+            .with_boundaries(&[Boundary::UNDERSCORE, Boundary::LOWER_UPPER])
             .to_case(Case::Camel)
     }
 }
