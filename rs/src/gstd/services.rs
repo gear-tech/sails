@@ -11,6 +11,7 @@ pub trait Exposure {
     fn message_id(&self) -> MessageId;
     fn route(&self) -> &'static [u8];
 
+    /// Returns a scope for exposing the service call, which temporarily sets the route into a static    
     fn scope(&self) -> ExposureCallScope {
         ExposureCallScope::new(self.route())
     }
@@ -22,7 +23,7 @@ static ROUTE_CELL: crate::gstd::utils::SyncCell<Option<&'static [u8]>> =
 
 #[cfg(feature = "std")]
 std::thread_local! {
-    static ROUTE_CELL: core::cell::Cell<Option<&'static [u8]>> = core::cell::Cell::new(None);
+    static ROUTE_CELL: core::cell::Cell<Option<&'static [u8]>> = const { core::cell::Cell::new(None) };
 }
 
 #[cfg(target_arch = "wasm32")]
@@ -30,6 +31,10 @@ pub(crate) fn route() -> Option<&'static [u8]> {
     ROUTE_CELL.get()
 }
 
+/// A scope for exposing a service call, which temporarily sets the route into the static `Cell`,
+/// and stores the previous route.
+///
+/// When the scope is dropped, it restores the previous route.
 pub struct ExposureCallScope {
     prev_route: Option<&'static [u8]>,
 }

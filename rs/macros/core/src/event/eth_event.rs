@@ -1,32 +1,7 @@
-use super::args::{CratePathAttr, SAILS_PATH};
-use crate::sails_paths::sails_path_or_default;
 use proc_macro_error::abort;
 use proc_macro2::{Span, TokenStream};
 use quote::quote;
-use syn::{Fields, Ident, ItemEnum, Path, Type, Variant, parse::Parse};
-
-pub fn derive_eth_event(input: TokenStream) -> TokenStream {
-    // Parse the input tokens into a syntax tree.
-    let input: ItemEnum = syn::parse2(input).unwrap_or_else(|err| {
-        abort!(
-            err.span(),
-            "EthEvent can only be derived for enums: {}",
-            err
-        )
-    });
-
-    let sails_path_attr = input
-        .attrs
-        .iter()
-        .find(|attr| attr.path().is_ident(SAILS_PATH))
-        .map(|attr| {
-            attr.parse_args_with(CratePathAttr::parse)
-                .unwrap_or_else(|_| abort!(attr, "unexpected value for `crate` argument",))
-        });
-    let sails_path = &sails_path_or_default(sails_path_attr.map(|attr| attr.path()));
-
-    generate_eth_event_impl(&input, sails_path)
-}
+use syn::{Fields, Ident, ItemEnum, Path, Type, Variant};
 
 pub(super) fn generate_eth_event_impl(input: &ItemEnum, sails_path: &Path) -> TokenStream {
     let enum_ident = &input.ident;
