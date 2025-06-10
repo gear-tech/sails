@@ -48,7 +48,26 @@ impl SomeServiceExposure<SomeService> {
         let exposure_scope = sails_rs::gstd::services::ExposureCallScope::new(self);
         self.inner.this(p1)
     }
-    pub async fn try_handle(
+    pub fn try_handle(
+        &mut self,
+        input: &[u8],
+        result_handler: fn(&[u8], u128),
+    ) -> Option<()> {
+        use sails_rs::gstd::InvocationIo;
+        use sails_rs::gstd::services::Exposure;
+        if let Ok(request) = some_service_meta::__ThisParams::decode_params(input) {
+            let result = self.this(request.p1);
+            let value = 0u128;
+            some_service_meta::__ThisParams::with_optimized_encode(
+                &result,
+                self.route().as_ref(),
+                |encoded_result| result_handler(encoded_result, value),
+            );
+            return Some(());
+        }
+        None
+    }
+    pub async fn try_handle_async(
         &mut self,
         input: &[u8],
         result_handler: fn(&[u8], u128),
@@ -67,15 +86,15 @@ impl SomeServiceExposure<SomeService> {
             );
             return Some(());
         }
-        if let Ok(request) = some_service_meta::__ThisParams::decode_params(input) {
-            let result = self.this(request.p1);
-            let value = 0u128;
-            some_service_meta::__ThisParams::with_optimized_encode(
-                &result,
-                self.route().as_ref(),
-                |encoded_result| result_handler(encoded_result, value),
-            );
-            return Some(());
+        None
+    }
+    pub fn check_asyncness(&self, input: &[u8]) -> Option<bool> {
+        use sails_rs::gstd::InvocationIo;
+        if some_service_meta::__DoSomethingParams::check_route(input).is_ok() {
+            return Some(some_service_meta::__DoSomethingParams::ASYNC);
+        }
+        if some_service_meta::__ThisParams::check_route(input).is_ok() {
+            return Some(some_service_meta::__ThisParams::ASYNC);
         }
         None
     }
@@ -112,10 +131,13 @@ impl sails_rs::meta::ServiceMeta for SomeService {
     type QueriesMeta = some_service_meta::QueriesMeta;
     type EventsMeta = some_service_meta::EventsMeta;
     const BASE_SERVICES: &'static [sails_rs::meta::AnyServiceMetaFn] = &[];
+    const ASYNC: bool = some_service_meta::CommandsMeta::ASYNC
+        || some_service_meta::QueriesMeta::ASYNC;
 }
 mod some_service_meta {
     use super::*;
     use sails_rs::{Decode, TypeInfo};
+    use sails_rs::gstd::InvocationIo;
     #[derive(Decode, TypeInfo)]
     #[codec(crate = sails_rs::scale_codec)]
     #[scale_info(crate = sails_rs::scale_info)]
@@ -123,12 +145,13 @@ mod some_service_meta {
         pub(super) p1: u32,
         pub(super) p2: String,
     }
-    impl sails_rs::gstd::InvocationIo for __DoSomethingParams {
+    impl InvocationIo for __DoSomethingParams {
         const ROUTE: &'static [u8] = &[
             44u8, 68u8, 111u8, 83u8, 111u8, 109u8, 101u8, 116u8, 104u8, 105u8, 110u8,
             103u8,
         ];
         type Params = Self;
+        const ASYNC: bool = true;
     }
     #[derive(Decode, TypeInfo)]
     #[codec(crate = sails_rs::scale_codec)]
@@ -136,19 +159,26 @@ mod some_service_meta {
     pub struct __ThisParams {
         pub(super) p1: bool,
     }
-    impl sails_rs::gstd::InvocationIo for __ThisParams {
+    impl InvocationIo for __ThisParams {
         const ROUTE: &'static [u8] = &[16u8, 84u8, 104u8, 105u8, 115u8];
         type Params = Self;
+        const ASYNC: bool = false;
     }
     #[derive(TypeInfo)]
     #[scale_info(crate = sails_rs::scale_info)]
     pub enum CommandsMeta {
         DoSomething(__DoSomethingParams, (u32, String)),
     }
+    impl CommandsMeta {
+        pub const ASYNC: bool = __DoSomethingParams::ASYNC;
+    }
     #[derive(TypeInfo)]
     #[scale_info(crate = sails_rs::scale_info)]
     pub enum QueriesMeta {
         This(__ThisParams, bool),
+    }
+    impl QueriesMeta {
+        pub const ASYNC: bool = __ThisParams::ASYNC;
     }
     #[derive(TypeInfo)]
     #[scale_info(crate = sails_rs::scale_info)]

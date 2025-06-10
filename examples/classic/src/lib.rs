@@ -5,7 +5,7 @@ use sails_rs::prelude::*;
 fn sum_fibonacci(n: u32) -> u32 {
     fn fibonacci(n: u32) -> u32 {
         if n <= 1 {
-            return n as u32;
+            return n;
         }
         fibonacci(n - 1) + fibonacci(n - 2)
     }
@@ -43,6 +43,7 @@ pub struct MyProgram;
 
 #[sails_rs::program]
 impl MyProgram {
+    #[allow(clippy::new_without_default)]
     pub fn new() -> Self {
         MyProgram
     }

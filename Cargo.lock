@@ -539,26 +539,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "async-plain-gen"
-version = "0.8.1"
-dependencies = [
- "async-plain-gen-client",
- "gtest",
- "sails-rs",
- "tokio",
-]
-
-[[package]]
-name = "async-plain-gen-client"
-version = "0.8.1"
-dependencies = [
- "async-plain-gen",
- "sails-client-gen",
- "sails-idl-gen",
- "sails-rs",
-]
-
-[[package]]
 name = "async-process"
 version = "2.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"

@@ -106,7 +106,7 @@ impl ServiceBuilder<'_> {
         let mut handlers = self
             .service_handlers
             .iter()
-            .filter(|fn_builder| is_query && fn_builder.is_query())
+            .filter(|fn_builder| is_query == fn_builder.is_query())
             .peekable();
 
         if handlers.peek().is_none() {

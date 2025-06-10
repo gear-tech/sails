@@ -306,10 +306,20 @@ impl ServiceBuilder<'_> {
 
     fn check_asyncness_impl(&self) -> TokenStream {
         let sails_path = self.sails_path;
+        let base_ident = &self.base_ident;
         let input_ident = &self.input_ident;
 
         let asyncness_checks = self.service_handlers.iter().map(|fn_builder| {
             fn_builder.check_asyncness_branch_impl(&self.meta_module_ident, input_ident)
+        });
+
+        let base_services_asyncness_checks = self.base_types.iter().enumerate().map(|(idx, _)| {
+            let idx = Literal::usize_unsuffixed(idx);
+            quote! {
+                if let Some(is_async) = self. #base_ident . #idx .check_asyncness(#input_ident) {
+                    return Some(is_async);
+                }
+            }
         });
 
         quote! {
@@ -317,6 +327,8 @@ impl ServiceBuilder<'_> {
                 use #sails_path::gstd::InvocationIo;
 
                 #( #asyncness_checks )*
+
+                #( #base_services_asyncness_checks )*
 
                 None
             }

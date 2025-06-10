@@ -196,7 +196,7 @@ impl FnBuilder<'_> {
                 gstd::message_loop(async move {
                     let program = #program_type_path :: #handler_ident (#(#handler_params),*).await #unwrap_token;
                     unsafe { #program_ident = Some(program) };
-                })
+                });
             }
         } else {
             quote! {

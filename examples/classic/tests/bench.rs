@@ -4,8 +4,7 @@ use classic_client::{
 };
 use gtest::{System, constants::DEFAULT_USER_ALICE};
 use sails_rs::calls::{ActionIo, Activation};
-use sails_rs::prelude::Decode;
-use sails_rs::{Encode, gtest::calls::GTestRemoting};
+use sails_rs::gtest::calls::GTestRemoting;
 const WASM_PATH: &str = "../../target/wasm32-gear/debug/classic.opt.wasm";
 
 #[tokio::test]
@@ -48,7 +47,7 @@ async fn simple_bench() {
         })
         .expect("failed to find reply");
     let decoded: String =
-        SomeAsyncMethod::decode_reply(&mut &reply[..]).expect("Failed to decode reply");
+        SomeAsyncMethod::decode_reply(&reply[..]).expect("Failed to decode reply");
 
     println!("{decoded}");
 
@@ -75,8 +74,7 @@ async fn simple_bench() {
         })
         .expect("failed to find reply");
 
-    let decoded: String =
-        SomeMethod::decode_reply(&mut &reply[..]).expect("Failed to decode reply");
+    let decoded: String = SomeMethod::decode_reply(&reply[..]).expect("Failed to decode reply");
 
     println!("{decoded}");
 

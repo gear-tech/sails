@@ -12,6 +12,7 @@ impl MyServiceWithReplyWithValue {
         (format!("{p1}: {p2}"), 100_000_000_000)
     }
 
+    #[allow(unused)]
     pub fn this(&self, p1: bool) -> bool {
         !p1
     }

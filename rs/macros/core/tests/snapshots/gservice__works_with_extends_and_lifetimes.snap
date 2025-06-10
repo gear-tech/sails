@@ -44,7 +44,7 @@ impl<'a> ExtendedLifetimeExposure<ExtendedLifetime<'a>> {
     ) -> &<base::BaseLifetime<'a> as sails_rs::gstd::services::Service>::Exposure {
         &self.base.0
     }
-    pub async fn try_handle(
+    pub fn try_handle(
         &mut self,
         input: &[u8],
         result_handler: fn(&[u8], u128),
@@ -73,8 +73,33 @@ impl<'a> ExtendedLifetimeExposure<ExtendedLifetime<'a>> {
             );
             return Some(());
         }
-        if self.base.0.try_handle(input, result_handler).await.is_some() {
+        if self.base.0.try_handle(input, result_handler).is_some() {
             return Some(());
+        }
+        None
+    }
+    pub async fn try_handle_async(
+        &mut self,
+        input: &[u8],
+        result_handler: fn(&[u8], u128),
+    ) -> Option<()> {
+        use sails_rs::gstd::InvocationIo;
+        use sails_rs::gstd::services::Exposure;
+        if self.base.0.try_handle_async(input, result_handler).await.is_some() {
+            return Some(());
+        }
+        None
+    }
+    pub fn check_asyncness(&self, input: &[u8]) -> Option<bool> {
+        use sails_rs::gstd::InvocationIo;
+        if extended_lifetime_meta::__ExtendedNameParams::check_route(input).is_ok() {
+            return Some(extended_lifetime_meta::__ExtendedNameParams::ASYNC);
+        }
+        if extended_lifetime_meta::__NameParams::check_route(input).is_ok() {
+            return Some(extended_lifetime_meta::__NameParams::ASYNC);
+        }
+        if let Some(is_async) = self.base.0.check_asyncness(input) {
+            return Some(is_async);
         }
         None
     }
@@ -120,37 +145,49 @@ impl<'a> sails_rs::meta::ServiceMeta for ExtendedLifetime<'a> {
     const BASE_SERVICES: &'static [sails_rs::meta::AnyServiceMetaFn] = &[
         sails_rs::meta::AnyServiceMeta::new::<base::BaseLifetime>,
     ];
+    const ASYNC: bool = extended_lifetime_meta::CommandsMeta::ASYNC
+        || extended_lifetime_meta::QueriesMeta::ASYNC
+        || <base::BaseLifetime as sails_rs::meta::ServiceMeta>::ASYNC;
 }
 mod extended_lifetime_meta {
     use super::*;
     use sails_rs::{Decode, TypeInfo};
+    use sails_rs::gstd::InvocationIo;
     #[derive(Decode, TypeInfo)]
     #[codec(crate = sails_rs::scale_codec)]
     #[scale_info(crate = sails_rs::scale_info)]
     pub struct __ExtendedNameParams {}
-    impl sails_rs::gstd::InvocationIo for __ExtendedNameParams {
+    impl InvocationIo for __ExtendedNameParams {
         const ROUTE: &'static [u8] = &[
             48u8, 69u8, 120u8, 116u8, 101u8, 110u8, 100u8, 101u8, 100u8, 78u8, 97u8,
             109u8, 101u8,
         ];
         type Params = Self;
+        const ASYNC: bool = false;
     }
     #[derive(Decode, TypeInfo)]
     #[codec(crate = sails_rs::scale_codec)]
     #[scale_info(crate = sails_rs::scale_info)]
     pub struct __NameParams {}
-    impl sails_rs::gstd::InvocationIo for __NameParams {
+    impl InvocationIo for __NameParams {
         const ROUTE: &'static [u8] = &[16u8, 78u8, 97u8, 109u8, 101u8];
         type Params = Self;
+        const ASYNC: bool = false;
     }
     #[derive(TypeInfo)]
     #[scale_info(crate = sails_rs::scale_info)]
     pub enum CommandsMeta {}
+    impl CommandsMeta {
+        pub const ASYNC: bool = false;
+    }
     #[derive(TypeInfo)]
     #[scale_info(crate = sails_rs::scale_info)]
     pub enum QueriesMeta {
         ExtendedName(__ExtendedNameParams, String),
         Name(__NameParams, String),
+    }
+    impl QueriesMeta {
+        pub const ASYNC: bool = __ExtendedNameParams::ASYNC || __NameParams::ASYNC;
     }
     #[derive(TypeInfo)]
     #[scale_info(crate = sails_rs::scale_info)]

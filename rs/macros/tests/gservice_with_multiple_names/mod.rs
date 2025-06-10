@@ -10,6 +10,7 @@ impl MyService {
         format!("{p1}: ") + &p2
     }
 
+    #[allow(unused)]
     pub fn this(&self, p1: bool) -> bool {
         !p1
     }
@@ -30,6 +31,7 @@ impl MyOtherService {
         format!("{p1}: ") + &p2
     }
 
+    #[allow(unused)]
     pub fn this(&self, p1: bool) -> bool {
         !p1
     }
@@ -45,6 +47,7 @@ pub mod yet_another_service {
             format!("{p1}: ") + &p2
         }
 
+        #[allow(unused)]
         pub fn this(&self, p1: bool) -> bool {
             !p1
         }
