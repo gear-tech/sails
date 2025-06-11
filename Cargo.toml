@@ -31,7 +31,7 @@ members = [
     "rs/idl-parser",
     "rs/macros",
     "rs/macros/core",
-    "rs/sol-gen", "examples/classic", "examples/classic-client",
+    "rs/sol-gen",
 ]
 
 [workspace.dependencies]
