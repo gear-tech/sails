@@ -80,6 +80,12 @@ impl Output for MaybeUninitBufferWriter<'_> {
 /// [`Cell`], but [`Sync`].
 ///
 /// See [`Cell`] for details.
+///
+/// SAFETY: Use `SyncCell` instead of `Cell` to allow it to be shared between threads,
+/// if that's intentional, primarily in single-threaded execution environments.
+/// Providing proper synchronization is still the task of the user,
+/// making this type just as unsafe to use.
+/// Can cause data races if called from a separate thread.
 pub(crate) struct SyncCell<T: ?Sized>(Cell<T>);
 
 unsafe impl<T: ?Sized + Sync> Sync for SyncCell<T> {}
