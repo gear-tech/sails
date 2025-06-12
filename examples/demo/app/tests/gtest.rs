@@ -165,7 +165,14 @@ async fn ping_pong_low_level_works() {
     let demo_program = Program::from_file(&system, DEMO_WASM_PATH);
 
     // Use generated `io` module to create a program
-    demo_program.send_bytes(ADMIN_ID, demo_factory::io::Default::encode_call());
+    let message_id = demo_program.send_bytes(ADMIN_ID, demo_factory::io::Default::encode_call());
+    let run_result = system.run_next_block();
+    let gas_burned = *run_result
+        .gas_burned
+        .get(&message_id)
+        .expect("message not found");
+    let wasm_size = std::fs::metadata(DEMO_WASM_PATH).unwrap().len();
+    println!("[ping_pong_low_level_works] Init Gas: {gas_burned:>14}, Size: {wasm_size}");
 
     // Use generated `io` module for encoding/decoding calls and replies
     // and send/receive bytes using `gtest` native means
@@ -185,6 +192,12 @@ async fn ping_pong_low_level_works() {
     let ping_reply = ping_pong::io::Ping::decode_reply(ping_reply_payload).unwrap();
 
     assert_eq!(ping_reply, Ok("pong".to_string()));
+
+    let gas_burned = *run_result
+        .gas_burned
+        .get(&message_id)
+        .expect("message not found");
+    println!("[ping_pong_low_level_works] Handle Gas: {gas_burned:>14}, Size: {wasm_size}");
 }
 
 #[tokio::test]
@@ -477,6 +490,44 @@ async fn counter_add_works_via_manual_mode() {
         (demo_program_id, CounterEvents::Subtracted(20)),
         counter_events.next().await.unwrap()
     );
+}
+
+#[test]
+fn counter_add_low_level_works() {
+    let system = System::new();
+    system.init_logger_with_default_filter("gwasm=debug,gtest=info,sails_rs=debug");
+    system.mint_to(ADMIN_ID, 1_000_000_000_000_000);
+
+    let demo_program = Program::from_file(&system, DEMO_WASM_PATH);
+    let wasm_size = std::fs::metadata(DEMO_WASM_PATH).unwrap().len();
+
+    // Use generated `io` module to create a program
+    demo_program.send_bytes(ADMIN_ID, demo_factory::io::Default::encode_call());
+
+    // Use generated `io` module for encoding/decoding calls and replies
+    // and send/receive bytes using `gtest` native means
+    let call_payload = demo_client::counter::io::Add::encode_call(10);
+
+    let message_id = demo_program.send_bytes(ADMIN_ID, call_payload);
+    let run_result = system.run_next_block();
+
+    let reply_log_record = run_result
+        .log()
+        .iter()
+        .find(|entry| entry.reply_to() == Some(message_id))
+        .unwrap();
+
+    let reply_payload = reply_log_record.payload();
+
+    let reply = demo_client::counter::io::Add::decode_reply(reply_payload).unwrap();
+
+    assert_eq!(reply, 10);
+
+    let gas_burned = *run_result
+        .gas_burned
+        .get(&message_id)
+        .expect("message not found");
+    println!("[counter_add_low_level_works] Handle Gas: {gas_burned:>14}, Size: {wasm_size}");
 }
 
 #[tokio::test]
