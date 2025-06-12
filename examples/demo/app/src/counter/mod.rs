@@ -14,9 +14,8 @@ impl CounterData {
 }
 
 // Service event type definition.
-#[derive(Encode, TypeInfo, Clone, Debug, PartialEq)]
-#[codec(crate = sails_rs::scale_codec)]
-#[scale_info(crate = sails_rs::scale_info)]
+#[event]
+#[derive(Clone, Debug, PartialEq)]
 pub enum CounterEvents {
     /// Emitted when a new value is added to the counter
     Added(u32),
