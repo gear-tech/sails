@@ -15,9 +15,11 @@ impl MyProgram {
 impl sails_rs::meta::ProgramMeta for MyProgram {
     type ConstructorsMeta = meta_in_program::ConstructorsMeta;
     const SERVICES: &'static [(&'static str, sails_rs::meta::AnyServiceMetaFn)] = &[];
+    const ASYNC: bool = meta_in_program::ConstructorsMeta::ASYNC;
 }
 mod meta_in_program {
     use super::*;
+    use sails_rs::gstd::InvocationIo;
     #[derive(sails_rs::Decode, sails_rs::TypeInfo)]
     #[codec(crate = sails_rs::scale_codec)]
     #[scale_info(crate = sails_rs::scale_info)]
@@ -25,9 +27,10 @@ mod meta_in_program {
         pub(super) p1: u32,
         pub(super) p2: String,
     }
-    impl sails_rs::gstd::InvocationIo for __NewParams {
+    impl InvocationIo for __NewParams {
         const ROUTE: &'static [u8] = &[12u8, 78u8, 101u8, 119u8];
         type Params = Self;
+        const ASYNC: bool = true;
     }
     #[derive(sails_rs::Decode, sails_rs::TypeInfo)]
     #[codec(crate = sails_rs::scale_codec)]
@@ -36,9 +39,10 @@ mod meta_in_program {
         pub(super) p2: String,
         pub(super) p1: u32,
     }
-    impl sails_rs::gstd::InvocationIo for __New2Params {
+    impl InvocationIo for __New2Params {
         const ROUTE: &'static [u8] = &[16u8, 78u8, 101u8, 119u8, 50u8];
         type Params = Self;
+        const ASYNC: bool = false;
     }
     #[derive(sails_rs::TypeInfo)]
     #[scale_info(crate = sails_rs::scale_info)]
@@ -46,36 +50,58 @@ mod meta_in_program {
         New(__NewParams),
         New2(__New2Params),
     }
+    impl ConstructorsMeta {
+        pub const ASYNC: bool = __NewParams::ASYNC || __New2Params::ASYNC;
+    }
 }
 #[cfg(target_arch = "wasm32")]
 pub mod wasm {
     use super::*;
     use sails_rs::{gstd, hex, prelude::*};
     static mut PROGRAM: Option<MyProgram> = None;
-    #[gstd::async_init]
-    async fn init() {
+    #[unsafe(no_mangle)]
+    extern "C" fn init() {
         use gstd::InvocationIo;
         let mut input: &[u8] = &gstd::msg::load_bytes().expect("Failed to read input");
-        let (program, invocation_route) = if let Ok(request) = meta_in_program::__NewParams::decode_params(
+        let invocation_route = if let Ok(request) = meta_in_program::__NewParams::decode_params(
             input,
         ) {
-            let program = MyProgram::new(request.p1, request.p2).await.unwrap();
-            (program, meta_in_program::__NewParams::ROUTE)
+            gstd::message_loop(async move {
+                let program = MyProgram::new(request.p1, request.p2).await.unwrap();
+                unsafe {
+                    PROGRAM = Some(program);
+                }
+            });
+            meta_in_program::__NewParams::ROUTE
         } else if let Ok(request) = meta_in_program::__New2Params::decode_params(input) {
             let program = MyProgram::new2(request.p2, request.p1).unwrap();
-            (program, meta_in_program::__New2Params::ROUTE)
+            unsafe {
+                PROGRAM = Some(program);
+            }
+            meta_in_program::__New2Params::ROUTE
         } else {
             gstd::unknown_input_panic("Unexpected ctor", input)
         };
-        unsafe {
-            PROGRAM = Some(program);
-        }
         gstd::msg::reply_bytes(invocation_route, 0).expect("Failed to send output");
     }
-    #[gstd::async_main]
-    async fn main() {
-        let mut input: &[u8] = &gstd::msg::load_bytes().expect("Failed to read input");
+    #[unsafe(no_mangle)]
+    extern "C" fn handle() {
+        let mut input = gstd::msg::load_bytes().expect("Failed to read input");
         let program_ref = unsafe { PROGRAM.as_mut() }.expect("Program not initialized");
-        { gstd::unknown_input_panic("Unexpected service", input) };
+        { gstd::unknown_input_panic("Unexpected service", &input) };
+    }
+    #[unsafe(no_mangle)]
+    extern "C" fn handle_reply() {
+        use sails_rs::meta::ProgramMeta;
+        if MyProgram::ASYNC {
+            gstd::handle_reply_with_hook();
+        }
+    }
+    #[unsafe(no_mangle)]
+    extern "C" fn handle_signal() {
+        use sails_rs::meta::ProgramMeta;
+        if MyProgram::ASYNC {
+            gstd::handle_signal();
+        }
     }
 }

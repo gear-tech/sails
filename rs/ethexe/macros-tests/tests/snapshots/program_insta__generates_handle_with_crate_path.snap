@@ -10,21 +10,27 @@ impl MyProgram {
 impl sails_rename::meta::ProgramMeta for MyProgram {
     type ConstructorsMeta = meta_in_program::ConstructorsMeta;
     const SERVICES: &'static [(&'static str, sails_rename::meta::AnyServiceMetaFn)] = &[];
+    const ASYNC: bool = meta_in_program::ConstructorsMeta::ASYNC;
 }
 mod meta_in_program {
     use super::*;
+    use sails_rename::gstd::InvocationIo;
     #[derive(sails_rename::Decode, sails_rename::TypeInfo)]
     #[codec(crate = sails_rename::scale_codec)]
     #[scale_info(crate = sails_rename::scale_info)]
     pub struct __CreateParams {}
-    impl sails_rename::gstd::InvocationIo for __CreateParams {
+    impl InvocationIo for __CreateParams {
         const ROUTE: &'static [u8] = &[24u8, 67u8, 114u8, 101u8, 97u8, 116u8, 101u8];
         type Params = Self;
+        const ASYNC: bool = false;
     }
     #[derive(sails_rename::TypeInfo)]
     #[scale_info(crate = sails_rename::scale_info)]
     pub enum ConstructorsMeta {
         Create(__CreateParams),
+    }
+    impl ConstructorsMeta {
+        pub const ASYNC: bool = __CreateParams::ASYNC;
     }
 }
 impl sails_rename::solidity::ProgramSignature for MyProgram {
@@ -67,20 +73,17 @@ pub mod wasm {
     use super::*;
     use sails_rename::{gstd, hex, prelude::*};
     static mut PROGRAM: Option<MyProgram> = None;
-    #[gstd::async_init]
-    async fn init() {
+    #[unsafe(no_mangle)]
+    extern "C" fn init() {
         use gstd::InvocationIo;
         let mut input: &[u8] = &gstd::msg::load_bytes().expect("Failed to read input");
         if let Ok(sig) = TryInto::<[u8; 4]>::try_into(&input[..4]) {
             if let Some(idx) = __CTOR_SIGS.iter().position(|s| s == &sig) {
                 let (ctor_route, ..) = <MyProgram as sails_rename::solidity::ProgramSignature>::CTORS[idx];
-                if let Some((program, encode_reply)) = match_ctor_solidity(
-                        ctor_route,
-                        &input[4..],
-                    )
-                    .await
-                {
-                    unsafe { PROGRAM = Some(program) };
+                if let Some(encode_reply) = match_ctor_solidity(
+                    ctor_route,
+                    &input[4..],
+                ) {
                     let output = if encode_reply {
                         [
                             __CTOR_CALLBACK_SIGS[idx].as_slice(),
@@ -95,23 +98,20 @@ pub mod wasm {
                 }
             }
         }
-        let (program, invocation_route) = if let Ok(request) = meta_in_program::__CreateParams::decode_params(
+        let invocation_route = if let Ok(request) = meta_in_program::__CreateParams::decode_params(
             input,
         ) {
             let program = MyProgram::create();
-            (program, meta_in_program::__CreateParams::ROUTE)
+            unsafe {
+                PROGRAM = Some(program);
+            }
+            meta_in_program::__CreateParams::ROUTE
         } else {
             gstd::unknown_input_panic("Unexpected ctor", input)
         };
-        unsafe {
-            PROGRAM = Some(program);
-        }
         gstd::msg::reply_bytes(invocation_route, 0).expect("Failed to send output");
     }
-    async fn match_ctor_solidity(
-        ctor: &[u8],
-        input: &[u8],
-    ) -> Option<(MyProgram, bool)> {
+    fn match_ctor_solidity(ctor: &[u8], input: &[u8]) -> Option<bool> {
         if ctor == &[24u8, 67u8, 114u8, 101u8, 97u8, 116u8, 101u8] {
             let (_, _encode_reply): (u128, bool) = sails_rename::alloy_sol_types::SolValue::abi_decode_params(
                     input,
@@ -119,19 +119,27 @@ pub mod wasm {
                 )
                 .expect("Failed to decode request");
             let program = MyProgram::create();
-            return Some((program, _encode_reply));
+            unsafe { PROGRAM = Some(program) };
+            return Some(_encode_reply);
         }
         None
     }
-    #[gstd::async_main]
-    async fn main() {
-        let mut input: &[u8] = &gstd::msg::load_bytes().expect("Failed to read input");
+    #[unsafe(no_mangle)]
+    extern "C" fn handle() {
+        let mut input = gstd::msg::load_bytes().expect("Failed to read input");
         let program_ref = unsafe { PROGRAM.as_mut() }.expect("Program not initialized");
         if let Ok(sig) = TryInto::<[u8; 4]>::try_into(&input[..4]) {
             if let Some(idx) = __METHOD_SIGS.iter().position(|s| s == &sig) {
                 let (route, method) = __METHOD_ROUTES[idx];
             }
         }
-        { gstd::unknown_input_panic("Unexpected service", input) };
+        { gstd::unknown_input_panic("Unexpected service", &input) };
+    }
+    #[unsafe(no_mangle)]
+    extern "C" fn handle_reply() {
+        use sails_rename::meta::ProgramMeta;
+        if MyProgram::ASYNC {
+            gstd::handle_reply_with_hook();
+        }
     }
 }

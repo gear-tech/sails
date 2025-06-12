@@ -42,7 +42,7 @@ impl SomeServiceExposure<SomeService> {
     ) -> &<ExtendedService2 as sails_rs::gstd::services::Service>::Exposure {
         &self.base.1
     }
-    pub async fn try_handle(
+    pub fn try_handle(
         &mut self,
         input: &[u8],
         result_handler: fn(&[u8], u128),
@@ -59,15 +59,30 @@ impl SomeServiceExposure<SomeService> {
             );
             return Some(());
         }
-        if self.base.0.try_handle(input, result_handler).await.is_some() {
+        if self.base.0.try_handle(input, result_handler).is_some() {
             return Some(());
         }
-        if self.base.1.try_handle(input, result_handler).await.is_some() {
+        if self.base.1.try_handle(input, result_handler).is_some() {
             return Some(());
         }
         None
     }
-    pub async fn try_handle_solidity(
+    pub async fn try_handle_async(
+        &mut self,
+        input: &[u8],
+        result_handler: fn(&[u8], u128),
+    ) -> Option<()> {
+        use sails_rs::gstd::InvocationIo;
+        use sails_rs::gstd::services::Exposure;
+        if self.base.0.try_handle_async(input, result_handler).await.is_some() {
+            return Some(());
+        }
+        if self.base.1.try_handle_async(input, result_handler).await.is_some() {
+            return Some(());
+        }
+        None
+    }
+    pub fn try_handle_solidity(
         &mut self,
         method: &[u8],
         input: &[u8],
@@ -92,11 +107,39 @@ impl SomeServiceExposure<SomeService> {
             };
             return Some((output, value, _encode_reply));
         }
-        if let Some(result) = self.base.0.try_handle_solidity(method, input).await {
+        if let Some(result) = self.base.0.try_handle_solidity(method, input) {
             return Some(result);
         }
-        if let Some(result) = self.base.1.try_handle_solidity(method, input).await {
+        if let Some(result) = self.base.1.try_handle_solidity(method, input) {
             return Some(result);
+        }
+        None
+    }
+    pub async fn try_handle_solidity_async(
+        &mut self,
+        method: &[u8],
+        input: &[u8],
+    ) -> Option<(sails_rs::Vec<u8>, u128, bool)> {
+        if let Some(result) = self.base.0.try_handle_solidity_async(method, input).await
+        {
+            return Some(result);
+        }
+        if let Some(result) = self.base.1.try_handle_solidity_async(method, input).await
+        {
+            return Some(result);
+        }
+        None
+    }
+    pub fn check_asyncness(&self, input: &[u8]) -> Option<bool> {
+        use sails_rs::gstd::InvocationIo;
+        if some_service_meta::__DoThisParams::check_route(input).is_ok() {
+            return Some(some_service_meta::__DoThisParams::ASYNC);
+        }
+        if let Some(is_async) = self.base.0.check_asyncness(input) {
+            return Some(is_async);
+        }
+        if let Some(is_async) = self.base.1.check_asyncness(input) {
+            return Some(is_async);
         }
         None
     }
@@ -148,26 +191,38 @@ impl sails_rs::meta::ServiceMeta for SomeService {
         sails_rs::meta::AnyServiceMeta::new::<ExtendedService1>,
         sails_rs::meta::AnyServiceMeta::new::<ExtendedService2>,
     ];
+    const ASYNC: bool = some_service_meta::CommandsMeta::ASYNC
+        || some_service_meta::QueriesMeta::ASYNC
+        || <ExtendedService1 as sails_rs::meta::ServiceMeta>::ASYNC
+        || <ExtendedService2 as sails_rs::meta::ServiceMeta>::ASYNC;
 }
 mod some_service_meta {
     use super::*;
     use sails_rs::{Decode, TypeInfo};
+    use sails_rs::gstd::InvocationIo;
     #[derive(Decode, TypeInfo)]
     #[codec(crate = sails_rs::scale_codec)]
     #[scale_info(crate = sails_rs::scale_info)]
     pub struct __DoThisParams {}
-    impl sails_rs::gstd::InvocationIo for __DoThisParams {
+    impl InvocationIo for __DoThisParams {
         const ROUTE: &'static [u8] = &[24u8, 68u8, 111u8, 84u8, 104u8, 105u8, 115u8];
         type Params = Self;
+        const ASYNC: bool = false;
     }
     #[derive(TypeInfo)]
     #[scale_info(crate = sails_rs::scale_info)]
     pub enum CommandsMeta {
         DoThis(__DoThisParams, u32),
     }
+    impl CommandsMeta {
+        pub const ASYNC: bool = __DoThisParams::ASYNC;
+    }
     #[derive(TypeInfo)]
     #[scale_info(crate = sails_rs::scale_info)]
     pub enum QueriesMeta {}
+    impl QueriesMeta {
+        pub const ASYNC: bool = false;
+    }
     #[derive(TypeInfo)]
     #[scale_info(crate = sails_rs::scale_info)]
     pub enum NoEvents {}
