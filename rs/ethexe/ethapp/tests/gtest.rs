@@ -39,6 +39,13 @@ async fn ethapp_sol_works() {
         Some(sails_rs::gear_core_errors::ReplyCode::Success(_))
     ));
 
+    let gas_burned = *run_result
+        .gas_burned
+        .get(&message_id)
+        .expect("message not found");
+    let wasm_size = std::fs::metadata(WASM_PATH).unwrap().len();
+    println!("[ethapp_sol_works] Init Gas: {gas_burned:>14}, Size: {wasm_size}");
+
     let do_this_sig = sails_rs::solidity::selector("svc1DoThis(uint128,bool,uint32,string)");
     let do_this_params = (0u128, false, 42, "hello").abi_encode_sequence();
     let payload = [do_this_sig.as_slice(), do_this_params.as_slice()].concat();
@@ -56,6 +63,12 @@ async fn ethapp_sol_works() {
     let reply = u32::abi_decode(reply_payload, true);
 
     assert_eq!(reply, Ok(42));
+
+    let gas_burned = *run_result
+        .gas_burned
+        .get(&message_id)
+        .expect("message not found");
+    println!("[ethapp_sol_works] Handle Gas: {gas_burned:>14}, Size: {wasm_size}");
 }
 
 #[tokio::test]
