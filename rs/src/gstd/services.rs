@@ -1,4 +1,4 @@
-use crate::{MessageId, Vec, collections::BTreeMap};
+use crate::{MessageId, Syscall, Vec, collections::BTreeMap};
 use core::ops::DerefMut;
 
 pub trait Service {
@@ -15,6 +15,11 @@ pub trait Exposure {
     /// Returns a scope for exposing the service call, which temporarily sets the route into a static    
     fn scope(&self) -> ExposureCallScope {
         ExposureCallScope::new(self.message_id(), self.route())
+    }
+
+    /// Returns the route of the service call, which is set after callign [`Exposure::scope`].
+    fn scoped_route() -> Option<&'static [u8]> {
+        route(Syscall::message_id())
     }
 }
 
@@ -42,17 +47,10 @@ fn get_message_id_to_service_route_map()
     }
 }
 
-#[cfg(target_arch = "wasm32")]
-pub(crate) fn route(message_id: MessageId) -> &'static [u8] {
+pub(crate) fn route(message_id: MessageId) -> Option<&'static [u8]> {
     let map = get_message_id_to_service_route_map();
     map.get(&message_id)
         .and_then(|routes| routes.last().copied())
-        .unwrap_or_else(|| {
-            panic!(
-                "Exposure context is not found for message id {:?}",
-                message_id
-            )
-        })
 }
 
 /// A scope for exposing a service call, which sets the route into the static `BTreeMap` by message Id.

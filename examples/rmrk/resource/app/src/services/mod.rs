@@ -1,12 +1,7 @@
 use crate::catalogs::traits::RmrkCatalog;
 use errors::{Error, Result};
 use resources::{ComposedResource, PartId, Resource, ResourceId};
-use sails_rs::{
-    calls::Query,
-    collections::HashMap,
-    gstd::{Syscall, service},
-    prelude::*,
-};
+use sails_rs::{calls::Query, collections::HashMap, prelude::*};
 
 pub mod errors;
 pub mod resources;

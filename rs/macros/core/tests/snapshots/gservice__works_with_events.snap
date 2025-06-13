@@ -13,11 +13,6 @@ impl SomeService {
 pub struct SomeServiceExposure<T: sails_rs::gstd::services::Service> {
     message_id: sails_rs::MessageId,
     route: &'static [u8],
-    #[cfg(not(target_arch = "wasm32"))]
-    inner: sails_rs::Box<T>,
-    #[cfg(not(target_arch = "wasm32"))]
-    inner_ptr: *const T,
-    #[cfg(target_arch = "wasm32")]
     inner: T,
     base: T::BaseExposures,
 }
@@ -92,12 +87,6 @@ impl SomeServiceExposure<SomeService> {
         }
         None
     }
-    pub fn emit_event(&mut self, event: SomeEvents) -> sails_rs::errors::Result<()> {
-        #[cfg(not(target_arch = "wasm32"))]
-        { Self::__emit_event(&mut self.inner, event) }
-        #[cfg(target_arch = "wasm32")]
-        { sails_rs::gstd::__emit_event_with_route(self.route, event) }
-    }
 }
 impl sails_rs::gstd::services::Service for SomeService {
     type Exposure = SomeServiceExposure<Self>;
@@ -107,21 +96,11 @@ impl sails_rs::gstd::services::Service for SomeService {
         message_id: sails_rs::MessageId,
         route: &'static [u8],
     ) -> Self::Exposure {
-        #[cfg(not(target_arch = "wasm32"))]
-        let inner_box = sails_rs::Box::new(self);
-        #[cfg(not(target_arch = "wasm32"))]
-        let inner = inner_box.as_ref();
-        #[cfg(target_arch = "wasm32")]
         let inner = &self;
         Self::Exposure {
             message_id,
             route,
             base: (),
-            #[cfg(not(target_arch = "wasm32"))]
-            inner_ptr: inner_box.as_ref() as *const Self,
-            #[cfg(not(target_arch = "wasm32"))]
-            inner: inner_box,
-            #[cfg(target_arch = "wasm32")]
             inner: self,
         }
     }
@@ -171,46 +150,15 @@ mod some_service_meta {
     pub type EventsMeta = SomeEvents;
 }
 impl SomeService {
-    fn emit_event(&mut self, event: SomeEvents) -> sails_rs::errors::Result<()> {
-        #[cfg(not(target_arch = "wasm32"))]
-        { SomeServiceExposure::<Self>::__emit_event(self, event) }
-        #[cfg(target_arch = "wasm32")] { sails_rs::gstd::__emit_event(event) }
+    fn emit_event(&self, event: SomeEvents) -> sails_rs::errors::Result<()> {
+        use sails_rs::gstd::ServiceWithEvents;
+        Self::emitter().emit_event(event)
     }
 }
-#[cfg(not(target_arch = "wasm32"))]
-const _: () = {
-    type ServiceEventsMap = sails_rs::collections::BTreeMap<
-        usize,
-        sails_rs::Vec<SomeEvents>,
-    >;
-    type Mutex<T> = sails_rs::spin::Mutex<T>;
-    impl<T: sails_rs::gstd::services::Service> SomeServiceExposure<T> {
-        pub fn take_events(&mut self) -> sails_rs::Vec<SomeEvents> {
-            if core::mem::size_of_val(self.inner.as_ref()) == 0 {
-                panic!(
-                    "setting event listener on a zero-sized service is not supported for now"
-                );
-            }
-            let service_ptr = self.inner_ptr as usize;
-            let mut map = Self::events_map();
-            map.remove(&service_ptr).unwrap_or_default()
-        }
-        fn __emit_event(svc: &mut T, event: SomeEvents) -> sails_rs::errors::Result<()> {
-            let service_ptr = svc as *const _ as *const () as usize;
-            let mut map = Self::events_map();
-            map.entry(service_ptr).or_default().push(event);
-            Ok(())
-        }
-        fn events_map() -> impl core::ops::DerefMut<Target = ServiceEventsMap> {
-            static MAP: Mutex<ServiceEventsMap> = Mutex::new(ServiceEventsMap::new());
-            MAP.lock()
-        }
-    }
-    impl<T: sails_rs::gstd::services::Service> Drop for SomeServiceExposure<T> {
-        fn drop(&mut self) {
-            let service_ptr = self.inner_ptr as usize;
-            let mut map = Self::events_map();
-            _ = map.remove(&service_ptr);
-        }
-    }
-};
+impl sails_rs::gstd::ServiceWithEvents for SomeService {
+    type Events = SomeEvents;
+}
+impl<T: sails_rs::gstd::ServiceWithEvents> sails_rs::gstd::ExposureWithEvents
+for SomeServiceExposure<T> {
+    type Events = SomeEvents;
+}

@@ -7,8 +7,11 @@ error: multiple `export` or `route` attributes on the same method are not allowe
 11 | |     }
    | |_____^
 
-error[E0599]: no method named `this` found for struct `Box<MyService>` in the current scope
+error[E0599]: no method named `this` found for struct `MyService` in the current scope
  --> tests/ui/gservice_fails_export_and_route_not_allowed_on_one_impl.rs:9:12
   |
+3 | struct MyService;
+  | ---------------- method `this` not found for this struct
+...
 9 |     pub fn this(&self, p1: bool) -> bool {
-  |            ^^^^ method not found in `Box<MyService>`
+  |            ^^^^ method not found in `MyService`

@@ -1,5 +1,6 @@
 use sails_rs::{
-    Encode, MessageId, alloy_primitives::B256, alloy_sol_types::SolValue, gstd::services::Service,
+    Encode, MessageId, alloy_primitives::B256, alloy_sol_types::SolValue, gstd::ExposureWithEvents,
+    gstd::services::Service,
 };
 
 mod service_with_basics;
@@ -68,7 +69,7 @@ fn service_with_events() {
     let mut exposure = MyServiceWithEvents(0).expose(MessageId::from(142), &[1, 4, 2]);
     exposure.my_method();
 
-    let events = exposure.take_events();
+    let events = exposure.emitter().take_events();
     assert_eq!(events.len(), 1);
     assert_eq!(events[0], MyEvents::Event1);
 }
@@ -92,7 +93,7 @@ fn service_with_lifetimes_and_events() {
     let result = sails_rs::alloy_sol_types::SolValue::abi_decode(output.as_slice(), false);
     assert_eq!(Ok(42), result);
 
-    let events = exposure.take_events();
+    let events = exposure.emitter().take_events();
     assert_eq!(events.len(), 1);
     assert_eq!(events[0], MyEvents::Event1);
 }

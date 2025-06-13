@@ -97,7 +97,7 @@ impl DemoProgram {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use sails_rs::gstd::services::Exposure;
+    use sails_rs::gstd::{ExposureWithEvents, services::Exposure};
 
     // Test program constructor and exposed service
     // Mock `Syscall` to simulate the environment
@@ -131,7 +131,7 @@ mod tests {
         assert_eq!(MessageId::from(2), service_exposure.message_id());
         assert_eq!("Counter".encode().as_slice(), service_exposure.route());
         assert_eq!(52, data);
-        let events = service_exposure.take_events();
+        let events = service_exposure.emitter().take_events();
         assert_eq!(events.len(), 1);
         assert_eq!(events[0], counter::CounterEvents::Added(10));
     }
