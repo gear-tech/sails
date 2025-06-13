@@ -1,6 +1,6 @@
 #![cfg(not(feature = "ethexe"))]
 
-use sails_rs::gstd::services::Service;
+use sails_rs::gstd::{ExposureWithEvents, services::Service};
 use sails_rs::{Decode, Encode, MessageId};
 
 mod gservice_with_basics;
@@ -204,14 +204,22 @@ async fn gservice_panic_on_unexpected_input_double_encoded() {
 
 #[test]
 fn gservice_with_events() {
-    use gservice_with_events::{MyEvents, MyServiceWithEvents};
+    use gservice_with_events::{SomeEvents, SomeService};
+    use sails_rs::gstd::ExposureWithEvents;
 
-    let mut exposure = MyServiceWithEvents(0).expose(MessageId::from(142), SERVICE_ROUTE);
-    exposure.my_method();
+    let mut exposure = SomeService.expose(MessageId::from(142), SERVICE_ROUTE);
+    exposure.do_this();
 
-    let events = exposure.take_events();
+    let events = exposure.emitter().take_events();
     assert_eq!(events.len(), 1);
-    assert_eq!(events[0], MyEvents::Event1);
+    assert_eq!(events[0], SomeEvents::Event1);
+
+    exposure.this();
+    let events = exposure.emitter().take_events();
+    assert!(
+        events.is_empty(),
+        "No events should be emitted on `this` call"
+    );
 }
 
 #[tokio::test]
@@ -239,7 +247,7 @@ async fn gservice_with_lifetimes_and_events() {
         .await
         .unwrap();
 
-    let events = exposure.take_events();
+    let events = exposure.emitter().take_events();
     assert_eq!(events.len(), 1);
     assert_eq!(events[0], MyEvents::Event1);
 }
