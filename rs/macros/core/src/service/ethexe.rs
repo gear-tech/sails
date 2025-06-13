@@ -97,39 +97,13 @@ impl ServiceBuilder<'_> {
         let generics = &self.generics;
         let service_type_path = self.type_path;
         let service_type_constraints = self.type_constraints();
-        let exposure_ident = &self.exposure_ident;
 
         self.events_type.map(|events_type| {
             quote! {
                 impl #generics #service_type_path #service_type_constraints {
-                    fn emit_eth_event(&mut self, event: #events_type) -> #sails_path::errors::Result<()> {
-                        #[cfg(not(target_arch = "wasm32"))]
-                        {
-                            #exposure_ident::<Self>::__emit_event(self, event)
-                        }
-                        #[cfg(target_arch = "wasm32")]
-                        {
-                            #sails_path::gstd::__emit_eth_event(event)
-                        }
-                    }
-                }
-            }
-        })
-    }
-
-    pub(super) fn exposure_emit_eth_impls(&self) -> Option<TokenStream> {
-        let sails_path = self.sails_path;
-
-        self.events_type.map(|events_type| {
-            quote! {
-                fn emit_eth_event(&mut self, event: #events_type) -> #sails_path::errors::Result<()> {
-                    #[cfg(not(target_arch = "wasm32"))]
-                    {
-                        Self::__emit_event(&mut self.inner, event)
-                    }
-                    #[cfg(target_arch = "wasm32")]
-                    {
-                        #sails_path::gstd::__emit_eth_event(event)
+                    fn emit_eth_event(&self, event: #events_type) -> #sails_path::errors::Result<()> {
+                        use #sails_path::gstd::ServiceWithEvents;
+                        Self::emitter().emit_eth_event(event)                            
                     }
                 }
             }
