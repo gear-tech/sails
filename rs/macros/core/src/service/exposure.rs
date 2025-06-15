@@ -306,8 +306,18 @@ impl ServiceBuilder<'_> {
 
     fn check_asyncness_impl(&self) -> TokenStream {
         let sails_path = self.sails_path;
+        let service_type = self.type_path;
         let base_ident = &self.base_ident;
         let input_ident = &self.input_ident;
+
+        let general_service_asyncenss_check = quote! {
+            if !<#service_type as #sails_path::meta::ServiceMeta>::ASYNC {
+                // Return early if service is not async.
+                // If there's no matching route for the input,
+                // the error will be returned on the `try_handle` call.
+                return Some(false);
+            }
+        };
 
         let asyncness_checks = self.service_handlers.iter().map(|fn_builder| {
             fn_builder.check_asyncness_branch_impl(&self.meta_module_ident, input_ident)
@@ -325,6 +335,8 @@ impl ServiceBuilder<'_> {
         quote! {
             pub fn check_asyncness(&self, #input_ident : &[u8]) -> Option<bool> {
                 use #sails_path::gstd::InvocationIo;
+
+                #general_service_asyncenss_check
 
                 #( #asyncness_checks )*
 

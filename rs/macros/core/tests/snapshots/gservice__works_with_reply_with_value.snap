@@ -82,6 +82,9 @@ impl SomeServiceExposure<SomeService> {
     }
     pub fn check_asyncness(&self, input: &[u8]) -> Option<bool> {
         use sails_rs::gstd::InvocationIo;
+        if !<SomeService as sails_rs::meta::ServiceMeta>::ASYNC {
+            return Some(false);
+        }
         if let Ok(is_async) = some_service_meta::__DoThisParams::check_asyncness(input) {
             return Some(is_async);
         }

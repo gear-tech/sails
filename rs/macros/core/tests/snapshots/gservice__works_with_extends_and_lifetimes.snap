@@ -92,6 +92,9 @@ impl<'a> ExtendedLifetimeExposure<ExtendedLifetime<'a>> {
     }
     pub fn check_asyncness(&self, input: &[u8]) -> Option<bool> {
         use sails_rs::gstd::InvocationIo;
+        if !<ExtendedLifetime<'a> as sails_rs::meta::ServiceMeta>::ASYNC {
+            return Some(false);
+        }
         if let Ok(is_async) = extended_lifetime_meta::__ExtendedNameParams::check_asyncness(
             input,
         ) {

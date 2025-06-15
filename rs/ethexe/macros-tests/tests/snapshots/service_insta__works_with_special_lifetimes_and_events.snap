@@ -104,6 +104,9 @@ where
     }
     pub fn check_asyncness(&self, input: &[u8]) -> Option<bool> {
         use sails_rs::gstd::InvocationIo;
+        if !<MyGenericEventsService<'_, '_, T> as sails_rs::meta::ServiceMeta>::ASYNC {
+            return Some(false);
+        }
         if let Ok(is_async) = my_generic_events_service_meta::__DoThisParams::check_asyncness(
             input,
         ) {
