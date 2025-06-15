@@ -2232,6 +2232,55 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "28dea519a9695b9977216879a3ebfddf92f1c08c05d984f8996aecd6ecdc811d"
 
 [[package]]
+name = "fibonacci-stress"
+version = "0.8.1"
+dependencies = [
+ "fibonacci-stress-core",
+ "fibonacci-stress-plain",
+ "fibonacci-stress-sails",
+ "fibonacci-stress-sails-client",
+ "gtest",
+ "sails-rs",
+ "tokio",
+]
+
+[[package]]
+name = "fibonacci-stress-core"
+version = "0.8.1"
+dependencies = [
+ "parity-scale-codec",
+ "scale-info",
+]
+
+[[package]]
+name = "fibonacci-stress-plain"
+version = "0.8.1"
+dependencies = [
+ "fibonacci-stress-core",
+ "gear-wasm-builder",
+ "gstd",
+ "parity-scale-codec",
+]
+
+[[package]]
+name = "fibonacci-stress-sails"
+version = "0.8.1"
+dependencies = [
+ "fibonacci-stress-core",
+ "sails-rs",
+]
+
+[[package]]
+name = "fibonacci-stress-sails-client"
+version = "0.8.1"
+dependencies = [
+ "fibonacci-stress-sails",
+ "sails-client-gen",
+ "sails-idl-gen",
+ "sails-rs",
+]
+
+[[package]]
 name = "file-guard"
 version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"

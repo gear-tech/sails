@@ -1,0 +1,16 @@
+[package]
+name = "fibonacci-stress"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dev-dependencies]
+gtest.workspace = true
+fibonacci-stress-core = { path = "./core" }
+fibonacci-stress-sails = { path = "./sails" }
+fibonacci-stress-plain = { path = "./plain" }
+fibonacci-stress-sails-client = { path = "./sails-client" }
+sails-rs = { workspace = true, features = ["gtest"] }
+tokio = { workspace = true, features = ["rt", "macros"] }

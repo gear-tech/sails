@@ -32,6 +32,11 @@ members = [
     "rs/macros",
     "rs/macros/core",
     "rs/sol-gen",
+    "benchmarks/fibonacci-stress",
+    "benchmarks/fibonacci-stress/core",
+    "benchmarks/fibonacci-stress/sails",
+    "benchmarks/fibonacci-stress/sails-client",
+    "benchmarks/fibonacci-stress/plain",
 ]
 
 [workspace.dependencies]
