@@ -1,4 +1,12 @@
-import { GasInfo, GearApi, HexString, ICallOptions, MessageQueuedData, decodeAddress } from '@gear-js/api';
+import {
+  GasInfo,
+  GearApi,
+  HexString,
+  ICallOptions,
+  MessageQueuedData,
+  ProgramChangedData,
+  decodeAddress,
+} from '@gear-js/api';
 import { SignerOptions, SubmittableExtrinsic } from '@polkadot/api/types';
 import { IKeyringPair, ISubmittableResult } from '@polkadot/types/types';
 import { TypeRegistry, u128, u64 } from '@polkadot/types';
@@ -55,6 +63,7 @@ export class TransactionBuilder<ResponseType> {
     payloadType: string,
     responseType: string,
     code: Uint8Array | ArrayBufferLike | HexString,
+    onProgramCreated?: (programId: HexString) => void | Promise<void>,
   );
   constructor(
     api: GearApi,
@@ -64,6 +73,7 @@ export class TransactionBuilder<ResponseType> {
     payloadType: string,
     responseType: string,
     codeId: HexString,
+    onProgramCreated?: (programId: HexString) => void | Promise<void>,
   );
 
   constructor(
@@ -74,6 +84,7 @@ export class TransactionBuilder<ResponseType> {
     payloadType: string,
     private _responseType: string,
     _programIdOrCodeOrCodeId: HexString | Uint8Array | ArrayBufferLike,
+    private _onProgramCreated?: (programId: HexString) => void | Promise<void>,
   ) {
     const _payload = this._registry.createType<any>(payloadType, payload);
     switch (extrinsic) {
@@ -314,21 +325,27 @@ export class TransactionBuilder<ResponseType> {
       resolveFinalized = resolve;
     });
 
-    const { msgId, blockHash } = await new Promise<{
+    const { msgId, blockHash, programId } = await new Promise<{
       msgId: HexString;
       blockHash: HexString;
+      programId: HexString;
     }>((resolve, reject) =>
       this._tx
         .signAndSend(this._account, this._signerOptions, ({ events, status }) => {
           if (status.isInBlock) {
             let msgId: HexString;
+            let programId: HexString;
 
             for (const { event } of events) {
               const { method, section, data } = event;
-              if (method === 'MessageQueued' && section === 'gear') {
-                msgId = (data as MessageQueuedData).id.toHex();
+              if (section == 'gear') {
+                if (method === 'MessageQueued') {
+                  msgId = (data as MessageQueuedData).id.toHex();
+                } else if (method == 'ProgramChanged') {
+                  programId = (data as ProgramChangedData).id.toHex();
+                }
               } else if (method === 'ExtrinsicSuccess') {
-                resolve({ msgId, blockHash: status.asInBlock.toHex() });
+                resolve({ msgId, blockHash: status.asInBlock.toHex(), programId });
               } else if (method === 'ExtrinsicFailed') {
                 reject(this._api.getExtrinsicFailedError(event));
               }
@@ -341,6 +358,10 @@ export class TransactionBuilder<ResponseType> {
           reject(error.message);
         }),
     );
+
+    if (this._onProgramCreated && programId) {
+      await this._onProgramCreated(programId);
+    }
 
     return {
       msgId,

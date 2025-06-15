@@ -2,6 +2,7 @@ import type { Config } from '@jest/types';
 
 const config: Config.InitialOptions = {
   globalSetup: './test/setup.js',
+  testMatch: ['<rootDir>/test/*.test.ts'],
   clearMocks: true,
   coverageProvider: 'v8',
   testEnvironment: 'node',

@@ -8,8 +8,6 @@ const __filename = fileURLToPath(import.meta.url);
 
 const demoIdlPath = path.join(__filename, '../../../../examples/demo/client/demo.idl');
 
-console.log(demoIdlPath);
-
 describe('generator', () => {
   test('demo lib', async () => {
     const parser = new SailsIdlParser();

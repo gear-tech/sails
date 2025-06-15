@@ -25,7 +25,7 @@ const handler = async (path: string, out: string, name: string, project: boolean
 program
   .command('generate <path-to-file.sails.idl>')
   .option('--no-project', 'Generate single file without project structure')
-  .option('-n --name <name>', 'Name of the library', 'program')
+  .option('-n --name <name>', 'Name of the library', 'SailsProgram')
   .option('-o --out <path-to-dir>', 'Output directory')
   .option('-y --yes', 'Automatic yes to file override prompts')
   .description('Generate typescript library based on .sails.idl file')
