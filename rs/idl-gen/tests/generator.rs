@@ -191,6 +191,7 @@ impl<C: StaticTypeInfo, Q: StaticTypeInfo, E: StaticTypeInfo> RtlServiceMeta
     type QueriesMeta = Q;
     type EventsMeta = E;
     const BASE_SERVICES: &'static [AnyServiceMetaFn] = &[];
+    const ASYNC: bool = false;
 }
 
 struct ServiceMetaWithBase<C, Q, E, B> {
@@ -207,6 +208,7 @@ impl<C: StaticTypeInfo, Q: StaticTypeInfo, E: StaticTypeInfo, B: RtlServiceMeta>
     type QueriesMeta = Q;
     type EventsMeta = E;
     const BASE_SERVICES: &'static [AnyServiceMetaFn] = &[AnyServiceMeta::new::<B>];
+    const ASYNC: bool = false;
 }
 
 type TestServiceMeta = ServiceMeta<CommandsMeta, QueriesMeta, EventsMeta>;
@@ -222,6 +224,8 @@ impl ProgramMeta for TestProgramWithEmptyCtorsMeta {
 
     const SERVICES: &'static [(&'static str, AnyServiceMetaFn)] =
         &[("", AnyServiceMeta::new::<TestServiceMeta>)];
+
+    const ASYNC: bool = false;
 }
 
 #[allow(dead_code)]
@@ -241,6 +245,8 @@ impl ProgramMeta for TestProgramWithNonEmptyCtorsMeta {
 
     const SERVICES: &'static [(&'static str, AnyServiceMetaFn)] =
         &[("", AnyServiceMeta::new::<TestServiceMeta>)];
+
+    const ASYNC: bool = false;
 }
 
 struct TestProgramWithMultipleServicesMeta;
@@ -252,6 +258,8 @@ impl ProgramMeta for TestProgramWithMultipleServicesMeta {
         ("", AnyServiceMeta::new::<TestServiceMeta>),
         ("SomeService", AnyServiceMeta::new::<TestServiceMeta>),
     ];
+
+    const ASYNC: bool = false;
 }
 
 #[test]

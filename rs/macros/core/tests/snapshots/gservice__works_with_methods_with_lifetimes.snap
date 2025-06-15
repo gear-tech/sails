@@ -66,7 +66,7 @@ impl ReferenceServiceExposure<ReferenceService> {
         let exposure_scope = sails_rs::gstd::services::ExposureCallScope::new(self);
         self.inner.last_byte().await
     }
-    pub async fn try_handle(
+    pub fn try_handle(
         &mut self,
         input: &[u8],
         result_handler: fn(&[u8], u128),
@@ -97,22 +97,31 @@ impl ReferenceServiceExposure<ReferenceService> {
             );
             return Some(());
         }
-        if let Ok(request) = reference_service_meta::__FirstByteParams::decode_params(
-            input,
-        ) {
-            let result = self.first_byte().await;
+        if let Ok(request) = reference_service_meta::__IncrParams::decode_params(input) {
+            let result = self.incr();
             let value = 0u128;
-            reference_service_meta::__FirstByteParams::with_optimized_encode(
+            reference_service_meta::__IncrParams::with_optimized_encode(
                 &result,
                 self.route().as_ref(),
                 |encoded_result| result_handler(encoded_result, value),
             );
             return Some(());
         }
-        if let Ok(request) = reference_service_meta::__IncrParams::decode_params(input) {
-            let result = self.incr();
+        None
+    }
+    pub async fn try_handle_async(
+        &mut self,
+        input: &[u8],
+        result_handler: fn(&[u8], u128),
+    ) -> Option<()> {
+        use sails_rs::gstd::InvocationIo;
+        use sails_rs::gstd::services::Exposure;
+        if let Ok(request) = reference_service_meta::__FirstByteParams::decode_params(
+            input,
+        ) {
+            let result = self.first_byte().await;
             let value = 0u128;
-            reference_service_meta::__IncrParams::with_optimized_encode(
+            reference_service_meta::__FirstByteParams::with_optimized_encode(
                 &result,
                 self.route().as_ref(),
                 |encoded_result| result_handler(encoded_result, value),
@@ -130,6 +139,38 @@ impl ReferenceServiceExposure<ReferenceService> {
                 |encoded_result| result_handler(encoded_result, value),
             );
             return Some(());
+        }
+        None
+    }
+    pub fn check_asyncness(&self, input: &[u8]) -> Option<bool> {
+        use sails_rs::gstd::InvocationIo;
+        if !<ReferenceService as sails_rs::meta::ServiceMeta>::ASYNC {
+            return Some(false);
+        }
+        if let Ok(is_async) = reference_service_meta::__AddByteParams::check_asyncness(
+            input,
+        ) {
+            return Some(is_async);
+        }
+        if let Ok(is_async) = reference_service_meta::__BakedParams::check_asyncness(
+            input,
+        ) {
+            return Some(is_async);
+        }
+        if let Ok(is_async) = reference_service_meta::__FirstByteParams::check_asyncness(
+            input,
+        ) {
+            return Some(is_async);
+        }
+        if let Ok(is_async) = reference_service_meta::__IncrParams::check_asyncness(
+            input,
+        ) {
+            return Some(is_async);
+        }
+        if let Ok(is_async) = reference_service_meta::__LastByteParams::check_asyncness(
+            input,
+        ) {
+            return Some(is_async);
         }
         None
     }
@@ -166,57 +207,64 @@ impl sails_rs::meta::ServiceMeta for ReferenceService {
     type QueriesMeta = reference_service_meta::QueriesMeta;
     type EventsMeta = reference_service_meta::EventsMeta;
     const BASE_SERVICES: &'static [sails_rs::meta::AnyServiceMetaFn] = &[];
+    const ASYNC: bool = true;
 }
 mod reference_service_meta {
     use super::*;
     use sails_rs::{Decode, TypeInfo};
+    use sails_rs::gstd::InvocationIo;
     #[derive(Decode, TypeInfo)]
     #[codec(crate = sails_rs::scale_codec)]
     #[scale_info(crate = sails_rs::scale_info)]
     pub struct __AddByteParams {
         pub(super) byte: u8,
     }
-    impl sails_rs::gstd::InvocationIo for __AddByteParams {
+    impl InvocationIo for __AddByteParams {
         const ROUTE: &'static [u8] = &[
             28u8, 65u8, 100u8, 100u8, 66u8, 121u8, 116u8, 101u8,
         ];
         type Params = Self;
+        const ASYNC: bool = false;
     }
     #[derive(Decode, TypeInfo)]
     #[codec(crate = sails_rs::scale_codec)]
     #[scale_info(crate = sails_rs::scale_info)]
     pub struct __BakedParams {}
-    impl sails_rs::gstd::InvocationIo for __BakedParams {
+    impl InvocationIo for __BakedParams {
         const ROUTE: &'static [u8] = &[20u8, 66u8, 97u8, 107u8, 101u8, 100u8];
         type Params = Self;
+        const ASYNC: bool = false;
     }
     #[derive(Decode, TypeInfo)]
     #[codec(crate = sails_rs::scale_codec)]
     #[scale_info(crate = sails_rs::scale_info)]
     pub struct __FirstByteParams {}
-    impl sails_rs::gstd::InvocationIo for __FirstByteParams {
+    impl InvocationIo for __FirstByteParams {
         const ROUTE: &'static [u8] = &[
             36u8, 70u8, 105u8, 114u8, 115u8, 116u8, 66u8, 121u8, 116u8, 101u8,
         ];
         type Params = Self;
+        const ASYNC: bool = true;
     }
     #[derive(Decode, TypeInfo)]
     #[codec(crate = sails_rs::scale_codec)]
     #[scale_info(crate = sails_rs::scale_info)]
     pub struct __IncrParams {}
-    impl sails_rs::gstd::InvocationIo for __IncrParams {
+    impl InvocationIo for __IncrParams {
         const ROUTE: &'static [u8] = &[16u8, 73u8, 110u8, 99u8, 114u8];
         type Params = Self;
+        const ASYNC: bool = false;
     }
     #[derive(Decode, TypeInfo)]
     #[codec(crate = sails_rs::scale_codec)]
     #[scale_info(crate = sails_rs::scale_info)]
     pub struct __LastByteParams {}
-    impl sails_rs::gstd::InvocationIo for __LastByteParams {
+    impl InvocationIo for __LastByteParams {
         const ROUTE: &'static [u8] = &[
             32u8, 76u8, 97u8, 115u8, 116u8, 66u8, 121u8, 116u8, 101u8,
         ];
         type Params = Self;
+        const ASYNC: bool = true;
     }
     #[derive(TypeInfo)]
     #[scale_info(crate = sails_rs::scale_info)]

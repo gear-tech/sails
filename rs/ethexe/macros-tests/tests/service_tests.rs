@@ -19,10 +19,20 @@ async fn service_with_basics() {
     const DO_THIS: &str = "DoThis";
     let input = (0u128, false, 42u32, "correct".to_owned()).abi_encode_sequence();
 
+    let mut exposure = MyService.expose(MessageId::from(123), &[1, 2, 3]);
+
+    assert!(
+        exposure
+            .try_handle_solidity(&DO_THIS.encode(), &input)
+            .is_none()
+    );
+
+    // Check asyncness for `DoThis`.
+    assert!(exposure.check_asyncness(&DO_THIS.encode()).unwrap());
+
     // act
-    let (output, ..) = MyService
-        .expose(MessageId::from(123), &[1, 2, 3])
-        .try_handle_solidity(&DO_THIS.encode(), &input)
+    let (output, ..) = exposure
+        .try_handle_solidity_async(&DO_THIS.encode(), &input)
         .await
         .unwrap();
 
@@ -41,7 +51,7 @@ async fn service_with_basics_with_encode_reply() {
     // act
     let (output, ..) = MyService
         .expose(message_id, &[1, 2, 3])
-        .try_handle_solidity(&DO_THIS.encode(), &input)
+        .try_handle_solidity_async(&DO_THIS.encode(), &input)
         .await
         .unwrap();
 
@@ -63,8 +73,8 @@ fn service_with_events() {
     assert_eq!(events[0], MyEvents::Event1);
 }
 
-#[tokio::test]
-async fn service_with_lifetimes_and_events() {
+#[test]
+fn service_with_lifetimes_and_events() {
     use service_with_events_and_lifetimes::{MyEvents, MyGenericEventsService};
 
     const DO_THIS: &str = "DoThis";
@@ -73,9 +83,10 @@ async fn service_with_lifetimes_and_events() {
     let my_service = MyGenericEventsService::<'_, String>::default();
     let mut exposure = my_service.expose(MessageId::from(123), &[1, 2, 3]);
 
+    assert!(!exposure.check_asyncness(&DO_THIS.encode()).unwrap());
+
     let (output, ..) = exposure
         .try_handle_solidity(&DO_THIS.encode(), input.as_slice())
-        .await
         .unwrap();
 
     let result = sails_rs::alloy_sol_types::SolValue::abi_decode(output.as_slice(), false);
@@ -86,8 +97,8 @@ async fn service_with_lifetimes_and_events() {
     assert_eq!(events[0], MyEvents::Event1);
 }
 
-#[tokio::test]
-async fn service_with_extends() {
+#[test]
+fn service_with_extends() {
     use service_with_extends::{
         base::{BASE_NAME_RESULT, Base},
         extended::{EXTENDED_NAME_RESULT, Extended, NAME_RESULT},
@@ -100,34 +111,42 @@ async fn service_with_extends() {
 
     let mut extended_svc = Extended::new(Base).expose(123.into(), &[1, 2, 3]);
 
+    assert!(
+        !extended_svc
+            .check_asyncness(&EXTENDED_NAME_METHOD.encode())
+            .unwrap()
+    );
+
     let (output, ..) = extended_svc
         .try_handle_solidity(&EXTENDED_NAME_METHOD.encode(), &input)
-        .await
         .unwrap();
 
     let result = sails_rs::alloy_sol_types::SolValue::abi_decode(output.as_slice(), false);
     assert_eq!(Ok(EXTENDED_NAME_RESULT.to_owned()), result);
 
+    assert!(
+        !extended_svc
+            .check_asyncness(&BASE_NAME_METHOD.encode())
+            .unwrap()
+    );
     let _base: &<Base as Service>::Exposure = extended_svc.as_base_0();
 
     let (output, ..) = extended_svc
         .try_handle_solidity(&BASE_NAME_METHOD.encode(), &input)
-        .await
         .unwrap();
     let result = sails_rs::alloy_sol_types::SolValue::abi_decode(output.as_slice(), false);
     assert_eq!(Ok(BASE_NAME_RESULT.to_owned()), result);
 
     let (output, ..) = extended_svc
         .try_handle_solidity(&NAME_METHOD.encode(), &input)
-        .await
         .unwrap();
 
     let result = sails_rs::alloy_sol_types::SolValue::abi_decode(output.as_slice(), false);
     assert_eq!(Ok(NAME_RESULT.to_owned()), result);
 }
 
-#[tokio::test]
-async fn service_with_lifecycles_and_generics() {
+#[test]
+fn service_with_lifecycles_and_generics() {
     use service_with_lifecycles_and_generics::MyGenericService;
 
     const DO_THIS: &str = "DoThis";
@@ -138,15 +157,14 @@ async fn service_with_lifecycles_and_generics() {
     let (output, ..) = my_service
         .expose(MessageId::from(123), &[1, 2, 3])
         .try_handle_solidity(&DO_THIS.encode(), &input)
-        .await
         .unwrap();
 
     let result = sails_rs::alloy_sol_types::SolValue::abi_decode(output.as_slice(), false);
     assert_eq!(Ok(42u32), result);
 }
 
-#[tokio::test]
-async fn service_with_extends_and_lifetimes() {
+#[test]
+fn service_with_extends_and_lifetimes() {
     use service_with_extends_and_lifetimes::{
         BASE_NAME_RESULT, BaseWithLifetime, EXTENDED_NAME_RESULT, ExtendedWithLifetime, NAME_RESULT,
     };
@@ -164,7 +182,6 @@ async fn service_with_extends_and_lifetimes() {
 
     let (output, ..) = extended_svc
         .try_handle_solidity(&EXTENDED_NAME_METHOD.encode(), &input)
-        .await
         .unwrap();
 
     let result = sails_rs::alloy_sol_types::SolValue::abi_decode(output.as_slice(), false);
@@ -172,7 +189,6 @@ async fn service_with_extends_and_lifetimes() {
 
     let (output, ..) = extended_svc
         .try_handle_solidity(&BASE_NAME_METHOD.encode(), &input)
-        .await
         .unwrap();
 
     let result = sails_rs::alloy_sol_types::SolValue::abi_decode(output.as_slice(), false);
@@ -180,7 +196,6 @@ async fn service_with_extends_and_lifetimes() {
 
     let (output, ..) = extended_svc
         .try_handle_solidity(&NAME_METHOD.encode(), &input)
-        .await
         .unwrap();
 
     let result = sails_rs::alloy_sol_types::SolValue::abi_decode(output.as_slice(), false);
@@ -196,7 +211,7 @@ async fn service_with_export_unwrap_result() {
     let input = (0u128, false, 42u32, "correct").abi_encode_sequence();
     let (output, ..) = MyService
         .expose(MessageId::from(123), &[1, 2, 3])
-        .try_handle_solidity(&DO_THIS.encode(), input.as_slice())
+        .try_handle_solidity_async(&DO_THIS.encode(), input.as_slice())
         .await
         .unwrap();
 
@@ -214,7 +229,7 @@ async fn service_with_export_unwrap_result_panic() {
 
     _ = MyService
         .expose(MessageId::from(123), &[1, 2, 3])
-        .try_handle_solidity(&PARSE.encode(), input.as_slice())
+        .try_handle_solidity_async(&PARSE.encode(), input.as_slice())
         .await
         .unwrap();
 }
@@ -228,7 +243,7 @@ async fn service_with_reply_with_value() {
     let input = (0u128, false, 42u32, "correct".to_owned()).abi_encode_sequence();
     let (output, value, ..) = MyServiceWithReplyWithValue
         .expose(MessageId::from(123), &[1, 2, 3])
-        .try_handle_solidity(&DO_THIS.encode(), input.as_slice())
+        .try_handle_solidity_async(&DO_THIS.encode(), input.as_slice())
         .await
         .unwrap();
 
@@ -247,7 +262,7 @@ async fn service_with_reply_with_value_with_impl_from() {
     let input = (0u128, false, 42u32, "correct".to_owned()).abi_encode_sequence();
     let (output, value, ..) = MyServiceWithReplyWithValue
         .expose(MessageId::from(123), &[1, 2, 3])
-        .try_handle_solidity(&DO_THAT.encode(), input.as_slice())
+        .try_handle_solidity_async(&DO_THAT.encode(), input.as_slice())
         .await
         .unwrap();
 
@@ -267,7 +282,6 @@ async fn service_with_trait_bounds() {
     let (output, ..) = MyServiceWithTraitBounds::<u32>::default()
         .expose(MessageId::from(123), &[1, 2, 3])
         .try_handle_solidity(&DO_THIS.encode(), &input)
-        .await
         .unwrap();
 
     let result = sails_rs::alloy_sol_types::SolValue::abi_decode(output.as_slice(), false);

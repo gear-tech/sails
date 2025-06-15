@@ -79,22 +79,22 @@ impl ProgramBuilder {
         }
     }
 
-    pub fn match_ctor_impl(&self) -> TokenStream {
+    pub fn match_ctor_impl(&self, program_ident: &Ident) -> TokenStream {
         let (program_type_path, ..) = self.impl_type();
         let program_ctors = self.program_ctors();
         let ctor_branches = program_ctors
             .iter()
-            .map(|fn_builder| fn_builder.sol_ctor_branch_impl(program_type_path));
+            .map(|fn_builder| fn_builder.sol_ctor_branch_impl(program_type_path, program_ident));
 
         quote! {
-            async fn match_ctor_solidity(ctor: &[u8], input: &[u8]) -> Option<(#program_type_path, bool)> {
+            fn match_ctor_solidity(ctor: &[u8], input: &[u8]) -> Option<bool> {
                 #( #ctor_branches )*
                 None
             }
         }
     }
 
-    pub fn sol_init(&self, input_ident: &Ident, program_ident: &Ident) -> TokenStream {
+    pub fn sol_init(&self, input_ident: &Ident) -> TokenStream {
         let sails_path = self.sails_path();
         let (program_type_path, ..) = self.impl_type();
 
@@ -102,8 +102,7 @@ impl ProgramBuilder {
             if let Ok(sig) = TryInto::<[u8; 4]>::try_into(&#input_ident[..4]) {
                 if let Some(idx) = __CTOR_SIGS.iter().position(|s| s == &sig) {
                     let (ctor_route, ..) = <#program_type_path as #sails_path::solidity::ProgramSignature>::CTORS[idx];
-                    if let Some((program, encode_reply)) = match_ctor_solidity(ctor_route, &#input_ident[4..]).await{
-                        unsafe { #program_ident = Some(program) };
+                    if let Some(encode_reply) = match_ctor_solidity(ctor_route, &#input_ident[4..]) {
                         // add callbak selector if `encode_reply` is set
                         let output = if encode_reply {
                             [__CTOR_CALLBACK_SIGS[idx].as_slice(), gstd::msg::id().into_bytes().as_slice()].concat()
@@ -179,22 +178,39 @@ impl FnBuilder<'_> {
         }
     }
 
-    fn sol_ctor_branch_impl(&self, program_type_path: &TypePath) -> TokenStream {
+    fn sol_ctor_branch_impl(
+        &self,
+        program_type_path: &TypePath,
+        program_ident: &Ident,
+    ) -> TokenStream {
         let sails_path = self.sails_path;
         let handler_route_bytes = self.encoded_route.as_slice();
         let handler_ident = self.ident;
         let handler_params = self.params_idents();
         let handler_types = self.params_types();
 
-        let await_token = self.is_async().then(|| quote!(.await));
         let unwrap_token = self.unwrap_result.then(|| quote!(.unwrap()));
+
+        let ctor_invocation = if self.is_async() {
+            quote! {
+                gstd::message_loop(async move {
+                    let program = #program_type_path :: #handler_ident (#(#handler_params),*).await #unwrap_token;
+                    unsafe { #program_ident = Some(program) };
+                });
+            }
+        } else {
+            quote! {
+                let program = #program_type_path :: #handler_ident (#(#handler_params),*) #unwrap_token;
+                unsafe { #program_ident = Some(program) };
+            }
+        };
 
         // read uint128 as first parameter
         quote! {
             if ctor == &[ #(#handler_route_bytes),* ] {
                 let (_, _encode_reply, #(#handler_params,)*) : (u128, bool, #(#handler_types,)*) = #sails_path::alloy_sol_types::SolValue::abi_decode_params(input, false).expect("Failed to decode request");
-                let program = #program_type_path :: #handler_ident (#(#handler_params),*) #await_token #unwrap_token;
-                return Some((program, _encode_reply));
+                #ctor_invocation
+                return Some(_encode_reply);
             }
         }
     }
@@ -202,23 +218,46 @@ impl FnBuilder<'_> {
     pub(crate) fn sol_service_invocation(&self) -> TokenStream2 {
         let route_ident = &self.route_ident();
         let service_ctor_ident = self.ident;
+
         quote! {
             if route == & #route_ident {
                 let mut service = program_ref.#service_ctor_ident();
-                let (output, value, encode_reply) = service
-                    .try_handle_solidity(method, &input[4..])
-                    .await
-                    .unwrap_or_else(|| {
-                        gstd::unknown_input_panic("Unknown request", input)
-                    });
-                // add callbak selector if `encode_reply` is set
-                let output = if encode_reply {
-                    let selector = __CALLBACK_SIGS[idx];
-                    [selector.as_slice(), output.as_slice()].concat()
-                } else {
-                    output
+                let Some(is_async) = service.check_asyncness(method) else {
+                    gstd::unknown_input_panic("Unknown service method", &input);
                 };
-                gstd::msg::reply_bytes(output, value).expect("Failed to send output");
+                if is_async {
+                    gstd::message_loop(async move {
+                        let (output, value, encode_reply) = service
+                            .try_handle_solidity_async(method, &input[4..])
+                            .await
+                            .unwrap_or_else(|| {
+                                gstd::unknown_input_panic("Unknown request", &input)
+                            });
+                        // add callbak selector if `encode_reply` is set
+                        let output = if encode_reply {
+                            let selector = __CALLBACK_SIGS[idx];
+                            [selector.as_slice(), output.as_slice()].concat()
+                        } else {
+                            output
+                        };
+                        gstd::msg::reply_bytes(output, value).expect("Failed to send output");
+                    });
+                } else {
+                    let (output, value, encode_reply) = service
+                        .try_handle_solidity(method, &input[4..])
+                        .unwrap_or_else(|| {
+                            gstd::unknown_input_panic("Unknown request", &input)
+                        });
+                    // add callbak selector if `encode_reply` is set
+                    let output = if encode_reply {
+                        let selector = __CALLBACK_SIGS[idx];
+                        [selector.as_slice(), output.as_slice()].concat()
+                    } else {
+                        output
+                    };
+                    gstd::msg::reply_bytes(output, value).expect("Failed to send output");
+                }
+
                 return;
             }
         }

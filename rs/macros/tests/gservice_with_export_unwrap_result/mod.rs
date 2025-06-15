@@ -16,6 +16,7 @@ impl MyService {
         Ok(res)
     }
 
+    #[allow(unused)]
     pub fn this(&self, p1: bool) -> bool {
         !p1
     }

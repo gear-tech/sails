@@ -17,6 +17,25 @@ impl ServiceBuilder<'_> {
             }
         });
 
+        let has_async_handler = self
+            .service_handlers
+            .iter()
+            .any(|fn_builder| fn_builder.is_async());
+
+        let service_meta_asyncness = if has_async_handler {
+            quote!(true)
+        } else if self.base_types.is_empty() {
+            quote!(false)
+        } else {
+            let base_asyncness = self.base_types.iter().map(|base_type| {
+                let path_wo_lifetimes = shared::remove_lifetimes(base_type);
+                quote! {
+                    <#path_wo_lifetimes as #sails_path::meta::ServiceMeta>::ASYNC
+                }
+            });
+            quote!(#( #base_asyncness )||*)
+        };
+
         quote! {
             impl #generics #sails_path::meta::ServiceMeta for #service_type_path #service_type_constraints {
                 type CommandsMeta = #meta_module_ident::CommandsMeta;
@@ -25,6 +44,7 @@ impl ServiceBuilder<'_> {
                 const BASE_SERVICES: &'static [#sails_path::meta::AnyServiceMetaFn] = &[
                     #( #base_services_meta ),*
                 ];
+                const ASYNC: bool = #service_meta_asyncness ;
             }
         }
     }
@@ -53,6 +73,7 @@ impl ServiceBuilder<'_> {
             mod #meta_module_ident {
                 use super::*;
                 use #sails_path::{Decode, TypeInfo};
+                use #sails_path::gstd::InvocationIo;
 
                 #( #invocation_params_structs )*
 

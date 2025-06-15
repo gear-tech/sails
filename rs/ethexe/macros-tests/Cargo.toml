@@ -13,6 +13,7 @@ prettyplease.workspace = true
 proc-macro2.workspace = true
 quote.workspace = true
 sails-macros-core = { workspace = true }
-sails-rs = { workspace = true }
+sails-rs = { workspace = true, features = ["ethexe"] }
 syn = { workspace = true, features = ["full", "extra-traits"] }
 tokio = { workspace = true, features = ["full"] }
+trybuild.workspace = true

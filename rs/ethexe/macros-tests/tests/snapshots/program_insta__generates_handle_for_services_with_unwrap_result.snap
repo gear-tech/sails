@@ -45,16 +45,20 @@ impl sails_rs::meta::ProgramMeta for MyProgram {
         ("Svc1", sails_rs::meta::AnyServiceMeta::new::<MyService>),
         ("Service2", sails_rs::meta::AnyServiceMeta::new::<MyService>),
     ];
+    const ASYNC: bool = <MyService as sails_rs::meta::ServiceMeta>::ASYNC
+        || <MyService as sails_rs::meta::ServiceMeta>::ASYNC;
 }
 mod meta_in_program {
     use super::*;
+    use sails_rs::gstd::InvocationIo;
     #[derive(sails_rs::Decode, sails_rs::TypeInfo)]
     #[codec(crate = sails_rs::scale_codec)]
     #[scale_info(crate = sails_rs::scale_info)]
     pub struct __CreateParams {}
-    impl sails_rs::gstd::InvocationIo for __CreateParams {
+    impl InvocationIo for __CreateParams {
         const ROUTE: &'static [u8] = &[24u8, 67u8, 114u8, 101u8, 97u8, 116u8, 101u8];
         type Params = Self;
+        const ASYNC: bool = false;
     }
     #[derive(sails_rs::TypeInfo)]
     #[scale_info(crate = sails_rs::scale_info)]
@@ -112,20 +116,17 @@ pub mod wasm {
     use super::*;
     use sails_rs::{gstd, hex, prelude::*};
     static mut PROGRAM: Option<MyProgram> = None;
-    #[gstd::async_init]
-    async fn init() {
+    #[unsafe(no_mangle)]
+    extern "C" fn init() {
         use gstd::InvocationIo;
         let mut input: &[u8] = &gstd::msg::load_bytes().expect("Failed to read input");
         if let Ok(sig) = TryInto::<[u8; 4]>::try_into(&input[..4]) {
             if let Some(idx) = __CTOR_SIGS.iter().position(|s| s == &sig) {
                 let (ctor_route, ..) = <MyProgram as sails_rs::solidity::ProgramSignature>::CTORS[idx];
-                if let Some((program, encode_reply)) = match_ctor_solidity(
-                        ctor_route,
-                        &input[4..],
-                    )
-                    .await
-                {
-                    unsafe { PROGRAM = Some(program) };
+                if let Some(encode_reply) = match_ctor_solidity(
+                    ctor_route,
+                    &input[4..],
+                ) {
                     let output = if encode_reply {
                         [
                             __CTOR_CALLBACK_SIGS[idx].as_slice(),
@@ -140,23 +141,20 @@ pub mod wasm {
                 }
             }
         }
-        let (program, invocation_route) = if let Ok(request) = meta_in_program::__CreateParams::decode_params(
+        let invocation_route = if let Ok(request) = meta_in_program::__CreateParams::decode_params(
             input,
         ) {
             let program = MyProgram::create();
-            (program, meta_in_program::__CreateParams::ROUTE)
+            unsafe {
+                PROGRAM = Some(program);
+            }
+            meta_in_program::__CreateParams::ROUTE
         } else {
             gstd::unknown_input_panic("Unexpected ctor", input)
         };
-        unsafe {
-            PROGRAM = Some(program);
-        }
         gstd::msg::reply_bytes(invocation_route, 0).expect("Failed to send output");
     }
-    async fn match_ctor_solidity(
-        ctor: &[u8],
-        input: &[u8],
-    ) -> Option<(MyProgram, bool)> {
+    fn match_ctor_solidity(ctor: &[u8], input: &[u8]) -> Option<bool> {
         if ctor == &[24u8, 67u8, 114u8, 101u8, 97u8, 116u8, 101u8] {
             let (_, _encode_reply): (u128, bool) = sails_rs::alloy_sol_types::SolValue::abi_decode_params(
                     input,
@@ -164,85 +162,187 @@ pub mod wasm {
                 )
                 .expect("Failed to decode request");
             let program = MyProgram::create();
-            return Some((program, _encode_reply));
+            unsafe { PROGRAM = Some(program) };
+            return Some(_encode_reply);
         }
         None
     }
-    #[gstd::async_main]
-    async fn main() {
-        let mut input: &[u8] = &gstd::msg::load_bytes().expect("Failed to read input");
+    #[unsafe(no_mangle)]
+    extern "C" fn handle() {
+        let mut input = gstd::msg::load_bytes().expect("Failed to read input");
         let program_ref = unsafe { PROGRAM.as_mut() }.expect("Program not initialized");
         if let Ok(sig) = TryInto::<[u8; 4]>::try_into(&input[..4]) {
             if let Some(idx) = __METHOD_SIGS.iter().position(|s| s == &sig) {
                 let (route, method) = __METHOD_ROUTES[idx];
                 if route == &__ROUTE_SVC1 {
                     let mut service = program_ref.service1();
-                    let (output, value, encode_reply) = service
-                        .try_handle_solidity(method, &input[4..])
-                        .await
-                        .unwrap_or_else(|| {
-                            gstd::unknown_input_panic("Unknown request", input)
-                        });
-                    let output = if encode_reply {
-                        let selector = __CALLBACK_SIGS[idx];
-                        [selector.as_slice(), output.as_slice()].concat()
-                    } else {
-                        output
+                    let Some(is_async) = service.check_asyncness(method) else {
+                        gstd::unknown_input_panic("Unknown service method", &input);
                     };
-                    gstd::msg::reply_bytes(output, value)
-                        .expect("Failed to send output");
+                    if is_async {
+                        gstd::message_loop(async move {
+                            let (output, value, encode_reply) = service
+                                .try_handle_solidity_async(method, &input[4..])
+                                .await
+                                .unwrap_or_else(|| {
+                                    gstd::unknown_input_panic("Unknown request", &input)
+                                });
+                            let output = if encode_reply {
+                                let selector = __CALLBACK_SIGS[idx];
+                                [selector.as_slice(), output.as_slice()].concat()
+                            } else {
+                                output
+                            };
+                            gstd::msg::reply_bytes(output, value)
+                                .expect("Failed to send output");
+                        });
+                    } else {
+                        let (output, value, encode_reply) = service
+                            .try_handle_solidity(method, &input[4..])
+                            .unwrap_or_else(|| {
+                                gstd::unknown_input_panic("Unknown request", &input)
+                            });
+                        let output = if encode_reply {
+                            let selector = __CALLBACK_SIGS[idx];
+                            [selector.as_slice(), output.as_slice()].concat()
+                        } else {
+                            output
+                        };
+                        gstd::msg::reply_bytes(output, value)
+                            .expect("Failed to send output");
+                    }
                     return;
                 }
                 if route == &__ROUTE_SERVICE2 {
                     let mut service = program_ref.service2();
-                    let (output, value, encode_reply) = service
-                        .try_handle_solidity(method, &input[4..])
-                        .await
-                        .unwrap_or_else(|| {
-                            gstd::unknown_input_panic("Unknown request", input)
-                        });
-                    let output = if encode_reply {
-                        let selector = __CALLBACK_SIGS[idx];
-                        [selector.as_slice(), output.as_slice()].concat()
-                    } else {
-                        output
+                    let Some(is_async) = service.check_asyncness(method) else {
+                        gstd::unknown_input_panic("Unknown service method", &input);
                     };
-                    gstd::msg::reply_bytes(output, value)
-                        .expect("Failed to send output");
+                    if is_async {
+                        gstd::message_loop(async move {
+                            let (output, value, encode_reply) = service
+                                .try_handle_solidity_async(method, &input[4..])
+                                .await
+                                .unwrap_or_else(|| {
+                                    gstd::unknown_input_panic("Unknown request", &input)
+                                });
+                            let output = if encode_reply {
+                                let selector = __CALLBACK_SIGS[idx];
+                                [selector.as_slice(), output.as_slice()].concat()
+                            } else {
+                                output
+                            };
+                            gstd::msg::reply_bytes(output, value)
+                                .expect("Failed to send output");
+                        });
+                    } else {
+                        let (output, value, encode_reply) = service
+                            .try_handle_solidity(method, &input[4..])
+                            .unwrap_or_else(|| {
+                                gstd::unknown_input_panic("Unknown request", &input)
+                            });
+                        let output = if encode_reply {
+                            let selector = __CALLBACK_SIGS[idx];
+                            [selector.as_slice(), output.as_slice()].concat()
+                        } else {
+                            output
+                        };
+                        gstd::msg::reply_bytes(output, value)
+                            .expect("Failed to send output");
+                    }
                     return;
                 }
             }
         }
         if input.starts_with(&__ROUTE_SVC1) {
             let mut service = program_ref.service1();
-            service
-                .try_handle(
-                    &input[__ROUTE_SVC1.len()..],
-                    |encoded_result, value| {
-                        gstd::msg::reply_bytes(encoded_result, value)
-                            .expect("Failed to send output");
-                    },
-                )
-                .await
+            let is_async = service
+                .check_asyncness(&input[__ROUTE_SVC1.len()..])
                 .unwrap_or_else(|| {
-                    gstd::unknown_input_panic("Unknown request", input)
+                    gstd::unknown_input_panic(
+                        "Unknown call",
+                        &input[__ROUTE_SVC1.len()..],
+                    )
                 });
+            if is_async {
+                gstd::message_loop(async move {
+                    let input = input.clone();
+                    service
+                        .try_handle_async(
+                            &input[__ROUTE_SVC1.len()..],
+                            |encoded_result, value| {
+                                gstd::msg::reply_bytes(encoded_result, value)
+                                    .expect("Failed to send output");
+                            },
+                        )
+                        .await
+                        .unwrap_or_else(|| {
+                            gstd::unknown_input_panic("Unknown request", &input)
+                        });
+                });
+            } else {
+                service
+                    .try_handle(
+                        &input[__ROUTE_SVC1.len()..],
+                        |encoded_result, value| {
+                            gstd::msg::reply_bytes(encoded_result, value)
+                                .expect("Failed to send output");
+                        },
+                    )
+                    .unwrap_or_else(|| gstd::unknown_input_panic(
+                        "Unknown request",
+                        &input,
+                    ));
+            }
         } else if input.starts_with(&__ROUTE_SERVICE2) {
             let mut service = program_ref.service2();
-            service
-                .try_handle(
-                    &input[__ROUTE_SERVICE2.len()..],
-                    |encoded_result, value| {
-                        gstd::msg::reply_bytes(encoded_result, value)
-                            .expect("Failed to send output");
-                    },
-                )
-                .await
+            let is_async = service
+                .check_asyncness(&input[__ROUTE_SERVICE2.len()..])
                 .unwrap_or_else(|| {
-                    gstd::unknown_input_panic("Unknown request", input)
+                    gstd::unknown_input_panic(
+                        "Unknown call",
+                        &input[__ROUTE_SERVICE2.len()..],
+                    )
                 });
+            if is_async {
+                gstd::message_loop(async move {
+                    let input = input.clone();
+                    service
+                        .try_handle_async(
+                            &input[__ROUTE_SERVICE2.len()..],
+                            |encoded_result, value| {
+                                gstd::msg::reply_bytes(encoded_result, value)
+                                    .expect("Failed to send output");
+                            },
+                        )
+                        .await
+                        .unwrap_or_else(|| {
+                            gstd::unknown_input_panic("Unknown request", &input)
+                        });
+                });
+            } else {
+                service
+                    .try_handle(
+                        &input[__ROUTE_SERVICE2.len()..],
+                        |encoded_result, value| {
+                            gstd::msg::reply_bytes(encoded_result, value)
+                                .expect("Failed to send output");
+                        },
+                    )
+                    .unwrap_or_else(|| gstd::unknown_input_panic(
+                        "Unknown request",
+                        &input,
+                    ));
+            }
         } else {
-            gstd::unknown_input_panic("Unexpected service", input)
+            gstd::unknown_input_panic("Unexpected service", &input)
         };
+    }
+    #[unsafe(no_mangle)]
+    extern "C" fn handle_reply() {
+        use sails_rs::meta::ProgramMeta;
+        if MyProgram::ASYNC {
+            gstd::handle_reply_with_hook();
+        }
     }
 }
