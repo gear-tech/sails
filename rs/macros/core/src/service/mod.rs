@@ -315,7 +315,8 @@ impl FnBuilder<'_> {
         quote!(
             #( #handler_allow_attrs )*
             pub #handler_fn_sig {
-                let exposure_scope = #sails_path::gstd::services::ExposureCallScope::new(self);
+                use #sails_path::gstd::services::Exposure;
+                let exposure_scope = self.scope();
                 self. #inner_ident . #handler_ident (#(#handler_params),*) #handler_await_token
             }
         )
