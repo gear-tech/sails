@@ -10,7 +10,7 @@ interface I{{contract_name}} {
     {{#if @index}}
 
     {{/if}}
-    function {{name}}(uint128 _value, bool _encodeReply{{#if args}}, {{#each args}}{{#if @index}}, {{/if}}{{ty}}{{#if mem_location}} {{mem_location}}{{/if}} {{name}}{{/each}}{{/if}}) external returns (bytes32 messageId);
+    function {{name}}(uint128 _value, bool _callReply{{#if args}}, {{#each args}}{{#if @index}}, {{/if}}{{ty}}{{#if mem_location}} {{mem_location}}{{/if}} {{name}}{{/each}}{{/if}}) external returns (bytes32 messageId);
     {{/each}}
 }
 
@@ -19,7 +19,7 @@ contract {{contract_name}}Abi is I{{contract_name}} {
     {{#if @index}}
 
     {{/if}}
-    function {{name}}(uint128 _value, bool _encodeReply{{#if args}}, {{#each args}}{{#if @index}}, {{/if}}{{ty}}{{#if mem_location}} {{mem_location}}{{/if}} {{name}}{{/each}}{{/if}}) external returns (bytes32 messageId) {}
+    function {{name}}(uint128 _value, bool _callReply{{#if args}}, {{#each args}}{{#if @index}}, {{/if}}{{ty}}{{#if mem_location}} {{mem_location}}{{/if}} {{name}}{{/each}}{{/if}}) external returns (bytes32 messageId) {}
     {{/each}}
 }
 
