@@ -17,17 +17,24 @@ impl ServiceBuilder<'_> {
             }
         });
 
-        let service_meta_asyncness = [
-            quote!(#meta_module_ident::CommandsMeta::ASYNC),
-            quote!(#meta_module_ident::QueriesMeta::ASYNC),
-        ]
-        .into_iter()
-        .chain(self.base_types.iter().map(|base_type| {
-            let path_wo_lifetimes = shared::remove_lifetimes(base_type);
-            quote! {
-                <#path_wo_lifetimes as #sails_path::meta::ServiceMeta>::ASYNC
-            }
-        }));
+        let has_async_handler = self
+            .service_handlers
+            .iter()
+            .any(|fn_builder| fn_builder.is_async());
+
+        let service_meta_asyncness = if has_async_handler {
+            quote!(true)
+        } else if self.base_types.is_empty() {
+            quote!(false)
+        } else {
+            let base_asyncness = self.base_types.iter().map(|base_type| {
+                let path_wo_lifetimes = shared::remove_lifetimes(base_type);
+                quote! {
+                    <#path_wo_lifetimes as #sails_path::meta::ServiceMeta>::ASYNC
+                }
+            });
+            quote!(#( #base_asyncness )||*)
+        };
 
         quote! {
             impl #generics #sails_path::meta::ServiceMeta for #service_type_path #service_type_constraints {
@@ -37,7 +44,7 @@ impl ServiceBuilder<'_> {
                 const BASE_SERVICES: &'static [#sails_path::meta::AnyServiceMetaFn] = &[
                     #( #base_services_meta ),*
                 ];
-                const ASYNC: bool = #( #service_meta_asyncness )||*;
+                const ASYNC: bool = #service_meta_asyncness ;
             }
         }
     }
@@ -62,9 +69,6 @@ impl ServiceBuilder<'_> {
             (fn_builder.is_query()).then_some(fn_builder.handler_meta_variant())
         });
 
-        let commands_asyncness = self.service_handler_asyncness(false);
-        let queries_asyncness = self.service_handler_asyncness(true);
-
         quote! {
             mod #meta_module_ident {
                 use super::*;
@@ -79,18 +83,10 @@ impl ServiceBuilder<'_> {
                     #(#commands_meta_variants),*
                 }
 
-                impl CommandsMeta {
-                    pub const ASYNC: bool = #commands_asyncness;
-                }
-
                 #[derive(TypeInfo)]
                 #[scale_info(crate = #scale_info_path)]
                 pub enum QueriesMeta {
                     #(#queries_meta_variants),*
-                }
-
-                impl QueriesMeta {
-                    pub const ASYNC: bool = #queries_asyncness;
                 }
 
                 #[derive(TypeInfo)]
@@ -99,25 +95,6 @@ impl ServiceBuilder<'_> {
 
                 pub type EventsMeta = #events_type;
             }
-        }
-    }
-
-    fn service_handler_asyncness(&self, is_query: bool) -> TokenStream {
-        let mut handlers = self
-            .service_handlers
-            .iter()
-            .filter(|fn_builder| is_query == fn_builder.is_query())
-            .peekable();
-
-        if handlers.peek().is_none() {
-            quote!(false)
-        } else {
-            let handlers_asyncness = handlers.map(|fn_builder| {
-                let param_struct_ident = &fn_builder.params_struct_ident;
-                quote!(#param_struct_ident::ASYNC)
-            });
-
-            quote!(#( #handlers_asyncness )||*)
         }
     }
 }

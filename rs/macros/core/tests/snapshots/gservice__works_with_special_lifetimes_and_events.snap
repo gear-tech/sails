@@ -70,8 +70,10 @@ where
     }
     pub fn check_asyncness(&self, input: &[u8]) -> Option<bool> {
         use sails_rs::gstd::InvocationIo;
-        if my_generic_events_service_meta::__DoThisParams::check_route(input).is_ok() {
-            return Some(my_generic_events_service_meta::__DoThisParams::ASYNC);
+        if let Ok(is_async) = my_generic_events_service_meta::__DoThisParams::check_asyncness(
+            input,
+        ) {
+            return Some(is_async);
         }
         None
     }
@@ -120,8 +122,7 @@ where
     type QueriesMeta = my_generic_events_service_meta::QueriesMeta;
     type EventsMeta = my_generic_events_service_meta::EventsMeta;
     const BASE_SERVICES: &'static [sails_rs::meta::AnyServiceMetaFn] = &[];
-    const ASYNC: bool = my_generic_events_service_meta::CommandsMeta::ASYNC
-        || my_generic_events_service_meta::QueriesMeta::ASYNC;
+    const ASYNC: bool = false;
 }
 mod my_generic_events_service_meta {
     use super::*;
@@ -141,15 +142,9 @@ mod my_generic_events_service_meta {
     pub enum CommandsMeta {
         DoThis(__DoThisParams, u32),
     }
-    impl CommandsMeta {
-        pub const ASYNC: bool = __DoThisParams::ASYNC;
-    }
     #[derive(TypeInfo)]
     #[scale_info(crate = sails_rs::scale_info)]
     pub enum QueriesMeta {}
-    impl QueriesMeta {
-        pub const ASYNC: bool = false;
-    }
     #[derive(TypeInfo)]
     #[scale_info(crate = sails_rs::scale_info)]
     pub enum NoEvents {}

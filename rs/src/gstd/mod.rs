@@ -86,13 +86,13 @@ pub trait InvocationIo {
     type Params: Decode;
     const ASYNC: bool;
 
-    fn check_route(payload: impl AsRef<[u8]>) -> Result<()> {
+    fn check_asyncness(payload: impl AsRef<[u8]>) -> Result<bool> {
         let value = payload.as_ref();
         if !value.starts_with(Self::ROUTE) {
             return Err(Error::Rtl(RtlError::InvocationPrefixMismatches));
         }
 
-        Ok(())
+        Ok(Self::ASYNC)
     }
 
     fn decode_params(payload: impl AsRef<[u8]>) -> Result<Self::Params> {

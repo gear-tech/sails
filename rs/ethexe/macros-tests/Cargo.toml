@@ -16,4 +16,4 @@ sails-macros-core = { workspace = true }
 sails-rs = { workspace = true, features = ["ethexe"] }
 syn = { workspace = true, features = ["full", "extra-traits"] }
 tokio = { workspace = true, features = ["full"] }
-trybuild = "1.0"
+trybuild.workspace = true

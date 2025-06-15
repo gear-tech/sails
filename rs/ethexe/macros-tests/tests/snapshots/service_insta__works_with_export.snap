@@ -149,11 +149,13 @@ impl SomeServiceExposure<SomeService> {
     }
     pub fn check_asyncness(&self, input: &[u8]) -> Option<bool> {
         use sails_rs::gstd::InvocationIo;
-        if some_service_meta::__DoSomethingParams::check_route(input).is_ok() {
-            return Some(some_service_meta::__DoSomethingParams::ASYNC);
+        if let Ok(is_async) = some_service_meta::__DoSomethingParams::check_asyncness(
+            input,
+        ) {
+            return Some(is_async);
         }
-        if some_service_meta::__ThisParams::check_route(input).is_ok() {
-            return Some(some_service_meta::__ThisParams::ASYNC);
+        if let Ok(is_async) = some_service_meta::__ThisParams::check_asyncness(input) {
+            return Some(is_async);
         }
         None
     }
@@ -190,8 +192,7 @@ impl sails_rs::meta::ServiceMeta for SomeService {
     type QueriesMeta = some_service_meta::QueriesMeta;
     type EventsMeta = some_service_meta::EventsMeta;
     const BASE_SERVICES: &'static [sails_rs::meta::AnyServiceMetaFn] = &[];
-    const ASYNC: bool = some_service_meta::CommandsMeta::ASYNC
-        || some_service_meta::QueriesMeta::ASYNC;
+    const ASYNC: bool = true;
 }
 mod some_service_meta {
     use super::*;
@@ -228,16 +229,10 @@ mod some_service_meta {
     pub enum CommandsMeta {
         DoSomething(__DoSomethingParams, (u32, String)),
     }
-    impl CommandsMeta {
-        pub const ASYNC: bool = __DoSomethingParams::ASYNC;
-    }
     #[derive(TypeInfo)]
     #[scale_info(crate = sails_rs::scale_info)]
     pub enum QueriesMeta {
         This(__ThisParams, bool),
-    }
-    impl QueriesMeta {
-        pub const ASYNC: bool = __ThisParams::ASYNC;
     }
     #[derive(TypeInfo)]
     #[scale_info(crate = sails_rs::scale_info)]

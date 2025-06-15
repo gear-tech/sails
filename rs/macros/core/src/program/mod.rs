@@ -160,7 +160,14 @@ impl ProgramBuilder {
         #[allow(unused_mut)]
         let mut solidity_dispatchers: Vec<TokenStream2> = Vec::new();
 
-        meta_asyncness.push(quote!(meta_in_program::ConstructorsMeta::ASYNC));
+        let has_async_ctor = self
+            .program_ctors()
+            .iter()
+            .any(|fn_builder| fn_builder.is_async());
+
+        if has_async_ctor {
+            meta_asyncness.push(quote!(true));
+        }
 
         let item_impl = self
             .program_impl
@@ -190,7 +197,12 @@ impl ProgramBuilder {
 
                 services_route.push(fn_builder.service_const_route());
                 services_meta.push(fn_builder.service_meta());
-                meta_asyncness.push(fn_builder.service_meta_asyncness());
+
+                if !has_async_ctor {
+                    // If there are no async constructors, we can't push the asyncness as false,
+                    // as there could be async handlers in services.
+                    meta_asyncness.push(fn_builder.service_meta_asyncness());
+                }
                 invocation_dispatches.push(fn_builder.service_invocation());
                 #[cfg(feature = "ethexe")]
                 solidity_dispatchers.push(fn_builder.sol_service_invocation());
@@ -199,6 +211,11 @@ impl ProgramBuilder {
 
             })
             .collect::<Vec<_>>();
+
+        if meta_asyncness.is_empty() {
+            // In case non of constructors is async and there are no services exposed.
+            meta_asyncness.push(quote!(false));
+        }
 
         // replace service ctor fn impls
         for (idx, original_service_ctor_fn, wrapping_service_ctor_fn, ..) in item_impl {
@@ -317,7 +334,6 @@ impl ProgramBuilder {
         let mut ctor_dispatches = Vec::with_capacity(program_ctors.len() + 1);
         let mut ctor_params_structs = Vec::with_capacity(program_ctors.len());
         let mut ctor_meta_variants = Vec::with_capacity(program_ctors.len());
-        let mut ctors_asyncness = Vec::with_capacity(program_ctors.len());
 
         for fn_builder in program_ctors {
             ctor_dispatches.push(fn_builder.ctor_branch_impl(
@@ -327,8 +343,6 @@ impl ProgramBuilder {
             ));
             ctor_params_structs
                 .push(fn_builder.ctor_params_struct(&scale_codec_path, &scale_info_path));
-
-            ctors_asyncness.push(fn_builder.ctor_params_struct_asyncness());
             ctor_meta_variants.push(fn_builder.ctor_meta_variant());
         }
 
@@ -363,10 +377,6 @@ impl ProgramBuilder {
                 #[scale_info(crate = #scale_info_path)]
                 pub enum ConstructorsMeta {
                     #( #ctor_meta_variants ),*
-                }
-
-                impl ConstructorsMeta {
-                    pub const ASYNC: bool = #( #ctors_asyncness )||*;
                 }
             }
         };
@@ -584,9 +594,11 @@ impl FnBuilder<'_> {
         quote! {
             if input.starts_with(& #route_ident) {
                 let mut service = program_ref.#service_ctor_ident();
-                let Some(is_async) = service.check_asyncness(&input[#route_ident .len()..]) else {
-                    gstd::unknown_input_panic("Unknown call", &input[#route_ident .len()..])
-                };
+                let is_async = service
+                    .check_asyncness(&input[#route_ident .len()..])
+                    .unwrap_or_else(|| {
+                        gstd::unknown_input_panic("Unknown call", &input[#route_ident .len()..])
+                    });
                 if is_async {
                     gstd::message_loop(async move {
                         // TODO #959
@@ -726,14 +738,6 @@ impl FnBuilder<'_> {
         quote! {
             #( #ctor_docs_attrs )*
             #ctor_route(#params_struct_ident)
-        }
-    }
-
-    fn ctor_params_struct_asyncness(&self) -> TokenStream2 {
-        let params_struct_ident = &self.params_struct_ident;
-
-        quote! {
-            #params_struct_ident ::ASYNC
         }
     }
 }

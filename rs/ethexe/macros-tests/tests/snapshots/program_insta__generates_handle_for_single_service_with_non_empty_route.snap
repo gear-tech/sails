@@ -27,8 +27,7 @@ impl sails_rs::meta::ProgramMeta for MyProgram {
     const SERVICES: &'static [(&'static str, sails_rs::meta::AnyServiceMetaFn)] = &[
         ("Service", sails_rs::meta::AnyServiceMeta::new::<MyService>),
     ];
-    const ASYNC: bool = meta_in_program::ConstructorsMeta::ASYNC
-        || <MyService as sails_rs::meta::ServiceMeta>::ASYNC;
+    const ASYNC: bool = <MyService as sails_rs::meta::ServiceMeta>::ASYNC;
 }
 mod meta_in_program {
     use super::*;
@@ -46,9 +45,6 @@ mod meta_in_program {
     #[scale_info(crate = sails_rs::scale_info)]
     pub enum ConstructorsMeta {
         Create(__CreateParams),
-    }
-    impl ConstructorsMeta {
-        pub const ASYNC: bool = __CreateParams::ASYNC;
     }
 }
 impl sails_rs::solidity::ProgramSignature for MyProgram {
@@ -197,13 +193,14 @@ pub mod wasm {
         }
         if input.starts_with(&__ROUTE_SERVICE) {
             let mut service = program_ref.service();
-            let Some(is_async) = service.check_asyncness(&input[__ROUTE_SERVICE.len()..])
-            else {
-                gstd::unknown_input_panic(
-                    "Unknown call",
-                    &input[__ROUTE_SERVICE.len()..],
-                )
-            };
+            let is_async = service
+                .check_asyncness(&input[__ROUTE_SERVICE.len()..])
+                .unwrap_or_else(|| {
+                    gstd::unknown_input_panic(
+                        "Unknown call",
+                        &input[__ROUTE_SERVICE.len()..],
+                    )
+                });
             if is_async {
                 gstd::message_loop(async move {
                     let input = input.clone();

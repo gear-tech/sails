@@ -92,11 +92,15 @@ impl<'a> ExtendedLifetimeExposure<ExtendedLifetime<'a>> {
     }
     pub fn check_asyncness(&self, input: &[u8]) -> Option<bool> {
         use sails_rs::gstd::InvocationIo;
-        if extended_lifetime_meta::__ExtendedNameParams::check_route(input).is_ok() {
-            return Some(extended_lifetime_meta::__ExtendedNameParams::ASYNC);
+        if let Ok(is_async) = extended_lifetime_meta::__ExtendedNameParams::check_asyncness(
+            input,
+        ) {
+            return Some(is_async);
         }
-        if extended_lifetime_meta::__NameParams::check_route(input).is_ok() {
-            return Some(extended_lifetime_meta::__NameParams::ASYNC);
+        if let Ok(is_async) = extended_lifetime_meta::__NameParams::check_asyncness(
+            input,
+        ) {
+            return Some(is_async);
         }
         if let Some(is_async) = self.base.0.check_asyncness(input) {
             return Some(is_async);
@@ -145,9 +149,7 @@ impl<'a> sails_rs::meta::ServiceMeta for ExtendedLifetime<'a> {
     const BASE_SERVICES: &'static [sails_rs::meta::AnyServiceMetaFn] = &[
         sails_rs::meta::AnyServiceMeta::new::<base::BaseLifetime>,
     ];
-    const ASYNC: bool = extended_lifetime_meta::CommandsMeta::ASYNC
-        || extended_lifetime_meta::QueriesMeta::ASYNC
-        || <base::BaseLifetime as sails_rs::meta::ServiceMeta>::ASYNC;
+    const ASYNC: bool = <base::BaseLifetime as sails_rs::meta::ServiceMeta>::ASYNC;
 }
 mod extended_lifetime_meta {
     use super::*;
@@ -177,17 +179,11 @@ mod extended_lifetime_meta {
     #[derive(TypeInfo)]
     #[scale_info(crate = sails_rs::scale_info)]
     pub enum CommandsMeta {}
-    impl CommandsMeta {
-        pub const ASYNC: bool = false;
-    }
     #[derive(TypeInfo)]
     #[scale_info(crate = sails_rs::scale_info)]
     pub enum QueriesMeta {
         ExtendedName(__ExtendedNameParams, String),
         Name(__NameParams, String),
-    }
-    impl QueriesMeta {
-        pub const ASYNC: bool = __ExtendedNameParams::ASYNC || __NameParams::ASYNC;
     }
     #[derive(TypeInfo)]
     #[scale_info(crate = sails_rs::scale_info)]

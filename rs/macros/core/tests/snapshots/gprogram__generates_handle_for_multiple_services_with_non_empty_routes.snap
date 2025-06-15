@@ -46,8 +46,7 @@ impl sails_rs::meta::ProgramMeta for MyProgram {
         ("Svc1", sails_rs::meta::AnyServiceMeta::new::<MyService>),
         ("Service2", sails_rs::meta::AnyServiceMeta::new::<MyService>),
     ];
-    const ASYNC: bool = meta_in_program::ConstructorsMeta::ASYNC
-        || <MyService as sails_rs::meta::ServiceMeta>::ASYNC
+    const ASYNC: bool = <MyService as sails_rs::meta::ServiceMeta>::ASYNC
         || <MyService as sails_rs::meta::ServiceMeta>::ASYNC;
 }
 mod meta_in_program {
@@ -66,9 +65,6 @@ mod meta_in_program {
     #[scale_info(crate = sails_rs::scale_info)]
     pub enum ConstructorsMeta {
         Create(__CreateParams),
-    }
-    impl ConstructorsMeta {
-        pub const ASYNC: bool = __CreateParams::ASYNC;
     }
 }
 #[cfg(target_arch = "wasm32")]
@@ -99,10 +95,14 @@ pub mod wasm {
         let program_ref = unsafe { PROGRAM.as_mut() }.expect("Program not initialized");
         if input.starts_with(&__ROUTE_SVC1) {
             let mut service = program_ref.service1();
-            let Some(is_async) = service.check_asyncness(&input[__ROUTE_SVC1.len()..])
-            else {
-                gstd::unknown_input_panic("Unknown call", &input[__ROUTE_SVC1.len()..])
-            };
+            let is_async = service
+                .check_asyncness(&input[__ROUTE_SVC1.len()..])
+                .unwrap_or_else(|| {
+                    gstd::unknown_input_panic(
+                        "Unknown call",
+                        &input[__ROUTE_SVC1.len()..],
+                    )
+                });
             if is_async {
                 gstd::message_loop(async move {
                     let input = input.clone();
@@ -135,13 +135,14 @@ pub mod wasm {
             }
         } else if input.starts_with(&__ROUTE_SERVICE2) {
             let mut service = program_ref.service2();
-            let Some(is_async) = service
-                .check_asyncness(&input[__ROUTE_SERVICE2.len()..]) else {
-                gstd::unknown_input_panic(
-                    "Unknown call",
-                    &input[__ROUTE_SERVICE2.len()..],
-                )
-            };
+            let is_async = service
+                .check_asyncness(&input[__ROUTE_SERVICE2.len()..])
+                .unwrap_or_else(|| {
+                    gstd::unknown_input_panic(
+                        "Unknown call",
+                        &input[__ROUTE_SERVICE2.len()..],
+                    )
+                });
             if is_async {
                 gstd::message_loop(async move {
                     let input = input.clone();

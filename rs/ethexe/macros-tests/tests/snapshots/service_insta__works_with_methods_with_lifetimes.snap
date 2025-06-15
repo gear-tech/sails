@@ -259,20 +259,30 @@ impl ReferenceServiceExposure<ReferenceService> {
     }
     pub fn check_asyncness(&self, input: &[u8]) -> Option<bool> {
         use sails_rs::gstd::InvocationIo;
-        if reference_service_meta::__AddByteParams::check_route(input).is_ok() {
-            return Some(reference_service_meta::__AddByteParams::ASYNC);
+        if let Ok(is_async) = reference_service_meta::__AddByteParams::check_asyncness(
+            input,
+        ) {
+            return Some(is_async);
         }
-        if reference_service_meta::__BakedParams::check_route(input).is_ok() {
-            return Some(reference_service_meta::__BakedParams::ASYNC);
+        if let Ok(is_async) = reference_service_meta::__BakedParams::check_asyncness(
+            input,
+        ) {
+            return Some(is_async);
         }
-        if reference_service_meta::__FirstByteParams::check_route(input).is_ok() {
-            return Some(reference_service_meta::__FirstByteParams::ASYNC);
+        if let Ok(is_async) = reference_service_meta::__FirstByteParams::check_asyncness(
+            input,
+        ) {
+            return Some(is_async);
         }
-        if reference_service_meta::__IncrParams::check_route(input).is_ok() {
-            return Some(reference_service_meta::__IncrParams::ASYNC);
+        if let Ok(is_async) = reference_service_meta::__IncrParams::check_asyncness(
+            input,
+        ) {
+            return Some(is_async);
         }
-        if reference_service_meta::__LastByteParams::check_route(input).is_ok() {
-            return Some(reference_service_meta::__LastByteParams::ASYNC);
+        if let Ok(is_async) = reference_service_meta::__LastByteParams::check_asyncness(
+            input,
+        ) {
+            return Some(is_async);
         }
         None
     }
@@ -309,8 +319,7 @@ impl sails_rs::meta::ServiceMeta for ReferenceService {
     type QueriesMeta = reference_service_meta::QueriesMeta;
     type EventsMeta = reference_service_meta::EventsMeta;
     const BASE_SERVICES: &'static [sails_rs::meta::AnyServiceMetaFn] = &[];
-    const ASYNC: bool = reference_service_meta::CommandsMeta::ASYNC
-        || reference_service_meta::QueriesMeta::ASYNC;
+    const ASYNC: bool = true;
 }
 mod reference_service_meta {
     use super::*;
@@ -375,19 +384,12 @@ mod reference_service_meta {
         AddByte(__AddByteParams, &'static [u8]),
         Incr(__IncrParams, &'static ReferenceCount),
     }
-    impl CommandsMeta {
-        pub const ASYNC: bool = __AddByteParams::ASYNC || __IncrParams::ASYNC;
-    }
     #[derive(TypeInfo)]
     #[scale_info(crate = sails_rs::scale_info)]
     pub enum QueriesMeta {
         Baked(__BakedParams, &'static str),
         FirstByte(__FirstByteParams, Option<&'static u8>),
         LastByte(__LastByteParams, Option<&'static u8>),
-    }
-    impl QueriesMeta {
-        pub const ASYNC: bool = __BakedParams::ASYNC || __FirstByteParams::ASYNC
-            || __LastByteParams::ASYNC;
     }
     #[derive(TypeInfo)]
     #[scale_info(crate = sails_rs::scale_info)]

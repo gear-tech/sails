@@ -10,7 +10,7 @@ impl MyProgram {
 impl sails_rs::meta::ProgramMeta for MyProgram {
     type ConstructorsMeta = meta_in_program::ConstructorsMeta;
     const SERVICES: &'static [(&'static str, sails_rs::meta::AnyServiceMetaFn)] = &[];
-    const ASYNC: bool = meta_in_program::ConstructorsMeta::ASYNC;
+    const ASYNC: bool = true;
 }
 mod meta_in_program {
     use super::*;
@@ -31,9 +31,6 @@ mod meta_in_program {
     #[scale_info(crate = sails_rs::scale_info)]
     pub enum ConstructorsMeta {
         New(__NewParams),
-    }
-    impl ConstructorsMeta {
-        pub const ASYNC: bool = __NewParams::ASYNC;
     }
 }
 #[cfg(target_arch = "wasm32")]

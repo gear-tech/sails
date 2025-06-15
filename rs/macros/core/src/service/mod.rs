@@ -330,8 +330,8 @@ impl FnBuilder<'_> {
         let params_struct_ident = &self.params_struct_ident;
 
         quote! {
-            if #meta_module_ident::#params_struct_ident::check_route( #input_ident).is_ok() {
-                return Some(#meta_module_ident::#params_struct_ident::ASYNC);
+            if let Ok(is_async) = #meta_module_ident::#params_struct_ident::check_asyncness( #input_ident) {
+                return Some(is_async);
             }
         }
     }
