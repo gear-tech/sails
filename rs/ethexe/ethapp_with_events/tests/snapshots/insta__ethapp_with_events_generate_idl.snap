@@ -17,6 +17,7 @@ service Svc1 {
       p1: u32,
       p2: str,
     };
+    ThisEvent;
   }
 };
 
