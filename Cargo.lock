@@ -99,6 +99,27 @@ dependencies = [
 ]
 
 [[package]]
+name = "alloc-stress-app"
+version = "0.8.1"
+dependencies = [
+ "alloc-stress-client",
+ "benchmarks",
+ "gtest",
+ "sails-rs",
+ "tokio",
+]
+
+[[package]]
+name = "alloc-stress-client"
+version = "0.8.1"
+dependencies = [
+ "alloc-stress-app",
+ "sails-client-gen",
+ "sails-idl-gen",
+ "sails-rs",
+]
+
+[[package]]
 name = "allocator-api2"
 version = "0.2.21"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -693,6 +714,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "benchmarks"
+version = "0.8.1"
+dependencies = [
+ "alloc-stress-app",
+ "alloc-stress-client",
+ "anyhow",
+ "compute-stress-app",
+ "compute-stress-client",
+ "fs2",
+ "gtest",
+ "sails-rs",
+ "serde",
+ "serde_json",
+ "tokio",
+]
+
+[[package]]
 name = "bincode"
 version = "1.3.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1160,7 +1198,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "117725a109d387c937a1533ce01b450cbde6b88abceea8473c4d7a85853cda3c"
 dependencies = [
  "lazy_static",
- "windows-sys 0.48.0",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -1178,6 +1216,26 @@ name = "common-path"
 version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2382f75942f4b3be3690fe4f86365e9c853c1587d6ee58212cebf6e2a9ccd101"
+
+[[package]]
+name = "compute-stress-app"
+version = "0.8.1"
+dependencies = [
+ "benchmarks",
+ "gtest",
+ "sails-rs",
+ "tokio",
+]
+
+[[package]]
+name = "compute-stress-client"
+version = "0.8.1"
+dependencies = [
+ "compute-stress-app",
+ "sails-client-gen",
+ "sails-idl-gen",
+ "sails-rs",
+]
 
 [[package]]
 name = "concurrent-queue"
@@ -2120,7 +2178,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "33d852cb9b869c2a9b3df2f71a3074817f01e1844f839a144f5fcef059a4eb5d"
 dependencies = [
  "libc",
- "windows-sys 0.52.0",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -2230,55 +2288,6 @@ name = "fiat-crypto"
 version = "0.2.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "28dea519a9695b9977216879a3ebfddf92f1c08c05d984f8996aecd6ecdc811d"
-
-[[package]]
-name = "fibonacci-stress"
-version = "0.8.1"
-dependencies = [
- "fibonacci-stress-core",
- "fibonacci-stress-plain",
- "fibonacci-stress-sails",
- "fibonacci-stress-sails-client",
- "gtest",
- "sails-rs",
- "tokio",
-]
-
-[[package]]
-name = "fibonacci-stress-core"
-version = "0.8.1"
-dependencies = [
- "parity-scale-codec",
- "scale-info",
-]
-
-[[package]]
-name = "fibonacci-stress-plain"
-version = "0.8.1"
-dependencies = [
- "fibonacci-stress-core",
- "gear-wasm-builder",
- "gstd",
- "parity-scale-codec",
-]
-
-[[package]]
-name = "fibonacci-stress-sails"
-version = "0.8.1"
-dependencies = [
- "fibonacci-stress-core",
- "sails-rs",
-]
-
-[[package]]
-name = "fibonacci-stress-sails-client"
-version = "0.8.1"
-dependencies = [
- "fibonacci-stress-sails",
- "sails-client-gen",
- "sails-idl-gen",
- "sails-rs",
-]
 
 [[package]]
 name = "file-guard"
@@ -2508,6 +2517,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "88a41f105fe1d5b6b34b2055e3dc59bb79b46b48b2040b9e6c7b4b5de097aa41"
 dependencies = [
  "autocfg",
+]
+
+[[package]]
+name = "fs2"
+version = "0.4.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9564fc758e15025b46aa6643b1b77d047d1a56a1aea6e01002ac0c7026876213"
+dependencies = [
+ "libc",
+ "winapi",
 ]
 
 [[package]]
@@ -4241,7 +4260,7 @@ checksum = "e19b23d53f35ce9f56aebc7d1bb4e6ac1e9c0db7ac85c8d1760c04379edced37"
 dependencies = [
  "hermit-abi 0.4.0",
  "libc",
- "windows-sys 0.52.0",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -6572,7 +6591,7 @@ dependencies = [
  "errno",
  "libc",
  "linux-raw-sys 0.4.15",
- "windows-sys 0.52.0",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -9684,7 +9703,7 @@ version = "0.1.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cf221c93e13a30d793f7645a0e7762c55d169dbb0a49671918a2319d289b10bb"
 dependencies = [
- "windows-sys 0.48.0",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]

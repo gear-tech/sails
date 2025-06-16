@@ -1,0 +1,23 @@
+[package]
+name = "benchmarks"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+anyhow.workspace = true
+serde = { workspace = true, features = ["derive"] }
+serde-json.workspace = true
+fs2.workspace = true
+# todo [sab] issue for removing this
+gtest.workspace = true
+
+[dev-dependencies]
+sails-rs = { workspace = true, features = ["gtest"] }
+alloc-stress-app = { path = "alloc-stress/app" }
+alloc-stress-client = { path = "alloc-stress/client" }
+compute-stress-app = { path = "compute-stress/app" }
+compute-stress-client = { path = "compute-stress/client" }
+tokio = { workspace = true, features = ["rt", "macros"] }

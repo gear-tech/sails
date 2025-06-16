@@ -32,11 +32,13 @@ members = [
     "rs/macros",
     "rs/macros/core",
     "rs/sol-gen",
-    "benchmarks/fibonacci-stress",
-    "benchmarks/fibonacci-stress/core",
-    "benchmarks/fibonacci-stress/sails",
-    "benchmarks/fibonacci-stress/sails-client",
-    "benchmarks/fibonacci-stress/plain",
+    "benchmarks/alloc-stress/app",
+    "benchmarks/alloc-stress/client",
+    "benchmarks/compute-stress/app",
+    "benchmarks/compute-stress/client",
+    # "benchmarks/fibonacci-stress/core",
+    # "benchmarks/fibonacci-stress/plain",
+    "benchmarks",
 ]
 
 [workspace.dependencies]
@@ -59,7 +61,7 @@ gear-core = { version = "=1.8.1", default-features = false }
 gear-core-errors = "=1.8.1"
 gprimitives = { version = "=1.8.1", features = ["codec"] }
 gstd = "=1.8.1"
-gtest = "=1.8.1"
+gtest = { git = "https://github.com/gear-tech/gear.git", rev = "f24a144" }
 gwasm-builder = { version = "=1.8.1", package = "gear-wasm-builder" }
 
 # Other deps in alphabetical order
@@ -101,3 +103,4 @@ thiserror-no-std = "2.0"
 toml_edit = "0.22"
 tokio = "1.45"
 trybuild = "1"
+fs2 = "0.4.3"

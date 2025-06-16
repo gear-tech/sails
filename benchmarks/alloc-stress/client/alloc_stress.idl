@@ -1,0 +1,12 @@
+type AllocStressResult = struct {
+  inner: vec u8,
+};
+
+constructor {
+  New : ();
+};
+
+service AllocStress {
+  AllocStress : (n: u32) -> AllocStressResult;
+};
+

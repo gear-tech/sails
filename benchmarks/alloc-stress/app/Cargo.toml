@@ -1,16 +1,20 @@
 [package]
-name = "fibonacci-stress"
+name = "alloc-stress-app"
 version.workspace = true
 authors.workspace = true
 edition.workspace = true
 license.workspace = true
 repository.workspace = true
 
+[dependencies]
+sails-rs.workspace = true
+
 [dev-dependencies]
-gtest.workspace = true
-fibonacci-stress-core = { path = "./core" }
-fibonacci-stress-sails = { path = "./sails" }
-fibonacci-stress-plain = { path = "./plain" }
-fibonacci-stress-sails-client = { path = "./sails-client" }
 sails-rs = { workspace = true, features = ["gtest"] }
+alloc-stress-client = { path = "../client" }
+gtest.workspace = true
 tokio = { workspace = true, features = ["rt", "macros"] }
+benchmarks = { path = "../../" }
+
+[build-dependencies]
+sails-rs = { workspace = true, features = ["wasm-builder"] }

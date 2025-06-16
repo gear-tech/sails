@@ -1,0 +1,20 @@
+[package]
+name = "compute-stress-app"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+sails-rs.workspace = true
+
+[dev-dependencies]
+sails-rs = { workspace = true, features = ["gtest"] }
+# compute-stress-client = { path = "../client" }
+gtest.workspace = true
+tokio = { workspace = true, features = ["rt", "macros"] }
+benchmarks = { path = "../../" }
+
+[build-dependencies]
+sails-rs = { workspace = true, features = ["wasm-builder"] }

@@ -1,5 +1,5 @@
 [package]
-name = "fibonacci-stress-sails"
+name = "compute-stress-client"
 version.workspace = true
 authors.workspace = true
 edition.workspace = true
@@ -8,7 +8,8 @@ repository.workspace = true
 
 [dependencies]
 sails-rs.workspace = true
-fibonacci-stress-core = { path = "../core" }
 
 [build-dependencies]
-sails-rs = { workspace = true, features = ["wasm-builder"] }
+compute-stress-app = { path = "../app" }
+sails-client-gen.workspace = true
+sails-idl-gen.workspace = true
