@@ -13,6 +13,7 @@ pub enum Events {
         p1: u32,
         p2: sails_rs::String,
     },
+    ThisEvent,
 }
 
 pub struct MyProgram;
@@ -39,6 +40,8 @@ impl SomeService {
     }
 
     pub fn this(&self, p1: bool) -> bool {
+        // Emit event from query
+        self.emit_event(Events::ThisEvent).unwrap();
         p1
     }
 }
@@ -50,11 +53,11 @@ pub struct SomeService2 {
 #[sails_rs::service]
 impl SomeService2 {
     pub async fn do_this(&mut self, p1: u32, p2: sails_rs::String) -> u32 {
-        // Emit EthEvent via Svc1 Exposure
+        // Emit EthEvent via Svc1 Emitter
         self.svc1_emitter
             .emit_eth_event(Events::DoThisEvent { p1, p2: p2.clone() })
             .unwrap();
-        // Emit gear event via Svc1 Exposure
+        // Emit gear event via Svc1 Emitter
         self.svc1_emitter
             .emit_event(Events::DoThisEvent { p1, p2 })
             .unwrap();
