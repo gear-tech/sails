@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## master
+### Changes
+- Skip type file generation if types are not present in the IDL
+
 ## 0.4.2
 ### Compatibility
 - Sails-RS v0.8.1

@@ -14,6 +14,9 @@ export class TypesGenerator extends BaseGenerator {
   }
 
   public generate() {
+    if (this._program.types.length === 0) {
+      return;
+    }
     this._out.line('declare global {', false).increaseIndent();
     for (let i = 0; i < this._program.types.length; i++) {
       const { name, def, docs } = this._program.types[i];
