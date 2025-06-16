@@ -42,7 +42,10 @@ pub mod ffi {
 }
 
 #[cfg(feature = "gstd")]
-pub use crate::gstd::{CommandReply, SailsEvent, Syscall, event, export, program, route, service};
+pub use crate::gstd::{
+    CommandReply, ExposureWithEvents as _, SailsEvent, ServiceWithEvents as _, Syscall, event,
+    export, program, route, service,
+};
 pub use crate::types::*;
 pub use gear_core_errors::{
     self as gear_core_errors, ErrorReplyReason, ReplyCode, SimpleExecutionError,

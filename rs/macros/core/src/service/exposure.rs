@@ -40,7 +40,7 @@ impl ServiceBuilder<'_> {
         self.events_type.map(|events_type| {
             quote! {
                 impl #generics #service_type_path #service_type_constraints {
-                    fn emit_event(&self, event: #events_type ) -> #sails_path::errors::Result<()>  {
+                    fn emit_event(&mut self, event: #events_type ) -> #sails_path::errors::Result<()>  {
                         use #sails_path::gstd::ServiceWithEvents;
                         Self::emitter().emit_event(event)
                     }

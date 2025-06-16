@@ -150,7 +150,7 @@ mod some_service_meta {
     pub type EventsMeta = SomeEvents;
 }
 impl SomeService {
-    fn emit_event(&self, event: SomeEvents) -> sails_rs::errors::Result<()> {
+    fn emit_event(&mut self, event: SomeEvents) -> sails_rs::errors::Result<()> {
         use sails_rs::gstd::ServiceWithEvents;
         Self::emitter().emit_event(event)
     }

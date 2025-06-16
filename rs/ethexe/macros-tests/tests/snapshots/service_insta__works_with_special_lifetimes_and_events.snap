@@ -190,7 +190,7 @@ impl<T> MyGenericEventsService<'_, '_, T>
 where
     T: Clone,
 {
-    fn emit_event(&self, event: MyEvents) -> sails_rs::errors::Result<()> {
+    fn emit_event(&mut self, event: MyEvents) -> sails_rs::errors::Result<()> {
         use sails_rs::gstd::ServiceWithEvents;
         Self::emitter().emit_event(event)
     }
@@ -199,7 +199,7 @@ impl<T> MyGenericEventsService<'_, '_, T>
 where
     T: Clone,
 {
-    fn emit_eth_event(&self, event: MyEvents) -> sails_rs::errors::Result<()> {
+    fn emit_eth_event(&mut self, event: MyEvents) -> sails_rs::errors::Result<()> {
         use sails_rs::gstd::ServiceWithEvents;
         Self::emitter().emit_eth_event(event)
     }

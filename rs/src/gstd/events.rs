@@ -109,7 +109,7 @@ impl<T: SailsEvent> EventEmitter<T> {
 
     /// Emits an event.
     #[cfg(target_arch = "wasm32")]
-    pub fn emit_event(&self, event: T) -> crate::errors::Result<()> {
+    pub fn emit_event(&mut self, event: T) -> crate::errors::Result<()> {
         with_optimized_event_encode(self.route, event, |payload| {
             gstd::msg::send_bytes(gstd::ActorId::zero(), payload, 0)?;
             Ok(())
@@ -118,7 +118,7 @@ impl<T: SailsEvent> EventEmitter<T> {
 
     #[cfg(not(target_arch = "wasm32"))]
     #[cfg(not(feature = "std"))]
-    pub fn emit_event(&self, _event: T) -> crate::errors::Result<()> {
+    pub fn emit_event(&mut self, _event: T) -> crate::errors::Result<()> {
         unimplemented!(
             "`emit_event` is implemented only for the wasm32 architecture and the std future"
         )
@@ -129,13 +129,13 @@ impl<T: SailsEvent> EventEmitter<T> {
 impl<T: super::EthEvent> EventEmitter<T> {
     /// Emits an event for the Ethexe program.
     #[cfg(target_arch = "wasm32")]
-    pub fn emit_eth_event(&self, event: T) -> crate::errors::Result<()> {
+    pub fn emit_eth_event(&mut self, event: T) -> crate::errors::Result<()> {
         super::ethexe::__emit_eth_event(event)
     }
 
     #[cfg(not(target_arch = "wasm32"))]
     #[cfg(not(feature = "std"))]
-    pub fn emit_eth_event(&self, _event: T) -> crate::errors::Result<()> {
+    pub fn emit_eth_event(&mut self, _event: T) -> crate::errors::Result<()> {
         unimplemented!(
             "`emit_eth_event` is implemented only for the wasm32 architecture and the std future"
         )
@@ -146,19 +146,19 @@ impl<T: super::EthEvent> EventEmitter<T> {
 #[cfg(feature = "std")]
 impl<T: 'static> EventEmitter<T> {
     /// Emits an event.
-    pub fn emit_event(&self, event: T) -> crate::errors::Result<()> {
+    pub fn emit_event(&mut self, event: T) -> crate::errors::Result<()> {
         event_registry::push_event(self.route, event);
         Ok(())
     }
 
     #[cfg(feature = "ethexe")]
-    pub fn emit_eth_event(&self, event: T) -> crate::errors::Result<()> {
+    pub fn emit_eth_event(&mut self, event: T) -> crate::errors::Result<()> {
         event_registry::push_event(self.route, event);
         Ok(())
     }
 
     /// Takes the events emitted for this route and returns them as a `Vec<T>`.
-    pub fn take_events(&self) -> crate::Vec<T> {
+    pub fn take_events(&mut self) -> crate::Vec<T> {
         event_registry::take_events(self.route).unwrap_or_else(|| crate::Vec::new())
     }
 }
