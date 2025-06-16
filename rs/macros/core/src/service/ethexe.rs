@@ -103,7 +103,7 @@ impl ServiceBuilder<'_> {
                 impl #generics #service_type_path #service_type_constraints {
                     fn emit_eth_event(&self, event: #events_type) -> #sails_path::errors::Result<()> {
                         use #sails_path::gstd::ServiceWithEvents;
-                        Self::emitter().emit_eth_event(event)                            
+                        Self::emitter().emit_eth_event(event)
                     }
                 }
             }
