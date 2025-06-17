@@ -36,6 +36,8 @@ members = [
     "benchmarks/alloc-stress/client",
     "benchmarks/compute-stress/app",
     "benchmarks/compute-stress/client",
+    "benchmarks/counter-bench/app",
+    "benchmarks/counter-bench/client",
     # "benchmarks/fibonacci-stress/core",
     # "benchmarks/fibonacci-stress/plain",
     "benchmarks",
@@ -54,21 +56,22 @@ sails-sol-gen = { path = "rs/sol-gen" }
 # Renamed sails-rs for `proxy` demo
 sails-rename = { package = "sails-rs", path = "rs" }
 
+# todo [sab] change to rev
 # Gear deps
-gclient = "=1.8.1"
-gcore = "=1.8.1"
-gear-core = { version = "=1.8.1", default-features = false }
-gear-core-errors = "=1.8.1"
-gprimitives = { version = "=1.8.1", features = ["codec"] }
-gstd = "=1.8.1"
-gtest = { git = "https://github.com/gear-tech/gear.git", rev = "f24a144" }
-gwasm-builder = { version = "=1.8.1", package = "gear-wasm-builder" }
+gclient = { git = "https://github.com/gear-tech/gear.git", branch = "st-bump-down-tempfile"}
+gcore = { git = "https://github.com/gear-tech/gear.git", branch = "st-bump-down-tempfile" }
+gear-core = { git = "https://github.com/gear-tech/gear.git", branch = "st-bump-down-tempfile", default-features = false }
+gear-core-errors = { git = "https://github.com/gear-tech/gear.git", branch = "st-bump-down-tempfile" }
+gprimitives = { git = "https://github.com/gear-tech/gear.git", branch = "st-bump-down-tempfile", features = ["codec"] }
+gstd = { git = "https://github.com/gear-tech/gear.git", branch = "st-bump-down-tempfile" }
+gtest = { git = "https://github.com/gear-tech/gear.git", branch = "st-bump-down-tempfile" }
+gwasm-builder = { git = "https://github.com/gear-tech/gear.git", branch = "st-bump-down-tempfile", package = "gear-wasm-builder" }
 
 # Other deps in alphabetical order
 alloy-primitives = { version = "0.8.19", default-features = false }
 alloy-sol-types = { version = "0.8.19", default-features = false }
 anyhow = "1"
-cargo-generate = "0.21"
+cargo-generate = "0.23.3"
 cargo_metadata = "0.19"
 clap = "4.5"
 convert-case = { package = "convert_case", version = "0.6" }

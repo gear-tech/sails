@@ -1,0 +1,9 @@
+constructor {
+  New : ();
+};
+
+service CounterBench {
+  Inc : () -> u64;
+  IncAsync : () -> u64;
+};
+

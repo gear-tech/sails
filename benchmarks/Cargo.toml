@@ -20,4 +20,6 @@ alloc-stress-app = { path = "alloc-stress/app" }
 alloc-stress-client = { path = "alloc-stress/client" }
 compute-stress-app = { path = "compute-stress/app" }
 compute-stress-client = { path = "compute-stress/client" }
+counter-bench-app = { path = "counter-bench/app" }
+counter-bench-client = { path = "counter-bench/client" }
 tokio = { workspace = true, features = ["rt", "macros"] }

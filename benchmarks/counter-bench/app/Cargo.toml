@@ -1,5 +1,5 @@
 [package]
-name = "compute-stress-app"
+name = "counter-bench-app"
 version.workspace = true
 authors.workspace = true
 edition.workspace = true

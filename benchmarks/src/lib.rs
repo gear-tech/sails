@@ -2,7 +2,6 @@
 
 use anyhow::{Context, Result};
 use fs2::FileExt;
-use gtest::Gas;
 use serde::{Deserialize, Serialize};
 use std::{
     collections::BTreeMap,
@@ -18,18 +17,14 @@ mod benchmarks;
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BenchData {
     pub compute: u64,
-    alloc: BTreeMap<u32, u64>,
+    pub alloc: BTreeMap<u32, u64>,
+    pub counter: CounterBenchData,
 }
 
-impl BenchData {
-    pub fn update_alloc(&mut self, n: u32, gas: Gas) {
-        // todo [sab]
-        let gas = format!("{gas}")
-            .parse::<u64>()
-            .expect("value is a valid u64");
-
-        self.alloc.insert(n, gas);
-    }
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CounterBenchData {
+    pub async_call: u64,
+    pub sync_call: u64,
 }
 
 pub fn store_bench_data(f: impl FnOnce(&mut BenchData)) -> Result<()> {

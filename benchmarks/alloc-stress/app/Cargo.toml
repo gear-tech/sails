@@ -9,12 +9,7 @@ repository.workspace = true
 [dependencies]
 sails-rs.workspace = true
 
-[dev-dependencies]
-sails-rs = { workspace = true, features = ["gtest"] }
-alloc-stress-client = { path = "../client" }
-gtest.workspace = true
-tokio = { workspace = true, features = ["rt", "macros"] }
-benchmarks = { path = "../../" }
-
 [build-dependencies]
 sails-rs = { workspace = true, features = ["wasm-builder"] }
+sails-client-gen.workspace = true
+sails-idl-gen.workspace = true
