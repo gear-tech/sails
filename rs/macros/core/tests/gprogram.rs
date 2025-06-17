@@ -212,3 +212,23 @@ fn generates_async_main_with_handle_reply() {
 
     insta::assert_snapshot!(result);
 }
+
+#[test]
+fn generates_async_ctor_with_service() {
+    let input = quote! {
+        impl MyProgram {
+            pub async fn new(p1: u32, p2: String) -> Self {
+                Self { p1, p2 }
+            }
+
+            pub fn service(&self) -> MyService {
+                MyService
+            }
+        }
+    };
+
+    let result = gprogram(TokenStream::new(), input).to_string();
+    let result = prettyplease::unparse(&syn::parse_str(&result).unwrap());
+
+    insta::assert_snapshot!(result);
+}

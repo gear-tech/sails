@@ -1,0 +1,5 @@
+error: `handle_signal` is not supported in this build. Disable the `ethexe` feature to use it.
+ --> tests/ui/gprogram_fails_on_handle_signal.rs:7:11
+  |
+7 | #[program(handle_signal = handle_signal_impl)]
+  |           ^^^^^^^^^^^^^
