@@ -39,7 +39,7 @@ export class ProjectBuilder {
     return out.finalize();
   }
 
-  public generateTypes(): string {
+  public generateTypes(): string | null {
     const out = new Output();
 
     const typesGen = new TypesGenerator(out, this.sails.program);
@@ -93,10 +93,12 @@ export class ProjectBuilder {
 
     const typesCode = this.generateTypes();
     const typesFile = path.join(libPath, 'global.d.ts');
-    if (await this.canCreateFile(typesFile)) {
-      writeFileSync(typesFile, typesCode);
-    } else {
-      throw new Error(`Failed to write file ${typesFile}`);
+    if (typesCode !== null) {
+      if (await this.canCreateFile(typesFile)) {
+        writeFileSync(typesFile, typesCode);
+      } else {
+        throw new Error(`Failed to write file ${typesFile}`);
+      }
     }
 
     if (!this.isProject) {

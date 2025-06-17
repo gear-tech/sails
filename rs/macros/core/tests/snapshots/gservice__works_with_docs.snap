@@ -44,7 +44,26 @@ impl SomeServiceExposure<SomeService> {
         let exposure_scope = self.scope();
         self.inner.this(p1)
     }
-    pub async fn try_handle(
+    pub fn try_handle(
+        &mut self,
+        input: &[u8],
+        result_handler: fn(&[u8], u128),
+    ) -> Option<()> {
+        use sails_rs::gstd::InvocationIo;
+        use sails_rs::gstd::services::Exposure;
+        if let Ok(request) = some_service_meta::__ThisParams::decode_params(input) {
+            let result = self.this(request.p1);
+            let value = 0u128;
+            some_service_meta::__ThisParams::with_optimized_encode(
+                &result,
+                self.route().as_ref(),
+                |encoded_result| result_handler(encoded_result, value),
+            );
+            return Some(());
+        }
+        None
+    }
+    pub async fn try_handle_async(
         &mut self,
         input: &[u8],
         result_handler: fn(&[u8], u128),
@@ -61,15 +80,18 @@ impl SomeServiceExposure<SomeService> {
             );
             return Some(());
         }
-        if let Ok(request) = some_service_meta::__ThisParams::decode_params(input) {
-            let result = self.this(request.p1);
-            let value = 0u128;
-            some_service_meta::__ThisParams::with_optimized_encode(
-                &result,
-                self.route().as_ref(),
-                |encoded_result| result_handler(encoded_result, value),
-            );
-            return Some(());
+        None
+    }
+    pub fn check_asyncness(&self, input: &[u8]) -> Option<bool> {
+        use sails_rs::gstd::InvocationIo;
+        if !<SomeService as sails_rs::meta::ServiceMeta>::ASYNC {
+            return Some(false);
+        }
+        if let Ok(is_async) = some_service_meta::__DoThisParams::check_asyncness(input) {
+            return Some(is_async);
+        }
+        if let Ok(is_async) = some_service_meta::__ThisParams::check_asyncness(input) {
+            return Some(is_async);
         }
         None
     }
@@ -106,10 +128,12 @@ impl sails_rs::meta::ServiceMeta for SomeService {
     type QueriesMeta = some_service_meta::QueriesMeta;
     type EventsMeta = some_service_meta::EventsMeta;
     const BASE_SERVICES: &'static [sails_rs::meta::AnyServiceMetaFn] = &[];
+    const ASYNC: bool = true;
 }
 mod some_service_meta {
     use super::*;
     use sails_rs::{Decode, TypeInfo};
+    use sails_rs::gstd::InvocationIo;
     #[derive(Decode, TypeInfo)]
     #[codec(crate = sails_rs::scale_codec)]
     #[scale_info(crate = sails_rs::scale_info)]
@@ -117,9 +141,10 @@ mod some_service_meta {
         pub(super) p1: u32,
         pub(super) p2: String,
     }
-    impl sails_rs::gstd::InvocationIo for __DoThisParams {
+    impl InvocationIo for __DoThisParams {
         const ROUTE: &'static [u8] = &[24u8, 68u8, 111u8, 84u8, 104u8, 105u8, 115u8];
         type Params = Self;
+        const ASYNC: bool = true;
     }
     #[derive(Decode, TypeInfo)]
     #[codec(crate = sails_rs::scale_codec)]
@@ -127,9 +152,10 @@ mod some_service_meta {
     pub struct __ThisParams {
         pub(super) p1: bool,
     }
-    impl sails_rs::gstd::InvocationIo for __ThisParams {
+    impl InvocationIo for __ThisParams {
         const ROUTE: &'static [u8] = &[16u8, 84u8, 104u8, 105u8, 115u8];
         type Params = Self;
+        const ASYNC: bool = false;
     }
     #[derive(TypeInfo)]
     #[scale_info(crate = sails_rs::scale_info)]

@@ -9,6 +9,7 @@ pub trait ServiceMeta {
     type QueriesMeta: StaticTypeInfo;
     type EventsMeta: StaticTypeInfo;
     const BASE_SERVICES: &'static [AnyServiceMetaFn];
+    const ASYNC: bool;
 
     fn commands() -> MetaType {
         MetaType::new::<Self::CommandsMeta>()
@@ -64,6 +65,7 @@ impl AnyServiceMeta {
 pub trait ProgramMeta {
     type ConstructorsMeta: StaticTypeInfo;
     const SERVICES: &'static [(&'static str, AnyServiceMetaFn)];
+    const ASYNC: bool;
 
     fn constructors() -> MetaType {
         MetaType::new::<Self::ConstructorsMeta>()

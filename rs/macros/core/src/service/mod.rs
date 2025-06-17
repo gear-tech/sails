@@ -237,10 +237,10 @@ impl FnBuilder<'_> {
     }
 
     fn params_struct(&self, scale_codec_path: &Path, scale_info_path: &Path) -> TokenStream {
-        let sails_path = self.sails_path;
         let params_struct_ident = &self.params_struct_ident;
         let params_struct_members = self.params().map(|(ident, ty)| quote!(#ident: #ty));
         let handler_route_bytes = self.encoded_route.as_slice();
+        let is_async = self.is_async();
 
         quote!(
             #[derive(Decode, TypeInfo)]
@@ -250,9 +250,10 @@ impl FnBuilder<'_> {
                 #(pub(super) #params_struct_members,)*
             }
 
-            impl #sails_path::gstd::InvocationIo for #params_struct_ident {
+            impl InvocationIo for #params_struct_ident {
                 const ROUTE: &'static [u8] = &[ #(#handler_route_bytes),* ];
                 type Params = Self;
+                const ASYNC: bool = #is_async;
             }
         )
     }
@@ -320,5 +321,19 @@ impl FnBuilder<'_> {
                 self. #inner_ident . #handler_ident (#(#handler_params),*) #handler_await_token
             }
         )
+    }
+
+    fn check_asyncness_branch_impl(
+        &self,
+        meta_module_ident: &Ident,
+        input_ident: &Ident,
+    ) -> TokenStream {
+        let params_struct_ident = &self.params_struct_ident;
+
+        quote! {
+            if let Ok(is_async) = #meta_module_ident::#params_struct_ident::check_asyncness( #input_ident) {
+                return Some(is_async);
+            }
+        }
     }
 }

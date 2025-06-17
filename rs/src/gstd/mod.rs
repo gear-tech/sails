@@ -107,6 +107,16 @@ impl<T: AsRef<[u8]>> core::fmt::Debug for HexSlice<T> {
 pub trait InvocationIo {
     const ROUTE: &'static [u8];
     type Params: Decode;
+    const ASYNC: bool;
+
+    fn check_asyncness(payload: impl AsRef<[u8]>) -> Result<bool> {
+        let value = payload.as_ref();
+        if !value.starts_with(Self::ROUTE) {
+            return Err(Error::Rtl(RtlError::InvocationPrefixMismatches));
+        }
+
+        Ok(Self::ASYNC)
+    }
 
     fn decode_params(payload: impl AsRef<[u8]>) -> Result<Self::Params> {
         let mut value = payload.as_ref();

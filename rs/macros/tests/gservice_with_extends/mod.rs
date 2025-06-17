@@ -55,3 +55,26 @@ pub(super) mod extended {
         }
     }
 }
+
+pub(super) mod extended_pure {
+    use super::*;
+
+    pub struct ExtendedPure {
+        base: base::Base,
+    }
+
+    impl ExtendedPure {
+        pub fn new(base: base::Base) -> Self {
+            Self { base }
+        }
+    }
+
+    #[service(extends = base::Base)]
+    impl ExtendedPure {}
+
+    impl AsRef<base::Base> for ExtendedPure {
+        fn as_ref(&self) -> &base::Base {
+            &self.base
+        }
+    }
+}

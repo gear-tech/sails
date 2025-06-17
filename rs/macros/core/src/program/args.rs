@@ -68,6 +68,13 @@ impl Parse for ProgramArg {
         let ident = path.get_ident().unwrap();
         match ident.to_string().as_str() {
             "handle_signal" => {
+                if cfg!(feature = "ethexe") {
+                    abort!(
+                        ident,
+                        "`handle_signal` is not supported in this build. \
+                        Disable the `ethexe` feature to use it.",
+                    );
+                }
                 input.parse::<Token![=]>()?;
                 let path: Path = input.parse()?;
                 Ok(Self::HandleSignal(path))
