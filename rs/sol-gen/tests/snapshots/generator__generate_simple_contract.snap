@@ -7,15 +7,15 @@ expression: "String::from_utf8(contract.unwrap()).unwrap()"
 pragma solidity ^0.8.28;
 
 interface ITestContract {
-    function createPrg(uint128 _value, bool _encodeReply) external returns (bytes32 messageId);
+    function createPrg(uint128 _value, bool _callReply) external returns (bytes32 messageId);
 
-    function svc1DoThis(uint128 _value, bool _encodeReply, uint32 p1, string calldata p2) external returns (bytes32 messageId);
+    function svc1DoThis(uint128 _value, bool _callReply, uint32 p1, string calldata p2) external returns (bytes32 messageId);
 }
 
 contract TestContractAbi is ITestContract {
-    function createPrg(uint128 _value, bool _encodeReply) external returns (bytes32 messageId) {}
+    function createPrg(uint128 _value, bool _callReply) external returns (bytes32 messageId) {}
 
-    function svc1DoThis(uint128 _value, bool _encodeReply, uint32 p1, string calldata p2) external returns (bytes32 messageId) {}
+    function svc1DoThis(uint128 _value, bool _callReply, uint32 p1, string calldata p2) external returns (bytes32 messageId) {}
 }
 
 interface ITestContractCallbacks {

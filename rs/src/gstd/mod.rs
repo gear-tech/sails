@@ -67,23 +67,57 @@ impl<T> From<(T, ValueUnit)> for CommandReply<T> {
 
 pub fn unknown_input_panic(message: &str, input: &[u8]) -> ! {
     let mut __input = input;
-    let input: String = crate::Decode::decode(&mut __input).unwrap_or_else(|_| {
-        if input.len() <= 8 {
-            format!("0x{}", crate::hex::encode(input))
+    match String::decode(&mut __input) {
+        Ok(s) => panic!("{}: {}", message, s),
+        Err(_) => panic!("{}: {}", message, HexSlice(input)),
+    }
+}
+
+struct HexSlice<T: AsRef<[u8]>>(T);
+
+impl<T: AsRef<[u8]>> core::fmt::Display for HexSlice<T> {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        let slice = self.0.as_ref();
+        let len = slice.len();
+        let precision = f.precision().unwrap_or(4);
+
+        f.write_str("0x")?;
+        if len <= precision * 2 {
+            for byte in slice {
+                write!(f, "{:02x}", byte)?;
+            }
         } else {
-            format!(
-                "0x{}..{}",
-                crate::hex::encode(&input[..4]),
-                crate::hex::encode(&input[input.len() - 4..])
-            )
+            for byte in &slice[..precision] {
+                write!(f, "{:02x}", byte)?;
+            }
+            f.write_str("..")?;
+            for byte in &slice[len - precision..] {
+                write!(f, "{:02x}", byte)?;
+            }
         }
-    });
-    panic!("{}: {}", message, input)
+        Ok(())
+    }
+}
+
+impl<T: AsRef<[u8]>> core::fmt::Debug for HexSlice<T> {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        core::fmt::Display::fmt(self, f)
+    }
 }
 
 pub trait InvocationIo {
     const ROUTE: &'static [u8];
     type Params: Decode;
+    const ASYNC: bool;
+
+    fn check_asyncness(payload: impl AsRef<[u8]>) -> Result<bool> {
+        let value = payload.as_ref();
+        if !value.starts_with(Self::ROUTE) {
+            return Err(Error::Rtl(RtlError::InvocationPrefixMismatches));
+        }
+
+        Ok(Self::ASYNC)
+    }
 
     fn decode_params(payload: impl AsRef<[u8]>) -> Result<Self::Params> {
         let mut value = payload.as_ref();

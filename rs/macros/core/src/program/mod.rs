@@ -147,14 +147,27 @@ impl ProgramBuilder {
 }
 
 impl ProgramBuilder {
-    fn wire_up_service_exposure(&mut self, program_ident: &Ident) -> (TokenStream2, TokenStream2) {
+    fn wire_up_service_exposure(
+        &mut self,
+        program_ident: &Ident,
+    ) -> (TokenStream2, TokenStream2, TokenStream2, TokenStream2) {
         let mut services_route = Vec::new();
         let mut services_meta = Vec::new();
+        let mut meta_asyncness = Vec::new();
         let mut invocation_dispatches = Vec::new();
         let mut routes = BTreeMap::new();
         // only used for ethexe
         #[allow(unused_mut)]
         let mut solidity_dispatchers: Vec<TokenStream2> = Vec::new();
+
+        let has_async_ctor = self
+            .program_ctors()
+            .iter()
+            .any(|fn_builder| fn_builder.is_async());
+
+        if has_async_ctor {
+            meta_asyncness.push(quote!(true));
+        }
 
         let item_impl = self
             .program_impl
@@ -184,6 +197,12 @@ impl ProgramBuilder {
 
                 services_route.push(fn_builder.service_const_route());
                 services_meta.push(fn_builder.service_meta());
+
+                if !has_async_ctor {
+                    // If there are no async constructors, we can't push the asyncness as false,
+                    // as there could be async handlers in services.
+                    meta_asyncness.push(fn_builder.service_meta_asyncness());
+                }
                 invocation_dispatches.push(fn_builder.service_invocation());
                 #[cfg(feature = "ethexe")]
                 solidity_dispatchers.push(fn_builder.sol_service_invocation());
@@ -193,6 +212,11 @@ impl ProgramBuilder {
             })
             .collect::<Vec<_>>();
 
+        if meta_asyncness.is_empty() {
+            // In case non of constructors is async and there are no services exposed.
+            meta_asyncness.push(quote!(false));
+        }
+
         // replace service ctor fn impls
         for (idx, original_service_ctor_fn, wrapping_service_ctor_fn, ..) in item_impl {
             self.program_impl.items[idx] = ImplItem::Fn(original_service_ctor_fn);
@@ -200,6 +224,21 @@ impl ProgramBuilder {
                 .items
                 .push(ImplItem::Fn(wrapping_service_ctor_fn));
         }
+
+        let handle_reply_fn = self.handle_reply_fn().map(|item_fn| {
+            let handle_reply_fn_ident = &item_fn.sig.ident;
+            quote! {
+                let program_ref = unsafe { #program_ident.as_mut() }.expect("Program not initialized");
+                program_ref.#handle_reply_fn_ident();
+            }
+        })
+        .unwrap_or_default();
+
+        let handle_signal_fn = self
+            .program_args
+            .handle_signal()
+            .map(|handle_signal_path| quote!( #handle_signal_path ();))
+            .unwrap_or_default();
 
         let sails_path = self.sails_path();
         let (program_type_path, _program_type_args, _) = self.impl_type();
@@ -214,31 +253,13 @@ impl ProgramBuilder {
                 const SERVICES: &'static [(&'static str, #sails_path::meta::AnyServiceMetaFn)] = &[
                     #(#services_meta),*
                 ];
+                const ASYNC: bool = #( #meta_asyncness )||*;
             }
         };
 
         invocation_dispatches.push(quote! {
-            { gstd::unknown_input_panic("Unexpected service", input) }
+            { gstd::unknown_input_panic("Unexpected service", &input) }
         });
-
-        let handle_reply_fn = self.handle_reply_fn().map(|item_fn| {
-            let handle_reply_fn_ident = &item_fn.sig.ident;
-            quote! {
-                fn __handle_reply() {
-                    let program_ref = unsafe { #program_ident.as_mut() }.expect("Program not initialized");
-                    program_ref.#handle_reply_fn_ident();
-                }
-            }
-        });
-
-        let mut args = Vec::with_capacity(2);
-        if handle_reply_fn.is_some() {
-            args.push(quote!(handle_reply = __handle_reply));
-        }
-        if let Some(handle_signal) = self.program_args.handle_signal() {
-            args.push(quote!(handle_signal = #handle_signal));
-        }
-        let async_main_args = (!args.is_empty()).then_some(quote!((#(#args),*)));
 
         let solidity_main = self.sol_main(solidity_dispatchers.as_slice());
 
@@ -251,11 +272,11 @@ impl ProgramBuilder {
         });
 
         let main_fn = quote!(
-            #[gstd::async_main #async_main_args]
-            async fn main() {
+            #[unsafe(no_mangle)]
+            extern "C" fn handle() {
                 #payable
 
-                let mut input: &[u8] = &gstd::msg::load_bytes().expect("Failed to read input");
+                let mut input = gstd::msg::load_bytes().expect("Failed to read input");
                 let program_ref = unsafe { #program_ident.as_mut() }.expect("Program not initialized");
 
                 #solidity_main
@@ -263,10 +284,41 @@ impl ProgramBuilder {
                 #(#invocation_dispatches)else*;
             }
 
-            #handle_reply_fn
         );
 
-        (program_meta_impl, main_fn)
+        let handle_reply_fn = quote! {
+            #[unsafe(no_mangle)]
+            extern "C" fn handle_reply() {
+                use #sails_path::meta::ProgramMeta;
+
+                if #program_type_path::ASYNC {
+                    gstd::handle_reply_with_hook();
+                }
+
+                #handle_reply_fn
+            }
+        };
+
+        #[cfg(not(feature = "ethexe"))]
+        let handle_signal_fn = quote! {
+            #[unsafe(no_mangle)]
+            extern "C" fn handle_signal() {
+                use #sails_path::meta::ProgramMeta;
+
+                if #program_type_path::ASYNC {
+                    gstd::handle_signal();
+                }
+
+                #handle_signal_fn
+            }
+        };
+
+        (
+            program_meta_impl,
+            main_fn,
+            handle_reply_fn,
+            handle_signal_fn,
+        )
     }
 
     fn generate_init(&self, program_ident: &Ident) -> (TokenStream2, TokenStream2) {
@@ -284,7 +336,11 @@ impl ProgramBuilder {
         let mut ctor_meta_variants = Vec::with_capacity(program_ctors.len());
 
         for fn_builder in program_ctors {
-            ctor_dispatches.push(fn_builder.ctor_branch_impl(program_type_path, &input_ident));
+            ctor_dispatches.push(fn_builder.ctor_branch_impl(
+                program_type_path,
+                &input_ident,
+                program_ident,
+            ));
             ctor_params_structs
                 .push(fn_builder.ctor_params_struct(&scale_codec_path, &scale_info_path));
             ctor_meta_variants.push(fn_builder.ctor_meta_variant());
@@ -294,20 +350,18 @@ impl ProgramBuilder {
             { gstd::unknown_input_panic("Unexpected ctor", input) }
         });
 
-        let solidity_init = self.sol_init(&input_ident, program_ident);
+        let solidity_init = self.sol_init(&input_ident);
 
         let init_fn = quote! {
-            #[gstd::async_init]
-            async fn init() {
+            #[unsafe(no_mangle)]
+            extern "C" fn init() {
                 use gstd::InvocationIo;
+
                 let mut #input_ident: &[u8] = &gstd::msg::load_bytes().expect("Failed to read input");
 
                 #solidity_init
 
-                let (program, invocation_route) = #(#ctor_dispatches)else*;
-                unsafe {
-                    #program_ident = Some(program);
-                }
+                let invocation_route = #(#ctor_dispatches)else*;
                 gstd::msg::reply_bytes(invocation_route, 0).expect("Failed to send output");
             }
         };
@@ -315,6 +369,7 @@ impl ProgramBuilder {
         let meta_in_program = quote! {
             mod meta_in_program {
                 use super::*;
+                use #sails_path::gstd::InvocationIo;
 
                 #( #ctor_params_structs )*
 
@@ -336,7 +391,7 @@ impl ProgramBuilder {
         quote!()
     }
 
-    fn match_ctor_impl(&self) -> TokenStream2 {
+    fn match_ctor_impl(&self, _program_ident: &Ident) -> TokenStream2 {
         quote!()
     }
 
@@ -344,7 +399,7 @@ impl ProgramBuilder {
         quote!()
     }
 
-    fn sol_init(&self, _input_ident: &Ident, _program_ident: &Ident) -> TokenStream2 {
+    fn sol_init(&self, _input_ident: &Ident) -> TokenStream2 {
         quote!()
     }
 
@@ -372,15 +427,15 @@ fn gen_gprogram_impl(program_impl: ItemImpl, program_args: ProgramArgs) -> Token
 
     let sails_path = program_builder.sails_path().clone();
 
-    // Call this before `wire_up_service_exposure`
-    let program_signature_impl = program_builder.program_signature_impl();
-    let match_ctor_impl = program_builder.match_ctor_impl();
-    let program_const = program_builder.program_const();
-
     let program_ident = Ident::new("PROGRAM", Span::call_site());
 
-    let (program_meta_impl, main_fn) = program_builder.wire_up_service_exposure(&program_ident);
+    // Call this before `wire_up_service_exposure`
+    let program_signature_impl = program_builder.program_signature_impl();
+    let match_ctor_impl = program_builder.match_ctor_impl(&program_ident);
+    let program_const = program_builder.program_const();
 
+    let (program_meta_impl, main_fn, handle_reply_fn, handle_signal_fn) =
+        program_builder.wire_up_service_exposure(&program_ident);
     let (meta_in_program, init_fn) = program_builder.generate_init(&program_ident);
 
     let (program_type_path, ..) = program_builder.impl_type();
@@ -410,6 +465,10 @@ fn gen_gprogram_impl(program_impl: ItemImpl, program_args: ProgramArgs) -> Token
             #match_ctor_impl
 
             #main_fn
+
+            #handle_reply_fn
+
+            #handle_signal_fn
         }
     )
 }
@@ -514,6 +573,12 @@ impl FnBuilder<'_> {
         )
     }
 
+    fn service_meta_asyncness(&self) -> TokenStream2 {
+        let sails_path = self.sails_path;
+        let service_type = &self.result_type;
+        quote!(< #service_type as  #sails_path::meta::ServiceMeta>::ASYNC )
+    }
+
     fn service_const_route(&self) -> TokenStream2 {
         let route_ident = &self.route_ident();
         let ctor_route_bytes = self.encoded_route.as_slice();
@@ -529,15 +594,33 @@ impl FnBuilder<'_> {
         quote! {
             if input.starts_with(& #route_ident) {
                 let mut service = program_ref.#service_ctor_ident();
-                service
-                    .try_handle(&input[#route_ident .len()..], |encoded_result, value| {
-                        gstd::msg::reply_bytes(encoded_result, value)
-                            .expect("Failed to send output");
-                    })
-                    .await
+                let is_async = service
+                    .check_asyncness(&input[#route_ident .len()..])
                     .unwrap_or_else(|| {
-                        gstd::unknown_input_panic("Unknown request", input)
+                        gstd::unknown_input_panic("Unknown call", &input[#route_ident .len()..])
                     });
+                if is_async {
+                    gstd::message_loop(async move {
+                        // TODO #959
+                        let input = input.clone();
+                        service
+                            .try_handle_async(&input[#route_ident .len()..], |encoded_result, value| {
+                                gstd::msg::reply_bytes(encoded_result, value)
+                                    .expect("Failed to send output");
+                            })
+                            .await
+                            .unwrap_or_else(|| {
+                                gstd::unknown_input_panic("Unknown request", &input)
+                            });
+                    });
+                } else {
+                    service
+                        .try_handle(&input[#route_ident .len()..], |encoded_result, value| {
+                            gstd::msg::reply_bytes(encoded_result, value)
+                                .expect("Failed to send output");
+                        })
+                        .unwrap_or_else(|| gstd::unknown_input_panic("Unknown request", &input));
+                }
             }
         }
     }
@@ -580,20 +663,42 @@ impl FnBuilder<'_> {
         wrapping_service_ctor_fn
     }
 
-    fn ctor_branch_impl(&self, program_type_path: &TypePath, input_ident: &Ident) -> TokenStream2 {
+    fn ctor_branch_impl(
+        &self,
+        program_type_path: &TypePath,
+        input_ident: &Ident,
+        program_ident: &Ident,
+    ) -> TokenStream2 {
         let handler_ident = self.ident;
-        let handler_await = self.is_async().then(|| quote!(.await));
         let unwrap_token = self.unwrap_result.then(|| quote!(.unwrap()));
         let handler_args = self
             .params_idents()
             .iter()
             .map(|ident| quote!(request.#ident));
         let params_struct_ident = &self.params_struct_ident;
+        let ctor_call_impl = if self.is_async() {
+            quote! {
+                gstd::message_loop(async move {
+                    let program = #program_type_path :: #handler_ident (#(#handler_args),*) .await #unwrap_token ;
+
+                    unsafe {
+                        #program_ident = Some(program);
+                    }
+                });
+            }
+        } else {
+            quote! {
+                let program = #program_type_path :: #handler_ident (#(#handler_args),*) #unwrap_token;
+                unsafe {
+                    #program_ident = Some(program);
+                }
+            }
+        };
 
         quote!(
             if let Ok(request) = meta_in_program::#params_struct_ident::decode_params( #input_ident) {
-                let program = #program_type_path :: #handler_ident (#(#handler_args),*) #handler_await #unwrap_token;
-                (program, meta_in_program::#params_struct_ident::ROUTE)
+                #ctor_call_impl
+                meta_in_program::#params_struct_ident::ROUTE
             }
         )
     }
@@ -603,6 +708,7 @@ impl FnBuilder<'_> {
         let params_struct_ident = &self.params_struct_ident;
         let params_struct_members = self.params().map(|(ident, ty)| quote!(#ident: #ty));
         let ctor_route_bytes = self.encoded_route.as_slice();
+        let is_async = self.is_async();
 
         quote! {
             #[derive(#sails_path ::Decode, #sails_path ::TypeInfo)]
@@ -612,9 +718,10 @@ impl FnBuilder<'_> {
                 #(pub(super) #params_struct_members,)*
             }
 
-            impl #sails_path::gstd::InvocationIo for #params_struct_ident {
+            impl InvocationIo for #params_struct_ident {
                 const ROUTE: &'static [u8] = &[ #(#ctor_route_bytes),* ];
                 type Params = Self;
+                const ASYNC: bool = #is_async;
             }
         }
     }

@@ -40,9 +40,15 @@ async fn gservice_with_basics() {
         .encode(),
     ]
     .concat();
+
+    let exposure = MyService.expose(MessageId::from(123), SERVICE_ROUTE);
+
+    // Check asyncness of the service.
+    assert!(exposure.check_asyncness(&input).unwrap());
+
     MyService
         .expose(MessageId::from(123), SERVICE_ROUTE)
-        .try_handle(&input, |mut output, _| {
+        .try_handle_async(&input, |mut output, _| {
             let service_route = String::decode(&mut output).unwrap();
             assert_eq!(service_route, SERVICE_NAME);
 
@@ -58,8 +64,8 @@ async fn gservice_with_basics() {
         .unwrap();
 }
 
-#[tokio::test]
-async fn gservice_with_extends() {
+#[test]
+fn gservice_with_extends() {
     use gservice_with_extends::{
         base::{BASE_NAME_RESULT, Base},
         extended::{EXTENDED_NAME_RESULT, Extended, NAME_RESULT},
@@ -70,6 +76,13 @@ async fn gservice_with_extends() {
     const EXTENDED_NAME_METHOD: &str = "ExtendedName";
 
     let mut extended_svc = Extended::new(Base).expose(MessageId::from(123), SERVICE_ROUTE);
+
+    // Check asyncness of the service.
+    assert!(
+        !extended_svc
+            .check_asyncness(&EXTENDED_NAME_METHOD.encode())
+            .unwrap()
+    );
 
     extended_svc
         .try_handle(&EXTENDED_NAME_METHOD.encode(), |mut output, _| {
@@ -93,10 +106,16 @@ async fn gservice_with_extends() {
             assert_eq!(result, EXTENDED_NAME_RESULT);
             assert_eq!(output.len(), 0);
         })
-        .await
         .unwrap();
 
     let _base: &<Base as Service>::Exposure = extended_svc.as_base_0();
+
+    // Check asyncness of the base service.
+    assert!(
+        !extended_svc
+            .check_asyncness(&BASE_NAME_METHOD.encode())
+            .unwrap()
+    );
 
     extended_svc
         .try_handle(&BASE_NAME_METHOD.encode(), |mut output, _| {
@@ -111,7 +130,6 @@ async fn gservice_with_extends() {
             let result = String::decode(&mut output).unwrap();
             assert_eq!(result, BASE_NAME_RESULT);
         })
-        .await
         .unwrap();
 
     extended_svc
@@ -125,12 +143,37 @@ async fn gservice_with_extends() {
             let result = String::decode(&mut output).unwrap();
             assert_eq!(result, NAME_RESULT);
         })
-        .await
         .unwrap();
 }
 
-#[tokio::test]
-async fn gservice_with_lifecycles_and_generics() {
+#[test]
+fn gservice_extends_pure() {
+    use gservice_with_extends::{
+        base::{Base, NAME_RESULT},
+        extended_pure::ExtendedPure,
+    };
+
+    const NAME_METHOD: &str = "Name";
+
+    let mut extended_svc = ExtendedPure::new(Base).expose(MessageId::from(123), SERVICE_ROUTE);
+
+    extended_svc
+        .try_handle(&NAME_METHOD.encode(), |mut output, _| {
+            let service_route = String::decode(&mut output).unwrap();
+            assert_eq!(service_route, SERVICE_NAME);
+
+            let func_name = String::decode(&mut output).unwrap();
+            assert_eq!(func_name, NAME_METHOD);
+
+            let result = String::decode(&mut output).unwrap();
+            assert_eq!(result, NAME_RESULT);
+            assert_eq!(output.len(), 0);
+        })
+        .unwrap();
+}
+
+#[test]
+fn gservice_with_lifecycles_and_generics() {
     use gservice_with_lifecycles_and_generics::MyGenericService;
 
     const DO_THIS: &str = "DoThis";
@@ -151,7 +194,6 @@ async fn gservice_with_lifecycles_and_generics() {
 
             assert_eq!(output.len(), 0);
         })
-        .await
         .unwrap();
 }
 
@@ -163,16 +205,16 @@ async fn gservice_panic_on_unexpected_input() {
     let input = [0xffu8; 16];
     MyService
         .expose(MessageId::from(123), SERVICE_ROUTE)
-        .try_handle(&input, |_, _| {
+        .try_handle_async(&input, |_, _| {
             panic!("Should not reach here");
         })
         .await
         .unwrap_or_else(|| sails_rs::gstd::unknown_input_panic("Unknown request", &input));
 }
 
-#[tokio::test]
+#[test]
 #[should_panic(expected = "Unknown request: 0x81112c00..00000000")]
-async fn gservice_panic_on_unexpected_input_double_encoded() {
+fn gservice_panic_on_unexpected_input_double_encoded() {
     use gservice_with_basics::MyService;
 
     let input = [
@@ -198,7 +240,6 @@ async fn gservice_panic_on_unexpected_input_double_encoded() {
         .try_handle(&input, |_, _| {
             panic!("Should not reach here");
         })
-        .await
         .unwrap_or_else(|| sails_rs::gstd::unknown_input_panic("Unknown request", &input));
 }
 
@@ -214,8 +255,8 @@ fn gservice_with_events() {
     assert_eq!(events[0], MyEvents::Event1);
 }
 
-#[tokio::test]
-async fn gservice_with_lifetimes_and_events() {
+#[test]
+fn gservice_with_lifetimes_and_events() {
     use gservice_with_lifetimes_and_events::{MyEvents, MyGenericEventsService};
 
     const DO_THIS: &str = "DoThis";
@@ -236,7 +277,6 @@ async fn gservice_with_lifetimes_and_events() {
 
             assert_eq!(output.len(), 0);
         })
-        .await
         .unwrap();
 
     let events = exposure.take_events();
@@ -244,8 +284,8 @@ async fn gservice_with_lifetimes_and_events() {
     assert_eq!(events[0], MyEvents::Event1);
 }
 
-#[tokio::test]
-async fn gservice_with_extends_and_lifetimes() {
+#[test]
+fn gservice_with_extends_and_lifetimes() {
     use gservice_with_extends_and_lifetimes::{
         BASE_NAME_RESULT, BaseWithLifetime, EXTENDED_NAME_RESULT, ExtendedWithLifetime, NAME_RESULT,
     };
@@ -270,7 +310,6 @@ async fn gservice_with_extends_and_lifetimes() {
             assert_eq!(result, EXTENDED_NAME_RESULT);
             assert_eq!(output.len(), 0);
         })
-        .await
         .unwrap();
 
     let _base: &<BaseWithLifetime as Service>::Exposure = extended_svc.as_base_0();
@@ -287,7 +326,6 @@ async fn gservice_with_extends_and_lifetimes() {
             assert_eq!(result, BASE_NAME_RESULT);
             assert_eq!(output.len(), 0);
         })
-        .await
         .unwrap();
 
     extended_svc
@@ -302,7 +340,6 @@ async fn gservice_with_extends_and_lifetimes() {
             assert_eq!(result, NAME_RESULT);
             assert_eq!(output.len(), 0);
         })
-        .await
         .unwrap();
 }
 
@@ -323,9 +360,17 @@ async fn gservice_with_reply_with_value() {
     ]
     .concat();
 
+    // No sync call with `DoThis` route.
+    assert!(
+        MyServiceWithReplyWithValue
+            .expose(MessageId::from(123), SERVICE_ROUTE)
+            .try_handle(&input, |_, _| {})
+            .is_none()
+    );
+
     MyServiceWithReplyWithValue
         .expose(MessageId::from(123), SERVICE_ROUTE)
-        .try_handle(&input, |mut output, value| {
+        .try_handle_async(&input, |mut output, value| {
             let service_route = String::decode(&mut output).unwrap();
             assert_eq!(service_route, SERVICE_NAME);
 
@@ -361,7 +406,7 @@ async fn gservice_with_reply_with_value_with_impl_from() {
 
     MyServiceWithReplyWithValue
         .expose(MessageId::from(123), SERVICE_ROUTE)
-        .try_handle(&input, |mut output, value| {
+        .try_handle_async(&input, |mut output, value| {
             let service_route = String::decode(&mut output).unwrap();
             assert_eq!(service_route, SERVICE_NAME);
 
@@ -384,6 +429,15 @@ async fn gservice_with_trait_bounds() {
 
     const DO_THIS: &str = "DoThis";
 
+    // No async call with `DoThis` route.
+    assert!(
+        MyServiceWithTraitBounds::<u32>::default()
+            .expose(MessageId::from(123), SERVICE_ROUTE)
+            .try_handle_async(&DO_THIS.encode(), |_, _| {})
+            .await
+            .is_none()
+    );
+
     MyServiceWithTraitBounds::<u32>::default()
         .expose(MessageId::from(123), SERVICE_ROUTE)
         .try_handle(&DO_THIS.encode(), |mut output, _| {
@@ -398,12 +452,12 @@ async fn gservice_with_trait_bounds() {
 
             assert_eq!(output.len(), 0);
         })
-        .await
         .unwrap();
 }
 
 macro_rules! gservice_works {
     ($service:expr) => {
+        // `DO_THIS` is an async call
         let input = [
             DO_THIS.encode(),
             MyDoThisParams {
@@ -415,7 +469,7 @@ macro_rules! gservice_works {
         .concat();
         $service
             .expose(MessageId::from(123), SERVICE_ROUTE)
-            .try_handle(&input, |mut output, _| {
+            .try_handle_async(&input, |mut output, _| {
                 let service_route = String::decode(&mut output).unwrap();
                 assert_eq!(service_route, SERVICE_NAME);
 
@@ -460,7 +514,7 @@ async fn gservice_with_export_unwrap_result() {
 
     MyService
         .expose(MessageId::from(123), SERVICE_ROUTE)
-        .try_handle(&input, |mut output, _| {
+        .try_handle_async(&input, |mut output, _| {
             let service_route = String::decode(&mut output).unwrap();
             assert_eq!(service_route, SERVICE_NAME);
 
@@ -487,8 +541,8 @@ async fn gservice_with_export_unwrap_result_panic() {
 
     MyService
         .expose(MessageId::from(123), SERVICE_ROUTE)
-        .try_handle(&input, |_, _| {
-            panic!("Should not reach here");
+        .try_handle_async(&input, |_, _| {
+            unreachable!("Should not reach here");
         })
         .await
         .unwrap();

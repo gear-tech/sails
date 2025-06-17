@@ -44,7 +44,7 @@ impl<'a> ExtendedWithLifetimeExposure<ExtendedWithLifetime<'a>> {
     ) -> &<BaseWithLifetime<'a> as sails_rs::gstd::services::Service>::Exposure {
         &self.base.0
     }
-    pub async fn try_handle(
+    pub fn try_handle(
         &mut self,
         input: &[u8],
         result_handler: fn(&[u8], u128),
@@ -75,12 +75,24 @@ impl<'a> ExtendedWithLifetimeExposure<ExtendedWithLifetime<'a>> {
             );
             return Some(());
         }
-        if self.base.0.try_handle(input, result_handler).await.is_some() {
+        if self.base.0.try_handle(input, result_handler).is_some() {
             return Some(());
         }
         None
     }
-    pub async fn try_handle_solidity(
+    pub async fn try_handle_async(
+        &mut self,
+        input: &[u8],
+        result_handler: fn(&[u8], u128),
+    ) -> Option<()> {
+        use sails_rs::gstd::InvocationIo;
+        use sails_rs::gstd::services::Exposure;
+        if self.base.0.try_handle_async(input, result_handler).await.is_some() {
+            return Some(());
+        }
+        None
+    }
+    pub fn try_handle_solidity(
         &mut self,
         method: &[u8],
         input: &[u8],
@@ -130,8 +142,39 @@ impl<'a> ExtendedWithLifetimeExposure<ExtendedWithLifetime<'a>> {
             };
             return Some((output, value, _encode_reply));
         }
-        if let Some(result) = self.base.0.try_handle_solidity(method, input).await {
+        if let Some(result) = self.base.0.try_handle_solidity(method, input) {
             return Some(result);
+        }
+        None
+    }
+    pub async fn try_handle_solidity_async(
+        &mut self,
+        method: &[u8],
+        input: &[u8],
+    ) -> Option<(sails_rs::Vec<u8>, u128, bool)> {
+        if let Some(result) = self.base.0.try_handle_solidity_async(method, input).await
+        {
+            return Some(result);
+        }
+        None
+    }
+    pub fn check_asyncness(&self, input: &[u8]) -> Option<bool> {
+        use sails_rs::gstd::InvocationIo;
+        if !<ExtendedWithLifetime<'a> as sails_rs::meta::ServiceMeta>::ASYNC {
+            return Some(false);
+        }
+        if let Ok(is_async) = extended_with_lifetime_meta::__ExtendedNameParams::check_asyncness(
+            input,
+        ) {
+            return Some(is_async);
+        }
+        if let Ok(is_async) = extended_with_lifetime_meta::__NameParams::check_asyncness(
+            input,
+        ) {
+            return Some(is_async);
+        }
+        if let Some(is_async) = self.base.0.check_asyncness(input) {
+            return Some(is_async);
         }
         None
     }
@@ -177,28 +220,32 @@ impl<'a> sails_rs::meta::ServiceMeta for ExtendedWithLifetime<'a> {
     const BASE_SERVICES: &'static [sails_rs::meta::AnyServiceMetaFn] = &[
         sails_rs::meta::AnyServiceMeta::new::<BaseWithLifetime>,
     ];
+    const ASYNC: bool = <BaseWithLifetime as sails_rs::meta::ServiceMeta>::ASYNC;
 }
 mod extended_with_lifetime_meta {
     use super::*;
     use sails_rs::{Decode, TypeInfo};
+    use sails_rs::gstd::InvocationIo;
     #[derive(Decode, TypeInfo)]
     #[codec(crate = sails_rs::scale_codec)]
     #[scale_info(crate = sails_rs::scale_info)]
     pub struct __ExtendedNameParams {}
-    impl sails_rs::gstd::InvocationIo for __ExtendedNameParams {
+    impl InvocationIo for __ExtendedNameParams {
         const ROUTE: &'static [u8] = &[
             48u8, 69u8, 120u8, 116u8, 101u8, 110u8, 100u8, 101u8, 100u8, 78u8, 97u8,
             109u8, 101u8,
         ];
         type Params = Self;
+        const ASYNC: bool = false;
     }
     #[derive(Decode, TypeInfo)]
     #[codec(crate = sails_rs::scale_codec)]
     #[scale_info(crate = sails_rs::scale_info)]
     pub struct __NameParams {}
-    impl sails_rs::gstd::InvocationIo for __NameParams {
+    impl InvocationIo for __NameParams {
         const ROUTE: &'static [u8] = &[16u8, 78u8, 97u8, 109u8, 101u8];
         type Params = Self;
+        const ASYNC: bool = false;
     }
     #[derive(TypeInfo)]
     #[scale_info(crate = sails_rs::scale_info)]

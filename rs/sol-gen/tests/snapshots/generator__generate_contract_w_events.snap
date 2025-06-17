@@ -11,15 +11,15 @@ interface ITestContract {
 
     event DoThisEvent2(uint32, string);
 
-    function create(uint128 _value, bool _encodeReply) external returns (bytes32 messageId);
+    function create(uint128 _value, bool _callReply) external returns (bytes32 messageId);
 
-    function svc1DoThis(uint128 _value, bool _encodeReply, uint32 p1, string calldata p2) external returns (bytes32 messageId);
+    function svc1DoThis(uint128 _value, bool _callReply, uint32 p1, string calldata p2) external returns (bytes32 messageId);
 }
 
 contract TestContractAbi is ITestContract {
-    function create(uint128 _value, bool _encodeReply) external returns (bytes32 messageId) {}
+    function create(uint128 _value, bool _callReply) external returns (bytes32 messageId) {}
 
-    function svc1DoThis(uint128 _value, bool _encodeReply, uint32 p1, string calldata p2) external returns (bytes32 messageId) {}
+    function svc1DoThis(uint128 _value, bool _callReply, uint32 p1, string calldata p2) external returns (bytes32 messageId) {}
 }
 
 interface ITestContractCallbacks {
