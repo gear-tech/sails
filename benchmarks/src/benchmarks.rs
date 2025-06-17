@@ -208,7 +208,8 @@ async fn counter_bench() {
 
     crate::store_bench_data(|bench_data| {
         bench_data.counter.sync_call = gas_sync_inc;
-    }).unwrap();
+    })
+    .unwrap();
 
     // Increment counter again using async call async method.
     let payload = IncAsync::encode_call();
@@ -238,5 +239,6 @@ async fn counter_bench() {
 
     crate::store_bench_data(|bench_data| {
         bench_data.counter.async_call = gas_async_inc;
-    }).unwrap();
+    })
+    .unwrap();
 }

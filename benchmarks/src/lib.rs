@@ -30,16 +30,12 @@ pub struct CounterBenchData {
 }
 
 pub fn store_bench_data(f: impl FnOnce(&mut BenchData)) -> Result<()> {
-    let path = PathBuf::from(env::var("CARGO_MANIFEST_DIR").unwrap())
-        .join("bench_data.json");
+    let path = PathBuf::from(env::var("CARGO_MANIFEST_DIR").unwrap()).join("bench_data.json");
 
     store_bench_data_to_file(path, f)
 }
 
-fn store_bench_data_to_file(
-    path: impl AsRef<Path>,
-    f: impl FnOnce(&mut BenchData),
-) -> Result<()> {
+fn store_bench_data_to_file(path: impl AsRef<Path>, f: impl FnOnce(&mut BenchData)) -> Result<()> {
     // Open file
     let mut file = OpenOptions::new()
         .read(true)
@@ -60,8 +56,7 @@ fn store_bench_data_to_file(
     erase_file_content(&mut file)?;
 
     // Write updated bench data
-    write_bench_data(&mut file, &bench_data)
-        .context("Failed to serialize bench data to JSON")?;
+    write_bench_data(&mut file, &bench_data).context("Failed to serialize bench data to JSON")?;
 
     // Unlock file
     <File as FileExt>::unlock(&file)
@@ -89,15 +84,14 @@ fn erase_file_content(file: &mut File) -> Result<()> {
 }
 
 fn write_bench_data(file: &mut File, bench_data: &BenchData) -> Result<()> {
-    serde_json::to_writer_pretty(file, bench_data)
-        .map_err(Into::into)
+    serde_json::to_writer_pretty(file, bench_data).map_err(Into::into)
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use tempfile::NamedTempFile;
     use std::thread;
+    use tempfile::NamedTempFile;
 
     #[test]
     fn test_data_not_overwritten() {
@@ -130,14 +124,16 @@ mod tests {
         let h1 = thread::spawn(move || {
             store_bench_data_to_file(path_h1, |bench_data| {
                 bench_data.compute = 42;
-            }).unwrap();
+            })
+            .unwrap();
         });
 
-        let h2 = thread::spawn(move ||{
+        let h2 = thread::spawn(move || {
             store_bench_data_to_file(path_h2, |bench_data| {
                 bench_data.counter.async_call = 84;
                 bench_data.counter.sync_call = 126;
-            }).unwrap();
+            })
+            .unwrap();
         });
 
         // Wait for both threads to finish.
