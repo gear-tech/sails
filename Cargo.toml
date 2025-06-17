@@ -56,16 +56,15 @@ sails-sol-gen = { path = "rs/sol-gen" }
 # Renamed sails-rs for `proxy` demo
 sails-rename = { package = "sails-rs", path = "rs" }
 
-# todo [sab] change to rev
 # Gear deps
-gclient = { git = "https://github.com/gear-tech/gear.git", branch = "st-bump-down-tempfile"}
-gcore = { git = "https://github.com/gear-tech/gear.git", branch = "st-bump-down-tempfile" }
-gear-core = { git = "https://github.com/gear-tech/gear.git", branch = "st-bump-down-tempfile", default-features = false }
-gear-core-errors = { git = "https://github.com/gear-tech/gear.git", branch = "st-bump-down-tempfile" }
-gprimitives = { git = "https://github.com/gear-tech/gear.git", branch = "st-bump-down-tempfile", features = ["codec"] }
-gstd = { git = "https://github.com/gear-tech/gear.git", branch = "st-bump-down-tempfile" }
-gtest = { git = "https://github.com/gear-tech/gear.git", branch = "st-bump-down-tempfile" }
-gwasm-builder = { git = "https://github.com/gear-tech/gear.git", branch = "st-bump-down-tempfile", package = "gear-wasm-builder" }
+gclient = { git = "https://github.com/gear-tech/gear.git", rev = "eef3939" }
+gcore = { git = "https://github.com/gear-tech/gear.git", rev = "eef3939" }
+gear-core = { git = "https://github.com/gear-tech/gear.git", rev = "eef3939", default-features = false }
+gear-core-errors = { git = "https://github.com/gear-tech/gear.git", rev = "eef3939" }
+gprimitives = { git = "https://github.com/gear-tech/gear.git", rev = "eef3939", features = ["codec"] }
+gstd = { git = "https://github.com/gear-tech/gear.git", rev = "eef3939" }
+gtest = { git = "https://github.com/gear-tech/gear.git", rev = "eef3939" }
+gwasm-builder = { git = "https://github.com/gear-tech/gear.git", rev = "eef3939", package = "gear-wasm-builder" }
 
 # Other deps in alphabetical order
 alloy-primitives = { version = "0.8.19", default-features = false }

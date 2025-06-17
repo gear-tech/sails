@@ -44,7 +44,7 @@ fn store_bench_data_to_file(path: impl AsRef<Path>, f: impl FnOnce(&mut BenchDat
         .context("Failed to open or create bench data file")?;
 
     // Lock file
-    let _lock_res = file.lock_exclusive().unwrap_or_else(|e| {
+    file.lock_exclusive().unwrap_or_else(|e| {
         panic!("Failed to lock bench data file for writing: {e}");
     });
 
@@ -59,9 +59,7 @@ fn store_bench_data_to_file(path: impl AsRef<Path>, f: impl FnOnce(&mut BenchDat
     write_bench_data(&mut file, &bench_data).context("Failed to serialize bench data to JSON")?;
 
     // Unlock file
-    <File as FileExt>::unlock(&file)
-        .context("Failed to unlock bench data file")
-        .map_err(Into::into)
+    <File as FileExt>::unlock(&file).context("Failed to unlock bench data file")
 }
 
 fn read_bench_data(file: &mut File) -> Result<BenchData> {
@@ -69,9 +67,7 @@ fn read_bench_data(file: &mut File) -> Result<BenchData> {
     file.read_to_string(&mut content)
         .context("Failed reading bench data bytes to string")?;
 
-    serde_json::from_str(&content)
-        .context("Failed to deserialize bench data")
-        .map_err(Into::into)
+    serde_json::from_str(&content).context("Failed to deserialize bench data")
 }
 
 fn erase_file_content(file: &mut File) -> Result<()> {
@@ -113,8 +109,8 @@ mod tests {
 
         // Store initial bench data.
         {
-            let mut file = named_file.as_file_mut();
-            write_bench_data(&mut file, &initial_bench_data)
+            let file = named_file.as_file_mut();
+            write_bench_data(file, &initial_bench_data)
                 .expect("Failed to write initial bench data");
             file.seek(SeekFrom::Start(0))
                 .expect("Failed to seek to the start of the file");
@@ -141,8 +137,8 @@ mod tests {
         h2.join().expect("Thread 2 panicked");
 
         // Read the bench data from the file.
-        let bench_data = read_bench_data(&mut named_file.as_file_mut())
-            .expect("Failed to read bench data from file");
+        let bench_data =
+            read_bench_data(named_file.as_file_mut()).expect("Failed to read bench data from file");
 
         // Check that the bench data was modified correctly.
         assert_eq!(
