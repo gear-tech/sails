@@ -116,15 +116,3 @@ pub mod traits {
         fn inc_async(&mut self) -> impl Call<Output = u64, Args = Self::Args>;
     }
 }
-
-#[cfg(feature = "with_mocks")]
-#[cfg(not(target_arch = "wasm32"))]
-extern crate std;
-
-#[cfg(feature = "with_mocks")]
-#[cfg(not(target_arch = "wasm32"))]
-pub mod mockall {
-    use super::*;
-    use sails_rs::mockall::*;
-    mock! { pub CounterBench<A> {} #[allow(refining_impl_trait)] #[allow(clippy::type_complexity)] impl<A> traits::CounterBench for CounterBench<A> { type Args = A; fn inc (&mut self, ) -> MockCall<A, u64>;fn inc_async (&mut self, ) -> MockCall<A, u64>; } }
-}

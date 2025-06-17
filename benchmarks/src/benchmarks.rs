@@ -20,8 +20,7 @@ use sails_rs::{
 
 async fn alloc_stress_test(n: u32) -> (u64, u32) {
     // Path taken from the .binpath file
-    // TODO [sab] use release
-    let wasm_path = "../target/wasm32-gear/debug/alloc_stress_app.opt.wasm";
+    let wasm_path = "../target/wasm32-gear/release/alloc_stress_app.opt.wasm";
 
     let system = System::new();
     system.mint_to(DEFAULT_USER_ALICE, 1_000_000_000_000_000);
@@ -92,7 +91,7 @@ async fn alloc_stress_bench() {
 
 #[tokio::test]
 async fn compute_stress_bench() {
-    let wasm_path = "../target/wasm32-gear/debug/compute_stress_app.opt.wasm";
+    let wasm_path = "../target/wasm32-gear/release/compute_stress_app.opt.wasm";
 
     let system = System::new();
     system.init_logger();
@@ -157,7 +156,7 @@ async fn compute_stress_bench() {
 
 #[tokio::test]
 async fn counter_bench() {
-    let wasm_path = "../target/wasm32-gear/debug/counter_bench_app.opt.wasm";
+    let wasm_path = "../target/wasm32-gear/release/counter_bench_app.opt.wasm";
 
     let system = System::new();
     system.init_logger();
@@ -207,9 +206,9 @@ async fn counter_bench() {
         .copied()
         .expect("msg was executed; qed.");
 
-    let _ = crate::store_bench_data(|bench_data| {
+    crate::store_bench_data(|bench_data| {
         bench_data.counter.sync_call = gas_sync_inc;
-    });
+    }).unwrap();
 
     // Increment counter again using async call async method.
     let payload = IncAsync::encode_call();
@@ -237,7 +236,7 @@ async fn counter_bench() {
         .copied()
         .expect("msg was executed; qed.");
 
-    let _ = crate::store_bench_data(|bench_data| {
+    crate::store_bench_data(|bench_data| {
         bench_data.counter.async_call = gas_async_inc;
-    });
+    }).unwrap();
 }

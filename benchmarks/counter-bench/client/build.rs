@@ -9,7 +9,6 @@ fn main() {
 
     // Generate client code from IDL file
     sails_client_gen::ClientGenerator::from_idl_path(&idl_file_path)
-        .with_mocks("with_mocks")
         .generate_to(
             std::path::PathBuf::from(std::env::var("CARGO_MANIFEST_DIR").unwrap())
                 .join("src/counter_bench_client.rs"),

@@ -1,10 +1,6 @@
 #![no_std]
 
 use sails_rs::prelude::*;
-// use sails_rs::gstd::SyncCell;
-
-// todo [sab] just use sync_cell
-// static COUNTER: StaticCell<u64> = StaticCell::new(0);
 
 static mut COUNTER: u64 = 0;
 

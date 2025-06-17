@@ -110,15 +110,3 @@ pub mod traits {
         ) -> impl Call<Output = ComputeStressResult, Args = Self::Args>;
     }
 }
-
-#[cfg(feature = "with_mocks")]
-#[cfg(not(target_arch = "wasm32"))]
-extern crate std;
-
-#[cfg(feature = "with_mocks")]
-#[cfg(not(target_arch = "wasm32"))]
-pub mod mockall {
-    use super::*;
-    use sails_rs::mockall::*;
-    mock! { pub ComputeStress<A> {} #[allow(refining_impl_trait)] #[allow(clippy::type_complexity)] impl<A> traits::ComputeStress for ComputeStress<A> { type Args = A; fn compute_stress (&mut self, n: u32,) -> MockCall<A, ComputeStressResult>; } }
-}

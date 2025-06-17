@@ -107,15 +107,3 @@ pub mod traits {
         ) -> impl Call<Output = AllocStressResult, Args = Self::Args>;
     }
 }
-
-#[cfg(feature = "with_mocks")]
-#[cfg(not(target_arch = "wasm32"))]
-extern crate std;
-
-#[cfg(feature = "with_mocks")]
-#[cfg(not(target_arch = "wasm32"))]
-pub mod mockall {
-    use super::*;
-    use sails_rs::mockall::*;
-    mock! { pub AllocStress<A> {} #[allow(refining_impl_trait)] #[allow(clippy::type_complexity)] impl<A> traits::AllocStress for AllocStress<A> { type Args = A; fn alloc_stress (&mut self, n: u32,) -> MockCall<A, AllocStressResult>; } }
-}

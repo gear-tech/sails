@@ -11,10 +11,9 @@ anyhow.workspace = true
 serde = { workspace = true, features = ["derive"] }
 serde-json.workspace = true
 fs2.workspace = true
-# todo [sab] issue for removing this
-gtest.workspace = true
 
 [dev-dependencies]
+gtest.workspace = true
 sails-rs = { workspace = true, features = ["gtest"] }
 alloc-stress-app = { path = "alloc-stress/app" }
 alloc-stress-client = { path = "alloc-stress/client" }
@@ -23,3 +22,4 @@ compute-stress-client = { path = "compute-stress/client" }
 counter-bench-app = { path = "counter-bench/app" }
 counter-bench-client = { path = "counter-bench/client" }
 tokio = { workspace = true, features = ["rt", "macros"] }
+tempfile.workspace = true
