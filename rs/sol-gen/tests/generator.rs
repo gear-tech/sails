@@ -27,7 +27,7 @@ fn test_generate_simple_contract() {
     let contract = generate_solidity_contract(SIMPLE_IDL, "TestContract");
 
     assert!(contract.is_ok());
-    assert_snapshot!(String::from_utf8(contract.unwrap()).unwrap());
+    assert_snapshot!(String::from_utf8(contract.unwrap().data).unwrap());
 }
 
 #[test]
@@ -35,5 +35,5 @@ fn test_generate_contract_w_events() {
     let contract = generate_solidity_contract(IDL_W_EVENTS, "TestContract");
 
     assert!(contract.is_ok());
-    assert_snapshot!(String::from_utf8(contract.unwrap()).unwrap());
+    assert_snapshot!(String::from_utf8(contract.unwrap().data).unwrap());
 }

@@ -34,9 +34,9 @@ impl SolidityGenerator {
 
         let contract = generate_solidity_contract(&idl_content, &contract_name)?;
 
-        let target_file = self.target_dir.join(format!("{}.sol", &filename));
+        let target_file = self.target_dir.join(format!("{}.sol", &contract.name));
 
-        std::fs::write(&target_file, contract)?;
+        std::fs::write(&target_file, contract.data)?;
 
         println!("Generated contract: {:?}", target_file);
 
