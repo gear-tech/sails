@@ -17,7 +17,7 @@ pub trait Exposure {
         ExposureCallScope::new(self.message_id(), self.route())
     }
 
-    /// Returns the route of the service call, which is set after callign [`Exposure::scope`].
+    /// Returns the route of the service call, which is set after calling [`Exposure::scope`].
     fn scoped_route() -> Option<&'static [u8]> {
         route(Syscall::message_id())
     }
