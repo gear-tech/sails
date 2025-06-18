@@ -1,5 +1,5 @@
-use crate::resource_client::traits::RmrkResource;
 use rmrk_catalog::services::parts::{FixedPart, Part};
+use rmrk_resource::client::{self, traits::RmrkResource as _};
 use rmrk_resource_app::services::{
     ResourceStorageEvent,
     errors::{Error as ResourceStorageError, Result as ResourceStorageResult},
@@ -16,8 +16,7 @@ use sails_rs::{
     },
 };
 
-mod resource_client;
-type RmrkResourceClient = crate::resource_client::RmrkResource<GTestRemoting>;
+type RmrkResourceClient = client::RmrkResource<GTestRemoting>;
 
 const CATALOG_PROGRAM_WASM_PATH: &str = "../../../../target/wasm32-gear/debug/rmrk_catalog.wasm";
 const RESOURCE_PROGRAM_WASM_PATH: &str = "../../../../target/wasm32-gear/debug/rmrk_resource.wasm";
@@ -124,7 +123,7 @@ async fn adding_resource_to_storage_by_admin_via_client_succeeds() {
     let fixture = Fixture::new();
 
     // Act
-    let resource = resource_client::Resource::Composed(resource_client::ComposedResource {
+    let resource = client::Resource::Composed(client::ComposedResource {
         src: "<src_uri>".into(),
         thumb: "<thumb_uri>".into(),
         metadata_uri: "<metadata_uri>".into(),
@@ -194,7 +193,7 @@ fn adding_existing_part_to_resource_by_admin_succeeds() {
 async fn adding_existing_part_to_resource_by_admin_via_client_succeeds() {
     // Arrange
     let fixture = Fixture::new();
-    let resource = resource_client::Resource::Composed(resource_client::ComposedResource {
+    let resource = client::Resource::Composed(client::ComposedResource {
         src: "<src_uri>".into(),
         thumb: "<thumb_uri>".into(),
         metadata_uri: "<metadata_uri>".into(),
@@ -222,10 +221,7 @@ async fn adding_existing_part_to_resource_by_admin_via_client_succeeds() {
         .unwrap()
         .unwrap();
 
-    if let resource_client::Resource::Composed(resource_client::ComposedResource {
-        parts, ..
-    }) = resource_reply
-    {
+    if let client::Resource::Composed(client::ComposedResource { parts, .. }) = resource_reply {
         assert_eq!(vec![1, 2, 3, PART_ID], parts);
     } else {
         panic!("Resource is not composed");
@@ -477,8 +473,8 @@ impl Fixture {
         &self,
         actor_id: u64,
         resource_id: u8,
-        resource: resource_client::Resource,
-    ) -> Result<Result<(u8, resource_client::Resource), resource_client::Error>> {
+        resource: client::Resource,
+    ) -> Result<Result<(u8, client::Resource), client::Error>> {
         let mut resource_client = self.resource_client();
         resource_client
             .add_resource_entry(resource_id, resource)
@@ -492,7 +488,7 @@ impl Fixture {
         actor_id: u64,
         resource_id: u8,
         part_id: u32,
-    ) -> Result<Result<u32, resource_client::Error>> {
+    ) -> Result<Result<u32, client::Error>> {
         let mut resource_client = self.resource_client();
         resource_client
             .add_part_to_resource(resource_id, part_id)
@@ -505,7 +501,7 @@ impl Fixture {
         &self,
         actor_id: u64,
         resource_id: u8,
-    ) -> Result<Result<resource_client::Resource, resource_client::Error>> {
+    ) -> Result<Result<client::Resource, client::Error>> {
         let resource_client = self.resource_client();
         resource_client
             .resource(resource_id)

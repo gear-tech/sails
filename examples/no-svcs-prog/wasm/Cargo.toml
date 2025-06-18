@@ -9,9 +9,7 @@ sails-rs.workspace = true
 
 [build-dependencies]
 no-svcs-prog-app = { path = "../app" }
-sails-client-gen.workspace = true
-sails-idl-gen.workspace = true
-sails-rs = { workspace = true, features = ["wasm-builder"] }
+sails-rs = { workspace = true, features = ["build", "wasm-builder"] }
 
 [dev-dependencies]
 tokio = { workspace = true, features = ["rt", "macros"] }

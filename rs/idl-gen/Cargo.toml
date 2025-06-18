@@ -9,7 +9,7 @@ license.workspace = true
 repository.workspace = true
 
 [dependencies]
-convert-case.workspace = true
+convert_case.workspace = true
 gprimitives.workspace = true
 handlebars.workspace = true
 sails-idl-meta.workspace = true
