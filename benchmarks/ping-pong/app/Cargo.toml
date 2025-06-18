@@ -1,5 +1,5 @@
 [package]
-name = "alloc-stress-app"
+name = "ping-pong-bench-app"
 version.workspace = true
 authors.workspace = true
 edition.workspace = true

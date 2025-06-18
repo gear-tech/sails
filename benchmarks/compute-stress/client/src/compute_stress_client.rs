@@ -19,8 +19,8 @@ impl<R> ComputeStressFactory<R> {
 }
 impl<R: Remoting + Clone> traits::ComputeStressFactory for ComputeStressFactory<R> {
     type Args = R::Args;
-    fn new(&self) -> impl Activation<Args = R::Args> {
-        RemotingAction::<_, compute_stress_factory::io::New>::new(self.remoting.clone(), ())
+    fn new_for_bench(&self) -> impl Activation<Args = R::Args> {
+        RemotingAction::<_, compute_stress_factory::io::NewForBench>::new(self.remoting.clone(), ())
     }
 }
 
@@ -29,15 +29,15 @@ pub mod compute_stress_factory {
     pub mod io {
         use super::*;
         use sails_rs::calls::ActionIo;
-        pub struct New(());
-        impl New {
+        pub struct NewForBench(());
+        impl NewForBench {
             #[allow(dead_code)]
             pub fn encode_call() -> Vec<u8> {
-                <New as ActionIo>::encode_call(&())
+                <NewForBench as ActionIo>::encode_call(&())
             }
         }
-        impl ActionIo for New {
-            const ROUTE: &'static [u8] = &[12, 78, 101, 119];
+        impl ActionIo for NewForBench {
+            const ROUTE: &'static [u8] = &[44, 78, 101, 119, 70, 111, 114, 66, 101, 110, 99, 104];
             type Params = ();
             type Reply = ();
         }
@@ -96,9 +96,7 @@ pub mod traits {
     #[allow(dead_code)]
     pub trait ComputeStressFactory {
         type Args;
-        #[allow(clippy::new_ret_no_self)]
-        #[allow(clippy::wrong_self_convention)]
-        fn new(&self) -> impl Activation<Args = Self::Args>;
+        fn new_for_bench(&self) -> impl Activation<Args = Self::Args>;
     }
 
     #[allow(clippy::type_complexity)]

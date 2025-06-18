@@ -40,8 +40,7 @@ pub struct ComputeStressProgram;
 
 #[sails_rs::program]
 impl ComputeStressProgram {
-    #[allow(clippy::new_without_default)]
-    pub fn new() -> Self {
+    pub fn new_for_bench() -> Self {
         Self
     }
 

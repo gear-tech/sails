@@ -101,8 +101,6 @@ dependencies = [
 name = "alloc-stress-app"
 version = "0.8.1"
 dependencies = [
- "sails-client-gen",
- "sails-idl-gen",
  "sails-rs",
 ]
 
@@ -714,6 +712,7 @@ dependencies = [
  "counter-bench-client",
  "fs2",
  "gtest",
+ "ping-pong-bench-app",
  "sails-rs",
  "serde",
  "serde_json",
@@ -5891,6 +5890,22 @@ name = "pin-utils"
 version = "0.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8b870d8c151b6f2fb93e84a13146138f05d02ed11c7e7c54f8826aaaf7c9f184"
+
+[[package]]
+name = "ping-pong-bench-app"
+version = "0.8.1"
+dependencies = [
+ "sails-rs",
+]
+
+[[package]]
+name = "ping-pong-bench-client"
+version = "0.8.1"
+dependencies = [
+ "ping-pong-bench-app",
+ "sails-client-gen",
+ "sails-idl-gen",
+]
 
 [[package]]
 name = "piper"

@@ -6,6 +6,7 @@
 //! - **Sync/async calls** - Tests sync/async calls efficiency for the simplest sails program (`counter_bench` test)
 //! - **Memory allocation benchmarks** - Tests allocation patterns using stress program (`alloc_stress_bench` test)
 //! - **Compute performance benchmarks** - Tests CPU-intensive operations like Fibonacci calculations (`compute_stress_bench` test)
+//! - **Cross-program communication** - Tests performance of cross-program communication (`cross_program_bench` test)
 //!
 //! All benchmarks use the `gtest` framework to simulate on-chain execution and measure
 //! gas consumption. Results are stored to the shared benchmark data file for analysis.
@@ -26,30 +27,46 @@ use counter_bench_client::{
     counter_bench::io::{Inc, IncAsync},
     traits::CounterBenchFactory as _,
 };
+use ping_pong_bench_app::client::{
+    PingPongFactory, PingPongPayload, ping_pong_service::io::Ping, traits::PingPongFactory as _,
+};
+
 use gtest::{System, constants::DEFAULT_USER_ALICE};
 use sails_rs::{
     calls::{ActionIo, Activation},
     gtest::calls::GTestRemoting,
 };
-use std::collections::BTreeMap;
+use std::{collections::BTreeMap, sync::atomic::AtomicU64};
+
+static COUNTER_SALT: AtomicU64 = AtomicU64::new(0);
 
 macro_rules! create_program_async {
-    ($factory:ty, $wasm_path:expr) => {{
+    ($(($factory:ty, $wasm_path:expr)),* $(,)?) => {{
         let system = System::new();
         system.mint_to(DEFAULT_USER_ALICE, 1_000_000_000_000_000);
 
-        let code_id = system.submit_local_code_file($wasm_path);
+        $(
+            #[allow(unused)]
+            let code_id = system.submit_local_code_file($wasm_path);
+        )*
 
-        // Create program and initialize it
         let remoting = GTestRemoting::new(system, DEFAULT_USER_ALICE.into());
-        let factory = <$factory>::new(remoting.clone());
-        let pid = factory
-            .new()
-            .send_recv(code_id, b"default_salt")
-            .await
-            .expect("failed to initialize the program");
 
-        (remoting, pid)
+        (
+            remoting.clone(),
+            $(
+                {
+                    let salt = COUNTER_SALT.fetch_add(1, std::sync::atomic::Ordering::SeqCst)
+                        .to_le_bytes();
+                    let factory = <$factory>::new(remoting.clone());
+                    factory
+                        .new_for_bench()
+                        .send_recv(code_id, &salt)
+                        .await
+                        .expect("failed to initialize the program")
+                }
+            ),*
+        )
     }};
 }
 
@@ -116,17 +133,18 @@ async fn alloc_stress_bench() {
 async fn compute_stress_bench() {
     let wasm_path = "../target/wasm32-gear/release/compute_stress_app.opt.wasm";
 
-    let (remoting, pid) = create_program_async!(ComputeStressFactory<GTestRemoting>, wasm_path);
+    let (remoting, pid) = create_program_async!((ComputeStressFactory<GTestRemoting>, wasm_path));
 
-    let mut gas_benches = Vec::new();
     let input_value = 30;
     let expected_sum = compute_stress_app::sum_of_fib(input_value);
-    for _ in 0..100 {
-        let (stress_resp, gas) = call_action!(remoting, pid, ComputeStress, input_value);
-        assert_eq!(stress_resp.res, expected_sum);
 
-        gas_benches.push(gas);
-    }
+    let mut gas_benches = (0..100)
+        .map(|_| {
+            let (stress_resp, gas) = call_action!(remoting, pid, ComputeStress, input_value);
+            assert_eq!(stress_resp.res, expected_sum);
+            gas
+        })
+        .collect::<Vec<_>>();
     gas_benches.sort_unstable();
 
     crate::store_bench_data(|bench_data| {
@@ -139,7 +157,7 @@ async fn compute_stress_bench() {
 async fn counter_bench() {
     let wasm_path = "../target/wasm32-gear/release/counter_bench_app.opt.wasm";
 
-    let (remoting, pid) = create_program_async!(CounterBenchFactory<GTestRemoting>, wasm_path);
+    let (remoting, pid) = create_program_async!((CounterBenchFactory<GTestRemoting>, wasm_path));
 
     let mut gas_benches_sync = Vec::new();
     let mut gas_benches_async = Vec::new();
@@ -165,11 +183,39 @@ async fn counter_bench() {
     .unwrap();
 }
 
+#[tokio::test]
+async fn cross_program_bench() {
+    let wasm_path = "../target/wasm32-gear/release/ping_pong_bench_app.opt.wasm";
+    let (remoting, start_ping_pid, pong_pid) = create_program_async!(
+        (PingPongFactory<GTestRemoting>, wasm_path),
+        (PingPongFactory<GTestRemoting>, wasm_path)
+    );
+
+    let mut gas_benches = (0..100)
+        .map(|_| {
+            let (stress_resp, gas) = call_action!(
+                remoting,
+                start_ping_pid,
+                Ping,
+                PingPongPayload::Start(pong_pid)
+            );
+            assert_eq!(stress_resp, PingPongPayload::Finished);
+            gas
+        })
+        .collect::<Vec<_>>();
+    gas_benches.sort_unstable();
+
+    crate::store_bench_data(|bench_data| {
+        bench_data.cross_program = median(gas_benches);
+    })
+    .unwrap();
+}
+
 async fn alloc_stress_test(n: u32) -> (usize, u64) {
     // Path taken from the .binpath file
     let wasm_path = "../target/wasm32-gear/release/alloc_stress_app.opt.wasm";
 
-    let (remoting, pid) = create_program_async!(AllocStressFactory<GTestRemoting>, wasm_path);
+    let (remoting, pid) = create_program_async!((AllocStressFactory<GTestRemoting>, wasm_path));
     let (stress_resp, gas) = call_action!(remoting, pid, AllocStress, n);
 
     let expected_len = alloc_stress_app::fibonacci_sum(n) as usize;

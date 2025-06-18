@@ -7,24 +7,24 @@ use sails_rs::{
     prelude::*,
     String,
 };
-pub struct AllocStressFactory<R> {
+pub struct PingPongFactory<R> {
     #[allow(dead_code)]
     remoting: R,
 }
-impl<R> AllocStressFactory<R> {
+impl<R> PingPongFactory<R> {
     #[allow(unused)]
     pub fn new(remoting: R) -> Self {
         Self { remoting }
     }
 }
-impl<R: Remoting + Clone> traits::AllocStressFactory for AllocStressFactory<R> {
+impl<R: Remoting + Clone> traits::PingPongFactory for PingPongFactory<R> {
     type Args = R::Args;
     fn new_for_bench(&self) -> impl Activation<Args = R::Args> {
-        RemotingAction::<_, alloc_stress_factory::io::NewForBench>::new(self.remoting.clone(), ())
+        RemotingAction::<_, ping_pong_factory::io::NewForBench>::new(self.remoting.clone(), ())
     }
 }
 
-pub mod alloc_stress_factory {
+pub mod ping_pong_factory {
     use super::*;
     pub mod io {
         use super::*;
@@ -43,65 +43,71 @@ pub mod alloc_stress_factory {
         }
     }
 }
-pub struct AllocStress<R> {
+pub struct PingPongService<R> {
     remoting: R,
 }
-impl<R> AllocStress<R> {
+impl<R> PingPongService<R> {
     pub fn new(remoting: R) -> Self {
         Self { remoting }
     }
 }
-impl<R: Remoting + Clone> traits::AllocStress for AllocStress<R> {
+impl<R: Remoting + Clone> traits::PingPongService for PingPongService<R> {
     type Args = R::Args;
-    fn alloc_stress(&mut self, n: u32) -> impl Call<Output = AllocStressResult, Args = R::Args> {
-        RemotingAction::<_, alloc_stress::io::AllocStress>::new(self.remoting.clone(), n)
+    fn ping(
+        &mut self,
+        payload: PingPongPayload,
+    ) -> impl Call<Output = PingPongPayload, Args = R::Args> {
+        RemotingAction::<_, ping_pong_service::io::Ping>::new(self.remoting.clone(), payload)
     }
 }
 
-pub mod alloc_stress {
+pub mod ping_pong_service {
     use super::*;
 
     pub mod io {
         use super::*;
         use sails_rs::calls::ActionIo;
-        pub struct AllocStress(());
-        impl AllocStress {
+        pub struct Ping(());
+        impl Ping {
             #[allow(dead_code)]
-            pub fn encode_call(n: u32) -> Vec<u8> {
-                <AllocStress as ActionIo>::encode_call(&n)
+            pub fn encode_call(payload: super::PingPongPayload) -> Vec<u8> {
+                <Ping as ActionIo>::encode_call(&payload)
             }
         }
-        impl ActionIo for AllocStress {
+        impl ActionIo for Ping {
             const ROUTE: &'static [u8] = &[
-                44, 65, 108, 108, 111, 99, 83, 116, 114, 101, 115, 115, 44, 65, 108, 108, 111, 99,
-                83, 116, 114, 101, 115, 115,
+                60, 80, 105, 110, 103, 80, 111, 110, 103, 83, 101, 114, 118, 105, 99, 101, 16, 80,
+                105, 110, 103,
             ];
-            type Params = u32;
-            type Reply = super::AllocStressResult;
+            type Params = super::PingPongPayload;
+            type Reply = super::PingPongPayload;
         }
     }
 }
 #[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo)]
 #[codec(crate = sails_rs::scale_codec)]
 #[scale_info(crate = sails_rs::scale_info)]
-pub struct AllocStressResult {
-    pub inner: Vec<u8>,
+pub enum PingPongPayload {
+    Start(ActorId),
+    Ping,
+    Pong,
+    Finished,
 }
 
 pub mod traits {
     use super::*;
     #[allow(dead_code)]
-    pub trait AllocStressFactory {
+    pub trait PingPongFactory {
         type Args;
         fn new_for_bench(&self) -> impl Activation<Args = Self::Args>;
     }
 
     #[allow(clippy::type_complexity)]
-    pub trait AllocStress {
+    pub trait PingPongService {
         type Args;
-        fn alloc_stress(
+        fn ping(
             &mut self,
-            n: u32,
-        ) -> impl Call<Output = AllocStressResult, Args = Self::Args>;
+            payload: PingPongPayload,
+        ) -> impl Call<Output = PingPongPayload, Args = Self::Args>;
     }
 }

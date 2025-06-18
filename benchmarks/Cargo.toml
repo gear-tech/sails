@@ -21,5 +21,6 @@ compute-stress-app = { path = "compute-stress/app" }
 compute-stress-client = { path = "compute-stress/client" }
 counter-bench-app = { path = "counter-bench/app" }
 counter-bench-client = { path = "counter-bench/client" }
+ping-pong-bench-app = { path = "ping-pong/app" }
 tokio = { workspace = true, features = ["rt", "macros"] }
 tempfile.workspace = true

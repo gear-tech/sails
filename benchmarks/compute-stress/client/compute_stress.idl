@@ -3,7 +3,7 @@ type ComputeStressResult = struct {
 };
 
 constructor {
-  New : ();
+  NewForBench : ();
 };
 
 service ComputeStress {

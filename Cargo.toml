@@ -38,8 +38,8 @@ members = [
     "benchmarks/compute-stress/client",
     "benchmarks/counter-bench/app",
     "benchmarks/counter-bench/client",
-    # "benchmarks/fibonacci-stress/core",
-    # "benchmarks/fibonacci-stress/plain",
+    "benchmarks/ping-pong/app",
+    "benchmarks/ping-pong/client",
     "benchmarks",
 ]
 
