@@ -1,4 +1,5 @@
 #![no_std]
+use sails_rs::gstd::{EventEmitter, ExposureWithEvents};
 
 /// Service Events
 #[sails_rs::event]
@@ -9,6 +10,7 @@ pub enum Events {
         p1: u32,
         p2: sails_rs::String,
     },
+    ThisEvent,
 }
 
 pub struct MyProgram;
@@ -20,8 +22,8 @@ impl MyProgram {
     }
 
     pub fn svc2(&self) -> SomeService2 {
-        let svc1 = self.svc1();
-        SomeService2 { svc1 }
+        let svc1_emitter = self.svc1().emitter();
+        SomeService2 { svc1_emitter }
     }
 }
 
@@ -35,23 +37,25 @@ impl SomeService {
     }
 
     pub fn this(&self, p1: bool) -> bool {
+        // Emit event from query
+        self.emit_event(Events::ThisEvent).unwrap();
         p1
     }
 }
 
 pub struct SomeService2 {
-    svc1: SomeServiceExposure<SomeService>,
+    svc1_emitter: EventEmitter<Events>,
 }
 
 #[sails_rs::service]
 impl SomeService2 {
     pub async fn do_this(&mut self, p1: u32, p2: sails_rs::String) -> u32 {
-        // Emit EthEvent via Svc1 Exposure
-        self.svc1
+        // Emit EthEvent via Svc1 Emitter
+        self.svc1_emitter
             .emit_eth_event(Events::DoThisEvent { p1, p2: p2.clone() })
             .unwrap();
-        // Emit gear event via Svc1 Exposure
-        self.svc1
+        // Emit gear event via Svc1 Emitter
+        self.svc1_emitter
             .emit_event(Events::DoThisEvent { p1, p2 })
             .unwrap();
         p1

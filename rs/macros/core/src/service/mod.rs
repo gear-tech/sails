@@ -70,7 +70,6 @@ struct ServiceBuilder<'a> {
     message_id_ident: Ident,
     route_ident: Ident,
     inner_ident: Ident,
-    inner_ptr_ident: Ident,
     base_ident: Ident,
     input_ident: Ident,
     meta_module_ident: Ident,
@@ -99,7 +98,6 @@ impl<'a> ServiceBuilder<'a> {
         let message_id_ident = Ident::new("message_id", Span::call_site());
         let route_ident = Ident::new("route", Span::call_site());
         let inner_ident = Ident::new("inner", Span::call_site());
-        let inner_ptr_ident = Ident::new("inner_ptr", Span::call_site());
         let base_ident = Ident::new("base", Span::call_site());
         let input_ident = Ident::new("input", Span::call_site());
         let meta_module_name = format!("{}_meta", service_ident.to_string().to_case(Case::Snake));
@@ -118,7 +116,6 @@ impl<'a> ServiceBuilder<'a> {
             message_id_ident,
             route_ident,
             inner_ident,
-            inner_ptr_ident,
             base_ident,
             input_ident,
             meta_module_ident,
@@ -141,10 +138,6 @@ impl ServiceBuilder<'_> {
     }
 
     fn service_emit_eth_impls(&self) -> Option<TokenStream> {
-        None
-    }
-
-    fn exposure_emit_eth_impls(&self) -> Option<TokenStream> {
         None
     }
 }
@@ -178,7 +171,7 @@ fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
     let service_trait_impl = service_builder.service_trait_impl();
     let service_emit_event_impls = service_builder.service_emit_event_impls();
     let service_emit_eth_impls = service_builder.service_emit_eth_impls();
-    let exposure_listen_and_drop = service_builder.exposure_listen_and_drop();
+    let service_with_event_trait_impl = service_builder.service_with_event_trait_impl();
 
     // ethexe
     let service_signature_impl = service_builder.service_signature_impl();
@@ -201,7 +194,7 @@ fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
         #service_emit_event_impls
         #service_emit_eth_impls
 
-        #exposure_listen_and_drop
+        #service_with_event_trait_impl
     )
 }
 
