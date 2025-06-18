@@ -21,4 +21,4 @@ demo-client = { path = "../demo/client", features = ["with_mocks"] }
 tokio = { workspace = true, features = ["rt", "macros"] }
 
 [features]
-idl-gen = ["sails-idl-gen"]
+idl-gen = ["dep:sails-idl-gen"]

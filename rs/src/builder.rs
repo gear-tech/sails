@@ -30,7 +30,7 @@ use std::{
 /// ClientGenerator::from_idl_path(&idl_path).generate_to(&client_path).unwrap();
 /// ```
 pub fn build_client<P: ProgramMeta>() -> (Option<PathBuf>, Option<PathBuf>) {
-    Builder::<P>::from_env().build()
+    ClientBuilder::<P>::from_env().build()
 }
 
 /// Shorthand function to be used in `build.rs`.
@@ -39,7 +39,7 @@ pub fn build_client<P: ProgramMeta>() -> (Option<PathBuf>, Option<PathBuf>) {
 ///
 /// See [build_client()], [Builder::build()].
 pub fn build_client_as_lib<P: ProgramMeta>() -> (Option<PathBuf>, Option<PathBuf>) {
-    Builder::<P>::from_env().no_std().build()
+    ClientBuilder::<P>::from_env().no_std().build()
 }
 
 /// Program IDL and client builder.
@@ -47,7 +47,7 @@ pub fn build_client_as_lib<P: ProgramMeta>() -> (Option<PathBuf>, Option<PathBuf
 /// This struct uses `sails-idl-gen` package to generate IDL,
 /// and `sails-client-gen` package to generate Rust client code.
 #[derive(Debug, Clone)]
-pub struct Builder<P> {
+pub struct ClientBuilder<P> {
     idl_path: Option<PathBuf>,
     client_path: Option<PathBuf>,
     program_name: String,
@@ -55,13 +55,13 @@ pub struct Builder<P> {
     _marker: PhantomData<P>,
 }
 
-impl<P: ProgramMeta> Default for Builder<P> {
+impl<P: ProgramMeta> Default for ClientBuilder<P> {
     fn default() -> Self {
         Self::from_env()
     }
 }
 
-impl<P: ProgramMeta> Builder<P> {
+impl<P: ProgramMeta> ClientBuilder<P> {
     pub fn from_env() -> Self {
         let out_dir =
             env::var("CARGO_MANIFEST_DIR").expect("Default builder can only be used in crate");
@@ -214,12 +214,12 @@ mod tests {
 
     #[test]
     fn builder_new() {
-        let Builder {
+        let ClientBuilder {
             client_path,
             idl_path,
             program_name,
             ..
-        } = Builder::<P>::from_env();
+        } = ClientBuilder::<P>::from_env();
 
         assert_eq!("sails_rs", program_name);
         assert!(client_path.is_some());

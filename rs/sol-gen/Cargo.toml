@@ -14,7 +14,7 @@ handlebars.workspace = true
 anyhow.workspace = true
 serde = { workspace = true, features = ["derive"] }
 sails-idl-meta.workspace = true
-convert-case.workspace = true
+convert_case.workspace = true
 
 [dev-dependencies]
 insta.workspace = true
