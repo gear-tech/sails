@@ -17,6 +17,7 @@ use gear_core_errors::ReplyCode;
 pub struct GClientArgs {
     voucher: Option<(VoucherId, bool)>,
     at_block: Option<H256>,
+    query_with_message: bool,
 }
 
 impl GClientArgs {
@@ -30,6 +31,13 @@ impl GClientArgs {
     fn at_block(self, hash: H256) -> Self {
         Self {
             at_block: Some(hash),
+            ..self
+        }
+    }
+
+    fn query_with_message(self, query_with_message: bool) -> Self {
+        Self {
+            query_with_message,
             ..self
         }
     }
@@ -48,6 +56,45 @@ impl GClientRemoting {
     pub fn with_suri(self, suri: impl AsRef<str>) -> Self {
         let api = self.api.with(suri).unwrap();
         Self { api }
+    }
+
+    async fn query_calculate_reply(
+        self,
+        target: ActorId,
+        payload: impl AsRef<[u8]>,
+        #[cfg(not(feature = "ethexe"))] gas_limit: Option<GasUnit>,
+        value: ValueUnit,
+        args: GClientArgs,
+    ) -> Result<Vec<u8>> {
+        let api = self.api;
+        // Get Max gas amount if it is not explicitly set
+        #[cfg(not(feature = "ethexe"))]
+        let gas_limit = if let Some(gas_limit) = gas_limit {
+            gas_limit
+        } else {
+            api.block_gas_limit()?
+        };
+        #[cfg(feature = "ethexe")]
+        let gas_limit = 0;
+        let origin = H256::from_slice(api.account_id().as_slice());
+        let payload = payload.as_ref().to_vec();
+
+        let reply_info = api
+            .calculate_reply_for_handle_at(
+                Some(origin),
+                target,
+                payload,
+                gas_limit,
+                value,
+                args.at_block,
+            )
+            .await?;
+
+        match reply_info.code {
+            ReplyCode::Success(_) => Ok(reply_info.payload),
+            ReplyCode::Error(reason) => Err(RtlError::ReplyHasError(reason, reply_info.payload))?,
+            ReplyCode::Unsupported => Err(RtlError::ReplyIsMissing)?,
+        }
     }
 }
 
@@ -139,34 +186,14 @@ impl Remoting for GClientRemoting {
         value: ValueUnit,
         args: GClientArgs,
     ) -> Result<Vec<u8>> {
-        let api = self.api;
-        // Get Max gas amount if it is not explicitly set
-        #[cfg(not(feature = "ethexe"))]
-        let gas_limit = if let Some(gas_limit) = gas_limit {
-            gas_limit
+        if args.query_with_message {
+            // first await - sending a message, second await - receiving a reply
+            self.message(target, payload, gas_limit, value, args)
+                .await?
+                .await
         } else {
-            api.block_gas_limit()?
-        };
-        #[cfg(feature = "ethexe")]
-        let gas_limit = 0;
-        let origin = H256::from_slice(api.account_id().as_slice());
-        let payload = payload.as_ref().to_vec();
-
-        let reply_info = api
-            .calculate_reply_for_handle_at(
-                Some(origin),
-                target,
-                payload,
-                gas_limit,
-                value,
-                args.at_block,
-            )
-            .await?;
-
-        match reply_info.code {
-            ReplyCode::Success(_) => Ok(reply_info.payload),
-            ReplyCode::Error(reason) => Err(RtlError::ReplyHasError(reason, reply_info.payload))?,
-            ReplyCode::Unsupported => Err(RtlError::ReplyIsMissing)?,
+            self.query_calculate_reply(target, payload, gas_limit, value, args)
+                .await
         }
     }
 }
@@ -217,16 +244,34 @@ async fn get_events_from_block(
     Ok(vec)
 }
 
-pub trait QueryAtBlock {
+pub trait QueryExt {
     /// Query at a specific block.
+    ///
+    /// See [`GearApi::calculate_reply_for_handle_at`].
     fn at_block(self, hash: H256) -> Self;
+
+    /// Query with sending message.
+    ///
+    /// By default, the `query_with_message` flag is set to `false`.
+    /// The query sends the `gear_calculateReplyForHandle` RPC to the node,
+    /// which is used to determine the reply when `Gear::send_message(...)` is called.
+    ///
+    /// If set the `query_with_message` flag to `true`,
+    /// the query will actually send the message and wait for a reply.
+    ///
+    /// See [`GearApi::calculate_reply_for_handle`].
+    fn query_with_message(self, query_with_message: bool) -> Self;
 }
 
-impl<T> QueryAtBlock for T
+impl<T> QueryExt for T
 where
     T: Query<Args = GClientArgs>,
 {
     fn at_block(self, hash: H256) -> Self {
         self.with_args(|args| args.at_block(hash))
+    }
+
+    fn query_with_message(self, query_with_message: bool) -> Self {
+        self.with_args(|args| args.query_with_message(query_with_message))
     }
 }
