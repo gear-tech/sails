@@ -1,4 +1,9 @@
-//! TODO [sab]
+//! Benchmarking utilities for Sails framework performance measurement.
+//!
+//! This module provides functionality to collect, store, and manage benchmark data
+//! for various aspects of the Sails framework.
+//! Benchmark data is persisted to a JSON file (`path_to_sails/benchmarks/bench_data.json`)
+//! with file locking to ensure thread-safe concurrent access when running multiple benchmark tests.
 
 use anyhow::{Context, Result};
 use fs2::FileExt;
@@ -11,15 +16,13 @@ use std::{
     path::{Path, PathBuf},
 };
 
-// todo [sab] add warm-up
-
 #[cfg(all(test, not(debug_assertions)))]
 mod benchmarks;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct BenchData {
     pub compute: u64,
-    pub alloc: BTreeMap<u32, u64>,
+    pub alloc: BTreeMap<usize, u64>,
     pub counter: CounterBenchData,
 }
 

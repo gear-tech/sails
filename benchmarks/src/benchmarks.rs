@@ -1,4 +1,19 @@
-// Todo [sab] write docs to all the benches
+//! Benchmark tests for measuring Sails framework performance characteristics.
+//!
+//! This module contains integration tests that measure various performance aspects
+//! of Sails applications including:
+//!
+//! - **Sync/async calls** - Tests sync/async calls efficiency for the simplest sails program (`counter_bench` test)
+//! - **Memory allocation benchmarks** - Tests allocation patterns using stress program (`alloc_stress_bench` test)
+//! - **Compute performance benchmarks** - Tests CPU-intensive operations like Fibonacci calculations (`compute_stress_bench` test)
+//!
+//! All benchmarks use the `gtest` framework to simulate on-chain execution and measure
+//! gas consumption. Results are stored to the shared benchmark data file for analysis.
+//!
+//! To run benchmarks, use the following command (for example, from the root of the workspace):
+//! ```bash
+//! cargo test --release --manifest-path=benchmarks/Cargo.toml
+//! ```
 
 use alloc_stress_client::{
     AllocStressFactory, alloc_stress::io::AllocStress, traits::AllocStressFactory as _,
@@ -11,79 +26,87 @@ use counter_bench_client::{
     counter_bench::io::{Inc, IncAsync},
     traits::CounterBenchFactory as _,
 };
-
 use gtest::{System, constants::DEFAULT_USER_ALICE};
 use sails_rs::{
     calls::{ActionIo, Activation},
     gtest::calls::GTestRemoting,
 };
+use std::collections::BTreeMap;
 
-async fn alloc_stress_test(n: u32) -> (u64, u32) {
-    // Path taken from the .binpath file
-    let wasm_path = "../target/wasm32-gear/release/alloc_stress_app.opt.wasm";
+macro_rules! create_program_async {
+    ($factory:ty, $wasm_path:expr) => {{
+        let system = System::new();
+        system.mint_to(DEFAULT_USER_ALICE, 1_000_000_000_000_000);
 
-    let system = System::new();
-    system.mint_to(DEFAULT_USER_ALICE, 1_000_000_000_000_000);
+        let code_id = system.submit_local_code_file($wasm_path);
 
-    let code_id = system.submit_local_code_file(wasm_path);
+        // Create program and initialize it
+        let remoting = GTestRemoting::new(system, DEFAULT_USER_ALICE.into());
+        let factory = <$factory>::new(remoting.clone());
+        let pid = factory
+            .new()
+            .send_recv(code_id, b"default_salt")
+            .await
+            .expect("failed to initialize the program");
 
-    // Create program and initialize it
-    let remoting = GTestRemoting::new(system, DEFAULT_USER_ALICE.into());
-    let factory = AllocStressFactory::new(remoting.clone());
-    let pid = factory
-        .new()
-        .send_recv(code_id, b"fibo_prog")
-        .await
-        .expect("failed to initialize the program");
+        (remoting, pid)
+    }};
+}
 
-    // Using low-level `gtest` as it's possible to have block execution data this way.
-    let system_remoting = remoting.system();
-    let program = system_remoting
-        .get_program(pid)
-        .expect("program was created; qed.");
-    let from = remoting.actor_id();
+macro_rules! call_action {
+    ($remoting:expr, $pid:expr, $action:ty $(, $action_params:expr),*) => {{
+        let system_remoting = $remoting.system();
+        let program = system_remoting
+            .get_program($pid)
+            .expect("program was created; qed.");
+        let from = $remoting.actor_id();
 
-    // Form payload for the program
-    let payload = AllocStress::encode_call(n);
-    let mid = program.send_bytes(from, payload);
-    let block_res = system_remoting.run_next_block();
+        // Form payload for the program
+        let payload = <$action>::encode_call($($action_params),*);
+        let mid = program.send_bytes(from, payload);
+        let block_res = system_remoting.run_next_block();
 
-    assert!(block_res.succeed.contains(&mid));
+        assert!(block_res.succeed.contains(&mid));
 
-    // Check received payload
-    let payload = block_res
-        .log()
-        .iter()
-        .find_map(|log| {
-            log.reply_to()
-                .filter(|reply_to| reply_to == &mid)
-                .map(|_| log.payload().to_vec())
-        })
-        .expect("internal error: no reply was found");
-    let stress_res = AllocStress::decode_reply(payload).expect("failed to decode payload");
+        // Check received payload
+        let payload = block_res
+            .log()
+            .iter()
+            .find_map(|log| {
+                log.reply_to()
+                    .filter(|reply_to| reply_to == &mid)
+                    .map(|_| log.payload().to_vec())
+            })
+            .expect("internal error: no reply was found");
 
-    let expected_len = alloc_stress_app::fibonacci_sum(n) as usize;
-    assert_eq!(stress_res.inner.len(), expected_len);
+        let resp = <$action>::decode_reply(payload).expect("failed to decode payload");
 
-    (
-        block_res
+        let gas_burned = block_res
             .gas_burned
             .get(&mid)
             .copied()
-            .expect("msg was executed; qed."),
-        expected_len.try_into().unwrap(),
-    )
+            .expect("msg was executed; qed.");
+
+        (resp, gas_burned)
+    }};
 }
 
 #[tokio::test]
 async fn alloc_stress_bench() {
+    let mut benches: BTreeMap<usize, Vec<u64>> = Default::default();
     let fibonacci_ns = [0, 6, 11, 15, 20, 23, 25, 27];
 
-    for &n in fibonacci_ns.iter() {
-        let (gas, len) = alloc_stress_test(n).await;
+    for _ in 0..100 {
+        for &n in fibonacci_ns.iter() {
+            let (len, gas) = alloc_stress_test(n).await;
 
+            benches.entry(len).or_default().push(gas);
+        }
+    }
+
+    for (len, gas_benches) in benches {
         crate::store_bench_data(|bench_data| {
-            bench_data.alloc.insert(len, gas);
+            bench_data.alloc.insert(len, median(gas_benches));
         })
         .unwrap();
     }
@@ -93,63 +116,21 @@ async fn alloc_stress_bench() {
 async fn compute_stress_bench() {
     let wasm_path = "../target/wasm32-gear/release/compute_stress_app.opt.wasm";
 
-    let system = System::new();
-    system.init_logger();
-    system.mint_to(DEFAULT_USER_ALICE, 1_000_000_000_000_000);
+    let (remoting, pid) = create_program_async!(ComputeStressFactory<GTestRemoting>, wasm_path);
 
-    let code_id = system.submit_local_code_file(wasm_path);
-
-    // Create program and initialize it
-    let remoting = GTestRemoting::new(system, DEFAULT_USER_ALICE.into());
-    let factory = ComputeStressFactory::new(remoting.clone());
-    let pid = factory
-        .new()
-        .send_recv(code_id, b"fibo_prog")
-        .await
-        .expect("failed to initialize the program");
-
-    // Using low-level `gtest` as it's possible to have block execution data this way.
-    let system_remoting = remoting.system();
-    let program = system_remoting
-        .get_program(pid)
-        .expect("program was created; qed.");
-    let from = remoting.actor_id();
-
-    // Form payload for the program
+    let mut gas_benches = Vec::new();
     let input_value = 30;
-    let payload = ComputeStress::encode_call(input_value);
-    let mid = program.send_bytes(from, payload);
-    let block_res = system_remoting.run_next_block();
-
-    assert!(block_res.succeed.contains(&mid));
-
-    // Check received payload
-    let payload = block_res
-        .log()
-        .iter()
-        .find_map(|log| {
-            log.reply_to()
-                .filter(|reply_to| reply_to == &mid)
-                .map(|_| log.payload().to_vec())
-        })
-        .expect("internal error: no reply was found");
-    let stress_res = ComputeStress::decode_reply(payload).expect("failed to decode payload");
-
     let expected_sum = compute_stress_app::sum_of_fib(input_value);
-    assert_eq!(stress_res.res, expected_sum);
+    for _ in 0..100 {
+        let (stress_resp, gas) = call_action!(remoting, pid, ComputeStress, input_value);
+        assert_eq!(stress_resp.res, expected_sum);
 
-    let gas = block_res
-        .gas_burned
-        .get(&mid)
-        .copied()
-        .expect("msg was executed; qed.");
-
-    let gas = format!("{gas}")
-        .parse::<u64>()
-        .expect("value is a valid u64");
+        gas_benches.push(gas);
+    }
+    gas_benches.sort_unstable();
 
     crate::store_bench_data(|bench_data| {
-        bench_data.compute = gas;
+        bench_data.compute = median(gas_benches);
     })
     .unwrap();
 }
@@ -158,87 +139,55 @@ async fn compute_stress_bench() {
 async fn counter_bench() {
     let wasm_path = "../target/wasm32-gear/release/counter_bench_app.opt.wasm";
 
-    let system = System::new();
-    system.init_logger();
-    system.mint_to(DEFAULT_USER_ALICE, 1_000_000_000_000_000);
+    let (remoting, pid) = create_program_async!(CounterBenchFactory<GTestRemoting>, wasm_path);
 
-    let code_id = system.submit_local_code_file(wasm_path);
+    let mut gas_benches_sync = Vec::new();
+    let mut gas_benches_async = Vec::new();
+    let mut expected_value = 0;
+    for _ in 0..100 {
+        let (stress_resp, gas_sync_inc) = call_action!(remoting, pid, Inc);
+        assert_eq!(stress_resp, expected_value);
+        expected_value += 1;
+        gas_benches_sync.push(gas_sync_inc);
 
-    // Create program and initialize it
-    let remoting = GTestRemoting::new(system, DEFAULT_USER_ALICE.into());
-    let factory = CounterBenchFactory::new(remoting.clone());
-    let pid = factory
-        .new()
-        .send_recv(code_id, b"counter_bench_prog")
-        .await
-        .expect("failed to initialize the program");
-
-    // Using low-level `gtest` as it's possible to have block execution data this way.
-    let system_remoting = remoting.system();
-    let program = system_remoting
-        .get_program(pid)
-        .expect("program was created; qed.");
-    let from = remoting.actor_id();
-
-    // Form payload for the program. Calling `inc` method.
-    let payload = Inc::encode_call();
-    let mid = program.send_bytes(from, payload);
-    let block_res = system_remoting.run_next_block();
-    assert!(block_res.succeed.contains(&mid));
-
-    // Check received payload
-    let payload = block_res
-        .log()
-        .iter()
-        .find_map(|log| {
-            log.reply_to()
-                .filter(|reply_to| reply_to == &mid)
-                .map(|_| log.payload().to_vec())
-        })
-        .expect("internal error: no reply was found");
-    let res = Inc::decode_reply(payload).expect("failed to decode payload");
-
-    assert_eq!(res, 0);
-
-    let gas_sync_inc = block_res
-        .gas_burned
-        .get(&mid)
-        .copied()
-        .expect("msg was executed; qed.");
+        let (stress_resp, gas_async_inc) = call_action!(remoting, pid, IncAsync);
+        assert_eq!(stress_resp, expected_value);
+        expected_value += 1;
+        gas_benches_async.push(gas_async_inc);
+    }
+    gas_benches_sync.sort_unstable();
+    gas_benches_async.sort_unstable();
 
     crate::store_bench_data(|bench_data| {
-        bench_data.counter.sync_call = gas_sync_inc;
+        bench_data.counter.sync_call = median(gas_benches_sync);
+        bench_data.counter.async_call = median(gas_benches_async);
     })
     .unwrap();
+}
 
-    // Increment counter again using async call async method.
-    let payload = IncAsync::encode_call();
-    let mid2 = program.send_bytes(from, payload);
-    let block_res2 = system_remoting.run_next_block();
-    assert!(block_res2.succeed.contains(&mid2));
+async fn alloc_stress_test(n: u32) -> (usize, u64) {
+    // Path taken from the .binpath file
+    let wasm_path = "../target/wasm32-gear/release/alloc_stress_app.opt.wasm";
 
-    // Check received payload
-    let payload = block_res2
-        .log()
-        .iter()
-        .find_map(|log| {
-            log.reply_to()
-                .filter(|reply_to| reply_to == &mid2)
-                .map(|_| log.payload().to_vec())
-        })
-        .expect("internal error: no reply was found");
-    let res = IncAsync::decode_reply(payload).expect("failed to decode payload");
+    let (remoting, pid) = create_program_async!(AllocStressFactory<GTestRemoting>, wasm_path);
+    let (stress_resp, gas) = call_action!(remoting, pid, AllocStress, n);
 
-    assert_eq!(res, 1);
+    let expected_len = alloc_stress_app::fibonacci_sum(n) as usize;
+    assert_eq!(stress_resp.inner.len(), expected_len);
 
-    let gas_async_inc = block_res2
-        .gas_burned
-        .get(&mid2)
-        .copied()
-        .expect("msg was executed; qed.");
+    (expected_len, gas)
+}
 
-    crate::store_bench_data(|bench_data| {
-        bench_data.counter.async_call = gas_async_inc;
-    })
-    .unwrap();
+fn median(mut values: Vec<u64>) -> u64 {
+    values.sort_unstable();
+
+    assert!(!values.is_empty());
+
+    let len = values.len();
+    if len % 2 == 0 {
+        let i = len / 2;
+        (values[i - 1] + values[i]) / 2
+    } else {
+        values[len / 2]
+    }
 }
