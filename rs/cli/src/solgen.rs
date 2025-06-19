@@ -30,9 +30,9 @@ impl SolidityGenerator {
             bail!("No filename found");
         };
 
-        let contract_name = self.contract_name.clone().unwrap_or(filename.to_string());
+        let unformatted_contract_name = self.contract_name.clone().unwrap_or(filename.to_string());
 
-        let contract = generate_solidity_contract(&idl_content, &contract_name)?;
+        let contract = generate_solidity_contract(&idl_content, &unformatted_contract_name)?;
 
         let target_file = self.target_dir.join(format!("{}.sol", &contract.name));
 
