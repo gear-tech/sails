@@ -20,7 +20,7 @@ async fn counter_add_works() {
     let admin_id = ActorId::try_from(gear_api.account_id().encode().as_ref())
         .expect("failed to create actor id");
 
-    let demo_factory = demo_client::DemoFactory::new(remoting.clone());
+    let demo_factory = demo_client::DemoClientFactory::new(remoting.clone());
 
     // Use generated client code for activating Demo program
     // using the `new` constructor and the `send_recv` method
@@ -67,7 +67,7 @@ async fn counter_sub_works() {
 
     let (remoting, demo_code_id, gas_limit, ..) = spin_up_node_with_demo_code().await;
 
-    let demo_factory = demo_client::DemoFactory::new(remoting.clone());
+    let demo_factory = demo_client::DemoClientFactory::new(remoting.clone());
 
     // Use generated client code for activating Demo program
     // using the `new` constructor and the `send`/`recv` pair
@@ -112,7 +112,7 @@ async fn ping_pong_works() {
 
     let (remoting, demo_code_id, gas_limit, ..) = spin_up_node_with_demo_code().await;
 
-    let demo_factory = demo_client::DemoFactory::new(remoting.clone());
+    let demo_factory = demo_client::DemoClientFactory::new(remoting.clone());
 
     // Use generated client code for activating Demo program
     // using the `default` constructor and the `send_recv` method
@@ -156,7 +156,7 @@ async fn demo_returns_not_enough_gas_on_activation() {
 
     let (remoting, demo_code_id, ..) = spin_up_node_with_demo_code().await;
 
-    let demo_factory = demo_client::DemoFactory::new(remoting.clone());
+    let demo_factory = demo_client::DemoClientFactory::new(remoting.clone());
 
     // Act
 
@@ -183,7 +183,7 @@ async fn counter_query_works() {
 
     let (remoting, demo_code_id, gas_limit, ..) = spin_up_node_with_demo_code().await;
 
-    let demo_factory = demo_client::DemoFactory::new(remoting.clone());
+    let demo_factory = demo_client::DemoClientFactory::new(remoting.clone());
 
     // Use generated client code for activating Demo program
     // using the `new` constructor and the `send_recv` method
@@ -212,7 +212,7 @@ async fn counter_query_not_enough_gas() {
 
     let (remoting, demo_code_id, gas_limit, ..) = spin_up_node_with_demo_code().await;
 
-    let demo_factory = demo_client::DemoFactory::new(remoting.clone());
+    let demo_factory = demo_client::DemoClientFactory::new(remoting.clone());
 
     // Use generated client code for activating Demo program
     // using the `new` constructor and the `send_recv` method
@@ -252,7 +252,7 @@ async fn value_fee_works() {
     let admin_id = ActorId::try_from(gear_api.account_id().encode().as_ref())
         .expect("failed to create actor id");
 
-    let demo_factory = demo_client::DemoFactory::new(remoting.clone());
+    let demo_factory = demo_client::DemoClientFactory::new(remoting.clone());
     let program_id = demo_factory
         .new(Some(42), None)
         .send_recv(demo_code_id, "123")

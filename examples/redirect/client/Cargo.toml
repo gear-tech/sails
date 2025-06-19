@@ -8,5 +8,4 @@ sails-rs.workspace = true
 
 [build-dependencies]
 redirect-app = { path = "../app" }
-sails-client-gen.workspace = true
-sails-rs = { workspace = true, features = ["idl-gen"] }
+sails-rs = { workspace = true, features = ["build"] }

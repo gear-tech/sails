@@ -13,7 +13,7 @@ crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 anyhow.workspace = true
-convert-case.workspace = true
+convert_case.workspace = true
 genco.workspace = true
 itertools.workspace = true
 parity-scale-codec.workspace = true

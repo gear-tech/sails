@@ -73,8 +73,8 @@ anyhow = "1"
 cargo-generate = "0.23.3"
 cargo_metadata = "0.19"
 clap = "4.5"
-convert-case = { package = "convert_case", version = "0.6" }
 fs2 = "0.4.3"
+convert_case = "0.7"
 futures = { version = "0.3", default-features = false }
 genco = "0.17"
 git-download = "0.1"
