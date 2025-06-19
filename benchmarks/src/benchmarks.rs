@@ -6,7 +6,8 @@
 //! - **Sync/async calls** - Tests sync/async calls efficiency for the simplest sails program (`counter_bench` test)
 //! - **Memory allocation benchmarks** - Tests allocation patterns using stress program (`alloc_stress_bench` test)
 //! - **Compute performance benchmarks** - Tests CPU-intensive operations like Fibonacci calculations (`compute_stress_bench` test)
-//! - **Cross-program communication** - Tests performance of cross-program communication (`cross_program_bench` test)
+//! - **Cross-program performance** - Tests performance of cross-program communication (`cross_program_bench` test)
+//! - **Redirect performance** - Tests performance of redirecting calls to another program (`redirect_bench` test)
 //!
 //! All benchmarks use the `gtest` framework to simulate on-chain execution and measure
 //! gas consumption. Results are stored to the shared benchmark data file for analysis.
@@ -27,11 +28,15 @@ use counter_bench_client::{
     counter_bench::io::{Inc, IncAsync},
     traits::CounterBenchFactory as _,
 };
+use gtest::{System, constants::DEFAULT_USER_ALICE};
+use itertools::{Either, Itertools};
 use ping_pong_bench_app::client::{
     PingPongFactory, PingPongPayload, ping_pong_service::io::Ping, traits::PingPongFactory as _,
 };
-
-use gtest::{System, constants::DEFAULT_USER_ALICE};
+use redirect_client::{RedirectFactory, redirect::io::Exit, traits::RedirectFactory as _};
+use redirect_proxy_client::{
+    RedirectProxyFactory, proxy::io::GetProgramId, traits::RedirectProxyFactory as _,
+};
 use sails_rs::{
     calls::{ActionIo, Activation},
     gtest::calls::GTestRemoting,
@@ -41,7 +46,11 @@ use std::{collections::BTreeMap, sync::atomic::AtomicU64};
 static COUNTER_SALT: AtomicU64 = AtomicU64::new(0);
 
 macro_rules! create_program_async {
-    ($(($factory:ty, $wasm_path:expr)),* $(,)?) => {{
+    ($(($factory:ty, $wasm_path:expr)),+) => {{
+        create_program_async!($(($factory, $wasm_path, new_for_bench)),+)
+    }};
+
+    ($(($factory:ty, $wasm_path:expr, $ctor_name:ident $(, $ctor_params:expr),*)),+) => {{
         let system = System::new();
         system.mint_to(DEFAULT_USER_ALICE, 1_000_000_000_000_000);
 
@@ -60,7 +69,7 @@ macro_rules! create_program_async {
                         .to_le_bytes();
                     let factory = <$factory>::new(remoting.clone());
                     factory
-                        .new_for_bench()
+                        .$ctor_name($($ctor_params),*)
                         .send_recv(code_id, &salt)
                         .await
                         .expect("failed to initialize the program")
@@ -68,10 +77,41 @@ macro_rules! create_program_async {
             ),*
         )
     }};
+
+    ($remoting:expr, $(($factory:ty, $wasm_path:expr)),+) => {{
+        create_program_async!($remoting, $(($factory, $wasm_path, new_for_bench)),+)
+    }};
+
+    ($remoting:expr, $(($factory:ty, $wasm_path:expr, $ctor_name:ident $(, $ctor_params:expr),*)),+) => {{
+        let remoting = $remoting;
+
+        (
+            remoting.clone(),
+            $({
+                let code_id = remoting.system().submit_local_code_file($wasm_path);
+                let salt = COUNTER_SALT.fetch_add(1, std::sync::atomic::Ordering::SeqCst)
+                    .to_le_bytes();
+                let factory = <$factory>::new(remoting.clone());
+                factory
+                    .$ctor_name($($ctor_params),*)
+                    .send_recv(code_id, &salt)
+                    .await
+                    .expect("failed to initialize the program")
+            }),*
+        )
+    }};
 }
 
 macro_rules! call_action {
     ($remoting:expr, $pid:expr, $action:ty $(, $action_params:expr),*) => {{
+        call_action!($remoting, $pid, $action $(, $action_params),* ; with_reply)
+    }};
+
+    ($remoting:expr, $pid:expr, $action:ty $(, $action_params:expr),* ; no_reply_check) => {{
+        call_action!($remoting, $pid, $action $(, $action_params),* ; no_reply)
+    }};
+
+    ($remoting:expr, $pid:expr, $action:ty $(, $action_params:expr),* ; $mode:ident) => {{
         let system_remoting = $remoting.system();
         let program = system_remoting
             .get_program($pid)
@@ -82,29 +122,29 @@ macro_rules! call_action {
         let payload = <$action>::encode_call($($action_params),*);
         let mid = program.send_bytes(from, payload);
         let block_res = system_remoting.run_next_block();
-
         assert!(block_res.succeed.contains(&mid));
 
-        // Check received payload
-        let payload = block_res
+        call_action!(@handle_result $mode, block_res, mid, $action)
+    }};
+
+    (@handle_result with_reply, $block_res:expr, $mid:expr, $action:ty) => {{
+        let payload = $block_res
             .log()
             .iter()
             .find_map(|log| {
                 log.reply_to()
-                    .filter(|reply_to| reply_to == &mid)
+                    .filter(|reply_to| reply_to == &$mid)
                     .map(|_| log.payload().to_vec())
             })
-            .expect("internal error: no reply was found");
+            .expect("reply found");
 
-        let resp = <$action>::decode_reply(payload).expect("failed to decode payload");
+        let resp = <$action>::decode_reply(payload).expect("decode reply");
+        let gas = $block_res.gas_burned.get(&$mid).copied().expect("gas recorded");
+        (resp, gas)
+    }};
 
-        let gas_burned = block_res
-            .gas_burned
-            .get(&mid)
-            .copied()
-            .expect("msg was executed; qed.");
-
-        (resp, gas_burned)
+    (@handle_result no_reply, $block_res:expr, $mid:expr, $action:ty) => {{
+        $block_res.gas_burned.get(&$mid).copied().expect("gas recorded")
     }};
 }
 
@@ -133,7 +173,7 @@ async fn alloc_stress_bench() {
 async fn compute_stress_bench() {
     let wasm_path = "../target/wasm32-gear/release/compute_stress_app.opt.wasm";
 
-    let (remoting, pid) = create_program_async!((ComputeStressFactory<GTestRemoting>, wasm_path));
+    let (remoting, pid) = create_program_async!((ComputeStressFactory::<GTestRemoting>, wasm_path));
 
     let input_value = 30;
     let expected_sum = compute_stress_app::sum_of_fib(input_value);
@@ -157,22 +197,37 @@ async fn compute_stress_bench() {
 async fn counter_bench() {
     let wasm_path = "../target/wasm32-gear/release/counter_bench_app.opt.wasm";
 
-    let (remoting, pid) = create_program_async!((CounterBenchFactory<GTestRemoting>, wasm_path));
+    let (remoting, pid) = create_program_async!((CounterBenchFactory::<GTestRemoting>, wasm_path));
 
-    let mut gas_benches_sync = Vec::new();
-    let mut gas_benches_async = Vec::new();
     let mut expected_value = 0;
-    for _ in 0..100 {
-        let (stress_resp, gas_sync_inc) = call_action!(remoting, pid, Inc);
-        assert_eq!(stress_resp, expected_value);
-        expected_value += 1;
-        gas_benches_sync.push(gas_sync_inc);
+    let (mut gas_benches_sync, mut gas_benches_async): (Vec<_>, Vec<_>) = (0..100)
+        .enumerate()
+        .map(|(i, _)| {
+            let is_sync = i % 2 == 0;
+            let gas = if is_sync {
+                let (stress_resp, gas_sync_inc) = call_action!(remoting, pid, Inc);
+                assert_eq!(stress_resp, expected_value);
+                expected_value += 1;
 
-        let (stress_resp, gas_async_inc) = call_action!(remoting, pid, IncAsync);
-        assert_eq!(stress_resp, expected_value);
-        expected_value += 1;
-        gas_benches_async.push(gas_async_inc);
-    }
+                gas_sync_inc
+            } else {
+                let (stress_resp, gas_async_inc) = call_action!(remoting, pid, IncAsync);
+                assert_eq!(stress_resp, expected_value);
+                expected_value += 1;
+
+                gas_async_inc
+            };
+
+            (i, gas)
+        })
+        .partition_map(|(i, gas)| {
+            if i % 2 == 0 {
+                Either::Left(gas) // Sync call
+            } else {
+                Either::Right(gas) // Async call
+            }
+        });
+
     gas_benches_sync.sort_unstable();
     gas_benches_async.sort_unstable();
 
@@ -187,8 +242,8 @@ async fn counter_bench() {
 async fn cross_program_bench() {
     let wasm_path = "../target/wasm32-gear/release/ping_pong_bench_app.opt.wasm";
     let (remoting, start_ping_pid, pong_pid) = create_program_async!(
-        (PingPongFactory<GTestRemoting>, wasm_path),
-        (PingPongFactory<GTestRemoting>, wasm_path)
+        (PingPongFactory::<GTestRemoting>, wasm_path),
+        (PingPongFactory::<GTestRemoting>, wasm_path)
     );
 
     let mut gas_benches = (0..100)
@@ -211,11 +266,66 @@ async fn cross_program_bench() {
     .unwrap();
 }
 
+#[tokio::test]
+async fn redirect_bench() {
+    let redirect_wasm_path = "../target/wasm32-gear/release/redirect_app.opt.wasm";
+    let proxy_wasm_path = "../target/wasm32-gear/release/redirect_proxy.opt.wasm";
+
+    let (remoting, redirect_pid1, redirect_pid2) = create_program_async!(
+        (RedirectFactory::<GTestRemoting>, redirect_wasm_path, new),
+        (RedirectFactory::<GTestRemoting>, redirect_wasm_path, new)
+    );
+    let (remoting, proxy_pid) = create_program_async!(
+        remoting,
+        (
+            RedirectProxyFactory::<GTestRemoting>,
+            proxy_wasm_path,
+            new,
+            redirect_pid1
+        )
+    );
+
+    // Warm-up proxy program
+    let g = (0..100)
+        .map(|_| {
+            let (resp, g) = call_action!(remoting, proxy_pid, GetProgramId);
+            assert_eq!(resp, redirect_pid1);
+
+            g
+        })
+        .collect::<Vec<_>>();
+
+    // todo [sab] remove
+    println!("Warm-up gas: {g:#?}");
+
+    // Call exit on a redirect program
+    call_action!(remoting, redirect_pid1, Exit, redirect_pid2; no_reply_check);
+
+    let gas_benches = (0..100)
+        .map(|_| {
+            let (resp, gas_get_program) = call_action!(remoting, proxy_pid, GetProgramId);
+            assert_eq!(resp, redirect_pid2);
+
+            println!("Gas for get_program: {gas_get_program}");
+
+            gas_get_program
+        })
+        .collect::<Vec<_>>();
+
+    // todo [sab] remove
+    println!("Gas after exit: {gas_benches:#?}");
+
+    crate::store_bench_data(|bench_data| {
+        bench_data.redirect = median(gas_benches);
+    })
+    .unwrap();
+}
+
 async fn alloc_stress_test(n: u32) -> (usize, u64) {
     // Path taken from the .binpath file
     let wasm_path = "../target/wasm32-gear/release/alloc_stress_app.opt.wasm";
 
-    let (remoting, pid) = create_program_async!((AllocStressFactory<GTestRemoting>, wasm_path));
+    let (remoting, pid) = create_program_async!((AllocStressFactory::<GTestRemoting>, wasm_path));
     let (stress_resp, gas) = call_action!(remoting, pid, AllocStress, n);
 
     let expected_len = alloc_stress_app::fibonacci_sum(n) as usize;

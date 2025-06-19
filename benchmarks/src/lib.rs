@@ -25,6 +25,7 @@ pub struct BenchData {
     pub alloc: BTreeMap<usize, u64>,
     pub counter: CounterBenchData,
     pub cross_program: u64,
+    pub redirect: u64,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -104,6 +105,7 @@ mod tests {
                 sync_call: 35,
             },
             cross_program: 42,
+            redirect: 4242,
         };
 
         // Create a temporary file.
@@ -134,6 +136,7 @@ mod tests {
             store_bench_data_to_file(path_h2, |bench_data| {
                 bench_data.counter.async_call = 84;
                 bench_data.counter.sync_call = 126;
+                bench_data.redirect = 4343;
             })
             .unwrap();
         });
@@ -157,6 +160,7 @@ mod tests {
                     sync_call: 126,
                 },
                 cross_program: 0,
+                redirect: 4343,
             },
         )
     }

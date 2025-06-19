@@ -22,5 +22,10 @@ compute-stress-client = { path = "compute-stress/client" }
 counter-bench-app = { path = "counter-bench/app" }
 counter-bench-client = { path = "counter-bench/client" }
 ping-pong-bench-app = { path = "ping-pong/app" }
+redirect-app = { path = "../examples/redirect/app" }
+redirect-client = { path = "../examples/redirect/client" }
+redirect-proxy = { path = "../examples/redirect/proxy" }
+redirect-proxy-client = { path = "../examples/redirect/proxy-client" }
 tokio = { workspace = true, features = ["rt", "macros"] }
 tempfile.workspace = true
+itertools.workspace = true
