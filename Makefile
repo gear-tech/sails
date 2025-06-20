@@ -15,6 +15,9 @@ test:
 clippy:
 	@__GEAR_WASM_BUILDER_NO_FEATURES_TRACKING=1 cargo clippy --workspace --all-targets -- -D warnings
 
+bench:
+	@__GEAR_WASM_BUILDER_NO_FEATURES_TRACKING=1 cargo test --release --manifest-path=benchmarks/Cargo.toml
+
 build-parser:
 	@echo "Building idlparser"
 	@cargo build -p sails-idl-parser --target=wasm32-unknown-unknown --release
