@@ -32,11 +32,13 @@ for ExtendedWithLifetimeExposure<T> {
 }
 impl<'a> ExtendedWithLifetimeExposure<ExtendedWithLifetime<'a>> {
     pub fn extended_name(&self) -> String {
-        let exposure_scope = sails_rs::gstd::services::ExposureCallScope::new(self);
+        use sails_rs::gstd::services::Exposure;
+        let exposure_scope = self.scope();
         self.inner.extended_name()
     }
     pub fn name(&self) -> String {
-        let exposure_scope = sails_rs::gstd::services::ExposureCallScope::new(self);
+        use sails_rs::gstd::services::Exposure;
+        let exposure_scope = self.scope();
         self.inner.name()
     }
     pub fn as_base_0(

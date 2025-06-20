@@ -32,11 +32,13 @@ for SomeServiceExposure<T> {
 }
 impl SomeServiceExposure<SomeService> {
     pub async fn do_this(&mut self, p1: u32, p2: String) -> u32 {
-        let exposure_scope = sails_rs::gstd::services::ExposureCallScope::new(self);
+        use sails_rs::gstd::services::Exposure;
+        let exposure_scope = self.scope();
         self.inner.do_this(p1, p2).await
     }
     pub fn this(&self, p1: bool) -> bool {
-        let exposure_scope = sails_rs::gstd::services::ExposureCallScope::new(self);
+        use sails_rs::gstd::services::Exposure;
+        let exposure_scope = self.scope();
         self.inner.this(p1)
     }
     pub fn try_handle(

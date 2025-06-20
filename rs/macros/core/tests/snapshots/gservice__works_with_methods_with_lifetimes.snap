@@ -47,23 +47,28 @@ for ReferenceServiceExposure<T> {
 }
 impl ReferenceServiceExposure<ReferenceService> {
     pub fn add_byte(&mut self, byte: u8) -> &'static [u8] {
-        let exposure_scope = sails_rs::gstd::services::ExposureCallScope::new(self);
+        use sails_rs::gstd::services::Exposure;
+        let exposure_scope = self.scope();
         self.inner.add_byte(byte)
     }
     pub fn baked(&self) -> &'static str {
-        let exposure_scope = sails_rs::gstd::services::ExposureCallScope::new(self);
+        use sails_rs::gstd::services::Exposure;
+        let exposure_scope = self.scope();
         self.inner.baked()
     }
     pub async fn first_byte<'a>(&self) -> Option<&'a u8> {
-        let exposure_scope = sails_rs::gstd::services::ExposureCallScope::new(self);
+        use sails_rs::gstd::services::Exposure;
+        let exposure_scope = self.scope();
         self.inner.first_byte().await
     }
     pub fn incr(&mut self) -> &'static ReferenceCount {
-        let exposure_scope = sails_rs::gstd::services::ExposureCallScope::new(self);
+        use sails_rs::gstd::services::Exposure;
+        let exposure_scope = self.scope();
         self.inner.incr()
     }
     pub async fn last_byte<'a>(&self) -> Option<&'a u8> {
-        let exposure_scope = sails_rs::gstd::services::ExposureCallScope::new(self);
+        use sails_rs::gstd::services::Exposure;
+        let exposure_scope = self.scope();
         self.inner.last_byte().await
     }
     pub fn try_handle(
