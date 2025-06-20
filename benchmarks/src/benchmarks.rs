@@ -33,9 +33,11 @@ use itertools::{Either, Itertools};
 use ping_pong_bench_app::client::{
     PingPongFactory, PingPongPayload, ping_pong_service::io::Ping, traits::PingPongFactory as _,
 };
-use redirect_client::{RedirectFactory, redirect::io::Exit, traits::RedirectFactory as _};
+use redirect_client::{
+    RedirectClientFactory, redirect::io::Exit, traits::RedirectClientFactory as _,
+};
 use redirect_proxy_client::{
-    RedirectProxyFactory, proxy::io::GetProgramId, traits::RedirectProxyFactory as _,
+    RedirectProxyClientFactory, proxy::io::GetProgramId, traits::RedirectProxyClientFactory as _,
 };
 use sails_rs::{
     calls::{ActionIo, Activation},
@@ -272,13 +274,21 @@ async fn redirect_bench() {
     let proxy_wasm_path = "../target/wasm32-gear/release/redirect_proxy.opt.wasm";
 
     let (remoting, redirect_pid1, redirect_pid2) = create_program_async!(
-        (RedirectFactory::<GTestRemoting>, redirect_wasm_path, new),
-        (RedirectFactory::<GTestRemoting>, redirect_wasm_path, new)
+        (
+            RedirectClientFactory::<GTestRemoting>,
+            redirect_wasm_path,
+            new
+        ),
+        (
+            RedirectClientFactory::<GTestRemoting>,
+            redirect_wasm_path,
+            new
+        )
     );
     let (remoting, proxy_pid) = create_program_async!(
         remoting,
         (
-            RedirectProxyFactory::<GTestRemoting>,
+            RedirectProxyClientFactory::<GTestRemoting>,
             proxy_wasm_path,
             new,
             redirect_pid1
@@ -286,34 +296,23 @@ async fn redirect_bench() {
     );
 
     // Warm-up proxy program
-    let g = (0..100)
-        .map(|_| {
-            let (resp, g) = call_action!(remoting, proxy_pid, GetProgramId);
-            assert_eq!(resp, redirect_pid1);
-
-            g
-        })
-        .collect::<Vec<_>>();
-
-    // todo [sab] remove
-    println!("Warm-up gas: {g:#?}");
+    (0..100).for_each(|_| {
+        let (resp, _) = call_action!(remoting, proxy_pid, GetProgramId);
+        assert_eq!(resp, redirect_pid1);
+    });
 
     // Call exit on a redirect program
     call_action!(remoting, redirect_pid1, Exit, redirect_pid2; no_reply_check);
 
+    // Bench proxy program
     let gas_benches = (0..100)
         .map(|_| {
             let (resp, gas_get_program) = call_action!(remoting, proxy_pid, GetProgramId);
             assert_eq!(resp, redirect_pid2);
 
-            println!("Gas for get_program: {gas_get_program}");
-
             gas_get_program
         })
         .collect::<Vec<_>>();
-
-    // todo [sab] remove
-    println!("Gas after exit: {gas_benches:#?}");
 
     crate::store_bench_data(|bench_data| {
         bench_data.redirect = median(gas_benches);
