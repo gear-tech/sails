@@ -1,5 +1,6 @@
 use demo_client::{
-    counter::events::CounterEvents, demo_factory, dog::events::DogEvents, ping_pong, traits::*,
+    counter::events::CounterEvents, demo_client_factory, dog::events::DogEvents, ping_pong,
+    traits::*,
 };
 use fixture::{ADMIN_ID, DEMO_WASM_PATH, Fixture};
 use gstd::errors::{ErrorReplyReason, SimpleExecutionError};
@@ -165,7 +166,8 @@ async fn ping_pong_low_level_works() {
     let demo_program = Program::from_file(&system, DEMO_WASM_PATH);
 
     // Use generated `io` module to create a program
-    let message_id = demo_program.send_bytes(ADMIN_ID, demo_factory::io::Default::encode_call());
+    let message_id =
+        demo_program.send_bytes(ADMIN_ID, demo_client_factory::io::Default::encode_call());
     let run_result = system.run_next_block();
     let gas_burned = *run_result
         .gas_burned
@@ -401,7 +403,7 @@ async fn counter_add_works_via_next_mode() {
     let remoting = GTestRemoting::new(system, fixture::ADMIN_ID.into())
         .with_block_run_mode(BlockRunMode::Next);
 
-    let demo_factory = demo_client::DemoFactory::new(remoting.clone());
+    let demo_factory = demo_client::DemoClientFactory::new(remoting.clone());
 
     let demo_program_id = demo_factory
         .new(Some(42), None)
@@ -440,7 +442,7 @@ async fn counter_add_works_via_manual_mode() {
     let remoting = GTestRemoting::new(system, fixture::ADMIN_ID.into())
         .with_block_run_mode(BlockRunMode::Manual);
 
-    let demo_factory = demo_client::DemoFactory::new(remoting.clone());
+    let demo_factory = demo_client::DemoClientFactory::new(remoting.clone());
 
     // Use generated client code for activating Demo program
     let activation = demo_factory
@@ -502,7 +504,7 @@ fn counter_add_low_level_works() {
     let wasm_size = std::fs::metadata(DEMO_WASM_PATH).unwrap().len();
 
     // Use generated `io` module to create a program
-    demo_program.send_bytes(ADMIN_ID, demo_factory::io::Default::encode_call());
+    demo_program.send_bytes(ADMIN_ID, demo_client_factory::io::Default::encode_call());
 
     // Use generated `io` module for encoding/decoding calls and replies
     // and send/receive bytes using `gtest` native means

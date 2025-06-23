@@ -5,12 +5,11 @@ edition.workspace = true
 
 [dependencies]
 rmrk-resource-app = { path = "../app" }
+sails-rs.workspace = true
 
 [build-dependencies]
 rmrk-resource-app = { path = "../app" }
-sails-client-gen.workspace = true
-sails-idl-gen.workspace = true
-sails-rs = { workspace = true, features = ["wasm-builder"] }
+sails-rs = { workspace = true, features = ["build", "wasm-builder"] }
 
 [dev-dependencies]
 gtest.workspace = true

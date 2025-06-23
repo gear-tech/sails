@@ -12,6 +12,7 @@ repository.workspace = true
 [dependencies]
 alloy-primitives = { workspace = true, optional = true }
 alloy-sol-types = { workspace = true, optional = true }
+convert_case = { workspace = true, optional = true }
 futures.workspace = true
 gear-core-errors.workspace = true
 gcore.workspace = true
@@ -24,6 +25,7 @@ keccak-const = { workspace = true, optional = true }
 mockall = { workspace = true, optional = true }
 parity-scale-codec = { workspace = true, features = ["derive"] }
 pin-project-lite.workspace = true
+sails-client-gen = { workspace = true, optional = true }
 sails-idl-gen = { workspace = true, optional = true }
 sails-idl-meta.workspace = true
 sails-macros = { workspace = true, optional = true }
@@ -41,6 +43,7 @@ log = { workspace = true, optional = true }
 
 [features]
 default = ["gstd"]
+build = ["client-builder", "wasm-builder"]
 debug = ["gstd?/debug"]
 ethexe = [
     "gstd?/ethexe",
@@ -49,10 +52,11 @@ ethexe = [
     "dep:keccak-const",
     "sails-macros?/ethexe",
 ]
-std = ["futures/std"]
 gclient = ["dep:gclient"]
 gstd = ["dep:gstd", "dep:gear-core", "dep:sails-macros"]
 gtest = ["std", "dep:gtest", "dep:log"]
 idl-gen = ["dep:sails-idl-gen"]
+client-builder = ["std", "idl-gen", "dep:sails-client-gen", "dep:convert_case"]
 mockall = ["std", "dep:mockall"]
+std = ["futures/std"]
 wasm-builder = ["dep:gwasm-builder"]

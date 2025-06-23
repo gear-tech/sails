@@ -14,7 +14,7 @@ members = ["client-gen"]
 sails-idl-parser = "=0.6.3"
 # others
 anyhow = "1"
-convert-case = { package = "convert_case", version = "0.6" }
+convert_case = "0.7"
 genco = "0.17"
 insta = "1.43"
 itertools = "0.13"

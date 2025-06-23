@@ -783,15 +783,6 @@ checksum = "cd7e35aee659887cbfb97aaf227ac12cad1a9d7c71e55ff3376839ed4e282d08"
 
 [[package]]
 name = "convert_case"
-version = "0.6.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ec182b0ca2f35d8fc196cf3404988fd8b8c739a4d270ff118a398feb0cbec1ca"
-dependencies = [
- "unicode-segmentation",
-]
-
-[[package]]
-name = "convert_case"
 version = "0.7.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bb402b8d4c85569410425650ce3eddc7d698ed96d39a73f941b08fb63082f1e7"
@@ -1102,7 +1093,7 @@ version = "2.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bda628edc44c4bb645fbe0f758797143e4e07926f7ebf4e9bdfbd3d2ce621df3"
 dependencies = [
- "convert_case 0.7.1",
+ "convert_case",
  "proc-macro2",
  "quote",
  "syn 2.0.100",
@@ -4083,7 +4074,7 @@ dependencies = [
 name = "sails-idl-gen"
 version = "0.8.1"
 dependencies = [
- "convert_case 0.6.0",
+ "convert_case",
  "gprimitives",
  "handlebars",
  "sails-idl-meta",
@@ -4112,7 +4103,7 @@ dependencies = [
 name = "sails-macros-core"
 version = "0.8.1"
 dependencies = [
- "convert_case 0.6.0",
+ "convert_case",
  "parity-scale-codec",
  "proc-macro-error",
  "proc-macro2",
