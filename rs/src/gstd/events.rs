@@ -5,6 +5,33 @@ use crate::{Encode, Output};
 use gcore::stack_buffer;
 
 /// Trait for encoding events that can be emitted by Sails programs.
+///
+/// This trait is used to define events that can be emitted by Sails programs, allowing them to be
+/// encoded into a byte slice.
+///
+/// The `SailsEvent` trait extends the `Encode` trait, which means that any type implementing `SailsEvent`
+/// must also implement the `Encode` trait.
+///
+/// The `skip_bytes` method is used to determine how many bytes should be skipped when encoding the event,
+/// which is particularly relevant for enum variants where the first byte is reserved for the index of the variant.
+///
+/// /// # Examples
+///
+/// Given an event definition:
+///
+/// ```rust,ignore
+/// #[sails_rs::event]
+/// #[derive(sails_rs::Encode, sails_rs::TypeInfo)]
+/// #[codec(crate = sails_rs::scale_codec)]
+/// #[scale_info(crate = sails_rs::scale_info)]
+/// pub enum Events {
+///     MyEvent {
+///         sender: uint128,
+///         amount: uint128,
+///         note: String,
+///     },
+/// }
+/// ```
 pub trait SailsEvent: Encode {
     /// Returns the encoded event name as a byte slice.
     fn encoded_event_name(&self) -> &'static [u8];
@@ -62,7 +89,7 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    use scale_info::TypeInfo;
+    use crate::prelude::*;
 
     #[derive(Encode, TypeInfo)]
     enum TestEvents {
