@@ -2,9 +2,6 @@
 source: macros-tests/tests/eth_event.rs
 expression: result
 ---
-#[derive(sails_rename::Encode, sails_rename::TypeInfo)]
-#[codec(crate = sails_rename::scale_codec)]
-#[scale_info(crate = sails_rename::scale_info)]
 pub enum Events {
     MyEvent1 {
         /// #[indexed]

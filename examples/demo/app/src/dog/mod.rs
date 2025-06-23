@@ -3,6 +3,9 @@ use demo_walker::WalkerService;
 use sails_rs::prelude::*;
 
 #[event]
+#[derive(Clone, Debug, PartialEq, Encode, TypeInfo)]
+#[codec(crate = sails_rs::scale_codec)]
+#[scale_info(crate = sails_rs::scale_info)]
 pub enum DogEvents {
     Barked,
 }

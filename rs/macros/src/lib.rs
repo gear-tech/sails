@@ -208,6 +208,9 @@ pub fn export(args: TokenStream, impl_item_fn_tokens: TokenStream) -> TokenStrea
 ///
 /// ```rust,ignore
 /// #[sails_rs::event]
+/// #[derive(sails_rs::Encode, sails_rs::TypeInfo)]
+/// #[codec(crate = sails_rs::scale_codec)]
+/// #[scale_info(crate = sails_rs::scale_info)]
 /// pub enum Events {
 ///     MyEvent {
 ///         #[indexed]

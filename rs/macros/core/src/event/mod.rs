@@ -1,4 +1,4 @@
-use crate::sails_paths::{sails_path_or_default, scale_codec_path, scale_info_path};
+use crate::sails_paths::sails_path_or_default;
 use args::{CratePathAttr, SAILS_PATH};
 use parity_scale_codec::Encode;
 use proc_macro_error::abort;
@@ -24,8 +24,6 @@ pub fn event(attrs: TokenStream, input: TokenStream) -> TokenStream {
     // Parse the attributes into a syntax tree.
     let sails_path_attr = syn::parse2::<CratePathAttr>(attrs).ok();
     let sails_path = &sails_path_or_default(sails_path_attr.map(|attr| attr.path()));
-    let scale_codec_path = scale_codec_path(sails_path);
-    let scale_info_path = scale_info_path(sails_path);
 
     let event_impl = generate_sails_event_impl(&input, sails_path);
 
@@ -37,9 +35,6 @@ pub fn event(attrs: TokenStream, input: TokenStream) -> TokenStream {
     let eth_event_impl = quote!();
 
     quote! {
-        #[derive(#sails_path ::Encode, #sails_path ::TypeInfo)]
-        #[codec(crate = #scale_codec_path )]
-        #[scale_info(crate = #scale_info_path )]
         #input
 
         #event_impl
