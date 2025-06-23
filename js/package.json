@@ -49,7 +49,7 @@
     "@gear-js/api": "^0.42.0",
     "@polkadot/api": "^15.9.1",
     "@polkadot/types": "^15.9.1",
-    "jest": "^30.0.0",
+    "jest": "^30.0.2",
     "sails-js-types": "*"
   },
   "files": [
