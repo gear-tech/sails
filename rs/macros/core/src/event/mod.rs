@@ -8,7 +8,7 @@ use syn::{Fields, ItemEnum, Path, parse::Parse};
 
 mod args;
 #[cfg(feature = "ethexe")]
-mod eth_event;
+mod ethexe;
 
 pub fn event(attrs: TokenStream, input: TokenStream) -> TokenStream {
     // Parse the input tokens into a syntax tree.
@@ -30,9 +30,9 @@ pub fn event(attrs: TokenStream, input: TokenStream) -> TokenStream {
     let event_impl = generate_sails_event_impl(&input, sails_path);
 
     #[cfg(feature = "ethexe")]
-    let eth_event_impl = eth_event::generate_eth_event_impl(&input, sails_path);
+    let eth_event_impl = ethexe::generate_eth_event_impl(&input, sails_path);
     #[cfg(feature = "ethexe")]
-    eth_event::process_indexed(&mut input);
+    ethexe::process_indexed(&mut input);
     #[cfg(not(feature = "ethexe"))]
     let eth_event_impl = quote!();
 
