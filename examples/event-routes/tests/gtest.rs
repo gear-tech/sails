@@ -33,11 +33,11 @@ async fn event_routes_work() {
         .payload_bytes(("Bar", "Start").encode());
     assert!(run_result.contains(&log_bar_start));
 
-    let log = Log::builder().dest(ACTOR_ID).payload_bytes((2u8).encode());
+    let log = Log::builder().dest(ACTOR_ID).payload_bytes((1u8).encode());
 
     let _reply_id = system
         .get_mailbox(ACTOR_ID)
-        .reply_bytes(log, &[], 0)
+        .reply_bytes(log, [], 0)
         .unwrap();
 
     let run_result = system.run_next_block();
@@ -52,7 +52,7 @@ async fn event_routes_work() {
 
     let _reply_id = system
         .get_mailbox(ACTOR_ID)
-        .reply_bytes(log, &[], 0)
+        .reply_bytes(log, [], 0)
         .unwrap();
 
     let run_result = system.run_next_block();

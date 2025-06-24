@@ -70,7 +70,7 @@ pub fn __emit_event<TEvents>(event: TEvents) -> crate::errors::Result<()>
 where
     TEvents: SailsEvent,
 {
-    let route = crate::gstd::services::route().expect("Route must be set for the event");
+    let route = crate::gstd::services::route(crate::gstd::syscalls::Syscall::message_id());
     __emit_event_with_route(route, event)
 }
 
