@@ -7,7 +7,9 @@ pub(super) struct MyGenericEventsService<'l, T> {
 }
 
 #[sails_rs::event]
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, sails_rs::Encode, sails_rs::TypeInfo)]
+#[codec(crate = sails_rs::scale_codec)]
+#[scale_info(crate = sails_rs::scale_info)]
 pub enum MyEvents {
     Event1,
 }

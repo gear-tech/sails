@@ -1,6 +1,8 @@
 use sails_rs::{
-    Encode, MessageId, alloy_primitives::B256, alloy_sol_types::SolValue, gstd::ExposureWithEvents,
-    gstd::services::Service,
+    Encode, MessageId, Syscall,
+    alloy_primitives::B256,
+    alloy_sol_types::SolValue,
+    gstd::{ExposureWithEvents, services::Service},
 };
 
 mod service_with_basics;
@@ -47,18 +49,18 @@ async fn service_with_basics_with_encode_reply() {
 
     const DO_THIS: &str = "DoThis";
     let input = (0u128, true, 42u32, "correct".to_owned()).abi_encode_sequence();
-    let message_id = MessageId::from(123);
+    Syscall::with_message_id(MessageId::from(123));
 
     // act
     let (output, ..) = MyService
-        .expose(message_id, &[1, 2, 3])
+        .expose(Syscall::message_id(), &[1, 2, 3])
         .try_handle_solidity_async(&DO_THIS.encode(), &input)
         .await
         .unwrap();
 
     let (mid, result): (B256, String) =
         sails_rs::alloy_sol_types::SolValue::abi_decode(output.as_slice(), false).unwrap();
-    assert_eq!(message_id, MessageId::new(mid.0));
+    assert_eq!(Syscall::message_id(), MessageId::new(mid.0));
     assert_eq!("42: correct", result.as_str());
 }
 
@@ -66,7 +68,8 @@ async fn service_with_basics_with_encode_reply() {
 fn service_with_events() {
     use service_with_events::{MyEvents, MyServiceWithEvents};
 
-    let mut exposure = MyServiceWithEvents(0).expose(MessageId::from(142), &[1, 4, 2]);
+    Syscall::with_message_id(MessageId::from(123));
+    let mut exposure = MyServiceWithEvents(0).expose(Syscall::message_id(), &[1, 4, 2]);
     exposure.my_method();
 
     let events = exposure.emitter().take_events();
@@ -79,10 +82,11 @@ fn service_with_lifetimes_and_events() {
     use service_with_events_and_lifetimes::{MyEvents, MyGenericEventsService};
 
     const DO_THIS: &str = "DoThis";
-    let input = (0u128, false).abi_encode_sequence();
 
+    Syscall::with_message_id(MessageId::from(123));
+    let input = (0u128, false).abi_encode_sequence();
     let my_service = MyGenericEventsService::<'_, String>::default();
-    let mut exposure = my_service.expose(MessageId::from(123), &[1, 2, 3]);
+    let mut exposure = my_service.expose(Syscall::message_id(), &[1, 2, 3]);
 
     assert!(!exposure.check_asyncness(&DO_THIS.encode()).unwrap());
 
