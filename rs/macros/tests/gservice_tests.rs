@@ -1,7 +1,7 @@
 #![cfg(not(feature = "ethexe"))]
 
-use sails_rs::gstd::services::Service;
-use sails_rs::{Decode, Encode, MessageId};
+use sails_rs::gstd::{ExposureWithEvents, services::Service};
+use sails_rs::{Decode, Encode, MessageId, Syscall};
 
 mod gservice_with_basics;
 mod gservice_with_events;
@@ -245,14 +245,23 @@ fn gservice_panic_on_unexpected_input_double_encoded() {
 
 #[test]
 fn gservice_with_events() {
-    use gservice_with_events::{MyEvents, MyServiceWithEvents};
+    use gservice_with_events::{SomeEvents, SomeService};
+    use sails_rs::gstd::ExposureWithEvents;
 
-    let mut exposure = MyServiceWithEvents(0).expose(MessageId::from(142), SERVICE_ROUTE);
-    exposure.my_method();
+    Syscall::with_message_id(MessageId::from(123));
+    let mut exposure = SomeService.expose(Syscall::message_id(), SERVICE_ROUTE);
+    exposure.do_this();
 
-    let events = exposure.take_events();
+    let events = exposure.emitter().take_events();
     assert_eq!(events.len(), 1);
-    assert_eq!(events[0], MyEvents::Event1);
+    assert_eq!(events[0], SomeEvents::Event1);
+
+    exposure.this();
+    let events = exposure.emitter().take_events();
+    assert!(
+        events.is_empty(),
+        "No events should be emitted on `this` call"
+    );
 }
 
 #[test]
@@ -261,8 +270,9 @@ fn gservice_with_lifetimes_and_events() {
 
     const DO_THIS: &str = "DoThis";
 
+    Syscall::with_message_id(MessageId::from(123));
     let my_service = MyGenericEventsService::<'_, String>::default();
-    let mut exposure = my_service.expose(MessageId::from(123), SERVICE_ROUTE);
+    let mut exposure = my_service.expose(Syscall::message_id(), SERVICE_ROUTE);
 
     exposure
         .try_handle(&DO_THIS.encode(), |mut output, _| {
@@ -279,7 +289,7 @@ fn gservice_with_lifetimes_and_events() {
         })
         .unwrap();
 
-    let events = exposure.take_events();
+    let events = exposure.emitter().take_events();
     assert_eq!(events.len(), 1);
     assert_eq!(events[0], MyEvents::Event1);
 }
