@@ -22,6 +22,9 @@ impl Service {
 
 #[sails_rs::service(events = Events)]
 impl Service {
+    /// Send `Start` event
+    /// Then await for reply from source
+    /// Send `End` event
     pub async fn foo(&mut self) {
         let source = Syscall::message_source();
         self.emit_event(Events::Start).unwrap();
