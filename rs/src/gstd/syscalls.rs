@@ -35,6 +35,22 @@ impl Syscall {
         gstd::msg::value()
     }
 
+    pub fn reply_to() -> Result<MessageId, gcore::errors::Error> {
+        gstd::msg::reply_to()
+    }
+
+    pub fn reply_code() -> Result<ReplyCode, gcore::errors::Error> {
+        gstd::msg::reply_code()
+    }
+
+    pub fn signal_from() -> Result<MessageId, gcore::errors::Error> {
+        gstd::msg::signal_from()
+    }
+
+    pub fn signal_code() -> Result<Option<SignalCode>, gcore::errors::Error> {
+        gstd::msg::signal_code()
+    }
+
     pub fn program_id() -> ActorId {
         gstd::exec::program_id()
     }
@@ -62,47 +78,43 @@ impl Syscall {
 
 #[cfg(not(target_arch = "wasm32"))]
 #[cfg(not(feature = "std"))]
+macro_rules! sys_call_unimplemented {
+    ($($name:ident() -> $type:ty),* $(,)?) => {
+        impl Syscall {
+            $(
+                pub fn $name() -> $type {
+                    unimplemented!("{ERROR}")
+                }
+            )*
+        }
+    };
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+#[cfg(not(feature = "std"))]
 const ERROR: &str = "Syscall is implemented only for the wasm32 architecture and the std future";
 
 #[cfg(not(target_arch = "wasm32"))]
 #[cfg(not(feature = "std"))]
+sys_call_unimplemented!(
+    message_id() -> MessageId,
+    message_size() -> usize,
+    message_source() -> ActorId,
+    message_value() -> u128,
+    reply_to() -> Result<MessageId, gcore::errors::Error>,
+    reply_code() -> Result<ReplyCode, gcore::errors::Error>,
+    signal_from() -> Result<MessageId, gcore::errors::Error>,
+    signal_code() -> Result<Option<SignalCode>, gcore::errors::Error>,
+    program_id() -> ActorId,
+    block_height() -> u32,
+    block_timestamp() -> u64,
+    value_available() -> u128,
+    env_vars() -> gstd::EnvVars,
+);
+
+#[cfg(not(target_arch = "wasm32"))]
+#[cfg(not(feature = "std"))]
 impl Syscall {
-    pub fn message_id() -> MessageId {
-        unimplemented!("{ERROR}")
-    }
-
-    pub fn message_size() -> usize {
-        unimplemented!("{ERROR}")
-    }
-
-    pub fn message_source() -> ActorId {
-        unimplemented!("{ERROR}")
-    }
-
-    pub fn message_value() -> u128 {
-        unimplemented!("{ERROR}")
-    }
-
-    pub fn program_id() -> ActorId {
-        unimplemented!("{ERROR}")
-    }
-
-    pub fn block_height() -> u32 {
-        unimplemented!("{ERROR}")
-    }
-
-    pub fn block_timestamp() -> u64 {
-        unimplemented!("{ERROR}")
-    }
-
-    pub fn value_available() -> u128 {
-        unimplemented!("{ERROR}")
-    }
-
-    pub fn env_vars() -> gstd::EnvVars {
-        unimplemented!("{ERROR}")
-    }
-
     pub fn exit(_inheritor_id: ActorId) -> ! {
         unimplemented!("{ERROR}")
     }
@@ -112,57 +124,79 @@ impl Syscall {
 #[cfg(feature = "std")]
 const _: () = {
     use core::cell::RefCell;
+    use paste::paste;
     use std::thread_local;
 
-    #[derive(Default, Clone, Copy)]
-    struct SyscallState {
-        message_id: MessageId,
-        message_size: usize,
-        message_source: ActorId,
-        message_value: u128,
-        program_id: ActorId,
-        block_height: u32,
-        block_timestamp: u64,
-        value_available: u128,
+    macro_rules! sys_call_struct_impl {
+        ($($name:ident() -> $type:ty),* $(,)?) => {
+            #[derive(Clone)]
+            struct SyscallState {
+                $(
+                    $name: $type,
+                )*
+            }
+
+            thread_local! {
+                static SYSCALL_STATE: RefCell<SyscallState> = RefCell::new(SyscallState::default());
+            }
+
+            impl Syscall {
+                $(
+                    pub fn $name() -> $type {
+                        SYSCALL_STATE.with_borrow(|state| state.$name.clone())
+                    }
+                )*
+            }
+
+            impl Syscall {
+                $(
+                    paste! {
+                        pub fn [<with_ $name>]($name: $type) {
+                            SYSCALL_STATE.with_borrow_mut(|state| state.$name = $name);
+                        }
+                    }
+                )*
+            }
+        };
     }
 
-    thread_local! {
-        static SYSCALL_STATE: RefCell<SyscallState> = RefCell::new(SyscallState::default());
+    sys_call_struct_impl!(
+        message_id() -> MessageId,
+        message_size() -> usize,
+        message_source() -> ActorId,
+        message_value() -> u128,
+        reply_to() -> Result<MessageId, gcore::errors::Error>,
+        reply_code() -> Result<ReplyCode, gcore::errors::Error>,
+        signal_from() -> Result<MessageId, gcore::errors::Error>,
+        signal_code() -> Result<Option<SignalCode>, gcore::errors::Error>,
+        program_id() -> ActorId,
+        block_height() -> u32,
+        block_timestamp() -> u64,
+        value_available() -> u128,
+    );
+
+    impl Default for SyscallState {
+        fn default() -> Self {
+            use gear_core_errors::{ExecutionError, ExtError};
+
+            Self {
+                message_id: MessageId::default(),
+                message_size: 0,
+                message_source: ActorId::default(),
+                message_value: 0,
+                reply_to: Err(ExtError::Execution(ExecutionError::NoReplyContext).into()),
+                reply_code: Err(ExtError::Execution(ExecutionError::NoReplyContext).into()),
+                signal_from: Err(ExtError::Execution(ExecutionError::NoSignalContext).into()),
+                signal_code: Err(ExtError::Execution(ExecutionError::NoSignalContext).into()),
+                program_id: ActorId::default(),
+                block_height: 0,
+                block_timestamp: 0,
+                value_available: 0,
+            }
+        }
     }
 
     impl Syscall {
-        pub fn message_id() -> MessageId {
-            SYSCALL_STATE.with_borrow(|state| state.message_id)
-        }
-
-        pub fn message_size() -> usize {
-            SYSCALL_STATE.with_borrow(|state| state.message_size)
-        }
-
-        pub fn message_source() -> ActorId {
-            SYSCALL_STATE.with_borrow(|state| state.message_source)
-        }
-
-        pub fn message_value() -> u128 {
-            SYSCALL_STATE.with_borrow(|state| state.message_value)
-        }
-
-        pub fn program_id() -> ActorId {
-            SYSCALL_STATE.with_borrow(|state| state.program_id)
-        }
-
-        pub fn block_height() -> u32 {
-            SYSCALL_STATE.with_borrow(|state| state.block_height)
-        }
-
-        pub fn block_timestamp() -> u64 {
-            SYSCALL_STATE.with_borrow(|state| state.block_timestamp)
-        }
-
-        pub fn value_available() -> u128 {
-            SYSCALL_STATE.with_borrow(|state| state.value_available)
-        }
-
         pub fn env_vars() -> gstd::EnvVars {
             gstd::EnvVars {
                 performance_multiplier: gstd::Percent::new(100),
@@ -174,40 +208,6 @@ const _: () = {
 
         pub fn exit(inheritor_id: ActorId) -> ! {
             panic!("Program exited with inheritor id: {}", inheritor_id);
-        }
-    }
-
-    impl Syscall {
-        pub fn with_message_id(message_id: MessageId) {
-            SYSCALL_STATE.with_borrow_mut(|state| state.message_id = message_id);
-        }
-
-        pub fn with_message_size(message_size: usize) {
-            SYSCALL_STATE.with_borrow_mut(|state| state.message_size = message_size);
-        }
-
-        pub fn with_message_source(message_source: ActorId) {
-            SYSCALL_STATE.with_borrow_mut(|state| state.message_source = message_source);
-        }
-
-        pub fn with_message_value(message_value: u128) {
-            SYSCALL_STATE.with_borrow_mut(|state| state.message_value = message_value);
-        }
-
-        pub fn with_program_id(program_id: ActorId) {
-            SYSCALL_STATE.with_borrow_mut(|state| state.program_id = program_id);
-        }
-
-        pub fn with_block_height(block_height: u32) {
-            SYSCALL_STATE.with_borrow_mut(|state| state.block_height = block_height);
-        }
-
-        pub fn with_block_timestamp(block_timestamp: u64) {
-            SYSCALL_STATE.with_borrow_mut(|state| state.block_timestamp = block_timestamp);
-        }
-
-        pub fn with_value_available(value_available: u128) {
-            SYSCALL_STATE.with_borrow_mut(|state| state.value_available = value_available);
         }
     }
 };

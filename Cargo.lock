@@ -6790,6 +6790,7 @@ dependencies = [
  "log",
  "mockall",
  "parity-scale-codec",
+ "paste",
  "pin-project-lite",
  "sails-client-gen",
  "sails-idl-gen",
