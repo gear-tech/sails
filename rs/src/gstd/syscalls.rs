@@ -43,10 +43,12 @@ impl Syscall {
         gstd::msg::reply_code()
     }
 
+    #[cfg(not(feature = "ethexe"))]
     pub fn signal_from() -> Result<MessageId, gcore::errors::Error> {
         gstd::msg::signal_from()
     }
 
+    #[cfg(not(feature = "ethexe"))]
     pub fn signal_code() -> Result<Option<SignalCode>, gcore::errors::Error> {
         gstd::msg::signal_code()
     }
