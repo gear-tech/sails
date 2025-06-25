@@ -1,6 +1,4 @@
-#![allow(deprecated)] // for testing deprecated `route` attribute
-
-use sails_macros::{route, service};
+use sails_macros::{export, service};
 
 struct MyService;
 
@@ -10,7 +8,7 @@ impl MyService {
         format!("{p1}: ") + &p2
     }
 
-    #[route("this")]
+    #[export(route = "this")]
     fn this(&self, p1: bool) -> bool {
         !p1
     }

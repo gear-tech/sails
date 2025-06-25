@@ -2,32 +2,38 @@
 source: rs/macros/core/tests/gservice.rs
 expression: result
 ---
-impl<T> MyGenericEventsService<'_, '_, T>
-where
-    T: Clone,
-{
-    pub fn do_this(&mut self) -> u32 {
-        42
-    }
-}
-pub struct MyGenericEventsServiceExposure<T: sails_rs::gstd::services::Service> {
-    message_id: sails_rs::MessageId,
+pub struct MyGenericEventsServiceExposure<T> {
     route: &'static [u8],
-    #[cfg(not(target_arch = "wasm32"))]
-    inner: sails_rs::Box<T>,
-    #[cfg(not(target_arch = "wasm32"))]
-    inner_ptr: *const T,
-    #[cfg(target_arch = "wasm32")]
     inner: T,
-    base: T::BaseExposures,
 }
-impl<T: sails_rs::gstd::services::Service> sails_rs::gstd::services::Exposure
+impl<T: sails_rs::meta::ServiceMeta> sails_rs::gstd::services::Exposure
 for MyGenericEventsServiceExposure<T> {
-    fn message_id(&self) -> sails_rs::MessageId {
-        self.message_id
-    }
     fn route(&self) -> &'static [u8] {
         self.route
+    }
+    fn check_asyncness(input: &[u8]) -> Option<bool> {
+        use sails_rs::gstd::InvocationIo;
+        use sails_rs::gstd::services::{Service, Exposure};
+        if !T::ASYNC {
+            return Some(false);
+        }
+        if let Ok(is_async) = my_generic_events_service_meta::__DoThisParams::check_asyncness(
+            input,
+        ) {
+            return Some(is_async);
+        }
+        None
+    }
+}
+impl<T> core::ops::Deref for MyGenericEventsServiceExposure<T> {
+    type Target = T;
+    fn deref(&self) -> &Self::Target {
+        &self.inner
+    }
+}
+impl<T> core::ops::DerefMut for MyGenericEventsServiceExposure<T> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
     }
 }
 impl<T> MyGenericEventsServiceExposure<MyGenericEventsService<'_, '_, T>>
@@ -35,17 +41,18 @@ where
     T: Clone,
 {
     pub fn do_this(&mut self) -> u32 {
-        use sails_rs::gstd::services::Exposure;
-        let exposure_scope = self.scope();
-        self.inner.do_this()
+        42
+    }
+    pub fn check_asyncness(&self, input: &[u8]) -> Option<bool> {
+        <Self as sails_rs::gstd::services::Exposure>::check_asyncness(input)
     }
     pub fn try_handle(
-        &mut self,
+        mut self,
         input: &[u8],
         result_handler: fn(&[u8], u128),
     ) -> Option<()> {
         use sails_rs::gstd::InvocationIo;
-        use sails_rs::gstd::services::Exposure;
+        use sails_rs::gstd::services::{Service, Exposure};
         if let Ok(request) = my_generic_events_service_meta::__DoThisParams::decode_params(
             input,
         ) {
@@ -61,29 +68,16 @@ where
         None
     }
     pub async fn try_handle_async(
-        &mut self,
+        mut self,
         input: &[u8],
         result_handler: fn(&[u8], u128),
     ) -> Option<()> {
         use sails_rs::gstd::InvocationIo;
-        use sails_rs::gstd::services::Exposure;
-        None
-    }
-    pub fn check_asyncness(&self, input: &[u8]) -> Option<bool> {
-        use sails_rs::gstd::InvocationIo;
-        if !<MyGenericEventsService<'_, '_, T> as sails_rs::meta::ServiceMeta>::ASYNC {
-            return Some(false);
-        }
-        if let Ok(is_async) = my_generic_events_service_meta::__DoThisParams::check_asyncness(
-            input,
-        ) {
-            return Some(is_async);
-        }
+        use sails_rs::gstd::services::{Service, Exposure};
         None
     }
     pub fn emit_event(&mut self, event: MyEvents) -> sails_rs::errors::Result<()> {
-        #[cfg(not(target_arch = "wasm32"))]
-        { Self::__emit_event(&mut self.inner, event) }
+        #[cfg(not(target_arch = "wasm32"))] { Ok(()) }
         #[cfg(target_arch = "wasm32")]
         { sails_rs::gstd::__emit_event_with_route(self.route, event) }
     }
@@ -93,27 +87,9 @@ where
     T: Clone,
 {
     type Exposure = MyGenericEventsServiceExposure<Self>;
-    type BaseExposures = ();
-    fn expose(
-        self,
-        message_id: sails_rs::MessageId,
-        route: &'static [u8],
-    ) -> Self::Exposure {
-        #[cfg(not(target_arch = "wasm32"))]
-        let inner_box = sails_rs::Box::new(self);
-        #[cfg(not(target_arch = "wasm32"))]
-        let inner = inner_box.as_ref();
-        #[cfg(target_arch = "wasm32")]
-        let inner = &self;
+    fn expose(self, route: &'static [u8]) -> Self::Exposure {
         Self::Exposure {
-            message_id,
             route,
-            base: (),
-            #[cfg(not(target_arch = "wasm32"))]
-            inner_ptr: inner_box.as_ref() as *const Self,
-            #[cfg(not(target_arch = "wasm32"))]
-            inner: inner_box,
-            #[cfg(target_arch = "wasm32")]
             inner: self,
         }
     }
@@ -154,51 +130,3 @@ mod my_generic_events_service_meta {
     pub enum NoEvents {}
     pub type EventsMeta = MyEvents;
 }
-impl<T> MyGenericEventsService<'_, '_, T>
-where
-    T: Clone,
-{
-    fn emit_event(&mut self, event: MyEvents) -> sails_rs::errors::Result<()> {
-        #[cfg(not(target_arch = "wasm32"))]
-        { MyGenericEventsServiceExposure::<Self>::__emit_event(self, event) }
-        #[cfg(target_arch = "wasm32")] { sails_rs::gstd::__emit_event(event) }
-    }
-}
-#[cfg(not(target_arch = "wasm32"))]
-const _: () = {
-    type ServiceEventsMap = sails_rs::collections::BTreeMap<
-        usize,
-        sails_rs::Vec<MyEvents>,
-    >;
-    type Mutex<T> = sails_rs::spin::Mutex<T>;
-    impl<T: sails_rs::gstd::services::Service> MyGenericEventsServiceExposure<T> {
-        pub fn take_events(&mut self) -> sails_rs::Vec<MyEvents> {
-            if core::mem::size_of_val(self.inner.as_ref()) == 0 {
-                panic!(
-                    "setting event listener on a zero-sized service is not supported for now"
-                );
-            }
-            let service_ptr = self.inner_ptr as usize;
-            let mut map = Self::events_map();
-            map.remove(&service_ptr).unwrap_or_default()
-        }
-        fn __emit_event(svc: &mut T, event: MyEvents) -> sails_rs::errors::Result<()> {
-            let service_ptr = svc as *const _ as *const () as usize;
-            let mut map = Self::events_map();
-            map.entry(service_ptr).or_default().push(event);
-            Ok(())
-        }
-        fn events_map() -> impl core::ops::DerefMut<Target = ServiceEventsMap> {
-            static MAP: Mutex<ServiceEventsMap> = Mutex::new(ServiceEventsMap::new());
-            MAP.lock()
-        }
-    }
-    impl<T: sails_rs::gstd::services::Service> Drop
-    for MyGenericEventsServiceExposure<T> {
-        fn drop(&mut self) {
-            let service_ptr = self.inner_ptr as usize;
-            let mut map = Self::events_map();
-            _ = map.remove(&service_ptr);
-        }
-    }
-};

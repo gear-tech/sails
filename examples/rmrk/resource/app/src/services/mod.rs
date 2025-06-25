@@ -39,8 +39,6 @@ pub struct ResourceStorage<TCatalogClient> {
     catalog_client: TCatalogClient,
 }
 
-// Declare the service can emit events of type ResourceStorageEvent
-#[service(events = ResourceStorageEvent)]
 impl<TCatalogClient> ResourceStorage<TCatalogClient>
 where
     TCatalogClient: RmrkCatalog,
@@ -56,7 +54,15 @@ where
     pub fn new(catalog_client: TCatalogClient) -> Self {
         Self { catalog_client }
     }
+}
 
+// Declare the service can emit events of type ResourceStorageEvent
+#[service(events = ResourceStorageEvent)]
+impl<TCatalogClient> ResourceStorage<TCatalogClient>
+where
+    TCatalogClient: RmrkCatalog,
+{
+    #[export]
     pub fn add_resource_entry(
         &mut self,
         resource_id: ResourceId,
@@ -85,6 +91,7 @@ where
         Ok((resource_id, resource))
     }
 
+    #[export]
     pub async fn add_part_to_resource(
         &mut self,
         resource_id: ResourceId,
@@ -133,6 +140,7 @@ where
         Ok(part_id)
     }
 
+    #[export]
     pub fn resource(&self, resource_id: ResourceId) -> Result<Resource> {
         self.data()
             .resources
@@ -168,14 +176,18 @@ mod tests {
     use super::*;
     use crate::catalogs::{FixedPart, Part, mockall::MockRmrkCatalog};
     use resources::ComposedResource;
-    use sails_rs::{gstd::calls::GStdArgs, mockall::MockQuery};
+    use sails_rs::{
+        gstd::{calls::GStdArgs, services::Service},
+        mockall::MockQuery,
+    };
 
     #[tokio::test]
     async fn test_add_resource_entry() {
         Syscall::with_message_source(ActorId::from(1));
 
         ResourceStorage::<MockRmrkCatalog<GStdArgs>>::seed();
-        let mut resource_storage = ResourceStorage::new(MockRmrkCatalog::<GStdArgs>::new());
+        let mut resource_storage =
+            ResourceStorage::new(MockRmrkCatalog::<GStdArgs>::new()).expose(&[]);
 
         let resource = Resource::Composed(ComposedResource {
             src: "src".to_string(),

@@ -2,7 +2,61 @@
 source: rs/macros/core/tests/gservice.rs
 expression: result
 ---
-impl ReferenceService {
+pub struct ReferenceServiceExposure<T> {
+    route: &'static [u8],
+    inner: T,
+}
+impl<T: sails_rs::meta::ServiceMeta> sails_rs::gstd::services::Exposure
+for ReferenceServiceExposure<T> {
+    fn route(&self) -> &'static [u8] {
+        self.route
+    }
+    fn check_asyncness(input: &[u8]) -> Option<bool> {
+        use sails_rs::gstd::InvocationIo;
+        use sails_rs::gstd::services::{Service, Exposure};
+        if !T::ASYNC {
+            return Some(false);
+        }
+        if let Ok(is_async) = reference_service_meta::__AddByteParams::check_asyncness(
+            input,
+        ) {
+            return Some(is_async);
+        }
+        if let Ok(is_async) = reference_service_meta::__BakedParams::check_asyncness(
+            input,
+        ) {
+            return Some(is_async);
+        }
+        if let Ok(is_async) = reference_service_meta::__FirstByteParams::check_asyncness(
+            input,
+        ) {
+            return Some(is_async);
+        }
+        if let Ok(is_async) = reference_service_meta::__IncrParams::check_asyncness(
+            input,
+        ) {
+            return Some(is_async);
+        }
+        if let Ok(is_async) = reference_service_meta::__LastByteParams::check_asyncness(
+            input,
+        ) {
+            return Some(is_async);
+        }
+        None
+    }
+}
+impl<T> core::ops::Deref for ReferenceServiceExposure<T> {
+    type Target = T;
+    fn deref(&self) -> &Self::Target {
+        &self.inner
+    }
+}
+impl<T> core::ops::DerefMut for ReferenceServiceExposure<T> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
+impl ReferenceServiceExposure<ReferenceService> {
     pub fn baked(&self) -> &'static str {
         "Static str!"
     }
@@ -24,60 +78,16 @@ impl ReferenceService {
     pub async fn last_byte<'a>(&self) -> Option<&'a u8> {
         unsafe { BYTES.last() }
     }
-}
-pub struct ReferenceServiceExposure<T: sails_rs::gstd::services::Service> {
-    message_id: sails_rs::MessageId,
-    route: &'static [u8],
-    #[cfg(not(target_arch = "wasm32"))]
-    inner: sails_rs::Box<T>,
-    #[cfg(not(target_arch = "wasm32"))]
-    inner_ptr: *const T,
-    #[cfg(target_arch = "wasm32")]
-    inner: T,
-    base: T::BaseExposures,
-}
-impl<T: sails_rs::gstd::services::Service> sails_rs::gstd::services::Exposure
-for ReferenceServiceExposure<T> {
-    fn message_id(&self) -> sails_rs::MessageId {
-        self.message_id
-    }
-    fn route(&self) -> &'static [u8] {
-        self.route
-    }
-}
-impl ReferenceServiceExposure<ReferenceService> {
-    pub fn add_byte(&mut self, byte: u8) -> &'static [u8] {
-        use sails_rs::gstd::services::Exposure;
-        let exposure_scope = self.scope();
-        self.inner.add_byte(byte)
-    }
-    pub fn baked(&self) -> &'static str {
-        use sails_rs::gstd::services::Exposure;
-        let exposure_scope = self.scope();
-        self.inner.baked()
-    }
-    pub async fn first_byte<'a>(&self) -> Option<&'a u8> {
-        use sails_rs::gstd::services::Exposure;
-        let exposure_scope = self.scope();
-        self.inner.first_byte().await
-    }
-    pub fn incr(&mut self) -> &'static ReferenceCount {
-        use sails_rs::gstd::services::Exposure;
-        let exposure_scope = self.scope();
-        self.inner.incr()
-    }
-    pub async fn last_byte<'a>(&self) -> Option<&'a u8> {
-        use sails_rs::gstd::services::Exposure;
-        let exposure_scope = self.scope();
-        self.inner.last_byte().await
+    pub fn check_asyncness(&self, input: &[u8]) -> Option<bool> {
+        <Self as sails_rs::gstd::services::Exposure>::check_asyncness(input)
     }
     pub fn try_handle(
-        &mut self,
+        mut self,
         input: &[u8],
         result_handler: fn(&[u8], u128),
     ) -> Option<()> {
         use sails_rs::gstd::InvocationIo;
-        use sails_rs::gstd::services::Exposure;
+        use sails_rs::gstd::services::{Service, Exposure};
         if let Ok(request) = reference_service_meta::__AddByteParams::decode_params(
             input,
         ) {
@@ -115,12 +125,12 @@ impl ReferenceServiceExposure<ReferenceService> {
         None
     }
     pub async fn try_handle_async(
-        &mut self,
+        mut self,
         input: &[u8],
         result_handler: fn(&[u8], u128),
     ) -> Option<()> {
         use sails_rs::gstd::InvocationIo;
-        use sails_rs::gstd::services::Exposure;
+        use sails_rs::gstd::services::{Service, Exposure};
         if let Ok(request) = reference_service_meta::__FirstByteParams::decode_params(
             input,
         ) {
@@ -147,62 +157,12 @@ impl ReferenceServiceExposure<ReferenceService> {
         }
         None
     }
-    pub fn check_asyncness(&self, input: &[u8]) -> Option<bool> {
-        use sails_rs::gstd::InvocationIo;
-        if !<ReferenceService as sails_rs::meta::ServiceMeta>::ASYNC {
-            return Some(false);
-        }
-        if let Ok(is_async) = reference_service_meta::__AddByteParams::check_asyncness(
-            input,
-        ) {
-            return Some(is_async);
-        }
-        if let Ok(is_async) = reference_service_meta::__BakedParams::check_asyncness(
-            input,
-        ) {
-            return Some(is_async);
-        }
-        if let Ok(is_async) = reference_service_meta::__FirstByteParams::check_asyncness(
-            input,
-        ) {
-            return Some(is_async);
-        }
-        if let Ok(is_async) = reference_service_meta::__IncrParams::check_asyncness(
-            input,
-        ) {
-            return Some(is_async);
-        }
-        if let Ok(is_async) = reference_service_meta::__LastByteParams::check_asyncness(
-            input,
-        ) {
-            return Some(is_async);
-        }
-        None
-    }
 }
 impl sails_rs::gstd::services::Service for ReferenceService {
     type Exposure = ReferenceServiceExposure<Self>;
-    type BaseExposures = ();
-    fn expose(
-        self,
-        message_id: sails_rs::MessageId,
-        route: &'static [u8],
-    ) -> Self::Exposure {
-        #[cfg(not(target_arch = "wasm32"))]
-        let inner_box = sails_rs::Box::new(self);
-        #[cfg(not(target_arch = "wasm32"))]
-        let inner = inner_box.as_ref();
-        #[cfg(target_arch = "wasm32")]
-        let inner = &self;
+    fn expose(self, route: &'static [u8]) -> Self::Exposure {
         Self::Exposure {
-            message_id,
             route,
-            base: (),
-            #[cfg(not(target_arch = "wasm32"))]
-            inner_ptr: inner_box.as_ref() as *const Self,
-            #[cfg(not(target_arch = "wasm32"))]
-            inner: inner_box,
-            #[cfg(target_arch = "wasm32")]
             inner: self,
         }
     }

@@ -67,10 +67,8 @@ struct ServiceBuilder<'a> {
     events_type: Option<&'a Path>,
     service_handlers: Vec<FnBuilder<'a>>,
     exposure_ident: Ident,
-    message_id_ident: Ident,
     route_ident: Ident,
     inner_ident: Ident,
-    inner_ptr_ident: Ident,
     base_ident: Ident,
     input_ident: Ident,
     meta_module_ident: Ident,
@@ -96,10 +94,8 @@ impl<'a> ServiceBuilder<'a> {
             service_ident.to_string().to_case(Case::Pascal)
         );
         let exposure_ident = Ident::new(&exposure_name, Span::call_site());
-        let message_id_ident = Ident::new("message_id", Span::call_site());
         let route_ident = Ident::new("route", Span::call_site());
         let inner_ident = Ident::new("inner", Span::call_site());
-        let inner_ptr_ident = Ident::new("inner_ptr", Span::call_site());
         let base_ident = Ident::new("base", Span::call_site());
         let input_ident = Ident::new("input", Span::call_site());
         let meta_module_name = format!("{}_meta", service_ident.to_string().to_case(Case::Snake));
@@ -115,10 +111,8 @@ impl<'a> ServiceBuilder<'a> {
             events_type: service_args.events_type(),
             service_handlers,
             exposure_ident,
-            message_id_ident,
             route_ident,
             inner_ident,
-            inner_ptr_ident,
             base_ident,
             input_ident,
             meta_module_ident,
@@ -138,10 +132,6 @@ impl ServiceBuilder<'_> {
 
     fn try_handle_solidity_impl(&self, _base_ident: &Ident) -> TokenStream {
         quote!()
-    }
-
-    fn service_emit_eth_impls(&self) -> Option<TokenStream> {
-        None
     }
 
     fn exposure_emit_eth_impls(&self) -> Option<TokenStream> {
@@ -174,17 +164,14 @@ fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
     let meta_module = service_builder.meta_module();
 
     let exposure_struct = service_builder.exposure_struct();
-    let exposure_impl = service_builder.exposure_impl();
+    let exposure_impl = service_builder.exposure_impl(&service_impl);
     let service_trait_impl = service_builder.service_trait_impl();
-    let service_emit_event_impls = service_builder.service_emit_event_impls();
-    let service_emit_eth_impls = service_builder.service_emit_eth_impls();
-    let exposure_listen_and_drop = service_builder.exposure_listen_and_drop();
 
     // ethexe
     let service_signature_impl = service_builder.service_signature_impl();
 
     quote!(
-        #service_impl
+        // #service_impl
 
         #exposure_struct
 
@@ -197,11 +184,6 @@ fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
         #meta_module
 
         #service_signature_impl
-
-        #service_emit_event_impls
-        #service_emit_eth_impls
-
-        #exposure_listen_and_drop
     )
 }
 
@@ -298,29 +280,6 @@ impl FnBuilder<'_> {
                 return Some(());
             }
         }
-    }
-
-    fn exposure_func(&self, inner_ident: &Ident) -> TokenStream {
-        let sails_path = self.sails_path;
-        let handler_ident = self.ident;
-        let handler_fn_sig = &self.impl_fn.sig;
-        let handler_params = self.params_idents();
-
-        let handler_await_token = self.is_async().then(|| quote!(.await));
-        let handler_allow_attrs = self
-            .impl_fn
-            .attrs
-            .iter()
-            .filter(|attr| attr.path().is_ident("allow"));
-
-        quote!(
-            #( #handler_allow_attrs )*
-            pub #handler_fn_sig {
-                use #sails_path::gstd::services::Exposure;
-                let exposure_scope = self.scope();
-                self. #inner_ident . #handler_ident (#(#handler_params),*) #handler_await_token
-            }
-        )
     }
 
     fn check_asyncness_branch_impl(

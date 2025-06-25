@@ -49,9 +49,9 @@ pub(super) mod extended {
         }
     }
 
-    impl AsRef<base::Base> for Extended {
-        fn as_ref(&self) -> &base::Base {
-            &self.base
+    impl Into<base::Base> for Extended {
+        fn into(self) -> base::Base {
+            self.base
         }
     }
 }
@@ -72,9 +72,9 @@ pub(super) mod extended_pure {
     #[service(extends = base::Base)]
     impl ExtendedPure {}
 
-    impl AsRef<base::Base> for ExtendedPure {
-        fn as_ref(&self) -> &base::Base {
-            &self.base
+    impl Into<base::Base> for ExtendedPure {
+        fn into(self) -> base::Base {
+            self.base
         }
     }
 }

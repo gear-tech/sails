@@ -99,53 +99,6 @@ pub fn program(args: TokenStream, impl_tokens: TokenStream) -> TokenStream {
     sails_macros_core::gprogram(args.into(), impl_tokens.into()).into()
 }
 
-/// Changes default route to services exposed by Sails program.
-///
-/// By default, every exposed service is available via a route that is PascalCase-ed name
-/// of the method used for exposing the service. This macro allows to customize the route
-/// so it will be a PascalCase-ed string specified in the attribute.
-///
-/// This attribute can also be applied to methods exposed by Sails services.
-///
-/// # Examples
-///
-/// ```rust
-/// mod my_program {
-///    use sails_rs::{program, route, service};
-///
-///    struct MyService;
-///
-///    #[service]
-///    impl MyService {
-///        pub fn do_something(&mut self) -> u32 {
-///            0
-///        }
-///    }
-///
-///    pub struct MyProgram;
-///
-///    #[program]
-///    impl MyProgram {
-///         // Exposed as `MyService`
-///         pub fn my_service(&self) -> MyService {
-///             MyService
-///         }
-///
-///         // Exposed as `Worker`
-///         #[route("worker")]
-///         pub fn my_worker(&self) -> MyService {
-///             MyService
-///         }
-///    }
-/// }
-/// ```
-#[proc_macro_error]
-#[proc_macro_attribute]
-#[deprecated(note = "use `export` attribute with `route` parameter instead")]
-pub fn route(args: TokenStream, impl_item_fn_tokens: TokenStream) -> TokenStream {
-    sails_macros_core::groute(args.into(), impl_item_fn_tokens.into()).into()
-}
-
 /// Customizes how a service/program method is exposed based on specified arguments.
 ///
 /// The attribute accepts two optional arguments:

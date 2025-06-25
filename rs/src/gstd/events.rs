@@ -66,16 +66,6 @@ fn with_optimized_event_encode<T, E: SailsEvent, F: FnOnce(&[u8]) -> T>(
 
 #[doc(hidden)]
 #[cfg(target_arch = "wasm32")]
-pub fn __emit_event<TEvents>(event: TEvents) -> crate::errors::Result<()>
-where
-    TEvents: SailsEvent,
-{
-    let route = crate::gstd::services::route(crate::gstd::syscalls::Syscall::message_id());
-    __emit_event_with_route(route, event)
-}
-
-#[doc(hidden)]
-#[cfg(target_arch = "wasm32")]
 pub fn __emit_event_with_route<TEvents>(route: &[u8], event: TEvents) -> crate::errors::Result<()>
 where
     TEvents: SailsEvent,

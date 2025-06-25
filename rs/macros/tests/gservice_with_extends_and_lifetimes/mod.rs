@@ -50,8 +50,8 @@ impl<'a> ExtendedWithLifetime<'a> {
     }
 }
 
-impl<'a> AsRef<BaseWithLifetime<'a>> for ExtendedWithLifetime<'a> {
-    fn as_ref(&self) -> &BaseWithLifetime<'a> {
-        &self.base
+impl<'a> Into<BaseWithLifetime<'a>> for ExtendedWithLifetime<'a> {
+    fn into(self) -> BaseWithLifetime<'a> {
+        self.base
     }
 }

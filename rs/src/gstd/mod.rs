@@ -6,10 +6,10 @@ pub use ethexe::__emit_eth_event;
 #[cfg(feature = "ethexe")]
 pub use ethexe::{EthEvent, EthEventExpo};
 #[doc(hidden)]
-pub use events::SailsEvent;
-#[doc(hidden)]
 #[cfg(target_arch = "wasm32")]
-pub use events::{__emit_event, __emit_event_with_route};
+pub use events::__emit_event_with_route;
+#[doc(hidden)]
+pub use events::SailsEvent;
 #[cfg(not(feature = "ethexe"))]
 #[doc(hidden)]
 pub use gstd::handle_signal;
@@ -17,7 +17,7 @@ pub use gstd::handle_signal;
 pub use gstd::{async_init, async_main, handle_reply_with_hook, message_loop};
 pub use gstd::{debug, exec, msg};
 #[doc(hidden)]
-pub use sails_macros::{event, export, program, route, service};
+pub use sails_macros::{event, export, program, service};
 
 use crate::{
     errors::{Error, Result, RtlError},

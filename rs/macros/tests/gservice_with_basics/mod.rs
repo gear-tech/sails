@@ -1,10 +1,10 @@
 use sails_macros::service;
 use sails_rs::Encode;
 
-pub(super) struct MyService;
+pub(super) struct SomeService;
 
 #[service]
-impl MyService {
+impl SomeService {
     pub async fn do_this(&mut self, p1: u32, p2: String) -> String {
         format!("{p1}: ") + &p2
     }
@@ -15,7 +15,7 @@ impl MyService {
 }
 
 #[derive(Encode)]
-pub(super) struct MyDoThisParams {
+pub(super) struct DoThisParams {
     pub(super) p1: u32,
     pub(super) p2: String,
 }

@@ -2,54 +2,62 @@
 source: rs/macros/core/tests/gservice.rs
 expression: result
 ---
-impl SomeService {
-    pub fn do_this(&mut self) -> u32 {
-        42
-    }
-}
-pub struct SomeServiceExposure<T: sails_rs::gstd::services::Service> {
-    message_id: sails_rs::MessageId,
+pub struct SomeServiceExposure<T> {
     route: &'static [u8],
-    #[cfg(not(target_arch = "wasm32"))]
-    inner: sails_rs::Box<T>,
-    #[cfg(not(target_arch = "wasm32"))]
-    inner_ptr: *const T,
-    #[cfg(target_arch = "wasm32")]
     inner: T,
-    base: T::BaseExposures,
 }
-impl<T: sails_rs::gstd::services::Service> sails_rs::gstd::services::Exposure
+impl<T: sails_rs::meta::ServiceMeta> sails_rs::gstd::services::Exposure
 for SomeServiceExposure<T> {
-    fn message_id(&self) -> sails_rs::MessageId {
-        self.message_id
-    }
     fn route(&self) -> &'static [u8] {
         self.route
+    }
+    fn check_asyncness(input: &[u8]) -> Option<bool> {
+        use sails_rs::gstd::InvocationIo;
+        use sails_rs::gstd::services::{Service, Exposure};
+        if !T::ASYNC {
+            return Some(false);
+        }
+        if let Ok(is_async) = some_service_meta::__DoThisParams::check_asyncness(input) {
+            return Some(is_async);
+        }
+        if let Some(is_async) = <<ExtendedService1 as Service>::Exposure as Exposure>::check_asyncness(
+            input,
+        ) {
+            return Some(is_async);
+        }
+        if let Some(is_async) = <<ExtendedService2 as Service>::Exposure as Exposure>::check_asyncness(
+            input,
+        ) {
+            return Some(is_async);
+        }
+        None
+    }
+}
+impl<T> core::ops::Deref for SomeServiceExposure<T> {
+    type Target = T;
+    fn deref(&self) -> &Self::Target {
+        &self.inner
+    }
+}
+impl<T> core::ops::DerefMut for SomeServiceExposure<T> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
     }
 }
 impl SomeServiceExposure<SomeService> {
     pub fn do_this(&mut self) -> u32 {
-        use sails_rs::gstd::services::Exposure;
-        let exposure_scope = self.scope();
-        self.inner.do_this()
+        42
     }
-    pub fn as_base_0(
-        &self,
-    ) -> &<ExtendedService1 as sails_rs::gstd::services::Service>::Exposure {
-        &self.base.0
-    }
-    pub fn as_base_1(
-        &self,
-    ) -> &<ExtendedService2 as sails_rs::gstd::services::Service>::Exposure {
-        &self.base.1
+    pub fn check_asyncness(&self, input: &[u8]) -> Option<bool> {
+        <Self as sails_rs::gstd::services::Exposure>::check_asyncness(input)
     }
     pub fn try_handle(
-        &mut self,
+        mut self,
         input: &[u8],
         result_handler: fn(&[u8], u128),
     ) -> Option<()> {
         use sails_rs::gstd::InvocationIo;
-        use sails_rs::gstd::services::Exposure;
+        use sails_rs::gstd::services::{Service, Exposure};
         if let Ok(request) = some_service_meta::__DoThisParams::decode_params(input) {
             let result = self.do_this();
             let value = 0u128;
@@ -60,81 +68,51 @@ impl SomeServiceExposure<SomeService> {
             );
             return Some(());
         }
-        if self.base.0.try_handle(input, result_handler).is_some() {
+        let base_services: (ExtendedService1, ExtendedService2) = self.inner.into();
+        if base_services.0.expose(self.route).try_handle(input, result_handler).is_some()
+        {
             return Some(());
         }
-        if self.base.1.try_handle(input, result_handler).is_some() {
+        if base_services.1.expose(self.route).try_handle(input, result_handler).is_some()
+        {
             return Some(());
         }
         None
     }
     pub async fn try_handle_async(
-        &mut self,
+        mut self,
         input: &[u8],
         result_handler: fn(&[u8], u128),
     ) -> Option<()> {
         use sails_rs::gstd::InvocationIo;
-        use sails_rs::gstd::services::Exposure;
-        if self.base.0.try_handle_async(input, result_handler).await.is_some() {
+        use sails_rs::gstd::services::{Service, Exposure};
+        let base_services: (ExtendedService1, ExtendedService2) = self.inner.into();
+        if base_services
+            .0
+            .expose(self.route)
+            .try_handle_async(input, result_handler)
+            .await
+            .is_some()
+        {
             return Some(());
         }
-        if self.base.1.try_handle_async(input, result_handler).await.is_some() {
+        if base_services
+            .1
+            .expose(self.route)
+            .try_handle_async(input, result_handler)
+            .await
+            .is_some()
+        {
             return Some(());
-        }
-        None
-    }
-    pub fn check_asyncness(&self, input: &[u8]) -> Option<bool> {
-        use sails_rs::gstd::InvocationIo;
-        if !<SomeService as sails_rs::meta::ServiceMeta>::ASYNC {
-            return Some(false);
-        }
-        if let Ok(is_async) = some_service_meta::__DoThisParams::check_asyncness(input) {
-            return Some(is_async);
-        }
-        if let Some(is_async) = self.base.0.check_asyncness(input) {
-            return Some(is_async);
-        }
-        if let Some(is_async) = self.base.1.check_asyncness(input) {
-            return Some(is_async);
         }
         None
     }
 }
 impl sails_rs::gstd::services::Service for SomeService {
     type Exposure = SomeServiceExposure<Self>;
-    type BaseExposures = (
-        <ExtendedService1 as sails_rs::gstd::services::Service>::Exposure,
-        <ExtendedService2 as sails_rs::gstd::services::Service>::Exposure,
-    );
-    fn expose(
-        self,
-        message_id: sails_rs::MessageId,
-        route: &'static [u8],
-    ) -> Self::Exposure {
-        #[cfg(not(target_arch = "wasm32"))]
-        let inner_box = sails_rs::Box::new(self);
-        #[cfg(not(target_arch = "wasm32"))]
-        let inner = inner_box.as_ref();
-        #[cfg(target_arch = "wasm32")]
-        let inner = &self;
+    fn expose(self, route: &'static [u8]) -> Self::Exposure {
         Self::Exposure {
-            message_id,
             route,
-            base: (
-                <ExtendedService1 as Clone>::clone(
-                        AsRef::<ExtendedService1>::as_ref(inner),
-                    )
-                    .expose(message_id, route),
-                <ExtendedService2 as Clone>::clone(
-                        AsRef::<ExtendedService2>::as_ref(inner),
-                    )
-                    .expose(message_id, route),
-            ),
-            #[cfg(not(target_arch = "wasm32"))]
-            inner_ptr: inner_box.as_ref() as *const Self,
-            #[cfg(not(target_arch = "wasm32"))]
-            inner: inner_box,
-            #[cfg(target_arch = "wasm32")]
             inner: self,
         }
     }

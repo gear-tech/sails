@@ -1,5 +1,5 @@
-error: `route` attribute can be applied to public methods only
-  --> tests/ui/gservice_fails_route_fn_must_be_public.rs:14:5
+error: `export` attribute can be applied to public methods only
+  --> tests/ui/gservice_fails_route_fn_must_be_public.rs:12:5
    |
-14 |     fn this(&self, p1: bool) -> bool {
+12 |     fn this(&self, p1: bool) -> bool {
    |     ^^
