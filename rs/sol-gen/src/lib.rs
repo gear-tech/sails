@@ -44,11 +44,18 @@ struct ContractData {
     pub events: Vec<EventData>,
 }
 
-pub fn generate_solidity_contract(idl_content: &str, name: &str) -> Result<Vec<u8>> {
+pub struct GenerateContractResult {
+    pub data: Vec<u8>,
+    pub name: String,
+}
+
+pub fn generate_solidity_contract(idl_content: &str, name: &str) -> Result<GenerateContractResult> {
     let program = parse_idl(idl_content)?;
 
+    let contract_name = name.to_string().to_case(Case::UpperCamel);
+
     let contract_data = ContractData {
-        contract_name: name.to_string().to_case(Case::UpperCamel),
+        contract_name: contract_name.clone(),
         pragma_version: consts::PRAGMA_VERSION.to_string(),
         functions: functions_from_idl(&program)?,
         events: events_from_idl(&program)?,
@@ -61,7 +68,10 @@ pub fn generate_solidity_contract(idl_content: &str, name: &str) -> Result<Vec<u
 
     handlebars.render_to_write("contract", &contract_data, &mut contract)?;
 
-    Ok(contract)
+    Ok(GenerateContractResult {
+        data: contract,
+        name: contract_name,
+    })
 }
 
 fn functions_from_idl(program: &Program) -> Result<Vec<FunctionData>> {
