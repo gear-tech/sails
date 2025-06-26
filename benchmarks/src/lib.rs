@@ -12,7 +12,7 @@ use std::{
     collections::BTreeMap,
     env,
     fs::{File, OpenOptions},
-    io::{Read, Seek, SeekFrom},
+    io::{Read, Seek, SeekFrom, Write},
     path::{Path, PathBuf},
 };
 
@@ -54,38 +54,28 @@ fn store_bench_data_to_file(path: impl AsRef<Path>, f: impl FnOnce(&mut BenchDat
     });
 
     // Read bench data
-    let mut bench_data = read_bench_data(&mut file).expect("Failed to read bench data file");
-    f(&mut bench_data);
-
-    // Truncate the file, seeking cursor to the start
-    erase_file_content(&mut file)?;
-
-    // Write updated bench data
-    write_bench_data(&mut file, &bench_data).context("Failed to serialize bench data to JSON")?;
-
-    // Unlock file
-    <File as FileExt>::unlock(&file).context("Failed to unlock bench data file")
-}
-
-fn read_bench_data(file: &mut File) -> Result<BenchData> {
     let mut content = String::new();
     file.read_to_string(&mut content)
         .context("Failed reading bench data bytes to string")?;
+    let mut bench_data =
+        serde_json::from_str(&content).context("Failed to deserialize bench data")?;
 
-    serde_json::from_str(&content).context("Failed to deserialize bench data")
-}
+    // Handle bench data
+    f(&mut bench_data);
 
-fn erase_file_content(file: &mut File) -> Result<()> {
+    // Serialize back
+    let bench_data_string = serde_json::to_string_pretty(&bench_data)?;
+
+    // Write updated bench data
     file.set_len(0).context("Failed to erase file content")?;
-
     file.seek(SeekFrom::Start(0))
         .context("Failed to seek to the start of the file")?;
+    file.write_all(bench_data_string.as_bytes())
+        .context("Failed to write serialized bench data to file")?;
+    file.flush().context("Failed to flush bench data to file")?;
 
-    Ok(())
-}
-
-fn write_bench_data(file: &mut File, bench_data: &BenchData) -> Result<()> {
-    serde_json::to_writer_pretty(file, bench_data).map_err(Into::into)
+    // Unlock file
+    <File as FileExt>::unlock(&file).context("Failed to unlock bench data file")
 }
 
 #[cfg(test)]
@@ -116,9 +106,10 @@ mod tests {
 
         // Store initial bench data.
         {
-            let file = named_file.as_file_mut();
-            write_bench_data(file, &initial_bench_data)
-                .expect("Failed to write initial bench data");
+            let mut file = named_file.as_file_mut();
+            serde_json::to_writer_pretty(&mut file, &initial_bench_data)
+                .expect("Failed to write serialized initial bench data to file");
+            file.flush().expect("Failed to flush bench data to file");
             file.seek(SeekFrom::Start(0))
                 .expect("Failed to seek to the start of the file");
         }
@@ -146,8 +137,13 @@ mod tests {
         h2.join().expect("Thread 2 panicked");
 
         // Read the bench data from the file.
-        let bench_data =
-            read_bench_data(named_file.as_file_mut()).expect("Failed to read bench data from file");
+        let mut content = String::new();
+        named_file
+            .as_file_mut()
+            .read_to_string(&mut content)
+            .expect("Failed reading bench data bytes to string");
+        let bench_data: BenchData =
+            serde_json::from_str(&content).expect("Failed to deserialize bench data");
 
         // Check that the bench data was modified correctly.
         assert_eq!(
