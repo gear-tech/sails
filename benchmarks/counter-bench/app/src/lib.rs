@@ -17,7 +17,7 @@ impl CounterBenchService {
         }
     }
 
-    pub fn inc_async(&mut self) -> u64 {
+    pub async fn inc_async(&mut self) -> u64 {
         unsafe {
             let prev = COUNTER;
             COUNTER += 1;
