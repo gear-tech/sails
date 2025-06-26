@@ -116,7 +116,7 @@ export class Program {
       'create_program',
       undefined,
       'New',
-      [ counter, dog_position],
+      [counter, dog_position],
       '(Option<u32>, Option<(i32, i32)>)',
       'String',
       codeId,
@@ -139,8 +139,8 @@ export class PingPong {
       'send_message',
       'PingPong',
       'Ping',
-      [input],
-      '(String)',
+      input,
+      'String',
       'Result<String, String>',
       this._program.programId
     );
@@ -161,8 +161,8 @@ export class Counter {
       'send_message',
       'Counter',
       'Add',
-      [value],
-      '(u32)',
+      value,
+      'u32',
       'u32',
       this._program.programId
     );
@@ -179,8 +179,8 @@ export class Counter {
       'send_message',
       'Counter',
       'Sub',
-      [value],
-      '(u32)',
+      value,
+      'u32',
       'u32',
       this._program.programId
     );
@@ -338,8 +338,8 @@ export class References {
       'send_message',
       'References',
       'Add',
-      [v],
-      '(u32)',
+      v,
+      'u32',
       'u32',
       this._program.programId
     );
@@ -353,8 +353,8 @@ export class References {
       'send_message',
       'References',
       'AddByte',
-      [byte],
-      '(u8)',
+      byte,
+      'u8',
       'Vec<u8>',
       this._program.programId
     );
@@ -368,8 +368,8 @@ export class References {
       'send_message',
       'References',
       'GuessNum',
-      [number],
-      '(u8)',
+      number,
+      'u8',
       'Result<String, String>',
       this._program.programId
     );
@@ -398,8 +398,8 @@ export class References {
       'send_message',
       'References',
       'SetNum',
-      [number],
-      '(u8)',
+      number,
+      'u8',
       'Result<Null, String>',
       this._program.programId
     );
@@ -462,8 +462,8 @@ export class ThisThat {
       'send_message',
       'ThisThat',
       'DoThat',
-      [param],
-      '(DoThatParam)',
+      param,
+      'DoThatParam',
       'Result<([u8;32], u32, ManyVariantsReply), (String)>',
       this._program.programId
     );
