@@ -12,7 +12,6 @@ impl MyProgram {
     pub fn create() -> Self {
         Self
     }
-    #[route("svc1")]
     pub fn service1(
         &self,
     ) -> <MyService as sails_rs::gstd::services::Service>::Exposure {

@@ -1,4 +1,5 @@
 use crate::export;
+use convert_case::{Case, Casing};
 use parity_scale_codec::Encode;
 use proc_macro_error::abort;
 use proc_macro2::Span;
@@ -75,6 +76,25 @@ pub(crate) fn unwrap_result_type(handler_signature: &Signature, unwrap_result: b
     }
 }
 
+pub(crate) fn invocation_export(fn_impl: &ImplItemFn) -> Option<(Span, String, bool)> {
+    export::parse_export_args(&fn_impl.attrs).map(|(args, span)| {
+        let ident = &fn_impl.sig.ident;
+        let unwrap_result = args.unwrap_result();
+        let route = args.route().map_or_else(
+            || ident.to_string().to_case(Case::Pascal),
+            |route| route.to_case(Case::Pascal),
+        );
+        (span, route, unwrap_result)
+    })
+}
+
+pub(crate) fn invocation_export_or_default(fn_impl: &ImplItemFn) -> (Span, String, bool) {
+    invocation_export(fn_impl).unwrap_or_else(|| {
+        let ident = &fn_impl.sig.ident;
+        (ident.span(), ident.to_string().to_case(Case::Pascal), false)
+    })
+}
+
 pub(crate) fn discover_invocation_targets(
     item_impl: &ItemImpl,
     filter: impl Fn(&ImplItemFn) -> bool,
@@ -86,7 +106,7 @@ pub(crate) fn discover_invocation_targets(
         .filter_map(|item| {
             if let ImplItem::Fn(fn_item) = item.1 {
                 if filter(fn_item) {
-                    let (span, route, unwrap_result) = export::invocation_export(fn_item);
+                    let (span, route, unwrap_result) = invocation_export_or_default(fn_item);
                     return Some(((span, route), (fn_item, item.0, unwrap_result)));
                 }
             }

@@ -177,11 +177,14 @@ impl ProgramBuilder {
             .filter_map(|(idx, impl_item)| {
                 if let ImplItem::Fn(fn_item) = impl_item {
                     if service_ctor_predicate(fn_item) {
-                        let (span, route, unwrap_result) = export::invocation_export(fn_item);
-                        if let Some(duplicate) = routes.insert(route.clone(), fn_item.sig.ident.to_string()) {
+                        let (span, route, unwrap_result) =
+                            shared::invocation_export_or_default(fn_item);
+                        if let Some(duplicate) =
+                            routes.insert(route.clone(), fn_item.sig.ident.to_string())
+                        {
                             abort!(
                                 span,
-                                "`export` or `route` attribute conflicts with one already assigned to '{}'",
+                                "`export` attribute conflicts with one already assigned to '{}'",
                                 duplicate
                             );
                         }
@@ -189,7 +192,8 @@ impl ProgramBuilder {
                     }
                 }
                 None
-            }).map(|(idx, route, fn_item, unwrap_result)| {
+            })
+            .map(|(idx, route, fn_item, unwrap_result)| {
                 let fn_builder = FnBuilder::from(route, fn_item, unwrap_result, self.sails_path());
                 let original_service_ctor_fn = fn_builder.original_service_ctor_fn();
                 let wrapping_service_ctor_fn =
@@ -208,7 +212,6 @@ impl ProgramBuilder {
                 solidity_dispatchers.push(fn_builder.sol_service_invocation());
 
                 (idx, original_service_ctor_fn, wrapping_service_ctor_fn)
-
             })
             .collect::<Vec<_>>();
 

@@ -1,10 +1,8 @@
+use crate::shared;
 use args::ExportArgs;
-use convert_case::{Case, Casing};
 use proc_macro_error::abort;
 use proc_macro2::{Span, TokenStream};
 use syn::{Attribute, ImplItemFn, parse::Parse, spanned::Spanned};
-
-use crate::{route, shared};
 
 mod args;
 
@@ -57,27 +55,7 @@ fn ensure_returns_result_with_unwrap_result(fn_impl: ImplItemFn, args: ExportArg
     _ = shared::unwrap_result_type(&fn_impl.sig, args.unwrap_result());
 }
 
-pub(crate) fn invocation_export(fn_impl: &ImplItemFn) -> (Span, String, bool) {
-    if let Some((args, span)) = parse_export_args(&fn_impl.attrs) {
-        let ident = &fn_impl.sig.ident;
-        let unwrap_result = args.unwrap_result();
-        args.route().map_or_else(
-            || {
-                (
-                    ident.span(),
-                    ident.to_string().to_case(Case::Pascal),
-                    unwrap_result,
-                )
-            },
-            |route| (span, route.to_case(Case::Pascal), unwrap_result),
-        )
-    } else {
-        let (span, route) = route::invocation_route(fn_impl);
-        (span, route, false)
-    }
-}
-
-fn parse_export_args(attrs: &[Attribute]) -> Option<(ExportArgs, Span)> {
+pub(crate) fn parse_export_args(attrs: &[Attribute]) -> Option<(ExportArgs, Span)> {
     attrs
         .iter()
         .filter_map(|attr| parse_attr(attr).map(|args| (args, attr.meta.span())))
