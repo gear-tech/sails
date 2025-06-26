@@ -9,8 +9,7 @@ use convert_case::{Case, Casing};
 use proc_macro_error::abort;
 use proc_macro2::{Literal, Span, TokenStream};
 use quote::quote;
-use std::collections::BTreeMap;
-use syn::{Generics, Ident, ImplItemFn, ItemImpl, Path, Type, TypePath, Visibility, WhereClause};
+use syn::{Generics, Ident, ItemImpl, Path, Type, TypePath, Visibility, WhereClause};
 
 mod args;
 #[cfg(feature = "ethexe")]
@@ -82,12 +81,7 @@ impl<'a> ServiceBuilder<'a> {
         let (generics, type_constraints) = shared::impl_constraints(service_impl);
         let (type_path, _type_args, service_ident) =
             shared::impl_type_refs(service_impl.self_ty.as_ref());
-        let service_handlers = discover_service_handlers(service_impl)
-            .into_iter()
-            .map(|(route, (fn_impl, _idx, unwrap_result))| {
-                FnBuilder::from(route, fn_impl, unwrap_result, sails_path)
-            })
-            .collect::<Vec<_>>();
+        let service_handlers = discover_service_handlers(service_impl, sails_path);
         let exposure_name = format!(
             "{}Exposure",
             service_ident.to_string().to_case(Case::Pascal)
@@ -148,9 +142,7 @@ fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
 
     let service_builder = ServiceBuilder::from(&service_impl, &sails_path, &service_args);
 
-    let service_handlers = discover_service_handlers(&service_impl);
-
-    if service_handlers.is_empty() && service_args.base_types().is_empty() {
+    if service_builder.service_handlers.is_empty() && service_builder.base_types.is_empty() {
         abort!(
             service_impl,
             "`service` attribute requires impl to define at least one public method or extend another service"
@@ -182,12 +174,15 @@ fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
     )
 }
 
-fn discover_service_handlers(
-    service_impl: &ItemImpl,
-) -> BTreeMap<String, (&ImplItemFn, usize, bool)> {
-    shared::discover_invocation_targets(service_impl, |fn_item| {
-        matches!(fn_item.vis, Visibility::Public(_)) && fn_item.sig.receiver().is_some()
-    })
+fn discover_service_handlers<'a>(
+    service_impl: &'a ItemImpl,
+    sails_path: &'a Path,
+) -> Vec<FnBuilder<'a>> {
+    shared::discover_invocation_targets(
+        service_impl,
+        |fn_item| matches!(fn_item.vis, Visibility::Public(_)) && fn_item.sig.receiver().is_some(),
+        sails_path,
+    )
 }
 
 impl FnBuilder<'_> {

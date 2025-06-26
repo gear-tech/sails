@@ -39,13 +39,13 @@ pub(crate) fn ensure_single_export_or_route_on_impl(fn_impl: &ImplItemFn) {
             .path()
             .segments
             .last()
-            .map(|s| s.ident == "export" || s.ident == "route")
+            .map(|s| s.ident == "export")
             .unwrap_or(false)
     });
     if attr_export.is_some() {
         abort!(
             fn_impl,
-            "multiple `export` or `route` attributes on the same method are not allowed",
+            "multiple `export` attributes on the same method are not allowed",
         )
     }
 }
@@ -56,10 +56,17 @@ fn ensure_returns_result_with_unwrap_result(fn_impl: ImplItemFn, args: ExportArg
 }
 
 pub(crate) fn parse_export_args(attrs: &[Attribute]) -> Option<(ExportArgs, Span)> {
-    attrs
+    let mut attrs = attrs
         .iter()
-        .filter_map(|attr| parse_attr(attr).map(|args| (args, attr.meta.span())))
-        .next()
+        .filter_map(|attr| parse_attr(attr).map(|args| (args, attr.meta.span())));
+    let export = attrs.next();
+    if let Some((_, span)) = attrs.next() {
+        abort!(
+            span,
+            "multiple `export` attributes are not allowed for the same method"
+        )
+    }
+    export
 }
 
 pub(crate) fn parse_attr(attr: &Attribute) -> Option<ExportArgs> {
