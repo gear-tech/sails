@@ -11,7 +11,7 @@ use proc_macro_error::proc_macro_error;
 /// The macro can be customized with the following arguments:
 /// - `crate` - specifies path to the `sails-rs` crate allowing the latter
 ///             to be imported with a different name, for example, when the
-///             `sails-rs` create is re-exprted from another crate.
+///             `sails-rs` create is re-exported from another crate.
 /// - `events` - specifies a Rust enum type denoting events that the service can emit.
 ///              See [documentation](https://github.com/gear-tech/sails?tab=readme-ov-file#events)
 ///              for details.
@@ -59,7 +59,7 @@ pub fn service(args: TokenStream, impl_tokens: TokenStream) -> TokenStream {
 /// The macro can be customized with the following arguments:
 /// - `crate` - specifies path to the `sails-rs` crate allowing the latter
 ///             to be imported with a different name, for example, when the
-///             `sails-rs` create is re-exprted from another crate.
+///             `sails-rs` create is re-exported from another crate.
 /// - `handle_signal` - specifies a path to a function that will be called
 ///                     after standard signal handling provided by the `gstd` crate.
 /// - `payable` - specifies that the program can accept transfers of value.

@@ -124,13 +124,14 @@ mod tests {
         Syscall::with_message_id(MessageId::from(2));
 
         let mut service_exposure = program.counter();
+        let mut emitter = service_exposure.emitter();
         let data = service_exposure.add(10);
 
         // Assert
         assert_eq!("Counter".encode().as_slice(), service_exposure.route());
         assert_eq!(52, data);
-        // let events = service_exposure.take_events();
-        // assert_eq!(events.len(), 1);
-        // assert_eq!(events[0], counter::CounterEvents::Added(10));
+        let events = emitter.take_events();
+        assert_eq!(events.len(), 1);
+        assert_eq!(events[0], counter::CounterEvents::Added(10));
     }
 }

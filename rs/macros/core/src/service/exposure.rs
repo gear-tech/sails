@@ -11,6 +11,14 @@ impl ServiceBuilder<'_> {
 
         let check_asyncness_impl = self.check_asyncness_impl();
 
+        let exposure_with_events = self.events_type.map(|events_type| {
+            quote! {
+                impl<T: #sails_path::meta::ServiceMeta> #sails_path::gstd::services::ExposureWithEvents for #exposure_ident<T> {
+                    type Events = #events_type;
+                }
+            }
+        });
+
         quote! {
             pub struct #exposure_ident<T> {
                 #route_ident : &'static [u8],
@@ -24,6 +32,8 @@ impl ServiceBuilder<'_> {
 
                 #check_asyncness_impl
             }
+
+            #exposure_with_events
 
             impl<T> core::ops::Deref for #exposure_ident<T> {
                 type Target = T;
@@ -43,19 +53,13 @@ impl ServiceBuilder<'_> {
 
     fn exposure_emit_event_impls(&self) -> Option<TokenStream> {
         let sails_path = self.sails_path;
-        let route_ident = &self.route_ident;
 
         self.events_type.map(|events_type| {
             quote! {
-                pub fn emit_event(&mut self, event: #events_type) -> #sails_path::errors::Result<()> {
-                    #[cfg(not(target_arch = "wasm32"))]
-                    {
-                        Ok(())
-                    }
-                    #[cfg(target_arch = "wasm32")]
-                    {
-                        #sails_path::gstd::__emit_event_with_route(self. #route_ident, event)
-                    }
+                pub fn emit_event(&self, event: #events_type) -> #sails_path::errors::Result<()> {
+                    use #sails_path::gstd::services::ExposureWithEvents;
+
+                    self.emitter().emit_event(event)
                 }
             }
         })
@@ -68,8 +72,6 @@ impl ServiceBuilder<'_> {
         let service_type_path = self.type_path;
         let service_type_constraints = self.type_constraints();
 
-        let base_ident = &self.base_ident;
-
         // We propagate only known attributes as we don't know the consequences of unknown ones
         let exposure_allow_attrs = self
             .service_impl
@@ -79,7 +81,7 @@ impl ServiceBuilder<'_> {
 
         let try_handle_impl = self.try_handle_impl();
         // ethexe
-        let try_handle_solidity_impl = self.try_handle_solidity_impl(base_ident);
+        let try_handle_solidity_impl = self.try_handle_solidity_impl();
 
         let exposure_emit_event_impls = self.exposure_emit_event_impls();
         let exposure_emit_eth_impls = self.exposure_emit_eth_impls();
@@ -139,8 +141,7 @@ impl ServiceBuilder<'_> {
                         Some(quote! { . #idx_literal })
                     };
                     quote! {
-                        if base_services #idx_token .expose(self.route) . #name_ident(#input_ident, result_handler) #await_token.is_some()
-                        {
+                        if base_services #idx_token .expose(self.route) . #name_ident(#input_ident, result_handler) #await_token.is_some() {
                             return Some(());
                         }
                     }

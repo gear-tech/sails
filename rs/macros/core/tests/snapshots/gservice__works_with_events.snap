@@ -26,6 +26,10 @@ for SomeServiceExposure<T> {
         None
     }
 }
+impl<T: sails_rs::meta::ServiceMeta> sails_rs::gstd::services::ExposureWithEvents
+for SomeServiceExposure<T> {
+    type Events = SomeEvents;
+}
 impl<T> core::ops::Deref for SomeServiceExposure<T> {
     type Target = T;
     fn deref(&self) -> &Self::Target {
@@ -85,10 +89,9 @@ impl SomeServiceExposure<SomeService> {
         use sails_rs::gstd::services::{Service, Exposure};
         None
     }
-    pub fn emit_event(&mut self, event: SomeEvents) -> sails_rs::errors::Result<()> {
-        #[cfg(not(target_arch = "wasm32"))] { Ok(()) }
-        #[cfg(target_arch = "wasm32")]
-        { sails_rs::gstd::__emit_event_with_route(self.route, event) }
+    pub fn emit_event(&self, event: SomeEvents) -> sails_rs::errors::Result<()> {
+        use sails_rs::gstd::services::ExposureWithEvents;
+        self.emitter().emit_event(event)
     }
 }
 impl sails_rs::gstd::services::Service for SomeService {

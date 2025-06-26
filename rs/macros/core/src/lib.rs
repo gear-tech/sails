@@ -16,7 +16,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
-//! Implemntation of the procedural macros exposed via the `sails-macros` crate.
+//! Implementation of the procedural macros exposed via the `sails-macros` crate.
 
 pub use event::{derive_sails_event, event};
 pub use export::export;

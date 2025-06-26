@@ -1,8 +1,9 @@
-use sails_rs::{Encode, TypeInfo, gstd::service};
+use sails_rs::prelude::*;
 
 #[allow(dead_code)]
 pub struct MyServiceWithEvents(pub u8);
 
+#[event]
 #[derive(TypeInfo, Encode, Clone, Debug, PartialEq)]
 pub enum MyEvents {
     Event1,

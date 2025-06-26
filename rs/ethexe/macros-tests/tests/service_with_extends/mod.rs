@@ -49,9 +49,10 @@ pub(super) mod extended {
         }
     }
 
-    impl AsRef<base::Base> for Extended {
-        fn as_ref(&self) -> &base::Base {
-            &self.base
+    #[allow(clippy::from_over_into)]
+    impl Into<base::Base> for Extended {
+        fn into(self) -> base::Base {
+            self.base
         }
     }
 }

@@ -1,6 +1,6 @@
 #![cfg(not(feature = "ethexe"))]
 
-use sails_rs::gstd::services::Service;
+use sails_rs::gstd::services::{ExposureWithEvents, Service};
 use sails_rs::{Decode, Encode};
 
 mod gservice_with_basics;
@@ -254,11 +254,12 @@ fn gservice_with_events() {
     use gservice_with_events::{MyEvents, MyServiceWithEvents};
 
     let mut exposure = MyServiceWithEvents(0).expose(SERVICE_ROUTE);
+    let mut emitter = exposure.emitter();
     exposure.my_method();
 
-    // let events = exposure.take_events();
-    // assert_eq!(events.len(), 1);
-    // assert_eq!(events[0], MyEvents::Event1);
+    let events = emitter.take_events();
+    assert_eq!(events.len(), 1);
+    assert_eq!(events[0], MyEvents::Event1);
 }
 
 #[test]
@@ -270,6 +271,7 @@ fn gservice_with_lifetimes_and_events() {
     let my_service = MyGenericEventsService::<'_, String>::default();
     let exposure = my_service.expose(SERVICE_ROUTE);
 
+    let mut emitter = exposure.emitter();
     exposure
         .try_handle(&DO_THIS.encode(), |mut output, _| {
             let service_route = String::decode(&mut output).unwrap();
@@ -285,9 +287,9 @@ fn gservice_with_lifetimes_and_events() {
         })
         .unwrap();
 
-    // let events = exposure.take_events();
-    // assert_eq!(events.len(), 1);
-    // assert_eq!(events[0], MyEvents::Event1);
+    let events = emitter.take_events();
+    assert_eq!(events.len(), 1);
+    assert_eq!(events[0], MyEvents::Event1);
 }
 
 #[test]

@@ -1,5 +1,8 @@
 use sails_rs::{
-    Encode, MessageId, alloy_primitives::B256, alloy_sol_types::SolValue, gstd::services::Service,
+    Encode, MessageId, Syscall,
+    alloy_primitives::B256,
+    alloy_sol_types::SolValue,
+    gstd::services::{ExposureWithEvents as _, Service},
 };
 
 mod service_with_basics;
@@ -19,7 +22,10 @@ async fn service_with_basics() {
     const DO_THIS: &str = "DoThis";
     let input = (0u128, false, 42u32, "correct".to_owned()).abi_encode_sequence();
 
-    let mut exposure = MyService.expose(MessageId::from(123), &[1, 2, 3]);
+    let exposure = MyService.expose(&[1, 2, 3]);
+
+    // Check asyncness for `DoThis`.
+    assert!(exposure.check_asyncness(&DO_THIS.encode()).unwrap());
 
     assert!(
         exposure
@@ -27,11 +33,9 @@ async fn service_with_basics() {
             .is_none()
     );
 
-    // Check asyncness for `DoThis`.
-    assert!(exposure.check_asyncness(&DO_THIS.encode()).unwrap());
-
     // act
-    let (output, ..) = exposure
+    let (output, ..) = MyService
+        .expose(&[1, 2, 3])
         .try_handle_solidity_async(&DO_THIS.encode(), &input)
         .await
         .unwrap();
@@ -47,10 +51,11 @@ async fn service_with_basics_with_encode_reply() {
     const DO_THIS: &str = "DoThis";
     let input = (0u128, true, 42u32, "correct".to_owned()).abi_encode_sequence();
     let message_id = MessageId::from(123);
+    Syscall::with_message_id(message_id);
 
     // act
     let (output, ..) = MyService
-        .expose(message_id, &[1, 2, 3])
+        .expose(&[1, 2, 3])
         .try_handle_solidity_async(&DO_THIS.encode(), &input)
         .await
         .unwrap();
@@ -65,12 +70,13 @@ async fn service_with_basics_with_encode_reply() {
 fn service_with_events() {
     use service_with_events::{MyEvents, MyServiceWithEvents};
 
-    let mut exposure = MyServiceWithEvents(0).expose(MessageId::from(142), &[1, 4, 2]);
+    let mut exposure = MyServiceWithEvents(0).expose(&[1, 4, 2]);
+    let mut emitter = exposure.emitter();
     exposure.my_method();
 
-    // let events = exposure.take_events();
-    // assert_eq!(events.len(), 1);
-    // assert_eq!(events[0], MyEvents::Event1);
+    let events = emitter.take_events();
+    assert_eq!(events.len(), 1);
+    assert_eq!(events[0], MyEvents::Event1);
 }
 
 #[test]
@@ -81,7 +87,8 @@ fn service_with_lifetimes_and_events() {
     let input = (0u128, false).abi_encode_sequence();
 
     let my_service = MyGenericEventsService::<'_, String>::default();
-    let mut exposure = my_service.expose(MessageId::from(123), &[1, 2, 3]);
+    let exposure = my_service.expose(&[1, 2, 3]);
+    let mut emitter = exposure.emitter();
 
     assert!(!exposure.check_asyncness(&DO_THIS.encode()).unwrap());
 
@@ -92,9 +99,9 @@ fn service_with_lifetimes_and_events() {
     let result = sails_rs::alloy_sol_types::SolValue::abi_decode(output.as_slice(), false);
     assert_eq!(Ok(42), result);
 
-    // let events = exposure.take_events();
-    // assert_eq!(events.len(), 1);
-    // assert_eq!(events[0], MyEvents::Event1);
+    let events = emitter.take_events();
+    assert_eq!(events.len(), 1);
+    assert_eq!(events[0], MyEvents::Event1);
 }
 
 #[test]
@@ -109,11 +116,17 @@ fn service_with_extends() {
     const EXTENDED_NAME_METHOD: &str = "ExtendedName";
     let input = (0u128, false).abi_encode_sequence();
 
-    let mut extended_svc = Extended::new(Base).expose(123.into(), &[1, 2, 3]);
+    let extended_svc = Extended::new(Base).expose(&[1, 2, 3]);
 
     assert!(
         !extended_svc
             .check_asyncness(&EXTENDED_NAME_METHOD.encode())
+            .unwrap()
+    );
+
+    assert!(
+        !extended_svc
+            .check_asyncness(&BASE_NAME_METHOD.encode())
             .unwrap()
     );
 
@@ -124,19 +137,14 @@ fn service_with_extends() {
     let result = sails_rs::alloy_sol_types::SolValue::abi_decode(output.as_slice(), false);
     assert_eq!(Ok(EXTENDED_NAME_RESULT.to_owned()), result);
 
-    assert!(
-        !extended_svc
-            .check_asyncness(&BASE_NAME_METHOD.encode())
-            .unwrap()
-    );
-    let _base: &<Base as Service>::Exposure = extended_svc.as_base_0();
-
+    let extended_svc = Extended::new(Base).expose(&[1, 2, 3]);
     let (output, ..) = extended_svc
         .try_handle_solidity(&BASE_NAME_METHOD.encode(), &input)
         .unwrap();
     let result = sails_rs::alloy_sol_types::SolValue::abi_decode(output.as_slice(), false);
     assert_eq!(Ok(BASE_NAME_RESULT.to_owned()), result);
 
+    let extended_svc = Extended::new(Base).expose(&[1, 2, 3]);
     let (output, ..) = extended_svc
         .try_handle_solidity(&NAME_METHOD.encode(), &input)
         .unwrap();
@@ -155,7 +163,7 @@ fn service_with_lifecycles_and_generics() {
     let my_service = MyGenericService::<'_, String>::default();
 
     let (output, ..) = my_service
-        .expose(MessageId::from(123), &[1, 2, 3])
+        .expose(&[1, 2, 3])
         .try_handle_solidity(&DO_THIS.encode(), &input)
         .unwrap();
 
@@ -175,10 +183,7 @@ fn service_with_extends_and_lifetimes() {
     let input = (0u128, false).abi_encode_sequence();
 
     let int = 42u64;
-    let mut extended_svc =
-        ExtendedWithLifetime::new(BaseWithLifetime::new(&int)).expose(123.into(), &[1, 2, 3]);
-
-    let _base: &<BaseWithLifetime as Service>::Exposure = extended_svc.as_base_0();
+    let extended_svc = ExtendedWithLifetime::new(BaseWithLifetime::new(&int)).expose(&[1, 2, 3]);
 
     let (output, ..) = extended_svc
         .try_handle_solidity(&EXTENDED_NAME_METHOD.encode(), &input)
@@ -187,6 +192,7 @@ fn service_with_extends_and_lifetimes() {
     let result = sails_rs::alloy_sol_types::SolValue::abi_decode(output.as_slice(), false);
     assert_eq!(Ok(EXTENDED_NAME_RESULT.to_owned()), result);
 
+    let extended_svc = ExtendedWithLifetime::new(BaseWithLifetime::new(&int)).expose(&[1, 2, 3]);
     let (output, ..) = extended_svc
         .try_handle_solidity(&BASE_NAME_METHOD.encode(), &input)
         .unwrap();
@@ -194,6 +200,7 @@ fn service_with_extends_and_lifetimes() {
     let result = sails_rs::alloy_sol_types::SolValue::abi_decode(output.as_slice(), false);
     assert_eq!(Ok(BASE_NAME_RESULT.to_owned()), result);
 
+    let extended_svc = ExtendedWithLifetime::new(BaseWithLifetime::new(&int)).expose(&[1, 2, 3]);
     let (output, ..) = extended_svc
         .try_handle_solidity(&NAME_METHOD.encode(), &input)
         .unwrap();
@@ -210,7 +217,7 @@ async fn service_with_export_unwrap_result() {
 
     let input = (0u128, false, 42u32, "correct").abi_encode_sequence();
     let (output, ..) = MyService
-        .expose(MessageId::from(123), &[1, 2, 3])
+        .expose(&[1, 2, 3])
         .try_handle_solidity_async(&DO_THIS.encode(), input.as_slice())
         .await
         .unwrap();
@@ -228,7 +235,7 @@ async fn service_with_export_unwrap_result_panic() {
     let input = (0u128, false, "not a number").abi_encode_sequence();
 
     _ = MyService
-        .expose(MessageId::from(123), &[1, 2, 3])
+        .expose(&[1, 2, 3])
         .try_handle_solidity_async(&PARSE.encode(), input.as_slice())
         .await
         .unwrap();
@@ -242,7 +249,7 @@ async fn service_with_reply_with_value() {
 
     let input = (0u128, false, 42u32, "correct".to_owned()).abi_encode_sequence();
     let (output, value, ..) = MyServiceWithReplyWithValue
-        .expose(MessageId::from(123), &[1, 2, 3])
+        .expose(&[1, 2, 3])
         .try_handle_solidity_async(&DO_THIS.encode(), input.as_slice())
         .await
         .unwrap();
@@ -261,7 +268,7 @@ async fn service_with_reply_with_value_with_impl_from() {
 
     let input = (0u128, false, 42u32, "correct".to_owned()).abi_encode_sequence();
     let (output, value, ..) = MyServiceWithReplyWithValue
-        .expose(MessageId::from(123), &[1, 2, 3])
+        .expose(&[1, 2, 3])
         .try_handle_solidity_async(&DO_THAT.encode(), input.as_slice())
         .await
         .unwrap();
@@ -280,7 +287,7 @@ async fn service_with_trait_bounds() {
     let input = (0u128, false).abi_encode_sequence();
 
     let (output, ..) = MyServiceWithTraitBounds::<u32>::default()
-        .expose(MessageId::from(123), &[1, 2, 3])
+        .expose(&[1, 2, 3])
         .try_handle_solidity(&DO_THIS.encode(), &input)
         .unwrap();
 

@@ -1,15 +1,8 @@
 #[doc(hidden)]
-#[cfg(target_arch = "wasm32")]
-#[cfg(feature = "ethexe")]
-pub use ethexe::__emit_eth_event;
-#[doc(hidden)]
 #[cfg(feature = "ethexe")]
 pub use ethexe::{EthEvent, EthEventExpo};
 #[doc(hidden)]
-#[cfg(target_arch = "wasm32")]
-pub use events::__emit_event_with_route;
-#[doc(hidden)]
-pub use events::SailsEvent;
+pub use events::{EventEmitter, SailsEvent};
 #[cfg(not(feature = "ethexe"))]
 #[doc(hidden)]
 pub use gstd::handle_signal;
@@ -18,13 +11,13 @@ pub use gstd::{async_init, async_main, handle_reply_with_hook, message_loop};
 pub use gstd::{debug, exec, msg};
 #[doc(hidden)]
 pub use sails_macros::{event, export, program, service};
+pub use syscalls::Syscall;
 
 use crate::{
     errors::{Error, Result, RtlError},
     prelude::*,
 };
 use gcore::stack_buffer;
-pub use syscalls::Syscall;
 use utils::MaybeUninitBufferWriter;
 
 pub mod calls;

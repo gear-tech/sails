@@ -2,52 +2,66 @@
 source: macros-tests/tests/service_insta.rs
 expression: result
 ---
-impl MyServiceWithEvents {
+pub struct MyServiceWithEventsExposure<T> {
+    route: &'static [u8],
+    inner: T,
+}
+impl<T: sails_rs::meta::ServiceMeta> sails_rs::gstd::services::Exposure
+for MyServiceWithEventsExposure<T> {
+    fn route(&self) -> &'static [u8] {
+        self.route
+    }
+    fn check_asyncness(input: &[u8]) -> Option<bool> {
+        use sails_rs::gstd::InvocationIo;
+        use sails_rs::gstd::services::{Service, Exposure};
+        if !T::ASYNC {
+            return Some(false);
+        }
+        if let Ok(is_async) = my_service_with_events_meta::__DoThisParams::check_asyncness(
+            input,
+        ) {
+            return Some(is_async);
+        }
+        if let Ok(is_async) = my_service_with_events_meta::__ThisParams::check_asyncness(
+            input,
+        ) {
+            return Some(is_async);
+        }
+        None
+    }
+}
+impl<T: sails_rs::meta::ServiceMeta> sails_rs::gstd::services::ExposureWithEvents
+for MyServiceWithEventsExposure<T> {
+    type Events = MyEvents;
+}
+impl<T> core::ops::Deref for MyServiceWithEventsExposure<T> {
+    type Target = T;
+    fn deref(&self) -> &Self::Target {
+        &self.inner
+    }
+}
+impl<T> core::ops::DerefMut for MyServiceWithEventsExposure<T> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
+impl MyServiceWithEventsExposure<MyServiceWithEvents> {
     pub fn do_this(&mut self) -> u32 {
         42
     }
     pub fn this(&self) -> bool {
         true
     }
-}
-pub struct MyServiceWithEventsExposure<T: sails_rs::gstd::services::Service> {
-    message_id: sails_rs::MessageId,
-    route: &'static [u8],
-    #[cfg(not(target_arch = "wasm32"))]
-    inner: sails_rs::Box<T>,
-    #[cfg(not(target_arch = "wasm32"))]
-    inner_ptr: *const T,
-    #[cfg(target_arch = "wasm32")]
-    inner: T,
-    base: T::BaseExposures,
-}
-impl<T: sails_rs::gstd::services::Service> sails_rs::gstd::services::Exposure
-for MyServiceWithEventsExposure<T> {
-    fn message_id(&self) -> sails_rs::MessageId {
-        self.message_id
-    }
-    fn route(&self) -> &'static [u8] {
-        self.route
-    }
-}
-impl MyServiceWithEventsExposure<MyServiceWithEvents> {
-    pub fn do_this(&mut self) -> u32 {
-        use sails_rs::gstd::services::Exposure;
-        let exposure_scope = self.scope();
-        self.inner.do_this()
-    }
-    pub fn this(&self) -> bool {
-        use sails_rs::gstd::services::Exposure;
-        let exposure_scope = self.scope();
-        self.inner.this()
+    pub fn check_asyncness(&self, input: &[u8]) -> Option<bool> {
+        <Self as sails_rs::gstd::services::Exposure>::check_asyncness(input)
     }
     pub fn try_handle(
-        &mut self,
+        mut self,
         input: &[u8],
         result_handler: fn(&[u8], u128),
     ) -> Option<()> {
         use sails_rs::gstd::InvocationIo;
-        use sails_rs::gstd::services::Exposure;
+        use sails_rs::gstd::services::{Service, Exposure};
         if let Ok(request) = my_service_with_events_meta::__DoThisParams::decode_params(
             input,
         ) {
@@ -75,19 +89,20 @@ impl MyServiceWithEventsExposure<MyServiceWithEvents> {
         None
     }
     pub async fn try_handle_async(
-        &mut self,
+        mut self,
         input: &[u8],
         result_handler: fn(&[u8], u128),
     ) -> Option<()> {
         use sails_rs::gstd::InvocationIo;
-        use sails_rs::gstd::services::Exposure;
+        use sails_rs::gstd::services::{Service, Exposure};
         None
     }
     pub fn try_handle_solidity(
-        &mut self,
+        mut self,
         method: &[u8],
         input: &[u8],
     ) -> Option<(sails_rs::Vec<u8>, u128, bool)> {
+        use sails_rs::gstd::services::{Service, Exposure};
         if method == &[24u8, 68u8, 111u8, 84u8, 104u8, 105u8, 115u8] {
             let (_, _encode_reply): (u128, bool) = sails_rs::alloy_sol_types::SolValue::abi_decode_params(
                     input,
@@ -98,7 +113,7 @@ impl MyServiceWithEventsExposure<MyServiceWithEvents> {
             let value = 0u128;
             let output = if _encode_reply {
                 let message_id = sails_rs::alloy_primitives::B256::new(
-                    self.message_id.into_bytes(),
+                    sails_rs::gstd::Syscall::message_id().into_bytes(),
                 );
                 sails_rs::alloy_sol_types::SolValue::abi_encode_sequence(
                     &(message_id, result),
@@ -118,7 +133,7 @@ impl MyServiceWithEventsExposure<MyServiceWithEvents> {
             let value = 0u128;
             let output = if _encode_reply {
                 let message_id = sails_rs::alloy_primitives::B256::new(
-                    self.message_id.into_bytes(),
+                    sails_rs::gstd::Syscall::message_id().into_bytes(),
                 );
                 sails_rs::alloy_sol_types::SolValue::abi_encode_sequence(
                     &(message_id, result),
@@ -131,64 +146,27 @@ impl MyServiceWithEventsExposure<MyServiceWithEvents> {
         None
     }
     pub async fn try_handle_solidity_async(
-        &mut self,
+        mut self,
         method: &[u8],
         input: &[u8],
     ) -> Option<(sails_rs::Vec<u8>, u128, bool)> {
+        use sails_rs::gstd::services::{Service, Exposure};
         None
     }
-    pub fn check_asyncness(&self, input: &[u8]) -> Option<bool> {
-        use sails_rs::gstd::InvocationIo;
-        if !<MyServiceWithEvents as sails_rs::meta::ServiceMeta>::ASYNC {
-            return Some(false);
-        }
-        if let Ok(is_async) = my_service_with_events_meta::__DoThisParams::check_asyncness(
-            input,
-        ) {
-            return Some(is_async);
-        }
-        if let Ok(is_async) = my_service_with_events_meta::__ThisParams::check_asyncness(
-            input,
-        ) {
-            return Some(is_async);
-        }
-        None
+    pub fn emit_event(&self, event: MyEvents) -> sails_rs::errors::Result<()> {
+        use sails_rs::gstd::services::ExposureWithEvents;
+        self.emitter().emit_event(event)
     }
-    pub fn emit_event(&mut self, event: MyEvents) -> sails_rs::errors::Result<()> {
-        #[cfg(not(target_arch = "wasm32"))]
-        { Self::__emit_event(&mut self.inner, event) }
-        #[cfg(target_arch = "wasm32")]
-        { sails_rs::gstd::__emit_event_with_route(self.route, event) }
-    }
-    fn emit_eth_event(&mut self, event: MyEvents) -> sails_rs::errors::Result<()> {
-        #[cfg(not(target_arch = "wasm32"))]
-        { Self::__emit_event(&mut self.inner, event) }
-        #[cfg(target_arch = "wasm32")] { sails_rs::gstd::__emit_eth_event(event) }
+    pub fn emit_eth_event(&self, event: MyEvents) -> sails_rs::errors::Result<()> {
+        use sails_rs::gstd::services::ExposureWithEvents;
+        self.emitter().emit_eth_event(event)
     }
 }
 impl sails_rs::gstd::services::Service for MyServiceWithEvents {
     type Exposure = MyServiceWithEventsExposure<Self>;
-    type BaseExposures = ();
-    fn expose(
-        self,
-        message_id: sails_rs::MessageId,
-        route: &'static [u8],
-    ) -> Self::Exposure {
-        #[cfg(not(target_arch = "wasm32"))]
-        let inner_box = sails_rs::Box::new(self);
-        #[cfg(not(target_arch = "wasm32"))]
-        let inner = inner_box.as_ref();
-        #[cfg(target_arch = "wasm32")]
-        let inner = &self;
+    fn expose(self, route: &'static [u8]) -> Self::Exposure {
         Self::Exposure {
-            message_id,
             route,
-            base: (),
-            #[cfg(not(target_arch = "wasm32"))]
-            inner_ptr: inner_box.as_ref() as *const Self,
-            #[cfg(not(target_arch = "wasm32"))]
-            inner: inner_box,
-            #[cfg(target_arch = "wasm32")]
             inner: self,
         }
     }
@@ -265,54 +243,3 @@ impl sails_rs::solidity::ServiceSignature for MyServiceWithEvents {
         ),
     ];
 }
-impl MyServiceWithEvents {
-    fn emit_event(&mut self, event: MyEvents) -> sails_rs::errors::Result<()> {
-        #[cfg(not(target_arch = "wasm32"))]
-        { MyServiceWithEventsExposure::<Self>::__emit_event(self, event) }
-        #[cfg(target_arch = "wasm32")] { sails_rs::gstd::__emit_event(event) }
-    }
-}
-impl MyServiceWithEvents {
-    fn emit_eth_event(&mut self, event: MyEvents) -> sails_rs::errors::Result<()> {
-        #[cfg(not(target_arch = "wasm32"))]
-        { MyServiceWithEventsExposure::<Self>::__emit_event(self, event) }
-        #[cfg(target_arch = "wasm32")] { sails_rs::gstd::__emit_eth_event(event) }
-    }
-}
-#[cfg(not(target_arch = "wasm32"))]
-const _: () = {
-    type ServiceEventsMap = sails_rs::collections::BTreeMap<
-        usize,
-        sails_rs::Vec<MyEvents>,
-    >;
-    type Mutex<T> = sails_rs::spin::Mutex<T>;
-    impl<T: sails_rs::gstd::services::Service> MyServiceWithEventsExposure<T> {
-        pub fn take_events(&mut self) -> sails_rs::Vec<MyEvents> {
-            if core::mem::size_of_val(self.inner.as_ref()) == 0 {
-                panic!(
-                    "setting event listener on a zero-sized service is not supported for now"
-                );
-            }
-            let service_ptr = self.inner_ptr as usize;
-            let mut map = Self::events_map();
-            map.remove(&service_ptr).unwrap_or_default()
-        }
-        fn __emit_event(svc: &mut T, event: MyEvents) -> sails_rs::errors::Result<()> {
-            let service_ptr = svc as *const _ as *const () as usize;
-            let mut map = Self::events_map();
-            map.entry(service_ptr).or_default().push(event);
-            Ok(())
-        }
-        fn events_map() -> impl core::ops::DerefMut<Target = ServiceEventsMap> {
-            static MAP: Mutex<ServiceEventsMap> = Mutex::new(ServiceEventsMap::new());
-            MAP.lock()
-        }
-    }
-    impl<T: sails_rs::gstd::services::Service> Drop for MyServiceWithEventsExposure<T> {
-        fn drop(&mut self) {
-            let service_ptr = self.inner_ptr as usize;
-            let mut map = Self::events_map();
-            _ = map.remove(&service_ptr);
-        }
-    }
-};

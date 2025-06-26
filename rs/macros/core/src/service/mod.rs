@@ -69,7 +69,6 @@ struct ServiceBuilder<'a> {
     exposure_ident: Ident,
     route_ident: Ident,
     inner_ident: Ident,
-    base_ident: Ident,
     input_ident: Ident,
     meta_module_ident: Ident,
 }
@@ -96,7 +95,6 @@ impl<'a> ServiceBuilder<'a> {
         let exposure_ident = Ident::new(&exposure_name, Span::call_site());
         let route_ident = Ident::new("route", Span::call_site());
         let inner_ident = Ident::new("inner", Span::call_site());
-        let base_ident = Ident::new("base", Span::call_site());
         let input_ident = Ident::new("input", Span::call_site());
         let meta_module_name = format!("{}_meta", service_ident.to_string().to_case(Case::Snake));
         let meta_module_ident = Ident::new(&meta_module_name, Span::call_site());
@@ -113,7 +111,6 @@ impl<'a> ServiceBuilder<'a> {
             exposure_ident,
             route_ident,
             inner_ident,
-            base_ident,
             input_ident,
             meta_module_ident,
         }
@@ -130,7 +127,7 @@ impl ServiceBuilder<'_> {
         quote!()
     }
 
-    fn try_handle_solidity_impl(&self, _base_ident: &Ident) -> TokenStream {
+    fn try_handle_solidity_impl(&self) -> TokenStream {
         quote!()
     }
 
@@ -171,8 +168,6 @@ fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
     let service_signature_impl = service_builder.service_signature_impl();
 
     quote!(
-        // #service_impl
-
         #exposure_struct
 
         #exposure_impl

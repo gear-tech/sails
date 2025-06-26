@@ -25,6 +25,7 @@ impl DogService {
 }
 
 // Implementing `Into` for each of the extended services
+#[allow(clippy::from_over_into)]
 impl Into<(MammalService, WalkerService)> for DogService {
     fn into(self) -> (MammalService, WalkerService) {
         (self.mammal, self.walker)
