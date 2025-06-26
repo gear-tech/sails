@@ -5,6 +5,11 @@
 //! Benchmark data is persisted to a JSON file (`path_to_sails/benchmarks/bench_data.json`)
 //! with file locking to ensure thread-safe concurrent access when running multiple benchmark tests.
 
+#[cfg(all(test, not(debug_assertions)))]
+mod clients;
+#[cfg(all(test, not(debug_assertions)))]
+mod benchmarks;
+
 use anyhow::{Context, Result};
 use fs2::FileExt;
 use serde::{Deserialize, Serialize};
@@ -15,9 +20,6 @@ use std::{
     io::{Read, Seek, SeekFrom, Write},
     path::{Path, PathBuf},
 };
-
-#[cfg(all(test, not(debug_assertions)))]
-mod benchmarks;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct BenchData {

@@ -11,16 +11,21 @@ anyhow.workspace = true
 serde = { workspace = true, features = ["derive"] }
 serde-json.workspace = true
 fs2.workspace = true
+sails-rs.workspace = true
+
+[build-dependencies]
+sails-rs = { workspace = true, features = ["build"] }
+alloc-stress = { path = "alloc-stress" }
+compute-stress = { path = "compute-stress" }
+counter-bench = { path = "counter-bench" }
+convert_case.workspace = true
 
 [dev-dependencies]
 gtest.workspace = true
 sails-rs = { workspace = true, features = ["gtest"] }
-alloc-stress-app = { path = "alloc-stress/app" }
-alloc-stress-client = { path = "alloc-stress/client" }
-compute-stress-app = { path = "compute-stress/app" }
-compute-stress-client = { path = "compute-stress/client" }
-counter-bench-app = { path = "counter-bench/app" }
-counter-bench-client = { path = "counter-bench/client" }
+alloc-stress = { path = "alloc-stress" }
+compute-stress = { path = "compute-stress" }
+counter-bench = { path = "counter-bench" }
 ping-pong-bench-app = { path = "ping-pong/app" }
 redirect-app = { path = "../examples/redirect/app" }
 redirect-client = { path = "../examples/redirect/client" }

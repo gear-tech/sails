@@ -17,16 +17,14 @@
 //! cargo test --release --manifest-path=benchmarks/Cargo.toml
 //! ```
 
-use alloc_stress_client::{
-    AllocStressFactory, alloc_stress::io::AllocStress, traits::AllocStressFactory as _,
-};
-use compute_stress_client::{
-    ComputeStressFactory, compute_stress::io::ComputeStress, traits::ComputeStressFactory as _,
-};
-use counter_bench_client::{
-    CounterBenchFactory,
-    counter_bench::io::{Inc, IncAsync},
-    traits::CounterBenchFactory as _,
+use crate::clients::{
+    alloc_stress_client::{AllocStressProgramFactory, alloc_stress::io::AllocStress, traits::AllocStressProgramFactory as _,},
+    compute_stress_client::{ComputeStressProgramFactory, compute_stress::io::ComputeStress, traits::ComputeStressProgramFactory as _,},
+    counter_bench_client::{
+        CounterBenchProgramFactory,
+        counter_bench::io::{Inc, IncAsync},
+        traits::CounterBenchProgramFactory as _,
+    },
 };
 use gtest::{System, constants::DEFAULT_USER_ALICE};
 use itertools::{Either, Itertools};
@@ -173,12 +171,12 @@ async fn alloc_stress_bench() {
 
 #[tokio::test]
 async fn compute_stress_bench() {
-    let wasm_path = "../target/wasm32-gear/release/compute_stress_app.opt.wasm";
+    let wasm_path = "../target/wasm32-gear/release/compute_stress.opt.wasm";
 
-    let (remoting, pid) = create_program_async!((ComputeStressFactory::<GTestRemoting>, wasm_path));
+    let (remoting, pid) = create_program_async!((ComputeStressProgramFactory::<GTestRemoting>, wasm_path));
 
     let input_value = 30;
-    let expected_sum = compute_stress_app::sum_of_fib(input_value);
+    let expected_sum = compute_stress::sum_of_fib(input_value);
 
     let mut gas_benches = (0..100)
         .map(|_| {
@@ -197,9 +195,9 @@ async fn compute_stress_bench() {
 
 #[tokio::test]
 async fn counter_bench() {
-    let wasm_path = "../target/wasm32-gear/release/counter_bench_app.opt.wasm";
+    let wasm_path = "../target/wasm32-gear/release/counter_bench.opt.wasm";
 
-    let (remoting, pid) = create_program_async!((CounterBenchFactory::<GTestRemoting>, wasm_path));
+    let (remoting, pid) = create_program_async!((CounterBenchProgramFactory::<GTestRemoting>, wasm_path));
 
     let mut expected_value = 0;
     let (mut gas_benches_sync, mut gas_benches_async): (Vec<_>, Vec<_>) = (0..100)
@@ -322,12 +320,12 @@ async fn redirect_bench() {
 
 async fn alloc_stress_test(n: u32) -> (usize, u64) {
     // Path taken from the .binpath file
-    let wasm_path = "../target/wasm32-gear/release/alloc_stress_app.opt.wasm";
+    let wasm_path = "../target/wasm32-gear/release/alloc_stress.opt.wasm";
 
-    let (remoting, pid) = create_program_async!((AllocStressFactory::<GTestRemoting>, wasm_path));
+    let (remoting, pid) = create_program_async!((AllocStressProgramFactory::<GTestRemoting>, wasm_path));
     let (stress_resp, gas) = call_action!(remoting, pid, AllocStress, n);
 
-    let expected_len = alloc_stress_app::fibonacci_sum(n) as usize;
+    let expected_len = alloc_stress::fibonacci_sum(n) as usize;
     assert_eq!(stress_resp.inner.len(), expected_len);
 
     (expected_len, gas)

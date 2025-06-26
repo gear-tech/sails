@@ -7,24 +7,27 @@ use sails_rs::{
     calls::{Activation, Call, Query, Remoting, RemotingAction},
     prelude::*,
 };
-pub struct CounterBenchFactory<R> {
+pub struct CounterBenchProgramFactory<R> {
     #[allow(dead_code)]
     remoting: R,
 }
-impl<R> CounterBenchFactory<R> {
+impl<R> CounterBenchProgramFactory<R> {
     #[allow(unused)]
     pub fn new(remoting: R) -> Self {
         Self { remoting }
     }
 }
-impl<R: Remoting + Clone> traits::CounterBenchFactory for CounterBenchFactory<R> {
+impl<R: Remoting + Clone> traits::CounterBenchProgramFactory for CounterBenchProgramFactory<R> {
     type Args = R::Args;
     fn new_for_bench(&self) -> impl Activation<Args = R::Args> {
-        RemotingAction::<_, counter_bench_factory::io::NewForBench>::new(self.remoting.clone(), ())
+        RemotingAction::<_, counter_bench_program_factory::io::NewForBench>::new(
+            self.remoting.clone(),
+            (),
+        )
     }
 }
 
-pub mod counter_bench_factory {
+pub mod counter_bench_program_factory {
     use super::*;
     pub mod io {
         use super::*;
@@ -102,7 +105,7 @@ pub mod counter_bench {
 pub mod traits {
     use super::*;
     #[allow(dead_code)]
-    pub trait CounterBenchFactory {
+    pub trait CounterBenchProgramFactory {
         type Args;
         fn new_for_bench(&self) -> impl Activation<Args = Self::Args>;
     }

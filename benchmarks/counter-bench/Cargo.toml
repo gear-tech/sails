@@ -1,5 +1,5 @@
 [package]
-name = "compute-stress-client"
+name = "counter-bench"
 version.workspace = true
 authors.workspace = true
 edition.workspace = true
@@ -10,6 +10,4 @@ repository.workspace = true
 sails-rs.workspace = true
 
 [build-dependencies]
-compute-stress-app = { path = "../app" }
-sails-client-gen.workspace = true
-sails-idl-gen.workspace = true
+sails-rs = { workspace = true, features = ["wasm-builder"] }

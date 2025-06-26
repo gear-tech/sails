@@ -98,19 +98,9 @@ dependencies = [
 ]
 
 [[package]]
-name = "alloc-stress-app"
+name = "alloc-stress"
 version = "0.8.1"
 dependencies = [
- "sails-rs",
-]
-
-[[package]]
-name = "alloc-stress-client"
-version = "0.8.1"
-dependencies = [
- "alloc-stress-app",
- "sails-client-gen",
- "sails-idl-gen",
  "sails-rs",
 ]
 
@@ -703,13 +693,11 @@ dependencies = [
 name = "benchmarks"
 version = "0.8.1"
 dependencies = [
- "alloc-stress-app",
- "alloc-stress-client",
+ "alloc-stress",
  "anyhow",
- "compute-stress-app",
- "compute-stress-client",
- "counter-bench-app",
- "counter-bench-client",
+ "compute-stress",
+ "convert_case 0.7.1",
+ "counter-bench",
  "fs2",
  "gtest",
  "itertools 0.14.0",
@@ -1229,19 +1217,9 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2382f75942f4b3be3690fe4f86365e9c853c1587d6ee58212cebf6e2a9ccd101"
 
 [[package]]
-name = "compute-stress-app"
+name = "compute-stress"
 version = "0.8.1"
 dependencies = [
- "sails-rs",
-]
-
-[[package]]
-name = "compute-stress-client"
-version = "0.8.1"
-dependencies = [
- "compute-stress-app",
- "sails-client-gen",
- "sails-idl-gen",
  "sails-rs",
 ]
 
@@ -1389,19 +1367,9 @@ dependencies = [
 ]
 
 [[package]]
-name = "counter-bench-app"
+name = "counter-bench"
 version = "0.8.1"
 dependencies = [
- "sails-rs",
-]
-
-[[package]]
-name = "counter-bench-client"
-version = "0.8.1"
-dependencies = [
- "counter-bench-app",
- "sails-client-gen",
- "sails-idl-gen",
  "sails-rs",
 ]
 

@@ -7,24 +7,27 @@ use sails_rs::{
     calls::{Activation, Call, Query, Remoting, RemotingAction},
     prelude::*,
 };
-pub struct ComputeStressFactory<R> {
+pub struct ComputeStressProgramFactory<R> {
     #[allow(dead_code)]
     remoting: R,
 }
-impl<R> ComputeStressFactory<R> {
+impl<R> ComputeStressProgramFactory<R> {
     #[allow(unused)]
     pub fn new(remoting: R) -> Self {
         Self { remoting }
     }
 }
-impl<R: Remoting + Clone> traits::ComputeStressFactory for ComputeStressFactory<R> {
+impl<R: Remoting + Clone> traits::ComputeStressProgramFactory for ComputeStressProgramFactory<R> {
     type Args = R::Args;
     fn new_for_bench(&self) -> impl Activation<Args = R::Args> {
-        RemotingAction::<_, compute_stress_factory::io::NewForBench>::new(self.remoting.clone(), ())
+        RemotingAction::<_, compute_stress_program_factory::io::NewForBench>::new(
+            self.remoting.clone(),
+            (),
+        )
     }
 }
 
-pub mod compute_stress_factory {
+pub mod compute_stress_program_factory {
     use super::*;
     pub mod io {
         use super::*;
@@ -94,7 +97,7 @@ pub struct ComputeStressResult {
 pub mod traits {
     use super::*;
     #[allow(dead_code)]
-    pub trait ComputeStressFactory {
+    pub trait ComputeStressProgramFactory {
         type Args;
         fn new_for_bench(&self) -> impl Activation<Args = Self::Args>;
     }
