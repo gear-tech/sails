@@ -65,4 +65,7 @@ jobs:
         run: sleep 180
 
       - name: "Test: run"
+        # TODO: remove on the next release sails release
+        env:
+          USE_LOCAL_BUILD: true
         run: yarn test

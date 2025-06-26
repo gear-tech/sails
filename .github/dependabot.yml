@@ -21,6 +21,8 @@ updates:
     schedule:
       interval: "weekly"
     versioning-strategy: "increase"
+    ignore:
+      - dependency-name: "@polkadot/*"
     groups:
       development:
         dependency-type: "development"

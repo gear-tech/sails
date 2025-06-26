@@ -52,6 +52,7 @@
     "pack": "lerna run pack-build --parallel",
     "version": "lerna version --no-private",
     "test": "lerna run test --scope=sails-js --scope=sails-js-cli --parallel",
+    "test:js": "lerna run test --scope=sails-js",
     "publish": "lerna publish from-package --no-private",
     "lint": "npx eslint -c eslint.config.mjs",
     "lint:fix": "npx eslint --fix",

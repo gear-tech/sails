@@ -79,6 +79,18 @@ export class ServiceGenerator extends BaseGenerator {
     this.generateServices(_classNameTitled);
   }
 
+  private _getParams(params: ISailsFuncParam[]) {
+    if (params.length === 0) return 'undefined';
+    if (params.length === 1) return params[0].name;
+    return `[${params.map(({ name }) => name).join(', ')}]`;
+  }
+
+  private _getPayloadType(params: ISailsFuncParam[]) {
+    if (params.length === 0) return 'undefined';
+    if (params.length === 1) return `'${getScaleCodecDef(params[0].def)}'`;
+    return `'(${params.map(({ def }) => getScaleCodecDef(def)).join(', ')})'`;
+  }
+
   private generateProgramConstructor() {
     if (!this._program.ctor || this._program.ctor.funcs.length === 0) return;
 
@@ -101,16 +113,10 @@ export class ServiceGenerator extends BaseGenerator {
               .line(`this.api,`, false)
               .line(`this.registry,`, false)
               .line(`'upload_program',`, false)
-              .line(
-                params.length === 0 ? `'${name}',` : `['${name}', ${params.map(({ name }) => name).join(', ')}],`,
-                false,
-              )
-              .line(
-                params.length === 0
-                  ? `'String',`
-                  : `'(String, ${params.map(({ def }) => getScaleCodecDef(def)).join(', ')})',`,
-                false,
-              )
+              .line('undefined,', false)
+              .line(`'${name}',`, false)
+              .line(`${this._getParams(params)},`, false)
+              .line(`${this._getPayloadType(params)},`, false)
               .line(`'String',`, false)
               .line(`code,`, false)
               .block(`async (programId) => `, () => {
@@ -131,16 +137,10 @@ export class ServiceGenerator extends BaseGenerator {
               .line(`this.api,`, false)
               .line(`this.registry,`, false)
               .line(`'create_program',`, false)
-              .line(
-                params.length === 0 ? `'${name}',` : `['${name}', ${params.map(({ name }) => name).join(', ')}],`,
-                false,
-              )
-              .line(
-                params.length === 0
-                  ? `'String',`
-                  : `'(String, ${params.map(({ def }) => getScaleCodecDef(def)).join(', ')})',`,
-                false,
-              )
+              .line('undefined,', false)
+              .line(`'${name}',`, false)
+              .line(`${this._getParams(params)},`, false)
+              .line(`${this._getPayloadType(params)},`, false)
               .line(`'String',`, false)
               .line(`codeId,`, false)
               .block(`async (programId) => `, () => {
@@ -206,18 +206,10 @@ export class ServiceGenerator extends BaseGenerator {
               .line(`this._program.api,`, false)
               .line(`this._program.registry,`, false)
               .line(`'send_message',`, false)
-              .line(
-                params.length === 0
-                  ? `['${service.name}', '${name}'],`
-                  : `['${service.name}', '${name}', ${params.map(({ name }) => name).join(', ')}],`,
-                false,
-              )
-              .line(
-                params.length === 0
-                  ? `'(String, String)',`
-                  : `'(String, String, ${params.map(({ def }) => getScaleCodecDef(def)).join(', ')})',`,
-                false,
-              )
+              .line(`'${service.name}',`, false)
+              .line(`'${name}',`, false)
+              .line(`${this._getParams(params)},`, false)
+              .line(`${this._getPayloadType(params)},`, false)
               .line(`'${returnScaleType}',`, false)
               .line(`this._program.programId`, false)
               .reduceIndent()
