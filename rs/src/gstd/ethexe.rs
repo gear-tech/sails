@@ -53,15 +53,18 @@ pub type EthEventExpo = (
 ///   For static types, the ABI-encoded value is left-padded with zeros to 32 bytes.
 /// - **Data:** A byte array containing the ABI-encoded non-indexed fields of the event, encoded as a tuple.
 ///
-/// This trait is intended to be used with the `#[derive(EthEvent)]` procedural macro, which automatically
+/// This trait is intended to be used with the `#[sails_rs::event]` procedural macro, which automatically
 /// implements the trait for your enum-based event definitions.
 ///
 /// # Examples
 ///
 /// Given an event definition:
 ///
-/// ```rust
-/// #[derive(EthEvent)]
+/// ```rust,ignore
+/// #[sails_rs::event]
+/// #[derive(sails_rs::Encode, sails_rs::TypeInfo)]
+/// #[codec(crate = sails_rs::scale_codec)]
+/// #[scale_info(crate = sails_rs::scale_info)]
 /// pub enum Events {
 ///     MyEvent {
 ///         #[indexed]
@@ -74,7 +77,7 @@ pub type EthEventExpo = (
 ///
 /// Calling the methods:
 ///
-/// ```rust
+/// ```rust,ignore
 /// let event = Events::MyEvent {
 ///     sender: 123,
 ///     amount: 1000,
@@ -152,12 +155,11 @@ pub trait EthEvent {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::String;
-    use gstd::TypeInfo;
+    use crate::{self as sails_rs, Encode, String, TypeInfo, event};
 
     #[allow(unused)]
-    #[derive(TypeInfo)]
-    #[event(crate = crate)]
+    #[event]
+    #[derive(Encode, TypeInfo)]
     enum Events {
         MyEvent1 {
             #[indexed]

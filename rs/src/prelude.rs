@@ -42,7 +42,7 @@ pub mod ffi {
 }
 
 #[cfg(feature = "gstd")]
-pub use crate::gstd::{CommandReply, Syscall, export, program, route, service};
+pub use crate::gstd::{CommandReply, SailsEvent, Syscall, event, export, program, route, service};
 pub use crate::types::*;
 pub use gear_core_errors::{
     self as gear_core_errors, ErrorReplyReason, ReplyCode, SimpleExecutionError,
@@ -62,8 +62,6 @@ pub use alloy_primitives;
 pub use alloy_sol_types;
 #[cfg(feature = "ethexe")]
 pub use keccak_const;
-#[cfg(all(feature = "gstd", feature = "ethexe"))]
-pub use sails_macros::event;
 
 /// Channels, Streams and Futures extensions types
 ///

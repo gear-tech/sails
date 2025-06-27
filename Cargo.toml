@@ -23,6 +23,8 @@ members = [
     "examples/redirect/client",
     "examples/redirect/proxy",
     "examples/redirect/proxy-client",
+    "examples/event-routes",
+    "examples/event-routes/app",
     "rs",
     "rs/cli",
     "rs/client-gen",

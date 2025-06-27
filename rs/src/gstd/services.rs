@@ -1,6 +1,23 @@
 use crate::{MessageId, Vec, collections::BTreeMap};
 use core::ops::DerefMut;
 
+pub trait Service {
+    type Exposure: Exposure;
+    type BaseExposures;
+
+    fn expose(self, message_id: MessageId, route: &'static [u8]) -> Self::Exposure;
+}
+
+pub trait Exposure {
+    fn message_id(&self) -> MessageId;
+    fn route(&self) -> &'static [u8];
+
+    /// Returns a scope for exposing the service call, which temporarily sets the route into a static    
+    fn scope(&self) -> ExposureCallScope {
+        ExposureCallScope::new(self.message_id(), self.route())
+    }
+}
+
 #[cfg(not(target_arch = "wasm32"))]
 fn get_message_id_to_service_route_map()
 -> impl DerefMut<Target = BTreeMap<MessageId, Vec<&'static [u8]>>> {
@@ -25,63 +42,34 @@ fn get_message_id_to_service_route_map()
     }
 }
 
-pub trait Service {
-    type Exposure: Exposure;
-    type BaseExposures;
-
-    fn expose(self, message_id: MessageId, route: &'static [u8]) -> Self::Exposure;
-}
-
-pub trait Exposure {
-    fn message_id(&self) -> MessageId;
-    fn route(&self) -> &'static [u8];
-}
-
-#[derive(Debug, Clone, Copy)]
-pub struct ExposureContext {
-    message_id: MessageId,
-    route: &'static [u8],
-}
-
-impl ExposureContext {
-    pub fn message_id(&self) -> MessageId {
-        self.message_id
-    }
-
-    pub fn route(&self) -> &'static [u8] {
-        self.route
-    }
-}
-
 #[cfg(target_arch = "wasm32")]
-pub(crate) fn exposure_context(message_id: MessageId) -> ExposureContext {
+pub(crate) fn route(message_id: MessageId) -> &'static [u8] {
     let map = get_message_id_to_service_route_map();
-    let route = map
-        .get(&message_id)
+    map.get(&message_id)
         .and_then(|routes| routes.last().copied())
         .unwrap_or_else(|| {
             panic!(
                 "Exposure context is not found for message id {:?}",
                 message_id
             )
-        });
-    ExposureContext { message_id, route }
+        })
 }
 
+/// A scope for exposing a service call, which sets the route into the static `BTreeMap` by message Id.
+///
+/// When the scope is dropped, it pops the previous route.
+#[derive(Clone)]
 pub struct ExposureCallScope {
     message_id: MessageId,
     route: &'static [u8],
 }
 
 impl ExposureCallScope {
-    pub fn new(exposure: &impl Exposure) -> Self {
+    pub fn new(message_id: MessageId, route: &'static [u8]) -> Self {
         let mut map = get_message_id_to_service_route_map();
-        let routes = map.entry(exposure.message_id()).or_default();
-        routes.push(exposure.route());
-        Self {
-            message_id: exposure.message_id(),
-            route: exposure.route(),
-        }
+        let routes = map.entry(message_id).or_default();
+        routes.push(route);
+        Self { message_id, route }
     }
 }
 

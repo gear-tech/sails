@@ -13,6 +13,24 @@ pub enum Events {
     MyEvent2(u128, u128, String),
     MyEvent3,
 }
+impl sails_rs::SailsEvent for Events {
+    fn encoded_event_name(&self) -> &'static [u8] {
+        match self {
+            Events::MyEvent1 { .. } => {
+                &[32u8, 77u8, 121u8, 69u8, 118u8, 101u8, 110u8, 116u8, 49u8]
+            }
+            Events::MyEvent2(..) => {
+                &[32u8, 77u8, 121u8, 69u8, 118u8, 101u8, 110u8, 116u8, 50u8]
+            }
+            Events::MyEvent3 => {
+                &[32u8, 77u8, 121u8, 69u8, 118u8, 101u8, 110u8, 116u8, 51u8]
+            }
+        }
+    }
+    fn skip_bytes() -> usize {
+        1
+    }
+}
 impl sails_rs::EthEvent for Events {
     const SIGNATURES: &'static [sails_rs::gstd::EthEventExpo] = &[
         (
