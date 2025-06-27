@@ -32,6 +32,12 @@ members = [
     "rs/macros",
     "rs/macros/core",
     "rs/sol-gen",
+    "benchmarks/alloc-stress",
+    "benchmarks/compute-stress",
+    "benchmarks/counter-bench",
+    "benchmarks/ping-pong/app",
+    "benchmarks/ping-pong/client",
+    "benchmarks",
 ]
 
 [workspace.dependencies]
@@ -48,22 +54,23 @@ sails-sol-gen = { path = "rs/sol-gen" }
 sails-rename = { package = "sails-rs", path = "rs" }
 
 # Gear deps
-gclient = "=1.8.1"
-gcore = "=1.8.1"
-gear-core = { version = "=1.8.1", default-features = false }
-gear-core-errors = "=1.8.1"
-gprimitives = { version = "=1.8.1", features = ["codec"] }
-gstd = "=1.8.1"
-gtest = "=1.8.1"
-gwasm-builder = { version = "=1.8.1", package = "gear-wasm-builder" }
+gclient = { git = "https://github.com/gear-tech/gear.git", rev = "b813d40" }
+gcore = { git = "https://github.com/gear-tech/gear.git", rev = "b813d40" }
+gear-core = { git = "https://github.com/gear-tech/gear.git", rev = "b813d40", default-features = false }
+gear-core-errors = { git = "https://github.com/gear-tech/gear.git", rev = "b813d40" }
+gprimitives = { git = "https://github.com/gear-tech/gear.git", rev = "b813d40", features = ["codec"] }
+gstd = { git = "https://github.com/gear-tech/gear.git", rev = "b813d40" }
+gtest = { git = "https://github.com/gear-tech/gear.git", rev = "b813d40" }
+gwasm-builder = { git = "https://github.com/gear-tech/gear.git", rev = "b813d40", package = "gear-wasm-builder" }
 
 # Other deps in alphabetical order
 alloy-primitives = { version = "0.8.19", default-features = false }
 alloy-sol-types = { version = "0.8.19", default-features = false }
 anyhow = "1"
-cargo-generate = "0.21"
+cargo-generate = "0.23.3"
 cargo_metadata = "0.19"
 clap = "4.5"
+fs2 = "0.4.3"
 convert_case = "0.7"
 futures = { version = "0.3", default-features = false }
 genco = "0.17"
@@ -94,5 +101,6 @@ syn = "2.0"
 thiserror = "2.0"
 thiserror-no-std = "2.0"
 toml_edit = "0.22"
+tempfile = "3.19"
 tokio = "1.45"
 trybuild = "1"

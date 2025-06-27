@@ -37,6 +37,7 @@ jobs:
           TEMPLATES_BRANCH=${{ inputs.sources_ref }}
           TEMPLATES_BRANCH=${TEMPLATES_BRANCH:-${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}}
           echo "TEMPLATES_BRANCH: $TEMPLATES_BRANCH"
+          mkdir ~/tmp
           SAILS_CLI_TEMPLATES_BRANCH=${TEMPLATES_BRANCH} ./target/debug/cargo-sails sails program ~/tmp --name my-demo
 
       - name: Run Tests on MyDemo
