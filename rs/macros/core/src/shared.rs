@@ -298,7 +298,7 @@ impl<'a> FnBuilder<'a> {
         let encoded_route = route.encode();
         let signature = &impl_fn.sig;
         let ident = &signature.ident;
-        let params_struct_ident = Ident::new(&format!("__{}Params", route), Span::call_site());
+        let params_struct_ident = Ident::new(&format!("__{route}Params"), Span::call_site());
         let (params_idents, params_types): (Vec<_>, Vec<_>) = extract_params(signature).unzip();
         let result_type = unwrap_result_type(signature, unwrap_result);
 

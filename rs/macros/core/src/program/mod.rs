@@ -101,7 +101,7 @@ impl ProgramBuilder {
     }
 
     fn program_ctors(&self) -> Vec<FnBuilder<'_>> {
-        discover_program_ctors(&self.program_impl, &self.sails_path())
+        discover_program_ctors(&self.program_impl, self.sails_path())
     }
 
     fn handle_reply_fn(&mut self) -> Option<&mut ImplItemFn> {

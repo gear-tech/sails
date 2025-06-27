@@ -150,7 +150,7 @@ fn main() -> Result<(), i32> {
     };
 
     if let Err(e) = result {
-        eprintln!("Error: {:#}", e);
+        eprintln!("Error: {e:#}");
         return Err(-1);
     }
 
