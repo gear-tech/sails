@@ -28,7 +28,7 @@ impl<'a> RootGenerator<'a> {
             "#pragma warning disable RCS0056 // A line is too long",
         ));
         tokens.line();
-        tokens.append(format!("namespace {};", namespace));
+        tokens.append(format!("namespace {namespace};"));
         tokens.line();
         Self {
             tokens,

@@ -38,11 +38,15 @@ mod tests {
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 123, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, // 123
             255, 255, 255, 255, // NonZeroU32::MAX
+            0,   // ManyVariantsReply::One
         ];
 
-        let reply: Result<(ActorId, NonZeroU32), (String,)> =
+        let reply: Result<(ActorId, NonZeroU32, ManyVariantsReply), (String,)> =
             this_that::io::DoThat::decode_reply(bytes).unwrap();
 
-        assert_eq!(reply, Ok((ActorId::from(123), NonZeroU32::MAX)));
+        assert_eq!(
+            reply,
+            Ok((ActorId::from(123), NonZeroU32::MAX, ManyVariantsReply::One))
+        );
     }
 }

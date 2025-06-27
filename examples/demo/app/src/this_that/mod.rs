@@ -21,9 +21,20 @@ impl MyService {
 
     // This is another service command
     #[export]
-    pub fn do_that(&mut self, param: DoThatParam) -> Result<(ActorId, NonZeroU32), (String,)> {
+    pub fn do_that(
+        &mut self,
+        param: DoThatParam,
+    ) -> Result<(ActorId, NonZeroU32, ManyVariantsReply), (String,)> {
         debug!("Handling 'do_that': {:?}", param);
-        Ok((param.p2, param.p1))
+        let p3 = match param.p3 {
+            ManyVariants::One => ManyVariantsReply::One,
+            ManyVariants::Two(_) => ManyVariantsReply::Two,
+            ManyVariants::Three(_) => ManyVariantsReply::Three,
+            ManyVariants::Four { a: _, b: _ } => ManyVariantsReply::Four,
+            ManyVariants::Five(_, _) => ManyVariantsReply::Five,
+            ManyVariants::Six(_) => ManyVariantsReply::Six,
+        };
+        Ok((param.p2, param.p1, p3))
     }
 
     #[export]
@@ -71,4 +82,16 @@ pub enum ManyVariants {
     Four { a: u32, b: Option<u16> },
     Five(String, H256),
     Six((u32,)),
+}
+
+#[derive(Debug, Encode, TypeInfo)]
+#[codec(crate = sails_rs::scale_codec)]
+#[scale_info(crate = sails_rs::scale_info)]
+pub enum ManyVariantsReply {
+    One,
+    Two,
+    Three,
+    Four,
+    Five,
+    Six,
 }

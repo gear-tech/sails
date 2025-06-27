@@ -140,7 +140,7 @@ impl<'a> Visitor<'a> for TypeDeclGenerator<'a> {
             .map(|&t| matches!(t.def(), TypeDef::Enum(_)))
             .unwrap_or_default();
         let type_id = if is_enum {
-            &format!("Enum{}", user_defined_type_id) // Enum prefix
+            &format!("Enum{user_defined_type_id}") // Enum prefix
         } else {
             user_defined_type_id
         };

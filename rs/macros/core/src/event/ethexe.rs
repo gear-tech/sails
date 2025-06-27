@@ -69,7 +69,7 @@ pub(super) fn generate_eth_event_impl(input: &ItemEnum, sails_path: &Path) -> To
                     .unnamed
                     .iter()
                     .enumerate()
-                    .map(|(i, _)| Ident::new(&format!("f{}", i), Span::call_site()))
+                    .map(|(i, _)| Ident::new(&format!("f{i}"), Span::call_site()))
                     .map(|field_ident| quote!(#field_ident))
                     .collect();
                 // Build the pattern: Enum::Variant(f0, f1, ...)

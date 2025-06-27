@@ -23,6 +23,15 @@ type ManyVariants = enum {
   Six: struct { u32 },
 };
 
+type ManyVariantsReply = enum {
+  One,
+  Two,
+  Three,
+  Four,
+  Five,
+  Six,
+};
+
 type TupleStruct = struct {
   bool,
 };
@@ -81,7 +90,7 @@ service References {
 };
 
 service ThisThat {
-  DoThat : (param: DoThatParam) -> result (struct { actor_id, nat32 }, struct { str });
+  DoThat : (param: DoThatParam) -> result (struct { actor_id, nat32, ManyVariantsReply }, struct { str });
   DoThis : (p1: u32, p2: str, p3: struct { opt h160, nat8 }, p4: TupleStruct) -> struct { str, u32 };
   Noop : () -> null;
   query That : () -> result (str, str);

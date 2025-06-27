@@ -119,7 +119,7 @@ impl<T: AsRef<[u8]>> Future for MessageFutureExtended<T> {
                         else {
                             unreachable!("Invalid state during replacement")
                         };
-                        gstd::debug!("Redirecting message from {} to {}", _target, new_target);
+                        gstd::debug!("Redirecting message from {_target} to {new_target}");
                         // here can insert new target into redirects
 
                         // Calculate updated `wait_up_to` if provided

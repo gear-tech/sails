@@ -360,9 +360,7 @@ fn any_funcs(
     func_type_id: u32,
 ) -> Result<impl Iterator<Item = &Variant<PortableForm>>> {
     let funcs = registry.resolve(func_type_id).unwrap_or_else(|| {
-        panic!(
-            "func type id {func_type_id} not found while it was registered previously"
-        )
+        panic!("func type id {func_type_id} not found while it was registered previously")
     });
     if let TypeDef::Variant(variant) = &funcs.type_def {
         Ok(variant.variants.iter())
