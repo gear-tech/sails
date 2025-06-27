@@ -2,17 +2,9 @@ import { GearApi, HexString, decodeAddress, generateCodeHash } from '@gear-js/ap
 import { KeyringPair } from '@polkadot/keyring/types';
 import { waitReady } from '@polkadot/wasm-crypto';
 import { Keyring } from '@polkadot/api';
-import { hexToU8a } from '@polkadot/util';
 import { readFileSync } from 'node:fs';
 
-import {
-  getFnNamePrefix as getFunctionNamePrefix,
-  getServiceNamePrefix,
-  H256,
-  NonZeroU32,
-  NonZeroU8,
-  ZERO_ADDRESS,
-} from '..';
+import { H256, NonZeroU32, NonZeroU8, ZERO_ADDRESS } from '..';
 import { SailsProgram } from './demo/lib';
 
 let api: GearApi;
@@ -292,7 +284,7 @@ describe('ThisThat', () => {
 
   test('doThat', async () => {
     const tx = await program.thisThat
-      .doThat({ p1: NonZeroU32(2), p2: ZERO_ADDRESS, p3: { five: ['c', H256(ZERO_ADDRESS)] } })
+      .doThat({ p1: NonZeroU32(2), p2: ZERO_ADDRESS, p3: { Five: ['c', H256(ZERO_ADDRESS)] } })
       .withAccount(alice)
       .calculateGas();
 
@@ -302,18 +294,7 @@ describe('ThisThat', () => {
     expect(msgId).toBeDefined();
     expect(blockHash).toBeDefined();
 
-    const result = await response(true);
-
-    const service = getServiceNamePrefix(result, true);
-    const function_ = getFunctionNamePrefix(result, true);
-
-    const u8aResult = hexToU8a(result);
-
-    const woPrefix = u8aResult.slice(service.bytesLength + function_.bytesLength);
-
-    // TODO: figure out how to decode such complicated types out of the box
-    const decoded = program.registry.createType(`Result<([u8;32], u32), (String)>`, woPrefix).toJSON();
-
-    expect(decoded).toEqual({ ok: [ZERO_ADDRESS, 2] });
+    const decodedResult = await response();
+    expect(decodedResult).toEqual({ ok: [ZERO_ADDRESS, 2, 'Five'] });
   });
 });
