@@ -41,6 +41,7 @@ impl<'a> CounterService<'a> {
 #[service(events = CounterEvents)]
 impl CounterService<'_> {
     /// Add a value to the counter
+    #[export]
     pub fn add(&mut self, value: u32) -> u32 {
         let mut data_mut = self.data.borrow_mut();
         data_mut.counter += value;
@@ -51,6 +52,7 @@ impl CounterService<'_> {
     }
 
     /// Substract a value from the counter
+    #[export]
     pub fn sub(&mut self, value: u32) -> u32 {
         let mut data_mut = self.data.borrow_mut();
         data_mut.counter -= value;
@@ -61,6 +63,7 @@ impl CounterService<'_> {
     }
 
     /// Get the current value
+    #[export]
     pub fn value(&self) -> u32 {
         self.data.borrow().counter
     }

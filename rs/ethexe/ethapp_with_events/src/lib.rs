@@ -32,11 +32,13 @@ pub struct SomeService;
 
 #[sails_rs::service(events = Events)]
 impl SomeService {
+    #[sails_rs::export]
     pub async fn do_this(&mut self, p1: u32, p2: sails_rs::String) -> u32 {
         self.emit_eth_event(Events::DoThisEvent { p1, p2 }).unwrap();
         p1
     }
 
+    #[sails_rs::export]
     pub fn this(&self, p1: bool) -> bool {
         p1
     }
@@ -48,6 +50,7 @@ pub struct SomeService2 {
 
 #[sails_rs::service]
 impl SomeService2 {
+    #[sails_rs::export]
     pub async fn do_this(&mut self, p1: u32, p2: sails_rs::String) -> u32 {
         // Emit EthEvent via Svc1 Exposure
         self.svc1

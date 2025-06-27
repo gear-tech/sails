@@ -11,7 +11,7 @@ use proc_macro_error::proc_macro_error;
 /// The macro can be customized with the following arguments:
 /// - `crate` - specifies path to the `sails-rs` crate allowing the latter
 ///             to be imported with a different name, for example, when the
-///             `sails-rs` create is re-exprted from another crate.
+///             `sails-rs` create is re-exported from another crate.
 /// - `events` - specifies a Rust enum type denoting events that the service can emit.
 ///              See [documentation](https://github.com/gear-tech/sails?tab=readme-ov-file#events)
 ///              for details.
@@ -59,7 +59,7 @@ pub fn service(args: TokenStream, impl_tokens: TokenStream) -> TokenStream {
 /// The macro can be customized with the following arguments:
 /// - `crate` - specifies path to the `sails-rs` crate allowing the latter
 ///             to be imported with a different name, for example, when the
-///             `sails-rs` create is re-exprted from another crate.
+///             `sails-rs` create is re-exported from another crate.
 /// - `handle_signal` - specifies a path to a function that will be called
 ///                     after standard signal handling provided by the `gstd` crate.
 /// - `payable` - specifies that the program can accept transfers of value.
@@ -97,53 +97,6 @@ pub fn service(args: TokenStream, impl_tokens: TokenStream) -> TokenStream {
 #[proc_macro_attribute]
 pub fn program(args: TokenStream, impl_tokens: TokenStream) -> TokenStream {
     sails_macros_core::gprogram(args.into(), impl_tokens.into()).into()
-}
-
-/// Changes default route to services exposed by Sails program.
-///
-/// By default, every exposed service is available via a route that is PascalCase-ed name
-/// of the method used for exposing the service. This macro allows to customize the route
-/// so it will be a PascalCase-ed string specified in the attribute.
-///
-/// This attribute can also be applied to methods exposed by Sails services.
-///
-/// # Examples
-///
-/// ```rust
-/// mod my_program {
-///    use sails_rs::{program, route, service};
-///
-///    struct MyService;
-///
-///    #[service]
-///    impl MyService {
-///        pub fn do_something(&mut self) -> u32 {
-///            0
-///        }
-///    }
-///
-///    pub struct MyProgram;
-///
-///    #[program]
-///    impl MyProgram {
-///         // Exposed as `MyService`
-///         pub fn my_service(&self) -> MyService {
-///             MyService
-///         }
-///
-///         // Exposed as `Worker`
-///         #[route("worker")]
-///         pub fn my_worker(&self) -> MyService {
-///             MyService
-///         }
-///    }
-/// }
-/// ```
-#[proc_macro_error]
-#[proc_macro_attribute]
-#[deprecated(note = "use `export` attribute with `route` parameter instead")]
-pub fn route(args: TokenStream, impl_item_fn_tokens: TokenStream) -> TokenStream {
-    sails_macros_core::groute(args.into(), impl_item_fn_tokens.into()).into()
 }
 
 /// Customizes how a service/program method is exposed based on specified arguments.

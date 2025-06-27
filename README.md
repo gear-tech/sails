@@ -494,9 +494,9 @@ guarantees that the caller will eventually receive a response (successful or not
 optimization is to increase the number of blocks allowed for waiting on a response. On the
 [Vara network](https://vara.network/), this value is set to 100 blocks by default. Increasing
 it to 10,000 blocks would mitigate most network load issues without significantly raising
-transaction costs. This adjustment can be made using the [with_wait_up_to](TBD) method.
+transaction costs. This adjustment can be made using the [with_wait_up_to](rs/src/gstd/calls.rs#L22) method.
 
-Another option is to use the [with_reply_hook](rs/src/gstd/calls.rs#L21) method, which involves
+Another option is to use the [with_reply_hook](rs/src/gstd/calls.rs#L51) method, which involves
 additional logic to manage the `Saga`’s state. The reply hook can be triggered while the main
 code handles the `Timeout` error, allowing the caller to initiate another attempt. During this
 process, the timed-out action can be marked as completed in the `Saga`’s state, preventing it

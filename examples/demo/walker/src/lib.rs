@@ -39,6 +39,7 @@ impl WalkerService {
 
 #[service(events = WalkerEvents)]
 impl WalkerService {
+    #[export]
     pub fn walk(&mut self, dx: i32, dy: i32) {
         let from = self.position();
         {
@@ -50,6 +51,7 @@ impl WalkerService {
         self.emit_event(WalkerEvents::Walked { from, to }).unwrap();
     }
 
+    #[export]
     pub fn position(&self) -> (i32, i32) {
         let data = self.data.borrow();
         (data.x, data.y)

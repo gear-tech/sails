@@ -13,7 +13,6 @@ impl MyProgram {
         let service = self.__service();
         let exposure = <MyService as sails_rs::gstd::services::Service>::expose(
             service,
-            sails_rs::gstd::Syscall::message_id(),
             __ROUTE_SERVICE.as_ref(),
         );
         exposure

@@ -1,5 +1,5 @@
-error: `route` attribute requires a literal with a valid Rust identifier: unexpected token
- --> tests/ui/gprogram_fails_for_service_with_not_valid_route.rs:9:13
+error: `route` argument requires a literal with a valid Rust identifier: unexpected token
+ --> tests/ui/gprogram_fails_for_service_with_not_valid_route.rs:9:22
   |
-9 |     #[route("svc1/")]
-  |             ^^^^^^^
+9 |     #[export(route = "svc1/")]
+  |                      ^^^^^^^

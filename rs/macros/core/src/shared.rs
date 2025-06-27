@@ -1,4 +1,5 @@
 use crate::export;
+use convert_case::{Case, Casing};
 use parity_scale_codec::Encode;
 use proc_macro_error::abort;
 use proc_macro2::Span;
@@ -75,33 +76,64 @@ pub(crate) fn unwrap_result_type(handler_signature: &Signature, unwrap_result: b
     }
 }
 
-pub(crate) fn discover_invocation_targets(
-    item_impl: &ItemImpl,
+pub(crate) fn invocation_export(fn_impl: &ImplItemFn) -> Option<(Span, String, bool, bool)> {
+    export::parse_export_args(&fn_impl.attrs).map(|(args, span)| {
+        let ident = &fn_impl.sig.ident;
+        let unwrap_result = args.unwrap_result();
+        let route = args.route().map_or_else(
+            || ident.to_string().to_case(Case::Pascal),
+            |route| route.to_case(Case::Pascal),
+        );
+        (span, route, unwrap_result, true)
+    })
+}
+
+pub(crate) fn invocation_export_or_default(fn_impl: &ImplItemFn) -> (Span, String, bool, bool) {
+    invocation_export(fn_impl).unwrap_or_else(|| {
+        let ident = &fn_impl.sig.ident;
+        (
+            ident.span(),
+            ident.to_string().to_case(Case::Pascal),
+            false,
+            false,
+        )
+    })
+}
+
+pub(crate) fn discover_invocation_targets<'a>(
+    item_impl: &'a ItemImpl,
     filter: impl Fn(&ImplItemFn) -> bool,
-) -> BTreeMap<String, (&ImplItemFn, usize, bool)> {
-    item_impl
+    sails_path: &'a Path,
+) -> Vec<FnBuilder<'a>> {
+    let mut routes = BTreeMap::<String, String>::new();
+    let mut vec: Vec<FnBuilder<'a>> = item_impl
         .items
         .iter()
-        .enumerate()
         .filter_map(|item| {
-            if let ImplItem::Fn(fn_item) = item.1 {
+            if let ImplItem::Fn(fn_item) = item {
                 if filter(fn_item) {
-                    let (span, route, unwrap_result) = export::invocation_export(fn_item);
-                    return Some(((span, route), (fn_item, item.0, unwrap_result)));
+                    let (span, route, unwrap_result, export) =
+                        invocation_export_or_default(fn_item);
+
+                    if let Some(duplicate) =
+                        routes.insert(route.clone(), fn_item.sig.ident.to_string())
+                    {
+                        abort!(
+                            span,
+                            "`export` attribute conflicts with one already assigned to '{}'",
+                            duplicate
+                        );
+                    }
+                    let fn_builder =
+                        FnBuilder::from(route, export, fn_item, unwrap_result, sails_path);
+                    return Some(fn_builder);
                 }
             }
             None
         })
-        .fold(BTreeMap::new(), |mut result, (route, target)| {
-            if let Some(duplicate) = result.insert(route.1, target) {
-                abort!(
-                    route.0,
-                    "`export` or `route` attribute conflicts with one already assigned to '{}'",
-                    duplicate.0.sig.ident.to_string()
-                );
-            }
-            result
-        })
+        .collect();
+    vec.sort_by(|a, b| a.route.cmp(&b.route));
+    vec
 }
 
 pub(crate) fn replace_any_lifetime_with_static(ty: Type) -> Type {
@@ -243,6 +275,7 @@ pub(crate) fn extract_result_type(tp: &TypePath) -> Option<&Type> {
 #[derive(Clone)]
 pub(crate) struct FnBuilder<'a> {
     pub route: String,
+    pub export: bool,
     pub encoded_route: Vec<u8>,
     pub impl_fn: &'a ImplItemFn,
     pub ident: &'a Ident,
@@ -257,6 +290,7 @@ pub(crate) struct FnBuilder<'a> {
 impl<'a> FnBuilder<'a> {
     pub(crate) fn from(
         route: String,
+        export: bool,
         impl_fn: &'a ImplItemFn,
         unwrap_result: bool,
         sails_path: &'a Path,
@@ -270,6 +304,7 @@ impl<'a> FnBuilder<'a> {
 
         Self {
             route,
+            export,
             encoded_route,
             impl_fn,
             ident,

@@ -6,7 +6,7 @@ struct MyProgram;
 
 #[program]
 impl MyProgram {
-    #[route("svc1/")]
+    #[export(route = "svc1/")]
     pub fn service1(&self) -> MyService {
         MyService
     }
