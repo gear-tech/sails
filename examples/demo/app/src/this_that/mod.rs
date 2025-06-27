@@ -6,6 +6,7 @@ pub struct MyService(());
 #[service]
 impl MyService {
     // This is a service command as it works over `&mut self`
+    #[export]
     #[allow(unused_variables)]
     pub async fn do_this(
         &mut self,
@@ -19,22 +20,26 @@ impl MyService {
     }
 
     // This is another service command
+    #[export]
     pub fn do_that(&mut self, param: DoThatParam) -> Result<(ActorId, NonZeroU32), (String,)> {
         debug!("Handling 'do_that': {:?}", param);
         Ok((param.p2, param.p1))
     }
 
+    #[export]
     pub fn noop(&mut self) {
         debug!("Handling 'noop'");
     }
 
     // This is a service query as it works over `&self`
+    #[export]
     pub fn this(&self) -> u32 {
         debug!("Handling 'this'");
         42
     }
 
     // This is another service query
+    #[export]
     pub fn that(&self) -> Result<String, String> {
         debug!("Handling 'that'");
         Ok("Forty two".into())

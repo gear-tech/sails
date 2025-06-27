@@ -57,24 +57,29 @@ impl<T> core::ops::DerefMut for ReferenceServiceExposure<T> {
     }
 }
 impl ReferenceServiceExposure<ReferenceService> {
+    #[export]
     pub fn baked(&self) -> &'static str {
         "Static str!"
     }
+    #[export]
     pub fn incr(&mut self) -> &'static ReferenceCount {
         unsafe {
             COUNTER.0 += 1;
             &*ptr::addr_of!(COUNTER)
         }
     }
+    #[export]
     pub fn add_byte(&mut self, byte: u8) -> &'static [u8] {
         unsafe {
             BYTES.push(byte);
             &*ptr::addr_of!(BYTES)
         }
     }
+    #[export]
     pub async fn first_byte<'a>(&self) -> Option<&'a u8> {
         unsafe { BYTES.first() }
     }
+    #[export]
     pub async fn last_byte<'a>(&self) -> Option<&'a u8> {
         unsafe { BYTES.last() }
     }

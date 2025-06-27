@@ -46,9 +46,11 @@ impl<T> core::ops::DerefMut for MyServiceWithEventsExposure<T> {
     }
 }
 impl MyServiceWithEventsExposure<MyServiceWithEvents> {
+    #[export]
     pub fn do_this(&mut self) -> u32 {
         42
     }
+    #[export]
     pub fn this(&self) -> bool {
         true
     }

@@ -1,4 +1,4 @@
-use sails_rs::service;
+use sails_rs::prelude::*;
 
 pub const BASE_NAME_RESULT: &str = "base-name";
 pub const HIDDEN_NAME_RESULT: &str = "base";
@@ -16,10 +16,12 @@ impl<'a> BaseWithLifetime<'a> {
 
 #[service]
 impl BaseWithLifetime<'_> {
+    #[export]
     pub fn base_name(&self) -> String {
         BASE_NAME_RESULT.to_string()
     }
 
+    #[export]
     pub fn name(&self) -> String {
         HIDDEN_NAME_RESULT.to_string()
     }
@@ -41,10 +43,12 @@ impl<'a> ExtendedWithLifetime<'a> {
 #[allow(clippy::needless_lifetimes)]
 #[service(extends = BaseWithLifetime<'a>)]
 impl<'a> ExtendedWithLifetime<'a> {
+    #[export]
     pub fn extended_name(&self) -> String {
         EXTENDED_NAME_RESULT.to_string()
     }
 
+    #[export]
     pub fn name(&self) -> String {
         NAME_RESULT.to_string()
     }

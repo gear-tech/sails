@@ -47,9 +47,11 @@ impl<T> core::ops::DerefMut for ExtendedLifetimeExposure<T> {
     }
 }
 impl<'a> ExtendedLifetimeExposure<ExtendedLifetime<'a>> {
+    #[export]
     pub fn extended_name(&self) -> String {
         "extended-name".to_string()
     }
+    #[export]
     pub fn name(&self) -> String {
         "extended".to_string()
     }

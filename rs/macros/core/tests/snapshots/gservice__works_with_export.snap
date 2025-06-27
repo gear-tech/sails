@@ -48,6 +48,7 @@ impl SomeServiceExposure<SomeService> {
     ) -> Result<(u32, String), String> {
         Ok((p1, p2))
     }
+    #[export]
     pub fn this(&self, p1: bool) -> bool {
         p1
     }

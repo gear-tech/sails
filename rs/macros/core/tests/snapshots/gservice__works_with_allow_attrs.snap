@@ -40,10 +40,12 @@ impl<T> core::ops::DerefMut for SomeServiceExposure<T> {
 #[allow(warnings)]
 #[allow(clippy::all)]
 impl SomeServiceExposure<SomeService> {
+    #[export]
     #[allow(unused)]
     pub async fn do_this(&mut self, p1: u32, p2: String) -> u32 {
         p1
     }
+    #[export]
     pub fn this(&self, p1: bool) -> bool {
         p1
     }

@@ -144,8 +144,8 @@ fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
 
     if service_builder.service_handlers.is_empty() && service_builder.base_types.is_empty() {
         abort!(
-            service_impl,
-            "`service` attribute requires impl to define at least one public method or extend another service"
+            service_builder.service_impl,
+            "`service` attribute requires impl to define at least one public method with `#[export]` macro or extend another service"
         );
     }
 
@@ -153,7 +153,7 @@ fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
     let meta_module = service_builder.meta_module();
 
     let exposure_struct = service_builder.exposure_struct();
-    let exposure_impl = service_builder.exposure_impl(&service_impl);
+    let exposure_impl = service_builder.exposure_impl();
     let service_trait_impl = service_builder.service_trait_impl();
 
     // ethexe
@@ -183,6 +183,9 @@ fn discover_service_handlers<'a>(
         |fn_item| matches!(fn_item.vis, Visibility::Public(_)) && fn_item.sig.receiver().is_some(),
         sails_path,
     )
+    .into_iter()
+    .filter(|fn_builder| fn_builder.export)
+    .collect()
 }
 
 impl FnBuilder<'_> {
@@ -284,5 +287,53 @@ impl FnBuilder<'_> {
                 return Some(is_async);
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use quote::quote;
+
+    #[test]
+    fn discover_service_handlers_with_export() {
+        let service_impl = syn::parse2(quote!(
+            impl Service {
+                fn non_public_associated_func_returning_self() -> Self {}
+                fn non_public_associated_func_returning_type() -> Service {}
+                fn non_public_associated_func_returning_smth() -> u32 {}
+                pub fn public_associated_func_returning_self() -> Self {}
+                pub fn public_associated_func_returning_type() -> Service {}
+                pub fn public_associated_func_returning_smth() -> u32 {}
+                fn non_public_method_returning_self(&self) -> Self {}
+                fn non_public_method_returning_type(&self) -> Service {}
+                fn non_public_method_returning_smth(&self) -> u32 {}
+                pub fn public_method_returning_self(&self) -> Self {}
+                pub fn public_method_returning_type(&self) -> Service {}
+                pub fn public_method_returning_smth(&self) -> u32 {}
+                #[export]
+                pub fn export_public_method_returning_self(&self) -> Self {}
+                #[export]
+                pub fn export_public_method_returning_type(&self) -> Service {}
+                #[export]
+                pub fn export_public_method_returning_smth(&self) -> u32 {}
+            }
+        ))
+        .unwrap();
+
+        let sails_path = &sails_paths::sails_path_or_default(None);
+        let discovered_ctors = discover_service_handlers(&service_impl, sails_path)
+            .iter()
+            .map(|fn_builder| fn_builder.ident.to_string())
+            .collect::<Vec<_>>();
+
+        assert_eq!(
+            discovered_ctors,
+            &[
+                "export_public_method_returning_self",
+                "export_public_method_returning_smth",
+                "export_public_method_returning_type"
+            ]
+        );
     }
 }

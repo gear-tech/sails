@@ -6,10 +6,12 @@ use sails_macros_core::__gservice_internal as gservice;
 fn works_with_basics() {
     let input = quote! {
         impl SomeService {
+            #[export]
             pub async fn do_this(&mut self, p1: u32, p2: String) -> u32 {
                 p1
             }
 
+            #[export]
             pub fn this(&self, p1: bool) -> bool {
                 p1
             }
@@ -28,6 +30,8 @@ fn works_with_lifetimes_and_generics() {
         impl<'a, 'b, T, U> SomeService<'a, 'b, T, U>
         where T : Clone,
               U: Iterator<Item = u32> {
+
+            #[export]
             pub fn do_this(&mut self) -> u32 {
                 42
             }
@@ -48,6 +52,7 @@ fn works_with_extends() {
     };
     let input = quote! {
         impl SomeService {
+            #[export]
             pub fn do_this(&mut self) -> u32 {
                 42
             }
@@ -67,10 +72,12 @@ fn works_with_events() {
     };
     let input = quote! {
         impl MyServiceWithEvents {
+            #[export]
             pub fn do_this(&mut self) -> u32 {
                 42
             }
 
+            #[export]
             pub fn this(&self) -> bool {
                 true
             }
@@ -93,6 +100,7 @@ fn works_with_lifetimes_and_events() {
         where
             T: Clone,
         {
+            #[export]
             pub fn do_this(&mut self) -> u32 {
                 42
             }
@@ -112,10 +120,12 @@ fn works_with_extends_and_lifetimes() {
     };
     let input = quote! {
         impl<'a> ExtendedWithLifetime<'a> {
+            #[export]
             pub fn extended_name(&self) -> String {
                 "extended-name".to_string()
             }
 
+            #[export]
             pub fn name(&self) -> String {
                 "extended".to_string()
             }
@@ -132,10 +142,12 @@ fn works_with_extends_and_lifetimes() {
 fn works_with_methods_with_lifetimes() {
     let input = quote! {
         impl ReferenceService {
+            #[export]
             pub fn baked(&self) -> &'static str {
                 "Static str!"
             }
 
+            #[export]
             pub fn incr(&mut self) -> &'static ReferenceCount {
                 unsafe {
                     COUNTER.0 += 1;
@@ -143,6 +155,7 @@ fn works_with_methods_with_lifetimes() {
                 }
             }
 
+            #[export]
             pub fn add_byte(&mut self, byte: u8) -> &'static [u8] {
                 unsafe {
                     BYTES.push(byte);
@@ -150,10 +163,12 @@ fn works_with_methods_with_lifetimes() {
                 }
             }
 
+            #[export]
             pub async fn first_byte<'a>(&self) -> Option<&'a u8> {
                 unsafe { BYTES.first() }
             }
 
+            #[export]
             pub async fn last_byte<'a>(&self) -> Option<&'a u8> {
                 unsafe { BYTES.last() }
             }
@@ -171,10 +186,12 @@ fn works_with_crate_path() {
     let args = quote!(crate = sails_rename,);
     let input = quote! {
         impl SomeService {
+            #[export]
             pub async fn do_this(&mut self, p1: u32, p2: String) -> u32 {
                 p1
             }
 
+            #[export]
             pub fn this(&self, p1: bool) -> bool {
                 p1
             }
@@ -191,10 +208,12 @@ fn works_with_crate_path() {
 fn works_with_reply_with_value() {
     let input = quote! {
         impl SomeService {
+            #[export]
             pub async fn do_this(&mut self, p1: u32, p2: String) -> CommandReply<u32> {
                 (p1, 100_000_000_000).into()
             }
 
+            #[export]
             pub fn this(&self, p1: bool) -> bool {
                 p1
             }
@@ -214,10 +233,12 @@ fn works_with_allow_attrs() {
         #[allow(clippy::all)]
         impl SomeService {
             #[allow(unused)]
+            #[export]
             pub async fn do_this(&mut self, p1: u32, p2: String) -> u32 {
                 p1
             }
 
+            #[export]
             pub fn this(&self, p1: bool) -> bool {
                 p1
             }
@@ -236,11 +257,13 @@ fn works_with_docs() {
         impl SomeService {
             /// `DoThis` command
             /// Second line
+            #[export]
             pub async fn do_this(&mut self, p1: u32, p2: String) -> u32 {
                 p1
             }
 
             /// `This` query
+            #[export]
             pub fn this(&self, p1: bool) -> bool {
                 p1
             }
@@ -263,6 +286,7 @@ fn works_with_special_lifetimes_and_events() {
         where
             T: Clone,
         {
+            #[export]
             pub fn do_this(&mut self) -> u32 {
                 42
             }
@@ -284,6 +308,7 @@ fn works_with_export() {
                 Ok((p1, p2))
             }
 
+            #[export]
             pub fn this(&self, p1: bool) -> bool {
                 p1
             }

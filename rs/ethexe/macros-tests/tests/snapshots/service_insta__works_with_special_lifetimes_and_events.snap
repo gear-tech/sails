@@ -44,6 +44,7 @@ impl<T> MyGenericEventsServiceExposure<MyGenericEventsService<'_, '_, T>>
 where
     T: Clone,
 {
+    #[export]
     pub fn do_this(&mut self) -> u32 {
         42
     }

@@ -18,6 +18,7 @@ impl<T> MyGenericEventsService<'_, T>
 where
     T: Clone,
 {
+    #[export]
     pub fn do_this(&mut self) -> u32 {
         self.emit_event(MyEvents::Event1).unwrap();
         42

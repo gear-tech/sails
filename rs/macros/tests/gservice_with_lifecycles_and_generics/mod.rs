@@ -1,5 +1,5 @@
 use core::marker::PhantomData;
-use sails_rs::gstd::service;
+use sails_rs::prelude::*;
 
 pub(super) struct SomeService<'a, 'b, T, U> {
     _t: PhantomData<&'a T>,
@@ -22,6 +22,7 @@ where
     T: Clone,
     U: Iterator<Item = u32>,
 {
+    #[export]
     pub fn do_this(&mut self) -> u32 {
         self.u.next().unwrap_or_default()
     }

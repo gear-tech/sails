@@ -1,4 +1,4 @@
-use sails_rs::gstd::service;
+use sails_rs::prelude::*;
 
 pub(super) mod base {
     use super::*;
@@ -12,10 +12,12 @@ pub(super) mod base {
 
     #[service]
     impl Base {
+        #[export]
         pub fn base_name(&self) -> String {
             "base-name".to_string()
         }
 
+        #[export]
         pub fn name(&self) -> String {
             "base".to_string()
         }
@@ -40,10 +42,12 @@ pub(super) mod extended {
 
     #[service(extends = base::Base)]
     impl Extended {
+        #[export]
         pub fn extended_name(&self) -> String {
             "extended-name".to_string()
         }
 
+        #[export]
         pub fn name(&self) -> String {
             "extended".to_string()
         }

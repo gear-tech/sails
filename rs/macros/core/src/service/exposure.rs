@@ -65,7 +65,7 @@ impl ServiceBuilder<'_> {
         })
     }
 
-    pub(super) fn exposure_impl(&self, service_impl: &ItemImpl) -> TokenStream {
+    pub(super) fn exposure_impl(&self) -> TokenStream {
         let sails_path = self.sails_path;
         let exposure_ident = &self.exposure_ident;
         let generics = &self.generics;
@@ -86,7 +86,7 @@ impl ServiceBuilder<'_> {
         let exposure_emit_event_impls = self.exposure_emit_event_impls();
         let exposure_emit_eth_impls = self.exposure_emit_eth_impls();
 
-        let exposure_funcs = &service_impl.items;
+        let exposure_funcs = &self.service_impl.items;
 
         quote! {
             #( #exposure_allow_attrs )*

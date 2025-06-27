@@ -20,11 +20,12 @@ impl Service {
     }
 }
 
-#[sails_rs::service(events = Events)]
+#[service(events = Events)]
 impl Service {
     /// Send `Start` event
     /// Then await for reply from source
     /// Send `End` event
+    #[export]
     pub async fn foo(&mut self) {
         let source = Syscall::message_source();
         self.emit_event(Events::Start).unwrap();
@@ -38,7 +39,7 @@ impl Service {
 #[derive(Default)]
 pub struct Program;
 
-#[sails_rs::program]
+#[program]
 impl Program {
     pub fn new() -> Self {
         Self

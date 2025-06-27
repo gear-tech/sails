@@ -70,19 +70,22 @@ pub(crate) fn parse_export_args(attrs: &[Attribute]) -> Option<(ExportArgs, Span
 }
 
 pub(crate) fn parse_attr(attr: &Attribute) -> Option<ExportArgs> {
-    let meta = attr.meta.require_list().ok()?;
-    if meta
-        .path
+    if attr
+        .path()
         .segments
         .last()
         .is_some_and(|s| s.ident == "export")
     {
-        let args = meta
-            .parse_args_with(ExportArgs::parse)
-            .unwrap_or_else(|er| {
-                abort!(meta.span(), "`export` attribute cannot be parsed: {}", er)
-            });
-        Some(args)
+        if let Ok(list) = attr.meta.require_list() {
+            let args = list
+                .parse_args_with(ExportArgs::parse)
+                .unwrap_or_else(|er| {
+                    abort!(list.span(), "`export` attribute cannot be parsed: {}", er)
+                });
+            Some(args)
+        } else {
+            Some(ExportArgs::default())
+        }
     } else {
         None
     }

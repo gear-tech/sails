@@ -39,6 +39,7 @@ where
     T: Clone,
     U: Iterator<Item = u32>,
 {
+    #[export]
     pub fn do_this(&mut self) -> u32 {
         42
     }
