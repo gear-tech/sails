@@ -1,5 +1,4 @@
 use sails_rs::prelude::*;
-use sails_rs::Encode;
 
 pub(super) struct MyService;
 
