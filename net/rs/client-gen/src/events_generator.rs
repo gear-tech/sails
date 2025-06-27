@@ -25,9 +25,9 @@ impl<'a> EventsGenerator<'a> {
 
     pub(crate) fn finalize(self) -> Tokens {
         let name = self.service_name;
-        let enum_name = &format!("{}Events", name);
-        let class_name = &format!("Enum{}Events", name);
-        let listener_name = &format!("{}Listener", name);
+        let enum_name = &format!("{name}Events");
+        let class_name = &format!("Enum{name}Events");
+        let listener_name = &format!("{name}Listener");
 
         let remoting = &csharp::import("global::Sails.Remoting.Abstractions.Core", "IRemoting");
         let task = &csharp::import("global::System.Threading.Tasks", "Task");
