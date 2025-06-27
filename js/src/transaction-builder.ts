@@ -10,6 +10,7 @@ import {
 import { SignerOptions, SubmittableExtrinsic } from '@polkadot/api/types';
 import { IKeyringPair, ISubmittableResult } from '@polkadot/types/types';
 import { TypeRegistry, u128, u64 } from '@polkadot/types';
+import { u8aConcat } from '@polkadot/util';
 import { getPayloadMethod } from 'sails-js-util';
 import { ZERO_ADDRESS } from './consts.js';
 import { throwOnErrorReply } from './utils.js';
@@ -45,11 +46,14 @@ export class TransactionBuilder<ResponseType> {
   private _voucher: string;
   private _gasInfo: GasInfo;
   public readonly programId: HexString;
+  private _prefixByteLength: number;
 
   constructor(
     api: GearApi,
     registry: TypeRegistry,
     extrinsic: 'send_message',
+    service: string,
+    method: string,
     payload: unknown,
     payloadType: string,
     responseType: string,
@@ -59,6 +63,8 @@ export class TransactionBuilder<ResponseType> {
     api: GearApi,
     registry: TypeRegistry,
     extrinsic: 'upload_program',
+    service: undefined,
+    method: string,
     payload: unknown,
     payloadType: string,
     responseType: string,
@@ -69,6 +75,8 @@ export class TransactionBuilder<ResponseType> {
     api: GearApi,
     registry: TypeRegistry,
     extrinsic: 'create_program',
+    service: undefined,
+    method: string,
     payload: unknown,
     payloadType: string,
     responseType: string,
@@ -80,20 +88,35 @@ export class TransactionBuilder<ResponseType> {
     private _api: GearApi,
     private _registry: TypeRegistry,
     extrinsic: 'send_message' | 'upload_program' | 'create_program',
-    payload: unknown,
-    payloadType: string,
+    private _service: string | undefined,
+    private _method: string,
+    payload: unknown | undefined,
+    payloadType: string | undefined,
     private _responseType: string,
     _programIdOrCodeOrCodeId: HexString | Uint8Array | ArrayBufferLike,
     private _onProgramCreated?: (programId: HexString) => void | Promise<void>,
   ) {
-    const _payload = this._registry.createType<any>(payloadType, payload);
+    const encodedService = this._service
+      ? this._registry.createType('String', this._service).toU8a()
+      : new Uint8Array();
+    const encodedMethod = this._registry.createType('String', this._method).toU8a();
+    const data =
+      payload === undefined ? new Uint8Array() : this._registry.createType<any>(payloadType, payload).toU8a();
+
+    const _payload = u8aConcat(encodedService, encodedMethod, data);
+
+    this._prefixByteLength = encodedMethod.byteLength;
+    if (this._service) {
+      this._prefixByteLength += encodedService.byteLength;
+    }
+
     switch (extrinsic) {
       case 'send_message': {
         this.programId = _programIdOrCodeOrCodeId as HexString;
         this._tx = this._api.message.send({
           destination: this.programId,
           gasLimit: 0,
-          payload: _payload.toU8a(),
+          payload: _payload,
           value: 0,
         });
         break;
@@ -102,7 +125,7 @@ export class TransactionBuilder<ResponseType> {
         const { programId, extrinsic } = this._api.program.upload({
           code: _programIdOrCodeOrCodeId as Uint8Array,
           gasLimit: 0,
-          initPayload: _payload.toU8a(),
+          initPayload: _payload,
         });
         this.programId = programId;
         this._tx = extrinsic;
@@ -112,7 +135,7 @@ export class TransactionBuilder<ResponseType> {
         const { programId, extrinsic } = this._api.program.create({
           codeId: _programIdOrCodeOrCodeId as HexString,
           gasLimit: 0,
-          initPayload: _payload.toU8a(),
+          initPayload: _payload,
         });
         this.programId = programId;
         this._tx = extrinsic;
@@ -382,7 +405,10 @@ export class TransactionBuilder<ResponseType> {
         }
 
         // prettier-ignore
-        return this._registry.createType<any>(`(String, String, ${this._responseType})`, payload)[2][getPayloadMethod(this._responseType)]();
+        return this._registry.createType<any>(
+          this._responseType,
+          payload.slice(this._prefixByteLength)
+        )[getPayloadMethod(this._responseType)]();
       },
     };
   }

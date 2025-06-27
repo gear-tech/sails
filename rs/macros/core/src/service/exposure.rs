@@ -157,7 +157,7 @@ impl ServiceBuilder<'_> {
                 .iter()
                 .enumerate()
                 .map(|(idx, base_type)| {
-                    let as_base_ident = Ident::new(&format!("as_base_{}", idx), Span::call_site());
+                    let as_base_ident = Ident::new(&format!("as_base_{idx}"), Span::call_site());
                     let idx = Literal::usize_unsuffixed(idx);
                     quote! {
                         pub fn #as_base_ident (&self) -> &< #base_type as #sails_path::gstd::services::Service>::Exposure {
