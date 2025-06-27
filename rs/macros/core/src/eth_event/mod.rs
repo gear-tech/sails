@@ -121,7 +121,7 @@ fn generate_event_impl(input: &ItemEnum, sails_path: &Path) -> TokenStream {
                     .unnamed
                     .iter()
                     .enumerate()
-                    .map(|(i, _)| Ident::new(&format!("f{}", i), Span::call_site()))
+                    .map(|(i, _)| Ident::new(&format!("f{i}"), Span::call_site()))
                     .map(|field_ident| quote!(#field_ident))
                     .collect();
                 // Build the pattern: Enum::Variant(f0, f1, ...)

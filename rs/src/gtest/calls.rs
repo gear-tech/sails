@@ -115,7 +115,7 @@ impl GTestRemoting {
         // iterate over log
         for entry in run_result.log().iter() {
             if entry.destination() == ActorId::zero() {
-                log::debug!("Extract event from entry {:?}", entry);
+                log::debug!("Extract event from entry {entry:?}");
                 for sender in event_senders.iter() {
                     _ = sender.unbounded_send((entry.source(), entry.payload().to_vec()));
                 }
@@ -131,7 +131,7 @@ impl GTestRemoting {
             }
             if let Some(message_id) = entry.reply_to() {
                 if let Some(sender) = reply_senders.remove(&message_id) {
-                    log::debug!("Extract reply from entry {:?}", entry);
+                    log::debug!("Extract reply from entry {entry:?}");
                     let reply: result::Result<Vec<u8>, _> = match entry.reply_code() {
                         None => Err(RtlError::ReplyCodeIsMissing.into()),
                         Some(ReplyCode::Error(reason)) => {
@@ -207,7 +207,7 @@ impl GTestRemoting {
         let mut reply_senders = self.block_reply_senders.borrow_mut();
         // drain reply senders that not founded in block
         for (message_id, sender) in reply_senders.drain() {
-            log::debug!("Reply is missing in block for message {}", message_id);
+            log::debug!("Reply is missing in block for message {message_id}");
             _ = sender.send(Err(RtlError::ReplyIsMissing.into()));
         }
     }
