@@ -1,5 +1,4 @@
 import { ISailsEnumDef, ISailsEnumVariant, ISailsProgram, ISailsTypeDef } from 'sails-js-types';
-import { toLowerCaseFirst } from 'sails-js-util';
 
 import { Output } from './output.js';
 import { BaseGenerator } from './base.js';
@@ -60,13 +59,11 @@ export class TypesGenerator extends BaseGenerator {
       }
       this._out.reduceIndent();
     } else {
-      this._out.line(
-        `export type ${typeName} = ${def.variants.map((v) => `"${toLowerCaseFirst(v.name)}"`).join(' | ')}`,
-      );
+      this._out.line(`export type ${typeName} = ${def.variants.map((v) => `"${v.name}"`).join(' | ')}`);
     }
   }
 
   private getEnumFieldString(f: ISailsEnumVariant) {
-    return f.def ? `{ ${toLowerCaseFirst(f.name)}: ${this.getType(f.def)} }` : `{ ${toLowerCaseFirst(f.name)}: null }`;
+    return f.def ? `{ ${f.name}: ${this.getType(f.def)} }` : `{ ${f.name}: null }`;
   }
 }

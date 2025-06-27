@@ -83,15 +83,15 @@ impl<T: AsRef<[u8]>> core::fmt::Display for HexSlice<T> {
         f.write_str("0x")?;
         if len <= precision * 2 {
             for byte in slice {
-                write!(f, "{:02x}", byte)?;
+                write!(f, "{byte:02x}")?;
             }
         } else {
             for byte in &slice[..precision] {
-                write!(f, "{:02x}", byte)?;
+                write!(f, "{byte:02x}")?;
             }
             f.write_str("..")?;
             for byte in &slice[len - precision..] {
-                write!(f, "{:02x}", byte)?;
+                write!(f, "{byte:02x}")?;
             }
         }
         Ok(())

@@ -65,15 +65,15 @@ impl CrateIdlGenerator {
             );
             match get_program_struct_path_from_doc(program_package, target_dir) {
                 Ok((program_struct_path, meta_path_version)) => {
-                    println!("...found Program implemetation: {}", program_struct_path);
+                    println!("...found Program implemetation: {program_struct_path}");
                     let file_path = idl_gen
                         .try_generate_for_package(&program_struct_path, meta_path_version)?;
-                    println!("Generated IDL: {}", file_path);
+                    println!("Generated IDL: {file_path}");
 
                     return Ok(());
                 }
                 Err(err) => {
-                    println!("...no Program implementation found: {}", err);
+                    println!("...no Program implementation found: {err}");
                 }
             }
         }
@@ -221,7 +221,7 @@ fn get_program_struct_path_from_doc(
     let docs_path = target_dir
         .join("doc")
         .join(format!("{}.json", &program_package_file_name));
-    println!("...reading doc: {}", docs_path);
+    println!("...reading doc: {docs_path}");
     let json_string = std::fs::read_to_string(docs_path)?;
     let doc_crate: rustdoc_types::Crate = serde_json::from_str(&json_string)?;
 

@@ -59,7 +59,7 @@ fn create_parse_error(
     e: impl std::error::Error,
     context: &'static str,
 ) -> *mut ParseResult {
-    let details = CString::new(format!("{}: {}", context, e)).unwrap();
+    let details = CString::new(format!("{context}: {e}")).unwrap();
     let result = ParseResult {
         error: Error {
             code,

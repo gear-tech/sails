@@ -105,7 +105,7 @@ impl<T: AsRef<[u8]>> Future for MessageFutureExtended<T> {
                     if let Ok(new_target) = ActorId::try_from(error_payload.0.as_ref()) {
                         // Safely extract values by replacing with Dummy
                         let Replace::Redirect {
-                            target,
+                            target: _target,
                             payload,
                             #[cfg(not(feature = "ethexe"))]
                             gas_limit,
@@ -119,7 +119,7 @@ impl<T: AsRef<[u8]>> Future for MessageFutureExtended<T> {
                         else {
                             unreachable!("Invalid state during replacement")
                         };
-                        gstd::debug!("Redirecting message from {} to {}", target, new_target);
+                        gstd::debug!("Redirecting message from {_target} to {new_target}");
                         // here can insert new target into redirects
 
                         // Calculate updated `wait_up_to` if provided
