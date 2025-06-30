@@ -53,8 +53,8 @@ for ExtendedWithLifetimeExposure<ExtendedWithLifetime<'a>> {
         self,
     ) -> <BaseWithLifetime<'a> as sails_rs::gstd::services::Service>::Exposure {
         use sails_rs::gstd::services::Service;
-        let base_services: (BaseWithLifetime<'a>) = self.inner.into();
-        base_services.expose(self.route)
+        let base_service: BaseWithLifetime<'a> = self.inner.into();
+        base_service.expose(self.route)
     }
 }
 impl<'a> ExtendedWithLifetimeExposure<ExtendedWithLifetime<'a>> {
