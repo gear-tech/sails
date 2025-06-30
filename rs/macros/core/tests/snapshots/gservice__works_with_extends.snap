@@ -44,6 +44,24 @@ impl<T> core::ops::DerefMut for SomeServiceExposure<T> {
         &mut self.inner
     }
 }
+#[allow(clippy::from_over_into)]
+impl Into<<ExtendedService1 as sails_rs::gstd::services::Service>::Exposure>
+for SomeServiceExposure<SomeService> {
+    fn into(self) -> <ExtendedService1 as sails_rs::gstd::services::Service>::Exposure {
+        use sails_rs::gstd::services::Service;
+        let base_services: (ExtendedService1, ExtendedService2) = self.inner.into();
+        base_services.0.expose(self.route)
+    }
+}
+#[allow(clippy::from_over_into)]
+impl Into<<ExtendedService2 as sails_rs::gstd::services::Service>::Exposure>
+for SomeServiceExposure<SomeService> {
+    fn into(self) -> <ExtendedService2 as sails_rs::gstd::services::Service>::Exposure {
+        use sails_rs::gstd::services::Service;
+        let base_services: (ExtendedService1, ExtendedService2) = self.inner.into();
+        base_services.1.expose(self.route)
+    }
+}
 impl SomeServiceExposure<SomeService> {
     #[export]
     pub fn do_this(&mut self) -> u32 {

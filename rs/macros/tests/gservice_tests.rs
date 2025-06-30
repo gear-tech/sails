@@ -295,7 +295,8 @@ fn gservice_with_lifetimes_and_events() {
 #[test]
 fn gservice_with_extends_and_lifetimes() {
     use gservice_with_extends_and_lifetimes::{
-        BASE_NAME_RESULT, BaseWithLifetime, EXTENDED_NAME_RESULT, ExtendedWithLifetime, NAME_RESULT,
+        BASE_NAME_RESULT, BaseWithLifetime, BaseWithLifetimeExposure, EXTENDED_NAME_RESULT,
+        ExtendedWithLifetime, HIDDEN_NAME_RESULT, NAME_RESULT,
     };
 
     const NAME_METHOD: &str = "Name";
@@ -352,6 +353,12 @@ fn gservice_with_extends_and_lifetimes() {
             assert_eq!(output.len(), 0);
         })
         .unwrap();
+
+    let extended_svc = ExtendedWithLifetime::new(BaseWithLifetime::new(&int)).expose(SERVICE_ROUTE);
+    let base_svc: BaseWithLifetimeExposure<BaseWithLifetime> = extended_svc.into();
+
+    let base_name = base_svc.name();
+    assert_eq!(HIDDEN_NAME_RESULT, base_name)
 }
 
 #[tokio::test]

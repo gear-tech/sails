@@ -19,6 +19,8 @@ impl ServiceBuilder<'_> {
             }
         });
 
+        let exposure_into_base = self.exposure_into_base_impl();
+
         quote! {
             pub struct #exposure_ident<T> {
                 #route_ident : &'static [u8],
@@ -48,6 +50,8 @@ impl ServiceBuilder<'_> {
                     &mut self. #inner_ident
                 }
             }
+
+            #exposure_into_base
         }
     }
 
@@ -237,6 +241,44 @@ impl ServiceBuilder<'_> {
 
                 None
             }
+        }
+    }
+
+    /// Implements `Into< <TBase as Service>::Exposure > for Exposure<T>`
+    /// for service `T` that extend base services
+    pub(super) fn exposure_into_base_impl(&self) -> Option<TokenStream> {
+        let sails_path = self.sails_path;
+        let exposure_ident = &self.exposure_ident;
+        let inner_ident = &self.inner_ident;
+
+        let generics = &self.generics;
+        let service_type_path = self.type_path;
+        let service_type_constraints = self.type_constraints();
+
+        if self.base_types.is_empty() {
+            None
+        } else {
+            let base_types = self.base_types;
+            let base_exposure_invocations = base_types.iter().enumerate().map(|(idx, base_type)| {
+                let idx_token = if base_types.len() == 1 { None } else {
+                    let idx_literal = Literal::usize_unsuffixed(idx);
+                    Some(quote! { . #idx_literal })
+                };
+                quote! {
+                    #[allow(clippy::from_over_into)]
+                    impl #generics Into< <#base_type as #sails_path::gstd::services::Service>::Exposure > for #exposure_ident< #service_type_path > #service_type_constraints {
+                        fn into(self) -> <#base_type as #sails_path::gstd::services::Service>::Exposure {
+                            use #sails_path::gstd::services::Service;
+
+                            let base_services: ( #( #base_types ),* ) = self. #inner_ident .into();
+                            base_services #idx_token .expose(self.route)
+                        }
+                    }
+                }
+            });
+            Some(quote! {
+                #( #base_exposure_invocations )*
+            })
         }
     }
 }

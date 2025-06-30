@@ -46,6 +46,17 @@ impl<T> core::ops::DerefMut for ExtendedLifetimeExposure<T> {
         &mut self.inner
     }
 }
+#[allow(clippy::from_over_into)]
+impl<'a> Into<<base::BaseLifetime<'a> as sails_rs::gstd::services::Service>::Exposure>
+for ExtendedLifetimeExposure<ExtendedLifetime<'a>> {
+    fn into(
+        self,
+    ) -> <base::BaseLifetime<'a> as sails_rs::gstd::services::Service>::Exposure {
+        use sails_rs::gstd::services::Service;
+        let base_services: (base::BaseLifetime<'a>) = self.inner.into();
+        base_services.expose(self.route)
+    }
+}
 impl<'a> ExtendedLifetimeExposure<ExtendedLifetime<'a>> {
     #[export]
     pub fn extended_name(&self) -> String {
