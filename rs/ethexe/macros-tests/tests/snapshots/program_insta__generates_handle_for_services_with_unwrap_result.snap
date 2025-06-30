@@ -266,7 +266,6 @@ pub mod wasm {
                 });
             if is_async {
                 gstd::message_loop(async move {
-                    let input = input.clone();
                     service
                         .try_handle_async(
                             &input[__ROUTE_SVC1.len()..],
@@ -306,7 +305,6 @@ pub mod wasm {
                 });
             if is_async {
                 gstd::message_loop(async move {
-                    let input = input.clone();
                     service
                         .try_handle_async(
                             &input[__ROUTE_SERVICE2.len()..],

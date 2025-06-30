@@ -601,8 +601,6 @@ impl FnBuilder<'_> {
                     });
                 if is_async {
                     gstd::message_loop(async move {
-                        // TODO #959
-                        let input = input.clone();
                         service
                             .try_handle_async(&input[#route_ident .len()..], |encoded_result, value| {
                                 gstd::msg::reply_bytes(encoded_result, value)
