@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { getCtorNamePrefix, getFnNamePrefix as getFunctionNamePrefix, getServiceNamePrefix, Sails } from '..';
 import { SailsIdlParser } from 'sails-js-parser';
 
-const DEMO_IDL_PATH = '../examples/demo/client/demo.idl';
+const DEMO_IDL_PATH = 'test/demo/demo.idl';
 
 let sails: Sails;
 const demoIdl = readFileSync(DEMO_IDL_PATH, 'utf8');

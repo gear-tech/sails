@@ -99,7 +99,7 @@ pub(crate) enum Token {
 
 impl Display for Token {
     fn fmt(&self, fmt: &mut Formatter<'_>) -> FmtResult {
-        write!(fmt, "{:?}", self)
+        write!(fmt, "{self:?}")
     }
 }
 
@@ -143,7 +143,7 @@ mod tests {
             match result {
                 //Ok(token) => println!("{:#?}", token),
                 Ok(_token) => (),
-                Err(e) => panic!("some error occured: {:?}", e),
+                Err(e) => panic!("some error occured: {e:?}"),
             }
         }
     }
@@ -200,7 +200,7 @@ mod tests {
             match result {
                 //Ok(token) => println!("{:#?}", token),
                 Ok(_token) => (),
-                Err(e) => panic!("some error occured: {:?}", e),
+                Err(e) => panic!("some error occured: {e:?}"),
             }
         }
     }

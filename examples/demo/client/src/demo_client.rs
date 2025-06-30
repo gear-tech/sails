@@ -488,7 +488,8 @@ impl<R: Remoting + Clone> traits::ThisThat for ThisThat<R> {
     fn do_that(
         &mut self,
         param: DoThatParam,
-    ) -> impl Call<Output = Result<(ActorId, NonZeroU32), (String,)>, Args = R::Args> {
+    ) -> impl Call<Output = Result<(ActorId, NonZeroU32, ManyVariantsReply), (String,)>, Args = R::Args>
+    {
         RemotingAction::<_, this_that::io::DoThat>::new(self.remoting.clone(), param)
     }
     fn do_this(
@@ -529,7 +530,7 @@ pub mod this_that {
                 32, 84, 104, 105, 115, 84, 104, 97, 116, 24, 68, 111, 84, 104, 97, 116,
             ];
             type Params = super::DoThatParam;
-            type Reply = Result<(ActorId, NonZeroU32), (String,)>;
+            type Reply = Result<(ActorId, NonZeroU32, super::ManyVariantsReply), (String,)>;
         }
         pub struct DoThis(());
         impl DoThis {
@@ -681,6 +682,17 @@ pub enum ManyVariants {
 #[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo)]
 #[codec(crate = sails_rs::scale_codec)]
 #[scale_info(crate = sails_rs::scale_info)]
+pub enum ManyVariantsReply {
+    One,
+    Two,
+    Three,
+    Four,
+    Five,
+    Six,
+}
+#[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo)]
+#[codec(crate = sails_rs::scale_codec)]
+#[scale_info(crate = sails_rs::scale_info)]
 pub struct TupleStruct(pub bool);
 
 pub mod traits {
@@ -749,7 +761,10 @@ pub mod traits {
         fn do_that(
             &mut self,
             param: DoThatParam,
-        ) -> impl Call<Output = Result<(ActorId, NonZeroU32), (String,)>, Args = Self::Args>;
+        ) -> impl Call<
+            Output = Result<(ActorId, NonZeroU32, ManyVariantsReply), (String,)>,
+            Args = Self::Args,
+        >;
         fn do_this(
             &mut self,
             p1: u32,
@@ -782,6 +797,6 @@ pub mod mockall {
     mock! { pub Counter<A> {} #[allow(refining_impl_trait)] #[allow(clippy::type_complexity)] impl<A> traits::Counter for Counter<A> { type Args = A; fn add (&mut self, value: u32,) -> MockCall<A, u32>;fn sub (&mut self, value: u32,) -> MockCall<A, u32>;fn value (& self, ) -> MockQuery<A, u32>; } }
     mock! { pub Dog<A> {} #[allow(refining_impl_trait)] #[allow(clippy::type_complexity)] impl<A> traits::Dog for Dog<A> { type Args = A; fn make_sound (&mut self, ) -> MockCall<A, String>;fn walk (&mut self, dx: i32,dy: i32,) -> MockCall<A, ()>;fn avg_weight (& self, ) -> MockQuery<A, u32>;fn position (& self, ) -> MockQuery<A, (i32,i32,)>; } }
     mock! { pub References<A> {} #[allow(refining_impl_trait)] #[allow(clippy::type_complexity)] impl<A> traits::References for References<A> { type Args = A; fn add (&mut self, v: u32,) -> MockCall<A, u32>;fn add_byte (&mut self, byte: u8,) -> MockCall<A, Vec<u8>>;fn guess_num (&mut self, number: u8,) -> MockCall<A, Result<String, String>>;fn incr (&mut self, ) -> MockCall<A, ReferenceCount>;fn set_num (&mut self, number: u8,) -> MockCall<A, Result<(), String>>;fn baked (& self, ) -> MockQuery<A, String>;fn last_byte (& self, ) -> MockQuery<A, Option<u8>>;fn message (& self, ) -> MockQuery<A, Option<String>>; } }
-    mock! { pub ThisThat<A> {} #[allow(refining_impl_trait)] #[allow(clippy::type_complexity)] impl<A> traits::ThisThat for ThisThat<A> { type Args = A; fn do_that (&mut self, param: DoThatParam,) -> MockCall<A, Result<(ActorId,NonZeroU32,), (String,)>>;fn do_this (&mut self, p1: u32,p2: String,p3: (Option<H160>,NonZeroU8,),p4: TupleStruct,) -> MockCall<A, (String,u32,)>;fn noop (&mut self, ) -> MockCall<A, ()>;fn that (& self, ) -> MockQuery<A, Result<String, String>>;fn this (& self, ) -> MockQuery<A, u32>; } }
+    mock! { pub ThisThat<A> {} #[allow(refining_impl_trait)] #[allow(clippy::type_complexity)] impl<A> traits::ThisThat for ThisThat<A> { type Args = A; fn do_that (&mut self, param: DoThatParam,) -> MockCall<A, Result<(ActorId,NonZeroU32,ManyVariantsReply,), (String,)>>;fn do_this (&mut self, p1: u32,p2: String,p3: (Option<H160>,NonZeroU8,),p4: TupleStruct,) -> MockCall<A, (String,u32,)>;fn noop (&mut self, ) -> MockCall<A, ()>;fn that (& self, ) -> MockQuery<A, Result<String, String>>;fn this (& self, ) -> MockQuery<A, u32>; } }
     mock! { pub ValueFee<A> {} #[allow(refining_impl_trait)] #[allow(clippy::type_complexity)] impl<A> traits::ValueFee for ValueFee<A> { type Args = A; fn do_something_and_take_fee (&mut self, ) -> MockCall<A, bool>; } }
 }

@@ -166,7 +166,7 @@ export class Sails {
       const returnType = getScaleCodecDef(func.def);
       if (func.isQuery) {
         queries[func.name] = (async <T = any>(
-          origin: string,
+          origin: string = ZERO_ADDRESS,
           value: bigint = 0n,
           atBlock?: HexString,
           ...args: unknown[]
@@ -207,8 +207,10 @@ export class Sails {
             this._api,
             this.registry,
             'send_message',
-            [service.name, func.name, ...args],
-            `(String, String, ${params.map((p) => p.type).join(', ')})`,
+            service.name,
+            func.name,
+            [...args],
+            `(${params.map((p) => p.type).join(', ')})`,
             returnType,
             this._programId,
           );
@@ -376,8 +378,10 @@ export class Sails {
             this._api,
             this.registry,
             'upload_program',
-            [func.name, ...args],
-            `(String, ${params.map((p) => p.type).join(', ')})`,
+            undefined,
+            func.name,
+            [...args],
+            `(${params.map((p) => p.type).join(', ')})`,
             'String',
             code,
           );
@@ -394,8 +398,10 @@ export class Sails {
             this._api,
             this.registry,
             'create_program',
-            [func.name, ...args],
-            `(String, ${params.map((p) => p.type).join(', ')})`,
+            undefined,
+            func.name,
+            [...args],
+            `(${params.map((p) => p.type).join(', ')})`,
             'String',
             codeId,
           );

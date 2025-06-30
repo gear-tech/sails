@@ -38,7 +38,7 @@ impl SolidityGenerator {
 
         std::fs::write(&target_file, contract.data)?;
 
-        println!("Generated contract: {:?}", target_file);
+        println!("Generated contract: {target_file:?}");
 
         Ok(())
     }

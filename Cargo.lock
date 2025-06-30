@@ -2193,6 +2193,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "event-routes"
+version = "0.1.0"
+dependencies = [
+ "event-routes-app",
+ "gtest",
+ "sails-rs",
+ "tokio",
+]
+
+[[package]]
+name = "event-routes-app"
+version = "0.1.0"
+dependencies = [
+ "sails-rs",
+]
+
+[[package]]
 name = "expander"
 version = "2.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6958,6 +6975,7 @@ dependencies = [
  "log",
  "mockall",
  "parity-scale-codec",
+ "paste",
  "pin-project-lite",
  "sails-client-gen",
  "sails-idl-gen",

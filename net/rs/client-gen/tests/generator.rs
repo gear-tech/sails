@@ -156,7 +156,7 @@ fn test_events_works() {
 }
 
 fn gen_client(program: &str, service_name: &str) -> String {
-    let namepace = format!("{}.Client", service_name);
+    let namepace = format!("{service_name}.Client");
     ClientGenerator::from_idl(program)
         .generate(service_name, &namepace)
         .expect("generate client")

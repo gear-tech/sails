@@ -23,6 +23,8 @@ members = [
     "examples/redirect/client",
     "examples/redirect/proxy",
     "examples/redirect/proxy-client",
+    "examples/event-routes",
+    "examples/event-routes/app",
     "rs",
     "rs/cli",
     "rs/client-gen",
@@ -88,6 +90,7 @@ logos = "0.13"
 mockall = "0.12"
 pin-project-lite = "0.2"
 parity-scale-codec = { version = "=3.7.4", default-features = false }
+paste = "1.0"
 prettyplease = "0.2"
 proc-macro-error = "1.0"
 proc-macro2 = { version = "1", default-features = false }

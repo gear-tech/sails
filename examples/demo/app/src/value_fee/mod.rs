@@ -1,6 +1,7 @@
 use sails_rs::prelude::*;
 
-#[derive(Encode, TypeInfo)]
+#[event]
+#[derive(Clone, Debug, PartialEq, Encode, TypeInfo)]
 #[codec(crate = sails_rs::scale_codec)]
 #[scale_info(crate = sails_rs::scale_info)]
 pub enum FeeEvents {

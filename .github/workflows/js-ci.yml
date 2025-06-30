@@ -53,10 +53,16 @@ jobs:
       - name: "Build"
         run: yarn build
 
+      - name: Install wasm-opt
+        uses: ./.github/actions/install-wasm-utils
+
       - name: "Prepare: download Gear node"
         run: |
           wget -O ./gear https://github.com/gear-tech/gear/releases/download/build/gear
           chmod +x gear
+
+      - name: "Prepare: build demo contract"
+        run: cargo build -p demo --release
 
       - name: "Prepare: run Gear node"
         run: nohup ./gear --dev --execution=wasm --tmp --unsafe-rpc-external --rpc-methods Unsafe --rpc-cors all &
@@ -65,4 +71,7 @@ jobs:
         run: sleep 180
 
       - name: "Test: run"
+        # TODO: remove on the next sails release
+        env:
+          USE_LOCAL_BUILD: true
         run: yarn test

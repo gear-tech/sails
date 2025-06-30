@@ -17,6 +17,7 @@ export class SailsProgram {
       ReferenceCount: "(u32)",
       DoThatParam: {"p1":"u32","p2":"[u8;32]","p3":"ManyVariants"},
       ManyVariants: {"_enum":{"One":"Null","Two":"u32","Three":"Option<U256>","Four":{"a":"u32","b":"Option<u16>"},"Five":"(String, H256)","Six":"(u32)"}},
+      ManyVariantsReply: {"_enum":["One","Two","Three","Four","Five","Six"]},
       TupleStruct: "(bool)",
     }
 
@@ -48,8 +49,10 @@ export class SailsProgram {
       this.api,
       this.registry,
       'upload_program',
+      undefined,
       'Default',
-      'String',
+      undefined,
+      undefined,
       'String',
       code,
       async (programId) =>  {
@@ -67,8 +70,10 @@ export class SailsProgram {
       this.api,
       this.registry,
       'create_program',
+      undefined,
       'Default',
-      'String',
+      undefined,
+      undefined,
       'String',
       codeId,
       async (programId) =>  {
@@ -85,8 +90,10 @@ export class SailsProgram {
       this.api,
       this.registry,
       'upload_program',
-      ['New', counter, dog_position],
-      '(String, Option<u32>, Option<(i32, i32)>)',
+      undefined,
+      'New',
+      [counter, dog_position],
+      '(Option<u32>, Option<(i32, i32)>)',
       'String',
       code,
       async (programId) =>  {
@@ -104,8 +111,10 @@ export class SailsProgram {
       this.api,
       this.registry,
       'create_program',
-      ['New', counter, dog_position],
-      '(String, Option<u32>, Option<(i32, i32)>)',
+      undefined,
+      'New',
+      [counter, dog_position],
+      '(Option<u32>, Option<(i32, i32)>)',
       'String',
       codeId,
       async (programId) =>  {
@@ -125,8 +134,10 @@ export class PingPong {
       this._program.api,
       this._program.registry,
       'send_message',
-      ['PingPong', 'Ping', input],
-      '(String, String, String)',
+      'PingPong',
+      'Ping',
+      input,
+      'String',
       'Result<String, String>',
       this._program.programId
     );
@@ -145,8 +156,10 @@ export class Counter {
       this._program.api,
       this._program.registry,
       'send_message',
-      ['Counter', 'Add', value],
-      '(String, String, u32)',
+      'Counter',
+      'Add',
+      value,
+      'u32',
       'u32',
       this._program.programId
     );
@@ -161,8 +174,10 @@ export class Counter {
       this._program.api,
       this._program.registry,
       'send_message',
-      ['Counter', 'Sub', value],
-      '(String, String, u32)',
+      'Counter',
+      'Sub',
+      value,
+      'u32',
       'u32',
       this._program.programId
     );
@@ -228,8 +243,10 @@ export class Dog {
       this._program.api,
       this._program.registry,
       'send_message',
-      ['Dog', 'MakeSound'],
-      '(String, String)',
+      'Dog',
+      'MakeSound',
+      undefined,
+      undefined,
       'String',
       this._program.programId
     );
@@ -241,8 +258,10 @@ export class Dog {
       this._program.api,
       this._program.registry,
       'send_message',
-      ['Dog', 'Walk', dx, dy],
-      '(String, String, i32, i32)',
+      'Dog',
+      'Walk',
+      [dx, dy],
+      '(i32, i32)',
       'Null',
       this._program.programId
     );
@@ -314,8 +333,10 @@ export class References {
       this._program.api,
       this._program.registry,
       'send_message',
-      ['References', 'Add', v],
-      '(String, String, u32)',
+      'References',
+      'Add',
+      v,
+      'u32',
       'u32',
       this._program.programId
     );
@@ -327,8 +348,10 @@ export class References {
       this._program.api,
       this._program.registry,
       'send_message',
-      ['References', 'AddByte', byte],
-      '(String, String, u8)',
+      'References',
+      'AddByte',
+      byte,
+      'u8',
       'Vec<u8>',
       this._program.programId
     );
@@ -340,8 +363,10 @@ export class References {
       this._program.api,
       this._program.registry,
       'send_message',
-      ['References', 'GuessNum', number],
-      '(String, String, u8)',
+      'References',
+      'GuessNum',
+      number,
+      'u8',
       'Result<String, String>',
       this._program.programId
     );
@@ -353,8 +378,10 @@ export class References {
       this._program.api,
       this._program.registry,
       'send_message',
-      ['References', 'Incr'],
-      '(String, String)',
+      'References',
+      'Incr',
+      undefined,
+      undefined,
       'ReferenceCount',
       this._program.programId
     );
@@ -366,8 +393,10 @@ export class References {
       this._program.api,
       this._program.registry,
       'send_message',
-      ['References', 'SetNum', number],
-      '(String, String, u8)',
+      'References',
+      'SetNum',
+      number,
+      'u8',
       'Result<Null, String>',
       this._program.programId
     );
@@ -422,15 +451,17 @@ export class References {
 export class ThisThat {
   constructor(private _program: SailsProgram) {}
 
-  public doThat(param: DoThatParam): TransactionBuilder<{ ok: [ActorId, NonZeroU32] } | { err: [string] }> {
+  public doThat(param: DoThatParam): TransactionBuilder<{ ok: [ActorId, NonZeroU32, ManyVariantsReply] } | { err: [string] }> {
     if (!this._program.programId) throw new Error('Program ID is not set');
-    return new TransactionBuilder<{ ok: [ActorId, NonZeroU32] } | { err: [string] }>(
+    return new TransactionBuilder<{ ok: [ActorId, NonZeroU32, ManyVariantsReply] } | { err: [string] }>(
       this._program.api,
       this._program.registry,
       'send_message',
-      ['ThisThat', 'DoThat', param],
-      '(String, String, DoThatParam)',
-      'Result<([u8;32], u32), (String)>',
+      'ThisThat',
+      'DoThat',
+      param,
+      'DoThatParam',
+      'Result<([u8;32], u32, ManyVariantsReply), (String)>',
       this._program.programId
     );
   }
@@ -441,8 +472,10 @@ export class ThisThat {
       this._program.api,
       this._program.registry,
       'send_message',
-      ['ThisThat', 'DoThis', p1, p2, p3, p4],
-      '(String, String, u32, String, (Option<H160>, u8), TupleStruct)',
+      'ThisThat',
+      'DoThis',
+      [p1, p2, p3, p4],
+      '(u32, String, (Option<H160>, u8), TupleStruct)',
       '(String, u32)',
       this._program.programId
     );
@@ -454,8 +487,10 @@ export class ThisThat {
       this._program.api,
       this._program.registry,
       'send_message',
-      ['ThisThat', 'Noop'],
-      '(String, String)',
+      'ThisThat',
+      'Noop',
+      undefined,
+      undefined,
       'Null',
       this._program.programId
     );
@@ -505,8 +540,10 @@ export class ValueFee {
       this._program.api,
       this._program.registry,
       'send_message',
-      ['ValueFee', 'DoSomethingAndTakeFee'],
-      '(String, String)',
+      'ValueFee',
+      'DoSomethingAndTakeFee',
+      undefined,
+      undefined,
       'bool',
       this._program.programId
     );

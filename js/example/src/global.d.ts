@@ -10,12 +10,14 @@ declare global {
   }
 
   export type ManyVariants = 
-    | { one: null }
-    | { two: number }
-    | { three: number | string | bigint | null }
-    | { four: { a: number; b: number | null } }
-    | { five: [string, H256] }
-    | { six: [number] };
+    | { One: null }
+    | { Two: number }
+    | { Three: number | string | bigint | null }
+    | { Four: { a: number; b: number | null } }
+    | { Five: [string, H256] }
+    | { Six: [number] };
+
+  export type ManyVariantsReply = "One" | "Two" | "Three" | "Four" | "Five" | "Six";
 
   export type TupleStruct = [boolean];
 };

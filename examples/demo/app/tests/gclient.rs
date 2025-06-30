@@ -212,7 +212,7 @@ async fn counter_query_with_message_works() {
 
     let (remoting, demo_code_id, gas_limit, ..) = spin_up_node_with_demo_code().await;
 
-    let demo_factory = demo_client::DemoFactory::new(remoting.clone());
+    let demo_factory = demo_client::DemoClientFactory::new(remoting.clone());
 
     // Use generated client code for activating Demo program
     // using the `new` constructor and the `send_recv` method

@@ -6,7 +6,7 @@ import path from 'node:path';
 
 const __filename = fileURLToPath(import.meta.url);
 
-const demoIdlPath = path.join(__filename, '../../../../examples/demo/client/demo.idl');
+const demoIdlPath = path.join(__filename, '../../../../examples/demo/client/demo_client.idl');
 
 describe('generator', () => {
   test('demo lib', async () => {

@@ -349,9 +349,9 @@ impl TypeName for BTreeMapTypeName {
             .value_type_name
             .as_string(for_generic_param, by_path_type_names);
         if for_generic_param {
-            format!("MapOf{}To{}", key_type_name, value_type_name)
+            format!("MapOf{key_type_name}To{value_type_name}")
         } else {
-            format!("map ({}, {})", key_type_name, value_type_name)
+            format!("map ({key_type_name}, {value_type_name})")
         }
     }
 }
@@ -421,9 +421,9 @@ impl TypeName for ResultTypeName {
             .err_type_name
             .as_string(for_generic_param, by_path_type_names);
         if for_generic_param {
-            format!("ResultOf{}Or{}", ok_type_name, err_type_name)
+            format!("ResultOf{ok_type_name}Or{err_type_name}")
         } else {
-            format!("result ({}, {})", ok_type_name, err_type_name)
+            format!("result ({ok_type_name}, {err_type_name})")
         }
     }
 }
@@ -473,9 +473,9 @@ impl TypeName for OptionTypeName {
             .some_type_name
             .as_string(for_generic_param, by_path_type_names);
         if for_generic_param {
-            format!("OptOf{}", some_type_name)
+            format!("OptOf{some_type_name}")
         } else {
-            format!("opt {}", some_type_name)
+            format!("opt {some_type_name}")
         }
     }
 }
@@ -565,9 +565,9 @@ impl TypeName for VectorTypeName {
             .item_type_name
             .as_string(for_generic_param, by_path_type_names);
         if for_generic_param {
-            format!("VecOf{}", item_type_name)
+            format!("VecOf{item_type_name}")
         } else {
-            format!("vec {}", item_type_name)
+            format!("vec {item_type_name}")
         }
     }
 }

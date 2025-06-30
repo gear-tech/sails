@@ -10,7 +10,7 @@
     "typescript": "^5.8.3"
   },
   "scripts": {
-    "build": "node ../cli/build/app.js generate ../../examples/demo/client/demo.idl -o src --no-project -y && tsc",
+    "build": "node ../cli/build/app.js generate ../../examples/demo/client/demo_client.idl -o src --no-project -y && tsc",
     "clean": "rm -rf lib"
   }
 }

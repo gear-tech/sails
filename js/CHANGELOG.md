@@ -3,6 +3,8 @@
 ## master
 ### Changes
 - Skip type file generation if types are not present in the IDL
+- Improve encoding / decoding in the `TransactionBuilder` class
+- Capitalize enum variant names in generated files
 
 ## 0.4.2
 ### Compatibility

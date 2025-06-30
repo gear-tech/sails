@@ -38,7 +38,7 @@ impl<'a> ClientGenerator<'a, IdlPath<'a>> {
 
         let file_name = idl_path.file_stem().unwrap_or(OsStr::new("service"));
         let service_name = file_name.to_string_lossy().to_case(Case::Pascal);
-        let namepace = format!("{}.Client", service_name);
+        let namepace = format!("{service_name}.Client");
 
         self.with_idl(&idl)
             .generate_to(&service_name, &namepace, out_path)
