@@ -80,7 +80,7 @@ impl Syscall {
 
 #[cfg(not(target_arch = "wasm32"))]
 #[cfg(not(feature = "std"))]
-macro_rules! sys_call_unimplemented {
+macro_rules! syscall_unimplemented {
     ($($name:ident() -> $type:ty),* $(,)?) => {
         impl Syscall {
             $(
@@ -98,7 +98,7 @@ const ERROR: &str = "Syscall is implemented only for the wasm32 architecture and
 
 #[cfg(not(target_arch = "wasm32"))]
 #[cfg(not(feature = "std"))]
-sys_call_unimplemented!(
+syscall_unimplemented!(
     message_id() -> MessageId,
     message_size() -> usize,
     message_source() -> ActorId,
@@ -129,7 +129,7 @@ const _: () = {
     use paste::paste;
     use std::thread_local;
 
-    macro_rules! sys_call_struct_impl {
+    macro_rules! syscall_struct_impl {
         ($($name:ident() -> $type:ty),* $(,)?) => {
             #[derive(Clone)]
             struct SyscallState {
@@ -162,7 +162,7 @@ const _: () = {
         };
     }
 
-    sys_call_struct_impl!(
+    syscall_struct_impl!(
         message_id() -> MessageId,
         message_size() -> usize,
         message_source() -> ActorId,
