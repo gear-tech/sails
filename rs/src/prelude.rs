@@ -48,7 +48,7 @@ pub use crate::gstd::{
 };
 pub use crate::types::*;
 pub use gear_core_errors::{
-    self as gear_core_errors, ErrorReplyReason, ReplyCode, SimpleExecutionError,
+    self as gear_core_errors, ErrorReplyReason, ReplyCode, SignalCode, SimpleExecutionError,
     SimpleUnavailableActorError, SuccessReplyReason,
 };
 
