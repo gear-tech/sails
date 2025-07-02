@@ -1,5 +1,5 @@
 use core::marker::PhantomData;
-use sails_rs::{Encode, TypeInfo, service};
+use sails_rs::prelude::*;
 
 #[derive(Default)]
 pub(super) struct MyGenericEventsService<'l, T> {
@@ -7,6 +7,7 @@ pub(super) struct MyGenericEventsService<'l, T> {
     _a: PhantomData<&'l T>,
 }
 
+#[event]
 #[derive(TypeInfo, Encode, Clone, Debug, PartialEq)]
 #[codec(crate = sails_rs::scale_codec)]
 #[scale_info(crate = sails_rs::scale_info)]
@@ -19,6 +20,7 @@ impl<T> MyGenericEventsService<'_, T>
 where
     T: Clone,
 {
+    #[export]
     pub fn do_this(&mut self) -> u32 {
         self.emit_eth_event(MyEvents::Event1).unwrap();
         42

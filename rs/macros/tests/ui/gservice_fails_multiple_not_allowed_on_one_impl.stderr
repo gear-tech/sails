@@ -3,8 +3,8 @@ error: multiple `service` attributes on the same impl are not allowed
    |
 6  | / #[service]
 7  | | impl MyService {
-8  | |     pub fn this(&self, p1: bool) -> bool {
-9  | |         !p1
-10 | |     }
-11 | | }
+8  | |     #[export]
+9  | |     pub fn this(&self, p1: bool) -> bool {
+...  |
+12 | | }
    | |_^

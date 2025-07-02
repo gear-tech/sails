@@ -71,7 +71,7 @@ fn generates_handle_for_single_service_with_non_empty_route() {
 fn generates_handle_for_multiple_services_with_non_empty_routes() {
     let input = quote! {
         impl MyProgram {
-            #[route("svc1")]
+            #[export(route = "svc1")]
             pub fn service1(&self) -> MyService {
                 MyService
             }

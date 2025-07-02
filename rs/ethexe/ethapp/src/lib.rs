@@ -19,9 +19,12 @@ pub struct SomeService;
 
 #[service]
 impl SomeService {
+    #[export]
     pub async fn do_this(&mut self, p1: u32, _p2: String) -> u32 {
         p1
     }
+
+    #[export]
     pub fn this(&self, p1: bool) -> bool {
         p1
     }

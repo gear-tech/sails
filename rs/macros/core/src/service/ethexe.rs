@@ -40,8 +40,10 @@ impl ServiceBuilder<'_> {
         }
     }
 
-    pub(super) fn try_handle_solidity_impl(&self, base_ident: &Ident) -> TokenStream {
+    pub(super) fn try_handle_solidity_impl(&self) -> TokenStream {
         let sails_path = self.sails_path;
+        let inner_ident = &self.inner_ident;
+
         let impl_inner = |is_async: bool| {
             let (name_ident, asyncness, await_token) = if is_async {
                 (
@@ -61,23 +63,38 @@ impl ServiceBuilder<'_> {
                 }
             });
 
-            let base_types_try_handle = self.base_types.iter().enumerate().map(|(idx, _)| {
-                let idx = Literal::usize_unsuffixed(idx);
-                quote! {
-                    if let Some(result) = self. #base_ident . #idx . #name_ident(method, input) #await_token {
-                        return Some(result);
+            let base_invocation = if self.base_types.is_empty() {
+                None
+            } else {
+                let base_types = self.base_types;
+                let base_exposure_invocations = base_types.iter().enumerate().map(|(idx, _)| {
+                    let idx_token = if base_types.len() == 1 { None } else {
+                        let idx_literal = Literal::usize_unsuffixed(idx);
+                        Some(quote! { . #idx_literal })
+                    };
+                    quote! {
+                        if let Some(result) = base_services #idx_token .expose(self.route) . #name_ident(method, input) #await_token {
+                            return Some(result);
+                        }
                     }
-                }
-            });
+                });
+                // Base Services, as `Into` tuple from Service
+                Some(quote! {
+                    let base_services: ( #( #base_types ),* ) = self. #inner_ident .into();
+                    #( #base_exposure_invocations )*
+                })
+            };
 
             quote! {
                 pub #asyncness fn #name_ident(
-                    &mut self,
+                    mut self,
                     method: &[u8],
                     input: &[u8],
                 ) -> Option<(#sails_path::Vec<u8>, u128, bool)> {
+                    use #sails_path::gstd::services::{Service, Exposure};
+
                     #( #service_method_branches )*
-                    #( #base_types_try_handle )*
+                    #base_invocation
                     None
                 }
             }
@@ -92,45 +109,15 @@ impl ServiceBuilder<'_> {
         }
     }
 
-    pub(super) fn service_emit_eth_impls(&self) -> Option<TokenStream> {
-        let sails_path = self.sails_path;
-        let generics = &self.generics;
-        let service_type_path = self.type_path;
-        let service_type_constraints = self.type_constraints();
-        let exposure_ident = &self.exposure_ident;
-
-        self.events_type.map(|events_type| {
-            quote! {
-                impl #generics #service_type_path #service_type_constraints {
-                    fn emit_eth_event(&mut self, event: #events_type) -> #sails_path::errors::Result<()> {
-                        #[cfg(not(target_arch = "wasm32"))]
-                        {
-                            #exposure_ident::<Self>::__emit_event(self, event)
-                        }
-                        #[cfg(target_arch = "wasm32")]
-                        {
-                            #sails_path::gstd::__emit_eth_event(event)
-                        }
-                    }
-                }
-            }
-        })
-    }
-
     pub(super) fn exposure_emit_eth_impls(&self) -> Option<TokenStream> {
         let sails_path = self.sails_path;
 
         self.events_type.map(|events_type| {
             quote! {
-                fn emit_eth_event(&mut self, event: #events_type) -> #sails_path::errors::Result<()> {
-                    #[cfg(not(target_arch = "wasm32"))]
-                    {
-                        Self::__emit_event(&mut self.inner, event)
-                    }
-                    #[cfg(target_arch = "wasm32")]
-                    {
-                        #sails_path::gstd::__emit_eth_event(event)
-                    }
+                pub fn emit_eth_event(&self, event: #events_type) -> #sails_path::errors::Result<()> {
+                    use #sails_path::gstd::services::ExposureWithEvents;
+
+                    self.emitter().emit_eth_event(event)
                 }
             }
         })
@@ -189,7 +176,7 @@ impl FnBuilder<'_> {
             #handle_token
             let output = if _encode_reply {
                 // encode MessageId and result if passed `encode_reply`
-                let message_id = #sails_path::alloy_primitives::B256::new(self.message_id.into_bytes());
+                let message_id = #sails_path::alloy_primitives::B256::new(#sails_path::gstd::Syscall::message_id().into_bytes());
                 #sails_path::alloy_sol_types::SolValue::abi_encode_sequence(&(message_id, result,))
             } else {
                 #sails_path::alloy_sol_types::SolValue::abi_encode_sequence(&(result,))

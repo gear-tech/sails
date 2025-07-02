@@ -4,8 +4,6 @@ use sails_rename::{calls::*, gstd::Syscall, prelude::*};
 pub struct ThisThatCaller<ThisThatClient> {
     this_that: ThisThatClient,
 }
-
-#[service(crate = sails_rename)]
 impl<ThisThatClient> ThisThatCaller<ThisThatClient>
 where
     ThisThatClient: ThisThat,
@@ -13,7 +11,14 @@ where
     pub const fn new(this_that: ThisThatClient) -> Self {
         Self { this_that }
     }
+}
 
+#[service(crate = sails_rename)]
+impl<ThisThatClient> ThisThatCaller<ThisThatClient>
+where
+    ThisThatClient: ThisThat,
+{
+    #[export]
     pub async fn call_do_this(
         &mut self,
         p1: u32,
@@ -33,6 +38,7 @@ where
             .unwrap()
     }
 
+    #[export]
     pub async fn query_this(&self, this_that_addr: ActorId) -> u32 {
         if Syscall::program_id() == this_that_addr {
             panic!("ThisThatCaller cannot call itself");
@@ -46,7 +52,7 @@ where
 mod tests {
     use super::*;
     use demo_client::mockall::MockThisThat;
-    use sails_rename::mockall::*;
+    use sails_rename::{gstd::services::Service, mockall::*};
 
     #[tokio::test]
     async fn this_that_caller_query_this() {
@@ -66,7 +72,7 @@ mod tests {
         });
 
         // act
-        let this_that_caller = ThisThatCaller::new(mock_this_that);
+        let this_that_caller = ThisThatCaller::new(mock_this_that).expose(&[]);
         let resp = this_that_caller.query_this(ACTOR_ID.into()).await;
 
         // assert
@@ -93,7 +99,7 @@ mod tests {
             });
 
         // act
-        let mut this_that_caller = ThisThatCaller::new(mock_this_that);
+        let mut this_that_caller = ThisThatCaller::new(mock_this_that).expose(&[]);
         let resp = this_that_caller
             .call_do_this(
                 42,
@@ -118,7 +124,7 @@ mod tests {
         let mock_this_that = MockThisThat::<()>::new();
 
         // act
-        let mut this_that_caller = ThisThatCaller::new(mock_this_that);
+        let mut this_that_caller = ThisThatCaller::new(mock_this_that).expose(&[]);
         _ = this_that_caller
             .call_do_this(
                 42,
