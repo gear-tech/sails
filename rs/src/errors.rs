@@ -3,11 +3,10 @@ use gear_core_errors::ErrorReplyReason;
 #[cfg(feature = "gstd")]
 use gstd::errors::{CoreError as GCoreError, Error as GStdError};
 use parity_scale_codec::Error as CodecError;
-use thiserror_no_std::Error as ThisError;
 
 pub type Result<T, E = Error> = core::result::Result<T, E>;
 
-#[derive(ThisError, Debug)]
+#[derive(Debug, thiserror::Error)]
 pub enum Error {
     #[error("rtl: {0}")]
     Rtl(#[from] RtlError),
@@ -18,14 +17,14 @@ pub enum Error {
     #[error("gcore: {0}")]
     GCore(#[from] GCoreError),
     #[error("codec: {0}")]
-    Codec(#[from] CodecError),
+    Codec(CodecError),
     #[cfg(feature = "gclient")]
     #[cfg(not(target_arch = "wasm32"))]
     #[error("gclient: {0}")]
     GClient(#[from] gclient::Error),
 }
 
-#[derive(ThisError, Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
 pub enum RtlError {
     #[error("type `{type_name}` used as event type must be a enum")]
     EventTypeMustBeEnum { type_name: String },

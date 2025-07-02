@@ -50,20 +50,20 @@ sails-sol-gen = { path = "rs/sol-gen" }
 sails-rename = { package = "sails-rs", path = "rs" }
 
 # Gear deps
-gclient = "=1.8.1"
-gcore = "=1.8.1"
-gear-core = { version = "=1.8.1", default-features = false }
-gear-core-errors = "=1.8.1"
-gprimitives = { version = "=1.8.1", features = ["codec"] }
-gstd = "=1.8.1"
-gtest = "=1.8.1"
-gwasm-builder = { version = "=1.8.1", package = "gear-wasm-builder" }
+gclient = { path = "../gear/gclient" }
+gcore = { path = "../gear/gcore" }
+gear-core = { path = "../gear/core", default-features = false }
+gear-core-errors = { path = "../gear/core-errors" }
+gprimitives = { path = "../gear/gprimitives", features = ["codec"] }
+gstd = { path = "../gear/gstd" }
+gtest = { path = "../gear/gtest" }
+gwasm-builder = { path = "../gear/utils/wasm-builder", package = "gear-wasm-builder" }
 
 # Other deps in alphabetical order
 alloy-primitives = { version = "0.8.19", default-features = false }
 alloy-sol-types = { version = "0.8.19", default-features = false }
 anyhow = "1"
-cargo-generate = "0.21"
+cargo-generate = "0.23"
 cargo_metadata = "0.19"
 clap = "4.5"
 convert_case = "0.7"
@@ -94,8 +94,7 @@ serde = "1.0"
 serde-json = { package = "serde_json", version = "1.0" }
 spin = { version = "0.9", default-features = false, features = ["spin_mutex"] }
 syn = "2.0"
-thiserror = "2.0"
-thiserror-no-std = "2.0"
+thiserror = { version = "2.0", default-features = false }
 toml_edit = "0.22"
 tokio = "1.45"
 trybuild = "1"
