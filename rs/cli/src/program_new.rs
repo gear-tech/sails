@@ -149,12 +149,10 @@ impl ProgramGenerator {
         dependency: cargo_metadata::DependencyKind,
         features: Option<&str>,
     ) -> anyhow::Result<ExitStatus> {
-        if let Some(path) = self.sails_path.as_ref() {
-            let path = path.to_str().context("Invalid UTF-8 Path")?;
-            let sails_package = &["--path", path];
-            cargo_add(
-                manifest_path.as_ref(),
-                sails_package,
+        if let Some(sails_path) = self.sails_path.as_ref() {
+            cargo_add_by_path(
+                manifest_path,
+                sails_path,
                 dependency,
                 features,
                 self.offline,
@@ -162,7 +160,7 @@ impl ProgramGenerator {
         } else {
             let sails_package = &[format!("sails-rs@{SAILS_VERSION}")];
             cargo_add(
-                manifest_path.as_ref(),
+                manifest_path,
                 sails_package,
                 dependency,
                 features,
@@ -209,7 +207,7 @@ impl ProgramGenerator {
         self.cargo_add_sails_rs(&manifest_path, Build, Some("build"))?;
 
         // add app ref
-        cargo_add_by_path(&manifest_path, &self.app_path(), Build, None, self.offline)?;
+        cargo_add_by_path(&manifest_path, self.app_path(), Build, None, self.offline)?;
 
         let mut build_rs = File::create(build_rs_path(&path))?;
         self.client_build().write_into(&mut build_rs)?;
@@ -240,7 +238,7 @@ impl ProgramGenerator {
         // add app ref
         cargo_add_by_path(
             &manifest_path,
-            &self.app_path(),
+            self.app_path(),
             Development,
             None,
             self.offline,
@@ -248,7 +246,7 @@ impl ProgramGenerator {
         // add client ref
         cargo_add_by_path(
             &manifest_path,
-            &self.client_path(),
+            self.client_path(),
             Development,
             None,
             self.offline,
@@ -357,9 +355,9 @@ fn cargo_fmt<P: AsRef<Path>>(manifest_path: P) -> anyhow::Result<ExitStatus> {
         .context("failed to execute `cargo new` command")
 }
 
-fn cargo_add_by_path<P: AsRef<Path>>(
-    manifest_path: P,
-    crate_path: P,
+fn cargo_add_by_path<P1: AsRef<Path>, P2: AsRef<Path>>(
+    manifest_path: P1,
+    crate_path: P2,
     dependency: cargo_metadata::DependencyKind,
     features: Option<&str>,
     offline: bool,
