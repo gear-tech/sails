@@ -5,18 +5,12 @@ use convert_case::{Case, Casing};
 use std::{
     env,
     ffi::OsStr,
-    fs,
+    fs::{self, File},
     path::{Path, PathBuf},
     process::{Command, ExitStatus},
 };
 
 const SAILS_VERSION: &str = env!("CARGO_PKG_VERSION");
-
-pub struct ProgramGenerator {
-    path: PathBuf,
-    package_name: String,
-    sails_path: Option<PathBuf>,
-}
 
 #[derive(Template)]
 #[template(path = "app/build.askama")]
@@ -52,8 +46,22 @@ struct TestsGtest {
     service_name: String,
 }
 
+pub struct ProgramGenerator {
+    path: PathBuf,
+    package_name: String,
+    sails_path: Option<PathBuf>,
+    app: bool,
+    offline: bool,
+}
+
 impl ProgramGenerator {
-    pub fn new(path: PathBuf, name: Option<String>, sails_path: Option<PathBuf>) -> Self {
+    pub fn new(
+        path: PathBuf,
+        name: Option<String>,
+        sails_path: Option<PathBuf>,
+        app: bool,
+        offline: bool,
+    ) -> Self {
         let package_name = name.map_or_else(
             || {
                 path.file_name()
@@ -68,6 +76,8 @@ impl ProgramGenerator {
             path,
             package_name,
             sails_path,
+            app,
+            offline,
         }
     }
 
@@ -106,19 +116,27 @@ impl ProgramGenerator {
     }
 
     fn app_path(&self) -> PathBuf {
-        let mut manifest_path = self.path.clone();
-        manifest_path.push("app");
-        manifest_path
+        if self.app {
+            self.path.clone()
+        } else {
+            let mut path = self.path.clone();
+            path.push("app");
+            path
+        }
     }
 
     fn app_name(&self) -> String {
-        format!("{}-app", self.package_name)
+        if self.app {
+            self.package_name.clone()
+        } else {
+            format!("{}-app", self.package_name)
+        }
     }
 
     fn client_path(&self) -> PathBuf {
-        let mut manifest_path = self.path.clone();
-        manifest_path.push("client");
-        manifest_path
+        let mut path = self.path.clone();
+        path.push("client");
+        path
     }
 
     fn client_name(&self) -> String {
@@ -132,44 +150,58 @@ impl ProgramGenerator {
         features: Option<&str>,
     ) -> anyhow::Result<ExitStatus> {
         if let Some(path) = self.sails_path.as_ref() {
-            let path = path.to_str().expect("Invalid UTF-8 Path");
+            let path = path.to_str().context("Invalid UTF-8 Path")?;
             let sails_package = &["--path", path];
-            cargo_add(manifest_path.as_ref(), sails_package, dependency, features)
+            cargo_add(
+                manifest_path.as_ref(),
+                sails_package,
+                dependency,
+                features,
+                self.offline,
+            )
         } else {
             let sails_package = &[format!("sails-rs@{SAILS_VERSION}")];
-            cargo_add(manifest_path.as_ref(), sails_package, dependency, features)
+            cargo_add(
+                manifest_path.as_ref(),
+                sails_package,
+                dependency,
+                features,
+                self.offline,
+            )
         }
     }
 
     pub fn generate(self) -> anyhow::Result<()> {
         self.generate_app()?;
-        self.generate_client()?;
-        self.generate_tests()?;
+        if !self.app {
+            self.generate_client()?;
+            self.generate_tests()?;
+        }
         self.fmt()?;
         Ok(())
     }
 
     fn generate_app(&self) -> anyhow::Result<()> {
         let path = self.app_path();
-        cargo_new(&path, self.app_name().as_str())?;
+        cargo_new(&path, self.app_name().as_str(), self.offline)?;
         let manifest_path = manifest_path(&path);
 
         // add sails-rs refs
         self.cargo_add_sails_rs(&manifest_path, Normal, None)?;
         self.cargo_add_sails_rs(&manifest_path, Build, Some("wasm-builder"))?;
 
-        let build_rs = self.app_build().render()?;
-        fs::write(build_rs_path(&path), build_rs)?;
+        let mut build_rs = File::create(build_rs_path(&path))?;
+        self.app_build().write_into(&mut build_rs)?;
 
-        let lib_rs = self.app_lib().render()?;
-        fs::write(lib_rs_path(&path), lib_rs)?;
+        let mut lib_rs = File::create(lib_rs_path(&path))?;
+        self.app_lib().write_into(&mut lib_rs)?;
 
         Ok(())
     }
 
     fn generate_client(&self) -> anyhow::Result<()> {
         let path = self.client_path();
-        cargo_new(&path, self.client_name().as_str())?;
+        cargo_new(&path, self.client_name().as_str(), self.offline)?;
 
         let manifest_path = manifest_path(&path);
         // add sails-rs refs
@@ -177,41 +209,61 @@ impl ProgramGenerator {
         self.cargo_add_sails_rs(&manifest_path, Build, Some("build"))?;
 
         // add app ref
-        cargo_add_by_path(&manifest_path, &self.app_path(), Build, None)?;
+        cargo_add_by_path(&manifest_path, &self.app_path(), Build, None, self.offline)?;
 
-        let build_rs = self.client_build().render()?;
-        fs::write(build_rs_path(&path), build_rs)?;
+        let mut build_rs = File::create(build_rs_path(&path))?;
+        self.client_build().write_into(&mut build_rs)?;
 
-        let lib_rs = self.client_lib().render()?;
-        fs::write(lib_rs_path(&path), lib_rs)?;
+        let mut lib_rs = File::create(lib_rs_path(&path))?;
+        self.client_lib().write_into(&mut lib_rs)?;
 
         Ok(())
     }
 
     fn generate_tests(&self) -> anyhow::Result<()> {
         let path = &self.path;
-        cargo_new(path, &self.package_name)?;
+        cargo_new(path, &self.package_name, self.offline)?;
 
         let manifest_path = manifest_path(path);
         // add sails-rs refs
         self.cargo_add_sails_rs(&manifest_path, Development, Some("gtest,gclient"))?;
 
         // add tokio
-        cargo_add(&manifest_path, ["tokio"], Development, Some("rt,macros"))?;
+        cargo_add(
+            &manifest_path,
+            ["tokio"],
+            Development,
+            Some("rt,macros"),
+            self.offline,
+        )?;
 
         // add app ref
-        cargo_add_by_path(&manifest_path, &self.app_path(), Development, None)?;
+        cargo_add_by_path(
+            &manifest_path,
+            &self.app_path(),
+            Development,
+            None,
+            self.offline,
+        )?;
         // add client ref
-        cargo_add_by_path(&manifest_path, &self.client_path(), Development, None)?;
+        cargo_add_by_path(
+            &manifest_path,
+            &self.client_path(),
+            Development,
+            None,
+            self.offline,
+        )?;
 
+        // delete ./src folder
         let mut src_path = path.clone();
         src_path.push("src");
         fs::remove_dir_all(src_path)?;
 
+        // add tests
         let test_path = tests_path(path);
-        fs::create_dir_all(test_path.parent().expect("Parent exists"))?;
-        let tests = self.tests_gtest().render()?;
-        fs::write(&test_path, tests)?;
+        fs::create_dir_all(test_path.parent().context("Parent should exists")?)?;
+        let mut gtest_rs = File::create(&test_path)?;
+        self.tests_gtest().write_into(&mut gtest_rs)?;
 
         Ok(())
     }
@@ -222,30 +274,40 @@ impl ProgramGenerator {
     }
 }
 
-fn cargo_new<P: AsRef<Path>>(target_dir: P, name: &str) -> anyhow::Result<ExitStatus> {
+fn cargo_new<P: AsRef<Path>>(
+    target_dir: P,
+    name: &str,
+    offline: bool,
+) -> anyhow::Result<ExitStatus> {
     let cargo_command = cargo_command();
     let target_dir = target_dir.as_ref();
     let cargo_new_or_init = if target_dir.exists() { "init" } else { "new" };
     let mut cmd = Command::new(cargo_command);
     cmd.stdout(std::process::Stdio::null()) // Don't pollute output
         .arg(cargo_new_or_init)
-        .arg(target_dir.to_str().expect("Invalid UTF-8 Path"))
+        .arg(target_dir)
         .arg("--name")
         .arg(name)
         .arg("--lib")
         .arg("--quiet");
 
+    if offline {
+        cmd.arg("--offline");
+    }
+
     cmd.status()
         .context("failed to execute `cargo new` command")
 }
 
-fn cargo_add<I, S>(
-    manifest_path: &Path,
+fn cargo_add<P, I, S>(
+    manifest_path: P,
     packages: I,
     dependency: cargo_metadata::DependencyKind,
     features: Option<&str>,
+    offline: bool,
 ) -> anyhow::Result<ExitStatus>
 where
+    P: AsRef<Path>,
     I: IntoIterator<Item = S>,
     S: AsRef<OsStr>,
 {
@@ -256,7 +318,7 @@ where
         .arg("add")
         .args(packages)
         .arg("--manifest-path")
-        .arg(manifest_path.to_str().expect("Invalid UTF-8 Path"))
+        .arg(manifest_path.as_ref())
         .arg("--quiet");
 
     match dependency {
@@ -273,6 +335,10 @@ where
         cmd.arg("--features").arg(features);
     }
 
+    if offline {
+        cmd.arg("--offline");
+    }
+
     cmd.status()
         .context("failed to execute `cargo new` command")
 }
@@ -284,7 +350,7 @@ fn cargo_fmt<P: AsRef<Path>>(manifest_path: P) -> anyhow::Result<ExitStatus> {
     cmd.stdout(std::process::Stdio::null()) // Don't pollute output
         .arg("fmt")
         .arg("--manifest-path")
-        .arg(manifest_path.as_ref().to_str().expect("Invalid UTF-8 Path"))
+        .arg(manifest_path.as_ref())
         .arg("--quiet");
 
     cmd.status()
@@ -296,10 +362,11 @@ fn cargo_add_by_path<P: AsRef<Path>>(
     crate_path: P,
     dependency: cargo_metadata::DependencyKind,
     features: Option<&str>,
+    offline: bool,
 ) -> anyhow::Result<ExitStatus> {
-    let crate_path = crate_path.as_ref().to_str().expect("Invalid UTF-8 Path");
+    let crate_path = crate_path.as_ref().to_str().context("Invalid UTF-8 Path")?;
     let package = &["--path", crate_path];
-    cargo_add(manifest_path.as_ref(), package, dependency, features)
+    cargo_add(manifest_path, package, dependency, features, offline)
 }
 
 fn manifest_path<P: AsRef<Path>>(path: P) -> PathBuf {
