@@ -63,6 +63,7 @@ gwasm-builder = { version = "=1.8.1", package = "gear-wasm-builder" }
 alloy-primitives = { version = "0.8.19", default-features = false }
 alloy-sol-types = { version = "0.8.19", default-features = false }
 anyhow = "1"
+askama = "0.14"
 cargo-generate = "0.21"
 cargo_metadata = "0.19"
 clap = "4.5"

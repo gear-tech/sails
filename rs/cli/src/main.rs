@@ -1,5 +1,7 @@
 use clap::{Parser, Subcommand};
-use sails_cli::{idlgen::CrateIdlGenerator, program::ProgramGenerator, solgen::SolidityGenerator};
+use sails_cli::{
+    idlgen::CrateIdlGenerator, program::ProgramGenerator, program_new, solgen::SolidityGenerator,
+};
 use sails_client_gen::ClientGenerator;
 use std::{error::Error, path::PathBuf};
 
@@ -28,6 +30,26 @@ enum SailsCommands {
         no_gtest: bool,
         #[arg(long, help = "Use 'sails-rs' crate of the specified version")]
         sails_version: Option<String>,
+    },
+
+    /// Create a new Sails program
+    #[command(name = "new")]
+    New {
+        /// Path to the program directory
+        #[arg(value_hint = clap::ValueHint::DirPath)]
+        path: PathBuf,
+        /// Set the resulting package name, defaults to the directory name
+        #[arg(long)]
+        name: Option<String>,
+        /// Local path to `sails-rs` crate
+        #[arg(long, value_hint = clap::ValueHint::DirPath)]
+        sails_path: Option<PathBuf>,
+        /// Generate application package only
+        #[arg(long)]
+        app: bool,
+        /// Run without accessing the network
+        #[arg(long)]
+        offline: bool,
     },
 
     /// Generate client code from IDL
@@ -113,6 +135,13 @@ fn main() -> Result<(), i32> {
                 .with_sails_version(sails_version);
             program_generator.generate()
         }
+        SailsCommands::New {
+            path,
+            name,
+            sails_path,
+            app,
+            offline,
+        } => program_new::ProgramGenerator::new(path, name, sails_path, app, offline).generate(),
         SailsCommands::ClientRs {
             idl_path,
             out_path,
