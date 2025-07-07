@@ -170,8 +170,11 @@ impl ProgramGenerator {
     }
 
     pub fn generate(self) -> anyhow::Result<()> {
-        self.generate_app()?;
-        if !self.app {
+        if self.app {
+            self.generate_app()?;
+        } else {
+            self.generate_root()?;
+            self.generate_app()?;
             self.generate_client()?;
             self.generate_tests()?;
         }
@@ -193,6 +196,15 @@ impl ProgramGenerator {
 
         let mut lib_rs = File::create(lib_rs_path(&path))?;
         self.app_lib().write_into(&mut lib_rs)?;
+
+        Ok(())
+    }
+
+    fn generate_root(&self) -> anyhow::Result<()> {
+        let path = &self.path;
+        cargo_new(path, &self.package_name, self.offline)?;
+
+        cargo_toml_create_workspace(manifest_path(path))?;
 
         Ok(())
     }
@@ -220,8 +232,6 @@ impl ProgramGenerator {
 
     fn generate_tests(&self) -> anyhow::Result<()> {
         let path = &self.path;
-        cargo_new(path, &self.package_name, self.offline)?;
-
         let manifest_path = manifest_path(path);
         // add sails-rs refs
         self.cargo_add_sails_rs(&manifest_path, Development, Some("gtest,gclient"))?;
@@ -253,9 +263,7 @@ impl ProgramGenerator {
         )?;
 
         // delete ./src folder
-        let mut src_path = path.clone();
-        src_path.push("src");
-        fs::remove_dir_all(src_path)?;
+        fs::remove_dir_all(src_path(path))?;
 
         // add tests
         let test_path = tests_path(path);
@@ -367,6 +375,40 @@ fn cargo_add_by_path<P1: AsRef<Path>, P2: AsRef<Path>>(
     cargo_add(manifest_path, package, dependency, features, offline)
 }
 
+fn cargo_toml_create_workspace<P: AsRef<Path>>(manifest_path: P) -> anyhow::Result<()> {
+    let manifest_path = manifest_path.as_ref();
+    let cargo_toml = fs::read_to_string(manifest_path)?;
+    let mut document: toml_edit::DocumentMut = cargo_toml.parse()?;
+
+    let workspace = document
+        .entry("workspace")
+        .or_insert_with(toml_edit::table)
+        .as_table_mut()
+        .context("workspace was not a table in Cargo.toml")?;
+    _ = workspace
+        .entry("resolver")
+        .or_insert_with(|| toml_edit::value("3"));
+    _ = workspace
+        .entry("members")
+        .or_insert_with(toml_edit::array);
+
+    let workspace_package = workspace
+        .entry("package")
+        .or_insert_with(toml_edit::table)
+        .as_table_mut()
+        .context("workspace.package was not a table in Cargo.toml")?;
+    _ = workspace_package
+        .entry("version")
+        .or_insert_with(|| toml_edit::value("0.1.0"));
+    _ = workspace_package
+        .entry("edition")
+        .or_insert_with(|| toml_edit::value("2024"));
+
+    fs::write(manifest_path, document.to_string())?;
+
+    Ok(())
+}
+
 fn manifest_path<P: AsRef<Path>>(path: P) -> PathBuf {
     let mut path = path.as_ref().to_path_buf();
     path.push("Cargo.toml");
@@ -376,6 +418,12 @@ fn manifest_path<P: AsRef<Path>>(path: P) -> PathBuf {
 fn build_rs_path<P: AsRef<Path>>(path: P) -> PathBuf {
     let mut path = path.as_ref().to_path_buf();
     path.push("build.rs");
+    path
+}
+
+fn src_path<P: AsRef<Path>>(path: P) -> PathBuf {
+    let mut path = path.as_ref().to_path_buf();
+    path.push("src");
     path
 }
 
