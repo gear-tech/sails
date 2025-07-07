@@ -119,9 +119,7 @@ impl ProgramGenerator {
         if self.app {
             self.path.clone()
         } else {
-            let mut path = self.path.clone();
-            path.push("app");
-            path
+            self.path.join("app")
         }
     }
 
@@ -134,9 +132,7 @@ impl ProgramGenerator {
     }
 
     fn client_path(&self) -> PathBuf {
-        let mut path = self.path.clone();
-        path.push("client");
-        path
+        self.path.join("client")
     }
 
     fn client_name(&self) -> String {
@@ -183,18 +179,18 @@ impl ProgramGenerator {
     }
 
     fn generate_app(&self) -> anyhow::Result<()> {
-        let path = self.app_path();
-        cargo_new(&path, self.app_name().as_str(), self.offline)?;
-        let manifest_path = manifest_path(&path);
+        let path = &self.app_path();
+        cargo_new(path, &self.app_name(), self.offline)?;
+        let manifest_path = &manifest_path(path);
 
         // add sails-rs refs
-        self.cargo_add_sails_rs(&manifest_path, Normal, None)?;
-        self.cargo_add_sails_rs(&manifest_path, Build, Some("wasm-builder"))?;
+        self.cargo_add_sails_rs(manifest_path, Normal, None)?;
+        self.cargo_add_sails_rs(manifest_path, Build, Some("wasm-builder"))?;
 
-        let mut build_rs = File::create(build_rs_path(&path))?;
+        let mut build_rs = File::create(build_rs_path(path))?;
         self.app_build().write_into(&mut build_rs)?;
 
-        let mut lib_rs = File::create(lib_rs_path(&path))?;
+        let mut lib_rs = File::create(lib_rs_path(path))?;
         self.app_lib().write_into(&mut lib_rs)?;
 
         Ok(())
@@ -210,21 +206,21 @@ impl ProgramGenerator {
     }
 
     fn generate_client(&self) -> anyhow::Result<()> {
-        let path = self.client_path();
-        cargo_new(&path, self.client_name().as_str(), self.offline)?;
+        let path = &self.client_path();
+        cargo_new(path, &self.client_name(), self.offline)?;
 
-        let manifest_path = manifest_path(&path);
+        let manifest_path = &manifest_path(path);
         // add sails-rs refs
-        self.cargo_add_sails_rs(&manifest_path, Normal, None)?;
-        self.cargo_add_sails_rs(&manifest_path, Build, Some("build"))?;
+        self.cargo_add_sails_rs(manifest_path, Normal, None)?;
+        self.cargo_add_sails_rs(manifest_path, Build, Some("build"))?;
 
         // add app ref
-        cargo_add_by_path(&manifest_path, self.app_path(), Build, None, self.offline)?;
+        cargo_add_by_path(manifest_path, self.app_path(), Build, None, self.offline)?;
 
-        let mut build_rs = File::create(build_rs_path(&path))?;
+        let mut build_rs = File::create(build_rs_path(path))?;
         self.client_build().write_into(&mut build_rs)?;
 
-        let mut lib_rs = File::create(lib_rs_path(&path))?;
+        let mut lib_rs = File::create(lib_rs_path(path))?;
         self.client_lib().write_into(&mut lib_rs)?;
 
         Ok(())
@@ -232,13 +228,13 @@ impl ProgramGenerator {
 
     fn generate_tests(&self) -> anyhow::Result<()> {
         let path = &self.path;
-        let manifest_path = manifest_path(path);
+        let manifest_path = &manifest_path(path);
         // add sails-rs refs
-        self.cargo_add_sails_rs(&manifest_path, Development, Some("gtest,gclient"))?;
+        self.cargo_add_sails_rs(manifest_path, Development, Some("gtest,gclient"))?;
 
         // add tokio
         cargo_add(
-            &manifest_path,
+            manifest_path,
             ["tokio"],
             Development,
             Some("rt,macros"),
@@ -247,7 +243,7 @@ impl ProgramGenerator {
 
         // add app ref
         cargo_add_by_path(
-            &manifest_path,
+            manifest_path,
             self.app_path(),
             Development,
             None,
@@ -255,7 +251,7 @@ impl ProgramGenerator {
         )?;
         // add client ref
         cargo_add_by_path(
-            &manifest_path,
+            manifest_path,
             self.client_path(),
             Development,
             None,
@@ -266,17 +262,17 @@ impl ProgramGenerator {
         fs::remove_dir_all(src_path(path))?;
 
         // add tests
-        let test_path = tests_path(path);
+        let test_path = &tests_path(path);
         fs::create_dir_all(test_path.parent().context("Parent should exists")?)?;
-        let mut gtest_rs = File::create(&test_path)?;
+        let mut gtest_rs = File::create(test_path)?;
         self.tests_gtest().write_into(&mut gtest_rs)?;
 
         Ok(())
     }
 
     fn fmt(&self) -> anyhow::Result<ExitStatus> {
-        let manifest_path = manifest_path(&self.path);
-        cargo_fmt(&manifest_path)
+        let manifest_path = &manifest_path(&self.path);
+        cargo_fmt(manifest_path)
     }
 }
 
@@ -346,7 +342,7 @@ where
     }
 
     cmd.status()
-        .context("failed to execute `cargo new` command")
+        .context("failed to execute `cargo add` command")
 }
 
 fn cargo_fmt<P: AsRef<Path>>(manifest_path: P) -> anyhow::Result<ExitStatus> {
@@ -360,7 +356,7 @@ fn cargo_fmt<P: AsRef<Path>>(manifest_path: P) -> anyhow::Result<ExitStatus> {
         .arg("--quiet");
 
     cmd.status()
-        .context("failed to execute `cargo new` command")
+        .context("failed to execute `cargo fmt` command")
 }
 
 fn cargo_add_by_path<P1: AsRef<Path>, P2: AsRef<Path>>(
@@ -390,7 +386,7 @@ fn cargo_toml_create_workspace<P: AsRef<Path>>(manifest_path: P) -> anyhow::Resu
         .or_insert_with(|| toml_edit::value("3"));
     _ = workspace
         .entry("members")
-        .or_insert_with(toml_edit::array);
+        .or_insert_with(|| toml_edit::value(toml_edit::Array::new()));
 
     let workspace_package = workspace
         .entry("package")
@@ -410,33 +406,23 @@ fn cargo_toml_create_workspace<P: AsRef<Path>>(manifest_path: P) -> anyhow::Resu
 }
 
 fn manifest_path<P: AsRef<Path>>(path: P) -> PathBuf {
-    let mut path = path.as_ref().to_path_buf();
-    path.push("Cargo.toml");
-    path
+    path.as_ref().join("Cargo.toml")
 }
 
 fn build_rs_path<P: AsRef<Path>>(path: P) -> PathBuf {
-    let mut path = path.as_ref().to_path_buf();
-    path.push("build.rs");
-    path
+    path.as_ref().join("build.rs")
 }
 
 fn src_path<P: AsRef<Path>>(path: P) -> PathBuf {
-    let mut path = path.as_ref().to_path_buf();
-    path.push("src");
-    path
+    path.as_ref().join("src")
 }
 
 fn lib_rs_path<P: AsRef<Path>>(path: P) -> PathBuf {
-    let mut path = path.as_ref().to_path_buf();
-    path.push("src/lib.rs");
-    path
+    path.as_ref().join("src/lib.rs")
 }
 
 fn tests_path<P: AsRef<Path>>(path: P) -> PathBuf {
-    let mut path = path.as_ref().to_path_buf();
-    path.push("tests/gtest.rs");
-    path
+    path.as_ref().join("tests/gtest.rs")
 }
 
 fn cargo_command() -> String {
