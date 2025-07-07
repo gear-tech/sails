@@ -1,4 +1,4 @@
-use sails_rs::{export, service};
+use sails_rs::prelude::*;
 
 pub(super) struct MyService;
 
@@ -16,6 +16,7 @@ impl MyService {
     }
 
     #[allow(unused)]
+    #[export]
     pub fn this(&self, p1: bool) -> bool {
         !p1
     }

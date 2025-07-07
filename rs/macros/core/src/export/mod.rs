@@ -1,10 +1,8 @@
+use crate::shared;
 use args::ExportArgs;
-use convert_case::{Case, Casing};
 use proc_macro_error::abort;
 use proc_macro2::{Span, TokenStream};
 use syn::{Attribute, ImplItemFn, parse::Parse, spanned::Spanned};
-
-use crate::{route, shared};
 
 mod args;
 
@@ -41,13 +39,13 @@ pub(crate) fn ensure_single_export_or_route_on_impl(fn_impl: &ImplItemFn) {
             .path()
             .segments
             .last()
-            .map(|s| s.ident == "export" || s.ident == "route")
+            .map(|s| s.ident == "export")
             .unwrap_or(false)
     });
     if attr_export.is_some() {
         abort!(
             fn_impl,
-            "multiple `export` or `route` attributes on the same method are not allowed",
+            "multiple `export` attributes on the same method are not allowed",
         )
     }
 }
@@ -57,47 +55,37 @@ fn ensure_returns_result_with_unwrap_result(fn_impl: ImplItemFn, args: ExportArg
     _ = shared::unwrap_result_type(&fn_impl.sig, args.unwrap_result());
 }
 
-pub(crate) fn invocation_export(fn_impl: &ImplItemFn) -> (Span, String, bool) {
-    if let Some((args, span)) = parse_export_args(&fn_impl.attrs) {
-        let ident = &fn_impl.sig.ident;
-        let unwrap_result = args.unwrap_result();
-        args.route().map_or_else(
-            || {
-                (
-                    ident.span(),
-                    ident.to_string().to_case(Case::Pascal),
-                    unwrap_result,
-                )
-            },
-            |route| (span, route.to_case(Case::Pascal), unwrap_result),
-        )
-    } else {
-        let (span, route) = route::invocation_route(fn_impl);
-        (span, route, false)
-    }
-}
-
-fn parse_export_args(attrs: &[Attribute]) -> Option<(ExportArgs, Span)> {
-    attrs
+pub(crate) fn parse_export_args(attrs: &[Attribute]) -> Option<(ExportArgs, Span)> {
+    let mut attrs = attrs
         .iter()
-        .filter_map(|attr| parse_attr(attr).map(|args| (args, attr.meta.span())))
-        .next()
+        .filter_map(|attr| parse_attr(attr).map(|args| (args, attr.meta.span())));
+    let export = attrs.next();
+    if let Some((_, span)) = attrs.next() {
+        abort!(
+            span,
+            "multiple `export` attributes are not allowed for the same method"
+        )
+    }
+    export
 }
 
 pub(crate) fn parse_attr(attr: &Attribute) -> Option<ExportArgs> {
-    let meta = attr.meta.require_list().ok()?;
-    if meta
-        .path
+    if attr
+        .path()
         .segments
         .last()
         .is_some_and(|s| s.ident == "export")
     {
-        let args = meta
-            .parse_args_with(ExportArgs::parse)
-            .unwrap_or_else(|er| {
-                abort!(meta.span(), "`export` attribute cannot be parsed: {}", er)
-            });
-        Some(args)
+        if let Ok(list) = attr.meta.require_list() {
+            let args = list
+                .parse_args_with(ExportArgs::parse)
+                .unwrap_or_else(|err| {
+                    abort!(list.span(), "`export` attribute cannot be parsed: {}", err)
+                });
+            Some(args)
+        } else {
+            Some(ExportArgs::default())
+        }
     } else {
         None
     }

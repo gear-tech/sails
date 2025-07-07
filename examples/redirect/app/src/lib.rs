@@ -5,13 +5,16 @@ use sails_rs::{gstd, prelude::*};
 #[derive(Default)]
 struct RedirectService;
 
-#[sails_rs::service]
 impl RedirectService {
-    pub fn new() -> Self {
+    pub const fn new() -> Self {
         Self
     }
+}
 
+#[sails_rs::service]
+impl RedirectService {
     /// Exit from program with inheritor ID
+    #[sails_rs::export]
     pub fn exit(&mut self, inheritor_id: ActorId) {
         let program_id = gstd::exec::program_id();
         if program_id != inheritor_id {
@@ -20,6 +23,7 @@ impl RedirectService {
     }
 
     /// Returns program ID of the current program
+    #[sails_rs::export]
     pub async fn get_program_id(&self) -> ActorId {
         gstd::exec::program_id()
     }

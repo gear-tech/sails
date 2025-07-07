@@ -24,17 +24,10 @@ impl DogService {
     }
 }
 
-// Implementing `AsRef` for each of the extended services
-impl AsRef<WalkerService> for DogService {
-    fn as_ref(&self) -> &WalkerService {
-        &self.walker
-    }
-}
-
-// Implementing `AsRef` for each of the extended services
-impl AsRef<MammalService> for DogService {
-    fn as_ref(&self) -> &MammalService {
-        &self.mammal
+// Implementing `From` for each of the extended services
+impl From<DogService> for (MammalService, WalkerService) {
+    fn from(value: DogService) -> Self {
+        (value.mammal, value.walker)
     }
 }
 
@@ -49,6 +42,7 @@ impl AsRef<MammalService> for DogService {
 // See [IDL](/examples/demo/wasm/demo.idl)
 #[service(extends = [MammalService, WalkerService], events = DogEvents)]
 impl DogService {
+    #[export]
     pub fn make_sound(&mut self) -> &'static str {
         self.emit_event(DogEvents::Barked).unwrap();
         "Woof! Woof!"
