@@ -79,8 +79,8 @@ pub(crate) fn parse_attr(attr: &Attribute) -> Option<ExportArgs> {
         if let Ok(list) = attr.meta.require_list() {
             let args = list
                 .parse_args_with(ExportArgs::parse)
-                .unwrap_or_else(|er| {
-                    abort!(list.span(), "`export` attribute cannot be parsed: {}", er)
+                .unwrap_or_else(|err| {
+                    abort!(list.span(), "`export` attribute cannot be parsed: {}", err)
                 });
             Some(args)
         } else {

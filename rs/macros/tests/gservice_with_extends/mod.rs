@@ -53,10 +53,9 @@ pub(super) mod extended {
         }
     }
 
-    #[allow(clippy::from_over_into)]
-    impl Into<base::Base> for Extended {
-        fn into(self) -> base::Base {
-            self.base
+    impl From<Extended> for base::Base {
+        fn from(value: Extended) -> Self {
+            value.base
         }
     }
 }
@@ -77,10 +76,9 @@ pub(super) mod extended_pure {
     #[service(extends = base::Base)]
     impl ExtendedPure {}
 
-    #[allow(clippy::from_over_into)]
-    impl Into<base::Base> for ExtendedPure {
-        fn into(self) -> base::Base {
-            self.base
+    impl From<ExtendedPure> for base::Base {
+        fn from(value: ExtendedPure) -> Self {
+            value.base
         }
     }
 }

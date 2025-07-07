@@ -54,9 +54,8 @@ impl<'a> ExtendedWithLifetime<'a> {
     }
 }
 
-#[allow(clippy::from_over_into)]
-impl<'a> Into<BaseWithLifetime<'a>> for ExtendedWithLifetime<'a> {
-    fn into(self) -> BaseWithLifetime<'a> {
-        self.base
+impl<'a> From<ExtendedWithLifetime<'a>> for BaseWithLifetime<'a> {
+    fn from(value: ExtendedWithLifetime<'a>) -> Self {
+        value.base
     }
 }

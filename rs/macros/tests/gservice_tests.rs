@@ -108,8 +108,6 @@ fn gservice_with_extends() {
         })
         .unwrap();
 
-    // let _base: &<Base as Service>::Exposure = extended_svc.as_base_0();
-
     let extended_svc = Extended::new(Base).expose(SERVICE_ROUTE);
     // Check asyncness of the base service.
     assert!(
@@ -319,8 +317,6 @@ fn gservice_with_extends_and_lifetimes() {
             assert_eq!(output.len(), 0);
         })
         .unwrap();
-
-    // let _base: &<BaseWithLifetime as Service>::Exposure = extended_svc.as_base_0();
 
     let extended_svc = ExtendedWithLifetime::new(BaseWithLifetime::new(&int)).expose(SERVICE_ROUTE);
 
