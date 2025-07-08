@@ -4,7 +4,7 @@ expression: result
 ---
 impl MyProgram {
     pub fn create() -> Self {
-        Self
+        Default::default()
     }
 }
 impl sails_rs::meta::ProgramMeta for MyProgram {

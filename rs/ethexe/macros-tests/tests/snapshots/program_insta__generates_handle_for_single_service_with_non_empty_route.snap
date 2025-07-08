@@ -7,7 +7,7 @@ impl MyProgram {
         MyService
     }
     pub fn create() -> Self {
-        Self
+        Default::default()
     }
     pub fn service(&self) -> <MyService as sails_rs::gstd::services::Service>::Exposure {
         let service = self.__service();

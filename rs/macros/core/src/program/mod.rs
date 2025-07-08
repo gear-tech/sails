@@ -468,20 +468,11 @@ fn gen_gprogram_impl(program_impl: ItemImpl, program_args: ProgramArgs) -> Token
 }
 
 fn ensure_default_program_ctor(program_impl: &mut ItemImpl) {
-    let self_type_path: TypePath = parse_quote!(Self);
-    let (program_type_path, _, _) = shared::impl_type_refs(program_impl.self_ty.as_ref());
-
     let sails_path = &sails_paths::sails_path_or_default(None);
-    if shared::discover_invocation_targets(
-        program_impl,
-        |fn_item| program_ctor_predicate(fn_item, &self_type_path, program_type_path),
-        sails_path,
-    )
-    .is_empty()
-    {
+    if discover_program_ctors(program_impl, sails_path).is_empty() {
         program_impl.items.push(ImplItem::Fn(parse_quote!(
             pub fn create() -> Self {
-                Self
+                Default::default()
             }
         )));
     }

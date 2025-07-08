@@ -14,6 +14,7 @@ pub enum Events {
     },
 }
 
+#[derive(Default)]
 pub struct MyProgram;
 
 #[sails_rs::program]
