@@ -20,11 +20,11 @@ impl<R> Multiple<R> {
     }
 }
 impl<R: Remoting + Clone> traits::Multiple for Multiple<R> {
-    type Args = R::Args;
-    fn do_this(&mut self, p1: u32, p2: MyParam) -> impl Call<Output = u16, Args = R::Args> {
+    type Remoting = R;
+    fn do_this(&mut self, p1: u32, p2: MyParam) -> impl Call<Output = u16, Remoting = R> {
         RemotingAction::<_, multiple::io::DoThis>::new(self.remoting.clone(), (p1, p2))
     }
-    fn do_that(&mut self, p1: (u8, u32)) -> impl Call<Output = u8, Args = R::Args> {
+    fn do_that(&mut self, p1: (u8, u32)) -> impl Call<Output = u8, Remoting = R> {
         RemotingAction::<_, multiple::io::DoThat>::new(self.remoting.clone(), p1)
     }
 }
@@ -70,8 +70,8 @@ impl<R> Named<R> {
     }
 }
 impl<R: Remoting + Clone> traits::Named for Named<R> {
-    type Args = R::Args;
-    fn that(&self, p1: u32) -> impl Query<Output = String, Args = R::Args> {
+    type Remoting = R;
+    fn that(&self, p1: u32) -> impl Query<Output = String, Remoting = R> {
         RemotingAction::<_, named::io::That>::new(self.remoting.clone(), p1)
     }
 }
@@ -102,15 +102,19 @@ pub mod traits {
 
     #[allow(clippy::type_complexity)]
     pub trait Multiple {
-        type Args;
-        fn do_this(&mut self, p1: u32, p2: MyParam) -> impl Call<Output = u16, Args = Self::Args>;
-        fn do_that(&mut self, p1: (u8, u32)) -> impl Call<Output = u8, Args = Self::Args>;
+        type Remoting: Remoting;
+        fn do_this(
+            &mut self,
+            p1: u32,
+            p2: MyParam,
+        ) -> impl Call<Output = u16, Remoting = Self::Remoting>;
+        fn do_that(&mut self, p1: (u8, u32)) -> impl Call<Output = u8, Remoting = Self::Remoting>;
     }
 
     #[allow(clippy::type_complexity)]
     pub trait Named {
-        type Args;
-        fn that(&self, p1: u32) -> impl Query<Output = String, Args = Self::Args>;
+        type Remoting: Remoting;
+        fn that(&self, p1: u32) -> impl Query<Output = String, Remoting = Self::Remoting>;
     }
 }
 

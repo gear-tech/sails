@@ -20,12 +20,12 @@ impl<R> ServiceWithEvents<R> {
     }
 }
 impl<R: Remoting + Clone> traits::ServiceWithEvents for ServiceWithEvents<R> {
-    type Args = R::Args;
+    type Remoting = R;
     fn do_this(
         &mut self,
         p1: NonZeroU256,
         p2: MyParam,
-    ) -> impl Call<Output = NonZeroU64, Args = R::Args> {
+    ) -> impl Call<Output = NonZeroU64, Remoting = R> {
         RemotingAction::<_, service_with_events::io::DoThis>::new(self.remoting.clone(), (p1, p2))
     }
 }
@@ -94,12 +94,12 @@ pub mod traits {
 
     #[allow(clippy::type_complexity)]
     pub trait ServiceWithEvents {
-        type Args;
+        type Remoting: Remoting;
         fn do_this(
             &mut self,
             p1: NonZeroU256,
             p2: MyParam,
-        ) -> impl Call<Output = NonZeroU64, Args = Self::Args>;
+        ) -> impl Call<Output = NonZeroU64, Remoting = Self::Remoting>;
     }
 }
 

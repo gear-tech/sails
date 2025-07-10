@@ -1,8 +1,14 @@
+use crate::{
+    errors::{Error, Result, RtlError},
+    prelude::*,
+    utils::MaybeUninitBufferWriter,
+};
 #[doc(hidden)]
 #[cfg(feature = "ethexe")]
 pub use ethexe::{EthEvent, EthEventExpo};
 #[doc(hidden)]
 pub use events::{EventEmitter, SailsEvent};
+use gcore::stack_buffer;
 #[cfg(not(feature = "ethexe"))]
 #[doc(hidden)]
 pub use gstd::handle_signal;
@@ -13,13 +19,6 @@ pub use gstd::{debug, exec, msg};
 pub use sails_macros::{event, export, program, service};
 pub use syscalls::Syscall;
 
-use crate::{
-    errors::{Error, Result, RtlError},
-    prelude::*,
-};
-use gcore::stack_buffer;
-use utils::MaybeUninitBufferWriter;
-
 pub mod calls;
 #[cfg(feature = "ethexe")]
 mod ethexe;
@@ -27,7 +26,6 @@ mod events;
 mod message_future;
 pub mod services;
 mod syscalls;
-mod utils;
 
 pub struct CommandReply<T>(T, ValueUnit);
 

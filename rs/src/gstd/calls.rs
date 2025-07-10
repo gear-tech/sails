@@ -1,6 +1,6 @@
 use super::message_future::MessageFutureExtended;
 use crate::{
-    calls::{Action, Remoting},
+    calls::{Action, CallOneWay, Remoting},
     errors::Result,
     futures::FutureExt,
     prelude::*,
@@ -281,5 +281,27 @@ where
     /// This flag is set to `false`` by default.
     fn with_redirect_on_exit(self, redirect_on_exit: bool) -> Self {
         self.with_args(|args| args.with_redirect_on_exit(redirect_on_exit))
+    }
+}
+
+impl CallOneWay for GStdRemoting {
+    fn send_one_way(
+        self,
+        target: ActorId,
+        payload: impl AsRef<[u8]>,
+        #[cfg(not(feature = "ethexe"))] gas_limit: Option<GasUnit>,
+        value: ValueUnit,
+        _args: Self::Args,
+    ) -> Result<MessageId> {
+        let payload = payload.as_ref();
+        #[cfg(not(feature = "ethexe"))]
+        if let Some(gas_limit) = gas_limit {
+            gcore::msg::send_with_gas(target, payload, gas_limit, value).map_err(Into::into)
+        } else {
+            gcore::msg::send(target, payload, value).map_err(Into::into)
+        }
+
+        #[cfg(feature = "ethexe")]
+        gcore::msg::send(target, payload, value).map_err(Into::into)
     }
 }

@@ -56,9 +56,9 @@ impl<R> Proxy<R> {
     }
 }
 impl<R: Remoting + Clone> traits::Proxy for Proxy<R> {
-    type Args = R::Args;
+    type Remoting = R;
     /// Get program ID of the target program via client
-    fn get_program_id(&self) -> impl Query<Output = ActorId, Args = R::Args> {
+    fn get_program_id(&self) -> impl Query<Output = ActorId, Remoting = R> {
         RemotingAction::<_, proxy::io::GetProgramId>::new(self.remoting.clone(), ())
     }
 }
@@ -99,7 +99,7 @@ pub mod traits {
 
     #[allow(clippy::type_complexity)]
     pub trait Proxy {
-        type Args;
-        fn get_program_id(&self) -> impl Query<Output = ActorId, Args = Self::Args>;
+        type Remoting: Remoting;
+        fn get_program_id(&self) -> impl Query<Output = ActorId, Remoting = Self::Remoting>;
     }
 }

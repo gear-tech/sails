@@ -31,52 +31,56 @@ mock! {
 }
 
 mock! {
-    pub Call<A, O> {}
+    pub Call<O, R: Remoting> {}
 
-    impl<A, O> Action for Call<A, O> {
-        type Args = A;
+    impl<O, R: Remoting> Action for Call<O, R> {
+        type Args = R::Args;
 
         #[cfg(not(feature = "ethexe"))]
         fn with_gas_limit(self, gas_limit: GasUnit) -> Self;
         fn with_value(self, value: ValueUnit) -> Self;
         #[mockall::concretize]
-        fn with_args<F: FnOnce(A) -> A>(self, args_fn: F) -> Self;
+        fn with_args<F: FnOnce(R::Args) -> R::Args>(self, args_fn: F) -> Self;
 
         #[cfg(not(feature = "ethexe"))]
         fn gas_limit(&self) -> Option<GasUnit>;
         fn value(&self) -> ValueUnit;
-        fn args(&self) -> &A;
+        fn args(&self) -> &R::Args;
     }
 
-    impl<A, O> Call for Call<A, O>
+    impl<O, R: Remoting> Call for Call<O, R>
     {
+        type Remoting = R;
         type Output = O;
 
         #[allow(refining_impl_trait)]
         async fn send(self, target: ActorId) -> Result<MockReply<O>>;
+        #[allow(refining_impl_trait)]
         async fn send_recv(self, target: ActorId) -> Result<O>;
+        fn send_one_way(self, target: ActorId) -> Result<MessageId>;
     }
 }
 
 mock! {
-    pub Query<A, O> {}
+    pub Query<R: Remoting, O> {}
 
-    impl<A, O> Action for Query<A, O> {
-        type Args = A;
+    impl<R: Remoting, O> Action for Query<R, O> {
+        type Args = R::Args;
 
         #[cfg(not(feature = "ethexe"))]
         fn with_gas_limit(self, gas_limit: GasUnit) -> Self;
         fn with_value(self, value: ValueUnit) -> Self;
         #[mockall::concretize]
-        fn with_args<F: FnOnce(A) -> A>(self, args_fn: F) -> Self;
+        fn with_args<F: FnOnce(R::Args) -> R::Args>(self, args_fn: F) -> Self;
 
         #[cfg(not(feature = "ethexe"))]
         fn gas_limit(&self) -> Option<GasUnit>;
         fn value(&self) -> ValueUnit;
-        fn args(&self) -> &A;
+        fn args(&self) -> &R::Args;
     }
 
-    impl<A, O> Query for Query<A, O> {
+    impl<R: Remoting, O> Query for Query<R, O> {
+        type Remoting = R;
         type Output = O;
 
         async fn recv(self, target: ActorId) -> Result<O>;

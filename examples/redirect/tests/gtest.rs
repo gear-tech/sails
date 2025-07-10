@@ -1,6 +1,6 @@
 use redirect_client::traits::{Redirect as _, RedirectClientFactory as _};
 use redirect_proxy_client::traits::{Proxy as _, RedirectProxyClientFactory as _};
-use sails_rs::{CodeId, GasUnit, calls::*};
+use sails_rs::{CodeId, GasUnit, calls::*, gtest::calls::GTestRemoting};
 
 const ACTOR_ID: u64 = 42;
 
@@ -61,9 +61,10 @@ async fn redirect_on_exit_works() {
 
     let _ = redirect_client
         .exit(program_id_3)
-        .send(program_id_2)
-        .await
+        .send_one_way(program_id_2)
         .unwrap();
+
+    remoting.run_next_block();
 
     let result = proxy_client
         .get_program_id()
@@ -74,7 +75,7 @@ async fn redirect_on_exit_works() {
     assert_eq!(result, program_id_3);
 }
 
-fn create_remoting() -> (impl Remoting + Clone, CodeId, CodeId, GasUnit) {
+fn create_remoting() -> (GTestRemoting, CodeId, CodeId, GasUnit) {
     use sails_rs::gtest::{
         MAX_USER_GAS_LIMIT, System,
         calls::{BlockRunMode, GTestRemoting},

@@ -57,7 +57,7 @@ impl<R> Service<R> {
     }
 }
 impl<R: Remoting + Clone> traits::Service for Service<R> {
-    type Args = R::Args;
+    type Remoting = R;
     /// Some description
     fn do_this(
         &mut self,
@@ -65,7 +65,7 @@ impl<R: Remoting + Clone> traits::Service for Service<R> {
         p2: String,
         p3: (Option<String>, u8),
         p4: ThisThatSvcAppTupleStruct,
-    ) -> impl Call<Output = (String, u32), Args = R::Args> {
+    ) -> impl Call<Output = (String, u32), Remoting = R> {
         RemotingAction::<_, service::io::DoThis>::new(self.remoting.clone(), (p1, p2, p3, p4))
     }
     /// Some multiline description
@@ -74,16 +74,16 @@ impl<R: Remoting + Clone> traits::Service for Service<R> {
     fn do_that(
         &mut self,
         param: ThisThatSvcAppDoThatParam,
-    ) -> impl Call<Output = Result<(String, u32), (String,)>, Args = R::Args> {
+    ) -> impl Call<Output = Result<(String, u32), (String,)>, Remoting = R> {
         RemotingAction::<_, service::io::DoThat>::new(self.remoting.clone(), param)
     }
     /// This is a query
-    fn this(&self, v1: Vec<u16>) -> impl Query<Output = u32, Args = R::Args> {
+    fn this(&self, v1: Vec<u16>) -> impl Query<Output = u32, Remoting = R> {
         RemotingAction::<_, service::io::This>::new(self.remoting.clone(), v1)
     }
     /// This is a second query
     /// This is a second line
-    fn that(&self, v1: ()) -> impl Query<Output = Result<String, String>, Args = R::Args> {
+    fn that(&self, v1: ()) -> impl Query<Output = Result<String, String>, Remoting = R> {
         RemotingAction::<_, service::io::That>::new(self.remoting.clone(), v1)
     }
 }
@@ -239,20 +239,23 @@ pub mod traits {
 
     #[allow(clippy::type_complexity)]
     pub trait Service {
-        type Args;
+        type Remoting: Remoting;
         fn do_this(
             &mut self,
             p1: u32,
             p2: String,
             p3: (Option<String>, u8),
             p4: ThisThatSvcAppTupleStruct,
-        ) -> impl Call<Output = (String, u32), Args = Self::Args>;
+        ) -> impl Call<Output = (String, u32), Remoting = Self::Remoting>;
         fn do_that(
             &mut self,
             param: ThisThatSvcAppDoThatParam,
-        ) -> impl Call<Output = Result<(String, u32), (String,)>, Args = Self::Args>;
-        fn this(&self, v1: Vec<u16>) -> impl Query<Output = u32, Args = Self::Args>;
-        fn that(&self, v1: ()) -> impl Query<Output = Result<String, String>, Args = Self::Args>;
+        ) -> impl Call<Output = Result<(String, u32), (String,)>, Remoting = Self::Remoting>;
+        fn this(&self, v1: Vec<u16>) -> impl Query<Output = u32, Remoting = Self::Remoting>;
+        fn that(
+            &self,
+            v1: (),
+        ) -> impl Query<Output = Result<String, String>, Remoting = Self::Remoting>;
     }
 }
 

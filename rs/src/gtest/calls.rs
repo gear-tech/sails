@@ -1,5 +1,5 @@
 use crate::{
-    calls::{Action, Remoting},
+    calls::{Action, CallOneWay, Remoting},
     collections::HashMap,
     errors::{Result, RtlError},
     events::Listener,
@@ -300,5 +300,18 @@ where
 {
     fn with_actor_id(self, actor_id: ActorId) -> Self {
         self.with_args(|args| args.with_actor_id(actor_id))
+    }
+}
+
+impl CallOneWay for GTestRemoting {
+    fn send_one_way(
+        self,
+        target: ActorId,
+        payload: impl AsRef<[u8]>,
+        #[cfg(not(feature = "ethexe"))] gas_limit: Option<GasUnit>,
+        value: ValueUnit,
+        args: Self::Args,
+    ) -> Result<MessageId> {
+        self.send_message(target, payload, gas_limit, value, args)
     }
 }

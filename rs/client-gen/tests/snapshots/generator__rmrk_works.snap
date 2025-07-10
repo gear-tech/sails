@@ -56,12 +56,12 @@ impl<R> RmrkCatalog<R> {
     }
 }
 impl<R: Remoting + Clone> traits::RmrkCatalog for RmrkCatalog<R> {
-    type Args = R::Args;
+    type Remoting = R;
     fn add_equippables(
         &mut self,
         part_id: u32,
         collection_ids: Vec<ActorId>,
-    ) -> impl Call<Output = Result<(u32, Vec<ActorId>), Error>, Args = R::Args> {
+    ) -> impl Call<Output = Result<(u32, Vec<ActorId>), Error>, Remoting = R> {
         RemotingAction::<_, rmrk_catalog::io::AddEquippables>::new(
             self.remoting.clone(),
             (part_id, collection_ids),
@@ -70,14 +70,14 @@ impl<R: Remoting + Clone> traits::RmrkCatalog for RmrkCatalog<R> {
     fn add_parts(
         &mut self,
         parts: BTreeMap<u32, Part>,
-    ) -> impl Call<Output = Result<BTreeMap<u32, Part>, Error>, Args = R::Args> {
+    ) -> impl Call<Output = Result<BTreeMap<u32, Part>, Error>, Remoting = R> {
         RemotingAction::<_, rmrk_catalog::io::AddParts>::new(self.remoting.clone(), parts)
     }
     fn remove_equippable(
         &mut self,
         part_id: u32,
         collection_id: ActorId,
-    ) -> impl Call<Output = Result<(u32, ActorId), Error>, Args = R::Args> {
+    ) -> impl Call<Output = Result<(u32, ActorId), Error>, Remoting = R> {
         RemotingAction::<_, rmrk_catalog::io::RemoveEquippable>::new(
             self.remoting.clone(),
             (part_id, collection_id),
@@ -86,19 +86,19 @@ impl<R: Remoting + Clone> traits::RmrkCatalog for RmrkCatalog<R> {
     fn remove_parts(
         &mut self,
         part_ids: Vec<u32>,
-    ) -> impl Call<Output = Result<Vec<u32>, Error>, Args = R::Args> {
+    ) -> impl Call<Output = Result<Vec<u32>, Error>, Remoting = R> {
         RemotingAction::<_, rmrk_catalog::io::RemoveParts>::new(self.remoting.clone(), part_ids)
     }
     fn reset_equippables(
         &mut self,
         part_id: u32,
-    ) -> impl Call<Output = Result<(), Error>, Args = R::Args> {
+    ) -> impl Call<Output = Result<(), Error>, Remoting = R> {
         RemotingAction::<_, rmrk_catalog::io::ResetEquippables>::new(self.remoting.clone(), part_id)
     }
     fn set_equippables_to_all(
         &mut self,
         part_id: u32,
-    ) -> impl Call<Output = Result<(), Error>, Args = R::Args> {
+    ) -> impl Call<Output = Result<(), Error>, Remoting = R> {
         RemotingAction::<_, rmrk_catalog::io::SetEquippablesToAll>::new(
             self.remoting.clone(),
             part_id,
@@ -108,13 +108,13 @@ impl<R: Remoting + Clone> traits::RmrkCatalog for RmrkCatalog<R> {
         &self,
         part_id: u32,
         collection_id: ActorId,
-    ) -> impl Query<Output = Result<bool, Error>, Args = R::Args> {
+    ) -> impl Query<Output = Result<bool, Error>, Remoting = R> {
         RemotingAction::<_, rmrk_catalog::io::Equippable>::new(
             self.remoting.clone(),
             (part_id, collection_id),
         )
     }
-    fn part(&self, part_id: u32) -> impl Query<Output = Option<Part>, Args = R::Args> {
+    fn part(&self, part_id: u32) -> impl Query<Output = Option<Part>, Remoting = R> {
         RemotingAction::<_, rmrk_catalog::io::Part>::new(self.remoting.clone(), part_id)
     }
 }
@@ -302,39 +302,42 @@ pub mod traits {
 
     #[allow(clippy::type_complexity)]
     pub trait RmrkCatalog {
-        type Args;
+        type Remoting: Remoting;
         fn add_equippables(
             &mut self,
             part_id: u32,
             collection_ids: Vec<ActorId>,
-        ) -> impl Call<Output = Result<(u32, Vec<ActorId>), Error>, Args = Self::Args>;
+        ) -> impl Call<Output = Result<(u32, Vec<ActorId>), Error>, Remoting = Self::Remoting>;
         fn add_parts(
             &mut self,
             parts: BTreeMap<u32, Part>,
-        ) -> impl Call<Output = Result<BTreeMap<u32, Part>, Error>, Args = Self::Args>;
+        ) -> impl Call<Output = Result<BTreeMap<u32, Part>, Error>, Remoting = Self::Remoting>;
         fn remove_equippable(
             &mut self,
             part_id: u32,
             collection_id: ActorId,
-        ) -> impl Call<Output = Result<(u32, ActorId), Error>, Args = Self::Args>;
+        ) -> impl Call<Output = Result<(u32, ActorId), Error>, Remoting = Self::Remoting>;
         fn remove_parts(
             &mut self,
             part_ids: Vec<u32>,
-        ) -> impl Call<Output = Result<Vec<u32>, Error>, Args = Self::Args>;
+        ) -> impl Call<Output = Result<Vec<u32>, Error>, Remoting = Self::Remoting>;
         fn reset_equippables(
             &mut self,
             part_id: u32,
-        ) -> impl Call<Output = Result<(), Error>, Args = Self::Args>;
+        ) -> impl Call<Output = Result<(), Error>, Remoting = Self::Remoting>;
         fn set_equippables_to_all(
             &mut self,
             part_id: u32,
-        ) -> impl Call<Output = Result<(), Error>, Args = Self::Args>;
+        ) -> impl Call<Output = Result<(), Error>, Remoting = Self::Remoting>;
         fn equippable(
             &self,
             part_id: u32,
             collection_id: ActorId,
-        ) -> impl Query<Output = Result<bool, Error>, Args = Self::Args>;
-        fn part(&self, part_id: u32) -> impl Query<Output = Option<Part>, Args = Self::Args>;
+        ) -> impl Query<Output = Result<bool, Error>, Remoting = Self::Remoting>;
+        fn part(
+            &self,
+            part_id: u32,
+        ) -> impl Query<Output = Option<Part>, Remoting = Self::Remoting>;
     }
 }
 
