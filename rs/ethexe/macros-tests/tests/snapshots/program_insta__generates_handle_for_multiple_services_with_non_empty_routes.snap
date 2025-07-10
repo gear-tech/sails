@@ -10,7 +10,7 @@ impl MyProgram {
         MyService
     }
     pub fn create() -> Self {
-        Self
+        Default::default()
     }
     pub fn service1(
         &self,

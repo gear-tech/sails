@@ -156,12 +156,14 @@ A set of its associated __public__ functions returning `Self` are treated as app
 constructors. These functions can accept some parameters passed by a client and can be
 synchronous or asynchronous. One of them will be called once at the very beginning of
 the application lifetime, i.e. when the application is loaded onto the network. The
-returned program instance will live until the application stays on the network. If there
-are no such methods discovered, a default one with the following signature will be generated:
+returned program instance will live until the application stays on the network.
+
+If there are no such methods discovered, *__program__* struct must implement the `Default` trait,
+and a default constructor with the following signature will be generated:
 
 ```rust
-pub fn default() -> Self {
-    Self
+pub fn create() -> Self {
+    Default::default()
 }
 ```
 
