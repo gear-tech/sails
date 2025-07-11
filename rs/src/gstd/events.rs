@@ -1,7 +1,6 @@
 //! Functionality for notifying off-chain subscribers on events happening in on-chain programs.
 
-use super::utils::MaybeUninitBufferWriter;
-use crate::{Encode, Output};
+use crate::{Encode, Output, utils::MaybeUninitBufferWriter};
 use core::marker::PhantomData;
 use gcore::stack_buffer;
 

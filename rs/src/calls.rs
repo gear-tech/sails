@@ -1,8 +1,10 @@
 use crate::{
     errors::{Error, Result, RtlError},
     prelude::*,
+    utils::MaybeUninitBufferWriter,
 };
 use core::{future::Future, marker::PhantomData};
+use gcore::stack_buffer;
 
 pub trait Action {
     type Args;
@@ -19,7 +21,8 @@ pub trait Action {
 }
 
 #[allow(async_fn_in_trait)]
-pub trait Call: Action {
+pub trait Call: Action<Args = <Self::Remoting as Remoting>::Args> {
+    type Remoting: Remoting;
     type Output;
 
     async fn send(self, target: ActorId) -> Result<impl Reply<Output = Self::Output>>;
@@ -30,6 +33,21 @@ pub trait Call: Action {
     {
         self.send(target).await?.recv().await
     }
+
+    fn send_one_way(self, target: ActorId) -> Result<MessageId>
+    where
+        Self::Remoting: CallOneWay;
+}
+
+pub trait CallOneWay: Remoting {
+    fn send_one_way(
+        self,
+        target: ActorId,
+        payload: impl AsRef<[u8]>,
+        #[cfg(not(feature = "ethexe"))] gas_limit: Option<GasUnit>,
+        value: ValueUnit,
+        args: Self::Args,
+    ) -> Result<MessageId>;
 }
 
 #[allow(async_fn_in_trait)]
@@ -49,7 +67,8 @@ pub trait Activation: Action {
 }
 
 #[allow(async_fn_in_trait)]
-pub trait Query: Action {
+pub trait Query: Action<Args = <Self::Remoting as Remoting>::Args> {
+    type Remoting: Remoting;
     type Output;
 
     async fn recv(self, target: ActorId) -> Result<Self::Output>;
@@ -151,8 +170,8 @@ pub trait Remoting {
 }
 
 pub struct RemotingAction<TRemoting: Remoting, TActionIo: ActionIo> {
-    remoting: TRemoting,
-    params: TActionIo::Params,
+    pub(crate) remoting: TRemoting,
+    pub(crate) params: TActionIo::Params,
     #[cfg(not(feature = "ethexe"))]
     gas_limit: Option<GasUnit>,
     value: ValueUnit,
@@ -212,6 +231,7 @@ where
     TRemoting: Remoting,
     TActionIo: ActionIo,
 {
+    type Remoting = TRemoting;
     type Output = TActionIo::Reply;
 
     async fn send(self, target: ActorId) -> Result<impl Reply<Output = TActionIo::Reply>> {
@@ -228,6 +248,22 @@ where
             )
             .await?;
         Ok(CallTicket::<_, TActionIo>::new(reply_future))
+    }
+
+    fn send_one_way(self, target: ActorId) -> Result<MessageId>
+    where
+        Self::Remoting: CallOneWay,
+    {
+        TActionIo::with_optimized_encode(&self.params, |payload| {
+            self.remoting.send_one_way(
+                target,
+                payload,
+                #[cfg(not(feature = "ethexe"))]
+                self.gas_limit,
+                self.value,
+                self.args,
+            )
+        })
     }
 }
 
@@ -263,6 +299,7 @@ where
     TRemoting: Remoting,
     TActionIo: ActionIo,
 {
+    type Remoting = TRemoting;
     type Output = TActionIo::Reply;
 
     async fn recv(self, target: ActorId) -> Result<Self::Output> {
@@ -301,5 +338,15 @@ pub trait ActionIo {
         }
         value = &value[Self::ROUTE.len()..];
         Decode::decode(&mut value).map_err(Error::Codec)
+    }
+
+    fn with_optimized_encode<R>(value: &Self::Params, f: impl FnOnce(&[u8]) -> R) -> R {
+        let size = Self::ROUTE.len() + Encode::encoded_size(value);
+        stack_buffer::with_byte_buffer(size, |buffer| {
+            let mut buffer_writer = MaybeUninitBufferWriter::new(buffer);
+            buffer_writer.write(Self::ROUTE);
+            Encode::encode_to(value, &mut buffer_writer);
+            buffer_writer.with_buffer(f)
+        })
     }
 }

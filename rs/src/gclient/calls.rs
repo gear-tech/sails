@@ -265,7 +265,7 @@ pub trait QueryExt {
 
 impl<T> QueryExt for T
 where
-    T: Query<Args = GClientArgs>,
+    T: Query<Remoting = GClientRemoting>,
 {
     fn at_block(self, hash: H256) -> Self {
         self.with_args(|args| args.at_block(hash))

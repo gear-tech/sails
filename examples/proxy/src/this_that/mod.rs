@@ -52,7 +52,10 @@ where
 mod tests {
     use super::*;
     use demo_client::mockall::MockThisThat;
-    use sails_rename::{gstd::services::Service, mockall::*};
+    use sails_rename::{
+        gstd::{calls::GStdRemoting, services::Service},
+        mockall::*,
+    };
 
     #[tokio::test]
     async fn this_that_caller_query_this() {
@@ -60,7 +63,7 @@ mod tests {
         const ACTOR_ID: u64 = 11;
         Syscall::with_program_id(ActorId::from(1));
 
-        let mut mock_this_that = MockThisThat::<()>::new();
+        let mut mock_this_that = MockThisThat::<GStdRemoting>::new();
         mock_this_that.expect_this().returning(|| {
             let mut mock_query_this = MockQuery::new();
             mock_query_this
@@ -85,7 +88,7 @@ mod tests {
         const ACTOR_ID: u64 = 11;
         Syscall::with_program_id(ActorId::from(1));
 
-        let mut mock_this_that = MockThisThat::<()>::new();
+        let mut mock_this_that = MockThisThat::<GStdRemoting>::new();
         mock_this_that
             .expect_do_this()
             .returning(move |p1, p2, _p3, _p4| {
@@ -121,7 +124,7 @@ mod tests {
         const ACTOR_ID: u64 = 11;
         Syscall::with_program_id(ActorId::from(ACTOR_ID));
 
-        let mock_this_that = MockThisThat::<()>::new();
+        let mock_this_that = MockThisThat::<GStdRemoting>::new();
 
         // act
         let mut this_that_caller = ThisThatCaller::new(mock_this_that).expose(&[]);
