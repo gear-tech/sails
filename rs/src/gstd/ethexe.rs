@@ -15,7 +15,7 @@ where
 
 #[cfg(target_arch = "wasm32")]
 fn with_optimized_encode<T, E: EthEvent>(event: E, f: impl FnOnce(&[u8]) -> T) -> T {
-    use super::utils::MaybeUninitBufferWriter;
+    use crate::utils::MaybeUninitBufferWriter;
 
     let topics = event.topics();
     let data = event.data();

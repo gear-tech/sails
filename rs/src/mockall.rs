@@ -31,9 +31,9 @@ mock! {
 }
 
 mock! {
-    pub Call<O, R: Remoting> {}
+    pub Call<R: Remoting, O> {}
 
-    impl<O, R: Remoting> Action for Call<O, R> {
+    impl<R: Remoting, O> Action for Call<R, O> {
         type Args = R::Args;
 
         #[cfg(not(feature = "ethexe"))]
@@ -48,7 +48,7 @@ mock! {
         fn args(&self) -> &R::Args;
     }
 
-    impl<O, R: Remoting> Call for Call<O, R>
+    impl<R: Remoting, O> Call for Call<R, O>
     {
         type Remoting = R;
         type Output = O;

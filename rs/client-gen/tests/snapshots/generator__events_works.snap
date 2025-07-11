@@ -112,5 +112,5 @@ extern crate std;
 pub mod mockall {
     use super::*;
     use sails_rs::mockall::*;
-    mock! { pub ServiceWithEvents<A> {} #[allow(refining_impl_trait)] #[allow(clippy::type_complexity)] impl<A> traits::ServiceWithEvents for ServiceWithEvents<A> { type Args = A; fn do_this (&mut self, p1: NonZeroU256,p2: MyParam,) -> MockCall<A, NonZeroU64>; } }
+    mock! { pub ServiceWithEvents<R: Remoting> {} #[allow(refining_impl_trait)] #[allow(clippy::type_complexity)] impl<R: Remoting> traits::ServiceWithEvents for ServiceWithEvents<R> { type Remoting = R; fn do_this (&mut self, p1: NonZeroU256,p2: MyParam,) -> MockCall<R, NonZeroU64>; } }
 }

@@ -312,6 +312,13 @@ impl CallOneWay for GTestRemoting {
         value: ValueUnit,
         args: Self::Args,
     ) -> Result<MessageId> {
-        self.send_message(target, payload, gas_limit, value, args)
+        self.send_message(
+            target,
+            payload,
+            #[cfg(not(feature = "ethexe"))]
+            gas_limit,
+            value,
+            args,
+        )
     }
 }

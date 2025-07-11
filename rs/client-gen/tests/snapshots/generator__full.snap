@@ -268,5 +268,5 @@ extern crate std;
 pub mod mockall {
     use super::*;
     use sails_rs::mockall::*;
-    mock! { pub Service<A> {} #[allow(refining_impl_trait)] #[allow(clippy::type_complexity)] impl<A> traits::Service for Service<A> { type Args = A; fn do_this (&mut self, p1: u32,p2: String,p3: (Option<String>,u8,),p4: ThisThatSvcAppTupleStruct,) -> MockCall<A, (String,u32,)>;fn do_that (&mut self, param: ThisThatSvcAppDoThatParam,) -> MockCall<A, Result<(String,u32,), (String,)>>;fn this (& self, v1: Vec<u16>,) -> MockQuery<A, u32>;fn that (& self, v1: (),) -> MockQuery<A, Result<String, String>>; } }
+    mock! { pub Service<R: Remoting> {} #[allow(refining_impl_trait)] #[allow(clippy::type_complexity)] impl<R: Remoting> traits::Service for Service<R> { type Remoting = R; fn do_this (&mut self, p1: u32,p2: String,p3: (Option<String>,u8,),p4: ThisThatSvcAppTupleStruct,) -> MockCall<R, (String,u32,)>;fn do_that (&mut self, param: ThisThatSvcAppDoThatParam,) -> MockCall<R, Result<(String,u32,), (String,)>>;fn this (& self, v1: Vec<u16>,) -> MockQuery<R, u32>;fn that (& self, v1: (),) -> MockQuery<R, Result<String, String>>; } }
 }

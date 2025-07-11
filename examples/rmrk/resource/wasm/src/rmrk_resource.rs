@@ -52,12 +52,12 @@ impl<R> RmrkResource<R> {
     }
 }
 impl<R: Remoting + Clone> traits::RmrkResource for RmrkResource<R> {
-    type Args = R::Args;
+    type Remoting = R;
     fn add_part_to_resource(
         &mut self,
         resource_id: u8,
         part_id: u32,
-    ) -> impl Call<Output = Result<u32, Error>, Args = R::Args> {
+    ) -> impl Call<Output = Result<u32, Error>, Remoting = R> {
         RemotingAction::<_, rmrk_resource::io::AddPartToResource>::new(
             self.remoting.clone(),
             (resource_id, part_id),
@@ -67,7 +67,7 @@ impl<R: Remoting + Clone> traits::RmrkResource for RmrkResource<R> {
         &mut self,
         resource_id: u8,
         resource: Resource,
-    ) -> impl Call<Output = Result<(u8, Resource), Error>, Args = R::Args> {
+    ) -> impl Call<Output = Result<(u8, Resource), Error>, Remoting = R> {
         RemotingAction::<_, rmrk_resource::io::AddResourceEntry>::new(
             self.remoting.clone(),
             (resource_id, resource),
@@ -76,7 +76,7 @@ impl<R: Remoting + Clone> traits::RmrkResource for RmrkResource<R> {
     fn resource(
         &self,
         resource_id: u8,
-    ) -> impl Query<Output = Result<Resource, Error>, Args = R::Args> {
+    ) -> impl Query<Output = Result<Resource, Error>, Remoting = R> {
         RemotingAction::<_, rmrk_resource::io::Resource>::new(self.remoting.clone(), resource_id)
     }
 }
@@ -234,20 +234,20 @@ pub mod traits {
 
     #[allow(clippy::type_complexity)]
     pub trait RmrkResource {
-        type Args;
+        type Remoting: Remoting;
         fn add_part_to_resource(
             &mut self,
             resource_id: u8,
             part_id: u32,
-        ) -> impl Call<Output = Result<u32, Error>, Args = Self::Args>;
+        ) -> impl Call<Output = Result<u32, Error>, Remoting = Self::Remoting>;
         fn add_resource_entry(
             &mut self,
             resource_id: u8,
             resource: Resource,
-        ) -> impl Call<Output = Result<(u8, Resource), Error>, Args = Self::Args>;
+        ) -> impl Call<Output = Result<(u8, Resource), Error>, Remoting = Self::Remoting>;
         fn resource(
             &self,
             resource_id: u8,
-        ) -> impl Query<Output = Result<Resource, Error>, Args = Self::Args>;
+        ) -> impl Query<Output = Result<Resource, Error>, Remoting = Self::Remoting>;
     }
 }
