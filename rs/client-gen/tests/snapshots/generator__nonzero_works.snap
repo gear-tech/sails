@@ -44,6 +44,7 @@ pub mod non_zero_params {
             }
         }
         impl ActionIo for DoThis {
+            const IS_ACTIVATION: bool = false;
             const ROUTE: &'static [u8] = &[24, 68, 111, 84, 104, 105, 115];
             type Params = (NonZeroU256, super::MyParam);
             type Reply = NonZeroU64;

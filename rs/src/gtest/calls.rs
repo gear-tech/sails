@@ -9,7 +9,7 @@ use crate::{
     rc::Rc,
 };
 use core::{cell::RefCell, future::Future};
-use gear_core_errors::{ReplyCode, SuccessReplyReason};
+use gear_core_errors::ReplyCode;
 
 type EventSender = channel::mpsc::UnboundedSender<(ActorId, Vec<u8>)>;
 type ReplySender = channel::oneshot::Sender<Result<Vec<u8>>>;
@@ -137,9 +137,7 @@ impl GTestRemoting {
                         Some(ReplyCode::Error(reason)) => {
                             Err(RtlError::ReplyHasError(reason, entry.payload().to_vec()).into())
                         }
-                        Some(ReplyCode::Success(SuccessReplyReason::Manual)) => {
-                            Ok(entry.payload().to_vec())
-                        }
+                        Some(ReplyCode::Success(_)) => Ok(entry.payload().to_vec()),
                         _ => Err(RtlError::ReplyIsMissing.into()),
                     };
                     _ = sender.send(reply);

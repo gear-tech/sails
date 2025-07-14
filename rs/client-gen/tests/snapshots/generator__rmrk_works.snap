@@ -41,6 +41,7 @@ pub mod rmrk_catalog_factory {
             }
         }
         impl ActionIo for New {
+            const IS_ACTIVATION: bool = true;
             const ROUTE: &'static [u8] = &[12, 78, 101, 119];
             type Params = ();
             type Reply = ();
@@ -133,6 +134,7 @@ pub mod rmrk_catalog {
             }
         }
         impl ActionIo for AddEquippables {
+            const IS_ACTIVATION: bool = false;
             const ROUTE: &'static [u8] = &[
                 44, 82, 109, 114, 107, 67, 97, 116, 97, 108, 111, 103, 56, 65, 100, 100, 69, 113,
                 117, 105, 112, 112, 97, 98, 108, 101, 115,
@@ -148,6 +150,7 @@ pub mod rmrk_catalog {
             }
         }
         impl ActionIo for AddParts {
+            const IS_ACTIVATION: bool = false;
             const ROUTE: &'static [u8] = &[
                 44, 82, 109, 114, 107, 67, 97, 116, 97, 108, 111, 103, 32, 65, 100, 100, 80, 97,
                 114, 116, 115,
@@ -163,6 +166,7 @@ pub mod rmrk_catalog {
             }
         }
         impl ActionIo for RemoveEquippable {
+            const IS_ACTIVATION: bool = false;
             const ROUTE: &'static [u8] = &[
                 44, 82, 109, 114, 107, 67, 97, 116, 97, 108, 111, 103, 64, 82, 101, 109, 111, 118,
                 101, 69, 113, 117, 105, 112, 112, 97, 98, 108, 101,
@@ -178,6 +182,7 @@ pub mod rmrk_catalog {
             }
         }
         impl ActionIo for RemoveParts {
+            const IS_ACTIVATION: bool = false;
             const ROUTE: &'static [u8] = &[
                 44, 82, 109, 114, 107, 67, 97, 116, 97, 108, 111, 103, 44, 82, 101, 109, 111, 118,
                 101, 80, 97, 114, 116, 115,
@@ -193,6 +198,7 @@ pub mod rmrk_catalog {
             }
         }
         impl ActionIo for ResetEquippables {
+            const IS_ACTIVATION: bool = false;
             const ROUTE: &'static [u8] = &[
                 44, 82, 109, 114, 107, 67, 97, 116, 97, 108, 111, 103, 64, 82, 101, 115, 101, 116,
                 69, 113, 117, 105, 112, 112, 97, 98, 108, 101, 115,
@@ -208,6 +214,7 @@ pub mod rmrk_catalog {
             }
         }
         impl ActionIo for SetEquippablesToAll {
+            const IS_ACTIVATION: bool = false;
             const ROUTE: &'static [u8] = &[
                 44, 82, 109, 114, 107, 67, 97, 116, 97, 108, 111, 103, 76, 83, 101, 116, 69, 113,
                 117, 105, 112, 112, 97, 98, 108, 101, 115, 84, 111, 65, 108, 108,
@@ -223,6 +230,7 @@ pub mod rmrk_catalog {
             }
         }
         impl ActionIo for Equippable {
+            const IS_ACTIVATION: bool = false;
             const ROUTE: &'static [u8] = &[
                 44, 82, 109, 114, 107, 67, 97, 116, 97, 108, 111, 103, 40, 69, 113, 117, 105, 112,
                 112, 97, 98, 108, 101,
@@ -238,6 +246,7 @@ pub mod rmrk_catalog {
             }
         }
         impl ActionIo for Part {
+            const IS_ACTIVATION: bool = false;
             const ROUTE: &'static [u8] = &[
                 44, 82, 109, 114, 107, 67, 97, 116, 97, 108, 111, 103, 16, 80, 97, 114, 116,
             ];

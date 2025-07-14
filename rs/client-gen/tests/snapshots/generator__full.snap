@@ -42,6 +42,7 @@ pub mod service_factory {
             }
         }
         impl ActionIo for New {
+            const IS_ACTIVATION: bool = true;
             const ROUTE: &'static [u8] = &[12, 78, 101, 119];
             type Params = u32;
             type Reply = ();
@@ -107,6 +108,7 @@ pub mod service {
             }
         }
         impl ActionIo for DoThis {
+            const IS_ACTIVATION: bool = false;
             const ROUTE: &'static [u8] = &[24, 68, 111, 84, 104, 105, 115];
             type Params = (
                 u32,
@@ -124,6 +126,7 @@ pub mod service {
             }
         }
         impl ActionIo for DoThat {
+            const IS_ACTIVATION: bool = false;
             const ROUTE: &'static [u8] = &[24, 68, 111, 84, 104, 97, 116];
             type Params = super::ThisThatSvcAppDoThatParam;
             type Reply = Result<(String, u32), (String,)>;
@@ -136,6 +139,7 @@ pub mod service {
             }
         }
         impl ActionIo for This {
+            const IS_ACTIVATION: bool = false;
             const ROUTE: &'static [u8] = &[16, 84, 104, 105, 115];
             type Params = Vec<u16>;
             type Reply = u32;
@@ -148,6 +152,7 @@ pub mod service {
             }
         }
         impl ActionIo for That {
+            const IS_ACTIVATION: bool = false;
             const ROUTE: &'static [u8] = &[16, 84, 104, 97, 116];
             type Params = ();
             type Reply = Result<String, String>;

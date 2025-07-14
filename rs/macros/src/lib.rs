@@ -23,7 +23,7 @@ use proc_macro_error::proc_macro_error;
 ///
 /// ```rust
 /// mod my_service {
-///     use sails_rs::service;
+///     use sails_rs::{export, service};
 ///
 ///     #[derive(parity_scale_codec::Encode, scale_info::TypeInfo)]
 ///     pub enum MyServiceEvents {
@@ -34,11 +34,13 @@ use proc_macro_error::proc_macro_error;
 ///
 ///     #[service(events = MyServiceEvents)]
 ///     impl MyService {
+///         #[export]
 ///         pub fn do_something(&mut self) -> u32 {
 ///             self.emit_event(MyServiceEvents::SomethingDone).unwrap();
 ///             0
 ///         }
 ///
+///         #[export]
 ///         pub fn get_something(&self) -> u32 {
 ///             0
 ///         }

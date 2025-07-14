@@ -37,6 +37,7 @@ pub mod rmrk_resource_factory {
             }
         }
         impl ActionIo for New {
+            const IS_ACTIVATION: bool = true;
             const ROUTE: &'static [u8] = &[12, 78, 101, 119];
             type Params = ();
             type Reply = ();
@@ -95,6 +96,7 @@ pub mod rmrk_resource {
             }
         }
         impl ActionIo for AddPartToResource {
+            const IS_ACTIVATION: bool = false;
             const ROUTE: &'static [u8] = &[
                 48, 82, 109, 114, 107, 82, 101, 115, 111, 117, 114, 99, 101, 68, 65, 100, 100, 80,
                 97, 114, 116, 84, 111, 82, 101, 115, 111, 117, 114, 99, 101,
@@ -110,6 +112,7 @@ pub mod rmrk_resource {
             }
         }
         impl ActionIo for AddResourceEntry {
+            const IS_ACTIVATION: bool = false;
             const ROUTE: &'static [u8] = &[
                 48, 82, 109, 114, 107, 82, 101, 115, 111, 117, 114, 99, 101, 64, 65, 100, 100, 82,
                 101, 115, 111, 117, 114, 99, 101, 69, 110, 116, 114, 121,
@@ -125,6 +128,7 @@ pub mod rmrk_resource {
             }
         }
         impl ActionIo for Resource {
+            const IS_ACTIVATION: bool = false;
             const ROUTE: &'static [u8] = &[
                 48, 82, 109, 114, 107, 82, 101, 115, 111, 117, 114, 99, 101, 32, 82, 101, 115, 111,
                 117, 114, 99, 101,
