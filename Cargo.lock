@@ -2667,6 +2667,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "gbuiltin-proxy"
+version = "1.8.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2beac2a698e3438d9bc0acd884ea39ef3cd2ee2ed5e07779c1f69812e52cb4c5"
+dependencies = [
+ "gprimitives",
+ "parity-scale-codec",
+]
+
+[[package]]
 name = "gclient"
 version = "1.8.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6846,6 +6856,7 @@ dependencies = [
  "alloy-sol-types",
  "convert_case 0.7.1",
  "futures",
+ "gbuiltin-proxy",
  "gclient",
  "gcore",
  "gear-core",

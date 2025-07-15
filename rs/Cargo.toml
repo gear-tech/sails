@@ -19,6 +19,7 @@ gcore.workspace = true
 gprimitives.workspace = true
 gstd = { workspace = true, optional = true }
 gwasm-builder = { workspace = true, optional = true }
+gbuiltin-proxy.workspace = true
 hashbrown.workspace = true
 hex.workspace = true
 keccak-const = { workspace = true, optional = true }
