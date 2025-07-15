@@ -355,8 +355,7 @@ impl ProgramBuilder {
 
                 #solidity_init
 
-                let invocation_route = #(#ctor_dispatches)else*;
-                gstd::msg::reply_bytes(invocation_route, 0).expect("Failed to send output");
+                #(#ctor_dispatches)else*;
             }
         };
 
@@ -688,7 +687,6 @@ impl FnBuilder<'_> {
         quote!(
             if let Ok(request) = meta_in_program::#params_struct_ident::decode_params( #input_ident) {
                 #ctor_call_impl
-                meta_in_program::#params_struct_ident::ROUTE
             }
         )
     }

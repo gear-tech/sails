@@ -65,11 +65,13 @@ impl SomeServiceExposure<SomeService> {
         if let Ok(request) = some_service_meta::__ThisParams::decode_params(input) {
             let result = self.this(request.p1);
             let value = 0u128;
-            some_service_meta::__ThisParams::with_optimized_encode(
-                &result,
-                self.route().as_ref(),
-                |encoded_result| result_handler(encoded_result, value),
-            );
+            if sails_rs::prelude::Encode::encoded_size(&result) != 0 {
+                some_service_meta::__ThisParams::with_optimized_encode(
+                    &result,
+                    self.route().as_ref(),
+                    |encoded_result| result_handler(encoded_result, value),
+                );
+            }
             return Some(());
         }
         None
@@ -86,11 +88,13 @@ impl SomeServiceExposure<SomeService> {
         ) {
             let result = self.do_this(request.p1, request.p2).await.unwrap();
             let value = 0u128;
-            some_service_meta::__DoSomethingParams::with_optimized_encode(
-                &result,
-                self.route().as_ref(),
-                |encoded_result| result_handler(encoded_result, value),
-            );
+            if sails_rs::prelude::Encode::encoded_size(&result) != 0 {
+                some_service_meta::__DoSomethingParams::with_optimized_encode(
+                    &result,
+                    self.route().as_ref(),
+                    |encoded_result| result_handler(encoded_result, value),
+                );
+            }
             return Some(());
         }
         None

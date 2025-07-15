@@ -98,11 +98,13 @@ impl ReferenceServiceExposure<ReferenceService> {
         ) {
             let result = self.add_byte(request.byte);
             let value = 0u128;
-            reference_service_meta::__AddByteParams::with_optimized_encode(
-                &result,
-                self.route().as_ref(),
-                |encoded_result| result_handler(encoded_result, value),
-            );
+            if sails_rs::prelude::Encode::encoded_size(&result) != 0 {
+                reference_service_meta::__AddByteParams::with_optimized_encode(
+                    &result,
+                    self.route().as_ref(),
+                    |encoded_result| result_handler(encoded_result, value),
+                );
+            }
             return Some(());
         }
         if let Ok(request) = reference_service_meta::__BakedParams::decode_params(
@@ -110,21 +112,25 @@ impl ReferenceServiceExposure<ReferenceService> {
         ) {
             let result = self.baked();
             let value = 0u128;
-            reference_service_meta::__BakedParams::with_optimized_encode(
-                &result,
-                self.route().as_ref(),
-                |encoded_result| result_handler(encoded_result, value),
-            );
+            if sails_rs::prelude::Encode::encoded_size(&result) != 0 {
+                reference_service_meta::__BakedParams::with_optimized_encode(
+                    &result,
+                    self.route().as_ref(),
+                    |encoded_result| result_handler(encoded_result, value),
+                );
+            }
             return Some(());
         }
         if let Ok(request) = reference_service_meta::__IncrParams::decode_params(input) {
             let result = self.incr();
             let value = 0u128;
-            reference_service_meta::__IncrParams::with_optimized_encode(
-                &result,
-                self.route().as_ref(),
-                |encoded_result| result_handler(encoded_result, value),
-            );
+            if sails_rs::prelude::Encode::encoded_size(&result) != 0 {
+                reference_service_meta::__IncrParams::with_optimized_encode(
+                    &result,
+                    self.route().as_ref(),
+                    |encoded_result| result_handler(encoded_result, value),
+                );
+            }
             return Some(());
         }
         None
@@ -141,11 +147,13 @@ impl ReferenceServiceExposure<ReferenceService> {
         ) {
             let result = self.first_byte().await;
             let value = 0u128;
-            reference_service_meta::__FirstByteParams::with_optimized_encode(
-                &result,
-                self.route().as_ref(),
-                |encoded_result| result_handler(encoded_result, value),
-            );
+            if sails_rs::prelude::Encode::encoded_size(&result) != 0 {
+                reference_service_meta::__FirstByteParams::with_optimized_encode(
+                    &result,
+                    self.route().as_ref(),
+                    |encoded_result| result_handler(encoded_result, value),
+                );
+            }
             return Some(());
         }
         if let Ok(request) = reference_service_meta::__LastByteParams::decode_params(
@@ -153,11 +161,13 @@ impl ReferenceServiceExposure<ReferenceService> {
         ) {
             let result = self.last_byte().await;
             let value = 0u128;
-            reference_service_meta::__LastByteParams::with_optimized_encode(
-                &result,
-                self.route().as_ref(),
-                |encoded_result| result_handler(encoded_result, value),
-            );
+            if sails_rs::prelude::Encode::encoded_size(&result) != 0 {
+                reference_service_meta::__LastByteParams::with_optimized_encode(
+                    &result,
+                    self.route().as_ref(),
+                    |encoded_result| result_handler(encoded_result, value),
+                );
+            }
             return Some(());
         }
         None
