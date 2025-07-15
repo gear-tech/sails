@@ -126,7 +126,7 @@ pub(crate) fn generate_io_struct(
         $encode_call_tokens
 
         impl ActionIo for $fn_name {
-            const HAS_EMPTY_REPLY: bool = $has_empty_reply;
+            const ZERO_SIZE_REPLY: bool = $has_empty_reply;
             const ROUTE: &'static [u8] = &[$route_bytes];
             type Params = $param_tokens;
             type Reply = $func_output;

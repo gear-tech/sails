@@ -41,7 +41,7 @@ pub mod redirect_proxy_client_factory {
             }
         }
         impl ActionIo for New {
-            const HAS_EMPTY_REPLY: bool = true;
+            const ZERO_SIZE_REPLY: bool = true;
             const ROUTE: &'static [u8] = &[12, 78, 101, 119];
             type Params = ActorId;
             type Reply = ();
@@ -78,7 +78,7 @@ pub mod proxy {
             }
         }
         impl ActionIo for GetProgramId {
-            const HAS_EMPTY_REPLY: bool = false;
+            const ZERO_SIZE_REPLY: bool = false;
             const ROUTE: &'static [u8] = &[
                 20, 80, 114, 111, 120, 121, 48, 71, 101, 116, 80, 114, 111, 103, 114, 97, 109, 73,
                 100,

@@ -49,7 +49,7 @@ pub mod demo_client_factory {
             }
         }
         impl ActionIo for Default {
-            const HAS_EMPTY_REPLY: bool = true;
+            const ZERO_SIZE_REPLY: bool = true;
             const ROUTE: &'static [u8] = &[28, 68, 101, 102, 97, 117, 108, 116];
             type Params = ();
             type Reply = ();
@@ -62,7 +62,7 @@ pub mod demo_client_factory {
             }
         }
         impl ActionIo for New {
-            const HAS_EMPTY_REPLY: bool = true;
+            const ZERO_SIZE_REPLY: bool = true;
             const ROUTE: &'static [u8] = &[12, 78, 101, 119];
             type Params = (Option<u32>, Option<(i32, i32)>);
             type Reply = ();
@@ -101,7 +101,7 @@ pub mod ping_pong {
             }
         }
         impl ActionIo for Ping {
-            const HAS_EMPTY_REPLY: bool = false;
+            const ZERO_SIZE_REPLY: bool = false;
             const ROUTE: &'static [u8] = &[
                 32, 80, 105, 110, 103, 80, 111, 110, 103, 16, 80, 105, 110, 103,
             ];
@@ -148,7 +148,7 @@ pub mod counter {
             }
         }
         impl ActionIo for Add {
-            const HAS_EMPTY_REPLY: bool = false;
+            const ZERO_SIZE_REPLY: bool = false;
             const ROUTE: &'static [u8] = &[28, 67, 111, 117, 110, 116, 101, 114, 12, 65, 100, 100];
             type Params = u32;
             type Reply = u32;
@@ -161,7 +161,7 @@ pub mod counter {
             }
         }
         impl ActionIo for Sub {
-            const HAS_EMPTY_REPLY: bool = false;
+            const ZERO_SIZE_REPLY: bool = false;
             const ROUTE: &'static [u8] = &[28, 67, 111, 117, 110, 116, 101, 114, 12, 83, 117, 98];
             type Params = u32;
             type Reply = u32;
@@ -174,7 +174,7 @@ pub mod counter {
             }
         }
         impl ActionIo for Value {
-            const HAS_EMPTY_REPLY: bool = false;
+            const ZERO_SIZE_REPLY: bool = false;
             const ROUTE: &'static [u8] = &[
                 28, 67, 111, 117, 110, 116, 101, 114, 20, 86, 97, 108, 117, 101,
             ];
@@ -247,7 +247,7 @@ pub mod dog {
             }
         }
         impl ActionIo for MakeSound {
-            const HAS_EMPTY_REPLY: bool = false;
+            const ZERO_SIZE_REPLY: bool = false;
             const ROUTE: &'static [u8] = &[
                 12, 68, 111, 103, 36, 77, 97, 107, 101, 83, 111, 117, 110, 100,
             ];
@@ -262,7 +262,7 @@ pub mod dog {
             }
         }
         impl ActionIo for Walk {
-            const HAS_EMPTY_REPLY: bool = true;
+            const ZERO_SIZE_REPLY: bool = true;
             const ROUTE: &'static [u8] = &[12, 68, 111, 103, 16, 87, 97, 108, 107];
             type Params = (i32, i32);
             type Reply = ();
@@ -275,7 +275,7 @@ pub mod dog {
             }
         }
         impl ActionIo for AvgWeight {
-            const HAS_EMPTY_REPLY: bool = false;
+            const ZERO_SIZE_REPLY: bool = false;
             const ROUTE: &'static [u8] = &[
                 12, 68, 111, 103, 36, 65, 118, 103, 87, 101, 105, 103, 104, 116,
             ];
@@ -290,7 +290,7 @@ pub mod dog {
             }
         }
         impl ActionIo for Position {
-            const HAS_EMPTY_REPLY: bool = false;
+            const ZERO_SIZE_REPLY: bool = false;
             const ROUTE: &'static [u8] =
                 &[12, 68, 111, 103, 32, 80, 111, 115, 105, 116, 105, 111, 110];
             type Params = ();
@@ -375,7 +375,7 @@ pub mod references {
             }
         }
         impl ActionIo for Add {
-            const HAS_EMPTY_REPLY: bool = false;
+            const ZERO_SIZE_REPLY: bool = false;
             const ROUTE: &'static [u8] = &[
                 40, 82, 101, 102, 101, 114, 101, 110, 99, 101, 115, 12, 65, 100, 100,
             ];
@@ -390,7 +390,7 @@ pub mod references {
             }
         }
         impl ActionIo for AddByte {
-            const HAS_EMPTY_REPLY: bool = false;
+            const ZERO_SIZE_REPLY: bool = false;
             const ROUTE: &'static [u8] = &[
                 40, 82, 101, 102, 101, 114, 101, 110, 99, 101, 115, 28, 65, 100, 100, 66, 121, 116,
                 101,
@@ -406,7 +406,7 @@ pub mod references {
             }
         }
         impl ActionIo for GuessNum {
-            const HAS_EMPTY_REPLY: bool = false;
+            const ZERO_SIZE_REPLY: bool = false;
             const ROUTE: &'static [u8] = &[
                 40, 82, 101, 102, 101, 114, 101, 110, 99, 101, 115, 32, 71, 117, 101, 115, 115, 78,
                 117, 109,
@@ -422,7 +422,7 @@ pub mod references {
             }
         }
         impl ActionIo for Incr {
-            const HAS_EMPTY_REPLY: bool = false;
+            const ZERO_SIZE_REPLY: bool = false;
             const ROUTE: &'static [u8] = &[
                 40, 82, 101, 102, 101, 114, 101, 110, 99, 101, 115, 16, 73, 110, 99, 114,
             ];
@@ -437,7 +437,7 @@ pub mod references {
             }
         }
         impl ActionIo for SetNum {
-            const HAS_EMPTY_REPLY: bool = false;
+            const ZERO_SIZE_REPLY: bool = false;
             const ROUTE: &'static [u8] = &[
                 40, 82, 101, 102, 101, 114, 101, 110, 99, 101, 115, 24, 83, 101, 116, 78, 117, 109,
             ];
@@ -452,7 +452,7 @@ pub mod references {
             }
         }
         impl ActionIo for Baked {
-            const HAS_EMPTY_REPLY: bool = false;
+            const ZERO_SIZE_REPLY: bool = false;
             const ROUTE: &'static [u8] = &[
                 40, 82, 101, 102, 101, 114, 101, 110, 99, 101, 115, 20, 66, 97, 107, 101, 100,
             ];
@@ -467,7 +467,7 @@ pub mod references {
             }
         }
         impl ActionIo for LastByte {
-            const HAS_EMPTY_REPLY: bool = false;
+            const ZERO_SIZE_REPLY: bool = false;
             const ROUTE: &'static [u8] = &[
                 40, 82, 101, 102, 101, 114, 101, 110, 99, 101, 115, 32, 76, 97, 115, 116, 66, 121,
                 116, 101,
@@ -483,7 +483,7 @@ pub mod references {
             }
         }
         impl ActionIo for Message {
-            const HAS_EMPTY_REPLY: bool = false;
+            const ZERO_SIZE_REPLY: bool = false;
             const ROUTE: &'static [u8] = &[
                 40, 82, 101, 102, 101, 114, 101, 110, 99, 101, 115, 28, 77, 101, 115, 115, 97, 103,
                 101,
@@ -544,7 +544,7 @@ pub mod this_that {
             }
         }
         impl ActionIo for DoThat {
-            const HAS_EMPTY_REPLY: bool = false;
+            const ZERO_SIZE_REPLY: bool = false;
             const ROUTE: &'static [u8] = &[
                 32, 84, 104, 105, 115, 84, 104, 97, 116, 24, 68, 111, 84, 104, 97, 116,
             ];
@@ -564,7 +564,7 @@ pub mod this_that {
             }
         }
         impl ActionIo for DoThis {
-            const HAS_EMPTY_REPLY: bool = false;
+            const ZERO_SIZE_REPLY: bool = false;
             const ROUTE: &'static [u8] = &[
                 32, 84, 104, 105, 115, 84, 104, 97, 116, 24, 68, 111, 84, 104, 105, 115,
             ];
@@ -579,7 +579,7 @@ pub mod this_that {
             }
         }
         impl ActionIo for Noop {
-            const HAS_EMPTY_REPLY: bool = true;
+            const ZERO_SIZE_REPLY: bool = true;
             const ROUTE: &'static [u8] = &[
                 32, 84, 104, 105, 115, 84, 104, 97, 116, 16, 78, 111, 111, 112,
             ];
@@ -594,7 +594,7 @@ pub mod this_that {
             }
         }
         impl ActionIo for That {
-            const HAS_EMPTY_REPLY: bool = false;
+            const ZERO_SIZE_REPLY: bool = false;
             const ROUTE: &'static [u8] = &[
                 32, 84, 104, 105, 115, 84, 104, 97, 116, 16, 84, 104, 97, 116,
             ];
@@ -609,7 +609,7 @@ pub mod this_that {
             }
         }
         impl ActionIo for This {
-            const HAS_EMPTY_REPLY: bool = false;
+            const ZERO_SIZE_REPLY: bool = false;
             const ROUTE: &'static [u8] = &[
                 32, 84, 104, 105, 115, 84, 104, 97, 116, 16, 84, 104, 105, 115,
             ];
@@ -649,7 +649,7 @@ pub mod value_fee {
             }
         }
         impl ActionIo for DoSomethingAndTakeFee {
-            const HAS_EMPTY_REPLY: bool = false;
+            const ZERO_SIZE_REPLY: bool = false;
             const ROUTE: &'static [u8] = &[
                 32, 86, 97, 108, 117, 101, 70, 101, 101, 84, 68, 111, 83, 111, 109, 101, 116, 104,
                 105, 110, 103, 65, 110, 100, 84, 97, 107, 101, 70, 101, 101,

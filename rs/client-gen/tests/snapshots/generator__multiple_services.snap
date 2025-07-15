@@ -43,7 +43,7 @@ pub mod multiple {
             }
         }
         impl ActionIo for DoThis {
-            const HAS_EMPTY_REPLY: bool = false;
+            const ZERO_SIZE_REPLY: bool = false;
             const ROUTE: &'static [u8] = &[24, 68, 111, 84, 104, 105, 115];
             type Params = (u32, super::MyParam);
             type Reply = u16;
@@ -56,7 +56,7 @@ pub mod multiple {
             }
         }
         impl ActionIo for DoThat {
-            const HAS_EMPTY_REPLY: bool = false;
+            const ZERO_SIZE_REPLY: bool = false;
             const ROUTE: &'static [u8] = &[24, 68, 111, 84, 104, 97, 116];
             type Params = (u8, u32);
             type Reply = u8;
@@ -92,7 +92,7 @@ pub mod named {
             }
         }
         impl ActionIo for That {
-            const HAS_EMPTY_REPLY: bool = false;
+            const ZERO_SIZE_REPLY: bool = false;
             const ROUTE: &'static [u8] = &[20, 78, 97, 109, 101, 100, 16, 84, 104, 97, 116];
             type Params = u32;
             type Reply = String;
