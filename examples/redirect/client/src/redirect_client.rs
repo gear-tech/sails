@@ -37,7 +37,7 @@ pub mod redirect_client_factory {
             }
         }
         impl ActionIo for New {
-            const IS_ACTIVATION: bool = true;
+            const HAS_EMPTY_REPLY: bool = true;
             const ROUTE: &'static [u8] = &[12, 78, 101, 119];
             type Params = ();
             type Reply = ();
@@ -78,7 +78,7 @@ pub mod redirect {
             }
         }
         impl ActionIo for Exit {
-            const IS_ACTIVATION: bool = false;
+            const HAS_EMPTY_REPLY: bool = true;
             const ROUTE: &'static [u8] = &[
                 32, 82, 101, 100, 105, 114, 101, 99, 116, 16, 69, 120, 105, 116,
             ];
@@ -93,7 +93,7 @@ pub mod redirect {
             }
         }
         impl ActionIo for GetProgramId {
-            const IS_ACTIVATION: bool = false;
+            const HAS_EMPTY_REPLY: bool = false;
             const ROUTE: &'static [u8] = &[
                 32, 82, 101, 100, 105, 114, 101, 99, 116, 48, 71, 101, 116, 80, 114, 111, 103, 114,
                 97, 109, 73, 100,

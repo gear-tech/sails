@@ -190,6 +190,7 @@ async fn ping_pong_low_level_works() {
         .unwrap();
 
     let ping_reply_payload = reply_log_record.payload();
+    println!("reply payload: {:?}", ping_reply_payload);
 
     let ping_reply = ping_pong::io::Ping::decode_reply(ping_reply_payload).unwrap();
 

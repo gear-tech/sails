@@ -114,8 +114,11 @@ pub(crate) fn generate_io_struct(
         ),
     };
 
-    // No output signals that that's a constructor function.
-    let is_activation = if fn_output.is_none() { "true" } else { "false" };
+    let has_empty_reply = if &func_output == "()" {
+        "true"
+    } else {
+        "false"
+    };
 
     quote! {
         pub struct $fn_name (());
@@ -123,7 +126,7 @@ pub(crate) fn generate_io_struct(
         $encode_call_tokens
 
         impl ActionIo for $fn_name {
-            const IS_ACTIVATION: bool = $is_activation;
+            const HAS_EMPTY_REPLY: bool = $has_empty_reply;
             const ROUTE: &'static [u8] = &[$route_bytes];
             type Params = $param_tokens;
             type Reply = $func_output;

@@ -283,7 +283,7 @@ where
 }
 
 pub trait ActionIo {
-    const IS_ACTIVATION: bool;
+    const HAS_EMPTY_REPLY: bool;
     const ROUTE: &'static [u8];
     type Params: Encode;
     type Reply: Decode;
@@ -297,10 +297,10 @@ pub trait ActionIo {
 
     fn decode_reply(payload: impl AsRef<[u8]>) -> Result<Self::Reply> {
         let mut value = payload.as_ref();
-        if !Self::IS_ACTIVATION && !value.starts_with(Self::ROUTE) {
+        if !Self::HAS_EMPTY_REPLY && !value.starts_with(Self::ROUTE) {
             return Err(Error::Rtl(RtlError::ReplyPrefixMismatches));
         }
-        let start_offset = if Self::IS_ACTIVATION {
+        let start_offset = if Self::HAS_EMPTY_REPLY {
             0
         } else {
             Self::ROUTE.len()

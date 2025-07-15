@@ -15,6 +15,7 @@ alloy-sol-types = { workspace = true, optional = true }
 convert_case = { workspace = true, optional = true }
 futures.workspace = true
 gear-core-errors.workspace = true
+log.workspace = true
 gcore.workspace = true
 gprimitives.workspace = true
 gstd = { workspace = true, optional = true }
