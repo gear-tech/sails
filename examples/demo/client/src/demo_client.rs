@@ -76,11 +76,8 @@ impl<R> PingPong<R> {
     }
 }
 impl<R: Remoting + Clone> traits::PingPong for PingPong<R> {
-    type Args = R::Args;
-    fn ping(
-        &mut self,
-        input: String,
-    ) -> impl Call<Output = Result<String, String>, Args = R::Args> {
+    type Remoting = R;
+    fn ping(&mut self, input: String) -> impl Call<Output = Result<String, String>, Remoting = R> {
         RemotingAction::<_, ping_pong::io::Ping>::new(self.remoting.clone(), input)
     }
 }
@@ -116,17 +113,17 @@ impl<R> Counter<R> {
     }
 }
 impl<R: Remoting + Clone> traits::Counter for Counter<R> {
-    type Args = R::Args;
+    type Remoting = R;
     /// Add a value to the counter
-    fn add(&mut self, value: u32) -> impl Call<Output = u32, Args = R::Args> {
+    fn add(&mut self, value: u32) -> impl Call<Output = u32, Remoting = R> {
         RemotingAction::<_, counter::io::Add>::new(self.remoting.clone(), value)
     }
     /// Substract a value from the counter
-    fn sub(&mut self, value: u32) -> impl Call<Output = u32, Args = R::Args> {
+    fn sub(&mut self, value: u32) -> impl Call<Output = u32, Remoting = R> {
         RemotingAction::<_, counter::io::Sub>::new(self.remoting.clone(), value)
     }
     /// Get the current value
-    fn value(&self) -> impl Query<Output = u32, Args = R::Args> {
+    fn value(&self) -> impl Query<Output = u32, Remoting = R> {
         RemotingAction::<_, counter::io::Value>::new(self.remoting.clone(), ())
     }
 }
@@ -212,17 +209,17 @@ impl<R> Dog<R> {
     }
 }
 impl<R: Remoting + Clone> traits::Dog for Dog<R> {
-    type Args = R::Args;
-    fn make_sound(&mut self) -> impl Call<Output = String, Args = R::Args> {
+    type Remoting = R;
+    fn make_sound(&mut self) -> impl Call<Output = String, Remoting = R> {
         RemotingAction::<_, dog::io::MakeSound>::new(self.remoting.clone(), ())
     }
-    fn walk(&mut self, dx: i32, dy: i32) -> impl Call<Output = (), Args = R::Args> {
+    fn walk(&mut self, dx: i32, dy: i32) -> impl Call<Output = (), Remoting = R> {
         RemotingAction::<_, dog::io::Walk>::new(self.remoting.clone(), (dx, dy))
     }
-    fn avg_weight(&self) -> impl Query<Output = u32, Args = R::Args> {
+    fn avg_weight(&self) -> impl Query<Output = u32, Remoting = R> {
         RemotingAction::<_, dog::io::AvgWeight>::new(self.remoting.clone(), ())
     }
-    fn position(&self) -> impl Query<Output = (i32, i32), Args = R::Args> {
+    fn position(&self) -> impl Query<Output = (i32, i32), Remoting = R> {
         RemotingAction::<_, dog::io::Position>::new(self.remoting.clone(), ())
     }
 }
@@ -321,32 +318,32 @@ impl<R> References<R> {
     }
 }
 impl<R: Remoting + Clone> traits::References for References<R> {
-    type Args = R::Args;
-    fn add(&mut self, v: u32) -> impl Call<Output = u32, Args = R::Args> {
+    type Remoting = R;
+    fn add(&mut self, v: u32) -> impl Call<Output = u32, Remoting = R> {
         RemotingAction::<_, references::io::Add>::new(self.remoting.clone(), v)
     }
-    fn add_byte(&mut self, byte: u8) -> impl Call<Output = Vec<u8>, Args = R::Args> {
+    fn add_byte(&mut self, byte: u8) -> impl Call<Output = Vec<u8>, Remoting = R> {
         RemotingAction::<_, references::io::AddByte>::new(self.remoting.clone(), byte)
     }
     fn guess_num(
         &mut self,
         number: u8,
-    ) -> impl Call<Output = Result<String, String>, Args = R::Args> {
+    ) -> impl Call<Output = Result<String, String>, Remoting = R> {
         RemotingAction::<_, references::io::GuessNum>::new(self.remoting.clone(), number)
     }
-    fn incr(&mut self) -> impl Call<Output = ReferenceCount, Args = R::Args> {
+    fn incr(&mut self) -> impl Call<Output = ReferenceCount, Remoting = R> {
         RemotingAction::<_, references::io::Incr>::new(self.remoting.clone(), ())
     }
-    fn set_num(&mut self, number: u8) -> impl Call<Output = Result<(), String>, Args = R::Args> {
+    fn set_num(&mut self, number: u8) -> impl Call<Output = Result<(), String>, Remoting = R> {
         RemotingAction::<_, references::io::SetNum>::new(self.remoting.clone(), number)
     }
-    fn baked(&self) -> impl Query<Output = String, Args = R::Args> {
+    fn baked(&self) -> impl Query<Output = String, Remoting = R> {
         RemotingAction::<_, references::io::Baked>::new(self.remoting.clone(), ())
     }
-    fn last_byte(&self) -> impl Query<Output = Option<u8>, Args = R::Args> {
+    fn last_byte(&self) -> impl Query<Output = Option<u8>, Remoting = R> {
         RemotingAction::<_, references::io::LastByte>::new(self.remoting.clone(), ())
     }
-    fn message(&self) -> impl Query<Output = Option<String>, Args = R::Args> {
+    fn message(&self) -> impl Query<Output = Option<String>, Remoting = R> {
         RemotingAction::<_, references::io::Message>::new(self.remoting.clone(), ())
     }
 }
@@ -484,11 +481,11 @@ impl<R> ThisThat<R> {
     }
 }
 impl<R: Remoting + Clone> traits::ThisThat for ThisThat<R> {
-    type Args = R::Args;
+    type Remoting = R;
     fn do_that(
         &mut self,
         param: DoThatParam,
-    ) -> impl Call<Output = Result<(ActorId, NonZeroU32, ManyVariantsReply), (String,)>, Args = R::Args>
+    ) -> impl Call<Output = Result<(ActorId, NonZeroU32, ManyVariantsReply), (String,)>, Remoting = R>
     {
         RemotingAction::<_, this_that::io::DoThat>::new(self.remoting.clone(), param)
     }
@@ -498,16 +495,16 @@ impl<R: Remoting + Clone> traits::ThisThat for ThisThat<R> {
         p2: String,
         p3: (Option<H160>, NonZeroU8),
         p4: TupleStruct,
-    ) -> impl Call<Output = (String, u32), Args = R::Args> {
+    ) -> impl Call<Output = (String, u32), Remoting = R> {
         RemotingAction::<_, this_that::io::DoThis>::new(self.remoting.clone(), (p1, p2, p3, p4))
     }
-    fn noop(&mut self) -> impl Call<Output = (), Args = R::Args> {
+    fn noop(&mut self) -> impl Call<Output = (), Remoting = R> {
         RemotingAction::<_, this_that::io::Noop>::new(self.remoting.clone(), ())
     }
-    fn that(&self) -> impl Query<Output = Result<String, String>, Args = R::Args> {
+    fn that(&self) -> impl Query<Output = Result<String, String>, Remoting = R> {
         RemotingAction::<_, this_that::io::That>::new(self.remoting.clone(), ())
     }
-    fn this(&self) -> impl Query<Output = u32, Args = R::Args> {
+    fn this(&self) -> impl Query<Output = u32, Remoting = R> {
         RemotingAction::<_, this_that::io::This>::new(self.remoting.clone(), ())
     }
 }
@@ -604,10 +601,10 @@ impl<R> ValueFee<R> {
     }
 }
 impl<R: Remoting + Clone> traits::ValueFee for ValueFee<R> {
-    type Args = R::Args;
+    type Remoting = R;
     /// Return flag if fee taken and remain value,
     /// using special type `CommandReply<T>`
-    fn do_something_and_take_fee(&mut self) -> impl Call<Output = bool, Args = R::Args> {
+    fn do_something_and_take_fee(&mut self) -> impl Call<Output = bool, Remoting = R> {
         RemotingAction::<_, value_fee::io::DoSomethingAndTakeFee>::new(self.remoting.clone(), ())
     }
 }
@@ -712,58 +709,58 @@ pub mod traits {
 
     #[allow(clippy::type_complexity)]
     pub trait PingPong {
-        type Args;
+        type Remoting: Remoting;
         fn ping(
             &mut self,
             input: String,
-        ) -> impl Call<Output = Result<String, String>, Args = Self::Args>;
+        ) -> impl Call<Output = Result<String, String>, Remoting = Self::Remoting>;
     }
 
     #[allow(clippy::type_complexity)]
     pub trait Counter {
-        type Args;
-        fn add(&mut self, value: u32) -> impl Call<Output = u32, Args = Self::Args>;
-        fn sub(&mut self, value: u32) -> impl Call<Output = u32, Args = Self::Args>;
-        fn value(&self) -> impl Query<Output = u32, Args = Self::Args>;
+        type Remoting: Remoting;
+        fn add(&mut self, value: u32) -> impl Call<Output = u32, Remoting = Self::Remoting>;
+        fn sub(&mut self, value: u32) -> impl Call<Output = u32, Remoting = Self::Remoting>;
+        fn value(&self) -> impl Query<Output = u32, Remoting = Self::Remoting>;
     }
 
     #[allow(clippy::type_complexity)]
     pub trait Dog {
-        type Args;
-        fn make_sound(&mut self) -> impl Call<Output = String, Args = Self::Args>;
-        fn walk(&mut self, dx: i32, dy: i32) -> impl Call<Output = (), Args = Self::Args>;
-        fn avg_weight(&self) -> impl Query<Output = u32, Args = Self::Args>;
-        fn position(&self) -> impl Query<Output = (i32, i32), Args = Self::Args>;
+        type Remoting: Remoting;
+        fn make_sound(&mut self) -> impl Call<Output = String, Remoting = Self::Remoting>;
+        fn walk(&mut self, dx: i32, dy: i32) -> impl Call<Output = (), Remoting = Self::Remoting>;
+        fn avg_weight(&self) -> impl Query<Output = u32, Remoting = Self::Remoting>;
+        fn position(&self) -> impl Query<Output = (i32, i32), Remoting = Self::Remoting>;
     }
 
     #[allow(clippy::type_complexity)]
     pub trait References {
-        type Args;
-        fn add(&mut self, v: u32) -> impl Call<Output = u32, Args = Self::Args>;
-        fn add_byte(&mut self, byte: u8) -> impl Call<Output = Vec<u8>, Args = Self::Args>;
+        type Remoting: Remoting;
+        fn add(&mut self, v: u32) -> impl Call<Output = u32, Remoting = Self::Remoting>;
+        fn add_byte(&mut self, byte: u8) -> impl Call<Output = Vec<u8>, Remoting = Self::Remoting>;
         fn guess_num(
             &mut self,
             number: u8,
-        ) -> impl Call<Output = Result<String, String>, Args = Self::Args>;
-        fn incr(&mut self) -> impl Call<Output = ReferenceCount, Args = Self::Args>;
+        ) -> impl Call<Output = Result<String, String>, Remoting = Self::Remoting>;
+        fn incr(&mut self) -> impl Call<Output = ReferenceCount, Remoting = Self::Remoting>;
         fn set_num(
             &mut self,
             number: u8,
-        ) -> impl Call<Output = Result<(), String>, Args = Self::Args>;
-        fn baked(&self) -> impl Query<Output = String, Args = Self::Args>;
-        fn last_byte(&self) -> impl Query<Output = Option<u8>, Args = Self::Args>;
-        fn message(&self) -> impl Query<Output = Option<String>, Args = Self::Args>;
+        ) -> impl Call<Output = Result<(), String>, Remoting = Self::Remoting>;
+        fn baked(&self) -> impl Query<Output = String, Remoting = Self::Remoting>;
+        fn last_byte(&self) -> impl Query<Output = Option<u8>, Remoting = Self::Remoting>;
+        fn message(&self) -> impl Query<Output = Option<String>, Remoting = Self::Remoting>;
     }
 
     #[allow(clippy::type_complexity)]
     pub trait ThisThat {
-        type Args;
+        type Remoting: Remoting;
         fn do_that(
             &mut self,
             param: DoThatParam,
         ) -> impl Call<
             Output = Result<(ActorId, NonZeroU32, ManyVariantsReply), (String,)>,
-            Args = Self::Args,
+            Remoting = Self::Remoting,
         >;
         fn do_this(
             &mut self,
@@ -771,16 +768,18 @@ pub mod traits {
             p2: String,
             p3: (Option<H160>, NonZeroU8),
             p4: TupleStruct,
-        ) -> impl Call<Output = (String, u32), Args = Self::Args>;
-        fn noop(&mut self) -> impl Call<Output = (), Args = Self::Args>;
-        fn that(&self) -> impl Query<Output = Result<String, String>, Args = Self::Args>;
-        fn this(&self) -> impl Query<Output = u32, Args = Self::Args>;
+        ) -> impl Call<Output = (String, u32), Remoting = Self::Remoting>;
+        fn noop(&mut self) -> impl Call<Output = (), Remoting = Self::Remoting>;
+        fn that(&self) -> impl Query<Output = Result<String, String>, Remoting = Self::Remoting>;
+        fn this(&self) -> impl Query<Output = u32, Remoting = Self::Remoting>;
     }
 
     #[allow(clippy::type_complexity)]
     pub trait ValueFee {
-        type Args;
-        fn do_something_and_take_fee(&mut self) -> impl Call<Output = bool, Args = Self::Args>;
+        type Remoting: Remoting;
+        fn do_something_and_take_fee(
+            &mut self,
+        ) -> impl Call<Output = bool, Remoting = Self::Remoting>;
     }
 }
 
@@ -793,10 +792,10 @@ extern crate std;
 pub mod mockall {
     use super::*;
     use sails_rs::mockall::*;
-    mock! { pub PingPong<A> {} #[allow(refining_impl_trait)] #[allow(clippy::type_complexity)] impl<A> traits::PingPong for PingPong<A> { type Args = A; fn ping (&mut self, input: String,) -> MockCall<A, Result<String, String>>; } }
-    mock! { pub Counter<A> {} #[allow(refining_impl_trait)] #[allow(clippy::type_complexity)] impl<A> traits::Counter for Counter<A> { type Args = A; fn add (&mut self, value: u32,) -> MockCall<A, u32>;fn sub (&mut self, value: u32,) -> MockCall<A, u32>;fn value (& self, ) -> MockQuery<A, u32>; } }
-    mock! { pub Dog<A> {} #[allow(refining_impl_trait)] #[allow(clippy::type_complexity)] impl<A> traits::Dog for Dog<A> { type Args = A; fn make_sound (&mut self, ) -> MockCall<A, String>;fn walk (&mut self, dx: i32,dy: i32,) -> MockCall<A, ()>;fn avg_weight (& self, ) -> MockQuery<A, u32>;fn position (& self, ) -> MockQuery<A, (i32,i32,)>; } }
-    mock! { pub References<A> {} #[allow(refining_impl_trait)] #[allow(clippy::type_complexity)] impl<A> traits::References for References<A> { type Args = A; fn add (&mut self, v: u32,) -> MockCall<A, u32>;fn add_byte (&mut self, byte: u8,) -> MockCall<A, Vec<u8>>;fn guess_num (&mut self, number: u8,) -> MockCall<A, Result<String, String>>;fn incr (&mut self, ) -> MockCall<A, ReferenceCount>;fn set_num (&mut self, number: u8,) -> MockCall<A, Result<(), String>>;fn baked (& self, ) -> MockQuery<A, String>;fn last_byte (& self, ) -> MockQuery<A, Option<u8>>;fn message (& self, ) -> MockQuery<A, Option<String>>; } }
-    mock! { pub ThisThat<A> {} #[allow(refining_impl_trait)] #[allow(clippy::type_complexity)] impl<A> traits::ThisThat for ThisThat<A> { type Args = A; fn do_that (&mut self, param: DoThatParam,) -> MockCall<A, Result<(ActorId,NonZeroU32,ManyVariantsReply,), (String,)>>;fn do_this (&mut self, p1: u32,p2: String,p3: (Option<H160>,NonZeroU8,),p4: TupleStruct,) -> MockCall<A, (String,u32,)>;fn noop (&mut self, ) -> MockCall<A, ()>;fn that (& self, ) -> MockQuery<A, Result<String, String>>;fn this (& self, ) -> MockQuery<A, u32>; } }
-    mock! { pub ValueFee<A> {} #[allow(refining_impl_trait)] #[allow(clippy::type_complexity)] impl<A> traits::ValueFee for ValueFee<A> { type Args = A; fn do_something_and_take_fee (&mut self, ) -> MockCall<A, bool>; } }
+    mock! { pub PingPong<R: Remoting> {} #[allow(refining_impl_trait)] #[allow(clippy::type_complexity)] impl<R: Remoting> traits::PingPong for PingPong<R> { type Remoting = R; fn ping (&mut self, input: String,) -> MockCall<R, Result<String, String>>; } }
+    mock! { pub Counter<R: Remoting> {} #[allow(refining_impl_trait)] #[allow(clippy::type_complexity)] impl<R: Remoting> traits::Counter for Counter<R> { type Remoting = R; fn add (&mut self, value: u32,) -> MockCall<R, u32>;fn sub (&mut self, value: u32,) -> MockCall<R, u32>;fn value (& self, ) -> MockQuery<R, u32>; } }
+    mock! { pub Dog<R: Remoting> {} #[allow(refining_impl_trait)] #[allow(clippy::type_complexity)] impl<R: Remoting> traits::Dog for Dog<R> { type Remoting = R; fn make_sound (&mut self, ) -> MockCall<R, String>;fn walk (&mut self, dx: i32,dy: i32,) -> MockCall<R, ()>;fn avg_weight (& self, ) -> MockQuery<R, u32>;fn position (& self, ) -> MockQuery<R, (i32,i32,)>; } }
+    mock! { pub References<R: Remoting> {} #[allow(refining_impl_trait)] #[allow(clippy::type_complexity)] impl<R: Remoting> traits::References for References<R> { type Remoting = R; fn add (&mut self, v: u32,) -> MockCall<R, u32>;fn add_byte (&mut self, byte: u8,) -> MockCall<R, Vec<u8>>;fn guess_num (&mut self, number: u8,) -> MockCall<R, Result<String, String>>;fn incr (&mut self, ) -> MockCall<R, ReferenceCount>;fn set_num (&mut self, number: u8,) -> MockCall<R, Result<(), String>>;fn baked (& self, ) -> MockQuery<R, String>;fn last_byte (& self, ) -> MockQuery<R, Option<u8>>;fn message (& self, ) -> MockQuery<R, Option<String>>; } }
+    mock! { pub ThisThat<R: Remoting> {} #[allow(refining_impl_trait)] #[allow(clippy::type_complexity)] impl<R: Remoting> traits::ThisThat for ThisThat<R> { type Remoting = R; fn do_that (&mut self, param: DoThatParam,) -> MockCall<R, Result<(ActorId,NonZeroU32,ManyVariantsReply,), (String,)>>;fn do_this (&mut self, p1: u32,p2: String,p3: (Option<H160>,NonZeroU8,),p4: TupleStruct,) -> MockCall<R, (String,u32,)>;fn noop (&mut self, ) -> MockCall<R, ()>;fn that (& self, ) -> MockQuery<R, Result<String, String>>;fn this (& self, ) -> MockQuery<R, u32>; } }
+    mock! { pub ValueFee<R: Remoting> {} #[allow(refining_impl_trait)] #[allow(clippy::type_complexity)] impl<R: Remoting> traits::ValueFee for ValueFee<R> { type Remoting = R; fn do_something_and_take_fee (&mut self, ) -> MockCall<R, bool>; } }
 }

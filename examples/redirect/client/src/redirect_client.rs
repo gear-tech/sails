@@ -52,13 +52,13 @@ impl<R> Redirect<R> {
     }
 }
 impl<R: Remoting + Clone> traits::Redirect for Redirect<R> {
-    type Args = R::Args;
+    type Remoting = R;
     /// Exit from program with inheritor ID
-    fn exit(&mut self, inheritor_id: ActorId) -> impl Call<Output = (), Args = R::Args> {
+    fn exit(&mut self, inheritor_id: ActorId) -> impl Call<Output = (), Remoting = R> {
         RemotingAction::<_, redirect::io::Exit>::new(self.remoting.clone(), inheritor_id)
     }
     /// Returns program ID of the current program
-    fn get_program_id(&self) -> impl Query<Output = ActorId, Args = R::Args> {
+    fn get_program_id(&self) -> impl Query<Output = ActorId, Remoting = R> {
         RemotingAction::<_, redirect::io::GetProgramId>::new(self.remoting.clone(), ())
     }
 }
@@ -113,8 +113,11 @@ pub mod traits {
 
     #[allow(clippy::type_complexity)]
     pub trait Redirect {
-        type Args;
-        fn exit(&mut self, inheritor_id: ActorId) -> impl Call<Output = (), Args = Self::Args>;
-        fn get_program_id(&self) -> impl Query<Output = ActorId, Args = Self::Args>;
+        type Remoting: Remoting;
+        fn exit(
+            &mut self,
+            inheritor_id: ActorId,
+        ) -> impl Call<Output = (), Remoting = Self::Remoting>;
+        fn get_program_id(&self) -> impl Query<Output = ActorId, Remoting = Self::Remoting>;
     }
 }

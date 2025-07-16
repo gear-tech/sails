@@ -20,12 +20,12 @@ impl<'a> MockGenerator<'a> {
     pub(crate) fn finalize(self) -> rust::Tokens {
         quote! {
             mock! {
-                pub $(self.service_name)<A> {}
+                pub $(self.service_name)<R: Remoting> {}
 
                 #[allow(refining_impl_trait)]
                 #[allow(clippy::type_complexity)]
-                impl<A> traits::$(self.service_name) for $(self.service_name)<A> {
-                    type Args = A;
+                impl<R: Remoting> traits::$(self.service_name) for $(self.service_name)<R> {
+                    type Remoting = R;
                     $(self.tokens)
                 }
             }
@@ -58,7 +58,7 @@ impl<'ast> Visitor<'ast> for MockGenerator<'_> {
         };
 
         quote_in! { self.tokens=>
-            fn $fn_name (&$mutability self, $params_tokens) -> $output_mock<A, $output_type_decl_code>;
+            fn $fn_name (&$mutability self, $params_tokens) -> $output_mock<R, $output_type_decl_code>;
         };
     }
 }

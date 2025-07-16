@@ -38,3 +38,4 @@ pub mod prelude;
 #[cfg(feature = "ethexe")]
 pub mod solidity;
 mod types;
+mod utils;

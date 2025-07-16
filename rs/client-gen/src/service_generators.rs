@@ -25,7 +25,7 @@ impl ServiceTraitGenerator {
             $['\n']
             #[allow(clippy::type_complexity)]
             pub trait $(&self.service_name) {
-                type Args;
+                type Remoting: Remoting;
                 $(self.tokens)
             }
         }
@@ -53,7 +53,7 @@ impl<'ast> Visitor<'ast> for ServiceTraitGenerator {
         let output_trait = if func.is_query() { "Query" } else { "Call" };
 
         quote_in! { self.tokens=>
-            $['\r'] fn $fn_name (&$mutability self, $params_tokens) -> impl $output_trait<Output = $output_type_decl_code, Args = Self::Args>;
+            $['\r'] fn $fn_name (&$mutability self, $params_tokens) -> impl $output_trait<Output = $output_type_decl_code, Remoting = Self::Remoting>;
         };
     }
 }
@@ -95,7 +95,7 @@ impl<'ast> Visitor<'ast> for ServiceClientGenerator {
 
             impl<R: Remoting + Clone> traits::$name for $name<R>
             $("{")
-                type Args = R::Args;
+                type Remoting = R;
         };
 
         visitor::accept_service(service, self);
@@ -133,7 +133,7 @@ impl<'ast> Visitor<'ast> for ServiceClientGenerator {
         }
 
         quote_in! {self.tokens =>
-            $['\r'] fn $fn_name_snake (&$mutability self, $params_tokens) -> impl $output_trait<Output = $output_type_decl_code, Args = R::Args> {
+            $['\r'] fn $fn_name_snake (&$mutability self, $params_tokens) -> impl $output_trait<Output = $output_type_decl_code, Remoting = R> {
                 RemotingAction::<_, $params_type>::new(self.remoting.clone(), $args)
             }
         };

@@ -177,7 +177,7 @@ mod tests {
     use crate::catalogs::{FixedPart, Part, mockall::MockRmrkCatalog};
     use resources::ComposedResource;
     use sails_rs::{
-        gstd::{calls::GStdArgs, services::Service},
+        gstd::{calls::GStdRemoting, services::Service},
         mockall::MockQuery,
     };
 
@@ -185,9 +185,9 @@ mod tests {
     async fn test_add_resource_entry() {
         Syscall::with_message_source(ActorId::from(1));
 
-        ResourceStorage::<MockRmrkCatalog<GStdArgs>>::seed();
+        ResourceStorage::<MockRmrkCatalog<GStdRemoting>>::seed();
         let mut resource_storage =
-            ResourceStorage::new(MockRmrkCatalog::<GStdArgs>::new()).expose(&[]);
+            ResourceStorage::new(MockRmrkCatalog::<GStdRemoting>::new()).expose(&[]);
 
         let resource = Resource::Composed(ComposedResource {
             src: "src".to_string(),
