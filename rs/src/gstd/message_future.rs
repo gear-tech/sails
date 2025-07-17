@@ -12,7 +12,7 @@ pin_project! {
     #[project = Projection]
     #[project_replace = Replace]
     #[must_use = "futures do nothing unless you `.await` or poll them"]
-    pub(crate) enum MessageFutureExtended<T: AsRef<[u8]>> {
+    pub enum MessageFutureExtended<T: AsRef<[u8]>> {
         NonRedirect {
             #[pin]
             message_future: msg::MessageFuture,

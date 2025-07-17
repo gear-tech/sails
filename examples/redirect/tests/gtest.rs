@@ -1,4 +1,4 @@
-use redirect_client::traits::{Redirect as _, RedirectClientFactory as _};
+use redirect_client::traits::{RedirectClient as _, RedirectClientFactory as _};
 use redirect_proxy_client::traits::{Proxy as _, RedirectProxyClientFactory as _};
 use sails_rs::{CodeId, GasUnit, calls::*, gtest::calls::GTestRemoting};
 
@@ -8,23 +8,26 @@ const ACTOR_ID: u64 = 42;
 async fn redirect_on_exit_works() {
     let (remoting, program_code_id, proxy_code_id, _gas_limit) = create_remoting();
 
-    let program_factory = redirect_client::RedirectClientFactory::new(remoting.clone());
+    // let program_factory = ProgramFactory::new(remoting.clone());
     let proxy_factory = redirect_proxy_client::RedirectProxyClientFactory::new(remoting.clone());
 
-    let program_id_1 = program_factory
+    let mut program_1 = remoting
         .new() // Call program's constructor
-        .send_recv(program_code_id, b"program_1")
+        .deploy(program_code_id, b"program_1")
         .await
         .unwrap();
+    let program_id_1 = program_1.program_id();
 
-    let program_id_2 = program_factory
+    let mut program_2: redirect_client::Redirect<GTestRemoting> = remoting
         .new() // Call program's constructor
-        .send_recv(program_code_id, b"program_2")
+        .deploy(program_code_id, b"program_2")
         .await
         .unwrap();
-    let program_id_3 = program_factory
+    let program_id_2 = program_2.program_id();
+
+    let program_3 = remoting
         .new() // Call program's constructor
-        .send_recv(program_code_id, b"program_3")
+        .deploy(program_code_id, b"program_3")
         .await
         .unwrap();
 
@@ -34,7 +37,7 @@ async fn redirect_on_exit_works() {
         .await
         .unwrap();
 
-    let mut redirect_client = redirect_client::Redirect::new(remoting.clone());
+    // let mut redirect_client = redirect_client::Redirect::new(remoting.clone(), program_1.program_id());
     let proxy_client = redirect_proxy_client::Proxy::new(remoting.clone());
 
     let result = proxy_client
@@ -45,11 +48,12 @@ async fn redirect_on_exit_works() {
 
     assert_eq!(result, program_id_1);
 
-    let _ = redirect_client
-        .exit(program_id_2)
-        .send(program_id_1)
-        .await
-        .unwrap();
+    let p1 = program_1.get_program_id().await.unwrap();
+    assert_eq!(p1, program_id_1);
+
+    let _ = program_1.exit(program_id_2).send_one_way().unwrap();
+
+    remoting.run_next_block();
 
     let result = proxy_client
         .get_program_id()
@@ -59,9 +63,9 @@ async fn redirect_on_exit_works() {
 
     assert_eq!(result, program_id_2);
 
-    let _ = redirect_client
-        .exit(program_id_3)
-        .send_one_way(program_id_2)
+    let _ = program_2
+        .exit(program_3.program_id())
+        .send_one_way()
         .unwrap();
 
     remoting.run_next_block();
@@ -72,7 +76,7 @@ async fn redirect_on_exit_works() {
         .await
         .unwrap();
 
-    assert_eq!(result, program_id_3);
+    assert_eq!(result, program_3.program_id());
 }
 
 fn create_remoting() -> (GTestRemoting, CodeId, CodeId, GasUnit) {
@@ -83,7 +87,7 @@ fn create_remoting() -> (GTestRemoting, CodeId, CodeId, GasUnit) {
 
     let system = System::new();
     system.init_logger_with_default_filter("gwasm=debug,gtest=info,sails_rs=debug,redirect=debug");
-    system.mint_to(ACTOR_ID, 100_000_000_000_000);
+    system.mint_to(ACTOR_ID, 1_000_000_000_000_000);
     // Submit program code into the system
     let program_code_id = system.submit_code(redirect_app::WASM_BINARY);
     let proxy_code_id = system.submit_code(redirect_proxy::WASM_BINARY);

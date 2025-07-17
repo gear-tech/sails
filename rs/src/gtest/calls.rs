@@ -1,5 +1,5 @@
 use crate::{
-    calls::{Action, CallOneWay, Remoting},
+    calls::{Action, CallOneWay, MessageFuture, Remoting, RemotingMessage},
     collections::HashMap,
     errors::{Result, RtlError},
     events::Listener,
@@ -8,11 +8,13 @@ use crate::{
     prelude::*,
     rc::Rc,
 };
-use core::{cell::RefCell, future::Future};
+use core::{cell::RefCell, future::Future, task::Poll};
 use gear_core_errors::{ReplyCode, SuccessReplyReason};
+use pin_project_lite::pin_project;
 
 type EventSender = channel::mpsc::UnboundedSender<(ActorId, Vec<u8>)>;
 type ReplySender = channel::oneshot::Sender<Result<Vec<u8>>>;
+type ReplyReceiver = channel::oneshot::Receiver<Result<Vec<u8>>>;
 
 const GAS_LIMIT_DEFAULT: gtest::constants::Gas = gtest::constants::MAX_USER_GAS_LIMIT;
 
@@ -148,7 +150,7 @@ impl GTestRemoting {
         }
     }
 
-    fn send_message(
+    fn send_message_inner(
         &self,
         target: ActorId,
         payload: impl AsRef<[u8]>,
@@ -170,10 +172,7 @@ impl GTestRemoting {
         Ok(message_id)
     }
 
-    fn message_reply_from_next_blocks(
-        &self,
-        message_id: MessageId,
-    ) -> impl Future<Output = Result<Vec<u8>>> + use<> {
+    fn message_reply_from_next_blocks(&self, message_id: MessageId) -> ReplyReceiver {
         let (tx, rx) = channel::oneshot::channel::<Result<Vec<u8>>>();
         self.block_reply_senders.borrow_mut().insert(message_id, tx);
 
@@ -187,8 +186,7 @@ impl GTestRemoting {
             }
             BlockRunMode::Manual => (),
         };
-
-        rx.unwrap_or_else(|_| Err(RtlError::ReplyIsMissing.into()))
+        rx
     }
 
     fn run_next_block_and_extract(&self) -> BlockRunResult {
@@ -240,7 +238,11 @@ impl Remoting for GTestRemoting {
         log::debug!("Send activation id: {message_id}, to program: {program_id}");
         Ok(self
             .message_reply_from_next_blocks(message_id)
-            .map(move |result| result.map(|reply| (program_id, reply))))
+            .map(move |result| {
+                result
+                    .unwrap_or_else(|_| Err(RtlError::ReplyIsMissing.into()))
+                    .map(|reply| (program_id, reply))
+            }))
     }
 
     async fn message(
@@ -251,7 +253,7 @@ impl Remoting for GTestRemoting {
         value: ValueUnit,
         args: GTestArgs,
     ) -> Result<impl Future<Output = Result<Vec<u8>>>> {
-        let message_id = self.send_message(
+        let message_id = self.send_message_inner(
             target,
             payload,
             #[cfg(not(feature = "ethexe"))]
@@ -259,7 +261,9 @@ impl Remoting for GTestRemoting {
             value,
             args,
         )?;
-        Ok(self.message_reply_from_next_blocks(message_id))
+        Ok(self
+            .message_reply_from_next_blocks(message_id)
+            .unwrap_or_else(|_| Err(RtlError::ReplyIsMissing.into())))
     }
 
     async fn query(
@@ -270,7 +274,7 @@ impl Remoting for GTestRemoting {
         value: ValueUnit,
         args: GTestArgs,
     ) -> Result<Vec<u8>> {
-        let message_id = self.send_message(
+        let message_id = self.send_message_inner(
             target,
             payload,
             #[cfg(not(feature = "ethexe"))]
@@ -278,7 +282,9 @@ impl Remoting for GTestRemoting {
             value,
             args,
         )?;
-        self.message_reply_from_next_blocks(message_id).await
+        self.message_reply_from_next_blocks(message_id)
+            .unwrap_or_else(|_| Err(RtlError::ReplyIsMissing.into()))
+            .await
     }
 }
 
@@ -304,6 +310,8 @@ where
 }
 
 impl CallOneWay for GTestRemoting {
+    type Args = GTestArgs;
+
     fn send_one_way(
         self,
         target: ActorId,
@@ -312,7 +320,7 @@ impl CallOneWay for GTestRemoting {
         value: ValueUnit,
         args: Self::Args,
     ) -> Result<MessageId> {
-        self.send_message(
+        self.send_message_inner(
             target,
             payload,
             #[cfg(not(feature = "ethexe"))]
@@ -320,5 +328,72 @@ impl CallOneWay for GTestRemoting {
             value,
             args,
         )
+    }
+}
+
+impl RemotingMessage for GTestRemoting {
+    type Args = GTestArgs;
+    type MessageFuture = GTestMessageFuture;
+
+    fn send_message(
+        self,
+        target: ActorId,
+        payload: Vec<u8>,
+        #[cfg(not(feature = "ethexe"))] gas_limit: Option<GasUnit>,
+        value: ValueUnit,
+        args: Self::Args,
+    ) -> Result<Self::MessageFuture> {
+        let message_id = self.send_message_inner(
+            target,
+            payload,
+            #[cfg(not(feature = "ethexe"))]
+            gas_limit,
+            value,
+            args,
+        )?;
+        let receiver = self.message_reply_from_next_blocks(message_id);
+        Ok(GTestMessageFuture::new(message_id, receiver))
+    }
+}
+
+pin_project! {
+    pub struct GTestMessageFuture {
+        message_id: MessageId,
+        #[pin]
+        receiver: ReplyReceiver,
+    }
+}
+
+impl GTestMessageFuture {
+    fn new(message_id: MessageId, receiver: ReplyReceiver) -> Self {
+        Self {
+            message_id,
+            receiver,
+        }
+    }
+}
+
+impl Future for GTestMessageFuture {
+    type Output = Result<Vec<u8>>;
+
+    fn poll(
+        self: core::pin::Pin<&mut Self>,
+        cx: &mut core::task::Context<'_>,
+    ) -> core::task::Poll<Self::Output> {
+        let this = self.project();
+        match this.receiver.poll(cx) {
+            Poll::Ready(Ok(result)) => Poll::Ready(result),
+            Poll::Ready(Err(_)) => Poll::Ready(Err(RtlError::ReplyIsMissing.into())),
+            Poll::Pending => Poll::Pending,
+        }
+    }
+}
+
+impl MessageFuture for GTestMessageFuture {
+    type Remoting = GTestRemoting;
+    type Error = crate::errors::Error;
+
+    fn message_id(&self) -> MessageId {
+        self.message_id
     }
 }

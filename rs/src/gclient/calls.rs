@@ -1,11 +1,11 @@
 use crate::{
-    calls::{Query, Remoting},
+    calls::{MessageFuture, Query, Remoting, RemotingMessage},
     errors::{Result, RtlError},
     events::Listener,
     futures::{Stream, StreamExt, stream},
     prelude::*,
 };
-use core::future::Future;
+use core::{future::Future, ops::DerefMut, pin::Pin, task::Poll};
 use gclient::metadata::runtime_types::{
     gear_core::message::user::UserMessage as GenUserMessage,
     pallet_gear_voucher::internal::VoucherId,
@@ -96,6 +96,48 @@ impl GClientRemoting {
             ReplyCode::Unsupported => Err(RtlError::ReplyIsMissing)?,
         }
     }
+
+    async fn send_message_inner(
+        self,
+        target: ActorId,
+        payload: impl AsRef<[u8]>,
+        gas_limit: Option<u64>,
+        value: u128,
+        args: GClientArgs,
+    ) -> Result<(gclient::EventListener, MessageId)> {
+        let api = &self.api;
+        #[cfg(not(feature = "ethexe"))]
+        let gas_limit = if let Some(gas_limit) = gas_limit {
+            gas_limit
+        } else {
+            // Calculate gas amount needed for handling the message
+            let gas_info = api
+                .calculate_handle_gas(None, target, Vec::from(payload.as_ref()), value, true)
+                .await?;
+            gas_info.min_limit
+        };
+        #[cfg(feature = "ethexe")]
+        let gas_limit = 0;
+        let listener = api.subscribe().await?;
+        let (message_id, ..) = if let Some((voucher_id, keep_alive)) = args.voucher {
+            api.send_message_bytes_with_voucher(
+                voucher_id, target, payload, gas_limit, value, keep_alive,
+            )
+            .await?
+        } else {
+            api.send_message_bytes(target, payload, gas_limit, value)
+                .await?
+        };
+        Ok((listener, message_id))
+    }
+}
+
+async fn wait_for_reply(
+    mut listener: gclient::EventListener,
+    message_id: MessageId,
+) -> Result<Vec<u8>> {
+    let (_, payload, _) = listener.reply_bytes_on(message_id).await?;
+    Ok(payload.map_err(RtlError::ReplyHasErrorString)?)
 }
 
 impl Remoting for GClientRemoting {
@@ -145,37 +187,11 @@ impl Remoting for GClientRemoting {
         value: ValueUnit,
         args: GClientArgs,
     ) -> Result<impl Future<Output = Result<Vec<u8>>>> {
-        let api = self.api;
-        // Calculate gas amount if it is not explicitly set
-        #[cfg(not(feature = "ethexe"))]
-        let gas_limit = if let Some(gas_limit) = gas_limit {
-            gas_limit
-        } else {
-            // Calculate gas amount needed for handling the message
-            let gas_info = api
-                .calculate_handle_gas(None, target, Vec::from(payload.as_ref()), value, true)
-                .await?;
-            gas_info.min_limit
-        };
-        #[cfg(feature = "ethexe")]
-        let gas_limit = 0;
+        let (listener, message_id) = self
+            .send_message_inner(target, payload, gas_limit, value, args)
+            .await?;
 
-        let mut listener = api.subscribe().await?;
-        let (message_id, ..) = if let Some((voucher_id, keep_alive)) = args.voucher {
-            api.send_message_bytes_with_voucher(
-                voucher_id, target, payload, gas_limit, value, keep_alive,
-            )
-            .await?
-        } else {
-            api.send_message_bytes(target, payload, gas_limit, value)
-                .await?
-        };
-
-        Ok(async move {
-            let (_, result, _) = listener.reply_bytes_on(message_id).await?;
-            let reply = result.map_err(RtlError::ReplyHasErrorString)?;
-            Ok(reply)
-        })
+        Ok(wait_for_reply(listener, message_id))
     }
 
     async fn query(
@@ -188,9 +204,10 @@ impl Remoting for GClientRemoting {
     ) -> Result<Vec<u8>> {
         if args.query_with_message {
             // first await - sending a message, second await - receiving a reply
-            self.message(target, payload, gas_limit, value, args)
-                .await?
-                .await
+            let (listener, message_id) = self
+                .send_message_inner(target, payload, gas_limit, value, args)
+                .await?;
+            wait_for_reply(listener, message_id).await
         } else {
             self.query_calculate_reply(target, payload, gas_limit, value, args)
                 .await
@@ -273,5 +290,91 @@ where
 
     fn query_with_message(self, query_with_message: bool) -> Self {
         self.with_args(|args| args.query_with_message(query_with_message))
+    }
+}
+
+impl RemotingMessage for GClientRemoting {
+    type Args = GClientArgs;
+    type MessageFuture = GClientMessageFuture;
+
+    fn send_message(
+        self,
+        target: ActorId,
+        payload: Vec<u8>,
+        #[cfg(not(feature = "ethexe"))] gas_limit: Option<GasUnit>,
+        value: ValueUnit,
+        args: Self::Args,
+    ) -> Result<Self::MessageFuture> {
+        let future = self.send_message_inner(
+            target,
+            payload,
+            #[cfg(not(feature = "ethexe"))]
+            gas_limit,
+            value,
+            args,
+        );
+        Ok(GClientMessageFuture::new(future))
+    }
+}
+
+pub enum GClientMessageFuture {
+    Send(Pin<Box<dyn Future<Output = Result<(gclient::EventListener, MessageId)>>>>),
+    Receive {
+        message_id: MessageId,
+        future: Pin<Box<dyn Future<Output = Result<Vec<u8>>>>>,
+    },
+    Completed,
+}
+
+impl GClientMessageFuture {
+    fn new(
+        future: impl Future<Output = Result<(gclient::EventListener, MessageId)>> + 'static,
+    ) -> Self {
+        Self::Send(Box::pin(future))
+    }
+}
+
+impl Future for GClientMessageFuture {
+    type Output = Result<Vec<u8>>;
+
+    fn poll(
+        mut self: core::pin::Pin<&mut Self>,
+        cx: &mut core::task::Context<'_>,
+    ) -> core::task::Poll<Self::Output> {
+        match self.deref_mut() {
+            Self::Send(future) => {
+                let (listener, message_id) = match future.as_mut().poll(cx) {
+                    Poll::Ready(Ok(result)) => result,
+                    Poll::Ready(Err(e)) => return Poll::Ready(Err(e)),
+                    Poll::Pending => return Poll::Pending,
+                };
+                self.set(Self::Receive {
+                    message_id,
+                    future: Box::pin(wait_for_reply(listener, message_id)),
+                });
+                Poll::Pending
+            }
+            Self::Receive { future, .. } => {
+                let result = future.as_mut().poll(cx);
+                if result.is_ready() {
+                    self.set(Self::Completed);
+                }
+                return result;
+            }
+            Self::Completed => unreachable!("polled after completion or invalid state"),
+        }
+    }
+}
+
+impl MessageFuture for GClientMessageFuture {
+    type Remoting = GClientRemoting;
+    type Error = crate::errors::Error;
+
+    fn message_id(&self) -> MessageId {
+        match self {
+            Self::Send(_) => MessageId::zero(),
+            Self::Receive { message_id, .. } => *message_id,
+            Self::Completed => MessageId::zero(),
+        }
     }
 }

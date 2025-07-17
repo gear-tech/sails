@@ -3,8 +3,9 @@ use crate::{
     prelude::*,
     utils::MaybeUninitBufferWriter,
 };
-use core::{future::Future, marker::PhantomData};
+use core::{future::Future, marker::PhantomData, task::Poll};
 use gcore::stack_buffer;
+use pin_project_lite::pin_project;
 
 pub trait Action {
     type Args;
@@ -36,10 +37,12 @@ pub trait Call: Action<Args = <Self::Remoting as Remoting>::Args> {
 
     fn send_one_way(self, target: ActorId) -> Result<MessageId>
     where
-        Self::Remoting: CallOneWay;
+        Self::Remoting: CallOneWay<Args = <Self::Remoting as Remoting>::Args>;
 }
 
-pub trait CallOneWay: Remoting {
+pub trait CallOneWay {
+    type Args;
+
     fn send_one_way(
         self,
         target: ActorId,
@@ -137,7 +140,7 @@ where
 }
 
 #[allow(async_fn_in_trait)]
-pub trait Remoting {
+pub trait Remoting: Clone {
     type Args: Default;
 
     async fn activate(
@@ -252,7 +255,7 @@ where
 
     fn send_one_way(self, target: ActorId) -> Result<MessageId>
     where
-        Self::Remoting: CallOneWay,
+        Self::Remoting: CallOneWay<Args = TRemoting::Args>,
     {
         TActionIo::with_optimized_encode(&self.params, |payload| {
             self.remoting.send_one_way(
@@ -350,3 +353,347 @@ pub trait ActionIo {
         })
     }
 }
+
+#[allow(async_fn_in_trait)]
+pub trait Deploy<P: Program>: Action<Args = <Self::Remoting as Remoting>::Args> {
+    type Remoting: Remoting;
+
+    async fn deploy<S: AsRef<[u8]>>(self, code_id: CodeId, salt: S) -> Result<P>;
+}
+
+pub trait Program {
+    type Remoting: Remoting;
+
+    fn new(remoting: Self::Remoting, program_id: ActorId) -> Self;
+    fn program_id(&self) -> ActorId;
+}
+
+pub struct DeployAction<A: ActionIo, P: Program> {
+    pub(crate) remoting: P::Remoting,
+    pub(crate) params: A::Params,
+    #[cfg(not(feature = "ethexe"))]
+    gas_limit: Option<GasUnit>,
+    value: ValueUnit,
+    args: <P::Remoting as Remoting>::Args,
+    _program: PhantomData<P>,
+}
+
+impl<TActionIo: ActionIo, P: Program> DeployAction<TActionIo, P> {
+    pub fn new(remoting: P::Remoting, params: TActionIo::Params) -> Self {
+        Self {
+            remoting,
+            params,
+            #[cfg(not(feature = "ethexe"))]
+            gas_limit: Default::default(),
+            value: Default::default(),
+            args: Default::default(),
+            _program: PhantomData,
+        }
+    }
+}
+
+impl<TActionIo: ActionIo, P: Program> Action for DeployAction<TActionIo, P> {
+    type Args = <P::Remoting as Remoting>::Args;
+
+    #[cfg(not(feature = "ethexe"))]
+    fn with_gas_limit(self, gas_limit: GasUnit) -> Self {
+        Self {
+            gas_limit: Some(gas_limit),
+            ..self
+        }
+    }
+
+    fn with_value(self, value: ValueUnit) -> Self {
+        Self { value, ..self }
+    }
+
+    fn with_args<F: FnOnce(Self::Args) -> Self::Args>(self, args_fn: F) -> Self {
+        let DeployAction { args, .. } = self;
+        let args = args_fn(args);
+        Self { args, ..self }
+    }
+
+    #[cfg(not(feature = "ethexe"))]
+    fn gas_limit(&self) -> Option<GasUnit> {
+        self.gas_limit
+    }
+
+    fn value(&self) -> ValueUnit {
+        self.value
+    }
+
+    fn args(&self) -> &Self::Args {
+        &self.args
+    }
+}
+
+impl<A: ActionIo<Reply = ()>, P: Program> Deploy<P> for DeployAction<A, P> {
+    type Remoting = P::Remoting;
+
+    async fn deploy<S: AsRef<[u8]>>(self, code_id: CodeId, salt: S) -> Result<P> {
+        let remoting = self.remoting.clone();
+        let program_id = Activation::send_recv(self, code_id, salt).await?;
+        Ok(P::new(remoting, program_id))
+    }
+}
+
+impl<A, P: Program> Activation for DeployAction<A, P>
+where
+    A: ActionIo<Reply = ()>,
+{
+    async fn send<S: AsRef<[u8]>>(
+        self,
+        code_id: CodeId,
+        salt: S,
+    ) -> Result<impl Reply<Output = ActorId>> {
+        let payload = A::encode_call(&self.params);
+        let reply_future = self
+            .remoting
+            .activate(
+                code_id,
+                salt,
+                payload,
+                #[cfg(not(feature = "ethexe"))]
+                self.gas_limit,
+                self.value,
+                self.args,
+            )
+            .await?;
+        Ok(ActivationTicket::<_, A>::new(reply_future))
+    }
+}
+
+pub trait CallFuture: Action<Args = <Self::Remoting as RemotingMessage>::Args> + Future {
+    type Remoting: RemotingMessage;
+
+    fn send_one_way(self) -> Result<MessageId>
+    where
+        Self::Remoting: CallOneWay<Args = <Self::Remoting as RemotingMessage>::Args>;
+}
+
+pin_project! {
+    #[project = Projection]
+    pub struct CallAction<R: RemotingMessage, A: ActionIo> {
+        pub(crate) remoting: R,
+        pub(crate) target: ActorId,
+        pub(crate) params: A::Params,
+        gas_limit: Option<GasUnit>,
+        value: ValueUnit,
+        args: Option<R::Args>,
+        #[pin]
+        future: Option<<R as RemotingMessage>::MessageFuture>,
+    }
+}
+
+impl<R: RemotingMessage, A: ActionIo> CallAction<R, A> {
+    pub fn new(remoting: R, target: ActorId, params: A::Params) -> Self {
+        Self {
+            remoting,
+            target,
+            params,
+            #[cfg(not(feature = "ethexe"))]
+            gas_limit: Default::default(),
+            value: Default::default(),
+            args: Some(Default::default()),
+            future: None,
+        }
+    }
+}
+
+impl<R: RemotingMessage, A: ActionIo> Action for CallAction<R, A> {
+    type Args = R::Args;
+
+    #[cfg(not(feature = "ethexe"))]
+    fn with_gas_limit(self, gas_limit: GasUnit) -> Self {
+        Self {
+            gas_limit: Some(gas_limit),
+            ..self
+        }
+    }
+
+    fn with_value(self, value: ValueUnit) -> Self {
+        Self { value, ..self }
+    }
+
+    fn with_args<F: FnOnce(Self::Args) -> Self::Args>(self, args_fn: F) -> Self {
+        let CallAction { args, .. } = self;
+        let args = args.unwrap_or_default();
+        let args = args_fn(args);
+        Self {
+            args: Some(args),
+            ..self
+        }
+    }
+
+    #[cfg(not(feature = "ethexe"))]
+    fn gas_limit(&self) -> Option<GasUnit> {
+        self.gas_limit
+    }
+
+    fn value(&self) -> ValueUnit {
+        self.value
+    }
+
+    fn args(&self) -> &Self::Args {
+        self.args.as_ref().unwrap()
+    }
+}
+
+impl<R, A> Future for CallAction<R, A>
+where
+    A: ActionIo,
+    R: RemotingMessage,
+{
+    type Output = Result<A::Reply>;
+
+    fn poll(
+        self: core::pin::Pin<&mut Self>,
+        cx: &mut core::task::Context<'_>,
+    ) -> core::task::Poll<Self::Output> {
+        let mut this = self.project();
+
+        if this.future.is_none() {
+            // If future is not set, create it.
+            let args = this.args.take().unwrap_or_default();
+            let res = this.remoting.clone().send_message(
+                *this.target,
+                A::encode_call(&this.params),
+                #[cfg(not(feature = "ethexe"))]
+                *this.gas_limit,
+                *this.value,
+                args,
+            );
+            match res {
+                Err(e) => return Poll::Ready(Err(e)),
+                Ok(future) => {
+                    this.future.set(Some(future));
+                }
+            }
+        }
+
+        if let Some(mut future) = this.future.as_pin_mut() {
+            // If future is already set, poll it.
+            match future.as_mut().poll(cx) {
+                Poll::Ready(Ok(payload)) => Poll::Ready(A::decode_reply(payload)),
+                Poll::Ready(Err(err)) => Poll::Ready(Err(err.into())),
+                Poll::Pending => Poll::Pending,
+            }
+        } else {
+            panic!("CallAction polled after completion");
+        }
+    }
+}
+
+impl<R, A> CallFuture for CallAction<R, A>
+where
+    R: RemotingMessage,
+    A: ActionIo,
+{
+    type Remoting = R;
+
+    fn send_one_way(mut self) -> Result<MessageId>
+    where
+        Self::Remoting: CallOneWay<Args = <Self::Remoting as RemotingMessage>::Args>,
+    {
+        let args = self.args.take().unwrap_or_default();
+        A::with_optimized_encode(&self.params, |payload| {
+            self.remoting.send_one_way(
+                self.target,
+                payload,
+                #[cfg(not(feature = "ethexe"))]
+                self.gas_limit,
+                self.value,
+                args,
+            )
+        })
+    }
+}
+
+pub trait MessageFuture: Future<Output = Result<Vec<u8>, Self::Error>> {
+    type Remoting;
+    type Error: Into<Error>;
+
+    fn message_id(&self) -> MessageId;
+}
+
+pub trait DeployFuture: MessageFuture {
+    fn program_id(&self) -> ActorId;
+}
+
+pub trait RemotingMessage: Clone {
+    type Args: Default;
+    type MessageFuture: MessageFuture<Remoting = Self>;
+    // type DeployFuture: DeployFuture<Remoting = Self>;
+
+    fn send_message(
+        self,
+        target: ActorId,
+        payload: Vec<u8>,
+        #[cfg(not(feature = "ethexe"))] gas_limit: Option<GasUnit>,
+        value: ValueUnit,
+        args: Self::Args,
+    ) -> Result<Self::MessageFuture>;
+
+    // fn deploy<P: AsRef<[u8]>>(
+    //     self,
+    //     code_id: CodeId,
+    //     salt: impl AsRef<[u8]>,
+    //     payload: P,
+    //     #[cfg(not(feature = "ethexe"))] gas_limit: Option<GasUnit>,
+    //     value: ValueUnit,
+    //     args: Self::Args,
+    // ) -> Result<Self::DeployFuture>;
+}
+
+// impl<T, A> Remoting for T
+// where
+//     A: Default,
+//     T: RemotingMessage<Args = A>,
+// {
+//     type Args = A;
+
+//     async fn activate(
+//         self,
+//         code_id: CodeId,
+//         salt: impl AsRef<[u8]>,
+//         payload: impl AsRef<[u8]>,
+//         #[cfg(not(feature = "ethexe"))] gas_limit: Option<GasUnit>,
+//         value: ValueUnit,
+//         args: Self::Args,
+//     ) -> Result<impl Future<Output = Result<(ActorId, Vec<u8>)>>> {
+//         let future = self.deploy(code_id, salt, payload, gas_limit, value, args)?;
+//         let program_id = future.program_id();
+//         Ok(future.map(move |res| res.map(|vec| (program_id, vec))))
+//     }
+
+//     async fn message(
+//         self,
+//         target: ActorId,
+//         payload: impl AsRef<[u8]>,
+//         #[cfg(not(feature = "ethexe"))] gas_limit: Option<GasUnit>,
+//         value: ValueUnit,
+//         args: Self::Args,
+//     ) -> Result<impl Future<Output = Result<Vec<u8>>>> {
+//         let future = self.message(target, payload, gas_limit, value, args)?;
+//         Ok(future)
+//     }
+
+//     async fn query(
+//         self,
+//         target: ActorId,
+//         payload: impl AsRef<[u8]>,
+//         #[cfg(not(feature = "ethexe"))] gas_limit: Option<GasUnit>,
+//         value: ValueUnit,
+//         args: Self::Args,
+//     ) -> Result<Vec<u8>> {
+//         let message_future = self.message(
+//             target,
+//             payload,
+//             #[cfg(not(feature = "ethexe"))]
+//             gas_limit,
+//             value,
+//             args,
+//         )?;
+//         message_future.await
+//     }
+// }

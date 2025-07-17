@@ -1,6 +1,6 @@
 use super::message_future::MessageFutureExtended;
 use crate::{
-    calls::{Action, CallOneWay, Remoting},
+    calls::{Action, CallOneWay, Remoting, RemotingMessage},
     errors::Result,
     futures::FutureExt,
     prelude::*,
@@ -285,6 +285,8 @@ where
 }
 
 impl CallOneWay for GStdRemoting {
+    type Args = GStdArgs;
+
     fn send_one_way(
         self,
         target: ActorId,
@@ -303,5 +305,35 @@ impl CallOneWay for GStdRemoting {
 
         #[cfg(feature = "ethexe")]
         gcore::msg::send(target, payload, value).map_err(Into::into)
+    }
+}
+
+impl crate::calls::MessageFuture for MessageFutureExtended<Vec<u8>> {
+    type Remoting = GStdRemoting;
+    type Error = crate::errors::Error;
+
+    fn message_id(&self) -> MessageId {
+        match self {
+            Self::NonRedirect { message_future } => message_future.waiting_reply_to,
+            Self::Redirect { message_future, .. } => message_future.waiting_reply_to,
+            Self::Dummy => MessageId::zero(),
+        }
+    }
+}
+
+impl RemotingMessage for GStdRemoting {
+    type Args = GStdArgs;
+    type MessageFuture = MessageFutureExtended<Vec<u8>>;
+
+    fn send_message(
+        self,
+        target: ActorId,
+        payload: Vec<u8>,
+        #[cfg(not(feature = "ethexe"))] gas_limit: Option<GasUnit>,
+        value: ValueUnit,
+        args: Self::Args,
+    ) -> Result<Self::MessageFuture> {
+        let message_future = send_for_reply(target, payload, gas_limit, value, args)?;
+        Ok(message_future)
     }
 }
