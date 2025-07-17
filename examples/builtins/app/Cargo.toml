@@ -1,0 +1,17 @@
+[package]
+name = "builtins-example-app"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+sails-rs.workspace = true
+
+[build-dependencies]
+sails-rs = { workspace = true, features = ["wasm-builder"] }
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["rt", "macros"] }
+gclient.workspace = true
+log.workspace = true
+sails-rs = { workspace = true, features = ["gclient"] }
+builtins-example-client = { path = "../client" }

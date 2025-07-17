@@ -923,6 +923,25 @@ dependencies = [
 ]
 
 [[package]]
+name = "builtins-example-app"
+version = "0.8.1"
+dependencies = [
+ "builtins-example-client",
+ "gclient",
+ "log",
+ "sails-rs",
+ "tokio",
+]
+
+[[package]]
+name = "builtins-example-client"
+version = "0.8.1"
+dependencies = [
+ "builtins-example-app",
+ "sails-rs",
+]
+
+[[package]]
 name = "bumpalo"
 version = "3.17.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"

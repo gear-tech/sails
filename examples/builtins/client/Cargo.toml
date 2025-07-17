@@ -1,0 +1,11 @@
+[package]
+name = "builtins-example-client"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+sails-rs.workspace = true
+
+[build-dependencies]
+builtins-example-app = { path = "../app" }
+sails-rs = { workspace = true, features = ["build"] }

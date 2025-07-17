@@ -33,7 +33,7 @@ members = [
     "rs/idl-parser",
     "rs/macros",
     "rs/macros/core",
-    "rs/sol-gen",
+    "rs/sol-gen", "examples/builtins/app", "examples/builtins/client",
 ]
 
 [workspace.dependencies]

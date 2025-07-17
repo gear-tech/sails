@@ -1,0 +1,18 @@
+/// `TypeInfo` implementor copy of `gbuiltin_proxy::ProxyType`.
+type ProxyType = enum {
+  Any,
+  NonTransfer,
+  Governance,
+  Staking,
+  IdentityJudgement,
+  CancelProxy,
+};
+
+constructor {
+  New : ();
+};
+
+service ProxyBroker {
+  AddProxy : (delegate: actor_id, proxy_type: ProxyType) -> vec u8;
+};
+
