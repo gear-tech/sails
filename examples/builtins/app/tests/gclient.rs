@@ -26,6 +26,14 @@ async fn test_raw_proxy_builtin_call() {
         .expect("Failed to send proxy request");
 
     assert_eq!(res, Vec::<u8>::new());
+
+    let res = proxy
+        .remove_proxy(random_actor_id, SailsProxyType::Any)
+        .send_recv(PROXY_BUILTIN_ID)
+        .await
+        .expect("Failed to send proxy request");
+
+    assert_eq!(res, Vec::<u8>::new());
 }
 
 #[tokio::test]

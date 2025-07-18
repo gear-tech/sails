@@ -55,6 +55,9 @@ gcore = "=1.8.1"
 gear-core = { version = "=1.8.1", default-features = false }
 gear-core-errors = "=1.8.1"
 gbuiltin-proxy = "=1.8.1"
+gbuiltin-staking = "=1.8.1"
+gbuiltin-eth-bridge = "=1.8.1"
+gbuiltin-bls381 = "=1.8.1"
 gprimitives = { version = "=1.8.1", features = ["codec"] }
 gstd = "=1.8.1"
 gtest = "=1.8.1"

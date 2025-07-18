@@ -20,6 +20,9 @@ gprimitives.workspace = true
 gstd = { workspace = true, optional = true }
 gwasm-builder = { workspace = true, optional = true }
 gbuiltin-proxy.workspace = true
+gbuiltin-staking.workspace = true
+gbuiltin-eth-bridge.workspace = true
+gbuiltin-bls381.workspace = true
 hashbrown.workspace = true
 hex.workspace = true
 keccak-const = { workspace = true, optional = true }
