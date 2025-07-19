@@ -1,4 +1,4 @@
-use redirect_client::traits::{RedirectClient as _, RedirectClientFactory as _};
+use redirect_client::{traits::{RedirectClient as _, RedirectClientFactory as _}, Redirect};
 use redirect_proxy_client::traits::{Proxy as _, RedirectProxyClientFactory as _};
 use sails_rs::{CodeId, GasUnit, calls::*, gtest::calls::GTestRemoting};
 

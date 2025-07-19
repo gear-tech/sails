@@ -1,6 +1,6 @@
 use crate::{
     calls::{MessageFuture, Query, Remoting, RemotingMessage},
-    errors::{Result, RtlError},
+    errors::{Error, Result, RtlError},
     events::Listener,
     futures::{Stream, StreamExt, stream},
     prelude::*,
@@ -129,6 +129,41 @@ impl GClientRemoting {
                 .await?
         };
         Ok((listener, message_id))
+    }
+
+    async fn send_message_inner_2(
+        self,
+        target: ActorId,
+        payload: impl AsRef<[u8]>,
+        gas_limit: Option<u64>,
+        value: u128,
+        args: GClientArgs,
+    ) -> Result<Vec<u8>> {
+        let api = &self.api;
+        #[cfg(not(feature = "ethexe"))]
+        let gas_limit = if let Some(gas_limit) = gas_limit {
+            gas_limit
+        } else {
+            // Calculate gas amount needed for handling the message
+            let gas_info = api
+                .calculate_handle_gas(None, target, Vec::from(payload.as_ref()), value, true)
+                .await?;
+            gas_info.min_limit
+        };
+        #[cfg(feature = "ethexe")]
+        let gas_limit = 0;
+        let mut listener = api.subscribe().await?;
+        let (message_id, ..) = if let Some((voucher_id, keep_alive)) = args.voucher {
+            api.send_message_bytes_with_voucher(
+                voucher_id, target, payload, gas_limit, value, keep_alive,
+            )
+            .await?
+        } else {
+            api.send_message_bytes(target, payload, gas_limit, value)
+                .await?
+        };
+        let (_, payload, _) = listener.reply_bytes_on(message_id).await?;
+        Ok(payload.map_err(RtlError::ReplyHasErrorString)?)
     }
 }
 
@@ -305,7 +340,7 @@ impl RemotingMessage for GClientRemoting {
         value: ValueUnit,
         args: Self::Args,
     ) -> Result<Self::MessageFuture> {
-        let future = self.send_message_inner(
+        let future = self.send_message_inner_2(
             target,
             payload,
             #[cfg(not(feature = "ethexe"))]
@@ -318,18 +353,12 @@ impl RemotingMessage for GClientRemoting {
 }
 
 pub enum GClientMessageFuture {
-    Send(Pin<Box<dyn Future<Output = Result<(gclient::EventListener, MessageId)>>>>),
-    Receive {
-        message_id: MessageId,
-        future: Pin<Box<dyn Future<Output = Result<Vec<u8>>>>>,
-    },
+    Send(Pin<Box<dyn Future<Output = Result<Vec<u8>>>>>),
     Completed,
 }
 
 impl GClientMessageFuture {
-    fn new(
-        future: impl Future<Output = Result<(gclient::EventListener, MessageId)>> + 'static,
-    ) -> Self {
+    fn new(future: impl Future<Output = Result<Vec<u8>>> + 'static) -> Self {
         Self::Send(Box::pin(future))
     }
 }
@@ -343,23 +372,11 @@ impl Future for GClientMessageFuture {
     ) -> core::task::Poll<Self::Output> {
         match self.deref_mut() {
             Self::Send(future) => {
-                let (listener, message_id) = match future.as_mut().poll(cx) {
-                    Poll::Ready(Ok(result)) => result,
-                    Poll::Ready(Err(e)) => return Poll::Ready(Err(e)),
-                    Poll::Pending => return Poll::Pending,
-                };
-                self.set(Self::Receive {
-                    message_id,
-                    future: Box::pin(wait_for_reply(listener, message_id)),
-                });
-                Poll::Pending
-            }
-            Self::Receive { future, .. } => {
                 let result = future.as_mut().poll(cx);
                 if result.is_ready() {
                     self.set(Self::Completed);
                 }
-                return result;
+                result
             }
             Self::Completed => unreachable!("polled after completion or invalid state"),
         }
@@ -367,14 +384,9 @@ impl Future for GClientMessageFuture {
 }
 
 impl MessageFuture for GClientMessageFuture {
-    type Remoting = GClientRemoting;
-    type Error = crate::errors::Error;
+    type Error = Error;
 
     fn message_id(&self) -> MessageId {
-        match self {
-            Self::Send(_) => MessageId::zero(),
-            Self::Receive { message_id, .. } => *message_id,
-            Self::Completed => MessageId::zero(),
-        }
+        unimplemented!()
     }
 }

@@ -309,7 +309,6 @@ impl CallOneWay for GStdRemoting {
 }
 
 impl crate::calls::MessageFuture for MessageFutureExtended<Vec<u8>> {
-    type Remoting = GStdRemoting;
     type Error = crate::errors::Error;
 
     fn message_id(&self) -> MessageId {

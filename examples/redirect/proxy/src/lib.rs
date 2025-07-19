@@ -1,7 +1,7 @@
 #![no_std]
 
 use redirect_client::{Redirect, traits::RedirectClient as _};
-use sails_rs::{gstd::calls::*, prelude::*};
+use sails_rs::{gstd::calls::*, prelude::*, calls::*};
 
 struct ProxyService(ActorId);
 

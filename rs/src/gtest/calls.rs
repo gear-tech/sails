@@ -390,7 +390,6 @@ impl Future for GTestMessageFuture {
 }
 
 impl MessageFuture for GTestMessageFuture {
-    type Remoting = GTestRemoting;
     type Error = crate::errors::Error;
 
     fn message_id(&self) -> MessageId {

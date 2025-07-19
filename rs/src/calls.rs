@@ -610,7 +610,6 @@ where
 }
 
 pub trait MessageFuture: Future<Output = Result<Vec<u8>, Self::Error>> {
-    type Remoting;
     type Error: Into<Error>;
 
     fn message_id(&self) -> MessageId;
@@ -622,7 +621,7 @@ pub trait DeployFuture: MessageFuture {
 
 pub trait RemotingMessage: Clone {
     type Args: Default;
-    type MessageFuture: MessageFuture<Remoting = Self>;
+    type MessageFuture: MessageFuture;
     // type DeployFuture: DeployFuture<Remoting = Self>;
 
     fn send_message(
