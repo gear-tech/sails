@@ -11,6 +11,8 @@ use sails_rs::{
     gclient::calls::GClientRemoting,
 };
 
+const ONE_VARA: u128 = 1_000_000_000_000;
+
 #[tokio::test]
 async fn call_proxy_builtin_from_app() {
     let api = GearApi::dev().await.unwrap();
@@ -28,13 +30,21 @@ async fn call_proxy_builtin_from_app() {
         .await
         .expect("Failed program init message");
 
-    api.transfer_keep_alive(builtins_broker_pid, 100_000_000_000_000_000_000)
+    api.transfer_keep_alive(builtins_broker_pid, 10_000 * ONE_VARA)
         .await
         .expect("Failed to transfer funds to program");
 
     let mut proxy_broker_client = ProxyBroker::new(remoting.clone());
     let resp = proxy_broker_client
         .add_proxy(H256::random().into(), ProxyType::Any)
+        .send_recv(builtins_broker_pid)
+        .await
+        .expect("Failed to send proxy request");
+
+    assert_eq!(resp, Ok(Vec::<u8>::new()));
+
+    let resp = proxy_broker_client
+        .remove_proxy(H256::random().into(), ProxyType::Any)
         .send_recv(builtins_broker_pid)
         .await
         .expect("Failed to send proxy request");
