@@ -1,10 +1,12 @@
+mod bls381;
+mod eth_bridge;
 mod proxy;
 mod staking;
-mod bls381;
 
+pub use bls381::*;
+pub use eth_bridge::*;
 pub use proxy::*;
 pub use staking::*;
-pub use bls381::*;
 
 use crate::calls::Remoting;
 

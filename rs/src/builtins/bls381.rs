@@ -7,8 +7,7 @@ use crate::{
 };
 use gbuiltin_bls381::{Request as GearBls381Request, Response as GearBls381Response};
 
-// todo [sab] make typeinfo types on gear
-// todo [sab] package must provide the address 0x6b6e292c382945e80bf51af2ba7fe9f458dcff81ae6075c46f9095e1bbecdc37
+/// Gear protocol BLS381 builtin id is 0x6b6e292c382945e80bf51af2ba7fe9f458dcff81ae6075c46f9095e1bbecdc37
 pub const BLS381_BUILTIN_ID: ActorId = ActorId::new([
     0x6b, 0x6e, 0x29, 0x2c, 0x38, 0x29, 0x45, 0xe8, 0x0b, 0xf5, 0x1a, 0xf2, 0xba, 0x7f, 0xe9, 0xf4,
     0x58, 0xdc, 0xff, 0x81, 0xae, 0x60, 0x75, 0xc4, 0x6f, 0x90, 0x95, 0xe1, 0xbb, 0xec, 0xdc, 0x37,
@@ -207,4 +206,11 @@ impl From<GearBls381Response> for Bls381Response {
             GearBls381Response::MapToG2Affine(value) => Self::MapToG2Affine(value),
         }
     }
+}
+
+#[test]
+fn test_id() {
+    let expected = hex::decode("6b6e292c382945e80bf51af2ba7fe9f458dcff81ae6075c46f9095e1bbecdc37")
+        .expect("Failed to decode hex");
+    assert_eq!(BLS381_BUILTIN_ID.into_bytes().to_vec(), expected);
 }

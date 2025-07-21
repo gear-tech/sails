@@ -1,37 +1,40 @@
 #![no_std]
 
+mod bls381;
+mod eth_bridge;
+mod proxy;
+mod staking;
+
+use bls381::Bls381Broker;
+use eth_bridge::EthBridgeBroker;
+use proxy::ProxyBroker;
 use sails_rs::{builtins::*, calls::Call, gstd::calls::GStdRemoting, prelude::*};
-
-struct ProxyBroker;
-
-#[sails_rs::service]
-impl ProxyBroker {
-    #[export]
-    pub async fn add_proxy(&mut self, delegate: ActorId, proxy_type: ProxyType) -> Vec<u8> {
-        let proxy_builtin_client = ProxyBuiltin::new(GStdRemoting::new());
-
-        // todo [sab] error type
-        proxy_builtin_client
-            .add_proxy(delegate, proxy_type)
-            .send_recv(PROXY_BUILTIN_ID)
-            .await
-            .unwrap_or_else(|e| panic!("failed sending proxy builtin request: {e}"))
-    }
-}
+use staking::StakingBroker;
 
 #[derive(Default)]
-pub struct Program(());
+pub struct BuiltinsBroker(());
 
 #[sails_rs::program]
-impl Program {
+impl BuiltinsBroker {
     // Program's constructor
     pub fn new() -> Self {
         Self(())
     }
 
-    // Exposed service
     pub fn proxy_broker(&self) -> ProxyBroker {
         ProxyBroker
+    }
+
+    pub fn staking_broker(&self) -> StakingBroker {
+        StakingBroker
+    }
+
+    pub fn bls381_broker(&self) -> Bls381Broker {
+        Bls381Broker
+    }
+
+    pub fn eth_bridge_broker(&self) -> EthBridgeBroker {
+        EthBridgeBroker
     }
 }
 

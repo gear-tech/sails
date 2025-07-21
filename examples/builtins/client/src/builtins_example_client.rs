@@ -60,8 +60,18 @@ impl<R: Remoting + Clone> traits::ProxyBroker for ProxyBroker<R> {
         &mut self,
         delegate: ActorId,
         proxy_type: ProxyType,
-    ) -> impl Call<Output = Vec<u8>, Args = R::Args> {
+    ) -> impl Call<Output = Result<Vec<u8>, String>, Args = R::Args> {
         RemotingAction::<_, proxy_broker::io::AddProxy>::new(
+            self.remoting.clone(),
+            (delegate, proxy_type),
+        )
+    }
+    fn remove_proxy(
+        &mut self,
+        delegate: ActorId,
+        proxy_type: ProxyType,
+    ) -> impl Call<Output = Result<Vec<u8>, String>, Args = R::Args> {
+        RemotingAction::<_, proxy_broker::io::RemoveProxy>::new(
             self.remoting.clone(),
             (delegate, proxy_type),
         )
@@ -87,7 +97,490 @@ pub mod proxy_broker {
                 111, 120, 121,
             ];
             type Params = (ActorId, super::ProxyType);
-            type Reply = Vec<u8>;
+            type Reply = Result<Vec<u8>, String>;
+        }
+        pub struct RemoveProxy(());
+        impl RemoveProxy {
+            #[allow(dead_code)]
+            pub fn encode_call(delegate: ActorId, proxy_type: super::ProxyType) -> Vec<u8> {
+                <RemoveProxy as ActionIo>::encode_call(&(delegate, proxy_type))
+            }
+        }
+        impl ActionIo for RemoveProxy {
+            const ROUTE: &'static [u8] = &[
+                44, 80, 114, 111, 120, 121, 66, 114, 111, 107, 101, 114, 44, 82, 101, 109, 111,
+                118, 101, 80, 114, 111, 120, 121,
+            ];
+            type Params = (ActorId, super::ProxyType);
+            type Reply = Result<Vec<u8>, String>;
+        }
+    }
+}
+pub struct StakingBroker<R> {
+    remoting: R,
+}
+impl<R> StakingBroker<R> {
+    pub fn new(remoting: R) -> Self {
+        Self { remoting }
+    }
+}
+impl<R: Remoting + Clone> traits::StakingBroker for StakingBroker<R> {
+    type Args = R::Args;
+    fn bond(
+        &mut self,
+        value: u128,
+        payee: RewardAccount,
+    ) -> impl Call<Output = Result<Vec<u8>, String>, Args = R::Args> {
+        RemotingAction::<_, staking_broker::io::Bond>::new(self.remoting.clone(), (value, payee))
+    }
+    fn bond_extra(
+        &mut self,
+        value: u128,
+    ) -> impl Call<Output = Result<Vec<u8>, String>, Args = R::Args> {
+        RemotingAction::<_, staking_broker::io::BondExtra>::new(self.remoting.clone(), value)
+    }
+    fn chill(&mut self) -> impl Call<Output = Result<Vec<u8>, String>, Args = R::Args> {
+        RemotingAction::<_, staking_broker::io::Chill>::new(self.remoting.clone(), ())
+    }
+    fn nominate(
+        &mut self,
+        targets: Vec<ActorId>,
+    ) -> impl Call<Output = Result<Vec<u8>, String>, Args = R::Args> {
+        RemotingAction::<_, staking_broker::io::Nominate>::new(self.remoting.clone(), targets)
+    }
+    fn payout_stakers(
+        &mut self,
+        validator_stash: ActorId,
+        era: u32,
+    ) -> impl Call<Output = Result<Vec<u8>, String>, Args = R::Args> {
+        RemotingAction::<_, staking_broker::io::PayoutStakers>::new(
+            self.remoting.clone(),
+            (validator_stash, era),
+        )
+    }
+    fn rebond(
+        &mut self,
+        value: u128,
+    ) -> impl Call<Output = Result<Vec<u8>, String>, Args = R::Args> {
+        RemotingAction::<_, staking_broker::io::Rebond>::new(self.remoting.clone(), value)
+    }
+    fn set_payee(
+        &mut self,
+        payee: RewardAccount,
+    ) -> impl Call<Output = Result<Vec<u8>, String>, Args = R::Args> {
+        RemotingAction::<_, staking_broker::io::SetPayee>::new(self.remoting.clone(), payee)
+    }
+    fn unbond(
+        &mut self,
+        value: u128,
+    ) -> impl Call<Output = Result<Vec<u8>, String>, Args = R::Args> {
+        RemotingAction::<_, staking_broker::io::Unbond>::new(self.remoting.clone(), value)
+    }
+    fn withdraw_unbonded(
+        &mut self,
+        num_slashing_spans: u32,
+    ) -> impl Call<Output = Result<Vec<u8>, String>, Args = R::Args> {
+        RemotingAction::<_, staking_broker::io::WithdrawUnbonded>::new(
+            self.remoting.clone(),
+            num_slashing_spans,
+        )
+    }
+}
+
+pub mod staking_broker {
+    use super::*;
+
+    pub mod io {
+        use super::*;
+        use sails_rs::calls::ActionIo;
+        pub struct Bond(());
+        impl Bond {
+            #[allow(dead_code)]
+            pub fn encode_call(value: u128, payee: super::RewardAccount) -> Vec<u8> {
+                <Bond as ActionIo>::encode_call(&(value, payee))
+            }
+        }
+        impl ActionIo for Bond {
+            const ROUTE: &'static [u8] = &[
+                52, 83, 116, 97, 107, 105, 110, 103, 66, 114, 111, 107, 101, 114, 16, 66, 111, 110,
+                100,
+            ];
+            type Params = (u128, super::RewardAccount);
+            type Reply = Result<Vec<u8>, String>;
+        }
+        pub struct BondExtra(());
+        impl BondExtra {
+            #[allow(dead_code)]
+            pub fn encode_call(value: u128) -> Vec<u8> {
+                <BondExtra as ActionIo>::encode_call(&value)
+            }
+        }
+        impl ActionIo for BondExtra {
+            const ROUTE: &'static [u8] = &[
+                52, 83, 116, 97, 107, 105, 110, 103, 66, 114, 111, 107, 101, 114, 36, 66, 111, 110,
+                100, 69, 120, 116, 114, 97,
+            ];
+            type Params = u128;
+            type Reply = Result<Vec<u8>, String>;
+        }
+        pub struct Chill(());
+        impl Chill {
+            #[allow(dead_code)]
+            pub fn encode_call() -> Vec<u8> {
+                <Chill as ActionIo>::encode_call(&())
+            }
+        }
+        impl ActionIo for Chill {
+            const ROUTE: &'static [u8] = &[
+                52, 83, 116, 97, 107, 105, 110, 103, 66, 114, 111, 107, 101, 114, 20, 67, 104, 105,
+                108, 108,
+            ];
+            type Params = ();
+            type Reply = Result<Vec<u8>, String>;
+        }
+        pub struct Nominate(());
+        impl Nominate {
+            #[allow(dead_code)]
+            pub fn encode_call(targets: Vec<ActorId>) -> Vec<u8> {
+                <Nominate as ActionIo>::encode_call(&targets)
+            }
+        }
+        impl ActionIo for Nominate {
+            const ROUTE: &'static [u8] = &[
+                52, 83, 116, 97, 107, 105, 110, 103, 66, 114, 111, 107, 101, 114, 32, 78, 111, 109,
+                105, 110, 97, 116, 101,
+            ];
+            type Params = Vec<ActorId>;
+            type Reply = Result<Vec<u8>, String>;
+        }
+        pub struct PayoutStakers(());
+        impl PayoutStakers {
+            #[allow(dead_code)]
+            pub fn encode_call(validator_stash: ActorId, era: u32) -> Vec<u8> {
+                <PayoutStakers as ActionIo>::encode_call(&(validator_stash, era))
+            }
+        }
+        impl ActionIo for PayoutStakers {
+            const ROUTE: &'static [u8] = &[
+                52, 83, 116, 97, 107, 105, 110, 103, 66, 114, 111, 107, 101, 114, 52, 80, 97, 121,
+                111, 117, 116, 83, 116, 97, 107, 101, 114, 115,
+            ];
+            type Params = (ActorId, u32);
+            type Reply = Result<Vec<u8>, String>;
+        }
+        pub struct Rebond(());
+        impl Rebond {
+            #[allow(dead_code)]
+            pub fn encode_call(value: u128) -> Vec<u8> {
+                <Rebond as ActionIo>::encode_call(&value)
+            }
+        }
+        impl ActionIo for Rebond {
+            const ROUTE: &'static [u8] = &[
+                52, 83, 116, 97, 107, 105, 110, 103, 66, 114, 111, 107, 101, 114, 24, 82, 101, 98,
+                111, 110, 100,
+            ];
+            type Params = u128;
+            type Reply = Result<Vec<u8>, String>;
+        }
+        pub struct SetPayee(());
+        impl SetPayee {
+            #[allow(dead_code)]
+            pub fn encode_call(payee: super::RewardAccount) -> Vec<u8> {
+                <SetPayee as ActionIo>::encode_call(&payee)
+            }
+        }
+        impl ActionIo for SetPayee {
+            const ROUTE: &'static [u8] = &[
+                52, 83, 116, 97, 107, 105, 110, 103, 66, 114, 111, 107, 101, 114, 32, 83, 101, 116,
+                80, 97, 121, 101, 101,
+            ];
+            type Params = super::RewardAccount;
+            type Reply = Result<Vec<u8>, String>;
+        }
+        pub struct Unbond(());
+        impl Unbond {
+            #[allow(dead_code)]
+            pub fn encode_call(value: u128) -> Vec<u8> {
+                <Unbond as ActionIo>::encode_call(&value)
+            }
+        }
+        impl ActionIo for Unbond {
+            const ROUTE: &'static [u8] = &[
+                52, 83, 116, 97, 107, 105, 110, 103, 66, 114, 111, 107, 101, 114, 24, 85, 110, 98,
+                111, 110, 100,
+            ];
+            type Params = u128;
+            type Reply = Result<Vec<u8>, String>;
+        }
+        pub struct WithdrawUnbonded(());
+        impl WithdrawUnbonded {
+            #[allow(dead_code)]
+            pub fn encode_call(num_slashing_spans: u32) -> Vec<u8> {
+                <WithdrawUnbonded as ActionIo>::encode_call(&num_slashing_spans)
+            }
+        }
+        impl ActionIo for WithdrawUnbonded {
+            const ROUTE: &'static [u8] = &[
+                52, 83, 116, 97, 107, 105, 110, 103, 66, 114, 111, 107, 101, 114, 64, 87, 105, 116,
+                104, 100, 114, 97, 119, 85, 110, 98, 111, 110, 100, 101, 100,
+            ];
+            type Params = u32;
+            type Reply = Result<Vec<u8>, String>;
+        }
+    }
+}
+pub struct Bls381Broker<R> {
+    remoting: R,
+}
+impl<R> Bls381Broker<R> {
+    pub fn new(remoting: R) -> Self {
+        Self { remoting }
+    }
+}
+impl<R: Remoting + Clone> traits::Bls381Broker for Bls381Broker<R> {
+    type Args = R::Args;
+    fn aggregate_g_1(
+        &mut self,
+        points: Vec<u8>,
+    ) -> impl Call<Output = Result<Bls381Response, String>, Args = R::Args> {
+        RemotingAction::<_, bls_381_broker::io::AggregateG1>::new(self.remoting.clone(), points)
+    }
+    fn final_exponentiation(
+        &mut self,
+        f: Vec<u8>,
+    ) -> impl Call<Output = Result<Bls381Response, String>, Args = R::Args> {
+        RemotingAction::<_, bls_381_broker::io::FinalExponentiation>::new(self.remoting.clone(), f)
+    }
+    fn map_to_g_2_affine(
+        &mut self,
+        message: Vec<u8>,
+    ) -> impl Call<Output = Result<Bls381Response, String>, Args = R::Args> {
+        RemotingAction::<_, bls_381_broker::io::MapToG2Affine>::new(self.remoting.clone(), message)
+    }
+    fn multi_miller_loop(
+        &mut self,
+        a: Vec<u8>,
+        b: Vec<u8>,
+    ) -> impl Call<Output = Result<Bls381Response, String>, Args = R::Args> {
+        RemotingAction::<_, bls_381_broker::io::MultiMillerLoop>::new(self.remoting.clone(), (a, b))
+    }
+    fn multi_scalar_multiplication_g_1(
+        &mut self,
+        bases: Vec<u8>,
+        scalars: Vec<u8>,
+    ) -> impl Call<Output = Result<Bls381Response, String>, Args = R::Args> {
+        RemotingAction::<_, bls_381_broker::io::MultiScalarMultiplicationG1>::new(
+            self.remoting.clone(),
+            (bases, scalars),
+        )
+    }
+    fn multi_scalar_multiplication_g_2(
+        &mut self,
+        bases: Vec<u8>,
+        scalars: Vec<u8>,
+    ) -> impl Call<Output = Result<Bls381Response, String>, Args = R::Args> {
+        RemotingAction::<_, bls_381_broker::io::MultiScalarMultiplicationG2>::new(
+            self.remoting.clone(),
+            (bases, scalars),
+        )
+    }
+    fn projective_multiplication_g_1(
+        &mut self,
+        base: Vec<u8>,
+        scalar: Vec<u8>,
+    ) -> impl Call<Output = Result<Bls381Response, String>, Args = R::Args> {
+        RemotingAction::<_, bls_381_broker::io::ProjectiveMultiplicationG1>::new(
+            self.remoting.clone(),
+            (base, scalar),
+        )
+    }
+    fn projective_multiplication_g_2(
+        &mut self,
+        base: Vec<u8>,
+        scalar: Vec<u8>,
+    ) -> impl Call<Output = Result<Bls381Response, String>, Args = R::Args> {
+        RemotingAction::<_, bls_381_broker::io::ProjectiveMultiplicationG2>::new(
+            self.remoting.clone(),
+            (base, scalar),
+        )
+    }
+}
+
+pub mod bls_381_broker {
+    use super::*;
+
+    pub mod io {
+        use super::*;
+        use sails_rs::calls::ActionIo;
+        pub struct AggregateG1(());
+        impl AggregateG1 {
+            #[allow(dead_code)]
+            pub fn encode_call(points: Vec<u8>) -> Vec<u8> {
+                <AggregateG1 as ActionIo>::encode_call(&points)
+            }
+        }
+        impl ActionIo for AggregateG1 {
+            const ROUTE: &'static [u8] = &[
+                48, 66, 108, 115, 51, 56, 49, 66, 114, 111, 107, 101, 114, 44, 65, 103, 103, 114,
+                101, 103, 97, 116, 101, 71, 49,
+            ];
+            type Params = Vec<u8>;
+            type Reply = Result<super::Bls381Response, String>;
+        }
+        pub struct FinalExponentiation(());
+        impl FinalExponentiation {
+            #[allow(dead_code)]
+            pub fn encode_call(f: Vec<u8>) -> Vec<u8> {
+                <FinalExponentiation as ActionIo>::encode_call(&f)
+            }
+        }
+        impl ActionIo for FinalExponentiation {
+            const ROUTE: &'static [u8] = &[
+                48, 66, 108, 115, 51, 56, 49, 66, 114, 111, 107, 101, 114, 76, 70, 105, 110, 97,
+                108, 69, 120, 112, 111, 110, 101, 110, 116, 105, 97, 116, 105, 111, 110,
+            ];
+            type Params = Vec<u8>;
+            type Reply = Result<super::Bls381Response, String>;
+        }
+        pub struct MapToG2Affine(());
+        impl MapToG2Affine {
+            #[allow(dead_code)]
+            pub fn encode_call(message: Vec<u8>) -> Vec<u8> {
+                <MapToG2Affine as ActionIo>::encode_call(&message)
+            }
+        }
+        impl ActionIo for MapToG2Affine {
+            const ROUTE: &'static [u8] = &[
+                48, 66, 108, 115, 51, 56, 49, 66, 114, 111, 107, 101, 114, 52, 77, 97, 112, 84,
+                111, 71, 50, 65, 102, 102, 105, 110, 101,
+            ];
+            type Params = Vec<u8>;
+            type Reply = Result<super::Bls381Response, String>;
+        }
+        pub struct MultiMillerLoop(());
+        impl MultiMillerLoop {
+            #[allow(dead_code)]
+            pub fn encode_call(a: Vec<u8>, b: Vec<u8>) -> Vec<u8> {
+                <MultiMillerLoop as ActionIo>::encode_call(&(a, b))
+            }
+        }
+        impl ActionIo for MultiMillerLoop {
+            const ROUTE: &'static [u8] = &[
+                48, 66, 108, 115, 51, 56, 49, 66, 114, 111, 107, 101, 114, 60, 77, 117, 108, 116,
+                105, 77, 105, 108, 108, 101, 114, 76, 111, 111, 112,
+            ];
+            type Params = (Vec<u8>, Vec<u8>);
+            type Reply = Result<super::Bls381Response, String>;
+        }
+        pub struct MultiScalarMultiplicationG1(());
+        impl MultiScalarMultiplicationG1 {
+            #[allow(dead_code)]
+            pub fn encode_call(bases: Vec<u8>, scalars: Vec<u8>) -> Vec<u8> {
+                <MultiScalarMultiplicationG1 as ActionIo>::encode_call(&(bases, scalars))
+            }
+        }
+        impl ActionIo for MultiScalarMultiplicationG1 {
+            const ROUTE: &'static [u8] = &[
+                48, 66, 108, 115, 51, 56, 49, 66, 114, 111, 107, 101, 114, 108, 77, 117, 108, 116,
+                105, 83, 99, 97, 108, 97, 114, 77, 117, 108, 116, 105, 112, 108, 105, 99, 97, 116,
+                105, 111, 110, 71, 49,
+            ];
+            type Params = (Vec<u8>, Vec<u8>);
+            type Reply = Result<super::Bls381Response, String>;
+        }
+        pub struct MultiScalarMultiplicationG2(());
+        impl MultiScalarMultiplicationG2 {
+            #[allow(dead_code)]
+            pub fn encode_call(bases: Vec<u8>, scalars: Vec<u8>) -> Vec<u8> {
+                <MultiScalarMultiplicationG2 as ActionIo>::encode_call(&(bases, scalars))
+            }
+        }
+        impl ActionIo for MultiScalarMultiplicationG2 {
+            const ROUTE: &'static [u8] = &[
+                48, 66, 108, 115, 51, 56, 49, 66, 114, 111, 107, 101, 114, 108, 77, 117, 108, 116,
+                105, 83, 99, 97, 108, 97, 114, 77, 117, 108, 116, 105, 112, 108, 105, 99, 97, 116,
+                105, 111, 110, 71, 50,
+            ];
+            type Params = (Vec<u8>, Vec<u8>);
+            type Reply = Result<super::Bls381Response, String>;
+        }
+        pub struct ProjectiveMultiplicationG1(());
+        impl ProjectiveMultiplicationG1 {
+            #[allow(dead_code)]
+            pub fn encode_call(base: Vec<u8>, scalar: Vec<u8>) -> Vec<u8> {
+                <ProjectiveMultiplicationG1 as ActionIo>::encode_call(&(base, scalar))
+            }
+        }
+        impl ActionIo for ProjectiveMultiplicationG1 {
+            const ROUTE: &'static [u8] = &[
+                48, 66, 108, 115, 51, 56, 49, 66, 114, 111, 107, 101, 114, 104, 80, 114, 111, 106,
+                101, 99, 116, 105, 118, 101, 77, 117, 108, 116, 105, 112, 108, 105, 99, 97, 116,
+                105, 111, 110, 71, 49,
+            ];
+            type Params = (Vec<u8>, Vec<u8>);
+            type Reply = Result<super::Bls381Response, String>;
+        }
+        pub struct ProjectiveMultiplicationG2(());
+        impl ProjectiveMultiplicationG2 {
+            #[allow(dead_code)]
+            pub fn encode_call(base: Vec<u8>, scalar: Vec<u8>) -> Vec<u8> {
+                <ProjectiveMultiplicationG2 as ActionIo>::encode_call(&(base, scalar))
+            }
+        }
+        impl ActionIo for ProjectiveMultiplicationG2 {
+            const ROUTE: &'static [u8] = &[
+                48, 66, 108, 115, 51, 56, 49, 66, 114, 111, 107, 101, 114, 104, 80, 114, 111, 106,
+                101, 99, 116, 105, 118, 101, 77, 117, 108, 116, 105, 112, 108, 105, 99, 97, 116,
+                105, 111, 110, 71, 50,
+            ];
+            type Params = (Vec<u8>, Vec<u8>);
+            type Reply = Result<super::Bls381Response, String>;
+        }
+    }
+}
+pub struct EthBridgeBroker<R> {
+    remoting: R,
+}
+impl<R> EthBridgeBroker<R> {
+    pub fn new(remoting: R) -> Self {
+        Self { remoting }
+    }
+}
+impl<R: Remoting + Clone> traits::EthBridgeBroker for EthBridgeBroker<R> {
+    type Args = R::Args;
+    fn send_eth_message(
+        &mut self,
+        destination: H160,
+        payload: Vec<u8>,
+    ) -> impl Call<Output = Result<Response, String>, Args = R::Args> {
+        RemotingAction::<_, eth_bridge_broker::io::SendEthMessage>::new(
+            self.remoting.clone(),
+            (destination, payload),
+        )
+    }
+}
+
+pub mod eth_bridge_broker {
+    use super::*;
+
+    pub mod io {
+        use super::*;
+        use sails_rs::calls::ActionIo;
+        pub struct SendEthMessage(());
+        impl SendEthMessage {
+            #[allow(dead_code)]
+            pub fn encode_call(destination: H160, payload: Vec<u8>) -> Vec<u8> {
+                <SendEthMessage as ActionIo>::encode_call(&(destination, payload))
+            }
+        }
+        impl ActionIo for SendEthMessage {
+            const ROUTE: &'static [u8] = &[
+                60, 69, 116, 104, 66, 114, 105, 100, 103, 101, 66, 114, 111, 107, 101, 114, 56, 83,
+                101, 110, 100, 69, 116, 104, 77, 101, 115, 115, 97, 103, 101,
+            ];
+            type Params = (H160, Vec<u8>);
+            type Reply = Result<super::Response, String>;
         }
     }
 }
@@ -102,6 +595,49 @@ pub enum ProxyType {
     Staking,
     IdentityJudgement,
     CancelProxy,
+}
+/// `TypeInfo` implementor copy of `gbuiltin_staking::RewardAccount`.
+#[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo)]
+#[codec(crate = sails_rs::scale_codec)]
+#[scale_info(crate = sails_rs::scale_info)]
+pub enum RewardAccount {
+    /// Pay rewards to the sender's account and increase the amount at stake.
+    Staked,
+    /// Pay rewards to the sender's account (usually, the one derived from `program_id`)
+    /// without increasing the amount at stake.
+    Program,
+    /// Pay rewards to a custom account.
+    Custom(ActorId),
+    /// Opt for not receiving any rewards at all.
+    None,
+}
+/// `TypeInfo` implementor copy of `gbuiltin_bls381::Response`.
+#[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo)]
+#[codec(crate = sails_rs::scale_codec)]
+#[scale_info(crate = sails_rs::scale_info)]
+pub enum Bls381Response {
+    /// Result of the multi Miller loop, encoded: [`ArkScale<Bls12_381::TargetField>`].
+    MultiMillerLoop(Vec<u8>),
+    /// Result of the final exponentiation, encoded: [`ArkScale<Bls12_381::TargetField>`].
+    FinalExponentiation(Vec<u8>),
+    /// Result of the multi scalar multiplication, encoded: [`ArkScaleProjective<G1Projective>`].
+    MultiScalarMultiplicationG1(Vec<u8>),
+    /// Result of the multi scalar multiplication, encoded: [`ArkScaleProjective<G2Projective>`].
+    MultiScalarMultiplicationG2(Vec<u8>),
+    /// Result of the projective multiplication, encoded: [`ArkScaleProjective<G1Projective>`].
+    ProjectiveMultiplicationG1(Vec<u8>),
+    /// Result of the projective multiplication, encoded: [`ArkScaleProjective<G2Projective>`].
+    ProjectiveMultiplicationG2(Vec<u8>),
+    /// Result of the aggregation, encoded: [`ArkScale<G1Projective>`].
+    AggregateG1(Vec<u8>),
+    /// Result of the mapping, encoded: [`ArkScale<G2Affine>`].
+    MapToG2Affine(Vec<u8>),
+}
+#[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo)]
+#[codec(crate = sails_rs::scale_codec)]
+#[scale_info(crate = sails_rs::scale_info)]
+pub enum Response {
+    EthMessageQueued { nonce: U256, hash: H256 },
 }
 
 pub mod traits {
@@ -121,6 +657,103 @@ pub mod traits {
             &mut self,
             delegate: ActorId,
             proxy_type: ProxyType,
-        ) -> impl Call<Output = Vec<u8>, Args = Self::Args>;
+        ) -> impl Call<Output = Result<Vec<u8>, String>, Args = Self::Args>;
+        fn remove_proxy(
+            &mut self,
+            delegate: ActorId,
+            proxy_type: ProxyType,
+        ) -> impl Call<Output = Result<Vec<u8>, String>, Args = Self::Args>;
+    }
+
+    #[allow(clippy::type_complexity)]
+    pub trait StakingBroker {
+        type Args;
+        fn bond(
+            &mut self,
+            value: u128,
+            payee: RewardAccount,
+        ) -> impl Call<Output = Result<Vec<u8>, String>, Args = Self::Args>;
+        fn bond_extra(
+            &mut self,
+            value: u128,
+        ) -> impl Call<Output = Result<Vec<u8>, String>, Args = Self::Args>;
+        fn chill(&mut self) -> impl Call<Output = Result<Vec<u8>, String>, Args = Self::Args>;
+        fn nominate(
+            &mut self,
+            targets: Vec<ActorId>,
+        ) -> impl Call<Output = Result<Vec<u8>, String>, Args = Self::Args>;
+        fn payout_stakers(
+            &mut self,
+            validator_stash: ActorId,
+            era: u32,
+        ) -> impl Call<Output = Result<Vec<u8>, String>, Args = Self::Args>;
+        fn rebond(
+            &mut self,
+            value: u128,
+        ) -> impl Call<Output = Result<Vec<u8>, String>, Args = Self::Args>;
+        fn set_payee(
+            &mut self,
+            payee: RewardAccount,
+        ) -> impl Call<Output = Result<Vec<u8>, String>, Args = Self::Args>;
+        fn unbond(
+            &mut self,
+            value: u128,
+        ) -> impl Call<Output = Result<Vec<u8>, String>, Args = Self::Args>;
+        fn withdraw_unbonded(
+            &mut self,
+            num_slashing_spans: u32,
+        ) -> impl Call<Output = Result<Vec<u8>, String>, Args = Self::Args>;
+    }
+
+    #[allow(clippy::type_complexity)]
+    pub trait Bls381Broker {
+        type Args;
+        fn aggregate_g_1(
+            &mut self,
+            points: Vec<u8>,
+        ) -> impl Call<Output = Result<Bls381Response, String>, Args = Self::Args>;
+        fn final_exponentiation(
+            &mut self,
+            f: Vec<u8>,
+        ) -> impl Call<Output = Result<Bls381Response, String>, Args = Self::Args>;
+        fn map_to_g_2_affine(
+            &mut self,
+            message: Vec<u8>,
+        ) -> impl Call<Output = Result<Bls381Response, String>, Args = Self::Args>;
+        fn multi_miller_loop(
+            &mut self,
+            a: Vec<u8>,
+            b: Vec<u8>,
+        ) -> impl Call<Output = Result<Bls381Response, String>, Args = Self::Args>;
+        fn multi_scalar_multiplication_g_1(
+            &mut self,
+            bases: Vec<u8>,
+            scalars: Vec<u8>,
+        ) -> impl Call<Output = Result<Bls381Response, String>, Args = Self::Args>;
+        fn multi_scalar_multiplication_g_2(
+            &mut self,
+            bases: Vec<u8>,
+            scalars: Vec<u8>,
+        ) -> impl Call<Output = Result<Bls381Response, String>, Args = Self::Args>;
+        fn projective_multiplication_g_1(
+            &mut self,
+            base: Vec<u8>,
+            scalar: Vec<u8>,
+        ) -> impl Call<Output = Result<Bls381Response, String>, Args = Self::Args>;
+        fn projective_multiplication_g_2(
+            &mut self,
+            base: Vec<u8>,
+            scalar: Vec<u8>,
+        ) -> impl Call<Output = Result<Bls381Response, String>, Args = Self::Args>;
+    }
+
+    #[allow(clippy::type_complexity)]
+    pub trait EthBridgeBroker {
+        type Args;
+        fn send_eth_message(
+            &mut self,
+            destination: H160,
+            payload: Vec<u8>,
+        ) -> impl Call<Output = Result<Response, String>, Args = Self::Args>;
     }
 }

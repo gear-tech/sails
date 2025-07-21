@@ -1,3 +1,4 @@
+/// These tests make interact with builtins from app context.
 use builtins_example_app::WASM_BINARY;
 use builtins_example_client::{
     BuiltinsExampleClientFactory, ProxyBroker, ProxyType,
@@ -6,38 +7,12 @@ use builtins_example_client::{
 use gclient::GearApi;
 use sails_rs::{
     H256,
-    builtins::{PROXY_BUILTIN_ID, ProxyBuiltin, ProxyType as SailsProxyType},
     calls::{Activation, Call},
     gclient::calls::GClientRemoting,
 };
 
 #[tokio::test]
-async fn test_raw_proxy_builtin_call() {
-    let api = GearApi::dev().await.unwrap();
-
-    let remoting = GClientRemoting::new(api.clone());
-
-    let proxy = ProxyBuiltin::new(remoting);
-    let random_actor_id = H256::random().into();
-    let res = proxy
-        .add_proxy(random_actor_id, SailsProxyType::Any)
-        .send_recv(PROXY_BUILTIN_ID)
-        .await
-        .expect("Failed to send proxy request");
-
-    assert_eq!(res, Vec::<u8>::new());
-
-    let res = proxy
-        .remove_proxy(random_actor_id, SailsProxyType::Any)
-        .send_recv(PROXY_BUILTIN_ID)
-        .await
-        .expect("Failed to send proxy request");
-
-    assert_eq!(res, Vec::<u8>::new());
-}
-
-#[tokio::test]
-async fn test_proxy_builtin_program_call() {
+async fn call_proxy_builtin_from_app() {
     let api = GearApi::dev().await.unwrap();
 
     let (code_id, _) = api
@@ -64,5 +39,5 @@ async fn test_proxy_builtin_program_call() {
         .await
         .expect("Failed to send proxy request");
 
-    assert_eq!(resp, Vec::<u8>::new());
+    assert_eq!(resp, Ok(Vec::<u8>::new()));
 }

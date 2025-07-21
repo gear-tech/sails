@@ -1,3 +1,3 @@
 fn main() {
-    sails_rs::build_client::<builtins_example_app::Program>();
+    sails_rs::build_client::<builtins_example_app::BuiltinsBroker>();
 }

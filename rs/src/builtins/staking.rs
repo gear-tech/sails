@@ -7,7 +7,7 @@ use crate::{
 };
 use gbuiltin_staking::{Request as GearStakingRequest, RewardAccount as GearRewardAccount};
 
-// todo [sab] package must provide the address 77f65ef190e11bfecb8fc8970fd3749e94bed66a23ec2f7a3623e785d0816761
+/// Gear protocol staking builtin id is 0x77f65ef190e11bfecb8fc8970fd3749e94bed66a23ec2f7a3623e785d0816761
 pub const STAKING_BUILTIN_ID: ActorId = ActorId::new([
     0x77, 0xf6, 0x5e, 0xf1, 0x90, 0xe1, 0x1b, 0xfe, 0xcb, 0x8f, 0xc8, 0x97, 0x0f, 0xd3, 0x74, 0x9e,
     0x94, 0xbe, 0xd6, 0x6a, 0x23, 0xec, 0x2f, 0x7a, 0x36, 0x23, 0xe7, 0x85, 0xd0, 0x81, 0x67, 0x61,
@@ -147,4 +147,11 @@ impl From<GearRewardAccount> for RewardAccount {
             GearRewardAccount::None => RewardAccount::None,
         }
     }
+}
+
+#[test]
+fn test_id() {
+    let expected = hex::decode("77f65ef190e11bfecb8fc8970fd3749e94bed66a23ec2f7a3623e785d0816761")
+        .expect("Failed to decode hex");
+    assert_eq!(STAKING_BUILTIN_ID.into_bytes().to_vec(), expected);
 }
