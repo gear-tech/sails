@@ -318,6 +318,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "ark-scale"
+version = "0.0.12"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5f69c00b3b529be29528a6f2fd5fa7b1790f8bed81b9cdca17e326538545a179"
+dependencies = [
+ "ark-ec",
+ "ark-ff",
+ "ark-serialize",
+ "ark-std",
+ "parity-scale-codec",
+ "scale-info",
+]
+
+[[package]]
 name = "ark-serialize"
 version = "0.4.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1780,6 +1794,51 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "02d8c0217774e32cab5488240547569ec45589ed3fb51a91f635cfd1f4b7e845"
 dependencies = [
  "gear-dlmalloc",
+]
+
+[[package]]
+name = "gbuiltin-bls381"
+version = "1.8.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "490015fd6c0b7a2cfd96257a3ee71bd636ad1cc89a73c2f6f62e419a3ecad8f3"
+dependencies = [
+ "ark-bls12-381",
+ "ark-ec",
+ "ark-ff",
+ "ark-scale",
+ "ark-serialize",
+ "parity-scale-codec",
+]
+
+[[package]]
+name = "gbuiltin-eth-bridge"
+version = "1.8.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "370e03a4190a34bbe99ab6736dc162d4c08c6a69cec8deffcd35ac7fc9f8aa82"
+dependencies = [
+ "gprimitives",
+ "parity-scale-codec",
+ "scale-info",
+]
+
+[[package]]
+name = "gbuiltin-proxy"
+version = "1.8.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2beac2a698e3438d9bc0acd884ea39ef3cd2ee2ed5e07779c1f69812e52cb4c5"
+dependencies = [
+ "gprimitives",
+ "parity-scale-codec",
+]
+
+[[package]]
+name = "gbuiltin-staking"
+version = "1.8.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fa90eb350f6bbaff596fed23833a892f28871c69de0648e59f93616c473c6e64"
+dependencies = [
+ "gprimitives",
+ "parity-scale-codec",
 ]
 
 [[package]]
@@ -4118,6 +4177,10 @@ dependencies = [
  "alloy-primitives",
  "alloy-sol-types",
  "futures",
+ "gbuiltin-bls381",
+ "gbuiltin-eth-bridge",
+ "gbuiltin-proxy",
+ "gbuiltin-staking",
  "gcore",
  "gear-core",
  "gear-core-errors",
