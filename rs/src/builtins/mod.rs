@@ -89,7 +89,6 @@ macro_rules! builtin_action {
     }};
     (@decode_body $value:ident) => {{
         if !$value.is_empty() {
-            // todo [sab] change to error type
             panic!(
                 "internal error: expected empty reply for unit variant, received: {:?}",
                 $value
