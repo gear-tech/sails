@@ -7,12 +7,6 @@ use crate::{
 };
 use gbuiltin_staking::{Request as GearStakingRequest, RewardAccount as GearRewardAccount};
 
-/// Gear protocol staking builtin id is 0x77f65ef190e11bfecb8fc8970fd3749e94bed66a23ec2f7a3623e785d0816761
-pub const STAKING_BUILTIN_ID: ActorId = ActorId::new([
-    0x77, 0xf6, 0x5e, 0xf1, 0x90, 0xe1, 0x1b, 0xfe, 0xcb, 0x8f, 0xc8, 0x97, 0x0f, 0xd3, 0x74, 0x9e,
-    0x94, 0xbe, 0xd6, 0x6a, 0x23, 0xec, 0x2f, 0x7a, 0x36, 0x23, 0xe7, 0x85, 0xd0, 0x81, 0x67, 0x61,
-]);
-
 builtin_action!(
     StakingRequest,
     StakingBuiltin,
@@ -149,9 +143,49 @@ impl From<GearRewardAccount> for RewardAccount {
     }
 }
 
-#[test]
-fn test_id() {
-    let expected = hex::decode("77f65ef190e11bfecb8fc8970fd3749e94bed66a23ec2f7a3623e785d0816761")
-        .expect("Failed to decode hex");
-    assert_eq!(STAKING_BUILTIN_ID.into_bytes().to_vec(), expected);
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::builtins::test_utils;
+    use crate::{builtins::test_utils::assert_action_codec, prelude::vec};
+
+    #[test]
+    fn test_codec() {
+        assert_action_codec!(
+            StakingRequest,
+            Bond {
+                value: 1000,
+                payee: RewardAccount::Staked
+            }
+        );
+        assert_action_codec!(StakingRequest, BondExtra { value: 500 });
+        assert_action_codec!(StakingRequest, Unbond { value: 200 });
+        assert_action_codec!(
+            StakingRequest,
+            WithdrawUnbonded {
+                num_slashing_spans: 3
+            }
+        );
+        assert_action_codec!(
+            StakingRequest,
+            Nominate {
+                targets: vec![ActorId::from([1; 32]), ActorId::from([2; 32])]
+            }
+        );
+        assert_action_codec!(StakingRequest, Chill);
+        assert_action_codec!(
+            StakingRequest,
+            PayoutStakers {
+                validator_stash: ActorId::from([3; 32]),
+                era: 42
+            }
+        );
+        assert_action_codec!(StakingRequest, Rebond { value: 300 });
+        assert_action_codec!(
+            StakingRequest,
+            SetPayee {
+                payee: RewardAccount::Custom(ActorId::from([4; 32]))
+            }
+        );
+    }
 }

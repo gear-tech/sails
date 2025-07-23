@@ -19,6 +19,7 @@ impl BuiltinsRemoting for crate::gstd::calls::GStdRemoting {}
 #[cfg(not(target_arch = "wasm32"))]
 impl BuiltinsRemoting for crate::gclient::calls::GClientRemoting {}
 
+// Creates an action for a provided builtin-in request variant and implements the `ActionIo` trait for it.
 macro_rules! builtin_action {
     (
         $enum_name:ident,
@@ -59,7 +60,7 @@ macro_rules! builtin_action {
 
     // Helper arm: extract reply type or default
     (@reply_type $reply_ty:ty) => { $reply_ty };
-    (@reply_type) => { Vec<u8> };
+    (@reply_type) => { () };
 
     // Helper: Match variant with fields
     (@match_variant $value:ident, $enum_name:ident, $variant:ident, { $($field:ident),* }) => {
@@ -94,8 +95,51 @@ macro_rules! builtin_action {
                 $value
             );
         }
-        Ok(Default::default())
+        Ok(())
     }};
 }
 
 pub(crate) use builtin_action;
+
+#[cfg(test)]
+mod test_utils {
+    macro_rules! assert_action_codec {
+        // Check that action is encoded/decoded without any routes.
+        (
+            $req_enum_name:ident,
+            $req_variant:ident $({ $($req_field:ident : $req_value:expr),* $(,)? })?,
+            $resp_enum_name:ident,
+            $response_variant:ident $response_body:tt
+        ) => {{
+            let req = $req_enum_name::$req_variant $({ $($req_field: $req_value),* })?;
+            let resp = $crate::builtins::test_utils::assert_action_codec!(@build_response $resp_enum_name, $response_variant $response_body);
+            let encoded_action = $req_variant::encode_call(&req);
+            assert_eq!(req.encode(), encoded_action);
+            let decoded_resp = $req_variant::decode_reply(resp.encode()).unwrap();
+            assert_eq!(resp, decoded_resp);
+        }};
+
+        // Check that value is encoded without any routes, and decoded into `()`.
+        (
+            $req_enum_name:ident,
+            $req_variant:ident $({ $($req_field:ident : $req_value:expr),* $(,)? })?
+        ) => {{
+            let req = $req_enum_name::$req_variant $({ $($req_field: $req_value),* })?;
+            let encoded_action = $req_variant::encode_call(&req);
+            assert_eq!(req.encode(), encoded_action);
+            assert_eq!(<$req_variant as ActionIo>::Reply::type_info(), <()>::type_info());
+        }};
+
+        // Helper: Build response with tuple syntax
+        (@build_response $resp_enum_name:ident, $response_variant:ident ($response_value:expr)) => {
+            $resp_enum_name::$response_variant($response_value)
+        };
+
+        // Helper: Build response with struct syntax
+        (@build_response $resp_enum_name:ident, $response_variant:ident { $($resp_field:ident : $resp_value:expr),* $(,)? }) => {
+            $resp_enum_name::$response_variant { $($resp_field: $resp_value),* }
+        };
+    }
+
+    pub(crate) use assert_action_codec;
+}

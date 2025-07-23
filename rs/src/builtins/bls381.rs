@@ -1,17 +1,10 @@
 use crate::{
-    ActorId,
     builtins::{BuiltinsRemoting, builtin_action},
     calls::{ActionIo, Call, RemotingAction},
     errors::{Error, Result},
     prelude::{Decode, Encode, TypeInfo, Vec},
 };
 use gbuiltin_bls381::{Request as GearBls381Request, Response as GearBls381Response};
-
-/// Gear protocol BLS381 builtin id is 0x6b6e292c382945e80bf51af2ba7fe9f458dcff81ae6075c46f9095e1bbecdc37
-pub const BLS381_BUILTIN_ID: ActorId = ActorId::new([
-    0x6b, 0x6e, 0x29, 0x2c, 0x38, 0x29, 0x45, 0xe8, 0x0b, 0xf5, 0x1a, 0xf2, 0xba, 0x7f, 0xe9, 0xf4,
-    0x58, 0xdc, 0xff, 0x81, 0xae, 0x60, 0x75, 0xc4, 0x6f, 0x90, 0x95, 0xe1, 0xbb, 0xec, 0xdc, 0x37,
-]);
 
 builtin_action!(
     Bls381Request,
@@ -208,9 +201,88 @@ impl From<GearBls381Response> for Bls381Response {
     }
 }
 
-#[test]
-fn test_id() {
-    let expected = hex::decode("6b6e292c382945e80bf51af2ba7fe9f458dcff81ae6075c46f9095e1bbecdc37")
-        .expect("Failed to decode hex");
-    assert_eq!(BLS381_BUILTIN_ID.into_bytes().to_vec(), expected);
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::{builtins::test_utils::assert_action_codec, prelude::vec};
+
+    #[test]
+    fn test_codec() {
+        assert_action_codec!(
+            Bls381Request,
+            MultiMillerLoop {
+                a: vec![1, 2, 3],
+                b: vec![4, 5, 6]
+            },
+            Bls381Response,
+            MultiMillerLoop(vec![7, 8, 9])
+        );
+
+        assert_action_codec!(
+            Bls381Request,
+            FinalExponentiation {
+                f: vec![10, 11, 12]
+            },
+            Bls381Response,
+            FinalExponentiation(vec![13, 14, 15])
+        );
+
+        assert_action_codec!(
+            Bls381Request,
+            MultiScalarMultiplicationG1 {
+                bases: vec![16, 17, 18],
+                scalars: vec![19, 20, 21]
+            },
+            Bls381Response,
+            MultiScalarMultiplicationG1(vec![22, 23, 24])
+        );
+
+        assert_action_codec!(
+            Bls381Request,
+            MultiScalarMultiplicationG2 {
+                bases: vec![25, 26, 27],
+                scalars: vec![28, 29, 30]
+            },
+            Bls381Response,
+            MultiScalarMultiplicationG2(vec![31, 32, 33])
+        );
+
+        assert_action_codec!(
+            Bls381Request,
+            ProjectiveMultiplicationG1 {
+                base: vec![34, 35, 36],
+                scalar: vec![37, 38, 39]
+            },
+            Bls381Response,
+            ProjectiveMultiplicationG1(vec![40, 41, 42])
+        );
+
+        assert_action_codec!(
+            Bls381Request,
+            ProjectiveMultiplicationG2 {
+                base: vec![43, 44, 45],
+                scalar: vec![46, 47, 48]
+            },
+            Bls381Response,
+            ProjectiveMultiplicationG2(vec![49, 50, 51])
+        );
+
+        assert_action_codec!(
+            Bls381Request,
+            AggregateG1 {
+                points: vec![52, 53, 54]
+            },
+            Bls381Response,
+            AggregateG1(vec![55, 56, 57])
+        );
+
+        assert_action_codec!(
+            Bls381Request,
+            MapToG2Affine {
+                message: vec![58, 59, 60]
+            },
+            Bls381Response,
+            MapToG2Affine(vec![61, 62, 63])
+        );
+    }
 }

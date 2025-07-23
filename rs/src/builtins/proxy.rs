@@ -8,13 +8,6 @@ use crate::{
 use gbuiltin_proxy::{ProxyType as GearProxyType, Request as GearProxyRequest};
 
 // todo [sab] make typeinfo types on gear
-// todo [sab] package must provide the address
-
-/// Gear protocol proxy builtin id is 0x8263cd9fc648e101f1cd8585dc0b193445c3750a63bf64a39cdf58de14826299
-pub const PROXY_BUILTIN_ID: ActorId = ActorId::new([
-    0x82, 0x63, 0xcd, 0x9f, 0xc6, 0x48, 0xe1, 0x01, 0xf1, 0xcd, 0x85, 0x85, 0xdc, 0x0b, 0x19, 0x34,
-    0x45, 0xc3, 0x75, 0x0a, 0x63, 0xbf, 0x64, 0xa3, 0x9c, 0xdf, 0x58, 0xde, 0x14, 0x82, 0x62, 0x99,
-]);
 
 builtin_action! {
     ProxyRequest,
@@ -96,9 +89,26 @@ impl From<GearProxyType> for ProxyType {
     }
 }
 
-#[test]
-fn test_id() {
-    let expected = hex::decode("8263cd9fc648e101f1cd8585dc0b193445c3750a63bf64a39cdf58de14826299")
-        .expect("Failed to decode hex");
-    assert_eq!(PROXY_BUILTIN_ID.into_bytes().to_vec(), expected);
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::builtins::test_utils::assert_action_codec;
+
+    #[test]
+    fn test_codec() {
+        assert_action_codec!(
+            ProxyRequest,
+            AddProxy {
+                delegate: ActorId::from([1; 32]),
+                proxy_type: ProxyType::Any
+            }
+        );
+        assert_action_codec!(
+            ProxyRequest,
+            RemoveProxy {
+                delegate: ActorId::from([2; 32]),
+                proxy_type: ProxyType::NonTransfer
+            }
+        );
+    }
 }

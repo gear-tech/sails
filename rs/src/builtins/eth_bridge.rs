@@ -30,9 +30,26 @@ impl<R: BuiltinsRemoting + Clone> EthBridgeRemoting<R> {
     }
 }
 
-#[test]
-fn test_id() {
-    let expected = hex::decode("f2816ced0b15749595392d3a18b5a2363d6fefe5b3b6153739f218151b7acdbf")
-        .expect("Failed to decode hex");
-    assert_eq!(ETH_BRIDGE_BUILTIN_ID.into_bytes().to_vec(), expected);
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::builtins::test_utils::assert_action_codec;
+    use crate::prelude::vec;
+    use gprimitives::{H256, U256};
+
+    #[test]
+    fn test_codec() {
+        assert_action_codec!(
+            EthBridgeRequest,
+            SendEthMessage {
+                destination: H160::from([1; 20]),
+                payload: vec![1, 2, 3, 4]
+            },
+            EthBridgeResponse,
+            EthMessageQueued {
+                nonce: U256::one(),
+                hash: H256::from([2; 32])
+            }
+        );
+    }
 }
