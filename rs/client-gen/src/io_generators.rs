@@ -114,19 +114,12 @@ pub(crate) fn generate_io_struct(
         ),
     };
 
-    let has_empty_reply = if &func_output == "()" {
-        "true"
-    } else {
-        "false"
-    };
-
     quote! {
         pub struct $fn_name (());
 
         $encode_call_tokens
 
         impl ActionIo for $fn_name {
-            const ZERO_SIZE_REPLY: bool = $has_empty_reply;
             const ROUTE: &'static [u8] = &[$route_bytes];
             type Params = $param_tokens;
             type Reply = $func_output;

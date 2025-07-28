@@ -84,6 +84,7 @@ impl ServiceBuilder<'_> {
             .filter(|attr| matches!(attr.path().get_ident(), Some(ident) if ident == "allow"));
 
         let try_handle_impl = self.try_handle_impl();
+
         // ethexe
         let try_handle_solidity_impl = self.try_handle_solidity_impl();
 
