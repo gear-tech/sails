@@ -231,7 +231,6 @@ impl From<GearRewardAccount> for RewardAccount {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::builtins::test_utils;
     use crate::{builtins::test_utils::assert_action_codec, prelude::vec};
 
     #[test]
