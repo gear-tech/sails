@@ -65,6 +65,91 @@ impl<R: BuiltinsRemoting + Clone> StakingBuiltin<R> {
     }
 }
 
+pub trait StakingBuiltinTrait {
+    type Args;
+
+    /// Bond up to the `value` from the sender to self as the controller.
+    fn bond(&self, value: u128, payee: RewardAccount) -> impl Call<Output = (), Args = Self::Args>;
+
+    /// Add up to the `value` to the sender's bonded amount.
+    fn bond_extra(&self, value: u128) -> impl Call<Output = (), Args = Self::Args>;
+
+    /// Unbond up to the `value` to allow withdrawal after undonding period.
+    fn unbond(&self, value: u128) -> impl Call<Output = (), Args = Self::Args>;
+
+    /// Withdraw unbonded chunks for which undonding period has elapsed.
+    fn withdraw_unbonded(
+        &self,
+        num_slashing_spans: u32,
+    ) -> impl Call<Output = (), Args = Self::Args>;
+
+    /// Add sender as a nominator of `targets` or update the existing targets.
+    fn nominate(&self, targets: Vec<ActorId>) -> impl Call<Output = (), Args = Self::Args>;
+
+    /// Declare intention to [temporarily] stop nominating while still having funds bonded.
+    fn chill(&self) -> impl Call<Output = (), Args = Self::Args>;
+
+    /// Request stakers payout for the given era.
+    fn payout_stakers(
+        &self,
+        validator_stash: ActorId,
+        era: u32,
+    ) -> impl Call<Output = (), Args = Self::Args>;
+
+    /// Rebond a portion of the sender's stash scheduled to be unlocked.
+    fn rebond(&self, value: u128) -> impl Call<Output = (), Args = Self::Args>;
+
+    /// Set the reward destination.
+    fn set_payee(&self, payee: RewardAccount) -> impl Call<Output = (), Args = Self::Args>;
+}
+
+impl<R: BuiltinsRemoting + Clone> StakingBuiltinTrait for StakingBuiltin<R> {
+    type Args = R::Args;
+
+    fn bond(&self, value: u128, payee: RewardAccount) -> impl Call<Output = (), Args = Self::Args> {
+        self.bond(value, payee)
+    }
+
+    fn bond_extra(&self, value: u128) -> impl Call<Output = (), Args = Self::Args> {
+        self.bond_extra(value)
+    }
+
+    fn unbond(&self, value: u128) -> impl Call<Output = (), Args = Self::Args> {
+        self.unbond(value)
+    }
+
+    fn withdraw_unbonded(
+        &self,
+        num_slashing_spans: u32,
+    ) -> impl Call<Output = (), Args = Self::Args> {
+        self.withdraw_unbonded(num_slashing_spans)
+    }
+
+    fn nominate(&self, targets: Vec<ActorId>) -> impl Call<Output = (), Args = Self::Args> {
+        self.nominate(targets)
+    }
+
+    fn chill(&self) -> impl Call<Output = (), Args = Self::Args> {
+        self.chill()
+    }
+
+    fn payout_stakers(
+        &self,
+        validator_stash: ActorId,
+        era: u32,
+    ) -> impl Call<Output = (), Args = Self::Args> {
+        self.payout_stakers(validator_stash, era)
+    }
+
+    fn rebond(&self, value: u128) -> impl Call<Output = (), Args = Self::Args> {
+        self.rebond(value)
+    }
+
+    fn set_payee(&self, payee: RewardAccount) -> impl Call<Output = (), Args = Self::Args> {
+        self.set_payee(payee)
+    }
+}
+
 /// `TypeInfo` implementor copy of `gbuiltin_staking::Request`.
 #[derive(Debug, Clone, PartialEq, Eq, Encode, Decode, TypeInfo)]
 pub enum StakingRequest {

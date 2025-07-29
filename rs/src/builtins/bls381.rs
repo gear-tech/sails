@@ -64,6 +64,125 @@ impl<R: BuiltinsRemoting + Clone> Bls381Builtin<R> {
     }
 }
 
+pub trait Bls381BuiltinTrait {
+    type Args;
+
+    /// Performs multi Miller loop pairing operation for BLS12-381.
+    fn multi_miller_loop(
+        &self,
+        a: Vec<u8>,
+        b: Vec<u8>,
+    ) -> impl Call<Output = Bls381Response, Args = Self::Args>;
+
+    /// Performs final exponentiation for BLS12-381.
+    fn final_exponentiation(
+        &self,
+        f: Vec<u8>,
+    ) -> impl Call<Output = Bls381Response, Args = Self::Args>;
+
+    /// Performs multi scalar multiplication on G1 for BLS12-381.
+    fn multi_scalar_multiplication_g1(
+        &self,
+        bases: Vec<u8>,
+        scalars: Vec<u8>,
+    ) -> impl Call<Output = Bls381Response, Args = Self::Args>;
+
+    /// Performs multi scalar multiplication on G2 for BLS12-381.
+    fn multi_scalar_multiplication_g2(
+        &self,
+        bases: Vec<u8>,
+        scalars: Vec<u8>,
+    ) -> impl Call<Output = Bls381Response, Args = Self::Args>;
+
+    /// Performs projective multiplication on G1 for BLS12-381.
+    fn projective_multiplication_g1(
+        &self,
+        base: Vec<u8>,
+        scalar: Vec<u8>,
+    ) -> impl Call<Output = Bls381Response, Args = Self::Args>;
+
+    /// Performs projective multiplication on G2 for BLS12-381.
+    fn projective_multiplication_g2(
+        &self,
+        base: Vec<u8>,
+        scalar: Vec<u8>,
+    ) -> impl Call<Output = Bls381Response, Args = Self::Args>;
+
+    /// Aggregates G1 points for BLS12-381.
+    fn aggregate_g1(
+        &self,
+        points: Vec<u8>,
+    ) -> impl Call<Output = Bls381Response, Args = Self::Args>;
+
+    /// Maps an arbitrary message to a G2Affine point for BLS12-381.
+    fn map_to_g2_affine(
+        &self,
+        message: Vec<u8>,
+    ) -> impl Call<Output = Bls381Response, Args = Self::Args>;
+}
+
+impl<R: BuiltinsRemoting + Clone> Bls381BuiltinTrait for Bls381Builtin<R> {
+    type Args = R::Args;
+
+    fn multi_miller_loop(
+        &self,
+        a: Vec<u8>,
+        b: Vec<u8>,
+    ) -> impl Call<Output = Bls381Response, Args = R::Args> {
+        self.multi_miller_loop(a, b)
+    }
+
+    fn final_exponentiation(
+        &self,
+        f: Vec<u8>,
+    ) -> impl Call<Output = Bls381Response, Args = R::Args> {
+        self.final_exponentiation(f)
+    }
+
+    fn multi_scalar_multiplication_g1(
+        &self,
+        bases: Vec<u8>,
+        scalars: Vec<u8>,
+    ) -> impl Call<Output = Bls381Response, Args = R::Args> {
+        self.multi_scalar_multiplication_g1(bases, scalars)
+    }
+
+    fn multi_scalar_multiplication_g2(
+        &self,
+        bases: Vec<u8>,
+        scalars: Vec<u8>,
+    ) -> impl Call<Output = Bls381Response, Args = R::Args> {
+        self.multi_scalar_multiplication_g2(bases, scalars)
+    }
+
+    fn projective_multiplication_g1(
+        &self,
+        base: Vec<u8>,
+        scalar: Vec<u8>,
+    ) -> impl Call<Output = Bls381Response, Args = R::Args> {
+        self.projective_multiplication_g1(base, scalar)
+    }
+
+    fn projective_multiplication_g2(
+        &self,
+        base: Vec<u8>,
+        scalar: Vec<u8>,
+    ) -> impl Call<Output = Bls381Response, Args = R::Args> {
+        self.projective_multiplication_g2(base, scalar)
+    }
+
+    fn aggregate_g1(&self, points: Vec<u8>) -> impl Call<Output = Bls381Response, Args = R::Args> {
+        self.aggregate_g1(points)
+    }
+
+    fn map_to_g2_affine(
+        &self,
+        message: Vec<u8>,
+    ) -> impl Call<Output = Bls381Response, Args = R::Args> {
+        self.map_to_g2_affine(message)
+    }
+}
+
 /// `TypeInfo` implementor copy of `gbuiltin_bls381::Request`.
 #[derive(Debug, Clone, Eq, PartialEq, Encode, Decode, TypeInfo)]
 pub enum Bls381Request {

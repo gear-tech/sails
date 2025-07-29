@@ -9,17 +9,40 @@ use gprimitives::H160;
 
 builtin_action!(
     EthBridgeRequest,
-    EthBridgeRemoting,
+    EthBridgeBuiltin,
     SendEthMessage { destination: H160, payload: Vec<u8> } => EthBridgeResponse
 );
 
-pub struct EthBridgeRemoting<R> {
+pub struct EthBridgeBuiltin<R> {
     remoting: R,
 }
 
-impl<R: BuiltinsRemoting + Clone> EthBridgeRemoting<R> {
+impl<R: BuiltinsRemoting + Clone> EthBridgeBuiltin<R> {
     pub fn new(remoting: R) -> Self {
         Self { remoting }
+    }
+}
+
+pub trait EthBridgeBuiltinTrait {
+    type Args;
+
+    /// Sends an Ethereum message to the specified destination on the Ethereum network with the given payload.
+    fn send_eth_message(
+        &self,
+        destination: H160,
+        payload: Vec<u8>,
+    ) -> impl Call<Output = EthBridgeResponse, Args = Self::Args>;
+}
+
+impl<R: BuiltinsRemoting + Clone> EthBridgeBuiltinTrait for EthBridgeBuiltin<R> {
+    type Args = R::Args;
+
+    fn send_eth_message(
+        &self,
+        destination: H160,
+        payload: Vec<u8>,
+    ) -> impl Call<Output = EthBridgeResponse, Args = R::Args> {
+        self.send_eth_message(destination, payload)
     }
 }
 

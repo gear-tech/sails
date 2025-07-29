@@ -31,6 +31,44 @@ impl<R: BuiltinsRemoting + Clone> ProxyBuiltin<R> {
     }
 }
 
+pub trait ProxyBuiltinTrait {
+    type Args;
+
+    /// Adds a proxy for the specified delegate with the given proxy type.
+    fn add_proxy(
+        &self,
+        delegate: ActorId,
+        proxy_type: ProxyType,
+    ) -> impl Call<Output = (), Args = Self::Args>;
+
+    /// Removes a proxy for the specified delegate with the given proxy type.
+    fn remove_proxy(
+        &self,
+        delegate: ActorId,
+        proxy_type: ProxyType,
+    ) -> impl Call<Output = (), Args = Self::Args>;
+}
+
+impl<R: BuiltinsRemoting + Clone> ProxyBuiltinTrait for ProxyBuiltin<R> {
+    type Args = R::Args;
+
+    fn add_proxy(
+        &self,
+        delegate: ActorId,
+        proxy_type: ProxyType,
+    ) -> impl Call<Output = (), Args = Self::Args> {
+        self.add_proxy(delegate, proxy_type)
+    }
+
+    fn remove_proxy(
+        &self,
+        delegate: ActorId,
+        proxy_type: ProxyType,
+    ) -> impl Call<Output = (), Args = Self::Args> {
+        self.remove_proxy(delegate, proxy_type)
+    }
+}
+
 /// `TypeInfo` implementor copy of `gbuiltin_proxy::Request`.
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Encode, Decode, TypeInfo)]
 pub enum ProxyRequest {
