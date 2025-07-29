@@ -44,7 +44,6 @@ pub mod service_with_events {
             }
         }
         impl ActionIo for DoThis {
-            const ZERO_SIZE_REPLY: bool = false;
             const ROUTE: &'static [u8] = &[24, 68, 111, 84, 104, 105, 115];
             type Params = (NonZeroU256, super::MyParam);
             type Reply = NonZeroU64;

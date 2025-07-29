@@ -81,7 +81,9 @@ impl<'a> ExtendedWithLifetimeExposure<ExtendedWithLifetime<'a>> {
         ) {
             let result = self.extended_name();
             let value = 0u128;
-            if sails_rs::prelude::Encode::encoded_size(&result) != 0 {
+            if !extended_with_lifetime_meta::__ExtendedNameParams::is_empty_tuple::<
+                String,
+            >() {
                 extended_with_lifetime_meta::__ExtendedNameParams::with_optimized_encode(
                     &result,
                     self.route().as_ref(),
@@ -95,7 +97,7 @@ impl<'a> ExtendedWithLifetimeExposure<ExtendedWithLifetime<'a>> {
         ) {
             let result = self.name();
             let value = 0u128;
-            if sails_rs::prelude::Encode::encoded_size(&result) != 0 {
+            if !extended_with_lifetime_meta::__NameParams::is_empty_tuple::<String>() {
                 extended_with_lifetime_meta::__NameParams::with_optimized_encode(
                     &result,
                     self.route().as_ref(),

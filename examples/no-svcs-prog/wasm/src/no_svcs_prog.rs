@@ -37,7 +37,6 @@ pub mod no_svcs_prog_factory {
             }
         }
         impl ActionIo for Create {
-            const ZERO_SIZE_REPLY: bool = true;
             const ROUTE: &'static [u8] = &[24, 67, 114, 101, 97, 116, 101];
             type Params = ();
             type Reply = ();

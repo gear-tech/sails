@@ -65,7 +65,7 @@ impl SomeServiceExposure<SomeService> {
         if let Ok(request) = some_service_meta::__ThisParams::decode_params(input) {
             let result = self.this(request.p1);
             let value = 0u128;
-            if sails_rs::prelude::Encode::encoded_size(&result) != 0 {
+            if !some_service_meta::__ThisParams::is_empty_tuple::<bool>() {
                 some_service_meta::__ThisParams::with_optimized_encode(
                     &result,
                     self.route().as_ref(),
@@ -88,7 +88,9 @@ impl SomeServiceExposure<SomeService> {
         ) {
             let result = self.do_this(request.p1, request.p2).await.unwrap();
             let value = 0u128;
-            if sails_rs::prelude::Encode::encoded_size(&result) != 0 {
+            if !some_service_meta::__DoSomethingParams::is_empty_tuple::<
+                (u32, String),
+            >() {
                 some_service_meta::__DoSomethingParams::with_optimized_encode(
                     &result,
                     self.route().as_ref(),

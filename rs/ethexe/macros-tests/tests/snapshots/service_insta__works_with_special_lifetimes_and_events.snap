@@ -63,7 +63,7 @@ where
         ) {
             let result = self.do_this();
             let value = 0u128;
-            if sails_rs::prelude::Encode::encoded_size(&result) != 0 {
+            if !my_generic_events_service_meta::__DoThisParams::is_empty_tuple::<u32>() {
                 my_generic_events_service_meta::__DoThisParams::with_optimized_encode(
                     &result,
                     self.route().as_ref(),
