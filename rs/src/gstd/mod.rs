@@ -15,7 +15,7 @@ pub use syscalls::Syscall;
 
 use crate::{
     errors::{Error, Result, RtlError},
-    prelude::*,
+    prelude::{any::TypeId, *},
 };
 use gcore::stack_buffer;
 use utils::MaybeUninitBufferWriter;
@@ -135,5 +135,9 @@ pub trait InvocationIo {
 
             buffer_writer.with_buffer(f)
         })
+    }
+
+    fn is_empty_tuple<T: 'static>() -> bool {
+        TypeId::of::<T>() == TypeId::of::<()>()
     }
 }

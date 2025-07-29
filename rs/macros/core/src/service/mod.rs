@@ -262,14 +262,17 @@ impl FnBuilder<'_> {
             }
         };
 
+        let result_type = self.result_type_with_static_lifetime();
         quote! {
             if let Ok(request) = #meta_module_ident::#params_struct_ident::decode_params( #input_ident) {
                 #handle_token
-                #meta_module_ident::#params_struct_ident::with_optimized_encode(
-                    &result,
-                    self.route().as_ref(),
-                    |encoded_result| result_handler(encoded_result, value),
-                );
+                if !#meta_module_ident::#params_struct_ident::is_empty_tuple::<#result_type>() {
+                    #meta_module_ident::#params_struct_ident::with_optimized_encode(
+                        &result,
+                        self.route().as_ref(),
+                        |encoded_result| result_handler(encoded_result, value),
+                    );
+                }
                 return Some(());
             }
         }
