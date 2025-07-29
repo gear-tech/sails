@@ -296,11 +296,15 @@ pub trait ActionIo {
 
     fn decode_reply(payload: impl AsRef<[u8]>) -> Result<Self::Reply> {
         let mut value = payload.as_ref();
-        let reply_is_empty = Self::is_empty_tuple::<Self::Reply>();
-        if !reply_is_empty && !value.starts_with(Self::ROUTE) {
+        let zero_size_reply = Self::is_empty_tuple::<Self::Reply>();
+        if !zero_size_reply && !value.starts_with(Self::ROUTE) {
             return Err(Error::Rtl(RtlError::ReplyPrefixMismatches));
         }
-        let start_idx = if reply_is_empty { 0 } else { Self::ROUTE.len() };
+        let start_idx = if zero_size_reply {
+            0
+        } else {
+            Self::ROUTE.len()
+        };
         value = &value[start_idx..];
         Decode::decode(&mut value).map_err(Error::Codec)
     }
