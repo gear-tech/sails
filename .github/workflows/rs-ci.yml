@@ -66,7 +66,7 @@ jobs:
     name: Run Workflow Tests
     uses: ./.github/workflows/rs-run-ws-tests.yml
     with:
-      gear_node_version: 1.7.1
+      gear_node_version: 1.9.0
 
   test-cli:
     name: Run CLI Tests
