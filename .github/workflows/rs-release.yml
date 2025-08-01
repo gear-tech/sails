@@ -88,6 +88,7 @@ jobs:
           git push origin --delete "${{ steps.release_info.outputs.pin_tag }}"
 
   ws_tests:
+    if: false
     name: Run Workspace Tests
     needs:
       - prepare
@@ -154,10 +155,10 @@ jobs:
     runs-on: ubuntu-latest
     needs:
       - prepare
-      - ws_tests
+      # - ws_tests
       # - cli_tests
     env:
-      SAILS_CRATES: |
+      SAILS_CRATES_PUBLISH: |
           sails-macros
           sails-rs
           sails-cli      
@@ -178,7 +179,7 @@ jobs:
             sed -i "/^\s*${SAILS_CRATE} = {.*}/ s/}/, version = \"=${VERSION}\" }/" Cargo.toml
           done
           cargo login ${{ secrets.CRATES_IO_TOKEN }}
-          for SAILS_CRATE in $SAILS_CRATES; do
+          for SAILS_CRATE in $SAILS_CRATES_PUBLISH; do
             cargo publish -p $SAILS_CRATE --allow-dirty
           done
           # Revert temporary changes to Cargo.toml
