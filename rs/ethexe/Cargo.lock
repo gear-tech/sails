@@ -1502,7 +1502,7 @@ checksum = "1b241177c7107d9829286c2ffdc5eee98d992d6356f3515e7f412f988b1a72fd"
 
 [[package]]
 name = "ethapp"
-version = "0.1.0"
+version = "0.9.0"
 dependencies = [
  "sails-rs",
  "tokio",
@@ -1510,7 +1510,7 @@ dependencies = [
 
 [[package]]
 name = "ethapp-with-events"
-version = "0.1.0"
+version = "0.9.0"
 dependencies = [
  "insta",
  "sails-rs",
@@ -3141,7 +3141,7 @@ dependencies = [
 
 [[package]]
 name = "macros-tests"
-version = "0.1.0"
+version = "0.9.0"
 dependencies = [
  "insta",
  "prettyplease",
