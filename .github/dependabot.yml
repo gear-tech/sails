@@ -4,25 +4,53 @@ updates:
     directory: "/"
     schedule:
       interval: "weekly"
+      day: "sunday"
+    commit-message:
+      prefix: "[depbot] "
+    groups:
+      deps:
+        patterns:
+          - "*"
+
   - package-ecosystem: "cargo"
     directory: "/net/rs"
     schedule:
       interval: "weekly"
+      day: "sunday"
+    commit-message:
+      prefix: "[depbot] "
+    groups:
+      deps:
+        patterns:
+          - "*"
+
   - package-ecosystem: "nuget"
     directory: "/"
     schedule:
       interval: "weekly"
+
   - package-ecosystem: "github-actions"
-    directory: "."
+    directory: "/"
     schedule:
       interval: "weekly"
+      day: "sunday"
+    commit-message:
+      prefix: "[depbot] "
+    groups:
+      deps:
+        patterns:
+          - "*"
+
   - package-ecosystem: "npm"
     directory: "/"
     schedule:
       interval: "weekly"
+      day: "sunday"
     versioning-strategy: "increase"
     ignore:
       - dependency-name: "@polkadot/*"
+    commit-message:
+      prefix: "[depbot] "
     groups:
       development:
         dependency-type: "development"
