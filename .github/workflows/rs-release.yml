@@ -21,6 +21,12 @@ env:
   GITHUB_USER_EMAIL: 41898282+github-actions[bot]@users.noreply.github.com
   # crates in order of dependency (topological order), first the ones that are not dependent on any other
   SAILS_CRATES: |
+    sails-idl-meta
+    sails-idl-parser
+    sails-idl-gen
+    sails-sol-gen
+    sails-client-gen
+    sails-macros-core
     sails-macros
     sails-rs
     sails-cli
@@ -150,6 +156,11 @@ jobs:
       - prepare
       - ws_tests
       # - cli_tests
+    env:
+      SAILS_CRATES: |
+          sails-macros
+          sails-rs
+          sails-cli      
     defaults:
       run:
         shell: bash
