@@ -7,6 +7,9 @@ rustflags = ["-Clink-arg=/force:unresolved", "-Ctarget-feature=+crt-static"]
 [target.wasm32-unknown-unknown]
 rustflags = ["-C", "link-arg=--import-memory", "-C", "linker-plugin-lto"]
 
+[target.wasm32v1-none]
+rustflags = ["-C", "link-arg=--import-memory", "-C", "linker-plugin-lto"]
+
 [profile.dev.package.proxy]
 opt-level = "z" # If not specified, the resulting WASM won't survive instrumentation when being loaded onto network
 
