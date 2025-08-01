@@ -4,6 +4,7 @@ edition = "2024"
 authors = ["Gear Technologies"]
 license = "GPL-3.0"
 repository = "https://github.com/gear-tech/sails"
+rust-version = "1.88"
 
 [workspace]
 resolver = "3"
