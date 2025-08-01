@@ -18,6 +18,8 @@ concurrency:
 
 env:
   CARGO_TERM_COLOR: always
+  GEAR_PATH: /usr/bin/gear
+  __GEAR_WASM_BUILDER_NO_FEATURES_TRACKING: 1
 
 jobs:
   test_ws:
@@ -43,16 +45,10 @@ jobs:
           sudo mv gear /usr/bin/
 
       - name: Run Tests
-        env:
-          GEAR_PATH: /usr/bin/gear
-        run: __GEAR_WASM_BUILDER_NO_FEATURES_TRACKING=1 cargo test --workspace --all-targets --locked --no-fail-fast -- --include-ignored
+        run: cargo test --workspace --all-targets --locked --no-fail-fast -- --include-ignored
 
       - name: Run Tests on the `sails-rs` package with `ethexe` Feature
-        env:
-          GEAR_PATH: /usr/bin/gear
-        run: __GEAR_WASM_BUILDER_NO_FEATURES_TRACKING=1 cargo test -p sails-rs --all-targets --locked --no-fail-fast --features ethexe
+        run: cargo test -p sails-rs --all-targets --locked --no-fail-fast --features ethexe
 
       - name: Run Tests in Ethexe Workspace
-        env:
-          GEAR_PATH: /usr/bin/gear
-        run: __GEAR_WASM_BUILDER_NO_FEATURES_TRACKING=1 cargo test --workspace --all-targets --locked --no-fail-fast --manifest-path ./rs/ethexe/Cargo.toml
+        run: cargo test --workspace --all-targets --locked --no-fail-fast --manifest-path ./rs/ethexe/Cargo.toml
