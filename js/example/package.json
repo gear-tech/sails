@@ -7,7 +7,7 @@
     "@polkadot/api": "^15.9.1",
     "sails-js": "*",
     "sails-js-cli": "*",
-    "typescript": "^5.8.3"
+    "typescript": "^5.9.2"
   },
   "scripts": {
     "build": "node ../cli/build/app.js generate ../../examples/demo/client/demo_client.idl -o src --no-project -y && tsc",
