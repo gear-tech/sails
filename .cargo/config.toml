@@ -1,3 +1,6 @@
+[env]
+GEAR_WORKSPACE_DIR = { value = "", relative = true }
+
 [target.x86_64-pc-windows-msvc]
 rustflags = ["-Clink-arg=/force:unresolved", "-Ctarget-feature=+crt-static"]
 

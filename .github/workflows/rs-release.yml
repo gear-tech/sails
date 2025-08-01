@@ -94,7 +94,7 @@ jobs:
     uses: ./.github/workflows/rs-run-ws-tests.yml
     with:
       sources_ref: ${{ needs.prepare.outputs.rc_branch }}
-      gear_node_version: 1.8.1
+      gear_node_version: 1.9.0
 
   cli_tests:
     if: false
