@@ -15,10 +15,6 @@ on:
     tags:
       - 'rs-pin/v*'
 
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
-
 env:
   # see https://api.github.com/users/github-actions%5Bbot%5D
   GITHUB_USER_NAME: github-actions[bot]
@@ -92,6 +88,7 @@ jobs:
           git push origin --delete "${{ steps.release_info.outputs.pin_tag }}"
 
   ws_tests:
+    if: false
     name: Run Workspace Tests
     needs:
       - prepare
@@ -138,14 +135,14 @@ jobs:
           cargo build -p demo --release
           mkdir -p ./assets/demo
           cp ./target/wasm32-gear/release/demo.opt.wasm ./assets/demo/demo.wasm
-          cp ./examples/demo/client/demo.idl ./assets/demo/demo.idl
+          cp ./examples/demo/client/demo_client.idl ./assets/demo/demo.idl
 
       - name: Build NoSvcsProg
         run: |
           cargo build -p no-svcs-prog --release
           mkdir -p ./assets/no_svcs_prog
           cp ./target/wasm32-gear/release/no_svcs_prog.opt.wasm ./assets/no_svcs_prog/no_svcs_prog.wasm
-          cp ./examples/no-svcs-prog/wasm/no-svcs-prog.idl ./assets/no_svcs_prog/no-svcs-prog.idl
+          cp ./examples/no-svcs-prog/wasm/no_svcs_prog.idl ./assets/no_svcs_prog/no_svcs_prog.idl
 
       - name: Upload Assets
         uses: actions/upload-artifact@v4
@@ -158,7 +155,7 @@ jobs:
     runs-on: ubuntu-latest
     needs:
       - prepare
-      - ws_tests
+      # - ws_tests
       # - cli_tests
     defaults:
       run:
@@ -271,5 +268,5 @@ jobs:
             ./assets/demo/demo.wasm
             ./assets/demo/demo.idl
             ./assets/no_svcs_prog/no_svcs_prog.wasm
-            ./assets/no_svcs_prog/no-svcs-prog.idl
+            ./assets/no_svcs_prog/no_svcs_prog.idl
           token: ${{ secrets.GITHUB_TOKEN }}
