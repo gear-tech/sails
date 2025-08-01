@@ -157,11 +157,6 @@ jobs:
       - prepare
       # - ws_tests
       # - cli_tests
-    env:
-      SAILS_CRATES_PUBLISH: |
-          sails-macros
-          sails-rs
-          sails-cli      
     defaults:
       run:
         shell: bash
@@ -179,7 +174,7 @@ jobs:
             sed -i "/^\s*${SAILS_CRATE} = {.*}/ s/}/, version = \"=${VERSION}\" }/" Cargo.toml
           done
           cargo login ${{ secrets.CRATES_IO_TOKEN }}
-          for SAILS_CRATE in $SAILS_CRATES_PUBLISH; do
+          for SAILS_CRATE in $SAILS_CRATES; do
             cargo publish -p $SAILS_CRATE --allow-dirty
           done
           # Revert temporary changes to Cargo.toml
