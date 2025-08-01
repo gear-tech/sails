@@ -7118,7 +7118,7 @@ dependencies = [
 
 [[package]]
 name = "sails-cli"
-version = "0.9.0"
+version = "0.8.1"
 dependencies = [
  "anyhow",
  "askama",
@@ -7135,7 +7135,7 @@ dependencies = [
 
 [[package]]
 name = "sails-client-gen"
-version = "0.9.0"
+version = "0.8.1"
 dependencies = [
  "anyhow",
  "convert_case 0.7.1",
@@ -7147,7 +7147,7 @@ dependencies = [
 
 [[package]]
 name = "sails-idl-gen"
-version = "0.9.0"
+version = "0.8.1"
 dependencies = [
  "convert_case 0.7.1",
  "gprimitives",
@@ -7163,14 +7163,14 @@ dependencies = [
 
 [[package]]
 name = "sails-idl-meta"
-version = "0.9.0"
+version = "0.8.1"
 dependencies = [
  "scale-info",
 ]
 
 [[package]]
 name = "sails-idl-parser"
-version = "0.9.0"
+version = "0.8.1"
 dependencies = [
  "itertools 0.14.0",
  "lalrpop",
@@ -7181,7 +7181,7 @@ dependencies = [
 
 [[package]]
 name = "sails-macros"
-version = "0.9.0"
+version = "0.8.1"
 dependencies = [
  "parity-scale-codec",
  "proc-macro-error",
@@ -7194,7 +7194,7 @@ dependencies = [
 
 [[package]]
 name = "sails-macros-core"
-version = "0.9.0"
+version = "0.8.1"
 dependencies = [
  "convert_case 0.7.1",
  "insta",
@@ -7208,7 +7208,7 @@ dependencies = [
 
 [[package]]
 name = "sails-rs"
-version = "0.9.0"
+version = "0.8.1"
 dependencies = [
  "alloy-primitives 0.8.20",
  "alloy-sol-types 0.8.20",
@@ -7241,7 +7241,7 @@ dependencies = [
 
 [[package]]
 name = "sails-sol-gen"
-version = "0.9.0"
+version = "0.8.1"
 dependencies = [
  "anyhow",
  "convert_case 0.7.1",
