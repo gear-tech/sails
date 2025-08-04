@@ -10,16 +10,14 @@ impl MyProgram {
         MyService
     }
     pub fn create() -> Self {
-        Self
+        Default::default()
     }
-    #[route("svc1")]
     pub fn service1(
         &self,
     ) -> <MyService as sails_rs::gstd::services::Service>::Exposure {
         let service = self.__service1();
         let exposure = <MyService as sails_rs::gstd::services::Service>::expose(
             service,
-            sails_rs::gstd::Syscall::message_id(),
             __ROUTE_SVC1.as_ref(),
         );
         exposure
@@ -30,7 +28,6 @@ impl MyProgram {
         let service = self.__service2();
         let exposure = <MyService as sails_rs::gstd::services::Service>::expose(
             service,
-            sails_rs::gstd::Syscall::message_id(),
             __ROUTE_SERVICE2.as_ref(),
         );
         exposure
@@ -128,32 +125,27 @@ pub mod wasm {
                     ctor_route,
                     &input[4..],
                 ) {
-                    let output = if encode_reply {
-                        [
+                    if encode_reply {
+                        let output = [
                             __CTOR_CALLBACK_SIGS[idx].as_slice(),
                             gstd::msg::id().into_bytes().as_slice(),
                         ]
-                            .concat()
-                    } else {
-                        Vec::with_capacity(0)
-                    };
-                    gstd::msg::reply_bytes(output, 0).expect("Failed to send output");
+                            .concat();
+                        gstd::msg::reply_bytes(output, 0)
+                            .expect("Failed to send output");
+                    }
                     return;
                 }
             }
         }
-        let invocation_route = if let Ok(request) = meta_in_program::__CreateParams::decode_params(
-            input,
-        ) {
+        if let Ok(request) = meta_in_program::__CreateParams::decode_params(input) {
             let program = MyProgram::create();
             unsafe {
                 PROGRAM = Some(program);
             }
-            meta_in_program::__CreateParams::ROUTE
         } else {
             gstd::unknown_input_panic("Unexpected ctor", input)
         };
-        gstd::msg::reply_bytes(invocation_route, 0).expect("Failed to send output");
     }
     fn match_ctor_solidity(ctor: &[u8], input: &[u8]) -> Option<bool> {
         if ctor == &[24u8, 67u8, 114u8, 101u8, 97u8, 116u8, 101u8] {
@@ -267,7 +259,6 @@ pub mod wasm {
                 });
             if is_async {
                 gstd::message_loop(async move {
-                    let input = input.clone();
                     service
                         .try_handle_async(
                             &input[__ROUTE_SVC1.len()..],
@@ -307,7 +298,6 @@ pub mod wasm {
                 });
             if is_async {
                 gstd::message_loop(async move {
-                    let input = input.clone();
                     service
                         .try_handle_async(
                             &input[__ROUTE_SERVICE2.len()..],

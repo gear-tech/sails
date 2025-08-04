@@ -13,6 +13,7 @@ impl<'a, T> MyService<'a, T>
 where
     T: Clone,
 {
+    #[export]
     pub fn do_this(&mut self) -> u32 {
         42
     }

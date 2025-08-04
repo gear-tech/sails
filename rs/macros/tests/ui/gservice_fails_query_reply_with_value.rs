@@ -4,6 +4,7 @@ struct MyService;
 
 #[service]
 impl MyService {
+    #[export]
     pub fn this(&self, p1: bool) -> CommandReply<bool> {
         !p1.into()
     }

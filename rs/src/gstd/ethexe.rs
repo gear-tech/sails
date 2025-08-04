@@ -3,7 +3,7 @@ use alloy_sol_types::{SolType, SolValue, abi::TokenSeq};
 
 #[doc(hidden)]
 #[cfg(target_arch = "wasm32")]
-pub fn __emit_eth_event<TEvents>(event: TEvents) -> crate::errors::Result<()>
+pub(crate) fn __emit_eth_event<TEvents>(event: TEvents) -> crate::errors::Result<()>
 where
     TEvents: crate::EthEvent,
 {

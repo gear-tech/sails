@@ -5,7 +5,7 @@ expression: result
 impl MyProgram {
     fn handle_reply(&self) {}
     pub fn create() -> Self {
-        Self
+        Default::default()
     }
 }
 impl sails_rs::meta::ProgramMeta for MyProgram {
@@ -40,18 +40,14 @@ pub mod wasm {
     extern "C" fn init() {
         use gstd::InvocationIo;
         let mut input: &[u8] = &gstd::msg::load_bytes().expect("Failed to read input");
-        let invocation_route = if let Ok(request) = meta_in_program::__CreateParams::decode_params(
-            input,
-        ) {
+        if let Ok(request) = meta_in_program::__CreateParams::decode_params(input) {
             let program = MyProgram::create();
             unsafe {
                 PROGRAM = Some(program);
             }
-            meta_in_program::__CreateParams::ROUTE
         } else {
             gstd::unknown_input_panic("Unexpected ctor", input)
         };
-        gstd::msg::reply_bytes(invocation_route, 0).expect("Failed to send output");
     }
     #[unsafe(no_mangle)]
     extern "C" fn handle() {

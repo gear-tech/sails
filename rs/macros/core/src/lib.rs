@@ -16,18 +16,16 @@
 // You should have received a copy of the GNU General Public License
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
-//! Implemntation of the procedural macros exposed via the `sails-macros` crate.
+//! Implementation of the procedural macros exposed via the `sails-macros` crate.
 
 pub use event::{derive_sails_event, event};
 pub use export::export;
 pub use program::{__gprogram_internal, gprogram};
-pub use route::groute;
 pub use service::{__gservice_internal, gservice};
 
 mod event;
 mod export;
 mod program;
-mod route;
 mod sails_paths;
 mod service;
 mod shared;

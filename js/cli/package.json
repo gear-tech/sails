@@ -1,7 +1,7 @@
 {
   "name": "sails-js-cli",
   "description": "CLI allowing to generate Typescript library based on Sails IDL files",
-  "version": "0.4.2",
+  "version": "0.4.3",
   "preferGlobal": true,
   "type": "module",
   "license": "GPL-3.0",
@@ -23,10 +23,10 @@
     "sails-js": "./build/app.js"
   },
   "devDependencies": {
-    "@inquirer/prompts": "^7.5.3",
+    "@inquirer/prompts": "^7.8.0",
     "commander": "^14.0.0",
-    "inquirer": "^12.6.3",
-    "jest": "^30.0.0",
+    "inquirer": "^12.9.0",
+    "jest": "^30.0.5",
     "sails-js": "^0.4.2",
     "sails-js-parser": "^0.4.2",
     "sails-js-util": "^0.4.2"

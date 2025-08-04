@@ -24,8 +24,13 @@ on:
       - 'rust-toolchain.toml'
   workflow_dispatch:
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 env:
   CARGO_TERM_COLOR: always
+  __GEAR_WASM_BUILDER_NO_FEATURES_TRACKING: 1
 
 jobs:
   check:
@@ -43,30 +48,25 @@ jobs:
         uses: ./.github/actions/install-wasm-utils
 
       - name: Check Code Formatting
-        run: |
-          __GEAR_WASM_BUILDER_NO_FEATURES_TRACKING=1 cargo fmt --all --check
+        run: cargo fmt --all --check
 
       - name: Check Code With Clippy
-        run: |
-          __GEAR_WASM_BUILDER_NO_FEATURES_TRACKING=1 cargo clippy --workspace --all-targets --locked -- -D warnings
+        run: cargo clippy --workspace --all-targets --locked -- -D warnings
 
       - name: Check Code With Clippy on the `sails-rs` package with `ethexe` Feature
-        run: |
-          __GEAR_WASM_BUILDER_NO_FEATURES_TRACKING=1 cargo clippy -p sails-rs --all-targets --locked  --features ethexe -- -D warnings
+        run: cargo clippy -p sails-rs --all-targets --locked  --features ethexe -- -D warnings
 
       - name: Check Code With Clippy in Ethexe Workspace
-        run: |
-          __GEAR_WASM_BUILDER_NO_FEATURES_TRACKING=1 cargo clippy --workspace --all-targets --locked --manifest-path ./rs/ethexe/Cargo.toml -- -D warnings
+        run: cargo clippy --workspace --all-targets --locked --manifest-path ./rs/ethexe/Cargo.toml -- -D warnings
 
       - name: Check IDL Parser For WASM With Clippy
-        run: |
-          __GEAR_WASM_BUILDER_NO_FEATURES_TRACKING=1 cargo clippy -p sails-idl-parser --all-targets --locked --target=wasm32-unknown-unknown -- -D warnings
+        run: cargo clippy -p sails-idl-parser --all-targets --locked --target=wasm32-unknown-unknown -- -D warnings
 
   test:
     name: Run Workflow Tests
     uses: ./.github/workflows/rs-run-ws-tests.yml
     with:
-      gear_node_version: 1.7.1
+      gear_node_version: 1.9.0
 
   test-cli:
     name: Run CLI Tests

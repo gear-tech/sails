@@ -8,6 +8,10 @@ on:
         type: string
         required: false
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 env:
   CARGO_TERM_COLOR: always
 
@@ -34,18 +38,13 @@ jobs:
 
       - name: Generate MyDemo via CLI
         run: |
-          TEMPLATES_BRANCH=${{ inputs.sources_ref }}
-          TEMPLATES_BRANCH=${TEMPLATES_BRANCH:-${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}}
-          echo "TEMPLATES_BRANCH: $TEMPLATES_BRANCH"
-          mkdir ~/tmp
-          SAILS_CLI_TEMPLATES_BRANCH=${TEMPLATES_BRANCH} ./target/debug/cargo-sails sails program ~/tmp --name my-demo
+          ./target/debug/cargo-sails sails new ~/tmp/my-demo --name my-demo --sails-path ./rs
 
       - name: Run Tests on MyDemo
         run: |
-          cd ~/tmp/my-demo
-          cargo test -p my-demo
+          cargo test --workspace --manifest-path ~/tmp/my-demo/Cargo.toml
 
       - name: Generate IDL from MyDemo via CLI
         run: |
           ./target/debug/cargo-sails sails idl --manifest-path ~/tmp/my-demo/Cargo.toml
-          diff ~/tmp/my-demo/target/my-demo-app.idl ~/tmp/my-demo/target/wasm32-gear/debug/my_demo.idl
+          diff ~/tmp/my-demo/target/my-demo-app.idl ~/tmp/my-demo/client/my_demo_client.idl

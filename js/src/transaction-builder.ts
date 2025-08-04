@@ -47,6 +47,7 @@ export class TransactionBuilder<ResponseType> {
   private _gasInfo: GasInfo;
   public readonly programId: HexString;
   private _prefixByteLength: number;
+  private _gasLimit: bigint | null;
 
   constructor(
     api: GearApi,
@@ -196,6 +197,7 @@ export class TransactionBuilder<ResponseType> {
       : ZERO_ADDRESS;
 
     let gas: GasInfo;
+    let gasArgPosition: number;
 
     switch (this._tx.method.method) {
       case 'uploadProgram': {
@@ -207,8 +209,6 @@ export class TransactionBuilder<ResponseType> {
           allowOtherPanics,
         );
 
-        this._setTxArg(3, this._getGas(gas.min_limit, increaseGas));
-
         break;
       }
       case 'createProgram': {
@@ -219,9 +219,7 @@ export class TransactionBuilder<ResponseType> {
           this._tx.args[4] as u128,
           allowOtherPanics,
         );
-
-        this._setTxArg(3, this._getGas(gas.min_limit, increaseGas));
-
+        gasArgPosition = 3;
         break;
       }
       case 'sendMessage': {
@@ -232,9 +230,7 @@ export class TransactionBuilder<ResponseType> {
           this._tx.args[3] as u128,
           allowOtherPanics,
         );
-
-        this._setTxArg(2, this._getGas(gas.min_limit, increaseGas));
-
+        gasArgPosition = 2;
         break;
       }
       default: {
@@ -243,6 +239,9 @@ export class TransactionBuilder<ResponseType> {
     }
 
     this._gasInfo = gas;
+    const finalGas = this._getGas(gas.min_limit, increaseGas);
+    this._setTxArg(gasArgPosition, finalGas);
+    this._gasLimit = finalGas.toBigInt();
 
     return this;
   }
@@ -284,23 +283,27 @@ export class TransactionBuilder<ResponseType> {
 
   /**
    * ## Set gas for transaction
-   * @param gas
+   * @param gas - bigint value or 'max'. If 'max', the gas limit will be set to the block gas limit.
    */
-  public withGas(gas: bigint) {
+  public withGas(gas: bigint | 'max') {
+    const _gas = gas === 'max' ? this._api.blockGasLimit : this._registry.createType('u64', gas);
+
     switch (this._tx.method.method) {
       case 'uploadProgram':
       case 'createProgram': {
-        this._setTxArg(3, this._registry.createType('u64', gas));
+        this._setTxArg(3, _gas);
         break;
       }
       case 'sendMessage': {
-        this._setTxArg(2, this._registry.createType('u64', gas));
+        this._setTxArg(2, _gas);
         break;
       }
       default: {
         throw new Error('Unknown extrinsic');
       }
     }
+
+    this._gasLimit = _gas.toBigInt();
 
     return this;
   }
@@ -335,6 +338,10 @@ export class TransactionBuilder<ResponseType> {
   public async signAndSend(): Promise<IMethodReturnType<ResponseType>> {
     if (!this._account) {
       throw new Error('Account is required. Use withAccount() method to set account.');
+    }
+
+    if (!this._gasLimit) {
+      await this.calculateGas();
     }
 
     if (this._voucher) {

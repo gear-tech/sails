@@ -9,8 +9,7 @@ use convert_case::{Case, Casing};
 use proc_macro_error::abort;
 use proc_macro2::{Literal, Span, TokenStream};
 use quote::quote;
-use std::collections::BTreeMap;
-use syn::{Generics, Ident, ImplItemFn, ItemImpl, Path, Type, TypePath, Visibility, WhereClause};
+use syn::{Generics, Ident, ItemImpl, Path, Type, TypePath, Visibility, WhereClause};
 
 mod args;
 #[cfg(feature = "ethexe")]
@@ -67,11 +66,8 @@ struct ServiceBuilder<'a> {
     events_type: Option<&'a Path>,
     service_handlers: Vec<FnBuilder<'a>>,
     exposure_ident: Ident,
-    message_id_ident: Ident,
     route_ident: Ident,
     inner_ident: Ident,
-    inner_ptr_ident: Ident,
-    base_ident: Ident,
     input_ident: Ident,
     meta_module_ident: Ident,
 }
@@ -85,22 +81,14 @@ impl<'a> ServiceBuilder<'a> {
         let (generics, type_constraints) = shared::impl_constraints(service_impl);
         let (type_path, _type_args, service_ident) =
             shared::impl_type_refs(service_impl.self_ty.as_ref());
-        let service_handlers = discover_service_handlers(service_impl)
-            .into_iter()
-            .map(|(route, (fn_impl, _idx, unwrap_result))| {
-                FnBuilder::from(route, fn_impl, unwrap_result, sails_path)
-            })
-            .collect::<Vec<_>>();
+        let service_handlers = discover_service_handlers(service_impl, sails_path);
         let exposure_name = format!(
             "{}Exposure",
             service_ident.to_string().to_case(Case::Pascal)
         );
         let exposure_ident = Ident::new(&exposure_name, Span::call_site());
-        let message_id_ident = Ident::new("message_id", Span::call_site());
         let route_ident = Ident::new("route", Span::call_site());
         let inner_ident = Ident::new("inner", Span::call_site());
-        let inner_ptr_ident = Ident::new("inner_ptr", Span::call_site());
-        let base_ident = Ident::new("base", Span::call_site());
         let input_ident = Ident::new("input", Span::call_site());
         let meta_module_name = format!("{}_meta", service_ident.to_string().to_case(Case::Snake));
         let meta_module_ident = Ident::new(&meta_module_name, Span::call_site());
@@ -115,11 +103,8 @@ impl<'a> ServiceBuilder<'a> {
             events_type: service_args.events_type(),
             service_handlers,
             exposure_ident,
-            message_id_ident,
             route_ident,
             inner_ident,
-            inner_ptr_ident,
-            base_ident,
             input_ident,
             meta_module_ident,
         }
@@ -136,12 +121,8 @@ impl ServiceBuilder<'_> {
         quote!()
     }
 
-    fn try_handle_solidity_impl(&self, _base_ident: &Ident) -> TokenStream {
+    fn try_handle_solidity_impl(&self) -> TokenStream {
         quote!()
-    }
-
-    fn service_emit_eth_impls(&self) -> Option<TokenStream> {
-        None
     }
 
     fn exposure_emit_eth_impls(&self) -> Option<TokenStream> {
@@ -161,12 +142,10 @@ fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
 
     let service_builder = ServiceBuilder::from(&service_impl, &sails_path, &service_args);
 
-    let service_handlers = discover_service_handlers(&service_impl);
-
-    if service_handlers.is_empty() && service_args.base_types().is_empty() {
+    if service_builder.service_handlers.is_empty() && service_builder.base_types.is_empty() {
         abort!(
-            service_impl,
-            "`service` attribute requires impl to define at least one public method or extend another service"
+            service_builder.service_impl,
+            "`service` attribute requires impl to define at least one public method with `#[export]` macro or extend another service"
         );
     }
 
@@ -176,16 +155,11 @@ fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
     let exposure_struct = service_builder.exposure_struct();
     let exposure_impl = service_builder.exposure_impl();
     let service_trait_impl = service_builder.service_trait_impl();
-    let service_emit_event_impls = service_builder.service_emit_event_impls();
-    let service_emit_eth_impls = service_builder.service_emit_eth_impls();
-    let exposure_listen_and_drop = service_builder.exposure_listen_and_drop();
 
     // ethexe
     let service_signature_impl = service_builder.service_signature_impl();
 
     quote!(
-        #service_impl
-
         #exposure_struct
 
         #exposure_impl
@@ -197,20 +171,21 @@ fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
         #meta_module
 
         #service_signature_impl
-
-        #service_emit_event_impls
-        #service_emit_eth_impls
-
-        #exposure_listen_and_drop
     )
 }
 
-fn discover_service_handlers(
-    service_impl: &ItemImpl,
-) -> BTreeMap<String, (&ImplItemFn, usize, bool)> {
-    shared::discover_invocation_targets(service_impl, |fn_item| {
-        matches!(fn_item.vis, Visibility::Public(_)) && fn_item.sig.receiver().is_some()
-    })
+fn discover_service_handlers<'a>(
+    service_impl: &'a ItemImpl,
+    sails_path: &'a Path,
+) -> Vec<FnBuilder<'a>> {
+    shared::discover_invocation_targets(
+        service_impl,
+        |fn_item| matches!(fn_item.vis, Visibility::Public(_)) && fn_item.sig.receiver().is_some(),
+        sails_path,
+    )
+    .into_iter()
+    .filter(|fn_builder| fn_builder.export)
+    .collect()
 }
 
 impl FnBuilder<'_> {
@@ -287,40 +262,20 @@ impl FnBuilder<'_> {
             }
         };
 
+        let result_type = self.result_type_with_static_lifetime();
         quote! {
             if let Ok(request) = #meta_module_ident::#params_struct_ident::decode_params( #input_ident) {
                 #handle_token
-                #meta_module_ident::#params_struct_ident::with_optimized_encode(
-                    &result,
-                    self.route().as_ref(),
-                    |encoded_result| result_handler(encoded_result, value),
-                );
+                if !#meta_module_ident::#params_struct_ident::is_empty_tuple::<#result_type>() {
+                    #meta_module_ident::#params_struct_ident::with_optimized_encode(
+                        &result,
+                        self.route().as_ref(),
+                        |encoded_result| result_handler(encoded_result, value),
+                    );
+                }
                 return Some(());
             }
         }
-    }
-
-    fn exposure_func(&self, inner_ident: &Ident) -> TokenStream {
-        let sails_path = self.sails_path;
-        let handler_ident = self.ident;
-        let handler_fn_sig = &self.impl_fn.sig;
-        let handler_params = self.params_idents();
-
-        let handler_await_token = self.is_async().then(|| quote!(.await));
-        let handler_allow_attrs = self
-            .impl_fn
-            .attrs
-            .iter()
-            .filter(|attr| attr.path().is_ident("allow"));
-
-        quote!(
-            #( #handler_allow_attrs )*
-            pub #handler_fn_sig {
-                use #sails_path::gstd::services::Exposure;
-                let exposure_scope = self.scope();
-                self. #inner_ident . #handler_ident (#(#handler_params),*) #handler_await_token
-            }
-        )
     }
 
     fn check_asyncness_branch_impl(
@@ -335,5 +290,53 @@ impl FnBuilder<'_> {
                 return Some(is_async);
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use quote::quote;
+
+    #[test]
+    fn discover_service_handlers_with_export() {
+        let service_impl = syn::parse2(quote!(
+            impl Service {
+                fn non_public_associated_func_returning_self() -> Self {}
+                fn non_public_associated_func_returning_type() -> Service {}
+                fn non_public_associated_func_returning_smth() -> u32 {}
+                pub fn public_associated_func_returning_self() -> Self {}
+                pub fn public_associated_func_returning_type() -> Service {}
+                pub fn public_associated_func_returning_smth() -> u32 {}
+                fn non_public_method_returning_self(&self) -> Self {}
+                fn non_public_method_returning_type(&self) -> Service {}
+                fn non_public_method_returning_smth(&self) -> u32 {}
+                pub fn public_method_returning_self(&self) -> Self {}
+                pub fn public_method_returning_type(&self) -> Service {}
+                pub fn public_method_returning_smth(&self) -> u32 {}
+                #[export]
+                pub fn export_public_method_returning_self(&self) -> Self {}
+                #[export]
+                pub fn export_public_method_returning_type(&self) -> Service {}
+                #[export]
+                pub fn export_public_method_returning_smth(&self) -> u32 {}
+            }
+        ))
+        .unwrap();
+
+        let sails_path = &sails_paths::sails_path_or_default(None);
+        let discovered_ctors = discover_service_handlers(&service_impl, sails_path)
+            .iter()
+            .map(|fn_builder| fn_builder.ident.to_string())
+            .collect::<Vec<_>>();
+
+        assert_eq!(
+            discovered_ctors,
+            &[
+                "export_public_method_returning_self",
+                "export_public_method_returning_smth",
+                "export_public_method_returning_type"
+            ]
+        );
     }
 }

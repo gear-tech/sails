@@ -1,6 +1,4 @@
-use sails_macros::{export, service};
-use sails_rs::Encode;
-
+use sails_rs::prelude::*;
 pub(super) struct MyService;
 
 #[service]
@@ -16,6 +14,7 @@ impl MyService {
         Ok(res)
     }
 
+    #[export]
     #[allow(unused)]
     pub fn this(&self, p1: bool) -> bool {
         !p1

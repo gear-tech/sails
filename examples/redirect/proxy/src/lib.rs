@@ -5,13 +5,16 @@ use sails_rs::{calls::Query as _, gstd::calls::*, prelude::*};
 
 struct ProxyService(ActorId);
 
-#[sails_rs::service]
 impl ProxyService {
-    pub fn new(target: ActorId) -> Self {
+    pub const fn new(target: ActorId) -> Self {
         Self(target)
     }
+}
 
+#[sails_rs::service]
+impl ProxyService {
     /// Get program ID of the target program via client
+    #[sails_rs::export]
     pub async fn get_program_id(&self) -> ActorId {
         let client = Redirect::new(GStdRemoting::new());
         client

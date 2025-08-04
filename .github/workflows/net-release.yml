@@ -5,6 +5,10 @@ on:
     tags:
       - 'net/v*'
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 env:
   # see https://api.github.com/users/github-actions%5Bbot%5D
   GITHUB_USER_NAME: github-actions[bot]

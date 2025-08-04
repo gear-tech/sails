@@ -48,6 +48,7 @@ impl Catalog {
 
 #[service]
 impl Catalog {
+    #[export]
     pub fn add_parts(&mut self, parts: PartMap<PartId, Part>) -> Result<PartMap<PartId, Part>> {
         self.require_admin()?;
 
@@ -68,6 +69,7 @@ impl Catalog {
         Ok(parts)
     }
 
+    #[export]
     pub fn remove_parts(&mut self, part_ids: Vec<PartId>) -> Result<Vec<PartId>> {
         self.require_admin()?;
 
@@ -89,10 +91,12 @@ impl Catalog {
         Ok(part_ids)
     }
 
+    #[export]
     pub fn part(&self, part_id: PartId) -> Option<Part> {
         self.data().parts.get(&part_id).cloned()
     }
 
+    #[export]
     pub fn add_equippables(
         &mut self,
         part_id: PartId,
@@ -123,6 +127,7 @@ impl Catalog {
         Ok((part_id, collection_ids))
     }
 
+    #[export]
     pub fn remove_equippable(
         &mut self,
         part_id: PartId,
@@ -145,6 +150,7 @@ impl Catalog {
         Ok((part_id, collection_id))
     }
 
+    #[export]
     pub fn reset_equippables(&mut self, part_id: PartId) -> Result<()> {
         self.require_admin()?;
 
@@ -168,6 +174,7 @@ impl Catalog {
         Ok(())
     }
 
+    #[export]
     pub fn set_equippables_to_all(&mut self, part_id: PartId) -> Result<()> {
         self.require_admin()?;
 
@@ -186,6 +193,7 @@ impl Catalog {
         Ok(())
     }
 
+    #[export]
     pub fn equippable(&self, part_id: PartId, collection_id: CollectionId) -> Result<bool> {
         for equippable in &self.data().is_equippable_to_all {
             if equippable == &part_id {

@@ -2,99 +2,19 @@
 source: rs/macros/core/tests/gservice.rs
 expression: result
 ---
-impl<'a> ExtendedLifetime<'a> {
-    pub fn extended_name(&self) -> String {
-        "extended-name".to_string()
-    }
-    pub fn name(&self) -> String {
-        "extended".to_string()
-    }
-}
-pub struct ExtendedLifetimeExposure<T: sails_rs::gstd::services::Service> {
-    message_id: sails_rs::MessageId,
+pub struct ExtendedLifetimeExposure<T> {
     route: &'static [u8],
-    #[cfg(not(target_arch = "wasm32"))]
-    inner: sails_rs::Box<T>,
-    #[cfg(not(target_arch = "wasm32"))]
-    inner_ptr: *const T,
-    #[cfg(target_arch = "wasm32")]
     inner: T,
-    base: T::BaseExposures,
 }
-impl<T: sails_rs::gstd::services::Service> sails_rs::gstd::services::Exposure
+impl<T: sails_rs::meta::ServiceMeta> sails_rs::gstd::services::Exposure
 for ExtendedLifetimeExposure<T> {
-    fn message_id(&self) -> sails_rs::MessageId {
-        self.message_id
-    }
     fn route(&self) -> &'static [u8] {
         self.route
     }
-}
-impl<'a> ExtendedLifetimeExposure<ExtendedLifetime<'a>> {
-    pub fn extended_name(&self) -> String {
-        use sails_rs::gstd::services::Exposure;
-        let exposure_scope = self.scope();
-        self.inner.extended_name()
-    }
-    pub fn name(&self) -> String {
-        use sails_rs::gstd::services::Exposure;
-        let exposure_scope = self.scope();
-        self.inner.name()
-    }
-    pub fn as_base_0(
-        &self,
-    ) -> &<base::BaseLifetime<'a> as sails_rs::gstd::services::Service>::Exposure {
-        &self.base.0
-    }
-    pub fn try_handle(
-        &mut self,
-        input: &[u8],
-        result_handler: fn(&[u8], u128),
-    ) -> Option<()> {
+    fn check_asyncness(input: &[u8]) -> Option<bool> {
         use sails_rs::gstd::InvocationIo;
-        use sails_rs::gstd::services::Exposure;
-        if let Ok(request) = extended_lifetime_meta::__ExtendedNameParams::decode_params(
-            input,
-        ) {
-            let result = self.extended_name();
-            let value = 0u128;
-            extended_lifetime_meta::__ExtendedNameParams::with_optimized_encode(
-                &result,
-                self.route().as_ref(),
-                |encoded_result| result_handler(encoded_result, value),
-            );
-            return Some(());
-        }
-        if let Ok(request) = extended_lifetime_meta::__NameParams::decode_params(input) {
-            let result = self.name();
-            let value = 0u128;
-            extended_lifetime_meta::__NameParams::with_optimized_encode(
-                &result,
-                self.route().as_ref(),
-                |encoded_result| result_handler(encoded_result, value),
-            );
-            return Some(());
-        }
-        if self.base.0.try_handle(input, result_handler).is_some() {
-            return Some(());
-        }
-        None
-    }
-    pub async fn try_handle_async(
-        &mut self,
-        input: &[u8],
-        result_handler: fn(&[u8], u128),
-    ) -> Option<()> {
-        use sails_rs::gstd::InvocationIo;
-        use sails_rs::gstd::services::Exposure;
-        if self.base.0.try_handle_async(input, result_handler).await.is_some() {
-            return Some(());
-        }
-        None
-    }
-    pub fn check_asyncness(&self, input: &[u8]) -> Option<bool> {
-        use sails_rs::gstd::InvocationIo;
-        if !<ExtendedLifetime<'a> as sails_rs::meta::ServiceMeta>::ASYNC {
+        use sails_rs::gstd::services::{Service, Exposure};
+        if !T::ASYNC {
             return Some(false);
         }
         if let Ok(is_async) = extended_lifetime_meta::__ExtendedNameParams::check_asyncness(
@@ -107,42 +27,113 @@ impl<'a> ExtendedLifetimeExposure<ExtendedLifetime<'a>> {
         ) {
             return Some(is_async);
         }
-        if let Some(is_async) = self.base.0.check_asyncness(input) {
+        if let Some(is_async) = <<base::BaseLifetime as Service>::Exposure as Exposure>::check_asyncness(
+            input,
+        ) {
             return Some(is_async);
+        }
+        None
+    }
+}
+impl<T> core::ops::Deref for ExtendedLifetimeExposure<T> {
+    type Target = T;
+    fn deref(&self) -> &Self::Target {
+        &self.inner
+    }
+}
+impl<T> core::ops::DerefMut for ExtendedLifetimeExposure<T> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
+#[allow(clippy::from_over_into)]
+impl<'a> Into<<base::BaseLifetime<'a> as sails_rs::gstd::services::Service>::Exposure>
+for ExtendedLifetimeExposure<ExtendedLifetime<'a>> {
+    fn into(
+        self,
+    ) -> <base::BaseLifetime<'a> as sails_rs::gstd::services::Service>::Exposure {
+        use sails_rs::gstd::services::Service;
+        let base_service: base::BaseLifetime<'a> = self.inner.into();
+        base_service.expose(self.route)
+    }
+}
+impl<'a> ExtendedLifetimeExposure<ExtendedLifetime<'a>> {
+    #[export]
+    pub fn extended_name(&self) -> String {
+        "extended-name".to_string()
+    }
+    #[export]
+    pub fn name(&self) -> String {
+        "extended".to_string()
+    }
+    pub fn check_asyncness(&self, input: &[u8]) -> Option<bool> {
+        <Self as sails_rs::gstd::services::Exposure>::check_asyncness(input)
+    }
+    pub fn try_handle(
+        mut self,
+        input: &[u8],
+        result_handler: fn(&[u8], u128),
+    ) -> Option<()> {
+        use sails_rs::gstd::InvocationIo;
+        use sails_rs::gstd::services::{Service, Exposure};
+        if let Ok(request) = extended_lifetime_meta::__ExtendedNameParams::decode_params(
+            input,
+        ) {
+            let result = self.extended_name();
+            let value = 0u128;
+            if !extended_lifetime_meta::__ExtendedNameParams::is_empty_tuple::<
+                String,
+            >() {
+                extended_lifetime_meta::__ExtendedNameParams::with_optimized_encode(
+                    &result,
+                    self.route().as_ref(),
+                    |encoded_result| result_handler(encoded_result, value),
+                );
+            }
+            return Some(());
+        }
+        if let Ok(request) = extended_lifetime_meta::__NameParams::decode_params(input) {
+            let result = self.name();
+            let value = 0u128;
+            if !extended_lifetime_meta::__NameParams::is_empty_tuple::<String>() {
+                extended_lifetime_meta::__NameParams::with_optimized_encode(
+                    &result,
+                    self.route().as_ref(),
+                    |encoded_result| result_handler(encoded_result, value),
+                );
+            }
+            return Some(());
+        }
+        let base_services: (base::BaseLifetime<'a>) = self.inner.into();
+        if base_services.expose(self.route).try_handle(input, result_handler).is_some() {
+            return Some(());
+        }
+        None
+    }
+    pub async fn try_handle_async(
+        mut self,
+        input: &[u8],
+        result_handler: fn(&[u8], u128),
+    ) -> Option<()> {
+        use sails_rs::gstd::InvocationIo;
+        use sails_rs::gstd::services::{Service, Exposure};
+        let base_services: (base::BaseLifetime<'a>) = self.inner.into();
+        if base_services
+            .expose(self.route)
+            .try_handle_async(input, result_handler)
+            .await
+            .is_some()
+        {
+            return Some(());
         }
         None
     }
 }
 impl<'a> sails_rs::gstd::services::Service for ExtendedLifetime<'a> {
     type Exposure = ExtendedLifetimeExposure<Self>;
-    type BaseExposures = (
-        <base::BaseLifetime<'a> as sails_rs::gstd::services::Service>::Exposure,
-    );
-    fn expose(
-        self,
-        message_id: sails_rs::MessageId,
-        route: &'static [u8],
-    ) -> Self::Exposure {
-        #[cfg(not(target_arch = "wasm32"))]
-        let inner_box = sails_rs::Box::new(self);
-        #[cfg(not(target_arch = "wasm32"))]
-        let inner = inner_box.as_ref();
-        #[cfg(target_arch = "wasm32")]
-        let inner = &self;
+    fn expose(self, route: &'static [u8]) -> Self::Exposure {
         Self::Exposure {
-            message_id,
             route,
-            base: (
-                <base::BaseLifetime as Clone>::clone(
-                        AsRef::<base::BaseLifetime>::as_ref(inner),
-                    )
-                    .expose(message_id, route),
-            ),
-            #[cfg(not(target_arch = "wasm32"))]
-            inner_ptr: inner_box.as_ref() as *const Self,
-            #[cfg(not(target_arch = "wasm32"))]
-            inner: inner_box,
-            #[cfg(target_arch = "wasm32")]
             inner: self,
         }
     }
