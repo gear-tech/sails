@@ -2844,9 +2844,9 @@ dependencies = [
 
 [[package]]
 name = "gbuiltin-bls381"
-version = "1.8.1"
+version = "1.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "490015fd6c0b7a2cfd96257a3ee71bd636ad1cc89a73c2f6f62e419a3ecad8f3"
+checksum = "da5c0d4fddca6f05362cda44c30e0775f1ee99a040ac7c7df28d699082aae6be"
 dependencies = [
  "ark-bls12-381",
  "ark-ec",
@@ -2854,13 +2854,14 @@ dependencies = [
  "ark-scale",
  "ark-serialize",
  "parity-scale-codec",
+ "scale-info",
 ]
 
 [[package]]
 name = "gbuiltin-eth-bridge"
-version = "1.8.1"
+version = "1.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "370e03a4190a34bbe99ab6736dc162d4c08c6a69cec8deffcd35ac7fc9f8aa82"
+checksum = "bd77189c1c742e301656941c8125169d84b12c1deac1ed11acc516aef00002d8"
 dependencies = [
  "gprimitives",
  "parity-scale-codec",
@@ -2869,22 +2870,24 @@ dependencies = [
 
 [[package]]
 name = "gbuiltin-proxy"
-version = "1.8.1"
+version = "1.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2beac2a698e3438d9bc0acd884ea39ef3cd2ee2ed5e07779c1f69812e52cb4c5"
+checksum = "328a23e9eb5831d49ae122d74ce0a49fb1dfd22d6f7fb8cc513f7dadf21d8780"
 dependencies = [
  "gprimitives",
  "parity-scale-codec",
+ "scale-info",
 ]
 
 [[package]]
 name = "gbuiltin-staking"
-version = "1.8.1"
+version = "1.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fa90eb350f6bbaff596fed23833a892f28871c69de0648e59f93616c473c6e64"
+checksum = "9f38c4cd4469829351cf83b8b89976eb71017f76202e8af2e9ff989e73b5535f"
 dependencies = [
  "gprimitives",
  "parity-scale-codec",
+ "scale-info",
 ]
 
 [[package]]
