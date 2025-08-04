@@ -6,9 +6,9 @@
 //! with file locking to ensure thread-safe concurrent access when running multiple benchmark tests.
 
 #[cfg(all(test, not(debug_assertions)))]
-mod clients;
-#[cfg(all(test, not(debug_assertions)))]
 mod benchmarks;
+#[cfg(all(test, not(debug_assertions)))]
+mod clients;
 
 use anyhow::{Context, Result};
 use fs2::FileExt;

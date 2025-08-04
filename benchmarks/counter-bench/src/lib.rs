@@ -8,6 +8,7 @@ pub struct CounterBenchService;
 
 #[sails_rs::service]
 impl CounterBenchService {
+    #[export]
     pub fn inc(&mut self) -> u64 {
         unsafe {
             let prev = COUNTER;
@@ -17,6 +18,7 @@ impl CounterBenchService {
         }
     }
 
+    #[export]
     pub async fn inc_async(&mut self) -> u64 {
         unsafe {
             let prev = COUNTER;

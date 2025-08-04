@@ -18,8 +18,14 @@
 //! ```
 
 use crate::clients::{
-    alloc_stress_client::{AllocStressProgramFactory, alloc_stress::io::AllocStress, traits::AllocStressProgramFactory as _,},
-    compute_stress_client::{ComputeStressProgramFactory, compute_stress::io::ComputeStress, traits::ComputeStressProgramFactory as _,},
+    alloc_stress_client::{
+        AllocStressProgramFactory, alloc_stress::io::AllocStress,
+        traits::AllocStressProgramFactory as _,
+    },
+    compute_stress_client::{
+        ComputeStressProgramFactory, compute_stress::io::ComputeStress,
+        traits::ComputeStressProgramFactory as _,
+    },
     counter_bench_client::{
         CounterBenchProgramFactory,
         counter_bench::io::{Inc, IncAsync},
@@ -173,7 +179,8 @@ async fn alloc_stress_bench() {
 async fn compute_stress_bench() {
     let wasm_path = "../target/wasm32-gear/release/compute_stress.opt.wasm";
 
-    let (remoting, pid) = create_program_async!((ComputeStressProgramFactory::<GTestRemoting>, wasm_path));
+    let (remoting, pid) =
+        create_program_async!((ComputeStressProgramFactory::<GTestRemoting>, wasm_path));
 
     let input_value = 30;
     let expected_sum = compute_stress::sum_of_fib(input_value);
@@ -197,7 +204,8 @@ async fn compute_stress_bench() {
 async fn counter_bench() {
     let wasm_path = "../target/wasm32-gear/release/counter_bench.opt.wasm";
 
-    let (remoting, pid) = create_program_async!((CounterBenchProgramFactory::<GTestRemoting>, wasm_path));
+    let (remoting, pid) =
+        create_program_async!((CounterBenchProgramFactory::<GTestRemoting>, wasm_path));
 
     let mut expected_value = 0;
     let (mut gas_benches_sync, mut gas_benches_async): (Vec<_>, Vec<_>) = (0..100)
@@ -322,7 +330,8 @@ async fn alloc_stress_test(n: u32) -> (usize, u64) {
     // Path taken from the .binpath file
     let wasm_path = "../target/wasm32-gear/release/alloc_stress.opt.wasm";
 
-    let (remoting, pid) = create_program_async!((AllocStressProgramFactory::<GTestRemoting>, wasm_path));
+    let (remoting, pid) =
+        create_program_async!((AllocStressProgramFactory::<GTestRemoting>, wasm_path));
     let (stress_resp, gas) = call_action!(remoting, pid, AllocStress, n);
 
     let expected_len = alloc_stress::fibonacci_sum(n) as usize;

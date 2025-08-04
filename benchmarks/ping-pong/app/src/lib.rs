@@ -24,6 +24,7 @@ pub struct PingPongService;
 
 #[sails_rs::service]
 impl PingPongService {
+    #[export]
     pub async fn ping(&mut self, payload: PingPongPayload) -> PingPongPayload {
         match payload {
             PingPongPayload::Start(actor_id) => {

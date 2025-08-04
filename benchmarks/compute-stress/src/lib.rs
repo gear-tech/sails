@@ -6,6 +6,7 @@ struct ComputeStressService;
 
 #[sails_rs::service]
 impl ComputeStressService {
+    #[export]
     pub fn compute_stress(&mut self, n: u32) -> ComputeStressResult {
         let res = sum_of_fib(n);
 

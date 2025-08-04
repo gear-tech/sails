@@ -6,6 +6,7 @@ struct AllocStressService;
 
 #[sails_rs::service]
 impl AllocStressService {
+    #[export]
     pub fn alloc_stress(&mut self, n: u32) -> AllocStressResult {
         alloc_stress(n)
     }
