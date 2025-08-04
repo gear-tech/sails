@@ -1,6 +1,6 @@
 {
   "name": "sails-js",
-  "version": "0.4.2",
+  "version": "0.4.3",
   "description": "Typescript library for working with Sails programs",
   "type": "module",
   "license": "GPL-3.0",
@@ -46,10 +46,10 @@
     "sails-js-util": "^0.4.2"
   },
   "devDependencies": {
-    "@gear-js/api": "^0.42.0",
-    "@polkadot/api": "^15.9.1",
-    "@polkadot/types": "^15.9.1",
-    "jest": "^30.0.4",
+    "@gear-js/api": "^0.43.0",
+    "@polkadot/api": "^16.4.3",
+    "@polkadot/types": "^16.4.3",
+    "jest": "^30.0.5",
     "sails-js-types": "*"
   },
   "files": [

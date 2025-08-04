@@ -40,12 +40,11 @@ describe('Ping', () => {
 
   test('create program', async () => {
     program = new SailsProgram(api);
-    const transaction = await program.defaultCtorFromCode(code).withAccount(alice).calculateGas();
+    const transaction = program.defaultCtorFromCode(code).withAccount(alice).withGas('max');
     codeId = generateCodeHash(code);
 
     const { msgId, blockHash, response } = await transaction.signAndSend();
 
-    expect(transaction.gasInfo).toBeDefined();
     expect(msgId).toBeDefined();
     expect(blockHash).toBeDefined();
 
@@ -55,6 +54,21 @@ describe('Ping', () => {
   test('ping', async () => {
     expect(program.programId).toBeDefined();
     const transaction = await program.pingPong.ping('ping').withAccount(alice).calculateGas();
+
+    const { msgId, blockHash, response } = await transaction.signAndSend();
+
+    expect(transaction.gasInfo).toBeDefined();
+    expect(msgId).toBeDefined();
+    expect(blockHash).toBeDefined();
+
+    const result = await response();
+
+    expect(result).toHaveProperty('ok', 'pong');
+  });
+
+  test('ping w/o specific gas', async () => {
+    expect(program.programId).toBeDefined();
+    const transaction = program.pingPong.ping('ping').withAccount(alice);
 
     const { msgId, blockHash, response } = await transaction.signAndSend();
 

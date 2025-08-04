@@ -136,6 +136,7 @@ jobs:
           body: ${{ steps.release_notes.outputs.release_notes }}
           tag_name: "js/v${{ needs.check-release.outputs.version }}"
           name: "Sails-JS v${{ needs.check-release.outputs.version }}"
+          make_latest: false
           files: |
             js/sails-js.tgz
             js/sails-js-cli.tgz
