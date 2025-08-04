@@ -1,10 +1,11 @@
 # CHANGELOG
 
-## master
+## 0.4.3
 ### Changes
-- Skip type file generation if types are not present in the IDL
-- Improve encoding / decoding in the `TransactionBuilder` class
-- Capitalize enum variant names in generated files
+- Skipped type file generation if types are not present in the IDL
+- Improved encoding / decoding in the `TransactionBuilder` class
+- Capitalized enum variant names in generated files
+- From now gas can be calculated automatically when using `TransactionBuilder`'s method `singAndSend`
 
 ## 0.4.2
 ### Compatibility
