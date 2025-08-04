@@ -34,7 +34,7 @@ export class ServiceGenerator extends BaseGenerator {
     const _classNameTitled = className[0].toUpperCase() + className.slice(1);
 
     $.import('@gear-js/api', 'GearApi')
-      .import('@gear-js/api', 'Program')
+      .import('@gear-js/api', 'BaseGearProgram')
       .import(`@polkadot/types`, `TypeRegistry`)
       .import('sails-js', 'TransactionBuilder')
       .block(`export class ${_classNameTitled}`, () => {
@@ -47,7 +47,7 @@ export class ServiceGenerator extends BaseGenerator {
             }`,
           );
         }
-        $.line(`private _program: Program`);
+        $.line(`private _program: BaseGearProgram`);
 
         $.line()
           .block(`constructor(public api: GearApi, programId?: ${HEX_STRING_TYPE})`, () => {
@@ -61,7 +61,7 @@ export class ServiceGenerator extends BaseGenerator {
               .line(`this.registry.setKnownTypes({ types })`)
               .line(`this.registry.register(types)`)
               .block(`if (programId)`, () => {
-                $.line(`this._program = new Program(programId, api)`);
+                $.line(`this._program = new BaseGearProgram(programId, api)`);
               })
               .line();
 
@@ -120,7 +120,7 @@ export class ServiceGenerator extends BaseGenerator {
               .line(`'String',`, false)
               .line(`code,`, false)
               .block(`async (programId) => `, () => {
-                $.line(`this._program = await Program.new(programId, this.api)`);
+                $.line(`this._program = await BaseGearProgram.new(programId, this.api)`);
               })
               .reduceIndent()
               .line(`)`)
@@ -144,7 +144,7 @@ export class ServiceGenerator extends BaseGenerator {
               .line(`'String',`, false)
               .line(`codeId,`, false)
               .block(`async (programId) => `, () => {
-                $.line(`this._program = await Program.new(programId, this.api)`);
+                $.line(`this._program = await BaseGearProgram.new(programId, this.api)`);
               })
               .reduceIndent()
               .line(`)`)
