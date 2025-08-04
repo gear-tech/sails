@@ -743,14 +743,14 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@gear-js/api@npm:^0.42.0":
-  version: 0.42.0
-  resolution: "@gear-js/api@npm:0.42.0"
+"@gear-js/api@npm:^0.43.0":
+  version: 0.43.0
+  resolution: "@gear-js/api@npm:0.43.0"
   peerDependencies:
-    "@polkadot/api": ^15.9.1
+    "@polkadot/api": ^16.4.1
     "@polkadot/wasm-crypto": ^7.4.1
     rxjs: ^7.8.2
-  checksum: 10c0/33288f9db711a5c981fb6e3343039c5e27e2db9f711efcfefdbcf7f044f8a97735cdfc3ecf46dbc701b0abc989665a03e6367466f884de7c04525569d5ed8650
+  checksum: 10c0/be978082a5ccd323a4eae8d437abb08770f3940714250667b52d2c52e81d705e860c069917306b54cf5cf6d23d21654c5b92de246792bc7743cbafef5d123968
   languageName: node
   linkType: hard
 
@@ -8459,7 +8459,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "program@workspace:js/example"
   dependencies:
-    "@gear-js/api": "npm:^0.42.0"
+    "@gear-js/api": "npm:^0.43.0"
     "@polkadot/api": "npm:^16.4.3"
     sails-js: "npm:*"
     sails-js-cli: "npm:*"
@@ -9005,7 +9005,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "sails-js@workspace:js"
   dependencies:
-    "@gear-js/api": "npm:^0.42.0"
+    "@gear-js/api": "npm:^0.43.0"
     "@polkadot/api": "npm:^16.4.3"
     "@polkadot/types": "npm:^16.4.3"
     jest: "npm:^30.0.5"
