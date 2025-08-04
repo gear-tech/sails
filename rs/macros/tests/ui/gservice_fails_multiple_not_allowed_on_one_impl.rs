@@ -5,6 +5,7 @@ struct MyService;
 #[service]
 #[service]
 impl MyService {
+    #[export]
     pub fn this(&self, p1: bool) -> bool {
         !p1
     }

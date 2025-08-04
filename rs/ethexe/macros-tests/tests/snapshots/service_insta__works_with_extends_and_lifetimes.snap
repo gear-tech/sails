@@ -2,67 +2,94 @@
 source: macros-tests/tests/service_insta.rs
 expression: result
 ---
-impl<'a> ExtendedWithLifetime<'a> {
-    pub fn extended_name(&self) -> String {
-        "extended-name".to_string()
-    }
-    pub fn name(&self) -> String {
-        "extended".to_string()
-    }
-}
-pub struct ExtendedWithLifetimeExposure<T: sails_rs::gstd::services::Service> {
-    message_id: sails_rs::MessageId,
+pub struct ExtendedWithLifetimeExposure<T> {
     route: &'static [u8],
-    #[cfg(not(target_arch = "wasm32"))]
-    inner: sails_rs::Box<T>,
-    #[cfg(not(target_arch = "wasm32"))]
-    inner_ptr: *const T,
-    #[cfg(target_arch = "wasm32")]
     inner: T,
-    base: T::BaseExposures,
 }
-impl<T: sails_rs::gstd::services::Service> sails_rs::gstd::services::Exposure
+impl<T: sails_rs::meta::ServiceMeta> sails_rs::gstd::services::Exposure
 for ExtendedWithLifetimeExposure<T> {
-    fn message_id(&self) -> sails_rs::MessageId {
-        self.message_id
-    }
     fn route(&self) -> &'static [u8] {
         self.route
     }
+    fn check_asyncness(input: &[u8]) -> Option<bool> {
+        use sails_rs::gstd::InvocationIo;
+        use sails_rs::gstd::services::{Service, Exposure};
+        if !T::ASYNC {
+            return Some(false);
+        }
+        if let Ok(is_async) = extended_with_lifetime_meta::__ExtendedNameParams::check_asyncness(
+            input,
+        ) {
+            return Some(is_async);
+        }
+        if let Ok(is_async) = extended_with_lifetime_meta::__NameParams::check_asyncness(
+            input,
+        ) {
+            return Some(is_async);
+        }
+        if let Some(is_async) = <<BaseWithLifetime as Service>::Exposure as Exposure>::check_asyncness(
+            input,
+        ) {
+            return Some(is_async);
+        }
+        None
+    }
+}
+impl<T> core::ops::Deref for ExtendedWithLifetimeExposure<T> {
+    type Target = T;
+    fn deref(&self) -> &Self::Target {
+        &self.inner
+    }
+}
+impl<T> core::ops::DerefMut for ExtendedWithLifetimeExposure<T> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
+#[allow(clippy::from_over_into)]
+impl<'a> Into<<BaseWithLifetime<'a> as sails_rs::gstd::services::Service>::Exposure>
+for ExtendedWithLifetimeExposure<ExtendedWithLifetime<'a>> {
+    fn into(
+        self,
+    ) -> <BaseWithLifetime<'a> as sails_rs::gstd::services::Service>::Exposure {
+        use sails_rs::gstd::services::Service;
+        let base_service: BaseWithLifetime<'a> = self.inner.into();
+        base_service.expose(self.route)
+    }
 }
 impl<'a> ExtendedWithLifetimeExposure<ExtendedWithLifetime<'a>> {
+    #[export]
     pub fn extended_name(&self) -> String {
-        use sails_rs::gstd::services::Exposure;
-        let exposure_scope = self.scope();
-        self.inner.extended_name()
+        "extended-name".to_string()
     }
+    #[export]
     pub fn name(&self) -> String {
-        use sails_rs::gstd::services::Exposure;
-        let exposure_scope = self.scope();
-        self.inner.name()
+        "extended".to_string()
     }
-    pub fn as_base_0(
-        &self,
-    ) -> &<BaseWithLifetime<'a> as sails_rs::gstd::services::Service>::Exposure {
-        &self.base.0
+    pub fn check_asyncness(&self, input: &[u8]) -> Option<bool> {
+        <Self as sails_rs::gstd::services::Exposure>::check_asyncness(input)
     }
     pub fn try_handle(
-        &mut self,
+        mut self,
         input: &[u8],
         result_handler: fn(&[u8], u128),
     ) -> Option<()> {
         use sails_rs::gstd::InvocationIo;
-        use sails_rs::gstd::services::Exposure;
+        use sails_rs::gstd::services::{Service, Exposure};
         if let Ok(request) = extended_with_lifetime_meta::__ExtendedNameParams::decode_params(
             input,
         ) {
             let result = self.extended_name();
             let value = 0u128;
-            extended_with_lifetime_meta::__ExtendedNameParams::with_optimized_encode(
-                &result,
-                self.route().as_ref(),
-                |encoded_result| result_handler(encoded_result, value),
-            );
+            if !extended_with_lifetime_meta::__ExtendedNameParams::is_empty_tuple::<
+                String,
+            >() {
+                extended_with_lifetime_meta::__ExtendedNameParams::with_optimized_encode(
+                    &result,
+                    self.route().as_ref(),
+                    |encoded_result| result_handler(encoded_result, value),
+                );
+            }
             return Some(());
         }
         if let Ok(request) = extended_with_lifetime_meta::__NameParams::decode_params(
@@ -70,35 +97,45 @@ impl<'a> ExtendedWithLifetimeExposure<ExtendedWithLifetime<'a>> {
         ) {
             let result = self.name();
             let value = 0u128;
-            extended_with_lifetime_meta::__NameParams::with_optimized_encode(
-                &result,
-                self.route().as_ref(),
-                |encoded_result| result_handler(encoded_result, value),
-            );
+            if !extended_with_lifetime_meta::__NameParams::is_empty_tuple::<String>() {
+                extended_with_lifetime_meta::__NameParams::with_optimized_encode(
+                    &result,
+                    self.route().as_ref(),
+                    |encoded_result| result_handler(encoded_result, value),
+                );
+            }
             return Some(());
         }
-        if self.base.0.try_handle(input, result_handler).is_some() {
+        let base_services: (BaseWithLifetime<'a>) = self.inner.into();
+        if base_services.expose(self.route).try_handle(input, result_handler).is_some() {
             return Some(());
         }
         None
     }
     pub async fn try_handle_async(
-        &mut self,
+        mut self,
         input: &[u8],
         result_handler: fn(&[u8], u128),
     ) -> Option<()> {
         use sails_rs::gstd::InvocationIo;
-        use sails_rs::gstd::services::Exposure;
-        if self.base.0.try_handle_async(input, result_handler).await.is_some() {
+        use sails_rs::gstd::services::{Service, Exposure};
+        let base_services: (BaseWithLifetime<'a>) = self.inner.into();
+        if base_services
+            .expose(self.route)
+            .try_handle_async(input, result_handler)
+            .await
+            .is_some()
+        {
             return Some(());
         }
         None
     }
     pub fn try_handle_solidity(
-        &mut self,
+        mut self,
         method: &[u8],
         input: &[u8],
     ) -> Option<(sails_rs::Vec<u8>, u128, bool)> {
+        use sails_rs::gstd::services::{Service, Exposure};
         if method
             == &[
                 48u8, 69u8, 120u8, 116u8, 101u8, 110u8, 100u8, 101u8, 100u8, 78u8, 97u8,
@@ -114,7 +151,7 @@ impl<'a> ExtendedWithLifetimeExposure<ExtendedWithLifetime<'a>> {
             let value = 0u128;
             let output = if _encode_reply {
                 let message_id = sails_rs::alloy_primitives::B256::new(
-                    self.message_id.into_bytes(),
+                    sails_rs::gstd::Syscall::message_id().into_bytes(),
                 );
                 sails_rs::alloy_sol_types::SolValue::abi_encode_sequence(
                     &(message_id, result),
@@ -134,7 +171,7 @@ impl<'a> ExtendedWithLifetimeExposure<ExtendedWithLifetime<'a>> {
             let value = 0u128;
             let output = if _encode_reply {
                 let message_id = sails_rs::alloy_primitives::B256::new(
-                    self.message_id.into_bytes(),
+                    sails_rs::gstd::Syscall::message_id().into_bytes(),
                 );
                 sails_rs::alloy_sol_types::SolValue::abi_encode_sequence(
                     &(message_id, result),
@@ -144,73 +181,37 @@ impl<'a> ExtendedWithLifetimeExposure<ExtendedWithLifetime<'a>> {
             };
             return Some((output, value, _encode_reply));
         }
-        if let Some(result) = self.base.0.try_handle_solidity(method, input) {
-            return Some(result);
-        }
-        None
-    }
-    pub async fn try_handle_solidity_async(
-        &mut self,
-        method: &[u8],
-        input: &[u8],
-    ) -> Option<(sails_rs::Vec<u8>, u128, bool)> {
-        if let Some(result) = self.base.0.try_handle_solidity_async(method, input).await
+        let base_services: (BaseWithLifetime<'a>) = self.inner.into();
+        if let Some(result) = base_services
+            .expose(self.route)
+            .try_handle_solidity(method, input)
         {
             return Some(result);
         }
         None
     }
-    pub fn check_asyncness(&self, input: &[u8]) -> Option<bool> {
-        use sails_rs::gstd::InvocationIo;
-        if !<ExtendedWithLifetime<'a> as sails_rs::meta::ServiceMeta>::ASYNC {
-            return Some(false);
-        }
-        if let Ok(is_async) = extended_with_lifetime_meta::__ExtendedNameParams::check_asyncness(
-            input,
-        ) {
-            return Some(is_async);
-        }
-        if let Ok(is_async) = extended_with_lifetime_meta::__NameParams::check_asyncness(
-            input,
-        ) {
-            return Some(is_async);
-        }
-        if let Some(is_async) = self.base.0.check_asyncness(input) {
-            return Some(is_async);
+    pub async fn try_handle_solidity_async(
+        mut self,
+        method: &[u8],
+        input: &[u8],
+    ) -> Option<(sails_rs::Vec<u8>, u128, bool)> {
+        use sails_rs::gstd::services::{Service, Exposure};
+        let base_services: (BaseWithLifetime<'a>) = self.inner.into();
+        if let Some(result) = base_services
+            .expose(self.route)
+            .try_handle_solidity_async(method, input)
+            .await
+        {
+            return Some(result);
         }
         None
     }
 }
 impl<'a> sails_rs::gstd::services::Service for ExtendedWithLifetime<'a> {
     type Exposure = ExtendedWithLifetimeExposure<Self>;
-    type BaseExposures = (
-        <BaseWithLifetime<'a> as sails_rs::gstd::services::Service>::Exposure,
-    );
-    fn expose(
-        self,
-        message_id: sails_rs::MessageId,
-        route: &'static [u8],
-    ) -> Self::Exposure {
-        #[cfg(not(target_arch = "wasm32"))]
-        let inner_box = sails_rs::Box::new(self);
-        #[cfg(not(target_arch = "wasm32"))]
-        let inner = inner_box.as_ref();
-        #[cfg(target_arch = "wasm32")]
-        let inner = &self;
+    fn expose(self, route: &'static [u8]) -> Self::Exposure {
         Self::Exposure {
-            message_id,
             route,
-            base: (
-                <BaseWithLifetime as Clone>::clone(
-                        AsRef::<BaseWithLifetime>::as_ref(inner),
-                    )
-                    .expose(message_id, route),
-            ),
-            #[cfg(not(target_arch = "wasm32"))]
-            inner_ptr: inner_box.as_ref() as *const Self,
-            #[cfg(not(target_arch = "wasm32"))]
-            inner: inner_box,
-            #[cfg(target_arch = "wasm32")]
             inner: self,
         }
     }

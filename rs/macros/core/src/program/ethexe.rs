@@ -104,12 +104,10 @@ impl ProgramBuilder {
                     let (ctor_route, ..) = <#program_type_path as #sails_path::solidity::ProgramSignature>::CTORS[idx];
                     if let Some(encode_reply) = match_ctor_solidity(ctor_route, &#input_ident[4..]) {
                         // add callbak selector if `encode_reply` is set
-                        let output = if encode_reply {
-                            [__CTOR_CALLBACK_SIGS[idx].as_slice(), gstd::msg::id().into_bytes().as_slice()].concat()
-                        } else {
-                            Vec::with_capacity(0)
-                        };
-                        gstd::msg::reply_bytes(output, 0).expect("Failed to send output");
+                        if encode_reply {
+                            let output = [__CTOR_CALLBACK_SIGS[idx].as_slice(), gstd::msg::id().into_bytes().as_slice()].concat();
+                            gstd::msg::reply_bytes(output, 0).expect("Failed to send output");
+                        }
                         return;
                     }
                 }

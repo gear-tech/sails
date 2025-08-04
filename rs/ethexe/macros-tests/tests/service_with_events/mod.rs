@@ -1,8 +1,9 @@
-use sails_rs::{Encode, TypeInfo, service};
+use sails_rs::prelude::*;
 
 #[allow(dead_code)]
 pub struct MyServiceWithEvents(pub u8);
 
+#[event]
 #[derive(TypeInfo, Encode, Clone, Debug, PartialEq)]
 #[codec(crate = sails_rs::scale_codec)]
 #[scale_info(crate = sails_rs::scale_info)]
@@ -12,6 +13,7 @@ pub enum MyEvents {
 
 #[service(events = MyEvents)]
 impl MyServiceWithEvents {
+    #[export]
     pub fn my_method(&mut self) {
         self.emit_eth_event(MyEvents::Event1).unwrap();
     }

@@ -1,6 +1,6 @@
 use sails_rs::{
-    gstd::{service, services::Service},
     Decode, Encode,
+    gstd::{service, services::Service},
 };
 
 mod base {
@@ -14,10 +14,12 @@ mod base {
 
     #[service]
     impl Base {
+        #[export]
         pub fn base_name(&self) -> String {
             "base-name".to_string()
         }
 
+        #[export]
         pub fn name(&self) -> String {
             "base".to_string()
         }
@@ -42,10 +44,12 @@ mod extended {
 
     #[service(extends = base::Base)]
     impl Extended {
+        #[export]
         pub fn extended_name(&self) -> String {
             "extended-name".to_string()
         }
 
+        #[export]
         pub fn name(&self) -> String {
             "extended".to_string()
         }

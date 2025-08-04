@@ -14,10 +14,12 @@ impl MammalService {
 
 #[service]
 impl MammalService {
+    #[export]
     pub fn make_sound(&mut self) -> &'static str {
         panic!("Not implemented")
     }
 
+    #[export]
     pub fn avg_weight(&self) -> u32 {
         self.avg_weight
     }

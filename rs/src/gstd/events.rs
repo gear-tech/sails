@@ -2,6 +2,7 @@
 
 use super::utils::MaybeUninitBufferWriter;
 use crate::{Encode, Output};
+use core::marker::PhantomData;
 use gcore::stack_buffer;
 
 /// Trait for encoding events that can be emitted by Sails programs.
@@ -64,26 +65,140 @@ fn with_optimized_event_encode<T, E: SailsEvent, F: FnOnce(&[u8]) -> T>(
     })
 }
 
-#[doc(hidden)]
-#[cfg(target_arch = "wasm32")]
-pub fn __emit_event<TEvents>(event: TEvents) -> crate::errors::Result<()>
-where
-    TEvents: SailsEvent,
-{
-    let route = crate::gstd::services::route(crate::gstd::syscalls::Syscall::message_id());
-    __emit_event_with_route(route, event)
+/// An event emitter that allows emitting events of type `T` for a specific route.
+///
+/// This is lightweight and can be cloned.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct EventEmitter<T> {
+    route: &'static [u8],
+    _marker: PhantomData<T>,
 }
 
-#[doc(hidden)]
-#[cfg(target_arch = "wasm32")]
-pub fn __emit_event_with_route<TEvents>(route: &[u8], event: TEvents) -> crate::errors::Result<()>
-where
-    TEvents: SailsEvent,
-{
-    with_optimized_event_encode(route, event, |payload| {
-        gstd::msg::send_bytes(gstd::ActorId::zero(), payload, 0)?;
+impl<T> EventEmitter<T> {
+    pub fn new(route: &'static [u8]) -> Self {
+        Self {
+            route,
+            _marker: PhantomData,
+        }
+    }
+}
+
+impl<T: SailsEvent> EventEmitter<T> {
+    /// Emits an event.
+    #[cfg(target_arch = "wasm32")]
+    pub fn emit_event(&mut self, event: T) -> crate::errors::Result<()> {
+        with_optimized_event_encode(self.route, event, |payload| {
+            gstd::msg::send_bytes(gstd::ActorId::zero(), payload, 0)?;
+            Ok(())
+        })
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
+    #[cfg(not(feature = "std"))]
+    pub fn emit_event(&mut self, _event: T) -> crate::errors::Result<()> {
+        unimplemented!(
+            "`emit_event` is implemented only for the wasm32 architecture and the std future"
+        )
+    }
+}
+
+#[cfg(feature = "ethexe")]
+impl<T: super::EthEvent> EventEmitter<T> {
+    /// Emits an event for the Ethexe program.
+    #[cfg(target_arch = "wasm32")]
+    pub fn emit_eth_event(&mut self, event: T) -> crate::errors::Result<()> {
+        super::ethexe::__emit_eth_event(event)
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
+    #[cfg(not(feature = "std"))]
+    pub fn emit_eth_event(&mut self, _event: T) -> crate::errors::Result<()> {
+        unimplemented!(
+            "`emit_eth_event` is implemented only for the wasm32 architecture and the std future"
+        )
+    }
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+#[cfg(feature = "std")]
+impl<T: 'static> EventEmitter<T> {
+    /// Emits an event.
+    pub fn emit_event(&mut self, event: T) -> crate::errors::Result<()> {
+        event_registry::push_event(self.route, event);
         Ok(())
-    })
+    }
+
+    #[cfg(feature = "ethexe")]
+    pub fn emit_eth_event(&mut self, event: T) -> crate::errors::Result<()> {
+        event_registry::push_event(self.route, event);
+        Ok(())
+    }
+
+    /// Takes the events emitted for this route and returns them as a `Vec<T>`.
+    pub fn take_events(&mut self) -> crate::Vec<T> {
+        event_registry::take_events(self.route).unwrap_or_else(|| crate::Vec::new())
+    }
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+#[cfg(feature = "std")]
+mod event_registry {
+    use core::any::{Any, TypeId};
+    use std::{boxed::Box, collections::BTreeMap, sync::Mutex, vec::Vec};
+
+    type Key = (&'static [u8], TypeId);
+
+    std::thread_local! {
+        /// thread-local registry mapping `(key, TypeId)` -> boxed `Vec<T>`
+        static ROUTE_EVENTS: Mutex<BTreeMap<Key, Box<dyn Any>>> = Mutex::new(BTreeMap::new());
+    }
+
+    /// Push a `value: T` onto the `Vec<T>` stored under `key`.
+    /// If none exists yet, we create a `Vec<T>` for that `(key,TypeId::of::<T>())`.
+    pub(super) fn push_event<T: 'static>(key: &'static [u8], value: T) {
+        ROUTE_EVENTS.with(|mtx| {
+            let mut map = mtx.lock().expect("failed to lock ROUTE_EVENTS mutex");
+            let slot = map
+                .entry((key, TypeId::of::<T>()))
+                .or_insert_with(|| Box::new(Vec::<T>::new()));
+            // SAFETY: we just inserted a Box<Vec<T>> for exactly this TypeId,
+            // so downcast_mut must succeed.
+            let vec: &mut Vec<T> = slot
+                .downcast_mut::<Vec<T>>()
+                .expect("type mismatch in route-events registry");
+            vec.push(value);
+        });
+    }
+
+    /// Take `Vec<T>` for the given `key`, or `None` if nothing was ever pushed.
+    pub(super) fn take_events<T: 'static>(key: &'static [u8]) -> Option<Vec<T>> {
+        ROUTE_EVENTS.with(|mtx| {
+            let mut map = mtx.lock().expect("failed to lock ROUTE_EVENTS mutex");
+            map.remove(&(key, TypeId::of::<T>())).map(|boxed| {
+                // SAFETY: we just inserted a Box<Vec<T>> for exactly this TypeId,
+                // so downcast must succeed.
+                *boxed
+                    .downcast::<Vec<T>>()
+                    .expect("type mismatch in route-events registry")
+            })
+        })
+    }
+
+    #[cfg(test)]
+    mod tests {
+        use super::*;
+        use std::vec;
+
+        #[test]
+        fn event_registry() {
+            push_event(b"/foo", 42_u32);
+            push_event(b"/foo", 7_u32);
+
+            assert_eq!(take_events::<u32>(b"/foo"), Some(vec![42, 7]));
+            assert!(take_events::<u32>(b"/foo").is_none()); // removed
+            assert!(take_events::<i32>(b"/foo").is_none()); // wrong type
+        }
+    }
 }
 
 #[cfg(test)]

@@ -1,9 +1,10 @@
 [workspace.package]
-version = "0.8.1"
+version = "0.9.0"
 authors = ["Gear Technologies"]
 edition = "2024"
 license = "GPL-3.0"
 repository = "https://github.com/gear-tech/sails"
+rust-version = "1.88"
 
 [workspace]
 resolver = "3"
@@ -50,19 +51,20 @@ sails-sol-gen = { path = "rs/sol-gen" }
 sails-rename = { package = "sails-rs", path = "rs" }
 
 # Gear deps
-gclient = { path = "../gear/gclient" }
-gcore = { path = "../gear/gcore" }
-gear-core = { path = "../gear/core", default-features = false }
-gear-core-errors = { path = "../gear/core-errors" }
-gprimitives = { path = "../gear/gprimitives", features = ["codec"] }
-gstd = { path = "../gear/gstd" }
-gtest = { path = "../gear/gtest" }
-gwasm-builder = { path = "../gear/utils/wasm-builder", package = "gear-wasm-builder" }
+gclient = "=1.9.0"
+gcore = "=1.9.0"
+gear-core = { version = "=1.9.0", default-features = false }
+gear-core-errors = "=1.9.0"
+gprimitives = { version = "=1.9.0", default-features = false, features = ["codec"] }
+gstd = "=1.9.0"
+gtest = "=1.9.0"
+gwasm-builder = { version = "=1.9.0", package = "gear-wasm-builder" }
 
 # Other deps in alphabetical order
 alloy-primitives = { version = "0.8.19", default-features = false }
 alloy-sol-types = { version = "0.8.19", default-features = false }
 anyhow = "1"
+askama = "0.14"
 cargo-generate = "0.23"
 cargo_metadata = "0.19"
 clap = "4.5"
@@ -82,7 +84,7 @@ log = { version = "0.4", default-features = false }
 logos = "0.13"
 mockall = "0.12"
 pin-project-lite = "0.2"
-parity-scale-codec = { version = "=3.7.4", default-features = false }
+parity-scale-codec = { version = "=3.7.5", default-features = false }
 paste = "1.0"
 prettyplease = "0.2"
 proc-macro-error = "1.0"

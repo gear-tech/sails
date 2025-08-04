@@ -119,40 +119,34 @@ pub mod wasm {
                     ctor_route,
                     &input[4..],
                 ) {
-                    let output = if encode_reply {
-                        [
+                    if encode_reply {
+                        let output = [
                             __CTOR_CALLBACK_SIGS[idx].as_slice(),
                             gstd::msg::id().into_bytes().as_slice(),
                         ]
-                            .concat()
-                    } else {
-                        Vec::with_capacity(0)
-                    };
-                    gstd::msg::reply_bytes(output, 0).expect("Failed to send output");
+                            .concat();
+                        gstd::msg::reply_bytes(output, 0)
+                            .expect("Failed to send output");
+                    }
                     return;
                 }
             }
         }
-        let invocation_route = if let Ok(request) = meta_in_program::__NewParams::decode_params(
-            input,
-        ) {
+        if let Ok(request) = meta_in_program::__NewParams::decode_params(input) {
             gstd::message_loop(async move {
                 let program = MyProgram::new(request.p1, request.p2).await;
                 unsafe {
                     PROGRAM = Some(program);
                 }
             });
-            meta_in_program::__NewParams::ROUTE
         } else if let Ok(request) = meta_in_program::__New2Params::decode_params(input) {
             let program = MyProgram::new2(request.p2, request.p1);
             unsafe {
                 PROGRAM = Some(program);
             }
-            meta_in_program::__New2Params::ROUTE
         } else {
             gstd::unknown_input_panic("Unexpected ctor", input)
         };
-        gstd::msg::reply_bytes(invocation_route, 0).expect("Failed to send output");
     }
     fn match_ctor_solidity(ctor: &[u8], input: &[u8]) -> Option<bool> {
         if ctor == &[12u8, 78u8, 101u8, 119u8] {

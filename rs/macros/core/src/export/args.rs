@@ -1,6 +1,6 @@
 use proc_macro_error::abort;
 use syn::{
-    LitBool, LitStr, Path, Token,
+    Ident, LitBool, LitStr, Path, Token,
     parse::{Parse, ParseStream},
     punctuated::Punctuated,
 };
@@ -55,8 +55,16 @@ impl Parse for ImportArg {
         match ident.to_string().as_str() {
             "route" => {
                 input.parse::<Token![=]>()?;
-                if let Ok(route) = input.parse::<LitStr>() {
-                    return Ok(Self::Route(route.value()));
+                if let Ok(lit) = input.parse::<LitStr>() {
+                    let route = lit.value();
+                    _ = syn::parse_str::<Ident>(&route).map_err(|err| {
+                        abort!(
+                            lit.span(),
+                            "`route` argument requires a literal with a valid Rust identifier: {}",
+                            err
+                        )
+                    });
+                    return Ok(Self::Route(route));
                 }
                 abort!(ident, "unexpected value for `route` argument: {}", input)
             }

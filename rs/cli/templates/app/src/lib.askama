@@ -1,0 +1,44 @@
+#![no_std]
+
+use sails_rs::prelude::*;
+
+struct {{ service_name }}(());
+
+impl {{ service_name }} {
+    pub fn new() -> Self {
+        Self(())
+    }
+}
+
+#[sails_rs::service]
+impl {{ service_name }} { 
+    // Service's method (command)
+    #[export]
+    pub fn do_something(&mut self) -> String {
+        "Hello from {{ service_name }}!".to_string()
+    }
+}
+
+#[derive(Default)]
+pub struct {{ program_struct_name }}(());
+
+#[sails_rs::program]
+impl {{ program_struct_name }} {
+    // Program's constructor
+    pub fn new() -> Self {
+        Self(())
+    }
+
+    // Exposed service
+    pub fn {{ service_name_snake}}(&self) -> {{ service_name }} {
+        {{ service_name }}::new()
+    }
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+pub use code::WASM_BINARY_OPT as WASM_BINARY;
+
+#[cfg(not(target_arch = "wasm32"))]
+mod code {
+    include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
+}

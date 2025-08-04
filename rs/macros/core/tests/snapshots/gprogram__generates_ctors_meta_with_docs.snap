@@ -64,26 +64,21 @@ pub mod wasm {
     extern "C" fn init() {
         use gstd::InvocationIo;
         let mut input: &[u8] = &gstd::msg::load_bytes().expect("Failed to read input");
-        let invocation_route = if let Ok(request) = meta_in_program::__NewParams::decode_params(
-            input,
-        ) {
+        if let Ok(request) = meta_in_program::__NewParams::decode_params(input) {
             gstd::message_loop(async move {
                 let program = MyProgram::new(request.p1, request.p2).await;
                 unsafe {
                     PROGRAM = Some(program);
                 }
             });
-            meta_in_program::__NewParams::ROUTE
         } else if let Ok(request) = meta_in_program::__New2Params::decode_params(input) {
             let program = MyProgram::new2(request.p2, request.p1);
             unsafe {
                 PROGRAM = Some(program);
             }
-            meta_in_program::__New2Params::ROUTE
         } else {
             gstd::unknown_input_panic("Unexpected ctor", input)
         };
-        gstd::msg::reply_bytes(invocation_route, 0).expect("Failed to send output");
     }
     #[unsafe(no_mangle)]
     extern "C" fn handle() {

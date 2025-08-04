@@ -10,16 +10,14 @@ impl MyProgram {
         MyService
     }
     pub fn create() -> Self {
-        Self
+        Default::default()
     }
-    #[route("svc1")]
     pub fn service1(
         &self,
     ) -> <MyService as sails_rs::gstd::services::Service>::Exposure {
         let service = self.__service1();
         let exposure = <MyService as sails_rs::gstd::services::Service>::expose(
             service,
-            sails_rs::gstd::Syscall::message_id(),
             __ROUTE_SVC1.as_ref(),
         );
         exposure
@@ -30,7 +28,6 @@ impl MyProgram {
         let service = self.__service2();
         let exposure = <MyService as sails_rs::gstd::services::Service>::expose(
             service,
-            sails_rs::gstd::Syscall::message_id(),
             __ROUTE_SERVICE2.as_ref(),
         );
         exposure
@@ -76,18 +73,14 @@ pub mod wasm {
     extern "C" fn init() {
         use gstd::InvocationIo;
         let mut input: &[u8] = &gstd::msg::load_bytes().expect("Failed to read input");
-        let invocation_route = if let Ok(request) = meta_in_program::__CreateParams::decode_params(
-            input,
-        ) {
+        if let Ok(request) = meta_in_program::__CreateParams::decode_params(input) {
             let program = MyProgram::create();
             unsafe {
                 PROGRAM = Some(program);
             }
-            meta_in_program::__CreateParams::ROUTE
         } else {
             gstd::unknown_input_panic("Unexpected ctor", input)
         };
-        gstd::msg::reply_bytes(invocation_route, 0).expect("Failed to send output");
     }
     #[unsafe(no_mangle)]
     extern "C" fn handle() {
