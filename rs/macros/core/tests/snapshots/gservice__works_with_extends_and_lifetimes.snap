@@ -81,21 +81,27 @@ impl<'a> ExtendedLifetimeExposure<ExtendedLifetime<'a>> {
         ) {
             let result = self.extended_name();
             let value = 0u128;
-            extended_lifetime_meta::__ExtendedNameParams::with_optimized_encode(
-                &result,
-                self.route().as_ref(),
-                |encoded_result| result_handler(encoded_result, value),
-            );
+            if !extended_lifetime_meta::__ExtendedNameParams::is_empty_tuple::<
+                String,
+            >() {
+                extended_lifetime_meta::__ExtendedNameParams::with_optimized_encode(
+                    &result,
+                    self.route().as_ref(),
+                    |encoded_result| result_handler(encoded_result, value),
+                );
+            }
             return Some(());
         }
         if let Ok(request) = extended_lifetime_meta::__NameParams::decode_params(input) {
             let result = self.name();
             let value = 0u128;
-            extended_lifetime_meta::__NameParams::with_optimized_encode(
-                &result,
-                self.route().as_ref(),
-                |encoded_result| result_handler(encoded_result, value),
-            );
+            if !extended_lifetime_meta::__NameParams::is_empty_tuple::<String>() {
+                extended_lifetime_meta::__NameParams::with_optimized_encode(
+                    &result,
+                    self.route().as_ref(),
+                    |encoded_result| result_handler(encoded_result, value),
+                );
+            }
             return Some(());
         }
         let base_services: (base::BaseLifetime<'a>) = self.inner.into();

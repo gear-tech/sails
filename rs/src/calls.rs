@@ -1,6 +1,6 @@
 use crate::{
     errors::{Error, Result, RtlError},
-    prelude::*,
+    prelude::{any::TypeId, *},
 };
 use core::{future::Future, marker::PhantomData};
 
@@ -285,7 +285,7 @@ where
 pub trait ActionIo {
     const ROUTE: &'static [u8];
     type Params: Encode;
-    type Reply: Decode;
+    type Reply: Decode + 'static;
 
     fn encode_call(value: &Self::Params) -> Vec<u8> {
         let mut result = Vec::with_capacity(Self::ROUTE.len() + Encode::size_hint(value));
@@ -296,10 +296,20 @@ pub trait ActionIo {
 
     fn decode_reply(payload: impl AsRef<[u8]>) -> Result<Self::Reply> {
         let mut value = payload.as_ref();
-        if !value.starts_with(Self::ROUTE) {
+        let zero_size_reply = Self::is_empty_tuple::<Self::Reply>();
+        if !zero_size_reply && !value.starts_with(Self::ROUTE) {
             return Err(Error::Rtl(RtlError::ReplyPrefixMismatches));
         }
-        value = &value[Self::ROUTE.len()..];
+        let start_idx = if zero_size_reply {
+            0
+        } else {
+            Self::ROUTE.len()
+        };
+        value = &value[start_idx..];
         Decode::decode(&mut value).map_err(Error::Codec)
+    }
+
+    fn is_empty_tuple<T: 'static>() -> bool {
+        TypeId::of::<T>() == TypeId::of::<()>()
     }
 }

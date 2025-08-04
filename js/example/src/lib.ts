@@ -1,4 +1,4 @@
-import { GearApi, Program, HexString, decodeAddress } from '@gear-js/api';
+import { GearApi, BaseGearProgram, HexString, decodeAddress } from '@gear-js/api';
 import { TypeRegistry } from '@polkadot/types';
 import { TransactionBuilder, throwOnErrorReply, getServiceNamePrefix, getFnNamePrefix, ZERO_ADDRESS, ActorId, NonZeroU32, H160, NonZeroU8 } from 'sails-js';
 
@@ -10,7 +10,7 @@ export class SailsProgram {
   public readonly references: References;
   public readonly thisThat: ThisThat;
   public readonly valueFee: ValueFee;
-  private _program: Program;
+  private _program: BaseGearProgram;
 
   constructor(public api: GearApi, programId?: `0x${string}`) {
     const types: Record<string, any> = {
@@ -25,7 +25,7 @@ export class SailsProgram {
     this.registry.setKnownTypes({ types });
     this.registry.register(types);
     if (programId) {
-      this._program = new Program(programId, api);
+      this._program = new BaseGearProgram(programId, api);
     }
 
     this.pingPong = new PingPong(this);
@@ -56,7 +56,7 @@ export class SailsProgram {
       'String',
       code,
       async (programId) =>  {
-        this._program = await Program.new(programId, this.api);
+        this._program = await BaseGearProgram.new(programId, this.api);
       }
     );
     return builder;
@@ -77,7 +77,7 @@ export class SailsProgram {
       'String',
       codeId,
       async (programId) =>  {
-        this._program = await Program.new(programId, this.api);
+        this._program = await BaseGearProgram.new(programId, this.api);
       }
     );
     return builder;
@@ -97,7 +97,7 @@ export class SailsProgram {
       'String',
       code,
       async (programId) =>  {
-        this._program = await Program.new(programId, this.api);
+        this._program = await BaseGearProgram.new(programId, this.api);
       }
     );
     return builder;
@@ -118,7 +118,7 @@ export class SailsProgram {
       'String',
       codeId,
       async (programId) =>  {
-        this._program = await Program.new(programId, this.api);
+        this._program = await BaseGearProgram.new(programId, this.api);
       }
     );
     return builder;

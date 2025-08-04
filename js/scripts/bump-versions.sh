@@ -7,3 +7,5 @@ pkgs=("package.json" "./js/package.json" "./js/cli/package.json" "./js/parser/pa
 for pkg in ${pkgs[@]}; do
   jq ".version = \"$version\"" $pkg > tmp.$$.json && mv tmp.$$.json $pkg
 done
+
+yarn install
