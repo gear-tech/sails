@@ -1,84 +1,83 @@
-# name: '[rs] Benchmarks'
+name: '[rs] Benchmarks'
 
-# on:
-#   pull_request:
-#     types: [labeled]
-#     paths:
-#       - 'rs/**'
-#       - 'Cargo.lock'
-#       - 'Cargo.toml'
-#   push:
-#     branches: [master]
-#     paths:
-#       - 'rs/**'
-#       - 'Cargo.lock'
-#       - 'Cargo.toml'
+on:
+  pull_request:
+    types: [labeled]
+    paths:
+      - 'rs/**'
+      - 'Cargo.lock'
+      - 'Cargo.toml'
+  push:
+    branches: [master]
+    paths:
+      - 'rs/**'
+      - 'Cargo.lock'
+      - 'Cargo.toml'
 
-# env:
-#   CARGO_TERM_COLOR: always
-#   RUST_BACKTRACE: 1
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
 
-# jobs:
-#   benchmark:
-#     # if: contains(github.event.label.name, 'run-benchmarks')
-#     runs-on: ubuntu-latest
-#     permissions:
-#       contents: write
-#       pull-requests: write
-#     steps:
-#       # Checkout the current branch (PR branch)
-#       - name: Checkout PR branch
-#         uses: actions/checkout@v4
-#         with:
-#           ref: ${{ github.event.pull_request.head.sha }}
+jobs:
+  benchmark:
+    # if: contains(github.event.label.name, 'run-benchmarks')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      # Checkout the current branch (PR branch)
+      - name: Checkout PR branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
       
-#       - name: Setup Rust
-#         uses: actions-rust-lang/setup-rust-toolchain@v1
-#         with:
-#           toolchain-file: rust-toolchain.toml
-#           cache: false
+      # - name: Setup Rust
+      #   uses: actions-rust-lang/setup-rust-toolchain@v1
+      #   with:
+      #     toolchain-file: rust-toolchain.toml
+      #     cache: false
 
-#       # Run benchmarks on PR branch
-#       - name: Run Benchmarks
-#         run: |
-#           make bench
+      # Run benchmarks on PR branch
+      - name: Run Benchmarks
+        run: |
+          make bench
 
-#       # Checkout master branch to get baseline JSON
-#       - name: Checkout master branch
-#         uses: actions/checkout@v4
-#         with:
-#           ref: master
-#           path: master-branch
+      # Checkout master branch to get baseline JSON
+      - name: Checkout master branch
+        uses: actions/checkout@v4
+        with:
+          ref: master
+          path: master-branch
 
-#       # Copy baseline JSON from master
-#       - name: Copy Baseline JSON
-#         run: |
-#           cp master-branch/benchmarks/bench_data.json baseline.json
+      # Copy baseline JSON from master
+      - name: Copy Baseline JSON
+        run: |
+          cp master-branch/benchmarks/bench_data.json baseline.json
 
-#       - name: Pwd
-#         run: ls benchmarks/src/bin
+      # Update the bench files formats
+      - name: Convert PR Bench Data
+        run: |
+          cargo run --bin convert-bench-data --manifest-path=benchmarks/Cargo.toml -- benchmarks/bench_data.json bench_data_pr_converted.json
 
-#       # Update the bench files formats
-#       - name: Convert PR Bench Data
-#         run: |
-#           cargo run --bin convert-bench-data --manifest-path=benchmarks/Cargo.toml -- benchmarks/bench_data.json bench_data_pr_converted.json
+      - name: Convert Baseline Bench Data
+        run: |
+          cargo run --bin convert-bench-data --manifest-path=benchmarks/Cargo.toml -- baseline.json bench_data_baseline_converted.json
 
-#       - name: Convert Baseline Bench Data
-#         run: |
-#           cargo run --bin convert-bench-data --manifest-path=benchmarks/Cargo.toml -- benchmarks/bench_data.json bench_data_baseline_converted.json
-
-#       # Compare benchmarks using github-action-benchmark
-#       - name: Compare Benchmarks
-#         uses: benchmark-action/github-action-benchmark@v1
-#         with:
-#           tool: 'customSmallerIsBetter'
-#           # Path to the benchmark JSON from the PR branch
-#           benchmark-data-dir-path: .
-#           # Name of the benchmark JSON file
-#           output-file-path: bench_data_pr_converted.json
-#           # Path to the baseline JSON (from master)
-#           external-data-json-path: bench_data_baseline_converted.json
-#           # Comment on PR with results
-#           # comment-always: true
-#           # Threshold for alerting on regression (e.g., 10% worse)
-#           alert-threshold: '1%'
+      # Compare benchmarks using github-action-benchmark
+      - name: Compare Benchmarks
+        uses: benchmark-action/github-action-benchmark@v1
+        with:
+          tool: 'customSmallerIsBetter'
+          # Path to the benchmark JSON from the PR branch
+          benchmark-data-dir-path: .
+          # Name of the benchmark JSON file
+          output-file-path: bench_data_pr_converted.json
+          # Path to the baseline JSON (from master)
+          external-data-json-path: bench_data_baseline_converted.json
+          # Comment on PR with results
+          comment-always: true
+          # Threshold for alerting on regression (e.g., 10% worse)
+          alert-threshold: '0%'
+          auto-push: false
+          github-token: ${{ secrets.GITHUB_TOKEN }}
