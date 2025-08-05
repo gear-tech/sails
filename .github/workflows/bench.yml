@@ -77,7 +77,4 @@ jobs:
           external-data-json-path: bench_data_baseline_converted.json
           # Comment on PR with results
           comment-always: true
-          # Threshold for alerting on regression (e.g., 10% worse)
-          alert-threshold: '0%'
-          auto-push: false
           github-token: ${{ secrets.GITHUB_TOKEN }}
