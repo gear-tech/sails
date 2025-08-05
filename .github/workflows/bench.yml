@@ -32,11 +32,11 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.head.sha }}
       
-      # - name: Setup Rust
-      #   uses: actions-rust-lang/setup-rust-toolchain@v1
-      #   with:
-      #     toolchain-file: rust-toolchain.toml
-      #     cache: false
+      - name: Setup Rust
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          toolchain-file: rust-toolchain.toml
+          cache: false
 
       # Run benchmarks on PR branch
       - name: Run Benchmarks
@@ -77,4 +77,5 @@ jobs:
           external-data-json-path: bench_data_baseline_converted.json
           # Comment on PR with results
           comment-always: true
+          summary-always: true
           github-token: ${{ secrets.GITHUB_TOKEN }}
