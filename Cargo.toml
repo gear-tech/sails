@@ -35,6 +35,12 @@ members = [
     "rs/macros",
     "rs/macros/core",
     "rs/sol-gen",
+    "benchmarks/alloc-stress",
+    "benchmarks/compute-stress",
+    "benchmarks/counter-bench",
+    "benchmarks/ping-pong/app",
+    "benchmarks/ping-pong/client",
+    "benchmarks",
 ]
 
 [workspace.dependencies]
@@ -68,6 +74,7 @@ askama = "0.14"
 cargo-generate = "0.23"
 cargo_metadata = "0.19"
 clap = "4.5"
+fs2 = "0.4.3"
 convert_case = "0.7"
 futures = { version = "0.3", default-features = false }
 genco = "0.17"
@@ -99,5 +106,6 @@ syn = "2.0"
 thiserror = "2.0"
 thiserror-no-std = "2.0"
 toml_edit = "0.22"
+tempfile = "3.19"
 tokio = "1.45"
 trybuild = "1"

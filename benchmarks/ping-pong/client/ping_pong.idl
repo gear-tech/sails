@@ -1,0 +1,15 @@
+type PingPongPayload = enum {
+  Start: actor_id,
+  Ping,
+  Pong,
+  Finished,
+};
+
+constructor {
+  NewForBench : ();
+};
+
+service PingPongService {
+  Ping : (payload: PingPongPayload) -> PingPongPayload;
+};
+

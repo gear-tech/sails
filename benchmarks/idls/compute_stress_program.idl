@@ -1,0 +1,12 @@
+type ComputeStressResult = struct {
+  res: u32,
+};
+
+constructor {
+  NewForBench : ();
+};
+
+service ComputeStress {
+  ComputeStress : (n: u32) -> ComputeStressResult;
+};
+
