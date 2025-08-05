@@ -61,6 +61,10 @@ gclient = "=1.9.0"
 gcore = "=1.9.0"
 gear-core = { version = "=1.9.0", default-features = false }
 gear-core-errors = "=1.9.0"
+gbuiltin-proxy = "=1.9.0"
+gbuiltin-staking = "=1.9.0"
+gbuiltin-eth-bridge = "=1.9.0"
+gbuiltin-bls381 = "=1.9.0"
 gprimitives = { version = "=1.9.0", default-features = false, features = ["codec"] }
 gstd = "=1.9.0"
 gtest = "=1.9.0"

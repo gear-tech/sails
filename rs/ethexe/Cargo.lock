@@ -392,6 +392,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "ark-scale"
+version = "0.0.12"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5f69c00b3b529be29528a6f2fd5fa7b1790f8bed81b9cdca17e326538545a179"
+dependencies = [
+ "ark-ec",
+ "ark-ff",
+ "ark-serialize",
+ "ark-std",
+ "parity-scale-codec",
+ "scale-info",
+]
+
+[[package]]
 name = "ark-serialize"
 version = "0.4.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1881,6 +1895,54 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7c153ffd8727c79b9929b1ceceb13e38a62596f7ceb6b9400ef5cece4d81c181"
 dependencies = [
  "gear-dlmalloc",
+]
+
+[[package]]
+name = "gbuiltin-bls381"
+version = "1.9.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "da5c0d4fddca6f05362cda44c30e0775f1ee99a040ac7c7df28d699082aae6be"
+dependencies = [
+ "ark-bls12-381",
+ "ark-ec",
+ "ark-ff",
+ "ark-scale",
+ "ark-serialize",
+ "parity-scale-codec",
+ "scale-info",
+]
+
+[[package]]
+name = "gbuiltin-eth-bridge"
+version = "1.9.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bd77189c1c742e301656941c8125169d84b12c1deac1ed11acc516aef00002d8"
+dependencies = [
+ "gprimitives",
+ "parity-scale-codec",
+ "scale-info",
+]
+
+[[package]]
+name = "gbuiltin-proxy"
+version = "1.9.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "328a23e9eb5831d49ae122d74ce0a49fb1dfd22d6f7fb8cc513f7dadf21d8780"
+dependencies = [
+ "gprimitives",
+ "parity-scale-codec",
+ "scale-info",
+]
+
+[[package]]
+name = "gbuiltin-staking"
+version = "1.9.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9f38c4cd4469829351cf83b8b89976eb71017f76202e8af2e9ff989e73b5535f"
+dependencies = [
+ "gprimitives",
+ "parity-scale-codec",
+ "scale-info",
 ]
 
 [[package]]
@@ -4281,6 +4343,10 @@ dependencies = [
  "alloy-primitives 0.8.22",
  "alloy-sol-types 0.8.22",
  "futures",
+ "gbuiltin-bls381",
+ "gbuiltin-eth-bridge",
+ "gbuiltin-proxy",
+ "gbuiltin-staking",
  "gcore",
  "gear-core",
  "gear-core-errors",
