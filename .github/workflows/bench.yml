@@ -2,11 +2,11 @@ name: '[rs] Benchmarks'
 
 on:
   pull_request:
-    types: [labeled]
-    paths:
-      - 'rs/**'
-      - 'Cargo.lock'
-      - 'Cargo.toml'
+    # types: [labeled]
+    # paths:
+    #   - 'rs/**'
+    #   - 'Cargo.lock'
+    #   - 'Cargo.toml'
   push:
     branches: [master]
     paths:
