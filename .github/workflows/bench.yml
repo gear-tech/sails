@@ -81,7 +81,7 @@ jobs:
 
       # Compare benchmarks using github-action-benchmark
       - name: Compare Benchmarks
-        uses: benchmark-action/github-action-benchmark@v1
+        uses: benchmark-action/github-action-benchmark@v1.20.4
         with:
           tool: 'customSmallerIsBetter'
           # Path to the benchmark JSON from the PR branch
@@ -92,7 +92,7 @@ jobs:
           external-data-json-path: bench_data_baseline_converted.json
           # Comment on PR with results
           comment-always: true
-          summary-always: true
           comment-on-alert: true
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          alert-threshold: 0%
+          save-data-file: false
+          ref: ${{ github.event.pull_request.head.sha }}
+          alert-threshold: "0%"
