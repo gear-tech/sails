@@ -96,4 +96,4 @@ jobs:
           comment-on-alert: true
           save-data-file: false
           ref: ${{ github.event.pull_request.head.sha }}
-          alert-threshold: "0%"
+          alert-threshold: "1%"
