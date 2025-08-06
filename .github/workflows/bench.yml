@@ -17,6 +17,7 @@ on:
 env:
   CARGO_TERM_COLOR: always
   RUST_BACKTRACE: 1
+  ACTIONS_STEP_DEBUG: true
 
 jobs:
   benchmark:
@@ -46,11 +47,11 @@ jobs:
       #         body: 'Test comment from GitHub Actions'
       #       });
       
-      # - name: Setup Rust
-      #   uses: actions-rust-lang/setup-rust-toolchain@v1
-      #   with:
-      #     toolchain-file: rust-toolchain.toml
-      #     cache: false
+      - name: Setup Rust
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          toolchain-file: rust-toolchain.toml
+          cache: false
 
       # Run benchmarks on PR branch
       - name: Run Benchmarks
@@ -92,5 +93,6 @@ jobs:
           # Comment on PR with results
           comment-always: true
           summary-always: true
+          comment-on-alert: true
           github-token: ${{ secrets.GITHUB_TOKEN }}
           alert-threshold: 0%
