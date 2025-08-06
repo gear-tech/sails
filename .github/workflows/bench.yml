@@ -25,6 +25,7 @@ jobs:
     permissions:
       contents: write
       pull-requests: write
+      issues: write
     steps:
       # Checkout the current branch (PR branch)
       - name: Checkout PR branch
