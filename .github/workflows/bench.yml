@@ -93,3 +93,4 @@ jobs:
           comment-always: true
           summary-always: true
           github-token: ${{ secrets.GITHUB_TOKEN }}
+          alert-threshold: 0%
