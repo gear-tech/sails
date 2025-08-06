@@ -43,6 +43,9 @@ gclient = { workspace = true, optional = true }
 gtest = { workspace = true, optional = true }
 log = { workspace = true, optional = true }
 
+[dev-dependencies]
+tokio = { workspace = true, features = ["rt", "macros"] }
+
 [features]
 default = ["gstd"]
 build = ["client-builder", "wasm-builder"]
@@ -62,3 +65,4 @@ client-builder = ["std", "idl-gen", "dep:sails-client-gen", "dep:convert_case"]
 mockall = ["std", "dep:mockall"]
 std = ["futures/std"]
 wasm-builder = ["dep:gwasm-builder"]
+

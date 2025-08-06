@@ -3,6 +3,8 @@
 // Incorporate code generated based on the [IDL](/examples/demo/wasm/demo.idl) file
 include!("demo_client.rs");
 
+pub mod env_client;
+
 #[cfg(test)]
 mod tests {
     use super::*;

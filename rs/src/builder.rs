@@ -210,6 +210,7 @@ mod tests {
     impl ProgramMeta for P {
         type ConstructorsMeta = Meta;
         const SERVICES: &'static [(&'static str, sails_idl_meta::AnyServiceMetaFn)] = &[];
+        const ASYNC: bool = false;
     }
 
     #[test]
