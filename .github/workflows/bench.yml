@@ -92,6 +92,7 @@ jobs:
           external-data-json-path: bench_data_baseline_converted.json
           # Comment on PR with results
           comment-always: true
+          github-token: ${{ secrets.GITHUB_TOKEN }}
           comment-on-alert: true
           save-data-file: false
           ref: ${{ github.event.pull_request.head.sha }}
