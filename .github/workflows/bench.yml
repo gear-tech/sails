@@ -2,11 +2,11 @@ name: '[rs] Benchmarks'
 
 on:
   pull_request:
-    # types: [labeled]
-    # paths:
-    #   - 'rs/**'
-    #   - 'Cargo.lock'
-    #   - 'Cargo.toml'
+    types: [labeled]
+    paths:
+      - 'rs/**'
+      - 'Cargo.lock'
+      - 'Cargo.toml'
   push:
     branches: [master]
     paths:
@@ -17,11 +17,10 @@ on:
 env:
   CARGO_TERM_COLOR: always
   RUST_BACKTRACE: 1
-  ACTIONS_STEP_DEBUG: true
 
 jobs:
   benchmark:
-    # if: contains(github.event.label.name, 'run-benchmarks')
+    if: contains(github.event.label.name, 'run-benchmarks')
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -33,19 +32,6 @@ jobs:
         uses: actions/checkout@v4
         with:
           ref: ${{ github.event.pull_request.head.sha }}
-
-      # - name: Test Comment
-      #   if: github.event_name == 'pull_request'
-      #   uses: actions/github-script@v6
-      #   with:
-      #     github-token: ${{ secrets.GITHUB_TOKEN }}
-      #     script: |
-      #       await github.rest.issues.createComment({
-      #         owner: context.repo.owner,
-      #         repo: context.repo.repo,
-      #         issue_number: context.issue.number,
-      #         body: 'Test comment from GitHub Actions'
-      #       });
       
       - name: Setup Rust
         uses: actions-rust-lang/setup-rust-toolchain@v1
@@ -79,18 +65,21 @@ jobs:
         run: |
           cargo run --bin convert-bench-data --manifest-path=benchmarks/Cargo.toml -- baseline.json bench_data_baseline_converted.json
 
+      - name: Display Bench Data
+        run: |
+          echo "PR Bench Data:"
+          cat bench_data_pr_converted.json
+          echo "Baseline Bench Data:"
+          cat bench_data_baseline_converted.json
+
       # Compare benchmarks using github-action-benchmark
       - name: Compare Benchmarks
         uses: benchmark-action/github-action-benchmark@v1.20.4
         with:
           tool: 'customSmallerIsBetter'
-          # Path to the benchmark JSON from the PR branch
           benchmark-data-dir-path: .
-          # Name of the benchmark JSON file
           output-file-path: bench_data_pr_converted.json
-          # Path to the baseline JSON (from master)
           external-data-json-path: bench_data_baseline_converted.json
-          # Comment on PR with results
           comment-always: true
           github-token: ${{ secrets.GITHUB_TOKEN }}
           comment-on-alert: true
