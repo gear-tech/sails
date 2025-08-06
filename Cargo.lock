@@ -7306,6 +7306,8 @@ dependencies = [
  "sails-macros",
  "scale-info",
  "spin",
+ "thiserror-no-std",
+ "tokio",
  "thiserror 2.0.12",
 ]
 
