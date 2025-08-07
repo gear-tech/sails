@@ -103,8 +103,7 @@ serde = "1.0"
 serde-json = { package = "serde_json", version = "1.0" }
 spin = { version = "0.9", default-features = false, features = ["spin_mutex"] }
 syn = "2.0"
-thiserror = "2.0"
-thiserror-no-std = "2.0"
+thiserror = { version = "2.0", default-features = false }
 toml_edit = "0.22"
 tempfile = "3.19"
 tokio = "1.45"

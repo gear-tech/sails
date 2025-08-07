@@ -33,7 +33,7 @@ sails-idl-meta.workspace = true
 sails-macros = { workspace = true, optional = true }
 scale-info = { workspace = true, features = ["derive", "docs"] }
 spin.workspace = true
-thiserror-no-std.workspace = true
+thiserror.workspace = true
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 gear-core = { workspace = true, features = [
