@@ -110,24 +110,21 @@ pub(crate) fn discover_invocation_targets<'a>(
         .items
         .iter()
         .filter_map(|item| {
-            if let ImplItem::Fn(fn_item) = item {
-                if filter(fn_item) {
-                    let (span, route, unwrap_result, export) =
-                        invocation_export_or_default(fn_item);
+            if let ImplItem::Fn(fn_item) = item
+                && filter(fn_item)
+            {
+                let (span, route, unwrap_result, export) = invocation_export_or_default(fn_item);
 
-                    if let Some(duplicate) =
-                        routes.insert(route.clone(), fn_item.sig.ident.to_string())
-                    {
-                        abort!(
-                            span,
-                            "`export` attribute conflicts with one already assigned to '{}'",
-                            duplicate
-                        );
-                    }
-                    let fn_builder =
-                        FnBuilder::from(route, export, fn_item, unwrap_result, sails_path);
-                    return Some(fn_builder);
+                if let Some(duplicate) = routes.insert(route.clone(), fn_item.sig.ident.to_string())
+                {
+                    abort!(
+                        span,
+                        "`export` attribute conflicts with one already assigned to '{}'",
+                        duplicate
+                    );
                 }
+                let fn_builder = FnBuilder::from(route, export, fn_item, unwrap_result, sails_path);
+                return Some(fn_builder);
             }
             None
         })
@@ -216,12 +213,11 @@ fn extract_reply_result_type(tp: &TypePath) -> Option<&Type> {
         if last.ident != "CommandReply" {
             return None;
         }
-        if let PathArguments::AngleBracketed(args) = &last.arguments {
-            if args.args.len() == 1 {
-                if let Some(GenericArgument::Type(ty)) = args.args.first() {
-                    return Some(ty);
-                }
-            }
+        if let PathArguments::AngleBracketed(args) = &last.arguments
+            && args.args.len() == 1
+            && let Some(GenericArgument::Type(ty)) = args.args.first()
+        {
+            return Some(ty);
         }
     }
     None
@@ -229,18 +225,17 @@ fn extract_reply_result_type(tp: &TypePath) -> Option<&Type> {
 
 /// Extract `T` type from `impl Into<CommandReply<T>>`
 fn extract_reply_result_type_from_impl_into(tit: &TypeImplTrait) -> Option<&Type> {
-    if let Some(TypeParamBound::Trait(tr)) = tit.bounds.first() {
-        if let Some(last) = tr.path.segments.last() {
-            if last.ident != "Into" {
-                return None;
-            }
-            if let PathArguments::AngleBracketed(args) = &last.arguments {
-                if args.args.len() == 1 {
-                    if let Some(GenericArgument::Type(Type::Path(tp))) = args.args.first() {
-                        return extract_reply_result_type(tp);
-                    }
-                }
-            }
+    if let Some(TypeParamBound::Trait(tr)) = tit.bounds.first()
+        && let Some(last) = tr.path.segments.last()
+    {
+        if last.ident != "Into" {
+            return None;
+        }
+        if let PathArguments::AngleBracketed(args) = &last.arguments
+            && args.args.len() == 1
+            && let Some(GenericArgument::Type(Type::Path(tp))) = args.args.first()
+        {
+            return extract_reply_result_type(tp);
         }
     }
     None
@@ -260,12 +255,11 @@ pub(crate) fn extract_result_type(tp: &TypePath) -> Option<&Type> {
         if last.ident != "Result" {
             return None;
         }
-        if let PathArguments::AngleBracketed(args) = &last.arguments {
-            if args.args.len() == 2 {
-                if let Some(GenericArgument::Type(ty)) = args.args.first() {
-                    return Some(ty);
-                }
-            }
+        if let PathArguments::AngleBracketed(args) = &last.arguments
+            && args.args.len() == 2
+            && let Some(GenericArgument::Type(ty)) = args.args.first()
+        {
+            return Some(ty);
         }
     }
     None

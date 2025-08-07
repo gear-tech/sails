@@ -85,10 +85,10 @@ impl Parse for ProgramArg {
                 Ok(Self::SailsPath(path))
             }
             "payable" => {
-                if input.parse::<Token![=]>().is_ok() {
-                    if let Ok(val) = input.parse::<LitBool>() {
-                        return Ok(Self::AcceptTransfer(val.value()));
-                    }
+                if input.parse::<Token![=]>().is_ok()
+                    && let Ok(val) = input.parse::<LitBool>()
+                {
+                    return Ok(Self::AcceptTransfer(val.value()));
                 }
                 Ok(Self::AcceptTransfer(true))
             }

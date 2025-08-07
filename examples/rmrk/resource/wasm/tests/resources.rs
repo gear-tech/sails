@@ -293,11 +293,11 @@ impl SystemFixture {
         resource_program.id()
     }
 
-    fn catalog_program(&self) -> Program {
+    fn catalog_program(&self) -> Program<'_> {
         self.system.get_program(self.catalog_program_id).unwrap()
     }
 
-    fn resource_program(&self) -> Program {
+    fn resource_program(&self) -> Program<'_> {
         self.system.get_program(self.resource_program_id).unwrap()
     }
 

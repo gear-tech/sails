@@ -249,14 +249,12 @@ fn try_get_trait_implementation_path(
     idx: &rustdoc_types::Item,
     program_meta_id: &rustdoc_types::Id,
 ) -> Option<rustdoc_types::Path> {
-    if let rustdoc_types::ItemEnum::Impl(item) = &idx.inner {
-        if let Some(tp) = &item.trait_ {
-            if &tp.id == program_meta_id {
-                if let rustdoc_types::Type::ResolvedPath(path) = &item.for_ {
-                    return Some(path.clone());
-                }
-            }
-        }
+    if let rustdoc_types::ItemEnum::Impl(item) = &idx.inner
+        && let Some(tp) = &item.trait_
+        && &tp.id == program_meta_id
+        && let rustdoc_types::Type::ResolvedPath(path) = &item.for_
+    {
+        return Some(path.clone());
     }
     None
 }

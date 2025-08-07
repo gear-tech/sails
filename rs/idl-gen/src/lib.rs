@@ -28,10 +28,10 @@ pub mod program {
     pub fn generate_idl_to_file<P: ProgramMeta>(path: impl AsRef<Path>) -> Result<()> {
         let mut idl_new_content = Vec::new();
         generate_idl::<P>(&mut idl_new_content)?;
-        if let Ok(idl_old_content) = fs::read(&path) {
-            if idl_new_content == idl_old_content {
-                return Ok(());
-            }
+        if let Ok(idl_old_content) = fs::read(&path)
+            && idl_new_content == idl_old_content
+        {
+            return Ok(());
         }
         if let Some(dir_path) = path.as_ref().parent() {
             fs::create_dir_all(dir_path)?;
@@ -54,10 +54,10 @@ pub mod service {
     pub fn generate_idl_to_file<S: ServiceMeta>(path: impl AsRef<Path>) -> Result<()> {
         let mut idl_new_content = Vec::new();
         generate_idl::<S>(&mut idl_new_content)?;
-        if let Ok(idl_old_content) = fs::read(&path) {
-            if idl_new_content == idl_old_content {
-                return Ok(());
-            }
+        if let Ok(idl_old_content) = fs::read(&path)
+            && idl_new_content == idl_old_content
+        {
+            return Ok(());
         }
         Ok(fs::write(&path, idl_new_content)?)
     }
