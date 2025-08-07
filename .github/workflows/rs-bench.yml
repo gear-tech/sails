@@ -48,6 +48,9 @@ jobs:
       - name: Run Benchmarks
         run: cargo test --release --manifest-path=benchmarks/Cargo.toml
 
+      - name: Run Benchmarks
+        run: git diff
+
       # todo [sab] check if you can download only one file
       # Checkout master branch to get baseline JSON
       # - name: Checkout master branch
