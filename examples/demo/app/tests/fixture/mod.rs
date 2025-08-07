@@ -72,7 +72,7 @@ impl Fixture {
         self.program_space.system().balance_of(id)
     }
 
-    pub(crate) fn get_program(&self, id: ActorId) -> Option<Program> {
+    pub(crate) fn get_program(&self, id: ActorId) -> Option<Program<'_>> {
         self.program_space.system().get_program(id)
     }
 

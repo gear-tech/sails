@@ -72,7 +72,7 @@ impl DemoProgram {
     }
 
     // Exposing another service
-    pub fn counter(&self) -> counter::CounterService {
+    pub fn counter(&self) -> counter::CounterService<'_> {
         counter::CounterService::new(&self.counter_data)
     }
 
@@ -81,7 +81,7 @@ impl DemoProgram {
         dog::DogService::new(walker::WalkerService::new(dog_data()))
     }
 
-    pub fn references(&mut self) -> references::ReferenceService {
+    pub fn references(&mut self) -> references::ReferenceService<'_> {
         references::ReferenceService::new(&mut self.ref_data, "demo")
     }
 
