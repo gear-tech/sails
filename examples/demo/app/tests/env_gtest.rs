@@ -1,6 +1,6 @@
 use demo_client::env_client::{Counter as _, Demo as _, DemoCtors as _, DemoProgram};
 use sails_rs::{
-    client::gtest::{BlockRunMode, GtestEnv},
+    client::gtest_env::{BlockRunMode, GtestEnv},
     prelude::*,
 };
 
