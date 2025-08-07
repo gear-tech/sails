@@ -6,12 +6,12 @@ use sails_rs::{
 pub trait DemoCtors {
     type Env: GearEnv;
 
-    fn default(self) -> PendingCtor<Self::Env, DemoProgram>;
+    fn default(self) -> PendingCtor<Self::Env, DemoProgram, io::Default>;
     fn new(
         self,
         counter: Option<u32>,
         dog_position: Option<(i32, i32)>,
-    ) -> PendingCtor<Self::Env, DemoProgram>;
+    ) -> PendingCtor<Self::Env, DemoProgram, io::New>;
 }
 
 pub trait Demo {
@@ -27,7 +27,7 @@ impl DemoProgram {
         env: E,
         code_id: CodeId,
         salt: Vec<u8>,
-    ) -> Deployment<DemoProgram, E> {
+    ) -> Deployment<E, DemoProgram> {
         Deployment::new(env, code_id, salt)
     }
 
@@ -36,19 +36,19 @@ impl DemoProgram {
     }
 }
 
-impl<E: GearEnv> DemoCtors for Deployment<DemoProgram, E> {
+impl<E: GearEnv> DemoCtors for Deployment<E, DemoProgram> {
     type Env = E;
 
-    fn default(self) -> PendingCtor<Self::Env, DemoProgram> {
-        self.pending_ctor("Default", ())
+    fn default(self) -> PendingCtor<Self::Env, DemoProgram, io::Default> {
+        self.pending_ctor(())
     }
 
     fn new(
         self,
         counter: Option<u32>,
         dog_position: Option<(i32, i32)>,
-    ) -> PendingCtor<Self::Env, DemoProgram> {
-        self.pending_ctor("New", (counter, dog_position))
+    ) -> PendingCtor<Self::Env, DemoProgram, io::New> {
+        self.pending_ctor((counter, dog_position))
     }
 }
 
@@ -57,6 +57,35 @@ impl<E: GearEnv> Demo for Actor<DemoProgram, E> {
 
     fn counter(&self) -> Service<CounterImpl, Self::Env> {
         self.service("Counter")
+    }
+}
+
+pub mod io {
+    use super::*;
+    use sails_rs::calls::ActionIo;
+    pub struct Default(());
+    impl Default {
+        #[allow(dead_code)]
+        pub fn encode_call() -> Vec<u8> {
+            <Default as ActionIo>::encode_call(&())
+        }
+    }
+    impl ActionIo for Default {
+        const ROUTE: &'static [u8] = &[28, 68, 101, 102, 97, 117, 108, 116];
+        type Params = ();
+        type Reply = ();
+    }
+    pub struct New(());
+    impl New {
+        #[allow(dead_code)]
+        pub fn encode_call(counter: Option<u32>, dog_position: Option<(i32, i32)>) -> Vec<u8> {
+            <New as ActionIo>::encode_call(&(counter, dog_position))
+        }
+    }
+    impl ActionIo for New {
+        const ROUTE: &'static [u8] = &[12, 78, 101, 119];
+        type Params = (Option<u32>, Option<(i32, i32)>);
+        type Reply = ();
     }
 }
 
