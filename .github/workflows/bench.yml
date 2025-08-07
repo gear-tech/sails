@@ -31,6 +31,9 @@ jobs:
       - name: Checkout PR branch
         uses: actions/checkout@v4
 
+      - name: Free Disk Space
+        uses: ./.github/actions/free-disk-space
+
       - name: Install wasm-opt
         uses: ./.github/actions/install-wasm-utils
 
@@ -39,6 +42,7 @@ jobs:
         run: |
           make bench
 
+      # todo [sab] check if you can download only one file
       # Checkout master branch to get baseline JSON
       - name: Checkout master branch
         uses: actions/checkout@v4
