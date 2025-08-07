@@ -30,14 +30,9 @@ jobs:
       # Checkout the current branch (PR branch)
       - name: Checkout PR branch
         uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.pull_request.head.sha }}
-      
-      - name: Setup Rust
-        uses: actions-rust-lang/setup-rust-toolchain@v1
-        with:
-          toolchain-file: rust-toolchain.toml
-          cache: false
+
+      - name: Install wasm-opt
+        uses: ./.github/actions/install-wasm-utils
 
       # Run benchmarks on PR branch
       - name: Run Benchmarks

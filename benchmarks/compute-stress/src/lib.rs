@@ -8,10 +8,6 @@ struct ComputeStressService;
 impl ComputeStressService {
     #[export]
     pub fn compute_stress(&mut self, n: u32) -> ComputeStressResult {
-        let mut vec1 = vec![0u32; 1000];
-        for i in 0..vec1.len() {
-            vec1[i] = i as u32;
-        }
         let res = sum_of_fib(n);
 
         ComputeStressResult { res }
