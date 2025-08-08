@@ -7,7 +7,9 @@ use core::marker::PhantomData;
 
 #[allow(async_fn_in_trait)]
 pub trait Listener<E> {
-    async fn listen(&mut self) -> Result<impl Stream<Item = (ActorId, E)> + Unpin>;
+    type Error: core::error::Error;
+
+    async fn listen(&mut self) -> Result<impl Stream<Item = (ActorId, E)> + Unpin, Self::Error>;
 }
 
 pub struct RemotingListener<R, E> {
@@ -25,7 +27,11 @@ impl<R: Listener<Vec<u8>>, E> RemotingListener<R, E> {
 }
 
 impl<R: Listener<Vec<u8>>, E: EventIo> Listener<E::Event> for RemotingListener<R, E> {
-    async fn listen(&mut self) -> Result<impl Stream<Item = (ActorId, E::Event)> + Unpin> {
+    type Error = R::Error;
+
+    async fn listen(
+        &mut self,
+    ) -> Result<impl Stream<Item = (ActorId, E::Event)> + Unpin, Self::Error> {
         let stream = self.remoting.listen().await?;
         let map = stream.filter_map(move |(actor_id, payload)| async move {
             E::decode_event(payload).ok().map(|e| (actor_id, e))

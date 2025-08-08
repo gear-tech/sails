@@ -1,8 +1,5 @@
-use demo_client::env_client::{Counter as _, Demo as _, DemoCtors as _, DemoProgram};
-use sails_rs::{
-    client::gtest_env::{BlockRunMode, GtestEnv},
-    prelude::*,
-};
+use demo_client::env_client::{Demo as _, DemoCtors as _, DemoProgram, counter::Counter as _};
+use sails_rs::{client::*, prelude::*};
 
 const ACTOR_ID: u64 = 42;
 #[cfg(debug_assertions)]

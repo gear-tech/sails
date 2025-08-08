@@ -1,7 +1,7 @@
 use crate::{
     calls::{Action, Query, Remoting},
     collections::HashMap,
-    errors::{Result, RtlError},
+    errors::{Error, Result, RtlError},
     events::Listener,
     futures::*,
     gtest::{BlockRunResult, Program, System},
@@ -328,6 +328,8 @@ impl Remoting for GTestRemoting {
 }
 
 impl Listener<Vec<u8>> for GTestRemoting {
+    type Error = Error;
+
     async fn listen(&mut self) -> Result<impl Stream<Item = (ActorId, Vec<u8>)>> {
         let (tx, rx) = channel::mpsc::unbounded::<(ActorId, Vec<u8>)>();
         self.event_senders.borrow_mut().push(tx);
