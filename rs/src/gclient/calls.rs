@@ -1,6 +1,6 @@
 use crate::{
     calls::{Query, Remoting},
-    errors::{Result, RtlError},
+    errors::{Error, Result, RtlError},
     events::Listener,
     futures::{Stream, StreamExt, stream},
     prelude::*,
@@ -199,6 +199,8 @@ impl Remoting for GClientRemoting {
 }
 
 impl Listener<Vec<u8>> for GClientRemoting {
+    type Error = Error;
+
     async fn listen(&mut self) -> Result<impl Stream<Item = (ActorId, Vec<u8>)> + Unpin> {
         let listener = self.api.subscribe().await?;
         let stream = stream::unfold(listener, |mut l| async move {
