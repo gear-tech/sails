@@ -1,7 +1,11 @@
 use super::*;
+use crate::events::Listener;
 use ::gtest::{BlockRunResult, System, TestError};
 use core::cell::RefCell;
-use futures::channel::{mpsc, oneshot};
+use futures::{
+    Stream,
+    channel::{mpsc, oneshot},
+};
 use hashbrown::HashMap;
 use std::rc::Rc;
 
@@ -10,14 +14,6 @@ type Error = TestError;
 type EventSender = mpsc::UnboundedSender<(ActorId, Vec<u8>)>;
 type ReplySender = oneshot::Sender<Result<Vec<u8>, Error>>;
 type ReplyReceiver = oneshot::Receiver<Result<Vec<u8>, Error>>;
-
-#[derive(Debug, Default)]
-pub struct GtestParams {
-    actor_id: Option<ActorId>,
-    #[cfg(not(feature = "ethexe"))]
-    gas_limit: Option<GasUnit>,
-    value: ValueUnit,
-}
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum BlockRunMode {
@@ -39,6 +35,16 @@ pub struct GtestEnv {
     block_run_mode: BlockRunMode,
     block_reply_senders: Rc<RefCell<HashMap<MessageId, ReplySender>>>,
 }
+
+crate::params_struct_impl!(
+    GtestEnv,
+    GtestParams {
+        actor_id: ActorId,
+        #[cfg(not(feature = "ethexe"))]
+        gas_limit: GasUnit,
+        value: ValueUnit,
+    }
+);
 
 impl GtestEnv {
     /// Create new `GTestRemoting` instance from `gtest::System` with specified `actor_id`
@@ -134,6 +140,7 @@ impl GtestEnv {
         payload: impl AsRef<[u8]>,
         params: GtestParams,
     ) -> Result<(ActorId, MessageId), Error> {
+        let value = params.value.unwrap_or(0);
         #[cfg(not(feature = "ethexe"))]
         let gas_limit = params.gas_limit.unwrap_or(GAS_LIMIT_DEFAULT);
         #[cfg(feature = "ethexe")]
@@ -146,8 +153,7 @@ impl GtestEnv {
         let program_id = ::gtest::calculate_program_id(code_id, salt.as_ref(), None);
         let program = ::gtest::Program::from_binary_with_id(&self.system, program_id, code);
         let actor_id = params.actor_id.unwrap_or(self.actor_id);
-        let message_id =
-            program.send_bytes_with_gas(actor_id, payload.as_ref(), gas_limit, params.value);
+        let message_id = program.send_bytes_with_gas(actor_id, payload.as_ref(), gas_limit, value);
         log::debug!("Send activation id: {message_id}, to program: {program_id}");
         Ok((program_id, message_id))
     }
@@ -158,6 +164,7 @@ impl GtestEnv {
         payload: impl AsRef<[u8]>,
         params: GtestParams,
     ) -> Result<MessageId, Error> {
+        let value = params.value.unwrap_or(0);
         #[cfg(not(feature = "ethexe"))]
         let gas_limit = params.gas_limit.unwrap_or(GAS_LIMIT_DEFAULT);
         #[cfg(feature = "ethexe")]
@@ -168,8 +175,7 @@ impl GtestEnv {
             // TODO Errors
             .ok_or(Error::Instrumentation)?;
         let actor_id = params.actor_id.unwrap_or(self.actor_id);
-        let message_id =
-            program.send_bytes_with_gas(actor_id, payload.as_ref(), gas_limit, params.value);
+        let message_id = program.send_bytes_with_gas(actor_id, payload.as_ref(), gas_limit, value);
         log::debug!(
             "Send message id: {message_id}, to: {target}, payload: {}",
             hex::encode(payload.as_ref())
@@ -225,14 +231,15 @@ impl GearEnv for GtestEnv {
     type MessageState = ReplyReceiver;
 }
 
-impl<O: Decode> Future for PendingCall<GtestEnv, O> {
-    type Output = Result<O, <GtestEnv as GearEnv>::Error>;
+impl<T: CallEncodeDecode> Future for PendingCall<GtestEnv, T> {
+    type Output = Result<T::Reply, <GtestEnv as GearEnv>::Error>;
 
     fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
         if self.state.is_none() {
             // Send message
+            let payload = self.encode_call();
             let params = self.params.take().unwrap_or_default();
-            let payload = self.payload.take().unwrap_or_default();
+
             let send_res = self.env.send_message(self.destination, payload, params);
             match send_res {
                 Ok(message_id) => {
@@ -250,10 +257,12 @@ impl<O: Decode> Future for PendingCall<GtestEnv, O> {
             match reply_receiver.poll(cx) {
                 Poll::Ready(Ok(res)) => match res {
                     // TODO handle reply prefix
-                    Ok(bytes) => match <(String, String, O)>::decode(&mut bytes.as_slice()) {
-                        Ok((_, _, decoded)) => Poll::Ready(Ok(decoded)),
-                        Err(err) => Poll::Ready(Err(Error::ScaleCodecError(err))),
-                    },
+                    Ok(bytes) => {
+                        match <(String, String, T::Reply)>::decode(&mut bytes.as_slice()) {
+                            Ok((_, _, decoded)) => Poll::Ready(Ok(decoded)),
+                            Err(err) => Poll::Ready(Err(Error::ScaleCodecError(err))),
+                        }
+                    }
                     Err(err) => Poll::Ready(Err(err)),
                 },
                 // TODO handle error
@@ -266,19 +275,15 @@ impl<O: Decode> Future for PendingCall<GtestEnv, O> {
     }
 }
 
-impl<A, T: ActionIo> Future for PendingCtor<GtestEnv, A, T> {
+impl<A, T: CallEncodeDecode> Future for PendingCtor<GtestEnv, A, T> {
     type Output = Result<Actor<A, GtestEnv>, <GtestEnv as GearEnv>::Error>;
 
     fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
         if self.state.is_none() {
             // Send message
+            let payload = self.encode_ctor();
             let params = self.params.take().unwrap_or_default();
             let salt = self.salt.take().unwrap_or_default();
-            let args = self
-                .args
-                .take()
-                .unwrap_or_else(|| panic!("PendingCtor polled after completion or invalid state"));
-            let payload = T::encode_call(&args);
             let send_res = self
                 .env
                 .activate(self.code_id, salt, payload.as_slice(), params);
@@ -301,9 +306,12 @@ impl<A, T: ActionIo> Future for PendingCtor<GtestEnv, A, T> {
                 Poll::Ready(Ok(res)) => match res {
                     // TODO handle reply prefix
                     Ok(_) => {
-                        let program_id = this.program_id.unwrap();
+                        // TODO
+                        let program_id = this.program_id.take().unwrap_or_else(|| {
+                            panic!("PendingCtor polled after completion or invalid state")
+                        });
                         let env = this.env.clone();
-                        Poll::Ready(Ok(Actor::new(program_id, env)))
+                        Poll::Ready(Ok(Actor::new(env, program_id)))
                     }
                     Err(err) => Poll::Ready(Err(err)),
                 },
@@ -317,48 +325,12 @@ impl<A, T: ActionIo> Future for PendingCtor<GtestEnv, A, T> {
     }
 }
 
-impl<A, T: ActionIo> PendingCtor<GtestEnv, A, T> {
-    pub fn with_actor_id(self, actor_id: ActorId) -> Self {
-        self.with_params(|mut params| {
-            params.actor_id = Some(actor_id);
-            params
-        })
-    }
+impl Listener<Vec<u8>> for GtestEnv {
+    type Error = <GtestEnv as GearEnv>::Error;
 
-    #[cfg(not(feature = "ethexe"))]
-    pub fn with_gas_limit(self, gas_limit: GasUnit) -> Self {
-        self.with_params(|mut params| {
-            params.gas_limit = Some(gas_limit);
-            params
-        })
-    }
-    pub fn with_value(self, value: ValueUnit) -> Self {
-        self.with_params(|mut params| {
-            params.value = value;
-            params
-        })
-    }
-}
-
-impl<O: Decode> PendingCall<GtestEnv, O> {
-    pub fn with_actor_id(self, actor_id: ActorId) -> Self {
-        self.with_params(|mut params| {
-            params.actor_id = Some(actor_id);
-            params
-        })
-    }
-
-    #[cfg(not(feature = "ethexe"))]
-    pub fn with_gas_limit(self, gas_limit: GasUnit) -> Self {
-        self.with_params(|mut params| {
-            params.gas_limit = Some(gas_limit);
-            params
-        })
-    }
-    pub fn with_value(self, value: ValueUnit) -> Self {
-        self.with_params(|mut params| {
-            params.value = value;
-            params
-        })
+    async fn listen(&mut self) -> Result<impl Stream<Item = (ActorId, Vec<u8>)>, Self::Error> {
+        let (tx, rx) = mpsc::unbounded::<(ActorId, Vec<u8>)>();
+        self.event_senders.borrow_mut().push(tx);
+        Ok(rx)
     }
 }

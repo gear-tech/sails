@@ -1,7 +1,4 @@
-use sails_rs::{
-    client::{Actor, Deployment, GearEnv, PendingCall, PendingCtor, Service},
-    prelude::*,
-};
+use sails_rs::{client::*, prelude::*};
 
 pub trait DemoCtors {
     type Env: GearEnv;
@@ -17,7 +14,7 @@ pub trait DemoCtors {
 pub trait Demo {
     type Env: GearEnv;
 
-    fn counter(&self) -> Service<CounterImpl, Self::Env>;
+    fn counter(&self) -> Service<counter::CounterImpl, Self::Env>;
 }
 
 pub struct DemoProgram;
@@ -32,7 +29,7 @@ impl DemoProgram {
     }
 
     pub fn client<E: GearEnv>(env: E, program_id: ActorId) -> Actor<DemoProgram, E> {
-        Actor::new(program_id, env)
+        Actor::new(env, program_id)
     }
 }
 
@@ -55,63 +52,52 @@ impl<E: GearEnv> DemoCtors for Deployment<E, DemoProgram> {
 impl<E: GearEnv> Demo for Actor<DemoProgram, E> {
     type Env = E;
 
-    fn counter(&self) -> Service<CounterImpl, Self::Env> {
+    fn counter(&self) -> Service<counter::CounterImpl, Self::Env> {
         self.service("Counter")
     }
 }
 
 pub mod io {
     use super::*;
-    use sails_rs::calls::ActionIo;
-    pub struct Default(());
-    impl Default {
-        #[allow(dead_code)]
-        pub fn encode_call() -> Vec<u8> {
-            <Default as ActionIo>::encode_call(&())
-        }
-    }
-    impl ActionIo for Default {
-        const ROUTE: &'static [u8] = &[28, 68, 101, 102, 97, 117, 108, 116];
-        type Params = ();
-        type Reply = ();
-    }
-    pub struct New(());
-    impl New {
-        #[allow(dead_code)]
-        pub fn encode_call(counter: Option<u32>, dog_position: Option<(i32, i32)>) -> Vec<u8> {
-            <New as ActionIo>::encode_call(&(counter, dog_position))
-        }
-    }
-    impl ActionIo for New {
-        const ROUTE: &'static [u8] = &[12, 78, 101, 119];
-        type Params = (Option<u32>, Option<(i32, i32)>);
-        type Reply = ();
-    }
+    use sails_rs::client::{CallEncodeDecode, Route};
+    sails_rs::io_struct_impl!(Default () -> ());
+    sails_rs::io_struct_impl!(New (counter: Option<u32>, dog_position: Option<(i32, i32)>) -> ());
 }
 
 /// Counter Service
-pub trait Counter {
-    type Env: GearEnv;
+pub mod counter {
+    use super::*;
+    pub trait Counter {
+        type Env: GearEnv;
 
-    fn add(&mut self, value: u32) -> PendingCall<Self::Env, u32>;
-    fn sub(&mut self, value: u32) -> PendingCall<Self::Env, u32>;
-    fn value(&self) -> PendingCall<Self::Env, u32>;
-}
-
-pub struct CounterImpl;
-
-impl<E: GearEnv> Counter for Service<CounterImpl, E> {
-    type Env = E;
-
-    fn add(&mut self, value: u32) -> PendingCall<Self::Env, u32> {
-        self.pending_call("Add", (value,))
+        fn add(&mut self, value: u32) -> PendingCall<Self::Env, io::Add>;
+        fn sub(&mut self, value: u32) -> PendingCall<Self::Env, io::Sub>;
+        fn value(&self) -> PendingCall<Self::Env, io::Value>;
     }
 
-    fn sub(&mut self, value: u32) -> PendingCall<Self::Env, u32> {
-        self.pending_call("Sub", (value,))
+    pub struct CounterImpl;
+
+    impl<E: GearEnv> Counter for Service<CounterImpl, E> {
+        type Env = E;
+
+        fn add(&mut self, value: u32) -> PendingCall<Self::Env, io::Add> {
+            self.pending_call((value,))
+        }
+
+        fn sub(&mut self, value: u32) -> PendingCall<Self::Env, io::Sub> {
+            self.pending_call((value,))
+        }
+
+        fn value(&self) -> PendingCall<Self::Env, io::Value> {
+            self.pending_call(())
+        }
     }
 
-    fn value(&self) -> PendingCall<Self::Env, u32> {
-        self.pending_call("Value", ())
+    pub mod io {
+        use super::*;
+        use sails_rs::client::{CallEncodeDecode, Route};
+        sails_rs::io_struct_impl!(Add (value: u32) -> u32);
+        sails_rs::io_struct_impl!(Sub (value: u32) -> u32);
+        sails_rs::io_struct_impl!(Value () -> u32);
     }
 }
