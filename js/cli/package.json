@@ -23,9 +23,9 @@
     "sails-js": "./build/app.js"
   },
   "devDependencies": {
-    "@inquirer/prompts": "^7.8.0",
+    "@inquirer/prompts": "^7.8.1",
     "commander": "^14.0.0",
-    "inquirer": "^12.9.0",
+    "inquirer": "^12.9.1",
     "jest": "^30.0.5",
     "sails-js": "^0.4.2",
     "sails-js-parser": "^0.4.2",
