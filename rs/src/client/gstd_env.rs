@@ -1,5 +1,9 @@
 use super::*;
-use ::gstd::{errors::Error, msg, msg::MessageFuture};
+use ::gstd::{
+    errors::Error,
+    msg,
+    msg::{CreateProgramFuture, MessageFuture},
+};
 
 #[derive(Default)]
 pub struct GstdParams {
@@ -62,7 +66,7 @@ pub struct GstdEnv;
 impl GearEnv for GstdEnv {
     type Params = GstdParams;
     type Error = Error;
-    type MessageState = MessageFuture;
+    type MessageState = GtsdFuture;
 }
 
 #[cfg(not(feature = "ethexe"))]
@@ -115,20 +119,22 @@ pub(crate) fn send_for_reply_future(
 
 impl<T: CallEncodeDecode> PendingCall<GstdEnv, T> {
     pub fn send(mut self) -> Result<MessageId, Error> {
+        let route = self
+            .route
+            .unwrap_or_else(|| panic!("{PENDING_CALL_INVALID_STATE}"));
         let params = self.params.unwrap_or_default();
         let args = self
             .args
             .take()
-            .unwrap_or_else(|| panic!("PendingCtor polled after completion or invalid state"));
-        let payload = T::encode_params(&args);
+            .unwrap_or_else(|| panic!("{PENDING_CALL_INVALID_STATE}"));
+        let payload = T::encode_params_with_prefix(route, &args);
 
         let value = params.value.unwrap_or(0);
         if let Some(gas_limit) = params.gas_limit {
             ::gcore::msg::send_with_gas(self.destination, payload.as_slice(), gas_limit, value)
-                .map_err(|err| Error::Core(err))
+                .map_err(Error::Core)
         } else {
-            ::gcore::msg::send(self.destination, payload.as_slice(), value)
-                .map_err(|err| Error::Core(err))
+            ::gcore::msg::send(self.destination, payload.as_slice(), value).map_err(Error::Core)
         }
     }
 }
@@ -137,33 +143,43 @@ impl<T: CallEncodeDecode> Future for PendingCall<GstdEnv, T> {
     type Output = Result<T::Reply, <GstdEnv as GearEnv>::Error>;
 
     fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
+        let Some(route) = self.route else {
+            return Poll::Ready(Err(Error::Decode("PendingCall route is not set".into())));
+        };
         if self.state.is_none() {
             // Send message
-            let payload = self.encode_call();
+            let args = self
+                .args
+                .take()
+                .unwrap_or_else(|| panic!("{PENDING_CALL_INVALID_STATE}"));
+            let payload = T::encode_params_with_prefix(route, &args);
             let params = self.params.take().unwrap_or_default();
 
             let send_res = send_for_reply_future(self.destination, payload.as_slice(), params);
             match send_res {
-                Ok(message_fut) => {
-                    self.state = Some(message_fut);
+                Ok(future) => {
+                    self.state = Some(GtsdFuture::Message { future });
                 }
                 Err(err) => {
                     return Poll::Ready(Err(err));
                 }
             }
         }
-        if let Some(message_fut) = self.project().state.as_pin_mut() {
+        let this = self.as_mut().project();
+        if let Some(state) = this.state.as_pin_mut()
+            && let Projection::Message { future } = state.project()
+        {
             // Poll message future
-            match message_fut.poll(cx) {
-                Poll::Ready(Ok(bytes)) => match T::Reply::decode(&mut bytes.as_slice()) {
-                    Ok(decoded) => Poll::Ready(Ok(decoded)),
+            match future.poll(cx) {
+                Poll::Ready(Ok(payload)) => match T::decode_reply_with_prefix(route, payload) {
+                    Ok(reply) => Poll::Ready(Ok(reply)),
                     Err(err) => Poll::Ready(Err(Error::Decode(err))),
                 },
                 Poll::Ready(Err(err)) => Poll::Ready(Err(err)),
                 Poll::Pending => Poll::Pending,
             }
         } else {
-            panic!("PendingCall polled after completion or invalid state");
+            panic!("{PENDING_CALL_INVALID_STATE}");
         }
     }
 }
@@ -202,28 +218,35 @@ impl<A, T: CallEncodeDecode> Future for PendingCtor<GstdEnv, A, T> {
             let mut program_future =
                 prog::create_program_bytes_for_reply(code_id, salt, payload, value)?;
 
-            // self.state = Some(program_future);
-            self.program_id = Some(program_future.program_id);
+            // self.program_id = Some(program_future.program_id);
+            self.state = Some(GtsdFuture::CreateProgram {
+                future: program_future,
+            });
         }
-        let this = self.project();
-        if let Some(message_fut) = this.state.as_pin_mut() {
-            // Poll message future
-            match message_fut.poll(cx) {
-                Poll::Ready(Ok(bytes)) => match T::Reply::decode(&mut bytes.as_slice()) {
-                    Ok(_decoded) => {
-                        let program_id = this.program_id.take().unwrap_or_else(|| {
-                            panic!("PendingCtor polled after completion or invalid state")
-                        });
-                        let env = this.env.clone();
-                        Poll::Ready(Ok(Actor::new(env, program_id)))
-                    }
-                    Err(err) => Poll::Ready(Err(Error::Decode(err))),
-                },
+        let this = self.as_mut().project();
+        if let Some(state) = this.state.as_pin_mut()
+            && let Projection::CreateProgram { future } = state.project()
+        {
+            // Poll create program future
+            match future.poll(cx) {
+                Poll::Ready(Ok((program_id, _payload))) => {
+                    // Do not decode payload here
+                    let env = this.env.clone();
+                    Poll::Ready(Ok(Actor::new(env, program_id)))
+                }
                 Poll::Ready(Err(err)) => Poll::Ready(Err(err)),
                 Poll::Pending => Poll::Pending,
             }
         } else {
-            panic!("PendingCall polled after completion or invalid state");
+            panic!("{PENDING_CTOR_INVALID_STATE}");
         }
+    }
+}
+
+pin_project_lite::pin_project! {
+    #[project = Projection]
+    pub enum GtsdFuture {
+        CreateProgram { #[pin] future: CreateProgramFuture },
+        Message { #[pin] future: MessageFuture },
     }
 }

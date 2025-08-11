@@ -31,6 +31,11 @@ mod gstd_env;
 #[cfg(feature = "gstd")]
 pub use gstd_env::{GstdEnv, GstdParams};
 
+pub(crate) const PENDING_CALL_INVALID_STATE: &str =
+    "PendingCall polled after completion or invalid state";
+pub(crate) const PENDING_CTOR_INVALID_STATE: &str =
+    "PendingCtor polled after completion or invalid state";
+
 pub trait GearEnv: Clone {
     type Params: Default;
     type Error: Error;
@@ -162,16 +167,6 @@ impl<E: GearEnv, T: CallEncodeDecode> PendingCall<E, T> {
         self.params = Some(f(self.params.unwrap_or_default()));
         self
     }
-
-    fn encode_call(&self) -> Vec<u8> {
-        if let Some(route) = &self.route
-            && let Some(args) = &self.args
-        {
-            T::encode_params_with_prefix(route, args)
-        } else {
-            vec![]
-        }
-    }
 }
 
 pin_project_lite::pin_project! {
@@ -238,16 +233,34 @@ pub trait CallEncodeDecode {
 
     fn decode_reply(payload: impl AsRef<[u8]>) -> Result<Self::Reply, parity_scale_codec::Error> {
         let mut value = payload.as_ref();
-        let zero_size_reply = Self::is_empty_tuple::<Self::Reply>();
-        if !zero_size_reply && !value.starts_with(Self::ROUTE.encode().as_slice()) {
+        if Self::is_empty_tuple::<Self::Reply>() {
+            return Decode::decode(&mut value);
+        }
+        // Decode payload as `(String, Self::Reply)`
+        let route = String::decode(&mut value)?;
+        if route != Self::ROUTE {
             return Err("Invalid reply prefix".into());
         }
-        let start_idx = if zero_size_reply {
-            0
-        } else {
-            Self::ROUTE.len()
-        };
-        value = &value[start_idx..];
+        Decode::decode(&mut value)
+    }
+
+    fn decode_reply_with_prefix(
+        prefix: Route,
+        payload: impl AsRef<[u8]>,
+    ) -> Result<Self::Reply, parity_scale_codec::Error> {
+        let mut value = payload.as_ref();
+        if Self::is_empty_tuple::<Self::Reply>() {
+            return Decode::decode(&mut value);
+        }
+        // Decode payload as `(String, String, Self::Reply)`
+        let route = String::decode(&mut value)?;
+        if route != prefix {
+            return Err("Invalid reply prefix".into());
+        }
+        let route = String::decode(&mut value)?;
+        if route != Self::ROUTE {
+            return Err("Invalid reply prefix".into());
+        }
         Decode::decode(&mut value)
     }
 
@@ -428,12 +441,13 @@ mod tests {
         assert_eq!(VALUE, &[20, 86, 97, 108, 117, 101]);
     }
 
+    #[test]
     fn test_io_struct_impl() {
         io_struct_impl!(Add (value: u32) -> u32);
         io_struct_impl!(Value () -> u32);
 
         let add = Add::encode_params(42);
-        assert_eq!(add, &[12, 65, 100, 100, 42]);
+        assert_eq!(add, &[12, 65, 100, 100, 42, 0, 0, 0]);
 
         let value = Value::encode_params();
         assert_eq!(value, &[20, 86, 97, 108, 117, 101]);

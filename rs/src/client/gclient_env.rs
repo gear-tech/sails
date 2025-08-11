@@ -103,7 +103,7 @@ async fn send_message(
     // TODO handle errors
     match reply_code {
         ReplyCode::Success(_) => Ok(payload),
-        ReplyCode::Error(error_reply_reason) => todo!(),
+        ReplyCode::Error(_error_reply_reason) => todo!(),
         ReplyCode::Unsupported => todo!(),
     }
 }
