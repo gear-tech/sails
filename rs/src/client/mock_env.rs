@@ -53,7 +53,7 @@ impl<T: CallEncodeDecode> Future for PendingCall<MockEnv, T> {
                 let res = ready.into_inner();
                 Poll::Ready(res.map(|v| T::Reply::decode(&mut v.as_slice()).unwrap()))
             }
-            None => panic!("PendingCall polled after completion or invalid state"),
+            None => panic!("{PENDING_CALL_INVALID_STATE}"),
         }
     }
 }
@@ -64,13 +64,14 @@ impl<A, T: CallEncodeDecode> Future for PendingCtor<MockEnv, A, T> {
     fn poll(mut self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<Self::Output> {
         match self.state.take() {
             Some(_ready) => {
-                let program_id = self.program_id.take().unwrap_or_else(|| {
-                    panic!("PendingCtor polled after completion or invalid state")
-                });
+                let program_id = self
+                    .program_id
+                    .take()
+                    .unwrap_or_else(|| panic!("{PENDING_CTOR_INVALID_STATE}"));
                 let env = self.env.clone();
                 Poll::Ready(Ok(Actor::new(env, program_id)))
             }
-            None => panic!("PendingCall polled after completion or invalid state"),
+            None => panic!("{PENDING_CTOR_INVALID_STATE}"),
         }
     }
 }

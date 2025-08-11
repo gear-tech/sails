@@ -20,6 +20,7 @@ pub use spin::{self};
 #[cfg(feature = "client-builder")]
 mod builder;
 pub mod calls;
+pub mod client;
 pub mod errors;
 #[cfg(not(target_arch = "wasm32"))]
 pub mod events;
