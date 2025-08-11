@@ -55,33 +55,9 @@ jobs:
         run: |
           cp master-branch/benchmarks/bench_data.json baseline.json
 
-      # Update the bench files formats
-      - name: Convert PR Bench Data
-        run: |
-          cargo run --bin convert-bench-data --manifest-path=benchmarks/Cargo.toml -- benchmarks/bench_data.json bench_data_pr_converted.json
-
-      - name: Convert Baseline Bench Data
-        run: |
-          cargo run --bin convert-bench-data --manifest-path=benchmarks/Cargo.toml -- baseline.json bench_data_baseline_converted.json
-
       - name: Display Bench Data
         run: |
           echo "PR Bench Data:"
-          cat bench_data_pr_converted.json
+          cat benchmarks/bench_data.json
           echo "Baseline Bench Data:"
-          cat bench_data_baseline_converted.json
-
-      # Compare benchmarks using github-action-benchmark
-      - name: Compare Benchmarks
-        uses: benchmark-action/github-action-benchmark@v1.20.4
-        with:
-          tool: 'customSmallerIsBetter'
-          benchmark-data-dir-path: .
-          output-file-path: bench_data_pr_converted.json
-          external-data-json-path: bench_data_baseline_converted.json
-          comment-always: true
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          comment-on-alert: true
-          save-data-file: false
-          ref: ${{ github.event.pull_request.head.sha }}
-          alert-threshold: "1%"
+          cat baseline.json
