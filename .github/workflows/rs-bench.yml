@@ -42,28 +42,47 @@ jobs:
         run: |
           make bench
 
-      # todo [sab] check if you can download only one file
-      # Checkout master branch to get baseline JSON
-      - name: Checkout master branch
+      # Step 1: Check if current benchmarks differ significantly from previous ones in current branch
+      - name: Check Benchmark Diff vs Current Branch
+        if: github.event_name == 'pull_request'
+        run: |
+          # Get previous bench_data.json from current branch (before the latest commit)
+          git fetch origin ${{ github.head_ref }}
+          if git show HEAD~1:benchmarks/bench_data.json > bench_data_previous.json 2>/dev/null; then
+            echo "Found previous benchmark data in current branch"
+            cd benchmarks
+            cargo run --bin check-benchmark-diff -- bench_data.json ../bench_data_previous.json 1.0
+          else
+            echo "No previous benchmark data found in current branch - treating as first run"
+          fi
+        env:
+          CARGO_TERM_COLOR: always
+
+      # Step 2: If diff check passes, compare with master baseline  
+      - name: Checkout master branch for baseline
+        if: github.event_name == 'pull_request'
         uses: actions/checkout@v4
         with:
           ref: master
           path: master-branch
 
       # Copy baseline JSON from master
-      - name: Copy Baseline JSON
+      - name: Copy Baseline JSON from Master
+        if: github.event_name == 'pull_request'
         run: |
           cp master-branch/benchmarks/bench_data.json baseline.json
 
       - name: Display Bench Data
+        if: github.event_name == 'pull_request'
         run: |
-          echo "PR Bench Data:"
+          echo "=== Current PR Bench Data ==="
           cat benchmarks/bench_data.json
-          echo "Baseline Bench Data:"
+          echo ""
+          echo "=== Master Baseline Bench Data ==="
           cat baseline.json
 
       # Compare benchmarks and generate markdown table
-      - name: Compare Benchmarks
+      - name: Compare Benchmarks vs Master
         if: github.event_name == 'pull_request'
         run: |
           cd benchmarks
