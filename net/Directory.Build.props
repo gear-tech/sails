@@ -9,7 +9,7 @@
   <PropertyGroup>
     <SailsPackagesVersion Condition="'$(SailsPackagesVersionOverride)' == ''">0.1.0-beta.2</SailsPackagesVersion>
     <SailsPackagesVersion Condition="'$(SailsPackagesVersionOverride)' != ''">$(SailsPackagesVersionOverride)</SailsPackagesVersion>
-    <SubstrateNetApiVersion>[0.9.24-rc8]</SubstrateNetApiVersion>
+    <SubstrateNetApiVersion>[0.9.24]</SubstrateNetApiVersion>
   </PropertyGroup>
 
   <ItemGroup>
