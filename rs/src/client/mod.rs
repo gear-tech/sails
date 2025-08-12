@@ -84,13 +84,13 @@ impl<E: GearEnv, A> Deployment<E, A> {
     }
 }
 
-pub struct Actor<A, E: GearEnv> {
+pub struct Actor<E: GearEnv, A> {
     env: E,
     id: ActorId,
     _phantom: PhantomData<A>,
 }
 
-impl<A, E: GearEnv> Actor<A, E> {
+impl<E: GearEnv, A> Actor<E, A> {
     pub fn new(env: E, id: ActorId) -> Self {
         Actor {
             env,
@@ -99,7 +99,7 @@ impl<A, E: GearEnv> Actor<A, E> {
         }
     }
 
-    pub fn with_env<N: GearEnv>(self, env: N) -> Actor<A, N> {
+    pub fn with_env<N: GearEnv>(self, env: N) -> Actor<N, A> {
         let Self {
             env: _,
             id,
@@ -112,19 +112,19 @@ impl<A, E: GearEnv> Actor<A, E> {
         }
     }
 
-    pub fn service<S>(&self, route: Route) -> Service<S, E> {
+    pub fn service<S>(&self, route: Route) -> Service<E, S> {
         Service::new(self.env.clone(), self.id, route)
     }
 }
 
-pub struct Service<S, E: GearEnv> {
+pub struct Service<E: GearEnv, S> {
     env: E,
     actor_id: ActorId,
     route: Route,
     _phantom: PhantomData<S>,
 }
 
-impl<S, E: GearEnv> Service<S, E> {
+impl<E: GearEnv, S> Service<E, S> {
     pub fn new(env: E, actor_id: ActorId, route: Route) -> Self {
         Service {
             env,
@@ -429,8 +429,8 @@ macro_rules! str_scale_encode {
 #[cfg(test)]
 mod tests {
     use super::*;
-    struct Add;
-    struct Value;
+    io_struct_impl!(Add (value: u32) -> u32);
+    io_struct_impl!(Value () -> u32);
 
     #[test]
     fn test_str_encode() {
@@ -443,9 +443,6 @@ mod tests {
 
     #[test]
     fn test_io_struct_impl() {
-        io_struct_impl!(Add (value: u32) -> u32);
-        io_struct_impl!(Value () -> u32);
-
         let add = Add::encode_params(42);
         assert_eq!(add, &[12, 65, 100, 100, 42, 0, 0, 0]);
 
