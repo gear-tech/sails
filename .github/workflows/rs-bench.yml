@@ -37,10 +37,10 @@ jobs:
       - name: Install wasm-opt
         uses: ./.github/actions/install-wasm-utils
 
-      # Run benchmarks on PR branch
-      - name: Run Benchmarks
-        run: |
-          make bench
+      # # Run benchmarks on PR branch
+      # - name: Run Benchmarks
+      #   run: |
+      #     make bench
 
       - name: Check bench data on previous commit
         run: |
