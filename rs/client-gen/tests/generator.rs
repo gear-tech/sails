@@ -183,7 +183,10 @@ fn full_with_sails_path() {
         type T = enum { One };
 
         constructor {
+            /// New constructor
             New : (a: u32);
+            /// CreateWithData constructor
+            CreateWithData : (a: u32, b: str, c: ThisThatSvcAppManyVariants);
         };
 
         service {
@@ -192,7 +195,22 @@ fn full_with_sails_path() {
             query This : (v1: vec u16) -> u32;
             query That : (v1: null) -> result (str, str);
         };
-        "#;
+
+        service Counter {
+            /// Add a value to the counter
+            Add : (value: u32) -> u32;
+            /// Substract a value from the counter
+            Sub : (value: u32) -> u32;
+            /// Get the current value
+            query Value : () -> u32;
+
+            events {
+                /// Emitted when a new value is added to the counter
+                Added: u32;
+                /// Emitted when a value is subtracted from the counter
+                Subtracted: u32;
+            }
+        };"#;
 
     let code = ClientGenerator::from_idl(IDL)
         .with_sails_crate("my_crate::sails")
