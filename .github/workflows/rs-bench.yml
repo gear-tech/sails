@@ -30,6 +30,8 @@ jobs:
       # Checkout the current branch (PR branch)
       - name: Checkout PR branch
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
 
       - name: Free Disk Space
         uses: ./.github/actions/free-disk-space
@@ -77,6 +79,7 @@ jobs:
       #   run: |
       #     cp master-branch/benchmarks/bench_data.json baseline.json
 
+# todo [sab] remove
       # - name: Display Bench Data
       #   if: github.event_name == 'pull_request'
       #   run: |
@@ -105,6 +108,7 @@ jobs:
       #     cat comparison.md >> $GITHUB_OUTPUT
       #     echo 'EOF' >> $GITHUB_OUTPUT
 
+# todo [sab] write a new comment, not updated (edited)
       # # Comment the comparison table on the PR
       # - name: Comment PR with Benchmark Comparison
       #   if: github.event_name == 'pull_request'
