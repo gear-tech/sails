@@ -3,139 +3,137 @@ use genco::prelude::*;
 use rust::Tokens;
 use sails_idl_parser::{ast::visitor, ast::visitor::Visitor, ast::*};
 
+use crate::events_generator::EventsModuleGenerator;
 use crate::helpers::*;
 use crate::type_generators::generate_type_decl_code;
 
 /// Generates a trait with service methods
-pub(crate) struct ServiceTraitGenerator {
-    service_name: String,
-    tokens: Tokens,
+pub(crate) struct ServiceCtorGenerator<'a> {
+    service_name: &'a str,
+    trait_tokens: Tokens,
+    impl_tokens: Tokens,
 }
 
-impl ServiceTraitGenerator {
-    pub(crate) fn new(service_name: String) -> Self {
+impl<'a> ServiceCtorGenerator<'a> {
+    pub(crate) fn new(service_name: &'a str) -> Self {
         Self {
             service_name,
-            tokens: Tokens::new(),
+            trait_tokens: Tokens::new(),
+            impl_tokens: Tokens::new(),
+        }
+    }
+
+    pub(crate) fn finalize(self) -> (Tokens, Tokens) {
+        (self.trait_tokens, self.impl_tokens)
+    }
+}
+
+impl<'ast> Visitor<'ast> for ServiceCtorGenerator<'_> {
+    fn visit_service(&mut self, service: &'ast Service) {
+        let service_name_snake = &self.service_name.to_case(Case::Snake);
+        quote_in!(self.trait_tokens =>
+            fn $service_name_snake(&self) -> Service<Self::Env, $service_name_snake::$(self.service_name)Impl>;
+        );
+        quote_in!(self.impl_tokens =>
+            fn $service_name_snake(&self) -> Service<Self::Env, $service_name_snake::$(self.service_name)Impl> {
+                self.service(stringify!($service_name_snake::$(self.service_name)))
+            }
+        );
+    }
+}
+
+/// Generates a service module with trait and struct implementation
+pub(crate) struct ServiceGenerator<'a> {
+    service_name: &'a str,
+    sails_path: &'a str,
+    trait_tokens: Tokens,
+    impl_tokens: Tokens,
+    io_tokens: Tokens,
+    events_tokens: Tokens,
+}
+
+impl<'a> ServiceGenerator<'a> {
+    pub(crate) fn new(service_name: &'a str, sails_path: &'a str) -> Self {
+        Self {
+            service_name,
+            sails_path,
+            trait_tokens: Tokens::new(),
+            impl_tokens: Tokens::new(),
+            io_tokens: Tokens::new(),
+            events_tokens: Tokens::new(),
         }
     }
 
     pub(crate) fn finalize(self) -> Tokens {
+        let service_name_snake = &self.service_name.to_case(Case::Snake);
         quote! {
             $['\n']
-            #[allow(clippy::type_complexity)]
-            pub trait $(&self.service_name) {
-                type Args;
-                $(self.tokens)
+            pub mod $service_name_snake {
+                use super::*;
+
+                pub trait $(self.service_name) {
+                    type Env: GearEnv;
+                    $(self.trait_tokens)
+                }
+
+                pub struct $(self.service_name)Impl;
+
+                impl<E: GearEnv> $(self.service_name) for Service<E, $(self.service_name)Impl> {
+                    type Env = E;
+                    $(self.impl_tokens)
+                }
+
+                $['\n']
+                pub mod io {
+                    use super::*;
+                    $(self.io_tokens)
+                }
+
+                $(self.events_tokens)
             }
         }
-    }
-}
-
-impl<'ast> Visitor<'ast> for ServiceTraitGenerator {
-    fn visit_service(&mut self, service: &'ast Service) {
-        visitor::accept_service(service, self);
-    }
-
-    fn visit_service_func(&mut self, func: &'ast ServiceFunc) {
-        let mutability = if func.is_query() { "" } else { "mut" };
-        let fn_name = func.name().to_case(Case::Snake);
-
-        let mut params_tokens = Tokens::new();
-        for param in func.params() {
-            let type_decl_code = generate_type_decl_code(param.type_decl());
-            quote_in! {params_tokens =>
-                $(param.name()): $(type_decl_code),
-            };
-        }
-
-        let output_type_decl_code = generate_type_decl_code(func.output());
-        let output_trait = if func.is_query() { "Query" } else { "Call" };
-
-        quote_in! { self.tokens=>
-            $['\r'] fn $fn_name (&$mutability self, $params_tokens) -> impl $output_trait<Output = $output_type_decl_code, Args = Self::Args>;
-        };
-    }
-}
-
-/// Generates a client that implements service trait
-pub(crate) struct ServiceClientGenerator {
-    service_name: String,
-    tokens: Tokens,
-}
-
-impl ServiceClientGenerator {
-    pub(crate) fn new(service_name: String) -> Self {
-        Self {
-            service_name,
-            tokens: Tokens::new(),
-        }
-    }
-
-    pub(crate) fn finalize(self) -> Tokens {
-        self.tokens
     }
 }
 
 // using quote_in instead of tokens.append
-impl<'ast> Visitor<'ast> for ServiceClientGenerator {
+impl<'ast> Visitor<'ast> for ServiceGenerator<'_> {
     fn visit_service(&mut self, service: &'ast Service) {
-        let name = &self.service_name;
-
-        quote_in! {self.tokens =>
-            pub struct $name<R> {
-                remoting: R,
-            }
-
-            impl<R> $name<R> {
-                pub fn new(remoting: R) -> Self {
-                    Self { remoting }
-                }
-            }
-
-            impl<R: Remoting + Clone> traits::$name for $name<R>
-            $("{")
-                type Args = R::Args;
-        };
-
         visitor::accept_service(service, self);
 
-        quote_in! {self.tokens =>
-            $("}")
-        };
+        if !service.events().is_empty() {
+            let mut events_mod_gen =
+                EventsModuleGenerator::new(self.service_name, self.service_name, self.sails_path);
+            events_mod_gen.visit_service(service);
+            self.events_tokens = events_mod_gen.finalize();
+        }
     }
 
     fn visit_service_func(&mut self, func: &'ast ServiceFunc) {
         let mutability = if func.is_query() { "" } else { "mut" };
         let fn_name = func.name();
-        let fn_name_snake = fn_name.to_case(Case::Snake);
+        let fn_name_snake = &fn_name.to_case(Case::Snake);
 
-        let mut params_tokens = Tokens::new();
-        for param in func.params() {
-            let type_decl_code = generate_type_decl_code(param.type_decl());
-            quote_in! {params_tokens =>
-                $(param.name()): $(type_decl_code),
-            };
-        }
-
-        let output_type_decl_code = generate_type_decl_code(func.output());
-        let output_trait = if func.is_query() { "Query" } else { "Call" };
-
+        let params_with_types = &fn_args_with_types(func.params());
         let args = encoded_args(func.params());
-
-        let service_name_snake = self.service_name.to_case(Case::Snake);
-        let params_type = format!("{service_name_snake}::io::{fn_name}");
+        let output_type_decl_code = generate_type_decl_code(func.output());
 
         for doc in func.docs() {
-            quote_in! { self.tokens =>
+            quote_in! { self.trait_tokens =>
                 $['\r'] $("///") $doc
             };
         }
+        quote_in! { self.trait_tokens =>
+            $['\r'] fn $fn_name_snake (&$mutability self, $params_with_types) -> PendingCall<Self::Env, io::$fn_name>;
+        };
 
-        quote_in! {self.tokens =>
-            $['\r'] fn $fn_name_snake (&$mutability self, $params_tokens) -> impl $output_trait<Output = $output_type_decl_code, Args = R::Args> {
-                RemotingAction::<_, $params_type>::new(self.remoting.clone(), $args)
+        quote_in! {self.impl_tokens =>
+            $['\r'] fn $fn_name_snake (&$mutability self, $params_with_types) -> PendingCall<Self::Env, io::$fn_name> {
+                self.pending_call($args)
             }
+        };
+
+        quote_in! { self.io_tokens =>
+            $(self.sails_path)::io_struct_impl!($fn_name ($params_with_types) -> $output_type_decl_code);
         };
     }
 }

@@ -6,6 +6,7 @@ use core::{
     pin::Pin,
     task::{Context, Poll},
 };
+use futures::{Stream, StreamExt as _};
 
 #[cfg(not(target_arch = "wasm32"))]
 mod mock_env;
@@ -40,6 +41,16 @@ pub trait GearEnv: Clone {
     type Params: Default;
     type Error: Error;
     type MessageState;
+}
+
+pub trait Program: Sized {
+    fn deploy<E: GearEnv>(env: E, code_id: CodeId, salt: Vec<u8>) -> Deployment<E, Self> {
+        Deployment::new(env, code_id, salt)
+    }
+
+    fn client<E: GearEnv>(env: E, program_id: ActorId) -> Actor<E, Self> {
+        Actor::new(env, program_id)
+    }
 }
 
 #[cfg(not(target_arch = "wasm32"))]
@@ -361,6 +372,48 @@ macro_rules! str_scale_encode {
         };
         BYTES.as_slice()
     }};
+}
+
+// impl<R: Listener<Vec<u8>> + GearEnv, S, E: EventDecode> Listener<E::Event> for Service<R, S> {
+//     type Error = parity_scale_codec::Error;
+
+//     async fn listen(
+//         &mut self,
+//     ) -> Result<impl Stream<Item = (ActorId, E::Event)> + Unpin, Self::Error> {
+//         let stream = self.env.listen().await?;
+//         let map = stream.filter_map(move |(actor_id, payload)| async move {
+//             E::decode_event(self.route, payload)
+//                 .ok()
+//                 .map(|e| (actor_id, e))
+//         });
+//         Ok(Box::pin(map))
+//     }
+// }
+
+pub trait EventDecode {
+    const EVENT_NAMES: &'static [&'static [u8]];
+    type Event: Decode;
+
+    fn decode_event(
+        prefix: Route,
+        payload: impl AsRef<[u8]>,
+    ) -> Result<Self::Event, parity_scale_codec::Error> {
+        let mut payload = payload.as_ref();
+        let route = String::decode(&mut payload)?;
+        if route != prefix {
+            return Err("Invalid event prefix".into());
+        }
+
+        for (idx, name) in Self::EVENT_NAMES.iter().enumerate() {
+            if payload.starts_with(name) {
+                let idx = idx as u8;
+                let bytes = [&[idx], &payload[name.len()..]].concat();
+                let mut event_bytes = &bytes[..];
+                return Decode::decode(&mut event_bytes);
+            }
+        }
+        Err("Invalid event name".into())
+    }
 }
 
 // mod client {

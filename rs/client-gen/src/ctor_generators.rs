@@ -1,178 +1,88 @@
-use crate::{
-    helpers::*, io_generators::generate_io_struct, type_generators::generate_type_decl_code,
-};
+use crate::helpers::*;
 use convert_case::{Case, Casing};
 use genco::prelude::*;
 use rust::Tokens;
 use sails_idl_parser::{ast::visitor, ast::visitor::Visitor, ast::*};
 
-pub(crate) struct CtorFactoryGenerator<'a> {
+pub(crate) struct CtorGenerator<'a> {
     service_name: &'a str,
     sails_path: &'a str,
-    tokens: Tokens,
+    ctor_tokens: Tokens,
     io_tokens: Tokens,
+    trait_ctors_tokens: Tokens,
 }
 
-impl<'a> CtorFactoryGenerator<'a> {
+impl<'a> CtorGenerator<'a> {
     pub(crate) fn new(service_name: &'a str, sails_path: &'a str) -> Self {
         Self {
             service_name,
             sails_path,
-            tokens: Tokens::new(),
+            ctor_tokens: Tokens::new(),
             io_tokens: Tokens::new(),
+            trait_ctors_tokens: Tokens::new(),
         }
     }
 
     pub(crate) fn finalize(self) -> Tokens {
-        let service_name_snake = self.service_name.to_case(Case::Snake);
         quote! {
-            $(self.tokens)
+            pub trait $(self.service_name)Ctors {
+                type Env: GearEnv;
+                $(self.trait_ctors_tokens)
+            }
+
+            impl<E: GearEnv> $(self.service_name)Ctors for Deployment<E, $(self.service_name)Program> {
+                type Env = E;
+                $(self.ctor_tokens)
+            }
+
             $['\n']
-            pub mod $(service_name_snake)_factory {
+            pub mod io {
                 use super::*;
-                pub mod io {
-                    use super::*;
-                    use $(self.sails_path)::calls::ActionIo;
-                    $(self.io_tokens)
-                }
+                $(self.io_tokens)
             }
         }
     }
 }
 
-impl<'ast> Visitor<'ast> for CtorFactoryGenerator<'_> {
+impl<'ast> Visitor<'ast> for CtorGenerator<'_> {
     fn visit_ctor(&mut self, ctor: &'ast Ctor) {
-        quote_in! {self.tokens =>
-            pub struct $(self.service_name)Factory<R> {
-                #[allow(dead_code)]
-                remoting: R,
-            }
-
-            impl<R> $(self.service_name)Factory<R> {
-                #[allow(unused)]
-                pub fn new(remoting: R) -> Self {
-                    Self {
-                        remoting,
-                    }
-                }
-            }
-
-            impl<R: Remoting + Clone> traits::$(self.service_name)Factory for $(self.service_name)Factory<R> $("{")
-                type Args = R::Args;
-        };
-
         visitor::accept_ctor(ctor, self);
-
-        quote_in! { self.tokens =>
-            $['\r'] $("}")
-        };
     }
 
     fn visit_ctor_func(&mut self, func: &'ast CtorFunc) {
         let fn_name = func.name();
-        let fn_name_snake = fn_name.to_case(Case::Snake);
-        let fn_name_snake = fn_name_snake.as_str();
+        let fn_name_snake = &fn_name.to_case(Case::Snake);
+
+        let params_with_types = &fn_args_with_types(func.params());
+        let args = &encoded_args(func.params());
 
         for doc in func.docs() {
-            quote_in! { self.tokens =>
+            quote_in! { self.trait_ctors_tokens =>
                 $['\r'] $("///") $doc
             };
         }
 
-        quote_in! { self.tokens =>
-            $['\r'] fn $fn_name_snake$("(")&self,
-        };
-
-        visitor::accept_ctor_func(func, self);
-
-        let args = encoded_args(func.params());
-
-        let service_name_snake = self.service_name.to_case(Case::Snake);
-        let params_type = format!("{service_name_snake}_factory::io::{fn_name}");
-
-        quote_in! { self.tokens =>
-            $(")") -> impl Activation<Args = R::Args> {
-                RemotingAction::<_, $params_type>::new(self.remoting.clone(), $args)
-            }
-        };
-
-        let route_bytes = path_bytes(fn_name).0;
-        let struct_tokens = generate_io_struct(fn_name, func.params(), None, route_bytes.as_str());
-
-        quote_in! { self.io_tokens =>
-            $struct_tokens
-        };
-    }
-
-    fn visit_func_param(&mut self, func_param: &'ast FuncParam) {
-        let type_decl_code = generate_type_decl_code(func_param.type_decl());
-        quote_in! { self.tokens =>
-            $(func_param.name()): $(type_decl_code),
-        };
-    }
-}
-
-pub(crate) struct CtorTraitGenerator {
-    service_name: String,
-    tokens: Tokens,
-}
-
-impl CtorTraitGenerator {
-    pub(crate) fn new(service_name: String) -> Self {
-        Self {
-            service_name,
-            tokens: Tokens::new(),
-        }
-    }
-
-    pub(crate) fn finalize(self) -> Tokens {
-        self.tokens
-    }
-}
-
-impl<'ast> Visitor<'ast> for CtorTraitGenerator {
-    fn visit_ctor(&mut self, ctor: &'ast Ctor) {
-        quote_in! {self.tokens =>
-            #[allow(dead_code)]
-            pub trait $(&self.service_name)Factory $("{")
-                type Args;
-        };
-
-        visitor::accept_ctor(ctor, self);
-
-        quote_in! {self.tokens =>
-            $['\r'] $("}")
-        };
-    }
-
-    fn visit_ctor_func(&mut self, func: &'ast CtorFunc) {
-        let fn_name = func.name();
-        let fn_name_snake = fn_name.to_case(Case::Snake);
-        let fn_name_snake = fn_name_snake.as_str();
-
         if fn_name_snake == "new" {
-            quote_in! {self.tokens =>
+            quote_in! {self.trait_ctors_tokens =>
                 #[allow(clippy::new_ret_no_self)]
                 #[allow(clippy::wrong_self_convention)]
             };
         }
 
-        quote_in! {self.tokens =>
-            $['\r'] fn $fn_name_snake$("(")&self,
+        quote_in! { self.trait_ctors_tokens =>
+            $['\r']
+            fn $fn_name_snake (self, $params_with_types) -> PendingCtor<Self::Env, $(self.service_name)Program, io::$fn_name>;
         };
 
-        visitor::accept_ctor_func(func, self);
-
-        quote_in! {self.tokens =>
-            $(")") -> impl Activation<Args = Self::Args>;
+        quote_in! { self.ctor_tokens =>
+            $['\r']
+            fn $fn_name_snake (self, $params_with_types) -> PendingCtor<Self::Env, $(self.service_name)Program, io::$fn_name> {
+                self.pending_ctor($args)
+            }
         };
-    }
 
-    fn visit_func_param(&mut self, func_param: &'ast FuncParam) {
-        let type_decl_code = generate_type_decl_code(func_param.type_decl());
-
-        quote_in! { self.tokens =>
-            $(func_param.name()): $(type_decl_code),
+        quote_in! { self.io_tokens =>
+            $(self.sails_path)::io_struct_impl!($fn_name ($params_with_types) -> ());
         };
     }
 }

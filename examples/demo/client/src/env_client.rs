@@ -19,19 +19,7 @@ pub trait Demo {
 
 pub struct DemoProgram;
 
-impl DemoProgram {
-    pub fn deploy<E: GearEnv>(
-        env: E,
-        code_id: CodeId,
-        salt: Vec<u8>,
-    ) -> Deployment<E, DemoProgram> {
-        Deployment::new(env, code_id, salt)
-    }
-
-    pub fn client<E: GearEnv>(env: E, program_id: ActorId) -> Actor<E, DemoProgram> {
-        Actor::new(env, program_id)
-    }
-}
+impl Program for DemoProgram {}
 
 impl<E: GearEnv> DemoCtors for Deployment<E, DemoProgram> {
     type Env = E;
@@ -61,7 +49,7 @@ pub mod io {
     use super::*;
     use sails_rs::client::{CallEncodeDecode, Route};
     sails_rs::io_struct_impl!(Default () -> ());
-    sails_rs::io_struct_impl!(New (counter: Option<u32>, dog_position: Option<(i32, i32)>) -> ());
+    sails_rs::io_struct_impl!(New (counter: Option<u32>, dog_position: Option<(i32, i32),>) -> ());
 }
 
 /// Counter Service

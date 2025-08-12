@@ -29,18 +29,7 @@ pub mod ping_pong_factory {
     pub mod io {
         use super::*;
         use sails_rs::calls::ActionIo;
-        pub struct NewForBench(());
-        impl NewForBench {
-            #[allow(dead_code)]
-            pub fn encode_call() -> Vec<u8> {
-                <NewForBench as ActionIo>::encode_call(&())
-            }
-        }
-        impl ActionIo for NewForBench {
-            const ROUTE: &'static [u8] = &[44, 78, 101, 119, 70, 111, 114, 66, 101, 110, 99, 104];
-            type Params = ();
-            type Reply = ();
-        }
+        sails_rs::io_struct_impl!(NewForBench () -> ());
     }
 }
 pub struct PingPongService<R> {

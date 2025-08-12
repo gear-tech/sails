@@ -53,17 +53,17 @@ impl<'ast> Visitor<'ast> for EventsModuleGenerator<'_> {
             $['\r'] $("}")
         };
 
-        quote_in! { self.tokens =>
-            impl EventIo for $(&events_name) {
-                const ROUTE: &'static [u8] = &[$service_path_bytes];
-                const EVENT_NAMES: &'static [&'static [u8]] = &[&[$event_names_bytes]];
-                type Event = Self;
-            }
+        // quote_in! { self.tokens =>
+        //     impl EventIo for $(&events_name) {
+        //         const ROUTE: &'static [u8] = &[$service_path_bytes];
+        //         const EVENT_NAMES: &'static [&'static [u8]] = &[&[$event_names_bytes]];
+        //         type Event = Self;
+        //     }
 
-            pub fn listener<R: Listener<Vec<u8>>>(remoting: R) -> impl Listener<$(&events_name)> {
-                RemotingListener::<_, $(&events_name)>::new(remoting)
-            }
-        }
+        //     pub fn listener<R: Listener<Vec<u8>>>(remoting: R) -> impl Listener<$(&events_name)> {
+        //         RemotingListener::<_, $(&events_name)>::new(remoting)
+        //     }
+        // }
 
         quote_in! { self.tokens =>
             $['\r'] $("}")
