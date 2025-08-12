@@ -13,7 +13,7 @@
     <PackageVersion Include="System.Threading.Channels" Version="9.0.1" />
     <!-- Tests -->
     <PackageVersion Include="coverlet.collector" Version="6.0.4" />
-    <PackageVersion Include="FluentAssertions" Version="8.0.1" />
+    <PackageVersion Include="FluentAssertions" Version="8.5.0" />
     <PackageVersion Include="Microsoft.Bcl.AsyncInterfaces" Version="9.0.1" />
     <PackageVersion Include="Microsoft.Extensions.DependencyInjection" Version="9.0.1" />
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.13.0" />
