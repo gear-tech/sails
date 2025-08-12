@@ -185,7 +185,7 @@ impl<T: CallEncodeDecode> Future for PendingCall<GstdEnv, T> {
 }
 
 impl<A, T: CallEncodeDecode> Future for PendingCtor<GstdEnv, A, T> {
-    type Output = Result<Actor<A, GstdEnv>, <GstdEnv as GearEnv>::Error>;
+    type Output = Result<Actor<GstdEnv, A>, <GstdEnv as GearEnv>::Error>;
 
     fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
         if self.state.is_none() {
@@ -231,8 +231,7 @@ impl<A, T: CallEncodeDecode> Future for PendingCtor<GstdEnv, A, T> {
             match future.poll(cx) {
                 Poll::Ready(Ok((program_id, _payload))) => {
                     // Do not decode payload here
-                    let env = this.env.clone();
-                    Poll::Ready(Ok(Actor::new(env, program_id)))
+                    Poll::Ready(Ok(Actor::new(this.env.clone(), program_id)))
                 }
                 Poll::Ready(Err(err)) => Poll::Ready(Err(err)),
                 Poll::Pending => Poll::Pending,

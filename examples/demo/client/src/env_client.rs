@@ -14,7 +14,7 @@ pub trait DemoCtors {
 pub trait Demo {
     type Env: GearEnv;
 
-    fn counter(&self) -> Service<counter::CounterImpl, Self::Env>;
+    fn counter(&self) -> Service<Self::Env, counter::CounterImpl>;
 }
 
 pub struct DemoProgram;
@@ -28,7 +28,7 @@ impl DemoProgram {
         Deployment::new(env, code_id, salt)
     }
 
-    pub fn client<E: GearEnv>(env: E, program_id: ActorId) -> Actor<DemoProgram, E> {
+    pub fn client<E: GearEnv>(env: E, program_id: ActorId) -> Actor<E, DemoProgram> {
         Actor::new(env, program_id)
     }
 }
@@ -49,10 +49,10 @@ impl<E: GearEnv> DemoCtors for Deployment<E, DemoProgram> {
     }
 }
 
-impl<E: GearEnv> Demo for Actor<DemoProgram, E> {
+impl<E: GearEnv> Demo for Actor<E, DemoProgram> {
     type Env = E;
 
-    fn counter(&self) -> Service<counter::CounterImpl, Self::Env> {
+    fn counter(&self) -> Service<Self::Env, counter::CounterImpl> {
         self.service("Counter")
     }
 }
@@ -77,7 +77,7 @@ pub mod counter {
 
     pub struct CounterImpl;
 
-    impl<E: GearEnv> Counter for Service<CounterImpl, E> {
+    impl<E: GearEnv> Counter for Service<E, CounterImpl> {
         type Env = E;
 
         fn add(&mut self, value: u32) -> PendingCall<Self::Env, io::Add> {
