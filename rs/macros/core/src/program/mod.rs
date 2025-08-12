@@ -106,8 +106,8 @@ impl ProgramBuilder {
 
     fn handle_reply_fn(&mut self) -> Option<&mut ImplItemFn> {
         let mut fn_iter = self.program_impl.items.iter_mut().filter_map(|item| {
-            if let ImplItem::Fn(fn_item) = item {
-                if has_handle_reply_attr(fn_item) {
+            if let ImplItem::Fn(fn_item) = item
+                && has_handle_reply_attr(fn_item) {
                     fn_item
                         .attrs
                         .retain(|attr| !attr.path().is_ident("handle_reply"));
@@ -120,7 +120,6 @@ impl ProgramBuilder {
                         );
                     }
                 }
-            }
             None
         });
         let handle_reply_fn = fn_iter.next();
@@ -165,21 +164,21 @@ impl ProgramBuilder {
             .iter()
             .enumerate()
             .filter_map(|(idx, impl_item)| {
-                if let ImplItem::Fn(fn_item) = impl_item {
-                    if service_ctor_predicate(fn_item) {
-                        let (span, route, unwrap_result, _) =
-                            shared::invocation_export_or_default(fn_item);
-                        if let Some(duplicate) =
-                            routes.insert(route.clone(), fn_item.sig.ident.to_string())
-                        {
-                            abort!(
-                                span,
-                                "`export` attribute conflicts with one already assigned to '{}'",
-                                duplicate
-                            );
-                        }
-                        return Some((idx, route, fn_item, unwrap_result));
+                if let ImplItem::Fn(fn_item) = impl_item
+                    && service_ctor_predicate(fn_item)
+                {
+                    let (span, route, unwrap_result, _) =
+                        shared::invocation_export_or_default(fn_item);
+                    if let Some(duplicate) =
+                        routes.insert(route.clone(), fn_item.sig.ident.to_string())
+                    {
+                        abort!(
+                            span,
+                            "`export` attribute conflicts with one already assigned to '{}'",
+                            duplicate
+                        );
                     }
+                    return Some((idx, route, fn_item, unwrap_result));
                 }
                 None
             })
@@ -495,20 +494,18 @@ fn program_ctor_predicate(
     self_type_path: &TypePath,
     program_type_path: &TypePath,
 ) -> bool {
-    if matches!(fn_item.vis, Visibility::Public(_)) && fn_item.sig.receiver().is_none() {
-        if let ReturnType::Type(_, output_type) = &fn_item.sig.output {
-            if let Type::Path(output_type_path) = output_type.as_ref() {
-                if output_type_path == self_type_path || output_type_path == program_type_path {
-                    return true;
-                }
-                if let Some(Type::Path(output_type_path)) =
-                    shared::extract_result_type(output_type_path)
-                {
-                    if output_type_path == self_type_path || output_type_path == program_type_path {
-                        return true;
-                    }
-                }
-            }
+    if matches!(fn_item.vis, Visibility::Public(_))
+        && fn_item.sig.receiver().is_none()
+        && let ReturnType::Type(_, output_type) = &fn_item.sig.output
+        && let Type::Path(output_type_path) = output_type.as_ref()
+    {
+        if output_type_path == self_type_path || output_type_path == program_type_path {
+            return true;
+        }
+        if let Some(Type::Path(output_type_path)) = shared::extract_result_type(output_type_path)
+            && (output_type_path == self_type_path || output_type_path == program_type_path)
+        {
+            return true;
         }
     }
     false

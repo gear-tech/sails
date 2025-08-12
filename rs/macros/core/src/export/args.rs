@@ -69,10 +69,10 @@ impl Parse for ImportArg {
                 abort!(ident, "unexpected value for `route` argument: {}", input)
             }
             "unwrap_result" => {
-                if input.parse::<Token![=]>().is_ok() {
-                    if let Ok(val) = input.parse::<LitBool>() {
-                        return Ok(Self::UnwrapResult(val.value()));
-                    }
+                if input.parse::<Token![=]>().is_ok()
+                    && let Ok(val) = input.parse::<LitBool>()
+                {
+                    return Ok(Self::UnwrapResult(val.value()));
                 }
                 Ok(Self::UnwrapResult(true))
             }

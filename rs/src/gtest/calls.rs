@@ -129,19 +129,19 @@ impl GTestRemoting {
                 }
                 continue;
             }
-            if let Some(message_id) = entry.reply_to() {
-                if let Some(sender) = reply_senders.remove(&message_id) {
-                    log::debug!("Extract reply from entry {entry:?}");
-                    let reply: result::Result<Vec<u8>, _> = match entry.reply_code() {
-                        None => Err(RtlError::ReplyCodeIsMissing.into()),
-                        Some(ReplyCode::Error(reason)) => {
-                            Err(RtlError::ReplyHasError(reason, entry.payload().to_vec()).into())
-                        }
-                        Some(ReplyCode::Success(_)) => Ok(entry.payload().to_vec()),
-                        _ => Err(RtlError::ReplyIsMissing.into()),
-                    };
-                    _ = sender.send(reply);
-                }
+            if let Some(message_id) = entry.reply_to()
+                && let Some(sender) = reply_senders.remove(&message_id)
+            {
+                log::debug!("Extract reply from entry {entry:?}");
+                let reply: result::Result<Vec<u8>, _> = match entry.reply_code() {
+                    None => Err(RtlError::ReplyCodeIsMissing.into()),
+                    Some(ReplyCode::Error(reason)) => {
+                        Err(RtlError::ReplyHasError(reason, entry.payload().to_vec()).into())
+                    }
+                    Some(ReplyCode::Success(_)) => Ok(entry.payload().to_vec()),
+                    _ => Err(RtlError::ReplyIsMissing.into()),
+                };
+                _ = sender.send(reply);
             }
         }
     }
