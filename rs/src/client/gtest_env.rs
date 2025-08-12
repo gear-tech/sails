@@ -133,7 +133,7 @@ impl GtestEnv {
         }
     }
 
-    fn activate(
+    fn create_program(
         &self,
         code_id: CodeId,
         salt: impl AsRef<[u8]>,
@@ -284,7 +284,7 @@ impl<T: CallEncodeDecode> Future for PendingCall<GtestEnv, T> {
 }
 
 impl<A, T: CallEncodeDecode> Future for PendingCtor<GtestEnv, A, T> {
-    type Output = Result<Actor<A, GtestEnv>, <GtestEnv as GearEnv>::Error>;
+    type Output = Result<Actor<GtestEnv, A>, <GtestEnv as GearEnv>::Error>;
 
     fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
         if self.state.is_none() {
@@ -294,7 +294,7 @@ impl<A, T: CallEncodeDecode> Future for PendingCtor<GtestEnv, A, T> {
             let salt = self.salt.take().unwrap_or_default();
             let send_res = self
                 .env
-                .activate(self.code_id, salt, payload.as_slice(), params);
+                .create_program(self.code_id, salt, payload.as_slice(), params);
             match send_res {
                 Ok((program_id, message_id)) => {
                     log::debug!("PendingCall: send message {message_id:?}");
@@ -319,8 +319,7 @@ impl<A, T: CallEncodeDecode> Future for PendingCtor<GtestEnv, A, T> {
                             .program_id
                             .take()
                             .unwrap_or_else(|| panic!("{PENDING_CTOR_INVALID_STATE}"));
-                        let env = this.env.clone();
-                        Poll::Ready(Ok(Actor::new(env, program_id)))
+                        Poll::Ready(Ok(Actor::new(this.env.clone(), program_id)))
                     }
                     Err(err) => Poll::Ready(Err(err)),
                 },

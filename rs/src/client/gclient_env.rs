@@ -72,15 +72,50 @@ impl GclientEnv {
 impl GearEnv for GclientEnv {
     type Params = GclientParams;
     type Error = Error;
-    type MessageState = Pin<Box<dyn Future<Output = Result<Vec<u8>, Error>>>>;
+    type MessageState = Pin<Box<dyn Future<Output = Result<(ActorId, Vec<u8>), Error>>>>;
+}
+
+async fn create_program(
+    api: GearApi,
+    code_id: CodeId,
+    salt: impl AsRef<[u8]>,
+    payload: impl AsRef<[u8]>,
+    params: GclientParams,
+) -> Result<(ActorId, Vec<u8>), Error> {
+    let value = params.value.unwrap_or(0);
+    // Calculate gas amount if it is not explicitly set
+    #[cfg(not(feature = "ethexe"))]
+    let gas_limit = if let Some(gas_limit) = params.gas_limit {
+        gas_limit
+    } else {
+        // Calculate gas amount needed for initialization
+        let gas_info = api
+            .calculate_create_gas(None, code_id, Vec::from(payload.as_ref()), value, true)
+            .await?;
+        gas_info.min_limit
+    };
+    #[cfg(feature = "ethexe")]
+    let gas_limit = 0;
+
+    let mut listener = api.subscribe().await?;
+    let (message_id, program_id, ..) = api
+        .create_program_bytes(code_id, salt, payload, gas_limit, value)
+        .await?;
+    let (_, reply_code, payload, _) = wait_for_reply(&mut listener, message_id).await?;
+    // TODO handle errors
+    match reply_code {
+        ReplyCode::Success(_) => Ok((program_id, payload)),
+        ReplyCode::Error(_error_reply_reason) => todo!(),
+        ReplyCode::Unsupported => todo!(),
+    }
 }
 
 async fn send_message(
     api: GearApi,
-    target: ActorId,
+    program_id: ActorId,
     payload: Vec<u8>,
     params: GclientParams,
-) -> Result<Vec<u8>, Error> {
+) -> Result<(ActorId, Vec<u8>), Error> {
     let value = params.value.unwrap_or(0);
     #[cfg(not(feature = "ethexe"))]
     let gas_limit = if let Some(gas_limit) = params.gas_limit {
@@ -88,7 +123,7 @@ async fn send_message(
     } else {
         // Calculate gas amount needed for handling the message
         let gas_info = api
-            .calculate_handle_gas(None, target, payload.clone(), value, true)
+            .calculate_handle_gas(None, program_id, payload.clone(), value, true)
             .await?;
         gas_info.min_limit
     };
@@ -97,12 +132,12 @@ async fn send_message(
 
     let mut listener = api.subscribe().await?;
     let (message_id, ..) = api
-        .send_message_bytes(target, payload, gas_limit, value)
+        .send_message_bytes(program_id, payload, gas_limit, value)
         .await?;
     let (_, reply_code, payload, _) = wait_for_reply(&mut listener, message_id).await?;
     // TODO handle errors
     match reply_code {
-        ReplyCode::Success(_) => Ok(payload),
+        ReplyCode::Success(_) => Ok((program_id, payload)),
         ReplyCode::Error(_error_reply_reason) => todo!(),
         ReplyCode::Unsupported => todo!(),
     }
@@ -110,13 +145,16 @@ async fn send_message(
 
 impl<T: CallEncodeDecode> PendingCall<GclientEnv, T> {
     pub async fn send(mut self) -> Result<MessageId, Error> {
+        let Some(route) = self.route else {
+            return Err(Error::Codec("PendingCall route is not set".into()));
+        };
         let api = &self.env.api;
         let params = self.params.unwrap_or_default();
         let args = self
             .args
             .take()
-            .unwrap_or_else(|| panic!("PendingCtor polled after completion or invalid state"));
-        let payload = T::encode_params_with_prefix(self.route.unwrap(), &args);
+            .unwrap_or_else(|| panic!("{PENDING_CALL_INVALID_STATE}"));
+        let payload = T::encode_params_with_prefix(route, &args);
         let value = params.value.unwrap_or(0);
         #[cfg(not(feature = "ethexe"))]
         let gas_limit = if let Some(gas_limit) = params.gas_limit {
@@ -138,12 +176,15 @@ impl<T: CallEncodeDecode> PendingCall<GclientEnv, T> {
     }
 
     pub async fn query(mut self) -> Result<T::Reply, Error> {
+        let Some(route) = self.route else {
+            return Err(Error::Codec("PendingCall route is not set".into()));
+        };
         let params = self.params.unwrap_or_default();
         let args = self
             .args
             .take()
-            .unwrap_or_else(|| panic!("PendingCtor polled after completion or invalid state"));
-        let payload = T::encode_params(&args);
+            .unwrap_or_else(|| panic!("{PENDING_CALL_INVALID_STATE}"));
+        let payload = T::encode_params_with_prefix(route, &args);
 
         // Calculate reply
         let reply_bytes = self
@@ -152,7 +193,7 @@ impl<T: CallEncodeDecode> PendingCall<GclientEnv, T> {
             .await?;
 
         // Decode reply
-        match T::Reply::decode(&mut reply_bytes.as_slice()) {
+        match T::decode_reply_with_prefix(route, reply_bytes) {
             Ok(decoded) => Ok(decoded),
             Err(err) => Err(Error::Codec(err)),
         }
@@ -163,30 +204,71 @@ impl<T: CallEncodeDecode> Future for PendingCall<GclientEnv, T> {
     type Output = Result<T::Reply, <GclientEnv as GearEnv>::Error>;
 
     fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
+        let Some(route) = self.route else {
+            return Poll::Ready(Err(Error::Codec("PendingCall route is not set".into())));
+        };
         if self.state.is_none() {
             // Send message
             let params = self.params.take().unwrap_or_default();
             let args = self
                 .args
                 .take()
-                .unwrap_or_else(|| panic!("PendingCtor polled after completion or invalid state"));
-            let payload = T::encode_params(&args);
+                .unwrap_or_else(|| panic!("{PENDING_CALL_INVALID_STATE}"));
+            let payload = T::encode_params_with_prefix(route, &args);
 
             let send_future = send_message(self.env.api.clone(), self.destination, payload, params);
             self.state = Some(Box::pin(send_future));
         }
-        if let Some(message_future) = self.project().state.as_pin_mut() {
-            // Poll message future
-            match message_future.poll(cx) {
-                Poll::Ready(Ok(bytes)) => match T::Reply::decode(&mut bytes.as_slice()) {
-                    Ok(decoded) => Poll::Ready(Ok(decoded)),
-                    Err(err) => Poll::Ready(Err(Error::Codec(err))),
-                },
-                Poll::Ready(Err(err)) => Poll::Ready(Err(err)),
-                Poll::Pending => Poll::Pending,
+
+        let this = self.as_mut().project();
+        let message_future = this
+            .state
+            .as_pin_mut()
+            .unwrap_or_else(|| panic!("{PENDING_CALL_INVALID_STATE}"));
+        // Poll message future
+        match message_future.poll(cx) {
+            Poll::Ready(Ok((_, payload))) => match T::decode_reply_with_prefix(route, payload) {
+                Ok(decoded) => Poll::Ready(Ok(decoded)),
+                Err(err) => Poll::Ready(Err(Error::Codec(err))),
+            },
+            Poll::Ready(Err(err)) => Poll::Ready(Err(err)),
+            Poll::Pending => Poll::Pending,
+        }
+    }
+}
+
+impl<A, T: CallEncodeDecode> Future for PendingCtor<GclientEnv, A, T> {
+    type Output = Result<Actor<GclientEnv, A>, <GclientEnv as GearEnv>::Error>;
+
+    fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
+        if self.state.is_none() {
+            // Send message
+            let params = self.params.take().unwrap_or_default();
+            let salt = self.salt.take().unwrap();
+            let args = self
+                .args
+                .take()
+                .unwrap_or_else(|| panic!("{PENDING_CTOR_INVALID_STATE}"));
+            let payload = T::encode_params(&args);
+
+            let create_program_future =
+                create_program(self.env.api.clone(), self.code_id, salt, payload, params);
+            self.state = Some(Box::pin(create_program_future));
+        }
+
+        let this = self.as_mut().project();
+        let message_future = this
+            .state
+            .as_pin_mut()
+            .unwrap_or_else(|| panic!("{PENDING_CTOR_INVALID_STATE}"));
+        // Poll message future
+        match message_future.poll(cx) {
+            Poll::Ready(Ok((program_id, _))) => {
+                // Do not decode payload here
+                Poll::Ready(Ok(Actor::new(this.env.clone(), program_id)))
             }
-        } else {
-            panic!("PendingCall polled after completion or invalid state");
+            Poll::Ready(Err(err)) => Poll::Ready(Err(err)),
+            Poll::Pending => Poll::Pending,
         }
     }
 }

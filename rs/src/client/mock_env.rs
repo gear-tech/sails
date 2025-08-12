@@ -59,7 +59,7 @@ impl<T: CallEncodeDecode> Future for PendingCall<MockEnv, T> {
 }
 
 impl<A, T: CallEncodeDecode> Future for PendingCtor<MockEnv, A, T> {
-    type Output = Result<Actor<A, MockEnv>, <MockEnv as GearEnv>::Error>;
+    type Output = Result<Actor<MockEnv, A>, <MockEnv as GearEnv>::Error>;
 
     fn poll(mut self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<Self::Output> {
         match self.state.take() {
