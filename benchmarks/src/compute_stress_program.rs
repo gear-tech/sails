@@ -9,7 +9,7 @@ pub trait ComputeStressProgram {
 impl<E: GearEnv> ComputeStressProgram for Actor<E, ComputeStressProgramProgram> {
     type Env = E;
     fn compute_stress(&self) -> Service<Self::Env, compute_stress::ComputeStressImpl> {
-        self.service(stringify!(compute_stress::ComputeStress))
+        self.service(stringify!(ComputeStress))
     }
 }
 pub trait ComputeStressProgramCtors {

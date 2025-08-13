@@ -16,7 +16,7 @@ impl<E: GearEnv> ServiceWithEvents for Actor<E, ServiceWithEventsProgram> {
     fn service_with_events(
         &self,
     ) -> Service<Self::Env, service_with_events::ServiceWithEventsImpl> {
-        self.service(stringify!(service_with_events::ServiceWithEvents))
+        self.service(stringify!(ServiceWithEvents))
     }
 }
 
@@ -39,11 +39,9 @@ pub mod service_with_events {
         sails_rs::io_struct_impl!(DoThis (p1: NonZeroU256, p2: MyParam) -> NonZeroU64);
     }
 
-    #[allow(dead_code)]
     #[cfg(not(target_arch = "wasm32"))]
     pub mod events {
         use super::*;
-        use sails_rs::events::*;
         #[derive(PartialEq, Debug, Encode, Decode)]
         #[codec(crate = sails_rs::scale_codec)]
         pub enum ServiceWithEventsEvents {
@@ -51,6 +49,17 @@ pub mod service_with_events {
             Two { id: u8, reference: u64 },
             Three(MyParam),
             Reset,
+        }
+        impl EventDecode for ServiceWithEventsEvents {
+            const EVENT_NAMES: &'static [&'static [u8]] = &[
+                &[12, 79, 110, 101],
+                &[12, 84, 119, 111],
+                &[20, 84, 104, 114, 101, 101],
+                &[20, 82, 101, 115, 101, 116],
+            ];
+        }
+        impl ServiceEvent for ServiceWithEventsImpl {
+            type Event = ServiceWithEventsEvents;
         }
     }
 }
@@ -72,4 +81,5 @@ extern crate std;
 pub mod mockall {
     use super::*;
     use sails_rs::mockall::*;
+    mock! { pub ServiceWithEvents {} #[allow(refining_impl_trait)] #[allow(clippy::type_complexity)] impl service_with_events::ServiceWithEvents for ServiceWithEvents { type Env = MockEnv; fn do_this (&mut self, p1: NonZeroU256, p2: MyParam) -> PendingCall<MockEnv, service_with_events::io::DoThis>; } }
 }

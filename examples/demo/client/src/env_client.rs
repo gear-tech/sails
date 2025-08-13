@@ -88,4 +88,45 @@ pub mod counter {
         sails_rs::io_struct_impl!(Sub (value: u32) -> u32);
         sails_rs::io_struct_impl!(Value () -> u32);
     }
+
+    #[cfg(not(target_arch = "wasm32"))]
+    pub mod events {
+        use super::*;
+        #[derive(PartialEq, Debug, Encode, Decode)]
+        #[codec(crate = sails_rs::scale_codec)]
+        pub enum CounterEvents {
+            /// Emitted when a new value is added to the counter
+            Added(u32),
+            /// Emitted when a value is subtracted from the counter
+            Subtracted(u32),
+        }
+        impl EventDecode for CounterEvents {
+            const EVENT_NAMES: &'static [&'static [u8]] = &[
+                &[20, 65, 100, 100, 101, 100],
+                &[40, 83, 117, 98, 116, 114, 97, 99, 116, 101, 100],
+            ];
+        }
+
+        impl ServiceEvent for CounterImpl {
+            type Event = CounterEvents;
+        }
+    }
+}
+
+#[cfg(feature = "with_mocks")]
+#[cfg(not(target_arch = "wasm32"))]
+pub mod mockall {
+    use super::*;
+    use sails_rs::mockall::*;
+    mock! {
+        pub Counter {}
+        #[allow(refining_impl_trait)]
+        #[allow(clippy::type_complexity)]
+        impl counter::Counter for Counter {
+            type Env = MockEnv;
+            fn add (&mut self, value: u32) -> PendingCall<MockEnv, counter::io::Add>;
+            fn sub (&mut self, value: u32) -> PendingCall<MockEnv, counter::io::Sub>;
+            fn value (& self, ) -> PendingCall<MockEnv, counter::io::Value>;
+        }
+    }
 }

@@ -1,84 +1,56 @@
-use redirect_client::traits::{Redirect as _, RedirectClientFactory as _};
-use redirect_proxy_client::traits::{Proxy as _, RedirectProxyClientFactory as _};
-use sails_rs::{CodeId, GasUnit, calls::*};
+use redirect_client::{redirect::Redirect as _, *};
+use redirect_proxy_client::{proxy::Proxy as _, *};
+use sails_rs::{CodeId, GasUnit, client::*};
 
 const ACTOR_ID: u64 = 42;
 
 #[tokio::test]
 async fn redirect_on_exit_works() {
-    let (remoting, program_code_id, proxy_code_id, _gas_limit) = create_remoting();
+    let (env, program_code_id, proxy_code_id, _gas_limit) = create_remoting();
 
-    let program_factory = redirect_client::RedirectClientFactory::new(remoting.clone());
-    let proxy_factory = redirect_proxy_client::RedirectProxyClientFactory::new(remoting.clone());
+    let program_factory_1 = RedirectClientProgram::deploy(env.clone(), program_code_id, vec![1]);
+    let program_factory_2 = RedirectClientProgram::deploy(env.clone(), program_code_id, vec![2]);
+    let program_factory_3 = RedirectClientProgram::deploy(env.clone(), program_code_id, vec![3]);
+    let proxy_factory = RedirectProxyClientProgram::deploy(env.clone(), proxy_code_id, vec![]);
 
-    let program_id_1 = program_factory
+    let program_1 = program_factory_1
         .new() // Call program's constructor
-        .send_recv(program_code_id, b"program_1")
         .await
         .unwrap();
 
-    let program_id_2 = program_factory
+    let program_2 = program_factory_2
         .new() // Call program's constructor
-        .send_recv(program_code_id, b"program_2")
         .await
         .unwrap();
-    let program_id_3 = program_factory
+    let program_3 = program_factory_3
         .new() // Call program's constructor
-        .send_recv(program_code_id, b"program_3")
         .await
         .unwrap();
 
-    let proxy_program_id = proxy_factory
-        .new(program_id_1) // Call program's constructor
-        .send_recv(proxy_code_id, b"proxy")
+    let proxy_program = proxy_factory
+        .new(program_1.id()) // Call program's constructor
         .await
         .unwrap();
 
-    let mut redirect_client = redirect_client::Redirect::new(remoting.clone());
-    let proxy_client = redirect_proxy_client::Proxy::new(remoting.clone());
+    let mut redirect_client = program_1.redirect();
+    let proxy_client = proxy_program.proxy();
 
-    let result = proxy_client
-        .get_program_id()
-        .recv(proxy_program_id)
-        .await
-        .unwrap();
+    let result = proxy_client.get_program_id().await.unwrap();
+    assert_eq!(result, program_1.id());
 
-    assert_eq!(result, program_id_1);
+    let _ = redirect_client.exit(program_2.id()).await.unwrap();
 
-    let _ = redirect_client
-        .exit(program_id_2)
-        .send(program_id_1)
-        .await
-        .unwrap();
+    let result = proxy_client.get_program_id().await.unwrap();
+    assert_eq!(result, program_2.id());
 
-    let result = proxy_client
-        .get_program_id()
-        .recv(proxy_program_id)
-        .await
-        .unwrap();
+    let _ = redirect_client.exit(program_3.id()).await.unwrap();
 
-    assert_eq!(result, program_id_2);
-
-    let _ = redirect_client
-        .exit(program_id_3)
-        .send(program_id_2)
-        .await
-        .unwrap();
-
-    let result = proxy_client
-        .get_program_id()
-        .recv(proxy_program_id)
-        .await
-        .unwrap();
-
-    assert_eq!(result, program_id_3);
+    let result = proxy_client.get_program_id().await.unwrap();
+    assert_eq!(result, program_3.id());
 }
 
-fn create_remoting() -> (impl Remoting + Clone, CodeId, CodeId, GasUnit) {
-    use sails_rs::gtest::{
-        MAX_USER_GAS_LIMIT, System,
-        calls::{BlockRunMode, GTestRemoting},
-    };
+fn create_remoting() -> (GtestEnv, CodeId, CodeId, GasUnit) {
+    use sails_rs::gtest::{MAX_USER_GAS_LIMIT, System};
 
     let system = System::new();
     system.init_logger_with_default_filter("gwasm=debug,gtest=info,sails_rs=debug,redirect=debug");
@@ -90,7 +62,6 @@ fn create_remoting() -> (impl Remoting + Clone, CodeId, CodeId, GasUnit) {
     // Create a remoting instance for the system
     // and set the block run mode to Next,
     // cause we don't receive any reply on `Exit` call
-    let remoting =
-        GTestRemoting::new(system, ACTOR_ID.into()).with_block_run_mode(BlockRunMode::Next);
-    (remoting, program_code_id, proxy_code_id, MAX_USER_GAS_LIMIT)
+    let env = GtestEnv::new(system, ACTOR_ID.into()).with_block_run_mode(BlockRunMode::Next);
+    (env, program_code_id, proxy_code_id, MAX_USER_GAS_LIMIT)
 }

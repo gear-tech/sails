@@ -1,4 +1,4 @@
-use crate::{ctor_generators::*, events_generator::*, service_generators::*, type_generators::*};
+use crate::{ctor_generators::*, mock_generator::*, service_generators::*, type_generators::*};
 use convert_case::{Case, Casing};
 use genco::prelude::*;
 use rust::Tokens;
@@ -118,7 +118,6 @@ impl<'ast> Visitor<'ast> for RootGenerator<'_> {
         } else {
             service.name()
         };
-        // let service_name_snake = service_name.to_case(Case::Snake);
 
         let mut ctor_gen = ServiceCtorGenerator::new(service_name);
         ctor_gen.visit_service(service);
@@ -126,32 +125,13 @@ impl<'ast> Visitor<'ast> for RootGenerator<'_> {
         self.service_trait_tokens.extend(trait_tokens);
         self.service_impl_tokens.extend(impl_tokens);
 
-        let path = service.name();
-
         let mut client_gen = ServiceGenerator::new(service_name, self.sails_path);
         client_gen.visit_service(service);
         self.tokens.extend(client_gen.finalize());
 
-        let mut service_tokens = Tokens::new();
-
-        if !service.events().is_empty() {
-            let mut events_mod_gen =
-                EventsModuleGenerator::new(service_name, path, self.sails_path);
-            events_mod_gen.visit_service(service);
-            service_tokens.extend(events_mod_gen.finalize());
-        }
-
-        // quote_in! { self.tokens =>
-        //     $['\n']
-        //     pub mod $(service_name_snake) {
-        //         use super::*;
-        //         $(service_tokens)
-        //     }
-        // }
-
-        // let mut mock_gen: MockGenerator = MockGenerator::new(service_name);
-        // mock_gen.visit_service(service);
-        // self.mocks_tokens.extend(mock_gen.finalize());
+        let mut mock_gen = MockGenerator::new(service_name);
+        mock_gen.visit_service(service);
+        self.mocks_tokens.extend(mock_gen.finalize());
     }
 
     fn visit_type(&mut self, t: &'ast Type) {

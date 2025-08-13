@@ -9,7 +9,7 @@ pub trait RedirectClient {
 impl<E: GearEnv> RedirectClient for Actor<E, RedirectClientProgram> {
     type Env = E;
     fn redirect(&self) -> Service<Self::Env, redirect::RedirectImpl> {
-        self.service(stringify!(redirect::Redirect))
+        self.service(stringify!(Redirect))
     }
 }
 pub trait RedirectClientCtors {

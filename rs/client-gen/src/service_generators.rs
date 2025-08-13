@@ -36,7 +36,7 @@ impl<'ast> Visitor<'ast> for ServiceCtorGenerator<'_> {
         );
         quote_in!(self.impl_tokens =>
             fn $service_name_snake(&self) -> Service<Self::Env, $service_name_snake::$(self.service_name)Impl> {
-                self.service(stringify!($service_name_snake::$(self.service_name)))
+                self.service(stringify!($(self.service_name)))
             }
         );
     }
@@ -101,8 +101,7 @@ impl<'ast> Visitor<'ast> for ServiceGenerator<'_> {
         visitor::accept_service(service, self);
 
         if !service.events().is_empty() {
-            let mut events_mod_gen =
-                EventsModuleGenerator::new(self.service_name, self.service_name, self.sails_path);
+            let mut events_mod_gen = EventsModuleGenerator::new(self.service_name, self.sails_path);
             events_mod_gen.visit_service(service);
             self.events_tokens = events_mod_gen.finalize();
         }

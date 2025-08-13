@@ -13,7 +13,7 @@ pub trait Basic {
 impl<E: GearEnv> Basic for Actor<E, BasicProgram> {
     type Env = E;
     fn basic(&self) -> Service<Self::Env, basic::BasicImpl> {
-        self.service(stringify!(basic::Basic))
+        self.service(stringify!(Basic))
     }
 }
 
@@ -69,4 +69,5 @@ extern crate std;
 pub mod mockall {
     use super::*;
     use sails_rs::mockall::*;
+    mock! { pub Basic {} #[allow(refining_impl_trait)] #[allow(clippy::type_complexity)] impl basic::Basic for Basic { type Env = MockEnv; fn do_this (&mut self, p1: u32, p2: MyParam) -> PendingCall<MockEnv, basic::io::DoThis>;fn do_that (&mut self, p1: (u8,u32,)) -> PendingCall<MockEnv, basic::io::DoThat>; } }
 }

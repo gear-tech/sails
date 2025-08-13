@@ -9,7 +9,7 @@ pub trait AllocStressProgram {
 impl<E: GearEnv> AllocStressProgram for Actor<E, AllocStressProgramProgram> {
     type Env = E;
     fn alloc_stress(&self) -> Service<Self::Env, alloc_stress::AllocStressImpl> {
-        self.service(stringify!(alloc_stress::AllocStress))
+        self.service(stringify!(AllocStress))
     }
 }
 pub trait AllocStressProgramCtors {

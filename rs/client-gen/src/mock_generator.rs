@@ -1,4 +1,4 @@
-use crate::type_generators::generate_type_decl_code;
+use crate::helpers::fn_args_with_types;
 use convert_case::{Case, Casing};
 use genco::prelude::*;
 use rust::Tokens;
@@ -13,19 +13,20 @@ impl<'a> MockGenerator<'a> {
     pub(crate) fn new(service_name: &'a str) -> Self {
         Self {
             service_name,
-            tokens: rust::Tokens::new(),
+            tokens: Tokens::new(),
         }
     }
 
-    pub(crate) fn finalize(self) -> rust::Tokens {
+    pub(crate) fn finalize(self) -> Tokens {
+        let service_name_snake = &self.service_name.to_case(Case::Snake);
         quote! {
             mock! {
-                pub $(self.service_name)<A> {}
+                pub $(self.service_name) {}
 
                 #[allow(refining_impl_trait)]
                 #[allow(clippy::type_complexity)]
-                impl<A> traits::$(self.service_name) for $(self.service_name)<A> {
-                    type Args = A;
+                impl $service_name_snake::$(self.service_name) for $(self.service_name) {
+                    type Env = MockEnv;
                     $(self.tokens)
                 }
             }
@@ -39,26 +40,14 @@ impl<'ast> Visitor<'ast> for MockGenerator<'_> {
     }
 
     fn visit_service_func(&mut self, func: &'ast ServiceFunc) {
+        let service_name_snake = &self.service_name.to_case(Case::Snake);
         let mutability = if func.is_query() { "" } else { "mut" };
-        let fn_name = func.name().to_case(Case::Snake);
+        let fn_name = func.name();
+        let fn_name_snake = func.name().to_case(Case::Snake);
+        let params_with_types = &fn_args_with_types(func.params());
 
-        let mut params_tokens = Tokens::new();
-        for param in func.params() {
-            let type_decl_code = generate_type_decl_code(param.type_decl());
-            quote_in! {params_tokens =>
-                $(param.name()): $(type_decl_code),
-            };
-        }
-
-        let output_type_decl_code = generate_type_decl_code(func.output());
-        let output_mock = if func.is_query() {
-            "MockQuery"
-        } else {
-            "MockCall"
-        };
-
-        quote_in! { self.tokens=>
-            fn $fn_name (&$mutability self, $params_tokens) -> $output_mock<A, $output_type_decl_code>;
+        quote_in! { self.tokens =>
+            fn $fn_name_snake (&$mutability self, $params_with_types) -> PendingCall<MockEnv, $service_name_snake::io::$fn_name>;
         };
     }
 }

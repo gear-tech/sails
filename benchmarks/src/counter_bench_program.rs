@@ -9,7 +9,7 @@ pub trait CounterBenchProgram {
 impl<E: GearEnv> CounterBenchProgram for Actor<E, CounterBenchProgramProgram> {
     type Env = E;
     fn counter_bench(&self) -> Service<Self::Env, counter_bench::CounterBenchImpl> {
-        self.service(stringify!(counter_bench::CounterBench))
+        self.service(stringify!(CounterBench))
     }
 }
 pub trait CounterBenchProgramCtors {
