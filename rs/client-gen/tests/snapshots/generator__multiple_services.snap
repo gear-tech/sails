@@ -14,10 +14,10 @@ pub trait Multiple {
 impl<E: GearEnv> Multiple for Actor<E, MultipleProgram> {
     type Env = E;
     fn multiple(&self) -> Service<Self::Env, multiple::MultipleImpl> {
-        self.service(stringify!(multiple::Multiple))
+        self.service(stringify!(Multiple))
     }
     fn named(&self) -> Service<Self::Env, named::NamedImpl> {
-        self.service(stringify!(named::Named))
+        self.service(stringify!(Named))
     }
 }
 
@@ -75,4 +75,6 @@ extern crate std;
 pub mod mockall {
     use super::*;
     use sails_rs::mockall::*;
+    mock! { pub Multiple {} #[allow(refining_impl_trait)] #[allow(clippy::type_complexity)] impl multiple::Multiple for Multiple { type Env = MockEnv; fn do_this (&mut self, p1: u32, p2: MyParam) -> PendingCall<MockEnv, multiple::io::DoThis>;fn do_that (&mut self, p1: (u8,u32,)) -> PendingCall<MockEnv, multiple::io::DoThat>; } }
+    mock! { pub Named {} #[allow(refining_impl_trait)] #[allow(clippy::type_complexity)] impl named::Named for Named { type Env = MockEnv; fn that (& self, p1: u32) -> PendingCall<MockEnv, named::io::That>; } }
 }

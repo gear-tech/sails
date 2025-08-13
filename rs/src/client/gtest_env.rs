@@ -122,7 +122,10 @@ impl GtestEnv {
                         None => Err(Error::InvalidReturnType),
                         // TODO handle error reply
                         Some(ReplyCode::Error(reason)) => {
-                            panic!("Unexpected error reply: {reason:?}")
+                            panic!(
+                                "Unexpected error reply: {reason:?}, {:?}",
+                                hex::encode(entry.payload())
+                            )
                         }
                         Some(ReplyCode::Success(_)) => Ok(entry.payload().to_vec()),
                         _ => Err(Error::InvalidReturnType),
@@ -230,6 +233,31 @@ impl GearEnv for GtestEnv {
     type Error = Error;
     type MessageState = ReplyReceiver;
 }
+impl<T: CallEncodeDecode> PendingCall<GtestEnv, T> {
+    pub fn send_message(mut self) -> Result<Self, Error> {
+        let Some(route) = self.route else {
+            return Err(Error::ScaleCodecError(
+                "PendingCall route is not set".into(),
+            ));
+        };
+        if self.state.is_some() {
+            // TODO
+            return Err(Error::Instrumentation);
+        }
+        // Send message
+        let args = self
+            .args
+            .take()
+            .unwrap_or_else(|| panic!("{PENDING_CALL_INVALID_STATE}"));
+        let payload = T::encode_params_with_prefix(route, &args);
+        let params = self.params.take().unwrap_or_default();
+
+        let message_id = self.env.send_message(self.destination, payload, params)?;
+        log::debug!("PendingCall: send message {message_id:?}");
+        self.state = Some(self.env.message_reply_from_next_blocks(message_id));
+        Ok(self)
+    }
+}
 
 impl<T: CallEncodeDecode> Future for PendingCall<GtestEnv, T> {
     type Output = Result<T::Reply, <GtestEnv as GearEnv>::Error>;
@@ -279,6 +307,34 @@ impl<T: CallEncodeDecode> Future for PendingCall<GtestEnv, T> {
             }
         } else {
             panic!("PendingCall polled after completion or invalid state");
+        }
+    }
+}
+
+impl<A, T: CallEncodeDecode> PendingCtor<GtestEnv, A, T> {
+    pub fn create_program(mut self) -> Result<Self, Error> {
+        if self.state.is_some() {
+            // TODO
+            return Err(Error::Instrumentation);
+        }
+        // Send message
+        let payload = self.encode_ctor();
+        let params = self.params.take().unwrap_or_default();
+        let salt = self.salt.take().unwrap_or_default();
+        let send_res = self
+            .env
+            .create_program(self.code_id, salt, payload.as_slice(), params);
+        match send_res {
+            Ok((program_id, message_id)) => {
+                log::debug!("PendingCtor: send message {message_id:?}");
+                self.state = Some(self.env.message_reply_from_next_blocks(message_id));
+                self.program_id = Some(program_id);
+                Ok(self)
+            }
+            Err(err) => {
+                log::error!("PendingCtor: failed to send message: {err}");
+                Err(err)
+            }
         }
     }
 }

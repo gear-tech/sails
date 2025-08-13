@@ -15,7 +15,7 @@ pub trait Service {
 impl<E: GearEnv> Service for Actor<E, ServiceProgram> {
     type Env = E;
     fn service(&self) -> Service<Self::Env, service::ServiceImpl> {
-        self.service(stringify!(service::Service))
+        self.service(stringify!(Service))
     }
 }
 

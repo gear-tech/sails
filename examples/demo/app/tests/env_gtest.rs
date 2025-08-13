@@ -1,4 +1,8 @@
-use demo_client::env_client::{Demo as _, DemoCtors as _, DemoProgram, counter::Counter as _};
+use demo_client::env_client::{
+    Demo as _, DemoCtors as _, DemoProgram,
+    counter::{Counter as _, events::CounterEvents},
+};
+use futures::StreamExt as _;
 use sails_rs::{client::*, prelude::*};
 
 const ACTOR_ID: u64 = 42;
@@ -33,6 +37,12 @@ async fn env_counter_add_works_via_next_mode() {
         .unwrap();
 
     let mut counter_client = demo_program.counter();
+    let mut counter_listener = counter_client.listener();
+    let mut counter_events = counter_listener.listen().await.unwrap();
 
     assert_eq!(Ok(52), counter_client.add(10).await);
+    assert_eq!(
+        (demo_program.id(), CounterEvents::Added(10)),
+        counter_events.next().await.unwrap()
+    );
 }

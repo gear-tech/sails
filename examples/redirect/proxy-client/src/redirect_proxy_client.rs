@@ -9,7 +9,7 @@ pub trait RedirectProxyClient {
 impl<E: GearEnv> RedirectProxyClient for Actor<E, RedirectProxyClientProgram> {
     type Env = E;
     fn proxy(&self) -> Service<Self::Env, proxy::ProxyImpl> {
-        self.service(stringify!(proxy::Proxy))
+        self.service(stringify!(Proxy))
     }
 }
 pub trait RedirectProxyClientCtors {

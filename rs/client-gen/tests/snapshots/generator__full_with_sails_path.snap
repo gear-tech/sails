@@ -14,10 +14,10 @@ pub trait Service {
 impl<E: GearEnv> Service for Actor<E, ServiceProgram> {
     type Env = E;
     fn service(&self) -> Service<Self::Env, service::ServiceImpl> {
-        self.service(stringify!(service::Service))
+        self.service(stringify!(Service))
     }
     fn counter(&self) -> Service<Self::Env, counter::CounterImpl> {
-        self.service(stringify!(counter::Counter))
+        self.service(stringify!(Counter))
     }
 }
 pub trait ServiceCtors {
@@ -138,11 +138,9 @@ pub mod counter {
         my_crate::sails::io_struct_impl!(Value () -> u32);
     }
 
-    #[allow(dead_code)]
     #[cfg(not(target_arch = "wasm32"))]
     pub mod events {
         use super::*;
-        use my_crate::sails::events::*;
         #[derive(PartialEq, Debug, Encode, Decode)]
         #[codec(crate = my_crate::sails::scale_codec)]
         pub enum CounterEvents {
@@ -150,6 +148,15 @@ pub mod counter {
             Added(u32),
             /// Emitted when a value is subtracted from the counter
             Subtracted(u32),
+        }
+        impl EventDecode for CounterEvents {
+            const EVENT_NAMES: &'static [&'static [u8]] = &[
+                &[20, 65, 100, 100, 101, 100],
+                &[40, 83, 117, 98, 116, 114, 97, 99, 116, 101, 100],
+            ];
+        }
+        impl ServiceEvent for CounterImpl {
+            type Event = CounterEvents;
         }
     }
 }

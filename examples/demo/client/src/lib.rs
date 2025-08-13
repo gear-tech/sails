@@ -8,15 +8,17 @@ pub mod env_client;
 #[cfg(test)]
 mod tests {
     use super::*;
-    use sails_rs::{calls::*, prelude::*};
 
     #[test]
     fn test_io_module_encode() {
-        let bytes = this_that::io::DoThat::encode_call(DoThatParam {
-            p1: NonZeroU32::MAX,
-            p2: 123.into(),
-            p3: ManyVariants::One,
-        });
+        let bytes = this_that::io::DoThat::encode_params_with_prefix(
+            "ThisThat",
+            DoThatParam {
+                p1: NonZeroU32::MAX,
+                p2: 123.into(),
+                p3: ManyVariants::One,
+            },
+        );
 
         assert_eq!(
             bytes,
@@ -44,7 +46,7 @@ mod tests {
         ];
 
         let reply: Result<(ActorId, NonZeroU32, ManyVariantsReply), (String,)> =
-            this_that::io::DoThat::decode_reply(bytes).unwrap();
+            this_that::io::DoThat::decode_reply_with_prefix("ThisThat", bytes).unwrap();
 
         assert_eq!(
             reply,
