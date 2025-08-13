@@ -7,10 +7,6 @@ license.workspace = true
 repository.workspace = true
 
 [[bin]]
-name = "convert-bench-data"
-path = "src/bin/convert_bench_data.rs"
-
-[[bin]]
 name = "compare-benchmarks"
 path = "src/bin/compare_benchmarks.rs"
 

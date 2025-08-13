@@ -6,6 +6,8 @@ use std::fs;
 use std::path::Path;
 use std::process;
 
+// todo [sab] check diff on negative values
+
 #[derive(Deserialize, Clone)]
 struct BenchData {
     compute: u64,
