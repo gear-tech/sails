@@ -16,9 +16,9 @@ pub use syscalls::Syscall;
 use crate::{
     errors::{Error, Result, RtlError},
     prelude::{any::TypeId, *},
+    utils::MaybeUninitBufferWriter,
 };
 use gcore::stack_buffer;
-use utils::MaybeUninitBufferWriter;
 
 pub mod calls;
 #[cfg(feature = "ethexe")]
@@ -27,7 +27,6 @@ mod events;
 mod message_future;
 pub mod services;
 mod syscalls;
-mod utils;
 
 pub struct CommandReply<T>(T, ValueUnit);
 
