@@ -169,7 +169,7 @@ async fn alloc_stress_bench() {
 
     for (len, gas_benches) in benches {
         crate::store_bench_data(|bench_data| {
-            bench_data.alloc.insert(len, median(gas_benches));
+            bench_data.update_alloc_bench(len, median(gas_benches));
         })
         .unwrap();
     }
@@ -195,7 +195,7 @@ async fn compute_stress_bench() {
     gas_benches.sort_unstable();
 
     crate::store_bench_data(|bench_data| {
-        bench_data.compute = median(gas_benches);
+        bench_data.update_compute_bench(median(gas_benches));
     })
     .unwrap();
 }
@@ -240,8 +240,8 @@ async fn counter_bench() {
     gas_benches_async.sort_unstable();
 
     crate::store_bench_data(|bench_data| {
-        bench_data.counter.sync_call = median(gas_benches_sync);
-        bench_data.counter.async_call = median(gas_benches_async);
+        bench_data.update_counter_bench(false, median(gas_benches_sync));
+        bench_data.update_counter_bench(true, median(gas_benches_async));
     })
     .unwrap();
 }
@@ -269,7 +269,7 @@ async fn cross_program_bench() {
     gas_benches.sort_unstable();
 
     crate::store_bench_data(|bench_data| {
-        bench_data.cross_program = median(gas_benches);
+        bench_data.update_cross_program_bench(median(gas_benches));
     })
     .unwrap();
 }
@@ -321,7 +321,7 @@ async fn redirect_bench() {
         .collect::<Vec<_>>();
 
     crate::store_bench_data(|bench_data| {
-        bench_data.redirect = median(gas_benches);
+        bench_data.update_redirect_bench(median(gas_benches));
     })
     .unwrap();
 }
