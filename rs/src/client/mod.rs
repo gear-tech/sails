@@ -55,9 +55,13 @@ pub trait Program: Sized {
 
 #[cfg(not(target_arch = "wasm32"))]
 pub type DefaultEnv = MockEnv;
+#[cfg(target_arch = "wasm32")]
+#[cfg(feature = "gstd")]
+pub type DefaultEnv = GstdEnv;
 
 pub type Route = &'static str;
 
+#[derive(Debug, Clone)]
 pub struct Deployment<E: GearEnv, A> {
     env: E,
     code_id: CodeId,
@@ -95,6 +99,7 @@ impl<E: GearEnv, A> Deployment<E, A> {
     }
 }
 
+#[derive(Debug, Clone)]
 pub struct Actor<E: GearEnv, A> {
     env: E,
     id: ActorId,
@@ -110,6 +115,10 @@ impl<E: GearEnv, A> Actor<E, A> {
         }
     }
 
+    pub fn id(&self) -> ActorId {
+        self.id
+    }
+
     pub fn with_env<N: GearEnv>(self, env: N) -> Actor<N, A> {
         let Self {
             env: _,
@@ -123,11 +132,17 @@ impl<E: GearEnv, A> Actor<E, A> {
         }
     }
 
+    pub fn with_actor_id(mut self, actor_id: ActorId) -> Self {
+        self.id = actor_id;
+        self
+    }
+
     pub fn service<S>(&self, route: Route) -> Service<E, S> {
         Service::new(self.env.clone(), self.id, route)
     }
 }
 
+#[derive(Debug, Clone)]
 pub struct Service<E: GearEnv, S> {
     env: E,
     actor_id: ActorId,
@@ -145,8 +160,64 @@ impl<E: GearEnv, S> Service<E, S> {
         }
     }
 
+    pub fn with_actor_id(mut self, actor_id: ActorId) -> Self {
+        self.actor_id = actor_id;
+        self
+    }
+
     pub fn pending_call<T: CallEncodeDecode>(&self, args: T::Params) -> PendingCall<E, T> {
         PendingCall::new(self.env.clone(), self.actor_id, self.route, args)
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
+    pub fn listener(&self) -> ServiceListener<E, S::Event>
+    where
+        S: ServiceEvent,
+    {
+        ServiceListener::new(self.env.clone(), self.actor_id, self.route)
+    }
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+pub trait ServiceEvent {
+    type Event: EventDecode;
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+pub struct ServiceListener<E: GearEnv, D: EventDecode> {
+    env: E,
+    actor_id: ActorId,
+    route: Route,
+    _phantom: PhantomData<D>,
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+impl<E: GearEnv, D: EventDecode> ServiceListener<E, D> {
+    pub fn new(env: E, actor_id: ActorId, route: Route) -> Self {
+        ServiceListener {
+            env,
+            actor_id,
+            route,
+            _phantom: PhantomData,
+        }
+    }
+
+    pub async fn listen(
+        &mut self,
+    ) -> Result<impl Stream<Item = (ActorId, D)> + Unpin, <E as GearEnv>::Error>
+    where
+        E: crate::events::Listener<Vec<u8>, Error = <E as GearEnv>::Error>,
+    {
+        let self_id = self.actor_id;
+        let prefix = self.route;
+        let stream = self.env.listen().await?;
+        let map = stream.filter_map(move |(actor_id, payload)| async move {
+            if actor_id != self_id {
+                return None;
+            }
+            D::decode_event(prefix, payload).ok().map(|e| (actor_id, e))
+        });
+        Ok(Box::pin(map))
     }
 }
 
@@ -374,30 +445,14 @@ macro_rules! str_scale_encode {
     }};
 }
 
-// impl<R: Listener<Vec<u8>> + GearEnv, S, E: EventDecode> Listener<E::Event> for Service<R, S> {
-//     type Error = parity_scale_codec::Error;
-
-//     async fn listen(
-//         &mut self,
-//     ) -> Result<impl Stream<Item = (ActorId, E::Event)> + Unpin, Self::Error> {
-//         let stream = self.env.listen().await?;
-//         let map = stream.filter_map(move |(actor_id, payload)| async move {
-//             E::decode_event(self.route, payload)
-//                 .ok()
-//                 .map(|e| (actor_id, e))
-//         });
-//         Ok(Box::pin(map))
-//     }
-// }
-
-pub trait EventDecode {
+#[cfg(not(target_arch = "wasm32"))]
+pub trait EventDecode: Decode {
     const EVENT_NAMES: &'static [&'static [u8]];
-    type Event: Decode;
 
     fn decode_event(
         prefix: Route,
         payload: impl AsRef<[u8]>,
-    ) -> Result<Self::Event, parity_scale_codec::Error> {
+    ) -> Result<Self, parity_scale_codec::Error> {
         let mut payload = payload.as_ref();
         let route = String::decode(&mut payload)?;
         if route != prefix {

@@ -13,7 +13,7 @@ pub trait NonZeroParams {
 impl<E: GearEnv> NonZeroParams for Actor<E, NonZeroParamsProgram> {
     type Env = E;
     fn non_zero_params(&self) -> Service<Self::Env, non_zero_params::NonZeroParamsImpl> {
-        self.service(stringify!(non_zero_params::NonZeroParams))
+        self.service(stringify!(NonZeroParams))
     }
 }
 
@@ -54,4 +54,5 @@ extern crate std;
 pub mod mockall {
     use super::*;
     use sails_rs::mockall::*;
+    mock! { pub NonZeroParams {} #[allow(refining_impl_trait)] #[allow(clippy::type_complexity)] impl non_zero_params::NonZeroParams for NonZeroParams { type Env = MockEnv; fn do_this (&mut self, p1: NonZeroU256, p2: MyParam) -> PendingCall<MockEnv, non_zero_params::io::DoThis>; } }
 }

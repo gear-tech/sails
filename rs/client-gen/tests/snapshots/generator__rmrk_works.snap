@@ -13,7 +13,7 @@ pub trait RmrkCatalog {
 impl<E: GearEnv> RmrkCatalog for Actor<E, RmrkCatalogProgram> {
     type Env = E;
     fn rmrk_catalog(&self) -> Service<Self::Env, rmrk_catalog::RmrkCatalogImpl> {
-        self.service(stringify!(rmrk_catalog::RmrkCatalog))
+        self.service(stringify!(RmrkCatalog))
     }
 }
 pub trait RmrkCatalogCtors {
@@ -181,4 +181,5 @@ extern crate std;
 pub mod mockall {
     use super::*;
     use sails_rs::mockall::*;
+    mock! { pub RmrkCatalog {} #[allow(refining_impl_trait)] #[allow(clippy::type_complexity)] impl rmrk_catalog::RmrkCatalog for RmrkCatalog { type Env = MockEnv; fn add_equippables (&mut self, part_id: u32, collection_ids: Vec<ActorId>) -> PendingCall<MockEnv, rmrk_catalog::io::AddEquippables>;fn add_parts (&mut self, parts: BTreeMap<u32, Part>) -> PendingCall<MockEnv, rmrk_catalog::io::AddParts>;fn remove_equippable (&mut self, part_id: u32, collection_id: ActorId) -> PendingCall<MockEnv, rmrk_catalog::io::RemoveEquippable>;fn remove_parts (&mut self, part_ids: Vec<u32>) -> PendingCall<MockEnv, rmrk_catalog::io::RemoveParts>;fn reset_equippables (&mut self, part_id: u32) -> PendingCall<MockEnv, rmrk_catalog::io::ResetEquippables>;fn set_equippables_to_all (&mut self, part_id: u32) -> PendingCall<MockEnv, rmrk_catalog::io::SetEquippablesToAll>;fn equippable (& self, part_id: u32, collection_id: ActorId) -> PendingCall<MockEnv, rmrk_catalog::io::Equippable>;fn part (& self, part_id: u32) -> PendingCall<MockEnv, rmrk_catalog::io::Part>; } }
 }
