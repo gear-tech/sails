@@ -10,7 +10,7 @@ pub struct CounterBenchService;
 impl CounterBenchService {
     #[export]
     pub fn inc(&mut self) -> u64 {
-        // todo [sab]
+        // todo [sab] remove comments
         // let mut data: Vec<u8> = vec![];
         // for _ in 0..317810 {
         //     data.push(0);
