@@ -146,7 +146,10 @@ async fn counter_query_not_enough_gas() {
         .recv(demo_program_id)
         .await;
 
-    // Asert
+    // ReplyInfo { payload: [], value: 0, code: Error(Execution(RanOutOfGas)) }
+    println!("{:?}", result);
+
+    // Assert
     assert!(matches!(
         result,
         Err(sails_rs::errors::Error::Rtl(RtlError::ReplyHasError(

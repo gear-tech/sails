@@ -268,15 +268,22 @@ impl Remoting for GTestRemoting {
         value: ValueUnit,
         args: GTestArgs,
     ) -> Result<Vec<u8>> {
-        let message_id = self.send_message(
-            target,
-            payload,
-            #[cfg(not(feature = "ethexe"))]
-            gas_limit,
-            value,
-            args,
-        )?;
-        self.message_reply_from_next_blocks(message_id).await
+        let actor_id = args.actor_id.unwrap_or(self.actor_id);
+        #[cfg(not(feature = "ethexe"))]
+        let gas_limit = gas_limit.unwrap_or(GAS_LIMIT_DEFAULT);
+        #[cfg(feature = "ethexe")]
+        let gas_limit = GAS_LIMIT_DEFAULT;
+        let reply_info = self.system
+            .calculate_reply_for_handle(
+                actor_id,
+                target,
+                payload.as_ref(),
+                gas_limit,
+                value
+            )
+            .map_err(|_| RtlError::ReplyIsMissing)?;
+
+        Ok(reply_info.payload)
     }
 }
 
