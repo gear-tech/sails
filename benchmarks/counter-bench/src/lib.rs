@@ -10,18 +10,17 @@ pub struct CounterBenchService;
 impl CounterBenchService {
     #[export]
     pub fn inc(&mut self) -> u64 {
-        // todo [sab] remove comments
-        // let mut data: Vec<u8> = vec![];
-        // for _ in 0..317810 {
-        //     data.push(0);
-        // }
+        let mut data: Vec<u8> = vec![];
+        for _ in 0..317810 {
+            data.push(0);
+        }
         unsafe {
             let prev = COUNTER;
             COUNTER += 1;
 
-            prev
+            // prev
         }
-        // data.len() as u64
+        data.len() as u64
     }
 
     #[export]
