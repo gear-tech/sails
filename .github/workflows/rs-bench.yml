@@ -2,12 +2,13 @@ name: '[rs] Benchmarks'
 
 on:
   pull_request:
-    types: [opened, synchronized, reopened, labeled]
+    types: [opened, synchronize, reopened, labeled]
     paths:
       - 'benchmarks/**'
       - 'rs/**'
       - 'Cargo.lock'
       - 'Cargo.toml'
+      - '.github/workflows/rs-bench.yml'
   push:
     branches: [master]
     paths:
@@ -15,6 +16,7 @@ on:
       - 'rs/**'
       - 'Cargo.lock'
       - 'Cargo.toml'
+      - '.github/workflows/rs-bench.yml'
 
 env:
   CARGO_TERM_COLOR: always
