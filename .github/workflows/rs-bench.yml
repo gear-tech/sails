@@ -2,14 +2,16 @@ name: '[rs] Benchmarks'
 
 on:
   pull_request:
-    # types: [labeled]
-    # paths:
-    #   - 'rs/**'
-    #   - 'Cargo.lock'
-    #   - 'Cargo.toml'
+    types: [labeled]
+    paths:
+      - 'benchmarks/**'
+      - 'rs/**'
+      - 'Cargo.lock'
+      - 'Cargo.toml'
   push:
     branches: [master]
     paths:
+      - 'benchmarks/**'
       - 'rs/**'
       - 'Cargo.lock'
       - 'Cargo.toml'
@@ -27,11 +29,8 @@ jobs:
       pull-requests: write
       issues: write
     steps:
-      # Checkout the current branch (PR branch)
       - name: Checkout PR branch
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 2
 
       - name: Free Disk Space
         uses: ./.github/actions/free-disk-space
@@ -39,112 +38,91 @@ jobs:
       - name: Install wasm-opt
         uses: ./.github/actions/install-wasm-utils
 
-      # Run benchmarks on PR branch
-      - name: Run Benchmarks
+      - name: Build bench-analyzer
+        run: |
+          make build-bench-analyzer
+
+      - name: Copy current benchmarks for a diff test
+        run: |
+          cp benchmarks/bench_data.json benchmarks/bench_data_before_bench_run.json
+
+      - name: Run benchmarks
         run: |
           make bench
 
-#       # Step 1: Check if current benchmarks differ significantly from previous ones in current branch
-#       # todo [sab] the approach is buggy, because if current commit updates benches, it will still fail.
-#       - name: Check Benchmark Diff vs Current Branch
-#         if: github.event_name == 'pull_request'
-#         run: |
-#           # Get previous bench_data.json from current branch (before the latest commit)
-#           git fetch origin ${{ github.head_ref }}
-#           if git show HEAD~1:benchmarks/bench_data.json > bench_data_previous.json 2>/dev/null; then
-#             echo "Found previous benchmark data in current branch"
-#             cd benchmarks
-#             cargo run --bin bench-analyzer -- check-diff --current bench_data.json --previous ../bench_data_previous.json --threshold 1.0
-#           else
-#             echo "No previous benchmark data found in current branch - treating as first run"
-#           fi
-#         env:
-#           CARGO_TERM_COLOR: always
+      # The check is done with a threshold test
+      - name: Check current branch has actual benchmark data
+        if: github.event_name == 'pull_request'
+        run: |
+          ./target/debug/bench-analyzer --current=benchmarks/bench_data.json --other=benchmarks/bench_data_before_bench_run.json --threshold=1
 
-#       # Step 2: If diff check passes, compare with master baseline  
-#       - name: Checkout master branch for baseline
-#         if: github.event_name == 'pull_request'
-#         uses: actions/checkout@v4
-#         with:
-#           ref: master
-#           path: master-branch
+      # If diff check passes, compare with master baseline
+      # First copy baseline JSON from master branch
+      - name: Copy baseline benchmarks from master branch
+        if: github.event_name == 'pull_request'
+        run: |
+          git fetch origin master:refs/remotes/origin/master
+          git show origin/master:benchmarks/bench_data.json > benchmarks/baseline.json
 
-#       # Copy baseline JSON from master
-#       - name: Copy Baseline JSON from Master
-#         if: github.event_name == 'pull_request'
-#         run: |
-#           cp master-branch/benchmarks/bench_data.json baseline.json
+      # Now compare benchmarks and generate markdown table
+      - name: Compare Benchmarks vs Master
+        if: github.event_name == 'pull_request'
+        run: |
+          ./target/debug/bench-analyzer --current=benchmarks/bench_data.json --other=benchmarks/baseline.json --output=benchmarks/comparison.md
+        env:
+          CARGO_TERM_COLOR: always
 
-# # todo [sab] remove
-#       - name: Display Bench Data
-#         if: github.event_name == 'pull_request'
-#         run: |
-#           echo "=== Current PR Bench Data ==="
-#           cat benchmarks/bench_data.json
-#           echo ""
-#           echo "=== Master Baseline Bench Data ==="
-#           cat baseline.json
+      # Read the comparison markdown for the comment
+      - name: Read Comparison Result
+        if: github.event_name == 'pull_request'
+        id: comparison
+        run: |
+          cd benchmarks
+          echo 'COMPARISON_TABLE<<EOF' >> $GITHUB_OUTPUT
+          cat benchmarks/comparison.md >> $GITHUB_OUTPUT
+          echo 'EOF' >> $GITHUB_OUTPUT
 
-#       # Compare benchmarks and generate markdown table
-#       - name: Compare Benchmarks vs Master
-#         if: github.event_name == 'pull_request'
-#         run: |
-#           cd benchmarks
-#           cargo run --bin bench-analyzer -- compare --current bench_data.json --baseline ../baseline.json --output comparison.md
-#         env:
-#           CARGO_TERM_COLOR: always
-
-#       # Read the comparison markdown for the comment
-#       - name: Read Comparison Result
-#         if: github.event_name == 'pull_request'
-#         id: comparison
-#         run: |
-#           cd benchmarks
-#           echo 'COMPARISON_TABLE<<EOF' >> $GITHUB_OUTPUT
-#           cat comparison.md >> $GITHUB_OUTPUT
-#           echo 'EOF' >> $GITHUB_OUTPUT
-
-# # todo [sab] write a new comment, not updated (edited)
-#       # Comment the comparison table on the PR
-#       - name: Comment PR with Benchmark Comparison
-#         if: github.event_name == 'pull_request'
-#         uses: actions/github-script@v7
-#         with:
-#           github-token: ${{ secrets.GITHUB_TOKEN }}
-#           script: |
-#             const comparisonTable = `${{ steps.comparison.outputs.COMPARISON_TABLE }}`;
+      # todo [sab] write a new comment, not updated (edited)
+      # Comment the comparison table on the PR
+      - name: Comment PR with Benchmark Comparison
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const comparisonTable = `${{ steps.comparison.outputs.COMPARISON_TABLE }}`;
             
-#             // Find existing benchmark comment
-#             const comments = await github.rest.issues.listComments({
-#               owner: context.repo.owner,
-#               repo: context.repo.repo,
-#               issue_number: context.issue.number,
-#             });
+            // Find existing benchmark comment
+            const comments = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
             
-#             const botComment = comments.data.find(comment => 
-#               comment.user.type === 'Bot' && 
-#               comment.body.includes('🔬 Benchmark Comparison')
-#             );
+            const botComment = comments.data.find(comment => 
+              comment.user.type === 'Bot' && 
+              comment.body.includes('🔬 Benchmark Comparison')
+            );
             
-#             const commentBody = `${comparisonTable}
+            const commentBody = `${comparisonTable}
             
-#             ---
-#             <sub>🤖 This comment was automatically generated by the benchmark comparison workflow.</sub>`;
+            ---
+            <sub>🤖 This comment was automatically generated by the benchmark comparison workflow.</sub>`;
             
-#             if (botComment) {
-#               // Update existing comment
-#               await github.rest.issues.updateComment({
-#                 owner: context.repo.owner,
-#                 repo: context.repo.repo,
-#                 comment_id: botComment.id,
-#                 body: commentBody
-#               });
-#             } else {
-#               // Create new comment
-#               await github.rest.issues.createComment({
-#                 owner: context.repo.owner,
-#                 repo: context.repo.repo,
-#                 issue_number: context.issue.number,
-#                 body: commentBody
-#               });
-#             }
+            if (botComment) {
+              // Update existing comment
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: botComment.id,
+                body: commentBody
+              });
+            } else {
+              // Create new comment
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: commentBody
+              });
+            }

@@ -152,7 +152,7 @@ fn add_report_conclusion(
             report.push_str("\n✅ All benchmark differences are within acceptable thresholds.");
         }
         None => {
-            report.push_str("\n### Legend\n- 🚀 Significant improvement (>5% reduction)\n- ✅ No significant change or minor improvement\n- ⚠️ Minor regression (<5% increase)\n- ❌ Significant regression (>5% increase)\n");
+            report.push_str("\n### Legend\n- 🚀 Significant improvement (>5% reduction)\n- 👍 Minor improvement (<5% reduction)\n- ✅ No significant change\n- ⚠️ Minor regression (<5% increase)\n- ❌ Significant regression (>5% increase)\n");
         }
     }
 }
