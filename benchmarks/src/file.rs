@@ -12,7 +12,7 @@ pub struct BenchDataFile(File);
 
 impl BenchDataFile {
     /// Opens a benchmark data file.
-    /// 
+    ///
     /// If the file does not exist, the function fails.
     pub fn open(path: impl AsRef<Path>) -> Result<Self> {
         let file = OpenOptions::new()

@@ -217,7 +217,7 @@ enum PerformanceStatus {
 }
 
 /// Report structure for benchmark category comparison.
-/// 
+///
 /// This struct is a placeholder to formatted benchmark comparison data.
 /// The formatted data is later decided on a client side how to be displayed.
 pub struct BenchCategoryComparisonReport {
