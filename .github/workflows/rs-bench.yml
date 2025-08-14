@@ -3,11 +3,11 @@ name: '[rs] Benchmarks'
 on:
   pull_request:
     types: [opened, synchronized, reopened, labeled]
-    paths:
-      - 'benchmarks/**'
-      - 'rs/**'
-      - 'Cargo.lock'
-      - 'Cargo.toml'
+    # paths:
+    #   - 'benchmarks/**'
+    #   - 'rs/**'
+    #   - 'Cargo.lock'
+    #   - 'Cargo.toml'
   push:
     branches: [master]
     paths:
