@@ -20,7 +20,7 @@ bench:
 
 build-bench-analyzer:
 	@__GEAR_WASM_BUILDER_NO_FEATURES_TRACKING=1 cargo build --bin bench-analyzer
-
+# test not triggered
 build-parser:
 	@echo "Building idlparser"
 	@cargo build -p sails-idl-parser --target=wasm32-unknown-unknown --release
