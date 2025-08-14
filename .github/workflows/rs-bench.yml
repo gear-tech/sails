@@ -22,7 +22,7 @@ env:
 
 jobs:
   benchmark:
-    if: contains(github.event.label.name, 'run-benchmarks')
+    if: contains(github.event.pull_request.labels.*.name, 'run-benchmarks')
     runs-on: ubuntu-latest
     permissions:
       contents: write
