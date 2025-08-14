@@ -10,31 +10,18 @@ mod benchmarks;
 #[cfg(all(test, not(debug_assertions)))]
 mod clients;
 
+mod entities;
+mod file;
+
 use anyhow::{Context, Result};
-use fs2::FileExt;
-use serde::{Deserialize, Serialize};
+pub use entities::{
+    BenchCategory, BenchCategoryComparison, BenchCategoryComparisonReport, BenchData,
+};
+pub use file::BenchDataFile;
 use std::{
-    collections::BTreeMap,
     env,
-    fs::{File, OpenOptions},
-    io::{Read, Seek, SeekFrom, Write},
     path::{Path, PathBuf},
 };
-
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
-pub struct BenchData {
-    pub compute: u64,
-    pub alloc: BTreeMap<usize, u64>,
-    pub counter: CounterBenchData,
-    pub cross_program: u64,
-    pub redirect: u64,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
-pub struct CounterBenchData {
-    pub async_call: u64,
-    pub sync_call: u64,
-}
 
 pub fn store_bench_data(f: impl FnOnce(&mut BenchData)) -> Result<()> {
     let path = PathBuf::from(env::var("CARGO_MANIFEST_DIR").unwrap()).join("bench_data.json");
@@ -43,56 +30,45 @@ pub fn store_bench_data(f: impl FnOnce(&mut BenchData)) -> Result<()> {
 }
 
 fn store_bench_data_to_file(path: impl AsRef<Path>, f: impl FnOnce(&mut BenchData)) -> Result<()> {
-    // Open file
-    let mut file = OpenOptions::new()
-        .read(true)
-        .write(true)
-        .open(path)
-        .context("Failed to open or create bench data file")?;
+    let mut file = BenchDataFile::open(path).context("Failed to create `BenchDataFile`")?;
 
-    // Lock file
     file.lock_exclusive().unwrap_or_else(|e| {
         panic!("Failed to lock bench data file for writing: {e}");
     });
 
-    // Read bench data
-    let mut content = String::new();
-    file.read_to_string(&mut content)
-        .context("Failed reading bench data bytes to string")?;
-    let mut bench_data =
-        serde_json::from_str(&content).context("Failed to deserialize bench data")?;
+    let mut bench_data = file
+        .read_bench_data()
+        .context("Failed to read existing bench data")?;
 
     // Handle bench data
     f(&mut bench_data);
 
-    // Serialize back
-    let bench_data_string = serde_json::to_string_pretty(&bench_data)?;
+    // Write updated bench data.
+    file.write_bench_data(bench_data)
+        .context("Failed to update bench data")?;
 
-    // Write updated bench data
-    file.set_len(0).context("Failed to erase file content")?;
-    file.seek(SeekFrom::Start(0))
-        .context("Failed to seek to the start of the file")?;
-    file.write_all(bench_data_string.as_bytes())
-        .context("Failed to write serialized bench data to file")?;
-    file.flush().context("Failed to flush bench data to file")?;
-
-    // Unlock file
-    <File as FileExt>::unlock(&file).context("Failed to unlock bench data file")
+    // Unlock the file
+    file.unlock()
+        .context("Failed to unlock bench data file after writing")
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::thread;
+    use crate::entities::{BenchDataSerde, CounterBenchDataSerde};
+    use std::{
+        io::{Read, Seek, SeekFrom, Write},
+        thread,
+    };
     use tempfile::NamedTempFile;
 
     #[test]
     fn test_data_not_overwritten() {
         // Create initial bench data.
-        let initial_bench_data = BenchData {
+        let initial_bench_data = BenchDataSerde {
             compute: 123,
-            alloc: BTreeMap::new(),
-            counter: CounterBenchData {
+            alloc: Default::default(),
+            counter: CounterBenchDataSerde {
                 async_call: 53,
                 sync_call: 35,
             },
@@ -119,17 +95,17 @@ mod tests {
         // Spawn two threads to modify the bench data concurrently.
         let h1 = thread::spawn(move || {
             store_bench_data_to_file(path_h1, |bench_data| {
-                bench_data.compute = 42;
-                bench_data.cross_program = 0;
+                bench_data.update_compute_bench(42);
+                bench_data.update_cross_program_bench(0);
             })
             .unwrap();
         });
 
         let h2 = thread::spawn(move || {
             store_bench_data_to_file(path_h2, |bench_data| {
-                bench_data.counter.async_call = 84;
-                bench_data.counter.sync_call = 126;
-                bench_data.redirect = 4343;
+                bench_data.update_counter_bench(true, 84);
+                bench_data.update_counter_bench(false, 126);
+                bench_data.update_redirect_bench(4343);
             })
             .unwrap();
         });
@@ -144,16 +120,16 @@ mod tests {
             .as_file_mut()
             .read_to_string(&mut content)
             .expect("Failed reading bench data bytes to string");
-        let bench_data: BenchData =
+        let bench_data: BenchDataSerde =
             serde_json::from_str(&content).expect("Failed to deserialize bench data");
 
         // Check that the bench data was modified correctly.
         assert_eq!(
             bench_data,
-            BenchData {
+            BenchDataSerde {
                 compute: 42,
-                alloc: BTreeMap::new(),
-                counter: CounterBenchData {
+                alloc: Default::default(),
+                counter: CounterBenchDataSerde {
                     async_call: 84,
                     sync_call: 126,
                 },

@@ -830,6 +830,7 @@ version = "0.9.0"
 dependencies = [
  "alloc-stress",
  "anyhow",
+ "clap",
  "compute-stress",
  "convert_case 0.7.1",
  "counter-bench",
