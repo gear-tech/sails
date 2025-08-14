@@ -1,14 +1,16 @@
 use anyhow::{Context, Result, anyhow};
-use benchmarks::{BenchCategory, BenchDataFile, BenchDataOuter};
+use benchmarks::{
+    BenchCategoryComparison, BenchCategoryComparisonReport, BenchData, BenchDataFile,
+};
 use clap::Parser;
-use itertools::Either;
-use std::fs;
-use std::path::PathBuf;
+use std::{fs, path::PathBuf};
 
 #[derive(Parser)]
 #[command(version, about, long_about = None)]
 #[command(name = "bench-analyzer")]
-#[command(about = "A tool for analyzing benchmark data differences and comparisons")]
+#[command(
+    about = "A tool for analyzing benchmark data by comparing current and previous benchmark results."
+)]
 struct Cli {
     /// Current benchmark data file
     #[arg(long)]
@@ -30,27 +32,27 @@ struct Cli {
 fn main() -> Result<()> {
     let cli = Cli::parse();
 
-    compare_bench(cli.current, cli.other, cli.output, cli.threshold)
+    analyze_benches(cli.current, cli.other, cli.output, cli.threshold)
 }
 
-fn compare_bench(
+fn analyze_benches(
     current: PathBuf,
     other: PathBuf,
     report_output: Option<PathBuf>,
     threshold: Option<f64>,
 ) -> Result<()> {
+    // Get benches data from the provided files.
     let (current_data, other_data) = get_bench_data(current, other)?;
 
-    let mut report = String::new();
-    report.push_str("## 🔬 Benchmark Comparison\n\n");
-    report.push_str("| Benchmark | Current | Baseline | Change | Change % | Status |\n");
-    report.push_str("|-----------|---------|----------|---------|----------|--------|\n");
-
+    // Flag to track if any benchmarks fail the threshold check.
     let mut threshold_failed = threshold.map(|_| false);
+
+    // Create unfinished report.
     let mut report = current_data
         .into_iter()
         .zip(other_data)
         .map(
+            // Create a comparison entity for each benchmark category.
             |((current_category, current_value), (other_category, other_value))| {
                 assert_eq!(current_category, other_category, "Categories do not match");
 
@@ -68,20 +70,24 @@ fn compare_bench(
                 comparison
             },
         )
-        .fold(report, |mut report, comparison| {
+        .fold(initialize_report(), |mut report, comparison| {
+            // Add each comparison to the report.
             add_comparison_to_report(&mut report, comparison);
             report
         });
 
+    // Finish the report.
     add_report_conclusion(&mut report, threshold, threshold_failed);
 
-    // Printing the final report
+    // Printing the finalized report.
     println!("{report}");
 
+    // If any benchmarks failed the threshold check, return an error.
     if matches!(threshold_failed, Some(true)) {
         return Err(anyhow!("Benchmark contains tests failing the threshold."));
     }
 
+    // If an output path is provided, write the report to that file.
     if let Some(report_output) = report_output {
         fs::write(&report_output, &report).context("Failed to write report output")?;
 
@@ -94,7 +100,7 @@ fn compare_bench(
     Ok(())
 }
 
-fn get_bench_data(current: PathBuf, previous: PathBuf) -> Result<(BenchDataOuter, BenchDataOuter)> {
+fn get_bench_data(current: PathBuf, previous: PathBuf) -> Result<(BenchData, BenchData)> {
     let mut current_file =
         BenchDataFile::open(current).context("Failed to open current benchmark data file")?;
     let mut previous_file =
@@ -106,133 +112,28 @@ fn get_bench_data(current: PathBuf, previous: PathBuf) -> Result<(BenchDataOuter
     Ok((current_data, previous_data))
 }
 
-#[derive(Debug)]
-struct BenchCategoryComparison {
-    category: BenchCategory,
-    current: u64,
-    other: u64,
-    diff: i64,
-    diff_percent: f64,
-    status: Either<ThresholdPassStatus, PerformanceStatus>,
-}
+fn initialize_report() -> String {
+    let mut report = String::new();
+    report.push_str("## 🔬 Benchmark Comparison\n\n");
+    report.push_str("| Benchmark | Current | Baseline | Change | Change % | Status |\n");
+    report.push_str("|-----------|---------|----------|---------|----------|--------|\n");
 
-impl BenchCategoryComparison {
-    fn new(
-        category: BenchCategory,
-        current: u64,
-        other: u64,
-        maybe_threshold: Option<f64>,
-    ) -> Self {
-        let diff = current as i64 - other as i64;
-        let diff_percent = (diff as f64 / other as f64) * 100.0;
-        let status = match maybe_threshold {
-            Some(threshold) => {
-                let exceeds = diff_percent.abs() > threshold;
-                if exceeds {
-                    Either::Left(ThresholdPassStatus::Fail)
-                } else {
-                    Either::Left(ThresholdPassStatus::Pass)
-                }
-            }
-            None => {
-                if diff_percent.abs() < 1.0 {
-                    // [0,..1.0)
-                    Either::Right(PerformanceStatus::NoChange)
-                } else if diff_percent < -5.0 {
-                    // [-inf, -5.0)
-                    Either::Right(PerformanceStatus::SignificantImprovement)
-                } else if diff_percent < 0.0 {
-                    // [-5.0, 0.0)
-                    Either::Right(PerformanceStatus::MinorImprovement)
-                } else if diff_percent < 5.0 {
-                    // [0.0, 5.0)
-                    Either::Right(PerformanceStatus::MinorRegression)
-                } else {
-                    // [5.0, inf)
-                    Either::Right(PerformanceStatus::SignificantRegression)
-                }
-            }
-        };
-
-        Self {
-            category,
-            current,
-            other,
-            diff,
-            diff_percent,
-            status,
-        }
-    }
-
-    fn has_failed_threshold(&self) -> bool {
-        self.status
-            .as_ref()
-            .left()
-            .map(|status| matches!(status, ThresholdPassStatus::Fail))
-            .unwrap_or(false)
-    }
-}
-
-#[derive(Debug, Clone, Copy)]
-enum ThresholdPassStatus {
-    Pass,
-    Fail,
-}
-
-#[derive(Debug, Clone, Copy)]
-enum PerformanceStatus {
-    SignificantImprovement,
-    MinorImprovement,
-    NoChange,
-    SignificantRegression,
-    MinorRegression,
-}
-
-fn status_to_str(status: &Either<ThresholdPassStatus, PerformanceStatus>) -> &'static str {
-    match status {
-        Either::Left(ThresholdPassStatus::Pass) => "✅ PASS",
-        Either::Left(ThresholdPassStatus::Fail) => "❌ FAIL",
-        Either::Right(PerformanceStatus::SignificantImprovement) => "🚀",
-        Either::Right(PerformanceStatus::MinorImprovement) => "👍",
-        Either::Right(PerformanceStatus::NoChange) => "✅",
-        Either::Right(PerformanceStatus::SignificantRegression) => "❌",
-        Either::Right(PerformanceStatus::MinorRegression) => "⚠️",
-    }
-}
-
-fn format_number(num: u64) -> String {
-    let num_str = num.to_string();
-    let mut result = String::new();
-
-    for (i, ch) in num_str.chars().rev().enumerate() {
-        if i > 0 && i % 3 == 0 {
-            result.push('_');
-        }
-        result.push(ch);
-    }
-
-    result.chars().rev().collect()
+    report
 }
 
 fn add_comparison_to_report(report: &mut String, comparison: BenchCategoryComparison) {
-    let BenchCategoryComparison {
+    let BenchCategoryComparisonReport {
         category,
         current,
         other,
+        diff_sign,
         diff,
+        diff_percent_sign,
         diff_percent,
         status,
-    } = comparison;
-
-    let current = format_number(current);
-    let other = format_number(other);
-    let diff_sign = if diff >= 0 { "+" } else { "-" };
-    let diff_percent_sign = if diff_percent >= 0.0 { "+" } else { "" };
-    let diff = format_number(diff.unsigned_abs());
-    let status_str = status_to_str(&status);
-
+    } = comparison.into();
     report.push_str(&format!(
-        "| {category} | {current} | {other} | {diff_sign}{diff} | {diff_percent_sign}{diff_percent:.2}% | {status_str} |\n",
+        "| {category} | {current} | {other} | {diff_sign}{diff} | {diff_percent_sign}{diff_percent:.2}% | {status} |\n",
     ));
 }
 
