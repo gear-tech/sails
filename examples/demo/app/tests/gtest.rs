@@ -48,7 +48,7 @@ async fn counter_add_works() {
         .await
         .unwrap();
 
-    // Asert
+    // Assert
 
     let event = counter_events.next().await.unwrap();
 
@@ -116,7 +116,7 @@ async fn counter_query_works() {
     // Use generated client code for query Counter service using the `recv` method
     let result = counter_client.value().recv(demo_program_id).await.unwrap();
 
-    // Asert
+    // Assert
     assert_eq!(result, 42);
 }
 
@@ -423,7 +423,7 @@ async fn counter_add_works_via_next_mode() {
         .await
         .unwrap();
 
-    // Asert
+    // Assert
     let event = counter_events.next().await.unwrap();
 
     assert_eq!(result, 52);
