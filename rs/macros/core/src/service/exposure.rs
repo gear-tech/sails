@@ -244,33 +244,34 @@ impl ServiceBuilder<'_> {
         }
     }
 
-    /// Implements `Into< <TBase as Service>::Exposure > for Exposure<T>`
-    /// for service `T` that extends single base service
-    pub(super) fn exposure_into_base_impl(&self) -> Option<TokenStream> {
-        let sails_path = self.sails_path;
+    /// Implements `Into< TBase > for Exposure<T>`
+    pub(super) fn exposure_into_base_impl(&self) -> TokenStream {
         let exposure_ident = &self.exposure_ident;
         let inner_ident = &self.inner_ident;
 
         let generics = &self.generics;
         let service_type_path = self.type_path;
         let service_type_constraints = self.type_constraints();
+        let base_types = self.base_types;
 
-        // Can impl `sails_rs::Into<_>` only for single service wihtout conflicting implementations
-        if self.base_types.len() == 1 {
-            let base_type = &self.base_types[0];
-            Some(quote! {
-                    #[allow(clippy::from_over_into)]
-                    impl #generics Into< <#base_type as #sails_path::gstd::services::Service>::Exposure > for #exposure_ident< #service_type_path > #service_type_constraints {
-                        fn into(self) -> <#base_type as #sails_path::gstd::services::Service>::Exposure {
-                            use #sails_path::gstd::services::Service;
-
-                            let base_service: #base_type = self. #inner_ident .into();
-                            base_service .expose(self.route)
-                        }
+        let into_impl = base_types.iter().enumerate().map(|(idx, base_type)| {
+            let idx_token = if base_types.len() == 1 { None } else {
+                let idx_literal = Literal::usize_unsuffixed(idx);
+                Some(quote! { . #idx_literal })
+            };
+            quote! {
+                #[allow(clippy::from_over_into)]
+                impl #generics Into< #base_type > for #exposure_ident< #service_type_path > #service_type_constraints {
+                    fn into(self) -> #base_type {
+                        let base_services: ( #( #base_types ),* ) = self. #inner_ident .into();
+                        base_services #idx_token
                     }
-            })
-        } else {
-            None
+                }
+            }
+        });
+
+        quote! {
+            #( #into_impl )*
         }
     }
 }
