@@ -283,7 +283,16 @@ impl Remoting for GTestRemoting {
             )
             .map_err(|_| RtlError::ReplyIsMissing)?;
 
-        Ok(reply_info.payload)
+        match reply_info.code {
+            ReplyCode::Success(_) => Ok(reply_info.payload),
+            ReplyCode::Error(err) => {
+                Err(RtlError::ReplyHasError(err, reply_info.payload).into())
+            },
+            _ => {
+                log::trace!("Unexpected reply code: {:?}", reply_info.code);
+                Err(RtlError::ReplyIsMissing.into())
+            },
+        }
     }
 }
 
