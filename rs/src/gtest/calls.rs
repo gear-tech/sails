@@ -273,25 +273,18 @@ impl Remoting for GTestRemoting {
         let gas_limit = gas_limit.unwrap_or(GAS_LIMIT_DEFAULT);
         #[cfg(feature = "ethexe")]
         let gas_limit = GAS_LIMIT_DEFAULT;
-        let reply_info = self.system
-            .calculate_reply_for_handle(
-                actor_id,
-                target,
-                payload.as_ref(),
-                gas_limit,
-                value
-            )
+        let reply_info = self
+            .system
+            .calculate_reply_for_handle(actor_id, target, payload.as_ref(), gas_limit, value)
             .map_err(|_| RtlError::ReplyIsMissing)?;
 
         match reply_info.code {
             ReplyCode::Success(_) => Ok(reply_info.payload),
-            ReplyCode::Error(err) => {
-                Err(RtlError::ReplyHasError(err, reply_info.payload).into())
-            },
+            ReplyCode::Error(err) => Err(RtlError::ReplyHasError(err, reply_info.payload).into()),
             _ => {
                 log::trace!("Unexpected reply code: {:?}", reply_info.code);
                 Err(RtlError::ReplyIsMissing.into())
-            },
+            }
         }
     }
 }
