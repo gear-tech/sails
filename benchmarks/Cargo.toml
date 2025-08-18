@@ -6,12 +6,18 @@ edition.workspace = true
 license.workspace = true
 repository.workspace = true
 
+[[bin]]
+name = "bench-analyzer"
+path = "src/bin/bench_analyzer.rs"
+
 [dependencies]
 anyhow.workspace = true
+clap = { version = "4.0", features = ["derive"] }
 serde = { workspace = true, features = ["derive"] }
 serde-json.workspace = true
 fs2.workspace = true
 sails-rs.workspace = true
+itertools.workspace = true
 
 [build-dependencies]
 sails-rs = { workspace = true, features = ["build"] }
@@ -33,4 +39,3 @@ redirect-proxy = { path = "../examples/redirect/proxy" }
 redirect-proxy-client = { path = "../examples/redirect/proxy-client" }
 tokio = { workspace = true, features = ["rt", "macros"] }
 tempfile.workspace = true
-itertools.workspace = true
