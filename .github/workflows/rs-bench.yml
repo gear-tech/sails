@@ -74,8 +74,6 @@ jobs:
         if: github.event_name == 'pull_request'
         run: |
           ./target/debug/bench-analyzer --current=benchmarks/bench_data.json --other=benchmarks/baseline.json --output=benchmarks/comparison.md
-        env:
-          CARGO_TERM_COLOR: always
 
       # Read the comparison markdown for the comment
       - name: Read Comparison Result
