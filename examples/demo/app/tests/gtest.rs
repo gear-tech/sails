@@ -121,6 +121,52 @@ async fn counter_query_works() {
 }
 
 #[tokio::test]
+async fn counter_query_with_message_works() {
+    use sails_rs::gtest::calls::QueryExtGTest;
+    // Arrange
+    let fixture = Fixture::new();
+
+    let demo_factory = fixture.demo_factory();
+
+    // Use generated client code for activating Demo program
+    // using the `new` constructor and the `send_recv` method
+    let demo_program_id = demo_factory
+        .new(Some(42), None)
+        .send_recv(fixture.demo_code_id(), "123")
+        .await
+        .unwrap();
+
+    let counter_client = fixture.counter_client();
+
+    // First call to check if counter is 42.
+    let result = counter_client
+        .value_incr()
+        .recv(demo_program_id)
+        .await
+        .unwrap();
+    assert_eq!(result, 42);
+
+    // Second call is with `query_with_message` flag set to true.
+    // If the first call changed the state, the result will be 43.
+    // But we expect it to be still 42, as query should not change the state.
+    let result = counter_client
+        .value_incr()
+        .query_with_message(true)
+        .recv(demo_program_id)
+        .await
+        .unwrap();
+    assert_eq!(result, 42);
+
+    // Third call to check if counter is incremented after the second call.
+    let result = counter_client
+        .value_incr()
+        .recv(demo_program_id)
+        .await
+        .unwrap();
+    assert_eq!(result, 43);
+}
+
+#[tokio::test]
 async fn counter_query_not_enough_gas() {
     // Arrange
     let fixture = Fixture::new();

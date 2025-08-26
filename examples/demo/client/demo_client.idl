@@ -54,6 +54,10 @@ service Counter {
   Sub : (value: u32) -> u32;
   /// Get the current value
   query Value : () -> u32;
+  /// Get the current value and increment the counter
+  /// 
+  /// The method is used to specifically demonstrate how query with message sending works.
+  query ValueIncr : () -> u32;
 
   events {
     /// Emitted when a new value is added to the counter

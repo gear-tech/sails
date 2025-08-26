@@ -67,4 +67,16 @@ impl CounterService<'_> {
     pub fn value(&self) -> u32 {
         self.data.borrow().counter
     }
+
+    /// Get the current value and increment the counter
+    ///
+    /// The method is used to specifically demonstrate how query with message sending works.
+    #[export]
+    pub fn value_incr(&self) -> u32 {
+        let mut data_mut = self.data.borrow_mut();
+        let current = data_mut.counter;
+        data_mut.counter += 1;
+
+        current
+    }
 }
