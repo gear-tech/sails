@@ -247,6 +247,14 @@ impl MyPing {
 }
 ```
 
+> **NOTE**
+>
+> There are cases when an instantiated program (i.e., for which a constructor was successfully called)
+> needs to receive tokens (value) without routing to any specific service method. To enable this,
+> the `payable` argument of the `#[program]` attribute should be defined, like this: `#[program(payable)]`.
+> In this case, if a caller sends a message with an empty payload but includes value, the
+> receiving program will accept the sent tokens without routing the message to any service.
+
 ### Events
 
 `Sails` offers a mechanism to emit events from your service while processing commands.
