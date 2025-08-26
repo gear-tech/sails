@@ -129,12 +129,6 @@ impl<R: Remoting + Clone> traits::Counter for Counter<R> {
     fn value(&self) -> impl Query<Output = u32, Args = R::Args> {
         RemotingAction::<_, counter::io::Value>::new(self.remoting.clone(), ())
     }
-    /// Get the current value and increment the counter
-    ///
-    /// The method is used to specifically demonstrate how query with message sending works.
-    fn value_incr(&self) -> impl Query<Output = u32, Args = R::Args> {
-        RemotingAction::<_, counter::io::ValueIncr>::new(self.remoting.clone(), ())
-    }
 }
 
 pub mod counter {
@@ -177,20 +171,6 @@ pub mod counter {
         impl ActionIo for Value {
             const ROUTE: &'static [u8] = &[
                 28, 67, 111, 117, 110, 116, 101, 114, 20, 86, 97, 108, 117, 101,
-            ];
-            type Params = ();
-            type Reply = u32;
-        }
-        pub struct ValueIncr(());
-        impl ValueIncr {
-            #[allow(dead_code)]
-            pub fn encode_call() -> Vec<u8> {
-                <ValueIncr as ActionIo>::encode_call(&())
-            }
-        }
-        impl ActionIo for ValueIncr {
-            const ROUTE: &'static [u8] = &[
-                28, 67, 111, 117, 110, 116, 101, 114, 36, 86, 97, 108, 117, 101, 73, 110, 99, 114,
             ];
             type Params = ();
             type Reply = u32;
@@ -745,7 +725,6 @@ pub mod traits {
         fn add(&mut self, value: u32) -> impl Call<Output = u32, Args = Self::Args>;
         fn sub(&mut self, value: u32) -> impl Call<Output = u32, Args = Self::Args>;
         fn value(&self) -> impl Query<Output = u32, Args = Self::Args>;
-        fn value_incr(&self) -> impl Query<Output = u32, Args = Self::Args>;
     }
 
     #[allow(clippy::type_complexity)]
@@ -815,7 +794,7 @@ pub mod mockall {
     use super::*;
     use sails_rs::mockall::*;
     mock! { pub PingPong<A> {} #[allow(refining_impl_trait)] #[allow(clippy::type_complexity)] impl<A> traits::PingPong for PingPong<A> { type Args = A; fn ping (&mut self, input: String,) -> MockCall<A, Result<String, String>>; } }
-    mock! { pub Counter<A> {} #[allow(refining_impl_trait)] #[allow(clippy::type_complexity)] impl<A> traits::Counter for Counter<A> { type Args = A; fn add (&mut self, value: u32,) -> MockCall<A, u32>;fn sub (&mut self, value: u32,) -> MockCall<A, u32>;fn value (& self, ) -> MockQuery<A, u32>;fn value_incr (& self, ) -> MockQuery<A, u32>; } }
+    mock! { pub Counter<A> {} #[allow(refining_impl_trait)] #[allow(clippy::type_complexity)] impl<A> traits::Counter for Counter<A> { type Args = A; fn add (&mut self, value: u32,) -> MockCall<A, u32>;fn sub (&mut self, value: u32,) -> MockCall<A, u32>;fn value (& self, ) -> MockQuery<A, u32>; } }
     mock! { pub Dog<A> {} #[allow(refining_impl_trait)] #[allow(clippy::type_complexity)] impl<A> traits::Dog for Dog<A> { type Args = A; fn make_sound (&mut self, ) -> MockCall<A, String>;fn walk (&mut self, dx: i32,dy: i32,) -> MockCall<A, ()>;fn avg_weight (& self, ) -> MockQuery<A, u32>;fn position (& self, ) -> MockQuery<A, (i32,i32,)>; } }
     mock! { pub References<A> {} #[allow(refining_impl_trait)] #[allow(clippy::type_complexity)] impl<A> traits::References for References<A> { type Args = A; fn add (&mut self, v: u32,) -> MockCall<A, u32>;fn add_byte (&mut self, byte: u8,) -> MockCall<A, Vec<u8>>;fn guess_num (&mut self, number: u8,) -> MockCall<A, Result<String, String>>;fn incr (&mut self, ) -> MockCall<A, ReferenceCount>;fn set_num (&mut self, number: u8,) -> MockCall<A, Result<(), String>>;fn baked (& self, ) -> MockQuery<A, String>;fn last_byte (& self, ) -> MockQuery<A, Option<u8>>;fn message (& self, ) -> MockQuery<A, Option<String>>; } }
     mock! { pub ThisThat<A> {} #[allow(refining_impl_trait)] #[allow(clippy::type_complexity)] impl<A> traits::ThisThat for ThisThat<A> { type Args = A; fn do_that (&mut self, param: DoThatParam,) -> MockCall<A, Result<(ActorId,NonZeroU32,ManyVariantsReply,), (String,)>>;fn do_this (&mut self, p1: u32,p2: String,p3: (Option<H160>,NonZeroU8,),p4: TupleStruct,) -> MockCall<A, (String,u32,)>;fn noop (&mut self, ) -> MockCall<A, ()>;fn that (& self, ) -> MockQuery<A, Result<String, String>>;fn this (& self, ) -> MockQuery<A, u32>; } }
