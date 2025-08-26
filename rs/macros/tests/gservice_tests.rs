@@ -351,9 +351,10 @@ fn gservice_with_extends_and_lifetimes() {
         .unwrap();
 
     let extended_svc = ExtendedWithLifetime::new(BaseWithLifetime::new(&int)).expose(SERVICE_ROUTE);
-    let base_svc: BaseWithLifetimeExposure<BaseWithLifetime> = extended_svc.into();
+    let base_svc: BaseWithLifetime = extended_svc.into();
+    let base_exposure: BaseWithLifetimeExposure<BaseWithLifetime> = base_svc.expose(SERVICE_ROUTE);
 
-    let base_name = base_svc.name();
+    let base_name = base_exposure.name();
     assert_eq!(HIDDEN_NAME_RESULT, base_name)
 }
 
