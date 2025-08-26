@@ -16,14 +16,14 @@ impl BenchData {
             .context("Failed to deserialize `BenchData` from JSON string")?;
 
         let mut map = BTreeMap::new();
-        map.insert(BenchCategory::Compute, data.compute.0);
+        map.insert(BenchCategory::Compute, data.compute.median);
         for (key, value) in data.alloc.0 {
             map.insert(BenchCategory::Alloc(key), value);
         }
         map.insert(BenchCategory::CounterSync, data.counter.sync_call);
         map.insert(BenchCategory::CounterAsync, data.counter.async_call);
-        map.insert(BenchCategory::CrossProgram, data.cross_program.0);
-        map.insert(BenchCategory::Redirect, data.redirect.0);
+        map.insert(BenchCategory::CrossProgram, data.cross_program.median);
+        map.insert(BenchCategory::Redirect, data.redirect.median);
 
         Ok(Self(map))
     }
@@ -63,14 +63,14 @@ impl BenchData {
         for (key, value) in self.0 {
             // match statement is crucial for not missing any new added category
             match key {
-                BenchCategory::Compute => bench_data.compute.0 = value,
+                BenchCategory::Compute => bench_data.compute.median = value,
                 BenchCategory::Alloc(size) => {
                     bench_data.alloc.0.insert(size, value);
                 }
                 BenchCategory::CounterSync => bench_data.counter.sync_call = value,
                 BenchCategory::CounterAsync => bench_data.counter.async_call = value,
-                BenchCategory::CrossProgram => bench_data.cross_program.0 = value,
-                BenchCategory::Redirect => bench_data.redirect.0 = value,
+                BenchCategory::CrossProgram => bench_data.cross_program.median = value,
+                BenchCategory::Redirect => bench_data.redirect.median = value,
             }
         }
 
@@ -102,7 +102,9 @@ pub struct BenchDataSerde {
 
 /// Compute benchmark data stored in the benchmarks file.
 #[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
-pub struct ComputeBenchDataSerde(pub u64);
+pub struct ComputeBenchDataSerde {
+    pub median: u64,
+}
 
 /// Allocation benchmark data stored in the benchmarks file.
 #[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
@@ -110,11 +112,15 @@ pub struct AllocBenchDataSerde(pub BTreeMap<usize, u64>);
 
 /// Cross-program benchmark data stored in the benchmarks file.
 #[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
-pub struct CrossProgramBenchDataSerde(pub u64);
+pub struct CrossProgramBenchDataSerde {
+    pub median: u64,
+}
 
 /// Redirect benchmark data stored in the benchmarks file.
 #[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
-pub struct RedirectBenchDataSerde(pub u64);
+pub struct RedirectBenchDataSerde {
+    pub median: u64,
+}
 
 /// Counter test benchmark data stored in the benchmarks file.
 ///
