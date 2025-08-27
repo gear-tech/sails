@@ -33,7 +33,7 @@ pub mod non_zero_params {
 
     pub mod io {
         use super::*;
-        sails_rs::io_struct_impl!(DoThis (p1: NonZeroU256, p2: MyParam) -> NonZeroU64);
+        sails_rs::io_struct_impl!(DoThis (p1: NonZeroU256, p2: super::MyParam) -> NonZeroU64);
     }
 }
 #[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo)]

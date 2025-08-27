@@ -3,8 +3,9 @@ use std::{env, path::PathBuf};
 
 fn main() {
     let out_dir_path = PathBuf::from(env::var("OUT_DIR").unwrap());
+    let manifest_dir = PathBuf::from(env::var("CARGO_MANIFEST_DIR").unwrap());
 
-    let client_rs_file_path = out_dir_path.join("rmrk_catalog.rs");
+    let client_rs_file_path = manifest_dir.join("src/rmrk_catalog.rs");
 
     #[cfg(not(target_family = "windows"))]
     let idl_file_path = out_dir_path.join("rmrk-catalog.idl");
@@ -19,8 +20,7 @@ fn main() {
         .unwrap();
 
     #[cfg(target_family = "windows")]
-    let idl_file_path = PathBuf::from(env::var("CARGO_MANIFEST_DIR").unwrap())
-        .join("..\\..\\catalog\\wasm\\rmrk-catalog.idl");
+    let idl_file_path = manifest_dir.join("..\\..\\catalog\\wasm\\rmrk-catalog.idl");
 
     ClientGenerator::from_idl_path(&idl_file_path)
         .with_mocks("mockall")

@@ -240,7 +240,7 @@ pub mod references {
         sails_rs::io_struct_impl!(Add (v: u32) -> u32);
         sails_rs::io_struct_impl!(AddByte (byte: u8) -> Vec<u8>);
         sails_rs::io_struct_impl!(GuessNum (number: u8) -> Result<String, String>);
-        sails_rs::io_struct_impl!(Incr () -> ReferenceCount);
+        sails_rs::io_struct_impl!(Incr () -> super::ReferenceCount);
         sails_rs::io_struct_impl!(SetNum (number: u8) -> Result<(), String>);
         sails_rs::io_struct_impl!(Baked () -> String);
         sails_rs::io_struct_impl!(LastByte () -> Option<u8>);
@@ -292,8 +292,8 @@ pub mod this_that {
 
     pub mod io {
         use super::*;
-        sails_rs::io_struct_impl!(DoThat (param: DoThatParam) -> Result<(ActorId,NonZeroU32,ManyVariantsReply,), (String,)>);
-        sails_rs::io_struct_impl!(DoThis (p1: u32, p2: String, p3: (Option<H160>,NonZeroU8,), p4: TupleStruct) -> (String,u32,));
+        sails_rs::io_struct_impl!(DoThat (param: super::DoThatParam) -> Result<(ActorId,NonZeroU32,super::ManyVariantsReply,), (String,)>);
+        sails_rs::io_struct_impl!(DoThis (p1: u32, p2: String, p3: (Option<H160>,NonZeroU8,), p4: super::TupleStruct) -> (String,u32,));
         sails_rs::io_struct_impl!(Noop () -> ());
         sails_rs::io_struct_impl!(That () -> Result<String, String>);
         sails_rs::io_struct_impl!(This () -> u32);

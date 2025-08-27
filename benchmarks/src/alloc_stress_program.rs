@@ -44,7 +44,7 @@ pub mod alloc_stress {
 
     pub mod io {
         use super::*;
-        sails_rs::io_struct_impl!(AllocStress (n: u32) -> AllocStressResult);
+        sails_rs::io_struct_impl!(AllocStress (n: u32) -> super::AllocStressResult);
     }
 }
 #[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo)]

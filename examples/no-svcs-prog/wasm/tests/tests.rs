@@ -1,6 +1,6 @@
 use no_svcs_prog::client::*;
 use sails_rs::client::*;
-use sails_rs::gtest::{System};
+use sails_rs::gtest::System;
 
 const ADMIN_ID: u64 = 10;
 const WASM_PATH: &str = "../../../target/wasm32-gear/debug/no_svcs_prog.opt.wasm";

@@ -39,7 +39,7 @@ pub mod service {
 
     pub mod io {
         use super::*;
-        my_crate::sails::io_struct_impl!(DoThis (p1: u32, p2: MyParam) -> u16);
+        my_crate::sails::io_struct_impl!(DoThis (p1: u32, p2: super::MyParam) -> u16);
         my_crate::sails::io_struct_impl!(DoThat (p1: (u8,u32,)) -> u8);
     }
 }
