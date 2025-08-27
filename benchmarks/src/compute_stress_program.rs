@@ -44,7 +44,7 @@ pub mod compute_stress {
 
     pub mod io {
         use super::*;
-        sails_rs::io_struct_impl!(ComputeStress (n: u32) -> ComputeStressResult);
+        sails_rs::io_struct_impl!(ComputeStress (n: u32) -> super::ComputeStressResult);
     }
 }
 #[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo)]

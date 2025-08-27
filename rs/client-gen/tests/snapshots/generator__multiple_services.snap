@@ -41,7 +41,7 @@ pub mod multiple {
 
     pub mod io {
         use super::*;
-        sails_rs::io_struct_impl!(DoThis (p1: u32, p2: MyParam) -> u16);
+        sails_rs::io_struct_impl!(DoThis (p1: u32, p2: super::MyParam) -> u16);
         sails_rs::io_struct_impl!(DoThat (p1: (u8,u32,)) -> u8);
     }
 }

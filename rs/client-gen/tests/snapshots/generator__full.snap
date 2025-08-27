@@ -86,8 +86,8 @@ pub mod service {
 
     pub mod io {
         use super::*;
-        sails_rs::io_struct_impl!(DoThis (p1: u32, p2: String, p3: (Option<String>,u8,), p4: ThisThatSvcAppTupleStruct) -> (String,u32,));
-        sails_rs::io_struct_impl!(DoThat (param: ThisThatSvcAppDoThatParam) -> Result<(String,u32,), (String,)>);
+        sails_rs::io_struct_impl!(DoThis (p1: u32, p2: String, p3: (Option<String>,u8,), p4: super::ThisThatSvcAppTupleStruct) -> (String,u32,));
+        sails_rs::io_struct_impl!(DoThat (param: super::ThisThatSvcAppDoThatParam) -> Result<(String,u32,), (String,)>);
         sails_rs::io_struct_impl!(This (v1: Vec<u16>) -> u32);
         sails_rs::io_struct_impl!(That (v1: ()) -> Result<String, String>);
     }

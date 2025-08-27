@@ -1,4 +1,4 @@
-use crate::type_generators::generate_type_decl_code;
+use crate::type_generators::generate_type_decl_with_path;
 use parity_scale_codec::Encode;
 use sails_idl_parser::ast::FuncParam;
 
@@ -48,10 +48,14 @@ pub(crate) fn encoded_args(params: &[FuncParam]) -> String {
 }
 
 pub(crate) fn fn_args_with_types(params: &[FuncParam]) -> String {
+    fn_args_with_types_path(params, "")
+}
+
+pub(crate) fn fn_args_with_types_path(params: &[FuncParam], path: &str) -> String {
     params
         .iter()
         .map(|p| {
-            let ty = generate_type_decl_code(p.type_decl());
+            let ty = generate_type_decl_with_path(p.type_decl(), path.to_owned());
             format!("{}: {}", p.name(), ty)
         })
         .collect::<Vec<_>>()

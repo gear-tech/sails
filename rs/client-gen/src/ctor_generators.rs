@@ -81,8 +81,9 @@ impl<'ast> Visitor<'ast> for CtorGenerator<'_> {
             }
         };
 
+        let params_with_types_super = &fn_args_with_types_path(func.params(), "super");
         quote_in! { self.io_tokens =>
-            $(self.sails_path)::io_struct_impl!($fn_name ($params_with_types) -> ());
+            $(self.sails_path)::io_struct_impl!($fn_name ($params_with_types_super) -> ());
         };
     }
 }

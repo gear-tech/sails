@@ -5,7 +5,7 @@ use sails_idl_parser::{ast::visitor, ast::visitor::Visitor, ast::*};
 
 use crate::events_generator::EventsModuleGenerator;
 use crate::helpers::*;
-use crate::type_generators::generate_type_decl_code;
+use crate::type_generators::{generate_type_decl_code, generate_type_decl_with_path};
 
 /// Generates a trait with service methods
 pub(crate) struct ServiceCtorGenerator<'a> {
@@ -114,7 +114,6 @@ impl<'ast> Visitor<'ast> for ServiceGenerator<'_> {
 
         let params_with_types = &fn_args_with_types(func.params());
         let args = encoded_args(func.params());
-        let output_type_decl_code = generate_type_decl_code(func.output());
 
         for doc in func.docs() {
             quote_in! { self.trait_tokens =>
@@ -131,8 +130,10 @@ impl<'ast> Visitor<'ast> for ServiceGenerator<'_> {
             }
         };
 
+        let output_type_decl_code = generate_type_decl_with_path(func.output(), "super".to_owned());
+        let params_with_types_super = &fn_args_with_types_path(func.params(), "super");
         quote_in! { self.io_tokens =>
-            $(self.sails_path)::io_struct_impl!($fn_name ($params_with_types) -> $output_type_decl_code);
+            $(self.sails_path)::io_struct_impl!($fn_name ($params_with_types_super) -> $output_type_decl_code);
         };
     }
 }

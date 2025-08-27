@@ -245,6 +245,11 @@ impl<E: GearEnv, T: CallEncodeDecode> PendingCall<E, T> {
         }
     }
 
+    pub fn with_destination(mut self, actor_id: ActorId) -> Self {
+        self.destination = actor_id;
+        self
+    }
+
     pub fn with_params(mut self, f: impl FnOnce(E::Params) -> E::Params) -> Self {
         self.params = Some(f(self.params.unwrap_or_default()));
         self

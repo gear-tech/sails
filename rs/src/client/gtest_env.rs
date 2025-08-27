@@ -136,7 +136,7 @@ impl GtestEnv {
         }
     }
 
-    fn create_program(
+    pub fn create_program(
         &self,
         code_id: CodeId,
         salt: impl AsRef<[u8]>,
@@ -161,7 +161,7 @@ impl GtestEnv {
         Ok((program_id, message_id))
     }
 
-    fn send_message(
+    pub fn send_message(
         &self,
         target: ActorId,
         payload: impl AsRef<[u8]>,
@@ -186,7 +186,7 @@ impl GtestEnv {
         Ok(message_id)
     }
 
-    fn message_reply_from_next_blocks(&self, message_id: MessageId) -> ReplyReceiver {
+    pub fn message_reply_from_next_blocks(&self, message_id: MessageId) -> ReplyReceiver {
         let (tx, rx) = oneshot::channel::<Result<Vec<u8>, Error>>();
         self.block_reply_senders.borrow_mut().insert(message_id, tx);
 
