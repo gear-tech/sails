@@ -15,7 +15,9 @@ mod file;
 
 use anyhow::{Context, Result};
 pub use entities::{
-    BenchCategory, BenchCategoryComparison, BenchCategoryComparisonReport, BenchData,
+    AllocBenchDataSerde, BenchCategory, BenchCategoryComparison, BenchCategoryComparisonReport,
+    BenchData, BenchDataSerde, ComputeBenchDataSerde, CounterBenchDataSerde,
+    CrossProgramBenchDataSerde, RedirectBenchDataSerde,
 };
 pub use file::BenchDataFile;
 use std::{
@@ -55,7 +57,10 @@ fn store_bench_data_to_file(path: impl AsRef<Path>, f: impl FnOnce(&mut BenchDat
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::entities::{BenchDataSerde, CounterBenchDataSerde};
+    use crate::entities::{
+        BenchDataSerde, ComputeBenchDataSerde, CounterBenchDataSerde, CrossProgramBenchDataSerde,
+        RedirectBenchDataSerde,
+    };
     use std::{
         io::{Read, Seek, SeekFrom, Write},
         thread,
@@ -66,14 +71,14 @@ mod tests {
     fn test_data_not_overwritten() {
         // Create initial bench data.
         let initial_bench_data = BenchDataSerde {
-            compute: 123,
+            compute: ComputeBenchDataSerde { median: 123 },
             alloc: Default::default(),
             counter: CounterBenchDataSerde {
                 async_call: 53,
                 sync_call: 35,
             },
-            cross_program: 42,
-            redirect: 4242,
+            cross_program: CrossProgramBenchDataSerde { median: 42 },
+            redirect: RedirectBenchDataSerde { median: 4242 },
         };
 
         // Create a temporary file.
@@ -127,14 +132,14 @@ mod tests {
         assert_eq!(
             bench_data,
             BenchDataSerde {
-                compute: 42,
+                compute: ComputeBenchDataSerde { median: 42 },
                 alloc: Default::default(),
                 counter: CounterBenchDataSerde {
                     async_call: 84,
                     sync_call: 126,
                 },
-                cross_program: 0,
-                redirect: 4343,
+                cross_program: CrossProgramBenchDataSerde { median: 0 },
+                redirect: RedirectBenchDataSerde { median: 4343 },
             },
         )
     }
