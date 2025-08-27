@@ -48,7 +48,7 @@ async fn counter_add_works() {
         .await
         .unwrap();
 
-    // Asert
+    // Assert
 
     let event = counter_events.next().await.unwrap();
 
@@ -116,7 +116,40 @@ async fn counter_query_works() {
     // Use generated client code for query Counter service using the `recv` method
     let result = counter_client.value().recv(demo_program_id).await.unwrap();
 
-    // Asert
+    // Assert
+    assert_eq!(result, 42);
+}
+
+#[tokio::test]
+async fn counter_query_with_message_works() {
+    use sails_rs::gtest::calls::QueryExtGTest;
+    // Arrange
+    let fixture = Fixture::new();
+
+    let demo_factory = fixture.demo_factory();
+
+    // Use generated client code for activating Demo program
+    // using the `new` constructor and the `send_recv` method
+    let demo_program_id = demo_factory
+        .new(Some(42), None)
+        .send_recv(fixture.demo_code_id(), "123")
+        .await
+        .unwrap();
+
+    let counter_client = fixture.counter_client();
+
+    // First call without query with message to check if counter is 42.
+    let result = counter_client.value().recv(demo_program_id).await.unwrap();
+    assert_eq!(result, 42);
+
+    // Second call is with `query_with_message` flag set to true.
+    // The returned value must be the same
+    let result = counter_client
+        .value()
+        .query_with_message(true)
+        .recv(demo_program_id)
+        .await
+        .unwrap();
     assert_eq!(result, 42);
 }
 
@@ -146,7 +179,7 @@ async fn counter_query_not_enough_gas() {
         .recv(demo_program_id)
         .await;
 
-    // Asert
+    // Assert
     assert!(matches!(
         result,
         Err(sails_rs::errors::Error::Rtl(RtlError::ReplyHasError(
@@ -423,7 +456,7 @@ async fn counter_add_works_via_next_mode() {
         .await
         .unwrap();
 
-    // Asert
+    // Assert
     let event = counter_events.next().await.unwrap();
 
     assert_eq!(result, 52);
