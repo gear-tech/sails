@@ -239,7 +239,7 @@ impl ProgramGenerator {
         cargo_toml_create_workspace(manifest_path)?;
 
         let mut readme_md = File::create(readme_path(path))?;
-        self.root_readme().write_into(&mut readme_md)?;        
+        self.root_readme().write_into(&mut readme_md)?;
 
         Ok(())
     }
