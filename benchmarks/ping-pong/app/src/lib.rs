@@ -4,11 +4,8 @@ pub mod client {
     include!("./ping_pong_client.rs");
 }
 
-use client::{
-    PingPongPayload as PingPongPayloadC, PingPongService as PingPongServiceC,
-    traits::PingPongService as _,
-};
-use sails_rs::{calls::Call, gstd::calls::GStdRemoting, prelude::*};
+use client::{PingPong as _, ping_pong_service::PingPongService as _};
+use sails_rs::{client::*, prelude::*};
 
 #[derive(Debug, Clone, Copy, Decode, Encode, TypeInfo)]
 #[codec(crate = sails_rs::scale_codec)]
@@ -28,16 +25,16 @@ impl PingPongService {
     pub async fn ping(&mut self, payload: PingPongPayload) -> PingPongPayload {
         match payload {
             PingPongPayload::Start(actor_id) => {
-                let mut api = PingPongServiceC::new(GStdRemoting::new());
+                let mut api = client::PingPongProgram::client(DefaultEnv::default(), actor_id)
+                    .ping_pong_service();
                 let result = api
-                    .ping(PingPongPayloadC::Ping)
-                    .send_recv(actor_id)
+                    .ping(client::PingPongPayload::Ping)
                     .await
                     .unwrap_or_else(|e| {
                         panic!("Failed to receiving successful ping result: {e:?}")
                     });
 
-                if matches!(result, PingPongPayloadC::Pong) {
+                if matches!(result, client::PingPongPayload::Pong) {
                     PingPongPayload::Finished
                 } else {
                     panic!("Unexpected payload received: {result:?}")
