@@ -13,8 +13,27 @@ use std::{
 const SAILS_VERSION: &str = env!("CARGO_PKG_VERSION");
 
 #[derive(Template)]
-#[template(path = "app/build.askama")]
-struct AppBuild;
+#[template(path = "build.askama")]
+struct RootBuild {
+    app_crate_name: String,
+    program_struct_name: String,
+}
+
+#[derive(Template)]
+#[template(path = "src/lib.askama")]
+struct RootLib {
+    app_crate_name: String,
+}
+
+#[derive(Template)]
+#[template(path = "readme.askama")]
+struct Readme {
+    program_crate_name: String,
+    app_crate_name: String,
+    client_crate_name: String,
+    service_name: String,
+    app: bool,
+}
 
 #[derive(Template)]
 #[template(path = "app/src/lib.askama")]
@@ -27,7 +46,7 @@ struct AppLib {
 #[derive(Template)]
 #[template(path = "client/build.askama")]
 struct ClientBuild {
-    program_crate_name: String,
+    app_crate_name: String,
     program_struct_name: String,
 }
 
@@ -81,8 +100,27 @@ impl ProgramGenerator {
         }
     }
 
-    fn app_build(&self) -> AppBuild {
-        AppBuild
+    fn root_build(&self) -> RootBuild {
+        RootBuild {
+            app_crate_name: self.app_name().to_case(Case::Snake),
+            program_struct_name: "Program".to_string(),
+        }
+    }
+
+    fn root_lib(&self) -> RootLib {
+        RootLib {
+            app_crate_name: self.app_name().to_case(Case::Snake),
+        }
+    }
+
+    fn root_readme(&self) -> Readme {
+        Readme {
+            program_crate_name: self.package_name.to_owned(),
+            app_crate_name: self.app_name(),
+            client_crate_name: self.client_name(),
+            service_name: "Service".to_string(),
+            app: self.app,
+        }
     }
 
     fn app_lib(&self) -> AppLib {
@@ -95,7 +133,7 @@ impl ProgramGenerator {
 
     fn client_build(&self) -> ClientBuild {
         ClientBuild {
-            program_crate_name: self.app_name().to_case(Case::Snake),
+            app_crate_name: self.app_name().to_case(Case::Snake),
             program_struct_name: "Program".to_string(),
         }
     }
@@ -108,7 +146,7 @@ impl ProgramGenerator {
 
     fn tests_gtest(&self) -> TestsGtest {
         TestsGtest {
-            program_crate_name: self.app_name().to_case(Case::Snake),
+            program_crate_name: self.package_name.to_case(Case::Snake),
             client_crate_name: self.client_name().to_case(Case::Snake),
             client_program_name: self.client_name().to_case(Case::Pascal),
             service_name: "Service".to_string(),
@@ -172,6 +210,7 @@ impl ProgramGenerator {
             self.generate_root()?;
             self.generate_app()?;
             self.generate_client()?;
+            self.generate_build()?;
             self.generate_tests()?;
         }
         self.fmt()?;
@@ -185,10 +224,6 @@ impl ProgramGenerator {
 
         // add sails-rs refs
         self.cargo_add_sails_rs(manifest_path, Normal, None)?;
-        self.cargo_add_sails_rs(manifest_path, Build, Some("wasm-builder"))?;
-
-        let mut build_rs = File::create(build_rs_path(path))?;
-        self.app_build().write_into(&mut build_rs)?;
 
         let mut lib_rs = File::create(lib_rs_path(path))?;
         self.app_lib().write_into(&mut lib_rs)?;
@@ -200,7 +235,31 @@ impl ProgramGenerator {
         let path = &self.path;
         cargo_new(path, &self.package_name, self.offline)?;
 
-        cargo_toml_create_workspace(manifest_path(path))?;
+        let manifest_path = &manifest_path(path);
+        cargo_toml_create_workspace(manifest_path)?;
+
+        let mut readme_md = File::create(readme_path(path))?;
+        self.root_readme().write_into(&mut readme_md)?;        
+
+        Ok(())
+    }
+
+    fn generate_build(&self) -> anyhow::Result<()> {
+        let path = &self.path;
+        let manifest_path = &manifest_path(path);
+
+        let mut lib_rs = File::create(lib_rs_path(path))?;
+        self.root_lib().write_into(&mut lib_rs)?;
+
+        let mut build_rs = File::create(build_rs_path(path))?;
+        self.root_build().write_into(&mut build_rs)?;
+
+        // add app ref
+        cargo_add_by_path(manifest_path, self.app_path(), Normal, None, self.offline)?;
+        cargo_add_by_path(manifest_path, self.app_path(), Build, None, self.offline)?;
+        // add sails-rs refs
+        self.cargo_add_sails_rs(manifest_path, Normal, None)?;
+        self.cargo_add_sails_rs(manifest_path, Build, Some("build"))?;
 
         Ok(())
     }
@@ -257,9 +316,6 @@ impl ProgramGenerator {
             None,
             self.offline,
         )?;
-
-        // delete ./src folder
-        fs::remove_dir_all(src_path(path))?;
 
         // add tests
         let test_path = &tests_path(path);
@@ -413,16 +469,16 @@ fn build_rs_path<P: AsRef<Path>>(path: P) -> PathBuf {
     path.as_ref().join("build.rs")
 }
 
-fn src_path<P: AsRef<Path>>(path: P) -> PathBuf {
-    path.as_ref().join("src")
-}
-
 fn lib_rs_path<P: AsRef<Path>>(path: P) -> PathBuf {
     path.as_ref().join("src/lib.rs")
 }
 
 fn tests_path<P: AsRef<Path>>(path: P) -> PathBuf {
     path.as_ref().join("tests/gtest.rs")
+}
+
+fn readme_path<P: AsRef<Path>>(path: P) -> PathBuf {
+    path.as_ref().join("README.md")
 }
 
 fn cargo_command() -> String {
