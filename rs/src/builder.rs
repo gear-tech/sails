@@ -87,6 +87,23 @@ impl<P: ProgramMeta> ClientBuilder<P> {
         }
     }
 
+    pub fn from_wasm_path<T: AsRef<Path>>(path: T) -> Self {
+        let path = path.as_ref();
+        let program_name = path
+            .file_name()
+            .expect("Invalid path to wasm")
+            .to_string_lossy()
+            .to_string();
+
+        Self {
+            idl_path: Some(path.with_extension("idl")),
+            client_path: Some(path.with_extension("rs")),
+            program_name,
+            no_std: false,
+            _marker: Default::default(),
+        }
+    }
+
     pub fn empty(program_name: String) -> Self {
         Self {
             idl_path: None,
