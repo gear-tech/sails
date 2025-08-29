@@ -48,7 +48,7 @@ where
 mod tests {
     use super::*;
     use demo_client::mockall::MockThisThat;
-    use sails_rename::{client::PendingCall, gstd::services::Service, mockall::*};
+    use sails_rename::{client::PendingCall, gstd::services::Service};
 
     #[tokio::test]
     async fn this_that_caller_query_this() {

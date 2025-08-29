@@ -10,14 +10,11 @@ use rmrk_resource_app::services::{
 };
 use sails_rs::{
     ActorId, Decode, Encode,
-    calls::{Call, Query, Remoting},
-    client::{GtestEnv, GtestParams, Program as _, Service},
+    client::{Program as _, *},
     collections::BTreeMap,
     errors::Result,
     gtest::{BlockRunResult, Program, System},
 };
-
-type RmrkResourceClient = client::rmrk_resource::RmrkResourceImpl;
 
 const CATALOG_PROGRAM_WASM_PATH: &str = "../../../../target/wasm32-gear/debug/rmrk_catalog.wasm";
 const RESOURCE_PROGRAM_WASM_PATH: &str = "../../../../target/wasm32-gear/debug/rmrk_resource.wasm";
@@ -437,7 +434,9 @@ impl Fixture {
     }
 
     fn resource_client(&self) -> Service<GtestEnv, RmrkResourceImpl> {
-        RmrkResourceProgram::client(self.env.clone(), self.resource_program_id).rmrk_resource()
+        RmrkResourceProgram::client(self.resource_program_id)
+            .with_env(&self.env)
+            .rmrk_resource()
     }
 
     async fn add_resource_async(

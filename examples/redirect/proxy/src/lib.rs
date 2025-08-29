@@ -16,7 +16,7 @@ impl ProxyService {
     /// Get program ID of the target program via client
     #[sails_rs::export]
     pub async fn get_program_id(&self) -> ActorId {
-        let client = RedirectClientProgram::client(GstdEnv, self.0).redirect();
+        let client = RedirectClientProgram::client(self.0).redirect();
         client
             .get_program_id()
             // Set flag to redirect on exit

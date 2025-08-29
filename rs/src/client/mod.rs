@@ -41,15 +41,9 @@ pub trait GearEnv: Clone {
     type Params: Default;
     type Error: Error;
     type MessageState;
-}
 
-pub trait Program: Sized {
-    fn deploy<E: GearEnv>(env: E, code_id: CodeId, salt: Vec<u8>) -> Deployment<E, Self> {
-        Deployment::new(env, code_id, salt)
-    }
-
-    fn client<E: GearEnv>(env: E, program_id: ActorId) -> Actor<E, Self> {
-        Actor::new(env, program_id)
+    fn deploy<P: Program>(&self, code_id: CodeId, salt: Vec<u8>) -> Deployment<Self, P> {
+        Deployment::new(self.clone(), code_id, salt)
     }
 }
 
@@ -58,6 +52,16 @@ pub type DefaultEnv = MockEnv;
 #[cfg(target_arch = "wasm32")]
 #[cfg(feature = "gstd")]
 pub type DefaultEnv = GstdEnv;
+
+pub trait Program: Sized {
+    fn deploy(code_id: CodeId, salt: Vec<u8>) -> Deployment<DefaultEnv, Self> {
+        Deployment::new(DefaultEnv::default(), code_id, salt)
+    }
+
+    fn client(program_id: ActorId) -> Actor<DefaultEnv, Self> {
+        Actor::new(DefaultEnv::default(), program_id)
+    }
+}
 
 pub type Route = &'static str;
 
@@ -79,7 +83,7 @@ impl<E: GearEnv, A> Deployment<E, A> {
         }
     }
 
-    pub fn with_env<N: GearEnv>(self, env: N) -> Deployment<N, A> {
+    pub fn with_env<N: GearEnv>(self, env: &N) -> Deployment<N, A> {
         let Self {
             env: _,
             code_id,
@@ -87,7 +91,7 @@ impl<E: GearEnv, A> Deployment<E, A> {
             _phantom: _,
         } = self;
         Deployment {
-            env,
+            env: env.clone(),
             code_id,
             salt,
             _phantom: PhantomData,
@@ -119,14 +123,14 @@ impl<E: GearEnv, A> Actor<E, A> {
         self.id
     }
 
-    pub fn with_env<N: GearEnv>(self, env: N) -> Actor<N, A> {
+    pub fn with_env<N: GearEnv>(self, env: &N) -> Actor<N, A> {
         let Self {
             env: _,
             id,
             _phantom: _,
         } = self;
         Actor {
-            env,
+            env: env.clone(),
             id,
             _phantom: PhantomData,
         }
@@ -547,10 +551,10 @@ mod tests {
 
     #[test]
     fn test_str_encode() {
-        const ADD: &'static [u8] = str_scale_encode!(Add);
+        const ADD: &[u8] = str_scale_encode!(Add);
         assert_eq!(ADD, &[12, 65, 100, 100]);
 
-        const VALUE: &'static [u8] = str_scale_encode!(Value);
+        const VALUE: &[u8] = str_scale_encode!(Value);
         assert_eq!(VALUE, &[20, 86, 97, 108, 117, 101]);
     }
 

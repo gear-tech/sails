@@ -1,5 +1,5 @@
 use demo_client::env_client::{
-    Demo as _, DemoCtors as _, DemoProgram,
+    Demo as _, DemoCtors as _,
     counter::{Counter as _, events::CounterEvents},
 };
 use futures::StreamExt as _;
@@ -31,7 +31,9 @@ fn create_env() -> (GtestEnv, CodeId, GasUnit) {
 async fn env_counter_add_works_via_next_mode() {
     let (env, code_id, _gas_limit) = create_env();
 
-    let demo_program = DemoProgram::deploy(env, code_id, vec![])
+    // deploy DemoProgram
+    let demo_program = env
+        .deploy(code_id, vec![])
         .new(Some(42), None)
         .await
         .unwrap();
