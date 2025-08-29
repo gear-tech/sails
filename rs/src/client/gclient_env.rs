@@ -1,7 +1,7 @@
 use super::*;
 use crate::events::Listener;
 use ::gclient::{Error, EventListener, EventProcessor as _, GearApi};
-use futures::{Stream, StreamExt as _, stream};
+use futures::{Stream, stream};
 
 #[derive(Clone)]
 pub struct GclientEnv {

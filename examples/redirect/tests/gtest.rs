@@ -8,10 +8,10 @@ const ACTOR_ID: u64 = 42;
 async fn redirect_on_exit_works() {
     let (env, program_code_id, proxy_code_id, _gas_limit) = create_remoting();
 
-    let program_factory_1 = RedirectClientProgram::deploy(env.clone(), program_code_id, vec![1]);
-    let program_factory_2 = RedirectClientProgram::deploy(env.clone(), program_code_id, vec![2]);
-    let program_factory_3 = RedirectClientProgram::deploy(env.clone(), program_code_id, vec![3]);
-    let proxy_factory = RedirectProxyClientProgram::deploy(env.clone(), proxy_code_id, vec![]);
+    let program_factory_1 = env.deploy::<RedirectClientProgram>(program_code_id, vec![1]);
+    let program_factory_2 = env.deploy::<RedirectClientProgram>(program_code_id, vec![2]);
+    let program_factory_3 = env.deploy::<RedirectClientProgram>(program_code_id, vec![3]);
+    let proxy_factory = env.deploy::<RedirectProxyClientProgram>(proxy_code_id, vec![]);
 
     let program_1 = program_factory_1
         .new() // Call program's constructor
@@ -38,12 +38,12 @@ async fn redirect_on_exit_works() {
     let result = proxy_client.get_program_id().await.unwrap();
     assert_eq!(result, program_1.id());
 
-    let _ = redirect_client.exit(program_2.id()).await.unwrap();
+    redirect_client.exit(program_2.id()).await.unwrap();
 
     let result = proxy_client.get_program_id().await.unwrap();
     assert_eq!(result, program_2.id());
 
-    let _ = redirect_client.exit(program_3.id()).await.unwrap();
+    redirect_client.exit(program_3.id()).await.unwrap();
 
     let result = proxy_client.get_program_id().await.unwrap();
     assert_eq!(result, program_3.id());

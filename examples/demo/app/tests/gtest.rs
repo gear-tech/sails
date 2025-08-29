@@ -1,5 +1,5 @@
 use demo_client::*;
-use gstd::errors::{ErrorReplyReason, ExtError, SimpleExecutionError};
+use gstd::errors::ExtError;
 use gtest::TestError;
 use sails_rs::{
     client::{Program as _, *},
@@ -37,8 +37,9 @@ async fn counter_add_works() {
     let (env, code_id, _gas_limit) = create_env();
 
     // Use generated client code for activating Demo program
-    // using the `new` constructor and the `send_recv` method
-    let demo_program = DemoClientProgram::deploy(env, code_id, vec![])
+    // using the `new` constructor
+    let demo_program = env
+        .deploy(code_id, vec![])
         .new(Some(42), None)
         .await
         .unwrap();
@@ -69,9 +70,9 @@ async fn counter_sub_works() {
     let (env, code_id, _gas_limit) = create_env();
 
     // Use generated client code for activating Demo program
-    // using the `new` constructor and the `send`/`recv` pair
-    // of methods
-    let demo_program = DemoClientProgram::deploy(env, code_id, vec![])
+    // using the `new` constructor
+    let demo_program = env
+        .deploy(code_id, vec![])
         .new(Some(42), None)
         .await
         .unwrap();
@@ -103,7 +104,8 @@ async fn counter_query_works() {
     // Use generated client code for activating Demo program
     // using the `new` constructor and the `send`/`recv` pair
     // of methods
-    let demo_program = DemoClientProgram::deploy(env, code_id, vec![])
+    let demo_program = env
+        .deploy(code_id, vec![])
         .new(Some(42), None)
         .await
         .unwrap();
@@ -160,8 +162,10 @@ async fn counter_query_not_enough_gas() {
     let demo_factory = fixture.demo_factory();
 
     // Use generated client code for activating Demo program
-    // using the `new` constructor and the `send_recv` method
-    let demo_program_id = demo_factory
+    // using the `new` constructor and the `send`/`recv` pair
+    // of methods
+    let demo_program = env
+        .deploy(code_id, vec![])
         .new(Some(42), None)
         .send_recv(fixture.demo_code_id(), "123")
         .await
@@ -242,7 +246,8 @@ async fn dog_barks() {
     // Use generated client code for activating Demo program
     // using the `new` constructor and the `send`/`recv` pair
     // of methods
-    let demo_program = DemoClientProgram::deploy(env, code_id, vec![])
+    let demo_program = env
+        .deploy(code_id, vec![])
         .new(None, Some((1, -1)))
         .await
         .unwrap();
@@ -270,7 +275,8 @@ async fn dog_walks() {
     // Use generated client code for activating Demo program
     // using the `new` constructor and the `send`/`recv` pair
     // of methods
-    let demo_program = DemoClientProgram::deploy(env, code_id, vec![])
+    let demo_program = env
+        .deploy(code_id, vec![])
         .new(None, Some((1, -1)))
         .await
         .unwrap();
@@ -308,7 +314,8 @@ async fn dog_weights() {
     // Use generated client code for activating Demo program
     // using the `new` constructor and the `send`/`recv` pair
     // of methods
-    let demo_program = DemoClientProgram::deploy(env, code_id, vec![])
+    let demo_program = env
+        .deploy(code_id, vec![])
         .new(None, Some((1, -1)))
         .await
         .unwrap();
@@ -326,7 +333,8 @@ async fn references_add() {
     // Arrange
     let (env, code_id, _gas_limit) = create_env();
 
-    let demo_program = DemoClientProgram::deploy(env, code_id, vec![])
+    let demo_program = env
+        .deploy(code_id, vec![])
         .new(None, Some((1, -1)))
         .await
         .unwrap();
@@ -344,7 +352,8 @@ async fn references_bytes() {
     // Arrange
     let (env, code_id, _gas_limit) = create_env();
 
-    let demo_program = DemoClientProgram::deploy(env, code_id, vec![])
+    let demo_program = env
+        .deploy(code_id, vec![])
         .new(None, Some((1, -1)))
         .await
         .unwrap();
@@ -365,7 +374,8 @@ async fn references_guess_num() {
     // Arrange
     let (env, code_id, _gas_limit) = create_env();
 
-    let demo_program = DemoClientProgram::deploy(env, code_id, vec![])
+    let demo_program = env
+        .deploy(code_id, vec![])
         .new(None, Some((1, -1)))
         .await
         .unwrap();
@@ -392,7 +402,8 @@ async fn counter_add_works_via_next_mode() {
     let (env, code_id, _gas_limit) = create_env();
     let env = env.with_block_run_mode(BlockRunMode::Next);
 
-    let demo_program = DemoClientProgram::deploy(env, code_id, vec![])
+    let demo_program = env
+        .deploy(code_id, vec![])
         .new(Some(42), None)
         .await
         .unwrap();
@@ -422,7 +433,8 @@ async fn counter_add_works_via_manual_mode() {
     let (env, code_id, _gas_limit) = create_env();
     let env = env.with_block_run_mode(BlockRunMode::Next);
 
-    let pending_ctor = DemoClientProgram::deploy(env.clone(), code_id, vec![])
+    let pending_ctor = env
+        .deploy(code_id, vec![])
         .new(Some(42), None)
         .create_program()
         .unwrap();
@@ -507,7 +519,8 @@ async fn value_fee_works() {
     // Arrange
     let (env, code_id, _gas_limit) = create_env();
 
-    let demo_program = DemoClientProgram::deploy(env.clone(), code_id, vec![])
+    let demo_program = env
+        .deploy(code_id, vec![])
         .new(Some(42), None)
         .await
         .unwrap();
@@ -543,7 +556,8 @@ async fn program_value_transfer_works() {
     // Arrange
     let (env, code_id, _gas_limit) = create_env();
 
-    let demo_program = DemoClientProgram::deploy(env.clone(), code_id, vec![])
+    let demo_program = env
+        .deploy(code_id, vec![])
         .new(Some(42), None)
         .await
         .unwrap();

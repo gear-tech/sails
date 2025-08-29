@@ -5,7 +5,7 @@ use sails_idl_parser::{ast::visitor, ast::visitor::Visitor, ast::*};
 
 use crate::events_generator::EventsModuleGenerator;
 use crate::helpers::*;
-use crate::type_generators::{generate_type_decl_code, generate_type_decl_with_path};
+use crate::type_generators::generate_type_decl_with_path;
 
 /// Generates a trait with service methods
 pub(crate) struct ServiceCtorGenerator<'a> {

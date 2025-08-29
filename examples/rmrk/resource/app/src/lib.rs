@@ -30,8 +30,7 @@ impl Program {
     // Expose hosted service
     #[export(route = "RmrkResource")]
     pub fn resource_storage(&self) -> ResourceStorage<Service<DefaultEnv, RmrkCatalogImpl>> {
-        let rmrk_catalog_client =
-            RmrkCatalogProgram::client(DefaultEnv::default(), ActorId::zero()).rmrk_catalog();
+        let rmrk_catalog_client = RmrkCatalogProgram::client(ActorId::zero()).rmrk_catalog();
         ResourceStorage::new(rmrk_catalog_client)
     }
 }

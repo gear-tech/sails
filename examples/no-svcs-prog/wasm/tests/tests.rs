@@ -14,9 +14,7 @@ async fn activating_program_succeeds() {
 
     let env = GtestEnv::new(system, ADMIN_ID.into());
 
-    let result = NoSvcsProgProgram::deploy(env, program_code_id, vec![])
-        .create()
-        .await;
+    let result = env.deploy(program_code_id, vec![]).create().await;
 
     assert!(result.is_ok());
 }

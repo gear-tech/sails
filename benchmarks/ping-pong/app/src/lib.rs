@@ -25,8 +25,7 @@ impl PingPongService {
     pub async fn ping(&mut self, payload: PingPongPayload) -> PingPongPayload {
         match payload {
             PingPongPayload::Start(actor_id) => {
-                let mut api = client::PingPongProgram::client(DefaultEnv::default(), actor_id)
-                    .ping_pong_service();
+                let mut api = client::PingPongProgram::client(actor_id).ping_pong_service();
                 let result = api
                     .ping(client::PingPongPayload::Ping)
                     .await
