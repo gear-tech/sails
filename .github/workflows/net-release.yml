@@ -49,7 +49,7 @@ jobs:
 
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Build & Test Client Generator
         run: |
@@ -71,7 +71,7 @@ jobs:
 
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Build & Test Client Generator
         run: |
@@ -93,7 +93,7 @@ jobs:
 
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Build & Test Client Generator
         run: |
@@ -116,7 +116,7 @@ jobs:
 
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Build & Test Client Generator
         run: |
@@ -144,7 +144,7 @@ jobs:
 
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 0 # for MinVer
           filter: tree:0 # for MinVer
@@ -155,7 +155,7 @@ jobs:
           dotnet-version: 9.0.x
 
       - name: Download Native Libraries
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           path: native_client_gens
           pattern: native_client_gen_*
@@ -207,7 +207,7 @@ jobs:
 
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Create Draft Release
         uses: softprops/action-gh-release@v2
