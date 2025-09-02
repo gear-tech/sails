@@ -444,7 +444,7 @@ impl Fixture {
         actor_id: u64,
         resource_id: ResourceId,
         resource: &Resource,
-    ) -> Result<Vec<u8>, sails_rs::gtest::TestError> {
+    ) -> Result<Vec<u8>, GtestError> {
         let encoded_request = [
             resources::RESOURCE_SERVICE_NAME.encode(),
             resources::ADD_RESOURCE_ENTRY_FUNC_NAME.encode(),
@@ -468,7 +468,7 @@ impl Fixture {
         actor_id: u64,
         resource_id: u8,
         resource: client::Resource,
-    ) -> Result<Result<(u8, client::Resource), client::Error>, sails_rs::gtest::TestError> {
+    ) -> Result<Result<(u8, client::Resource), client::Error>, GtestError> {
         let mut resource_client = self.resource_client();
         resource_client
             .add_resource_entry(resource_id, resource)
@@ -481,7 +481,7 @@ impl Fixture {
         actor_id: u64,
         resource_id: u8,
         part_id: u32,
-    ) -> Result<Result<u32, client::Error>, sails_rs::gtest::TestError> {
+    ) -> Result<Result<u32, client::Error>, GtestError> {
         let mut resource_client = self.resource_client();
         resource_client
             .add_part_to_resource(resource_id, part_id)
@@ -493,7 +493,7 @@ impl Fixture {
         &self,
         actor_id: u64,
         resource_id: u8,
-    ) -> Result<Result<client::Resource, client::Error>, sails_rs::gtest::TestError> {
+    ) -> Result<Result<client::Resource, client::Error>, GtestError> {
         let resource_client = self.resource_client();
         resource_client
             .resource(resource_id)

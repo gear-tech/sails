@@ -13,14 +13,14 @@ use futures::{Stream, StreamExt as _};
 mod gtest_env;
 #[cfg(feature = "gtest")]
 #[cfg(not(target_arch = "wasm32"))]
-pub use gtest_env::{BlockRunMode, GtestEnv, GtestParams};
+pub use gtest_env::{BlockRunMode, GtestEnv, GtestError, GtestParams};
 
 #[cfg(feature = "gclient")]
 #[cfg(not(target_arch = "wasm32"))]
 mod gclient_env;
 #[cfg(feature = "gclient")]
 #[cfg(not(target_arch = "wasm32"))]
-pub use gclient_env::{GclientEnv, GclientParams};
+pub use gclient_env::{GclientEnv, GclientError, GclientParams};
 
 mod gstd_env;
 pub use gstd_env::{GstdEnv, GstdParams};

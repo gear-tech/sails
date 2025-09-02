@@ -1,6 +1,4 @@
 use demo_client::*;
-use gstd::errors::ExtError;
-use gtest::TestError;
 use sails_rs::{
     client::*,
     futures::StreamExt as _,
@@ -184,9 +182,10 @@ async fn counter_query_not_enough_gas() {
     // Assert
     assert!(matches!(
         result,
-        Err(TestError::ExecutionError(ExtError::Execution(
-            gear_core_errors::ExecutionError::NotEnoughGas
-        )),)
+        Err(GtestError::ReplyHasError(
+            ErrorReplyReason::Execution(SimpleExecutionError::RanOutOfGas),
+            _
+        ))
     ));
 }
 

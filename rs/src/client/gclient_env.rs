@@ -1,7 +1,17 @@
 use super::*;
 use crate::events::Listener;
-use ::gclient::{Error, EventListener, EventProcessor as _, GearApi};
+use ::gclient::{EventListener, EventProcessor as _, GearApi};
 use futures::{Stream, stream};
+
+#[derive(Debug, thiserror::Error)]
+pub enum GclientError {
+    #[error(transparent)]
+    Env(#[from] gclient::Error),
+    #[error("reply error: {0}")]
+    ReplyHasError(ErrorReplyReason, crate::Vec<u8>),
+    #[error("unsupported")]
+    Unsupported,
+}
 
 #[derive(Clone)]
 pub struct GclientEnv {
@@ -28,51 +38,81 @@ impl GclientEnv {
         Self { api }
     }
 
-    async fn query_calculate_reply(
-        self,
+    pub async fn create_program(
+        &self,
+        code_id: CodeId,
+        salt: impl AsRef<[u8]>,
+        payload: impl AsRef<[u8]>,
+        params: GclientParams,
+    ) -> Result<(ActorId, Vec<u8>), GclientError> {
+        let api = self.api.clone();
+        create_program(api, code_id, salt, payload, params).await
+    }
+    pub async fn send_message(
+        &self,
+        program_id: ActorId,
+        payload: Vec<u8>,
+        params: GclientParams,
+    ) -> Result<Vec<u8>, GclientError> {
+        let api = self.api.clone();
+        send_message(api, program_id, payload, params)
+            .await
+            .map(|(_program_id, payload)| payload)
+    }
+
+    pub async fn query_calculate_reply(
+        &self,
         target: ActorId,
         payload: impl AsRef<[u8]>,
         params: GclientParams,
-    ) -> Result<Vec<u8>, Error> {
-        let api = self.api;
+    ) -> Result<Vec<u8>, GclientError> {
+        let api = self.api.clone();
+        query_calculate_reply(api, target, payload, params).await
+    }
+}
 
-        // Get Max gas amount if it is not explicitly set
-        #[cfg(not(feature = "ethexe"))]
-        let gas_limit = if let Some(gas_limit) = params.gas_limit {
-            gas_limit
-        } else {
-            api.block_gas_limit()?
-        };
-        #[cfg(feature = "ethexe")]
-        let gas_limit = 0;
-        let value = params.value.unwrap_or(0);
-        let origin = H256::from_slice(api.account_id().as_ref());
-        let payload = payload.as_ref().to_vec();
+async fn query_calculate_reply(
+    api: GearApi,
+    target: ActorId,
+    payload: impl AsRef<[u8]>,
+    params: GclientParams,
+) -> Result<Vec<u8>, GclientError> {
+    // Get Max gas amount if it is not explicitly set
+    #[cfg(not(feature = "ethexe"))]
+    let gas_limit = if let Some(gas_limit) = params.gas_limit {
+        gas_limit
+    } else {
+        api.block_gas_limit()?
+    };
+    #[cfg(feature = "ethexe")]
+    let gas_limit = 0;
+    let value = params.value.unwrap_or(0);
+    let origin = H256::from_slice(api.account_id().as_ref());
+    let payload = payload.as_ref().to_vec();
 
-        let reply_info = api
-            .calculate_reply_for_handle_at(
-                Some(origin),
-                target,
-                payload,
-                gas_limit,
-                value,
-                params.at_block,
-            )
-            .await?;
+    let reply_info = api
+        .calculate_reply_for_handle_at(
+            Some(origin),
+            target,
+            payload,
+            gas_limit,
+            value,
+            params.at_block,
+        )
+        .await?;
 
-        match reply_info.code {
-            ReplyCode::Success(_) => Ok(reply_info.payload),
-            // TODO
-            ReplyCode::Error(_reason) => Err(Error::EventNotFound),
-            ReplyCode::Unsupported => Err(Error::EventNotFound),
-        }
+    match reply_info.code {
+        ReplyCode::Success(_) => Ok(reply_info.payload),
+        ReplyCode::Error(reason) => Err(GclientError::ReplyHasError(reason, reply_info.payload)),
+        // TODO
+        ReplyCode::Unsupported => Err(GclientError::Unsupported),
     }
 }
 
 impl GearEnv for GclientEnv {
     type Params = GclientParams;
-    type Error = Error;
-    type MessageState = Pin<Box<dyn Future<Output = Result<(ActorId, Vec<u8>), Error>>>>;
+    type Error = GclientError;
+    type MessageState = Pin<Box<dyn Future<Output = Result<(ActorId, Vec<u8>), GclientError>>>>;
 }
 
 async fn create_program(
@@ -81,7 +121,7 @@ async fn create_program(
     salt: impl AsRef<[u8]>,
     payload: impl AsRef<[u8]>,
     params: GclientParams,
-) -> Result<(ActorId, Vec<u8>), Error> {
+) -> Result<(ActorId, Vec<u8>), GclientError> {
     let value = params.value.unwrap_or(0);
     // Calculate gas amount if it is not explicitly set
     #[cfg(not(feature = "ethexe"))]
@@ -105,8 +145,9 @@ async fn create_program(
     // TODO handle errors
     match reply_code {
         ReplyCode::Success(_) => Ok((program_id, payload)),
-        ReplyCode::Error(_error_reply_reason) => todo!(),
-        ReplyCode::Unsupported => todo!(),
+        ReplyCode::Error(reason) => Err(GclientError::ReplyHasError(reason, payload)),
+        // TODO
+        ReplyCode::Unsupported => Err(GclientError::Unsupported),
     }
 }
 
@@ -115,7 +156,7 @@ async fn send_message(
     program_id: ActorId,
     payload: Vec<u8>,
     params: GclientParams,
-) -> Result<(ActorId, Vec<u8>), Error> {
+) -> Result<(ActorId, Vec<u8>), GclientError> {
     let value = params.value.unwrap_or(0);
     #[cfg(not(feature = "ethexe"))]
     let gas_limit = if let Some(gas_limit) = params.gas_limit {
@@ -138,15 +179,16 @@ async fn send_message(
     // TODO handle errors
     match reply_code {
         ReplyCode::Success(_) => Ok((program_id, payload)),
-        ReplyCode::Error(_error_reply_reason) => todo!(),
-        ReplyCode::Unsupported => todo!(),
+        ReplyCode::Error(reason) => Err(GclientError::ReplyHasError(reason, payload)),
+        // TODO
+        ReplyCode::Unsupported => Err(GclientError::Unsupported),
     }
 }
 
 impl<T: CallEncodeDecode> PendingCall<GclientEnv, T> {
-    pub async fn send(mut self) -> Result<MessageId, Error> {
+    pub async fn send(mut self) -> Result<MessageId, GclientError> {
         let Some(route) = self.route else {
-            return Err(Error::Codec("PendingCall route is not set".into()));
+            return Err(gclient::Error::Codec("PendingCall route is not set".into()).into());
         };
         let api = &self.env.api;
         let params = self.params.unwrap_or_default();
@@ -175,9 +217,9 @@ impl<T: CallEncodeDecode> PendingCall<GclientEnv, T> {
         Ok(message_id)
     }
 
-    pub async fn query(mut self) -> Result<T::Reply, Error> {
+    pub async fn query(mut self) -> Result<T::Reply, GclientError> {
         let Some(route) = self.route else {
-            return Err(Error::Codec("PendingCall route is not set".into()));
+            return Err(gclient::Error::Codec("PendingCall route is not set".into()).into());
         };
         let params = self.params.unwrap_or_default();
         let args = self
@@ -195,7 +237,7 @@ impl<T: CallEncodeDecode> PendingCall<GclientEnv, T> {
         // Decode reply
         match T::decode_reply_with_prefix(route, reply_bytes) {
             Ok(decoded) => Ok(decoded),
-            Err(err) => Err(Error::Codec(err)),
+            Err(err) => Err(gclient::Error::Codec(err).into()),
         }
     }
 }
@@ -205,7 +247,10 @@ impl<T: CallEncodeDecode> Future for PendingCall<GclientEnv, T> {
 
     fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
         let Some(route) = self.route else {
-            return Poll::Ready(Err(Error::Codec("PendingCall route is not set".into())));
+            return Poll::Ready(Err(gclient::Error::Codec(
+                "PendingCall route is not set".into(),
+            )
+            .into()));
         };
         if self.state.is_none() {
             // Send message
@@ -229,7 +274,7 @@ impl<T: CallEncodeDecode> Future for PendingCall<GclientEnv, T> {
         match message_future.poll(cx) {
             Poll::Ready(Ok((_, payload))) => match T::decode_reply_with_prefix(route, payload) {
                 Ok(decoded) => Poll::Ready(Ok(decoded)),
-                Err(err) => Poll::Ready(Err(Error::Codec(err))),
+                Err(err) => Poll::Ready(Err(gclient::Error::Codec(err).into())),
             },
             Poll::Ready(Err(err)) => Poll::Ready(Err(err)),
             Poll::Pending => Poll::Pending,
@@ -274,7 +319,7 @@ impl<A, T: CallEncodeDecode> Future for PendingCtor<GclientEnv, A, T> {
 }
 
 impl Listener<Vec<u8>> for GclientEnv {
-    type Error = Error;
+    type Error = GclientError;
 
     async fn listen(
         &mut self,
@@ -292,7 +337,7 @@ impl Listener<Vec<u8>> for GclientEnv {
 async fn wait_for_reply(
     listener: &mut EventListener,
     message_id: MessageId,
-) -> Result<(MessageId, ReplyCode, Vec<u8>, ValueUnit), Error> {
+) -> Result<(MessageId, ReplyCode, Vec<u8>, ValueUnit), GclientError> {
     let message_id: ::gclient::metadata::runtime_types::gprimitives::MessageId = message_id.into();
     listener.proc(|e| {
         if let ::gclient::Event::Gear(::gclient::GearEvent::UserMessageSent {
@@ -312,12 +357,12 @@ async fn wait_for_reply(
             None
         }
     })
-    .await
+    .await.map_err(Into::into)
 }
 
 async fn get_events_from_block(
     listener: &mut gclient::EventListener,
-) -> Result<Vec<(ActorId, Vec<u8>)>, Error> {
+) -> Result<Vec<(ActorId, Vec<u8>)>, GclientError> {
     let vec = listener
         .proc_many(
             |e| {
