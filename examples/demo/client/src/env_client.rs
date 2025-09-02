@@ -123,10 +123,10 @@ pub mod mockall {
         #[allow(refining_impl_trait)]
         #[allow(clippy::type_complexity)]
         impl counter::Counter for Counter {
-            type Env = MockEnv;
-            fn add (&mut self, value: u32) -> PendingCall<MockEnv, counter::io::Add>;
-            fn sub (&mut self, value: u32) -> PendingCall<MockEnv, counter::io::Sub>;
-            fn value (& self, ) -> PendingCall<MockEnv, counter::io::Value>;
+            type Env = GstdEnv;
+            fn add (&mut self, value: u32) -> PendingCall<GstdEnv, counter::io::Add>;
+            fn sub (&mut self, value: u32) -> PendingCall<GstdEnv, counter::io::Sub>;
+            fn value (& self, ) -> PendingCall<GstdEnv, counter::io::Value>;
         }
     }
 }

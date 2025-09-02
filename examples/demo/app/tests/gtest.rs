@@ -2,7 +2,7 @@ use demo_client::*;
 use gstd::errors::ExtError;
 use gtest::TestError;
 use sails_rs::{
-    client::{Program as _, *},
+    client::*,
     futures::StreamExt as _,
     gtest::{Program, System},
     prelude::*,

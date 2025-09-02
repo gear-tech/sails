@@ -75,6 +75,6 @@ extern crate std;
 pub mod mockall {
     use super::*;
     use sails_rs::mockall::*;
-    mock! { pub Multiple {} #[allow(refining_impl_trait)] #[allow(clippy::type_complexity)] impl multiple::Multiple for Multiple { type Env = MockEnv; fn do_this (&mut self, p1: u32, p2: MyParam) -> PendingCall<MockEnv, multiple::io::DoThis>;fn do_that (&mut self, p1: (u8,u32,)) -> PendingCall<MockEnv, multiple::io::DoThat>; } }
-    mock! { pub Named {} #[allow(refining_impl_trait)] #[allow(clippy::type_complexity)] impl named::Named for Named { type Env = MockEnv; fn that (& self, p1: u32) -> PendingCall<MockEnv, named::io::That>; } }
+    mock! { pub Multiple {} #[allow(refining_impl_trait)] #[allow(clippy::type_complexity)] impl multiple::Multiple for Multiple { type Env = GstdEnv; fn do_this (&mut self, p1: u32, p2: MyParam) -> PendingCall<GstdEnv, multiple::io::DoThis>;fn do_that (&mut self, p1: (u8,u32,)) -> PendingCall<GstdEnv, multiple::io::DoThat>; } }
+    mock! { pub Named {} #[allow(refining_impl_trait)] #[allow(clippy::type_complexity)] impl named::Named for Named { type Env = GstdEnv; fn that (& self, p1: u32) -> PendingCall<GstdEnv, named::io::That>; } }
 }

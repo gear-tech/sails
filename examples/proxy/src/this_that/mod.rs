@@ -6,7 +6,7 @@ pub struct ThisThatCaller<ThisThatClient> {
 }
 impl<ThisThatClient> ThisThatCaller<ThisThatClient>
 where
-    ThisThatClient: ThisThat<Env = DefaultEnv>,
+    ThisThatClient: ThisThat<Env = GstdEnv>,
 {
     pub const fn new(this_that: ThisThatClient) -> Self {
         Self { this_that }
@@ -16,7 +16,7 @@ where
 #[service(crate = sails_rename)]
 impl<ThisThatClient> ThisThatCaller<ThisThatClient>
 where
-    ThisThatClient: ThisThat<Env = DefaultEnv>,
+    ThisThatClient: ThisThat<Env = GstdEnv>,
 {
     #[export]
     pub async fn call_do_this(

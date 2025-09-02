@@ -81,5 +81,5 @@ extern crate std;
 pub mod mockall {
     use super::*;
     use sails_rs::mockall::*;
-    mock! { pub ServiceWithEvents {} #[allow(refining_impl_trait)] #[allow(clippy::type_complexity)] impl service_with_events::ServiceWithEvents for ServiceWithEvents { type Env = MockEnv; fn do_this (&mut self, p1: NonZeroU256, p2: MyParam) -> PendingCall<MockEnv, service_with_events::io::DoThis>; } }
+    mock! { pub ServiceWithEvents {} #[allow(refining_impl_trait)] #[allow(clippy::type_complexity)] impl service_with_events::ServiceWithEvents for ServiceWithEvents { type Env = GstdEnv; fn do_this (&mut self, p1: NonZeroU256, p2: MyParam) -> PendingCall<GstdEnv, service_with_events::io::DoThis>; } }
 }

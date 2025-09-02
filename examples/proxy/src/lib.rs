@@ -15,7 +15,7 @@ impl ProxyProgram {
         Self { this_that_addr }
     }
 
-    pub fn this_that_caller(&self) -> this_that::ThisThatCaller<Service<DefaultEnv, ThisThatImpl>> {
+    pub fn this_that_caller(&self) -> this_that::ThisThatCaller<Service<GstdEnv, ThisThatImpl>> {
         let this_that_client = DemoClientProgram::client(self.this_that_addr).this_that();
         this_that::ThisThatCaller::new(this_that_client)
     }
