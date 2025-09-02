@@ -54,5 +54,5 @@ extern crate std;
 pub mod mockall {
     use super::*;
     use sails_rs::mockall::*;
-    mock! { pub NonZeroParams {} #[allow(refining_impl_trait)] #[allow(clippy::type_complexity)] impl non_zero_params::NonZeroParams for NonZeroParams { type Env = MockEnv; fn do_this (&mut self, p1: NonZeroU256, p2: MyParam) -> PendingCall<MockEnv, non_zero_params::io::DoThis>; } }
+    mock! { pub NonZeroParams {} #[allow(refining_impl_trait)] #[allow(clippy::type_complexity)] impl non_zero_params::NonZeroParams for NonZeroParams { type Env = GstdEnv; fn do_this (&mut self, p1: NonZeroU256, p2: MyParam) -> PendingCall<GstdEnv, non_zero_params::io::DoThis>; } }
 }

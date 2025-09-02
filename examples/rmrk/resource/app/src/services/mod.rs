@@ -2,7 +2,7 @@ use crate::catalogs::rmrk_catalog::RmrkCatalog;
 use errors::{Error, Result};
 use resources::{ComposedResource, PartId, Resource, ResourceId};
 use sails_rs::{
-    client::DefaultEnv,
+    client::*,
     collections::HashMap,
     gstd::{Syscall, service},
     prelude::*,
@@ -41,7 +41,7 @@ pub struct ResourceStorage<TCatalogClient> {
 
 impl<TCatalogClient> ResourceStorage<TCatalogClient>
 where
-    TCatalogClient: RmrkCatalog<Env = DefaultEnv>,
+    TCatalogClient: RmrkCatalog<Env = GstdEnv>,
 {
     // This function needs to be called before any other function
     pub fn seed() {
@@ -60,7 +60,7 @@ where
 #[service(events = ResourceStorageEvent)]
 impl<TCatalogClient> ResourceStorage<TCatalogClient>
 where
-    TCatalogClient: RmrkCatalog<Env = DefaultEnv>,
+    TCatalogClient: RmrkCatalog<Env = GstdEnv>,
 {
     #[export]
     pub fn add_resource_entry(

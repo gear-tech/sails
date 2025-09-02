@@ -66,7 +66,10 @@ pub struct GstdEnv;
 impl GearEnv for GstdEnv {
     type Params = GstdParams;
     type Error = Error;
+    #[cfg(target_arch = "wasm32")]
     type MessageState = GtsdFuture;
+    #[cfg(not(target_arch = "wasm32"))]
+    type MessageState = core::future::Ready<Result<Vec<u8>, Self::Error>>;
 }
 
 #[cfg(not(feature = "ethexe"))]
@@ -117,130 +120,133 @@ pub(crate) fn send_for_reply_future(
     Ok(message_future)
 }
 
-impl<T: CallEncodeDecode> PendingCall<GstdEnv, T> {
-    pub fn send(mut self) -> Result<MessageId, Error> {
-        let route = self
-            .route
-            .unwrap_or_else(|| panic!("{PENDING_CALL_INVALID_STATE}"));
-        let params = self.params.unwrap_or_default();
-        let args = self
-            .args
-            .take()
-            .unwrap_or_else(|| panic!("{PENDING_CALL_INVALID_STATE}"));
-        let payload = T::encode_params_with_prefix(route, &args);
-
-        let value = params.value.unwrap_or(0);
-        if let Some(gas_limit) = params.gas_limit {
-            ::gcore::msg::send_with_gas(self.destination, payload.as_slice(), gas_limit, value)
-                .map_err(Error::Core)
-        } else {
-            ::gcore::msg::send(self.destination, payload.as_slice(), value).map_err(Error::Core)
-        }
-    }
-}
-
-impl<T: CallEncodeDecode> Future for PendingCall<GstdEnv, T> {
-    type Output = Result<T::Reply, <GstdEnv as GearEnv>::Error>;
-
-    fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
-        let Some(route) = self.route else {
-            return Poll::Ready(Err(Error::Decode("PendingCall route is not set".into())));
-        };
-        if self.state.is_none() {
-            // Send message
+#[cfg(target_arch = "wasm32")]
+const _: () = {
+    impl<T: CallEncodeDecode> PendingCall<GstdEnv, T> {
+        pub fn send(mut self) -> Result<MessageId, Error> {
+            let route = self
+                .route
+                .unwrap_or_else(|| panic!("{PENDING_CALL_INVALID_STATE}"));
+            let params = self.params.unwrap_or_default();
             let args = self
                 .args
                 .take()
                 .unwrap_or_else(|| panic!("{PENDING_CALL_INVALID_STATE}"));
             let payload = T::encode_params_with_prefix(route, &args);
-            let params = self.params.take().unwrap_or_default();
 
-            let send_res = send_for_reply_future(self.destination, payload.as_slice(), params);
-            match send_res {
-                Ok(future) => {
-                    self.state = Some(GtsdFuture::Message { future });
-                }
-                Err(err) => {
-                    return Poll::Ready(Err(err));
-                }
-            }
-        }
-        let this = self.as_mut().project();
-        if let Some(state) = this.state.as_pin_mut()
-            && let Projection::Message { future } = state.project()
-        {
-            // Poll message future
-            match future.poll(cx) {
-                Poll::Ready(Ok(payload)) => match T::decode_reply_with_prefix(route, payload) {
-                    Ok(reply) => Poll::Ready(Ok(reply)),
-                    Err(err) => Poll::Ready(Err(Error::Decode(err))),
-                },
-                Poll::Ready(Err(err)) => Poll::Ready(Err(err)),
-                Poll::Pending => Poll::Pending,
-            }
-        } else {
-            panic!("{PENDING_CALL_INVALID_STATE}");
-        }
-    }
-}
-
-impl<A, T: CallEncodeDecode> Future for PendingCtor<GstdEnv, A, T> {
-    type Output = Result<Actor<GstdEnv, A>, <GstdEnv as GearEnv>::Error>;
-
-    fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
-        if self.state.is_none() {
-            // Send message
-            let payload = self.encode_ctor();
-            let params = self.params.take().unwrap_or_default();
             let value = params.value.unwrap_or(0);
-            let salt = self.salt.take().unwrap();
-
-            #[cfg(not(feature = "ethexe"))]
-            let program_future = if let Some(gas_limit) = params.gas_limit {
-                gstd::prog::create_program_bytes_with_gas_for_reply(
-                    self.code_id,
-                    salt,
-                    payload,
-                    gas_limit,
-                    value,
-                    params.reply_deposit.unwrap_or_default(),
-                )?
+            if let Some(gas_limit) = params.gas_limit {
+                ::gcore::msg::send_with_gas(self.destination, payload.as_slice(), gas_limit, value)
+                    .map_err(Error::Core)
             } else {
-                gstd::prog::create_program_bytes_for_reply(
-                    self.code_id,
-                    salt,
-                    payload,
-                    value,
-                    params.reply_deposit.unwrap_or_default(),
-                )?
-            };
-            #[cfg(feature = "ethexe")]
-            let mut program_future =
-                prog::create_program_bytes_for_reply(code_id, salt, payload, value)?;
-
-            // self.program_id = Some(program_future.program_id);
-            self.state = Some(GtsdFuture::CreateProgram {
-                future: program_future,
-            });
-        }
-        let this = self.as_mut().project();
-        if let Some(state) = this.state.as_pin_mut()
-            && let Projection::CreateProgram { future } = state.project()
-        {
-            // Poll create program future
-            match future.poll(cx) {
-                Poll::Ready(Ok((program_id, _payload))) => {
-                    // Do not decode payload here
-                    Poll::Ready(Ok(Actor::new(this.env.clone(), program_id)))
-                }
-                Poll::Ready(Err(err)) => Poll::Ready(Err(err)),
-                Poll::Pending => Poll::Pending,
+                ::gcore::msg::send(self.destination, payload.as_slice(), value).map_err(Error::Core)
             }
-        } else {
-            panic!("{PENDING_CTOR_INVALID_STATE}");
         }
     }
-}
+
+    impl<T: CallEncodeDecode> Future for PendingCall<GstdEnv, T> {
+        type Output = Result<T::Reply, <GstdEnv as GearEnv>::Error>;
+
+        fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
+            let Some(route) = self.route else {
+                return Poll::Ready(Err(Error::Decode("PendingCall route is not set".into())));
+            };
+            if self.state.is_none() {
+                // Send message
+                let args = self
+                    .args
+                    .take()
+                    .unwrap_or_else(|| panic!("{PENDING_CALL_INVALID_STATE}"));
+                let payload = T::encode_params_with_prefix(route, &args);
+                let params = self.params.take().unwrap_or_default();
+
+                let send_res = send_for_reply_future(self.destination, payload.as_slice(), params);
+                match send_res {
+                    Ok(future) => {
+                        self.state = Some(GtsdFuture::Message { future });
+                    }
+                    Err(err) => {
+                        return Poll::Ready(Err(err));
+                    }
+                }
+            }
+            let this = self.as_mut().project();
+            if let Some(state) = this.state.as_pin_mut()
+                && let Projection::Message { future } = state.project()
+            {
+                // Poll message future
+                match future.poll(cx) {
+                    Poll::Ready(Ok(payload)) => match T::decode_reply_with_prefix(route, payload) {
+                        Ok(reply) => Poll::Ready(Ok(reply)),
+                        Err(err) => Poll::Ready(Err(Error::Decode(err))),
+                    },
+                    Poll::Ready(Err(err)) => Poll::Ready(Err(err)),
+                    Poll::Pending => Poll::Pending,
+                }
+            } else {
+                panic!("{PENDING_CALL_INVALID_STATE}");
+            }
+        }
+    }
+
+    impl<A, T: CallEncodeDecode> Future for PendingCtor<GstdEnv, A, T> {
+        type Output = Result<Actor<GstdEnv, A>, <GstdEnv as GearEnv>::Error>;
+
+        fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
+            if self.state.is_none() {
+                // Send message
+                let payload = self.encode_ctor();
+                let params = self.params.take().unwrap_or_default();
+                let value = params.value.unwrap_or(0);
+                let salt = self.salt.take().unwrap();
+
+                #[cfg(not(feature = "ethexe"))]
+                let program_future = if let Some(gas_limit) = params.gas_limit {
+                    gstd::prog::create_program_bytes_with_gas_for_reply(
+                        self.code_id,
+                        salt,
+                        payload,
+                        gas_limit,
+                        value,
+                        params.reply_deposit.unwrap_or_default(),
+                    )?
+                } else {
+                    gstd::prog::create_program_bytes_for_reply(
+                        self.code_id,
+                        salt,
+                        payload,
+                        value,
+                        params.reply_deposit.unwrap_or_default(),
+                    )?
+                };
+                #[cfg(feature = "ethexe")]
+                let mut program_future =
+                    prog::create_program_bytes_for_reply(code_id, salt, payload, value)?;
+
+                // self.program_id = Some(program_future.program_id);
+                self.state = Some(GtsdFuture::CreateProgram {
+                    future: program_future,
+                });
+            }
+            let this = self.as_mut().project();
+            if let Some(state) = this.state.as_pin_mut()
+                && let Projection::CreateProgram { future } = state.project()
+            {
+                // Poll create program future
+                match future.poll(cx) {
+                    Poll::Ready(Ok((program_id, _payload))) => {
+                        // Do not decode payload here
+                        Poll::Ready(Ok(Actor::new(this.env.clone(), program_id)))
+                    }
+                    Poll::Ready(Err(err)) => Poll::Ready(Err(err)),
+                    Poll::Pending => Poll::Pending,
+                }
+            } else {
+                panic!("{PENDING_CTOR_INVALID_STATE}");
+            }
+        }
+    }
+};
 
 pin_project_lite::pin_project! {
     #[project = Projection]
@@ -249,3 +255,71 @@ pin_project_lite::pin_project! {
         Message { #[pin] future: MessageFuture },
     }
 }
+
+#[cfg(not(target_arch = "wasm32"))]
+const _: () = {
+    impl<T: CallEncodeDecode> PendingCall<GstdEnv, T>
+    where
+        T::Reply: Encode + Decode,
+    {
+        pub fn from_output(output: T::Reply) -> Self {
+            Self::from_result(Ok(output))
+        }
+
+        pub fn from_error(err: <GstdEnv as GearEnv>::Error) -> Self {
+            Self::from_result(Err(err))
+        }
+
+        pub fn from_result(res: Result<T::Reply, <GstdEnv as GearEnv>::Error>) -> Self {
+            PendingCall {
+                env: GstdEnv,
+                destination: ActorId::zero(),
+                route: None,
+                params: None,
+                args: None,
+                state: Some(future::ready(res.map(|v| v.encode()))),
+            }
+        }
+    }
+
+    impl<T: CallEncodeDecode<Reply = O>, O> From<O> for PendingCall<GstdEnv, T>
+    where
+        O: Encode + Decode,
+    {
+        fn from(value: O) -> Self {
+            PendingCall::from_output(value)
+        }
+    }
+
+    impl<T: CallEncodeDecode> Future for PendingCall<GstdEnv, T> {
+        type Output = Result<T::Reply, <GstdEnv as GearEnv>::Error>;
+
+        fn poll(mut self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<Self::Output> {
+            match self.state.take() {
+                Some(ready) => {
+                    let res = ready.into_inner();
+                    Poll::Ready(res.map(|v| T::Reply::decode(&mut v.as_slice()).unwrap()))
+                }
+                None => panic!("{PENDING_CALL_INVALID_STATE}"),
+            }
+        }
+    }
+
+    impl<A, T: CallEncodeDecode> Future for PendingCtor<GstdEnv, A, T> {
+        type Output = Result<Actor<GstdEnv, A>, <GstdEnv as GearEnv>::Error>;
+
+        fn poll(mut self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<Self::Output> {
+            match self.state.take() {
+                Some(_ready) => {
+                    let program_id = self
+                        .program_id
+                        .take()
+                        .unwrap_or_else(|| panic!("{PENDING_CTOR_INVALID_STATE}"));
+                    let env = self.env.clone();
+                    Poll::Ready(Ok(Actor::new(env, program_id)))
+                }
+                None => panic!("{PENDING_CTOR_INVALID_STATE}"),
+            }
+        }
+    }
+};

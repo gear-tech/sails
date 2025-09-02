@@ -8,11 +8,6 @@ use core::{
 };
 use futures::{Stream, StreamExt as _};
 
-#[cfg(not(target_arch = "wasm32"))]
-mod mock_env;
-#[cfg(not(target_arch = "wasm32"))]
-pub use mock_env::{MockEnv, MockParams};
-
 #[cfg(feature = "gtest")]
 #[cfg(not(target_arch = "wasm32"))]
 mod gtest_env;
@@ -27,9 +22,7 @@ mod gclient_env;
 #[cfg(not(target_arch = "wasm32"))]
 pub use gclient_env::{GclientEnv, GclientParams};
 
-#[cfg(feature = "gstd")]
 mod gstd_env;
-#[cfg(feature = "gstd")]
 pub use gstd_env::{GstdEnv, GstdParams};
 
 pub(crate) const PENDING_CALL_INVALID_STATE: &str =
@@ -47,19 +40,13 @@ pub trait GearEnv: Clone {
     }
 }
 
-#[cfg(not(target_arch = "wasm32"))]
-pub type DefaultEnv = MockEnv;
-#[cfg(target_arch = "wasm32")]
-#[cfg(feature = "gstd")]
-pub type DefaultEnv = GstdEnv;
-
 pub trait Program: Sized {
-    fn deploy(code_id: CodeId, salt: Vec<u8>) -> Deployment<DefaultEnv, Self> {
-        Deployment::new(DefaultEnv::default(), code_id, salt)
+    fn deploy(code_id: CodeId, salt: Vec<u8>) -> Deployment<GstdEnv, Self> {
+        Deployment::new(GstdEnv, code_id, salt)
     }
 
-    fn client(program_id: ActorId) -> Actor<DefaultEnv, Self> {
-        Actor::new(DefaultEnv::default(), program_id)
+    fn client(program_id: ActorId) -> Actor<GstdEnv, Self> {
+        Actor::new(GstdEnv, program_id)
     }
 }
 

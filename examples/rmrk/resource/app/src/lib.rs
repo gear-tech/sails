@@ -23,13 +23,13 @@ pub struct Program;
 impl Program {
     // Initialize program and seed hosted services
     pub fn new() -> Self {
-        ResourceStorage::<Service<DefaultEnv, RmrkCatalogImpl>>::seed();
+        ResourceStorage::<Service<GstdEnv, RmrkCatalogImpl>>::seed();
         Self
     }
 
     // Expose hosted service
     #[export(route = "RmrkResource")]
-    pub fn resource_storage(&self) -> ResourceStorage<Service<DefaultEnv, RmrkCatalogImpl>> {
+    pub fn resource_storage(&self) -> ResourceStorage<Service<GstdEnv, RmrkCatalogImpl>> {
         let rmrk_catalog_client = RmrkCatalogProgram::client(ActorId::zero()).rmrk_catalog();
         ResourceStorage::new(rmrk_catalog_client)
     }

@@ -26,7 +26,7 @@ impl<'a> MockGenerator<'a> {
                 #[allow(refining_impl_trait)]
                 #[allow(clippy::type_complexity)]
                 impl $service_name_snake::$(self.service_name) for $(self.service_name) {
-                    type Env = MockEnv;
+                    type Env = GstdEnv;
                     $(self.tokens)
                 }
             }
@@ -47,7 +47,7 @@ impl<'ast> Visitor<'ast> for MockGenerator<'_> {
         let params_with_types = &fn_args_with_types(func.params());
 
         quote_in! { self.tokens =>
-            fn $fn_name_snake (&$mutability self, $params_with_types) -> PendingCall<MockEnv, $service_name_snake::io::$fn_name>;
+            fn $fn_name_snake (&$mutability self, $params_with_types) -> PendingCall<GstdEnv, $service_name_snake::io::$fn_name>;
         };
     }
 }

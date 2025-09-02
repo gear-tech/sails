@@ -170,5 +170,5 @@ extern crate std;
 pub mod mockall {
     use super::*;
     use sails_rs::mockall::*;
-    mock! { pub Service {} #[allow(refining_impl_trait)] #[allow(clippy::type_complexity)] impl service::Service for Service { type Env = MockEnv; fn do_this (&mut self, p1: u32, p2: String, p3: (Option<String>,u8,), p4: ThisThatSvcAppTupleStruct) -> PendingCall<MockEnv, service::io::DoThis>;fn do_that (&mut self, param: ThisThatSvcAppDoThatParam) -> PendingCall<MockEnv, service::io::DoThat>;fn this (& self, v1: Vec<u16>) -> PendingCall<MockEnv, service::io::This>;fn that (& self, v1: ()) -> PendingCall<MockEnv, service::io::That>; } }
+    mock! { pub Service {} #[allow(refining_impl_trait)] #[allow(clippy::type_complexity)] impl service::Service for Service { type Env = GstdEnv; fn do_this (&mut self, p1: u32, p2: String, p3: (Option<String>,u8,), p4: ThisThatSvcAppTupleStruct) -> PendingCall<GstdEnv, service::io::DoThis>;fn do_that (&mut self, param: ThisThatSvcAppDoThatParam) -> PendingCall<GstdEnv, service::io::DoThat>;fn this (& self, v1: Vec<u16>) -> PendingCall<GstdEnv, service::io::This>;fn that (& self, v1: ()) -> PendingCall<GstdEnv, service::io::That>; } }
 }
