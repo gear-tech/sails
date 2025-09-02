@@ -10,10 +10,19 @@ use hashbrown::HashMap;
 use std::rc::Rc;
 
 const GAS_LIMIT_DEFAULT: ::gtest::constants::Gas = ::gtest::constants::MAX_USER_GAS_LIMIT;
-type Error = TestError;
 type EventSender = mpsc::UnboundedSender<(ActorId, Vec<u8>)>;
-type ReplySender = oneshot::Sender<Result<Vec<u8>, Error>>;
-type ReplyReceiver = oneshot::Receiver<Result<Vec<u8>, Error>>;
+type ReplySender = oneshot::Sender<Result<Vec<u8>, GtestError>>;
+type ReplyReceiver = oneshot::Receiver<Result<Vec<u8>, GtestError>>;
+
+#[derive(Clone, Debug, PartialEq, Eq, thiserror::Error)]
+pub enum GtestError {
+    #[error(transparent)]
+    Env(#[from] TestError),
+    #[error("reply error: {0}")]
+    ReplyHasError(ErrorReplyReason, crate::Vec<u8>),
+    #[error("reply is missing")]
+    ReplyIsMissing,
+}
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum BlockRunMode {
@@ -119,16 +128,12 @@ impl GtestEnv {
                 if let Some(sender) = reply_senders.remove(&message_id) {
                     log::debug!("Extract reply from entry {entry:?}");
                     let reply: result::Result<Vec<u8>, _> = match entry.reply_code() {
-                        None => Err(Error::InvalidReturnType),
-                        // TODO handle error reply
+                        None => Err(GtestError::ReplyIsMissing),
                         Some(ReplyCode::Error(reason)) => {
-                            panic!(
-                                "Unexpected error reply: {reason:?}, {:?}",
-                                hex::encode(entry.payload())
-                            )
+                            Err(GtestError::ReplyHasError(reason, entry.payload().to_vec()))
                         }
                         Some(ReplyCode::Success(_)) => Ok(entry.payload().to_vec()),
-                        _ => Err(Error::InvalidReturnType),
+                        _ => Err(GtestError::ReplyIsMissing),
                     };
                     _ = sender.send(reply);
                 }
@@ -142,7 +147,7 @@ impl GtestEnv {
         salt: impl AsRef<[u8]>,
         payload: impl AsRef<[u8]>,
         params: GtestParams,
-    ) -> Result<(ActorId, MessageId), Error> {
+    ) -> Result<(ActorId, MessageId), GtestError> {
         let value = params.value.unwrap_or(0);
         #[cfg(not(feature = "ethexe"))]
         let gas_limit = params.gas_limit.unwrap_or(GAS_LIMIT_DEFAULT);
@@ -151,8 +156,7 @@ impl GtestEnv {
         let code = self
             .system
             .submitted_code(code_id)
-            // TODO Errors
-            .ok_or(Error::Instrumentation)?;
+            .ok_or(TestError::Instrumentation)?;
         let program_id = ::gtest::calculate_program_id(code_id, salt.as_ref(), None);
         let program = ::gtest::Program::from_binary_with_id(&self.system, program_id, code);
         let actor_id = params.actor_id.unwrap_or(self.actor_id);
@@ -166,7 +170,7 @@ impl GtestEnv {
         target: ActorId,
         payload: impl AsRef<[u8]>,
         params: GtestParams,
-    ) -> Result<MessageId, Error> {
+    ) -> Result<MessageId, GtestError> {
         let value = params.value.unwrap_or(0);
         #[cfg(not(feature = "ethexe"))]
         let gas_limit = params.gas_limit.unwrap_or(GAS_LIMIT_DEFAULT);
@@ -175,8 +179,7 @@ impl GtestEnv {
         let program = self
             .system
             .get_program(target)
-            // TODO Errors
-            .ok_or(Error::Instrumentation)?;
+            .ok_or(TestError::ActorNotFound(target))?;
         let actor_id = params.actor_id.unwrap_or(self.actor_id);
         let message_id = program.send_bytes_with_gas(actor_id, payload.as_ref(), gas_limit, value);
         log::debug!(
@@ -187,7 +190,7 @@ impl GtestEnv {
     }
 
     pub fn message_reply_from_next_blocks(&self, message_id: MessageId) -> ReplyReceiver {
-        let (tx, rx) = oneshot::channel::<Result<Vec<u8>, Error>>();
+        let (tx, rx) = oneshot::channel::<Result<Vec<u8>, GtestError>>();
         self.block_reply_senders.borrow_mut().insert(message_id, tx);
 
         match self.block_run_mode {
@@ -220,29 +223,25 @@ impl GtestEnv {
         // drain reply senders that not founded in block
         for (message_id, sender) in reply_senders.drain() {
             log::debug!("Reply is missing in block for message {message_id}");
-            // TODO handle error
-            _ = sender.send(Err(Error::UnsupportedFunction(
-                "Reply is missing in block for message {message_id}".into(),
-            )));
+            _ = sender.send(Err(GtestError::ReplyIsMissing));
         }
     }
 }
 
 impl GearEnv for GtestEnv {
     type Params = GtestParams;
-    type Error = Error;
+    type Error = GtestError;
     type MessageState = ReplyReceiver;
 }
 impl<T: CallEncodeDecode> PendingCall<GtestEnv, T> {
-    pub fn send_message(mut self) -> Result<Self, Error> {
+    pub fn send_message(mut self) -> Result<Self, GtestError> {
         let Some(route) = self.route else {
-            return Err(Error::ScaleCodecError(
+            return Err(TestError::ScaleCodecError(
                 "PendingCall route is not set".into(),
-            ));
+            ))?;
         };
         if self.state.is_some() {
-            // TODO
-            return Err(Error::Instrumentation);
+            panic!("{PENDING_CALL_INVALID_STATE}");
         }
         // Send message
         let args = self
@@ -264,9 +263,10 @@ impl<T: CallEncodeDecode> Future for PendingCall<GtestEnv, T> {
 
     fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
         let Some(route) = self.route else {
-            return Poll::Ready(Err(Error::ScaleCodecError(
+            return Poll::Ready(Err(TestError::ScaleCodecError(
                 "PendingCall route is not set".into(),
-            )));
+            )
+            .into()));
         };
 
         if self.state.is_none() {
@@ -297,12 +297,11 @@ impl<T: CallEncodeDecode> Future for PendingCall<GtestEnv, T> {
                 Poll::Ready(Ok(res)) => match res {
                     Ok(payload) => match T::decode_reply_with_prefix(route, payload) {
                         Ok(reply) => Poll::Ready(Ok(reply)),
-                        Err(err) => Poll::Ready(Err(Error::ScaleCodecError(err))),
+                        Err(err) => Poll::Ready(Err(TestError::ScaleCodecError(err).into())),
                     },
                     Err(err) => Poll::Ready(Err(err)),
                 },
-                // TODO handle error
-                Poll::Ready(Err(_err)) => Poll::Ready(Err(Error::InvalidReturnType)),
+                Poll::Ready(Err(_err)) => Poll::Ready(Err(GtestError::ReplyIsMissing)),
                 Poll::Pending => Poll::Pending,
             }
         } else {
@@ -312,10 +311,9 @@ impl<T: CallEncodeDecode> Future for PendingCall<GtestEnv, T> {
 }
 
 impl<A, T: CallEncodeDecode> PendingCtor<GtestEnv, A, T> {
-    pub fn create_program(mut self) -> Result<Self, Error> {
+    pub fn create_program(mut self) -> Result<Self, GtestError> {
         if self.state.is_some() {
-            // TODO
-            return Err(Error::Instrumentation);
+            panic!("{PENDING_CTOR_INVALID_STATE}");
         }
         // Send message
         let payload = self.encode_ctor();
@@ -379,8 +377,7 @@ impl<A, T: CallEncodeDecode> Future for PendingCtor<GtestEnv, A, T> {
                     }
                     Err(err) => Poll::Ready(Err(err)),
                 },
-                // TODO handle error
-                Poll::Ready(Err(_err)) => Poll::Ready(Err(Error::InvalidReturnType)),
+                Poll::Ready(Err(_err)) => Poll::Ready(Err(GtestError::ReplyIsMissing)),
                 Poll::Pending => Poll::Pending,
             }
         } else {
