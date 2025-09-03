@@ -43,7 +43,7 @@ async fn counter_add_works() {
         .await
         .unwrap();
 
-    // Asert
+    // Assert
     let balance = gear_api.free_balance(admin_id).await.unwrap();
     // initial_balance - balance = 287_416_465_000, release, node 1.8.0
     dbg!(initial_balance, balance, initial_balance - balance);
@@ -178,7 +178,7 @@ async fn counter_query_works() {
     // Use generated client code for query Counter service using the `query` method
     let result = counter_client.value().query().await.unwrap();
 
-    // Asert
+    // Assert
     assert_eq!(result, 42);
 }
 
@@ -205,7 +205,7 @@ async fn counter_query_with_message_works() {
     // Use generated client code for query Counter service
     let result = counter_client.value().await.unwrap();
 
-    // Asert
+    // Assert
     assert_eq!(result, 42);
 }
 
@@ -235,7 +235,7 @@ async fn counter_query_not_enough_gas() {
         .with_gas_limit(0) // Set gas_limit to 0
         .await;
 
-    // Asert
+    // Assert
     assert!(matches!(
         result,
         Err(GclientError::ReplyHasError(

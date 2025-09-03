@@ -246,7 +246,7 @@ async fn get_events_from_block(
     Ok(vec)
 }
 
-pub trait QueryExt {
+pub trait QueryExtGClient {
     /// Query at a specific block.
     ///
     /// See [`GearApi::calculate_reply_for_handle_at`].
@@ -265,7 +265,7 @@ pub trait QueryExt {
     fn query_with_message(self, query_with_message: bool) -> Self;
 }
 
-impl<T> QueryExt for T
+impl<T> QueryExtGClient for T
 where
     T: Query<Args = GClientArgs>,
 {

@@ -53,7 +53,7 @@ async fn counter_add_works() {
     // using the `send_recv` method
     let result = counter_client.add(10).await.unwrap();
 
-    // Asert
+    // Assert
     let event = counter_events.next().await.unwrap();
 
     assert_eq!(result, 52);
@@ -114,7 +114,7 @@ async fn counter_query_works() {
     // Use generated client code for query Counter service using the `recv` method
     let result = counter_client.value().await.unwrap();
 
-    // Asert
+    // Assert
     assert_eq!(result, 42);
 }
 
@@ -143,7 +143,7 @@ async fn counter_query_not_enough_gas() {
         .with_gas_limit(0) // Set gas_limit to 0
         .await;
 
-    // Asert
+    // Assert
     println!("{:?}", result);
     assert!(matches!(
         result,
@@ -380,7 +380,7 @@ async fn counter_add_works_via_next_mode() {
     // Act
     let result = counter_client.add(10).await.unwrap();
 
-    // Asert
+    // Assert
     assert_eq!(result, 52);
     assert_eq!(
         (demo_program.id(), CounterEvents::Added(10)),

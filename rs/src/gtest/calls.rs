@@ -1,5 +1,5 @@
 use crate::{
-    calls::{Action, Remoting},
+    calls::{Action, Query, Remoting},
     collections::HashMap,
     errors::{Error, Result, RtlError},
     events::Listener,
@@ -19,23 +19,37 @@ const GAS_LIMIT_DEFAULT: gtest::constants::Gas = gtest::constants::MAX_USER_GAS_
 #[derive(Debug, Default)]
 pub struct GTestArgs {
     actor_id: Option<ActorId>,
+    query_with_message: bool,
 }
 
 impl GTestArgs {
     pub fn new(actor_id: ActorId) -> Self {
         Self {
             actor_id: Some(actor_id),
+            query_with_message: false,
         }
     }
 
     pub fn with_actor_id(self, actor_id: ActorId) -> Self {
         Self {
             actor_id: Some(actor_id),
+            ..self
+        }
+    }
+
+    pub fn with_query_with_message(self, flag: bool) -> Self {
+        Self {
+            query_with_message: flag,
+            ..self
         }
     }
 
     pub fn actor_id(&self) -> Option<ActorId> {
         self.actor_id
+    }
+
+    pub fn query_with_message(&self) -> bool {
+        self.query_with_message
     }
 }
 
@@ -209,6 +223,30 @@ impl GTestRemoting {
             _ = sender.send(Err(RtlError::ReplyIsMissing.into()));
         }
     }
+
+    fn query_calculate_reply(
+        &self,
+        target: ActorId,
+        payload: impl AsRef<[u8]>,
+        gas_limit: GasUnit,
+        value: ValueUnit,
+        args: GTestArgs,
+    ) -> Result<Vec<u8>> {
+        let actor_id = args.actor_id.unwrap_or(self.actor_id);
+        let reply_info = self
+            .system
+            .calculate_reply_for_handle(actor_id, target, payload.as_ref(), gas_limit, value)
+            .map_err(|_| RtlError::ReplyIsMissing)?;
+
+        match reply_info.code {
+            ReplyCode::Success(_) => Ok(reply_info.payload),
+            ReplyCode::Error(err) => Err(RtlError::ReplyHasError(err, reply_info.payload).into()),
+            _ => {
+                log::trace!("Unexpected reply code: {:?}", reply_info.code);
+                Err(RtlError::ReplyIsMissing.into())
+            }
+        }
+    }
 }
 
 impl Remoting for GTestRemoting {
@@ -268,15 +306,24 @@ impl Remoting for GTestRemoting {
         value: ValueUnit,
         args: GTestArgs,
     ) -> Result<Vec<u8>> {
-        let message_id = self.send_message(
-            target,
-            payload,
+        if args.query_with_message() {
+            let message_id = self.send_message(
+                target,
+                payload,
+                #[cfg(not(feature = "ethexe"))]
+                gas_limit,
+                value,
+                args,
+            )?;
+
+            self.message_reply_from_next_blocks(message_id).await
+        } else {
             #[cfg(not(feature = "ethexe"))]
-            gas_limit,
-            value,
-            args,
-        )?;
-        self.message_reply_from_next_blocks(message_id).await
+            let gas_limit = gas_limit.unwrap_or(GAS_LIMIT_DEFAULT);
+            #[cfg(feature = "ethexe")]
+            let gas_limit = GAS_LIMIT_DEFAULT;
+            self.query_calculate_reply(target, payload, gas_limit, value, args)
+        }
     }
 }
 
@@ -300,5 +347,18 @@ where
 {
     fn with_actor_id(self, actor_id: ActorId) -> Self {
         self.with_args(|args| args.with_actor_id(actor_id))
+    }
+}
+
+pub trait QueryExtGTest {
+    fn query_with_message(self, flag: bool) -> Self;
+}
+
+impl<T> QueryExtGTest for T
+where
+    T: Query<Args = GTestArgs>,
+{
+    fn query_with_message(self, flag: bool) -> Self {
+        self.with_args(|args| args.with_query_with_message(flag))
     }
 }
