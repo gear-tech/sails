@@ -51,12 +51,7 @@ pub mod service_with_events {
             Reset,
         }
         impl EventDecode for ServiceWithEventsEvents {
-            const EVENT_NAMES: &'static [&'static [u8]] = &[
-                &[12, 79, 110, 101],
-                &[12, 84, 119, 111],
-                &[20, 84, 104, 114, 101, 101],
-                &[20, 82, 101, 115, 101, 116],
-            ];
+            const EVENT_NAMES: &'static [Route] = &["One", "Two", "Three", "Reset"];
         }
         impl ServiceEvent for ServiceWithEventsImpl {
             type Event = ServiceWithEventsEvents;

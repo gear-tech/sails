@@ -6,7 +6,7 @@ use core::{
     pin::Pin,
     task::{Context, Poll},
 };
-use futures::{Stream, StreamExt as _};
+use futures::Stream;
 
 #[cfg(feature = "gtest")]
 #[cfg(not(target_arch = "wasm32"))]
@@ -197,18 +197,18 @@ impl<E: GearEnv, D: EventDecode> ServiceListener<E, D> {
         &mut self,
     ) -> Result<impl Stream<Item = (ActorId, D)> + Unpin, <E as GearEnv>::Error>
     where
-        E: crate::events::Listener<Vec<u8>, Error = <E as GearEnv>::Error>,
+        E: Listener<Error = <E as GearEnv>::Error>,
     {
         let self_id = self.actor_id;
         let prefix = self.route;
-        let stream = self.env.listen().await?;
-        let map = stream.filter_map(move |(actor_id, payload)| async move {
-            if actor_id != self_id {
-                return None;
-            }
-            D::decode_event(prefix, payload).ok().map(|e| (actor_id, e))
-        });
-        Ok(Box::pin(map))
+        self.env
+            .listen(move |(actor_id, payload)| {
+                if actor_id != self_id {
+                    return None;
+                }
+                D::decode_event(prefix, payload).ok().map(|e| (actor_id, e))
+            })
+            .await
     }
 }
 
@@ -441,9 +441,19 @@ macro_rules! str_scale_encode {
     }};
 }
 
+#[allow(async_fn_in_trait)]
+pub trait Listener {
+    type Error: Error;
+
+    async fn listen<E, F: FnMut((ActorId, Vec<u8>)) -> Option<(ActorId, E)>>(
+        &self,
+        f: F,
+    ) -> Result<impl Stream<Item = (ActorId, E)> + Unpin, Self::Error>;
+}
+
 #[cfg(not(target_arch = "wasm32"))]
 pub trait EventDecode: Decode {
-    const EVENT_NAMES: &'static [&'static [u8]];
+    const EVENT_NAMES: &'static [Route];
 
     fn decode_event(
         prefix: Route,
@@ -454,11 +464,11 @@ pub trait EventDecode: Decode {
         if route != prefix {
             return Err("Invalid event prefix".into());
         }
-
-        for (idx, name) in Self::EVENT_NAMES.iter().enumerate() {
-            if payload.starts_with(name) {
+        let evt_name = String::decode(&mut payload)?;
+        for (idx, &name) in Self::EVENT_NAMES.iter().enumerate() {
+            if evt_name == name {
                 let idx = idx as u8;
-                let bytes = [&[idx], &payload[name.len()..]].concat();
+                let bytes = [&[idx], payload].concat();
                 let mut event_bytes = &bytes[..];
                 return Decode::decode(&mut event_bytes);
             }
@@ -466,69 +476,6 @@ pub trait EventDecode: Decode {
         Err("Invalid event name".into())
     }
 }
-
-// mod client {
-
-//     use super::service::Service;
-//     use super::*;
-
-//     pub struct MyServiceImpl;
-
-//     pub trait MyService<E: GearEnv> {
-//         fn mint(&mut self, to: ActorId, amount: u128) -> PendingCall<E, bool>;
-//         fn burn(&mut self, from: ActorId) -> PendingCall<E, u8>;
-//         fn total(&self) -> PendingCall<E, u128>;
-//     }
-
-//     impl<E: GearEnv> MyService<E> for Service<MyServiceImpl, E> {
-//         fn mint(&mut self, to: ActorId, amount: u128) -> PendingCall<E, bool> {
-//             self.pending_call("Mint", (to, amount))
-//         }
-
-//         fn burn(&mut self, from: ActorId) -> PendingCall<E, u8> {
-//             self.pending_call("Burn", (from,))
-//         }
-
-//         fn total(&self) -> PendingCall<E, u128> {
-//             self.pending_call("Total", ())
-//         }
-//     }
-
-//     #[cfg(feature = "mockall")]
-//     #[cfg(not(target_arch = "wasm32"))]
-//     mockall::mock! {
-//         pub MyService<E: GearEnv> {}
-
-//         impl<E: GearEnv> MyService<E> for MyService<E> {
-//             fn mint(&mut self, to: ActorId, amount: u128) -> PendingCall<E, bool>;
-//             fn burn(&mut self, from: ActorId) -> PendingCall<E, u8>;
-//             fn total(&self) -> PendingCall<E, u128>;
-//         }
-//     }
-// }
-
-// #[cfg(feature = "mockall")]
-// #[cfg(test)]
-// mod tests {
-//     use super::*;
-
-//     #[tokio::test]
-//     async fn sample() -> Result<(), Box<dyn Error>> {
-//         use client::*;
-
-//         let mut my_service = MockMyService::new();
-//         my_service.expect_total().returning(move || 137.into());
-//         my_service.expect_mint().returning(move |_, _| true.into());
-
-//         assert_eq!(my_service.total().await?, 137);
-
-//         let mut my_service = my_service;
-
-//         assert!(my_service.mint(ActorId::from(137), 1_000).await?);
-
-//         Ok(())
-//     }
-// }
 
 #[cfg(test)]
 mod tests {

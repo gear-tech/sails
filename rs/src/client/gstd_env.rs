@@ -109,8 +109,8 @@ pub(crate) fn send_for_reply_future(
 pub(crate) fn send_for_reply_future(
     target: ActorId,
     payload: &[u8],
-    args: GstdParams,
-) -> Result<msg::MessageFuture> {
+    params: GstdParams,
+) -> Result<msg::MessageFuture, Error> {
     let value = params.value.unwrap_or(0);
     // here can be a redirect target
     let mut message_future = msg::send_bytes_for_reply(target, payload, value)?;
@@ -135,6 +135,13 @@ const _: () = {
             let payload = T::encode_params_with_prefix(route, &args);
 
             let value = params.value.unwrap_or(0);
+
+            #[cfg(feature = "ethexe")]
+            {
+                ::gcore::msg::send(self.destination, payload.as_slice(), value).map_err(Error::Core)
+            }
+
+            #[cfg(not(feature = "ethexe"))]
             if let Some(gas_limit) = params.gas_limit {
                 ::gcore::msg::send_with_gas(self.destination, payload.as_slice(), gas_limit, value)
                     .map_err(Error::Core)
@@ -221,7 +228,7 @@ const _: () = {
                 };
                 #[cfg(feature = "ethexe")]
                 let mut program_future =
-                    prog::create_program_bytes_for_reply(code_id, salt, payload, value)?;
+                    gstd::prog::create_program_bytes_for_reply(self.code_id, salt, payload, value)?;
 
                 // self.program_id = Some(program_future.program_id);
                 self.state = Some(GtsdFuture::CreateProgram {

@@ -25,12 +25,12 @@ impl<'a> EventsModuleGenerator<'a> {
 impl<'ast> Visitor<'ast> for EventsModuleGenerator<'_> {
     fn visit_service(&mut self, service: &'ast Service) {
         let events_name = &format!("{}Events", self.service_name);
-        let event_names_bytes = service
+        let event_names = service
             .events()
             .iter()
-            .map(|e| method_bytes(e.name()).0)
+            .map(|e| format!("\"{}\"", e.name()))
             .collect::<Vec<_>>()
-            .join("], &[");
+            .join(", ");
 
         quote_in! { self.tokens =>
             $['\n']
@@ -50,7 +50,7 @@ impl<'ast> Visitor<'ast> for EventsModuleGenerator<'_> {
 
         quote_in! { self.tokens =>
             impl EventDecode for $events_name {
-                const EVENT_NAMES: &'static [&'static [u8]] = &[&[$event_names_bytes]];
+                const EVENT_NAMES: &'static [Route] = &[$event_names];
             }
 
             impl ServiceEvent for $(self.service_name)Impl {

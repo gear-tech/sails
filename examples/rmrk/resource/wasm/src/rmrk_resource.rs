@@ -85,12 +85,7 @@ pub mod rmrk_resource {
             PartAdded { resource_id: u8, part_id: u32 },
         }
         impl EventDecode for RmrkResourceEvents {
-            const EVENT_NAMES: &'static [&'static [u8]] = &[
-                &[
-                    52, 82, 101, 115, 111, 117, 114, 99, 101, 65, 100, 100, 101, 100,
-                ],
-                &[36, 80, 97, 114, 116, 65, 100, 100, 101, 100],
-            ];
+            const EVENT_NAMES: &'static [Route] = &["ResourceAdded", "PartAdded"];
         }
         impl ServiceEvent for RmrkResourceImpl {
             type Event = RmrkResourceEvents;

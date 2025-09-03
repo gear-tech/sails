@@ -1,4 +1,4 @@
-use demo_client::{counter::events::*, counter::*, ping_pong::*, value_fee::*, *};
+use demo_client::{counter::events::*, counter::*, value_fee::*, *};
 use gclient::GearApi;
 use gstd::errors::{ErrorReplyReason, SimpleExecutionError};
 use sails_rs::{client::*, futures::StreamExt, prelude::*};

@@ -107,4 +107,5 @@ thiserror = { version = "2.0", default-features = false }
 toml_edit = "0.22"
 tempfile = "3.19"
 tokio = "1.45"
+tokio-stream = "0.1"
 trybuild = "1"
