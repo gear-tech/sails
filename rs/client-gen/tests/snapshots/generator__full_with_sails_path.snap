@@ -150,10 +150,7 @@ pub mod counter {
             Subtracted(u32),
         }
         impl EventDecode for CounterEvents {
-            const EVENT_NAMES: &'static [&'static [u8]] = &[
-                &[20, 65, 100, 100, 101, 100],
-                &[40, 83, 117, 98, 116, 114, 97, 99, 116, 101, 100],
-            ];
+            const EVENT_NAMES: &'static [Route] = &["Added", "Subtracted"];
         }
         impl ServiceEvent for CounterImpl {
             type Event = CounterEvents;

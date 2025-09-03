@@ -1,5 +1,4 @@
 use super::*;
-use crate::events::Listener;
 use ::gtest::{BlockRunResult, System, TestError};
 use core::cell::RefCell;
 use futures::{
@@ -8,6 +7,7 @@ use futures::{
 };
 use hashbrown::HashMap;
 use std::rc::Rc;
+use tokio_stream::StreamExt;
 
 const GAS_LIMIT_DEFAULT: ::gtest::constants::Gas = ::gtest::constants::MAX_USER_GAS_LIMIT;
 type EventSender = mpsc::UnboundedSender<(ActorId, Vec<u8>)>;
@@ -386,12 +386,15 @@ impl<A, T: CallEncodeDecode> Future for PendingCtor<GtestEnv, A, T> {
     }
 }
 
-impl Listener<Vec<u8>> for GtestEnv {
+impl Listener for GtestEnv {
     type Error = <GtestEnv as GearEnv>::Error;
 
-    async fn listen(&mut self) -> Result<impl Stream<Item = (ActorId, Vec<u8>)>, Self::Error> {
+    async fn listen<E, F: FnMut((ActorId, Vec<u8>)) -> Option<(ActorId, E)>>(
+        &self,
+        f: F,
+    ) -> Result<impl Stream<Item = (ActorId, E)> + Unpin, Self::Error> {
         let (tx, rx) = mpsc::unbounded::<(ActorId, Vec<u8>)>();
         self.event_senders.borrow_mut().push(tx);
-        Ok(rx)
+        Ok(rx.filter_map(f))
     }
 }

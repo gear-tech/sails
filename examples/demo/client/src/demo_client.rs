@@ -127,10 +127,7 @@ pub mod counter {
             Subtracted(u32),
         }
         impl EventDecode for CounterEvents {
-            const EVENT_NAMES: &'static [&'static [u8]] = &[
-                &[20, 65, 100, 100, 101, 100],
-                &[40, 83, 117, 98, 116, 114, 97, 99, 116, 101, 100],
-            ];
+            const EVENT_NAMES: &'static [Route] = &["Added", "Subtracted"];
         }
         impl ServiceEvent for CounterImpl {
             type Event = CounterEvents;
@@ -182,10 +179,7 @@ pub mod dog {
             Walked { from: (i32, i32), to: (i32, i32) },
         }
         impl EventDecode for DogEvents {
-            const EVENT_NAMES: &'static [&'static [u8]] = &[
-                &[24, 66, 97, 114, 107, 101, 100],
-                &[24, 87, 97, 108, 107, 101, 100],
-            ];
+            const EVENT_NAMES: &'static [Route] = &["Barked", "Walked"];
         }
         impl ServiceEvent for DogImpl {
             type Event = DogEvents;
@@ -334,8 +328,7 @@ pub mod value_fee {
             Withheld(u128),
         }
         impl EventDecode for ValueFeeEvents {
-            const EVENT_NAMES: &'static [&'static [u8]] =
-                &[&[32, 87, 105, 116, 104, 104, 101, 108, 100]];
+            const EVENT_NAMES: &'static [Route] = &["Withheld"];
         }
         impl ServiceEvent for ValueFeeImpl {
             type Event = ValueFeeEvents;

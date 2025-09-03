@@ -1,7 +1,6 @@
 use super::*;
-use crate::events::Listener;
 use ::gclient::{EventListener, EventProcessor as _, GearApi};
-use futures::{Stream, stream};
+use futures::{Stream, StreamExt, stream};
 
 #[derive(Debug, thiserror::Error)]
 pub enum GclientError {
@@ -142,11 +141,9 @@ async fn create_program(
         .create_program_bytes(code_id, salt, payload, gas_limit, value)
         .await?;
     let (_, reply_code, payload, _) = wait_for_reply(&mut listener, message_id).await?;
-    // TODO handle errors
     match reply_code {
         ReplyCode::Success(_) => Ok((program_id, payload)),
         ReplyCode::Error(reason) => Err(GclientError::ReplyHasError(reason, payload)),
-        // TODO
         ReplyCode::Unsupported => Err(GclientError::Unsupported),
     }
 }
@@ -176,11 +173,9 @@ async fn send_message(
         .send_message_bytes(program_id, payload, gas_limit, value)
         .await?;
     let (_, reply_code, payload, _) = wait_for_reply(&mut listener, message_id).await?;
-    // TODO handle errors
     match reply_code {
         ReplyCode::Success(_) => Ok((program_id, payload)),
         ReplyCode::Error(reason) => Err(GclientError::ReplyHasError(reason, payload)),
-        // TODO
         ReplyCode::Unsupported => Err(GclientError::Unsupported),
     }
 }
@@ -318,18 +313,20 @@ impl<A, T: CallEncodeDecode> Future for PendingCtor<GclientEnv, A, T> {
     }
 }
 
-impl Listener<Vec<u8>> for GclientEnv {
+impl Listener for GclientEnv {
     type Error = GclientError;
 
-    async fn listen(
-        &mut self,
-    ) -> Result<impl Stream<Item = (ActorId, Vec<u8>)> + Unpin, Self::Error> {
+    async fn listen<E, F: FnMut((ActorId, Vec<u8>)) -> Option<(ActorId, E)>>(
+        &self,
+        f: F,
+    ) -> Result<impl Stream<Item = (ActorId, E)> + Unpin, Self::Error> {
         let listener = self.api.subscribe().await?;
         let stream = stream::unfold(listener, |mut l| async move {
             let vec = get_events_from_block(&mut l).await.ok();
             vec.map(|v| (v, l))
         })
         .flat_map(stream::iter);
+        let stream = tokio_stream::StreamExt::filter_map(stream, f);
         Ok(Box::pin(stream))
     }
 }
@@ -361,7 +358,7 @@ async fn wait_for_reply(
 }
 
 async fn get_events_from_block(
-    listener: &mut gclient::EventListener,
+    listener: &mut EventListener,
 ) -> Result<Vec<(ActorId, Vec<u8>)>, GclientError> {
     let vec = listener
         .proc_many(

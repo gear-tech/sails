@@ -61,7 +61,9 @@ gclient = "=1.9.0"
 gcore = "=1.9.0"
 gear-core = { version = "=1.9.0", default-features = false }
 gear-core-errors = "=1.9.0"
-gprimitives = { version = "=1.9.0", default-features = false, features = ["codec"] }
+gprimitives = { version = "=1.9.0", default-features = false, features = [
+    "codec",
+] }
 gstd = "=1.9.0"
 gtest = "=1.9.0"
 gwasm-builder = { version = "=1.9.0", package = "gear-wasm-builder" }
@@ -107,4 +109,5 @@ thiserror = { version = "2.0", default-features = false }
 toml_edit = "0.22"
 tempfile = "3.19"
 tokio = "1.45"
+tokio-stream = "0.1"
 trybuild = "1"
