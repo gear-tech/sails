@@ -11,7 +11,7 @@ use sails_rs::{
 };
 use services::ResourceStorage;
 
-mod catalogs;
+pub mod catalogs;
 // Exposed publicly because of tests which use generated data
 // while there is no generated client
 pub mod services;

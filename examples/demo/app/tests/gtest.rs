@@ -44,7 +44,7 @@ async fn counter_add_works() {
 
     let mut counter_client = demo_program.counter();
     // Listen to Counter events
-    let mut counter_listener = counter_client.listener();
+    let counter_listener = counter_client.listener();
     let mut counter_events = counter_listener.listen().await.unwrap();
 
     // Act
@@ -77,7 +77,7 @@ async fn counter_sub_works() {
 
     let mut counter_client = demo_program.counter();
     // Listen to Counter events
-    let mut counter_listener = counter_client.listener();
+    let counter_listener = counter_client.listener();
     let mut counter_events = counter_listener.listen().await.unwrap();
 
     // Act
@@ -252,7 +252,7 @@ async fn dog_barks() {
         .unwrap();
 
     let mut dog_client = demo_program.dog();
-    let mut dog_listener = dog_client.listener();
+    let dog_listener = dog_client.listener();
     let mut dog_events = dog_listener.listen().await.unwrap();
 
     // Act
@@ -281,7 +281,7 @@ async fn dog_walks() {
         .unwrap();
 
     let mut dog_client = demo_program.dog();
-    let mut dog_listener = dog_client.listener();
+    let dog_listener = dog_client.listener();
     let mut dog_events = dog_listener.listen().await.unwrap();
 
     // Act
@@ -409,7 +409,7 @@ async fn counter_add_works_via_next_mode() {
 
     let mut counter_client = demo_program.counter();
     // Listen to Counter events
-    let mut counter_listener = counter_client.listener();
+    let counter_listener = counter_client.listener();
     let mut counter_events = counter_listener.listen().await.unwrap();
 
     // Act
@@ -445,7 +445,7 @@ async fn counter_add_works_via_manual_mode() {
 
     let mut counter_client = demo_program.counter();
     // Listen to Counter events
-    let mut counter_listener = counter_client.listener();
+    let counter_listener = counter_client.listener();
     let mut counter_events = counter_listener.listen().await.unwrap();
 
     // Use generated client code for calling Counter service

@@ -29,7 +29,7 @@ impl<'a> ServiceCtorGenerator<'a> {
 }
 
 impl<'ast> Visitor<'ast> for ServiceCtorGenerator<'_> {
-    fn visit_service(&mut self, service: &'ast Service) {
+    fn visit_service(&mut self, _service: &'ast Service) {
         let service_name_snake = &self.service_name.to_case(Case::Snake);
         quote_in!(self.trait_tokens =>
             fn $service_name_snake(&self) -> Service<Self::Env, $service_name_snake::$(self.service_name)Impl>;

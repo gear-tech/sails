@@ -59,7 +59,8 @@ impl<'a> RootGenerator<'a> {
         };
 
         let mut tokens = quote! {
-            use $(self.sails_path)::{client::*, prelude::*};
+            #[allow(unused_imports)]
+            use $(self.sails_path)::{client::*, collections::*, prelude::*};
         };
 
         for (&name, &path) in &self.external_types {
