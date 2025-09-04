@@ -39,7 +39,7 @@ async fn env_counter_add_works_via_next_mode() {
         .unwrap();
 
     let mut counter_client = demo_program.counter();
-    let mut counter_listener = counter_client.listener();
+    let counter_listener = counter_client.listener();
     let mut counter_events = counter_listener.listen().await.unwrap();
 
     assert_eq!(Ok(52), counter_client.add(10).await);

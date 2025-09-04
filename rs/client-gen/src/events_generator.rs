@@ -1,4 +1,3 @@
-use crate::helpers::method_bytes;
 use genco::prelude::*;
 use sails_idl_parser::{ast::visitor, ast::visitor::Visitor, ast::*};
 

@@ -194,7 +194,7 @@ impl<E: GearEnv, D: EventDecode> ServiceListener<E, D> {
     }
 
     pub async fn listen(
-        &mut self,
+        &self,
     ) -> Result<impl Stream<Item = (ActorId, D)> + Unpin, <E as GearEnv>::Error>
     where
         E: Listener<Error = <E as GearEnv>::Error>,
