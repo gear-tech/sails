@@ -234,6 +234,28 @@ impl GearEnv for GtestEnv {
     type MessageState = ReplyReceiver;
 }
 impl<T: CallEncodeDecode> PendingCall<GtestEnv, T> {
+    pub fn send_one_way(mut self) -> Result<MessageId, GtestError> {
+        let Some(route) = self.route else {
+            return Err(TestError::ScaleCodecError(
+                "PendingCall route is not set".into(),
+            ))?;
+        };
+        if self.state.is_some() {
+            panic!("{PENDING_CALL_INVALID_STATE}");
+        }
+        // Send message
+        let args = self
+            .args
+            .take()
+            .unwrap_or_else(|| panic!("{PENDING_CALL_INVALID_STATE}"));
+        let payload = T::encode_params_with_prefix(route, &args);
+        let params = self.params.take().unwrap_or_default();
+
+        let message_id = self.env.send_message(self.destination, payload, params)?;
+        log::debug!("PendingCall: send message {message_id:?}");
+        Ok(message_id)
+    }
+
     pub fn send_message(mut self) -> Result<Self, GtestError> {
         let Some(route) = self.route else {
             return Err(TestError::ScaleCodecError(
