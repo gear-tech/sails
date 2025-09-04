@@ -70,7 +70,7 @@ enum SailsCommands {
         /// Map type from IDL to crate path, separated by `=`, example `-T Part=crate::parts::Part`
         #[arg(long, short = 'T', value_parser = parse_key_val::<String, String>)]
         external_types: Vec<(String, String)>,
-        /// Derive only nessessary [`parity_scale_codec::Encode`], [`parity_scale_codec::Decode`] and [`scale_info::TypeInfo`] traits for the generated types
+        /// Derive only necessary [`parity_scale_codec::Encode`], [`parity_scale_codec::Decode`] and [`scale_info::TypeInfo`] traits for the generated types
         #[arg(long)]
         no_derive_traits: bool,
     },
