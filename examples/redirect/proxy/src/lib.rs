@@ -20,8 +20,7 @@ impl ProxyService {
         client
             .get_program_id()
             // Set flag to redirect on exit
-            // .with_redirect_on_exit(true)
-            // .recv(self.0)
+            .with_redirect_on_exit(true)
             .await
             .unwrap()
     }

@@ -4,6 +4,7 @@ use ::gstd::{
     msg,
     msg::{CreateProgramFuture, MessageFuture},
 };
+use core::task::ready;
 
 #[derive(Default)]
 pub struct GstdParams {
@@ -39,6 +40,19 @@ impl GstdParams {
     }
 }
 
+impl Clone for GstdParams {
+    fn clone(&self) -> Self {
+        Self {
+            gas_limit: self.gas_limit.clone(),
+            value: self.value.clone(),
+            wait_up_to: self.wait_up_to.clone(),
+            reply_deposit: self.reply_deposit.clone(),
+            reply_hook: None,
+            redirect_on_exit: self.redirect_on_exit.clone(),
+        }
+    }
+}
+
 #[cfg(not(feature = "ethexe"))]
 impl GstdParams {
     pub fn with_reply_deposit(self, reply_deposit: Option<GasUnit>) -> Self {
@@ -57,6 +71,25 @@ impl GstdParams {
 
     pub fn reply_deposit(&self) -> Option<GasUnit> {
         self.reply_deposit
+    }
+}
+
+impl<T: CallEncodeDecode> PendingCall<GstdEnv, T> {
+    pub fn with_wait_up_to(self, wait_up_to: Option<BlockCount>) -> Self {
+        self.with_params(|params| params.with_wait_up_to(wait_up_to))
+    }
+
+    /// Set `redirect_on_exit` flag to `true``
+    ///
+    /// This flag is used to redirect a message to a new program when the target program exits
+    /// with an inheritor.
+    ///
+    /// WARNING: When this flag is set, the message future captures the payload and other arguments,
+    /// potentially resulting in multiple messages being sent. This can lead to increased gas consumption.
+    ///
+    /// This flag is set to `false`` by default.
+    pub fn with_redirect_on_exit(self, redirect_on_exit: bool) -> Self {
+        self.with_params(|params| params.with_redirect_on_exit(redirect_on_exit))
     }
 }
 
@@ -120,6 +153,30 @@ pub(crate) fn send_for_reply_future(
     Ok(message_future)
 }
 
+pub(crate) fn send_for_reply<T: AsRef<[u8]>>(
+    target: ActorId,
+    payload: T,
+    params: GstdParams,
+) -> Result<GtsdFuture, Error> {
+    let redirect_on_exit = params.redirect_on_exit;
+    // clone params w/o reply_hook
+    let params_cloned = params.clone();
+    // send message
+    let future = send_for_reply_future(target, payload.as_ref(), params)?;
+    if redirect_on_exit {
+        let created_block = params_cloned.wait_up_to.map(|_| gstd::exec::block_height());
+        Ok(GtsdFuture::MessageWithRedirect {
+            created_block,
+            future,
+            params: params_cloned,
+            payload: payload.as_ref().to_vec(),
+            target: target,
+        })
+    } else {
+        Ok(GtsdFuture::Message { future })
+    }
+}
+
 #[cfg(target_arch = "wasm32")]
 const _: () = {
     impl<T: CallEncodeDecode> PendingCall<GstdEnv, T> {
@@ -167,10 +224,10 @@ const _: () = {
                 let payload = T::encode_params_with_prefix(route, &args);
                 let params = self.params.take().unwrap_or_default();
 
-                let send_res = send_for_reply_future(self.destination, payload.as_slice(), params);
+                let send_res = send_for_reply(self.destination, payload, params);
                 match send_res {
                     Ok(future) => {
-                        self.state = Some(GtsdFuture::Message { future });
+                        self.state = Some(future);
                     }
                     Err(err) => {
                         return Poll::Ready(Err(err));
@@ -178,17 +235,72 @@ const _: () = {
                 }
             }
             let this = self.as_mut().project();
-            if let Some(state) = this.state.as_pin_mut()
-                && let Projection::Message { future } = state.project()
-            {
+            if let Some(mut state) = this.state.as_pin_mut() {
                 // Poll message future
-                match future.poll(cx) {
-                    Poll::Ready(Ok(payload)) => match T::decode_reply_with_prefix(route, payload) {
+                let output = match state.as_mut().project() {
+                    Projection::CreateProgram { .. } => panic!("{PENDING_CALL_INVALID_STATE}"),
+                    Projection::Message { future } => ready!(future.poll(cx)),
+                    Projection::MessageWithRedirect { future, .. } => ready!(future.poll(cx)),
+                    Projection::Dummy => panic!("{PENDING_CALL_INVALID_STATE}"),
+                };
+                match output {
+                    // ok reply
+                    Ok(payload) => match T::decode_reply_with_prefix(route, payload) {
                         Ok(reply) => Poll::Ready(Ok(reply)),
                         Err(err) => Poll::Ready(Err(Error::Decode(err))),
                     },
-                    Poll::Ready(Err(err)) => Poll::Ready(Err(err)),
-                    Poll::Pending => Poll::Pending,
+                    // reply with ProgramExited
+                    Err(gstd::errors::Error::ErrorReply(
+                        error_payload,
+                        ErrorReplyReason::UnavailableActor(
+                            SimpleUnavailableActorError::ProgramExited,
+                        ),
+                    )) => {
+                        if let Replace::MessageWithRedirect {
+                            target: _target,
+                            payload,
+                            mut params,
+                            created_block,
+                            ..
+                        } = state.as_mut().project_replace(GtsdFuture::Dummy)
+                            && params.redirect_on_exit
+                            && let Ok(new_target) = ActorId::try_from(error_payload.0.as_ref())
+                        {
+                            gstd::debug!("Redirecting message from {_target} to {new_target}");
+
+                            // Calculate updated `wait_up_to` if provided
+                            // wait_up_to = wait_up_to - (current_block - created_block)
+                            params.wait_up_to = params.wait_up_to.and_then(|wait_up_to| {
+                                created_block.map(|created_block| {
+                                    let current_block = gstd::exec::block_height();
+                                    wait_up_to
+                                        .saturating_sub(current_block.saturating_sub(created_block))
+                                })
+                            });
+
+                            // send message to new target
+                            let future_res = send_for_reply(new_target, payload, params);
+                            match future_res {
+                                Ok(future) => {
+                                    // Replace the future with a new one
+                                    _ = state.as_mut().project_replace(future);
+                                    // Return Pending to allow the new future to be polled
+                                    Poll::Pending
+                                }
+                                Err(err) => Poll::Ready(Err(err)),
+                            }
+                        } else {
+                            Poll::Ready(Err(gstd::errors::Error::ErrorReply(
+                                error_payload,
+                                ErrorReplyReason::UnavailableActor(
+                                    SimpleUnavailableActorError::ProgramExited,
+                                ),
+                            )
+                            .into()))
+                        }
+                    }
+                    // error reply
+                    Err(err) => Poll::Ready(Err(err)),
                 }
             } else {
                 panic!("{PENDING_CALL_INVALID_STATE}");
@@ -257,9 +369,19 @@ const _: () = {
 
 pin_project_lite::pin_project! {
     #[project = Projection]
+    #[project_replace = Replace]
     pub enum GtsdFuture {
         CreateProgram { #[pin] future: CreateProgramFuture },
         Message { #[pin] future: MessageFuture },
+        MessageWithRedirect {
+            #[pin]
+            future: MessageFuture,
+            target: ActorId,
+            payload: Vec<u8>,
+            params: GstdParams,
+            created_block: Option<BlockCount>,
+        },
+        Dummy,
     }
 }
 
