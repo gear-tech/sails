@@ -34,8 +34,10 @@ use itertools::{Either, Itertools};
 use ping_pong_bench_app::client::{
     PingPong, PingPongCtors, PingPongPayload, PingPongProgram, ping_pong_service::*,
 };
-use redirect_client::{redirect::*, *};
-use redirect_proxy_client::{proxy::*, *};
+use redirect_client::{RedirectClient, RedirectClientCtors, RedirectClientProgram, redirect::*};
+use redirect_proxy_client::{
+    RedirectProxyClient, RedirectProxyClientCtors, RedirectProxyClientProgram, proxy::*,
+};
 use sails_rs::{client::*, prelude::*};
 use std::{collections::BTreeMap, sync::atomic::AtomicU64};
 
@@ -191,57 +193,68 @@ async fn cross_program_bench() {
     .unwrap();
 }
 
-// #[tokio::test]
-// async fn redirect_bench() {
-//     let redirect_wasm_path = "../target/wasm32-gear/release/redirect_app.opt.wasm";
-//     let proxy_wasm_path = "../target/wasm32-gear/release/redirect_proxy.opt.wasm";
+#[tokio::test]
+async fn redirect_bench() {
+    let redirect_wasm_path = "../target/wasm32-gear/release/redirect_app.opt.wasm";
+    let proxy_wasm_path = "../target/wasm32-gear/release/redirect_proxy.opt.wasm";
 
-//     let (remoting, redirect_pid1, redirect_pid2) = create_program_async!(
-//         (
-//             RedirectClientFactory::<GTestRemoting>,
-//             redirect_wasm_path,
-//             new
-//         ),
-//         (
-//             RedirectClientFactory::<GTestRemoting>,
-//             redirect_wasm_path,
-//             new
-//         )
-//     );
-//     let (remoting, proxy_pid) = create_program_async!(
-//         remoting,
-//         (
-//             RedirectProxyClientFactory::<GTestRemoting>,
-//             proxy_wasm_path,
-//             new,
-//             redirect_pid1
-//         )
-//     );
+    let env = create_env();
+    let program_redirect_1 =
+        deploy_for_bench(&env, redirect_wasm_path, |d| RedirectClientCtors::new(d)).await;
+    let program_redirect_2 =
+        deploy_for_bench(&env, redirect_wasm_path, |d| RedirectClientCtors::new(d)).await;
+    let program_proxy = deploy_for_bench(&env, proxy_wasm_path, |d| {
+        RedirectProxyClientCtors::new(d, program_redirect_1.id())
+    })
+    .await;
 
-//     // Warm-up proxy program
-//     (0..100).for_each(|_| {
-//         let (resp, _) = call_action!(remoting, proxy_pid, GetProgramId);
-//         assert_eq!(resp, redirect_pid1);
-//     });
+    // Warm-up proxy program
+    (0..100).for_each(|_| {
+        let message_id = program_proxy
+            .proxy()
+            .get_program_id()
+            .send_one_way()
+            .unwrap();
+        let (payload, gas) = extract_reply_and_gas(env.system(), message_id);
+        let resp = redirect_proxy_client::proxy::io::GetProgramId::decode_reply_with_prefix(
+            "Proxy",
+            payload.as_slice(),
+        )
+        .unwrap();
+        assert_eq!(resp, program_redirect_1.id());
+    });
 
-//     // Call exit on a redirect program
-//     call_action!(remoting, redirect_pid1, Exit, redirect_pid2; no_reply_check);
+    // Call exit on a redirect program
+    program_redirect_1
+        .redirect()
+        .exit(program_redirect_2.id())
+        .send_one_way()
+        .unwrap();
 
-//     // Bench proxy program
-//     let gas_benches = (0..100)
-//         .map(|_| {
-//             let (resp, gas_get_program) = call_action!(remoting, proxy_pid, GetProgramId);
-//             assert_eq!(resp, redirect_pid2);
+    // Bench proxy program
+    let gas_benches = (0..100)
+        .map(|_| {
+            let message_id = program_proxy
+                .proxy()
+                .get_program_id()
+                .send_one_way()
+                .unwrap();
+            let (payload, gas) = extract_reply_and_gas(env.system(), message_id);
+            let resp = redirect_proxy_client::proxy::io::GetProgramId::decode_reply_with_prefix(
+                "Proxy",
+                payload.as_slice(),
+            )
+            .unwrap();
+            assert_eq!(resp, program_redirect_2.id());
+            gas
+        })
+        .collect::<Vec<_>>();
 
-//             gas_get_program
-//         })
-//         .collect::<Vec<_>>();
-
-//     crate::store_bench_data(|bench_data| {
-//         bench_data.update_redirect_bench(median(gas_benches));
-//     })
-//     .unwrap();
-// }
+    crate::store_bench_data(|bench_data| {
+        bench_data.update_redirect_bench(median(gas_benches));
+    })
+    .unwrap();
+}
 
 async fn alloc_stress_test(n: u32) -> (usize, u64) {
     // Path taken from the .binpath file
