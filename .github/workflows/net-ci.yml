@@ -33,10 +33,10 @@ jobs:
 
     steps:
       - name: Check Code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Set Up .NET
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v5
         with:
           dotnet-version: 9.0.x
 
@@ -67,7 +67,7 @@ jobs:
     runs-on: windows-latest
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Build & Test Client Generator
         run: |
@@ -78,7 +78,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Build & Test Client Generator
         run: |
@@ -89,7 +89,7 @@ jobs:
     runs-on: macos-latest
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Build & Test Client Generator
         run: |
@@ -101,7 +101,7 @@ jobs:
     runs-on: macos-latest
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
       - name: Build & Test Client Generator
         run: |
           rustup target add aarch64-apple-darwin
