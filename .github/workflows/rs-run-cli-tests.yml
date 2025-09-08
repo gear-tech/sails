@@ -9,7 +9,7 @@ on:
         required: false
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: ${{ github.workflow }}-${{ github.ref }}-cli-tests
   cancel-in-progress: true
 
 env:

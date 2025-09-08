@@ -4,18 +4,22 @@ use sails_rs::prelude::*;
 
 struct {{ service-struct-name }}(());
 
-#[sails_rs::service]
 impl {{ service-struct-name }} {
     pub fn new() -> Self {
         Self(())
     }
+}
 
+#[sails_rs::service]
+impl {{ service-struct-name }} {
     // Service's method (command)
+    #[export]
     pub fn do_something(&mut self) -> String {
         "Hello from {{ service-name }}!".to_string()
     }
 
     // Service's query
+    #[export]
     pub fn get_something(&self) -> String {
         "Hello from {{ service-name }}!".to_string()
     }    
