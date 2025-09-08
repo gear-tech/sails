@@ -1,11 +1,19 @@
 # CHANGELOG
 
+## draft
+### Changes
+- Fixed creating messages with a single argument (https://github.com/gear-tech/sails/pull/1051)
+
+---
+
 ## 0.4.3
 ### Changes
 - Skipped type file generation if types are not present in the IDL
 - Improved encoding / decoding in the `TransactionBuilder` class
 - Capitalized enum variant names in generated files
 - From now gas can be calculated automatically when using `TransactionBuilder`'s method `singAndSend`
+
+---
 
 ## 0.4.2
 ### Compatibility
@@ -15,6 +23,8 @@
 ### Changes
 - Bump `@gear-js/api` to `v0.42.0` in https://github.com/gear-tech/sails/pull/933
 - Support `Program` class from `@gear-js/api` to keep track on program upgrades in https://github.com/gear-tech/sails/pull/933
+
+---
 
 ## 0.4.1
 

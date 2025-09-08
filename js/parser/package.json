@@ -38,9 +38,9 @@
     "pack-build": "yarn pack --out ../sails-js-parser.tgz"
   },
   "optionalDependencies": {
-    "sails-js-types": "^0.4.2"
+    "sails-js-types": "0.4.3"
   },
   "peerDependencies": {
-    "sails-js-types": "0.4.1"
+    "sails-js-types": "0.4.3"
   }
 }

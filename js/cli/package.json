@@ -27,9 +27,9 @@
     "commander": "^14.0.0",
     "inquirer": "^12.9.0",
     "jest": "^30.0.5",
-    "sails-js": "^0.4.2",
-    "sails-js-parser": "^0.4.2",
-    "sails-js-util": "^0.4.2"
+    "sails-js": "0.4.3",
+    "sails-js-parser": "0.4.3",
+    "sails-js-util": "0.4.3"
   },
   "scripts": {
     "build": "npx rollup --config rollup.config.js",

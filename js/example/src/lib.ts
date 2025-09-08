@@ -51,8 +51,8 @@ export class SailsProgram {
       'upload_program',
       undefined,
       'Default',
-      undefined,
-      undefined,
+      null,
+      null,
       'String',
       code,
       async (programId) =>  {
@@ -72,8 +72,8 @@ export class SailsProgram {
       'create_program',
       undefined,
       'Default',
-      undefined,
-      undefined,
+      null,
+      null,
       'String',
       codeId,
       async (programId) =>  {
@@ -245,8 +245,8 @@ export class Dog {
       'send_message',
       'Dog',
       'MakeSound',
-      undefined,
-      undefined,
+      null,
+      null,
       'String',
       this._program.programId
     );
@@ -380,8 +380,8 @@ export class References {
       'send_message',
       'References',
       'Incr',
-      undefined,
-      undefined,
+      null,
+      null,
       'ReferenceCount',
       this._program.programId
     );
@@ -489,8 +489,8 @@ export class ThisThat {
       'send_message',
       'ThisThat',
       'Noop',
-      undefined,
-      undefined,
+      null,
+      null,
       'Null',
       this._program.programId
     );
@@ -542,8 +542,8 @@ export class ValueFee {
       'send_message',
       'ValueFee',
       'DoSomethingAndTakeFee',
-      undefined,
-      undefined,
+      null,
+      null,
       'bool',
       this._program.programId
     );

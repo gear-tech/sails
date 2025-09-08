@@ -154,6 +154,18 @@ export class Sails {
     return this._registry;
   }
 
+  private _getParamsForTxBuilder(params: ISailsFuncArg[]) {
+    if (params.length === 0) return null;
+    if (params.length === 1) return params[0].type;
+    return `(${params.map((p) => p.type).join(', ')})`;
+  }
+
+  private _getArgsForTxBuilder(args: any[], params: ISailsFuncArg[]) {
+    if (params.length === 0) return null;
+    if (params.length === 1) return args[0];
+    return args.slice(0, params.length);
+  }
+
   private _getFunctions(service: ISailsService): {
     funcs: Record<string, SailsServiceFunc>;
     queries: Record<string, SailsServiceQuery>;
@@ -162,7 +174,11 @@ export class Sails {
     const queries: Record<string, SailsServiceQuery> = {};
 
     for (const func of service.funcs) {
-      const params = func.params.map((p) => ({ name: p.name, type: getScaleCodecDef(p.def), typeDef: p.def }));
+      const params: ISailsFuncArg[] = func.params.map((p) => ({
+        name: p.name,
+        type: getScaleCodecDef(p.def),
+        typeDef: p.def,
+      }));
       const returnType = getScaleCodecDef(func.def);
       if (func.isQuery) {
         queries[func.name] = (async <T = any>(
@@ -196,7 +212,7 @@ export class Sails {
           return result[2].toJSON() as T;
         }) as SailsServiceQuery;
       } else {
-        funcs[func.name] = (<T = any>(...args: any): TransactionBuilder<T> => {
+        funcs[func.name] = (<T = any>(...args: any[]): TransactionBuilder<T> => {
           if (!this._api) {
             throw new Error('API is not set. Use .setApi method to set API instance');
           }
@@ -209,8 +225,8 @@ export class Sails {
             'send_message',
             service.name,
             func.name,
-            [...args],
-            `(${params.map((p) => p.type).join(', ')})`,
+            this._getArgsForTxBuilder(args, params),
+            this._getParamsForTxBuilder(params),
             returnType,
             this._programId,
           );
@@ -380,8 +396,8 @@ export class Sails {
             'upload_program',
             undefined,
             func.name,
-            [...args],
-            `(${params.map((p) => p.type).join(', ')})`,
+            this._getArgsForTxBuilder(args, params),
+            this._getParamsForTxBuilder(params),
             'String',
             code,
           );
@@ -400,8 +416,8 @@ export class Sails {
             'create_program',
             undefined,
             func.name,
-            [...args],
-            `(${params.map((p) => p.type).join(', ')})`,
+            this._getArgsForTxBuilder(args, params),
+            this._getParamsForTxBuilder(params),
             'String',
             codeId,
           );

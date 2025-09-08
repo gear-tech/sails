@@ -36,19 +36,19 @@
     "pack-build": "yarn pack --out sails-js.tgz"
   },
   "peerDependencies": {
-    "@gear-js/api": "^0.42.0",
-    "@polkadot/api": "^15.9.1"
+    "@gear-js/api": "^0.44.0",
+    "@polkadot/api": "^16.4.1"
   },
   "optionalDependencies": {
-    "sails-js-types": "^0.4.2"
+    "sails-js-types": "0.4.3"
   },
   "dependencies": {
-    "sails-js-util": "^0.4.2"
+    "sails-js-util": "0.4.3"
   },
   "devDependencies": {
-    "@gear-js/api": "^0.43.0",
-    "@polkadot/api": "^16.4.3",
-    "@polkadot/types": "^16.4.3",
+    "@gear-js/api": "0.44.0",
+    "@polkadot/api": "16.4.6",
+    "@polkadot/types": "16.4.6",
     "jest": "^30.0.5",
     "sails-js-types": "*"
   },
