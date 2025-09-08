@@ -2,26 +2,34 @@
 #[allow(unused_imports)]
 use sails_rs::{client::*, collections::*, prelude::*};
 pub struct RmrkResourceProgram;
-impl Program for RmrkResourceProgram {}
+impl sails_rs::client::Program for RmrkResourceProgram {}
 pub trait RmrkResource {
-    type Env: GearEnv;
-    fn rmrk_resource(&self) -> Service<Self::Env, rmrk_resource::RmrkResourceImpl>;
+    type Env: sails_rs::client::GearEnv;
+    fn rmrk_resource(
+        &self,
+    ) -> sails_rs::client::Service<Self::Env, rmrk_resource::RmrkResourceImpl>;
 }
-impl<E: GearEnv> RmrkResource for Actor<E, RmrkResourceProgram> {
+impl<E: sails_rs::client::GearEnv> RmrkResource
+    for sails_rs::client::Actor<E, RmrkResourceProgram>
+{
     type Env = E;
-    fn rmrk_resource(&self) -> Service<Self::Env, rmrk_resource::RmrkResourceImpl> {
+    fn rmrk_resource(
+        &self,
+    ) -> sails_rs::client::Service<Self::Env, rmrk_resource::RmrkResourceImpl> {
         self.service(stringify!(RmrkResource))
     }
 }
 pub trait RmrkResourceCtors {
-    type Env: GearEnv;
+    type Env: sails_rs::client::GearEnv;
     #[allow(clippy::new_ret_no_self)]
     #[allow(clippy::wrong_self_convention)]
-    fn new(self) -> PendingCtor<Self::Env, RmrkResourceProgram, io::New>;
+    fn new(self) -> sails_rs::client::PendingCtor<Self::Env, RmrkResourceProgram, io::New>;
 }
-impl<E: GearEnv> RmrkResourceCtors for Deployment<E, RmrkResourceProgram> {
+impl<E: sails_rs::client::GearEnv> RmrkResourceCtors
+    for sails_rs::client::Deployment<E, RmrkResourceProgram>
+{
     type Env = E;
-    fn new(self) -> PendingCtor<Self::Env, RmrkResourceProgram, io::New> {
+    fn new(self) -> sails_rs::client::PendingCtor<Self::Env, RmrkResourceProgram, io::New> {
         self.pending_ctor(())
     }
 }
@@ -34,37 +42,43 @@ pub mod io {
 pub mod rmrk_resource {
     use super::*;
     pub trait RmrkResource {
-        type Env: GearEnv;
+        type Env: sails_rs::client::GearEnv;
         fn add_part_to_resource(
             &mut self,
             resource_id: u8,
             part_id: u32,
-        ) -> PendingCall<Self::Env, io::AddPartToResource>;
+        ) -> sails_rs::client::PendingCall<Self::Env, io::AddPartToResource>;
         fn add_resource_entry(
             &mut self,
             resource_id: u8,
             resource: Resource,
-        ) -> PendingCall<Self::Env, io::AddResourceEntry>;
-        fn resource(&self, resource_id: u8) -> PendingCall<Self::Env, io::Resource>;
+        ) -> sails_rs::client::PendingCall<Self::Env, io::AddResourceEntry>;
+        fn resource(
+            &self,
+            resource_id: u8,
+        ) -> sails_rs::client::PendingCall<Self::Env, io::Resource>;
     }
     pub struct RmrkResourceImpl;
-    impl<E: GearEnv> RmrkResource for Service<E, RmrkResourceImpl> {
+    impl<E: sails_rs::client::GearEnv> RmrkResource for sails_rs::client::Service<E, RmrkResourceImpl> {
         type Env = E;
         fn add_part_to_resource(
             &mut self,
             resource_id: u8,
             part_id: u32,
-        ) -> PendingCall<Self::Env, io::AddPartToResource> {
+        ) -> sails_rs::client::PendingCall<Self::Env, io::AddPartToResource> {
             self.pending_call((resource_id, part_id))
         }
         fn add_resource_entry(
             &mut self,
             resource_id: u8,
             resource: Resource,
-        ) -> PendingCall<Self::Env, io::AddResourceEntry> {
+        ) -> sails_rs::client::PendingCall<Self::Env, io::AddResourceEntry> {
             self.pending_call((resource_id, resource))
         }
-        fn resource(&self, resource_id: u8) -> PendingCall<Self::Env, io::Resource> {
+        fn resource(
+            &self,
+            resource_id: u8,
+        ) -> sails_rs::client::PendingCall<Self::Env, io::Resource> {
             self.pending_call((resource_id,))
         }
     }
@@ -88,7 +102,7 @@ pub mod rmrk_resource {
         impl EventDecode for RmrkResourceEvents {
             const EVENT_NAMES: &'static [Route] = &["ResourceAdded", "PartAdded"];
         }
-        impl ServiceEvent for RmrkResourceImpl {
+        impl sails_rs::client::ServiceEvent for RmrkResourceImpl {
             type Event = RmrkResourceEvents;
         }
     }

@@ -26,11 +26,11 @@ impl<'a> CtorGenerator<'a> {
     pub(crate) fn finalize(self) -> Tokens {
         quote! {
             pub trait $(self.service_name)Ctors {
-                type Env: GearEnv;
+                type Env: $(self.sails_path)::client::GearEnv;
                 $(self.trait_ctors_tokens)
             }
 
-            impl<E: GearEnv> $(self.service_name)Ctors for Deployment<E, $(self.service_name)Program> {
+            impl<E: $(self.sails_path)::client::GearEnv> $(self.service_name)Ctors for $(self.sails_path)::client::Deployment<E, $(self.service_name)Program> {
                 type Env = E;
                 $(self.ctor_tokens)
             }
@@ -71,12 +71,12 @@ impl<'ast> Visitor<'ast> for CtorGenerator<'_> {
 
         quote_in! { self.trait_ctors_tokens =>
             $['\r']
-            fn $fn_name_snake (self, $params_with_types) -> PendingCtor<Self::Env, $(self.service_name)Program, io::$fn_name>;
+            fn $fn_name_snake (self, $params_with_types) -> $(self.sails_path)::client::PendingCtor<Self::Env, $(self.service_name)Program, io::$fn_name>;
         };
 
         quote_in! { self.ctor_tokens =>
             $['\r']
-            fn $fn_name_snake (self, $params_with_types) -> PendingCtor<Self::Env, $(self.service_name)Program, io::$fn_name> {
+            fn $fn_name_snake (self, $params_with_types) -> $(self.sails_path)::client::PendingCtor<Self::Env, $(self.service_name)Program, io::$fn_name> {
                 self.pending_ctor($args)
             }
         };

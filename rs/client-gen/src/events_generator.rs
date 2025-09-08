@@ -52,7 +52,7 @@ impl<'ast> Visitor<'ast> for EventsModuleGenerator<'_> {
                 const EVENT_NAMES: &'static [Route] = &[$event_names];
             }
 
-            impl ServiceEvent for $(self.service_name)Impl {
+            impl $(self.sails_path)::client::ServiceEvent for $(self.service_name)Impl {
                 type Event = $events_name;
             }
         }
