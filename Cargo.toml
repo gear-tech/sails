@@ -57,14 +57,14 @@ sails-sol-gen = { path = "rs/sol-gen" }
 sails-rename = { package = "sails-rs", path = "rs" }
 
 # Gear deps
-gclient = "=1.9.0"
-gcore = "=1.9.0"
-gear-core = { version = "=1.9.0", default-features = false }
-gear-core-errors = "=1.9.0"
-gprimitives = { version = "=1.9.0", default-features = false, features = ["codec"] }
-gstd = "=1.9.0"
-gtest = "=1.9.0"
-gwasm-builder = { version = "=1.9.0", package = "gear-wasm-builder" }
+gclient = "=1.9.1"
+gcore = "=1.9.1"
+gear-core = { version = "=1.9.1", default-features = false }
+gear-core-errors = "=1.9.1"
+gprimitives = { version = "=1.9.1", default-features = false, features = ["codec"] }
+gstd = "=1.9.1"
+gtest = "=1.9.1"
+gwasm-builder = { version = "=1.9.1", package = "gear-wasm-builder" }
 
 # Other deps in alphabetical order
 alloy-primitives = { version = "0.8.19", default-features = false }
