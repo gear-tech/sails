@@ -80,13 +80,13 @@ export class ServiceGenerator extends BaseGenerator {
   }
 
   private _getParams(params: ISailsFuncParam[]) {
-    if (params.length === 0) return 'undefined';
+    if (params.length === 0) return 'null';
     if (params.length === 1) return params[0].name;
     return `[${params.map(({ name }) => name).join(', ')}]`;
   }
 
   private _getPayloadType(params: ISailsFuncParam[]) {
-    if (params.length === 0) return 'undefined';
+    if (params.length === 0) return 'null';
     if (params.length === 1) return `'${getScaleCodecDef(params[0].def)}'`;
     return `'(${params.map(({ def }) => getScaleCodecDef(def)).join(', ')})'`;
   }

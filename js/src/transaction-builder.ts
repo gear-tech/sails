@@ -56,7 +56,7 @@ export class TransactionBuilder<ResponseType> {
     service: string,
     method: string,
     payload: unknown,
-    payloadType: string,
+    payloadType: string | null,
     responseType: string,
     programId: HexString,
   );
@@ -64,10 +64,10 @@ export class TransactionBuilder<ResponseType> {
     api: GearApi,
     registry: TypeRegistry,
     extrinsic: 'upload_program',
-    service: undefined,
+    service: null,
     method: string,
     payload: unknown,
-    payloadType: string,
+    payloadType: string | null,
     responseType: string,
     code: Uint8Array | ArrayBufferLike | HexString,
     onProgramCreated?: (programId: HexString) => void | Promise<void>,
@@ -76,10 +76,10 @@ export class TransactionBuilder<ResponseType> {
     api: GearApi,
     registry: TypeRegistry,
     extrinsic: 'create_program',
-    service: undefined,
+    service: null,
     method: string,
     payload: unknown,
-    payloadType: string,
+    payloadType: string | null,
     responseType: string,
     codeId: HexString,
     onProgramCreated?: (programId: HexString) => void | Promise<void>,
@@ -89,10 +89,10 @@ export class TransactionBuilder<ResponseType> {
     private _api: GearApi,
     private _registry: TypeRegistry,
     extrinsic: 'send_message' | 'upload_program' | 'create_program',
-    private _service: string | undefined,
+    private _service: string | null,
     private _method: string,
-    payload: unknown | undefined,
-    payloadType: string | undefined,
+    payload: unknown | null,
+    payloadType: string | null,
     private _responseType: string,
     _programIdOrCodeOrCodeId: HexString | Uint8Array | ArrayBufferLike,
     private _onProgramCreated?: (programId: HexString) => void | Promise<void>,
@@ -101,8 +101,7 @@ export class TransactionBuilder<ResponseType> {
       ? this._registry.createType('String', this._service).toU8a()
       : new Uint8Array();
     const encodedMethod = this._registry.createType('String', this._method).toU8a();
-    const data =
-      payload === undefined ? new Uint8Array() : this._registry.createType<any>(payloadType, payload).toU8a();
+    const data = payloadType === null ? new Uint8Array() : this._registry.createType<any>(payloadType, payload).toU8a();
 
     const _payload = u8aConcat(encodedService, encodedMethod, data);
 
