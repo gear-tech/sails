@@ -74,14 +74,14 @@ impl<'a> RootGenerator<'a> {
         quote_in! { tokens =>
             pub struct $(program_name)Program;
 
-            impl Program for  $(program_name)Program {}
+            impl $(self.sails_path)::client::Program for  $(program_name)Program {}
 
             pub trait $program_name {
-                type Env: GearEnv;
+                type Env: $(self.sails_path)::client::GearEnv;
                 $(self.service_trait_tokens)
             }
 
-            impl<E: GearEnv> $program_name for Actor<E, $(program_name)Program> {
+            impl<E: $(self.sails_path)::client::GearEnv> $program_name for $(self.sails_path)::client::Actor<E, $(program_name)Program> {
                 type Env = E;
                 $(self.service_impl_tokens)
             }
@@ -120,7 +120,7 @@ impl<'ast> Visitor<'ast> for RootGenerator<'_> {
             service.name()
         };
 
-        let mut ctor_gen = ServiceCtorGenerator::new(service_name);
+        let mut ctor_gen = ServiceCtorGenerator::new(service_name, self.sails_path);
         ctor_gen.visit_service(service);
         let (trait_tokens, impl_tokens) = ctor_gen.finalize();
         self.service_trait_tokens.extend(trait_tokens);
@@ -130,7 +130,7 @@ impl<'ast> Visitor<'ast> for RootGenerator<'_> {
         client_gen.visit_service(service);
         self.tokens.extend(client_gen.finalize());
 
-        let mut mock_gen = MockGenerator::new(service_name);
+        let mut mock_gen = MockGenerator::new(service_name, self.sails_path);
         mock_gen.visit_service(service);
         self.mocks_tokens.extend(mock_gen.finalize());
     }

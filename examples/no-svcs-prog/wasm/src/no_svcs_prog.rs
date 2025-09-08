@@ -2,20 +2,22 @@
 #[allow(unused_imports)]
 use sails_rs::{client::*, collections::*, prelude::*};
 pub struct NoSvcsProgProgram;
-impl Program for NoSvcsProgProgram {}
+impl sails_rs::client::Program for NoSvcsProgProgram {}
 pub trait NoSvcsProg {
-    type Env: GearEnv;
+    type Env: sails_rs::client::GearEnv;
 }
-impl<E: GearEnv> NoSvcsProg for Actor<E, NoSvcsProgProgram> {
+impl<E: sails_rs::client::GearEnv> NoSvcsProg for sails_rs::client::Actor<E, NoSvcsProgProgram> {
     type Env = E;
 }
 pub trait NoSvcsProgCtors {
-    type Env: GearEnv;
-    fn create(self) -> PendingCtor<Self::Env, NoSvcsProgProgram, io::Create>;
+    type Env: sails_rs::client::GearEnv;
+    fn create(self) -> sails_rs::client::PendingCtor<Self::Env, NoSvcsProgProgram, io::Create>;
 }
-impl<E: GearEnv> NoSvcsProgCtors for Deployment<E, NoSvcsProgProgram> {
+impl<E: sails_rs::client::GearEnv> NoSvcsProgCtors
+    for sails_rs::client::Deployment<E, NoSvcsProgProgram>
+{
     type Env = E;
-    fn create(self) -> PendingCtor<Self::Env, NoSvcsProgProgram, io::Create> {
+    fn create(self) -> sails_rs::client::PendingCtor<Self::Env, NoSvcsProgProgram, io::Create> {
         self.pending_ctor(())
     }
 }

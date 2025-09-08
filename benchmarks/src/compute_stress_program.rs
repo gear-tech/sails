@@ -2,24 +2,37 @@
 #[allow(unused_imports)]
 use sails_rs::{client::*, collections::*, prelude::*};
 pub struct ComputeStressProgramProgram;
-impl Program for ComputeStressProgramProgram {}
+impl sails_rs::client::Program for ComputeStressProgramProgram {}
 pub trait ComputeStressProgram {
-    type Env: GearEnv;
-    fn compute_stress(&self) -> Service<Self::Env, compute_stress::ComputeStressImpl>;
+    type Env: sails_rs::client::GearEnv;
+    fn compute_stress(
+        &self,
+    ) -> sails_rs::client::Service<Self::Env, compute_stress::ComputeStressImpl>;
 }
-impl<E: GearEnv> ComputeStressProgram for Actor<E, ComputeStressProgramProgram> {
+impl<E: sails_rs::client::GearEnv> ComputeStressProgram
+    for sails_rs::client::Actor<E, ComputeStressProgramProgram>
+{
     type Env = E;
-    fn compute_stress(&self) -> Service<Self::Env, compute_stress::ComputeStressImpl> {
+    fn compute_stress(
+        &self,
+    ) -> sails_rs::client::Service<Self::Env, compute_stress::ComputeStressImpl> {
         self.service(stringify!(ComputeStress))
     }
 }
 pub trait ComputeStressProgramCtors {
-    type Env: GearEnv;
-    fn new_for_bench(self) -> PendingCtor<Self::Env, ComputeStressProgramProgram, io::NewForBench>;
+    type Env: sails_rs::client::GearEnv;
+    fn new_for_bench(
+        self,
+    ) -> sails_rs::client::PendingCtor<Self::Env, ComputeStressProgramProgram, io::NewForBench>;
 }
-impl<E: GearEnv> ComputeStressProgramCtors for Deployment<E, ComputeStressProgramProgram> {
+impl<E: sails_rs::client::GearEnv> ComputeStressProgramCtors
+    for sails_rs::client::Deployment<E, ComputeStressProgramProgram>
+{
     type Env = E;
-    fn new_for_bench(self) -> PendingCtor<Self::Env, ComputeStressProgramProgram, io::NewForBench> {
+    fn new_for_bench(
+        self,
+    ) -> sails_rs::client::PendingCtor<Self::Env, ComputeStressProgramProgram, io::NewForBench>
+    {
         self.pending_ctor(())
     }
 }
@@ -32,13 +45,21 @@ pub mod io {
 pub mod compute_stress {
     use super::*;
     pub trait ComputeStress {
-        type Env: GearEnv;
-        fn compute_stress(&mut self, n: u32) -> PendingCall<Self::Env, io::ComputeStress>;
+        type Env: sails_rs::client::GearEnv;
+        fn compute_stress(
+            &mut self,
+            n: u32,
+        ) -> sails_rs::client::PendingCall<Self::Env, io::ComputeStress>;
     }
     pub struct ComputeStressImpl;
-    impl<E: GearEnv> ComputeStress for Service<E, ComputeStressImpl> {
+    impl<E: sails_rs::client::GearEnv> ComputeStress
+        for sails_rs::client::Service<E, ComputeStressImpl>
+    {
         type Env = E;
-        fn compute_stress(&mut self, n: u32) -> PendingCall<Self::Env, io::ComputeStress> {
+        fn compute_stress(
+            &mut self,
+            n: u32,
+        ) -> sails_rs::client::PendingCall<Self::Env, io::ComputeStress> {
             self.pending_call((n,))
         }
     }

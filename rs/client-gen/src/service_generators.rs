@@ -10,14 +10,16 @@ use crate::type_generators::generate_type_decl_with_path;
 /// Generates a trait with service methods
 pub(crate) struct ServiceCtorGenerator<'a> {
     service_name: &'a str,
+    sails_path: &'a str,
     trait_tokens: Tokens,
     impl_tokens: Tokens,
 }
 
 impl<'a> ServiceCtorGenerator<'a> {
-    pub(crate) fn new(service_name: &'a str) -> Self {
+    pub(crate) fn new(service_name: &'a str, sails_path: &'a str) -> Self {
         Self {
             service_name,
+            sails_path,
             trait_tokens: Tokens::new(),
             impl_tokens: Tokens::new(),
         }
@@ -32,10 +34,10 @@ impl<'ast> Visitor<'ast> for ServiceCtorGenerator<'_> {
     fn visit_service(&mut self, _service: &'ast Service) {
         let service_name_snake = &self.service_name.to_case(Case::Snake);
         quote_in!(self.trait_tokens =>
-            fn $service_name_snake(&self) -> Service<Self::Env, $service_name_snake::$(self.service_name)Impl>;
+            fn $service_name_snake(&self) -> $(self.sails_path)::client::Service<Self::Env, $service_name_snake::$(self.service_name)Impl>;
         );
         quote_in!(self.impl_tokens =>
-            fn $service_name_snake(&self) -> Service<Self::Env, $service_name_snake::$(self.service_name)Impl> {
+            fn $service_name_snake(&self) -> $(self.sails_path)::client::Service<Self::Env, $service_name_snake::$(self.service_name)Impl> {
                 self.service(stringify!($(self.service_name)))
             }
         );
@@ -72,13 +74,13 @@ impl<'a> ServiceGenerator<'a> {
                 use super::*;
 
                 pub trait $(self.service_name) {
-                    type Env: GearEnv;
+                    type Env: $(self.sails_path)::client::GearEnv;
                     $(self.trait_tokens)
                 }
 
                 pub struct $(self.service_name)Impl;
 
-                impl<E: GearEnv> $(self.service_name) for Service<E, $(self.service_name)Impl> {
+                impl<E: $(self.sails_path)::client::GearEnv> $(self.service_name) for $(self.sails_path)::client::Service<E, $(self.service_name)Impl> {
                     type Env = E;
                     $(self.impl_tokens)
                 }
@@ -121,11 +123,11 @@ impl<'ast> Visitor<'ast> for ServiceGenerator<'_> {
             };
         }
         quote_in! { self.trait_tokens =>
-            $['\r'] fn $fn_name_snake (&$mutability self, $params_with_types) -> PendingCall<Self::Env, io::$fn_name>;
+            $['\r'] fn $fn_name_snake (&$mutability self, $params_with_types) -> $(self.sails_path)::client::PendingCall<Self::Env, io::$fn_name>;
         };
 
         quote_in! {self.impl_tokens =>
-            $['\r'] fn $fn_name_snake (&$mutability self, $params_with_types) -> PendingCall<Self::Env, io::$fn_name> {
+            $['\r'] fn $fn_name_snake (&$mutability self, $params_with_types) -> $(self.sails_path)::client::PendingCall<Self::Env, io::$fn_name> {
                 self.pending_call($args)
             }
         };

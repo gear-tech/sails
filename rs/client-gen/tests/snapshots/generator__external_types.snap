@@ -8,14 +8,16 @@ use my_crate::MyParam;
 #[allow(unused_imports)]
 use my_crate::sails::{client::*, collections::*, prelude::*};
 pub struct ServiceProgram;
-impl Program for ServiceProgram {}
+impl my_crate::sails::client::Program for ServiceProgram {}
 pub trait Service {
-    type Env: GearEnv;
-    fn service(&self) -> Service<Self::Env, service::ServiceImpl>;
+    type Env: my_crate::sails::client::GearEnv;
+    fn service(&self) -> my_crate::sails::client::Service<Self::Env, service::ServiceImpl>;
 }
-impl<E: GearEnv> Service for Actor<E, ServiceProgram> {
+impl<E: my_crate::sails::client::GearEnv> Service
+    for my_crate::sails::client::Actor<E, ServiceProgram>
+{
     type Env = E;
-    fn service(&self) -> Service<Self::Env, service::ServiceImpl> {
+    fn service(&self) -> my_crate::sails::client::Service<Self::Env, service::ServiceImpl> {
         self.service(stringify!(Service))
     }
 }
@@ -23,17 +25,33 @@ impl<E: GearEnv> Service for Actor<E, ServiceProgram> {
 pub mod service {
     use super::*;
     pub trait Service {
-        type Env: GearEnv;
-        fn do_this(&mut self, p1: u32, p2: MyParam) -> PendingCall<Self::Env, io::DoThis>;
-        fn do_that(&mut self, p1: (u8, u32)) -> PendingCall<Self::Env, io::DoThat>;
+        type Env: my_crate::sails::client::GearEnv;
+        fn do_this(
+            &mut self,
+            p1: u32,
+            p2: MyParam,
+        ) -> my_crate::sails::client::PendingCall<Self::Env, io::DoThis>;
+        fn do_that(
+            &mut self,
+            p1: (u8, u32),
+        ) -> my_crate::sails::client::PendingCall<Self::Env, io::DoThat>;
     }
     pub struct ServiceImpl;
-    impl<E: GearEnv> Service for Service<E, ServiceImpl> {
+    impl<E: my_crate::sails::client::GearEnv> Service
+        for my_crate::sails::client::Service<E, ServiceImpl>
+    {
         type Env = E;
-        fn do_this(&mut self, p1: u32, p2: MyParam) -> PendingCall<Self::Env, io::DoThis> {
+        fn do_this(
+            &mut self,
+            p1: u32,
+            p2: MyParam,
+        ) -> my_crate::sails::client::PendingCall<Self::Env, io::DoThis> {
             self.pending_call((p1, p2))
         }
-        fn do_that(&mut self, p1: (u8, u32)) -> PendingCall<Self::Env, io::DoThat> {
+        fn do_that(
+            &mut self,
+            p1: (u8, u32),
+        ) -> my_crate::sails::client::PendingCall<Self::Env, io::DoThat> {
             self.pending_call((p1,))
         }
     }
