@@ -234,7 +234,7 @@ impl GearEnv for GtestEnv {
     type MessageState = ReplyReceiver;
 }
 impl<T: CallEncodeDecode> PendingCall<GtestEnv, T> {
-    pub fn send_one_way(mut self) -> Result<MessageId, GtestError> {
+    pub fn send_one_way(&mut self) -> Result<MessageId, GtestError> {
         let Some(route) = self.route else {
             return Err(TestError::ScaleCodecError(
                 "PendingCall route is not set".into(),
@@ -257,24 +257,7 @@ impl<T: CallEncodeDecode> PendingCall<GtestEnv, T> {
     }
 
     pub fn send_message(mut self) -> Result<Self, GtestError> {
-        let Some(route) = self.route else {
-            return Err(TestError::ScaleCodecError(
-                "PendingCall route is not set".into(),
-            ))?;
-        };
-        if self.state.is_some() {
-            panic!("{PENDING_CALL_INVALID_STATE}");
-        }
-        // Send message
-        let args = self
-            .args
-            .take()
-            .unwrap_or_else(|| panic!("{PENDING_CALL_INVALID_STATE}"));
-        let payload = T::encode_params_with_prefix(route, &args);
-        let params = self.params.take().unwrap_or_default();
-
-        let message_id = self.env.send_message(self.destination, payload, params)?;
-        log::debug!("PendingCall: send message {message_id:?}");
+        let message_id = self.send_one_way()?;
         self.state = Some(self.env.message_reply_from_next_blocks(message_id));
         Ok(self)
     }
@@ -338,7 +321,11 @@ impl<A, T: CallEncodeDecode> PendingCtor<GtestEnv, A, T> {
             panic!("{PENDING_CTOR_INVALID_STATE}");
         }
         // Send message
-        let payload = self.encode_ctor();
+        let args = self
+            .args
+            .take()
+            .unwrap_or_else(|| panic!("{PENDING_CTOR_INVALID_STATE}"));
+        let payload = T::encode_params(&args);
         let params = self.params.take().unwrap_or_default();
         let salt = self.salt.take().unwrap_or_default();
         let send_res = self
@@ -365,7 +352,11 @@ impl<A, T: CallEncodeDecode> Future for PendingCtor<GtestEnv, A, T> {
     fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
         if self.state.is_none() {
             // Send message
-            let payload = self.encode_ctor();
+            let args = self
+                .args
+                .take()
+                .unwrap_or_else(|| panic!("{PENDING_CTOR_INVALID_STATE}"));
+            let payload = T::encode_params(&args);
             let params = self.params.take().unwrap_or_default();
             let salt = self.salt.take().unwrap_or_default();
             let send_res = self

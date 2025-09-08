@@ -279,14 +279,6 @@ impl<E: GearEnv, A, T: CallEncodeDecode> PendingCtor<E, A, T> {
         self.params = Some(f(self.params.unwrap_or_default()));
         self
     }
-
-    fn encode_ctor(&self) -> Vec<u8> {
-        if let Some(args) = &self.args {
-            T::encode_params(args)
-        } else {
-            vec![]
-        }
-    }
 }
 
 pub trait CallEncodeDecode {
@@ -397,6 +389,48 @@ macro_rules! params_struct_impl {
 }
 
 #[macro_export]
+macro_rules! params_for_pending_impl {
+    (
+        $env:ident,
+        $name:ident { $( $(#[$attr:meta])* $vis:vis $field:ident: $ty:ty ),* $(,)?  }
+    ) => {
+        impl $name {
+            $(
+                paste::paste! {
+                    $(#[$attr])*
+                    pub fn [<with_ $field>](mut self, $field: $ty) -> Self {
+                        self.$field = Some($field);
+                        self
+                    }
+                }
+            )*
+        }
+
+        impl<A, T: CallEncodeDecode> PendingCtor<$env, A, T> {
+            $(
+                paste::paste! {
+                    $(#[$attr])*
+                    pub fn [<with_ $field>](self, $field: $ty) -> Self {
+                        self.with_params(|params| params.[<with_ $field>]($field))
+                    }
+                }
+            )*
+        }
+
+        impl<T: CallEncodeDecode> PendingCall<$env, T> {
+            $(
+                paste::paste! {
+                    $(#[$attr])*
+                    pub fn [<with_ $field>](self, $field: $ty) -> Self {
+                        self.with_params(|params| params.[<with_ $field>]($field))
+                    }
+                }
+            )*
+        }
+    };
+}
+
+#[macro_export]
 macro_rules! io_struct_impl {
     (
         $name:ident ( $( $param:ident : $ty:ty ),* ) -> $reply:ty
@@ -418,6 +452,7 @@ macro_rules! io_struct_impl {
     };
 }
 
+#[allow(unused_macros)]
 macro_rules! str_scale_encode {
     ($s:ident) => {{
         const S: &str = stringify!($s);
@@ -497,7 +532,23 @@ mod tests {
         let add = Add::encode_params(42);
         assert_eq!(add, &[12, 65, 100, 100, 42, 0, 0, 0]);
 
+        let value = Add::encode_params_with_prefix("Counter", 42);
+        assert_eq!(
+            value,
+            &[
+                28, 67, 111, 117, 110, 116, 101, 114, 12, 65, 100, 100, 42, 0, 0, 0
+            ]
+        );
+
         let value = Value::encode_params();
         assert_eq!(value, &[20, 86, 97, 108, 117, 101]);
+
+        let value = Value::encode_params_with_prefix("Counter");
+        assert_eq!(
+            value,
+            &[
+                28, 67, 111, 117, 110, 116, 101, 114, 20, 86, 97, 108, 117, 101
+            ]
+        );
     }
 }

@@ -1,29 +1,32 @@
 use super::*;
 use ::gstd::{
     errors::Error,
-    msg,
     msg::{CreateProgramFuture, MessageFuture},
 };
-use core::task::ready;
 
 #[derive(Default)]
 pub struct GstdParams {
     #[cfg(not(feature = "ethexe"))]
-    gas_limit: Option<GasUnit>,
-    value: Option<ValueUnit>,
-    wait_up_to: Option<BlockCount>,
+    pub gas_limit: Option<GasUnit>,
+    pub value: Option<ValueUnit>,
+    pub wait_up_to: Option<BlockCount>,
     #[cfg(not(feature = "ethexe"))]
-    reply_deposit: Option<GasUnit>,
+    pub reply_deposit: Option<GasUnit>,
     #[cfg(not(feature = "ethexe"))]
-    reply_hook: Option<Box<dyn FnOnce() + Send + 'static>>,
-    redirect_on_exit: bool,
+    pub reply_hook: Option<Box<dyn FnOnce() + Send + 'static>>,
+    pub redirect_on_exit: bool,
 }
 
-impl GstdParams {
-    pub fn with_wait_up_to(self, wait_up_to: Option<BlockCount>) -> Self {
-        Self { wait_up_to, ..self }
-    }
+crate::params_for_pending_impl!(GstdEnv, GstdParams {
+    #[cfg(not(feature = "ethexe"))]
+    pub gas_limit: GasUnit,
+    pub value: ValueUnit,
+    pub wait_up_to: BlockCount,
+    #[cfg(not(feature = "ethexe"))]
+    pub reply_deposit: GasUnit,
+});
 
+impl GstdParams {
     pub fn with_redirect_on_exit(self, redirect_on_exit: bool) -> Self {
         Self {
             redirect_on_exit,
@@ -31,54 +34,16 @@ impl GstdParams {
         }
     }
 
-    pub fn wait_up_to(&self) -> Option<BlockCount> {
-        self.wait_up_to
-    }
-
-    pub fn redirect_on_exit(&self) -> bool {
-        self.redirect_on_exit
-    }
-}
-
-impl Clone for GstdParams {
-    fn clone(&self) -> Self {
-        Self {
-            gas_limit: self.gas_limit.clone(),
-            value: self.value.clone(),
-            wait_up_to: self.wait_up_to.clone(),
-            reply_deposit: self.reply_deposit.clone(),
-            reply_hook: None,
-            redirect_on_exit: self.redirect_on_exit.clone(),
-        }
-    }
-}
-
-#[cfg(not(feature = "ethexe"))]
-impl GstdParams {
-    pub fn with_reply_deposit(self, reply_deposit: Option<GasUnit>) -> Self {
-        Self {
-            reply_deposit,
-            ..self
-        }
-    }
-
+    #[cfg(not(feature = "ethexe"))]
     pub fn with_reply_hook<F: FnOnce() + Send + 'static>(self, f: F) -> Self {
         Self {
             reply_hook: Some(Box::new(f)),
             ..self
         }
     }
-
-    pub fn reply_deposit(&self) -> Option<GasUnit> {
-        self.reply_deposit
-    }
 }
 
 impl<T: CallEncodeDecode> PendingCall<GstdEnv, T> {
-    pub fn with_wait_up_to(self, wait_up_to: Option<BlockCount>) -> Self {
-        self.with_params(|params| params.with_wait_up_to(wait_up_to))
-    }
-
     /// Set `redirect_on_exit` flag to `true``
     ///
     /// This flag is used to redirect a message to a new program when the target program exits
@@ -90,6 +55,11 @@ impl<T: CallEncodeDecode> PendingCall<GstdEnv, T> {
     /// This flag is set to `false`` by default.
     pub fn with_redirect_on_exit(self, redirect_on_exit: bool) -> Self {
         self.with_params(|params| params.with_redirect_on_exit(redirect_on_exit))
+    }
+
+    #[cfg(not(feature = "ethexe"))]
+    pub fn with_reply_hook<F: FnOnce() + Send + 'static>(self, f: F) -> Self {
+        self.with_params(|params| params.with_reply_hook(f))
     }
 }
 
@@ -105,106 +75,106 @@ impl GearEnv for GstdEnv {
     type MessageState = core::future::Ready<Result<Vec<u8>, Self::Error>>;
 }
 
-#[cfg(not(feature = "ethexe"))]
-pub(crate) fn send_for_reply_future(
-    target: ActorId,
-    payload: &[u8],
-    params: GstdParams,
-) -> Result<MessageFuture, Error> {
-    let value = params.value.unwrap_or(0);
-    // here can be a redirect target
-    let mut message_future = if let Some(gas_limit) = params.gas_limit {
-        msg::send_bytes_with_gas_for_reply(
-            target,
-            payload,
-            gas_limit,
-            value,
-            params.reply_deposit.unwrap_or_default(),
-        )?
-    } else {
-        msg::send_bytes_for_reply(
-            target,
-            payload,
-            value,
-            params.reply_deposit.unwrap_or_default(),
-        )?
-    };
+impl<T: CallEncodeDecode> PendingCall<GstdEnv, T> {
+    pub fn send_one_way(&mut self) -> Result<MessageId, Error> {
+        let Some(route) = self.route else {
+            return Err(Error::Decode("PendingCall route is not set".into()));
+        };
 
-    message_future = message_future.up_to(params.wait_up_to)?;
+        let args = self
+            .args
+            .take()
+            .unwrap_or_else(|| panic!("{PENDING_CALL_INVALID_STATE}"));
+        let payload = T::encode_params_with_prefix(route, &args);
+        let params = self.params.take().unwrap_or_default();
 
-    if let Some(reply_hook) = params.reply_hook {
-        message_future = message_future.handle_reply(reply_hook)?;
-    }
-    Ok(message_future)
-}
+        let value = params.value.unwrap_or(0);
 
-#[cfg(feature = "ethexe")]
-pub(crate) fn send_for_reply_future(
-    target: ActorId,
-    payload: &[u8],
-    params: GstdParams,
-) -> Result<msg::MessageFuture, Error> {
-    let value = params.value.unwrap_or(0);
-    // here can be a redirect target
-    let mut message_future = msg::send_bytes_for_reply(target, payload, value)?;
+        #[cfg(not(feature = "ethexe"))]
+        if let Some(gas_limit) = params.gas_limit {
+            return ::gcore::msg::send_with_gas(
+                self.destination,
+                payload.as_slice(),
+                gas_limit,
+                value,
+            )
+            .map_err(Error::Core);
+        }
 
-    message_future = message_future.up_to(params.wait_up_to)?;
-
-    Ok(message_future)
-}
-
-pub(crate) fn send_for_reply<T: AsRef<[u8]>>(
-    target: ActorId,
-    payload: T,
-    params: GstdParams,
-) -> Result<GtsdFuture, Error> {
-    let redirect_on_exit = params.redirect_on_exit;
-    // clone params w/o reply_hook
-    let params_cloned = params.clone();
-    // send message
-    let future = send_for_reply_future(target, payload.as_ref(), params)?;
-    if redirect_on_exit {
-        let created_block = params_cloned.wait_up_to.map(|_| gstd::exec::block_height());
-        Ok(GtsdFuture::MessageWithRedirect {
-            created_block,
-            future,
-            params: params_cloned,
-            payload: payload.as_ref().to_vec(),
-            target: target,
-        })
-    } else {
-        Ok(GtsdFuture::Message { future })
+        ::gcore::msg::send(self.destination, payload.as_slice(), value).map_err(Error::Core)
     }
 }
 
 #[cfg(target_arch = "wasm32")]
 const _: () = {
-    impl<T: CallEncodeDecode> PendingCall<GstdEnv, T> {
-        pub fn send(mut self) -> Result<MessageId, Error> {
-            let route = self
-                .route
-                .unwrap_or_else(|| panic!("{PENDING_CALL_INVALID_STATE}"));
-            let params = self.params.unwrap_or_default();
-            let args = self
-                .args
-                .take()
-                .unwrap_or_else(|| panic!("{PENDING_CALL_INVALID_STATE}"));
-            let payload = T::encode_params_with_prefix(route, &args);
+    use core::task::ready;
 
-            let value = params.value.unwrap_or(0);
+    #[cfg(not(feature = "ethexe"))]
+    pub(crate) fn send_for_reply_future(
+        target: ActorId,
+        payload: &[u8],
+        params: &mut GstdParams,
+    ) -> Result<MessageFuture, Error> {
+        let value = params.value.unwrap_or(0);
+        // here can be a redirect target
+        let mut message_future = if let Some(gas_limit) = params.gas_limit {
+            ::gstd::msg::send_bytes_with_gas_for_reply(
+                target,
+                payload,
+                gas_limit,
+                value,
+                params.reply_deposit.unwrap_or_default(),
+            )?
+        } else {
+            ::gstd::msg::send_bytes_for_reply(
+                target,
+                payload,
+                value,
+                params.reply_deposit.unwrap_or_default(),
+            )?
+        };
 
-            #[cfg(feature = "ethexe")]
-            {
-                ::gcore::msg::send(self.destination, payload.as_slice(), value).map_err(Error::Core)
-            }
+        message_future = message_future.up_to(params.wait_up_to)?;
 
-            #[cfg(not(feature = "ethexe"))]
-            if let Some(gas_limit) = params.gas_limit {
-                ::gcore::msg::send_with_gas(self.destination, payload.as_slice(), gas_limit, value)
-                    .map_err(Error::Core)
-            } else {
-                ::gcore::msg::send(self.destination, payload.as_slice(), value).map_err(Error::Core)
-            }
+        if let Some(reply_hook) = params.reply_hook.take() {
+            message_future = message_future.handle_reply(reply_hook)?;
+        }
+        Ok(message_future)
+    }
+
+    #[cfg(feature = "ethexe")]
+    fn send_for_reply_future(
+        target: ActorId,
+        payload: &[u8],
+        params: &mut GstdParams,
+    ) -> Result<MessageFuture, Error> {
+        let value = params.value.unwrap_or(0);
+        // here can be a redirect target
+        let mut message_future = ::gstd::msg::send_bytes_for_reply(target, payload, value)?;
+
+        message_future = message_future.up_to(params.wait_up_to)?;
+
+        Ok(message_future)
+    }
+
+    pub(crate) fn send_for_reply(
+        target: ActorId,
+        payload: Vec<u8>,
+        mut params: GstdParams,
+    ) -> Result<GtsdFuture, Error> {
+        // send message
+        let future = send_for_reply_future(target, payload.as_ref(), &mut params)?;
+        if params.redirect_on_exit {
+            let created_block = params.wait_up_to.map(|_| gstd::exec::block_height());
+            Ok(GtsdFuture::MessageWithRedirect {
+                created_block,
+                future,
+                params,
+                payload,
+                target,
+            })
+        } else {
+            Ok(GtsdFuture::Message { future })
         }
     }
 
@@ -314,14 +284,18 @@ const _: () = {
         fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
             if self.state.is_none() {
                 // Send message
-                let payload = self.encode_ctor();
+                let args = self
+                    .args
+                    .take()
+                    .unwrap_or_else(|| panic!("{PENDING_CALL_INVALID_STATE}"));
+                let payload = T::encode_params(&args);
                 let params = self.params.take().unwrap_or_default();
                 let value = params.value.unwrap_or(0);
                 let salt = self.salt.take().unwrap();
 
                 #[cfg(not(feature = "ethexe"))]
                 let program_future = if let Some(gas_limit) = params.gas_limit {
-                    gstd::prog::create_program_bytes_with_gas_for_reply(
+                    ::gstd::prog::create_program_bytes_with_gas_for_reply(
                         self.code_id,
                         salt,
                         payload,
@@ -330,7 +304,7 @@ const _: () = {
                         params.reply_deposit.unwrap_or_default(),
                     )?
                 } else {
-                    gstd::prog::create_program_bytes_for_reply(
+                    ::gstd::prog::create_program_bytes_for_reply(
                         self.code_id,
                         salt,
                         payload,
@@ -339,8 +313,12 @@ const _: () = {
                     )?
                 };
                 #[cfg(feature = "ethexe")]
-                let mut program_future =
-                    gstd::prog::create_program_bytes_for_reply(self.code_id, salt, payload, value)?;
+                let program_future = ::gstd::prog::create_program_bytes_for_reply(
+                    self.code_id,
+                    salt,
+                    payload,
+                    value,
+                )?;
 
                 // self.program_id = Some(program_future.program_id);
                 self.state = Some(GtsdFuture::CreateProgram {

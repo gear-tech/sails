@@ -15,7 +15,9 @@ impl<E: GearEnv> RedirectProxyClient for Actor<E, RedirectProxyClientProgram> {
 }
 pub trait RedirectProxyClientCtors {
     type Env: GearEnv;
-    /// Proxy Program's constructor#[allow(clippy::new_ret_no_self)] #[allow(clippy::wrong_self_convention)]
+    /// Proxy Program's constructor
+    #[allow(clippy::new_ret_no_self)]
+    #[allow(clippy::wrong_self_convention)]
     fn new(self, target: ActorId) -> PendingCtor<Self::Env, RedirectProxyClientProgram, io::New>;
 }
 impl<E: GearEnv> RedirectProxyClientCtors for Deployment<E, RedirectProxyClientProgram> {
