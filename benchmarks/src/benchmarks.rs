@@ -18,26 +18,15 @@
 //! ```
 
 use crate::clients::{
-    alloc_stress_client::{
-        AllocStressProgram, AllocStressProgramCtors, AllocStressProgramProgram, alloc_stress::*,
-    },
-    compute_stress_client::{
-        ComputeStressProgram, ComputeStressProgramCtors, ComputeStressProgramProgram,
-        compute_stress::*,
-    },
-    counter_bench_client::{
-        CounterBenchProgram, CounterBenchProgramCtors, CounterBenchProgramProgram, counter_bench::*,
-    },
+    alloc_stress_client::{AllocStressProgram, AllocStressProgramCtors, alloc_stress::*},
+    compute_stress_client::{ComputeStressProgram, ComputeStressProgramCtors, compute_stress::*},
+    counter_bench_client::{CounterBenchProgram, CounterBenchProgramCtors, counter_bench::*},
 };
 use gtest::{System, constants::DEFAULT_USER_ALICE};
 use itertools::{Either, Itertools};
-use ping_pong_bench_app::client::{
-    PingPong, PingPongCtors, PingPongPayload, PingPongProgram, ping_pong_service::*,
-};
-use redirect_client::{RedirectClient, RedirectClientCtors, RedirectClientProgram, redirect::*};
-use redirect_proxy_client::{
-    RedirectProxyClient, RedirectProxyClientCtors, RedirectProxyClientProgram, proxy::*,
-};
+use ping_pong_bench_app::client::{PingPong, PingPongCtors, PingPongPayload, ping_pong_service::*};
+use redirect_client::{RedirectClient, RedirectClientCtors, redirect::*};
+use redirect_proxy_client::{RedirectProxyClient, RedirectProxyClientCtors, proxy::*};
 use sails_rs::{client::*, prelude::*};
 use std::{collections::BTreeMap, sync::atomic::AtomicU64};
 
@@ -215,7 +204,7 @@ async fn redirect_bench() {
             .get_program_id()
             .send_one_way()
             .unwrap();
-        let (payload, gas) = extract_reply_and_gas(env.system(), message_id);
+        let (payload, _gas) = extract_reply_and_gas(env.system(), message_id);
         let resp = redirect_proxy_client::proxy::io::GetProgramId::decode_reply_with_prefix(
             "Proxy",
             payload.as_slice(),

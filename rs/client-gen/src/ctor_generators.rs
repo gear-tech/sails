@@ -64,8 +64,8 @@ impl<'ast> Visitor<'ast> for CtorGenerator<'_> {
 
         if fn_name_snake == "new" {
             quote_in! {self.trait_ctors_tokens =>
-                #[allow(clippy::new_ret_no_self)]
-                #[allow(clippy::wrong_self_convention)]
+                $['\r'] #[allow(clippy::new_ret_no_self)]
+                $['\r'] #[allow(clippy::wrong_self_convention)]
             };
         }
 

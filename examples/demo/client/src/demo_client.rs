@@ -37,7 +37,9 @@ pub trait DemoClientCtors {
     type Env: GearEnv;
     /// Program constructor (called once at the very beginning of the program lifetime)
     fn default(self) -> PendingCtor<Self::Env, DemoClientProgram, io::Default>;
-    /// Another program constructor (called once at the very beginning of the program lifetime)#[allow(clippy::new_ret_no_self)] #[allow(clippy::wrong_self_convention)]
+    /// Another program constructor (called once at the very beginning of the program lifetime)
+    #[allow(clippy::new_ret_no_self)]
+    #[allow(clippy::wrong_self_convention)]
     fn new(
         self,
         counter: Option<u32>,
