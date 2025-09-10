@@ -23,16 +23,17 @@
     "sails-js": "./build/app.js"
   },
   "devDependencies": {
-    "@inquirer/prompts": "^7.8.0",
+    "@inquirer/prompts": "^7.8.4",
+    "@types/node": "^24.3.1",
     "commander": "^14.0.0",
-    "inquirer": "^12.9.0",
-    "jest": "^30.0.5",
+    "inquirer": "^12.9.4",
+    "jest": "^30.1.3",
     "sails-js": "0.4.3",
     "sails-js-parser": "0.4.3",
     "sails-js-util": "0.4.3"
   },
   "scripts": {
-    "build": "npx rollup --config rollup.config.js",
+    "build": "npx rollup --config rollup.config.js && chmod +x build/app.js",
     "clean": "rm -rf build",
     "test": "TEST_ENV=true npx rollup --config rollup.config.js && node --experimental-vm-modules ../../node_modules/.bin/jest",
     "pack-build": "yarn pack --out ../sails-js-cli.tgz"

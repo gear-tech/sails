@@ -1,4 +1,4 @@
-import { GearApi, HexString, UserMessageSent, decodeAddress } from '@gear-js/api';
+import { GearApi, HexString, UserMessageSent } from '@gear-js/api';
 import { TypeRegistry } from '@polkadot/types/create';
 import { u8aToHex } from '@polkadot/util';
 import { ISailsIdlParser, ISailsProgram, ISailsService, ISailsTypeDef } from 'sails-js-types';
@@ -7,7 +7,7 @@ import { getFnNamePrefix, getServiceNamePrefix } from './prefix.js';
 import { TransactionBuilder } from './transaction-builder.js';
 import { getScaleCodecDef } from 'sails-js-util';
 import { ZERO_ADDRESS } from './consts.js';
-import { throwOnErrorReply } from './utils.js';
+import { QueryBuilder } from './query-builder.js';
 
 interface SailsService {
   readonly functions: Record<string, SailsServiceFunc>;
@@ -41,8 +41,7 @@ interface ISailsServiceFuncParams {
   readonly docs?: string;
 }
 
-type SailsServiceQuery = ISailsServiceFuncParams &
-  (<T>(origin: string, value?: bigint, atBlock?: HexString, ...args: unknown[]) => Promise<T>);
+type SailsServiceQuery = ISailsServiceFuncParams & (<T>(...args: unknown[]) => QueryBuilder<T>);
 
 type SailsServiceFunc = ISailsServiceFuncParams & (<T>(...args: unknown[]) => TransactionBuilder<T>);
 
@@ -181,38 +180,27 @@ export class Sails {
       }));
       const returnType = getScaleCodecDef(func.def);
       if (func.isQuery) {
-        queries[func.name] = (async <T = any>(
-          origin: string = ZERO_ADDRESS,
-          value: bigint = 0n,
-          atBlock?: HexString,
-          ...args: unknown[]
-        ): Promise<T> => {
+        queries[func.name] = (<T = any>(...args: unknown[]): QueryBuilder<T> => {
           if (!this._api) {
             throw new Error('API is not set. Use .setApi method to set API instance');
           }
           if (!this._programId) {
             throw new Error('Program ID is not set. Use .setProgramId method to set program ID');
           }
-          const payload = this.registry
-            .createType(`(String, String, ${params.map((p) => p.type).join(', ')})`, [service.name, func.name, ...args])
-            .toHex();
 
-          const reply = await this._api.message.calculateReply({
-            destination: this.programId,
-            origin: decodeAddress(origin),
-            payload,
-            value,
-            gasLimit: this._api.blockGasLimit.toBigInt(),
-            at: atBlock || null,
-          });
-
-          throwOnErrorReply(reply.code, reply.payload.toU8a(), this._api.specVersion, this._registry);
-
-          const result = this.registry.createType(`(String, String, ${returnType})`, reply.payload.toHex());
-          return result[2].toJSON() as T;
+          return new QueryBuilder<T>(
+            this._api,
+            this.registry,
+            this._programId,
+            service.name,
+            func.name,
+            this._getArgsForTxBuilder(args, params),
+            this._getParamsForTxBuilder(params),
+            returnType,
+          );
         }) as SailsServiceQuery;
       } else {
-        funcs[func.name] = (<T = any>(...args: any[]): TransactionBuilder<T> => {
+        funcs[func.name] = (<T = any>(...args: unknown[]): TransactionBuilder<T> => {
           if (!this._api) {
             throw new Error('API is not set. Use .setApi method to set API instance');
           }

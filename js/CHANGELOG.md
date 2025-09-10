@@ -1,13 +1,17 @@
 # CHANGELOG
 
 ## draft
+
 ### Changes
+
 - Fixed creating messages with a single argument (https://github.com/gear-tech/sails/pull/1051)
 
 ---
 
 ## 0.4.3
+
 ### Changes
+
 - Skipped type file generation if types are not present in the IDL
 - Improved encoding / decoding in the `TransactionBuilder` class
 - Capitalized enum variant names in generated files
