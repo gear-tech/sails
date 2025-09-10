@@ -8844,19 +8844,19 @@ __metadata:
     commander: "npm:^14.0.0"
     inquirer: "npm:^12.9.4"
     jest: "npm:^30.1.3"
-    sails-js: "npm:0.4.3"
-    sails-js-parser: "npm:0.4.3"
-    sails-js-util: "npm:0.4.3"
+    sails-js: "npm:^0.5.0"
+    sails-js-parser: "npm:^0.5.0"
+    sails-js-util: "npm:^0.5.0"
   bin:
     sails-js: ./build/app.js
   languageName: unknown
   linkType: soft
 
-"sails-js-parser@npm:0.4.3, sails-js-parser@workspace:js/parser":
+"sails-js-parser@npm:^0.5.0, sails-js-parser@workspace:js/parser":
   version: 0.0.0-use.local
   resolution: "sails-js-parser@workspace:js/parser"
   dependencies:
-    sails-js-types: "npm:0.4.3"
+    sails-js-types: "npm:^0.5.0"
   peerDependencies:
     sails-js-types: 0.4.3
   dependenciesMeta:
@@ -8865,21 +8865,21 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"sails-js-types@npm:*, sails-js-types@npm:0.4.3, sails-js-types@workspace:js/types":
+"sails-js-types@npm:*, sails-js-types@npm:^0.5.0, sails-js-types@workspace:js/types":
   version: 0.0.0-use.local
   resolution: "sails-js-types@workspace:js/types"
   languageName: unknown
   linkType: soft
 
-"sails-js-util@npm:0.4.3, sails-js-util@workspace:js/util":
+"sails-js-util@npm:^0.5.0, sails-js-util@workspace:js/util":
   version: 0.0.0-use.local
   resolution: "sails-js-util@workspace:js/util"
   dependencies:
-    sails-js-types: "npm:0.4.3"
+    sails-js-types: "npm:^0.5.0"
   languageName: unknown
   linkType: soft
 
-"sails-js@npm:*, sails-js@npm:0.4.3, sails-js@workspace:js":
+"sails-js@npm:*, sails-js@npm:^0.5.0, sails-js@workspace:js":
   version: 0.0.0-use.local
   resolution: "sails-js@workspace:js"
   dependencies:
@@ -8888,7 +8888,7 @@ __metadata:
     "@polkadot/types": "npm:16.4.6"
     jest: "npm:^30.1.3"
     sails-js-types: "npm:*"
-    sails-js-util: "npm:0.4.3"
+    sails-js-util: "npm:^0.5.0"
   peerDependencies:
     "@gear-js/api": ^0.44.1
     "@polkadot/api": ^16.4.1
