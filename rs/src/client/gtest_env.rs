@@ -1,6 +1,6 @@
 use super::*;
 use ::gtest::{BlockRunResult, System, TestError};
-use core::cell::RefCell;
+use core::{cell::RefCell, task::ready};
 use futures::{
     Stream,
     channel::{mpsc, oneshot},
@@ -235,11 +235,6 @@ impl GearEnv for GtestEnv {
 }
 impl<T: CallEncodeDecode> PendingCall<GtestEnv, T> {
     pub fn send_one_way(&mut self) -> Result<MessageId, GtestError> {
-        let Some(route) = self.route else {
-            return Err(TestError::ScaleCodecError(
-                "PendingCall route is not set".into(),
-            ))?;
-        };
         if self.state.is_some() {
             panic!("{PENDING_CALL_INVALID_STATE}");
         }
@@ -248,7 +243,7 @@ impl<T: CallEncodeDecode> PendingCall<GtestEnv, T> {
             .args
             .take()
             .unwrap_or_else(|| panic!("{PENDING_CALL_INVALID_STATE}"));
-        let payload = T::encode_params_with_prefix(route, &args);
+        let payload = T::encode_params_with_prefix(self.route, &args);
         let params = self.params.take().unwrap_or_default();
 
         let message_id = self.env.send_message(self.destination, payload, params)?;
@@ -267,20 +262,13 @@ impl<T: CallEncodeDecode> Future for PendingCall<GtestEnv, T> {
     type Output = Result<T::Reply, <GtestEnv as GearEnv>::Error>;
 
     fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
-        let Some(route) = self.route else {
-            return Poll::Ready(Err(TestError::ScaleCodecError(
-                "PendingCall route is not set".into(),
-            )
-            .into()));
-        };
-
         if self.state.is_none() {
             // Send message
             let args = self
                 .args
                 .take()
                 .unwrap_or_else(|| panic!("{PENDING_CALL_INVALID_STATE}"));
-            let payload = T::encode_params_with_prefix(route, &args);
+            let payload = T::encode_params_with_prefix(self.route, &args);
             let params = self.params.take().unwrap_or_default();
 
             let send_res = self.env.send_message(self.destination, payload, params);
@@ -296,21 +284,20 @@ impl<T: CallEncodeDecode> Future for PendingCall<GtestEnv, T> {
             }
         }
         let this = self.as_mut().project();
-        if let Some(reply_receiver) = this.state.as_pin_mut() {
-            // Poll reply receiver
-            match reply_receiver.poll(cx) {
-                Poll::Ready(Ok(res)) => match res {
-                    Ok(payload) => match T::decode_reply_with_prefix(route, payload) {
-                        Ok(reply) => Poll::Ready(Ok(reply)),
-                        Err(err) => Poll::Ready(Err(TestError::ScaleCodecError(err).into())),
-                    },
-                    Err(err) => Poll::Ready(Err(err)),
+        let reply_receiver = this
+            .state
+            .as_pin_mut()
+            .unwrap_or_else(|| panic!("{PENDING_CALL_INVALID_STATE}"));
+        // Poll reply receiver
+        match ready!(reply_receiver.poll(cx)) {
+            Ok(res) => match res {
+                Ok(payload) => match T::decode_reply_with_prefix(self.route, payload) {
+                    Ok(reply) => Poll::Ready(Ok(reply)),
+                    Err(err) => Poll::Ready(Err(TestError::ScaleCodecError(err).into())),
                 },
-                Poll::Ready(Err(_err)) => Poll::Ready(Err(GtestError::ReplyIsMissing)),
-                Poll::Pending => Poll::Pending,
-            }
-        } else {
-            panic!("PendingCall polled after completion or invalid state");
+                Err(err) => Poll::Ready(Err(err)),
+            },
+            Err(_err) => Poll::Ready(Err(GtestError::ReplyIsMissing)),
         }
     }
 }
@@ -375,26 +362,24 @@ impl<A, T: CallEncodeDecode> Future for PendingCtor<GtestEnv, A, T> {
             }
         }
         let this = self.as_mut().project();
-        if let Some(reply_receiver) = this.state.as_pin_mut() {
-            // Poll reply receiver
-            match reply_receiver.poll(cx) {
-                Poll::Ready(Ok(res)) => match res {
-                    // TODO handle reply prefix
-                    Ok(_) => {
-                        // TODO
-                        let program_id = this
-                            .program_id
-                            .take()
-                            .unwrap_or_else(|| panic!("{PENDING_CTOR_INVALID_STATE}"));
-                        Poll::Ready(Ok(Actor::new(this.env.clone(), program_id)))
-                    }
-                    Err(err) => Poll::Ready(Err(err)),
-                },
-                Poll::Ready(Err(_err)) => Poll::Ready(Err(GtestError::ReplyIsMissing)),
-                Poll::Pending => Poll::Pending,
-            }
-        } else {
-            panic!("{PENDING_CTOR_INVALID_STATE}");
+        let reply_receiver = this
+            .state
+            .as_pin_mut()
+            .unwrap_or_else(|| panic!("{PENDING_CTOR_INVALID_STATE}"));
+        // Poll reply receiver
+        match ready!(reply_receiver.poll(cx)) {
+            Ok(res) => match res {
+                Ok(_) => {
+                    // Do not decode payload here
+                    let program_id = this
+                        .program_id
+                        .take()
+                        .unwrap_or_else(|| panic!("{PENDING_CTOR_INVALID_STATE}"));
+                    Poll::Ready(Ok(Actor::new(this.env.clone(), program_id)))
+                }
+                Err(err) => Poll::Ready(Err(err)),
+            },
+            Err(_err) => Poll::Ready(Err(GtestError::ReplyIsMissing)),
         }
     }
 }

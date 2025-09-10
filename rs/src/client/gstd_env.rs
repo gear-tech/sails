@@ -77,15 +77,11 @@ impl GearEnv for GstdEnv {
 
 impl<T: CallEncodeDecode> PendingCall<GstdEnv, T> {
     pub fn send_one_way(&mut self) -> Result<MessageId, Error> {
-        let Some(route) = self.route else {
-            return Err(Error::Decode("PendingCall route is not set".into()));
-        };
-
         let args = self
             .args
             .take()
             .unwrap_or_else(|| panic!("{PENDING_CALL_INVALID_STATE}"));
-        let payload = T::encode_params_with_prefix(route, &args);
+        let payload = T::encode_params_with_prefix(self.route, &args);
         let params = self.params.take().unwrap_or_default();
 
         let value = params.value.unwrap_or(0);
@@ -182,16 +178,13 @@ const _: () = {
         type Output = Result<T::Reply, <GstdEnv as GearEnv>::Error>;
 
         fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
-            let Some(route) = self.route else {
-                return Poll::Ready(Err(Error::Decode("PendingCall route is not set".into())));
-            };
             if self.state.is_none() {
                 // Send message
                 let args = self
                     .args
                     .take()
                     .unwrap_or_else(|| panic!("{PENDING_CALL_INVALID_STATE}"));
-                let payload = T::encode_params_with_prefix(route, &args);
+                let payload = T::encode_params_with_prefix(self.route, &args);
                 let params = self.params.take().unwrap_or_default();
 
                 let send_res = send_for_reply(self.destination, payload, params);
@@ -205,75 +198,71 @@ const _: () = {
                 }
             }
             let this = self.as_mut().project();
-            if let Some(mut state) = this.state.as_pin_mut() {
-                // Poll message future
-                let output = match state.as_mut().project() {
-                    Projection::CreateProgram { .. } => panic!("{PENDING_CALL_INVALID_STATE}"),
-                    Projection::Message { future } => ready!(future.poll(cx)),
-                    Projection::MessageWithRedirect { future, .. } => ready!(future.poll(cx)),
-                    Projection::Dummy => panic!("{PENDING_CALL_INVALID_STATE}"),
-                };
-                match output {
-                    // ok reply
-                    Ok(payload) => match T::decode_reply_with_prefix(route, payload) {
-                        Ok(reply) => Poll::Ready(Ok(reply)),
-                        Err(err) => Poll::Ready(Err(Error::Decode(err))),
-                    },
-                    // reply with ProgramExited
-                    Err(gstd::errors::Error::ErrorReply(
-                        error_payload,
-                        ErrorReplyReason::UnavailableActor(
-                            SimpleUnavailableActorError::ProgramExited,
-                        ),
-                    )) => {
-                        if let Replace::MessageWithRedirect {
-                            target: _target,
-                            payload,
-                            mut params,
-                            created_block,
-                            ..
-                        } = state.as_mut().project_replace(GtsdFuture::Dummy)
-                            && params.redirect_on_exit
-                            && let Ok(new_target) = ActorId::try_from(error_payload.0.as_ref())
-                        {
-                            gstd::debug!("Redirecting message from {_target} to {new_target}");
-
-                            // Calculate updated `wait_up_to` if provided
-                            // wait_up_to = wait_up_to - (current_block - created_block)
-                            params.wait_up_to = params.wait_up_to.and_then(|wait_up_to| {
-                                created_block.map(|created_block| {
-                                    let current_block = gstd::exec::block_height();
-                                    wait_up_to
-                                        .saturating_sub(current_block.saturating_sub(created_block))
-                                })
-                            });
-
-                            // send message to new target
-                            let future_res = send_for_reply(new_target, payload, params);
-                            match future_res {
-                                Ok(future) => {
-                                    // Replace the future with a new one
-                                    _ = state.as_mut().project_replace(future);
-                                    // Return Pending to allow the new future to be polled
-                                    Poll::Pending
-                                }
-                                Err(err) => Poll::Ready(Err(err)),
-                            }
-                        } else {
-                            Poll::Ready(Err(gstd::errors::Error::ErrorReply(
-                                error_payload,
-                                ErrorReplyReason::UnavailableActor(
-                                    SimpleUnavailableActorError::ProgramExited,
-                                ),
-                            )
-                            .into()))
-                        }
-                    }
-                    // error reply
-                    Err(err) => Poll::Ready(Err(err)),
-                }
-            } else {
+            let Some(mut state) = this.state.as_pin_mut() else {
                 panic!("{PENDING_CALL_INVALID_STATE}");
+            };
+            // Poll message future
+            let output = match state.as_mut().project() {
+                Projection::Message { future } => ready!(future.poll(cx)),
+                Projection::MessageWithRedirect { future, .. } => ready!(future.poll(cx)),
+                _ => panic!("{PENDING_CALL_INVALID_STATE}"),
+            };
+            match output {
+                // ok reply
+                Ok(payload) => match T::decode_reply_with_prefix(self.route, payload) {
+                    Ok(reply) => Poll::Ready(Ok(reply)),
+                    Err(err) => Poll::Ready(Err(Error::Decode(err))),
+                },
+                // reply with ProgramExited
+                Err(gstd::errors::Error::ErrorReply(
+                    error_payload,
+                    ErrorReplyReason::UnavailableActor(SimpleUnavailableActorError::ProgramExited),
+                )) => {
+                    if let Replace::MessageWithRedirect {
+                        target: _target,
+                        payload,
+                        mut params,
+                        created_block,
+                        ..
+                    } = state.as_mut().project_replace(GtsdFuture::Dummy)
+                        && params.redirect_on_exit
+                        && let Ok(new_target) = ActorId::try_from(error_payload.0.as_ref())
+                    {
+                        gstd::debug!("Redirecting message from {_target} to {new_target}");
+
+                        // Calculate updated `wait_up_to` if provided
+                        // wait_up_to = wait_up_to - (current_block - created_block)
+                        params.wait_up_to = params.wait_up_to.and_then(|wait_up_to| {
+                            created_block.map(|created_block| {
+                                let current_block = gstd::exec::block_height();
+                                wait_up_to
+                                    .saturating_sub(current_block.saturating_sub(created_block))
+                            })
+                        });
+
+                        // send message to new target
+                        let future_res = send_for_reply(new_target, payload, params);
+                        match future_res {
+                            Ok(future) => {
+                                // Replace the future with a new one
+                                _ = state.as_mut().project_replace(future);
+                                // Return Pending to allow the new future to be polled
+                                Poll::Pending
+                            }
+                            Err(err) => Poll::Ready(Err(err)),
+                        }
+                    } else {
+                        Poll::Ready(Err(gstd::errors::Error::ErrorReply(
+                            error_payload,
+                            ErrorReplyReason::UnavailableActor(
+                                SimpleUnavailableActorError::ProgramExited,
+                            ),
+                        )
+                        .into()))
+                    }
+                }
+                // error reply
+                Err(err) => Poll::Ready(Err(err)),
             }
         }
     }
@@ -330,13 +319,12 @@ const _: () = {
                 && let Projection::CreateProgram { future } = state.project()
             {
                 // Poll create program future
-                match future.poll(cx) {
-                    Poll::Ready(Ok((program_id, _payload))) => {
+                match ready!(future.poll(cx)) {
+                    Ok((program_id, _payload)) => {
                         // Do not decode payload here
                         Poll::Ready(Ok(Actor::new(this.env.clone(), program_id)))
                     }
-                    Poll::Ready(Err(err)) => Poll::Ready(Err(err)),
-                    Poll::Pending => Poll::Pending,
+                    Err(err) => Poll::Ready(Err(err)),
                 }
             } else {
                 panic!("{PENDING_CTOR_INVALID_STATE}");
@@ -381,7 +369,7 @@ const _: () = {
             PendingCall {
                 env: GstdEnv,
                 destination: ActorId::zero(),
-                route: None,
+                route: "",
                 params: None,
                 args: None,
                 state: Some(future::ready(res.map(|v| v.encode()))),

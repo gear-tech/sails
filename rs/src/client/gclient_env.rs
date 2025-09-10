@@ -1,5 +1,6 @@
 use super::*;
 use ::gclient::{EventListener, EventProcessor as _, GearApi};
+use core::task::ready;
 use futures::{Stream, StreamExt, stream};
 
 #[derive(Debug, thiserror::Error)]
@@ -182,16 +183,13 @@ async fn send_message(
 
 impl<T: CallEncodeDecode> PendingCall<GclientEnv, T> {
     pub async fn send(mut self) -> Result<MessageId, GclientError> {
-        let Some(route) = self.route else {
-            return Err(gclient::Error::Codec("PendingCall route is not set".into()).into());
-        };
         let api = &self.env.api;
         let params = self.params.unwrap_or_default();
         let args = self
             .args
             .take()
             .unwrap_or_else(|| panic!("{PENDING_CALL_INVALID_STATE}"));
-        let payload = T::encode_params_with_prefix(route, &args);
+        let payload = T::encode_params_with_prefix(self.route, &args);
         let value = params.value.unwrap_or(0);
         #[cfg(not(feature = "ethexe"))]
         let gas_limit = if let Some(gas_limit) = params.gas_limit {
@@ -213,15 +211,12 @@ impl<T: CallEncodeDecode> PendingCall<GclientEnv, T> {
     }
 
     pub async fn query(mut self) -> Result<T::Reply, GclientError> {
-        let Some(route) = self.route else {
-            return Err(gclient::Error::Codec("PendingCall route is not set".into()).into());
-        };
         let params = self.params.unwrap_or_default();
         let args = self
             .args
             .take()
             .unwrap_or_else(|| panic!("{PENDING_CALL_INVALID_STATE}"));
-        let payload = T::encode_params_with_prefix(route, &args);
+        let payload = T::encode_params_with_prefix(self.route, &args);
 
         // Calculate reply
         let reply_bytes = self
@@ -230,7 +225,7 @@ impl<T: CallEncodeDecode> PendingCall<GclientEnv, T> {
             .await?;
 
         // Decode reply
-        match T::decode_reply_with_prefix(route, reply_bytes) {
+        match T::decode_reply_with_prefix(self.route, reply_bytes) {
             Ok(decoded) => Ok(decoded),
             Err(err) => Err(gclient::Error::Codec(err).into()),
         }
@@ -241,12 +236,6 @@ impl<T: CallEncodeDecode> Future for PendingCall<GclientEnv, T> {
     type Output = Result<T::Reply, <GclientEnv as GearEnv>::Error>;
 
     fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
-        let Some(route) = self.route else {
-            return Poll::Ready(Err(gclient::Error::Codec(
-                "PendingCall route is not set".into(),
-            )
-            .into()));
-        };
         if self.state.is_none() {
             // Send message
             let params = self.params.take().unwrap_or_default();
@@ -254,7 +243,7 @@ impl<T: CallEncodeDecode> Future for PendingCall<GclientEnv, T> {
                 .args
                 .take()
                 .unwrap_or_else(|| panic!("{PENDING_CALL_INVALID_STATE}"));
-            let payload = T::encode_params_with_prefix(route, &args);
+            let payload = T::encode_params_with_prefix(self.route, &args);
 
             let send_future = send_message(self.env.api.clone(), self.destination, payload, params);
             self.state = Some(Box::pin(send_future));
@@ -266,13 +255,12 @@ impl<T: CallEncodeDecode> Future for PendingCall<GclientEnv, T> {
             .as_pin_mut()
             .unwrap_or_else(|| panic!("{PENDING_CALL_INVALID_STATE}"));
         // Poll message future
-        match message_future.poll(cx) {
-            Poll::Ready(Ok((_, payload))) => match T::decode_reply_with_prefix(route, payload) {
+        match ready!(message_future.poll(cx)) {
+            Ok((_, payload)) => match T::decode_reply_with_prefix(self.route, payload) {
                 Ok(decoded) => Poll::Ready(Ok(decoded)),
                 Err(err) => Poll::Ready(Err(gclient::Error::Codec(err).into())),
             },
-            Poll::Ready(Err(err)) => Poll::Ready(Err(err)),
-            Poll::Pending => Poll::Pending,
+            Err(err) => Poll::Ready(Err(err)),
         }
     }
 }
@@ -302,13 +290,12 @@ impl<A, T: CallEncodeDecode> Future for PendingCtor<GclientEnv, A, T> {
             .as_pin_mut()
             .unwrap_or_else(|| panic!("{PENDING_CTOR_INVALID_STATE}"));
         // Poll message future
-        match message_future.poll(cx) {
-            Poll::Ready(Ok((program_id, _))) => {
+        match ready!(message_future.poll(cx)) {
+            Ok((program_id, _)) => {
                 // Do not decode payload here
                 Poll::Ready(Ok(Actor::new(this.env.clone(), program_id)))
             }
-            Poll::Ready(Err(err)) => Poll::Ready(Err(err)),
-            Poll::Pending => Poll::Pending,
+            Err(err) => Poll::Ready(Err(err)),
         }
     }
 }

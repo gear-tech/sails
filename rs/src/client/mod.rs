@@ -216,7 +216,7 @@ pin_project_lite::pin_project! {
     pub struct PendingCall<E: GearEnv, T: CallEncodeDecode> {
         env: E,
         destination: ActorId,
-        route: Option<Route>,
+        route: Route,
         params: Option<E::Params>,
         args: Option<T::Params>,
         #[pin]
@@ -229,7 +229,7 @@ impl<E: GearEnv, T: CallEncodeDecode> PendingCall<E, T> {
         PendingCall {
             env,
             destination,
-            route: Some(route),
+            route,
             params: None,
             args: Some(args),
             state: None,
@@ -287,14 +287,15 @@ pub trait CallEncodeDecode {
     type Reply: Decode + 'static;
 
     fn encode_params(value: &Self::Params) -> Vec<u8> {
-        let mut result = Vec::with_capacity(Self::ROUTE.len() + Encode::size_hint(value));
+        let mut result = Vec::with_capacity(1 + Self::ROUTE.len() + Encode::size_hint(value));
         Encode::encode_to(Self::ROUTE, &mut result);
         Encode::encode_to(value, &mut result);
         result
     }
 
     fn encode_params_with_prefix(prefix: Route, value: &Self::Params) -> Vec<u8> {
-        let mut result = Vec::with_capacity(Self::ROUTE.len() + Encode::size_hint(value));
+        let mut result =
+            Vec::with_capacity(2 + prefix.len() + Self::ROUTE.len() + Encode::size_hint(value));
         Encode::encode_to(prefix, &mut result);
         Encode::encode_to(Self::ROUTE, &mut result);
         Encode::encode_to(value, &mut result);
