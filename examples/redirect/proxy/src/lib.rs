@@ -3,11 +3,13 @@
 use redirect_client::{redirect::Redirect as _, *};
 use sails_rs::{client::*, prelude::*};
 
-struct ProxyService(ActorId);
+struct ProxyService(
+    sails_rs::client::Service<sails_rs::client::GstdEnv, redirect_client::redirect::RedirectImpl>,
+);
 
 impl ProxyService {
-    pub const fn new(target: ActorId) -> Self {
-        Self(target)
+    pub fn new(target: ActorId) -> Self {
+        Self(RedirectClientProgram::client(target).redirect())
     }
 }
 
@@ -16,8 +18,7 @@ impl ProxyService {
     /// Get program ID of the target program via client
     #[sails_rs::export]
     pub async fn get_program_id(&self) -> ActorId {
-        let client = RedirectClientProgram::client(self.0).redirect();
-        client
+        self.0
             .get_program_id()
             // Set flag to redirect on exit
             .with_redirect_on_exit(true)
