@@ -19,11 +19,11 @@ pub use spin::{self};
 
 #[cfg(feature = "client-builder")]
 mod builder;
-pub mod calls;
+// pub mod calls;
 pub mod client;
 pub mod errors;
-#[cfg(not(target_arch = "wasm32"))]
-pub mod events;
+// #[cfg(not(target_arch = "wasm32"))]
+// pub mod events;
 #[cfg(feature = "gclient")]
 #[cfg(not(target_arch = "wasm32"))]
 pub mod gclient;
@@ -31,10 +31,10 @@ pub mod gclient;
 pub mod gstd;
 #[cfg(feature = "gtest")]
 #[cfg(not(target_arch = "wasm32"))]
-pub mod gtest;
+pub use gtest::{self};
 #[cfg(feature = "mockall")]
 #[cfg(not(target_arch = "wasm32"))]
-pub mod mockall;
+pub use mockall::{self};
 pub mod prelude;
 #[cfg(feature = "ethexe")]
 pub mod solidity;
