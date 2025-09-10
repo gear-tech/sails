@@ -1,6 +1,8 @@
 import { decodeAddress, GearApi, HexString } from '@gear-js/api';
-import { TypeRegistry } from '@polkadot/types';
 import { isHex, u8aConcat, u8aToHex } from '@polkadot/util';
+import { TypeRegistry } from '@polkadot/types';
+import { getPayloadMethod } from 'sails-js-util';
+
 import { stringToU8aWithPrefix, throwOnErrorReply } from './utils';
 import { ZERO_ADDRESS } from './consts';
 
@@ -56,8 +58,8 @@ export class QueryBuilder<ResultType = unknown> {
     } else {
       try {
         this._originAddress = decodeAddress(address);
-      } catch (error) {
-        throw new Error(`Invalid address. ${error.message}`);
+      } catch {
+        throw new Error('Invalid address.');
       }
     }
 
@@ -97,10 +99,10 @@ export class QueryBuilder<ResultType = unknown> {
 
     throwOnErrorReply(result.code, result.payload.toU8a(), this._api.specVersion, this._registry);
 
-    const responseU8a = result.payload.toU8a().slice(this._prefixByteLength);
+    const repsponseWOPrefix = result.payload.slice(this._prefixByteLength);
 
-    const responseDecoded = this._registry.createType<any>(this._responseType, responseU8a);
+    const responseDecoded = this._registry.createType<any>(this._responseType, repsponseWOPrefix);
 
-    return responseDecoded.toJSON() as ResultType;
+    return responseDecoded[getPayloadMethod(this._responseType)]() as ResultType;
   }
 }

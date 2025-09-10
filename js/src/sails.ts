@@ -41,9 +41,9 @@ interface ISailsServiceFuncParams {
   readonly docs?: string;
 }
 
-type SailsServiceQuery = ISailsServiceFuncParams & (<T>(...args: unknown[]) => QueryBuilder<T>);
+type SailsServiceQuery = ISailsServiceFuncParams & (<T = any>(...args: unknown[]) => QueryBuilder<T>);
 
-type SailsServiceFunc = ISailsServiceFuncParams & (<T>(...args: unknown[]) => TransactionBuilder<T>);
+type SailsServiceFunc = ISailsServiceFuncParams & (<T = any>(...args: unknown[]) => TransactionBuilder<T>);
 
 interface SailsServiceEvent {
   /** ### Event type */
@@ -57,7 +57,7 @@ interface SailsServiceEvent {
   /** ### Subscribe to event
    * @returns Promise with unsubscribe function
    */
-  readonly subscribe: <T>(cb: (event: T) => void | Promise<void>) => Promise<() => void>;
+  readonly subscribe: <T = any>(cb: (event: T) => void | Promise<void>) => Promise<() => void>;
   /** ### Docs from the IDL file */
   readonly docs?: string;
 }
@@ -68,7 +68,7 @@ interface ISailsCtorFuncParams {
   /** ### Encode payload to hex string */
   readonly encodePayload: (...args: any[]) => HexString;
   /** ### Decode payload from hex string */
-  readonly decodePayload: <T>(bytes: HexString) => T;
+  readonly decodePayload: <T = any>(bytes: HexString) => T;
   /** ### Create transaction builder from code */
   readonly fromCode: (code: Uint8Array | Buffer, ...args: unknown[]) => TransactionBuilder<any>;
   /** ### Create transaction builder from code id */

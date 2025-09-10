@@ -12,7 +12,7 @@
     }
   },
   "devDependencies": {
-    "sails-js-types": "^0.5.0"
+    "sails-js-types": "0.5.0"
   },
   "scripts": {
     "build": "npx rollup --config rollup.config.js",

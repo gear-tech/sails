@@ -5,8 +5,8 @@
   "devDependencies": {
     "@gear-js/api": "0.44.1",
     "@polkadot/api": "16.4.6",
-    "sails-js": "*",
-    "sails-js-cli": "*",
+    "sails-js": "0.5.0",
+    "sails-js-cli": "0.5.0",
     "typescript": "^5.9.2"
   },
   "scripts": {
