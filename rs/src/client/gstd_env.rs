@@ -106,6 +106,7 @@ const _: () = {
     use core::task::ready;
 
     #[cfg(not(feature = "ethexe"))]
+    #[inline]
     pub(crate) fn send_for_reply_future(
         target: ActorId,
         payload: &[u8],
@@ -139,6 +140,7 @@ const _: () = {
     }
 
     #[cfg(feature = "ethexe")]
+    #[inline]
     fn send_for_reply_future(
         target: ActorId,
         payload: &[u8],
@@ -153,7 +155,8 @@ const _: () = {
         Ok(message_future)
     }
 
-    pub(crate) fn send_for_reply(
+    #[inline]
+    fn send_for_reply(
         target: ActorId,
         payload: Vec<u8>,
         mut params: GstdParams,

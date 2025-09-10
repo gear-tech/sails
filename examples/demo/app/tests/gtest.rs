@@ -13,7 +13,7 @@ pub(crate) const DEMO_WASM_PATH: &str = "../../../target/wasm32-gear/debug/demo.
 pub(crate) const DEMO_WASM_PATH: &str = "../../../target/wasm32-gear/release/demo.opt.wasm";
 
 fn create_env() -> (GtestEnv, CodeId, GasUnit) {
-    use sails_rs::gtest::{MAX_USER_GAS_LIMIT, System};
+    use sails_rs::gtest::{constants::MAX_USER_GAS_LIMIT, System};
 
     let system = System::new();
     system.init_logger_with_default_filter("gwasm=debug,gtest=info,sails_rs=debug,redirect=debug");
