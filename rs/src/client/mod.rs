@@ -151,6 +151,14 @@ impl<E: GearEnv, S> Service<E, S> {
         }
     }
 
+    pub fn actor_id(&self) -> ActorId {
+        self.actor_id
+    }
+
+    pub fn route(&self) -> Route {
+        self.route
+    }
+
     pub fn with_actor_id(mut self, actor_id: ActorId) -> Self {
         self.actor_id = actor_id;
         self
@@ -287,7 +295,7 @@ pub trait CallEncodeDecode {
     type Reply: Decode + 'static;
 
     fn encode_params(value: &Self::Params) -> Vec<u8> {
-        let mut result = Vec::with_capacity(1 + Self::ROUTE.len() + Encode::size_hint(value));
+        let mut result = Vec::with_capacity(1 + Self::ROUTE.len() + Encode::encoded_size(value));
         Encode::encode_to(Self::ROUTE, &mut result);
         Encode::encode_to(value, &mut result);
         result
@@ -295,7 +303,7 @@ pub trait CallEncodeDecode {
 
     fn encode_params_with_prefix(prefix: Route, value: &Self::Params) -> Vec<u8> {
         let mut result =
-            Vec::with_capacity(2 + prefix.len() + Self::ROUTE.len() + Encode::size_hint(value));
+            Vec::with_capacity(2 + prefix.len() + Self::ROUTE.len() + Encode::encoded_size(value));
         Encode::encode_to(prefix, &mut result);
         Encode::encode_to(Self::ROUTE, &mut result);
         Encode::encode_to(value, &mut result);

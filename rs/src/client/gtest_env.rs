@@ -206,6 +206,34 @@ impl GtestEnv {
         rx
     }
 
+    pub fn query(
+        &self,
+        target: ActorId,
+        payload: impl AsRef<[u8]>,
+        params: GtestParams,
+    ) -> Result<Vec<u8>, GtestError> {
+        let value = params.value.unwrap_or(0);
+        #[cfg(not(feature = "ethexe"))]
+        let gas_limit = params.gas_limit.unwrap_or(GAS_LIMIT_DEFAULT);
+        #[cfg(feature = "ethexe")]
+        let gas_limit = GAS_LIMIT_DEFAULT;
+
+        let actor_id = params.actor_id.unwrap_or(self.actor_id);
+        let reply_info = self
+            .system
+            .calculate_reply_for_handle(actor_id, target, payload.as_ref(), gas_limit, value)
+            .map_err(|_s| GtestError::ReplyIsMissing)?;
+
+        match reply_info.code {
+            ReplyCode::Success(_) => Ok(reply_info.payload),
+            ReplyCode::Error(err) => Err(GtestError::ReplyHasError(err, reply_info.payload)),
+            _ => {
+                log::debug!("Unexpected reply code: {:?}", reply_info.code);
+                Err(GtestError::ReplyIsMissing)
+            }
+        }
+    }
+
     fn run_next_block_and_extract(&self) -> BlockRunResult {
         let run_result = self.system.run_next_block();
         self.extract_events_and_replies(&run_result);
@@ -233,6 +261,7 @@ impl GearEnv for GtestEnv {
     type Error = GtestError;
     type MessageState = ReplyReceiver;
 }
+
 impl<T: CallEncodeDecode> PendingCall<GtestEnv, T> {
     pub fn send_one_way(&mut self) -> Result<MessageId, GtestError> {
         if self.state.is_some() {
@@ -255,6 +284,22 @@ impl<T: CallEncodeDecode> PendingCall<GtestEnv, T> {
         let message_id = self.send_one_way()?;
         self.state = Some(self.env.message_reply_from_next_blocks(message_id));
         Ok(self)
+    }
+
+    pub fn query(mut self) -> Result<T::Reply, GtestError> {
+        let params = self.params.unwrap_or_default();
+        let args = self
+            .args
+            .take()
+            .unwrap_or_else(|| panic!("{PENDING_CALL_INVALID_STATE}"));
+        let payload = T::encode_params_with_prefix(self.route, &args);
+
+        // Calculate reply
+        let reply_bytes = self.env.query(self.destination, payload, params)?;
+
+        // Decode reply
+        T::decode_reply_with_prefix(self.route, reply_bytes)
+            .map_err(|err| TestError::ScaleCodecError(err).into())
     }
 }
 
