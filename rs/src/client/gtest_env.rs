@@ -351,12 +351,12 @@ impl<A, T: CallEncodeDecode> Future for PendingCtor<GtestEnv, A, T> {
                 .create_program(self.code_id, salt, payload.as_slice(), params);
             match send_res {
                 Ok((program_id, message_id)) => {
-                    log::debug!("PendingCall: send message {message_id:?}");
+                    log::debug!("PendingCtor: send message {message_id:?}");
                     self.state = Some(self.env.message_reply_from_next_blocks(message_id));
                     self.program_id = Some(program_id);
                 }
                 Err(err) => {
-                    log::error!("PendingCall: failed to send message: {err}");
+                    log::error!("PendingCtor: failed to send message: {err}");
                     return Poll::Ready(Err(err));
                 }
             }
