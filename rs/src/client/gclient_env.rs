@@ -225,10 +225,8 @@ impl<T: CallEncodeDecode> PendingCall<GclientEnv, T> {
             .await?;
 
         // Decode reply
-        match T::decode_reply_with_prefix(self.route, reply_bytes) {
-            Ok(decoded) => Ok(decoded),
-            Err(err) => Err(gclient::Error::Codec(err).into()),
-        }
+        T::decode_reply_with_prefix(self.route, reply_bytes)
+            .map_err(|err| gclient::Error::Codec(err).into())
     }
 }
 

@@ -1,13 +1,9 @@
 use ethapp_with_events::Events;
 use sails_rs::{
     alloy_sol_types::SolValue,
-    calls::Remoting,
-    events::Listener,
+    client::*,
     futures::StreamExt,
-    gtest::{
-        Program, System,
-        calls::{GTestArgs, GTestRemoting},
-    },
+    gtest::{Program, System},
     prelude::*,
 };
 
@@ -23,7 +19,7 @@ async fn ethapp_with_events_low_level_works() {
     // arrange
     let system = System::new();
     system.init_logger_with_default_filter("gwasm=debug,gtest=debug,sails_rs=debug");
-    system.mint_to(ADMIN_ID, 100_000_000_000_000);
+    system.mint_to(ADMIN_ID, 1_000_000_000_000_000);
 
     let program = Program::from_file(&system, WASM_PATH);
 
@@ -110,35 +106,32 @@ async fn ethapp_with_events_low_level_works() {
 async fn ethapp_with_events_remoting_works() {
     let system = System::new();
     system.init_logger_with_default_filter("gwasm=debug,gtest=debug,sails_rs=debug");
-    system.mint_to(ADMIN_ID, 100_000_000_000_000);
+    system.mint_to(ADMIN_ID, 1_000_000_000_000_000);
     let code_id = system.submit_code_file(WASM_PATH);
 
-    let remoting = GTestRemoting::new(system, ADMIN_ID.into());
-    let mut binding = remoting.clone();
-    let mut listener = binding.listen().await.unwrap();
+    let env = GtestEnv::new(system, ADMIN_ID.into());
+    let binding = env.clone();
+    let mut listener = binding.listen(Some).await.unwrap();
 
     let ctor = sails_rs::solidity::selector("create(uint128,bool)");
     let input = (0u128, false).abi_encode_sequence();
     let payload = [ctor.as_slice(), input.as_slice()].concat();
 
-    let (program_id, _) = remoting
-        .clone()
-        .activate(code_id, vec![], payload.as_slice(), 0, GTestArgs::default())
-        .await
-        .unwrap()
-        .await
+    let (program_id, _) = env
+        .create_program(code_id, vec![], payload.as_slice(), Default::default())
         .unwrap();
 
     let do_this_sig = sails_rs::solidity::selector("svc1DoThis(uint128,bool,uint32,string)");
     let do_this_params = (0u128, false, 42, "hello").abi_encode_sequence();
     let payload = [do_this_sig.as_slice(), do_this_params.as_slice()].concat();
 
-    let reply_payload = remoting
-        .clone()
-        .message(program_id, payload, 0, GTestArgs::default())
+    let message_id = env
+        .send_message(program_id, payload, Default::default())
+        .unwrap();
+    let reply_payload = env
+        .message_reply_from_next_blocks(message_id)
         .await
         .unwrap()
-        .await
         .unwrap();
 
     let reply = u32::abi_decode(reply_payload.as_slice(), true);
@@ -165,35 +158,32 @@ async fn ethapp_with_events_remoting_works() {
 async fn ethapp_with_events_exposure_emit_works() {
     let system = System::new();
     system.init_logger_with_default_filter("gwasm=debug,gtest=debug,sails_rs=debug");
-    system.mint_to(ADMIN_ID, 100_000_000_000_000);
+    system.mint_to(ADMIN_ID, 1_000_000_000_000_000);
     let code_id = system.submit_code_file(WASM_PATH);
 
-    let remoting = GTestRemoting::new(system, ADMIN_ID.into());
-    let mut binding = remoting.clone();
-    let mut listener = binding.listen().await.unwrap();
+    let env = GtestEnv::new(system, ADMIN_ID.into());
+    let binding = env.clone();
+    let mut listener = binding.listen(Some).await.unwrap();
 
     let ctor = sails_rs::solidity::selector("create(uint128,bool)");
     let input = (0u128, false).abi_encode_sequence();
     let payload = [ctor.as_slice(), input.as_slice()].concat();
 
-    let (program_id, _) = remoting
-        .clone()
-        .activate(code_id, vec![], payload.as_slice(), 0, GTestArgs::default())
-        .await
-        .unwrap()
-        .await
+    let (program_id, _) = env
+        .create_program(code_id, vec![], payload.as_slice(), Default::default())
         .unwrap();
 
     let do_this_sig = sails_rs::solidity::selector("svc2DoThis(uint128,bool,uint32,string)");
     let do_this_params = (0u128, false, 42, "hello").abi_encode_sequence();
     let payload = [do_this_sig.as_slice(), do_this_params.as_slice()].concat();
 
-    let reply_payload = remoting
-        .clone()
-        .message(program_id, payload, 0, GTestArgs::default())
+    let message_id = env
+        .send_message(program_id, payload, Default::default())
+        .unwrap();
+    let reply_payload = env
+        .message_reply_from_next_blocks(message_id)
         .await
         .unwrap()
-        .await
         .unwrap();
 
     let reply = u32::abi_decode(reply_payload.as_slice(), true);
