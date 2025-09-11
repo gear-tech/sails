@@ -31,7 +31,7 @@
   "scripts": {
     "prebuild": "rm -rf lib",
     "build": "npx rollup --config rollup.config.js",
-    "test": "yarn node --no-warnings --experimental-vm-modules $(yarn bin jest)",
+    "test": "yarn node --no-warnings --experimental-vm-modules $(yarn bin jest) --runInBand",
     "clean": "rm -rf lib",
     "pack-build": "yarn pack --out sails-js.tgz"
   },
