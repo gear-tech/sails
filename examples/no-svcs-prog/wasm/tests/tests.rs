@@ -1,8 +1,6 @@
-use no_svcs_prog::client::{NoSvcsProgFactory, traits::NoSvcsProgFactory as _};
-use sails_rs::{
-    calls::*,
-    gtest::{System, calls::*},
-};
+use no_svcs_prog::client::*;
+use sails_rs::client::*;
+use sails_rs::gtest::System;
 
 const ADMIN_ID: u64 = 10;
 const WASM_PATH: &str = "../../../target/wasm32-gear/debug/no_svcs_prog.opt.wasm";
@@ -14,12 +12,9 @@ async fn activating_program_succeeds() {
     system.mint_to(ADMIN_ID, 100_000_000_000_000);
     let program_code_id = system.submit_code_file(WASM_PATH);
 
-    let remoting = GTestRemoting::new(system, ADMIN_ID.into());
+    let env = GtestEnv::new(system, ADMIN_ID.into());
 
-    let result = NoSvcsProgFactory::new(remoting.clone())
-        .create()
-        .send_recv(program_code_id, "123")
-        .await;
+    let result = env.deploy(program_code_id, vec![]).create().await;
 
     assert!(result.is_ok());
 }

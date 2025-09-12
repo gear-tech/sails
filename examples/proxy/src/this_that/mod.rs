@@ -1,12 +1,12 @@
-use demo_client::{TupleStruct, traits::ThisThat};
-use sails_rename::{calls::*, gstd::Syscall, prelude::*};
+use demo_client::{this_that::ThisThat, *};
+use sails_rename::{client::*, gstd::Syscall, prelude::*};
 #[derive(Clone)]
 pub struct ThisThatCaller<ThisThatClient> {
     this_that: ThisThatClient,
 }
 impl<ThisThatClient> ThisThatCaller<ThisThatClient>
 where
-    ThisThatClient: ThisThat,
+    ThisThatClient: ThisThat<Env = GstdEnv>,
 {
     pub const fn new(this_that: ThisThatClient) -> Self {
         Self { this_that }
@@ -16,7 +16,7 @@ where
 #[service(crate = sails_rename)]
 impl<ThisThatClient> ThisThatCaller<ThisThatClient>
 where
-    ThisThatClient: ThisThat,
+    ThisThatClient: ThisThat<Env = GstdEnv>,
 {
     #[export]
     pub async fn call_do_this(
@@ -31,11 +31,7 @@ where
             panic!("ThisThatCaller cannot call itself");
         }
 
-        self.this_that
-            .do_this(p1, p2, p3, p4)
-            .send_recv(this_that_addr)
-            .await
-            .unwrap()
+        self.this_that.do_this(p1, p2, p3, p4).await.unwrap()
     }
 
     #[export]
@@ -44,7 +40,7 @@ where
             panic!("ThisThatCaller cannot call itself");
         }
 
-        self.this_that.this().recv(this_that_addr).await.unwrap()
+        self.this_that.this().await.unwrap()
     }
 }
 
@@ -52,7 +48,7 @@ where
 mod tests {
     use super::*;
     use demo_client::mockall::MockThisThat;
-    use sails_rename::{gstd::services::Service, mockall::*};
+    use sails_rename::{client::PendingCall, gstd::services::Service};
 
     #[tokio::test]
     async fn this_that_caller_query_this() {
@@ -60,16 +56,10 @@ mod tests {
         const ACTOR_ID: u64 = 11;
         Syscall::with_program_id(ActorId::from(1));
 
-        let mut mock_this_that = MockThisThat::<()>::new();
-        mock_this_that.expect_this().returning(|| {
-            let mut mock_query_this = MockQuery::new();
-            mock_query_this
-                .expect_recv()
-                .with(predicate::eq(ActorId::from(ACTOR_ID)))
-                .times(1)
-                .returning(move |_| Ok(42));
-            mock_query_this
-        });
+        let mut mock_this_that = MockThisThat::new();
+        mock_this_that
+            .expect_this()
+            .returning(|| PendingCall::from_output(42));
 
         // act
         let this_that_caller = ThisThatCaller::new(mock_this_that).expose(&[]);
@@ -85,18 +75,10 @@ mod tests {
         const ACTOR_ID: u64 = 11;
         Syscall::with_program_id(ActorId::from(1));
 
-        let mut mock_this_that = MockThisThat::<()>::new();
+        let mut mock_this_that = MockThisThat::new();
         mock_this_that
             .expect_do_this()
-            .returning(move |p1, p2, _p3, _p4| {
-                let mut mock_call_do_this = MockCall::new();
-                mock_call_do_this
-                    .expect_send_recv()
-                    .with(predicate::eq(ActorId::from(ACTOR_ID)))
-                    .times(1)
-                    .returning(move |_| Ok((p2.clone(), p1)));
-                mock_call_do_this
-            });
+            .returning(move |p1, p2, _p3, _p4| PendingCall::from_output((p2.clone(), p1)));
 
         // act
         let mut this_that_caller = ThisThatCaller::new(mock_this_that).expose(&[]);
@@ -121,7 +103,7 @@ mod tests {
         const ACTOR_ID: u64 = 11;
         Syscall::with_program_id(ActorId::from(ACTOR_ID));
 
-        let mock_this_that = MockThisThat::<()>::new();
+        let mock_this_that = MockThisThat::new();
 
         // act
         let mut this_that_caller = ThisThatCaller::new(mock_this_that).expose(&[]);

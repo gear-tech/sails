@@ -63,6 +63,7 @@ struct TestsGtest {
     client_crate_name: String,
     client_program_name: String,
     service_name: String,
+    service_name_snake: String,
 }
 
 pub struct ProgramGenerator {
@@ -71,6 +72,8 @@ pub struct ProgramGenerator {
     sails_path: Option<PathBuf>,
     app: bool,
     offline: bool,
+    service_name: String,
+    program_struct_name: String,
 }
 
 impl ProgramGenerator {
@@ -91,19 +94,22 @@ impl ProgramGenerator {
             },
             |name| name.to_case(Case::Kebab),
         );
+        let service_name = package_name.to_case(Case::Pascal);
         Self {
             path,
             package_name,
             sails_path,
             app,
             offline,
+            service_name,
+            program_struct_name: "Program".to_string(),
         }
     }
 
     fn root_build(&self) -> RootBuild {
         RootBuild {
             app_crate_name: self.app_name().to_case(Case::Snake),
-            program_struct_name: "Program".to_string(),
+            program_struct_name: self.program_struct_name.clone(),
         }
     }
 
@@ -118,23 +124,23 @@ impl ProgramGenerator {
             program_crate_name: self.package_name.to_owned(),
             app_crate_name: self.app_name(),
             client_crate_name: self.client_name(),
-            service_name: "Service".to_string(),
+            service_name: self.service_name.clone(),
             app: self.app,
         }
     }
 
     fn app_lib(&self) -> AppLib {
         AppLib {
-            service_name: "Service".to_string(),
-            service_name_snake: "service".to_string(),
-            program_struct_name: "Program".to_string(),
+            service_name: self.service_name.clone(),
+            service_name_snake: self.service_name.to_case(Case::Snake),
+            program_struct_name: self.program_struct_name.clone(),
         }
     }
 
     fn client_build(&self) -> ClientBuild {
         ClientBuild {
             app_crate_name: self.app_name().to_case(Case::Snake),
-            program_struct_name: "Program".to_string(),
+            program_struct_name: self.program_struct_name.clone(),
         }
     }
 
@@ -149,7 +155,8 @@ impl ProgramGenerator {
             program_crate_name: self.package_name.to_case(Case::Snake),
             client_crate_name: self.client_name().to_case(Case::Snake),
             client_program_name: self.client_name().to_case(Case::Pascal),
-            service_name: "Service".to_string(),
+            service_name: self.service_name.clone(),
+            service_name_snake: self.service_name.to_case(Case::Snake),
         }
     }
 

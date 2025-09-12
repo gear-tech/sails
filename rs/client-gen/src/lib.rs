@@ -7,7 +7,6 @@ use std::{collections::HashMap, ffi::OsStr, fs, io::Write, path::Path};
 mod ctor_generators;
 mod events_generator;
 mod helpers;
-mod io_generators;
 mod mock_generator;
 mod root_generator;
 mod service_generators;

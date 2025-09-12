@@ -1,9 +1,12 @@
 use sails_rs::{
-    calls::*,
-    gtest::{System, calls::*},
+    client::*,
+    gtest::*,
 };
-
-use {{ client_crate_name }}::traits::*;
+use {{ client_crate_name }}::{
+    {{ client_program_name }},
+    {{ client_program_name }}Ctors,
+    {{ service_name_snake }}::*,
+};
 
 const ACTOR_ID: u64 = 42;
 
@@ -12,24 +15,21 @@ async fn do_something_works() {
     let system = System::new();
     system.init_logger_with_default_filter("gwasm=debug,gtest=info,sails_rs=debug");
     system.mint_to(ACTOR_ID, 100_000_000_000_000);
-    let remoting = GTestRemoting::new(system, ACTOR_ID.into());
-
     // Submit program code into the system
-    let program_code_id = remoting.system().submit_code({{ program_crate_name }}::WASM_BINARY);
+    let program_code_id = system.submit_code({{ program_crate_name }}::WASM_BINARY);
+    
+    // Create Sails Env
+    let env = GtestEnv::new(system, ACTOR_ID.into());
 
-    let program_factory = {{ client_crate_name }}::{{ client_program_name }}Factory::new(remoting.clone());
-
-    let program_id = program_factory
+    let program = env.deploy::<{{ client_crate_name }}::{{ client_program_name }}Program>(program_code_id, b"salt".to_vec())
         .new() // Call program's constructor
-        .send_recv(program_code_id, b"salt")
         .await
         .unwrap();
 
-    let mut service_client = {{ client_crate_name }}::{{ service_name }}::new(remoting.clone());
+    let mut service_client = program.{{ service_name_snake }}();
 
     let result = service_client
         .do_something() // Call service's method
-        .send_recv(program_id)
         .await
         .unwrap();
 
