@@ -107,21 +107,54 @@ const transaction = sails.services.ServiceName.functions.FunctionName(arg1, arg2
 ### Queries
 `sails.services.ServiceName.queries` property contains an object with all the queries from the IDL file that can be used to read the program state.
 The key of the object is the name of the function.
-The value includes the same properties as described in the [Functions](#functions) section above. Note that the function returns the result of the query, not the transaction builder.
+The value includes the same properties as described in the [Functions](#functions) section above. Note that the function returns a `QueryBuilder` instance, not the result directly.
 
-*The query function accepts 3 more arguments in addition to arguments from the IDL:*
-- *`originAddress` - the address of the account that is calling the function*
-- *`value` - (optional, default 0) the amount of tokens that are sent to the function*
-- *`atBlock` - (optional) the block at which the query is executed*
+*Query functions now accept only the function's arguments and return a `QueryBuilder` class. The `QueryBuilder` provides methods to configure the query:*
+- *`.withAddress(address)` - (optional) set the origin address of the account calling the function*
+- *`.withValue(value)` - (optional, default 0) set the amount of tokens sent to the function*
+- *`.withGasLimit(gasLimit)` - (optional, default max) set the gas limit for the query*
+- *`.atBlock(blockHash)` - (optional) set the block hash at which the query is executed*
+- *`.call()` - execute the query and return the result*
 
 ```javascript
 const alice = 'kGkLEU3e3XXkJp2WK4eNpVmSab5xUNL9QtmLPh8QfCL2EgotW';
 // functionArg1, functionArg2 are the arguments of the query function from the IDL file
-const result = await sails.services.ServiceName.queries.QueryName(alice, null, null, functionArg1, functionArg2);
+const result = await sails.services.ServiceName.queries.QueryName(functionArg1, functionArg2)
+  .withAddress(alice)
+  .call();
 
 console.log(result);
 ```
 
+### QueryBuilder
+
+`QueryBuilder` class is used to configure and execute queries to read program state. It provides a fluent interface for setting query parameters before execution.
+
+#### Methods
+
+- `withAddress(address: string)` - sets the origin address of the account calling the function (optional, default: Zero Address)
+- `withValue(value: bigint)` - sets the amount of tokens sent to the function (default: 0)
+- `withGasLimit(gasLimit: bigint)` - sets the gas limit for the query (default: max block gas limit)
+- `atBlock(blockHash: HexString)` - sets the block hash at which the query is executed (default: latest block)
+- `call()` - executes the query and returns the result
+
+```javascript
+// Basic query (uses Zero Address as default origin)
+const result = await sails.services.ServiceName.queries.QueryName(arg1, arg2).call();
+
+// Query with origin address
+const result = await sails.services.ServiceName.queries.QueryName(arg1, arg2)
+  .withAddress('kGkLEU3e3XXkJp2WK4eNpVmSab5xUNL9QtmLPh8QfCL2EgotW')
+  .call();
+
+// Query with full custom configuration
+const result = await sails.services.ServiceName.queries.QueryName(arg1, arg2)
+  .withAddress('kGkLEU3e3XXkJp2WK4eNpVmSab5xUNL9QtmLPh8QfCL2EgotW')
+  .withValue(1000000000000n) // 1 VARA
+  .withGasLimit(50000000000n)
+  .atBlock('0x1234567890abcdef...')
+  .call();
+```
 
 ### Events
 `sails.services.ServiceName.events` property contains an object with all the events available in the IDL file.
@@ -145,8 +178,8 @@ sails.services.ServiceName.events.EventName.subscribe((data) => {
 ### Get function name and decode bytes
 Use `getServiceNamePrefix` function to get the service name from the payload bytes.
 Use `getFnNamePrefix` method to get the function or event name from the payload bytes.
-Use `sails.services.ServiceName.functions.FuncitonName.decodePayload` method of the function object to decode the payload bytes of the send message.
-Use `sails.services.ServiceName.functions.FuncitonName.decodeResult` method of the function object to decode the result bytes of the received message.
+Use `sails.services.ServiceName.functions.FunctionName.decodePayload` method of the function object to decode the payload bytes of the send message.
+Use `sails.services.ServiceName.functions.FunctionName.decodeResult` method of the function object to decode the result bytes of the received message.
 
 ```javascript
 import { getServiceNamePrefix, getFnNamePrefix } from 'sails-js';
@@ -156,10 +189,10 @@ const functionName = getFnNamePrefix(payloadOfSentMessage);
 console.log(sails.services[serviceName].functions[functionName].decodeResult(payloadOfSentMessage));
 
 const payloadOfReceivedMessage = '0x<some bytes>';
-console.log(sails.service[serviceName].functions[functionName].decodePayload(payloadOfReceivedMessage));
+console.log(sails.services[serviceName].functions[functionName].decodePayload(payloadOfReceivedMessage));
 ```
 
-The same approach can be used to encode/decode bytes of the contructor or event.
+The same approach can be used to encode/decode bytes of the constructor or event.
 
 ```javascript
 sails.ctors.ConstructorName.encodePayload(arg1, arg2);
@@ -172,7 +205,7 @@ sails.events.EventName.decode('<some bytes>')
 Use `sails.services.ServiceName.functions.FunctionName.encodePayload` method of the function object to encode the payload for the specific function. The bytes returned by this method can be used to send the message to the program.
 
 ```javascript
-const payload = sails.functions.SomeFunction.encodePayload(arg1, arg2);
+const payload = sails.services.ServiceName.functions.FunctionName.encodePayload(arg1, arg2);
 ```
 
 

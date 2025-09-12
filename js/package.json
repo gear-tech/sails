@@ -1,6 +1,6 @@
 {
   "name": "sails-js",
-  "version": "0.4.3",
+  "version": "0.5.0",
   "description": "Typescript library for working with Sails programs",
   "type": "module",
   "license": "GPL-3.0",
@@ -31,26 +31,26 @@
   "scripts": {
     "prebuild": "rm -rf lib",
     "build": "npx rollup --config rollup.config.js",
-    "test": "yarn node --no-warnings --experimental-vm-modules $(yarn bin jest) --detectOpenHandles",
+    "test": "yarn node --no-warnings --experimental-vm-modules $(yarn bin jest) --runInBand",
     "clean": "rm -rf lib",
     "pack-build": "yarn pack --out sails-js.tgz"
   },
   "peerDependencies": {
-    "@gear-js/api": "^0.44.0",
+    "@gear-js/api": "^0.44.1",
     "@polkadot/api": "^16.4.1"
   },
   "optionalDependencies": {
-    "sails-js-types": "0.4.3"
+    "sails-js-types": "0.5.0"
   },
   "dependencies": {
-    "sails-js-util": "0.4.3"
+    "sails-js-util": "0.5.0"
   },
   "devDependencies": {
-    "@gear-js/api": "0.44.0",
+    "@gear-js/api": "0.44.1",
     "@polkadot/api": "16.4.6",
     "@polkadot/types": "16.4.6",
-    "jest": "^30.0.5",
-    "sails-js-types": "*"
+    "jest": "^30.1.3",
+    "sails-js-types": "0.5.0"
   },
   "files": [
     "lib"

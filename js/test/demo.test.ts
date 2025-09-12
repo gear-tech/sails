@@ -9,7 +9,6 @@ import { SailsProgram } from './demo/lib';
 
 let api: GearApi;
 let alice: KeyringPair;
-let aliceRaw: HexString;
 let charlie: KeyringPair;
 let charlieRaw: HexString;
 let code: Buffer;
@@ -22,7 +21,6 @@ beforeAll(async () => {
   await waitReady();
   const keyring = new Keyring({ type: 'sr25519' });
   alice = keyring.addFromUri('//Alice');
-  aliceRaw = decodeAddress(alice.address);
   charlie = keyring.addFromUri('//Charlie');
   charlieRaw = decodeAddress(charlie.address);
   code = readFileSync(DEMO_WASM_PATH);
@@ -182,9 +180,9 @@ describe('Counter', () => {
   });
 
   test('query Value', async () => {
-    const value = await program.counter.value(aliceRaw);
+    const value = program.counter.value();
 
-    expect(value).toBe(2);
+    expect(await value.call()).toBe(2);
   });
 });
 
@@ -256,9 +254,9 @@ describe('Dog', () => {
   });
 
   test('query Position', async () => {
-    const position = await program.dog.position(aliceRaw);
+    const position = program.dog.position();
 
-    expect(position).toEqual([10, 15]);
+    expect(await position.call()).toEqual([10, 15]);
   });
 });
 

@@ -3,11 +3,11 @@ type UintType = string | number | bigint;
 const UNonZeroBase = <T>(value: UintType, size: 8 | 16 | 32 | 64 | 128 | 256): T => {
   const _value = BigInt(value);
 
-  if (_value <= BigInt(0)) {
+  if (_value <= 0n) {
     throw new Error('Value is not non-zero');
   }
 
-  if (_value >= BigInt(2) ** BigInt(size)) {
+  if (_value >= 2n ** BigInt(size)) {
     throw new Error('Value is too large');
   }
 

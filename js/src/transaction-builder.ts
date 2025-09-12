@@ -10,8 +10,9 @@ import {
 import { SignerOptions, SubmittableExtrinsic } from '@polkadot/api/types';
 import { IKeyringPair, ISubmittableResult } from '@polkadot/types/types';
 import { TypeRegistry, u128, u64 } from '@polkadot/types';
-import { u8aConcat } from '@polkadot/util';
 import { getPayloadMethod } from 'sails-js-util';
+import { u8aConcat } from '@polkadot/util';
+
 import { ZERO_ADDRESS } from './consts.js';
 import { throwOnErrorReply } from './utils.js';
 
