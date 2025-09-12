@@ -412,8 +412,8 @@ async fn counter_add_works_via_manual_mode() {
     let mut counter_events = counter_listener.listen().await.unwrap();
 
     // Use generated client code for calling Counter service
-    let call_add = counter_client.add(10).send_message().unwrap();
-    let call_sub = counter_client.sub(20).send_message().unwrap();
+    let call_add = counter_client.add(10).send_for_reply().unwrap();
+    let call_sub = counter_client.sub(20).send_for_reply().unwrap();
 
     // Run next Block
     env.run_next_block();

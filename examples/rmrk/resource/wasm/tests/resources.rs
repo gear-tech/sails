@@ -452,15 +452,13 @@ impl Fixture {
             resource.encode(),
         ]
         .concat();
-        let env = self.env.clone();
-        let message_id = env.send_message(
-            self.resource_program_id,
-            encoded_request,
-            GtestParams::default().with_actor_id(actor_id.into()),
-        )?;
-        env.message_reply_from_next_blocks(message_id)
+        self.env
+            .send_for_reply(
+                self.resource_program_id,
+                encoded_request,
+                GtestParams::default().with_actor_id(actor_id.into()),
+            )
             .await
-            .unwrap()
     }
 
     async fn add_resource_via_client(

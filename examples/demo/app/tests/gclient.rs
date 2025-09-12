@@ -116,7 +116,7 @@ async fn ping_pong_works() {
 
     // Act
     let ping_reply_payload = env
-        .send_message(
+        .send_for_reply(
             demo_program.id(),
             ping_call_payload,
             GclientParams::default().with_gas_limit(gas_limit),

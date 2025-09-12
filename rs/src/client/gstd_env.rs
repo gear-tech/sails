@@ -75,6 +75,25 @@ impl GearEnv for GstdEnv {
     type MessageState = core::future::Ready<Result<Vec<u8>, Self::Error>>;
 }
 
+impl GstdEnv {
+    pub fn send_one_way(
+        &self,
+        destination: ActorId,
+        payload: impl AsRef<[u8]>,
+        params: GstdParams,
+    ) -> Result<MessageId, Error> {
+        let value = params.value.unwrap_or(0);
+
+        #[cfg(not(feature = "ethexe"))]
+        if let Some(gas_limit) = params.gas_limit {
+            return ::gcore::msg::send_with_gas(destination, payload.as_ref(), gas_limit, value)
+                .map_err(Error::Core);
+        }
+
+        ::gcore::msg::send(destination, payload.as_ref(), value).map_err(Error::Core)
+    }
+}
+
 impl<T: CallEncodeDecode> PendingCall<GstdEnv, T> {
     pub fn send_one_way(&mut self) -> Result<MessageId, Error> {
         let args = self
@@ -84,20 +103,7 @@ impl<T: CallEncodeDecode> PendingCall<GstdEnv, T> {
         let payload = T::encode_params_with_prefix(self.route, &args);
         let params = self.params.take().unwrap_or_default();
 
-        let value = params.value.unwrap_or(0);
-
-        #[cfg(not(feature = "ethexe"))]
-        if let Some(gas_limit) = params.gas_limit {
-            return ::gcore::msg::send_with_gas(
-                self.destination,
-                payload.as_slice(),
-                gas_limit,
-                value,
-            )
-            .map_err(Error::Core);
-        }
-
-        ::gcore::msg::send(self.destination, payload.as_slice(), value).map_err(Error::Core)
+        self.env.send_one_way(self.destination, payload, params)
     }
 }
 
@@ -107,8 +113,8 @@ const _: () = {
 
     #[cfg(not(feature = "ethexe"))]
     #[inline]
-    pub(crate) fn send_for_reply_future(
-        target: ActorId,
+    fn send_for_reply_future(
+        destination: ActorId,
         payload: &[u8],
         params: &mut GstdParams,
     ) -> Result<MessageFuture, Error> {
@@ -116,7 +122,7 @@ const _: () = {
         // here can be a redirect target
         let mut message_future = if let Some(gas_limit) = params.gas_limit {
             ::gstd::msg::send_bytes_with_gas_for_reply(
-                target,
+                destination,
                 payload,
                 gas_limit,
                 value,
@@ -124,7 +130,7 @@ const _: () = {
             )?
         } else {
             ::gstd::msg::send_bytes_for_reply(
-                target,
+                destination,
                 payload,
                 value,
                 params.reply_deposit.unwrap_or_default(),
@@ -142,13 +148,13 @@ const _: () = {
     #[cfg(feature = "ethexe")]
     #[inline]
     fn send_for_reply_future(
-        target: ActorId,
+        destination: ActorId,
         payload: &[u8],
         params: &mut GstdParams,
     ) -> Result<MessageFuture, Error> {
         let value = params.value.unwrap_or(0);
         // here can be a redirect target
-        let mut message_future = ::gstd::msg::send_bytes_for_reply(target, payload, value)?;
+        let mut message_future = ::gstd::msg::send_bytes_for_reply(destination, payload, value)?;
 
         message_future = message_future.up_to(params.wait_up_to)?;
 
@@ -157,12 +163,12 @@ const _: () = {
 
     #[inline]
     fn send_for_reply(
-        target: ActorId,
+        destination: ActorId,
         payload: Vec<u8>,
         mut params: GstdParams,
     ) -> Result<GtsdFuture, Error> {
         // send message
-        let future = send_for_reply_future(target, payload.as_ref(), &mut params)?;
+        let future = send_for_reply_future(destination, payload.as_ref(), &mut params)?;
         if params.redirect_on_exit {
             let created_block = params.wait_up_to.map(|_| gstd::exec::block_height());
             Ok(GtsdFuture::MessageWithRedirect {
@@ -170,7 +176,7 @@ const _: () = {
                 future,
                 params,
                 payload,
-                target,
+                destination,
             })
         } else {
             Ok(GtsdFuture::Message { future })
@@ -222,7 +228,7 @@ const _: () = {
                     ErrorReplyReason::UnavailableActor(SimpleUnavailableActorError::ProgramExited),
                 )) => {
                     if let Replace::MessageWithRedirect {
-                        target: _target,
+                        destination: _destination,
                         payload,
                         mut params,
                         created_block,
@@ -231,7 +237,7 @@ const _: () = {
                         && params.redirect_on_exit
                         && let Ok(new_target) = ActorId::try_from(error_payload.0.as_ref())
                     {
-                        gstd::debug!("Redirecting message from {_target} to {new_target}");
+                        gstd::debug!("Redirecting message from {_destination} to {new_target}");
 
                         // Calculate updated `wait_up_to` if provided
                         // wait_up_to = wait_up_to - (current_block - created_block)
@@ -345,7 +351,7 @@ pin_project_lite::pin_project! {
         MessageWithRedirect {
             #[pin]
             future: MessageFuture,
-            target: ActorId,
+            destination: ActorId,
             payload: Vec<u8>,
             params: GstdParams,
             created_block: Option<BlockCount>,
