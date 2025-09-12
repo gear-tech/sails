@@ -253,6 +253,17 @@ impl<E: GearEnv, T: CallEncodeDecode> PendingCall<E, T> {
         self.params = Some(f(self.params.unwrap_or_default()));
         self
     }
+
+    #[inline]
+    fn take_encoded_args_and_params(&mut self) -> (Vec<u8>, E::Params) {
+        let args = self
+            .args
+            .take()
+            .unwrap_or_else(|| panic!("{PENDING_CALL_INVALID_STATE}"));
+        let payload = T::encode_params_with_prefix(self.route, &args);
+        let params = self.params.take().unwrap_or_default();
+        (payload, params)
+    }
 }
 
 pin_project_lite::pin_project! {

@@ -69,9 +69,9 @@ impl GtestEnv {
         }
     }
 
-    // Avoid calling methods of `System` related to block execution.
-    // Use `GTestRemoting::run_next_block` instead. This method can be used
-    // for obtaining reference data like balance, timestamp, etc.
+    /// Avoid calling methods of `System` related to block execution.
+    /// Use `GtestEnv::run_next_block` instead. This method can be used
+    /// for obtaining reference data like balance, timestamp, etc.
     pub fn system(&self) -> &System {
         &self.system
     }
@@ -279,14 +279,8 @@ impl<T: CallEncodeDecode> PendingCall<GtestEnv, T> {
         if self.state.is_some() {
             panic!("{PENDING_CALL_INVALID_STATE}");
         }
+        let (payload, params) = self.take_encoded_args_and_params();
         // Send message
-        let args = self
-            .args
-            .take()
-            .unwrap_or_else(|| panic!("{PENDING_CALL_INVALID_STATE}"));
-        let payload = T::encode_params_with_prefix(self.route, &args);
-        let params = self.params.take().unwrap_or_default();
-
         let message_id = self.env.send_one_way(self.destination, payload, params)?;
         log::debug!("PendingCall: send message {message_id:?}");
         Ok(message_id)
@@ -299,13 +293,7 @@ impl<T: CallEncodeDecode> PendingCall<GtestEnv, T> {
     }
 
     pub fn query(mut self) -> Result<T::Reply, GtestError> {
-        let params = self.params.unwrap_or_default();
-        let args = self
-            .args
-            .take()
-            .unwrap_or_else(|| panic!("{PENDING_CALL_INVALID_STATE}"));
-        let payload = T::encode_params_with_prefix(self.route, &args);
-
+        let (payload, params) = self.take_encoded_args_and_params();
         // Calculate reply
         let reply_bytes = self.env.query(self.destination, payload, params)?;
 
@@ -320,14 +308,8 @@ impl<T: CallEncodeDecode> Future for PendingCall<GtestEnv, T> {
 
     fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
         if self.state.is_none() {
+            let (payload, params) = self.take_encoded_args_and_params();
             // Send message
-            let args = self
-                .args
-                .take()
-                .unwrap_or_else(|| panic!("{PENDING_CALL_INVALID_STATE}"));
-            let payload = T::encode_params_with_prefix(self.route, &args);
-            let params = self.params.take().unwrap_or_default();
-
             let send_res = self.env.send_one_way(self.destination, payload, params);
             match send_res {
                 Ok(message_id) => {
