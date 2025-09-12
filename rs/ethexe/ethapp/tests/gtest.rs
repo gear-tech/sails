@@ -88,13 +88,9 @@ async fn ethapp_remoting_works() {
     let do_this_params = (0u128, false, 42, "hello").abi_encode_sequence();
     let payload = [do_this_sig.as_slice(), do_this_params.as_slice()].concat();
 
-    let message_id = env
-        .send_message(program_id, payload, Default::default())
-        .unwrap();
     let reply_payload = env
-        .message_reply_from_next_blocks(message_id)
+        .send_for_reply(program_id, payload, Default::default())
         .await
-        .unwrap()
         .unwrap();
 
     let reply = u32::abi_decode(reply_payload.as_slice(), true);
@@ -134,13 +130,9 @@ async fn ethapp_remoting_encode_reply_works() {
     let payload = [do_this_sig.as_slice(), do_this_params.as_slice()].concat();
 
     // act
-    let message_id = env
-        .send_message(program_id, payload, Default::default())
-        .unwrap();
     let reply_payload = env
-        .message_reply_from_next_blocks(message_id)
+        .send_for_reply(program_id, payload, Default::default())
         .await
-        .unwrap()
         .unwrap();
 
     // assert

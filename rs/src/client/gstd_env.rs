@@ -96,13 +96,7 @@ impl GstdEnv {
 
 impl<T: CallEncodeDecode> PendingCall<GstdEnv, T> {
     pub fn send_one_way(&mut self) -> Result<MessageId, Error> {
-        let args = self
-            .args
-            .take()
-            .unwrap_or_else(|| panic!("{PENDING_CALL_INVALID_STATE}"));
-        let payload = T::encode_params_with_prefix(self.route, &args);
-        let params = self.params.take().unwrap_or_default();
-
+        let (payload, params) = self.take_encoded_args_and_params();
         self.env.send_one_way(self.destination, payload, params)
     }
 }

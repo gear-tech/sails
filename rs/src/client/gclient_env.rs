@@ -90,26 +90,14 @@ impl GearEnv for GclientEnv {
 
 impl<T: CallEncodeDecode> PendingCall<GclientEnv, T> {
     pub async fn send_one_way(&mut self) -> Result<MessageId, GclientError> {
-        let params = self.params.take().unwrap_or_default();
-        let args = self
-            .args
-            .take()
-            .unwrap_or_else(|| panic!("{PENDING_CALL_INVALID_STATE}"));
-        let payload = T::encode_params_with_prefix(self.route, &args);
-
+        let (payload, params) = self.take_encoded_args_and_params();
         self.env
             .send_one_way(self.destination, payload, params)
             .await
     }
 
     pub async fn send_for_reply(mut self) -> Result<Self, GclientError> {
-        let params = self.params.take().unwrap_or_default();
-        let args = self
-            .args
-            .take()
-            .unwrap_or_else(|| panic!("{PENDING_CALL_INVALID_STATE}"));
-        let payload = T::encode_params_with_prefix(self.route, &args);
-
+        let (payload, params) = self.take_encoded_args_and_params();
         // send for reply
         let send_future = send_for_reply(self.env.api.clone(), self.destination, payload, params);
         self.state = Some(Box::pin(send_future));
@@ -117,12 +105,7 @@ impl<T: CallEncodeDecode> PendingCall<GclientEnv, T> {
     }
 
     pub async fn query(mut self) -> Result<T::Reply, GclientError> {
-        let params = self.params.unwrap_or_default();
-        let args = self
-            .args
-            .take()
-            .unwrap_or_else(|| panic!("{PENDING_CALL_INVALID_STATE}"));
-        let payload = T::encode_params_with_prefix(self.route, &args);
+        let (payload, params) = self.take_encoded_args_and_params();
 
         // Calculate reply
         let reply_bytes =
@@ -139,14 +122,8 @@ impl<T: CallEncodeDecode> Future for PendingCall<GclientEnv, T> {
 
     fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
         if self.state.is_none() {
+            let (payload, params) = self.take_encoded_args_and_params();
             // Send message
-            let params = self.params.take().unwrap_or_default();
-            let args = self
-                .args
-                .take()
-                .unwrap_or_else(|| panic!("{PENDING_CALL_INVALID_STATE}"));
-            let payload = T::encode_params_with_prefix(self.route, &args);
-
             let send_future =
                 send_for_reply(self.env.api.clone(), self.destination, payload, params);
             self.state = Some(Box::pin(send_future));
