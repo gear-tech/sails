@@ -165,9 +165,9 @@ impl GtestEnv {
         Ok((program_id, message_id))
     }
 
-    pub fn send_message(
+    pub fn send_one_way(
         &self,
-        target: ActorId,
+        destination: ActorId,
         payload: impl AsRef<[u8]>,
         params: GtestParams,
     ) -> Result<MessageId, GtestError> {
@@ -178,15 +178,27 @@ impl GtestEnv {
         let gas_limit = GAS_LIMIT_DEFAULT;
         let program = self
             .system
-            .get_program(target)
-            .ok_or(TestError::ActorNotFound(target))?;
+            .get_program(destination)
+            .ok_or(TestError::ActorNotFound(destination))?;
         let actor_id = params.actor_id.unwrap_or(self.actor_id);
         let message_id = program.send_bytes_with_gas(actor_id, payload.as_ref(), gas_limit, value);
         log::debug!(
-            "Send message id: {message_id}, to: {target}, payload: {}",
+            "Send message id: {message_id}, to: {destination}, payload: {}",
             hex::encode(payload.as_ref())
         );
         Ok(message_id)
+    }
+
+    pub async fn send_for_reply(
+        &self,
+        destination: ActorId,
+        payload: impl AsRef<[u8]>,
+        params: GtestParams,
+    ) -> Result<Vec<u8>, GtestError> {
+        let message_id = self.send_one_way(destination, payload, params)?;
+        self.message_reply_from_next_blocks(message_id)
+            .await
+            .unwrap_or(Err(GtestError::ReplyIsMissing))
     }
 
     pub fn message_reply_from_next_blocks(&self, message_id: MessageId) -> ReplyReceiver {
@@ -208,7 +220,7 @@ impl GtestEnv {
 
     pub fn query(
         &self,
-        target: ActorId,
+        destination: ActorId,
         payload: impl AsRef<[u8]>,
         params: GtestParams,
     ) -> Result<Vec<u8>, GtestError> {
@@ -221,7 +233,7 @@ impl GtestEnv {
         let actor_id = params.actor_id.unwrap_or(self.actor_id);
         let reply_info = self
             .system
-            .calculate_reply_for_handle(actor_id, target, payload.as_ref(), gas_limit, value)
+            .calculate_reply_for_handle(actor_id, destination, payload.as_ref(), gas_limit, value)
             .map_err(|_s| GtestError::ReplyIsMissing)?;
 
         match reply_info.code {
@@ -275,12 +287,12 @@ impl<T: CallEncodeDecode> PendingCall<GtestEnv, T> {
         let payload = T::encode_params_with_prefix(self.route, &args);
         let params = self.params.take().unwrap_or_default();
 
-        let message_id = self.env.send_message(self.destination, payload, params)?;
+        let message_id = self.env.send_one_way(self.destination, payload, params)?;
         log::debug!("PendingCall: send message {message_id:?}");
         Ok(message_id)
     }
 
-    pub fn send_message(mut self) -> Result<Self, GtestError> {
+    pub fn send_for_reply(mut self) -> Result<Self, GtestError> {
         let message_id = self.send_one_way()?;
         self.state = Some(self.env.message_reply_from_next_blocks(message_id));
         Ok(self)
@@ -316,7 +328,7 @@ impl<T: CallEncodeDecode> Future for PendingCall<GtestEnv, T> {
             let payload = T::encode_params_with_prefix(self.route, &args);
             let params = self.params.take().unwrap_or_default();
 
-            let send_res = self.env.send_message(self.destination, payload, params);
+            let send_res = self.env.send_one_way(self.destination, payload, params);
             match send_res {
                 Ok(message_id) => {
                     log::debug!("PendingCall: send message {message_id:?}");
