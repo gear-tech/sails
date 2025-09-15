@@ -1,8 +1,9 @@
+import { fileURLToPath } from 'node:url';
+import path from 'node:path';
+
 import { ProjectBuilder } from '../build/index.js';
 import { Sails } from '../../lib';
 import { SailsIdlParser } from '../../parser/lib';
-import { fileURLToPath } from 'node:url';
-import path from 'node:path';
 
 const __filename = fileURLToPath(import.meta.url);
 

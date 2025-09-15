@@ -35,7 +35,8 @@
   "scripts": {
     "prebuild": "rm -rf build",
     "build": "npx rollup --config rollup.config.js && chmod +x build/app.js",
-    "test": "TEST_ENV=true npx rollup --config rollup.config.js && node --experimental-vm-modules ../../node_modules/.bin/jest",
+    "pretest": "TEST_ENV=true npx rollup --config rollup.config.js",
+    "test": "NODE_OPTIONS=\"$NODE_OPTIONS --experimental-vm-modules\" npx jest",
     "pack-build": "pnpm pack --out ../sails-js-cli.tgz"
   },
   "files": [
