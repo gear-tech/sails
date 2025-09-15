@@ -1,0 +1,10 @@
+packages:
+  - js
+  - js/cli
+  - js/parser
+  - js/types
+  - js/util
+  - js/example
+
+ignoredBuiltDependencies:
+  - unrs-resolver
