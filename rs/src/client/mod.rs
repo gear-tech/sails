@@ -354,6 +354,21 @@ pub trait CallEncodeDecode {
         Decode::decode(&mut value)
     }
 
+    fn with_optimized_encode<R>(
+        prefix: Route,
+        value: &Self::Params,
+        f: impl FnOnce(&[u8]) -> R,
+    ) -> R {
+        let size = 2 + prefix.len() + Self::ROUTE.len() + Encode::encoded_size(value);
+        gcore::stack_buffer::with_byte_buffer(size, |buffer| {
+            let mut buffer_writer = crate::utils::MaybeUninitBufferWriter::new(buffer);
+            Encode::encode_to(prefix, &mut buffer_writer);
+            Encode::encode_to(Self::ROUTE, &mut buffer_writer);
+            Encode::encode_to(value, &mut buffer_writer);
+            buffer_writer.with_buffer(f)
+        })
+    }
+
     fn is_empty_tuple<T: 'static>() -> bool {
         TypeId::of::<T>() == TypeId::of::<()>()
     }

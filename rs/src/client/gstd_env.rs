@@ -158,18 +158,16 @@ const _: () = {
     #[inline]
     fn send_for_reply(
         destination: ActorId,
-        payload: Vec<u8>,
-        mut params: GstdParams,
+        payload: &[u8],
+        params: &mut GstdParams,
     ) -> Result<GtsdFuture, Error> {
         // send message
-        let future = send_for_reply_future(destination, payload.as_ref(), &mut params)?;
+        let future = send_for_reply_future(destination, payload, params)?;
         if params.redirect_on_exit {
             let created_block = params.wait_up_to.map(|_| gstd::exec::block_height());
             Ok(GtsdFuture::MessageWithRedirect {
                 created_block,
                 future,
-                params,
-                payload,
                 destination,
             })
         } else {
@@ -182,15 +180,15 @@ const _: () = {
 
         fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
             if self.state.is_none() {
-                // Send message
                 let args = self
                     .args
-                    .take()
+                    .as_ref()
                     .unwrap_or_else(|| panic!("{PENDING_CALL_INVALID_STATE}"));
-                let payload = T::encode_params_with_prefix(self.route, &args);
-                let params = self.params.take().unwrap_or_default();
-
-                let send_res = send_for_reply(self.destination, payload, params);
+                let payload = T::encode_params_with_prefix(self.route, args);
+                let destination = self.destination;
+                let params = self.params.get_or_insert_default();
+                // Send message
+                let send_res = send_for_reply(destination, payload.as_slice(), params);
                 match send_res {
                     Ok(future) => {
                         self.state = Some(future);
@@ -221,10 +219,9 @@ const _: () = {
                     error_payload,
                     ErrorReplyReason::UnavailableActor(SimpleUnavailableActorError::ProgramExited),
                 )) => {
+                    let params = this.params.get_or_insert_default();
                     if let Replace::MessageWithRedirect {
                         destination: _destination,
-                        payload,
-                        mut params,
                         created_block,
                         ..
                     } = state.as_mut().project_replace(GtsdFuture::Dummy)
@@ -243,9 +240,14 @@ const _: () = {
                             })
                         });
 
+                        let args = this
+                            .args
+                            .as_ref()
+                            .unwrap_or_else(|| panic!("{PENDING_CALL_INVALID_STATE}"));
+                        let payload = T::encode_params_with_prefix(this.route, args);
                         // send message to new target
-                        let future_res = send_for_reply(new_target, payload, params);
-                        match future_res {
+                        let send_res = send_for_reply(new_target, payload.as_slice(), params);
+                        match send_res {
                             Ok(future) => {
                                 // Replace the future with a new one
                                 _ = state.as_mut().project_replace(future);
@@ -275,16 +277,16 @@ const _: () = {
 
         fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
             if self.state.is_none() {
-                // Send message
+                let params = self.params.take().unwrap_or_default();
+                let value = params.value.unwrap_or(0);
+                let salt = self.salt.take().unwrap();
+
                 let args = self
                     .args
                     .take()
                     .unwrap_or_else(|| panic!("{PENDING_CALL_INVALID_STATE}"));
                 let payload = T::encode_params(&args);
-                let params = self.params.take().unwrap_or_default();
-                let value = params.value.unwrap_or(0);
-                let salt = self.salt.take().unwrap();
-
+                // Send message
                 #[cfg(not(feature = "ethexe"))]
                 let program_future = if let Some(gas_limit) = params.gas_limit {
                     ::gstd::prog::create_program_bytes_with_gas_for_reply(
@@ -346,8 +348,6 @@ pin_project_lite::pin_project! {
             #[pin]
             future: MessageFuture,
             destination: ActorId,
-            payload: Vec<u8>,
-            params: GstdParams,
             created_block: Option<BlockCount>,
         },
         Dummy,
