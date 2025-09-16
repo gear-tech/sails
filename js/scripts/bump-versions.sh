@@ -8,4 +8,4 @@ for pkg in ${pkgs[@]}; do
   jq ".version = \"$version\"" $pkg > tmp.$$.json && mv tmp.$$.json $pkg
 done
 
-yarn install
+pnpm install
