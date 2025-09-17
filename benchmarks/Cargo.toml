@@ -33,6 +33,7 @@ alloc-stress = { path = "alloc-stress" }
 compute-stress = { path = "compute-stress" }
 counter-bench = { path = "counter-bench" }
 ping-pong-bench-app = { path = "ping-pong/app" }
+ping-pong-stack = { path = "../examples/ping-pong-stack" }
 redirect-app = { path = "../examples/redirect/app" }
 redirect-client = { path = "../examples/redirect/client" }
 redirect-proxy = { path = "../examples/redirect/proxy" }

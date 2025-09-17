@@ -1,0 +1,8 @@
+constructor {
+  NewForBench : ();
+};
+
+service PingPongStack {
+  Start : (actor_id: actor_id, limit: u32) -> null;
+  Ping : (countdown: u32) -> null;
+};
