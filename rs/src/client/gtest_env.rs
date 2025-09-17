@@ -435,3 +435,9 @@ impl Listener for GtestEnv {
         Ok(rx.filter_map(f))
     }
 }
+
+impl<T> Actor<GtestEnv, T> {
+    pub fn balance(&self) -> ValueUnit {
+        self.env.system().balance_of(self.id)
+    }
+}
