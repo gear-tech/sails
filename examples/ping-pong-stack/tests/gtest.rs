@@ -21,23 +21,22 @@ async fn ping_pong_stack_works() {
         .await
         .unwrap();
 
-    for limit in 0u32..10 {
-        let initial_balance = env.system().balance_of(ACTOR_ID);
+    let limit = 10;
+    let initial_balance = env.system().balance_of(ACTOR_ID);
 
-        program_1
-            .ping_pong_stack()
-            .start(program_2.id(), limit)
-            .await
-            .unwrap();
+    program_1
+        .ping_pong_stack()
+        .start(program_2.id(), limit)
+        .await
+        .unwrap();
 
-        let balance = env.system().balance_of(ACTOR_ID);
+    let balance = env.system().balance_of(ACTOR_ID);
 
-        println!(
-            "[ping_pong_stack_works] limit: {:02}, burned: {:>14}",
-            limit,
-            initial_balance - balance,
-        );
-    }
+    println!(
+        "[ping_pong_stack_works] limit: {:02}, burned: {:>14}",
+        limit,
+        initial_balance - balance,
+    );
 }
 
 fn create_env() -> (GtestEnv, CodeId, GasUnit) {

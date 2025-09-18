@@ -72,6 +72,6 @@ pub mod ping_pong_stack {
     pub mod io {
         use super::*;
         sails_rs::io_struct_impl!(Start (actor_id: ActorId, limit: u32) -> ());
-        sails_rs::io_struct_impl!(Ping (countdown: u32) -> bool);
+        sails_rs::io_struct_impl!(Ping (countdown: u32) -> ());
     }
 }

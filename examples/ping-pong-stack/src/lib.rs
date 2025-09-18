@@ -19,9 +19,9 @@ impl PingPongStack {
     }
 
     #[export]
-    pub async fn ping(&mut self, countdown: u32) -> bool {
+    pub async fn ping(&mut self, countdown: u32) {
         let source = msg::source();
-        self.call(source, countdown - 1).await
+        self.call(source, countdown - 1).await;
     }
 
     #[inline]
@@ -29,11 +29,12 @@ impl PingPongStack {
         sails_rs::gstd::debug!("Ping: {countdown}, actor_id: {actor_id}");
         if countdown > 0 {
             let mut api = client::PingPongStackProgram::client(actor_id).ping_pong_stack();
-            let res = api.ping(countdown).await;
-            sails_rs::gstd::debug!("Result: {res:?}");
-            false
-        } else {
+            let _res = api.ping(countdown).with_reply_deposit(10_000_000_000).await;
+            sails_rs::gstd::debug!("Result: {_res:?}");
+            debug_assert!(_res.is_ok());
             true
+        } else {
+            false
         }
     }
 }

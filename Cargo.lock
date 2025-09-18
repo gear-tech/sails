@@ -838,6 +838,7 @@ dependencies = [
  "gtest",
  "itertools 0.14.0",
  "ping-pong-bench-app",
+ "ping-pong-stack",
  "redirect-app",
  "redirect-client",
  "redirect-proxy",

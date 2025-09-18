@@ -245,6 +245,27 @@ async fn redirect_bench() {
     .unwrap();
 }
 
+#[tokio::test]
+async fn message_stack_bench() {
+    let mut benches: BTreeMap<u32, Vec<u64>> = Default::default();
+    let limits = [0u32, 1, 5, 10, 20];
+
+    for _ in 0..100 {
+        for &limit in limits.iter() {
+            let gas = message_stack_test(limit).await;
+
+            benches.entry(limit).or_default().push(gas);
+        }
+    }
+
+    for (len, gas_benches) in benches {
+        crate::store_bench_data(|bench_data| {
+            bench_data.update_message_stack_bench(len, median(gas_benches));
+        })
+        .unwrap();
+    }
+}
+
 async fn alloc_stress_test(n: u32) -> (usize, u64) {
     // Path taken from the .binpath file
     let wasm_path = "../target/wasm32-gear/release/alloc_stress.opt.wasm";
@@ -267,6 +288,32 @@ async fn alloc_stress_test(n: u32) -> (usize, u64) {
     assert_eq!(stress_resp.inner.len(), expected_len);
 
     (expected_len, gas)
+}
+
+async fn message_stack_test(limit: u32) -> u64 {
+    use ping_pong_stack::client::{PingPongStack as _, ping_pong_stack::PingPongStack as _};
+    // Path taken from the .binpath file
+    let wasm_path = "../target/wasm32-gear/release/ping_pong_stack.opt.wasm";
+    let env = create_env();
+    let program_1 = deploy_for_bench(&env, wasm_path, |d| {
+        ping_pong_stack::client::PingPongStackCtors::new_for_bench(d)
+    })
+    .await;
+    let program_2 = deploy_for_bench(&env, wasm_path, |d| {
+        ping_pong_stack::client::PingPongStackCtors::new_for_bench(d)
+    })
+    .await;
+
+    let initial_balance = env.system().balance_of(DEFAULT_USER_ALICE);
+
+    program_1
+        .ping_pong_stack()
+        .start(program_2.id(), limit)
+        .await
+        .unwrap();
+
+    let balance = env.system().balance_of(DEFAULT_USER_ALICE);
+    (initial_balance - balance).try_into().unwrap()
 }
 
 fn create_env() -> GtestEnv {

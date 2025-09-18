@@ -79,6 +79,7 @@ mod tests {
             },
             cross_program: CrossProgramBenchDataSerde { median: 42 },
             redirect: RedirectBenchDataSerde { median: 4242 },
+            message_stack: Default::default(),
         };
 
         // Create a temporary file.
@@ -140,6 +141,7 @@ mod tests {
                 },
                 cross_program: CrossProgramBenchDataSerde { median: 0 },
                 redirect: RedirectBenchDataSerde { median: 4343 },
+                message_stack: Default::default(),
             },
         )
     }
