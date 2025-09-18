@@ -70,7 +70,7 @@ impl GearEnv for GstdEnv {
     type Params = GstdParams;
     type Error = Error;
     #[cfg(target_arch = "wasm32")]
-    type MessageState = GtsdFuture;
+    type MessageState = GstdFuture;
     #[cfg(not(target_arch = "wasm32"))]
     type MessageState = core::future::Ready<Result<Vec<u8>, Self::Error>>;
 }
@@ -160,18 +160,18 @@ const _: () = {
         destination: ActorId,
         payload: &[u8],
         params: &mut GstdParams,
-    ) -> Result<GtsdFuture, Error> {
+    ) -> Result<GstdFuture, Error> {
         // send message
         let future = send_for_reply_future(destination, payload, params)?;
         if params.redirect_on_exit {
             let created_block = params.wait_up_to.map(|_| gstd::exec::block_height());
-            Ok(GtsdFuture::MessageWithRedirect {
+            Ok(GstdFuture::MessageWithRedirect {
                 created_block,
                 future,
                 destination,
             })
         } else {
-            Ok(GtsdFuture::Message { future })
+            Ok(GstdFuture::Message { future })
         }
     }
 
@@ -224,7 +224,7 @@ const _: () = {
                         destination: _destination,
                         created_block,
                         ..
-                    } = state.as_mut().project_replace(GtsdFuture::Dummy)
+                    } = state.as_mut().project_replace(GstdFuture::Dummy)
                         && params.redirect_on_exit
                         && let Ok(new_target) = ActorId::try_from(error_payload.0.as_ref())
                     {
@@ -315,7 +315,7 @@ const _: () = {
                 )?;
 
                 // self.program_id = Some(program_future.program_id);
-                self.state = Some(GtsdFuture::CreateProgram {
+                self.state = Some(GstdFuture::CreateProgram {
                     future: program_future,
                 });
             }
@@ -341,7 +341,7 @@ const _: () = {
 pin_project_lite::pin_project! {
     #[project = Projection]
     #[project_replace = Replace]
-    pub enum GtsdFuture {
+    pub enum GstdFuture {
         CreateProgram { #[pin] future: CreateProgramFuture },
         Message { #[pin] future: MessageFuture },
         MessageWithRedirect {
