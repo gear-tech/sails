@@ -124,7 +124,7 @@ impl<P: ProgramMeta> ClientBuilder<P> {
     pub fn with_idl_file_name<S: AsRef<OsStr>>(self, file_name: S) -> Self {
         let Self { idl_path, .. } = self;
         Self {
-            idl_path: idl_path.map(|p| p.with_file_name(file_name)),
+            idl_path: idl_path.map(|p| p.with_file_name(file_name).with_extension("idl")), // todo [sab] ?
             ..self
         }
     }
@@ -139,7 +139,7 @@ impl<P: ProgramMeta> ClientBuilder<P> {
     pub fn with_client_file_name<S: AsRef<OsStr>>(self, file_name: S) -> Self {
         let Self { client_path, .. } = self;
         Self {
-            client_path: client_path.map(|p| p.with_file_name(file_name)),
+            client_path: client_path.map(|p| p.with_file_name(file_name).with_extension("rs")), // todo [sab] ?
             ..self
         }
     }

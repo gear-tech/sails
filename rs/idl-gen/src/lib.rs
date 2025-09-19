@@ -79,15 +79,17 @@ fn render_idl(program_meta: &ExpandedProgramMeta, idl_writer: impl Write) -> Res
             .collect(),
     };
 
+    println!("commands {}", serde_json::to_string_pretty(&program_idl_data).unwrap());
+
     let mut handlebars = Handlebars::new();
     handlebars
         .register_template_string("idl", IDL_TEMPLATE)
         .map_err(Box::new)?;
     handlebars
-        .register_template_string("composite", COMPOSITE_TEMPLATE)
+        .register_partial("composite", COMPOSITE_TEMPLATE)
         .map_err(Box::new)?;
     handlebars
-        .register_template_string("variant", VARIANT_TEMPLATE)
+        .register_partial("variant", VARIANT_TEMPLATE)
         .map_err(Box::new)?;
     handlebars.register_helper("deref", Box::new(deref));
 

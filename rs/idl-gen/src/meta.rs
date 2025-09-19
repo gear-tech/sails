@@ -130,10 +130,9 @@ impl ExpandedProgramMeta {
         registry: &PortableRegistry,
         func_type_id: Option<u32>,
     ) -> Result<Vec<CtorFuncMeta>> {
-        if func_type_id.is_none() {
+        let Some(func_type_id) = func_type_id else {
             return Ok(Vec::new());
-        }
-        let func_type_id = func_type_id.unwrap();
+        };
         any_funcs(registry, func_type_id)?
             .map(|c| {
                 if c.fields.len() != 1 {
