@@ -82,15 +82,16 @@ impl GstdEnv {
         payload: impl AsRef<[u8]>,
         params: GstdParams,
     ) -> Result<MessageId, Error> {
-        let value = params.value.unwrap_or(0);
+        let value = params.value.unwrap_or_default();
+        let payload_bytes = payload.as_ref();
 
         #[cfg(not(feature = "ethexe"))]
         if let Some(gas_limit) = params.gas_limit {
-            return ::gcore::msg::send_with_gas(destination, payload.as_ref(), gas_limit, value)
+            return ::gcore::msg::send_with_gas(destination, payload_bytes, gas_limit, value)
                 .map_err(Error::Core);
         }
 
-        ::gcore::msg::send(destination, payload.as_ref(), value).map_err(Error::Core)
+        ::gcore::msg::send(destination, payload_bytes, value).map_err(Error::Core)
     }
 }
 
@@ -112,7 +113,8 @@ const _: () = {
         payload: &[u8],
         params: &mut GstdParams,
     ) -> Result<MessageFuture, Error> {
-        let value = params.value.unwrap_or(0);
+        let value = params.value.unwrap_or_default();
+        let reply_deposit = params.reply_deposit.unwrap_or_default();
         // here can be a redirect target
         let mut message_future = if let Some(gas_limit) = params.gas_limit {
             ::gstd::msg::send_bytes_with_gas_for_reply(
@@ -120,15 +122,10 @@ const _: () = {
                 payload,
                 gas_limit,
                 value,
-                params.reply_deposit.unwrap_or_default(),
+                reply_deposit,
             )?
         } else {
-            ::gstd::msg::send_bytes_for_reply(
-                destination,
-                payload,
-                value,
-                params.reply_deposit.unwrap_or_default(),
-            )?
+            ::gstd::msg::send_bytes_for_reply(destination, payload, value, reply_deposit)?
         };
 
         message_future = message_future.up_to(params.wait_up_to)?;
@@ -146,7 +143,7 @@ const _: () = {
         payload: &[u8],
         params: &mut GstdParams,
     ) -> Result<MessageFuture, Error> {
-        let value = params.value.unwrap_or(0);
+        let value = params.value.unwrap_or_default();
         // here can be a redirect target
         let mut message_future = ::gstd::msg::send_bytes_for_reply(destination, payload, value)?;
 
@@ -158,17 +155,18 @@ const _: () = {
     #[inline]
     fn send_for_reply(
         destination: ActorId,
-        payload: &[u8],
+        payload: Vec<u8>,
         params: &mut GstdParams,
     ) -> Result<GstdFuture, Error> {
         // send message
-        let future = send_for_reply_future(destination, payload, params)?;
+        let future = send_for_reply_future(destination, payload.as_ref(), params)?;
         if params.redirect_on_exit {
             let created_block = params.wait_up_to.map(|_| gstd::exec::block_height());
             Ok(GstdFuture::MessageWithRedirect {
                 created_block,
                 future,
                 destination,
+                payload,
             })
         } else {
             Ok(GstdFuture::Message { future })
@@ -184,11 +182,11 @@ const _: () = {
                     .args
                     .as_ref()
                     .unwrap_or_else(|| panic!("{PENDING_CALL_INVALID_STATE}"));
-                let payload = T::encode_params_with_prefix(self.route, args);
+                let payload = T::encode_params_with_prefix(self.route, &args);
                 let destination = self.destination;
                 let params = self.params.get_or_insert_default();
                 // Send message
-                let send_res = send_for_reply(destination, payload.as_slice(), params);
+                let send_res = send_for_reply(destination, payload, params);
                 match send_res {
                     Ok(future) => {
                         self.state = Some(future);
@@ -223,6 +221,7 @@ const _: () = {
                     if let Replace::MessageWithRedirect {
                         destination: _destination,
                         created_block,
+                        payload,
                         ..
                     } = state.as_mut().project_replace(GstdFuture::Dummy)
                         && params.redirect_on_exit
@@ -240,13 +239,8 @@ const _: () = {
                             })
                         });
 
-                        let args = this
-                            .args
-                            .as_ref()
-                            .unwrap_or_else(|| panic!("{PENDING_CALL_INVALID_STATE}"));
-                        let payload = T::encode_params_with_prefix(this.route, args);
                         // send message to new target
-                        let send_res = send_for_reply(new_target, payload.as_slice(), params);
+                        let send_res = send_for_reply(new_target, payload, params);
                         match send_res {
                             Ok(future) => {
                                 // Replace the future with a new one
@@ -278,14 +272,14 @@ const _: () = {
         fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
             if self.state.is_none() {
                 let params = self.params.take().unwrap_or_default();
-                let value = params.value.unwrap_or(0);
+                let value = params.value.unwrap_or_default();
                 let salt = self.salt.take().unwrap();
 
                 let args = self
                     .args
-                    .take()
+                    .as_ref()
                     .unwrap_or_else(|| panic!("{PENDING_CALL_INVALID_STATE}"));
-                let payload = T::encode_params(&args);
+                let payload = T::encode_params(args);
                 // Send message
                 #[cfg(not(feature = "ethexe"))]
                 let program_future = if let Some(gas_limit) = params.gas_limit {
@@ -349,6 +343,7 @@ pin_project_lite::pin_project! {
             future: MessageFuture,
             destination: ActorId,
             created_block: Option<BlockCount>,
+            payload: Vec<u8>, // reuse encoded payload when redirecting
         },
         Dummy,
     }
@@ -396,7 +391,7 @@ const _: () = {
             match self.state.take() {
                 Some(ready) => {
                     let res = ready.into_inner();
-                    Poll::Ready(res.map(|v| T::Reply::decode(&mut v.as_slice()).unwrap()))
+                    Poll::Ready(res.map(|v| T::Reply::decode(&mut v.as_ref()).unwrap()))
                 }
                 None => panic!("{PENDING_CALL_INVALID_STATE}"),
             }
