@@ -223,6 +223,8 @@ mod tests {
     #[test]
     fn trait_optimized_event_encode() {
         let event = TestEvents::Event1(42);
+        assert_eq!(event.encode(), &[0, 42, 0, 0, 0]);
+
         with_optimized_event_encode(&[1, 2, 3], event, |payload| {
             assert_eq!(
                 payload,
@@ -231,6 +233,7 @@ mod tests {
         });
 
         let event = TestEvents::Event2 { p1: 43 };
+        assert_eq!(event.encode(), &[1, 43, 0]);
         with_optimized_event_encode(&[], event, |payload| {
             assert_eq!(payload, [24, 69, 118, 101, 110, 116, 50, 43, 00]);
         });

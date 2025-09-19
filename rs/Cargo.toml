@@ -34,6 +34,7 @@ sails-macros = { workspace = true, optional = true }
 scale-info = { workspace = true, features = ["derive", "docs"] }
 spin.workspace = true
 thiserror.workspace = true
+tokio-stream = { workspace = true, optional = true }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 gear-core = { workspace = true, features = [
@@ -42,6 +43,9 @@ gear-core = { workspace = true, features = [
 gclient = { workspace = true, optional = true }
 gtest = { workspace = true, optional = true }
 log = { workspace = true, optional = true }
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["rt", "macros"] }
 
 [features]
 default = ["gstd"]
@@ -54,9 +58,9 @@ ethexe = [
     "dep:keccak-const",
     "sails-macros?/ethexe",
 ]
-gclient = ["dep:gclient"]
+gclient = ["dep:gclient", "dep:tokio-stream"]
 gstd = ["dep:gstd", "dep:gear-core", "dep:sails-macros"]
-gtest = ["std", "dep:gtest", "dep:log"]
+gtest = ["std", "dep:gtest", "dep:log", "dep:tokio-stream"]
 idl-gen = ["dep:sails-idl-gen"]
 client-builder = ["std", "idl-gen", "dep:sails-client-gen", "dep:convert_case"]
 mockall = ["std", "dep:mockall"]
