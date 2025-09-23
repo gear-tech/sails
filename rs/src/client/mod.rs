@@ -306,15 +306,18 @@ pub trait CallEncodeDecode {
     type Reply: Decode + 'static;
 
     fn encode_params(value: &Self::Params) -> Vec<u8> {
-        let mut result = Vec::with_capacity(1 + Self::ROUTE.len() + Encode::encoded_size(value));
+        let size = Encode::encoded_size(Self::ROUTE) + Encode::encoded_size(value);
+        let mut result = Vec::with_capacity(size);
         Encode::encode_to(Self::ROUTE, &mut result);
         Encode::encode_to(value, &mut result);
         result
     }
 
     fn encode_params_with_prefix(prefix: Route, value: &Self::Params) -> Vec<u8> {
-        let mut result =
-            Vec::with_capacity(2 + prefix.len() + Self::ROUTE.len() + Encode::encoded_size(value));
+        let size = Encode::encoded_size(prefix)
+            + Encode::encoded_size(Self::ROUTE)
+            + Encode::encoded_size(value);
+        let mut result = Vec::with_capacity(size);
         Encode::encode_to(prefix, &mut result);
         Encode::encode_to(Self::ROUTE, &mut result);
         Encode::encode_to(value, &mut result);
@@ -359,7 +362,9 @@ pub trait CallEncodeDecode {
         value: &Self::Params,
         f: impl FnOnce(&[u8]) -> R,
     ) -> R {
-        let size = 2 + prefix.len() + Self::ROUTE.len() + Encode::encoded_size(value);
+        let size = Encode::encoded_size(prefix)
+            + Encode::encoded_size(Self::ROUTE)
+            + Encode::encoded_size(value);
         gcore::stack_buffer::with_byte_buffer(size, |buffer| {
             let mut buffer_writer = crate::utils::MaybeUninitBufferWriter::new(buffer);
             Encode::encode_to(prefix, &mut buffer_writer);

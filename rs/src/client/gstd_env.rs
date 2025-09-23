@@ -86,12 +86,20 @@ impl GstdEnv {
         let payload_bytes = payload.as_ref();
 
         #[cfg(not(feature = "ethexe"))]
-        if let Some(gas_limit) = params.gas_limit {
-            return ::gcore::msg::send_with_gas(destination, payload_bytes, gas_limit, value)
-                .map_err(Error::Core);
+        let waiting_reply_to = if let Some(gas_limit) = params.gas_limit {
+            ::gcore::msg::send_with_gas(destination, payload_bytes, gas_limit, value)?
+        } else {
+            ::gcore::msg::send(destination, payload_bytes, value)?
+        };
+        #[cfg(feature = "ethexe")]
+        let waiting_reply_to = ::gcore::msg::send(destination, payload_bytes, value)?;
+
+        #[cfg(not(feature = "ethexe"))]
+        if let Some(reply_deposit) = params.reply_deposit {
+            ::gcore::exec::reply_deposit(waiting_reply_to, reply_deposit)?;
         }
 
-        ::gcore::msg::send(destination, payload_bytes, value).map_err(Error::Core)
+        Ok(waiting_reply_to)
     }
 }
 
