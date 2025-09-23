@@ -1,4 +1,9 @@
 #[doc(hidden)]
+// pub use gstd::{async_init, async_main, handle_reply_with_hook, message_loop};
+pub use async_runtime::{
+    SimpleMessageFuture, handle_reply_with_hook, message_loop, send_bytes_for_reply,
+};
+#[doc(hidden)]
 #[cfg(feature = "ethexe")]
 pub use ethexe::{EthEvent, EthEventExpo};
 #[doc(hidden)]
@@ -6,8 +11,6 @@ pub use events::{EventEmitter, SailsEvent};
 #[cfg(not(feature = "ethexe"))]
 #[doc(hidden)]
 pub use gstd::handle_signal;
-#[doc(hidden)]
-pub use gstd::{async_init, async_main, handle_reply_with_hook, message_loop};
 pub use gstd::{debug, exec, msg};
 #[doc(hidden)]
 pub use sails_macros::{event, export, program, service};
@@ -20,6 +23,7 @@ use crate::{
 };
 use gcore::stack_buffer;
 
+pub(crate) mod async_runtime;
 #[cfg(feature = "ethexe")]
 mod ethexe;
 mod events;

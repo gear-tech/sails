@@ -1,8 +1,7 @@
+use crate::gstd::SimpleMessageFuture;
+
 use super::*;
-use ::gstd::{
-    errors::Error,
-    msg::{CreateProgramFuture, MessageFuture},
-};
+use ::gstd::{errors::Error, msg::CreateProgramFuture};
 
 #[derive(Default)]
 pub struct GstdParams {
@@ -114,51 +113,55 @@ impl<T: CallEncodeDecode> PendingCall<GstdEnv, T> {
 const _: () = {
     use core::task::ready;
 
-    #[cfg(not(feature = "ethexe"))]
-    #[inline]
-    fn send_for_reply_future(
-        destination: ActorId,
-        payload: &[u8],
-        params: &mut GstdParams,
-    ) -> Result<MessageFuture, Error> {
-        let value = params.value.unwrap_or_default();
-        let reply_deposit = params.reply_deposit.unwrap_or_default();
-        // here can be a redirect target
-        let mut message_future = if let Some(gas_limit) = params.gas_limit {
-            ::gstd::msg::send_bytes_with_gas_for_reply(
-                destination,
-                payload,
-                gas_limit,
-                value,
-                reply_deposit,
-            )?
-        } else {
-            ::gstd::msg::send_bytes_for_reply(destination, payload, value, reply_deposit)?
-        };
+    // #[cfg(not(feature = "ethexe"))]
+    // #[inline]
+    // fn send_for_reply_future(
+    //     destination: ActorId,
+    //     payload: &[u8],
+    //     params: &mut GstdParams,
+    // ) -> Result<MessageFuture, Error> {
+    //     let value = params.value.unwrap_or(0);
+    //     // here can be a redirect target
+    //     let mut message_future = if let Some(gas_limit) = params.gas_limit {
+    //         ::gstd::msg::send_bytes_with_gas_for_reply(
+    //             destination,
+    //             payload,
+    //             gas_limit,
+    //             value,
+    //             params.reply_deposit.unwrap_or_default(),
+    //         )?
+    //     } else {
+    //         ::gstd::msg::send_bytes_for_reply(
+    //             destination,
+    //             payload,
+    //             value,
+    //             params.reply_deposit.unwrap_or_default(),
+    //         )?
+    //     };
 
-        message_future = message_future.up_to(params.wait_up_to)?;
+    //     message_future = message_future.up_to(params.wait_up_to)?;
 
-        if let Some(reply_hook) = params.reply_hook.take() {
-            message_future = message_future.handle_reply(reply_hook)?;
-        }
-        Ok(message_future)
-    }
+    //     if let Some(reply_hook) = params.reply_hook.take() {
+    //         message_future = message_future.handle_reply(reply_hook)?;
+    //     }
+    //     Ok(message_future)
+    // }
 
-    #[cfg(feature = "ethexe")]
-    #[inline]
-    fn send_for_reply_future(
-        destination: ActorId,
-        payload: &[u8],
-        params: &mut GstdParams,
-    ) -> Result<MessageFuture, Error> {
-        let value = params.value.unwrap_or_default();
-        // here can be a redirect target
-        let mut message_future = ::gstd::msg::send_bytes_for_reply(destination, payload, value)?;
+    // #[cfg(feature = "ethexe")]
+    // #[inline]
+    // fn send_for_reply_future(
+    //     destination: ActorId,
+    //     payload: &[u8],
+    //     params: &mut GstdParams,
+    // ) -> Result<MessageFuture, Error> {
+    //     let value = params.value.unwrap_or(0);
+    //     // here can be a redirect target
+    //     let mut message_future = ::gstd::msg::send_bytes_for_reply(destination, payload, value)?;
 
-        message_future = message_future.up_to(params.wait_up_to)?;
+    //     message_future = message_future.up_to(params.wait_up_to)?;
 
-        Ok(message_future)
-    }
+    //     Ok(message_future)
+    // }
 
     #[inline]
     fn send_for_reply(
@@ -167,7 +170,14 @@ const _: () = {
         params: &mut GstdParams,
     ) -> Result<GstdFuture, Error> {
         // send message
-        let future = send_for_reply_future(destination, payload.as_ref(), params)?;
+        // let future = send_for_reply_future(destination, payload, params)?;
+        let future = crate::gstd::send_bytes_for_reply(
+            destination,
+            payload,
+            params.value.unwrap_or_default(),
+            params.gas_limit,
+            params.reply_deposit,
+        )?;
         if params.redirect_on_exit {
             let created_block = params.wait_up_to.map(|_| gstd::exec::block_height());
             Ok(GstdFuture::MessageWithRedirect {
@@ -335,10 +345,10 @@ pin_project_lite::pin_project! {
     #[project_replace = Replace]
     pub enum GstdFuture {
         CreateProgram { #[pin] future: CreateProgramFuture },
-        Message { #[pin] future: MessageFuture },
+        Message { #[pin] future: SimpleMessageFuture },
         MessageWithRedirect {
             #[pin]
-            future: MessageFuture,
+            future: SimpleMessageFuture,
             destination: ActorId,
             created_block: Option<BlockCount>,
             payload: Vec<u8>, // reuse encoded payload when redirecting
