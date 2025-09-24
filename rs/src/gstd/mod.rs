@@ -1,7 +1,7 @@
 #[doc(hidden)]
-// pub use gstd::{async_init, async_main, handle_reply_with_hook, message_loop};
+// pub use gstd::{handle_reply_with_hook, message_loop};
 pub use async_runtime::{
-    SimpleMessageFuture, handle_reply_with_hook, message_loop, send_bytes_for_reply,
+    MessageFuture, handle_reply_with_hook, message_loop, send_bytes_for_reply,
 };
 #[doc(hidden)]
 #[cfg(feature = "ethexe")]
@@ -27,6 +27,7 @@ pub(crate) mod async_runtime;
 #[cfg(feature = "ethexe")]
 mod ethexe;
 mod events;
+pub(crate) mod locks;
 pub mod services;
 mod syscalls;
 

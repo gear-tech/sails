@@ -1,6 +1,5 @@
-use crate::gstd::SimpleMessageFuture;
-
 use super::*;
+use crate::gstd::MessageFuture;
 use ::gstd::{errors::Error, msg::CreateProgramFuture};
 
 #[derive(Default)]
@@ -112,6 +111,7 @@ impl<T: CallEncodeDecode> PendingCall<GstdEnv, T> {
 #[cfg(target_arch = "wasm32")]
 const _: () = {
     use core::task::ready;
+    use futures::future::FusedFuture;
 
     // #[cfg(not(feature = "ethexe"))]
     // #[inline]
@@ -170,10 +170,10 @@ const _: () = {
         params: &mut GstdParams,
     ) -> Result<GstdFuture, Error> {
         // send message
-        // let future = send_for_reply_future(destination, payload, params)?;
+        // let future = send_for_reply_future(destination, payload.as_ref(), params)?;
         let future = crate::gstd::send_bytes_for_reply(
             destination,
-            payload,
+            payload.as_ref(),
             params.value.unwrap_or_default(),
             params.gas_limit,
             params.reply_deposit,
@@ -274,6 +274,20 @@ const _: () = {
         }
     }
 
+    impl<T: CallEncodeDecode> FusedFuture for PendingCall<GstdEnv, T> {
+        fn is_terminated(&self) -> bool {
+            self.state
+                .as_ref()
+                .map(|future| match future {
+                    GstdFuture::CreateProgram { future } => future.is_terminated(),
+                    GstdFuture::Message { future } => future.is_terminated(),
+                    GstdFuture::MessageWithRedirect { future, .. } => future.is_terminated(),
+                    GstdFuture::Dummy => false,
+                })
+                .unwrap_or_default()
+        }
+    }
+
     impl<A, T: CallEncodeDecode> Future for PendingCtor<GstdEnv, A, T> {
         type Output = Result<Actor<GstdEnv, A>, <GstdEnv as GearEnv>::Error>;
 
@@ -345,10 +359,10 @@ pin_project_lite::pin_project! {
     #[project_replace = Replace]
     pub enum GstdFuture {
         CreateProgram { #[pin] future: CreateProgramFuture },
-        Message { #[pin] future: SimpleMessageFuture },
+        Message { #[pin] future: MessageFuture },
         MessageWithRedirect {
             #[pin]
-            future: SimpleMessageFuture,
+            future: MessageFuture,
             destination: ActorId,
             created_block: Option<BlockCount>,
             payload: Vec<u8>, // reuse encoded payload when redirecting
