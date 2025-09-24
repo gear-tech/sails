@@ -13,8 +13,8 @@
     "317810": 43147409792
   },
   "counter": {
-    "async_call": 833526292,
-    "sync_call": 665626558
+    "async_call": 820092342,
+    "sync_call": 652191920
   },
   "cross_program": {
     "median": 2436719419

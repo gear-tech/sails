@@ -69,12 +69,6 @@ impl Lock {
             LockType::WaitFor(d) | LockType::WaitUpTo(d) => self.at.saturating_add(*d),
         }
     }
-
-    /// Check if this lock is timed out.
-    pub fn timeout(&self, now: BlockNumber) -> Option<(BlockNumber, BlockNumber)> {
-        let expected = self.deadline();
-        (now >= expected).then(|| (expected, now))
-    }
 }
 
 impl PartialOrd for Lock {
