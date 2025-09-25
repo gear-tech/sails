@@ -100,10 +100,18 @@ where
 
 pub type Payload = Vec<u8>;
 
-struct WakeSignal {
-    message_id: MessageId,
-    reply: Option<(Payload, ReplyCode)>,
-    timeout: Option<(BlockNumber, BlockNumber)>,
+enum WakeSignal {
+    Pending {
+        message_id: MessageId,
+    },
+    Ready {
+        payload: Payload,
+        reply_code: ReplyCode,
+    },
+    Timeout {
+        expected: BlockNumber,
+        now: BlockNumber,
+    },
 }
 
 struct WakeSignals {
@@ -120,14 +128,8 @@ impl WakeSignals {
     pub fn register_signal(&mut self, waiting_reply_to: MessageId) {
         let message_id = ::gcore::msg::id();
 
-        self.signals.insert(
-            waiting_reply_to,
-            WakeSignal {
-                message_id,
-                reply: None,
-                timeout: None,
-            },
-        );
+        self.signals
+            .insert(waiting_reply_to, WakeSignal::Pending { message_id });
 
         ::gstd::debug!(
             "register_signal: add lock for reply_to {waiting_reply_to} in message {message_id}"
@@ -142,24 +144,28 @@ impl WakeSignals {
     pub fn record_reply(&mut self) {
         let reply_to =
             ::gcore::msg::reply_to().expect("Shouldn't be called with incorrect context");
-        if let Some(signal) = self.signals.get_mut(&reply_to) {
-            signal.reply = Some((
-                ::gstd::msg::load_bytes().expect("Failed to load bytes"),
-                ::gcore::msg::reply_code().expect("Shouldn't be called with incorrect context"),
-            ));
+        if let Some(signal @ WakeSignal::Pending { .. }) = self.signals.get_mut(&reply_to) {
+            let message_id = match signal {
+                WakeSignal::Pending { message_id } => *message_id,
+                _ => unreachable!(),
+            };
+            *signal = WakeSignal::Ready {
+                payload: ::gstd::msg::load_bytes().expect("Failed to load bytes"),
+                reply_code: ::gcore::msg::reply_code()
+                    .expect("Shouldn't be called with incorrect context"),
+            };
 
             ::gstd::debug!(
-                "record_reply: remove lock for reply_to {reply_to} in message {}",
-                signal.message_id
+                "record_reply: remove lock for reply_to {reply_to} in message {message_id}"
             );
             tasks()
-                .get_mut(&signal.message_id)
+                .get_mut(&message_id)
                 .expect("Message task must exist")
                 .reply_to_locks
                 .remove(&reply_to);
 
             // wake message processign after handle reply
-            ::gcore::exec::wake(signal.message_id).expect("Failed to wake the message")
+            ::gcore::exec::wake(message_id).expect("Failed to wake the message")
         } else {
             ::gstd::debug!(
                 "A message has received a reply though it wasn't to receive one, or a processed message has received a reply"
@@ -173,10 +179,10 @@ impl WakeSignals {
         expected: BlockNumber,
         now: BlockNumber,
     ) {
-        if let Some(signal @ WakeSignal { reply: None, .. }) = self.signals.get_mut(reply_to) {
-            signal.timeout = Some((expected, now));
+        if let Some(signal @ WakeSignal::Pending { .. }) = self.signals.get_mut(reply_to) {
+            *signal = WakeSignal::Timeout { expected, now };
         } else {
-            ::gstd::debug!("A message has received a reply before timed out");
+            ::gstd::debug!("A message has timed out after reply");
         }
     }
 
@@ -189,23 +195,20 @@ impl WakeSignals {
         reply_to: MessageId,
         _cx: &mut Context<'_>,
     ) -> Poll<Result<Vec<u8>, Error>> {
-        match self.signals.remove(&reply_to) {
+        match self.signals.get(&reply_to) {
             None => panic!(
                 "Somebody created a future with the MessageId that never ended in static replies!"
             ),
-            Some(
-                signal @ WakeSignal {
-                    reply: None,
-                    timeout: None,
-                    ..
-                },
-            ) => {
-                self.signals.insert(reply_to, signal);
-                Poll::Pending
+            Some(WakeSignal::Pending { .. }) => {
+                return Poll::Pending;
             }
-            Some(WakeSignal {
-                reply: Some((payload, reply_code)),
-                ..
+            _ => {}
+        };
+
+        match self.signals.remove(&reply_to) {
+            Some(WakeSignal::Ready {
+                payload,
+                reply_code,
             }) => match reply_code {
                 ReplyCode::Success(_) => Poll::Ready(Ok(payload)),
                 ReplyCode::Error(reason) => {
@@ -213,10 +216,10 @@ impl WakeSignals {
                 }
                 ReplyCode::Unsupported => Poll::Ready(Err(Error::UnsupportedReply(payload))),
             },
-            Some(WakeSignal {
-                timeout: Some((expected, now)),
-                ..
-            }) => Poll::Ready(Err(Error::Timeout(expected, now))),
+            Some(WakeSignal::Timeout { expected, now, .. }) => {
+                Poll::Ready(Err(Error::Timeout(expected, now)))
+            }
+            _ => unreachable!(),
         }
     }
 }
@@ -249,6 +252,7 @@ impl FusedFuture for MessageFuture {
     }
 }
 
+#[inline]
 pub fn send_bytes_for_reply(
     destination: ActorId,
     payload: &[u8],
@@ -279,6 +283,7 @@ pub fn send_bytes_for_reply(
 }
 
 /// Default reply handler.
+#[inline]
 pub fn handle_reply_with_hook() {
     signals().record_reply();
 
