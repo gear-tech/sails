@@ -4,69 +4,37 @@ use gstd::{BlockCount, BlockNumber, Config, exec};
 
 /// Type of wait locks.
 #[derive(Debug, PartialEq, Eq)]
-pub(crate) enum LockType {
-    WaitFor(BlockCount),
-    WaitUpTo(BlockCount),
-}
-
-/// Wait lock
-#[derive(Debug, PartialEq, Eq)]
-pub struct Lock {
-    /// The start block number of this lock.
-    pub at: BlockNumber,
-    /// The type of this lock.
-    ty: LockType,
+pub(crate) enum Lock {
+    WaitFor(BlockNumber),
+    WaitUpTo(BlockNumber),
 }
 
 impl Lock {
     /// Wait for
     pub fn exactly(b: BlockCount) -> Self {
-        // if b == 0 {
-        //     return Err(Error::Gstd(UsageError::EmptyWaitDuration));
-        // }
-
-        Self {
-            at: exec::block_height(),
-            ty: LockType::WaitFor(b),
-        }
+        let current = exec::block_height();
+        Self::WaitFor(current.saturating_add(b))
     }
 
     /// Wait up to
     pub fn up_to(b: BlockCount) -> Self {
-        // if b == 0 {
-        //     return Err(Error::Gstd(UsageError::EmptyWaitDuration));
-        // }
-
-        Self {
-            at: exec::block_height(),
-            ty: LockType::WaitUpTo(b),
-        }
+        let current = exec::block_height();
+        Self::WaitUpTo(current.saturating_add(b))
     }
 
     /// Call wait functions by the lock type.
     pub fn wait(&self, now: BlockNumber) {
-        if let Some(blocks) = self.deadline().checked_sub(now) {
-            if blocks == 0 {
-                unreachable!(
-                    "Checked in `crate::msg::async::poll`, will trigger the timeout error automatically."
-                );
-            }
-
-            match self.ty {
-                LockType::WaitFor(_) => exec::wait_for(blocks),
-                LockType::WaitUpTo(_) => exec::wait_up_to(blocks),
-            }
-        } else {
-            unreachable!(
-                "Checked in `crate::msg::async::poll`, will trigger the timeout error automatically."
-            );
+        match &self {
+            Lock::WaitFor(d) => exec::wait_for(d.checked_sub(now).expect("Checked in `crate::gstd::async_runtime::message_loop`")),
+            Lock::WaitUpTo(d) => exec::wait_up_to(d.checked_sub(now).expect("Checked in `crate::gstd::async_runtime::message_loop`")),
         }
     }
 
     /// Gets the deadline of the current lock.
     pub fn deadline(&self) -> BlockNumber {
-        match &self.ty {
-            LockType::WaitFor(d) | LockType::WaitUpTo(d) => self.at.saturating_add(*d),
+        match &self {
+            Lock::WaitFor(d) => *d,
+            Lock::WaitUpTo(d) => *d,
         }
     }
 }
@@ -86,11 +54,5 @@ impl Ord for Lock {
 impl Default for Lock {
     fn default() -> Self {
         Lock::up_to(Config::wait_up_to())
-    }
-}
-
-impl Default for LockType {
-    fn default() -> Self {
-        LockType::WaitUpTo(Config::wait_up_to())
     }
 }

@@ -36,6 +36,17 @@ impl Task {
         }
     }
 
+    #[inline]
+    fn insert_lock(&mut self, reply_to: MessageId, lock: locks::Lock) {
+        self.reply_to_locks.insert(reply_to, lock);
+    }
+
+    #[inline]
+    fn remove_lock(&mut self, reply_to: &MessageId) {
+        self.reply_to_locks.remove(reply_to);
+    }
+
+    #[inline]
     fn signal_reply_timeout(&mut self, now: BlockNumber) {
         let signals_map = signals();
 
@@ -49,6 +60,7 @@ impl Task {
             });
     }
 
+    #[inline]
     fn wait(&self, now: BlockNumber) {
         self.reply_to_locks
             .values()
@@ -136,9 +148,8 @@ impl WakeSignals {
         );
         tasks()
             .get_mut(&message_id)
-            .expect("Message task must exist")
-            .reply_to_locks
-            .insert(waiting_reply_to, Default::default());
+            .expect("A message task must exist")
+            .insert_lock(waiting_reply_to, Default::default());
     }
 
     pub fn record_reply(&mut self) {
@@ -160,9 +171,8 @@ impl WakeSignals {
             );
             tasks()
                 .get_mut(&message_id)
-                .expect("Message task must exist")
-                .reply_to_locks
-                .remove(&reply_to);
+                .expect("A message task must exist")
+                .remove_lock(&reply_to);
 
             // wake message processign after handle reply
             ::gcore::exec::wake(message_id).expect("Failed to wake the message")
@@ -186,26 +196,24 @@ impl WakeSignals {
         }
     }
 
-    pub fn waits_for(&self, reply_to: MessageId) -> bool {
-        self.signals.contains_key(&reply_to)
+    pub fn waits_for(&self, reply_to: &MessageId) -> bool {
+        self.signals.contains_key(reply_to)
     }
 
     pub fn poll(
         &mut self,
-        reply_to: MessageId,
+        reply_to: &MessageId,
         _cx: &mut Context<'_>,
     ) -> Poll<Result<Vec<u8>, Error>> {
-        match self.signals.get(&reply_to) {
-            None => panic!(
-                "Somebody created a future with the MessageId that never ended in static replies!"
-            ),
+        match self.signals.get(reply_to) {
+            None => panic!("Poll not registered feature"),
             Some(WakeSignal::Pending { .. }) => {
                 return Poll::Pending;
             }
             _ => {}
         };
 
-        match self.signals.remove(&reply_to) {
+        match self.signals.remove(reply_to) {
             Some(WakeSignal::Ready {
                 payload,
                 reply_code,
@@ -242,13 +250,13 @@ impl Future for MessageFuture {
     type Output = Result<Vec<u8>, Error>;
 
     fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
-        signals().poll(self.waiting_reply_to, cx)
+        signals().poll(&self.waiting_reply_to, cx)
     }
 }
 
 impl FusedFuture for MessageFuture {
     fn is_terminated(&self) -> bool {
-        !signals().waits_for(self.waiting_reply_to)
+        !signals().waits_for(&self.waiting_reply_to)
     }
 }
 
@@ -296,4 +304,12 @@ pub fn handle_reply_with_hook() {
 
     // #[cfg(feature = "ethexe")]
     // let _ = replied_to;
+}
+
+pub fn poll(message_id: &MessageId, cx: &mut Context<'_>) -> Poll<Result<Vec<u8>, Error>> {
+    signals().poll(message_id, cx)
+}
+
+pub fn is_terminated(message_id: &MessageId) -> bool {
+    !signals().waits_for(message_id)
 }
