@@ -14,8 +14,8 @@ dependencies = [
 
 [[package]]
 name = "actor-system-error"
-version = "1.9.1"
-source = "git+https://github.com/gear-tech/gear?branch=dn-bridge-unlimited-queue#5572af60872d2caeff98faf78ce222ac0cb1a016"
+version = "1.9.2"
+source = "git+https://github.com/gear-tech/gear?tag=v1.9.2-rc.0#94a6fb2d1d7374f0e68f79b22ffcaf02ed7d5f60"
 dependencies = [
  "derive_more 2.0.1",
 ]
@@ -2843,16 +2843,16 @@ dependencies = [
 
 [[package]]
 name = "galloc"
-version = "1.9.1"
-source = "git+https://github.com/gear-tech/gear?branch=dn-bridge-unlimited-queue#5572af60872d2caeff98faf78ce222ac0cb1a016"
+version = "1.9.2"
+source = "git+https://github.com/gear-tech/gear?tag=v1.9.2-rc.0#94a6fb2d1d7374f0e68f79b22ffcaf02ed7d5f60"
 dependencies = [
  "gear-dlmalloc",
 ]
 
 [[package]]
 name = "gclient"
-version = "1.9.1"
-source = "git+https://github.com/gear-tech/gear?branch=dn-bridge-unlimited-queue#5572af60872d2caeff98faf78ce222ac0cb1a016"
+version = "1.9.2"
+source = "git+https://github.com/gear-tech/gear?tag=v1.9.2-rc.0#94a6fb2d1d7374f0e68f79b22ffcaf02ed7d5f60"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -2871,8 +2871,8 @@ dependencies = [
 
 [[package]]
 name = "gcore"
-version = "1.9.1"
-source = "git+https://github.com/gear-tech/gear?branch=dn-bridge-unlimited-queue#5572af60872d2caeff98faf78ce222ac0cb1a016"
+version = "1.9.2"
+source = "git+https://github.com/gear-tech/gear?tag=v1.9.2-rc.0#94a6fb2d1d7374f0e68f79b22ffcaf02ed7d5f60"
 dependencies = [
  "gear-core-errors",
  "gear-stack-buffer",
@@ -2883,8 +2883,8 @@ dependencies = [
 
 [[package]]
 name = "gear-common"
-version = "1.9.1"
-source = "git+https://github.com/gear-tech/gear?branch=dn-bridge-unlimited-queue#5572af60872d2caeff98faf78ce222ac0cb1a016"
+version = "1.9.2"
+source = "git+https://github.com/gear-tech/gear?tag=v1.9.2-rc.0#94a6fb2d1d7374f0e68f79b22ffcaf02ed7d5f60"
 dependencies = [
  "enum-iterator 1.5.0",
  "fail",
@@ -2906,8 +2906,8 @@ dependencies = [
 
 [[package]]
 name = "gear-common-codegen"
-version = "1.9.1"
-source = "git+https://github.com/gear-tech/gear?branch=dn-bridge-unlimited-queue#5572af60872d2caeff98faf78ce222ac0cb1a016"
+version = "1.9.2"
+source = "git+https://github.com/gear-tech/gear?tag=v1.9.2-rc.0#94a6fb2d1d7374f0e68f79b22ffcaf02ed7d5f60"
 dependencies = [
  "quote",
  "syn 2.0.104",
@@ -2915,8 +2915,8 @@ dependencies = [
 
 [[package]]
 name = "gear-core"
-version = "1.9.1"
-source = "git+https://github.com/gear-tech/gear?branch=dn-bridge-unlimited-queue#5572af60872d2caeff98faf78ce222ac0cb1a016"
+version = "1.9.2"
+source = "git+https://github.com/gear-tech/gear?tag=v1.9.2-rc.0#94a6fb2d1d7374f0e68f79b22ffcaf02ed7d5f60"
 dependencies = [
  "blake2",
  "byteorder",
@@ -2940,8 +2940,8 @@ dependencies = [
 
 [[package]]
 name = "gear-core-backend"
-version = "1.9.1"
-source = "git+https://github.com/gear-tech/gear?branch=dn-bridge-unlimited-queue#5572af60872d2caeff98faf78ce222ac0cb1a016"
+version = "1.9.2"
+source = "git+https://github.com/gear-tech/gear?tag=v1.9.2-rc.0#94a6fb2d1d7374f0e68f79b22ffcaf02ed7d5f60"
 dependencies = [
  "actor-system-error",
  "blake2",
@@ -2959,8 +2959,8 @@ dependencies = [
 
 [[package]]
 name = "gear-core-errors"
-version = "1.9.1"
-source = "git+https://github.com/gear-tech/gear?branch=dn-bridge-unlimited-queue#5572af60872d2caeff98faf78ce222ac0cb1a016"
+version = "1.9.2"
+source = "git+https://github.com/gear-tech/gear?tag=v1.9.2-rc.0#94a6fb2d1d7374f0e68f79b22ffcaf02ed7d5f60"
 dependencies = [
  "enum-iterator 1.5.0",
  "parity-scale-codec",
@@ -2971,8 +2971,8 @@ dependencies = [
 
 [[package]]
 name = "gear-core-processor"
-version = "1.9.1"
-source = "git+https://github.com/gear-tech/gear?branch=dn-bridge-unlimited-queue#5572af60872d2caeff98faf78ce222ac0cb1a016"
+version = "1.9.2"
+source = "git+https://github.com/gear-tech/gear?tag=v1.9.2-rc.0#94a6fb2d1d7374f0e68f79b22ffcaf02ed7d5f60"
 dependencies = [
  "actor-system-error",
  "derive_more 2.0.1",
@@ -3001,8 +3001,8 @@ dependencies = [
 
 [[package]]
 name = "gear-lazy-pages"
-version = "1.9.1"
-source = "git+https://github.com/gear-tech/gear?branch=dn-bridge-unlimited-queue#5572af60872d2caeff98faf78ce222ac0cb1a016"
+version = "1.9.2"
+source = "git+https://github.com/gear-tech/gear?tag=v1.9.2-rc.0#94a6fb2d1d7374f0e68f79b22ffcaf02ed7d5f60"
 dependencies = [
  "cfg-if",
  "derive_more 2.0.1",
@@ -3023,8 +3023,8 @@ dependencies = [
 
 [[package]]
 name = "gear-lazy-pages-common"
-version = "1.9.1"
-source = "git+https://github.com/gear-tech/gear?branch=dn-bridge-unlimited-queue#5572af60872d2caeff98faf78ce222ac0cb1a016"
+version = "1.9.2"
+source = "git+https://github.com/gear-tech/gear?tag=v1.9.2-rc.0#94a6fb2d1d7374f0e68f79b22ffcaf02ed7d5f60"
 dependencies = [
  "gear-core",
  "num_enum",
@@ -3033,8 +3033,8 @@ dependencies = [
 
 [[package]]
 name = "gear-lazy-pages-native-interface"
-version = "1.9.1"
-source = "git+https://github.com/gear-tech/gear?branch=dn-bridge-unlimited-queue#5572af60872d2caeff98faf78ce222ac0cb1a016"
+version = "1.9.2"
+source = "git+https://github.com/gear-tech/gear?tag=v1.9.2-rc.0#94a6fb2d1d7374f0e68f79b22ffcaf02ed7d5f60"
 dependencies = [
  "gear-core",
  "gear-lazy-pages",
@@ -3044,8 +3044,8 @@ dependencies = [
 
 [[package]]
 name = "gear-node-wrapper"
-version = "1.9.1"
-source = "git+https://github.com/gear-tech/gear?branch=dn-bridge-unlimited-queue#5572af60872d2caeff98faf78ce222ac0cb1a016"
+version = "1.9.2"
+source = "git+https://github.com/gear-tech/gear?tag=v1.9.2-rc.0#94a6fb2d1d7374f0e68f79b22ffcaf02ed7d5f60"
 dependencies = [
  "anyhow",
  "rand 0.8.5",
@@ -3055,8 +3055,8 @@ dependencies = [
 
 [[package]]
 name = "gear-sandbox"
-version = "1.9.1"
-source = "git+https://github.com/gear-tech/gear?branch=dn-bridge-unlimited-queue#5572af60872d2caeff98faf78ce222ac0cb1a016"
+version = "1.9.2"
+source = "git+https://github.com/gear-tech/gear?tag=v1.9.2-rc.0#94a6fb2d1d7374f0e68f79b22ffcaf02ed7d5f60"
 dependencies = [
  "gear-sandbox-env",
  "gear-sandbox-interface",
@@ -3076,8 +3076,8 @@ dependencies = [
 
 [[package]]
 name = "gear-sandbox-env"
-version = "1.9.1"
-source = "git+https://github.com/gear-tech/gear?branch=dn-bridge-unlimited-queue#5572af60872d2caeff98faf78ce222ac0cb1a016"
+version = "1.9.2"
+source = "git+https://github.com/gear-tech/gear?tag=v1.9.2-rc.0#94a6fb2d1d7374f0e68f79b22ffcaf02ed7d5f60"
 dependencies = [
  "parity-scale-codec",
  "sp-debug-derive",
@@ -3087,8 +3087,8 @@ dependencies = [
 
 [[package]]
 name = "gear-sandbox-host"
-version = "1.9.1"
-source = "git+https://github.com/gear-tech/gear?branch=dn-bridge-unlimited-queue#5572af60872d2caeff98faf78ce222ac0cb1a016"
+version = "1.9.2"
+source = "git+https://github.com/gear-tech/gear?tag=v1.9.2-rc.0#94a6fb2d1d7374f0e68f79b22ffcaf02ed7d5f60"
 dependencies = [
  "atomic_enum",
  "defer",
@@ -3110,8 +3110,8 @@ dependencies = [
 
 [[package]]
 name = "gear-sandbox-interface"
-version = "1.9.1"
-source = "git+https://github.com/gear-tech/gear?branch=dn-bridge-unlimited-queue#5572af60872d2caeff98faf78ce222ac0cb1a016"
+version = "1.9.2"
+source = "git+https://github.com/gear-tech/gear?tag=v1.9.2-rc.0#94a6fb2d1d7374f0e68f79b22ffcaf02ed7d5f60"
 dependencies = [
  "gear-sandbox-host",
  "log",
@@ -3122,8 +3122,8 @@ dependencies = [
 
 [[package]]
 name = "gear-ss58"
-version = "1.9.1"
-source = "git+https://github.com/gear-tech/gear?branch=dn-bridge-unlimited-queue#5572af60872d2caeff98faf78ce222ac0cb1a016"
+version = "1.9.2"
+source = "git+https://github.com/gear-tech/gear?tag=v1.9.2-rc.0#94a6fb2d1d7374f0e68f79b22ffcaf02ed7d5f60"
 dependencies = [
  "blake2",
  "bs58",
@@ -3132,13 +3132,13 @@ dependencies = [
 
 [[package]]
 name = "gear-stack-buffer"
-version = "1.9.1"
-source = "git+https://github.com/gear-tech/gear?branch=dn-bridge-unlimited-queue#5572af60872d2caeff98faf78ce222ac0cb1a016"
+version = "1.9.2"
+source = "git+https://github.com/gear-tech/gear?tag=v1.9.2-rc.0#94a6fb2d1d7374f0e68f79b22ffcaf02ed7d5f60"
 
 [[package]]
 name = "gear-utils"
-version = "1.9.1"
-source = "git+https://github.com/gear-tech/gear?branch=dn-bridge-unlimited-queue#5572af60872d2caeff98faf78ce222ac0cb1a016"
+version = "1.9.2"
+source = "git+https://github.com/gear-tech/gear?tag=v1.9.2-rc.0#94a6fb2d1d7374f0e68f79b22ffcaf02ed7d5f60"
 dependencies = [
  "gear-core",
  "hex",
@@ -3152,8 +3152,8 @@ dependencies = [
 
 [[package]]
 name = "gear-wasm-builder"
-version = "1.9.1"
-source = "git+https://github.com/gear-tech/gear?branch=dn-bridge-unlimited-queue#5572af60872d2caeff98faf78ce222ac0cb1a016"
+version = "1.9.2"
+source = "git+https://github.com/gear-tech/gear?tag=v1.9.2-rc.0#94a6fb2d1d7374f0e68f79b22ffcaf02ed7d5f60"
 dependencies = [
  "anyhow",
  "cargo_metadata 0.20.0",
@@ -3173,8 +3173,8 @@ dependencies = [
 
 [[package]]
 name = "gear-wasm-instrument"
-version = "1.9.1"
-source = "git+https://github.com/gear-tech/gear?branch=dn-bridge-unlimited-queue#5572af60872d2caeff98faf78ce222ac0cb1a016"
+version = "1.9.2"
+source = "git+https://github.com/gear-tech/gear?tag=v1.9.2-rc.0#94a6fb2d1d7374f0e68f79b22ffcaf02ed7d5f60"
 dependencies = [
  "derive_more 2.0.1",
  "enum-iterator 1.5.0",
@@ -3185,8 +3185,8 @@ dependencies = [
 
 [[package]]
 name = "gear-wasm-optimizer"
-version = "1.9.1"
-source = "git+https://github.com/gear-tech/gear?branch=dn-bridge-unlimited-queue#5572af60872d2caeff98faf78ce222ac0cb1a016"
+version = "1.9.2"
+source = "git+https://github.com/gear-tech/gear?tag=v1.9.2-rc.0#94a6fb2d1d7374f0e68f79b22ffcaf02ed7d5f60"
 dependencies = [
  "anyhow",
  "colored",
@@ -3199,8 +3199,8 @@ dependencies = [
 
 [[package]]
 name = "gear-wasmer-cache"
-version = "1.9.1"
-source = "git+https://github.com/gear-tech/gear?branch=dn-bridge-unlimited-queue#5572af60872d2caeff98faf78ce222ac0cb1a016"
+version = "1.9.2"
+source = "git+https://github.com/gear-tech/gear?tag=v1.9.2-rc.0#94a6fb2d1d7374f0e68f79b22ffcaf02ed7d5f60"
 dependencies = [
  "bytes",
  "derive_more 2.0.1",
@@ -3653,8 +3653,8 @@ dependencies = [
 
 [[package]]
 name = "gprimitives"
-version = "1.9.1"
-source = "git+https://github.com/gear-tech/gear?branch=dn-bridge-unlimited-queue#5572af60872d2caeff98faf78ce222ac0cb1a016"
+version = "1.9.2"
+source = "git+https://github.com/gear-tech/gear?tag=v1.9.2-rc.0#94a6fb2d1d7374f0e68f79b22ffcaf02ed7d5f60"
 dependencies = [
  "alloy-primitives 1.3.0",
  "alloy-sol-types 1.3.0",
@@ -3680,8 +3680,8 @@ dependencies = [
 
 [[package]]
 name = "gsdk"
-version = "1.9.1"
-source = "git+https://github.com/gear-tech/gear?branch=dn-bridge-unlimited-queue#5572af60872d2caeff98faf78ce222ac0cb1a016"
+version = "1.9.2"
+source = "git+https://github.com/gear-tech/gear?tag=v1.9.2-rc.0#94a6fb2d1d7374f0e68f79b22ffcaf02ed7d5f60"
 dependencies = [
  "anyhow",
  "base64 0.21.7",
@@ -3710,8 +3710,8 @@ dependencies = [
 
 [[package]]
 name = "gsdk-codegen"
-version = "1.9.1"
-source = "git+https://github.com/gear-tech/gear?branch=dn-bridge-unlimited-queue#5572af60872d2caeff98faf78ce222ac0cb1a016"
+version = "1.9.2"
+source = "git+https://github.com/gear-tech/gear?tag=v1.9.2-rc.0#94a6fb2d1d7374f0e68f79b22ffcaf02ed7d5f60"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -3720,8 +3720,8 @@ dependencies = [
 
 [[package]]
 name = "gstd"
-version = "1.9.1"
-source = "git+https://github.com/gear-tech/gear?branch=dn-bridge-unlimited-queue#5572af60872d2caeff98faf78ce222ac0cb1a016"
+version = "1.9.2"
+source = "git+https://github.com/gear-tech/gear?tag=v1.9.2-rc.0#94a6fb2d1d7374f0e68f79b22ffcaf02ed7d5f60"
 dependencies = [
  "arrayvec 0.7.6",
  "const_format",
@@ -3741,8 +3741,8 @@ dependencies = [
 
 [[package]]
 name = "gstd-codegen"
-version = "1.9.1"
-source = "git+https://github.com/gear-tech/gear?branch=dn-bridge-unlimited-queue#5572af60872d2caeff98faf78ce222ac0cb1a016"
+version = "1.9.2"
+source = "git+https://github.com/gear-tech/gear?tag=v1.9.2-rc.0#94a6fb2d1d7374f0e68f79b22ffcaf02ed7d5f60"
 dependencies = [
  "gprimitives",
  "proc-macro2",
@@ -3752,13 +3752,13 @@ dependencies = [
 
 [[package]]
 name = "gsys"
-version = "1.9.1"
-source = "git+https://github.com/gear-tech/gear?branch=dn-bridge-unlimited-queue#5572af60872d2caeff98faf78ce222ac0cb1a016"
+version = "1.9.2"
+source = "git+https://github.com/gear-tech/gear?tag=v1.9.2-rc.0#94a6fb2d1d7374f0e68f79b22ffcaf02ed7d5f60"
 
 [[package]]
 name = "gtest"
-version = "1.9.1"
-source = "git+https://github.com/gear-tech/gear?branch=dn-bridge-unlimited-queue#5572af60872d2caeff98faf78ce222ac0cb1a016"
+version = "1.9.2"
+source = "git+https://github.com/gear-tech/gear?tag=v1.9.2-rc.0#94a6fb2d1d7374f0e68f79b22ffcaf02ed7d5f60"
 dependencies = [
  "cargo_toml",
  "colored",
@@ -5730,8 +5730,8 @@ checksum = "830b246a0e5f20af87141b25c173cd1b609bd7779a4617d6ec582abaf90870f3"
 
 [[package]]
 name = "numerated"
-version = "1.9.1"
-source = "git+https://github.com/gear-tech/gear?branch=dn-bridge-unlimited-queue#5572af60872d2caeff98faf78ce222ac0cb1a016"
+version = "1.9.2"
+source = "git+https://github.com/gear-tech/gear?tag=v1.9.2-rc.0#94a6fb2d1d7374f0e68f79b22ffcaf02ed7d5f60"
 dependencies = [
  "derive_more 2.0.1",
  "num-traits",
