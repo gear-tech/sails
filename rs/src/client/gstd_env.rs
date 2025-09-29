@@ -198,6 +198,8 @@ const _: () = {
                 match send_res {
                     Ok(future) => {
                         self.state = Some(future);
+                        // No need to poll the future
+                        return Poll::Pending;
                     }
                     Err(err) => {
                         return Poll::Ready(Err(err));
@@ -205,9 +207,8 @@ const _: () = {
                 }
             }
             let this = self.as_mut().project();
-            let Some(mut state) = this.state.as_pin_mut() else {
-                panic!("{PENDING_CALL_INVALID_STATE}");
-            };
+            // SAFETY: checked in the code above.
+            let mut state = unsafe { this.state.as_pin_mut().unwrap_unchecked() };
             // Poll message future
             let output = match state.as_mut().project() {
                 Projection::Message { future } => ready!(future.poll(cx)),
@@ -290,7 +291,7 @@ const _: () = {
                 let payload = T::encode_params(args);
                 // Send message
                 #[cfg(not(feature = "ethexe"))]
-                let program_future = if let Some(gas_limit) = params.gas_limit {
+                let future = if let Some(gas_limit) = params.gas_limit {
                     ::gstd::prog::create_program_bytes_with_gas_for_reply(
                         self.code_id,
                         salt,
@@ -309,7 +310,7 @@ const _: () = {
                     )?
                 };
                 #[cfg(feature = "ethexe")]
-                let program_future = ::gstd::prog::create_program_bytes_for_reply(
+                let future = ::gstd::prog::create_program_bytes_for_reply(
                     self.code_id,
                     salt,
                     payload,
@@ -317,14 +318,14 @@ const _: () = {
                 )?;
 
                 // self.program_id = Some(program_future.program_id);
-                self.state = Some(GstdFuture::CreateProgram {
-                    future: program_future,
-                });
+                self.state = Some(GstdFuture::CreateProgram { future });
+                // No need to poll the future
+                return Poll::Pending;
             }
             let this = self.as_mut().project();
-            if let Some(state) = this.state.as_pin_mut()
-                && let Projection::CreateProgram { future } = state.project()
-            {
+            // SAFETY: checked in the code above.
+            let mut state = unsafe { this.state.as_pin_mut().unwrap_unchecked() };
+            if let Projection::CreateProgram { future } = state.project() {
                 // Poll create program future
                 match ready!(future.poll(cx)) {
                     Ok((program_id, _payload)) => {
