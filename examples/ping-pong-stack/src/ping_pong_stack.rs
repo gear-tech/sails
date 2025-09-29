@@ -21,35 +21,42 @@ impl<E: sails_rs::client::GearEnv> PingPongStack
 }
 pub trait PingPongStackCtors {
     type Env: sails_rs::client::GearEnv;
-    fn new_for_bench(
+    fn create_ping(
         self,
-    ) -> sails_rs::client::PendingCtor<Self::Env, PingPongStackProgram, io::NewForBench>;
+        code_id: CodeId,
+    ) -> sails_rs::client::PendingCtor<Self::Env, PingPongStackProgram, io::CreatePing>;
+    fn create_pong(
+        self,
+    ) -> sails_rs::client::PendingCtor<Self::Env, PingPongStackProgram, io::CreatePong>;
 }
 impl<E: sails_rs::client::GearEnv> PingPongStackCtors
     for sails_rs::client::Deployment<E, PingPongStackProgram>
 {
     type Env = E;
-    fn new_for_bench(
+    fn create_ping(
         self,
-    ) -> sails_rs::client::PendingCtor<Self::Env, PingPongStackProgram, io::NewForBench> {
+        code_id: CodeId,
+    ) -> sails_rs::client::PendingCtor<Self::Env, PingPongStackProgram, io::CreatePing> {
+        self.pending_ctor((code_id,))
+    }
+    fn create_pong(
+        self,
+    ) -> sails_rs::client::PendingCtor<Self::Env, PingPongStackProgram, io::CreatePong> {
         self.pending_ctor(())
     }
 }
 
 pub mod io {
     use super::*;
-    sails_rs::io_struct_impl!(NewForBench () -> ());
+    sails_rs::io_struct_impl!(CreatePing (code_id: CodeId) -> ());
+    sails_rs::io_struct_impl!(CreatePong () -> ());
 }
 
 pub mod ping_pong_stack {
     use super::*;
     pub trait PingPongStack {
         type Env: sails_rs::client::GearEnv;
-        fn start(
-            &mut self,
-            actor_id: ActorId,
-            limit: u32,
-        ) -> sails_rs::client::PendingCall<Self::Env, io::Start>;
+        fn start(&mut self, limit: u32) -> sails_rs::client::PendingCall<Self::Env, io::Start>;
         fn ping(&mut self, countdown: u32) -> sails_rs::client::PendingCall<Self::Env, io::Ping>;
     }
     pub struct PingPongStackImpl;
@@ -57,12 +64,8 @@ pub mod ping_pong_stack {
         for sails_rs::client::Service<E, PingPongStackImpl>
     {
         type Env = E;
-        fn start(
-            &mut self,
-            actor_id: ActorId,
-            limit: u32,
-        ) -> sails_rs::client::PendingCall<Self::Env, io::Start> {
-            self.pending_call((actor_id, limit))
+        fn start(&mut self, limit: u32) -> sails_rs::client::PendingCall<Self::Env, io::Start> {
+            self.pending_call((limit,))
         }
         fn ping(&mut self, countdown: u32) -> sails_rs::client::PendingCall<Self::Env, io::Ping> {
             self.pending_call((countdown,))
@@ -71,7 +74,7 @@ pub mod ping_pong_stack {
 
     pub mod io {
         use super::*;
-        sails_rs::io_struct_impl!(Start (actor_id: ActorId, limit: u32) -> ());
+        sails_rs::io_struct_impl!(Start (limit: u32) -> ());
         sails_rs::io_struct_impl!(Ping (countdown: u32) -> ());
     }
 }
