@@ -9,7 +9,7 @@ import {
 } from '@gear-js/api';
 import { SignerOptions, SubmittableExtrinsic } from '@polkadot/api/types';
 import { IKeyringPair, ISubmittableResult } from '@polkadot/types/types';
-import { TypeRegistry, u128, u64 } from '@polkadot/types';
+import { Bytes, TypeRegistry, u128, u64 } from '@polkadot/types';
 import { getPayloadMethod } from 'sails-js-util';
 import { u8aConcat } from '@polkadot/util';
 
@@ -333,6 +333,19 @@ export class TransactionBuilder<ResponseType> {
   }
 
   /**
+   * ## Decode response payload from sign and send transaction
+   * @param payload - Raw bytes from the reply message
+   * @returns Decoded payload
+   */
+  public decodePayload(payload: Bytes): ResponseType {
+    const method = getPayloadMethod(this._responseType);
+    const noPrefixPayload = payload.slice(this._prefixByteLength);
+    const type = this._registry.createType<any>(this._responseType, noPrefixPayload);
+
+    return type[method]();
+  }
+
+  /**
    * ## Sign and send transaction
    */
   public async signAndSend(): Promise<IMethodReturnType<ResponseType>> {
@@ -407,15 +420,7 @@ export class TransactionBuilder<ResponseType> {
 
         throwOnErrorReply(details.unwrap().code, payload, this._api.specVersion, this._registry);
 
-        if (rawResult) {
-          return payload.toHex();
-        }
-
-        // prettier-ignore
-        return this._registry.createType<any>(
-          this._responseType,
-          payload.slice(this._prefixByteLength)
-        )[getPayloadMethod(this._responseType)]();
+        return rawResult ? payload.toHex() : (this.decodePayload(payload) as any);
       },
     };
   }
