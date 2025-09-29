@@ -295,22 +295,15 @@ async fn message_stack_test(limit: u32) -> u64 {
     // Path taken from the .binpath file
     let wasm_path = "../target/wasm32-gear/release/ping_pong_stack.opt.wasm";
     let env = create_env();
-    let program_1 = deploy_for_bench(&env, wasm_path, |d| {
-        ping_pong_stack::client::PingPongStackCtors::new_for_bench(d)
-    })
-    .await;
-    let program_2 = deploy_for_bench(&env, wasm_path, |d| {
-        ping_pong_stack::client::PingPongStackCtors::new_for_bench(d)
+    let code_id = env.system().submit_local_code_file(wasm_path);
+    let program = deploy_code_for_bench(&env, code_id, |d| {
+        ping_pong_stack::client::PingPongStackCtors::create_ping(d, code_id)
     })
     .await;
 
     let initial_balance = env.system().balance_of(DEFAULT_USER_ALICE);
 
-    program_1
-        .ping_pong_stack()
-        .start(program_2.id(), limit)
-        .await
-        .unwrap();
+    program.ping_pong_stack().start(limit).await.unwrap();
 
     let balance = env.system().balance_of(DEFAULT_USER_ALICE);
     (initial_balance - balance).try_into().unwrap()
@@ -332,13 +325,28 @@ async fn deploy_for_bench<
     f: F,
 ) -> Actor<P, GtestEnv> {
     let code_id = env.system().submit_local_code_file(wasm_path);
+    deploy_code_for_bench(env, code_id, f).await
+}
+
+async fn deploy_code_for_bench<
+    P: Program,
+    IO: CallCodec,
+    F: FnOnce(Deployment<P, GtestEnv>) -> PendingCtor<P, IO, GtestEnv>,
+>(
+    env: &GtestEnv,
+    code_id: CodeId,
+    f: F,
+) -> Actor<P, GtestEnv> {
     let salt = COUNTER_SALT
         .fetch_add(1, std::sync::atomic::Ordering::SeqCst)
         .to_le_bytes()
         .to_vec();
     let deployment = env.deploy::<P>(code_id, salt);
     let ctor = f(deployment);
-    let program = ctor.await.expect("failed to initialize the program");
+    let program = ctor
+        .with_value(100_000_000_000_000)
+        .await
+        .expect("failed to initialize the program");
     program
 }
 

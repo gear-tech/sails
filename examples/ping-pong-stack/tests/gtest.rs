@@ -9,26 +9,17 @@ const ACTOR_ID: u64 = 42;
 async fn ping_pong_stack_works() {
     let (env, code_id, _gas_limit) = create_env();
 
-    let program_1 = env
+    let program = env
         .deploy::<PingPongStackProgram>(code_id, vec![1])
-        .new_for_bench()
-        .await
-        .unwrap();
-
-    let program_2 = env
-        .deploy::<PingPongStackProgram>(code_id, vec![2])
-        .new_for_bench()
+        .create_ping(code_id)
+        .with_value(100_000_000_000_000)
         .await
         .unwrap();
 
     let limit = 10;
     let initial_balance = env.system().balance_of(ACTOR_ID);
 
-    program_1
-        .ping_pong_stack()
-        .start(program_2.id(), limit)
-        .await
-        .unwrap();
+    program.ping_pong_stack().start(limit).await.unwrap();
 
     let balance = env.system().balance_of(ACTOR_ID);
 

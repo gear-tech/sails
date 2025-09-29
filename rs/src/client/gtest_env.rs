@@ -436,7 +436,7 @@ impl Listener for GtestEnv {
     }
 }
 
-impl<T> Actor<GtestEnv, T> {
+impl<T> Actor<T, GtestEnv> {
     pub fn balance(&self) -> ValueUnit {
         self.env.system().balance_of(self.id)
     }

@@ -1,8 +1,9 @@
 constructor {
-  NewForBench : ();
+  CreatePing : (code_id: code_id);
+  CreatePong : ();
 };
 
 service PingPongStack {
-  Start : (actor_id: actor_id, limit: u32) -> null;
+  Start : (limit: u32) -> null;
   Ping : (countdown: u32) -> null;
 };
