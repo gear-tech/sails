@@ -25,8 +25,14 @@ impl Lock {
     /// Call wait functions by the lock type.
     pub fn wait(&self, now: BlockNumber) {
         match &self {
-            Lock::WaitFor(d) => exec::wait_for(d.checked_sub(now).expect("Checked in `crate::gstd::async_runtime::message_loop`")),
-            Lock::WaitUpTo(d) => exec::wait_up_to(d.checked_sub(now).expect("Checked in `crate::gstd::async_runtime::message_loop`")),
+            Lock::WaitFor(d) => exec::wait_for(
+                d.checked_sub(now)
+                    .expect("Checked in `crate::gstd::async_runtime::message_loop`"),
+            ),
+            Lock::WaitUpTo(d) => exec::wait_up_to(
+                d.checked_sub(now)
+                    .expect("Checked in `crate::gstd::async_runtime::message_loop`"),
+            ),
         }
     }
 
@@ -47,7 +53,14 @@ impl PartialOrd for Lock {
 
 impl Ord for Lock {
     fn cmp(&self, other: &Self) -> Ordering {
-        self.deadline().cmp(&other.deadline())
+        let mut ord = self.deadline().cmp(&other.deadline());
+        if ord == Ordering::Equal {
+            ord = match self {
+                Lock::WaitFor(_) => Ordering::Greater,
+                Lock::WaitUpTo(_) => Ordering::Less,
+            }
+        }
+        ord
     }
 }
 
