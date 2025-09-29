@@ -191,6 +191,23 @@ const _: () = {
         }
     }
 
+    fn create_program(
+        code_id: CodeId,
+        salt: impl AsRef<[u8]>,
+        payload: impl AsRef<[u8]>,
+        params: &GstdParams,
+    ) -> Result<(GstdFuture, ActorId), Error> {
+        let (future, program_id) = crate::ok!(crate::gstd::create_program_for_reply(
+            code_id,
+            salt.as_ref(),
+            payload.as_ref(),
+            params.value.unwrap_or_default(),
+            params.gas_limit,
+            params.reply_deposit,
+        ));
+        Ok((GstdFuture::CreateProgram { future }, program_id))
+    }
+
     impl<T: CallEncodeDecode> Future for PendingCall<GstdEnv, T> {
         type Output = Result<T::Reply, <GstdEnv as GearEnv>::Error>;
 
@@ -204,7 +221,10 @@ const _: () = {
                 let destination = self.destination;
                 let params = self.params.get_or_insert_default();
                 // Send message
-                let future = send_for_reply(destination, payload, params)?;
+                let future = match send_for_reply(destination, payload, params) {
+                    Ok(future) => future,
+                    Err(err) => return Poll::Ready(Err(err)),
+                };
                 self.state = Some(future);
                 // No need to poll the future
                 return Poll::Pending;
@@ -303,35 +323,14 @@ const _: () = {
                     .unwrap_or_else(|| panic!("{PENDING_CALL_INVALID_STATE}"));
                 let payload = T::encode_params(args);
                 // Send message
-                #[cfg(not(feature = "ethexe"))]
-                let future = if let Some(gas_limit) = params.gas_limit {
-                    ::gstd::prog::create_program_bytes_with_gas_for_reply(
-                        self.code_id,
-                        salt,
-                        payload,
-                        gas_limit,
-                        value,
-                        params.reply_deposit.unwrap_or_default(),
-                    )?
-                } else {
-                    ::gstd::prog::create_program_bytes_for_reply(
-                        self.code_id,
-                        salt,
-                        payload,
-                        value,
-                        params.reply_deposit.unwrap_or_default(),
-                    )?
-                };
-                #[cfg(feature = "ethexe")]
-                let future = ::gstd::prog::create_program_bytes_for_reply(
-                    self.code_id,
-                    salt,
-                    payload,
-                    value,
-                )?;
+                let (future, program_id) =
+                    match create_program(self.code_id, salt, payload, &params) {
+                        Ok(res) => res,
+                        Err(err) => return Poll::Ready(Err(err)),
+                    };
 
-                // self.program_id = Some(program_future.program_id);
-                self.state = Some(GstdFuture::CreateProgram { future });
+                self.program_id = Some(program_id);
+                self.state = Some(future);
                 // No need to poll the future
                 return Poll::Pending;
             }
@@ -341,7 +340,8 @@ const _: () = {
             if let Projection::CreateProgram { future } = state.project() {
                 // Poll create program future
                 match ready!(future.poll(cx)) {
-                    Ok((program_id, _payload)) => {
+                    Ok(_payload) => {
+                        let program_id = unsafe { this.program_id.unwrap_unchecked() };
                         // Do not decode payload here
                         Poll::Ready(Ok(Actor::new(this.env.clone(), program_id)))
                     }
@@ -358,7 +358,7 @@ pin_project_lite::pin_project! {
     #[project = Projection]
     #[project_replace = Replace]
     pub enum GstdFuture {
-        CreateProgram { #[pin] future: CreateProgramFuture },
+        CreateProgram { #[pin] future: MessageFuture },
         Message { #[pin] future: MessageFuture },
         MessageWithRedirect {
             #[pin]

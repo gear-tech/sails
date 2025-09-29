@@ -302,6 +302,43 @@ pub fn send_bytes_for_reply(
     })
 }
 
+#[inline]
+pub fn create_program_for_reply(
+    code_id: CodeId,
+    salt: &[u8],
+    payload: &[u8],
+    value: ValueUnit,
+    gas_limit: Option<GasUnit>,
+    reply_deposit: Option<GasUnit>,
+) -> Result<(MessageFuture, ActorId), ::gstd::errors::Error> {
+    #[cfg(not(feature = "ethexe"))]
+    let (waiting_reply_to, program_id) = if let Some(gas_limit) = gas_limit {
+        crate::ok!(::gcore::prog::create_program_with_gas(
+            code_id, salt, payload, gas_limit, value
+        ))
+    } else {
+        crate::ok!(::gcore::prog::create_program(code_id, salt, payload, value))
+    };
+    #[cfg(feature = "ethexe")]
+    let (waiting_reply_to, program_id) =
+        crate::ok!(::gcore::prog::create_program(code_id, salt, payload, value));
+
+    #[cfg(not(feature = "ethexe"))]
+    if let Some(reply_deposit) = reply_deposit {
+        _ = ::gcore::exec::reply_deposit(waiting_reply_to, reply_deposit);
+    }
+
+    signals().register_signal(waiting_reply_to);
+
+    Ok((
+        MessageFuture {
+            waiting_reply_to,
+            reply_deposit,
+        },
+        program_id,
+    ))
+}
+
 /// Default reply handler.
 #[inline]
 pub fn handle_reply_with_hook() {

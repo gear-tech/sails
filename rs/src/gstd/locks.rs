@@ -4,44 +4,57 @@ use gstd::{BlockCount, BlockNumber, Config, exec};
 
 /// Type of wait locks.
 #[derive(Debug, PartialEq, Eq)]
-pub(crate) enum Lock {
-    WaitFor(BlockNumber),
-    WaitUpTo(BlockNumber),
+pub(crate) struct Lock {
+    deadline: BlockNumber,
+    ty: WaitType,
+}
+
+/// Wait types.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub(crate) enum WaitType {
+    Exactly,
+    #[default]
+    UpTo,
 }
 
 impl Lock {
     /// Wait for
     pub fn exactly(b: BlockCount) -> Self {
         let current = exec::block_height();
-        Self::WaitFor(current.saturating_add(b))
+        Self {
+            deadline: current.saturating_add(b),
+            ty: WaitType::Exactly,
+        }
     }
 
     /// Wait up to
     pub fn up_to(b: BlockCount) -> Self {
         let current = exec::block_height();
-        Self::WaitUpTo(current.saturating_add(b))
+        Self {
+            deadline: current.saturating_add(b),
+            ty: WaitType::UpTo,
+        }
     }
 
     /// Call wait functions by the lock type.
     pub fn wait(&self, now: BlockNumber) {
-        match &self {
-            Lock::WaitFor(d) => exec::wait_for(
-                d.checked_sub(now)
-                    .expect("Checked in `crate::gstd::async_runtime::message_loop`"),
-            ),
-            Lock::WaitUpTo(d) => exec::wait_up_to(
-                d.checked_sub(now)
-                    .expect("Checked in `crate::gstd::async_runtime::message_loop`"),
-            ),
+        let duration = self
+            .deadline
+            .checked_sub(now)
+            .expect("Checked in `crate::gstd::async_runtime::message_loop`");
+        match self.ty {
+            WaitType::Exactly => exec::wait_for(duration),
+            WaitType::UpTo => exec::wait_up_to(duration),
         }
     }
 
     /// Gets the deadline of the current lock.
     pub fn deadline(&self) -> BlockNumber {
-        match &self {
-            Lock::WaitFor(d) => *d,
-            Lock::WaitUpTo(d) => *d,
-        }
+        self.deadline
+    }
+
+    pub fn wait_type(&self) -> WaitType {
+        self.ty
     }
 }
 
@@ -55,9 +68,9 @@ impl Ord for Lock {
     fn cmp(&self, other: &Self) -> Ordering {
         let mut ord = self.deadline().cmp(&other.deadline());
         if ord == Ordering::Equal {
-            ord = match self {
-                Lock::WaitFor(_) => Ordering::Greater,
-                Lock::WaitUpTo(_) => Ordering::Less,
+            ord = match self.wait_type() {
+                WaitType::Exactly => Ordering::Greater,
+                WaitType::UpTo => Ordering::Less,
             }
         }
         ord

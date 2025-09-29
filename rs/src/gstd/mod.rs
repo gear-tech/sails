@@ -1,7 +1,8 @@
 #[doc(hidden)]
 // pub use gstd::{handle_reply_with_hook, message_loop};
 pub use async_runtime::{
-    MessageFuture, handle_reply_with_hook, message_loop, send_bytes_for_reply,
+    MessageFuture, create_program_for_reply, handle_reply_with_hook, message_loop,
+    send_bytes_for_reply,
 };
 #[doc(hidden)]
 #[cfg(feature = "ethexe")]
