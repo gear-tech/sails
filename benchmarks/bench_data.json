@@ -13,14 +13,14 @@
     "317810": 43147409792
   },
   "counter": {
-    "async_call": 818053683,
-    "sync_call": 650366831
+    "async_call": 817273443,
+    "sync_call": 649586591
   },
   "cross_program": {
-    "median": 2436719419
+    "median": 2248884222
   },
   "redirect": {
-    "median": 3473474864
+    "median": 3194519366
   },
   "message_stack": {
     "0": 79911236500,

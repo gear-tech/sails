@@ -43,7 +43,13 @@ impl Task {
 
     #[inline]
     fn remove_lock(&mut self, reply_to: &MessageId) {
-        self.reply_to_locks.retain(|(mid, _)| mid != reply_to);
+        if let Some(index) = self
+            .reply_to_locks
+            .iter()
+            .position(|(mid, _)| mid == reply_to)
+        {
+            self.reply_to_locks.swap_remove(index);
+        }
     }
 
     #[inline]
