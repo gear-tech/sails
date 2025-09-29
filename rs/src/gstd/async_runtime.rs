@@ -206,26 +206,26 @@ impl WakeSignals {
         reply_to: &MessageId,
         _cx: &mut Context<'_>,
     ) -> Poll<Result<Vec<u8>, Error>> {
-        match self.signals.get(reply_to) {
-            None => panic!("Poll not registered feature"),
-            Some(WakeSignal::Pending { .. }) => {
-                return Poll::Pending;
-            }
-            _ => {}
+        let entry = self.signals.entry_ref(reply_to);
+        let entry = match entry {
+            hashbrown::hash_map::EntryRef::Occupied(occupied_entry) => occupied_entry,
+            hashbrown::hash_map::EntryRef::Vacant(_) => panic!("Poll not registered feature"),
         };
-
-        match self.signals.remove(reply_to) {
-            Some(WakeSignal::Ready {
+        if let WakeSignal::Pending { .. } = entry.get() {
+            return Poll::Pending;
+        }
+        match entry.remove() {
+            WakeSignal::Ready {
                 payload,
                 reply_code,
-            }) => match reply_code {
+            } => match reply_code {
                 ReplyCode::Success(_) => Poll::Ready(Ok(payload)),
                 ReplyCode::Error(reason) => {
                     Poll::Ready(Err(Error::ErrorReply(payload.into(), reason)))
                 }
                 ReplyCode::Unsupported => Poll::Ready(Err(Error::UnsupportedReply(payload))),
             },
-            Some(WakeSignal::Timeout { expected, now, .. }) => {
+            WakeSignal::Timeout { expected, now, .. } => {
                 Poll::Ready(Err(Error::Timeout(expected, now)))
             }
             _ => unreachable!(),
@@ -251,13 +251,13 @@ impl Future for MessageFuture {
     type Output = Result<Vec<u8>, Error>;
 
     fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
-        signals().poll(&self.waiting_reply_to, cx)
+        poll(&self.waiting_reply_to, cx)
     }
 }
 
 impl FusedFuture for MessageFuture {
     fn is_terminated(&self) -> bool {
-        !signals().waits_for(&self.waiting_reply_to)
+        is_terminated(&self.waiting_reply_to)
     }
 }
 
@@ -271,16 +271,21 @@ pub fn send_bytes_for_reply(
 ) -> Result<MessageFuture, ::gstd::errors::Error> {
     #[cfg(not(feature = "ethexe"))]
     let waiting_reply_to = if let Some(gas_limit) = gas_limit {
-        ::gcore::msg::send_with_gas(destination, payload, gas_limit, value)?
+        crate::ok!(::gcore::msg::send_with_gas(
+            destination,
+            payload,
+            gas_limit,
+            value
+        ))
     } else {
-        ::gcore::msg::send(destination, payload, value)?
+        crate::ok!(::gcore::msg::send(destination, payload, value))
     };
     #[cfg(feature = "ethexe")]
-    let waiting_reply_to = ::gcore::msg::send(destination, payload, value)?;
+    let waiting_reply_to = ::gcore::msg::send(destination, payload, value);
 
     #[cfg(not(feature = "ethexe"))]
     if let Some(reply_deposit) = reply_deposit {
-        ::gcore::exec::reply_deposit(waiting_reply_to, reply_deposit)?;
+        _ = ::gcore::exec::reply_deposit(waiting_reply_to, reply_deposit);
     }
 
     signals().register_signal(waiting_reply_to);

@@ -143,3 +143,15 @@ pub trait InvocationIo {
         TypeId::of::<T>() == TypeId::of::<()>()
     }
 }
+
+#[macro_export]
+macro_rules! ok {
+    ($e:expr) => {
+        match $e {
+            Ok(t) => t,
+            Err(err) => {
+                return Err(err.into());
+            }
+        }
+    };
+}

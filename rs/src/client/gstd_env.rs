@@ -171,13 +171,13 @@ const _: () = {
     ) -> Result<GstdFuture, Error> {
         // send message
         // let future = send_for_reply_future(destination, payload.as_ref(), params)?;
-        let future = crate::gstd::send_bytes_for_reply(
+        let future = crate::ok!(crate::gstd::send_bytes_for_reply(
             destination,
             payload.as_ref(),
             params.value.unwrap_or_default(),
             params.gas_limit,
             params.reply_deposit,
-        )?;
+        ));
         if params.redirect_on_exit {
             let created_block = params.wait_up_to.map(|_| gstd::exec::block_height());
             Ok(GstdFuture::MessageWithRedirect {
