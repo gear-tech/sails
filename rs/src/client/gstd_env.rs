@@ -194,17 +194,10 @@ const _: () = {
                 let destination = self.destination;
                 let params = self.params.get_or_insert_default();
                 // Send message
-                let send_res = send_for_reply(destination, payload, params);
-                match send_res {
-                    Ok(future) => {
-                        self.state = Some(future);
-                        // No need to poll the future
-                        return Poll::Pending;
-                    }
-                    Err(err) => {
-                        return Poll::Ready(Err(err));
-                    }
-                }
+                let future = send_for_reply(destination, payload, params)?;
+                self.state = Some(future);
+                // No need to poll the future
+                return Poll::Pending;
             }
             let this = self.as_mut().project();
             // SAFETY: checked in the code above.
@@ -217,10 +210,11 @@ const _: () = {
             };
             match output {
                 // ok reply
-                Ok(payload) => match T::decode_reply_with_prefix(self.route, payload) {
-                    Ok(reply) => Poll::Ready(Ok(reply)),
-                    Err(err) => Poll::Ready(Err(Error::Decode(err))),
-                },
+                Ok(payload) => {
+                    let res =
+                        T::decode_reply_with_prefix(self.route, payload).map_err(Error::Decode)?;
+                    Poll::Ready(Ok(res))
+                }
                 // reply with ProgramExited
                 Err(gstd::errors::Error::ErrorReply(
                     error_payload,
@@ -249,16 +243,11 @@ const _: () = {
                         });
 
                         // send message to new target
-                        let send_res = send_for_reply(new_target, payload, params);
-                        match send_res {
-                            Ok(future) => {
-                                // Replace the future with a new one
-                                _ = state.as_mut().project_replace(future);
-                                // Return Pending to allow the new future to be polled
-                                Poll::Pending
-                            }
-                            Err(err) => Poll::Ready(Err(err)),
-                        }
+                        let future = send_for_reply(new_target, payload, params)?;
+                        // Replace the future with a new one
+                        _ = state.as_mut().project_replace(future);
+                        // Return Pending to allow the new future to be polled
+                        Poll::Pending
                     } else {
                         Poll::Ready(Err(gstd::errors::Error::ErrorReply(
                             error_payload,
