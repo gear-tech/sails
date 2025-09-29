@@ -22,7 +22,7 @@ fn signals() -> &'static mut WakeSignals {
 /// of code that was running before the program was interrupted by `wait`.
 pub struct Task {
     future: LocalBoxFuture<'static, ()>,
-    reply_to_locks: HashMap<MessageId, locks::Lock>,
+    reply_to_locks: Vec<(MessageId, locks::Lock)>,
 }
 
 impl Task {
@@ -32,18 +32,18 @@ impl Task {
     {
         Self {
             future: future.boxed_local(),
-            reply_to_locks: HashMap::new(),
+            reply_to_locks: Vec::new(),
         }
     }
 
     #[inline]
     fn insert_lock(&mut self, reply_to: MessageId, lock: locks::Lock) {
-        self.reply_to_locks.insert(reply_to, lock);
+        self.reply_to_locks.push((reply_to, lock));
     }
 
     #[inline]
     fn remove_lock(&mut self, reply_to: &MessageId) {
-        self.reply_to_locks.remove(reply_to);
+        self.reply_to_locks.retain(|(mid, _)| mid != reply_to);
     }
 
     #[inline]
@@ -51,7 +51,7 @@ impl Task {
         let signals_map = signals();
 
         self.reply_to_locks
-            .extract_if(|_, lock| now >= lock.deadline())
+            .extract_if(.., |(_, lock)| now >= lock.deadline())
             .for_each(|(reply_to, lock)| {
                 signals_map.record_timeout(&reply_to, lock.deadline(), now);
                 ::gstd::debug!(
@@ -63,7 +63,8 @@ impl Task {
     #[inline]
     fn wait(&self, now: BlockNumber) {
         self.reply_to_locks
-            .values()
+            .iter()
+            .map(|(_, lock)| lock)
             .min_by(|lock1, lock2| lock1.cmp(lock2))
             .expect("Cannot find lock to be waited")
             .wait(now);
