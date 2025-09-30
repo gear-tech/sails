@@ -443,7 +443,7 @@ Then, in a client application, provided the code generation happens in a Rust bu
 you can use the generated code like this (option 1):
 
 ```rust
-include!(concat!(env!("OUT_DIR"), "/my_service.rs"));
+include!(concat!(env!("OUT_DIR"), "/my_program.rs"));
 
 fn some_client_code() {
     let call_payload = my_service::io::DoSomething::encode_call(42, "Hello".to_string());
@@ -457,15 +457,16 @@ fn some_client_code() {
 Or like this (option 2):
 
 ```rust
-include!(concat!(env!("OUT_DIR"), "/my_service.rs"));
+include!(concat!(env!("OUT_DIR"), "/my_program.rs"));
 
 fn some_client_code() {
-    let mut my_service = MyService::new(remoting); // remoting is an abstraction provided by Sails
-    let reply_ticket = client.do_something(42, "Hello".to_string())
+    let mut my_service = MyProgram::client(actor_id) // create client to MyProgram
+        .with_env(env)  // `env` is an runtime environment
+        .my_service();
+    let reply = client.do_something(42, "Hello".to_string())
         .with_reply_deposit(42)
-        .send(target_app_id)
-        .await.unwrap();
-    let reply = reply_ticket.recv().await.unwrap();
+        .await
+        .unwrap();
     let m1 = reply.m1;
     let m2 = reply.m2;
 }
@@ -474,17 +475,19 @@ fn some_client_code() {
 The second option provides you with an option to have your code testable, as the generated
 code depends on the trait which can be easily mocked.
 
-As you may have noticed, the option 2 uses the concept of a `remoting` object, which needs
-to be passed to the client instantiation code. This object should implement the `Remoting`
+As you may have noticed, the option 2 uses the concept of a `env` object, which needs
+to be passed to the client instantiation code. This object should implement the `GearEnv`
 trait from the `sails-rs` crate. It abstracts the low-level communication details
 between client and the application. The `sails-rs` crate provides three implementations of this
 trait:
-- `sails_rs::gstd::calls::GStdRemoting` should be used when the client code is executed
+- `sails_rs::client::GstdEnv` should be used when the client code is executed
   as a part of another on-chain application.
-- `sails_rs::gclient::calls::GClientRemoting` should be used when the client code is executed
+- `sails_rs::client::GclientEnv` should be used when the client code is executed
   as a part of an off-chain application.
-- `sails_rs::gstd::calls::GTestRemoting` should be used when the client code is executed
+- `sails_rs::client::GtestEnv` should be used when the client code is executed
   as a part of a tests utilizing the `gtest` crate.
+
+See the [Redirect](/examples/redirect/proxy/src/lib.rs) example, which demonstrates how to work with a remote program using a generated client.
 
 When it comes to TypeScript, `sails-js` library can be used to interact with the program. Check out [`sails-js` documentation](js/README.md) for more details.
 
