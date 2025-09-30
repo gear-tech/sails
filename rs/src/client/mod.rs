@@ -35,17 +35,17 @@ pub trait GearEnv: Clone {
     type Error: Error;
     type MessageState;
 
-    fn deploy<P: Program>(&self, code_id: CodeId, salt: Vec<u8>) -> Deployment<Self, P> {
+    fn deploy<P: Program>(&self, code_id: CodeId, salt: Vec<u8>) -> Deployment<P, Self> {
         Deployment::new(self.clone(), code_id, salt)
     }
 }
 
 pub trait Program: Sized {
-    fn deploy(code_id: CodeId, salt: Vec<u8>) -> Deployment<GstdEnv, Self> {
+    fn deploy(code_id: CodeId, salt: Vec<u8>) -> Deployment<Self, GstdEnv> {
         Deployment::new(GstdEnv, code_id, salt)
     }
 
-    fn client(program_id: ActorId) -> Actor<GstdEnv, Self> {
+    fn client(program_id: ActorId) -> Actor<Self, GstdEnv> {
         Actor::new(GstdEnv, program_id)
     }
 }
@@ -53,14 +53,14 @@ pub trait Program: Sized {
 pub type Route = &'static str;
 
 #[derive(Debug, Clone)]
-pub struct Deployment<E: GearEnv, A> {
+pub struct Deployment<A, E: GearEnv = GstdEnv> {
     env: E,
     code_id: CodeId,
     salt: Vec<u8>,
     _phantom: PhantomData<A>,
 }
 
-impl<E: GearEnv, A> Deployment<E, A> {
+impl<A, E: GearEnv> Deployment<A, E> {
     pub fn new(env: E, code_id: CodeId, salt: Vec<u8>) -> Self {
         Deployment {
             env,
@@ -70,7 +70,7 @@ impl<E: GearEnv, A> Deployment<E, A> {
         }
     }
 
-    pub fn with_env<N: GearEnv>(self, env: &N) -> Deployment<N, A> {
+    pub fn with_env<N: GearEnv>(self, env: &N) -> Deployment<A, N> {
         let Self {
             env: _,
             code_id,
@@ -85,19 +85,19 @@ impl<E: GearEnv, A> Deployment<E, A> {
         }
     }
 
-    pub fn pending_ctor<T: CallEncodeDecode>(self, args: T::Params) -> PendingCtor<E, A, T> {
+    pub fn pending_ctor<T: CallCodec>(self, args: T::Params) -> PendingCtor<A, T, E> {
         PendingCtor::new(self.env, self.code_id, self.salt, args)
     }
 }
 
 #[derive(Debug, Clone)]
-pub struct Actor<E: GearEnv, A> {
+pub struct Actor<A, E: GearEnv = GstdEnv> {
     env: E,
     id: ActorId,
     _phantom: PhantomData<A>,
 }
 
-impl<E: GearEnv, A> Actor<E, A> {
+impl<A, E: GearEnv> Actor<A, E> {
     pub fn new(env: E, id: ActorId) -> Self {
         Actor {
             env,
@@ -110,7 +110,7 @@ impl<E: GearEnv, A> Actor<E, A> {
         self.id
     }
 
-    pub fn with_env<N: GearEnv>(self, env: &N) -> Actor<N, A> {
+    pub fn with_env<N: GearEnv>(self, env: &N) -> Actor<A, N> {
         let Self {
             env: _,
             id,
@@ -128,20 +128,20 @@ impl<E: GearEnv, A> Actor<E, A> {
         self
     }
 
-    pub fn service<S>(&self, route: Route) -> Service<E, S> {
+    pub fn service<S>(&self, route: Route) -> Service<S, E> {
         Service::new(self.env.clone(), self.id, route)
     }
 }
 
 #[derive(Debug, Clone)]
-pub struct Service<E: GearEnv, S> {
+pub struct Service<S, E: GearEnv = GstdEnv> {
     env: E,
     actor_id: ActorId,
     route: Route,
     _phantom: PhantomData<S>,
 }
 
-impl<E: GearEnv, S> Service<E, S> {
+impl<S, E: GearEnv> Service<S, E> {
     pub fn new(env: E, actor_id: ActorId, route: Route) -> Self {
         Service {
             env,
@@ -164,26 +164,26 @@ impl<E: GearEnv, S> Service<E, S> {
         self
     }
 
-    pub fn pending_call<T: CallEncodeDecode>(&self, args: T::Params) -> PendingCall<E, T> {
+    pub fn pending_call<T: CallCodec>(&self, args: T::Params) -> PendingCall<T, E> {
         PendingCall::new(self.env.clone(), self.actor_id, self.route, args)
     }
 
     #[cfg(not(target_arch = "wasm32"))]
-    pub fn listener(&self) -> ServiceListener<E, S::Event>
+    pub fn listener(&self) -> ServiceListener<S::Event, E>
     where
-        S: ServiceEvent,
+        S: ServiceWithEvents,
     {
         ServiceListener::new(self.env.clone(), self.actor_id, self.route)
     }
 }
 
 #[cfg(not(target_arch = "wasm32"))]
-pub trait ServiceEvent {
-    type Event: EventDecode;
+pub trait ServiceWithEvents {
+    type Event: Event;
 }
 
 #[cfg(not(target_arch = "wasm32"))]
-pub struct ServiceListener<E: GearEnv, D: EventDecode> {
+pub struct ServiceListener<D: Event, E: GearEnv> {
     env: E,
     actor_id: ActorId,
     route: Route,
@@ -191,7 +191,7 @@ pub struct ServiceListener<E: GearEnv, D: EventDecode> {
 }
 
 #[cfg(not(target_arch = "wasm32"))]
-impl<E: GearEnv, D: EventDecode> ServiceListener<E, D> {
+impl<D: Event, E: GearEnv> ServiceListener<D, E> {
     pub fn new(env: E, actor_id: ActorId, route: Route) -> Self {
         ServiceListener {
             env,
@@ -221,7 +221,7 @@ impl<E: GearEnv, D: EventDecode> ServiceListener<E, D> {
 }
 
 pin_project_lite::pin_project! {
-    pub struct PendingCall<E: GearEnv, T: CallEncodeDecode> {
+    pub struct PendingCall<T: CallCodec, E: GearEnv> {
         env: E,
         destination: ActorId,
         route: Route,
@@ -232,7 +232,7 @@ pin_project_lite::pin_project! {
     }
 }
 
-impl<E: GearEnv, T: CallEncodeDecode> PendingCall<E, T> {
+impl<T: CallCodec, E: GearEnv> PendingCall<T, E> {
     pub fn new(env: E, destination: ActorId, route: Route, args: T::Params) -> Self {
         PendingCall {
             env,
@@ -267,7 +267,7 @@ impl<E: GearEnv, T: CallEncodeDecode> PendingCall<E, T> {
 }
 
 pin_project_lite::pin_project! {
-    pub struct PendingCtor<E: GearEnv, A, T: CallEncodeDecode> {
+    pub struct PendingCtor<A, T: CallCodec, E: GearEnv> {
         env: E,
         code_id: CodeId,
         params: Option<E::Params>,
@@ -280,7 +280,7 @@ pin_project_lite::pin_project! {
     }
 }
 
-impl<E: GearEnv, A, T: CallEncodeDecode> PendingCtor<E, A, T> {
+impl<A, T: CallCodec, E: GearEnv> PendingCtor<A, T, E> {
     pub fn new(env: E, code_id: CodeId, salt: Vec<u8>, args: T::Params) -> Self {
         PendingCtor {
             env,
@@ -300,7 +300,7 @@ impl<E: GearEnv, A, T: CallEncodeDecode> PendingCtor<E, A, T> {
     }
 }
 
-pub trait CallEncodeDecode {
+pub trait CallCodec {
     const ROUTE: Route;
     type Params: Encode;
     type Reply: Decode + 'static;
@@ -404,7 +404,7 @@ macro_rules! params_struct_impl {
             )*
         }
 
-        impl<A, T: CallEncodeDecode> PendingCtor<$env, A, T> {
+        impl<A, T: CallCodec> PendingCtor<A, T, $env> {
             $(
                 paste::paste! {
                     $(#[$attr])*
@@ -415,7 +415,7 @@ macro_rules! params_struct_impl {
             )*
         }
 
-        impl<T: CallEncodeDecode> PendingCall<$env, T> {
+        impl<T: CallCodec> PendingCall<T, $env> {
             $(
                 paste::paste! {
                     $(#[$attr])*
@@ -446,7 +446,7 @@ macro_rules! params_for_pending_impl {
             )*
         }
 
-        impl<A, T: CallEncodeDecode> PendingCtor<$env, A, T> {
+        impl<A, T: CallCodec> PendingCtor<A, T, $env> {
             $(
                 paste::paste! {
                     $(#[$attr])*
@@ -457,7 +457,7 @@ macro_rules! params_for_pending_impl {
             )*
         }
 
-        impl<T: CallEncodeDecode> PendingCall<$env, T> {
+        impl<T: CallCodec> PendingCall<T, $env> {
             $(
                 paste::paste! {
                     $(#[$attr])*
@@ -478,13 +478,13 @@ macro_rules! io_struct_impl {
         pub struct $name(());
         impl $name {
             pub fn encode_params($( $param: $ty, )* ) -> Vec<u8> {
-                <$name as CallEncodeDecode>::encode_params(&( $( $param, )* ))
+                <$name as CallCodec>::encode_params(&( $( $param, )* ))
             }
             pub fn encode_params_with_prefix(prefix: Route, $( $param: $ty, )* ) -> Vec<u8> {
-                <$name as CallEncodeDecode>::encode_params_with_prefix(prefix, &( $( $param, )* ))
+                <$name as CallCodec>::encode_params_with_prefix(prefix, &( $( $param, )* ))
             }
         }
-        impl CallEncodeDecode for $name {
+        impl CallCodec for $name {
             const ROUTE: &'static str = stringify!($name);
             type Params = ( $( $ty, )* );
             type Reply = $reply;
@@ -527,7 +527,7 @@ pub trait Listener {
 }
 
 #[cfg(not(target_arch = "wasm32"))]
-pub trait EventDecode: Decode {
+pub trait Event: Decode {
     const EVENT_NAMES: &'static [Route];
 
     fn decode_event(

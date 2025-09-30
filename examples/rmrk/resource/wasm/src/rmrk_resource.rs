@@ -7,15 +7,15 @@ pub trait RmrkResource {
     type Env: sails_rs::client::GearEnv;
     fn rmrk_resource(
         &self,
-    ) -> sails_rs::client::Service<Self::Env, rmrk_resource::RmrkResourceImpl>;
+    ) -> sails_rs::client::Service<rmrk_resource::RmrkResourceImpl, Self::Env>;
 }
 impl<E: sails_rs::client::GearEnv> RmrkResource
-    for sails_rs::client::Actor<E, RmrkResourceProgram>
+    for sails_rs::client::Actor<RmrkResourceProgram, E>
 {
     type Env = E;
     fn rmrk_resource(
         &self,
-    ) -> sails_rs::client::Service<Self::Env, rmrk_resource::RmrkResourceImpl> {
+    ) -> sails_rs::client::Service<rmrk_resource::RmrkResourceImpl, Self::Env> {
         self.service(stringify!(RmrkResource))
     }
 }
@@ -23,13 +23,13 @@ pub trait RmrkResourceCtors {
     type Env: sails_rs::client::GearEnv;
     #[allow(clippy::new_ret_no_self)]
     #[allow(clippy::wrong_self_convention)]
-    fn new(self) -> sails_rs::client::PendingCtor<Self::Env, RmrkResourceProgram, io::New>;
+    fn new(self) -> sails_rs::client::PendingCtor<RmrkResourceProgram, io::New, Self::Env>;
 }
 impl<E: sails_rs::client::GearEnv> RmrkResourceCtors
-    for sails_rs::client::Deployment<E, RmrkResourceProgram>
+    for sails_rs::client::Deployment<RmrkResourceProgram, E>
 {
     type Env = E;
-    fn new(self) -> sails_rs::client::PendingCtor<Self::Env, RmrkResourceProgram, io::New> {
+    fn new(self) -> sails_rs::client::PendingCtor<RmrkResourceProgram, io::New, Self::Env> {
         self.pending_ctor(())
     }
 }
@@ -47,38 +47,38 @@ pub mod rmrk_resource {
             &mut self,
             resource_id: u8,
             part_id: u32,
-        ) -> sails_rs::client::PendingCall<Self::Env, io::AddPartToResource>;
+        ) -> sails_rs::client::PendingCall<io::AddPartToResource, Self::Env>;
         fn add_resource_entry(
             &mut self,
             resource_id: u8,
             resource: Resource,
-        ) -> sails_rs::client::PendingCall<Self::Env, io::AddResourceEntry>;
+        ) -> sails_rs::client::PendingCall<io::AddResourceEntry, Self::Env>;
         fn resource(
             &self,
             resource_id: u8,
-        ) -> sails_rs::client::PendingCall<Self::Env, io::Resource>;
+        ) -> sails_rs::client::PendingCall<io::Resource, Self::Env>;
     }
     pub struct RmrkResourceImpl;
-    impl<E: sails_rs::client::GearEnv> RmrkResource for sails_rs::client::Service<E, RmrkResourceImpl> {
+    impl<E: sails_rs::client::GearEnv> RmrkResource for sails_rs::client::Service<RmrkResourceImpl, E> {
         type Env = E;
         fn add_part_to_resource(
             &mut self,
             resource_id: u8,
             part_id: u32,
-        ) -> sails_rs::client::PendingCall<Self::Env, io::AddPartToResource> {
+        ) -> sails_rs::client::PendingCall<io::AddPartToResource, Self::Env> {
             self.pending_call((resource_id, part_id))
         }
         fn add_resource_entry(
             &mut self,
             resource_id: u8,
             resource: Resource,
-        ) -> sails_rs::client::PendingCall<Self::Env, io::AddResourceEntry> {
+        ) -> sails_rs::client::PendingCall<io::AddResourceEntry, Self::Env> {
             self.pending_call((resource_id, resource))
         }
         fn resource(
             &self,
             resource_id: u8,
-        ) -> sails_rs::client::PendingCall<Self::Env, io::Resource> {
+        ) -> sails_rs::client::PendingCall<io::Resource, Self::Env> {
             self.pending_call((resource_id,))
         }
     }
@@ -99,10 +99,10 @@ pub mod rmrk_resource {
             ResourceAdded { resource_id: u8 },
             PartAdded { resource_id: u8, part_id: u32 },
         }
-        impl EventDecode for RmrkResourceEvents {
+        impl sails_rs::client::Event for RmrkResourceEvents {
             const EVENT_NAMES: &'static [Route] = &["ResourceAdded", "PartAdded"];
         }
-        impl sails_rs::client::ServiceEvent for RmrkResourceImpl {
+        impl sails_rs::client::ServiceWithEvents for RmrkResourceImpl {
             type Event = RmrkResourceEvents;
         }
     }

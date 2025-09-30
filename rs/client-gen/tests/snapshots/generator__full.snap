@@ -9,11 +9,11 @@ pub struct ServiceProgram;
 impl sails_rs::client::Program for ServiceProgram {}
 pub trait Service {
     type Env: sails_rs::client::GearEnv;
-    fn service(&self) -> sails_rs::client::Service<Self::Env, service::ServiceImpl>;
+    fn service(&self) -> sails_rs::client::Service<service::ServiceImpl, Self::Env>;
 }
-impl<E: sails_rs::client::GearEnv> Service for sails_rs::client::Actor<E, ServiceProgram> {
+impl<E: sails_rs::client::GearEnv> Service for sails_rs::client::Actor<ServiceProgram, E> {
     type Env = E;
-    fn service(&self) -> sails_rs::client::Service<Self::Env, service::ServiceImpl> {
+    fn service(&self) -> sails_rs::client::Service<service::ServiceImpl, Self::Env> {
         self.service(stringify!(Service))
     }
 }
@@ -22,13 +22,13 @@ pub trait ServiceCtors {
     /// New constructor
     #[allow(clippy::new_ret_no_self)]
     #[allow(clippy::wrong_self_convention)]
-    fn new(self, a: u32) -> sails_rs::client::PendingCtor<Self::Env, ServiceProgram, io::New>;
+    fn new(self, a: u32) -> sails_rs::client::PendingCtor<ServiceProgram, io::New, Self::Env>;
 }
 impl<E: sails_rs::client::GearEnv> ServiceCtors
-    for sails_rs::client::Deployment<E, ServiceProgram>
+    for sails_rs::client::Deployment<ServiceProgram, E>
 {
     type Env = E;
-    fn new(self, a: u32) -> sails_rs::client::PendingCtor<Self::Env, ServiceProgram, io::New> {
+    fn new(self, a: u32) -> sails_rs::client::PendingCtor<ServiceProgram, io::New, Self::Env> {
         self.pending_ctor((a,))
     }
 }
@@ -49,22 +49,22 @@ pub mod service {
             p2: String,
             p3: (Option<String>, u8),
             p4: ThisThatSvcAppTupleStruct,
-        ) -> sails_rs::client::PendingCall<Self::Env, io::DoThis>;
+        ) -> sails_rs::client::PendingCall<io::DoThis, Self::Env>;
         /// Some multiline description
         /// Second line
         /// Third line
         fn do_that(
             &mut self,
             param: ThisThatSvcAppDoThatParam,
-        ) -> sails_rs::client::PendingCall<Self::Env, io::DoThat>;
+        ) -> sails_rs::client::PendingCall<io::DoThat, Self::Env>;
         /// This is a query
-        fn this(&self, v1: Vec<u16>) -> sails_rs::client::PendingCall<Self::Env, io::This>;
+        fn this(&self, v1: Vec<u16>) -> sails_rs::client::PendingCall<io::This, Self::Env>;
         /// This is a second query
         /// This is a second line
-        fn that(&self, v1: ()) -> sails_rs::client::PendingCall<Self::Env, io::That>;
+        fn that(&self, v1: ()) -> sails_rs::client::PendingCall<io::That, Self::Env>;
     }
     pub struct ServiceImpl;
-    impl<E: sails_rs::client::GearEnv> Service for sails_rs::client::Service<E, ServiceImpl> {
+    impl<E: sails_rs::client::GearEnv> Service for sails_rs::client::Service<ServiceImpl, E> {
         type Env = E;
         fn do_this(
             &mut self,
@@ -72,19 +72,19 @@ pub mod service {
             p2: String,
             p3: (Option<String>, u8),
             p4: ThisThatSvcAppTupleStruct,
-        ) -> sails_rs::client::PendingCall<Self::Env, io::DoThis> {
+        ) -> sails_rs::client::PendingCall<io::DoThis, Self::Env> {
             self.pending_call((p1, p2, p3, p4))
         }
         fn do_that(
             &mut self,
             param: ThisThatSvcAppDoThatParam,
-        ) -> sails_rs::client::PendingCall<Self::Env, io::DoThat> {
+        ) -> sails_rs::client::PendingCall<io::DoThat, Self::Env> {
             self.pending_call((param,))
         }
-        fn this(&self, v1: Vec<u16>) -> sails_rs::client::PendingCall<Self::Env, io::This> {
+        fn this(&self, v1: Vec<u16>) -> sails_rs::client::PendingCall<io::This, Self::Env> {
             self.pending_call((v1,))
         }
-        fn that(&self, v1: ()) -> sails_rs::client::PendingCall<Self::Env, io::That> {
+        fn that(&self, v1: ()) -> sails_rs::client::PendingCall<io::That, Self::Env> {
             self.pending_call((v1,))
         }
     }
@@ -111,10 +111,10 @@ pub mod service {
                 p1: String,
             },
         }
-        impl EventDecode for ServiceEvents {
+        impl sails_rs::client::Event for ServiceEvents {
             const EVENT_NAMES: &'static [Route] = &["ThisDone", "ThatDone"];
         }
-        impl sails_rs::client::ServiceEvent for ServiceImpl {
+        impl sails_rs::client::ServiceWithEvents for ServiceImpl {
             type Event = ServiceEvents;
         }
     }
@@ -172,5 +172,5 @@ extern crate std;
 pub mod mockall {
     use super::*;
     use sails_rs::mockall::*;
-    mock! { pub Service {} #[allow(refining_impl_trait)] #[allow(clippy::type_complexity)] impl service::Service for Service { type Env = sails_rs::client::GstdEnv; fn do_this (&mut self, p1: u32, p2: String, p3: (Option<String>,u8,), p4: ThisThatSvcAppTupleStruct) -> sails_rs::client::PendingCall<sails_rs::client::GstdEnv, service::io::DoThis>;fn do_that (&mut self, param: ThisThatSvcAppDoThatParam) -> sails_rs::client::PendingCall<sails_rs::client::GstdEnv, service::io::DoThat>;fn this (& self, v1: Vec<u16>) -> sails_rs::client::PendingCall<sails_rs::client::GstdEnv, service::io::This>;fn that (& self, v1: ()) -> sails_rs::client::PendingCall<sails_rs::client::GstdEnv, service::io::That>; } }
+    mock! { pub Service {} #[allow(refining_impl_trait)] #[allow(clippy::type_complexity)] impl service::Service for Service { type Env = sails_rs::client::GstdEnv; fn do_this (&mut self, p1: u32, p2: String, p3: (Option<String>,u8,), p4: ThisThatSvcAppTupleStruct) -> sails_rs::client::PendingCall<service::io::DoThis, sails_rs::client::GstdEnv>;fn do_that (&mut self, param: ThisThatSvcAppDoThatParam) -> sails_rs::client::PendingCall<service::io::DoThat, sails_rs::client::GstdEnv>;fn this (& self, v1: Vec<u16>) -> sails_rs::client::PendingCall<service::io::This, sails_rs::client::GstdEnv>;fn that (& self, v1: ()) -> sails_rs::client::PendingCall<service::io::That, sails_rs::client::GstdEnv>; } }
 }

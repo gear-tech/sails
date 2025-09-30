@@ -81,7 +81,7 @@ impl<'a> RootGenerator<'a> {
                 $(self.service_trait_tokens)
             }
 
-            impl<E: $(self.sails_path)::client::GearEnv> $program_name for $(self.sails_path)::client::Actor<E, $(program_name)Program> {
+            impl<E: $(self.sails_path)::client::GearEnv> $program_name for $(self.sails_path)::client::Actor<$(program_name)Program, E> {
                 type Env = E;
                 $(self.service_impl_tokens)
             }

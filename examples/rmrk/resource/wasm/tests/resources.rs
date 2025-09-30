@@ -433,7 +433,7 @@ impl Fixture {
         resource_program.id()
     }
 
-    fn resource_client(&self) -> Service<GtestEnv, RmrkResourceImpl> {
+    fn resource_client(&self) -> Service<RmrkResourceImpl, GtestEnv> {
         RmrkResourceProgram::client(self.resource_program_id)
             .with_env(&self.env)
             .rmrk_resource()
