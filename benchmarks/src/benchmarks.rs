@@ -278,12 +278,12 @@ fn create_env() -> GtestEnv {
 async fn deploy_for_bench<
     P: Program,
     IO: CallCodec,
-    F: FnOnce(Deployment<GtestEnv, P>) -> PendingCtor<GtestEnv, P, IO>,
+    F: FnOnce(Deployment<P, GtestEnv>) -> PendingCtor<P, IO, GtestEnv>,
 >(
     env: &GtestEnv,
     wasm_path: &str,
     f: F,
-) -> Actor<GtestEnv, P> {
+) -> Actor<P, GtestEnv> {
     let code_id = env.system().submit_local_code_file(wasm_path);
     let salt = COUNTER_SALT
         .fetch_add(1, std::sync::atomic::Ordering::SeqCst)
