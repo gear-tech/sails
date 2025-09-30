@@ -5,13 +5,13 @@ pub struct RedirectProxyClientProgram;
 impl sails_rs::client::Program for RedirectProxyClientProgram {}
 pub trait RedirectProxyClient {
     type Env: sails_rs::client::GearEnv;
-    fn proxy(&self) -> sails_rs::client::Service<Self::Env, proxy::ProxyImpl>;
+    fn proxy(&self) -> sails_rs::client::Service<proxy::ProxyImpl, Self::Env>;
 }
 impl<E: sails_rs::client::GearEnv> RedirectProxyClient
-    for sails_rs::client::Actor<E, RedirectProxyClientProgram>
+    for sails_rs::client::Actor<RedirectProxyClientProgram, E>
 {
     type Env = E;
-    fn proxy(&self) -> sails_rs::client::Service<Self::Env, proxy::ProxyImpl> {
+    fn proxy(&self) -> sails_rs::client::Service<proxy::ProxyImpl, Self::Env> {
         self.service(stringify!(Proxy))
     }
 }
@@ -23,16 +23,16 @@ pub trait RedirectProxyClientCtors {
     fn new(
         self,
         target: ActorId,
-    ) -> sails_rs::client::PendingCtor<Self::Env, RedirectProxyClientProgram, io::New>;
+    ) -> sails_rs::client::PendingCtor<RedirectProxyClientProgram, io::New, Self::Env>;
 }
 impl<E: sails_rs::client::GearEnv> RedirectProxyClientCtors
-    for sails_rs::client::Deployment<E, RedirectProxyClientProgram>
+    for sails_rs::client::Deployment<RedirectProxyClientProgram, E>
 {
     type Env = E;
     fn new(
         self,
         target: ActorId,
-    ) -> sails_rs::client::PendingCtor<Self::Env, RedirectProxyClientProgram, io::New> {
+    ) -> sails_rs::client::PendingCtor<RedirectProxyClientProgram, io::New, Self::Env> {
         self.pending_ctor((target,))
     }
 }
@@ -47,12 +47,12 @@ pub mod proxy {
     pub trait Proxy {
         type Env: sails_rs::client::GearEnv;
         /// Get program ID of the target program via client
-        fn get_program_id(&self) -> sails_rs::client::PendingCall<Self::Env, io::GetProgramId>;
+        fn get_program_id(&self) -> sails_rs::client::PendingCall<io::GetProgramId, Self::Env>;
     }
     pub struct ProxyImpl;
-    impl<E: sails_rs::client::GearEnv> Proxy for sails_rs::client::Service<E, ProxyImpl> {
+    impl<E: sails_rs::client::GearEnv> Proxy for sails_rs::client::Service<ProxyImpl, E> {
         type Env = E;
-        fn get_program_id(&self) -> sails_rs::client::PendingCall<Self::Env, io::GetProgramId> {
+        fn get_program_id(&self) -> sails_rs::client::PendingCall<io::GetProgramId, Self::Env> {
             self.pending_call(())
         }
     }

@@ -11,15 +11,15 @@ pub trait ServiceWithEvents {
     type Env: sails_rs::client::GearEnv;
     fn service_with_events(
         &self,
-    ) -> sails_rs::client::Service<Self::Env, service_with_events::ServiceWithEventsImpl>;
+    ) -> sails_rs::client::Service<service_with_events::ServiceWithEventsImpl, Self::Env>;
 }
 impl<E: sails_rs::client::GearEnv> ServiceWithEvents
-    for sails_rs::client::Actor<E, ServiceWithEventsProgram>
+    for sails_rs::client::Actor<ServiceWithEventsProgram, E>
 {
     type Env = E;
     fn service_with_events(
         &self,
-    ) -> sails_rs::client::Service<Self::Env, service_with_events::ServiceWithEventsImpl> {
+    ) -> sails_rs::client::Service<service_with_events::ServiceWithEventsImpl, Self::Env> {
         self.service(stringify!(ServiceWithEvents))
     }
 }
@@ -32,18 +32,18 @@ pub mod service_with_events {
             &mut self,
             p1: NonZeroU256,
             p2: MyParam,
-        ) -> sails_rs::client::PendingCall<Self::Env, io::DoThis>;
+        ) -> sails_rs::client::PendingCall<io::DoThis, Self::Env>;
     }
     pub struct ServiceWithEventsImpl;
     impl<E: sails_rs::client::GearEnv> ServiceWithEvents
-        for sails_rs::client::Service<E, ServiceWithEventsImpl>
+        for sails_rs::client::Service<ServiceWithEventsImpl, E>
     {
         type Env = E;
         fn do_this(
             &mut self,
             p1: NonZeroU256,
             p2: MyParam,
-        ) -> sails_rs::client::PendingCall<Self::Env, io::DoThis> {
+        ) -> sails_rs::client::PendingCall<io::DoThis, Self::Env> {
             self.pending_call((p1, p2))
         }
     }
@@ -64,10 +64,10 @@ pub mod service_with_events {
             Three(MyParam),
             Reset,
         }
-        impl EventDecode for ServiceWithEventsEvents {
+        impl sails_rs::client::Event for ServiceWithEventsEvents {
             const EVENT_NAMES: &'static [Route] = &["One", "Two", "Three", "Reset"];
         }
-        impl sails_rs::client::ServiceEvent for ServiceWithEventsImpl {
+        impl sails_rs::client::ServiceWithEvents for ServiceWithEventsImpl {
             type Event = ServiceWithEventsEvents;
         }
     }
@@ -90,5 +90,5 @@ extern crate std;
 pub mod mockall {
     use super::*;
     use sails_rs::mockall::*;
-    mock! { pub ServiceWithEvents {} #[allow(refining_impl_trait)] #[allow(clippy::type_complexity)] impl service_with_events::ServiceWithEvents for ServiceWithEvents { type Env = sails_rs::client::GstdEnv; fn do_this (&mut self, p1: NonZeroU256, p2: MyParam) -> sails_rs::client::PendingCall<sails_rs::client::GstdEnv, service_with_events::io::DoThis>; } }
+    mock! { pub ServiceWithEvents {} #[allow(refining_impl_trait)] #[allow(clippy::type_complexity)] impl service_with_events::ServiceWithEvents for ServiceWithEvents { type Env = sails_rs::client::GstdEnv; fn do_this (&mut self, p1: NonZeroU256, p2: MyParam) -> sails_rs::client::PendingCall<service_with_events::io::DoThis, sails_rs::client::GstdEnv>; } }
 }

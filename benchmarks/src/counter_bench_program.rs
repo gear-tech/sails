@@ -7,15 +7,15 @@ pub trait CounterBenchProgram {
     type Env: sails_rs::client::GearEnv;
     fn counter_bench(
         &self,
-    ) -> sails_rs::client::Service<Self::Env, counter_bench::CounterBenchImpl>;
+    ) -> sails_rs::client::Service<counter_bench::CounterBenchImpl, Self::Env>;
 }
 impl<E: sails_rs::client::GearEnv> CounterBenchProgram
-    for sails_rs::client::Actor<E, CounterBenchProgramProgram>
+    for sails_rs::client::Actor<CounterBenchProgramProgram, E>
 {
     type Env = E;
     fn counter_bench(
         &self,
-    ) -> sails_rs::client::Service<Self::Env, counter_bench::CounterBenchImpl> {
+    ) -> sails_rs::client::Service<counter_bench::CounterBenchImpl, Self::Env> {
         self.service(stringify!(CounterBench))
     }
 }
@@ -23,15 +23,15 @@ pub trait CounterBenchProgramCtors {
     type Env: sails_rs::client::GearEnv;
     fn new_for_bench(
         self,
-    ) -> sails_rs::client::PendingCtor<Self::Env, CounterBenchProgramProgram, io::NewForBench>;
+    ) -> sails_rs::client::PendingCtor<CounterBenchProgramProgram, io::NewForBench, Self::Env>;
 }
 impl<E: sails_rs::client::GearEnv> CounterBenchProgramCtors
-    for sails_rs::client::Deployment<E, CounterBenchProgramProgram>
+    for sails_rs::client::Deployment<CounterBenchProgramProgram, E>
 {
     type Env = E;
     fn new_for_bench(
         self,
-    ) -> sails_rs::client::PendingCtor<Self::Env, CounterBenchProgramProgram, io::NewForBench> {
+    ) -> sails_rs::client::PendingCtor<CounterBenchProgramProgram, io::NewForBench, Self::Env> {
         self.pending_ctor(())
     }
 }
@@ -45,16 +45,16 @@ pub mod counter_bench {
     use super::*;
     pub trait CounterBench {
         type Env: sails_rs::client::GearEnv;
-        fn inc(&mut self) -> sails_rs::client::PendingCall<Self::Env, io::Inc>;
-        fn inc_async(&mut self) -> sails_rs::client::PendingCall<Self::Env, io::IncAsync>;
+        fn inc(&mut self) -> sails_rs::client::PendingCall<io::Inc, Self::Env>;
+        fn inc_async(&mut self) -> sails_rs::client::PendingCall<io::IncAsync, Self::Env>;
     }
     pub struct CounterBenchImpl;
-    impl<E: sails_rs::client::GearEnv> CounterBench for sails_rs::client::Service<E, CounterBenchImpl> {
+    impl<E: sails_rs::client::GearEnv> CounterBench for sails_rs::client::Service<CounterBenchImpl, E> {
         type Env = E;
-        fn inc(&mut self) -> sails_rs::client::PendingCall<Self::Env, io::Inc> {
+        fn inc(&mut self) -> sails_rs::client::PendingCall<io::Inc, Self::Env> {
             self.pending_call(())
         }
-        fn inc_async(&mut self) -> sails_rs::client::PendingCall<Self::Env, io::IncAsync> {
+        fn inc_async(&mut self) -> sails_rs::client::PendingCall<io::IncAsync, Self::Env> {
             self.pending_call(())
         }
     }

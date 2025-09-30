@@ -4,13 +4,13 @@ pub struct RedirectClientProgram;
 impl sails_rs::client::Program for RedirectClientProgram {}
 pub trait RedirectClient {
     type Env: sails_rs::client::GearEnv;
-    fn redirect(&self) -> sails_rs::client::Service<Self::Env, redirect::RedirectImpl>;
+    fn redirect(&self) -> sails_rs::client::Service<redirect::RedirectImpl, Self::Env>;
 }
 impl<E: sails_rs::client::GearEnv> RedirectClient
-    for sails_rs::client::Actor<E, RedirectClientProgram>
+    for sails_rs::client::Actor<RedirectClientProgram, E>
 {
     type Env = E;
-    fn redirect(&self) -> sails_rs::client::Service<Self::Env, redirect::RedirectImpl> {
+    fn redirect(&self) -> sails_rs::client::Service<redirect::RedirectImpl, Self::Env> {
         self.service(stringify!(Redirect))
     }
 }
@@ -18,13 +18,13 @@ pub trait RedirectClientCtors {
     type Env: sails_rs::client::GearEnv;
     #[allow(clippy::new_ret_no_self)]
     #[allow(clippy::wrong_self_convention)]
-    fn new(self) -> sails_rs::client::PendingCtor<Self::Env, RedirectClientProgram, io::New>;
+    fn new(self) -> sails_rs::client::PendingCtor<RedirectClientProgram, io::New, Self::Env>;
 }
 impl<E: sails_rs::client::GearEnv> RedirectClientCtors
-    for sails_rs::client::Deployment<E, RedirectClientProgram>
+    for sails_rs::client::Deployment<RedirectClientProgram, E>
 {
     type Env = E;
-    fn new(self) -> sails_rs::client::PendingCtor<Self::Env, RedirectClientProgram, io::New> {
+    fn new(self) -> sails_rs::client::PendingCtor<RedirectClientProgram, io::New, Self::Env> {
         self.pending_ctor(())
     }
 }
@@ -42,20 +42,20 @@ pub mod redirect {
         fn exit(
             &mut self,
             inheritor_id: ActorId,
-        ) -> sails_rs::client::PendingCall<Self::Env, io::Exit>;
+        ) -> sails_rs::client::PendingCall<io::Exit, Self::Env>;
         /// Returns program ID of the current program
-        fn get_program_id(&self) -> sails_rs::client::PendingCall<Self::Env, io::GetProgramId>;
+        fn get_program_id(&self) -> sails_rs::client::PendingCall<io::GetProgramId, Self::Env>;
     }
     pub struct RedirectImpl;
-    impl<E: sails_rs::client::GearEnv> Redirect for sails_rs::client::Service<E, RedirectImpl> {
+    impl<E: sails_rs::client::GearEnv> Redirect for sails_rs::client::Service<RedirectImpl, E> {
         type Env = E;
         fn exit(
             &mut self,
             inheritor_id: ActorId,
-        ) -> sails_rs::client::PendingCall<Self::Env, io::Exit> {
+        ) -> sails_rs::client::PendingCall<io::Exit, Self::Env> {
             self.pending_call((inheritor_id,))
         }
-        fn get_program_id(&self) -> sails_rs::client::PendingCall<Self::Env, io::GetProgramId> {
+        fn get_program_id(&self) -> sails_rs::client::PendingCall<io::GetProgramId, Self::Env> {
             self.pending_call(())
         }
     }

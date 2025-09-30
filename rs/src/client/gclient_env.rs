@@ -88,7 +88,7 @@ impl GearEnv for GclientEnv {
     type MessageState = Pin<Box<dyn Future<Output = Result<(ActorId, Vec<u8>), GclientError>>>>;
 }
 
-impl<T: CallEncodeDecode> PendingCall<GclientEnv, T> {
+impl<T: CallCodec> PendingCall<T, GclientEnv> {
     pub async fn send_one_way(&mut self) -> Result<MessageId, GclientError> {
         let (payload, params) = self.take_encoded_args_and_params();
         self.env
@@ -117,7 +117,7 @@ impl<T: CallEncodeDecode> PendingCall<GclientEnv, T> {
     }
 }
 
-impl<T: CallEncodeDecode> Future for PendingCall<GclientEnv, T> {
+impl<T: CallCodec> Future for PendingCall<T, GclientEnv> {
     type Output = Result<T::Reply, <GclientEnv as GearEnv>::Error>;
 
     fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
@@ -145,8 +145,8 @@ impl<T: CallEncodeDecode> Future for PendingCall<GclientEnv, T> {
     }
 }
 
-impl<A, T: CallEncodeDecode> Future for PendingCtor<GclientEnv, A, T> {
-    type Output = Result<Actor<GclientEnv, A>, <GclientEnv as GearEnv>::Error>;
+impl<A, T: CallCodec> Future for PendingCtor<A, T, GclientEnv> {
+    type Output = Result<Actor<A, GclientEnv>, <GclientEnv as GearEnv>::Error>;
 
     fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
         if self.state.is_none() {

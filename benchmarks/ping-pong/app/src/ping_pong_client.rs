@@ -7,13 +7,13 @@ pub trait PingPong {
     type Env: sails_rs::client::GearEnv;
     fn ping_pong_service(
         &self,
-    ) -> sails_rs::client::Service<Self::Env, ping_pong_service::PingPongServiceImpl>;
+    ) -> sails_rs::client::Service<ping_pong_service::PingPongServiceImpl, Self::Env>;
 }
-impl<E: sails_rs::client::GearEnv> PingPong for sails_rs::client::Actor<E, PingPongProgram> {
+impl<E: sails_rs::client::GearEnv> PingPong for sails_rs::client::Actor<PingPongProgram, E> {
     type Env = E;
     fn ping_pong_service(
         &self,
-    ) -> sails_rs::client::Service<Self::Env, ping_pong_service::PingPongServiceImpl> {
+    ) -> sails_rs::client::Service<ping_pong_service::PingPongServiceImpl, Self::Env> {
         self.service(stringify!(PingPongService))
     }
 }
@@ -21,15 +21,15 @@ pub trait PingPongCtors {
     type Env: sails_rs::client::GearEnv;
     fn new_for_bench(
         self,
-    ) -> sails_rs::client::PendingCtor<Self::Env, PingPongProgram, io::NewForBench>;
+    ) -> sails_rs::client::PendingCtor<PingPongProgram, io::NewForBench, Self::Env>;
 }
 impl<E: sails_rs::client::GearEnv> PingPongCtors
-    for sails_rs::client::Deployment<E, PingPongProgram>
+    for sails_rs::client::Deployment<PingPongProgram, E>
 {
     type Env = E;
     fn new_for_bench(
         self,
-    ) -> sails_rs::client::PendingCtor<Self::Env, PingPongProgram, io::NewForBench> {
+    ) -> sails_rs::client::PendingCtor<PingPongProgram, io::NewForBench, Self::Env> {
         self.pending_ctor(())
     }
 }
@@ -46,17 +46,17 @@ pub mod ping_pong_service {
         fn ping(
             &mut self,
             payload: PingPongPayload,
-        ) -> sails_rs::client::PendingCall<Self::Env, io::Ping>;
+        ) -> sails_rs::client::PendingCall<io::Ping, Self::Env>;
     }
     pub struct PingPongServiceImpl;
     impl<E: sails_rs::client::GearEnv> PingPongService
-        for sails_rs::client::Service<E, PingPongServiceImpl>
+        for sails_rs::client::Service<PingPongServiceImpl, E>
     {
         type Env = E;
         fn ping(
             &mut self,
             payload: PingPongPayload,
-        ) -> sails_rs::client::PendingCall<Self::Env, io::Ping> {
+        ) -> sails_rs::client::PendingCall<io::Ping, Self::Env> {
             self.pending_call((payload,))
         }
     }

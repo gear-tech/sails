@@ -5,13 +5,13 @@ pub struct AllocStressProgramProgram;
 impl sails_rs::client::Program for AllocStressProgramProgram {}
 pub trait AllocStressProgram {
     type Env: sails_rs::client::GearEnv;
-    fn alloc_stress(&self) -> sails_rs::client::Service<Self::Env, alloc_stress::AllocStressImpl>;
+    fn alloc_stress(&self) -> sails_rs::client::Service<alloc_stress::AllocStressImpl, Self::Env>;
 }
 impl<E: sails_rs::client::GearEnv> AllocStressProgram
-    for sails_rs::client::Actor<E, AllocStressProgramProgram>
+    for sails_rs::client::Actor<AllocStressProgramProgram, E>
 {
     type Env = E;
-    fn alloc_stress(&self) -> sails_rs::client::Service<Self::Env, alloc_stress::AllocStressImpl> {
+    fn alloc_stress(&self) -> sails_rs::client::Service<alloc_stress::AllocStressImpl, Self::Env> {
         self.service(stringify!(AllocStress))
     }
 }
@@ -19,15 +19,15 @@ pub trait AllocStressProgramCtors {
     type Env: sails_rs::client::GearEnv;
     fn new_for_bench(
         self,
-    ) -> sails_rs::client::PendingCtor<Self::Env, AllocStressProgramProgram, io::NewForBench>;
+    ) -> sails_rs::client::PendingCtor<AllocStressProgramProgram, io::NewForBench, Self::Env>;
 }
 impl<E: sails_rs::client::GearEnv> AllocStressProgramCtors
-    for sails_rs::client::Deployment<E, AllocStressProgramProgram>
+    for sails_rs::client::Deployment<AllocStressProgramProgram, E>
 {
     type Env = E;
     fn new_for_bench(
         self,
-    ) -> sails_rs::client::PendingCtor<Self::Env, AllocStressProgramProgram, io::NewForBench> {
+    ) -> sails_rs::client::PendingCtor<AllocStressProgramProgram, io::NewForBench, Self::Env> {
         self.pending_ctor(())
     }
 }
@@ -44,15 +44,15 @@ pub mod alloc_stress {
         fn alloc_stress(
             &mut self,
             n: u32,
-        ) -> sails_rs::client::PendingCall<Self::Env, io::AllocStress>;
+        ) -> sails_rs::client::PendingCall<io::AllocStress, Self::Env>;
     }
     pub struct AllocStressImpl;
-    impl<E: sails_rs::client::GearEnv> AllocStress for sails_rs::client::Service<E, AllocStressImpl> {
+    impl<E: sails_rs::client::GearEnv> AllocStress for sails_rs::client::Service<AllocStressImpl, E> {
         type Env = E;
         fn alloc_stress(
             &mut self,
             n: u32,
-        ) -> sails_rs::client::PendingCall<Self::Env, io::AllocStress> {
+        ) -> sails_rs::client::PendingCall<io::AllocStress, Self::Env> {
             self.pending_call((n,))
         }
     }

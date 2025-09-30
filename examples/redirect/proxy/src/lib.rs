@@ -3,9 +3,7 @@
 use redirect_client::{redirect::Redirect as _, *};
 use sails_rs::{client::*, prelude::*};
 
-struct ProxyService(
-    sails_rs::client::Service<sails_rs::client::GstdEnv, redirect_client::redirect::RedirectImpl>,
-);
+struct ProxyService(Service<redirect_client::redirect::RedirectImpl>);
 
 impl ProxyService {
     pub fn new(target: ActorId) -> Self {
