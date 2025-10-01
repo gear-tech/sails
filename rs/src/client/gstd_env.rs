@@ -87,7 +87,7 @@ impl GstdEnv {
             params.wait.unwrap_or_default(),
             params.gas_limit,
             params.reply_deposit,
-            // params.reply_hook.take(),
+            params.reply_hook.take(),
         ));
 
         Ok(message.waiting_reply_to)
@@ -121,7 +121,7 @@ const _: () = {
             params.wait.unwrap_or_default(),
             params.gas_limit,
             params.reply_deposit,
-            // params.reply_hook.take(),
+            params.reply_hook.take(),
         ));
         if params.redirect_on_exit {
             Ok(GstdFuture::MessageWithRedirect {
@@ -148,7 +148,7 @@ const _: () = {
             params.wait.unwrap_or_default(),
             params.gas_limit,
             params.reply_deposit,
-            // params.reply_hook.take(),
+            params.reply_hook.take(),
         ));
         Ok((GstdFuture::CreateProgram { future }, program_id))
     }

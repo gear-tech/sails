@@ -18,10 +18,10 @@ fn signals() -> &'static mut WakeSignals {
     unsafe { &mut *core::ptr::addr_of_mut!(MAP) }.get_or_insert_with(WakeSignals::new)
 }
 
-// fn reply_hooks() -> &'static mut HooksMap {
-//     static mut MAP: Option<HooksMap> = None;
-//     unsafe { &mut *core::ptr::addr_of_mut!(MAP) }.get_or_insert_with(HooksMap::new)
-// }
+fn reply_hooks() -> &'static mut HooksMap {
+    static mut MAP: Option<HooksMap> = None;
+    unsafe { &mut *core::ptr::addr_of_mut!(MAP) }.get_or_insert_with(HooksMap::new)
+}
 
 /// Matches a task to a some message in order to avoid duplicate execution
 /// of code that was running before the program was interrupted by `wait`.
@@ -274,7 +274,7 @@ pub fn send_bytes_for_reply(
     wait: Lock,
     gas_limit: Option<GasUnit>,
     reply_deposit: Option<GasUnit>,
-    // reply_hook: Option<Box<dyn FnOnce() + Send + 'static>>,
+    reply_hook: Option<Box<dyn FnOnce() + Send + 'static>>,
 ) -> Result<MessageFuture, ::gstd::errors::Error> {
     #[cfg(not(feature = "ethexe"))]
     let waiting_reply_to = if let Some(gas_limit) = gas_limit {
@@ -293,9 +293,9 @@ pub fn send_bytes_for_reply(
     #[cfg(not(feature = "ethexe"))]
     if let Some(reply_deposit) = reply_deposit {
         let deposited = ::gcore::exec::reply_deposit(waiting_reply_to, reply_deposit).is_ok();
-        // if deposited && let Some(reply_hook) = reply_hook {
-        //     reply_hooks().register(waiting_reply_to, reply_hook);
-        // }
+        if deposited && let Some(reply_hook) = reply_hook {
+            reply_hooks().register(waiting_reply_to, reply_hook);
+        }
     }
 
     signals().register_signal(waiting_reply_to, wait);
@@ -312,7 +312,7 @@ pub fn create_program_for_reply(
     wait: Lock,
     gas_limit: Option<GasUnit>,
     reply_deposit: Option<GasUnit>,
-    // reply_hook: Option<Box<dyn FnOnce() + Send + 'static>>,
+    reply_hook: Option<Box<dyn FnOnce() + Send + 'static>>,
 ) -> Result<(MessageFuture, ActorId), ::gstd::errors::Error> {
     #[cfg(not(feature = "ethexe"))]
     let (waiting_reply_to, program_id) = if let Some(gas_limit) = gas_limit {
@@ -329,9 +329,9 @@ pub fn create_program_for_reply(
     #[cfg(not(feature = "ethexe"))]
     if let Some(reply_deposit) = reply_deposit {
         let deposited = ::gcore::exec::reply_deposit(waiting_reply_to, reply_deposit).is_ok();
-        // if deposited && let Some(reply_hook) = reply_hook {
-        //     reply_hooks().register(waiting_reply_to, reply_hook);
-        // }
+        if deposited && let Some(reply_hook) = reply_hook {
+            reply_hooks().register(waiting_reply_to, reply_hook);
+        }
     }
 
     signals().register_signal(waiting_reply_to, wait);
@@ -346,8 +346,8 @@ pub fn handle_reply_with_hook() {
 
     signals().record_reply(&reply_to);
 
-    // #[cfg(not(feature = "ethexe"))]
-    // reply_hooks().execute_and_remove(&reply_to);
+    #[cfg(not(feature = "ethexe"))]
+    reply_hooks().execute_and_remove(&reply_to);
 
     // #[cfg(feature = "ethexe")]
     // let _ = replied_to;
@@ -364,7 +364,7 @@ pub fn handle_signal() {
     // critical::take_and_execute();
 
     tasks().remove(&msg_id);
-    // reply_hooks().remove(&msg_id)
+    reply_hooks().remove(&msg_id)
 }
 
 pub fn poll(message_id: &MessageId, cx: &mut Context<'_>) -> Poll<Result<Vec<u8>, Error>> {
