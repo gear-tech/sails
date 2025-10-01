@@ -1,6 +1,7 @@
 import {
   GasInfo,
   GearApi,
+  GearCoreMessageUserUserMessage,
   HexString,
   ICallOptions,
   MessageQueuedData,
@@ -346,6 +347,14 @@ export class TransactionBuilder<ResponseType> {
   }
 
   /**
+   * ## Check if the reply is an error and throw if it is
+   * @param message - UserMessageSent message
+   */
+  public checkErrorReply({ payload, details }: GearCoreMessageUserUserMessage) {
+    throwOnErrorReply(details.unwrap().code, payload, this._api.specVersion, this._registry);
+  }
+
+  /**
    * ## Sign and send transaction
    */
   public async signAndSend(): Promise<IMethodReturnType<ResponseType>> {
@@ -412,13 +421,10 @@ export class TransactionBuilder<ResponseType> {
       txHash: this._tx.hash.toHex(),
       isFinalized,
       response: async (rawResult = false) => {
-        const {
-          data: {
-            message: { payload, details },
-          },
-        } = await this._api.message.getReplyEvent(this.programId, msgId, blockHash);
+        const { data } = await this._api.message.getReplyEvent(this.programId, msgId, blockHash);
+        const { payload } = data.message;
 
-        throwOnErrorReply(details.unwrap().code, payload, this._api.specVersion, this._registry);
+        this.checkErrorReply(data.message);
 
         return rawResult ? payload.toHex() : (this.decodePayload(payload) as any);
       },
