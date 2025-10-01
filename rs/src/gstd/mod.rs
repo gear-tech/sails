@@ -1,3 +1,6 @@
+#[cfg(not(feature = "ethexe"))]
+#[doc(hidden)]
+pub use async_runtime::handle_signal;
 #[doc(hidden)]
 // pub use gstd::{handle_reply_with_hook, message_loop};
 pub use async_runtime::{
@@ -9,9 +12,10 @@ pub use async_runtime::{
 pub use ethexe::{EthEvent, EthEventExpo};
 #[doc(hidden)]
 pub use events::{EventEmitter, SailsEvent};
-#[cfg(not(feature = "ethexe"))]
-#[doc(hidden)]
-pub use gstd::handle_signal;
+pub use locks::{Lock, WaitType};
+// #[cfg(not(feature = "ethexe"))]
+// #[doc(hidden)]
+// pub use gstd::handle_signal;
 pub use gstd::{debug, exec, msg};
 #[doc(hidden)]
 pub use sails_macros::{event, export, program, service};
@@ -29,6 +33,7 @@ pub(crate) mod async_runtime;
 mod ethexe;
 mod events;
 pub(crate) mod locks;
+mod reply_hooks;
 pub mod services;
 mod syscalls;
 

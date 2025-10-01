@@ -3,15 +3,15 @@ use core::cmp::Ordering;
 use gstd::{BlockCount, BlockNumber, Config, exec};
 
 /// Type of wait locks.
-#[derive(Debug, PartialEq, Eq)]
-pub(crate) struct Lock {
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Lock {
     deadline: BlockNumber,
     ty: WaitType,
 }
 
 /// Wait types.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
-pub(crate) enum WaitType {
+pub enum WaitType {
     Exactly,
     #[default]
     UpTo,
@@ -20,7 +20,7 @@ pub(crate) enum WaitType {
 impl Lock {
     /// Wait for
     pub fn exactly(b: BlockCount) -> Self {
-        let current = exec::block_height();
+        let current = Syscall::block_height();
         Self {
             deadline: current.saturating_add(b),
             ty: WaitType::Exactly,
@@ -29,22 +29,10 @@ impl Lock {
 
     /// Wait up to
     pub fn up_to(b: BlockCount) -> Self {
-        let current = exec::block_height();
+        let current = Syscall::block_height();
         Self {
             deadline: current.saturating_add(b),
             ty: WaitType::UpTo,
-        }
-    }
-
-    /// Call wait functions by the lock type.
-    pub fn wait(&self, now: BlockNumber) {
-        let duration = self
-            .deadline
-            .checked_sub(now)
-            .expect("Checked in `crate::gstd::async_runtime::message_loop`");
-        match self.ty {
-            WaitType::Exactly => exec::wait_for(duration),
-            WaitType::UpTo => exec::wait_up_to(duration),
         }
     }
 
@@ -55,6 +43,18 @@ impl Lock {
 
     pub fn wait_type(&self) -> WaitType {
         self.ty
+    }
+
+    /// Call wait functions by the lock type.
+    pub(crate) fn wait(&self, now: BlockNumber) {
+        let duration = self
+            .deadline
+            .checked_sub(now)
+            .expect("Checked in `crate::gstd::async_runtime::message_loop`");
+        match self.ty {
+            WaitType::Exactly => exec::wait_for(duration),
+            WaitType::UpTo => exec::wait_up_to(duration),
+        }
     }
 }
 
