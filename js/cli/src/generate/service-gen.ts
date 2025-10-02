@@ -24,6 +24,8 @@ export class ServiceGenerator extends BaseGenerator {
     const $ = this._out;
     const _classNameTitled = className[0].toUpperCase() + className.slice(1);
 
+    $.header('/* eslint-disable */');
+
     $.import('@gear-js/api', 'GearApi')
       .import('@gear-js/api', 'BaseGearProgram')
       .import(`@polkadot/types`, `TypeRegistry`)

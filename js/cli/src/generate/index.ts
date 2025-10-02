@@ -36,7 +36,7 @@ export class ProjectBuilder {
     const serviceGen = new ServiceGenerator(out, this.sails.program, this.sails.scaleCodecTypes);
     serviceGen.generate(this.name);
 
-    return out.finalize(true);
+    return out.finalize();
   }
 
   public generateTypes(): string | null {

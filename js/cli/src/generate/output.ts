@@ -1,13 +1,19 @@
 export class Output {
+  private _headers: string[] = [];
   private _rows: string[] = [];
   private _firstRows: string[] = [];
   private _indent = '';
   private _imports: Map<string, Set<string>>;
 
   constructor() {
+    this._headers = [];
     this._rows = [];
     this._firstRows = [];
     this._imports = new Map();
+  }
+
+  header(data: string) {
+    this._headers.push(data);
   }
 
   import(module_: string, import_: string) {
@@ -68,9 +74,10 @@ export class Output {
     return this;
   }
 
-  finalize(ignoreEslint?: boolean): string | null {
+  finalize(): string | null {
     const result = [];
-    const header = ignoreEslint ? '/* eslint-disable */\n' : '';
+
+    if (this._headers.length > 0) result.push(this._headers.join('\n'));
 
     const imports = [...this._imports].map(
       ([module_, imports_]) => `import { ${[...imports_].join(', ')} } from '${module_}';`,
@@ -85,6 +92,6 @@ export class Output {
       return null;
     }
 
-    return header + result.join('\n\n');
+    return result.join('\n\n');
   }
 }
