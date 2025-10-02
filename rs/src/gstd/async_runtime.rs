@@ -1,5 +1,5 @@
 use super::*;
-use crate::{collections::HashMap, gstd::reply_hooks::HooksMap};
+use crate::collections::HashMap;
 use core::{
     pin::Pin,
     task::{Context, Poll},
@@ -16,11 +16,6 @@ fn tasks() -> &'static mut crate::collections::HashMap<MessageId, Task> {
 fn signals() -> &'static mut WakeSignals {
     static mut MAP: Option<WakeSignals> = None;
     unsafe { &mut *core::ptr::addr_of_mut!(MAP) }.get_or_insert_with(WakeSignals::new)
-}
-
-fn reply_hooks() -> &'static mut HooksMap {
-    static mut MAP: Option<HooksMap> = None;
-    unsafe { &mut *core::ptr::addr_of_mut!(MAP) }.get_or_insert_with(HooksMap::new)
 }
 
 /// Matches a task to a some message in order to avoid duplicate execution
@@ -64,7 +59,7 @@ impl Task {
         self.reply_to_locks
             .extract_if(.., |(_, lock)| now >= lock.deadline())
             .for_each(|(reply_to, lock)| {
-                signals_map.record_timeout(&reply_to, lock.deadline(), now);
+                signals_map.record_timeout(reply_to, lock.deadline(), now);
                 ::gstd::debug!(
                     "signal_reply_timeout: remove lock for reply_to {reply_to} in message due to timeout"
                 );
@@ -127,6 +122,7 @@ pub type Payload = Vec<u8>;
 enum WakeSignal {
     Pending {
         message_id: MessageId,
+        reply_hook: Option<Box<dyn FnOnce()>>,
     },
     Ready {
         payload: Payload,
@@ -135,6 +131,7 @@ enum WakeSignal {
     Timeout {
         expected: BlockNumber,
         now: BlockNumber,
+        reply_hook: Option<Box<dyn FnOnce()>>,
     },
 }
 
@@ -149,11 +146,21 @@ impl WakeSignals {
         }
     }
 
-    pub fn register_signal(&mut self, waiting_reply_to: MessageId, lock: locks::Lock) {
+    pub fn register_signal(
+        &mut self,
+        waiting_reply_to: MessageId,
+        lock: locks::Lock,
+        reply_hook: Option<Box<dyn FnOnce()>>,
+    ) {
         let message_id = ::gcore::msg::id();
 
-        self.signals
-            .insert(waiting_reply_to, WakeSignal::Pending { message_id });
+        self.signals.insert(
+            waiting_reply_to,
+            WakeSignal::Pending {
+                message_id,
+                reply_hook,
+            },
+        );
 
         ::gstd::debug!(
             "register_signal: add lock for reply_to {waiting_reply_to} in message {message_id}"
@@ -165,27 +172,45 @@ impl WakeSignals {
     }
 
     pub fn record_reply(&mut self, reply_to: &MessageId) {
-        if let Some(signal @ WakeSignal::Pending { .. }) = self.signals.get_mut(reply_to) {
-            let message_id = match signal {
-                WakeSignal::Pending { message_id } => *message_id,
-                _ => unreachable!(),
-            };
-            *signal = WakeSignal::Ready {
-                payload: ::gstd::msg::load_bytes().expect("Failed to load bytes"),
-                reply_code: ::gcore::msg::reply_code()
-                    .expect("Shouldn't be called with incorrect context"),
-            };
+        if let hashbrown::hash_map::EntryRef::Occupied(mut entry) = self.signals.entry_ref(reply_to)
+        {
+            match entry.get_mut() {
+                WakeSignal::Pending {
+                    message_id,
+                    reply_hook,
+                } => {
+                    let message_id = *message_id;
+                    let reply_hook = reply_hook.take();
+                    // replase entry with `WakeSignal::Ready`
+                    _ = entry.insert(WakeSignal::Ready {
+                        payload: ::gstd::msg::load_bytes().expect("Failed to load bytes"),
+                        reply_code: ::gcore::msg::reply_code()
+                            .expect("Shouldn't be called with incorrect context"),
+                    });
+                    ::gstd::debug!(
+                        "record_reply: remove lock for reply_to {reply_to} in message {message_id}"
+                    );
+                    tasks()
+                        .get_mut(&message_id)
+                        .expect("A message task must exist")
+                        .remove_lock(reply_to);
+                    // wake message loop after receiving reply
+                    ::gcore::exec::wake(message_id).expect("Failed to wake the message");
 
-            ::gstd::debug!(
-                "record_reply: remove lock for reply_to {reply_to} in message {message_id}"
-            );
-            tasks()
-                .get_mut(&message_id)
-                .expect("A message task must exist")
-                .remove_lock(&reply_to);
-
-            // wake message processign after handle reply
-            ::gcore::exec::wake(message_id).expect("Failed to wake the message")
+                    // execute reply hook
+                    if let Some(f) = reply_hook {
+                        f();
+                    }
+                }
+                WakeSignal::Timeout { reply_hook, .. } => {
+                    // execute reply hook and remove entry
+                    if let Some(f) = reply_hook.take() {
+                        f();
+                    }
+                    _ = entry.remove();
+                }
+                WakeSignal::Ready { .. } => panic!("A reply has already received"),
+            };
         } else {
             ::gstd::debug!(
                 "A message has received a reply though it wasn't to receive one, or a processed message has received a reply"
@@ -193,14 +218,17 @@ impl WakeSignals {
         }
     }
 
-    pub fn record_timeout(
-        &mut self,
-        reply_to: &MessageId,
-        expected: BlockNumber,
-        now: BlockNumber,
-    ) {
-        if let Some(signal @ WakeSignal::Pending { .. }) = self.signals.get_mut(reply_to) {
-            *signal = WakeSignal::Timeout { expected, now };
+    pub fn record_timeout(&mut self, reply_to: MessageId, expected: BlockNumber, now: BlockNumber) {
+        if let hashbrown::hash_map::Entry::Occupied(mut entry) = self.signals.entry(reply_to)
+            && let WakeSignal::Pending { reply_hook, .. } = entry.get_mut()
+        {
+            // move `reply_hook` to `WakeSignal::Timeout` state
+            let reply_hook = reply_hook.take();
+            entry.insert(WakeSignal::Timeout {
+                expected,
+                now,
+                reply_hook,
+            });
         } else {
             ::gstd::debug!("A message has timed out after reply");
         }
@@ -215,29 +243,35 @@ impl WakeSignals {
         reply_to: &MessageId,
         _cx: &mut Context<'_>,
     ) -> Poll<Result<Vec<u8>, Error>> {
-        let entry = self.signals.entry_ref(reply_to);
-        let entry = match entry {
-            hashbrown::hash_map::EntryRef::Occupied(occupied_entry) => occupied_entry,
-            hashbrown::hash_map::EntryRef::Vacant(_) => panic!("Poll not registered feature"),
+        let hashbrown::hash_map::EntryRef::Occupied(entry) = self.signals.entry_ref(reply_to)
+        else {
+            panic!("Poll not registered feature")
         };
-        if let WakeSignal::Pending { .. } = entry.get() {
-            return Poll::Pending;
-        }
-        match entry.remove() {
-            WakeSignal::Ready {
-                payload,
-                reply_code,
-            } => match reply_code {
-                ReplyCode::Success(_) => Poll::Ready(Ok(payload)),
-                ReplyCode::Error(reason) => {
-                    Poll::Ready(Err(Error::ErrorReply(payload.into(), reason)))
-                }
-                ReplyCode::Unsupported => Poll::Ready(Err(Error::UnsupportedReply(payload))),
-            },
+        match entry.get() {
+            WakeSignal::Pending { .. } => Poll::Pending,
             WakeSignal::Timeout { expected, now, .. } => {
-                Poll::Ready(Err(Error::Timeout(expected, now)))
+                // DO NOT remove entry if `WakeSignal::Timeout`
+                // will be removed in `record_reply`
+                Poll::Ready(Err(Error::Timeout(*expected, *now)))
             }
-            _ => unreachable!(),
+            WakeSignal::Ready { .. } => {
+                // remove entry if `WakeSignal::Ready`
+                let WakeSignal::Ready {
+                    payload,
+                    reply_code,
+                } = entry.remove()
+                else {
+                    // SAFETY: checked in the code above.
+                    unsafe { hint::unreachable_unchecked() }
+                };
+                match reply_code {
+                    ReplyCode::Success(_) => Poll::Ready(Ok(payload)),
+                    ReplyCode::Error(reason) => {
+                        Poll::Ready(Err(Error::ErrorReply(payload.into(), reason)))
+                    }
+                    ReplyCode::Unsupported => Poll::Ready(Err(Error::UnsupportedReply(payload))),
+                }
+            }
         }
     }
 }
@@ -274,7 +308,7 @@ pub fn send_bytes_for_reply(
     wait: Lock,
     gas_limit: Option<GasUnit>,
     reply_deposit: Option<GasUnit>,
-    reply_hook: Option<Box<dyn FnOnce() + Send + 'static>>,
+    reply_hook: Option<Box<dyn FnOnce()>>,
 ) -> Result<MessageFuture, ::gstd::errors::Error> {
     #[cfg(not(feature = "ethexe"))]
     let waiting_reply_to = if let Some(gas_limit) = gas_limit {
@@ -292,13 +326,10 @@ pub fn send_bytes_for_reply(
 
     #[cfg(not(feature = "ethexe"))]
     if let Some(reply_deposit) = reply_deposit {
-        let deposited = ::gcore::exec::reply_deposit(waiting_reply_to, reply_deposit).is_ok();
-        if deposited && let Some(reply_hook) = reply_hook {
-            reply_hooks().register(waiting_reply_to, reply_hook);
-        }
+        _ = ::gcore::exec::reply_deposit(waiting_reply_to, reply_deposit);
     }
 
-    signals().register_signal(waiting_reply_to, wait);
+    signals().register_signal(waiting_reply_to, wait, reply_hook);
 
     Ok(MessageFuture { waiting_reply_to })
 }
@@ -312,7 +343,7 @@ pub fn create_program_for_reply(
     wait: Lock,
     gas_limit: Option<GasUnit>,
     reply_deposit: Option<GasUnit>,
-    reply_hook: Option<Box<dyn FnOnce() + Send + 'static>>,
+    reply_hook: Option<Box<dyn FnOnce()>>,
 ) -> Result<(MessageFuture, ActorId), ::gstd::errors::Error> {
     #[cfg(not(feature = "ethexe"))]
     let (waiting_reply_to, program_id) = if let Some(gas_limit) = gas_limit {
@@ -328,13 +359,10 @@ pub fn create_program_for_reply(
 
     #[cfg(not(feature = "ethexe"))]
     if let Some(reply_deposit) = reply_deposit {
-        let deposited = ::gcore::exec::reply_deposit(waiting_reply_to, reply_deposit).is_ok();
-        if deposited && let Some(reply_hook) = reply_hook {
-            reply_hooks().register(waiting_reply_to, reply_hook);
-        }
+        _ = ::gcore::exec::reply_deposit(waiting_reply_to, reply_deposit);
     }
 
-    signals().register_signal(waiting_reply_to, wait);
+    signals().register_signal(waiting_reply_to, wait, reply_hook);
 
     Ok((MessageFuture { waiting_reply_to }, program_id))
 }
@@ -345,12 +373,6 @@ pub fn handle_reply_with_hook() {
     let reply_to = ::gcore::msg::reply_to().expect("Shouldn't be called with incorrect context");
 
     signals().record_reply(&reply_to);
-
-    #[cfg(not(feature = "ethexe"))]
-    reply_hooks().execute_and_remove(&reply_to);
-
-    // #[cfg(feature = "ethexe")]
-    // let _ = replied_to;
 }
 
 /// Default signal handler.
@@ -360,11 +382,11 @@ pub fn handle_signal() {
     let msg_id = ::gcore::msg::signal_from().expect(
         "`gstd::async_runtime::handle_signal()` must be called only in `handle_signal` entrypoint",
     );
-
+    // TODO: find out what `msg_id` here - from `message_loop` or `waiting_reply_to`
     // critical::take_and_execute();
 
-    tasks().remove(&msg_id);
-    reply_hooks().remove(&msg_id)
+    // tasks().remove(&msg_id);
+    // reply_hooks().remove(&msg_id)
 }
 
 pub fn poll(message_id: &MessageId, cx: &mut Context<'_>) -> Poll<Result<Vec<u8>, Error>> {

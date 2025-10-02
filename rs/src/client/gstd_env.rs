@@ -1,5 +1,5 @@
 use super::*;
-use crate::gstd::{MessageFuture, async_runtime, locks};
+use crate::gstd::{Lock, MessageFuture, async_runtime};
 use ::gstd::errors::Error;
 
 #[derive(Default)]
@@ -7,11 +7,11 @@ pub struct GstdParams {
     #[cfg(not(feature = "ethexe"))]
     pub gas_limit: Option<GasUnit>,
     pub value: Option<ValueUnit>,
-    pub wait: Option<locks::Lock>,
+    pub wait: Option<Lock>,
     #[cfg(not(feature = "ethexe"))]
     pub reply_deposit: Option<GasUnit>,
     #[cfg(not(feature = "ethexe"))]
-    pub reply_hook: Option<Box<dyn FnOnce() + Send + 'static>>,
+    pub reply_hook: Option<Box<dyn FnOnce() + 'static>>,
     pub redirect_on_exit: bool,
 }
 
@@ -19,7 +19,7 @@ crate::params_for_pending_impl!(GstdEnv, GstdParams {
     #[cfg(not(feature = "ethexe"))]
     pub gas_limit: GasUnit,
     pub value: ValueUnit,
-    pub wait: locks::Lock,
+    pub wait: Lock,
     #[cfg(not(feature = "ethexe"))]
     pub reply_deposit: GasUnit,
 });

@@ -32,8 +32,7 @@ pub(crate) mod async_runtime;
 #[cfg(feature = "ethexe")]
 mod ethexe;
 mod events;
-pub(crate) mod locks;
-mod reply_hooks;
+mod locks;
 pub mod services;
 mod syscalls;
 
