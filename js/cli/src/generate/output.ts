@@ -68,8 +68,10 @@ export class Output {
     return this;
   }
 
-  finalize(): string | null {
+  finalize(ignoreEslint?: boolean): string | null {
     const result = [];
+    const header = ignoreEslint ? '/* eslint-disable */\n' : '';
+
     const imports = [...this._imports].map(
       ([module_, imports_]) => `import { ${[...imports_].join(', ')} } from '${module_}';`,
     );
@@ -83,6 +85,6 @@ export class Output {
       return null;
     }
 
-    return result.join('\n\n');
+    return header + result.join('\n\n');
   }
 }

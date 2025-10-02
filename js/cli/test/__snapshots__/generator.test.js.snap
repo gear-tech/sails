@@ -1,7 +1,8 @@
 // Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
 
 exports[`generator demo lib 1`] = `
-"import { GearApi, BaseGearProgram, HexString } from '@gear-js/api';
+"/* eslint-disable */
+import { GearApi, BaseGearProgram, HexString } from '@gear-js/api';
 import { TypeRegistry } from '@polkadot/types';
 import { TransactionBuilder, QueryBuilder, getServiceNamePrefix, getFnNamePrefix, ZERO_ADDRESS, ActorId, NonZeroU32, H160, NonZeroU8 } from 'sails-js';
 
