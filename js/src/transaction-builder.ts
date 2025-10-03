@@ -10,12 +10,12 @@ import {
 } from '@gear-js/api';
 import { SignerOptions, SubmittableExtrinsic } from '@polkadot/api/types';
 import { IKeyringPair, ISubmittableResult } from '@polkadot/types/types';
-import { Bytes, TypeRegistry, u128, u64 } from '@polkadot/types';
+import { TypeRegistry, u128, u64 } from '@polkadot/types';
 import { getPayloadMethod } from 'sails-js-util';
 import { u8aConcat } from '@polkadot/util';
 
 import { ZERO_ADDRESS } from './consts.js';
-import { throwOnErrorReply } from './utils.js';
+import { throwOnErrorReply as commonThrowOnErrorReply } from './utils.js';
 
 export interface IMethodReturnType<T> {
   /**
@@ -338,7 +338,7 @@ export class TransactionBuilder<ResponseType> {
    * @param payload - Raw bytes from the reply message
    * @returns Decoded payload
    */
-  public decodePayload(payload: Bytes): ResponseType {
+  public decodePayload(payload: Uint8Array | HexString): ResponseType {
     const method = getPayloadMethod(this._responseType);
     const noPrefixPayload = payload.slice(this._prefixByteLength);
     const type = this._registry.createType<any>(this._responseType, noPrefixPayload);
@@ -350,8 +350,8 @@ export class TransactionBuilder<ResponseType> {
    * ## Check if the reply is an error and throw if it is
    * @param message - UserMessageSent message
    */
-  public checkErrorReply({ payload, details }: GearCoreMessageUserUserMessage) {
-    throwOnErrorReply(details.unwrap().code, payload, this._api.specVersion, this._registry);
+  public throwOnErrorReply({ payload, details }: GearCoreMessageUserUserMessage) {
+    commonThrowOnErrorReply(details.unwrap().code, payload, this._api.specVersion, this._registry);
   }
 
   /**
@@ -424,7 +424,7 @@ export class TransactionBuilder<ResponseType> {
         const { data } = await this._api.message.getReplyEvent(this.programId, msgId, blockHash);
         const { payload } = data.message;
 
-        this.checkErrorReply(data.message);
+        this.throwOnErrorReply(data.message);
 
         return rawResult ? payload.toHex() : (this.decodePayload(payload) as any);
       },
