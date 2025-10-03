@@ -23,4 +23,18 @@ describe('generator', () => {
     const types = generator.generateTypes();
     expect(types).toMatchSnapshot();
   });
+
+  test('demo lib with embedded types', async () => {
+    const parser = new SailsIdlParser();
+    await parser.init();
+    const sails = new Sails(parser);
+
+    const generator = new ProjectBuilder(sails, 'program').setIdlPath(demoIdlPath).setIsEmbeddedTypes(true);
+
+    const lib = generator.generateLib();
+    expect(lib).toMatchSnapshot();
+
+    const types = generator.generateTypes();
+    expect(types).toBeNull();
+  });
 });
