@@ -11,6 +11,7 @@ export class ProjectBuilder {
   private projectPath = ['.', 'src'];
   private isProject: boolean = true;
   private isAutomaricOverride: boolean = false;
+  private isEmbeddedTypes: boolean = false;
 
   constructor(
     private sails: Sails,
@@ -69,6 +70,12 @@ export class ProjectBuilder {
 
   setAutomaticOverride(isAutomaricOverride: boolean) {
     this.isAutomaricOverride = isAutomaricOverride;
+
+    return this;
+  }
+
+  setIsEmbeddedTypes(isEmbeddedTypes: boolean) {
+    this.isEmbeddedTypes = isEmbeddedTypes;
 
     return this;
   }

@@ -20,7 +20,14 @@ const execAsync = promisify(exec);
 const program = new Command();
 program.version(packageJson.version);
 
-const handler = async (path: string, out: string, name: string, project: boolean, yes: boolean) => {
+const handler = async (
+  path: string,
+  out: string,
+  name: string,
+  project: boolean,
+  yes: boolean,
+  embedTypes: boolean,
+) => {
   const parser = new SailsIdlParser();
   await parser.init();
   const sails = new Sails(parser);
@@ -29,7 +36,8 @@ const handler = async (path: string, out: string, name: string, project: boolean
     .setRootPath(out)
     .setIdlPath(path)
     .setIsProject(project)
-    .setAutomaticOverride(yes);
+    .setAutomaticOverride(yes)
+    .setIsEmbeddedTypes(embedTypes);
 
   await projectBuilder.build();
 };
@@ -37,6 +45,7 @@ const handler = async (path: string, out: string, name: string, project: boolean
 program
   .command('generate <path-to-file.sails.idl>')
   .option('--no-project', 'Generate single file without project structure')
+  .option('--embed-types', 'Generate embedded types in the lib file instead of standalone global.d.ts')
   .option('-n --name <name>', 'Name of the library', 'SailsProgram')
   .option('-o --out <path-to-dir>', 'Output directory')
   .option('-y --yes', 'Automatic yes to file override prompts')
@@ -49,10 +58,11 @@ program
         name: string;
         project: boolean;
         yes: boolean;
+        embedTypes: boolean;
       },
     ) => {
       try {
-        await handler(path, options.out, options.name, options.project, options.yes);
+        await handler(path, options.out, options.name, options.project, options.yes, options.embedTypes);
       } catch (error) {
         console.error(error.message);
         process.exit(1);
