@@ -34,6 +34,11 @@ export class ProjectBuilder {
   public generateLib(): string {
     const out = new Output();
 
+    if (this.isEmbeddedTypes) {
+      const typesGen = new TypesGenerator(out, this.sails.program, false);
+      typesGen.generate();
+    }
+
     const serviceGen = new ServiceGenerator(out, this.sails.program, this.sails.scaleCodecTypes);
     serviceGen.generate(this.name);
 
@@ -43,7 +48,7 @@ export class ProjectBuilder {
   public generateTypes(): string | null {
     const out = new Output();
 
-    const typesGen = new TypesGenerator(out, this.sails.program);
+    const typesGen = new TypesGenerator(out, this.sails.program, true);
     typesGen.generate();
 
     return out.finalize();
@@ -98,13 +103,16 @@ export class ProjectBuilder {
       throw new Error(`Failed to write file ${libFile}`);
     }
 
-    const typesCode = this.generateTypes();
-    const typesFile = path.join(libPath, 'global.d.ts');
-    if (typesCode !== null) {
-      if (await this.canCreateFile(typesFile)) {
-        writeFileSync(typesFile, typesCode);
-      } else {
-        throw new Error(`Failed to write file ${typesFile}`);
+    if (!this.isEmbeddedTypes) {
+      const typesCode = this.generateTypes();
+      const typesFile = path.join(libPath, 'global.d.ts');
+
+      if (typesCode !== null) {
+        if (await this.canCreateFile(typesFile)) {
+          writeFileSync(typesFile, typesCode);
+        } else {
+          throw new Error(`Failed to write file ${typesFile}`);
+        }
       }
     }
 
