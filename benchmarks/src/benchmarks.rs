@@ -18,141 +18,19 @@
 //! ```
 
 use crate::clients::{
-    alloc_stress_client::{
-        AllocStressProgramFactory, alloc_stress::io::AllocStress,
-        traits::AllocStressProgramFactory as _,
-    },
-    compute_stress_client::{
-        ComputeStressProgramFactory, compute_stress::io::ComputeStress,
-        traits::ComputeStressProgramFactory as _,
-    },
-    counter_bench_client::{
-        CounterBenchProgramFactory,
-        counter_bench::io::{Inc, IncAsync},
-        traits::CounterBenchProgramFactory as _,
-    },
+    alloc_stress_client::{AllocStressProgram, AllocStressProgramCtors, alloc_stress::*},
+    compute_stress_client::{ComputeStressProgram, ComputeStressProgramCtors, compute_stress::*},
+    counter_bench_client::{CounterBenchProgram, CounterBenchProgramCtors, counter_bench::*},
 };
 use gtest::{System, constants::DEFAULT_USER_ALICE};
 use itertools::{Either, Itertools};
-use ping_pong_bench_app::client::{
-    PingPongFactory, PingPongPayload, ping_pong_service::io::Ping, traits::PingPongFactory as _,
-};
-use redirect_client::{
-    RedirectClientFactory, redirect::io::Exit, traits::RedirectClientFactory as _,
-};
-use redirect_proxy_client::{
-    RedirectProxyClientFactory, proxy::io::GetProgramId, traits::RedirectProxyClientFactory as _,
-};
-use sails_rs::{
-    calls::{ActionIo, Activation},
-    gtest::calls::GTestRemoting,
-};
+use ping_pong_bench_app::client::{PingPong, PingPongCtors, PingPongPayload, ping_pong_service::*};
+use redirect_client::{RedirectClient, RedirectClientCtors, redirect::*};
+use redirect_proxy_client::{RedirectProxyClient, RedirectProxyClientCtors, proxy::*};
+use sails_rs::{client::*, prelude::*};
 use std::{collections::BTreeMap, sync::atomic::AtomicU64};
 
 static COUNTER_SALT: AtomicU64 = AtomicU64::new(0);
-
-macro_rules! create_program_async {
-    ($(($factory:ty, $wasm_path:expr)),+) => {{
-        create_program_async!($(($factory, $wasm_path, new_for_bench)),+)
-    }};
-
-    ($(($factory:ty, $wasm_path:expr, $ctor_name:ident $(, $ctor_params:expr),*)),+) => {{
-        let system = System::new();
-        system.mint_to(DEFAULT_USER_ALICE, 1_000_000_000_000_000);
-
-        $(
-            #[allow(unused)]
-            let code_id = system.submit_local_code_file($wasm_path);
-        )*
-
-        let remoting = GTestRemoting::new(system, DEFAULT_USER_ALICE.into());
-
-        (
-            remoting.clone(),
-            $(
-                {
-                    let salt = COUNTER_SALT.fetch_add(1, std::sync::atomic::Ordering::SeqCst)
-                        .to_le_bytes();
-                    let factory = <$factory>::new(remoting.clone());
-                    factory
-                        .$ctor_name($($ctor_params),*)
-                        .send_recv(code_id, &salt)
-                        .await
-                        .expect("failed to initialize the program")
-                }
-            ),*
-        )
-    }};
-
-    ($remoting:expr, $(($factory:ty, $wasm_path:expr)),+) => {{
-        create_program_async!($remoting, $(($factory, $wasm_path, new_for_bench)),+)
-    }};
-
-    ($remoting:expr, $(($factory:ty, $wasm_path:expr, $ctor_name:ident $(, $ctor_params:expr),*)),+) => {{
-        let remoting = $remoting;
-
-        (
-            remoting.clone(),
-            $({
-                let code_id = remoting.system().submit_local_code_file($wasm_path);
-                let salt = COUNTER_SALT.fetch_add(1, std::sync::atomic::Ordering::SeqCst)
-                    .to_le_bytes();
-                let factory = <$factory>::new(remoting.clone());
-                factory
-                    .$ctor_name($($ctor_params),*)
-                    .send_recv(code_id, &salt)
-                    .await
-                    .expect("failed to initialize the program")
-            }),*
-        )
-    }};
-}
-
-macro_rules! call_action {
-    ($remoting:expr, $pid:expr, $action:ty $(, $action_params:expr),*) => {{
-        call_action!($remoting, $pid, $action $(, $action_params),* ; with_reply)
-    }};
-
-    ($remoting:expr, $pid:expr, $action:ty $(, $action_params:expr),* ; no_reply_check) => {{
-        call_action!($remoting, $pid, $action $(, $action_params),* ; no_reply)
-    }};
-
-    ($remoting:expr, $pid:expr, $action:ty $(, $action_params:expr),* ; $mode:ident) => {{
-        let system_remoting = $remoting.system();
-        let program = system_remoting
-            .get_program($pid)
-            .expect("program was created; qed.");
-        let from = $remoting.actor_id();
-
-        // Form payload for the program
-        let payload = <$action>::encode_call($($action_params),*);
-        let mid = program.send_bytes(from, payload);
-        let block_res = system_remoting.run_next_block();
-        assert!(block_res.succeed.contains(&mid));
-
-        call_action!(@handle_result $mode, block_res, mid, $action)
-    }};
-
-    (@handle_result with_reply, $block_res:expr, $mid:expr, $action:ty) => {{
-        let payload = $block_res
-            .log()
-            .iter()
-            .find_map(|log| {
-                log.reply_to()
-                    .filter(|reply_to| reply_to == &$mid)
-                    .map(|_| log.payload().to_vec())
-            })
-            .expect("reply found");
-
-        let resp = <$action>::decode_reply(payload).expect("decode reply");
-        let gas = $block_res.gas_burned.get(&$mid).copied().expect("gas recorded");
-        (resp, gas)
-    }};
-
-    (@handle_result no_reply, $block_res:expr, $mid:expr, $action:ty) => {{
-        $block_res.gas_burned.get(&$mid).copied().expect("gas recorded")
-    }};
-}
 
 #[tokio::test]
 async fn alloc_stress_bench() {
@@ -178,16 +56,25 @@ async fn alloc_stress_bench() {
 #[tokio::test]
 async fn compute_stress_bench() {
     let wasm_path = "../target/wasm32-gear/release/compute_stress.opt.wasm";
-
-    let (remoting, pid) =
-        create_program_async!((ComputeStressProgramFactory::<GTestRemoting>, wasm_path));
+    let env = create_env();
+    let program = deploy_for_bench(&env, wasm_path, |d| {
+        ComputeStressProgramCtors::new_for_bench(d)
+    })
+    .await;
+    let mut service = program.compute_stress();
 
     let input_value = 30;
     let expected_sum = compute_stress::sum_of_fib(input_value);
 
     let mut gas_benches = (0..100)
         .map(|_| {
-            let (stress_resp, gas) = call_action!(remoting, pid, ComputeStress, input_value);
+            let message_id = service.compute_stress(input_value).send_one_way().unwrap();
+            let (payload, gas) = extract_reply_and_gas(env.system(), message_id);
+            let stress_resp = crate::clients::compute_stress_client::compute_stress::io::ComputeStress::decode_reply_with_prefix(
+                "ComputeStress",
+                payload.as_slice(),
+            )
+            .unwrap();
             assert_eq!(stress_resp.res, expected_sum);
             gas
         })
@@ -203,9 +90,12 @@ async fn compute_stress_bench() {
 #[tokio::test]
 async fn counter_bench() {
     let wasm_path = "../target/wasm32-gear/release/counter_bench.opt.wasm";
-
-    let (remoting, pid) =
-        create_program_async!((CounterBenchProgramFactory::<GTestRemoting>, wasm_path));
+    let env = create_env();
+    let program = deploy_for_bench(&env, wasm_path, |d| {
+        CounterBenchProgramCtors::new_for_bench(d)
+    })
+    .await;
+    let mut service = program.counter_bench();
 
     let mut expected_value = 0;
     let (mut gas_benches_sync, mut gas_benches_async): (Vec<_>, Vec<_>) = (0..100)
@@ -213,17 +103,29 @@ async fn counter_bench() {
         .map(|(i, _)| {
             let is_sync = i % 2 == 0;
             let gas = if is_sync {
-                let (stress_resp, gas_sync_inc) = call_action!(remoting, pid, Inc);
+                let message_id = service.inc().send_one_way().unwrap();
+                let (payload, gas) = extract_reply_and_gas(env.system(), message_id);
+                let stress_resp = crate::clients::counter_bench_client::counter_bench::io::Inc::decode_reply_with_prefix(
+                    "CounterBench",
+                    payload.as_slice(),
+                )
+                .unwrap();
                 assert_eq!(stress_resp, expected_value);
                 expected_value += 1;
 
-                gas_sync_inc
+                gas
             } else {
-                let (stress_resp, gas_async_inc) = call_action!(remoting, pid, IncAsync);
+                let message_id = service.inc_async().send_one_way().unwrap();
+                let (payload, gas) = extract_reply_and_gas(env.system(), message_id);
+                let stress_resp = crate::clients::counter_bench_client::counter_bench::io::IncAsync::decode_reply_with_prefix(
+                    "CounterBench",
+                    payload.as_slice(),
+                )
+                .unwrap();
                 assert_eq!(stress_resp, expected_value);
                 expected_value += 1;
 
-                gas_async_inc
+                gas
             };
 
             (i, gas)
@@ -249,19 +151,25 @@ async fn counter_bench() {
 #[tokio::test]
 async fn cross_program_bench() {
     let wasm_path = "../target/wasm32-gear/release/ping_pong_bench_app.opt.wasm";
-    let (remoting, start_ping_pid, pong_pid) = create_program_async!(
-        (PingPongFactory::<GTestRemoting>, wasm_path),
-        (PingPongFactory::<GTestRemoting>, wasm_path)
-    );
+    let env = create_env();
+    let program_ping = deploy_for_bench(&env, wasm_path, |d| PingPongCtors::new_for_bench(d)).await;
+    let program_pong = deploy_for_bench(&env, wasm_path, |d| PingPongCtors::new_for_bench(d)).await;
+
+    let mut service = program_ping.ping_pong_service();
 
     let mut gas_benches = (0..100)
         .map(|_| {
-            let (stress_resp, gas) = call_action!(
-                remoting,
-                start_ping_pid,
-                Ping,
-                PingPongPayload::Start(pong_pid)
-            );
+            let message_id = service
+                .ping(PingPongPayload::Start(program_pong.id()))
+                .send_one_way()
+                .unwrap();
+            let (payload, gas) = extract_reply_and_gas(env.system(), message_id);
+            let stress_resp =
+                ping_pong_bench_app::client::ping_pong_service::io::Ping::decode_reply_with_prefix(
+                    "PingPongService",
+                    payload.as_slice(),
+                )
+                .unwrap();
             assert_eq!(stress_resp, PingPongPayload::Finished);
             gas
         })
@@ -279,44 +187,55 @@ async fn redirect_bench() {
     let redirect_wasm_path = "../target/wasm32-gear/release/redirect_app.opt.wasm";
     let proxy_wasm_path = "../target/wasm32-gear/release/redirect_proxy.opt.wasm";
 
-    let (remoting, redirect_pid1, redirect_pid2) = create_program_async!(
-        (
-            RedirectClientFactory::<GTestRemoting>,
-            redirect_wasm_path,
-            new
-        ),
-        (
-            RedirectClientFactory::<GTestRemoting>,
-            redirect_wasm_path,
-            new
-        )
-    );
-    let (remoting, proxy_pid) = create_program_async!(
-        remoting,
-        (
-            RedirectProxyClientFactory::<GTestRemoting>,
-            proxy_wasm_path,
-            new,
-            redirect_pid1
-        )
-    );
+    let env = create_env();
+    let program_redirect_1 =
+        deploy_for_bench(&env, redirect_wasm_path, |d| RedirectClientCtors::new(d)).await;
+    let program_redirect_2 =
+        deploy_for_bench(&env, redirect_wasm_path, |d| RedirectClientCtors::new(d)).await;
+    let program_proxy = deploy_for_bench(&env, proxy_wasm_path, |d| {
+        RedirectProxyClientCtors::new(d, program_redirect_1.id())
+    })
+    .await;
 
     // Warm-up proxy program
     (0..100).for_each(|_| {
-        let (resp, _) = call_action!(remoting, proxy_pid, GetProgramId);
-        assert_eq!(resp, redirect_pid1);
+        let message_id = program_proxy
+            .proxy()
+            .get_program_id()
+            .send_one_way()
+            .unwrap();
+        let (payload, _gas) = extract_reply_and_gas(env.system(), message_id);
+        let resp = redirect_proxy_client::proxy::io::GetProgramId::decode_reply_with_prefix(
+            "Proxy",
+            payload.as_slice(),
+        )
+        .unwrap();
+        assert_eq!(resp, program_redirect_1.id());
     });
 
     // Call exit on a redirect program
-    call_action!(remoting, redirect_pid1, Exit, redirect_pid2; no_reply_check);
+    program_redirect_1
+        .redirect()
+        .exit(program_redirect_2.id())
+        .send_one_way()
+        .unwrap();
 
     // Bench proxy program
     let gas_benches = (0..100)
         .map(|_| {
-            let (resp, gas_get_program) = call_action!(remoting, proxy_pid, GetProgramId);
-            assert_eq!(resp, redirect_pid2);
-
-            gas_get_program
+            let message_id = program_proxy
+                .proxy()
+                .get_program_id()
+                .send_one_way()
+                .unwrap();
+            let (payload, gas) = extract_reply_and_gas(env.system(), message_id);
+            let resp = redirect_proxy_client::proxy::io::GetProgramId::decode_reply_with_prefix(
+                "Proxy",
+                payload.as_slice(),
+            )
+            .unwrap();
+            assert_eq!(resp, program_redirect_2.id());
+            gas
         })
         .collect::<Vec<_>>();
 
@@ -329,15 +248,68 @@ async fn redirect_bench() {
 async fn alloc_stress_test(n: u32) -> (usize, u64) {
     // Path taken from the .binpath file
     let wasm_path = "../target/wasm32-gear/release/alloc_stress.opt.wasm";
+    let env = create_env();
+    let program = deploy_for_bench(&env, wasm_path, |d| {
+        AllocStressProgramCtors::new_for_bench(d)
+    })
+    .await;
 
-    let (remoting, pid) =
-        create_program_async!((AllocStressProgramFactory::<GTestRemoting>, wasm_path));
-    let (stress_resp, gas) = call_action!(remoting, pid, AllocStress, n);
+    let mut service = program.alloc_stress();
+    let message_id = service.alloc_stress(n).send_one_way().unwrap();
+    let (payload, gas) = extract_reply_and_gas(env.system(), message_id);
+    let stress_resp = crate::clients::alloc_stress_client::alloc_stress::io::AllocStress::decode_reply_with_prefix(
+        "AllocStress",
+        payload.as_slice(),
+    )
+    .unwrap();
 
     let expected_len = alloc_stress::fibonacci_sum(n) as usize;
     assert_eq!(stress_resp.inner.len(), expected_len);
 
     (expected_len, gas)
+}
+
+fn create_env() -> GtestEnv {
+    let system = System::new();
+    system.mint_to(DEFAULT_USER_ALICE, 1_000_000_000_000_000);
+    GtestEnv::new(system, DEFAULT_USER_ALICE.into())
+}
+
+async fn deploy_for_bench<
+    P: Program,
+    IO: CallCodec,
+    F: FnOnce(Deployment<P, GtestEnv>) -> PendingCtor<P, IO, GtestEnv>,
+>(
+    env: &GtestEnv,
+    wasm_path: &str,
+    f: F,
+) -> Actor<P, GtestEnv> {
+    let code_id = env.system().submit_local_code_file(wasm_path);
+    let salt = COUNTER_SALT
+        .fetch_add(1, std::sync::atomic::Ordering::SeqCst)
+        .to_le_bytes()
+        .to_vec();
+    let deployment = env.deploy::<P>(code_id, salt);
+    let ctor = f(deployment);
+    let program = ctor.await.expect("failed to initialize the program");
+    program
+}
+
+fn extract_reply_and_gas(system: &System, message_id: MessageId) -> (Vec<u8>, u64) {
+    let block_res = system.run_next_block();
+    assert!(block_res.succeed.contains(&message_id));
+    let payload = block_res
+        .log()
+        .iter()
+        .find_map(|log| {
+            log.reply_to()
+                .filter(|reply_to| *reply_to == message_id)
+                .map(|_| log.payload().to_vec())
+        })
+        .expect("reply found");
+
+    let gas = *block_res.gas_burned.get(&message_id).expect("gas recorded");
+    (payload, gas)
 }
 
 fn median(mut values: Vec<u64>) -> u64 {

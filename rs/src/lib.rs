@@ -9,31 +9,29 @@ extern crate std;
 pub use builder::{ClientBuilder, build_client, build_client_as_lib};
 #[cfg(feature = "wasm-builder")]
 pub use gwasm_builder::build as build_wasm;
-pub use hex::{self};
+pub use hex;
 pub use prelude::*;
 #[cfg(feature = "idl-gen")]
 #[cfg(not(target_arch = "wasm32"))]
 pub use sails_idl_gen::{generate_idl, generate_idl_to_file};
 pub use sails_idl_meta::{self as meta};
-pub use spin::{self};
+pub use spin;
 
 #[cfg(feature = "client-builder")]
 mod builder;
-pub mod calls;
+pub mod client;
 pub mod errors;
-#[cfg(not(target_arch = "wasm32"))]
-pub mod events;
 #[cfg(feature = "gclient")]
 #[cfg(not(target_arch = "wasm32"))]
-pub mod gclient;
+pub use gclient;
 #[cfg(feature = "gstd")]
 pub mod gstd;
 #[cfg(feature = "gtest")]
 #[cfg(not(target_arch = "wasm32"))]
-pub mod gtest;
+pub use gtest;
 #[cfg(feature = "mockall")]
 #[cfg(not(target_arch = "wasm32"))]
-pub mod mockall;
+pub use mockall;
 pub mod prelude;
 #[cfg(feature = "ethexe")]
 pub mod solidity;

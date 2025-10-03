@@ -1,6 +1,6 @@
 {
   "compute": {
-    "median": 450514040279
+    "median": 450514036959
   },
   "alloc": {
     "0": 564376739,
@@ -17,9 +17,9 @@
     "sync_call": 678860419
   },
   "cross_program": {
-    "median": 2515512440
+    "median": 2436719419
   },
   "redirect": {
-    "median": 3618718731
+    "median": 3473474864
   }
 }

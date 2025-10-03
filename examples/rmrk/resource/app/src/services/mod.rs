@@ -1,8 +1,8 @@
-use crate::catalogs::traits::RmrkCatalog;
+use crate::catalogs::rmrk_catalog::RmrkCatalog;
 use errors::{Error, Result};
 use resources::{ComposedResource, PartId, Resource, ResourceId};
 use sails_rs::{
-    calls::Query,
+    client::*,
     collections::HashMap,
     gstd::{Syscall, service},
     prelude::*,
@@ -41,7 +41,7 @@ pub struct ResourceStorage<TCatalogClient> {
 
 impl<TCatalogClient> ResourceStorage<TCatalogClient>
 where
-    TCatalogClient: RmrkCatalog,
+    TCatalogClient: RmrkCatalog<Env = GstdEnv>,
 {
     // This function needs to be called before any other function
     pub fn seed() {
@@ -60,7 +60,7 @@ where
 #[service(events = ResourceStorageEvent)]
 impl<TCatalogClient> ResourceStorage<TCatalogClient>
 where
-    TCatalogClient: RmrkCatalog,
+    TCatalogClient: RmrkCatalog<Env = GstdEnv>,
 {
     #[export]
     pub fn add_resource_entry(
@@ -112,8 +112,13 @@ where
             //          calls of this or another method (e.g. `add_resource_entry`) working with the same
             //          data before this method returns.
 
-            // Call `Rmrk Catalog` via the generated client and the `recv` method
-            let part = self.catalog_client.part(part_id).recv(*base).await.unwrap();
+            // Call `Rmrk Catalog` via the generated client
+            let part = self
+                .catalog_client
+                .part(part_id)
+                .with_destination(*base)
+                .await
+                .unwrap();
 
             // Caution: Reading from the `resource` variable here may yield unexpected value.
             //          This can happen because execution after asynchronous calls can resume
@@ -176,18 +181,14 @@ mod tests {
     use super::*;
     use crate::catalogs::{FixedPart, Part, mockall::MockRmrkCatalog};
     use resources::ComposedResource;
-    use sails_rs::{
-        gstd::{calls::GStdArgs, services::Service},
-        mockall::MockQuery,
-    };
+    use sails_rs::{client::PendingCall, gstd::services::Service};
 
     #[tokio::test]
     async fn test_add_resource_entry() {
         Syscall::with_message_source(ActorId::from(1));
 
-        ResourceStorage::<MockRmrkCatalog<GStdArgs>>::seed();
-        let mut resource_storage =
-            ResourceStorage::new(MockRmrkCatalog::<GStdArgs>::new()).expose(&[]);
+        ResourceStorage::<MockRmrkCatalog>::seed();
+        let mut resource_storage = ResourceStorage::new(MockRmrkCatalog::new()).expose(&[]);
 
         let resource = Resource::Composed(ComposedResource {
             src: "src".to_string(),
@@ -203,18 +204,16 @@ mod tests {
         assert_eq!(actual_resource, resource);
 
         // add_part_to_resource
-        let mut part_query = MockQuery::new();
-        part_query.expect_recv().returning(move |_| {
-            Ok(Some(Part::Fixed(FixedPart {
-                z: None,
-                metadata_uri: "metadata_uri".to_string(),
-            })))
-        });
         resource_storage
             .catalog_client
             .expect_part()
             .with(mockall::predicate::eq(1))
-            .return_once(|_| part_query);
+            .return_once(|_| {
+                PendingCall::from_output(Some(Part::Fixed(FixedPart {
+                    z: None,
+                    metadata_uri: "metadata_uri".to_string(),
+                })))
+            });
 
         let actual_part_id = resource_storage
             .add_part_to_resource(actual_resource_id, 1)

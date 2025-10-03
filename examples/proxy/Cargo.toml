@@ -20,5 +20,8 @@ sails-rename.workspace = true
 demo-client = { path = "../demo/client", features = ["with_mocks"] }
 tokio = { workspace = true, features = ["rt", "macros"] }
 
+[build-dependencies]
+sails-rename = { workspace = true, features = ["build"] }
+
 [features]
 idl-gen = ["dep:sails-idl-gen"]

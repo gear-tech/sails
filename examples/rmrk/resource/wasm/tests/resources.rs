@@ -1,5 +1,8 @@
 use rmrk_catalog::services::parts::{FixedPart, Part};
-use rmrk_resource::client::{self, traits::RmrkResource as _};
+use rmrk_resource::client::{
+    self, RmrkResource, RmrkResourceProgram,
+    rmrk_resource::{RmrkResource as _, RmrkResourceImpl},
+};
 use rmrk_resource_app::services::{
     ResourceStorageEvent,
     errors::{Error as ResourceStorageError, Result as ResourceStorageResult},
@@ -7,16 +10,11 @@ use rmrk_resource_app::services::{
 };
 use sails_rs::{
     ActorId, Decode, Encode,
-    calls::{Call, Query, Remoting},
+    client::{Program as _, *},
     collections::BTreeMap,
     errors::Result,
-    gtest::{
-        BlockRunResult, Program, System,
-        calls::{GTestArgs, GTestRemoting, WithArgs as _},
-    },
+    gtest::{BlockRunResult, Program, System},
 };
-
-type RmrkResourceClient = client::RmrkResource<GTestRemoting>;
 
 const CATALOG_PROGRAM_WASM_PATH: &str = "../../../../target/wasm32-gear/debug/rmrk_catalog.wasm";
 const RESOURCE_PROGRAM_WASM_PATH: &str = "../../../../target/wasm32-gear/debug/rmrk_resource.wasm";
@@ -382,7 +380,7 @@ impl SystemFixture {
 }
 
 struct Fixture {
-    program_space: GTestRemoting,
+    env: GtestEnv,
     catalog_program_id: ActorId,
     resource_program_id: ActorId,
 }
@@ -397,10 +395,10 @@ impl Fixture {
         let catalog_program_id = Self::create_catalog_program(&system);
         let resource_program_id = Self::create_resource_program(&system);
 
-        let program_space = GTestRemoting::new(system, ADMIN_ID.into());
+        let env = GtestEnv::new(system, ADMIN_ID.into());
 
         Self {
-            program_space,
+            env,
             catalog_program_id,
             resource_program_id,
         }
@@ -435,12 +433,10 @@ impl Fixture {
         resource_program.id()
     }
 
-    fn program_space(&self) -> &GTestRemoting {
-        &self.program_space
-    }
-
-    fn resource_client(&self) -> RmrkResourceClient {
-        RmrkResourceClient::new(self.program_space.clone())
+    fn resource_client(&self) -> Service<RmrkResourceImpl, GtestEnv> {
+        RmrkResourceProgram::client(self.resource_program_id)
+            .with_env(&self.env)
+            .rmrk_resource()
     }
 
     async fn add_resource_async(
@@ -448,7 +444,7 @@ impl Fixture {
         actor_id: u64,
         resource_id: ResourceId,
         resource: &Resource,
-    ) -> Result<Vec<u8>> {
+    ) -> Result<Vec<u8>, GtestError> {
         let encoded_request = [
             resources::RESOURCE_SERVICE_NAME.encode(),
             resources::ADD_RESOURCE_ENTRY_FUNC_NAME.encode(),
@@ -456,17 +452,13 @@ impl Fixture {
             resource.encode(),
         ]
         .concat();
-        let program_space = self.program_space().clone();
-        let reply = program_space
-            .message(
+        self.env
+            .send_for_reply(
                 self.resource_program_id,
                 encoded_request,
-                None,
-                0,
-                GTestArgs::new(actor_id.into()),
+                GtestParams::default().with_actor_id(actor_id.into()),
             )
-            .await?;
-        reply.await
+            .await
     }
 
     async fn add_resource_via_client(
@@ -474,12 +466,11 @@ impl Fixture {
         actor_id: u64,
         resource_id: u8,
         resource: client::Resource,
-    ) -> Result<Result<(u8, client::Resource), client::Error>> {
+    ) -> Result<Result<(u8, client::Resource), client::Error>, GtestError> {
         let mut resource_client = self.resource_client();
         resource_client
             .add_resource_entry(resource_id, resource)
             .with_actor_id(actor_id.into())
-            .send_recv(self.resource_program_id)
             .await
     }
 
@@ -488,12 +479,11 @@ impl Fixture {
         actor_id: u64,
         resource_id: u8,
         part_id: u32,
-    ) -> Result<Result<u32, client::Error>> {
+    ) -> Result<Result<u32, client::Error>, GtestError> {
         let mut resource_client = self.resource_client();
         resource_client
             .add_part_to_resource(resource_id, part_id)
             .with_actor_id(actor_id.into())
-            .send_recv(self.resource_program_id)
             .await
     }
 
@@ -501,12 +491,11 @@ impl Fixture {
         &self,
         actor_id: u64,
         resource_id: u8,
-    ) -> Result<Result<client::Resource, client::Error>> {
+    ) -> Result<Result<client::Resource, client::Error>, GtestError> {
         let resource_client = self.resource_client();
         resource_client
             .resource(resource_id)
             .with_actor_id(actor_id.into())
-            .recv(self.resource_program_id)
             .await
     }
 }

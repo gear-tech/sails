@@ -1,19 +1,16 @@
-use crate::helpers::{method_bytes, path_bytes};
 use genco::prelude::*;
 use sails_idl_parser::{ast::visitor, ast::visitor::Visitor, ast::*};
 
 pub(crate) struct EventsModuleGenerator<'a> {
     service_name: &'a str,
-    path: &'a str,
     sails_path: &'a str,
     tokens: rust::Tokens,
 }
 
 impl<'a> EventsModuleGenerator<'a> {
-    pub(crate) fn new(service_name: &'a str, path: &'a str, sails_path: &'a str) -> Self {
+    pub(crate) fn new(service_name: &'a str, sails_path: &'a str) -> Self {
         Self {
             service_name,
-            path,
             sails_path,
             tokens: rust::Tokens::new(),
         }
@@ -26,25 +23,22 @@ impl<'a> EventsModuleGenerator<'a> {
 
 impl<'ast> Visitor<'ast> for EventsModuleGenerator<'_> {
     fn visit_service(&mut self, service: &'ast Service) {
-        let events_name = format!("{}Events", self.service_name);
-        let (service_path_bytes, _) = path_bytes(self.path);
-        let event_names_bytes = service
+        let events_name = &format!("{}Events", self.service_name);
+        let event_names = service
             .events()
             .iter()
-            .map(|e| method_bytes(e.name()).0)
+            .map(|e| format!("\"{}\"", e.name()))
             .collect::<Vec<_>>()
-            .join("], &[");
+            .join(", ");
 
         quote_in! { self.tokens =>
             $['\n']
-            #[allow(dead_code)]
             #[cfg(not(target_arch = "wasm32"))]
             pub mod events $("{")
                 use super::*;
-                use $(self.sails_path)::events::*;
                 #[derive(PartialEq, Debug, Encode, Decode)]
                 #[codec(crate = $(self.sails_path)::scale_codec)]
-                pub enum $(&events_name) $("{")
+                pub enum $events_name $("{")
         };
 
         visitor::accept_service(service, self);
@@ -54,14 +48,12 @@ impl<'ast> Visitor<'ast> for EventsModuleGenerator<'_> {
         };
 
         quote_in! { self.tokens =>
-            impl EventIo for $(&events_name) {
-                const ROUTE: &'static [u8] = &[$service_path_bytes];
-                const EVENT_NAMES: &'static [&'static [u8]] = &[&[$event_names_bytes]];
-                type Event = Self;
+            impl $(self.sails_path)::client::Event for $events_name {
+                const EVENT_NAMES: &'static [Route] = &[$event_names];
             }
 
-            pub fn listener<R: Listener<Vec<u8>>>(remoting: R) -> impl Listener<$(&events_name)> {
-                RemotingListener::<_, $(&events_name)>::new(remoting)
+            impl $(self.sails_path)::client::ServiceWithEvents for $(self.service_name)Impl {
+                type Event = $events_name;
             }
         }
 

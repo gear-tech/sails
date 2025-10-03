@@ -1,7 +1,4 @@
-use crate::{
-    ctor_generators::*, events_generator::*, io_generators::*, mock_generator::MockGenerator,
-    service_generators::*, type_generators::*,
-};
+use crate::{ctor_generators::*, mock_generator::*, service_generators::*, type_generators::*};
 use convert_case::{Case, Casing};
 use genco::prelude::*;
 use rust::Tokens;
@@ -10,8 +7,9 @@ use std::collections::HashMap;
 
 pub(crate) struct RootGenerator<'a> {
     tokens: Tokens,
-    traits_tokens: Tokens,
     mocks_tokens: Tokens,
+    service_impl_tokens: Tokens,
+    service_trait_tokens: Tokens,
     anonymous_service_name: &'a str,
     mocks_feature_name: Option<&'a str>,
     sails_path: &'a str,
@@ -27,25 +25,12 @@ impl<'a> RootGenerator<'a> {
         external_types: HashMap<&'a str, &'a str>,
         no_derive_traits: bool,
     ) -> Self {
-        let mut tokens = quote! {
-            #[allow(unused_imports)]
-            use $sails_path::{String, calls::{Activation, Call, Query, Remoting, RemotingAction}, prelude::*};
-            #[allow(unused_imports)]
-            use $sails_path::collections::BTreeMap;
-        };
-
-        for (&name, &path) in &external_types {
-            quote_in! { tokens =>
-                #[allow(unused_imports)]
-                use $path as $name;
-            };
-        }
-
         Self {
             anonymous_service_name,
-            tokens,
-            traits_tokens: Tokens::new(),
+            tokens: Tokens::new(),
             mocks_tokens: Tokens::new(),
+            service_impl_tokens: Tokens::new(),
+            service_trait_tokens: Tokens::new(),
             mocks_feature_name,
             sails_path,
             external_types,
@@ -73,18 +58,40 @@ impl<'a> RootGenerator<'a> {
             Tokens::new()
         };
 
-        let result: Tokens = quote! {
-            $(self.tokens)
-            $['\n']
-            pub mod traits {
-                use super::*;
-                $(self.traits_tokens)
+        let mut tokens = quote! {
+            #[allow(unused_imports)]
+            use $(self.sails_path)::{client::*, collections::*, prelude::*};
+        };
+
+        for (&name, &path) in &self.external_types {
+            quote_in! { tokens =>
+                #[allow(unused_imports)]
+                use $path as $name;
+            };
+        }
+
+        let program_name = &self.anonymous_service_name.to_case(Case::Pascal);
+        quote_in! { tokens =>
+            pub struct $(program_name)Program;
+
+            impl $(self.sails_path)::client::Program for  $(program_name)Program {}
+
+            pub trait $program_name {
+                type Env: $(self.sails_path)::client::GearEnv;
+                $(self.service_trait_tokens)
             }
+
+            impl<E: $(self.sails_path)::client::GearEnv> $program_name for $(self.sails_path)::client::Actor<$(program_name)Program, E> {
+                type Env = E;
+                $(self.service_impl_tokens)
+            }
+
+            $(self.tokens)
 
             $mocks_tokens
         };
 
-        let mut result = result.to_file_string().unwrap();
+        let mut result = tokens.to_file_string().unwrap();
 
         if with_no_std {
             result.insert_str(
@@ -101,12 +108,7 @@ impl<'a> RootGenerator<'a> {
 
 impl<'ast> Visitor<'ast> for RootGenerator<'_> {
     fn visit_ctor(&mut self, ctor: &'ast Ctor) {
-        let mut ctor_gen = CtorTraitGenerator::new(self.anonymous_service_name.to_owned());
-        ctor_gen.visit_ctor(ctor);
-
-        self.traits_tokens.extend(ctor_gen.finalize());
-
-        let mut ctor_gen = CtorFactoryGenerator::new(self.anonymous_service_name, self.sails_path);
+        let mut ctor_gen = CtorGenerator::new(self.anonymous_service_name, self.sails_path);
         ctor_gen.visit_ctor(ctor);
         self.tokens.extend(ctor_gen.finalize());
     }
@@ -117,40 +119,18 @@ impl<'ast> Visitor<'ast> for RootGenerator<'_> {
         } else {
             service.name()
         };
-        let service_name_snake = service_name.to_case(Case::Snake);
 
-        let mut service_gen = ServiceTraitGenerator::new(service_name.to_owned());
-        service_gen.visit_service(service);
-        self.traits_tokens.extend(service_gen.finalize());
+        let mut ctor_gen = ServiceCtorGenerator::new(service_name, self.sails_path);
+        ctor_gen.visit_service(service);
+        let (trait_tokens, impl_tokens) = ctor_gen.finalize();
+        self.service_trait_tokens.extend(trait_tokens);
+        self.service_impl_tokens.extend(impl_tokens);
 
-        let path = service.name();
-
-        let mut client_gen = ServiceClientGenerator::new(service_name.to_owned());
+        let mut client_gen = ServiceGenerator::new(service_name, self.sails_path);
         client_gen.visit_service(service);
         self.tokens.extend(client_gen.finalize());
 
-        let mut service_tokens = Tokens::new();
-
-        let mut io_mod_gen = IoModuleGenerator::new(path, self.sails_path);
-        io_mod_gen.visit_service(service);
-        service_tokens.extend(io_mod_gen.finalize());
-
-        if !service.events().is_empty() {
-            let mut events_mod_gen =
-                EventsModuleGenerator::new(service_name, path, self.sails_path);
-            events_mod_gen.visit_service(service);
-            service_tokens.extend(events_mod_gen.finalize());
-        }
-
-        quote_in! { self.tokens =>
-            $['\n']
-            pub mod $(service_name_snake) {
-                use super::*;
-                $(service_tokens)
-            }
-        }
-
-        let mut mock_gen: MockGenerator = MockGenerator::new(service_name);
+        let mut mock_gen = MockGenerator::new(service_name, self.sails_path);
         mock_gen.visit_service(service);
         self.mocks_tokens.extend(mock_gen.finalize());
     }
