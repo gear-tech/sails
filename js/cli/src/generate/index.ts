@@ -107,7 +107,6 @@ export class ProjectBuilder {
 
     const typesCode = this.generateTypes();
     const typesFile = path.join(libPath, 'global.d.ts');
-
     if (typesCode !== null) {
       if (await this.canCreateFile(typesFile)) {
         writeFileSync(typesFile, typesCode);

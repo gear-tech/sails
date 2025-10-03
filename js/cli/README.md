@@ -33,6 +33,11 @@ If you want to generate only `lib.ts` file without the whole project structure, 
 sails-js generate path/to/sails.idl -o path/to/out/dir --no-project
 ```
 
+To place type definitions directly in the generated `lib.ts` file instead of relying on `global.d.ts`, use the `--embed-types` flag.
+
+```bash
+sails-js generate path/to/sails.idl -o path/to/out/dir --embed-types
+```
 
 # Use generated library
 
