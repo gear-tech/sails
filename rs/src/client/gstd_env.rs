@@ -156,6 +156,7 @@ const _: () = {
     impl<T: CallEncodeDecode> Future for PendingCall<GstdEnv, T> {
         type Output = Result<T::Reply, <GstdEnv as GearEnv>::Error>;
 
+        #[inline(always)]
         fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
             if self.state.is_none() {
                 let args = self
@@ -166,10 +167,7 @@ const _: () = {
                 let destination = self.destination;
                 let params = self.params.get_or_insert_default();
                 // Send message
-                let future = match send_for_reply(destination, payload, params) {
-                    Ok(future) => future,
-                    Err(err) => return Poll::Ready(Err(err)),
-                };
+                let future = send_for_reply(destination, payload, params)?;
                 self.state = Some(future);
                 // No need to poll the future
                 return Poll::Pending;
