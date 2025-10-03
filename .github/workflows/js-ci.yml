@@ -29,11 +29,14 @@ jobs:
         with:
           node-version: 20.x
 
+      - name: "Install: pnpm"
+        uses: pnpm/action-setup@v4
+
       - name: "Install: dependencies"
-        run: yarn install
+        run: pnpm install
 
       - name: "Run linter"
-        run: yarn lint
+        run: pnpm lint
 
   test:
     runs-on: ubuntu-22.04
@@ -51,11 +54,14 @@ jobs:
         with:
           node-version: 20.x
 
+      - name: "Install: pnpm"
+        uses: pnpm/action-setup@v4
+
       - name: "Install: dependencies"
-        run: yarn install
+        run: pnpm install
 
       - name: "Build"
-        run: yarn build
+        run: pnpm build
 
       - name: Install wasm-opt
         uses: ./.github/actions/install-wasm-utils
@@ -75,7 +81,4 @@ jobs:
         run: sleep 180
 
       - name: "Test: run"
-        # TODO: remove on the next sails release
-        env:
-          USE_LOCAL_BUILD: true
-        run: yarn test
+        run: pnpm test

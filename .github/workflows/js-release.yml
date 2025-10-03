@@ -60,11 +60,14 @@ jobs:
         with:
           node-version: 20.x
 
+      - name: "Install: pnpm"
+        uses: pnpm/action-setup@v4
+
       - name: "Prepare: install dependencies"
-        run: yarn install
+        run: pnpm install
 
       - name: "Prepare: build pkgs"
-        run: yarn build
+        run: pnpm build
 
       - name: "Configure npm auth"
         run: echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}" > ~/.npmrc
@@ -103,6 +106,9 @@ jobs:
         with:
           node-version: 20.x
 
+      - name: "Install: pnpm"
+        uses: pnpm/action-setup@v4
+
       - name: "Get release notes"
         id: release_notes
         run: |
@@ -115,13 +121,13 @@ jobs:
           VERSION: ${{ needs.check-release.outputs.version }}
 
       - name: "Prepare: install dependencies"
-        run: yarn install
+        run: pnpm install
 
       - name: "Prepare: build pkgs"
-        run: yarn build
+        run: pnpm build
 
       - name: "Prepare: pack builds"
-        run: yarn run pack
+        run: pnpm run pack
 
       - name: "Create new tag"
         run: |

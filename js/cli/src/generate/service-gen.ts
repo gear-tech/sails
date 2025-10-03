@@ -3,21 +3,12 @@ import { ISailsFuncParam, ISailsProgram, ISailsService } from 'sails-js-types';
 import { Output } from './output.js';
 import { BaseGenerator } from './base.js';
 import { formatDocs } from './format.js';
+import { escapeReservedKeyword } from './reserved-keywords.js';
 
 const HEX_STRING_TYPE = '`0x${string}`';
 
-const VALUE_ARG = 'value?: number | string | bigint';
-
 const getFuncName = (name: string) => {
   return name[0].toLowerCase() + name.slice(1);
-};
-
-const createPayload = (serviceName: string, fnName: string, params: ISailsFuncParam[]) => {
-  return params.length === 0
-    ? `const payload = this._program.registry.createType('(String, String)', ['${serviceName}', '${fnName}']).toHex()`
-    : `const payload = this._program.registry.createType('(String, String, ${params
-        .map(({ def }) => getScaleCodecDef(def))
-        .join(', ')})', ['${serviceName}', '${fnName}', ${params.map(({ name }) => name).join(', ')}]).toHex()`;
 };
 
 export class ServiceGenerator extends BaseGenerator {
@@ -33,6 +24,8 @@ export class ServiceGenerator extends BaseGenerator {
     const $ = this._out;
     const _classNameTitled = className[0].toUpperCase() + className.slice(1);
 
+    $.header('/* eslint-disable */');
+
     $.import('@gear-js/api', 'GearApi')
       .import('@gear-js/api', 'BaseGearProgram')
       .import(`@polkadot/types`, `TypeRegistry`)
@@ -47,7 +40,7 @@ export class ServiceGenerator extends BaseGenerator {
             }`,
           );
         }
-        $.line(`private _program: BaseGearProgram`);
+        $.line(`private _program?: BaseGearProgram`);
 
         $.line()
           .block(`constructor(public api: GearApi, programId?: ${HEX_STRING_TYPE})`, () => {
@@ -80,13 +73,13 @@ export class ServiceGenerator extends BaseGenerator {
   }
 
   private _getParams(params: ISailsFuncParam[]) {
-    if (params.length === 0) return 'undefined';
-    if (params.length === 1) return params[0].name;
-    return `[${params.map(({ name }) => name).join(', ')}]`;
+    if (params.length === 0) return 'null';
+    if (params.length === 1) return escapeReservedKeyword(params[0].name);
+    return `[${params.map(({ name }) => escapeReservedKeyword(name)).join(', ')}]`;
   }
 
   private _getPayloadType(params: ISailsFuncParam[]) {
-    if (params.length === 0) return 'undefined';
+    if (params.length === 0) return 'null';
     if (params.length === 1) return `'${getScaleCodecDef(params[0].def)}'`;
     return `'(${params.map(({ def }) => getScaleCodecDef(def)).join(', ')})'`;
   }
@@ -113,7 +106,7 @@ export class ServiceGenerator extends BaseGenerator {
               .line(`this.api,`, false)
               .line(`this.registry,`, false)
               .line(`'upload_program',`, false)
-              .line('undefined,', false)
+              .line('null,', false)
               .line(`'${name}',`, false)
               .line(`${this._getParams(params)},`, false)
               .line(`${this._getPayloadType(params)},`, false)
@@ -137,7 +130,7 @@ export class ServiceGenerator extends BaseGenerator {
               .line(`this.api,`, false)
               .line(`this.registry,`, false)
               .line(`'create_program',`, false)
-              .line('undefined,', false)
+              .line('null,', false)
               .line(`'${name}',`, false)
               .line(`${this._getParams(params)},`, false)
               .line(`${this._getPayloadType(params)},`, false)
@@ -178,26 +171,19 @@ export class ServiceGenerator extends BaseGenerator {
         .block(this.getFuncSignature(name, params, returnType, isQuery), () => {
           if (isQuery) {
             this._out
-              .line(createPayload(service.name, name, params))
-              .import('@gear-js/api', 'decodeAddress')
-              .line(`const reply = await this._program.api.message.calculateReply({`, false)
+              .import('sails-js', 'QueryBuilder')
+              .line(`return new QueryBuilder<${returnType}>(`, false)
               .increaseIndent()
-              .line(`destination: this._program.programId,`, false)
-              .line(`origin: originAddress ? decodeAddress(originAddress) : ZERO_ADDRESS,`, false)
-              .line(`payload,`, false)
-              .line(`value: value || 0,`, false)
-              .line(`gasLimit: this._program.api.blockGasLimit.toBigInt(),`, false)
-              .line(`at: atBlock,`, false)
+              .line(`this._program.api,`, false)
+              .line(`this._program.registry,`, false)
+              .line(`this._program.programId,`, false)
+              .line(`'${service.name}',`, false)
+              .line(`'${name}',`, false)
+              .line(`${this._getParams(params)},`, false)
+              .line(`${this._getPayloadType(params)},`, false)
+              .line(`'${returnScaleType}',`, false)
               .reduceIndent()
-              .line(`})`)
-              .line(
-                'throwOnErrorReply(reply.code, reply.payload.toU8a(), this._program.api.specVersion, this._program.registry)',
-              )
-              .import('sails-js', 'throwOnErrorReply')
-              .line(
-                `const result = this._program.registry.createType('(String, String, ${returnScaleType})', reply.payload)`,
-              )
-              .line(`return result[2].${decodeMethod}() as unknown as ${returnType}`);
+              .line(`)`);
           } else {
             this._out
               .line(`if (!this._program.programId) throw new Error('Program ID is not set')`)
@@ -211,7 +197,7 @@ export class ServiceGenerator extends BaseGenerator {
               .line(`${this._getParams(params)},`, false)
               .line(`${this._getPayloadType(params)},`, false)
               .line(`'${returnScaleType}',`, false)
-              .line(`this._program.programId`, false)
+              .line(`this._program.programId,`, false)
               .reduceIndent()
               .line(`)`);
           }
@@ -274,20 +260,14 @@ export class ServiceGenerator extends BaseGenerator {
     if (params.length === 0) {
       return null;
     }
-    return params.map(({ name, def }) => `${name}: ${this.getType(def)}`).join(', ');
+    return params.map(({ name, def }) => `${escapeReservedKeyword(name)}: ${this.getType(def)}`).join(', ');
   }
 
   private getFuncSignature(name: string, params: ISailsFuncParam[], returnType: string, isQuery: boolean) {
     const args = this.getArgs(params);
 
-    let result = `public ${isQuery ? 'async ' : ''}${getFuncName(name)}(${args || ''}`;
+    const funcReturnType = isQuery ? `QueryBuilder<${returnType}>` : `TransactionBuilder<${returnType}>`;
 
-    if (isQuery) {
-      result += `${args ? ', ' : ''}originAddress?: string, ${VALUE_ARG}, atBlock?: ${HEX_STRING_TYPE}`;
-    }
-
-    result += `): ${isQuery ? `Promise<${returnType}>` : `TransactionBuilder<${returnType}>`}`;
-
-    return result;
+    return `public ${getFuncName(name)}(${args || ''}): ${funcReturnType}`;
   }
 }

@@ -26,6 +26,7 @@ js/test/demo/
 !.yarn/versions
 .npmrc
 js/**/*.tgz
+.pnpm-debug.log*
 
 # Verify
 *.received.*
