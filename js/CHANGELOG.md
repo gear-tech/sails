@@ -1,8 +1,11 @@
 # CHANGELOG
 
-## draft
+## 0.5.1
 
 - Fixed: generation correct TransactionBuilder constructor calls (https://github.com/gear-tech/sails/pull/1070).
+- Added an option to generate both program types and executable code within a single file (https://github.com/gear-tech/sails/pull/1073/files)
+- Added a method available in the `TransactionBuilder` class that decodes responses from the program. (https://github.com/gear-tech/sails/pull/1071).
+- Added a comment to exclude the generated code from linting. (https://github.com/gear-tech/sails/pull/1069)
 
 ## 0.5.0
 
