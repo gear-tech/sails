@@ -9,7 +9,7 @@ use crate::prelude::*;
 /// These methods are essential for enabling on-chain applications to interact with the Gear runtime
 /// in a consistent manner. Depending on the target environment, different implementations are provided:
 ///
-/// - For the WASM target, direct calls are made to `gstd::msg` and `gstd::exec` to fetch runtime data.
+/// - For the WASM target, direct calls are made to `gcore::msg` and `gcore::exec` to fetch runtime data.
 /// - In standard (`std`) environments, a mock implementation uses thread-local state for testing purposes.
 /// - In `no_std` configurations without the `std` feature and not WASM target, the functions are marked as unimplemented.
 ///
@@ -19,62 +19,76 @@ pub struct Syscall;
 
 #[cfg(target_arch = "wasm32")]
 impl Syscall {
+    #[inline(always)]
     pub fn message_id() -> MessageId {
-        gstd::msg::id()
+        ::gcore::msg::id()
     }
 
+    #[inline(always)]
     pub fn message_size() -> usize {
-        gstd::msg::size()
+        ::gcore::msg::size()
     }
 
+    #[inline(always)]
     pub fn message_source() -> ActorId {
-        gstd::msg::source()
+        ::gcore::msg::source()
     }
 
+    #[inline(always)]
     pub fn message_value() -> u128 {
-        gstd::msg::value()
+        ::gcore::msg::value()
     }
 
+    #[inline(always)]
     pub fn reply_to() -> Result<MessageId, gcore::errors::Error> {
-        gstd::msg::reply_to()
+        ::gcore::msg::reply_to()
     }
 
+    #[inline(always)]
     pub fn reply_code() -> Result<ReplyCode, gcore::errors::Error> {
-        gstd::msg::reply_code()
+        ::gcore::msg::reply_code()
     }
 
     #[cfg(not(feature = "ethexe"))]
+    #[inline(always)]
     pub fn signal_from() -> Result<MessageId, gcore::errors::Error> {
-        gstd::msg::signal_from()
+        ::gcore::msg::signal_from()
     }
 
     #[cfg(not(feature = "ethexe"))]
+    #[inline(always)]
     pub fn signal_code() -> Result<Option<SignalCode>, gcore::errors::Error> {
-        gstd::msg::signal_code()
+        ::gcore::msg::signal_code()
     }
 
+    #[inline(always)]
     pub fn program_id() -> ActorId {
-        gstd::exec::program_id()
+        ::gcore::exec::program_id()
     }
 
+    #[inline(always)]
     pub fn block_height() -> u32 {
-        gstd::exec::block_height()
+        ::gcore::exec::block_height()
     }
 
+    #[inline(always)]
     pub fn block_timestamp() -> u64 {
-        gstd::exec::block_timestamp()
+        ::gcore::exec::block_timestamp()
     }
 
+    #[inline(always)]
     pub fn value_available() -> u128 {
-        gstd::exec::value_available()
+        ::gcore::exec::value_available()
     }
 
-    pub fn env_vars() -> gstd::EnvVars {
-        gstd::exec::env_vars()
+    #[inline(always)]
+    pub fn env_vars() -> ::gcore::EnvVars {
+        ::gcore::exec::env_vars()
     }
 
+    #[inline(always)]
     pub fn exit(inheritor_id: ActorId) -> ! {
-        gstd::exec::exit(inheritor_id)
+        ::gcore::exec::exit(inheritor_id)
     }
 }
 
@@ -111,7 +125,7 @@ syscall_unimplemented!(
     block_height() -> u32,
     block_timestamp() -> u64,
     value_available() -> u128,
-    env_vars() -> gstd::EnvVars,
+    env_vars() -> ::gcore::EnvVars,
 );
 
 #[cfg(not(target_arch = "wasm32"))]
@@ -199,8 +213,8 @@ const _: () = {
     }
 
     impl Syscall {
-        pub fn env_vars() -> gstd::EnvVars {
-            gstd::EnvVars {
+        pub fn env_vars() -> ::gcore::EnvVars {
+            ::gcore::EnvVars {
                 performance_multiplier: gstd::Percent::new(100),
                 existential_deposit: 1_000_000_000_000,
                 mailbox_threshold: 3000,

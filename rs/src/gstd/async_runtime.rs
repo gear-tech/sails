@@ -77,17 +77,25 @@ impl Task {
     }
 }
 
-/// The main asynchronous message handling loop.
+/// Drives asynchronous handling for the currently executing inbound message.
 ///
-/// Gear allows user and program interaction via
-/// messages. This function is the entry point to run the asynchronous message
-/// processing.
+/// - locates or creates the `Task` holding the user future for the current message id;
+/// - polls the future once and, if it completes, tears down the bookkeeping;
+/// - when the future stays pending, arms the shortest wait lock so the runtime suspends until a wake.
+///
+/// # Context
+/// Called from the contract's `handle` entry point while [message_loop] runs single-threaded inside the
+/// actor. It must be invoked exactly once per incoming message to advance the async state machine.
+///
+/// # Panics
+/// Panics propagated from the user future bubble up, and the function will panic if no wait lock is
+/// registered when a pending future requests suspension (see `Task::wait`), signalling a contract logic bug.
 #[inline]
 pub fn message_loop<F>(future: F)
 where
     F: Future<Output = ()> + 'static,
 {
-    let msg_id = ::gcore::msg::id();
+    let msg_id = Syscall::message_id();
     let tasks_map = tasks();
     let task = tasks_map.entry(msg_id).or_insert_with(|| {
         #[cfg(not(feature = "ethexe"))]
@@ -146,13 +154,26 @@ impl WakeSignals {
         }
     }
 
+    /// Registers a pending reply for `waiting_reply_to` while the current message is being processed.
+    ///
+    /// - stores pending state (and an optional reply hook) so `poll`/`record_reply` can resolve it later;
+    /// - attaches the provided `lock` to the owning `Task` so wait/timeout bookkeeping stays consistent.
+    ///
+    /// # Context
+    /// Called from helpers such as `send_bytes_for_reply` / `create_program_for_reply` while the message
+    /// handler executes inside [message_loop] in `handle()` entry point, see [Gear Protocol](https://wiki.vara.network/docs/build/introduction).
+    /// The current `message_id` is read from the runtime and used to fetch the associated `Task` entry.
+    ///
+    /// # Panics
+    /// Panics if the `Task` for the current `message_id` cannot be found, which indicates the function
+    /// was invoked outside the [message_loop] context (programmer error).
     pub fn register_signal(
         &mut self,
         waiting_reply_to: MessageId,
         lock: locks::Lock,
         reply_hook: Option<Box<dyn FnOnce()>>,
     ) {
-        let message_id = ::gcore::msg::id();
+        let message_id = Syscall::message_id();
 
         self.signals.insert(
             waiting_reply_to,
@@ -171,6 +192,19 @@ impl WakeSignals {
             .insert_lock(waiting_reply_to, lock);
     }
 
+    /// Processes an incoming reply for `reply_to` and transitions the stored wake state.
+    ///
+    /// - upgrades the pending entry to `Ready`, capturing payload and reply code;
+    /// - detaches the wait lock from the owning `Task`, then wakes the suspended message loop;
+    /// - executes the optional reply hook once the reply becomes available.
+    ///
+    /// # Context
+    /// Invoked by `handle_reply_with_hook` when a reply arrives during `handle_reply()` execution. The
+    /// runtime supplies `reply_to`, and this method synchronises bookkeeping before waking the task.
+    ///
+    /// # Panics
+    /// Panics if it encounters an already finalised entry (`WakeSignal::Ready`) or the associated task is
+    /// missing. Both scenarios indicate logic bugs or duplicate delivery.
     pub fn record_reply(&mut self, reply_to: &MessageId) {
         if let hashbrown::hash_map::EntryRef::Occupied(mut entry) = self.signals.entry_ref(reply_to)
         {
@@ -184,7 +218,7 @@ impl WakeSignals {
                     // replase entry with `WakeSignal::Ready`
                     _ = entry.insert(WakeSignal::Ready {
                         payload: ::gstd::msg::load_bytes().expect("Failed to load bytes"),
-                        reply_code: ::gcore::msg::reply_code()
+                        reply_code: Syscall::reply_code()
                             .expect("Shouldn't be called with incorrect context"),
                     });
                     ::gstd::debug!(
@@ -218,6 +252,16 @@ impl WakeSignals {
         }
     }
 
+    /// Marks a pending reply as timed out and preserves context for later handling.
+    ///
+    /// - upgrades a `WakeSignal::Pending` entry to `WakeSignal::Timeout`, capturing when the reply was expected
+    ///   and when the timeout was detected;
+    /// - retains the optional reply hook so it can still be executed if a late reply arrives and reuses the
+    ///   stored state when `record_reply` is called afterwards.
+    ///
+    /// # Context
+    /// Triggered from `Task::signal_reply_timeout` whenever the runtime observes that a waiting reply exceeded
+    /// its deadline while executing inside [message_loop].
     pub fn record_timeout(&mut self, reply_to: MessageId, expected: BlockNumber, now: BlockNumber) {
         if let hashbrown::hash_map::Entry::Occupied(mut entry) = self.signals.entry(reply_to)
             && let WakeSignal::Pending { reply_hook, .. } = entry.get_mut()
@@ -238,6 +282,19 @@ impl WakeSignals {
         self.signals.contains_key(reply_to)
     }
 
+    /// Polls the stored wake signal for `reply_to`, returning the appropriate future state.
+    ///
+    /// # What it does
+    /// - inspects the current `WakeSignal` variant and returns `Pending`, a `Ready` payload, or propagates
+    ///   a timeout error; when `Ready`, the entry is removed so subsequent polls observe completion.
+    ///
+    /// # Context
+    /// Called by [MessageFuture::poll] (and any wrappers) while a consumer awaits a reply produced by
+    /// [message_loop]. It runs on the same execution thread and must be non-blocking.
+    ///
+    /// # Panics
+    /// Panics if the signal was never registered for `reply_to`, which indicates misuse of the async API
+    /// (polling without having called one of the [send_bytes_for_reply]/[create_program_for_reply] methods first).
     pub fn poll(
         &mut self,
         reply_to: &MessageId,
@@ -280,7 +337,7 @@ pub struct MessageFuture {
     /// A message identifier for an expected reply.
     ///
     /// This identifier is generated by the corresponding send function (e.g.
-    /// [`send_bytes`](super::send_bytes)).
+    /// [`gcore::msg::send`](::gcore::msg::send)).
     pub waiting_reply_to: MessageId,
 }
 
@@ -370,7 +427,7 @@ pub fn create_program_for_reply(
 /// Default reply handler.
 #[inline]
 pub fn handle_reply_with_hook() {
-    let reply_to = ::gcore::msg::reply_to().expect("Shouldn't be called with incorrect context");
+    let reply_to = Syscall::reply_to().expect("Shouldn't be called with incorrect context");
 
     signals().record_reply(&reply_to);
 }
@@ -379,10 +436,13 @@ pub fn handle_reply_with_hook() {
 #[cfg(not(feature = "ethexe"))]
 #[inline]
 pub fn handle_signal() {
-    let msg_id = ::gcore::msg::signal_from().expect(
+    let msg_id = Syscall::signal_from().expect(
         "`gstd::async_runtime::handle_signal()` must be called only in `handle_signal` entrypoint",
     );
     // TODO: find out what `msg_id` here - from `message_loop` or `waiting_reply_to`
+    // [Docs](https://wiki.vara.network/docs/build/gstd/system-signals) refers to `msg::id()` in `handle()`
+    // but it is probably `waiting_reply_to`
+
     // critical::take_and_execute();
 
     // tasks().remove(&msg_id);
