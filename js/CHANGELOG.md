@@ -2,7 +2,7 @@
 
 ## draft
 
-- Fixed: generation correct TransactionBuilder constructor calls ().
+- Fixed: generation correct TransactionBuilder constructor calls (https://github.com/gear-tech/sails/pull/1070).
 
 ## 0.5.0
 
