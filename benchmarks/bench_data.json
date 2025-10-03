@@ -1,6 +1,6 @@
 {
   "compute": {
-    "median": 450514040279
+    "median": 450514036959
   },
   "alloc": {
     "0": 564376739,
@@ -13,8 +13,8 @@
     "317810": 43147409792
   },
   "counter": {
-    "async_call": 851480134,
-    "sync_call": 678859589
+    "async_call": 851480964,
+    "sync_call": 678860419
   },
   "cross_program": {
     "median": 2436719419
