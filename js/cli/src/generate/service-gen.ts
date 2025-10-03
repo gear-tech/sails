@@ -38,7 +38,7 @@ export class ServiceGenerator extends BaseGenerator {
             }`,
           );
         }
-        $.line(`private _program: BaseGearProgram`);
+        $.line(`private _program?: BaseGearProgram`);
 
         $.line()
           .block(`constructor(public api: GearApi, programId?: ${HEX_STRING_TYPE})`, () => {
