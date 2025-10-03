@@ -100,7 +100,7 @@ dependencies = [
 
 [[package]]
 name = "alloc-stress"
-version = "0.9.1"
+version = "0.9.2"
 dependencies = [
  "sails-rs",
 ]
@@ -826,7 +826,7 @@ dependencies = [
 
 [[package]]
 name = "benchmarks"
-version = "0.9.1"
+version = "0.9.2"
 dependencies = [
  "alloc-stress",
  "anyhow",
@@ -1394,7 +1394,7 @@ checksum = "2382f75942f4b3be3690fe4f86365e9c853c1587d6ee58212cebf6e2a9ccd101"
 
 [[package]]
 name = "compute-stress"
-version = "0.9.1"
+version = "0.9.2"
 dependencies = [
  "sails-rs",
 ]
@@ -1562,7 +1562,7 @@ dependencies = [
 
 [[package]]
 name = "counter-bench"
-version = "0.9.1"
+version = "0.9.2"
 dependencies = [
  "sails-rs",
 ]
@@ -6170,14 +6170,14 @@ checksum = "8b870d8c151b6f2fb93e84a13146138f05d02ed11c7e7c54f8826aaaf7c9f184"
 
 [[package]]
 name = "ping-pong-bench-app"
-version = "0.9.1"
+version = "0.9.2"
 dependencies = [
  "sails-rs",
 ]
 
 [[package]]
 name = "ping-pong-bench-client"
-version = "0.9.1"
+version = "0.9.2"
 dependencies = [
  "ping-pong-bench-app",
  "sails-client-gen",
@@ -7191,7 +7191,7 @@ dependencies = [
 
 [[package]]
 name = "sails-cli"
-version = "0.9.1"
+version = "0.9.2"
 dependencies = [
  "anyhow",
  "askama",
@@ -7208,7 +7208,7 @@ dependencies = [
 
 [[package]]
 name = "sails-client-gen"
-version = "0.9.1"
+version = "0.9.2"
 dependencies = [
  "anyhow",
  "convert_case 0.7.1",
@@ -7220,7 +7220,7 @@ dependencies = [
 
 [[package]]
 name = "sails-idl-gen"
-version = "0.9.1"
+version = "0.9.2"
 dependencies = [
  "convert_case 0.7.1",
  "gprimitives",
@@ -7236,14 +7236,14 @@ dependencies = [
 
 [[package]]
 name = "sails-idl-meta"
-version = "0.9.1"
+version = "0.9.2"
 dependencies = [
  "scale-info",
 ]
 
 [[package]]
 name = "sails-idl-parser"
-version = "0.9.1"
+version = "0.9.2"
 dependencies = [
  "itertools 0.14.0",
  "lalrpop",
@@ -7254,7 +7254,7 @@ dependencies = [
 
 [[package]]
 name = "sails-macros"
-version = "0.9.1"
+version = "0.9.2"
 dependencies = [
  "parity-scale-codec",
  "proc-macro-error",
@@ -7267,7 +7267,7 @@ dependencies = [
 
 [[package]]
 name = "sails-macros-core"
-version = "0.9.1"
+version = "0.9.2"
 dependencies = [
  "convert_case 0.7.1",
  "insta",
@@ -7281,7 +7281,7 @@ dependencies = [
 
 [[package]]
 name = "sails-rs"
-version = "0.9.1"
+version = "0.9.2"
 dependencies = [
  "alloy-primitives 0.8.20",
  "alloy-sol-types 0.8.20",
@@ -7314,7 +7314,7 @@ dependencies = [
 
 [[package]]
 name = "sails-sol-gen"
-version = "0.9.1"
+version = "0.9.2"
 dependencies = [
  "anyhow",
  "convert_case 0.7.1",
