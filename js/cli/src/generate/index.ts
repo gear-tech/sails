@@ -11,6 +11,7 @@ export class ProjectBuilder {
   private projectPath = ['.', 'src'];
   private isProject: boolean = true;
   private isAutomaricOverride: boolean = false;
+  private isEmbeddedTypes: boolean = false;
 
   constructor(
     private sails: Sails,
@@ -33,6 +34,11 @@ export class ProjectBuilder {
   public generateLib(): string {
     const out = new Output();
 
+    if (this.isEmbeddedTypes) {
+      const typesGen = new TypesGenerator(out, this.sails.program, false);
+      typesGen.generate();
+    }
+
     const serviceGen = new ServiceGenerator(out, this.sails.program, this.sails.scaleCodecTypes);
     serviceGen.generate(this.name);
 
@@ -40,9 +46,11 @@ export class ProjectBuilder {
   }
 
   public generateTypes(): string | null {
+    if (this.isEmbeddedTypes) return null;
+
     const out = new Output();
 
-    const typesGen = new TypesGenerator(out, this.sails.program);
+    const typesGen = new TypesGenerator(out, this.sails.program, true);
     typesGen.generate();
 
     return out.finalize();
@@ -69,6 +77,12 @@ export class ProjectBuilder {
 
   setAutomaticOverride(isAutomaricOverride: boolean) {
     this.isAutomaricOverride = isAutomaricOverride;
+
+    return this;
+  }
+
+  setIsEmbeddedTypes(isEmbeddedTypes: boolean) {
+    this.isEmbeddedTypes = isEmbeddedTypes;
 
     return this;
   }

@@ -8,6 +8,7 @@ export class TypesGenerator extends BaseGenerator {
   constructor(
     out: Output,
     private _program: ISailsProgram,
+    private _isStandaloneFile: boolean,
   ) {
     super(out);
   }
@@ -16,7 +17,9 @@ export class TypesGenerator extends BaseGenerator {
     if (this._program.types.length === 0) {
       return;
     }
-    this._out.line('declare global {', false).increaseIndent();
+
+    if (this._isStandaloneFile) this._out.line('declare global {', false).increaseIndent();
+
     for (let i = 0; i < this._program.types.length; i++) {
       const { name, def, docs } = this._program.types[i];
       this._out.lines(formatDocs(docs), false);
@@ -34,7 +37,14 @@ export class TypesGenerator extends BaseGenerator {
         this._out.line();
       }
     }
-    this._out.reduceIndent().line('}');
+
+    if (this._isStandaloneFile) {
+      this._out.reduceIndent().line('}');
+    } else {
+      this._out.line();
+    }
+
+    return this._out;
   }
 
   private generateStruct(name: string, def: ISailsTypeDef) {
