@@ -265,7 +265,27 @@ const fee = await transaction.transactionFee();
 console.log(fee);
 ```
 
+- `decodePayload` - decode raw bytes from a reply message into the expected response type
+
+<i>It's automatically called under the hood by the `response()` promise when `rawResult` is false (default).</i>
+
+```javascript
+const decodedPayload = transaction.decodePayload(rawPayloadBytes);
+console.log(decodedPayload);
+```
+
+- `throwOnErrorReply` - validates a `UserMessageSent` message and throws an error if the reply indicates a failure.
+
+<i>It's automatically called under the hood by the `response()` promise.</i>
+
+```javascript
+const { data } = await this._api.message.getReplyEvent(programId, msgId, blockHash);
+
+transaction.throwOnErrorReply(data.message);
+```
+
 - `signAndSend` - sends the transaction to the chain
+
 <i>Returns the id of the sent message, transaction hash, the block hash in which the message is included, `isFinalized` to check if the transaction is finalized and `response` function that can be used to get the response from the program.
 The `response` function returns a promise with the response from the program. If an error occurs during message execution the promise will be rejected with the error message.
 </i>

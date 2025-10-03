@@ -1,6 +1,7 @@
 import {
   GasInfo,
   GearApi,
+  GearCoreMessageUserUserMessage,
   HexString,
   ICallOptions,
   MessageQueuedData,
@@ -14,7 +15,7 @@ import { getPayloadMethod } from 'sails-js-util';
 import { u8aConcat } from '@polkadot/util';
 
 import { ZERO_ADDRESS } from './consts.js';
-import { throwOnErrorReply } from './utils.js';
+import { throwOnErrorReply as commonThrowOnErrorReply } from './utils.js';
 
 export interface IMethodReturnType<T> {
   /**
@@ -333,6 +334,27 @@ export class TransactionBuilder<ResponseType> {
   }
 
   /**
+   * ## Decode response payload from sign and send transaction
+   * @param payload - Raw bytes from the reply message
+   * @returns Decoded payload
+   */
+  public decodePayload(payload: Uint8Array | HexString): ResponseType {
+    const method = getPayloadMethod(this._responseType);
+    const noPrefixPayload = payload.slice(this._prefixByteLength);
+    const type = this._registry.createType<any>(this._responseType, noPrefixPayload);
+
+    return type[method]();
+  }
+
+  /**
+   * ## Check if the reply is an error and throw if it is
+   * @param message - UserMessageSent message
+   */
+  public throwOnErrorReply({ payload, details }: GearCoreMessageUserUserMessage) {
+    commonThrowOnErrorReply(details.unwrap().code, payload, this._api.specVersion, this._registry);
+  }
+
+  /**
    * ## Sign and send transaction
    */
   public async signAndSend(): Promise<IMethodReturnType<ResponseType>> {
@@ -399,23 +421,12 @@ export class TransactionBuilder<ResponseType> {
       txHash: this._tx.hash.toHex(),
       isFinalized,
       response: async (rawResult = false) => {
-        const {
-          data: {
-            message: { payload, details },
-          },
-        } = await this._api.message.getReplyEvent(this.programId, msgId, blockHash);
+        const { data } = await this._api.message.getReplyEvent(this.programId, msgId, blockHash);
+        const { payload } = data.message;
 
-        throwOnErrorReply(details.unwrap().code, payload, this._api.specVersion, this._registry);
+        this.throwOnErrorReply(data.message);
 
-        if (rawResult) {
-          return payload.toHex();
-        }
-
-        // prettier-ignore
-        return this._registry.createType<any>(
-          this._responseType,
-          payload.slice(this._prefixByteLength)
-        )[getPayloadMethod(this._responseType)]();
+        return rawResult ? payload.toHex() : (this.decodePayload(payload) as any);
       },
     };
   }
