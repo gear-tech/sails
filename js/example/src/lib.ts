@@ -1,8 +1,16 @@
-/* eslint-disable */
-
 import { GearApi, BaseGearProgram, HexString } from '@gear-js/api';
 import { TypeRegistry } from '@polkadot/types';
-import { TransactionBuilder, QueryBuilder, getServiceNamePrefix, getFnNamePrefix, ZERO_ADDRESS, ActorId, NonZeroU32, H160, NonZeroU8 } from 'sails-js';
+import {
+  TransactionBuilder,
+  QueryBuilder,
+  getServiceNamePrefix,
+  getFnNamePrefix,
+  ZERO_ADDRESS,
+  ActorId,
+  NonZeroU32,
+  H160,
+  NonZeroU8,
+} from 'sails-js';
 
 export class SailsProgram {
   public readonly registry: TypeRegistry;
@@ -14,14 +22,26 @@ export class SailsProgram {
   public readonly valueFee: ValueFee;
   private _program?: BaseGearProgram;
 
-  constructor(public api: GearApi, programId?: `0x${string}`) {
+  constructor(
+    public api: GearApi,
+    programId?: `0x${string}`,
+  ) {
     const types: Record<string, any> = {
-      ReferenceCount: "(u32)",
-      DoThatParam: {"p1":"u32","p2":"[u8;32]","p3":"ManyVariants"},
-      ManyVariants: {"_enum":{"One":"Null","Two":"u32","Three":"Option<U256>","Four":{"a":"u32","b":"Option<u16>"},"Five":"(String, H256)","Six":"(u32)"}},
-      ManyVariantsReply: {"_enum":["One","Two","Three","Four","Five","Six"]},
-      TupleStruct: "(bool)",
-    }
+      ReferenceCount: '(u32)',
+      DoThatParam: { p1: 'u32', p2: '[u8;32]', p3: 'ManyVariants' },
+      ManyVariants: {
+        _enum: {
+          One: 'Null',
+          Two: 'u32',
+          Three: 'Option<U256>',
+          Four: { a: 'u32', b: 'Option<u16>' },
+          Five: '(String, H256)',
+          Six: '(u32)',
+        },
+      },
+      ManyVariantsReply: { _enum: ['One', 'Two', 'Three', 'Four', 'Five', 'Six'] },
+      TupleStruct: '(bool)',
+    };
 
     this.registry = new TypeRegistry();
     this.registry.setKnownTypes({ types });
@@ -45,7 +65,7 @@ export class SailsProgram {
 
   /**
    * Program constructor (called once at the very beginning of the program lifetime)
-  */
+   */
   defaultCtorFromCode(code: Uint8Array | Buffer | HexString): TransactionBuilder<null> {
     const builder = new TransactionBuilder<null>(
       this.api,
@@ -57,16 +77,16 @@ export class SailsProgram {
       null,
       'String',
       code,
-      async (programId) =>  {
+      async (programId) => {
         this._program = await BaseGearProgram.new(programId, this.api);
-      }
+      },
     );
     return builder;
   }
 
   /**
    * Program constructor (called once at the very beginning of the program lifetime)
-  */
+   */
   defaultCtorFromCodeId(codeId: `0x${string}`) {
     const builder = new TransactionBuilder<null>(
       this.api,
@@ -78,16 +98,20 @@ export class SailsProgram {
       null,
       'String',
       codeId,
-      async (programId) =>  {
+      async (programId) => {
         this._program = await BaseGearProgram.new(programId, this.api);
-      }
+      },
     );
     return builder;
   }
   /**
    * Another program constructor (called once at the very beginning of the program lifetime)
-  */
-  newCtorFromCode(code: Uint8Array | Buffer | HexString, counter: number | null, dog_position: [number, number] | null): TransactionBuilder<null> {
+   */
+  newCtorFromCode(
+    code: Uint8Array | Buffer | HexString,
+    counter: number | null,
+    dog_position: [number, number] | null,
+  ): TransactionBuilder<null> {
     const builder = new TransactionBuilder<null>(
       this.api,
       this.registry,
@@ -98,16 +122,16 @@ export class SailsProgram {
       '(Option<u32>, Option<(i32, i32)>)',
       'String',
       code,
-      async (programId) =>  {
+      async (programId) => {
         this._program = await BaseGearProgram.new(programId, this.api);
-      }
+      },
     );
     return builder;
   }
 
   /**
    * Another program constructor (called once at the very beginning of the program lifetime)
-  */
+   */
   newCtorFromCodeId(codeId: `0x${string}`, counter: number | null, dog_position: [number, number] | null) {
     const builder = new TransactionBuilder<null>(
       this.api,
@@ -119,9 +143,9 @@ export class SailsProgram {
       '(Option<u32>, Option<(i32, i32)>)',
       'String',
       codeId,
-      async (programId) =>  {
+      async (programId) => {
         this._program = await BaseGearProgram.new(programId, this.api);
-      }
+      },
     );
     return builder;
   }
@@ -151,7 +175,7 @@ export class Counter {
 
   /**
    * Add a value to the counter
-  */
+   */
   public add(value: number): TransactionBuilder<number> {
     if (!this._program.programId) throw new Error('Program ID is not set');
     return new TransactionBuilder<number>(
@@ -169,7 +193,7 @@ export class Counter {
 
   /**
    * Substract a value from the counter
-  */
+   */
   public sub(value: number): TransactionBuilder<number> {
     if (!this._program.programId) throw new Error('Program ID is not set');
     return new TransactionBuilder<number>(
@@ -187,7 +211,7 @@ export class Counter {
 
   /**
    * Get the current value
-  */
+   */
   public value(): QueryBuilder<number> {
     return new QueryBuilder<number>(
       this._program.api,
@@ -203,32 +227,40 @@ export class Counter {
 
   /**
    * Emitted when a new value is added to the counter
-  */
+   */
   public subscribeToAddedEvent(callback: (data: number) => void | Promise<void>): Promise<() => void> {
-    return this._program.api.gearEvents.subscribeToGearEvent('UserMessageSent', ({ data: { message } }) => {;
+    return this._program.api.gearEvents.subscribeToGearEvent('UserMessageSent', ({ data: { message } }) => {
       if (!message.source.eq(this._program.programId) || !message.destination.eq(ZERO_ADDRESS)) {
         return;
       }
 
       const payload = message.payload.toHex();
       if (getServiceNamePrefix(payload) === 'Counter' && getFnNamePrefix(payload) === 'Added') {
-        callback(this._program.registry.createType('(String, String, u32)', message.payload)[2].toNumber() as unknown as number);
+        callback(
+          this._program.registry
+            .createType('(String, String, u32)', message.payload)[2]
+            .toNumber() as unknown as number,
+        );
       }
     });
   }
 
   /**
    * Emitted when a value is subtracted from the counter
-  */
+   */
   public subscribeToSubtractedEvent(callback: (data: number) => void | Promise<void>): Promise<() => void> {
-    return this._program.api.gearEvents.subscribeToGearEvent('UserMessageSent', ({ data: { message } }) => {;
+    return this._program.api.gearEvents.subscribeToGearEvent('UserMessageSent', ({ data: { message } }) => {
       if (!message.source.eq(this._program.programId) || !message.destination.eq(ZERO_ADDRESS)) {
         return;
       }
 
       const payload = message.payload.toHex();
       if (getServiceNamePrefix(payload) === 'Counter' && getFnNamePrefix(payload) === 'Subtracted') {
-        callback(this._program.registry.createType('(String, String, u32)', message.payload)[2].toNumber() as unknown as number);
+        callback(
+          this._program.registry
+            .createType('(String, String, u32)', message.payload)[2]
+            .toNumber() as unknown as number,
+        );
       }
     });
   }
@@ -294,7 +326,7 @@ export class Dog {
   }
 
   public subscribeToBarkedEvent(callback: (data: null) => void | Promise<void>): Promise<() => void> {
-    return this._program.api.gearEvents.subscribeToGearEvent('UserMessageSent', ({ data: { message } }) => {;
+    return this._program.api.gearEvents.subscribeToGearEvent('UserMessageSent', ({ data: { message } }) => {
       if (!message.source.eq(this._program.programId) || !message.destination.eq(ZERO_ADDRESS)) {
         return;
       }
@@ -306,15 +338,21 @@ export class Dog {
     });
   }
 
-  public subscribeToWalkedEvent(callback: (data: { from: [number, number]; to: [number, number] }) => void | Promise<void>): Promise<() => void> {
-    return this._program.api.gearEvents.subscribeToGearEvent('UserMessageSent', ({ data: { message } }) => {;
+  public subscribeToWalkedEvent(
+    callback: (data: { from: [number, number]; to: [number, number] }) => void | Promise<void>,
+  ): Promise<() => void> {
+    return this._program.api.gearEvents.subscribeToGearEvent('UserMessageSent', ({ data: { message } }) => {
       if (!message.source.eq(this._program.programId) || !message.destination.eq(ZERO_ADDRESS)) {
         return;
       }
 
       const payload = message.payload.toHex();
       if (getServiceNamePrefix(payload) === 'Dog' && getFnNamePrefix(payload) === 'Walked') {
-        callback(this._program.registry.createType('(String, String, {"from":"(i32, i32)","to":"(i32, i32)"})', message.payload)[2].toJSON() as unknown as { from: [number, number]; to: [number, number] });
+        callback(
+          this._program.registry
+            .createType('(String, String, {"from":"(i32, i32)","to":"(i32, i32)"})', message.payload)[2]
+            .toJSON() as unknown as { from: [number, number]; to: [number, number] },
+        );
       }
     });
   }
@@ -441,7 +479,9 @@ export class References {
 export class ThisThat {
   constructor(private _program: SailsProgram) {}
 
-  public doThat(param: DoThatParam): TransactionBuilder<{ ok: [ActorId, NonZeroU32, ManyVariantsReply] } | { err: [string] }> {
+  public doThat(
+    param: DoThatParam,
+  ): TransactionBuilder<{ ok: [ActorId, NonZeroU32, ManyVariantsReply] } | { err: [string] }> {
     if (!this._program.programId) throw new Error('Program ID is not set');
     return new TransactionBuilder<{ ok: [ActorId, NonZeroU32, ManyVariantsReply] } | { err: [string] }>(
       this._program.api,
@@ -456,7 +496,12 @@ export class ThisThat {
     );
   }
 
-  public doThis(p1: number, p2: string, p3: [H160 | null, NonZeroU8], p4: TupleStruct): TransactionBuilder<[string, number]> {
+  public doThis(
+    p1: number,
+    p2: string,
+    p3: [H160 | null, NonZeroU8],
+    p4: TupleStruct,
+  ): TransactionBuilder<[string, number]> {
     if (!this._program.programId) throw new Error('Program ID is not set');
     return new TransactionBuilder<[string, number]>(
       this._program.api,
@@ -519,7 +564,7 @@ export class ValueFee {
   /**
    * Return flag if fee taken and remain value,
    * using special type `CommandReply<T>`
-  */
+   */
   public doSomethingAndTakeFee(): TransactionBuilder<boolean> {
     if (!this._program.programId) throw new Error('Program ID is not set');
     return new TransactionBuilder<boolean>(
@@ -536,14 +581,18 @@ export class ValueFee {
   }
 
   public subscribeToWithheldEvent(callback: (data: bigint) => void | Promise<void>): Promise<() => void> {
-    return this._program.api.gearEvents.subscribeToGearEvent('UserMessageSent', ({ data: { message } }) => {;
+    return this._program.api.gearEvents.subscribeToGearEvent('UserMessageSent', ({ data: { message } }) => {
       if (!message.source.eq(this._program.programId) || !message.destination.eq(ZERO_ADDRESS)) {
         return;
       }
 
       const payload = message.payload.toHex();
       if (getServiceNamePrefix(payload) === 'ValueFee' && getFnNamePrefix(payload) === 'Withheld') {
-        callback(this._program.registry.createType('(String, String, u128)', message.payload)[2].toBigInt() as unknown as bigint);
+        callback(
+          this._program.registry
+            .createType('(String, String, u128)', message.payload)[2]
+            .toBigInt() as unknown as bigint,
+        );
       }
     });
   }
