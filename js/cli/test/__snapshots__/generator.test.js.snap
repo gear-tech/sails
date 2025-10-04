@@ -580,7 +580,9 @@ declare global {
 `;
 
 exports[`generator demo lib with embedded types 1`] = `
-"import { NonZeroU32, ActorId, H256, TransactionBuilder, QueryBuilder, getServiceNamePrefix, getFnNamePrefix, ZERO_ADDRESS, H160, NonZeroU8 } from 'sails-js';
+"/* eslint-disable */
+
+import { NonZeroU32, ActorId, H256, TransactionBuilder, QueryBuilder, getServiceNamePrefix, getFnNamePrefix, ZERO_ADDRESS, H160, NonZeroU8 } from 'sails-js';
 import { GearApi, BaseGearProgram, HexString } from '@gear-js/api';
 import { TypeRegistry } from '@polkadot/types';
 
@@ -612,7 +614,7 @@ export class Program {
   public readonly references: References;
   public readonly thisThat: ThisThat;
   public readonly valueFee: ValueFee;
-  private _program: BaseGearProgram;
+  private _program?: BaseGearProgram;
 
   constructor(public api: GearApi, programId?: \`0x\${string}\`) {
     const types: Record<string, any> = {
@@ -651,7 +653,7 @@ export class Program {
       this.api,
       this.registry,
       'upload_program',
-      undefined,
+      null,
       'Default',
       null,
       null,
@@ -672,7 +674,7 @@ export class Program {
       this.api,
       this.registry,
       'create_program',
-      undefined,
+      null,
       'Default',
       null,
       null,
@@ -692,7 +694,7 @@ export class Program {
       this.api,
       this.registry,
       'upload_program',
-      undefined,
+      null,
       'New',
       [counter, dog_position],
       '(Option<u32>, Option<(i32, i32)>)',
@@ -713,7 +715,7 @@ export class Program {
       this.api,
       this.registry,
       'create_program',
-      undefined,
+      null,
       'New',
       [counter, dog_position],
       '(Option<u32>, Option<(i32, i32)>)',
