@@ -55,6 +55,7 @@
     "bump:version": "bash ./js/scripts/bump-versions.sh",
     "test": "pnpm --filter sails-js --filter sails-js-cli test",
     "test:js": "pnpm --filter sails-js test",
+    "test:cli": "pnpm --filter sails-js-cli test",
     "publish": "pnpm -r publish --access public",
     "lint": "npx eslint -c eslint.config.mjs",
     "lint:fix": "npx eslint --fix",
