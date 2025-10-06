@@ -36,7 +36,6 @@ impl sails_rs::solidity::ProgramSignature for MyProgram {
             &[24u8, 67u8, 114u8, 101u8, 97u8, 116u8, 101u8] as &[u8],
             "create",
             <<(
-                u128,
                 bool,
             ) as sails_rs::alloy_sol_types::SolValue>::SolType as sails_rs::alloy_sol_types::SolType>::SOL_NAME,
             <<(
@@ -103,14 +102,14 @@ pub mod wasm {
     }
     fn match_ctor_solidity(ctor: &[u8], input: &[u8]) -> Option<bool> {
         if ctor == &[24u8, 67u8, 114u8, 101u8, 97u8, 116u8, 101u8] {
-            let (_, _encode_reply): (u128, bool) = sails_rs::alloy_sol_types::SolValue::abi_decode_params(
+            let (__encode_reply,): (bool,) = sails_rs::alloy_sol_types::SolValue::abi_decode_params(
                     input,
                     false,
                 )
                 .expect("Failed to decode request");
             let program = MyProgram::create();
             unsafe { PROGRAM = Some(program) };
-            return Some(_encode_reply);
+            return Some(__encode_reply);
         }
         None
     }
