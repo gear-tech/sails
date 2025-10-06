@@ -43,13 +43,10 @@ impl Task {
 
     #[inline]
     fn remove_lock(&mut self, reply_to: &MessageId) {
-        if let Some(index) = self
-            .reply_to_locks
+        self.reply_to_locks
             .iter()
             .position(|(mid, _)| mid == reply_to)
-        {
-            self.reply_to_locks.swap_remove(index);
-        }
+            .map(|index| self.reply_to_locks.swap_remove(index));
     }
 
     #[inline]
@@ -74,6 +71,14 @@ impl Task {
             .min_by(|lock1, lock2| lock1.cmp(lock2))
             .expect("Cannot find lock to be waited")
             .wait(now);
+    }
+
+    #[inline]
+    fn clear(&self) {
+        let signals_map = signals();
+        self.reply_to_locks.iter().for_each(|(reply_to, _)| {
+            signals_map.remove(reply_to);
+        });
     }
 }
 
@@ -232,15 +237,11 @@ impl WakeSignals {
                     ::gcore::exec::wake(message_id).expect("Failed to wake the message");
 
                     // execute reply hook
-                    if let Some(f) = reply_hook {
-                        f();
-                    }
+                    if let Some(f) = reply_hook { f() }
                 }
                 WakeSignal::Timeout { reply_hook, .. } => {
                     // execute reply hook and remove entry
-                    if let Some(f) = reply_hook.take() {
-                        f();
-                    }
+                    if let Some(f) = reply_hook.take() { f() }
                     _ = entry.remove();
                 }
                 WakeSignal::Ready { .. } => panic!("A reply has already received"),
@@ -330,6 +331,10 @@ impl WakeSignals {
                 }
             }
         }
+    }
+
+    fn remove(&mut self, reply_to: &MessageId) -> Option<WakeSignal> {
+        self.signals.remove(reply_to)
     }
 }
 
@@ -439,14 +444,10 @@ pub fn handle_signal() {
     let msg_id = Syscall::signal_from().expect(
         "`gstd::async_runtime::handle_signal()` must be called only in `handle_signal` entrypoint",
     );
-    // TODO: find out what `msg_id` here - from `message_loop` or `waiting_reply_to`
-    // [Docs](https://wiki.vara.network/docs/build/gstd/system-signals) refers to `msg::id()` in `handle()`
-    // but it is probably `waiting_reply_to`
-
     // critical::take_and_execute();
 
-    // tasks().remove(&msg_id);
-    // reply_hooks().remove(&msg_id)
+    // Remove Task and all associated signals
+    if let Some(task) = tasks().remove(&msg_id) { task.clear() }
 }
 
 pub fn poll(message_id: &MessageId, cx: &mut Context<'_>) -> Poll<Result<Vec<u8>, Error>> {
