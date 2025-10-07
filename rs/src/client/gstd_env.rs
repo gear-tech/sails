@@ -4,15 +4,15 @@ use ::gstd::errors::Error;
 
 #[derive(Default)]
 pub struct GstdParams {
-    #[cfg(not(feature = "ethexe"))]
-    pub gas_limit: Option<GasUnit>,
     pub value: Option<ValueUnit>,
     pub wait: Option<Lock>,
+    pub redirect_on_exit: bool,
+    #[cfg(not(feature = "ethexe"))]
+    pub gas_limit: Option<GasUnit>,
     #[cfg(not(feature = "ethexe"))]
     pub reply_deposit: Option<GasUnit>,
     #[cfg(not(feature = "ethexe"))]
     pub reply_hook: Option<Box<dyn FnOnce() + 'static>>,
-    pub redirect_on_exit: bool,
 }
 
 crate::params_for_pending_impl!(GstdEnv, GstdParams {
@@ -74,6 +74,7 @@ impl GearEnv for GstdEnv {
 }
 
 impl GstdEnv {
+    #[cfg_attr(feature = "ethexe", allow(unused_mut))]
     pub fn send_one_way(
         &self,
         destination: ActorId,
@@ -85,8 +86,11 @@ impl GstdEnv {
             payload.as_ref(),
             params.value.unwrap_or_default(),
             params.wait.unwrap_or_default(),
+            #[cfg(not(feature = "ethexe"))]
             params.gas_limit,
+            #[cfg(not(feature = "ethexe"))]
             params.reply_deposit,
+            #[cfg(not(feature = "ethexe"))]
             params.reply_hook.take(),
         ));
 
@@ -119,8 +123,11 @@ const _: () = {
             payload.as_ref(),
             params.value.unwrap_or_default(),
             params.wait.unwrap_or_default(),
+            #[cfg(not(feature = "ethexe"))]
             params.gas_limit,
+            #[cfg(not(feature = "ethexe"))]
             params.reply_deposit,
+            #[cfg(not(feature = "ethexe"))]
             params.reply_hook.take(),
         ));
         if params.redirect_on_exit {
@@ -146,8 +153,11 @@ const _: () = {
             payload.as_ref(),
             params.value.unwrap_or_default(),
             params.wait.unwrap_or_default(),
+            #[cfg(not(feature = "ethexe"))]
             params.gas_limit,
+            #[cfg(not(feature = "ethexe"))]
             params.reply_deposit,
+            #[cfg(not(feature = "ethexe"))]
             params.reply_hook.take(),
         ));
         Ok((GstdFuture::CreateProgram { future }, program_id))

@@ -1,0 +1,4 @@
+# The model decides when to escalate
+approval_policy = "on-request"
+model_reasoning_effort = "high"
+model_reasoning_summary = "detailed"

@@ -36,11 +36,25 @@ impl Task {
         }
     }
 
+    /// Registers the wait/timeout lock associated with an outgoing message reply.
+    ///
+    /// - stores the `(reply_to, lock)` pair so the task can later detect timeouts;
+    ///
+    /// # Context
+    /// Called exclusively from [`WakeSignals::register_signal`] while the outer `message_loop`
+    /// prepares to await a reply for the current inbound message.
     #[inline]
     fn insert_lock(&mut self, reply_to: MessageId, lock: locks::Lock) {
         self.reply_to_locks.push((reply_to, lock));
     }
 
+    /// Removes the stored lock for the given reply identifier, if present.
+    ///
+    /// - searches for the `(reply_to, lock)` pair and removes it.
+    ///
+    /// # Context
+    /// Called from [`WakeSignals::record_reply`] once a response is received, as well
+    /// as during cleanup when a task finishes.
     #[inline]
     fn remove_lock(&mut self, reply_to: &MessageId) {
         self.reply_to_locks
@@ -49,6 +63,15 @@ impl Task {
             .map(|index| self.reply_to_locks.swap_remove(index));
     }
 
+    /// Notifies the signal registry about replies that have exceeded their deadlines.
+    ///
+    /// - scans all tracked locks, extracting those whose deadlines are at or before `now`;
+    /// - informs [`WakeSignals`] about the timeout so it can update the wake state and
+    ///   potentially execute a deferred reply hook.
+    ///
+    /// # Context
+    /// Invoked from [`message_loop`] before polling the user future to ensure that timeouts
+    /// are processed promptly for the current message.
     #[inline]
     fn signal_reply_timeout(&mut self, now: BlockNumber) {
         let signals_map = signals();
@@ -57,12 +80,23 @@ impl Task {
             .extract_if(.., |(_, lock)| now >= lock.deadline())
             .for_each(|(reply_to, lock)| {
                 signals_map.record_timeout(reply_to, lock.deadline(), now);
-                ::gstd::debug!(
-                    "signal_reply_timeout: remove lock for reply_to {reply_to} in message due to timeout"
-                );
+                // ::gstd::debug!(
+                //     "signal_reply_timeout: remove lock for reply_to {reply_to} in message due to timeout"
+                // );
             });
     }
 
+    /// Arms the most urgent wait lock so the executor suspends until a wake signal.
+    ///
+    /// - finds the lock with the smallest deadline and delegates to `Lock::wait` to set
+    ///   the runtime suspension point.
+    ///
+    /// # Context
+    /// Called from [`message_loop`] whenever the user future remains pending after polling.
+    ///
+    /// # Panics
+    /// Panics if no locks are registered for the current task, which indicates a logic error
+    /// (e.g. awaiting a reply without having registered one).
     #[inline]
     fn wait(&self, now: BlockNumber) {
         self.reply_to_locks
@@ -73,6 +107,15 @@ impl Task {
             .wait(now);
     }
 
+    #[cfg(not(feature = "ethexe"))]
+    /// Removes all outstanding reply locks from the signal registry without waiting on them.
+    ///
+    /// # What it does
+    /// - iterates every stored `(reply_to, _)` pair and asks [`WakeSignals`] to drop the wake entry;
+    /// - used as part of task teardown to avoid keeping stale replies alive.
+    ///
+    /// # Context
+    /// Called from [`handle_signal`].
     #[inline]
     fn clear(&self) {
         let signals_map = signals();
@@ -188,9 +231,9 @@ impl WakeSignals {
             },
         );
 
-        ::gstd::debug!(
-            "register_signal: add lock for reply_to {waiting_reply_to} in message {message_id}"
-        );
+        // ::gstd::debug!(
+        //     "register_signal: add lock for reply_to {waiting_reply_to} in message {message_id}"
+        // );
         tasks()
             .get_mut(&message_id)
             .expect("A message task must exist")
@@ -237,11 +280,15 @@ impl WakeSignals {
                     ::gcore::exec::wake(message_id).expect("Failed to wake the message");
 
                     // execute reply hook
-                    if let Some(f) = reply_hook { f() }
+                    if let Some(f) = reply_hook {
+                        f()
+                    }
                 }
                 WakeSignal::Timeout { reply_hook, .. } => {
                     // execute reply hook and remove entry
-                    if let Some(f) = reply_hook.take() { f() }
+                    if let Some(f) = reply_hook.take() {
+                        f()
+                    }
                     _ = entry.remove();
                 }
                 WakeSignal::Ready { .. } => panic!("A reply has already received"),
@@ -333,6 +380,7 @@ impl WakeSignals {
         }
     }
 
+    #[cfg(not(feature = "ethexe"))]
     fn remove(&mut self, reply_to: &MessageId) -> Option<WakeSignal> {
         self.signals.remove(reply_to)
     }
@@ -363,6 +411,34 @@ impl FusedFuture for MessageFuture {
 }
 
 #[inline]
+pub fn send_for_reply<E: Encode>(
+    destination: ActorId,
+    payload: E,
+    value: ValueUnit,
+) -> Result<MessageFuture, ::gstd::errors::Error> {
+    let size = Encode::encoded_size(&payload);
+    stack_buffer::with_byte_buffer(size, |buffer: &mut [mem::MaybeUninit<u8>]| {
+        let mut buffer_writer = MaybeUninitBufferWriter::new(buffer);
+        Encode::encode_to(&payload, &mut buffer_writer);
+        buffer_writer.with_buffer(|buffer| {
+            send_bytes_for_reply(
+                destination,
+                buffer,
+                value,
+                Default::default(),
+                #[cfg(not(feature = "ethexe"))]
+                None,
+                #[cfg(not(feature = "ethexe"))]
+                None,
+                #[cfg(not(feature = "ethexe"))]
+                None,
+            )
+        })
+    })
+}
+
+#[cfg(not(feature = "ethexe"))]
+#[inline]
 pub fn send_bytes_for_reply(
     destination: ActorId,
     payload: &[u8],
@@ -372,7 +448,6 @@ pub fn send_bytes_for_reply(
     reply_deposit: Option<GasUnit>,
     reply_hook: Option<Box<dyn FnOnce()>>,
 ) -> Result<MessageFuture, ::gstd::errors::Error> {
-    #[cfg(not(feature = "ethexe"))]
     let waiting_reply_to = if let Some(gas_limit) = gas_limit {
         crate::ok!(::gcore::msg::send_with_gas(
             destination,
@@ -383,10 +458,7 @@ pub fn send_bytes_for_reply(
     } else {
         crate::ok!(::gcore::msg::send(destination, payload, value))
     };
-    #[cfg(feature = "ethexe")]
-    let waiting_reply_to = ::gcore::msg::send(destination, payload, value);
 
-    #[cfg(not(feature = "ethexe"))]
     if let Some(reply_deposit) = reply_deposit {
         _ = ::gcore::exec::reply_deposit(waiting_reply_to, reply_deposit);
     }
@@ -396,6 +468,23 @@ pub fn send_bytes_for_reply(
     Ok(MessageFuture { waiting_reply_to })
 }
 
+#[cfg(feature = "ethexe")]
+#[inline]
+pub fn send_bytes_for_reply(
+    destination: ActorId,
+    payload: &[u8],
+    value: ValueUnit,
+    wait: Lock,
+) -> Result<MessageFuture, ::gstd::errors::Error> {
+    let waiting_reply_to = crate::ok!(::gcore::msg::send(destination, payload, value));
+
+    signals().register_signal(waiting_reply_to, wait, None);
+
+    Ok(MessageFuture { waiting_reply_to })
+}
+
+#[cfg(not(feature = "ethexe"))]
+#[allow(clippy::too_many_arguments)]
 #[inline]
 pub fn create_program_for_reply(
     code_id: CodeId,
@@ -407,7 +496,6 @@ pub fn create_program_for_reply(
     reply_deposit: Option<GasUnit>,
     reply_hook: Option<Box<dyn FnOnce()>>,
 ) -> Result<(MessageFuture, ActorId), ::gstd::errors::Error> {
-    #[cfg(not(feature = "ethexe"))]
     let (waiting_reply_to, program_id) = if let Some(gas_limit) = gas_limit {
         crate::ok!(::gcore::prog::create_program_with_gas(
             code_id, salt, payload, gas_limit, value
@@ -415,16 +503,29 @@ pub fn create_program_for_reply(
     } else {
         crate::ok!(::gcore::prog::create_program(code_id, salt, payload, value))
     };
-    #[cfg(feature = "ethexe")]
-    let (waiting_reply_to, program_id) =
-        crate::ok!(::gcore::prog::create_program(code_id, salt, payload, value));
 
-    #[cfg(not(feature = "ethexe"))]
     if let Some(reply_deposit) = reply_deposit {
         _ = ::gcore::exec::reply_deposit(waiting_reply_to, reply_deposit);
     }
 
     signals().register_signal(waiting_reply_to, wait, reply_hook);
+
+    Ok((MessageFuture { waiting_reply_to }, program_id))
+}
+
+#[cfg(feature = "ethexe")]
+#[inline]
+pub fn create_program_for_reply(
+    code_id: CodeId,
+    salt: &[u8],
+    payload: &[u8],
+    value: ValueUnit,
+    wait: Lock,
+) -> Result<(MessageFuture, ActorId), ::gstd::errors::Error> {
+    let (waiting_reply_to, program_id) =
+        crate::ok!(::gcore::prog::create_program(code_id, salt, payload, value));
+
+    signals().register_signal(waiting_reply_to, wait, None);
 
     Ok((MessageFuture { waiting_reply_to }, program_id))
 }
@@ -447,7 +548,9 @@ pub fn handle_signal() {
     // critical::take_and_execute();
 
     // Remove Task and all associated signals
-    if let Some(task) = tasks().remove(&msg_id) { task.clear() }
+    if let Some(task) = tasks().remove(&msg_id) {
+        task.clear()
+    }
 }
 
 pub fn poll(message_id: &MessageId, cx: &mut Context<'_>) -> Poll<Result<Vec<u8>, Error>> {
@@ -456,4 +559,81 @@ pub fn poll(message_id: &MessageId, cx: &mut Context<'_>) -> Poll<Result<Vec<u8>
 
 pub fn is_terminated(message_id: &MessageId) -> bool {
     !signals().waits_for(message_id)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::gstd::locks;
+    use crate::gstd::syscalls::Syscall;
+
+    fn set_context(message_id: MessageId, block_height: u32) {
+        Syscall::with_message_id(message_id);
+        Syscall::with_block_height(block_height);
+    }
+
+    #[test]
+    fn insert_lock_adds_entry() {
+        set_context(MessageId::from(1), 10);
+
+        let mut task = Task::new(async {});
+        let reply_to = MessageId::from(2);
+        let lock = locks::Lock::up_to(3);
+
+        task.insert_lock(reply_to, lock);
+
+        assert_eq!(task.reply_to_locks.len(), 1);
+        assert_eq!(task.reply_to_locks[0].0, reply_to);
+        assert_eq!(task.reply_to_locks[0].1.deadline(), lock.deadline());
+    }
+
+    #[test]
+    fn remove_lock_drops_matching_entry() {
+        set_context(MessageId::from(3), 5);
+
+        let mut task = Task::new(async {});
+        let reply_to = MessageId::from(4);
+        let lock = locks::Lock::up_to(1);
+
+        task.insert_lock(reply_to, lock);
+        task.remove_lock(&reply_to);
+
+        assert!(task.reply_to_locks.is_empty());
+    }
+
+    #[test]
+    fn signal_reply_timeout_promotes_expired_locks() {
+        // arrange
+        let message_id = MessageId::from(5);
+        set_context(message_id, 20);
+        let reply_to = MessageId::from(6);
+        let lock = locks::Lock::up_to(5);
+        let signals_map = signals();
+        let task = Task::new(async {});
+
+        tasks().insert(message_id, task);
+        let task = tasks().get_mut(&message_id).unwrap();
+        signals_map.register_signal(reply_to, lock, None);
+
+        // act
+        task.signal_reply_timeout(30);
+
+        // assert
+        match signals_map.signals.get(&reply_to) {
+            Some(WakeSignal::Timeout { expected, now, .. }) => {
+                assert_eq!(*expected, lock.deadline());
+                assert_eq!(*now, 30);
+            }
+            _ => unreachable!(),
+        }
+
+        assert!(task.reply_to_locks.is_empty());
+    }
+
+    #[test]
+    #[should_panic(expected = "Cannot find lock to be waited")]
+    fn wait_without_locks_panics() {
+        let task = Task::new(async {});
+        task.wait(0);
+    }
 }
