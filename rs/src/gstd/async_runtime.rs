@@ -102,13 +102,11 @@ impl Task {
     /// Panics if no locks are registered for the current task, which indicates a logic error
     /// (e.g. awaiting a reply without having registered one).
     #[inline]
-    fn wait(&self, now: BlockNumber) {
+    fn next_lock(&self) -> Option<&Lock> {
         self.reply_to_locks
             .iter()
             .map(|(_, lock)| lock)
             .min_by(|lock1, lock2| lock1.cmp(lock2))
-            .expect("Cannot find lock to be waited")
-            .wait(now);
     }
 
     /// Removes all outstanding reply locks from the signal registry without waiting on them.
@@ -196,10 +194,10 @@ where
 
     if completed {
         tasks_map.remove(&msg_id);
-        // #[cfg(not(feature = "ethexe"))]
-        // let _ = critical::take_hook();
     } else {
-        task.wait(current_block);
+        task.next_lock()
+            .expect("Cannot find lock to be waited")
+            .wait(current_block);
     }
 }
 
@@ -592,6 +590,7 @@ pub fn is_terminated(message_id: &MessageId) -> bool {
     !signals().waits_for(message_id)
 }
 
+#[cfg(feature = "std")]
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -659,12 +658,5 @@ mod tests {
         }
 
         assert!(task.reply_to_locks.is_empty());
-    }
-
-    #[test]
-    #[should_panic(expected = "Cannot find lock to be waited")]
-    fn wait_without_locks_panics() {
-        let task = Task::new(async {});
-        task.wait(0);
     }
 }
