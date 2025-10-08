@@ -23,6 +23,8 @@ fn signals() -> &'static mut WakeSignals {
 pub struct Task {
     future: LocalBoxFuture<'static, ()>,
     reply_to_locks: Vec<(MessageId, locks::Lock)>,
+    #[cfg(not(feature = "ethexe"))]
+    critical_hook: Option<Box<dyn FnOnce(MessageId)>>,
 }
 
 impl Task {
@@ -33,6 +35,8 @@ impl Task {
         Self {
             future: future.boxed_local(),
             reply_to_locks: Vec::new(),
+            #[cfg(not(feature = "ethexe"))]
+            critical_hook: None,
         }
     }
 
@@ -41,7 +45,7 @@ impl Task {
     /// - stores the `(reply_to, lock)` pair so the task can later detect timeouts;
     ///
     /// # Context
-    /// Called exclusively from [`WakeSignals::register_signal`] while the outer `message_loop`
+    /// Called exclusively from [WakeSignals::register_signal] while the outer `message_loop`
     /// prepares to await a reply for the current inbound message.
     #[inline]
     fn insert_lock(&mut self, reply_to: MessageId, lock: locks::Lock) {
@@ -53,7 +57,7 @@ impl Task {
     /// - searches for the `(reply_to, lock)` pair and removes it.
     ///
     /// # Context
-    /// Called from [`WakeSignals::record_reply`] once a response is received, as well
+    /// Called from [WakeSignals::record_reply] once a response is received, as well
     /// as during cleanup when a task finishes.
     #[inline]
     fn remove_lock(&mut self, reply_to: &MessageId) {
@@ -66,11 +70,11 @@ impl Task {
     /// Notifies the signal registry about replies that have exceeded their deadlines.
     ///
     /// - scans all tracked locks, extracting those whose deadlines are at or before `now`;
-    /// - informs [`WakeSignals`] about the timeout so it can update the wake state and
+    /// - informs [WakeSignals] about the timeout so it can update the wake state and
     ///   potentially execute a deferred reply hook.
     ///
     /// # Context
-    /// Invoked from [`message_loop`] before polling the user future to ensure that timeouts
+    /// Invoked from [message_loop] before polling the user future to ensure that timeouts
     /// are processed promptly for the current message.
     #[inline]
     fn signal_reply_timeout(&mut self, now: BlockNumber) {
@@ -92,7 +96,7 @@ impl Task {
     ///   the runtime suspension point.
     ///
     /// # Context
-    /// Called from [`message_loop`] whenever the user future remains pending after polling.
+    /// Called from [message_loop] whenever the user future remains pending after polling.
     ///
     /// # Panics
     /// Panics if no locks are registered for the current task, which indicates a logic error
@@ -107,7 +111,6 @@ impl Task {
             .wait(now);
     }
 
-    #[cfg(not(feature = "ethexe"))]
     /// Removes all outstanding reply locks from the signal registry without waiting on them.
     ///
     /// # What it does
@@ -116,6 +119,7 @@ impl Task {
     ///
     /// # Context
     /// Called from [`handle_signal`].
+    #[cfg(not(feature = "ethexe"))]
     #[inline]
     fn clear(&self) {
         let signals_map = signals();
@@ -123,6 +127,32 @@ impl Task {
             signals_map.remove(reply_to);
         });
     }
+}
+
+/// Sets a critical hook.
+///
+/// # Panics
+/// If called in the `handle_reply` or `handle_signal` entrypoints.
+///
+/// # SAFETY
+/// Ensure that sufficient `gstd::Config::SYSTEM_RESERVE` is set in your
+/// program, as this gas is locked during each async call to provide resources
+/// for hook execution in case it is triggered.
+#[cfg(not(feature = "ethexe"))]
+pub fn set_critical_hook<F: FnOnce(MessageId) + 'static>(f: F) {
+    if msg::reply_code().is_ok() {
+        panic!("`gstd::critical::set_hook()` must not be called in `handle_reply` entrypoint")
+    }
+
+    if msg::signal_code().is_ok() {
+        panic!("`gstd::critical::set_hook()` must not be called in `handle_signal` entrypoint")
+    }
+    let message_id = Syscall::message_id();
+
+    tasks()
+        .get_mut(&message_id)
+        .expect("A message task must exist")
+        .critical_hook = Some(Box::new(f));
 }
 
 /// Drives asynchronous handling for the currently executing inbound message.
@@ -545,10 +575,11 @@ pub fn handle_signal() {
     let msg_id = Syscall::signal_from().expect(
         "`gstd::async_runtime::handle_signal()` must be called only in `handle_signal` entrypoint",
     );
-    // critical::take_and_execute();
-
-    // Remove Task and all associated signals
-    if let Some(task) = tasks().remove(&msg_id) {
+    // Remove Task and all associated signals, execute critical hook
+    if let Some(mut task) = tasks().remove(&msg_id) {
+        if let Some(critical_hook) = task.critical_hook.take() {
+            critical_hook(msg_id);
+        }
         task.clear()
     }
 }

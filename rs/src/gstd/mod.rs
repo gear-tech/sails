@@ -1,12 +1,12 @@
-#[cfg(not(feature = "ethexe"))]
-#[doc(hidden)]
-pub use async_runtime::handle_signal;
 #[doc(hidden)]
 // pub use gstd::{handle_reply_with_hook, message_loop};
 pub use async_runtime::{
     MessageFuture, create_program_for_reply, handle_reply_with_hook, message_loop,
     send_bytes_for_reply, send_for_reply,
 };
+#[cfg(not(feature = "ethexe"))]
+#[doc(hidden)]
+pub use async_runtime::{handle_signal, set_critical_hook};
 #[doc(hidden)]
 #[cfg(feature = "ethexe")]
 pub use ethexe::{EthEvent, EthEventExpo};
