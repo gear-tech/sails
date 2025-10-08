@@ -1,6 +1,7 @@
 use super::*;
-use crate::collections::HashMap;
+use crate::collections::{BinaryHeap, HashMap};
 use core::{
+    cmp::Reverse,
     pin::Pin,
     task::{Context, Poll},
 };
@@ -22,7 +23,7 @@ fn signals() -> &'static mut WakeSignals {
 /// of code that was running before the program was interrupted by `wait`.
 pub struct Task {
     future: LocalBoxFuture<'static, ()>,
-    reply_to_locks: Vec<(MessageId, locks::Lock)>,
+    reply_to_locks: BinaryHeap<(Reverse<Lock>, MessageId)>,
     #[cfg(not(feature = "ethexe"))]
     critical_hook: Option<Box<dyn FnOnce(MessageId)>>,
 }
@@ -34,7 +35,7 @@ impl Task {
     {
         Self {
             future: future.boxed_local(),
-            reply_to_locks: Vec::new(),
+            reply_to_locks: Default::default(),
             #[cfg(not(feature = "ethexe"))]
             critical_hook: None,
         }
@@ -42,29 +43,16 @@ impl Task {
 
     /// Registers the wait/timeout lock associated with an outgoing message reply.
     ///
-    /// - stores the `(reply_to, lock)` pair so the task can later detect timeouts;
+    /// - stores the `(lock, reply_to)` pair so the task can later detect timeouts;
     ///
     /// # Context
-    /// Called exclusively from [WakeSignals::register_signal] while the outer `message_loop`
+    /// Called exclusively from [WakeSignals::register_signal] while the outer [message_loop]
     /// prepares to await a reply for the current inbound message.
+    ///
+    /// Lock removed exclusively from [Task::signal_reply_timeout].
     #[inline]
     fn insert_lock(&mut self, reply_to: MessageId, lock: locks::Lock) {
-        self.reply_to_locks.push((reply_to, lock));
-    }
-
-    /// Removes the stored lock for the given reply identifier, if present.
-    ///
-    /// - searches for the `(reply_to, lock)` pair and removes it.
-    ///
-    /// # Context
-    /// Called from [WakeSignals::record_reply] once a response is received, as well
-    /// as during cleanup when a task finishes.
-    #[inline]
-    fn remove_lock(&mut self, reply_to: &MessageId) {
-        self.reply_to_locks
-            .iter()
-            .position(|(mid, _)| mid == reply_to)
-            .map(|index| self.reply_to_locks.swap_remove(index));
+        self.reply_to_locks.push((Reverse(lock), reply_to));
     }
 
     /// Notifies the signal registry about replies that have exceeded their deadlines.
@@ -80,48 +68,36 @@ impl Task {
     fn signal_reply_timeout(&mut self, now: BlockNumber) {
         let signals_map = signals();
 
-        self.reply_to_locks
-            .extract_if(.., |(_, lock)| now >= lock.deadline())
-            .for_each(|(reply_to, lock)| {
-                signals_map.record_timeout(reply_to, lock.deadline(), now);
-                // ::gstd::debug!(
-                //     "signal_reply_timeout: remove lock for reply_to {reply_to} in message due to timeout"
-                // );
-            });
+        while let Some((Reverse(lock), reply_to)) = self.reply_to_locks.peek()
+            && now >= lock.deadline()
+        {
+            signals_map.record_timeout(*reply_to, lock.deadline(), now);
+            self.reply_to_locks.pop();
+        }
     }
 
-    /// Arms the most urgent wait lock so the executor suspends until a wake signal.
-    ///
-    /// - finds the lock with the smallest deadline and delegates to `Lock::wait` to set
-    ///   the runtime suspension point.
+    /// Finds the lock with the smallest deadline
     ///
     /// # Context
-    /// Called from [message_loop] whenever the user future remains pending after polling.
-    ///
-    /// # Panics
-    /// Panics if no locks are registered for the current task, which indicates a logic error
-    /// (e.g. awaiting a reply without having registered one).
+    /// Called from [message_loop] whenever the user future remains pending after [Task::signal_reply_timeout] and polling future.
     #[inline]
     fn next_lock(&self) -> Option<&Lock> {
-        self.reply_to_locks
-            .iter()
-            .map(|(_, lock)| lock)
-            .min_by(|lock1, lock2| lock1.cmp(lock2))
+        self.reply_to_locks.peek().map(|(lock, _)| &lock.0)
     }
 
     /// Removes all outstanding reply locks from the signal registry without waiting on them.
     ///
     /// # What it does
-    /// - iterates every stored `(reply_to, _)` pair and asks [`WakeSignals`] to drop the wake entry;
+    /// - iterates every stored `(_, reply_to)` pair and asks [`WakeSignals`] to drop the wake entry;
     /// - used as part of task teardown to avoid keeping stale replies alive.
     ///
     /// # Context
     /// Called from [`handle_signal`].
     #[cfg(not(feature = "ethexe"))]
     #[inline]
-    fn clear(&self) {
+    fn clear_signals(&self) {
         let signals_map = signals();
-        self.reply_to_locks.iter().for_each(|(reply_to, _)| {
+        self.reply_to_locks.iter().for_each(|(_, reply_to)| {
             signals_map.remove(reply_to);
         });
     }
@@ -300,10 +276,6 @@ impl WakeSignals {
                     ::gstd::debug!(
                         "record_reply: remove lock for reply_to {reply_to} in message {message_id}"
                     );
-                    tasks()
-                        .get_mut(&message_id)
-                        .expect("A message task must exist")
-                        .remove_lock(reply_to);
                     // wake message loop after receiving reply
                     ::gcore::exec::wake(message_id).expect("Failed to wake the message");
 
@@ -578,7 +550,7 @@ pub fn handle_signal() {
         if let Some(critical_hook) = task.critical_hook.take() {
             critical_hook(msg_id);
         }
-        task.clear()
+        task.clear_signals()
     }
 }
 
@@ -594,7 +566,6 @@ pub fn is_terminated(message_id: &MessageId) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::gstd::locks;
     use crate::gstd::syscalls::Syscall;
 
     fn set_context(message_id: MessageId, block_height: u32) {
@@ -608,27 +579,18 @@ mod tests {
 
         let mut task = Task::new(async {});
         let reply_to = MessageId::from(2);
-        let lock = locks::Lock::up_to(3);
+        let lock = Lock::up_to(3);
 
         task.insert_lock(reply_to, lock);
+        task.insert_lock(MessageId::from(3), Lock::exactly(5));
 
-        assert_eq!(task.reply_to_locks.len(), 1);
-        assert_eq!(task.reply_to_locks[0].0, reply_to);
-        assert_eq!(task.reply_to_locks[0].1.deadline(), lock.deadline());
-    }
+        let Some((Reverse(next_lock), next_reply_to)) = task.reply_to_locks.peek() else {
+            unreachable!()
+        };
 
-    #[test]
-    fn remove_lock_drops_matching_entry() {
-        set_context(MessageId::from(3), 5);
-
-        let mut task = Task::new(async {});
-        let reply_to = MessageId::from(4);
-        let lock = locks::Lock::up_to(1);
-
-        task.insert_lock(reply_to, lock);
-        task.remove_lock(&reply_to);
-
-        assert!(task.reply_to_locks.is_empty());
+        assert_eq!(task.reply_to_locks.len(), 2);
+        assert_eq!(next_reply_to, &reply_to);
+        assert_eq!(next_lock, &lock);
     }
 
     #[test]
@@ -637,7 +599,7 @@ mod tests {
         let message_id = MessageId::from(5);
         set_context(message_id, 20);
         let reply_to = MessageId::from(6);
-        let lock = locks::Lock::up_to(5);
+        let lock = Lock::up_to(5);
         let signals_map = signals();
         let task = Task::new(async {});
 
