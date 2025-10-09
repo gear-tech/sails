@@ -23,7 +23,7 @@ fn signals() -> &'static mut WakeSignals {
 /// of code that was running before the program was interrupted by `wait`.
 pub struct Task {
     future: LocalBoxFuture<'static, ()>,
-    reply_to_locks: BinaryHeap<(Reverse<Lock>, MessageId)>,
+    locks: BinaryHeap<(Reverse<Lock>, Option<MessageId>)>,
     #[cfg(not(feature = "ethexe"))]
     critical_hook: Option<Box<dyn FnOnce(MessageId)>>,
 }
@@ -35,29 +35,36 @@ impl Task {
     {
         Self {
             future: future.boxed_local(),
-            reply_to_locks: Default::default(),
+            locks: Default::default(),
             #[cfg(not(feature = "ethexe"))]
             critical_hook: None,
         }
     }
 
-    /// Registers the wait/timeout lock associated with an outgoing message reply.
+    /// Stores the lock associated with an outbound reply, keeping it ordered by deadline.
     ///
-    /// - stores the `(lock, reply_to)` pair so the task can later detect timeouts;
+    /// - pushes `(lock, Some(reply_to))` into the binary heap so that timeouts and wake-ups can be
+    /// handled efficiently.
     ///
     /// # Context
-    /// Called exclusively from [WakeSignals::register_signal] while the outer [message_loop]
-    /// prepares to await a reply for the current inbound message.
-    ///
-    /// Lock removed from [Task::signal_reply_timeout] or [Task::next_lock].
+    /// Called from [WakeSignals::register_signal] when the [message_loop] schedules a reply wait.
     #[inline]
-    fn insert_lock(&mut self, reply_to: MessageId, lock: locks::Lock) {
-        self.reply_to_locks.push((Reverse(lock), reply_to));
+    fn insert_lock(&mut self, reply_to: MessageId, lock: Lock) {
+        self.locks.push((Reverse(lock), Some(reply_to)));
+    }
+
+    /// Tracks a sleep-specific lock (without a reply identifier) for the inbound message.
+    ///
+    /// # Context
+    /// Used when the task needs to suspend itself via `exec::wait_*` without tying the wait to a
+    /// particular reply id.
+    fn insert_sleep(&mut self, lock: Lock) {
+        self.locks.push((Reverse(lock), None));
     }
 
     /// Notifies the signal registry about replies that have exceeded their deadlines.
     ///
-    /// - scans all tracked locks, extracting those whose deadlines are at or before `now`;
+    /// - peeks locks, extracting those whose deadlines are at or before `now`;
     /// - informs [WakeSignals] about the timeout so it can update the wake state and
     ///   potentially execute a deferred reply hook.
     ///
@@ -68,25 +75,29 @@ impl Task {
     fn signal_reply_timeout(&mut self, now: BlockNumber) {
         let signals_map = signals();
 
-        while let Some((Reverse(lock), reply_to)) = self.reply_to_locks.peek()
+        while let Some((Reverse(lock), reply_to)) = self.locks.peek()
             && now >= lock.deadline()
         {
-            signals_map.record_timeout(*reply_to, lock.deadline(), now);
-            self.reply_to_locks.pop();
+            if let Some(reply_to) = reply_to {
+                signals_map.record_timeout(*reply_to, lock.deadline(), now);
+            }
+            self.locks.pop();
         }
     }
 
-    /// Finds the lock with the smallest deadline
+    /// Returns the earliest lock still awaiting completion, skipping stale entries.
     ///
     /// # Context
     /// Called from [message_loop] whenever the user future remains pending after [Task::signal_reply_timeout] and polling future.
     #[inline]
     fn next_lock(&mut self) -> Option<Lock> {
         let signals_map = signals();
-        while let Some((Reverse(lock), reply_to)) = self.reply_to_locks.peek() {
+        while let Some((Reverse(lock), reply_to)) = self.locks.peek() {
             // skip if not waits for reply_to
-            if !signals_map.waits_for(reply_to) {
-                self.reply_to_locks.pop();
+            if let Some(reply_to) = reply_to
+                && !signals_map.waits_for(reply_to)
+            {
+                self.locks.pop();
                 continue;
             }
             return Some(*lock);
@@ -96,7 +107,6 @@ impl Task {
 
     /// Removes all outstanding reply locks from the signal registry without waiting on them.
     ///
-    /// # What it does
     /// - iterates every stored `(_, reply_to)` pair and asks [`WakeSignals`] to drop the wake entry;
     /// - used as part of task teardown to avoid keeping stale replies alive.
     ///
@@ -106,15 +116,17 @@ impl Task {
     #[inline]
     fn clear_signals(&self) {
         let signals_map = signals();
-        self.reply_to_locks.iter().for_each(|(_, reply_to)| {
-            signals_map.remove(reply_to);
+        self.locks.iter().for_each(|(_, reply_to)| {
+            if let Some(reply_to) = reply_to {
+                signals_map.remove(reply_to);
+            }
         });
     }
 }
 
 /// Sets a critical hook.
 ///
-/// # Panics
+/// # Context
 /// If called in the `handle_reply` or `handle_signal` entrypoints.
 ///
 /// # SAFETY
@@ -150,7 +162,7 @@ pub fn set_critical_hook<F: FnOnce(MessageId) + 'static>(f: F) {
 ///
 /// # Panics
 /// Panics propagated from the user future bubble up, and the function will panic if no wait lock is
-/// registered when a pending future requests suspension (see `Task::wait`), signalling a contract logic bug.
+/// registered when a pending future requests suspension, signalling a contract logic bug.
 #[inline]
 pub fn message_loop<F>(future: F)
 where
@@ -255,16 +267,15 @@ impl WakeSignals {
 
     /// Processes an incoming reply for `reply_to` and transitions the stored wake state.
     ///
-    /// - upgrades the pending entry to `Ready`, capturing payload and reply code;
-    /// - detaches the wait lock from the owning `Task`, then wakes the suspended message loop;
+    /// - upgrades the pending entry to [WakeSignal::Ready], capturing payload and reply code;
     /// - executes the optional reply hook once the reply becomes available.
     ///
     /// # Context
-    /// Invoked by `handle_reply_with_hook` when a reply arrives during `handle_reply()` execution. The
-    /// runtime supplies `reply_to`, and this method synchronises bookkeeping before waking the task.
+    /// Invoked by [handle_reply_with_hook] when a reply arrives during `handle_reply()` execution. The
+    /// runtime supplies `reply_to`.
     ///
     /// # Panics
-    /// Panics if it encounters an already finalised entry (`WakeSignal::Ready`) or the associated task is
+    /// Panics if it encounters an already finalised entry [WakeSignal::Ready] or the associated task is
     /// missing. Both scenarios indicate logic bugs or duplicate delivery.
     pub fn record_reply(&mut self, reply_to: &MessageId) {
         if let hashbrown::hash_map::EntryRef::Occupied(mut entry) = self.signals.entry_ref(reply_to)
@@ -311,13 +322,13 @@ impl WakeSignals {
 
     /// Marks a pending reply as timed out and preserves context for later handling.
     ///
-    /// - upgrades a `WakeSignal::Pending` entry to `WakeSignal::Timeout`, capturing when the reply was expected
+    /// - upgrades a [WakeSignal::Pending] entry to [WakeSignal::Timeout], capturing when the reply was expected
     ///   and when the timeout was detected;
     /// - retains the optional reply hook so it can still be executed if a late reply arrives and reuses the
     ///   stored state when `record_reply` is called afterwards.
     ///
     /// # Context
-    /// Triggered from `Task::signal_reply_timeout` whenever the runtime observes that a waiting reply exceeded
+    /// Triggered from [Task::signal_reply_timeout] whenever the runtime observes that a waiting reply exceeded
     /// its deadline while executing inside [message_loop].
     pub fn record_timeout(&mut self, reply_to: MessageId, expected: BlockNumber, now: BlockNumber) {
         if let hashbrown::hash_map::Entry::Occupied(mut entry) = self.signals.entry(reply_to)
@@ -571,11 +582,60 @@ pub fn is_terminated(message_id: &MessageId) -> bool {
     !signals().waits_for(message_id)
 }
 
+struct MessageSleepFuture {
+    deadline: BlockNumber,
+}
+
+impl MessageSleepFuture {
+    fn new(deadline: BlockNumber) -> Self {
+        Self { deadline }
+    }
+}
+
+impl Unpin for MessageSleepFuture {}
+
+impl Future for MessageSleepFuture {
+    type Output = ();
+
+    fn poll(self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<Self::Output> {
+        let now = Syscall::block_height();
+
+        if now >= self.deadline {
+            Poll::Ready(())
+        } else {
+            Poll::Pending
+        }
+    }
+}
+
+/// Delays message execution in asynchronous way for the specified number of blocks.
+///
+/// It works pretty much like the [exec::wait_for] function, but
+/// allows to continue execution after the delay in the same handler. It is
+/// worth mentioning that the program state gets persisted inside the call, and
+/// the execution resumes with potentially different state.
+pub fn sleep_for(block_count: BlockCount) -> impl Future<Output = ()> {
+    let message_id = Syscall::message_id();
+    let lock = Lock::exactly(block_count);
+    tasks()
+        .get_mut(&message_id)
+        .expect("A message task must exist")
+        .insert_sleep(lock);
+    MessageSleepFuture::new(lock.deadline())
+}
+
 #[cfg(feature = "std")]
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::gstd::syscalls::Syscall;
+    use core::sync::atomic::AtomicU64;
+
+    static MSG_ID: AtomicU64 = AtomicU64::new(1);
+
+    fn msg_id() -> MessageId {
+        MessageId::from(MSG_ID.fetch_add(1, core::sync::atomic::Ordering::SeqCst))
+    }
 
     fn set_context(message_id: MessageId, block_height: u32) {
         Syscall::with_message_id(message_id);
@@ -583,31 +643,31 @@ mod tests {
     }
 
     #[test]
-    fn insert_lock_adds_entry() {
-        set_context(MessageId::from(1), 10);
+    fn task_insert_lock_adds_entry() {
+        set_context(msg_id(), 10);
 
         let mut task = Task::new(async {});
-        let reply_to = MessageId::from(2);
+        let reply_to = msg_id();
         let lock = Lock::up_to(3);
 
         task.insert_lock(reply_to, lock);
-        task.insert_lock(MessageId::from(3), Lock::exactly(5));
+        task.insert_lock(msg_id(), Lock::exactly(5));
 
-        let Some((Reverse(next_lock), next_reply_to)) = task.reply_to_locks.peek() else {
+        let Some((Reverse(next_lock), next_reply_to)) = task.locks.peek() else {
             unreachable!()
         };
 
-        assert_eq!(task.reply_to_locks.len(), 2);
-        assert_eq!(next_reply_to, &reply_to);
+        assert_eq!(task.locks.len(), 2);
+        assert_eq!(Some(&reply_to), next_reply_to.as_ref());
         assert_eq!(next_lock, &lock);
     }
 
     #[test]
-    fn signal_reply_timeout_promotes_expired_locks() {
+    fn task_signal_reply_timeout_promotes_expired_locks() {
         // arrange
-        let message_id = MessageId::from(5);
+        let message_id = msg_id();
         set_context(message_id, 20);
-        let reply_to = MessageId::from(6);
+        let reply_to = msg_id();
         let lock = Lock::up_to(5);
         let signals_map = signals();
         let task = Task::new(async {});
@@ -617,17 +677,55 @@ mod tests {
         signals_map.register_signal(reply_to, lock, None);
 
         // act
-        task.signal_reply_timeout(30);
+        task.signal_reply_timeout(25);
 
         // assert
         match signals_map.signals.get(&reply_to) {
             Some(WakeSignal::Timeout { expected, now, .. }) => {
                 assert_eq!(*expected, lock.deadline());
-                assert_eq!(*now, 30);
+                assert_eq!(*now, 25);
             }
             _ => unreachable!(),
         }
 
-        assert!(task.reply_to_locks.is_empty());
+        assert!(task.locks.is_empty());
+    }
+
+    #[test]
+    fn task_remove_signal_skip_not_waited_lock() {
+        // arrange
+        let message_id = msg_id();
+        set_context(message_id, 30);
+        let reply_to = msg_id();
+        let lock = Lock::up_to(5);
+        let signals_map = signals();
+        let task = Task::new(async {});
+
+        tasks().insert(message_id, task);
+        let task = tasks().get_mut(&message_id).unwrap();
+        signals_map.register_signal(reply_to, lock, None);
+
+        assert_eq!(1, task.locks.len());
+
+        task.signal_reply_timeout(31);
+        // TODO: record reply + poll
+        signals_map.remove(&reply_to);
+
+        assert_eq!(1, task.locks.len());
+        assert_eq!(None, task.next_lock());
+    }
+
+    #[test]
+    fn task_insert_sleep_adds_entry_without_reply() {
+        set_context(msg_id(), 40);
+
+        let mut task = Task::new(async {});
+        let lock = Lock::exactly(4);
+
+        task.insert_sleep(lock);
+        assert_eq!(Some(lock), task.next_lock());
+
+        task.signal_reply_timeout(44);
+        assert_eq!(None, task.next_lock());
     }
 }
