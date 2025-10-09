@@ -49,7 +49,7 @@ impl Task {
     /// Called exclusively from [WakeSignals::register_signal] while the outer [message_loop]
     /// prepares to await a reply for the current inbound message.
     ///
-    /// Lock removed exclusively from [Task::signal_reply_timeout].
+    /// Lock removed from [Task::signal_reply_timeout] or [Task::next_lock].
     #[inline]
     fn insert_lock(&mut self, reply_to: MessageId, lock: locks::Lock) {
         self.reply_to_locks.push((Reverse(lock), reply_to));
@@ -81,8 +81,17 @@ impl Task {
     /// # Context
     /// Called from [message_loop] whenever the user future remains pending after [Task::signal_reply_timeout] and polling future.
     #[inline]
-    fn next_lock(&self) -> Option<&Lock> {
-        self.reply_to_locks.peek().map(|(lock, _)| &lock.0)
+    fn next_lock(&mut self) -> Option<Lock> {
+        let signals_map = signals();
+        while let Some((Reverse(lock), reply_to)) = self.reply_to_locks.peek() {
+            // skip if not waits for reply_to
+            if !signals_map.waits_for(reply_to) {
+                self.reply_to_locks.pop();
+                continue;
+            }
+            return Some(*lock);
+        }
+        None
     }
 
     /// Removes all outstanding reply locks from the signal registry without waiting on them.
