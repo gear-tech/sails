@@ -1,5 +1,5 @@
 use super::*;
-use crate::gstd::{Lock, MessageFuture, async_runtime};
+use crate::gstd::{CreateProgramFuture, Lock, MessageFuture};
 use ::gstd::errors::Error;
 
 #[derive(Default)]
@@ -81,7 +81,7 @@ impl GstdEnv {
         payload: impl AsRef<[u8]>,
         mut params: GstdParams,
     ) -> Result<MessageId, Error> {
-        let message = crate::ok!(async_runtime::send_bytes_for_reply(
+        let message = crate::ok!(crate::gstd::send_bytes_for_reply(
             destination,
             payload.as_ref(),
             params.value.unwrap_or_default(),
@@ -300,7 +300,7 @@ pin_project_lite::pin_project! {
     #[project = Projection]
     #[project_replace = Replace]
     pub enum GstdFuture {
-        CreateProgram { #[pin] future: MessageFuture },
+        CreateProgram { #[pin] future: CreateProgramFuture },
         Message { #[pin] future: MessageFuture },
         MessageWithRedirect {
             #[pin]

@@ -324,6 +324,7 @@ impl WakeSignals {
     ///
     /// # Context
     /// Triggered from [`Task::clear_signals`].
+    #[cfg(not(feature = "ethexe"))]
     pub fn record_timeout(&mut self, reply_to: MessageId, now: BlockNumber) {
         if let hashbrown::hash_map::Entry::Occupied(mut entry) = self.signals.entry(reply_to)
             && let WakeSignal::Pending {

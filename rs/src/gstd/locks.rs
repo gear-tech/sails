@@ -41,12 +41,18 @@ impl Lock {
         self.deadline
     }
 
+    /// Gets the duration from current [`Syscall::block_height()`].
+    pub fn duration(&self) -> Option<BlockCount> {
+        let current = Syscall::block_height();
+        self.deadline.checked_sub(current)
+    }
+
     pub fn wait_type(&self) -> WaitType {
         self.ty
     }
 
     /// Call wait functions by the lock type.
-    pub(crate) fn wait(&self, now: BlockNumber) {
+    pub fn wait(&self, now: BlockNumber) {
         let duration = self
             .deadline
             .checked_sub(now)
