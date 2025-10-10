@@ -144,7 +144,7 @@ impl FnBuilder<'_> {
 
     /// Generates code for encode/decode parameters and fn invocation
     /// ```rust
-    /// let (_, encode_reply, p1, p2): (u128, bool, u32, String) = sails_rs::alloy_sol_types::SolValue::abi_decode_params(input, false).ok()?;
+    /// let (__encode_reply, p1, p2): (bool, u32, String) = sails_rs::alloy_sol_types::SolValue::abi_decode_params(input, false).ok()?;
     /// let result: u32 = self.do_this(p1, p2).await;
     /// let value = 0u128;
     /// ```
@@ -172,16 +172,16 @@ impl FnBuilder<'_> {
         };
 
         quote! {
-            let (_, _encode_reply, #(#handler_params,)*) : (u128, bool, #(#handler_types,)*) = #sails_path::alloy_sol_types::SolValue::abi_decode_params(input, false).ok()?;
+            let (__encode_reply, #(#handler_params,)*) : (bool, #(#handler_types,)*) = #sails_path::alloy_sol_types::SolValue::abi_decode_params(input, false).ok()?;
             #handle_token
-            let output = if _encode_reply {
+            let output = if __encode_reply {
                 // encode MessageId and result if passed `encode_reply`
                 let message_id = #sails_path::alloy_primitives::B256::new(#sails_path::gstd::Syscall::message_id().into_bytes());
                 #sails_path::alloy_sol_types::SolValue::abi_encode_sequence(&(message_id, result,))
             } else {
                 #sails_path::alloy_sol_types::SolValue::abi_encode_sequence(&(result,))
             };
-            return Some((output, value, _encode_reply));
+            return Some((output, value, __encode_reply));
 
         }
     }

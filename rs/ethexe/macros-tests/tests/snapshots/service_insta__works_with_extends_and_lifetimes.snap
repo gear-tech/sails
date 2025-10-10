@@ -139,14 +139,14 @@ impl<'a> ExtendedWithLifetimeExposure<ExtendedWithLifetime<'a>> {
                 109u8, 101u8,
             ]
         {
-            let (_, _encode_reply): (u128, bool) = sails_rs::alloy_sol_types::SolValue::abi_decode_params(
+            let (__encode_reply,): (bool,) = sails_rs::alloy_sol_types::SolValue::abi_decode_params(
                     input,
                     false,
                 )
                 .ok()?;
             let result = self.extended_name();
             let value = 0u128;
-            let output = if _encode_reply {
+            let output = if __encode_reply {
                 let message_id = sails_rs::alloy_primitives::B256::new(
                     sails_rs::gstd::Syscall::message_id().into_bytes(),
                 );
@@ -156,17 +156,17 @@ impl<'a> ExtendedWithLifetimeExposure<ExtendedWithLifetime<'a>> {
             } else {
                 sails_rs::alloy_sol_types::SolValue::abi_encode_sequence(&(result,))
             };
-            return Some((output, value, _encode_reply));
+            return Some((output, value, __encode_reply));
         }
         if method == &[16u8, 78u8, 97u8, 109u8, 101u8] {
-            let (_, _encode_reply): (u128, bool) = sails_rs::alloy_sol_types::SolValue::abi_decode_params(
+            let (__encode_reply,): (bool,) = sails_rs::alloy_sol_types::SolValue::abi_decode_params(
                     input,
                     false,
                 )
                 .ok()?;
             let result = self.name();
             let value = 0u128;
-            let output = if _encode_reply {
+            let output = if __encode_reply {
                 let message_id = sails_rs::alloy_primitives::B256::new(
                     sails_rs::gstd::Syscall::message_id().into_bytes(),
                 );
@@ -176,7 +176,7 @@ impl<'a> ExtendedWithLifetimeExposure<ExtendedWithLifetime<'a>> {
             } else {
                 sails_rs::alloy_sol_types::SolValue::abi_encode_sequence(&(result,))
             };
-            return Some((output, value, _encode_reply));
+            return Some((output, value, __encode_reply));
         }
         let base_services: (BaseWithLifetime<'a>) = self.inner.into();
         if let Some(result) = base_services
@@ -265,11 +265,11 @@ impl<'a> sails_rs::solidity::ServiceSignature for ExtendedWithLifetime<'a> {
     const METHODS: &'static [sails_rs::solidity::MethodExpo] = sails_rs::const_concat_slices!(
         < sails_rs::solidity::MethodExpo >, & [(& [48u8, 69u8, 120u8, 116u8, 101u8,
         110u8, 100u8, 101u8, 100u8, 78u8, 97u8, 109u8, 101u8] as & [u8], "ExtendedName",
-        << (u128, bool,) as sails_rs::alloy_sol_types::SolValue > ::SolType as
+        << (bool,) as sails_rs::alloy_sol_types::SolValue > ::SolType as
         sails_rs::alloy_sol_types::SolType > ::SOL_NAME, <<
         (sails_rs::alloy_primitives::B256, String) as sails_rs::alloy_sol_types::SolValue
         > ::SolType as sails_rs::alloy_sol_types::SolType > ::SOL_NAME,), (& [16u8, 78u8,
-        97u8, 109u8, 101u8] as & [u8], "Name", << (u128, bool,) as
+        97u8, 109u8, 101u8] as & [u8], "Name", << (bool,) as
         sails_rs::alloy_sol_types::SolValue > ::SolType as
         sails_rs::alloy_sol_types::SolType > ::SOL_NAME, <<
         (sails_rs::alloy_primitives::B256, String) as sails_rs::alloy_sol_types::SolValue
