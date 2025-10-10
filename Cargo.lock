@@ -838,6 +838,7 @@ dependencies = [
  "gtest",
  "itertools 0.14.0",
  "ping-pong-bench-app",
+ "ping-pong-stack",
  "redirect-app",
  "redirect-client",
  "redirect-proxy",
@@ -6182,6 +6183,14 @@ dependencies = [
  "ping-pong-bench-app",
  "sails-client-gen",
  "sails-idl-gen",
+]
+
+[[package]]
+name = "ping-pong-stack"
+version = "0.1.0"
+dependencies = [
+ "sails-rs",
+ "tokio",
 ]
 
 [[package]]

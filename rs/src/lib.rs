@@ -6,7 +6,7 @@
 extern crate std;
 
 #[cfg(feature = "client-builder")]
-pub use builder::{ClientBuilder, build_client, build_client_as_lib};
+pub use builder::{ClientBuilder, ClientGenerator, IdlPath, build_client, build_client_as_lib};
 #[cfg(feature = "wasm-builder")]
 pub use gwasm_builder::build as build_wasm;
 pub use hex;

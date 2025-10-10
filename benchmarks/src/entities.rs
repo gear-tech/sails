@@ -24,6 +24,9 @@ impl BenchData {
         map.insert(BenchCategory::CounterAsync, data.counter.async_call);
         map.insert(BenchCategory::CrossProgram, data.cross_program.median);
         map.insert(BenchCategory::Redirect, data.redirect.median);
+        for (key, value) in data.message_stack.0 {
+            map.insert(BenchCategory::MessageStack(key), value);
+        }
 
         Ok(Self(map))
     }
@@ -57,6 +60,11 @@ impl BenchData {
         self.0.insert(BenchCategory::Redirect, value);
     }
 
+    /// Update message stack benchmark category value.
+    pub fn update_message_stack_bench(&mut self, limit: u32, value: u64) {
+        self.0.insert(BenchCategory::MessageStack(limit), value);
+    }
+
     /// Convert the benchmark data into a JSON string.
     pub fn into_json_string(self) -> Result<String> {
         let mut bench_data = BenchDataSerde::default();
@@ -71,6 +79,9 @@ impl BenchData {
                 BenchCategory::CounterAsync => bench_data.counter.async_call = value,
                 BenchCategory::CrossProgram => bench_data.cross_program.median = value,
                 BenchCategory::Redirect => bench_data.redirect.median = value,
+                BenchCategory::MessageStack(limit) => {
+                    bench_data.message_stack.0.insert(limit, value);
+                }
             }
         }
 
@@ -93,11 +104,18 @@ impl IntoIterator for BenchData {
 /// This struct is used to serialize and deserialize benchmark data
 #[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
 pub struct BenchDataSerde {
+    #[serde(default)]
     pub compute: ComputeBenchDataSerde,
+    #[serde(default)]
     pub alloc: AllocBenchDataSerde,
+    #[serde(default)]
     pub counter: CounterBenchDataSerde,
+    #[serde(default)]
     pub cross_program: CrossProgramBenchDataSerde,
+    #[serde(default)]
     pub redirect: RedirectBenchDataSerde,
+    #[serde(default)]
+    pub message_stack: MessageStackDataSerde,
 }
 
 /// Compute benchmark data stored in the benchmarks file.
@@ -131,6 +149,10 @@ pub struct CounterBenchDataSerde {
     pub sync_call: u64,
 }
 
+/// Message stack benchmark data stored in the benchmarks file.
+#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
+pub struct MessageStackDataSerde(pub BTreeMap<u32, u64>);
+
 /// Benchmark category that can be read (written) from (to) the benchmarks file.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub enum BenchCategory {
@@ -140,6 +162,7 @@ pub enum BenchCategory {
     CounterAsync,
     CrossProgram,
     Redirect,
+    MessageStack(u32),
 }
 
 impl Display for BenchCategory {
@@ -151,6 +174,7 @@ impl Display for BenchCategory {
             BenchCategory::CounterAsync => write!(f, "counter_async"),
             BenchCategory::CrossProgram => write!(f, "cross_program"),
             BenchCategory::Redirect => write!(f, "redirect"),
+            BenchCategory::MessageStack(limit) => write!(f, "stack_{limit}"),
         }
     }
 }

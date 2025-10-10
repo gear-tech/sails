@@ -1,6 +1,6 @@
 use convert_case::{Case, Casing};
 use core::marker::PhantomData;
-use sails_client_gen::{ClientGenerator, IdlPath};
+pub use sails_client_gen::{ClientGenerator, IdlPath};
 use sails_idl_meta::ProgramMeta;
 use std::{
     env,
