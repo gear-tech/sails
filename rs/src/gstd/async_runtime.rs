@@ -161,7 +161,7 @@ where
     let task = tasks_map.entry(msg_id).or_insert_with(|| {
         #[cfg(not(feature = "ethexe"))]
         {
-            ::gcore::exec::system_reserve_gas(gstd::Config::system_reserve())
+            Syscall::system_reserve_gas(gstd::Config::system_reserve())
                 .expect("Failed to reserve gas for system signal");
         }
         Task::new(future)
@@ -284,7 +284,7 @@ impl WakeSignals {
                     let reply_hook = reply_hook.take();
                     // replase entry with `WakeSignal::Ready`
                     _ = entry.insert(WakeSignal::Ready {
-                        payload: ::gstd::msg::load_bytes().expect("Failed to load bytes"),
+                        payload: Syscall::read_bytes().expect("Failed to read bytes"),
                         reply_code: Syscall::reply_code()
                             .expect("Shouldn't be called with incorrect context"),
                     });
@@ -349,8 +349,7 @@ impl WakeSignals {
     pub fn waits_for(&self, reply_to: &MessageId) -> bool {
         self.signals
             .get(reply_to)
-            .map(|signal| !matches!(signal, WakeSignal::Timeout { .. }))
-            .unwrap_or_default()
+            .is_some_and(|signal| !matches!(signal, WakeSignal::Timeout { .. }))
     }
 
     /// Polls the stored wake signal for `reply_to`, returning the appropriate future state.

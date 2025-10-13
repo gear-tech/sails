@@ -90,15 +90,28 @@ impl Syscall {
     pub fn exit(inheritor_id: ActorId) -> ! {
         ::gcore::exec::exit(inheritor_id)
     }
+
+    #[inline(always)]
+    pub fn read_bytes() -> Result<Vec<u8>, ::gcore::errors::Error> {
+        let mut result = vec![0u8; ::gcore::msg::size()];
+        ::gcore::msg::read(result.as_mut())?;
+        Ok(result)
+    }
+
+    #[cfg(not(feature = "ethexe"))]
+    #[inline(always)]
+    pub fn system_reserve_gas(amount: GasUnit) -> Result<(), ::gcore::errors::Error> {
+        ::gcore::exec::system_reserve_gas(amount)
+    }
 }
 
 #[cfg(not(target_arch = "wasm32"))]
 #[cfg(not(feature = "std"))]
 macro_rules! syscall_unimplemented {
-    ($($name:ident() -> $type:ty),* $(,)?) => {
+    ($($name:ident(  $( $param:ident : $ty:ty ),* ) -> $type:ty),* $(,)?) => {
         impl Syscall {
             $(
-                pub fn $name() -> $type {
+                pub fn $name($( $param: $ty ),* ) -> $type {
                     unimplemented!("{ERROR}")
                 }
             )*
@@ -126,15 +139,10 @@ syscall_unimplemented!(
     block_timestamp() -> u64,
     value_available() -> u128,
     env_vars() -> ::gcore::EnvVars,
+    exit(_inheritor_id: ActorId) -> !,
+    read_bytes() -> Result<Vec<u8>, gcore::errors::Error>,
+    system_reserve_gas(_amount: GasUnit) -> Result<(), ::gcore::errors::Error>,
 );
-
-#[cfg(not(target_arch = "wasm32"))]
-#[cfg(not(feature = "std"))]
-impl Syscall {
-    pub fn exit(_inheritor_id: ActorId) -> ! {
-        unimplemented!("{ERROR}")
-    }
-}
 
 #[cfg(not(target_arch = "wasm32"))]
 #[cfg(feature = "std")]
@@ -189,6 +197,7 @@ const _: () = {
         block_height() -> u32,
         block_timestamp() -> u64,
         value_available() -> u128,
+        read_bytes() -> Result<Vec<u8>, gcore::errors::Error>,
     );
 
     impl Default for SyscallState {
@@ -208,6 +217,7 @@ const _: () = {
                 block_height: 0,
                 block_timestamp: 0,
                 value_available: 0,
+                read_bytes: Err(::gcore::errors::Error::SyscallUsage),
             }
         }
     }
@@ -224,6 +234,11 @@ const _: () = {
 
         pub fn exit(inheritor_id: ActorId) -> ! {
             panic!("Program exited with inheritor id: {}", inheritor_id);
+        }
+
+        #[cfg(not(feature = "ethexe"))]
+        pub fn system_reserve_gas(_amount: GasUnit) -> Result<(), ::gcore::errors::Error> {
+            Ok(())
         }
     }
 };
