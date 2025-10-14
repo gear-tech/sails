@@ -540,3 +540,103 @@ async fn program_value_transfer_works() {
     let balance = env.system().balance_of(program_id);
     assert_eq!(initial_balance + 1_000_000_000_000, balance);
 }
+
+#[test]
+fn chaos_service_panic_after_wait_works() {
+    use demo_client::io::Default;
+    use gstd::errors::{ErrorReplyReason, SimpleExecutionError};
+    use sails_rs::gtest::{Log, Program, System};
+
+    let system = System::new();
+    system.init_logger();
+    system.mint_to(ACTOR_ID, 1_000_000_000_000_000);
+    let program = Program::from_file(&system, DEMO_WASM_PATH);
+    program.send_bytes(ACTOR_ID, Default::encode_params());
+
+    let msg_id = program.send_bytes(ACTOR_ID, ("Chaos", "PanicAfterWait").encode());
+    system.run_next_block();
+
+    let log = Log::builder().source(program.id()).dest(ACTOR_ID);
+    system
+        .get_mailbox(ACTOR_ID)
+        .reply_bytes(log.clone().payload_bytes(().encode()), vec![], 0)
+        .unwrap();
+
+    let run_result = system.run_next_block();
+
+    assert!(
+        run_result.contains(&log.reply_to(msg_id).reply_code(ReplyCode::Error(
+            ErrorReplyReason::Execution(SimpleExecutionError::UserspacePanic)
+        )))
+    );
+}
+
+#[test]
+fn chaos_service_timeout_wait_works() {
+    use demo_client::io::Default;
+    use gstd::errors::{ErrorReplyReason, SimpleExecutionError};
+    use sails_rs::gtest::{Log, Program, System};
+
+    let system = System::new();
+    system.init_logger();
+    system.mint_to(ACTOR_ID, 1_000_000_000_000_000);
+
+    let program = Program::from_file(&system, DEMO_WASM_PATH);
+    program.send_bytes(ACTOR_ID, Default::encode_params());
+    system.run_next_block();
+
+    let msg_id = program.send_bytes(ACTOR_ID, ("Chaos", "TimeoutWait").encode());
+
+    let log = Log::builder().source(program.id()).dest(ACTOR_ID);
+
+    let run_result = system.run_next_block();
+
+    assert!(
+        !run_result.contains(&log.clone().reply_to(msg_id).reply_code(ReplyCode::Error(
+            ErrorReplyReason::Execution(SimpleExecutionError::UserspacePanic)
+        )))
+    );
+
+    let run_result = system.run_next_block();
+    assert!(
+        run_result.contains(&log.clone().reply_to(msg_id).reply_code(ReplyCode::Error(
+            ErrorReplyReason::Execution(SimpleExecutionError::UserspacePanic)
+        )))
+    );
+}
+
+#[tokio::test]
+async fn chaos_panic_does_not_affect_other_services() {
+    use demo_client::chaos::Chaos as _;
+    use demo_client::counter::Counter as _;
+
+    const INIT_VALUE: u32 = 100;
+
+    let (env, code_id, _gas_limit) = create_env();
+    let demo_program = env
+        .deploy(code_id, vec![])
+        .new(Some(INIT_VALUE), None)
+        .await
+        .unwrap();
+
+    let mut counter_client = demo_program.counter();
+    let chaos_client = demo_program.chaos();
+
+    let initial_value = counter_client.value().await.unwrap();
+    assert_eq!(initial_value, INIT_VALUE);
+
+    let panic_result = chaos_client.panic_after_wait().await;
+
+    assert!(matches!(
+        panic_result,
+        Err(GtestError::ReplyHasError(
+            ErrorReplyReason::Execution(SimpleExecutionError::UserspacePanic),
+            _
+        ))
+    ));
+
+    counter_client.add(5).await.unwrap();
+
+    let final_value = counter_client.value().await.unwrap();
+    assert_eq!(final_value, INIT_VALUE + 5);
+}
