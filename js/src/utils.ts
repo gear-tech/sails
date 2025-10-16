@@ -1,4 +1,5 @@
 import { GearCoreErrorsSimpleReplyCode, ReplyCode } from '@gear-js/api';
+import { stringToU8a, compactAddLength } from '@polkadot/util';
 import { TypeRegistry } from '@polkadot/types';
 
 export function throwOnErrorReply(
@@ -30,4 +31,9 @@ export function throwOnErrorReply(
   } else {
     throw new Error(reason.explanation);
   }
+}
+
+export function stringToU8aWithPrefix(value: string): Uint8Array {
+  const str = stringToU8a(value);
+  return compactAddLength(str);
 }

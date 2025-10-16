@@ -1,7 +1,7 @@
 {
   "name": "sails-js-cli",
   "description": "CLI allowing to generate Typescript library based on Sails IDL files",
-  "version": "0.4.3",
+  "version": "0.5.1",
   "preferGlobal": true,
   "type": "module",
   "license": "GPL-3.0",
@@ -23,19 +23,21 @@
     "sails-js": "./build/app.js"
   },
   "devDependencies": {
-    "@inquirer/prompts": "^7.8.0",
+    "@inquirer/prompts": "^7.8.4",
+    "@types/node": "^24.7.2",
     "commander": "^14.0.0",
-    "inquirer": "^12.9.0",
-    "jest": "^30.0.5",
-    "sails-js": "^0.4.2",
-    "sails-js-parser": "^0.4.2",
-    "sails-js-util": "^0.4.2"
+    "inquirer": "^12.9.4",
+    "jest": "^30.2.0",
+    "sails-js": "workspace:*",
+    "sails-js-parser": "workspace:*",
+    "sails-js-util": "workspace:*"
   },
   "scripts": {
-    "build": "npx rollup --config rollup.config.js",
-    "clean": "rm -rf build",
-    "test": "TEST_ENV=true npx rollup --config rollup.config.js && node --experimental-vm-modules ../../node_modules/.bin/jest",
-    "pack-build": "yarn pack --out ../sails-js-cli.tgz"
+    "prebuild": "rm -rf build",
+    "build": "npx rollup --config rollup.config.js && chmod +x build/app.js",
+    "pretest": "TEST_ENV=true npx rollup --config rollup.config.js",
+    "test": "NODE_OPTIONS=\"$NODE_OPTIONS --experimental-vm-modules\" npx jest",
+    "pack-build": "pnpm pack --out ../sails-js-cli.tgz"
   },
   "files": [
     "build"

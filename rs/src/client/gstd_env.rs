@@ -41,7 +41,7 @@ impl GstdParams {
     }
 }
 
-impl<T: CallEncodeDecode> PendingCall<GstdEnv, T> {
+impl<T: CallCodec> PendingCall<T, GstdEnv> {
     /// Set `redirect_on_exit` flag to `true``
     ///
     /// This flag is used to redirect a message to a new program when the target program exits
@@ -98,7 +98,7 @@ impl GstdEnv {
     }
 }
 
-impl<T: CallEncodeDecode> PendingCall<GstdEnv, T> {
+impl<T: CallCodec> PendingCall<T, GstdEnv> {
     pub fn send_one_way(&mut self) -> Result<MessageId, Error> {
         let (payload, params) = self.take_encoded_args_and_params();
         self.env.send_one_way(self.destination, payload, params)
@@ -163,7 +163,7 @@ const _: () = {
         Ok((GstdFuture::CreateProgram { future }, program_id))
     }
 
-    impl<T: CallEncodeDecode> Future for PendingCall<GstdEnv, T> {
+    impl<T: CallCodec> Future for PendingCall<T, GstdEnv> {
         type Output = Result<T::Reply, <GstdEnv as GearEnv>::Error>;
 
         #[inline(always)]
@@ -236,7 +236,7 @@ const _: () = {
         }
     }
 
-    impl<T: CallEncodeDecode> FusedFuture for PendingCall<GstdEnv, T> {
+    impl<T: CallCodec> FusedFuture for PendingCall<T, GstdEnv> {
         fn is_terminated(&self) -> bool {
             self.state
                 .as_ref()
@@ -250,8 +250,8 @@ const _: () = {
         }
     }
 
-    impl<A, T: CallEncodeDecode> Future for PendingCtor<GstdEnv, A, T> {
-        type Output = Result<Actor<GstdEnv, A>, <GstdEnv as GearEnv>::Error>;
+    impl<A, T: CallCodec> Future for PendingCtor<A, T, GstdEnv> {
+        type Output = Result<Actor<A, GstdEnv>, <GstdEnv as GearEnv>::Error>;
 
         fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
             if self.state.is_none() {
@@ -314,7 +314,7 @@ pin_project_lite::pin_project! {
 
 #[cfg(not(target_arch = "wasm32"))]
 const _: () = {
-    impl<T: CallEncodeDecode> PendingCall<GstdEnv, T>
+    impl<T: CallCodec> PendingCall<T, GstdEnv>
     where
         T::Reply: Encode + Decode,
     {
@@ -338,7 +338,7 @@ const _: () = {
         }
     }
 
-    impl<T: CallEncodeDecode<Reply = O>, O> From<O> for PendingCall<GstdEnv, T>
+    impl<T: CallCodec<Reply = O>, O> From<O> for PendingCall<T, GstdEnv>
     where
         O: Encode + Decode,
     {
@@ -347,7 +347,7 @@ const _: () = {
         }
     }
 
-    impl<T: CallEncodeDecode> Future for PendingCall<GstdEnv, T> {
+    impl<T: CallCodec> Future for PendingCall<T, GstdEnv> {
         type Output = Result<T::Reply, <GstdEnv as GearEnv>::Error>;
 
         fn poll(mut self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<Self::Output> {
@@ -361,8 +361,8 @@ const _: () = {
         }
     }
 
-    impl<A, T: CallEncodeDecode> Future for PendingCtor<GstdEnv, A, T> {
-        type Output = Result<Actor<GstdEnv, A>, <GstdEnv as GearEnv>::Error>;
+    impl<A, T: CallCodec> Future for PendingCtor<A, T, GstdEnv> {
+        type Output = Result<Actor<A, GstdEnv>, <GstdEnv as GearEnv>::Error>;
 
         fn poll(mut self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<Self::Output> {
             match self.state.take() {

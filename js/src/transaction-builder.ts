@@ -1,6 +1,7 @@
 import {
   GasInfo,
   GearApi,
+  GearCoreMessageUserUserMessage,
   HexString,
   ICallOptions,
   MessageQueuedData,
@@ -10,10 +11,11 @@ import {
 import { SignerOptions, SubmittableExtrinsic } from '@polkadot/api/types';
 import { IKeyringPair, ISubmittableResult } from '@polkadot/types/types';
 import { TypeRegistry, u128, u64 } from '@polkadot/types';
-import { u8aConcat } from '@polkadot/util';
 import { getPayloadMethod } from 'sails-js-util';
+import { u8aConcat } from '@polkadot/util';
+
 import { ZERO_ADDRESS } from './consts.js';
-import { throwOnErrorReply } from './utils.js';
+import { throwOnErrorReply as commonThrowOnErrorReply } from './utils.js';
 
 export interface IMethodReturnType<T> {
   /**
@@ -56,7 +58,7 @@ export class TransactionBuilder<ResponseType> {
     service: string,
     method: string,
     payload: unknown,
-    payloadType: string,
+    payloadType: string | null,
     responseType: string,
     programId: HexString,
   );
@@ -64,10 +66,10 @@ export class TransactionBuilder<ResponseType> {
     api: GearApi,
     registry: TypeRegistry,
     extrinsic: 'upload_program',
-    service: undefined,
+    service: null,
     method: string,
     payload: unknown,
-    payloadType: string,
+    payloadType: string | null,
     responseType: string,
     code: Uint8Array | ArrayBufferLike | HexString,
     onProgramCreated?: (programId: HexString) => void | Promise<void>,
@@ -76,10 +78,10 @@ export class TransactionBuilder<ResponseType> {
     api: GearApi,
     registry: TypeRegistry,
     extrinsic: 'create_program',
-    service: undefined,
+    service: null,
     method: string,
     payload: unknown,
-    payloadType: string,
+    payloadType: string | null,
     responseType: string,
     codeId: HexString,
     onProgramCreated?: (programId: HexString) => void | Promise<void>,
@@ -89,10 +91,10 @@ export class TransactionBuilder<ResponseType> {
     private _api: GearApi,
     private _registry: TypeRegistry,
     extrinsic: 'send_message' | 'upload_program' | 'create_program',
-    private _service: string | undefined,
+    private _service: string | null,
     private _method: string,
-    payload: unknown | undefined,
-    payloadType: string | undefined,
+    payload: unknown | null,
+    payloadType: string | null,
     private _responseType: string,
     _programIdOrCodeOrCodeId: HexString | Uint8Array | ArrayBufferLike,
     private _onProgramCreated?: (programId: HexString) => void | Promise<void>,
@@ -101,8 +103,7 @@ export class TransactionBuilder<ResponseType> {
       ? this._registry.createType('String', this._service).toU8a()
       : new Uint8Array();
     const encodedMethod = this._registry.createType('String', this._method).toU8a();
-    const data =
-      payload === undefined ? new Uint8Array() : this._registry.createType<any>(payloadType, payload).toU8a();
+    const data = payloadType === null ? new Uint8Array() : this._registry.createType<any>(payloadType, payload).toU8a();
 
     const _payload = u8aConcat(encodedService, encodedMethod, data);
 
@@ -333,6 +334,27 @@ export class TransactionBuilder<ResponseType> {
   }
 
   /**
+   * ## Decode response payload from sign and send transaction
+   * @param payload - Raw bytes from the reply message
+   * @returns Decoded payload
+   */
+  public decodePayload(payload: Uint8Array | HexString): ResponseType {
+    const method = getPayloadMethod(this._responseType);
+    const noPrefixPayload = payload.slice(this._prefixByteLength);
+    const type = this._registry.createType<any>(this._responseType, noPrefixPayload);
+
+    return type[method]();
+  }
+
+  /**
+   * ## Check if the reply is an error and throw if it is
+   * @param message - UserMessageSent message
+   */
+  public throwOnErrorReply({ payload, details }: GearCoreMessageUserUserMessage) {
+    commonThrowOnErrorReply(details.unwrap().code, payload, this._api.specVersion, this._registry);
+  }
+
+  /**
    * ## Sign and send transaction
    */
   public async signAndSend(): Promise<IMethodReturnType<ResponseType>> {
@@ -399,23 +421,12 @@ export class TransactionBuilder<ResponseType> {
       txHash: this._tx.hash.toHex(),
       isFinalized,
       response: async (rawResult = false) => {
-        const {
-          data: {
-            message: { payload, details },
-          },
-        } = await this._api.message.getReplyEvent(this.programId, msgId, blockHash);
+        const { data } = await this._api.message.getReplyEvent(this.programId, msgId, blockHash);
+        const { payload } = data.message;
 
-        throwOnErrorReply(details.unwrap().code, payload, this._api.specVersion, this._registry);
+        this.throwOnErrorReply(data.message);
 
-        if (rawResult) {
-          return payload.toHex();
-        }
-
-        // prettier-ignore
-        return this._registry.createType<any>(
-          this._responseType,
-          payload.slice(this._prefixByteLength)
-        )[getPayloadMethod(this._responseType)]();
+        return rawResult ? payload.toHex() : (this.decodePayload(payload) as any);
       },
     };
   }

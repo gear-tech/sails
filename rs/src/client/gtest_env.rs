@@ -274,7 +274,7 @@ impl GearEnv for GtestEnv {
     type MessageState = ReplyReceiver;
 }
 
-impl<T: CallEncodeDecode> PendingCall<GtestEnv, T> {
+impl<T: CallCodec> PendingCall<T, GtestEnv> {
     pub fn send_one_way(&mut self) -> Result<MessageId, GtestError> {
         if self.state.is_some() {
             panic!("{PENDING_CALL_INVALID_STATE}");
@@ -303,7 +303,7 @@ impl<T: CallEncodeDecode> PendingCall<GtestEnv, T> {
     }
 }
 
-impl<T: CallEncodeDecode> Future for PendingCall<GtestEnv, T> {
+impl<T: CallCodec> Future for PendingCall<T, GtestEnv> {
     type Output = Result<T::Reply, <GtestEnv as GearEnv>::Error>;
 
     fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
@@ -341,7 +341,7 @@ impl<T: CallEncodeDecode> Future for PendingCall<GtestEnv, T> {
     }
 }
 
-impl<A, T: CallEncodeDecode> PendingCtor<GtestEnv, A, T> {
+impl<A, T: CallCodec> PendingCtor<A, T, GtestEnv> {
     pub fn create_program(mut self) -> Result<Self, GtestError> {
         if self.state.is_some() {
             panic!("{PENDING_CTOR_INVALID_STATE}");
@@ -372,8 +372,8 @@ impl<A, T: CallEncodeDecode> PendingCtor<GtestEnv, A, T> {
     }
 }
 
-impl<A, T: CallEncodeDecode> Future for PendingCtor<GtestEnv, A, T> {
-    type Output = Result<Actor<GtestEnv, A>, <GtestEnv as GearEnv>::Error>;
+impl<A, T: CallCodec> Future for PendingCtor<A, T, GtestEnv> {
+    type Output = Result<Actor<A, GtestEnv>, <GtestEnv as GearEnv>::Error>;
 
     fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
         if self.state.is_none() {
@@ -436,7 +436,7 @@ impl Listener for GtestEnv {
     }
 }
 
-impl<T> Actor<GtestEnv, T> {
+impl<T> Actor<T, GtestEnv> {
     pub fn balance(&self) -> ValueUnit {
         self.env.system().balance_of(self.id)
     }

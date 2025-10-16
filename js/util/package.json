@@ -1,6 +1,6 @@
 {
   "name": "sails-js-util",
-  "version": "0.4.3",
+  "version": "0.5.1",
   "type": "module",
   "main": "lib/cjs/index.cjs",
   "module": "lib/index.js",
@@ -12,11 +12,11 @@
     }
   },
   "devDependencies": {
-    "sails-js-types": "^0.4.2"
+    "sails-js-types": "workspace:*"
   },
   "scripts": {
+    "prebuild": "rm -rf lib",
     "build": "npx rollup --config rollup.config.js",
-    "clean": "rm -rf lib",
-    "pack-build": "yarn pack --out ../sails-js-util.tgz"
+    "pack-build": "pnpm pack --out ../sails-js-util.tgz"
   }
 }

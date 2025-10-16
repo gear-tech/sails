@@ -34,10 +34,10 @@ impl<'ast> Visitor<'ast> for ServiceCtorGenerator<'_> {
     fn visit_service(&mut self, _service: &'ast Service) {
         let service_name_snake = &self.service_name.to_case(Case::Snake);
         quote_in!(self.trait_tokens =>
-            fn $service_name_snake(&self) -> $(self.sails_path)::client::Service<Self::Env, $service_name_snake::$(self.service_name)Impl>;
+            fn $service_name_snake(&self) -> $(self.sails_path)::client::Service<$service_name_snake::$(self.service_name)Impl, Self::Env>;
         );
         quote_in!(self.impl_tokens =>
-            fn $service_name_snake(&self) -> $(self.sails_path)::client::Service<Self::Env, $service_name_snake::$(self.service_name)Impl> {
+            fn $service_name_snake(&self) -> $(self.sails_path)::client::Service<$service_name_snake::$(self.service_name)Impl, Self::Env> {
                 self.service(stringify!($(self.service_name)))
             }
         );
@@ -80,7 +80,7 @@ impl<'a> ServiceGenerator<'a> {
 
                 pub struct $(self.service_name)Impl;
 
-                impl<E: $(self.sails_path)::client::GearEnv> $(self.service_name) for $(self.sails_path)::client::Service<E, $(self.service_name)Impl> {
+                impl<E: $(self.sails_path)::client::GearEnv> $(self.service_name) for $(self.sails_path)::client::Service<$(self.service_name)Impl, E> {
                     type Env = E;
                     $(self.impl_tokens)
                 }
@@ -123,11 +123,11 @@ impl<'ast> Visitor<'ast> for ServiceGenerator<'_> {
             };
         }
         quote_in! { self.trait_tokens =>
-            $['\r'] fn $fn_name_snake (&$mutability self, $params_with_types) -> $(self.sails_path)::client::PendingCall<Self::Env, io::$fn_name>;
+            $['\r'] fn $fn_name_snake (&$mutability self, $params_with_types) -> $(self.sails_path)::client::PendingCall<io::$fn_name, Self::Env>;
         };
 
         quote_in! {self.impl_tokens =>
-            $['\r'] fn $fn_name_snake (&$mutability self, $params_with_types) -> $(self.sails_path)::client::PendingCall<Self::Env, io::$fn_name> {
+            $['\r'] fn $fn_name_snake (&$mutability self, $params_with_types) -> $(self.sails_path)::client::PendingCall<io::$fn_name, Self::Env> {
                 self.pending_call($args)
             }
         };

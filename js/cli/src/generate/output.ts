@@ -1,13 +1,19 @@
 export class Output {
+  private _headers: string[] = [];
   private _rows: string[] = [];
   private _firstRows: string[] = [];
   private _indent = '';
   private _imports: Map<string, Set<string>>;
 
   constructor() {
+    this._headers = [];
     this._rows = [];
     this._firstRows = [];
     this._imports = new Map();
+  }
+
+  header(data: string) {
+    this._headers.push(data);
   }
 
   import(module_: string, import_: string) {
@@ -70,6 +76,9 @@ export class Output {
 
   finalize(): string | null {
     const result = [];
+
+    if (this._headers.length > 0) result.push(this._headers.join('\n'));
+
     const imports = [...this._imports].map(
       ([module_, imports_]) => `import { ${[...imports_].join(', ')} } from '${module_}';`,
     );

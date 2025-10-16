@@ -1,9 +1,11 @@
 // Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
 
 exports[`generator demo lib 1`] = `
-"import { GearApi, BaseGearProgram, HexString, decodeAddress } from '@gear-js/api';
+"/* eslint-disable */
+
+import { GearApi, BaseGearProgram, HexString } from '@gear-js/api';
 import { TypeRegistry } from '@polkadot/types';
-import { TransactionBuilder, throwOnErrorReply, getServiceNamePrefix, getFnNamePrefix, ZERO_ADDRESS, ActorId, NonZeroU32, H160, NonZeroU8 } from 'sails-js';
+import { TransactionBuilder, QueryBuilder, getServiceNamePrefix, getFnNamePrefix, ZERO_ADDRESS, ActorId, NonZeroU32, H160, NonZeroU8 } from 'sails-js';
 
 export class Program {
   public readonly registry: TypeRegistry;
@@ -13,7 +15,7 @@ export class Program {
   public readonly references: References;
   public readonly thisThat: ThisThat;
   public readonly valueFee: ValueFee;
-  private _program: BaseGearProgram;
+  private _program?: BaseGearProgram;
 
   constructor(public api: GearApi, programId?: \`0x\${string}\`) {
     const types: Record<string, any> = {
@@ -52,10 +54,10 @@ export class Program {
       this.api,
       this.registry,
       'upload_program',
-      undefined,
+      null,
       'Default',
-      undefined,
-      undefined,
+      null,
+      null,
       'String',
       code,
       async (programId) =>  {
@@ -73,10 +75,10 @@ export class Program {
       this.api,
       this.registry,
       'create_program',
-      undefined,
+      null,
       'Default',
-      undefined,
-      undefined,
+      null,
+      null,
       'String',
       codeId,
       async (programId) =>  {
@@ -93,7 +95,7 @@ export class Program {
       this.api,
       this.registry,
       'upload_program',
-      undefined,
+      null,
       'New',
       [counter, dog_position],
       '(Option<u32>, Option<(i32, i32)>)',
@@ -114,7 +116,7 @@ export class Program {
       this.api,
       this.registry,
       'create_program',
-      undefined,
+      null,
       'New',
       [counter, dog_position],
       '(Option<u32>, Option<(i32, i32)>)',
@@ -142,7 +144,7 @@ export class PingPong {
       input,
       'String',
       'Result<String, String>',
-      this._program.programId
+      this._program.programId,
     );
   }
 }
@@ -164,7 +166,7 @@ export class Counter {
       value,
       'u32',
       'u32',
-      this._program.programId
+      this._program.programId,
     );
   }
 
@@ -182,26 +184,24 @@ export class Counter {
       value,
       'u32',
       'u32',
-      this._program.programId
+      this._program.programId,
     );
   }
 
   /**
    * Get the current value
   */
-  public async value(originAddress?: string, value?: number | string | bigint, atBlock?: \`0x\${string}\`): Promise<number> {
-    const payload = this._program.registry.createType('(String, String)', ['Counter', 'Value']).toHex();
-    const reply = await this._program.api.message.calculateReply({
-      destination: this._program.programId,
-      origin: originAddress ? decodeAddress(originAddress) : ZERO_ADDRESS,
-      payload,
-      value: value || 0,
-      gasLimit: this._program.api.blockGasLimit.toBigInt(),
-      at: atBlock,
-    });
-    throwOnErrorReply(reply.code, reply.payload.toU8a(), this._program.api.specVersion, this._program.registry);
-    const result = this._program.registry.createType('(String, String, u32)', reply.payload);
-    return result[2].toNumber() as unknown as number;
+  public value(): QueryBuilder<number> {
+    return new QueryBuilder<number>(
+      this._program.api,
+      this._program.registry,
+      this._program.programId,
+      'Counter',
+      'Value',
+      null,
+      null,
+      'u32',
+    );
   }
 
   /**
@@ -248,10 +248,10 @@ export class Dog {
       'send_message',
       'Dog',
       'MakeSound',
-      undefined,
-      undefined,
+      null,
+      null,
       'String',
-      this._program.programId
+      this._program.programId,
     );
   }
 
@@ -266,38 +266,34 @@ export class Dog {
       [dx, dy],
       '(i32, i32)',
       'Null',
-      this._program.programId
+      this._program.programId,
     );
   }
 
-  public async avgWeight(originAddress?: string, value?: number | string | bigint, atBlock?: \`0x\${string}\`): Promise<number> {
-    const payload = this._program.registry.createType('(String, String)', ['Dog', 'AvgWeight']).toHex();
-    const reply = await this._program.api.message.calculateReply({
-      destination: this._program.programId,
-      origin: originAddress ? decodeAddress(originAddress) : ZERO_ADDRESS,
-      payload,
-      value: value || 0,
-      gasLimit: this._program.api.blockGasLimit.toBigInt(),
-      at: atBlock,
-    });
-    throwOnErrorReply(reply.code, reply.payload.toU8a(), this._program.api.specVersion, this._program.registry);
-    const result = this._program.registry.createType('(String, String, u32)', reply.payload);
-    return result[2].toNumber() as unknown as number;
+  public avgWeight(): QueryBuilder<number> {
+    return new QueryBuilder<number>(
+      this._program.api,
+      this._program.registry,
+      this._program.programId,
+      'Dog',
+      'AvgWeight',
+      null,
+      null,
+      'u32',
+    );
   }
 
-  public async position(originAddress?: string, value?: number | string | bigint, atBlock?: \`0x\${string}\`): Promise<[number, number]> {
-    const payload = this._program.registry.createType('(String, String)', ['Dog', 'Position']).toHex();
-    const reply = await this._program.api.message.calculateReply({
-      destination: this._program.programId,
-      origin: originAddress ? decodeAddress(originAddress) : ZERO_ADDRESS,
-      payload,
-      value: value || 0,
-      gasLimit: this._program.api.blockGasLimit.toBigInt(),
-      at: atBlock,
-    });
-    throwOnErrorReply(reply.code, reply.payload.toU8a(), this._program.api.specVersion, this._program.registry);
-    const result = this._program.registry.createType('(String, String, (i32, i32))', reply.payload);
-    return result[2].toJSON() as unknown as [number, number];
+  public position(): QueryBuilder<[number, number]> {
+    return new QueryBuilder<[number, number]>(
+      this._program.api,
+      this._program.registry,
+      this._program.programId,
+      'Dog',
+      'Position',
+      null,
+      null,
+      '(i32, i32)',
+    );
   }
 
   public subscribeToBarkedEvent(callback: (data: null) => void | Promise<void>): Promise<() => void> {
@@ -341,7 +337,7 @@ export class References {
       v,
       'u32',
       'u32',
-      this._program.programId
+      this._program.programId,
     );
   }
 
@@ -356,11 +352,11 @@ export class References {
       byte,
       'u8',
       'Vec<u8>',
-      this._program.programId
+      this._program.programId,
     );
   }
 
-  public guessNum(number: number): TransactionBuilder<{ ok: string } | { err: string }> {
+  public guessNum($number: number): TransactionBuilder<{ ok: string } | { err: string }> {
     if (!this._program.programId) throw new Error('Program ID is not set');
     return new TransactionBuilder<{ ok: string } | { err: string }>(
       this._program.api,
@@ -368,10 +364,10 @@ export class References {
       'send_message',
       'References',
       'GuessNum',
-      number,
+      $number,
       'u8',
       'Result<String, String>',
-      this._program.programId
+      this._program.programId,
     );
   }
 
@@ -383,14 +379,14 @@ export class References {
       'send_message',
       'References',
       'Incr',
-      undefined,
-      undefined,
+      null,
+      null,
       'ReferenceCount',
-      this._program.programId
+      this._program.programId,
     );
   }
 
-  public setNum(number: number): TransactionBuilder<{ ok: null } | { err: string }> {
+  public setNum($number: number): TransactionBuilder<{ ok: null } | { err: string }> {
     if (!this._program.programId) throw new Error('Program ID is not set');
     return new TransactionBuilder<{ ok: null } | { err: string }>(
       this._program.api,
@@ -398,56 +394,50 @@ export class References {
       'send_message',
       'References',
       'SetNum',
-      number,
+      $number,
       'u8',
       'Result<Null, String>',
-      this._program.programId
+      this._program.programId,
     );
   }
 
-  public async baked(originAddress?: string, value?: number | string | bigint, atBlock?: \`0x\${string}\`): Promise<string> {
-    const payload = this._program.registry.createType('(String, String)', ['References', 'Baked']).toHex();
-    const reply = await this._program.api.message.calculateReply({
-      destination: this._program.programId,
-      origin: originAddress ? decodeAddress(originAddress) : ZERO_ADDRESS,
-      payload,
-      value: value || 0,
-      gasLimit: this._program.api.blockGasLimit.toBigInt(),
-      at: atBlock,
-    });
-    throwOnErrorReply(reply.code, reply.payload.toU8a(), this._program.api.specVersion, this._program.registry);
-    const result = this._program.registry.createType('(String, String, String)', reply.payload);
-    return result[2].toString() as unknown as string;
+  public baked(): QueryBuilder<string> {
+    return new QueryBuilder<string>(
+      this._program.api,
+      this._program.registry,
+      this._program.programId,
+      'References',
+      'Baked',
+      null,
+      null,
+      'String',
+    );
   }
 
-  public async lastByte(originAddress?: string, value?: number | string | bigint, atBlock?: \`0x\${string}\`): Promise<number | null> {
-    const payload = this._program.registry.createType('(String, String)', ['References', 'LastByte']).toHex();
-    const reply = await this._program.api.message.calculateReply({
-      destination: this._program.programId,
-      origin: originAddress ? decodeAddress(originAddress) : ZERO_ADDRESS,
-      payload,
-      value: value || 0,
-      gasLimit: this._program.api.blockGasLimit.toBigInt(),
-      at: atBlock,
-    });
-    throwOnErrorReply(reply.code, reply.payload.toU8a(), this._program.api.specVersion, this._program.registry);
-    const result = this._program.registry.createType('(String, String, Option<u8>)', reply.payload);
-    return result[2].toJSON() as unknown as number | null;
+  public lastByte(): QueryBuilder<number | null> {
+    return new QueryBuilder<number | null>(
+      this._program.api,
+      this._program.registry,
+      this._program.programId,
+      'References',
+      'LastByte',
+      null,
+      null,
+      'Option<u8>',
+    );
   }
 
-  public async message(originAddress?: string, value?: number | string | bigint, atBlock?: \`0x\${string}\`): Promise<string | null> {
-    const payload = this._program.registry.createType('(String, String)', ['References', 'Message']).toHex();
-    const reply = await this._program.api.message.calculateReply({
-      destination: this._program.programId,
-      origin: originAddress ? decodeAddress(originAddress) : ZERO_ADDRESS,
-      payload,
-      value: value || 0,
-      gasLimit: this._program.api.blockGasLimit.toBigInt(),
-      at: atBlock,
-    });
-    throwOnErrorReply(reply.code, reply.payload.toU8a(), this._program.api.specVersion, this._program.registry);
-    const result = this._program.registry.createType('(String, String, Option<String>)', reply.payload);
-    return result[2].toJSON() as unknown as string | null;
+  public message(): QueryBuilder<string | null> {
+    return new QueryBuilder<string | null>(
+      this._program.api,
+      this._program.registry,
+      this._program.programId,
+      'References',
+      'Message',
+      null,
+      null,
+      'Option<String>',
+    );
   }
 }
 
@@ -465,7 +455,7 @@ export class ThisThat {
       param,
       'DoThatParam',
       'Result<([u8;32], u32, ManyVariantsReply), (String)>',
-      this._program.programId
+      this._program.programId,
     );
   }
 
@@ -480,7 +470,7 @@ export class ThisThat {
       [p1, p2, p3, p4],
       '(u32, String, (Option<H160>, u8), TupleStruct)',
       '(String, u32)',
-      this._program.programId
+      this._program.programId,
     );
   }
 
@@ -492,41 +482,37 @@ export class ThisThat {
       'send_message',
       'ThisThat',
       'Noop',
-      undefined,
-      undefined,
+      null,
+      null,
       'Null',
-      this._program.programId
+      this._program.programId,
     );
   }
 
-  public async that(originAddress?: string, value?: number | string | bigint, atBlock?: \`0x\${string}\`): Promise<{ ok: string } | { err: string }> {
-    const payload = this._program.registry.createType('(String, String)', ['ThisThat', 'That']).toHex();
-    const reply = await this._program.api.message.calculateReply({
-      destination: this._program.programId,
-      origin: originAddress ? decodeAddress(originAddress) : ZERO_ADDRESS,
-      payload,
-      value: value || 0,
-      gasLimit: this._program.api.blockGasLimit.toBigInt(),
-      at: atBlock,
-    });
-    throwOnErrorReply(reply.code, reply.payload.toU8a(), this._program.api.specVersion, this._program.registry);
-    const result = this._program.registry.createType('(String, String, Result<String, String>)', reply.payload);
-    return result[2].toJSON() as unknown as { ok: string } | { err: string };
+  public that(): QueryBuilder<{ ok: string } | { err: string }> {
+    return new QueryBuilder<{ ok: string } | { err: string }>(
+      this._program.api,
+      this._program.registry,
+      this._program.programId,
+      'ThisThat',
+      'That',
+      null,
+      null,
+      'Result<String, String>',
+    );
   }
 
-  public async this(originAddress?: string, value?: number | string | bigint, atBlock?: \`0x\${string}\`): Promise<number> {
-    const payload = this._program.registry.createType('(String, String)', ['ThisThat', 'This']).toHex();
-    const reply = await this._program.api.message.calculateReply({
-      destination: this._program.programId,
-      origin: originAddress ? decodeAddress(originAddress) : ZERO_ADDRESS,
-      payload,
-      value: value || 0,
-      gasLimit: this._program.api.blockGasLimit.toBigInt(),
-      at: atBlock,
-    });
-    throwOnErrorReply(reply.code, reply.payload.toU8a(), this._program.api.specVersion, this._program.registry);
-    const result = this._program.registry.createType('(String, String, u32)', reply.payload);
-    return result[2].toNumber() as unknown as number;
+  public this(): QueryBuilder<number> {
+    return new QueryBuilder<number>(
+      this._program.api,
+      this._program.registry,
+      this._program.programId,
+      'ThisThat',
+      'This',
+      null,
+      null,
+      'u32',
+    );
   }
 }
 
@@ -545,10 +531,10 @@ export class ValueFee {
       'send_message',
       'ValueFee',
       'DoSomethingAndTakeFee',
-      undefined,
-      undefined,
+      null,
+      null,
       'bool',
-      this._program.programId
+      this._program.programId,
     );
   }
 
@@ -591,4 +577,577 @@ declare global {
 
   export type TupleStruct = [boolean];
 };"
+`;
+
+exports[`generator demo lib with embedded types 1`] = `
+"/* eslint-disable */
+
+import { NonZeroU32, ActorId, H256, TransactionBuilder, QueryBuilder, getServiceNamePrefix, getFnNamePrefix, ZERO_ADDRESS, H160, NonZeroU8 } from 'sails-js';
+import { GearApi, BaseGearProgram, HexString } from '@gear-js/api';
+import { TypeRegistry } from '@polkadot/types';
+
+export type ReferenceCount = [number];
+
+export interface DoThatParam {
+  p1: NonZeroU32;
+  p2: ActorId;
+  p3: ManyVariants;
+}
+
+export type ManyVariants = 
+  | { One: null }
+  | { Two: number }
+  | { Three: number | string | bigint | null }
+  | { Four: { a: number; b: number | null } }
+  | { Five: [string, H256] }
+  | { Six: [number] };
+
+export type ManyVariantsReply = "One" | "Two" | "Three" | "Four" | "Five" | "Six";
+
+export type TupleStruct = [boolean];
+
+export class Program {
+  public readonly registry: TypeRegistry;
+  public readonly pingPong: PingPong;
+  public readonly counter: Counter;
+  public readonly dog: Dog;
+  public readonly references: References;
+  public readonly thisThat: ThisThat;
+  public readonly valueFee: ValueFee;
+  private _program?: BaseGearProgram;
+
+  constructor(public api: GearApi, programId?: \`0x\${string}\`) {
+    const types: Record<string, any> = {
+      ReferenceCount: "(u32)",
+      DoThatParam: {"p1":"u32","p2":"[u8;32]","p3":"ManyVariants"},
+      ManyVariants: {"_enum":{"One":"Null","Two":"u32","Three":"Option<U256>","Four":{"a":"u32","b":"Option<u16>"},"Five":"(String, H256)","Six":"(u32)"}},
+      ManyVariantsReply: {"_enum":["One","Two","Three","Four","Five","Six"]},
+      TupleStruct: "(bool)",
+    }
+
+    this.registry = new TypeRegistry();
+    this.registry.setKnownTypes({ types });
+    this.registry.register(types);
+    if (programId) {
+      this._program = new BaseGearProgram(programId, api);
+    }
+
+    this.pingPong = new PingPong(this);
+    this.counter = new Counter(this);
+    this.dog = new Dog(this);
+    this.references = new References(this);
+    this.thisThat = new ThisThat(this);
+    this.valueFee = new ValueFee(this);
+  }
+
+  public get programId(): \`0x\${string}\` {
+    if (!this._program) throw new Error(\`Program ID is not set\`);
+    return this._program.id;
+  }
+
+  /**
+   * Program constructor (called once at the very beginning of the program lifetime)
+  */
+  defaultCtorFromCode(code: Uint8Array | Buffer | HexString): TransactionBuilder<null> {
+    const builder = new TransactionBuilder<null>(
+      this.api,
+      this.registry,
+      'upload_program',
+      null,
+      'Default',
+      null,
+      null,
+      'String',
+      code,
+      async (programId) =>  {
+        this._program = await BaseGearProgram.new(programId, this.api);
+      }
+    );
+    return builder;
+  }
+
+  /**
+   * Program constructor (called once at the very beginning of the program lifetime)
+  */
+  defaultCtorFromCodeId(codeId: \`0x\${string}\`) {
+    const builder = new TransactionBuilder<null>(
+      this.api,
+      this.registry,
+      'create_program',
+      null,
+      'Default',
+      null,
+      null,
+      'String',
+      codeId,
+      async (programId) =>  {
+        this._program = await BaseGearProgram.new(programId, this.api);
+      }
+    );
+    return builder;
+  }
+  /**
+   * Another program constructor (called once at the very beginning of the program lifetime)
+  */
+  newCtorFromCode(code: Uint8Array | Buffer | HexString, counter: number | null, dog_position: [number, number] | null): TransactionBuilder<null> {
+    const builder = new TransactionBuilder<null>(
+      this.api,
+      this.registry,
+      'upload_program',
+      null,
+      'New',
+      [counter, dog_position],
+      '(Option<u32>, Option<(i32, i32)>)',
+      'String',
+      code,
+      async (programId) =>  {
+        this._program = await BaseGearProgram.new(programId, this.api);
+      }
+    );
+    return builder;
+  }
+
+  /**
+   * Another program constructor (called once at the very beginning of the program lifetime)
+  */
+  newCtorFromCodeId(codeId: \`0x\${string}\`, counter: number | null, dog_position: [number, number] | null) {
+    const builder = new TransactionBuilder<null>(
+      this.api,
+      this.registry,
+      'create_program',
+      null,
+      'New',
+      [counter, dog_position],
+      '(Option<u32>, Option<(i32, i32)>)',
+      'String',
+      codeId,
+      async (programId) =>  {
+        this._program = await BaseGearProgram.new(programId, this.api);
+      }
+    );
+    return builder;
+  }
+}
+
+export class PingPong {
+  constructor(private _program: Program) {}
+
+  public ping(input: string): TransactionBuilder<{ ok: string } | { err: string }> {
+    if (!this._program.programId) throw new Error('Program ID is not set');
+    return new TransactionBuilder<{ ok: string } | { err: string }>(
+      this._program.api,
+      this._program.registry,
+      'send_message',
+      'PingPong',
+      'Ping',
+      input,
+      'String',
+      'Result<String, String>',
+      this._program.programId,
+    );
+  }
+}
+
+export class Counter {
+  constructor(private _program: Program) {}
+
+  /**
+   * Add a value to the counter
+  */
+  public add(value: number): TransactionBuilder<number> {
+    if (!this._program.programId) throw new Error('Program ID is not set');
+    return new TransactionBuilder<number>(
+      this._program.api,
+      this._program.registry,
+      'send_message',
+      'Counter',
+      'Add',
+      value,
+      'u32',
+      'u32',
+      this._program.programId,
+    );
+  }
+
+  /**
+   * Substract a value from the counter
+  */
+  public sub(value: number): TransactionBuilder<number> {
+    if (!this._program.programId) throw new Error('Program ID is not set');
+    return new TransactionBuilder<number>(
+      this._program.api,
+      this._program.registry,
+      'send_message',
+      'Counter',
+      'Sub',
+      value,
+      'u32',
+      'u32',
+      this._program.programId,
+    );
+  }
+
+  /**
+   * Get the current value
+  */
+  public value(): QueryBuilder<number> {
+    return new QueryBuilder<number>(
+      this._program.api,
+      this._program.registry,
+      this._program.programId,
+      'Counter',
+      'Value',
+      null,
+      null,
+      'u32',
+    );
+  }
+
+  /**
+   * Emitted when a new value is added to the counter
+  */
+  public subscribeToAddedEvent(callback: (data: number) => void | Promise<void>): Promise<() => void> {
+    return this._program.api.gearEvents.subscribeToGearEvent('UserMessageSent', ({ data: { message } }) => {;
+      if (!message.source.eq(this._program.programId) || !message.destination.eq(ZERO_ADDRESS)) {
+        return;
+      }
+
+      const payload = message.payload.toHex();
+      if (getServiceNamePrefix(payload) === 'Counter' && getFnNamePrefix(payload) === 'Added') {
+        callback(this._program.registry.createType('(String, String, u32)', message.payload)[2].toNumber() as unknown as number);
+      }
+    });
+  }
+
+  /**
+   * Emitted when a value is subtracted from the counter
+  */
+  public subscribeToSubtractedEvent(callback: (data: number) => void | Promise<void>): Promise<() => void> {
+    return this._program.api.gearEvents.subscribeToGearEvent('UserMessageSent', ({ data: { message } }) => {;
+      if (!message.source.eq(this._program.programId) || !message.destination.eq(ZERO_ADDRESS)) {
+        return;
+      }
+
+      const payload = message.payload.toHex();
+      if (getServiceNamePrefix(payload) === 'Counter' && getFnNamePrefix(payload) === 'Subtracted') {
+        callback(this._program.registry.createType('(String, String, u32)', message.payload)[2].toNumber() as unknown as number);
+      }
+    });
+  }
+}
+
+export class Dog {
+  constructor(private _program: Program) {}
+
+  public makeSound(): TransactionBuilder<string> {
+    if (!this._program.programId) throw new Error('Program ID is not set');
+    return new TransactionBuilder<string>(
+      this._program.api,
+      this._program.registry,
+      'send_message',
+      'Dog',
+      'MakeSound',
+      null,
+      null,
+      'String',
+      this._program.programId,
+    );
+  }
+
+  public walk(dx: number, dy: number): TransactionBuilder<null> {
+    if (!this._program.programId) throw new Error('Program ID is not set');
+    return new TransactionBuilder<null>(
+      this._program.api,
+      this._program.registry,
+      'send_message',
+      'Dog',
+      'Walk',
+      [dx, dy],
+      '(i32, i32)',
+      'Null',
+      this._program.programId,
+    );
+  }
+
+  public avgWeight(): QueryBuilder<number> {
+    return new QueryBuilder<number>(
+      this._program.api,
+      this._program.registry,
+      this._program.programId,
+      'Dog',
+      'AvgWeight',
+      null,
+      null,
+      'u32',
+    );
+  }
+
+  public position(): QueryBuilder<[number, number]> {
+    return new QueryBuilder<[number, number]>(
+      this._program.api,
+      this._program.registry,
+      this._program.programId,
+      'Dog',
+      'Position',
+      null,
+      null,
+      '(i32, i32)',
+    );
+  }
+
+  public subscribeToBarkedEvent(callback: (data: null) => void | Promise<void>): Promise<() => void> {
+    return this._program.api.gearEvents.subscribeToGearEvent('UserMessageSent', ({ data: { message } }) => {;
+      if (!message.source.eq(this._program.programId) || !message.destination.eq(ZERO_ADDRESS)) {
+        return;
+      }
+
+      const payload = message.payload.toHex();
+      if (getServiceNamePrefix(payload) === 'Dog' && getFnNamePrefix(payload) === 'Barked') {
+        callback(null);
+      }
+    });
+  }
+
+  public subscribeToWalkedEvent(callback: (data: { from: [number, number]; to: [number, number] }) => void | Promise<void>): Promise<() => void> {
+    return this._program.api.gearEvents.subscribeToGearEvent('UserMessageSent', ({ data: { message } }) => {;
+      if (!message.source.eq(this._program.programId) || !message.destination.eq(ZERO_ADDRESS)) {
+        return;
+      }
+
+      const payload = message.payload.toHex();
+      if (getServiceNamePrefix(payload) === 'Dog' && getFnNamePrefix(payload) === 'Walked') {
+        callback(this._program.registry.createType('(String, String, {"from":"(i32, i32)","to":"(i32, i32)"})', message.payload)[2].toJSON() as unknown as { from: [number, number]; to: [number, number] });
+      }
+    });
+  }
+}
+
+export class References {
+  constructor(private _program: Program) {}
+
+  public add(v: number): TransactionBuilder<number> {
+    if (!this._program.programId) throw new Error('Program ID is not set');
+    return new TransactionBuilder<number>(
+      this._program.api,
+      this._program.registry,
+      'send_message',
+      'References',
+      'Add',
+      v,
+      'u32',
+      'u32',
+      this._program.programId,
+    );
+  }
+
+  public addByte(byte: number): TransactionBuilder<\`0x\${string}\`> {
+    if (!this._program.programId) throw new Error('Program ID is not set');
+    return new TransactionBuilder<\`0x\${string}\`>(
+      this._program.api,
+      this._program.registry,
+      'send_message',
+      'References',
+      'AddByte',
+      byte,
+      'u8',
+      'Vec<u8>',
+      this._program.programId,
+    );
+  }
+
+  public guessNum($number: number): TransactionBuilder<{ ok: string } | { err: string }> {
+    if (!this._program.programId) throw new Error('Program ID is not set');
+    return new TransactionBuilder<{ ok: string } | { err: string }>(
+      this._program.api,
+      this._program.registry,
+      'send_message',
+      'References',
+      'GuessNum',
+      $number,
+      'u8',
+      'Result<String, String>',
+      this._program.programId,
+    );
+  }
+
+  public incr(): TransactionBuilder<ReferenceCount> {
+    if (!this._program.programId) throw new Error('Program ID is not set');
+    return new TransactionBuilder<ReferenceCount>(
+      this._program.api,
+      this._program.registry,
+      'send_message',
+      'References',
+      'Incr',
+      null,
+      null,
+      'ReferenceCount',
+      this._program.programId,
+    );
+  }
+
+  public setNum($number: number): TransactionBuilder<{ ok: null } | { err: string }> {
+    if (!this._program.programId) throw new Error('Program ID is not set');
+    return new TransactionBuilder<{ ok: null } | { err: string }>(
+      this._program.api,
+      this._program.registry,
+      'send_message',
+      'References',
+      'SetNum',
+      $number,
+      'u8',
+      'Result<Null, String>',
+      this._program.programId,
+    );
+  }
+
+  public baked(): QueryBuilder<string> {
+    return new QueryBuilder<string>(
+      this._program.api,
+      this._program.registry,
+      this._program.programId,
+      'References',
+      'Baked',
+      null,
+      null,
+      'String',
+    );
+  }
+
+  public lastByte(): QueryBuilder<number | null> {
+    return new QueryBuilder<number | null>(
+      this._program.api,
+      this._program.registry,
+      this._program.programId,
+      'References',
+      'LastByte',
+      null,
+      null,
+      'Option<u8>',
+    );
+  }
+
+  public message(): QueryBuilder<string | null> {
+    return new QueryBuilder<string | null>(
+      this._program.api,
+      this._program.registry,
+      this._program.programId,
+      'References',
+      'Message',
+      null,
+      null,
+      'Option<String>',
+    );
+  }
+}
+
+export class ThisThat {
+  constructor(private _program: Program) {}
+
+  public doThat(param: DoThatParam): TransactionBuilder<{ ok: [ActorId, NonZeroU32, ManyVariantsReply] } | { err: [string] }> {
+    if (!this._program.programId) throw new Error('Program ID is not set');
+    return new TransactionBuilder<{ ok: [ActorId, NonZeroU32, ManyVariantsReply] } | { err: [string] }>(
+      this._program.api,
+      this._program.registry,
+      'send_message',
+      'ThisThat',
+      'DoThat',
+      param,
+      'DoThatParam',
+      'Result<([u8;32], u32, ManyVariantsReply), (String)>',
+      this._program.programId,
+    );
+  }
+
+  public doThis(p1: number, p2: string, p3: [H160 | null, NonZeroU8], p4: TupleStruct): TransactionBuilder<[string, number]> {
+    if (!this._program.programId) throw new Error('Program ID is not set');
+    return new TransactionBuilder<[string, number]>(
+      this._program.api,
+      this._program.registry,
+      'send_message',
+      'ThisThat',
+      'DoThis',
+      [p1, p2, p3, p4],
+      '(u32, String, (Option<H160>, u8), TupleStruct)',
+      '(String, u32)',
+      this._program.programId,
+    );
+  }
+
+  public noop(): TransactionBuilder<null> {
+    if (!this._program.programId) throw new Error('Program ID is not set');
+    return new TransactionBuilder<null>(
+      this._program.api,
+      this._program.registry,
+      'send_message',
+      'ThisThat',
+      'Noop',
+      null,
+      null,
+      'Null',
+      this._program.programId,
+    );
+  }
+
+  public that(): QueryBuilder<{ ok: string } | { err: string }> {
+    return new QueryBuilder<{ ok: string } | { err: string }>(
+      this._program.api,
+      this._program.registry,
+      this._program.programId,
+      'ThisThat',
+      'That',
+      null,
+      null,
+      'Result<String, String>',
+    );
+  }
+
+  public this(): QueryBuilder<number> {
+    return new QueryBuilder<number>(
+      this._program.api,
+      this._program.registry,
+      this._program.programId,
+      'ThisThat',
+      'This',
+      null,
+      null,
+      'u32',
+    );
+  }
+}
+
+export class ValueFee {
+  constructor(private _program: Program) {}
+
+  /**
+   * Return flag if fee taken and remain value,
+   * using special type \`CommandReply<T>\`
+  */
+  public doSomethingAndTakeFee(): TransactionBuilder<boolean> {
+    if (!this._program.programId) throw new Error('Program ID is not set');
+    return new TransactionBuilder<boolean>(
+      this._program.api,
+      this._program.registry,
+      'send_message',
+      'ValueFee',
+      'DoSomethingAndTakeFee',
+      null,
+      null,
+      'bool',
+      this._program.programId,
+    );
+  }
+
+  public subscribeToWithheldEvent(callback: (data: bigint) => void | Promise<void>): Promise<() => void> {
+    return this._program.api.gearEvents.subscribeToGearEvent('UserMessageSent', ({ data: { message } }) => {;
+      if (!message.source.eq(this._program.programId) || !message.destination.eq(ZERO_ADDRESS)) {
+        return;
+      }
+
+      const payload = message.payload.toHex();
+      if (getServiceNamePrefix(payload) === 'ValueFee' && getFnNamePrefix(payload) === 'Withheld') {
+        callback(this._program.registry.createType('(String, String, u128)', message.payload)[2].toBigInt() as unknown as bigint);
+      }
+    });
+  }
+}"
 `;

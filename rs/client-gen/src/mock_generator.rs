@@ -49,7 +49,7 @@ impl<'ast> Visitor<'ast> for MockGenerator<'_> {
         let params_with_types = &fn_args_with_types(func.params());
 
         quote_in! { self.tokens =>
-            fn $fn_name_snake (&$mutability self, $params_with_types) -> $(self.sails_path)::client::PendingCall<$(self.sails_path)::client::GstdEnv, $service_name_snake::io::$fn_name>;
+            fn $fn_name_snake (&$mutability self, $params_with_types) -> $(self.sails_path)::client::PendingCall<$service_name_snake::io::$fn_name, $(self.sails_path)::client::GstdEnv>;
         };
     }
 }

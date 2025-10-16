@@ -7,15 +7,15 @@ pub trait ComputeStressProgram {
     type Env: sails_rs::client::GearEnv;
     fn compute_stress(
         &self,
-    ) -> sails_rs::client::Service<Self::Env, compute_stress::ComputeStressImpl>;
+    ) -> sails_rs::client::Service<compute_stress::ComputeStressImpl, Self::Env>;
 }
 impl<E: sails_rs::client::GearEnv> ComputeStressProgram
-    for sails_rs::client::Actor<E, ComputeStressProgramProgram>
+    for sails_rs::client::Actor<ComputeStressProgramProgram, E>
 {
     type Env = E;
     fn compute_stress(
         &self,
-    ) -> sails_rs::client::Service<Self::Env, compute_stress::ComputeStressImpl> {
+    ) -> sails_rs::client::Service<compute_stress::ComputeStressImpl, Self::Env> {
         self.service(stringify!(ComputeStress))
     }
 }
@@ -23,15 +23,15 @@ pub trait ComputeStressProgramCtors {
     type Env: sails_rs::client::GearEnv;
     fn new_for_bench(
         self,
-    ) -> sails_rs::client::PendingCtor<Self::Env, ComputeStressProgramProgram, io::NewForBench>;
+    ) -> sails_rs::client::PendingCtor<ComputeStressProgramProgram, io::NewForBench, Self::Env>;
 }
 impl<E: sails_rs::client::GearEnv> ComputeStressProgramCtors
-    for sails_rs::client::Deployment<E, ComputeStressProgramProgram>
+    for sails_rs::client::Deployment<ComputeStressProgramProgram, E>
 {
     type Env = E;
     fn new_for_bench(
         self,
-    ) -> sails_rs::client::PendingCtor<Self::Env, ComputeStressProgramProgram, io::NewForBench>
+    ) -> sails_rs::client::PendingCtor<ComputeStressProgramProgram, io::NewForBench, Self::Env>
     {
         self.pending_ctor(())
     }
@@ -49,17 +49,17 @@ pub mod compute_stress {
         fn compute_stress(
             &mut self,
             n: u32,
-        ) -> sails_rs::client::PendingCall<Self::Env, io::ComputeStress>;
+        ) -> sails_rs::client::PendingCall<io::ComputeStress, Self::Env>;
     }
     pub struct ComputeStressImpl;
     impl<E: sails_rs::client::GearEnv> ComputeStress
-        for sails_rs::client::Service<E, ComputeStressImpl>
+        for sails_rs::client::Service<ComputeStressImpl, E>
     {
         type Env = E;
         fn compute_stress(
             &mut self,
             n: u32,
-        ) -> sails_rs::client::PendingCall<Self::Env, io::ComputeStress> {
+        ) -> sails_rs::client::PendingCall<io::ComputeStress, Self::Env> {
             self.pending_call((n,))
         }
     }

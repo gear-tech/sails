@@ -6,18 +6,18 @@ impl sails_rs::client::Program for NoSvcsProgProgram {}
 pub trait NoSvcsProg {
     type Env: sails_rs::client::GearEnv;
 }
-impl<E: sails_rs::client::GearEnv> NoSvcsProg for sails_rs::client::Actor<E, NoSvcsProgProgram> {
+impl<E: sails_rs::client::GearEnv> NoSvcsProg for sails_rs::client::Actor<NoSvcsProgProgram, E> {
     type Env = E;
 }
 pub trait NoSvcsProgCtors {
     type Env: sails_rs::client::GearEnv;
-    fn create(self) -> sails_rs::client::PendingCtor<Self::Env, NoSvcsProgProgram, io::Create>;
+    fn create(self) -> sails_rs::client::PendingCtor<NoSvcsProgProgram, io::Create, Self::Env>;
 }
 impl<E: sails_rs::client::GearEnv> NoSvcsProgCtors
-    for sails_rs::client::Deployment<E, NoSvcsProgProgram>
+    for sails_rs::client::Deployment<NoSvcsProgProgram, E>
 {
     type Env = E;
-    fn create(self) -> sails_rs::client::PendingCtor<Self::Env, NoSvcsProgProgram, io::Create> {
+    fn create(self) -> sails_rs::client::PendingCtor<NoSvcsProgProgram, io::Create, Self::Env> {
         self.pending_ctor(())
     }
 }

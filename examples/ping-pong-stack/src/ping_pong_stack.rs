@@ -7,15 +7,15 @@ pub trait PingPongStack {
     type Env: sails_rs::client::GearEnv;
     fn ping_pong_stack(
         &self,
-    ) -> sails_rs::client::Service<Self::Env, ping_pong_stack::PingPongStackImpl>;
+    ) -> sails_rs::client::Service<ping_pong_stack::PingPongStackImpl, Self::Env>;
 }
 impl<E: sails_rs::client::GearEnv> PingPongStack
-    for sails_rs::client::Actor<E, PingPongStackProgram>
+    for sails_rs::client::Actor<PingPongStackProgram, E>
 {
     type Env = E;
     fn ping_pong_stack(
         &self,
-    ) -> sails_rs::client::Service<Self::Env, ping_pong_stack::PingPongStackImpl> {
+    ) -> sails_rs::client::Service<ping_pong_stack::PingPongStackImpl, Self::Env> {
         self.service(stringify!(PingPongStack))
     }
 }
@@ -24,24 +24,24 @@ pub trait PingPongStackCtors {
     fn create_ping(
         self,
         code_id: CodeId,
-    ) -> sails_rs::client::PendingCtor<Self::Env, PingPongStackProgram, io::CreatePing>;
+    ) -> sails_rs::client::PendingCtor<PingPongStackProgram, io::CreatePing, Self::Env>;
     fn create_pong(
         self,
-    ) -> sails_rs::client::PendingCtor<Self::Env, PingPongStackProgram, io::CreatePong>;
+    ) -> sails_rs::client::PendingCtor<PingPongStackProgram, io::CreatePong, Self::Env>;
 }
 impl<E: sails_rs::client::GearEnv> PingPongStackCtors
-    for sails_rs::client::Deployment<E, PingPongStackProgram>
+    for sails_rs::client::Deployment<PingPongStackProgram, E>
 {
     type Env = E;
     fn create_ping(
         self,
         code_id: CodeId,
-    ) -> sails_rs::client::PendingCtor<Self::Env, PingPongStackProgram, io::CreatePing> {
+    ) -> sails_rs::client::PendingCtor<PingPongStackProgram, io::CreatePing, Self::Env> {
         self.pending_ctor((code_id,))
     }
     fn create_pong(
         self,
-    ) -> sails_rs::client::PendingCtor<Self::Env, PingPongStackProgram, io::CreatePong> {
+    ) -> sails_rs::client::PendingCtor<PingPongStackProgram, io::CreatePong, Self::Env> {
         self.pending_ctor(())
     }
 }
@@ -56,18 +56,18 @@ pub mod ping_pong_stack {
     use super::*;
     pub trait PingPongStack {
         type Env: sails_rs::client::GearEnv;
-        fn start(&mut self, limit: u32) -> sails_rs::client::PendingCall<Self::Env, io::Start>;
-        fn ping(&mut self, countdown: u32) -> sails_rs::client::PendingCall<Self::Env, io::Ping>;
+        fn start(&mut self, limit: u32) -> sails_rs::client::PendingCall<io::Start, Self::Env>;
+        fn ping(&mut self, countdown: u32) -> sails_rs::client::PendingCall<io::Ping, Self::Env>;
     }
     pub struct PingPongStackImpl;
     impl<E: sails_rs::client::GearEnv> PingPongStack
-        for sails_rs::client::Service<E, PingPongStackImpl>
+        for sails_rs::client::Service<PingPongStackImpl, E>
     {
         type Env = E;
-        fn start(&mut self, limit: u32) -> sails_rs::client::PendingCall<Self::Env, io::Start> {
+        fn start(&mut self, limit: u32) -> sails_rs::client::PendingCall<io::Start, Self::Env> {
             self.pending_call((limit,))
         }
-        fn ping(&mut self, countdown: u32) -> sails_rs::client::PendingCall<Self::Env, io::Ping> {
+        fn ping(&mut self, countdown: u32) -> sails_rs::client::PendingCall<io::Ping, Self::Env> {
             self.pending_call((countdown,))
         }
     }
