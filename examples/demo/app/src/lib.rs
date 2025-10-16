@@ -95,7 +95,7 @@ impl DemoProgram {
     }
 
     pub fn chaos(&self) -> chaos::ChaosService {
-        chaos::ChaosService::default()
+        chaos::ChaosService
     }
 }
 

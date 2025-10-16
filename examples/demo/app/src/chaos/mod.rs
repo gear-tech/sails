@@ -1,7 +1,6 @@
 use sails_rs::gstd::debug;
 use sails_rs::{gstd, prelude::*};
 
-#[derive(Default)]
 pub struct ChaosService;
 
 #[service]
