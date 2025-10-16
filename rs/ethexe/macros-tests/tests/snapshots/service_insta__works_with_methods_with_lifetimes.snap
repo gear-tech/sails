@@ -187,14 +187,14 @@ impl ReferenceServiceExposure<ReferenceService> {
     ) -> Option<(sails_rs::Vec<u8>, u128, bool)> {
         use sails_rs::gstd::services::{Service, Exposure};
         if method == &[28u8, 65u8, 100u8, 100u8, 66u8, 121u8, 116u8, 101u8] {
-            let (_, _encode_reply, byte): (u128, bool, u8) = sails_rs::alloy_sol_types::SolValue::abi_decode_params(
+            let (__encode_reply, byte): (bool, u8) = sails_rs::alloy_sol_types::SolValue::abi_decode_params(
                     input,
                     false,
                 )
                 .ok()?;
             let result = self.add_byte(byte);
             let value = 0u128;
-            let output = if _encode_reply {
+            let output = if __encode_reply {
                 let message_id = sails_rs::alloy_primitives::B256::new(
                     sails_rs::gstd::Syscall::message_id().into_bytes(),
                 );
@@ -204,17 +204,17 @@ impl ReferenceServiceExposure<ReferenceService> {
             } else {
                 sails_rs::alloy_sol_types::SolValue::abi_encode_sequence(&(result,))
             };
-            return Some((output, value, _encode_reply));
+            return Some((output, value, __encode_reply));
         }
         if method == &[20u8, 66u8, 97u8, 107u8, 101u8, 100u8] {
-            let (_, _encode_reply): (u128, bool) = sails_rs::alloy_sol_types::SolValue::abi_decode_params(
+            let (__encode_reply,): (bool,) = sails_rs::alloy_sol_types::SolValue::abi_decode_params(
                     input,
                     false,
                 )
                 .ok()?;
             let result = self.baked();
             let value = 0u128;
-            let output = if _encode_reply {
+            let output = if __encode_reply {
                 let message_id = sails_rs::alloy_primitives::B256::new(
                     sails_rs::gstd::Syscall::message_id().into_bytes(),
                 );
@@ -224,17 +224,17 @@ impl ReferenceServiceExposure<ReferenceService> {
             } else {
                 sails_rs::alloy_sol_types::SolValue::abi_encode_sequence(&(result,))
             };
-            return Some((output, value, _encode_reply));
+            return Some((output, value, __encode_reply));
         }
         if method == &[16u8, 73u8, 110u8, 99u8, 114u8] {
-            let (_, _encode_reply): (u128, bool) = sails_rs::alloy_sol_types::SolValue::abi_decode_params(
+            let (__encode_reply,): (bool,) = sails_rs::alloy_sol_types::SolValue::abi_decode_params(
                     input,
                     false,
                 )
                 .ok()?;
             let result = self.incr();
             let value = 0u128;
-            let output = if _encode_reply {
+            let output = if __encode_reply {
                 let message_id = sails_rs::alloy_primitives::B256::new(
                     sails_rs::gstd::Syscall::message_id().into_bytes(),
                 );
@@ -244,7 +244,7 @@ impl ReferenceServiceExposure<ReferenceService> {
             } else {
                 sails_rs::alloy_sol_types::SolValue::abi_encode_sequence(&(result,))
             };
-            return Some((output, value, _encode_reply));
+            return Some((output, value, __encode_reply));
         }
         None
     }
@@ -256,14 +256,14 @@ impl ReferenceServiceExposure<ReferenceService> {
         use sails_rs::gstd::services::{Service, Exposure};
         if method == &[36u8, 70u8, 105u8, 114u8, 115u8, 116u8, 66u8, 121u8, 116u8, 101u8]
         {
-            let (_, _encode_reply): (u128, bool) = sails_rs::alloy_sol_types::SolValue::abi_decode_params(
+            let (__encode_reply,): (bool,) = sails_rs::alloy_sol_types::SolValue::abi_decode_params(
                     input,
                     false,
                 )
                 .ok()?;
             let result = self.first_byte().await;
             let value = 0u128;
-            let output = if _encode_reply {
+            let output = if __encode_reply {
                 let message_id = sails_rs::alloy_primitives::B256::new(
                     sails_rs::gstd::Syscall::message_id().into_bytes(),
                 );
@@ -273,17 +273,17 @@ impl ReferenceServiceExposure<ReferenceService> {
             } else {
                 sails_rs::alloy_sol_types::SolValue::abi_encode_sequence(&(result,))
             };
-            return Some((output, value, _encode_reply));
+            return Some((output, value, __encode_reply));
         }
         if method == &[32u8, 76u8, 97u8, 115u8, 116u8, 66u8, 121u8, 116u8, 101u8] {
-            let (_, _encode_reply): (u128, bool) = sails_rs::alloy_sol_types::SolValue::abi_decode_params(
+            let (__encode_reply,): (bool,) = sails_rs::alloy_sol_types::SolValue::abi_decode_params(
                     input,
                     false,
                 )
                 .ok()?;
             let result = self.last_byte().await;
             let value = 0u128;
-            let output = if _encode_reply {
+            let output = if __encode_reply {
                 let message_id = sails_rs::alloy_primitives::B256::new(
                     sails_rs::gstd::Syscall::message_id().into_bytes(),
                 );
@@ -293,7 +293,7 @@ impl ReferenceServiceExposure<ReferenceService> {
             } else {
                 sails_rs::alloy_sol_types::SolValue::abi_encode_sequence(&(result,))
             };
-            return Some((output, value, _encode_reply));
+            return Some((output, value, __encode_reply));
         }
         None
     }
@@ -395,7 +395,6 @@ impl sails_rs::solidity::ServiceSignature for ReferenceService {
             &[28u8, 65u8, 100u8, 100u8, 66u8, 121u8, 116u8, 101u8] as &[u8],
             "AddByte",
             <<(
-                u128,
                 bool,
                 u8,
             ) as sails_rs::alloy_sol_types::SolValue>::SolType as sails_rs::alloy_sol_types::SolType>::SOL_NAME,
@@ -408,7 +407,6 @@ impl sails_rs::solidity::ServiceSignature for ReferenceService {
             &[20u8, 66u8, 97u8, 107u8, 101u8, 100u8] as &[u8],
             "Baked",
             <<(
-                u128,
                 bool,
             ) as sails_rs::alloy_sol_types::SolValue>::SolType as sails_rs::alloy_sol_types::SolType>::SOL_NAME,
             <<(
@@ -421,7 +419,6 @@ impl sails_rs::solidity::ServiceSignature for ReferenceService {
                 as &[u8],
             "FirstByte",
             <<(
-                u128,
                 bool,
             ) as sails_rs::alloy_sol_types::SolValue>::SolType as sails_rs::alloy_sol_types::SolType>::SOL_NAME,
             <<(
@@ -433,7 +430,6 @@ impl sails_rs::solidity::ServiceSignature for ReferenceService {
             &[16u8, 73u8, 110u8, 99u8, 114u8] as &[u8],
             "Incr",
             <<(
-                u128,
                 bool,
             ) as sails_rs::alloy_sol_types::SolValue>::SolType as sails_rs::alloy_sol_types::SolType>::SOL_NAME,
             <<(
@@ -445,7 +441,6 @@ impl sails_rs::solidity::ServiceSignature for ReferenceService {
             &[32u8, 76u8, 97u8, 115u8, 116u8, 66u8, 121u8, 116u8, 101u8] as &[u8],
             "LastByte",
             <<(
-                u128,
                 bool,
             ) as sails_rs::alloy_sol_types::SolValue>::SolType as sails_rs::alloy_sol_types::SolType>::SOL_NAME,
             <<(

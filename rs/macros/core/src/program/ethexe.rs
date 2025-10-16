@@ -9,7 +9,7 @@ impl ProgramBuilder {
     ///     const CTORS: &'static [sails_rs::solidity::MethodExpo] = &[(    
     ///         &[28u8, 68u8, 101u8, 102u8, 97u8, 117u8, 108u8, 116u8] as &[u8],
     ///         "default",
-    ///         <<(u128) as sails_rs::alloy_sol_types::SolValue>::SolType as sails_rs::alloy_sol_types::SolType>::SOL_NAME,
+    ///         <<(bool) as sails_rs::alloy_sol_types::SolValue>::SolType as sails_rs::alloy_sol_types::SolType>::SOL_NAME,
     ///         <<() as sails_rs::alloy_sol_types::SolValue>::SolType as sails_rs::alloy_sol_types::SolType>::SOL_NAME,
     ///     ),];
     /// const SERVICES: &'static [sails_rs::solidity::ServiceExpo] = &[
@@ -156,8 +156,8 @@ impl FnBuilder<'_> {
         let handler_types = self.params_types();
         let (result_type, _) = self.result_type_with_value();
 
-        // add `uint128` to method signature as first parameter and `bool` as encode reply
-        let handler_types = quote! { u128, bool, #(#handler_types,)* };
+        // add `bool` to method signature as first parameter as encode reply
+        let handler_types = quote! { bool, #(#handler_types,)* };
 
         // add MessageId (alloy_primitives::B256) to callback signature as first parameter
         let callback_types = if is_service {
@@ -206,9 +206,9 @@ impl FnBuilder<'_> {
         // read uint128 as first parameter
         quote! {
             if ctor == &[ #(#handler_route_bytes),* ] {
-                let (_, _encode_reply, #(#handler_params,)*) : (u128, bool, #(#handler_types,)*) = #sails_path::alloy_sol_types::SolValue::abi_decode_params(input, false).expect("Failed to decode request");
+                let (__encode_reply, #(#handler_params,)*) : (bool, #(#handler_types,)*) = #sails_path::alloy_sol_types::SolValue::abi_decode_params(input, false).expect("Failed to decode request");
                 #ctor_invocation
-                return Some(_encode_reply);
+                return Some(__encode_reply);
             }
         }
     }

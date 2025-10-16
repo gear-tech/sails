@@ -131,14 +131,14 @@ impl SomeServiceExposure<SomeService> {
     ) -> Option<(sails_rs::Vec<u8>, u128, bool)> {
         use sails_rs::gstd::services::{Service, Exposure};
         if method == &[24u8, 68u8, 111u8, 84u8, 104u8, 105u8, 115u8] {
-            let (_, _encode_reply): (u128, bool) = sails_rs::alloy_sol_types::SolValue::abi_decode_params(
+            let (__encode_reply,): (bool,) = sails_rs::alloy_sol_types::SolValue::abi_decode_params(
                     input,
                     false,
                 )
                 .ok()?;
             let result = self.do_this();
             let value = 0u128;
-            let output = if _encode_reply {
+            let output = if __encode_reply {
                 let message_id = sails_rs::alloy_primitives::B256::new(
                     sails_rs::gstd::Syscall::message_id().into_bytes(),
                 );
@@ -148,7 +148,7 @@ impl SomeServiceExposure<SomeService> {
             } else {
                 sails_rs::alloy_sol_types::SolValue::abi_encode_sequence(&(result,))
             };
-            return Some((output, value, _encode_reply));
+            return Some((output, value, __encode_reply));
         }
         let base_services: (ExtendedService1, ExtendedService2) = self.inner.into();
         if let Some(result) = base_services
@@ -242,9 +242,8 @@ mod some_service_meta {
 impl sails_rs::solidity::ServiceSignature for SomeService {
     const METHODS: &'static [sails_rs::solidity::MethodExpo] = sails_rs::const_concat_slices!(
         < sails_rs::solidity::MethodExpo >, & [(& [24u8, 68u8, 111u8, 84u8, 104u8, 105u8,
-        115u8] as & [u8], "DoThis", << (u128, bool,) as
-        sails_rs::alloy_sol_types::SolValue > ::SolType as
-        sails_rs::alloy_sol_types::SolType > ::SOL_NAME, <<
+        115u8] as & [u8], "DoThis", << (bool,) as sails_rs::alloy_sol_types::SolValue >
+        ::SolType as sails_rs::alloy_sol_types::SolType > ::SOL_NAME, <<
         (sails_rs::alloy_primitives::B256, u32) as sails_rs::alloy_sol_types::SolValue >
         ::SolType as sails_rs::alloy_sol_types::SolType > ::SOL_NAME,),], <
         ExtendedService1 as sails_rs::solidity::ServiceSignature > ::METHODS, <

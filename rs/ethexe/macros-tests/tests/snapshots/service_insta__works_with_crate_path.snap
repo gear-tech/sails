@@ -98,14 +98,14 @@ impl SomeServiceExposure<SomeService> {
     ) -> Option<(sails_rename::Vec<u8>, u128, bool)> {
         use sails_rename::gstd::services::{Service, Exposure};
         if method == &[16u8, 84u8, 104u8, 105u8, 115u8] {
-            let (_, _encode_reply, p1): (u128, bool, bool) = sails_rename::alloy_sol_types::SolValue::abi_decode_params(
+            let (__encode_reply, p1): (bool, bool) = sails_rename::alloy_sol_types::SolValue::abi_decode_params(
                     input,
                     false,
                 )
                 .ok()?;
             let result = self.this(p1);
             let value = 0u128;
-            let output = if _encode_reply {
+            let output = if __encode_reply {
                 let message_id = sails_rename::alloy_primitives::B256::new(
                     sails_rename::gstd::Syscall::message_id().into_bytes(),
                 );
@@ -115,7 +115,7 @@ impl SomeServiceExposure<SomeService> {
             } else {
                 sails_rename::alloy_sol_types::SolValue::abi_encode_sequence(&(result,))
             };
-            return Some((output, value, _encode_reply));
+            return Some((output, value, __encode_reply));
         }
         None
     }
@@ -126,14 +126,14 @@ impl SomeServiceExposure<SomeService> {
     ) -> Option<(sails_rename::Vec<u8>, u128, bool)> {
         use sails_rename::gstd::services::{Service, Exposure};
         if method == &[24u8, 68u8, 111u8, 84u8, 104u8, 105u8, 115u8] {
-            let (_, _encode_reply, p1, p2): (u128, bool, u32, String) = sails_rename::alloy_sol_types::SolValue::abi_decode_params(
+            let (__encode_reply, p1, p2): (bool, u32, String) = sails_rename::alloy_sol_types::SolValue::abi_decode_params(
                     input,
                     false,
                 )
                 .ok()?;
             let result = self.do_this(p1, p2).await;
             let value = 0u128;
-            let output = if _encode_reply {
+            let output = if __encode_reply {
                 let message_id = sails_rename::alloy_primitives::B256::new(
                     sails_rename::gstd::Syscall::message_id().into_bytes(),
                 );
@@ -143,7 +143,7 @@ impl SomeServiceExposure<SomeService> {
             } else {
                 sails_rename::alloy_sol_types::SolValue::abi_encode_sequence(&(result,))
             };
-            return Some((output, value, _encode_reply));
+            return Some((output, value, __encode_reply));
         }
         None
     }
@@ -212,7 +212,6 @@ impl sails_rename::solidity::ServiceSignature for SomeService {
             &[24u8, 68u8, 111u8, 84u8, 104u8, 105u8, 115u8] as &[u8],
             "DoThis",
             <<(
-                u128,
                 bool,
                 u32,
                 String,
@@ -226,7 +225,6 @@ impl sails_rename::solidity::ServiceSignature for SomeService {
             &[16u8, 84u8, 104u8, 105u8, 115u8] as &[u8],
             "This",
             <<(
-                u128,
                 bool,
                 bool,
             ) as sails_rename::alloy_sol_types::SolValue>::SolType as sails_rename::alloy_sol_types::SolType>::SOL_NAME,
