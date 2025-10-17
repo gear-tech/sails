@@ -572,30 +572,64 @@ fn chaos_service_panic_after_wait_works() {
 }
 
 #[test]
-fn chaos_service_timeout_wait_works() {
+fn chaos_service_timeout_wait() {
+    use demo_client::chaos::io::ReplyHookCounter;
     use demo_client::io::Default;
     use sails_rs::gtest::{Log, Program, System};
 
+    fn extract_reply<T, F>(run: &gtest::BlockRunResult, msg_id: MessageId, decode: F) -> T
+    where
+        F: FnOnce(&[u8]) -> T,
+    {
+        let payload = run
+            .log()
+            .iter()
+            .find_map(|log| {
+                log.reply_to()
+                    .filter(|&r| r == msg_id)
+                    .map(|_| log.payload())
+            })
+            .expect("reply not found");
+        decode(payload)
+    }
+
     let system = System::new();
-    system.init_logger();
+    system.init_logger_with_default_filter("gwasm=debug,gtest=info,sails_rs=debug,redirect=debug");
     system.mint_to(ACTOR_ID, 1_000_000_000_000_000);
     let program = Program::from_file(&system, DEMO_WASM_PATH);
-
     program.send_bytes(ACTOR_ID, Default::encode_params());
-    system.run_next_block();
 
     program.send_bytes(ACTOR_ID, ("Chaos", "TimeoutWait").encode());
+    //#1
     system.run_next_block();
+    //#2
+    system.run_next_block();
+
+    let msg_id = program.send_bytes(ACTOR_ID, ("Chaos", "ReplyHookCounter").encode());
+
+    let run = system.run_next_block();
+
+    let val = extract_reply(&run, msg_id, |p| {
+        ReplyHookCounter::decode_reply_with_prefix("Chaos", p).unwrap()
+    });
+    assert_eq!(val, 0, "handle_reply should not trigger before reply");
 
     let log = Log::builder().source(program.id()).dest(ACTOR_ID);
     system
         .get_mailbox(ACTOR_ID)
-        .reply_bytes(log.clone().payload_bytes(().encode()), vec![], 0)
+        .reply_bytes(log.payload_bytes(().encode()), vec![], 0)
         .unwrap();
     system.run_next_block();
 
-    let r = system.run_next_block();
-    println!("{r:#?}");
+    let msg_id = program.send_bytes(ACTOR_ID, ("Chaos", "ReplyHookCounter").encode());
+    let run = system.run_next_block();
+    let val = extract_reply(&run, msg_id, |p| {
+        ReplyHookCounter::decode_reply_with_prefix("Chaos", p).unwrap()
+    });
+    assert_eq!(
+        val, 1,
+        "handle_reply should still execute even after timeout if reply arrives"
+    );
 }
 
 #[tokio::test]

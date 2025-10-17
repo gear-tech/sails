@@ -1,6 +1,7 @@
-use gstd::exec;
 use sails_rs::gstd::debug;
 use sails_rs::{gstd, prelude::*};
+
+static mut REPLY_HOOK_COUNTER: u32 = 0;
 
 pub struct ChaosService;
 
@@ -19,14 +20,13 @@ impl ChaosService {
     #[export]
     pub async fn timeout_wait(&self) {
         let source = gstd::msg::source();
-        let this_msg_id = gstd::msg::id();
-        debug!("before handle_reply, source={source:?}, this_msg_id={this_msg_id:?}");
+        debug!("before handle_reply");
 
-        let fut = gstd::msg::send_for_reply::<()>(source, (), 0, 1_000_000).unwrap();
+        let fut = gstd::msg::send_for_reply::<()>(source, (), 0, 10_000_000_000).unwrap();
         let fut = fut
             .handle_reply(|| {
+                unsafe { REPLY_HOOK_COUNTER += 1 };
                 debug!("handle_reply triggered");
-                panic!("hande reply")
             })
             .unwrap()
             .up_to(Some(1))
@@ -39,5 +39,10 @@ impl ChaosService {
     #[export]
     pub async fn noop(&self) {
         debug!("Noop");
+    }
+
+    #[export]
+    pub fn reply_hook_counter(&self) -> u32 {
+        unsafe { REPLY_HOOK_COUNTER }
     }
 }
