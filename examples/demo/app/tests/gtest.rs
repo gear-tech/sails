@@ -577,22 +577,6 @@ fn chaos_service_timeout_wait() {
     use demo_client::io::Default;
     use sails_rs::gtest::{Log, Program, System};
 
-    fn extract_reply<T, F>(run: &gtest::BlockRunResult, msg_id: MessageId, decode: F) -> T
-    where
-        F: FnOnce(&[u8]) -> T,
-    {
-        let payload = run
-            .log()
-            .iter()
-            .find_map(|log| {
-                log.reply_to()
-                    .filter(|&r| r == msg_id)
-                    .map(|_| log.payload())
-            })
-            .expect("reply not found");
-        decode(payload)
-    }
-
     let system = System::new();
     system.init_logger_with_default_filter("gwasm=debug,gtest=info,sails_rs=debug,redirect=debug");
     system.mint_to(ACTOR_ID, 1_000_000_000_000_000);
@@ -604,6 +588,16 @@ fn chaos_service_timeout_wait() {
     system.run_next_block();
     //#2
     system.run_next_block();
+
+    let extract_reply = |run: &gtest::BlockRunResult, msg_id: MessageId, decode: fn(&[u8]) -> _| {
+        let payload = run
+            .log()
+            .iter()
+            .find(|log| log.reply_to() == Some(msg_id))
+            .map(|log| log.payload())
+            .expect("reply not found");
+        decode(payload)
+    };
 
     let msg_id = program.send_bytes(ACTOR_ID, ("Chaos", "ReplyHookCounter").encode());
 
