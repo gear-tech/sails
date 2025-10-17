@@ -3,6 +3,7 @@
 use demo_walker as walker;
 use sails_rs::{cell::RefCell, prelude::*};
 
+mod chaos;
 mod counter;
 mod dog;
 mod mammal;
@@ -91,6 +92,10 @@ impl DemoProgram {
 
     pub fn value_fee(&self) -> value_fee::FeeService {
         value_fee::FeeService::new(10_000_000_000_000)
+    }
+
+    pub fn chaos(&self) -> chaos::ChaosService {
+        chaos::ChaosService
     }
 }
 
