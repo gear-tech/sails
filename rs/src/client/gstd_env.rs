@@ -81,11 +81,10 @@ impl GstdEnv {
         payload: impl AsRef<[u8]>,
         mut params: GstdParams,
     ) -> Result<MessageId, Error> {
-        let message = crate::ok!(crate::gstd::send_bytes_for_reply(
+        let reply_to = crate::ok!(crate::gstd::send_one_way(
             destination,
             payload.as_ref(),
             params.value.unwrap_or_default(),
-            params.wait.unwrap_or_default(),
             #[cfg(not(feature = "ethexe"))]
             params.gas_limit,
             #[cfg(not(feature = "ethexe"))]
@@ -94,7 +93,7 @@ impl GstdEnv {
             params.reply_hook.take(),
         ));
 
-        Ok(message.waiting_reply_to)
+        Ok(reply_to)
     }
 }
 

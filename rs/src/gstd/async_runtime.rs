@@ -105,7 +105,7 @@ impl Task {
         let signals_map = signals();
         self.locks.iter().for_each(|(_, reply_to)| {
             if let Some(reply_to) = reply_to {
-                // set the `WakeSignal::Timeout` for further processing in `handle_reply`
+                // set the `WakeSignal::Expired` for further processing in `handle_reply`
                 signals_map.record_timeout(*reply_to, now);
             }
         });
@@ -188,18 +188,23 @@ pub type Payload = Vec<u8>;
 /// The [`WakeSignal`] lifecycle corresponds to waiting for a reply to a sent message
 /// and ends when `handle_reply()` is received.
 ///
-/// May outlive parent [`Task`] in state [`WakeSignal::Timeout`].
+/// May outlive parent [`Task`] in [`WakeSignal::Expired`] state.
+///
+/// Can be created in [`WakeSignal::Expired`] state if there is no [`Task`] to await.
 enum WakeSignal {
+    /// Reply is still pending; tracks origin message, deadline, and optional hook to run on completion or timeout.
     Pending {
         message_id: MessageId,
         deadline: BlockNumber,
         reply_hook: Option<Box<dyn FnOnce()>>,
     },
+    /// Reply handled; captures payload and reply code so the waiting future can resolve.
     Ready {
         payload: Payload,
         reply_code: ReplyCode,
     },
-    Timeout {
+    /// Reply missed its deadline; retains timing data and hook so late arrivals can still be acknowledged.
+    Expired {
         expected: BlockNumber,
         now: BlockNumber,
         reply_hook: Option<Box<dyn FnOnce()>>,
@@ -217,11 +222,11 @@ impl WakeSignals {
         }
     }
 
-    /// Registers a pending reply for `waiting_reply_to` while the current message is being processed.
+    /// Registers a reply wait for `waiting_reply_to` while the current message is being processed.
     ///
-    /// - stores pending state (and an optional reply hook) so `poll`/`record_reply` can resolve it later;
-    /// - records the lock deadline for timeout detection and attaches the lock to the owning [`Task`] so
-    ///   wait bookkeeping stays consistent.
+    /// - stores [`WakeSignal::Pending`] together with an optional hook so `poll`/`record_reply` can resolve it later;
+    /// - records the lock deadline for timeout detection and attaches the lock to the owning [`Task`] for
+    ///   consistent wake bookkeeping.
     ///
     /// # Context
     /// Called from helpers such as `send_bytes_for_reply` / `create_program_for_reply` while the message
@@ -258,11 +263,38 @@ impl WakeSignals {
             .insert_lock(waiting_reply_to, lock);
     }
 
+    /// Registers a reply hook for `waiting_reply_to` without creating a tracked wait.
+    ///
+    /// - stores a [`WakeSignal::Expired`] entry so `record_reply` will still execute the hook if a reply
+    ///   arrives later;
+    /// - intended for one-way sends that want to observe replies from outside [`message_loop`].
+    ///
+    /// # Context
+    /// Called from [`send_one_way`] and other synchronous helpers; may be invoked outside [`message_loop`].
+    #[inline]
+    pub fn register_hook(
+        &mut self,
+        waiting_reply_to: MessageId,
+        reply_hook: Option<Box<dyn FnOnce()>>,
+    ) {
+        if let Some(reply_hook) = reply_hook {
+            let now = Syscall::block_height();
+            self.signals.insert(
+                waiting_reply_to,
+                WakeSignal::Expired {
+                    expected: now,
+                    now,
+                    reply_hook: Some(reply_hook),
+                },
+            );
+        }
+    }
+
     /// Processes an incoming reply for `reply_to` and transitions the stored wake state.
     ///
     /// - upgrades the [`WakeSignal::Pending`] entry to [`WakeSignal::Ready`], capturing payload and reply code;
     /// - executes the optional reply hook once the reply becomes available.
-    /// - for the [`WakeSignal::Timeout`] entry executes the optional reply hook and remove entry;
+    /// - for the [`WakeSignal::Expired`] entry executes the optional reply hook and remove entry;
     ///
     /// # Context
     /// Invoked by [`handle_reply_with_hook`] when a reply arrives during `handle_reply()` execution. The
@@ -299,7 +331,7 @@ impl WakeSignals {
                         f()
                     }
                 }
-                WakeSignal::Timeout { reply_hook, .. } => {
+                WakeSignal::Expired { reply_hook, .. } => {
                     // execute reply hook and remove entry
                     if let Some(f) = reply_hook.take() {
                         f()
@@ -317,7 +349,7 @@ impl WakeSignals {
 
     /// Marks a pending reply as timed out and preserves context for later handling.
     ///
-    /// - upgrades a [`WakeSignal::Pending`] entry to [`WakeSignal::Timeout`], capturing when the reply was expected
+    /// - upgrades a [`WakeSignal::Pending`] entry to [`WakeSignal::Expired`], capturing when the reply was expected
     ///   and when the timeout was detected;
     /// - retains the optional reply hook so it can still be executed if a late reply arrives and reuses the
     ///   stored state when `record_reply` is called afterwards.
@@ -334,9 +366,9 @@ impl WakeSignals {
             } = entry.get_mut()
         {
             let expected = *deadline;
-            // move `reply_hook` to `WakeSignal::Timeout` state
+            // move `reply_hook` to `WakeSignal::Expired` state
             let reply_hook = reply_hook.take();
-            entry.insert(WakeSignal::Timeout {
+            entry.insert(WakeSignal::Expired {
                 expected,
                 now,
                 reply_hook,
@@ -349,13 +381,13 @@ impl WakeSignals {
     pub fn waits_for(&self, reply_to: &MessageId) -> bool {
         self.signals
             .get(reply_to)
-            .is_some_and(|signal| !matches!(signal, WakeSignal::Timeout { .. }))
+            .is_some_and(|signal| !matches!(signal, WakeSignal::Expired { .. }))
     }
 
     /// Polls the stored wake signal for `reply_to`, returning the appropriate future state.
     ///
     /// - inspects the current `WakeSignal` variant, promoting pending entries whose deadline has passed to
-    ///   [`WakeSignal::Timeout`];
+    ///   [`WakeSignal::Expired`];
     /// - returns `Pending`, a `Ready` payload, or propagates a timeout error; when `Ready`, the entry is
     ///   removed so subsequent polls observe completion.
     ///
@@ -386,7 +418,7 @@ impl WakeSignals {
                 let expected = *deadline;
                 if now >= expected {
                     let reply_hook = reply_hook.take();
-                    _ = entry.insert(WakeSignal::Timeout {
+                    _ = entry.insert(WakeSignal::Expired {
                         expected,
                         now,
                         reply_hook,
@@ -396,8 +428,8 @@ impl WakeSignals {
                     Poll::Pending
                 }
             }
-            WakeSignal::Timeout { expected, now, .. } => {
-                // DO NOT remove entry if `WakeSignal::Timeout`
+            WakeSignal::Expired { expected, now, .. } => {
+                // DO NOT remove entry if `WakeSignal::Expired`
                 // will be removed in `record_reply`
                 Poll::Ready(Err(Error::Timeout(*expected, *now)))
             }
@@ -476,6 +508,62 @@ pub fn send_for_reply<E: Encode>(
 
 #[cfg(not(feature = "ethexe"))]
 #[inline]
+fn send_bytes(
+    destination: ActorId,
+    payload: &[u8],
+    value: ValueUnit,
+    gas_limit: Option<GasUnit>,
+    reply_deposit: Option<GasUnit>,
+) -> Result<MessageId, ::gstd::errors::Error> {
+    let waiting_reply_to = if let Some(gas_limit) = gas_limit {
+        ::gcore::msg::send_with_gas(destination, payload, gas_limit, value)?
+    } else {
+        ::gcore::msg::send(destination, payload, value)?
+    };
+
+    if let Some(reply_deposit) = reply_deposit {
+        _ = ::gcore::exec::reply_deposit(waiting_reply_to, reply_deposit);
+    }
+    Ok(waiting_reply_to)
+}
+
+#[cfg(feature = "ethexe")]
+#[inline]
+fn send_bytes(
+    destination: ActorId,
+    payload: &[u8],
+    value: ValueUnit,
+) -> Result<MessageId, ::gstd::errors::Error> {
+    ::gcore::msg::send(destination, payload, value).map_err(::gstd::errors::Error::Core)
+}
+
+#[inline]
+pub fn send_one_way(
+    destination: ActorId,
+    payload: &[u8],
+    value: ValueUnit,
+    #[cfg(not(feature = "ethexe"))] gas_limit: Option<GasUnit>,
+    #[cfg(not(feature = "ethexe"))] reply_deposit: Option<GasUnit>,
+    #[cfg(not(feature = "ethexe"))] reply_hook: Option<Box<dyn FnOnce()>>,
+) -> Result<MessageId, ::gstd::errors::Error> {
+    let waiting_reply_to = crate::ok!(send_bytes(
+        destination,
+        payload,
+        value,
+        #[cfg(not(feature = "ethexe"))]
+        gas_limit,
+        #[cfg(not(feature = "ethexe"))]
+        reply_deposit
+    ));
+
+    #[cfg(not(feature = "ethexe"))]
+    signals().register_hook(waiting_reply_to, reply_hook);
+
+    Ok(waiting_reply_to)
+}
+
+#[cfg(not(feature = "ethexe"))]
+#[inline]
 pub fn send_bytes_for_reply(
     destination: ActorId,
     payload: &[u8],
@@ -485,20 +573,13 @@ pub fn send_bytes_for_reply(
     reply_deposit: Option<GasUnit>,
     reply_hook: Option<Box<dyn FnOnce()>>,
 ) -> Result<MessageFuture, ::gstd::errors::Error> {
-    let waiting_reply_to = if let Some(gas_limit) = gas_limit {
-        crate::ok!(::gcore::msg::send_with_gas(
-            destination,
-            payload,
-            gas_limit,
-            value
-        ))
-    } else {
-        crate::ok!(::gcore::msg::send(destination, payload, value))
-    };
-
-    if let Some(reply_deposit) = reply_deposit {
-        _ = ::gcore::exec::reply_deposit(waiting_reply_to, reply_deposit);
-    }
+    let waiting_reply_to = crate::ok!(send_bytes(
+        destination,
+        payload,
+        value,
+        gas_limit,
+        reply_deposit
+    ));
 
     signals().register_signal(waiting_reply_to, wait, reply_hook);
 
@@ -513,7 +594,7 @@ pub fn send_bytes_for_reply(
     value: ValueUnit,
     wait: Lock,
 ) -> Result<MessageFuture, ::gstd::errors::Error> {
-    let waiting_reply_to = crate::ok!(::gcore::msg::send(destination, payload, value));
+    let waiting_reply_to = crate::ok!(send_bytes(destination, payload, value));
 
     signals().register_signal(waiting_reply_to, wait, None);
 

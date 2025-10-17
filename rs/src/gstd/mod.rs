@@ -1,7 +1,7 @@
 #[cfg(feature = "async-runtime")]
 pub use async_runtime::{
     MessageFuture, create_program_for_reply, handle_reply_with_hook, message_loop,
-    send_bytes_for_reply, send_for_reply, sleep_for,
+    send_bytes_for_reply, send_for_reply, send_one_way, sleep_for,
 };
 #[cfg(feature = "async-runtime")]
 pub type CreateProgramFuture = MessageFuture;
