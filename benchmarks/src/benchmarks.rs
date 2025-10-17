@@ -301,12 +301,17 @@ async fn message_stack_test(limit: u32) -> u64 {
     })
     .await;
 
-    let initial_balance = env.system().balance_of(DEFAULT_USER_ALICE);
+    let message_id = program
+        .ping_pong_stack()
+        .start(limit)
+        .send_one_way()
+        .unwrap();
+    let block_res = env.system().run_next_block();
+    assert!(block_res.succeed.contains(&message_id));
+    assert_eq!(block_res.gas_burned.len(), (limit * 2 + 1) as usize);
 
-    program.ping_pong_stack().start(limit).await.unwrap();
-
-    let balance = env.system().balance_of(DEFAULT_USER_ALICE);
-    (initial_balance - balance).try_into().unwrap()
+    let gas = block_res.gas_burned.values().sum();
+    gas
 }
 
 fn create_env() -> GtestEnv {
