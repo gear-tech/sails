@@ -108,7 +108,7 @@ service ValueFee {
 };
 
 service Chaos {
-  Noop : () -> null;
+  query Noop : () -> null;
   query PanicAfterWait : () -> null;
   query TimeoutWait : () -> null;
 };

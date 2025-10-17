@@ -1,3 +1,4 @@
+use gstd::exec;
 use sails_rs::gstd::debug;
 use sails_rs::{gstd, prelude::*};
 
@@ -18,15 +19,25 @@ impl ChaosService {
     #[export]
     pub async fn timeout_wait(&self) {
         let source = gstd::msg::source();
-        let fut = gstd::msg::send_for_reply::<()>(source, (), 0, 0).unwrap();
+        let this_msg_id = gstd::msg::id();
+        debug!("before handle_reply, source={source:?}, this_msg_id={this_msg_id:?}");
 
-        let fut = fut.up_to(Some(1)).unwrap();
+        let fut = gstd::msg::send_for_reply::<()>(source, (), 0, 1_000_000).unwrap();
+        let fut = fut
+            .handle_reply(|| {
+                debug!("handle_reply triggered");
+                panic!("hande reply")
+            })
+            .unwrap()
+            .up_to(Some(1))
+            .unwrap();
 
-        fut.await.unwrap();
+        let _ = fut.await;
+        debug!("after handle_reply");
     }
 
     #[export]
-    pub async fn noop(&mut self) {
+    pub async fn noop(&self) {
         debug!("Noop");
     }
 }
