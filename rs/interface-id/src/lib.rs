@@ -14,31 +14,31 @@ pub const FUNCTION_HASH_DOMAIN: &[u8] = b"GEAR-IDL/v1:func";
 
 /// Canonical description of a Sails service used to derive stable interface identifiers.
 #[derive(Debug, Clone, Serialize, PartialEq, Eq)]
-pub struct InterfaceSignature {
+pub struct InterfaceDescriptor {
     pub interface_path: String,
-    pub extends: Vec<ExtendedInterfaceSignature>,
-    pub commands: Vec<FnSignature>,
-    pub queries: Vec<FnSignature>,
-    pub events: Vec<EventSignature>,
+    pub extends: Vec<ExtendedInterfaceDescriptor>,
+    pub commands: Vec<FunctionEntry>,
+    pub queries: Vec<FunctionEntry>,
+    pub events: Vec<EventEntry>,
 }
 
-/// Canonical description of a command/query inside a service.
+/// Canonical description of a callable entry (command/query) inside a service.
 #[derive(Debug, Clone, Serialize, PartialEq, Eq)]
-pub struct FnSignature {
+pub struct FunctionEntry {
     pub name: String,
-    pub opcode: u16,
+    pub entry_id: u16,
 }
 
-/// Canonical description of an event emitted by a service.
+/// Canonical description of an event entry emitted by a service.
 #[derive(Debug, Clone, Serialize, PartialEq, Eq)]
-pub struct EventSignature {
+pub struct EventEntry {
     pub name: String,
-    pub code: u16,
+    pub entry_id: u16,
 }
 
 /// Canonical description of a parent interface implemented by a service.
 #[derive(Debug, Clone, Serialize, PartialEq, Eq)]
-pub struct ExtendedInterfaceSignature {
+pub struct ExtendedInterfaceDescriptor {
     pub name: String,
     pub interface_id32: u32,
     pub interface_uid64: u64,
@@ -47,13 +47,13 @@ pub struct ExtendedInterfaceSignature {
 /// Collection of interface signatures that represent a concrete service and
 /// any interfaces it directly exposes via inheritance.
 #[derive(Debug, Clone, Serialize, PartialEq, Eq)]
-pub struct InterfaceSignatureSet {
-    pub primary: InterfaceSignature,
+pub struct InterfaceDescriptorSet {
+    pub primary: InterfaceDescriptor,
     #[serde(default)]
-    pub inherited: Vec<InterfaceSignature>,
+    pub inherited: Vec<InterfaceDescriptor>,
 }
 
-impl InterfaceSignature {
+impl InterfaceDescriptor {
     /// Creates an empty signature with the provided path.
     pub fn new(interface_path: impl Into<String>) -> Self {
         Self {
@@ -66,30 +66,30 @@ impl InterfaceSignature {
     }
 }
 
-impl InterfaceSignatureSet {
-    pub fn new(primary: InterfaceSignature) -> Self {
+impl InterfaceDescriptorSet {
+    pub fn new(primary: InterfaceDescriptor) -> Self {
         Self {
             primary,
             inherited: Vec::new(),
         }
     }
 
-    pub fn with_inherited(mut self, inherited: Vec<InterfaceSignature>) -> Self {
+    pub fn with_inherited(mut self, inherited: Vec<InterfaceDescriptor>) -> Self {
         self.inherited = inherited;
         self
     }
 
-    pub fn iter(&self) -> impl Iterator<Item = &InterfaceSignature> {
+    pub fn iter(&self) -> impl Iterator<Item = &InterfaceDescriptor> {
         std::iter::once(&self.primary).chain(self.inherited.iter())
     }
 }
 
 /// Computes the `(interface_id32, interface_uid64)` pair using a canonical hash.
-pub fn compute_ids(signature: &InterfaceSignature) -> (u32, u64) {
+pub fn compute_ids(descriptor: &InterfaceDescriptor) -> (u32, u64) {
     let value =
-        to_value(signature).expect("serializing interface signature to value should succeed");
+        to_value(descriptor).expect("serializing interface descriptor to value should succeed");
     let canonical =
-        to_canonical_vec(&value).expect("canonicalizing interface signature should succeed");
+        to_canonical_vec(&value).expect("canonicalizing interface descriptor should succeed");
     compute_ids_from_bytes(&canonical)
 }
 
@@ -118,8 +118,8 @@ pub fn compute_interface_hash(bytes: &[u8]) -> Hash {
     hasher.finalize()
 }
 
-/// Computes the 16-bit message identifier derived from a canonical function signature.
-pub fn compute_msg_id16(
+/// Computes the 16-bit entry identifier derived from a canonical function signature.
+pub fn compute_entry_id16(
     interface_hash: &Hash,
     signature: &str,
     override_value: Option<u16>,
@@ -142,26 +142,26 @@ mod tests {
 
     #[test]
     fn ids_are_stable() {
-        let mut signature = InterfaceSignature::new("example::Service");
-        signature.extends.push(ExtendedInterfaceSignature {
+        let mut descriptor = InterfaceDescriptor::new("example::Service");
+        descriptor.extends.push(ExtendedInterfaceDescriptor {
             name: "ParentA".to_owned(),
             interface_id32: 0x1234_5678,
             interface_uid64: 0xabcdef01_2345_6789,
         });
-        signature.commands.push(FnSignature {
+        descriptor.commands.push(FunctionEntry {
             name: "DoSomething".to_owned(),
-            opcode: 1,
+            entry_id: 1,
         });
-        signature.queries.push(FnSignature {
+        descriptor.queries.push(FunctionEntry {
             name: "GetValue".to_owned(),
-            opcode: 2,
+            entry_id: 2,
         });
-        signature.events.push(EventSignature {
+        descriptor.events.push(EventEntry {
             name: "Occurred".to_owned(),
-            code: 1,
+            entry_id: 1,
         });
-        let (id32_a, uid64_a) = compute_ids(&signature);
-        let (id32_b, uid64_b) = compute_ids(&signature);
+        let (id32_a, uid64_a) = compute_ids(&descriptor);
+        let (id32_b, uid64_b) = compute_ids(&descriptor);
         assert_eq!(id32_a, id32_b);
         assert_eq!(uid64_a, uid64_b);
         assert_ne!(id32_a, 0);
@@ -170,23 +170,23 @@ mod tests {
 
     #[test]
     fn signature_set_iteration_includes_inherited() {
-        let mut primary = InterfaceSignature::new("primary");
-        primary.commands.push(FnSignature {
+        let mut primary = InterfaceDescriptor::new("primary");
+        primary.commands.push(FunctionEntry {
             name: "Foo".to_owned(),
-            opcode: 1,
+            entry_id: 1,
         });
 
-        let mut inherited = InterfaceSignature::new("base::Service");
-        inherited.queries.push(FnSignature {
+        let mut inherited = InterfaceDescriptor::new("base::Service");
+        inherited.queries.push(FunctionEntry {
             name: "Bar".to_owned(),
-            opcode: 2,
+            entry_id: 2,
         });
 
         let set =
-            InterfaceSignatureSet::new(primary.clone()).with_inherited(vec![inherited.clone()]);
+            InterfaceDescriptorSet::new(primary.clone()).with_inherited(vec![inherited.clone()]);
         let collected = set
             .iter()
-            .map(|sig| sig.interface_path.clone())
+            .map(|desc| desc.interface_path.clone())
             .collect::<Vec<_>>();
         assert_eq!(
             collected,
@@ -198,25 +198,25 @@ mod tests {
 
     #[test]
     fn inherited_signatures_produce_ids() {
-        let mut primary = InterfaceSignature::new("example::Dog");
-        primary.commands.push(FnSignature {
+        let mut primary = InterfaceDescriptor::new("example::Dog");
+        primary.commands.push(FunctionEntry {
             name: "Bark".to_owned(),
-            opcode: 1,
+            entry_id: 1,
         });
 
-        let mut mammal = InterfaceSignature::new("example::Mammal");
-        mammal.queries.push(FnSignature {
+        let mut mammal = InterfaceDescriptor::new("example::Mammal");
+        mammal.queries.push(FunctionEntry {
             name: "AvgWeight".to_owned(),
-            opcode: 5,
+            entry_id: 5,
         });
 
-        let mut walker = InterfaceSignature::new("example::Walker");
-        walker.commands.push(FnSignature {
+        let mut walker = InterfaceDescriptor::new("example::Walker");
+        walker.commands.push(FunctionEntry {
             name: "Walk".to_owned(),
-            opcode: 3,
+            entry_id: 3,
         });
 
-        let set = InterfaceSignatureSet::new(primary).with_inherited(vec![mammal, walker]);
+        let set = InterfaceDescriptorSet::new(primary).with_inherited(vec![mammal, walker]);
         let ids = set.iter().map(super::compute_ids).collect::<Vec<_>>();
         assert_eq!(ids.len(), 3);
         assert!(ids.windows(2).all(|pair| pair[0] != pair[1]));

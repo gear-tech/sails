@@ -39,13 +39,13 @@ struct ServiceFuncMeta {
     params_type_id: u32,
     params_fields: Vec<Field<PortableForm>>,
     result_type_id: u32,
-    opcode: u16,
+    entry_id: u16,
     docs: Vec<String>,
 }
 
 struct EventMeta {
     variant: Variant<PortableForm>,
-    code: u16,
+    entry_id: u16,
 }
 
 pub(crate) struct ExtendedInterfaceMeta {
@@ -84,9 +84,9 @@ impl ExpandedProgramMeta {
         let ctors_type_id = ctors.map(|ctors| registry.register_type(&ctors).id);
         let services_data = services
             .map(|(sname, sm)| {
-                let command_opcodes = sm.command_opcodes().to_vec();
-                let query_opcodes = sm.query_opcodes().to_vec();
-                let event_codes = sm.event_codes().to_vec();
+                let command_entry_ids = sm.command_entry_ids().to_vec();
+                let query_entry_ids = sm.query_entry_ids().to_vec();
+                let event_entry_ids = sm.event_entry_ids().to_vec();
 
                 let service_name = sm.interface_path();
                 let canonical_doc = build_canonical_document_from_meta(&sm).map_err(|err| {
@@ -135,9 +135,9 @@ impl ExpandedProgramMeta {
                         .into_iter()
                         .map(|mt| registry.register_type(mt).id)
                         .collect::<Vec<_>>(),
-                    command_opcodes,
-                    query_opcodes,
-                    event_codes,
+                    command_entry_ids,
+                    query_entry_ids,
+                    event_entry_ids,
                     canonical_bytes,
                     extends,
                 ))
@@ -153,15 +153,23 @@ impl ExpandedProgramMeta {
                     ct_ids,
                     qt_ids,
                     et_ids,
-                    copcodes,
-                    qopcodes,
-                    ecodes,
+                    command_entry_ids,
+                    query_entry_ids,
+                    event_entry_ids,
                     canonical,
                     extends,
                 )| {
                     ExpandedServiceMeta::new(
-                        &registry, sname, ct_ids, qt_ids, et_ids, copcodes, qopcodes, ecodes,
-                        canonical, extends,
+                        &registry,
+                        sname,
+                        ct_ids,
+                        qt_ids,
+                        et_ids,
+                        command_entry_ids,
+                        query_entry_ids,
+                        event_entry_ids,
+                        canonical,
+                        extends,
                     )
                 },
             )
@@ -318,26 +326,26 @@ impl ExpandedServiceMeta {
         commands_type_ids: Vec<u32>,
         queries_type_ids: Vec<u32>,
         events_type_ids: Vec<u32>,
-        command_opcodes: Vec<u16>,
-        query_opcodes: Vec<u16>,
-        event_codes: Vec<u16>,
+        command_entry_ids: Vec<u16>,
+        query_entry_ids: Vec<u16>,
+        event_entry_ids: Vec<u16>,
         canonical_bytes: Vec<u8>,
         extends: Vec<ExtendedInterfaceMeta>,
     ) -> Result<Self> {
         let (commands, overriden_commands) = Self::service_funcs(
             registry,
             commands_type_ids.iter().copied(),
-            command_opcodes.into_iter(),
+            command_entry_ids.into_iter(),
         )?;
         let (queries, overriden_queries) = Self::service_funcs(
             registry,
             queries_type_ids.iter().copied(),
-            query_opcodes.into_iter(),
+            query_entry_ids.into_iter(),
         )?;
         let events = Self::event_variants(
             registry,
             events_type_ids.iter().copied(),
-            event_codes.into_iter(),
+            event_entry_ids.into_iter(),
         )?;
         Ok(Self {
             name,
@@ -366,7 +374,7 @@ impl ExpandedServiceMeta {
                 c.name.as_str(),
                 &c.params_fields,
                 c.result_type_id,
-                c.opcode,
+                c.entry_id,
                 &c.docs,
             )
         })
@@ -380,14 +388,16 @@ impl ExpandedServiceMeta {
                 c.name.as_str(),
                 &c.params_fields,
                 c.result_type_id,
-                c.opcode,
+                c.entry_id,
                 &c.docs,
             )
         })
     }
 
     pub fn events(&self) -> impl Iterator<Item = (&Variant<PortableForm>, u16)> {
-        self.events.iter().map(|event| (&event.variant, event.code))
+        self.events
+            .iter()
+            .map(|event| (&event.variant, event.entry_id))
     }
 
     pub fn canonical_bytes(&self) -> &[u8] {
@@ -401,9 +411,9 @@ impl ExpandedServiceMeta {
     fn service_funcs(
         registry: &PortableRegistry,
         func_type_ids: impl Iterator<Item = u32>,
-        opcodes: impl Iterator<Item = u16>,
+        entry_ids: impl Iterator<Item = u16>,
     ) -> Result<(Vec<ServiceFuncMeta>, Vec<ServiceFuncMeta>)> {
-        let mut opcodes = opcodes.peekable();
+        let mut entry_ids = entry_ids.peekable();
         let mut funcs_meta = Vec::new();
         let mut overriden_funcs_meta = Vec::new();
         for func_type_id in func_type_ids {
@@ -423,9 +433,9 @@ impl ExpandedServiceMeta {
                     },
                 );
                 if let TypeDef::Composite(func_params_type) = &func_params_type.type_def {
-                    let opcode = opcodes.next().ok_or_else(|| {
+                    let entry_id = entry_ids.next().ok_or_else(|| {
                         Error::FuncMetaIsInvalid(format!(
-                            "missing opcode metadata for function `{}`",
+                            "missing entry_id metadata for function `{}`",
                             func_descr.name
                         ))
                     })?;
@@ -434,7 +444,7 @@ impl ExpandedServiceMeta {
                         params_type_id: func_descr.fields[0].ty.id,
                         params_fields: func_params_type.fields.to_vec(),
                         result_type_id: func_descr.fields[1].ty.id,
-                        opcode,
+                        entry_id,
                         docs: func_descr.docs.iter().map(|s| s.to_string()).collect(),
                     };
                     if !funcs_meta
@@ -453,9 +463,9 @@ impl ExpandedServiceMeta {
                 }
             }
         }
-        if opcodes.next().is_some() {
+        if entry_ids.next().is_some() {
             return Err(Error::FuncMetaIsInvalid(
-                "opcode metadata contains extra entries".into(),
+                "entry metadata contains extra entries".into(),
             ));
         }
         Ok((funcs_meta, overriden_funcs_meta))
@@ -464,9 +474,9 @@ impl ExpandedServiceMeta {
     fn event_variants(
         registry: &PortableRegistry,
         events_type_ids: impl Iterator<Item = u32>,
-        codes: impl Iterator<Item = u16>,
+        entry_ids: impl Iterator<Item = u16>,
     ) -> Result<Vec<EventMeta>> {
-        let mut codes = codes.peekable();
+        let mut entry_ids = entry_ids.peekable();
         let mut events_variants = Vec::new();
         for events_type_id in events_type_ids {
             let events = registry.resolve(events_type_id).unwrap_or_else(|| {
@@ -476,9 +486,9 @@ impl ExpandedServiceMeta {
             });
             if let TypeDef::Variant(variant) = &events.type_def {
                 for event_variant in &variant.variants {
-                    let code = codes.next().ok_or_else(|| {
+                    let entry_id = entry_ids.next().ok_or_else(|| {
                         Error::EventMetaIsInvalid(format!(
-                            "missing event code metadata for `{}`",
+                            "missing event entry metadata for `{}`",
                             event_variant.name
                         ))
                     })?;
@@ -493,7 +503,7 @@ impl ExpandedServiceMeta {
                     }
                     events_variants.push(EventMeta {
                         variant: event_variant.clone(),
-                        code,
+                        entry_id,
                     });
                 }
             } else {
@@ -502,9 +512,9 @@ impl ExpandedServiceMeta {
                 )));
             }
         }
-        if codes.next().is_some() {
+        if entry_ids.next().is_some() {
             return Err(Error::EventMetaIsInvalid(
-                "event code metadata contains extra entries".into(),
+                "event entry metadata contains extra entries".into(),
             ));
         }
         Ok(events_variants)

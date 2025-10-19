@@ -278,7 +278,7 @@ pub(crate) struct FnBuilder<'a> {
     params_types: Vec<&'a Type>,
     pub result_type: Type,
     pub unwrap_result: bool,
-    opcode: Option<u16>,
+    entry_id: Option<u16>,
     pub sails_path: &'a Path,
 }
 
@@ -296,7 +296,8 @@ impl<'a> FnBuilder<'a> {
         let params_struct_ident = Ident::new(&format!("__{route}Params"), Span::call_site());
         let (params_idents, params_types): (Vec<_>, Vec<_>) = extract_params(signature).unzip();
         let result_type = unwrap_result_type(signature, unwrap_result);
-        let opcode = export::parse_export_args(&impl_fn.attrs).and_then(|(args, _)| args.opcode());
+        let entry_id =
+            export::parse_export_args(&impl_fn.attrs).and_then(|(args, _)| args.entry_id());
         Self {
             route,
             export,
@@ -308,7 +309,7 @@ impl<'a> FnBuilder<'a> {
             params_types,
             result_type,
             unwrap_result,
-            opcode,
+            entry_id,
             sails_path,
         }
     }
@@ -346,19 +347,19 @@ impl<'a> FnBuilder<'a> {
         self.params_idents.as_slice()
     }
 
-    pub(crate) fn opcode(&self) -> Option<u16> {
-        self.opcode
+    pub(crate) fn entry_id(&self) -> Option<u16> {
+        self.entry_id
     }
 
-    pub(crate) fn set_opcode(&mut self, opcode: u16) {
-        self.opcode = Some(opcode);
+    pub(crate) fn set_entry_id(&mut self, entry_id: u16) {
+        self.entry_id = Some(entry_id);
     }
 
-    pub(crate) fn opcode_literal(&self) -> TokenStream {
-        let opcode = self
-            .opcode
-            .expect("opcode must be set for exported invocation");
-        let literal = Literal::u16_unsuffixed(opcode);
+    pub(crate) fn entry_id_literal(&self) -> TokenStream {
+        let entry_id = self
+            .entry_id
+            .expect("entry_id must be set for exported invocation");
+        let literal = Literal::u16_unsuffixed(entry_id);
         quote!(#literal)
     }
 

@@ -114,29 +114,33 @@ fn build_service_idl_data<'a>(service: &'a ExpandedServiceMeta) -> ServiceIdlDat
 
     let commands = service
         .commands()
-        .map(|(name, params, result_type_id, opcode, docs)| FuncIdlData {
-            name,
-            params,
-            result_type_id,
-            opcode,
-            docs,
-        })
+        .map(
+            |(name, params, result_type_id, entry_id, docs)| FuncIdlData {
+                name,
+                params,
+                result_type_id,
+                entry_id,
+                docs,
+            },
+        )
         .collect();
 
     let queries = service
         .queries()
-        .map(|(name, params, result_type_id, opcode, docs)| FuncIdlData {
-            name,
-            params,
-            result_type_id,
-            opcode,
-            docs,
-        })
+        .map(
+            |(name, params, result_type_id, entry_id, docs)| FuncIdlData {
+                name,
+                params,
+                result_type_id,
+                entry_id,
+                docs,
+            },
+        )
         .collect();
 
     let events = service
         .events()
-        .map(|(variant, code)| EventIdlData { variant, code })
+        .map(|(variant, entry_id)| EventIdlData { variant, entry_id })
         .collect();
 
     ServiceIdlData {
@@ -157,14 +161,14 @@ struct FuncIdlData<'a> {
     name: &'a str,
     params: &'a Vec<Field<PortableForm>>,
     result_type_id: u32,
-    opcode: u16,
+    entry_id: u16,
     docs: &'a Vec<String>,
 }
 
 #[derive(Serialize)]
 struct EventIdlData<'a> {
     variant: &'a Variant<PortableForm>,
-    code: u16,
+    entry_id: u16,
 }
 
 #[derive(Serialize)]

@@ -45,7 +45,11 @@ pub mod counter_bench {
     use super::*;
     pub trait CounterBench {
         type Env: sails_rs::client::GearEnv;
+        /// !@interface_id32 = 0xae358e36
+        /// !@interface_uid64 = 0x37de7c5aae358e36
+        /// !@entry_id = 0x0001
         fn inc(&mut self) -> sails_rs::client::PendingCall<io::Inc, Self::Env>;
+        /// !@entry_id = 0x0002
         fn inc_async(&mut self) -> sails_rs::client::PendingCall<io::IncAsync, Self::Env>;
     }
     pub struct CounterBenchImpl;

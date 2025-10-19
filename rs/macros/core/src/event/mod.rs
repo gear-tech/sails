@@ -26,10 +26,11 @@ pub fn event(attrs: TokenStream, input: TokenStream) -> TokenStream {
     let sails_path_attr = syn::parse2::<CratePathAttr>(attrs).ok();
     let sails_path = &sails_path_or_default(sails_path_attr.map(|attr| attr.path()));
 
-    let event_codes = extract_event_codes(&mut input);
+    let event_entry_ids = extract_event_entry_ids(&mut input);
     let event_impl = generate_sails_event_impl(&input, sails_path);
     let enum_ident = &input.ident;
-    let event_codes_impl = generate_event_codes_impl(enum_ident, &event_codes, sails_path);
+    let event_entry_ids_impl =
+        generate_event_entry_ids_impl(enum_ident, &event_entry_ids, sails_path);
 
     #[cfg(feature = "ethexe")]
     let eth_event_impl = ethexe::generate_eth_event_impl(&input, sails_path);
@@ -43,7 +44,7 @@ pub fn event(attrs: TokenStream, input: TokenStream) -> TokenStream {
 
         #event_impl
 
-        #event_codes_impl
+        #event_entry_ids_impl
 
         #eth_event_impl
     }
@@ -131,7 +132,7 @@ pub fn derive_sails_event(input: TokenStream) -> TokenStream {
     generate_sails_event_impl(&input, sails_path)
 }
 
-fn extract_event_codes(input: &mut ItemEnum) -> Vec<u16> {
+fn extract_event_entry_ids(input: &mut ItemEnum) -> Vec<u16> {
     let mut codes = Vec::new();
     let mut seen = BTreeSet::new();
     let mut next: u16 = 1;
@@ -198,22 +199,22 @@ fn parse_event_code(attr: &Attribute) -> u16 {
     value as u16
 }
 
-fn generate_event_codes_impl(
+fn generate_event_entry_ids_impl(
     enum_ident: &syn::Ident,
-    codes: &[u16],
+    entry_ids: &[u16],
     sails_path: &Path,
 ) -> TokenStream {
-    let push_statements = codes.iter().map(|code| {
-        let literal = Literal::u16_unsuffixed(*code);
-        quote!(codes.push(#literal);)
+    let push_statements = entry_ids.iter().map(|entry_id| {
+        let literal = Literal::u16_unsuffixed(*entry_id);
+        quote!(ids.push(#literal);)
     });
 
     quote! {
-        impl #sails_path::meta::EventCodeMeta for #enum_ident {
-            fn event_codes() -> #sails_path::Vec<u16> {
-                let mut codes = #sails_path::Vec::new();
+        impl #sails_path::meta::EventEntryIdMeta for #enum_ident {
+            fn event_entry_ids() -> #sails_path::Vec<u16> {
+                let mut ids = #sails_path::Vec::new();
                 #( #push_statements )*
-                codes
+                ids
             }
         }
     }

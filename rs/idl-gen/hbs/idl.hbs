@@ -29,14 +29,14 @@ service {{#if name}}{{name}} {{/if}}{
   {{#each docs}}
   /// {{{this}}}
   {{/each}}
-  /// !@type_id = {{hex16 opcode}}
+  /// !@entry_id = {{hex16 entry_id}}
   {{name}} : ({{#each params}}{{#if @index}}, {{/if}}{{#if name}}{{name}}: {{/if}}{{{lookup @root/type_names type}}}{{/each}}) -> {{{lookup @root/type_names result_type_id}}};
 {{/each}}
 {{#each queries}}
   {{#each docs}}
   /// {{{this}}}
   {{/each}}
-  /// !@type_id = {{hex16 opcode}}
+  /// !@entry_id = {{hex16 entry_id}}
   query {{name}} : ({{#each params}}{{#if @index}}, {{/if}}{{#if name}}{{name}}: {{/if}}{{{lookup @root/type_names type}}}{{/each}}) -> {{{lookup @root/type_names result_type_id}}};
 {{/each}}
 {{#if (len events)}}
@@ -46,7 +46,7 @@ service {{#if name}}{{name}} {{/if}}{
     {{#each variant.docs}}
     /// {{{this}}}
     {{/each}}
-    /// !@event_id = {{hex16 code}}
+    /// !@entry_id = {{hex16 entry_id}}
     {{variant.name}}
     {{~#if variant.fields.[1]}}: struct {
       {{#each variant.fields}}

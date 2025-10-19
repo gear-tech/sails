@@ -90,7 +90,7 @@ pub struct CanonicalFunction {
     pub params: Vec<CanonicalParam>,
     pub returns: CanonicalType,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub message_id_override: Option<u16>,
+    pub entry_id_override: Option<u16>,
 }
 
 /// Function mutability.
@@ -116,7 +116,7 @@ pub struct CanonicalEvent {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub payload: Option<CanonicalType>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub code_override: Option<u16>,
+    pub entry_id_override: Option<u16>,
 }
 
 /// Canonical description of a parent interface implemented by a service.
@@ -518,7 +518,7 @@ fn service_to_canonical(
                     })
                     .collect(),
                 returns: CanonicalType::Unit,
-                message_id_override: extract_u16_marker(func.docs(), "!@type_id"),
+                entry_id_override: extract_u16_marker(func.docs(), "!@entry_id"),
             })
             .collect(),
         events: Vec::new(),
@@ -791,8 +791,8 @@ mod tests {
             r#"{
                 "version": "sails-idl-v1-jcs",
                 "services": {
-                    "b": {"name":"b","extends":[],"functions":[{"kind":"command","name":"Beta","params":[],"returns":{"kind":"unit"},"message_id_override":1}],"events":[]},
-                    "a": {"name":"a","extends":[],"functions":[{"kind":"command","name":"Alpha","params":[],"returns":{"kind":"unit"},"message_id_override":1}],"events":[]}
+                    "b": {"name":"b","extends":[],"functions":[{"kind":"command","name":"Beta","params":[],"returns":{"kind":"unit"},"entry_id_override":1}],"events":[]},
+                    "a": {"name":"a","extends":[],"functions":[{"kind":"command","name":"Alpha","params":[],"returns":{"kind":"unit"},"entry_id_override":1}],"events":[]}
                 },
                 "metadata": {"version": 1},
                 "types": {}
@@ -812,9 +812,9 @@ mod tests {
     fn canonicalizes_textual_idl() {
         let idl = r#"
             service Example {
-                /// !@type_id = 0x0001
+                /// !@entry_id = 0x0001
                 DoSomething : () -> bool;
-                /// !@type_id = 0x0002
+                /// !@entry_id = 0x0002
                 query GetValue : () -> u32;
             };
         "#;
@@ -844,14 +844,14 @@ mod tests {
                                 "name": "DoSomething",
                                 "params": [],
                                 "returns": {"kind": "unit"},
-                                "message_id_override": 1
+                                "entry_id_override": 1
                             },
                             {
                                 "kind": "query",
                                 "name": "GetValue",
                                 "params": [],
                                 "returns": {"kind": "unit"},
-                                "message_id_override": 2
+                                "entry_id_override": 2
                             }
                         ],
                         "name": "Example"

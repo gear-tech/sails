@@ -46,6 +46,9 @@ pub mod compute_stress {
     use super::*;
     pub trait ComputeStress {
         type Env: sails_rs::client::GearEnv;
+        /// !@interface_id32 = 0xabad1470
+        /// !@interface_uid64 = 0x39e771beabad1470
+        /// !@entry_id = 0x0001
         fn compute_stress(
             &mut self,
             n: u32,

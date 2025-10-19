@@ -10,6 +10,9 @@ constructor {
 };
 
 service PingPongService {
+  /// !@interface_id32 = 0x059f87e2
+  /// !@interface_uid64 = 0x255b066e059f87e2
+  /// !@entry_id = 0x0001
   Ping : (payload: PingPongPayload) -> PingPongPayload;
 };
 

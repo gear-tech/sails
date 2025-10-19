@@ -57,36 +57,36 @@ impl ServiceBuilder<'_> {
                 const INTERFACE_UID64: u64 = #meta_module_ident::INTERFACE_UID64;
                 const EXTENDS: &'static [#sails_path::meta::ExtendedInterface] = #meta_module_ident::EXTENDS;
 
-                fn command_opcodes() -> #sails_path::Vec<u16> {
-                    let mut codes = #sails_path::Vec::new();
-                    codes.extend(#meta_module_ident::COMMAND_OPCODES.iter().copied());
-                    #( codes.extend(<#base_types as #sails_path::meta::ServiceMeta>::command_opcodes()); )*
-                    codes
+                fn command_entry_ids() -> #sails_path::Vec<u16> {
+                    let mut ids = #sails_path::Vec::new();
+                    ids.extend(#meta_module_ident::COMMAND_ENTRY_IDS.iter().copied());
+                    #( ids.extend(<#base_types as #sails_path::meta::ServiceMeta>::command_entry_ids()); )*
+                    ids
                 }
 
-                fn local_command_opcodes() -> &'static [u16] {
-                    #meta_module_ident::COMMAND_OPCODES
+                fn local_command_entry_ids() -> &'static [u16] {
+                    #meta_module_ident::COMMAND_ENTRY_IDS
                 }
 
-                fn query_opcodes() -> #sails_path::Vec<u16> {
-                    let mut codes = #sails_path::Vec::new();
-                    codes.extend(#meta_module_ident::QUERY_OPCODES.iter().copied());
-                    #( codes.extend(<#base_types as #sails_path::meta::ServiceMeta>::query_opcodes()); )*
-                    codes
+                fn query_entry_ids() -> #sails_path::Vec<u16> {
+                    let mut ids = #sails_path::Vec::new();
+                    ids.extend(#meta_module_ident::QUERY_ENTRY_IDS.iter().copied());
+                    #( ids.extend(<#base_types as #sails_path::meta::ServiceMeta>::query_entry_ids()); )*
+                    ids
                 }
 
-                fn local_query_opcodes() -> &'static [u16] {
-                    #meta_module_ident::QUERY_OPCODES
+                fn local_query_entry_ids() -> &'static [u16] {
+                    #meta_module_ident::QUERY_ENTRY_IDS
                 }
 
-                fn event_codes() -> #sails_path::Vec<u16> {
-                    let mut codes = #meta_module_ident::event_codes();
-                    #( codes.extend(<#base_types as #sails_path::meta::ServiceMeta>::event_codes()); )*
-                    codes
+                fn event_entry_ids() -> #sails_path::Vec<u16> {
+                    let mut ids = #meta_module_ident::event_entry_ids();
+                    #( ids.extend(<#base_types as #sails_path::meta::ServiceMeta>::event_entry_ids()); )*
+                    ids
                 }
 
-                fn local_event_codes() -> #sails_path::Vec<u16> {
-                    #meta_module_ident::event_codes()
+                fn local_event_entry_ids() -> #sails_path::Vec<u16> {
+                    #meta_module_ident::event_entry_ids()
                 }
 
                 fn canonical_service() -> &'static [u8] {
@@ -116,28 +116,28 @@ impl ServiceBuilder<'_> {
         let queries_meta_variants = self.service_handlers.iter().filter_map(|fn_builder| {
             (fn_builder.is_query()).then_some(fn_builder.handler_meta_variant())
         });
-        let command_opcode_literals = self
+        let command_entry_id_literals = self
             .service_handlers
             .iter()
             .filter(|fn_builder| !fn_builder.is_query())
-            .map(|fn_builder| fn_builder.opcode_literal());
-        let query_opcode_literals = self
+            .map(|fn_builder| fn_builder.entry_id_literal());
+        let query_entry_id_literals = self
             .service_handlers
             .iter()
             .filter(|fn_builder| fn_builder.is_query())
-            .map(|fn_builder| fn_builder.opcode_literal());
-        let event_codes_fn = self.events_type.map_or_else(
+            .map(|fn_builder| fn_builder.entry_id_literal());
+        let event_entry_ids_fn = self.events_type.map_or_else(
             || {
                 quote! {
-                    pub fn event_codes() -> #sails_path::Vec<u16> {
+                    pub fn event_entry_ids() -> #sails_path::Vec<u16> {
                         #sails_path::Vec::new()
                     }
                 }
             },
             |events_type| {
                 quote! {
-                    pub fn event_codes() -> #sails_path::Vec<u16> {
-                        <#events_type as #sails_path::meta::EventCodeMeta>::event_codes()
+                    pub fn event_entry_ids() -> #sails_path::Vec<u16> {
+                        <#events_type as #sails_path::meta::EventEntryIdMeta>::event_entry_ids()
                     }
                 }
             },
@@ -189,16 +189,16 @@ impl ServiceBuilder<'_> {
                         ty: CanonicalType::Unit,
                     })
                     .collect::<Vec<_>>();
-                let opcode = fn_builder
-                    .opcode()
-                    .expect("opcode assigned for exported method");
+                let entry_id = fn_builder
+                    .entry_id()
+                    .expect("entry_id assigned for exported method");
                 CanonicalFunction {
                     kind,
                     name: fn_builder.route.clone(),
                     route: None,
                     params,
                     returns: CanonicalType::Unit,
-                    message_id_override: Some(opcode),
+                    entry_id_override: Some(entry_id),
                 }
             })
             .collect::<Vec<_>>();
@@ -271,17 +271,17 @@ impl ServiceBuilder<'_> {
 
                 pub type EventsMeta = #events_type;
 
-                pub const COMMAND_OPCODES: &[u16] = &[ #( #command_opcode_literals ),* ];
-                pub const QUERY_OPCODES: &[u16] = &[ #( #query_opcode_literals ),* ];
+                pub const COMMAND_ENTRY_IDS: &[u16] = &[ #( #command_entry_id_literals ),* ];
+                pub const QUERY_ENTRY_IDS: &[u16] = &[ #( #query_entry_id_literals ),* ];
                 pub const INTERFACE_ID32: u32 = #interface_id32_lit;
                 pub const INTERFACE_UID64: u64 = #interface_uid64_lit;
                 pub const CANONICAL_BYTES: &[u8] = &[ #( #canonical_byte_literals ),* ];
                 pub const EXTENDS: &[#sails_path::meta::ExtendedInterface] = &[ #( #extends_entries ),* ];
 
-                #event_codes_fn
+                #event_entry_ids_fn
 
-                impl #sails_path::meta::EventCodeMeta for #no_events_type {
-                    fn event_codes() -> #sails_path::Vec<u16> {
+                impl #sails_path::meta::EventEntryIdMeta for #no_events_type {
+                    fn event_entry_ids() -> #sails_path::Vec<u16> {
                         #sails_path::Vec::new()
                     }
                 }

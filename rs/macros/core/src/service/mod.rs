@@ -188,35 +188,35 @@ fn discover_service_handlers<'a>(
     .filter(|fn_builder| fn_builder.export)
     .collect::<Vec<_>>();
 
-    assign_default_opcodes(&mut handlers);
-    ensure_unique_opcodes(&handlers);
+    assign_default_entry_ids(&mut handlers);
+    ensure_unique_entry_ids(&handlers);
     handlers
 }
 
-fn assign_default_opcodes(handlers: &mut [FnBuilder<'_>]) {
-    let mut used: BTreeSet<u16> = handlers.iter().filter_map(|h| h.opcode()).collect();
+fn assign_default_entry_ids(handlers: &mut [FnBuilder<'_>]) {
+    let mut used: BTreeSet<u16> = handlers.iter().filter_map(|h| h.entry_id()).collect();
     let mut next: u16 = 1;
     for handler in handlers.iter_mut() {
-        if handler.opcode().is_none() {
+        if handler.entry_id().is_none() {
             while used.contains(&next) {
                 next = next.wrapping_add(1);
             }
-            handler.set_opcode(next);
+            handler.set_entry_id(next);
             used.insert(next);
             next = next.wrapping_add(1);
         }
     }
 }
 
-fn ensure_unique_opcodes(handlers: &[FnBuilder<'_>]) {
+fn ensure_unique_entry_ids(handlers: &[FnBuilder<'_>]) {
     let mut seen = BTreeMap::new();
     for handler in handlers {
-        if let Some(opcode) = handler.opcode() {
-            if let Some(previous) = seen.insert(opcode, handler.ident.to_string()) {
+        if let Some(entry_id) = handler.entry_id() {
+            if let Some(previous) = seen.insert(entry_id, handler.ident.to_string()) {
                 abort!(
                     handler.ident.span(),
-                    "`opcode = {}` conflicts with method `{}`",
-                    opcode,
+                    "`entry_id = {}` conflicts with method `{}`",
+                    entry_id,
                     previous
                 );
             }

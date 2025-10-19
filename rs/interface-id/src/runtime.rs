@@ -175,18 +175,18 @@ fn build_service(
     functions.extend(collect_functions(
         &portable,
         command_type_id,
-        meta.local_command_opcodes(),
+        meta.local_command_entry_ids(),
         FunctionKind::Command,
     )?);
     functions.extend(collect_functions(
         &portable,
         query_type_id,
-        meta.local_query_opcodes(),
+        meta.local_query_entry_ids(),
         FunctionKind::Query,
     )?);
 
-    let local_event_codes = meta.local_event_codes();
-    let mut events = collect_events(&portable, event_type_id, &local_event_codes)?;
+    let local_event_entry_ids = meta.local_event_entry_ids();
+    let mut events = collect_events(&portable, event_type_id, &local_event_entry_ids)?;
 
     let mut extends: Vec<CanonicalExtendedInterface> = meta
         .extends()
@@ -230,10 +230,10 @@ fn build_service(
 fn collect_functions(
     registry: &PortableRegistry,
     type_id: u32,
-    opcodes: &[u16],
+    entry_ids: &[u16],
     kind: FunctionKind,
 ) -> Result<Vec<CanonicalFunction>> {
-    if opcodes.is_empty() {
+    if entry_ids.is_empty() {
         return Ok(Vec::new());
     }
 
@@ -249,16 +249,16 @@ fn collect_functions(
         return Err(BuildError::UnsupportedType(kind_name.to_owned()));
     };
 
-    if variant.variants.len() != opcodes.len() {
+    if variant.variants.len() != entry_ids.len() {
         return Err(BuildError::MetadataMismatch {
             kind: "function",
             expected: variant.variants.len(),
-            found: opcodes.len(),
+            found: entry_ids.len(),
         });
     }
 
-    let mut functions = Vec::with_capacity(opcodes.len());
-    for (item, opcode) in variant.variants.iter().zip(opcodes.iter()) {
+    let mut functions = Vec::with_capacity(entry_ids.len());
+    for (item, entry_id) in variant.variants.iter().zip(entry_ids.iter()) {
         if item.fields.len() != 2 {
             return Err(BuildError::UnsupportedType(item.name.to_string()));
         }
@@ -270,7 +270,7 @@ fn collect_functions(
             route: None,
             params,
             returns,
-            message_id_override: Some(*opcode),
+            entry_id_override: Some(*entry_id),
         });
     }
 
@@ -280,9 +280,9 @@ fn collect_functions(
 fn collect_events(
     registry: &PortableRegistry,
     type_id: u32,
-    codes: &[u16],
+    entry_ids: &[u16],
 ) -> Result<Vec<CanonicalEvent>> {
-    if codes.is_empty() {
+    if entry_ids.is_empty() {
         return Ok(Vec::new());
     }
 
@@ -294,21 +294,21 @@ fn collect_events(
         return Err(BuildError::UnsupportedType("events".to_owned()));
     };
 
-    if variant.variants.len() != codes.len() {
+    if variant.variants.len() != entry_ids.len() {
         return Err(BuildError::MetadataMismatch {
             kind: "event",
             expected: variant.variants.len(),
-            found: codes.len(),
+            found: entry_ids.len(),
         });
     }
 
-    let mut events = Vec::with_capacity(codes.len());
-    for (item, code) in variant.variants.iter().zip(codes.iter()) {
+    let mut events = Vec::with_capacity(entry_ids.len());
+    for (item, entry_id) in variant.variants.iter().zip(entry_ids.iter()) {
         let payload = extract_event_payload(item, registry)?;
         events.push(CanonicalEvent {
             name: item.name.to_string(),
             payload,
-            code_override: Some(*code),
+            entry_id_override: Some(*entry_id),
         });
     }
 

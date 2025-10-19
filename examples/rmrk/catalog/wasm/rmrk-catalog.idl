@@ -38,13 +38,23 @@ constructor {
 };
 
 service RmrkCatalog {
+  /// !@interface_id32 = 0xfe410a00
+  /// !@interface_uid64 = 0xf522ad60fe410a00
+  /// !@entry_id = 0x0001
   AddEquippables : (part_id: u32, collection_ids: vec actor_id) -> result (struct { u32, vec actor_id }, Error);
+  /// !@entry_id = 0x0002
   AddParts : (parts: map (u32, Part)) -> result (map (u32, Part), Error);
+  /// !@entry_id = 0x0005
   RemoveEquippable : (part_id: u32, collection_id: actor_id) -> result (struct { u32, actor_id }, Error);
+  /// !@entry_id = 0x0006
   RemoveParts : (part_ids: vec u32) -> result (vec u32, Error);
+  /// !@entry_id = 0x0007
   ResetEquippables : (part_id: u32) -> result (null, Error);
+  /// !@entry_id = 0x0008
   SetEquippablesToAll : (part_id: u32) -> result (null, Error);
+  /// !@entry_id = 0x0003
   query Equippable : (part_id: u32, collection_id: actor_id) -> result (bool, Error);
+  /// !@entry_id = 0x0004
   query Part : (part_id: u32) -> opt Part;
 };
 

@@ -33,27 +33,27 @@ pub trait ServiceMeta {
         MetaType::new::<Self::EventsMeta>()
     }
 
-    fn command_opcodes() -> Vec<u16> {
+    fn command_entry_ids() -> Vec<u16> {
         Vec::new()
     }
 
-    fn local_command_opcodes() -> &'static [u16] {
+    fn local_command_entry_ids() -> &'static [u16] {
         &[]
     }
 
-    fn query_opcodes() -> Vec<u16> {
+    fn query_entry_ids() -> Vec<u16> {
         Vec::new()
     }
 
-    fn local_query_opcodes() -> &'static [u16] {
+    fn local_query_entry_ids() -> &'static [u16] {
         &[]
     }
 
-    fn event_codes() -> Vec<u16> {
+    fn event_entry_ids() -> Vec<u16> {
         Vec::new()
     }
 
-    fn local_event_codes() -> Vec<u16> {
+    fn local_event_entry_ids() -> Vec<u16> {
         Vec::new()
     }
 
@@ -70,8 +70,8 @@ pub trait ServiceMeta {
     }
 }
 
-pub trait EventCodeMeta {
-    fn event_codes() -> Vec<u16>;
+pub trait EventEntryIdMeta {
+    fn event_entry_ids() -> Vec<u16>;
 }
 
 pub struct AnyServiceMeta {
@@ -83,12 +83,12 @@ pub struct AnyServiceMeta {
     interface_id32: u32,
     interface_uid64: u64,
     extends: &'static [ExtendedInterface],
-    command_opcodes: Vec<u16>,
-    query_opcodes: Vec<u16>,
-    event_codes: Vec<u16>,
-    local_command_opcodes: &'static [u16],
-    local_query_opcodes: &'static [u16],
-    local_event_codes: fn() -> Vec<u16>,
+    command_entry_ids: Vec<u16>,
+    query_entry_ids: Vec<u16>,
+    event_entry_ids: Vec<u16>,
+    local_command_entry_ids: &'static [u16],
+    local_query_entry_ids: &'static [u16],
+    local_event_entry_ids: fn() -> Vec<u16>,
     canonical_service: fn() -> &'static [u8],
 }
 
@@ -103,12 +103,12 @@ impl AnyServiceMeta {
             interface_id32: S::INTERFACE_ID32,
             interface_uid64: S::INTERFACE_UID64,
             extends: S::extends(),
-            command_opcodes: S::command_opcodes(),
-            query_opcodes: S::query_opcodes(),
-            event_codes: S::event_codes(),
-            local_command_opcodes: S::local_command_opcodes(),
-            local_query_opcodes: S::local_query_opcodes(),
-            local_event_codes: S::local_event_codes,
+            command_entry_ids: S::command_entry_ids(),
+            query_entry_ids: S::query_entry_ids(),
+            event_entry_ids: S::event_entry_ids(),
+            local_command_entry_ids: S::local_command_entry_ids(),
+            local_query_entry_ids: S::local_query_entry_ids(),
+            local_event_entry_ids: S::local_event_entry_ids,
             canonical_service: S::canonical_service,
         }
     }
@@ -145,28 +145,28 @@ impl AnyServiceMeta {
         self.extends
     }
 
-    pub fn command_opcodes(&self) -> &[u16] {
-        &self.command_opcodes
+    pub fn command_entry_ids(&self) -> &[u16] {
+        &self.command_entry_ids
     }
 
-    pub fn query_opcodes(&self) -> &[u16] {
-        &self.query_opcodes
+    pub fn query_entry_ids(&self) -> &[u16] {
+        &self.query_entry_ids
     }
 
-    pub fn local_command_opcodes(&self) -> &'static [u16] {
-        self.local_command_opcodes
+    pub fn local_command_entry_ids(&self) -> &'static [u16] {
+        self.local_command_entry_ids
     }
 
-    pub fn local_query_opcodes(&self) -> &'static [u16] {
-        self.local_query_opcodes
+    pub fn local_query_entry_ids(&self) -> &'static [u16] {
+        self.local_query_entry_ids
     }
 
-    pub fn event_codes(&self) -> &[u16] {
-        &self.event_codes
+    pub fn event_entry_ids(&self) -> &[u16] {
+        &self.event_entry_ids
     }
 
-    pub fn local_event_codes(&self) -> Vec<u16> {
-        (self.local_event_codes)()
+    pub fn local_event_entry_ids(&self) -> Vec<u16> {
+        (self.local_event_entry_ids)()
     }
 
     pub fn canonical_service(&self) -> &'static [u8] {

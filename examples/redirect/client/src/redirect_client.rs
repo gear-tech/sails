@@ -39,12 +39,16 @@ pub mod redirect {
     use super::*;
     pub trait Redirect {
         type Env: sails_rs::client::GearEnv;
+        /// !@interface_id32 = 0xfd852dad
+        /// !@interface_uid64 = 0x01e35eb7fd852dad
         /// Exit from program with inheritor ID
+        /// !@entry_id = 0x0001
         fn exit(
             &mut self,
             inheritor_id: ActorId,
         ) -> sails_rs::client::PendingCall<io::Exit, Self::Env>;
         /// Returns program ID of the current program
+        /// !@entry_id = 0x0002
         fn get_program_id(&self) -> sails_rs::client::PendingCall<io::GetProgramId, Self::Env>;
     }
     pub struct RedirectImpl;

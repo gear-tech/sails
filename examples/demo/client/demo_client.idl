@@ -44,33 +44,54 @@ constructor {
 };
 
 service PingPong {
+  /// !@interface_id32 = 0xe14075ce
+  /// !@interface_uid64 = 0x52c2cfa8e14075ce
+  /// !@entry_id = 0x0001
   Ping : (input: str) -> result (str, str);
 };
 
 service Counter {
+  /// !@interface_id32 = 0xfd944bb5
+  /// !@interface_uid64 = 0x8cdfbd4ffd944bb5
   /// Add a value to the counter
+  /// !@entry_id = 0x0001
   Add : (value: u32) -> u32;
   /// Substract a value from the counter
+  /// !@entry_id = 0x0002
   Sub : (value: u32) -> u32;
   /// Get the current value
+  /// !@entry_id = 0x0003
   query Value : () -> u32;
 
   events {
     /// Emitted when a new value is added to the counter
+    /// !@entry_id = 0x0001
     Added: u32;
     /// Emitted when a value is subtracted from the counter
+    /// !@entry_id = 0x0002
     Subtracted: u32;
   }
 };
 
 service Dog {
+  /// !@interface_id32 = 0xb4f3c9b4
+  /// !@interface_uid64 = 0x53906333b4f3c9b4
+  /// !@extends
+  ///   MammalService (interface_id32=0xd394d776, interface_uid64=0xf43d1748d394d776)
+  ///   WalkerService (interface_id32=0xf15c92fd, interface_uid64=0x2b0bd2bbf15c92fd)
+  /// !@entry_id = 0x0001
   MakeSound : () -> str;
+  /// !@entry_id = 0x0002
   Walk : (dx: i32, dy: i32) -> null;
+  /// !@entry_id = 0x0001
   query AvgWeight : () -> u32;
+  /// !@entry_id = 0x0001
   query Position : () -> struct { i32, i32 };
 
   events {
+    /// !@entry_id = 0x0001
     Barked;
+    /// !@entry_id = 0x0001
     Walked: struct {
       from: struct { i32, i32 },
       to: struct { i32, i32 },
@@ -79,30 +100,51 @@ service Dog {
 };
 
 service References {
+  /// !@interface_id32 = 0xd02c28d3
+  /// !@interface_uid64 = 0x20850a1cd02c28d3
+  /// !@entry_id = 0x0001
   Add : (v: u32) -> u32;
+  /// !@entry_id = 0x0002
   AddByte : (byte: u8) -> vec u8;
+  /// !@entry_id = 0x0004
   GuessNum : (number: u8) -> result (str, str);
+  /// !@entry_id = 0x0005
   Incr : () -> ReferenceCount;
+  /// !@entry_id = 0x0008
   SetNum : (number: u8) -> result (null, str);
+  /// !@entry_id = 0x0003
   query Baked : () -> str;
+  /// !@entry_id = 0x0006
   query LastByte : () -> opt u8;
+  /// !@entry_id = 0x0007
   query Message : () -> opt str;
 };
 
 service ThisThat {
+  /// !@interface_id32 = 0xf27b8c19
+  /// !@interface_uid64 = 0xc93837b3f27b8c19
+  /// !@entry_id = 0x0001
   DoThat : (param: DoThatParam) -> result (struct { actor_id, nat32, ManyVariantsReply }, struct { str });
+  /// !@entry_id = 0x0002
   DoThis : (p1: u32, p2: str, p3: struct { opt h160, nat8 }, p4: TupleStruct) -> struct { str, u32 };
+  /// !@entry_id = 0x0003
   Noop : () -> null;
+  /// !@entry_id = 0x0004
   query That : () -> result (str, str);
+  /// !@entry_id = 0x0005
   query This : () -> u32;
 };
 
 service ValueFee {
+  /// !@interface_id32 = 0xe8b24153
+  /// !@interface_uid64 = 0x55613f48e8b24153
   /// Return flag if fee taken and remain value,
   /// using special type `CommandReply<T>`
+  /// !@entry_id = 0x0001
   DoSomethingAndTakeFee : () -> bool;
 
   events {
+    /// !@entry_id = 0x0001
     Withheld: u128;
   }
 };

@@ -72,6 +72,9 @@ pub mod ping_pong {
     use super::*;
     pub trait PingPong {
         type Env: sails_rs::client::GearEnv;
+        /// !@interface_id32 = 0xe14075ce
+        /// !@interface_uid64 = 0x52c2cfa8e14075ce
+        /// !@entry_id = 0x0001
         fn ping(&mut self, input: String) -> sails_rs::client::PendingCall<io::Ping, Self::Env>;
     }
     pub struct PingPongImpl;
@@ -92,11 +95,16 @@ pub mod counter {
     use super::*;
     pub trait Counter {
         type Env: sails_rs::client::GearEnv;
+        /// !@interface_id32 = 0xfd944bb5
+        /// !@interface_uid64 = 0x8cdfbd4ffd944bb5
         /// Add a value to the counter
+        /// !@entry_id = 0x0001
         fn add(&mut self, value: u32) -> sails_rs::client::PendingCall<io::Add, Self::Env>;
         /// Substract a value from the counter
+        /// !@entry_id = 0x0002
         fn sub(&mut self, value: u32) -> sails_rs::client::PendingCall<io::Sub, Self::Env>;
         /// Get the current value
+        /// !@entry_id = 0x0003
         fn value(&self) -> sails_rs::client::PendingCall<io::Value, Self::Env>;
     }
     pub struct CounterImpl;
@@ -127,8 +135,10 @@ pub mod counter {
         #[codec(crate = sails_rs::scale_codec)]
         pub enum CounterEvents {
             /// Emitted when a new value is added to the counter
+            /// !@entry_id = 0x0001
             Added(u32),
             /// Emitted when a value is subtracted from the counter
+            /// !@entry_id = 0x0002
             Subtracted(u32),
         }
         impl sails_rs::client::Event for CounterEvents {
@@ -144,9 +154,18 @@ pub mod dog {
     use super::*;
     pub trait Dog {
         type Env: sails_rs::client::GearEnv;
+        /// !@interface_id32 = 0xb4f3c9b4
+        /// !@interface_uid64 = 0x53906333b4f3c9b4
+        /// !@extends
+        /// MammalService (interface_id32=0xd394d776, interface_uid64=0xf43d1748d394d776)
+        /// WalkerService (interface_id32=0xf15c92fd, interface_uid64=0x2b0bd2bbf15c92fd)
+        /// !@entry_id = 0x0001
         fn make_sound(&mut self) -> sails_rs::client::PendingCall<io::MakeSound, Self::Env>;
+        /// !@entry_id = 0x0002
         fn walk(&mut self, dx: i32, dy: i32) -> sails_rs::client::PendingCall<io::Walk, Self::Env>;
+        /// !@entry_id = 0x0001
         fn avg_weight(&self) -> sails_rs::client::PendingCall<io::AvgWeight, Self::Env>;
+        /// !@entry_id = 0x0001
         fn position(&self) -> sails_rs::client::PendingCall<io::Position, Self::Env>;
     }
     pub struct DogImpl;
@@ -181,7 +200,11 @@ pub mod dog {
         #[codec(crate = sails_rs::scale_codec)]
         pub enum DogEvents {
             Barked,
-            Walked { from: (i32, i32), to: (i32, i32) },
+            /// !@entry_id = 0x0001
+            Walked {
+                from: (i32, i32),
+                to: (i32, i32),
+            },
         }
         impl sails_rs::client::Event for DogEvents {
             const EVENT_NAMES: &'static [Route] = &["Barked", "Walked"];
@@ -196,16 +219,26 @@ pub mod references {
     use super::*;
     pub trait References {
         type Env: sails_rs::client::GearEnv;
+        /// !@interface_id32 = 0xd02c28d3
+        /// !@interface_uid64 = 0x20850a1cd02c28d3
+        /// !@entry_id = 0x0001
         fn add(&mut self, v: u32) -> sails_rs::client::PendingCall<io::Add, Self::Env>;
+        /// !@entry_id = 0x0002
         fn add_byte(&mut self, byte: u8) -> sails_rs::client::PendingCall<io::AddByte, Self::Env>;
+        /// !@entry_id = 0x0004
         fn guess_num(
             &mut self,
             number: u8,
         ) -> sails_rs::client::PendingCall<io::GuessNum, Self::Env>;
+        /// !@entry_id = 0x0005
         fn incr(&mut self) -> sails_rs::client::PendingCall<io::Incr, Self::Env>;
+        /// !@entry_id = 0x0008
         fn set_num(&mut self, number: u8) -> sails_rs::client::PendingCall<io::SetNum, Self::Env>;
+        /// !@entry_id = 0x0003
         fn baked(&self) -> sails_rs::client::PendingCall<io::Baked, Self::Env>;
+        /// !@entry_id = 0x0006
         fn last_byte(&self) -> sails_rs::client::PendingCall<io::LastByte, Self::Env>;
+        /// !@entry_id = 0x0007
         fn message(&self) -> sails_rs::client::PendingCall<io::Message, Self::Env>;
     }
     pub struct ReferencesImpl;
@@ -257,10 +290,14 @@ pub mod this_that {
     use super::*;
     pub trait ThisThat {
         type Env: sails_rs::client::GearEnv;
+        /// !@interface_id32 = 0xf27b8c19
+        /// !@interface_uid64 = 0xc93837b3f27b8c19
+        /// !@entry_id = 0x0001
         fn do_that(
             &mut self,
             param: DoThatParam,
         ) -> sails_rs::client::PendingCall<io::DoThat, Self::Env>;
+        /// !@entry_id = 0x0002
         fn do_this(
             &mut self,
             p1: u32,
@@ -268,8 +305,11 @@ pub mod this_that {
             p3: (Option<H160>, NonZeroU8),
             p4: TupleStruct,
         ) -> sails_rs::client::PendingCall<io::DoThis, Self::Env>;
+        /// !@entry_id = 0x0003
         fn noop(&mut self) -> sails_rs::client::PendingCall<io::Noop, Self::Env>;
+        /// !@entry_id = 0x0004
         fn that(&self) -> sails_rs::client::PendingCall<io::That, Self::Env>;
+        /// !@entry_id = 0x0005
         fn this(&self) -> sails_rs::client::PendingCall<io::This, Self::Env>;
     }
     pub struct ThisThatImpl;
@@ -315,8 +355,11 @@ pub mod value_fee {
     use super::*;
     pub trait ValueFee {
         type Env: sails_rs::client::GearEnv;
+        /// !@interface_id32 = 0xe8b24153
+        /// !@interface_uid64 = 0x55613f48e8b24153
         /// Return flag if fee taken and remain value,
         /// using special type `CommandReply<T>`
+        /// !@entry_id = 0x0001
         fn do_something_and_take_fee(
             &mut self,
         ) -> sails_rs::client::PendingCall<io::DoSomethingAndTakeFee, Self::Env>;
@@ -342,6 +385,7 @@ pub mod value_fee {
         #[derive(PartialEq, Debug, Encode, Decode)]
         #[codec(crate = sails_rs::scale_codec)]
         pub enum ValueFeeEvents {
+            /// !@entry_id = 0x0001
             Withheld(u128),
         }
         impl sails_rs::client::Event for ValueFeeEvents {
