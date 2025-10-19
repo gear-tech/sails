@@ -633,17 +633,19 @@ fn main() {{
     use sails_interface_id::runtime::build_canonical_document_from_meta;
 
     let mut services = BTreeMap::new();
+    let mut types = BTreeMap::new();
     for (_, service_fn) in <{} as ProgramMeta>::SERVICES {{
         let meta = service_fn();
         let doc = build_canonical_document_from_meta(&meta)
             .expect(\"failed to build canonical document\");
         services.extend(doc.services);
+        types.extend(doc.types);
     }}
 
     let document = CanonicalDocument {{
         version: CANONICAL_VERSION.to_owned(),
         services,
-        types: BTreeMap::new(),
+        types,
     }};
 
     let bytes = document

@@ -117,6 +117,90 @@ fn extract_event_payload(
         Ok(None)
     }
 }
+
+fn collect_user_type_ids(registry: &PortableRegistry, type_id: u32, acc: &mut BTreeSet<u32>) {
+    fn visit(
+        registry: &PortableRegistry,
+        type_id: u32,
+        acc: &mut BTreeSet<u32>,
+        visited: &mut BTreeSet<u32>,
+    ) {
+        if !visited.insert(type_id) {
+            return;
+        }
+        let Some(ty) = registry.resolve(type_id) else {
+            return;
+        };
+        let has_private_name = ty
+            .path
+            .segments
+            .last()
+            .is_some_and(|segment| segment.starts_with("__"));
+        let has_system_prefix = ty
+            .path
+            .segments
+            .first()
+            .is_some_and(|segment| matches!(segment.as_ref(), "alloc" | "core" | "std"));
+        let should_include = matches!(ty.type_def, TypeDef::Composite(_) | TypeDef::Variant(_))
+            && !has_private_name
+            && !has_system_prefix;
+        if should_include {
+            acc.insert(type_id);
+        }
+        match &ty.type_def {
+            TypeDef::Composite(def) => {
+                for field in &def.fields {
+                    visit(registry, field.ty.id, acc, visited);
+                }
+            }
+            TypeDef::Variant(def) => {
+                for variant in &def.variants {
+                    for field in &variant.fields {
+                        visit(registry, field.ty.id, acc, visited);
+                    }
+                }
+            }
+            TypeDef::Sequence(def) => {
+                visit(registry, def.type_param.id, acc, visited);
+            }
+            TypeDef::Array(def) => {
+                visit(registry, def.type_param.id, acc, visited);
+            }
+            TypeDef::Tuple(def) => {
+                for field in &def.fields {
+                    visit(registry, field.id, acc, visited);
+                }
+            }
+            TypeDef::Compact(def) => {
+                visit(registry, def.type_param.id, acc, visited);
+            }
+            TypeDef::Primitive(_) | TypeDef::BitSequence(_) => {}
+        }
+    }
+
+    let mut visited = BTreeSet::new();
+    visit(registry, type_id, acc, &mut visited);
+}
+
+fn canonical_types_from_ids(
+    registry: &PortableRegistry,
+    type_ids: &BTreeSet<u32>,
+) -> Result<BTreeMap<String, CanonicalType>> {
+    let mut types = BTreeMap::new();
+    for type_id in type_ids {
+        let ty = registry
+            .resolve(*type_id)
+            .ok_or_else(|| BuildError::UnknownType(*type_id))?;
+        let name = if ty.path.segments.is_empty() {
+            format!("type_{}", type_id)
+        } else {
+            ty.path.segments.join("::")
+        };
+        let canonical = canonical_visitor::canonical_type(registry, *type_id)?;
+        types.entry(name).or_insert(canonical);
+    }
+    Ok(types)
+}
 fn register_builtin_types(registry: &mut Registry) {
     let _: Vec<_> = registry.register_types([] as [MetaType; 0]);
 }
@@ -124,12 +208,13 @@ fn register_builtin_types(registry: &mut Registry) {
 pub fn build_canonical_document_from_meta(meta: &AnyServiceMeta) -> Result<CanonicalDocument> {
     let mut services = BTreeMap::new();
     let mut visited = BTreeSet::new();
-    collect_service(meta, &mut services, &mut visited)?;
+    let mut types = BTreeMap::new();
+    collect_service(meta, &mut services, &mut visited, &mut types)?;
 
     Ok(CanonicalDocument {
         version: crate::canonical::CANONICAL_VERSION.to_owned(),
         services,
-        types: BTreeMap::new(),
+        types,
     })
 }
 
@@ -137,6 +222,7 @@ fn collect_service(
     meta: &AnyServiceMeta,
     services: &mut BTreeMap<String, CanonicalService>,
     visited: &mut BTreeSet<String>,
+    collected_types: &mut BTreeMap<String, CanonicalType>,
 ) -> Result<()> {
     let name = meta.interface_path().to_owned();
     if visited.contains(&name) {
@@ -144,7 +230,7 @@ fn collect_service(
     }
 
     for base in meta.base_services() {
-        collect_service(base, services, visited)?;
+        collect_service(base, services, visited, collected_types)?;
     }
 
     if services.contains_key(&name) {
@@ -152,7 +238,10 @@ fn collect_service(
     }
 
     visited.insert(name.clone());
-    let service = build_service(meta, services)?;
+    let (service, types) = build_service(meta, services)?;
+    for (name, ty) in types {
+        collected_types.entry(name).or_insert(ty);
+    }
     services.insert(name, service);
 
     Ok(())
@@ -161,7 +250,7 @@ fn collect_service(
 fn build_service(
     meta: &AnyServiceMeta,
     services: &BTreeMap<String, CanonicalService>,
-) -> Result<CanonicalService> {
+) -> Result<(CanonicalService, BTreeMap<String, CanonicalType>)> {
     let mut registry = Registry::new();
     register_builtin_types(&mut registry);
 
@@ -170,6 +259,7 @@ fn build_service(
     let event_type_id = registry.register_type(meta.events()).id;
 
     let portable = PortableRegistry::from(registry);
+    let mut type_ids = BTreeSet::new();
 
     let mut functions = Vec::new();
     functions.extend(collect_functions(
@@ -177,16 +267,23 @@ fn build_service(
         command_type_id,
         meta.local_command_entry_ids(),
         FunctionKind::Command,
+        &mut type_ids,
     )?);
     functions.extend(collect_functions(
         &portable,
         query_type_id,
         meta.local_query_entry_ids(),
         FunctionKind::Query,
+        &mut type_ids,
     )?);
 
     let local_event_entry_ids = meta.local_event_entry_ids();
-    let mut events = collect_events(&portable, event_type_id, &local_event_entry_ids)?;
+    let mut events = collect_events(
+        &portable,
+        event_type_id,
+        &local_event_entry_ids,
+        &mut type_ids,
+    )?;
 
     let mut extends: Vec<CanonicalExtendedInterface> = meta
         .extends()
@@ -224,7 +321,8 @@ fn build_service(
         functions,
         events,
     };
-    Ok(service)
+    let types = canonical_types_from_ids(&portable, &type_ids)?;
+    Ok((service, types))
 }
 
 fn collect_functions(
@@ -232,6 +330,7 @@ fn collect_functions(
     type_id: u32,
     entry_ids: &[u16],
     kind: FunctionKind,
+    collected_types: &mut BTreeSet<u32>,
 ) -> Result<Vec<CanonicalFunction>> {
     if entry_ids.is_empty() {
         return Ok(Vec::new());
@@ -262,6 +361,8 @@ fn collect_functions(
         if item.fields.len() != 2 {
             return Err(BuildError::UnsupportedType(item.name.to_string()));
         }
+        collect_user_type_ids(registry, item.fields[0].ty.id, collected_types);
+        collect_user_type_ids(registry, item.fields[1].ty.id, collected_types);
         let params = extract_params(item.fields[0].ty.id, registry)?;
         let returns = canonical_visitor::canonical_type(registry, item.fields[1].ty.id)?;
         functions.push(CanonicalFunction {
@@ -281,6 +382,7 @@ fn collect_events(
     registry: &PortableRegistry,
     type_id: u32,
     entry_ids: &[u16],
+    collected_types: &mut BTreeSet<u32>,
 ) -> Result<Vec<CanonicalEvent>> {
     if entry_ids.is_empty() {
         return Ok(Vec::new());
@@ -304,6 +406,9 @@ fn collect_events(
 
     let mut events = Vec::with_capacity(entry_ids.len());
     for (item, entry_id) in variant.variants.iter().zip(entry_ids.iter()) {
+        for field in &item.fields {
+            collect_user_type_ids(registry, field.ty.id, collected_types);
+        }
         let payload = extract_event_payload(item, registry)?;
         events.push(CanonicalEvent {
             name: item.name.to_string(),
