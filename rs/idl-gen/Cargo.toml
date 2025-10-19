@@ -17,6 +17,7 @@ sails-idl-meta.workspace = true
 scale-info = { workspace = true, features = ["derive", "docs", "serde"] }
 serde = { workspace = true, features = ["derive"] }
 serde-json.workspace = true
+sails-interface-id = { path = "../interface-id" }
 thiserror.workspace = true
 
 [dev-dependencies]
