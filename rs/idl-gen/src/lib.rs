@@ -1,7 +1,8 @@
 pub use errors::*;
 use handlebars::{Handlebars, handlebars_helper};
-use meta::ExpandedProgramMeta;
+use meta::{ExpandedProgramMeta, ExpandedServiceMeta};
 pub use program::*;
+use sails_interface_id::compute_ids_from_bytes;
 use scale_info::{Field, PortableType, Variant, form::PortableForm};
 use serde::Serialize;
 use std::{fs, io::Write, path::Path};
@@ -64,19 +65,16 @@ pub mod service {
 }
 
 fn render_idl(program_meta: &ExpandedProgramMeta, idl_writer: impl Write) -> Result<()> {
+    let type_names_vec = program_meta.type_names()?.collect::<Vec<_>>();
+    let services = program_meta
+        .services()
+        .map(build_service_idl_data)
+        .collect();
     let program_idl_data = ProgramIdlData {
-        type_names: program_meta.type_names()?.collect(),
+        type_names: type_names_vec.clone(),
         types: program_meta.types().collect(),
         ctors: program_meta.ctors().collect(),
-        services: program_meta
-            .services()
-            .map(|s| ServiceIdlData {
-                name: s.name(),
-                commands: s.commands().collect(),
-                queries: s.queries().collect(),
-                events: s.events().collect(),
-            })
-            .collect(),
+        services,
     };
 
     let mut handlebars = Handlebars::new();
@@ -90,6 +88,9 @@ fn render_idl(program_meta: &ExpandedProgramMeta, idl_writer: impl Write) -> Res
         .register_template_string("variant", VARIANT_TEMPLATE)
         .map_err(Box::new)?;
     handlebars.register_helper("deref", Box::new(deref));
+    handlebars.register_helper("hex16", Box::new(hex16));
+    handlebars.register_helper("hex32", Box::new(hex32));
+    handlebars.register_helper("hex64", Box::new(hex64));
 
     handlebars
         .render_to_write("idl", &program_idl_data, idl_writer)
@@ -98,8 +99,73 @@ fn render_idl(program_meta: &ExpandedProgramMeta, idl_writer: impl Write) -> Res
     Ok(())
 }
 
+fn build_service_idl_data<'a>(service: &'a ExpandedServiceMeta) -> ServiceIdlData<'a> {
+    let (interface_id32, interface_uid64) = compute_ids_from_bytes(service.canonical_bytes());
+
+    let extends = service
+        .extends()
+        .iter()
+        .map(|ext| ExtendsIdlData {
+            name: ext.name.as_str(),
+            interface_id32: ext.interface_id32,
+            interface_uid64: ext.interface_uid64,
+        })
+        .collect();
+
+    let commands = service
+        .commands()
+        .map(|(name, params, result_type_id, opcode, docs)| FuncIdlData {
+            name,
+            params,
+            result_type_id,
+            opcode,
+            docs,
+        })
+        .collect();
+
+    let queries = service
+        .queries()
+        .map(|(name, params, result_type_id, opcode, docs)| FuncIdlData {
+            name,
+            params,
+            result_type_id,
+            opcode,
+            docs,
+        })
+        .collect();
+
+    let events = service
+        .events()
+        .map(|(variant, code)| EventIdlData { variant, code })
+        .collect();
+
+    ServiceIdlData {
+        name: service.name(),
+        interface_id32,
+        interface_uid64,
+        extends,
+        commands,
+        queries,
+        events,
+    }
+}
+
 type CtorIdlData<'a> = (&'a str, &'a Vec<Field<PortableForm>>, &'a Vec<String>);
-type FuncIdlData<'a> = (&'a str, &'a Vec<Field<PortableForm>>, u32, &'a Vec<String>);
+
+#[derive(Serialize)]
+struct FuncIdlData<'a> {
+    name: &'a str,
+    params: &'a Vec<Field<PortableForm>>,
+    result_type_id: u32,
+    opcode: u16,
+    docs: &'a Vec<String>,
+}
+
+#[derive(Serialize)]
+struct EventIdlData<'a> {
+    variant: &'a Variant<PortableForm>,
+    code: u16,
+}
 
 #[derive(Serialize)]
 struct ProgramIdlData<'a> {
@@ -112,9 +178,22 @@ struct ProgramIdlData<'a> {
 #[derive(Serialize)]
 struct ServiceIdlData<'a> {
     name: &'a str,
+    interface_id32: u32,
+    interface_uid64: u64,
+    extends: Vec<ExtendsIdlData<'a>>,
     commands: Vec<FuncIdlData<'a>>,
     queries: Vec<FuncIdlData<'a>>,
-    events: Vec<&'a Variant<PortableForm>>,
+    events: Vec<EventIdlData<'a>>,
+}
+
+#[derive(Serialize)]
+struct ExtendsIdlData<'a> {
+    name: &'a str,
+    interface_id32: u32,
+    interface_uid64: u64,
 }
 
 handlebars_helper!(deref: |v: String| { v });
+handlebars_helper!(hex16: |v: u16| { format!("{:#06x}", v) });
+handlebars_helper!(hex32: |v: u32| { format!("{:#010x}", v) });
+handlebars_helper!(hex64: |v: u64| { format!("{:#018x}", v) });

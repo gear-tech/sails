@@ -2,9 +2,10 @@ use crate::sails_paths::sails_path_or_default;
 use args::{CratePathAttr, SAILS_PATH};
 use parity_scale_codec::Encode;
 use proc_macro_error::abort;
-use proc_macro2::TokenStream;
+use proc_macro2::{Literal, TokenStream};
 use quote::quote;
-use syn::{Fields, ItemEnum, Path, parse::Parse};
+use std::collections::BTreeSet;
+use syn::{Attribute, Expr, ExprLit, Fields, ItemEnum, Meta, Path, parse::Parse};
 
 mod args;
 #[cfg(feature = "ethexe")]
@@ -25,7 +26,10 @@ pub fn event(attrs: TokenStream, input: TokenStream) -> TokenStream {
     let sails_path_attr = syn::parse2::<CratePathAttr>(attrs).ok();
     let sails_path = &sails_path_or_default(sails_path_attr.map(|attr| attr.path()));
 
+    let event_codes = extract_event_codes(&mut input);
     let event_impl = generate_sails_event_impl(&input, sails_path);
+    let enum_ident = &input.ident;
+    let event_codes_impl = generate_event_codes_impl(enum_ident, &event_codes, sails_path);
 
     #[cfg(feature = "ethexe")]
     let eth_event_impl = ethexe::generate_eth_event_impl(&input, sails_path);
@@ -38,6 +42,8 @@ pub fn event(attrs: TokenStream, input: TokenStream) -> TokenStream {
         #input
 
         #event_impl
+
+        #event_codes_impl
 
         #eth_event_impl
     }
@@ -123,4 +129,92 @@ pub fn derive_sails_event(input: TokenStream) -> TokenStream {
     let sails_path = &sails_path_or_default(sails_path_attr.map(|attr| attr.path()));
 
     generate_sails_event_impl(&input, sails_path)
+}
+
+fn extract_event_codes(input: &mut ItemEnum) -> Vec<u16> {
+    let mut codes = Vec::new();
+    let mut seen = BTreeSet::new();
+    let mut next: u16 = 1;
+
+    for variant in &mut input.variants {
+        let mut code_attr = None;
+        let mut retained_attrs = Vec::new();
+
+        for attr in variant.attrs.drain(..) {
+            if attr.path().is_ident("event_code") {
+                if code_attr.is_some() {
+                    abort!(attr, "duplicate `event_code` attribute");
+                }
+                code_attr = Some(parse_event_code(&attr));
+            } else {
+                retained_attrs.push(attr);
+            }
+        }
+
+        variant.attrs = retained_attrs;
+
+        let code = code_attr.unwrap_or_else(|| {
+            while seen.contains(&next) {
+                next = next.wrapping_add(1);
+            }
+            let value = next;
+            next = next.wrapping_add(1);
+            value
+        });
+
+        if !seen.insert(code) {
+            abort!(
+                variant,
+                "duplicate `event_code` value `{code}` within event enum"
+            );
+        }
+
+        codes.push(code);
+    }
+
+    codes
+}
+
+fn parse_event_code(attr: &Attribute) -> u16 {
+    let meta = attr.meta.clone();
+    let Meta::NameValue(name_value) = meta else {
+        abort!(
+            attr,
+            "`event_code` must be in the form `#[event_code = <u16>]`"
+        );
+    };
+    let Expr::Lit(ExprLit { lit, .. }) = name_value.value else {
+        abort!(name_value.value, "`event_code` must be an integer literal");
+    };
+    let syn::Lit::Int(lit_int) = lit else {
+        abort!(lit, "`event_code` must be an integer literal");
+    };
+    let value = lit_int
+        .base10_parse::<u32>()
+        .unwrap_or_else(|err| abort!(lit_int.span(), "failed to parse `event_code`: {}", err));
+    if value > u16::MAX as u32 {
+        abort!(lit_int.span(), "`event_code` value exceeds u16 range");
+    }
+    value as u16
+}
+
+fn generate_event_codes_impl(
+    enum_ident: &syn::Ident,
+    codes: &[u16],
+    sails_path: &Path,
+) -> TokenStream {
+    let push_statements = codes.iter().map(|code| {
+        let literal = Literal::u16_unsuffixed(*code);
+        quote!(codes.push(#literal);)
+    });
+
+    quote! {
+        impl #sails_path::meta::EventCodeMeta for #enum_ident {
+            fn event_codes() -> #sails_path::Vec<u16> {
+                let mut codes = #sails_path::Vec::new();
+                #( #push_statements )*
+                codes
+            }
+        }
+    }
 }

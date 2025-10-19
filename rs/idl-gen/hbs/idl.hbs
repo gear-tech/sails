@@ -17,35 +17,46 @@ constructor {
 {{/if}}
 {{#each services}}
 service {{#if name}}{{name}} {{/if}}{
+  /// !@interface_id32 = {{hex32 interface_id32}}
+  /// !@interface_uid64 = {{hex64 interface_uid64}}
+{{#if (len extends)}}
+  /// !@extends
+  {{#each extends}}
+  ///   {{name}} (interface_id32={{hex32 interface_id32}}, interface_uid64={{hex64 interface_uid64}})
+  {{/each}}
+{{/if}}
 {{#each commands}}
-  {{#each ./[3]}}
+  {{#each docs}}
   /// {{{this}}}
   {{/each}}
-  {{./[0]}} : ({{#each ./[1]}}{{#if @index}}, {{/if}}{{name}}: {{{lookup @root/type_names type}}}{{/each}}) -> {{{lookup @root/type_names ./[2]}}};
+  /// !@type_id = {{hex16 opcode}}
+  {{name}} : ({{#each params}}{{#if @index}}, {{/if}}{{#if name}}{{name}}: {{/if}}{{{lookup @root/type_names type}}}{{/each}}) -> {{{lookup @root/type_names result_type_id}}};
 {{/each}}
 {{#each queries}}
-  {{#each ./[3]}}
+  {{#each docs}}
   /// {{{this}}}
   {{/each}}
-  query {{./[0]}} : ({{#each ./[1]}}{{#if @index}}, {{/if}}{{name}}: {{{lookup @root/type_names type}}}{{/each}}) -> {{{lookup @root/type_names ./[2]}}};
+  /// !@type_id = {{hex16 opcode}}
+  query {{name}} : ({{#each params}}{{#if @index}}, {{/if}}{{#if name}}{{name}}: {{/if}}{{{lookup @root/type_names type}}}{{/each}}) -> {{{lookup @root/type_names result_type_id}}};
 {{/each}}
 {{#if (len events)}}
 
   events {
   {{#each events}}
-    {{#each docs}}
+    {{#each variant.docs}}
     /// {{{this}}}
     {{/each}}
-    {{name}}
-    {{~#if fields.[1]}}: struct {
-      {{#each fields}}
+    /// !@event_id = {{hex16 code}}
+    {{variant.name}}
+    {{~#if variant.fields.[1]}}: struct {
+      {{#each variant.fields}}
       {{#each docs}}
       /// {{{this}}}
       {{/each}}
       {{#if name}}{{name}}: {{/if~}}{{{lookup @root/type_names type}}},
       {{/each}}
     } {{~else}}
-    {{~#if fields.[0]}}: {{#with fields.[0]}} {{~#if name~}} struct {
+    {{~#if variant.fields.[0]}}: {{#with variant.fields.[0]}} {{~#if name~}} struct {
       {{#each docs}}
       /// {{{this}}}
       {{/each}}

@@ -190,6 +190,8 @@ impl<C: StaticTypeInfo, Q: StaticTypeInfo, E: StaticTypeInfo> RtlServiceMeta
     type CommandsMeta = C;
     type QueriesMeta = Q;
     type EventsMeta = E;
+    // Test scaffolding does not rely on a real path; empty marker keeps the trait happy.
+    const INTERFACE_PATH: &'static str = "";
     const BASE_SERVICES: &'static [AnyServiceMetaFn] = &[];
     const ASYNC: bool = false;
 }
@@ -207,6 +209,8 @@ impl<C: StaticTypeInfo, Q: StaticTypeInfo, E: StaticTypeInfo, B: RtlServiceMeta>
     type CommandsMeta = C;
     type QueriesMeta = Q;
     type EventsMeta = E;
+    // Same as above: the mocked base service metadata does not need a path.
+    const INTERFACE_PATH: &'static str = "";
     const BASE_SERVICES: &'static [AnyServiceMetaFn] = &[AnyServiceMeta::new::<B>];
     const ASYNC: bool = false;
 }

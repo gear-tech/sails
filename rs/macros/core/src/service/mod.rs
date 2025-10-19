@@ -9,6 +9,7 @@ use convert_case::{Case, Casing};
 use proc_macro_error::abort;
 use proc_macro2::{Literal, Span, TokenStream};
 use quote::quote;
+use std::collections::{BTreeMap, BTreeSet};
 use syn::{Generics, Ident, ItemImpl, Path, Type, TypePath, Visibility, WhereClause};
 
 mod args;
@@ -178,14 +179,49 @@ fn discover_service_handlers<'a>(
     service_impl: &'a ItemImpl,
     sails_path: &'a Path,
 ) -> Vec<FnBuilder<'a>> {
-    shared::discover_invocation_targets(
+    let mut handlers = shared::discover_invocation_targets(
         service_impl,
         |fn_item| matches!(fn_item.vis, Visibility::Public(_)) && fn_item.sig.receiver().is_some(),
         sails_path,
     )
     .into_iter()
     .filter(|fn_builder| fn_builder.export)
-    .collect()
+    .collect::<Vec<_>>();
+
+    assign_default_opcodes(&mut handlers);
+    ensure_unique_opcodes(&handlers);
+    handlers
+}
+
+fn assign_default_opcodes(handlers: &mut [FnBuilder<'_>]) {
+    let mut used: BTreeSet<u16> = handlers.iter().filter_map(|h| h.opcode()).collect();
+    let mut next: u16 = 1;
+    for handler in handlers.iter_mut() {
+        if handler.opcode().is_none() {
+            while used.contains(&next) {
+                next = next.wrapping_add(1);
+            }
+            handler.set_opcode(next);
+            used.insert(next);
+            next = next.wrapping_add(1);
+        }
+    }
+}
+
+fn ensure_unique_opcodes(handlers: &[FnBuilder<'_>]) {
+    let mut seen = BTreeMap::new();
+    for handler in handlers {
+        if let Some(opcode) = handler.opcode() {
+            if let Some(previous) = seen.insert(opcode, handler.ident.to_string()) {
+                abort!(
+                    handler.ident.span(),
+                    "`opcode = {}` conflicts with method `{}`",
+                    opcode,
+                    previous
+                );
+            }
+        }
+    }
 }
 
 impl FnBuilder<'_> {

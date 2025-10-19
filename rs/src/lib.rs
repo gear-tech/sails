@@ -15,6 +15,8 @@ pub use prelude::*;
 #[cfg(not(target_arch = "wasm32"))]
 pub use sails_idl_gen::{generate_idl, generate_idl_to_file};
 pub use sails_idl_meta::{self as meta};
+#[cfg(feature = "std")]
+pub use sails_interface_id as interface_id;
 pub use spin;
 
 #[cfg(feature = "client-builder")]

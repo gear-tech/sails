@@ -35,6 +35,7 @@ scale-info = { workspace = true, features = ["derive", "docs"] }
 spin.workspace = true
 thiserror.workspace = true
 tokio-stream = { workspace = true, optional = true }
+sails-interface-id = { workspace = true, optional = true }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 gear-core = { workspace = true, features = [
@@ -64,5 +65,5 @@ gtest = ["std", "dep:gtest", "dep:log", "dep:tokio-stream"]
 idl-gen = ["dep:sails-idl-gen"]
 client-builder = ["std", "idl-gen", "dep:sails-client-gen", "dep:convert_case"]
 mockall = ["std", "dep:mockall"]
-std = ["futures/std"]
+std = ["futures/std", "dep:sails-interface-id"]
 wasm-builder = ["dep:gwasm-builder"]

@@ -9,6 +9,7 @@ use syn::{
 pub(crate) struct ExportArgs {
     route: Option<String>,
     unwrap_result: bool,
+    opcode: Option<u16>,
 }
 
 impl ExportArgs {
@@ -19,6 +20,10 @@ impl ExportArgs {
     pub fn unwrap_result(&self) -> bool {
         self.unwrap_result
     }
+
+    pub fn opcode(&self) -> Option<u16> {
+        self.opcode
+    }
 }
 
 impl Parse for ExportArgs {
@@ -27,6 +32,7 @@ impl Parse for ExportArgs {
         let mut args = Self {
             route: None,
             unwrap_result: false,
+            opcode: None,
         };
         for arg in punctuated {
             match arg {
@@ -35,6 +41,11 @@ impl Parse for ExportArgs {
                 }
                 ImportArg::UnwrapResult(unwrap_result) => {
                     args.unwrap_result = unwrap_result;
+                }
+                ImportArg::Opcode(opcode) => {
+                    if args.opcode.replace(opcode).is_some() {
+                        abort!(input.span(), "duplicate `opcode` argument");
+                    }
                 }
             }
         }
@@ -46,6 +57,7 @@ impl Parse for ExportArgs {
 enum ImportArg {
     Route(String),
     UnwrapResult(bool),
+    Opcode(u16),
 }
 
 impl Parse for ImportArg {
@@ -76,6 +88,19 @@ impl Parse for ImportArg {
                 }
                 Ok(Self::UnwrapResult(true))
             }
+            "opcode" => {
+                input.parse::<Token![=]>()?;
+                let lit = input.parse::<syn::LitInt>().unwrap_or_else(|err| {
+                    abort!(ident, "unexpected value for `opcode` argument: {}", err)
+                });
+                let value = lit.base10_parse::<u32>().unwrap_or_else(|err| {
+                    abort!(lit.span(), "`opcode` must be a positive integer: {}", err)
+                });
+                if value > u16::MAX as u32 {
+                    abort!(lit.span(), "`opcode` value exceeds u16 range");
+                }
+                Ok(Self::Opcode(value as u16))
+            }
             _ => abort!(ident, "unknown argument: {}", ident),
         }
     }
@@ -93,6 +118,7 @@ mod tests {
         let expected = ExportArgs {
             route: Some("CallMe".to_owned()),
             unwrap_result: true,
+            opcode: None,
         };
 
         // act
@@ -109,6 +135,7 @@ mod tests {
         let expected = ExportArgs {
             route: None,
             unwrap_result: true,
+            opcode: None,
         };
 
         // act
@@ -125,12 +152,27 @@ mod tests {
         let expected = ExportArgs {
             route: None,
             unwrap_result: false,
+            opcode: None,
         };
 
         // act
         let args = syn::parse2::<ExportArgs>(input).unwrap();
 
         // arrange
+        assert_eq!(expected, args);
+    }
+
+    #[test]
+    fn export_parse_args_with_opcode() {
+        let input = quote!(route = "CallMe", opcode = 7);
+        let expected = ExportArgs {
+            route: Some("CallMe".to_owned()),
+            unwrap_result: false,
+            opcode: Some(7),
+        };
+
+        let args = syn::parse2::<ExportArgs>(input).unwrap();
+
         assert_eq!(expected, args);
     }
 }
