@@ -3,6 +3,7 @@
 extern crate alloc;
 
 use alloc::{
+    boxed::Box,
     collections::{BTreeMap, BTreeSet},
     string::String,
     vec::Vec,
@@ -285,31 +286,33 @@ fn build_service(
         &mut type_ids,
     )?;
 
-    let mut extends: Vec<CanonicalExtendedInterface> = meta
-        .extends()
-        .iter()
-        .map(|ext| {
-            let name = ext.name.to_owned();
-            let (interface_id32, interface_uid64) = if let Some(base_service) = services.get(&name)
-            {
-                let mut single_services = BTreeMap::new();
-                single_services.insert(name.clone(), base_service.clone());
-                let single_doc = CanonicalDocument {
-                    version: crate::canonical::CANONICAL_VERSION.to_owned(),
-                    services: single_services,
-                    types: BTreeMap::new(),
-                };
-                compute_ids_from_document(&single_doc)
-            } else {
-                (ext.interface_id32, ext.interface_uid64)
+    let mut extends: Vec<CanonicalExtendedInterface> = Vec::new();
+    for ext in meta.extends() {
+        let name = ext.name.to_owned();
+        if let Some(base_service) = services.get(&name) {
+            let mut single_services = BTreeMap::new();
+            single_services.insert(name.clone(), base_service.clone());
+            let single_doc = CanonicalDocument {
+                version: crate::canonical::CANONICAL_VERSION.to_owned(),
+                services: single_services,
+                types: BTreeMap::new(),
             };
-            CanonicalExtendedInterface {
+            let (interface_id32, interface_uid64) = compute_ids_from_document(&single_doc);
+            extends.push(CanonicalExtendedInterface {
                 name,
                 interface_id32,
                 interface_uid64,
-            }
-        })
-        .collect();
+                service: Some(Box::new(base_service.clone())),
+            });
+        } else {
+            extends.push(CanonicalExtendedInterface {
+                name,
+                interface_id32: ext.interface_id32,
+                interface_uid64: ext.interface_uid64,
+                service: None,
+            });
+        }
+    }
 
     functions.sort_by(|a, b| a.kind.cmp(&b.kind).then_with(|| a.name.cmp(&b.name)));
     extends.sort_by(|a, b| a.name.cmp(&b.name));
@@ -418,4 +421,198 @@ fn collect_events(
     }
 
     Ok(events)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use sails_idl_meta::{AnyServiceMeta, AnyServiceMetaFn, ExtendedInterface, ServiceMeta};
+    use scale_info::TypeInfo;
+
+    const ROOT_INTERFACE_PATH: &str = "test::RootService";
+    const BASE_INTERFACE_PATH: &str = "test::BaseService";
+    const DERIVED_INTERFACE_PATH: &str = "test::DerivedService";
+
+    const ROOT_COMMAND_ID: u16 = 0x0100;
+    const BASE_COMMAND_ID: u16 = 0x0200;
+
+    static ROOT_COMMAND_ENTRY_IDS: [u16; 1] = [ROOT_COMMAND_ID];
+    static BASE_COMMAND_ENTRY_IDS: [u16; 1] = [BASE_COMMAND_ID];
+    static EMPTY_ENTRY_IDS: [u16; 0] = [];
+    static ROOT_EXTENDS: [ExtendedInterface; 0] = [];
+    static BASE_EXTENDS: [ExtendedInterface; 1] = [ExtendedInterface {
+        name: ROOT_INTERFACE_PATH,
+        interface_id32: 0,
+        interface_uid64: 0,
+    }];
+    static DERIVED_EXTENDS: [ExtendedInterface; 1] = [ExtendedInterface {
+        name: BASE_INTERFACE_PATH,
+        interface_id32: 0,
+        interface_uid64: 0,
+    }];
+
+    #[derive(TypeInfo)]
+    struct NoParams;
+
+    #[derive(TypeInfo)]
+    enum RootCommandsMeta {
+        Identify(NoParams, ()),
+    }
+
+    #[derive(TypeInfo)]
+    enum BaseCommandsMeta {
+        MakeSound(NoParams, ()),
+    }
+
+    #[derive(TypeInfo)]
+    enum EmptyCommandsMeta {}
+
+    #[derive(TypeInfo)]
+    enum EmptyQueriesMeta {}
+
+    #[derive(TypeInfo)]
+    enum EmptyEventsMeta {}
+
+    struct RootServiceMeta;
+
+    impl ServiceMeta for RootServiceMeta {
+        type CommandsMeta = RootCommandsMeta;
+        type QueriesMeta = EmptyQueriesMeta;
+        type EventsMeta = EmptyEventsMeta;
+
+        const BASE_SERVICES: &'static [AnyServiceMetaFn] = &[];
+        const ASYNC: bool = false;
+        const INTERFACE_PATH: &'static str = ROOT_INTERFACE_PATH;
+        const EXTENDS: &'static [ExtendedInterface] = &ROOT_EXTENDS;
+
+        fn command_entry_ids() -> Vec<u16> {
+            ROOT_COMMAND_ENTRY_IDS.to_vec()
+        }
+
+        fn local_command_entry_ids() -> &'static [u16] {
+            &ROOT_COMMAND_ENTRY_IDS
+        }
+
+        fn query_entry_ids() -> Vec<u16> {
+            Vec::new()
+        }
+
+        fn local_query_entry_ids() -> &'static [u16] {
+            &EMPTY_ENTRY_IDS
+        }
+    }
+
+    struct BaseServiceMeta;
+
+    impl ServiceMeta for BaseServiceMeta {
+        type CommandsMeta = BaseCommandsMeta;
+        type QueriesMeta = EmptyQueriesMeta;
+        type EventsMeta = EmptyEventsMeta;
+
+        const BASE_SERVICES: &'static [AnyServiceMetaFn] =
+            &[AnyServiceMeta::new::<RootServiceMeta>];
+        const ASYNC: bool = false;
+        const INTERFACE_PATH: &'static str = BASE_INTERFACE_PATH;
+        const EXTENDS: &'static [ExtendedInterface] = &BASE_EXTENDS;
+
+        fn command_entry_ids() -> Vec<u16> {
+            let mut ids = BASE_COMMAND_ENTRY_IDS.to_vec();
+            ids.extend(RootServiceMeta::command_entry_ids());
+            ids
+        }
+
+        fn local_command_entry_ids() -> &'static [u16] {
+            &BASE_COMMAND_ENTRY_IDS
+        }
+
+        fn query_entry_ids() -> Vec<u16> {
+            RootServiceMeta::query_entry_ids()
+        }
+
+        fn local_query_entry_ids() -> &'static [u16] {
+            &EMPTY_ENTRY_IDS
+        }
+    }
+
+    struct DerivedServiceMeta;
+
+    impl ServiceMeta for DerivedServiceMeta {
+        type CommandsMeta = EmptyCommandsMeta;
+        type QueriesMeta = EmptyQueriesMeta;
+        type EventsMeta = EmptyEventsMeta;
+
+        const BASE_SERVICES: &'static [AnyServiceMetaFn] =
+            &[AnyServiceMeta::new::<BaseServiceMeta>];
+        const ASYNC: bool = false;
+        const INTERFACE_PATH: &'static str = DERIVED_INTERFACE_PATH;
+        const EXTENDS: &'static [ExtendedInterface] = &DERIVED_EXTENDS;
+
+        fn command_entry_ids() -> Vec<u16> {
+            BaseServiceMeta::command_entry_ids()
+        }
+
+        fn local_command_entry_ids() -> &'static [u16] {
+            &EMPTY_ENTRY_IDS
+        }
+
+        fn query_entry_ids() -> Vec<u16> {
+            BaseServiceMeta::query_entry_ids()
+        }
+
+        fn local_query_entry_ids() -> &'static [u16] {
+            &EMPTY_ENTRY_IDS
+        }
+    }
+
+    #[test]
+    fn extends_embed_base_services_recursively() {
+        let meta = AnyServiceMeta::new::<DerivedServiceMeta>();
+        let doc = build_canonical_document_from_meta(&meta)
+            .expect("canonical document should be constructed");
+
+        let derived = doc
+            .services
+            .get(DERIVED_INTERFACE_PATH)
+            .expect("derived service exists");
+        let base_ext = derived
+            .extends
+            .iter()
+            .find(|ext| ext.name == BASE_INTERFACE_PATH)
+            .expect("base extension present");
+
+        assert!(
+            base_ext.interface_id32 != 0,
+            "interface id should be derived from canonical document"
+        );
+        let base_service = base_ext
+            .service
+            .as_ref()
+            .expect("embedded base canonical service");
+        assert_eq!(
+            base_service
+                .functions
+                .iter()
+                .map(|f| f.name.as_str())
+                .collect::<Vec<_>>(),
+            vec!["MakeSound"]
+        );
+        assert_eq!(
+            base_service.functions[0].entry_id_override,
+            Some(BASE_COMMAND_ID)
+        );
+
+        let root_ext = base_service
+            .extends
+            .iter()
+            .find(|ext| ext.name == ROOT_INTERFACE_PATH)
+            .expect("root extension present");
+        let root_service = root_ext
+            .service
+            .as_ref()
+            .expect("embedded root canonical service");
+        assert_eq!(
+            root_service.functions[0].entry_id_override,
+            Some(ROOT_COMMAND_ID)
+        );
+    }
 }

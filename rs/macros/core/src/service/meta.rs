@@ -170,6 +170,7 @@ impl ServiceBuilder<'_> {
                     .to_string(),
                 interface_id32: 0,
                 interface_uid64: 0,
+                service: None,
             })
             .collect::<Vec<_>>();
 

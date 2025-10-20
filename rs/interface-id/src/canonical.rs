@@ -125,6 +125,8 @@ pub struct CanonicalExtendedInterface {
     pub name: String,
     pub interface_id32: u32,
     pub interface_uid64: u64,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub service: Option<Box<CanonicalService>>,
 }
 
 /// Canonical representation of a type expression.
@@ -283,6 +285,11 @@ impl CanonicalDocument {
 
 impl CanonicalService {
     fn normalize(&mut self) {
+        for extended in &mut self.extends {
+            if let Some(service) = &mut extended.service {
+                service.normalize();
+            }
+        }
         self.extends.sort_by(|a, b| a.name.cmp(&b.name));
         for function in &mut self.functions {
             function.normalize();
@@ -719,6 +726,7 @@ fn parse_extends_entry(comment: &str) -> Option<CanonicalExtendedInterface> {
         name,
         interface_id32: 0,
         interface_uid64: 0,
+        service: None,
     })
 }
 
