@@ -108,7 +108,6 @@ service ValueFee {
 };
 
 service Chaos {
-  query Noop : () -> null;
   query PanicAfterWait : () -> null;
   query ReplyHookCounter : () -> u32;
   query TimeoutWait : () -> null;

@@ -9,7 +9,7 @@ pub struct ChaosService;
 impl ChaosService {
     #[export]
     pub async fn panic_after_wait(&self) {
-        let source = gstd::msg::source();
+        let source = Syscall::message_source();
         let _ = gstd::msg::send_for_reply::<()>(source, (), 0, 0)
             .unwrap()
             .await;
@@ -19,7 +19,7 @@ impl ChaosService {
 
     #[export]
     pub async fn timeout_wait(&self) {
-        let source = gstd::msg::source();
+        let source = Syscall::message_source();
         debug!("before handle_reply");
 
         let fut = gstd::msg::send_for_reply::<()>(source, (), 0, 10_000_000_000).unwrap();
@@ -34,11 +34,6 @@ impl ChaosService {
 
         let _ = fut.await;
         debug!("after handle_reply");
-    }
-
-    #[export]
-    pub async fn noop(&self) {
-        debug!("Noop");
     }
 
     #[export]

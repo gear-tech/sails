@@ -548,7 +548,7 @@ fn chaos_service_panic_after_wait_works() {
     use sails_rs::gtest::{Log, Program, System};
 
     let system = System::new();
-    system.init_logger();
+    system.init_logger_with_default_filter("gwasm=debug,gtest=debug,sails_rs=debug");
     system.mint_to(ACTOR_ID, 1_000_000_000_000_000);
     let program = Program::from_file(&system, DEMO_WASM_PATH);
     program.send_bytes(ACTOR_ID, Default::encode_params());
