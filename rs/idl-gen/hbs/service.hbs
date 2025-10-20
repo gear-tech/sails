@@ -1,0 +1,93 @@
+service {{name}} {
+    {{#if extends}}
+    extends {
+        {{#each extends}}
+        {{this}}{{#unless @last}}, {{/unless}}
+        {{/each}}
+    }
+
+    {{/if}}
+    {{#if events}}
+    events {
+    {{#each events}}
+        {{#each docs}}
+        /// {{{this}}}
+        {{/each}}
+        {{name}}{{~#if fields}}
+        {{~#if fields.[0].name}} {
+            {{#each fields}}
+            {{name}}: {{{lookup ../../type_names type}}},
+            {{/each}}
+        }{{~else~}}
+            ({{#each fields}}{{{lookup ../../type_names type}}}{{#unless @last}}, {{/unless}}{{/each}})
+        {{~/if}}{{~/if}},
+    {{/each}}
+    }
+
+    {{/if}}
+    {{#if functions}}
+    functions {
+    {{#if functions.commands}}
+    {{#each functions.commands}}
+        {{#each docs}}
+        /// {{{this}}}
+        {{/each}}
+        {{name}}({{#each args}}{{#if @index}}, {{/if}}{{name}}: {{{lookup ../../type_names type_idx}}}{{/each}}){{#if result_ty}} -> {{{lookup ../type_names result_ty}}}{{/if}};
+    {{#unless @last}}
+
+    {{/unless}}
+    {{/each}}
+    {{/if}}
+    {{#if functions.queries}}
+
+    {{#each functions.queries}}
+        {{#each docs}}
+        /// {{{this}}}
+        {{/each}}
+        @query
+        {{name}}({{#each args}}{{#if @index}}, {{/if}}{{name}}: {{{lookup ../../type_names type_idx}}}{{/each}}){{#if result_ty}} -> {{{lookup ../type_names result_ty}}}{{/if}};
+    {{#unless @last}}
+
+    {{/unless}}
+    {{/each}}
+    {{/if}}
+    }
+
+    {{/if}}
+    {{#if types}}
+    types {
+{{#each types}}
+{{#if type.def.composite}}
+    {{#if type.def.composite.fields.[0].name}}
+        struct {{{lookup ../type_names id}}} {
+            {{#each type.def.composite.fields}}
+            {{name}}: {{{lookup ../../type_names type}}},
+            {{/each}}
+        }
+    {{else}}
+        struct {{{lookup ../type_names id}}}({{#each type.def.composite.fields}}{{{lookup ../../type_names type}}}{{#unless @last}}, {{/unless}}{{/each}});
+    {{/if}}
+{{else}}
+    {{#if type.def.variant}}
+        enum {{{lookup ../type_names id}}} {
+        {{#each type.def.variant.variants}}
+            {{name}}{{~#if fields}}
+            {{~#if fields.[0].name}} {
+                {{#each fields}}
+                {{name}}: {{{lookup ../../../type_names type}}},
+                {{/each}}
+            }
+            {{~else~}}
+            ({{#each fields}}{{{lookup ../../../type_names type}}}{{#unless @last}}, {{/unless}}{{/each}})
+            {{~/if}}{{~/if}},
+        {{/each}}
+        }
+    {{/if}}
+{{/if}}
+{{#unless @last}}
+
+{{/unless}}
+{{/each}}
+    }
+    {{/if}}
+}

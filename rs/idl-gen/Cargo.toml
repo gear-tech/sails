@@ -20,5 +20,6 @@ serde-json.workspace = true
 thiserror.workspace = true
 
 [dev-dependencies]
+demo = { path = "../../examples/demo/app" }
 insta.workspace = true
 sails-idl-parser.workspace = true

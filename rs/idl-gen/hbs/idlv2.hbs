@@ -1,0 +1,22 @@
+{{#each services}}
+{{> service}}
+{{#unless @last}}
+
+
+{{/unless}}
+{{/each}}
+
+
+program {{program.name}} {
+    constructors {
+        {{#each program.ctors}}
+        {{#each docs}}
+        /// {{{this}}}
+        {{/each}}
+        {{name}}({{#each args}}{{#if @index}}, {{/if}}{{name}}: {{{lookup @root.program.type_names type_idx}}}{{/each}});
+        {{#unless @last}}
+
+        {{/unless}}
+        {{/each}}
+    }
+}
