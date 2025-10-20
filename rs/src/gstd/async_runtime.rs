@@ -271,6 +271,7 @@ impl WakeSignals {
     ///
     /// # Context
     /// Called from [`send_one_way`] and other synchronous helpers; may be invoked outside [`message_loop`].
+    #[cfg(not(feature = "ethexe"))]
     #[inline]
     pub fn register_hook(
         &mut self,
