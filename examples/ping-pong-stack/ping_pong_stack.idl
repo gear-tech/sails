@@ -1,0 +1,9 @@
+constructor {
+  CreatePing : (code_id: code_id);
+  CreatePong : ();
+};
+
+service PingPongStack {
+  Start : (limit: u32) -> null;
+  Ping : (countdown: u32) -> null;
+};

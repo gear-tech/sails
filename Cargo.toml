@@ -26,6 +26,7 @@ members = [
     "examples/redirect/proxy-client",
     "examples/event-routes",
     "examples/event-routes/app",
+    "examples/ping-pong-stack",
     "rs",
     "rs/cli",
     "rs/client-gen",
