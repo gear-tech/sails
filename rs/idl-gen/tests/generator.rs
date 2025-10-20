@@ -178,14 +178,63 @@ enum AmbiguousBaseEventsMeta {
     ThatDoneBase { p1: u16 },
 }
 
+trait CommandEntryIds {
+    const IDS: &'static [u16];
+}
+
+trait QueryEntryIds {
+    const IDS: &'static [u16];
+}
+
+trait EventEntryIds {
+    fn ids() -> Vec<u16>;
+}
+
+impl CommandEntryIds for CommandsMeta {
+    const IDS: &'static [u16] = &[1, 2];
+}
+
+impl CommandEntryIds for BaseCommandsMeta {
+    const IDS: &'static [u16] = &[1, 2];
+}
+
+impl QueryEntryIds for QueriesMeta {
+    const IDS: &'static [u16] = &[1, 2];
+}
+
+impl QueryEntryIds for BaseQueriesMeta {
+    const IDS: &'static [u16] = &[1, 2];
+}
+
+impl EventEntryIds for EventsMeta {
+    fn ids() -> Vec<u16> {
+        vec![1, 2, 3]
+    }
+}
+
+impl EventEntryIds for BaseEventsMeta {
+    fn ids() -> Vec<u16> {
+        vec![1, 2]
+    }
+}
+
+impl EventEntryIds for AmbiguousBaseEventsMeta {
+    fn ids() -> Vec<u16> {
+        vec![1, 2]
+    }
+}
+
 struct ServiceMeta<C, Q, E> {
     _commands: std::marker::PhantomData<C>,
     _queries: std::marker::PhantomData<Q>,
     _events: std::marker::PhantomData<E>,
 }
 
-impl<C: StaticTypeInfo, Q: StaticTypeInfo, E: StaticTypeInfo> RtlServiceMeta
-    for ServiceMeta<C, Q, E>
+impl<
+        C: StaticTypeInfo + CommandEntryIds,
+        Q: StaticTypeInfo + QueryEntryIds,
+        E: StaticTypeInfo + EventEntryIds,
+    > RtlServiceMeta for ServiceMeta<C, Q, E>
 {
     type CommandsMeta = C;
     type QueriesMeta = Q;
@@ -194,6 +243,30 @@ impl<C: StaticTypeInfo, Q: StaticTypeInfo, E: StaticTypeInfo> RtlServiceMeta
     const INTERFACE_PATH: &'static str = "";
     const BASE_SERVICES: &'static [AnyServiceMetaFn] = &[];
     const ASYNC: bool = false;
+
+    fn command_entry_ids() -> Vec<u16> {
+        C::IDS.to_vec()
+    }
+
+    fn local_command_entry_ids() -> &'static [u16] {
+        C::IDS
+    }
+
+    fn query_entry_ids() -> Vec<u16> {
+        Q::IDS.to_vec()
+    }
+
+    fn local_query_entry_ids() -> &'static [u16] {
+        Q::IDS
+    }
+
+    fn event_entry_ids() -> Vec<u16> {
+        E::ids()
+    }
+
+    fn local_event_entry_ids() -> Vec<u16> {
+        E::ids()
+    }
 }
 
 struct ServiceMetaWithBase<C, Q, E, B> {
@@ -203,8 +276,12 @@ struct ServiceMetaWithBase<C, Q, E, B> {
     _base: std::marker::PhantomData<B>,
 }
 
-impl<C: StaticTypeInfo, Q: StaticTypeInfo, E: StaticTypeInfo, B: RtlServiceMeta> RtlServiceMeta
-    for ServiceMetaWithBase<C, Q, E, B>
+impl<
+        C: StaticTypeInfo + CommandEntryIds,
+        Q: StaticTypeInfo + QueryEntryIds,
+        E: StaticTypeInfo + EventEntryIds,
+        B: RtlServiceMeta,
+    > RtlServiceMeta for ServiceMetaWithBase<C, Q, E, B>
 {
     type CommandsMeta = C;
     type QueriesMeta = Q;
@@ -213,6 +290,36 @@ impl<C: StaticTypeInfo, Q: StaticTypeInfo, E: StaticTypeInfo, B: RtlServiceMeta>
     const INTERFACE_PATH: &'static str = "";
     const BASE_SERVICES: &'static [AnyServiceMetaFn] = &[AnyServiceMeta::new::<B>];
     const ASYNC: bool = false;
+
+    fn command_entry_ids() -> Vec<u16> {
+        let mut ids = C::IDS.to_vec();
+        ids.extend(B::command_entry_ids());
+        ids
+    }
+
+    fn local_command_entry_ids() -> &'static [u16] {
+        C::IDS
+    }
+
+    fn query_entry_ids() -> Vec<u16> {
+        let mut ids = Q::IDS.to_vec();
+        ids.extend(B::query_entry_ids());
+        ids
+    }
+
+    fn local_query_entry_ids() -> &'static [u16] {
+        Q::IDS
+    }
+
+    fn event_entry_ids() -> Vec<u16> {
+        let mut ids = E::ids();
+        ids.extend(B::event_entry_ids());
+        ids
+    }
+
+    fn local_event_entry_ids() -> Vec<u16> {
+        E::ids()
+    }
 }
 
 type TestServiceMeta = ServiceMeta<CommandsMeta, QueriesMeta, EventsMeta>;
