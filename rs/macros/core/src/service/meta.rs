@@ -147,13 +147,16 @@ impl ServiceBuilder<'_> {
             .base_types
             .iter()
             .map(|base_type| {
-                let name = base_type.to_token_stream().to_string();
+                let name = shared::remove_lifetimes(base_type)
+                    .to_token_stream()
+                    .to_string();
                 let name_lit = Literal::string(&name);
+                let base_type_no_lifetimes = shared::remove_lifetimes(base_type);
                 quote! {
                     #sails_path::meta::ExtendedInterface {
                         name: #name_lit,
-                        interface_id32: <#base_type as #sails_path::meta::ServiceMeta>::INTERFACE_ID32,
-                        interface_uid64: <#base_type as #sails_path::meta::ServiceMeta>::INTERFACE_UID64,
+                        interface_id32: <#base_type_no_lifetimes as #sails_path::meta::ServiceMeta>::INTERFACE_ID32,
+                        interface_uid64: <#base_type_no_lifetimes as #sails_path::meta::ServiceMeta>::INTERFACE_UID64,
                     }
                 }
             })
@@ -237,11 +240,12 @@ impl ServiceBuilder<'_> {
                 .to_token_stream()
                 .to_string();
             let name_lit = Literal::string(&name);
+            let base_type_no_lifetimes = shared::remove_lifetimes(base_type);
             quote! {
                 entries.push(#sails_path::meta::ExtendedInterface {
                     name: #name_lit,
-                    interface_id32: <#base_type as #sails_path::meta::ServiceMeta>::INTERFACE_ID32,
-                    interface_uid64: <#base_type as #sails_path::meta::ServiceMeta>::INTERFACE_UID64,
+                    interface_id32: <#base_type_no_lifetimes as #sails_path::meta::ServiceMeta>::INTERFACE_ID32,
+                    interface_uid64: <#base_type_no_lifetimes as #sails_path::meta::ServiceMeta>::INTERFACE_UID64,
                 });
             }
         });
