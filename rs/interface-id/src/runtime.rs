@@ -4,7 +4,7 @@ extern crate alloc;
 
 use alloc::{
     boxed::Box,
-    collections::{BTreeMap, BTreeSet},
+    collections::{BTreeMap, BTreeSet, VecDeque},
     string::String,
     vec::Vec,
 };
@@ -35,6 +35,12 @@ pub enum BuildError {
     UnknownType(u32),
     #[error("unsupported parameter type referenced by `{0}`")]
     UnsupportedType(String),
+    #[error("inheritance cycle detected at `{0}`")]
+    InheritanceCycle(String),
+    #[error("failed to linearize inheritance for `{0}` due to conflicting order")]
+    LinearizationConflict(String),
+    #[error("referenced base interface `{0}` was not found during canonicalization")]
+    UnknownBaseInterface(String),
 }
 
 pub type Result<T> = core::result::Result<T, BuildError>;
@@ -286,12 +292,16 @@ fn build_service(
         &mut type_ids,
     )?;
 
-    let mut extends: Vec<CanonicalExtendedInterface> = Vec::new();
+    let extends_order = linearize_extends(meta)?;
+    let mut extends_meta = BTreeMap::new();
     for ext in meta.extends() {
-        let name = ext.name.to_owned();
-        if let Some(base_service) = services.get(&name) {
+        extends_meta.insert(ext.name.to_owned(), ext);
+    }
+    let mut extends: Vec<CanonicalExtendedInterface> = Vec::new();
+    for base_name in extends_order {
+        if let Some(base_service) = services.get(&base_name) {
             let mut single_services = BTreeMap::new();
-            single_services.insert(name.clone(), base_service.clone());
+            single_services.insert(base_name.clone(), base_service.clone());
             let single_doc = CanonicalDocument {
                 version: crate::canonical::CANONICAL_VERSION.to_owned(),
                 services: single_services,
@@ -299,24 +309,37 @@ fn build_service(
             };
             let (interface_id32, interface_uid64) = compute_ids_from_document(&single_doc);
             extends.push(CanonicalExtendedInterface {
-                name,
+                name: base_name,
                 interface_id32,
                 interface_uid64,
                 service: Some(Box::new(base_service.clone())),
             });
-        } else {
+        } else if let Some(ext) = extends_meta.get(&base_name) {
             extends.push(CanonicalExtendedInterface {
-                name,
+                name: base_name,
                 interface_id32: ext.interface_id32,
                 interface_uid64: ext.interface_uid64,
                 service: None,
             });
+        } else {
+            return Err(BuildError::UnknownBaseInterface(base_name));
         }
     }
 
-    functions.sort_by(|a, b| a.kind.cmp(&b.kind).then_with(|| a.name.cmp(&b.name)));
-    extends.sort_by(|a, b| a.name.cmp(&b.name));
-    events.sort_by(|a, b| a.name.cmp(&b.name));
+    functions.sort_by(|a, b| {
+        a.name
+            .cmp(&b.name)
+            .then_with(|| a.kind.cmp(&b.kind))
+            .then_with(|| {
+                format!("{:?}{:?}", a.params, a.returns)
+                    .cmp(&format!("{:?}{:?}", b.params, b.returns))
+            })
+    });
+    events.sort_by(|a, b| {
+        a.name
+            .cmp(&b.name)
+            .then_with(|| format!("{:?}", a.payload).cmp(&format!("{:?}", b.payload)))
+    });
 
     let service = CanonicalService {
         name: meta.interface_path().to_owned(),
@@ -421,6 +444,96 @@ fn collect_events(
     }
 
     Ok(events)
+}
+
+fn linearize_extends(meta: &AnyServiceMeta) -> Result<Vec<String>> {
+    let mut memo = BTreeMap::<String, Vec<String>>::new();
+    let mut stack = Vec::<String>::new();
+    let mut linearization = c3_linearize(meta, &mut memo, &mut stack)?;
+    if !linearization.is_empty() {
+        linearization.remove(0);
+    }
+    Ok(linearization)
+}
+
+fn c3_linearize(
+    meta: &AnyServiceMeta,
+    memo: &mut BTreeMap<String, Vec<String>>,
+    stack: &mut Vec<String>,
+) -> Result<Vec<String>> {
+    let name = meta.interface_path().to_owned();
+    if let Some(linearized) = memo.get(&name) {
+        return Ok(linearized.clone());
+    }
+    if stack.contains(&name) {
+        return Err(BuildError::InheritanceCycle(name));
+    }
+
+    stack.push(name.clone());
+
+    let mut sequences: Vec<VecDeque<String>> = Vec::new();
+    for base in meta.base_services() {
+        let base_linearization = c3_linearize(base, memo, stack)?;
+        sequences.push(VecDeque::from(base_linearization));
+    }
+
+    let parent_names: Vec<String> = meta
+        .base_services()
+        .map(|base| base.interface_path().to_owned())
+        .collect();
+    if !parent_names.is_empty() {
+        sequences.push(VecDeque::from(parent_names.clone()));
+    }
+
+    let mut result = Vec::with_capacity(1);
+    result.push(name.clone());
+    let merged = c3_merge(sequences, &name)?;
+    result.extend(merged.into_iter());
+
+    stack.pop();
+    memo.insert(name.clone(), result.clone());
+    Ok(result)
+}
+
+fn c3_merge(
+    mut sequences: Vec<VecDeque<String>>,
+    owner: &str,
+) -> Result<Vec<String>> {
+    let mut result = Vec::new();
+
+    loop {
+        sequences.retain(|seq| !seq.is_empty());
+        if sequences.is_empty() {
+            break;
+        }
+
+        let mut candidate: Option<String> = None;
+        for seq in &sequences {
+            if let Some(head) = seq.front() {
+                let mut head_in_tail = false;
+                for other in &sequences {
+                    if other.iter().skip(1).any(|item| item == head) {
+                        head_in_tail = true;
+                        break;
+                    }
+                }
+                if !head_in_tail {
+                    candidate = Some(head.clone());
+                    break;
+                }
+            }
+        }
+
+        let candidate = candidate.ok_or_else(|| BuildError::LinearizationConflict(owner.to_owned()))?;
+        result.push(candidate.clone());
+        for seq in &mut sequences {
+            if matches!(seq.front(), Some(head) if head == &candidate) {
+                seq.pop_front();
+            }
+        }
+    }
+
+    Ok(result)
 }
 
 #[cfg(test)]
@@ -579,6 +692,14 @@ mod tests {
             .iter()
             .find(|ext| ext.name == BASE_INTERFACE_PATH)
             .expect("base extension present");
+        assert_eq!(
+            derived
+                .extends
+                .iter()
+                .map(|ext| ext.name.as_str())
+                .collect::<Vec<_>>(),
+            vec![BASE_INTERFACE_PATH, ROOT_INTERFACE_PATH]
+        );
 
         assert!(
             base_ext.interface_id32 != 0,
@@ -606,6 +727,14 @@ mod tests {
             .iter()
             .find(|ext| ext.name == ROOT_INTERFACE_PATH)
             .expect("root extension present");
+        assert_eq!(
+            base_service
+                .extends
+                .iter()
+                .map(|ext| ext.name.as_str())
+                .collect::<Vec<_>>(),
+            vec![ROOT_INTERFACE_PATH]
+        );
         let root_service = root_ext
             .service
             .as_ref()
