@@ -2,8 +2,8 @@ use super::*;
 use proc_macro2::TokenStream;
 use quote::{ToTokens, quote};
 use sails_interface_id::canonical::{
-    CanonicalDocument, CanonicalExtendedInterface, CanonicalFunction, CanonicalParam,
-    CanonicalService, CanonicalType, FunctionKind,
+    CanonicalDocument, CanonicalExtendedInterface, CanonicalFunction, CanonicalHashMeta,
+    CanonicalParam, CanonicalService, CanonicalType, FunctionKind,
 };
 use sails_interface_id::compute_ids_from_document;
 use std::collections::BTreeMap;
@@ -219,7 +219,12 @@ impl ServiceBuilder<'_> {
         );
 
         let canonical_document = CanonicalDocument {
-            version: sails_interface_id::canonical::CANONICAL_VERSION.to_owned(),
+            canon_schema: sails_interface_id::canonical::CANONICAL_SCHEMA.to_owned(),
+            canon_version: sails_interface_id::canonical::CANONICAL_VERSION.to_owned(),
+            hash: CanonicalHashMeta {
+                algo: sails_interface_id::canonical::CANONICAL_HASH_ALGO.to_owned(),
+                domain: sails_interface_id::INTERFACE_HASH_DOMAIN_STR.to_owned(),
+            },
             services: canonical_services,
             types: BTreeMap::new(),
         };

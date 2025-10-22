@@ -7,8 +7,12 @@ use serde_json_canonicalizer::to_vec as to_canonical_vec;
 use std::collections::BTreeMap;
 use std::fmt;
 
-/// Human-readable version identifier for the canonicalization scheme.
-pub const CANONICAL_VERSION: &str = "sails-idl-v1-jcs";
+/// Canonical schema identifier.
+pub const CANONICAL_SCHEMA: &str = crate::CANONICAL_SCHEMA;
+/// Canonical schema version identifier.
+pub const CANONICAL_VERSION: &str = crate::CANONICAL_VERSION;
+/// Canonical hash algorithm identifier.
+pub const CANONICAL_HASH_ALGO: &str = crate::CANONICAL_HASH_ALGO;
 
 /// Errors that can occur during IDL canonicalization.
 #[derive(Debug)]
@@ -54,12 +58,24 @@ impl From<IdlParseError> for CanonicalizationError {
     }
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct CanonicalHashMeta {
+    #[serde(default)]
+    pub algo: String,
+    #[serde(default)]
+    pub domain: String,
+}
+
 /// Canonical JSON document containing services and types.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct CanonicalDocument {
+    #[serde(default = "default_schema")]
+    pub canon_schema: String,
     /// Canonicalization version identifier.
-    #[serde(default = "default_version")]
-    pub version: String,
+    #[serde(default = "default_version", alias = "version")]
+    pub canon_version: String,
+    #[serde(default = "default_hash_meta")]
+    pub hash: CanonicalHashMeta,
     #[serde(default)]
     pub services: BTreeMap<String, CanonicalService>,
     #[serde(default)]
@@ -217,11 +233,27 @@ impl CanonicalDocument {
             .ok_or_else(|| serde_json::Error::custom("expected object at IDL root"))
             .map_err(CanonicalizationError::InvalidJson)?;
 
-        let version = root
-            .get("version")
+        let canon_schema = root
+            .get("canon_schema")
+            .and_then(Value::as_str)
+            .unwrap_or(CANONICAL_SCHEMA)
+            .to_owned();
+
+        let canon_version = root
+            .get("canon_version")
+            .or_else(|| root.get("version"))
             .and_then(Value::as_str)
             .unwrap_or(CANONICAL_VERSION)
             .to_owned();
+
+        let hash = root
+            .get("hash")
+            .cloned()
+            .map(|value| {
+                serde_json::from_value::<CanonicalHashMeta>(value)
+                    .map_err(CanonicalizationError::InvalidJson)
+            })
+            .unwrap_or_else(|| Ok(default_hash_meta()))?;
 
         let services_value = root
             .get("services")
@@ -236,7 +268,9 @@ impl CanonicalDocument {
         let types = parse_types(types_value)?;
 
         Ok(Self {
-            version,
+            canon_schema,
+            canon_version,
+            hash,
             services,
             types,
         }
@@ -263,7 +297,9 @@ impl CanonicalDocument {
         }
 
         Ok(Self {
-            version: CANONICAL_VERSION.to_owned(),
+            canon_schema: default_schema(),
+            canon_version: default_version(),
+            hash: default_hash_meta(),
             services,
             types: BTreeMap::new(),
         })
@@ -276,8 +312,17 @@ impl CanonicalDocument {
         for ty in self.types.values_mut() {
             ty.normalize();
         }
-        if self.version.is_empty() {
-            self.version = CANONICAL_VERSION.to_owned();
+        if self.canon_schema.is_empty() {
+            self.canon_schema = default_schema();
+        }
+        if self.canon_version.is_empty() {
+            self.canon_version = default_version();
+        }
+        if self.hash.algo.is_empty() {
+            self.hash.algo = CANONICAL_HASH_ALGO.to_owned();
+        }
+        if self.hash.domain.is_empty() {
+            self.hash.domain = crate::INTERFACE_HASH_DOMAIN_STR.to_owned();
         }
         self
     }
@@ -445,6 +490,17 @@ impl CanonicalEnumVariant {
 
 fn default_version() -> String {
     CANONICAL_VERSION.to_owned()
+}
+
+fn default_schema() -> String {
+    CANONICAL_SCHEMA.to_owned()
+}
+
+fn default_hash_meta() -> CanonicalHashMeta {
+    CanonicalHashMeta {
+        algo: CANONICAL_HASH_ALGO.to_owned(),
+        domain: crate::INTERFACE_HASH_DOMAIN_STR.to_owned(),
+    }
 }
 
 fn parse_services(
@@ -828,7 +884,10 @@ mod tests {
         "#;
 
         let doc = CanonicalDocument::from_text_idl(idl).expect("textual IDL should be parsed");
-        assert_eq!(doc.version, CANONICAL_VERSION);
+        assert_eq!(doc.canon_schema, CANONICAL_SCHEMA);
+        assert_eq!(doc.canon_version, CANONICAL_VERSION);
+        assert_eq!(doc.hash.algo, CANONICAL_HASH_ALGO);
+        assert_eq!(doc.hash.domain, crate::INTERFACE_HASH_DOMAIN_STR);
         let service = doc.services.get("Example").expect("service exists");
         assert_eq!(service.functions.len(), 2);
         assert_eq!(service.functions[0].kind, FunctionKind::Command);
@@ -842,6 +901,12 @@ mod tests {
         assert_eq!(
             value,
             json!({
+                "canon_schema": CANONICAL_SCHEMA,
+                "canon_version": CANONICAL_VERSION,
+                "hash": {
+                    "algo": CANONICAL_HASH_ALGO,
+                    "domain": crate::INTERFACE_HASH_DOMAIN_STR,
+                },
                 "services": {
                     "Example": {
                         "events": [],
@@ -865,8 +930,7 @@ mod tests {
                         "name": "Example"
                     }
                 },
-                "types": {},
-                "version": CANONICAL_VERSION,
+                "types": {}
             })
         );
     }

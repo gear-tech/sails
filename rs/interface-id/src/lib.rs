@@ -7,10 +7,24 @@ pub mod canonical;
 pub mod canonical_type;
 pub mod runtime;
 
-/// Domain separator for interface-level hashing.
-pub const INTERFACE_HASH_DOMAIN: &[u8] = b"GEAR-IDL/v1:interface";
-/// Domain separator for function/message hashing.
-pub const FUNCTION_HASH_DOMAIN: &[u8] = b"GEAR-IDL/v1:func";
+/// Canonical schema identifier.
+pub const CANONICAL_SCHEMA: &str = "sails-idl-jcs";
+/// Canonical schema version.
+pub const CANONICAL_VERSION: &str = "1";
+/// Hash algorithm identifier used in canonical docs.
+pub const CANONICAL_HASH_ALGO: &str = "blake3";
+/// Domain separator (string) for interface-level hashing.
+pub const INTERFACE_HASH_DOMAIN_STR: &str = "GEAR-IDL/v1/interface-id";
+/// Domain separator (bytes) for interface-level hashing.
+pub const INTERFACE_HASH_DOMAIN: &[u8] = b"GEAR-IDL/v1/interface-id";
+/// Domain separator (string) for function/message hashing.
+pub const FUNCTION_HASH_DOMAIN_STR: &str = "GEAR-IDL/v1/entry-signature";
+/// Domain separator (bytes) for function/message hashing.
+pub const FUNCTION_HASH_DOMAIN: &[u8] = b"GEAR-IDL/v1/entry-signature";
+/// Domain separator (string) for route key hashing.
+pub const ROUTE_HASH_DOMAIN_STR: &str = "GEAR-ROUTE/v1";
+/// Domain separator (bytes) for route key hashing.
+pub const ROUTE_HASH_DOMAIN: &[u8] = b"GEAR-ROUTE/v1";
 
 /// Canonical description of a Sails service used to derive stable interface identifiers.
 #[derive(Debug, Clone, Serialize, PartialEq, Eq)]
@@ -112,10 +126,7 @@ pub fn compute_ids_from_bytes(bytes: &[u8]) -> (u32, u64) {
 
 /// Computes the full interface hash (BLAKE3-256) using the canonical domain separator.
 pub fn compute_interface_hash(bytes: &[u8]) -> Hash {
-    let mut hasher = Hasher::new();
-    hasher.update(INTERFACE_HASH_DOMAIN);
-    hasher.update(bytes);
-    hasher.finalize()
+    blake3_hash_with_domain(INTERFACE_HASH_DOMAIN, &[bytes])
 }
 
 /// Computes the 16-bit entry identifier derived from a canonical function signature.
@@ -128,12 +139,21 @@ pub fn compute_entry_id16(
         return value;
     }
 
-    let mut hasher = Hasher::new();
-    hasher.update(FUNCTION_HASH_DOMAIN);
-    hasher.update(interface_hash.as_bytes());
-    hasher.update(signature.as_bytes());
-    let digest = hasher.finalize();
+    let digest = blake3_hash_with_domain(
+        FUNCTION_HASH_DOMAIN,
+        &[interface_hash.as_bytes(), signature.as_bytes()],
+    );
     u16::from_le_bytes(digest.as_bytes()[0..2].try_into().unwrap())
+}
+
+/// Computes a BLAKE3 hash with the provided domain separator and payload slices.
+pub fn blake3_hash_with_domain(domain: &[u8], payloads: &[&[u8]]) -> Hash {
+    let mut hasher = Hasher::new();
+    hasher.update(domain);
+    for payload in payloads {
+        hasher.update(payload);
+    }
+    hasher.finalize()
 }
 
 #[cfg(test)]
@@ -225,12 +245,18 @@ mod tests {
     #[test]
     fn compute_ids_from_document_matches_bytes() {
         use crate::canonical::{
-            CanonicalDocument, CanonicalFunction, CanonicalService, CanonicalType, FunctionKind,
+            CanonicalDocument, CanonicalFunction, CanonicalHashMeta, CanonicalService,
+            CanonicalType, FunctionKind,
         };
         use std::collections::BTreeMap;
 
         let mut document = CanonicalDocument {
-            version: crate::canonical::CANONICAL_VERSION.to_owned(),
+            canon_schema: crate::canonical::CANONICAL_SCHEMA.to_owned(),
+            canon_version: crate::canonical::CANONICAL_VERSION.to_owned(),
+            hash: CanonicalHashMeta {
+                algo: crate::canonical::CANONICAL_HASH_ALGO.to_owned(),
+                domain: INTERFACE_HASH_DOMAIN_STR.to_owned(),
+            },
             services: BTreeMap::new(),
             types: BTreeMap::new(),
         };

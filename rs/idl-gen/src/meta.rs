@@ -102,7 +102,9 @@ impl ExpandedProgramMeta {
                 let mut single_services = BTreeMap::new();
                 single_services.insert(service_name.to_owned(), service_entry.clone());
                 let single_doc = CanonicalDocument {
-                    version: canonical_doc.version.clone(),
+                    canon_schema: canonical_doc.canon_schema.clone(),
+                    canon_version: canonical_doc.canon_version.clone(),
+                    hash: canonical_doc.hash.clone(),
                     services: single_services,
                     types: canonical_doc.types.clone(),
                 };

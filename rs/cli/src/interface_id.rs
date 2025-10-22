@@ -76,7 +76,9 @@ pub fn derive_ids(input: &Path) -> Result<()> {
         let mut single_services = BTreeMap::new();
         single_services.insert(name.clone(), service.clone());
         let single = CanonicalDocument {
-            version: canonical.version.clone(),
+            canon_schema: canonical.canon_schema.clone(),
+            canon_version: canonical.canon_version.clone(),
+            hash: canonical.hash.clone(),
             services: single_services,
             types: canonical.types.clone(),
         };
@@ -128,7 +130,9 @@ pub fn derive_ids_for_manifest(manifest: &Path) -> Result<()> {
         let mut single_services = BTreeMap::new();
         single_services.insert(name.clone(), service.clone());
         let single = CanonicalDocument {
-            version: canonical.version.clone(),
+            canon_schema: canonical.canon_schema.clone(),
+            canon_version: canonical.canon_version.clone(),
+            hash: canonical.hash.clone(),
             services: single_services,
             types: canonical.types.clone(),
         };

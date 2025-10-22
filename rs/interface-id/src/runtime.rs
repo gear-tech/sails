@@ -17,7 +17,7 @@ use core::any::TypeId;
 use crate::{
     canonical::{
         CanonicalDocument, CanonicalEvent, CanonicalExtendedInterface, CanonicalFunction,
-        CanonicalParam, CanonicalService, CanonicalType, FunctionKind,
+        CanonicalHashMeta, CanonicalParam, CanonicalService, CanonicalType, FunctionKind,
     },
     canonical_type::{self as canonical_visitor, CanonicalTypeError},
     compute_ids_from_document,
@@ -219,7 +219,12 @@ pub fn build_canonical_document_from_meta(meta: &AnyServiceMeta) -> Result<Canon
     collect_service(meta, &mut services, &mut visited, &mut types)?;
 
     Ok(CanonicalDocument {
-        version: crate::canonical::CANONICAL_VERSION.to_owned(),
+        canon_schema: crate::canonical::CANONICAL_SCHEMA.to_owned(),
+        canon_version: crate::canonical::CANONICAL_VERSION.to_owned(),
+        hash: CanonicalHashMeta {
+            algo: crate::canonical::CANONICAL_HASH_ALGO.to_owned(),
+            domain: crate::INTERFACE_HASH_DOMAIN_STR.to_owned(),
+        },
         services,
         types,
     })
@@ -303,7 +308,12 @@ fn build_service(
             let mut single_services = BTreeMap::new();
             single_services.insert(base_name.clone(), base_service.clone());
             let single_doc = CanonicalDocument {
-                version: crate::canonical::CANONICAL_VERSION.to_owned(),
+                canon_schema: crate::canonical::CANONICAL_SCHEMA.to_owned(),
+                canon_version: crate::canonical::CANONICAL_VERSION.to_owned(),
+                hash: CanonicalHashMeta {
+                    algo: crate::canonical::CANONICAL_HASH_ALGO.to_owned(),
+                    domain: crate::INTERFACE_HASH_DOMAIN_STR.to_owned(),
+                },
                 services: single_services,
                 types: BTreeMap::new(),
             };
@@ -495,10 +505,7 @@ fn c3_linearize(
     Ok(result)
 }
 
-fn c3_merge(
-    mut sequences: Vec<VecDeque<String>>,
-    owner: &str,
-) -> Result<Vec<String>> {
+fn c3_merge(mut sequences: Vec<VecDeque<String>>, owner: &str) -> Result<Vec<String>> {
     let mut result = Vec::new();
 
     loop {
@@ -524,7 +531,8 @@ fn c3_merge(
             }
         }
 
-        let candidate = candidate.ok_or_else(|| BuildError::LinearizationConflict(owner.to_owned()))?;
+        let candidate =
+            candidate.ok_or_else(|| BuildError::LinearizationConflict(owner.to_owned()))?;
         result.push(candidate.clone());
         for seq in &mut sequences {
             if matches!(seq.front(), Some(head) if head == &candidate) {

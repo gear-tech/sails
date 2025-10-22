@@ -231,10 +231,10 @@ struct ServiceMeta<C, Q, E> {
 }
 
 impl<
-        C: StaticTypeInfo + CommandEntryIds,
-        Q: StaticTypeInfo + QueryEntryIds,
-        E: StaticTypeInfo + EventEntryIds,
-    > RtlServiceMeta for ServiceMeta<C, Q, E>
+    C: StaticTypeInfo + CommandEntryIds,
+    Q: StaticTypeInfo + QueryEntryIds,
+    E: StaticTypeInfo + EventEntryIds,
+> RtlServiceMeta for ServiceMeta<C, Q, E>
 {
     type CommandsMeta = C;
     type QueriesMeta = Q;
@@ -277,11 +277,11 @@ struct ServiceMetaWithBase<C, Q, E, B> {
 }
 
 impl<
-        C: StaticTypeInfo + CommandEntryIds,
-        Q: StaticTypeInfo + QueryEntryIds,
-        E: StaticTypeInfo + EventEntryIds,
-        B: RtlServiceMeta,
-    > RtlServiceMeta for ServiceMetaWithBase<C, Q, E, B>
+    C: StaticTypeInfo + CommandEntryIds,
+    Q: StaticTypeInfo + QueryEntryIds,
+    E: StaticTypeInfo + EventEntryIds,
+    B: RtlServiceMeta,
+> RtlServiceMeta for ServiceMetaWithBase<C, Q, E, B>
 {
     type CommandsMeta = C;
     type QueriesMeta = Q;

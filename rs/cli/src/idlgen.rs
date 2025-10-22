@@ -628,8 +628,8 @@ fn main() {{
 fn main() {{
     use sails_rs::meta::ProgramMeta;
     use std::collections::BTreeMap;
-    use sails_interface_id::canonical::CanonicalDocument;
-    use sails_interface_id::canonical::CANONICAL_VERSION;
+    use sails_interface_id::canonical::{{CanonicalDocument, CanonicalHashMeta, CANONICAL_SCHEMA, CANONICAL_VERSION, CANONICAL_HASH_ALGO}};
+    use sails_interface_id::INTERFACE_HASH_DOMAIN_STR;
     use sails_interface_id::runtime::build_canonical_document_from_meta;
 
     let mut services = BTreeMap::new();
@@ -643,7 +643,12 @@ fn main() {{
     }}
 
     let document = CanonicalDocument {{
-        version: CANONICAL_VERSION.to_owned(),
+        canon_schema: CANONICAL_SCHEMA.to_owned(),
+        canon_version: CANONICAL_VERSION.to_owned(),
+        hash: CanonicalHashMeta {{
+            algo: CANONICAL_HASH_ALGO.to_owned(),
+            domain: INTERFACE_HASH_DOMAIN_STR.to_owned(),
+        }},
         services,
         types,
     }};
