@@ -28,6 +28,8 @@ todo [sab] tests:
 // todo [sab] change fields to args
 // todo [sab] which sections can be absent -> adjust template with ifs and add proper indentations
 // todo [sab] test same type used in multiple services
+// todo [sab] make proper spaces between sections in service idl
+// todo [sab] base service has same method name as the derived service
 
 const IDLV2_TEMPLATE: &str = include_str!("../hbs/idlv2.hbs");
 const SERVICE_TEMPLATE: &str = include_str!("../hbs/service.hbs");
@@ -132,31 +134,32 @@ struct Idl2Data {
     services: Vec<ServiceSection>,
 }
 
-#[derive(Serialize)]
+#[derive(Debug, Serialize)]
 struct ProgramIdlSection {
     name: String,
     type_names: Vec<String>,
     ctors: Vec<FunctionIdl2Data>,
 }
 
-#[derive(Serialize)]
+#[derive(Debug, Serialize)]
 struct FunctionIdl2Data {
     name: String,
     args: Vec<FuncArgIdl2>,
-    // () return value is no-op
+    // The field is optional, because `()` value is treated as no-result,
+    // so has `None` value
     #[serde(skip_serializing_if = "Option::is_none")]
     result_ty: Option<u32>,
     docs: Vec<String>,
 }
 
-#[derive(Serialize)]
+#[derive(Debug, Serialize)]
 struct FuncArgIdl2 {
     name: String,
     #[serde(rename = "type_idx")]
     ty: u32,
 }
 
-#[derive(Serialize)]
+#[derive(Debug, Serialize)]
 struct ServiceSection {
     name: String,
     type_names: Vec<String>,
@@ -166,7 +169,7 @@ struct ServiceSection {
     functions: FunctionsSection,
 }
 
-#[derive(Serialize)]
+#[derive(Debug, Serialize)]
 struct FunctionsSection {
     commands: Vec<FunctionIdl2Data>,
     queries: Vec<FunctionIdl2Data>,
@@ -187,6 +190,8 @@ mod tests {
     use crate::meta::ExpandedProgramMeta2;
 
     use super::*;
+
+    // todo [sab] test with all the features -> expected output is a written in a file with idl defined
 
     #[test]
     fn test_real_hbs() {

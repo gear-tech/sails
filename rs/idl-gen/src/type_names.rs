@@ -298,8 +298,8 @@ impl TypeName for ByPathTypeName {
                 .iter()
                 .map(|tn| tn.as_string(true, by_path_type_names))
                 .collect::<Vec<_>>()
-                .join("And");
-            format!("{}For{}", name.0, type_param_names)
+                .join(", ");
+            format!("{}<{}>", name.0, type_param_names)
         }
     }
 }
@@ -368,11 +368,8 @@ impl TypeName for BTreeMapTypeName {
         let value_type_name = self
             .value_type_name
             .as_string(for_generic_param, by_path_type_names);
-        if for_generic_param {
-            format!("MapOf{key_type_name}To{value_type_name}")
-        } else {
-            format!("map ({key_type_name}, {value_type_name})")
-        }
+
+        format!("[({key_type_name}, {value_type_name})]")
     }
 }
 
@@ -440,11 +437,8 @@ impl TypeName for ResultTypeName {
         let err_type_name = self
             .err_type_name
             .as_string(for_generic_param, by_path_type_names);
-        if for_generic_param {
-            format!("ResultOf{ok_type_name}Or{err_type_name}")
-        } else {
-            format!("result ({ok_type_name}, {err_type_name})")
-        }
+
+        format!("Result<{ok_type_name}, {err_type_name}>")
     }
 }
 
@@ -492,11 +486,8 @@ impl TypeName for OptionTypeName {
         let some_type_name = self
             .some_type_name
             .as_string(for_generic_param, by_path_type_names);
-        if for_generic_param {
-            format!("OptOf{some_type_name}")
-        } else {
-            format!("opt {some_type_name}")
-        }
+
+        format!("Option<{some_type_name}>")
     }
 }
 
@@ -529,27 +520,14 @@ impl TypeName for TupleTypeName {
         for_generic_param: bool,
         by_path_type_names: &HashMap<(String, Vec<u32>), u32>,
     ) -> String {
-        if self.field_type_names.is_empty() {
-            "null".into()
-        } else if for_generic_param {
-            format!(
-                "StructOf{}",
-                self.field_type_names
-                    .iter()
-                    .map(|tn| tn.as_string(for_generic_param, by_path_type_names))
-                    .collect::<Vec<_>>()
-                    .join("And")
-            )
-        } else {
-            format!(
-                "struct {{ {} }}",
-                self.field_type_names
-                    .iter()
-                    .map(|tn| tn.as_string(for_generic_param, by_path_type_names))
-                    .collect::<Vec<_>>()
-                    .join(", ")
-            )
-        }
+        format!(
+            "({})",
+            self.field_type_names
+                .iter()
+                .map(|tn| tn.as_string(for_generic_param, by_path_type_names))
+                .collect::<Vec<_>>()
+                .join(", ")
+        )
     }
 }
 
@@ -584,11 +562,7 @@ impl TypeName for VectorTypeName {
         let item_type_name = self
             .item_type_name
             .as_string(for_generic_param, by_path_type_names);
-        if for_generic_param {
-            format!("VecOf{item_type_name}")
-        } else {
-            format!("vec {item_type_name}")
-        }
+        format!("[{item_type_name}]")
     }
 }
 
@@ -627,11 +601,8 @@ impl TypeName for ArrayTypeName {
         let item_type_name = self
             .item_type_name
             .as_string(for_generic_param, by_path_type_names);
-        if for_generic_param {
-            format!("ArrOf{}{}", self.len, item_type_name)
-        } else {
-            format!("[{}, {}]", item_type_name, self.len)
-        }
+
+        format!("[{item_type_name}, {len}]", len = self.len)
     }
 }
 
@@ -645,7 +616,7 @@ impl PrimitiveTypeName {
         let name = match type_def {
             TypeDefPrimitive::Bool => Ok("bool"),
             TypeDefPrimitive::Char => Ok("char"),
-            TypeDefPrimitive::Str => Ok("str"), // todo [sab] This should be String
+            TypeDefPrimitive::Str => Ok("String"),
             TypeDefPrimitive::U8 => Ok("u8"),
             TypeDefPrimitive::U16 => Ok("u16"),
             TypeDefPrimitive::U32 => Ok("u32"),
@@ -669,17 +640,17 @@ impl TypeName for PrimitiveTypeName {
         for_generic_param: bool,
         _by_path_type_names: &HashMap<(String, Vec<u32>), u32>,
     ) -> String {
-        if for_generic_param {
-            self.name.to_case(Case::Pascal)
-        } else {
-            self.name.to_string()
-        }
+        self.name.to_string()
     }
 }
 
 macro_rules! impl_primitive_alias_type_name {
-    ($primitive:ident, $alias:ident) => {
-        mod $alias {
+    ($mod_name:ident, $primitive:ident) => {
+        impl_primitive_alias_type_name!($mod_name, $primitive, $primitive);
+    };
+
+    ($mod_name:ident, $primitive:ident, $alias:ident) => {
+        mod $mod_name {
             use super::*;
 
             pub(super) struct TypeNameImpl;
@@ -699,32 +670,28 @@ macro_rules! impl_primitive_alias_type_name {
             impl TypeName for TypeNameImpl {
                 fn as_string(
                     &self,
-                    for_generic_param: bool,
+                    _for_generic_param: bool,
                     _by_path_type_names: &HashMap<(String, Vec<u32>), u32>,
                 ) -> String {
-                    if for_generic_param {
-                        stringify!($primitive).into()
-                    } else {
-                        stringify!($alias).into()
-                    }
+                    stringify!($alias).into()
                 }
             }
         }
     };
 }
 
-impl_primitive_alias_type_name!(ActorId, actor_id);
-impl_primitive_alias_type_name!(MessageId, message_id);
-impl_primitive_alias_type_name!(CodeId, code_id);
-impl_primitive_alias_type_name!(H160, h160);
-impl_primitive_alias_type_name!(H256, h256);
-impl_primitive_alias_type_name!(U256, u256);
-impl_primitive_alias_type_name!(NonZeroU8, nat8);
-impl_primitive_alias_type_name!(NonZeroU16, nat16);
-impl_primitive_alias_type_name!(NonZeroU32, nat32);
-impl_primitive_alias_type_name!(NonZeroU64, nat64);
-impl_primitive_alias_type_name!(NonZeroU128, nat128);
-impl_primitive_alias_type_name!(NonZeroU256, nat256);
+impl_primitive_alias_type_name!(actor_id, ActorId);
+impl_primitive_alias_type_name!(message_id, MessageId);
+impl_primitive_alias_type_name!(code_id, CodeId);
+impl_primitive_alias_type_name!(h160, H160);
+impl_primitive_alias_type_name!(h256, H256);
+impl_primitive_alias_type_name!(u256, U256, u256);
+impl_primitive_alias_type_name!(nat8, NonZeroU8);
+impl_primitive_alias_type_name!(nat16, NonZeroU16);
+impl_primitive_alias_type_name!(nat32, NonZeroU32);
+impl_primitive_alias_type_name!(nat64, NonZeroU64);
+impl_primitive_alias_type_name!(nat128, NonZeroU128);
+impl_primitive_alias_type_name!(nat256, NonZeroU256);
 
 #[cfg(test)]
 mod tests {
@@ -795,13 +762,13 @@ mod tests {
         let type_names = resolve(portable_registry.types.iter()).unwrap();
 
         let h256_name = type_names.get(&h256_id).unwrap();
-        assert_eq!(h256_name, "h256");
+        assert_eq!(h256_name, "H256");
         let as_generic_param_name = type_names.get(&h256_as_generic_param_id).unwrap();
-        assert_eq!(as_generic_param_name, "GenericStructForH256");
+        assert_eq!(as_generic_param_name, "GenericStruct<H256>");
         let u256_name = type_names.get(&u256_id).unwrap();
         assert_eq!(u256_name, "u256");
         let as_generic_param_name = type_names.get(&u256_as_generic_param_id).unwrap();
-        assert_eq!(as_generic_param_name, "GenericStructForU256");
+        assert_eq!(as_generic_param_name, "GenericStruct<u256>");
     }
 
     #[test]
@@ -818,10 +785,10 @@ mod tests {
         let type_names = resolve(portable_registry.types.iter()).unwrap();
 
         let u32_struct_name = type_names.get(&u32_struct_id).unwrap();
-        assert_eq!(u32_struct_name, "GenericStructForU32");
+        assert_eq!(u32_struct_name, "GenericStruct<u32>");
 
         let string_struct_name = type_names.get(&string_struct_id).unwrap();
-        assert_eq!(string_struct_name, "GenericStructForStr");
+        assert_eq!(string_struct_name, "GenericStruct<String>");
     }
 
     #[test]
@@ -838,10 +805,10 @@ mod tests {
         let type_names = resolve(portable_registry.types.iter()).unwrap();
 
         let u32_string_enum_name = type_names.get(&u32_string_enum_id).unwrap();
-        assert_eq!(u32_string_enum_name, "GenericEnumForU32AndStr");
+        assert_eq!(u32_string_enum_name, "GenericEnum<u32, String>");
 
         let bool_u32_enum_name = type_names.get(&bool_u32_enum_id).unwrap();
-        assert_eq!(bool_u32_enum_name, "GenericEnumForBoolAndU32");
+        assert_eq!(bool_u32_enum_name, "GenericEnum<bool, u32>");
     }
 
     #[test]
@@ -858,7 +825,7 @@ mod tests {
         let u32_array_name = type_names.get(&u32_array_id).unwrap();
         assert_eq!(u32_array_name, "[u32, 10]");
         let as_generic_param_name = type_names.get(&as_generic_param_id).unwrap();
-        assert_eq!(as_generic_param_name, "GenericStructForArrOf10U32");
+        assert_eq!(as_generic_param_name, "GenericStruct<[u32, 10]>");
     }
 
     #[test]
@@ -873,9 +840,9 @@ mod tests {
         let type_names = resolve(portable_registry.types.iter()).unwrap();
 
         let u32_vector_name = type_names.get(&u32_vector_id).unwrap();
-        assert_eq!(u32_vector_name, "vec u32");
+        assert_eq!(u32_vector_name, "[u32]");
         let as_generic_param_name = type_names.get(&as_generic_param_id).unwrap();
-        assert_eq!(as_generic_param_name, "GenericStructForVecOfU32");
+        assert_eq!(as_generic_param_name, "GenericStruct<[u32]>");
     }
 
     #[test]
@@ -892,9 +859,9 @@ mod tests {
         let type_names = resolve(portable_registry.types.iter()).unwrap();
 
         let u32_result_name = type_names.get(&u32_result_id).unwrap();
-        assert_eq!(u32_result_name, "result (u32, str)");
+        assert_eq!(u32_result_name, "Result<u32, String>");
         let as_generic_param_name = type_names.get(&as_generic_param_id).unwrap();
-        assert_eq!(as_generic_param_name, "GenericStructForResultOfU32OrStr");
+        assert_eq!(as_generic_param_name, "GenericStruct<Result<u32, String>>");
     }
 
     #[test]
@@ -909,9 +876,9 @@ mod tests {
         let type_names = resolve(portable_registry.types.iter()).unwrap();
 
         let u32_option_name = type_names.get(&u32_option_id).unwrap();
-        assert_eq!(u32_option_name, "opt u32");
+        assert_eq!(u32_option_name, "Option<u32>");
         let as_generic_param_name = type_names.get(&as_generic_param_id).unwrap();
-        assert_eq!(as_generic_param_name, "GenericStructForOptOfU32");
+        assert_eq!(as_generic_param_name, "GenericStruct<Option<u32>>");
     }
 
     #[test]
@@ -926,9 +893,9 @@ mod tests {
         let type_names = resolve(portable_registry.types.iter()).unwrap();
 
         let u32_str_tuple_name = type_names.get(&u32_str_tuple_id).unwrap();
-        assert_eq!(u32_str_tuple_name, "struct { u32, str }");
+        assert_eq!(u32_str_tuple_name, "(u32, String)");
         let as_generic_param_name = type_names.get(&as_generic_param_id).unwrap();
-        assert_eq!(as_generic_param_name, "GenericStructForStructOfU32AndStr");
+        assert_eq!(as_generic_param_name, "GenericStruct<(u32, String)>");
     }
 
     #[test]
@@ -945,9 +912,9 @@ mod tests {
         let type_names = resolve(portable_registry.types.iter()).unwrap();
 
         let btree_map_name = type_names.get(&btree_map_id).unwrap();
-        assert_eq!(btree_map_name, "map (u32, str)");
+        assert_eq!(btree_map_name, "[(u32, String)]");
         let as_generic_param_name = type_names.get(&as_generic_param_id).unwrap();
-        assert_eq!(as_generic_param_name, "GenericStructForMapOfU32ToStr");
+        assert_eq!(as_generic_param_name, "GenericStruct<[(u32, String)]>");
     }
 
     #[test]
@@ -985,7 +952,7 @@ mod tests {
     }
 
     macro_rules! type_name_resolution_works {
-        ($primitive:ident, $alias:ident) => {
+        ($primitive:ident) => {
             let mut registry = Registry::new();
             let id = registry.register_type(&MetaType::new::<$primitive>()).id;
             let as_generic_param_id = registry
@@ -996,63 +963,63 @@ mod tests {
             let type_names = resolve(portable_registry.types.iter()).unwrap();
 
             let name = type_names.get(&id).unwrap();
-            assert_eq!(name, stringify!($alias));
+            assert_eq!(name, stringify!($primitive));
             let as_generic_param_name = type_names.get(&as_generic_param_id).unwrap();
             assert_eq!(
                 as_generic_param_name,
-                concat!("GenericStructFor", stringify!($primitive))
+                concat!("GenericStruct<", stringify!($primitive), ">")
             );
         };
     }
 
     #[test]
     fn actor_id_type_name_resolution_works() {
-        type_name_resolution_works!(ActorId, actor_id);
+        type_name_resolution_works!(ActorId);
     }
 
     #[test]
     fn message_id_type_name_resolution_works() {
-        type_name_resolution_works!(MessageId, message_id);
+        type_name_resolution_works!(MessageId);
     }
 
     #[test]
     fn code_id_type_name_resolution_works() {
-        type_name_resolution_works!(CodeId, code_id);
+        type_name_resolution_works!(CodeId);
     }
 
     #[test]
     fn h160_type_name_resolution_works() {
-        type_name_resolution_works!(H160, h160);
+        type_name_resolution_works!(H160);
     }
 
     #[test]
     fn nonzero_u8_type_name_resolution_works() {
-        type_name_resolution_works!(NonZeroU8, nat8);
+        type_name_resolution_works!(NonZeroU8);
     }
 
     #[test]
     fn nonzero_u16_type_name_resolution_works() {
-        type_name_resolution_works!(NonZeroU16, nat16);
+        type_name_resolution_works!(NonZeroU16);
     }
 
     #[test]
     fn nonzero_u32_type_name_resolution_works() {
-        type_name_resolution_works!(NonZeroU32, nat32);
+        type_name_resolution_works!(NonZeroU32);
     }
 
     #[test]
     fn nonzero_u64_type_name_resolution_works() {
-        type_name_resolution_works!(NonZeroU64, nat64);
+        type_name_resolution_works!(NonZeroU64);
     }
 
     #[test]
     fn nonzero_u128_type_name_resolution_works() {
-        type_name_resolution_works!(NonZeroU128, nat128);
+        type_name_resolution_works!(NonZeroU128);
     }
 
     #[test]
     fn nonzero_u256_type_name_resolution_works() {
-        type_name_resolution_works!(NonZeroU256, nat256);
+        type_name_resolution_works!(NonZeroU256);
     }
 
     #[test]
@@ -1080,15 +1047,15 @@ mod tests {
         assert_eq!(n8_id, n8_id_2);
         assert_ne!(n8_id, n32_id);
         assert_ne!(n8_id, n256_id);
-        assert_eq!(type_names.get(&n8_id).unwrap(), "GenericConstStruct1ForU8");
-        assert_eq!(type_names.get(&n32_id).unwrap(), "GenericConstStruct2ForU8");
+        assert_eq!(type_names.get(&n8_id).unwrap(), "GenericConstStruct1<u8>");
+        assert_eq!(type_names.get(&n32_id).unwrap(), "GenericConstStruct2<u8>");
         assert_eq!(
             type_names.get(&n256_id).unwrap(),
-            "GenericConstStruct3ForU8"
+            "GenericConstStruct3<u8>"
         );
         assert_eq!(
             type_names.get(&n32u256_id).unwrap(),
-            "GenericConstStructForU256"
+            "GenericConstStruct<u256>"
         );
     }
 }
