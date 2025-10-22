@@ -507,37 +507,6 @@ pub fn send_for_reply<E: Encode>(
     })
 }
 
-#[cfg(not(feature = "ethexe"))]
-#[inline]
-fn send_bytes(
-    destination: ActorId,
-    payload: &[u8],
-    value: ValueUnit,
-    gas_limit: Option<GasUnit>,
-    reply_deposit: Option<GasUnit>,
-) -> Result<MessageId, ::gstd::errors::Error> {
-    let waiting_reply_to = if let Some(gas_limit) = gas_limit {
-        ::gcore::msg::send_with_gas(destination, payload, gas_limit, value)?
-    } else {
-        ::gcore::msg::send(destination, payload, value)?
-    };
-
-    if let Some(reply_deposit) = reply_deposit {
-        _ = ::gcore::exec::reply_deposit(waiting_reply_to, reply_deposit);
-    }
-    Ok(waiting_reply_to)
-}
-
-#[cfg(feature = "ethexe")]
-#[inline]
-fn send_bytes(
-    destination: ActorId,
-    payload: &[u8],
-    value: ValueUnit,
-) -> Result<MessageId, ::gstd::errors::Error> {
-    ::gcore::msg::send(destination, payload, value).map_err(::gstd::errors::Error::Core)
-}
-
 #[inline]
 pub fn send_one_way(
     destination: ActorId,
