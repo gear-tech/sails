@@ -23,8 +23,8 @@ async fn ethapp_with_events_low_level_works() {
 
     let program = Program::from_file(&system, WASM_PATH);
 
-    let ctor = sails_rs::solidity::selector("create(uint128,bool)");
-    let input = (0u128, false).abi_encode_sequence();
+    let ctor = sails_rs::solidity::selector("create(bool)");
+    let input = (false,).abi_encode_sequence();
     let payload = [ctor.as_slice(), input.as_slice()].concat();
 
     let message_id = program.send_bytes(ADMIN_ID, payload.as_slice());
@@ -46,8 +46,8 @@ async fn ethapp_with_events_low_level_works() {
     let wasm_size = std::fs::metadata(WASM_PATH).unwrap().len();
     println!("[ethapp_with_events_low_level_works] Init Gas: {gas_burned:>14}, Size: {wasm_size}");
 
-    let do_this_sig = sails_rs::solidity::selector("svc1DoThis(uint128,bool,uint32,string)");
-    let do_this_params = (0u128, false, 42, "hello").abi_encode_sequence();
+    let do_this_sig = sails_rs::solidity::selector("svc1DoThis(bool,uint32,string)");
+    let do_this_params = (false, 42, "hello").abi_encode_sequence();
     let payload = [do_this_sig.as_slice(), do_this_params.as_slice()].concat();
 
     // act
@@ -113,16 +113,16 @@ async fn ethapp_with_events_remoting_works() {
     let binding = env.clone();
     let mut listener = binding.listen(Some).await.unwrap();
 
-    let ctor = sails_rs::solidity::selector("create(uint128,bool)");
-    let input = (0u128, false).abi_encode_sequence();
+    let ctor = sails_rs::solidity::selector("create(bool)");
+    let input = (false,).abi_encode_sequence();
     let payload = [ctor.as_slice(), input.as_slice()].concat();
 
     let (program_id, _) = env
         .create_program(code_id, vec![], payload.as_slice(), Default::default())
         .unwrap();
 
-    let do_this_sig = sails_rs::solidity::selector("svc1DoThis(uint128,bool,uint32,string)");
-    let do_this_params = (0u128, false, 42, "hello").abi_encode_sequence();
+    let do_this_sig = sails_rs::solidity::selector("svc1DoThis(bool,uint32,string)");
+    let do_this_params = (false, 42, "hello").abi_encode_sequence();
     let payload = [do_this_sig.as_slice(), do_this_params.as_slice()].concat();
 
     let reply_payload = env
@@ -161,16 +161,16 @@ async fn ethapp_with_events_exposure_emit_works() {
     let binding = env.clone();
     let mut listener = binding.listen(Some).await.unwrap();
 
-    let ctor = sails_rs::solidity::selector("create(uint128,bool)");
-    let input = (0u128, false).abi_encode_sequence();
+    let ctor = sails_rs::solidity::selector("create(bool)");
+    let input = (false,).abi_encode_sequence();
     let payload = [ctor.as_slice(), input.as_slice()].concat();
 
     let (program_id, _) = env
         .create_program(code_id, vec![], payload.as_slice(), Default::default())
         .unwrap();
 
-    let do_this_sig = sails_rs::solidity::selector("svc2DoThis(uint128,bool,uint32,string)");
-    let do_this_params = (0u128, false, 42, "hello").abi_encode_sequence();
+    let do_this_sig = sails_rs::solidity::selector("svc2DoThis(bool,uint32,string)");
+    let do_this_params = (false, 42, "hello").abi_encode_sequence();
     let payload = [do_this_sig.as_slice(), do_this_params.as_slice()].concat();
 
     let reply_payload = env
