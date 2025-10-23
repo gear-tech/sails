@@ -39,21 +39,12 @@ pub(super) fn resolve<'a>(
     let types = types
         .map(|t| (t.id, t))
         .collect::<BTreeMap<u32, &PortableType>>();
-    // println!("Types: {types:#?}");
     let type_names = types.iter().try_fold(
         (
             BTreeMap::<u32, RcTypeName>::new(),
             HashMap::<(String, Vec<u32>), u32>::new(),
         ),
         |mut type_names, ty| {
-            // println!("Resolved type names: {:#?}", type_names.0.iter().map(|(id, name)|
-            //     (*id, (
-            //         name.as_string(false, &type_names.1),
-            //         name.as_string(true, &type_names.1)
-            //     )
-            // )).collect::<BTreeMap<_, _>>());
-            // println!("By path resolved names: {:#?}", type_names.1);
-            // println!("Now resolving type id: {}, type: {:#?}", ty.0, ty.1);
             resolve_type_name(&types, *ty.0, &mut type_names.0, &mut type_names.1)
                 .map(|_| type_names)
         },
@@ -134,7 +125,6 @@ fn resolve_type_name(
             } else if nat256::TypeNameImpl::is_type(type_info) {
                 Rc::new(nat256::TypeNameImpl::new())
             } else {
-                // println!("Resolving by path type name for type: id {type_id} - Info: {type_info:#?}");
                 Rc::new(ByPathTypeName::new(
                     types,
                     type_info,
@@ -210,15 +200,12 @@ impl ByPathTypeName {
                     .ty
                     .ok_or_else(|| Error::TypeIsUnsupported(format!("{type_info:?}")))?
                     .id;
-                // println!("Resolving type param id: {:?}", type_param_id);
                 let type_param_type_name = resolve_type_name(
                     types,
                     type_param_id,
                     resolved_type_names,
                     by_path_type_names,
                 )?;
-                // println!("Resolved (as string): {}", type_param_type_name.as_string(false, by_path_type_names));
-                // println!("Resolved (as string): {}", type_param_type_name.as_string(true, by_path_type_names));
                 type_param_ids.push(type_param_id);
                 type_param_type_names.push(type_param_type_name);
                 Ok::<(Vec<u32>, Vec<Rc<dyn TypeName>>), Error>((
@@ -227,9 +214,6 @@ impl ByPathTypeName {
                 ))
             },
         )?;
-
-        // println!("Type params 0: {:#?}", type_params.0);
-        // println!("Type params 1: {:#?}", type_params.1.iter().map(|tn| (tn.as_string(false, by_path_type_names), tn.as_string(true, by_path_type_names))).collect::<Vec<_>>());
 
         let mut possible_names = Self::possible_names_by_path(type_info).fold(
             Vec::with_capacity(type_info.path.segments.len() + 1),
@@ -240,7 +224,6 @@ impl ByPathTypeName {
                     .entry((name.clone(), type_params.0.clone()))
                     .or_default();
                 *name_ref_count += 1;
-                // println!("Possible names collection after handling possible_name: {possible_name:?} - {possible_names:#?}", );
                 possible_names
             },
         );
@@ -250,7 +233,6 @@ impl ByPathTypeName {
             let name_ref_count = by_path_type_names.get(first_name).unwrap_or(&0);
             let name = format!("{}{}", first_name.0, name_ref_count);
             let possible_name = (name.clone(), first_name.1.clone());
-            // println!("Adding possible name from first name: {possible_name:?}");
             possible_names.push(possible_name);
             let name_ref_count = by_path_type_names
                 .entry((name.clone(), type_params.0.clone()))
@@ -1049,10 +1031,7 @@ mod tests {
         assert_ne!(n8_id, n256_id);
         assert_eq!(type_names.get(&n8_id).unwrap(), "GenericConstStruct1<u8>");
         assert_eq!(type_names.get(&n32_id).unwrap(), "GenericConstStruct2<u8>");
-        assert_eq!(
-            type_names.get(&n256_id).unwrap(),
-            "GenericConstStruct3<u8>"
-        );
+        assert_eq!(type_names.get(&n256_id).unwrap(), "GenericConstStruct3<u8>");
         assert_eq!(
             type_names.get(&n32u256_id).unwrap(),
             "GenericConstStruct<u256>"

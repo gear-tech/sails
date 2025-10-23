@@ -18,10 +18,15 @@
 
 //! Struct describing the types of a service comprised of command and query handlers.
 
-use std::{collections::{BTreeSet, HashSet}, num::{NonZeroU128, NonZeroU16, NonZeroU32, NonZeroU64, NonZeroU8}};
+use std::{
+    collections::{BTreeSet, HashSet},
+    num::{NonZeroU8, NonZeroU16, NonZeroU32, NonZeroU64, NonZeroU128},
+};
 
 use crate::{
-    errors::{Error, Result}, type_names, FuncArgIdl2, FunctionIdl2Data, FunctionsSection, ProgramIdlSection, ServiceSection
+    FuncArgIdl2, FunctionIdl2Data, FunctionsSection, ProgramIdlSection, ServiceSection,
+    errors::{Error, Result},
+    type_names,
 };
 use gprimitives::*;
 use sails_idl_meta::*;
@@ -42,10 +47,13 @@ pub(crate) struct ExpandedProgramMeta2 {
 }
 
 impl ExpandedProgramMeta2 {
-    pub fn new(name: String, ctors: MetaType, services: impl Iterator<Item = (&'static str, AnyServiceMeta)>,) -> Result<Self> {
+    pub fn new(
+        name: String,
+        ctors: MetaType,
+        services: impl Iterator<Item = (&'static str, AnyServiceMeta)>,
+    ) -> Result<Self> {
         // Create registry
         let mut ctor_registry = Registry::new();
-        // todo [sab] add to ctors registry the builtin types and do type names resolution too
         let ctor_registry_id = ctor_registry.register_type(&ctors).id;
 
         let services_registry_ids = services.map(|(service_name, meta)| {
@@ -69,26 +77,44 @@ impl ExpandedProgramMeta2 {
                 .map(|t| t.id)
                 .collect::<BTreeSet<_>>();
 
-            let commands = meta.commands();
-            let commands_registry_id = registry.register_type(&commands).id;
+            let mut commands_registry_ids = Vec::new();
+            let current_service_commands = meta.commands();
+            commands_registry_ids.push(registry.register_type(&current_service_commands).id);
+            meta.base_services()
+                .into_iter()
+                .for_each(|base_service_meta| {
+                    let base_commands = base_service_meta.commands();
+                    commands_registry_ids.push(registry.register_type(&base_commands).id);
+                });
 
-            let queries = meta.queries();
-            let queries_registry_id = registry.register_type(&queries).id;
+            let mut queries_registry_ids = Vec::new();
+            let current_service_queries = meta.queries();
+            queries_registry_ids.push(registry.register_type(&current_service_queries).id);
+            meta.base_services()
+                .into_iter()
+                .for_each(|base_service_meta| {
+                    let base_queries = base_service_meta.queries();
+                    queries_registry_ids.push(registry.register_type(&base_queries).id);
+                });
 
-            let events = meta.events();
-            let events_registry_id = registry.register_type(&events).id;
+            let mut events_registry_ids = Vec::new();
+            let current_service_events = meta.events();
+            events_registry_ids.push(registry.register_type(&current_service_events).id);
+            meta.base_services()
+                .into_iter()
+                .for_each(|base_service_meta| {
+                    let base_events = base_service_meta.events();
+                    events_registry_ids.push(registry.register_type(&base_events).id);
+                });
 
-            // todo [sab] base services and their events
-            // meta.base_services().for_each(|base_service_meta| {
-            //     let base_commands = base_service_meta.commands();
-            //     registry.register_type(&base_commands);
-            //     let base_queries = base_service_meta.queries();
-            //     registry.register_type(&base_queries);
-            //     let base_events = base_service_meta.events();
-            //     registry.register_type(&base_events);
-            // });
-
-            (registry, service_name, commands_registry_id, queries_registry_id, events_registry_id, builtin_type_ids)
+            (
+                registry,
+                service_name,
+                commands_registry_ids,
+                queries_registry_ids,
+                events_registry_ids,
+                builtin_type_ids,
+            )
         });
 
         // Process registered types to form ctors and services idl data
@@ -107,139 +133,181 @@ impl ExpandedProgramMeta2 {
         };
 
         let mut services = Vec::new();
-        for (mut registry, name, commands_id, queries_id, events_id, builtin_type_ids) in services_registry_ids {
+        for (mut registry, name, commands_ids, queries_ids, events_ids, builtin_type_ids) in
+            services_registry_ids
+        {
             // Handle commands
             let mut generated_types = HashSet::new();
-            generated_types.insert(commands_id);
-            generated_types.insert(queries_id);
-            generated_types.insert(events_id);
+            commands_ids.iter().for_each(|id| {
+                generated_types.insert(*id);
+            });
+            queries_ids.iter().for_each(|id| {
+                generated_types.insert(*id);
+            });
+            events_ids.iter().for_each(|id| {
+                generated_types.insert(*id);
+            });
 
             let unit_ty_id = registry.register_type(&MetaType::new::<()>()).id;
 
             let service_portable_registry = PortableRegistry::from(registry);
+
             let mut commands = Vec::new();
-            let commands_type = service_portable_registry
-                .resolve(commands_id)
-                .expect("command type was added previously; qed.");
+            for command_id in commands_ids {
+                let commands_type = service_portable_registry
+                    .resolve(command_id)
+                    .expect("command type was added previously; qed.");
 
-            let TypeDef::Variant(ref variants) = commands_type.type_def else {
-                return Err(Error::FuncMetaIsInvalid("Commands type is not a variant".to_string()));
-            };
+                let TypeDef::Variant(ref variants) = commands_type.type_def else {
+                    return Err(Error::FuncMetaIsInvalid(
+                        "Commands type is not a variant".to_string(),
+                    ));
+                };
 
-            for variant in &variants.variants {
-                if variant.fields.len() != 2 {
-                    return Err(Error::FuncMetaIsInvalid(format!(
-                        "command `{}` has invalid number of fields, expected 2, got {}",
-                        variant.name, variant.fields.len()
-                    )));
+                for variant in &variants.variants {
+                    if variant.fields.len() != 2 {
+                        return Err(Error::FuncMetaIsInvalid(format!(
+                            "command `{}` has invalid number of fields, expected 2, got {}",
+                            variant.name,
+                            variant.fields.len()
+                        )));
+                    }
+
+                    // Add to generated types __*Params type of service's variant in `CommandsMeta`
+                    generated_types.insert(variant.fields[0].ty.id);
+
+                    // Take args (fields of __*Params type)
+                    let args_type = service_portable_registry
+                        .resolve(variant.fields[0].ty.id)
+                        .expect("args type was added previously; qed.");
+                    let TypeDef::Composite(args_type) = &args_type.type_def else {
+                        return Err(Error::FuncMetaIsInvalid(format!(
+                            "command `{}` args type is not a composite",
+                            variant.name
+                        )));
+                    };
+                    let args = args_type
+                        .fields
+                        .iter()
+                        .map(|f| -> Result<FuncArgIdl2, Error> {
+                            let name = f
+                                .name
+                                .as_ref()
+                                .ok_or_else(|| {
+                                    Error::FuncMetaIsInvalid(format!(
+                                        "command `{}` arg must have a name",
+                                        variant.name
+                                    ))
+                                })?
+                                .to_string();
+                            Ok(FuncArgIdl2 { name, ty: f.ty.id })
+                        })
+                        .collect::<Result<Vec<_>, _>>()?;
+
+                    // Take result type
+                    let result_ty = variant.fields[1].ty.id;
+
+                    let command = FunctionIdl2Data {
+                        name: variant.name.to_string(),
+                        args,
+                        result_ty: (result_ty != unit_ty_id).then_some(result_ty),
+                        docs: variant.docs.iter().map(|s| s.to_string()).collect(),
+                    };
+
+                    commands.push(command);
                 }
-
-                // Add to generated types __*Params type of service's variant in `CommandsMeta`
-                generated_types.insert(variant.fields[0].ty.id);
-
-                // Take args (fields of __*Params type)
-                let args_type = service_portable_registry
-                    .resolve(variant.fields[0].ty.id)
-                    .expect("args type was added previously; qed.");
-                let TypeDef::Composite(args_type) = &args_type.type_def else {
-                    return Err(Error::FuncMetaIsInvalid(format!(
-                        "command `{}` args type is not a composite", variant.name
-                    )));
-                };
-                let args = args_type.fields.iter().map(|f| -> Result<FuncArgIdl2, Error> {
-                    let name = f.name
-                        .as_ref()
-                        .ok_or_else(|| Error::FuncMetaIsInvalid(format!("command `{}` arg must have a name", variant.name)))?
-                        .to_string();
-                    Ok(FuncArgIdl2 {
-                        name,
-                        ty: f.ty.id,
-                    })
-                }).collect::<Result<Vec<_>, _>>()?;
-
-                // Take result type
-                let result_ty = variant.fields[1].ty.id;
-
-                let command = FunctionIdl2Data {
-                    name: variant.name.to_string(),
-                    args,
-                    result_ty: (result_ty != unit_ty_id).then_some(result_ty),
-                    docs: variant.docs.iter().map(|s| s.to_string()).collect(),
-                };
-
-                commands.push(command);
             }
 
-            // Handle queries
             let mut queries = Vec::new();
-            let queries_type = service_portable_registry
-                .resolve(queries_id)
-                .expect("query type was added previously; qed.");
 
-            let TypeDef::Variant(ref variants) = queries_type.type_def else {
-                return Err(Error::FuncMetaIsInvalid("Queries type is not a variant".to_string()));
-            };
+            // Handle queries
+            for query_id in queries_ids {
+                let queries_type = service_portable_registry
+                    .resolve(query_id)
+                    .expect("query type was added previously; qed.");
 
-            for variant in &variants.variants {
-                if variant.fields.len() != 2 {
-                    return Err(Error::FuncMetaIsInvalid(format!(
-                        "query `{}` has invalid number of fields, expected 2, got {}",
-                        variant.name, variant.fields.len()
-                    )));
+                let TypeDef::Variant(ref variants) = queries_type.type_def else {
+                    return Err(Error::FuncMetaIsInvalid(
+                        "Queries type is not a variant".to_string(),
+                    ));
+                };
+
+                for variant in &variants.variants {
+                    if variant.fields.len() != 2 {
+                        return Err(Error::FuncMetaIsInvalid(format!(
+                            "query `{}` has invalid number of fields, expected 2, got {}",
+                            variant.name,
+                            variant.fields.len()
+                        )));
+                    }
+
+                    // Add to generated types __*Params type of service's variant in `QueriesMeta`
+                    generated_types.insert(variant.fields[0].ty.id);
+
+                    // Take args (fields of __*Params type)
+                    let args_type = service_portable_registry
+                        .resolve(variant.fields[0].ty.id)
+                        .expect("args type was added previously; qed.");
+                    let TypeDef::Composite(args_type) = &args_type.type_def else {
+                        return Err(Error::FuncMetaIsInvalid(format!(
+                            "query `{}` args type is not a composite",
+                            variant.name
+                        )));
+                    };
+                    let args = args_type
+                        .fields
+                        .iter()
+                        .map(|f| -> Result<FuncArgIdl2, Error> {
+                            let name = f
+                                .name
+                                .as_ref()
+                                .ok_or_else(|| {
+                                    Error::FuncMetaIsInvalid(format!(
+                                        "query `{}` arg must have a name",
+                                        variant.name
+                                    ))
+                                })?
+                                .to_string();
+                            Ok(FuncArgIdl2 { name, ty: f.ty.id })
+                        })
+                        .collect::<Result<Vec<_>, _>>()?;
+
+                    // Take result type
+                    let result_ty = variant.fields[1].ty.id;
+
+                    let query = FunctionIdl2Data {
+                        name: variant.name.to_string(),
+                        args,
+                        result_ty: (result_ty != unit_ty_id).then_some(result_ty),
+                        docs: variant.docs.iter().map(|s| s.to_string()).collect(),
+                    };
+
+                    queries.push(query);
                 }
-
-                // Add to generated types __*Params type of service's variant in `QueriesMeta`
-                generated_types.insert(variant.fields[0].ty.id);
-
-                // Take args (fields of __*Params type)
-                let args_type = service_portable_registry
-                    .resolve(variant.fields[0].ty.id)
-                    .expect("args type was added previously; qed.");
-                let TypeDef::Composite(args_type) = &args_type.type_def else {
-                    return Err(Error::FuncMetaIsInvalid(format!(
-                        "query `{}` args type is not a composite", variant.name
-                    )));
-                };
-                let args = args_type.fields.iter().map(|f| -> Result<FuncArgIdl2, Error> {
-                    let name = f.name
-                        .as_ref()
-                        .ok_or_else(|| Error::FuncMetaIsInvalid(format!("query `{}` arg must have a name", variant.name)))?
-                        .to_string();
-                    Ok(FuncArgIdl2 {
-                        name,
-                        ty: f.ty.id,
-                    })
-                }).collect::<Result<Vec<_>, _>>()?;
-
-                // Take result type
-                let result_ty = variant.fields[1].ty.id;
-
-                let query = FunctionIdl2Data {
-                    name: variant.name.to_string(),
-                    args,
-                    result_ty: (result_ty != unit_ty_id).then_some(result_ty),
-                    docs: variant.docs.iter().map(|s| s.to_string()).collect(),
-                };
-
-                queries.push(query);
             }
 
             // Handle events
-            let events_type = service_portable_registry
-                .resolve(events_id)
-                .expect("event type was added previously; qed.");
+            let mut events = Vec::new();
+            for event_id in events_ids {
+                let events_type = service_portable_registry
+                    .resolve(event_id)
+                    .expect("event type was added previously; qed.");
 
-            let TypeDef::Variant(ref variants) = events_type.type_def else {
-                return Err(Error::EventMetaIsInvalid("events type is not a variant".to_string()));
-            };
-            let events = variants.variants.clone();
+                let TypeDef::Variant(ref variants) = events_type.type_def else {
+                    return Err(Error::EventMetaIsInvalid(
+                        "events type is not a variant".to_string(),
+                    ));
+                };
+                events.extend_from_slice(&variants.variants);
+            }
 
             let types = service_portable_registry
                 .types
                 .iter()
                 .filter(|ty| {
-                    // todo [sab] test that skips primitive types and Result/Option + builtin types
-                    !ty.ty.path.namespace().is_empty() && !generated_types.contains(&ty.id) && !builtin_type_ids.contains(&ty.id)
+                    !ty.ty.path.namespace().is_empty()
+                        && !generated_types.contains(&ty.id)
+                        && !builtin_type_ids.contains(&ty.id)
                 })
                 .cloned()
                 .collect::<Vec<_>>();
@@ -252,13 +320,10 @@ impl ExpandedProgramMeta2 {
             let service = ServiceSection {
                 name: name.to_string(),
                 type_names,
-                extends: Default::default(), // todo [sab]
+                extends: Default::default(),
                 events,
                 types,
-                functions: FunctionsSection {
-                    commands,
-                    queries,
-                },
+                functions: FunctionsSection { commands, queries },
             };
 
             services.push(service);
@@ -270,10 +335,7 @@ impl ExpandedProgramMeta2 {
         })
     }
 
-    fn ctor_funcs(
-        registry: &PortableRegistry,
-        func_type_id: u32,
-    ) -> Result<Vec<FunctionIdl2Data>> {
+    fn ctor_funcs(registry: &PortableRegistry, func_type_id: u32) -> Result<Vec<FunctionIdl2Data>> {
         any_funcs(registry, func_type_id)?
             .map(|constructor_fn| {
                 if constructor_fn.fields.len() != 1 {
@@ -283,16 +345,20 @@ impl ExpandedProgramMeta2 {
                     )))
                 } else {
                     let param_type_id = constructor_fn.fields[0].ty.id;
-                    let params_type = registry.resolve(param_type_id).ok_or(
-                        Error::TypeIdIsUnknown(param_type_id)
-                    )?;
+                    let params_type = registry
+                        .resolve(param_type_id)
+                        .ok_or(Error::TypeIdIsUnknown(param_type_id))?;
 
                     if let TypeDef::Composite(params_type) = &params_type.type_def {
                         let mut args = Vec::with_capacity(params_type.fields.len());
                         for f in &params_type.fields {
-                            let name = f.name
-                                .map(|s| s.to_string())
-                                .ok_or(Error::FuncMetaIsInvalid(format!("ctor {} has nameless argument", constructor_fn.name)))?;
+                            let name =
+                                f.name
+                                    .map(|s| s.to_string())
+                                    .ok_or(Error::FuncMetaIsInvalid(format!(
+                                        "ctor {} has nameless argument",
+                                        constructor_fn.name
+                                    )))?;
                             args.push(FuncArgIdl2 {
                                 name: name,
                                 ty: f.ty.id,
@@ -665,7 +731,7 @@ Type:
 - path - path to type declaration relative crate root
 - type params - generic type parameters
 - type def - actual type definition
-- docs - vector of documentation strings 
+- docs - vector of documentation strings
 
 Field:
 - name - field name (optional)
@@ -675,7 +741,7 @@ Field:
 
 1. u8-u128, i8-i128, bool, char, str, String -> Primitive
 2. Structs -> Composite:
-    - Unit struct -> Fields [], 
+    - Unit struct -> Fields [],
     - Tuple struct -> Fields are elements inside struct (fields in normal struct, or types in tuple struct)
                       Has multiple fields, hidden under type_name: Option<type>
     - Struct with named fields -> [ name (field name), ty (type id), type_name: Option<type>, docs (docs for the field) ]
@@ -684,9 +750,9 @@ Field:
 4. [T] - dynamic arrays -> Sequence { type_param (TypeId) }, TypeId should be stored somewhere
 5. Tuples:
     - () -> Tuple type def with zero fields
-    - (T1,) -> Tuple type def with 1 field [ TypeId - id of the type ] 
+    - (T1,) -> Tuple type def with 1 field [ TypeId - id of the type ]
     - (T1, T2,) -> Tuple type def with 2 fields [ TypeId - id of the type, TypeId - id of the type ]
-6. Enums -> Variant which is the Vector of Variant { name: str, fields: Field } 
+6. Enums -> Variant which is the Vector of Variant { name: str, fields: Field }
 
 Generics:
 
@@ -700,7 +766,7 @@ lifetimes are missed
 mod tests {
     use super::*;
     use scale_info::TypeInfo;
-    use std::{iter, collections::BTreeMap};
+    use std::{collections::BTreeMap, iter};
 
     mod utils {
         use super::*;
@@ -722,7 +788,7 @@ mod tests {
         pub(super) struct SimpleFunctionParams {
             f1: u32,
         }
-            
+
         #[derive(TypeInfo)]
         #[allow(unused)]
         pub(super) enum NoCommands {}
@@ -736,10 +802,13 @@ mod tests {
         pub(super) enum NoEvents {}
     }
 
+    #[test]
+    fn base_service() {}
+
     // #[test]
     // fn test_meta() {
     //     use sails_idl_meta::ProgramMeta;
-    //     use demo::DemoProgram; // todo [sab] not indexed
+    //     use demo::DemoProgram;
     //     let res = ExpandedProgramMeta2::new(
     //         "Demo".to_string(),
     //         DemoProgram::constructors(),
@@ -804,26 +873,19 @@ mod tests {
 
         // Test all error scenarios
         test_ctor_error::<NonCompositeArgsCtors>(
-            "ctor `CtorWithInvalidArgTypes` params type is not a composite"
+            "ctor `CtorWithInvalidArgTypes` params type is not a composite",
         );
 
-        test_ctor_error::<NamelessFieldsCtors>(
-            "ctor CtorWithNamelessArgs has nameless argument"
-        );
+        test_ctor_error::<NamelessFieldsCtors>("ctor CtorWithNamelessArgs has nameless argument");
 
-        test_ctor_error::<NoArgsCtors>(
-            "ctor `CtorWithNoArgs` has invalid number of fields"
-        );
+        test_ctor_error::<NoArgsCtors>("ctor `CtorWithNoArgs` has invalid number of fields");
 
-        test_ctor_error::<TooManyArgsCtors>(
-            "ctor `CtorWithResult` has invalid number of fields"
-        );
+        test_ctor_error::<TooManyArgsCtors>("ctor `CtorWithResult` has invalid number of fields");
     }
 
     /// Test that returned program meta has result_ty == None for all constructors in program IDL section
     #[test]
     fn ctors_result_ty_none() {
-
         #[derive(TypeInfo)]
         #[allow(unused)]
         enum ValidConstructors {
@@ -863,9 +925,12 @@ mod tests {
         assert_eq!(meta.program.ctors.len(), 3);
 
         for ctor in &meta.program.ctors {
-            assert!(ctor.result_ty.is_none(), 
-                "Constructor '{}' should have result_ty == None, but got {:?}", 
-                ctor.name, ctor.result_ty);
+            assert!(
+                ctor.result_ty.is_none(),
+                "Constructor '{}' should have result_ty == None, but got {:?}",
+                ctor.name,
+                ctor.result_ty
+            );
         }
     }
 
@@ -893,8 +958,8 @@ mod tests {
         assert!(result.is_ok());
         let meta = result.unwrap();
 
-        let ctors_json = serde_json::to_value(&meta.program.ctors)
-            .expect("Should serialize to JSON");
+        let ctors_json =
+            serde_json::to_value(&meta.program.ctors).expect("Should serialize to JSON");
         assert_eq!(
             ctors_json,
             serde_json::json!([
@@ -915,13 +980,13 @@ mod tests {
     // #[test]
     // #[ignore]
     // fn test_json_serialization() {
-    //     // todo [sab] features to test:
-    //     // 2. base services
-    //     // 3. events
-    //     // 4. ctors: no args, multiple args
-    //     // 5. services:
-    //     // - unit res for extended/base services
-
+    // todo [sab] features to test:
+    // 2. base services
+    // 3. events
+    // 4. ctors: no args, multiple args
+    // 5. services:
+    // - unit res for extended/base services
+    // 6. type names: maps,
 
     //     let meta = ExpandedProgramMeta2::new(
     //         "TestProgram".to_string(),
@@ -937,14 +1002,14 @@ mod tests {
 
     //     let program = json.get("program").unwrap();
     //     assert_eq!(program.get("name").unwrap(), "TestProgram");
-        
+
     //     let ctors = program.get("ctors").unwrap().as_array().unwrap();
     //     assert_eq!(ctors.len(), 1);
-        
+
     //     let ctor = &ctors[0];
     //     assert_eq!(ctor.get("name").unwrap(), "TestCtor");
     //     assert!(ctor.get("result_ty").is_none()); // Should not be present in JSON when None
-        
+
     //     let args = ctor.get("args").unwrap().as_array().unwrap();
     //     assert_eq!(args.len(), 1);
     //     assert_eq!(args[0].get("name").unwrap(), "test_field");
@@ -952,7 +1017,7 @@ mod tests {
     // }
 
     /// Test that services with only primitive/builtin types have empty types sections
-    #[test] 
+    #[test]
     fn service_non_user_defined_types_excluded() {
         struct Service1;
         impl sails_idl_meta::ServiceMeta for Service1 {
@@ -1034,7 +1099,7 @@ mod tests {
 
         #[derive(TypeInfo)]
         #[allow(unused)]
-        struct NonUserDefinedArgs {  
+        struct NonUserDefinedArgs {
             pub number: u32,
             pub flag: bool,
             pub text: String,
@@ -1085,18 +1150,30 @@ mod tests {
                 "TestProgram".to_string(),
                 MetaType::new::<utils::SimpleCtors>(),
                 vec![("Service1", service1), ("Service2", service2)].into_iter(),
-            ).unwrap_or_else(|e| panic!("Failed to create expanded meta: {:?}", e));
+            )
+            .unwrap_or_else(|e| panic!("Failed to create expanded meta: {:?}", e));
 
             assert_eq!(meta.services.len(), 2);
 
             let service_1 = &meta.services[0];
             assert_eq!(service_1.name, "Service1");
-            assert_eq!(service_1.types.len(), 0, "Service with only primitive/builtin types should have empty types section");
+            assert_eq!(
+                service_1.types.len(),
+                0,
+                "Service with only primitive/builtin types should have empty types section"
+            );
 
             let service_2 = &meta.services[1];
             assert_eq!(service_2.name, "Service2");
-            assert_eq!(service_2.types.len(), 1, "Service with user-defined types should have non-empty types section");
-            assert_eq!(service_2.types[0].ty.path.ident().unwrap(), "NonUserDefinedArgs");
+            assert_eq!(
+                service_2.types.len(),
+                1,
+                "Service with user-defined types should have non-empty types section"
+            );
+            assert_eq!(
+                service_2.types[0].ty.path.ident().unwrap(),
+                "NonUserDefinedArgs"
+            );
         };
 
         internal_check(
@@ -1113,8 +1190,6 @@ mod tests {
             AnyServiceMeta::new::<Service5>(),
             AnyServiceMeta::new::<Service6>(),
         );
-
-        // todo [sab] add same test but with base services
     }
 
     /// Test that service functions with () result have result_ty == None
@@ -1159,13 +1234,22 @@ mod tests {
             for f in fns {
                 match f.name.as_str() {
                     "UnitCmd" | "UnitQuery" => {
-                        assert!(f.result_ty.is_none(), "Command returning () should have result_ty == None");
+                        assert!(
+                            f.result_ty.is_none(),
+                            "Command returning () should have result_ty == None"
+                        );
                     }
                     "NonUnitCmd" | "NonUnitQuery" => {
-                        assert!(f.result_ty.is_some(), "Command returning non-unit should have result_ty == Some");
+                        assert!(
+                            f.result_ty.is_some(),
+                            "Command returning non-unit should have result_ty == Some"
+                        );
                     }
                     "WithUnitCmd" | "WithUnitQuery" => {
-                        assert!(f.result_ty.is_some(), "Command returning Result<(), T> should have result_ty == Some");
+                        assert!(
+                            f.result_ty.is_some(),
+                            "Command returning Result<(), T> should have result_ty == Some"
+                        );
                     }
                     _ => unimplemented!("Unexpected function name: {}", f.name),
                 }
@@ -1179,15 +1263,14 @@ mod tests {
         let json = serde_json::to_value(&service).expect("Should serialize to JSON");
         let (commands, queries) = json
             .get("functions")
-            .and_then(|v| 
-                v
-                    .get("commands")
+            .and_then(|v| {
+                v.get("commands")
                     .and_then(|c| v.get("queries").map(|q| (c, q)))
-            )
-            .and_then(|(c, q)| q
-                .as_array()
-                .and_then(|q_arr| c.as_array().map(|c_arr| (c_arr, q_arr)))
-            )
+            })
+            .and_then(|(c, q)| {
+                q.as_array()
+                    .and_then(|q_arr| c.as_array().map(|c_arr| (c_arr, q_arr)))
+            })
             .unwrap();
 
         let check_json_result_ty = |fns_json: &[serde_json::Value]| {
@@ -1195,13 +1278,25 @@ mod tests {
                 let name = fn_json.get("name").unwrap().as_str().unwrap();
                 match name {
                     "UnitCmd" | "UnitQuery" => {
-                        assert!(fn_json.get("result_ty").is_none(), "{} returning () should not have result_ty in JSON", name);
+                        assert!(
+                            fn_json.get("result_ty").is_none(),
+                            "{} returning () should not have result_ty in JSON",
+                            name
+                        );
                     }
                     "NonUnitCmd" | "NonUnitQuery" => {
-                        assert!(fn_json.get("result_ty").is_some(), "{} returning non-unit should have result_ty in JSON", name);
+                        assert!(
+                            fn_json.get("result_ty").is_some(),
+                            "{} returning non-unit should have result_ty in JSON",
+                            name
+                        );
                     }
                     "WithUnitCmd" | "WithUnitQuery" => {
-                        assert!(fn_json.get("result_ty").is_some(), "{} returning Result<(), T> should have result_ty in JSON", name);
+                        assert!(
+                            fn_json.get("result_ty").is_some(),
+                            "{} returning Result<(), T> should have result_ty in JSON",
+                            name
+                        );
                     }
                     _ => unimplemented!("Unexpected function name in JSON: {}", name),
                 }
@@ -1287,7 +1382,7 @@ mod tests {
             const BASE_SERVICES: &'static [sails_idl_meta::AnyServiceMetaFn] = &[];
             const ASYNC: bool = false;
         }
-        
+
         struct InvalidQueriesService1;
         impl sails_idl_meta::ServiceMeta for InvalidQueriesService1 {
             type CommandsMeta = utils::NoCommands;
@@ -1310,7 +1405,7 @@ mod tests {
         #[derive(TypeInfo)]
         #[allow(unused)]
         enum BadCommands1 {
-            OneField(u32), // Should have 2 fields (params, result)
+            OneField(u32),                                 // Should have 2 fields (params, result)
             ValidCmd(utils::SimpleFunctionParams, String), // Valid command for control
         }
 
@@ -1399,7 +1494,10 @@ mod tests {
         let Err(Error::FuncMetaIsInvalid(msg)) = result else {
             panic!("Expected FuncMetaIsInvalid error, got {:?}", result);
         };
-        assert_eq!(msg.as_str(), "command `BadCmd` args type is not a composite");
+        assert_eq!(
+            msg.as_str(),
+            "command `BadCmd` args type is not a composite"
+        );
     }
 
     /// Test error when service method params have nameless fields
@@ -1473,16 +1571,29 @@ mod tests {
             Fn1(utils::SimpleFunctionParams, String),
         }
 
-        let internal_check = |service: AnyServiceMeta, expected_commands_count: usize, expected_queries_count: usize| {
+        let internal_check = |service: AnyServiceMeta,
+                              expected_commands_count: usize,
+                              expected_queries_count: usize| {
             let meta = ExpandedProgramMeta2::new(
                 "TestProgram".to_string(),
                 MetaType::new::<utils::SimpleCtors>(),
                 vec![("TestService", service)].into_iter(),
-            ).unwrap_or_else(|e| panic!("Failed to create expanded meta: {:?}", e));
+            )
+            .unwrap_or_else(|e| panic!("Failed to create expanded meta: {:?}", e));
 
             let service_meta = &meta.services[0];
-            assert_eq!(service_meta.functions.commands.len(), expected_commands_count, "Service should have {} command(s)", expected_commands_count);
-            assert_eq!(service_meta.functions.queries.len(), expected_queries_count, "Service should have {} query(s)", expected_queries_count);
+            assert_eq!(
+                service_meta.functions.commands.len(),
+                expected_commands_count,
+                "Service should have {} command(s)",
+                expected_commands_count
+            );
+            assert_eq!(
+                service_meta.functions.queries.len(),
+                expected_queries_count,
+                "Service should have {} query(s)",
+                expected_queries_count
+            );
 
             if !service_meta.functions.commands.is_empty() {
                 let cmd = &service_meta.functions.commands[0];
@@ -1493,23 +1604,11 @@ mod tests {
             }
         };
 
-        internal_check(
-            AnyServiceMeta::new::<ServiceWithOneCommand>(),
-            1,
-            0,
-        );
+        internal_check(AnyServiceMeta::new::<ServiceWithOneCommand>(), 1, 0);
 
-        internal_check(
-            AnyServiceMeta::new::<ServiceWithOneQuery>(),
-            0,
-            1,
-        );
+        internal_check(AnyServiceMeta::new::<ServiceWithOneQuery>(), 0, 1);
 
-        internal_check(
-            AnyServiceMeta::new::<ServiceWithNoFunctions>(),
-            0,
-            0,
-        );
+        internal_check(AnyServiceMeta::new::<ServiceWithNoFunctions>(), 0, 0);
 
         struct Service;
         impl sails_idl_meta::ServiceMeta for Service {
@@ -1562,7 +1661,8 @@ mod tests {
             "TestProgram".to_string(),
             MetaType::new::<utils::SimpleCtors>(),
             vec![("TestService", AnyServiceMeta::new::<Service>())].into_iter(),
-        ).unwrap_or_else(|e| panic!("Failed to create expanded meta: {:?}", e));
+        )
+        .unwrap_or_else(|e| panic!("Failed to create expanded meta: {:?}", e));
 
         assert_eq!(meta.services.len(), 1);
         let service = &meta.services[0];
@@ -1579,12 +1679,25 @@ mod tests {
                     }
                     "MultiArgsCmd" | "MultiArgsQuery" => {
                         assert_eq!(f.args.len(), 3, "{} should have three arguments", f.name);
-                        assert_eq!(f.args[0].name, "arg1", "First argument name should be 'arg1'");
-                        assert_eq!(f.args[1].name, "arg2", "Second argument name should be 'arg2'");
-                        assert_eq!(f.args[2].name, "arg3", "Third argument name should be 'arg3'");
+                        assert_eq!(
+                            f.args[0].name, "arg1",
+                            "First argument name should be 'arg1'"
+                        );
+                        assert_eq!(
+                            f.args[1].name, "arg2",
+                            "Second argument name should be 'arg2'"
+                        );
+                        assert_eq!(
+                            f.args[2].name, "arg3",
+                            "Third argument name should be 'arg3'"
+                        );
                     }
                     "NoResultCmd" | "NoResultQuery" => {
-                        assert!(f.result_ty.is_none(), "{} should have no result type", f.name);
+                        assert!(
+                            f.result_ty.is_none(),
+                            "{} should have no result type",
+                            f.name
+                        );
                     }
                     _ => unimplemented!("Unexpected function name: {}", f.name),
                 }
@@ -1595,135 +1708,470 @@ mod tests {
         internal_check(&service.functions.queries);
     }
 
-//     #[test]
-//     fn test_scale_info() {
+    #[test]
+    fn base_service_entities_occur() {
+        #[derive(TypeInfo)]
+        #[allow(unused)]
+        enum BaseServiceCommands {
+            BaseCmd(BaseServiceFunctionParams, String),
+        }
 
-//         /// Some docs here
-//         #[derive(TypeInfo)]
-//         struct TupleStruct(u8);
-//         #[derive(TypeInfo)]
-//         struct TupleStruct2(String);
-//         #[derive(TypeInfo)]
-//         struct TupleStruct3([u8; 7]);
-//         #[derive(TypeInfo)]
-//         struct TupleStruct4(H256);
-//         /// And some docs here
-//         #[derive(TypeInfo)]
-//         struct TupleStruct5(Vec<u8>);
-//         #[derive(TypeInfo)]
-//         struct TupleStruct6(Vec<H256>);
-//         #[derive(TypeInfo)]
-//         struct UnitStruct;
+        #[derive(TypeInfo)]
+        #[allow(unused)]
+        enum BaseServiceQueries {
+            BaseQuery(BaseServiceFunctionParams, ActorId),
+        }
 
-//         #[derive(TypeInfo)]
-//         struct StructWithFields {
-//             field1: u8,
-//             field2: String,
-//             field3: [u8; 7],
-//             field4: H256,
-//             field5: Vec<u8>,
-//             field6: Vec<H256>,
-//             field7: TupleStruct,
-//             field8: TupleStruct5,
-//         }
+        #[derive(TypeInfo)]
+        #[allow(unused)]
+        enum BaseServiceEvents {
+            BaseEvent(NonZeroU128),
+        }
 
-//         #[derive(TypeInfo)]
-//         struct TwoElementsTupleStruct(u8, String);
+        #[derive(TypeInfo)]
+        #[allow(unused)]
+        struct BaseServiceFunctionParams {
+            param: SomeBaseType,
+        }
 
-//         println!("i32 info: {:?}\n", <i32 as TypeInfo>::type_info());
-//         println!("u8 info: {:?}\n", <u8 as TypeInfo>::type_info());
-//         println!("H256 info: {:?}\n", <H256 as TypeInfo>::type_info());
-//         println!("ActorId info: {:?}\n", <ActorId as TypeInfo>::type_info());
-//         println!("CodeId info: {:?}\n", <CodeId as TypeInfo>::type_info());
+        #[derive(TypeInfo)]
+        #[allow(unused)]
+        struct SomeBaseType(ActorId);
 
-//         let type_info = <[u8; 7] as TypeInfo>::type_info();
-//         println!("\n\n Array info: {:?}\n", type_info);
+        struct BaseServiceMeta;
+        impl sails_idl_meta::ServiceMeta for BaseServiceMeta {
+            type CommandsMeta = BaseServiceCommands;
+            type QueriesMeta = BaseServiceQueries;
+            type EventsMeta = BaseServiceEvents;
+            const BASE_SERVICES: &'static [sails_idl_meta::AnyServiceMetaFn] = &[];
+            const ASYNC: bool = false;
+        }
 
-//         println!("TupleStruct info: {:?}\n", <TupleStruct as TypeInfo>::type_info());
-//         println!("TupleStruct2 info: {:?}\n", <TupleStruct2 as TypeInfo>::type_info());
-//         println!("TupleStruct3 info: {:?}\n", <TupleStruct3 as TypeInfo>::type_info());
-//         println!("TupleStruct4 info: {:?}\n", <TupleStruct4 as TypeInfo>::type_info());
-//         println!("TupleStruct5 info: {:?}\n", <TupleStruct5 as TypeInfo>::type_info());
-//         println!("TupleStruct6 info: {:?}\n", <TupleStruct6 as TypeInfo>::type_info());
-//         println!("UnitStruct info: {:?}\n", <UnitStruct as TypeInfo>::type_info());
+        struct ExtendedServiceMeta;
+        impl sails_idl_meta::ServiceMeta for ExtendedServiceMeta {
+            type CommandsMeta = utils::NoCommands;
+            type QueriesMeta = utils::NoQueries;
+            type EventsMeta = utils::NoEvents;
+            const BASE_SERVICES: &'static [sails_idl_meta::AnyServiceMetaFn] =
+                &[AnyServiceMeta::new::<BaseServiceMeta>];
+            const ASYNC: bool = false;
+        }
 
-//         println!("TwoElementsTupleStruct info: {:#?}\n", <TwoElementsTupleStruct as TypeInfo>::type_info());
+        let meta = ExpandedProgramMeta2::new(
+            "TestProgram".to_string(),
+            MetaType::new::<utils::SimpleCtors>(),
+            vec![(
+                "ExtendedService",
+                AnyServiceMeta::new::<ExtendedServiceMeta>(),
+            )]
+            .into_iter(),
+        )
+        .unwrap_or_else(|e| panic!("Failed to create expanded meta: {:?}", e));
 
-//         println!("StructWithFields info: {:#?}\n", <StructWithFields as TypeInfo>::type_info());
+        assert_eq!(meta.services.len(), 1);
+        let service = &meta.services[0];
 
-//         println!("\n\n\n");
-//         println!("Vector info: {:?}\n", <Vec<String> as TypeInfo>::type_info());
-//         println!("Array info: {:?}\n", <[H256; 4] as TypeInfo>::type_info());
-//         println!("Map info: {:?}\n", <std::collections::BTreeMap<String, H256> as TypeInfo>::type_info());
-//         println!("Set info: {:?}\n", <std::collections::BTreeSet<H256> as TypeInfo>::type_info());
+        // Currently service extended section is not filled.
+        assert!(service.extends.is_empty());
 
-//         println!("Tuple info: {:?}", <() as TypeInfo>::type_info());
-//         println!("Tuple-1 info: {:?}", <(u8,) as TypeInfo>::type_info());
-//         println!("Tuple-2 info: {:?}", <(u8, String) as TypeInfo>::type_info());
-//         println!("Tuple-3 info: {:?}", <(u8, String, H256) as TypeInfo>::type_info());
-//         println!("Tuple-4 info: {:?}", <(String, [u8; 9], H256, Vec<H256>) as TypeInfo>::type_info());
+        // Check that base service functions are inherited
+        let function_check = |fns: &[FunctionIdl2Data], expected_base_fn_name: &str| {
+            assert_eq!(
+                fns.len(),
+                1,
+                "Expected exactly one function in extended service"
+            );
 
-//         #[derive(TypeInfo)]
-//         enum Enum1 {}
-//         #[derive(TypeInfo)]
-//         enum Enum2 { A }
-//         #[derive(TypeInfo)]
-//         enum Enum3 { A, B, C }
-//         #[derive(TypeInfo)]
-//         enum Enum4 { A(u8), B(Vec<H256>), C(H256), D([u8; 4]), E((String, ActorId)) }
-//         #[derive(TypeInfo)]
-//         enum Enum5 { A { f1: u8, f2: String }, B(Vec<u8>), C }
+            let actual_base_fn_name = &fns[0].name;
 
-//         println!("Enum1 info: {:?}\n", <Enum1 as TypeInfo>::type_info());
-//         println!("Enum2 info: {:?}\n", <Enum2 as TypeInfo>::type_info());
-//         println!("Enum3 info: {:?}\n", <Enum3 as TypeInfo>::type_info());
-//         println!("Enum4 info: {:?}\n", <Enum4 as TypeInfo>::type_info());
-//         println!("Enum5 info: {:?}\n", <Enum5 as TypeInfo>::type_info());
+            assert_eq!(
+                actual_base_fn_name, expected_base_fn_name,
+                "Unexpected base function name - {actual_base_fn_name}"
+            );
+        };
 
-//         println!("Option info: {:?}\n", <Option<H256> as TypeInfo>::type_info());
-//         println!("Result info: {:?}\n", <Result<H256, String> as TypeInfo>::type_info());
+        function_check(&service.functions.commands, "BaseCmd");
+        function_check(&service.functions.queries, "BaseQuery");
 
-//         #[derive(TypeInfo)]
-//         struct WithGenerics1<T> {
-//             f1: Enum1,
-//             f2: T
-//         }
+        // Check that base service events are inherited
+        assert_eq!(
+            service.events.len(),
+            1,
+            "Expected exactly one event in extended service"
+        );
+        let actual_event_name = service.events[0].name;
+        assert_eq!(
+            actual_event_name, "BaseEvent",
+            "Unexpected base event name - {actual_event_name}"
+        );
 
-//         #[derive(TypeInfo)]
-//         struct WithGenericsBounded<T: std::fmt::Debug> {
-//             f1: Enum2,
-//             f2: T
-//         }
+        // Check that types from base service are included
+        let mut type_names: Vec<&str> = service
+            .types
+            .iter()
+            .map(|t| t.ty.path.ident().unwrap())
+            .collect();
+        assert_eq!(
+            type_names.len(),
+            1,
+            "Expected exactly two types in extended service"
+        );
+        let type_name = type_names.pop().unwrap();
+        assert_eq!(
+            type_name, "SomeBaseType",
+            "Unexpected base type name - {type_name}"
+        );
+    }
 
-//         #[derive(TypeInfo)]
-//         struct WithMultipleGenerics<T1, T2, T3> {
-//             f1: T1,
-//             f2: T2,
-//             f3: T3,
-//         }
+    #[test]
+    fn shared_types_across_services() {
+        // First service using both shared types
+        #[derive(TypeInfo)]
+        #[allow(unused)]
+        enum Service1Commands {
+            Cmd1(ServiceCommandParams, String),
+            Cmd2(ServiceCommandParams, SharedCustomType),
+        }
 
-//         println!("\n\n\n");
+        // Second service using both shared types
+        #[derive(TypeInfo)]
+        #[allow(unused)]
+        enum Service2Commands {
+            Cmd3(ServiceCommandParams, String),
+            Cmd4(ServiceCommandParams, SharedCustomType),
+        }
 
-//         println!("WithGenerics1 info: {:?}\n", <WithGenerics1<StructWithFields> as TypeInfo>::type_info());
-//         println!("String info: {:?}\n", TypeId::of::<String>());
-//         println!("WithGenerics1 ANOTHER info: {:?}\n", <WithGenerics1<String> as TypeInfo>::type_info());
-//         println!("WithGenericsBounded info: {:?}\n", <WithGenericsBounded<String> as TypeInfo>::type_info());
-//         println!("WithMultipleGenerics info: {:?}\n", <WithMultipleGenerics<StructWithFields, String, H256> as TypeInfo>::type_info());
+        #[derive(TypeInfo)]
+        #[allow(unused)]
+        struct ServiceCommandParams {
+            param1: SimpleFunctionParams,
+            param2: utils::SimpleFunctionParams,
+        }
 
-//         // Pha
-//         #[derive(TypeInfo)]
-//         struct M<T> {
-//             _marker1: std::marker::PhantomData<T>,
-//         }
+        // Define SimpleFunctionParams in local scope
+        #[derive(TypeInfo)]
+        #[allow(unused)]
+        struct SimpleFunctionParams {
+            f1: SharedCustomType,
+        }
 
-//         println!("M info: {:?}\n", <M<String> as TypeInfo>::type_info());
+        // Define a custom type to be reused across services
+        #[derive(TypeInfo)]
+        #[allow(unused)]
+        struct SharedCustomType {
+            value: u32,
+        }
 
-//         #[derive(TypeInfo)]
-//         struct WithLifetime<'a, T> {
-//             f1: &'a str,
-//             f2: T,
-//         }
+        struct Service1Meta;
+        impl sails_idl_meta::ServiceMeta for Service1Meta {
+            type CommandsMeta = Service1Commands;
+            type QueriesMeta = utils::NoQueries;
+            type EventsMeta = utils::NoEvents;
+            const BASE_SERVICES: &'static [sails_idl_meta::AnyServiceMetaFn] = &[];
+            const ASYNC: bool = false;
+        }
 
-//         println!("WithLifetime info: {:?}\n", <WithLifetime<'_, String> as TypeInfo>::type_info());
-//     }
+        struct Service2Meta;
+        impl sails_idl_meta::ServiceMeta for Service2Meta {
+            type CommandsMeta = Service2Commands;
+            type QueriesMeta = utils::NoQueries;
+            type EventsMeta = utils::NoEvents;
+            const BASE_SERVICES: &'static [sails_idl_meta::AnyServiceMetaFn] = &[];
+            const ASYNC: bool = false;
+        }
+
+        let meta = ExpandedProgramMeta2::new(
+            "TestProgram".to_string(),
+            MetaType::new::<utils::SimpleCtors>(),
+            vec![
+                ("Service1", AnyServiceMeta::new::<Service1Meta>()),
+                ("Service2", AnyServiceMeta::new::<Service2Meta>()),
+            ]
+            .into_iter(),
+        )
+        .unwrap_or_else(|e| panic!("Failed to create expanded meta: {:?}", e));
+
+        assert_eq!(meta.services.len(), 2, "Expected two services");
+
+        // Helper to check type names in a service
+        let check_service_types = |service: &ServiceSection, expected_types: &[&str]| {
+            let actual_types = service
+                .types
+                .iter()
+                .map(|t| service.type_names[t.id as usize].as_str())
+                .collect::<HashSet<_>>();
+            for expected_type in expected_types {
+                assert!(
+                    actual_types.contains(expected_type),
+                    "Service '{}' should contain type '{}'. Available types: {:?}",
+                    service.name,
+                    expected_type,
+                    actual_types
+                );
+            }
+        };
+
+        check_service_types(
+            &meta.services[0],
+            &[
+                "TestsSimpleFunctionParams",
+                "UtilsSimpleFunctionParams",
+                "SharedCustomType",
+            ],
+        );
+        check_service_types(
+            &meta.services[1],
+            &[
+                "TestsSimpleFunctionParams",
+                "UtilsSimpleFunctionParams",
+                "SharedCustomType",
+            ],
+        );
+    }
+
+    #[test]
+    fn service_extension_with_conflicting_names() {
+        // Base service with a command and query
+        #[derive(TypeInfo)]
+        #[allow(unused)]
+        enum BaseServiceCommands {
+            ConflictingCmd(utils::SimpleFunctionParams, String),
+        }
+
+        #[derive(TypeInfo)]
+        #[allow(unused)]
+        enum BaseServiceQueries {
+            ConflictingQuery(utils::SimpleFunctionParams, u32),
+        }
+
+        struct BaseServiceMeta;
+        impl sails_idl_meta::ServiceMeta for BaseServiceMeta {
+            type CommandsMeta = BaseServiceCommands;
+            type QueriesMeta = BaseServiceQueries;
+            type EventsMeta = utils::NoEvents;
+            const BASE_SERVICES: &'static [sails_idl_meta::AnyServiceMetaFn] = &[];
+            const ASYNC: bool = false;
+        }
+
+        // Extended service with methods having the same names
+        #[derive(TypeInfo)]
+        #[allow(unused)]
+        enum ExtendedServiceCommands {
+            ConflictingCmd(utils::SimpleFunctionParams, bool),
+        }
+
+        #[derive(TypeInfo)]
+        #[allow(unused)]
+        enum ExtendedServiceQueries {
+            ConflictingQuery(utils::SimpleFunctionParams, String),
+        }
+
+        struct ExtendedServiceMeta;
+        impl sails_idl_meta::ServiceMeta for ExtendedServiceMeta {
+            type CommandsMeta = ExtendedServiceCommands;
+            type QueriesMeta = ExtendedServiceQueries;
+            type EventsMeta = utils::NoEvents;
+            const BASE_SERVICES: &'static [sails_idl_meta::AnyServiceMetaFn] =
+                &[AnyServiceMeta::new::<BaseServiceMeta>];
+            const ASYNC: bool = false;
+        }
+
+        let meta = ExpandedProgramMeta2::new(
+            "TestProgram".to_string(),
+            MetaType::new::<utils::SimpleCtors>(),
+            vec![(
+                "ExtendedService",
+                AnyServiceMeta::new::<ExtendedServiceMeta>(),
+            )]
+            .into_iter(),
+        )
+        .unwrap_or_else(|e| panic!("Failed to create expanded meta: {:?}", e));
+
+        assert_eq!(meta.services.len(), 1, "Expected one service");
+        let service = &meta.services[0];
+
+        // Check that extended service has only its own method
+        let cmd_names: Vec<(&str, &str)> = service
+            .functions
+            .commands
+            .iter()
+            .map(|c| {
+                (
+                    c.name.as_str(),
+                    service.type_names[c.result_ty.unwrap() as usize].as_str(),
+                )
+            })
+            .collect();
+        assert_eq!(
+            cmd_names.len(),
+            1,
+            "Expected one command in extended service"
+        );
+        assert_eq!(
+            cmd_names[0].0, "ConflictingCmd",
+            "Expected command name to be 'ConflictingCmd'"
+        );
+        assert_eq!(
+            cmd_names[0].1, "bool",
+            "Expected command result type to be 'bool'"
+        );
+
+        // Check that extended service has all queries (both base and its own)
+        let query_names: Vec<(&str, &str)> = service
+            .functions
+            .queries
+            .iter()
+            .map(|q| {
+                (
+                    q.name.as_str(),
+                    service.type_names[q.result_ty.unwrap() as usize].as_str(),
+                )
+            })
+            .collect();
+        assert_eq!(
+            query_names.len(),
+            1,
+            "Expected one query in extended service"
+        );
+        assert_eq!(
+            query_names[0].0, "ConflictingQuery",
+            "Expected query name to be 'ConflictingQuery'"
+        );
+        assert_eq!(
+            query_names[0].1, "String",
+            "Expected query result type to be 'String'"
+        );
+    }
+
+    //     #[test]
+    //     fn test_scale_info() {
+
+    //         /// Some docs here
+    //         #[derive(TypeInfo)]
+    //         struct TupleStruct(u8);
+    //         #[derive(TypeInfo)]
+    //         struct TupleStruct2(String);
+    //         #[derive(TypeInfo)]
+    //         struct TupleStruct3([u8; 7]);
+    //         #[derive(TypeInfo)]
+    //         struct TupleStruct4(H256);
+    //         /// And some docs here
+    //         #[derive(TypeInfo)]
+    //         struct TupleStruct5(Vec<u8>);
+    //         #[derive(TypeInfo)]
+    //         struct TupleStruct6(Vec<H256>);
+    //         #[derive(TypeInfo)]
+    //         struct UnitStruct;
+
+    //         #[derive(TypeInfo)]
+    //         struct StructWithFields {
+    //             field1: u8,
+    //             field2: String,
+    //             field3: [u8; 7],
+    //             field4: H256,
+    //             field5: Vec<u8>,
+    //             field6: Vec<H256>,
+    //             field7: TupleStruct,
+    //             field8: TupleStruct5,
+    //         }
+
+    //         #[derive(TypeInfo)]
+    //         struct TwoElementsTupleStruct(u8, String);
+
+    //         println!("i32 info: {:?}\n", <i32 as TypeInfo>::type_info());
+    //         println!("u8 info: {:?}\n", <u8 as TypeInfo>::type_info());
+    //         println!("H256 info: {:?}\n", <H256 as TypeInfo>::type_info());
+    //         println!("ActorId info: {:?}\n", <ActorId as TypeInfo>::type_info());
+    //         println!("CodeId info: {:?}\n", <CodeId as TypeInfo>::type_info());
+
+    //         let type_info = <[u8; 7] as TypeInfo>::type_info();
+    //         println!("\n\n Array info: {:?}\n", type_info);
+
+    //         println!("TupleStruct info: {:?}\n", <TupleStruct as TypeInfo>::type_info());
+    //         println!("TupleStruct2 info: {:?}\n", <TupleStruct2 as TypeInfo>::type_info());
+    //         println!("TupleStruct3 info: {:?}\n", <TupleStruct3 as TypeInfo>::type_info());
+    //         println!("TupleStruct4 info: {:?}\n", <TupleStruct4 as TypeInfo>::type_info());
+    //         println!("TupleStruct5 info: {:?}\n", <TupleStruct5 as TypeInfo>::type_info());
+    //         println!("TupleStruct6 info: {:?}\n", <TupleStruct6 as TypeInfo>::type_info());
+    //         println!("UnitStruct info: {:?}\n", <UnitStruct as TypeInfo>::type_info());
+
+    //         println!("TwoElementsTupleStruct info: {:#?}\n", <TwoElementsTupleStruct as TypeInfo>::type_info());
+
+    //         println!("StructWithFields info: {:#?}\n", <StructWithFields as TypeInfo>::type_info());
+
+    //         println!("\n\n\n");
+    //         println!("Vector info: {:?}\n", <Vec<String> as TypeInfo>::type_info());
+    //         println!("Array info: {:?}\n", <[H256; 4] as TypeInfo>::type_info());
+    //         println!("Map info: {:?}\n", <std::collections::BTreeMap<String, H256> as TypeInfo>::type_info());
+    //         println!("Set info: {:?}\n", <std::collections::BTreeSet<H256> as TypeInfo>::type_info());
+
+    //         println!("Tuple info: {:?}", <() as TypeInfo>::type_info());
+    //         println!("Tuple-1 info: {:?}", <(u8,) as TypeInfo>::type_info());
+    //         println!("Tuple-2 info: {:?}", <(u8, String) as TypeInfo>::type_info());
+    //         println!("Tuple-3 info: {:?}", <(u8, String, H256) as TypeInfo>::type_info());
+    //         println!("Tuple-4 info: {:?}", <(String, [u8; 9], H256, Vec<H256>) as TypeInfo>::type_info());
+
+    //         #[derive(TypeInfo)]
+    //         enum Enum1 {}
+    //         #[derive(TypeInfo)]
+    //         enum Enum2 { A }
+    //         #[derive(TypeInfo)]
+    //         enum Enum3 { A, B, C }
+    //         #[derive(TypeInfo)]
+    //         enum Enum4 { A(u8), B(Vec<H256>), C(H256), D([u8; 4]), E((String, ActorId)) }
+    //         #[derive(TypeInfo)]
+    //         enum Enum5 { A { f1: u8, f2: String }, B(Vec<u8>), C }
+
+    //         println!("Enum1 info: {:?}\n", <Enum1 as TypeInfo>::type_info());
+    //         println!("Enum2 info: {:?}\n", <Enum2 as TypeInfo>::type_info());
+    //         println!("Enum3 info: {:?}\n", <Enum3 as TypeInfo>::type_info());
+    //         println!("Enum4 info: {:?}\n", <Enum4 as TypeInfo>::type_info());
+    //         println!("Enum5 info: {:?}\n", <Enum5 as TypeInfo>::type_info());
+
+    //         println!("Option info: {:?}\n", <Option<H256> as TypeInfo>::type_info());
+    //         println!("Result info: {:?}\n", <Result<H256, String> as TypeInfo>::type_info());
+
+    //         #[derive(TypeInfo)]
+    //         struct WithGenerics1<T> {
+    //             f1: Enum1,
+    //             f2: T
+    //         }
+
+    //         #[derive(TypeInfo)]
+    //         struct WithGenericsBounded<T: std::fmt::Debug> {
+    //             f1: Enum2,
+    //             f2: T
+    //         }
+
+    //         #[derive(TypeInfo)]
+    //         struct WithMultipleGenerics<T1, T2, T3> {
+    //             f1: T1,
+    //             f2: T2,
+    //             f3: T3,
+    //         }
+
+    //         println!("\n\n\n");
+
+    //         println!("WithGenerics1 info: {:?}\n", <WithGenerics1<StructWithFields> as TypeInfo>::type_info());
+    //         println!("String info: {:?}\n", TypeId::of::<String>());
+    //         println!("WithGenerics1 ANOTHER info: {:?}\n", <WithGenerics1<String> as TypeInfo>::type_info());
+    //         println!("WithGenericsBounded info: {:?}\n", <WithGenericsBounded<String> as TypeInfo>::type_info());
+    //         println!("WithMultipleGenerics info: {:?}\n", <WithMultipleGenerics<StructWithFields, String, H256> as TypeInfo>::type_info());
+
+    //         // Pha
+    //         #[derive(TypeInfo)]
+    //         struct M<T> {
+    //             _marker1: std::marker::PhantomData<T>,
+    //         }
+
+    //         println!("M info: {:?}\n", <M<String> as TypeInfo>::type_info());
+
+    //         #[derive(TypeInfo)]
+    //         struct WithLifetime<'a, T> {
+    //             f1: &'a str,
+    //             f2: T,
+    //         }
+
+    //         println!("WithLifetime info: {:?}\n", <WithLifetime<'_, String> as TypeInfo>::type_info());
+    //     }
 }
