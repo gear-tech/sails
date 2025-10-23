@@ -13,6 +13,7 @@ mod type_names;
 // todo [sab] generics?
 // todo [sab] add global annotations
 // todo [sab] adjust Result to throws
+
 // todo [sab] extends section
 
 // todo [sab] add service names + types into program section of idl
@@ -126,11 +127,12 @@ struct Idl2Data {
 struct ProgramIdlSection {
     name: String,
     type_names: Vec<String>,
-    ctors: Vec<FunctionIdl2Data>,
+    ctors: Vec<FunctionIdlData>,
+    services: Vec<String>,
 }
 
 #[derive(Debug, Serialize)]
-struct FunctionIdl2Data {
+struct FunctionIdlData {
     name: String,
     args: Vec<FuncArgIdl2>,
     // The field is optional, because `()` value is treated as no-result,
@@ -143,7 +145,7 @@ struct FunctionIdl2Data {
 #[derive(Debug, Serialize)]
 struct FuncArgIdl2 {
     name: String,
-    #[serde(rename = "type_idx")]
+    #[serde(rename = "type")]
     ty: u32,
 }
 
@@ -159,8 +161,8 @@ struct ServiceSection {
 
 #[derive(Debug, Serialize)]
 struct FunctionsSection {
-    commands: Vec<FunctionIdl2Data>,
-    queries: Vec<FunctionIdl2Data>,
+    commands: Vec<FunctionIdlData>,
+    queries: Vec<FunctionIdlData>,
 }
 
 #[derive(Serialize)]

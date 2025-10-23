@@ -18,13 +18,8 @@
 
 //! Struct describing the types of a service comprised of command and query handlers.
 
-use std::{
-    collections::{BTreeSet, HashSet},
-    num::{NonZeroU8, NonZeroU16, NonZeroU32, NonZeroU64, NonZeroU128},
-};
-
 use crate::{
-    FuncArgIdl2, FunctionIdl2Data, FunctionsSection, ProgramIdlSection, ServiceSection,
+    FuncArgIdl2, FunctionIdlData, FunctionsSection, ProgramIdlSection, ServiceSection,
     errors::{Error, Result},
     type_names,
 };
@@ -32,6 +27,11 @@ use gprimitives::*;
 use sails_idl_meta::*;
 use scale_info::{
     Field, MetaType, PortableRegistry, PortableType, Registry, TypeDef, Variant, form::PortableForm,
+};
+use std::{
+    collections::HashSet,
+    mem,
+    num::{NonZeroU8, NonZeroU16, NonZeroU32, NonZeroU64, NonZeroU128},
 };
 
 #[derive(Debug)]
@@ -46,19 +46,18 @@ pub(crate) struct ExpandedProgramMeta2 {
     services: Vec<ServiceSection>,
 }
 
-impl ExpandedProgramMeta2 {
-    pub fn new(
-        name: String,
-        ctors: MetaType,
-        services: impl Iterator<Item = (&'static str, AnyServiceMeta)>,
-    ) -> Result<Self> {
-        // Create registry
-        let mut ctor_registry = Registry::new();
-        let ctor_registry_id = ctor_registry.register_type(&ctors).id;
+struct ProgramMetaRegistry {
+    portable_registry: PortableRegistry,
+    non_type_section_ids: HashSet<u32>,
+    ctor_fns: Vec<FunctionIdlData>,
+}
 
-        let services_registry_ids = services.map(|(service_name, meta)| {
-            let mut registry = Registry::new();
-            let builtin_type_ids = registry.register_types([
+impl ProgramMetaRegistry {
+    fn new(ctors: MetaType) -> Result<Self> {
+        let mut registry = Registry::new();
+
+        let mut non_type_section_ids = registry
+            .register_types([
                 MetaType::new::<ActorId>(),
                 MetaType::new::<CodeId>(),
                 MetaType::new::<MessageId>(),
@@ -71,314 +70,452 @@ impl ExpandedProgramMeta2 {
                 MetaType::new::<NonZeroU64>(),
                 MetaType::new::<NonZeroU128>(),
                 MetaType::new::<NonZeroU256>(),
-            ]);
-            let builtin_type_ids = builtin_type_ids
-                .into_iter()
-                .map(|t| t.id)
-                .collect::<BTreeSet<_>>();
+            ])
+            .into_iter()
+            .map(|t| t.id)
+            .collect::<HashSet<_>>();
 
-            let mut commands_registry_ids = Vec::new();
-            let current_service_commands = meta.commands();
-            commands_registry_ids.push(registry.register_type(&current_service_commands).id);
-            meta.base_services()
-                .into_iter()
-                .for_each(|base_service_meta| {
-                    let base_commands = base_service_meta.commands();
-                    commands_registry_ids.push(registry.register_type(&base_commands).id);
-                });
+        let ctors_type_id = registry.register_type(&ctors).id;
+        non_type_section_ids.insert(ctors_type_id);
 
-            let mut queries_registry_ids = Vec::new();
-            let current_service_queries = meta.queries();
-            queries_registry_ids.push(registry.register_type(&current_service_queries).id);
-            meta.base_services()
-                .into_iter()
-                .for_each(|base_service_meta| {
-                    let base_queries = base_service_meta.queries();
-                    queries_registry_ids.push(registry.register_type(&base_queries).id);
-                });
-
-            let mut events_registry_ids = Vec::new();
-            let current_service_events = meta.events();
-            events_registry_ids.push(registry.register_type(&current_service_events).id);
-            meta.base_services()
-                .into_iter()
-                .for_each(|base_service_meta| {
-                    let base_events = base_service_meta.events();
-                    events_registry_ids.push(registry.register_type(&base_events).id);
-                });
-
-            (
-                registry,
-                service_name,
-                commands_registry_ids,
-                queries_registry_ids,
-                events_registry_ids,
-                builtin_type_ids,
-            )
-        });
-
-        // Process registered types to form ctors and services idl data
-        let ctor_portable_registry = PortableRegistry::from(ctor_registry);
-        let type_names = type_names::resolve(ctor_portable_registry.types.iter())?;
-        let type_names = type_names
-            .values()
-            .map(|name| name.to_string())
-            .collect::<Vec<_>>();
-        let ctors = Self::ctor_funcs(&ctor_portable_registry, ctor_registry_id)?;
-
-        let program_section = ProgramIdlSection {
-            name,
-            type_names,
-            ctors,
-        };
-
-        let mut services = Vec::new();
-        for (mut registry, name, commands_ids, queries_ids, events_ids, builtin_type_ids) in
-            services_registry_ids
-        {
-            // Handle commands
-            let mut generated_types = HashSet::new();
-            commands_ids.iter().for_each(|id| {
-                generated_types.insert(*id);
-            });
-            queries_ids.iter().for_each(|id| {
-                generated_types.insert(*id);
-            });
-            events_ids.iter().for_each(|id| {
-                generated_types.insert(*id);
-            });
-
-            let unit_ty_id = registry.register_type(&MetaType::new::<()>()).id;
-
-            let service_portable_registry = PortableRegistry::from(registry);
-
-            let mut commands = Vec::new();
-            for command_id in commands_ids {
-                let commands_type = service_portable_registry
-                    .resolve(command_id)
-                    .expect("command type was added previously; qed.");
-
-                let TypeDef::Variant(ref variants) = commands_type.type_def else {
-                    return Err(Error::FuncMetaIsInvalid(
-                        "Commands type is not a variant".to_string(),
-                    ));
-                };
-
-                for variant in &variants.variants {
-                    if variant.fields.len() != 2 {
-                        return Err(Error::FuncMetaIsInvalid(format!(
-                            "command `{}` has invalid number of fields, expected 2, got {}",
-                            variant.name,
-                            variant.fields.len()
-                        )));
-                    }
-
-                    // Add to generated types __*Params type of service's variant in `CommandsMeta`
-                    generated_types.insert(variant.fields[0].ty.id);
-
-                    // Take args (fields of __*Params type)
-                    let args_type = service_portable_registry
-                        .resolve(variant.fields[0].ty.id)
-                        .expect("args type was added previously; qed.");
-                    let TypeDef::Composite(args_type) = &args_type.type_def else {
-                        return Err(Error::FuncMetaIsInvalid(format!(
-                            "command `{}` args type is not a composite",
-                            variant.name
-                        )));
-                    };
-                    let args = args_type
-                        .fields
-                        .iter()
-                        .map(|f| -> Result<FuncArgIdl2, Error> {
-                            let name = f
-                                .name
-                                .as_ref()
-                                .ok_or_else(|| {
-                                    Error::FuncMetaIsInvalid(format!(
-                                        "command `{}` arg must have a name",
-                                        variant.name
-                                    ))
-                                })?
-                                .to_string();
-                            Ok(FuncArgIdl2 { name, ty: f.ty.id })
-                        })
-                        .collect::<Result<Vec<_>, _>>()?;
-
-                    // Take result type
-                    let result_ty = variant.fields[1].ty.id;
-
-                    let command = FunctionIdl2Data {
-                        name: variant.name.to_string(),
-                        args,
-                        result_ty: (result_ty != unit_ty_id).then_some(result_ty),
-                        docs: variant.docs.iter().map(|s| s.to_string()).collect(),
-                    };
-
-                    commands.push(command);
-                }
-            }
-
-            let mut queries = Vec::new();
-
-            // Handle queries
-            for query_id in queries_ids {
-                let queries_type = service_portable_registry
-                    .resolve(query_id)
-                    .expect("query type was added previously; qed.");
-
-                let TypeDef::Variant(ref variants) = queries_type.type_def else {
-                    return Err(Error::FuncMetaIsInvalid(
-                        "Queries type is not a variant".to_string(),
-                    ));
-                };
-
-                for variant in &variants.variants {
-                    if variant.fields.len() != 2 {
-                        return Err(Error::FuncMetaIsInvalid(format!(
-                            "query `{}` has invalid number of fields, expected 2, got {}",
-                            variant.name,
-                            variant.fields.len()
-                        )));
-                    }
-
-                    // Add to generated types __*Params type of service's variant in `QueriesMeta`
-                    generated_types.insert(variant.fields[0].ty.id);
-
-                    // Take args (fields of __*Params type)
-                    let args_type = service_portable_registry
-                        .resolve(variant.fields[0].ty.id)
-                        .expect("args type was added previously; qed.");
-                    let TypeDef::Composite(args_type) = &args_type.type_def else {
-                        return Err(Error::FuncMetaIsInvalid(format!(
-                            "query `{}` args type is not a composite",
-                            variant.name
-                        )));
-                    };
-                    let args = args_type
-                        .fields
-                        .iter()
-                        .map(|f| -> Result<FuncArgIdl2, Error> {
-                            let name = f
-                                .name
-                                .as_ref()
-                                .ok_or_else(|| {
-                                    Error::FuncMetaIsInvalid(format!(
-                                        "query `{}` arg must have a name",
-                                        variant.name
-                                    ))
-                                })?
-                                .to_string();
-                            Ok(FuncArgIdl2 { name, ty: f.ty.id })
-                        })
-                        .collect::<Result<Vec<_>, _>>()?;
-
-                    // Take result type
-                    let result_ty = variant.fields[1].ty.id;
-
-                    let query = FunctionIdl2Data {
-                        name: variant.name.to_string(),
-                        args,
-                        result_ty: (result_ty != unit_ty_id).then_some(result_ty),
-                        docs: variant.docs.iter().map(|s| s.to_string()).collect(),
-                    };
-
-                    queries.push(query);
-                }
-            }
-
-            // Handle events
-            let mut events = Vec::new();
-            for event_id in events_ids {
-                let events_type = service_portable_registry
-                    .resolve(event_id)
-                    .expect("event type was added previously; qed.");
-
-                let TypeDef::Variant(ref variants) = events_type.type_def else {
-                    return Err(Error::EventMetaIsInvalid(
-                        "events type is not a variant".to_string(),
-                    ));
-                };
-                events.extend_from_slice(&variants.variants);
-            }
-
-            let types = service_portable_registry
-                .types
-                .iter()
-                .filter(|ty| {
-                    !ty.ty.path.namespace().is_empty()
-                        && !generated_types.contains(&ty.id)
-                        && !builtin_type_ids.contains(&ty.id)
-                })
-                .cloned()
-                .collect::<Vec<_>>();
-
-            let type_names = type_names::resolve(service_portable_registry.types.iter()).unwrap();
-            let type_names = type_names
-                .values()
-                .map(|name| name.to_string())
-                .collect::<Vec<_>>();
-            let service = ServiceSection {
-                name: name.to_string(),
-                type_names,
-                extends: Default::default(),
-                events,
-                types,
-                functions: FunctionsSection { commands, queries },
-            };
-
-            services.push(service);
-        }
+        let portable_registry = PortableRegistry::from(registry);
+        let ctor_fns = Self::constructor_functions(
+            &mut non_type_section_ids,
+            &portable_registry,
+            ctors_type_id,
+        )?;
 
         Ok(Self {
-            program: program_section,
-            services,
+            portable_registry,
+            non_type_section_ids,
+            ctor_fns,
         })
     }
 
-    fn ctor_funcs(registry: &PortableRegistry, func_type_id: u32) -> Result<Vec<FunctionIdl2Data>> {
-        any_funcs(registry, func_type_id)?
-            .map(|constructor_fn| {
-                if constructor_fn.fields.len() != 1 {
-                    Err(Error::FuncMetaIsInvalid(format!(
-                        "ctor `{}` has invalid number of fields",
-                        constructor_fn.name
-                    )))
-                } else {
-                    let param_type_id = constructor_fn.fields[0].ty.id;
-                    let params_type = registry
-                        .resolve(param_type_id)
-                        .ok_or(Error::TypeIdIsUnknown(param_type_id))?;
+    fn constructor_functions(
+        non_type_section_ids: &mut HashSet<u32>,
+        registry: &PortableRegistry,
+        ctors_type_id: u32,
+    ) -> Result<Vec<FunctionIdlData>> {
+        let mut ret = Vec::new();
 
-                    if let TypeDef::Composite(params_type) = &params_type.type_def {
-                        let mut args = Vec::with_capacity(params_type.fields.len());
-                        for f in &params_type.fields {
-                            let name =
-                                f.name
-                                    .map(|s| s.to_string())
-                                    .ok_or(Error::FuncMetaIsInvalid(format!(
-                                        "ctor {} has nameless argument",
-                                        constructor_fn.name
-                                    )))?;
-                            args.push(FuncArgIdl2 {
-                                name: name,
-                                ty: f.ty.id,
-                            });
-                        }
-                        Ok(FunctionIdl2Data {
-                            name: constructor_fn.name.to_string(),
-                            args,
-                            result_ty: None,
-                            docs: constructor_fn.docs.iter().map(|s| s.to_string()).collect(),
-                        })
-                    } else {
-                        Err(Error::FuncMetaIsInvalid(format!(
-                            "ctor `{}` params type is not a composite",
-                            constructor_fn.name
-                        )))
-                    }
-                }
+        let ctors_meta_type = registry
+            .resolve(ctors_type_id)
+            .ok_or(Error::TypeIdIsUnknown(ctors_type_id))?;
+
+        let TypeDef::Variant(ctors_meta_type_def) = &ctors_meta_type.type_def else {
+            return Err(Error::FuncMetaIsInvalid(
+                "Constructors functions wrapper is not a variant".to_string(),
+            ));
+        };
+
+        for constructor_fn_meta in &ctors_meta_type_def.variants {
+            if constructor_fn_meta.fields.len() != 1 {
+                return Err(Error::FuncMetaIsInvalid(format!(
+                    "ctor `{}` has invalid number of fields",
+                    constructor_fn_meta.name
+                )));
+            }
+
+            let ctor_args_type_id = constructor_fn_meta.fields[0].ty.id;
+            non_type_section_ids.insert(ctor_args_type_id);
+
+            let ctor_args_meta = registry
+                .resolve(ctor_args_type_id)
+                .ok_or(Error::TypeIdIsUnknown(ctor_args_type_id))?;
+
+            let TypeDef::Composite(ctor_args_meta_type_def) = &ctor_args_meta.type_def else {
+                return Err(Error::FuncMetaIsInvalid(format!(
+                    "ctor `{}` args type is not a composite",
+                    constructor_fn_meta.name
+                )));
+            };
+
+            let args = ctor_args_meta_type_def
+                .fields
+                .iter()
+                .map(|arg_meta| -> Result<FuncArgIdl2> {
+                    let name = arg_meta.name.map(|s| s.to_string()).ok_or_else(|| {
+                        Error::FuncMetaIsInvalid(format!(
+                            "ctor `{}` has nameless argument",
+                            constructor_fn_meta.name
+                        ))
+                    })?;
+
+                    Ok(FuncArgIdl2 {
+                        name,
+                        ty: arg_meta.ty.id,
+                    })
+                })
+                .collect::<Result<Vec<_>, _>>()?;
+
+            ret.push(FunctionIdlData {
+                name: constructor_fn_meta.name.to_string(),
+                args,
+                result_ty: None,
+                docs: constructor_fn_meta
+                    .docs
+                    .iter()
+                    .map(|s| s.to_string())
+                    .collect(),
             })
+        }
+
+        Ok(ret)
+    }
+
+    fn types(&self) -> Vec<PortableType> {
+        self.portable_registry
+            .types
+            .iter()
+            .filter(|portable_ty| {
+                !portable_ty.ty.path.namespace().is_empty()
+                    && !self.non_type_section_ids.contains(&portable_ty.id)
+            })
+            .cloned()
             .collect()
+    }
+
+    fn type_names(&self) -> Result<Vec<String>> {
+        type_names::resolve(self.portable_registry.types.iter())
+            .map(|names| names.values().cloned().collect())
+    }
+}
+
+struct ServiceMetaRegistry {
+    portable_registry: PortableRegistry,
+    unit_type_id: u32,
+    non_type_section_ids: HashSet<u32>,
+    main_commands_type_id: u32,
+    base_commands_type_ids: Vec<u32>,
+    main_queries_type_id: u32,
+    base_queries_type_ids: Vec<u32>,
+    events_type_ids: Vec<u32>,
+}
+
+impl ServiceMetaRegistry {
+    pub fn new(service_meta: AnyServiceMeta) -> Self {
+        let mut registry = Registry::new();
+        let unit_type_id = registry.register_type(&MetaType::new::<()>()).id;
+        let mut non_type_section_ids = registry
+            .register_types([
+                MetaType::new::<ActorId>(),
+                MetaType::new::<CodeId>(),
+                MetaType::new::<MessageId>(),
+                MetaType::new::<H160>(),
+                MetaType::new::<H256>(),
+                MetaType::new::<U256>(),
+                MetaType::new::<NonZeroU8>(),
+                MetaType::new::<NonZeroU16>(),
+                MetaType::new::<NonZeroU32>(),
+                MetaType::new::<NonZeroU64>(),
+                MetaType::new::<NonZeroU128>(),
+                MetaType::new::<NonZeroU256>(),
+            ])
+            .into_iter()
+            .map(|t| t.id)
+            .collect::<HashSet<_>>();
+
+        let (main_commands_type_id, base_commands_type_ids) =
+            ServiceMetaRegistry::register_main_and_base(
+                &mut non_type_section_ids,
+                &mut registry,
+                &service_meta,
+                |meta| meta.commands(),
+            );
+        let (main_queries_type_id, base_queries_type_ids) =
+            ServiceMetaRegistry::register_main_and_base(
+                &mut non_type_section_ids,
+                &mut registry,
+                &service_meta,
+                |meta| meta.queries(),
+            );
+        let events_type_ids = {
+            let mut r = Vec::new();
+            let (main_events_type_id, mut base_events_type_ids) =
+                ServiceMetaRegistry::register_main_and_base(
+                    &mut non_type_section_ids,
+                    &mut registry,
+                    &service_meta,
+                    |meta| meta.events(),
+                );
+            r.push(main_events_type_id);
+            r.append(&mut base_events_type_ids);
+
+            r
+        };
+
+        Self {
+            portable_registry: PortableRegistry::from(registry),
+            unit_type_id,
+            non_type_section_ids,
+            main_commands_type_id,
+            base_commands_type_ids,
+            main_queries_type_id,
+            base_queries_type_ids,
+            events_type_ids,
+        }
+    }
+
+    fn register_main_and_base(
+        non_type_section_ids: &mut HashSet<u32>,
+        registry: &mut Registry,
+        main: &AnyServiceMeta,
+        f: fn(&AnyServiceMeta) -> &MetaType,
+    ) -> (u32, Vec<u32>) {
+        let mut metas = Self::flat_meta(main, f);
+
+        let main_type_id = registry.register_type(metas.remove(0)).id;
+        non_type_section_ids.insert(main_type_id);
+
+        let base_type_ids = metas
+            .into_iter()
+            .map(|mt| registry.register_type(mt).id)
+            .collect::<Vec<_>>();
+        non_type_section_ids.extend(base_type_ids.iter());
+
+        (main_type_id, base_type_ids)
+    }
+
+    fn flat_meta(
+        service_meta: &AnyServiceMeta,
+        f: fn(&AnyServiceMeta) -> &MetaType,
+    ) -> Vec<&MetaType> {
+        let mut metas = vec![f(service_meta)];
+        for base_service_meta in service_meta.base_services() {
+            metas.extend(Self::flat_meta(base_service_meta, f));
+        }
+
+        metas
+    }
+
+    fn types(&self) -> Vec<PortableType> {
+        self.portable_registry
+            .types
+            .iter()
+            .filter(|portable_ty| {
+                !portable_ty.ty.path.namespace().is_empty()
+                    && !self.non_type_section_ids.contains(&portable_ty.id)
+            })
+            .cloned()
+            .collect()
+    }
+
+    fn type_names(&self) -> Result<Vec<String>> {
+        type_names::resolve(self.portable_registry.types.iter())
+            .map(|names| names.values().cloned().collect())
+    }
+
+    fn commands_idl_data(&mut self) -> Result<Vec<FunctionIdlData>> {
+        let mut command_idl_data = self.function_idl_data(self.main_commands_type_id)?;
+
+        let mut base_commands_type_ids = mem::take(&mut self.base_commands_type_ids);
+        for base_commands_type_id in &base_commands_type_ids {
+            let mut base_commands_idl_data = self.function_idl_data(*base_commands_type_id)?;
+
+            // Override any existing function.
+            // The latest ("most extended") one always generated.
+            base_commands_idl_data.retain(|base_f| {
+                !command_idl_data
+                    .iter()
+                    .any(|existing_f| existing_f.name == base_f.name)
+            });
+
+            command_idl_data.append(&mut base_commands_idl_data);
+        }
+        mem::swap(
+            &mut self.base_commands_type_ids,
+            &mut base_commands_type_ids,
+        );
+
+        Ok(command_idl_data)
+    }
+
+    fn queries_idl_data(&mut self) -> Result<Vec<FunctionIdlData>> {
+        let mut query_idl_data = self.function_idl_data(self.main_queries_type_id)?;
+
+        let mut base_queries_type_ids = mem::take(&mut self.base_queries_type_ids);
+        for base_queries_type_id in &base_queries_type_ids {
+            let mut base_queries_idl_data = self.function_idl_data(*base_queries_type_id)?;
+
+            // Override any existing function.
+            // The latest ("most extended") one always generated.
+            base_queries_idl_data.retain(|base_f| {
+                !query_idl_data
+                    .iter()
+                    .any(|existing_f| existing_f.name == base_f.name)
+            });
+
+            query_idl_data.append(&mut base_queries_idl_data);
+        }
+        mem::swap(&mut self.base_queries_type_ids, &mut base_queries_type_ids);
+
+        Ok(query_idl_data)
+    }
+
+    fn events_idl_data(&self) -> Result<Vec<Variant<PortableForm>>> {
+        let mut events = Vec::new();
+
+        for events_type_id in &self.events_type_ids {
+            let events_type = self
+                .portable_registry
+                .resolve(*events_type_id)
+                .ok_or(Error::TypeIdIsUnknown(*events_type_id))?;
+
+            let TypeDef::Variant(ref events_type_def) = events_type.type_def else {
+                return Err(Error::FuncMetaIsInvalid(
+                    "Events type is not a variant".to_string(),
+                ));
+            };
+
+            for event_variant in &events_type_def.variants {
+                // Override any existing event.
+                // The latest ("most extended") one always generated.
+                if events
+                    .iter()
+                    .any(|existing_v: &Variant<PortableForm>| existing_v.name == event_variant.name)
+                {
+                    return Err(Error::EventMetaIsAmbiguous(format!(
+                        "event `{}` is defined multiple times in the service inheritance chain",
+                        event_variant.name
+                    )));
+                }
+
+                events.push(event_variant.clone());
+            }
+        }
+
+        Ok(events)
+    }
+
+    fn function_idl_data(&mut self, functions_type_ids: u32) -> Result<Vec<FunctionIdlData>> {
+        let mut ret = Vec::new();
+
+        let fns_meta_type = self
+            .portable_registry
+            .resolve(functions_type_ids)
+            .ok_or(Error::TypeIdIsUnknown(functions_type_ids))?;
+
+        let TypeDef::Variant(ref fns_meta_type_def) = fns_meta_type.type_def else {
+            return Err(Error::FuncMetaIsInvalid(
+                "Service functions wrapper type is not a variant".to_string(),
+            ));
+        };
+
+        // Each function in service is a variant in `CommandsMeta` or `QueriesMeta` enums.
+        for fn_meta in &fns_meta_type_def.variants {
+            if fn_meta.fields.len() != 2 {
+                return Err(Error::FuncMetaIsInvalid(format!(
+                    "function `{}` has invalid number of fields, expected 2, got {}",
+                    fn_meta.name,
+                    fn_meta.fields.len()
+                )));
+            }
+
+            // Add to non type section types `__*Params`` type of service's variant in `CommandsMeta` or `QueriesMeta`
+            let fn_args_type_id = fn_meta.fields[0].ty.id;
+            self.non_type_section_ids.insert(fn_args_type_id);
+
+            // Take args (fields of __*Params type)
+            let fn_args_meta = self
+                .portable_registry
+                .resolve(fn_args_type_id)
+                .ok_or(Error::TypeIdIsUnknown(fn_args_type_id))?;
+            let TypeDef::Composite(fn_args_meta_type_def) = &fn_args_meta.type_def else {
+                return Err(Error::FuncMetaIsInvalid(format!(
+                    "function `{}` args type is not a composite",
+                    fn_meta.name
+                )));
+            };
+
+            // Construct args vector by taking fields of `__*Params` struct.
+            let args = fn_args_meta_type_def
+                .fields
+                .iter()
+                .map(|arg_meta| -> Result<FuncArgIdl2> {
+                    let name = arg_meta.name.map(|s| s.to_string()).ok_or_else(|| {
+                        Error::FuncMetaIsInvalid(format!(
+                            "function `{}` has nameless argument",
+                            fn_meta.name
+                        ))
+                    })?;
+
+                    Ok(FuncArgIdl2 {
+                        name,
+                        ty: arg_meta.ty.id,
+                    })
+                })
+                .collect::<Result<Vec<_>, _>>()?;
+
+            // Take result type
+            let result_ty = {
+                let v = fn_meta.fields[1].ty.id;
+
+                (v != self.unit_type_id).then_some(v)
+            };
+
+            let fn_idl_data = FunctionIdlData {
+                name: fn_meta.name.to_string(),
+                args,
+                result_ty,
+                docs: fn_meta.docs.iter().map(|s| s.to_string()).collect(),
+            };
+
+            ret.push(fn_idl_data);
+        }
+
+        Ok(ret)
+    }
+}
+
+impl ExpandedProgramMeta2 {
+    pub fn new(
+        name: String,
+        ctors: MetaType,
+        services: impl Iterator<Item = (&'static str, AnyServiceMeta)>,
+    ) -> Result<Self> {
+        let program_meta_registry = ProgramMetaRegistry::new(ctors)?;
+
+        let mut services_names = Vec::new();
+        let mut services_section = Vec::new();
+        for (name, service_meta) in services {
+            services_names.push(name.to_string());
+
+            let mut service_registry = ServiceMetaRegistry::new(service_meta);
+
+            // todo [sab] MUST BE FIRST, BECAUSE MUTATE THE REGISTRY
+            let functions = FunctionsSection {
+                commands: service_registry.commands_idl_data()?,
+                queries: service_registry.queries_idl_data()?,
+            };
+            let events = service_registry.events_idl_data()?;
+
+            let types = service_registry.types();
+            let type_names = service_registry.type_names()?;
+
+            let service_section = ServiceSection {
+                name: name.to_string(),
+                types,
+                type_names,
+                extends: Default::default(),
+                events,
+                functions,
+            };
+
+            services_section.push(service_section);
+        }
+
+        let program_section = ProgramIdlSection {
+            name,
+            type_names: program_meta_registry.type_names()?,
+            ctors: program_meta_registry.ctor_fns,
+            services: services_names,
+        };
+
+        Ok(Self {
+            program: program_section,
+            services: services_section,
+        })
     }
 }
 
@@ -802,6 +939,131 @@ mod tests {
         pub(super) enum NoEvents {}
     }
 
+    /// Test that flat_meta returns metadata in correct order: current service first, then base services in declaration order
+    #[test]
+    fn flat_meta_order() {
+        // Create a service inheritance hierarchy:
+        // ExtendedService extends BaseService1 and BaseService2 (in that order)
+        // BaseService1 extends GrandBaseService1
+        // BaseService2 extends GrandBaseService2
+
+        struct GrandBaseService1;
+        impl sails_idl_meta::ServiceMeta for GrandBaseService1 {
+            type CommandsMeta = GrandBase1Commands;
+            type QueriesMeta = utils::NoQueries;
+            type EventsMeta = utils::NoEvents;
+            const BASE_SERVICES: &'static [sails_idl_meta::AnyServiceMetaFn] = &[];
+            const ASYNC: bool = false;
+        }
+
+        struct GrandBaseService2;
+        impl sails_idl_meta::ServiceMeta for GrandBaseService2 {
+            type CommandsMeta = GrandBase2Commands;
+            type QueriesMeta = utils::NoQueries;
+            type EventsMeta = utils::NoEvents;
+            const BASE_SERVICES: &'static [sails_idl_meta::AnyServiceMetaFn] = &[];
+            const ASYNC: bool = false;
+        }
+
+        struct BaseService1;
+        impl sails_idl_meta::ServiceMeta for BaseService1 {
+            type CommandsMeta = Base1Commands;
+            type QueriesMeta = utils::NoQueries;
+            type EventsMeta = utils::NoEvents;
+            const BASE_SERVICES: &'static [sails_idl_meta::AnyServiceMetaFn] =
+                &[AnyServiceMeta::new::<GrandBaseService1>];
+            const ASYNC: bool = false;
+        }
+
+        struct BaseService2;
+        impl sails_idl_meta::ServiceMeta for BaseService2 {
+            type CommandsMeta = Base2Commands;
+            type QueriesMeta = utils::NoQueries;
+            type EventsMeta = utils::NoEvents;
+            const BASE_SERVICES: &'static [sails_idl_meta::AnyServiceMetaFn] =
+                &[AnyServiceMeta::new::<GrandBaseService2>];
+            const ASYNC: bool = false;
+        }
+
+        struct ExtendedService;
+        impl sails_idl_meta::ServiceMeta for ExtendedService {
+            type CommandsMeta = ExtendedCommands;
+            type QueriesMeta = utils::NoQueries;
+            type EventsMeta = utils::NoEvents;
+            const BASE_SERVICES: &'static [sails_idl_meta::AnyServiceMetaFn] = &[
+                AnyServiceMeta::new::<BaseService1>,
+                AnyServiceMeta::new::<BaseService2>,
+            ];
+            const ASYNC: bool = false;
+        }
+
+        #[derive(TypeInfo)]
+        #[allow(unused)]
+        enum ExtendedCommands {
+            ExtendedCmd(utils::SimpleFunctionParams, String),
+        }
+
+        #[derive(TypeInfo)]
+        #[allow(unused)]
+        enum Base1Commands {
+            Base1Cmd(utils::SimpleFunctionParams, u32),
+        }
+
+        #[derive(TypeInfo)]
+        #[allow(unused)]
+        enum Base2Commands {
+            Base2Cmd(utils::SimpleFunctionParams, bool),
+        }
+
+        #[derive(TypeInfo)]
+        #[allow(unused)]
+        enum GrandBase1Commands {
+            GrandBase1Cmd(utils::SimpleFunctionParams, u64),
+        }
+
+        #[derive(TypeInfo)]
+        #[allow(unused)]
+        enum GrandBase2Commands {
+            GrandBase2Cmd(utils::SimpleFunctionParams, u8),
+        }
+
+        let meta = ExpandedProgramMeta2::new(
+            "TestProgram".to_string(),
+            MetaType::new::<utils::SimpleCtors>(),
+            vec![("ExtendedService", AnyServiceMeta::new::<ExtendedService>())].into_iter(),
+        )
+        .unwrap_or_else(|e| panic!("Failed to create expanded meta: {:?}", e));
+
+        assert_eq!(meta.services.len(), 1);
+        let service = &meta.services[0];
+
+        // Commands should appear in the order: Extended, Base1, GrandBase1, Base2, GrandBase2
+        let cmd_names: Vec<&str> = service
+            .functions
+            .commands
+            .iter()
+            .map(|c| c.name.as_str())
+            .collect();
+
+        assert_eq!(
+            cmd_names.len(),
+            5,
+            "Expected 5 commands from service hierarchy"
+        );
+
+        assert_eq!(
+            cmd_names,
+            vec![
+                "ExtendedCmd",   // Current service first
+                "Base1Cmd",      // First base service
+                "GrandBase1Cmd", // Base of first base service
+                "Base2Cmd",      // Second base service
+                "GrandBase2Cmd", // Base of second base service
+            ],
+            "Commands should appear in order: current service, then base services in declaration order (depth-first)"
+        );
+    }
+
     #[test]
     fn base_service() {}
 
@@ -873,10 +1135,10 @@ mod tests {
 
         // Test all error scenarios
         test_ctor_error::<NonCompositeArgsCtors>(
-            "ctor `CtorWithInvalidArgTypes` params type is not a composite",
+            "ctor `CtorWithInvalidArgTypes` args type is not a composite",
         );
 
-        test_ctor_error::<NamelessFieldsCtors>("ctor CtorWithNamelessArgs has nameless argument");
+        test_ctor_error::<NamelessFieldsCtors>("ctor `CtorWithNamelessArgs` has nameless argument");
 
         test_ctor_error::<NoArgsCtors>("ctor `CtorWithNoArgs` has invalid number of fields");
 
@@ -968,7 +1230,7 @@ mod tests {
                     "args": [
                         {
                             "name": "initial_value",
-                            "type_idx": meta.program.ctors[0].args[0].ty,
+                            "type": meta.program.ctors[0].args[0].ty,
                         }
                     ],
                     "docs": [],
@@ -1093,6 +1355,31 @@ mod tests {
 
         #[derive(TypeInfo)]
         #[allow(unused)]
+        enum EventsWithNonUserDefinedArgs {
+            Event1 {
+                number: u32,
+                flag: bool,
+                text: String,
+                actor: ActorId,
+                option_val: Option<u8>,
+                result_val: Result<u16, String>,
+                map: BTreeMap<String, u32>,
+                code: CodeId,
+                message: MessageId,
+                h160: H160,
+                h256: H256,
+                u256: U256,
+                non_zero_u8: NonZeroU8,
+                non_zero_u16: NonZeroU16,
+                non_zero_u32: NonZeroU32,
+                non_zero_u64: NonZeroU64,
+                non_zero_u128: NonZeroU128,
+                non_zero_u256: NonZeroU256,
+            },
+        }
+
+        #[derive(TypeInfo)]
+        #[allow(unused)]
         enum EventsWithUserDefinedArgs {
             Event1(NonUserDefinedArgs),
         }
@@ -1118,31 +1405,6 @@ mod tests {
             pub non_zero_u64: NonZeroU64,
             pub non_zero_u128: NonZeroU128,
             pub non_zero_u256: NonZeroU256,
-        }
-
-        #[derive(TypeInfo)]
-        #[allow(unused)]
-        enum EventsWithNonUserDefinedArgs {
-            Event1 {
-                number: u32,
-                flag: bool,
-                text: String,
-                actor: ActorId,
-                option_val: Option<u8>,
-                result_val: Result<u16, String>,
-                map: BTreeMap<String, u32>,
-                code: CodeId,
-                message: MessageId,
-                h160: H160,
-                h256: H256,
-                u256: U256,
-                non_zero_u8: NonZeroU8,
-                non_zero_u16: NonZeroU16,
-                non_zero_u32: NonZeroU32,
-                non_zero_u64: NonZeroU64,
-                non_zero_u128: NonZeroU128,
-                non_zero_u256: NonZeroU256,
-            },
         }
 
         let internal_check = |service1: AnyServiceMeta, service2: AnyServiceMeta| {
@@ -1230,7 +1492,7 @@ mod tests {
         let service = &meta.services[0];
 
         // Check commands
-        let check_fn_result_ty = |fns: &[FunctionIdl2Data]| {
+        let check_fn_result_ty = |fns: &[FunctionIdlData]| {
             for f in fns {
                 match f.name.as_str() {
                     "UnitCmd" | "UnitQuery" => {
@@ -1353,12 +1615,12 @@ mod tests {
 
         internal_check(
             AnyServiceMeta::new::<NotVariantCommandsService>(),
-            "Commands type is not a variant",
+            "Service functions wrapper type is not a variant",
         );
 
         internal_check(
             AnyServiceMeta::new::<NotVariantQueriesService>(),
-            "Queries type is not a variant",
+            "Service functions wrapper type is not a variant",
         );
     }
 
@@ -1446,22 +1708,22 @@ mod tests {
 
         internal_check(
             AnyServiceMeta::new::<InvalidCommandsService1>(),
-            "command `OneField` has invalid number of fields, expected 2, got 1",
+            "function `OneField` has invalid number of fields, expected 2, got 1",
         );
 
         internal_check(
             AnyServiceMeta::new::<InvalidQueriesService1>(),
-            "query `OneField` has invalid number of fields, expected 2, got 1",
+            "function `OneField` has invalid number of fields, expected 2, got 1",
         );
 
         internal_check(
             AnyServiceMeta::new::<InvalidCommandsService2>(),
-            "command `ThreeFields` has invalid number of fields, expected 2, got 3",
+            "function `ThreeFields` has invalid number of fields, expected 2, got 3",
         );
 
         internal_check(
             AnyServiceMeta::new::<InvalidQueriesService2>(),
-            "query `ThreeFields` has invalid number of fields, expected 2, got 3",
+            "function `ThreeFields` has invalid number of fields, expected 2, got 3",
         );
     }
 
@@ -1496,7 +1758,7 @@ mod tests {
         };
         assert_eq!(
             msg.as_str(),
-            "command `BadCmd` args type is not a composite"
+            "function `BadCmd` args type is not a composite"
         );
     }
 
@@ -1533,7 +1795,7 @@ mod tests {
         let Err(Error::FuncMetaIsInvalid(msg)) = result else {
             panic!("Expected FuncMetaIsInvalid error, got {:?}", result);
         };
-        assert_eq!(msg.as_str(), "command `BadCmd` arg must have a name");
+        assert_eq!(msg.as_str(), "function `BadCmd` has nameless argument");
     }
 
     #[test]
@@ -1667,7 +1929,7 @@ mod tests {
         assert_eq!(meta.services.len(), 1);
         let service = &meta.services[0];
 
-        let internal_check = |fns: &[FunctionIdl2Data]| {
+        let internal_check = |fns: &[FunctionIdlData]| {
             for f in fns {
                 match f.name.as_str() {
                     "NoArgsCmd" | "NoArgsQuery" => {
@@ -1710,6 +1972,25 @@ mod tests {
 
     #[test]
     fn base_service_entities_occur() {
+        struct BaseServiceMeta;
+        impl sails_idl_meta::ServiceMeta for BaseServiceMeta {
+            type CommandsMeta = BaseServiceCommands;
+            type QueriesMeta = BaseServiceQueries;
+            type EventsMeta = BaseServiceEvents;
+            const BASE_SERVICES: &'static [sails_idl_meta::AnyServiceMetaFn] = &[];
+            const ASYNC: bool = false;
+        }
+
+        struct ExtendedServiceMeta;
+        impl sails_idl_meta::ServiceMeta for ExtendedServiceMeta {
+            type CommandsMeta = utils::NoCommands;
+            type QueriesMeta = utils::NoQueries;
+            type EventsMeta = ExtendedServiceEvents;
+            const BASE_SERVICES: &'static [sails_idl_meta::AnyServiceMetaFn] =
+                &[AnyServiceMeta::new::<BaseServiceMeta>];
+            const ASYNC: bool = false;
+        }
+
         #[derive(TypeInfo)]
         #[allow(unused)]
         enum BaseServiceCommands {
@@ -1731,31 +2012,22 @@ mod tests {
         #[derive(TypeInfo)]
         #[allow(unused)]
         struct BaseServiceFunctionParams {
-            param: SomeBaseType,
+            param: SomeBaseServiceType,
         }
 
         #[derive(TypeInfo)]
         #[allow(unused)]
-        struct SomeBaseType(ActorId);
+        struct SomeBaseServiceType(ActorId);
 
-        struct BaseServiceMeta;
-        impl sails_idl_meta::ServiceMeta for BaseServiceMeta {
-            type CommandsMeta = BaseServiceCommands;
-            type QueriesMeta = BaseServiceQueries;
-            type EventsMeta = BaseServiceEvents;
-            const BASE_SERVICES: &'static [sails_idl_meta::AnyServiceMetaFn] = &[];
-            const ASYNC: bool = false;
+        #[derive(TypeInfo)]
+        #[allow(unused)]
+        enum ExtendedServiceEvents {
+            ExtendedEvent(SomeExtendedServiceType),
         }
 
-        struct ExtendedServiceMeta;
-        impl sails_idl_meta::ServiceMeta for ExtendedServiceMeta {
-            type CommandsMeta = utils::NoCommands;
-            type QueriesMeta = utils::NoQueries;
-            type EventsMeta = utils::NoEvents;
-            const BASE_SERVICES: &'static [sails_idl_meta::AnyServiceMetaFn] =
-                &[AnyServiceMeta::new::<BaseServiceMeta>];
-            const ASYNC: bool = false;
-        }
+        #[derive(TypeInfo)]
+        #[allow(unused)]
+        struct SomeExtendedServiceType(CodeId);
 
         let meta = ExpandedProgramMeta2::new(
             "TestProgram".to_string(),
@@ -1775,7 +2047,7 @@ mod tests {
         assert!(service.extends.is_empty());
 
         // Check that base service functions are inherited
-        let function_check = |fns: &[FunctionIdl2Data], expected_base_fn_name: &str| {
+        let function_check = |fns: &[FunctionIdlData], expected_base_fn_name: &str| {
             assert_eq!(
                 fns.len(),
                 1,
@@ -1793,38 +2065,52 @@ mod tests {
         function_check(&service.functions.commands, "BaseCmd");
         function_check(&service.functions.queries, "BaseQuery");
 
-        // Check that base service events are inherited
+        // Check that events from base service are included
+        let events: Vec<&str> = service.events.iter().map(|e| e.name).collect();
         assert_eq!(
-            service.events.len(),
-            1,
-            "Expected exactly one event in extended service"
+            events.len(),
+            2,
+            "Expected exactly two events in extended service"
         );
-        let actual_event_name = service.events[0].name;
-        assert_eq!(
-            actual_event_name, "BaseEvent",
-            "Unexpected base event name - {actual_event_name}"
-        );
+        assert_eq!(events, vec!["ExtendedEvent", "BaseEvent"]);
 
         // Check that types from base service are included
-        let mut type_names: Vec<&str> = service
+        let types: Vec<&str> = service
             .types
             .iter()
             .map(|t| t.ty.path.ident().unwrap())
             .collect();
         assert_eq!(
-            type_names.len(),
-            1,
+            types.len(),
+            2,
             "Expected exactly two types in extended service"
         );
-        let type_name = type_names.pop().unwrap();
         assert_eq!(
-            type_name, "SomeBaseType",
-            "Unexpected base type name - {type_name}"
+            types,
+            vec!["SomeBaseServiceType", "SomeExtendedServiceType"]
         );
     }
 
     #[test]
     fn shared_types_across_services() {
+        struct Service1Meta;
+        impl sails_idl_meta::ServiceMeta for Service1Meta {
+            type CommandsMeta = Service1Commands;
+            type QueriesMeta = utils::NoQueries;
+            type EventsMeta = utils::NoEvents;
+            const BASE_SERVICES: &'static [sails_idl_meta::AnyServiceMetaFn] = &[];
+            const ASYNC: bool = false;
+        }
+
+        struct Service2Meta;
+        impl sails_idl_meta::ServiceMeta for Service2Meta {
+            type CommandsMeta = Service2Commands;
+            type QueriesMeta = utils::NoQueries;
+            type EventsMeta = utils::NoEvents;
+            const BASE_SERVICES: &'static [sails_idl_meta::AnyServiceMetaFn] = &[];
+            const ASYNC: bool = false;
+        }
+
         // First service using both shared types
         #[derive(TypeInfo)]
         #[allow(unused)]
@@ -1860,24 +2146,6 @@ mod tests {
         #[allow(unused)]
         struct SharedCustomType {
             value: u32,
-        }
-
-        struct Service1Meta;
-        impl sails_idl_meta::ServiceMeta for Service1Meta {
-            type CommandsMeta = Service1Commands;
-            type QueriesMeta = utils::NoQueries;
-            type EventsMeta = utils::NoEvents;
-            const BASE_SERVICES: &'static [sails_idl_meta::AnyServiceMetaFn] = &[];
-            const ASYNC: bool = false;
-        }
-
-        struct Service2Meta;
-        impl sails_idl_meta::ServiceMeta for Service2Meta {
-            type CommandsMeta = Service2Commands;
-            type QueriesMeta = utils::NoQueries;
-            type EventsMeta = utils::NoEvents;
-            const BASE_SERVICES: &'static [sails_idl_meta::AnyServiceMetaFn] = &[];
-            const ASYNC: bool = false;
         }
 
         let meta = ExpandedProgramMeta2::new(
@@ -1931,7 +2199,25 @@ mod tests {
 
     #[test]
     fn service_extension_with_conflicting_names() {
-        // Base service with a command and query
+        struct BaseServiceMeta;
+        impl sails_idl_meta::ServiceMeta for BaseServiceMeta {
+            type CommandsMeta = BaseServiceCommands;
+            type QueriesMeta = BaseServiceQueries;
+            type EventsMeta = utils::NoEvents;
+            const BASE_SERVICES: &'static [sails_idl_meta::AnyServiceMetaFn] = &[];
+            const ASYNC: bool = false;
+        }
+
+        struct ExtendedServiceMeta;
+        impl sails_idl_meta::ServiceMeta for ExtendedServiceMeta {
+            type CommandsMeta = ExtendedServiceCommands;
+            type QueriesMeta = ExtendedServiceQueries;
+            type EventsMeta = utils::NoEvents;
+            const BASE_SERVICES: &'static [sails_idl_meta::AnyServiceMetaFn] =
+                &[AnyServiceMeta::new::<BaseServiceMeta>];
+            const ASYNC: bool = false;
+        }
+
         #[derive(TypeInfo)]
         #[allow(unused)]
         enum BaseServiceCommands {
@@ -1944,16 +2230,6 @@ mod tests {
             ConflictingQuery(utils::SimpleFunctionParams, u32),
         }
 
-        struct BaseServiceMeta;
-        impl sails_idl_meta::ServiceMeta for BaseServiceMeta {
-            type CommandsMeta = BaseServiceCommands;
-            type QueriesMeta = BaseServiceQueries;
-            type EventsMeta = utils::NoEvents;
-            const BASE_SERVICES: &'static [sails_idl_meta::AnyServiceMetaFn] = &[];
-            const ASYNC: bool = false;
-        }
-
-        // Extended service with methods having the same names
         #[derive(TypeInfo)]
         #[allow(unused)]
         enum ExtendedServiceCommands {
@@ -1964,16 +2240,6 @@ mod tests {
         #[allow(unused)]
         enum ExtendedServiceQueries {
             ConflictingQuery(utils::SimpleFunctionParams, String),
-        }
-
-        struct ExtendedServiceMeta;
-        impl sails_idl_meta::ServiceMeta for ExtendedServiceMeta {
-            type CommandsMeta = ExtendedServiceCommands;
-            type QueriesMeta = ExtendedServiceQueries;
-            type EventsMeta = utils::NoEvents;
-            const BASE_SERVICES: &'static [sails_idl_meta::AnyServiceMetaFn] =
-                &[AnyServiceMeta::new::<BaseServiceMeta>];
-            const ASYNC: bool = false;
         }
 
         let meta = ExpandedProgramMeta2::new(
@@ -2040,6 +2306,55 @@ mod tests {
         assert_eq!(
             query_names[0].1, "String",
             "Expected query result type to be 'String'"
+        );
+    }
+
+    #[test]
+    fn service_extension_with_conflicting_events() {
+        struct BaseService;
+        impl sails_idl_meta::ServiceMeta for BaseService {
+            type CommandsMeta = utils::NoCommands;
+            type QueriesMeta = utils::NoQueries;
+            type EventsMeta = BaseServiceEvents;
+            const BASE_SERVICES: &'static [sails_idl_meta::AnyServiceMetaFn] = &[];
+            const ASYNC: bool = false;
+        }
+
+        struct ExtendedService;
+        impl sails_idl_meta::ServiceMeta for ExtendedService {
+            type CommandsMeta = utils::NoCommands;
+            type QueriesMeta = utils::NoQueries;
+            type EventsMeta = ExtendedServiceEvents;
+            const BASE_SERVICES: &'static [sails_idl_meta::AnyServiceMetaFn] =
+                &[AnyServiceMeta::new::<BaseService>];
+            const ASYNC: bool = false;
+        }
+
+        #[derive(TypeInfo)]
+        #[allow(unused)]
+        enum BaseServiceEvents {
+            ConflictingEvent(u32),
+        }
+
+        #[derive(TypeInfo)]
+        #[allow(unused)]
+        enum ExtendedServiceEvents {
+            ConflictingEvent(String),
+        }
+
+        let res = ExpandedProgramMeta2::new(
+            "TestProgram".to_string(),
+            MetaType::new::<utils::SimpleCtors>(),
+            vec![("ExtendedService", AnyServiceMeta::new::<ExtendedService>())].into_iter(),
+        );
+
+        assert!(res.is_err());
+        let Err(Error::EventMetaIsAmbiguous(msg_err)) = res else {
+            panic!("Expected EventNameConflict error, got {:?}", res);
+        };
+        assert_eq!(
+            msg_err.as_str(),
+            "event `ConflictingEvent` is defined multiple times in the service inheritance chain"
         );
     }
 

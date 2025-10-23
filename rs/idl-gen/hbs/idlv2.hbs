@@ -9,14 +9,24 @@
 
 program {{program.name}} {
     constructors {
+        {{#if program.services}}
+        services {
+            {{#each program.services}}
+            {{this}}{{#unless @last}}, {{/unless}}
+            {{/each}}
+        }
+        {{/if}}
+
         {{#each program.ctors}}
         {{#each docs}}
         /// {{{this}}}
         {{/each}}
-        {{name}}({{#each args}}{{#if @index}}, {{/if}}{{name}}: {{{lookup @root.program.type_names type_idx}}}{{/each}});
+        {{name}}({{#each args}}{{#if @index}}, {{/if}}{{name}}: {{{lookup @root.program.type_names type}}}{{/each}});
         {{#unless @last}}
 
         {{/unless}}
         {{/each}}
+
+        {{!-- todo [sab] add types section --}}
     }
 }
