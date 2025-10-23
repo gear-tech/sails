@@ -333,11 +333,12 @@ impl WakeSignals {
                     }
                 }
                 WakeSignal::Expired { reply_hook, .. } => {
+                    let reply_hook = reply_hook.take();
+                    _ = entry.remove();
                     // execute reply hook and remove entry
-                    if let Some(f) = reply_hook.take() {
+                    if let Some(f) = reply_hook {
                         f()
                     }
-                    _ = entry.remove();
                 }
                 WakeSignal::Ready { .. } => panic!("A reply has already received"),
             };
