@@ -19,9 +19,10 @@
 //! Struct describing the types of a service comprised of command and query handlers.
 
 use crate::{
-    FuncArgIdl2, FunctionIdlData, FunctionsSection, ProgramIdlSection, ServiceSection,
+    FunctionArgumentIdl, FunctionIdl, FunctionResultIdl, FunctionsSection, ProgramIdlSection,
+    ServiceSection,
     errors::{Error, Result},
-    type_names,
+    type_names::{self, ResultTypeName},
 };
 use gprimitives::*;
 use sails_idl_meta::*;
@@ -49,7 +50,7 @@ pub(crate) struct ExpandedProgramMeta2 {
 struct ProgramMetaRegistry {
     portable_registry: PortableRegistry,
     non_type_section_ids: HashSet<u32>,
-    ctor_fns: Vec<FunctionIdlData>,
+    ctor_fns: Vec<FunctionIdl>,
 }
 
 impl ProgramMetaRegistry {
@@ -96,7 +97,7 @@ impl ProgramMetaRegistry {
         non_type_section_ids: &mut HashSet<u32>,
         registry: &PortableRegistry,
         ctors_type_id: u32,
-    ) -> Result<Vec<FunctionIdlData>> {
+    ) -> Result<Vec<FunctionIdl>> {
         let mut ret = Vec::new();
 
         let ctors_meta_type = registry
@@ -134,7 +135,7 @@ impl ProgramMetaRegistry {
             let args = ctor_args_meta_type_def
                 .fields
                 .iter()
-                .map(|arg_meta| -> Result<FuncArgIdl2> {
+                .map(|arg_meta| -> Result<FunctionArgumentIdl> {
                     let name = arg_meta.name.map(|s| s.to_string()).ok_or_else(|| {
                         Error::FuncMetaIsInvalid(format!(
                             "ctor `{}` has nameless argument",
@@ -142,14 +143,14 @@ impl ProgramMetaRegistry {
                         ))
                     })?;
 
-                    Ok(FuncArgIdl2 {
+                    Ok(FunctionArgumentIdl {
                         name,
                         ty: arg_meta.ty.id,
                     })
                 })
                 .collect::<Result<Vec<_>, _>>()?;
 
-            ret.push(FunctionIdlData {
+            ret.push(FunctionIdl {
                 name: constructor_fn_meta.name.to_string(),
                 args,
                 result_ty: None,
@@ -306,7 +307,7 @@ impl ServiceMetaRegistry {
             .map(|names| names.values().cloned().collect())
     }
 
-    fn commands_idl_data(&mut self) -> Result<Vec<FunctionIdlData>> {
+    fn commands_idl_data(&mut self) -> Result<Vec<FunctionIdl>> {
         let mut command_idl_data = self.function_idl_data(self.main_commands_type_id)?;
 
         let mut base_commands_type_ids = mem::take(&mut self.base_commands_type_ids);
@@ -331,7 +332,7 @@ impl ServiceMetaRegistry {
         Ok(command_idl_data)
     }
 
-    fn queries_idl_data(&mut self) -> Result<Vec<FunctionIdlData>> {
+    fn queries_idl_data(&mut self) -> Result<Vec<FunctionIdl>> {
         let mut query_idl_data = self.function_idl_data(self.main_queries_type_id)?;
 
         let mut base_queries_type_ids = mem::take(&mut self.base_queries_type_ids);
@@ -388,7 +389,7 @@ impl ServiceMetaRegistry {
         Ok(events)
     }
 
-    fn function_idl_data(&mut self, functions_type_ids: u32) -> Result<Vec<FunctionIdlData>> {
+    fn function_idl_data(&mut self, functions_type_ids: u32) -> Result<Vec<FunctionIdl>> {
         let mut ret = Vec::new();
 
         let fns_meta_type = self
@@ -432,7 +433,7 @@ impl ServiceMetaRegistry {
             let args = fn_args_meta_type_def
                 .fields
                 .iter()
-                .map(|arg_meta| -> Result<FuncArgIdl2> {
+                .map(|arg_meta| -> Result<FunctionArgumentIdl> {
                     let name = arg_meta.name.map(|s| s.to_string()).ok_or_else(|| {
                         Error::FuncMetaIsInvalid(format!(
                             "function `{}` has nameless argument",
@@ -440,7 +441,7 @@ impl ServiceMetaRegistry {
                         ))
                     })?;
 
-                    Ok(FuncArgIdl2 {
+                    Ok(FunctionArgumentIdl {
                         name,
                         ty: arg_meta.ty.id,
                     })
@@ -449,15 +450,68 @@ impl ServiceMetaRegistry {
 
             // Take result type
             let result_ty = {
-                let v = fn_meta.fields[1].ty.id;
+                let res_type_id = fn_meta.fields[1].ty.id;
+                let res_type_meta = self
+                    .portable_registry
+                    .resolve(res_type_id)
+                    .ok_or(Error::TypeIdIsUnknown(res_type_id))?;
 
-                (v != self.unit_type_id).then_some(v)
+                if ResultTypeName::is_result_type(res_type_meta) {
+                    let TypeDef::Variant(result_variants) = &res_type_meta.type_def else {
+                        return Err(Error::TypeIsUnsupported(format!(
+                            "Expected Result type to be a variant, got {:?}",
+                            res_type_meta.type_def
+                        )));
+                    };
+
+                    let result_variants = &result_variants.variants;
+                    if result_variants.len() != 2 {
+                        return Err(Error::TypeIsUnsupported(format!(
+                            "Expected Result type to have 2 variants, got {}",
+                            result_variants.len()
+                        )));
+                    }
+
+                    let ok_variant_type_id = {
+                        let ok_variant = &result_variants[0];
+                        if ok_variant.fields.len() != 1 {
+                            return Err(Error::TypeIsUnsupported(format!(
+                                "Expected Result::Ok variant to have 1 field, got {}",
+                                ok_variant.fields.len()
+                            )));
+                        }
+
+                        ok_variant.fields[0].ty.id
+                    };
+                    let err_variant_type_id = {
+                        let err_variant = &result_variants[1];
+                        if err_variant.fields.len() != 1 {
+                            return Err(Error::TypeIsUnsupported(format!(
+                                "Expected Result::Err variant to have 1 field, got {}",
+                                err_variant.fields.len()
+                            )));
+                        }
+
+                        err_variant.fields[0].ty.id
+                    };
+
+                    FunctionResultIdl {
+                        res: (ok_variant_type_id != self.unit_type_id)
+                            .then_some(ok_variant_type_id),
+                        err: Some(err_variant_type_id),
+                    }
+                } else {
+                    FunctionResultIdl {
+                        res: (res_type_id != self.unit_type_id).then_some(res_type_id),
+                        err: None,
+                    }
+                }
             };
 
-            let fn_idl_data = FunctionIdlData {
+            let fn_idl_data = FunctionIdl {
                 name: fn_meta.name.to_string(),
                 args,
-                result_ty,
+                result_ty: Some(result_ty),
                 docs: fn_meta.docs.iter().map(|s| s.to_string()).collect(),
             };
 
@@ -479,7 +533,14 @@ impl ExpandedProgramMeta2 {
         let mut services_names = Vec::new();
         let mut services_section = Vec::new();
         for (name, service_meta) in services {
-            services_names.push(name.to_string());
+            let name = name.to_string();
+            if services_names.contains(&name) {
+                return Err(Error::ProgramMetaIsInvalid(format!(
+                    "program defined `{name}` service multiple times",
+                )));
+            }
+
+            services_names.push(name.clone());
 
             let mut service_registry = ServiceMetaRegistry::new(service_meta);
 
@@ -494,7 +555,7 @@ impl ExpandedProgramMeta2 {
             let type_names = service_registry.type_names()?;
 
             let service_section = ServiceSection {
-                name: name.to_string(),
+                name: name,
                 types,
                 type_names,
                 extends: Default::default(),
@@ -900,6 +961,7 @@ lifetimes are missed
 &Type is always Type for ScaleInfo
 */
 
+// todo [sab] re-check all the tests
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1293,7 +1355,7 @@ mod tests {
             iter::empty(),
         )
         .unwrap_or_else(|e| panic!("Failed to create expanded meta: {:?}", e));
-        
+
         let user_defined_types = meta1.program.types;
         assert!(user_defined_types.is_empty());
 
@@ -1309,6 +1371,35 @@ mod tests {
         assert_eq!(user_defined_types_2.len(), 1);
         let type_name = &meta2.program.type_names[user_defined_types_2[0].id as usize];
         assert_eq!(type_name, "CustomType");
+    }
+
+    #[test]
+    fn program_has_services() {
+        struct TestService;
+        impl sails_idl_meta::ServiceMeta for TestService {
+            type CommandsMeta = utils::NoCommands;
+            type QueriesMeta = utils::NoQueries;
+            type EventsMeta = utils::NoEvents;
+            const BASE_SERVICES: &'static [sails_idl_meta::AnyServiceMetaFn] = &[];
+            const ASYNC: bool = false;
+        }
+
+        let meta = ExpandedProgramMeta2::new(
+            "TestProgram".to_string(),
+            MetaType::new::<utils::SimpleCtors>(),
+            vec![
+                ("TestService1", AnyServiceMeta::new::<TestService>()),
+                ("TestService2", AnyServiceMeta::new::<TestService>()),
+                ("TestService3", AnyServiceMeta::new::<TestService>()),
+            ]
+            .into_iter(),
+        )
+        .unwrap_or_else(|e| panic!("Failed to create expanded meta: {:?}", e));
+
+        assert_eq!(meta.program.services.len(), 3);
+        assert_eq!(meta.program.services[0], "TestService1");
+        assert_eq!(meta.program.services[1], "TestService2");
+        assert_eq!(meta.program.services[2], "TestService3");
     }
 
     // #[test]
@@ -1564,12 +1655,18 @@ mod tests {
         let service = &meta.services[0];
 
         // Check commands
-        let check_fn_result_ty = |fns: &[FunctionIdlData]| {
+        let check_fn_result_ty = |fns: &[FunctionIdl]| {
             for f in fns {
                 match f.name.as_str() {
                     "UnitCmd" | "UnitQuery" => {
                         assert!(
-                            f.result_ty.is_none(),
+                            matches!(
+                                f.result_ty,
+                                Some(FunctionResultIdl {
+                                    res: None,
+                                    err: None
+                                })
+                            ),
                             "Command returning () should have result_ty == None"
                         );
                     }
@@ -1612,27 +1709,25 @@ mod tests {
                 let name = fn_json.get("name").unwrap().as_str().unwrap();
                 match name {
                     "UnitCmd" | "UnitQuery" => {
-                        assert!(
-                            fn_json.get("result_ty").is_none(),
-                            "{} returning () should not have result_ty in JSON",
-                            name
+                        assert_eq!(
+                            fn_json.get("result_ty").unwrap(),
+                            &serde_json::json!({}),
+                            "{name} returning () should have result_ty as empty dict in JSON",
                         );
                     }
                     "NonUnitCmd" | "NonUnitQuery" => {
                         assert!(
                             fn_json.get("result_ty").is_some(),
-                            "{} returning non-unit should have result_ty in JSON",
-                            name
+                            "{name} returning non-unit should have result_ty in JSON",
                         );
                     }
                     "WithUnitCmd" | "WithUnitQuery" => {
                         assert!(
                             fn_json.get("result_ty").is_some(),
-                            "{} returning Result<(), T> should have result_ty in JSON",
-                            name
+                            "{name} returning Result<(), T> should have result_ty in JSON",
                         );
                     }
-                    _ => unimplemented!("Unexpected function name in JSON: {}", name),
+                    _ => unimplemented!("Unexpected function name in JSON: {name}"),
                 }
             }
         };
@@ -2001,7 +2096,7 @@ mod tests {
         assert_eq!(meta.services.len(), 1);
         let service = &meta.services[0];
 
-        let internal_check = |fns: &[FunctionIdlData]| {
+        let internal_check = |fns: &[FunctionIdl]| {
             for f in fns {
                 match f.name.as_str() {
                     "NoArgsCmd" | "NoArgsQuery" => {
@@ -2028,7 +2123,13 @@ mod tests {
                     }
                     "NoResultCmd" | "NoResultQuery" => {
                         assert!(
-                            f.result_ty.is_none(),
+                            matches!(
+                                f.result_ty,
+                                Some(FunctionResultIdl {
+                                    res: None,
+                                    err: None
+                                })
+                            ),
                             "{} should have no result type",
                             f.name
                         );
@@ -2119,7 +2220,7 @@ mod tests {
         assert!(service.extends.is_empty());
 
         // Check that base service functions are inherited
-        let function_check = |fns: &[FunctionIdlData], expected_base_fn_name: &str| {
+        let function_check = |fns: &[FunctionIdl], expected_base_fn_name: &str| {
             assert_eq!(
                 fns.len(),
                 1,
@@ -2334,9 +2435,11 @@ mod tests {
             .commands
             .iter()
             .map(|c| {
+                let fn_result = c.result_ty.as_ref().unwrap();
+                let fn_res_idx = fn_result.res.unwrap();
                 (
                     c.name.as_str(),
-                    service.type_names[c.result_ty.unwrap() as usize].as_str(),
+                    service.type_names[fn_res_idx as usize].as_str(),
                 )
             })
             .collect();
@@ -2360,9 +2463,11 @@ mod tests {
             .queries
             .iter()
             .map(|q| {
+                let fn_result = q.result_ty.as_ref().unwrap();
+                let fn_res_idx = fn_result.res.unwrap();
                 (
                     q.name.as_str(),
-                    service.type_names[q.result_ty.unwrap() as usize].as_str(),
+                    service.type_names[fn_res_idx as usize].as_str(),
                 )
             })
             .collect();

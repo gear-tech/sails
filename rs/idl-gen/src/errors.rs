@@ -2,7 +2,9 @@ pub type Result<T, E = Error> = core::result::Result<T, E>;
 
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
-    #[error("funcion meta is invalid: {0}")]
+    #[error("program meta is invalid: {0}")]
+    ProgramMetaIsInvalid(String),
+    #[error("function meta is invalid: {0}")]
     FuncMetaIsInvalid(String),
     #[error("event meta is invalid: {0}")]
     EventMetaIsInvalid(String),

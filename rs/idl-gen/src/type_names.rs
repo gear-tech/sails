@@ -356,7 +356,7 @@ impl TypeName for BTreeMapTypeName {
 }
 
 /// Result type name resolution.
-struct ResultTypeName {
+pub(crate) struct ResultTypeName {
     ok_type_name: RcTypeName,
     err_type_name: RcTypeName,
 }

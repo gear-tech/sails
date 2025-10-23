@@ -12,9 +12,9 @@ mod type_names;
 
 // todo [sab] generics?
 // todo [sab] add global annotations
-// todo [sab] adjust Result to throws
 
-// todo [sab] extends section (no need to merge fns, or merge but with stating source service -> benefits when same method names corner case)
+// todo [sab] discuss extends section
+// (no need to merge fns, or merge but with stating source service -> benefits when same method names corner case)
 
 // todo [sab] which sections can be absent -> adjust template with ifs and add proper indentations
 
@@ -129,24 +129,32 @@ struct Idl2Data {
 struct ProgramIdlSection {
     name: String,
     type_names: Vec<String>,
-    ctors: Vec<FunctionIdlData>,
+    ctors: Vec<FunctionIdl>,
     types: Vec<PortableType>,
     services: Vec<String>,
 }
 
 #[derive(Debug, Serialize)]
-struct FunctionIdlData {
+struct FunctionIdl {
     name: String,
-    args: Vec<FuncArgIdl2>,
-    // The field is optional, because `()` value is treated as no-result,
-    // so has `None` value
+    args: Vec<FunctionArgumentIdl>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    result_ty: Option<u32>,
+    result_ty: Option<FunctionResultIdl>,
     docs: Vec<String>,
 }
 
 #[derive(Debug, Serialize)]
-struct FuncArgIdl2 {
+struct FunctionResultIdl {
+    // The field is optional, because `()` value is treated as no-result,
+    // so has `None` value
+    #[serde(skip_serializing_if = "Option::is_none")]
+    res: Option<u32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    err: Option<u32>,
+}
+
+#[derive(Debug, Serialize)]
+struct FunctionArgumentIdl {
     name: String,
     #[serde(rename = "type")]
     ty: u32,
@@ -164,8 +172,8 @@ struct ServiceSection {
 
 #[derive(Debug, Serialize)]
 struct FunctionsSection {
-    commands: Vec<FunctionIdlData>,
-    queries: Vec<FunctionIdlData>,
+    commands: Vec<FunctionIdl>,
+    queries: Vec<FunctionIdl>,
 }
 
 #[derive(Serialize)]

@@ -32,7 +32,7 @@ service {{name}} {
         {{#each docs}}
         /// {{{this}}}
         {{/each}}
-        {{name}}({{#each args}}{{#if @index}}, {{/if}}{{name}}: {{{lookup ../../type_names type}}}{{/each}}){{#if result_ty}} -> {{{lookup ../type_names result_ty}}}{{/if}};
+        {{name}}({{#each args}}{{#if @index}}, {{/if}}{{name}}: {{{lookup ../../type_names type}}}{{/each}}){{#if result_ty}}{{#if result_ty.res}} -> {{{lookup ../type_names result_ty.res}}}{{/if}}{{#if result_ty.err}} throws {{{lookup ../type_names result_ty.err}}}{{/if}}{{/if}};
     {{#unless @last}}
 
     {{/unless}}
@@ -45,7 +45,7 @@ service {{name}} {
         /// {{{this}}}
         {{/each}}
         @query
-        {{name}}({{#each args}}{{#if @index}}, {{/if}}{{name}}: {{{lookup ../../type_names type}}}{{/each}}){{#if result_ty}} -> {{{lookup ../type_names result_ty}}}{{/if}};
+        {{name}}({{#each args}}{{#if @index}}, {{/if}}{{name}}: {{{lookup ../../type_names type}}}{{/each}}){{#if result_ty}}{{#if result_ty.res}} -> {{{lookup ../type_names result_ty.res}}}{{/if}}{{#if result_ty.err}} throws {{{lookup ../type_names result_ty.err}}}{{/if}}{{/if}};
     {{#unless @last}}
 
     {{/unless}}
