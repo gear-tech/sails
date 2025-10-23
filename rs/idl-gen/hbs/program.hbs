@@ -1,60 +1,25 @@
-service {{name}} {
-    {{#if extends}}
-    extends {
-        {{#each extends}}
-        {{this}}{{#unless @last}}, {{/unless}}
-        {{/each}}
-    }
-
-    {{/if}}
-    {{#if events}}
-    events {
-    {{#each events}}
+program {{name}} {
+    constructors {
+        {{#each ctors}}
         {{#each docs}}
         /// {{{this}}}
         {{/each}}
-        {{name}}{{~#if fields}}
-        {{~#if fields.[0].name}} {
-            {{#each fields}}
-            {{name}}: {{{lookup ../../type_names type}}},
-            {{/each}}
-        }{{~else~}}
-            ({{#each fields}}{{{lookup ../../type_names type}}}{{#unless @last}}, {{/unless}}{{/each}})
-        {{~/if}}{{~/if}},
-    {{/each}}
-    }
+        {{name}}({{#each args}}{{#if @index}}, {{/if}}{{name}}: {{{lookup @root.program.type_names type}}}{{/each}});
+        {{#unless @last}}
 
-    {{/if}}
-    {{#if functions}}
-    functions {
-    {{#if functions.commands}}
-    {{#each functions.commands}}
-        {{#each docs}}
-        /// {{{this}}}
+        {{/unless}}
         {{/each}}
-        {{name}}({{#each args}}{{#if @index}}, {{/if}}{{name}}: {{{lookup ../../type_names type}}}{{/each}}){{#if result_ty}} -> {{{lookup ../type_names result_ty}}}{{/if}};
-    {{#unless @last}}
-
-    {{/unless}}
-    {{/each}}
-    {{/if}}
-    {{#if functions.queries}}
-
-    {{#each functions.queries}}
-        {{#each docs}}
-        /// {{{this}}}
-        {{/each}}
-        @query
-        {{name}}({{#each args}}{{#if @index}}, {{/if}}{{name}}: {{{lookup ../../type_names type}}}{{/each}}){{#if result_ty}} -> {{{lookup ../type_names result_ty}}}{{/if}};
-    {{#unless @last}}
-
-    {{/unless}}
-    {{/each}}
-    {{/if}}
     }
+    {{#if services}}
 
+    services {
+        {{#each services}}
+        {{this}},
+        {{/each}}
+    }
     {{/if}}
     {{#if types}}
+
     types {
 {{#each types}}
 {{#if type.def.variant}}

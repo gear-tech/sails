@@ -508,6 +508,7 @@ impl ExpandedProgramMeta2 {
         let program_section = ProgramIdlSection {
             name,
             type_names: program_meta_registry.type_names()?,
+            types: program_meta_registry.types(),
             ctors: program_meta_registry.ctor_fns,
             services: services_names,
         };
@@ -1064,9 +1065,6 @@ mod tests {
         );
     }
 
-    #[test]
-    fn base_service() {}
-
     // #[test]
     // fn test_meta() {
     //     use sails_idl_meta::ProgramMeta;
@@ -1237,6 +1235,80 @@ mod tests {
                 }
             ])
         );
+    }
+
+    #[test]
+    fn ctor_non_user_defined_types_excluded() {
+        #[derive(TypeInfo)]
+        #[allow(unused)]
+        enum CtorsWithNonUserDefinedArgs {
+            Ctor1(NonUserDefinedCtorArgs),
+        }
+
+        #[derive(TypeInfo)]
+        #[allow(unused)]
+        enum CtorsWithUserDefinedArgs {
+            Ctor2(UserDefinedCtorArgs),
+        }
+
+        #[derive(TypeInfo)]
+        #[allow(unused)]
+        struct NonUserDefinedCtorArgs {
+            pub number: u32,
+            pub flag: bool,
+            pub text: String,
+            pub actor: ActorId,
+            pub option_val: Option<u8>,
+            pub result_val: Result<u16, String>,
+            pub map: BTreeMap<String, u32>,
+            pub code: CodeId,
+            pub message: MessageId,
+            pub h160: H160,
+            pub h256: H256,
+            pub u256: U256,
+            pub non_zero_u8: NonZeroU8,
+            pub non_zero_u16: NonZeroU16,
+            pub non_zero_u32: NonZeroU32,
+            pub non_zero_u64: NonZeroU64,
+            pub non_zero_u128: NonZeroU128,
+            pub non_zero_u256: NonZeroU256,
+        }
+
+        #[derive(TypeInfo)]
+        #[allow(unused)]
+        struct UserDefinedCtorArgs {
+            pub custom: CustomType,
+            pub number: u32,
+        }
+
+        #[derive(TypeInfo)]
+        #[allow(unused)]
+        struct CustomType {
+            pub value: String,
+        }
+
+        let meta1 = ExpandedProgramMeta2::new(
+            "TestProgram1".to_string(),
+            MetaType::new::<CtorsWithNonUserDefinedArgs>(),
+            iter::empty(),
+        )
+        .unwrap_or_else(|e| panic!("Failed to create expanded meta: {:?}", e));
+        
+        let user_defined_types = meta1.program.types;
+        assert!(user_defined_types.is_empty());
+
+        let meta2 = ExpandedProgramMeta2::new(
+            "TestProgram2".to_string(),
+            MetaType::new::<CtorsWithUserDefinedArgs>(),
+            iter::empty(),
+        )
+        .unwrap_or_else(|e| panic!("Failed to create expanded meta: {:?}", e));
+
+        let user_defined_types_2 = meta2.program.types;
+
+        assert_eq!(user_defined_types_2.len(), 1);
+        let type_name = &meta2.program.type_names[user_defined_types_2[0].id as usize];
+        assert_eq!(type_name, "CustomType");
     }
 
     // #[test]

@@ -14,14 +14,13 @@ mod type_names;
 // todo [sab] add global annotations
 // todo [sab] adjust Result to throws
 
-// todo [sab] extends section
+// todo [sab] extends section (no need to merge fns, or merge but with stating source service -> benefits when same method names corner case)
 
-// todo [sab] add service names + types into program section of idl
-// todo [sab] unit structs (no fields or empty fields)
 // todo [sab] which sections can be absent -> adjust template with ifs and add proper indentations
 
 const IDLV2_TEMPLATE: &str = include_str!("../hbs/idlv2.hbs");
 const SERVICE_TEMPLATE: &str = include_str!("../hbs/service.hbs");
+const PROGRAM_TEMPLATE: &str = include_str!("../hbs/program.hbs");
 
 pub mod program {
     use super::*;
@@ -96,6 +95,9 @@ fn render_idl(program_meta: &ExpandedProgramMeta, idl_writer: impl Write) -> Res
     handlebars
         .register_template_string("service", SERVICE_TEMPLATE)
         .map_err(Box::new)?;
+    handlebars
+        .register_template_string("program", PROGRAM_TEMPLATE)
+        .map_err(Box::new)?;
     handlebars.register_helper("deref", Box::new(deref));
 
     handlebars
@@ -128,6 +130,7 @@ struct ProgramIdlSection {
     name: String,
     type_names: Vec<String>,
     ctors: Vec<FunctionIdlData>,
+    types: Vec<PortableType>,
     services: Vec<String>,
 }
 
@@ -203,6 +206,198 @@ mod tests {
         let mut hbs = Handlebars::new();
         let _ = hbs.register_template_string("idlv2", IDLV2_TEMPLATE);
         let _ = hbs.register_template_string("service", SERVICE_TEMPLATE);
+        let _ = hbs.register_template_string("program", PROGRAM_TEMPLATE);
+        hbs.register_helper("deref", Box::new(deref));
+
+        hbs.render_to_write("idlv2", &data, &mut source).unwrap();
+        println!("{}", String::from_utf8_lossy(&source));
+    }
+
+    /// Test IDL generation with user-defined types in program section
+    /// (constructors with custom types as arguments)
+    #[test]
+    fn test_program_with_custom_types() {
+        use scale_info::{MetaType, TypeInfo};
+
+        #[derive(TypeInfo)]
+        #[allow(unused)]
+        struct CustomType {
+            pub value: u32,
+            pub name: String,
+        }
+
+        #[derive(TypeInfo)]
+        #[allow(unused)]
+        struct AnotherCustomType {
+            pub id: u64,
+        }
+
+        #[derive(TypeInfo)]
+        #[allow(unused)]
+        enum ProgramConstructors {
+            Default(DefaultParams),
+            WithCustomType(WithCustomTypeParams),
+        }
+
+        #[derive(TypeInfo)]
+        #[allow(unused)]
+        struct DefaultParams {}
+
+        #[derive(TypeInfo)]
+        #[allow(unused)]
+        struct WithCustomTypeParams {
+            pub custom: CustomType,
+            pub another: AnotherCustomType,
+        }
+
+        let mut source: Vec<u8> = Vec::new();
+
+        let data = ExpandedProgramMeta2::new(
+            "ProgramWithCustomTypes".to_string(),
+            MetaType::new::<ProgramConstructors>(),
+            std::iter::empty(),
+        )
+        .unwrap();
+
+        let json = serde_json::to_string_pretty(&data).unwrap();
+        println!("{}", json);
+
+        let mut hbs = Handlebars::new();
+        let _ = hbs.register_template_string("idlv2", IDLV2_TEMPLATE);
+        let _ = hbs.register_template_string("service", SERVICE_TEMPLATE);
+        let _ = hbs.register_template_string("program", PROGRAM_TEMPLATE);
+        hbs.register_helper("deref", Box::new(deref));
+
+        hbs.render_to_write("idlv2", &data, &mut source).unwrap();
+        println!("{}", String::from_utf8_lossy(&source));
+    }
+
+    /// Test IDL generation with unit structs in types section
+    #[test]
+    fn test_unit_struct_types() {
+        use scale_info::{MetaType, TypeInfo};
+
+        #[derive(TypeInfo)]
+        #[allow(unused)]
+        struct UnitStruct;
+
+        #[derive(TypeInfo)]
+        #[allow(unused)]
+        struct AnotherUnitStruct;
+
+        #[derive(TypeInfo)]
+        #[allow(unused)]
+        struct TupleStruct(u32, String);
+
+        #[derive(TypeInfo)]
+        #[allow(unused)]
+        struct RegularStruct {
+            pub field1: u32,
+            pub field2: String,
+        }
+
+        #[derive(TypeInfo)]
+        #[allow(unused)]
+        enum ProgramConstructors {
+            Default(DefaultParams),
+            WithUnitStructs(WithUnitStructsParams),
+        }
+
+        #[derive(TypeInfo)]
+        #[allow(unused)]
+        struct DefaultParams {}
+
+        #[derive(TypeInfo)]
+        #[allow(unused)]
+        struct WithUnitStructsParams {
+            pub unit: UnitStruct,
+            pub another_unit: AnotherUnitStruct,
+            pub tuple: TupleStruct,
+            pub regular: RegularStruct,
+        }
+
+        // Service types
+        use sails_idl_meta::{AnyServiceMeta, ServiceMeta};
+
+        #[derive(TypeInfo)]
+        #[allow(unused)]
+        enum NoEvents {}
+
+        struct StructService;
+
+        impl ServiceMeta for StructService {
+            type CommandsMeta = ServiceCommands;
+            type QueriesMeta = ServiceQueries;
+            type EventsMeta = NoEvents;
+            const BASE_SERVICES: &'static [sails_idl_meta::AnyServiceMetaFn] = &[];
+            const ASYNC: bool = false;
+        }
+
+        #[derive(TypeInfo)]
+        #[allow(unused)]
+        enum ServiceCommands {
+            ProcessUnit(ProcessUnitParams, ProcessUnitOutput),
+            CreateStruct(CreateStructParams, CreateStructOutput),
+        }
+
+        #[derive(TypeInfo)]
+        #[allow(unused)]
+        enum ServiceQueries {
+            GetAllStructs(GetAllStructsParams, GetAllStructsOutput),
+        }
+
+        #[derive(TypeInfo)]
+        #[allow(unused)]
+        struct ProcessUnitParams {
+            pub unit: UnitStruct,
+        }
+
+        #[derive(TypeInfo)]
+        #[allow(unused)]
+        struct ProcessUnitOutput(bool);
+
+        #[derive(TypeInfo)]
+        #[allow(unused)]
+        struct CreateStructParams {
+            pub regular: RegularStruct,
+            pub tuple: TupleStruct,
+        }
+
+        #[derive(TypeInfo)]
+        #[allow(unused)]
+        struct CreateStructOutput {
+            pub id: u64,
+            pub unit: UnitStruct,
+        }
+
+        #[derive(TypeInfo)]
+        #[allow(unused)]
+        struct GetAllStructsParams {}
+
+        #[derive(TypeInfo)]
+        #[allow(unused)]
+        struct GetAllStructsOutput {
+            pub units: Vec<UnitStruct>,
+            pub regulars: Vec<RegularStruct>,
+            pub tuples: Vec<TupleStruct>,
+        }
+
+        let mut source: Vec<u8> = Vec::new();
+
+        let data = ExpandedProgramMeta2::new(
+            "UnitStructProgram".to_string(),
+            MetaType::new::<ProgramConstructors>(),
+            vec![("StructService", AnyServiceMeta::new::<StructService>())].into_iter(),
+        )
+        .unwrap();
+
+        let json = serde_json::to_string_pretty(&data).unwrap();
+        println!("{}", json);
+
+        let mut hbs = Handlebars::new();
+        let _ = hbs.register_template_string("idlv2", IDLV2_TEMPLATE);
+        let _ = hbs.register_template_string("service", SERVICE_TEMPLATE);
+        let _ = hbs.register_template_string("program", PROGRAM_TEMPLATE);
         hbs.register_helper("deref", Box::new(deref));
 
         hbs.render_to_write("idlv2", &data, &mut source).unwrap();
