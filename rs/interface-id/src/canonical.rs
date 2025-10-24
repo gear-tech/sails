@@ -120,6 +120,7 @@ pub enum FunctionKind {
 /// Canonical representation of a function parameter.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct CanonicalParam {
+    #[serde(skip_serializing, default)]
     pub name: String,
     #[serde(rename = "type")]
     pub ty: CanonicalType,
@@ -932,6 +933,87 @@ mod tests {
                 },
                 "types": {}
             })
+        );
+    }
+
+    #[test]
+    fn parameter_names_do_not_affect_hash() {
+        // Two services with identical signatures but different parameter names
+        let service1 = json!({
+            "canon_schema": CANONICAL_SCHEMA,
+            "canon_version": CANONICAL_VERSION,
+            "hash": {
+                "algo": CANONICAL_HASH_ALGO,
+                "domain": crate::INTERFACE_HASH_DOMAIN_STR,
+            },
+            "services": {
+                "TestService": {
+                    "name": "TestService",
+                    "extends": [],
+                    "functions": [{
+                        "kind": "command",
+                        "name": "Add",
+                        "params": [{
+                            "name": "value",
+                            "type": {"kind": "primitive", "name": "u32"}
+                        }],
+                        "returns": {"kind": "unit"},
+                        "entry_id_override": 1
+                    }],
+                    "events": []
+                }
+            },
+            "types": {}
+        });
+
+        let service2 = json!({
+            "canon_schema": CANONICAL_SCHEMA,
+            "canon_version": CANONICAL_VERSION,
+            "hash": {
+                "algo": CANONICAL_HASH_ALGO,
+                "domain": crate::INTERFACE_HASH_DOMAIN_STR,
+            },
+            "services": {
+                "TestService": {
+                    "name": "TestService",
+                    "extends": [],
+                    "functions": [{
+                        "kind": "command",
+                        "name": "Add",
+                        "params": [{
+                            "name": "num",
+                            "type": {"kind": "primitive", "name": "u32"}
+                        }],
+                        "returns": {"kind": "unit"},
+                        "entry_id_override": 1
+                    }],
+                    "events": []
+                }
+            },
+            "types": {}
+        });
+
+        let doc1 = CanonicalDocument::from_value(service1).expect("valid document");
+        let doc2 = CanonicalDocument::from_value(service2).expect("valid document");
+
+        let bytes1 = doc1.to_bytes().expect("serialization");
+        let bytes2 = doc2.to_bytes().expect("serialization");
+
+        // The canonical bytes should be identical despite different parameter names
+        assert_eq!(
+            bytes1, bytes2,
+            "parameter names should not affect canonical hash"
+        );
+
+        // Verify that parameter names are NOT in the serialized JSON
+        let json_str = String::from_utf8(bytes1).expect("valid utf8");
+        assert!(
+            !json_str.contains("\"value\""),
+            "parameter name 'value' should not be in canonical JSON"
+        );
+        assert!(
+            !json_str.contains("\"num\""),
+            "parameter name 'num' should not be in canonical JSON"
         );
     }
 }
