@@ -39,8 +39,7 @@ pub mod redirect {
     use super::*;
     pub trait Redirect {
         type Env: sails_rs::client::GearEnv;
-        /// !@interface_id32 = 0x246207cb
-        /// !@interface_uid64 = 0x05e30f1f246207cb
+        /// !@interface_id = 0x05e30f1f246207cb
         /// Exit from program with inheritor ID
         /// !@entry_id = 0x0001
         fn exit(

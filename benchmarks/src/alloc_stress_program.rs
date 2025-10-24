@@ -41,8 +41,7 @@ pub mod alloc_stress {
     use super::*;
     pub trait AllocStress {
         type Env: sails_rs::client::GearEnv;
-        /// !@interface_id32 = 0x5c8922fd
-        /// !@interface_uid64 = 0xe9ab96965c8922fd
+        /// !@interface_id = 0xe9ab96965c8922fd
         /// !@entry_id = 0x0001
         fn alloc_stress(
             &mut self,

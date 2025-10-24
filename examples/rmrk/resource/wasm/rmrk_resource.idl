@@ -53,8 +53,7 @@ constructor {
 };
 
 service RmrkResource {
-  /// !@interface_id32 = 0xd7ec8675
-  /// !@interface_uid64 = 0x3c03ce38d7ec8675
+  /// !@interface_id = 0x3c03ce38d7ec8675
   /// !@entry_id = 0x0001
   AddPartToResource : (resource_id: u8, part_id: u32) -> result (u32, Error);
   /// !@entry_id = 0x0002

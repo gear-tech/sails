@@ -179,18 +179,6 @@ fn count_brace_delta(line: &str) -> i32 {
     opens - closes
 }
 
-fn parse_u32(raw: &str) -> Option<u32> {
-    let value = raw.trim().trim_start_matches('=').trim();
-    if let Some(hex) = value
-        .strip_prefix("0x")
-        .or_else(|| value.strip_prefix("0X"))
-    {
-        u32::from_str_radix(hex, 16).ok()
-    } else {
-        value.parse::<u32>().ok()
-    }
-}
-
 fn parse_u64(raw: &str) -> Option<u64> {
     let value = raw.trim().trim_start_matches('=').trim();
     if let Some(hex) = value

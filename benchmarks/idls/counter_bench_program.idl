@@ -3,8 +3,7 @@ constructor {
 };
 
 service CounterBench {
-  /// !@interface_id32 = 0x4c54c8ab
-  /// !@interface_uid64 = 0x92dc52d14c54c8ab
+  /// !@interface_id = 0x92dc52d14c54c8ab
   /// !@entry_id = 0x0001
   Inc : () -> u64;
   /// !@entry_id = 0x0002
