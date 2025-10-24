@@ -33,6 +33,7 @@ members = [
     "rs/idl-gen",
     "rs/idl-meta",
     "rs/idl-parser",
+    "rs/idl-parser-v2",
     "rs/macros",
     "rs/macros/core",
     "rs/sol-gen",

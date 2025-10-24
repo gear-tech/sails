@@ -1,0 +1,607 @@
+// Sails IDL v0.3 — service-only parser using `nom` (nom 8 compatible)
+// Parses only top-level `service` blocks (plus doc-comments/annotations),
+// including `extends { ... }`, `events { ... }`, `functions { ... }`, `types { ... }`.
+
+use nom::{
+    IResult, Parser,
+    branch::alt,
+    bytes::complete::{tag, tag_no_case, take_while, take_while1},
+    character::complete::{char, digit1, line_ending, multispace0},
+    combinator::{all_consuming, map, map_res, opt, recognize, value},
+    multi::{many0, separated_list0},
+    sequence::{delimited, preceded, terminated, tuple},
+};
+use std::str::FromStr;
+
+// ------------------------- Target model (service-only) -------------------------
+
+#[derive(Debug, PartialEq, Clone)]
+pub struct ServiceUnit {
+    pub name: String,
+    pub extends: Vec<String>,
+    pub funcs: Vec<ServiceFunc>,
+    pub events: Vec<ServiceEvent>,
+    pub types: Vec<Type>,
+}
+
+#[derive(Debug, PartialEq, Clone)]
+pub struct ServiceFunc {
+    pub name: String,
+    pub params: Vec<FuncParam>,
+    pub output: TypeDecl,
+    pub is_query: bool,
+    pub docs: Vec<String>,
+}
+
+#[derive(Debug, PartialEq, Clone)]
+pub struct FuncParam {
+    pub name: String,
+    pub type_decl: TypeDecl,
+}
+
+pub type ServiceEvent = EnumVariant;
+
+#[derive(Debug, PartialEq, Clone)]
+pub struct Type {
+    pub name: String,
+    pub def: TypeDef,
+    pub docs: Vec<String>,
+}
+
+#[derive(Debug, PartialEq, Clone)]
+pub enum TypeDecl {
+    Vector(Box<TypeDecl>),
+    Array {
+        item: Box<TypeDecl>,
+        len: u32,
+    },
+    Map {
+        key: Box<TypeDecl>,
+        value: Box<TypeDecl>,
+    },
+    Optional(Box<TypeDecl>),
+    Result {
+        ok: Box<TypeDecl>,
+        err: Box<TypeDecl>,
+    },
+    Id(TypeId),
+    Def(TypeDef),
+}
+
+#[derive(Debug, PartialEq, Clone)]
+pub enum TypeId {
+    Primitive(PrimitiveType),
+    UserDefined(String),
+}
+
+#[derive(Debug, PartialEq, Clone, Copy)]
+#[repr(u8)]
+pub enum PrimitiveType {
+    Null,
+    Bool,
+    Char,
+    Str,
+    U8,
+    U16,
+    U32,
+    U64,
+    U128,
+    I8,
+    I16,
+    I32,
+    I64,
+    I128,
+    ActorId,
+    CodeId,
+    MessageId,
+    H256,
+    U256,
+    H160,
+    NonZeroU8,
+    NonZeroU16,
+    NonZeroU32,
+    NonZeroU64,
+    NonZeroU128,
+    NonZeroU256,
+}
+
+#[derive(Debug, PartialEq, Clone)]
+pub enum TypeDef {
+    Struct(StructDef),
+    Enum(EnumDef),
+}
+
+#[derive(Debug, PartialEq, Clone)]
+pub struct StructDef {
+    pub fields: Vec<StructField>,
+}
+
+#[derive(Debug, PartialEq, Clone)]
+pub struct StructField {
+    pub name: Option<String>,
+    pub type_decl: TypeDecl,
+    pub docs: Vec<String>,
+}
+
+#[derive(Debug, PartialEq, Clone)]
+pub struct EnumDef {
+    pub variants: Vec<EnumVariant>,
+}
+
+#[derive(Debug, PartialEq, Clone)]
+pub struct EnumVariant {
+    pub name: String,
+    pub type_decl: Option<TypeDecl>,
+    pub docs: Vec<String>,
+}
+
+// ------------------------- Lexing helpers -------------------------
+
+type Res<'a, O> = IResult<&'a str, O>;
+
+fn is_ident_start(c: char) -> bool {
+    c.is_ascii_alphabetic() || c == '_'
+}
+fn is_ident_char(c: char) -> bool {
+    c.is_ascii_alphanumeric() || c == '_'
+}
+
+fn ws<'a, O, P>(inner: P) -> impl Parser<&'a str, Output = O, Error = nom::error::Error<&'a str>>
+where
+    P: Parser<&'a str, Output = O, Error = nom::error::Error<&'a str>>,
+{
+    delimited(space_or_comments, inner, space_or_comments)
+}
+
+fn space_or_comments(i: &str) -> Res<'_, ()> {
+    let mut input = i;
+    loop {
+        let (i2, _) = multispace0(input)?;
+        input = i2;
+        // line comments "// ..."
+        if let Ok((i3, _)) = tuple((
+            tag::<&str, &str, ()>(r"//"),
+            take_while(|c| c != '\n'),
+            opt(line_ending),
+        ))(input)
+        {
+            input = i3;
+            continue;
+        }
+        // global annotations !@... up to endline
+        if let Ok((i4, _)) = tuple((
+            tag::<&str, &str, ()>("!@"),
+            take_while(|c| c != '\n'),
+            opt(line_ending),
+        ))(input)
+        {
+            input = i4;
+            continue;
+        }
+        // local annotations starting with @something until EOL or before block opener
+        if let Ok((i5, _)) = tuple((
+            tag::<&str, &str, ()>("@"),
+            take_while(|c| c != '\n' && c != '{' && c != '(' && c != ';'),
+            opt(line_ending),
+        ))(input)
+        {
+            input = i5;
+            continue;
+        }
+        break;
+    }
+    Ok((input, ()))
+}
+
+fn doc_lines(i: &str) -> Res<'_, Vec<String>> {
+    many0(map(
+        terminated(
+            preceded(tag("///"), take_while(|c| c != '\n')),
+            opt(line_ending),
+        ),
+        |s: &str| s.trim().to_string(),
+    ))
+    .parse(i)
+}
+
+fn ident(i: &str) -> Res<'_, String> {
+    map(
+        recognize(tuple((
+            take_while1(is_ident_start),
+            take_while(is_ident_char),
+        ))),
+        |s: &str| s.to_string(),
+    )
+    .parse(i)
+}
+
+fn number_u32(i: &str) -> Res<'_, u32> {
+    map_res(ws(digit1), |s: &str| u32::from_str(s)).parse(i)
+}
+
+fn sep_comma<'a, O, P>(inner: P) -> impl FnMut(&'a str) -> Res<'a, Vec<O>>
+where
+    P: Parser<&'a str, Output = O, Error = nom::error::Error<&'a str>>,
+{
+    let mut parser = separated_list0(ws(char(',')), inner);
+    move |i| parser.parse(i)
+}
+
+fn angle_list<'a, O, P>(inner: P) -> impl FnMut(&'a str) -> Res<'a, Vec<O>>
+where
+    P: Parser<&'a str, Output = O, Error = nom::error::Error<&'a str>>,
+{
+    let mut parser = delimited(ws(char('<')), sep_comma(inner), ws(char('>')));
+    move |i| parser.parse(i)
+}
+
+fn paren_list<'a, O, P>(inner: P) -> impl FnMut(&'a str) -> Res<'a, Vec<O>>
+where
+    P: Parser<&'a str, Output = O, Error = nom::error::Error<&'a str>>,
+{
+    let mut parser = delimited(ws(char('(')), sep_comma(inner), ws(char(')')));
+    move |i| parser.parse(i)
+}
+
+fn path_ident(i: &str) -> Res<'_, String> {
+    map(
+        recognize(tuple((ident, many0(tuple((tag("::"), ident)))))),
+        |s: &str| s.to_string(),
+    )
+    .parse(i)
+}
+
+// ------------------------- Type parser -------------------------
+
+fn primitive(i: &str) -> Res<'_, PrimitiveType> {
+    ws(alt((
+        value(PrimitiveType::Bool, tag_no_case("bool")),
+        value(PrimitiveType::Char, tag_no_case("char")),
+        value(PrimitiveType::Str, tag_no_case("str")),
+        value(PrimitiveType::U8, tag_no_case("u8")),
+        value(PrimitiveType::U16, tag_no_case("u16")),
+        value(PrimitiveType::U32, tag_no_case("u32")),
+        value(PrimitiveType::U64, tag_no_case("u64")),
+        value(PrimitiveType::U128, tag_no_case("u128")),
+        value(PrimitiveType::I8, tag_no_case("i8")),
+        value(PrimitiveType::I16, tag_no_case("i16")),
+        value(PrimitiveType::I32, tag_no_case("i32")),
+        value(PrimitiveType::I64, tag_no_case("i64")),
+        value(PrimitiveType::I128, tag_no_case("i128")),
+        value(PrimitiveType::ActorId, tag_no_case("actor")),
+        value(PrimitiveType::CodeId, tag_no_case("code")),
+        value(PrimitiveType::MessageId, tag_no_case("messageid")),
+        value(PrimitiveType::H256, tag_no_case("h256")),
+        value(PrimitiveType::U256, tag_no_case("u256")),
+        value(PrimitiveType::H160, tag_no_case("h160")),
+    )))
+    .parse(i)
+}
+
+fn type_vector(i: &str) -> Res<'_, TypeDecl> {
+    map(
+        delimited(ws(char('[')), ws(type_decl), ws(char(']'))),
+        |t| TypeDecl::Vector(Box::new(t)),
+    )
+    .parse(i)
+}
+
+fn type_array(i: &str) -> Res<'_, TypeDecl> {
+    map(
+        tuple((
+            ws(char('[')),
+            ws(type_decl),
+            ws(char(';')),
+            number_u32,
+            ws(char(']')),
+        )),
+        |(_, t, _, len, _)| TypeDecl::Array {
+            item: Box::new(t),
+            len,
+        },
+    )
+    .parse(i)
+}
+
+fn type_map(i: &str) -> Res<'_, TypeDecl> {
+    map(
+        tuple((ws(tag_no_case("map")), angle_list(type_decl))),
+        |(_, mut v)| {
+            let key = v.remove(0);
+            let value = v.remove(0);
+            TypeDecl::Map {
+                key: Box::new(key),
+                value: Box::new(value),
+            }
+        },
+    )
+    .parse(i)
+}
+
+fn type_option(i: &str) -> Res<'_, TypeDecl> {
+    map(
+        tuple((ws(tag_no_case("Option")), angle_list(type_decl))),
+        |(_, mut v)| TypeDecl::Optional(Box::new(v.remove(0))),
+    )
+    .parse(i)
+}
+
+fn type_result(i: &str) -> Res<'_, TypeDecl> {
+    map(
+        tuple((ws(tag_no_case("Result")), angle_list(type_decl))),
+        |(_, mut v)| {
+            let ok = v.remove(0);
+            let err = v.remove(0);
+            TypeDecl::Result {
+                ok: Box::new(ok),
+                err: Box::new(err),
+            }
+        },
+    )
+    .parse(i)
+}
+
+fn type_id(i: &str) -> Res<'_, TypeDecl> {
+    alt((
+        map(primitive, |p| TypeDecl::Id(TypeId::Primitive(p))),
+        map(path_ident, |s| TypeDecl::Id(TypeId::UserDefined(s))),
+    ))
+    .parse(i)
+}
+
+fn struct_field(i: &str) -> Res<'_, StructField> {
+    let (i, docs) = ws(doc_lines).parse(i)?;
+    let (i, name_opt) = opt(terminated(ws(ident), ws(char(':')))).parse(i)?;
+    let (i, td) = ws(type_decl).parse(i)?;
+    let (i, _) = ws(opt(char(','))).parse(i)?;
+    Ok((
+        i,
+        StructField {
+            name: name_opt,
+            type_decl: td,
+            docs,
+        },
+    ))
+}
+
+fn struct_def(i: &str) -> Res<'_, TypeDef> {
+    map(
+        delimited(ws(char('{')), many0(ws(struct_field)), ws(char('}'))),
+        |fields| TypeDef::Struct(StructDef { fields }),
+    )
+    .parse(i)
+}
+
+fn tuple_struct_def(i: &str) -> Res<'_, TypeDef> {
+    map(
+        tuple((
+            ws(char('(')),
+            sep_comma(type_decl),
+            ws(char(')')),
+            ws(char(';')),
+        )),
+        |(_, items, _, _)| {
+            TypeDef::Struct(StructDef {
+                fields: items
+                    .into_iter()
+                    .map(|t| StructField {
+                        name: None,
+                        type_decl: t,
+                        docs: vec![],
+                    })
+                    .collect(),
+            })
+        },
+    )
+    .parse(i)
+}
+
+fn unit_struct_def(i: &str) -> Res<'_, TypeDef> {
+    value(
+        TypeDef::Struct(StructDef { fields: vec![] }),
+        tuple((ws(char(';')),)),
+    )
+    .parse(i)
+}
+
+fn enum_variant(i: &str) -> Res<'_, EnumVariant> {
+    let (i, docs) = ws(doc_lines).parse(i)?;
+    let (i, name) = ws(ident).parse(i)?;
+    // struct-like, tuple-like or unit-like variants
+    let (i, type_decl_opt) = ws(alt((struct_def, tuple_struct_def, unit_struct_def))).parse(i)?;
+    let (i, _) = ws(opt(char(','))).parse(i)?;
+    Ok((
+        i,
+        EnumVariant {
+            name,
+            type_decl: Some(TypeDecl::Def(type_decl_opt)),
+            docs,
+        },
+    ))
+}
+
+fn enum_def(i: &str) -> Res<'_, TypeDef> {
+    map(
+        delimited(ws(char('{')), many0(ws(enum_variant)), ws(char('}'))),
+        |variants| TypeDef::Enum(EnumDef { variants }),
+    )
+    .parse(i)
+}
+
+fn type_def(i: &str) -> Res<'_, TypeDef> {
+    alt((struct_def, enum_def)).parse(i)
+}
+
+fn type_decl_struct(i: &str) -> Res<'_, TypeDecl> {
+    map(struct_def, TypeDecl::Def).parse(i)
+}
+fn type_decl_enum(i: &str) -> Res<'_, TypeDecl> {
+    map(enum_def, TypeDecl::Def).parse(i)
+}
+
+fn type_decl(i: &str) -> Res<'_, TypeDecl> {
+    ws(alt((
+        type_array,
+        type_vector,
+        type_map,
+        type_option,
+        type_result,
+        // inline defs
+        type_decl_struct,
+        type_decl_enum,
+        type_id,
+    )))
+    .parse(i)
+}
+
+fn type_item(i: &str) -> Res<'_, Type> {
+    let (i, docs) = ws(doc_lines).parse(i)?;
+    let (i, kind) = ws(alt((tag("struct"), tag("enum")))).parse(i)?;
+    let (i, name) = ws(ident).parse(i)?;
+    // Optional generics <...> are parsed and ignored
+    let (i, _) = opt(ws(delimited(
+        char('<'),
+        separated_list0(ws(char(',')), type_decl),
+        char('>'),
+    )))
+    .parse(i)?;
+    let def = if kind == "struct" {
+        ws(alt((struct_def, tuple_struct_def, unit_struct_def)))
+            .parse(i)?
+            .1
+    } else {
+        ws(enum_def).parse(i)?.1
+    };
+    Ok((i, Type { name, def, docs }))
+}
+
+// ------------------------- Service parser -------------------------
+
+fn func_param(i: &str) -> Res<'_, FuncParam> {
+    let (i, name) = ws(ident).parse(i)?;
+    let (i, _) = ws(char(':')).parse(i)?;
+    let (i, td) = ws(type_decl).parse(i)?;
+    Ok((
+        i,
+        FuncParam {
+            name,
+            type_decl: td,
+        },
+    ))
+}
+
+fn param_list(i: &str) -> Res<'_, Vec<FuncParam>> {
+    delimited(ws(char('(')), sep_comma(func_param), ws(char(')'))).parse(i)
+}
+
+fn maybe_throws(i: &str) -> Res<'_, ()> {
+    value((), tuple((ws(tag_no_case("throws")), ws(type_decl)))).parse(i)
+}
+
+fn service_func(i: &str) -> Res<'_, ServiceFunc> {
+    let (i, docs) = ws(doc_lines).parse(i)?;
+    // capture local annotations; only @query matters
+    let (i, is_query) = map(opt(preceded(space_or_comments, tag("@query"))), |o| {
+        o.is_some()
+    })
+    .parse(i)?;
+    let (i, name) = ws(ident).parse(i)?;
+    let (i, params) = ws(param_list).parse(i)?;
+    // return type optional
+    let (i, output) = opt(preceded(ws(tag("->")), ws(type_decl))).parse(i)?;
+    let output_td = output.unwrap_or(TypeDecl::Id(TypeId::Primitive(PrimitiveType::Null)));
+    let (i, _) = opt(ws(maybe_throws)).parse(i)?;
+    let (i, _) = ws(char(';')).parse(i)?;
+    Ok((
+        i,
+        ServiceFunc {
+            name,
+            params,
+            output: output_td,
+            is_query,
+            docs,
+        },
+    ))
+}
+
+fn service_event(i: &str) -> Res<'_, ServiceEvent> {
+    enum_variant(i)
+}
+
+fn extends_list(i: &str) -> Res<'_, Vec<String>> {
+    delimited(
+        ws(tag("extends")),
+        delimited(
+            ws(char('{')),
+            separated_list0(ws(char(',')), ws(ident)),
+            ws(char('}')),
+        ),
+        space_or_comments,
+    )
+    .parse(i)
+}
+
+fn service_block(i: &str) -> Res<'_, ServiceUnit> {
+    let (i, _) = ws(tag("service")).parse(i)?;
+    let (i, name) = ws(ident).parse(i)?;
+    let (i, _) = ws(char('{')).parse(i)?;
+
+    // optional extends { A, B, C }
+    let (i, extends) = opt(extends_list).parse(i)?;
+
+    // events { ... }
+    let (i, events) = opt(delimited(
+        ws(tag("events")),
+        delimited(ws(char('{')), many0(ws(service_event)), ws(char('}'))),
+        space_or_comments,
+    ))
+    .parse(i)?;
+    // functions { ... }
+    let (i, funcs) = opt(delimited(
+        ws(tag("functions")),
+        delimited(ws(char('{')), many0(ws(service_func)), ws(char('}'))),
+        space_or_comments,
+    ))
+    .parse(i)?;
+    // types { ... }
+    let (i, types) = opt(delimited(
+        ws(tag("types")),
+        delimited(ws(char('{')), many0(ws(type_item)), ws(char('}'))),
+        space_or_comments,
+    ))
+    .parse(i)?;
+
+    let (i, _) = ws(char('}')).parse(i)?;
+
+    Ok((
+        i,
+        ServiceUnit {
+            name,
+            extends: extends.unwrap_or_default(),
+            funcs: funcs.unwrap_or_default(),
+            events: events.unwrap_or_default(),
+            types: types.unwrap_or_default(),
+        },
+    ))
+}
+
+// Parse the first service block after skipping headers/annotations
+pub fn parse_service(i: &str) -> Res<'_, ServiceUnit> {
+    ws(service_block).parse(i)
+}
+
+// Parse all service blocks from a file (ignores anything else like !@includes)
+pub fn parse_all_services(mut i: &str) -> Res<'_, Vec<ServiceUnit>> {
+    let mut out = Vec::new();
+    i = space_or_comments(i)?.0;
+    loop {
+        match ws(service_block).parse(i) {
+            Ok((rest, svc)) => {
+                out.push(svc);
+                i = rest;
+            }
+            Err(_) => break,
+        }
+    }
+    Ok((i, out))
+}
