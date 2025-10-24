@@ -43,8 +43,8 @@ pub mod rmrk_resource {
     use super::*;
     pub trait RmrkResource {
         type Env: sails_rs::client::GearEnv;
-        /// !@interface_id32 = 0x58acb06e
-        /// !@interface_uid64 = 0x02e07e3058acb06e
+        /// !@interface_id32 = 0xd7ec8675
+        /// !@interface_uid64 = 0x3c03ce38d7ec8675
         /// !@entry_id = 0x0001
         fn add_part_to_resource(
             &mut self,
@@ -101,9 +101,9 @@ pub mod rmrk_resource {
         #[derive(PartialEq, Debug, Encode, Decode)]
         #[codec(crate = sails_rs::scale_codec)]
         pub enum RmrkResourceEvents {
-            /// !@entry_id = 0x0001
-            ResourceAdded { resource_id: u8 },
             /// !@entry_id = 0x0002
+            ResourceAdded { resource_id: u8 },
+            /// !@entry_id = 0x0001
             PartAdded { resource_id: u8, part_id: u32 },
         }
         impl sails_rs::client::Event for RmrkResourceEvents {

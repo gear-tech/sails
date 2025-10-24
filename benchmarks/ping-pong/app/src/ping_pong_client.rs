@@ -43,8 +43,8 @@ pub mod ping_pong_service {
     use super::*;
     pub trait PingPongService {
         type Env: sails_rs::client::GearEnv;
-        /// !@interface_id32 = 0x059f87e2
-        /// !@interface_uid64 = 0x255b066e059f87e2
+        /// !@interface_id32 = 0x47db38ed
+        /// !@interface_uid64 = 0x8386db6747db38ed
         /// !@entry_id = 0x0001
         fn ping(
             &mut self,
