@@ -53,8 +53,7 @@ impl ServiceBuilder<'_> {
                 ];
                 const ASYNC: bool = #service_meta_asyncness ;
                 const INTERFACE_PATH: &'static str = stringify!(#service_type_path);
-                const INTERFACE_ID32: u32 = #meta_module_ident::INTERFACE_ID32;
-                const INTERFACE_UID64: u64 = #meta_module_ident::INTERFACE_UID64;
+                const INTERFACE_ID: u64 = #meta_module_ident::INTERFACE_ID;
                 const EXTENDS: &'static [#sails_path::meta::ExtendedInterface] = #meta_module_ident::EXTENDS;
 
                 fn command_entry_ids() -> #sails_path::Vec<u16> {
@@ -155,8 +154,7 @@ impl ServiceBuilder<'_> {
                 quote! {
                     #sails_path::meta::ExtendedInterface {
                         name: #name_lit,
-                        interface_id32: <#base_type_no_lifetimes as #sails_path::meta::ServiceMeta>::INTERFACE_ID32,
-                        interface_uid64: <#base_type_no_lifetimes as #sails_path::meta::ServiceMeta>::INTERFACE_UID64,
+                        interface_id: <#base_type_no_lifetimes as #sails_path::meta::ServiceMeta>::INTERFACE_ID,
                     }
                 }
             })
@@ -171,8 +169,7 @@ impl ServiceBuilder<'_> {
                 name: shared::remove_lifetimes(base_type)
                     .to_token_stream()
                     .to_string(),
-                interface_id32: 0,
-                interface_uid64: 0,
+                interface_id: 0,
                 service: None,
             })
             .collect::<Vec<_>>();
@@ -232,9 +229,8 @@ impl ServiceBuilder<'_> {
         let canonical_bytes = canonical_document
             .to_bytes()
             .expect("canonical document serialization should succeed");
-        let (interface_id32, interface_uid64) = compute_ids_from_document(&canonical_document);
-        let interface_id32_lit = Literal::u32_unsuffixed(interface_id32);
-        let interface_uid64_lit = Literal::u64_unsuffixed(interface_uid64);
+        let interface_id = compute_ids_from_document(&canonical_document);
+        let interface_id_lit = Literal::u64_unsuffixed(interface_id);
         let canonical_byte_literals = canonical_bytes
             .iter()
             .map(|byte| Literal::u8_unsuffixed(*byte))
@@ -249,8 +245,7 @@ impl ServiceBuilder<'_> {
             quote! {
                 entries.push(#sails_path::meta::ExtendedInterface {
                     name: #name_lit,
-                    interface_id32: <#base_type_no_lifetimes as #sails_path::meta::ServiceMeta>::INTERFACE_ID32,
-                    interface_uid64: <#base_type_no_lifetimes as #sails_path::meta::ServiceMeta>::INTERFACE_UID64,
+                    interface_id: <#base_type_no_lifetimes as #sails_path::meta::ServiceMeta>::INTERFACE_ID,
                 });
             }
         });
@@ -283,8 +278,7 @@ impl ServiceBuilder<'_> {
 
                 pub const COMMAND_ENTRY_IDS: &[u16] = &[ #( #command_entry_id_literals ),* ];
                 pub const QUERY_ENTRY_IDS: &[u16] = &[ #( #query_entry_id_literals ),* ];
-                pub const INTERFACE_ID32: u32 = #interface_id32_lit;
-                pub const INTERFACE_UID64: u64 = #interface_uid64_lit;
+                pub const INTERFACE_ID: u64 = #interface_id_lit;
                 pub const CANONICAL_BYTES: &[u8] = &[ #( #canonical_byte_literals ),* ];
                 pub const EXTENDS: &[#sails_path::meta::ExtendedInterface] = &[ #( #extends_entries ),* ];
 
@@ -297,8 +291,8 @@ impl ServiceBuilder<'_> {
                 }
 
                 #[cfg(all(feature = "std", not(target_arch = "wasm32")))]
-                fn canonical_cache() -> &'static (&'static [u8], u32, u64) {
-                    static CACHE: #sails_path::spin::Once<(&'static [u8], u32, u64)> =
+                fn canonical_cache() -> &'static (&'static [u8], u64) {
+                    static CACHE: #sails_path::spin::Once<(&'static [u8], u64)> =
                         #sails_path::spin::Once::new();
                     CACHE.call_once(|| {
                         let document = #sails_path::interface_id::runtime::build_canonical_document::<#service_type_path>()
@@ -306,16 +300,16 @@ impl ServiceBuilder<'_> {
                         let bytes = document
                             .to_bytes()
                             .expect("canonical document serialization should succeed");
-                        let (id32, uid64) = #sails_path::interface_id::compute_ids_from_bytes(&bytes);
+                        let id = #sails_path::interface_id::compute_ids_from_bytes(&bytes);
                         let leaked = #sails_path::boxed::Box::leak(bytes.into_boxed_slice());
-                        (leaked as &'static [u8], id32, uid64)
+                        (leaked as &'static [u8], id)
                     })
                 }
 
                 pub fn canonical_service() -> &'static [u8] {
                     #[cfg(all(feature = "std", not(target_arch = "wasm32")))]
                     {
-                        let (bytes, _, _) = *canonical_cache();
+                        let (bytes, _) = *canonical_cache();
                         bytes
                     }
                     #[cfg(not(all(feature = "std", not(target_arch = "wasm32"))))]
@@ -324,27 +318,15 @@ impl ServiceBuilder<'_> {
                     }
                 }
 
-                pub fn interface_id32() -> u32 {
+                pub fn interface_id() -> u64 {
                     #[cfg(all(feature = "std", not(target_arch = "wasm32")))]
                     {
-                        let (_, id32, _) = *canonical_cache();
-                        id32
+                        let (_, id) = *canonical_cache();
+                        id
                     }
                     #[cfg(not(all(feature = "std", not(target_arch = "wasm32"))))]
                     {
-                        INTERFACE_ID32
-                    }
-                }
-
-                pub fn interface_uid64() -> u64 {
-                    #[cfg(all(feature = "std", not(target_arch = "wasm32")))]
-                    {
-                        let (_, _, uid64) = *canonical_cache();
-                        uid64
-                    }
-                    #[cfg(not(all(feature = "std", not(target_arch = "wasm32"))))]
-                    {
-                        INTERFACE_UID64
+                        INTERFACE_ID
                     }
                 }
 

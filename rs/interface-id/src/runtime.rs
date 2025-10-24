@@ -317,18 +317,16 @@ fn build_service(
                 services: single_services,
                 types: BTreeMap::new(),
             };
-            let (interface_id32, interface_uid64) = compute_ids_from_document(&single_doc);
+            let interface_id = compute_ids_from_document(&single_doc);
             extends.push(CanonicalExtendedInterface {
                 name: base_name,
-                interface_id32,
-                interface_uid64,
+                interface_id,
                 service: Some(Box::new(base_service.clone())),
             });
         } else if let Some(ext) = extends_meta.get(&base_name) {
             extends.push(CanonicalExtendedInterface {
                 name: base_name,
-                interface_id32: ext.interface_id32,
-                interface_uid64: ext.interface_uid64,
+                interface_id: ext.interface_id,
                 service: None,
             });
         } else {
@@ -563,13 +561,11 @@ mod tests {
     static ROOT_EXTENDS: [ExtendedInterface; 0] = [];
     static BASE_EXTENDS: [ExtendedInterface; 1] = [ExtendedInterface {
         name: ROOT_INTERFACE_PATH,
-        interface_id32: 0,
-        interface_uid64: 0,
+        interface_id: 0,
     }];
     static DERIVED_EXTENDS: [ExtendedInterface; 1] = [ExtendedInterface {
         name: BASE_INTERFACE_PATH,
-        interface_id32: 0,
-        interface_uid64: 0,
+        interface_id: 0,
     }];
 
     #[derive(TypeInfo)]
@@ -710,7 +706,7 @@ mod tests {
         );
 
         assert!(
-            base_ext.interface_id32 != 0,
+            base_ext.interface_id != 0,
             "interface id should be derived from canonical document"
         );
         let base_service = base_ext

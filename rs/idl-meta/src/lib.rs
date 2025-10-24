@@ -6,8 +6,7 @@ pub type AnyServiceMetaFn = fn() -> AnyServiceMeta;
 
 pub struct ExtendedInterface {
     pub name: &'static str,
-    pub interface_id32: u32,
-    pub interface_uid64: u64,
+    pub interface_id: u64,
 }
 
 pub trait ServiceMeta {
@@ -17,8 +16,7 @@ pub trait ServiceMeta {
     const BASE_SERVICES: &'static [AnyServiceMetaFn];
     const ASYNC: bool;
     const INTERFACE_PATH: &'static str;
-    const INTERFACE_ID32: u32 = 0;
-    const INTERFACE_UID64: u64 = 0;
+    const INTERFACE_ID: u64 = 0;
     const EXTENDS: &'static [ExtendedInterface] = &[];
 
     fn commands() -> MetaType {
@@ -80,8 +78,7 @@ pub struct AnyServiceMeta {
     events: MetaType,
     base_services: Vec<AnyServiceMeta>,
     interface_path: &'static str,
-    interface_id32: u32,
-    interface_uid64: u64,
+    interface_id: u64,
     extends: &'static [ExtendedInterface],
     command_entry_ids: Vec<u16>,
     query_entry_ids: Vec<u16>,
@@ -100,8 +97,7 @@ impl AnyServiceMeta {
             events: S::events(),
             base_services: S::base_services().collect(),
             interface_path: S::INTERFACE_PATH,
-            interface_id32: S::INTERFACE_ID32,
-            interface_uid64: S::INTERFACE_UID64,
+            interface_id: S::INTERFACE_ID,
             extends: S::extends(),
             command_entry_ids: S::command_entry_ids(),
             query_entry_ids: S::query_entry_ids(),
@@ -133,12 +129,8 @@ impl AnyServiceMeta {
         self.interface_path
     }
 
-    pub fn interface_id32(&self) -> u32 {
-        self.interface_id32
-    }
-
-    pub fn interface_uid64(&self) -> u64 {
-        self.interface_uid64
+    pub fn interface_id(&self) -> u64 {
+        self.interface_id
     }
 
     pub fn extends(&self) -> &'static [ExtendedInterface] {

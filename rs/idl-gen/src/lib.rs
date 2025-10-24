@@ -100,15 +100,14 @@ fn render_idl(program_meta: &ExpandedProgramMeta, idl_writer: impl Write) -> Res
 }
 
 fn build_service_idl_data<'a>(service: &'a ExpandedServiceMeta) -> ServiceIdlData<'a> {
-    let (interface_id32, interface_uid64) = compute_ids_from_bytes(service.canonical_bytes());
+    let interface_id = compute_ids_from_bytes(service.canonical_bytes());
 
     let extends = service
         .extends()
         .iter()
         .map(|ext| ExtendsIdlData {
             name: ext.name.as_str(),
-            interface_id32: ext.interface_id32,
-            interface_uid64: ext.interface_uid64,
+            interface_id: ext.interface_id,
         })
         .collect();
 
@@ -145,8 +144,7 @@ fn build_service_idl_data<'a>(service: &'a ExpandedServiceMeta) -> ServiceIdlDat
 
     ServiceIdlData {
         name: service.name(),
-        interface_id32,
-        interface_uid64,
+        interface_id,
         extends,
         commands,
         queries,
@@ -182,8 +180,7 @@ struct ProgramIdlData<'a> {
 #[derive(Serialize)]
 struct ServiceIdlData<'a> {
     name: &'a str,
-    interface_id32: u32,
-    interface_uid64: u64,
+    interface_id: u64,
     extends: Vec<ExtendsIdlData<'a>>,
     commands: Vec<FuncIdlData<'a>>,
     queries: Vec<FuncIdlData<'a>>,
@@ -193,8 +190,7 @@ struct ServiceIdlData<'a> {
 #[derive(Serialize)]
 struct ExtendsIdlData<'a> {
     name: &'a str,
-    interface_id32: u32,
-    interface_uid64: u64,
+    interface_id: u64,
 }
 
 handlebars_helper!(deref: |v: String| { v });

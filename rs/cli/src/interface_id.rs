@@ -63,12 +63,8 @@ pub fn derive_ids(input: &Path) -> Result<()> {
 
     if canonical.services.is_empty() {
         let bytes = canonical.to_bytes()?;
-        let (id32, uid64) = compute_ids_from_bytes(&bytes);
-        println!(
-            "document -> interface_id32=0x{ID32:08x} interface_uid64=0x{UID64:016x}",
-            ID32 = id32,
-            UID64 = uid64
-        );
+        let id = compute_ids_from_bytes(&bytes);
+        println!("document -> interface_id=0x{ID:016x}", ID = id);
         return Ok(());
     }
 
@@ -82,9 +78,9 @@ pub fn derive_ids(input: &Path) -> Result<()> {
             services: single_services,
             types: canonical.types.clone(),
         };
-        let (id32, uid64) = if let Some((maybe_id32, maybe_uid64)) = overrides.get(name) {
-            match (maybe_id32, maybe_uid64) {
-                (Some(id32), Some(uid64)) => (*id32, *uid64),
+        let id = if let Some(maybe_id) = overrides.get(name) {
+            match maybe_id {
+                Some(id) => *id,
                 _ => {
                     let bytes = single.to_bytes()?;
                     compute_ids_from_bytes(&bytes)
@@ -94,12 +90,7 @@ pub fn derive_ids(input: &Path) -> Result<()> {
             let bytes = single.to_bytes()?;
             compute_ids_from_bytes(&bytes)
         };
-        println!(
-            "{} -> interface_id32=0x{ID32:08x} interface_uid64=0x{UID64:016x}",
-            name,
-            ID32 = id32,
-            UID64 = uid64
-        );
+        println!("{} -> interface_id=0x{ID:016x}", name, ID = id);
     }
 
     Ok(())
@@ -117,12 +108,8 @@ pub fn derive_ids_for_manifest(manifest: &Path) -> Result<()> {
     let canonical = CanonicalDocument::from_json_str(&canonical_str)?;
 
     if canonical.services.is_empty() {
-        let (id32, uid64) = compute_ids_from_bytes(&canonical_bytes);
-        println!(
-            "document -> interface_id32=0x{ID32:08x} interface_uid64=0x{UID64:016x}",
-            ID32 = id32,
-            UID64 = uid64
-        );
+        let id = compute_ids_from_bytes(&canonical_bytes);
+        println!("document -> interface_id=0x{ID:016x}", ID = id);
         return Ok(());
     }
 
@@ -137,19 +124,14 @@ pub fn derive_ids_for_manifest(manifest: &Path) -> Result<()> {
             types: canonical.types.clone(),
         };
         let bytes = single.to_bytes()?;
-        let (id32, uid64) = compute_ids_from_bytes(&bytes);
-        println!(
-            "{} -> interface_id32=0x{ID32:08x} interface_uid64=0x{UID64:016x}",
-            name,
-            ID32 = id32,
-            UID64 = uid64
-        );
+        let id = compute_ids_from_bytes(&bytes);
+        println!("{} -> interface_id=0x{ID:016x}", name, ID = id);
     }
 
     Ok(())
 }
 
-fn collect_interface_ids(input: &str) -> BTreeMap<String, (Option<u32>, Option<u64>)> {
+fn collect_interface_ids(input: &str) -> BTreeMap<String, Option<u64>> {
     let mut ids = BTreeMap::new();
     let mut current_service: Option<String> = None;
     let mut brace_depth: i32 = 0;
@@ -162,7 +144,7 @@ fn collect_interface_ids(input: &str) -> BTreeMap<String, (Option<u32>, Option<u
                 let raw_name = rest.split_whitespace().next().unwrap_or_default();
                 let name = raw_name.trim_end_matches('{').trim_end_matches(';');
                 if !name.is_empty() {
-                    ids.entry(name.to_owned()).or_insert((None, None));
+                    ids.entry(name.to_owned()).or_insert(None);
                     current_service = Some(name.to_owned());
                     brace_depth = count_brace_delta(trimmed);
                     continue;
@@ -175,10 +157,8 @@ fn collect_interface_ids(input: &str) -> BTreeMap<String, (Option<u32>, Option<u
             if let Some(rest) = trimmed.strip_prefix("///") {
                 if let Some(entry) = ids.get_mut(service) {
                     let comment = rest.trim();
-                    if let Some(value) = comment.strip_prefix("!@interface_id32") {
-                        entry.0 = parse_u32(value);
-                    } else if let Some(value) = comment.strip_prefix("!@interface_uid64") {
-                        entry.1 = parse_u64(value);
+                    if let Some(value) = comment.strip_prefix("!@interface_id") {
+                        *entry = parse_u64(value);
                     }
                 }
             }

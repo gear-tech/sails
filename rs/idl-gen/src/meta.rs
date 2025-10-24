@@ -50,8 +50,7 @@ struct EventMeta {
 
 pub(crate) struct ExtendedInterfaceMeta {
     pub name: String,
-    pub interface_id32: u32,
-    pub interface_uid64: u64,
+    pub interface_id: u64,
 }
 
 pub(crate) struct ExpandedProgramMeta {
@@ -118,8 +117,7 @@ impl ExpandedProgramMeta {
                     .iter()
                     .map(|ext| ExtendedInterfaceMeta {
                         name: ext.name.clone(),
-                        interface_id32: ext.interface_id32,
-                        interface_uid64: ext.interface_uid64,
+                        interface_id: ext.interface_id,
                     })
                     .collect::<Vec<_>>();
 

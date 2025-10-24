@@ -140,8 +140,7 @@ pub struct CanonicalEvent {
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct CanonicalExtendedInterface {
     pub name: String,
-    pub interface_id32: u32,
-    pub interface_uid64: u64,
+    pub interface_id: u64,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub service: Option<Box<CanonicalService>>,
 }
@@ -798,8 +797,7 @@ fn parse_extends_entry(comment: &str) -> Option<CanonicalExtendedInterface> {
 
     Some(CanonicalExtendedInterface {
         name,
-        interface_id32: 0,
-        interface_uid64: 0,
+        interface_id: 0,
         service: None,
     })
 }

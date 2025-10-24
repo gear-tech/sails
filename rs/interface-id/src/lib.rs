@@ -54,8 +54,7 @@ pub struct EventEntry {
 #[derive(Debug, Clone, Serialize, PartialEq, Eq)]
 pub struct ExtendedInterfaceDescriptor {
     pub name: String,
-    pub interface_id32: u32,
-    pub interface_uid64: u64,
+    pub interface_id: u64,
 }
 
 /// Collection of interface signatures that represent a concrete service and
@@ -98,8 +97,8 @@ impl InterfaceDescriptorSet {
     }
 }
 
-/// Computes the `(interface_id32, interface_uid64)` pair using a canonical hash.
-pub fn compute_ids(descriptor: &InterfaceDescriptor) -> (u32, u64) {
+/// Computes the 64-bit interface_id using a canonical hash.
+pub fn compute_ids(descriptor: &InterfaceDescriptor) -> u64 {
     let value =
         to_value(descriptor).expect("serializing interface descriptor to value should succeed");
     let canonical =
@@ -107,21 +106,19 @@ pub fn compute_ids(descriptor: &InterfaceDescriptor) -> (u32, u64) {
     compute_ids_from_bytes(&canonical)
 }
 
-/// Computes interface identifiers from a [`canonical::CanonicalDocument`].
-pub fn compute_ids_from_document(doc: &canonical::CanonicalDocument) -> (u32, u64) {
+/// Computes the 64-bit interface_id from a [`canonical::CanonicalDocument`].
+pub fn compute_ids_from_document(doc: &canonical::CanonicalDocument) -> u64 {
     let bytes = doc
         .to_bytes()
         .expect("serializing canonical document should succeed");
     compute_ids_from_bytes(&bytes)
 }
 
-/// Computes interface identifiers from canonical bytes.
-pub fn compute_ids_from_bytes(bytes: &[u8]) -> (u32, u64) {
+/// Computes the 64-bit interface_id from canonical bytes.
+pub fn compute_ids_from_bytes(bytes: &[u8]) -> u64 {
     let digest = compute_interface_hash(bytes);
     let bytes = digest.as_bytes();
-    let interface_id32 = u32::from_le_bytes(bytes[0..4].try_into().unwrap());
-    let interface_uid64 = u64::from_le_bytes(bytes[0..8].try_into().unwrap());
-    (interface_id32, interface_uid64)
+    u64::from_le_bytes(bytes[0..8].try_into().unwrap())
 }
 
 /// Computes the full interface hash (BLAKE3-256) using the canonical domain separator.
@@ -165,8 +162,7 @@ mod tests {
         let mut descriptor = InterfaceDescriptor::new("example::Service");
         descriptor.extends.push(ExtendedInterfaceDescriptor {
             name: "ParentA".to_owned(),
-            interface_id32: 0x1234_5678,
-            interface_uid64: 0xabcdef01_2345_6789,
+            interface_id: 0xabcdef01_2345_6789,
         });
         descriptor.commands.push(FunctionEntry {
             name: "DoSomething".to_owned(),
@@ -180,12 +176,10 @@ mod tests {
             name: "Occurred".to_owned(),
             entry_id: 1,
         });
-        let (id32_a, uid64_a) = compute_ids(&descriptor);
-        let (id32_b, uid64_b) = compute_ids(&descriptor);
-        assert_eq!(id32_a, id32_b);
-        assert_eq!(uid64_a, uid64_b);
-        assert_ne!(id32_a, 0);
-        assert_ne!(uid64_a, 0);
+        let id_a = compute_ids(&descriptor);
+        let id_b = compute_ids(&descriptor);
+        assert_eq!(id_a, id_b);
+        assert_ne!(id_a, 0);
     }
 
     #[test]
@@ -279,10 +273,9 @@ mod tests {
 
         document.services.insert(service.name.clone(), service);
 
-        let (id32_doc, uid64_doc) = super::compute_ids_from_document(&document);
+        let id_doc = super::compute_ids_from_document(&document);
         let bytes = document.to_bytes().unwrap();
-        let (id32_bytes, uid64_bytes) = super::compute_ids_from_bytes(&bytes);
-        assert_eq!(id32_doc, id32_bytes);
-        assert_eq!(uid64_doc, uid64_bytes);
+        let id_bytes = super::compute_ids_from_bytes(&bytes);
+        assert_eq!(id_doc, id_bytes);
     }
 }

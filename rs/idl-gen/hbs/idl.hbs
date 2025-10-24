@@ -17,12 +17,11 @@ constructor {
 {{/if}}
 {{#each services}}
 service {{#if name}}{{name}} {{/if}}{
-  /// !@interface_id32 = {{hex32 interface_id32}}
-  /// !@interface_uid64 = {{hex64 interface_uid64}}
+  /// !@interface_id = {{hex64 interface_id}}
 {{#if (len extends)}}
   /// !@extends
   {{#each extends}}
-  ///   {{name}} (interface_id32={{hex32 interface_id32}}, interface_uid64={{hex64 interface_uid64}})
+  ///   {{name}} (interface_id={{hex64 interface_id}})
   {{/each}}
 {{/if}}
 {{#each commands}}
