@@ -189,7 +189,7 @@ pub enum CanonicalType {
 /// Canonical representation of a struct field.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct CanonicalStructField {
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(skip_serializing, default)]
     pub name: Option<String>,
     #[serde(rename = "type")]
     pub ty: CanonicalType,
@@ -340,13 +340,36 @@ impl CanonicalService {
         for function in &mut self.functions {
             function.normalize();
         }
-        self.functions
-            .sort_by(|a, b| a.kind.cmp(&b.kind).then_with(|| a.name.cmp(&b.name)));
+        // Sort by name only (lexicographic), tie-break by canonical signature
+        self.functions.sort_by(|a, b| {
+            a.name.cmp(&b.name).then_with(|| {
+                // Build canonical signature for tie-breaking
+                let sig_a = canonical_function_signature(a);
+                let sig_b = canonical_function_signature(b);
+                sig_a.cmp(&sig_b)
+            })
+        });
         for event in &mut self.events {
             event.normalize();
         }
         self.events.sort_by(|a, b| a.name.cmp(&b.name));
     }
+}
+
+/// Build a canonical signature string for a function (used for tie-breaking when names match).
+fn canonical_function_signature(func: &CanonicalFunction) -> String {
+    let kind_str = match func.kind {
+        FunctionKind::Command => "command",
+        FunctionKind::Query => "query",
+    };
+    let params = func
+        .params
+        .iter()
+        .map(|p| p.ty.to_signature_string())
+        .collect::<Vec<_>>()
+        .join(", ");
+    let returns = func.returns.to_signature_string();
+    format!("{kind_str} {}({params}) -> {returns}", func.name)
 }
 
 impl CanonicalFunction {
@@ -445,13 +468,7 @@ impl CanonicalType {
             CanonicalType::Struct { fields } => {
                 let inner = fields
                     .iter()
-                    .map(|field| {
-                        let ty = field.ty.to_signature_string();
-                        match &field.name {
-                            Some(name) => format!("{name}: {ty}"),
-                            None => ty,
-                        }
-                    })
+                    .map(|field| field.ty.to_signature_string())
                     .collect::<Vec<_>>()
                     .join(", ");
                 format!("struct {{{inner}}}")
@@ -1015,5 +1032,206 @@ mod tests {
             !json_str.contains("\"num\""),
             "parameter name 'num' should not be in canonical JSON"
         );
+    }
+
+    #[test]
+    fn functions_tie_break_by_signature_when_names_match() {
+        // When function names are identical, tie-break by canonical signature
+        let service = json!({
+            "canon_schema": CANONICAL_SCHEMA,
+            "canon_version": CANONICAL_VERSION,
+            "hash": {
+                "algo": CANONICAL_HASH_ALGO,
+                "domain": crate::INTERFACE_HASH_DOMAIN_STR,
+            },
+            "services": {
+                "TestService": {
+                    "name": "TestService",
+                    "extends": [],
+                    "functions": [
+                        {
+                            "kind": "command",
+                            "name": "Process",
+                            "params": [{"type": {"kind": "primitive", "name": "u64"}}],
+                            "returns": {"kind": "unit"},
+                            "entry_id_override": 2
+                        },
+                        {
+                            "kind": "query",
+                            "name": "Process",
+                            "params": [{"type": {"kind": "primitive", "name": "u32"}}],
+                            "returns": {"kind": "unit"},
+                            "entry_id_override": 1
+                        }
+                    ],
+                    "events": []
+                }
+            },
+            "types": {}
+        });
+
+        let doc = CanonicalDocument::from_value(service).expect("valid document");
+        let functions = &doc.services["TestService"].functions;
+
+        // Both named "Process" - should be sorted by signature
+        assert_eq!(functions.len(), 2);
+        assert_eq!(functions[0].name, "Process");
+        assert_eq!(functions[1].name, "Process");
+
+        // Verify they're sorted deterministically (by signature)
+        // The exact order depends on signature comparison, but should be stable
+        let sig0 = canonical_function_signature(&functions[0]);
+        let sig1 = canonical_function_signature(&functions[1]);
+        assert!(
+            sig0 < sig1,
+            "Functions with same name should be ordered by signature"
+        );
+    }
+
+    #[test]
+    fn struct_field_names_do_not_affect_hash() {
+        // Struct field names should be excluded like parameter names
+        let service1 = json!({
+            "canon_schema": CANONICAL_SCHEMA,
+            "canon_version": CANONICAL_VERSION,
+            "hash": {
+                "algo": CANONICAL_HASH_ALGO,
+                "domain": crate::INTERFACE_HASH_DOMAIN_STR,
+            },
+            "services": {
+                "TestService": {
+                    "name": "TestService",
+                    "extends": [],
+                    "functions": [{
+                        "kind": "command",
+                        "name": "Process",
+                        "params": [],
+                        "returns": {
+                            "kind": "struct",
+                            "fields": [
+                                {
+                                    "name": "x",
+                                    "type": {"kind": "primitive", "name": "u32"}
+                                },
+                                {
+                                    "name": "y",
+                                    "type": {"kind": "primitive", "name": "u64"}
+                                }
+                            ]
+                        },
+                        "entry_id_override": 1
+                    }],
+                    "events": []
+                }
+            },
+            "types": {}
+        });
+
+        let service2 = json!({
+            "canon_schema": CANONICAL_SCHEMA,
+            "canon_version": CANONICAL_VERSION,
+            "hash": {
+                "algo": CANONICAL_HASH_ALGO,
+                "domain": crate::INTERFACE_HASH_DOMAIN_STR,
+            },
+            "services": {
+                "TestService": {
+                    "name": "TestService",
+                    "extends": [],
+                    "functions": [{
+                        "kind": "command",
+                        "name": "Process",
+                        "params": [],
+                        "returns": {
+                            "kind": "struct",
+                            "fields": [
+                                {
+                                    "name": "latitude",
+                                    "type": {"kind": "primitive", "name": "u32"}
+                                },
+                                {
+                                    "name": "longitude",
+                                    "type": {"kind": "primitive", "name": "u64"}
+                                }
+                            ]
+                        },
+                        "entry_id_override": 1
+                    }],
+                    "events": []
+                }
+            },
+            "types": {}
+        });
+
+        let doc1 = CanonicalDocument::from_value(service1).expect("valid document");
+        let doc2 = CanonicalDocument::from_value(service2).expect("valid document");
+
+        let bytes1 = doc1.to_bytes().expect("serialization");
+        let bytes2 = doc2.to_bytes().expect("serialization");
+
+        // The canonical bytes should be identical despite different field names
+        assert_eq!(
+            bytes1, bytes2,
+            "struct field names should not affect canonical hash"
+        );
+
+        // Verify that field names are NOT in the serialized JSON
+        let json_str = String::from_utf8(bytes1).expect("valid utf8");
+        assert!(
+            !json_str.contains("\"x\""),
+            "field name 'x' should not be in canonical JSON"
+        );
+        assert!(
+            !json_str.contains("\"y\""),
+            "field name 'y' should not be in canonical JSON"
+        );
+        assert!(
+            !json_str.contains("\"latitude\""),
+            "field name 'latitude' should not be in canonical JSON"
+        );
+        assert!(
+            !json_str.contains("\"longitude\""),
+            "field name 'longitude' should not be in canonical JSON"
+        );
+    }
+
+    #[test]
+    fn struct_signature_excludes_field_names() {
+        // Struct signature should only include types, not field names
+        let struct_type = CanonicalType::Struct {
+            fields: vec![
+                CanonicalStructField {
+                    name: Some("user_id".to_string()),
+                    ty: CanonicalType::Primitive {
+                        name: "u32".to_string(),
+                    },
+                },
+                CanonicalStructField {
+                    name: Some("user_name".to_string()),
+                    ty: CanonicalType::Primitive {
+                        name: "str".to_string(),
+                    },
+                },
+            ],
+        };
+
+        let signature = struct_type.to_signature_string();
+
+        // Should not contain field names
+        assert!(
+            !signature.contains("user_id"),
+            "signature should not contain field names"
+        );
+        assert!(
+            !signature.contains("user_name"),
+            "signature should not contain field names"
+        );
+
+        // Should contain types
+        assert!(signature.contains("u32"), "signature should contain types");
+        assert!(signature.contains("str"), "signature should contain types");
+
+        // Expected format: "struct {u32, str}"
+        assert_eq!(signature, "struct {u32, str}");
     }
 }

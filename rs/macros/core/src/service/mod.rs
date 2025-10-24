@@ -9,7 +9,10 @@ use convert_case::{Case, Casing};
 use proc_macro_error::abort;
 use proc_macro2::{Literal, Span, TokenStream};
 use quote::quote;
-use std::collections::{BTreeMap, BTreeSet};
+use std::{
+    cmp::Ordering,
+    collections::{BTreeMap, BTreeSet},
+};
 use syn::{Generics, Ident, ItemImpl, Path, Type, TypePath, Visibility, WhereClause};
 
 mod args;
@@ -188,9 +191,33 @@ fn discover_service_handlers<'a>(
     .filter(|fn_builder| fn_builder.export)
     .collect::<Vec<_>>();
 
+    handlers.sort_by(|a, b| {
+        let name_cmp = a.route.cmp(&b.route);
+        if name_cmp != Ordering::Equal {
+            return name_cmp;
+        }
+        handler_sort_key(a).cmp(&handler_sort_key(b))
+    });
+
     assign_default_entry_ids(&mut handlers);
     ensure_unique_entry_ids(&handlers);
     handlers
+}
+
+fn handler_sort_key(handler: &FnBuilder<'_>) -> String {
+    let params = handler
+        .params()
+        .map(|(_, ty)| quote!(#ty).to_string())
+        .collect::<Vec<_>>()
+        .join(",");
+    let result_ty = handler.result_type_with_static_lifetime();
+    let result = quote!(#result_ty).to_string();
+    let kind = if handler.is_query() {
+        "query"
+    } else {
+        "command"
+    };
+    format!("{kind}|{params}|{result}")
 }
 
 fn assign_default_entry_ids(handlers: &mut [FnBuilder<'_>]) {

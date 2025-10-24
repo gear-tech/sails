@@ -77,23 +77,33 @@ type ThatParam = struct {
 };
 
 service {
+  /// !@interface_id32 = 0x99b4b35f
+  /// !@interface_uid64 = 0x7e38f41399b4b35f
   /// Some description
+  /// !@entry_id = 0x0001
   DoThis : (p1: u32, p2: str, p3: struct { opt str, u8 }, p4: TupleStruct, p5: GenericStructForH256, p6: GenericStructForStr, p7: GenericConstStruct1, p8: GenericConstStruct2) -> str;
   /// Some multiline description
   /// Second line
   /// Third line
+  /// !@entry_id = 0x0002
   DoThat : (par1: DoThatParam) -> result (struct { str, u32 }, struct { str });
+  /// !@entry_id = 0x0002
   DoThatBase : (p1: str) -> str;
   /// This is a query
+  /// !@entry_id = 0x0001
   query This : (p1: u32, p2: str, p3: struct { opt str, u8 }, p4: TupleStruct, p5: GenericEnumForBoolAndU32) -> result (struct { str, u32 }, str);
   /// This is a second query
   /// This is a second line
+  /// !@entry_id = 0x0002
   query That : (pr1: ThatParam) -> str;
+  /// !@entry_id = 0x0001
   query ThisBase : (p1: u16) -> u16;
 
   events {
     /// `This` Done
+    /// !@entry_id = 0x0001
     ThisDone: u32;
+    /// !@entry_id = 0x0002
     ThisDoneTwice: struct {
       /// This is the first unnamed field
       u32,
@@ -101,11 +111,14 @@ service {
       u32,
     };
     /// `That` Done too
+    /// !@entry_id = 0x0003
     ThatDone: struct {
       /// This is `p1` field
       p1: str
     };
+    /// !@entry_id = 0x0001
     ThisDoneBase: u32;
+    /// !@entry_id = 0x0002
     ThatDoneBase: struct {
       p1: u16
     };
