@@ -133,11 +133,10 @@ pub fn derive_sails_event(input: TokenStream) -> TokenStream {
 }
 
 fn extract_event_entry_ids(input: &mut ItemEnum) -> Vec<u16> {
-    let mut codes = Vec::new();
-    let mut seen = BTreeSet::new();
-    let mut next: u16 = 1;
+    // Collect variant info: (original_index, name, explicit_code)
+    let mut variant_info: Vec<(usize, String, Option<u16>)> = Vec::new();
 
-    for variant in &mut input.variants {
+    for (idx, variant) in input.variants.iter_mut().enumerate() {
         let mut code_attr = None;
         let mut retained_attrs = Vec::new();
 
@@ -153,27 +152,52 @@ fn extract_event_entry_ids(input: &mut ItemEnum) -> Vec<u16> {
         }
 
         variant.attrs = retained_attrs;
+        variant_info.push((idx, variant.ident.to_string(), code_attr));
+    }
 
-        let code = code_attr.unwrap_or_else(|| {
+    // Sort by name (lexicographic)
+    variant_info.sort_by(|a, b| a.1.cmp(&b.1));
+
+    // Assign entry IDs in sorted order
+    let mut codes_by_index = vec![0u16; variant_info.len()];
+    let mut seen = BTreeSet::new();
+    let mut next: u16 = 1;
+
+    // First, collect all explicitly assigned codes
+    for (_, _, code_attr) in &variant_info {
+        if let Some(code) = code_attr {
+            if !seen.insert(*code) {
+                // This will be caught in the second loop with proper error location
+            }
+        }
+    }
+
+    // Now assign codes in sorted name order
+    for (original_idx, _name, code_attr) in variant_info {
+        let code = if let Some(explicit_code) = code_attr {
+            // Check for duplicates
+            if seen.iter().filter(|&&c| c == explicit_code).count() > 1 {
+                abort!(
+                    input.variants[original_idx],
+                    "duplicate `event_code` value `{explicit_code}` within event enum"
+                );
+            }
+            explicit_code
+        } else {
+            // Auto-assign next available ID
             while seen.contains(&next) {
                 next = next.wrapping_add(1);
             }
             let value = next;
+            seen.insert(value);
             next = next.wrapping_add(1);
             value
-        });
+        };
 
-        if !seen.insert(code) {
-            abort!(
-                variant,
-                "duplicate `event_code` value `{code}` within event enum"
-            );
-        }
-
-        codes.push(code);
+        codes_by_index[original_idx] = code;
     }
 
-    codes
+    codes_by_index
 }
 
 fn parse_event_code(attr: &Attribute) -> u16 {
