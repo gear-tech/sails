@@ -11,6 +11,7 @@ mod meta;
 mod type_names;
 
 // todo [sab] generics?
+// todo [sab] return back variants and composte hbs
 // todo [sab] add global annotations
 
 // todo [sab] discuss extends section

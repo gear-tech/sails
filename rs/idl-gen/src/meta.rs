@@ -19,10 +19,7 @@
 //! Struct describing the types of a service comprised of command and query handlers.
 
 use crate::{
-    FunctionArgumentIdl, FunctionIdl, FunctionResultIdl, FunctionsSection, ProgramIdlSection,
-    ServiceSection,
-    errors::{Error, Result},
-    type_names::{self, ResultTypeName},
+    errors::{Error, Result}, type_names::{self, ResultTypeName, TypeRegistryId}, FunctionArgumentIdl, FunctionIdl, FunctionResultIdl, FunctionsSection, ProgramIdlSection, ServiceSection
 };
 use gprimitives::*;
 use sails_idl_meta::*;
@@ -30,9 +27,8 @@ use scale_info::{
     Field, MetaType, PortableRegistry, PortableType, Registry, TypeDef, Variant, form::PortableForm,
 };
 use std::{
-    collections::HashSet,
-    mem,
-    num::{NonZeroU8, NonZeroU16, NonZeroU32, NonZeroU64, NonZeroU128},
+    collections::{BTreeMap, HashSet},
+    num::{NonZeroU128, NonZeroU16, NonZeroU32, NonZeroU64, NonZeroU8},
 };
 
 #[derive(Debug)]
@@ -47,158 +43,17 @@ pub(crate) struct ExpandedProgramMeta2 {
     services: Vec<ServiceSection>,
 }
 
-struct ProgramMetaRegistry {
-    portable_registry: PortableRegistry,
+struct IdlTypesRegistry {
     non_type_section_ids: HashSet<u32>,
-    ctor_fns: Vec<FunctionIdl>,
-}
-
-impl ProgramMetaRegistry {
-    fn new(ctors: MetaType) -> Result<Self> {
-        let mut registry = Registry::new();
-
-        let mut non_type_section_ids = registry
-            .register_types([
-                MetaType::new::<ActorId>(),
-                MetaType::new::<CodeId>(),
-                MetaType::new::<MessageId>(),
-                MetaType::new::<H160>(),
-                MetaType::new::<H256>(),
-                MetaType::new::<U256>(),
-                MetaType::new::<NonZeroU8>(),
-                MetaType::new::<NonZeroU16>(),
-                MetaType::new::<NonZeroU32>(),
-                MetaType::new::<NonZeroU64>(),
-                MetaType::new::<NonZeroU128>(),
-                MetaType::new::<NonZeroU256>(),
-            ])
-            .into_iter()
-            .map(|t| t.id)
-            .collect::<HashSet<_>>();
-
-        let ctors_type_id = registry.register_type(&ctors).id;
-        non_type_section_ids.insert(ctors_type_id);
-
-        let portable_registry = PortableRegistry::from(registry);
-        let ctor_fns = Self::constructor_functions(
-            &mut non_type_section_ids,
-            &portable_registry,
-            ctors_type_id,
-        )?;
-
-        Ok(Self {
-            portable_registry,
-            non_type_section_ids,
-            ctor_fns,
-        })
-    }
-
-    fn constructor_functions(
-        non_type_section_ids: &mut HashSet<u32>,
-        registry: &PortableRegistry,
-        ctors_type_id: u32,
-    ) -> Result<Vec<FunctionIdl>> {
-        let mut ret = Vec::new();
-
-        let ctors_meta_type = registry
-            .resolve(ctors_type_id)
-            .ok_or(Error::TypeIdIsUnknown(ctors_type_id))?;
-
-        let TypeDef::Variant(ctors_meta_type_def) = &ctors_meta_type.type_def else {
-            return Err(Error::FuncMetaIsInvalid(
-                "Constructors functions wrapper is not a variant".to_string(),
-            ));
-        };
-
-        for constructor_fn_meta in &ctors_meta_type_def.variants {
-            if constructor_fn_meta.fields.len() != 1 {
-                return Err(Error::FuncMetaIsInvalid(format!(
-                    "ctor `{}` has invalid number of fields",
-                    constructor_fn_meta.name
-                )));
-            }
-
-            let ctor_args_type_id = constructor_fn_meta.fields[0].ty.id;
-            non_type_section_ids.insert(ctor_args_type_id);
-
-            let ctor_args_meta = registry
-                .resolve(ctor_args_type_id)
-                .ok_or(Error::TypeIdIsUnknown(ctor_args_type_id))?;
-
-            let TypeDef::Composite(ctor_args_meta_type_def) = &ctor_args_meta.type_def else {
-                return Err(Error::FuncMetaIsInvalid(format!(
-                    "ctor `{}` args type is not a composite",
-                    constructor_fn_meta.name
-                )));
-            };
-
-            let args = ctor_args_meta_type_def
-                .fields
-                .iter()
-                .map(|arg_meta| -> Result<FunctionArgumentIdl> {
-                    let name = arg_meta.name.map(|s| s.to_string()).ok_or_else(|| {
-                        Error::FuncMetaIsInvalid(format!(
-                            "ctor `{}` has nameless argument",
-                            constructor_fn_meta.name
-                        ))
-                    })?;
-
-                    Ok(FunctionArgumentIdl {
-                        name,
-                        ty: arg_meta.ty.id,
-                    })
-                })
-                .collect::<Result<Vec<_>, _>>()?;
-
-            ret.push(FunctionIdl {
-                name: constructor_fn_meta.name.to_string(),
-                args,
-                result_ty: None,
-                docs: constructor_fn_meta
-                    .docs
-                    .iter()
-                    .map(|s| s.to_string())
-                    .collect(),
-            })
-        }
-
-        Ok(ret)
-    }
-
-    fn types(&self) -> Vec<PortableType> {
-        self.portable_registry
-            .types
-            .iter()
-            .filter(|portable_ty| {
-                !portable_ty.ty.path.namespace().is_empty()
-                    && !self.non_type_section_ids.contains(&portable_ty.id)
-            })
-            .cloned()
-            .collect()
-    }
-
-    fn type_names(&self) -> Result<Vec<String>> {
-        type_names::resolve(self.portable_registry.types.iter())
-            .map(|names| names.0.values().cloned().collect())
-    }
-}
-
-struct ServiceMetaRegistry {
-    portable_registry: PortableRegistry,
     unit_type_id: u32,
-    non_type_section_ids: HashSet<u32>,
-    main_commands_type_id: u32,
-    base_commands_type_ids: Vec<u32>,
-    main_queries_type_id: u32,
-    base_queries_type_ids: Vec<u32>,
-    events_type_ids: Vec<u32>,
+    functions_ids: HashSet<u32>,
+    registry: Registry,
 }
 
-impl ServiceMetaRegistry {
-    pub fn new(service_meta: AnyServiceMeta) -> Self {
+impl IdlTypesRegistry {
+    fn new() -> Self {
         let mut registry = Registry::new();
-        let unit_type_id = registry.register_type(&MetaType::new::<()>()).id;
-        let mut non_type_section_ids = registry
+        let non_type_section_ids = registry
             .register_types([
                 MetaType::new::<ActorId>(),
                 MetaType::new::<CodeId>(),
@@ -217,65 +72,36 @@ impl ServiceMetaRegistry {
             .map(|t| t.id)
             .collect::<HashSet<_>>();
 
-        let (main_commands_type_id, base_commands_type_ids) =
-            ServiceMetaRegistry::register_main_and_base(
-                &mut non_type_section_ids,
-                &mut registry,
-                &service_meta,
-                |meta| meta.commands(),
-            );
-        let (main_queries_type_id, base_queries_type_ids) =
-            ServiceMetaRegistry::register_main_and_base(
-                &mut non_type_section_ids,
-                &mut registry,
-                &service_meta,
-                |meta| meta.queries(),
-            );
-        let events_type_ids = {
-            let mut r = Vec::new();
-            let (main_events_type_id, mut base_events_type_ids) =
-                ServiceMetaRegistry::register_main_and_base(
-                    &mut non_type_section_ids,
-                    &mut registry,
-                    &service_meta,
-                    |meta| meta.events(),
-                );
-            r.push(main_events_type_id);
-            r.append(&mut base_events_type_ids);
-
-            r
-        };
+        let unit_type_id = registry.register_type(&MetaType::new::<()>()).id;
 
         Self {
-            portable_registry: PortableRegistry::from(registry),
-            unit_type_id,
+            registry,
             non_type_section_ids,
-            main_commands_type_id,
-            base_commands_type_ids,
-            main_queries_type_id,
-            base_queries_type_ids,
-            events_type_ids,
+            functions_ids: HashSet::new(),
+            unit_type_id,
         }
     }
 
-    fn register_main_and_base(
-        non_type_section_ids: &mut HashSet<u32>,
-        registry: &mut Registry,
-        main: &AnyServiceMeta,
-        f: fn(&AnyServiceMeta) -> &MetaType,
-    ) -> (u32, Vec<u32>) {
-        let mut metas = Self::flat_meta(main, f);
-
-        let main_type_id = registry.register_type(metas.remove(0)).id;
-        non_type_section_ids.insert(main_type_id);
-
-        let base_type_ids = metas
+    fn register_service_meta(&mut self, service_meta: &AnyServiceMeta) -> RegisteredServiceMeta {
+        let commands_type_ids = Self::flat_meta(service_meta, |meta| meta.commands())
             .into_iter()
-            .map(|mt| registry.register_type(mt).id)
-            .collect::<Vec<_>>();
-        non_type_section_ids.extend(base_type_ids.iter());
+            .map(|fn_meta| self.register_function(fn_meta))
+            .collect();
+        let queries_type_ids = Self::flat_meta(service_meta, |meta| meta.queries())
+            .into_iter()
+            .map(|fn_meta| self.register_function(fn_meta))
+            .collect();
+        let events_type_ids = Self::flat_meta(service_meta, |meta| meta.events())
+            .into_iter()
+            .map(|fn_meta| self.register_event(fn_meta))
+            .collect();
 
-        (main_type_id, base_type_ids)
+
+        RegisteredServiceMeta {
+            commands_type_ids,
+            queries_type_ids,
+            events_type_ids,
+        }
     }
 
     fn flat_meta(
@@ -290,6 +116,83 @@ impl ServiceMetaRegistry {
         metas
     }
 
+    fn register_function(&mut self, fn_type: &MetaType) -> u32 {
+        let ret = self.registry.register_type(fn_type).id;
+        self.non_type_section_ids.insert(ret);
+        self.functions_ids.insert(ret);
+
+        ret
+    }
+
+    fn register_event(&mut self, event_type: &MetaType) -> u32 {
+        let ret = self.registry.register_type(event_type).id;
+        self.non_type_section_ids.insert(ret);
+
+        ret
+    }
+}
+
+// TODO: if extensions are implemented, this separation can be useful to distinguish on IDL the owner of fn/event
+struct RegisteredServiceMeta {
+    commands_type_ids: Vec<u32>,
+    queries_type_ids: Vec<u32>,
+    events_type_ids: Vec<u32>,
+}
+
+#[derive(Debug)]
+struct IdlPortableTypesRegistry {
+    portable_registry: PortableRegistry,
+    non_type_section_ids: HashSet<u32>,
+    unit_type_id: u32,
+    concrete_type_names: Vec<String>,
+    generic_type_names: BTreeMap<TypeRegistryId, Option<String>>,
+}
+
+impl TryFrom<IdlTypesRegistry> for IdlPortableTypesRegistry {
+    type Error = Error;
+
+    fn try_from(idl_registry: IdlTypesRegistry) -> Result<Self> {
+        let IdlTypesRegistry {
+            registry,
+            mut non_type_section_ids,
+            functions_ids,
+            unit_type_id,
+        } = idl_registry;
+
+        let portable_registry = PortableRegistry::from(registry);
+
+        // Mark `__*Params` structs of functions as non type section types.
+        for func_type_id in &functions_ids {
+            for fn_meta in Self::fns_meta_iter(&portable_registry, *func_type_id)? {
+                if fn_meta.fields.len() == 0 || fn_meta.fields.len() > 2 {
+                    return Err(Error::FuncMetaIsInvalid(format!(
+                        "function `{}` has invalid signature: expected at least args or/and result",
+                        fn_meta.name
+                    )));
+                }
+
+                let fn_args_type_id = fn_meta.fields[0].ty.id;
+                non_type_section_ids.insert(fn_args_type_id);
+            }
+        }
+
+        let (concrete_type_names, generic_type_names) = type_names::resolve(
+            portable_registry.types.iter(),
+        )?;
+        let concrete_type_names = concrete_type_names.into_iter().map(|(_, name)| name).collect();
+
+        Ok(Self {
+            portable_registry,
+            non_type_section_ids,
+            unit_type_id,
+            concrete_type_names,
+            generic_type_names,
+        })
+    }
+}
+
+impl IdlPortableTypesRegistry {
+    // todo [sab]
     fn types(&self) -> Vec<PortableType> {
         self.portable_registry
             .types
@@ -302,127 +205,51 @@ impl ServiceMetaRegistry {
             .collect()
     }
 
-    fn type_names(&self) -> Result<Vec<String>> {
-        type_names::resolve(self.portable_registry.types.iter())
-            .map(|names| names.0.values().cloned().collect())
+    fn type_names(&self) -> Vec<String> {
+        self.concrete_type_names.clone()
     }
 
-    fn commands_idl_data(&mut self) -> Result<Vec<FunctionIdl>> {
-        let mut command_idl_data = self.function_idl_data(self.main_commands_type_id)?;
-
-        let mut base_commands_type_ids = mem::take(&mut self.base_commands_type_ids);
-        for base_commands_type_id in &base_commands_type_ids {
-            let mut base_commands_idl_data = self.function_idl_data(*base_commands_type_id)?;
-
-            // Override any existing function.
-            // The latest ("most extended") one always generated.
-            base_commands_idl_data.retain(|base_f| {
-                !command_idl_data
-                    .iter()
-                    .any(|existing_f| existing_f.name == base_f.name)
-            });
-
-            command_idl_data.append(&mut base_commands_idl_data);
-        }
-        mem::swap(
-            &mut self.base_commands_type_ids,
-            &mut base_commands_type_ids,
-        );
-
-        Ok(command_idl_data)
-    }
-
-    fn queries_idl_data(&mut self) -> Result<Vec<FunctionIdl>> {
-        let mut query_idl_data = self.function_idl_data(self.main_queries_type_id)?;
-
-        let mut base_queries_type_ids = mem::take(&mut self.base_queries_type_ids);
-        for base_queries_type_id in &base_queries_type_ids {
-            let mut base_queries_idl_data = self.function_idl_data(*base_queries_type_id)?;
-
-            // Override any existing function.
-            // The latest ("most extended") one always generated.
-            base_queries_idl_data.retain(|base_f| {
-                !query_idl_data
-                    .iter()
-                    .any(|existing_f| existing_f.name == base_f.name)
-            });
-
-            query_idl_data.append(&mut base_queries_idl_data);
-        }
-        mem::swap(&mut self.base_queries_type_ids, &mut base_queries_type_ids);
-
-        Ok(query_idl_data)
-    }
-
-    fn events_idl_data(&self) -> Result<Vec<Variant<PortableForm>>> {
-        let mut events = Vec::new();
-
-        for events_type_id in &self.events_type_ids {
-            let events_type = self
-                .portable_registry
-                .resolve(*events_type_id)
-                .ok_or(Error::TypeIdIsUnknown(*events_type_id))?;
-
-            let TypeDef::Variant(ref events_type_def) = events_type.type_def else {
-                return Err(Error::FuncMetaIsInvalid(
-                    "Events type is not a variant".to_string(),
-                ));
-            };
-
-            for event_variant in &events_type_def.variants {
-                // Override any existing event.
-                // The latest ("most extended") one always generated.
-                if events
-                    .iter()
-                    .any(|existing_v: &Variant<PortableForm>| existing_v.name == event_variant.name)
-                {
-                    return Err(Error::EventMetaIsAmbiguous(format!(
-                        "event `{}` is defined multiple times in the service inheritance chain",
-                        event_variant.name
-                    )));
-                }
-
-                events.push(event_variant.clone());
-            }
-        }
-
-        Ok(events)
-    }
-
-    fn function_idl_data(&mut self, functions_type_ids: u32) -> Result<Vec<FunctionIdl>> {
-        let mut ret = Vec::new();
-
-        let fns_meta_type = self
+    fn resolve_events(&self, events_type_id: u32) -> Result<Vec<Variant<PortableForm>>> {
+        let event_type = self
             .portable_registry
-            .resolve(functions_type_ids)
-            .ok_or(Error::TypeIdIsUnknown(functions_type_ids))?;
+            .resolve(events_type_id)
+            .ok_or(Error::TypeIdIsUnknown(events_type_id))?;
 
-        let TypeDef::Variant(ref fns_meta_type_def) = fns_meta_type.type_def else {
+        let TypeDef::Variant(ref event_type_def) = event_type.type_def else {
             return Err(Error::FuncMetaIsInvalid(
-                "Service functions wrapper type is not a variant".to_string(),
+                "Event type is not a variant".to_string(),
             ));
         };
 
-        // Each function in service is a variant in `CommandsMeta` or `QueriesMeta` enums.
-        for fn_meta in &fns_meta_type_def.variants {
-            if fn_meta.fields.len() != 2 {
-                return Err(Error::FuncMetaIsInvalid(format!(
-                    "function `{}` has invalid number of fields, expected 2, got {}",
-                    fn_meta.name,
-                    fn_meta.fields.len()
-                )));
+        Ok(event_type_def.variants.clone())
+    }
+
+    fn resolve_functions(&self, fns_type_id: u32, is_ctor: bool) -> Result<Vec<FunctionIdl>> {
+        let mut ret = Vec::new();
+
+        for fn_meta in Self::fns_meta_iter(&self.portable_registry, fns_type_id)? {
+            let expected_fields_len = if is_ctor { 1 } else { 2 };
+            if fn_meta.fields.len() != expected_fields_len {
+                let msg = if expected_fields_len == 1 {
+                    format!(
+                        "function `{}` has invalid signature: expected only args",
+                        fn_meta.name
+                    )
+                } else {
+                    format!(
+                        "function `{}` has invalid signature: expected args and result",
+                        fn_meta.name
+                    )
+                };
+                return Err(Error::FuncMetaIsInvalid(msg));
             }
 
-            // Add to non type section types `__*Params`` type of service's variant in `CommandsMeta` or `QueriesMeta`
-            let fn_args_type_id = fn_meta.fields[0].ty.id;
-            self.non_type_section_ids.insert(fn_args_type_id);
-
-            // Take args (fields of __*Params type)
-            let fn_args_meta = self
+            let args_type_id = fn_meta.fields[0].ty.id;
+            let args_meta = self
                 .portable_registry
-                .resolve(fn_args_type_id)
-                .ok_or(Error::TypeIdIsUnknown(fn_args_type_id))?;
-            let TypeDef::Composite(fn_args_meta_type_def) = &fn_args_meta.type_def else {
+                .resolve(args_type_id)
+                .ok_or(Error::TypeIdIsUnknown(args_type_id))?;
+            let TypeDef::Composite(args_meta_type_def) = &args_meta.type_def else {
                 return Err(Error::FuncMetaIsInvalid(format!(
                     "function `{}` args type is not a composite",
                     fn_meta.name
@@ -430,7 +257,7 @@ impl ServiceMetaRegistry {
             };
 
             // Construct args vector by taking fields of `__*Params` struct.
-            let args = fn_args_meta_type_def
+            let args = args_meta_type_def
                 .fields
                 .iter()
                 .map(|arg_meta| -> Result<FunctionArgumentIdl> {
@@ -448,77 +275,270 @@ impl ServiceMetaRegistry {
                 })
                 .collect::<Result<Vec<_>, _>>()?;
 
-            // Take result type
-            let result_ty = {
-                let res_type_id = fn_meta.fields[1].ty.id;
-                let res_type_meta = self
-                    .portable_registry
-                    .resolve(res_type_id)
-                    .ok_or(Error::TypeIdIsUnknown(res_type_id))?;
+            let result_ty = self.build_result_ty(fn_meta)?;
 
-                if ResultTypeName::is_result_type(res_type_meta) {
-                    let TypeDef::Variant(result_variants) = &res_type_meta.type_def else {
-                        return Err(Error::TypeIsUnsupported(format!(
-                            "Expected Result type to be a variant, got {:?}",
-                            res_type_meta.type_def
-                        )));
-                    };
-
-                    let result_variants = &result_variants.variants;
-                    if result_variants.len() != 2 {
-                        return Err(Error::TypeIsUnsupported(format!(
-                            "Expected Result type to have 2 variants, got {}",
-                            result_variants.len()
-                        )));
-                    }
-
-                    let ok_variant_type_id = {
-                        let ok_variant = &result_variants[0];
-                        if ok_variant.fields.len() != 1 {
-                            return Err(Error::TypeIsUnsupported(format!(
-                                "Expected Result::Ok variant to have 1 field, got {}",
-                                ok_variant.fields.len()
-                            )));
-                        }
-
-                        ok_variant.fields[0].ty.id
-                    };
-                    let err_variant_type_id = {
-                        let err_variant = &result_variants[1];
-                        if err_variant.fields.len() != 1 {
-                            return Err(Error::TypeIsUnsupported(format!(
-                                "Expected Result::Err variant to have 1 field, got {}",
-                                err_variant.fields.len()
-                            )));
-                        }
-
-                        err_variant.fields[0].ty.id
-                    };
-
-                    FunctionResultIdl {
-                        res: (ok_variant_type_id != self.unit_type_id)
-                            .then_some(ok_variant_type_id),
-                        err: Some(err_variant_type_id),
-                    }
-                } else {
-                    FunctionResultIdl {
-                        res: (res_type_id != self.unit_type_id).then_some(res_type_id),
-                        err: None,
-                    }
-                }
-            };
-
-            let fn_idl_data = FunctionIdl {
+            ret.push(FunctionIdl {
                 name: fn_meta.name.to_string(),
                 args,
-                result_ty: Some(result_ty),
+                result_ty,
                 docs: fn_meta.docs.iter().map(|s| s.to_string()).collect(),
-            };
-
-            ret.push(fn_idl_data);
+            });
         }
 
         Ok(ret)
+    }
+
+    /// The function takes the result field and builds FunctionResultIdl from it.
+    /// 
+    /// If function's meta variant types has 2 field, it means one of them is for args, and the other is for result.
+    /// 
+    /// If the result type is a Result<T, E>, then FunctionResultIdl will have both `res` and `err` fields populated,
+    /// otherwise only `res` field will be populated. The `res` gets the type id of the stored in `fn_meta` result type,
+    /// unless it is unit type `()`, in which case it will be None.
+    fn build_result_ty(&self, fn_meta: &Variant<PortableForm>) -> Result<Option<FunctionResultIdl>> {
+        let Some(res_field) = fn_meta.fields.get(1) else {
+            return Ok(None);
+        };
+
+        let res_type_id = res_field.ty.id;
+        let res_type_meta = self
+            .portable_registry
+            .resolve(res_type_id)
+            .ok_or(Error::TypeIdIsUnknown(res_type_id))?;
+
+        let res = if ResultTypeName::is_result_type(res_type_meta) {
+            let TypeDef::Variant(result_variants) = &res_type_meta.type_def else {
+                return Err(Error::TypeIsUnsupported(format!(
+                    "Expected Result type to be a variant, got {:?}",
+                    res_type_meta.type_def
+                )));
+            };
+
+            let result_variants = &result_variants.variants;
+            if result_variants.len() != 2 {
+                return Err(Error::TypeIsUnsupported(format!(
+                    "Expected Result type to have 2 variants, got {}",
+                    result_variants.len()
+                )));
+            }
+
+            let ok_variant_type_id = {
+                let ok_variant = &result_variants[0];
+                if ok_variant.fields.len() != 1 {
+                    return Err(Error::TypeIsUnsupported(format!(
+                        "Expected Result::Ok variant to have 1 field, got {}",
+                        ok_variant.fields.len()
+                    )));
+                }
+
+                ok_variant.fields[0].ty.id
+            };
+            let err_variant_type_id = {
+                let err_variant = &result_variants[1];
+                if err_variant.fields.len() != 1 {
+                    return Err(Error::TypeIsUnsupported(format!(
+                        "Expected Result::Err variant to have 1 field, got {}",
+                        err_variant.fields.len()
+                    )));
+                }
+
+                err_variant.fields[0].ty.id
+            };
+
+            FunctionResultIdl {
+                res: (ok_variant_type_id != self.unit_type_id)
+                    .then_some(ok_variant_type_id),
+                err: Some(err_variant_type_id),
+            }
+        } else {
+            FunctionResultIdl {
+                res: (res_type_id != self.unit_type_id).then_some(res_type_id),
+                err: None,
+            }
+        };
+
+        Ok(Some(res))
+    }
+
+    // Creates iterator over functions metadata by accessing it as a variant
+    // of enum functions wrapper under `funcs_type_id`.
+    fn fns_meta_iter(registry: &PortableRegistry, funcs_type_id: u32) -> Result<impl Iterator<Item = &Variant<PortableForm>>> {
+        let fns_meta_type = registry
+            .resolve(funcs_type_id)
+            .ok_or(Error::TypeIdIsUnknown(funcs_type_id))?;
+
+        let TypeDef::Variant(ref fns_meta_type_def) = fns_meta_type.type_def else {
+            return Err(Error::FuncMetaIsInvalid(
+                "Functions wrapper type is not a variant".to_string(),
+            ));
+        };
+
+        Ok(fns_meta_type_def.variants.iter())
+    }
+}
+
+struct ProgramMetaRegistry {
+    portable_registry: IdlPortableTypesRegistry,
+    ctor_fns: Vec<FunctionIdl>,
+}
+
+impl ProgramMetaRegistry {
+    fn new(ctors: MetaType) -> Result<Self> {
+        let mut idl_registry = IdlTypesRegistry::new();
+
+        let ctors_type_id = idl_registry.register_function(&ctors);
+        let idl_portable_registry: IdlPortableTypesRegistry = idl_registry.try_into()?;
+
+        let ctor_fns = idl_portable_registry
+            .resolve_functions(ctors_type_id, true)?;
+
+        Ok(Self {
+            portable_registry: idl_portable_registry,
+            ctor_fns,
+        })
+    }
+
+    fn types(&self) -> Vec<PortableType> {
+        self.portable_registry.types()
+    }
+
+    fn type_names(&self) -> Vec<String> {
+        self.portable_registry.type_names()
+    }
+}
+
+struct ServiceMetaRegistry {
+    portable_registry: IdlPortableTypesRegistry,
+    commands_fns: Vec<FunctionIdl>,
+    queries_fns: Vec<FunctionIdl>,
+    events: Vec<Variant<PortableForm>>,
+}
+
+impl ServiceMetaRegistry {
+    pub fn new(service_meta: AnyServiceMeta) -> Result<Self> {
+        let mut idl_registry = IdlTypesRegistry::new();
+        let registered_service_meta = idl_registry.register_service_meta(&service_meta);
+
+        let idl_portable_registry: IdlPortableTypesRegistry = idl_registry.try_into()?;
+
+        let commands_fns = Self::commands_idl_data(
+            &idl_portable_registry,
+            registered_service_meta.commands_type_ids,
+        )?;
+        let queries_fns = Self::queries_idl_data(
+            &idl_portable_registry,
+            registered_service_meta.queries_type_ids,
+        )?;
+        let events = Self::events_idl_data(
+            &idl_portable_registry,
+            registered_service_meta.events_type_ids,
+        )?;
+
+        Ok(Self {
+            portable_registry: idl_portable_registry,
+            commands_fns,
+            queries_fns,
+            events,
+        })
+    }
+
+    fn commands_idl_data(
+        idl_portable_registry: &IdlPortableTypesRegistry,
+        mut commands_ids: Vec<u32>,
+    ) -> Result<Vec<FunctionIdl>> {
+        if commands_ids.is_empty() {
+            return Ok(Vec::new());
+        }
+
+        // Contract: the first id in `commands_ids` is the main one.
+        let main_commands_ids = commands_ids.remove(0);
+        let base_commands_ids = commands_ids;
+
+        let mut commands_idl_data = idl_portable_registry.resolve_functions(main_commands_ids, false)?;
+
+        for base_commands_type_id in base_commands_ids {
+            let mut base_commands_idl_data = idl_portable_registry.resolve_functions(base_commands_type_id, false)?;
+
+            // Override any existing function.
+            // The latest ("most extended") one always generated.
+            base_commands_idl_data.retain(|base_f| {
+                !commands_idl_data
+                    .iter()
+                    .any(|existing_f| existing_f.name == base_f.name)
+            });
+
+            commands_idl_data.append(&mut base_commands_idl_data);
+        }
+
+        Ok(commands_idl_data)
+    }
+
+    fn queries_idl_data(
+        idl_portable_registry: &IdlPortableTypesRegistry,
+        mut queries_ids: Vec<u32>,
+    ) -> Result<Vec<FunctionIdl>> {
+        if queries_ids.is_empty() {
+            return Ok(Vec::new());
+        }
+
+        // Contract: the first id in `queries_ids` is the main one.
+        let main_queries_ids = queries_ids.remove(0);
+        let base_queries_ids = queries_ids;
+
+        let mut queries_idl_data = idl_portable_registry.resolve_functions(main_queries_ids, false)?;
+
+        for base_queries_type_id in base_queries_ids {
+            let mut base_queries_idl_data = idl_portable_registry.resolve_functions(base_queries_type_id,false)?;
+
+            // Override any existing function.
+            // The latest ("most extended") one always generated.
+            base_queries_idl_data.retain(|base_f| {
+                !queries_idl_data
+                    .iter()
+                    .any(|existing_f| existing_f.name == base_f.name)
+            });
+
+            queries_idl_data.append(&mut base_queries_idl_data);
+        }
+
+        Ok(queries_idl_data)
+    }
+
+    fn events_idl_data(
+        idl_portable_registry: &IdlPortableTypesRegistry,
+        events_ids: Vec<u32>,
+    ) -> Result<Vec<Variant<PortableForm>>> {
+        let mut events: Vec<Variant<PortableForm>> = Vec::new();
+
+        for events_type_id in events_ids {
+            let svc_events = idl_portable_registry
+                .resolve_events(events_type_id)?;
+            for svc_event in svc_events {
+                // Override any existing event.
+                // The latest ("most extended") one always generated.
+                if events
+                    .iter()
+                    .any(|existing_v| existing_v.name == svc_event.name)
+                {
+                    return Err(Error::EventMetaIsAmbiguous(format!(
+                        "event `{}` is defined multiple times in the service inheritance chain",
+                        svc_event.name
+                    )));
+                }
+
+                events.push(svc_event);
+            }
+        }
+
+        Ok(events)
+    }
+
+    fn types(&self) -> Vec<PortableType> {
+        self.portable_registry.types()
+    }
+
+    fn type_names(&self) -> Vec<String> {
+        self.portable_registry.type_names()
     }
 }
 
@@ -539,20 +559,16 @@ impl ExpandedProgramMeta2 {
                     "program defined `{name}` service multiple times",
                 )));
             }
-
             services_names.push(name.clone());
 
-            let mut service_registry = ServiceMetaRegistry::new(service_meta);
-
-            // todo [sab] MUST BE FIRST, BECAUSE MUTATE THE REGISTRY
-            let functions = FunctionsSection {
-                commands: service_registry.commands_idl_data()?,
-                queries: service_registry.queries_idl_data()?,
-            };
-            let events = service_registry.events_idl_data()?;
-
+            let service_registry = ServiceMetaRegistry::new(service_meta)?;
             let types = service_registry.types();
-            let type_names = service_registry.type_names()?;
+            let type_names = service_registry.type_names();
+            let functions = FunctionsSection {
+                commands: service_registry.commands_fns,
+                queries: service_registry.queries_fns,
+            };
+            let events = service_registry.events;
 
             let service_section = ServiceSection {
                 name: name,
@@ -568,7 +584,7 @@ impl ExpandedProgramMeta2 {
 
         let program_section = ProgramIdlSection {
             name,
-            type_names: program_meta_registry.type_names()?,
+            type_names: program_meta_registry.type_names(),
             types: program_meta_registry.types(),
             ctors: program_meta_registry.ctor_fns,
             services: services_names,
@@ -966,7 +982,7 @@ lifetimes are missed
 mod tests {
     use super::*;
     use scale_info::TypeInfo;
-    use std::{collections::BTreeMap, fmt::Debug, iter};
+    use std::{collections::BTreeMap, iter};
 
     mod utils {
         use super::*;
@@ -1195,14 +1211,14 @@ mod tests {
 
         // Test all error scenarios
         test_ctor_error::<NonCompositeArgsCtors>(
-            "ctor `CtorWithInvalidArgTypes` args type is not a composite",
+            "function `CtorWithInvalidArgTypes` args type is not a composite",
         );
 
-        test_ctor_error::<NamelessFieldsCtors>("ctor `CtorWithNamelessArgs` has nameless argument");
+        test_ctor_error::<NamelessFieldsCtors>("function `CtorWithNamelessArgs` has nameless argument");
 
-        test_ctor_error::<NoArgsCtors>("ctor `CtorWithNoArgs` has invalid number of fields");
+        test_ctor_error::<NoArgsCtors>("function `CtorWithNoArgs` has invalid signature: expected at least args or/and result");
 
-        test_ctor_error::<TooManyArgsCtors>("ctor `CtorWithResult` has invalid number of fields");
+        test_ctor_error::<TooManyArgsCtors>("function `CtorWithResult` has invalid signature: expected only args");
     }
 
     /// Test that returned program meta has result_ty == None for all constructors in program IDL section
@@ -1767,7 +1783,7 @@ mod tests {
         #[allow(unused)]
         struct NotVariantQueries(u32);
 
-        let internal_check = |service: AnyServiceMeta, expected_msg: &str| {
+        let internal_check = |service: AnyServiceMeta| {
             let result = ExpandedProgramMeta2::new(
                 "TestProgram".to_string(),
                 MetaType::new::<utils::SimpleCtors>(),
@@ -1777,18 +1793,11 @@ mod tests {
             let Err(Error::FuncMetaIsInvalid(msg)) = result else {
                 panic!("Expected FuncMetaIsInvalid error, got {:?}", result);
             };
-            assert_eq!(msg.as_str(), expected_msg);
+            assert_eq!(msg.as_str(), "Functions wrapper type is not a variant");
         };
 
-        internal_check(
-            AnyServiceMeta::new::<NotVariantCommandsService>(),
-            "Service functions wrapper type is not a variant",
-        );
-
-        internal_check(
-            AnyServiceMeta::new::<NotVariantQueriesService>(),
-            "Service functions wrapper type is not a variant",
-        );
+        internal_check(AnyServiceMeta::new::<NotVariantCommandsService>());
+        internal_check(AnyServiceMeta::new::<NotVariantQueriesService>());
     }
 
     /// Test error when service variant doesn't have exactly 2 fields
@@ -1875,22 +1884,22 @@ mod tests {
 
         internal_check(
             AnyServiceMeta::new::<InvalidCommandsService1>(),
-            "function `OneField` has invalid number of fields, expected 2, got 1",
+            "function `OneField` has invalid signature: expected args and result",
         );
 
         internal_check(
             AnyServiceMeta::new::<InvalidQueriesService1>(),
-            "function `OneField` has invalid number of fields, expected 2, got 1",
+            "function `OneField` has invalid signature: expected args and result",
         );
 
         internal_check(
             AnyServiceMeta::new::<InvalidCommandsService2>(),
-            "function `ThreeFields` has invalid number of fields, expected 2, got 3",
+            "function `ThreeFields` has invalid signature: expected at least args or/and result",
         );
 
         internal_check(
             AnyServiceMeta::new::<InvalidQueriesService2>(),
-            "function `ThreeFields` has invalid number of fields, expected 2, got 3",
+            "function `ThreeFields` has invalid signature: expected at least args or/and result",
         );
     }
 
