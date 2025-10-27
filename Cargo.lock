@@ -7227,11 +7227,13 @@ dependencies = [
  "gprimitives",
  "handlebars",
  "insta",
+ "quote",
  "sails-idl-meta",
  "sails-idl-parser",
  "scale-info",
  "serde",
  "serde_json",
+ "syn 2.0.104",
  "thiserror 2.0.12",
 ]
 

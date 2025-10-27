@@ -179,7 +179,7 @@ impl ProgramMetaRegistry {
 
     fn type_names(&self) -> Result<Vec<String>> {
         type_names::resolve(self.portable_registry.types.iter())
-            .map(|names| names.values().cloned().collect())
+            .map(|names| names.0.values().cloned().collect())
     }
 }
 
@@ -304,7 +304,7 @@ impl ServiceMetaRegistry {
 
     fn type_names(&self) -> Result<Vec<String>> {
         type_names::resolve(self.portable_registry.types.iter())
-            .map(|names| names.values().cloned().collect())
+            .map(|names| names.0.values().cloned().collect())
     }
 
     fn commands_idl_data(&mut self) -> Result<Vec<FunctionIdl>> {
@@ -673,7 +673,7 @@ impl ExpandedProgramMeta {
     /// Each type name index corresponds to id of the type
     pub fn type_names(&self) -> Result<impl Iterator<Item = String>> {
         let names = type_names::resolve(self.registry.types.iter())?;
-        Ok(names.into_iter().map(|i| i.1))
+        Ok(names.0.into_iter().map(|i| i.1))
     }
 
     fn ctor_funcs(
@@ -966,7 +966,7 @@ lifetimes are missed
 mod tests {
     use super::*;
     use scale_info::TypeInfo;
-    use std::{collections::BTreeMap, iter};
+    use std::{collections::BTreeMap, fmt::Debug, iter};
 
     mod utils {
         use super::*;
@@ -2534,136 +2534,4 @@ mod tests {
             "event `ConflictingEvent` is defined multiple times in the service inheritance chain"
         );
     }
-
-    //     #[test]
-    //     fn test_scale_info() {
-
-    //         /// Some docs here
-    //         #[derive(TypeInfo)]
-    //         struct TupleStruct(u8);
-    //         #[derive(TypeInfo)]
-    //         struct TupleStruct2(String);
-    //         #[derive(TypeInfo)]
-    //         struct TupleStruct3([u8; 7]);
-    //         #[derive(TypeInfo)]
-    //         struct TupleStruct4(H256);
-    //         /// And some docs here
-    //         #[derive(TypeInfo)]
-    //         struct TupleStruct5(Vec<u8>);
-    //         #[derive(TypeInfo)]
-    //         struct TupleStruct6(Vec<H256>);
-    //         #[derive(TypeInfo)]
-    //         struct UnitStruct;
-
-    //         #[derive(TypeInfo)]
-    //         struct StructWithFields {
-    //             field1: u8,
-    //             field2: String,
-    //             field3: [u8; 7],
-    //             field4: H256,
-    //             field5: Vec<u8>,
-    //             field6: Vec<H256>,
-    //             field7: TupleStruct,
-    //             field8: TupleStruct5,
-    //         }
-
-    //         #[derive(TypeInfo)]
-    //         struct TwoElementsTupleStruct(u8, String);
-
-    //         println!("i32 info: {:?}\n", <i32 as TypeInfo>::type_info());
-    //         println!("u8 info: {:?}\n", <u8 as TypeInfo>::type_info());
-    //         println!("H256 info: {:?}\n", <H256 as TypeInfo>::type_info());
-    //         println!("ActorId info: {:?}\n", <ActorId as TypeInfo>::type_info());
-    //         println!("CodeId info: {:?}\n", <CodeId as TypeInfo>::type_info());
-
-    //         let type_info = <[u8; 7] as TypeInfo>::type_info();
-    //         println!("\n\n Array info: {:?}\n", type_info);
-
-    //         println!("TupleStruct info: {:?}\n", <TupleStruct as TypeInfo>::type_info());
-    //         println!("TupleStruct2 info: {:?}\n", <TupleStruct2 as TypeInfo>::type_info());
-    //         println!("TupleStruct3 info: {:?}\n", <TupleStruct3 as TypeInfo>::type_info());
-    //         println!("TupleStruct4 info: {:?}\n", <TupleStruct4 as TypeInfo>::type_info());
-    //         println!("TupleStruct5 info: {:?}\n", <TupleStruct5 as TypeInfo>::type_info());
-    //         println!("TupleStruct6 info: {:?}\n", <TupleStruct6 as TypeInfo>::type_info());
-    //         println!("UnitStruct info: {:?}\n", <UnitStruct as TypeInfo>::type_info());
-
-    //         println!("TwoElementsTupleStruct info: {:#?}\n", <TwoElementsTupleStruct as TypeInfo>::type_info());
-
-    //         println!("StructWithFields info: {:#?}\n", <StructWithFields as TypeInfo>::type_info());
-
-    //         println!("\n\n\n");
-    //         println!("Vector info: {:?}\n", <Vec<String> as TypeInfo>::type_info());
-    //         println!("Array info: {:?}\n", <[H256; 4] as TypeInfo>::type_info());
-    //         println!("Map info: {:?}\n", <std::collections::BTreeMap<String, H256> as TypeInfo>::type_info());
-    //         println!("Set info: {:?}\n", <std::collections::BTreeSet<H256> as TypeInfo>::type_info());
-
-    //         println!("Tuple info: {:?}", <() as TypeInfo>::type_info());
-    //         println!("Tuple-1 info: {:?}", <(u8,) as TypeInfo>::type_info());
-    //         println!("Tuple-2 info: {:?}", <(u8, String) as TypeInfo>::type_info());
-    //         println!("Tuple-3 info: {:?}", <(u8, String, H256) as TypeInfo>::type_info());
-    //         println!("Tuple-4 info: {:?}", <(String, [u8; 9], H256, Vec<H256>) as TypeInfo>::type_info());
-
-    //         #[derive(TypeInfo)]
-    //         enum Enum1 {}
-    //         #[derive(TypeInfo)]
-    //         enum Enum2 { A }
-    //         #[derive(TypeInfo)]
-    //         enum Enum3 { A, B, C }
-    //         #[derive(TypeInfo)]
-    //         enum Enum4 { A(u8), B(Vec<H256>), C(H256), D([u8; 4]), E((String, ActorId)) }
-    //         #[derive(TypeInfo)]
-    //         enum Enum5 { A { f1: u8, f2: String }, B(Vec<u8>), C }
-
-    //         println!("Enum1 info: {:?}\n", <Enum1 as TypeInfo>::type_info());
-    //         println!("Enum2 info: {:?}\n", <Enum2 as TypeInfo>::type_info());
-    //         println!("Enum3 info: {:?}\n", <Enum3 as TypeInfo>::type_info());
-    //         println!("Enum4 info: {:?}\n", <Enum4 as TypeInfo>::type_info());
-    //         println!("Enum5 info: {:?}\n", <Enum5 as TypeInfo>::type_info());
-
-    //         println!("Option info: {:?}\n", <Option<H256> as TypeInfo>::type_info());
-    //         println!("Result info: {:?}\n", <Result<H256, String> as TypeInfo>::type_info());
-
-    //         #[derive(TypeInfo)]
-    //         struct WithGenerics1<T> {
-    //             f1: Enum1,
-    //             f2: T
-    //         }
-
-    //         #[derive(TypeInfo)]
-    //         struct WithGenericsBounded<T: std::fmt::Debug> {
-    //             f1: Enum2,
-    //             f2: T
-    //         }
-
-    //         #[derive(TypeInfo)]
-    //         struct WithMultipleGenerics<T1, T2, T3> {
-    //             f1: T1,
-    //             f2: T2,
-    //             f3: T3,
-    //         }
-
-    //         println!("\n\n\n");
-
-    //         println!("WithGenerics1 info: {:?}\n", <WithGenerics1<StructWithFields> as TypeInfo>::type_info());
-    //         println!("String info: {:?}\n", TypeId::of::<String>());
-    //         println!("WithGenerics1 ANOTHER info: {:?}\n", <WithGenerics1<String> as TypeInfo>::type_info());
-    //         println!("WithGenericsBounded info: {:?}\n", <WithGenericsBounded<String> as TypeInfo>::type_info());
-    //         println!("WithMultipleGenerics info: {:?}\n", <WithMultipleGenerics<StructWithFields, String, H256> as TypeInfo>::type_info());
-
-    //         // Pha
-    //         #[derive(TypeInfo)]
-    //         struct M<T> {
-    //             _marker1: std::marker::PhantomData<T>,
-    //         }
-
-    //         println!("M info: {:?}\n", <M<String> as TypeInfo>::type_info());
-
-    //         #[derive(TypeInfo)]
-    //         struct WithLifetime<'a, T> {
-    //             f1: &'a str,
-    //             f2: T,
-    //         }
-
-    //         println!("WithLifetime info: {:?}\n", <WithLifetime<'_, String> as TypeInfo>::type_info());
-    //     }
 }
