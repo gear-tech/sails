@@ -593,10 +593,10 @@ fn service_to_canonical(
                 .iter()
                 .map(|param| CanonicalParam {
                     name: param.name().to_owned(),
-                    ty: CanonicalType::Unit,
+                    ty: type_decl_to_canonical(param.type_decl()),
                 })
                 .collect(),
-            returns: CanonicalType::Unit,
+            returns: type_decl_to_canonical(func.output()),
         })
         .collect();
 
@@ -605,7 +605,7 @@ fn service_to_canonical(
         .iter()
         .map(|event| CanonicalEvent {
             name: event.name().to_owned(),
-            payload: None,
+            payload: event.type_decl().map(type_decl_to_canonical),
         })
         .collect();
 
@@ -905,9 +905,19 @@ mod tests {
         assert_eq!(service.functions.len(), 2);
         assert_eq!(service.functions[0].kind, FunctionKind::Command);
         assert_eq!(service.functions[0].name, "DoSomething");
-        assert_eq!(service.functions[0].returns, CanonicalType::Unit);
+        assert_eq!(
+            service.functions[0].returns,
+            CanonicalType::Primitive {
+                name: "bool".to_owned()
+            }
+        );
         assert_eq!(service.functions[1].kind, FunctionKind::Query);
-        assert_eq!(service.functions[1].returns, CanonicalType::Unit);
+        assert_eq!(
+            service.functions[1].returns,
+            CanonicalType::Primitive {
+                name: "u32".to_owned()
+            }
+        );
 
         let bytes = doc.to_bytes().expect("serialization");
         let value: Value = serde_json::from_slice(&bytes).expect("valid json");
@@ -929,13 +939,13 @@ mod tests {
                                 "kind": "command",
                                 "name": "DoSomething",
                                 "params": [],
-                                "returns": {"kind": "unit"}
+                                "returns": {"kind": "primitive", "name": "bool"}
                             },
                             {
                                 "kind": "query",
                                 "name": "GetValue",
                                 "params": [],
-                                "returns": {"kind": "unit"}
+                                "returns": {"kind": "primitive", "name": "u32"}
                             }
                         ],
                         "name": "Example"
