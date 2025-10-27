@@ -101,8 +101,6 @@ impl ServiceBuilder<'_> {
         let scale_info_path = &sails_paths::scale_info_path(sails_path);
         let meta_module_ident = &self.meta_module_ident;
         let service_type_path = self.type_path;
-        let service_type_static =
-            shared::replace_any_lifetime_with_static(Type::Path(service_type_path.clone()));
 
         let no_events_type = Path::from(Ident::new("NoEvents", Span::call_site()));
         let events_type = self.events_type.unwrap_or(&no_events_type);
@@ -292,27 +290,62 @@ impl ServiceBuilder<'_> {
                     }
                 }
 
-                fn build_extends(
-                    entries: &mut #sails_path::Vec<#sails_path::meta::ExtendedInterface>,
-                ) {
-                    #( #extends_builders )*
+                #[cfg(all(feature = "std", not(target_arch = "wasm32")))]
+                fn canonical_cache() -> &'static (&'static [u8], u64) {
+                    static CACHE: #sails_path::spin::Once<(&'static [u8], u64)> =
+                        #sails_path::spin::Once::new();
+                    CACHE.call_once(|| {
+                        let document = #sails_path::interface_id::runtime::build_canonical_document::<#service_type_path>()
+                            .expect("building canonical document should succeed");
+                        let bytes = document
+                            .to_bytes()
+                            .expect("canonical document serialization should succeed");
+                        let id = #sails_path::interface_id::compute_ids_from_bytes(&bytes);
+                        let leaked = #sails_path::boxed::Box::leak(bytes.into_boxed_slice());
+                        (leaked as &'static [u8], id)
+                    })
                 }
 
                 pub fn canonical_service() -> &'static [u8] {
-                    #sails_path::meta_runtime::canonical_service::<#service_type_static>(
-                        CANONICAL_BYTES,
-                    )
+                    #[cfg(all(feature = "std", not(target_arch = "wasm32")))]
+                    {
+                        let (bytes, _) = *canonical_cache();
+                        bytes
+                    }
+                    #[cfg(not(all(feature = "std", not(target_arch = "wasm32"))))]
+                    {
+                        CANONICAL_BYTES
+                    }
                 }
 
                 pub fn interface_id() -> u64 {
-                    #sails_path::meta_runtime::interface_id::<#service_type_static>(INTERFACE_ID)
+                    #[cfg(all(feature = "std", not(target_arch = "wasm32")))]
+                    {
+                        let (_, id) = *canonical_cache();
+                        id
+                    }
+                    #[cfg(not(all(feature = "std", not(target_arch = "wasm32"))))]
+                    {
+                        INTERFACE_ID
+                    }
                 }
 
                 pub fn extends() -> &'static [#sails_path::meta::ExtendedInterface] {
-                    #sails_path::meta_runtime::extends::<#service_type_static>(
-                        EXTENDS,
-                        build_extends,
-                    )
+                    #[cfg(all(feature = "std", not(target_arch = "wasm32")))]
+                    {
+                        static EXTENDS: #sails_path::spin::Once<&'static [#sails_path::meta::ExtendedInterface]> =
+                            #sails_path::spin::Once::new();
+                        *EXTENDS.call_once(|| {
+                            let mut entries: #sails_path::Vec<#sails_path::meta::ExtendedInterface> =
+                                #sails_path::Vec::new();
+                            #( #extends_builders )*
+                            #sails_path::boxed::Box::leak(entries.into_boxed_slice())
+                        })
+                    }
+                    #[cfg(not(all(feature = "std", not(target_arch = "wasm32"))))]
+                    {
+                        EXTENDS
+                    }
                 }
             }
         }
