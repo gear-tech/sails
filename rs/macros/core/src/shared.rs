@@ -296,8 +296,6 @@ impl<'a> FnBuilder<'a> {
         let params_struct_ident = Ident::new(&format!("__{route}Params"), Span::call_site());
         let (params_idents, params_types): (Vec<_>, Vec<_>) = extract_params(signature).unzip();
         let result_type = unwrap_result_type(signature, unwrap_result);
-        let entry_id =
-            export::parse_export_args(&impl_fn.attrs).and_then(|(args, _)| args.entry_id());
         Self {
             route,
             export,
@@ -309,7 +307,7 @@ impl<'a> FnBuilder<'a> {
             params_types,
             result_type,
             unwrap_result,
-            entry_id,
+            entry_id: None,
             sails_path,
         }
     }
