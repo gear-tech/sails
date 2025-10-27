@@ -112,8 +112,7 @@ where
     const INTERFACE_PATH: &'static str = stringify!(
         MyGenericEventsService < '_, '_, T >
     );
-    const INTERFACE_ID32: u32 = my_generic_events_service_meta::INTERFACE_ID32;
-    const INTERFACE_UID64: u64 = my_generic_events_service_meta::INTERFACE_UID64;
+    const INTERFACE_ID: u64 = my_generic_events_service_meta::INTERFACE_ID;
     const EXTENDS: &'static [sails_rs::meta::ExtendedInterface] = my_generic_events_service_meta::EXTENDS;
     fn command_entry_ids() -> sails_rs::Vec<u16> {
         let mut ids = sails_rs::Vec::new();
@@ -142,6 +141,7 @@ where
         my_generic_events_service_meta::canonical_service()
     }
 }
+#[allow(unexpected_cfgs)]
 mod my_generic_events_service_meta {
     use super::*;
     use sails_rs::{Decode, TypeInfo};
@@ -169,8 +169,7 @@ mod my_generic_events_service_meta {
     pub type EventsMeta = MyEvents;
     pub const COMMAND_ENTRY_IDS: &[u16] = &[1];
     pub const QUERY_ENTRY_IDS: &[u16] = &[];
-    pub const INTERFACE_ID32: u32 = 2082457628;
-    pub const INTERFACE_UID64: u64 = 13838216082392860700;
+    pub const INTERFACE_ID: u64 = 13838216082392860700;
     pub const CANONICAL_BYTES: &[u8] = &[
         123, 34, 99, 97, 110, 111, 110, 95, 115, 99, 104, 101, 109, 97, 34, 58, 34, 115,
         97, 105, 108, 115, 45, 105, 100, 108, 45, 106, 99, 115, 34, 44, 34, 99, 97, 110,
@@ -204,8 +203,8 @@ mod my_generic_events_service_meta {
         }
     }
     #[cfg(all(feature = "std", not(target_arch = "wasm32")))]
-    fn canonical_cache() -> &'static (&'static [u8], u32, u64) {
-        static CACHE: sails_rs::spin::Once<(&'static [u8], u32, u64)> = sails_rs::spin::Once::new();
+    fn canonical_cache() -> &'static (&'static [u8], u64) {
+        static CACHE: sails_rs::spin::Once<(&'static [u8], u64)> = sails_rs::spin::Once::new();
         CACHE
             .call_once(|| {
                 let document = sails_rs::interface_id::runtime::build_canonical_document::<
@@ -215,38 +214,27 @@ mod my_generic_events_service_meta {
                 let bytes = document
                     .to_bytes()
                     .expect("canonical document serialization should succeed");
-                let (id32, uid64) = sails_rs::interface_id::compute_ids_from_bytes(
-                    &bytes,
-                );
+                let id = sails_rs::interface_id::compute_ids_from_bytes(&bytes);
                 let leaked = sails_rs::boxed::Box::leak(bytes.into_boxed_slice());
-                (leaked as &'static [u8], id32, uid64)
+                (leaked as &'static [u8], id)
             })
     }
     pub fn canonical_service() -> &'static [u8] {
         #[cfg(all(feature = "std", not(target_arch = "wasm32")))]
         {
-            let (bytes, _, _) = *canonical_cache();
+            let (bytes, _) = *canonical_cache();
             bytes
         }
         #[cfg(not(all(feature = "std", not(target_arch = "wasm32"))))]
         { CANONICAL_BYTES }
     }
-    pub fn interface_id32() -> u32 {
+    pub fn interface_id() -> u64 {
         #[cfg(all(feature = "std", not(target_arch = "wasm32")))]
         {
-            let (_, id32, _) = *canonical_cache();
-            id32
+            let (_, id) = *canonical_cache();
+            id
         }
-        #[cfg(not(all(feature = "std", not(target_arch = "wasm32"))))] { INTERFACE_ID32 }
-    }
-    pub fn interface_uid64() -> u64 {
-        #[cfg(all(feature = "std", not(target_arch = "wasm32")))]
-        {
-            let (_, _, uid64) = *canonical_cache();
-            uid64
-        }
-        #[cfg(not(all(feature = "std", not(target_arch = "wasm32"))))]
-        { INTERFACE_UID64 }
+        #[cfg(not(all(feature = "std", not(target_arch = "wasm32"))))] { INTERFACE_ID }
     }
     pub fn extends() -> &'static [sails_rs::meta::ExtendedInterface] {
         #[cfg(all(feature = "std", not(target_arch = "wasm32")))]

@@ -251,6 +251,7 @@ impl ServiceBuilder<'_> {
         });
 
         quote! {
+            #[allow(unexpected_cfgs)]
             mod #meta_module_ident {
                 use super::*;
                 use #sails_path::{Decode, TypeInfo};

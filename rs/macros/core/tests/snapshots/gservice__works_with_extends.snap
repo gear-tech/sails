@@ -145,8 +145,7 @@ impl sails_rs::meta::ServiceMeta for SomeService {
     const ASYNC: bool = <ExtendedService1 as sails_rs::meta::ServiceMeta>::ASYNC
         || <ExtendedService2 as sails_rs::meta::ServiceMeta>::ASYNC;
     const INTERFACE_PATH: &'static str = stringify!(SomeService);
-    const INTERFACE_ID32: u32 = some_service_meta::INTERFACE_ID32;
-    const INTERFACE_UID64: u64 = some_service_meta::INTERFACE_UID64;
+    const INTERFACE_ID: u64 = some_service_meta::INTERFACE_ID;
     const EXTENDS: &'static [sails_rs::meta::ExtendedInterface] = some_service_meta::EXTENDS;
     fn command_entry_ids() -> sails_rs::Vec<u16> {
         let mut ids = sails_rs::Vec::new();
@@ -185,6 +184,7 @@ impl sails_rs::meta::ServiceMeta for SomeService {
         some_service_meta::canonical_service()
     }
 }
+#[allow(unexpected_cfgs)]
 mod some_service_meta {
     use super::*;
     use sails_rs::{Decode, TypeInfo};
@@ -212,8 +212,7 @@ mod some_service_meta {
     pub type EventsMeta = NoEvents;
     pub const COMMAND_ENTRY_IDS: &[u16] = &[1];
     pub const QUERY_ENTRY_IDS: &[u16] = &[];
-    pub const INTERFACE_ID32: u32 = 2744257922;
-    pub const INTERFACE_UID64: u64 = 14966684977340747138;
+    pub const INTERFACE_ID: u64 = 18131678062613396461;
     pub const CANONICAL_BYTES: &[u8] = &[
         123, 34, 99, 97, 110, 111, 110, 95, 115, 99, 104, 101, 109, 97, 34, 58, 34, 115,
         97, 105, 108, 115, 45, 105, 100, 108, 45, 106, 99, 115, 34, 44, 34, 99, 97, 110,
@@ -224,33 +223,29 @@ mod some_service_meta {
         100, 34, 125, 44, 34, 115, 101, 114, 118, 105, 99, 101, 115, 34, 58, 123, 34, 83,
         111, 109, 101, 83, 101, 114, 118, 105, 99, 101, 34, 58, 123, 34, 101, 118, 101,
         110, 116, 115, 34, 58, 91, 93, 44, 34, 101, 120, 116, 101, 110, 100, 115, 34, 58,
-        91, 123, 34, 105, 110, 116, 101, 114, 102, 97, 99, 101, 95, 105, 100, 51, 50, 34,
-        58, 48, 44, 34, 105, 110, 116, 101, 114, 102, 97, 99, 101, 95, 117, 105, 100, 54,
-        52, 34, 58, 48, 44, 34, 110, 97, 109, 101, 34, 58, 34, 69, 120, 116, 101, 110,
-        100, 101, 100, 83, 101, 114, 118, 105, 99, 101, 49, 34, 125, 44, 123, 34, 105,
-        110, 116, 101, 114, 102, 97, 99, 101, 95, 105, 100, 51, 50, 34, 58, 48, 44, 34,
-        105, 110, 116, 101, 114, 102, 97, 99, 101, 95, 117, 105, 100, 54, 52, 34, 58, 48,
+        91, 123, 34, 105, 110, 116, 101, 114, 102, 97, 99, 101, 95, 105, 100, 34, 58, 48,
         44, 34, 110, 97, 109, 101, 34, 58, 34, 69, 120, 116, 101, 110, 100, 101, 100, 83,
-        101, 114, 118, 105, 99, 101, 50, 34, 125, 93, 44, 34, 102, 117, 110, 99, 116,
-        105, 111, 110, 115, 34, 58, 91, 123, 34, 101, 110, 116, 114, 121, 95, 105, 100,
-        95, 111, 118, 101, 114, 114, 105, 100, 101, 34, 58, 49, 44, 34, 107, 105, 110,
-        100, 34, 58, 34, 99, 111, 109, 109, 97, 110, 100, 34, 44, 34, 110, 97, 109, 101,
-        34, 58, 34, 68, 111, 84, 104, 105, 115, 34, 44, 34, 112, 97, 114, 97, 109, 115,
-        34, 58, 91, 93, 44, 34, 114, 101, 116, 117, 114, 110, 115, 34, 58, 123, 34, 107,
-        105, 110, 100, 34, 58, 34, 117, 110, 105, 116, 34, 125, 125, 93, 44, 34, 110, 97,
-        109, 101, 34, 58, 34, 83, 111, 109, 101, 83, 101, 114, 118, 105, 99, 101, 34,
-        125, 125, 44, 34, 116, 121, 112, 101, 115, 34, 58, 123, 125, 125,
+        101, 114, 118, 105, 99, 101, 49, 34, 125, 44, 123, 34, 105, 110, 116, 101, 114,
+        102, 97, 99, 101, 95, 105, 100, 34, 58, 48, 44, 34, 110, 97, 109, 101, 34, 58,
+        34, 69, 120, 116, 101, 110, 100, 101, 100, 83, 101, 114, 118, 105, 99, 101, 50,
+        34, 125, 93, 44, 34, 102, 117, 110, 99, 116, 105, 111, 110, 115, 34, 58, 91, 123,
+        34, 101, 110, 116, 114, 121, 95, 105, 100, 95, 111, 118, 101, 114, 114, 105, 100,
+        101, 34, 58, 49, 44, 34, 107, 105, 110, 100, 34, 58, 34, 99, 111, 109, 109, 97,
+        110, 100, 34, 44, 34, 110, 97, 109, 101, 34, 58, 34, 68, 111, 84, 104, 105, 115,
+        34, 44, 34, 112, 97, 114, 97, 109, 115, 34, 58, 91, 93, 44, 34, 114, 101, 116,
+        117, 114, 110, 115, 34, 58, 123, 34, 107, 105, 110, 100, 34, 58, 34, 117, 110,
+        105, 116, 34, 125, 125, 93, 44, 34, 110, 97, 109, 101, 34, 58, 34, 83, 111, 109,
+        101, 83, 101, 114, 118, 105, 99, 101, 34, 125, 125, 44, 34, 116, 121, 112, 101,
+        115, 34, 58, 123, 125, 125,
     ];
     pub const EXTENDS: &[sails_rs::meta::ExtendedInterface] = &[
         sails_rs::meta::ExtendedInterface {
             name: "ExtendedService1",
-            interface_id32: <ExtendedService1 as sails_rs::meta::ServiceMeta>::INTERFACE_ID32,
-            interface_uid64: <ExtendedService1 as sails_rs::meta::ServiceMeta>::INTERFACE_UID64,
+            interface_id: <ExtendedService1 as sails_rs::meta::ServiceMeta>::INTERFACE_ID,
         },
         sails_rs::meta::ExtendedInterface {
             name: "ExtendedService2",
-            interface_id32: <ExtendedService2 as sails_rs::meta::ServiceMeta>::INTERFACE_ID32,
-            interface_uid64: <ExtendedService2 as sails_rs::meta::ServiceMeta>::INTERFACE_UID64,
+            interface_id: <ExtendedService2 as sails_rs::meta::ServiceMeta>::INTERFACE_ID,
         },
     ];
     pub fn event_entry_ids() -> sails_rs::Vec<u16> {
@@ -262,8 +257,8 @@ mod some_service_meta {
         }
     }
     #[cfg(all(feature = "std", not(target_arch = "wasm32")))]
-    fn canonical_cache() -> &'static (&'static [u8], u32, u64) {
-        static CACHE: sails_rs::spin::Once<(&'static [u8], u32, u64)> = sails_rs::spin::Once::new();
+    fn canonical_cache() -> &'static (&'static [u8], u64) {
+        static CACHE: sails_rs::spin::Once<(&'static [u8], u64)> = sails_rs::spin::Once::new();
         CACHE
             .call_once(|| {
                 let document = sails_rs::interface_id::runtime::build_canonical_document::<
@@ -273,38 +268,27 @@ mod some_service_meta {
                 let bytes = document
                     .to_bytes()
                     .expect("canonical document serialization should succeed");
-                let (id32, uid64) = sails_rs::interface_id::compute_ids_from_bytes(
-                    &bytes,
-                );
+                let id = sails_rs::interface_id::compute_ids_from_bytes(&bytes);
                 let leaked = sails_rs::boxed::Box::leak(bytes.into_boxed_slice());
-                (leaked as &'static [u8], id32, uid64)
+                (leaked as &'static [u8], id)
             })
     }
     pub fn canonical_service() -> &'static [u8] {
         #[cfg(all(feature = "std", not(target_arch = "wasm32")))]
         {
-            let (bytes, _, _) = *canonical_cache();
+            let (bytes, _) = *canonical_cache();
             bytes
         }
         #[cfg(not(all(feature = "std", not(target_arch = "wasm32"))))]
         { CANONICAL_BYTES }
     }
-    pub fn interface_id32() -> u32 {
+    pub fn interface_id() -> u64 {
         #[cfg(all(feature = "std", not(target_arch = "wasm32")))]
         {
-            let (_, id32, _) = *canonical_cache();
-            id32
+            let (_, id) = *canonical_cache();
+            id
         }
-        #[cfg(not(all(feature = "std", not(target_arch = "wasm32"))))] { INTERFACE_ID32 }
-    }
-    pub fn interface_uid64() -> u64 {
-        #[cfg(all(feature = "std", not(target_arch = "wasm32")))]
-        {
-            let (_, _, uid64) = *canonical_cache();
-            uid64
-        }
-        #[cfg(not(all(feature = "std", not(target_arch = "wasm32"))))]
-        { INTERFACE_UID64 }
+        #[cfg(not(all(feature = "std", not(target_arch = "wasm32"))))] { INTERFACE_ID }
     }
     pub fn extends() -> &'static [sails_rs::meta::ExtendedInterface] {
         #[cfg(all(feature = "std", not(target_arch = "wasm32")))]
@@ -318,14 +302,12 @@ mod some_service_meta {
                     entries
                         .push(sails_rs::meta::ExtendedInterface {
                             name: "ExtendedService1",
-                            interface_id32: <ExtendedService1 as sails_rs::meta::ServiceMeta>::INTERFACE_ID32,
-                            interface_uid64: <ExtendedService1 as sails_rs::meta::ServiceMeta>::INTERFACE_UID64,
+                            interface_id: <ExtendedService1 as sails_rs::meta::ServiceMeta>::INTERFACE_ID,
                         });
                     entries
                         .push(sails_rs::meta::ExtendedInterface {
                             name: "ExtendedService2",
-                            interface_id32: <ExtendedService2 as sails_rs::meta::ServiceMeta>::INTERFACE_ID32,
-                            interface_uid64: <ExtendedService2 as sails_rs::meta::ServiceMeta>::INTERFACE_UID64,
+                            interface_id: <ExtendedService2 as sails_rs::meta::ServiceMeta>::INTERFACE_ID,
                         });
                     sails_rs::boxed::Box::leak(entries.into_boxed_slice())
                 })

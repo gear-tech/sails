@@ -23,8 +23,9 @@ use proc_macro_error::proc_macro_error;
 ///
 /// ```rust
 /// mod my_service {
-///     use sails_rs::{export, service};
+///     use sails_rs::{event, export, service};
 ///
+///     #[event]
 ///     #[derive(parity_scale_codec::Encode, scale_info::TypeInfo)]
 ///     pub enum MyServiceEvents {
 ///         SomethingDone,

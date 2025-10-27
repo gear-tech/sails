@@ -144,8 +144,7 @@ impl<'a> sails_rs::meta::ServiceMeta for ExtendedLifetime<'a> {
     ];
     const ASYNC: bool = <base::BaseLifetime as sails_rs::meta::ServiceMeta>::ASYNC;
     const INTERFACE_PATH: &'static str = stringify!(ExtendedLifetime < 'a >);
-    const INTERFACE_ID32: u32 = extended_lifetime_meta::INTERFACE_ID32;
-    const INTERFACE_UID64: u64 = extended_lifetime_meta::INTERFACE_UID64;
+    const INTERFACE_ID: u64 = extended_lifetime_meta::INTERFACE_ID;
     const EXTENDS: &'static [sails_rs::meta::ExtendedInterface] = extended_lifetime_meta::EXTENDS;
     fn command_entry_ids() -> sails_rs::Vec<u16> {
         let mut ids = sails_rs::Vec::new();
@@ -183,6 +182,7 @@ impl<'a> sails_rs::meta::ServiceMeta for ExtendedLifetime<'a> {
         extended_lifetime_meta::canonical_service()
     }
 }
+#[allow(unexpected_cfgs)]
 mod extended_lifetime_meta {
     use super::*;
     use sails_rs::{Decode, TypeInfo};
@@ -223,8 +223,7 @@ mod extended_lifetime_meta {
     pub type EventsMeta = NoEvents;
     pub const COMMAND_ENTRY_IDS: &[u16] = &[];
     pub const QUERY_ENTRY_IDS: &[u16] = &[1, 2];
-    pub const INTERFACE_ID32: u32 = 2917428078;
-    pub const INTERFACE_UID64: u64 = 11177857973662018414;
+    pub const INTERFACE_ID: u64 = 4351064285949381734;
     pub const CANONICAL_BYTES: &[u8] = &[
         123, 34, 99, 97, 110, 111, 110, 95, 115, 99, 104, 101, 109, 97, 34, 58, 34, 115,
         97, 105, 108, 115, 45, 105, 100, 108, 45, 106, 99, 115, 34, 44, 34, 99, 97, 110,
@@ -236,31 +235,28 @@ mod extended_lifetime_meta {
         120, 116, 101, 110, 100, 101, 100, 76, 105, 102, 101, 116, 105, 109, 101, 32, 60,
         32, 39, 97, 32, 62, 34, 58, 123, 34, 101, 118, 101, 110, 116, 115, 34, 58, 91,
         93, 44, 34, 101, 120, 116, 101, 110, 100, 115, 34, 58, 91, 123, 34, 105, 110,
-        116, 101, 114, 102, 97, 99, 101, 95, 105, 100, 51, 50, 34, 58, 48, 44, 34, 105,
-        110, 116, 101, 114, 102, 97, 99, 101, 95, 117, 105, 100, 54, 52, 34, 58, 48, 44,
-        34, 110, 97, 109, 101, 34, 58, 34, 98, 97, 115, 101, 32, 58, 58, 32, 66, 97, 115,
-        101, 76, 105, 102, 101, 116, 105, 109, 101, 34, 125, 93, 44, 34, 102, 117, 110,
-        99, 116, 105, 111, 110, 115, 34, 58, 91, 123, 34, 101, 110, 116, 114, 121, 95,
-        105, 100, 95, 111, 118, 101, 114, 114, 105, 100, 101, 34, 58, 49, 44, 34, 107,
-        105, 110, 100, 34, 58, 34, 113, 117, 101, 114, 121, 34, 44, 34, 110, 97, 109,
-        101, 34, 58, 34, 69, 120, 116, 101, 110, 100, 101, 100, 78, 97, 109, 101, 34, 44,
+        116, 101, 114, 102, 97, 99, 101, 95, 105, 100, 34, 58, 48, 44, 34, 110, 97, 109,
+        101, 34, 58, 34, 98, 97, 115, 101, 32, 58, 58, 32, 66, 97, 115, 101, 76, 105,
+        102, 101, 116, 105, 109, 101, 34, 125, 93, 44, 34, 102, 117, 110, 99, 116, 105,
+        111, 110, 115, 34, 58, 91, 123, 34, 101, 110, 116, 114, 121, 95, 105, 100, 95,
+        111, 118, 101, 114, 114, 105, 100, 101, 34, 58, 49, 44, 34, 107, 105, 110, 100,
+        34, 58, 34, 113, 117, 101, 114, 121, 34, 44, 34, 110, 97, 109, 101, 34, 58, 34,
+        69, 120, 116, 101, 110, 100, 101, 100, 78, 97, 109, 101, 34, 44, 34, 112, 97,
+        114, 97, 109, 115, 34, 58, 91, 93, 44, 34, 114, 101, 116, 117, 114, 110, 115, 34,
+        58, 123, 34, 107, 105, 110, 100, 34, 58, 34, 117, 110, 105, 116, 34, 125, 125,
+        44, 123, 34, 101, 110, 116, 114, 121, 95, 105, 100, 95, 111, 118, 101, 114, 114,
+        105, 100, 101, 34, 58, 50, 44, 34, 107, 105, 110, 100, 34, 58, 34, 113, 117, 101,
+        114, 121, 34, 44, 34, 110, 97, 109, 101, 34, 58, 34, 78, 97, 109, 101, 34, 44,
         34, 112, 97, 114, 97, 109, 115, 34, 58, 91, 93, 44, 34, 114, 101, 116, 117, 114,
         110, 115, 34, 58, 123, 34, 107, 105, 110, 100, 34, 58, 34, 117, 110, 105, 116,
-        34, 125, 125, 44, 123, 34, 101, 110, 116, 114, 121, 95, 105, 100, 95, 111, 118,
-        101, 114, 114, 105, 100, 101, 34, 58, 50, 44, 34, 107, 105, 110, 100, 34, 58, 34,
-        113, 117, 101, 114, 121, 34, 44, 34, 110, 97, 109, 101, 34, 58, 34, 78, 97, 109,
-        101, 34, 44, 34, 112, 97, 114, 97, 109, 115, 34, 58, 91, 93, 44, 34, 114, 101,
-        116, 117, 114, 110, 115, 34, 58, 123, 34, 107, 105, 110, 100, 34, 58, 34, 117,
-        110, 105, 116, 34, 125, 125, 93, 44, 34, 110, 97, 109, 101, 34, 58, 34, 69, 120,
-        116, 101, 110, 100, 101, 100, 76, 105, 102, 101, 116, 105, 109, 101, 32, 60, 32,
-        39, 97, 32, 62, 34, 125, 125, 44, 34, 116, 121, 112, 101, 115, 34, 58, 123, 125,
-        125,
+        34, 125, 125, 93, 44, 34, 110, 97, 109, 101, 34, 58, 34, 69, 120, 116, 101, 110,
+        100, 101, 100, 76, 105, 102, 101, 116, 105, 109, 101, 32, 60, 32, 39, 97, 32, 62,
+        34, 125, 125, 44, 34, 116, 121, 112, 101, 115, 34, 58, 123, 125, 125,
     ];
     pub const EXTENDS: &[sails_rs::meta::ExtendedInterface] = &[
         sails_rs::meta::ExtendedInterface {
             name: "base :: BaseLifetime",
-            interface_id32: <base::BaseLifetime as sails_rs::meta::ServiceMeta>::INTERFACE_ID32,
-            interface_uid64: <base::BaseLifetime as sails_rs::meta::ServiceMeta>::INTERFACE_UID64,
+            interface_id: <base::BaseLifetime as sails_rs::meta::ServiceMeta>::INTERFACE_ID,
         },
     ];
     pub fn event_entry_ids() -> sails_rs::Vec<u16> {
@@ -272,8 +268,8 @@ mod extended_lifetime_meta {
         }
     }
     #[cfg(all(feature = "std", not(target_arch = "wasm32")))]
-    fn canonical_cache() -> &'static (&'static [u8], u32, u64) {
-        static CACHE: sails_rs::spin::Once<(&'static [u8], u32, u64)> = sails_rs::spin::Once::new();
+    fn canonical_cache() -> &'static (&'static [u8], u64) {
+        static CACHE: sails_rs::spin::Once<(&'static [u8], u64)> = sails_rs::spin::Once::new();
         CACHE
             .call_once(|| {
                 let document = sails_rs::interface_id::runtime::build_canonical_document::<
@@ -283,38 +279,27 @@ mod extended_lifetime_meta {
                 let bytes = document
                     .to_bytes()
                     .expect("canonical document serialization should succeed");
-                let (id32, uid64) = sails_rs::interface_id::compute_ids_from_bytes(
-                    &bytes,
-                );
+                let id = sails_rs::interface_id::compute_ids_from_bytes(&bytes);
                 let leaked = sails_rs::boxed::Box::leak(bytes.into_boxed_slice());
-                (leaked as &'static [u8], id32, uid64)
+                (leaked as &'static [u8], id)
             })
     }
     pub fn canonical_service() -> &'static [u8] {
         #[cfg(all(feature = "std", not(target_arch = "wasm32")))]
         {
-            let (bytes, _, _) = *canonical_cache();
+            let (bytes, _) = *canonical_cache();
             bytes
         }
         #[cfg(not(all(feature = "std", not(target_arch = "wasm32"))))]
         { CANONICAL_BYTES }
     }
-    pub fn interface_id32() -> u32 {
+    pub fn interface_id() -> u64 {
         #[cfg(all(feature = "std", not(target_arch = "wasm32")))]
         {
-            let (_, id32, _) = *canonical_cache();
-            id32
+            let (_, id) = *canonical_cache();
+            id
         }
-        #[cfg(not(all(feature = "std", not(target_arch = "wasm32"))))] { INTERFACE_ID32 }
-    }
-    pub fn interface_uid64() -> u64 {
-        #[cfg(all(feature = "std", not(target_arch = "wasm32")))]
-        {
-            let (_, _, uid64) = *canonical_cache();
-            uid64
-        }
-        #[cfg(not(all(feature = "std", not(target_arch = "wasm32"))))]
-        { INTERFACE_UID64 }
+        #[cfg(not(all(feature = "std", not(target_arch = "wasm32"))))] { INTERFACE_ID }
     }
     pub fn extends() -> &'static [sails_rs::meta::ExtendedInterface] {
         #[cfg(all(feature = "std", not(target_arch = "wasm32")))]
@@ -328,8 +313,7 @@ mod extended_lifetime_meta {
                     entries
                         .push(sails_rs::meta::ExtendedInterface {
                             name: "base :: BaseLifetime",
-                            interface_id32: <base::BaseLifetime as sails_rs::meta::ServiceMeta>::INTERFACE_ID32,
-                            interface_uid64: <base::BaseLifetime as sails_rs::meta::ServiceMeta>::INTERFACE_UID64,
+                            interface_id: <base::BaseLifetime as sails_rs::meta::ServiceMeta>::INTERFACE_ID,
                         });
                     sails_rs::boxed::Box::leak(entries.into_boxed_slice())
                 })
