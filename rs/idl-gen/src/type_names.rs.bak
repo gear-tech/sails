@@ -26,8 +26,7 @@ use convert_case::{Case, Casing};
 use core::num::{NonZeroU8, NonZeroU16, NonZeroU32, NonZeroU64, NonZeroU128};
 use gprimitives::*;
 use scale_info::{
-    Field, PortableType, Type, TypeDef, TypeDefArray, TypeDefPrimitive, TypeDefSequence,
-    TypeDefTuple, TypeInfo, form::PortableForm,
+    form::PortableForm, Field, PortableType, Type, TypeDef, TypeDefArray, TypeDefPrimitive, TypeDefSequence, TypeDefTuple, TypeInfo
 };
 use std::{
     collections::{BTreeMap, HashMap, HashSet},
@@ -38,10 +37,7 @@ use std::{
 
 pub(super) fn resolve<'a>(
     types: impl Iterator<Item = &'a PortableType>,
-) -> Result<(
-    BTreeMap<u32, String>,
-    BTreeMap<TypeRegistryId, Option<String>>,
-)> {
+) -> Result<(BTreeMap<u32, String>, BTreeMap<TypeRegistryId, Option<String>>)> {
     let types = types
         .map(|t| (t.id, t))
         .collect::<BTreeMap<u32, &PortableType>>();
@@ -810,7 +806,7 @@ fn build_generic_names(
                 &params_names,
                 None,
                 parent_registry_id,
-                &mut generic_names,
+                &mut generic_names
             )?,
             TypeDef::Variant(variant) => {
                 for variant in variant.variants.iter() {
@@ -820,10 +816,9 @@ fn build_generic_names(
                         // `field_registry_id` is unique, because variant index and names are unique within enum
                         let field_registry_id = parent_registry_id.field(0, 0, variant_index);
                         if generic_names.insert(field_registry_id, None).is_some() {
-                            return Err(TypeNameResolutionError::FieldTypeRepetition(
-                                variant.name.to_string(),
-                            )
-                            .into());
+                            return Err(
+                                TypeNameResolutionError::FieldTypeRepetition(variant.name.to_string()).into(),
+                            );
                         }
                     } else {
                         build_fields_types_names(
@@ -832,7 +827,7 @@ fn build_generic_names(
                             &params_names,
                             variant_index,
                             parent_registry_id,
-                            &mut generic_names,
+                            &mut generic_names
                         )?;
                     }
                 }
@@ -873,12 +868,17 @@ fn build_fields_types_names<'a>(
 ) -> Result<()> {
     for (field_index, field) in fields_iter.enumerate() {
         let field_type_id = field.ty.id;
-        let field_type_name = field.type_name.expect("field must have name set");
+        let field_type_name = field.type_name
+            .expect("field must have name set");
 
         // todo [sab] actually can optimize variant_data.clone() to get fields names upper
         let field_registry_id = parent_registry_id.field(field_index, field_type_id, variant_data);
-        let field_generic_name =
-            build_field_type_name(field_type_id, field_type_name, concrete_names, params_names)?;
+        let field_generic_name = build_field_type_name(
+            field_type_id,
+            field_type_name,
+            concrete_names,
+            params_names,
+        )?;
 
         if let Some(field_generic_name) =
             generic_names.insert(field_registry_id, Some(field_generic_name))
@@ -1571,9 +1571,8 @@ mod tests {
         assert_eq!(
             generic_names
                 .get(&TypeRegistryId::ParentTy(struct_id))
-                .unwrap()
-                .as_deref(),
-            Some("SimpleOneGenericStruct<T>")
+                .unwrap(),
+            "SimpleOneGenericStruct<T>"
         );
         assert_eq!(
             concrete_names.get(&enum_id).unwrap(),
@@ -1582,9 +1581,8 @@ mod tests {
         assert_eq!(
             generic_names
                 .get(&TypeRegistryId::ParentTy(enum_id))
-                .unwrap()
-                .as_deref(),
-            Some("SimpleOneGenericEnum<T>")
+                .unwrap(),
+            "SimpleOneGenericEnum<T>"
         );
 
         // Get the struct to check fields
@@ -1606,7 +1604,7 @@ mod tests {
                 field_index: 0,
                 self_id: generic_value.ty.id,
             };
-            assert_eq!(generic_names.get(&id).unwrap().as_deref(), Some("T"));
+            assert_eq!(generic_names.get(&id).unwrap(), Some("T"));
 
             let tuple_generic = composite
                 .fields
@@ -1622,7 +1620,7 @@ mod tests {
                 field_index: 1,
                 self_id: tuple_generic.ty.id,
             };
-            assert_eq!(generic_names.get(&id).unwrap().as_deref(), Some("(T, T)"));
+            assert_eq!(generic_names.get(&id).unwrap(), "(T, T)");
 
             let option_generic = composite
                 .fields
@@ -1638,10 +1636,7 @@ mod tests {
                 field_index: 2,
                 self_id: option_generic.ty.id,
             };
-            assert_eq!(
-                generic_names.get(&id).unwrap().as_deref(),
-                Some("Option<T>")
-            );
+            assert_eq!(generic_names.get(&id).unwrap(), "Option<T>");
 
             let result_generic = composite
                 .fields
@@ -1657,10 +1652,7 @@ mod tests {
                 field_index: 3,
                 self_id: result_generic.ty.id,
             };
-            assert_eq!(
-                generic_names.get(&id).unwrap().as_deref(),
-                Some("Result<T, String>")
-            );
+            assert_eq!(generic_names.get(&id).unwrap(), "Result<T, String>");
 
             let btreemap_generic = composite
                 .fields
@@ -1676,10 +1668,7 @@ mod tests {
                 field_index: 4,
                 self_id: btreemap_generic.ty.id,
             };
-            assert_eq!(
-                generic_names.get(&id).unwrap().as_deref(),
-                Some("SailsBTreeMap<String, T>")
-            );
+            assert_eq!(generic_names.get(&id).unwrap(), "SailsBTreeMap<String, T>");
 
             let struct_generic = composite
                 .fields
@@ -1695,10 +1684,7 @@ mod tests {
                 field_index: 5,
                 self_id: struct_generic.ty.id,
             };
-            assert_eq!(
-                generic_names.get(&id).unwrap().as_deref(),
-                Some("GenericStruct<T>")
-            );
+            assert_eq!(generic_names.get(&id).unwrap(), "GenericStruct<T>");
 
             let enum_generic = composite
                 .fields
@@ -1714,10 +1700,7 @@ mod tests {
                 field_index: 6,
                 self_id: enum_generic.ty.id,
             };
-            assert_eq!(
-                generic_names.get(&id).unwrap().as_deref(),
-                Some("SimpleOneGenericEnum<T>")
-            );
+            assert_eq!(generic_names.get(&id).unwrap(), "SimpleOneGenericEnum<T>");
 
             // Category 2: Two-level nested
             let option_of_option = composite
@@ -1734,10 +1717,7 @@ mod tests {
                 field_index: 7,
                 self_id: option_of_option.ty.id,
             };
-            assert_eq!(
-                generic_names.get(&id).unwrap().as_deref(),
-                Some("Option<Option<T>>")
-            );
+            assert_eq!(generic_names.get(&id).unwrap(), "Option<Option<T>>");
 
             let result_of_option = composite
                 .fields
@@ -1753,10 +1733,7 @@ mod tests {
                 field_index: 8,
                 self_id: result_of_option.ty.id,
             };
-            assert_eq!(
-                generic_names.get(&id).unwrap().as_deref(),
-                Some("Result<Option<T>, String>")
-            );
+            assert_eq!(generic_names.get(&id).unwrap(), "Result<Option<T>, String>");
 
             let btreemap_nested = composite
                 .fields
@@ -1773,8 +1750,8 @@ mod tests {
                 self_id: btreemap_nested.ty.id,
             };
             assert_eq!(
-                generic_names.get(&id).unwrap().as_deref(),
-                Some("SailsBTreeMap<Option<T>, GenericStruct<T>>")
+                generic_names.get(&id).unwrap(),
+                "SailsBTreeMap<Option<T>, GenericStruct<T>>"
             );
 
             let struct_of_option = composite
@@ -1791,10 +1768,7 @@ mod tests {
                 field_index: 10,
                 self_id: struct_of_option.ty.id,
             };
-            assert_eq!(
-                generic_names.get(&id).unwrap().as_deref(),
-                Some("GenericStruct<Option<T>>")
-            );
+            assert_eq!(generic_names.get(&id).unwrap(), "GenericStruct<Option<T>>");
 
             let enum_of_result = composite
                 .fields
@@ -1811,8 +1785,8 @@ mod tests {
                 self_id: enum_of_result.ty.id,
             };
             assert_eq!(
-                generic_names.get(&id).unwrap().as_deref(),
-                Some("SimpleOneGenericEnum<Result<T, String>>")
+                generic_names.get(&id).unwrap(),
+                "SimpleOneGenericEnum<Result<T, String>>"
             );
 
             // Category 3: Triple-nested
@@ -1830,10 +1804,7 @@ mod tests {
                 field_index: 12,
                 self_id: option_triple.ty.id,
             };
-            assert_eq!(
-                generic_names.get(&id).unwrap().as_deref(),
-                Some("Option<Option<Option<T>>>")
-            );
+            assert_eq!(generic_names.get(&id).unwrap(), "Option<Option<Option<T>>>");
 
             let result_triple = composite
                 .fields
@@ -1850,8 +1821,8 @@ mod tests {
                 self_id: result_triple.ty.id,
             };
             assert_eq!(
-                generic_names.get(&id).unwrap().as_deref(),
-                Some("Result<Option<Result<T, String>>, String>")
+                generic_names.get(&id).unwrap(),
+                "Result<Option<Result<T, String>>, String>"
             );
 
             let btreemap_triple = composite
@@ -1869,8 +1840,8 @@ mod tests {
                 self_id: btreemap_triple.ty.id,
             };
             assert_eq!(
-                generic_names.get(&id).unwrap().as_deref(),
-                Some("SailsBTreeMap<Option<GenericStruct<T>>, Result<T, String>>")
+                generic_names.get(&id).unwrap(),
+                "SailsBTreeMap<Option<GenericStruct<T>>, Result<T, String>>"
             );
 
             let struct_triple = composite
@@ -1888,8 +1859,8 @@ mod tests {
                 self_id: struct_triple.ty.id,
             };
             assert_eq!(
-                generic_names.get(&id).unwrap().as_deref(),
-                Some("GenericStruct<Option<Result<T, String>>>")
+                generic_names.get(&id).unwrap(),
+                "GenericStruct<Option<Result<T, String>>>"
             );
         } else {
             panic!("Expected composite type");
@@ -1901,14 +1872,13 @@ mod tests {
             .find(|t| t.id == enum_id)
             .unwrap();
         if let TypeDef::Variant(variant) = &enum_type.ty.type_def {
-            let no_field_generic_name = generic_names
-                .get(&TypeRegistryId::EnumField {
-                    parent_ty: enum_id,
-                    variant_index: 0,
-                    self_id: 0,
-                    field_index: 0,
-                })
-                .unwrap();
+            let no_field_generic_name = generic_names.get(&TypeRegistryId::EnumField {
+                parent_ty: enum_id,
+                variant_index: 0,
+                self_id: 0,
+                field_index: 0,
+            })
+            .unwrap();
             assert!(no_field_generic_name.is_none());
 
             // Category 1: Simple generic usage
@@ -1925,7 +1895,7 @@ mod tests {
                 field_index: 0,
                 self_id: field.ty.id,
             };
-            assert_eq!(generic_names.get(&id).unwrap().as_deref(), Some("T"));
+            assert_eq!(generic_names.get(&id).unwrap(), "T");
 
             let tuple_generic = variant
                 .variants
@@ -1943,7 +1913,7 @@ mod tests {
                 field_index: 0,
                 self_id: tuple_generic_field1.ty.id,
             };
-            assert_eq!(generic_names.get(&id1).unwrap().as_deref(), Some("T"));
+            assert_eq!(generic_names.get(&id1).unwrap(), "T");
             let tuple_generic_field2 = &tuple_generic.fields[1];
             assert_eq!(
                 concrete_names.get(&tuple_generic_field2.ty.id).unwrap(),
@@ -1955,7 +1925,7 @@ mod tests {
                 field_index: 1,
                 self_id: tuple_generic_field2.ty.id,
             };
-            assert_eq!(generic_names.get(&id2).unwrap().as_deref(), Some("T"));
+            assert_eq!(generic_names.get(&id2).unwrap(), "T");
 
             let option_generic = variant
                 .variants
@@ -1970,10 +1940,7 @@ mod tests {
                 field_index: 0,
                 self_id: field.ty.id,
             };
-            assert_eq!(
-                generic_names.get(&id).unwrap().as_deref(),
-                Some("Option<T>")
-            );
+            assert_eq!(generic_names.get(&id).unwrap(), "Option<T>");
 
             let result_generic = variant
                 .variants
@@ -1991,10 +1958,7 @@ mod tests {
                 field_index: 0,
                 self_id: field.ty.id,
             };
-            assert_eq!(
-                generic_names.get(&id).unwrap().as_deref(),
-                Some("Result<T, String>")
-            );
+            assert_eq!(generic_names.get(&id).unwrap(), "Result<T, String>");
 
             let btreemap_generic = variant
                 .variants
@@ -2016,10 +1980,7 @@ mod tests {
                 field_index: 0,
                 self_id: field.ty.id,
             };
-            assert_eq!(
-                generic_names.get(&id).unwrap().as_deref(),
-                Some("SailsBTreeMap<String, T>")
-            );
+            assert_eq!(generic_names.get(&id).unwrap(), "SailsBTreeMap<String, T>");
 
             let struct_generic = variant
                 .variants
@@ -2041,10 +2002,7 @@ mod tests {
                 field_index: 0,
                 self_id: field.ty.id,
             };
-            assert_eq!(
-                generic_names.get(&id).unwrap().as_deref(),
-                Some("GenericStruct<T>")
-            );
+            assert_eq!(generic_names.get(&id).unwrap(), "GenericStruct<T>");
 
             let nested_enum = variant
                 .variants
@@ -2062,10 +2020,7 @@ mod tests {
                 field_index: 0,
                 self_id: field.ty.id,
             };
-            assert_eq!(
-                generic_names.get(&id).unwrap().as_deref(),
-                Some("NestedGenericEnum<T>")
-            );
+            assert_eq!(generic_names.get(&id).unwrap(), "NestedGenericEnum<T>");
 
             // Category 2: Two-level nested generics
             let option_of_option = variant
@@ -2084,10 +2039,7 @@ mod tests {
                 field_index: 0,
                 self_id: field.ty.id,
             };
-            assert_eq!(
-                generic_names.get(&id).unwrap().as_deref(),
-                Some("Option<Option<T>>")
-            );
+            assert_eq!(generic_names.get(&id).unwrap(), "Option<Option<T>>");
 
             let result_of_option = variant
                 .variants
@@ -2109,10 +2061,7 @@ mod tests {
                 field_index: 0,
                 self_id: field.ty.id,
             };
-            assert_eq!(
-                generic_names.get(&id).unwrap().as_deref(),
-                Some("Result<Option<T>, String>")
-            );
+            assert_eq!(generic_names.get(&id).unwrap(), "Result<Option<T>, String>");
 
             let double_nested = variant
                 .variants
@@ -2135,8 +2084,8 @@ mod tests {
                 self_id: btree_field.ty.id,
             };
             assert_eq!(
-                generic_names.get(&id).unwrap().as_deref(),
-                Some("SailsBTreeMap<Option<T>, GenericStruct<T>>")
+                generic_names.get(&id).unwrap(),
+                "SailsBTreeMap<Option<T>, GenericStruct<T>>"
             );
             let struct_field = double_nested
                 .fields
@@ -2153,10 +2102,7 @@ mod tests {
                 field_index: 1,
                 self_id: struct_field.ty.id,
             };
-            assert_eq!(
-                generic_names.get(&id).unwrap().as_deref(),
-                Some("GenericStruct<Option<T>>")
-            );
+            assert_eq!(generic_names.get(&id).unwrap(), "GenericStruct<Option<T>>");
 
             // Category 3: Triple-nested generics
             let tripple_nested = variant
@@ -2179,10 +2125,7 @@ mod tests {
                 field_index: 0,
                 self_id: option_field.ty.id,
             };
-            assert_eq!(
-                generic_names.get(&id).unwrap().as_deref(),
-                Some("Option<Option<Option<T>>>")
-            );
+            assert_eq!(generic_names.get(&id).unwrap(), "Option<Option<Option<T>>>");
             let result_field = tripple_nested
                 .fields
                 .iter()
@@ -2199,8 +2142,8 @@ mod tests {
                 self_id: result_field.ty.id,
             };
             assert_eq!(
-                generic_names.get(&id).unwrap().as_deref(),
-                Some("Result<Option<Result<T, String>>, String>")
+                generic_names.get(&id).unwrap(),
+                "Result<Option<Result<T, String>>, String>"
             );
 
             let option_triple = variant
@@ -2219,10 +2162,7 @@ mod tests {
                 field_index: 0,
                 self_id: field.ty.id,
             };
-            assert_eq!(
-                generic_names.get(&id).unwrap().as_deref(),
-                Some("Option<Option<Option<T>>>")
-            );
+            assert_eq!(generic_names.get(&id).unwrap(), "Option<Option<Option<T>>>");
 
             let result_triple = variant
                 .variants
@@ -2245,18 +2185,17 @@ mod tests {
                 self_id: field.ty.id,
             };
             assert_eq!(
-                generic_names.get(&id).unwrap().as_deref(),
-                Some("Result<Option<Result<T, String>>, String>")
+                generic_names.get(&id).unwrap(),
+                "Result<Option<Result<T, String>>, String>"
             );
 
-            let no_field_2_generic_name = generic_names
-                .get(&TypeRegistryId::EnumField {
-                    parent_ty: enum_id,
-                    variant_index: 14,
-                    self_id: 0,
-                    field_index: 0,
-                })
-                .unwrap();
+            let no_field_2_generic_name = generic_names.get(&TypeRegistryId::EnumField {
+                parent_ty: enum_id,
+                variant_index: 14,
+                self_id: 0,
+                field_index: 0,
+            })
+            .unwrap();
             assert!(no_field_2_generic_name.is_none());
         } else {
             panic!("Expected variant type");
@@ -2339,9 +2278,8 @@ mod tests {
         assert_eq!(
             generic_names
                 .get(&TypeRegistryId::ParentTy(struct_id))
-                .unwrap()
-                .as_deref(),
-            Some("ComplexOneGenericStruct<T>")
+                .unwrap(),
+            "ComplexOneGenericStruct<T>"
         );
         assert_eq!(
             concrete_names.get(&enum_id).unwrap(),
@@ -2350,9 +2288,8 @@ mod tests {
         assert_eq!(
             generic_names
                 .get(&TypeRegistryId::ParentTy(enum_id))
-                .unwrap()
-                .as_deref(),
-            Some("ComplexOneGenericEnum<T>")
+                .unwrap(),
+            "ComplexOneGenericEnum<T>"
         );
 
         let struct_type = portable_registry
@@ -2377,7 +2314,7 @@ mod tests {
                 field_index: 0,
                 self_id: array_of_generic.ty.id,
             };
-            assert_eq!(generic_names.get(&id).unwrap().as_deref(), Some("[T; 10]"));
+            assert_eq!(generic_names.get(&id).unwrap(), "[T; 10]");
 
             let tuple_complex = composite
                 .fields
@@ -2393,10 +2330,7 @@ mod tests {
                 field_index: 1,
                 self_id: tuple_complex.ty.id,
             };
-            assert_eq!(
-                generic_names.get(&id).unwrap().as_deref(),
-                Some("(T, SailsVec<T>, [T; 5])")
-            );
+            assert_eq!(generic_names.get(&id).unwrap(), "(T, SailsVec<T>, [T; 5])");
 
             let array_of_tuple = composite
                 .fields
@@ -2412,10 +2346,7 @@ mod tests {
                 field_index: 2,
                 self_id: array_of_tuple.ty.id,
             };
-            assert_eq!(
-                generic_names.get(&id).unwrap().as_deref(),
-                Some("[(T, T); 3]")
-            );
+            assert_eq!(generic_names.get(&id).unwrap(), "[(T, T); 3]");
 
             let vec_of_array = composite
                 .fields
@@ -2431,10 +2362,7 @@ mod tests {
                 field_index: 3,
                 self_id: vec_of_array.ty.id,
             };
-            assert_eq!(
-                generic_names.get(&id).unwrap().as_deref(),
-                Some("SailsVec<[T; 8]>")
-            );
+            assert_eq!(generic_names.get(&id).unwrap(), "SailsVec<[T; 8]>");
 
             // Category 2: Two-level nested complex types
             let array_of_option = composite
@@ -2451,10 +2379,7 @@ mod tests {
                 field_index: 4,
                 self_id: array_of_option.ty.id,
             };
-            assert_eq!(
-                generic_names.get(&id).unwrap().as_deref(),
-                Some("[Option<T>; 5]")
-            );
+            assert_eq!(generic_names.get(&id).unwrap(), "[Option<T>; 5]");
 
             let tuple_of_result = composite
                 .fields
@@ -2471,8 +2396,8 @@ mod tests {
                 self_id: tuple_of_result.ty.id,
             };
             assert_eq!(
-                generic_names.get(&id).unwrap().as_deref(),
-                Some("(Result<T, String>, Option<T>)")
+                generic_names.get(&id).unwrap(),
+                "(Result<T, String>, Option<T>)"
             );
 
             let vec_of_struct = composite
@@ -2490,8 +2415,8 @@ mod tests {
                 self_id: vec_of_struct.ty.id,
             };
             assert_eq!(
-                generic_names.get(&id).unwrap().as_deref(),
-                Some("SailsVec<GenericStruct<T>>")
+                generic_names.get(&id).unwrap(),
+                "SailsVec<GenericStruct<T>>"
             );
 
             let array_of_btreemap = composite
@@ -2509,8 +2434,8 @@ mod tests {
                 self_id: array_of_btreemap.ty.id,
             };
             assert_eq!(
-                generic_names.get(&id).unwrap().as_deref(),
-                Some("[SailsBTreeMap<String, T>; 2]")
+                generic_names.get(&id).unwrap(),
+                "[SailsBTreeMap<String, T>; 2]"
             );
 
             // Category 3: Triple-nested complex types
@@ -2528,10 +2453,7 @@ mod tests {
                 field_index: 8,
                 self_id: array_of_vec_of_option.ty.id,
             };
-            assert_eq!(
-                generic_names.get(&id).unwrap().as_deref(),
-                Some("[SailsVec<Option<T>>; 4]")
-            );
+            assert_eq!(generic_names.get(&id).unwrap(), "[SailsVec<Option<T>>; 4]");
 
             let tuple_triple = composite
                 .fields
@@ -2548,8 +2470,8 @@ mod tests {
                 self_id: tuple_triple.ty.id,
             };
             assert_eq!(
-                generic_names.get(&id).unwrap().as_deref(),
-                Some("(Option<SailsVec<T>>, Result<[T; 3], String>)")
+                generic_names.get(&id).unwrap(),
+                "(Option<SailsVec<T>>, Result<[T; 3], String>)"
             );
 
             let vec_of_struct_of_option = composite
@@ -2567,8 +2489,8 @@ mod tests {
                 self_id: vec_of_struct_of_option.ty.id,
             };
             assert_eq!(
-                generic_names.get(&id).unwrap().as_deref(),
-                Some("SailsVec<GenericStruct<Option<T>>>")
+                generic_names.get(&id).unwrap(),
+                "SailsVec<GenericStruct<Option<T>>>"
             );
 
             let array_complex_triple = composite
@@ -2586,8 +2508,8 @@ mod tests {
                 self_id: array_complex_triple.ty.id,
             };
             assert_eq!(
-                generic_names.get(&id).unwrap().as_deref(),
-                Some("[SailsBTreeMap<Option<T>, Result<T, String>>; 2]")
+                generic_names.get(&id).unwrap(),
+                "[SailsBTreeMap<Option<T>, Result<T, String>>; 2]"
             );
         } else {
             panic!("Expected composite type");
@@ -2614,7 +2536,7 @@ mod tests {
                 field_index: 0,
                 self_id: field.ty.id,
             };
-            assert_eq!(generic_names.get(&id).unwrap().as_deref(), Some("[T; 10]"));
+            assert_eq!(generic_names.get(&id).unwrap(), "[T; 10]");
 
             let tuple_complex = variant
                 .variants
@@ -2629,7 +2551,7 @@ mod tests {
                 field_index: 0,
                 self_id: field0.ty.id,
             };
-            assert_eq!(generic_names.get(&id0).unwrap().as_deref(), Some("T"));
+            assert_eq!(generic_names.get(&id0).unwrap(), "T");
             let field1 = &tuple_complex.fields[1];
             assert_eq!(concrete_names.get(&field1.ty.id).unwrap(), "SailsVec<bool>");
             let id1 = TypeRegistryId::EnumField {
@@ -2638,10 +2560,7 @@ mod tests {
                 field_index: 1,
                 self_id: field1.ty.id,
             };
-            assert_eq!(
-                generic_names.get(&id1).unwrap().as_deref(),
-                Some("SailsVec<T>")
-            );
+            assert_eq!(generic_names.get(&id1).unwrap(), "SailsVec<T>");
             let field2 = &tuple_complex.fields[2];
             assert_eq!(concrete_names.get(&field2.ty.id).unwrap(), "[bool; 5]");
             let id2 = TypeRegistryId::EnumField {
@@ -2650,7 +2569,7 @@ mod tests {
                 field_index: 2,
                 self_id: field2.ty.id,
             };
-            assert_eq!(generic_names.get(&id2).unwrap().as_deref(), Some("[T; 5]"));
+            assert_eq!(generic_names.get(&id2).unwrap(), "[T; 5]");
 
             let array_of_tuple = variant
                 .variants
@@ -2668,10 +2587,7 @@ mod tests {
                 field_index: 0,
                 self_id: field.ty.id,
             };
-            assert_eq!(
-                generic_names.get(&id).unwrap().as_deref(),
-                Some("[(T, T); 3]")
-            );
+            assert_eq!(generic_names.get(&id).unwrap(), "[(T, T); 3]");
 
             let vec_of_array = variant
                 .variants
@@ -2693,10 +2609,7 @@ mod tests {
                 field_index: 0,
                 self_id: field.ty.id,
             };
-            assert_eq!(
-                generic_names.get(&id).unwrap().as_deref(),
-                Some("SailsVec<[T; 8]>")
-            );
+            assert_eq!(generic_names.get(&id).unwrap(), "SailsVec<[T; 8]>");
 
             // Category 2: Two-level nested complex types
             let array_of_option = variant
@@ -2715,10 +2628,7 @@ mod tests {
                 field_index: 0,
                 self_id: field.ty.id,
             };
-            assert_eq!(
-                generic_names.get(&id).unwrap().as_deref(),
-                Some("[Option<T>; 5]")
-            );
+            assert_eq!(generic_names.get(&id).unwrap(), "[Option<T>; 5]");
 
             let tuple_of_result = variant
                 .variants
@@ -2741,8 +2651,8 @@ mod tests {
                 self_id: field.ty.id,
             };
             assert_eq!(
-                generic_names.get(&id).unwrap().as_deref(),
-                Some("(Result<T, String>, Option<T>)")
+                generic_names.get(&id).unwrap(),
+                "(Result<T, String>, Option<T>)"
             );
 
             let vec_of_struct = variant
@@ -2762,8 +2672,8 @@ mod tests {
                 self_id: field.ty.id,
             };
             assert_eq!(
-                generic_names.get(&id).unwrap().as_deref(),
-                Some("SailsVec<GenericStruct<T>>")
+                generic_names.get(&id).unwrap(),
+                "SailsVec<GenericStruct<T>>"
             );
 
             let array_of_btreemap = variant
@@ -2787,8 +2697,8 @@ mod tests {
                 self_id: field.ty.id,
             };
             assert_eq!(
-                generic_names.get(&id).unwrap().as_deref(),
-                Some("[SailsBTreeMap<String, T>; 2]")
+                generic_names.get(&id).unwrap(),
+                "[SailsBTreeMap<String, T>; 2]"
             );
 
             // Category 3: Triple-nested complex types
@@ -2809,8 +2719,8 @@ mod tests {
                 self_id: field.ty.id,
             };
             assert_eq!(
-                generic_names.get(&id).unwrap().as_deref(),
-                Some("[SailsVec<Option<SailsVec<T>>>; 4]")
+                generic_names.get(&id).unwrap(),
+                "[SailsVec<Option<SailsVec<T>>>; 4]"
             );
 
             let tuple_triple = variant
@@ -2834,8 +2744,8 @@ mod tests {
                 self_id: field1.ty.id,
             };
             assert_eq!(
-                generic_names.get(&id1).unwrap().as_deref(),
-                Some("Option<Option<SailsVec<T>>>")
+                generic_names.get(&id1).unwrap(),
+                "Option<Option<SailsVec<T>>>"
             );
             let field2 = tuple_triple
                 .fields
@@ -2853,8 +2763,8 @@ mod tests {
                 self_id: field2.ty.id,
             };
             assert_eq!(
-                generic_names.get(&id2).unwrap().as_deref(),
-                Some("Result<Option<[T; 3]>, String>")
+                generic_names.get(&id2).unwrap(),
+                "Result<Option<[T; 3]>, String>"
             );
 
             let vec_of_struct_of_option = variant
@@ -2874,8 +2784,8 @@ mod tests {
                 self_id: field.ty.id,
             };
             assert_eq!(
-                generic_names.get(&id).unwrap().as_deref(),
-                Some("SailsVec<GenericStruct<Option<T>>>")
+                generic_names.get(&id).unwrap(),
+                "SailsVec<GenericStruct<Option<T>>>"
             );
 
             let array_complex_triple = variant
@@ -2895,8 +2805,8 @@ mod tests {
                 self_id: field.ty.id,
             };
             assert_eq!(
-                generic_names.get(&id).unwrap().as_deref(),
-                Some("[SailsBTreeMap<SailsBTreeMap<Option<T>, String>, Result<T, String>>; 2]")
+                generic_names.get(&id).unwrap(),
+                "[SailsBTreeMap<SailsBTreeMap<Option<T>, String>, Result<T, String>>; 2]"
             );
         } else {
             panic!("Expected variant type");
@@ -3016,9 +2926,8 @@ mod tests {
         assert_eq!(
             generic_names
                 .get(&TypeRegistryId::ParentTy(struct_id))
-                .unwrap()
-                .as_deref(),
-            Some("MultiGenStruct<T1, T2, T3>")
+                .unwrap(),
+            "MultiGenStruct<T1, T2, T3>"
         );
 
         assert_eq!(
@@ -3028,9 +2937,8 @@ mod tests {
         assert_eq!(
             generic_names
                 .get(&TypeRegistryId::ParentTy(enum_id))
-                .unwrap()
-                .as_deref(),
-            Some("MultiGenEnum<T1, T2, T3>")
+                .unwrap(),
+            "MultiGenEnum<T1, T2, T3>"
         );
 
         let struct_type = portable_registry
@@ -3052,7 +2960,7 @@ mod tests {
                 field_index: 0,
                 self_id: just_t1.ty.id,
             };
-            assert_eq!(generic_names.get(&id).unwrap().as_deref(), Some("T1"));
+            assert_eq!(generic_names.get(&id).unwrap(), "T1");
 
             let just_t2 = composite
                 .fields
@@ -3065,7 +2973,7 @@ mod tests {
                 field_index: 1,
                 self_id: just_t2.ty.id,
             };
-            assert_eq!(generic_names.get(&id).unwrap().as_deref(), Some("T2"));
+            assert_eq!(generic_names.get(&id).unwrap(), "T2");
 
             let just_t3 = composite
                 .fields
@@ -3078,7 +2986,7 @@ mod tests {
                 field_index: 2,
                 self_id: just_t3.ty.id,
             };
-            assert_eq!(generic_names.get(&id).unwrap().as_deref(), Some("T3"));
+            assert_eq!(generic_names.get(&id).unwrap(), "T3");
 
             let array_t1 = composite
                 .fields
@@ -3091,7 +2999,7 @@ mod tests {
                 field_index: 3,
                 self_id: array_t1.ty.id,
             };
-            assert_eq!(generic_names.get(&id).unwrap().as_deref(), Some("[T1; 8]"));
+            assert_eq!(generic_names.get(&id).unwrap(), "[T1; 8]");
 
             let tuple_t2_t3 = composite
                 .fields
@@ -3107,7 +3015,7 @@ mod tests {
                 field_index: 4,
                 self_id: tuple_t2_t3.ty.id,
             };
-            assert_eq!(generic_names.get(&id).unwrap().as_deref(), Some("(T2, T3)"));
+            assert_eq!(generic_names.get(&id).unwrap(), "(T2, T3)");
 
             let vec_t3 = composite
                 .fields
@@ -3120,10 +3028,7 @@ mod tests {
                 field_index: 5,
                 self_id: vec_t3.ty.id,
             };
-            assert_eq!(
-                generic_names.get(&id).unwrap().as_deref(),
-                Some("SailsVec<T3>")
-            );
+            assert_eq!(generic_names.get(&id).unwrap(), "SailsVec<T3>");
 
             // Category 2: Mixed generics in complex types
             let tuple_mixed = composite
@@ -3140,10 +3045,7 @@ mod tests {
                 field_index: 6,
                 self_id: tuple_mixed.ty.id,
             };
-            assert_eq!(
-                generic_names.get(&id).unwrap().as_deref(),
-                Some("(T1, T2, T3)")
-            );
+            assert_eq!(generic_names.get(&id).unwrap(), "(T1, T2, T3)");
 
             let tuple_repeated = composite
                 .fields
@@ -3159,10 +3061,7 @@ mod tests {
                 field_index: 7,
                 self_id: tuple_repeated.ty.id,
             };
-            assert_eq!(
-                generic_names.get(&id).unwrap().as_deref(),
-                Some("(T1, T1, T2, T2, T3, T3)")
-            );
+            assert_eq!(generic_names.get(&id).unwrap(), "(T1, T1, T2, T2, T3, T3)");
 
             let array_of_tuple = composite
                 .fields
@@ -3178,10 +3077,7 @@ mod tests {
                 field_index: 8,
                 self_id: array_of_tuple.ty.id,
             };
-            assert_eq!(
-                generic_names.get(&id).unwrap().as_deref(),
-                Some("[(T1, T2); 4]")
-            );
+            assert_eq!(generic_names.get(&id).unwrap(), "[(T1, T2); 4]");
 
             let vec_of_array = composite
                 .fields
@@ -3197,10 +3093,7 @@ mod tests {
                 field_index: 9,
                 self_id: vec_of_array.ty.id,
             };
-            assert_eq!(
-                generic_names.get(&id).unwrap().as_deref(),
-                Some("SailsVec<[T3; 5]>")
-            );
+            assert_eq!(generic_names.get(&id).unwrap(), "SailsVec<[T3; 5]>");
 
             let btreemap_t1_t2 = composite
                 .fields
@@ -3216,10 +3109,7 @@ mod tests {
                 field_index: 10,
                 self_id: btreemap_t1_t2.ty.id,
             };
-            assert_eq!(
-                generic_names.get(&id).unwrap().as_deref(),
-                Some("SailsBTreeMap<T1, T2>")
-            );
+            assert_eq!(generic_names.get(&id).unwrap(), "SailsBTreeMap<T1, T2>");
 
             let struct_of_t3 = composite
                 .fields
@@ -3235,10 +3125,7 @@ mod tests {
                 field_index: 11,
                 self_id: struct_of_t3.ty.id,
             };
-            assert_eq!(
-                generic_names.get(&id).unwrap().as_deref(),
-                Some("GenericStruct<T3>")
-            );
+            assert_eq!(generic_names.get(&id).unwrap(), "GenericStruct<T3>");
 
             let enum_mixed = composite
                 .fields
@@ -3254,10 +3141,7 @@ mod tests {
                 field_index: 12,
                 self_id: enum_mixed.ty.id,
             };
-            assert_eq!(
-                generic_names.get(&id).unwrap().as_deref(),
-                Some("GenericEnum<T1, T2>")
-            );
+            assert_eq!(generic_names.get(&id).unwrap(), "GenericEnum<T1, T2>");
 
             // Category 3: Two-level nested with multiple generics
             let option_of_result = composite
@@ -3274,10 +3158,7 @@ mod tests {
                 field_index: 13,
                 self_id: option_of_result.ty.id,
             };
-            assert_eq!(
-                generic_names.get(&id).unwrap().as_deref(),
-                Some("Option<Result<T1, T2>>")
-            );
+            assert_eq!(generic_names.get(&id).unwrap(), "Option<Result<T1, T2>>");
 
             let array_of_option = composite
                 .fields
@@ -3293,10 +3174,7 @@ mod tests {
                 field_index: 14,
                 self_id: array_of_option.ty.id,
             };
-            assert_eq!(
-                generic_names.get(&id).unwrap().as_deref(),
-                Some("[Option<T2>; 6]")
-            );
+            assert_eq!(generic_names.get(&id).unwrap(), "[Option<T2>; 6]");
 
             let vec_of_tuple = composite
                 .fields
@@ -3312,10 +3190,7 @@ mod tests {
                 field_index: 15,
                 self_id: vec_of_tuple.ty.id,
             };
-            assert_eq!(
-                generic_names.get(&id).unwrap().as_deref(),
-                Some("SailsVec<(T2, T3, T1)>")
-            );
+            assert_eq!(generic_names.get(&id).unwrap(), "SailsVec<(T2, T3, T1)>");
 
             let tuple_of_result = composite
                 .fields
@@ -3332,8 +3207,8 @@ mod tests {
                 self_id: tuple_of_result.ty.id,
             };
             assert_eq!(
-                generic_names.get(&id).unwrap().as_deref(),
-                Some("(Result<T1, String>, Option<T2>)")
+                generic_names.get(&id).unwrap(),
+                "(Result<T1, String>, Option<T2>)"
             );
 
             let btreemap_nested = composite
@@ -3351,8 +3226,8 @@ mod tests {
                 self_id: btreemap_nested.ty.id,
             };
             assert_eq!(
-                generic_names.get(&id).unwrap().as_deref(),
-                Some("SailsBTreeMap<Option<T1>, Result<T2, String>>")
+                generic_names.get(&id).unwrap(),
+                "SailsBTreeMap<Option<T1>, Result<T2, String>>"
             );
 
             let struct_of_tuple = composite
@@ -3369,10 +3244,7 @@ mod tests {
                 field_index: 18,
                 self_id: struct_of_tuple.ty.id,
             };
-            assert_eq!(
-                generic_names.get(&id).unwrap().as_deref(),
-                Some("GenericStruct<(T2, T3)>")
-            );
+            assert_eq!(generic_names.get(&id).unwrap(), "GenericStruct<(T2, T3)>");
 
             // Category 4: Triple-nested complex types with multiple generics
             let option_triple = composite
@@ -3390,8 +3262,8 @@ mod tests {
                 self_id: option_triple.ty.id,
             };
             assert_eq!(
-                generic_names.get(&id).unwrap().as_deref(),
-                Some("Option<Result<SailsVec<T1>, T2>>")
+                generic_names.get(&id).unwrap(),
+                "Option<Result<SailsVec<T1>, T2>>"
             );
 
             let array_triple = composite
@@ -3409,8 +3281,8 @@ mod tests {
                 self_id: array_triple.ty.id,
             };
             assert_eq!(
-                generic_names.get(&id).unwrap().as_deref(),
-                Some("[SailsBTreeMap<T1, Option<T2>>; 3]")
+                generic_names.get(&id).unwrap(),
+                "[SailsBTreeMap<T1, Option<T2>>; 3]"
             );
 
             let vec_of_struct_of_option = composite
@@ -3428,8 +3300,8 @@ mod tests {
                 self_id: vec_of_struct_of_option.ty.id,
             };
             assert_eq!(
-                generic_names.get(&id).unwrap().as_deref(),
-                Some("SailsVec<GenericStruct<Option<T3>>>")
+                generic_names.get(&id).unwrap(),
+                "SailsVec<GenericStruct<Option<T3>>>"
             );
 
             let array_of_vec_of_tuple = composite
@@ -3446,10 +3318,7 @@ mod tests {
                 field_index: 22,
                 self_id: array_of_vec_of_tuple.ty.id,
             };
-            assert_eq!(
-                generic_names.get(&id).unwrap().as_deref(),
-                Some("[SailsVec<(T1, T2)>; 2]")
-            );
+            assert_eq!(generic_names.get(&id).unwrap(), "[SailsVec<(T1, T2)>; 2]");
 
             let tuple_complex_triple = composite
                 .fields
@@ -3466,8 +3335,8 @@ mod tests {
                 self_id: tuple_complex_triple.ty.id,
             };
             assert_eq!(
-                generic_names.get(&id).unwrap().as_deref(),
-                Some("(Option<SailsVec<T1>>, Result<[T2; 4], T3>)")
+                generic_names.get(&id).unwrap(),
+                "(Option<SailsVec<T1>>, Result<[T2; 4], T3>)"
             );
 
             let vec_complex = composite
@@ -3485,8 +3354,8 @@ mod tests {
                 self_id: vec_complex.ty.id,
             };
             assert_eq!(
-                generic_names.get(&id).unwrap().as_deref(),
-                Some("SailsVec<GenericStruct<Result<T1, T2>>>")
+                generic_names.get(&id).unwrap(),
+                "SailsVec<GenericStruct<Result<T1, T2>>>"
             );
         } else {
             panic!("Expected composite type");
@@ -3513,7 +3382,7 @@ mod tests {
                 field_index: 0,
                 self_id: field.ty.id,
             };
-            assert_eq!(generic_names.get(&id).unwrap().as_deref(), Some("T1"));
+            assert_eq!(generic_names.get(&id).unwrap(), "T1");
 
             let just_t2 = variant
                 .variants
@@ -3528,7 +3397,7 @@ mod tests {
                 field_index: 0,
                 self_id: field.ty.id,
             };
-            assert_eq!(generic_names.get(&id).unwrap().as_deref(), Some("T2"));
+            assert_eq!(generic_names.get(&id).unwrap(), "T2");
 
             let just_t3 = variant
                 .variants
@@ -3543,7 +3412,7 @@ mod tests {
                 field_index: 0,
                 self_id: field.ty.id,
             };
-            assert_eq!(generic_names.get(&id).unwrap().as_deref(), Some("T3"));
+            assert_eq!(generic_names.get(&id).unwrap(), "T3");
 
             let array_t1 = variant
                 .variants
@@ -3558,7 +3427,7 @@ mod tests {
                 field_index: 0,
                 self_id: field.ty.id,
             };
-            assert_eq!(generic_names.get(&id).unwrap().as_deref(), Some("[T1; 8]"));
+            assert_eq!(generic_names.get(&id).unwrap(), "[T1; 8]");
 
             let tuple_t2_t3 = variant
                 .variants
@@ -3573,7 +3442,7 @@ mod tests {
                 field_index: 0,
                 self_id: field0.ty.id,
             };
-            assert_eq!(generic_names.get(&id0).unwrap().as_deref(), Some("T2"));
+            assert_eq!(generic_names.get(&id0).unwrap(), "T2");
             let field1 = &tuple_t2_t3.fields[1];
             assert_eq!(concrete_names.get(&field1.ty.id).unwrap(), "H256");
             let id1 = TypeRegistryId::EnumField {
@@ -3582,7 +3451,7 @@ mod tests {
                 field_index: 1,
                 self_id: field1.ty.id,
             };
-            assert_eq!(generic_names.get(&id1).unwrap().as_deref(), Some("T3"));
+            assert_eq!(generic_names.get(&id1).unwrap(), "T3");
 
             let vec_t3 = variant.variants.iter().find(|v| v.name == "VecT3").unwrap();
             let field = vec_t3
@@ -3597,10 +3466,7 @@ mod tests {
                 field_index: 0,
                 self_id: field.ty.id,
             };
-            assert_eq!(
-                generic_names.get(&id).unwrap().as_deref(),
-                Some("SailsVec<T3>")
-            );
+            assert_eq!(generic_names.get(&id).unwrap(), "SailsVec<T3>");
 
             // Category 2: Mixed generics in complex types
             let tuple_mixed = variant
@@ -3616,7 +3482,7 @@ mod tests {
                 field_index: 0,
                 self_id: field0.ty.id,
             };
-            assert_eq!(generic_names.get(&id0).unwrap().as_deref(), Some("T1"));
+            assert_eq!(generic_names.get(&id0).unwrap(), "T1");
             let field1 = &tuple_mixed.fields[1];
             assert_eq!(concrete_names.get(&field1.ty.id).unwrap(), "String");
             let id1 = TypeRegistryId::EnumField {
@@ -3625,7 +3491,7 @@ mod tests {
                 field_index: 1,
                 self_id: field1.ty.id,
             };
-            assert_eq!(generic_names.get(&id1).unwrap().as_deref(), Some("T2"));
+            assert_eq!(generic_names.get(&id1).unwrap(), "T2");
             let field2 = &tuple_mixed.fields[2];
             assert_eq!(concrete_names.get(&field2.ty.id).unwrap(), "H256");
             let id2 = TypeRegistryId::EnumField {
@@ -3634,7 +3500,7 @@ mod tests {
                 field_index: 2,
                 self_id: field2.ty.id,
             };
-            assert_eq!(generic_names.get(&id2).unwrap().as_deref(), Some("T3"));
+            assert_eq!(generic_names.get(&id2).unwrap(), "T3");
 
             let tuple_repeated = variant
                 .variants
@@ -3649,7 +3515,7 @@ mod tests {
                 field_index: 0,
                 self_id: field0.ty.id,
             };
-            assert_eq!(generic_names.get(&id0).unwrap().as_deref(), Some("T1"));
+            assert_eq!(generic_names.get(&id0).unwrap(), "T1");
             let field1 = &tuple_repeated.fields[1];
             assert_eq!(concrete_names.get(&field1.ty.id).unwrap(), "u32");
             let id1 = TypeRegistryId::EnumField {
@@ -3658,7 +3524,7 @@ mod tests {
                 field_index: 1,
                 self_id: field1.ty.id,
             };
-            assert_eq!(generic_names.get(&id1).unwrap().as_deref(), Some("T1"));
+            assert_eq!(generic_names.get(&id1).unwrap(), "T1");
             let field2 = &tuple_repeated.fields[2];
             assert_eq!(concrete_names.get(&field2.ty.id).unwrap(), "String");
             let id2 = TypeRegistryId::EnumField {
@@ -3667,7 +3533,7 @@ mod tests {
                 field_index: 2,
                 self_id: field2.ty.id,
             };
-            assert_eq!(generic_names.get(&id2).unwrap().as_deref(), Some("T2"));
+            assert_eq!(generic_names.get(&id2).unwrap(), "T2");
             let field3 = &tuple_repeated.fields[3];
             assert_eq!(concrete_names.get(&field3.ty.id).unwrap(), "String");
             let id3 = TypeRegistryId::EnumField {
@@ -3676,7 +3542,7 @@ mod tests {
                 field_index: 3,
                 self_id: field3.ty.id,
             };
-            assert_eq!(generic_names.get(&id3).unwrap().as_deref(), Some("T2"));
+            assert_eq!(generic_names.get(&id3).unwrap(), "T2");
             let field4 = &tuple_repeated.fields[4];
             assert_eq!(concrete_names.get(&field4.ty.id).unwrap(), "H256");
             let id4 = TypeRegistryId::EnumField {
@@ -3685,7 +3551,7 @@ mod tests {
                 field_index: 4,
                 self_id: field4.ty.id,
             };
-            assert_eq!(generic_names.get(&id4).unwrap().as_deref(), Some("T3"));
+            assert_eq!(generic_names.get(&id4).unwrap(), "T3");
             let field5 = &tuple_repeated.fields[5];
             assert_eq!(concrete_names.get(&field5.ty.id).unwrap(), "H256");
             let id5 = TypeRegistryId::EnumField {
@@ -3694,7 +3560,7 @@ mod tests {
                 field_index: 5,
                 self_id: field5.ty.id,
             };
-            assert_eq!(generic_names.get(&id5).unwrap().as_deref(), Some("T3"));
+            assert_eq!(generic_names.get(&id5).unwrap(), "T3");
 
             let array_of_tuple = variant
                 .variants
@@ -3712,10 +3578,7 @@ mod tests {
                 field_index: 0,
                 self_id: field.ty.id,
             };
-            assert_eq!(
-                generic_names.get(&id).unwrap().as_deref(),
-                Some("[(T1, T2); 4]")
-            );
+            assert_eq!(generic_names.get(&id).unwrap(), "[(T1, T2); 4]");
 
             let vec_of_array = variant
                 .variants
@@ -3737,10 +3600,7 @@ mod tests {
                 field_index: 0,
                 self_id: field.ty.id,
             };
-            assert_eq!(
-                generic_names.get(&id).unwrap().as_deref(),
-                Some("SailsVec<[T3; 5]>")
-            );
+            assert_eq!(generic_names.get(&id).unwrap(), "SailsVec<[T3; 5]>");
 
             let btreemap_t1_t2 = variant
                 .variants
@@ -3762,10 +3622,7 @@ mod tests {
                 field_index: 0,
                 self_id: field.ty.id,
             };
-            assert_eq!(
-                generic_names.get(&id).unwrap().as_deref(),
-                Some("SailsBTreeMap<T1, T2>")
-            );
+            assert_eq!(generic_names.get(&id).unwrap(), "SailsBTreeMap<T1, T2>");
 
             let struct_of_t3 = variant
                 .variants
@@ -3783,10 +3640,7 @@ mod tests {
                 field_index: 0,
                 self_id: field.ty.id,
             };
-            assert_eq!(
-                generic_names.get(&id).unwrap().as_deref(),
-                Some("GenericStruct<T3>")
-            );
+            assert_eq!(generic_names.get(&id).unwrap(), "GenericStruct<T3>");
 
             let enum_mixed = variant
                 .variants
@@ -3808,10 +3662,7 @@ mod tests {
                 field_index: 0,
                 self_id: field.ty.id,
             };
-            assert_eq!(
-                generic_names.get(&id).unwrap().as_deref(),
-                Some("GenericEnum<T1, T2>")
-            );
+            assert_eq!(generic_names.get(&id).unwrap(), "GenericEnum<T1, T2>");
 
             // Category 3: Two-level nested with multiple generics
             let option_of_result = variant
@@ -3830,10 +3681,7 @@ mod tests {
                 field_index: 0,
                 self_id: field.ty.id,
             };
-            assert_eq!(
-                generic_names.get(&id).unwrap().as_deref(),
-                Some("Option<Result<T1, T2>>")
-            );
+            assert_eq!(generic_names.get(&id).unwrap(), "Option<Result<T1, T2>>");
 
             let array_of_option = variant
                 .variants
@@ -3851,10 +3699,7 @@ mod tests {
                 field_index: 0,
                 self_id: field.ty.id,
             };
-            assert_eq!(
-                generic_names.get(&id).unwrap().as_deref(),
-                Some("[Option<T2>; 6]")
-            );
+            assert_eq!(generic_names.get(&id).unwrap(), "[Option<T2>; 6]");
 
             let vec_of_tuple = variant
                 .variants
@@ -3872,10 +3717,7 @@ mod tests {
                 field_index: 0,
                 self_id: field.ty.id,
             };
-            assert_eq!(
-                generic_names.get(&id).unwrap().as_deref(),
-                Some("SailsVec<(T2, T3, T1)>")
-            );
+            assert_eq!(generic_names.get(&id).unwrap(), "SailsVec<(T2, T3, T1)>");
 
             let tuple_of_result = variant
                 .variants
@@ -3897,10 +3739,7 @@ mod tests {
                 field_index: 0,
                 self_id: field1.ty.id,
             };
-            assert_eq!(
-                generic_names.get(&id1).unwrap().as_deref(),
-                Some("Result<T1, String>")
-            );
+            assert_eq!(generic_names.get(&id1).unwrap(), "Result<T1, String>");
             let field2 = tuple_of_result
                 .fields
                 .iter()
@@ -3913,10 +3752,7 @@ mod tests {
                 field_index: 1,
                 self_id: field2.ty.id,
             };
-            assert_eq!(
-                generic_names.get(&id2).unwrap().as_deref(),
-                Some("Option<T2>")
-            );
+            assert_eq!(generic_names.get(&id2).unwrap(), "Option<T2>");
 
             let btreemap_nested = variant
                 .variants
@@ -3939,8 +3775,8 @@ mod tests {
                 self_id: field.ty.id,
             };
             assert_eq!(
-                generic_names.get(&id).unwrap().as_deref(),
-                Some("SailsBTreeMap<Option<T1>, Result<T2, String>>")
+                generic_names.get(&id).unwrap(),
+                "SailsBTreeMap<Option<T1>, Result<T2, String>>"
             );
 
             let struct_of_tuple = variant
@@ -3959,10 +3795,7 @@ mod tests {
                 field_index: 0,
                 self_id: field.ty.id,
             };
-            assert_eq!(
-                generic_names.get(&id).unwrap().as_deref(),
-                Some("GenericStruct<(T2, T3)>")
-            );
+            assert_eq!(generic_names.get(&id).unwrap(), "GenericStruct<(T2, T3)>");
 
             // Category 4: Triple-nested complex types with multiple generics
             let option_triple = variant
@@ -3982,8 +3815,8 @@ mod tests {
                 self_id: field.ty.id,
             };
             assert_eq!(
-                generic_names.get(&id).unwrap().as_deref(),
-                Some("Option<Result<SailsVec<T1>, T2>>")
+                generic_names.get(&id).unwrap(),
+                "Option<Result<SailsVec<T1>, T2>>"
             );
 
             let array_triple = variant
@@ -4003,8 +3836,8 @@ mod tests {
                 self_id: field.ty.id,
             };
             assert_eq!(
-                generic_names.get(&id).unwrap().as_deref(),
-                Some("[SailsBTreeMap<T1, Option<T2>>; 3]")
+                generic_names.get(&id).unwrap(),
+                "[SailsBTreeMap<T1, Option<T2>>; 3]"
             );
 
             let vec_of_struct_of_option = variant
@@ -4024,8 +3857,8 @@ mod tests {
                 self_id: field.ty.id,
             };
             assert_eq!(
-                generic_names.get(&id).unwrap().as_deref(),
-                Some("SailsVec<GenericStruct<Option<T3>>>")
+                generic_names.get(&id).unwrap(),
+                "SailsVec<GenericStruct<Option<T3>>>"
             );
 
             let array_of_vec_of_tuple = variant
@@ -4048,10 +3881,7 @@ mod tests {
                 field_index: 0,
                 self_id: field.ty.id,
             };
-            assert_eq!(
-                generic_names.get(&id).unwrap().as_deref(),
-                Some("[SailsVec<(T1, T2)>; 2]")
-            );
+            assert_eq!(generic_names.get(&id).unwrap(), "[SailsVec<(T1, T2)>; 2]");
 
             let tuple_complex_triple = variant
                 .variants
@@ -4073,10 +3903,7 @@ mod tests {
                 field_index: 0,
                 self_id: field1.ty.id,
             };
-            assert_eq!(
-                generic_names.get(&id1).unwrap().as_deref(),
-                Some("Option<SailsVec<T1>>")
-            );
+            assert_eq!(generic_names.get(&id1).unwrap(), "Option<SailsVec<T1>>");
             let field2 = tuple_complex_triple
                 .fields
                 .iter()
@@ -4092,10 +3919,7 @@ mod tests {
                 field_index: 1,
                 self_id: field2.ty.id,
             };
-            assert_eq!(
-                generic_names.get(&id2).unwrap().as_deref(),
-                Some("Result<[T2; 4], T3>")
-            );
+            assert_eq!(generic_names.get(&id2).unwrap(), "Result<[T2; 4], T3>");
 
             let vec_complex = variant
                 .variants
@@ -4114,8 +3938,8 @@ mod tests {
                 self_id: field.ty.id,
             };
             assert_eq!(
-                generic_names.get(&id).unwrap().as_deref(),
-                Some("SailsVec<GenericStruct<Result<T1, T2>>>")
+                generic_names.get(&id).unwrap(),
+                "SailsVec<GenericStruct<Result<T1, T2>>>"
             );
         } else {
             panic!("Expected variant type");
@@ -4206,23 +4030,20 @@ mod tests {
         assert_eq!(
             generic_names
                 .get(&TypeRegistryId::ParentTy(struct_n8_u32_id))
-                .unwrap()
-                .as_deref(),
-            Some("ConstGenericStruct1<T>")
+                .unwrap(),
+            "ConstGenericStruct1<T>"
         );
         assert_eq!(
             generic_names
                 .get(&TypeRegistryId::ParentTy(two_const_id))
-                .unwrap()
-                .as_deref(),
-            Some("TwoConstGenericStruct<T1, T2>")
+                .unwrap(),
+            "TwoConstGenericStruct<T1, T2>"
         );
         assert_eq!(
             generic_names
                 .get(&TypeRegistryId::ParentTy(enum_n8_bool_id))
-                .unwrap()
-                .as_deref(),
-            Some("ConstGenericEnum<T>")
+                .unwrap(),
+            "ConstGenericEnum<T>"
         );
 
         let struct_type = portable_registry
@@ -4242,7 +4063,7 @@ mod tests {
                 field_index: 0,
                 self_id: array.ty.id,
             };
-            assert_eq!(generic_names.get(&id).unwrap().as_deref(), Some("[T; 8]"));
+            assert_eq!(generic_names.get(&id).unwrap(), "[T; 8]");
 
             let value = composite
                 .fields
@@ -4255,7 +4076,7 @@ mod tests {
                 field_index: 1,
                 self_id: value.ty.id,
             };
-            assert_eq!(generic_names.get(&id).unwrap().as_deref(), Some("T"));
+            assert_eq!(generic_names.get(&id).unwrap(), "T");
 
             let vec = composite
                 .fields
@@ -4268,10 +4089,7 @@ mod tests {
                 field_index: 2,
                 self_id: vec.ty.id,
             };
-            assert_eq!(
-                generic_names.get(&id).unwrap().as_deref(),
-                Some("SailsVec<T>")
-            );
+            assert_eq!(generic_names.get(&id).unwrap(), "SailsVec<T>");
 
             let option = composite
                 .fields
@@ -4284,10 +4102,7 @@ mod tests {
                 field_index: 3,
                 self_id: option.ty.id,
             };
-            assert_eq!(
-                generic_names.get(&id).unwrap().as_deref(),
-                Some("Option<T>")
-            );
+            assert_eq!(generic_names.get(&id).unwrap(), "Option<T>");
         }
 
         let two_const_type = portable_registry
@@ -4307,7 +4122,7 @@ mod tests {
                 field_index: 0,
                 self_id: array1.ty.id,
             };
-            assert_eq!(generic_names.get(&id).unwrap().as_deref(), Some("[T1; 4]"));
+            assert_eq!(generic_names.get(&id).unwrap(), "[T1; 4]");
 
             let array2 = composite
                 .fields
@@ -4320,7 +4135,7 @@ mod tests {
                 field_index: 1,
                 self_id: array2.ty.id,
             };
-            assert_eq!(generic_names.get(&id).unwrap().as_deref(), Some("[T2; 8]"));
+            assert_eq!(generic_names.get(&id).unwrap(), "[T2; 8]");
 
             let tuple = composite
                 .fields
@@ -4333,7 +4148,7 @@ mod tests {
                 field_index: 2,
                 self_id: tuple.ty.id,
             };
-            assert_eq!(generic_names.get(&id).unwrap().as_deref(), Some("(T1, T2)"));
+            assert_eq!(generic_names.get(&id).unwrap(), "(T1, T2)");
 
             let nested = composite
                 .fields
@@ -4349,10 +4164,7 @@ mod tests {
                 field_index: 3,
                 self_id: nested.ty.id,
             };
-            assert_eq!(
-                generic_names.get(&id).unwrap().as_deref(),
-                Some("GenericStruct<T1>")
-            );
+            assert_eq!(generic_names.get(&id).unwrap(), "GenericStruct<T1>");
 
             let result = composite
                 .fields
@@ -4368,10 +4180,7 @@ mod tests {
                 field_index: 4,
                 self_id: result.ty.id,
             };
-            assert_eq!(
-                generic_names.get(&id).unwrap().as_deref(),
-                Some("Result<T1, T2>")
-            );
+            assert_eq!(generic_names.get(&id).unwrap(), "Result<T1, T2>");
         }
 
         let enum_type = portable_registry
@@ -4389,7 +4198,7 @@ mod tests {
                 field_index: 0,
                 self_id: field.ty.id,
             };
-            assert_eq!(generic_names.get(&id).unwrap().as_deref(), Some("[T; 8]"));
+            assert_eq!(generic_names.get(&id).unwrap(), "[T; 8]");
 
             let value_variant = variant.variants.iter().find(|v| v.name == "Value").unwrap();
             let field = &value_variant.fields[0];
@@ -4400,7 +4209,7 @@ mod tests {
                 field_index: 0,
                 self_id: field.ty.id,
             };
-            assert_eq!(generic_names.get(&id).unwrap().as_deref(), Some("T"));
+            assert_eq!(generic_names.get(&id).unwrap(), "T");
 
             let nested_variant = variant
                 .variants
@@ -4422,10 +4231,7 @@ mod tests {
                 field_index: 0,
                 self_id: field.ty.id,
             };
-            assert_eq!(
-                generic_names.get(&id).unwrap().as_deref(),
-                Some("GenericStruct<T>")
-            );
+            assert_eq!(generic_names.get(&id).unwrap(), "GenericStruct<T>");
         }
     }
 
@@ -4499,9 +4305,8 @@ mod tests {
         assert_eq!(
             generic_names
                 .get(&TypeRegistryId::ParentTy(struct_id))
-                .unwrap()
-                .as_deref(),
-            Some("TestStruct<T1, T2>")
+                .unwrap(),
+            "TestStruct<T1, T2>"
         );
 
         let struct_type = portable_registry
@@ -4523,10 +4328,7 @@ mod tests {
                 field_index: 0,
                 self_id: field_a.ty.id,
             };
-            assert_eq!(
-                generic_names.get(&id).unwrap().as_deref(),
-                Some("ModuleASameName<T1>")
-            );
+            assert_eq!(generic_names.get(&id).unwrap(), "ModuleASameName<T1>");
 
             // field_b: module_b::SameName<T2>
             let field_b = composite
@@ -4541,10 +4343,7 @@ mod tests {
                 field_index: 1,
                 self_id: field_b.ty.id,
             };
-            assert_eq!(
-                generic_names.get(&id).unwrap().as_deref(),
-                Some("ModuleBSameName<T2>")
-            );
+            assert_eq!(generic_names.get(&id).unwrap(), "ModuleBSameName<T2>");
 
             // field_c: module_c::nested::SameName<T1>
             let field_c = composite
@@ -4559,10 +4358,7 @@ mod tests {
                 field_index: 2,
                 self_id: field_c.ty.id,
             };
-            assert_eq!(
-                generic_names.get(&id).unwrap().as_deref(),
-                Some("NestedSameName<T1>")
-            );
+            assert_eq!(generic_names.get(&id).unwrap(), "NestedSameName<T1>");
 
             // Verify names are different
             assert_ne!(name_a, name_b);
@@ -4585,8 +4381,8 @@ mod tests {
                 self_id: generic_a.ty.id,
             };
             assert_eq!(
-                generic_names.get(&id).unwrap().as_deref(),
-                Some("GenericStruct<ModuleASameName<T2>>")
+                generic_names.get(&id).unwrap(),
+                "GenericStruct<ModuleASameName<T2>>"
             );
 
             // generic_b: GenericStruct<module_b::SameName<T1>>
@@ -4605,8 +4401,8 @@ mod tests {
                 self_id: generic_b.ty.id,
             };
             assert_eq!(
-                generic_names.get(&id).unwrap().as_deref(),
-                Some("GenericStruct<ModuleBSameName<T1>>")
+                generic_names.get(&id).unwrap(),
+                "GenericStruct<ModuleBSameName<T1>>"
             );
 
             // vec_a: Vec<module_c::nested::SameName<T1>>
@@ -4625,8 +4421,8 @@ mod tests {
                 self_id: vec_a.ty.id,
             };
             assert_eq!(
-                generic_names.get(&id).unwrap().as_deref(),
-                Some("SailsVec<NestedSameName<T1>>")
+                generic_names.get(&id).unwrap(),
+                "SailsVec<NestedSameName<T1>>"
             );
 
             // option_b: Option<module_b::SameName<T2>>
@@ -4645,8 +4441,8 @@ mod tests {
                 self_id: option_b.ty.id,
             };
             assert_eq!(
-                generic_names.get(&id).unwrap().as_deref(),
-                Some("Option<ModuleBSameName<T2>>")
+                generic_names.get(&id).unwrap(),
+                "Option<ModuleBSameName<T2>>"
             );
 
             // result_mix: result::Result<module_a::SameName<T1>, module_b::SameName<T2>>
@@ -4665,8 +4461,8 @@ mod tests {
                 self_id: result_mix.ty.id,
             };
             assert_eq!(
-                generic_names.get(&id).unwrap().as_deref(),
-                Some("Result<ModuleASameName<T1>, ModuleBSameName<T2>>")
+                generic_names.get(&id).unwrap(),
+                "Result<ModuleASameName<T1>, ModuleBSameName<T2>>"
             );
         }
     }
@@ -4801,9 +4597,8 @@ mod tests {
         assert_eq!(
             generic_names
                 .get(&TypeRegistryId::ParentTy(struct_id))
-                .unwrap()
-                .as_deref(),
-            Some("ReuseTestStruct<T1, T2>")
+                .unwrap(),
+            "ReuseTestStruct<T1, T2>"
         );
         assert_eq!(
             concrete_names.get(&enum_id).unwrap(),
@@ -4812,9 +4607,8 @@ mod tests {
         assert_eq!(
             generic_names
                 .get(&TypeRegistryId::ParentTy(enum_id))
-                .unwrap()
-                .as_deref(),
-            Some("ReuseTestEnum<T1, T2>")
+                .unwrap(),
+            "ReuseTestEnum<T1, T2>"
         );
 
         let struct_type = portable_registry
@@ -4839,10 +4633,7 @@ mod tests {
                 field_index: 0,
                 self_id: a1.ty.id,
             };
-            assert_eq!(
-                generic_names.get(&id).unwrap().as_deref(),
-                Some("ReusableGenericStruct<T1>")
-            );
+            assert_eq!(generic_names.get(&id).unwrap(), "ReusableGenericStruct<T1>");
 
             // a1r: ReusableGenericStruct<CodeId> - concrete type
             let a1r = composite
@@ -4860,8 +4651,8 @@ mod tests {
                 self_id: a1r.ty.id,
             };
             assert_eq!(
-                generic_names.get(&id).unwrap().as_deref(),
-                Some("ReusableGenericStruct<CodeId>")
+                generic_names.get(&id).unwrap(),
+                "ReusableGenericStruct<CodeId>"
             );
 
             // a2: ReusableGenericStruct<Vec<T1>>
@@ -4880,8 +4671,8 @@ mod tests {
                 self_id: a2.ty.id,
             };
             assert_eq!(
-                generic_names.get(&id).unwrap().as_deref(),
-                Some("ReusableGenericStruct<SailsVec<T1>>")
+                generic_names.get(&id).unwrap(),
+                "ReusableGenericStruct<SailsVec<T1>>"
             );
 
             // a2r: ReusableGenericStruct<Vec<bool>> - concrete type
@@ -4900,8 +4691,8 @@ mod tests {
                 self_id: a2r.ty.id,
             };
             assert_eq!(
-                generic_names.get(&id).unwrap().as_deref(),
-                Some("ReusableGenericStruct<SailsVec<bool>>")
+                generic_names.get(&id).unwrap(),
+                "ReusableGenericStruct<SailsVec<bool>>"
             );
 
             // a3: ReusableGenericStruct<(T1, T2)>
@@ -4920,8 +4711,8 @@ mod tests {
                 self_id: a3.ty.id,
             };
             assert_eq!(
-                generic_names.get(&id).unwrap().as_deref(),
-                Some("ReusableGenericStruct<(T1, T2)>")
+                generic_names.get(&id).unwrap(),
+                "ReusableGenericStruct<(T1, T2)>"
             );
 
             // a3r: ReusableGenericStruct<(u32, bool)> - concrete type
@@ -4940,8 +4731,8 @@ mod tests {
                 self_id: a3r.ty.id,
             };
             assert_eq!(
-                generic_names.get(&id).unwrap().as_deref(),
-                Some("ReusableGenericStruct<(u32, bool)>")
+                generic_names.get(&id).unwrap(),
+                "ReusableGenericStruct<(u32, bool)>"
             );
 
             // b1: ReusableGenericStruct<T2>
@@ -4959,10 +4750,7 @@ mod tests {
                 field_index: 6,
                 self_id: b1.ty.id,
             };
-            assert_eq!(
-                generic_names.get(&id).unwrap().as_deref(),
-                Some("ReusableGenericStruct<T2>")
-            );
+            assert_eq!(generic_names.get(&id).unwrap(), "ReusableGenericStruct<T2>");
 
             // b1r: ReusableGenericStruct<bool> - concrete type
             let b1r = composite
@@ -4980,8 +4768,8 @@ mod tests {
                 self_id: b1r.ty.id,
             };
             assert_eq!(
-                generic_names.get(&id).unwrap().as_deref(),
-                Some("ReusableGenericStruct<bool>")
+                generic_names.get(&id).unwrap(),
+                "ReusableGenericStruct<bool>"
             );
 
             // e1: ReusableGenericEnum<T1>
@@ -4999,10 +4787,7 @@ mod tests {
                 field_index: 8,
                 self_id: e1.ty.id,
             };
-            assert_eq!(
-                generic_names.get(&id).unwrap().as_deref(),
-                Some("ReusableGenericEnum<T1>")
-            );
+            assert_eq!(generic_names.get(&id).unwrap(), "ReusableGenericEnum<T1>");
 
             // e1r: ReusableGenericEnum<CodeId> - concrete type
             let e1r = composite
@@ -5020,8 +4805,8 @@ mod tests {
                 self_id: e1r.ty.id,
             };
             assert_eq!(
-                generic_names.get(&id).unwrap().as_deref(),
-                Some("ReusableGenericEnum<CodeId>")
+                generic_names.get(&id).unwrap(),
+                "ReusableGenericEnum<CodeId>"
             );
 
             // e2: ReusableGenericEnum<T2>
@@ -5039,10 +4824,7 @@ mod tests {
                 field_index: 10,
                 self_id: e2.ty.id,
             };
-            assert_eq!(
-                generic_names.get(&id).unwrap().as_deref(),
-                Some("ReusableGenericEnum<T2>")
-            );
+            assert_eq!(generic_names.get(&id).unwrap(), "ReusableGenericEnum<T2>");
 
             // e2r: ReusableGenericEnum<bool> - concrete type
             let e2r = composite
@@ -5059,10 +4841,7 @@ mod tests {
                 field_index: 11,
                 self_id: e2r.ty.id,
             };
-            assert_eq!(
-                generic_names.get(&id).unwrap().as_deref(),
-                Some("ReusableGenericEnum<bool>")
-            );
+            assert_eq!(generic_names.get(&id).unwrap(), "ReusableGenericEnum<bool>");
 
             // e3: ReusableGenericEnum<String> - concrete type
             let e3 = composite
@@ -5080,8 +4859,8 @@ mod tests {
                 self_id: e3.ty.id,
             };
             assert_eq!(
-                generic_names.get(&id).unwrap().as_deref(),
-                Some("ReusableGenericEnum<String>")
+                generic_names.get(&id).unwrap(),
+                "ReusableGenericEnum<String>"
             );
 
             // e3r: ReusableGenericEnum<[T1; 8]>
@@ -5100,8 +4879,8 @@ mod tests {
                 self_id: e3r.ty.id,
             };
             assert_eq!(
-                generic_names.get(&id).unwrap().as_deref(),
-                Some("ReusableGenericEnum<[T1; 8]>")
+                generic_names.get(&id).unwrap(),
+                "ReusableGenericEnum<[T1; 8]>"
             );
 
             // n1: GenericStruct<ReusableGenericStruct<T1>>
@@ -5120,8 +4899,8 @@ mod tests {
                 self_id: n1.ty.id,
             };
             assert_eq!(
-                generic_names.get(&id).unwrap().as_deref(),
-                Some("GenericStruct<ReusableGenericStruct<T1>>")
+                generic_names.get(&id).unwrap(),
+                "GenericStruct<ReusableGenericStruct<T1>>"
             );
 
             // n2: GenericStruct<ReusableGenericStruct<T2>>
@@ -5140,8 +4919,8 @@ mod tests {
                 self_id: n2.ty.id,
             };
             assert_eq!(
-                generic_names.get(&id).unwrap().as_deref(),
-                Some("GenericStruct<ReusableGenericStruct<T2>>")
+                generic_names.get(&id).unwrap(),
+                "GenericStruct<ReusableGenericStruct<T2>>"
             );
 
             // n3: GenericStruct<ReusableGenericStruct<u32>> - concrete
@@ -5160,8 +4939,8 @@ mod tests {
                 self_id: n3.ty.id,
             };
             assert_eq!(
-                generic_names.get(&id).unwrap().as_deref(),
-                Some("GenericStruct<ReusableGenericStruct<u32>>")
+                generic_names.get(&id).unwrap(),
+                "GenericStruct<ReusableGenericStruct<u32>>"
             );
 
             // c1: Vec<ReusableGenericStruct<T1>>
@@ -5180,8 +4959,8 @@ mod tests {
                 self_id: c1.ty.id,
             };
             assert_eq!(
-                generic_names.get(&id).unwrap().as_deref(),
-                Some("SailsVec<ReusableGenericStruct<T1>>")
+                generic_names.get(&id).unwrap(),
+                "SailsVec<ReusableGenericStruct<T1>>"
             );
 
             // c2: [ReusableGenericEnum<T2>; 5]
@@ -5200,8 +4979,8 @@ mod tests {
                 self_id: c2.ty.id,
             };
             assert_eq!(
-                generic_names.get(&id).unwrap().as_deref(),
-                Some("[ReusableGenericEnum<T2>; 5]")
+                generic_names.get(&id).unwrap(),
+                "[ReusableGenericEnum<T2>; 5]"
             );
 
             // c3: Option<ReusableGenericStruct<(T1, T2)>>
@@ -5220,8 +4999,8 @@ mod tests {
                 self_id: c3.ty.id,
             };
             assert_eq!(
-                generic_names.get(&id).unwrap().as_deref(),
-                Some("Option<ReusableGenericStruct<(T1, T2)>>")
+                generic_names.get(&id).unwrap(),
+                "Option<ReusableGenericStruct<(T1, T2)>>"
             );
 
             // c4: result::Result<ReusableGenericEnum<T1>, ReusableGenericEnum<T2>>
@@ -5240,8 +5019,8 @@ mod tests {
                 self_id: c4.ty.id,
             };
             assert_eq!(
-                generic_names.get(&id).unwrap().as_deref(),
-                Some("Result<ReusableGenericEnum<T1>, ReusableGenericEnum<T2>>")
+                generic_names.get(&id).unwrap(),
+                "Result<ReusableGenericEnum<T1>, ReusableGenericEnum<T2>>"
             );
 
             // c5: BTreeMap<T1, ReusableGenericStruct<T2>>
@@ -5260,8 +5039,8 @@ mod tests {
                 self_id: c5.ty.id,
             };
             assert_eq!(
-                generic_names.get(&id).unwrap().as_deref(),
-                Some("SailsBTreeMap<T1, ReusableGenericStruct<T2>>")
+                generic_names.get(&id).unwrap(),
+                "SailsBTreeMap<T1, ReusableGenericStruct<T2>>"
             );
 
             // c6: BTreeMap<ReusableGenericEnum<T1>, String>
@@ -5280,8 +5059,8 @@ mod tests {
                 self_id: c6.ty.id,
             };
             assert_eq!(
-                generic_names.get(&id).unwrap().as_deref(),
-                Some("SailsBTreeMap<ReusableGenericEnum<T1>, String>")
+                generic_names.get(&id).unwrap(),
+                "SailsBTreeMap<ReusableGenericEnum<T1>, String>"
             );
 
             // c7: BTreeMap<ReusableGenericStruct<T1>, ReusableGenericEnum<T2>>
@@ -5300,8 +5079,8 @@ mod tests {
                 self_id: c7.ty.id,
             };
             assert_eq!(
-                generic_names.get(&id).unwrap().as_deref(),
-                Some("SailsBTreeMap<ReusableGenericStruct<T1>, ReusableGenericEnum<T2>>")
+                generic_names.get(&id).unwrap(),
+                "SailsBTreeMap<ReusableGenericStruct<T1>, ReusableGenericEnum<T2>>"
             );
 
             // c8: BTreeMap<ReusableGenericStruct<u64>, ReusableGenericEnum<H256>> - concrete
@@ -5320,8 +5099,8 @@ mod tests {
                 self_id: c8.ty.id,
             };
             assert_eq!(
-                generic_names.get(&id).unwrap().as_deref(),
-                Some("SailsBTreeMap<ReusableGenericStruct<u64>, ReusableGenericEnum<H256>>")
+                generic_names.get(&id).unwrap(),
+                "SailsBTreeMap<ReusableGenericStruct<u64>, ReusableGenericEnum<H256>>"
             );
         } else {
             panic!("Expected composite type");
@@ -5347,10 +5126,7 @@ mod tests {
                 field_index: 0,
                 self_id: field.ty.id,
             };
-            assert_eq!(
-                generic_names.get(&id).unwrap().as_deref(),
-                Some("ReusableGenericStruct<T1>")
-            );
+            assert_eq!(generic_names.get(&id).unwrap(), "ReusableGenericStruct<T1>");
 
             // A1r: ReusableGenericStruct<CodeId> - concrete
             let a1r = variant.variants.iter().find(|v| v.name == "A1r").unwrap();
@@ -5366,8 +5142,8 @@ mod tests {
                 self_id: field.ty.id,
             };
             assert_eq!(
-                generic_names.get(&id).unwrap().as_deref(),
-                Some("ReusableGenericStruct<CodeId>")
+                generic_names.get(&id).unwrap(),
+                "ReusableGenericStruct<CodeId>"
             );
 
             // A2: ReusableGenericStruct<Vec<T1>>
@@ -5384,8 +5160,8 @@ mod tests {
                 self_id: field.ty.id,
             };
             assert_eq!(
-                generic_names.get(&id).unwrap().as_deref(),
-                Some("ReusableGenericStruct<SailsVec<T1>>")
+                generic_names.get(&id).unwrap(),
+                "ReusableGenericStruct<SailsVec<T1>>"
             );
 
             // A2r: ReusableGenericStruct<Vec<bool>> - concrete
@@ -5402,8 +5178,8 @@ mod tests {
                 self_id: field.ty.id,
             };
             assert_eq!(
-                generic_names.get(&id).unwrap().as_deref(),
-                Some("ReusableGenericStruct<SailsVec<bool>>")
+                generic_names.get(&id).unwrap(),
+                "ReusableGenericStruct<SailsVec<bool>>"
             );
 
             // A3: ReusableGenericStruct<(T1, T2)>
@@ -5424,8 +5200,8 @@ mod tests {
                 self_id: field.ty.id,
             };
             assert_eq!(
-                generic_names.get(&id).unwrap().as_deref(),
-                Some("ReusableGenericStruct<(T1, T2)>")
+                generic_names.get(&id).unwrap(),
+                "ReusableGenericStruct<(T1, T2)>"
             );
 
             // A3r: ReusableGenericStruct<(u32, bool)> - concrete
@@ -5446,8 +5222,8 @@ mod tests {
                 self_id: field.ty.id,
             };
             assert_eq!(
-                generic_names.get(&id).unwrap().as_deref(),
-                Some("ReusableGenericStruct<(u32, bool)>")
+                generic_names.get(&id).unwrap(),
+                "ReusableGenericStruct<(u32, bool)>"
             );
 
             // B1: ReusableGenericStruct<T2>
@@ -5463,10 +5239,7 @@ mod tests {
                 field_index: 0,
                 self_id: field.ty.id,
             };
-            assert_eq!(
-                generic_names.get(&id).unwrap().as_deref(),
-                Some("ReusableGenericStruct<T2>")
-            );
+            assert_eq!(generic_names.get(&id).unwrap(), "ReusableGenericStruct<T2>");
 
             // B1r: ReusableGenericStruct<bool> - concrete
             let b1r = variant.variants.iter().find(|v| v.name == "B1r").unwrap();
@@ -5482,8 +5255,8 @@ mod tests {
                 self_id: field.ty.id,
             };
             assert_eq!(
-                generic_names.get(&id).unwrap().as_deref(),
-                Some("ReusableGenericStruct<bool>")
+                generic_names.get(&id).unwrap(),
+                "ReusableGenericStruct<bool>"
             );
 
             // E1: ReusableGenericEnum<T1>
@@ -5499,10 +5272,7 @@ mod tests {
                 field_index: 0,
                 self_id: field.ty.id,
             };
-            assert_eq!(
-                generic_names.get(&id).unwrap().as_deref(),
-                Some("ReusableGenericEnum<T1>")
-            );
+            assert_eq!(generic_names.get(&id).unwrap(), "ReusableGenericEnum<T1>");
 
             // E1r: ReusableGenericEnum<CodeId> - concrete
             let e1r = variant.variants.iter().find(|v| v.name == "E1r").unwrap();
@@ -5518,8 +5288,8 @@ mod tests {
                 self_id: field.ty.id,
             };
             assert_eq!(
-                generic_names.get(&id).unwrap().as_deref(),
-                Some("ReusableGenericEnum<CodeId>")
+                generic_names.get(&id).unwrap(),
+                "ReusableGenericEnum<CodeId>"
             );
 
             // E2: ReusableGenericEnum<T2>
@@ -5535,10 +5305,7 @@ mod tests {
                 field_index: 0,
                 self_id: field.ty.id,
             };
-            assert_eq!(
-                generic_names.get(&id).unwrap().as_deref(),
-                Some("ReusableGenericEnum<T2>")
-            );
+            assert_eq!(generic_names.get(&id).unwrap(), "ReusableGenericEnum<T2>");
 
             // E2r: ReusableGenericEnum<bool> - concrete
             let e2r = variant.variants.iter().find(|v| v.name == "E2r").unwrap();
@@ -5553,10 +5320,7 @@ mod tests {
                 field_index: 0,
                 self_id: field.ty.id,
             };
-            assert_eq!(
-                generic_names.get(&id).unwrap().as_deref(),
-                Some("ReusableGenericEnum<bool>")
-            );
+            assert_eq!(generic_names.get(&id).unwrap(), "ReusableGenericEnum<bool>");
 
             // E3: ReusableGenericEnum<String> - concrete
             let e3 = variant.variants.iter().find(|v| v.name == "E3").unwrap();
@@ -5576,8 +5340,8 @@ mod tests {
                 self_id: field.ty.id,
             };
             assert_eq!(
-                generic_names.get(&id).unwrap().as_deref(),
-                Some("ReusableGenericEnum<String>")
+                generic_names.get(&id).unwrap(),
+                "ReusableGenericEnum<String>"
             );
 
             // E3r: ReusableGenericEnum<[T1; 8]>
@@ -5598,8 +5362,8 @@ mod tests {
                 self_id: field.ty.id,
             };
             assert_eq!(
-                generic_names.get(&id).unwrap().as_deref(),
-                Some("ReusableGenericEnum<[T1; 8]>")
+                generic_names.get(&id).unwrap(),
+                "ReusableGenericEnum<[T1; 8]>"
             );
 
             // N1: GenericStruct<ReusableGenericStruct<T1>>
@@ -5616,8 +5380,8 @@ mod tests {
                 self_id: field.ty.id,
             };
             assert_eq!(
-                generic_names.get(&id).unwrap().as_deref(),
-                Some("GenericStruct<ReusableGenericStruct<T1>>")
+                generic_names.get(&id).unwrap(),
+                "GenericStruct<ReusableGenericStruct<T1>>"
             );
 
             // N2: GenericStruct<ReusableGenericStruct<T2>>
@@ -5634,8 +5398,8 @@ mod tests {
                 self_id: field.ty.id,
             };
             assert_eq!(
-                generic_names.get(&id).unwrap().as_deref(),
-                Some("GenericStruct<ReusableGenericStruct<T2>>")
+                generic_names.get(&id).unwrap(),
+                "GenericStruct<ReusableGenericStruct<T2>>"
             );
 
             // N3: GenericStruct<ReusableGenericStruct<u32>> - concrete
@@ -5652,8 +5416,8 @@ mod tests {
                 self_id: field.ty.id,
             };
             assert_eq!(
-                generic_names.get(&id).unwrap().as_deref(),
-                Some("GenericStruct<ReusableGenericStruct<u32>>")
+                generic_names.get(&id).unwrap(),
+                "GenericStruct<ReusableGenericStruct<u32>>"
             );
 
             // C1: Vec<ReusableGenericStruct<T1>>
@@ -5670,8 +5434,8 @@ mod tests {
                 self_id: field.ty.id,
             };
             assert_eq!(
-                generic_names.get(&id).unwrap().as_deref(),
-                Some("SailsVec<ReusableGenericStruct<T1>>")
+                generic_names.get(&id).unwrap(),
+                "SailsVec<ReusableGenericStruct<T1>>"
             );
 
             // C2: [ReusableGenericEnum<T2>; 5]
@@ -5692,8 +5456,8 @@ mod tests {
                 self_id: field.ty.id,
             };
             assert_eq!(
-                generic_names.get(&id).unwrap().as_deref(),
-                Some("[ReusableGenericEnum<T2>; 5]")
+                generic_names.get(&id).unwrap(),
+                "[ReusableGenericEnum<T2>; 5]"
             );
 
             // C3: Option<ReusableGenericStruct<(T1, T2)>>
@@ -5710,8 +5474,8 @@ mod tests {
                 self_id: field.ty.id,
             };
             assert_eq!(
-                generic_names.get(&id).unwrap().as_deref(),
-                Some("Option<ReusableGenericStruct<(T1, T2)>>")
+                generic_names.get(&id).unwrap(),
+                "Option<ReusableGenericStruct<(T1, T2)>>"
             );
 
             // C4: result::Result<ReusableGenericEnum<T1>, ReusableGenericEnum<T2>>
@@ -5728,8 +5492,8 @@ mod tests {
                 self_id: field.ty.id,
             };
             assert_eq!(
-                generic_names.get(&id).unwrap().as_deref(),
-                Some("Result<ReusableGenericEnum<T1>, ReusableGenericEnum<T2>>")
+                generic_names.get(&id).unwrap(),
+                "Result<ReusableGenericEnum<T1>, ReusableGenericEnum<T2>>"
             );
 
             // C5: BTreeMap<T1, ReusableGenericStruct<T2>>
@@ -5750,8 +5514,8 @@ mod tests {
                 self_id: field.ty.id,
             };
             assert_eq!(
-                generic_names.get(&id).unwrap().as_deref(),
-                Some("SailsBTreeMap<T1, ReusableGenericStruct<T2>>")
+                generic_names.get(&id).unwrap(),
+                "SailsBTreeMap<T1, ReusableGenericStruct<T2>>"
             );
 
             // C6: BTreeMap<ReusableGenericEnum<T1>, String>
@@ -5768,8 +5532,8 @@ mod tests {
                 self_id: field.ty.id,
             };
             assert_eq!(
-                generic_names.get(&id).unwrap().as_deref(),
-                Some("SailsBTreeMap<ReusableGenericEnum<T1>, String>")
+                generic_names.get(&id).unwrap(),
+                "SailsBTreeMap<ReusableGenericEnum<T1>, String>"
             );
 
             // C7: BTreeMap<ReusableGenericStruct<T1>, ReusableGenericEnum<T2>>
@@ -5786,8 +5550,8 @@ mod tests {
                 self_id: field.ty.id,
             };
             assert_eq!(
-                generic_names.get(&id).unwrap().as_deref(),
-                Some("SailsBTreeMap<ReusableGenericStruct<T1>, ReusableGenericEnum<T2>>")
+                generic_names.get(&id).unwrap(),
+                "SailsBTreeMap<ReusableGenericStruct<T1>, ReusableGenericEnum<T2>>"
             );
 
             // C8: BTreeMap<ReusableGenericStruct<u64>, ReusableGenericEnum<H256>> - concrete
@@ -5804,7 +5568,7 @@ mod tests {
                 self_id: field.ty.id,
             };
             assert_eq!(
-                generic_names.get(&id).unwrap().as_deref(),
+                generic_names.get(&id).unwrap().map(|s| s.as_str()),
                 Some("SailsBTreeMap<ReusableGenericStruct<u64>, ReusableGenericEnum<H256>>")
             );
         } else {
