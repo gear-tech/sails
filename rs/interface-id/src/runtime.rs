@@ -78,7 +78,11 @@ pub fn build_canonical_document<S: ServiceMeta + 'static>() -> Result<CanonicalD
     Ok(doc_ref.clone())
 }
 
-fn extract_params(type_id: u32, registry: &PortableRegistry) -> Result<Vec<CanonicalParam>> {
+fn extract_params(
+    type_id: u32,
+    registry: &PortableRegistry,
+    collected_types: &BTreeSet<u32>,
+) -> Result<Vec<CanonicalParam>> {
     let ty = registry
         .resolve(type_id)
         .ok_or_else(|| BuildError::UnknownType(type_id))?;
@@ -93,14 +97,20 @@ fn extract_params(type_id: u32, registry: &PortableRegistry) -> Result<Vec<Canon
                     .clone()
                     .map(|value| value.to_string())
                     .unwrap_or_else(|| format!("arg{idx}"));
-                let ty = canonical_visitor::canonical_type(registry, field.ty.id)
-                    .unwrap_or_else(|_| canonical_visitor::named_type(registry, field.ty.id));
+                let ty = match canonical_type_for_metadata(
+                    registry,
+                    field.ty.id,
+                    collected_types,
+                ) {
+                    Ok(ty) => ty,
+                    Err(_) => canonical_visitor::named_type(registry, field.ty.id),
+                };
                 CanonicalParam { name, ty }
             })
             .collect()),
         _ => Ok(vec![CanonicalParam {
             name: "arg0".to_owned(),
-            ty: canonical_visitor::canonical_type(registry, type_id)?,
+            ty: canonical_type_for_metadata(registry, type_id, collected_types)?,
         }]),
     }
 }
@@ -108,6 +118,7 @@ fn extract_params(type_id: u32, registry: &PortableRegistry) -> Result<Vec<Canon
 fn extract_event_payload(
     variant: &Variant<PortableForm>,
     registry: &PortableRegistry,
+    collected_types: &BTreeSet<u32>,
 ) -> Result<Option<CanonicalType>> {
     if let Some(field) = variant.fields.first() {
         let ty = registry
@@ -115,9 +126,10 @@ fn extract_event_payload(
             .ok_or_else(|| BuildError::UnknownType(field.ty.id))?;
         match &ty.type_def {
             TypeDef::Tuple(def) if def.fields.is_empty() => Ok(None),
-            _ => Ok(Some(canonical_visitor::canonical_type(
+            _ => Ok(Some(canonical_type_for_metadata(
                 registry,
                 field.ty.id,
+                collected_types,
             )?)),
         }
     } else {
@@ -187,6 +199,18 @@ fn collect_user_type_ids(registry: &PortableRegistry, type_id: u32, acc: &mut BT
 
     let mut visited = BTreeSet::new();
     visit(registry, type_id, acc, &mut visited);
+}
+
+fn canonical_type_for_metadata(
+    registry: &PortableRegistry,
+    type_id: u32,
+    collected_types: &BTreeSet<u32>,
+) -> Result<CanonicalType> {
+    if collected_types.contains(&type_id) {
+        Ok(canonical_visitor::named_type(registry, type_id))
+    } else {
+        canonical_visitor::canonical_type(registry, type_id).map_err(Into::into)
+    }
 }
 
 fn canonical_types_from_ids(
@@ -397,8 +421,12 @@ fn collect_functions(
         }
         collect_user_type_ids(registry, item.fields[0].ty.id, collected_types);
         collect_user_type_ids(registry, item.fields[1].ty.id, collected_types);
-        let params = extract_params(item.fields[0].ty.id, registry)?;
-        let returns = canonical_visitor::canonical_type(registry, item.fields[1].ty.id)?;
+        let params = extract_params(item.fields[0].ty.id, registry, collected_types)?;
+        let returns = canonical_type_for_metadata(
+            registry,
+            item.fields[1].ty.id,
+            collected_types,
+        )?;
         functions.push(CanonicalFunction {
             kind,
             name: item.name.to_string(),
@@ -442,7 +470,7 @@ fn collect_events(
         for field in &item.fields {
             collect_user_type_ids(registry, field.ty.id, collected_types);
         }
-        let payload = extract_event_payload(item, registry)?;
+        let payload = extract_event_payload(item, registry, collected_types)?;
         events.push(CanonicalEvent {
             name: item.name.to_string(),
             payload,
