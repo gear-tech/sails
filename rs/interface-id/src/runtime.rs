@@ -391,7 +391,7 @@ fn collect_functions(
     }
 
     let mut functions = Vec::with_capacity(entry_ids.len());
-    for (item, entry_id) in variant.variants.iter().zip(entry_ids.iter()) {
+    for item in &variant.variants {
         if item.fields.len() != 2 {
             return Err(BuildError::UnsupportedType(item.name.to_string()));
         }
@@ -405,7 +405,6 @@ fn collect_functions(
             route: None,
             params,
             returns,
-            entry_id_override: Some(*entry_id),
         });
     }
 
@@ -439,7 +438,7 @@ fn collect_events(
     }
 
     let mut events = Vec::with_capacity(entry_ids.len());
-    for (item, entry_id) in variant.variants.iter().zip(entry_ids.iter()) {
+    for item in &variant.variants {
         for field in &item.fields {
             collect_user_type_ids(registry, field.ty.id, collected_types);
         }
@@ -447,7 +446,6 @@ fn collect_events(
         events.push(CanonicalEvent {
             name: item.name.to_string(),
             payload,
-            entry_id_override: Some(*entry_id),
         });
     }
 
@@ -721,10 +719,8 @@ mod tests {
                 .collect::<Vec<_>>(),
             vec!["MakeSound"]
         );
-        assert_eq!(
-            base_service.functions[0].entry_id_override,
-            Some(BASE_COMMAND_ID)
-        );
+        assert!(base_ext.interface_id != 0);
+        assert_eq!(base_service.functions.len(), 1);
 
         let root_ext = base_service
             .extends
@@ -743,9 +739,7 @@ mod tests {
             .service
             .as_ref()
             .expect("embedded root canonical service");
-        assert_eq!(
-            root_service.functions[0].entry_id_override,
-            Some(ROOT_COMMAND_ID)
-        );
+        assert!(root_ext.interface_id != 0);
+        assert_eq!(root_service.functions.len(), 1);
     }
 }

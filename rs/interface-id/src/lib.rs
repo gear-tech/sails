@@ -266,7 +266,6 @@ mod tests {
                 returns: CanonicalType::Primitive {
                     name: "null".to_owned(),
                 },
-                entry_id_override: Some(1),
             }],
             events: Vec::new(),
         };

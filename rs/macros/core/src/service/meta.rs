@@ -190,16 +190,12 @@ impl ServiceBuilder<'_> {
                         ty: CanonicalType::Unit,
                     })
                     .collect::<Vec<_>>();
-                let entry_id = fn_builder
-                    .entry_id()
-                    .expect("entry_id assigned for exported method");
                 CanonicalFunction {
                     kind,
                     name: fn_builder.route.clone(),
                     route: None,
                     params,
                     returns: CanonicalType::Unit,
-                    entry_id_override: Some(entry_id),
                 }
             })
             .collect::<Vec<_>>();

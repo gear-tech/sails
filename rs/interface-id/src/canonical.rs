@@ -105,8 +105,6 @@ pub struct CanonicalFunction {
     #[serde(default)]
     pub params: Vec<CanonicalParam>,
     pub returns: CanonicalType,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub entry_id_override: Option<u16>,
 }
 
 /// Function mutability.
@@ -132,8 +130,6 @@ pub struct CanonicalEvent {
     pub name: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub payload: Option<CanonicalType>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub entry_id_override: Option<u16>,
 }
 
 /// Canonical description of a parent interface implemented by a service.
@@ -289,6 +285,12 @@ impl CanonicalDocument {
         let extends = collect_service_metadata(input);
 
         let mut services = BTreeMap::new();
+        let mut types = BTreeMap::new();
+        for ty in program.types() {
+            let canonical_ty = type_def_to_canonical(ty.def());
+            types.insert(ty.name().to_owned(), canonical_ty);
+        }
+
         for service in program.services() {
             let metadata = extends.get(service.name());
             let mut canonical_service = service_to_canonical(service, metadata);
@@ -301,7 +303,7 @@ impl CanonicalDocument {
             canon_version: default_version(),
             hash: default_hash_meta(),
             services,
-            types: BTreeMap::new(),
+            types,
         })
     }
 
@@ -575,33 +577,43 @@ fn service_to_canonical(
     service: &Service,
     metadata: Option<&ServiceDocMetadata>,
 ) -> CanonicalService {
+    let functions = service
+        .funcs()
+        .iter()
+        .map(|func| CanonicalFunction {
+            kind: if func.is_query() {
+                FunctionKind::Query
+            } else {
+                FunctionKind::Command
+            },
+            name: func.name().to_owned(),
+            route: None,
+            params: func
+                .params()
+                .iter()
+                .map(|param| CanonicalParam {
+                    name: param.name().to_owned(),
+                    ty: CanonicalType::Unit,
+                })
+                .collect(),
+            returns: CanonicalType::Unit,
+        })
+        .collect();
+
+    let events = service
+        .events()
+        .iter()
+        .map(|event| CanonicalEvent {
+            name: event.name().to_owned(),
+            payload: None,
+        })
+        .collect();
+
     CanonicalService {
         name: service.name().to_owned(),
         extends: metadata.map(|m| m.extends.clone()).unwrap_or_default(),
-        functions: service
-            .funcs()
-            .iter()
-            .map(|func| CanonicalFunction {
-                kind: if func.is_query() {
-                    FunctionKind::Query
-                } else {
-                    FunctionKind::Command
-                },
-                name: func.name().to_owned(),
-                route: None,
-                params: func
-                    .params()
-                    .iter()
-                    .map(|param| CanonicalParam {
-                        name: param.name().to_owned(),
-                        ty: CanonicalType::Unit,
-                    })
-                    .collect(),
-                returns: CanonicalType::Unit,
-                entry_id_override: extract_u16_marker(func.docs(), "!@entry_id"),
-            })
-            .collect(),
-        events: Vec::new(),
+        functions,
+        events,
     }
 }
 
@@ -788,42 +800,27 @@ fn parse_extends_entry(comment: &str) -> Option<CanonicalExtendedInterface> {
         return None;
     }
 
-    let name = trimmed
-        .split('(')
-        .next()
-        .unwrap_or(trimmed)
-        .trim()
-        .to_owned();
+    let mut name = trimmed;
+    let mut interface_id: Option<u64> = None;
+
+    if let Some(start) = trimmed.find('(') {
+        name = trimmed[..start].trim();
+        if let Some(end) = trimmed[start + 1..].rfind(')') {
+            let inner = &trimmed[start + 1..start + 1 + end];
+            for part in inner.split(',') {
+                let part = part.trim();
+                if let Some(value) = part.strip_prefix("interface_id=") {
+                    interface_id = parse_u64(value).or(interface_id);
+                }
+            }
+        }
+    }
 
     Some(CanonicalExtendedInterface {
-        name,
-        interface_id: 0,
+        name: name.to_owned(),
+        interface_id: interface_id.unwrap_or(0),
         service: None,
     })
-}
-
-fn extract_u16_marker(docs: &[String], marker: &str) -> Option<u16> {
-    docs.iter().find_map(|doc| {
-        let trimmed = doc.trim();
-        if let Some(idx) = trimmed.find(marker) {
-            let after = trimmed[idx + marker.len()..].trim();
-            let value_str = after.strip_prefix('=').map(str::trim).unwrap_or(after);
-            parse_u16(value_str)
-        } else {
-            None
-        }
-    })
-}
-
-fn parse_u16(value: &str) -> Option<u16> {
-    if let Some(hex) = value
-        .strip_prefix("0x")
-        .or_else(|| value.strip_prefix("0X"))
-    {
-        u16::from_str_radix(hex, 16).ok()
-    } else {
-        value.parse::<u16>().ok()
-    }
 }
 
 #[allow(dead_code)]
@@ -871,8 +868,8 @@ mod tests {
             r#"{
                 "version": "sails-idl-v1-jcs",
                 "services": {
-                    "b": {"name":"b","extends":[],"functions":[{"kind":"command","name":"Beta","params":[],"returns":{"kind":"unit"},"entry_id_override":1}],"events":[]},
-                    "a": {"name":"a","extends":[],"functions":[{"kind":"command","name":"Alpha","params":[],"returns":{"kind":"unit"},"entry_id_override":1}],"events":[]}
+                    "b": {"name":"b","extends":[],"functions":[{"kind":"command","name":"Beta","params":[],"returns":{"kind":"unit"}}],"events":[]},
+                    "a": {"name":"a","extends":[],"functions":[{"kind":"command","name":"Alpha","params":[],"returns":{"kind":"unit"}}],"events":[]}
                 },
                 "metadata": {"version": 1},
                 "types": {}
@@ -932,15 +929,13 @@ mod tests {
                                 "kind": "command",
                                 "name": "DoSomething",
                                 "params": [],
-                                "returns": {"kind": "unit"},
-                                "entry_id_override": 1
+                                "returns": {"kind": "unit"}
                             },
                             {
                                 "kind": "query",
                                 "name": "GetValue",
                                 "params": [],
-                                "returns": {"kind": "unit"},
-                                "entry_id_override": 2
+                                "returns": {"kind": "unit"}
                             }
                         ],
                         "name": "Example"
@@ -972,8 +967,7 @@ mod tests {
                             "name": "value",
                             "type": {"kind": "primitive", "name": "u32"}
                         }],
-                        "returns": {"kind": "unit"},
-                        "entry_id_override": 1
+                        "returns": {"kind": "unit"}
                     }],
                     "events": []
                 }
@@ -999,8 +993,7 @@ mod tests {
                             "name": "num",
                             "type": {"kind": "primitive", "name": "u32"}
                         }],
-                        "returns": {"kind": "unit"},
-                        "entry_id_override": 1
+                        "returns": {"kind": "unit"}
                     }],
                     "events": []
                 }
@@ -1051,15 +1044,13 @@ mod tests {
                             "kind": "command",
                             "name": "Process",
                             "params": [{"type": {"kind": "primitive", "name": "u64"}}],
-                            "returns": {"kind": "unit"},
-                            "entry_id_override": 2
+                            "returns": {"kind": "unit"}
                         },
                         {
                             "kind": "query",
                             "name": "Process",
                             "params": [{"type": {"kind": "primitive", "name": "u32"}}],
-                            "returns": {"kind": "unit"},
-                            "entry_id_override": 1
+                            "returns": {"kind": "unit"}
                         }
                     ],
                     "events": []
@@ -1116,8 +1107,7 @@ mod tests {
                                     "type": {"kind": "primitive", "name": "u64"}
                                 }
                             ]
-                        },
-                        "entry_id_override": 1
+                        }
                     }],
                     "events": []
                 }
@@ -1152,8 +1142,7 @@ mod tests {
                                     "type": {"kind": "primitive", "name": "u64"}
                                 }
                             ]
-                        },
-                        "entry_id_override": 1
+                        }
                     }],
                     "events": []
                 }
