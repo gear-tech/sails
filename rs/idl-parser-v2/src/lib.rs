@@ -6,12 +6,12 @@ use nom::{
     IResult, Parser,
     branch::alt,
     bytes::complete::{tag, tag_no_case, take_while, take_while1},
-    character::complete::{char, digit1, line_ending, multispace0},
+    character::complete::{char, digit1, line_ending, multispace0, not_line_ending},
     combinator::{all_consuming, map, map_res, opt, recognize, value},
     multi::{many0, separated_list0},
     sequence::{delimited, preceded, terminated, tuple},
 };
-use std::str::FromStr;
+use std::{collections::HashMap, str::FromStr};
 
 // ------------------------- Target model (service-only) -------------------------
 
@@ -46,6 +46,7 @@ pub struct Type {
     pub name: String,
     pub def: TypeDef,
     pub docs: Vec<String>,
+    pub annotations: HashMap<String, Option<String>>,
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -121,6 +122,7 @@ pub struct StructField {
     pub name: Option<String>,
     pub type_decl: TypeDecl,
     pub docs: Vec<String>,
+    pub annotations: HashMap<String, Option<String>>,
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -133,6 +135,7 @@ pub struct EnumVariant {
     pub name: String,
     pub type_decl: Option<TypeDecl>,
     pub docs: Vec<String>,
+    pub annotations: HashMap<String, Option<String>>,
 }
 
 // ------------------------- Lexing helpers -------------------------
@@ -160,32 +163,12 @@ fn space_or_comments(i: &str) -> Res<'_, ()> {
         input = i2;
         // line comments "// ..."
         if let Ok((i3, _)) = tuple((
-            tag::<&str, &str, ()>(r"//"),
+            tag::<&str, &str, ()>(r"// "),
             take_while(|c| c != '\n'),
             opt(line_ending),
         ))(input)
         {
             input = i3;
-            continue;
-        }
-        // global annotations !@... up to endline
-        if let Ok((i4, _)) = tuple((
-            tag::<&str, &str, ()>("!@"),
-            take_while(|c| c != '\n'),
-            opt(line_ending),
-        ))(input)
-        {
-            input = i4;
-            continue;
-        }
-        // local annotations starting with @something until EOL or before block opener
-        if let Ok((i5, _)) = tuple((
-            tag::<&str, &str, ()>("@"),
-            take_while(|c| c != '\n' && c != '{' && c != '(' && c != ';'),
-            opt(line_ending),
-        ))(input)
-        {
-            input = i5;
             continue;
         }
         break;
@@ -196,12 +179,30 @@ fn space_or_comments(i: &str) -> Res<'_, ()> {
 fn doc_lines(i: &str) -> Res<'_, Vec<String>> {
     many0(map(
         terminated(
-            preceded(tag("///"), take_while(|c| c != '\n')),
+            preceded(ws(tag("///")), take_while(|c| c != '\n')),
             opt(line_ending),
         ),
         |s: &str| s.trim().to_string(),
     ))
     .parse(i)
+}
+
+/// Parse lines of form `@key` or `@key: value` into HashMap<String, Option<String>>
+fn annotations(i: &str) -> Res<'_, HashMap<String, Option<String>>> {
+    let parse_line = map(
+        terminated(
+            (
+                ws(preceded(char('@'), ident)),
+                opt(preceded(ws(char(':')), ws(not_line_ending))),
+            ),
+            opt(line_ending),
+        ),
+        |(key, value)| (key, value.map(|v| v.trim().to_string())),
+    );
+
+    let (rest, pairs) = many0(parse_line).parse(i)?;
+    let map = pairs.into_iter().collect::<HashMap<_, _>>();
+    Ok((rest, map))
 }
 
 fn ident(i: &str) -> Res<'_, String> {
@@ -219,12 +220,13 @@ fn number_u32(i: &str) -> Res<'_, u32> {
     map_res(ws(digit1), |s: &str| u32::from_str(s)).parse(i)
 }
 
-fn sep_comma<'a, O, P>(inner: P) -> impl FnMut(&'a str) -> Res<'a, Vec<O>>
+fn sep_comma<'a, O, P>(
+    inner: P,
+) -> impl Parser<&'a str, Output = Vec<O>, Error = nom::error::Error<&'a str>>
 where
     P: Parser<&'a str, Output = O, Error = nom::error::Error<&'a str>>,
 {
-    let mut parser = separated_list0(ws(char(',')), inner);
-    move |i| parser.parse(i)
+    terminated(separated_list0(ws(char(',')), inner), opt(char(',')))
 }
 
 fn angle_list<'a, O, P>(inner: P) -> impl FnMut(&'a str) -> Res<'a, Vec<O>>
@@ -351,22 +353,23 @@ fn type_id(i: &str) -> Res<'_, TypeDecl> {
 
 fn struct_field(i: &str) -> Res<'_, StructField> {
     let (i, docs) = ws(doc_lines).parse(i)?;
+    let (i, annotations) = ws(annotations).parse(i)?;
     let (i, name_opt) = opt(terminated(ws(ident), ws(char(':')))).parse(i)?;
     let (i, td) = ws(type_decl).parse(i)?;
-    let (i, _) = ws(opt(char(','))).parse(i)?;
     Ok((
         i,
         StructField {
             name: name_opt,
             type_decl: td,
             docs,
+            annotations,
         },
     ))
 }
 
 fn struct_def(i: &str) -> Res<'_, TypeDef> {
     map(
-        delimited(ws(char('{')), many0(ws(struct_field)), ws(char('}'))),
+        delimited(ws(char('{')), sep_comma(struct_field), ws(char('}'))),
         |fields| TypeDef::Struct(StructDef { fields }),
     )
     .parse(i)
@@ -374,20 +377,16 @@ fn struct_def(i: &str) -> Res<'_, TypeDef> {
 
 fn tuple_struct_def(i: &str) -> Res<'_, TypeDef> {
     map(
-        tuple((
-            ws(char('(')),
-            sep_comma(type_decl),
-            ws(char(')')),
-            ws(char(';')),
-        )),
-        |(_, items, _, _)| {
+        delimited(ws(char('(')), sep_comma(type_decl), ws(char(')'))),
+        |items| {
             TypeDef::Struct(StructDef {
                 fields: items
                     .into_iter()
                     .map(|t| StructField {
                         name: None,
                         type_decl: t,
-                        docs: vec![],
+                        docs: Default::default(),
+                        annotations: Default::default(),
                     })
                     .collect(),
             })
@@ -397,32 +396,29 @@ fn tuple_struct_def(i: &str) -> Res<'_, TypeDef> {
 }
 
 fn unit_struct_def(i: &str) -> Res<'_, TypeDef> {
-    value(
-        TypeDef::Struct(StructDef { fields: vec![] }),
-        tuple((ws(char(';')),)),
-    )
-    .parse(i)
+    Ok((i, TypeDef::Struct(StructDef { fields: vec![] })))
 }
 
 fn enum_variant(i: &str) -> Res<'_, EnumVariant> {
     let (i, docs) = ws(doc_lines).parse(i)?;
+    let (i, annotations) = ws(annotations).parse(i)?;
     let (i, name) = ws(ident).parse(i)?;
     // struct-like, tuple-like or unit-like variants
-    let (i, type_decl_opt) = ws(alt((struct_def, tuple_struct_def, unit_struct_def))).parse(i)?;
-    let (i, _) = ws(opt(char(','))).parse(i)?;
+    let (i, type_def) = ws(alt((struct_def, tuple_struct_def, unit_struct_def))).parse(i)?;
     Ok((
         i,
         EnumVariant {
             name,
-            type_decl: Some(TypeDecl::Def(type_decl_opt)),
+            type_decl: Some(TypeDecl::Def(type_def)),
             docs,
+            annotations,
         },
     ))
 }
 
 fn enum_def(i: &str) -> Res<'_, TypeDef> {
     map(
-        delimited(ws(char('{')), many0(ws(enum_variant)), ws(char('}'))),
+        delimited(ws(char('{')), sep_comma(enum_variant), ws(char('}'))),
         |variants| TypeDef::Enum(EnumDef { variants }),
     )
     .parse(i)
@@ -456,6 +452,7 @@ fn type_decl(i: &str) -> Res<'_, TypeDecl> {
 
 fn type_item(i: &str) -> Res<'_, Type> {
     let (i, docs) = ws(doc_lines).parse(i)?;
+    let (i, annotations) = ws(annotations).parse(i)?;
     let (i, kind) = ws(alt((tag("struct"), tag("enum")))).parse(i)?;
     let (i, name) = ws(ident).parse(i)?;
     // Optional generics <...> are parsed and ignored
@@ -465,14 +462,20 @@ fn type_item(i: &str) -> Res<'_, Type> {
         char('>'),
     )))
     .parse(i)?;
-    let def = if kind == "struct" {
-        ws(alt((struct_def, tuple_struct_def, unit_struct_def)))
-            .parse(i)?
-            .1
+    let (i, def) = if kind == "struct" {
+        ws(alt((struct_def, tuple_struct_def, unit_struct_def))).parse(i)?
     } else {
-        ws(enum_def).parse(i)?.1
+        ws(enum_def).parse(i)?
     };
-    Ok((i, Type { name, def, docs }))
+    Ok((
+        i,
+        Type {
+            name,
+            def,
+            docs,
+            annotations,
+        },
+    ))
 }
 
 // ------------------------- Service parser -------------------------
@@ -604,4 +607,210 @@ pub fn parse_all_services(mut i: &str) -> Res<'_, Vec<ServiceUnit>> {
         }
     }
     Ok((i, out))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    const SRC: &str = r#"
+!@sails: 0.1.0
+!@include: ownable.idl
+!@include: git://github.com/some_repo/tippable.idl
+
+/// Canvas service
+service Canvas {
+    // Merge `functions`, `events`, `types`, from Ownable, Tippable and Pausable services
+    extends {
+        Ownable,
+        Tippable,
+        Pausable,
+    }
+
+    // Canvas service events
+    events {
+        StatusChanged (Point<u32>),
+        Jubilee {
+            /// Amount of alive points.
+            @indexed
+            @nonzero
+            amount: u64,
+            bits: bitvec,
+        },
+        E1,
+    }
+
+    functions {
+        /// Sets color for the point.
+        /// app -> `fn color_point(&mut self, point: Point<u32>, color: Color) -> Result<(), ColorError>`
+        /// On `Ok` - auto-reply. On `Err` -> app will encode error bytes of `ColorError` (`gr_panic_bytes`).
+        ColorPoint(point: Point<u32>, color: Color) throws ColorError;
+
+        /// Kills the point.
+        /// app -> `fn kill_point(&mut self, point: Point<u32>) -> Result<bool, String>`
+        KillPoint(point: Point<u32>) -> bool throws string;
+
+        /// Returns known points.
+        /// app -> `fn points(&self, ...) -> Result<BTreeMap<Point<u32>, PointStatus>, String>`
+        @query
+        Points(offset: u32, len: u32) -> map<Point<u32>, PointStatus> throws string;
+
+        /// Returns status set for given point.
+        @query
+        PointStatus(point: Point<u32>) -> Option<PointStatus>;
+    }
+
+    types {
+        // Point with two coordinates.
+        struct Point<T> {
+            /// Horizontal coordinate.
+            x: T,
+            /// Vertical coordinate.
+            y: T,
+        }
+
+        struct Color {
+            color: [u8; 4],
+            space: ColorSpace,
+        }
+
+        enum ColorSpace {
+            RGB,
+            HSV,
+            CMYK,
+        }
+
+        /// Defines status of some point as colored by somebody or dead for some reason.
+        enum PointStatus {
+            /// Colored into some RGB.
+            Colored {
+                /// Who has colored it.
+                author: actor,
+                /// Color used.
+                color: Color,
+            },
+            /// Dead point - won't be available for coloring anymore.
+            Dead,
+        }
+
+        /// Error happened during point setting.
+        enum ColorError {
+            InvalidSource,
+            DeadPoint,
+        }
+    }
+}
+
+/// Pausable Service
+service Pausable {
+    events {
+        Paused,
+        Unpaused,
+    }
+
+    functions {
+        // Client: `fn pause(&mut self) -> Result<(), SailsEnvError>`
+        Pause();
+        Unpause();
+    }
+
+    types {
+        struct PausedError;
+    }
+}
+"#;
+
+    #[test]
+    fn parse_doc_lines() {
+        const IDL: &str = r#"
+            /// Defines status of some point as colored by somebody or dead for some reason.
+            /// Dead point - won't be available for coloring anymore."#;
+        let (rest, res) = ws(doc_lines).parse(IDL).expect("parse");
+        println!("res: {res:?}, rest: {rest}");
+        assert_eq!(2, res.len());
+        assert!(rest.trim().is_empty());
+    }
+
+    #[test]
+    fn parse_annotations() {
+        const IDL: &str = r#"
+            @key1
+            @key2: value2"#;
+        let (rest, res) = ws(annotations).parse(IDL).expect("parse");
+        println!("res: {res:?}, rest: {rest}");
+        assert_eq!(2, res.len());
+        assert!(rest.trim().is_empty());
+    }
+
+    #[test]
+    fn parse_struct_def() {
+        const IDL: &str = r#"{
+            /// Who has colored it.
+            @indexed
+            author: actor,
+            /// Color used.
+            color: Color,
+        }"#;
+        let (rest, res) = ws(alt((struct_def, tuple_struct_def, unit_struct_def)))
+            .parse(IDL)
+            .expect("parse");
+        println!("res: {res:?}, rest: {rest}");
+        assert!(rest.trim().is_empty());
+
+        let (rest, res) = ws(alt((struct_def, tuple_struct_def, unit_struct_def)))
+            .parse(r#"(actor, Color)"#)
+            .expect("parse");
+        println!("res: {res:?}, rest: {rest}");
+        assert!(rest.trim().is_empty());
+
+        let (rest, res) = ws(alt((struct_def, tuple_struct_def, unit_struct_def)))
+            .parse(r#""#)
+            .expect("parse");
+        println!("res: {res:?}, rest: {rest}");
+        assert!(rest.trim().is_empty());
+    }
+
+    #[test]
+    fn parse_enum() {
+        const IDL: &str = r#"
+            /// Defines status of some point as colored by somebody or dead for some reason.
+            enum PointStatus {
+                /// Colored into some RGB.
+                Colored {
+                    /// Who has colored it.
+                    author: actor,
+                    /// Color used.
+                    color: Color,
+                },
+                /// Dead point - won't be available for coloring anymore.
+                Dead,
+            }"#;
+        let (rest, res) = ws(type_item).parse(IDL).expect("parse");
+        println!("res: {res:?}, rest: {rest}");
+        assert!(rest.trim().is_empty());
+    }
+
+    #[test]
+    fn parses_both_services() {
+        let (rest, services) = parse_all_services(SRC).expect("parse");
+        assert!(rest.trim().is_empty());
+        assert_eq!(services.len(), 2);
+
+        let canvas = &services[0];
+        assert_eq!(canvas.name, "Canvas");
+        assert_eq!(canvas.extends, vec!["Ownable", "Tippable", "Pausable"]);
+        assert!(
+            canvas
+                .funcs
+                .iter()
+                .any(|f| f.name == "Points" && f.is_query)
+        );
+        assert!(canvas.events.iter().any(|e| e.name == "Jubilee"));
+        assert!(canvas.types.iter().any(|t| t.name == "Point"));
+
+        let paus = &services[1];
+        assert_eq!(paus.name, "Pausable");
+        assert!(paus.funcs.iter().any(|f| f.name == "Pause"));
+        assert!(paus.types.iter().any(|t| t.name == "PausedError"));
+    }
 }
