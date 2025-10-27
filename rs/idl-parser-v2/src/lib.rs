@@ -22,6 +22,8 @@ pub struct ServiceUnit {
     pub funcs: Vec<ServiceFunc>,
     pub events: Vec<ServiceEvent>,
     pub types: Vec<Type>,
+    pub docs: Vec<String>,
+    pub annotations: HashMap<String, Option<String>>,
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -29,8 +31,10 @@ pub struct ServiceFunc {
     pub name: String,
     pub params: Vec<FuncParam>,
     pub output: TypeDecl,
+    pub throws: Option<TypeDecl>,
     pub is_query: bool,
     pub docs: Vec<String>,
+    pub annotations: HashMap<String, Option<String>>,
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -56,6 +60,7 @@ pub enum TypeDecl {
         item: Box<TypeDecl>,
         len: u32,
     },
+    Tuple(Vec<TypeDecl>),
     Map {
         key: Box<TypeDecl>,
         value: Box<TypeDecl>,
@@ -305,6 +310,14 @@ fn type_array(i: &str) -> Res<'_, TypeDecl> {
     .parse(i)
 }
 
+fn type_tuple(i: &str) -> Res<'_, TypeDecl> {
+    map(
+        delimited(ws(char('(')), sep_comma(type_decl), ws(char(')'))),
+        |type_decls| TypeDecl::Tuple(type_decls),
+    )
+    .parse(i)
+}
+
 fn type_map(i: &str) -> Res<'_, TypeDecl> {
     map(
         tuple((ws(tag_no_case("map")), angle_list(type_decl))),
@@ -314,29 +327,6 @@ fn type_map(i: &str) -> Res<'_, TypeDecl> {
             TypeDecl::Map {
                 key: Box::new(key),
                 value: Box::new(value),
-            }
-        },
-    )
-    .parse(i)
-}
-
-fn type_option(i: &str) -> Res<'_, TypeDecl> {
-    map(
-        tuple((ws(tag_no_case("Option")), angle_list(type_decl))),
-        |(_, mut v)| TypeDecl::Optional(Box::new(v.remove(0))),
-    )
-    .parse(i)
-}
-
-fn type_result(i: &str) -> Res<'_, TypeDecl> {
-    map(
-        tuple((ws(tag_no_case("Result")), angle_list(type_decl))),
-        |(_, mut v)| {
-            let ok = v.remove(0);
-            let err = v.remove(0);
-            TypeDecl::Result {
-                ok: Box::new(ok),
-                err: Box::new(err),
             }
         },
     )
@@ -439,12 +429,13 @@ fn type_decl(i: &str) -> Res<'_, TypeDecl> {
     ws(alt((
         type_array,
         type_vector,
-        type_map,
-        type_option,
-        type_result,
+        type_tuple,
+        // type_map,
+        // type_option,
+        // type_result,
         // inline defs
-        type_decl_struct,
-        type_decl_enum,
+        // type_decl_struct,
+        // type_decl_enum,
         type_id,
     )))
     .parse(i)
@@ -497,32 +488,31 @@ fn param_list(i: &str) -> Res<'_, Vec<FuncParam>> {
     delimited(ws(char('(')), sep_comma(func_param), ws(char(')'))).parse(i)
 }
 
-fn maybe_throws(i: &str) -> Res<'_, ()> {
-    value((), tuple((ws(tag_no_case("throws")), ws(type_decl)))).parse(i)
+fn throws_type(i: &str) -> Res<'_, TypeDecl> {
+    preceded(ws(tag_no_case("throws")), ws(type_decl)).parse(i)
 }
 
 fn service_func(i: &str) -> Res<'_, ServiceFunc> {
     let (i, docs) = ws(doc_lines).parse(i)?;
-    // capture local annotations; only @query matters
-    let (i, is_query) = map(opt(preceded(space_or_comments, tag("@query"))), |o| {
-        o.is_some()
-    })
-    .parse(i)?;
+    let (i, annotations) = ws(annotations).parse(i)?;
+    let is_query = annotations.contains_key("query");
     let (i, name) = ws(ident).parse(i)?;
     let (i, params) = ws(param_list).parse(i)?;
     // return type optional
     let (i, output) = opt(preceded(ws(tag("->")), ws(type_decl))).parse(i)?;
-    let output_td = output.unwrap_or(TypeDecl::Id(TypeId::Primitive(PrimitiveType::Null)));
-    let (i, _) = opt(ws(maybe_throws)).parse(i)?;
+    let output = output.unwrap_or(TypeDecl::Id(TypeId::Primitive(PrimitiveType::Null)));
+    let (i, throws) = opt(ws(throws_type)).parse(i)?;
     let (i, _) = ws(char(';')).parse(i)?;
     Ok((
         i,
         ServiceFunc {
             name,
             params,
-            output: output_td,
+            output,
+            throws,
             is_query,
             docs,
+            annotations,
         },
     ))
 }
@@ -534,45 +524,76 @@ fn service_event(i: &str) -> Res<'_, ServiceEvent> {
 fn extends_list(i: &str) -> Res<'_, Vec<String>> {
     delimited(
         ws(tag("extends")),
-        delimited(
-            ws(char('{')),
-            separated_list0(ws(char(',')), ws(ident)),
-            ws(char('}')),
-        ),
+        delimited(ws(char('{')), sep_comma(ident), ws(char('}'))),
+        space_or_comments,
+    )
+    .parse(i)
+}
+
+fn event_list(i: &str) -> Res<'_, Vec<ServiceEvent>> {
+    preceded(
+        ws(tag("events")),
+        delimited(ws(char('{')), sep_comma(enum_variant), ws(char('}'))),
+    )
+    .parse(i)
+}
+
+fn type_list(i: &str) -> Res<'_, Vec<Type>> {
+    delimited(
+        ws(tag("types")),
+        delimited(ws(char('{')), many0(ws(type_item)), ws(char('}'))),
+        space_or_comments,
+    )
+    .parse(i)
+}
+
+fn function_list(i: &str) -> Res<'_, Vec<ServiceFunc>> {
+    delimited(
+        ws(tag("functions")),
+        delimited(ws(char('{')), many0(ws(service_func)), ws(char('}'))),
         space_or_comments,
     )
     .parse(i)
 }
 
 fn service_block(i: &str) -> Res<'_, ServiceUnit> {
-    let (i, _) = ws(tag("service")).parse(i)?;
-    let (i, name) = ws(ident).parse(i)?;
+    let (i, docs) = ws(doc_lines).parse(i)?;
+    let (i, annotations) = ws(annotations).parse(i)?;
+    let (i, name) = ws(preceded(tag("service"), ws(ident))).parse(i)?;
     let (i, _) = ws(char('{')).parse(i)?;
 
-    // optional extends { A, B, C }
-    let (i, extends) = opt(extends_list).parse(i)?;
-
-    // events { ... }
-    let (i, events) = opt(delimited(
-        ws(tag("events")),
-        delimited(ws(char('{')), many0(ws(service_event)), ws(char('}'))),
-        space_or_comments,
-    ))
-    .parse(i)?;
-    // functions { ... }
-    let (i, funcs) = opt(delimited(
-        ws(tag("functions")),
-        delimited(ws(char('{')), many0(ws(service_func)), ws(char('}'))),
-        space_or_comments,
-    ))
-    .parse(i)?;
-    // types { ... }
-    let (i, types) = opt(delimited(
-        ws(tag("types")),
-        delimited(ws(char('{')), many0(ws(type_item)), ws(char('}'))),
-        space_or_comments,
-    ))
-    .parse(i)?;
+    let mut extends = None;
+    let mut events = None;
+    let mut funcs = None;
+    let mut types = None;
+    let mut i = i;
+    loop {
+        // extends
+        if let Ok((rest, res)) = extends_list.parse(i) {
+            i = rest;
+            extends = Some(res);
+            continue;
+        }
+        // events
+        if let Ok((rest, res)) = event_list.parse(i) {
+            i = rest;
+            events = Some(res);
+            continue;
+        }
+        // functions
+        if let Ok((rest, res)) = function_list.parse(i) {
+            i = rest;
+            funcs = Some(res);
+            continue;
+        }
+        // types
+        if let Ok((rest, res)) = type_list.parse(i) {
+            i = rest;
+            types = Some(res);
+            continue;
+        }
+        break;
+    }
 
     let (i, _) = ws(char('}')).parse(i)?;
 
@@ -584,6 +605,8 @@ fn service_block(i: &str) -> Res<'_, ServiceUnit> {
             funcs: funcs.unwrap_or_default(),
             events: events.unwrap_or_default(),
             types: types.unwrap_or_default(),
+            docs,
+            annotations,
         },
     ))
 }
@@ -701,7 +724,7 @@ service Canvas {
     }
 }
 
-/// Pausable Service
+/// Pausable Service/
 service Pausable {
     events {
         Paused,
@@ -775,6 +798,7 @@ service Pausable {
         const IDL: &str = r#"
             /// Defines status of some point as colored by somebody or dead for some reason.
             enum PointStatus {
+                Transparent(actor),
                 /// Colored into some RGB.
                 Colored {
                     /// Who has colored it.
@@ -786,6 +810,44 @@ service Pausable {
                 Dead,
             }"#;
         let (rest, res) = ws(type_item).parse(IDL).expect("parse");
+        println!("res: {res:?}, rest: {rest}");
+        assert!(rest.trim().is_empty());
+    }
+
+    #[test]
+    fn parse_func() {
+        const IDL: &str = r#"
+            /// Sets color for the point.
+            /// app -> `fn color_point(&mut self, point: Point<u32>, color: Color) -> Result<(), ColorError>`
+            /// On `Ok` - auto-reply. On `Err` -> app will encode error bytes of `ColorError` (`gr_panic_bytes`).
+            ColorPoint(point: (u32, u32), color: Color) throws ColorError;"#;
+        let (rest, res) = ws(service_func).parse(IDL).expect("parse");
+        println!("res: {res:?}, rest: {rest}");
+        assert!(rest.trim().is_empty());
+    }
+
+    #[test]
+    fn parse_single_service() {
+        const IDL: &str = r#"
+            /// Pausable Service
+            service Pausable {
+                events {
+                    Paused,
+                    Unpaused,
+                }
+
+                functions {
+                    /// Pause func
+                    // Client: `fn pause(&mut self) -> Result<(), SailsEnvError>`
+                    Pause();
+                    Unpause();
+                }
+
+                // types {
+                //     struct PausedError;
+                // }
+            }"#;
+        let (rest, res) = parse_service.parse(IDL).expect("parse");
         println!("res: {res:?}, rest: {rest}");
         assert!(rest.trim().is_empty());
     }
