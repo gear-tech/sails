@@ -22,6 +22,5 @@ syn = { workspace = true, features = ["parsing", "full", "fold"] }
 quote.workspace = true
 
 [dev-dependencies]
-demo = { path = "../../examples/demo/app" } # todo [sab] remove
 insta.workspace = true
 sails-idl-parser.workspace = true

@@ -28,13 +28,10 @@ use scale_info::{
     Field, MetaType, PortableRegistry, PortableType, Registry, TypeDef, Variant, form::PortableForm,
 };
 
-#[derive(Debug)]
 struct CtorFuncMeta(String, u32, Vec<Field<PortableForm>>, Vec<String>);
 
-#[derive(Debug)]
 struct ServiceFuncMeta(String, u32, Vec<Field<PortableForm>>, u32, Vec<String>);
 
-#[derive(Debug)]
 pub(crate) struct ExpandedProgramMeta {
     registry: PortableRegistry,
     builtin_type_ids: Vec<u32>,
@@ -215,7 +212,6 @@ impl ExpandedProgramMeta {
     }
 }
 
-#[derive(Debug)]
 pub(crate) struct ExpandedServiceMeta {
     name: &'static str,
     commands_type_ids: Vec<u32>,
@@ -306,8 +302,6 @@ impl ExpandedServiceMeta {
                         func_descr.fields[1].ty.id,
                         func_descr.docs.iter().map(|s| s.to_string()).collect(),
                     );
-                    // if base service had a func with the same name, it is considered overridden
-                    // and is stored separately
                     if !funcs_meta
                         .iter()
                         .any(|fm: &ServiceFuncMeta| fm.0 == func_meta.0)

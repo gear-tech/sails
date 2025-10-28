@@ -13,11 +13,9 @@ mod meta;
 mod meta2;
 mod type_names;
 
-// todo [sab] template tests
-
-// todo [sab] discuss
-// extends section (no need to merge fns, or merge but with stating source service -> benefits when same method names corner case)
-// references + boxes? paren types?
+// TODO: Discuss
+// 1. extends section (no need to merge fns, or merge but with stating source service -> benefits when same method names corner case)
+// 2. references + boxes? paren types?
 
 const IDL_TEMPLATE: &str = include_str!("../hbs/idl.hbs");
 const COMPOSITE_TEMPLATE: &str = include_str!("../hbs/composite.hbs");
