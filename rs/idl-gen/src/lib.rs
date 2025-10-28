@@ -16,8 +16,9 @@ mod type_names;
 // todo [sab] SailsVec/SailsBTreeMap - update those
 // todo [sab] template tests
 
-// todo [sab] discuss extends section
-// (no need to merge fns, or merge but with stating source service -> benefits when same method names corner case)
+// todo [sab] discuss 
+// extends section (no need to merge fns, or merge but with stating source service -> benefits when same method names corner case)
+// references + boxes? paren types? 
 
 const IDL_TEMPLATE: &str = include_str!("../hbs/idl.hbs");
 const COMPOSITE_TEMPLATE: &str = include_str!("../hbs/composite.hbs");

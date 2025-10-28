@@ -23,6 +23,7 @@ use crate::{
     errors::{Error, Result},
 };
 use convert_case::{Case, Casing};
+use quote::ToTokens;
 use core::num::{NonZeroU8, NonZeroU16, NonZeroU32, NonZeroU64, NonZeroU128};
 use gprimitives::*;
 use scale_info::{
@@ -36,6 +37,9 @@ use std::{
     result::Result as StdResult,
     sync::OnceLock,
 };
+
+const INTERIM_VEC_TYPE_NAME: &str = "SailsInterimNameVec";
+const INTERIM_BTREE_MAP_TYPE_NAME: &str = "SailsInterimNameBTreeMap";
 
 pub(super) fn resolve<'a>(
     types: impl Iterator<Item = &'a PortableType>,
@@ -356,7 +360,7 @@ impl TypeName for BTreeMapTypeName {
             .value_type_name
             .as_string(for_generic_param, by_path_type_names);
 
-        format!("SailsBTreeMap<{key_type_name}, {value_type_name}>")
+        format!("SailsInterimNameBTreeMap<{key_type_name}, {value_type_name}>")
     }
 }
 
@@ -551,7 +555,7 @@ impl TypeName for VectorTypeName {
         let item_type_name = self
             .item_type_name
             .as_string(for_generic_param, by_path_type_names);
-        format!("SailsVec<{item_type_name}>")
+        format!("SailsInterimNameVec<{item_type_name}>")
     }
 }
 
@@ -987,28 +991,11 @@ fn resolve_field_type_name(
     let resolved_type =
         resolve_to_generic::resolve(&syn_concrete_type_name, &syn_field_type_name, params_names)?;
 
-    Ok(fmt_string(resolved_type))
-}
-
-fn fmt_string(syn_ty: syn::Type) -> String {
-    use quote::ToTokens;
-
-    syn_ty
-        .to_token_stream()
-        .to_string()
-        .replace(" < ", "<")
-        .replace(" >", ">")
-        .replace(" , ", ", ")
-        .replace(" ( ", "(")
-        .replace(" ) ", ")")
-        .replace(" [ ", "[")
-        .replace(" ] ", "]")
-        .replace(" ; ", "; ")
+    Ok(resolved_type.format())
 }
 
 mod resolve_to_generic {
     use super::*;
-    use quote::ToTokens;
     use syn::{
         GenericArgument, PathArguments, Type as SynType, TypeArray, TypeGroup, TypeParen, TypePath,
         TypeReference, TypeTuple, punctuated::Punctuated,
@@ -1055,8 +1042,8 @@ mod resolve_to_generic {
             (SynType::Reference(cr), SynType::Reference(gr)) => resolve_type_ref(cr, gr, generics),
             _ => unreachable!(
                 "Unexpected type combination in into generic resolution method: concrete {}, initial {}",
-                concrete.to_token_stream().to_string(),
-                initial.to_token_stream().to_string()
+                concrete.format(),
+                initial.format(),
             ),
         }
     }
@@ -1074,8 +1061,8 @@ mod resolve_to_generic {
         let Some((concrete_path, initial_path)) = concrete_path.zip(initial_path) else {
             return Err(TypeNameResolutionError::UnexpectedValue(format!(
                 "Mismatched type paths during generic resolution: concrete {}, initial {}",
-                concrete.to_token_stream(),
-                initial.to_token_stream(),
+                concrete.format(),
+                initial.format(),
             ))
             .into());
         };
@@ -1177,6 +1164,98 @@ mod resolve_to_generic {
         ret.elem = Box::new(resolve(&concrete.elem, &initial.elem, generics)?);
 
         Ok(SynType::Reference(ret))
+    }
+}
+
+trait FormatSynType {
+    fn format(&self) -> String;
+}
+
+impl<T: ToTokens> FormatSynType for T {
+    fn format(&self) -> String {
+        self
+            .to_token_stream()
+            .to_string()
+            .replace(" < ", "<")
+            .replace(" >", ">")
+            .replace(" , ", ", ")
+            .replace(" ( ", "(")
+            .replace(" ) ", ")")
+            .replace(" [ ", "[")
+            .replace(" ] ", "]")
+            .replace(" ; ", "; ")
+    }
+}
+
+mod finalize_type_name {
+    use super::*;
+    use syn::{Type, PathArguments, GenericArgument, TypeArray, TypeParen, TypePath, TypeSlice, TypeTuple, TypeReference};
+
+    pub(super) fn finalize(type_name: &str) -> String {
+        let syn_type = syn::parse_str::<Type>(type_name).unwrap_or_else(|_| {
+            panic!(
+                "internal error: failed to parse type name during finalization: {type_name}"
+            )
+        });
+
+        finalize_syn(&syn_type)
+    }
+
+    fn finalize_syn(t: &Type) -> String {
+        match t {
+            Type::Array(TypeArray { elem, len, .. }) => {
+                format!("[{}; {}]", finalize_syn(elem), len.format())
+            }
+            Type::Slice(TypeSlice { elem, .. }) => format!("[{}]", finalize_syn(elem)),
+            Type::Tuple(TypeTuple { elems, .. }) => {
+                let elements = elems.iter().map(finalize_syn).collect::<Vec<_>>();
+                if elements.len() == 1 {
+                    format!("({},)", elements[0])
+                } else {
+                    format!("({})", elements.join(", "))
+                }
+            }
+            // TODO: should references remain?
+            Type::Reference(TypeReference { elem, .. }) => finalize_syn(elem),
+            // No paren types in the final output. Only single value tuples
+            Type::Paren(TypeParen { elem, .. }) => finalize_syn(elem),
+            Type::Path(TypePath { path, .. }) => {
+                let last_segment = path.segments.last().unwrap();
+                let ident = last_segment.ident.to_string();
+
+                if let PathArguments::AngleBracketed(syn_args) = &last_segment.arguments {
+                    let args = (&syn_args.args).iter().map(finalize_type_inner).collect::<Vec<_>>().join(", ");
+
+                    match ident.as_str() {
+                        INTERIM_VEC_TYPE_NAME => {
+                            if syn_args.args.len() != 1 {
+                                panic!("Vec is accepted only with one generic argument");
+                            }
+
+                            format!("[{args}]")
+                        }
+                        INTERIM_BTREE_MAP_TYPE_NAME => {
+                            if syn_args.args.len() != 2 {
+                                panic!("BTreeMap is accepted only with two generic arguments");
+                            }
+
+                            format!("[({})]", args)
+                        }
+                        ident => format!("{ident}<{args}>"),
+                    }
+                } else {
+                    ident
+                }
+            }
+            _ => t.format(),
+        }
+    }
+
+    fn finalize_type_inner(arg: &GenericArgument) -> String {
+        match arg {
+            GenericArgument::Type(t) => finalize_syn(t),
+            _ => arg.format(),
+        }
     }
 }
 
@@ -1327,9 +1406,9 @@ mod tests {
         let type_names = resolve(portable_registry.types.iter()).unwrap();
 
         let u32_vector_name = type_names.get(&u32_vector_id).unwrap();
-        assert_eq!(u32_vector_name, "SailsVec<u32>");
+        assert_eq!(u32_vector_name, "SailsInterimNameVec<u32>");
         let as_generic_param_name = type_names.get(&as_generic_param_id).unwrap();
-        assert_eq!(as_generic_param_name, "GenericStruct<SailsVec<u32>>");
+        assert_eq!(as_generic_param_name, "GenericStruct<SailsInterimNameVec<u32>>");
     }
 
     #[test]
@@ -1400,11 +1479,11 @@ mod tests {
         let type_names = resolve(portable_registry.types.iter()).unwrap();
 
         let btree_map_name = type_names.get(&btree_map_id).unwrap();
-        assert_eq!(btree_map_name, "SailsBTreeMap<u32, String>");
+        assert_eq!(btree_map_name, "SailsInterimNameBTreeMap<u32, String>");
         let as_generic_param_name = type_names.get(&as_generic_param_id).unwrap();
         assert_eq!(
             as_generic_param_name,
-            "GenericStruct<SailsBTreeMap<u32, String>>"
+            "GenericStruct<SailsInterimNameBTreeMap<u32, String>>"
         );
     }
 
@@ -1545,6 +1624,64 @@ mod tests {
             type_names.get(&n32u256_id).unwrap(),
             "GenericConstStruct<u256>"
         );
+    }
+
+    #[test]
+    fn finalize_names() {
+        let cases = vec![
+            // Vec replacements
+            ("SailsInterimNameVec<i32>", "[i32]"),
+            ("SailsInterimNameVec<&str>", "[str]"),
+            // Paren types are unwrapped
+            ("(SailsInterimNameVec<String>)", "[String]"),
+            ("SailsInterimNameVec<&'a mut u64>", "[u64]"),
+            ("SailsInterimNameVec<(String, u8)>", "[(String, u8)]"),
+            ("&SailsInterimNameVec<String>", "[String]"),
+            ("&(SailsInterimNameVec<u32>)", "[u32]"),
+            ("SailsInterimNameVec<SailsInterimNameVec<bool>>", "[[bool]]"),
+            ("&(SailsInterimNameVec<&'static SailsInterimNameVec<i16>>)", "[[i16]]"),
+            ("SailsInterimNameVec<[u32; 4]>", "[[u32; 4]]"),
+            ("SailsInterimNameVec<(SailsInterimNameVec<i8>, f64)>", "[([i8], f64)]"),
+
+            ("Result<SailsInterimNameVec<u8>, String>", "Result<[u8], String>"),
+            ("Option<SailsInterimNameBTreeMap<i32, i32>>", "Option<[(i32, i32)]>"),
+            ("(u32, SailsInterimNameVec<i64>, bool)", "(u32, [i64], bool)"),
+            ("(SailsInterimNameBTreeMap<u8, u8>, (SailsInterimNameVec<u128>, char))", "([(u8, u8)], ([u128], char))"),
+
+            ("SailsInterimNameBTreeMap<String, u32>", "[(String, u32)]"),
+            ("SailsInterimNameBTreeMap<&'a str, i8>", "[(str, i8)]"),
+            ("SailsInterimNameBTreeMap<u8, SailsInterimNameVec<bool>>", "[(u8, [bool])]"),
+            ("&SailsInterimNameBTreeMap<i32, f32>", "[(i32, f32)]"),
+            ("&(SailsInterimNameBTreeMap<&'static str, SailsInterimNameVec<f32>>)", "[(str, [f32])]"),
+            ("SailsInterimNameBTreeMap<u8, SailsInterimNameBTreeMap<u8, u8>>", "[(u8, [(u8, u8)])]"),
+            ("SailsInterimNameVec<SailsInterimNameBTreeMap<i32, i32>>", "[[(i32, i32)]]"),
+            ("SailsInterimNameBTreeMap<(u8, u8), SailsInterimNameVec<(u8, u8)>>", "[((u8, u8), [(u8, u8)])]"),
+
+            // Mixed/edge cases
+            ("&'a mut SailsInterimNameBTreeMap<String, &'a T>", "[(String, T)]"),
+            ("(SailsInterimNameVec<i32>, &'b SailsInterimNameBTreeMap<bool, bool>)", "([i32], [(bool, bool)])"),
+            ("[SailsInterimNameBTreeMap<u8, SailsInterimNameVec<u8>>; 10]", "[[(u8, [u8])]; 10]"),
+            ("Result<SailsInterimNameVec<SailsInterimNameBTreeMap<u8, SailsInterimNameVec<u8>>>, ()>", "Result<[[(u8, [u8])]], ()>"),
+
+            // Double unwrap of a paren type
+            ("((SailsInterimNameVec<u8>))", "[u8]"),
+
+            // Single-element tuple in paren
+            ("((SailsInterimNameVec<u8>),)", "([u8],)"),
+            // Single-element tuple
+            ("(SailsInterimNameVec<u8>,)", "([u8],)"),
+
+            (
+                "(Option<[SailsInterimNameBTreeMap<char, SailsInterimNameVec<u8>>; 4]>, &[SailsInterimNameVec<u8>])",
+                "(Option<[[(char, [u8])]; 4]>, [[u8]])"
+            ),
+        ];
+    
+
+        for (input, expected) in cases {
+            let finalized = finalize_type_name::finalize(input);
+            assert_eq!(finalized, expected, "Failed for input: {}", input);
+        }
     }
 
     #[test]
@@ -1727,17 +1864,17 @@ mod tests {
             "(String, T, T, u32)",
             "Option<T>",
             "Result<T, String>",
-            "SailsBTreeMap<String, T>",
+            "SailsInterimNameBTreeMap<String, T>",
             "GenericStruct<T>",
             "SimpleOneGenericEnum<T>",
             "Option<Option<T>>",
             "Result<Option<T>, String>",
-            "SailsBTreeMap<Option<T>, GenericStruct<T>>",
+            "SailsInterimNameBTreeMap<Option<T>, GenericStruct<T>>",
             "GenericStruct<Option<T>>",
             "SimpleOneGenericEnum<Result<T, String>>",
             "Option<Option<Option<T>>>",
             "Result<Option<Result<T, String>>, String>",
-            "SailsBTreeMap<Option<GenericStruct<T>>, Result<T, String>>",
+            "SailsInterimNameBTreeMap<Option<GenericStruct<T>>, Result<T, String>>",
             "GenericStruct<Option<Result<T, String>>>",
         ];
 
@@ -1776,12 +1913,12 @@ mod tests {
             "u32",
             "Option<T>",
             "Result<T, String>",
-            "SailsBTreeMap<String, T>",
+            "SailsInterimNameBTreeMap<String, T>",
             "GenericStruct<T>",
             "NestedGenericEnum<T>",
             "Option<Option<T>>",
             "Result<Option<T>, String>",
-            "SailsBTreeMap<Option<T>, GenericStruct<T>>",
+            "SailsInterimNameBTreeMap<Option<T>, GenericStruct<T>>",
             "GenericStruct<Option<T>>",
             "Option<Option<Option<T>>>",
             "Result<Option<Result<T, String>>, String>",
@@ -1840,7 +1977,7 @@ mod tests {
                 .unwrap();
             assert_eq!(
                 concrete_names.get(&btreemap_generic.ty.id).unwrap(),
-                "SailsBTreeMap<String, u32>"
+                "SailsInterimNameBTreeMap<String, u32>"
             );
         } else {
             panic!("Expected composite type");
@@ -2033,17 +2170,17 @@ mod tests {
         let struct_field_types = struct_generic.fields_type_names();
         let expect_struct_field_types = vec![
             "[T; 10]",
-            "(T, SailsVec<T>, [T; 5])",
+            "(T, SailsInterimNameVec<T>, [T; 5])",
             "[(T, T); 3]",
-            "SailsVec<[T; 8]>",
+            "SailsInterimNameVec<[T; 8]>",
             "[Option<T>; 5]",
             "(Result<T, String>, Option<T>)",
-            "SailsVec<GenericStruct<T>>",
-            "[SailsBTreeMap<String, T>; 2]",
-            "[SailsVec<Option<T>>; 4]",
-            "(Option<SailsVec<T>>, Result<[T; 3], String>)",
-            "SailsVec<GenericStruct<Option<T>>>",
-            "[SailsBTreeMap<Option<T>, Result<T, String>>; 2]",
+            "SailsInterimNameVec<GenericStruct<T>>",
+            "[SailsInterimNameBTreeMap<String, T>; 2]",
+            "[SailsInterimNameVec<Option<T>>; 4]",
+            "(Option<SailsInterimNameVec<T>>, Result<[T; 3], String>)",
+            "SailsInterimNameVec<GenericStruct<Option<T>>>",
+            "[SailsInterimNameBTreeMap<Option<T>, Result<T, String>>; 2]",
         ];
 
         for expected in expect_struct_field_types {
@@ -2060,19 +2197,19 @@ mod tests {
         let expect_enum_field_types = vec![
             "[T; 10]",
             "T",
-            "SailsVec<T>",
+            "SailsInterimNameVec<T>",
             "[T; 5]",
             "[(T, T); 3]",
-            "SailsVec<[T; 8]>",
+            "SailsInterimNameVec<[T; 8]>",
             "[Option<T>; 5]",
             "(Result<T, String>, Option<T>)",
-            "SailsVec<GenericStruct<T>>",
-            "[SailsBTreeMap<String, T>; 2]",
-            "[SailsVec<Option<SailsVec<T>>>; 4]",
-            "Option<Option<SailsVec<T>>>",
+            "SailsInterimNameVec<GenericStruct<T>>",
+            "[SailsInterimNameBTreeMap<String, T>; 2]",
+            "[SailsInterimNameVec<Option<SailsInterimNameVec<T>>>; 4]",
+            "Option<Option<SailsInterimNameVec<T>>>",
             "Result<Option<[T; 3]>, String>",
-            "SailsVec<GenericStruct<Option<T>>>",
-            "[SailsBTreeMap<SailsBTreeMap<Option<T>, String>, Result<T, String>>; 2]",
+            "SailsInterimNameVec<GenericStruct<Option<T>>>",
+            "[SailsInterimNameBTreeMap<SailsInterimNameBTreeMap<Option<T>, String>, Result<T, String>>; 2]",
         ];
 
         for expected in expect_enum_field_types {
@@ -2251,26 +2388,26 @@ mod tests {
             "T3",
             "[T1; 8]",
             "(T2, T3)",
-            "SailsVec<T3>",
+            "SailsInterimNameVec<T3>",
             "(T1, T2, T3)",
             "(T1, T1, T2, T2, T3, T3)",
             "[(T1, T2); 4]",
-            "SailsVec<[T3; 5]>",
-            "SailsBTreeMap<T1, T2>",
+            "SailsInterimNameVec<[T3; 5]>",
+            "SailsInterimNameBTreeMap<T1, T2>",
             "GenericStruct<T3>",
             "GenericEnum<T1, T2>",
             "Option<Result<T1, T2>>",
             "[Option<T2>; 6]",
-            "SailsVec<(T2, T3, T1)>",
+            "SailsInterimNameVec<(T2, T3, T1)>",
             "(Result<T1, String>, Option<T2>)",
-            "SailsBTreeMap<Option<T1>, Result<T2, String>>",
+            "SailsInterimNameBTreeMap<Option<T1>, Result<T2, String>>",
             "GenericStruct<(T2, T3)>",
-            "Option<Result<SailsVec<T1>, T2>>",
-            "[SailsBTreeMap<T1, Option<T2>>; 3]",
-            "SailsVec<GenericStruct<Option<T3>>>",
-            "[SailsVec<(T1, T2)>; 2]",
-            "(Option<SailsVec<T1>>, Result<[T2; 4], T3>)",
-            "SailsVec<GenericStruct<Result<T1, T2>>>",
+            "Option<Result<SailsInterimNameVec<T1>, T2>>",
+            "[SailsInterimNameBTreeMap<T1, Option<T2>>; 3]",
+            "SailsInterimNameVec<GenericStruct<Option<T3>>>",
+            "[SailsInterimNameVec<(T1, T2)>; 2]",
+            "(Option<SailsInterimNameVec<T1>>, Result<[T2; 4], T3>)",
+            "SailsInterimNameVec<GenericStruct<Result<T1, T2>>>",
         ];
 
         for e in expect_struct_field_types {
@@ -2300,12 +2437,12 @@ mod tests {
             );
 
             let vec_t3 = find_field_struct(composite, "vec_t3");
-            assert_eq!(concrete_names.get(&vec_t3.ty.id).unwrap(), "SailsVec<H256>");
+            assert_eq!(concrete_names.get(&vec_t3.ty.id).unwrap(), "SailsInterimNameVec<H256>");
 
             let array_triple = find_field_struct(composite, "array_triple");
             assert_eq!(
                 concrete_names.get(&array_triple.ty.id).unwrap(),
-                "[SailsBTreeMap<u32, Option<String>>; 3]"
+                "[SailsInterimNameBTreeMap<u32, Option<String>>; 3]"
             );
         } else {
             panic!("Expected composite type");
@@ -2318,30 +2455,30 @@ mod tests {
             "T3",
             "[T1; 8]",
             "(T2, T3)",
-            "SailsVec<T3>",
+            "SailsInterimNameVec<T3>",
             "T1",
             "T2",
             "T3",
             "(T1, T1, T2, T2, T3, T3)",
             "[(T1, T2); 4]",
-            "SailsVec<[T3; 5]>",
-            "SailsBTreeMap<T1, T2>",
+            "SailsInterimNameVec<[T3; 5]>",
+            "SailsInterimNameBTreeMap<T1, T2>",
             "GenericStruct<T3>",
             "GenericEnum<T1, T2>",
             "Option<Result<T1, T2>>",
             "[Option<T2>; 6]",
-            "SailsVec<(T2, T3, T1)>",
+            "SailsInterimNameVec<(T2, T3, T1)>",
             "Result<T1, String>",
             "Option<T2>",
-            "SailsBTreeMap<Option<T1>, Result<T2, String>>",
+            "SailsInterimNameBTreeMap<Option<T1>, Result<T2, String>>",
             "GenericStruct<(T2, T3)>",
-            "Option<Result<SailsVec<T1>, T2>>",
-            "[SailsBTreeMap<T1, Option<T2>>; 3]",
-            "SailsVec<GenericStruct<Option<T3>>>",
-            "[SailsVec<(T1, T2)>; 2]",
-            "Option<SailsVec<T1>>",
+            "Option<Result<SailsInterimNameVec<T1>, T2>>",
+            "[SailsInterimNameBTreeMap<T1, Option<T2>>; 3]",
+            "SailsInterimNameVec<GenericStruct<Option<T3>>>",
+            "[SailsInterimNameVec<(T1, T2)>; 2]",
+            "Option<SailsInterimNameVec<T1>>",
             "Result<[T2; 4], T3>",
-            "SailsVec<GenericStruct<Result<T1, T2>>>",
+            "SailsInterimNameVec<GenericStruct<Result<T1, T2>>>",
         ];
 
         for e in expect_enum_field_types {
@@ -2381,6 +2518,7 @@ mod tests {
         }
     }
 
+    // todo [sab]
     //     #[test]
     //     fn generic_const_with_generic_types() {
     //         #[allow(dead_code)]
@@ -2521,7 +2659,7 @@ mod tests {
     //                 .iter()
     //                 .find(|f| f.name.as_deref() == Some("vec"))
     //                 .unwrap();
-    //             assert_eq!(concrete_names.get(&vec.ty.id).unwrap(), "SailsVec<u32>");
+    //             assert_eq!(concrete_names.get(&vec.ty.id).unwrap(), "SailsInterimNameVec<u32>");
     //             let id = FieldValue::StructFields {
     //                 parent_ty: struct_n8_u32_id,
     //                 field_index: 2,
@@ -2529,7 +2667,7 @@ mod tests {
     //             };
     //             assert_eq!(
     //                 generic_names.get(&id).unwrap().as_deref(),
-    //                 Some("SailsVec<T>")
+    //                 Some("SailsInterimNameVec<T>")
     //             );
 
     //             let option = composite
@@ -2876,7 +3014,7 @@ mod tests {
     //                 .unwrap();
     //             assert_eq!(
     //                 concrete_names.get(&vec_a.ty.id).unwrap(),
-    //                 "SailsVec<NestedSameName<u32>>"
+    //                 "SailsInterimNameVec<NestedSameName<u32>>"
     //             );
     //             let id = FieldValue::StructFields {
     //                 parent_ty: struct_id,
@@ -2885,7 +3023,7 @@ mod tests {
     //             };
     //             assert_eq!(
     //                 generic_names.get(&id).unwrap().as_deref(),
-    //                 Some("SailsVec<NestedSameName<T1>>")
+    //                 Some("SailsInterimNameVec<NestedSameName<T1>>")
     //             );
 
     //             // option_b: Option<module_b::SameName<T2>>
@@ -3080,8 +3218,8 @@ mod tests {
         let expect_struct_field_types = vec![
             "ReusableGenericStruct<T1>",
             "ReusableGenericStruct<CodeId>",
-            "ReusableGenericStruct<SailsVec<T1>>",
-            "ReusableGenericStruct<SailsVec<bool>>",
+            "ReusableGenericStruct<SailsInterimNameVec<T1>>",
+            "ReusableGenericStruct<SailsInterimNameVec<bool>>",
             "ReusableGenericStruct<(T1, T2)>",
             "ReusableGenericStruct<(u64, H256)>",
             "ReusableGenericStruct<T2>",
@@ -3095,14 +3233,14 @@ mod tests {
             "GenericStruct<ReusableGenericStruct<T1>>",
             "GenericStruct<ReusableGenericStruct<T2>>",
             "GenericStruct<ReusableGenericStruct<u32>>",
-            "SailsVec<ReusableGenericStruct<T1>>",
+            "SailsInterimNameVec<ReusableGenericStruct<T1>>",
             "[ReusableGenericEnum<T2>; 5]",
             "Option<ReusableGenericStruct<(T1, T2)>>",
             "Result<ReusableGenericEnum<T1>, ReusableGenericEnum<T2>>",
-            "SailsBTreeMap<T1, ReusableGenericStruct<T2>>",
-            "SailsBTreeMap<ReusableGenericEnum<T1>, String>",
-            "SailsBTreeMap<ReusableGenericStruct<T1>, ReusableGenericEnum<T2>>",
-            "SailsBTreeMap<ReusableGenericStruct<u64>, ReusableGenericEnum<H256>>",
+            "SailsInterimNameBTreeMap<T1, ReusableGenericStruct<T2>>",
+            "SailsInterimNameBTreeMap<ReusableGenericEnum<T1>, String>",
+            "SailsInterimNameBTreeMap<ReusableGenericStruct<T1>, ReusableGenericEnum<T2>>",
+            "SailsInterimNameBTreeMap<ReusableGenericStruct<u64>, ReusableGenericEnum<H256>>",
         ];
 
         for e in expect_struct_field_types {
@@ -3119,8 +3257,8 @@ mod tests {
         let expect_enum_field_types = vec![
             "ReusableGenericStruct<T1>",
             "ReusableGenericStruct<CodeId>",
-            "ReusableGenericStruct<SailsVec<T1>>",
-            "ReusableGenericStruct<SailsVec<bool>>",
+            "ReusableGenericStruct<SailsInterimNameVec<T1>>",
+            "ReusableGenericStruct<SailsInterimNameVec<bool>>",
             "ReusableGenericStruct<(T1, T2)>",
             "ReusableGenericStruct<(u64, H256)>",
             "ReusableGenericStruct<T2>",
@@ -3134,14 +3272,14 @@ mod tests {
             "GenericStruct<ReusableGenericStruct<T1>>",
             "GenericStruct<ReusableGenericStruct<T2>>",
             "GenericStruct<ReusableGenericStruct<u32>>",
-            "SailsVec<ReusableGenericStruct<T1>>",
+            "SailsInterimNameVec<ReusableGenericStruct<T1>>",
             "[ReusableGenericEnum<T2>; 5]",
             "Option<ReusableGenericStruct<(T1, T2)>>",
             "Result<ReusableGenericEnum<T1>, ReusableGenericEnum<T2>>",
-            "SailsBTreeMap<T1, ReusableGenericStruct<T2>>",
-            "SailsBTreeMap<ReusableGenericEnum<T1>, String>",
-            "SailsBTreeMap<ReusableGenericStruct<T1>, ReusableGenericEnum<T2>>",
-            "SailsBTreeMap<ReusableGenericStruct<u64>, ReusableGenericEnum<H256>>",
+            "SailsInterimNameBTreeMap<T1, ReusableGenericStruct<T2>>",
+            "SailsInterimNameBTreeMap<ReusableGenericEnum<T1>, String>",
+            "SailsInterimNameBTreeMap<ReusableGenericStruct<T1>, ReusableGenericEnum<T2>>",
+            "SailsInterimNameBTreeMap<ReusableGenericStruct<u64>, ReusableGenericEnum<H256>>",
         ];
 
         for e in expect_enum_field_types {
