@@ -16,10 +16,10 @@ service {{name}} {
         {{name}}{{~#if fields}}
         {{~#if fields.[0].name}} {
             {{#each fields}}
-            {{name}}: {{{lookup ../../type_names type}}},
+            {{name}}: {{{lookup ../../concrete_names type}}},
             {{/each}}
         }{{~else~}}
-            ({{#each fields}}{{{lookup ../../type_names type}}}{{#unless @last}}, {{/unless}}{{/each}})
+            ({{#each fields}}{{{lookup ../../concrete_names type}}}{{#unless @last}}, {{/unless}}{{/each}})
         {{~/if}}{{~/if}},
     {{/each}}
     }
@@ -32,7 +32,7 @@ service {{name}} {
         {{#each docs}}
         /// {{{this}}}
         {{/each}}
-        {{name}}({{#each args}}{{#if @index}}, {{/if}}{{name}}: {{{lookup ../../type_names type}}}{{/each}}){{#if result_ty}}{{#if result_ty.res}} -> {{{lookup ../type_names result_ty.res}}}{{/if}}{{#if result_ty.err}} throws {{{lookup ../type_names result_ty.err}}}{{/if}}{{/if}};
+        {{name}}({{#each args}}{{#if @index}}, {{/if}}{{name}}: {{{lookup ../../concrete_names type}}}{{/each}}){{#if result_ty}}{{#if result_ty.res}} -> {{{lookup ../concrete_names result_ty.res}}}{{/if}}{{#if result_ty.err}} throws {{{lookup ../concrete_names result_ty.err}}}{{/if}}{{/if}};
     {{#unless @last}}
 
     {{/unless}}
@@ -45,47 +45,47 @@ service {{name}} {
         /// {{{this}}}
         {{/each}}
         @query
-        {{name}}({{#each args}}{{#if @index}}, {{/if}}{{name}}: {{{lookup ../../type_names type}}}{{/each}}){{#if result_ty}}{{#if result_ty.res}} -> {{{lookup ../type_names result_ty.res}}}{{/if}}{{#if result_ty.err}} throws {{{lookup ../type_names result_ty.err}}}{{/if}}{{/if}};
+        {{name}}({{#each args}}{{#if @index}}, {{/if}}{{name}}: {{{lookup ../../concrete_names type}}}{{/each}}){{#if result_ty}}{{#if result_ty.res}} -> {{{lookup ../concrete_names result_ty.res}}}{{/if}}{{#if result_ty.err}} throws {{{lookup ../concrete_names result_ty.err}}}{{/if}}{{/if}};
     {{#unless @last}}
 
     {{/unless}}
     {{/each}}
     {{/if}}
     }
+    {{#if types}}
 
+    {{/if}}
     {{/if}}
     {{#if types}}
     types {
 {{#each types}}
-{{#if type.def.variant}}
-        enum {{{lookup ../type_names id}}} {
-        {{#each type.def.variant.variants}}
-            {{name}}{{~#if fields}}
+{{#if this.enum}}
+        enum {{this.enum.own_name}} {
+        {{#each this.enum.fields}}
+            {{own_name}}{{~#if fields}}
             {{~#if fields.[0].name}} {
                 {{#each fields}}
-                {{name}}: {{{lookup ../../../type_names type}}},
+                {{name}}: {{{type_name}}},
                 {{/each}}
             }
             {{~else~}}
-            ({{#each fields}}{{{lookup ../../../type_names type}}}{{#unless @last}}, {{/unless}}{{/each}})
+            ({{#each fields}}{{{type_name}}}{{#unless @last}}, {{/unless}}{{/each}})
             {{~/if}}{{~/if}},
         {{/each}}
         }
 {{else}}
-    {{#if type.def.composite}}
-        {{#if type.def.composite.fields.[0]}}
-        {{#if type.def.composite.fields.[0].name}}
-        struct {{{lookup ../type_names id}}} {
-            {{#each type.def.composite.fields}}
-            {{name}}: {{{lookup ../../type_names type}}},
+    {{#if this.struct.fields}}
+        {{#if this.struct.fields.[0].name}}
+        struct {{this.struct.own_name}} {
+            {{#each this.struct.fields}}
+            {{name}}: {{{type_name}}},
             {{/each}}
         }
         {{else}}
-        struct {{{lookup ../type_names id}}}({{#each type.def.composite.fields}}{{{lookup ../../type_names type}}}{{#unless @last}}, {{/unless}}{{/each}});
-        {{/if}}
+        struct {{this.struct.own_name}}({{#each this.struct.fields}}{{{type_name}}}{{#unless @last}}, {{/unless}}{{/each}});
         {{/if}}
     {{else}}
-        struct {{{lookup ../type_names id}}};
+        struct {{this.struct.own_name}};
     {{/if}}
 {{/if}}
 {{#unless @last}}

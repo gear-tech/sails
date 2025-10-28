@@ -6,18 +6,22 @@ use scale_info::{Field, PortableType, Variant, form::PortableForm};
 use serde::Serialize;
 use std::{fs, io::Write, path::Path};
 
+use crate::type_names::RawNames;
+
 mod errors;
 mod meta;
+mod meta2;
 mod type_names;
 
-// todo [sab] generics?
-// todo [sab] return back variants and composte hbs
-// todo [sab] add global annotations
+// todo [sab] SailsVec/SailsBTreeMap - update those
+// todo [sab] template tests
 
 // todo [sab] discuss extends section
 // (no need to merge fns, or merge but with stating source service -> benefits when same method names corner case)
 
-// todo [sab] which sections can be absent -> adjust template with ifs and add proper indentations
+const IDL_TEMPLATE: &str = include_str!("../hbs/idl.hbs");
+const COMPOSITE_TEMPLATE: &str = include_str!("../hbs/composite.hbs");
+const VARIANT_TEMPLATE: &str = include_str!("../hbs/variant.hbs");
 
 const IDLV2_TEMPLATE: &str = include_str!("../hbs/idlv2.hbs");
 const SERVICE_TEMPLATE: &str = include_str!("../hbs/service.hbs");
@@ -91,13 +95,13 @@ fn render_idl(program_meta: &ExpandedProgramMeta, idl_writer: impl Write) -> Res
 
     let mut handlebars = Handlebars::new();
     handlebars
-        .register_template_string("idlv2", IDLV2_TEMPLATE)
+        .register_template_string("idl", IDL_TEMPLATE)
         .map_err(Box::new)?;
     handlebars
-        .register_template_string("service", SERVICE_TEMPLATE)
+        .register_template_string("composite", COMPOSITE_TEMPLATE)
         .map_err(Box::new)?;
     handlebars
-        .register_template_string("program", PROGRAM_TEMPLATE)
+        .register_template_string("variant", VARIANT_TEMPLATE)
         .map_err(Box::new)?;
     handlebars.register_helper("deref", Box::new(deref));
 
@@ -120,18 +124,202 @@ struct ProgramIdlData<'a> {
 }
 
 #[derive(Serialize)]
-struct Idl2Data {
-    #[serde(rename = "program")]
-    program_section: ProgramIdlSection,
+struct ServiceIdlData<'a> {
+    name: &'a str,
+    commands: Vec<FuncIdlData<'a>>,
+    queries: Vec<FuncIdlData<'a>>,
+    events: Vec<&'a Variant<PortableForm>>,
+}
+
+pub mod program2 {
+    use super::*;
+    use sails_idl_meta::ProgramMeta;
+
+    pub fn generate_idl<P: ProgramMeta>(
+        meta_builder: GenMetaInfoBuilder,
+        idl_writer: impl Write,
+    ) -> Result<()> {
+        let (gen_meta_info, program_name) = meta_builder.build();
+        render_idlv2(
+            gen_meta_info,
+            meta2::ExpandedProgramMeta::new(
+                Some((program_name, P::constructors())),
+                P::services(),
+            )?,
+            idl_writer,
+        )
+    }
+
+    pub fn generate_idl_to_file<P: ProgramMeta>(
+        meta_builder: GenMetaInfoBuilder,
+        path: impl AsRef<Path>,
+    ) -> Result<()> {
+        let mut idl_new_content = Vec::new();
+        generate_idl::<P>(meta_builder, &mut idl_new_content)?;
+        if let Ok(idl_old_content) = fs::read(&path)
+            && idl_new_content == idl_old_content
+        {
+            return Ok(());
+        }
+        if let Some(dir_path) = path.as_ref().parent() {
+            fs::create_dir_all(dir_path)?;
+        }
+        Ok(fs::write(&path, idl_new_content)?)
+    }
+}
+
+pub mod service2 {
+    use super::*;
+    use sails_idl_meta::{AnyServiceMeta, ServiceMeta};
+
+    pub fn generate_idl<S: ServiceMeta>(
+        builder: GenMetaInfoBuilder,
+        idl_writer: impl Write,
+    ) -> Result<()> {
+        let (gen_meta_info, _) = builder.build();
+        render_idlv2(
+            gen_meta_info,
+            meta2::ExpandedProgramMeta::new(
+                None,
+                vec![("", AnyServiceMeta::new::<S>())].into_iter(),
+            )?,
+            idl_writer,
+        )
+    }
+
+    pub fn generate_idl_to_file<S: ServiceMeta>(
+        meta_builder: GenMetaInfoBuilder,
+        path: impl AsRef<Path>,
+    ) -> Result<()> {
+        let mut idl_new_content = Vec::new();
+        generate_idl::<S>(meta_builder, &mut idl_new_content)?;
+        if let Ok(idl_old_content) = fs::read(&path)
+            && idl_new_content == idl_old_content
+        {
+            return Ok(());
+        }
+        Ok(fs::write(&path, idl_new_content)?)
+    }
+}
+
+#[derive(Debug, Default)]
+pub struct GenMetaInfoBuilder {
+    author: String,
+    version_major: u8,
+    version_minor: u8,
+    version_patch: u8,
+    program_name: String,
+}
+
+impl GenMetaInfoBuilder {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    pub fn program_name(mut self, name: String) -> Self {
+        self.program_name = name;
+        self
+    }
+
+    pub fn major_version(mut self, major: u8) -> Self {
+        self.version_major = major;
+        self
+    }
+
+    pub fn minor_version(mut self, minor: u8) -> Self {
+        self.version_minor = minor;
+        self
+    }
+
+    pub fn patch_version(mut self, patch: u8) -> Self {
+        self.version_patch = patch;
+        self
+    }
+
+    pub fn author(mut self, author: String) -> Self {
+        self.author = author;
+        self
+    }
+
+    pub fn build(self) -> (GenMetaInfo, String) {
+        let meta_info = GenMetaInfo {
+            version: IdlVersion {
+                major: self.version_major,
+                minor: self.version_minor,
+                patch: self.version_patch,
+            },
+            author: self.author,
+        };
+
+        (meta_info, self.program_name)
+    }
+}
+
+pub struct GenMetaInfo {
+    version: IdlVersion,
+    author: String,
+}
+
+struct IdlVersion {
+    major: u8,
+    minor: u8,
+    patch: u8,
+}
+
+impl IdlVersion {
+    fn format(self) -> String {
+        format!("{}.{}.{}", self.major, self.minor, self.patch)
+    }
+}
+
+fn render_idlv2(
+    gen_meta_info: GenMetaInfo,
+    program_meta: meta2::ExpandedProgramMeta,
+    idl_writer: impl Write,
+) -> Result<()> {
+    let idl_data = IdlData {
+        program_section: program_meta.program,
+        services: program_meta.services,
+        version: gen_meta_info.version.format(),
+        author: gen_meta_info.author,
+        sails_version: env!("CARGO_PKG_VERSION").to_string(),
+    };
+
+    let mut handlebars = Handlebars::new();
+    handlebars
+        .register_template_string("idlv2", IDLV2_TEMPLATE)
+        .map_err(Box::new)?;
+    handlebars
+        .register_partial("program", PROGRAM_TEMPLATE)
+        .map_err(Box::new)?;
+    handlebars
+        .register_partial("service", SERVICE_TEMPLATE)
+        .map_err(Box::new)?;
+    handlebars.register_helper("deref", Box::new(deref));
+
+    handlebars
+        .render_to_write("idlv2", &idl_data, idl_writer)
+        .map_err(Box::new)?;
+
+    Ok(())
+}
+
+#[derive(Serialize)]
+struct IdlData {
+    #[serde(rename = "program", skip_serializing_if = "Option::is_none")]
+    program_section: Option<ProgramIdlSection>,
     services: Vec<ServiceSection>,
+    version: String,
+    author: String,
+    sails_version: String,
 }
 
 #[derive(Debug, Serialize)]
 struct ProgramIdlSection {
     name: String,
-    type_names: Vec<String>,
+    concrete_names: Vec<String>,
     ctors: Vec<FunctionIdl>,
-    types: Vec<PortableType>,
+    types: Vec<RawNames>,
     services: Vec<String>,
 }
 
@@ -164,10 +352,10 @@ struct FunctionArgumentIdl {
 #[derive(Debug, Serialize)]
 struct ServiceSection {
     name: String,
-    type_names: Vec<String>,
+    concrete_names: Vec<String>,
     extends: Vec<String>,
     events: Vec<Variant<PortableForm>>,
-    types: Vec<PortableType>,
+    types: Vec<RawNames>,
     functions: FunctionsSection,
 }
 
@@ -177,48 +365,26 @@ struct FunctionsSection {
     queries: Vec<FunctionIdl>,
 }
 
-#[derive(Serialize)]
-struct ServiceIdlData<'a> {
-    name: &'a str,
-    commands: Vec<FuncIdlData<'a>>,
-    queries: Vec<FuncIdlData<'a>>,
-    events: Vec<&'a Variant<PortableForm>>,
-}
-
 handlebars_helper!(deref: |v: String| { v });
 
 #[cfg(test)]
 mod tests {
-    use crate::meta::ExpandedProgramMeta2;
-
     use super::*;
-
-    // todo [sab] make proper spaces between sections in service idl and test proper indentations when some sections are missing
-    // expected output tests are in tests folder of the crate
 
     #[test]
     fn test_new_json() {
         use demo::DemoProgram;
-        use sails_idl_meta::ProgramMeta;
         let mut source: Vec<u8> = Vec::new();
 
-        let data = ExpandedProgramMeta2::new(
-            "Demo".to_string(),
-            DemoProgram::constructors(),
-            DemoProgram::services(),
-        )
-        .unwrap();
+        let meta_builder = GenMetaInfoBuilder::new()
+            .major_version(1)
+            .minor_version(0)
+            .patch_version(0)
+            .author("Test Author".to_string())
+            .program_name("Demo".to_string());
 
-        let json = serde_json::to_string_pretty(&data).unwrap();
-        println!("{}", json);
+        program2::generate_idl::<DemoProgram>(meta_builder, &mut source).unwrap();
 
-        let mut hbs = Handlebars::new();
-        let _ = hbs.register_template_string("idlv2", IDLV2_TEMPLATE);
-        let _ = hbs.register_template_string("service", SERVICE_TEMPLATE);
-        let _ = hbs.register_template_string("program", PROGRAM_TEMPLATE);
-        hbs.register_helper("deref", Box::new(deref));
-
-        hbs.render_to_write("idlv2", &data, &mut source).unwrap();
         println!("{}", String::from_utf8_lossy(&source));
     }
 
@@ -261,15 +427,17 @@ mod tests {
 
         let mut source: Vec<u8> = Vec::new();
 
-        let data = ExpandedProgramMeta2::new(
-            "ProgramWithCustomTypes".to_string(),
-            MetaType::new::<ProgramConstructors>(),
+        let data = meta2::ExpandedProgramMeta::new(
+            Some((
+                "ProgramWithCustomTypes".to_string(),
+                MetaType::new::<ProgramConstructors>(),
+            )),
             std::iter::empty(),
         )
         .unwrap();
 
         let json = serde_json::to_string_pretty(&data).unwrap();
-        println!("{}", json);
+        println!("{json}");
 
         let mut hbs = Handlebars::new();
         let _ = hbs.register_template_string("idlv2", IDLV2_TEMPLATE);
@@ -393,15 +561,17 @@ mod tests {
 
         let mut source: Vec<u8> = Vec::new();
 
-        let data = ExpandedProgramMeta2::new(
-            "UnitStructProgram".to_string(),
-            MetaType::new::<ProgramConstructors>(),
+        let data = meta2::ExpandedProgramMeta::new(
+            Some((
+                "UnitStructProgram".to_string(),
+                MetaType::new::<ProgramConstructors>(),
+            )),
             vec![("StructService", AnyServiceMeta::new::<StructService>())].into_iter(),
         )
         .unwrap();
 
         let json = serde_json::to_string_pretty(&data).unwrap();
-        println!("{}", json);
+        println!("{json}");
 
         let mut hbs = Handlebars::new();
         let _ = hbs.register_template_string("idlv2", IDLV2_TEMPLATE);

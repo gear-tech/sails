@@ -1,3 +1,7 @@
+!@sails: {{sails_version}}
+!@author: {{author}}
+!@version: {{version}}
+
 {{#each services}}
 {{> service}}
 {{#unless @last}}
@@ -5,6 +9,8 @@
 
 {{/unless}}
 {{/each}}
+{{#if program}}
 
 
 {{> program program}}
+{{/if}}

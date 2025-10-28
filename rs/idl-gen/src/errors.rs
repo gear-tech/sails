@@ -50,6 +50,4 @@ pub enum TypeNameResolutionError {
     TypeParamMissingType(String),
     #[error("Main type declaration is repeated: {0}")]
     MainTypeRepetition(String),
-    #[error("Field type declaration is repeated: {0}")]
-    FieldTypeRepetition(String),
 }
