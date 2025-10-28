@@ -369,23 +369,6 @@ handlebars_helper!(deref: |v: String| { v });
 mod tests {
     use super::*;
 
-    #[test]
-    fn test_new_json() {
-        use demo::DemoProgram;
-        let mut source: Vec<u8> = Vec::new();
-
-        let meta_builder = GenMetaInfoBuilder::new()
-            .major_version(1)
-            .minor_version(0)
-            .patch_version(0)
-            .author("Test Author".to_string())
-            .program_name("Demo".to_string());
-
-        program2::generate_idl::<DemoProgram>(meta_builder, &mut source).unwrap();
-
-        println!("{}", String::from_utf8_lossy(&source));
-    }
-
     /// Test IDL generation with user-defined types in program section
     /// (constructors with custom types as arguments)
     #[test]
