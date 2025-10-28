@@ -19,13 +19,13 @@
 //! Type names resolution.
 
 use crate::{
-    TypeNameResolutionError,
+    RawTypeNameResolutionError,
     errors::{Error, Result},
 };
 use convert_case::{Case, Casing};
-use quote::ToTokens;
 use core::num::{NonZeroU8, NonZeroU16, NonZeroU32, NonZeroU64, NonZeroU128};
 use gprimitives::*;
+use quote::ToTokens;
 use scale_info::{
     Field, PortableType, Type, TypeDef, TypeDefArray, TypeDefPrimitive, TypeDefSequence,
     TypeDefTuple, TypeInfo, form::PortableForm,
@@ -33,6 +33,7 @@ use scale_info::{
 use serde::Serialize;
 use std::{
     collections::{BTreeMap, HashMap, HashSet},
+    ops::Deref,
     rc::Rc,
     result::Result as StdResult,
     sync::OnceLock,
@@ -43,7 +44,11 @@ const INTERIM_BTREE_MAP_TYPE_NAME: &str = "SailsInterimNameBTreeMap";
 
 pub(super) fn resolve<'a>(
     types: impl Iterator<Item = &'a PortableType>,
-) -> Result<BTreeMap<u32, String>> {
+    filter_out_types: &HashSet<u32>,
+) -> Result<(
+    BTreeMap<u32, FinalizedName>,
+    BTreeMap<u32, FinalizedRawName>,
+)> {
     let types = types
         .map(|t| (t.id, t))
         .collect::<BTreeMap<u32, &PortableType>>();
@@ -58,12 +63,29 @@ pub(super) fn resolve<'a>(
         },
     );
 
-    type_names.map(|type_names| {
-        type_names
+    type_names.and_then(|type_names| {
+        let concrete_names = type_names
             .0
             .iter()
             .map(|(id, name)| (*id, name.as_string(false, &type_names.1)))
-            .collect()
+            .collect();
+
+        resolve_raw_type_names(&types, &concrete_names, filter_out_types).map(|raw_names| {
+            let finalized_raw_names = raw_names
+                .into_iter()
+                .map(|(id, raw_name)| (id, raw_name.finalize()))
+                .collect();
+
+            let concrete_names = concrete_names
+                .into_iter()
+                .map(|(id, name)| {
+                    let finalized_name = finalize_type_name::finalize(&name);
+                    (id, finalized_name)
+                })
+                .collect::<BTreeMap<_, _>>();
+
+            (concrete_names, finalized_raw_names)
+        })
     })
 }
 
@@ -360,7 +382,7 @@ impl TypeName for BTreeMapTypeName {
             .value_type_name
             .as_string(for_generic_param, by_path_type_names);
 
-        format!("SailsInterimNameBTreeMap<{key_type_name}, {value_type_name}>")
+        format!("{INTERIM_BTREE_MAP_TYPE_NAME}<{key_type_name}, {value_type_name}>")
     }
 }
 
@@ -555,7 +577,7 @@ impl TypeName for VectorTypeName {
         let item_type_name = self
             .item_type_name
             .as_string(for_generic_param, by_path_type_names);
-        format!("SailsInterimNameVec<{item_type_name}>")
+        format!("{INTERIM_VEC_TYPE_NAME}<{item_type_name}>")
     }
 }
 
@@ -686,6 +708,30 @@ impl_primitive_alias_type_name!(nat64, NonZeroU64);
 impl_primitive_alias_type_name!(nat128, NonZeroU128);
 impl_primitive_alias_type_name!(nat256, NonZeroU256);
 
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize)]
+#[serde(transparent)]
+pub struct FinalizedRawName(RawNames);
+
+impl Deref for FinalizedRawName {
+    type Target = RawNames;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize)]
+#[serde(transparent)]
+pub struct FinalizedName(pub String);
+
+impl Deref for FinalizedName {
+    type Target = String;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
 /// Type name with generics info.
 ///
 /// Basically it's the string representation of how
@@ -713,6 +759,20 @@ impl RawNames {
         RawNames::Enum {
             own_name,
             fields: Vec::new(),
+        }
+    }
+
+    fn finalize(self) -> FinalizedRawName {
+        match self {
+            RawNames::Enum { own_name, fields } => {
+                let fields = fields
+                    .into_iter()
+                    .map(TypeFieldsOwner::finalize_fields)
+                    .collect();
+
+                FinalizedRawName(RawNames::Enum { own_name, fields })
+            }
+            RawNames::Struct(owner) => FinalizedRawName(RawNames::Struct(owner.finalize_fields())),
         }
     }
 
@@ -797,6 +857,19 @@ pub struct TypeFieldsOwner {
     pub fields: Vec<TypeField>,
 }
 
+impl TypeFieldsOwner {
+    fn finalize_fields(self) -> Self {
+        TypeFieldsOwner {
+            own_name: finalize_type_name::finalize(&self.own_name).0,
+            fields: self
+                .fields
+                .into_iter()
+                .map(TypeField::finalize_field)
+                .collect(),
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize)]
 pub struct TypeField {
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -804,22 +877,29 @@ pub struct TypeField {
     pub type_name: String,
 }
 
+impl TypeField {
+    fn finalize_field(self) -> Self {
+        TypeField {
+            name: self.name,
+            type_name: finalize_type_name::finalize(&self.type_name).0,
+        }
+    }
+}
+
 /// Build names for types defined by user, but with generic type params.
 ///
 /// Takes types from the portable registry along with concrete (resolved) types names
 /// and produces a map of type names with generic params as they were declared.
-pub(crate) fn resolve_user_generic_type_names<'a>(
-    types: impl Iterator<Item = &'a PortableType>,
+pub(crate) fn resolve_raw_type_names(
+    types: &BTreeMap<u32, &PortableType>,
     concrete_names: &BTreeMap<u32, String>,
     filter_out_types: &HashSet<u32>,
 ) -> Result<BTreeMap<u32, RawNames>> {
-    let types = types.map(|t| (t.id, t));
-
     let mut generic_names = BTreeMap::new();
 
     // Iterate through all types and process their fields
     for (parent_type_id, parent_type_info) in types {
-        if filter_out_types.contains(&parent_type_id) {
+        if filter_out_types.contains(parent_type_id) {
             continue;
         }
 
@@ -859,8 +939,8 @@ pub(crate) fn resolve_user_generic_type_names<'a>(
         // First insert main type
         let parent_type_name = resolve_parent_type_name(
             concrete_names
-                .get(&parent_type_id)
-                .ok_or(Error::TypeIdIsUnknown(parent_type_id))?,
+                .get(parent_type_id)
+                .ok_or(Error::TypeIdIsUnknown(*parent_type_id))?,
             &params_names,
         )?;
 
@@ -907,10 +987,10 @@ pub(crate) fn resolve_user_generic_type_names<'a>(
         };
 
         if generic_names
-            .insert(parent_type_id, type_generic_name)
+            .insert(*parent_type_id, type_generic_name)
             .is_some()
         {
-            return Err(TypeNameResolutionError::MainTypeRepetition(parent_type_name).into());
+            return Err(RawTypeNameResolutionError::MainTypeRepetition(parent_type_name).into());
         }
     }
 
@@ -926,7 +1006,7 @@ fn resolve_parent_type_name(concrete_name: &str, type_params: &[String]) -> Resu
         concrete_name
             .split('<')
             .next()
-            .ok_or(TypeNameResolutionError::UnexpectedValue(format!(
+            .ok_or(RawTypeNameResolutionError::UnexpectedValue(format!(
                 "Expected struct/enum type with `<` symbol, got - {concrete_name}"
             )))?;
 
@@ -978,12 +1058,12 @@ fn resolve_field_type_name(
 
     // Type names differ either due to monomorphization or type name resolution, or both
     let syn_field_type_name = syn::parse_str::<syn::Type>(field_type_name).map_err(|e| {
-        TypeNameResolutionError::UnexpectedValue(format!(
+        RawTypeNameResolutionError::UnexpectedValue(format!(
             "Failed to parse field type name `{field_type_name}`: {e}"
         ))
     })?;
     let syn_concrete_type_name = syn::parse_str::<syn::Type>(concrete_type_name).map_err(|e| {
-        TypeNameResolutionError::UnexpectedValue(format!(
+        RawTypeNameResolutionError::UnexpectedValue(format!(
             "Failed to parse concrete type name `{concrete_type_name}`: {e}"
         ))
     })?;
@@ -1059,7 +1139,7 @@ mod resolve_to_generic {
         let concrete_path = concrete.path.segments.last();
         let initial_path = initial.path.segments.last();
         let Some((concrete_path, initial_path)) = concrete_path.zip(initial_path) else {
-            return Err(TypeNameResolutionError::UnexpectedValue(format!(
+            return Err(RawTypeNameResolutionError::UnexpectedValue(format!(
                 "Mismatched type paths during generic resolution: concrete {}, initial {}",
                 concrete.format(),
                 initial.format(),
@@ -1173,8 +1253,7 @@ trait FormatSynType {
 
 impl<T: ToTokens> FormatSynType for T {
     fn format(&self) -> String {
-        self
-            .to_token_stream()
+        self.to_token_stream()
             .to_string()
             .replace(" < ", "<")
             .replace(" >", ">")
@@ -1189,16 +1268,17 @@ impl<T: ToTokens> FormatSynType for T {
 
 mod finalize_type_name {
     use super::*;
-    use syn::{Type, PathArguments, GenericArgument, TypeArray, TypeParen, TypePath, TypeSlice, TypeTuple, TypeReference};
+    use syn::{
+        GenericArgument, PathArguments, Type, TypeArray, TypeParen, TypePath, TypeReference,
+        TypeSlice, TypeTuple,
+    };
 
-    pub(super) fn finalize(type_name: &str) -> String {
+    pub(super) fn finalize(type_name: &str) -> FinalizedName {
         let syn_type = syn::parse_str::<Type>(type_name).unwrap_or_else(|_| {
-            panic!(
-                "internal error: failed to parse type name during finalization: {type_name}"
-            )
+            panic!("internal error: failed to parse type name during finalization: {type_name}")
         });
 
-        finalize_syn(&syn_type)
+        FinalizedName(finalize_syn(&syn_type))
     }
 
     fn finalize_syn(t: &Type) -> String {
@@ -1224,7 +1304,12 @@ mod finalize_type_name {
                 let ident = last_segment.ident.to_string();
 
                 if let PathArguments::AngleBracketed(syn_args) = &last_segment.arguments {
-                    let args = (&syn_args.args).iter().map(finalize_type_inner).collect::<Vec<_>>().join(", ");
+                    let args = syn_args
+                        .args
+                        .iter()
+                        .map(finalize_type_inner)
+                        .collect::<Vec<_>>()
+                        .join(", ");
 
                     match ident.as_str() {
                         INTERIM_VEC_TYPE_NAME => {
@@ -1239,7 +1324,7 @@ mod finalize_type_name {
                                 panic!("BTreeMap is accepted only with two generic arguments");
                             }
 
-                            format!("[({})]", args)
+                            format!("[({args})]")
                         }
                         ident => format!("{ident}<{args}>"),
                     }
@@ -1324,15 +1409,17 @@ mod tests {
             .id;
         let portable_registry = PortableRegistry::from(registry);
 
-        let type_names = resolve(portable_registry.types.iter()).unwrap();
+        let type_names = resolve(portable_registry.types.iter(), &Default::default())
+            .unwrap()
+            .0;
 
-        let h256_name = type_names.get(&h256_id).unwrap();
+        let h256_name = &type_names.get(&h256_id).unwrap().0;
         assert_eq!(h256_name, "H256");
-        let as_generic_param_name = type_names.get(&h256_as_generic_param_id).unwrap();
+        let as_generic_param_name = &type_names.get(&h256_as_generic_param_id).unwrap().0;
         assert_eq!(as_generic_param_name, "GenericStruct<H256>");
-        let u256_name = type_names.get(&u256_id).unwrap();
+        let u256_name = &type_names.get(&u256_id).unwrap().0;
         assert_eq!(u256_name, "u256");
-        let as_generic_param_name = type_names.get(&u256_as_generic_param_id).unwrap();
+        let as_generic_param_name = &type_names.get(&u256_as_generic_param_id).unwrap().0;
         assert_eq!(as_generic_param_name, "GenericStruct<u256>");
     }
 
@@ -1347,13 +1434,13 @@ mod tests {
             .id;
         let portable_registry = PortableRegistry::from(registry);
 
-        let type_names = resolve(portable_registry.types.iter()).unwrap();
+        let (type_names, _) = resolve(portable_registry.types.iter(), &Default::default()).unwrap();
 
         let u32_struct_name = type_names.get(&u32_struct_id).unwrap();
-        assert_eq!(u32_struct_name, "GenericStruct<u32>");
+        assert_eq!(u32_struct_name.0, "GenericStruct<u32>");
 
         let string_struct_name = type_names.get(&string_struct_id).unwrap();
-        assert_eq!(string_struct_name, "GenericStruct<String>");
+        assert_eq!(string_struct_name.0, "GenericStruct<String>");
     }
 
     #[test]
@@ -1367,13 +1454,13 @@ mod tests {
             .id;
         let portable_registry = PortableRegistry::from(registry);
 
-        let type_names = resolve(portable_registry.types.iter()).unwrap();
+        let (type_names, _) = resolve(portable_registry.types.iter(), &Default::default()).unwrap();
 
         let u32_string_enum_name = type_names.get(&u32_string_enum_id).unwrap();
-        assert_eq!(u32_string_enum_name, "GenericEnum<u32, String>");
+        assert_eq!(u32_string_enum_name.0, "GenericEnum<u32, String>");
 
         let bool_u32_enum_name = type_names.get(&bool_u32_enum_id).unwrap();
-        assert_eq!(bool_u32_enum_name, "GenericEnum<bool, u32>");
+        assert_eq!(bool_u32_enum_name.0, "GenericEnum<bool, u32>");
     }
 
     #[test]
@@ -1385,16 +1472,15 @@ mod tests {
             .id;
         let portable_registry = PortableRegistry::from(registry);
 
-        let type_names = resolve(portable_registry.types.iter()).unwrap();
+        let (type_names, _) = resolve(portable_registry.types.iter(), &Default::default()).unwrap();
 
         let u32_array_name = type_names.get(&u32_array_id).unwrap();
-        assert_eq!(u32_array_name, "[u32; 10]");
+        assert_eq!(u32_array_name.0, "[u32; 10]");
         let as_generic_param_name = type_names.get(&as_generic_param_id).unwrap();
-        assert_eq!(as_generic_param_name, "GenericStruct<[u32; 10]>");
+        assert_eq!(as_generic_param_name.0, "GenericStruct<[u32; 10]>");
     }
 
     #[test]
-    // todo [sab] SailsVec to []
     fn vector_type_name_resolution_works() {
         let mut registry = Registry::new();
         let u32_vector_id = registry.register_type(&MetaType::new::<Vec<u32>>()).id;
@@ -1403,12 +1489,12 @@ mod tests {
             .id;
         let portable_registry = PortableRegistry::from(registry);
 
-        let type_names = resolve(portable_registry.types.iter()).unwrap();
+        let (type_names, _) = resolve(portable_registry.types.iter(), &Default::default()).unwrap();
 
         let u32_vector_name = type_names.get(&u32_vector_id).unwrap();
-        assert_eq!(u32_vector_name, "SailsInterimNameVec<u32>");
+        assert_eq!(u32_vector_name.0, "[u32]");
         let as_generic_param_name = type_names.get(&as_generic_param_id).unwrap();
-        assert_eq!(as_generic_param_name, "GenericStruct<SailsInterimNameVec<u32>>");
+        assert_eq!(as_generic_param_name.0, "GenericStruct<[u32]>");
     }
 
     #[test]
@@ -1422,12 +1508,15 @@ mod tests {
             .id;
         let portable_registry = PortableRegistry::from(registry);
 
-        let type_names = resolve(portable_registry.types.iter()).unwrap();
+        let (type_names, _) = resolve(portable_registry.types.iter(), &Default::default()).unwrap();
 
         let u32_result_name = type_names.get(&u32_result_id).unwrap();
-        assert_eq!(u32_result_name, "Result<u32, String>");
+        assert_eq!(u32_result_name.0, "Result<u32, String>");
         let as_generic_param_name = type_names.get(&as_generic_param_id).unwrap();
-        assert_eq!(as_generic_param_name, "GenericStruct<Result<u32, String>>");
+        assert_eq!(
+            as_generic_param_name.0,
+            "GenericStruct<Result<u32, String>>"
+        );
     }
 
     #[test]
@@ -1439,12 +1528,12 @@ mod tests {
             .id;
         let portable_registry = PortableRegistry::from(registry);
 
-        let type_names = resolve(portable_registry.types.iter()).unwrap();
+        let (type_names, _) = resolve(portable_registry.types.iter(), &Default::default()).unwrap();
 
         let u32_option_name = type_names.get(&u32_option_id).unwrap();
-        assert_eq!(u32_option_name, "Option<u32>");
+        assert_eq!(u32_option_name.0, "Option<u32>");
         let as_generic_param_name = type_names.get(&as_generic_param_id).unwrap();
-        assert_eq!(as_generic_param_name, "GenericStruct<Option<u32>>");
+        assert_eq!(as_generic_param_name.0, "GenericStruct<Option<u32>>");
     }
 
     #[test]
@@ -1456,16 +1545,15 @@ mod tests {
             .id;
         let portable_registry = PortableRegistry::from(registry);
 
-        let type_names = resolve(portable_registry.types.iter()).unwrap();
+        let (type_names, _) = resolve(portable_registry.types.iter(), &Default::default()).unwrap();
 
         let u32_str_tuple_name = type_names.get(&u32_str_tuple_id).unwrap();
-        assert_eq!(u32_str_tuple_name, "(u32, String)");
+        assert_eq!(u32_str_tuple_name.0, "(u32, String)");
         let as_generic_param_name = type_names.get(&as_generic_param_id).unwrap();
-        assert_eq!(as_generic_param_name, "GenericStruct<(u32, String)>");
+        assert_eq!(as_generic_param_name.0, "GenericStruct<(u32, String)>");
     }
 
     #[test]
-    // todo [sab] SailsBTreeMap to BTreeMap
     fn btree_map_type_name_resolution_works() {
         let mut registry = Registry::new();
         let btree_map_id = registry
@@ -1476,15 +1564,12 @@ mod tests {
             .id;
         let portable_registry = PortableRegistry::from(registry);
 
-        let type_names = resolve(portable_registry.types.iter()).unwrap();
+        let (type_names, _) = resolve(portable_registry.types.iter(), &Default::default()).unwrap();
 
         let btree_map_name = type_names.get(&btree_map_id).unwrap();
-        assert_eq!(btree_map_name, "SailsInterimNameBTreeMap<u32, String>");
+        assert_eq!(btree_map_name.0, "[(u32, String)]");
         let as_generic_param_name = type_names.get(&as_generic_param_id).unwrap();
-        assert_eq!(
-            as_generic_param_name,
-            "GenericStruct<SailsInterimNameBTreeMap<u32, String>>"
-        );
+        assert_eq!(as_generic_param_name.0, "GenericStruct<[(u32, String)]>");
     }
 
     #[test]
@@ -1494,13 +1579,13 @@ mod tests {
         let t2_id = registry.register_type(&MetaType::new::<mod_2::T1>()).id;
         let portable_registry = PortableRegistry::from(registry);
 
-        let type_names = resolve(portable_registry.types.iter()).unwrap();
+        let (type_names, _) = resolve(portable_registry.types.iter(), &Default::default()).unwrap();
 
         let t1_name = type_names.get(&t1_id).unwrap();
-        assert_eq!(t1_name, "Mod1T1");
+        assert_eq!(t1_name.0, "Mod1T1");
 
         let t2_name = type_names.get(&t2_id).unwrap();
-        assert_eq!(t2_name, "Mod2T1");
+        assert_eq!(t2_name.0, "Mod2T1");
     }
 
     #[test]
@@ -1512,13 +1597,13 @@ mod tests {
         let t2_id = registry.register_type(&MetaType::new::<mod_2::T2>()).id;
         let portable_registry = PortableRegistry::from(registry);
 
-        let type_names = resolve(portable_registry.types.iter()).unwrap();
+        let (type_names, _) = resolve(portable_registry.types.iter(), &Default::default()).unwrap();
 
         let t1_name = type_names.get(&t1_id).unwrap();
-        assert_eq!(t1_name, "Mod1Mod2T2");
+        assert_eq!(t1_name.0, "Mod1Mod2T2");
 
         let t2_name = type_names.get(&t2_id).unwrap();
-        assert_eq!(t2_name, "TestsMod2T2");
+        assert_eq!(t2_name.0, "TestsMod2T2");
     }
 
     macro_rules! type_name_resolution_works {
@@ -1530,11 +1615,13 @@ mod tests {
                 .id;
             let portable_registry = PortableRegistry::from(registry);
 
-            let type_names = resolve(portable_registry.types.iter()).unwrap();
+            let filter_out_types = HashSet::new();
+            let (type_names, _) =
+                resolve(portable_registry.types.iter(), &filter_out_types).unwrap();
 
-            let name = type_names.get(&id).unwrap();
+            let name = &type_names.get(&id).unwrap().0;
             assert_eq!(name, stringify!($primitive));
-            let as_generic_param_name = type_names.get(&as_generic_param_id).unwrap();
+            let as_generic_param_name = &type_names.get(&as_generic_param_id).unwrap().0;
             assert_eq!(
                 as_generic_param_name,
                 concat!("GenericStruct<", stringify!($primitive), ">")
@@ -1612,16 +1699,26 @@ mod tests {
             .id;
         let portable_registry = PortableRegistry::from(registry);
 
-        let type_names = resolve(portable_registry.types.iter()).unwrap();
+        let filter_out_types = HashSet::new();
+        let (type_names, _) = resolve(portable_registry.types.iter(), &filter_out_types).unwrap();
 
         assert_eq!(n8_id, n8_id_2);
         assert_ne!(n8_id, n32_id);
         assert_ne!(n8_id, n256_id);
-        assert_eq!(type_names.get(&n8_id).unwrap(), "GenericConstStruct1<u8>");
-        assert_eq!(type_names.get(&n32_id).unwrap(), "GenericConstStruct2<u8>");
-        assert_eq!(type_names.get(&n256_id).unwrap(), "GenericConstStruct3<u8>");
         assert_eq!(
-            type_names.get(&n32u256_id).unwrap(),
+            &type_names.get(&n8_id).unwrap().0,
+            "GenericConstStruct1<u8>"
+        );
+        assert_eq!(
+            &type_names.get(&n32_id).unwrap().0,
+            "GenericConstStruct2<u8>"
+        );
+        assert_eq!(
+            &type_names.get(&n256_id).unwrap().0,
+            "GenericConstStruct3<u8>"
+        );
+        assert_eq!(
+            &type_names.get(&n32u256_id).unwrap().0,
             "GenericConstStruct<u256>"
         );
     }
@@ -1639,48 +1736,86 @@ mod tests {
             ("&SailsInterimNameVec<String>", "[String]"),
             ("&(SailsInterimNameVec<u32>)", "[u32]"),
             ("SailsInterimNameVec<SailsInterimNameVec<bool>>", "[[bool]]"),
-            ("&(SailsInterimNameVec<&'static SailsInterimNameVec<i16>>)", "[[i16]]"),
+            (
+                "&(SailsInterimNameVec<&'static SailsInterimNameVec<i16>>)",
+                "[[i16]]",
+            ),
             ("SailsInterimNameVec<[u32; 4]>", "[[u32; 4]]"),
-            ("SailsInterimNameVec<(SailsInterimNameVec<i8>, f64)>", "[([i8], f64)]"),
-
-            ("Result<SailsInterimNameVec<u8>, String>", "Result<[u8], String>"),
-            ("Option<SailsInterimNameBTreeMap<i32, i32>>", "Option<[(i32, i32)]>"),
-            ("(u32, SailsInterimNameVec<i64>, bool)", "(u32, [i64], bool)"),
-            ("(SailsInterimNameBTreeMap<u8, u8>, (SailsInterimNameVec<u128>, char))", "([(u8, u8)], ([u128], char))"),
-
+            (
+                "SailsInterimNameVec<(SailsInterimNameVec<i8>, f64)>",
+                "[([i8], f64)]",
+            ),
+            (
+                "Result<SailsInterimNameVec<u8>, String>",
+                "Result<[u8], String>",
+            ),
+            (
+                "Option<SailsInterimNameBTreeMap<i32, i32>>",
+                "Option<[(i32, i32)]>",
+            ),
+            (
+                "(u32, SailsInterimNameVec<i64>, bool)",
+                "(u32, [i64], bool)",
+            ),
+            (
+                "(SailsInterimNameBTreeMap<u8, u8>, (SailsInterimNameVec<u128>, char))",
+                "([(u8, u8)], ([u128], char))",
+            ),
             ("SailsInterimNameBTreeMap<String, u32>", "[(String, u32)]"),
             ("SailsInterimNameBTreeMap<&'a str, i8>", "[(str, i8)]"),
-            ("SailsInterimNameBTreeMap<u8, SailsInterimNameVec<bool>>", "[(u8, [bool])]"),
+            (
+                "SailsInterimNameBTreeMap<u8, SailsInterimNameVec<bool>>",
+                "[(u8, [bool])]",
+            ),
             ("&SailsInterimNameBTreeMap<i32, f32>", "[(i32, f32)]"),
-            ("&(SailsInterimNameBTreeMap<&'static str, SailsInterimNameVec<f32>>)", "[(str, [f32])]"),
-            ("SailsInterimNameBTreeMap<u8, SailsInterimNameBTreeMap<u8, u8>>", "[(u8, [(u8, u8)])]"),
-            ("SailsInterimNameVec<SailsInterimNameBTreeMap<i32, i32>>", "[[(i32, i32)]]"),
-            ("SailsInterimNameBTreeMap<(u8, u8), SailsInterimNameVec<(u8, u8)>>", "[((u8, u8), [(u8, u8)])]"),
-
+            (
+                "&(SailsInterimNameBTreeMap<&'static str, SailsInterimNameVec<f32>>)",
+                "[(str, [f32])]",
+            ),
+            (
+                "SailsInterimNameBTreeMap<u8, SailsInterimNameBTreeMap<u8, u8>>",
+                "[(u8, [(u8, u8)])]",
+            ),
+            (
+                "SailsInterimNameVec<SailsInterimNameBTreeMap<i32, i32>>",
+                "[[(i32, i32)]]",
+            ),
+            (
+                "SailsInterimNameBTreeMap<(u8, u8), SailsInterimNameVec<(u8, u8)>>",
+                "[((u8, u8), [(u8, u8)])]",
+            ),
             // Mixed/edge cases
-            ("&'a mut SailsInterimNameBTreeMap<String, &'a T>", "[(String, T)]"),
-            ("(SailsInterimNameVec<i32>, &'b SailsInterimNameBTreeMap<bool, bool>)", "([i32], [(bool, bool)])"),
-            ("[SailsInterimNameBTreeMap<u8, SailsInterimNameVec<u8>>; 10]", "[[(u8, [u8])]; 10]"),
-            ("Result<SailsInterimNameVec<SailsInterimNameBTreeMap<u8, SailsInterimNameVec<u8>>>, ()>", "Result<[[(u8, [u8])]], ()>"),
-
+            (
+                "&'a mut SailsInterimNameBTreeMap<String, &'a T>",
+                "[(String, T)]",
+            ),
+            (
+                "(SailsInterimNameVec<i32>, &'b SailsInterimNameBTreeMap<bool, bool>)",
+                "([i32], [(bool, bool)])",
+            ),
+            (
+                "[SailsInterimNameBTreeMap<u8, SailsInterimNameVec<u8>>; 10]",
+                "[[(u8, [u8])]; 10]",
+            ),
+            (
+                "Result<SailsInterimNameVec<SailsInterimNameBTreeMap<u8, SailsInterimNameVec<u8>>>, ()>",
+                "Result<[[(u8, [u8])]], ()>",
+            ),
             // Double unwrap of a paren type
             ("((SailsInterimNameVec<u8>))", "[u8]"),
-
             // Single-element tuple in paren
             ("((SailsInterimNameVec<u8>),)", "([u8],)"),
             // Single-element tuple
             ("(SailsInterimNameVec<u8>,)", "([u8],)"),
-
             (
                 "(Option<[SailsInterimNameBTreeMap<char, SailsInterimNameVec<u8>>; 4]>, &[SailsInterimNameVec<u8>])",
-                "(Option<[[(char, [u8])]; 4]>, [[u8]])"
+                "(Option<[[(char, [u8])]; 4]>, [[u8]])",
             ),
         ];
-    
 
         for (input, expected) in cases {
             let finalized = finalize_type_name::finalize(input);
-            assert_eq!(finalized, expected, "Failed for input: {}", input);
+            assert_eq!(finalized.0, expected, "Failed for input: {input}");
         }
     }
 
@@ -1819,39 +1954,31 @@ mod tests {
 
         let portable_registry = PortableRegistry::from(registry);
 
-        // First get concrete names via existing resolve (unchanged)
-        let concrete_names = resolve(portable_registry.types.iter()).unwrap();
-
-        // Build user-generic names via new API; no types are filtered out in this test
-        let filter_out_types: HashSet<u32> = HashSet::new();
-        let generic_names = resolve_user_generic_type_names(
-            portable_registry.types.iter(),
-            &concrete_names,
-            &filter_out_types,
-        )
-        .unwrap();
+        // Get both concrete and generic names from resolve
+        let (concrete_names, generic_names) =
+            resolve(portable_registry.types.iter(), &Default::default()).unwrap();
 
         // Check main types
         assert_eq!(
-            concrete_names.get(&struct_id).unwrap(),
+            &concrete_names.get(&struct_id).unwrap().0,
             "SimpleOneGenericStruct<u32>"
         );
         let struct_generic = generic_names
             .get(&struct_id)
             .expect("struct generic must exist");
-        assert_eq!(struct_generic.type_name(), "SimpleOneGenericStruct<T>");
+        assert_eq!(struct_generic.0.type_name(), "SimpleOneGenericStruct<T>");
 
         assert_eq!(
-            concrete_names.get(&enum_id).unwrap(),
+            &concrete_names.get(&enum_id).unwrap().0,
             "SimpleOneGenericEnum<u32>"
         );
         let enum_generic = generic_names
             .get(&enum_id)
             .expect("enum generic must exist");
-        assert_eq!(enum_generic.type_name(), "SimpleOneGenericEnum<T>");
+        assert_eq!(enum_generic.0.type_name(), "SimpleOneGenericEnum<T>");
 
         // For structs: check that expected generic field strings are present
-        let s_fields = struct_generic.fields_type_names();
+        let s_fields = struct_generic.0.fields_type_names();
 
         let expect_struct_fields_type_names = vec![
             "u32",
@@ -1864,17 +1991,17 @@ mod tests {
             "(String, T, T, u32)",
             "Option<T>",
             "Result<T, String>",
-            "SailsInterimNameBTreeMap<String, T>",
+            "[(String, T)]",
             "GenericStruct<T>",
             "SimpleOneGenericEnum<T>",
             "Option<Option<T>>",
             "Result<Option<T>, String>",
-            "SailsInterimNameBTreeMap<Option<T>, GenericStruct<T>>",
+            "[(Option<T>, GenericStruct<T>)]",
             "GenericStruct<Option<T>>",
             "SimpleOneGenericEnum<Result<T, String>>",
             "Option<Option<Option<T>>>",
             "Result<Option<Result<T, String>>, String>",
-            "SailsInterimNameBTreeMap<Option<GenericStruct<T>>, Result<T, String>>",
+            "[(Option<GenericStruct<T>>, Result<T, String>)]",
             "GenericStruct<Option<Result<T, String>>>",
         ];
 
@@ -1882,17 +2009,17 @@ mod tests {
             assert!(
                 s_fields.contains(&expected),
                 "struct {} missing generic field signature {}. All fields: {:#?}",
-                struct_generic.type_name(),
+                struct_generic.0.type_name(),
                 expected,
                 s_fields
             );
         }
 
         // For enums: check the collected `fields` contains expected signatures and variant names
-        let e_fields = &enum_generic.fields_type_names();
+        let e_fields = &enum_generic.0.fields_type_names();
 
         // First let's check no fields variants
-        let RawNames::Enum { fields, .. } = enum_generic else {
+        let RawNames::Enum { fields, .. } = &enum_generic.0 else {
             panic!("Expected enum generic name");
         };
 
@@ -1913,12 +2040,12 @@ mod tests {
             "u32",
             "Option<T>",
             "Result<T, String>",
-            "SailsInterimNameBTreeMap<String, T>",
+            "[(String, T)]",
             "GenericStruct<T>",
             "NestedGenericEnum<T>",
             "Option<Option<T>>",
             "Result<Option<T>, String>",
-            "SailsInterimNameBTreeMap<Option<T>, GenericStruct<T>>",
+            "[(Option<T>, GenericStruct<T>)]",
             "GenericStruct<Option<T>>",
             "Option<Option<Option<T>>>",
             "Result<Option<Result<T, String>>, String>",
@@ -1928,7 +2055,7 @@ mod tests {
             assert!(
                 e_fields.contains(&expected),
                 "enum {} missing generic field signature {}. All enum fields/entries: {:#?}",
-                enum_generic.type_name(),
+                enum_generic.0.type_name(),
                 expected,
                 e_fields
             );
@@ -1948,7 +2075,7 @@ mod tests {
                 .iter()
                 .find(|f| f.name == Some("generic_value"))
                 .unwrap();
-            assert_eq!(concrete_names.get(&generic_value.ty.id).unwrap(), "u32");
+            assert_eq!(&concrete_names.get(&generic_value.ty.id).unwrap().0, "u32");
 
             let tuple_generic = composite
                 .fields
@@ -1956,7 +2083,7 @@ mod tests {
                 .find(|f| f.name == Some("tuple_generic"))
                 .unwrap();
             assert_eq!(
-                concrete_names.get(&tuple_generic.ty.id).unwrap(),
+                &concrete_names.get(&tuple_generic.ty.id).unwrap().0,
                 "(String, u32, u32, u32)"
             );
 
@@ -1966,7 +2093,7 @@ mod tests {
                 .find(|f| f.name == Some("option_generic"))
                 .unwrap();
             assert_eq!(
-                concrete_names.get(&option_generic.ty.id).unwrap(),
+                &concrete_names.get(&option_generic.ty.id).unwrap().0,
                 "Option<u32>"
             );
 
@@ -1976,22 +2103,22 @@ mod tests {
                 .find(|f| f.name == Some("btreemap_generic"))
                 .unwrap();
             assert_eq!(
-                concrete_names.get(&btreemap_generic.ty.id).unwrap(),
-                "SailsInterimNameBTreeMap<String, u32>"
+                &concrete_names.get(&btreemap_generic.ty.id).unwrap().0,
+                "[(String, u32)]"
             );
         } else {
             panic!("Expected composite type");
         }
 
         let genericless_unit = generic_names.get(&genericless_unit_id).unwrap();
-        let RawNames::Struct(fields) = genericless_unit else {
+        let RawNames::Struct(fields) = &genericless_unit.0 else {
             panic!("Expected struct generic name");
         };
         assert_eq!(fields.own_name.as_str(), "GenericlessUnitStruct");
         assert!(fields.fields.is_empty());
 
         let genericless_tuple = generic_names.get(&genericless_tuple_id).unwrap();
-        let RawNames::Struct(fields) = genericless_tuple else {
+        let RawNames::Struct(fields) = &genericless_tuple.0 else {
             panic!("Expected struct generic name");
         };
         assert_eq!(fields.own_name.as_str(), "GenericlessTupleStruct");
@@ -2008,7 +2135,7 @@ mod tests {
         assert_eq!(fields.fields, expected_fields_value);
 
         let genericless_named = generic_names.get(&genericless_named_id).unwrap();
-        let RawNames::Struct(fields) = genericless_named else {
+        let RawNames::Struct(fields) = &genericless_named.0 else {
             panic!("Expected struct generic name");
         };
         assert_eq!(fields.own_name.as_str(), "GenericlessNamedStruct");
@@ -2027,7 +2154,7 @@ mod tests {
         let genericless_enum = generic_names.get(&genericless_enum_id).unwrap();
         let RawNames::Enum {
             own_name, fields, ..
-        } = genericless_enum
+        } = &genericless_enum.0
         else {
             panic!("Expected enum generic name");
         };
@@ -2070,7 +2197,7 @@ mod tests {
             generic_names.get(&genericless_variantless_enum_id).unwrap();
         let RawNames::Enum {
             own_name, fields, ..
-        } = genericless_variantless_enum
+        } = &genericless_variantless_enum.0
         else {
             panic!("Expected enum generic name");
         };
@@ -2142,81 +2269,75 @@ mod tests {
         let portable_registry = PortableRegistry::from(registry);
 
         // Compute concrete and generic type names
-        let concrete_names = resolve(portable_registry.types.iter()).unwrap();
-        let filter_out_types: HashSet<u32> = HashSet::new();
-        let generic_names = resolve_user_generic_type_names(
-            portable_registry.types.iter(),
-            &concrete_names,
-            &filter_out_types,
-        )
-        .unwrap();
+        let (concrete_names, generic_names) =
+            resolve(portable_registry.types.iter(), &Default::default()).unwrap();
 
         // Check top level resolved names
         assert_eq!(
-            concrete_names.get(&struct_id).unwrap(),
+            &concrete_names.get(&struct_id).unwrap().0,
             "ComplexOneGenericStruct<bool>"
         );
         let struct_generic = generic_names.get(&struct_id).unwrap();
-        assert_eq!(struct_generic.type_name(), "ComplexOneGenericStruct<T>");
+        assert_eq!(struct_generic.0.type_name(), "ComplexOneGenericStruct<T>");
 
         assert_eq!(
-            concrete_names.get(&enum_id).unwrap(),
+            &concrete_names.get(&enum_id).unwrap().0,
             "ComplexOneGenericEnum<bool>"
         );
         let enum_generic = generic_names.get(&enum_id).unwrap();
-        assert_eq!(enum_generic.type_name(), "ComplexOneGenericEnum<T>");
+        assert_eq!(enum_generic.0.type_name(), "ComplexOneGenericEnum<T>");
 
         // Validate Struct generics
-        let struct_field_types = struct_generic.fields_type_names();
+        let struct_field_types = struct_generic.0.fields_type_names();
         let expect_struct_field_types = vec![
             "[T; 10]",
-            "(T, SailsInterimNameVec<T>, [T; 5])",
+            "(T, [T], [T; 5])",
             "[(T, T); 3]",
-            "SailsInterimNameVec<[T; 8]>",
+            "[[T; 8]]",
             "[Option<T>; 5]",
             "(Result<T, String>, Option<T>)",
-            "SailsInterimNameVec<GenericStruct<T>>",
-            "[SailsInterimNameBTreeMap<String, T>; 2]",
-            "[SailsInterimNameVec<Option<T>>; 4]",
-            "(Option<SailsInterimNameVec<T>>, Result<[T; 3], String>)",
-            "SailsInterimNameVec<GenericStruct<Option<T>>>",
-            "[SailsInterimNameBTreeMap<Option<T>, Result<T, String>>; 2]",
+            "[GenericStruct<T>]",
+            "[[(String, T)]; 2]",
+            "[[Option<T>]; 4]",
+            "(Option<[T]>, Result<[T; 3], String>)",
+            "[GenericStruct<Option<T>>]",
+            "[[(Option<T>, Result<T, String>)]; 2]",
         ];
 
         for expected in expect_struct_field_types {
             assert!(
                 struct_field_types.contains(&expected),
                 "Struct {} missing field type {}.\n All: {:#?}",
-                struct_generic.type_name(),
+                struct_generic.0.type_name(),
                 expected,
                 struct_field_types
             );
         }
 
-        let enum_field_types = enum_generic.fields_type_names();
+        let enum_field_types = enum_generic.0.fields_type_names();
         let expect_enum_field_types = vec![
             "[T; 10]",
             "T",
-            "SailsInterimNameVec<T>",
+            "[T]",
             "[T; 5]",
             "[(T, T); 3]",
-            "SailsInterimNameVec<[T; 8]>",
+            "[[T; 8]]",
             "[Option<T>; 5]",
             "(Result<T, String>, Option<T>)",
-            "SailsInterimNameVec<GenericStruct<T>>",
-            "[SailsInterimNameBTreeMap<String, T>; 2]",
-            "[SailsInterimNameVec<Option<SailsInterimNameVec<T>>>; 4]",
-            "Option<Option<SailsInterimNameVec<T>>>",
+            "[GenericStruct<T>]",
+            "[[(String, T)]; 2]",
+            "[[Option<[T]>]; 4]",
+            "Option<Option<[T]>>",
             "Result<Option<[T; 3]>, String>",
-            "SailsInterimNameVec<GenericStruct<Option<T>>>",
-            "[SailsInterimNameBTreeMap<SailsInterimNameBTreeMap<Option<T>, String>, Result<T, String>>; 2]",
+            "[GenericStruct<Option<T>>]",
+            "[[([(Option<T>, String)], Result<T, String>)]; 2]",
         ];
 
         for expected in expect_enum_field_types {
             assert!(
                 enum_field_types.contains(&expected),
                 "Enum {} missing field type {}.\n All: {:#?}",
-                enum_generic.type_name(),
+                enum_generic.0.type_name(),
                 expected,
                 enum_field_types
             );
@@ -2354,67 +2475,61 @@ mod tests {
 
         let portable_registry = PortableRegistry::from(registry);
 
-        let concrete_names = resolve(portable_registry.types.iter()).unwrap();
-        let filter_out_types: HashSet<u32> = HashSet::new();
-        let generic_names = resolve_user_generic_type_names(
-            portable_registry.types.iter(),
-            &concrete_names,
-            &filter_out_types,
-        )
-        .unwrap();
+        let (concrete_names, generic_names) =
+            resolve(portable_registry.types.iter(), &Default::default()).unwrap();
 
         assert_eq!(
-            concrete_names.get(&struct_id).unwrap(),
+            &concrete_names.get(&struct_id).unwrap().0,
             "MultiGenStruct<u32, String, H256>"
         );
         let struct_generic = generic_names
             .get(&struct_id)
             .expect("struct generic must exist");
-        assert_eq!(struct_generic.type_name(), "MultiGenStruct<T1, T2, T3>");
+        assert_eq!(struct_generic.0.type_name(), "MultiGenStruct<T1, T2, T3>");
 
         assert_eq!(
-            concrete_names.get(&enum_id).unwrap(),
+            &concrete_names.get(&enum_id).unwrap().0,
             "MultiGenEnum<u32, String, H256>"
         );
         let enum_generic = generic_names
             .get(&enum_id)
             .expect("enum generic must exist");
-        assert_eq!(enum_generic.type_name(), "MultiGenEnum<T1, T2, T3>");
+        assert_eq!(enum_generic.0.type_name(), "MultiGenEnum<T1, T2, T3>");
 
-        let struct_field_types = struct_generic.fields_type_names();
+        let struct_field_types = struct_generic.0.fields_type_names();
         let expect_struct_field_types = vec![
             "T1",
             "T2",
             "T3",
             "[T1; 8]",
             "(T2, T3)",
-            "SailsInterimNameVec<T3>",
+            "[T3]",
             "(T1, T2, T3)",
             "(T1, T1, T2, T2, T3, T3)",
             "[(T1, T2); 4]",
-            "SailsInterimNameVec<[T3; 5]>",
-            "SailsInterimNameBTreeMap<T1, T2>",
+            "[[T3; 5]]",
+            "[(T1, T2)]",
             "GenericStruct<T3>",
             "GenericEnum<T1, T2>",
             "Option<Result<T1, T2>>",
             "[Option<T2>; 6]",
-            "SailsInterimNameVec<(T2, T3, T1)>",
+            "[(T2, T3, T1)]",
             "(Result<T1, String>, Option<T2>)",
-            "SailsInterimNameBTreeMap<Option<T1>, Result<T2, String>>",
+            "[(Option<T1>, Result<T2, String>)]",
             "GenericStruct<(T2, T3)>",
-            "Option<Result<SailsInterimNameVec<T1>, T2>>",
-            "[SailsInterimNameBTreeMap<T1, Option<T2>>; 3]",
-            "SailsInterimNameVec<GenericStruct<Option<T3>>>",
-            "[SailsInterimNameVec<(T1, T2)>; 2]",
-            "(Option<SailsInterimNameVec<T1>>, Result<[T2; 4], T3>)",
-            "SailsInterimNameVec<GenericStruct<Result<T1, T2>>>",
+            "Option<Result<[T1], T2>>",
+            "[[(T1, Option<T2>)]; 3]",
+            "[GenericStruct<Option<T3>>]",
+            "[[(T1, T2)]; 2]",
+            "(Option<[T1]>, Result<[T2; 4], T3>)",
+            "[GenericStruct<Result<T1, T2>>]",
         ];
 
         for e in expect_struct_field_types {
             assert!(
                 struct_field_types.contains(&e),
                 "{} missing expected type signature `{}`. All entries: {:#?}",
-                struct_generic.type_name(),
+                struct_generic.0.type_name(),
                 e,
                 struct_field_types
             );
@@ -2428,57 +2543,57 @@ mod tests {
         if let TypeDef::Composite(composite) = &struct_type.ty.type_def {
             // quick concrete checks for representative fields
             let just_t1 = find_field_struct(composite, "just_t1");
-            assert_eq!(concrete_names.get(&just_t1.ty.id).unwrap(), "u32");
+            assert_eq!(&concrete_names.get(&just_t1.ty.id).unwrap().0, "u32");
 
             let tuple_t2_t3 = find_field_struct(composite, "tuple_t2_t3");
             assert_eq!(
-                concrete_names.get(&tuple_t2_t3.ty.id).unwrap(),
+                &concrete_names.get(&tuple_t2_t3.ty.id).unwrap().0,
                 "(String, H256)"
             );
 
             let vec_t3 = find_field_struct(composite, "vec_t3");
-            assert_eq!(concrete_names.get(&vec_t3.ty.id).unwrap(), "SailsInterimNameVec<H256>");
+            assert_eq!(&concrete_names.get(&vec_t3.ty.id).unwrap().0, "[H256]");
 
             let array_triple = find_field_struct(composite, "array_triple");
             assert_eq!(
-                concrete_names.get(&array_triple.ty.id).unwrap(),
-                "[SailsInterimNameBTreeMap<u32, Option<String>>; 3]"
+                &concrete_names.get(&array_triple.ty.id).unwrap().0,
+                "[[(u32, Option<String>)]; 3]"
             );
         } else {
             panic!("Expected composite type");
         }
 
-        let enum_field_types = enum_generic.fields_type_names();
+        let enum_field_types = enum_generic.0.fields_type_names();
         let expect_enum_field_types = vec![
             "T1",
             "T2",
             "T3",
             "[T1; 8]",
             "(T2, T3)",
-            "SailsInterimNameVec<T3>",
+            "[T3]",
             "T1",
             "T2",
             "T3",
             "(T1, T1, T2, T2, T3, T3)",
             "[(T1, T2); 4]",
-            "SailsInterimNameVec<[T3; 5]>",
-            "SailsInterimNameBTreeMap<T1, T2>",
+            "[[T3; 5]]",
+            "[(T1, T2)]",
             "GenericStruct<T3>",
             "GenericEnum<T1, T2>",
             "Option<Result<T1, T2>>",
             "[Option<T2>; 6]",
-            "SailsInterimNameVec<(T2, T3, T1)>",
+            "[(T2, T3, T1)]",
             "Result<T1, String>",
             "Option<T2>",
-            "SailsInterimNameBTreeMap<Option<T1>, Result<T2, String>>",
+            "[(Option<T1>, Result<T2, String>)]",
             "GenericStruct<(T2, T3)>",
-            "Option<Result<SailsInterimNameVec<T1>, T2>>",
-            "[SailsInterimNameBTreeMap<T1, Option<T2>>; 3]",
-            "SailsInterimNameVec<GenericStruct<Option<T3>>>",
-            "[SailsInterimNameVec<(T1, T2)>; 2]",
-            "Option<SailsInterimNameVec<T1>>",
+            "Option<Result<[T1], T2>>",
+            "[[(T1, Option<T2>)]; 3]",
+            "[GenericStruct<Option<T3>>]",
+            "[[(T1, T2)]; 2]",
+            "Option<[T1]>",
             "Result<[T2; 4], T3>",
-            "SailsInterimNameVec<GenericStruct<Result<T1, T2>>>",
+            "[GenericStruct<Result<T1, T2>>]",
         ];
 
         for e in expect_enum_field_types {
@@ -2500,7 +2615,7 @@ mod tests {
             // check a representative tuple-like variant concrete names
             let tuple_t2_t3_variant = find_field_enum(&variant.variants, "TupleT2T3");
             let f0 = &tuple_t2_t3_variant.fields[0];
-            assert_eq!(concrete_names.get(&f0.ty.id).unwrap(), "(String, H256)");
+            assert_eq!(&concrete_names.get(&f0.ty.id).unwrap().0, "(String, H256)");
 
             // check option/result shaped variant
             let tuple_of_result_variant = find_field_enum(&variant.variants, "TupleOfResult");
@@ -2510,7 +2625,7 @@ mod tests {
                 .find(|f| f.name == Some("field1"))
                 .unwrap();
             assert_eq!(
-                concrete_names.get(&field1.ty.id).unwrap(),
+                &concrete_names.get(&field1.ty.id).unwrap().0,
                 "Result<u32, String>"
             );
         } else {
@@ -2518,555 +2633,245 @@ mod tests {
         }
     }
 
-    // todo [sab]
-    //     #[test]
-    //     fn generic_const_with_generic_types() {
-    //         #[allow(dead_code)]
-    //         #[derive(TypeInfo)]
-    //         struct ConstGenericStruct<const N: usize, T> {
-    //             array: [T; N],
-    //             value: T,
-    //             vec: Vec<T>,
-    //             option: Option<T>,
-    //         }
+    #[test]
+    fn generic_const_with_generic_types() {
+        #[allow(dead_code)]
+        #[derive(TypeInfo)]
+        struct ConstGenericStruct<const N: usize, T> {
+            array: [T; N],
+            value: T,
+            vec: Vec<T>,
+            option: Option<T>,
+        }
 
-    //         #[allow(dead_code)]
-    //         #[derive(TypeInfo)]
-    //         struct TwoConstGenericStruct<const N: usize, const M: usize, T1, T2> {
-    //             array1: [T1; N],
-    //             array2: [T2; M],
-    //             tuple: (T1, T2),
-    //             nested: GenericStruct<T1>,
-    //             result: result::Result<T1, T2>,
-    //         }
+        #[allow(dead_code)]
+        #[derive(TypeInfo)]
+        struct TwoConstGenericStruct<const N: usize, const M: usize, T1, T2> {
+            array1: [T1; N],
+            array2: [T2; M],
+            tuple: (T1, T2),
+            nested: GenericStruct<T1>,
+            result: result::Result<T1, T2>,
+        }
 
-    //         #[allow(dead_code)]
-    //         #[derive(TypeInfo)]
-    //         enum ConstGenericEnum<const N: usize, T> {
-    //             Array([T; N]),
-    //             Value(T),
-    //             Nested { inner: GenericStruct<T> },
-    //         }
+        #[allow(dead_code)]
+        #[derive(TypeInfo)]
+        enum ConstGenericEnum<const N: usize, T> {
+            Array([T; N]),
+            Value(T),
+            Nested { inner: GenericStruct<T> },
+        }
 
-    //         let mut registry = Registry::new();
+        let mut registry = Registry::new();
 
-    //         // Register ConstGenericStruct with different N and T values
-    //         let struct_n8_u32_id = registry
-    //             .register_type(&MetaType::new::<ConstGenericStruct<8, u32>>())
-    //             .id;
-    //         let struct_n8_string_id = registry
-    //             .register_type(&MetaType::new::<ConstGenericStruct<8, String>>())
-    //             .id;
+        // Register ConstGenericStruct with different N and T values
+        let struct_n8_u32_id = registry
+            .register_type(&MetaType::new::<ConstGenericStruct<8, u32>>())
+            .id;
+        let struct_n8_string_id = registry
+            .register_type(&MetaType::new::<ConstGenericStruct<8, String>>())
+            .id;
 
-    //         let struct_n16_u32_id = registry
-    //             .register_type(&MetaType::new::<ConstGenericStruct<16, u32>>())
-    //             .id;
+        let struct_n16_u32_id = registry
+            .register_type(&MetaType::new::<ConstGenericStruct<16, u32>>())
+            .id;
 
-    //         assert_ne!(struct_n8_u32_id, struct_n8_string_id);
-    //         assert_ne!(struct_n8_u32_id, struct_n16_u32_id);
+        assert_ne!(struct_n8_u32_id, struct_n8_string_id);
+        assert_ne!(struct_n8_u32_id, struct_n16_u32_id);
 
-    //         // Register TwoConstGenericStruct
-    //         let two_const_id = registry
-    //             .register_type(&MetaType::new::<TwoConstGenericStruct<4, 8, u64, H256>>())
-    //             .id;
+        // Register TwoConstGenericStruct
+        let two_const_id = registry
+            .register_type(&MetaType::new::<TwoConstGenericStruct<4, 8, u64, H256>>())
+            .id;
 
-    //         // Register ConstGenericEnum
-    //         let enum_n8_bool_id = registry
-    //             .register_type(&MetaType::new::<ConstGenericEnum<8, bool>>())
-    //             .id;
+        // Register ConstGenericEnum
+        let enum_n8_bool_id = registry
+            .register_type(&MetaType::new::<ConstGenericEnum<8, bool>>())
+            .id;
 
-    //         let portable_registry = PortableRegistry::from(registry);
-    //         let (concrete_names, generic_names) = resolve(portable_registry.types.iter()).unwrap();
+        let portable_registry = PortableRegistry::from(registry);
+        let (concrete_names, generic_names) =
+            resolve(portable_registry.types.iter(), &Default::default()).unwrap();
 
-    //         // Check ConstGenericStruct with N=8, T=u32
-    //         assert_eq!(
-    //             concrete_names.get(&struct_n8_u32_id).unwrap(),
-    //             "ConstGenericStruct1<u32>"
-    //         );
-    //         assert_eq!(
-    //             concrete_names.get(&struct_n8_string_id).unwrap(),
-    //             "ConstGenericStruct<String>"
-    //         );
-    //         assert_eq!(
-    //             concrete_names.get(&struct_n16_u32_id).unwrap(),
-    //             "ConstGenericStruct2<u32>"
-    //         );
-    //         assert_eq!(
-    //             concrete_names.get(&two_const_id).unwrap(),
-    //             "TwoConstGenericStruct<u64, H256>"
-    //         );
-    //         assert_eq!(
-    //             concrete_names.get(&enum_n8_bool_id).unwrap(),
-    //             "ConstGenericEnum<bool>"
-    //         );
+        // Check ConstGenericStruct with N=8, T=u32
+        assert_eq!(
+            concrete_names.get(&struct_n8_u32_id).unwrap().0,
+            "ConstGenericStruct1<u32>"
+        );
+        assert_eq!(
+            concrete_names.get(&struct_n8_string_id).unwrap().0,
+            "ConstGenericStruct<String>"
+        );
+        assert_eq!(
+            concrete_names.get(&struct_n16_u32_id).unwrap().0,
+            "ConstGenericStruct2<u32>"
+        );
+        assert_eq!(
+            concrete_names.get(&two_const_id).unwrap().0,
+            "TwoConstGenericStruct<u64, H256>"
+        );
+        assert_eq!(
+            concrete_names.get(&enum_n8_bool_id).unwrap().0,
+            "ConstGenericEnum<bool>"
+        );
 
-    //         assert_eq!(
-    //             generic_names
-    //                 .get(&FieldValue::ParentTy(struct_n8_u32_id))
-    //                 .unwrap()
-    //                 .as_deref(),
-    //             Some("ConstGenericStruct1<T>")
-    //         );
-    //         assert_eq!(
-    //             generic_names
-    //                 .get(&FieldValue::ParentTy(two_const_id))
-    //                 .unwrap()
-    //                 .as_deref(),
-    //             Some("TwoConstGenericStruct<T1, T2>")
-    //         );
-    //         assert_eq!(
-    //             generic_names
-    //                 .get(&FieldValue::ParentTy(enum_n8_bool_id))
-    //                 .unwrap()
-    //                 .as_deref(),
-    //             Some("ConstGenericEnum<T>")
-    //         );
+        assert_eq!(
+            generic_names.get(&struct_n8_u32_id).unwrap().0.type_name(),
+            "ConstGenericStruct1<T>"
+        );
+        assert_eq!(
+            generic_names.get(&two_const_id).unwrap().0.type_name(),
+            "TwoConstGenericStruct<T1, T2>"
+        );
+        assert_eq!(
+            generic_names.get(&enum_n8_bool_id).unwrap().0.type_name(),
+            "ConstGenericEnum<T>"
+        );
 
-    //         let struct_type = portable_registry
-    //             .types
-    //             .iter()
-    //             .find(|t| t.id == struct_n8_u32_id)
-    //             .unwrap();
-    //         if let TypeDef::Composite(composite) = &struct_type.ty.type_def {
-    //             let array = composite
-    //                 .fields
-    //                 .iter()
-    //                 .find(|f| f.name.as_deref() == Some("array"))
-    //                 .unwrap();
-    //             assert_eq!(concrete_names.get(&array.ty.id).unwrap(), "[u32; 8]");
-    //             let id = FieldValue::StructFields {
-    //                 parent_ty: struct_n8_u32_id,
-    //                 field_index: 0,
-    //                 self_id: array.ty.id,
-    //             };
-    //             assert_eq!(generic_names.get(&id).unwrap().as_deref(), Some("[T; 8]"));
+        let struct_n8_u32 = &generic_names
+            .get(&struct_n8_u32_id)
+            .expect("generic name must exist")
+            .0;
 
-    //             let value = composite
-    //                 .fields
-    //                 .iter()
-    //                 .find(|f| f.name.as_deref() == Some("value"))
-    //                 .unwrap();
-    //             assert_eq!(concrete_names.get(&value.ty.id).unwrap(), "u32");
-    //             let id = FieldValue::StructFields {
-    //                 parent_ty: struct_n8_u32_id,
-    //                 field_index: 1,
-    //                 self_id: value.ty.id,
-    //             };
-    //             assert_eq!(generic_names.get(&id).unwrap().as_deref(), Some("T"));
+        let field_type_names = struct_n8_u32.fields_type_names();
+        let expected_field_type_names = vec!["[T; 8]", "T", "[T]", "Option<T>"];
+        for expected in expected_field_type_names {
+            assert!(
+                field_type_names.contains(&expected),
+                "ConstGenericStruct1<T> missing field type name `{expected}`. All: {field_type_names:#?}",
+            );
+        }
 
-    //             let vec = composite
-    //                 .fields
-    //                 .iter()
-    //                 .find(|f| f.name.as_deref() == Some("vec"))
-    //                 .unwrap();
-    //             assert_eq!(concrete_names.get(&vec.ty.id).unwrap(), "SailsInterimNameVec<u32>");
-    //             let id = FieldValue::StructFields {
-    //                 parent_ty: struct_n8_u32_id,
-    //                 field_index: 2,
-    //                 self_id: vec.ty.id,
-    //             };
-    //             assert_eq!(
-    //                 generic_names.get(&id).unwrap().as_deref(),
-    //                 Some("SailsInterimNameVec<T>")
-    //             );
+        let two_const_generic = &generic_names
+            .get(&two_const_id)
+            .expect("generic name must exist")
+            .0;
+        let field_type_names = two_const_generic.fields_type_names();
+        let expected_field_type_names = vec![
+            "[T1; 4]",
+            "[T2; 8]",
+            "(T1, T2)",
+            "GenericStruct<T1>",
+            "Result<T1, T2>",
+        ];
+        for expected in expected_field_type_names {
+            assert!(
+                field_type_names.contains(&expected),
+                "TwoConstGenericStruct<T1, T2> missing field type name `{expected}`. All: {field_type_names:#?}",
+            );
+        }
 
-    //             let option = composite
-    //                 .fields
-    //                 .iter()
-    //                 .find(|f| f.name.as_deref() == Some("option"))
-    //                 .unwrap();
-    //             assert_eq!(concrete_names.get(&option.ty.id).unwrap(), "Option<u32>");
-    //             let id = FieldValue::StructFields {
-    //                 parent_ty: struct_n8_u32_id,
-    //                 field_index: 3,
-    //                 self_id: option.ty.id,
-    //             };
-    //             assert_eq!(
-    //                 generic_names.get(&id).unwrap().as_deref(),
-    //                 Some("Option<T>")
-    //             );
-    //         }
+        let enum_generic = &generic_names
+            .get(&enum_n8_bool_id)
+            .expect("generic name must exist")
+            .0;
+        let field_type_names = enum_generic.fields_type_names();
+        let expected_field_type_names = vec!["[T; 8]", "T", "GenericStruct<T>"];
+        for expected in expected_field_type_names {
+            assert!(
+                field_type_names.contains(&expected),
+                "ConstGenericEnum<T> missing field type name `{expected}`. All: {field_type_names:#?}",
+            );
+        }
+    }
 
-    //         let two_const_type = portable_registry
-    //             .types
-    //             .iter()
-    //             .find(|t| t.id == two_const_id)
-    //             .unwrap();
-    //         if let TypeDef::Composite(composite) = &two_const_type.ty.type_def {
-    //             let array1 = composite
-    //                 .fields
-    //                 .iter()
-    //                 .find(|f| f.name.as_deref() == Some("array1"))
-    //                 .unwrap();
-    //             assert_eq!(concrete_names.get(&array1.ty.id).unwrap(), "[u64; 4]");
-    //             let id = FieldValue::StructFields {
-    //                 parent_ty: two_const_id,
-    //                 field_index: 0,
-    //                 self_id: array1.ty.id,
-    //             };
-    //             assert_eq!(generic_names.get(&id).unwrap().as_deref(), Some("[T1; 4]"));
+    // Types for same_name_different_modules test
+    #[allow(dead_code)]
+    mod same_name_test {
+        use super::*;
 
-    //             let array2 = composite
-    //                 .fields
-    //                 .iter()
-    //                 .find(|f| f.name.as_deref() == Some("array2"))
-    //                 .unwrap();
-    //             assert_eq!(concrete_names.get(&array2.ty.id).unwrap(), "[H256; 8]");
-    //             let id = FieldValue::StructFields {
-    //                 parent_ty: two_const_id,
-    //                 field_index: 1,
-    //                 self_id: array2.ty.id,
-    //             };
-    //             assert_eq!(generic_names.get(&id).unwrap().as_deref(), Some("[T2; 8]"));
+        pub mod module_a {
+            use super::*;
 
-    //             let tuple = composite
-    //                 .fields
-    //                 .iter()
-    //                 .find(|f| f.name.as_deref() == Some("tuple"))
-    //                 .unwrap();
-    //             assert_eq!(concrete_names.get(&tuple.ty.id).unwrap(), "(u64, H256)");
-    //             let id = FieldValue::StructFields {
-    //                 parent_ty: two_const_id,
-    //                 field_index: 2,
-    //                 self_id: tuple.ty.id,
-    //             };
-    //             assert_eq!(generic_names.get(&id).unwrap().as_deref(), Some("(T1, T2)"));
+            #[derive(TypeInfo)]
+            pub struct SameName<T> {
+                pub value: T,
+            }
+        }
 
-    //             let nested = composite
-    //                 .fields
-    //                 .iter()
-    //                 .find(|f| f.name.as_deref() == Some("nested"))
-    //                 .unwrap();
-    //             assert_eq!(
-    //                 concrete_names.get(&nested.ty.id).unwrap(),
-    //                 "GenericStruct<u64>"
-    //             );
-    //             let id = FieldValue::StructFields {
-    //                 parent_ty: two_const_id,
-    //                 field_index: 3,
-    //                 self_id: nested.ty.id,
-    //             };
-    //             assert_eq!(
-    //                 generic_names.get(&id).unwrap().as_deref(),
-    //                 Some("GenericStruct<T1>")
-    //             );
+        pub mod module_b {
+            use super::*;
 
-    //             let result = composite
-    //                 .fields
-    //                 .iter()
-    //                 .find(|f| f.name.as_deref() == Some("result"))
-    //                 .unwrap();
-    //             assert_eq!(
-    //                 concrete_names.get(&result.ty.id).unwrap(),
-    //                 "Result<u64, H256>"
-    //             );
-    //             let id = FieldValue::StructFields {
-    //                 parent_ty: two_const_id,
-    //                 field_index: 4,
-    //                 self_id: result.ty.id,
-    //             };
-    //             assert_eq!(
-    //                 generic_names.get(&id).unwrap().as_deref(),
-    //                 Some("Result<T1, T2>")
-    //             );
-    //         }
+            #[derive(TypeInfo)]
+            pub struct SameName<T> {
+                pub value: T,
+            }
+        }
 
-    //         let enum_type = portable_registry
-    //             .types
-    //             .iter()
-    //             .find(|t| t.id == enum_n8_bool_id)
-    //             .unwrap();
-    //         if let TypeDef::Variant(variant) = &enum_type.ty.type_def {
-    //             let array_variant = variant.variants.iter().find(|v| v.name == "Array").unwrap();
-    //             let field = &array_variant.fields[0];
-    //             assert_eq!(concrete_names.get(&field.ty.id).unwrap(), "[bool; 8]");
-    //             let id = FieldValue::EnumFields {
-    //                 parent_ty: enum_n8_bool_id,
-    //                 variant_index: 0,
-    //                 field_index: 0,
-    //                 self_id: field.ty.id,
-    //             };
-    //             assert_eq!(generic_names.get(&id).unwrap().as_deref(), Some("[T; 8]"));
+        pub mod module_c {
+            use super::*;
 
-    //             let value_variant = variant.variants.iter().find(|v| v.name == "Value").unwrap();
-    //             let field = &value_variant.fields[0];
-    //             assert_eq!(concrete_names.get(&field.ty.id).unwrap(), "bool");
-    //             let id = FieldValue::EnumFields {
-    //                 parent_ty: enum_n8_bool_id,
-    //                 variant_index: 1,
-    //                 field_index: 0,
-    //                 self_id: field.ty.id,
-    //             };
-    //             assert_eq!(generic_names.get(&id).unwrap().as_deref(), Some("T"));
+            pub mod nested {
+                use super::*;
 
-    //             let nested_variant = variant
-    //                 .variants
-    //                 .iter()
-    //                 .find(|v| v.name == "Nested")
-    //                 .unwrap();
-    //             let field = nested_variant
-    //                 .fields
-    //                 .iter()
-    //                 .find(|f| f.name.as_deref() == Some("inner"))
-    //                 .unwrap();
-    //             assert_eq!(
-    //                 concrete_names.get(&field.ty.id).unwrap(),
-    //                 "GenericStruct<bool>"
-    //             );
-    //             let id = FieldValue::EnumFields {
-    //                 parent_ty: enum_n8_bool_id,
-    //                 variant_index: 2,
-    //                 field_index: 0,
-    //                 self_id: field.ty.id,
-    //             };
-    //             assert_eq!(
-    //                 generic_names.get(&id).unwrap().as_deref(),
-    //                 Some("GenericStruct<T>")
-    //             );
-    //         }
-    //     }
+                #[derive(TypeInfo)]
+                pub struct SameName<T> {
+                    pub value: T,
+                }
+            }
+        }
+    }
 
-    //     // Types for same_name_different_modules test
-    //     #[allow(dead_code)]
-    //     mod same_name_test {
-    //         use super::*;
+    #[test]
+    fn same_name_different_mods_generic_names() {
+        use same_name_test::*;
 
-    //         pub mod module_a {
-    //             use super::*;
+        #[allow(dead_code)]
+        #[derive(TypeInfo)]
+        struct TestStruct<T1, T2> {
+            field_a: module_a::SameName<T1>,
+            field_b: module_b::SameName<T2>,
+            field_c: module_c::nested::SameName<T1>,
+            generic_a: GenericStruct<module_a::SameName<T2>>,
+            generic_b: GenericStruct<module_b::SameName<T1>>,
+            vec_a: Vec<module_c::nested::SameName<T1>>,
+            option_b: Option<module_b::SameName<T2>>,
+            result_mix: result::Result<module_a::SameName<T1>, module_b::SameName<T2>>,
+        }
 
-    //             #[derive(TypeInfo)]
-    //             pub struct SameName<T> {
-    //                 pub value: T,
-    //             }
-    //         }
+        let mut registry = Registry::new();
+        let struct_id = registry
+            .register_type(&MetaType::new::<TestStruct<u32, bool>>())
+            .id;
 
-    //         pub mod module_b {
-    //             use super::*;
+        let portable_registry = PortableRegistry::from(registry);
+        let (concrete_names, generic_names) =
+            resolve(portable_registry.types.iter(), &Default::default()).unwrap();
 
-    //             #[derive(TypeInfo)]
-    //             pub struct SameName<T> {
-    //                 pub value: T,
-    //             }
-    //         }
+        // Check main type
+        assert_eq!(
+            concrete_names.get(&struct_id).unwrap().0,
+            "TestStruct<u32, bool>"
+        );
+        assert_eq!(
+            generic_names.get(&struct_id).unwrap().0.type_name(),
+            "TestStruct<T1, T2>"
+        );
 
-    //         pub mod module_c {
-    //             use super::*;
+        let struct_generic = &generic_names
+            .get(&struct_id)
+            .expect("struct generic must exist")
+            .0;
 
-    //             pub mod nested {
-    //                 use super::*;
+        let struct_field_type_names = struct_generic.fields_type_names();
+        let expected_field_type_names = vec![
+            "ModuleASameName<T1>",
+            "ModuleBSameName<T2>",
+            "NestedSameName<T1>",
+            "GenericStruct<ModuleASameName<T2>>",
+            "GenericStruct<ModuleBSameName<T1>>",
+            "[NestedSameName<T1>]",
+            "Option<ModuleBSameName<T2>>",
+            "Result<ModuleASameName<T1>, ModuleBSameName<T2>>",
+        ];
 
-    //                 #[derive(TypeInfo)]
-    //                 pub struct SameName<T> {
-    //                     pub value: T,
-    //                 }
-    //             }
-    //         }
-    //     }
-
-    //     #[test]
-    //     fn same_name_different_mods_generic_names() {
-    //         use same_name_test::*;
-
-    //         #[allow(dead_code)]
-    //         #[derive(TypeInfo)]
-    //         struct TestStruct<T1, T2> {
-    //             field_a: module_a::SameName<T1>,
-    //             field_b: module_b::SameName<T2>,
-    //             field_c: module_c::nested::SameName<T1>,
-    //             generic_a: GenericStruct<module_a::SameName<T2>>,
-    //             generic_b: GenericStruct<module_b::SameName<T1>>,
-    //             vec_a: Vec<module_c::nested::SameName<T1>>,
-    //             option_b: Option<module_b::SameName<T2>>,
-    //             result_mix: result::Result<module_a::SameName<T1>, module_b::SameName<T2>>,
-    //         }
-
-    //         let mut registry = Registry::new();
-    //         let struct_id = registry
-    //             .register_type(&MetaType::new::<TestStruct<u32, bool>>())
-    //             .id;
-
-    //         let portable_registry = PortableRegistry::from(registry);
-    //         let (concrete_names, generic_names) = resolve(portable_registry.types.iter()).unwrap();
-
-    //         // Check main type
-    //         assert_eq!(
-    //             concrete_names.get(&struct_id).unwrap(),
-    //             "TestStruct<u32, bool>"
-    //         );
-    //         assert_eq!(
-    //             generic_names
-    //                 .get(&FieldValue::ParentTy(struct_id))
-    //                 .unwrap()
-    //                 .as_deref(),
-    //             Some("TestStruct<T1, T2>")
-    //         );
-
-    //         let struct_type = portable_registry
-    //             .types
-    //             .iter()
-    //             .find(|t| t.id == struct_id)
-    //             .unwrap();
-    //         if let TypeDef::Composite(composite) = &struct_type.ty.type_def {
-    //             // field_a: module_a::SameName<T1>
-    //             let field_a = composite
-    //                 .fields
-    //                 .iter()
-    //                 .find(|f| f.name.as_deref() == Some("field_a"))
-    //                 .unwrap();
-    //             let name_a = concrete_names.get(&field_a.ty.id).unwrap();
-    //             assert_eq!(name_a, "ModuleASameName<u32>");
-    //             let id = FieldValue::StructFields {
-    //                 parent_ty: struct_id,
-    //                 field_index: 0,
-    //                 self_id: field_a.ty.id,
-    //             };
-    //             assert_eq!(
-    //                 generic_names.get(&id).unwrap().as_deref(),
-    //                 Some("ModuleASameName<T1>")
-    //             );
-
-    //             // field_b: module_b::SameName<T2>
-    //             let field_b = composite
-    //                 .fields
-    //                 .iter()
-    //                 .find(|f| f.name.as_deref() == Some("field_b"))
-    //                 .unwrap();
-    //             let name_b = concrete_names.get(&field_b.ty.id).unwrap();
-    //             assert_eq!(name_b, "ModuleBSameName<bool>");
-    //             let id = FieldValue::StructFields {
-    //                 parent_ty: struct_id,
-    //                 field_index: 1,
-    //                 self_id: field_b.ty.id,
-    //             };
-    //             assert_eq!(
-    //                 generic_names.get(&id).unwrap().as_deref(),
-    //                 Some("ModuleBSameName<T2>")
-    //             );
-
-    //             // field_c: module_c::nested::SameName<T1>
-    //             let field_c = composite
-    //                 .fields
-    //                 .iter()
-    //                 .find(|f| f.name.as_deref() == Some("field_c"))
-    //                 .unwrap();
-    //             let name_c = concrete_names.get(&field_c.ty.id).unwrap();
-    //             assert_eq!(name_c, "NestedSameName<u32>");
-    //             let id = FieldValue::StructFields {
-    //                 parent_ty: struct_id,
-    //                 field_index: 2,
-    //                 self_id: field_c.ty.id,
-    //             };
-    //             assert_eq!(
-    //                 generic_names.get(&id).unwrap().as_deref(),
-    //                 Some("NestedSameName<T1>")
-    //             );
-
-    //             // Verify names are different
-    //             assert_ne!(name_a, name_b);
-    //             assert_ne!(name_a, name_c);
-    //             assert_ne!(name_b, name_c);
-
-    //             // generic_a: GenericStruct<module_a::SameName<T2>>
-    //             let generic_a = composite
-    //                 .fields
-    //                 .iter()
-    //                 .find(|f| f.name.as_deref() == Some("generic_a"))
-    //                 .unwrap();
-    //             assert_eq!(
-    //                 concrete_names.get(&generic_a.ty.id).unwrap(),
-    //                 "GenericStruct<ModuleASameName<bool>>"
-    //             );
-    //             let id = FieldValue::StructFields {
-    //                 parent_ty: struct_id,
-    //                 field_index: 3,
-    //                 self_id: generic_a.ty.id,
-    //             };
-    //             assert_eq!(
-    //                 generic_names.get(&id).unwrap().as_deref(),
-    //                 Some("GenericStruct<ModuleASameName<T2>>")
-    //             );
-
-    //             // generic_b: GenericStruct<module_b::SameName<T1>>
-    //             let generic_b = composite
-    //                 .fields
-    //                 .iter()
-    //                 .find(|f| f.name.as_deref() == Some("generic_b"))
-    //                 .unwrap();
-    //             assert_eq!(
-    //                 concrete_names.get(&generic_b.ty.id).unwrap(),
-    //                 "GenericStruct<ModuleBSameName<u32>>"
-    //             );
-    //             let id = FieldValue::StructFields {
-    //                 parent_ty: struct_id,
-    //                 field_index: 4,
-    //                 self_id: generic_b.ty.id,
-    //             };
-    //             assert_eq!(
-    //                 generic_names.get(&id).unwrap().as_deref(),
-    //                 Some("GenericStruct<ModuleBSameName<T1>>")
-    //             );
-
-    //             // vec_a: Vec<module_c::nested::SameName<T1>>
-    //             let vec_a = composite
-    //                 .fields
-    //                 .iter()
-    //                 .find(|f| f.name.as_deref() == Some("vec_a"))
-    //                 .unwrap();
-    //             assert_eq!(
-    //                 concrete_names.get(&vec_a.ty.id).unwrap(),
-    //                 "SailsInterimNameVec<NestedSameName<u32>>"
-    //             );
-    //             let id = FieldValue::StructFields {
-    //                 parent_ty: struct_id,
-    //                 field_index: 5,
-    //                 self_id: vec_a.ty.id,
-    //             };
-    //             assert_eq!(
-    //                 generic_names.get(&id).unwrap().as_deref(),
-    //                 Some("SailsInterimNameVec<NestedSameName<T1>>")
-    //             );
-
-    //             // option_b: Option<module_b::SameName<T2>>
-    //             let option_b = composite
-    //                 .fields
-    //                 .iter()
-    //                 .find(|f| f.name.as_deref() == Some("option_b"))
-    //                 .unwrap();
-    //             assert_eq!(
-    //                 concrete_names.get(&option_b.ty.id).unwrap(),
-    //                 "Option<ModuleBSameName<bool>>"
-    //             );
-    //             let id = FieldValue::StructFields {
-    //                 parent_ty: struct_id,
-    //                 field_index: 6,
-    //                 self_id: option_b.ty.id,
-    //             };
-    //             assert_eq!(
-    //                 generic_names.get(&id).unwrap().as_deref(),
-    //                 Some("Option<ModuleBSameName<T2>>")
-    //             );
-
-    //             // result_mix: result::Result<module_a::SameName<T1>, module_b::SameName<T2>>
-    //             let result_mix = composite
-    //                 .fields
-    //                 .iter()
-    //                 .find(|f| f.name.as_deref() == Some("result_mix"))
-    //                 .unwrap();
-    //             assert_eq!(
-    //                 concrete_names.get(&result_mix.ty.id).unwrap(),
-    //                 "Result<ModuleASameName<u32>, ModuleBSameName<bool>>"
-    //             );
-    //             let id = FieldValue::StructFields {
-    //                 parent_ty: struct_id,
-    //                 field_index: 7,
-    //                 self_id: result_mix.ty.id,
-    //             };
-    //             assert_eq!(
-    //                 generic_names.get(&id).unwrap().as_deref(),
-    //                 Some("Result<ModuleASameName<T1>, ModuleBSameName<T2>>")
-    //             );
-    //         }
-    //     }
+        for expected in expected_field_type_names {
+            assert!(
+                struct_field_type_names.contains(&expected),
+                "TestStruct<T1, T2> missing field type name `{expected}`. All: {struct_field_type_names:#?}",
+            );
+        }
+    }
 
     #[test]
     fn type_names_concrete_generic_reuses() {
@@ -3190,36 +2995,30 @@ mod tests {
 
         let portable_registry = PortableRegistry::from(registry);
 
-        let concrete_names = resolve(portable_registry.types.iter()).unwrap();
-        let filter_out_types: HashSet<u32> = HashSet::new();
-        let generic_names = resolve_user_generic_type_names(
-            portable_registry.types.iter(),
-            &concrete_names,
-            &filter_out_types,
-        )
-        .unwrap();
+        let (concrete_names, generic_names) =
+            resolve(portable_registry.types.iter(), &Default::default()).unwrap();
 
         assert_eq!(
-            concrete_names.get(&struct_id).unwrap(),
+            &concrete_names.get(&struct_id).unwrap().0,
             "ReuseTestStruct<u64, H256>"
         );
 
         let struct_generic = generic_names.get(&struct_id).unwrap();
-        assert_eq!(struct_generic.type_name(), "ReuseTestStruct<T1, T2>",);
+        assert_eq!(struct_generic.0.type_name(), "ReuseTestStruct<T1, T2>",);
 
         assert_eq!(
-            concrete_names.get(&enum_id).unwrap(),
+            &concrete_names.get(&enum_id).unwrap().0,
             "ReuseTestEnum<u64, H256>"
         );
         let enum_generic = generic_names.get(&enum_id).unwrap();
-        assert_eq!(enum_generic.type_name(), "ReuseTestEnum<T1, T2>");
+        assert_eq!(enum_generic.0.type_name(), "ReuseTestEnum<T1, T2>");
 
         let struct_field_types = struct_generic.fields_type_names();
         let expect_struct_field_types = vec![
             "ReusableGenericStruct<T1>",
             "ReusableGenericStruct<CodeId>",
-            "ReusableGenericStruct<SailsInterimNameVec<T1>>",
-            "ReusableGenericStruct<SailsInterimNameVec<bool>>",
+            "ReusableGenericStruct<[T1]>",
+            "ReusableGenericStruct<[bool]>",
             "ReusableGenericStruct<(T1, T2)>",
             "ReusableGenericStruct<(u64, H256)>",
             "ReusableGenericStruct<T2>",
@@ -3233,14 +3032,14 @@ mod tests {
             "GenericStruct<ReusableGenericStruct<T1>>",
             "GenericStruct<ReusableGenericStruct<T2>>",
             "GenericStruct<ReusableGenericStruct<u32>>",
-            "SailsInterimNameVec<ReusableGenericStruct<T1>>",
+            "[ReusableGenericStruct<T1>]",
             "[ReusableGenericEnum<T2>; 5]",
             "Option<ReusableGenericStruct<(T1, T2)>>",
             "Result<ReusableGenericEnum<T1>, ReusableGenericEnum<T2>>",
-            "SailsInterimNameBTreeMap<T1, ReusableGenericStruct<T2>>",
-            "SailsInterimNameBTreeMap<ReusableGenericEnum<T1>, String>",
-            "SailsInterimNameBTreeMap<ReusableGenericStruct<T1>, ReusableGenericEnum<T2>>",
-            "SailsInterimNameBTreeMap<ReusableGenericStruct<u64>, ReusableGenericEnum<H256>>",
+            "[(T1, ReusableGenericStruct<T2>)]",
+            "[(ReusableGenericEnum<T1>, String)]",
+            "[(ReusableGenericStruct<T1>, ReusableGenericEnum<T2>)]",
+            "[(ReusableGenericStruct<u64>, ReusableGenericEnum<H256>)]",
         ];
 
         for e in expect_struct_field_types {
@@ -3257,8 +3056,8 @@ mod tests {
         let expect_enum_field_types = vec![
             "ReusableGenericStruct<T1>",
             "ReusableGenericStruct<CodeId>",
-            "ReusableGenericStruct<SailsInterimNameVec<T1>>",
-            "ReusableGenericStruct<SailsInterimNameVec<bool>>",
+            "ReusableGenericStruct<[T1]>",
+            "ReusableGenericStruct<[bool]>",
             "ReusableGenericStruct<(T1, T2)>",
             "ReusableGenericStruct<(u64, H256)>",
             "ReusableGenericStruct<T2>",
@@ -3272,14 +3071,14 @@ mod tests {
             "GenericStruct<ReusableGenericStruct<T1>>",
             "GenericStruct<ReusableGenericStruct<T2>>",
             "GenericStruct<ReusableGenericStruct<u32>>",
-            "SailsInterimNameVec<ReusableGenericStruct<T1>>",
+            "[ReusableGenericStruct<T1>]",
             "[ReusableGenericEnum<T2>; 5]",
             "Option<ReusableGenericStruct<(T1, T2)>>",
             "Result<ReusableGenericEnum<T1>, ReusableGenericEnum<T2>>",
-            "SailsInterimNameBTreeMap<T1, ReusableGenericStruct<T2>>",
-            "SailsInterimNameBTreeMap<ReusableGenericEnum<T1>, String>",
-            "SailsInterimNameBTreeMap<ReusableGenericStruct<T1>, ReusableGenericEnum<T2>>",
-            "SailsInterimNameBTreeMap<ReusableGenericStruct<u64>, ReusableGenericEnum<H256>>",
+            "[(T1, ReusableGenericStruct<T2>)]",
+            "[(ReusableGenericEnum<T1>, String)]",
+            "[(ReusableGenericStruct<T1>, ReusableGenericEnum<T2>)]",
+            "[(ReusableGenericStruct<u64>, ReusableGenericEnum<H256>)]",
         ];
 
         for e in expect_enum_field_types {

@@ -39,15 +39,13 @@ pub enum Error {
     #[error(transparent)]
     IoFailed(#[from] std::io::Error),
     #[error(transparent)]
-    TypeNameResolutionError(#[from] TypeNameResolutionError),
+    RawTypeNameResolutionError(#[from] RawTypeNameResolutionError),
 }
 
 #[derive(thiserror::Error, Debug)]
-pub enum TypeNameResolutionError {
+pub enum RawTypeNameResolutionError {
     #[error("Unexpected type name occurred: {0}")]
     UnexpectedValue(String),
-    #[error("Type parameter is missing type information: {0}")]
-    TypeParamMissingType(String),
     #[error("Main type declaration is repeated: {0}")]
     MainTypeRepetition(String),
 }

@@ -20,7 +20,7 @@ use crate::{
     FunctionArgumentIdl, FunctionIdl, FunctionResultIdl, FunctionsSection, ProgramIdlSection,
     ServiceSection,
     errors::{Error, Result},
-    type_names::{self, RawNames, ResultTypeName},
+    type_names::{self, FinalizedName, FinalizedRawName, ResultTypeName},
 };
 use gprimitives::*;
 use sails_idl_meta::*;
@@ -115,11 +115,11 @@ impl ProgramMetaRegistry {
         })
     }
 
-    fn types(&self) -> &[RawNames] {
+    fn types(&self) -> &[FinalizedRawName] {
         self.portable_registry.raw_names()
     }
 
-    fn concrete_names(&self) -> &[String] {
+    fn concrete_names(&self) -> &[FinalizedName] {
         self.portable_registry.concrete_names()
     }
 }
@@ -253,11 +253,11 @@ impl ServiceMetaRegistry {
         Ok(events)
     }
 
-    fn types(&self) -> &[RawNames] {
+    fn types(&self) -> &[FinalizedRawName] {
         self.portable_registry.raw_names()
     }
 
-    fn concrete_names(&self) -> &[String] {
+    fn concrete_names(&self) -> &[FinalizedName] {
         self.portable_registry.concrete_names()
     }
 }
@@ -361,8 +361,8 @@ struct RegisteredServiceMeta {
 struct IdlPortableTypesRegistry {
     portable_registry: PortableRegistry,
     unit_type_id: u32,
-    concrete_type_names: Vec<String>,
-    raw_names: Vec<RawNames>,
+    concrete_type_names: Vec<FinalizedName>,
+    raw_type_names: Vec<FinalizedRawName>,
 }
 
 impl TryFrom<IdlTypesRegistry> for IdlPortableTypesRegistry {
@@ -393,31 +393,25 @@ impl TryFrom<IdlTypesRegistry> for IdlPortableTypesRegistry {
             }
         }
 
-        let concrete_type_names = type_names::resolve(portable_registry.types.iter())?;
-        let generic_type_names = type_names::resolve_user_generic_type_names(
-            portable_registry.types.iter(),
-            &concrete_type_names,
-            &non_type_section_ids,
-        )?;
-
+        let (concrete_type_names, raw_type_names) =
+            type_names::resolve(portable_registry.types.iter(), &non_type_section_ids)?;
         let concrete_type_names = concrete_type_names.into_values().collect();
-        let generic_type_names = generic_type_names.into_values().collect();
-
+        let raw_type_names = raw_type_names.into_values().collect();
         Ok(Self {
             portable_registry,
             unit_type_id,
             concrete_type_names,
-            raw_names: generic_type_names,
+            raw_type_names,
         })
     }
 }
 
 impl IdlPortableTypesRegistry {
-    fn raw_names(&self) -> &[RawNames] {
-        &self.raw_names
+    fn raw_names(&self) -> &[FinalizedRawName] {
+        &self.raw_type_names
     }
 
-    fn concrete_names(&self) -> &[String] {
+    fn concrete_names(&self) -> &[FinalizedName] {
         &self.concrete_type_names
     }
 
@@ -1030,7 +1024,7 @@ mod tests {
                 let fn_res_idx = fn_result.res.unwrap();
                 (
                     c.name.as_str(),
-                    service.concrete_names[fn_res_idx as usize].as_str(),
+                    service.concrete_names[fn_res_idx as usize].0.as_str(),
                 )
             })
             .collect();
@@ -1058,7 +1052,7 @@ mod tests {
                 let fn_res_idx = fn_result.res.unwrap();
                 (
                     q.name.as_str(),
-                    service.concrete_names[fn_res_idx as usize].as_str(),
+                    service.concrete_names[fn_res_idx as usize].0.as_str(),
                 )
             })
             .collect();
@@ -1179,7 +1173,7 @@ mod tests {
                     let fields = e
                         .fields
                         .iter()
-                        .map(|f| service.concrete_names[f.ty.id as usize].clone())
+                        .map(|f| service.concrete_names[f.ty.id as usize].0.clone())
                         .collect::<Vec<_>>()
                         .join(", ");
 

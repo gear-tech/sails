@@ -125,8 +125,8 @@ impl ExpandedProgramMeta {
     /// Returns names for all types used by program including primitive, complex and "internal" ones.
     /// Each type name index corresponds to id of the type
     pub fn type_names(&self) -> Result<impl Iterator<Item = String>> {
-        let names = type_names::resolve(self.registry.types.iter())?;
-        Ok(names.into_iter().map(|i| i.1))
+        let names = type_names::resolve(self.registry.types.iter(), &Default::default())?;
+        Ok(names.0.into_values().map(|name| name.0))
     }
 
     fn ctor_funcs(

@@ -6,19 +6,18 @@ use scale_info::{Field, PortableType, Variant, form::PortableForm};
 use serde::Serialize;
 use std::{fs, io::Write, path::Path};
 
-use crate::type_names::RawNames;
+use crate::type_names::{FinalizedName, FinalizedRawName};
 
 mod errors;
 mod meta;
 mod meta2;
 mod type_names;
 
-// todo [sab] SailsVec/SailsBTreeMap - update those
 // todo [sab] template tests
 
-// todo [sab] discuss 
+// todo [sab] discuss
 // extends section (no need to merge fns, or merge but with stating source service -> benefits when same method names corner case)
-// references + boxes? paren types? 
+// references + boxes? paren types?
 
 const IDL_TEMPLATE: &str = include_str!("../hbs/idl.hbs");
 const COMPOSITE_TEMPLATE: &str = include_str!("../hbs/composite.hbs");
@@ -318,9 +317,9 @@ struct IdlData {
 #[derive(Debug, Serialize)]
 struct ProgramIdlSection {
     name: String,
-    concrete_names: Vec<String>,
+    concrete_names: Vec<FinalizedName>,
     ctors: Vec<FunctionIdl>,
-    types: Vec<RawNames>,
+    types: Vec<FinalizedRawName>,
     services: Vec<String>,
 }
 
@@ -353,10 +352,10 @@ struct FunctionArgumentIdl {
 #[derive(Debug, Serialize)]
 struct ServiceSection {
     name: String,
-    concrete_names: Vec<String>,
+    concrete_names: Vec<FinalizedName>,
     extends: Vec<String>,
     events: Vec<Variant<PortableForm>>,
-    types: Vec<RawNames>,
+    types: Vec<FinalizedRawName>,
     functions: FunctionsSection,
 }
 
