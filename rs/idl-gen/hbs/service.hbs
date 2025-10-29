@@ -45,7 +45,7 @@ service{{#if name}} {{name}}{{/if}} {
         {{#each docs}}
         /// {{{this}}}
         {{/each}}
-        {{name}}({{#each args}}{{#if @index}}, {{/if}}{{name}}: {{{lookup ../../concrete_names type}}}{{/each}}){{#if result_ty}}{{#if result_ty.res}} -> {{{lookup ../concrete_names result_ty.res}}}{{/if}}{{#if result_ty.err}} throws {{{lookup ../concrete_names result_ty.err}}}{{/if}}{{/if}};
+        {{name}}({{#each args}}{{#if @index}}, {{/if}}{{name}}: {{{lookup ../../concrete_names type}}}{{/each}}){{#if result_ty}}{{#if (has_key result_ty "res")}} -> {{{lookup ../concrete_names result_ty.res}}}{{/if}}{{#if (has_key result_ty "err")}} throws {{{lookup ../concrete_names result_ty.err}}}{{/if}}{{/if}};
     {{#unless @last}}
 
     {{/unless}}
@@ -59,7 +59,7 @@ service{{#if name}} {{name}}{{/if}} {
         /// {{{this}}}
         {{/each}}
         @query
-        {{name}}({{#each args}}{{#if @index}}, {{/if}}{{name}}: {{{lookup ../../concrete_names type}}}{{/each}}){{#if result_ty}}{{#if result_ty.res}} -> {{{lookup ../concrete_names result_ty.res}}}{{/if}}{{#if result_ty.err}} throws {{{lookup ../concrete_names result_ty.err}}}{{/if}}{{/if}};
+        {{name}}({{#each args}}{{#if @index}}, {{/if}}{{name}}: {{{lookup ../../concrete_names type}}}{{/each}}){{#if result_ty}}{{#if (has_key result_ty "res")}} -> {{{lookup ../concrete_names result_ty.res}}}{{/if}}{{#if (has_key result_ty "err")}} throws {{{lookup ../concrete_names result_ty.err}}}{{/if}}{{/if}};
     {{#unless @last}}
 
     {{/unless}}
@@ -120,7 +120,18 @@ service{{#if name}} {{name}}{{/if}} {
             {{/each}}
         }
         {{else}}
+        {{#if (any_field_has_docs this.struct.fields)}}
+        struct {{{this.struct.own_name}}} (
+            {{#each this.struct.fields}}
+            {{#each docs}}
+            /// {{{this}}}
+            {{/each}}
+            {{{type_name}}},
+            {{/each}}
+        );
+        {{else}}
         struct {{{this.struct.own_name}}}({{#each this.struct.fields}}{{{type_name}}}{{#unless @last}}, {{/unless}}{{/each}});
+        {{/if}}
         {{/if}}
     {{else}}
         struct {{{this.struct.own_name}}};

@@ -11,11 +11,24 @@ use std::{collections::BTreeMap, result::Result as StdResult};
 mod types {
     use super::*;
 
+    /// Unit struct type
+    #[derive(TypeInfo)]
+    pub struct UnitStruct;
+
     /// GenericStruct docs
     #[derive(TypeInfo)]
     pub struct GenericStruct<T> {
         /// GenericStruct field `p1`
         pub p1: T,
+    }
+
+    pub mod conflicting {
+        use scale_info::TypeInfo;
+        /// GenericStruct from conflicting module
+        #[derive(TypeInfo)]
+        pub struct GenericStruct<T> {
+            pub p1: T,
+        }
     }
 
     /// GenericConstStruct docs
@@ -558,6 +571,154 @@ fn program_idl_ctors_and_types() {
 
     let meta_info = GenMetaInfoBuilder::new().program_name("CtorsAndTypesProgram".to_string());
     program2::generate_idl::<TestProgramMeta>(meta_info, &mut idl).unwrap();
+    let generated_idl = String::from_utf8(idl).unwrap();
+
+    insta::assert_snapshot!(generated_idl);
+}
+
+/// Tests various cases together:
+/// - multiple services ✅
+/// - conflicting type names in one service ✅
+/// - base and extension services:
+///     - extension services receiving base services methods ✅
+///     - conflicting methods names in extension and base services ✅
+///     - extension service events receiving variants of the base service event ✅
+///     - extension service receives base service types ✅
+///     - same user defined types in base and extension services ✅
+/// - events with different variants types and docs ✅
+/// - program section has various types ✅
+/// - user defined types are unit/tuple/regular structs and enums with unit, tuple and struct variants ✅
+#[allow(unused_parens)]
+#[test]
+fn program_idl_misc() {
+    // Define extension service metas to cover mixed scenarios
+    #[allow(dead_code)]
+    #[derive(TypeInfo)]
+    struct ExtParams {
+        // Intentionally use two types with the same name from different modules
+        a: types::GenericStruct<u32>,
+        b: types::conflicting::GenericStruct<u32>,
+        // And a tuple struct from user-defined types
+        c: types::TupleStruct,
+        d: types::UnitStruct,
+    }
+
+    #[allow(dead_code)]
+    #[derive(TypeInfo)]
+    enum ExtCommandsMeta {
+        /// Uses params with conflicting type names inside one service
+        /// Returns nothing
+        UseConflictingTypes(ExtParams, ()),
+        /// Throws error or returns `u32` result
+        ReturningResult(SingleParams<u32>, StdResult<u32, String>),
+        /// Only throws error
+        ReturningError(SingleParams<u32>, StdResult<(), u32>),
+        /// Another command using generic enum and returns string
+        DoThisExt(SingleParams<types::GenericEnum<bool, u32>>, String),
+        /// This conflicts with base service command, but has different signature
+        DoThatBase(SingleParams<String>, ActorId),
+    }
+
+    #[allow(dead_code)]
+    #[derive(TypeInfo)]
+    enum ExtQueriesMeta {
+        /// Query with const-generic type
+        GetSomething(SingleParams<types::GenericStruct<bool>>, u64),
+        /// Reuses a base type (String) to mirror base service usage
+        BorrowBaseType(SingleParams<String>, u16),
+        /// This conflicts with base service query, but has different arguments in signature
+        That(SingleParams<u32>, String),
+    }
+
+    #[allow(dead_code)]
+    #[derive(TypeInfo)]
+    enum ExtEventsMeta {
+        Unit,
+        Tuple(Option<[H256; 32]>, bool),
+        TupleWithDocs(
+            /// First field docs
+            Option<[H256; 32]>,
+            /// Second field docs
+            bool,
+        ),
+        Struct {
+            /// Field `a` docs
+            a: Vec<u8>,
+            /// Parent `((u32))` type will be unwrapped into `u32` in IDL
+            b: ((u32)),
+        },
+        /// Extension-specific event variant with docs
+        ExtDone(u32),
+        /// Mirrors base event type but with different name to avoid ambiguity
+        BaseDoneEcho {
+            p1: u16,
+        },
+        /// Uses a type defined used in base service
+        ExtServiceSameType(types::GenericConstStruct<8>),
+        /// Same name as in base service, but different constant
+        ExtServiceSameTypeConst(types::GenericConstStruct<16>),
+    }
+
+    #[allow(dead_code)]
+    #[derive(TypeInfo)]
+    enum TestBaseEventsMeta {
+        ThisDone(BaseServiceType),
+        ThatDone {
+            p1: u16,
+        },
+        /// Uses a type that is also used in extension service in the event
+        BaseServiceSameType(types::GenericConstStruct<8>),
+    }
+
+    #[allow(dead_code)]
+    #[derive(TypeInfo)]
+    pub struct BaseServiceType(
+        /// Field docs
+        MessageId,
+        /// Field docs
+        H160,
+    );
+
+    // Program constructors using a variety of user-defined types
+    #[allow(dead_code)]
+    #[derive(TypeInfo)]
+    enum MiscCtorsMeta {
+        /// Simple constructor without params
+        New(NoParams),
+        /// Constructor with complex nested generic types
+        FromComplex(
+            SingleParams<
+                types::GenericEnum<
+                    types::GenericStruct<H256>,
+                    types::conflicting::GenericStruct<(types::UnitStruct, types::TupleStruct)>,
+                >,
+            >,
+        ),
+    }
+
+    type BaseService = ServiceMeta<BaseCommandsMeta, BaseQueriesMeta, TestBaseEventsMeta>;
+    type ExtService =
+        ServiceMetaWithBase<ExtCommandsMeta, ExtQueriesMeta, ExtEventsMeta, BaseService>;
+
+    struct MiscProgramMeta;
+    impl ProgramMeta for MiscProgramMeta {
+        type ConstructorsMeta = MiscCtorsMeta;
+        const SERVICES: &'static [(&'static str, AnyServiceMetaFn)] = &[
+            ("Service1", AnyServiceMeta::new::<BaseService>),
+            ("Service2", AnyServiceMeta::new::<ExtService>),
+        ];
+        const ASYNC: bool = false;
+    }
+
+    let mut idl = Vec::new();
+
+    let meta_info = GenMetaInfoBuilder::new()
+        .author("Developer".to_string())
+        .program_name("MiscProgram".to_string())
+        .major_version(1)
+        .minor_version(2)
+        .patch_version(3);
+    program2::generate_idl::<MiscProgramMeta>(meta_info, &mut idl).unwrap();
     let generated_idl = String::from_utf8(idl).unwrap();
 
     insta::assert_snapshot!(generated_idl);

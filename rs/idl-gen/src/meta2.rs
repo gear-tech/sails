@@ -896,10 +896,7 @@ mod tests {
         struct SomeExtendedServiceType(CodeId);
 
         let meta = ExpandedProgramMeta::new(
-            Some((
-                "TestProgram".to_string(),
-                MetaType::new::<utils::SimpleCtors>(),
-            )),
+            None,
             vec![(
                 "ExtendedService",
                 AnyServiceMeta::new::<ExtendedServiceMeta>(),
@@ -1001,10 +998,7 @@ mod tests {
         }
 
         let meta = ExpandedProgramMeta::new(
-            Some((
-                "TestProgram".to_string(),
-                MetaType::new::<utils::SimpleCtors>(),
-            )),
+            None,
             vec![(
                 "ExtendedService",
                 AnyServiceMeta::new::<ExtendedServiceMeta>(),
@@ -1107,10 +1101,7 @@ mod tests {
         }
 
         let res = ExpandedProgramMeta::new(
-            Some((
-                "TestProgram".to_string(),
-                MetaType::new::<utils::SimpleCtors>(),
-            )),
+            None,
             vec![("ExtendedService", AnyServiceMeta::new::<ExtendedService>())].into_iter(),
         );
 
@@ -1121,6 +1112,70 @@ mod tests {
         assert_eq!(
             msg_err.as_str(),
             "event `ConflictingEvent` is defined multiple times in the service inheritance chain"
+        );
+    }
+
+    #[test]
+    fn service_extension_with_conflicting_types() {
+        struct ServiceBase;
+        impl sails_idl_meta::ServiceMeta for ServiceBase {
+            type CommandsMeta = utils::NoCommands;
+            type QueriesMeta = utils::NoQueries;
+            type EventsMeta = BaseServiceEvents;
+            const BASE_SERVICES: &'static [sails_idl_meta::AnyServiceMetaFn] = &[];
+            const ASYNC: bool = false;
+        }
+
+        #[allow(unused)]
+        #[derive(TypeInfo)]
+        enum BaseServiceEvents {
+            BaseEvent(GenericConstStruct<8>),
+        }
+
+        struct ExtensionService;
+        impl sails_idl_meta::ServiceMeta for ExtensionService {
+            type CommandsMeta = utils::NoCommands;
+            type QueriesMeta = utils::NoQueries;
+            type EventsMeta = ExtendedServiceEvents;
+            const BASE_SERVICES: &'static [sails_idl_meta::AnyServiceMetaFn] =
+                &[AnyServiceMeta::new::<ServiceBase>];
+            const ASYNC: bool = false;
+        }
+
+        #[allow(unused)]
+        #[derive(TypeInfo)]
+        enum ExtendedServiceEvents {
+            ExtEvent(GenericConstStruct<16>),
+        }
+
+        #[allow(unused)]
+        #[derive(TypeInfo)]
+        struct GenericConstStruct<const N: usize>([u8; N]);
+
+        let meta = ExpandedProgramMeta::new(
+            None,
+            vec![(
+                "ExtensionService",
+                AnyServiceMeta::new::<ExtensionService>(),
+            )]
+            .into_iter(),
+        )
+        .unwrap();
+
+        assert_eq!(meta.services.len(), 1);
+
+        let types = &meta.services[0].types;
+        assert_eq!(types.len(), 2);
+        let type_names = types
+            .iter()
+            .map(|t| (t.type_name(), t.fields_type_names()))
+            .collect::<Vec<_>>();
+        assert_eq!(
+            type_names,
+            vec![
+                ("GenericConstStruct1", vec!["[u8; 16]"]),
+                ("GenericConstStruct2", vec!["[u8; 8]"])
+            ]
         );
     }
 
@@ -1145,10 +1200,7 @@ mod tests {
         }
 
         let res = ExpandedProgramMeta::new(
-            Some((
-                "TestProgram".to_string(),
-                MetaType::new::<utils::SimpleCtors>(),
-            )),
+            None,
             vec![(
                 "InvalidEventsService",
                 AnyServiceMeta::new::<InvalidEventsService>(),
@@ -1191,10 +1243,7 @@ mod tests {
         }
 
         let meta = ExpandedProgramMeta::new(
-            Some((
-                "TestProgram".to_string(),
-                MetaType::new::<utils::SimpleCtors>(),
-            )),
+            None,
             vec![("EventService", AnyServiceMeta::new::<EventService>())].into_iter(),
         )
         .unwrap_or_else(|e| panic!("Failed to create expanded meta: {e:?}"));
@@ -1266,13 +1315,7 @@ mod tests {
         struct NotVariantQueries(u32);
 
         let internal_check = |service: AnyServiceMeta| {
-            let result = ExpandedProgramMeta::new(
-                Some((
-                    "TestProgram".to_string(),
-                    MetaType::new::<utils::SimpleCtors>(),
-                )),
-                vec![("TestService", service)].into_iter(),
-            );
+            let result = ExpandedProgramMeta::new(None, vec![("TestService", service)].into_iter());
             assert!(result.is_err());
             let Err(Error::FuncMetaIsInvalid(msg)) = result else {
                 panic!("Expected FuncMetaIsInvalid error, got {result:?}");
@@ -1353,13 +1396,7 @@ mod tests {
         }
 
         let internal_check = |service: AnyServiceMeta, expected_msg: &str| {
-            let result = ExpandedProgramMeta::new(
-                Some((
-                    "TestProgram".to_string(),
-                    MetaType::new::<utils::SimpleCtors>(),
-                )),
-                vec![("TestService", service)].into_iter(),
-            );
+            let result = ExpandedProgramMeta::new(None, vec![("TestService", service)].into_iter());
 
             assert!(result.is_err());
             let Err(Error::FuncMetaIsInvalid(msg)) = result else {
@@ -1409,10 +1446,7 @@ mod tests {
         }
 
         let result = ExpandedProgramMeta::new(
-            Some((
-                "TestProgram".to_string(),
-                MetaType::new::<utils::SimpleCtors>(),
-            )),
+            None,
             vec![("TestService", AnyServiceMeta::new::<TestServiceMeta>())].into_iter(),
         );
 
@@ -1450,10 +1484,7 @@ mod tests {
         struct NamelessParams(u32, String);
 
         let result = ExpandedProgramMeta::new(
-            Some((
-                "TestProgram".to_string(),
-                MetaType::new::<utils::SimpleCtors>(),
-            )),
+            None,
             vec![("TestService", AnyServiceMeta::new::<BadServiceMeta>())].into_iter(),
         );
 
@@ -1494,10 +1525,7 @@ mod tests {
         }
 
         let meta = ExpandedProgramMeta::new(
-            Some((
-                "TestProgram".to_string(),
-                MetaType::new::<utils::SimpleCtors>(),
-            )),
+            None,
             vec![("TestService", AnyServiceMeta::new::<TestServiceMeta>())].into_iter(),
         )
         .unwrap_or_else(|e| panic!("Failed to create expanded meta: {e:?}"));
@@ -1654,14 +1682,8 @@ mod tests {
         let internal_check = |service: AnyServiceMeta,
                               expected_commands_count: usize,
                               expected_queries_count: usize| {
-            let meta = ExpandedProgramMeta::new(
-                Some((
-                    "TestProgram".to_string(),
-                    MetaType::new::<utils::SimpleCtors>(),
-                )),
-                vec![("TestService", service)].into_iter(),
-            )
-            .unwrap_or_else(|e| panic!("Failed to create expanded meta: {e:?}"));
+            let meta = ExpandedProgramMeta::new(None, vec![("TestService", service)].into_iter())
+                .unwrap_or_else(|e| panic!("Failed to create expanded meta: {e:?}"));
 
             let service_meta = &meta.services[0];
             assert_eq!(
@@ -1736,10 +1758,7 @@ mod tests {
         }
 
         let meta = ExpandedProgramMeta::new(
-            Some((
-                "TestProgram".to_string(),
-                MetaType::new::<utils::SimpleCtors>(),
-            )),
+            None,
             vec![("TestService", AnyServiceMeta::new::<Service>())].into_iter(),
         )
         .unwrap_or_else(|e| panic!("Failed to create expanded meta: {e:?}"));
@@ -1929,10 +1948,7 @@ mod tests {
 
         let internal_check = |service1: AnyServiceMeta, service2: AnyServiceMeta| {
             let meta = ExpandedProgramMeta::new(
-                Some((
-                    "TestProgram".to_string(),
-                    MetaType::new::<utils::SimpleCtors>(),
-                )),
+                None,
                 vec![("Service1", service1), ("Service2", service2)].into_iter(),
             )
             .unwrap_or_else(|e| panic!("Failed to create expanded meta: {e:?}"));
@@ -2109,10 +2125,7 @@ mod tests {
         struct SharedCustomType;
 
         let meta = ExpandedProgramMeta::new(
-            Some((
-                "TestProgram".to_string(),
-                MetaType::new::<utils::SimpleCtors>(),
-            )),
+            None,
             vec![
                 ("Service1", AnyServiceMeta::new::<Service1Meta>()),
                 ("Service2", AnyServiceMeta::new::<Service2Meta>()),
@@ -2248,10 +2261,7 @@ mod tests {
         }
 
         let meta = ExpandedProgramMeta::new(
-            Some((
-                "TestProgram".to_string(),
-                MetaType::new::<utils::SimpleCtors>(),
-            )),
+            None,
             vec![("ExtendedService", AnyServiceMeta::new::<ExtendedService>())].into_iter(),
         )
         .unwrap_or_else(|e| panic!("Failed to create expanded meta: {e:?}"));
