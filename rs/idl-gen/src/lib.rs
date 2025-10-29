@@ -297,6 +297,7 @@ fn render_idlv2(
         .map_err(Box::new)?;
     handlebars.register_helper("deref", Box::new(deref));
     handlebars.register_helper("any_field_has_docs", Box::new(any_field_has_docs));
+    handlebars.register_helper("has_functions", Box::new(has_functions));
 
     handlebars
         .render_to_write("idlv2", &idl_data, idl_writer)
@@ -376,10 +377,25 @@ handlebars_helper!(any_field_has_docs: |fields: JsonValue| {
         })
     })
 });
+handlebars_helper!(has_functions: |functions: JsonValue| {
+    functions.as_object().is_some_and(|obj| {
+        let has_commands = obj.get("commands")
+            .and_then(|c| c.as_array())
+            .is_some_and(|arr| !arr.is_empty());
+
+        let has_queries = obj.get("queries")
+            .and_then(|q| q.as_array())
+            .is_some_and(|arr| !arr.is_empty());
+
+        has_commands || has_queries
+    })
+});
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    // todo [sab] remove these tests
 
     /// Test IDL generation with user-defined types in program section
     /// (constructors with custom types as arguments)
@@ -571,6 +587,8 @@ mod tests {
         let _ = hbs.register_template_string("service", SERVICE_TEMPLATE);
         let _ = hbs.register_template_string("program", PROGRAM_TEMPLATE);
         hbs.register_helper("deref", Box::new(deref));
+        hbs.register_helper("any_field_has_docs", Box::new(any_field_has_docs));
+        hbs.register_helper("has_functions", Box::new(has_functions));
 
         hbs.render_to_write("idlv2", &data, &mut source).unwrap();
         println!("{}", String::from_utf8_lossy(&source));

@@ -38,7 +38,7 @@ service{{#if name}} {{name}}{{/if}} {
     }
 
     {{/if}}
-    {{#if functions}}
+    {{#if (has_functions functions)}}
     functions {
     {{#if functions.commands}}
     {{#each functions.commands}}
@@ -50,9 +50,10 @@ service{{#if name}} {{name}}{{/if}} {
 
     {{/unless}}
     {{/each}}
-    {{/if}}
     {{#if functions.queries}}
 
+    {{/if}}
+    {{/if}}
     {{#each functions.queries}}
         {{#each docs}}
         /// {{{this}}}
@@ -63,7 +64,6 @@ service{{#if name}} {{name}}{{/if}} {
 
     {{/unless}}
     {{/each}}
-    {{/if}}
     }
     {{#if types}}
 

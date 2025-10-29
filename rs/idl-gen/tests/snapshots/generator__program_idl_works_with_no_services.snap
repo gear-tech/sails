@@ -1,0 +1,18 @@
+---
+source: rs/idl-gen/tests/generator.rs
+expression: generated_idl
+---
+!@sails: 0.9.1
+!@author: 
+!@version: 0.0.0
+
+program NoServicesWithCtorsProgram {
+    constructors {
+        /// This is New constructor
+        New();
+
+        /// This is FromStr constructor
+        /// with second line
+        FromStr(p1: String);
+    }
+}

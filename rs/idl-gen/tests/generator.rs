@@ -146,6 +146,9 @@ enum CommandsMeta {
     DoThat(DoThatParams, StdResult<(String, u32), (String,)>),
 }
 
+#[derive(TypeInfo)]
+enum NoCommandsMeta {}
+
 #[allow(dead_code)]
 #[derive(TypeInfo)]
 enum BaseCommandsMeta {
@@ -162,6 +165,9 @@ enum QueriesMeta {
     /// This is a second line
     That(ThatParams, String),
 }
+
+#[derive(TypeInfo)]
+enum NoQueriesMeta {}
 
 #[allow(dead_code)]
 #[derive(TypeInfo)]
@@ -190,6 +196,10 @@ enum EventsMeta {
         p1: String,
     },
 }
+
+#[allow(dead_code)]
+#[derive(TypeInfo)]
+enum NoEventsMeta {}
 
 #[allow(dead_code)]
 #[derive(TypeInfo)]
@@ -412,4 +422,143 @@ fn service_idl_fails_with_base_services_and_ambiguous_events() {
         result,
         Err(sails_idl_gen::Error::EventMetaIsAmbiguous(_))
     ));
+}
+
+#[test]
+fn program_idl_works_with_no_services() {
+    struct TestProgramWithNoServicesMeta;
+    impl ProgramMeta for TestProgramWithNoServicesMeta {
+        type ConstructorsMeta = NonEmptyCtorsMeta;
+        const SERVICES: &'static [(&'static str, AnyServiceMetaFn)] = &[];
+        const ASYNC: bool = false;
+    }
+
+    let mut idl = Vec::new();
+
+    let meta_info =
+        GenMetaInfoBuilder::new().program_name("NoServicesWithCtorsProgram".to_string());
+    program2::generate_idl::<TestProgramWithNoServicesMeta>(meta_info, &mut idl).unwrap();
+    let generated_idl = String::from_utf8(idl).unwrap();
+
+    insta::assert_snapshot!(generated_idl);
+}
+
+#[test]
+fn service_idl_events_with_fns() {
+    #[allow(dead_code)]
+    #[derive(TypeInfo)]
+    enum TestCommandsMeta {
+        DoThis(SingleParams<u32>, u32),
+    }
+
+    #[allow(dead_code)]
+    #[derive(TypeInfo)]
+    enum TestQueriesMeta {
+        This(SingleParams<u32>, u32),
+    }
+
+    let mut idl = Vec::new();
+    service2::generate_idl::<ServiceMeta<TestCommandsMeta, TestQueriesMeta, EventsMeta>>(
+        GenMetaInfoBuilder::new(),
+        &mut idl,
+    )
+    .unwrap();
+    let generated_idl = String::from_utf8(idl).unwrap();
+
+    insta::assert_snapshot!(generated_idl);
+}
+
+#[test]
+fn service_idl_events_with_types() {
+    #[allow(dead_code)]
+    #[derive(TypeInfo)]
+    enum TestEventsMeta {
+        One(TestType<NonZeroU256>),
+    }
+
+    /// A type with a complex type field
+    #[allow(dead_code)]
+    #[derive(TypeInfo)]
+    struct TestType<T> {
+        /// Complex field
+        f1: Option<BTreeMap<ActorId, Vec<Result<T, String>>>>,
+    }
+
+    let mut idl = Vec::new();
+    service2::generate_idl::<ServiceMeta<NoCommandsMeta, NoQueriesMeta, TestEventsMeta>>(
+        GenMetaInfoBuilder::new(),
+        &mut idl,
+    )
+    .unwrap();
+    let generated_idl = String::from_utf8(idl).unwrap();
+
+    insta::assert_snapshot!(generated_idl);
+}
+
+#[test]
+fn service_idl_fns_no_queries() {
+    #[allow(dead_code)]
+    #[derive(TypeInfo)]
+    enum TestCommandsMeta {
+        DoThis(SingleParams<u32>, u32),
+    }
+
+    let mut idl = Vec::new();
+    service2::generate_idl::<ServiceMeta<TestCommandsMeta, NoQueriesMeta, NoEventsMeta>>(
+        GenMetaInfoBuilder::new(),
+        &mut idl,
+    )
+    .unwrap();
+    let generated_idl = String::from_utf8(idl).unwrap();
+
+    insta::assert_snapshot!(generated_idl);
+}
+
+#[test]
+fn service_idl_no_commands() {
+    #[allow(dead_code)]
+    #[derive(TypeInfo)]
+    enum TestQueriesMeta {
+        This(SingleParams<u32>, u32),
+    }
+
+    let mut idl = Vec::new();
+    service2::generate_idl::<ServiceMeta<NoCommandsMeta, TestQueriesMeta, NoEventsMeta>>(
+        GenMetaInfoBuilder::new(),
+        &mut idl,
+    )
+    .unwrap();
+    let generated_idl = String::from_utf8(idl).unwrap();
+
+    insta::assert_snapshot!(generated_idl);
+}
+
+#[test]
+fn program_idl_ctors_and_types() {
+    #[allow(dead_code)]
+    #[derive(TypeInfo)]
+    enum TestCtorsMeta {
+        // These docs are not shown
+        New(
+            // These docs are not shown
+            NoParams,
+        ),
+        /// Has docs
+        FromEnum(SingleParams<types::GenericEnum<ActorId, types::GenericStruct<u32>>>),
+    }
+
+    struct TestProgramMeta;
+    impl ProgramMeta for TestProgramMeta {
+        type ConstructorsMeta = TestCtorsMeta;
+        const SERVICES: &'static [(&'static str, AnyServiceMetaFn)] = &[];
+        const ASYNC: bool = false;
+    }
+
+    let mut idl = Vec::new();
+
+    let meta_info = GenMetaInfoBuilder::new().program_name("CtorsAndTypesProgram".to_string());
+    program2::generate_idl::<TestProgramMeta>(meta_info, &mut idl).unwrap();
+    let generated_idl = String::from_utf8(idl).unwrap();
+
+    insta::assert_snapshot!(generated_idl);
 }

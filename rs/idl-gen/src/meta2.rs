@@ -1128,6 +1128,42 @@ mod tests {
     // ------------------------------ Events related tests --------------------------------
     // ------------------------------------------------------------------------------------
     #[test]
+    fn invalid_events_type() {
+        struct InvalidEventsService;
+        impl sails_idl_meta::ServiceMeta for InvalidEventsService {
+            type CommandsMeta = utils::NoCommands;
+            type QueriesMeta = utils::NoQueries;
+            type EventsMeta = InvalidEvents;
+            const BASE_SERVICES: &'static [sails_idl_meta::AnyServiceMetaFn] = &[];
+            const ASYNC: bool = false;
+        }
+
+        #[derive(TypeInfo)]
+        #[allow(unused)]
+        struct InvalidEvents {
+            pub field: u32,
+        }
+
+        let res = ExpandedProgramMeta::new(
+            Some((
+                "TestProgram".to_string(),
+                MetaType::new::<utils::SimpleCtors>(),
+            )),
+            vec![(
+                "InvalidEventsService",
+                AnyServiceMeta::new::<InvalidEventsService>(),
+            )]
+            .into_iter(),
+        );
+
+        assert!(res.is_err());
+        let Err(Error::FuncMetaIsInvalid(msg)) = res else {
+            panic!("Expected FuncMetaIsInvalid error, got {res:?}");
+        };
+        assert_eq!(msg.as_str(), "Event type is not a variant");
+    }
+
+    #[test]
     fn service_events_positive_test() {
         struct EventService;
         impl sails_idl_meta::ServiceMeta for EventService {

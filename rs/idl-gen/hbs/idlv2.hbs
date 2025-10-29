@@ -1,7 +1,9 @@
 !@sails: {{sails_version}}
 !@author: {{author}}
 !@version: {{version}}
+{{#if services}}
 
+{{/if}}
 {{#each services}}
 {{> service}}
 {{#unless @last}}
