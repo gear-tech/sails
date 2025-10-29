@@ -1,6 +1,4 @@
-// Sails IDL v0.3 — service-only parser using `nom` (nom 8 compatible)
-// Parses only top-level `service` blocks (plus doc-comments/annotations),
-// including `extends { ... }`, `events { ... }`, `functions { ... }`, `types { ... }`.
+// Sails IDL v0.3 — parser using `nom` (nom 8 compatible)
 
 use nom::{
     IResult, Parser,
@@ -11,7 +9,7 @@ use nom::{
     multi::{many0, separated_list0, separated_list1},
     sequence::{delimited, preceded, separated_pair, terminated},
 };
-use std::{collections::HashMap, str::FromStr};
+use std::str::FromStr;
 
 // -------------------------------- Target model ---------------------------------
 
@@ -31,7 +29,7 @@ pub struct ProgramUnit {
     pub services: Vec<(String, String)>,
     pub types: Vec<Type>,
     pub docs: Vec<String>,
-    pub annotations: HashMap<String, Option<String>>,
+    pub annotations: Vec<(String, Option<String>)>,
 }
 
 /// A structure describing one of program constructor functions
@@ -40,7 +38,7 @@ pub struct CtorFunc {
     pub name: String,
     pub params: Vec<FuncParam>,
     pub docs: Vec<String>,
-    pub annotations: HashMap<String, Option<String>>,
+    pub annotations: Vec<(String, Option<String>)>,
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -51,7 +49,7 @@ pub struct ServiceUnit {
     pub events: Vec<ServiceEvent>,
     pub types: Vec<Type>,
     pub docs: Vec<String>,
-    pub annotations: HashMap<String, Option<String>>,
+    pub annotations: Vec<(String, Option<String>)>,
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -62,7 +60,7 @@ pub struct ServiceFunc {
     pub throws: Option<TypeDecl>,
     pub is_query: bool,
     pub docs: Vec<String>,
-    pub annotations: HashMap<String, Option<String>>,
+    pub annotations: Vec<(String, Option<String>)>,
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -76,9 +74,20 @@ pub type ServiceEvent = EnumVariant;
 #[derive(Debug, PartialEq, Clone)]
 pub struct Type {
     pub name: String,
+    pub type_params: Vec<TypeParameter>,
     pub def: TypeDef,
     pub docs: Vec<String>,
-    pub annotations: HashMap<String, Option<String>>,
+    pub annotations: Vec<(String, Option<String>)>,
+}
+
+#[derive(Debug, PartialEq, Clone)]
+pub struct TypeParameter {
+    /// The name of the generic type parameter e.g. "T".
+    pub name: String,
+    /// The concrete type for the type parameter.
+    ///
+    /// `None` if the type parameter is skipped.
+    pub ty: Option<TypeDecl>,
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -93,19 +102,14 @@ pub enum TypeDecl {
     //     key: Box<TypeDecl>,
     //     value: Box<TypeDecl>,
     // },
-    Optional(Box<TypeDecl>),
+    Option(Box<TypeDecl>),
     Result {
         ok: Box<TypeDecl>,
         err: Box<TypeDecl>,
     },
-    Id(TypeId),
-    Def(TypeDef),
-}
-
-#[derive(Debug, PartialEq, Clone)]
-pub enum TypeId {
     Primitive(PrimitiveType),
     UserDefined(String),
+    // Def(TypeDef),
 }
 
 #[derive(Debug, PartialEq, Clone, Copy)]
@@ -131,12 +135,6 @@ pub enum PrimitiveType {
     H256,
     U256,
     H160,
-    NonZeroU8,
-    NonZeroU16,
-    NonZeroU32,
-    NonZeroU64,
-    NonZeroU128,
-    NonZeroU256,
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -155,7 +153,7 @@ pub struct StructField {
     pub name: Option<String>,
     pub type_decl: TypeDecl,
     pub docs: Vec<String>,
-    pub annotations: HashMap<String, Option<String>>,
+    pub annotations: Vec<(String, Option<String>)>,
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -166,9 +164,9 @@ pub struct EnumDef {
 #[derive(Debug, PartialEq, Clone)]
 pub struct EnumVariant {
     pub name: String,
-    pub type_decl: Option<TypeDecl>,
+    pub def: StructDef,
     pub docs: Vec<String>,
-    pub annotations: HashMap<String, Option<String>>,
+    pub annotations: Vec<(String, Option<String>)>,
 }
 
 // ------------------------- Lexing helpers -------------------------
@@ -180,6 +178,15 @@ fn is_ident_start(c: char) -> bool {
 }
 fn is_ident_char(c: char) -> bool {
     c.is_ascii_alphanumeric() || c == '_'
+}
+
+fn tag_ident<'a>(
+    i: &'a str,
+) -> impl Parser<&'a str, Output = &'a str, Error = nom::error::Error<&'a str>> {
+    recognize(terminated(
+        tag_no_case(i),
+        not(peek(take_while1(is_ident_char))),
+    ))
 }
 
 fn ws<'a, O, P>(inner: P) -> impl Parser<&'a str, Output = O, Error = nom::error::Error<&'a str>>
@@ -224,10 +231,8 @@ fn doc_lines(i: &str) -> Res<'_, Vec<String>> {
 }
 
 /// Parse lines of form `@key` or `@key: value` into HashMap<String, Option<String>>
-fn annotations(i: &str) -> Res<'_, HashMap<String, Option<String>>> {
-    let (rest, pairs) = many0(annotation_line).parse(i)?;
-    let map = pairs.into_iter().collect::<HashMap<_, _>>();
-    Ok((rest, map))
+fn annotations(i: &str) -> Res<'_, Vec<(String, Option<String>)>> {
+    many0(annotation_line).parse(i)
 }
 
 /// Parse line of form `@key` or `@key: value` into (String, Option<String>)
@@ -278,24 +283,8 @@ fn sep_comma<'a, O, P>(
 where
     P: Parser<&'a str, Output = O, Error = nom::error::Error<&'a str>>,
 {
-    terminated(separated_list0(ws(char(',')), inner), opt(char(',')))
+    terminated(separated_list0(ws(char(',')), inner), opt(ws(char(','))))
 }
-
-// fn angle_list<'a, O, P>(inner: P) -> impl FnMut(&'a str) -> Res<'a, Vec<O>>
-// where
-//     P: Parser<&'a str, Output = O, Error = nom::error::Error<&'a str>>,
-// {
-//     let mut parser = delimited(ws(char('<')), sep_comma(inner), ws(char('>')));
-//     move |i| parser.parse(i)
-// }
-
-// fn paren_list<'a, O, P>(inner: P) -> impl FnMut(&'a str) -> Res<'a, Vec<O>>
-// where
-//     P: Parser<&'a str, Output = O, Error = nom::error::Error<&'a str>>,
-// {
-//     let mut parser = delimited(ws(char('(')), sep_comma(inner), ws(char(')')));
-//     move |i| parser.parse(i)
-// }
 
 fn path_ident(i: &str) -> Res<'_, String> {
     map(recognize(separated_list1(tag("::"), ident)), |s: &str| {
@@ -308,25 +297,27 @@ fn path_ident(i: &str) -> Res<'_, String> {
 
 fn primitive(i: &str) -> Res<'_, PrimitiveType> {
     ws(alt((
-        value(PrimitiveType::Bool, tag_no_case("bool")),
-        value(PrimitiveType::Char, tag_no_case("char")),
-        value(PrimitiveType::String, tag_no_case("string")),
-        value(PrimitiveType::U8, tag_no_case("u8")),
-        value(PrimitiveType::U16, tag_no_case("u16")),
-        value(PrimitiveType::U32, tag_no_case("u32")),
-        value(PrimitiveType::U64, tag_no_case("u64")),
-        value(PrimitiveType::U128, tag_no_case("u128")),
-        value(PrimitiveType::I8, tag_no_case("i8")),
-        value(PrimitiveType::I16, tag_no_case("i16")),
-        value(PrimitiveType::I32, tag_no_case("i32")),
-        value(PrimitiveType::I64, tag_no_case("i64")),
-        value(PrimitiveType::I128, tag_no_case("i128")),
-        value(PrimitiveType::ActorId, tag_no_case("actor")),
-        value(PrimitiveType::CodeId, tag_no_case("code")),
-        value(PrimitiveType::MessageId, tag_no_case("messageid")),
-        value(PrimitiveType::H256, tag_no_case("h256")),
-        value(PrimitiveType::U256, tag_no_case("u256")),
-        value(PrimitiveType::H160, tag_no_case("h160")),
+        value(PrimitiveType::Bool, tag_ident("bool")),
+        value(PrimitiveType::Char, tag_ident("char")),
+        value(PrimitiveType::String, tag_ident("string")),
+        value(PrimitiveType::U8, tag_ident("u8")),
+        value(PrimitiveType::U16, tag_ident("u16")),
+        value(PrimitiveType::U32, tag_ident("u32")),
+        value(PrimitiveType::U64, tag_ident("u64")),
+        value(PrimitiveType::U128, tag_ident("u128")),
+        value(PrimitiveType::I8, tag_ident("i8")),
+        value(PrimitiveType::I16, tag_ident("i16")),
+        value(PrimitiveType::I32, tag_ident("i32")),
+        value(PrimitiveType::I64, tag_ident("i64")),
+        value(PrimitiveType::I128, tag_ident("i128")),
+        value(PrimitiveType::ActorId, tag_ident("ActorId")),
+        value(PrimitiveType::ActorId, tag_ident("actor")),
+        value(PrimitiveType::CodeId, tag_ident("CodeId")),
+        value(PrimitiveType::CodeId, tag_ident("code")),
+        value(PrimitiveType::MessageId, tag_ident("messageid")),
+        value(PrimitiveType::H256, tag_ident("h256")),
+        value(PrimitiveType::U256, tag_ident("u256")),
+        value(PrimitiveType::H160, tag_ident("h160")),
     )))
     .parse(i)
 }
@@ -362,12 +353,12 @@ fn type_tuple(i: &str) -> Res<'_, TypeDecl> {
     .parse(i)
 }
 
-fn type_id(i: &str) -> Res<'_, TypeDecl> {
-    alt((
-        map(primitive, |p| TypeDecl::Id(TypeId::Primitive(p))),
-        map(path_ident, |s| TypeDecl::Id(TypeId::UserDefined(s))),
-    ))
-    .parse(i)
+fn type_primitive(i: &str) -> Res<'_, TypeDecl> {
+    map(primitive, |p| TypeDecl::Primitive(p)).parse(i)
+}
+
+fn type_user_defined(i: &str) -> Res<'_, TypeDecl> {
+    map(path_ident, |p| TypeDecl::UserDefined(p)).parse(i)
 }
 
 fn struct_field(i: &str) -> Res<'_, StructField> {
@@ -386,53 +377,57 @@ fn struct_field(i: &str) -> Res<'_, StructField> {
     ))
 }
 
-fn struct_def(i: &str) -> Res<'_, TypeDef> {
+fn struct_def(i: &str) -> Res<'_, StructDef> {
     map(
-        delimited(ws(char('{')), sep_comma(struct_field), ws(char('}'))),
-        |fields| TypeDef::Struct(StructDef { fields }),
+        terminated(
+            delimited(ws(char('{')), sep_comma(struct_field), ws(char('}'))),
+            opt(ws(char(';'))),
+        ),
+        |fields| StructDef { fields },
     )
     .parse(i)
 }
 
-fn tuple_struct_def(i: &str) -> Res<'_, TypeDef> {
+fn tuple_struct_def(i: &str) -> Res<'_, StructDef> {
     map(
-        delimited(ws(char('(')), sep_comma(type_decl), ws(char(')'))),
-        |items| {
-            TypeDef::Struct(StructDef {
-                fields: items
-                    .into_iter()
-                    .map(|t| StructField {
-                        name: None,
-                        type_decl: t,
-                        docs: Default::default(),
-                        annotations: Default::default(),
-                    })
-                    .collect(),
-            })
+        terminated(
+            delimited(ws(char('(')), sep_comma(type_decl), ws(char(')'))),
+            opt(ws(char(';'))),
+        ),
+        |items| StructDef {
+            fields: items
+                .into_iter()
+                .map(|t| StructField {
+                    name: None,
+                    type_decl: t,
+                    docs: Default::default(),
+                    annotations: Default::default(),
+                })
+                .collect(),
         },
     )
     .parse(i)
 }
 
-fn unit_struct_def(i: &str) -> Res<'_, TypeDef> {
-    value(
-        TypeDef::Struct(StructDef { fields: vec![] }),
-        opt(ws(char(';'))),
-    )
-    .parse(i)
+fn unit_struct_def(i: &str) -> Res<'_, StructDef> {
+    value(StructDef { fields: vec![] }, opt(ws(char(';')))).parse(i)
+}
+
+/// struct-like, tuple-like or unit-like variants
+fn any_struct_def(i: &str) -> Res<'_, StructDef> {
+    ws(alt((struct_def, tuple_struct_def, unit_struct_def))).parse(i)
 }
 
 fn enum_variant(i: &str) -> Res<'_, EnumVariant> {
     let (i, docs) = ws(doc_lines).parse(i)?;
     let (i, annotations) = ws(annotations).parse(i)?;
     let (i, name) = ws(ident).parse(i)?;
-    // struct-like, tuple-like or unit-like variants
-    let (i, type_def) = ws(alt((struct_def, tuple_struct_def, unit_struct_def))).parse(i)?;
+    let (i, def) = any_struct_def.parse(i)?;
     Ok((
         i,
         EnumVariant {
             name,
-            type_decl: Some(TypeDecl::Def(type_def)),
+            def,
             docs,
             annotations,
         },
@@ -458,16 +453,30 @@ fn enum_def(i: &str) -> Res<'_, TypeDef> {
 //     map(enum_def, TypeDecl::Def).parse(i)
 // }
 
+fn type_option(i: &str) -> Res<'_, TypeDecl> {
+    map(
+        preceded(
+            ws(tag_no_case("Option")),
+            delimited(ws(char('<')), ws(type_decl), ws(char('>'))),
+        ),
+        |td| TypeDecl::Option(Box::new(td)),
+    )
+    .parse(i)
+}
+
 fn type_decl(i: &str) -> Res<'_, TypeDecl> {
     ws(alt((
-        type_array, type_slice, type_tuple,
+        type_array,
+        type_slice,
+        type_tuple,
         // type_map,
-        // type_option,
+        type_option,
         // type_result,
         // inline defs
         // type_decl_struct,
         // type_decl_enum,
-        type_id,
+        type_primitive,
+        type_user_defined,
     )))
     .parse(i)
 }
@@ -477,15 +486,15 @@ fn type_item(i: &str) -> Res<'_, Type> {
     let (i, annotations) = ws(annotations).parse(i)?;
     let (i, kind) = ws(alt((tag("struct"), tag("enum")))).parse(i)?;
     let (i, name) = ws(ident).parse(i)?;
-    // Optional generics <...> are parsed and ignored
-    let (i, _) = opt(ws(delimited(
+    // Optional generics <...>
+    let (i, type_params) = ws(opt(delimited(
         char('<'),
-        separated_list0(ws(char(',')), type_decl),
+        sep_comma(map(ident, |name| TypeParameter { name, ty: None })),
         char('>'),
     )))
     .parse(i)?;
     let (i, def) = if kind == "struct" {
-        ws(alt((struct_def, tuple_struct_def, unit_struct_def))).parse(i)?
+        map(any_struct_def, TypeDef::Struct).parse(i)?
     } else {
         ws(enum_def).parse(i)?
     };
@@ -493,6 +502,7 @@ fn type_item(i: &str) -> Res<'_, Type> {
         i,
         Type {
             name,
+            type_params: type_params.unwrap_or_default(),
             def,
             docs,
             annotations,
@@ -526,12 +536,12 @@ fn throws_type(i: &str) -> Res<'_, TypeDecl> {
 fn service_func(i: &str) -> Res<'_, ServiceFunc> {
     let (i, docs) = ws(doc_lines).parse(i)?;
     let (i, annotations) = ws(annotations).parse(i)?;
-    let is_query = annotations.contains_key("query");
+    let is_query = annotations.iter().any(|(k, _)| k == "query");
     let (i, name) = ws(ident).parse(i)?;
     let (i, params) = ws(param_list).parse(i)?;
     // return type optional
     let (i, output) = opt(preceded(ws(tag("->")), ws(type_decl))).parse(i)?;
-    let output = output.unwrap_or(TypeDecl::Id(TypeId::Primitive(PrimitiveType::Null)));
+    let output = output.unwrap_or(TypeDecl::Primitive(PrimitiveType::Null));
     let (i, throws) = opt(ws(throws_type)).parse(i)?;
     let (i, _) = ws(char(';')).parse(i)?;
     Ok((
@@ -832,11 +842,11 @@ service Canvas {
 
     types {
         // Point with two coordinates.
-        struct Point {
+        struct Point<T> {
             /// Horizontal coordinate.
-            x: u32,
+            x: T,
             /// Vertical coordinate.
-            y: u32,
+            y: T,
         }
 
         struct Color {
@@ -921,6 +931,14 @@ service Pausable {
     }
 
     #[test]
+    fn parse_option() {
+        const SRC: &str = r#"Option<(String, PointStatus)>"#;
+        let (rest, res) = ws(type_option).parse(SRC).expect("parse");
+        println!("res: {res:?}, rest: {rest}");
+        assert!(rest.trim().is_empty());
+    }
+
+    #[test]
     fn parse_struct_def() {
         const SRC: &str = r#"{
             /// Who has colored it.
@@ -929,21 +947,21 @@ service Pausable {
             /// Color used.
             color: Color,
         }"#;
-        let (rest, res) = ws(alt((struct_def, tuple_struct_def, unit_struct_def)))
-            .parse(SRC)
+        let (rest, res) = any_struct_def.parse(SRC).expect("parse");
+        println!("res: {res:?}, rest: {rest}");
+        assert!(rest.trim().is_empty());
+
+        let (rest, res) = any_struct_def
+            .parse(r#"(ActorId, ActorColor)"#)
             .expect("parse");
         println!("res: {res:?}, rest: {rest}");
         assert!(rest.trim().is_empty());
 
-        let (rest, res) = ws(alt((struct_def, tuple_struct_def, unit_struct_def)))
-            .parse(r#"(actor, Color)"#)
-            .expect("parse");
+        let (rest, res) = any_struct_def.parse(r#"(u32,)"#).expect("parse");
         println!("res: {res:?}, rest: {rest}");
         assert!(rest.trim().is_empty());
 
-        let (rest, res) = ws(alt((struct_def, tuple_struct_def, unit_struct_def)))
-            .parse(r#""#)
-            .expect("parse");
+        let (rest, res) = any_struct_def.parse(r#""#).expect("parse");
         println!("res: {res:?}, rest: {rest}");
         assert!(rest.trim().is_empty());
     }
@@ -1030,5 +1048,171 @@ service Pausable {
         assert_eq!(paus.name, "Pausable");
         assert!(paus.funcs.iter().any(|f| f.name == "Pause"));
         assert!(paus.types.iter().any(|t| t.name == "PausedError"));
+    }
+
+    #[test]
+    fn parse_demo_idl() {
+        const SRC: &str = r#"
+            !@sails: 0.9.1
+            !@author: Test Author
+            !@version: 1.0.0
+
+            service PingPong {
+                functions {
+                    Ping(input: String) -> String throws String;
+                }
+            }
+
+            service Counter {
+                events {
+                    /// Emitted when a new value is added to the counter
+                    Added(u32),
+                    /// Emitted when a value is subtracted from the counter
+                    Subtracted(u32),
+                }
+
+                functions {
+                    /// Add a value to the counter
+                    Add(value: u32) -> u32;
+
+                    /// Substract a value from the counter
+                    Sub(value: u32) -> u32;
+
+                    /// Get the current value
+                    @query
+                    Value() -> u32;
+                }
+            }
+
+            service Dog {
+                events {
+                    Barked,
+                    Walked {
+                        from: (i32, i32),
+                        to: (i32, i32),
+                    },
+                }
+
+                functions {
+                    MakeSound() -> String;
+
+                    Walk(dx: i32, dy: i32);
+
+                    @query
+                    AvgWeight() -> u32;
+
+                    @query
+                    Position() -> (i32, i32);
+                }
+            }
+
+            service References {
+                functions {
+                    Add(v: u32) -> u32;
+
+                    AddByte(byte: u8) -> [u8];
+
+                    GuessNum(number: u8) -> String throws String;
+
+                    Incr() -> ReferenceCount;
+
+                    SetNum(number: u8) throws String;
+
+                    @query
+                    Baked() -> String;
+
+                    @query
+                    LastByte() -> Option<u8>;
+
+                    @query
+                    Message() -> Option<String>;
+                }
+
+                types {
+                    struct ReferenceCount(u32);
+                }
+            }
+
+            service ThisThat {
+                functions {
+                    DoThat(param: DoThatParam) -> (ActorId, NonZeroU32, ManyVariantsReply) throws (String,);
+
+                    DoThis(p1: u32, p2: String, p3: (Option<H160>, NonZeroU8), p4: TupleStruct) -> (String, u32);
+
+                    Noop();
+
+                    @query
+                    That() -> String throws String;
+
+                    @query
+                    This() -> u32;
+                }
+
+                types {
+                    struct DoThatParam {
+                        p1: NonZeroU32,
+                        p2: ActorId,
+                        p3: ManyVariants,
+                    }
+
+                    enum ManyVariants {
+                        One,
+                        Two(u32),
+                        Three(Option<u256>),
+                        Four {
+                            a: u32,
+                            b: Option<u16>,
+                        },
+                        Five(String, H256),
+                        Six((u32,)),
+                    }
+
+                    enum ManyVariantsReply {
+                        One,
+                        Two,
+                        Three,
+                        Four,
+                        Five,
+                        Six,
+                    }
+
+                    struct TupleStruct(bool);
+                }
+            }
+
+            service ValueFee {
+                events {
+                    Withheld(u128),
+                }
+
+                functions {
+                    /// Return flag if fee taken and remain value,
+                    /// using special type `CommandReply<T>`
+                    DoSomethingAndTakeFee() -> bool;
+                }
+            }
+
+            program Demo {
+                constructors {
+                    /// Program constructor (called once at the very beginning of the program lifetime)
+                    Default();
+
+                    /// Another program constructor (called once at the very beginning of the program lifetime)
+                    New(counter: Option<u32>, dog_position: Option<(i32, i32)>);
+                }
+
+                services {
+                    PingPong,
+                    Counter,
+                    Dog,
+                    References,
+                    ThisThat,
+                    ValueFee,
+                }
+            }
+        "#;
+        let (rest, res) = idl.parse(SRC).expect("parse");
+        println!("res: {res:?}, rest: {rest}");
+        assert!(rest.trim().is_empty());
     }
 }
