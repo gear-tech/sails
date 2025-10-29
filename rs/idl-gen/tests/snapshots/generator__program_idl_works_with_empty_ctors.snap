@@ -6,7 +6,7 @@ expression: generated_idl
 !@author: 
 !@version: 0.0.0
 
-service  {
+service {
     events {
         /// `This` Done
         ThisDone (

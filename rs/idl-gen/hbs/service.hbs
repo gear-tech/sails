@@ -1,4 +1,4 @@
-service {{name}} {
+service{{#if name}} {{name}}{{/if}} {
     {{#if extends}}
     extends {
         {{#each extends}}

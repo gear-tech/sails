@@ -271,7 +271,7 @@ impl ProgramMeta for TestProgramWithNonEmptyCtorsMeta {
     type ConstructorsMeta = NonEmptyCtorsMeta;
 
     const SERVICES: &'static [(&'static str, AnyServiceMetaFn)] =
-        &[("", AnyServiceMeta::new::<TestServiceMeta>)];
+        &[("TestServiceMeta", AnyServiceMeta::new::<TestServiceMeta>)];
 
     const ASYNC: bool = false;
 }
@@ -282,8 +282,8 @@ impl ProgramMeta for TestProgramWithMultipleServicesMeta {
     type ConstructorsMeta = EmptyCtorsMeta;
 
     const SERVICES: &'static [(&'static str, AnyServiceMetaFn)] = &[
-        ("", AnyServiceMeta::new::<TestServiceMeta>),
-        ("SomeService", AnyServiceMeta::new::<TestServiceMeta>),
+        ("TestServiceMeta1", AnyServiceMeta::new::<TestServiceMeta>),
+        ("TestServiceMeta2", AnyServiceMeta::new::<TestServiceMeta>),
     ];
 
     const ASYNC: bool = false;
@@ -292,8 +292,8 @@ impl ProgramMeta for TestProgramWithMultipleServicesMeta {
 #[test]
 fn program_idl_works_with_empty_ctors() {
     let mut idl = Vec::new();
-    let meta_info = GenMetaInfoBuilder::new().program_name("EmptyCtorsProgram".to_string());
 
+    let meta_info = GenMetaInfoBuilder::new().program_name("EmptyCtorsProgram".to_string());
     program2::generate_idl::<TestProgramWithEmptyCtorsMeta>(meta_info, &mut idl).unwrap();
     let generated_idl = String::from_utf8(idl).unwrap();
 
@@ -307,91 +307,109 @@ fn program_idl_works_with_empty_ctors() {
     // assert_eq!(generated_idl_program.types().len(), 10);
 }
 
-// #[test]
-// fn program_idl_works_with_non_empty_ctors() {
-//     let mut idl = Vec::new();
-//     program::generate_idl::<TestProgramWithNonEmptyCtorsMeta>(&mut idl).unwrap();
-//     let generated_idl = String::from_utf8(idl).unwrap();
-//     let generated_idl_program = sails_idl_parser::ast::parse_idl(&generated_idl);
+#[test]
+fn program_idl_works_with_non_empty_ctors() {
+    let mut idl = Vec::new();
 
-//     insta::assert_snapshot!(generated_idl);
-//     let generated_idl_program = generated_idl_program.unwrap();
-//     assert_eq!(generated_idl_program.ctor().unwrap().funcs().len(), 2);
-//     assert_eq!(generated_idl_program.services().len(), 1);
-//     assert_eq!(generated_idl_program.services()[0].funcs().len(), 4);
-//     assert_eq!(generated_idl_program.types().len(), 10);
-// }
+    let meta_info = GenMetaInfoBuilder::new().program_name("NonEmptyCtorsProgram".to_string());
+    program2::generate_idl::<TestProgramWithNonEmptyCtorsMeta>(meta_info, &mut idl).unwrap();
+    let generated_idl = String::from_utf8(idl).unwrap();
 
-// #[test]
-// fn program_idl_works_with_multiple_services() {
-//     let mut idl = Vec::new();
-//     program::generate_idl::<TestProgramWithMultipleServicesMeta>(&mut idl).unwrap();
-//     let generated_idl = String::from_utf8(idl).unwrap();
-//     let generated_idl_program = sails_idl_parser::ast::parse_idl(&generated_idl);
+    insta::assert_snapshot!(generated_idl);
 
-//     insta::assert_snapshot!(generated_idl);
-//     let generated_idl_program = generated_idl_program.unwrap();
-//     assert!(generated_idl_program.ctor().is_none());
-//     assert_eq!(generated_idl_program.services().len(), 2);
-//     assert_eq!(generated_idl_program.services()[0].name(), "");
-//     assert_eq!(generated_idl_program.services()[0].funcs().len(), 4);
-//     assert_eq!(generated_idl_program.services()[1].name(), "SomeService");
-//     assert_eq!(generated_idl_program.services()[1].funcs().len(), 4);
-//     assert_eq!(generated_idl_program.types().len(), 10);
-// }
+    // let generated_idl_program = sails_idl_parser::ast::parse_idl(&generated_idl);
+    // let generated_idl_program = generated_idl_program.unwrap();
+    // assert_eq!(generated_idl_program.ctor().unwrap().funcs().len(), 2);
+    // assert_eq!(generated_idl_program.services().len(), 1);
+    // assert_eq!(generated_idl_program.services()[0].funcs().len(), 4);
+    // assert_eq!(generated_idl_program.types().len(), 10);
+}
 
-// #[test]
-// fn service_idl_works_with_basics() {
-//     let mut idl = Vec::new();
-//     service::generate_idl::<TestServiceMeta>(&mut idl).unwrap();
-//     let generated_idl = String::from_utf8(idl).unwrap();
-//     let generated_idl_program = sails_idl_parser::ast::parse_idl(&generated_idl);
+#[test]
+fn program_idl_works_with_multiple_services() {
+    let mut idl = Vec::new();
 
-//     insta::assert_snapshot!(generated_idl);
-//     let generated_idl_program = generated_idl_program.unwrap();
-//     assert!(generated_idl_program.ctor().is_none());
-//     assert_eq!(generated_idl_program.services().len(), 1);
-//     assert_eq!(generated_idl_program.services()[0].funcs().len(), 4);
-//     assert_eq!(generated_idl_program.types().len(), 10);
-// }
+    let meta_info =
+        GenMetaInfoBuilder::new().program_name("MultipleServicesNoCtorsProgram".to_string());
+    program2::generate_idl::<TestProgramWithMultipleServicesMeta>(meta_info, &mut idl).unwrap();
+    let generated_idl = String::from_utf8(idl).unwrap();
 
-// #[test]
-// fn service_idl_works_with_base_services() {
-//     let mut idl = Vec::new();
-//     service::generate_idl::<
-//         ServiceMetaWithBase<
-//             CommandsMeta,
-//             QueriesMeta,
-//             EventsMeta,
-//             ServiceMeta<BaseCommandsMeta, BaseQueriesMeta, BaseEventsMeta>,
-//         >,
-//     >(&mut idl)
-//     .unwrap();
-//     let generated_idl = String::from_utf8(idl).unwrap();
-//     let generated_idl_program = sails_idl_parser::ast::parse_idl(&generated_idl);
+    insta::assert_snapshot!(generated_idl);
 
-//     insta::assert_snapshot!(generated_idl);
-//     let generated_idl_program = generated_idl_program.unwrap();
-//     assert!(generated_idl_program.ctor().is_none());
-//     assert_eq!(generated_idl_program.services().len(), 1);
-//     assert_eq!(generated_idl_program.services()[0].funcs().len(), 6);
-//     assert_eq!(generated_idl_program.types().len(), 10);
-// }
+    // let generated_idl_program = sails_idl_parser::ast::parse_idl(&generated_idl);
+    // let generated_idl_program = generated_idl_program.unwrap();
+    // assert!(generated_idl_program.ctor().is_none());
+    // assert_eq!(generated_idl_program.services().len(), 2);
+    // assert_eq!(generated_idl_program.services()[0].name(), "");
+    // assert_eq!(generated_idl_program.services()[0].funcs().len(), 4);
+    // assert_eq!(generated_idl_program.services()[1].name(), "SomeService");
+    // assert_eq!(generated_idl_program.services()[1].funcs().len(), 4);
+    // assert_eq!(generated_idl_program.types().len(), 10);
+}
 
-// #[test]
-// fn service_idl_fails_with_base_services_and_ambiguous_events() {
-//     let mut idl = Vec::new();
-//     let result = service::generate_idl::<
-//         ServiceMetaWithBase<
-//             CommandsMeta,
-//             QueriesMeta,
-//             EventsMeta,
-//             ServiceMeta<BaseCommandsMeta, BaseQueriesMeta, AmbiguousBaseEventsMeta>,
-//         >,
-//     >(&mut idl);
+#[test]
+fn service_idl_works_with_basics() {
+    let mut idl = Vec::new();
 
-//     assert!(matches!(
-//         result,
-//         Err(sails_idl_gen::Error::EventMetaIsAmbiguous(_))
-//     ));
-// }
+    let meta_info = GenMetaInfoBuilder::new()
+        .author("Developer".to_string())
+        .major_version(1);
+    service2::generate_idl::<TestServiceMeta>(meta_info, &mut idl).unwrap();
+    let generated_idl = String::from_utf8(idl).unwrap();
+
+    insta::assert_snapshot!(generated_idl);
+
+    // let generated_idl_program = sails_idl_parser::ast::parse_idl(&generated_idl);
+    // let generated_idl_program = generated_idl_program.unwrap();
+    // assert!(generated_idl_program.ctor().is_none());
+    // assert_eq!(generated_idl_program.services().len(), 1);
+    // assert_eq!(generated_idl_program.services()[0].funcs().len(), 4);
+    // assert_eq!(generated_idl_program.types().len(), 10);
+}
+
+#[test]
+fn service_idl_works_with_base_services() {
+    let mut idl = Vec::new();
+
+    let meta_info = GenMetaInfoBuilder::new()
+        .author("Developer".to_string())
+        .major_version(3)
+        .minor_version(10);
+    service2::generate_idl::<
+        ServiceMetaWithBase<
+            CommandsMeta,
+            QueriesMeta,
+            EventsMeta,
+            ServiceMeta<BaseCommandsMeta, BaseQueriesMeta, BaseEventsMeta>,
+        >,
+    >(meta_info, &mut idl)
+    .unwrap();
+    let generated_idl = String::from_utf8(idl).unwrap();
+
+    insta::assert_snapshot!(generated_idl);
+
+    // let generated_idl_program = sails_idl_parser::ast::parse_idl(&generated_idl);
+    // let generated_idl_program = generated_idl_program.unwrap();
+    // assert!(generated_idl_program.ctor().is_none());
+    // assert_eq!(generated_idl_program.services().len(), 1);
+    // assert_eq!(generated_idl_program.services()[0].funcs().len(), 6);
+    // assert_eq!(generated_idl_program.types().len(), 10);
+}
+
+#[test]
+fn service_idl_fails_with_base_services_and_ambiguous_events() {
+    let mut idl = Vec::new();
+    let result = service2::generate_idl::<
+        ServiceMetaWithBase<
+            CommandsMeta,
+            QueriesMeta,
+            EventsMeta,
+            ServiceMeta<BaseCommandsMeta, BaseQueriesMeta, AmbiguousBaseEventsMeta>,
+        >,
+    >(GenMetaInfoBuilder::new(), &mut idl);
+
+    assert!(matches!(
+        result,
+        Err(sails_idl_gen::Error::EventMetaIsAmbiguous(_))
+    ));
+}
