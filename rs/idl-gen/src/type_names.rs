@@ -740,6 +740,7 @@ impl Deref for FinalizedName {
 pub enum RawNames {
     #[serde(rename = "enum")]
     Enum {
+        docs: Vec<String>,
         own_name: String,
         fields: Vec<TypeFieldsOwner>,
     },
@@ -748,39 +749,55 @@ pub enum RawNames {
 }
 
 impl RawNames {
-    fn new_struct(own_name: String) -> Self {
+    fn new_struct(own_name: String, docs: Vec<String>) -> Self {
         RawNames::Struct(TypeFieldsOwner {
             own_name,
             fields: Vec::new(),
+            docs,
         })
     }
 
-    fn new_enum(own_name: String) -> Self {
+    fn new_enum(own_name: String, docs: Vec<String>) -> Self {
         RawNames::Enum {
             own_name,
             fields: Vec::new(),
+            docs,
         }
     }
 
     fn finalize(self) -> FinalizedRawName {
         match self {
-            RawNames::Enum { own_name, fields } => {
+            RawNames::Enum {
+                own_name,
+                fields,
+                docs,
+            } => {
                 let fields = fields
                     .into_iter()
                     .map(TypeFieldsOwner::finalize_fields)
                     .collect();
 
-                FinalizedRawName(RawNames::Enum { own_name, fields })
+                FinalizedRawName(RawNames::Enum {
+                    own_name,
+                    fields,
+                    docs,
+                })
             }
             RawNames::Struct(owner) => FinalizedRawName(RawNames::Struct(owner.finalize_fields())),
         }
     }
 
-    fn add_struct_field(&mut self, field_name: Option<String>, type_name: String) {
+    fn add_struct_field(
+        &mut self,
+        field_name: Option<String>,
+        type_name: String,
+        docs: Vec<String>,
+    ) {
         match self {
             RawNames::Struct(owner) => owner.fields.push(TypeField {
                 name: field_name,
                 type_name,
+                docs,
             }),
             RawNames::Enum { .. } => {}
         }
@@ -791,22 +808,29 @@ impl RawNames {
         variant_idx: usize,
         field_name: Option<String>,
         type_name: String,
+        docs: Vec<String>,
     ) {
         let RawNames::Enum { fields, .. } = self else {
             return;
         };
 
-        let Some(variant_owner) = fields.get_mut(variant_idx) else {
+        let Some(field_owner) = fields.get_mut(variant_idx) else {
             panic!("internal error: variant not initialized");
         };
 
-        variant_owner.fields.push(TypeField {
+        field_owner.fields.push(TypeField {
             name: field_name,
             type_name,
+            docs,
         });
     }
 
-    fn initialize_enum_field(&mut self, variant_idx: usize, variant_name: String) {
+    fn initialize_enum_field(
+        &mut self,
+        variant_idx: usize,
+        variant_name: String,
+        docs: Vec<String>,
+    ) {
         let RawNames::Enum { fields, .. } = self else {
             return;
         };
@@ -822,6 +846,7 @@ impl RawNames {
         let new_variant_owner = TypeFieldsOwner {
             own_name: variant_name,
             fields: Vec::new(),
+            docs,
         };
 
         fields.push(new_variant_owner);
@@ -830,7 +855,7 @@ impl RawNames {
     #[cfg(test)]
     pub(crate) fn type_name(&self) -> &str {
         match self {
-            RawNames::Enum { own_name: name, .. } => name,
+            RawNames::Enum { own_name, .. } => own_name,
             RawNames::Struct(owner) => &owner.own_name,
         }
     }
@@ -853,6 +878,7 @@ impl RawNames {
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize)]
 pub struct TypeFieldsOwner {
+    pub docs: Vec<String>,
     pub own_name: String,
     pub fields: Vec<TypeField>,
 }
@@ -866,6 +892,7 @@ impl TypeFieldsOwner {
                 .into_iter()
                 .map(TypeField::finalize_field)
                 .collect(),
+            docs: self.docs,
         }
     }
 }
@@ -875,6 +902,7 @@ pub struct TypeField {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub name: Option<String>,
     pub type_name: String,
+    pub docs: Vec<String>,
 }
 
 impl TypeField {
@@ -882,6 +910,7 @@ impl TypeField {
         TypeField {
             name: self.name,
             type_name: finalize_type_name::finalize(&self.type_name).0,
+            docs: self.docs,
         }
     }
 }
@@ -895,6 +924,7 @@ pub(crate) fn resolve_raw_type_names(
     concrete_names: &BTreeMap<u32, String>,
     filter_out_types: &HashSet<u32>,
 ) -> Result<BTreeMap<u32, RawNames>> {
+    let mut seen_parent_names = HashSet::new();
     let mut generic_names = BTreeMap::new();
 
     // Iterate through all types and process their fields
@@ -944,13 +974,22 @@ pub(crate) fn resolve_raw_type_names(
             &params_names,
         )?;
 
+        if !seen_parent_names.insert(parent_type_name.clone()) {
+            continue;
+        }
+
         // Construct set of param names for easier lookup
         let params_names = params_names.into_iter().collect::<HashSet<_>>();
+        let docs = parent_type_info
+            .docs
+            .iter()
+            .map(|doc| doc.to_string())
+            .collect::<Vec<_>>();
 
         // Then insert fields
         let type_generic_name = match &parent_type_info.type_def {
             TypeDef::Composite(composite) => {
-                let mut parent_generic_name = RawNames::new_struct(parent_type_name.clone());
+                let mut parent_generic_name = RawNames::new_struct(parent_type_name.clone(), docs);
                 resolve_fields_types_names(
                     composite.fields.iter(),
                     concrete_names,
@@ -962,12 +1001,21 @@ pub(crate) fn resolve_raw_type_names(
                 parent_generic_name
             }
             TypeDef::Variant(variant) => {
-                let mut parent_generic_name = RawNames::new_enum(parent_type_name.clone());
+                let mut parent_generic_name = RawNames::new_enum(parent_type_name.clone(), docs);
                 for variant in variant.variants.iter() {
                     let variant_idx = variant.index as usize;
                     let variant_name = variant.name.to_string();
+                    let variant_docs = variant
+                        .docs
+                        .iter()
+                        .map(|doc| doc.to_string())
+                        .collect::<Vec<_>>();
 
-                    parent_generic_name.initialize_enum_field(variant_idx, variant_name);
+                    parent_generic_name.initialize_enum_field(
+                        variant_idx,
+                        variant_name,
+                        variant_docs,
+                    );
 
                     // if there're no fields, then it's a unit variant
                     if !variant.fields.is_empty() {
@@ -1028,14 +1076,24 @@ fn resolve_fields_types_names<'a>(
         let field_name = field.name.map(|name| name.to_string());
         let field_type_id = field.ty.id;
         let field_type_name = field.type_name.expect("field must have name set");
+        let field_docs = field
+            .docs
+            .iter()
+            .map(|doc| doc.to_string())
+            .collect::<Vec<_>>();
 
         let field_type_name =
             resolve_field_type_name(field_type_id, field_type_name, concrete_names, params_names)?;
 
         if let Some(variant_idx) = variant_idx {
-            parent_generic_name.add_enum_field(variant_idx, field_name, field_type_name);
+            parent_generic_name.add_enum_field(
+                variant_idx,
+                field_name,
+                field_type_name,
+                field_docs,
+            );
         } else {
-            parent_generic_name.add_struct_field(field_name, field_type_name);
+            parent_generic_name.add_struct_field(field_name, field_type_name, field_docs);
         }
     }
 
@@ -1275,7 +1333,9 @@ mod finalize_type_name {
 
     pub(super) fn finalize(type_name: &str) -> FinalizedName {
         let syn_type = syn::parse_str::<Type>(type_name).unwrap_or_else(|_| {
-            panic!("internal error: failed to parse type name during finalization: {type_name}")
+            unreachable!(
+                "internal error: failed to parse type name during finalization: {type_name}"
+            )
         });
 
         FinalizedName(finalize_syn(&syn_type))
@@ -2126,10 +2186,12 @@ mod tests {
             TypeField {
                 name: None,
                 type_name: "u32".to_string(),
+                docs: Vec::new(),
             },
             TypeField {
                 name: None,
                 type_name: "String".to_string(),
+                docs: Vec::new(),
             },
         ];
         assert_eq!(fields.fields, expected_fields_value);
@@ -2143,10 +2205,12 @@ mod tests {
             TypeField {
                 name: Some("a".to_string()),
                 type_name: "u32".to_string(),
+                docs: Vec::new(),
             },
             TypeField {
                 name: Some("b".to_string()),
                 type_name: "String".to_string(),
+                docs: Vec::new(),
             },
         ];
         assert_eq!(fields.fields, expected_fields_value);
@@ -2163,6 +2227,7 @@ mod tests {
             TypeFieldsOwner {
                 own_name: "Unit".to_string(),
                 fields: vec![],
+                docs: Vec::new(),
             },
             TypeFieldsOwner {
                 own_name: "Tuple".to_string(),
@@ -2170,12 +2235,15 @@ mod tests {
                     TypeField {
                         name: None,
                         type_name: "u32".to_string(),
+                        docs: Vec::new(),
                     },
                     TypeField {
                         name: None,
                         type_name: "String".to_string(),
+                        docs: Vec::new(),
                     },
                 ],
+                docs: Vec::new(),
             },
             TypeFieldsOwner {
                 own_name: "Named".to_string(),
@@ -2183,12 +2251,15 @@ mod tests {
                     TypeField {
                         name: Some("a".to_string()),
                         type_name: "u32".to_string(),
+                        docs: Vec::new(),
                     },
                     TypeField {
                         name: Some("b".to_string()),
                         type_name: "String".to_string(),
+                        docs: Vec::new(),
                     },
                 ],
+                docs: Vec::new(),
             },
         ];
         assert_eq!(fields, &expected_variants);

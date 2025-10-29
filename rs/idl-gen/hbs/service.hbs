@@ -16,10 +16,23 @@ service {{name}} {
         {{name}}{{~#if fields}}
         {{~#if fields.[0].name}} {
             {{#each fields}}
+            {{#each docs}}
+            /// {{{this}}}
+            {{/each}}
             {{name}}: {{{lookup ../../concrete_names type}}},
             {{/each}}
         }{{~else~}}
-            ({{#each fields}}{{{lookup ../../concrete_names type}}}{{#unless @last}}, {{/unless}}{{/each}})
+        {{~#if (any_field_has_docs fields)}} (
+            {{#each fields}}
+            {{#each docs}}
+            /// {{{this}}}
+            {{/each}}
+            {{{lookup ../../concrete_names type}}}{{#unless @last}},{{/unless}}
+            {{/each}}
+        )
+        {{~else~}}
+        ({{#each fields}}{{{lookup ../../concrete_names type}}}{{#unless @last}}, {{/unless}}{{/each}})
+        {{~/if}}
         {{~/if}}{{~/if}},
     {{/each}}
     }
@@ -60,32 +73,57 @@ service {{name}} {
     types {
 {{#each types}}
 {{#if this.enum}}
-        enum {{this.enum.own_name}} {
+        {{#each this.enum.docs}}
+        /// {{{this}}}
+        {{/each}}
+        enum {{{this.enum.own_name}}} {
         {{#each this.enum.fields}}
+            {{#each docs}}
+            /// {{{this}}}
+            {{/each}}
             {{own_name}}{{~#if fields}}
             {{~#if fields.[0].name}} {
                 {{#each fields}}
+                {{#each docs}}
+                /// {{{this}}}
+                {{/each}}
                 {{name}}: {{{type_name}}},
                 {{/each}}
             }
             {{~else~}}
+            {{~#if (any_field_has_docs fields)}} (
+                {{#each fields}}
+                {{#each docs}}
+                /// {{{this}}}
+                {{/each}}
+                {{{type_name}}}{{#unless @last}},{{/unless}}
+                {{/each}}
+            )
+            {{~else~}}
             ({{#each fields}}{{{type_name}}}{{#unless @last}}, {{/unless}}{{/each}})
+            {{~/if}}
             {{~/if}}{{~/if}},
         {{/each}}
         }
 {{else}}
+        {{#each this.struct.docs}}
+        /// {{{this}}}
+        {{/each}}
     {{#if this.struct.fields}}
         {{#if this.struct.fields.[0].name}}
-        struct {{this.struct.own_name}} {
+        struct {{{this.struct.own_name}}} {
             {{#each this.struct.fields}}
+            {{#each docs}}
+            /// {{{this}}}
+            {{/each}}
             {{name}}: {{{type_name}}},
             {{/each}}
         }
         {{else}}
-        struct {{this.struct.own_name}}({{#each this.struct.fields}}{{{type_name}}}{{#unless @last}}, {{/unless}}{{/each}});
+        struct {{{this.struct.own_name}}}({{#each this.struct.fields}}{{{type_name}}}{{#unless @last}}, {{/unless}}{{/each}});
         {{/if}}
     {{else}}
-        struct {{this.struct.own_name}};
+        struct {{{this.struct.own_name}}};
     {{/if}}
 {{/if}}
 {{#unless @last}}

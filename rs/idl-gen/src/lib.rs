@@ -1,12 +1,12 @@
+use crate::type_names::{FinalizedName, FinalizedRawName};
 pub use errors::*;
 use handlebars::{Handlebars, handlebars_helper};
 use meta::ExpandedProgramMeta;
 pub use program::*;
 use scale_info::{Field, PortableType, Variant, form::PortableForm};
 use serde::Serialize;
+use serde_json::Value as JsonValue;
 use std::{fs, io::Write, path::Path};
-
-use crate::type_names::{FinalizedName, FinalizedRawName};
 
 mod errors;
 mod meta;
@@ -16,6 +16,8 @@ mod type_names;
 // TODO: Discuss
 // 1. extends section (no need to merge fns, or merge but with stating source service -> benefits when same method names corner case)
 // 2. references + boxes? paren types?
+// 3. generic consts?
+// 4. Ignore tuple struct event variants with 1 field docs?
 
 const IDL_TEMPLATE: &str = include_str!("../hbs/idl.hbs");
 const COMPOSITE_TEMPLATE: &str = include_str!("../hbs/composite.hbs");
@@ -294,6 +296,7 @@ fn render_idlv2(
         .register_partial("service", SERVICE_TEMPLATE)
         .map_err(Box::new)?;
     handlebars.register_helper("deref", Box::new(deref));
+    handlebars.register_helper("any_field_has_docs", Box::new(any_field_has_docs));
 
     handlebars
         .render_to_write("idlv2", &idl_data, idl_writer)
@@ -364,6 +367,15 @@ struct FunctionsSection {
 }
 
 handlebars_helper!(deref: |v: String| { v });
+handlebars_helper!(any_field_has_docs: |fields: JsonValue| {
+    fields.as_array().is_some_and(|arr| {
+        arr.iter().any(|f| {
+            f.get("docs")
+                .and_then(|d| d.as_array())
+                .is_some_and(|docs| !docs.is_empty())
+        })
+    })
+});
 
 #[cfg(test)]
 mod tests {

@@ -47,12 +47,14 @@ impl ExpandedProgramMeta {
             let types = program_meta_registry.types().to_vec();
             let ctors = program_meta_registry.ctor_fns;
 
-            Some(ProgramIdlSection {
-                name: program_name,
-                concrete_names,
-                types,
-                ctors,
-                services: Default::default(),
+            (!ctors.is_empty()).then_some({
+                ProgramIdlSection {
+                    name: program_name,
+                    concrete_names,
+                    types,
+                    ctors,
+                    services: Default::default(),
+                }
             })
         } else {
             None
