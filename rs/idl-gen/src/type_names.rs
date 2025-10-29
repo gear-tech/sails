@@ -1073,7 +1073,7 @@ fn resolve_fields_types_names<'a>(
     variant_idx: Option<usize>,
 ) -> Result<()> {
     for field in fields_iter {
-        let field_name = field.name.map(|name| name.to_string());
+        let field_name = field.name.as_ref().map(|name| name.to_string());
         let field_type_id = field.ty.id;
         let field_type_name = field
             .type_name
