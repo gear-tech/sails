@@ -7,9 +7,9 @@ use nom::{
     branch::alt,
     bytes::complete::{tag, tag_no_case, take_while, take_while1},
     character::complete::{char, digit1, line_ending, multispace0, not_line_ending},
-    combinator::{all_consuming, map, map_res, opt, recognize, value},
-    multi::{many0, separated_list0},
-    sequence::{delimited, preceded, separated_pair, terminated, tuple},
+    combinator::{all_consuming, map, map_res, not, opt, peek, recognize, value},
+    multi::{many0, separated_list0, separated_list1},
+    sequence::{delimited, preceded, separated_pair, terminated},
 };
 use std::{collections::HashMap, str::FromStr};
 
@@ -17,14 +17,21 @@ use std::{collections::HashMap, str::FromStr};
 
 /// A structure describing program
 #[derive(Debug, Default, PartialEq, Clone)]
-pub struct ProgramUnit {
-    pub name: Option<String>,
-    pub ctors: Vec<CtorFunc>,
+pub struct IdlUnit {
+    pub globals: Vec<(String, Option<String>)>,
+    pub program: Option<ProgramUnit>,
     pub services: Vec<ServiceUnit>,
+}
+
+/// A structure describing program
+#[derive(Debug, Default, PartialEq, Clone)]
+pub struct ProgramUnit {
+    pub name: String,
+    pub ctors: Vec<CtorFunc>,
+    pub services: Vec<(String, String)>,
     pub types: Vec<Type>,
     pub docs: Vec<String>,
     pub annotations: HashMap<String, Option<String>>,
-    pub globals: Vec<(String, Option<String>)>,
 }
 
 /// A structure describing one of program constructor functions
@@ -76,16 +83,16 @@ pub struct Type {
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum TypeDecl {
-    Vector(Box<TypeDecl>),
+    Slice(Box<TypeDecl>),
     Array {
         item: Box<TypeDecl>,
         len: u32,
     },
     Tuple(Vec<TypeDecl>),
-    Map {
-        key: Box<TypeDecl>,
-        value: Box<TypeDecl>,
-    },
+    // Map {
+    //     key: Box<TypeDecl>,
+    //     value: Box<TypeDecl>,
+    // },
     Optional(Box<TypeDecl>),
     Result {
         ok: Box<TypeDecl>,
@@ -185,16 +192,19 @@ where
 fn space_or_comments(i: &str) -> Res<'_, ()> {
     let mut input = i;
     loop {
-        let (i2, _) = multispace0(input)?;
-        input = i2;
+        let (rest, _) = multispace0(input)?;
+        input = rest;
         // line comments "// ..."
-        if let Ok((i3, _)) = tuple((
-            tag::<&str, &str, ()>(r"// "),
-            take_while(|c| c != '\n'),
+        if let Ok((rest, _)) = terminated(
+            preceded(
+                (tag::<&str, &str, ()>(r"//"), not(peek(char('/')))),
+                take_while(|c| c != '\n'),
+            ),
             opt(line_ending),
-        ))(input)
+        )
+        .parse(input)
         {
-            input = i3;
+            input = rest;
             continue;
         }
         break;
@@ -271,27 +281,26 @@ where
     terminated(separated_list0(ws(char(',')), inner), opt(char(',')))
 }
 
-fn angle_list<'a, O, P>(inner: P) -> impl FnMut(&'a str) -> Res<'a, Vec<O>>
-where
-    P: Parser<&'a str, Output = O, Error = nom::error::Error<&'a str>>,
-{
-    let mut parser = delimited(ws(char('<')), sep_comma(inner), ws(char('>')));
-    move |i| parser.parse(i)
-}
+// fn angle_list<'a, O, P>(inner: P) -> impl FnMut(&'a str) -> Res<'a, Vec<O>>
+// where
+//     P: Parser<&'a str, Output = O, Error = nom::error::Error<&'a str>>,
+// {
+//     let mut parser = delimited(ws(char('<')), sep_comma(inner), ws(char('>')));
+//     move |i| parser.parse(i)
+// }
 
-fn paren_list<'a, O, P>(inner: P) -> impl FnMut(&'a str) -> Res<'a, Vec<O>>
-where
-    P: Parser<&'a str, Output = O, Error = nom::error::Error<&'a str>>,
-{
-    let mut parser = delimited(ws(char('(')), sep_comma(inner), ws(char(')')));
-    move |i| parser.parse(i)
-}
+// fn paren_list<'a, O, P>(inner: P) -> impl FnMut(&'a str) -> Res<'a, Vec<O>>
+// where
+//     P: Parser<&'a str, Output = O, Error = nom::error::Error<&'a str>>,
+// {
+//     let mut parser = delimited(ws(char('(')), sep_comma(inner), ws(char(')')));
+//     move |i| parser.parse(i)
+// }
 
 fn path_ident(i: &str) -> Res<'_, String> {
-    map(
-        recognize(tuple((ident, many0(tuple((tag("::"), ident)))))),
-        |s: &str| s.to_string(),
-    )
+    map(recognize(separated_list1(tag("::"), ident)), |s: &str| {
+        s.to_string()
+    })
     .parse(i)
 }
 
@@ -322,10 +331,10 @@ fn primitive(i: &str) -> Res<'_, PrimitiveType> {
     .parse(i)
 }
 
-fn type_vector(i: &str) -> Res<'_, TypeDecl> {
+fn type_slice(i: &str) -> Res<'_, TypeDecl> {
     map(
         delimited(ws(char('[')), ws(type_decl), ws(char(']'))),
-        |t| TypeDecl::Vector(Box::new(t)),
+        |t| TypeDecl::Slice(Box::new(t)),
     )
     .parse(i)
 }
@@ -349,21 +358,6 @@ fn type_tuple(i: &str) -> Res<'_, TypeDecl> {
     map(
         delimited(ws(char('(')), sep_comma(type_decl), ws(char(')'))),
         TypeDecl::Tuple,
-    )
-    .parse(i)
-}
-
-fn type_map(i: &str) -> Res<'_, TypeDecl> {
-    map(
-        tuple((ws(tag_no_case("map")), angle_list(type_decl))),
-        |(_, mut v)| {
-            let key = v.remove(0);
-            let value = v.remove(0);
-            TypeDecl::Map {
-                key: Box::new(key),
-                value: Box::new(value),
-            }
-        },
     )
     .parse(i)
 }
@@ -453,22 +447,20 @@ fn enum_def(i: &str) -> Res<'_, TypeDef> {
     .parse(i)
 }
 
-fn type_def(i: &str) -> Res<'_, TypeDef> {
-    alt((struct_def, enum_def)).parse(i)
-}
+// fn type_def(i: &str) -> Res<'_, TypeDef> {
+//     alt((struct_def, enum_def)).parse(i)
+// }
 
-fn type_decl_struct(i: &str) -> Res<'_, TypeDecl> {
-    map(struct_def, TypeDecl::Def).parse(i)
-}
-fn type_decl_enum(i: &str) -> Res<'_, TypeDecl> {
-    map(enum_def, TypeDecl::Def).parse(i)
-}
+// fn type_decl_struct(i: &str) -> Res<'_, TypeDecl> {
+//     map(struct_def, TypeDecl::Def).parse(i)
+// }
+// fn type_decl_enum(i: &str) -> Res<'_, TypeDecl> {
+//     map(enum_def, TypeDecl::Def).parse(i)
+// }
 
 fn type_decl(i: &str) -> Res<'_, TypeDecl> {
     ws(alt((
-        type_array,
-        type_vector,
-        type_tuple,
+        type_array, type_slice, type_tuple,
         // type_map,
         // type_option,
         // type_result,
@@ -597,34 +589,34 @@ fn service_unit(i: &str) -> Res<'_, ServiceUnit> {
     let (i, name) = ws(preceded(tag("service"), ws(ident))).parse(i)?;
     let (i, _) = ws(char('{')).parse(i)?;
 
-    let mut extends = None;
-    let mut events = None;
-    let mut funcs = None;
-    let mut types = None;
+    let mut extends = vec![];
+    let mut events = vec![];
+    let mut funcs = vec![];
+    let mut types = vec![];
     let mut i = i;
     loop {
         // extends
         if let Ok((rest, res)) = ws(extends_list).parse(i) {
             i = rest;
-            extends = Some(res);
+            extends = res;
             continue;
         }
         // events
         if let Ok((rest, res)) = ws(event_list).parse(i) {
             i = rest;
-            events = Some(res);
+            events = res;
             continue;
         }
         // functions
         if let Ok((rest, res)) = ws(function_list).parse(i) {
             i = rest;
-            funcs = Some(res);
+            funcs = res;
             continue;
         }
         // types
         if let Ok((rest, res)) = ws(type_list).parse(i) {
             i = rest;
-            types = Some(res);
+            types = res;
             continue;
         }
         break;
@@ -636,10 +628,10 @@ fn service_unit(i: &str) -> Res<'_, ServiceUnit> {
         i,
         ServiceUnit {
             name,
-            extends: extends.unwrap_or_default(),
-            funcs: funcs.unwrap_or_default(),
-            events: events.unwrap_or_default(),
-            types: types.unwrap_or_default(),
+            extends,
+            funcs,
+            events,
+            types,
             docs,
             annotations,
         },
@@ -671,57 +663,85 @@ fn ctor_func(i: &str) -> Res<CtorFunc> {
     ))
 }
 
+fn service_expo(i: &str) -> Res<'_, (String, String)> {
+    map(
+        (ws(ident), opt(preceded(ws(char(':')), ws(ident)))),
+        |(first, second)| {
+            (
+                first.trim().to_string(),
+                second.unwrap_or(first).trim().to_string(),
+            )
+        },
+    )
+    .parse(i)
+}
+
+fn ctor_list(i: &str) -> Res<'_, Vec<CtorFunc>> {
+    delimited(
+        ws(tag("constructors")),
+        delimited(ws(char('{')), many0(ws(ctor_func)), ws(char('}'))),
+        space_or_comments,
+    )
+    .parse(i)
+}
+
+fn service_list(i: &str) -> Res<'_, Vec<(String, String)>> {
+    preceded(
+        ws(tag("services")),
+        delimited(ws(char('{')), sep_comma(service_expo), ws(char('}'))),
+    )
+    .parse(i)
+}
+
 fn program_unit(i: &str) -> Res<ProgramUnit> {
     let (i, docs) = ws(doc_lines).parse(i)?;
     let (i, annotations) = ws(annotations).parse(i)?;
-
     let (i, name) = ws(preceded(tag("program"), ws(ident))).parse(i)?;
 
-    let ctors = vec![];
-    let services = vec![];
-    let types = vec![];
+    let (i, _) = ws(char('{')).parse(i)?;
 
-    // let (i, _) = space_or_comments(i)?;
-    // let (i, _) = opt(ws(tag("program")))(i)?; // Optional keyword (some files may omit and just provide blocks)
-    // let (i, _) = opt(ws(ident))(i)?; // program name (ignored)
-    // let (i, _) = ws(char('{'))(i)?;
+    let mut ctors = vec![];
+    let mut services = vec![];
+    let mut types = vec![];
+    let mut i = i;
+    loop {
+        // constructors
+        if let Ok((rest, res)) = ws(ctor_list).parse(i) {
+            i = rest;
+            ctors = res;
+            continue;
+        }
+        // services
+        if let Ok((rest, res)) = ws(service_list).parse(i) {
+            i = rest;
+            services = res;
+            continue;
+        }
+        // types
+        if let Ok((rest, res)) = ws(type_list).parse(i) {
+            i = rest;
+            types = res;
+            continue;
+        }
+        break;
+    }
 
-    // // constructors { ... }
-    // let (i, ctor) = opt(delimited(
-    //     ws(tag("constructors")),
-    //     delimited(ws(char('{')), many0(ws(ctor_func)), ws(char('}'))),
-    //     space_or_comments,
-    // ))(i)?;
-    // // services { ... }
-    // let (i, services) = opt(delimited(
-    //     ws(tag("services")),
-    //     delimited(ws(char('{')), many0(ws(service_block)), ws(char('}'))),
-    //     space_or_comments,
-    // ))(i)?;
-    // // types { ... }
-    // let (i, types) = opt(delimited(
-    //     ws(tag("types")),
-    //     delimited(ws(char('{')), many0(ws(type_item)), ws(char('}'))),
-    //     space_or_comments,
-    // ))(i)?;
-
-    // let (i, _) = ws(char('}'))(i)?;
+    let (i, _) = ws(char('}')).parse(i)?;
 
     Ok((
         i,
         ProgramUnit {
-            name: Some(name),
+            name,
             ctors,
             services,
             types,
             docs,
             annotations,
-            globals: Default::default(),
         },
     ))
 }
 
-fn idl(mut i: &str) -> Res<'_, ProgramUnit> {
+fn idl(mut i: &str) -> Res<'_, IdlUnit> {
     let mut globals = Vec::new();
     let mut services = Vec::new();
     let mut program = None;
@@ -744,13 +764,18 @@ fn idl(mut i: &str) -> Res<'_, ProgramUnit> {
         }
         break;
     }
-    let mut program = program.unwrap_or_default();
-    program.globals = globals;
-    program.services = services;
-    Ok((i, program))
+
+    Ok((
+        i,
+        IdlUnit {
+            globals,
+            program,
+            services,
+        },
+    ))
 }
 
-pub fn parse_idl(i: &str) -> Res<'_, ProgramUnit> {
+pub fn parse_idl(i: &str) -> Res<'_, IdlUnit> {
     all_consuming(ws(idl)).parse(i)
 }
 
@@ -890,7 +915,7 @@ service Pausable {
     #[test]
     fn parse_vector_of_tuples() {
         const SRC: &str = r#"[(Point, PointStatus)]"#;
-        let (rest, res) = ws(type_vector).parse(SRC).expect("parse");
+        let (rest, res) = ws(type_slice).parse(SRC).expect("parse");
         println!("res: {res:?}, rest: {rest}");
         assert!(rest.trim().is_empty());
     }
