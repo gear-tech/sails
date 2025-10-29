@@ -680,7 +680,7 @@ fn program_idl_misc() {
     );
 
     // Program constructors using a variety of user-defined types
-    #[allow(dead_code)]
+    #[allow(dead_code, clippy::type_complexity)]
     #[derive(TypeInfo)]
     enum MiscCtorsMeta {
         /// Simple constructor without params

@@ -47,6 +47,7 @@ impl ExpandedProgramMeta {
             let types = program_meta_registry.types().to_vec();
             let ctors = program_meta_registry.ctor_fns;
 
+            // If there're no constructors, don't generate program section.
             (!ctors.is_empty()).then_some({
                 ProgramIdlSection {
                     name: program_name,
@@ -469,12 +470,16 @@ impl IdlPortableTypesRegistry {
                 .fields
                 .iter()
                 .map(|arg_meta| -> Result<FunctionArgumentIdl> {
-                    let name = arg_meta.name.map(|s| s.to_string()).ok_or_else(|| {
-                        Error::FuncMetaIsInvalid(format!(
-                            "function `{}` has nameless argument",
-                            fn_meta.name
-                        ))
-                    })?;
+                    let name = arg_meta
+                        .name
+                        .as_ref()
+                        .map(|s| s.to_string())
+                        .ok_or_else(|| {
+                            Error::FuncMetaIsInvalid(format!(
+                                "function `{}` has nameless argument",
+                                fn_meta.name
+                            ))
+                        })?;
 
                     Ok(FunctionArgumentIdl {
                         name,

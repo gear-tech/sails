@@ -1075,7 +1075,11 @@ fn resolve_fields_types_names<'a>(
     for field in fields_iter {
         let field_name = field.name.map(|name| name.to_string());
         let field_type_id = field.ty.id;
-        let field_type_name = field.type_name.expect("field must have name set");
+        let field_type_name = field
+            .type_name
+            .as_ref()
+            .map(|name| name.to_string())
+            .expect("field must have name set");
         let field_docs = field
             .docs
             .iter()
@@ -1102,7 +1106,7 @@ fn resolve_fields_types_names<'a>(
 
 fn resolve_field_type_name(
     field_type_id: u32,
-    field_type_name: &str,
+    field_type_name: String,
     concrete_names: &BTreeMap<u32, String>,
     params_names: &HashSet<String>,
 ) -> Result<String> {
@@ -1110,12 +1114,12 @@ fn resolve_field_type_name(
         .get(&field_type_id)
         .ok_or(Error::TypeIdIsUnknown(field_type_id))?;
 
-    if field_type_name == concrete_type_name {
-        return Ok(field_type_name.to_string());
+    if &field_type_name == concrete_type_name {
+        return Ok(field_type_name);
     }
 
     // Type names differ either due to monomorphization or type name resolution, or both
-    let syn_field_type_name = syn::parse_str::<syn::Type>(field_type_name).map_err(|e| {
+    let syn_field_type_name = syn::parse_str::<syn::Type>(&field_type_name).map_err(|e| {
         RawTypeNameResolutionError::UnexpectedValue(format!(
             "Failed to parse field type name `{field_type_name}`: {e}"
         ))
