@@ -7,8 +7,8 @@ impl ProgramBuilder {
     /// ```rust
     /// impl sails_rs::solidity::ProgramSignature for MyProgram {
     ///     const CTORS: &'static [sails_rs::solidity::MethodExpo] = &[(    
-    ///         &[28u8, 68u8, 101u8, 102u8, 97u8, 117u8, 108u8, 116u8] as &[u8],
-    ///         "default",
+    ///         &[24u8, 67u8, 114u8, 101u8, 97u8, 116u8, 101u8] as &[u8],
+    ///         "create",
     ///         <<(bool) as sails_rs::alloy_sol_types::SolValue>::SolType as sails_rs::alloy_sol_types::SolType>::SOL_NAME,
     ///         <<() as sails_rs::alloy_sol_types::SolValue>::SolType as sails_rs::alloy_sol_types::SolType>::SOL_NAME,
     ///     ),];
