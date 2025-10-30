@@ -20,7 +20,7 @@ async fn service_with_basics() {
     use service_with_basics::MyService;
 
     const DO_THIS: &str = "DoThis";
-    let input = (0u128, false, 42u32, "correct".to_owned()).abi_encode_sequence();
+    let input = (false, 42u32, "correct".to_owned()).abi_encode_sequence();
 
     let exposure = MyService.expose(&[1, 2, 3]);
 
@@ -49,7 +49,7 @@ async fn service_with_basics_with_encode_reply() {
     use service_with_basics::MyService;
 
     const DO_THIS: &str = "DoThis";
-    let input = (0u128, true, 42u32, "correct".to_owned()).abi_encode_sequence();
+    let input = (true, 42u32, "correct".to_owned()).abi_encode_sequence();
     let message_id = MessageId::from(123);
     Syscall::with_message_id(message_id);
 
@@ -84,7 +84,7 @@ fn service_with_lifetimes_and_events() {
     use service_with_events_and_lifetimes::{MyEvents, MyGenericEventsService};
 
     const DO_THIS: &str = "DoThis";
-    let input = (0u128, false).abi_encode_sequence();
+    let input = (false,).abi_encode_sequence();
 
     let my_service = MyGenericEventsService::<'_, String>::default();
     let exposure = my_service.expose(&[1, 2, 3]);
@@ -114,7 +114,7 @@ fn service_with_extends() {
     const NAME_METHOD: &str = "Name";
     const BASE_NAME_METHOD: &str = "BaseName";
     const EXTENDED_NAME_METHOD: &str = "ExtendedName";
-    let input = (0u128, false).abi_encode_sequence();
+    let input = (false,).abi_encode_sequence();
 
     let extended_svc = Extended::new(Base).expose(&[1, 2, 3]);
 
@@ -158,7 +158,7 @@ fn service_with_lifecycles_and_generics() {
     use service_with_lifecycles_and_generics::MyGenericService;
 
     const DO_THIS: &str = "DoThis";
-    let input = (0u128, false).abi_encode_sequence();
+    let input = (false,).abi_encode_sequence();
 
     let my_service = MyGenericService::<'_, String>::default();
 
@@ -180,7 +180,7 @@ fn service_with_extends_and_lifetimes() {
     const NAME_METHOD: &str = "Name";
     const BASE_NAME_METHOD: &str = "BaseName";
     const EXTENDED_NAME_METHOD: &str = "ExtendedName";
-    let input = (0u128, false).abi_encode_sequence();
+    let input = (false,).abi_encode_sequence();
 
     let int = 42u64;
     let extended_svc = ExtendedWithLifetime::new(BaseWithLifetime::new(&int)).expose(&[1, 2, 3]);
@@ -215,7 +215,7 @@ async fn service_with_export_unwrap_result() {
 
     const DO_THIS: &str = "DoThis";
 
-    let input = (0u128, false, 42u32, "correct").abi_encode_sequence();
+    let input = (false, 42u32, "correct").abi_encode_sequence();
     let (output, ..) = MyService
         .expose(&[1, 2, 3])
         .try_handle_solidity_async(&DO_THIS.encode(), input.as_slice())
@@ -232,7 +232,7 @@ async fn service_with_export_unwrap_result_panic() {
     use service_with_export_unwrap_result::MyService;
 
     const PARSE: &str = "Parse";
-    let input = (0u128, false, "not a number").abi_encode_sequence();
+    let input = (false, "not a number").abi_encode_sequence();
 
     _ = MyService
         .expose(&[1, 2, 3])
@@ -247,7 +247,7 @@ async fn service_with_reply_with_value() {
 
     const DO_THIS: &str = "DoThis";
 
-    let input = (0u128, false, 42u32, "correct".to_owned()).abi_encode_sequence();
+    let input = (false, 42u32, "correct".to_owned()).abi_encode_sequence();
     let (output, value, ..) = MyServiceWithReplyWithValue
         .expose(&[1, 2, 3])
         .try_handle_solidity_async(&DO_THIS.encode(), input.as_slice())
@@ -266,7 +266,7 @@ async fn service_with_reply_with_value_with_impl_from() {
 
     const DO_THAT: &str = "DoThat";
 
-    let input = (0u128, false, 42u32, "correct".to_owned()).abi_encode_sequence();
+    let input = (false, 42u32, "correct".to_owned()).abi_encode_sequence();
     let (output, value, ..) = MyServiceWithReplyWithValue
         .expose(&[1, 2, 3])
         .try_handle_solidity_async(&DO_THAT.encode(), input.as_slice())
@@ -284,7 +284,7 @@ async fn service_with_trait_bounds() {
     use service_with_trait_bounds::MyServiceWithTraitBounds;
 
     const DO_THIS: &str = "DoThis";
-    let input = (0u128, false).abi_encode_sequence();
+    let input = (false,).abi_encode_sequence();
 
     let (output, ..) = MyServiceWithTraitBounds::<u32>::default()
         .expose(&[1, 2, 3])

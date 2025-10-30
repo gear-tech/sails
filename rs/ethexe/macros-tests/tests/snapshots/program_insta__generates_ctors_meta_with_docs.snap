@@ -61,7 +61,6 @@ impl sails_rs::solidity::ProgramSignature for MyProgram {
             &[12u8, 78u8, 101u8, 119u8] as &[u8],
             "new",
             <<(
-                u128,
                 bool,
                 u32,
                 String,
@@ -74,7 +73,6 @@ impl sails_rs::solidity::ProgramSignature for MyProgram {
             &[16u8, 78u8, 101u8, 119u8, 50u8] as &[u8],
             "new2",
             <<(
-                u128,
                 bool,
                 String,
                 u32,
@@ -150,7 +148,7 @@ pub mod wasm {
     }
     fn match_ctor_solidity(ctor: &[u8], input: &[u8]) -> Option<bool> {
         if ctor == &[12u8, 78u8, 101u8, 119u8] {
-            let (_, _encode_reply, p1, p2): (u128, bool, u32, String) = sails_rs::alloy_sol_types::SolValue::abi_decode_params(
+            let (__encode_reply, p1, p2): (bool, u32, String) = sails_rs::alloy_sol_types::SolValue::abi_decode_params(
                     input,
                     false,
                 )
@@ -159,17 +157,17 @@ pub mod wasm {
                 let program = MyProgram::new(p1, p2).await;
                 unsafe { PROGRAM = Some(program) };
             });
-            return Some(_encode_reply);
+            return Some(__encode_reply);
         }
         if ctor == &[16u8, 78u8, 101u8, 119u8, 50u8] {
-            let (_, _encode_reply, p2, p1): (u128, bool, String, u32) = sails_rs::alloy_sol_types::SolValue::abi_decode_params(
+            let (__encode_reply, p2, p1): (bool, String, u32) = sails_rs::alloy_sol_types::SolValue::abi_decode_params(
                     input,
                     false,
                 )
                 .expect("Failed to decode request");
             let program = MyProgram::new2(p2, p1);
             unsafe { PROGRAM = Some(program) };
-            return Some(_encode_reply);
+            return Some(__encode_reply);
         }
         None
     }
