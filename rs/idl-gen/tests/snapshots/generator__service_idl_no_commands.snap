@@ -1,0 +1,14 @@
+---
+source: rs/idl-gen/tests/generator.rs
+expression: generated_idl
+---
+!@sails: 0.9.1
+!@author: 
+!@version: 0.0.0
+
+service {
+    functions {
+        @query
+        This(p1: u32) -> u32;
+    }
+}

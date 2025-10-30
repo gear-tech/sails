@@ -1,0 +1,21 @@
+---
+source: rs/idl-gen/tests/generator.rs
+expression: generated_idl
+---
+!@sails: 0.9.1
+!@author: 
+!@version: 0.0.0
+
+service {
+    events {
+        One(TestType<NonZeroU256>),
+    }
+
+    types {
+        /// A type with a complex type field
+        struct TestType<T> {
+            /// Complex field
+            f1: Option<[(ActorId, [Result<T, String>])]>,
+        }
+    }
+}

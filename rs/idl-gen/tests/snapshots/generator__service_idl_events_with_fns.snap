@@ -1,0 +1,35 @@
+---
+source: rs/idl-gen/tests/generator.rs
+expression: generated_idl
+---
+!@sails: 0.9.1
+!@author: 
+!@version: 0.0.0
+
+service {
+    events {
+        /// `This` Done
+        ThisDone (
+            /// This is unnamed field, comments ignored
+            u32
+        ),
+        ThisDoneTwice (
+            /// This is the first unnamed field
+            u32,
+            /// This is the second unnamed field
+            u32
+        ),
+        /// `That` Done too
+        ThatDone {
+            /// This is `p1` field
+            p1: String,
+        },
+    }
+
+    functions {
+        DoThis(p1: u32) -> u32;
+
+        @query
+        This(p1: u32) -> u32;
+    }
+}

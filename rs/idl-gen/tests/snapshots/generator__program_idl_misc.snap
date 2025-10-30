@@ -1,0 +1,206 @@
+---
+source: rs/idl-gen/tests/generator.rs
+expression: generated_idl
+---
+!@sails: 0.9.1
+!@author: Developer
+!@version: 1.2.3
+
+service Service1 {
+    events {
+        ThisDone(BaseServiceType),
+        ThatDone {
+            p1: u16,
+        },
+        /// Uses a type that is also used in extension service in the event
+        BaseServiceSameType(GenericConstStruct),
+    }
+
+    functions {
+        DoThis(p1: u32) -> u32;
+
+        DoThatBase(p1: String) -> String;
+
+        @query
+        ThisBase(p1: u16) -> u16;
+
+        @query
+        That(p1: String) -> String;
+    }
+
+    types {
+        struct BaseServiceType (
+            /// Field docs
+            MessageId,
+            /// Field docs
+            H160,
+        );
+
+        /// GenericConstStruct docs
+        struct GenericConstStruct {
+            /// GenericStruct field `field`
+            field: [u8; 8],
+        }
+    }
+}
+
+service Service2 {
+    events {
+        Unit,
+        Tuple(Option<[H256; 32]>, bool),
+        TupleWithDocs (
+            /// First field docs
+            Option<[H256; 32]>,
+            /// Second field docs
+            bool
+        ),
+        Struct {
+            /// Field `a` docs
+            a: [u8],
+            /// Parent `((u32))` type will be unwrapped into `u32` in IDL
+            b: u32,
+        },
+        /// Extension-specific event variant with docs
+        ExtDone(u32),
+        /// Mirrors base event type but with different name to avoid ambiguity
+        BaseDoneEcho {
+            p1: u16,
+        },
+        /// Uses a type defined used in base service
+        ExtServiceSameType(GenericConstStruct1),
+        /// Same name as in base service, but different constant
+        ExtServiceSameTypeConst(GenericConstStruct2),
+        ThisDone(BaseServiceType),
+        ThatDone {
+            p1: u16,
+        },
+        /// Uses a type that is also used in extension service in the event
+        BaseServiceSameType(GenericConstStruct1),
+    }
+
+    functions {
+        /// Uses params with conflicting type names inside one service
+        /// Returns nothing
+        UseConflictingTypes(a: TypesGenericStruct<u32>, b: ConflictingGenericStruct<u32>, c: TupleStruct, d: UnitStruct);
+
+        /// Throws error or returns `u32` result
+        ReturningResult(p1: u32) -> u32 throws String;
+
+        /// Only throws error
+        ReturningError(p1: u32) throws u32;
+
+        /// Another command using generic enum and returns string
+        DoThisExt(p1: GenericEnum<bool, u32>) -> String;
+
+        /// This conflicts with base service command, but has different signature
+        DoThatBase(p1: String) -> ActorId;
+
+        DoThis(p1: u32) -> u32;
+
+        /// Query with const-generic type
+        @query
+        GetSomething(p1: GenericStruct<bool>) -> u64;
+
+        /// Reuses a base type (String) to mirror base service usage
+        @query
+        BorrowBaseType(p1: String) -> u16;
+
+        /// This conflicts with base service query, but has different arguments in signature
+        @query
+        That(p1: u32) -> String;
+
+        @query
+        ThisBase(p1: u16) -> u16;
+    }
+
+    types {
+        /// GenericStruct docs
+        struct TypesGenericStruct<T> {
+            /// GenericStruct field `p1`
+            p1: T,
+        }
+
+        /// GenericStruct from conflicting module
+        struct ConflictingGenericStruct<T> {
+            p1: T,
+        }
+
+        /// TupleStruct docs
+        struct TupleStruct(bool);
+
+        /// Unit struct type
+        struct UnitStruct;
+
+        /// GenericEnum docs
+        /// with two lines
+        enum GenericEnum<T1, T2> {
+            /// GenericEnum `Variant1` of type 'T1'
+            Variant1(T1),
+            /// GenericEnum `Variant2` of type 'T2'
+            Variant2(T2),
+        }
+
+        /// GenericStruct docs
+        struct GenericStruct<T> {
+            /// GenericStruct field `p1`
+            p1: T,
+        }
+
+        /// GenericConstStruct docs
+        struct GenericConstStruct1 {
+            /// GenericStruct field `field`
+            field: [u8; 8],
+        }
+
+        /// GenericConstStruct docs
+        struct GenericConstStruct2 {
+            /// GenericStruct field `field`
+            field: [u8; 16],
+        }
+
+        struct BaseServiceType (
+            /// Field docs
+            MessageId,
+            /// Field docs
+            H160,
+        );
+    }
+}
+
+program MiscProgram {
+    constructors {
+        /// Simple constructor without params
+        New();
+
+        /// Constructor with complex nested generic types
+        FromComplex(p1: GenericEnum<GenericStruct<H256>, GenericStruct<(UnitStruct, TupleStruct)>>);
+    }
+
+    services {
+        Service1,
+        Service2,
+    }
+
+    types {
+        /// GenericEnum docs
+        /// with two lines
+        enum GenericEnum<T1, T2> {
+            /// GenericEnum `Variant1` of type 'T1'
+            Variant1(T1),
+            /// GenericEnum `Variant2` of type 'T2'
+            Variant2(T2),
+        }
+
+        /// GenericStruct docs
+        struct GenericStruct<T> {
+            /// GenericStruct field `p1`
+            p1: T,
+        }
+
+        /// Unit struct type
+        struct UnitStruct;
+
+        /// TupleStruct docs
+        struct TupleStruct(bool);
+    }
+}
