@@ -11,163 +11,8 @@ use nom::{
 };
 use std::str::FromStr;
 
-// -------------------------------- Target model ---------------------------------
-
-/// A structure describing program
-#[derive(Debug, Default, PartialEq, Clone)]
-pub struct IdlUnit {
-    pub globals: Vec<(String, Option<String>)>,
-    pub program: Option<ProgramUnit>,
-    pub services: Vec<ServiceUnit>,
-}
-
-/// A structure describing program
-#[derive(Debug, Default, PartialEq, Clone)]
-pub struct ProgramUnit {
-    pub name: String,
-    pub ctors: Vec<CtorFunc>,
-    pub services: Vec<(String, String)>,
-    pub types: Vec<Type>,
-    pub docs: Vec<String>,
-    pub annotations: Vec<(String, Option<String>)>,
-}
-
-/// A structure describing one of program constructor functions
-#[derive(Debug, PartialEq, Clone)]
-pub struct CtorFunc {
-    pub name: String,
-    pub params: Vec<FuncParam>,
-    pub docs: Vec<String>,
-    pub annotations: Vec<(String, Option<String>)>,
-}
-
-#[derive(Debug, PartialEq, Clone)]
-pub struct ServiceUnit {
-    pub name: String,
-    pub extends: Vec<String>,
-    pub funcs: Vec<ServiceFunc>,
-    pub events: Vec<ServiceEvent>,
-    pub types: Vec<Type>,
-    pub docs: Vec<String>,
-    pub annotations: Vec<(String, Option<String>)>,
-}
-
-#[derive(Debug, PartialEq, Clone)]
-pub struct ServiceFunc {
-    pub name: String,
-    pub params: Vec<FuncParam>,
-    pub output: TypeDecl,
-    pub throws: Option<TypeDecl>,
-    pub is_query: bool,
-    pub docs: Vec<String>,
-    pub annotations: Vec<(String, Option<String>)>,
-}
-
-#[derive(Debug, PartialEq, Clone)]
-pub struct FuncParam {
-    pub name: String,
-    pub type_decl: TypeDecl,
-}
-
-pub type ServiceEvent = EnumVariant;
-
-#[derive(Debug, PartialEq, Clone)]
-pub struct Type {
-    pub name: String,
-    pub type_params: Vec<TypeParameter>,
-    pub def: TypeDef,
-    pub docs: Vec<String>,
-    pub annotations: Vec<(String, Option<String>)>,
-}
-
-#[derive(Debug, PartialEq, Clone)]
-pub struct TypeParameter {
-    /// The name of the generic type parameter e.g. "T".
-    pub name: String,
-    /// The concrete type for the type parameter.
-    ///
-    /// `None` if the type parameter is skipped.
-    pub ty: Option<TypeDecl>,
-}
-
-#[derive(Debug, PartialEq, Clone)]
-pub enum TypeDecl {
-    Slice(Box<TypeDecl>),
-    Array {
-        item: Box<TypeDecl>,
-        len: u32,
-    },
-    Tuple(Vec<TypeDecl>),
-    // Map {
-    //     key: Box<TypeDecl>,
-    //     value: Box<TypeDecl>,
-    // },
-    Option(Box<TypeDecl>),
-    Result {
-        ok: Box<TypeDecl>,
-        err: Box<TypeDecl>,
-    },
-    Primitive(PrimitiveType),
-    UserDefined(String),
-    // Def(TypeDef),
-}
-
-#[derive(Debug, PartialEq, Clone, Copy)]
-#[repr(u8)]
-pub enum PrimitiveType {
-    Null,
-    Bool,
-    Char,
-    String,
-    U8,
-    U16,
-    U32,
-    U64,
-    U128,
-    I8,
-    I16,
-    I32,
-    I64,
-    I128,
-    ActorId,
-    CodeId,
-    MessageId,
-    H256,
-    U256,
-    H160,
-}
-
-#[derive(Debug, PartialEq, Clone)]
-pub enum TypeDef {
-    Struct(StructDef),
-    Enum(EnumDef),
-}
-
-#[derive(Debug, PartialEq, Clone)]
-pub struct StructDef {
-    pub fields: Vec<StructField>,
-}
-
-#[derive(Debug, PartialEq, Clone)]
-pub struct StructField {
-    pub name: Option<String>,
-    pub type_decl: TypeDecl,
-    pub docs: Vec<String>,
-    pub annotations: Vec<(String, Option<String>)>,
-}
-
-#[derive(Debug, PartialEq, Clone)]
-pub struct EnumDef {
-    pub variants: Vec<EnumVariant>,
-}
-
-#[derive(Debug, PartialEq, Clone)]
-pub struct EnumVariant {
-    pub name: String,
-    pub def: StructDef,
-    pub docs: Vec<String>,
-    pub annotations: Vec<(String, Option<String>)>,
-}
+mod model;
+pub use model::*;
 
 // ------------------------- Lexing helpers -------------------------
 
@@ -205,7 +50,7 @@ fn space_or_comments(i: &str) -> Res<'_, ()> {
         if let Ok((rest, _)) = terminated(
             preceded(
                 (tag::<&str, &str, ()>(r"//"), not(peek(char('/')))),
-                take_while(|c| c != '\n'),
+                not_line_ending,
             ),
             opt(line_ending),
         )
@@ -221,10 +66,7 @@ fn space_or_comments(i: &str) -> Res<'_, ()> {
 
 fn doc_lines(i: &str) -> Res<'_, Vec<String>> {
     many0(map(
-        terminated(
-            preceded(ws(tag("///")), take_while(|c| c != '\n')),
-            opt(line_ending),
-        ),
+        terminated(preceded(ws(tag("///")), not_line_ending), opt(line_ending)),
         |s: &str| s.trim().to_string(),
     ))
     .parse(i)
@@ -241,7 +83,7 @@ fn annotation_line(i: &str) -> Res<'_, (String, Option<String>)> {
         terminated(
             (
                 ws(preceded(char('@'), ident)),
-                opt(preceded(ws(char(':')), ws(not_line_ending))),
+                opt(preceded(ws(char(':')), not_line_ending)),
             ),
             opt(line_ending),
         ),
@@ -751,7 +593,7 @@ fn program_unit(i: &str) -> Res<ProgramUnit> {
     ))
 }
 
-fn idl(mut i: &str) -> Res<'_, IdlUnit> {
+fn idl(mut i: &str) -> Res<'_, IdlDoc> {
     let mut globals = Vec::new();
     let mut services = Vec::new();
     let mut program = None;
@@ -777,7 +619,7 @@ fn idl(mut i: &str) -> Res<'_, IdlUnit> {
 
     Ok((
         i,
-        IdlUnit {
+        IdlDoc {
             globals,
             program,
             services,
@@ -785,7 +627,7 @@ fn idl(mut i: &str) -> Res<'_, IdlUnit> {
     ))
 }
 
-pub fn parse_idl(i: &str) -> Res<'_, IdlUnit> {
+pub fn parse_idl(i: &str) -> Res<'_, IdlDoc> {
     all_consuming(ws(idl)).parse(i)
 }
 
@@ -997,6 +839,22 @@ service Pausable {
         let (rest, res) = ws(service_func).parse(SRC).expect("parse");
         println!("res: {res:?}, rest: {rest}");
         assert!(rest.trim().is_empty());
+    }
+
+    #[test]
+    fn parse_minimal_service() {
+        let src = r#"
+            /// Example
+            service X {
+                functions { Ping() -> bool; }
+                events { E; }
+                types { struct T; }
+            }
+        "#;
+        let (rest, svc) = parse_service.parse(src).expect("parse");
+        assert!(rest.trim().is_empty());
+        assert_eq!(svc.name, "X");
+        assert!(svc.funcs.iter().any(|f| f.name == "Ping"));
     }
 
     #[test]
