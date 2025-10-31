@@ -9,10 +9,7 @@ use convert_case::{Case, Casing};
 use proc_macro_error::abort;
 use proc_macro2::{Literal, Span, TokenStream};
 use quote::quote;
-use std::{
-    cmp::Ordering,
-    collections::{BTreeMap, BTreeSet},
-};
+use std::collections::{BTreeMap, BTreeSet};
 use syn::{Generics, Ident, ItemImpl, Path, Type, TypePath, Visibility, WhereClause};
 
 mod args;
@@ -192,11 +189,10 @@ fn discover_service_handlers<'a>(
     .collect::<Vec<_>>();
 
     handlers.sort_by(|a, b| {
-        let name_cmp = a.route.cmp(&b.route);
-        if name_cmp != Ordering::Equal {
-            return name_cmp;
-        }
-        handler_sort_key(a).cmp(&handler_sort_key(b))
+        a.route
+            .cmp(&b.route)
+            .then_with(|| a.ident.to_string().cmp(&b.ident.to_string()))
+            .then_with(|| handler_sort_key(a).cmp(&handler_sort_key(b)))
     });
 
     assign_default_entry_ids(&mut handlers);
@@ -217,7 +213,7 @@ fn handler_sort_key(handler: &FnBuilder<'_>) -> String {
     } else {
         "command"
     };
-    format!("{kind}|{params}|{result}")
+    format!("{kind}|{}|{params}|{result}", handler.ident.to_string())
 }
 
 fn assign_default_entry_ids(handlers: &mut [FnBuilder<'_>]) {
