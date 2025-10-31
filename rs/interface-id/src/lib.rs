@@ -17,14 +17,6 @@ pub const CANONICAL_HASH_ALGO: &str = "blake3";
 pub const INTERFACE_HASH_DOMAIN_STR: &str = "SAILS-IDL/v1/interface-id";
 /// Domain separator (bytes) for interface-level hashing.
 pub const INTERFACE_HASH_DOMAIN: &[u8] = b"SAILS-IDL/v1/interface-id";
-/// Domain separator (string) for function/message hashing.
-pub const FUNCTION_HASH_DOMAIN_STR: &str = "SAILS-IDL/v1/entry-signature";
-/// Domain separator (bytes) for function/message hashing.
-pub const FUNCTION_HASH_DOMAIN: &[u8] = b"SAILS-IDL/v1/entry-signature";
-/// Domain separator (string) for route key hashing.
-pub const ROUTE_HASH_DOMAIN_STR: &str = "GEAR-ROUTE/v1";
-/// Domain separator (bytes) for route key hashing.
-pub const ROUTE_HASH_DOMAIN: &[u8] = b"GEAR-ROUTE/v1";
 
 /// Canonical description of a Sails service used to derive stable interface identifiers.
 #[derive(Debug, Clone, Serialize, PartialEq, Eq)]
@@ -124,23 +116,6 @@ pub fn compute_ids_from_bytes(bytes: &[u8]) -> u64 {
 /// Computes the full interface hash (BLAKE3-256) using the canonical domain separator.
 pub fn compute_interface_hash(bytes: &[u8]) -> Hash {
     blake3_hash_with_domain(INTERFACE_HASH_DOMAIN, &[bytes])
-}
-
-/// Computes the 16-bit entry identifier derived from a canonical function signature.
-pub fn compute_entry_id16(
-    interface_hash: &Hash,
-    signature: &str,
-    override_value: Option<u16>,
-) -> u16 {
-    if let Some(value) = override_value {
-        return value;
-    }
-
-    let digest = blake3_hash_with_domain(
-        FUNCTION_HASH_DOMAIN,
-        &[interface_hash.as_bytes(), signature.as_bytes()],
-    );
-    u16::from_le_bytes(digest.as_bytes()[0..2].try_into().unwrap())
 }
 
 /// Computes a BLAKE3 hash with the provided domain separator and payload slices.
