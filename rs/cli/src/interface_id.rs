@@ -14,11 +14,12 @@ pub fn canonicalize_manifest(manifest: &Path, output: Option<&Path>) -> Result<(
     let canonical_path =
         generate_program_artifact(manifest.as_path(), None, 1, ProgramArtifactKind::Canonical)?;
     let canonical_bytes = fs::read(&canonical_path)
-        .with_context(|| format!("failed to read canonical document {}", canonical_path))?;
+        .with_context(|| format!("failed to read canonical document {canonical_path}"))?;
 
     if let Some(out_path) = output {
         fs::write(out_path, &canonical_bytes).with_context(|| {
-            format!("failed to write canonical document {}", out_path.display())
+            let path = out_path.display().to_string();
+            format!("failed to write canonical document {path}")
         })?;
     } else {
         let mut stdout = io::stdout().lock();
@@ -41,14 +42,16 @@ pub fn derive_ids(input: &Path) -> Result<()> {
         );
     }
 
-    let raw = fs::read_to_string(input)
-        .with_context(|| format!("failed to read canonical document {}", input.display()))?;
+    let raw = fs::read_to_string(input).with_context(|| {
+        let path = input.display().to_string();
+        format!("failed to read canonical document {path}")
+    })?;
     let canonical = CanonicalDocument::from_json_str(&raw)?;
 
     if canonical.services.is_empty() {
         let bytes = canonical.to_bytes()?;
         let id = compute_ids_from_bytes(&bytes);
-        println!("document -> interface_id=0x{ID:016x}", ID = id);
+        println!("document -> interface_id=0x{id:016x}");
         return Ok(());
     }
 
@@ -64,7 +67,7 @@ pub fn derive_ids(input: &Path) -> Result<()> {
         };
         let bytes = single.to_bytes()?;
         let id = compute_ids_from_bytes(&bytes);
-        println!("{} -> interface_id=0x{ID:016x}", name, ID = id);
+        println!("{name} -> interface_id=0x{id:016x}");
     }
 
     Ok(())
@@ -74,16 +77,16 @@ pub fn derive_ids_for_manifest(manifest: &Path) -> Result<()> {
     let manifest = to_utf8_path(manifest)?;
     let canonical_path =
         generate_program_artifact(manifest.as_path(), None, 1, ProgramArtifactKind::Canonical)?;
-    println!("Generated canonical document at {}", canonical_path);
+    println!("Generated canonical document at {canonical_path}");
     let canonical_bytes = fs::read(&canonical_path)
-        .with_context(|| format!("failed to read canonical document {}", canonical_path))?;
+        .with_context(|| format!("failed to read canonical document {canonical_path}"))?;
     let canonical_str = String::from_utf8(canonical_bytes.clone())
         .context("canonical document is not valid UTF-8")?;
     let canonical = CanonicalDocument::from_json_str(&canonical_str)?;
 
     if canonical.services.is_empty() {
         let id = compute_ids_from_bytes(&canonical_bytes);
-        println!("document -> interface_id=0x{ID:016x}", ID = id);
+        println!("document -> interface_id=0x{id:016x}");
         return Ok(());
     }
 
@@ -99,7 +102,7 @@ pub fn derive_ids_for_manifest(manifest: &Path) -> Result<()> {
         };
         let bytes = single.to_bytes()?;
         let id = compute_ids_from_bytes(&bytes);
-        println!("{} -> interface_id=0x{ID:016x}", name, ID = id);
+        println!("{name} -> interface_id=0x{id:016x}");
     }
 
     Ok(())

@@ -656,7 +656,7 @@ fn type_def_to_canonical(def: &TypeDef) -> CanonicalType {
             let mut fields = struct_def
                 .fields()
                 .iter()
-                .map(|field| struct_field_to_canonical(field))
+                .map(struct_field_to_canonical)
                 .collect::<Vec<_>>();
             if fields.iter().all(|field| field.name.is_some()) {
                 fields.sort_by(|a, b| a.name.as_ref().unwrap().cmp(b.name.as_ref().unwrap()));
@@ -667,7 +667,7 @@ fn type_def_to_canonical(def: &TypeDef) -> CanonicalType {
             let mut variants = enum_def
                 .variants()
                 .iter()
-                .map(|variant| enum_variant_to_canonical(variant))
+                .map(enum_variant_to_canonical)
                 .collect::<Vec<_>>();
             variants.sort_by(|a, b| a.name.cmp(&b.name));
             CanonicalType::Enum { variants }
@@ -687,7 +687,7 @@ fn struct_field_to_canonical(field: &StructField) -> CanonicalStructField {
 fn enum_variant_to_canonical(variant: &EnumVariant) -> CanonicalEnumVariant {
     CanonicalEnumVariant {
         name: variant.name().to_owned(),
-        payload: variant.type_decl().map(|ty| type_decl_to_canonical(ty)),
+        payload: variant.type_decl().map(type_decl_to_canonical),
     }
 }
 
@@ -878,8 +878,8 @@ mod tests {
 
         let canonical_services = doc
             .services
-            .iter()
-            .map(|(name, _)| name.as_str())
+            .keys()
+            .map(|name| name.as_str())
             .collect::<Vec<_>>();
         assert_eq!(canonical_services, vec!["a", "b"]);
         assert!(doc.types.is_empty());

@@ -405,11 +405,11 @@ fn ensure_program_doc(
     if cache_path.as_std_path().exists() {
         if let Some(parent) = docs_path.parent() {
             fs::create_dir_all(parent.as_std_path())
-                .with_context(|| format!("failed to create `{}`", parent))?;
+                .with_context(|| format!("failed to create `{parent}`"))?;
         }
         // Fast-path: pull the cached rustdoc JSON back into the expected location.
         fs::copy(cache_path.as_std_path(), docs_path.as_std_path())
-            .with_context(|| format!("failed to restore cached docs for `{}`", manifest_path))?;
+            .with_context(|| format!("failed to restore cached docs for `{manifest_path}`"))?;
         println!("...reusing cached doc for `{manifest_path}`");
         doc_cache.insert(mem_key);
         return Ok(());
@@ -420,11 +420,11 @@ fn ensure_program_doc(
     doc_cache.insert(mem_key);
 
     fs::create_dir_all(persistent_cache_dir.as_std_path())
-        .with_context(|| format!("failed to create `{}`", persistent_cache_dir))?;
+        .with_context(|| format!("failed to create `{persistent_cache_dir}`"))?;
     if docs_path.as_std_path().exists() {
         // Cache the freshly generated JSON so repeat runs can skip cargo doc.
         fs::copy(docs_path.as_std_path(), cache_path.as_std_path())
-            .with_context(|| format!("failed to write doc cache for `{}`", manifest_path))?;
+            .with_context(|| format!("failed to write doc cache for `{manifest_path}`"))?;
     } else {
         anyhow::bail!(
             "cargo doc for `{}` did not produce `{}`",

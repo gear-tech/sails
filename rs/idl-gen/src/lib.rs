@@ -194,6 +194,6 @@ struct ExtendsIdlData<'a> {
 }
 
 handlebars_helper!(deref: |v: String| { v });
-handlebars_helper!(hex16: |v: u16| { format!("{:#06x}", v) });
-handlebars_helper!(hex32: |v: u32| { format!("{:#010x}", v) });
-handlebars_helper!(hex64: |v: u64| { format!("{:#018x}", v) });
+handlebars_helper!(hex16: |v: u16| { format!("{v:#06x}") });
+handlebars_helper!(hex32: |v: u32| { format!("{v:#010x}") });
+handlebars_helper!(hex64: |v: u64| { format!("{v:#018x}") });

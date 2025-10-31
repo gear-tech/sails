@@ -320,6 +320,7 @@ pub(crate) struct ExpandedServiceMeta {
 }
 
 impl ExpandedServiceMeta {
+    #[allow(clippy::too_many_arguments)]
     fn new(
         registry: &PortableRegistry,
         name: &'static str,

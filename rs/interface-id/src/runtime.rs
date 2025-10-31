@@ -85,7 +85,7 @@ fn extract_params(
 ) -> Result<Vec<CanonicalParam>> {
     let ty = registry
         .resolve(type_id)
-        .ok_or_else(|| BuildError::UnknownType(type_id))?;
+        .ok_or(BuildError::UnknownType(type_id))?;
     match &ty.type_def {
         TypeDef::Composite(def) => Ok(def
             .fields
@@ -94,8 +94,8 @@ fn extract_params(
             .map(|(idx, field)| {
                 let name = field
                     .name
-                    .clone()
-                    .map(|value| value.to_string())
+                    .as_deref()
+                    .map(str::to_owned)
                     .unwrap_or_else(|| format!("arg{idx}"));
                 let ty = match canonical_type_for_metadata(registry, field.ty.id, collected_types) {
                     Ok(ty) => ty,
@@ -119,7 +119,7 @@ fn extract_event_payload(
     if let Some(field) = variant.fields.first() {
         let ty = registry
             .resolve(field.ty.id)
-            .ok_or_else(|| BuildError::UnknownType(field.ty.id))?;
+            .ok_or(BuildError::UnknownType(field.ty.id))?;
         match &ty.type_def {
             TypeDef::Tuple(def) if def.fields.is_empty() => Ok(None),
             _ => Ok(Some(canonical_type_for_metadata(
@@ -217,9 +217,9 @@ fn canonical_types_from_ids(
     for type_id in type_ids {
         let ty = registry
             .resolve(*type_id)
-            .ok_or_else(|| BuildError::UnknownType(*type_id))?;
+            .ok_or(BuildError::UnknownType(*type_id))?;
         let name = if ty.path.segments.is_empty() {
-            format!("type_{}", type_id)
+            format!("type_{type_id}")
         } else {
             ty.path.segments.join("::")
         };
@@ -392,7 +392,7 @@ fn collect_functions(
 
     let portable = registry
         .resolve(type_id)
-        .ok_or_else(|| BuildError::UnknownType(type_id))?;
+        .ok_or(BuildError::UnknownType(type_id))?;
 
     let TypeDef::Variant(variant) = &portable.type_def else {
         let kind_name = match kind {
@@ -443,7 +443,7 @@ fn collect_events(
 
     let portable = registry
         .resolve(type_id)
-        .ok_or_else(|| BuildError::UnknownType(type_id))?;
+        .ok_or(BuildError::UnknownType(type_id))?;
 
     let TypeDef::Variant(variant) = &portable.type_def else {
         return Err(BuildError::UnsupportedType("events".to_owned()));
@@ -514,7 +514,7 @@ fn c3_linearize(
     let mut result = Vec::with_capacity(1);
     result.push(name.clone());
     let merged = c3_merge(sequences, &name)?;
-    result.extend(merged.into_iter());
+    result.extend(merged);
 
     stack.pop();
     memo.insert(name.clone(), result.clone());
@@ -547,8 +547,7 @@ fn c3_merge(mut sequences: Vec<VecDeque<String>>, owner: &str) -> Result<Vec<Str
             }
         }
 
-        let candidate =
-            candidate.ok_or_else(|| BuildError::LinearizationConflict(owner.to_owned()))?;
+        let candidate = candidate.ok_or(BuildError::LinearizationConflict(owner.to_owned()))?;
         result.push(candidate.clone());
         for seq in &mut sequences {
             if matches!(seq.front(), Some(head) if head == &candidate) {
@@ -590,11 +589,13 @@ mod tests {
     struct NoParams;
 
     #[derive(TypeInfo)]
+    #[allow(dead_code)]
     enum RootCommandsMeta {
         Identify(NoParams, ()),
     }
 
     #[derive(TypeInfo)]
+    #[allow(dead_code)]
     enum BaseCommandsMeta {
         MakeSound(NoParams, ()),
     }

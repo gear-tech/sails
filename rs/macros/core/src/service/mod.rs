@@ -213,7 +213,7 @@ fn handler_sort_key(handler: &FnBuilder<'_>) -> String {
     } else {
         "command"
     };
-    format!("{kind}|{}|{params}|{result}", handler.ident.to_string())
+    format!("{kind}|{name}|{params}|{result}", name = handler.ident)
 }
 
 fn assign_default_entry_ids(handlers: &mut [FnBuilder<'_>]) {

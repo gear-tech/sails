@@ -137,7 +137,7 @@ mod tests {
         let mut descriptor = InterfaceDescriptor::new("example::Service");
         descriptor.extends.push(ExtendedInterfaceDescriptor {
             name: "ParentA".to_owned(),
-            interface_id: 0xabcdef01_2345_6789,
+            interface_id: 0xabcd_ef01_2345_6789,
         });
         descriptor.commands.push(FunctionEntry {
             name: "DoSomething".to_owned(),

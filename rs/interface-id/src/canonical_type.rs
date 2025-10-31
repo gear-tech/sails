@@ -159,7 +159,7 @@ pub fn named_type(registry: &PortableRegistry, type_id: u32) -> CanonicalType {
     let name = ty.path.segments.join("::");
     if name.is_empty() {
         CanonicalType::Named {
-            name: format!("type_{}", type_id),
+            name: format!("type_{type_id}"),
         }
     } else {
         CanonicalType::Named { name }
@@ -292,31 +292,34 @@ mod tests {
         let mut builder = PortableRegistryBuilder::new();
 
         let store_id = builder.register_type(Type::new(
-            Path::<PortableForm>::from_segments_unchecked(vec!["Store".into()]),
+            Path::<PortableForm>::from_segments_unchecked(vec![String::from("Store")]),
             vec![],
             TypeDefPrimitive::U32,
             vec![],
         ));
         let order_id = builder.register_type(Type::new(
-            Path::<PortableForm>::from_segments_unchecked(vec!["Order".into()]),
+            Path::<PortableForm>::from_segments_unchecked(vec![String::from("Order")]),
             vec![],
             TypeDefPrimitive::U8,
             vec![],
         ));
         let bitseq_id = builder.register_type(Type::new(
-            Path::<PortableForm>::from_segments_unchecked(vec!["test".into(), "BitSeq".into()]),
+            Path::<PortableForm>::from_segments_unchecked(vec![
+                String::from("test"),
+                String::from("BitSeq"),
+            ]),
             vec![],
             TypeDefBitSequence::new_portable(store_id.into(), order_id.into()),
             vec![],
         ));
         let wrapper_id = builder.register_type(Type::new(
             Path::<PortableForm>::from_segments_unchecked(vec![
-                "tests".into(),
-                "BitSequenceWrapper".into(),
+                String::from("tests"),
+                String::from("BitSequenceWrapper"),
             ]),
             vec![],
             TypeDefComposite::new(vec![Field::<PortableForm>::new(
-                Some("bits".into()),
+                Some(String::from("bits")),
                 bitseq_id.into(),
                 None,
                 vec![],
