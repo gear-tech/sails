@@ -1,10 +1,7 @@
 use crate::idlgen::{ProgramArtifactKind, generate_program_artifact};
 use anyhow::{Context, Result, anyhow, bail};
 use cargo_metadata::camino::Utf8PathBuf;
-use sails_interface_id::{
-    canonical::{CanonicalDocument, canonicalize},
-    compute_ids_from_bytes,
-};
+use sails_interface_id::{canonical::CanonicalDocument, compute_ids_from_bytes};
 use std::{
     collections::BTreeMap,
     fs,
@@ -12,33 +9,17 @@ use std::{
     path::Path,
 };
 
-pub fn canonicalize_path(input: &Path, output: Option<&Path>) -> Result<()> {
-    let raw = fs::read_to_string(input)
-        .with_context(|| format!("failed to read IDL file {}", input.display()))?;
-    let canonical_bytes = canonicalize(&raw)?;
-
-    if let Some(out_path) = output {
-        fs::write(out_path, &canonical_bytes)
-            .with_context(|| format!("failed to write canonical IDL {}", out_path.display()))?;
-    } else {
-        let mut stdout = io::stdout().lock();
-        stdout.write_all(&canonical_bytes)?;
-        stdout.write_all(b"\n")?;
-    }
-
-    Ok(())
-}
-
 pub fn canonicalize_manifest(manifest: &Path, output: Option<&Path>) -> Result<()> {
     let manifest = to_utf8_path(manifest)?;
     let canonical_path =
         generate_program_artifact(manifest.as_path(), None, 1, ProgramArtifactKind::Canonical)?;
-    let canonical_bytes =
-        fs::read(&canonical_path).with_context(|| format!("failed to read {}", canonical_path))?;
+    let canonical_bytes = fs::read(&canonical_path)
+        .with_context(|| format!("failed to read canonical document {}", canonical_path))?;
 
     if let Some(out_path) = output {
-        fs::write(out_path, &canonical_bytes)
-            .with_context(|| format!("failed to write canonical IDL {}", out_path.display()))?;
+        fs::write(out_path, &canonical_bytes).with_context(|| {
+            format!("failed to write canonical document {}", out_path.display())
+        })?;
     } else {
         let mut stdout = io::stdout().lock();
         stdout.write_all(&canonical_bytes)?;
@@ -56,12 +37,12 @@ pub fn derive_ids(input: &Path) -> Result<()> {
         .unwrap_or(false);
     if is_idl {
         bail!(
-            "deriving interface IDs directly from `.idl` files is not supported; canonicalize the document first (e.g. `sails idl-canonicalize --manifest-path <path>`)"
+            "deriving interface IDs directly from `.idl` files is not supported; generate canonical JSON via `sails idl-canonicalize --manifest-path <Cargo.toml>` and pass it with `--canonical-path`"
         );
     }
 
     let raw = fs::read_to_string(input)
-        .with_context(|| format!("failed to read IDL file {}", input.display()))?;
+        .with_context(|| format!("failed to read canonical document {}", input.display()))?;
     let canonical = CanonicalDocument::from_json_str(&raw)?;
 
     if canonical.services.is_empty() {
@@ -93,9 +74,9 @@ pub fn derive_ids_for_manifest(manifest: &Path) -> Result<()> {
     let manifest = to_utf8_path(manifest)?;
     let canonical_path =
         generate_program_artifact(manifest.as_path(), None, 1, ProgramArtifactKind::Canonical)?;
-    println!("Generated canonical IDL at {}", canonical_path);
-    let canonical_bytes =
-        fs::read(&canonical_path).with_context(|| format!("failed to read {}", canonical_path))?;
+    println!("Generated canonical document at {}", canonical_path);
+    let canonical_bytes = fs::read(&canonical_path)
+        .with_context(|| format!("failed to read canonical document {}", canonical_path))?;
     let canonical_str = String::from_utf8(canonical_bytes.clone())
         .context("canonical document is not valid UTF-8")?;
     let canonical = CanonicalDocument::from_json_str(&canonical_str)?;

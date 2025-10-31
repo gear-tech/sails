@@ -103,26 +103,18 @@ enum SailsCommands {
         contract_name: Option<String>,
     },
 
-    /// Canonicalize IDL JSON
+    /// Canonicalize program metadata into canonical JSON
     #[command(name = "idl-canonicalize")]
-    #[command(group(
-        ArgGroup::new("canonical_source")
-            .required(true)
-            .args(["idl_path", "manifest_path"])
-    ))]
     IdlCanonicalize {
-        /// Path to the IDL JSON file
-        #[arg(value_hint = clap::ValueHint::FilePath, conflicts_with = "manifest_path")]
-        idl_path: Option<PathBuf>,
         /// Path to the Cargo manifest with the program (uses runtime metadata)
-        #[arg(long, value_hint = clap::ValueHint::FilePath, conflicts_with = "idl_path")]
-        manifest_path: Option<PathBuf>,
+        #[arg(long, value_hint = clap::ValueHint::FilePath)]
+        manifest_path: PathBuf,
         /// Optional output path, defaults to stdout if omitted
         #[arg(long, value_hint = clap::ValueHint::FilePath)]
         out: Option<PathBuf>,
     },
 
-    /// Derive interface IDs from canonical IDL JSON or runtime metadata
+    /// Derive interface IDs from canonical JSON or runtime metadata
     #[command(name = "idl-derive-id")]
     #[command(group(
         ArgGroup::new("derive_source")
@@ -130,7 +122,7 @@ enum SailsCommands {
             .args(["canonical_path", "manifest_path"])
     ))]
     IdlDeriveId {
-        /// Path to the canonical IDL JSON file
+        /// Path to the canonical JSON file
         #[arg(value_hint = clap::ValueHint::FilePath, conflicts_with = "manifest_path")]
         canonical_path: Option<PathBuf>,
         /// Path to the Cargo manifest with the program (uses runtime metadata)
@@ -216,18 +208,8 @@ fn main() -> Result<(), i32> {
             target_dir,
             contract_name,
         } => SolidityGenerator::new(idl_path, target_dir, contract_name).generate(),
-        SailsCommands::IdlCanonicalize {
-            idl_path,
-            manifest_path,
-            out,
-        } => {
-            if let Some(manifest_path) = manifest_path.as_ref() {
-                interface_id::canonicalize_manifest(manifest_path, out.as_deref())
-            } else if let Some(idl_path) = idl_path.as_ref() {
-                interface_id::canonicalize_path(idl_path, out.as_deref())
-            } else {
-                unreachable!("argument group enforces presence")
-            }
+        SailsCommands::IdlCanonicalize { manifest_path, out } => {
+            interface_id::canonicalize_manifest(manifest_path.as_path(), out.as_deref())
         }
         SailsCommands::IdlDeriveId {
             canonical_path,
