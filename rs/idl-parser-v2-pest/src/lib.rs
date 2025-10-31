@@ -1,7 +1,5 @@
-// =============================
-// src/parser.rs — AST + builder from Pairs
-// =============================
-use anyhow::{Result, bail};
+// Sails IDL v0.3 — parser using `pest-rs`
+use anyhow::{Context, Result, bail};
 use pest::Parser;
 use pest::iterators::{Pair, Pairs};
 
@@ -9,7 +7,6 @@ mod model;
 pub use model::*;
 
 #[derive(pest_derive::Parser)]
-// #[grammar_skip(WHITESPACE, COMMENT, NEWLINE)]
 #[grammar = "idl.pest"]
 pub struct IdlParser;
 
@@ -29,10 +26,9 @@ fn build_idl(top: Pair<Rule>) -> Result<IdlDoc> {
     for p in top.into_inner() {
         match p.as_rule() {
             Rule::GlobalAnn => {
-                let (k, v) = parse_ann(p);
-                globals.push((k, v));
+                globals.push(parse_annotation(p)?);
             }
-            // Rule::ServiceDecl => items.push(TopItem::Service(parse_service(p)?)),
+            Rule::ServiceDecl => services.push(parse_service(p)?),
             Rule::ProgramDecl => program = Some(parse_program(p)?),
             _ => {}
         }
@@ -44,196 +40,333 @@ fn build_idl(top: Pair<Rule>) -> Result<IdlDoc> {
     })
 }
 
-fn parse_ann(p: Pair<Rule>) -> (String, Option<String>) {
+fn parse_annotation(p: Pair<Rule>) -> Result<(String, Option<String>)> {
     let mut key = None;
     let mut val = None;
     for i in p.into_inner() {
         match i.as_rule() {
             Rule::Ident => key = Some(i.as_str().trim().to_string()),
-            Rule::Value => val = Some(strip_line(i.as_str())),
+            Rule::StrToEol => val = Some(i.as_str().trim().to_string()),
             _ => {}
         }
     }
-    (key.unwrap(), val)
+    let key = key.context("expected Ident")?;
+    Ok((key, val))
 }
 
-// fn parse_service(p: Pair<Rule>) -> Result<Service> {
-//     let mut it = p.into_inner();
-//     let (docs, anns) = collect_docs_anns_prefix(&mut it);
-//     let name = expect_rule(&mut it, Rule::ident)?.as_str().to_string();
-//     let mut extends = Vec::new();
-//     let mut events = Vec::new();
-//     let mut functions = Vec::new();
-//     let mut types_src = Vec::new();
-//     for item in it {
-//         match item.as_rule() {
-//             Rule::ExtendsBlock => {
-//                 for path in item.into_inner().filter(|x| x.as_rule() == Rule::Path) {
-//                     extends.push(path.as_str().to_string());
-//                 }
-//             }
-//             Rule::EventsBlock => {
-//                 for e in item.into_inner().filter(|x| x.as_rule() == Rule::EventDecl) {
-//                     events.push(parse_event(e)?);
-//                 }
-//             }
-//             Rule::FunctionsBlock => {
-//                 for f in item.into_inner().filter(|x| x.as_rule() == Rule::FuncDecl) {
-//                     functions.push(parse_func(f)?);
-//                 }
-//             }
-//             Rule::TypesBlock => {
-//                 types_src.push(item.as_str().to_string());
-//             }
-//             _ => {}
-//         }
-//     }
-//     Ok(Service {
-//         name,
-//         extends,
-//         events,
-//         functions,
-//         types_src,
-//         docs,
-//         annotations: anns,
-//     })
-// }
+fn map_primitive(s: &str) -> PrimitiveType {
+    match s {
+        // allow both lowercase and PascalCase for some custom types
+        "null" | "Null" => PrimitiveType::Null,
+        "bool" | "Bool" => PrimitiveType::Bool,
+        "char" | "Char" => PrimitiveType::Char,
+        "string" | "String" => PrimitiveType::String,
+        "u8" => PrimitiveType::U8,
+        "u16" => PrimitiveType::U16,
+        "u32" => PrimitiveType::U32,
+        "u64" => PrimitiveType::U64,
+        "u128" => PrimitiveType::U128,
+        "i8" => PrimitiveType::I8,
+        "i16" => PrimitiveType::I16,
+        "i32" => PrimitiveType::I32,
+        "i64" => PrimitiveType::I64,
+        "i128" => PrimitiveType::I128,
+        "actor" | "ActorId" => PrimitiveType::ActorId,
+        "code" | "CodeId" => PrimitiveType::CodeId,
+        "messageid" | "MessageId" => PrimitiveType::MessageId,
+        "H256" => PrimitiveType::H256,
+        "U256" => PrimitiveType::U256,
+        "H160" => PrimitiveType::H160,
+        _ => PrimitiveType::String, // sane default; shouldn't happen if grammar matches
+    }
+}
 
-// fn parse_event(p: Pair<Rule>) -> Result<EnumVariant> {
-//     // EventDecl wraps Variant
-//     let v = p.into_inner().next().unwrap();
-//     parse_variant(v)
-// }
+fn parse_type_decl(p: Pair<Rule>) -> Result<TypeDecl> {
+    match p.as_rule() {
+        // TypeDecl is `silent` Rule, but this for futureproof
+        Rule::TypeDecl => parse_type_decl(p.into_inner().next().context("expected TypeDecl")?),
+        Rule::Tuple => {
+            let mut items = Vec::new();
+            for el in p.into_inner() {
+                items.push(parse_type_decl(el)?);
+            }
+            Ok(TypeDecl::Tuple(items))
+        }
+        Rule::Slice => {
+            let elem = p.into_inner().next().context("slice elem")?;
+            Ok(TypeDecl::Slice(Box::new(parse_type_decl(elem)?)))
+        }
+        Rule::Array => {
+            let mut it = p.into_inner();
+            let ty = parse_type_decl(it.next().context("array elem")?)?;
+            let len = expect_rule(&mut it, Rule::Number)?
+                .as_str()
+                .parse::<u32>()?;
+            Ok(TypeDecl::Array {
+                item: Box::new(ty),
+                len,
+            })
+        }
+        Rule::Option => {
+            let mut it = p.into_inner();
+            let ty = parse_type_decl(it.next().context("Option elem")?)?;
+            Ok(TypeDecl::Option(Box::new(ty)))
+        }
+        Rule::Result => {
+            let mut it = p.into_inner();
+            let ok = parse_type_decl(it.next().expect("inner"))?;
+            let err = parse_type_decl(it.next().expect("inner"))?;
+            Ok(TypeDecl::Result {
+                ok: Box::new(ok),
+                err: Box::new(err),
+            })
+        }
+        Rule::Primitive => Ok(TypeDecl::Primitive(map_primitive(p.as_str()))),
+        Rule::PathType => {
+            let mut path = String::new();
+            let mut generics: Vec<TypeDecl> = Vec::new();
+            for part in p.into_inner() {
+                match part.as_rule() {
+                    Rule::Path => path = part.as_str().to_string(),
+                    Rule::Generics => {
+                        for t in part.into_inner() {
+                            generics.push(parse_type_decl(t)?);
+                        }
+                    }
+                    _ => {}
+                }
+            }
+            Ok(TypeDecl::UserDefined(path))
+        }
+        other => bail!("unexpected rule in TypeDecl: {:?}", other),
+    }
+}
 
-// fn parse_variant(p: Pair<Rule>) -> Result<EnumVariant> {
-//     let mut it = p.into_inner().peekable();
-//     let (docs, anns) = collect_docs_anns_prefix(&mut it);
-//     let name = expect_rule_peek(&mut it, Rule::ident)?.as_str().to_string();
-//     it.next();
-//     let mut fields = Vec::new();
-//     let mut tuple = Vec::new();
-//     if let Some(next) = it.peek() {
-//         match next.as_rule() {
-//             Rule::VariantStruct => {
-//                 let f = parse_fields(next.clone());
-//                 fields = f;
-//                 it.next();
-//             }
-//             Rule::VariantTuple => {
-//                 let t = parse_typelist(next.clone());
-//                 tuple = t;
-//                 it.next();
-//             }
-//             _ => {}
-//         }
-//     }
-//     Ok(EnumVariant {
-//         name,
-//         fields,
-//         tuple,
-//         docs,
-//         annotations: anns,
-//     })
-// }
+fn parse_param(p: Pair<'_, Rule>) -> Result<FuncParam> {
+    let mut it = p.into_inner();
+    let name = expect_rule(&mut it, Rule::Ident)?.as_str().to_string();
+    let ty = parse_type_decl(it.next().context("expected TypeDecl")?)?;
+    Ok(FuncParam {
+        name,
+        type_decl: ty,
+    })
+}
 
-// fn parse_fields(p: Pair<Rule>) -> Vec<(String, TypeDecl)> {
-//     let mut v = Vec::new();
-//     for f in p.into_inner().filter(|x| x.as_rule() == Rule::Field) {
-//         let mut it = f.into_inner();
-//         // consume optional Docs/Anns if present
-//         let _ = collect_docs_anns_prefix(&mut it);
-//         let name = it.next().unwrap().as_str().to_string();
-//         let ty = TypeDecl {
-//             text: it.next().unwrap().as_str().to_string(),
-//         };
-//         v.push((name, ty));
-//     }
-//     v
-// }
+fn parse_field(p: Pair<'_, Rule>) -> Result<StructField, anyhow::Error> {
+    let mut it = p.into_inner();
+    let (docs, annotations) = parse_docs_and_annotations(&mut it)?;
+    let part = it.next().context("expected Ident | TypeDecl")?;
+    let (name, type_decl) = match part.as_rule() {
+        Rule::Ident => {
+            let name = part.as_str().to_string();
+            let ty = parse_type_decl(it.next().context("expeced TypeDecl")?)?;
+            (Some(name), ty)
+        }
+        _ => (None, parse_type_decl(part)?),
+    };
+    Ok(StructField {
+        name,
+        type_decl,
+        annotations,
+        docs,
+    })
+}
 
-// fn parse_typelist(p: Pair<Rule>) -> Vec<TypeDecl> {
-//     p.into_inner()
-//         .filter(|x| x.as_rule() == Rule::Type)
-//         .map(|t| TypeDecl {
-//             text: t.as_str().to_string(),
-//         })
-//         .collect()
-// }
+pub fn parse_type(p: Pair<Rule>) -> Result<Type> {
+    match p.as_rule() {
+        Rule::StructDecl => parse_struct_type(p),
+        Rule::EnumDecl => parse_enum_type(p),
+        Rule::AliasDecl => {
+            todo!()
+        }
+        _ => bail!("expected StructDecl | EnumDecl | AliasDecl"),
+    }
+}
 
-// fn parse_func(p: Pair<Rule>) -> Result<ServiceFunc> {
-//     let mut it = p.into_inner();
-//     let (docs, anns) = collect_docs_anns_prefix(&mut it);
-//     let name = expect_rule(&mut it, Rule::ident)?.as_str().to_string();
-//     let mut params = Vec::new();
-//     let mut output = None;
-//     let mut throws = None;
-//     let mut is_query = false;
-//     for part in it {
-//         match part.as_rule() {
-//             Rule::Params => {
-//                 for prm in part.into_inner().filter(|x| x.as_rule() == Rule::Param) {
-//                     let mut pit = prm.into_inner();
-//                     let p_name = pit.next().unwrap().as_str().to_string();
-//                     let p_ty = TypeDecl {
-//                         text: pit.next().unwrap().as_str().to_string(),
-//                     };
-//                     params.push(FuncParam {
-//                         name: p_name,
-//                         type_decl: p_ty,
-//                     });
-//                 }
-//             }
-//             Rule::Ret => {
-//                 output = Some(TypeDecl {
-//                     text: part.into_inner().next().unwrap().as_str().to_string(),
-//                 })
-//             }
-//             Rule::Throws => {
-//                 throws = Some(TypeDecl {
-//                     text: part.into_inner().next().unwrap().as_str().to_string(),
-//                 })
-//             }
-//             Rule::Anns => {
-//                 // capture @query, etc.
-//                 for a in part.into_inner() {
-//                     let a = parse_local_ann(a);
-//                     if a.key == "query" {
-//                         is_query = true;
-//                     }
-//                 }
-//             }
-//             _ => {}
-//         }
-//     }
-//     Ok(ServiceFunc {
-//         name,
-//         params,
-//         output,
-//         throws,
-//         is_query,
-//         docs,
-//         annotations: anns,
-//     })
-// }
+fn parse_struct_type(p: Pair<Rule>) -> Result<Type> {
+    let mut it = p.into_inner();
+    let (docs, annotations) = parse_docs_and_annotations(&mut it)?;
+    let name = expect_rule(&mut it, Rule::Ident)?.as_str().to_string();
+    let mut type_params = Vec::new();
+    let mut fields = Vec::new();
+    for part in it {
+        match part.as_rule() {
+            Rule::TypeParams => {
+                for i in part.into_inner().filter(|x| x.as_rule() == Rule::Ident) {
+                    let name = i.as_str().to_string();
+                    type_params.push(TypeParameter { name, ty: None });
+                }
+            }
+            Rule::Fields => {
+                for f in part.into_inner().filter(|x| x.as_rule() == Rule::Field) {
+                    fields.push(parse_field(f)?);
+                }
+            }
+            _ => bail!("expected StructDef | TupleDef | UnitDef"),
+        };
+    }
+
+    Ok(Type {
+        name,
+        type_params,
+        def: TypeDef::Struct(StructDef { fields }),
+        docs,
+        annotations,
+    })
+}
+
+fn parse_enum_type(p: Pair<Rule>) -> Result<Type> {
+    let mut it = p.into_inner();
+    let (docs, annotations) = parse_docs_and_annotations(&mut it)?;
+    let name = expect_rule(&mut it, Rule::Ident)?.as_str().to_string();
+    let mut type_params = Vec::new();
+    let mut variants = Vec::new();
+    for part in it {
+        match part.as_rule() {
+            Rule::TypeParams => {
+                for i in part.into_inner().filter(|x| x.as_rule() == Rule::Ident) {
+                    let name = i.as_str().to_string();
+                    type_params.push(TypeParameter { name, ty: None });
+                }
+            }
+            Rule::Variants => {
+                for v in part.into_inner().filter(|x| x.as_rule() == Rule::Variant) {
+                    variants.push(parse_enum_variant(v)?);
+                }
+            }
+            _ => bail!("expected TypeParams | Variants"),
+        };
+    }
+
+    Ok(Type {
+        name,
+        type_params,
+        def: TypeDef::Enum(EnumDef { variants }),
+        docs,
+        annotations,
+    })
+}
+
+fn parse_enum_variant(p: Pair<Rule>) -> Result<EnumVariant> {
+    let mut it = p.into_inner();
+    let (docs, annotations) = parse_docs_and_annotations(&mut it)?;
+    let name = expect_rule(&mut it, Rule::Ident)?.as_str().to_string();
+    let mut fields = Vec::new();
+    for part in it {
+        match part.as_rule() {
+            Rule::Fields => {
+                for f in part.into_inner().filter(|x| x.as_rule() == Rule::Field) {
+                    fields.push(parse_field(f)?);
+                }
+            }
+            _ => bail!("expected Fields"),
+        };
+    }
+
+    Ok(EnumVariant {
+        name,
+        def: StructDef { fields },
+        docs,
+        annotations,
+    })
+}
+
+fn parse_func(p: Pair<Rule>) -> Result<ServiceFunc> {
+    let mut it = p.into_inner();
+    let (docs, annotations) = parse_docs_and_annotations(&mut it)?;
+    let is_query = annotations.iter().any(|(k, _)| k == "query");
+    let name = expect_rule(&mut it, Rule::Ident)?.as_str().to_string();
+    let mut params = Vec::new();
+    let mut output = None;
+    let mut throws = None;
+    for part in it {
+        match part.as_rule() {
+            Rule::Params => {
+                for p in part.into_inner().filter(|x| x.as_rule() == Rule::Param) {
+                    params.push(parse_param(p)?);
+                }
+            }
+            Rule::Ret => {
+                output = Some(parse_type_decl(
+                    part.into_inner().next().context("expect TypeDecl")?,
+                )?)
+            }
+            Rule::Throws => {
+                throws = Some(parse_type_decl(
+                    part.into_inner().next().context("expect TypeDecl")?,
+                )?)
+            }
+            _ => {}
+        }
+    }
+    let output = output.unwrap_or(TypeDecl::Primitive(PrimitiveType::Null));
+    Ok(ServiceFunc {
+        name,
+        params,
+        output,
+        throws,
+        is_query,
+        docs,
+        annotations,
+    })
+}
+
+fn parse_service(p: Pair<Rule>) -> Result<ServiceUnit> {
+    let mut it = p.into_inner();
+    let (docs, annotations) = parse_docs_and_annotations(&mut it)?;
+    let name = expect_rule(&mut it, Rule::Ident)?.as_str().to_string();
+
+    let mut extends = Vec::new();
+    let mut events = Vec::new();
+    let mut funcs = Vec::new();
+    let mut types = Vec::new();
+    for item in it {
+        match item.as_rule() {
+            Rule::ExtendsBlock => {
+                for i in item.into_inner().filter(|x| x.as_rule() == Rule::Ident) {
+                    extends.push(i.as_str().to_string());
+                }
+            }
+            Rule::EventsBlock => {
+                for e in item.into_inner().filter(|x| x.as_rule() == Rule::Variant) {
+                    events.push(parse_enum_variant(e)?);
+                }
+            }
+            Rule::FunctionsBlock => {
+                for f in item.into_inner().filter(|x| x.as_rule() == Rule::FuncDecl) {
+                    funcs.push(parse_func(f)?);
+                }
+            }
+            Rule::TypesBlock => {
+                for t in item.into_inner() {
+                    types.push(parse_type(t)?);
+                }
+            }
+            _ => {}
+        }
+    }
+
+    Ok(ServiceUnit {
+        name,
+        extends,
+        events,
+        funcs,
+        types,
+        docs,
+        annotations,
+    })
+}
 
 fn parse_ctor_func(p: Pair<Rule>) -> Result<CtorFunc> {
     let mut it = p.into_inner();
-    let (docs, annotations) = parse_local_anns_and_docs(&mut it);
+    let (docs, annotations) = parse_docs_and_annotations(&mut it)?;
     let name = expect_rule(&mut it, Rule::Ident)?.as_str().to_string();
     let mut params = Vec::new();
     for part in it {
         match part.as_rule() {
             Rule::Params => {
-                for prm in part.into_inner().filter(|x| x.as_rule() == Rule::Param) {
-                    // let mut pit = prm.into_inner();
-                    // let p_name = pit.next().unwrap().as_str().to_string();
-                    // let p_ty = TypeDecl {
-                    //     text: pit.next().unwrap().as_str().to_string(),
-                    // };
-                    // params.push(FuncParam {
-                    //     name: p_name,
-                    //     type_decl: p_ty,
-                    // });
+                for p in part.into_inner().filter(|x| x.as_rule() == Rule::Param) {
+                    params.push(parse_param(p)?);
                 }
             }
             _ => {}
@@ -249,9 +382,7 @@ fn parse_ctor_func(p: Pair<Rule>) -> Result<CtorFunc> {
 
 fn parse_program(p: Pair<Rule>) -> Result<ProgramUnit> {
     let mut it = p.into_inner();
-    // println!("{:#?}", it);
-    let (docs, annotations) = parse_local_anns_and_docs(&mut it);
-    println!("{:#?}", it);
+    let (docs, annotations) = parse_docs_and_annotations(&mut it)?;
     let name = expect_rule(&mut it, Rule::Ident)?.as_str().to_string();
     let mut ctors = Vec::new();
     let mut services = Vec::new();
@@ -268,9 +399,8 @@ fn parse_program(p: Pair<Rule>) -> Result<ProgramUnit> {
                     .into_inner()
                     .filter(|x| x.as_rule() == Rule::ServiceItem)
                 {
-                    println!("{:?}", s);
                     let mut sit = s.into_inner();
-                    let (docs, annotations) = parse_local_anns_and_docs(&mut sit);
+                    let (docs, annotations) = parse_docs_and_annotations(&mut sit)?;
                     let mut name = expect_rule(&mut sit, Rule::Ident)?.as_str().to_string();
                     let route = name.clone();
                     if let Some(p) = sit.next() {
@@ -287,9 +417,11 @@ fn parse_program(p: Pair<Rule>) -> Result<ProgramUnit> {
                 }
             }
             Rule::TypesBlock => {
-                // types.push(item.as_str().to_string());
+                for t in item.into_inner() {
+                    types.push(parse_type(t)?);
+                }
             }
-            _ => {}
+            _ => bail!("expected ConstructorsBlock | ServicesBlock | TypesBlock"),
         }
     }
     Ok(ProgramUnit {
@@ -303,13 +435,10 @@ fn parse_program(p: Pair<Rule>) -> Result<ProgramUnit> {
 }
 
 // ------------------------------ Helpers --------------------------------------
-fn strip_line(s: &str) -> String {
-    s.trim().to_string()
-}
 
-fn parse_local_anns_and_docs(
+fn parse_docs_and_annotations(
     pairs: &mut Pairs<Rule>,
-) -> (Vec<String>, Vec<(String, Option<String>)>) {
+) -> Result<(Vec<String>, Vec<(String, Option<String>)>)> {
     let mut docs = Vec::new();
     let mut anns = Vec::new();
     // iter over cloned
@@ -321,7 +450,7 @@ fn parse_local_anns_and_docs(
                 let _ = pairs.next();
                 for d in p.into_inner() {
                     match d.as_rule() {
-                        Rule::Value => docs.push(strip_line(d.as_str())),
+                        Rule::StrToEol => docs.push(d.as_str().trim().to_string()),
                         _ => {}
                     }
                 }
@@ -330,13 +459,13 @@ fn parse_local_anns_and_docs(
                 // pop pair
                 let _ = pairs.next();
                 for a in p.into_inner() {
-                    anns.push(parse_ann(a));
+                    anns.push(parse_annotation(a)?);
                 }
             }
             _ => break,
         }
     }
-    (docs, anns)
+    Ok((docs, anns))
 }
 
 fn expect_rule<'a>(
@@ -346,17 +475,6 @@ fn expect_rule<'a>(
     if let Some(p) = it.next() {
         if p.as_rule() == r {
             return Ok(p);
-        }
-    }
-    bail!("expected {:?}", r)
-}
-fn expect_rule_peek<'a>(
-    it: &mut std::iter::Peekable<impl Iterator<Item = Pair<'a, Rule>>>,
-    r: Rule,
-) -> Result<Pair<'a, Rule>> {
-    if let Some(p) = it.peek() {
-        if p.as_rule() == r {
-            return Ok(p.clone());
         }
     }
     bail!("expected {:?}", r)
@@ -376,7 +494,7 @@ mod tests {
             "#;
         let mut pairs = IdlParser::parse(Rule::Docs, SRC).expect("parse idl");
         println!("pairs: {pairs:?}");
-        let (docs, _anns) = parse_local_anns_and_docs(&mut pairs);
+        let (docs, _anns) = parse_docs_and_annotations(&mut pairs).expect("parse annotations");
         println!("docs: {docs:?}");
         assert_eq!(2, docs.len());
         assert_eq!(
@@ -400,6 +518,149 @@ mod tests {
         let doc = IdlDoc::parse(SRC).expect("parse idl");
         println!("{:?}", doc);
         assert_eq!(3, doc.globals.len());
+    }
+
+    #[test]
+    fn pars_service_func() {
+        use PrimitiveType::*;
+        use TypeDecl::*;
+
+        const SRC: &str = r#"
+            /// Sets color for the point.
+            /// app -> `fn color_point(&mut self, point: Point<u32>, color: Color) -> Result<(), ColorError>`
+            /// On `Ok` - auto-reply. On `Err` -> app will encode error bytes of `ColorError` (`gr_panic_bytes`).
+            ColorPoint(point: (u32, u32), color: Color) throws ColorError;"#;
+        let mut pairs = IdlParser::parse(Rule::FuncDecl, SRC).expect("parse idl");
+        let func = parse_func(pairs.next().expect("FuncDecl")).expect("parse func");
+        println!("func: {func:?}");
+        assert_eq!(
+            func,
+            ServiceFunc {
+                name: "ColorPoint".to_string(),
+                params: vec![FuncParam { name: "point".to_string(), type_decl: Tuple(vec![Primitive(U32), Primitive(U32)]) }, FuncParam { name: "color".to_string(), type_decl: UserDefined("Color".to_string()) }],
+                output: Primitive(Null),
+                throws: Some(UserDefined("ColorError".to_string())),
+                is_query: false,
+                annotations: vec![],
+                docs: vec![
+                    "Sets color for the point.".to_string(),
+                    "app -> `fn color_point(&mut self, point: Point<u32>, color: Color) -> Result<(), ColorError>`".to_string(),
+                    "On `Ok` - auto-reply. On `Err` -> app will encode error bytes of `ColorError` (`gr_panic_bytes`).".to_string(),
+                ],
+            }
+        );
+    }
+
+    #[test]
+    fn parse_test_idl() {
+        const SRC: &str = r#"
+!@sails: 0.1.0
+!@include: ownable.idl
+!@include: git://github.com/some_repo/tippable.idl
+
+/// Canvas service
+service Canvas {
+    // Merge `functions`, `events`, `types`, from Ownable, Tippable and Pausable services
+    extends {
+        Ownable,
+        Tippable,
+        Pausable,
+    }
+
+    // Canvas service events
+    events {
+        StatusChanged(Point),
+        Jubilee {
+            /// Amount of alive points.
+            @indexed
+            @nonzero
+            amount: u64,
+            bits: bitvec,
+        },
+        E1,
+    }
+
+    functions {
+        /// Sets color for the point.
+        /// app -> `fn color_point(&mut self, point: Point<u32>, color: Color) -> Result<(), ColorError>`
+        /// On `Ok` - auto-reply. On `Err` -> app will encode error bytes of `ColorError` (`gr_panic_bytes`).
+        ColorPoint(point: Point, color: Color) throws ColorError;
+
+        /// Kills the point.
+        /// app -> `fn kill_point(&mut self, point: Point) -> Result<bool, String>`
+        KillPoint(point: Point) -> bool throws String;
+
+        /// Returns known points.
+        /// app -> `fn points(&self, ...) -> Result<BTreeMap<Point, PointStatus>, String>`
+        @query
+        Points(offset: u32, len: u32) -> [(Point, PointStatus)] throws string;
+
+        /// Returns status set for given point.
+        @query
+        PointStatus(point: Point) -> PointStatus;
+    }
+
+    types {
+        // Point with two coordinates.
+        struct Point<T> {
+            /// Horizontal coordinate.
+            x: T,
+            /// Vertical coordinate.
+            y: T,
+        }
+
+        struct Color {
+            color: [u8; 4],
+            space: ColorSpace,
+        }
+
+        enum ColorSpace {
+            RGB,
+            HSV,
+            CMYK,
+        }
+
+        /// Defines status of some point as colored by somebody or dead for some reason.
+        enum PointStatus {
+            /// Colored into some RGB.
+            Colored {
+                /// Who has colored it.
+                author: actor,
+                /// Color used.
+                color: Color,
+            },
+            /// Dead point - won't be available for coloring anymore.
+            Dead,
+        }
+
+        /// Error happened during point setting.
+        enum ColorError {
+            InvalidSource,
+            DeadPoint,
+        }
+    }
+}
+
+/// Pausable Service
+service Pausable {
+    events {
+        Paused,
+        Unpaused,
+    }
+
+    functions {
+        // Client: `fn pause(&mut self) -> Result<(), SailsEnvError>`
+        Pause();
+        Unpause();
+    }
+
+    types {
+        struct PausedError;
+    }
+}
+        "#;
+        let doc = IdlDoc::parse(SRC).expect("parse idl");
+        println!("{:#?}", doc);
     }
 
     #[test]
@@ -564,7 +825,7 @@ mod tests {
             }
         "#;
         let doc = IdlDoc::parse(SRC).expect("parse idl");
-        println!("{:?}", doc);
+        println!("{:#?}", doc);
         assert_eq!(3, doc.globals.len());
     }
 }

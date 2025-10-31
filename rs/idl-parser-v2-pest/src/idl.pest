@@ -2,71 +2,69 @@ WHITESPACE = _{ WHITE_SPACE | NEWLINE }
 COMMENT    = _{ "//" ~ !"/" ~ (!NEWLINE ~ ANY)* }
 
 // ---------- Lexemes ----------
-Ident  = @{ (ASCII_ALPHA | "_") ~ (ASCII_ALPHANUMERIC | "_")* }
-Number = @{ ASCII_DIGIT+ }
-Value  = @{ (!NEWLINE ~ ANY)* }
+Ident    = @{ (ASCII_ALPHA | "_") ~ (ASCII_ALPHANUMERIC | "_")* }
+Number   = @{ ASCII_DIGIT+ }
+StrToEol = @{ (!NEWLINE ~ ANY)* }
 
 // ---------- Annotations & docs ----------
-GlobalAnn =  { WHITESPACE* ~ "!@" ~ Ident ~ (":" ~ Value)? }
-LocalAnn  =  { WHITESPACE* ~ "@" ~ Ident ~ (":" ~ Value)? }
-DocLine   = _{ WHITESPACE* ~ "///" ~ Value }
+GlobalAnn =  { WHITESPACE* ~ "!@" ~ Ident ~ (":" ~ StrToEol)? }
+LocalAnn  =  { WHITESPACE* ~ "@" ~ Ident ~ (":" ~ StrToEol)? }
+DocLine   = _{ WHITESPACE* ~ "///" ~ StrToEol }
 
 Docs = { DocLine+ }
 Anns = { LocalAnn+ }
 
 // ---------- Types ----------
-TypeDecl = _{ Tuple | Slice | Array | Primitive | PathType }
+TypeDecl = _{ Tuple | Slice | Array | Option | Result | Primitive | PathType }
 
 Primitive = { "bool" | "u8" | "i8" | "u16" | "i16" | "u32" | "i32" | "u64" | "i64" | "u128" | "i128" }
+
+Tuple  = { "(" ~ (TypeDecl ~ ("," ~ TypeDecl)* ~ ","?)? ~ ")" }
+Array  = { "[" ~ TypeDecl ~ ";" ~ Number ~ "]" }
+Slice  = { "[" ~ TypeDecl ~ "]" }
+Option = { "Option" ~ "<" ~ TypeDecl ~ ">" }
+Result = { "Result" ~ "<" ~ TypeDecl ~ "," ~ TypeDecl ~ ">" }
 
 PathType =  { Path ~ Generics? }
 Path     = @{ Ident ~ ("::" ~ Ident)* }
 Generics =  { "<" ~ TypeDecl ~ ("," ~ TypeDecl)* ~ ">" }
 
-Tuple = { "(" ~ (TypeDecl ~ ("," ~ TypeDecl)* ~ ","?)? ~ ")" }
-Array = { "[" ~ TypeDecl ~ ";" ~ Number ~ "]" }
-Slice = { "[" ~ TypeDecl ~ "]" }
-
 // ---------- Structs ----------
-StructDecl    = _{ StructClassic | StructTuple | StructUnit }
-StructClassic =  { Docs? ~ Anns* ~ "struct" ~ Ident ~ TypeParams? ~ "{" ~ Fields? ~ "}" }
-StructTuple   =  { Docs? ~ Anns* ~ "struct" ~ Ident ~ TypeParams? ~ "(" ~ TypeList ~ ")" ~ ";"? }
-StructUnit    =  { Docs? ~ Anns* ~ "struct" ~ Ident ~ ";" }
+StructDecl = { Docs? ~ Anns? ~ "struct" ~ Ident ~ TypeParams? ~ (StructDef | TupleDef | UnitDef) }
+
+StructDef = _{ "{" ~ Fields? ~ "}" ~ ";"? }
+TupleDef  = _{ "(" ~ Fields? ~ ")" ~ ";"? }
+UnitDef   = _{ ";" }
 
 TypeParams = { "<" ~ Ident ~ ("," ~ Ident)* ~ ">" }
-TypeList   = { TypeDecl ~ ("," ~ TypeDecl)* }
 Fields     = { Field ~ ("," ~ Field)* ~ ","? }
-Field      = { Docs? ~ Anns* ~ Ident ~ ":" ~ TypeDecl }
+Field      = { Docs? ~ Anns? ~ (Ident ~ ":")? ~ TypeDecl }
 
 // ---------- Enums ----------
-EnumDecl      = { Docs? ~ Anns* ~ "enum" ~ Ident ~ TypeParams? ~ "{" ~ Variants? ~ "}" }
-Variants      = { Variant ~ ("," ~ Variant)* ~ ","? }
-Variant       = { Docs? ~ Anns* ~ Ident ~ (VariantStruct | VariantTuple)? }
-VariantStruct = { "{" ~ Fields? ~ "}" }
-VariantTuple  = { "(" ~ TypeList ~ ")" }
+EnumDecl = { Docs? ~ Anns? ~ "enum" ~ Ident ~ TypeParams? ~ "{" ~ Variants? ~ "}" }
+Variants = { Variant ~ ("," ~ Variant)* ~ ","? }
+Variant  = { Docs? ~ Anns? ~ Ident ~ (StructDef | TupleDef)? }
 
 // ---------- Aliases ----------
-AliasDecl   = { Docs? ~ Anns* ~ "alias" ~ Ident ~ GenericArgs? ~ "=" ~ TypeDecl ~ ";" }
-GenericArgs = { "<" ~ TypeDecl ~ ("," ~ TypeDecl)* ~ ">" }
+AliasDecl = { "alias" ~ Ident ~ TypeParams? ~ "=" ~ TypeDecl ~ ";" }
 
 // ---------- Service ----------
-ServiceDecl = { Docs? ~ Anns* ~ "service" ~ Ident ~ "{" ~ ExtendsBlock? ~ EventsBlock? ~ FunctionsBlock? ~ TypesBlock? ~ "}" }
+ServiceDecl = { Docs? ~ Anns* ~ "service" ~ Ident ~ "{" ~ (ExtendsBlock | EventsBlock | FunctionsBlock | TypesBlock)* ~ "}" }
 
-ExtendsBlock   = { "extends" ~ "{" ~ Path ~ ("," ~ Path)* ~ "}" }
-EventsBlock    = { "events" ~ "{" ~ EventDecl ~ ("," ~ EventDecl)* ~ ","? ~ "}" }
-EventDecl      = { Docs? ~ Anns* ~ Variant }
+ExtendsBlock   = { "extends" ~ "{" ~ Ident ~ ("," ~ Ident)* ~ ","? ~ "}" }
+EventsBlock    = { "events" ~ "{" ~ Variant ~ ("," ~ Variant)* ~ ","? ~ "}" }
 FunctionsBlock = { "functions" ~ "{" ~ FuncDecl* ~ "}" }
 TypesBlock     = { "types" ~ "{" ~ (StructDecl | EnumDecl | AliasDecl)* ~ "}" }
 
 // ---------- Functions ----------
-FuncDecl = { Docs? ~ Anns* ~ Ident ~ "(" ~ Params? ~ ")" ~ Ret? ~ Throws? ~ ";" ~ NEWLINE* }
-Params   = { Param ~ ("," ~ Param)* }
+FuncDecl = { Docs? ~ Anns* ~ Ident ~ "(" ~ Params? ~ ")" ~ Ret? ~ Throws? ~ ";"? }
+Params   = { Param ~ ("," ~ Param)* ~ ","? }
 Param    = { Ident ~ ":" ~ TypeDecl }
 Ret      = { "->" ~ TypeDecl }
 Throws   = { "throws" ~ TypeDecl }
 
 // ---------- Program ----------
-ProgramDecl       = { Docs? ~ Anns? ~ "program" ~ Ident ~ "{" ~ ConstructorsBlock? ~ ServicesBlock? ~ TypesBlock? ~ "}" }
+ProgramDecl       = { Docs? ~ Anns? ~ "program" ~ Ident ~ "{" ~ (ConstructorsBlock | ServicesBlock | TypesBlock)* ~ "}" }
 ConstructorsBlock = { "constructors" ~ "{" ~ CtorDecl* ~ "}" }
 CtorDecl          = { Docs? ~ Anns? ~ Ident ~ "(" ~ Params? ~ ")" ~ ";"? }
 ServicesBlock     = { "services" ~ "{" ~ (ServiceItem ~ ","?)* ~ "}" }
