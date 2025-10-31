@@ -122,19 +122,19 @@ enum SailsCommands {
         out: Option<PathBuf>,
     },
 
-    /// Derive interface IDs from IDL JSON or runtime metadata
+    /// Derive interface IDs from canonical IDL JSON or runtime metadata
     #[command(name = "idl-derive-id")]
     #[command(group(
         ArgGroup::new("derive_source")
             .required(true)
-            .args(["idl_path", "manifest_path"])
+            .args(["canonical_path", "manifest_path"])
     ))]
     IdlDeriveId {
-        /// Path to the IDL JSON file
+        /// Path to the canonical IDL JSON file
         #[arg(value_hint = clap::ValueHint::FilePath, conflicts_with = "manifest_path")]
-        idl_path: Option<PathBuf>,
+        canonical_path: Option<PathBuf>,
         /// Path to the Cargo manifest with the program (uses runtime metadata)
-        #[arg(long, value_hint = clap::ValueHint::FilePath, conflicts_with = "idl_path")]
+        #[arg(long, value_hint = clap::ValueHint::FilePath, conflicts_with = "canonical_path")]
         manifest_path: Option<PathBuf>,
     },
 }
@@ -230,13 +230,13 @@ fn main() -> Result<(), i32> {
             }
         }
         SailsCommands::IdlDeriveId {
-            idl_path,
+            canonical_path,
             manifest_path,
         } => {
             if let Some(manifest_path) = manifest_path.as_ref() {
                 interface_id::derive_ids_for_manifest(manifest_path)
-            } else if let Some(idl_path) = idl_path.as_ref() {
-                interface_id::derive_ids(idl_path)
+            } else if let Some(canonical_path) = canonical_path.as_ref() {
+                interface_id::derive_ids(canonical_path)
             } else {
                 unreachable!("argument group enforces presence")
             }

@@ -1,8 +1,8 @@
 use crate::idlgen::{ProgramArtifactKind, generate_program_artifact};
-use anyhow::{Context, Result, anyhow};
+use anyhow::{Context, Result, anyhow, bail};
 use cargo_metadata::camino::Utf8PathBuf;
 use sails_interface_id::{
-    canonical::{CanonicalDocument, CanonicalizationError, canonicalize},
+    canonical::{CanonicalDocument, canonicalize},
     compute_ids_from_bytes,
 };
 use std::{
@@ -49,17 +49,20 @@ pub fn canonicalize_manifest(manifest: &Path, output: Option<&Path>) -> Result<(
 }
 
 pub fn derive_ids(input: &Path) -> Result<()> {
+    let is_idl = input
+        .extension()
+        .and_then(|ext| ext.to_str())
+        .map(|ext| ext.eq_ignore_ascii_case("idl"))
+        .unwrap_or(false);
+    if is_idl {
+        bail!(
+            "deriving interface IDs directly from `.idl` files is not supported; canonicalize the document first (e.g. `sails idl-canonicalize --manifest-path <path>`)"
+        );
+    }
+
     let raw = fs::read_to_string(input)
         .with_context(|| format!("failed to read IDL file {}", input.display()))?;
-    let (canonical, overrides) = match CanonicalDocument::from_json_str(&raw) {
-        Ok(doc) => (doc, BTreeMap::new()),
-        Err(CanonicalizationError::InvalidJson(_)) => {
-            let doc = CanonicalDocument::from_text_idl(&raw)?;
-            let ids = collect_interface_ids(&raw);
-            (doc, ids)
-        }
-        Err(err) => return Err(err.into()),
-    };
+    let canonical = CanonicalDocument::from_json_str(&raw)?;
 
     if canonical.services.is_empty() {
         let bytes = canonical.to_bytes()?;
@@ -78,18 +81,8 @@ pub fn derive_ids(input: &Path) -> Result<()> {
             services: single_services,
             types: canonical.types.clone(),
         };
-        let id = if let Some(maybe_id) = overrides.get(name) {
-            match maybe_id {
-                Some(id) => *id,
-                _ => {
-                    let bytes = single.to_bytes()?;
-                    compute_ids_from_bytes(&bytes)
-                }
-            }
-        } else {
-            let bytes = single.to_bytes()?;
-            compute_ids_from_bytes(&bytes)
-        };
+        let bytes = single.to_bytes()?;
+        let id = compute_ids_from_bytes(&bytes);
         println!("{} -> interface_id=0x{ID:016x}", name, ID = id);
     }
 
@@ -129,66 +122,6 @@ pub fn derive_ids_for_manifest(manifest: &Path) -> Result<()> {
     }
 
     Ok(())
-}
-
-fn collect_interface_ids(input: &str) -> BTreeMap<String, Option<u64>> {
-    let mut ids = BTreeMap::new();
-    let mut current_service: Option<String> = None;
-    let mut brace_depth: i32 = 0;
-
-    for line in input.lines() {
-        let trimmed = line.trim();
-
-        if current_service.is_none() {
-            if let Some(rest) = trimmed.strip_prefix("service ") {
-                let raw_name = rest.split_whitespace().next().unwrap_or_default();
-                let name = raw_name.trim_end_matches('{').trim_end_matches(';');
-                if !name.is_empty() {
-                    ids.entry(name.to_owned()).or_insert(None);
-                    current_service = Some(name.to_owned());
-                    brace_depth = count_brace_delta(trimmed);
-                    continue;
-                }
-            }
-            continue;
-        }
-
-        if let Some(service) = current_service.as_ref() {
-            if let Some(rest) = trimmed.strip_prefix("///") {
-                if let Some(entry) = ids.get_mut(service) {
-                    let comment = rest.trim();
-                    if let Some(value) = comment.strip_prefix("!@interface_id") {
-                        *entry = parse_u64(value);
-                    }
-                }
-            }
-            brace_depth += count_brace_delta(trimmed);
-            if brace_depth <= 0 {
-                current_service = None;
-                brace_depth = 0;
-            }
-        }
-    }
-
-    ids
-}
-
-fn count_brace_delta(line: &str) -> i32 {
-    let opens = line.chars().filter(|&c| c == '{').count() as i32;
-    let closes = line.chars().filter(|&c| c == '}').count() as i32;
-    opens - closes
-}
-
-fn parse_u64(raw: &str) -> Option<u64> {
-    let value = raw.trim().trim_start_matches('=').trim();
-    if let Some(hex) = value
-        .strip_prefix("0x")
-        .or_else(|| value.strip_prefix("0X"))
-    {
-        u64::from_str_radix(hex, 16).ok()
-    } else {
-        value.parse::<u64>().ok()
-    }
 }
 
 fn to_utf8_path(path: &Path) -> Result<Utf8PathBuf> {

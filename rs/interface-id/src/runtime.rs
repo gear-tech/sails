@@ -97,11 +97,7 @@ fn extract_params(
                     .clone()
                     .map(|value| value.to_string())
                     .unwrap_or_else(|| format!("arg{idx}"));
-                let ty = match canonical_type_for_metadata(
-                    registry,
-                    field.ty.id,
-                    collected_types,
-                ) {
+                let ty = match canonical_type_for_metadata(registry, field.ty.id, collected_types) {
                     Ok(ty) => ty,
                     Err(_) => canonical_visitor::named_type(registry, field.ty.id),
                 };
@@ -422,11 +418,7 @@ fn collect_functions(
         collect_user_type_ids(registry, item.fields[0].ty.id, collected_types);
         collect_user_type_ids(registry, item.fields[1].ty.id, collected_types);
         let params = extract_params(item.fields[0].ty.id, registry, collected_types)?;
-        let returns = canonical_type_for_metadata(
-            registry,
-            item.fields[1].ty.id,
-            collected_types,
-        )?;
+        let returns = canonical_type_for_metadata(registry, item.fields[1].ty.id, collected_types)?;
         functions.push(CanonicalFunction {
             kind,
             name: item.name.to_string(),
