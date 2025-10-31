@@ -238,7 +238,7 @@ pub fn build_canonical_document_from_meta(meta: &AnyServiceMeta) -> Result<Canon
     let mut types = BTreeMap::new();
     collect_service(meta, &mut services, &mut visited, &mut types)?;
 
-    Ok(CanonicalDocument {
+    let mut document = CanonicalDocument {
         canon_schema: crate::canonical::CANONICAL_SCHEMA.to_owned(),
         canon_version: crate::canonical::CANONICAL_VERSION.to_owned(),
         hash: CanonicalHashMeta {
@@ -247,7 +247,9 @@ pub fn build_canonical_document_from_meta(meta: &AnyServiceMeta) -> Result<Canon
         },
         services,
         types,
-    })
+    };
+    document.normalize();
+    Ok(document)
 }
 
 fn collect_service(

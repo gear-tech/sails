@@ -584,15 +584,24 @@ fn sails_dep_v1(sails_package: &Package) -> toml_edit::InlineTable {
     sails_table
 }
 
-fn sails_dep_v2(sails_package: &Package, _kind: &ProgramArtifactKind) -> toml_edit::InlineTable {
+fn sails_dep_v2(sails_package: &Package, kind: &ProgramArtifactKind) -> toml_edit::InlineTable {
     let mut features = toml_edit::Array::default();
-    features.push("idl-gen");
-    features.push("std");
+    match kind {
+        ProgramArtifactKind::Idl => {
+            features.push("idl-gen");
+            features.push("std");
+        }
+        ProgramArtifactKind::Canonical => {
+            features.push("std");
+        }
+    }
     let mut sails_table = toml_edit::InlineTable::new();
     let manifets_dir = sails_package.manifest_path.parent().unwrap();
     sails_table.insert("package", sails_package.name.as_str().into());
     sails_table.insert("path", manifets_dir.as_str().into());
-    sails_table.insert("features", features.into());
+    if !features.is_empty() {
+        sails_table.insert("features", features.into());
+    }
     sails_table
 }
 

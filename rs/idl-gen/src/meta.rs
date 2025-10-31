@@ -81,68 +81,60 @@ impl ExpandedProgramMeta {
             .map(|t| t.id)
             .collect::<Vec<_>>();
         let ctors_type_id = ctors.map(|ctors| registry.register_type(&ctors).id);
-        let services_data = services
-            .map(|(sname, sm)| {
-                let command_entry_ids = sm.command_entry_ids().to_vec();
-                let query_entry_ids = sm.query_entry_ids().to_vec();
-                let event_entry_ids = sm.event_entry_ids().to_vec();
+        let mut all_types = BTreeMap::new();
+        let mut services_data = Vec::new();
+        for (sname, sm) in services {
+            let command_entry_ids = sm.command_entry_ids().to_vec();
+            let query_entry_ids = sm.query_entry_ids().to_vec();
+            let event_entry_ids = sm.event_entry_ids().to_vec();
 
-                let service_name = sm.interface_path();
-                let canonical_doc = build_canonical_document_from_meta(&sm).map_err(|err| {
-                    Error::FuncMetaIsInvalid(format!(
-                        "failed to build canonical document for `{service_name}`: {err}"
-                    ))
-                })?;
-                let service_entry = canonical_doc.services.get(service_name).ok_or_else(|| {
-                    Error::FuncMetaIsInvalid(format!(
-                        "canonical document for `{service_name}` is missing service entry"
-                    ))
-                })?;
-                let mut single_services = BTreeMap::new();
-                single_services.insert(service_name.to_owned(), service_entry.clone());
-                let single_doc = CanonicalDocument {
-                    canon_schema: canonical_doc.canon_schema.clone(),
-                    canon_version: canonical_doc.canon_version.clone(),
-                    hash: canonical_doc.hash.clone(),
-                    services: single_services,
-                    types: canonical_doc.types.clone(),
-                };
-                let canonical_bytes = single_doc.to_bytes().map_err(|err| {
-                    Error::FuncMetaIsInvalid(format!(
-                        "failed to serialize canonical document for `{service_name}`: {err}"
-                    ))
-                })?;
-                let extends = service_entry
-                    .extends
-                    .iter()
-                    .map(|ext| ExtendedInterfaceMeta {
-                        name: ext.name.clone(),
-                        interface_id: ext.interface_id,
-                    })
-                    .collect::<Vec<_>>();
-
-                Ok((
-                    sname,
-                    Self::flat_meta(&sm, |sm| sm.commands())
-                        .into_iter()
-                        .map(|mt| registry.register_type(mt).id)
-                        .collect::<Vec<_>>(),
-                    Self::flat_meta(&sm, |sm| sm.queries())
-                        .into_iter()
-                        .map(|mt| registry.register_type(mt).id)
-                        .collect::<Vec<_>>(),
-                    Self::flat_meta(&sm, |sm| sm.events())
-                        .into_iter()
-                        .map(|mt| registry.register_type(mt).id)
-                        .collect::<Vec<_>>(),
-                    command_entry_ids,
-                    query_entry_ids,
-                    event_entry_ids,
-                    canonical_bytes,
-                    extends,
+            let service_name = sm.interface_path();
+            let canonical_doc = build_canonical_document_from_meta(&sm).map_err(|err| {
+                Error::FuncMetaIsInvalid(format!(
+                    "failed to build canonical document for `{service_name}`: {err}"
                 ))
-            })
-            .collect::<Result<Vec<_>>>()?;
+            })?;
+            let service_entry = canonical_doc.services.get(service_name).ok_or_else(|| {
+                Error::FuncMetaIsInvalid(format!(
+                    "canonical document for `{service_name}` is missing service entry"
+                ))
+            })?;
+            for (ty_name, ty) in canonical_doc.types.iter() {
+                all_types.insert(ty_name.clone(), ty.clone());
+            }
+            let extends = service_entry
+                .extends
+                .iter()
+                .map(|ext| ExtendedInterfaceMeta {
+                    name: ext.name.clone(),
+                    interface_id: ext.interface_id,
+                })
+                .collect::<Vec<_>>();
+
+            services_data.push((
+                sname,
+                Self::flat_meta(&sm, |sm| sm.commands())
+                    .into_iter()
+                    .map(|mt| registry.register_type(mt).id)
+                    .collect::<Vec<_>>(),
+                Self::flat_meta(&sm, |sm| sm.queries())
+                    .into_iter()
+                    .map(|mt| registry.register_type(mt).id)
+                    .collect::<Vec<_>>(),
+                Self::flat_meta(&sm, |sm| sm.events())
+                    .into_iter()
+                    .map(|mt| registry.register_type(mt).id)
+                    .collect::<Vec<_>>(),
+                command_entry_ids,
+                query_entry_ids,
+                event_entry_ids,
+                service_entry.clone(),
+                extends,
+                canonical_doc.canon_schema.clone(),
+                canonical_doc.canon_version.clone(),
+                canonical_doc.hash.clone(),
+            ));
+        }
         let registry = PortableRegistry::from(registry);
         let ctors = Self::ctor_funcs(&registry, ctors_type_id)?;
         let services = services_data
@@ -156,9 +148,27 @@ impl ExpandedProgramMeta {
                     command_entry_ids,
                     query_entry_ids,
                     event_entry_ids,
-                    canonical,
+                    canonical_service,
                     extends,
+                    canon_schema,
+                    canon_version,
+                    hash,
                 )| {
+                    let mut single_services = BTreeMap::new();
+                    single_services
+                        .insert(canonical_service.name.clone(), canonical_service.clone());
+                    let single_doc = CanonicalDocument {
+                        canon_schema,
+                        canon_version,
+                        hash,
+                        services: single_services,
+                        types: all_types.clone(),
+                    };
+                    let canonical_bytes = single_doc.to_bytes().map_err(|err| {
+                        Error::FuncMetaIsInvalid(format!(
+                            "failed to serialize canonical document for `{sname}`: {err}"
+                        ))
+                    })?;
                     ExpandedServiceMeta::new(
                         &registry,
                         sname,
@@ -168,7 +178,7 @@ impl ExpandedProgramMeta {
                         command_entry_ids,
                         query_entry_ids,
                         event_entry_ids,
-                        canonical,
+                        canonical_bytes,
                         extends,
                     )
                 },

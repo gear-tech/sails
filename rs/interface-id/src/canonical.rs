@@ -307,7 +307,8 @@ impl CanonicalDocument {
         })
     }
 
-    fn normalized(mut self) -> Self {
+    /// Normalizes the canonical document in-place (sorting collections, filling defaults).
+    pub fn normalize(&mut self) {
         for service in self.services.values_mut() {
             service.normalize();
         }
@@ -326,6 +327,10 @@ impl CanonicalDocument {
         if self.hash.domain.is_empty() {
             self.hash.domain = crate::INTERFACE_HASH_DOMAIN_STR.to_owned();
         }
+    }
+
+    fn normalized(mut self) -> Self {
+        self.normalize();
         self
     }
 }
