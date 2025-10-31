@@ -14,13 +14,13 @@ pub const CANONICAL_VERSION: &str = "1";
 /// Hash algorithm identifier used in canonical docs.
 pub const CANONICAL_HASH_ALGO: &str = "blake3";
 /// Domain separator (string) for interface-level hashing.
-pub const INTERFACE_HASH_DOMAIN_STR: &str = "GEAR-IDL/v1/interface-id";
+pub const INTERFACE_HASH_DOMAIN_STR: &str = "SAILS-IDL/v1/interface-id";
 /// Domain separator (bytes) for interface-level hashing.
-pub const INTERFACE_HASH_DOMAIN: &[u8] = b"GEAR-IDL/v1/interface-id";
+pub const INTERFACE_HASH_DOMAIN: &[u8] = b"SAILS-IDL/v1/interface-id";
 /// Domain separator (string) for function/message hashing.
-pub const FUNCTION_HASH_DOMAIN_STR: &str = "GEAR-IDL/v1/entry-signature";
+pub const FUNCTION_HASH_DOMAIN_STR: &str = "SAILS-IDL/v1/entry-signature";
 /// Domain separator (bytes) for function/message hashing.
-pub const FUNCTION_HASH_DOMAIN: &[u8] = b"GEAR-IDL/v1/entry-signature";
+pub const FUNCTION_HASH_DOMAIN: &[u8] = b"SAILS-IDL/v1/entry-signature";
 /// Domain separator (string) for route key hashing.
 pub const ROUTE_HASH_DOMAIN_STR: &str = "GEAR-ROUTE/v1";
 /// Domain separator (bytes) for route key hashing.
