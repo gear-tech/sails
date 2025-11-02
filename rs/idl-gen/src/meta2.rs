@@ -62,26 +62,36 @@ impl ExpandedProgramMeta {
         };
 
         let mut services_section = Vec::new();
+        let mut tmp_first_one = false;
         for (name, service_meta) in services {
-            let service_registry = ServiceMetaRegistry::new(service_meta)?;
+            let service_registries = ServiceMetaRegistry::new(&service_meta)?;
+            for service_registry in service_registries {
+                let types = service_registry.types().to_vec();
+                let concrete_names = service_registry.concrete_names().to_vec();
+                let functions = FunctionsSection {
+                    commands: service_registry.commands_fns,
+                    queries: service_registry.queries_fns,
+                };
+                let events = service_registry.events;
 
-            let types = service_registry.types().to_vec();
-            let concrete_names = service_registry.concrete_names().to_vec();
-            let functions = FunctionsSection {
-                commands: service_registry.commands_fns,
-                queries: service_registry.queries_fns,
-            };
-            let events = service_registry.events;
-
-            let service_section = ServiceSection {
-                name: name.to_string(),
-                types,
-                concrete_names,
-                extends: Default::default(),
-                events,
-                functions,
-            };
-            services_section.push(service_section);
+                let name = if !tmp_first_one {
+                    tmp_first_one = true;
+                    name
+                } else {
+                    // For base services, we can use empty name as they are not top-level services.
+                    "SomeBaseService"
+                };
+                let service_section = ServiceSection {
+                    name: name.to_string(), // todo [sab] add base service name
+                    types,
+                    concrete_names,
+                    extends: Default::default(),
+                    events,
+                    functions,
+                };
+                services_section.push(service_section);
+            }
+            tmp_first_one = false;
         }
 
         if let Some(ref mut program_section) = program_section {
@@ -135,125 +145,31 @@ struct ServiceMetaRegistry {
 }
 
 impl ServiceMetaRegistry {
-    pub fn new(service_meta: AnyServiceMeta) -> Result<Self> {
+    pub fn new(service_meta: &AnyServiceMeta) -> Result<Vec<Self>> {
+        let mut base_services_meta_registries = Vec::new();
+        for base_service in service_meta.base_services() {
+            let mut base_service_registry = Self::new(base_service)?;
+            base_services_meta_registries.append(&mut base_service_registry);
+        }
+
         let mut idl_registry = IdlTypesRegistry::new();
         let registered_service_meta = idl_registry.register_service_meta(&service_meta);
 
         let idl_portable_registry: IdlPortableTypesRegistry = idl_registry.try_into()?;
 
-        let commands_fns = Self::commands_idl_data(
-            &idl_portable_registry,
-            registered_service_meta.commands_type_ids,
-        )?;
-        let queries_fns = Self::queries_idl_data(
-            &idl_portable_registry,
-            registered_service_meta.queries_type_ids,
-        )?;
-        let events = Self::events_idl_data(
-            &idl_portable_registry,
-            registered_service_meta.events_type_ids,
-        )?;
+        let commands_fns = idl_portable_registry.resolve_functions(registered_service_meta.commands_type_id, false)?;
+        let queries_fns = idl_portable_registry.resolve_functions(registered_service_meta.queries_type_id, false)?;
+        let events = idl_portable_registry.resolve_events(registered_service_meta.events_type_id)?;
 
-        Ok(Self {
+        let mut this = vec![Self {
             portable_registry: idl_portable_registry,
             commands_fns,
             queries_fns,
             events,
-        })
-    }
+        }];
+        this.append(&mut base_services_meta_registries);
 
-    fn commands_idl_data(
-        idl_portable_registry: &IdlPortableTypesRegistry,
-        mut commands_ids: Vec<u32>,
-    ) -> Result<Vec<FunctionIdl>> {
-        if commands_ids.is_empty() {
-            return Ok(Vec::new());
-        }
-
-        // Contract: the first id in `commands_ids` is the main one.
-        let main_commands_ids = commands_ids.remove(0);
-        let base_commands_ids = commands_ids;
-
-        let mut commands_idl_data =
-            idl_portable_registry.resolve_functions(main_commands_ids, false)?;
-
-        for base_commands_type_id in base_commands_ids {
-            let mut base_commands_idl_data =
-                idl_portable_registry.resolve_functions(base_commands_type_id, false)?;
-
-            // Override any existing function.
-            // The latest ("most extended") one always generated.
-            base_commands_idl_data.retain(|base_f| {
-                !commands_idl_data
-                    .iter()
-                    .any(|existing_f| existing_f.name == base_f.name)
-            });
-
-            commands_idl_data.append(&mut base_commands_idl_data);
-        }
-
-        Ok(commands_idl_data)
-    }
-
-    fn queries_idl_data(
-        idl_portable_registry: &IdlPortableTypesRegistry,
-        mut queries_ids: Vec<u32>,
-    ) -> Result<Vec<FunctionIdl>> {
-        if queries_ids.is_empty() {
-            return Ok(Vec::new());
-        }
-
-        // Contract: the first id in `queries_ids` is the main one.
-        let main_queries_ids = queries_ids.remove(0);
-        let base_queries_ids = queries_ids;
-
-        let mut queries_idl_data =
-            idl_portable_registry.resolve_functions(main_queries_ids, false)?;
-
-        for base_queries_type_id in base_queries_ids {
-            let mut base_queries_idl_data =
-                idl_portable_registry.resolve_functions(base_queries_type_id, false)?;
-
-            // Override any existing function.
-            // The latest ("most extended") one always generated.
-            base_queries_idl_data.retain(|base_f| {
-                !queries_idl_data
-                    .iter()
-                    .any(|existing_f| existing_f.name == base_f.name)
-            });
-
-            queries_idl_data.append(&mut base_queries_idl_data);
-        }
-
-        Ok(queries_idl_data)
-    }
-
-    fn events_idl_data(
-        idl_portable_registry: &IdlPortableTypesRegistry,
-        events_ids: Vec<u32>,
-    ) -> Result<Vec<Variant<PortableForm>>> {
-        let mut events: Vec<Variant<PortableForm>> = Vec::new();
-
-        for events_type_id in events_ids {
-            let svc_events = idl_portable_registry.resolve_events(events_type_id)?;
-            for svc_event in svc_events {
-                // Override any existing event.
-                // The latest ("most extended") one always generated.
-                if events
-                    .iter()
-                    .any(|existing_v| existing_v.name == svc_event.name)
-                {
-                    return Err(Error::EventMetaIsAmbiguous(format!(
-                        "event `{}` is defined multiple times in the service inheritance chain",
-                        svc_event.name
-                    )));
-                }
-
-                events.push(svc_event);
-            }
-        }
-
-        Ok(events)
+        Ok(this)
     }
 
     fn types(&self) -> &[FinalizedRawName] {
@@ -305,36 +221,15 @@ impl IdlTypesRegistry {
     }
 
     fn register_service_meta(&mut self, service_meta: &AnyServiceMeta) -> RegisteredServiceMeta {
-        let commands_type_ids = Self::flat_meta(service_meta, |meta| meta.commands())
-            .into_iter()
-            .map(|fn_meta| self.register_function(fn_meta))
-            .collect();
-        let queries_type_ids = Self::flat_meta(service_meta, |meta| meta.queries())
-            .into_iter()
-            .map(|fn_meta| self.register_function(fn_meta))
-            .collect();
-        let events_type_ids = Self::flat_meta(service_meta, |meta| meta.events())
-            .into_iter()
-            .map(|fn_meta| self.register_event(fn_meta))
-            .collect();
+        let commands_type_id = self.register_function(service_meta.commands());
+        let queries_type_id = self.register_function(service_meta.queries());
+        let events_type_id = self.register_event(service_meta.events());
 
         RegisteredServiceMeta {
-            commands_type_ids,
-            queries_type_ids,
-            events_type_ids,
+            commands_type_id,
+            queries_type_id,
+            events_type_id,
         }
-    }
-
-    fn flat_meta(
-        service_meta: &AnyServiceMeta,
-        f: fn(&AnyServiceMeta) -> &MetaType,
-    ) -> Vec<&MetaType> {
-        let mut metas = vec![f(service_meta)];
-        for base_service_meta in service_meta.base_services() {
-            metas.extend(Self::flat_meta(base_service_meta, f));
-        }
-
-        metas
     }
 
     fn register_function(&mut self, fn_type: &MetaType) -> u32 {
@@ -355,9 +250,9 @@ impl IdlTypesRegistry {
 
 // TODO: if extensions are implemented, this separation can be useful to distinguish on IDL the owner of fn/event
 struct RegisteredServiceMeta {
-    commands_type_ids: Vec<u32>,
-    queries_type_ids: Vec<u32>,
-    events_type_ids: Vec<u32>,
+    commands_type_id: u32,
+    queries_type_id: u32,
+    events_type_id: u32,
 }
 
 #[derive(Debug)]
@@ -842,7 +737,7 @@ mod tests {
     // ------------------------------------------------------------------------------------
 
     #[test]
-    fn base_service_entities_occur() {
+    fn base_service_entities_doesnt_automatically_occur() {
         struct BaseServiceMeta;
         impl sails_idl_meta::ServiceMeta for BaseServiceMeta {
             type CommandsMeta = BaseServiceCommands;
@@ -910,51 +805,44 @@ mod tests {
         )
         .unwrap_or_else(|e| panic!("Failed to create expanded meta: {e:?}"));
 
-        assert_eq!(meta.services.len(), 1);
-        let service = &meta.services[0];
+        assert_eq!(meta.services.len(), 2);
+        let extended_service = &meta.services[0];
+        assert_eq!(extended_service.name, "ExtendedService".to_string());
+        let base_service = &meta.services[1];
+        assert_eq!(base_service.name, "SomeBaseService".to_string());
 
         // Currently service extended section is not filled.
-        assert!(service.extends.is_empty());
+        assert!(extended_service.extends.is_empty());
 
         // Check that base service functions are inherited
-        let function_check = |fns: &[FunctionIdl], expected_base_fn_name: &str| {
-            assert_eq!(
-                fns.len(),
-                1,
-                "Expected exactly one function in extended service"
-            );
+        let base_commands = &base_service.functions.commands;
+        let base_queries = &base_service.functions.queries;
+        let extended_commands = &extended_service.functions.commands;
+        let extended_queries = &extended_service.functions.queries;
 
-            let actual_base_fn_name = &fns[0].name;
+        assert_eq!(base_commands.len(), 1);
+        assert_eq!(base_queries.len(), 1);
+        assert_eq!(extended_commands.len(), 0);
+        assert_eq!(extended_queries.len(), 0);
 
-            assert_eq!(
-                actual_base_fn_name, expected_base_fn_name,
-                "Unexpected base function name - {actual_base_fn_name}"
-            );
-        };
-
-        function_check(&service.functions.commands, "BaseCmd");
-        function_check(&service.functions.queries, "BaseQuery");
+        assert_eq!(base_commands[0].name, "BaseCmd".to_string());
+        assert_eq!(base_queries[0].name, "BaseQuery".to_string());
 
         // Check that events from base service are included
-        let events: Vec<&str> = service.events.iter().map(|e| e.name).collect();
-        assert_eq!(
-            events.len(),
-            2,
-            "Expected exactly two events in extended service"
-        );
-        assert_eq!(events, vec!["ExtendedEvent", "BaseEvent"]);
+        let base_events: Vec<&str> = base_service.events.iter().map(|e| e.name).collect();
+        let extended_events: Vec<&str> = extended_service.events.iter().map(|e| e.name).collect();
+        assert_eq!(base_events.len(), 1);
+        assert_eq!(extended_events.len(), 1);
+        assert_eq!(base_events, vec!["BaseEvent"]);
+        assert_eq!(extended_events, vec!["ExtendedEvent"]);
 
         // Check that types from base service are included
-        let types: Vec<&str> = service.types.iter().map(|t| t.type_name()).collect();
-        assert_eq!(
-            types.len(),
-            2,
-            "Expected exactly two types in extended service"
-        );
-        assert_eq!(
-            types,
-            vec!["SomeBaseServiceType", "SomeExtendedServiceType"],
-        );
+        let base_types: Vec<&str> = base_service.types.iter().map(|t| t.type_name()).collect();
+        let extended_types: Vec<&str> = extended_service.types.iter().map(|t| t.type_name()).collect();
+        assert_eq!(base_types.len(), 1);
+        assert_eq!(extended_types.len(), 1);
+        assert_eq!(base_types, vec!["SomeBaseServiceType"]);
+        assert_eq!(extended_types, vec!["SomeExtendedServiceType"]);
     }
 
     #[test]
@@ -1012,64 +900,54 @@ mod tests {
         )
         .unwrap_or_else(|e| panic!("Failed to create expanded meta: {e:?}"));
 
-        assert_eq!(meta.services.len(), 1, "Expected one service");
-        let service = &meta.services[0];
+        assert_eq!(meta.services.len(), 2, "Expected one service");
+        let extended_service = &meta.services[0];
+        let base_service = &meta.services[1];
 
-        // Check that extended service has only its own method
-        let cmd_names: Vec<(&str, &str)> = service
-            .functions
-            .commands
-            .iter()
-            .map(|c| {
+        assert_eq!(extended_service.name, "ExtendedService".to_string());
+        assert_eq!(base_service.name, "SomeBaseService".to_string());
+
+        let cmd_names = |svc: &ServiceSection| -> Vec<(String, String)> {
+            svc.functions.commands.iter().map(|c| {
                 let fn_result = c.result_ty.as_ref().unwrap();
                 let fn_res_idx = fn_result.res.unwrap();
                 (
-                    c.name.as_str(),
-                    service.concrete_names[fn_res_idx as usize].0.as_str(),
+                    c.name.clone(),
+                    svc.concrete_names[fn_res_idx as usize].0.clone(),
                 )
-            })
-            .collect();
-        assert_eq!(
-            cmd_names.len(),
-            1,
-            "Expected one command in extended service"
-        );
-        assert_eq!(
-            cmd_names[0].0, "ConflictingCmd",
-            "Expected command name to be 'ConflictingCmd'"
-        );
-        assert_eq!(
-            cmd_names[0].1, "bool",
-            "Expected command result type to be 'bool'"
-        );
-
-        // Check that extended service has only its own query
-        let query_names: Vec<(&str, &str)> = service
-            .functions
-            .queries
-            .iter()
-            .map(|q| {
+            }).collect()
+        };
+        let query_names = |svc: &ServiceSection| -> Vec<(String, String)> {
+            svc.functions.queries.iter().map(|q| {
                 let fn_result = q.result_ty.as_ref().unwrap();
                 let fn_res_idx = fn_result.res.unwrap();
                 (
-                    q.name.as_str(),
-                    service.concrete_names[fn_res_idx as usize].0.as_str(),
+                    q.name.clone(),
+                    svc.concrete_names[fn_res_idx as usize].0.clone(),
                 )
-            })
-            .collect();
-        assert_eq!(
-            query_names.len(),
-            1,
-            "Expected one query in extended service"
-        );
-        assert_eq!(
-            query_names[0].0, "ConflictingQuery",
-            "Expected query name to be 'ConflictingQuery'"
-        );
-        assert_eq!(
-            query_names[0].1, "String",
-            "Expected query result type to be 'String'"
-        );
+            }).collect()
+        };
+
+        let extended_command_names = cmd_names(extended_service);
+        let base_command_names = cmd_names(base_service);
+        let extended_query_names = query_names(extended_service);
+        let base_query_names = query_names(base_service);
+
+        assert_eq!(extended_command_names.len(), 1);
+        assert_eq!(extended_command_names[0].0, "ConflictingCmd");
+        assert_eq!(extended_command_names[0].1, "bool");
+
+        assert_eq!(base_command_names.len(), 1);
+        assert_eq!(base_command_names[0].0, "ConflictingCmd");
+        assert_eq!(base_command_names[0].1, "String");
+
+        assert_eq!(extended_query_names.len(), 1);
+        assert_eq!(extended_query_names[0].0, "ConflictingQuery");
+        assert_eq!(extended_query_names[0].1, "String");
+
+        assert_eq!(base_query_names.len(), 1);
+        assert_eq!(base_query_names[0].0, "ConflictingQuery");
+        assert_eq!(base_query_names[0].1, "u32");
     }
 
     #[test]
@@ -1105,19 +983,19 @@ mod tests {
             ConflictingEvent(String),
         }
 
-        let res = ExpandedProgramMeta::new(
+        let meta = ExpandedProgramMeta::new(
             None,
             vec![("ExtendedService", AnyServiceMeta::new::<ExtendedService>())].into_iter(),
-        );
+        ).unwrap();
 
-        assert!(res.is_err());
-        let Err(Error::EventMetaIsAmbiguous(msg_err)) = res else {
-            panic!("Expected EventNameConflict error, got {res:?}");
-        };
-        assert_eq!(
-            msg_err.as_str(),
-            "event `ConflictingEvent` is defined multiple times in the service inheritance chain"
-        );
+        assert_eq!(meta.services.len(), 2, "Expected one service");
+        let base_events = &meta.services[1].events;
+        let extended_events = &meta.services[0].events;
+
+        assert_eq!(base_events.len(), 1);
+        assert_eq!(base_events[0].name, "ConflictingEvent");
+        assert_eq!(extended_events.len(), 1);
+        assert_eq!(extended_events[0].name, "ConflictingEvent");
     }
 
     #[test]
@@ -1167,21 +1045,19 @@ mod tests {
         )
         .unwrap();
 
-        assert_eq!(meta.services.len(), 1);
+        assert_eq!(meta.services.len(), 2);
 
-        let types = &meta.services[0].types;
-        assert_eq!(types.len(), 2);
-        let type_names = types
-            .iter()
-            .map(|t| (t.type_name(), t.fields_type_names()))
-            .collect::<Vec<_>>();
-        assert_eq!(
-            type_names,
-            vec![
-                ("GenericConstStruct1", vec!["[u8; 16]"]),
-                ("GenericConstStruct2", vec!["[u8; 8]"])
-            ]
-        );
+        let base_service = &meta.services[1];
+        let base_types = &base_service.types;
+        assert_eq!(base_types.len(), 1);
+        assert_eq!(base_types[0].type_name(), "GenericConstStruct");
+        assert_eq!(base_types[0].fields_type_names(), vec!["[u8; 8]"]);
+
+        let ext_service = &meta.services[0];
+        let ext_types = &ext_service.types;
+        assert_eq!(ext_types.len(), 1);
+        assert_eq!(ext_types[0].type_name(), "GenericConstStruct");
+        assert_eq!(ext_types[0].fields_type_names(), vec!["[u8; 16]"]);
     }
 
     // ------------------------------------------------------------------------------------
@@ -2174,130 +2050,6 @@ mod tests {
                 "UtilsSimpleFunctionParams",
                 "SharedCustomType",
             ],
-        );
-    }
-
-    /// Test that flat_meta returns metadata in correct order: current service first, then base services in declaration order
-    #[test]
-    fn flat_meta_order() {
-        // Create a service inheritance hierarchy:
-        // ExtendedService extends BaseService1 and BaseService2 (in that order)
-        // BaseService1 extends GrandBaseService1
-        // BaseService2 extends GrandBaseService2
-
-        struct GrandBaseService1;
-        impl sails_idl_meta::ServiceMeta for GrandBaseService1 {
-            type CommandsMeta = GrandBase1Commands;
-            type QueriesMeta = utils::NoQueries;
-            type EventsMeta = utils::NoEvents;
-            const BASE_SERVICES: &'static [sails_idl_meta::AnyServiceMetaFn] = &[];
-            const ASYNC: bool = false;
-        }
-
-        struct GrandBaseService2;
-        impl sails_idl_meta::ServiceMeta for GrandBaseService2 {
-            type CommandsMeta = GrandBase2Commands;
-            type QueriesMeta = utils::NoQueries;
-            type EventsMeta = utils::NoEvents;
-            const BASE_SERVICES: &'static [sails_idl_meta::AnyServiceMetaFn] = &[];
-            const ASYNC: bool = false;
-        }
-
-        struct BaseService1;
-        impl sails_idl_meta::ServiceMeta for BaseService1 {
-            type CommandsMeta = Base1Commands;
-            type QueriesMeta = utils::NoQueries;
-            type EventsMeta = utils::NoEvents;
-            const BASE_SERVICES: &'static [sails_idl_meta::AnyServiceMetaFn] =
-                &[AnyServiceMeta::new::<GrandBaseService1>];
-            const ASYNC: bool = false;
-        }
-
-        struct BaseService2;
-        impl sails_idl_meta::ServiceMeta for BaseService2 {
-            type CommandsMeta = Base2Commands;
-            type QueriesMeta = utils::NoQueries;
-            type EventsMeta = utils::NoEvents;
-            const BASE_SERVICES: &'static [sails_idl_meta::AnyServiceMetaFn] =
-                &[AnyServiceMeta::new::<GrandBaseService2>];
-            const ASYNC: bool = false;
-        }
-
-        struct ExtendedService;
-        impl sails_idl_meta::ServiceMeta for ExtendedService {
-            type CommandsMeta = ExtendedCommands;
-            type QueriesMeta = utils::NoQueries;
-            type EventsMeta = utils::NoEvents;
-            const BASE_SERVICES: &'static [sails_idl_meta::AnyServiceMetaFn] = &[
-                AnyServiceMeta::new::<BaseService1>,
-                AnyServiceMeta::new::<BaseService2>,
-            ];
-            const ASYNC: bool = false;
-        }
-
-        #[derive(TypeInfo)]
-        #[allow(unused)]
-        enum ExtendedCommands {
-            ExtendedCmd(utils::SimpleFunctionParams, String),
-        }
-
-        #[derive(TypeInfo)]
-        #[allow(unused)]
-        enum Base1Commands {
-            Base1Cmd(utils::SimpleFunctionParams, u32),
-        }
-
-        #[derive(TypeInfo)]
-        #[allow(unused)]
-        enum Base2Commands {
-            Base2Cmd(utils::SimpleFunctionParams, bool),
-        }
-
-        #[derive(TypeInfo)]
-        #[allow(unused)]
-        enum GrandBase1Commands {
-            GrandBase1Cmd(utils::SimpleFunctionParams, u64),
-        }
-
-        #[derive(TypeInfo)]
-        #[allow(unused)]
-        enum GrandBase2Commands {
-            GrandBase2Cmd(utils::SimpleFunctionParams, u8),
-        }
-
-        let meta = ExpandedProgramMeta::new(
-            None,
-            vec![("ExtendedService", AnyServiceMeta::new::<ExtendedService>())].into_iter(),
-        )
-        .unwrap_or_else(|e| panic!("Failed to create expanded meta: {e:?}"));
-
-        assert_eq!(meta.services.len(), 1);
-        let service = &meta.services[0];
-
-        // Commands should appear in the order: Extended, Base1, GrandBase1, Base2, GrandBase2
-        let cmd_names: Vec<&str> = service
-            .functions
-            .commands
-            .iter()
-            .map(|c| c.name.as_str())
-            .collect();
-
-        assert_eq!(
-            cmd_names.len(),
-            5,
-            "Expected 5 commands from service hierarchy"
-        );
-
-        assert_eq!(
-            cmd_names,
-            vec![
-                "ExtendedCmd",   // Current service first
-                "Base1Cmd",      // First base service
-                "GrandBase1Cmd", // Base of first base service
-                "Base2Cmd",      // Second base service
-                "GrandBase2Cmd", // Base of second base service
-            ],
-            "Commands should appear in order: current service, then base services in declaration order (depth-first)"
         );
     }
 }

@@ -409,24 +409,6 @@ fn service_idl_works_with_base_services() {
 }
 
 #[test]
-fn service_idl_fails_with_base_services_and_ambiguous_events() {
-    let mut idl = Vec::new();
-    let result = service2::generate_idl::<
-        ServiceMetaWithBase<
-            CommandsMeta,
-            QueriesMeta,
-            EventsMeta,
-            ServiceMeta<BaseCommandsMeta, BaseQueriesMeta, AmbiguousBaseEventsMeta>,
-        >,
-    >(&mut idl);
-
-    assert!(matches!(
-        result,
-        Err(sails_idl_gen::Error::EventMetaIsAmbiguous(_))
-    ));
-}
-
-#[test]
 fn program_idl_works_with_no_services() {
     struct TestProgramWithNoServicesMeta;
     impl ProgramMeta for TestProgramWithNoServicesMeta {

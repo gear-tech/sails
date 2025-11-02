@@ -2,7 +2,7 @@
 source: rs/idl-gen/tests/generator.rs
 expression: generated_idl
 ---
-!@sails: 0.9.1
+!@sails: 2.0.0
 
 service Service1 {
     events {
@@ -68,12 +68,6 @@ service Service2 {
         ExtServiceSameType(GenericConstStruct1),
         /// Same name as in base service, but different constant
         ExtServiceSameTypeConst(GenericConstStruct2),
-        ThisDone(BaseServiceType),
-        ThatDone {
-            p1: u16,
-        },
-        /// Uses a type that is also used in extension service in the event
-        BaseServiceSameType(GenericConstStruct1),
     }
 
     functions {
@@ -93,8 +87,6 @@ service Service2 {
         /// This conflicts with base service command, but has different signature
         DoThatBase(p1: String) -> ActorId;
 
-        DoThis(p1: u32) -> u32;
-
         /// Query with const-generic type
         @query
         GetSomething(p1: GenericStruct<bool>) -> u64;
@@ -106,9 +98,6 @@ service Service2 {
         /// This conflicts with base service query, but has different arguments in signature
         @query
         That(p1: u32) -> String;
-
-        @query
-        ThisBase(p1: u16) -> u16;
     }
 
     types {
@@ -155,13 +144,44 @@ service Service2 {
             /// GenericStruct field `field`
             field: [u8; 16],
         }
+    }
+}
 
+service SomeBaseService {
+    events {
+        ThisDone(BaseServiceType),
+        ThatDone {
+            p1: u16,
+        },
+        /// Uses a type that is also used in extension service in the event
+        BaseServiceSameType(GenericConstStruct),
+    }
+
+    functions {
+        DoThis(p1: u32) -> u32;
+
+        DoThatBase(p1: String) -> String;
+
+        @query
+        ThisBase(p1: u16) -> u16;
+
+        @query
+        That(p1: String) -> String;
+    }
+
+    types {
         struct BaseServiceType (
             /// Field docs
             MessageId,
             /// Field docs
             H160,
         );
+
+        /// GenericConstStruct docs
+        struct GenericConstStruct {
+            /// GenericStruct field `field`
+            field: [u8; 8],
+        }
     }
 }
 
@@ -177,6 +197,7 @@ program MiscProgram {
     services {
         Service1,
         Service2,
+        SomeBaseService,
     }
 
     types {

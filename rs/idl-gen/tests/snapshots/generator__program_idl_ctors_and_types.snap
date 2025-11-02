@@ -2,7 +2,7 @@
 source: rs/idl-gen/tests/generator.rs
 expression: generated_idl
 ---
-!@sails: 0.9.1
+!@sails: 2.0.0
 
 program CtorsAndTypesProgram {
     constructors {

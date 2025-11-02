@@ -2,7 +2,7 @@
 source: rs/idl-gen/tests/generator.rs
 expression: generated_idl
 ---
-!@sails: 0.9.1
+!@sails: 2.0.0
 
 service {
     events {
@@ -22,10 +22,6 @@ service {
             /// This is `p1` field
             p1: String,
         },
-        ThisDoneBase(u32),
-        ThatDoneBase {
-            p1: u16,
-        },
     }
 
     functions {
@@ -37,8 +33,6 @@ service {
         /// Third line
         DoThat(par1: DoThatParam) -> (String, u32) throws (String,);
 
-        DoThatBase(p1: String) -> String;
-
         /// This is a query
         @query
         This(p1: u32, p2: String, p3: (Option<String>, u8), p4: TupleStruct, p5: GenericEnum<bool, u32>) -> (String, u32) throws String;
@@ -47,9 +41,6 @@ service {
         /// This is a second line
         @query
         That(pr1: ThatParam) -> String;
-
-        @query
-        ThisBase(p1: u16) -> u16;
     }
 
     types {
@@ -132,5 +123,26 @@ service {
         struct ThatParam {
             p1: ManyVariants,
         }
+    }
+}
+
+service SomeBaseService {
+    events {
+        ThisDoneBase(u32),
+        ThatDoneBase {
+            p1: u16,
+        },
+    }
+
+    functions {
+        DoThis(p1: u32) -> u32;
+
+        DoThatBase(p1: String) -> String;
+
+        @query
+        ThisBase(p1: u16) -> u16;
+
+        @query
+        That(p1: String) -> String;
     }
 }

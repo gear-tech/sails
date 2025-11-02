@@ -13,11 +13,13 @@ mod meta;
 mod meta2;
 mod type_names;
 
+const IDL_GEN_VERSION: &str = "2.0.0";
+
 // TODO: Discuss
-`// 1. extends section (no need to merge fns, or merge but with stating source service -> benefits when same method names corner case):
+// 1. extends section (no need to merge fns, or merge but with stating source service -> benefits when same method names corner case):
 // - base service is written in the file upper
 // - extend service without merging functions and events
-// - add the service to the extends section
+// - add the service to the extends section (test the extends section order)
 
 // todo [review]: write non zero stuff with annotations
 
@@ -205,7 +207,7 @@ fn render_idlv2(
     let idl_data = IdlData {
         program_section: program_meta.program,
         services: program_meta.services,
-        sails_version: env!("CARGO_PKG_VERSION").to_string(), // todo [review] - semver, version 2
+        sails_version: format!("{IDL_GEN_VERSION}"),
     };
 
     let mut handlebars = Handlebars::new();
@@ -245,7 +247,8 @@ struct ProgramIdlSection {
     ctors: Vec<FunctionIdl>,
     types: Vec<FinalizedRawName>,
     // todo [review]: it's actually a map from the service exposed name to 
-    // syntax: `{ExposedName}: {TypeName}` or `{TypeName}`, if no aliases
+    // syntax: `{ExposedName}: {TypeName}` or `{TypeName}`, if no aliases,
+    // test the order
     services: Vec<String>,
 }
 
