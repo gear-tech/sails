@@ -1,6 +1,6 @@
 use gprimitives::*;
 use meta_params::*;
-use sails_idl_gen::{GenMetaInfoBuilder, program2, service2};
+use sails_idl_gen::{program2, service2};
 use sails_idl_meta::{
     AnyServiceMeta, AnyServiceMetaFn, ProgramMeta, ServiceMeta as RtlServiceMeta,
 };
@@ -316,8 +316,7 @@ impl ProgramMeta for TestProgramWithMultipleServicesMeta {
 fn program_idl_works_with_empty_ctors() {
     let mut idl = Vec::new();
 
-    let meta_info = GenMetaInfoBuilder::new().program_name("EmptyCtorsProgram".to_string());
-    program2::generate_idl::<TestProgramWithEmptyCtorsMeta>(meta_info, &mut idl).unwrap();
+    program2::generate_idl::<TestProgramWithEmptyCtorsMeta>("EmptyCtorsProgram".to_string(), &mut idl).unwrap();
     let generated_idl = String::from_utf8(idl).unwrap();
 
     insta::assert_snapshot!(generated_idl);
@@ -334,8 +333,7 @@ fn program_idl_works_with_empty_ctors() {
 fn program_idl_works_with_non_empty_ctors() {
     let mut idl = Vec::new();
 
-    let meta_info = GenMetaInfoBuilder::new().program_name("NonEmptyCtorsProgram".to_string());
-    program2::generate_idl::<TestProgramWithNonEmptyCtorsMeta>(meta_info, &mut idl).unwrap();
+    program2::generate_idl::<TestProgramWithNonEmptyCtorsMeta>("NonEmptyCtorsProgram".to_string(), &mut idl).unwrap();
     let generated_idl = String::from_utf8(idl).unwrap();
 
     insta::assert_snapshot!(generated_idl);
@@ -352,9 +350,7 @@ fn program_idl_works_with_non_empty_ctors() {
 fn program_idl_works_with_multiple_services() {
     let mut idl = Vec::new();
 
-    let meta_info =
-        GenMetaInfoBuilder::new().program_name("MultipleServicesNoCtorsProgram".to_string());
-    program2::generate_idl::<TestProgramWithMultipleServicesMeta>(meta_info, &mut idl).unwrap();
+    program2::generate_idl::<TestProgramWithMultipleServicesMeta>("MultipleServicesNoCtorsProgram".to_string(), &mut idl).unwrap();
     let generated_idl = String::from_utf8(idl).unwrap();
 
     insta::assert_snapshot!(generated_idl);
@@ -374,10 +370,7 @@ fn program_idl_works_with_multiple_services() {
 fn service_idl_works_with_basics() {
     let mut idl = Vec::new();
 
-    let meta_info = GenMetaInfoBuilder::new()
-        .author("Developer".to_string())
-        .major_version(1);
-    service2::generate_idl::<TestServiceMeta>(meta_info, &mut idl).unwrap();
+    service2::generate_idl::<TestServiceMeta>(&mut idl).unwrap();
     let generated_idl = String::from_utf8(idl).unwrap();
 
     insta::assert_snapshot!(generated_idl);
@@ -394,10 +387,6 @@ fn service_idl_works_with_basics() {
 fn service_idl_works_with_base_services() {
     let mut idl = Vec::new();
 
-    let meta_info = GenMetaInfoBuilder::new()
-        .author("Developer".to_string())
-        .major_version(3)
-        .minor_version(10);
     service2::generate_idl::<
         ServiceMetaWithBase<
             CommandsMeta,
@@ -405,7 +394,7 @@ fn service_idl_works_with_base_services() {
             EventsMeta,
             ServiceMeta<BaseCommandsMeta, BaseQueriesMeta, BaseEventsMeta>,
         >,
-    >(meta_info, &mut idl)
+    >(&mut idl)
     .unwrap();
     let generated_idl = String::from_utf8(idl).unwrap();
 
@@ -429,7 +418,7 @@ fn service_idl_fails_with_base_services_and_ambiguous_events() {
             EventsMeta,
             ServiceMeta<BaseCommandsMeta, BaseQueriesMeta, AmbiguousBaseEventsMeta>,
         >,
-    >(GenMetaInfoBuilder::new(), &mut idl);
+    >(&mut idl);
 
     assert!(matches!(
         result,
@@ -448,9 +437,7 @@ fn program_idl_works_with_no_services() {
 
     let mut idl = Vec::new();
 
-    let meta_info =
-        GenMetaInfoBuilder::new().program_name("NoServicesWithCtorsProgram".to_string());
-    program2::generate_idl::<TestProgramWithNoServicesMeta>(meta_info, &mut idl).unwrap();
+    program2::generate_idl::<TestProgramWithNoServicesMeta>("NoServicesWithCtorsProgram".to_string(), &mut idl).unwrap();
     let generated_idl = String::from_utf8(idl).unwrap();
 
     insta::assert_snapshot!(generated_idl);
@@ -472,7 +459,6 @@ fn service_idl_events_with_fns() {
 
     let mut idl = Vec::new();
     service2::generate_idl::<ServiceMeta<TestCommandsMeta, TestQueriesMeta, EventsMeta>>(
-        GenMetaInfoBuilder::new(),
         &mut idl,
     )
     .unwrap();
@@ -499,7 +485,6 @@ fn service_idl_events_with_types() {
 
     let mut idl = Vec::new();
     service2::generate_idl::<ServiceMeta<NoCommandsMeta, NoQueriesMeta, TestEventsMeta>>(
-        GenMetaInfoBuilder::new(),
         &mut idl,
     )
     .unwrap();
@@ -518,7 +503,6 @@ fn service_idl_fns_no_queries() {
 
     let mut idl = Vec::new();
     service2::generate_idl::<ServiceMeta<TestCommandsMeta, NoQueriesMeta, NoEventsMeta>>(
-        GenMetaInfoBuilder::new(),
         &mut idl,
     )
     .unwrap();
@@ -537,7 +521,6 @@ fn service_idl_no_commands() {
 
     let mut idl = Vec::new();
     service2::generate_idl::<ServiceMeta<NoCommandsMeta, TestQueriesMeta, NoEventsMeta>>(
-        GenMetaInfoBuilder::new(),
         &mut idl,
     )
     .unwrap();
@@ -569,8 +552,7 @@ fn program_idl_ctors_and_types() {
 
     let mut idl = Vec::new();
 
-    let meta_info = GenMetaInfoBuilder::new().program_name("CtorsAndTypesProgram".to_string());
-    program2::generate_idl::<TestProgramMeta>(meta_info, &mut idl).unwrap();
+    program2::generate_idl::<TestProgramMeta>("CtorsAndTypesProgram".to_string(), &mut idl).unwrap();
     let generated_idl = String::from_utf8(idl).unwrap();
 
     insta::assert_snapshot!(generated_idl);
@@ -644,7 +626,7 @@ fn program_idl_misc() {
         Struct {
             /// Field `a` docs
             a: Vec<u8>,
-            /// Parent `((u32))` type will be unwrapped into `u32` in IDL
+            /// Paren `((u32))` type will be unwrapped into `u32` in IDL
             b: ((u32)),
         },
         /// Extension-specific event variant with docs
@@ -712,13 +694,7 @@ fn program_idl_misc() {
 
     let mut idl = Vec::new();
 
-    let meta_info = GenMetaInfoBuilder::new()
-        .author("Developer".to_string())
-        .program_name("MiscProgram".to_string())
-        .major_version(1)
-        .minor_version(2)
-        .patch_version(3);
-    program2::generate_idl::<MiscProgramMeta>(meta_info, &mut idl).unwrap();
+    program2::generate_idl::<MiscProgramMeta>("MiscProgram".to_string(), &mut idl).unwrap();
     let generated_idl = String::from_utf8(idl).unwrap();
 
     insta::assert_snapshot!(generated_idl);

@@ -3,8 +3,6 @@ source: rs/idl-gen/tests/generator.rs
 expression: generated_idl
 ---
 !@sails: 0.9.1
-!@author: Developer
-!@version: 1.2.3
 
 service Service1 {
     events {
@@ -57,7 +55,7 @@ service Service2 {
         Struct {
             /// Field `a` docs
             a: [u8],
-            /// Parent `((u32))` type will be unwrapped into `u32` in IDL
+            /// Paren `((u32))` type will be unwrapped into `u32` in IDL
             b: u32,
         },
         /// Extension-specific event variant with docs

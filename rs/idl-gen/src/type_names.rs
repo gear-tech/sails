@@ -89,6 +89,10 @@ pub(super) fn resolve<'a>(
     })
 }
 
+// todo [review] during resolution do not count generics!!! - can be postponed
+// so GenericStruct<bool> and GenericStruct<u32> are the same
+// so when you have GenericStruct<bool>, GenericStruct<u32> and other_mod::GenericStruct<u8>,
+// you will receive 2 names in `generic_names`, GenericStruct<T> and OtherModGenericStruct<T>
 fn resolve_type_name(
     types: &BTreeMap<u32, &PortableType>,
     type_id: u32,
@@ -1017,16 +1021,13 @@ pub(crate) fn resolve_raw_type_names(
                         variant_docs,
                     );
 
-                    // if there're no fields, then it's a unit variant
-                    if !variant.fields.is_empty() {
-                        resolve_fields_types_names(
-                            variant.fields.iter(),
-                            concrete_names,
-                            &params_names,
-                            &mut parent_generic_name,
-                            Some(variant_idx),
-                        )?;
-                    }
+                    resolve_fields_types_names(
+                        variant.fields.iter(),
+                        concrete_names,
+                        &params_names,
+                        &mut parent_generic_name,
+                        Some(variant_idx),
+                    )?;
                 }
 
                 parent_generic_name

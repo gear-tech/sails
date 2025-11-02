@@ -3,8 +3,6 @@ source: rs/idl-gen/tests/generator.rs
 expression: generated_idl
 ---
 !@sails: 0.9.1
-!@author: Developer
-!@version: 3.10.0
 
 service {
     events {

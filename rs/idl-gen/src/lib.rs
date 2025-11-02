@@ -14,10 +14,12 @@ mod meta2;
 mod type_names;
 
 // TODO: Discuss
-// 1. extends section (no need to merge fns, or merge but with stating source service -> benefits when same method names corner case)
-// 2. references + boxes? paren types?
-// 3. generic consts?
-// 4. Ignore tuple struct event variants with 1 field docs?
+`// 1. extends section (no need to merge fns, or merge but with stating source service -> benefits when same method names corner case):
+// - base service is written in the file upper
+// - extend service without merging functions and events
+// - add the service to the extends section
+
+// todo [review]: write non zero stuff with annotations
 
 const IDL_TEMPLATE: &str = include_str!("../hbs/idl.hbs");
 const COMPOSITE_TEMPLATE: &str = include_str!("../hbs/composite.hbs");
@@ -136,12 +138,10 @@ pub mod program2 {
     use sails_idl_meta::ProgramMeta;
 
     pub fn generate_idl<P: ProgramMeta>(
-        meta_builder: GenMetaInfoBuilder,
+        program_name: String,
         idl_writer: impl Write,
     ) -> Result<()> {
-        let (gen_meta_info, program_name) = meta_builder.build();
         render_idlv2(
-            gen_meta_info,
             meta2::ExpandedProgramMeta::new(
                 Some((program_name, P::constructors())),
                 P::services(),
@@ -151,11 +151,11 @@ pub mod program2 {
     }
 
     pub fn generate_idl_to_file<P: ProgramMeta>(
-        meta_builder: GenMetaInfoBuilder,
+        program_name: String,
         path: impl AsRef<Path>,
     ) -> Result<()> {
         let mut idl_new_content = Vec::new();
-        generate_idl::<P>(meta_builder, &mut idl_new_content)?;
+        generate_idl::<P>(program_name, &mut idl_new_content)?;
         if let Ok(idl_old_content) = fs::read(&path)
             && idl_new_content == idl_old_content
         {
@@ -173,12 +173,9 @@ pub mod service2 {
     use sails_idl_meta::{AnyServiceMeta, ServiceMeta};
 
     pub fn generate_idl<S: ServiceMeta>(
-        builder: GenMetaInfoBuilder,
         idl_writer: impl Write,
     ) -> Result<()> {
-        let (gen_meta_info, _) = builder.build();
         render_idlv2(
-            gen_meta_info,
             meta2::ExpandedProgramMeta::new(
                 None,
                 vec![("", AnyServiceMeta::new::<S>())].into_iter(),
@@ -188,11 +185,10 @@ pub mod service2 {
     }
 
     pub fn generate_idl_to_file<S: ServiceMeta>(
-        meta_builder: GenMetaInfoBuilder,
         path: impl AsRef<Path>,
     ) -> Result<()> {
         let mut idl_new_content = Vec::new();
-        generate_idl::<S>(meta_builder, &mut idl_new_content)?;
+        generate_idl::<S>(&mut idl_new_content)?;
         if let Ok(idl_old_content) = fs::read(&path)
             && idl_new_content == idl_old_content
         {
@@ -202,87 +198,14 @@ pub mod service2 {
     }
 }
 
-#[derive(Debug, Default)]
-pub struct GenMetaInfoBuilder {
-    author: String,
-    version_major: u8,
-    version_minor: u8,
-    version_patch: u8,
-    program_name: String,
-}
-
-impl GenMetaInfoBuilder {
-    pub fn new() -> Self {
-        Self::default()
-    }
-
-    pub fn program_name(mut self, name: String) -> Self {
-        self.program_name = name;
-        self
-    }
-
-    pub fn major_version(mut self, major: u8) -> Self {
-        self.version_major = major;
-        self
-    }
-
-    pub fn minor_version(mut self, minor: u8) -> Self {
-        self.version_minor = minor;
-        self
-    }
-
-    pub fn patch_version(mut self, patch: u8) -> Self {
-        self.version_patch = patch;
-        self
-    }
-
-    pub fn author(mut self, author: String) -> Self {
-        self.author = author;
-        self
-    }
-
-    pub fn build(self) -> (GenMetaInfo, String) {
-        let meta_info = GenMetaInfo {
-            version: IdlVersion {
-                major: self.version_major,
-                minor: self.version_minor,
-                patch: self.version_patch,
-            },
-            author: self.author,
-        };
-
-        (meta_info, self.program_name)
-    }
-}
-
-pub struct GenMetaInfo {
-    version: IdlVersion,
-    author: String,
-}
-
-struct IdlVersion {
-    major: u8,
-    minor: u8,
-    patch: u8,
-}
-
-impl IdlVersion {
-    fn format(self) -> String {
-        format!("{}.{}.{}", self.major, self.minor, self.patch)
-    }
-}
-
 fn render_idlv2(
-    gen_meta_info: GenMetaInfo,
     program_meta: meta2::ExpandedProgramMeta,
     idl_writer: impl Write,
 ) -> Result<()> {
     let idl_data = IdlData {
         program_section: program_meta.program,
         services: program_meta.services,
-        version: gen_meta_info.version.format(),
-        author: gen_meta_info.author,
-        sails_version: env!("CARGO_PKG_VERSION").to_string(),
+        sails_version: env!("CARGO_PKG_VERSION").to_string(), // todo [review] - semver, version 2
     };
 
     let mut handlebars = Handlebars::new();
@@ -312,8 +235,6 @@ struct IdlData {
     #[serde(rename = "program", skip_serializing_if = "Option::is_none")]
     program_section: Option<ProgramIdlSection>,
     services: Vec<ServiceSection>,
-    version: String,
-    author: String,
     sails_version: String,
 }
 
@@ -323,6 +244,8 @@ struct ProgramIdlSection {
     concrete_names: Vec<FinalizedName>,
     ctors: Vec<FunctionIdl>,
     types: Vec<FinalizedRawName>,
+    // todo [review]: it's actually a map from the service exposed name to 
+    // syntax: `{ExposedName}: {TypeName}` or `{TypeName}`, if no aliases
     services: Vec<String>,
 }
 
