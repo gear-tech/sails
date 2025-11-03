@@ -24,7 +24,7 @@ sails-client-gen.workspace = true
 serde-json.workspace = true
 toml_edit.workspace = true
 sails-sol-gen.workspace = true
-sails-interface-id = { path = "../interface-id" }
+sails-interface-id.workspace = true
 blake3.workspace = true
 serde = { workspace = true, features = ["derive"] }
 env_logger.workspace = true
