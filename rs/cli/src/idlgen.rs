@@ -561,6 +561,28 @@ fn gen_cargo_toml(
             table
         };
         dep_table["sails-interface-id"] = toml_edit::value(iface_dep);
+
+        // TODO: drop this local crates-io patch once sails-interface-id is published.
+        let patch_table = manifest
+            .entry("patch")
+            .or_insert(toml_edit::Item::Table(toml_edit::Table::new()))
+            .as_table_mut()
+            .expect("patch is a table")
+            .entry("crates-io")
+            .or_insert(toml_edit::Item::Table(toml_edit::Table::new()))
+            .as_table_mut()
+            .expect("patch.crates-io is a table");
+
+        let mut iface_patch = toml_edit::InlineTable::new();
+        iface_patch.insert(
+            "path",
+            workspace_root
+                .join("rs")
+                .join("interface-id")
+                .as_str()
+                .into(),
+        );
+        patch_table.insert("sails-interface-id", toml_edit::value(iface_patch));
     }
 
     manifest["dependencies"] = toml_edit::Item::Table(dep_table);
