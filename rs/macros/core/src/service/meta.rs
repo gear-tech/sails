@@ -211,16 +211,16 @@ impl ServiceBuilder<'_> {
             },
         );
 
-        let canonical_document = CanonicalDocument {
-            canon_schema: sails_interface_id::canonical::CANONICAL_SCHEMA.to_owned(),
-            canon_version: sails_interface_id::canonical::CANONICAL_VERSION.to_owned(),
-            hash: CanonicalHashMeta {
+        let canonical_document = CanonicalDocument::from_parts(
+            sails_interface_id::canonical::CANONICAL_SCHEMA,
+            sails_interface_id::canonical::CANONICAL_VERSION,
+            CanonicalHashMeta {
                 algo: sails_interface_id::canonical::CANONICAL_HASH_ALGO.to_owned(),
                 domain: sails_interface_id::INTERFACE_HASH_DOMAIN_STR.to_owned(),
             },
-            services: canonical_services,
-            types: BTreeMap::new(),
-        };
+            canonical_services,
+            BTreeMap::new(),
+        );
 
         let canonical_bytes = canonical_document
             .to_bytes()

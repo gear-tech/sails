@@ -70,16 +70,16 @@ pub struct CanonicalHashMeta {
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct CanonicalDocument {
     #[serde(default = "default_schema")]
-    pub canon_schema: String,
+    canon_schema: String,
     /// Canonicalization version identifier.
     #[serde(default = "default_version", alias = "version")]
-    pub canon_version: String,
+    canon_version: String,
     #[serde(default = "default_hash_meta")]
-    pub hash: CanonicalHashMeta,
+    hash: CanonicalHashMeta,
     #[serde(default)]
-    pub services: BTreeMap<String, CanonicalService>,
+    services: BTreeMap<String, CanonicalService>,
     #[serde(default)]
-    pub types: BTreeMap<String, CanonicalType>,
+    types: BTreeMap<String, CanonicalType>,
 }
 
 /// Canonical representation of a service.
@@ -215,6 +215,25 @@ pub fn canonicalize(input: &str) -> Result<Vec<u8>, CanonicalizationError> {
 }
 
 impl CanonicalDocument {
+    /// Builds a canonical document from components and normalizes it.
+    pub fn from_parts(
+        canon_schema: impl Into<String>,
+        canon_version: impl Into<String>,
+        hash: CanonicalHashMeta,
+        services: BTreeMap<String, CanonicalService>,
+        types: BTreeMap<String, CanonicalType>,
+    ) -> Self {
+        let mut document = Self {
+            canon_schema: canon_schema.into(),
+            canon_version: canon_version.into(),
+            hash,
+            services,
+            types,
+        };
+        document.normalize();
+        document
+    }
+
     /// Canonicalizes a raw JSON string.
     pub fn from_json_str(input: &str) -> Result<Self, CanonicalizationError> {
         let value: Value = serde_json::from_str(input)?;
@@ -263,20 +282,63 @@ impl CanonicalDocument {
             .unwrap_or_else(|| Value::Object(Map::new()));
         let types = parse_types(types_value)?;
 
-        Ok(Self {
+        Ok(Self::from_parts(
             canon_schema,
             canon_version,
             hash,
             services,
             types,
-        }
-        .normalized())
+        ))
     }
 
     /// Serializes the canonical representation into canonical JSON bytes (RFC 8785).
     pub fn to_bytes(&self) -> Result<Vec<u8>, CanonicalizationError> {
         let value = serde_json::to_value(self).map_err(CanonicalizationError::Serialization)?;
         to_canonical_vec(&value).map_err(CanonicalizationError::Serialization)
+    }
+
+    /// Returns the canonical schema identifier.
+    pub fn canon_schema(&self) -> &str {
+        &self.canon_schema
+    }
+
+    /// Returns the canonical version identifier.
+    pub fn canon_version(&self) -> &str {
+        &self.canon_version
+    }
+
+    /// Returns the canonical hash metadata.
+    pub fn hash(&self) -> &CanonicalHashMeta {
+        &self.hash
+    }
+
+    /// Returns the canonical services map.
+    pub fn services(&self) -> &BTreeMap<String, CanonicalService> {
+        &self.services
+    }
+
+    /// Returns the canonical types map.
+    pub fn types(&self) -> &BTreeMap<String, CanonicalType> {
+        &self.types
+    }
+
+    /// Consumes the document and returns its parts.
+    pub fn into_parts(
+        self,
+    ) -> (
+        String,
+        String,
+        CanonicalHashMeta,
+        BTreeMap<String, CanonicalService>,
+        BTreeMap<String, CanonicalType>,
+    ) {
+        (
+            self.canon_schema,
+            self.canon_version,
+            self.hash,
+            self.services,
+            self.types,
+        )
     }
 
     /// Parses a human-readable Sails IDL document and produces its canonical representation.
@@ -298,13 +360,13 @@ impl CanonicalDocument {
             services.insert(service.name().to_owned(), canonical_service);
         }
 
-        Ok(Self {
-            canon_schema: default_schema(),
-            canon_version: default_version(),
-            hash: default_hash_meta(),
+        Ok(Self::from_parts(
+            default_schema(),
+            default_version(),
+            default_hash_meta(),
             services,
             types,
-        })
+        ))
     }
 
     /// Normalizes the canonical document in-place (sorting collections, filling defaults).
@@ -327,11 +389,6 @@ impl CanonicalDocument {
         if self.hash.domain.is_empty() {
             self.hash.domain = crate::INTERFACE_HASH_DOMAIN_STR.to_owned();
         }
-    }
-
-    fn normalized(mut self) -> Self {
-        self.normalize();
-        self
     }
 }
 
@@ -882,12 +939,12 @@ mod tests {
         );
 
         let canonical_services = doc
-            .services
+            .services()
             .keys()
             .map(|name| name.as_str())
             .collect::<Vec<_>>();
         assert_eq!(canonical_services, vec!["a", "b"]);
-        assert!(doc.types.is_empty());
+        assert!(doc.types().is_empty());
     }
 
     #[test]
@@ -902,11 +959,11 @@ mod tests {
         "#;
 
         let doc = CanonicalDocument::from_text_idl(idl).expect("textual IDL should be parsed");
-        assert_eq!(doc.canon_schema, CANONICAL_SCHEMA);
-        assert_eq!(doc.canon_version, CANONICAL_VERSION);
-        assert_eq!(doc.hash.algo, CANONICAL_HASH_ALGO);
-        assert_eq!(doc.hash.domain, crate::INTERFACE_HASH_DOMAIN_STR);
-        let service = doc.services.get("Example").expect("service exists");
+        assert_eq!(doc.canon_schema(), CANONICAL_SCHEMA);
+        assert_eq!(doc.canon_version(), CANONICAL_VERSION);
+        assert_eq!(doc.hash().algo, CANONICAL_HASH_ALGO);
+        assert_eq!(doc.hash().domain, crate::INTERFACE_HASH_DOMAIN_STR);
+        let service = doc.services().get("Example").expect("service exists");
         assert_eq!(service.functions.len(), 2);
         assert_eq!(service.functions[0].kind, FunctionKind::Command);
         assert_eq!(service.functions[0].name, "DoSomething");

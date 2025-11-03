@@ -48,23 +48,23 @@ pub fn derive_ids(input: &Path) -> Result<()> {
     })?;
     let canonical = CanonicalDocument::from_json_str(&raw)?;
 
-    if canonical.services.is_empty() {
+    if canonical.services().is_empty() {
         let bytes = canonical.to_bytes()?;
         let id = compute_ids_from_bytes(&bytes);
         println!("document -> interface_id=0x{id:016x}");
         return Ok(());
     }
 
-    for (name, service) in canonical.services.iter() {
+    for (name, service) in canonical.services() {
         let mut single_services = BTreeMap::new();
         single_services.insert(name.clone(), service.clone());
-        let single = CanonicalDocument {
-            canon_schema: canonical.canon_schema.clone(),
-            canon_version: canonical.canon_version.clone(),
-            hash: canonical.hash.clone(),
-            services: single_services,
-            types: canonical.types.clone(),
-        };
+        let single = CanonicalDocument::from_parts(
+            canonical.canon_schema(),
+            canonical.canon_version(),
+            canonical.hash().clone(),
+            single_services,
+            canonical.types().clone(),
+        );
         let bytes = single.to_bytes()?;
         let id = compute_ids_from_bytes(&bytes);
         println!("{name} -> interface_id=0x{id:016x}");
@@ -84,22 +84,22 @@ pub fn derive_ids_for_manifest(manifest: &Path) -> Result<()> {
         .context("canonical document is not valid UTF-8")?;
     let canonical = CanonicalDocument::from_json_str(&canonical_str)?;
 
-    if canonical.services.is_empty() {
+    if canonical.services().is_empty() {
         let id = compute_ids_from_bytes(&canonical_bytes);
         println!("document -> interface_id=0x{id:016x}");
         return Ok(());
     }
 
-    for (name, service) in canonical.services.iter() {
+    for (name, service) in canonical.services() {
         let mut single_services = BTreeMap::new();
         single_services.insert(name.clone(), service.clone());
-        let single = CanonicalDocument {
-            canon_schema: canonical.canon_schema.clone(),
-            canon_version: canonical.canon_version.clone(),
-            hash: canonical.hash.clone(),
-            services: single_services,
-            types: canonical.types.clone(),
-        };
+        let single = CanonicalDocument::from_parts(
+            canonical.canon_schema(),
+            canonical.canon_version(),
+            canonical.hash().clone(),
+            single_services,
+            canonical.types().clone(),
+        );
         let bytes = single.to_bytes()?;
         let id = compute_ids_from_bytes(&bytes);
         println!("{name} -> interface_id=0x{id:016x}");

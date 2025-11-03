@@ -205,6 +205,7 @@ impl<'a> PackageGenerator<'a> {
                 sails_interface_package,
                 meta_path_version,
                 kind,
+                self.workspace_root,
             ),
         )?;
 
@@ -526,6 +527,7 @@ fn gen_cargo_toml(
     sails_interface_package: Option<&Package>,
     meta_path_version: MetaPathVersion,
     kind: &ProgramArtifactKind,
+    workspace_root: &Utf8Path,
 ) -> String {
     let mut manifest = toml_edit::DocumentMut::new();
     manifest["package"] = toml_edit::Item::Table(toml_edit::Table::new());
@@ -546,17 +548,19 @@ fn gen_cargo_toml(
     dep_table[&sails_package.name] = toml_edit::value(sails_dep);
 
     if matches!(kind, ProgramArtifactKind::Canonical) {
-        if let Some(package) = sails_interface_package {
+        let iface_dep = if let Some(package) = sails_interface_package {
             let mut iface_dep = toml_edit::InlineTable::new();
             let manifets_dir = package.manifest_path.parent().unwrap();
             iface_dep.insert("package", package.name.as_str().into());
             iface_dep.insert("path", manifets_dir.as_str().into());
-            dep_table["sails-interface-id"] = toml_edit::value(iface_dep);
+            iface_dep
         } else {
-            dep_table["sails-interface-id"] = toml_edit::value(sails_interface_dep_from_crates(
-                sails_package.version.to_string(),
-            ));
-        }
+            let mut table = toml_edit::InlineTable::new();
+            let iface_path = workspace_root.join("rs").join("interface-id");
+            table.insert("path", iface_path.as_str().into());
+            table
+        };
+        dep_table["sails-interface-id"] = toml_edit::value(iface_dep);
     }
 
     manifest["dependencies"] = toml_edit::Item::Table(dep_table);
@@ -605,12 +609,6 @@ fn sails_dep_v2(sails_package: &Package, kind: &ProgramArtifactKind) -> toml_edi
     sails_table
 }
 
-fn sails_interface_dep_from_crates(version: String) -> toml_edit::InlineTable {
-    let mut table = toml_edit::InlineTable::new();
-    table.insert("version", version.into());
-    table
-}
-
 fn gen_main_rs(
     kind: &ProgramArtifactKind,
     program_struct_path: &str,
@@ -647,20 +645,21 @@ fn main() {{
         let meta = service_fn();
         let doc = build_canonical_document_from_meta(&meta)
             .expect(\"failed to build canonical document\");
-        services.extend(doc.services);
-        types.extend(doc.types);
+        let (_, _, _, doc_services, doc_types) = doc.into_parts();
+        services.extend(doc_services);
+        types.extend(doc_types);
     }}
 
-    let document = CanonicalDocument {{
-        canon_schema: CANONICAL_SCHEMA.to_owned(),
-        canon_version: CANONICAL_VERSION.to_owned(),
-        hash: CanonicalHashMeta {{
+    let document = CanonicalDocument::from_parts(
+        CANONICAL_SCHEMA,
+        CANONICAL_VERSION,
+        CanonicalHashMeta {{
             algo: CANONICAL_HASH_ALGO.to_owned(),
             domain: INTERFACE_HASH_DOMAIN_STR.to_owned(),
         }},
         services,
         types,
-    }};
+    );
 
     let bytes = document
         .to_bytes()

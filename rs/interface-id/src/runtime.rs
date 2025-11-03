@@ -238,18 +238,16 @@ pub fn build_canonical_document_from_meta(meta: &AnyServiceMeta) -> Result<Canon
     let mut types = BTreeMap::new();
     collect_service(meta, &mut services, &mut visited, &mut types)?;
 
-    let mut document = CanonicalDocument {
-        canon_schema: crate::canonical::CANONICAL_SCHEMA.to_owned(),
-        canon_version: crate::canonical::CANONICAL_VERSION.to_owned(),
-        hash: CanonicalHashMeta {
+    Ok(CanonicalDocument::from_parts(
+        crate::canonical::CANONICAL_SCHEMA,
+        crate::canonical::CANONICAL_VERSION,
+        CanonicalHashMeta {
             algo: crate::canonical::CANONICAL_HASH_ALGO.to_owned(),
             domain: crate::INTERFACE_HASH_DOMAIN_STR.to_owned(),
         },
         services,
         types,
-    };
-    document.normalize();
-    Ok(document)
+    ))
 }
 
 fn collect_service(
@@ -329,16 +327,16 @@ fn build_service(
         if let Some(base_service) = services.get(&base_name) {
             let mut single_services = BTreeMap::new();
             single_services.insert(base_name.clone(), base_service.clone());
-            let single_doc = CanonicalDocument {
-                canon_schema: crate::canonical::CANONICAL_SCHEMA.to_owned(),
-                canon_version: crate::canonical::CANONICAL_VERSION.to_owned(),
-                hash: CanonicalHashMeta {
+            let single_doc = CanonicalDocument::from_parts(
+                crate::canonical::CANONICAL_SCHEMA,
+                crate::canonical::CANONICAL_VERSION,
+                CanonicalHashMeta {
                     algo: crate::canonical::CANONICAL_HASH_ALGO.to_owned(),
                     domain: crate::INTERFACE_HASH_DOMAIN_STR.to_owned(),
                 },
-                services: single_services,
-                types: BTreeMap::new(),
-            };
+                single_services,
+                BTreeMap::new(),
+            );
             let interface_id = compute_ids_from_document(&single_doc);
             extends.push(CanonicalExtendedInterface {
                 name: base_name,
@@ -709,7 +707,7 @@ mod tests {
             .expect("canonical document should be constructed");
 
         let derived = doc
-            .services
+            .services()
             .get(DERIVED_INTERFACE_PATH)
             .expect("derived service exists");
         let base_ext = derived

@@ -219,17 +219,6 @@ mod tests {
         };
         use std::collections::BTreeMap;
 
-        let mut document = CanonicalDocument {
-            canon_schema: crate::canonical::CANONICAL_SCHEMA.to_owned(),
-            canon_version: crate::canonical::CANONICAL_VERSION.to_owned(),
-            hash: CanonicalHashMeta {
-                algo: crate::canonical::CANONICAL_HASH_ALGO.to_owned(),
-                domain: INTERFACE_HASH_DOMAIN_STR.to_owned(),
-            },
-            services: BTreeMap::new(),
-            types: BTreeMap::new(),
-        };
-
         let service = CanonicalService {
             name: "example::Dog".to_owned(),
             extends: Vec::new(),
@@ -244,8 +233,19 @@ mod tests {
             }],
             events: Vec::new(),
         };
+        let mut services = BTreeMap::new();
+        services.insert(service.name.clone(), service);
 
-        document.services.insert(service.name.clone(), service);
+        let document = CanonicalDocument::from_parts(
+            crate::canonical::CANONICAL_SCHEMA,
+            crate::canonical::CANONICAL_VERSION,
+            CanonicalHashMeta {
+                algo: crate::canonical::CANONICAL_HASH_ALGO.to_owned(),
+                domain: INTERFACE_HASH_DOMAIN_STR.to_owned(),
+            },
+            services,
+            BTreeMap::new(),
+        );
 
         let id_doc = super::compute_ids_from_document(&document);
         let bytes = document.to_bytes().unwrap();

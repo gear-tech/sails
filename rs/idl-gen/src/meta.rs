@@ -94,12 +94,12 @@ impl ExpandedProgramMeta {
                     "failed to build canonical document for `{service_name}`: {err}"
                 ))
             })?;
-            let service_entry = canonical_doc.services.get(service_name).ok_or_else(|| {
+            let service_entry = canonical_doc.services().get(service_name).ok_or_else(|| {
                 Error::FuncMetaIsInvalid(format!(
                     "canonical document for `{service_name}` is missing service entry"
                 ))
             })?;
-            for (ty_name, ty) in canonical_doc.types.iter() {
+            for (ty_name, ty) in canonical_doc.types() {
                 all_types.entry(ty_name.clone()).or_insert(ty.clone());
             }
             let extends = service_entry
@@ -130,9 +130,9 @@ impl ExpandedProgramMeta {
                 event_entry_ids,
                 service_entry.clone(),
                 extends,
-                canonical_doc.canon_schema.clone(),
-                canonical_doc.canon_version.clone(),
-                canonical_doc.hash.clone(),
+                canonical_doc.canon_schema().to_owned(),
+                canonical_doc.canon_version().to_owned(),
+                canonical_doc.hash().clone(),
             ));
         }
         let registry = PortableRegistry::from(registry);
@@ -157,13 +157,13 @@ impl ExpandedProgramMeta {
                     let mut single_services = BTreeMap::new();
                     single_services
                         .insert(canonical_service.name.clone(), canonical_service.clone());
-                    let single_doc = CanonicalDocument {
+                    let single_doc = CanonicalDocument::from_parts(
                         canon_schema,
                         canon_version,
                         hash,
-                        services: single_services,
-                        types: all_types.clone(),
-                    };
+                        single_services,
+                        all_types.clone(),
+                    );
                     let canonical_bytes = single_doc.to_bytes().map_err(|err| {
                         Error::FuncMetaIsInvalid(format!(
                             "failed to serialize canonical document for `{sname}`: {err}"
