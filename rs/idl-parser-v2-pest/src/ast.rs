@@ -104,14 +104,17 @@ pub enum TypeDecl {
         err: Box<TypeDecl>,
     },
     Primitive(PrimitiveType),
-    UserDefined(String),
+    UserDefined {
+        path: String,
+        generics: Vec<TypeDecl>,
+    },
     // Def(TypeDef),
 }
 
 #[derive(Debug, PartialEq, Clone, Copy)]
 #[repr(u8)]
 pub enum PrimitiveType {
-    Null,
+    Void,
     Bool,
     Char,
     String,

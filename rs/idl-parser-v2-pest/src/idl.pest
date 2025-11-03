@@ -6,18 +6,17 @@ Ident    = @{ (ASCII_ALPHA | "_") ~ (ASCII_ALPHANUMERIC | "_")* }
 Number   = @{ ASCII_DIGIT+ }
 StrToEol = @{ (!NEWLINE ~ ANY)* }
 
-// ---------- Annotations & docs ----------
-GlobalAnn =  { WHITESPACE* ~ "!@" ~ Ident ~ (":" ~ StrToEol)? }
-LocalAnn  =  { WHITESPACE* ~ "@" ~ Ident ~ (":" ~ StrToEol)? }
-DocLine   = _{ WHITESPACE* ~ "///" ~ StrToEol }
+// ---------- Docs & Annotations ----------
+GlobalAnn = { WHITESPACE* ~ "!@" ~ Ident ~ (":" ~ StrToEol)? }
+LocalAnn  = { WHITESPACE* ~ "@" ~ Ident ~ (":" ~ StrToEol)? }
+DocLine   = { WHITESPACE* ~ "///" ~ StrToEol }
 
-Docs = { DocLine+ }
-Anns = { LocalAnn+ }
+DocsAndAnnotations = _{ (DocLine | LocalAnn)+ }
 
 // ---------- Types ----------
 TypeDecl = _{ Tuple | Slice | Array | Option | Result | Primitive | PathType }
 
-Primitive = { "bool" | "u8" | "i8" | "u16" | "i16" | "u32" | "i32" | "u64" | "i64" | "u128" | "i128" }
+Primitive = { "()" | "bool" | "char" | "string" | "u8" | "i8" | "u16" | "i16" | "u32" | "i32" | "u64" | "i64" | "u128" | "i128" | "actor" | "code" | "messageid" | "H160" | "H256" | "U256" }
 
 Tuple  = { "(" ~ (TypeDecl ~ ("," ~ TypeDecl)* ~ ","?)? ~ ")" }
 Array  = { "[" ~ TypeDecl ~ ";" ~ Number ~ "]" }
@@ -30,7 +29,7 @@ Path     = @{ Ident ~ ("::" ~ Ident)* }
 Generics =  { "<" ~ TypeDecl ~ ("," ~ TypeDecl)* ~ ">" }
 
 // ---------- Structs ----------
-StructDecl = { Docs? ~ Anns? ~ "struct" ~ Ident ~ TypeParams? ~ (StructDef | TupleDef | UnitDef) }
+StructDecl = { DocsAndAnnotations? ~ "struct" ~ Ident ~ TypeParams? ~ (StructDef | TupleDef | UnitDef) }
 
 StructDef = _{ "{" ~ Fields? ~ "}" ~ ";"? }
 TupleDef  = _{ "(" ~ Fields? ~ ")" ~ ";"? }
@@ -38,18 +37,18 @@ UnitDef   = _{ ";" }
 
 TypeParams = { "<" ~ Ident ~ ("," ~ Ident)* ~ ">" }
 Fields     = { Field ~ ("," ~ Field)* ~ ","? }
-Field      = { Docs? ~ Anns? ~ (Ident ~ ":")? ~ TypeDecl }
+Field      = { DocsAndAnnotations? ~ (Ident ~ ":")? ~ TypeDecl }
 
 // ---------- Enums ----------
-EnumDecl = { Docs? ~ Anns? ~ "enum" ~ Ident ~ TypeParams? ~ "{" ~ Variants? ~ "}" }
+EnumDecl = { DocsAndAnnotations? ~ "enum" ~ Ident ~ TypeParams? ~ "{" ~ Variants? ~ "}" }
 Variants = { Variant ~ ("," ~ Variant)* ~ ","? }
-Variant  = { Docs? ~ Anns? ~ Ident ~ (StructDef | TupleDef)? }
+Variant  = { DocsAndAnnotations? ~ Ident ~ (StructDef | TupleDef)? }
 
 // ---------- Aliases ----------
 AliasDecl = { "alias" ~ Ident ~ TypeParams? ~ "=" ~ TypeDecl ~ ";" }
 
 // ---------- Service ----------
-ServiceDecl = { Docs? ~ Anns* ~ "service" ~ Ident ~ "{" ~ (ExtendsBlock | EventsBlock | FunctionsBlock | TypesBlock)* ~ "}" }
+ServiceDecl = { DocsAndAnnotations* ~ "service" ~ Ident ~ "{" ~ (ExtendsBlock | EventsBlock | FunctionsBlock | TypesBlock)* ~ "}" }
 
 ExtendsBlock   = { "extends" ~ "{" ~ Ident ~ ("," ~ Ident)* ~ ","? ~ "}" }
 EventsBlock    = { "events" ~ "{" ~ Variant ~ ("," ~ Variant)* ~ ","? ~ "}" }
@@ -57,18 +56,18 @@ FunctionsBlock = { "functions" ~ "{" ~ FuncDecl* ~ "}" }
 TypesBlock     = { "types" ~ "{" ~ (StructDecl | EnumDecl | AliasDecl)* ~ "}" }
 
 // ---------- Functions ----------
-FuncDecl = { Docs? ~ Anns* ~ Ident ~ "(" ~ Params? ~ ")" ~ Ret? ~ Throws? ~ ";"? }
+FuncDecl = { DocsAndAnnotations* ~ Ident ~ "(" ~ Params? ~ ")" ~ Ret? ~ Throws? ~ ";"? }
 Params   = { Param ~ ("," ~ Param)* ~ ","? }
 Param    = { Ident ~ ":" ~ TypeDecl }
 Ret      = { "->" ~ TypeDecl }
 Throws   = { "throws" ~ TypeDecl }
 
 // ---------- Program ----------
-ProgramDecl       = { Docs? ~ Anns? ~ "program" ~ Ident ~ "{" ~ (ConstructorsBlock | ServicesBlock | TypesBlock)* ~ "}" }
+ProgramDecl       = { DocsAndAnnotations? ~ "program" ~ Ident ~ "{" ~ (ConstructorsBlock | ServicesBlock | TypesBlock)* ~ "}" }
 ConstructorsBlock = { "constructors" ~ "{" ~ CtorDecl* ~ "}" }
-CtorDecl          = { Docs? ~ Anns? ~ Ident ~ "(" ~ Params? ~ ")" ~ ";"? }
+CtorDecl          = { DocsAndAnnotations? ~ Ident ~ "(" ~ Params? ~ ")" ~ ";"? }
 ServicesBlock     = { "services" ~ "{" ~ (ServiceItem ~ ","?)* ~ "}" }
-ServiceItem       = { Docs? ~ Anns? ~ Ident ~ (":" ~ Ident)? }
+ServiceItem       = { DocsAndAnnotations? ~ Ident ~ (":" ~ Ident)? }
 
 // ---------- Top level ----------
 Top = { SOI ~ (GlobalAnn | ServiceDecl | ProgramDecl)* ~ EOI }

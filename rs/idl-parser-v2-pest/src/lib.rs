@@ -3,8 +3,8 @@ use anyhow::{Context, Result, bail};
 use pest::Parser;
 use pest::iterators::{Pair, Pairs};
 
-mod model;
-pub use model::*;
+mod ast;
+pub use ast::*;
 
 #[derive(pest_derive::Parser)]
 #[grammar = "idl.pest"]
@@ -57,7 +57,7 @@ fn parse_annotation(p: Pair<Rule>) -> Result<(String, Option<String>)> {
 fn map_primitive(s: &str) -> PrimitiveType {
     match s {
         // allow both lowercase and PascalCase for some custom types
-        "null" | "Null" => PrimitiveType::Null,
+        "()" => PrimitiveType::Void,
         "bool" | "Bool" => PrimitiveType::Bool,
         "char" | "Char" => PrimitiveType::Char,
         "string" | "String" => PrimitiveType::String,
@@ -74,9 +74,9 @@ fn map_primitive(s: &str) -> PrimitiveType {
         "actor" | "ActorId" => PrimitiveType::ActorId,
         "code" | "CodeId" => PrimitiveType::CodeId,
         "messageid" | "MessageId" => PrimitiveType::MessageId,
+        "H160" => PrimitiveType::H160,
         "H256" => PrimitiveType::H256,
         "U256" => PrimitiveType::U256,
-        "H160" => PrimitiveType::H160,
         _ => PrimitiveType::String, // sane default; shouldn't happen if grammar matches
     }
 }
@@ -136,7 +136,7 @@ fn parse_type_decl(p: Pair<Rule>) -> Result<TypeDecl> {
                     _ => {}
                 }
             }
-            Ok(TypeDecl::UserDefined(path))
+            Ok(TypeDecl::UserDefined { path, generics })
         }
         other => bail!("unexpected rule in TypeDecl: {:?}", other),
     }
@@ -299,7 +299,7 @@ fn parse_func(p: Pair<Rule>) -> Result<ServiceFunc> {
             _ => {}
         }
     }
-    let output = output.unwrap_or(TypeDecl::Primitive(PrimitiveType::Null));
+    let output = output.unwrap_or(TypeDecl::Primitive(PrimitiveType::Void));
     Ok(ServiceFunc {
         name,
         params,
@@ -445,7 +445,7 @@ fn parse_docs_and_annotations(
     for p in pairs.clone() {
         // peek Docs or Anns
         match p.as_rule() {
-            Rule::Docs => {
+            Rule::DocLine => {
                 // pop pair
                 let _ = pairs.next();
                 for d in p.into_inner() {
@@ -455,12 +455,10 @@ fn parse_docs_and_annotations(
                     }
                 }
             }
-            Rule::Anns => {
+            Rule::LocalAnn => {
                 // pop pair
                 let _ = pairs.next();
-                for a in p.into_inner() {
-                    anns.push(parse_annotation(a)?);
-                }
+                anns.push(parse_annotation(p)?);
             }
             _ => break,
         }
@@ -486,25 +484,25 @@ mod tests {
     use super::*;
 
     #[test]
-    fn parse_doc_lines() {
+    fn parse_docs_and_annotations_lines() {
         const SRC: &str = r#"
             // Comment
             /// Defines status of some point as colored by somebody or dead for some reason.
             /// Dead point - won't be available for coloring anymore.
+            @indexed
             "#;
-        let mut pairs = IdlParser::parse(Rule::Docs, SRC).expect("parse idl");
+        let mut pairs = IdlParser::parse(Rule::DocsAndAnnotations, SRC).expect("parse idl");
         println!("pairs: {pairs:?}");
-        let (docs, _anns) = parse_docs_and_annotations(&mut pairs).expect("parse annotations");
+        let (docs, anns) = parse_docs_and_annotations(&mut pairs).expect("parse annotations");
         println!("docs: {docs:?}");
-        assert_eq!(2, docs.len());
         assert_eq!(
-            "Defines status of some point as colored by somebody or dead for some reason.",
-            docs[0]
+            docs,
+            vec![
+                "Defines status of some point as colored by somebody or dead for some reason.",
+                "Dead point - won't be available for coloring anymore."
+            ],
         );
-        assert_eq!(
-            "Dead point - won't be available for coloring anymore.",
-            docs[1]
-        );
+        assert_eq!(anns, vec![("indexed".to_string(), None)])
     }
 
     #[test]
@@ -537,9 +535,12 @@ mod tests {
             func,
             ServiceFunc {
                 name: "ColorPoint".to_string(),
-                params: vec![FuncParam { name: "point".to_string(), type_decl: Tuple(vec![Primitive(U32), Primitive(U32)]) }, FuncParam { name: "color".to_string(), type_decl: UserDefined("Color".to_string()) }],
-                output: Primitive(Null),
-                throws: Some(UserDefined("ColorError".to_string())),
+                params: vec![
+                    FuncParam { name: "point".to_string(), type_decl: Tuple(vec![Primitive(U32), Primitive(U32)]) },
+                    FuncParam { name: "color".to_string(), type_decl: UserDefined { path: "Color".to_string(), generics: vec![] } }
+                ],
+                output: Primitive(Void),
+                throws: Some(UserDefined { path: "ColorError".to_string(), generics: vec![] }),
                 is_query: false,
                 annotations: vec![],
                 docs: vec![

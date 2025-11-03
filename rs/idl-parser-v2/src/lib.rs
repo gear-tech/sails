@@ -11,8 +11,8 @@ use nom::{
 };
 use std::str::FromStr;
 
-mod model;
-pub use model::*;
+mod ast;
+pub use ast::*;
 
 // ------------------------- Lexing helpers -------------------------
 
