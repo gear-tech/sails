@@ -644,6 +644,49 @@ method.
 Bear in mind that working with the generated client requires the `sails_rs` crate to
 be in dependencies.
 
+## Canonical metadata & interface identifiers
+
+Sails derives stable `interface_id` values from a canonical JSON description of
+each service. The canonical pipeline lives in the `sails-interface-id` crate and
+is used by the CLI, macro expansion, and the IDL generator.
+
+### CanonicalDocument
+
+1. Runtime metadata (via `sails-idl-meta` + rustdoc) is normalized into a
+   `CanonicalDocument` (`rs/interface-id/src/{canonical.rs,runtime.rs}`), which
+   contains:
+   - `canon_schema`, `canon_version`, and `hash` headers
+   - a `services` map (functions, events, extends) with C3 linearization and
+     deterministic ordering
+   - a `types` map capturing every user type the service touches
+2. The document is serialized using RFC 8785 JSON Canonicalization (JCS).
+3. A BLAKE3 hash with the domain separator `SAILS-IDL/v1/interface-id` produces
+   the 64-bit `interface_id`.
+
+### Developer workflow
+
+- `cargo sails idl-canonicalize --manifest-path <Cargo.toml>`: emits
+  `<target>/<program>.canonical.json` alongside build artefacts.
+- `cargo sails idl-derive-id <canonical.json>`: prints the `interface_id` for the
+  whole document and for each service within it.
+- Generated IDL (`cargo sails idl`) embeds the same `interface_id` values in
+  `/// !@interface_id` comments; hashes now match the CLI output byte-for-byte.
+
+### Cross-language parity vectors
+
+To guarantee other toolchains (TypeScript, Python, etc.) compute the same IDs, a
+small suite of canonical vectors lives under `vectors/canonical/`:
+
+- `manifest.json` maps each document to the expected `interface_id` per service.
+- `cargo test -p sails-interface-id` verifies the vectors inside the Rust crate.
+- `pnpm test:vectors` runs the Node parity script
+  (`vectors/scripts/check-vectors.mjs`).
+- `vectors/scripts/check_vectors.py` provides a Python reference script (requires
+  `pip install blake3 canonicaljson`).
+
+When adding new vectors, update the manifest and run the parity checks to ensure
+every implementation stays in sync.
+
 ##
 
 #### License
