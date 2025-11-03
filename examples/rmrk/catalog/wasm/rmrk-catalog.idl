@@ -38,7 +38,7 @@ constructor {
 };
 
 service RmrkCatalog {
-  /// !@interface_id = 0x4ca5ed677e865cbb
+  /// !@interface_id = 0x1b048b460a99a72f
   /// !@entry_id = 0x0001
   AddEquippables : (part_id: u32, collection_ids: vec actor_id) -> result (struct { u32, vec actor_id }, Error);
   /// !@entry_id = 0x0002

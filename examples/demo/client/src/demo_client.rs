@@ -72,7 +72,7 @@ pub mod ping_pong {
     use super::*;
     pub trait PingPong {
         type Env: sails_rs::client::GearEnv;
-        /// !@interface_id = 0xa1d8097af54e9f71
+        /// !@interface_id = 0x6f4d856f70e9b905
         /// !@entry_id = 0x0001
         fn ping(&mut self, input: String) -> sails_rs::client::PendingCall<io::Ping, Self::Env>;
     }
@@ -94,7 +94,7 @@ pub mod counter {
     use super::*;
     pub trait Counter {
         type Env: sails_rs::client::GearEnv;
-        /// !@interface_id = 0xd2836f0c3ceb4fca
+        /// !@interface_id = 0x360674aa45f34eb5
         /// Add a value to the counter
         /// !@entry_id = 0x0001
         fn add(&mut self, value: u32) -> sails_rs::client::PendingCall<io::Add, Self::Env>;
@@ -152,10 +152,10 @@ pub mod dog {
     use super::*;
     pub trait Dog {
         type Env: sails_rs::client::GearEnv;
-        /// !@interface_id = 0x86eaa1bd34206bfc
+        /// !@interface_id = 0x6f74094401d312d4
         /// !@extends
-        /// MammalService (interface_id=0x79a38954dfb5e49a)
-        /// WalkerService (interface_id=0x7403cbfcc30be965)
+        /// MammalService (interface_id=0x653bc183ac936301)
+        /// WalkerService (interface_id=0xa16fdd1b59087e7b)
         /// !@entry_id = 0x0001
         fn make_sound(&mut self) -> sails_rs::client::PendingCall<io::MakeSound, Self::Env>;
         /// !@entry_id = 0x0002
@@ -216,7 +216,7 @@ pub mod references {
     use super::*;
     pub trait References {
         type Env: sails_rs::client::GearEnv;
-        /// !@interface_id = 0xb4bc456ec2404a66
+        /// !@interface_id = 0x6043c59198049434
         /// !@entry_id = 0x0001
         fn add(&mut self, v: u32) -> sails_rs::client::PendingCall<io::Add, Self::Env>;
         /// !@entry_id = 0x0002
@@ -286,7 +286,7 @@ pub mod this_that {
     use super::*;
     pub trait ThisThat {
         type Env: sails_rs::client::GearEnv;
-        /// !@interface_id = 0x7bff4fc7268e3913
+        /// !@interface_id = 0x266580464fe9271a
         /// !@entry_id = 0x0001
         fn do_that(
             &mut self,
@@ -350,7 +350,7 @@ pub mod value_fee {
     use super::*;
     pub trait ValueFee {
         type Env: sails_rs::client::GearEnv;
-        /// !@interface_id = 0x6d11dccf30287ae1
+        /// !@interface_id = 0xb3357786d10628f6
         /// Return flag if fee taken and remain value,
         /// using special type `CommandReply<T>`
         /// !@entry_id = 0x0001

@@ -46,7 +46,7 @@ pub mod proxy {
     use super::*;
     pub trait Proxy {
         type Env: sails_rs::client::GearEnv;
-        /// !@interface_id = 0x09d5cc2811e8396c
+        /// !@interface_id = 0x4c9c43383a64063a
         /// Get program ID of the target program via client
         /// !@entry_id = 0x0001
         fn get_program_id(&self) -> sails_rs::client::PendingCall<io::GetProgramId, Self::Env>;
