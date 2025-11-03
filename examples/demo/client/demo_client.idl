@@ -144,8 +144,12 @@ service ValueFee {
 };
 
 service Chaos {
+  /// !@interface_id = 0x6554ddba07c3c050
+  /// !@entry_id = 0x0001
   query PanicAfterWait : () -> null;
+  /// !@entry_id = 0x0002
   query ReplyHookCounter : () -> u32;
+  /// !@entry_id = 0x0003
   query TimeoutWait : () -> null;
 };
 

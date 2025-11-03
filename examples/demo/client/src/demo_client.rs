@@ -399,10 +399,14 @@ pub mod chaos {
     use super::*;
     pub trait Chaos {
         type Env: sails_rs::client::GearEnv;
+        /// !@interface_id = 0x6554ddba07c3c050
+        /// !@entry_id = 0x0001
         fn panic_after_wait(&self) -> sails_rs::client::PendingCall<io::PanicAfterWait, Self::Env>;
+        /// !@entry_id = 0x0002
         fn reply_hook_counter(
             &self,
         ) -> sails_rs::client::PendingCall<io::ReplyHookCounter, Self::Env>;
+        /// !@entry_id = 0x0003
         fn timeout_wait(&self) -> sails_rs::client::PendingCall<io::TimeoutWait, Self::Env>;
     }
     pub struct ChaosImpl;

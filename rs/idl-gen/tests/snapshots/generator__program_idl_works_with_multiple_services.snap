@@ -77,7 +77,7 @@ type ThatParam = struct {
 };
 
 service {
-  /// !@interface_id = 0x589f5fd87420e15b
+  /// !@interface_id = 0x51ca848aaf0fe422
   /// Some description
   /// !@entry_id = 0x0001
   DoThis : (p1: u32, p2: str, p3: struct { opt str, u8 }, p4: TupleStruct, p5: GenericStructForH256, p6: GenericStructForStr, p7: GenericConstStruct1, p8: GenericConstStruct2) -> str;
@@ -115,7 +115,7 @@ service {
 };
 
 service SomeService {
-  /// !@interface_id = 0x589f5fd87420e15b
+  /// !@interface_id = 0x51ca848aaf0fe422
   /// Some description
   /// !@entry_id = 0x0001
   DoThis : (p1: u32, p2: str, p3: struct { opt str, u8 }, p4: TupleStruct, p5: GenericStructForH256, p6: GenericStructForStr, p7: GenericConstStruct1, p8: GenericConstStruct2) -> str;
