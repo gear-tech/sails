@@ -487,9 +487,12 @@ fn cargo_run_bin(
     target_dir: &cargo_metadata::camino::Utf8Path,
 ) -> anyhow::Result<ExitStatus> {
     let cargo_path = std::env::var("CARGO").unwrap_or("cargo".into());
+    // Use a dedicated target dir for generated helper crates to avoid artifact
+    // collisions with the workspace build output (see rust-lang/cargo#6313).
+    let runner_target_dir = target_dir.join("sails").join("generator-run");
 
     let mut cmd = Command::new(cargo_path);
-    cmd.env("CARGO_TARGET_DIR", target_dir)
+    cmd.env("CARGO_TARGET_DIR", runner_target_dir.as_str())
         .env("__GEAR_WASM_BUILDER_NO_BUILD", "1")
         .stdout(std::process::Stdio::null()) // Don't pollute output
         .arg("run")
