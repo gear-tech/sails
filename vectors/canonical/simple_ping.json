@@ -1,0 +1,105 @@
+{
+  "canon_schema": "sails-idl-jcs",
+  "canon_version": "1",
+  "hash": {
+    "algo": "blake3",
+    "domain": "SAILS-IDL/v1/interface-id"
+  },
+  "services": {
+    "PingService": {
+      "events": [],
+      "extends": [],
+      "functions": [
+        {
+          "kind": "command",
+          "name": "Ping",
+          "params": [
+            {
+              "type": {
+                "kind": "primitive",
+                "name": "str"
+              }
+            }
+          ],
+          "returns": {
+            "kind": "named",
+            "name": "Result"
+          }
+        }
+      ],
+      "name": "PingService"
+    }
+  },
+  "types": {
+    "Result": {
+      "kind": "enum",
+      "variants": [
+        {
+          "name": "Err",
+          "payload": {
+            "items": [
+              {
+                "kind": "primitive",
+                "name": "str"
+              }
+            ],
+            "kind": "tuple"
+          }
+        },
+        {
+          "name": "Ok",
+          "payload": {
+            "items": [
+              {
+                "items": [
+                  {
+                    "item": {
+                      "kind": "primitive",
+                      "name": "u8"
+                    },
+                    "kind": "array",
+                    "len": 32
+                  }
+                ],
+                "kind": "tuple"
+              },
+              {
+                "items": [
+                  {
+                    "kind": "primitive",
+                    "name": "u32"
+                  }
+                ],
+                "kind": "tuple"
+              },
+              {
+                "kind": "enum",
+                "variants": [
+                  {
+                    "name": "Five"
+                  },
+                  {
+                    "name": "Four"
+                  },
+                  {
+                    "name": "One"
+                  },
+                  {
+                    "name": "Six"
+                  },
+                  {
+                    "name": "Three"
+                  },
+                  {
+                    "name": "Two"
+                  }
+                ]
+              }
+            ],
+            "kind": "tuple"
+          }
+        }
+      ]
+    }
+  }
+}

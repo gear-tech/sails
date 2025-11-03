@@ -24,6 +24,7 @@
     "@rollup/plugin-commonjs": "^28.0.6",
     "@rollup/plugin-json": "^6.1.0",
     "@rollup/plugin-node-resolve": "^16.0.2",
+    "blake3": "^2.1.5",
     "@rollup/plugin-typescript": "^12.1.4",
     "@types/jest": "^30.0.0",
     "@types/node": "^24.7.2",
@@ -40,7 +41,8 @@
     "ts-jest": "^29.4.5",
     "ts-node": "^10.9.2",
     "typescript": "^5.9.3",
-    "typescript-eslint": "^8.46.0"
+    "typescript-eslint": "^8.46.0",
+    "canonicalize": "^2.0.0"
   },
   "scripts": {
     "preinstall": "npx only-allow pnpm",
@@ -54,6 +56,7 @@
     "pack": "pnpm --filter sails-js --filter \"sails-js-*\" -r pack --out js/%s.tgz",
     "bump:version": "bash ./js/scripts/bump-versions.sh",
     "test": "pnpm --filter sails-js --filter sails-js-cli test",
+    "test:vectors": "node vectors/scripts/check-vectors.mjs",
     "test:js": "pnpm --filter sails-js test",
     "test:cli": "pnpm --filter sails-js-cli test",
     "publish": "pnpm -r publish --access public",

@@ -1,0 +1,138 @@
+{
+  "canon_schema": "sails-idl-jcs",
+  "canon_version": "1",
+  "hash": {
+    "algo": "blake3",
+    "domain": "SAILS-IDL/v1/interface-id"
+  },
+  "services": {
+    "BaseService": {
+      "events": [
+        {
+          "name": "Executed",
+          "payload": {
+            "kind": "primitive",
+            "name": "u64"
+          }
+        }
+      ],
+      "extends": [],
+      "functions": [
+        {
+          "kind": "command",
+          "name": "DoThing",
+          "params": [
+            {
+              "type": {
+                "kind": "named",
+                "name": "BaseInput"
+              }
+            }
+          ],
+          "returns": {
+            "kind": "primitive",
+            "name": "u64"
+          }
+        },
+        {
+          "kind": "query",
+          "name": "GetValue",
+          "params": [],
+          "returns": {
+            "kind": "primitive",
+            "name": "u64"
+          }
+        }
+      ],
+      "name": "BaseService"
+    },
+    "ExtendedService": {
+      "events": [
+        {
+          "name": "Extra",
+          "payload": {
+            "kind": "named",
+            "name": "BaseInput"
+          }
+        }
+      ],
+      "extends": [
+        {
+          "name": "BaseService",
+          "interface_id": 10343398245330790253,
+          "service": {
+            "events": [
+              {
+                "name": "Executed",
+                "payload": {
+                  "kind": "primitive",
+                  "name": "u64"
+                }
+              }
+            ],
+            "extends": [],
+            "functions": [
+              {
+                "kind": "command",
+                "name": "DoThing",
+                "params": [
+                  {
+                    "type": {
+                      "kind": "named",
+                      "name": "BaseInput"
+                    }
+                  }
+                ],
+                "returns": {
+                  "kind": "primitive",
+                  "name": "u64"
+                }
+              },
+              {
+                "kind": "query",
+                "name": "GetValue",
+                "params": [],
+                "returns": {
+                  "kind": "primitive",
+                  "name": "u64"
+                }
+              }
+            ],
+            "name": "BaseService"
+          }
+        }
+      ],
+      "functions": [
+        {
+          "kind": "command",
+          "name": "Special",
+          "params": [],
+          "returns": {
+            "kind": "named",
+            "name": "BaseInput"
+          }
+        }
+      ],
+      "name": "ExtendedService"
+    }
+  },
+  "types": {
+    "BaseInput": {
+      "kind": "struct",
+      "fields": [
+        {
+          "type": {
+            "kind": "primitive",
+            "name": "u32"
+          }
+        },
+        {
+          "type": {
+            "kind": "primitive",
+            "name": "bool"
+          }
+        }
+      ]
+    }
+  }
+}

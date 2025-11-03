@@ -1,0 +1,9 @@
+{
+  "simple_ping.json": {
+    "PingService": "0xbcf393807e828615"
+  },
+  "complex_multi.json": {
+    "BaseService": "0x8f760efe961a542d",
+    "ExtendedService": "0x7f6cd68d5c3b7343"
+  }
+}
