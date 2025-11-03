@@ -100,7 +100,7 @@ impl ExpandedProgramMeta {
                 ))
             })?;
             for (ty_name, ty) in canonical_doc.types() {
-                all_types.entry(ty_name.clone()).or_insert(ty.clone());
+                all_types.insert(ty_name.clone(), ty.clone());
             }
             let extends = service_entry
                 .extends
@@ -157,14 +157,15 @@ impl ExpandedProgramMeta {
                     let mut single_services = BTreeMap::new();
                     single_services
                         .insert(canonical_service.name.clone(), canonical_service.clone());
-                    let single_doc = CanonicalDocument::from_parts(
+                    let canonical_bytes = CanonicalDocument::from_parts(
                         canon_schema,
                         canon_version,
                         hash,
                         single_services,
                         all_types.clone(),
-                    );
-                    let canonical_bytes = single_doc.to_bytes().map_err(|err| {
+                    )
+                    .to_bytes()
+                    .map_err(|err| {
                         Error::FuncMetaIsInvalid(format!(
                             "failed to serialize canonical document for `{sname}`: {err}"
                         ))
