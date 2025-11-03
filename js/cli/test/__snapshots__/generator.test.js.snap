@@ -15,6 +15,7 @@ export class Program {
   public readonly references: References;
   public readonly thisThat: ThisThat;
   public readonly valueFee: ValueFee;
+  public readonly chaos: Chaos;
   private _program?: BaseGearProgram;
 
   constructor(public api: GearApi, programId?: \`0x\${string}\`) {
@@ -39,6 +40,7 @@ export class Program {
     this.references = new References(this);
     this.thisThat = new ThisThat(this);
     this.valueFee = new ValueFee(this);
+    this.chaos = new Chaos(this);
   }
 
   public get programId(): \`0x\${string}\` {
@@ -549,6 +551,49 @@ export class ValueFee {
         callback(this._program.registry.createType('(String, String, u128)', message.payload)[2].toBigInt() as unknown as bigint);
       }
     });
+  }
+}
+
+export class Chaos {
+  constructor(private _program: Program) {}
+
+  public panicAfterWait(): QueryBuilder<null> {
+    return new QueryBuilder<null>(
+      this._program.api,
+      this._program.registry,
+      this._program.programId,
+      'Chaos',
+      'PanicAfterWait',
+      null,
+      null,
+      'Null',
+    );
+  }
+
+  public replyHookCounter(): QueryBuilder<number> {
+    return new QueryBuilder<number>(
+      this._program.api,
+      this._program.registry,
+      this._program.programId,
+      'Chaos',
+      'ReplyHookCounter',
+      null,
+      null,
+      'u32',
+    );
+  }
+
+  public timeoutWait(): QueryBuilder<null> {
+    return new QueryBuilder<null>(
+      this._program.api,
+      this._program.registry,
+      this._program.programId,
+      'Chaos',
+      'TimeoutWait',
+      null,
+      null,
+      'Null',
+    );
   }
 }"
 `;
@@ -614,6 +659,7 @@ export class Program {
   public readonly references: References;
   public readonly thisThat: ThisThat;
   public readonly valueFee: ValueFee;
+  public readonly chaos: Chaos;
   private _program?: BaseGearProgram;
 
   constructor(public api: GearApi, programId?: \`0x\${string}\`) {
@@ -638,6 +684,7 @@ export class Program {
     this.references = new References(this);
     this.thisThat = new ThisThat(this);
     this.valueFee = new ValueFee(this);
+    this.chaos = new Chaos(this);
   }
 
   public get programId(): \`0x\${string}\` {
@@ -1148,6 +1195,49 @@ export class ValueFee {
         callback(this._program.registry.createType('(String, String, u128)', message.payload)[2].toBigInt() as unknown as bigint);
       }
     });
+  }
+}
+
+export class Chaos {
+  constructor(private _program: Program) {}
+
+  public panicAfterWait(): QueryBuilder<null> {
+    return new QueryBuilder<null>(
+      this._program.api,
+      this._program.registry,
+      this._program.programId,
+      'Chaos',
+      'PanicAfterWait',
+      null,
+      null,
+      'Null',
+    );
+  }
+
+  public replyHookCounter(): QueryBuilder<number> {
+    return new QueryBuilder<number>(
+      this._program.api,
+      this._program.registry,
+      this._program.programId,
+      'Chaos',
+      'ReplyHookCounter',
+      null,
+      null,
+      'u32',
+    );
+  }
+
+  public timeoutWait(): QueryBuilder<null> {
+    return new QueryBuilder<null>(
+      this._program.api,
+      this._program.registry,
+      this._program.programId,
+      'Chaos',
+      'TimeoutWait',
+      null,
+      null,
+      'Null',
+    );
   }
 }"
 `;
