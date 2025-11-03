@@ -11,6 +11,7 @@ pub trait DemoClient {
     fn references(&self) -> sails_rs::client::Service<references::ReferencesImpl, Self::Env>;
     fn this_that(&self) -> sails_rs::client::Service<this_that::ThisThatImpl, Self::Env>;
     fn value_fee(&self) -> sails_rs::client::Service<value_fee::ValueFeeImpl, Self::Env>;
+    fn chaos(&self) -> sails_rs::client::Service<chaos::ChaosImpl, Self::Env>;
 }
 impl<E: sails_rs::client::GearEnv> DemoClient for sails_rs::client::Actor<DemoClientProgram, E> {
     type Env = E;
@@ -31,6 +32,9 @@ impl<E: sails_rs::client::GearEnv> DemoClient for sails_rs::client::Actor<DemoCl
     }
     fn value_fee(&self) -> sails_rs::client::Service<value_fee::ValueFeeImpl, Self::Env> {
         self.service(stringify!(ValueFee))
+    }
+    fn chaos(&self) -> sails_rs::client::Service<chaos::ChaosImpl, Self::Env> {
+        self.service(stringify!(Chaos))
     }
 }
 pub trait DemoClientCtors {
@@ -390,6 +394,40 @@ pub mod value_fee {
         }
     }
 }
+
+pub mod chaos {
+    use super::*;
+    pub trait Chaos {
+        type Env: sails_rs::client::GearEnv;
+        fn panic_after_wait(&self) -> sails_rs::client::PendingCall<io::PanicAfterWait, Self::Env>;
+        fn reply_hook_counter(
+            &self,
+        ) -> sails_rs::client::PendingCall<io::ReplyHookCounter, Self::Env>;
+        fn timeout_wait(&self) -> sails_rs::client::PendingCall<io::TimeoutWait, Self::Env>;
+    }
+    pub struct ChaosImpl;
+    impl<E: sails_rs::client::GearEnv> Chaos for sails_rs::client::Service<ChaosImpl, E> {
+        type Env = E;
+        fn panic_after_wait(&self) -> sails_rs::client::PendingCall<io::PanicAfterWait, Self::Env> {
+            self.pending_call(())
+        }
+        fn reply_hook_counter(
+            &self,
+        ) -> sails_rs::client::PendingCall<io::ReplyHookCounter, Self::Env> {
+            self.pending_call(())
+        }
+        fn timeout_wait(&self) -> sails_rs::client::PendingCall<io::TimeoutWait, Self::Env> {
+            self.pending_call(())
+        }
+    }
+
+    pub mod io {
+        use super::*;
+        sails_rs::io_struct_impl!(PanicAfterWait () -> ());
+        sails_rs::io_struct_impl!(ReplyHookCounter () -> u32);
+        sails_rs::io_struct_impl!(TimeoutWait () -> ());
+    }
+}
 #[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo)]
 #[codec(crate = sails_rs::scale_codec)]
 #[scale_info(crate = sails_rs::scale_info)]
@@ -444,4 +482,5 @@ pub mod mockall {
     mock! { pub References {} #[allow(refining_impl_trait)] #[allow(clippy::type_complexity)] impl references::References for References { type Env = sails_rs::client::GstdEnv; fn add (&mut self, v: u32) -> sails_rs::client::PendingCall<references::io::Add, sails_rs::client::GstdEnv>;fn add_byte (&mut self, byte: u8) -> sails_rs::client::PendingCall<references::io::AddByte, sails_rs::client::GstdEnv>;fn guess_num (&mut self, number: u8) -> sails_rs::client::PendingCall<references::io::GuessNum, sails_rs::client::GstdEnv>;fn incr (&mut self, ) -> sails_rs::client::PendingCall<references::io::Incr, sails_rs::client::GstdEnv>;fn set_num (&mut self, number: u8) -> sails_rs::client::PendingCall<references::io::SetNum, sails_rs::client::GstdEnv>;fn baked (& self, ) -> sails_rs::client::PendingCall<references::io::Baked, sails_rs::client::GstdEnv>;fn last_byte (& self, ) -> sails_rs::client::PendingCall<references::io::LastByte, sails_rs::client::GstdEnv>;fn message (& self, ) -> sails_rs::client::PendingCall<references::io::Message, sails_rs::client::GstdEnv>; } }
     mock! { pub ThisThat {} #[allow(refining_impl_trait)] #[allow(clippy::type_complexity)] impl this_that::ThisThat for ThisThat { type Env = sails_rs::client::GstdEnv; fn do_that (&mut self, param: DoThatParam) -> sails_rs::client::PendingCall<this_that::io::DoThat, sails_rs::client::GstdEnv>;fn do_this (&mut self, p1: u32, p2: String, p3: (Option<H160>,NonZeroU8,), p4: TupleStruct) -> sails_rs::client::PendingCall<this_that::io::DoThis, sails_rs::client::GstdEnv>;fn noop (&mut self, ) -> sails_rs::client::PendingCall<this_that::io::Noop, sails_rs::client::GstdEnv>;fn that (& self, ) -> sails_rs::client::PendingCall<this_that::io::That, sails_rs::client::GstdEnv>;fn this (& self, ) -> sails_rs::client::PendingCall<this_that::io::This, sails_rs::client::GstdEnv>; } }
     mock! { pub ValueFee {} #[allow(refining_impl_trait)] #[allow(clippy::type_complexity)] impl value_fee::ValueFee for ValueFee { type Env = sails_rs::client::GstdEnv; fn do_something_and_take_fee (&mut self, ) -> sails_rs::client::PendingCall<value_fee::io::DoSomethingAndTakeFee, sails_rs::client::GstdEnv>; } }
+    mock! { pub Chaos {} #[allow(refining_impl_trait)] #[allow(clippy::type_complexity)] impl chaos::Chaos for Chaos { type Env = sails_rs::client::GstdEnv; fn panic_after_wait (& self, ) -> sails_rs::client::PendingCall<chaos::io::PanicAfterWait, sails_rs::client::GstdEnv>;fn reply_hook_counter (& self, ) -> sails_rs::client::PendingCall<chaos::io::ReplyHookCounter, sails_rs::client::GstdEnv>;fn timeout_wait (& self, ) -> sails_rs::client::PendingCall<chaos::io::TimeoutWait, sails_rs::client::GstdEnv>; } }
 }
