@@ -1,9 +1,6 @@
 use std::{collections::BTreeMap, fs, path::PathBuf};
 
-use sails_interface_id::{
-    canonical::CanonicalDocument,
-    compute_ids_from_document,
-};
+use sails_interface_id::{canonical::CanonicalDocument, compute_ids_from_document};
 
 fn vectors_dir() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR"))

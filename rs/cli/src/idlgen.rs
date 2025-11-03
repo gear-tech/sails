@@ -4,6 +4,7 @@ use serde_json::Value;
 use std::{
     collections::{HashMap, HashSet},
     env, fs,
+    io::Read,
     path::{Path, PathBuf},
     process::{Command, ExitStatus},
 };
@@ -489,18 +490,59 @@ fn cargo_run_bin(
     let cargo_path = std::env::var("CARGO").unwrap_or("cargo".into());
     // Use a dedicated target dir for generated helper crates to avoid artifact
     // collisions with the workspace build output (see rust-lang/cargo#6313).
-    let runner_target_dir = target_dir.join("sails").join("generator-run");
+    // We also key the directory by the helper bin name so concurrent runs do
+    // not step on each other.
+    let runner_target_dir = target_dir
+        .join("sails")
+        .join("generator-run")
+        .join(bin_name);
 
     let mut cmd = Command::new(cargo_path);
     cmd.env("CARGO_TARGET_DIR", runner_target_dir.as_str())
         .env("__GEAR_WASM_BUILDER_NO_BUILD", "1")
         .stdout(std::process::Stdio::null()) // Don't pollute output
+        .stderr(std::process::Stdio::piped())
         .arg("run")
         .arg("--manifest-path")
         .arg(manifest_path.as_str())
         .arg("--bin")
         .arg(bin_name);
-    cmd.status().context("failed to execute `cargo` command")
+
+    let mut child = cmd
+        .spawn()
+        .context("failed to spawn `cargo run` command for generator crate")?;
+
+    let mut stderr = String::new();
+    if let Some(ref mut stream) = child.stderr {
+        stream
+            .read_to_string(&mut stderr)
+            .context("failed to read generator `cargo run` stderr")?;
+    }
+
+    let status = child
+        .wait()
+        .context("failed to execute `cargo` command for generator crate")?;
+
+    let filtered = stderr
+        .lines()
+        .filter(|line| {
+            !(line.contains("warning: output filename collision.")
+                || line.contains("The lib target `sails_idl_parser` in package")
+                || line.contains("Colliding filename is:")
+                || line.contains("The targets should have unique names.")
+                || line.contains(
+                    "Consider changing their names to be unique or compiling them separately.",
+                )
+                || line.contains("This may become a hard error in the future; see"))
+        })
+        .collect::<Vec<_>>()
+        .join("\n");
+
+    if !filtered.is_empty() {
+        eprintln!("{filtered}");
+    }
+
+    Ok(status)
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]
