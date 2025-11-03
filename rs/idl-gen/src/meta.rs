@@ -100,7 +100,7 @@ impl ExpandedProgramMeta {
                 ))
             })?;
             for (ty_name, ty) in canonical_doc.types.iter() {
-                all_types.insert(ty_name.clone(), ty.clone());
+                all_types.entry(ty_name.clone()).or_insert(ty.clone());
             }
             let extends = service_entry
                 .extends
