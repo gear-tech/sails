@@ -13,8 +13,17 @@ pub struct IdlDoc {
 pub struct ProgramUnit {
     pub name: String,
     pub ctors: Vec<CtorFunc>,
-    pub services: Vec<(String, String)>,
+    pub services: Vec<ProgramServiceItem>,
     pub types: Vec<Type>,
+    pub docs: Vec<String>,
+    pub annotations: Vec<(String, Option<String>)>,
+}
+
+/// A structure describing program
+#[derive(Debug, Default, PartialEq, Clone)]
+pub struct ProgramServiceItem {
+    pub name: String,
+    pub route: String,
     pub docs: Vec<String>,
     pub annotations: Vec<(String, Option<String>)>,
 }
@@ -85,24 +94,22 @@ pub enum TypeDecl {
         len: u32,
     },
     Tuple(Vec<TypeDecl>),
-    // Map {
-    //     key: Box<TypeDecl>,
-    //     value: Box<TypeDecl>,
-    // },
     Option(Box<TypeDecl>),
     Result {
         ok: Box<TypeDecl>,
         err: Box<TypeDecl>,
     },
     Primitive(PrimitiveType),
-    UserDefined(String),
-    // Def(TypeDef),
+    UserDefined {
+        path: String,
+        generics: Vec<TypeDecl>,
+    },
 }
 
 #[derive(Debug, PartialEq, Clone, Copy)]
 #[repr(u8)]
 pub enum PrimitiveType {
-    Null,
+    Void,
     Bool,
     Char,
     String,
