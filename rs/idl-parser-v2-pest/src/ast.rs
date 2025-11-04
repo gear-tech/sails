@@ -94,10 +94,6 @@ pub enum TypeDecl {
         len: u32,
     },
     Tuple(Vec<TypeDecl>),
-    // Map {
-    //     key: Box<TypeDecl>,
-    //     value: Box<TypeDecl>,
-    // },
     Option(Box<TypeDecl>),
     Result {
         ok: Box<TypeDecl>,
@@ -108,7 +104,6 @@ pub enum TypeDecl {
         path: String,
         generics: Vec<TypeDecl>,
     },
-    // Def(TypeDef),
 }
 
 #[derive(Debug, PartialEq, Clone, Copy)]

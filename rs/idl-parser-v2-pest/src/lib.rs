@@ -40,6 +40,13 @@ fn build_idl(top: Pair<Rule>) -> Result<IdlDoc> {
     })
 }
 
+fn parse_ident(p: Pair<Rule>) -> Result<String> {
+    if p.as_rule() == Rule::Ident {
+        return Ok(p.as_str().to_string());
+    }
+    bail!("expected Ident")
+}
+
 fn parse_annotation(p: Pair<Rule>) -> Result<(String, Option<String>)> {
     let mut key = None;
     let mut val = None;
@@ -54,8 +61,8 @@ fn parse_annotation(p: Pair<Rule>) -> Result<(String, Option<String>)> {
     Ok((key, val))
 }
 
-fn map_primitive(s: &str) -> PrimitiveType {
-    match s {
+fn map_primitive(s: &str) -> Result<PrimitiveType> {
+    Ok(match s {
         // allow both lowercase and PascalCase for some custom types
         "()" => PrimitiveType::Void,
         "bool" | "Bool" => PrimitiveType::Bool,
@@ -77,51 +84,52 @@ fn map_primitive(s: &str) -> PrimitiveType {
         "H160" => PrimitiveType::H160,
         "H256" => PrimitiveType::H256,
         "U256" => PrimitiveType::U256,
-        _ => PrimitiveType::String, // sane default; shouldn't happen if grammar matches
-    }
+        _ => bail!("unexpected PrimitiveType {}", s),
+    })
 }
 
 fn parse_type_decl(p: Pair<Rule>) -> Result<TypeDecl> {
-    match p.as_rule() {
+    Ok(match p.as_rule() {
         // TypeDecl is `silent` Rule, but this for futureproof
-        Rule::TypeDecl => parse_type_decl(p.into_inner().next().context("expected TypeDecl")?),
+        Rule::TypeDecl => parse_type_decl(p.into_inner().next().context("expected TypeDecl")?)?,
         Rule::Tuple => {
             let mut items = Vec::new();
             for el in p.into_inner() {
                 items.push(parse_type_decl(el)?);
             }
-            Ok(TypeDecl::Tuple(items))
+            TypeDecl::Tuple(items)
         }
         Rule::Slice => {
-            let elem = p.into_inner().next().context("slice elem")?;
-            Ok(TypeDecl::Slice(Box::new(parse_type_decl(elem)?)))
+            let mut it = p.into_inner();
+            let ty = expect_next(&mut it, parse_type_decl)?;
+            TypeDecl::Slice(Box::new(ty))
         }
         Rule::Array => {
             let mut it = p.into_inner();
-            let ty = parse_type_decl(it.next().context("array elem")?)?;
+            let ty = expect_next(&mut it, parse_type_decl)?;
             let len = expect_rule(&mut it, Rule::Number)?
                 .as_str()
                 .parse::<u32>()?;
-            Ok(TypeDecl::Array {
+            TypeDecl::Array {
                 item: Box::new(ty),
                 len,
-            })
+            }
         }
         Rule::Option => {
             let mut it = p.into_inner();
-            let ty = parse_type_decl(it.next().context("Option elem")?)?;
-            Ok(TypeDecl::Option(Box::new(ty)))
+            let ty = expect_next(&mut it, parse_type_decl)?;
+            TypeDecl::Option(Box::new(ty))
         }
         Rule::Result => {
             let mut it = p.into_inner();
-            let ok = parse_type_decl(it.next().expect("inner"))?;
-            let err = parse_type_decl(it.next().expect("inner"))?;
-            Ok(TypeDecl::Result {
+            let ok = expect_next(&mut it, parse_type_decl)?;
+            let err = expect_next(&mut it, parse_type_decl)?;
+            TypeDecl::Result {
                 ok: Box::new(ok),
                 err: Box::new(err),
-            })
+            }
         }
-        Rule::Primitive => Ok(TypeDecl::Primitive(map_primitive(p.as_str()))),
+        Rule::Primitive => TypeDecl::Primitive(map_primitive(p.as_str())?),
         Rule::PathType => {
             let mut path = String::new();
             let mut generics: Vec<TypeDecl> = Vec::new();
@@ -136,16 +144,16 @@ fn parse_type_decl(p: Pair<Rule>) -> Result<TypeDecl> {
                     _ => {}
                 }
             }
-            Ok(TypeDecl::UserDefined { path, generics })
+            TypeDecl::UserDefined { path, generics }
         }
         other => bail!("unexpected rule in TypeDecl: {:?}", other),
-    }
+    })
 }
 
 fn parse_param(p: Pair<'_, Rule>) -> Result<FuncParam> {
     let mut it = p.into_inner();
-    let name = expect_rule(&mut it, Rule::Ident)?.as_str().to_string();
-    let ty = parse_type_decl(it.next().context("expected TypeDecl")?)?;
+    let name = expect_next(&mut it, parse_ident)?;
+    let ty = expect_next(&mut it, parse_type_decl)?;
     Ok(FuncParam {
         name,
         type_decl: ty,
@@ -159,7 +167,7 @@ fn parse_field(p: Pair<'_, Rule>) -> Result<StructField, anyhow::Error> {
     let (name, type_decl) = match part.as_rule() {
         Rule::Ident => {
             let name = part.as_str().to_string();
-            let ty = parse_type_decl(it.next().context("expeced TypeDecl")?)?;
+            let ty = expect_next(&mut it, parse_type_decl)?;
             (Some(name), ty)
         }
         _ => (None, parse_type_decl(part)?),
@@ -186,7 +194,7 @@ pub fn parse_type(p: Pair<Rule>) -> Result<Type> {
 fn parse_struct_type(p: Pair<Rule>) -> Result<Type> {
     let mut it = p.into_inner();
     let (docs, annotations) = parse_docs_and_annotations(&mut it)?;
-    let name = expect_rule(&mut it, Rule::Ident)?.as_str().to_string();
+    let name = expect_next(&mut it, parse_ident)?;
     let mut type_params = Vec::new();
     let mut fields = Vec::new();
     for part in it {
@@ -218,7 +226,7 @@ fn parse_struct_type(p: Pair<Rule>) -> Result<Type> {
 fn parse_enum_type(p: Pair<Rule>) -> Result<Type> {
     let mut it = p.into_inner();
     let (docs, annotations) = parse_docs_and_annotations(&mut it)?;
-    let name = expect_rule(&mut it, Rule::Ident)?.as_str().to_string();
+    let name = expect_next(&mut it, parse_ident)?;
     let mut type_params = Vec::new();
     let mut variants = Vec::new();
     for part in it {
@@ -250,7 +258,7 @@ fn parse_enum_type(p: Pair<Rule>) -> Result<Type> {
 fn parse_enum_variant(p: Pair<Rule>) -> Result<EnumVariant> {
     let mut it = p.into_inner();
     let (docs, annotations) = parse_docs_and_annotations(&mut it)?;
-    let name = expect_rule(&mut it, Rule::Ident)?.as_str().to_string();
+    let name = expect_next(&mut it, parse_ident)?;
     let mut fields = Vec::new();
     for part in it {
         match part.as_rule() {
@@ -274,8 +282,8 @@ fn parse_enum_variant(p: Pair<Rule>) -> Result<EnumVariant> {
 fn parse_func(p: Pair<Rule>) -> Result<ServiceFunc> {
     let mut it = p.into_inner();
     let (docs, annotations) = parse_docs_and_annotations(&mut it)?;
+    let name = expect_next(&mut it, parse_ident)?;
     let is_query = annotations.iter().any(|(k, _)| k == "query");
-    let name = expect_rule(&mut it, Rule::Ident)?.as_str().to_string();
     let mut params = Vec::new();
     let mut output = None;
     let mut throws = None;
@@ -383,7 +391,7 @@ fn parse_ctor_func(p: Pair<Rule>) -> Result<CtorFunc> {
 fn parse_program(p: Pair<Rule>) -> Result<ProgramUnit> {
     let mut it = p.into_inner();
     let (docs, annotations) = parse_docs_and_annotations(&mut it)?;
-    let name = expect_rule(&mut it, Rule::Ident)?.as_str().to_string();
+    let name = expect_next(&mut it, parse_ident)?;
     let mut ctors = Vec::new();
     let mut services = Vec::new();
     let mut types = Vec::new();
@@ -401,7 +409,7 @@ fn parse_program(p: Pair<Rule>) -> Result<ProgramUnit> {
                 {
                     let mut sit = s.into_inner();
                     let (docs, annotations) = parse_docs_and_annotations(&mut sit)?;
-                    let mut name = expect_rule(&mut sit, Rule::Ident)?.as_str().to_string();
+                    let mut name = expect_next(&mut sit, parse_ident)?;
                     let route = name.clone();
                     if let Some(p) = sit.next() {
                         if p.as_rule() == Rule::Ident {
@@ -466,6 +474,16 @@ fn parse_docs_and_annotations(
     Ok((docs, anns))
 }
 
+fn expect_next<'a, F: FnOnce(Pair<'a, Rule>) -> Result<T>, T>(
+    it: &mut impl Iterator<Item = Pair<'a, Rule>>,
+    f: F,
+) -> Result<T> {
+    if let Some(p) = it.next() {
+        return f(p);
+    }
+    bail!("expected next Rule")
+}
+
 fn expect_rule<'a>(
     it: &mut impl Iterator<Item = Pair<'a, Rule>>,
     r: Rule,
@@ -519,6 +537,31 @@ mod tests {
     }
 
     #[test]
+    fn parse_vector_of_tuples() {
+        use PrimitiveType::*;
+        use TypeDecl::*;
+
+        const SRC: &str = r#"[(Point<u32>, Option<PointStatus>, u32)]"#;
+        let mut pairs = IdlParser::parse(Rule::TypeDecl, SRC).expect("parse idl");
+        let ty = expect_next(&mut pairs, parse_type_decl).expect("parse TypeDecl");
+        println!("ty: {ty:?}");
+        assert_eq!(
+            ty,
+            Slice(Box::new(Tuple(vec![
+                UserDefined {
+                    path: "Point".to_string(),
+                    generics: vec![Primitive(U32)]
+                },
+                Option(Box::new(UserDefined {
+                    path: "PointStatus".to_string(),
+                    generics: vec![]
+                })),
+                Primitive(U32)
+            ])))
+        );
+    }
+
+    #[test]
     fn pars_service_func() {
         use PrimitiveType::*;
         use TypeDecl::*;
@@ -550,6 +593,22 @@ mod tests {
                 ],
             }
         );
+    }
+
+    #[test]
+    fn parse_minimal_service() {
+        const SRC: &str = r#"
+            /// Example
+            service X {
+                functions { Ping() -> bool; }
+                events { E }
+                types { struct T; }
+            }
+        "#;
+        let mut pairs = IdlParser::parse(Rule::ServiceDecl, SRC).expect("parse idl");
+        let svc = expect_next(&mut pairs, parse_service).expect("parse");
+        assert_eq!(svc.name, "X");
+        assert!(svc.funcs.iter().any(|f| f.name == "Ping"));
     }
 
     #[test]
