@@ -110,7 +110,7 @@ mod metadata {
     }
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq, Eq)]
 pub enum ProgramArtifactKind {
     Idl,
     Canonical,
@@ -213,6 +213,17 @@ fn generate_program_artifact_with_metadata(
             &target_dir,
             &metadata_ref.workspace_root,
         );
+        if kind == ProgramArtifactKind::Canonical {
+            let canonical_path = get_artifact_output_path(kind, &target_dir, program_package);
+            if canonical_path.as_std_path().exists() {
+                let content = fs::read_to_string(canonical_path.as_std_path())
+                    .with_context(|| format!("failed to read canonical at {canonical_path}"))?;
+                CanonicalDocument::from_json_str(&content)
+                    .context("existing canonical document is invalid")?;
+                println!("...using existing canonical document: {canonical_path}");
+                return Ok(canonical_path);
+            }
+        }
         match get_program_struct_path_from_doc(
             program_package,
             &target_dir,
@@ -292,6 +303,25 @@ pub fn ensure_canonical_artifact(
     Ok(true)
 }
 
+pub fn ensure_canonical_artifact_from_str(json_str: &str, output_path: &Path) -> Result<()> {
+    CanonicalDocument::from_json_str(json_str).context("provided canonical document is invalid")?;
+    if let Some(dir) = output_path.parent() {
+        fs::create_dir_all(dir).with_context(|| {
+            format!(
+                "failed to create directory {} for canonical output",
+                dir.display()
+            )
+        })?;
+    }
+    fs::write(output_path, json_str).with_context(|| {
+        format!(
+            "failed to write canonical document to {}",
+            output_path.display()
+        )
+    })?;
+    Ok(())
+}
+
 pub fn ensure_canonical_env(deps_level: usize) -> Result<Option<PathBuf>> {
     if env::var_os("SAILS_CANONICAL_BUILD").is_some()
         || env::var_os("__GEAR_WASM_BUILDER_NO_BUILD").is_some()
@@ -311,6 +341,26 @@ pub fn ensure_canonical_env(deps_level: usize) -> Result<Option<PathBuf>> {
         .join("canonical")
         .join(format!("{pkg_name}.canonical.json"));
     let canonical_target_dir = out_root.join("canonical-target");
+
+    // Check if canonical already exists and is valid
+    if canonical_path.exists() {
+        match fs::read_to_string(&canonical_path) {
+            Ok(content) => {
+                if CanonicalDocument::from_json_str(&content).is_ok() {
+                    println!(
+                        "...using existing canonical document: {}",
+                        canonical_path.display()
+                    );
+                    println!(
+                        "cargo:rustc-env=SAILS_INTERFACE_CANONICAL={}",
+                        canonical_path.display()
+                    );
+                    return Ok(Some(canonical_path));
+                }
+            }
+            Err(_) => {} // Proceed to generate if read fails
+        }
+    }
 
     let manifest_utf8 = Utf8PathBuf::from_path_buf(manifest_path.to_path_buf())
         .map_err(|_| anyhow::anyhow!("manifest path is not valid UTF-8"))?;
