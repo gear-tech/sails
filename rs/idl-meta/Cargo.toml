@@ -11,3 +11,8 @@ rust-version.workspace = true
 
 [dependencies]
 scale-info.workspace = true
+askama.workspace = true
+itertools.workspace = true
+
+[dev-dependencies]
+insta.workspace = true

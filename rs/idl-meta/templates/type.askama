@@ -1,0 +1,37 @@
+{%- for d in docs %}
+/// {{ d }}
+{%- endfor %}
+{%- for (k, v) in annotations %}
+@{{ k }} {%- if v.is_some() -%}: {{ v.as_ref().unwrap() }}{% endif %}
+{%- endfor %}
+{% match def %}{% when TypeDef::Struct(_) %}struct{% when TypeDef::Enum(_) %}enum{% endmatch %} {{ name }}
+
+{%- if type_params.len() > 0 -%}
+<
+{%- for type_param in type_params -%}
+{%- if loop.first %}{{ type_param }}{% else %}, {{ type_param }}{% endif -%}
+{%- endfor -%}
+>
+{%- endif -%}
+
+{% match def %}
+{% when TypeDef::Struct(def) %}
+{%- if def.is_unit() -%}
+;
+{%- else if def.is_tuple() -%} (
+    {%- for field in def.fields -%}
+    {%- if loop.last %}{{ field }}{% else %}{{ field }},{% endif -%}
+    {%- endfor -%}
+);
+{%- else %} {
+    {% for field in def.fields -%}
+    {{ field }},
+    {% endfor %}
+}
+{%- endif -%}
+{% when TypeDef::Enum(enum_def) %} {
+    {%- for variant in enum_def.variants -%}
+    {{ variant }},
+    {%- endfor %}
+}
+{% endmatch -%}

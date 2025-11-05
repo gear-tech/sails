@@ -1,0 +1,51 @@
+{%- for d in docs %}
+/// {{ d }}
+{%- endfor %}
+{%- for (k, v) in annotations %}
+@{{ k }} {%- if v.is_some() -%}: {{ v.as_ref().unwrap() }}{% endif %}
+{%- endfor %}
+program {{ name }} {
+    {%- if ctors.len() > 0 %}
+    constructors {
+        {%- for f in ctors %}
+
+        {%- for d in f.docs %}
+        /// {{ d }}
+        {%- endfor %}
+        {%- for (k, v) in f.annotations %}
+        @{{ k }} {%- if v.is_some() -%}: {{ v.as_ref().unwrap() }}{% endif %}
+        {%- endfor %}
+        {{ f.name }}(
+            {%- for p in f.params %}
+            {%- if loop.first %}{{ p }}{% else %}, {{ p }}{% endif -%}
+            {%- endfor -%}
+        );
+
+        {%- endfor %}
+    }
+    {%- endif %}
+
+    {%- if services.len() > 0 %}
+    services {
+        {%- for s in services %}
+
+        {%- for d in s.docs %}
+        /// {{ d }}
+        {%- endfor %}
+        {%- for (k, v) in s.annotations %}
+        @{{ k }} {%- if v.is_some() -%}: {{ v.as_ref().unwrap() }}{% endif %}
+        {%- endfor %}
+        {% if s.route.is_some() %}{{ s.route.as_ref().unwrap() }}: {% endif %}{{ s.name }},
+
+        {%- endfor %}
+    }
+    {%- endif %}
+
+    {%- if types.len() > 0 %}
+    types {
+        {%- for t in types -%}
+        {{ t | indent(8) }}
+        {%- endfor %}
+    }
+    {%- endif %}
+}

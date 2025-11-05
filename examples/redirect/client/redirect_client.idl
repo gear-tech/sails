@@ -4,8 +4,8 @@ constructor {
 
 service Redirect {
   /// Exit from program with inheritor ID
-  Exit : (inheritor_id: actor_id) -> null;
+  Exit : (inheritor_id: ActorId) -> ();
   /// Returns program ID of the current program
-  query GetProgramId : () -> actor_id;
+  query GetProgramId : () -> ActorId;
 };
 

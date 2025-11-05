@@ -7240,6 +7240,9 @@ dependencies = [
 name = "sails-idl-meta"
 version = "0.9.1"
 dependencies = [
+ "askama",
+ "insta",
+ "itertools 0.14.0",
  "scale-info",
 ]
 

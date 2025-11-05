@@ -936,7 +936,7 @@ mod tests {
         function_check(&service.functions.queries, "BaseQuery");
 
         // Check that events from base service are included
-        let events: Vec<&str> = service.events.iter().map(|e| e.name).collect();
+        let events: Vec<_> = service.events.iter().map(|e| e.name.as_str()).collect();
         assert_eq!(
             events.len(),
             2,

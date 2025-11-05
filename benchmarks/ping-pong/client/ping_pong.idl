@@ -1,5 +1,5 @@
 type PingPongPayload = enum {
-  Start: actor_id,
+  Start: ActorId,
   Ping,
   Pong,
   Finished,

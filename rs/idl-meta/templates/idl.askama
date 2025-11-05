@@ -1,0 +1,10 @@
+{# -------- GLOBALS -------- #}
+{%- for (k, v) in globals %}
+!@{{ k }} {%- if v.is_some() -%}: {{ v.as_ref().unwrap() }}{% endif %}
+{%- endfor %}
+
+{# -------- PROGRAM -------- #}
+{%- if program.is_some() %}
+{%- let p = program.as_ref().unwrap() %}
+{{- p }}
+{%- endif %}

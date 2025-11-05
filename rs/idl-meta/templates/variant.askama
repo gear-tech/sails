@@ -1,0 +1,21 @@
+{%- for d in docs %}
+/// {{ d }}
+{%- endfor %}
+{%- for (k, v) in annotations %}
+@{{ k }} {%- if v.is_some() -%}: {{ v.as_ref().unwrap() }}{% endif %}
+{%- endfor %}
+{{ name }}
+
+{%- if def.is_unit() -%}
+{%- else if def.is_tuple() -%} (
+    {%- for field in def.fields -%}
+    {%- if loop.last %}{{ field }}{% else %}{{ field }},{% endif -%}
+    {% endfor %}
+)
+{%- else %} {
+    {% for field in def.fields -%}
+    {{ field }},
+    {% endfor %}
+}
+{%- endif -%}
+,

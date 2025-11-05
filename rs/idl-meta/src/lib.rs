@@ -1,5 +1,9 @@
 #![no_std]
 
+extern crate alloc;
+mod ast;
+
+pub use ast::*;
 use scale_info::{MetaType, StaticTypeInfo, prelude::vec::Vec};
 
 pub type AnyServiceMetaFn = fn() -> AnyServiceMeta;

@@ -1,0 +1,7 @@
+---
+source: rs/idl-meta/tests/template.rs
+expression: idl
+---
+!@sails: 0.1.0
+!@include: ownable.idl
+!@include: git://github.com/some_repo/tippable.idl
