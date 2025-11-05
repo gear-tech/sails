@@ -4,6 +4,7 @@ use pest::Parser;
 use pest::iterators::{Pair, Pairs};
 
 mod ast;
+pub mod visitor;
 pub use ast::*;
 
 #[derive(pest_derive::Parser)]
