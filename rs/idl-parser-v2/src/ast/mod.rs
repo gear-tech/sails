@@ -1,3 +1,5 @@
+pub mod visitor;
+
 // -------------------------------- Target model ---------------------------------
 
 /// A structure describing program

@@ -1,4 +1,4 @@
-use super::ast;
+use crate::ast;
 
 // The main trait for visiting the IDL AST.
 //
