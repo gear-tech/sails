@@ -224,6 +224,10 @@ fn canonical_types_from_ids(
     type_ids: &BTreeSet<u32>,
 ) -> Result<BTreeMap<String, CanonicalType>> {
     let mut types = BTreeMap::new();
+    // hash -> canonical name
+    let mut type_hashes: std::collections::HashMap<[u8; 32], String> =
+        std::collections::HashMap::new();
+
     for type_id in type_ids {
         let ty = registry
             .resolve(*type_id)
@@ -234,8 +238,25 @@ fn canonical_types_from_ids(
             ty.path.segments.join("::")
         };
         let canonical = canonical_visitor::canonical_type(registry, *type_id)?;
-        types.entry(name).or_insert(canonical);
+
+        // Create a hash of the canonical type for deduplication
+        let canonical_bytes = serde_json::to_vec(&canonical).map_err(|_| {
+            BuildError::UnsupportedType("failed to serialize canonical type".to_owned())
+        })?;
+        let type_hash = blake3::hash(&canonical_bytes);
+        let hash_bytes = type_hash.into();
+
+        // Check if we already have this type
+        if let Some(existing_name) = type_hashes.get(&hash_bytes) {
+            // Use the existing canonical name instead of the current one
+            types.entry(existing_name.clone()).or_insert(canonical);
+        } else {
+            // First time seeing this type, use the original name
+            type_hashes.insert(hash_bytes, name.clone());
+            types.entry(name).or_insert(canonical);
+        }
     }
+
     Ok(types)
 }
 fn register_builtin_types(registry: &mut Registry) {
