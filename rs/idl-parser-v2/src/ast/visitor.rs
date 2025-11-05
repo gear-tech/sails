@@ -360,3 +360,71 @@ pub fn accept_user_defined_type<'ast>(
         visitor.visit_type_decl(generic);
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::ast::IdlDoc;
+
+    #[test]
+    fn test_visitor_traversal() {
+        const IDL_SOURCE: &str = include_str!("../../tests/fixtures/demo.idl");
+
+        #[derive(Default)]
+        struct CountingVisitor {
+            program_count: u32,
+            service_count: u32,
+        }
+
+        impl<'ast> Visitor<'ast> for CountingVisitor {
+            fn visit_program_unit(&mut self, program: &'ast ast::ProgramUnit) {
+                self.program_count += 1;
+                accept_program_unit(program, self);
+            }
+
+            fn visit_service_unit(&mut self, service: &'ast ast::ServiceUnit) {
+                self.service_count += 1;
+                accept_service_unit(service, self);
+            }
+        }
+
+        let doc = IdlDoc::parse(IDL_SOURCE).expect("Failed to parse IDL");
+
+        let mut visitor = CountingVisitor::default();
+        visitor.visit_idl_doc(&doc);
+
+        assert_eq!(visitor.program_count, 1);
+        assert_eq!(visitor.service_count, 6);
+    }
+
+    #[test]
+    fn test_visitor_traversal_test_idl() {
+        const IDL_SOURCE: &str = include_str!("../../tests/fixtures/test.idl");
+
+        #[derive(Default)]
+        struct CountingVisitor {
+            program_count: u32,
+            service_count: u32,
+        }
+
+        impl<'ast> Visitor<'ast> for CountingVisitor {
+            fn visit_program_unit(&mut self, program: &'ast ast::ProgramUnit) {
+                self.program_count += 1;
+                accept_program_unit(program, self);
+            }
+
+            fn visit_service_unit(&mut self, service: &'ast ast::ServiceUnit) {
+                self.service_count += 1;
+                accept_service_unit(service, self);
+            }
+        }
+
+        let doc = IdlDoc::parse(IDL_SOURCE).expect("Failed to parse IDL");
+
+        let mut visitor = CountingVisitor::default();
+        visitor.visit_idl_doc(&doc);
+
+        assert_eq!(visitor.program_count, 0);
+        assert_eq!(visitor.service_count, 2);
+    }
+}
