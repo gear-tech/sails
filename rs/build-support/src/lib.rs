@@ -873,43 +873,8 @@ fn main() {{
 #![allow(unexpected_cfgs)]
 
 fn main() {{
-    use sails_idl_meta::ProgramMeta;
-    use sails_interface_id::canonical::{{
-        CanonicalDocument,
-        CanonicalHashMeta,
-        CANONICAL_HASH_ALGO,
-        CANONICAL_SCHEMA,
-        CANONICAL_VERSION,
-    }};
-    use sails_interface_id::runtime::build_canonical_document_from_meta;
-    use sails_interface_id::INTERFACE_HASH_DOMAIN_STR;
-    use std::collections::BTreeMap;
-
-    let mut services = BTreeMap::new();
-    let mut types = BTreeMap::new();
-    for (_, service_fn) in <{program_struct_path} as ProgramMeta>::SERVICES {{
-        let meta = service_fn();
-        let doc = build_canonical_document_from_meta(&meta)
-            .expect("failed to build canonical document");
-        let (_, _, _, doc_services, doc_types) = doc.into_parts();
-        services.extend(doc_services);
-        types.extend(doc_types);
-    }}
-
-    let document = CanonicalDocument::from_parts(
-        CANONICAL_SCHEMA,
-        CANONICAL_VERSION,
-        CanonicalHashMeta {{
-            algo: CANONICAL_HASH_ALGO.to_owned(),
-            domain: INTERFACE_HASH_DOMAIN_STR.to_owned(),
-        }},
-        services,
-        types,
-    );
-
-    let bytes = document
-        .to_bytes()
-        .expect("failed to serialize canonical document");
+    let bytes = sails_interface_id::ensure_canonical_bytes::<{program_struct_path}>()
+        .expect("failed to generate canonical bytes");
     std::fs::write(std::path::PathBuf::from(r"{out_path}"), bytes)
         .expect("failed to write canonical document");
 }}

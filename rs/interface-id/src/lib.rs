@@ -106,6 +106,43 @@ pub fn compute_ids_from_document(doc: &canonical::CanonicalDocument) -> u64 {
     compute_ids_from_bytes(&bytes)
 }
 
+/// Ensures canonical bytes are available for a program meta, computing them directly
+/// without shelling out to a temporary crate.
+pub fn ensure_canonical_bytes<P: sails_idl_meta::ProgramMeta + 'static>()
+-> Result<Vec<u8>, runtime::BuildError> {
+    use std::collections::BTreeMap;
+
+    let mut services = BTreeMap::new();
+    let mut types = BTreeMap::new();
+
+    // Collect all services from the program
+    for (_, service_fn) in <P as sails_idl_meta::ProgramMeta>::SERVICES {
+        let meta = service_fn();
+        let doc = runtime::build_canonical_document_from_meta(&meta)?;
+        let (_, _, _, doc_services, doc_types) = doc.into_parts();
+        services.extend(doc_services);
+        types.extend(doc_types);
+    }
+
+    let document = canonical::CanonicalDocument::from_parts(
+        CANONICAL_SCHEMA,
+        CANONICAL_VERSION,
+        canonical::CanonicalHashMeta {
+            algo: CANONICAL_HASH_ALGO.to_owned(),
+            domain: INTERFACE_HASH_DOMAIN_STR.to_owned(),
+        },
+        services,
+        types,
+    );
+
+    document.to_bytes().map_err(|e| {
+        runtime::BuildError::UnsupportedType(format!(
+            "failed to serialize canonical document: {}",
+            e
+        ))
+    })
+}
+
 /// Computes the 64-bit interface_id from canonical bytes.
 pub fn compute_ids_from_bytes(bytes: &[u8]) -> u64 {
     let digest = compute_interface_hash(bytes);
