@@ -653,6 +653,31 @@ fn gen_cargo_toml(
     };
     dep_table[&sails_package.name] = toml_edit::value(sails_dep);
 
+    // TODO(sails-release): drop the crates.io patch once the updated crates are published.
+    let patch_table = manifest
+        .entry("patch")
+        .or_insert(Item::Table(Table::new()))
+        .as_table_mut()
+        .expect("patch is a table")
+        .entry("crates-io")
+        .or_insert(Item::Table(Table::new()))
+        .as_table_mut()
+        .expect("patch.crates-io is a table");
+
+    let mut idl_meta_patch = InlineTable::new();
+    idl_meta_patch.insert(
+        "path",
+        workspace_root.join("rs").join("idl-meta").as_str().into(),
+    );
+    patch_table.insert("sails-idl-meta", toml_edit::value(idl_meta_patch));
+
+    let mut idl_gen_patch = InlineTable::new();
+    idl_gen_patch.insert(
+        "path",
+        workspace_root.join("rs").join("idl-gen").as_str().into(),
+    );
+    patch_table.insert("sails-idl-gen", toml_edit::value(idl_gen_patch));
+
     if matches!(kind, ProgramArtifactKind::Canonical) {
         let mut idl_meta_dep = InlineTable::new();
         idl_meta_dep.insert(
@@ -675,16 +700,6 @@ fn gen_cargo_toml(
         };
         dep_table["sails-interface-id"] = toml_edit::value(iface_dep);
 
-        let patch_table = manifest
-            .entry("patch")
-            .or_insert(Item::Table(Table::new()))
-            .as_table_mut()
-            .expect("patch is a table")
-            .entry("crates-io")
-            .or_insert(Item::Table(Table::new()))
-            .as_table_mut()
-            .expect("patch.crates-io is a table");
-
         let mut iface_patch = InlineTable::new();
         iface_patch.insert(
             "path",
@@ -695,20 +710,6 @@ fn gen_cargo_toml(
                 .into(),
         );
         patch_table.insert("sails-interface-id", toml_edit::value(iface_patch));
-
-        let mut idl_meta_patch = InlineTable::new();
-        idl_meta_patch.insert(
-            "path",
-            workspace_root.join("rs").join("idl-meta").as_str().into(),
-        );
-        patch_table.insert("sails-idl-meta", toml_edit::value(idl_meta_patch));
-
-        let mut idl_gen_patch = InlineTable::new();
-        idl_gen_patch.insert(
-            "path",
-            workspace_root.join("rs").join("idl-gen").as_str().into(),
-        );
-        patch_table.insert("sails-idl-gen", toml_edit::value(idl_gen_patch));
     }
 
     manifest["dependencies"] = Item::Table(dep_table);
