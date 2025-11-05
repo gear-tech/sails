@@ -10,6 +10,8 @@ use alloc::{
 };
 use sails_idl_meta::{AnyServiceMeta, ServiceMeta};
 use scale_info::{MetaType, PortableRegistry, Registry, TypeDef, Variant, form::PortableForm};
+
+#[cfg(not(target_arch = "wasm32"))]
 use std::sync::{Mutex, OnceLock};
 
 use core::any::TypeId;
@@ -46,6 +48,7 @@ pub enum BuildError {
 pub type Result<T> = core::result::Result<T, BuildError>;
 
 // Reuse canonical documents per service to avoid repeated SCALE registry traversals.
+#[cfg(not(target_arch = "wasm32"))]
 static CANONICAL_DOC_CACHE: OnceLock<Mutex<BTreeMap<TypeId, CanonicalDocument>>> = OnceLock::new();
 
 impl From<CanonicalTypeError> for BuildError {
@@ -56,6 +59,7 @@ impl From<CanonicalTypeError> for BuildError {
     }
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 pub fn build_canonical_document<S: ServiceMeta + 'static>() -> Result<CanonicalDocument> {
     let type_id = TypeId::of::<S>();
     let cache = CANONICAL_DOC_CACHE.get_or_init(|| Mutex::new(BTreeMap::new()));
@@ -76,6 +80,12 @@ pub fn build_canonical_document<S: ServiceMeta + 'static>() -> Result<CanonicalD
         .expect("canonical document cache mutex poisoned");
     let doc_ref = cache_guard.entry(type_id).or_insert(doc);
     Ok(doc_ref.clone())
+}
+
+#[cfg(target_arch = "wasm32")]
+pub fn build_canonical_document<S: ServiceMeta + 'static>() -> Result<CanonicalDocument> {
+    let meta = AnyServiceMeta::new::<S>();
+    build_canonical_document_from_meta(&meta)
 }
 
 fn extract_params(
@@ -564,6 +574,7 @@ mod tests {
     use super::*;
     use sails_idl_meta::{AnyServiceMeta, AnyServiceMetaFn, ExtendedInterface, ServiceMeta};
     use scale_info::TypeInfo;
+    use std::sync::OnceLock;
 
     const ROOT_INTERFACE_PATH: &str = "test::RootService";
     const BASE_INTERFACE_PATH: &str = "test::BaseService";
@@ -636,6 +647,16 @@ mod tests {
         fn local_query_entry_ids() -> &'static [u16] {
             &EMPTY_ENTRY_IDS
         }
+
+        fn interface_id() -> u64 {
+            static ID: OnceLock<u64> = OnceLock::new();
+            *ID.get_or_init(|| {
+                let meta = AnyServiceMeta::new::<RootServiceMeta>();
+                let doc = build_canonical_document_from_meta(&meta)
+                    .expect("canonical document should be constructed");
+                crate::compute_ids_from_document(&doc)
+            })
+        }
     }
 
     struct BaseServiceMeta;
@@ -668,6 +689,16 @@ mod tests {
         fn local_query_entry_ids() -> &'static [u16] {
             &EMPTY_ENTRY_IDS
         }
+
+        fn interface_id() -> u64 {
+            static ID: OnceLock<u64> = OnceLock::new();
+            *ID.get_or_init(|| {
+                let meta = AnyServiceMeta::new::<BaseServiceMeta>();
+                let doc = build_canonical_document_from_meta(&meta)
+                    .expect("canonical document should be constructed");
+                crate::compute_ids_from_document(&doc)
+            })
+        }
     }
 
     struct DerivedServiceMeta;
@@ -697,6 +728,16 @@ mod tests {
 
         fn local_query_entry_ids() -> &'static [u16] {
             &EMPTY_ENTRY_IDS
+        }
+
+        fn interface_id() -> u64 {
+            static ID: OnceLock<u64> = OnceLock::new();
+            *ID.get_or_init(|| {
+                let meta = AnyServiceMeta::new::<DerivedServiceMeta>();
+                let doc = build_canonical_document_from_meta(&meta)
+                    .expect("canonical document should be constructed");
+                crate::compute_ids_from_document(&doc)
+            })
         }
     }
 
@@ -762,5 +803,14 @@ mod tests {
             .expect("embedded root canonical service");
         assert!(root_ext.interface_id != 0);
         assert_eq!(root_service.functions.len(), 1);
+    }
+
+    #[test]
+    fn interface_id_matches_builder() {
+        let meta = AnyServiceMeta::new::<DerivedServiceMeta>();
+        let expected = build_canonical_document_from_meta(&meta)
+            .expect("canonical document should be constructed");
+        let expected_id = crate::compute_ids_from_document(&expected);
+        assert_eq!(meta.interface_id(), expected_id);
     }
 }

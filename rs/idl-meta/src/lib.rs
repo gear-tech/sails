@@ -59,8 +59,8 @@ pub trait ServiceMeta {
         Self::BASE_SERVICES.iter().map(|f| f())
     }
 
-    fn canonical_service() -> &'static [u8] {
-        &[]
+    fn interface_id() -> u64 {
+        Self::INTERFACE_ID
     }
 
     fn extends() -> &'static [ExtendedInterface] {
@@ -78,7 +78,7 @@ pub struct AnyServiceMeta {
     events: MetaType,
     base_services: Vec<AnyServiceMeta>,
     interface_path: &'static str,
-    interface_id: u64,
+    interface_id_fn: fn() -> u64,
     extends: &'static [ExtendedInterface],
     command_entry_ids: Vec<u16>,
     query_entry_ids: Vec<u16>,
@@ -86,7 +86,6 @@ pub struct AnyServiceMeta {
     local_command_entry_ids: &'static [u16],
     local_query_entry_ids: &'static [u16],
     local_event_entry_ids: fn() -> Vec<u16>,
-    canonical_service: fn() -> &'static [u8],
 }
 
 impl AnyServiceMeta {
@@ -97,7 +96,7 @@ impl AnyServiceMeta {
             events: S::events(),
             base_services: S::base_services().collect(),
             interface_path: S::INTERFACE_PATH,
-            interface_id: S::INTERFACE_ID,
+            interface_id_fn: S::interface_id,
             extends: S::extends(),
             command_entry_ids: S::command_entry_ids(),
             query_entry_ids: S::query_entry_ids(),
@@ -105,7 +104,6 @@ impl AnyServiceMeta {
             local_command_entry_ids: S::local_command_entry_ids(),
             local_query_entry_ids: S::local_query_entry_ids(),
             local_event_entry_ids: S::local_event_entry_ids,
-            canonical_service: S::canonical_service,
         }
     }
 
@@ -130,7 +128,7 @@ impl AnyServiceMeta {
     }
 
     pub fn interface_id(&self) -> u64 {
-        self.interface_id
+        (self.interface_id_fn)()
     }
 
     pub fn extends(&self) -> &'static [ExtendedInterface] {
@@ -159,10 +157,6 @@ impl AnyServiceMeta {
 
     pub fn local_event_entry_ids(&self) -> Vec<u16> {
         (self.local_event_entry_ids)()
-    }
-
-    pub fn canonical_service(&self) -> &'static [u8] {
-        (self.canonical_service)()
     }
 }
 

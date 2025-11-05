@@ -20,6 +20,7 @@ gcore.workspace = true
 gprimitives.workspace = true
 gstd = { workspace = true, optional = true }
 gwasm-builder = { workspace = true, optional = true }
+sails-build-support = { workspace = true, optional = true }
 hashbrown.workspace = true
 hex.workspace = true
 keccak-const = { workspace = true, optional = true }
@@ -66,4 +67,4 @@ idl-gen = ["dep:sails-idl-gen"]
 client-builder = ["std", "idl-gen", "dep:sails-client-gen", "dep:convert_case"]
 mockall = ["std", "dep:mockall"]
 std = ["futures/std", "dep:sails-interface-id"]
-wasm-builder = ["dep:gwasm-builder"]
+wasm-builder = ["std", "dep:gwasm-builder", "dep:sails-build-support"]

@@ -8,7 +8,14 @@ extern crate std;
 #[cfg(feature = "client-builder")]
 pub use builder::{ClientBuilder, ClientGenerator, IdlPath, build_client, build_client_as_lib};
 #[cfg(feature = "wasm-builder")]
-pub use gwasm_builder::build as build_wasm;
+use std::path::PathBuf;
+#[cfg(feature = "wasm-builder")]
+pub fn build_wasm() -> Option<(PathBuf, PathBuf)> {
+    if let Err(err) = sails_build_support::ensure_canonical_env(1) {
+        panic!("failed to generate canonical document: {err}");
+    }
+    gwasm_builder::build()
+}
 pub use hex;
 pub use prelude::*;
 #[cfg(feature = "idl-gen")]
@@ -17,6 +24,8 @@ pub use sails_idl_gen::{generate_idl, generate_idl_to_file};
 pub use sails_idl_meta::{self as meta};
 #[cfg(feature = "std")]
 pub use sails_interface_id as interface_id;
+#[cfg(not(feature = "std"))]
+pub mod interface_id {}
 pub use spin;
 
 #[cfg(feature = "client-builder")]

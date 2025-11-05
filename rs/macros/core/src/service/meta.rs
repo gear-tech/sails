@@ -1,12 +1,74 @@
 use super::*;
-use proc_macro2::TokenStream;
+use proc_macro_error::emit_warning;
+use proc_macro2::{Literal, Span, TokenStream};
 use quote::{ToTokens, quote};
 use sails_interface_id::canonical::{
     CanonicalDocument, CanonicalExtendedInterface, CanonicalFunction, CanonicalHashMeta,
     CanonicalParam, CanonicalService, CanonicalType, FunctionKind,
 };
 use sails_interface_id::compute_ids_from_document;
-use std::collections::BTreeMap;
+use std::{collections::BTreeMap, env, fs, sync::OnceLock};
+
+#[derive(Debug, Clone)]
+struct CanonicalServiceInfo {
+    interface_id: u64,
+}
+
+fn canonical_service_info(interface_path: &str) -> Option<&'static CanonicalServiceInfo> {
+    static CACHE: OnceLock<Option<BTreeMap<String, CanonicalServiceInfo>>> = OnceLock::new();
+    let cache = CACHE.get_or_init(load_canonical_cache);
+    cache.as_ref().and_then(|map| map.get(interface_path))
+}
+
+fn load_canonical_cache() -> Option<BTreeMap<String, CanonicalServiceInfo>> {
+    let path = env::var("SAILS_INTERFACE_CANONICAL").ok()?;
+    let contents = match fs::read_to_string(&path) {
+        Ok(value) => value,
+        Err(err) => {
+            emit_warning!(
+                Span::call_site(),
+                "failed to read canonical document `{}`: {}",
+                path,
+                err
+            );
+            return None;
+        }
+    };
+    let canonical = match CanonicalDocument::from_json_str(&contents) {
+        Ok(doc) => doc,
+        Err(err) => {
+            emit_warning!(
+                Span::call_site(),
+                "failed to parse canonical document `{}`: {}",
+                path,
+                err
+            );
+            return None;
+        }
+    };
+
+    let mut cache = BTreeMap::new();
+    let schema = canonical.canon_schema().to_owned();
+    let version = canonical.canon_version().to_owned();
+    let hash = canonical.hash().clone();
+    let types = canonical.types().clone();
+
+    for (name, service) in canonical.services() {
+        let mut single_services = BTreeMap::new();
+        single_services.insert(name.clone(), service.clone());
+        let document = CanonicalDocument::from_parts(
+            schema.clone(),
+            version.clone(),
+            hash.clone(),
+            single_services,
+            types.clone(),
+        );
+        let interface_id = compute_ids_from_document(&document);
+        cache.insert(name.clone(), CanonicalServiceInfo { interface_id });
+    }
+
+    Some(cache)
+}
 
 impl ServiceBuilder<'_> {
     pub(super) fn meta_trait_impl(&self) -> TokenStream {
@@ -88,8 +150,12 @@ impl ServiceBuilder<'_> {
                     #meta_module_ident::event_entry_ids()
                 }
 
-                fn canonical_service() -> &'static [u8] {
-                    #meta_module_ident::canonical_service()
+                fn interface_id() -> u64 {
+                    #meta_module_ident::interface_id()
+                }
+
+                fn extends() -> &'static [#sails_path::meta::ExtendedInterface] {
+                    #meta_module_ident::extends()
                 }
             }
         }
@@ -142,24 +208,6 @@ impl ServiceBuilder<'_> {
             },
         );
 
-        let extends_entries = self
-            .base_types
-            .iter()
-            .map(|base_type| {
-                let name = shared::remove_lifetimes(base_type)
-                    .to_token_stream()
-                    .to_string();
-                let name_lit = Literal::string(&name);
-                let base_type_no_lifetimes = shared::remove_lifetimes(base_type);
-                quote! {
-                    #sails_path::meta::ExtendedInterface {
-                        name: #name_lit,
-                        interface_id: <#base_type_no_lifetimes as #sails_path::meta::ServiceMeta>::INTERFACE_ID,
-                    }
-                }
-            })
-            .collect::<Vec<_>>();
-
         let interface_path = self.type_path.to_token_stream().to_string();
 
         let canonical_extends = self
@@ -211,7 +259,7 @@ impl ServiceBuilder<'_> {
             },
         );
 
-        let canonical_document = CanonicalDocument::from_parts(
+        let fallback_document = CanonicalDocument::from_parts(
             sails_interface_id::canonical::CANONICAL_SCHEMA,
             sails_interface_id::canonical::CANONICAL_VERSION,
             CanonicalHashMeta {
@@ -222,17 +270,34 @@ impl ServiceBuilder<'_> {
             BTreeMap::new(),
         );
 
-        let canonical_bytes = canonical_document
-            .to_bytes()
-            .expect("canonical document serialization should succeed");
-        let interface_id = compute_ids_from_document(&canonical_document);
-        let interface_id_lit = Literal::u64_unsuffixed(interface_id);
-        let canonical_byte_literals = canonical_bytes
+        let fallback_interface_id = compute_ids_from_document(&fallback_document);
+        let interface_id_value = if let Some(info) = canonical_service_info(&interface_path) {
+            info.interface_id
+        } else {
+            fallback_interface_id
+        };
+
+        let interface_id_lit = Literal::u64_unsuffixed(interface_id_value);
+
+        let extends_entries_const = self
+            .base_types
             .iter()
-            .map(|byte| Literal::u8_unsuffixed(*byte))
+            .map(|base_type| {
+                let name = shared::remove_lifetimes(base_type)
+                    .to_token_stream()
+                    .to_string();
+                let name_lit = Literal::string(&name);
+                let base_type_no_lifetimes = shared::remove_lifetimes(base_type);
+                quote! {
+                    #sails_path::meta::ExtendedInterface {
+                        name: #name_lit,
+                        interface_id: <#base_type_no_lifetimes as #sails_path::meta::ServiceMeta>::INTERFACE_ID,
+                    }
+                }
+            })
             .collect::<Vec<_>>();
 
-        let extends_builders = self.base_types.iter().map(|base_type| {
+        let extends_pushes = self.base_types.iter().map(|base_type| {
             let name = shared::remove_lifetimes(base_type)
                 .to_token_stream()
                 .to_string();
@@ -241,7 +306,7 @@ impl ServiceBuilder<'_> {
             quote! {
                 entries.push(#sails_path::meta::ExtendedInterface {
                     name: #name_lit,
-                    interface_id: <#base_type_no_lifetimes as #sails_path::meta::ServiceMeta>::INTERFACE_ID,
+                    interface_id: <#base_type_no_lifetimes as #sails_path::meta::ServiceMeta>::interface_id(),
                 });
             }
         });
@@ -252,6 +317,7 @@ impl ServiceBuilder<'_> {
                 use super::*;
                 use #sails_path::{Decode, TypeInfo};
                 use #sails_path::gstd::InvocationIo;
+                use #sails_path::spin::Once;
 
                 #( #invocation_params_structs )*
 
@@ -273,12 +339,11 @@ impl ServiceBuilder<'_> {
 
                 pub type EventsMeta = #events_type;
 
+                pub const INTERFACE_ID: u64 = #interface_id_lit;
+                pub const EXTENDS: &[#sails_path::meta::ExtendedInterface] = &[ #( #extends_entries_const ),* ];
+
                 pub const COMMAND_ENTRY_IDS: &[u16] = &[ #( #command_entry_id_literals ),* ];
                 pub const QUERY_ENTRY_IDS: &[u16] = &[ #( #query_entry_id_literals ),* ];
-                pub const INTERFACE_ID: u64 = #interface_id_lit;
-                pub const CANONICAL_BYTES: &[u8] = &[ #( #canonical_byte_literals ),* ];
-                pub const EXTENDS: &[#sails_path::meta::ExtendedInterface] = &[ #( #extends_entries ),* ];
-
                 #event_entry_ids_fn
 
                 impl #sails_path::meta::EventEntryIdMeta for #no_events_type {
@@ -287,59 +352,40 @@ impl ServiceBuilder<'_> {
                     }
                 }
 
-                #[cfg(all(feature = "std", not(target_arch = "wasm32")))]
-                fn canonical_cache() -> &'static (&'static [u8], u64) {
-                    static CACHE: #sails_path::spin::Once<(&'static [u8], u64)> =
-                        #sails_path::spin::Once::new();
-                    CACHE.call_once(|| {
-                        let document = #sails_path::interface_id::runtime::build_canonical_document::<#service_type_path>()
+                #[cfg(feature = "std")]
+                fn computed_interface_id() -> u64 {
+                    static ID: Once<u64> = Once::new();
+                    *ID.call_once(|| {
+                        use #sails_path::interface_id;
+                        let document = interface_id::runtime::build_canonical_document::<#service_type_path>()
                             .expect("building canonical document should succeed");
-                        let bytes = document
-                            .to_bytes()
-                            .expect("canonical document serialization should succeed");
-                        let id = #sails_path::interface_id::compute_ids_from_bytes(&bytes);
-                        let leaked = #sails_path::boxed::Box::leak(bytes.into_boxed_slice());
-                        (leaked as &'static [u8], id)
+                        interface_id::compute_ids_from_document(&document)
                     })
                 }
 
-                pub fn canonical_service() -> &'static [u8] {
-                    #[cfg(all(feature = "std", not(target_arch = "wasm32")))]
-                    {
-                        let (bytes, _) = *canonical_cache();
-                        bytes
-                    }
-                    #[cfg(not(all(feature = "std", not(target_arch = "wasm32"))))]
-                    {
-                        CANONICAL_BYTES
-                    }
-                }
-
                 pub fn interface_id() -> u64 {
-                    #[cfg(all(feature = "std", not(target_arch = "wasm32")))]
+                    #[cfg(feature = "std")]
                     {
-                        let (_, id) = *canonical_cache();
-                        id
+                        computed_interface_id()
                     }
-                    #[cfg(not(all(feature = "std", not(target_arch = "wasm32"))))]
+                    #[cfg(not(feature = "std"))]
                     {
                         INTERFACE_ID
                     }
                 }
 
                 pub fn extends() -> &'static [#sails_path::meta::ExtendedInterface] {
-                    #[cfg(all(feature = "std", not(target_arch = "wasm32")))]
+                    #[cfg(feature = "std")]
                     {
-                        static EXTENDS: #sails_path::spin::Once<&'static [#sails_path::meta::ExtendedInterface]> =
-                            #sails_path::spin::Once::new();
+                        static EXTENDS: Once<&'static [#sails_path::meta::ExtendedInterface]> = Once::new();
                         *EXTENDS.call_once(|| {
                             let mut entries: #sails_path::Vec<#sails_path::meta::ExtendedInterface> =
                                 #sails_path::Vec::new();
-                            #( #extends_builders )*
+                            #( #extends_pushes )*
                             #sails_path::boxed::Box::leak(entries.into_boxed_slice())
                         })
                     }
-                    #[cfg(not(all(feature = "std", not(target_arch = "wasm32"))))]
+                    #[cfg(not(feature = "std"))]
                     {
                         EXTENDS
                     }

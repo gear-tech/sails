@@ -7205,6 +7205,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "sails-build-support"
+version = "0.9.2"
+dependencies = [
+ "anyhow",
+ "blake3",
+ "camino",
+ "cargo_metadata 0.19.2",
+ "log",
+ "once_cell",
+ "rustdoc-types",
+ "sails-idl-meta",
+ "sails-interface-id",
+ "serde_json",
+ "toml_edit 0.22.24",
+]
+
+[[package]]
 name = "sails-cli"
 version = "0.9.2"
 dependencies = [
@@ -7218,6 +7235,7 @@ dependencies = [
  "env_logger 0.11.6",
  "log",
  "rustdoc-types",
+ "sails-build-support",
  "sails-client-gen",
  "sails-interface-id",
  "sails-sol-gen",
@@ -7340,6 +7358,7 @@ dependencies = [
  "parity-scale-codec",
  "paste",
  "pin-project-lite",
+ "sails-build-support",
  "sails-client-gen",
  "sails-idl-gen",
  "sails-idl-meta",
