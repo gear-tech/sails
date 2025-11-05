@@ -16,15 +16,19 @@ use toml_edit::{Array, DocumentMut, InlineTable, Item, Table};
 
 pub use metadata::{DocCache, metadata_fingerprint};
 
-type MetadataCache = HashMap<Utf8PathBuf, (Arc<Metadata>, String)>;
+type MetadataCache = HashMap<(Utf8PathBuf, Option<String>), (Arc<Metadata>, String)>;
 
 static METADATA_CACHE: OnceLock<Mutex<MetadataCache>> = OnceLock::new();
 
-fn load_metadata(manifest_path: &Utf8PathBuf) -> Result<(Arc<Metadata>, String)> {
+fn load_metadata(
+    manifest_path: &Utf8PathBuf,
+    out_dir: Option<&str>,
+) -> Result<(Arc<Metadata>, String)> {
     let cache = METADATA_CACHE.get_or_init(|| Mutex::new(HashMap::new()));
+    let cache_key = (manifest_path.clone(), out_dir.map(|s| s.to_string()));
     {
         let cache_guard = cache.lock().expect("metadata cache mutex poisoned");
-        if let Some((metadata, fingerprint)) = cache_guard.get(manifest_path) {
+        if let Some((metadata, fingerprint)) = cache_guard.get(&cache_key) {
             return Ok((Arc::clone(metadata), fingerprint.clone()));
         }
     }
@@ -37,10 +41,7 @@ fn load_metadata(manifest_path: &Utf8PathBuf) -> Result<(Arc<Metadata>, String)>
     let metadata_arc = Arc::new(metadata);
 
     let mut cache_guard = cache.lock().expect("metadata cache mutex poisoned");
-    cache_guard.insert(
-        manifest_path.clone(),
-        (Arc::clone(&metadata_arc), fingerprint.clone()),
-    );
+    cache_guard.insert(cache_key, (Arc::clone(&metadata_arc), fingerprint.clone()));
 
     Ok((metadata_arc, fingerprint))
 }
@@ -53,7 +54,7 @@ mod metadata {
     static DOC_CACHE: OnceLock<Mutex<DocCache>> = OnceLock::new();
 
     pub struct DocCache {
-        memory: HashSet<(Utf8PathBuf, String)>,
+        memory: HashSet<(Utf8PathBuf, String, Option<String>)>,
     }
 
     impl Default for DocCache {
@@ -69,14 +70,25 @@ mod metadata {
             }
         }
 
-        pub fn contains(&self, manifest: &Utf8Path, fingerprint: &str) -> bool {
-            self.memory
-                .contains(&(manifest.to_owned(), fingerprint.to_owned()))
+        pub fn contains(
+            &self,
+            manifest: &Utf8Path,
+            fingerprint: &str,
+            out_dir: Option<&str>,
+        ) -> bool {
+            self.memory.contains(&(
+                manifest.to_owned(),
+                fingerprint.to_owned(),
+                out_dir.map(|s| s.to_string()),
+            ))
         }
 
-        pub fn insert(&mut self, manifest: &Utf8Path, fingerprint: &str) {
-            self.memory
-                .insert((manifest.to_owned(), fingerprint.to_owned()));
+        pub fn insert(&mut self, manifest: &Utf8Path, fingerprint: &str, out_dir: Option<&str>) {
+            self.memory.insert((
+                manifest.to_owned(),
+                fingerprint.to_owned(),
+                out_dir.map(|s| s.to_string()),
+            ));
         }
     }
 
@@ -136,7 +148,7 @@ pub fn generate_program_artifact(
         .map_err(|_| anyhow::anyhow!("manifest path is not valid UTF-8"))?;
 
     println!("...reading metadata: {manifest_utf8}");
-    let (metadata, fingerprint) = load_metadata(&manifest_utf8)?;
+    let (metadata, fingerprint) = load_metadata(&manifest_utf8, None)?;
 
     generate_program_artifact_with_metadata(
         &manifest_utf8,
@@ -238,7 +250,7 @@ pub fn ensure_canonical_artifact(
 ) -> Result<bool> {
     let manifest_utf8 = Utf8PathBuf::from_path_buf(manifest_path.to_path_buf())
         .map_err(|_| anyhow::anyhow!("manifest path is not valid UTF-8"))?;
-    let (metadata, fingerprint) = load_metadata(&manifest_utf8)?;
+    let (metadata, fingerprint) = load_metadata(&manifest_utf8, None)?;
 
     let fingerprint_path = output_path.with_extension("fingerprint");
     if output_path.exists()
@@ -294,18 +306,49 @@ pub fn ensure_canonical_env(deps_level: usize) -> Result<Option<PathBuf>> {
         env::var("CARGO_PKG_NAME").context("CARGO_PKG_NAME environment variable missing")?;
 
     let manifest_path = PathBuf::from(manifest_dir).join("Cargo.toml");
-    let out_root = PathBuf::from(out_dir);
+    let out_root = PathBuf::from(out_dir.clone());
     let canonical_path = out_root
         .join("canonical")
         .join(format!("{pkg_name}.canonical.json"));
     let canonical_target_dir = out_root.join("canonical-target");
 
-    ensure_canonical_artifact(
-        &manifest_path,
+    let manifest_utf8 = Utf8PathBuf::from_path_buf(manifest_path.to_path_buf())
+        .map_err(|_| anyhow::anyhow!("manifest path is not valid UTF-8"))?;
+    let (metadata, fingerprint) = load_metadata(&manifest_utf8, Some(&out_dir))?;
+
+    let canonical_source = generate_program_artifact_with_metadata(
+        &manifest_utf8,
+        metadata,
+        fingerprint.clone(),
         Some(&canonical_target_dir),
         deps_level,
-        &canonical_path,
+        ProgramArtifactKind::Canonical,
     )?;
+
+    let canonical_bytes = fs::read(&canonical_source)
+        .with_context(|| format!("failed to read {canonical_source}"))?;
+    CanonicalDocument::from_json_str(std::str::from_utf8(&canonical_bytes).unwrap())
+        .context("generated canonical document is invalid")?;
+    if let Some(dir) = canonical_path.parent() {
+        fs::create_dir_all(dir).with_context(|| {
+            format!(
+                "failed to create directory {} for canonical output",
+                dir.display()
+            )
+        })?;
+    }
+    fs::write(&canonical_path, &canonical_bytes).with_context(|| {
+        format!(
+            "failed to write canonical document to {}",
+            canonical_path.display()
+        )
+    })?;
+    fs::write(canonical_path.with_extension("fingerprint"), fingerprint).with_context(|| {
+        format!(
+            "failed to write fingerprint {}",
+            canonical_path.with_extension("fingerprint").display()
+        )
+    })?;
 
     println!(
         "cargo:rustc-env=SAILS_INTERFACE_CANONICAL={}",
@@ -420,6 +463,7 @@ fn get_program_struct_path_from_doc(
         metadata_fingerprint,
         doc_cache,
         persistent_cache_dir,
+        None,
     )?;
 
     println!("...reading doc: {docs_path}");
@@ -465,10 +509,13 @@ fn ensure_program_doc(
     metadata_fingerprint: &str,
     doc_cache: &mut metadata::DocCache,
     persistent_cache_dir: &Utf8PathBuf,
+    out_dir: Option<&str>,
 ) -> Result<()> {
     let cache_path =
         persistent_cache_dir.join(metadata::doc_cache_key(manifest_path, metadata_fingerprint));
-    if doc_cache.contains(manifest_path, metadata_fingerprint) && docs_path.as_std_path().exists() {
+    if doc_cache.contains(manifest_path, metadata_fingerprint, out_dir)
+        && docs_path.as_std_path().exists()
+    {
         return Ok(());
     }
 
@@ -480,13 +527,13 @@ fn ensure_program_doc(
                 cache_path.as_std_path().display()
             )
         })?;
-        doc_cache.insert(manifest_path, metadata_fingerprint);
+        doc_cache.insert(manifest_path, metadata_fingerprint, out_dir);
         return Ok(());
     }
 
     println!("...running doc generation for `{manifest_path}`");
     cargo_doc(manifest_path, target_dir)?;
-    doc_cache.insert(manifest_path, metadata_fingerprint);
+    doc_cache.insert(manifest_path, metadata_fingerprint, out_dir);
 
     fs::create_dir_all(persistent_cache_dir.as_std_path())
         .with_context(|| format!("failed to create `{persistent_cache_dir}`"))?;
