@@ -344,21 +344,18 @@ pub fn ensure_canonical_env(deps_level: usize) -> Result<Option<PathBuf>> {
 
     // Check if canonical already exists and is valid
     if canonical_path.exists() {
-        match fs::read_to_string(&canonical_path) {
-            Ok(content) => {
-                if CanonicalDocument::from_json_str(&content).is_ok() {
-                    println!(
-                        "...using existing canonical document: {}",
-                        canonical_path.display()
-                    );
-                    println!(
-                        "cargo:rustc-env=SAILS_INTERFACE_CANONICAL={}",
-                        canonical_path.display()
-                    );
-                    return Ok(Some(canonical_path));
-                }
+        if let Ok(content) = fs::read_to_string(&canonical_path) {
+            if CanonicalDocument::from_json_str(&content).is_ok() {
+                println!(
+                    "...using existing canonical document: {}",
+                    canonical_path.display()
+                );
+                println!(
+                    "cargo:rustc-env=SAILS_INTERFACE_CANONICAL={}",
+                    canonical_path.display()
+                );
+                return Ok(Some(canonical_path));
             }
-            Err(_) => {} // Proceed to generate if read fails
         }
     }
 

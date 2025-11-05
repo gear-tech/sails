@@ -353,12 +353,6 @@ fn build_service(
                 interface_id,
                 service: Some(Box::new(base_service.clone())),
             });
-        } else if let Some(ext) = extends_meta.get(&base_name) {
-            extends.push(CanonicalExtendedInterface {
-                name: base_name,
-                interface_id: ext.interface_id,
-                service: None,
-            });
         } else {
             return Err(BuildError::UnknownBaseInterface(base_name));
         }
