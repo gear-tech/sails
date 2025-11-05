@@ -3,8 +3,7 @@ use anyhow::{Context, Result, bail};
 use pest::Parser;
 use pest::iterators::{Pair, Pairs};
 
-mod ast;
-
+pub mod ast;
 pub mod ffi {
     pub mod ast;
 }
