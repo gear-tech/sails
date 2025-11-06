@@ -17,6 +17,13 @@ impl sails_rs::SailsEvent for MyEvent {
         1
     }
 }
+impl sails_rs::meta::EventEntryIdMeta for MyEvent {
+    fn event_entry_ids() -> sails_rs::Vec<u16> {
+        let mut ids = sails_rs::Vec::new();
+        ids.push(1);
+        ids
+    }
+}
 impl sails_rs::EthEvent for MyEvent {
     const SIGNATURES: &'static [sails_rs::gstd::EthEventExpo] = &[
         (

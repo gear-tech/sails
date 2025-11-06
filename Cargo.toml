@@ -29,12 +29,15 @@ members = [
     "examples/ping-pong-stack",
     "rs",
     "rs/cli",
+    "rs/build-support",
     "rs/client-gen",
     "rs/idl-gen",
     "rs/idl-meta",
     "rs/idl-parser",
     "rs/macros",
     "rs/macros/core",
+    "rs/interface-id",
+    "rs/program-registry",
     "rs/sol-gen",
     "benchmarks/alloc-stress",
     "benchmarks/compute-stress",
@@ -53,10 +56,12 @@ sails-client-gen = { path = "rs/client-gen" }
 sails-macros-core = { path = "rs/macros/core" }
 sails-macros = { path = "rs/macros" }
 sails-rs = { path = "rs" }
+sails-interface-id = { path = "rs/interface-id" }
+sails-program-registry = { path = "rs/program-registry" }
+sails-build-support = { path = "rs/build-support" }
 sails-sol-gen = { path = "rs/sol-gen" }
 # Renamed sails-rs for `proxy` demo
 sails-rename = { package = "sails-rs", path = "rs" }
-
 # Gear deps
 gclient = "=1.9.2"
 gcore = "=1.9.2"
@@ -74,9 +79,11 @@ anyhow = "1"
 askama = "0.14"
 cargo-generate = "0.23"
 cargo_metadata = "0.19"
+camino = "1.1.9"
 clap = "4.5"
 fs2 = "0.4.3"
 convert_case = "0.7"
+env_logger = "0.11"
 futures = { version = "0.3", default-features = false }
 genco = "0.17"
 git-download = "0.1"
@@ -85,6 +92,7 @@ hashbrown = "0.15"
 hex = { version = "0.4", default-features = false }
 insta = "1.43"
 itertools = "0.14"
+blake3 = { version = "1.5", default-features = false }
 keccak-const = "0.2"
 lalrpop = { version = "0.20", default-features = false }
 lalrpop-util = "0.20"
@@ -97,12 +105,14 @@ paste = "1.0"
 prettyplease = "0.2"
 proc-macro-error = "1.0"
 proc-macro2 = { version = "1", default-features = false }
-rustdoc-types = "=0.36.0"
 quote = "1.0"
 scale-info = { version = "2.11", default-features = false }
 serde = "1.0"
 serde-json = { package = "serde_json", version = "1.0" }
-spin = { version = "0.9", default-features = false, features = ["spin_mutex"] }
+serde-json-canonicalizer = { package = "serde_json_canonicalizer", version = "0.3.1" }
+once_cell = "1.19"
+inventory = "0.3"
+spin = { version = "0.9", default-features = false, features = ["spin_mutex", "once"] }
 syn = "2.0"
 thiserror = { version = "2.0", default-features = false }
 toml_edit = "0.22"

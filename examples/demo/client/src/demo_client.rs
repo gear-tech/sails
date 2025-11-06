@@ -76,6 +76,8 @@ pub mod ping_pong {
     use super::*;
     pub trait PingPong {
         type Env: sails_rs::client::GearEnv;
+        /// !@interface_id = 0xa5623ea9fafc5af5
+        /// !@entry_id = 0x0001
         fn ping(&mut self, input: String) -> sails_rs::client::PendingCall<io::Ping, Self::Env>;
     }
     pub struct PingPongImpl;
@@ -96,11 +98,15 @@ pub mod counter {
     use super::*;
     pub trait Counter {
         type Env: sails_rs::client::GearEnv;
+        /// !@interface_id = 0x89dbc2cce5b7fdcc
         /// Add a value to the counter
+        /// !@entry_id = 0x0001
         fn add(&mut self, value: u32) -> sails_rs::client::PendingCall<io::Add, Self::Env>;
         /// Substract a value from the counter
+        /// !@entry_id = 0x0002
         fn sub(&mut self, value: u32) -> sails_rs::client::PendingCall<io::Sub, Self::Env>;
         /// Get the current value
+        /// !@entry_id = 0x0003
         fn value(&self) -> sails_rs::client::PendingCall<io::Value, Self::Env>;
     }
     pub struct CounterImpl;
@@ -131,8 +137,10 @@ pub mod counter {
         #[codec(crate = sails_rs::scale_codec)]
         pub enum CounterEvents {
             /// Emitted when a new value is added to the counter
+            /// !@entry_id = 0x0001
             Added(u32),
             /// Emitted when a value is subtracted from the counter
+            /// !@entry_id = 0x0002
             Subtracted(u32),
         }
         impl sails_rs::client::Event for CounterEvents {
@@ -148,9 +156,17 @@ pub mod dog {
     use super::*;
     pub trait Dog {
         type Env: sails_rs::client::GearEnv;
+        /// !@interface_id = 0xa76e4dbded6df3fe
+        /// !@extends
+        /// MammalService (interface_id=0xadc268cf15ab73a0)
+        /// WalkerService (interface_id=0x97dcb00bd1501f98)
+        /// !@entry_id = 0x0001
         fn make_sound(&mut self) -> sails_rs::client::PendingCall<io::MakeSound, Self::Env>;
+        /// !@entry_id = 0x0002
         fn walk(&mut self, dx: i32, dy: i32) -> sails_rs::client::PendingCall<io::Walk, Self::Env>;
+        /// !@entry_id = 0x0001
         fn avg_weight(&self) -> sails_rs::client::PendingCall<io::AvgWeight, Self::Env>;
+        /// !@entry_id = 0x0001
         fn position(&self) -> sails_rs::client::PendingCall<io::Position, Self::Env>;
     }
     pub struct DogImpl;
@@ -185,7 +201,11 @@ pub mod dog {
         #[codec(crate = sails_rs::scale_codec)]
         pub enum DogEvents {
             Barked,
-            Walked { from: (i32, i32), to: (i32, i32) },
+            /// !@entry_id = 0x0001
+            Walked {
+                from: (i32, i32),
+                to: (i32, i32),
+            },
         }
         impl sails_rs::client::Event for DogEvents {
             const EVENT_NAMES: &'static [Route] = &["Barked", "Walked"];
@@ -200,16 +220,25 @@ pub mod references {
     use super::*;
     pub trait References {
         type Env: sails_rs::client::GearEnv;
+        /// !@interface_id = 0x16dec7e4480fe77c
+        /// !@entry_id = 0x0001
         fn add(&mut self, v: u32) -> sails_rs::client::PendingCall<io::Add, Self::Env>;
+        /// !@entry_id = 0x0002
         fn add_byte(&mut self, byte: u8) -> sails_rs::client::PendingCall<io::AddByte, Self::Env>;
+        /// !@entry_id = 0x0004
         fn guess_num(
             &mut self,
             number: u8,
         ) -> sails_rs::client::PendingCall<io::GuessNum, Self::Env>;
+        /// !@entry_id = 0x0005
         fn incr(&mut self) -> sails_rs::client::PendingCall<io::Incr, Self::Env>;
+        /// !@entry_id = 0x0008
         fn set_num(&mut self, number: u8) -> sails_rs::client::PendingCall<io::SetNum, Self::Env>;
+        /// !@entry_id = 0x0003
         fn baked(&self) -> sails_rs::client::PendingCall<io::Baked, Self::Env>;
+        /// !@entry_id = 0x0006
         fn last_byte(&self) -> sails_rs::client::PendingCall<io::LastByte, Self::Env>;
+        /// !@entry_id = 0x0007
         fn message(&self) -> sails_rs::client::PendingCall<io::Message, Self::Env>;
     }
     pub struct ReferencesImpl;
@@ -261,10 +290,13 @@ pub mod this_that {
     use super::*;
     pub trait ThisThat {
         type Env: sails_rs::client::GearEnv;
+        /// !@interface_id = 0xe7bde5a282ea98c4
+        /// !@entry_id = 0x0001
         fn do_that(
             &mut self,
             param: DoThatParam,
         ) -> sails_rs::client::PendingCall<io::DoThat, Self::Env>;
+        /// !@entry_id = 0x0002
         fn do_this(
             &mut self,
             p1: u32,
@@ -272,8 +304,11 @@ pub mod this_that {
             p3: (Option<H160>, NonZeroU8),
             p4: TupleStruct,
         ) -> sails_rs::client::PendingCall<io::DoThis, Self::Env>;
+        /// !@entry_id = 0x0003
         fn noop(&mut self) -> sails_rs::client::PendingCall<io::Noop, Self::Env>;
+        /// !@entry_id = 0x0004
         fn that(&self) -> sails_rs::client::PendingCall<io::That, Self::Env>;
+        /// !@entry_id = 0x0005
         fn this(&self) -> sails_rs::client::PendingCall<io::This, Self::Env>;
     }
     pub struct ThisThatImpl;
@@ -319,8 +354,10 @@ pub mod value_fee {
     use super::*;
     pub trait ValueFee {
         type Env: sails_rs::client::GearEnv;
+        /// !@interface_id = 0x43893ea7bc6115db
         /// Return flag if fee taken and remain value,
         /// using special type `CommandReply<T>`
+        /// !@entry_id = 0x0001
         fn do_something_and_take_fee(
             &mut self,
         ) -> sails_rs::client::PendingCall<io::DoSomethingAndTakeFee, Self::Env>;
@@ -346,6 +383,7 @@ pub mod value_fee {
         #[derive(PartialEq, Debug, Encode, Decode)]
         #[codec(crate = sails_rs::scale_codec)]
         pub enum ValueFeeEvents {
+            /// !@entry_id = 0x0001
             Withheld(u128),
         }
         impl sails_rs::client::Event for ValueFeeEvents {
@@ -361,10 +399,14 @@ pub mod chaos {
     use super::*;
     pub trait Chaos {
         type Env: sails_rs::client::GearEnv;
+        /// !@interface_id = 0x8ebc6837a0fb15ce
+        /// !@entry_id = 0x0001
         fn panic_after_wait(&self) -> sails_rs::client::PendingCall<io::PanicAfterWait, Self::Env>;
+        /// !@entry_id = 0x0002
         fn reply_hook_counter(
             &self,
         ) -> sails_rs::client::PendingCall<io::ReplyHookCounter, Self::Env>;
+        /// !@entry_id = 0x0003
         fn timeout_wait(&self) -> sails_rs::client::PendingCall<io::TimeoutWait, Self::Env>;
     }
     pub struct ChaosImpl;

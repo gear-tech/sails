@@ -1,6 +1,7 @@
-use clap::{Parser, Subcommand};
+use clap::{ArgGroup, Parser, Subcommand};
 use sails_cli::{
-    idlgen::CrateIdlGenerator, program::ProgramGenerator, program_new, solgen::SolidityGenerator,
+    idlgen::CrateIdlGenerator, interface_id, program::ProgramGenerator, program_new,
+    solgen::SolidityGenerator,
 };
 use sails_client_gen::ClientGenerator;
 use std::{error::Error, path::PathBuf};
@@ -84,9 +85,6 @@ enum SailsCommands {
         /// Directory for all generated artifacts
         #[arg(long, value_hint = clap::ValueHint::DirPath)]
         target_dir: Option<PathBuf>,
-        /// Level of dependencies to look for program implementation. Default: 1
-        #[arg(long)]
-        deps_level: Option<usize>,
     },
 
     #[command(name = "sol")]
@@ -100,6 +98,33 @@ enum SailsCommands {
         /// Name of the contract to generate
         #[arg(long, short = 'n')]
         contract_name: Option<String>,
+    },
+
+    /// Canonicalize program metadata into canonical JSON
+    #[command(name = "idl-canonicalize")]
+    IdlCanonicalize {
+        /// Path to the Cargo manifest with the program (uses runtime metadata)
+        #[arg(long, value_hint = clap::ValueHint::FilePath)]
+        manifest_path: PathBuf,
+        /// Optional output path, defaults to stdout if omitted
+        #[arg(long, value_hint = clap::ValueHint::FilePath)]
+        out: Option<PathBuf>,
+    },
+
+    /// Derive interface IDs from canonical JSON or runtime metadata
+    #[command(name = "idl-derive-id")]
+    #[command(group(
+        ArgGroup::new("derive_source")
+            .required(true)
+            .args(["canonical_path", "manifest_path"])
+    ))]
+    IdlDeriveId {
+        /// Path to the canonical JSON file
+        #[arg(value_hint = clap::ValueHint::FilePath, conflicts_with = "manifest_path")]
+        canonical_path: Option<PathBuf>,
+        /// Path to the Cargo manifest with the program (uses runtime metadata)
+        #[arg(long, value_hint = clap::ValueHint::FilePath, conflicts_with = "canonical_path")]
+        manifest_path: Option<PathBuf>,
     },
 }
 
@@ -118,6 +143,10 @@ where
 }
 
 fn main() -> Result<(), i32> {
+    env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info"))
+        .format_target(false)
+        .init();
+
     let CliCommand::Sails(command) = CliCommand::parse();
 
     let result = match command {
@@ -169,13 +198,27 @@ fn main() -> Result<(), i32> {
         SailsCommands::IdlGen {
             manifest_path,
             target_dir,
-            deps_level,
-        } => CrateIdlGenerator::new(manifest_path, target_dir, deps_level).generate(),
+        } => CrateIdlGenerator::new(manifest_path, target_dir).generate(),
         SailsCommands::SolGen {
             idl_path,
             target_dir,
             contract_name,
         } => SolidityGenerator::new(idl_path, target_dir, contract_name).generate(),
+        SailsCommands::IdlCanonicalize { manifest_path, out } => {
+            interface_id::canonicalize_manifest(manifest_path.as_path(), out.as_deref())
+        }
+        SailsCommands::IdlDeriveId {
+            canonical_path,
+            manifest_path,
+        } => {
+            if let Some(manifest_path) = manifest_path.as_ref() {
+                interface_id::derive_ids_for_manifest(manifest_path)
+            } else if let Some(canonical_path) = canonical_path.as_ref() {
+                interface_id::derive_ids(canonical_path)
+            } else {
+                unreachable!("argument group enforces presence")
+            }
+        }
     };
 
     if let Err(e) = result {

@@ -173,7 +173,7 @@ mod tests {
 
           /// ThisThatSvcAppManyVariants docs
           type ThisThatSvcAppManyVariants = enum {
-            /// variant `One` 
+            /// variant `One`
             One,
             /// variant `Two`
             Two: u32,

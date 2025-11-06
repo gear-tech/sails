@@ -2,7 +2,7 @@ use crate::sails_paths::sails_path_or_default;
 use args::{CratePathAttr, SAILS_PATH};
 use parity_scale_codec::Encode;
 use proc_macro_error::abort;
-use proc_macro2::TokenStream;
+use proc_macro2::{Literal, TokenStream};
 use quote::quote;
 use syn::{Fields, ItemEnum, Path, parse::Parse};
 
@@ -25,7 +25,11 @@ pub fn event(attrs: TokenStream, input: TokenStream) -> TokenStream {
     let sails_path_attr = syn::parse2::<CratePathAttr>(attrs).ok();
     let sails_path = &sails_path_or_default(sails_path_attr.map(|attr| attr.path()));
 
+    let event_entry_ids = extract_event_entry_ids(&mut input);
     let event_impl = generate_sails_event_impl(&input, sails_path);
+    let enum_ident = &input.ident;
+    let event_entry_ids_impl =
+        generate_event_entry_ids_impl(enum_ident, &event_entry_ids, sails_path);
 
     #[cfg(feature = "ethexe")]
     let eth_event_impl = ethexe::generate_eth_event_impl(&input, sails_path);
@@ -38,6 +42,8 @@ pub fn event(attrs: TokenStream, input: TokenStream) -> TokenStream {
         #input
 
         #event_impl
+
+        #event_entry_ids_impl
 
         #eth_event_impl
     }
@@ -123,4 +129,53 @@ pub fn derive_sails_event(input: TokenStream) -> TokenStream {
     let sails_path = &sails_path_or_default(sails_path_attr.map(|attr| attr.path()));
 
     generate_sails_event_impl(&input, sails_path)
+}
+
+fn extract_event_entry_ids(input: &mut ItemEnum) -> Vec<u16> {
+    // Collect variant info: (original_index, name)
+    let mut variant_info: Vec<(usize, String)> = Vec::new();
+
+    for (idx, variant) in input.variants.iter_mut().enumerate() {
+        let mut retained_attrs = Vec::new();
+
+        for attr in variant.attrs.drain(..) {
+            retained_attrs.push(attr);
+        }
+
+        variant.attrs = retained_attrs;
+        variant_info.push((idx, variant.ident.to_string()));
+    }
+
+    // Sort by name (lexicographic)
+    variant_info.sort_by(|a, b| a.1.cmp(&b.1));
+
+    // Assign entry IDs in sorted order (1-based)
+    let mut codes_by_index = vec![0u16; variant_info.len()];
+
+    for (new_idx, (original_idx, _name)) in variant_info.into_iter().enumerate() {
+        codes_by_index[original_idx] = (new_idx + 1) as u16;
+    }
+
+    codes_by_index
+}
+
+fn generate_event_entry_ids_impl(
+    enum_ident: &syn::Ident,
+    entry_ids: &[u16],
+    sails_path: &Path,
+) -> TokenStream {
+    let push_statements = entry_ids.iter().map(|entry_id| {
+        let literal = Literal::u16_unsuffixed(*entry_id);
+        quote!(ids.push(#literal);)
+    });
+
+    quote! {
+        impl #sails_path::meta::EventEntryIdMeta for #enum_ident {
+            fn event_entry_ids() -> #sails_path::Vec<u16> {
+                let mut ids = #sails_path::Vec::new();
+                #( #push_statements )*
+                ids
+            }
+        }
+    }
 }

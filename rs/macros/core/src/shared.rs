@@ -2,8 +2,8 @@ use crate::export;
 use convert_case::{Case, Casing};
 use parity_scale_codec::Encode;
 use proc_macro_error::abort;
-use proc_macro2::Span;
-use quote::ToTokens;
+use proc_macro2::{Literal, Span, TokenStream};
+use quote::{ToTokens, quote};
 use std::collections::BTreeMap;
 use syn::{
     FnArg, GenericArgument, Generics, Ident, ImplItem, ImplItemFn, ItemImpl, Lifetime, Pat, Path,
@@ -278,6 +278,7 @@ pub(crate) struct FnBuilder<'a> {
     params_types: Vec<&'a Type>,
     pub result_type: Type,
     pub unwrap_result: bool,
+    entry_id: Option<u16>,
     pub sails_path: &'a Path,
 }
 
@@ -295,7 +296,6 @@ impl<'a> FnBuilder<'a> {
         let params_struct_ident = Ident::new(&format!("__{route}Params"), Span::call_site());
         let (params_idents, params_types): (Vec<_>, Vec<_>) = extract_params(signature).unzip();
         let result_type = unwrap_result_type(signature, unwrap_result);
-
         Self {
             route,
             export,
@@ -307,6 +307,7 @@ impl<'a> FnBuilder<'a> {
             params_types,
             result_type,
             unwrap_result,
+            entry_id: None,
             sails_path,
         }
     }
@@ -342,6 +343,22 @@ impl<'a> FnBuilder<'a> {
 
     pub(crate) fn params_idents(&self) -> &[&Ident] {
         self.params_idents.as_slice()
+    }
+
+    pub(crate) fn entry_id(&self) -> Option<u16> {
+        self.entry_id
+    }
+
+    pub(crate) fn set_entry_id(&mut self, entry_id: u16) {
+        self.entry_id = Some(entry_id);
+    }
+
+    pub(crate) fn entry_id_literal(&self) -> TokenStream {
+        let entry_id = self
+            .entry_id
+            .expect("entry_id must be set for exported invocation");
+        let literal = Literal::u16_unsuffixed(entry_id);
+        quote!(#literal)
     }
 
     #[cfg(feature = "ethexe")]

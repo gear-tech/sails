@@ -19,8 +19,13 @@ cargo-generate.workspace = true
 cargo_metadata.workspace = true
 clap = { workspace = true, features = ["derive"] }
 convert_case.workspace = true
-rustdoc-types.workspace = true
 sails-client-gen.workspace = true
 serde-json.workspace = true
 toml_edit.workspace = true
 sails-sol-gen.workspace = true
+sails-interface-id.workspace = true
+sails-build-support.workspace = true
+blake3.workspace = true
+serde = { workspace = true, features = ["derive"] }
+env_logger.workspace = true
+log.workspace = true

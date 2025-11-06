@@ -4,12 +4,20 @@ use scale_info::{MetaType, StaticTypeInfo, prelude::vec::Vec};
 
 pub type AnyServiceMetaFn = fn() -> AnyServiceMeta;
 
+pub struct ExtendedInterface {
+    pub name: &'static str,
+    pub interface_id: u64,
+}
+
 pub trait ServiceMeta {
     type CommandsMeta: StaticTypeInfo;
     type QueriesMeta: StaticTypeInfo;
     type EventsMeta: StaticTypeInfo;
     const BASE_SERVICES: &'static [AnyServiceMetaFn];
     const ASYNC: bool;
+    const INTERFACE_PATH: &'static str;
+    const INTERFACE_ID: u64 = 0;
+    const EXTENDS: &'static [ExtendedInterface] = &[];
 
     fn commands() -> MetaType {
         MetaType::new::<Self::CommandsMeta>()
@@ -23,9 +31,45 @@ pub trait ServiceMeta {
         MetaType::new::<Self::EventsMeta>()
     }
 
+    fn command_entry_ids() -> Vec<u16> {
+        Vec::new()
+    }
+
+    fn local_command_entry_ids() -> &'static [u16] {
+        &[]
+    }
+
+    fn query_entry_ids() -> Vec<u16> {
+        Vec::new()
+    }
+
+    fn local_query_entry_ids() -> &'static [u16] {
+        &[]
+    }
+
+    fn event_entry_ids() -> Vec<u16> {
+        Vec::new()
+    }
+
+    fn local_event_entry_ids() -> Vec<u16> {
+        Vec::new()
+    }
+
     fn base_services() -> impl Iterator<Item = AnyServiceMeta> {
         Self::BASE_SERVICES.iter().map(|f| f())
     }
+
+    fn interface_id() -> u64 {
+        Self::INTERFACE_ID
+    }
+
+    fn extends() -> &'static [ExtendedInterface] {
+        Self::EXTENDS
+    }
+}
+
+pub trait EventEntryIdMeta {
+    fn event_entry_ids() -> Vec<u16>;
 }
 
 pub struct AnyServiceMeta {
@@ -33,6 +77,15 @@ pub struct AnyServiceMeta {
     queries: MetaType,
     events: MetaType,
     base_services: Vec<AnyServiceMeta>,
+    interface_path: &'static str,
+    interface_id_fn: fn() -> u64,
+    extends: &'static [ExtendedInterface],
+    command_entry_ids: Vec<u16>,
+    query_entry_ids: Vec<u16>,
+    event_entry_ids: Vec<u16>,
+    local_command_entry_ids: &'static [u16],
+    local_query_entry_ids: &'static [u16],
+    local_event_entry_ids: fn() -> Vec<u16>,
 }
 
 impl AnyServiceMeta {
@@ -42,6 +95,15 @@ impl AnyServiceMeta {
             queries: S::queries(),
             events: S::events(),
             base_services: S::base_services().collect(),
+            interface_path: S::INTERFACE_PATH,
+            interface_id_fn: S::interface_id,
+            extends: S::extends(),
+            command_entry_ids: S::command_entry_ids(),
+            query_entry_ids: S::query_entry_ids(),
+            event_entry_ids: S::event_entry_ids(),
+            local_command_entry_ids: S::local_command_entry_ids(),
+            local_query_entry_ids: S::local_query_entry_ids(),
+            local_event_entry_ids: S::local_event_entry_ids,
         }
     }
 
@@ -59,6 +121,42 @@ impl AnyServiceMeta {
 
     pub fn base_services(&self) -> impl Iterator<Item = &AnyServiceMeta> {
         self.base_services.iter()
+    }
+
+    pub fn interface_path(&self) -> &'static str {
+        self.interface_path
+    }
+
+    pub fn interface_id(&self) -> u64 {
+        (self.interface_id_fn)()
+    }
+
+    pub fn extends(&self) -> &'static [ExtendedInterface] {
+        self.extends
+    }
+
+    pub fn command_entry_ids(&self) -> &[u16] {
+        &self.command_entry_ids
+    }
+
+    pub fn query_entry_ids(&self) -> &[u16] {
+        &self.query_entry_ids
+    }
+
+    pub fn local_command_entry_ids(&self) -> &'static [u16] {
+        self.local_command_entry_ids
+    }
+
+    pub fn local_query_entry_ids(&self) -> &'static [u16] {
+        self.local_query_entry_ids
+    }
+
+    pub fn event_entry_ids(&self) -> &[u16] {
+        &self.event_entry_ids
+    }
+
+    pub fn local_event_entry_ids(&self) -> Vec<u16> {
+        (self.local_event_entry_ids)()
     }
 }
 

@@ -1,5 +1,6 @@
 ---
 source: rs/macros/core/tests/event.rs
+assertion_line: 36
 expression: result
 ---
 pub enum Events {
@@ -23,5 +24,14 @@ impl sails_rename::SailsEvent for Events {
     }
     fn skip_bytes() -> usize {
         1
+    }
+}
+impl sails_rename::meta::EventEntryIdMeta for Events {
+    fn event_entry_ids() -> sails_rename::Vec<u16> {
+        let mut ids = sails_rename::Vec::new();
+        ids.push(1);
+        ids.push(2);
+        ids.push(3);
+        ids
     }
 }

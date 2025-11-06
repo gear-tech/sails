@@ -53,14 +53,20 @@ constructor {
 };
 
 service RmrkResource {
+  /// !@interface_id = 0x9730cce8a925be37
+  /// !@entry_id = 0x0001
   AddPartToResource : (resource_id: u8, part_id: u32) -> result (u32, Error);
+  /// !@entry_id = 0x0002
   AddResourceEntry : (resource_id: u8, resource: Resource) -> result (struct { u8, Resource }, Error);
+  /// !@entry_id = 0x0003
   query Resource : (resource_id: u8) -> result (Resource, Error);
 
   events {
+    /// !@entry_id = 0x0002
     ResourceAdded: struct {
       resource_id: u8
     };
+    /// !@entry_id = 0x0001
     PartAdded: struct {
       resource_id: u8,
       part_id: u32,

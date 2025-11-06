@@ -31,6 +31,15 @@ impl sails_rename::SailsEvent for Events {
         1
     }
 }
+impl sails_rename::meta::EventEntryIdMeta for Events {
+    fn event_entry_ids() -> sails_rename::Vec<u16> {
+        let mut ids = sails_rename::Vec::new();
+        ids.push(1);
+        ids.push(2);
+        ids.push(3);
+        ids
+    }
+}
 impl sails_rename::EthEvent for Events {
     const SIGNATURES: &'static [sails_rename::gstd::EthEventExpo] = &[
         (

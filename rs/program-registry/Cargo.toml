@@ -1,0 +1,16 @@
+[package]
+name = "sails-program-registry"
+description = "Compile-time registry of Sails programs for build tooling"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+inventory.workspace = true
+thiserror.workspace = true
+sails-idl-meta = { path = "../idl-meta" }
+sails-idl-gen = { path = "../idl-gen" }
+sails-interface-id = { path = "../interface-id" }

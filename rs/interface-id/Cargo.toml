@@ -1,0 +1,23 @@
+[package]
+name = "sails-interface-id"
+description = "Shared helpers for computing Sails interface identifiers"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+blake3.workspace = true
+serde = { workspace = true, features = ["derive"] }
+serde-json.workspace = true
+serde-json-canonicalizer.workspace = true
+sails-idl-parser = { path = "../idl-parser" }
+sails-idl-meta = { path = "../idl-meta" }
+scale-info.workspace = true
+thiserror.workspace = true
+
+[dev-dependencies]
+parity-scale-codec.workspace = true
+scale-info = { workspace = true, features = ["derive"] }

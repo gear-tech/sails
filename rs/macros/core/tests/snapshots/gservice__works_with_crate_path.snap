@@ -1,5 +1,6 @@
 ---
 source: rs/macros/core/tests/gservice.rs
+assertion_line: 207
 expression: result
 ---
 pub struct SomeServiceExposure<T> {
@@ -107,11 +108,45 @@ impl sails_rename::meta::ServiceMeta for SomeService {
     type EventsMeta = some_service_meta::EventsMeta;
     const BASE_SERVICES: &'static [sails_rename::meta::AnyServiceMetaFn] = &[];
     const ASYNC: bool = true;
+    const INTERFACE_PATH: &'static str = stringify!(SomeService);
+    const INTERFACE_ID: u64 = some_service_meta::INTERFACE_ID;
+    const EXTENDS: &'static [sails_rename::meta::ExtendedInterface] = some_service_meta::EXTENDS;
+    fn command_entry_ids() -> sails_rename::Vec<u16> {
+        let mut ids = sails_rename::Vec::new();
+        ids.extend(some_service_meta::COMMAND_ENTRY_IDS.iter().copied());
+        ids
+    }
+    fn local_command_entry_ids() -> &'static [u16] {
+        some_service_meta::COMMAND_ENTRY_IDS
+    }
+    fn query_entry_ids() -> sails_rename::Vec<u16> {
+        let mut ids = sails_rename::Vec::new();
+        ids.extend(some_service_meta::QUERY_ENTRY_IDS.iter().copied());
+        ids
+    }
+    fn local_query_entry_ids() -> &'static [u16] {
+        some_service_meta::QUERY_ENTRY_IDS
+    }
+    fn event_entry_ids() -> sails_rename::Vec<u16> {
+        let mut ids = some_service_meta::event_entry_ids();
+        ids
+    }
+    fn local_event_entry_ids() -> sails_rename::Vec<u16> {
+        some_service_meta::event_entry_ids()
+    }
+    fn interface_id() -> u64 {
+        some_service_meta::interface_id()
+    }
+    fn extends() -> &'static [sails_rename::meta::ExtendedInterface] {
+        some_service_meta::extends()
+    }
 }
+#[allow(unexpected_cfgs)]
 mod some_service_meta {
     use super::*;
     use sails_rename::{Decode, TypeInfo};
     use sails_rename::gstd::InvocationIo;
+    use sails_rename::spin::Once;
     #[derive(Decode, TypeInfo)]
     #[codec(crate = sails_rename::scale_codec)]
     #[scale_info(crate = sails_rename::scale_info)]
@@ -149,4 +184,47 @@ mod some_service_meta {
     #[scale_info(crate = sails_rename::scale_info)]
     pub enum NoEvents {}
     pub type EventsMeta = NoEvents;
+    pub const INTERFACE_ID: u64 = 13455838020804077818;
+    pub const EXTENDS: &[sails_rename::meta::ExtendedInterface] = &[];
+    pub const COMMAND_ENTRY_IDS: &[u16] = &[1];
+    pub const QUERY_ENTRY_IDS: &[u16] = &[2];
+    pub fn event_entry_ids() -> sails_rename::Vec<u16> {
+        sails_rename::Vec::new()
+    }
+    impl sails_rename::meta::EventEntryIdMeta for NoEvents {
+        fn event_entry_ids() -> sails_rename::Vec<u16> {
+            sails_rename::Vec::new()
+        }
+    }
+    #[cfg(feature = "std")]
+    fn computed_interface_id() -> u64 {
+        static ID: Once<u64> = Once::new();
+        *ID
+            .call_once(|| {
+                use sails_rename::interface_id;
+                let document = interface_id::runtime::build_canonical_document::<
+                    SomeService,
+                >()
+                    .expect("building canonical document should succeed");
+                interface_id::compute_ids_from_document(&document)
+            })
+    }
+    pub fn interface_id() -> u64 {
+        #[cfg(feature = "std")] { computed_interface_id() }
+        #[cfg(not(feature = "std"))] { INTERFACE_ID }
+    }
+    pub fn extends() -> &'static [sails_rename::meta::ExtendedInterface] {
+        #[cfg(feature = "std")]
+        {
+            static EXTENDS: Once<&'static [sails_rename::meta::ExtendedInterface]> = Once::new();
+            *EXTENDS
+                .call_once(|| {
+                    let mut entries: sails_rename::Vec<
+                        sails_rename::meta::ExtendedInterface,
+                    > = sails_rename::Vec::new();
+                    sails_rename::boxed::Box::leak(entries.into_boxed_slice())
+                })
+        }
+        #[cfg(not(feature = "std"))] { EXTENDS }
+    }
 }

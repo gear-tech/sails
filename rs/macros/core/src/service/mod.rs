@@ -9,6 +9,7 @@ use convert_case::{Case, Casing};
 use proc_macro_error::abort;
 use proc_macro2::{Literal, Span, TokenStream};
 use quote::quote;
+use std::collections::{BTreeMap, BTreeSet};
 use syn::{Generics, Ident, ItemImpl, Path, Type, TypePath, Visibility, WhereClause};
 
 mod args;
@@ -178,14 +179,72 @@ fn discover_service_handlers<'a>(
     service_impl: &'a ItemImpl,
     sails_path: &'a Path,
 ) -> Vec<FnBuilder<'a>> {
-    shared::discover_invocation_targets(
+    let mut handlers = shared::discover_invocation_targets(
         service_impl,
         |fn_item| matches!(fn_item.vis, Visibility::Public(_)) && fn_item.sig.receiver().is_some(),
         sails_path,
     )
     .into_iter()
     .filter(|fn_builder| fn_builder.export)
-    .collect()
+    .collect::<Vec<_>>();
+
+    handlers.sort_by(|a, b| {
+        a.route
+            .cmp(&b.route)
+            .then_with(|| a.ident.to_string().cmp(&b.ident.to_string()))
+            .then_with(|| handler_sort_key(a).cmp(&handler_sort_key(b)))
+    });
+
+    assign_default_entry_ids(&mut handlers);
+    ensure_unique_entry_ids(&handlers);
+    handlers
+}
+
+fn handler_sort_key(handler: &FnBuilder<'_>) -> String {
+    let params = handler
+        .params()
+        .map(|(_, ty)| quote!(#ty).to_string())
+        .collect::<Vec<_>>()
+        .join(",");
+    let result_ty = handler.result_type_with_static_lifetime();
+    let result = quote!(#result_ty).to_string();
+    let kind = if handler.is_query() {
+        "query"
+    } else {
+        "command"
+    };
+    format!("{kind}|{name}|{params}|{result}", name = handler.ident)
+}
+
+fn assign_default_entry_ids(handlers: &mut [FnBuilder<'_>]) {
+    let mut used: BTreeSet<u16> = handlers.iter().filter_map(|h| h.entry_id()).collect();
+    let mut next: u16 = 1;
+    for handler in handlers.iter_mut() {
+        if handler.entry_id().is_none() {
+            while used.contains(&next) {
+                next = next.wrapping_add(1);
+            }
+            handler.set_entry_id(next);
+            used.insert(next);
+            next = next.wrapping_add(1);
+        }
+    }
+}
+
+fn ensure_unique_entry_ids(handlers: &[FnBuilder<'_>]) {
+    let mut seen = BTreeMap::new();
+    for handler in handlers {
+        if let Some(entry_id) = handler.entry_id() {
+            if let Some(previous) = seen.insert(entry_id, handler.ident.to_string()) {
+                abort!(
+                    handler.ident.span(),
+                    "`entry_id = {}` conflicts with method `{}`",
+                    entry_id,
+                    previous
+                );
+            }
+        }
+    }
 }
 
 impl FnBuilder<'_> {

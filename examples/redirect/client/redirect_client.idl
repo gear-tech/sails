@@ -3,9 +3,12 @@ constructor {
 };
 
 service Redirect {
+  /// !@interface_id = 0x8d164ce2abc9fdbf
   /// Exit from program with inheritor ID
+  /// !@entry_id = 0x0001
   Exit : (inheritor_id: actor_id) -> null;
   /// Returns program ID of the current program
+  /// !@entry_id = 0x0002
   query GetProgramId : () -> actor_id;
 };
 
