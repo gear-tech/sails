@@ -57,16 +57,16 @@ sails-sol-gen = { path = "rs/sol-gen" }
 sails-rename = { package = "sails-rs", path = "rs" }
 
 # Gear deps
-gclient = { git = "https://github.com/gear-tech/gear.git", rev = "8cf962c" } # "=1.9.2"
-gcore = { git = "https://github.com/gear-tech/gear.git", rev = "8cf962c" } # "=1.9.2"
-gear-core = { git = "https://github.com/gear-tech/gear.git", rev = "8cf962c", default-features = false }
-gear-core-errors = { git = "https://github.com/gear-tech/gear.git", rev = "8cf962c" }
-gprimitives = { git = "https://github.com/gear-tech/gear.git", rev = "8cf962c", default-features = false, features = [
+gclient = { git = "https://github.com/gear-tech/gear.git", rev = "8cf962cbb036fc8b1400900fb560b33b8261bcc3" } # "=1.9.2"
+gcore = { git = "https://github.com/gear-tech/gear.git", rev = "8cf962cbb036fc8b1400900fb560b33b8261bcc3" } # "=1.9.2"
+gear-core = { git = "https://github.com/gear-tech/gear.git", rev = "8cf962cbb036fc8b1400900fb560b33b8261bcc3", default-features = false }
+gear-core-errors = { git = "https://github.com/gear-tech/gear.git", rev = "8cf962cbb036fc8b1400900fb560b33b8261bcc3" }
+gprimitives = { git = "https://github.com/gear-tech/gear.git", rev = "8cf962cbb036fc8b1400900fb560b33b8261bcc3", default-features = false, features = [
     "codec",
 ] }
-gstd = { git = "https://github.com/gear-tech/gear.git", rev = "8cf962c" }
-gtest = { git = "https://github.com/gear-tech/gear.git", rev = "8cf962c" }
-gwasm-builder = { git = "https://github.com/gear-tech/gear.git", rev = "8cf962c", package = "gear-wasm-builder" }
+gstd = { git = "https://github.com/gear-tech/gear.git", rev = "8cf962cbb036fc8b1400900fb560b33b8261bcc3" }
+gtest = { git = "https://github.com/gear-tech/gear.git", rev = "8cf962cbb036fc8b1400900fb560b33b8261bcc3" }
+gwasm-builder = { git = "https://github.com/gear-tech/gear.git", rev = "8cf962cbb036fc8b1400900fb560b33b8261bcc3", package = "gear-wasm-builder" }
 
 
 # Other deps in alphabetical order
