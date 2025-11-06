@@ -57,18 +57,21 @@ sails-sol-gen = { path = "rs/sol-gen" }
 sails-rename = { package = "sails-rs", path = "rs" }
 
 # Gear deps
-gclient = "=1.9.2"
-gcore = "=1.9.2"
-gear-core = { version = "=1.9.2", default-features = false }
-gear-core-errors = "=1.9.2"
-gprimitives = { version = "=1.9.2", default-features = false, features = ["codec"] }
-gstd = "=1.9.2"
-gtest = "=1.9.2"
-gwasm-builder = { version = "=1.9.2", package = "gear-wasm-builder" }
+gclient = { git = "https://github.com/gear-tech/gear.git", rev = "8cf962c" } # "=1.9.2"
+gcore = { git = "https://github.com/gear-tech/gear.git", rev = "8cf962c" } # "=1.9.2"
+gear-core = { git = "https://github.com/gear-tech/gear.git", rev = "8cf962c", default-features = false }
+gear-core-errors = { git = "https://github.com/gear-tech/gear.git", rev = "8cf962c" }
+gprimitives = { git = "https://github.com/gear-tech/gear.git", rev = "8cf962c", default-features = false, features = [
+    "codec",
+] }
+gstd = { git = "https://github.com/gear-tech/gear.git", rev = "8cf962c" }
+gtest = { git = "https://github.com/gear-tech/gear.git", rev = "8cf962c" }
+gwasm-builder = { git = "https://github.com/gear-tech/gear.git", rev = "8cf962c", package = "gear-wasm-builder" }
+
 
 # Other deps in alphabetical order
-alloy-primitives = { version = "0.8.19", default-features = false }
-alloy-sol-types = { version = "0.8.19", default-features = false }
+alloy-primitives = { version = "1.4.0", default-features = false }
+alloy-sol-types = { version = "1.4.0", default-features = false }
 anyhow = "1"
 askama = "0.14"
 cargo-generate = "0.23"
