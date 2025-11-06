@@ -4,4 +4,4 @@
 {%- for (k, v) in annotations %}
 @{{ k }} {%- if v.is_some() -%}: {{ v.as_ref().unwrap() }}{% endif %}
 {%- endfor %}
-{%- if name.is_some() -%}{{ name.as_ref().unwrap() }}: {% endif -%}{{- type_decl -}}
+{% if name.is_some() -%}{{ name.as_ref().unwrap() }}: {% endif -%}{{- type_decl -}}

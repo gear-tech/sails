@@ -14,24 +14,12 @@
 >
 {%- endif -%}
 
-{% match def %}
-{% when TypeDef::Struct(def) %}
-{%- if def.is_unit() -%}
-;
-{%- else if def.is_tuple() -%} (
-    {%- for field in def.fields -%}
-    {%- if loop.last %}{{ field }}{% else %}{{ field }},{% endif -%}
-    {%- endfor -%}
-);
-{%- else %} {
-    {% for field in def.fields -%}
-    {{ field }},
-    {% endfor %}
-}
-{%- endif -%}
+{%- match def %}
+{% when TypeDef::Struct(def) -%}
+{{ def -}}{%- if def.is_unit() || def.is_tuple() -%};{%- endif -%}
 {% when TypeDef::Enum(enum_def) %} {
     {%- for variant in enum_def.variants -%}
-    {{ variant }},
+    {{ variant | indent(4) }},
     {%- endfor %}
 }
-{% endmatch -%}
+{%- endmatch -%}

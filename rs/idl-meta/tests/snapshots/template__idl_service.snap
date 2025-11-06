@@ -1,0 +1,55 @@
+---
+source: rs/idl-meta/tests/template.rs
+expression: idl
+---
+!@sails: 0.1.0
+!@include: ownable.idl
+!@include: git://github.com/some_repo/tippable.idl
+
+service Counter {
+    events {
+        /// Emitted when a new value is added to the counter
+        Added(u32),
+        /// Emitted when a value is subtracted from the counter
+        Subtracted(u32),
+    }
+    functions {
+        /// Add a value to the counter
+        Add(value: u32) -> u32;
+        /// Substract a value from the counter
+        Sub(value: u32) -> u32 throws string;
+        /// Get the current value
+        @query
+        Value() -> u32;
+    }
+}
+
+service ThisThat  {
+    functions {
+        /// Add a value to the counter
+        DoThis(p1: u32, p2: string, p3: (Option<H160>, NonZeroU8), p4: TupleStruct) -> (string, u32) throws (string);
+    }
+    types {
+        struct DoThatParam {
+            /// Parametr p1: u32
+            p1: u32,
+            p2: ActorId,
+            p3: ManyVariants,
+        }
+        enum ManyVariants {
+            One,
+            Two(u32),
+            Three(Option<u32>),
+            Four {
+                a: u32,
+                b: Option<u16>,
+            },
+            Five (
+                string,
+                @key: value
+                H256,
+            ),
+            Six((u32)),
+        }
+    }
+}

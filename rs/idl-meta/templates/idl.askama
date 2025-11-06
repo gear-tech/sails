@@ -2,9 +2,12 @@
 {%- for (k, v) in globals %}
 !@{{ k }} {%- if v.is_some() -%}: {{ v.as_ref().unwrap() }}{% endif %}
 {%- endfor %}
-
+{# -------- SERVICES -------- #}
+{%- for s in services -%}
+{{ s }}
+{%- endfor -%}
 {# -------- PROGRAM -------- #}
-{%- if program.is_some() %}
-{%- let p = program.as_ref().unwrap() %}
-{{- p }}
-{%- endif %}
+{%- if program.is_some() -%}
+{%- let p = program.as_ref().unwrap() -%}
+{{ p }}
+{%- endif -%}

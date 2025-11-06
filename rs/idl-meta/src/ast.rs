@@ -1,4 +1,4 @@
-use alloc::{boxed::Box, string::String, vec::Vec};
+use alloc::{boxed::Box, format, string::String, vec::Vec};
 use askama::Template;
 use core::fmt::{Display, Write};
 
@@ -43,7 +43,8 @@ pub struct CtorFunc {
     pub annotations: Vec<(String, Option<String>)>,
 }
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Template)]
+#[template(path = "service.askama", escape = "none")]
 pub struct ServiceUnit {
     pub name: String,
     pub extends: Vec<String>,
@@ -63,6 +64,14 @@ pub struct ServiceFunc {
     pub is_query: bool,
     pub docs: Vec<String>,
     pub annotations: Vec<(String, Option<String>)>,
+}
+
+impl ServiceFunc {
+    pub fn is_return_void(&self) -> bool {
+        use PrimitiveType::*;
+        use TypeDecl::*;
+        self.output == Primitive(Void)
+    }
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -102,10 +111,11 @@ pub enum TypeDecl {
 
 impl Display for TypeDecl {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        use TypeDecl::*;
         match self {
-            TypeDecl::Slice(type_decl) => write!(f, "[{type_decl}]"),
-            TypeDecl::Array { item, len } => write!(f, "[{item};{len}]"),
-            TypeDecl::Tuple(type_decls) => {
+            Slice(type_decl) => write!(f, "[{type_decl}]"),
+            Array { item, len } => write!(f, "[{item};{len}]"),
+            Tuple(type_decls) => {
                 f.write_char('(')?;
                 for (i, ty) in type_decls.iter().enumerate() {
                     if i > 0 {
@@ -116,10 +126,10 @@ impl Display for TypeDecl {
                 f.write_char(')')?;
                 Ok(())
             }
-            TypeDecl::Option(type_decl) => write!(f, "Option<{type_decl}>"),
-            TypeDecl::Result { ok, err } => write!(f, "Result<{ok}, {err}>"),
-            TypeDecl::Primitive(primitive_type) => write!(f, "{primitive_type}"),
-            TypeDecl::UserDefined { path, generics } => {
+            Option(type_decl) => write!(f, "Option<{type_decl}>"),
+            Result { ok, err } => write!(f, "Result<{ok}, {err}>"),
+            Primitive(primitive_type) => write!(f, "{primitive_type}"),
+            UserDefined { path, generics } => {
                 write!(f, "{path}")?;
                 if !generics.is_empty() {
                     f.write_char('<')?;
@@ -162,10 +172,10 @@ pub enum PrimitiveType {
     H160,
 }
 
-impl Display for PrimitiveType {
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+impl PrimitiveType {
+    pub fn as_str(&self) -> &'static str {
         use PrimitiveType::*;
-        let s = match self {
+        match self {
             Void => "()",
             Bool => "bool",
             Char => "char",
@@ -186,8 +196,47 @@ impl Display for PrimitiveType {
             H256 => "H256",
             U256 => "U256",
             H160 => "H160",
-        };
-        f.write_str(s)
+        }
+    }
+}
+
+impl Display for PrimitiveType {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+impl core::str::FromStr for PrimitiveType {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        use PrimitiveType::*;
+        match s {
+            "()" => Ok(Void),
+            "bool" => Ok(Bool),
+            "char" => Ok(Char),
+            "String" | "string" => Ok(String),
+            "u8" => Ok(U8),
+            "u16" => Ok(U16),
+            "u32" => Ok(U32),
+            "u64" => Ok(U64),
+            "u128" => Ok(U128),
+            "i8" => Ok(I8),
+            "i16" => Ok(I16),
+            "i32" => Ok(I32),
+            "i64" => Ok(I64),
+            "i128" => Ok(I128),
+
+            "ActorId" | "actorid" | "actor_id" => Ok(ActorId),
+            "CodeId" | "codeid" | "code_id" => Ok(CodeId),
+            "MessageId" | "messageid" | "message_id" => Ok(MessageId),
+
+            "H256" | "h256" => Ok(H256),
+            "U256" | "u256" => Ok(U256),
+            "H160" | "h160" => Ok(H160),
+
+            other => Err(format!("Unknown primitive type: {other}")),
+        }
     }
 }
 
@@ -228,7 +277,8 @@ pub enum TypeDef {
     Enum(EnumDef),
 }
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Template)]
+#[template(path = "struct_def.askama", escape = "none")]
 pub struct StructDef {
     pub fields: Vec<StructField>,
 }
@@ -236,6 +286,12 @@ pub struct StructDef {
 impl StructDef {
     pub fn is_unit(&self) -> bool {
         self.fields.is_empty()
+    }
+
+    pub fn is_inline(&self) -> bool {
+        self.fields
+            .iter()
+            .all(|f| f.name.is_none() && f.docs.is_empty() && f.annotations.is_empty())
     }
 
     pub fn is_tuple(&self) -> bool {

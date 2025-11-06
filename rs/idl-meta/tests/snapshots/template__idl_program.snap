@@ -6,7 +6,6 @@ expression: idl
 !@include: ownable.idl
 !@include: git://github.com/some_repo/tippable.idl
 
-
 /// Demo Program
 program Demo {
     constructors {
@@ -27,7 +26,6 @@ program Demo {
             p1: u32,
             p2: ActorId,
             p3: ManyVariants,
-            
         }
         struct TupleStruct(u32);
         struct UnitStruct;
