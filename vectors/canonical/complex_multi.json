@@ -43,8 +43,7 @@
             "name": "u64"
           }
         }
-      ],
-      "name": "BaseService"
+      ]
     },
     "ExtendedService": {
       "events": [
@@ -59,7 +58,7 @@
       "extends": [
         {
           "name": "BaseService",
-          "interface_id": 10343398245330790253,
+          "interface_id": 14835969925731424569,
           "service": {
             "events": [
               {
@@ -97,8 +96,7 @@
                   "name": "u64"
                 }
               }
-            ],
-            "name": "BaseService"
+            ]
           }
         }
       ],
@@ -112,8 +110,7 @@
             "name": "BaseInput"
           }
         }
-      ],
-      "name": "ExtendedService"
+      ]
     }
   },
   "types": {

@@ -43,7 +43,7 @@ pub mod rmrk_resource {
     use super::*;
     pub trait RmrkResource {
         type Env: sails_rs::client::GearEnv;
-        /// !@interface_id = 0x20fe2436c6600fca
+        /// !@interface_id = 0x9730cce8a925be37
         /// !@entry_id = 0x0001
         fn add_part_to_resource(
             &mut self,

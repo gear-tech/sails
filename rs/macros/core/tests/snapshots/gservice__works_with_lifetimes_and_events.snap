@@ -1,5 +1,6 @@
 ---
 source: rs/macros/core/tests/gservice.rs
+assertion_line: 116
 expression: result
 ---
 pub struct MyGenericEventsServiceExposure<T> {
@@ -169,7 +170,7 @@ mod my_generic_events_service_meta {
     #[scale_info(crate = sails_rs::scale_info)]
     pub enum NoEvents {}
     pub type EventsMeta = MyEvents;
-    pub const INTERFACE_ID: u64 = 9066840688068277238;
+    pub const INTERFACE_ID: u64 = 13997437663145530173;
     pub const EXTENDS: &[sails_rs::meta::ExtendedInterface] = &[];
     pub const COMMAND_ENTRY_IDS: &[u16] = &[1];
     pub const QUERY_ENTRY_IDS: &[u16] = &[];

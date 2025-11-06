@@ -44,13 +44,13 @@ constructor {
 };
 
 service PingPong {
-  /// !@interface_id = 0x6f4d856f70e9b905
+  /// !@interface_id = 0xa5623ea9fafc5af5
   /// !@entry_id = 0x0001
   Ping : (input: str) -> result (str, str);
 };
 
 service Counter {
-  /// !@interface_id = 0x360674aa45f34eb5
+  /// !@interface_id = 0x89dbc2cce5b7fdcc
   /// Add a value to the counter
   /// !@entry_id = 0x0001
   Add : (value: u32) -> u32;
@@ -72,10 +72,10 @@ service Counter {
 };
 
 service Dog {
-  /// !@interface_id = 0x6f74094401d312d4
+  /// !@interface_id = 0xa76e4dbded6df3fe
   /// !@extends
-  ///   MammalService (interface_id=0x653bc183ac936301)
-  ///   WalkerService (interface_id=0xa16fdd1b59087e7b)
+  ///   MammalService (interface_id=0xadc268cf15ab73a0)
+  ///   WalkerService (interface_id=0x97dcb00bd1501f98)
   /// !@entry_id = 0x0001
   MakeSound : () -> str;
   /// !@entry_id = 0x0002
@@ -97,7 +97,7 @@ service Dog {
 };
 
 service References {
-  /// !@interface_id = 0x6043c59198049434
+  /// !@interface_id = 0x16dec7e4480fe77c
   /// !@entry_id = 0x0001
   Add : (v: u32) -> u32;
   /// !@entry_id = 0x0002
@@ -117,7 +117,7 @@ service References {
 };
 
 service ThisThat {
-  /// !@interface_id = 0x266580464fe9271a
+  /// !@interface_id = 0xe7bde5a282ea98c4
   /// !@entry_id = 0x0001
   DoThat : (param: DoThatParam) -> result (struct { actor_id, nat32, ManyVariantsReply }, struct { str });
   /// !@entry_id = 0x0002
@@ -131,7 +131,7 @@ service ThisThat {
 };
 
 service ValueFee {
-  /// !@interface_id = 0xb3357786d10628f6
+  /// !@interface_id = 0x43893ea7bc6115db
   /// Return flag if fee taken and remain value,
   /// using special type `CommandReply<T>`
   /// !@entry_id = 0x0001
@@ -144,7 +144,7 @@ service ValueFee {
 };
 
 service Chaos {
-  /// !@interface_id = 0x6554ddba07c3c050
+  /// !@interface_id = 0x8ebc6837a0fb15ce
   /// !@entry_id = 0x0001
   query PanicAfterWait : () -> null;
   /// !@entry_id = 0x0002

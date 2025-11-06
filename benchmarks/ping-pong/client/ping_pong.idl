@@ -10,7 +10,7 @@ constructor {
 };
 
 service PingPongService {
-  /// !@interface_id = 0xa0c1673a2d9e128c
+  /// !@interface_id = 0xbcb1572779531776
   /// !@entry_id = 0x0001
   Ping : (payload: PingPongPayload) -> PingPongPayload;
 };

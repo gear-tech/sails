@@ -4,7 +4,7 @@ constructor {
 };
 
 service Proxy {
-  /// !@interface_id = 0x4c9c43383a64063a
+  /// !@interface_id = 0x7de0948031412a6b
   /// Get program ID of the target program via client
   /// !@entry_id = 0x0001
   query GetProgramId : () -> actor_id;

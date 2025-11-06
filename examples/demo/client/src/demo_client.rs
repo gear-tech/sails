@@ -76,7 +76,7 @@ pub mod ping_pong {
     use super::*;
     pub trait PingPong {
         type Env: sails_rs::client::GearEnv;
-        /// !@interface_id = 0x6f4d856f70e9b905
+        /// !@interface_id = 0xa5623ea9fafc5af5
         /// !@entry_id = 0x0001
         fn ping(&mut self, input: String) -> sails_rs::client::PendingCall<io::Ping, Self::Env>;
     }
@@ -98,7 +98,7 @@ pub mod counter {
     use super::*;
     pub trait Counter {
         type Env: sails_rs::client::GearEnv;
-        /// !@interface_id = 0x360674aa45f34eb5
+        /// !@interface_id = 0x89dbc2cce5b7fdcc
         /// Add a value to the counter
         /// !@entry_id = 0x0001
         fn add(&mut self, value: u32) -> sails_rs::client::PendingCall<io::Add, Self::Env>;
@@ -156,10 +156,10 @@ pub mod dog {
     use super::*;
     pub trait Dog {
         type Env: sails_rs::client::GearEnv;
-        /// !@interface_id = 0x6f74094401d312d4
+        /// !@interface_id = 0xa76e4dbded6df3fe
         /// !@extends
-        /// MammalService (interface_id=0x653bc183ac936301)
-        /// WalkerService (interface_id=0xa16fdd1b59087e7b)
+        /// MammalService (interface_id=0xadc268cf15ab73a0)
+        /// WalkerService (interface_id=0x97dcb00bd1501f98)
         /// !@entry_id = 0x0001
         fn make_sound(&mut self) -> sails_rs::client::PendingCall<io::MakeSound, Self::Env>;
         /// !@entry_id = 0x0002
@@ -220,7 +220,7 @@ pub mod references {
     use super::*;
     pub trait References {
         type Env: sails_rs::client::GearEnv;
-        /// !@interface_id = 0x6043c59198049434
+        /// !@interface_id = 0x16dec7e4480fe77c
         /// !@entry_id = 0x0001
         fn add(&mut self, v: u32) -> sails_rs::client::PendingCall<io::Add, Self::Env>;
         /// !@entry_id = 0x0002
@@ -290,7 +290,7 @@ pub mod this_that {
     use super::*;
     pub trait ThisThat {
         type Env: sails_rs::client::GearEnv;
-        /// !@interface_id = 0x266580464fe9271a
+        /// !@interface_id = 0xe7bde5a282ea98c4
         /// !@entry_id = 0x0001
         fn do_that(
             &mut self,
@@ -354,7 +354,7 @@ pub mod value_fee {
     use super::*;
     pub trait ValueFee {
         type Env: sails_rs::client::GearEnv;
-        /// !@interface_id = 0xb3357786d10628f6
+        /// !@interface_id = 0x43893ea7bc6115db
         /// Return flag if fee taken and remain value,
         /// using special type `CommandReply<T>`
         /// !@entry_id = 0x0001
@@ -399,7 +399,7 @@ pub mod chaos {
     use super::*;
     pub trait Chaos {
         type Env: sails_rs::client::GearEnv;
-        /// !@interface_id = 0x6554ddba07c3c050
+        /// !@interface_id = 0x8ebc6837a0fb15ce
         /// !@entry_id = 0x0001
         fn panic_after_wait(&self) -> sails_rs::client::PendingCall<io::PanicAfterWait, Self::Env>;
         /// !@entry_id = 0x0002

@@ -45,7 +45,7 @@ pub mod counter_bench {
     use super::*;
     pub trait CounterBench {
         type Env: sails_rs::client::GearEnv;
-        /// !@interface_id = 0x8fd32b6db4f785c8
+        /// !@interface_id = 0x55fd7279955843ae
         /// !@entry_id = 0x0001
         fn inc(&mut self) -> sails_rs::client::PendingCall<io::Inc, Self::Env>;
         /// !@entry_id = 0x0002

@@ -85,7 +85,7 @@ pub struct CanonicalDocument {
 /// Canonical representation of a service.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct CanonicalService {
-    #[serde(default)]
+    #[serde(default, skip_serializing)]
     pub name: String,
     #[serde(default)]
     pub extends: Vec<CanonicalExtendedInterface>,
@@ -1009,8 +1009,7 @@ mod tests {
                                 "params": [],
                                 "returns": {"kind": "primitive", "name": "u32"}
                             }
-                        ],
-                        "name": "Example"
+                        ]
                     }
                 },
                 "types": {}

@@ -1,5 +1,6 @@
 ---
 source: rs/macros/core/tests/gservice.rs
+assertion_line: 141
 expression: result
 ---
 pub struct ExtendedLifetimeExposure<T> {
@@ -225,11 +226,11 @@ mod extended_lifetime_meta {
     #[scale_info(crate = sails_rs::scale_info)]
     pub enum NoEvents {}
     pub type EventsMeta = NoEvents;
-    pub const INTERFACE_ID: u64 = 11595017563133426260;
+    pub const INTERFACE_ID: u64 = 1626261040575508375;
     pub const EXTENDS: &[sails_rs::meta::ExtendedInterface] = &[
         sails_rs::meta::ExtendedInterface {
             name: "base :: BaseLifetime",
-            interface_id: 0,
+            interface_id: <base::BaseLifetime as sails_rs::meta::ServiceMeta>::INTERFACE_ID,
         },
     ];
     pub const COMMAND_ENTRY_IDS: &[u16] = &[];

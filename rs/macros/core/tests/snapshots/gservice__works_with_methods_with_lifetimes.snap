@@ -1,5 +1,6 @@
 ---
 source: rs/macros/core/tests/gservice.rs
+assertion_line: 184
 expression: result
 ---
 pub struct ReferenceServiceExposure<T> {
@@ -305,7 +306,7 @@ mod reference_service_meta {
     #[scale_info(crate = sails_rs::scale_info)]
     pub enum NoEvents {}
     pub type EventsMeta = NoEvents;
-    pub const INTERFACE_ID: u64 = 6481879125670996981;
+    pub const INTERFACE_ID: u64 = 18348246533560587929;
     pub const EXTENDS: &[sails_rs::meta::ExtendedInterface] = &[];
     pub const COMMAND_ENTRY_IDS: &[u16] = &[1, 4];
     pub const QUERY_ENTRY_IDS: &[u16] = &[2, 3, 5];

@@ -41,7 +41,7 @@ pub mod rmrk_catalog {
     use super::*;
     pub trait RmrkCatalog {
         type Env: sails_rs::client::GearEnv;
-        /// !@interface_id = 0x1b048b460a99a72f
+        /// !@interface_id = 0x441648d18a3b7366
         /// !@entry_id = 0x0001
         fn add_equippables(
             &mut self,
