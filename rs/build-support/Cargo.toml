@@ -17,6 +17,6 @@ toml_edit.workspace = true
 blake3.workspace = true
 sails-interface-id.workspace = true
 sails-idl-meta.workspace = true
-rustdoc-types.workspace = true
+sails-program-registry.workspace = true
 log.workspace = true
 once_cell.workspace = true

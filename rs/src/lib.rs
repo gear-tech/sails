@@ -11,8 +11,13 @@ pub use builder::{ClientBuilder, ClientGenerator, IdlPath, build_client, build_c
 use std::path::PathBuf;
 #[cfg(feature = "wasm-builder")]
 pub fn build_wasm() -> Option<(PathBuf, PathBuf)> {
-    if let Err(err) = sails_build_support::ensure_canonical_env(1) {
+    if let Err(err) = sails_build_support::ensure_canonical_env() {
         panic!("failed to generate canonical document: {err}");
+    }
+    if std::env::var_os("__GEAR_WASM_BUILDER_NO_BUILD").is_some() {
+        write_stub_wasm_binary()
+            .expect("failed to write wasm binary stub while canonical generation is disabled");
+        return None;
     }
     gwasm_builder::build()
 }
@@ -26,7 +31,44 @@ pub use sails_idl_meta::{self as meta};
 pub use sails_interface_id as interface_id;
 #[cfg(not(feature = "std"))]
 pub mod interface_id {}
+#[cfg(all(feature = "std", not(target_arch = "wasm32")))]
+pub use sails_program_registry as program_registry;
+#[cfg(any(not(feature = "std"), target_arch = "wasm32"))]
+pub mod program_registry {
+    #[macro_export]
+    macro_rules! submit_program_registration {
+        ($registration:expr) => {
+            #[cfg(not(target_arch = "wasm32"))]
+            compile_error!(
+                "`sails-rs` must be linked with the `std` feature to register programs on \
+                 the host. Update your dependency to `sails-rs = { features = [\"std\"] }`."
+            );
+        };
+    }
+}
 pub use spin;
+
+#[cfg(feature = "wasm-builder")]
+fn write_stub_wasm_binary() -> std::io::Result<()> {
+    use std::io::Write;
+
+    if let Ok(out_dir) = std::env::var("OUT_DIR") {
+        let path = PathBuf::from(out_dir).join("wasm_binary.rs");
+        if let Some(parent) = path.parent() {
+            std::fs::create_dir_all(parent)?;
+        }
+        let mut file = std::fs::File::create(path)?;
+        file.write_all(
+            br#"#[allow(unused)]
+pub const WASM_BINARY: &[u8] = &[];
+#[allow(unused)]
+pub const WASM_BINARY_OPT: &[u8] = &[];
+"#,
+        )?;
+    }
+
+    Ok(())
+}
 
 #[cfg(feature = "client-builder")]
 mod builder;

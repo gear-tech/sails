@@ -652,8 +652,9 @@ is used by the CLI, macro expansion, and the IDL generator.
 
 ### CanonicalDocument
 
-1. Runtime metadata (via `sails-idl-meta` + rustdoc) is normalized into a
-   `CanonicalDocument` (`rs/interface-id/src/{canonical.rs,runtime.rs}`), which
+1. Compile-time metadata (via `sails-idl-meta` and the registration emitted by
+   `#[program]`) is normalized into a `CanonicalDocument`
+   (`rs/interface-id/src/{canonical.rs,runtime.rs}`), which
    contains:
    - `canon_schema`, `canon_version`, and `hash` headers
    - a `services` map (functions, events, extends) with C3 linearization and

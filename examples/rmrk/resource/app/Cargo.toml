@@ -7,6 +7,9 @@ edition.workspace = true
 mockall = { workspace = true, optional = true }
 sails-rs.workspace = true
 
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+sails-rs = { workspace = true, features = ["std"] }
+
 [build-dependencies]
 git-download.workspace = true
 sails-client-gen.workspace = true

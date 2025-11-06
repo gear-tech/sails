@@ -85,9 +85,6 @@ enum SailsCommands {
         /// Directory for all generated artifacts
         #[arg(long, value_hint = clap::ValueHint::DirPath)]
         target_dir: Option<PathBuf>,
-        /// Level of dependencies to look for program implementation. Default: 1
-        #[arg(long)]
-        deps_level: Option<usize>,
     },
 
     #[command(name = "sol")]
@@ -201,8 +198,7 @@ fn main() -> Result<(), i32> {
         SailsCommands::IdlGen {
             manifest_path,
             target_dir,
-            deps_level,
-        } => CrateIdlGenerator::new(manifest_path, target_dir, deps_level).generate(),
+        } => CrateIdlGenerator::new(manifest_path, target_dir).generate(),
         SailsCommands::SolGen {
             idl_path,
             target_dir,

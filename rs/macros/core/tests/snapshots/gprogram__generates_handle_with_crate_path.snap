@@ -69,3 +69,11 @@ pub mod wasm {
         }
     }
 }
+#[cfg(not(target_arch = "wasm32"))]
+sails_rename::program_registry::submit_program_registration! {
+    sails_rename::program_registry::ProgramRegistration { package :
+    env!("CARGO_PKG_NAME"), type_path : stringify!(MyProgram), meta_path_version :
+    sails_rename::program_registry::MetaPathVersion::V2, write_idl :
+    sails_rename::program_registry::write_idl:: < MyProgram >, write_canonical :
+    sails_rename::program_registry::write_canonical:: < MyProgram >, }
+}

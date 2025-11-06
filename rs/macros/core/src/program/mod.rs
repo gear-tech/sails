@@ -431,6 +431,7 @@ fn gen_gprogram_impl(program_impl: ItemImpl, program_args: ProgramArgs) -> Token
     let (meta_in_program, init_fn) = program_builder.generate_init(&program_ident);
 
     let (program_type_path, ..) = program_builder.impl_type();
+    let host_registration = gen_program_registration(&sails_path, program_type_path);
 
     let program_impl = program_builder.deref();
 
@@ -461,6 +462,25 @@ fn gen_gprogram_impl(program_impl: ItemImpl, program_args: ProgramArgs) -> Token
             #handle_reply_fn
 
             #handle_signal_fn
+        }
+
+        #host_registration
+    )
+}
+
+fn gen_program_registration(sails_path: &Path, program_type_path: &TypePath) -> TokenStream2 {
+    let meta_version = quote!(#sails_path::program_registry::MetaPathVersion::V2);
+
+    quote!(
+        #[cfg(not(target_arch = "wasm32"))]
+        #sails_path::program_registry::submit_program_registration! {
+            #sails_path::program_registry::ProgramRegistration {
+                package: env!("CARGO_PKG_NAME"),
+                type_path: stringify!(#program_type_path),
+                meta_path_version: #meta_version,
+                write_idl: #sails_path::program_registry::write_idl::<#program_type_path>,
+                write_canonical: #sails_path::program_registry::write_canonical::<#program_type_path>,
+            }
         }
     )
 }

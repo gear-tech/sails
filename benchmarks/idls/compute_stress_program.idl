@@ -7,7 +7,7 @@ constructor {
 };
 
 service ComputeStress {
-  /// !@interface_id = 0x643f64992a3cb086
+  /// !@interface_id = 0x9fe3acb8fb0d83f9
   /// !@entry_id = 0x0001
   ComputeStress : (n: u32) -> ComputeStressResult;
 };

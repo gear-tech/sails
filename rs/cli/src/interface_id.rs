@@ -11,12 +11,8 @@ use std::{
 
 pub fn canonicalize_manifest(manifest: &Path, output: Option<&Path>) -> Result<()> {
     let manifest = to_utf8_path(manifest)?;
-    let canonical_path = generate_program_artifact(
-        manifest.as_std_path(),
-        None,
-        1,
-        ProgramArtifactKind::Canonical,
-    )?;
+    let canonical_path =
+        generate_program_artifact(manifest.as_std_path(), None, ProgramArtifactKind::Canonical)?;
     let canonical_bytes = fs::read(&canonical_path)
         .with_context(|| format!("failed to read canonical document {canonical_path}"))?;
 
@@ -79,12 +75,8 @@ pub fn derive_ids(input: &Path) -> Result<()> {
 
 pub fn derive_ids_for_manifest(manifest: &Path) -> Result<()> {
     let manifest = to_utf8_path(manifest)?;
-    let canonical_path = generate_program_artifact(
-        manifest.as_std_path(),
-        None,
-        1,
-        ProgramArtifactKind::Canonical,
-    )?;
+    let canonical_path =
+        generate_program_artifact(manifest.as_std_path(), None, ProgramArtifactKind::Canonical)?;
     println!("Generated canonical document at {canonical_path}");
     let canonical_bytes = fs::read(&canonical_path)
         .with_context(|| format!("failed to read canonical document {canonical_path}"))?;

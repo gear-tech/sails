@@ -9,9 +9,6 @@ license.workspace = true
 repository.workspace = true
 rust-version.workspace = true
 
-[lib]
-crate-type = ["cdylib", "rlib"]
-
 [dependencies]
 lalrpop-util.workspace = true
 logos.workspace = true

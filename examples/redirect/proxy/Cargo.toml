@@ -9,3 +9,6 @@ redirect-client = { path = "../client" }
 
 [build-dependencies]
 sails-rs = { workspace = true, features = ["wasm-builder"] }
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+sails-rs = { workspace = true, features = ["std"] }

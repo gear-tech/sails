@@ -12,14 +12,12 @@ use std::{
 pub struct CrateIdlGenerator {
     manifest_path: Utf8PathBuf,
     target_dir: Option<Utf8PathBuf>,
-    deps_level: usize,
 }
 
 impl CrateIdlGenerator {
     pub fn new(
         manifest_path: Option<std::path::PathBuf>,
         target_dir: Option<std::path::PathBuf>,
-        deps_level: Option<usize>,
     ) -> Self {
         Self {
             manifest_path: Utf8PathBuf::from_path_buf(
@@ -31,7 +29,6 @@ impl CrateIdlGenerator {
                 .and_then(|p| p.canonicalize().ok())
                 .map(Utf8PathBuf::from_path_buf)
                 .and_then(|t| t.ok()),
-            deps_level: deps_level.unwrap_or(1),
         }
     }
 
@@ -39,7 +36,6 @@ impl CrateIdlGenerator {
         generate_program_artifact(
             self.manifest_path.as_std_path(),
             self.target_dir.as_ref().map(|p| p.as_std_path()),
-            self.deps_level,
             ProgramArtifactKind::Idl,
         )
         .map(|file| {
@@ -50,12 +46,8 @@ impl CrateIdlGenerator {
 
 pub fn canonicalize_manifest(manifest: &Path, output: Option<&Path>) -> Result<()> {
     let manifest = to_utf8_path(manifest)?;
-    let canonical_path = generate_program_artifact(
-        manifest.as_std_path(),
-        None,
-        1,
-        ProgramArtifactKind::Canonical,
-    )?;
+    let canonical_path =
+        generate_program_artifact(manifest.as_std_path(), None, ProgramArtifactKind::Canonical)?;
     let canonical_bytes = fs::read(&canonical_path)
         .with_context(|| format!("failed to read canonical document {canonical_path}"))?;
 
@@ -119,12 +111,8 @@ pub fn derive_ids(input: &Path) -> Result<()> {
 
 pub fn derive_ids_for_manifest(manifest: &Path) -> Result<()> {
     let manifest = to_utf8_path(manifest)?;
-    let canonical_path = generate_program_artifact(
-        manifest.as_std_path(),
-        None,
-        1,
-        ProgramArtifactKind::Canonical,
-    )?;
+    let canonical_path =
+        generate_program_artifact(manifest.as_std_path(), None, ProgramArtifactKind::Canonical)?;
     println!("Generated canonical document at {canonical_path}");
     let canonical_bytes = fs::read(&canonical_path)
         .with_context(|| format!("failed to read canonical document {canonical_path}"))?;

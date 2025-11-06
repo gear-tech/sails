@@ -7,6 +7,9 @@ edition.workspace = true
 demo-walker = { path = "../walker" }
 sails-rs.workspace = true
 
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+sails-rs = { workspace = true, features = ["std"] }
+
 [build-dependencies]
 sails-rs = { workspace = true, features = ["wasm-builder"] }
 

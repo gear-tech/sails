@@ -19,6 +19,9 @@ fs2.workspace = true
 sails-rs.workspace = true
 itertools.workspace = true
 
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+sails-rs = { workspace = true, features = ["std"] }
+
 [build-dependencies]
 sails-rs = { workspace = true, features = ["build"] }
 alloc-stress = { path = "alloc-stress" }
