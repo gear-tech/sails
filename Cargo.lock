@@ -7222,6 +7222,7 @@ dependencies = [
 name = "sails-idl-gen"
 version = "0.9.1"
 dependencies = [
+ "askama",
  "convert_case 0.7.1",
  "gprimitives",
  "handlebars",

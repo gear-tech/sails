@@ -1,8 +1,10 @@
 use crate::type_names::{FinalizedName, FinalizedRawName};
+use askama::Template;
 pub use errors::*;
 use handlebars::{Handlebars, handlebars_helper};
 use meta::ExpandedProgramMeta;
 pub use program::*;
+use sails_idl_meta::*;
 use scale_info::{Field, PortableType, Variant, form::PortableForm};
 use serde::Serialize;
 use serde_json::Value as JsonValue;
@@ -12,6 +14,7 @@ mod errors;
 mod meta;
 mod meta2;
 mod type_names;
+mod type_resolver;
 
 // TODO: Discuss
 // 1. extends section (no need to merge fns, or merge but with stating source service -> benefits when same method names corner case)
@@ -73,6 +76,55 @@ pub mod service {
             return Ok(());
         }
         Ok(fs::write(&path, idl_new_content)?)
+    }
+}
+
+const SAILS_VERSION: &str = env!("CARGO_PKG_VERSION");
+
+fn build_ast(
+    gen_meta_info: GenMetaInfo,
+    program_meta: meta2::ExpandedProgramMeta,
+) -> Result<IdlDoc> {
+    let doc = IdlDoc {
+        globals: vec![
+            ("sails".to_string(), Some(SAILS_VERSION.to_string())),
+            ("author".to_string(), Some(gen_meta_info.author)),
+            ("version".to_string(), Some(gen_meta_info.version.format())),
+        ],
+        program: program_meta.program.map(build_program),
+        services: vec![],
+    };
+    Ok(doc)
+}
+
+fn build_program(program: ProgramIdlSection) -> ProgramUnit {
+    use PrimitiveType::*;
+    use TypeDecl::*;
+    let ctors = program
+        .ctors
+        .into_iter()
+        .map(|ctor| CtorFunc {
+            name: ctor.name,
+            params: ctor
+                .args
+                .into_iter()
+                .map(|p| FuncParam {
+                    name: p.name,
+                    type_decl: Primitive(U32),
+                })
+                .collect(),
+            docs: ctor.docs,
+            annotations: vec![],
+        })
+        .collect();
+
+    ProgramUnit {
+        name: program.name,
+        ctors,
+        services: vec![],
+        types: vec![],
+        docs: vec![],
+        annotations: vec![],
     }
 }
 
@@ -275,34 +327,37 @@ impl IdlVersion {
 fn render_idlv2(
     gen_meta_info: GenMetaInfo,
     program_meta: meta2::ExpandedProgramMeta,
-    idl_writer: impl Write,
+    mut idl_writer: impl Write,
 ) -> Result<()> {
-    let idl_data = IdlData {
-        program_section: program_meta.program,
-        services: program_meta.services,
-        version: gen_meta_info.version.format(),
-        author: gen_meta_info.author,
-        sails_version: env!("CARGO_PKG_VERSION").to_string(),
-    };
+    let doc = build_ast(gen_meta_info, program_meta)?;
+    doc.write_into(&mut idl_writer)?;
 
-    let mut handlebars = Handlebars::new();
-    handlebars
-        .register_template_string("idlv2", IDLV2_TEMPLATE)
-        .map_err(Box::new)?;
-    handlebars
-        .register_partial("program", PROGRAM_TEMPLATE)
-        .map_err(Box::new)?;
-    handlebars
-        .register_partial("service", SERVICE_TEMPLATE)
-        .map_err(Box::new)?;
-    handlebars.register_helper("deref", Box::new(deref));
-    handlebars.register_helper("any_field_has_docs", Box::new(any_field_has_docs));
-    handlebars.register_helper("has_functions", Box::new(has_functions));
-    handlebars.register_helper("has_key", Box::new(has_key));
+    // let idl_data = IdlData {
+    //     program_section: program_meta.program,
+    //     services: program_meta.services,
+    //     version: gen_meta_info.version.format(),
+    //     author: gen_meta_info.author,
+    //     sails_version: env!("CARGO_PKG_VERSION").to_string(),
+    // };
 
-    handlebars
-        .render_to_write("idlv2", &idl_data, idl_writer)
-        .map_err(Box::new)?;
+    // let mut handlebars = Handlebars::new();
+    // handlebars
+    //     .register_template_string("idlv2", IDLV2_TEMPLATE)
+    //     .map_err(Box::new)?;
+    // handlebars
+    //     .register_partial("program", PROGRAM_TEMPLATE)
+    //     .map_err(Box::new)?;
+    // handlebars
+    //     .register_partial("service", SERVICE_TEMPLATE)
+    //     .map_err(Box::new)?;
+    // handlebars.register_helper("deref", Box::new(deref));
+    // handlebars.register_helper("any_field_has_docs", Box::new(any_field_has_docs));
+    // handlebars.register_helper("has_functions", Box::new(has_functions));
+    // handlebars.register_helper("has_key", Box::new(has_key));
+
+    // handlebars
+    //     .render_to_write("idlv2", &idl_data, idl_writer)
+    //     .map_err(Box::new)?;
 
     Ok(())
 }

@@ -10,6 +10,7 @@ repository.workspace = true
 rust-version.workspace = true
 
 [dependencies]
+askama.workspace = true
 convert_case.workspace = true
 gprimitives.workspace = true
 handlebars.workspace = true

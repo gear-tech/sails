@@ -114,7 +114,7 @@ impl Display for TypeDecl {
         use TypeDecl::*;
         match self {
             Slice(type_decl) => write!(f, "[{type_decl}]"),
-            Array { item, len } => write!(f, "[{item};{len}]"),
+            Array { item, len } => write!(f, "[{item}; {len}]"),
             Tuple(type_decls) => {
                 f.write_char('(')?;
                 for (i, ty) in type_decls.iter().enumerate() {
@@ -179,7 +179,7 @@ impl PrimitiveType {
             Void => "()",
             Bool => "bool",
             Char => "char",
-            String => "string",
+            String => "String",
             U8 => "u8",
             U16 => "u16",
             U32 => "u32",
