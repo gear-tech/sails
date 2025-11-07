@@ -51,6 +51,14 @@ void c_visit_program_service_item(const void *context,
   program_service_item_visited = 1;
 }
 
+void c_visit_user_defined_type(const void *context, const TypeDecl *node,
+                               const uint8_t *path,
+                               uint32_t path_len, const TypeDecl *generics_ptr,
+                               uint32_t generics_len) {
+  printf("C: visit_user_defined_type called. Path: %.*s, Generics len: %u\n",
+         path_len, path, generics_len);
+}
+
 int main() {
   const char *idl_source =
       "program MyProgram {\n"
@@ -96,8 +104,8 @@ int main() {
       .visit_array_type_decl =
           (void (*)(const void *, const TypeDecl *,
                     uint32_t))unexpected_ffi_call_extra_args,
-      .visit_tuple_type_decl =
-          (void (*)(const void *, const TypeDecl *,
+      .visit_tuple_type_decl = (void (*)(const void *, const TypeDecl *,
+                                        const TypeDecl *,
                     uint32_t))unexpected_ffi_call_extra_args,
       .visit_option_type_decl =
           (void (*)(const void *, const TypeDecl *))unexpected_ffi_call,
@@ -106,9 +114,7 @@ int main() {
                     const TypeDecl *))unexpected_ffi_call_extra_args,
       .visit_primitive_type =
           (void (*)(const void *, uint8_t))unexpected_ffi_call_extra_args,
-      .visit_user_defined_type =
-          (void (*)(const void *, const uint8_t *,
-                    uint32_t))unexpected_ffi_call_extra_args,
+      .visit_user_defined_type = c_visit_user_defined_type,
       .visit_service_func =
           (void (*)(const void *, const ServiceFunc *))unexpected_ffi_call,
       .visit_service_event =
@@ -117,8 +123,6 @@ int main() {
           (void (*)(const void *, const EnumDef *))unexpected_ffi_call,
       .visit_enum_variant =
           (void (*)(const void *, const EnumVariant *))unexpected_ffi_call,
-      .visit_type_decl =
-          (void (*)(const void *, const TypeDecl *))unexpected_ffi_call,
       .visit_type_parameter =
           (void (*)(const void *, const TypeParameter *))unexpected_ffi_call,
       .visit_type_def =

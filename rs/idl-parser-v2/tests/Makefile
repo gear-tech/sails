@@ -16,7 +16,7 @@ TEST_DEMO_VISITOR := $(TARGET_DIR)/ffi_demo_idl_visitor_test
 TEST_CUSTOM := $(TARGET_DIR)/ffi_custom_test
 TEST_FULL_COVERAGE := $(TARGET_DIR)/ffi_full_coverage_test
 
-.PHONY: all clean run
+.PHONY: all clean run $(TARGET_DIR)/libsails_idl_parser_v2.so
 
 all: $(TEST_NULL_VISITOR) $(TEST_DEMO_VISITOR) $(TEST_CUSTOM) $(TEST_FULL_COVERAGE)
 
@@ -29,11 +29,12 @@ run: all
 	@echo "C FFI tests completed."
 
 # Rule to build the Rust library
-$(TARGET_DIR)/libsails_idl_parser_v2.so: 
+$(TARGET_DIR)/libsails_idl_parser_v2.so:
+	cargo clean -p sails-idl-parser-v2
 	cargo build -p sails-idl-parser-v2 --target-dir "$(CRATE_DIR)/target" --lib
 
 # Rule to compile C source files into object files
-$(TARGET_DIR)/%.o: $(C_TEST_DIR)/%.c $(C_TEST_DIR)/utils.h
+$(TARGET_DIR)/%.o: $(C_TEST_DIR)/%.c $(C_TEST_DIR)/utils.h $(TARGET_DIR)/libsails_idl_parser_v2.so
 	gcc -I$(C_TEST_DIR) -c $< -o $@
 
 $(TARGET_DIR)/test_demo_idl_visitor.o: $(C_TEST_DIR)/test_demo_idl_visitor.c $(C_TEST_DIR)/utils.h

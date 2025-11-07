@@ -53,11 +53,6 @@ pub trait Visitor<'ast> {
         accept_func_param(func_param, self);
     }
 
-    /// Visits a type declaration, [ast::TypeDecl].
-    fn visit_type_decl(&mut self, type_decl: &'ast ast::TypeDecl) {
-        accept_type_decl(type_decl, self);
-    }
-
     /// Visits a type parameter for generics, [ast::TypeParameter].
     fn visit_type_parameter(&mut self, type_param: &'ast ast::TypeParameter) {
         accept_type_parameter(type_param, self);
@@ -101,8 +96,14 @@ pub trait Visitor<'ast> {
     }
 
     /// Visits a tuple type declaration, `(T, U)`, from [ast::TypeDecl::Tuple].
-    fn visit_tuple_type_decl(&mut self, items: &'ast Vec<ast::TypeDecl>) {
-        accept_tuple_type_decl(items, self);
+    fn visit_tuple_type_decl(
+        &mut self,
+        _type_decl: &'ast ast::TypeDecl,
+        items: &'ast Vec<ast::TypeDecl>,
+    ) {
+        for item in items {
+            accept_type_decl(item, self);
+        }
     }
 
     /// Visits an option type declaration, `Option<T>`, from [ast::TypeDecl::Option].
@@ -127,8 +128,15 @@ pub trait Visitor<'ast> {
     }
 
     /// Visits a user-defined type, `path::to::MyType<T>`, from [ast::TypeDecl::UserDefined].
-    fn visit_user_defined_type(&mut self, _path: &'ast str, generics: &'ast Vec<ast::TypeDecl>) {
-        accept_user_defined_type(generics, self);
+    fn visit_user_defined_type(
+        &mut self,
+        _type_decl: &'ast ast::TypeDecl,
+        _path: &'ast str,
+        generics: &'ast Vec<ast::TypeDecl>,
+    ) {
+        for generic in generics {
+            accept_type_decl(generic, self);
+        }
     }
 }
 
@@ -215,9 +223,9 @@ pub fn accept_service_func<'ast>(
     for param in &service_func.params {
         visitor.visit_func_param(param);
     }
-    visitor.visit_type_decl(&service_func.output);
+    accept_type_decl(&service_func.output, visitor);
     if let Some(throws_type) = &service_func.throws {
-        visitor.visit_type_decl(throws_type);
+        accept_type_decl(throws_type, visitor);
     }
 }
 
@@ -237,7 +245,7 @@ pub fn accept_func_param<'ast>(
     func_param: &'ast ast::FuncParam,
     visitor: &mut (impl Visitor<'ast> + ?Sized),
 ) {
-    visitor.visit_type_decl(&func_param.type_decl);
+    accept_type_decl(&func_param.type_decl, visitor);
 }
 
 /// Traverses the children of a [ast::TypeDecl].
@@ -254,7 +262,7 @@ pub fn accept_type_decl<'ast>(
             visitor.visit_array_type_decl(item, *len);
         }
         ast::TypeDecl::Tuple(items) => {
-            visitor.visit_tuple_type_decl(items);
+            visitor.visit_tuple_type_decl(type_decl, items);
         }
         ast::TypeDecl::Option(inner_type_decl) => {
             visitor.visit_option_type_decl(inner_type_decl);
@@ -266,7 +274,7 @@ pub fn accept_type_decl<'ast>(
             visitor.visit_primitive_type(*primitive_type);
         }
         ast::TypeDecl::UserDefined { path, generics } => {
-            visitor.visit_user_defined_type(path, generics);
+            visitor.visit_user_defined_type(type_decl, path, generics);
         }
     }
 }
@@ -278,7 +286,7 @@ pub fn accept_type_parameter<'ast>(
     visitor: &mut (impl Visitor<'ast> + ?Sized),
 ) {
     if let Some(ty) = &type_param.ty {
-        visitor.visit_type_decl(ty);
+        accept_type_decl(ty, visitor);
     }
 }
 
@@ -315,7 +323,7 @@ pub fn accept_struct_field<'ast>(
     struct_field: &'ast ast::StructField,
     visitor: &mut (impl Visitor<'ast> + ?Sized),
 ) {
-    visitor.visit_type_decl(&struct_field.type_decl);
+    accept_type_decl(&struct_field.type_decl, visitor);
 }
 
 /// Traverses the children of an [ast::EnumDef].
@@ -337,28 +345,6 @@ pub fn accept_enum_variant<'ast>(
 ) {
     // EnumVariant contains a StructDef for its fields.
     visitor.visit_struct_def(&enum_variant.def);
-}
-
-/// Traverses the children of a [ast::TypeDecl::Tuple].
-/// It visits each type declaration within the tuple.
-pub fn accept_tuple_type_decl<'ast>(
-    items: &'ast Vec<ast::TypeDecl>,
-    visitor: &mut (impl Visitor<'ast> + ?Sized),
-) {
-    for item in items {
-        visitor.visit_type_decl(item);
-    }
-}
-
-/// Traverses the children of a [ast::TypeDecl::UserDefined].
-/// It visits the generic parameters of the user-defined type.
-pub fn accept_user_defined_type<'ast>(
-    generics: &'ast Vec<ast::TypeDecl>,
-    visitor: &mut (impl Visitor<'ast> + ?Sized),
-) {
-    for generic in generics {
-        visitor.visit_type_decl(generic);
-    }
 }
 
 #[cfg(test)]

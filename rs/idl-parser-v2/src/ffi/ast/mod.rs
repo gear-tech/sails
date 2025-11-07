@@ -670,19 +670,3 @@ impl TypeDef {
         }
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use std::mem::size_of;
-
-    #[test]
-    fn verify_nullable_pointer_optimization() {
-        type MyFuncPtr = unsafe extern "C" fn(i32) -> i32;
-
-        let raw_ptr_size = size_of::<MyFuncPtr>();
-
-        let option_ptr_size = size_of::<Option<MyFuncPtr>>();
-
-        assert_eq!(raw_ptr_size, option_ptr_size);
-    }
-}

@@ -1,7 +1,7 @@
 use super::{
-    Allocations, CtorFunc, EnumDef, EnumVariant, ErrorCode, FFIString, FuncParam, IdlDoc,
-    ProgramServiceItem, ProgramUnit, ServiceEvent, ServiceFunc, ServiceUnit, StructDef,
-    StructField, Type, TypeDecl, TypeDef, TypeParameter,
+    Allocations, CtorFunc, EnumDef, EnumVariant, ErrorCode, FuncParam, IdlDoc, ProgramServiceItem,
+    ProgramUnit, ServiceEvent, ServiceFunc, ServiceUnit, StructDef, StructField, Type, TypeDecl,
+    TypeDef, TypeParameter,
 };
 use crate::ast::{self, visitor::Visitor as RawVisitor};
 use paste::paste;
@@ -20,7 +20,12 @@ pub struct Visitor {
     pub visit_array_type_decl:
         Option<unsafe extern "C" fn(context: *const (), item_ty: *const TypeDecl, len: u32)>,
     pub visit_tuple_type_decl: Option<
-        unsafe extern "C" fn(context: *const (), items_ptr: *const TypeDecl, items_len: u32),
+        unsafe extern "C" fn(
+            context: *const (),
+            node: *const TypeDecl,
+            items_ptr: *const TypeDecl,
+            items_len: u32,
+        ),
     >,
     pub visit_option_type_decl:
         Option<unsafe extern "C" fn(context: *const (), inner_ty: *const TypeDecl)>,
@@ -29,8 +34,16 @@ pub struct Visitor {
     >,
     pub visit_primitive_type:
         Option<unsafe extern "C" fn(context: *const (), primitive: ast::PrimitiveType)>,
-    pub visit_user_defined_type:
-        Option<unsafe extern "C" fn(context: *const (), path_ptr: *const u8, path_len: u32)>,
+    pub visit_user_defined_type: Option<
+        unsafe extern "C" fn(
+            context: *const (),
+            node: *const TypeDecl,
+            path_ptr: *const u8,
+            path_len: u32,
+            generics_ptr: *const TypeDecl,
+            generics_len: u32,
+        ),
+    >,
     pub visit_service_func:
         Option<unsafe extern "C" fn(context: *const (), func: *const ServiceFunc)>,
     pub visit_service_event:
@@ -43,8 +56,6 @@ pub struct Visitor {
         Option<unsafe extern "C" fn(context: *const (), variant: *const EnumVariant)>,
     pub visit_program_service_item:
         Option<unsafe extern "C" fn(context: *const (), service_item: *const ProgramServiceItem)>,
-    pub visit_type_decl:
-        Option<unsafe extern "C" fn(context: *const (), type_decl: *const TypeDecl)>,
     pub visit_type_parameter:
         Option<unsafe extern "C" fn(context: *const (), type_param: *const TypeParameter)>,
     pub visit_type_def: Option<unsafe extern "C" fn(context: *const (), type_def: *const TypeDef)>,
@@ -59,11 +70,23 @@ extern "C" {
     fn visit_type(context: *const (), ty: *const Type);
     fn visit_slice_type_decl(context: *const (), item_ty: *const TypeDecl);
     fn visit_array_type_decl(context: *const (), item_ty: *const TypeDecl, len: u32);
-    fn visit_tuple_type_decl(context: *const (), items_ptr: *const TypeDecl, items_len: u32);
+    fn visit_tuple_type_decl(
+        context: *const (),
+        node: *const TypeDecl,
+        items_ptr: *const TypeDecl,
+        items_len: u32,
+    );
     fn visit_option_type_decl(context: *const (), inner_ty: *const TypeDecl);
     fn visit_result_type_decl(context: *const (), ok_ty: *const TypeDecl, err_ty: *const TypeDecl);
     fn visit_primitive_type(context: *const (), primitive: ast::PrimitiveType);
-    fn visit_user_defined_type(context: *const (), path_ptr: *const u8, path_len: u32);
+    fn visit_user_defined_type(
+        context: *const (),
+        node: *const TypeDecl,
+        path_ptr: *const u8,
+        path_len: u32,
+        generics_ptr: *const TypeDecl,
+        generics_len: u32,
+    );
     fn visit_service_func(context: *const (), func: *const ServiceFunc);
     fn visit_service_event(context: *const (), event: *const ServiceEvent);
     fn visit_struct_def(context: *const (), def: *const StructDef);
@@ -71,7 +94,6 @@ extern "C" {
     fn visit_enum_def(context: *const (), def: *const EnumDef);
     fn visit_enum_variant(context: *const (), variant: *const EnumVariant);
     fn visit_program_service_item(context: *const (), service_item: *const ProgramServiceItem);
-    fn visit_type_decl(context: *const (), type_decl: *const TypeDecl);
     fn visit_type_parameter(context: *const (), type_param: *const TypeParameter);
     fn visit_type_def(context: *const (), type_def: *const TypeDef);
 }
@@ -97,7 +119,6 @@ static VISITOR: Visitor = Visitor {
     visit_enum_def: Some(visit_enum_def),
     visit_enum_variant: Some(visit_enum_variant),
     visit_program_service_item: Some(visit_program_service_item),
-    visit_type_decl: Some(visit_type_decl),
     visit_type_parameter: Some(visit_type_parameter),
     visit_type_def: Some(visit_type_def),
 };
@@ -186,8 +207,13 @@ impl<'a, 'ast> RawVisitor<'ast> for VisitorWrapper<'a> {
         crate::ast::visitor::accept_type_decl(item_type_decl, self);
     }
 
-    fn visit_tuple_type_decl(&mut self, items: &'ast Vec<ast::TypeDecl>) {
+    fn visit_tuple_type_decl(
+        &mut self,
+        type_decl: &'ast ast::TypeDecl,
+        items: &'ast Vec<ast::TypeDecl>,
+    ) {
         if let Some(visit) = self.visitor.visit_tuple_type_decl {
+            let ffi_node = TypeDecl::from_ast(type_decl, &mut self.allocations);
             let ffi_items: Vec<TypeDecl> = items
                 .iter()
                 .map(|item| TypeDecl::from_ast(item, &mut self.allocations))
@@ -196,10 +222,12 @@ impl<'a, 'ast> RawVisitor<'ast> for VisitorWrapper<'a> {
             let ptr = boxed_slice.as_ptr();
             let len = boxed_slice.len() as u32;
             self.allocations.type_decls.push(boxed_slice);
-            unsafe { visit(self.context, ptr, len) };
+            unsafe { visit(self.context, &ffi_node, ptr, len) };
             return;
         }
-        crate::ast::visitor::accept_tuple_type_decl(items, self);
+        for item in items {
+            crate::ast::visitor::accept_type_decl(item, self);
+        }
     }
 
     fn visit_option_type_decl(&mut self, inner_type_decl: &'ast ast::TypeDecl) {
@@ -232,16 +260,50 @@ impl<'a, 'ast> RawVisitor<'ast> for VisitorWrapper<'a> {
         }
     }
 
-    fn visit_user_defined_type(&mut self, path: &'ast str, generics: &'ast Vec<ast::TypeDecl>) {
+    fn visit_user_defined_type(
+        &mut self,
+        type_decl: &'ast ast::TypeDecl,
+        path: &'ast str,
+        generics: &'ast Vec<ast::TypeDecl>,
+    ) {
+        let path_bytes = path.as_bytes().to_vec();
+        let boxed_path = path_bytes.into_boxed_slice();
+        let path_ptr = boxed_path.as_ptr();
+        let path_len = boxed_path.len() as u32;
+        self.allocations.strings.push(boxed_path);
+
         if let Some(visit) = self.visitor.visit_user_defined_type {
-            let path_ffi = FFIString {
-                ptr: path.as_ptr(),
-                len: path.len() as u32,
+            let ffi_node = TypeDecl::from_ast(type_decl, &mut self.allocations);
+            let ffi_generics: Vec<TypeDecl> = generics
+                .iter()
+                .map(|g| TypeDecl::from_ast(g, &mut self.allocations))
+                .collect();
+
+            let (generics_ptr, generics_len) = if !ffi_generics.is_empty() {
+                let boxed_slice = ffi_generics.into_boxed_slice();
+                let ptr = boxed_slice.as_ptr();
+                let len = boxed_slice.len() as u32;
+                self.allocations.type_decls.push(boxed_slice);
+                (ptr, len)
+            } else {
+                (std::ptr::null(), 0)
             };
-            unsafe { visit(self.context, path_ffi.ptr, path_ffi.len) };
+
+            unsafe {
+                visit(
+                    self.context,
+                    &ffi_node,
+                    path_ptr,
+                    path_len,
+                    generics_ptr,
+                    generics_len,
+                )
+            };
             return;
         }
-        crate::ast::visitor::accept_user_defined_type(generics, self);
+        for generic in generics {
+            crate::ast::visitor::accept_type_decl(generic, self);
+        }
     }
 
     fn visit_service_func(&mut self, func: &'ast ast::ServiceFunc) {
@@ -307,15 +369,6 @@ impl<'a, 'ast> RawVisitor<'ast> for VisitorWrapper<'a> {
         crate::ast::visitor::accept_program_service_item(service_item, self);
     }
 
-    fn visit_type_decl(&mut self, type_decl: &'ast ast::TypeDecl) {
-        if let Some(visit) = self.visitor.visit_type_decl {
-            let ffi_type_decl = TypeDecl::from_ast(type_decl, &mut self.allocations);
-            unsafe { visit(self.context, &ffi_type_decl) };
-            return;
-        }
-        crate::ast::visitor::accept_type_decl(type_decl, self);
-    }
-
     fn visit_type_parameter(&mut self, type_param: &'ast ast::TypeParameter) {
         if let Some(visit) = self.visitor.visit_type_parameter {
             let ffi_param = TypeParameter::from_ast(type_param, &mut self.allocations);
@@ -333,326 +386,6 @@ impl<'a, 'ast> RawVisitor<'ast> for VisitorWrapper<'a> {
         }
         crate::ast::visitor::accept_type_def(type_def, self);
     }
-}
-
-// Manually defined accept_* functions for TypeDecl variants, PrimitiveType, and UserDefinedType
-
-fn accept_slice_type_decl_impl(
-    type_decl: *const TypeDecl,
-    context: *const (),
-    visitor: &Visitor,
-) -> ErrorCode {
-    if type_decl.is_null() {
-        return ErrorCode::NullPtr;
-    }
-    let mut wrapper = VisitorWrapper::new(context, visitor);
-    let raw_node: &ast::TypeDecl = unsafe { (*type_decl).raw_ptr.as_ref() };
-    if let ast::TypeDecl::Slice(item_type_decl) = raw_node {
-        wrapper.visit_slice_type_decl(item_type_decl);
-    } else {
-        return ErrorCode::NullPtr;
-    }
-    ErrorCode::Ok
-}
-
-#[cfg(target_arch = "wasm32")]
-#[unsafe(no_mangle)]
-pub unsafe extern "C" fn accept_slice_type_decl(
-    type_decl: *const TypeDecl,
-    context: *const (),
-) -> ErrorCode {
-    accept_slice_type_decl_impl(type_decl, context, &VISITOR)
-}
-
-/// Traverses the children of a slice type declaration.
-///
-/// # Safety
-///
-/// - `type_decl` must be a valid pointer to a `TypeDecl` representing a slice.
-/// - `visitor` must be a valid pointer to a `Visitor` struct.
-#[cfg(not(target_arch = "wasm32"))]
-#[unsafe(no_mangle)]
-pub unsafe extern "C" fn accept_slice_type_decl(
-    type_decl: *const TypeDecl,
-    context: *const (),
-    visitor: *const Visitor,
-) -> ErrorCode {
-    if visitor.is_null() {
-        return ErrorCode::NullPtr;
-    }
-    accept_slice_type_decl_impl(type_decl, context, unsafe { &*visitor })
-}
-
-fn accept_array_type_decl_impl(
-    type_decl: *const TypeDecl,
-    context: *const (),
-    visitor: &Visitor,
-) -> ErrorCode {
-    if type_decl.is_null() {
-        return ErrorCode::NullPtr;
-    }
-    let mut wrapper = VisitorWrapper::new(context, visitor);
-    let raw_node: &ast::TypeDecl = unsafe { (*type_decl).raw_ptr.as_ref() };
-    if let ast::TypeDecl::Array { item, len } = raw_node {
-        wrapper.visit_array_type_decl(item, *len);
-    } else {
-        return ErrorCode::NullPtr;
-    }
-    ErrorCode::Ok
-}
-
-#[cfg(target_arch = "wasm32")]
-#[unsafe(no_mangle)]
-pub unsafe extern "C" fn accept_array_type_decl(
-    type_decl: *const TypeDecl,
-
-    context: *const (),
-) -> ErrorCode {
-    accept_array_type_decl_impl(type_decl, context, &VISITOR)
-}
-
-/// Traverses the children of an array type declaration.
-///
-/// # Safety
-///
-/// - `type_decl` must be a valid pointer to a `TypeDecl` representing an array.
-/// - `visitor` must be a valid pointer to a `Visitor` struct.
-#[cfg(not(target_arch = "wasm32"))]
-#[unsafe(no_mangle)]
-pub unsafe extern "C" fn accept_array_type_decl(
-    type_decl: *const TypeDecl,
-    context: *const (),
-    visitor: *const Visitor,
-) -> ErrorCode {
-    if visitor.is_null() {
-        return ErrorCode::NullPtr;
-    }
-    accept_array_type_decl_impl(type_decl, context, unsafe { &*visitor })
-}
-
-fn accept_tuple_type_decl_impl(
-    type_decl: *const TypeDecl,
-    context: *const (),
-    visitor: &Visitor,
-) -> ErrorCode {
-    if type_decl.is_null() {
-        return ErrorCode::NullPtr;
-    }
-    let mut wrapper = VisitorWrapper::new(context, visitor);
-    let raw_node: &ast::TypeDecl = unsafe { (*type_decl).raw_ptr.as_ref() };
-    if let ast::TypeDecl::Tuple(items) = raw_node {
-        wrapper.visit_tuple_type_decl(items);
-    } else {
-        return ErrorCode::NullPtr;
-    }
-    ErrorCode::Ok
-}
-
-#[cfg(target_arch = "wasm32")]
-#[unsafe(no_mangle)]
-pub unsafe extern "C" fn accept_tuple_type_decl(
-    type_decl: *const TypeDecl,
-
-    context: *const (),
-) -> ErrorCode {
-    accept_tuple_type_decl_impl(type_decl, context, &VISITOR)
-}
-
-/// Traverses the children of a tuple type declaration.
-///
-/// # Safety
-///
-/// - `type_decl` must be a valid pointer to a `TypeDecl` representing a tuple.
-/// - `visitor` must be a valid pointer to a `Visitor` struct.
-#[cfg(not(target_arch = "wasm32"))]
-#[unsafe(no_mangle)]
-pub unsafe extern "C" fn accept_tuple_type_decl(
-    type_decl: *const TypeDecl,
-    context: *const (),
-    visitor: *const Visitor,
-) -> ErrorCode {
-    if visitor.is_null() {
-        return ErrorCode::NullPtr;
-    }
-    accept_tuple_type_decl_impl(type_decl, context, unsafe { &*visitor })
-}
-
-fn accept_option_type_decl_impl(
-    type_decl: *const TypeDecl,
-    context: *const (),
-    visitor: &Visitor,
-) -> ErrorCode {
-    if type_decl.is_null() {
-        return ErrorCode::NullPtr;
-    }
-    let mut wrapper = VisitorWrapper::new(context, visitor);
-    let raw_node: &ast::TypeDecl = unsafe { (*type_decl).raw_ptr.as_ref() };
-    if let ast::TypeDecl::Option(inner_type_decl) = raw_node {
-        wrapper.visit_option_type_decl(inner_type_decl);
-    } else {
-        return ErrorCode::NullPtr;
-    }
-    ErrorCode::Ok
-}
-
-#[cfg(target_arch = "wasm32")]
-#[unsafe(no_mangle)]
-
-pub unsafe extern "C" fn accept_option_type_decl(
-    type_decl: *const TypeDecl,
-    context: *const (),
-) -> ErrorCode {
-    accept_option_type_decl_impl(type_decl, context, &VISITOR)
-}
-
-/// Traverses the children of an option type declaration.
-///
-/// # Safety
-///
-/// - `type_decl` must be a valid pointer to a `TypeDecl` representing an option.
-/// - `visitor` must be a valid pointer to a `Visitor` struct.
-#[cfg(not(target_arch = "wasm32"))]
-#[unsafe(no_mangle)]
-pub unsafe extern "C" fn accept_option_type_decl(
-    type_decl: *const TypeDecl,
-    context: *const (),
-    visitor: *const Visitor,
-) -> ErrorCode {
-    if visitor.is_null() {
-        return ErrorCode::NullPtr;
-    }
-    accept_option_type_decl_impl(type_decl, context, unsafe { &*visitor })
-}
-
-fn accept_result_type_decl_impl(
-    type_decl: *const TypeDecl,
-    context: *const (),
-    visitor: &Visitor,
-) -> ErrorCode {
-    if type_decl.is_null() {
-        return ErrorCode::NullPtr;
-    }
-    let mut wrapper = VisitorWrapper::new(context, visitor);
-    let raw_node: &ast::TypeDecl = unsafe { (*type_decl).raw_ptr.as_ref() };
-    if let ast::TypeDecl::Result { ok, err } = raw_node {
-        wrapper.visit_result_type_decl(ok, err);
-    } else {
-        return ErrorCode::NullPtr;
-    }
-    ErrorCode::Ok
-}
-
-#[cfg(target_arch = "wasm32")]
-#[unsafe(no_mangle)]
-pub unsafe extern "C" fn accept_result_type_decl(
-    type_decl: *const TypeDecl,
-    context: *const (),
-) -> ErrorCode {
-    accept_result_type_decl_impl(type_decl, context, &VISITOR)
-}
-
-/// Traverses the children of a result type declaration.
-///
-/// # Safety
-///
-/// - `type_decl` must be a valid pointer to a `TypeDecl` representing a result.
-/// - `visitor` must be a valid pointer to a `Visitor` struct.
-#[cfg(not(target_arch = "wasm32"))]
-#[unsafe(no_mangle)]
-pub unsafe extern "C" fn accept_result_type_decl(
-    type_decl: *const TypeDecl,
-
-    context: *const (),
-    visitor: *const Visitor,
-) -> ErrorCode {
-    if visitor.is_null() {
-        return ErrorCode::NullPtr;
-    }
-
-    accept_result_type_decl_impl(type_decl, context, unsafe { &*visitor })
-}
-
-fn accept_primitive_type_impl(
-    primitive_type: ast::PrimitiveType,
-    context: *const (),
-    visitor: &Visitor,
-) -> ErrorCode {
-    let mut wrapper = VisitorWrapper::new(context, visitor);
-    wrapper.visit_primitive_type(primitive_type);
-    ErrorCode::Ok
-}
-
-#[cfg(target_arch = "wasm32")]
-#[unsafe(no_mangle)]
-pub unsafe extern "C" fn accept_primitive_type(
-    primitive_type: ast::PrimitiveType,
-    context: *const (),
-) -> ErrorCode {
-    accept_primitive_type_impl(primitive_type, context, &VISITOR)
-}
-
-/// Visits a primitive type.
-///
-/// # Safety
-///
-/// - `visitor` must be a valid pointer to a `Visitor` struct.
-#[cfg(not(target_arch = "wasm32"))]
-#[unsafe(no_mangle)]
-pub unsafe extern "C" fn accept_primitive_type(
-    primitive_type: ast::PrimitiveType,
-    context: *const (),
-    visitor: *const Visitor,
-) -> ErrorCode {
-    if visitor.is_null() {
-        return ErrorCode::NullPtr;
-    }
-    accept_primitive_type_impl(primitive_type, context, unsafe { &*visitor })
-}
-
-fn accept_user_defined_type_impl(
-    type_decl: *const TypeDecl,
-    context: *const (),
-    visitor: &Visitor,
-) -> ErrorCode {
-    if type_decl.is_null() {
-        return ErrorCode::NullPtr;
-    }
-    let mut wrapper = VisitorWrapper::new(context, visitor);
-    let raw_node: &ast::TypeDecl = unsafe { (*type_decl).raw_ptr.as_ref() };
-    if let ast::TypeDecl::UserDefined { path, generics } = raw_node {
-        wrapper.visit_user_defined_type(path, generics);
-    } else {
-        return ErrorCode::NullPtr;
-    }
-    ErrorCode::Ok
-}
-
-#[cfg(target_arch = "wasm32")]
-#[unsafe(no_mangle)]
-pub unsafe extern "C" fn accept_user_defined_type(
-    type_decl: *const TypeDecl,
-    context: *const (),
-) -> ErrorCode {
-    accept_user_defined_type_impl(type_decl, context, &VISITOR)
-}
-
-/// Traverses the children of a user-defined type declaration.
-///
-/// # Safety
-///
-/// - `type_decl` must be a valid pointer to a `TypeDecl` representing a user-defined type.
-/// - `visitor` must be a valid pointer to a `Visitor` struct.
-#[cfg(not(target_arch = "wasm32"))]
-#[unsafe(no_mangle)]
-pub unsafe extern "C" fn accept_user_defined_type(
-    type_decl: *const TypeDecl,
-    context: *const (),
-    visitor: *const Visitor,
-) -> ErrorCode {
-    if visitor.is_null() {
-        return ErrorCode::NullPtr;
-    }
-    accept_user_defined_type_impl(type_decl, context, unsafe { &*visitor })
 }
 
 macro_rules! accept_impl {
@@ -716,9 +449,69 @@ accept_impl!(
     ProgramServiceItem,
     ast::ProgramServiceItem
 );
-accept_impl!(type_decl, TypeDecl, ast::TypeDecl);
 accept_impl!(type_parameter, TypeParameter, ast::TypeParameter);
 accept_impl!(type_def, TypeDef, ast::TypeDef);
+
+fn accept_type_decl_impl(
+    node: *const TypeDecl,
+    context: *const (),
+    visitor: &Visitor,
+) -> ErrorCode {
+    if node.is_null() {
+        return ErrorCode::NullPtr;
+    }
+    let mut wrapper = VisitorWrapper::new(context, visitor);
+    let raw_node: &ast::TypeDecl = unsafe { (*node).raw_ptr.as_ref() };
+
+    match raw_node {
+        ast::TypeDecl::Slice(item_type_decl) => {
+            wrapper.visit_slice_type_decl(item_type_decl);
+        }
+        ast::TypeDecl::Array { item, len } => {
+            wrapper.visit_array_type_decl(item, *len);
+        }
+        ast::TypeDecl::Tuple(items) => {
+            wrapper.visit_tuple_type_decl(raw_node, items);
+        }
+        ast::TypeDecl::Option(inner_type_decl) => {
+            wrapper.visit_option_type_decl(inner_type_decl);
+        }
+        ast::TypeDecl::Result { ok, err } => {
+            wrapper.visit_result_type_decl(ok, err);
+        }
+        ast::TypeDecl::Primitive(primitive_type) => wrapper.visit_primitive_type(*primitive_type),
+        ast::TypeDecl::UserDefined { path, generics } => {
+            wrapper.visit_user_defined_type(raw_node, path, generics);
+        }
+    }
+    ErrorCode::Ok
+}
+
+///
+/// Traverses the children of a `TypeDecl` node.
+///
+/// # Safety
+///
+/// - `node` must be a valid pointer to a `TypeDecl` struct.
+/// - `visitor` must be a valid pointer to a `Visitor` struct.
+#[cfg(not(target_arch = "wasm32"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn accept_type_decl(
+    node: *const TypeDecl,
+    context: *const (),
+    visitor: *const Visitor,
+) -> ErrorCode {
+    if visitor.is_null() {
+        return ErrorCode::NullPtr;
+    }
+    accept_type_decl_impl(node, context, unsafe { &*visitor })
+}
+
+#[cfg(target_arch = "wasm32")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn accept_type_decl(node: *const TypeDecl, context: *const ()) -> ErrorCode {
+    accept_type_decl_impl(node, context, &VISITOR)
+}
 
 fn accept_idl_doc_impl(doc: *const IdlDoc, context: *const (), visitor: &Visitor) -> ErrorCode {
     if doc.is_null() {

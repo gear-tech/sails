@@ -45,7 +45,6 @@ int main() {
       .visit_enum_def = NULL,
       .visit_enum_variant = NULL,
       .visit_program_service_item = NULL,
-      .visit_type_decl = NULL,
       .visit_type_parameter = NULL,
       .visit_type_def = NULL,
   };

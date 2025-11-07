@@ -22,7 +22,6 @@ static int count_struct_field = 0;
 static int count_enum_def = 0;
 static int count_enum_variant = 0;
 static int count_program_service_item = 0;
-static int count_type_decl = 0;
 static int count_type_parameter = 0;
 static int count_type_def = 0;
 
@@ -64,14 +63,12 @@ void cb_visit_array_type_decl(const void *context, const TypeDecl *item_ty,
   accept_type_decl(item_ty, context, (const Visitor *)context);
 }
 
-void cb_visit_tuple_type_decl(const void *context, const TypeDecl *items,
-                              uint32_t len) {
+void cb_visit_tuple_type_decl(const void *context, const TypeDecl *node,
+                              const TypeDecl *items, uint32_t len) {
   count_tuple_type_decl++;
-  const char *current_ptr = (const char *)items;
   for (uint32_t i = 0; i < len; i++) {
-    accept_type_decl((const TypeDecl *)current_ptr, context,
-                     (const Visitor *)context);
-    current_ptr += sizeof(void *);  // TypeDecl is the size of a pointer
+    const TypeDecl *item = (const TypeDecl *)((const char *)items + i * sizeof(void *));
+    accept_type_decl(item, context, (const Visitor *)context);
   }
 }
 
@@ -92,10 +89,15 @@ void cb_visit_primitive_type(const void *context, uint8_t primitive) {
   // Leaf node, no accept call
 }
 
-void cb_visit_user_defined_type(const void *context, const uint8_t *path,
-                                uint32_t path_len) {
+void cb_visit_user_defined_type(const void *context, const TypeDecl *node,
+                                const uint8_t *path, uint32_t path_len,
+                                const TypeDecl *generics_ptr,
+                                uint32_t generics_len) {
   count_user_defined_type++;
-  // The wrapper in Rust continues traversal into generics automatically.
+  for (uint32_t i = 0; i < generics_len; ++i) {
+    const TypeDecl *generic = (const TypeDecl *)((const char *)generics_ptr + i * sizeof(void *));
+    accept_type_decl(generic, context, (const Visitor *)context);
+  }
 }
 
 void cb_visit_service_func(const void *context, const ServiceFunc *node) {
@@ -132,11 +134,6 @@ void cb_visit_program_service_item(const void *context,
                                    const ProgramServiceItem *node) {
   count_program_service_item++;
   accept_program_service_item(node, context, (const Visitor *)context);
-}
-
-void cb_visit_type_decl(const void *context, const TypeDecl *node) {
-  count_type_decl++;
-  accept_type_decl(node, context, (const Visitor *)context);
 }
 
 void cb_visit_type_parameter(const void *context, const TypeParameter *node) {
@@ -189,7 +186,6 @@ int main() {
       .visit_enum_def = cb_visit_enum_def,
       .visit_enum_variant = cb_visit_enum_variant,
       .visit_program_service_item = cb_visit_program_service_item,
-      .visit_type_decl = cb_visit_type_decl,
       .visit_type_parameter = cb_visit_type_parameter,
       .visit_type_def = cb_visit_type_def,
   };
@@ -221,7 +217,6 @@ int main() {
   printf("  enum_def: %d\n", count_enum_def);
   printf("  enum_variant: %d\n", count_enum_variant);
   printf("  program_service_item: %d\n", count_program_service_item);
-  printf("  type_decl: %d\n", count_type_decl);
   printf("  type_parameter: %d\n", count_type_parameter);
   printf("  type_def: %d\n", count_type_def);
 
@@ -236,7 +231,7 @@ int main() {
   assert(count_tuple_type_decl == 1);
   assert(count_option_type_decl == 1);
   assert(count_result_type_decl == 1);
-  assert(count_primitive_type == 21);
+  assert(count_primitive_type == 22);
   assert(count_user_defined_type == 3);
   assert(count_service_func == 3);
   assert(count_service_event == 3);
@@ -245,9 +240,17 @@ int main() {
   assert(count_enum_def == 1);
   assert(count_enum_variant == 6);
   assert(count_program_service_item == 2);
-  assert(count_type_decl == 22);
   assert(count_type_parameter == 1);
   assert(count_type_def == 6);
+
+  int total_type_decls = count_slice_type_decl +
+                         count_array_type_decl +
+                         count_tuple_type_decl +
+                         count_option_type_decl +
+                         count_result_type_decl +
+                         count_primitive_type +
+                         count_user_defined_type;
+  assert(total_type_decls == 30);
 
   printf("Full Coverage C FFI test PASSED.\n");
   return 0;
