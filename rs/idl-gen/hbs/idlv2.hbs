@@ -1,0 +1,14 @@
+!@sails: {{sails_version}}
+{{#if services}}
+
+{{/if}}
+{{#each services}}
+{{> service}}
+{{#unless @last}}
+
+{{/unless}}
+{{/each}}
+{{#if program}}
+
+{{> program program}}
+{{/if}}

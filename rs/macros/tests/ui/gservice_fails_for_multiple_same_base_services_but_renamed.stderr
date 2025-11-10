@@ -1,0 +1,10 @@
+error[E0119]: conflicting implementations of trait `Into<MyService1>` for type `MyService2Exposure<MyService2>`
+  --> tests/ui/gservice_fails_for_multiple_same_base_services_but_renamed.rs:22:5
+   |
+22 |     #[service(extends = [svc1::MyService1, RenamedMyService1])]
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |     |
+   |     first implementation here
+   |     conflicting implementation for `MyService2Exposure<MyService2>`
+   |
+   = note: this error originates in the attribute macro `service` (in Nightly builds, run with -Z macro-backtrace for more info)
