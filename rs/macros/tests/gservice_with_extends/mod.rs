@@ -84,10 +84,7 @@ pub(super) mod extended_pure {
 }
 
 pub(super) mod extended_renamed {
-    use super::{
-        *,
-        base::Base as RenamedBase
-    };
+    use super::{base::Base as RenamedBase, *};
 
     pub struct ExtendedRenamed {
         base: (RenamedBase, other_base::Base),

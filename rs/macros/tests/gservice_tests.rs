@@ -66,7 +66,9 @@ async fn gservice_with_basics() {
 
 #[test]
 fn gservice_with_renamed_base() {
-    use gservice_with_extends::{base::Base, other_base::Base as OtherBase, extended_renamed::ExtendedRenamed};
+    use gservice_with_extends::{
+        base::Base, extended_renamed::ExtendedRenamed, other_base::Base as OtherBase,
+    };
     use sails_rs::meta::ServiceMeta;
 
     let base_services = <ExtendedRenamed as ServiceMeta>::base_services().collect::<Vec<_>>();

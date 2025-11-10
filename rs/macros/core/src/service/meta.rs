@@ -22,7 +22,7 @@ impl ServiceBuilder<'_> {
                 .expect("Base service path should have at least one segment")
                 .ident
                 .to_string();
-            
+
             if !base_names.insert(base_type_pathless_name.clone()) {
                 abort!(
                     base_type, "Base service with the same name was defined - `{}`",
