@@ -171,7 +171,7 @@ impl ExpandedProgramMeta {
         meta: fn(&AnyServiceMeta) -> &MetaType,
     ) -> Vec<&MetaType> {
         let mut metas = vec![meta(service_meta)];
-        for base_service_meta in service_meta.base_services() {
+        for (_, base_service_meta) in service_meta.base_services() {
             metas.extend(Self::flat_meta(base_service_meta, meta));
         }
         metas

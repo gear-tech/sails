@@ -240,7 +240,7 @@ impl<C: StaticTypeInfo, Q: StaticTypeInfo, E: StaticTypeInfo> RtlServiceMeta
     type CommandsMeta = C;
     type QueriesMeta = Q;
     type EventsMeta = E;
-    const BASE_SERVICES: &'static [AnyServiceMetaFn] = &[];
+    const BASE_SERVICES: &'static [(&'static str, sails_idl_meta::AnyServiceMetaFn)] = &[];
     const ASYNC: bool = false;
 }
 
@@ -257,7 +257,8 @@ impl<C: StaticTypeInfo, Q: StaticTypeInfo, E: StaticTypeInfo, B: RtlServiceMeta>
     type CommandsMeta = C;
     type QueriesMeta = Q;
     type EventsMeta = E;
-    const BASE_SERVICES: &'static [AnyServiceMetaFn] = &[AnyServiceMeta::new::<B>];
+    const BASE_SERVICES: &'static [(&'static str, AnyServiceMetaFn)] =
+        &[("BaseService", AnyServiceMeta::new::<B>)];
     const ASYNC: bool = false;
 }
 
@@ -316,7 +317,11 @@ impl ProgramMeta for TestProgramWithMultipleServicesMeta {
 fn program_idl_works_with_empty_ctors() {
     let mut idl = Vec::new();
 
-    program2::generate_idl::<TestProgramWithEmptyCtorsMeta>("EmptyCtorsProgram".to_string(), &mut idl).unwrap();
+    program2::generate_idl::<TestProgramWithEmptyCtorsMeta>(
+        "EmptyCtorsProgram".to_string(),
+        &mut idl,
+    )
+    .unwrap();
     let generated_idl = String::from_utf8(idl).unwrap();
 
     insta::assert_snapshot!(generated_idl);
@@ -333,7 +338,11 @@ fn program_idl_works_with_empty_ctors() {
 fn program_idl_works_with_non_empty_ctors() {
     let mut idl = Vec::new();
 
-    program2::generate_idl::<TestProgramWithNonEmptyCtorsMeta>("NonEmptyCtorsProgram".to_string(), &mut idl).unwrap();
+    program2::generate_idl::<TestProgramWithNonEmptyCtorsMeta>(
+        "NonEmptyCtorsProgram".to_string(),
+        &mut idl,
+    )
+    .unwrap();
     let generated_idl = String::from_utf8(idl).unwrap();
 
     insta::assert_snapshot!(generated_idl);
@@ -350,7 +359,11 @@ fn program_idl_works_with_non_empty_ctors() {
 fn program_idl_works_with_multiple_services() {
     let mut idl = Vec::new();
 
-    program2::generate_idl::<TestProgramWithMultipleServicesMeta>("MultipleServicesNoCtorsProgram".to_string(), &mut idl).unwrap();
+    program2::generate_idl::<TestProgramWithMultipleServicesMeta>(
+        "MultipleServicesNoCtorsProgram".to_string(),
+        &mut idl,
+    )
+    .unwrap();
     let generated_idl = String::from_utf8(idl).unwrap();
 
     insta::assert_snapshot!(generated_idl);
@@ -419,7 +432,11 @@ fn program_idl_works_with_no_services() {
 
     let mut idl = Vec::new();
 
-    program2::generate_idl::<TestProgramWithNoServicesMeta>("NoServicesWithCtorsProgram".to_string(), &mut idl).unwrap();
+    program2::generate_idl::<TestProgramWithNoServicesMeta>(
+        "NoServicesWithCtorsProgram".to_string(),
+        &mut idl,
+    )
+    .unwrap();
     let generated_idl = String::from_utf8(idl).unwrap();
 
     insta::assert_snapshot!(generated_idl);
@@ -440,10 +457,8 @@ fn service_idl_events_with_fns() {
     }
 
     let mut idl = Vec::new();
-    service2::generate_idl::<ServiceMeta<TestCommandsMeta, TestQueriesMeta, EventsMeta>>(
-        &mut idl,
-    )
-    .unwrap();
+    service2::generate_idl::<ServiceMeta<TestCommandsMeta, TestQueriesMeta, EventsMeta>>(&mut idl)
+        .unwrap();
     let generated_idl = String::from_utf8(idl).unwrap();
 
     insta::assert_snapshot!(generated_idl);
@@ -466,10 +481,8 @@ fn service_idl_events_with_types() {
     }
 
     let mut idl = Vec::new();
-    service2::generate_idl::<ServiceMeta<NoCommandsMeta, NoQueriesMeta, TestEventsMeta>>(
-        &mut idl,
-    )
-    .unwrap();
+    service2::generate_idl::<ServiceMeta<NoCommandsMeta, NoQueriesMeta, TestEventsMeta>>(&mut idl)
+        .unwrap();
     let generated_idl = String::from_utf8(idl).unwrap();
 
     insta::assert_snapshot!(generated_idl);
@@ -484,10 +497,8 @@ fn service_idl_fns_no_queries() {
     }
 
     let mut idl = Vec::new();
-    service2::generate_idl::<ServiceMeta<TestCommandsMeta, NoQueriesMeta, NoEventsMeta>>(
-        &mut idl,
-    )
-    .unwrap();
+    service2::generate_idl::<ServiceMeta<TestCommandsMeta, NoQueriesMeta, NoEventsMeta>>(&mut idl)
+        .unwrap();
     let generated_idl = String::from_utf8(idl).unwrap();
 
     insta::assert_snapshot!(generated_idl);
@@ -502,10 +513,8 @@ fn service_idl_no_commands() {
     }
 
     let mut idl = Vec::new();
-    service2::generate_idl::<ServiceMeta<NoCommandsMeta, TestQueriesMeta, NoEventsMeta>>(
-        &mut idl,
-    )
-    .unwrap();
+    service2::generate_idl::<ServiceMeta<NoCommandsMeta, TestQueriesMeta, NoEventsMeta>>(&mut idl)
+        .unwrap();
     let generated_idl = String::from_utf8(idl).unwrap();
 
     insta::assert_snapshot!(generated_idl);
@@ -534,7 +543,8 @@ fn program_idl_ctors_and_types() {
 
     let mut idl = Vec::new();
 
-    program2::generate_idl::<TestProgramMeta>("CtorsAndTypesProgram".to_string(), &mut idl).unwrap();
+    program2::generate_idl::<TestProgramMeta>("CtorsAndTypesProgram".to_string(), &mut idl)
+        .unwrap();
     let generated_idl = String::from_utf8(idl).unwrap();
 
     insta::assert_snapshot!(generated_idl);
@@ -544,13 +554,20 @@ fn program_idl_ctors_and_types() {
 /// - multiple services ✅
 /// - conflicting type names in one service ✅
 /// - base and extension services:
-///     - extension services receiving base services methods ✅
-///     - conflicting methods names in extension and base services ✅
-///     - extension service events receiving variants of the base service event ✅
-///     - extension service receives base service types ✅
+///     - extension services do not receive base services methods ✅
+///     - there is a possibility for same methods names in extension and base services ✅
+///     - extension service events do not receive variants of the base service event ✅
+///     - extension service do not receive base service types ✅
 ///     - same user defined types in base and extension services ✅
+///     - base services do not occur in services section of program's section ✅
+///     - base service is not repeated ❌ TODO [future]:
+///       Current impl without interface ids (hashes of the service internals) leads to a situation when same service
+///       can be generated in IDL multiple times (example: same base service for 2 services in your program). So, currently
+///       generates all the copies even with the same name, but that must be resolved with a new Sails binary protocol.
+///
 /// - events with different variants types and docs ✅
 /// - program section has various types ✅
+/// - same exposed service occurs only once in services section ❌ TODO [future] (case when exposed service with the same interface id has different route ids)
 /// - user defined types are unit/tuple/regular structs and enums with unit, tuple and struct variants ✅
 #[allow(unused_parens)]
 #[test]
@@ -589,7 +606,7 @@ fn program_idl_misc() {
         /// Query with const-generic type
         GetSomething(SingleParams<types::GenericStruct<bool>>, u64),
         /// Reuses a base type (String) to mirror base service usage
-        BorrowBaseType(SingleParams<String>, u16),
+        BorrowBaseType(SingleParams<String>, Result<u16, String>),
         /// This conflicts with base service query, but has different arguments in signature
         That(SingleParams<u32>, String),
     }
@@ -669,6 +686,7 @@ fn program_idl_misc() {
         type ConstructorsMeta = MiscCtorsMeta;
         const SERVICES: &'static [(&'static str, AnyServiceMetaFn)] = &[
             ("Service1", AnyServiceMeta::new::<BaseService>),
+            ("Service1", AnyServiceMeta::new::<BaseService>), // Intentional duplicate to test the case
             ("Service2", AnyServiceMeta::new::<ExtService>),
         ];
         const ASYNC: bool = false;

@@ -6,7 +6,7 @@ pub use program::*;
 use scale_info::{Field, PortableType, Variant, form::PortableForm};
 use serde::Serialize;
 use serde_json::Value as JsonValue;
-use std::{fs, io::Write, path::Path};
+use std::{fmt::Display, fs, io::Write, path::Path};
 
 mod errors;
 mod meta;
@@ -14,14 +14,6 @@ mod meta2;
 mod type_names;
 
 const IDL_GEN_VERSION: &str = "2.0.0";
-
-// TODO: Discuss
-// 1. extends section (no need to merge fns, or merge but with stating source service -> benefits when same method names corner case):
-// - base service is written in the file upper
-// - extend service without merging functions and events
-// - add the service to the extends section (test the extends section order)
-
-// todo [review]: write non zero stuff with annotations
 
 const IDL_TEMPLATE: &str = include_str!("../hbs/idl.hbs");
 const COMPOSITE_TEMPLATE: &str = include_str!("../hbs/composite.hbs");
@@ -174,9 +166,7 @@ pub mod service2 {
     use super::*;
     use sails_idl_meta::{AnyServiceMeta, ServiceMeta};
 
-    pub fn generate_idl<S: ServiceMeta>(
-        idl_writer: impl Write,
-    ) -> Result<()> {
+    pub fn generate_idl<S: ServiceMeta>(idl_writer: impl Write) -> Result<()> {
         render_idlv2(
             meta2::ExpandedProgramMeta::new(
                 None,
@@ -186,9 +176,7 @@ pub mod service2 {
         )
     }
 
-    pub fn generate_idl_to_file<S: ServiceMeta>(
-        path: impl AsRef<Path>,
-    ) -> Result<()> {
+    pub fn generate_idl_to_file<S: ServiceMeta>(path: impl AsRef<Path>) -> Result<()> {
         let mut idl_new_content = Vec::new();
         generate_idl::<S>(&mut idl_new_content)?;
         if let Ok(idl_old_content) = fs::read(&path)
@@ -200,14 +188,11 @@ pub mod service2 {
     }
 }
 
-fn render_idlv2(
-    program_meta: meta2::ExpandedProgramMeta,
-    idl_writer: impl Write,
-) -> Result<()> {
+fn render_idlv2(program_meta: meta2::ExpandedProgramMeta, idl_writer: impl Write) -> Result<()> {
     let idl_data = IdlData {
         program_section: program_meta.program,
         services: program_meta.services,
-        sails_version: format!("{IDL_GEN_VERSION}"),
+        sails_version: IDL_GEN_VERSION.to_string(),
     };
 
     let mut handlebars = Handlebars::new();
@@ -246,9 +231,6 @@ struct ProgramIdlSection {
     concrete_names: Vec<FinalizedName>,
     ctors: Vec<FunctionIdl>,
     types: Vec<FinalizedRawName>,
-    // todo [review]: it's actually a map from the service exposed name to 
-    // syntax: `{ExposedName}: {TypeName}` or `{TypeName}`, if no aliases,
-    // test the order
     services: Vec<String>,
 }
 
@@ -280,12 +262,45 @@ struct FunctionArgumentIdl {
 
 #[derive(Debug, Serialize)]
 struct ServiceSection {
-    name: String,
+    name: ServiceNameTy,
     concrete_names: Vec<FinalizedName>,
     extends: Vec<String>,
     events: Vec<Variant<PortableForm>>,
     types: Vec<FinalizedRawName>,
     functions: FunctionsSection,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(untagged)]
+enum ServiceNameTy {
+    Base(String),
+    Main(String),
+}
+
+impl ServiceNameTy {
+    #[cfg(test)]
+    pub fn as_str(&self) -> &str {
+        match self {
+            ServiceNameTy::Base(name) => name,
+            ServiceNameTy::Main(name) => name,
+        }
+    }
+
+    pub fn main(&self) -> Option<String> {
+        match self {
+            ServiceNameTy::Base(_) => None,
+            ServiceNameTy::Main(name) => Some(name.clone()),
+        }
+    }
+}
+
+impl Display for ServiceNameTy {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ServiceNameTy::Base(name) => write!(f, "{name}",),
+            ServiceNameTy::Main(name) => write!(f, "{name}",),
+        }
+    }
 }
 
 #[derive(Debug, Serialize)]

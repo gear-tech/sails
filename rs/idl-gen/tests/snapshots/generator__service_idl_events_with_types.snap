@@ -6,7 +6,7 @@ expression: generated_idl
 
 service {
     events {
-        One(TestType<NonZeroU256>),
+        One(TestType<NonZero<u256>>),
     }
 
     types {

@@ -41,6 +41,12 @@ use std::{
 
 const INTERIM_VEC_TYPE_NAME: &str = "SailsInterimNameVec";
 const INTERIM_BTREE_MAP_TYPE_NAME: &str = "SailsInterimNameBTreeMap";
+const NON_ZERO_U8: &str = "NonZeroU8";
+const NON_ZERO_U16: &str = "NonZeroU16";
+const NON_ZERO_U32: &str = "NonZeroU32";
+const NON_ZERO_U64: &str = "NonZeroU64";
+const NON_ZERO_U128: &str = "NonZeroU128";
+const NON_ZERO_U256: &str = "NonZeroU256";
 
 pub(super) fn resolve<'a>(
     types: impl Iterator<Item = &'a PortableType>,
@@ -89,10 +95,7 @@ pub(super) fn resolve<'a>(
     })
 }
 
-// todo [review] during resolution do not count generics!!! - can be postponed
-// so GenericStruct<bool> and GenericStruct<u32> are the same
-// so when you have GenericStruct<bool>, GenericStruct<u32> and other_mod::GenericStruct<u8>,
-// you will receive 2 names in `generic_names`, GenericStruct<T> and OtherModGenericStruct<T>
+// TODO issue#1104
 fn resolve_type_name(
     types: &BTreeMap<u32, &PortableType>,
     type_id: u32,
@@ -665,10 +668,14 @@ impl TypeName for PrimitiveTypeName {
 
 macro_rules! impl_primitive_alias_type_name {
     ($mod_name:ident, $primitive:ident) => {
-        impl_primitive_alias_type_name!($mod_name, $primitive, $primitive);
+        impl_primitive_alias_type_name!($mod_name, $primitive, stringify!($primitive));
     };
 
     ($mod_name:ident, $primitive:ident, $alias:ident) => {
+        impl_primitive_alias_type_name!($mod_name, $primitive, stringify!($alias));
+    };
+
+    ($mod_name:ident, $primitive:ident, $alias:expr) => {
         mod $mod_name {
             use super::*;
 
@@ -692,7 +699,7 @@ macro_rules! impl_primitive_alias_type_name {
                     _for_generic_param: bool,
                     _by_path_type_names: &HashMap<(String, Vec<u32>), u32>,
                 ) -> String {
-                    stringify!($alias).into()
+                    $alias.into()
                 }
             }
         }
@@ -705,12 +712,12 @@ impl_primitive_alias_type_name!(code_id, CodeId);
 impl_primitive_alias_type_name!(h160, H160);
 impl_primitive_alias_type_name!(h256, H256);
 impl_primitive_alias_type_name!(u256, U256, u256);
-impl_primitive_alias_type_name!(nat8, NonZeroU8);
-impl_primitive_alias_type_name!(nat16, NonZeroU16);
-impl_primitive_alias_type_name!(nat32, NonZeroU32);
-impl_primitive_alias_type_name!(nat64, NonZeroU64);
-impl_primitive_alias_type_name!(nat128, NonZeroU128);
-impl_primitive_alias_type_name!(nat256, NonZeroU256);
+impl_primitive_alias_type_name!(nat8, NonZeroU8, { NON_ZERO_U8 });
+impl_primitive_alias_type_name!(nat16, NonZeroU16, { NON_ZERO_U16 });
+impl_primitive_alias_type_name!(nat32, NonZeroU32, { NON_ZERO_U32 });
+impl_primitive_alias_type_name!(nat64, NonZeroU64, { NON_ZERO_U64 });
+impl_primitive_alias_type_name!(nat128, NonZeroU128, { NON_ZERO_U128 });
+impl_primitive_alias_type_name!(nat256, NonZeroU256, { NON_ZERO_U256 });
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize)]
 #[serde(transparent)]
@@ -1360,7 +1367,6 @@ mod finalize_type_name {
                     format!("({})", elements.join(", "))
                 }
             }
-            // TODO: should references remain?
             Type::Reference(TypeReference { elem, .. }) => finalize_syn(elem),
             // No paren types in the final output. Only single value tuples
             Type::Paren(TypeParen { elem, .. }) => finalize_syn(elem),
@@ -1394,7 +1400,15 @@ mod finalize_type_name {
                         ident => format!("{ident}<{args}>"),
                     }
                 } else {
-                    ident
+                    match ident.as_str() {
+                        NON_ZERO_U8 => "NonZero<u8>".to_string(),
+                        NON_ZERO_U16 => "NonZero<u16>".to_string(),
+                        NON_ZERO_U32 => "NonZero<u32>".to_string(),
+                        NON_ZERO_U64 => "NonZero<u64>".to_string(),
+                        NON_ZERO_U128 => "NonZero<u128>".to_string(),
+                        NON_ZERO_U256 => "NonZero<u256>".to_string(),
+                        ident => ident.to_string(),
+                    }
                 }
             }
             _ => t.format(),
@@ -1672,7 +1686,7 @@ mod tests {
     }
 
     macro_rules! type_name_resolution_works {
-        ($primitive:ident) => {
+        ($primitive:ty) => {
             let mut registry = Registry::new();
             let id = registry.register_type(&MetaType::new::<$primitive>()).id;
             let as_generic_param_id = registry
@@ -1680,9 +1694,8 @@ mod tests {
                 .id;
             let portable_registry = PortableRegistry::from(registry);
 
-            let filter_out_types = HashSet::new();
             let (type_names, _) =
-                resolve(portable_registry.types.iter(), &filter_out_types).unwrap();
+                resolve(portable_registry.types.iter(), &Default::default()).unwrap();
 
             let name = &type_names.get(&id).unwrap().0;
             assert_eq!(name, stringify!($primitive));
@@ -1715,33 +1728,34 @@ mod tests {
     }
 
     #[test]
-    fn nonzero_u8_type_name_resolution_works() {
-        type_name_resolution_works!(NonZeroU8);
-    }
+    fn non_zero_types_name_resolution_works() {
+        type Test = (
+            NonZeroU8,
+            NonZeroU16,
+            NonZeroU32,
+            NonZeroU64,
+            NonZeroU128,
+            NonZeroU256,
+        );
+        let mut registry = Registry::new();
+        let id = registry.register_type(&MetaType::new::<Test>()).id;
+        let part_of_generic = registry
+            .register_type(&MetaType::new::<GenericStruct<Test>>())
+            .id;
+        let portable_registry = PortableRegistry::from(registry);
 
-    #[test]
-    fn nonzero_u16_type_name_resolution_works() {
-        type_name_resolution_works!(NonZeroU16);
-    }
+        let (type_names, _) = resolve(portable_registry.types.iter(), &Default::default()).unwrap();
+        let name = &type_names.get(&id).unwrap().0;
+        assert_eq!(
+            name,
+            "(NonZero<u8>, NonZero<u16>, NonZero<u32>, NonZero<u64>, NonZero<u128>, NonZero<u256>)"
+        );
 
-    #[test]
-    fn nonzero_u32_type_name_resolution_works() {
-        type_name_resolution_works!(NonZeroU32);
-    }
-
-    #[test]
-    fn nonzero_u64_type_name_resolution_works() {
-        type_name_resolution_works!(NonZeroU64);
-    }
-
-    #[test]
-    fn nonzero_u128_type_name_resolution_works() {
-        type_name_resolution_works!(NonZeroU128);
-    }
-
-    #[test]
-    fn nonzero_u256_type_name_resolution_works() {
-        type_name_resolution_works!(NonZeroU256);
+        let part_of_generic_name = &type_names.get(&part_of_generic).unwrap().0;
+        assert_eq!(
+            part_of_generic_name,
+            "GenericStruct<(NonZero<u8>, NonZero<u16>, NonZero<u32>, NonZero<u64>, NonZero<u128>, NonZero<u256>)>"
+        );
     }
 
     #[test]
@@ -1876,6 +1890,13 @@ mod tests {
                 "(Option<[SailsInterimNameBTreeMap<char, SailsInterimNameVec<u8>>; 4]>, &[SailsInterimNameVec<u8>])",
                 "(Option<[[(char, [u8])]; 4]>, [[u8]])",
             ),
+            // NonZero types
+            ("NonZeroU8", "NonZero<u8>"),
+            ("NonZeroU16", "NonZero<u16>"),
+            ("NonZeroU32", "NonZero<u32>"),
+            ("NonZeroU64", "NonZero<u64>"),
+            ("NonZeroU128", "NonZero<u128>"),
+            ("NonZeroU256", "NonZero<u256>"),
         ];
 
         for (input, expected) in cases {

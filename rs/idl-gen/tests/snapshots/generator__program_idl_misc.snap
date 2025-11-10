@@ -42,7 +42,87 @@ service Service1 {
     }
 }
 
+service Service1 {
+    events {
+        ThisDone(BaseServiceType),
+        ThatDone {
+            p1: u16,
+        },
+        /// Uses a type that is also used in extension service in the event
+        BaseServiceSameType(GenericConstStruct),
+    }
+
+    functions {
+        DoThis(p1: u32) -> u32;
+
+        DoThatBase(p1: String) -> String;
+
+        @query
+        ThisBase(p1: u16) -> u16;
+
+        @query
+        That(p1: String) -> String;
+    }
+
+    types {
+        struct BaseServiceType (
+            /// Field docs
+            MessageId,
+            /// Field docs
+            H160,
+        );
+
+        /// GenericConstStruct docs
+        struct GenericConstStruct {
+            /// GenericStruct field `field`
+            field: [u8; 8],
+        }
+    }
+}
+
+service BaseService {
+    events {
+        ThisDone(BaseServiceType),
+        ThatDone {
+            p1: u16,
+        },
+        /// Uses a type that is also used in extension service in the event
+        BaseServiceSameType(GenericConstStruct),
+    }
+
+    functions {
+        DoThis(p1: u32) -> u32;
+
+        DoThatBase(p1: String) -> String;
+
+        @query
+        ThisBase(p1: u16) -> u16;
+
+        @query
+        That(p1: String) -> String;
+    }
+
+    types {
+        struct BaseServiceType (
+            /// Field docs
+            MessageId,
+            /// Field docs
+            H160,
+        );
+
+        /// GenericConstStruct docs
+        struct GenericConstStruct {
+            /// GenericStruct field `field`
+            field: [u8; 8],
+        }
+    }
+}
+
 service Service2 {
+    extends {
+        BaseService
+    }
+
     events {
         Unit,
         Tuple(Option<[H256; 32]>, bool),
@@ -93,7 +173,7 @@ service Service2 {
 
         /// Reuses a base type (String) to mirror base service usage
         @query
-        BorrowBaseType(p1: String) -> u16;
+        BorrowBaseType(p1: String) -> u16 throws String;
 
         /// This conflicts with base service query, but has different arguments in signature
         @query
@@ -147,44 +227,6 @@ service Service2 {
     }
 }
 
-service SomeBaseService {
-    events {
-        ThisDone(BaseServiceType),
-        ThatDone {
-            p1: u16,
-        },
-        /// Uses a type that is also used in extension service in the event
-        BaseServiceSameType(GenericConstStruct),
-    }
-
-    functions {
-        DoThis(p1: u32) -> u32;
-
-        DoThatBase(p1: String) -> String;
-
-        @query
-        ThisBase(p1: u16) -> u16;
-
-        @query
-        That(p1: String) -> String;
-    }
-
-    types {
-        struct BaseServiceType (
-            /// Field docs
-            MessageId,
-            /// Field docs
-            H160,
-        );
-
-        /// GenericConstStruct docs
-        struct GenericConstStruct {
-            /// GenericStruct field `field`
-            field: [u8; 8],
-        }
-    }
-}
-
 program MiscProgram {
     constructors {
         /// Simple constructor without params
@@ -196,8 +238,8 @@ program MiscProgram {
 
     services {
         Service1,
+        Service1,
         Service2,
-        SomeBaseService,
     }
 
     types {

@@ -18,7 +18,7 @@
 
 use crate::{
     FunctionArgumentIdl, FunctionIdl, FunctionResultIdl, FunctionsSection, ProgramIdlSection,
-    ServiceSection,
+    ServiceNameTy, ServiceSection,
     errors::{Error, Result},
     type_names::{self, FinalizedName, FinalizedRawName, ResultTypeName},
 };
@@ -62,42 +62,16 @@ impl ExpandedProgramMeta {
         };
 
         let mut services_section = Vec::new();
-        let mut tmp_first_one = false;
         for (name, service_meta) in services {
-            let service_registries = ServiceMetaRegistry::new(&service_meta)?;
-            for service_registry in service_registries {
-                let types = service_registry.types().to_vec();
-                let concrete_names = service_registry.concrete_names().to_vec();
-                let functions = FunctionsSection {
-                    commands: service_registry.commands_fns,
-                    queries: service_registry.queries_fns,
-                };
-                let events = service_registry.events;
-
-                let name = if !tmp_first_one {
-                    tmp_first_one = true;
-                    name
-                } else {
-                    // For base services, we can use empty name as they are not top-level services.
-                    "SomeBaseService"
-                };
-                let service_section = ServiceSection {
-                    name: name.to_string(), // todo [sab] add base service name
-                    types,
-                    concrete_names,
-                    extends: Default::default(),
-                    events,
-                    functions,
-                };
-                services_section.push(service_section);
-            }
-            tmp_first_one = false;
+            let service_registry = ServiceMetaRegistry::new(&service_meta, name.to_string())?;
+            let mut unwrapped_svcs = Self::unwrap_service_section(service_registry, true);
+            services_section.append(&mut unwrapped_svcs);
         }
 
         if let Some(ref mut program_section) = program_section {
             program_section.services = services_section
                 .iter()
-                .map(|svc| svc.name.clone())
+                .filter_map(|svc| svc.name.main())
                 .collect();
         }
 
@@ -105,6 +79,49 @@ impl ExpandedProgramMeta {
             program: program_section,
             services: services_section,
         })
+    }
+
+    // Takes the service meta registry and unwraps it into vector of service sections,
+    // which contains main exposed service and all its base services.
+    fn unwrap_service_section(
+        service_registry: ServiceMetaRegistry,
+        is_main: bool,
+    ) -> Vec<ServiceSection> {
+        let mut ret = Vec::new();
+
+        let types = service_registry.types().to_vec();
+        let concrete_names = service_registry.concrete_names().to_vec();
+        let functions = FunctionsSection {
+            commands: service_registry.commands_fns,
+            queries: service_registry.queries_fns,
+        };
+        let events = service_registry.events;
+        let name = if is_main {
+            ServiceNameTy::Main(service_registry.name)
+        } else {
+            ServiceNameTy::Base(service_registry.name)
+        };
+        let base_services = service_registry.base_services;
+        let mut extends = Vec::with_capacity(base_services.len());
+
+        for base_service in base_services {
+            extends.push(base_service.name.clone());
+
+            let mut base_service_sections = Self::unwrap_service_section(base_service, false);
+            ret.append(&mut base_service_sections);
+        }
+
+        let this_service_section = ServiceSection {
+            name,
+            concrete_names,
+            extends,
+            types,
+            events,
+            functions,
+        };
+        ret.push(this_service_section);
+
+        ret
     }
 }
 
@@ -142,34 +159,38 @@ struct ServiceMetaRegistry {
     commands_fns: Vec<FunctionIdl>,
     queries_fns: Vec<FunctionIdl>,
     events: Vec<Variant<PortableForm>>,
+    name: String,
+    base_services: Vec<ServiceMetaRegistry>,
 }
 
 impl ServiceMetaRegistry {
-    pub fn new(service_meta: &AnyServiceMeta) -> Result<Vec<Self>> {
-        let mut base_services_meta_registries = Vec::new();
-        for base_service in service_meta.base_services() {
-            let mut base_service_registry = Self::new(base_service)?;
-            base_services_meta_registries.append(&mut base_service_registry);
+    pub fn new(service_meta: &AnyServiceMeta, name: String) -> Result<Self> {
+        let mut base_services = Vec::new();
+        for (base_service_name, base_service) in service_meta.base_services() {
+            let base_service_registry = Self::new(base_service, base_service_name.to_string())?;
+            base_services.push(base_service_registry);
         }
 
         let mut idl_registry = IdlTypesRegistry::new();
-        let registered_service_meta = idl_registry.register_service_meta(&service_meta);
+        let registered_service_meta = idl_registry.register_service_meta(service_meta);
 
         let idl_portable_registry: IdlPortableTypesRegistry = idl_registry.try_into()?;
 
-        let commands_fns = idl_portable_registry.resolve_functions(registered_service_meta.commands_type_id, false)?;
-        let queries_fns = idl_portable_registry.resolve_functions(registered_service_meta.queries_type_id, false)?;
-        let events = idl_portable_registry.resolve_events(registered_service_meta.events_type_id)?;
+        let commands_fns = idl_portable_registry
+            .resolve_functions(registered_service_meta.commands_type_id, false)?;
+        let queries_fns = idl_portable_registry
+            .resolve_functions(registered_service_meta.queries_type_id, false)?;
+        let events =
+            idl_portable_registry.resolve_events(registered_service_meta.events_type_id)?;
 
-        let mut this = vec![Self {
+        Ok(Self {
             portable_registry: idl_portable_registry,
             commands_fns,
             queries_fns,
             events,
-        }];
-        this.append(&mut base_services_meta_registries);
-
-        Ok(this)
+            name,
+            base_services,
+        })
     }
 
     fn types(&self) -> &[FinalizedRawName] {
@@ -248,7 +269,6 @@ impl IdlTypesRegistry {
     }
 }
 
-// TODO: if extensions are implemented, this separation can be useful to distinguish on IDL the owner of fn/event
 struct RegisteredServiceMeta {
     commands_type_id: u32,
     queries_type_id: u32,
@@ -707,7 +727,7 @@ mod tests {
             type CommandsMeta = utils::NoCommands;
             type QueriesMeta = utils::NoQueries;
             type EventsMeta = utils::NoEvents;
-            const BASE_SERVICES: &'static [sails_idl_meta::AnyServiceMetaFn] = &[];
+            const BASE_SERVICES: &'static [(&'static str, sails_idl_meta::AnyServiceMetaFn)] = &[];
             const ASYNC: bool = false;
         }
 
@@ -732,6 +752,71 @@ mod tests {
         assert_eq!(program_section.services[2], "TestService3");
     }
 
+    #[test]
+    fn program_has_same_name_services() {
+        struct TestService;
+        impl sails_idl_meta::ServiceMeta for TestService {
+            type CommandsMeta = utils::NoCommands;
+            type QueriesMeta = utils::NoQueries;
+            type EventsMeta = utils::NoEvents;
+            const BASE_SERVICES: &'static [(&'static str, sails_idl_meta::AnyServiceMetaFn)] = &[];
+            const ASYNC: bool = false;
+        }
+
+        let meta = ExpandedProgramMeta::new(
+            Some((
+                "TestProgram".to_string(),
+                MetaType::new::<utils::SimpleCtors>(),
+            )),
+            vec![
+                ("TestService", AnyServiceMeta::new::<TestService>()),
+                ("TestService", AnyServiceMeta::new::<TestService>()),
+            ]
+            .into_iter(),
+        )
+        .unwrap_or_else(|e| panic!("Failed to create expanded meta: {e:?}"));
+
+        let program_section = meta.program.unwrap();
+        assert_eq!(program_section.services.len(), 2);
+        assert_eq!(program_section.services[0], "TestService");
+        assert_eq!(program_section.services[1], "TestService");
+    }
+
+    #[test]
+    fn program_section_has_types_section() {
+        #[derive(TypeInfo)]
+        #[allow(unused)]
+        enum Ctors {
+            Ctor1(Ctor1Params),
+        }
+
+        #[derive(TypeInfo)]
+        #[allow(unused)]
+        struct Ctor1Params {
+            pub param1: u32,
+            pub param2: ActorId,
+            pub param3: CtorType,
+        }
+
+        #[derive(TypeInfo)]
+        #[allow(unused)]
+        struct CtorType(String);
+
+        let meta = ExpandedProgramMeta::new(
+            Some(("TestProgram".to_string(), MetaType::new::<Ctors>())),
+            iter::empty(),
+        )
+        .unwrap_or_else(|e| panic!("Failed to create expanded meta: {e:?}"));
+
+        let program_section = meta.program.unwrap();
+        let actual_types_section = program_section
+            .types
+            .iter()
+            .map(|t| t.type_name())
+            .collect::<Vec<_>>();
+        assert_eq!(actual_types_section, vec!["CtorType"]);
+    }
+
     // ------------------------------------------------------------------------------------
     // -------------------- Extension and base services related tests ---------------------
     // ------------------------------------------------------------------------------------
@@ -743,7 +828,7 @@ mod tests {
             type CommandsMeta = BaseServiceCommands;
             type QueriesMeta = BaseServiceQueries;
             type EventsMeta = BaseServiceEvents;
-            const BASE_SERVICES: &'static [sails_idl_meta::AnyServiceMetaFn] = &[];
+            const BASE_SERVICES: &'static [(&'static str, sails_idl_meta::AnyServiceMetaFn)] = &[];
             const ASYNC: bool = false;
         }
 
@@ -752,8 +837,8 @@ mod tests {
             type CommandsMeta = utils::NoCommands;
             type QueriesMeta = utils::NoQueries;
             type EventsMeta = ExtendedServiceEvents;
-            const BASE_SERVICES: &'static [sails_idl_meta::AnyServiceMetaFn] =
-                &[AnyServiceMeta::new::<BaseServiceMeta>];
+            const BASE_SERVICES: &'static [(&'static str, sails_idl_meta::AnyServiceMetaFn)] =
+                &[("BaseServiceMeta", AnyServiceMeta::new::<BaseServiceMeta>)];
             const ASYNC: bool = false;
         }
 
@@ -806,13 +891,13 @@ mod tests {
         .unwrap_or_else(|e| panic!("Failed to create expanded meta: {e:?}"));
 
         assert_eq!(meta.services.len(), 2);
-        let extended_service = &meta.services[0];
-        assert_eq!(extended_service.name, "ExtendedService".to_string());
-        let base_service = &meta.services[1];
-        assert_eq!(base_service.name, "SomeBaseService".to_string());
+        let extended_service = &meta.services[1];
+        assert_eq!(extended_service.name.as_str(), "ExtendedService");
+        let base_service = &meta.services[0];
+        assert_eq!(base_service.name.as_str(), "BaseServiceMeta");
 
         // Currently service extended section is not filled.
-        assert!(extended_service.extends.is_empty());
+        assert_eq!(extended_service.extends, vec!["BaseServiceMeta"]);
 
         // Check that base service functions are inherited
         let base_commands = &base_service.functions.commands;
@@ -838,7 +923,11 @@ mod tests {
 
         // Check that types from base service are included
         let base_types: Vec<&str> = base_service.types.iter().map(|t| t.type_name()).collect();
-        let extended_types: Vec<&str> = extended_service.types.iter().map(|t| t.type_name()).collect();
+        let extended_types: Vec<&str> = extended_service
+            .types
+            .iter()
+            .map(|t| t.type_name())
+            .collect();
         assert_eq!(base_types.len(), 1);
         assert_eq!(extended_types.len(), 1);
         assert_eq!(base_types, vec!["SomeBaseServiceType"]);
@@ -852,7 +941,7 @@ mod tests {
             type CommandsMeta = BaseServiceCommands;
             type QueriesMeta = BaseServiceQueries;
             type EventsMeta = utils::NoEvents;
-            const BASE_SERVICES: &'static [sails_idl_meta::AnyServiceMetaFn] = &[];
+            const BASE_SERVICES: &'static [(&'static str, sails_idl_meta::AnyServiceMetaFn)] = &[];
             const ASYNC: bool = false;
         }
 
@@ -861,8 +950,8 @@ mod tests {
             type CommandsMeta = ExtendedServiceCommands;
             type QueriesMeta = ExtendedServiceQueries;
             type EventsMeta = utils::NoEvents;
-            const BASE_SERVICES: &'static [sails_idl_meta::AnyServiceMetaFn] =
-                &[AnyServiceMeta::new::<BaseServiceMeta>];
+            const BASE_SERVICES: &'static [(&'static str, sails_idl_meta::AnyServiceMetaFn)] =
+                &[("BaseService", AnyServiceMeta::new::<BaseServiceMeta>)];
             const ASYNC: bool = false;
         }
 
@@ -901,31 +990,39 @@ mod tests {
         .unwrap_or_else(|e| panic!("Failed to create expanded meta: {e:?}"));
 
         assert_eq!(meta.services.len(), 2, "Expected one service");
-        let extended_service = &meta.services[0];
-        let base_service = &meta.services[1];
+        let extended_service = &meta.services[1];
+        let base_service = &meta.services[0];
 
-        assert_eq!(extended_service.name, "ExtendedService".to_string());
-        assert_eq!(base_service.name, "SomeBaseService".to_string());
+        assert_eq!(extended_service.name.as_str(), "ExtendedService");
+        assert_eq!(base_service.name.as_str(), "BaseService");
 
         let cmd_names = |svc: &ServiceSection| -> Vec<(String, String)> {
-            svc.functions.commands.iter().map(|c| {
-                let fn_result = c.result_ty.as_ref().unwrap();
-                let fn_res_idx = fn_result.res.unwrap();
-                (
-                    c.name.clone(),
-                    svc.concrete_names[fn_res_idx as usize].0.clone(),
-                )
-            }).collect()
+            svc.functions
+                .commands
+                .iter()
+                .map(|c| {
+                    let fn_result = c.result_ty.as_ref().unwrap();
+                    let fn_res_idx = fn_result.res.unwrap();
+                    (
+                        c.name.clone(),
+                        svc.concrete_names[fn_res_idx as usize].0.clone(),
+                    )
+                })
+                .collect()
         };
         let query_names = |svc: &ServiceSection| -> Vec<(String, String)> {
-            svc.functions.queries.iter().map(|q| {
-                let fn_result = q.result_ty.as_ref().unwrap();
-                let fn_res_idx = fn_result.res.unwrap();
-                (
-                    q.name.clone(),
-                    svc.concrete_names[fn_res_idx as usize].0.clone(),
-                )
-            }).collect()
+            svc.functions
+                .queries
+                .iter()
+                .map(|q| {
+                    let fn_result = q.result_ty.as_ref().unwrap();
+                    let fn_res_idx = fn_result.res.unwrap();
+                    (
+                        q.name.clone(),
+                        svc.concrete_names[fn_res_idx as usize].0.clone(),
+                    )
+                })
+                .collect()
         };
 
         let extended_command_names = cmd_names(extended_service);
@@ -957,7 +1054,7 @@ mod tests {
             type CommandsMeta = utils::NoCommands;
             type QueriesMeta = utils::NoQueries;
             type EventsMeta = BaseServiceEvents;
-            const BASE_SERVICES: &'static [sails_idl_meta::AnyServiceMetaFn] = &[];
+            const BASE_SERVICES: &'static [(&'static str, sails_idl_meta::AnyServiceMetaFn)] = &[];
             const ASYNC: bool = false;
         }
 
@@ -966,8 +1063,8 @@ mod tests {
             type CommandsMeta = utils::NoCommands;
             type QueriesMeta = utils::NoQueries;
             type EventsMeta = ExtendedServiceEvents;
-            const BASE_SERVICES: &'static [sails_idl_meta::AnyServiceMetaFn] =
-                &[AnyServiceMeta::new::<BaseService>];
+            const BASE_SERVICES: &'static [(&'static str, sails_idl_meta::AnyServiceMetaFn)] =
+                &[("BaseService", AnyServiceMeta::new::<BaseService>)];
             const ASYNC: bool = false;
         }
 
@@ -986,7 +1083,8 @@ mod tests {
         let meta = ExpandedProgramMeta::new(
             None,
             vec![("ExtendedService", AnyServiceMeta::new::<ExtendedService>())].into_iter(),
-        ).unwrap();
+        )
+        .unwrap();
 
         assert_eq!(meta.services.len(), 2, "Expected one service");
         let base_events = &meta.services[1].events;
@@ -1005,7 +1103,7 @@ mod tests {
             type CommandsMeta = utils::NoCommands;
             type QueriesMeta = utils::NoQueries;
             type EventsMeta = BaseServiceEvents;
-            const BASE_SERVICES: &'static [sails_idl_meta::AnyServiceMetaFn] = &[];
+            const BASE_SERVICES: &'static [(&'static str, sails_idl_meta::AnyServiceMetaFn)] = &[];
             const ASYNC: bool = false;
         }
 
@@ -1020,8 +1118,8 @@ mod tests {
             type CommandsMeta = utils::NoCommands;
             type QueriesMeta = utils::NoQueries;
             type EventsMeta = ExtendedServiceEvents;
-            const BASE_SERVICES: &'static [sails_idl_meta::AnyServiceMetaFn] =
-                &[AnyServiceMeta::new::<ServiceBase>];
+            const BASE_SERVICES: &'static [(&'static str, sails_idl_meta::AnyServiceMetaFn)] =
+                &[("ServiceBase", AnyServiceMeta::new::<ServiceBase>)];
             const ASYNC: bool = false;
         }
 
@@ -1047,17 +1145,230 @@ mod tests {
 
         assert_eq!(meta.services.len(), 2);
 
-        let base_service = &meta.services[1];
+        let base_service = &meta.services[0];
         let base_types = &base_service.types;
         assert_eq!(base_types.len(), 1);
         assert_eq!(base_types[0].type_name(), "GenericConstStruct");
         assert_eq!(base_types[0].fields_type_names(), vec!["[u8; 8]"]);
 
-        let ext_service = &meta.services[0];
+        let ext_service = &meta.services[1];
         let ext_types = &ext_service.types;
         assert_eq!(ext_types.len(), 1);
         assert_eq!(ext_types[0].type_name(), "GenericConstStruct");
         assert_eq!(ext_types[0].fields_type_names(), vec!["[u8; 16]"]);
+    }
+
+    #[test]
+    fn service_extension_order() {
+        struct ServiceA1;
+        impl sails_idl_meta::ServiceMeta for ServiceA1 {
+            type CommandsMeta = utils::NoCommands;
+            type QueriesMeta = utils::NoQueries;
+            type EventsMeta = utils::NoEvents;
+            const BASE_SERVICES: &'static [(&'static str, sails_idl_meta::AnyServiceMetaFn)] = &[];
+            const ASYNC: bool = false;
+        }
+
+        struct ServiceA2;
+        impl sails_idl_meta::ServiceMeta for ServiceA2 {
+            type CommandsMeta = utils::NoCommands;
+            type QueriesMeta = utils::NoQueries;
+            type EventsMeta = utils::NoEvents;
+            const BASE_SERVICES: &'static [(&'static str, sails_idl_meta::AnyServiceMetaFn)] = &[];
+            const ASYNC: bool = false;
+        }
+
+        struct ServiceB2;
+        impl sails_idl_meta::ServiceMeta for ServiceB2 {
+            type CommandsMeta = utils::NoCommands;
+            type QueriesMeta = utils::NoQueries;
+            type EventsMeta = utils::NoEvents;
+            const BASE_SERVICES: &'static [(&'static str, sails_idl_meta::AnyServiceMetaFn)] = &[
+                ("ServiceA1", AnyServiceMeta::new::<ServiceA1>),
+                ("ServiceA2", AnyServiceMeta::new::<ServiceA2>),
+            ];
+            const ASYNC: bool = false;
+        }
+
+        struct ServiceB1;
+        impl sails_idl_meta::ServiceMeta for ServiceB1 {
+            type CommandsMeta = utils::NoCommands;
+            type QueriesMeta = utils::NoQueries;
+            type EventsMeta = utils::NoEvents;
+            const BASE_SERVICES: &'static [(&'static str, sails_idl_meta::AnyServiceMetaFn)] = &[];
+            const ASYNC: bool = false;
+        }
+
+        struct ServiceC;
+        impl sails_idl_meta::ServiceMeta for ServiceC {
+            type CommandsMeta = utils::NoCommands;
+            type QueriesMeta = utils::NoQueries;
+            type EventsMeta = utils::NoEvents;
+            const BASE_SERVICES: &'static [(&'static str, sails_idl_meta::AnyServiceMetaFn)] = &[
+                ("ServiceB1", AnyServiceMeta::new::<ServiceB1>),
+                ("ServiceB2", AnyServiceMeta::new::<ServiceB2>),
+            ];
+            const ASYNC: bool = false;
+        }
+
+        let meta = ExpandedProgramMeta::new(
+            None,
+            vec![("ServiceC", AnyServiceMeta::new::<ServiceC>())].into_iter(),
+        )
+        .unwrap_or_else(|e| panic!("Failed to create expanded meta: {e:?}"));
+
+        assert_eq!(meta.services.len(), 5,);
+        let names = [
+            "ServiceB1",
+            "ServiceA1",
+            "ServiceA2",
+            "ServiceB2",
+            "ServiceC",
+        ];
+        for (i, service) in meta.services.iter().enumerate() {
+            assert_eq!(service.name.as_str(), names[i]);
+        }
+    }
+
+    #[test]
+    #[ignore = "TODO [future]: Must be 3 services when Sails binary protocol is implemented"]
+    fn no_repeated_base_services() {
+        struct BaseService;
+        impl sails_idl_meta::ServiceMeta for BaseService {
+            type CommandsMeta = utils::NoCommands;
+            type QueriesMeta = utils::NoQueries;
+            type EventsMeta = utils::NoEvents;
+            const BASE_SERVICES: &'static [(&'static str, sails_idl_meta::AnyServiceMetaFn)] = &[];
+            const ASYNC: bool = false;
+        }
+
+        struct Service1;
+        impl sails_idl_meta::ServiceMeta for Service1 {
+            type CommandsMeta = utils::NoCommands;
+            type QueriesMeta = utils::NoQueries;
+            type EventsMeta = utils::NoEvents;
+            const BASE_SERVICES: &'static [(&'static str, sails_idl_meta::AnyServiceMetaFn)] =
+                &[("BaseService", AnyServiceMeta::new::<BaseService>)];
+            const ASYNC: bool = false;
+        }
+
+        struct Service2;
+        impl sails_idl_meta::ServiceMeta for Service2 {
+            type CommandsMeta = utils::NoCommands;
+            type QueriesMeta = utils::NoQueries;
+            type EventsMeta = utils::NoEvents;
+            const BASE_SERVICES: &'static [(&'static str, sails_idl_meta::AnyServiceMetaFn)] =
+                &[("BaseService", AnyServiceMeta::new::<BaseService>)];
+            const ASYNC: bool = false;
+        }
+
+        let meta = ExpandedProgramMeta::new(
+            None,
+            vec![
+                ("Service1", AnyServiceMeta::new::<Service1>()),
+                ("Service2", AnyServiceMeta::new::<Service2>()),
+            ]
+            .into_iter(),
+        )
+        .unwrap_or_else(|e| panic!("Failed to create expanded meta: {e:?}"));
+
+        assert_eq!(meta.services.len(), 3);
+    }
+
+    #[test]
+    #[ignore = "TODO [future]: Must be 3 services when Sails binary protocol is implemented"]
+    fn no_repeated_base_services_with_renaming() {
+        struct BaseService;
+        impl sails_idl_meta::ServiceMeta for BaseService {
+            type CommandsMeta = utils::NoCommands;
+            type QueriesMeta = utils::NoQueries;
+            type EventsMeta = utils::NoEvents;
+            const BASE_SERVICES: &'static [(&'static str, sails_idl_meta::AnyServiceMetaFn)] = &[];
+            const ASYNC: bool = false;
+        }
+
+        struct Service1;
+        impl sails_idl_meta::ServiceMeta for Service1 {
+            type CommandsMeta = utils::NoCommands;
+            type QueriesMeta = utils::NoQueries;
+            type EventsMeta = utils::NoEvents;
+            const BASE_SERVICES: &'static [(&'static str, sails_idl_meta::AnyServiceMetaFn)] =
+                &[("BaseService", AnyServiceMeta::new::<BaseService>)];
+            const ASYNC: bool = false;
+        }
+
+        struct Service2;
+        impl sails_idl_meta::ServiceMeta for Service2 {
+            type CommandsMeta = utils::NoCommands;
+            type QueriesMeta = utils::NoQueries;
+            type EventsMeta = utils::NoEvents;
+            const BASE_SERVICES: &'static [(&'static str, sails_idl_meta::AnyServiceMetaFn)] =
+                &[("RenamedBaseService", AnyServiceMeta::new::<BaseService>)];
+            const ASYNC: bool = false;
+        }
+
+        let meta = ExpandedProgramMeta::new(
+            None,
+            vec![
+                ("Service1", AnyServiceMeta::new::<Service1>()),
+                ("Service2", AnyServiceMeta::new::<Service2>()),
+            ]
+            .into_iter(),
+        )
+        .unwrap_or_else(|e| panic!("Failed to create expanded meta: {e:?}"));
+
+        assert_eq!(meta.services.len(), 3);
+    }
+
+    #[test]
+    #[ignore = "TODO [future]: Must be error when Sails binary protocol is implemented"]
+    fn no_same_service_in_base_services() {
+        struct ServiceA;
+        impl sails_idl_meta::ServiceMeta for ServiceA {
+            type CommandsMeta = utils::NoCommands;
+            type QueriesMeta = utils::NoQueries;
+            type EventsMeta = utils::NoEvents;
+            const BASE_SERVICES: &'static [(&'static str, sails_idl_meta::AnyServiceMetaFn)] = &[];
+            const ASYNC: bool = false;
+        }
+
+        struct ServiceB;
+        impl sails_idl_meta::ServiceMeta for ServiceB {
+            type CommandsMeta = utils::NoCommands;
+            type QueriesMeta = utils::NoQueries;
+            type EventsMeta = utils::NoEvents;
+            const BASE_SERVICES: &'static [(&'static str, sails_idl_meta::AnyServiceMetaFn)] = &[
+                ("ServiceA", AnyServiceMeta::new::<ServiceA>),
+                ("ServiceA", AnyServiceMeta::new::<ServiceA>),
+            ];
+            const ASYNC: bool = false;
+        }
+
+        let res = ExpandedProgramMeta::new(
+            None,
+            vec![("ServiceB", AnyServiceMeta::new::<ServiceB>())].into_iter(),
+        );
+
+        assert!(res.is_err());
+
+        struct ServiceC;
+        impl sails_idl_meta::ServiceMeta for ServiceC {
+            type CommandsMeta = utils::NoCommands;
+            type QueriesMeta = utils::NoQueries;
+            type EventsMeta = utils::NoEvents;
+            const BASE_SERVICES: &'static [(&'static str, sails_idl_meta::AnyServiceMetaFn)] = &[
+                ("ServiceA", AnyServiceMeta::new::<ServiceA>),
+                ("RenamedServiceA", AnyServiceMeta::new::<ServiceA>),
+            ];
+            const ASYNC: bool = false;
+        }
+
+        let res = ExpandedProgramMeta::new(
+            None,
+            vec![("ServiceC", AnyServiceMeta::new::<ServiceC>())].into_iter(),
+        );
+
+        assert!(res.is_err());
     }
 
     // ------------------------------------------------------------------------------------
@@ -1070,7 +1381,7 @@ mod tests {
             type CommandsMeta = utils::NoCommands;
             type QueriesMeta = utils::NoQueries;
             type EventsMeta = InvalidEvents;
-            const BASE_SERVICES: &'static [sails_idl_meta::AnyServiceMetaFn] = &[];
+            const BASE_SERVICES: &'static [(&'static str, sails_idl_meta::AnyServiceMetaFn)] = &[];
             const ASYNC: bool = false;
         }
 
@@ -1103,7 +1414,7 @@ mod tests {
             type CommandsMeta = utils::NoCommands;
             type QueriesMeta = utils::NoQueries;
             type EventsMeta = EventServiceEvents;
-            const BASE_SERVICES: &'static [sails_idl_meta::AnyServiceMetaFn] = &[];
+            const BASE_SERVICES: &'static [(&'static str, sails_idl_meta::AnyServiceMetaFn)] = &[];
             const ASYNC: bool = false;
         }
 
@@ -1172,7 +1483,7 @@ mod tests {
             type CommandsMeta = NotVariantCommands;
             type QueriesMeta = utils::NoQueries;
             type EventsMeta = utils::NoEvents;
-            const BASE_SERVICES: &'static [sails_idl_meta::AnyServiceMetaFn] = &[];
+            const BASE_SERVICES: &'static [(&'static str, sails_idl_meta::AnyServiceMetaFn)] = &[];
             const ASYNC: bool = false;
         }
 
@@ -1181,7 +1492,7 @@ mod tests {
             type CommandsMeta = utils::NoCommands;
             type QueriesMeta = NotVariantQueries;
             type EventsMeta = utils::NoEvents;
-            const BASE_SERVICES: &'static [sails_idl_meta::AnyServiceMetaFn] = &[];
+            const BASE_SERVICES: &'static [(&'static str, sails_idl_meta::AnyServiceMetaFn)] = &[];
             const ASYNC: bool = false;
         }
 
@@ -1216,7 +1527,7 @@ mod tests {
             type CommandsMeta = BadCommands1;
             type QueriesMeta = utils::NoQueries;
             type EventsMeta = utils::NoEvents;
-            const BASE_SERVICES: &'static [sails_idl_meta::AnyServiceMetaFn] = &[];
+            const BASE_SERVICES: &'static [(&'static str, sails_idl_meta::AnyServiceMetaFn)] = &[];
             const ASYNC: bool = false;
         }
 
@@ -1225,7 +1536,7 @@ mod tests {
             type CommandsMeta = BadCommands2;
             type QueriesMeta = utils::NoQueries;
             type EventsMeta = utils::NoEvents;
-            const BASE_SERVICES: &'static [sails_idl_meta::AnyServiceMetaFn] = &[];
+            const BASE_SERVICES: &'static [(&'static str, sails_idl_meta::AnyServiceMetaFn)] = &[];
             const ASYNC: bool = false;
         }
 
@@ -1234,7 +1545,7 @@ mod tests {
             type CommandsMeta = utils::NoCommands;
             type QueriesMeta = BadQueries1;
             type EventsMeta = utils::NoEvents;
-            const BASE_SERVICES: &'static [sails_idl_meta::AnyServiceMetaFn] = &[];
+            const BASE_SERVICES: &'static [(&'static str, sails_idl_meta::AnyServiceMetaFn)] = &[];
             const ASYNC: bool = false;
         }
 
@@ -1243,7 +1554,7 @@ mod tests {
             type CommandsMeta = utils::NoCommands;
             type QueriesMeta = BadQueries2;
             type EventsMeta = utils::NoEvents;
-            const BASE_SERVICES: &'static [sails_idl_meta::AnyServiceMetaFn] = &[];
+            const BASE_SERVICES: &'static [(&'static str, sails_idl_meta::AnyServiceMetaFn)] = &[];
             const ASYNC: bool = false;
         }
 
@@ -1315,7 +1626,7 @@ mod tests {
             type CommandsMeta = BadCommands;
             type QueriesMeta = utils::NoQueries;
             type EventsMeta = utils::NoEvents;
-            const BASE_SERVICES: &'static [sails_idl_meta::AnyServiceMetaFn] = &[];
+            const BASE_SERVICES: &'static [(&'static str, sails_idl_meta::AnyServiceMetaFn)] = &[];
             const ASYNC: bool = false;
         }
 
@@ -1349,7 +1660,7 @@ mod tests {
             type CommandsMeta = BadCommands;
             type QueriesMeta = utils::NoQueries;
             type EventsMeta = utils::NoEvents;
-            const BASE_SERVICES: &'static [sails_idl_meta::AnyServiceMetaFn] = &[];
+            const BASE_SERVICES: &'static [(&'static str, sails_idl_meta::AnyServiceMetaFn)] = &[];
             const ASYNC: bool = false;
         }
 
@@ -1383,7 +1694,7 @@ mod tests {
             type CommandsMeta = TestCommands;
             type QueriesMeta = TestQueries;
             type EventsMeta = utils::NoEvents;
-            const BASE_SERVICES: &'static [sails_idl_meta::AnyServiceMetaFn] = &[];
+            const BASE_SERVICES: &'static [(&'static str, sails_idl_meta::AnyServiceMetaFn)] = &[];
             const ASYNC: bool = false;
         }
 
@@ -1532,7 +1843,7 @@ mod tests {
             type CommandsMeta = OneFunction;
             type QueriesMeta = utils::NoQueries;
             type EventsMeta = utils::NoEvents;
-            const BASE_SERVICES: &'static [sails_idl_meta::AnyServiceMetaFn] = &[];
+            const BASE_SERVICES: &'static [(&'static str, sails_idl_meta::AnyServiceMetaFn)] = &[];
             const ASYNC: bool = false;
         }
 
@@ -1541,7 +1852,7 @@ mod tests {
             type CommandsMeta = utils::NoCommands;
             type QueriesMeta = OneFunction;
             type EventsMeta = utils::NoEvents;
-            const BASE_SERVICES: &'static [sails_idl_meta::AnyServiceMetaFn] = &[];
+            const BASE_SERVICES: &'static [(&'static str, sails_idl_meta::AnyServiceMetaFn)] = &[];
             const ASYNC: bool = false;
         }
 
@@ -1550,7 +1861,7 @@ mod tests {
             type CommandsMeta = utils::NoCommands;
             type QueriesMeta = utils::NoQueries;
             type EventsMeta = utils::NoEvents;
-            const BASE_SERVICES: &'static [sails_idl_meta::AnyServiceMetaFn] = &[];
+            const BASE_SERVICES: &'static [(&'static str, sails_idl_meta::AnyServiceMetaFn)] = &[];
             const ASYNC: bool = false;
         }
 
@@ -1596,7 +1907,7 @@ mod tests {
             type CommandsMeta = ServiceCommands;
             type QueriesMeta = ServiceQueries;
             type EventsMeta = utils::NoEvents;
-            const BASE_SERVICES: &'static [sails_idl_meta::AnyServiceMetaFn] = &[];
+            const BASE_SERVICES: &'static [(&'static str, sails_idl_meta::AnyServiceMetaFn)] = &[];
             const ASYNC: bool = false;
         }
 
@@ -1706,7 +2017,7 @@ mod tests {
             type CommandsMeta = CommandsWithNonUserDefinedArgs;
             type QueriesMeta = utils::NoQueries;
             type EventsMeta = utils::NoEvents;
-            const BASE_SERVICES: &'static [sails_idl_meta::AnyServiceMetaFn] = &[];
+            const BASE_SERVICES: &'static [(&'static str, sails_idl_meta::AnyServiceMetaFn)] = &[];
             const ASYNC: bool = false;
         }
 
@@ -1715,7 +2026,7 @@ mod tests {
             type CommandsMeta = CommandWithUserDefinedArgs;
             type QueriesMeta = utils::NoQueries;
             type EventsMeta = utils::NoEvents;
-            const BASE_SERVICES: &'static [sails_idl_meta::AnyServiceMetaFn] = &[];
+            const BASE_SERVICES: &'static [(&'static str, sails_idl_meta::AnyServiceMetaFn)] = &[];
             const ASYNC: bool = false;
         }
 
@@ -1724,7 +2035,7 @@ mod tests {
             type CommandsMeta = utils::NoCommands;
             type QueriesMeta = CommandsWithNonUserDefinedArgs;
             type EventsMeta = utils::NoEvents;
-            const BASE_SERVICES: &'static [sails_idl_meta::AnyServiceMetaFn] = &[];
+            const BASE_SERVICES: &'static [(&'static str, sails_idl_meta::AnyServiceMetaFn)] = &[];
             const ASYNC: bool = false;
         }
 
@@ -1733,7 +2044,7 @@ mod tests {
             type CommandsMeta = utils::NoCommands;
             type QueriesMeta = CommandWithUserDefinedArgs;
             type EventsMeta = utils::NoEvents;
-            const BASE_SERVICES: &'static [sails_idl_meta::AnyServiceMetaFn] = &[];
+            const BASE_SERVICES: &'static [(&'static str, sails_idl_meta::AnyServiceMetaFn)] = &[];
             const ASYNC: bool = false;
         }
 
@@ -1742,7 +2053,7 @@ mod tests {
             type CommandsMeta = utils::NoCommands;
             type QueriesMeta = utils::NoQueries;
             type EventsMeta = EventsWithNonUserDefinedArgs;
-            const BASE_SERVICES: &'static [sails_idl_meta::AnyServiceMetaFn] = &[];
+            const BASE_SERVICES: &'static [(&'static str, sails_idl_meta::AnyServiceMetaFn)] = &[];
             const ASYNC: bool = false;
         }
 
@@ -1751,7 +2062,7 @@ mod tests {
             type CommandsMeta = utils::NoCommands;
             type QueriesMeta = utils::NoQueries;
             type EventsMeta = EventsWithUserDefinedArgs;
-            const BASE_SERVICES: &'static [sails_idl_meta::AnyServiceMetaFn] = &[];
+            const BASE_SERVICES: &'static [(&'static str, sails_idl_meta::AnyServiceMetaFn)] = &[];
             const ASYNC: bool = false;
         }
 
@@ -1837,7 +2148,7 @@ mod tests {
             assert_eq!(meta.services.len(), 2);
 
             let service_1 = &meta.services[0];
-            assert_eq!(service_1.name, "Service1");
+            assert_eq!(service_1.name.as_str(), "Service1");
             assert_eq!(
                 service_1.types.len(),
                 0,
@@ -1845,7 +2156,7 @@ mod tests {
             );
 
             let service_2 = &meta.services[1];
-            assert_eq!(service_2.name, "Service2");
+            assert_eq!(service_2.name.as_str(), "Service2");
             assert_eq!(
                 service_2.types.len(),
                 1,
@@ -1957,7 +2268,7 @@ mod tests {
             type CommandsMeta = Service1Commands;
             type QueriesMeta = utils::NoQueries;
             type EventsMeta = utils::NoEvents;
-            const BASE_SERVICES: &'static [sails_idl_meta::AnyServiceMetaFn] = &[];
+            const BASE_SERVICES: &'static [(&'static str, sails_idl_meta::AnyServiceMetaFn)] = &[];
             const ASYNC: bool = false;
         }
 
@@ -1966,7 +2277,7 @@ mod tests {
             type CommandsMeta = Service2Commands;
             type QueriesMeta = utils::NoQueries;
             type EventsMeta = utils::NoEvents;
-            const BASE_SERVICES: &'static [sails_idl_meta::AnyServiceMetaFn] = &[];
+            const BASE_SERVICES: &'static [(&'static str, sails_idl_meta::AnyServiceMetaFn)] = &[];
             const ASYNC: bool = false;
         }
 
@@ -2028,7 +2339,7 @@ mod tests {
                 assert!(
                     actual_types.contains(expected_type),
                     "Service '{}' should contain type '{}'. Available types: {:?}",
-                    service.name,
+                    service.name.as_str(),
                     expected_type,
                     actual_types
                 );
@@ -2051,5 +2362,52 @@ mod tests {
                 "SharedCustomType",
             ],
         );
+    }
+
+    #[test]
+    #[ignore = "TODO [future]: Must be 3 services when Sails binary protocol is implemented"]
+    fn no_repeated_services() {
+        struct Service1;
+        impl sails_idl_meta::ServiceMeta for Service1 {
+            type CommandsMeta = utils::NoCommands;
+            type QueriesMeta = utils::NoQueries;
+            type EventsMeta = utils::NoEvents;
+            const BASE_SERVICES: &'static [(&'static str, sails_idl_meta::AnyServiceMetaFn)] = &[];
+            const ASYNC: bool = false;
+        }
+
+        struct Service2;
+        impl sails_idl_meta::ServiceMeta for Service2 {
+            type CommandsMeta = utils::NoCommands;
+            type QueriesMeta = utils::NoQueries;
+            type EventsMeta = utils::NoEvents;
+            const BASE_SERVICES: &'static [(&'static str, sails_idl_meta::AnyServiceMetaFn)] = &[];
+            const ASYNC: bool = false;
+        }
+
+        struct Service3;
+        impl sails_idl_meta::ServiceMeta for Service3 {
+            type CommandsMeta = utils::NoCommands;
+            type QueriesMeta = utils::NoQueries;
+            type EventsMeta = utils::NoEvents;
+            const BASE_SERVICES: &'static [(&'static str, sails_idl_meta::AnyServiceMetaFn)] = &[];
+            const ASYNC: bool = false;
+        }
+
+        let meta = ExpandedProgramMeta::new(
+            None,
+            vec![
+                ("Service11", AnyServiceMeta::new::<Service1>()),
+                ("Service12", AnyServiceMeta::new::<Service1>()),
+                ("Service13", AnyServiceMeta::new::<Service1>()),
+                ("Service21", AnyServiceMeta::new::<Service2>()),
+                ("Service22", AnyServiceMeta::new::<Service2>()),
+                ("Service31", AnyServiceMeta::new::<Service3>()),
+            ]
+            .into_iter(),
+        )
+        .unwrap_or_else(|e| panic!("Failed to create expanded meta: {e:?}"));
+
+        assert_eq!(meta.services.len(), 1);
     }
 }

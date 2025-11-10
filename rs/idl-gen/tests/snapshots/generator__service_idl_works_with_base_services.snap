@@ -4,7 +4,32 @@ expression: generated_idl
 ---
 !@sails: 2.0.0
 
+service BaseService {
+    events {
+        ThisDoneBase(u32),
+        ThatDoneBase {
+            p1: u16,
+        },
+    }
+
+    functions {
+        DoThis(p1: u32) -> u32;
+
+        DoThatBase(p1: String) -> String;
+
+        @query
+        ThisBase(p1: u16) -> u16;
+
+        @query
+        That(p1: String) -> String;
+    }
+}
+
 service {
+    extends {
+        BaseService
+    }
+
     events {
         /// `This` Done
         ThisDone (
@@ -123,26 +148,5 @@ service {
         struct ThatParam {
             p1: ManyVariants,
         }
-    }
-}
-
-service SomeBaseService {
-    events {
-        ThisDoneBase(u32),
-        ThatDoneBase {
-            p1: u16,
-        },
-    }
-
-    functions {
-        DoThis(p1: u32) -> u32;
-
-        DoThatBase(p1: String) -> String;
-
-        @query
-        ThisBase(p1: u16) -> u16;
-
-        @query
-        That(p1: String) -> String;
     }
 }
