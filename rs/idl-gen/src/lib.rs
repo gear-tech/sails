@@ -1,4 +1,7 @@
-use crate::type_names::{FinalizedName, FinalizedRawName};
+use crate::{
+    type_names::{FinalizedName, FinalizedRawName},
+    type_resolver::TypeResolver,
+};
 use askama::Template;
 pub use errors::*;
 use handlebars::{Handlebars, handlebars_helper};
@@ -10,6 +13,7 @@ use serde::Serialize;
 use serde_json::Value as JsonValue;
 use std::{fs, io::Write, path::Path};
 
+mod builder;
 mod errors;
 mod meta;
 mod meta2;
@@ -35,10 +39,12 @@ pub mod program {
     use sails_idl_meta::ProgramMeta;
 
     pub fn generate_idl<P: ProgramMeta>(idl_writer: impl Write) -> Result<()> {
-        render_idl(
-            &ExpandedProgramMeta::new(Some(P::constructors()), P::services())?,
-            idl_writer,
-        )
+        let (info, name) = GenMetaInfoBuilder::new().build();
+        render_program_idl::<P>(info, name, idl_writer)
+        // render_idl(
+        //     &ExpandedProgramMeta::new(Some(P::constructors()), P::services())?,
+        //     idl_writer,
+        // )
     }
 
     pub fn generate_idl_to_file<P: ProgramMeta>(path: impl AsRef<Path>) -> Result<()> {
@@ -92,6 +98,22 @@ fn build_ast(
             ("version".to_string(), Some(gen_meta_info.version.format())),
         ],
         program: program_meta.program.map(build_program),
+        services: vec![],
+    };
+    Ok(doc)
+}
+
+fn build_program_ast<P: ProgramMeta>(gen_meta_info: GenMetaInfo, name: String) -> Result<IdlDoc> {
+    // let
+    let program_registry = builder::ProgramMetaBuilder::new(P::constructors()).unwrap();
+    let program = program_registry.build(name);
+    let doc = IdlDoc {
+        globals: vec![
+            ("sails".to_string(), Some(SAILS_VERSION.to_string())),
+            ("author".to_string(), Some(gen_meta_info.author)),
+            ("version".to_string(), Some(gen_meta_info.version.format())),
+        ],
+        program: Some(program),
         services: vec![],
     };
     Ok(doc)
@@ -192,12 +214,13 @@ pub mod program2 {
         idl_writer: impl Write,
     ) -> Result<()> {
         let (gen_meta_info, program_name) = meta_builder.build();
-        render_idlv2(
+        render_program_idl::<P>(
             gen_meta_info,
-            meta2::ExpandedProgramMeta::new(
-                Some((program_name, P::constructors())),
-                P::services(),
-            )?,
+            program_name,
+            // meta2::ExpandedProgramMeta::new(
+            //     Some((program_name, P::constructors())),
+            //     P::services(),
+            // )?,
             idl_writer,
         )
     }
@@ -322,6 +345,16 @@ impl IdlVersion {
     fn format(self) -> String {
         format!("{}.{}.{}", self.major, self.minor, self.patch)
     }
+}
+
+fn render_program_idl<P: ProgramMeta>(
+    gen_meta_info: GenMetaInfo,
+    name: String,
+    mut idl_writer: impl Write,
+) -> Result<()> {
+    let doc = build_program_ast::<P>(gen_meta_info, name)?;
+    doc.write_into(&mut idl_writer)?;
+    Ok(())
 }
 
 fn render_idlv2(
