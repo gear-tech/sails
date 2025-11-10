@@ -63,8 +63,8 @@ void cb_visit_array_type_decl(const void *context, const TypeDecl *item_ty,
   accept_type_decl(item_ty, context, (const Visitor *)context);
 }
 
-void cb_visit_tuple_type_decl(const void *context, const TypeDecl *node,
-                              const TypeDecl *items, uint32_t len) {
+void cb_visit_tuple_type_decl(const void *context, const TypeDecl *items,
+                              uint32_t len) {
   count_tuple_type_decl++;
   for (uint32_t i = 0; i < len; i++) {
     const TypeDecl *item = (const TypeDecl *)((const char *)items + i * sizeof(void *));
@@ -89,8 +89,8 @@ void cb_visit_primitive_type(const void *context, uint8_t primitive) {
   // Leaf node, no accept call
 }
 
-void cb_visit_user_defined_type(const void *context, const TypeDecl *node,
-                                const uint8_t *path, uint32_t path_len,
+void cb_visit_user_defined_type(const void *context, const uint8_t *path,
+                                uint32_t path_len,
                                 const TypeDecl *generics_ptr,
                                 uint32_t generics_len) {
   count_user_defined_type++;

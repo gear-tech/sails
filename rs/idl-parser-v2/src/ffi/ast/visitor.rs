@@ -20,12 +20,7 @@ pub struct Visitor {
     pub visit_array_type_decl:
         Option<unsafe extern "C" fn(context: *const (), item_ty: *const TypeDecl, len: u32)>,
     pub visit_tuple_type_decl: Option<
-        unsafe extern "C" fn(
-            context: *const (),
-            node: *const TypeDecl,
-            items_ptr: *const TypeDecl,
-            items_len: u32,
-        ),
+        unsafe extern "C" fn(context: *const (), items_ptr: *const TypeDecl, items_len: u32),
     >,
     pub visit_option_type_decl:
         Option<unsafe extern "C" fn(context: *const (), inner_ty: *const TypeDecl)>,
@@ -37,7 +32,6 @@ pub struct Visitor {
     pub visit_user_defined_type: Option<
         unsafe extern "C" fn(
             context: *const (),
-            node: *const TypeDecl,
             path_ptr: *const u8,
             path_len: u32,
             generics_ptr: *const TypeDecl,
@@ -70,18 +64,12 @@ extern "C" {
     fn visit_type(context: *const (), ty: *const Type);
     fn visit_slice_type_decl(context: *const (), item_ty: *const TypeDecl);
     fn visit_array_type_decl(context: *const (), item_ty: *const TypeDecl, len: u32);
-    fn visit_tuple_type_decl(
-        context: *const (),
-        node: *const TypeDecl,
-        items_ptr: *const TypeDecl,
-        items_len: u32,
-    );
+    fn visit_tuple_type_decl(context: *const (), items_ptr: *const TypeDecl, items_len: u32);
     fn visit_option_type_decl(context: *const (), inner_ty: *const TypeDecl);
     fn visit_result_type_decl(context: *const (), ok_ty: *const TypeDecl, err_ty: *const TypeDecl);
     fn visit_primitive_type(context: *const (), primitive: ast::PrimitiveType);
     fn visit_user_defined_type(
         context: *const (),
-        node: *const TypeDecl,
         path_ptr: *const u8,
         path_len: u32,
         generics_ptr: *const TypeDecl,
@@ -207,13 +195,8 @@ impl<'a, 'ast> RawVisitor<'ast> for VisitorWrapper<'a> {
         crate::ast::visitor::accept_type_decl(item_type_decl, self);
     }
 
-    fn visit_tuple_type_decl(
-        &mut self,
-        type_decl: &'ast ast::TypeDecl,
-        items: &'ast Vec<ast::TypeDecl>,
-    ) {
+    fn visit_tuple_type_decl(&mut self, items: &'ast Vec<ast::TypeDecl>) {
         if let Some(visit) = self.visitor.visit_tuple_type_decl {
-            let ffi_node = TypeDecl::from_ast(type_decl, &mut self.allocations);
             let ffi_items: Vec<TypeDecl> = items
                 .iter()
                 .map(|item| TypeDecl::from_ast(item, &mut self.allocations))
@@ -222,7 +205,7 @@ impl<'a, 'ast> RawVisitor<'ast> for VisitorWrapper<'a> {
             let ptr = boxed_slice.as_ptr();
             let len = boxed_slice.len() as u32;
             self.allocations.type_decls.push(boxed_slice);
-            unsafe { visit(self.context, &ffi_node, ptr, len) };
+            unsafe { visit(self.context, ptr, len) };
             return;
         }
         for item in items {
@@ -260,12 +243,7 @@ impl<'a, 'ast> RawVisitor<'ast> for VisitorWrapper<'a> {
         }
     }
 
-    fn visit_user_defined_type(
-        &mut self,
-        type_decl: &'ast ast::TypeDecl,
-        path: &'ast str,
-        generics: &'ast Vec<ast::TypeDecl>,
-    ) {
+    fn visit_user_defined_type(&mut self, path: &'ast str, generics: &'ast Vec<ast::TypeDecl>) {
         let path_bytes = path.as_bytes().to_vec();
         let boxed_path = path_bytes.into_boxed_slice();
         let path_ptr = boxed_path.as_ptr();
@@ -273,7 +251,6 @@ impl<'a, 'ast> RawVisitor<'ast> for VisitorWrapper<'a> {
         self.allocations.strings.push(boxed_path);
 
         if let Some(visit) = self.visitor.visit_user_defined_type {
-            let ffi_node = TypeDecl::from_ast(type_decl, &mut self.allocations);
             let ffi_generics: Vec<TypeDecl> = generics
                 .iter()
                 .map(|g| TypeDecl::from_ast(g, &mut self.allocations))
@@ -289,16 +266,7 @@ impl<'a, 'ast> RawVisitor<'ast> for VisitorWrapper<'a> {
                 (std::ptr::null(), 0)
             };
 
-            unsafe {
-                visit(
-                    self.context,
-                    &ffi_node,
-                    path_ptr,
-                    path_len,
-                    generics_ptr,
-                    generics_len,
-                )
-            };
+            unsafe { visit(self.context, path_ptr, path_len, generics_ptr, generics_len) };
             return;
         }
         for generic in generics {
@@ -471,7 +439,7 @@ fn accept_type_decl_impl(
             wrapper.visit_array_type_decl(item, *len);
         }
         ast::TypeDecl::Tuple(items) => {
-            wrapper.visit_tuple_type_decl(raw_node, items);
+            wrapper.visit_tuple_type_decl(items);
         }
         ast::TypeDecl::Option(inner_type_decl) => {
             wrapper.visit_option_type_decl(inner_type_decl);
@@ -481,7 +449,7 @@ fn accept_type_decl_impl(
         }
         ast::TypeDecl::Primitive(primitive_type) => wrapper.visit_primitive_type(*primitive_type),
         ast::TypeDecl::UserDefined { path, generics } => {
-            wrapper.visit_user_defined_type(raw_node, path, generics);
+            wrapper.visit_user_defined_type(path, generics);
         }
     }
     ErrorCode::Ok

@@ -62,11 +62,7 @@ impl<'ast> Visitor<'ast> for CountingVisitor {
         accept_type_decl(inner, self);
     }
 
-    fn visit_tuple_type_decl(
-        &mut self,
-        _decl: &'ast ast::TypeDecl,
-        items: &'ast Vec<ast::TypeDecl>,
-    ) {
+    fn visit_tuple_type_decl(&mut self, items: &'ast Vec<ast::TypeDecl>) {
         self.tuple_type_decl += 1;
         for item in items {
             accept_type_decl(item, self);
@@ -88,12 +84,7 @@ impl<'ast> Visitor<'ast> for CountingVisitor {
         self.primitive_type += 1;
     }
 
-    fn visit_user_defined_type(
-        &mut self,
-        _t: &'ast ast::TypeDecl,
-        _path: &'ast str,
-        generics: &'ast Vec<ast::TypeDecl>,
-    ) {
+    fn visit_user_defined_type(&mut self, _path: &'ast str, generics: &'ast Vec<ast::TypeDecl>) {
         self.user_defined_type += 1;
         for generic in generics {
             accept_type_decl(generic, self);
@@ -154,7 +145,7 @@ fn test_full_coverage_rust_visitor() {
     let mut visitor = CountingVisitor::default();
     visitor.visit_idl_doc(&doc);
 
-    println!("{:#?}", doc);
+    println!("{doc:#?}");
 
     assert_eq!(visitor.program_unit, 1);
     assert_eq!(visitor.service_unit, 2);

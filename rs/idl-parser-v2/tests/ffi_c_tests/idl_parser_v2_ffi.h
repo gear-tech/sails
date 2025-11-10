@@ -52,16 +52,15 @@ typedef struct Visitor {
   void (*visit_slice_type_decl)(const void *context, const TypeDecl *item_ty);
   void (*visit_array_type_decl)(const void *context, const TypeDecl *item_ty,
                                 uint32_t len);
-  void (*visit_tuple_type_decl)(const void *context, const TypeDecl *node,
-                                const TypeDecl *items,
+  void (*visit_tuple_type_decl)(const void *context, const TypeDecl *items,
                                 uint32_t items_len);
   void (*visit_option_type_decl)(const void *context, const TypeDecl *inner_ty);
   void (*visit_result_type_decl)(const void *context, const TypeDecl *ok_ty,
                                  const TypeDecl *err_ty);
   void (*visit_primitive_type)(const void *context, uint8_t primitive);
-  void (*visit_user_defined_type)(const void *context, const TypeDecl *node,
-                                  const uint8_t *path,
-                                  uint32_t path_len, const TypeDecl *generics_ptr,
+  void (*visit_user_defined_type)(const void *context, const uint8_t *path,
+                                  uint32_t path_len,
+                                  const TypeDecl *generics_ptr,
                                   uint32_t generics_len);
   void (*visit_service_func)(const void *context, const ServiceFunc *func);
   void (*visit_service_event)(const void *context, const ServiceEvent *event);

@@ -96,11 +96,7 @@ pub trait Visitor<'ast> {
     }
 
     /// Visits a tuple type declaration, `(T, U)`, from [ast::TypeDecl::Tuple].
-    fn visit_tuple_type_decl(
-        &mut self,
-        _type_decl: &'ast ast::TypeDecl,
-        items: &'ast Vec<ast::TypeDecl>,
-    ) {
+    fn visit_tuple_type_decl(&mut self, items: &'ast Vec<ast::TypeDecl>) {
         for item in items {
             accept_type_decl(item, self);
         }
@@ -128,12 +124,7 @@ pub trait Visitor<'ast> {
     }
 
     /// Visits a user-defined type, `path::to::MyType<T>`, from [ast::TypeDecl::UserDefined].
-    fn visit_user_defined_type(
-        &mut self,
-        _type_decl: &'ast ast::TypeDecl,
-        _path: &'ast str,
-        generics: &'ast Vec<ast::TypeDecl>,
-    ) {
+    fn visit_user_defined_type(&mut self, _path: &'ast str, generics: &'ast Vec<ast::TypeDecl>) {
         for generic in generics {
             accept_type_decl(generic, self);
         }
@@ -262,7 +253,7 @@ pub fn accept_type_decl<'ast>(
             visitor.visit_array_type_decl(item, *len);
         }
         ast::TypeDecl::Tuple(items) => {
-            visitor.visit_tuple_type_decl(type_decl, items);
+            visitor.visit_tuple_type_decl(items);
         }
         ast::TypeDecl::Option(inner_type_decl) => {
             visitor.visit_option_type_decl(inner_type_decl);
@@ -274,7 +265,7 @@ pub fn accept_type_decl<'ast>(
             visitor.visit_primitive_type(*primitive_type);
         }
         ast::TypeDecl::UserDefined { path, generics } => {
-            visitor.visit_user_defined_type(type_decl, path, generics);
+            visitor.visit_user_defined_type(path, generics);
         }
     }
 }
