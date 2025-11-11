@@ -6,16 +6,17 @@ expression: generated_idl
 !@author: 
 !@version: 0.0.0
 
-service {
+service  {
     events {
         One(TestType<NonZeroU256>),
     }
-
     types {
+        /// A value that is known not to equal zero.
+        struct NonZeroU256(U256);
         /// A type with a complex type field
         struct TestType<T> {
             /// Complex field
-            f1: Option<[(ActorId, [Result<T, String>])]>,
+            f1: Option<BTreeMap<ActorId, Vec<Result<T, String>>>>,
         }
     }
 }

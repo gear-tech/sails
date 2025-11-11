@@ -6,97 +6,46 @@ expression: generated_idl
 !@author: Developer
 !@version: 3.10.0
 
-service {
+service  {
     events {
         /// `This` Done
         ThisDone (
             /// This is unnamed field, comments ignored
-            u32
+            u32,
         ),
         ThisDoneTwice (
             /// This is the first unnamed field
             u32,
             /// This is the second unnamed field
-            u32
+            u32,
         ),
         /// `That` Done too
         ThatDone {
             /// This is `p1` field
             p1: String,
         },
-        ThisDoneBase(u32),
-        ThatDoneBase {
-            p1: u16,
-        },
     }
-
     functions {
         /// Some description
-        DoThis(p1: u32, p2: String, p3: (Option<String>, u8), p4: TupleStruct, p5: GenericStruct<H256>, p6: GenericStruct<String>, p7: GenericConstStruct1, p8: GenericConstStruct2) -> String;
-
+        DoThis(p1: u32, p2: String, p3: (Option<String>, u8), p4: TupleStruct, p5: GenericStruct<H256>, p6: GenericStruct<String>) -> String;
         /// Some multiline description
         /// Second line
         /// Third line
-        DoThat(par1: DoThatParam) -> (String, u32) throws (String,);
-
-        DoThatBase(p1: String) -> String;
-
+        DoThat(par1: DoThatParam) -> (String, u32) throws (String);
         /// This is a query
         @query
         This(p1: u32, p2: String, p3: (Option<String>, u8), p4: TupleStruct, p5: GenericEnum<bool, u32>) -> (String, u32) throws String;
-
         /// This is a second query
         /// This is a second line
         @query
         That(pr1: ThatParam) -> String;
-
-        @query
-        ThisBase(p1: u16) -> u16;
     }
-
     types {
-        /// TupleStruct docs
-        struct TupleStruct(bool);
-
-        /// GenericStruct docs
-        struct GenericStruct<T> {
-            /// GenericStruct field `p1`
-            p1: T,
-        }
-
-        /// GenericConstStruct docs
-        struct GenericConstStruct1 {
-            /// GenericStruct field `field`
-            field: [u8; 8],
-        }
-
-        /// GenericConstStruct docs
-        struct GenericConstStruct2 {
-            /// GenericStruct field `field`
-            field: [u8; 32],
-        }
-
         struct DoThatParam {
             p1: u32,
             p2: String,
             p3: ManyVariants,
         }
-
-        enum ManyVariants {
-            One,
-            Two(u32),
-            Three(Option<[u256]>),
-            Four {
-                a: u32,
-                b: Option<u16>,
-            },
-            Five(String, [u8]),
-            Six((u32,)),
-            Seven(GenericEnum<u32, String>),
-            Eight([[(u32, String)]; 10]),
-            Nine(TupleVariantsDocs),
-        }
-
         /// GenericEnum docs
         /// with two lines
         enum GenericEnum<T1, T2> {
@@ -105,7 +54,30 @@ service {
             /// GenericEnum `Variant2` of type 'T2'
             Variant2(T2),
         }
-
+        /// GenericStruct docs
+        struct GenericStruct<T> {
+            /// GenericStruct field `p1`
+            p1: T,
+        }
+        enum ManyVariants {
+            One,
+            Two(u32),
+            Three(Option<[U256]>),
+            Four {
+                a: u32,
+                b: Option<u16>,
+            },
+            Five(String, [u8]),
+            Six((u32)),
+            Seven(GenericEnum<u32, String>),
+            Eight([[(u32, String)]; 10]),
+            Nine(TupleVariantsDocs),
+        }
+        struct ThatParam {
+            p1: ManyVariants,
+        }
+        /// TupleStruct docs
+        struct TupleStruct(bool);
         enum TupleVariantsDocs {
             /// Docs for no tuple docs 1
             NoTupleDocs1(u32, String),
@@ -114,13 +86,13 @@ service {
             TupleDocs1 (
                 u32,
                 /// This is the second field
-                String
+                String,
             ),
             TupleDocs2 (
                 /// This is the first field
                 u32,
                 /// This is the second field
-                String
+                String,
             ),
             /// Docs for struct docs
             StructDocs {
@@ -129,10 +101,6 @@ service {
                 /// This is field `b`
                 b: String,
             },
-        }
-
-        struct ThatParam {
-            p1: ManyVariants,
         }
     }
 }

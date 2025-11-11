@@ -306,9 +306,9 @@ fn idl_program() {
                     annotations: vec![],
                 },
             ],
-            services: vec![ProgramServiceItem { name: "Ping".to_string(), route: None, docs: vec![], annotations: vec![] },
-                ProgramServiceItem { name: "Counter".to_string(), route: None, docs: vec![], annotations: vec![] },
-                ProgramServiceItem { name: "Counter".to_string(), route: Some("Counter2".to_string()), docs: vec!["Another Counter service".to_owned()], annotations: vec![] }],
+            services: vec![ServiceExpo { name: "Ping".to_string(), route: None, docs: vec![], annotations: vec![] },
+                ServiceExpo { name: "Counter".to_string(), route: None, docs: vec![], annotations: vec![] },
+                ServiceExpo { name: "Counter".to_string(), route: Some("Counter2".to_string()), docs: vec!["Another Counter service".to_owned()], annotations: vec![] }],
             types: vec![
                 Type { name: "DoThatParam".to_string(), type_params: vec![], def: Struct(StructDef {fields:  vec![
                     StructField { name: Some("p1".to_string()), type_decl: Primitive(U32), docs: vec![], annotations: vec![] },

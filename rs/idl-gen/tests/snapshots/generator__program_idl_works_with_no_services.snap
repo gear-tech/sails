@@ -10,7 +10,6 @@ program NoServicesWithCtorsProgram {
     constructors {
         /// This is New constructor
         New();
-
         /// This is FromStr constructor
         /// with second line
         FromStr(p1: String);

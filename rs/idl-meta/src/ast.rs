@@ -19,7 +19,7 @@ pub struct IdlDoc {
 pub struct ProgramUnit {
     pub name: String,
     pub ctors: Vec<CtorFunc>,
-    pub services: Vec<ProgramServiceItem>,
+    pub services: Vec<ServiceExpo>,
     pub types: Vec<Type>,
     pub docs: Vec<String>,
     pub annotations: Vec<(String, Option<String>)>,
@@ -27,7 +27,7 @@ pub struct ProgramUnit {
 
 /// A structure describing program
 #[derive(Debug, Default, PartialEq, Clone)]
-pub struct ProgramServiceItem {
+pub struct ServiceExpo {
     pub name: String,
     pub route: Option<String>,
     pub docs: Vec<String>,

@@ -86,7 +86,7 @@ impl<'a> TypeResolver<'a> {
     }
 
     fn resolve_type_decl(&mut self, ty: &Type<PortableForm>) -> TypeDecl {
-        // println!("{:?}", ty);
+        println!("ty: {:?}", ty);
         match &ty.type_def {
             TypeDef::Composite(type_def_composite) => self
                 .resolve_known_composite(ty, type_def_composite)
@@ -107,13 +107,19 @@ impl<'a> TypeResolver<'a> {
                 item: Box::new(self.resolve_by_id(type_def_array.type_param.id)),
                 len: type_def_array.len,
             },
-            TypeDef::Tuple(type_def_tuple) => TypeDecl::Tuple(
-                type_def_tuple
-                    .fields
-                    .iter()
-                    .map(|f| self.resolve_by_id(f.id))
-                    .collect(),
-            ),
+            TypeDef::Tuple(type_def_tuple) => {
+                if type_def_tuple.fields.is_empty() {
+                    TypeDecl::Primitive(PrimitiveType::Void)
+                } else {
+                    TypeDecl::Tuple(
+                        type_def_tuple
+                            .fields
+                            .iter()
+                            .map(|f| self.resolve_by_id(f.id))
+                            .collect(),
+                    )
+                }
+            }
             TypeDef::Primitive(type_def_primitive) => {
                 TypeDecl::Primitive(primitive_map(&type_def_primitive))
             }
@@ -162,7 +168,7 @@ impl<'a> TypeResolver<'a> {
                             name: v.name.to_string(),
                             def: StructDef { fields },
                             docs: v.docs.iter().map(|d| d.to_string()).collect(),
-                            annotations: vec![("index".to_string(), Some(v.index.to_string()))],
+                            annotations: vec![], // ("index".to_string(), Some(v.index.to_string()))
                         }
                     })
                     .collect();
@@ -216,7 +222,11 @@ impl<'a> TypeResolver<'a> {
         field: &Field<PortableForm>,
         type_params: &Vec<TypeParameter<PortableForm>>,
     ) -> StructField {
-        let type_decl = if let Some(type_name) = field.type_name.as_ref() {
+        let type_decl = if let Some(type_name) = field.type_name.as_ref()
+            && !type_params.is_empty()
+        {
+            println!("field: {:?}, type_name: {}", field, type_name);
+            // TODO: Resolve with type_params
             generics::resolve(type_name)
         } else {
             self.resolve_by_id(field.ty.id)
@@ -249,6 +259,9 @@ impl<'a> TypeResolver<'a> {
             Some(Primitive(CodeId))
         } else if is_type::<gprimitives::MessageId>(ty) {
             Some(Primitive(MessageId))
+        } else if is_type::<Vec<()>>(ty) {
+            let ty = self.resolve_by_id(ty.type_params[0].ty.unwrap().id);
+            Some(Slice(Box::new(ty)))
         } else if is_type::<BTreeMap<(), ()>>(ty) {
             let key = self.resolve_by_id(ty.type_params[0].ty.unwrap().id);
             let value = self.resolve_by_id(ty.type_params[1].ty.unwrap().id);
@@ -340,12 +353,6 @@ impl<'a> TypeResolver<'a> {
 }
 
 fn is_type<T: StaticTypeInfo>(type_info: &Type<PortableForm>) -> bool {
-    // println!(
-    //     "{:?} == {:?} : {}",
-    //     T::type_info().path.segments,
-    //     type_info.path.segments,
-    //     T::type_info().path.segments == type_info.path.segments
-    // );
     T::type_info().path.segments == type_info.path.segments
 }
 
@@ -398,11 +405,15 @@ mod generics {
     }
 
     fn finalize_syn(t: &Type) -> TypeDecl {
+        println!("type: {:?}", t.to_token_stream().to_string());
         match t {
-            Type::Array(TypeArray { elem, len, .. }) => TypeDecl::Array {
-                item: Box::new(finalize_syn(elem)),
-                len: len.to_token_stream().to_string().parse::<u32>().unwrap(),
-            },
+            Type::Array(TypeArray { elem, len, .. }) => {
+                println!("{:?}", len.to_token_stream().to_string());
+                TypeDecl::Array {
+                    item: Box::new(finalize_syn(elem)),
+                    len: len.to_token_stream().to_string().parse::<u32>().unwrap(),
+                }
+            }
             Type::Slice(TypeSlice { elem, .. }) => TypeDecl::Slice(Box::new(finalize_syn(elem))),
             Type::Tuple(TypeTuple { elems, .. }) => {
                 TypeDecl::Tuple(elems.iter().map(finalize_syn).collect())
@@ -465,15 +476,63 @@ mod tests {
         Variant4(Option<(T1, GenericStruct<T2>, u32)>),
     }
 
+    #[allow(dead_code)]
+    #[derive(TypeInfo)]
+    pub enum ManyVariants {
+        One,
+        Two(u32),
+        Three(Option<Vec<gprimitives::U256>>),
+        Four { a: u32, b: Option<u16> },
+        Five(String, Vec<u8>),
+        Six((u32,)),
+        Seven(GenericEnum<u32, String>),
+        Eight([BTreeMap<u32, String>; 10]),
+        Nine(TupleVariantsDocs),
+    }
+
+    #[derive(TypeInfo)]
+    pub enum TupleVariantsDocs {
+        /// Docs for no tuple docs 1
+        NoTupleDocs1(u32, String),
+        NoTupleDocs2(gprimitives::CodeId, Vec<u8>),
+        /// Docs for tuple docs 1
+        TupleDocs1(
+            u32,
+            /// This is the second field
+            String,
+        ),
+        TupleDocs2(
+            /// This is the first field
+            u32,
+            /// This is the second field
+            String,
+        ),
+        /// Docs for struct docs
+        StructDocs {
+            /// This is field `a`
+            a: u32,
+            /// This is field `b`
+            b: String,
+        },
+    }
+
     #[test]
-    fn type_resolver_h256() {
+    fn type_resolver_h160_h256() {
         let mut registry = Registry::new();
+        let h160_id = registry
+            .register_type(&MetaType::new::<gprimitives::H160>())
+            .id;
+        let h160_as_generic_param_id = registry
+            .register_type(&MetaType::new::<GenericStruct<gprimitives::H160>>())
+            .id;
+
         let h256_id = registry
             .register_type(&MetaType::new::<gprimitives::H256>())
             .id;
         let h256_as_generic_param_id = registry
             .register_type(&MetaType::new::<GenericStruct<gprimitives::H256>>())
             .id;
+
         let portable_registry = PortableRegistry::from(registry);
 
         let resolver = TypeResolver::from_registry(&portable_registry);
@@ -641,5 +700,25 @@ mod tests {
             as_generic_param.to_string(),
             "GenericStruct<[(u32, String)]>"
         );
+    }
+
+    #[test]
+    fn type_resolver_enum_many_variants() {
+        let mut registry = Registry::new();
+        let id = registry.register_type(&MetaType::new::<ManyVariants>()).id;
+        let generic_id = registry
+            .register_type(&MetaType::new::<GenericStruct<ManyVariants>>())
+            .id;
+        let portable_registry = PortableRegistry::from(registry);
+        let resolver = TypeResolver::from_registry(&portable_registry);
+        println!("{:#?}", resolver);
+
+        let ty = resolver.get(id).unwrap();
+        // assert_eq!(ty.to_string(), "[(u32, String)]");
+        // let as_generic_param = resolver.get(generic_id).unwrap();
+        // assert_eq!(
+        //     as_generic_param.to_string(),
+        //     "GenericStruct<[(u32, String)]>"
+        // );
     }
 }

@@ -9,11 +9,9 @@ expression: generated_idl
 program CtorsAndTypesProgram {
     constructors {
         New();
-
         /// Has docs
         FromEnum(p1: GenericEnum<ActorId, GenericStruct<u32>>);
     }
-
     types {
         /// GenericEnum docs
         /// with two lines
@@ -23,7 +21,6 @@ program CtorsAndTypesProgram {
             /// GenericEnum `Variant2` of type 'T2'
             Variant2(T2),
         }
-
         /// GenericStruct docs
         struct GenericStruct<T> {
             /// GenericStruct field `p1`

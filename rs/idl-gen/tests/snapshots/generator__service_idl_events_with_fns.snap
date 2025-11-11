@@ -6,18 +6,18 @@ expression: generated_idl
 !@author: 
 !@version: 0.0.0
 
-service {
+service  {
     events {
         /// `This` Done
         ThisDone (
             /// This is unnamed field, comments ignored
-            u32
+            u32,
         ),
         ThisDoneTwice (
             /// This is the first unnamed field
             u32,
             /// This is the second unnamed field
-            u32
+            u32,
         ),
         /// `That` Done too
         ThatDone {
@@ -25,10 +25,8 @@ service {
             p1: String,
         },
     }
-
     functions {
         DoThis(p1: u32) -> u32;
-
         @query
         This(p1: u32) -> u32;
     }

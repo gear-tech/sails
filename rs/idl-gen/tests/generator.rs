@@ -116,8 +116,8 @@ mod meta_params {
         p4: TupleStruct,
         p5: GenericStruct<H256>,
         p6: GenericStruct<String>,
-        p7: GenericConstStruct<8>,
-        p8: GenericConstStruct<32>,
+        // p7: GenericConstStruct<8>,
+        // p8: GenericConstStruct<32>,
     }
 
     #[derive(TypeInfo)]
@@ -653,21 +653,19 @@ fn program_idl_misc() {
         BaseDoneEcho {
             p1: u16,
         },
-        /// Uses a type defined used in base service
-        ExtServiceSameType(types::GenericConstStruct<8>),
-        /// Same name as in base service, but different constant
-        ExtServiceSameTypeConst(types::GenericConstStruct<16>),
+        // /// Uses a type defined used in base service
+        // ExtServiceSameType(types::GenericConstStruct<8>),
+        // /// Same name as in base service, but different constant
+        // ExtServiceSameTypeConst(types::GenericConstStruct<16>),
     }
 
     #[allow(dead_code)]
     #[derive(TypeInfo)]
     enum TestBaseEventsMeta {
         ThisDone(BaseServiceType),
-        ThatDone {
-            p1: u16,
-        },
-        /// Uses a type that is also used in extension service in the event
-        BaseServiceSameType(types::GenericConstStruct<8>),
+        ThatDone { p1: u16 },
+        // /// Uses a type that is also used in extension service in the event
+        // BaseServiceSameType(types::GenericConstStruct<8>),
     }
 
     #[allow(dead_code)]

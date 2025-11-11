@@ -103,18 +103,42 @@ fn build_ast(
     Ok(doc)
 }
 
-fn build_program_ast<P: ProgramMeta>(gen_meta_info: GenMetaInfo, name: String) -> Result<IdlDoc> {
+fn build_program_ast<P: ProgramMeta>(
+    gen_meta_info: GenMetaInfo,
+    name: Option<String>,
+) -> Result<IdlDoc> {
     // let
-    let program_registry = builder::ProgramMetaBuilder::new(P::constructors()).unwrap();
-    let program = program_registry.build(name);
+    let service_builders: Vec<_> = P::services()
+        .map(|(name, meta)| builder::ServiceBuilder::new(name, meta))
+        .collect();
+    let services: Vec<_> = service_builders.into_iter().map(|b| b.build()).collect();
+    let program = name.map(|name| builder::ProgramBuilder::new::<P>().build(name));
     let doc = IdlDoc {
         globals: vec![
             ("sails".to_string(), Some(SAILS_VERSION.to_string())),
             ("author".to_string(), Some(gen_meta_info.author)),
             ("version".to_string(), Some(gen_meta_info.version.format())),
         ],
-        program: Some(program),
-        services: vec![],
+        program: program,
+        services,
+    };
+    Ok(doc)
+}
+
+fn build_service_ast(
+    gen_meta_info: GenMetaInfo,
+    name: &'static str,
+    meta: AnyServiceMeta,
+) -> Result<IdlDoc> {
+    let services: Vec<_> = vec![builder::ServiceBuilder::new(name, meta).build()];
+    let doc = IdlDoc {
+        globals: vec![
+            ("sails".to_string(), Some(SAILS_VERSION.to_string())),
+            ("author".to_string(), Some(gen_meta_info.author)),
+            ("version".to_string(), Some(gen_meta_info.version.format())),
+        ],
+        program: None,
+        services,
     };
     Ok(doc)
 }
@@ -214,15 +238,15 @@ pub mod program2 {
         idl_writer: impl Write,
     ) -> Result<()> {
         let (gen_meta_info, program_name) = meta_builder.build();
-        render_program_idl::<P>(
-            gen_meta_info,
-            program_name,
-            // meta2::ExpandedProgramMeta::new(
-            //     Some((program_name, P::constructors())),
-            //     P::services(),
-            // )?,
-            idl_writer,
-        )
+        render_program_idl::<P>(gen_meta_info, program_name, idl_writer)
+        // render_idlv2(
+        //     gen_meta_info,
+        //     meta2::ExpandedProgramMeta::new(
+        //         Some((program_name, P::constructors())),
+        //         P::services(),
+        //     )?,
+        //     idl_writer,
+        // )
     }
 
     pub fn generate_idl_to_file<P: ProgramMeta>(
@@ -249,17 +273,20 @@ pub mod service2 {
 
     pub fn generate_idl<S: ServiceMeta>(
         builder: GenMetaInfoBuilder,
-        idl_writer: impl Write,
+        mut idl_writer: impl Write,
     ) -> Result<()> {
         let (gen_meta_info, _) = builder.build();
-        render_idlv2(
-            gen_meta_info,
-            meta2::ExpandedProgramMeta::new(
-                None,
-                vec![("", AnyServiceMeta::new::<S>())].into_iter(),
-            )?,
-            idl_writer,
-        )
+        let doc = build_service_ast(gen_meta_info, "", AnyServiceMeta::new::<S>()).unwrap();
+        doc.write_into(&mut idl_writer)?;
+        Ok(())
+        // render_idlv2(
+        //     gen_meta_info,
+        //     meta2::ExpandedProgramMeta::new(
+        //         None,
+        //         vec![("", AnyServiceMeta::new::<S>())].into_iter(),
+        //     )?,
+        //     idl_writer,
+        // )
     }
 
     pub fn generate_idl_to_file<S: ServiceMeta>(
@@ -352,7 +379,7 @@ fn render_program_idl<P: ProgramMeta>(
     name: String,
     mut idl_writer: impl Write,
 ) -> Result<()> {
-    let doc = build_program_ast::<P>(gen_meta_info, name)?;
+    let doc = build_program_ast::<P>(gen_meta_info, Some(name))?;
     doc.write_into(&mut idl_writer)?;
     Ok(())
 }
@@ -362,35 +389,32 @@ fn render_idlv2(
     program_meta: meta2::ExpandedProgramMeta,
     mut idl_writer: impl Write,
 ) -> Result<()> {
-    let doc = build_ast(gen_meta_info, program_meta)?;
-    doc.write_into(&mut idl_writer)?;
+    let idl_data = IdlData {
+        program_section: program_meta.program,
+        services: program_meta.services,
+        version: gen_meta_info.version.format(),
+        author: gen_meta_info.author,
+        sails_version: env!("CARGO_PKG_VERSION").to_string(),
+    };
 
-    // let idl_data = IdlData {
-    //     program_section: program_meta.program,
-    //     services: program_meta.services,
-    //     version: gen_meta_info.version.format(),
-    //     author: gen_meta_info.author,
-    //     sails_version: env!("CARGO_PKG_VERSION").to_string(),
-    // };
+    let mut handlebars = Handlebars::new();
+    handlebars
+        .register_template_string("idlv2", IDLV2_TEMPLATE)
+        .map_err(Box::new)?;
+    handlebars
+        .register_partial("program", PROGRAM_TEMPLATE)
+        .map_err(Box::new)?;
+    handlebars
+        .register_partial("service", SERVICE_TEMPLATE)
+        .map_err(Box::new)?;
+    handlebars.register_helper("deref", Box::new(deref));
+    handlebars.register_helper("any_field_has_docs", Box::new(any_field_has_docs));
+    handlebars.register_helper("has_functions", Box::new(has_functions));
+    handlebars.register_helper("has_key", Box::new(has_key));
 
-    // let mut handlebars = Handlebars::new();
-    // handlebars
-    //     .register_template_string("idlv2", IDLV2_TEMPLATE)
-    //     .map_err(Box::new)?;
-    // handlebars
-    //     .register_partial("program", PROGRAM_TEMPLATE)
-    //     .map_err(Box::new)?;
-    // handlebars
-    //     .register_partial("service", SERVICE_TEMPLATE)
-    //     .map_err(Box::new)?;
-    // handlebars.register_helper("deref", Box::new(deref));
-    // handlebars.register_helper("any_field_has_docs", Box::new(any_field_has_docs));
-    // handlebars.register_helper("has_functions", Box::new(has_functions));
-    // handlebars.register_helper("has_key", Box::new(has_key));
-
-    // handlebars
-    //     .render_to_write("idlv2", &idl_data, idl_writer)
-    //     .map_err(Box::new)?;
+    handlebars
+        .render_to_write("idlv2", &idl_data, idl_writer)
+        .map_err(Box::new)?;
 
     Ok(())
 }
