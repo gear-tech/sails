@@ -89,7 +89,7 @@ impl Display for FuncParam {
 
 pub type ServiceEvent = EnumVariant;
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Eq, Hash, Clone)]
 pub enum TypeDecl {
     Slice(Box<TypeDecl>),
     Array {
@@ -104,9 +104,10 @@ pub enum TypeDecl {
     },
     Primitive(PrimitiveType),
     UserDefined {
-        path: String,
+        name: String,
         generics: Vec<TypeDecl>,
     },
+    Generic(String),
 }
 
 impl Display for TypeDecl {
@@ -129,8 +130,8 @@ impl Display for TypeDecl {
             Option(type_decl) => write!(f, "Option<{type_decl}>"),
             Result { ok, err } => write!(f, "Result<{ok}, {err}>"),
             Primitive(primitive_type) => write!(f, "{primitive_type}"),
-            UserDefined { path, generics } => {
-                write!(f, "{path}")?;
+            UserDefined { name, generics } => {
+                write!(f, "{name}")?;
                 if !generics.is_empty() {
                     f.write_char('<')?;
                     for (i, g) in generics.iter().enumerate() {
@@ -143,11 +144,12 @@ impl Display for TypeDecl {
                 }
                 Ok(())
             }
+            Generic(name) => write!(f, "{name}"),
         }
     }
 }
 
-#[derive(Debug, PartialEq, Clone, Copy)]
+#[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
 #[repr(u8)]
 pub enum PrimitiveType {
     Void,
@@ -250,7 +252,7 @@ pub struct Type {
     pub annotations: Vec<(String, Option<String>)>,
 }
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Eq, Hash, Clone)]
 pub struct TypeParameter {
     /// The name of the generic type parameter e.g. "T".
     pub name: String,
@@ -262,12 +264,8 @@ pub struct TypeParameter {
 
 impl Display for TypeParameter {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        let TypeParameter { name, ty } = self;
-        if let Some(ty) = ty.as_ref() {
-            write!(f, "{name} = {ty}")
-        } else {
-            write!(f, "{name}")
-        }
+        let TypeParameter { name, ty: _ } = self;
+        write!(f, "{name}")
     }
 }
 

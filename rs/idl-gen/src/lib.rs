@@ -15,6 +15,7 @@ use std::{fs, io::Write, path::Path};
 
 mod builder;
 mod errors;
+mod generic_resolver;
 mod meta;
 mod meta2;
 mod type_names;
