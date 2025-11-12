@@ -1,14 +1,31 @@
+#[cfg(feature = "async-runtime")]
+pub use async_runtime::{
+    MessageFuture, create_program_for_reply, handle_reply_with_hook, message_loop,
+    send_bytes_for_reply, send_for_reply, send_one_way, sleep_for,
+};
+#[cfg(feature = "async-runtime")]
+pub type CreateProgramFuture = MessageFuture;
+#[cfg(feature = "async-runtime")]
+#[cfg(not(feature = "ethexe"))]
+#[doc(hidden)]
+pub use async_runtime::{handle_signal, set_critical_hook};
 #[doc(hidden)]
 #[cfg(feature = "ethexe")]
 pub use ethexe::{EthEvent, EthEventExpo};
 #[doc(hidden)]
 pub use events::{EventEmitter, SailsEvent};
+#[cfg(not(feature = "async-runtime"))]
 #[cfg(not(feature = "ethexe"))]
 #[doc(hidden)]
 pub use gstd::handle_signal;
+#[cfg(not(feature = "async-runtime"))]
 #[doc(hidden)]
-pub use gstd::{async_init, async_main, handle_reply_with_hook, message_loop};
+pub use gstd::msg::{CreateProgramFuture, MessageFuture};
 pub use gstd::{debug, exec, msg};
+#[doc(hidden)]
+#[cfg(not(feature = "async-runtime"))]
+pub use gstd::{handle_reply_with_hook, message_loop};
+pub use locks::{Lock, WaitType};
 #[doc(hidden)]
 pub use sails_macros::{event, export, program, service};
 pub use syscalls::Syscall;
@@ -20,9 +37,12 @@ use crate::{
 };
 use gcore::stack_buffer;
 
+#[cfg(feature = "async-runtime")]
+mod async_runtime;
 #[cfg(feature = "ethexe")]
 mod ethexe;
 mod events;
+mod locks;
 pub mod services;
 mod syscalls;
 
@@ -137,4 +157,176 @@ pub trait InvocationIo {
     fn is_empty_tuple<T: 'static>() -> bool {
         TypeId::of::<T>() == TypeId::of::<()>()
     }
+}
+
+#[macro_export]
+macro_rules! ok {
+    ($e:expr) => {
+        match $e {
+            Ok(t) => t,
+            Err(err) => {
+                return Err(err.into());
+            }
+        }
+    };
+}
+
+#[cfg(not(feature = "ethexe"))]
+#[inline]
+fn send_bytes(
+    destination: ActorId,
+    payload: &[u8],
+    value: ValueUnit,
+    gas_limit: Option<GasUnit>,
+    reply_deposit: Option<GasUnit>,
+) -> Result<MessageId, ::gstd::errors::Error> {
+    let waiting_reply_to = if let Some(gas_limit) = gas_limit {
+        ::gcore::msg::send_with_gas(destination, payload, gas_limit, value)?
+    } else {
+        ::gcore::msg::send(destination, payload, value)?
+    };
+
+    if let Some(reply_deposit) = reply_deposit {
+        _ = ::gcore::exec::reply_deposit(waiting_reply_to, reply_deposit);
+    }
+    Ok(waiting_reply_to)
+}
+
+#[cfg(feature = "ethexe")]
+#[inline]
+fn send_bytes(
+    destination: ActorId,
+    payload: &[u8],
+    value: ValueUnit,
+) -> Result<MessageId, ::gstd::errors::Error> {
+    ::gcore::msg::send(destination, payload, value).map_err(::gstd::errors::Error::Core)
+}
+
+#[cfg(not(feature = "async-runtime"))]
+#[inline]
+pub fn send_one_way(
+    destination: ActorId,
+    payload: &[u8],
+    value: ValueUnit,
+    #[cfg(not(feature = "ethexe"))] gas_limit: Option<GasUnit>,
+    #[cfg(not(feature = "ethexe"))] reply_deposit: Option<GasUnit>,
+    #[cfg(not(feature = "ethexe"))] _reply_hook: Option<Box<dyn FnOnce()>>,
+) -> Result<MessageId, ::gstd::errors::Error> {
+    let waiting_reply_to = crate::ok!(send_bytes(
+        destination,
+        payload,
+        value,
+        #[cfg(not(feature = "ethexe"))]
+        gas_limit,
+        #[cfg(not(feature = "ethexe"))]
+        reply_deposit
+    ));
+
+    Ok(waiting_reply_to)
+}
+
+#[cfg(not(feature = "async-runtime"))]
+#[cfg(not(feature = "ethexe"))]
+#[inline]
+pub fn send_bytes_for_reply(
+    destination: ActorId,
+    payload: &[u8],
+    value: ValueUnit,
+    wait: Lock,
+    gas_limit: Option<GasUnit>,
+    reply_deposit: Option<GasUnit>,
+    reply_hook: Option<Box<dyn FnOnce()>>,
+) -> Result<MessageFuture, ::gstd::errors::Error> {
+    let reply_deposit = reply_deposit.unwrap_or_default();
+    // here can be a redirect target
+    let mut message_future = if let Some(gas_limit) = gas_limit {
+        ::gstd::msg::send_bytes_with_gas_for_reply(
+            destination,
+            payload,
+            gas_limit,
+            value,
+            reply_deposit,
+        )?
+    } else {
+        ::gstd::msg::send_bytes_for_reply(destination, payload, value, reply_deposit)?
+    };
+
+    message_future = match wait.wait_type() {
+        WaitType::Exactly => message_future.exactly(wait.duration())?,
+        WaitType::UpTo => message_future.up_to(wait.duration())?,
+    };
+
+    if let Some(reply_hook) = reply_hook {
+        message_future = message_future.handle_reply(reply_hook)?;
+    }
+    Ok(message_future)
+}
+
+#[cfg(not(feature = "async-runtime"))]
+#[cfg(feature = "ethexe")]
+#[inline]
+pub fn send_bytes_for_reply(
+    destination: ActorId,
+    payload: &[u8],
+    value: ValueUnit,
+    wait: Lock,
+) -> Result<MessageFuture, ::gstd::errors::Error> {
+    // here can be a redirect target
+    let mut message_future = ::gstd::msg::send_bytes_for_reply(destination, payload, value)?;
+
+    message_future = match wait.wait_type() {
+        WaitType::Exactly => message_future.exactly(wait.duration())?,
+        WaitType::UpTo => message_future.up_to(wait.duration())?,
+    };
+
+    Ok(message_future)
+}
+
+#[cfg(not(feature = "async-runtime"))]
+#[allow(clippy::too_many_arguments)]
+#[inline]
+pub fn create_program_for_reply(
+    code_id: CodeId,
+    salt: &[u8],
+    payload: &[u8],
+    value: ValueUnit,
+    wait: Lock,
+    #[cfg(not(feature = "ethexe"))] gas_limit: Option<GasUnit>,
+    #[cfg(not(feature = "ethexe"))] reply_deposit: Option<GasUnit>,
+    #[cfg(not(feature = "ethexe"))] reply_hook: Option<Box<dyn FnOnce()>>,
+) -> Result<(CreateProgramFuture, ActorId), ::gstd::errors::Error> {
+    #[cfg(not(feature = "ethexe"))]
+    let mut future = if let Some(gas_limit) = gas_limit {
+        ::gstd::prog::create_program_bytes_with_gas_for_reply(
+            code_id,
+            salt,
+            payload,
+            gas_limit,
+            value,
+            reply_deposit.unwrap_or_default(),
+        )?
+    } else {
+        ::gstd::prog::create_program_bytes_for_reply(
+            code_id,
+            salt,
+            payload,
+            value,
+            reply_deposit.unwrap_or_default(),
+        )?
+    };
+    #[cfg(feature = "ethexe")]
+    let mut future = ::gstd::prog::create_program_bytes_for_reply(code_id, salt, payload, value)?;
+    let program_id = future.program_id;
+
+    future = match wait.wait_type() {
+        WaitType::Exactly => future.exactly(wait.duration())?,
+        WaitType::UpTo => future.up_to(wait.duration())?,
+    };
+
+    #[cfg(not(feature = "ethexe"))]
+    if let Some(reply_hook) = reply_hook {
+        future = future.handle_reply(reply_hook)?;
+    }
+
+    Ok((future, program_id))
 }
