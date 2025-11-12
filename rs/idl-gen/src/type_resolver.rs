@@ -2,7 +2,7 @@ use convert_case::{Case, Casing};
 use sails_idl_meta::*;
 use scale_info::{
     Field, Path, PortableRegistry, StaticTypeInfo, Type, TypeDef, TypeDefComposite,
-    TypeDefPrimitive, TypeDefVariant, TypeInfo, TypeParameter, form::PortableForm,
+    TypeDefPrimitive, TypeDefVariant, form::PortableForm,
 };
 use std::collections::{BTreeMap, HashMap, HashSet};
 
@@ -52,8 +52,8 @@ impl<'a> TypeResolver<'a> {
     pub fn into_types(self) -> Vec<sails_idl_meta::Type> {
         let mut vec: Vec<_> = self
             .user_defined
-            .into_iter()
-            .map(|(_, v)| v.meta_type)
+            .into_values()
+            .map(|v| v.meta_type)
             .collect();
         vec.sort_by(|a, b| a.name.cmp(&b.name));
         vec
@@ -71,8 +71,8 @@ impl<'a> TypeResolver<'a> {
             .filter(|pt| !self.exclude.contains(&pt.id))
             .collect();
         for pt in filtered {
-            let td = self.resolve_type_decl(&pt.ty);
-            self.map.insert(pt.id, td);
+            let type_decl = self.resolve_type_decl(&pt.ty);
+            self.map.insert(pt.id, type_decl);
         }
     }
 
@@ -177,7 +177,7 @@ impl<'a> TypeResolver<'a> {
             type_params,
             def,
             docs: ty.docs.iter().map(|d| d.to_string()).collect(),
-            annotations: vec![],
+            annotations: vec![], //("rust_type".to_string(), Some(ty.path.to_string()))
         };
         let path = ty.path.clone();
         self.user_defined
@@ -239,7 +239,7 @@ impl<'a> TypeResolver<'a> {
             resolved
         };
         StructField {
-            name: field.name.map(|s| s.to_string()),
+            name: field.name.as_ref().map(|s| s.to_string()),
             type_decl,
             docs: field.docs.iter().map(|d| d.to_string()).collect(),
             annotations: vec![],
@@ -249,7 +249,7 @@ impl<'a> TypeResolver<'a> {
     fn resolve_known_composite(
         &mut self,
         ty: &Type<PortableForm>,
-        def: &TypeDefComposite<PortableForm>,
+        _def: &TypeDefComposite<PortableForm>,
     ) -> Option<TypeDecl> {
         use PrimitiveType::*;
         use TypeDecl::*;
@@ -266,12 +266,19 @@ impl<'a> TypeResolver<'a> {
             Some(Primitive(CodeId))
         } else if is_type::<gprimitives::MessageId>(ty) {
             Some(Primitive(MessageId))
-        } else if is_type::<Vec<()>>(ty) {
-            let ty = self.resolve_by_id(ty.type_params[0].ty.unwrap().id);
+        } else if is_type::<Vec<()>>(ty)
+            && let [vec_tp] = ty.type_params.as_slice()
+            && let Some(ty) = vec_tp.ty
+        {
+            let ty = self.resolve_by_id(ty.id);
             Some(Slice(Box::new(ty)))
-        } else if is_type::<BTreeMap<(), ()>>(ty) {
-            let key = self.resolve_by_id(ty.type_params[0].ty.unwrap().id);
-            let value = self.resolve_by_id(ty.type_params[1].ty.unwrap().id);
+        } else if is_type::<BTreeMap<(), ()>>(ty)
+            && let [key_tp, value_tp] = ty.type_params.as_slice()
+            && let Some(key) = key_tp.ty
+            && let Some(value) = value_tp.ty
+        {
+            let key = self.resolve_by_id(key.id);
+            let value = self.resolve_by_id(value.id);
             Some(Slice(Box::new(Tuple(vec![key, value]))))
         } else {
             None
@@ -285,15 +292,22 @@ impl<'a> TypeResolver<'a> {
     ) -> Option<TypeDecl> {
         use TypeDecl::*;
 
-        if is_type::<core::result::Result<(), ()>>(ty) {
-            let ok = self.resolve_by_id(def.variants[0].fields[0].ty.id);
-            let err = self.resolve_by_id(def.variants[1].fields[0].ty.id);
+        if is_type::<core::result::Result<(), ()>>(ty)
+            && let [ok_var, err_var] = def.variants.as_slice()
+            && let [ok] = ok_var.fields.as_slice()
+            && let [err] = err_var.fields.as_slice()
+        {
+            let ok = self.resolve_by_id(ok.ty.id);
+            let err = self.resolve_by_id(err.ty.id);
             Some(Result {
                 ok: Box::new(ok),
                 err: Box::new(err),
             })
-        } else if is_type::<core::option::Option<()>>(ty) {
-            let decl = self.resolve_by_id(def.variants[1].fields[0].ty.id);
+        } else if is_type::<core::option::Option<()>>(ty)
+            && let [_, some_var] = def.variants.as_slice()
+            && let [some] = some_var.fields.as_slice()
+        {
+            let decl = self.resolve_by_id(some.ty.id);
             Some(Option(Box::new(decl)))
         } else {
             None
@@ -333,69 +347,6 @@ fn possible_names_by_path(ty: &Type<PortableForm>) -> impl Iterator<Item = Strin
         name = segment.to_case(Case::Pascal) + &name;
         name.clone()
     })
-}
-
-mod generics {
-    use super::*;
-    use quote::ToTokens;
-    use syn::{
-        GenericArgument, PathArguments, Type, TypeArray, TypeParen, TypePath, TypeReference,
-        TypeSlice, TypeTuple,
-    };
-
-    pub(super) fn resolve(type_name: &str) -> TypeDecl {
-        let syn_type = syn::parse_str::<Type>(type_name).unwrap_or_else(|_| {
-            unreachable!(
-                "internal error: failed to parse type name during finalization: {type_name}"
-            )
-        });
-
-        finalize_syn(&syn_type)
-    }
-
-    fn finalize_syn(t: &Type) -> TypeDecl {
-        println!("type: {:?}", t.to_token_stream().to_string());
-        match t {
-            Type::Array(TypeArray { elem, len, .. }) => {
-                println!("{:?}", len.to_token_stream().to_string());
-                TypeDecl::Array {
-                    item: Box::new(finalize_syn(elem)),
-                    len: len.to_token_stream().to_string().parse::<u32>().unwrap(),
-                }
-            }
-            Type::Slice(TypeSlice { elem, .. }) => TypeDecl::Slice(Box::new(finalize_syn(elem))),
-            Type::Tuple(TypeTuple { elems, .. }) => {
-                TypeDecl::Tuple(elems.iter().map(finalize_syn).collect())
-            }
-            Type::Reference(TypeReference { elem, .. }) => finalize_syn(elem),
-            // No paren types in the final output. Only single value tuples
-            Type::Paren(TypeParen { elem, .. }) => finalize_syn(elem),
-            Type::Path(TypePath { path, .. }) => {
-                let last_segment = path.segments.last().unwrap();
-                let name = last_segment.ident.to_string();
-
-                let generics: Vec<_> =
-                    if let PathArguments::AngleBracketed(syn_args) = &last_segment.arguments {
-                        syn_args
-                            .args
-                            .iter()
-                            .filter_map(finalize_type_inner)
-                            .collect()
-                    } else {
-                        vec![]
-                    };
-                TypeDecl::UserDefined { name, generics }
-            }
-            _ => unimplemented!(),
-        }
-    }
-
-    fn finalize_type_inner(arg: &GenericArgument) -> Option<TypeDecl> {
-        match arg {
-            GenericArgument::Type(t) => Some(finalize_syn(t)),
-            _ => None,
-        }
-    }
 }
 
 #[cfg(test)]
@@ -468,10 +419,10 @@ mod tests {
     #[test]
     fn type_resolver_h160_h256() {
         let mut registry = Registry::new();
-        let h160_id = registry
+        let _h160_id = registry
             .register_type(&MetaType::new::<gprimitives::H160>())
             .id;
-        let h160_as_generic_param_id = registry
+        let _h160_as_generic_param_id = registry
             .register_type(&MetaType::new::<GenericStruct<gprimitives::H160>>())
             .id;
 

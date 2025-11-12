@@ -2,9 +2,9 @@ use alloc::{boxed::Box, format, string::String, vec::Vec};
 use askama::Template;
 use core::fmt::{Display, Write};
 
-// -------------------------------- Target model ---------------------------------
+// -------------------------------- IDL model ---------------------------------
 
-/// A structure describing program
+/// A structure IDL document
 #[derive(Debug, Default, PartialEq, Clone, Template)]
 #[template(path = "idl.askama", escape = "none")]
 pub struct IdlDoc {
@@ -25,7 +25,7 @@ pub struct ProgramUnit {
     pub annotations: Vec<(String, Option<String>)>,
 }
 
-/// A structure describing program
+/// A structure describing one of service exposure
 #[derive(Debug, Default, PartialEq, Clone)]
 pub struct ServiceExpo {
     pub name: String,
@@ -43,6 +43,7 @@ pub struct CtorFunc {
     pub annotations: Vec<(String, Option<String>)>,
 }
 
+// A
 #[derive(Debug, PartialEq, Clone, Template)]
 #[template(path = "service.askama", escape = "none")]
 pub struct ServiceUnit {
@@ -89,7 +90,7 @@ impl Display for FuncParam {
 
 pub type ServiceEvent = EnumVariant;
 
-#[derive(Debug, PartialEq, Eq, Hash, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum TypeDecl {
     Slice(Box<TypeDecl>),
     Array {
@@ -149,7 +150,7 @@ impl Display for TypeDecl {
     }
 }
 
-#[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[repr(u8)]
 pub enum PrimitiveType {
     Void,

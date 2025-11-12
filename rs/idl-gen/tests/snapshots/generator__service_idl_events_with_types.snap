@@ -16,7 +16,7 @@ service  {
         /// A type with a complex type field
         struct TestType<T> {
             /// Complex field
-            f1: Option<BTreeMap<ActorId, Vec<Result<T, String>>>>,
+            f1: Option<[(ActorId, [Result<T, String>])]>,
         }
     }
 }
