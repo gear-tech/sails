@@ -13,7 +13,15 @@ pub mod canonical;
 
 #[cfg(feature = "ast")]
 pub use canonical::*;
+
+#[cfg(feature = "ast")]
+pub mod service_ast;
+
+#[cfg(feature = "ast")]
+use core::any::type_name;
 use scale_info::{MetaType, StaticTypeInfo, prelude::vec::Vec};
+#[cfg(feature = "ast")]
+pub use service_ast::*;
 
 pub type AnyServiceMetaFn = fn() -> AnyServiceMeta;
 
@@ -46,6 +54,8 @@ pub struct AnyServiceMeta {
     queries: MetaType,
     events: MetaType,
     base_services: Vec<AnyServiceMeta>,
+    #[cfg(feature = "ast")]
+    type_name: &'static str,
 }
 
 impl AnyServiceMeta {
@@ -55,6 +65,8 @@ impl AnyServiceMeta {
             queries: S::queries(),
             events: S::events(),
             base_services: S::base_services().collect(),
+            #[cfg(feature = "ast")]
+            type_name: type_name::<S>(),
         }
     }
 
@@ -72,6 +84,11 @@ impl AnyServiceMeta {
 
     pub fn base_services(&self) -> impl Iterator<Item = &AnyServiceMeta> {
         self.base_services.iter()
+    }
+
+    #[cfg(feature = "ast")]
+    pub fn type_name(&self) -> &'static str {
+        self.type_name
     }
 }
 
