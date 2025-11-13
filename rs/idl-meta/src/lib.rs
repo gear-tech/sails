@@ -7,6 +7,12 @@ pub mod ast;
 
 #[cfg(feature = "ast")]
 pub use ast::*;
+
+#[cfg(feature = "ast")]
+pub mod canonical;
+
+#[cfg(feature = "ast")]
+pub use canonical::*;
 use scale_info::{MetaType, StaticTypeInfo, prelude::vec::Vec};
 
 pub type AnyServiceMetaFn = fn() -> AnyServiceMeta;

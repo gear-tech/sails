@@ -11,7 +11,15 @@ rust-version.workspace = true
 
 [dependencies]
 scale-info.workspace = true
+thiserror.workspace = true
+blake3.workspace = true
+serde.workspace = true
+serde-json.workspace = true
+serde_json_canonicalizer.workspace = true
 
 [features]
 default = [ "ast" ]
 ast = []
+
+[dev-dependencies]
+insta.workspace = true
