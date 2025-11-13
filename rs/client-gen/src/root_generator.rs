@@ -137,6 +137,9 @@ impl<'ast> Visitor<'ast> for RootGenerator<'_> {
         let mut mock_gen = MockGenerator::new(service_name, self.sails_path);
         mock_gen.visit_service_unit(service);
         self.mocks_tokens.extend(mock_gen.finalize());
+
+        // Continue traversal so that RootGenerator can visit the types within the service
+        sails_idl_parser_v2::ast::visitor::accept_service_unit(service, self);
     }
 
     fn visit_type(&mut self, t: &'ast Type) {

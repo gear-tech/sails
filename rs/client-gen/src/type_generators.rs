@@ -150,6 +150,10 @@ impl<'a> EnumDefGenerator<'a> {
 }
 
 impl<'ast> Visitor<'ast> for EnumDefGenerator<'ast> {
+    fn visit_enum_def(&mut self, enum_def: &'ast EnumDef) {
+        visitor::accept_enum_def(enum_def, self);
+    }
+
     fn visit_enum_variant(&mut self, enum_variant: &'ast EnumVariant) {
         for doc in &enum_variant.docs {
             quote_in! { self.tokens =>
@@ -157,24 +161,60 @@ impl<'ast> Visitor<'ast> for EnumDefGenerator<'ast> {
             };
         }
 
-        if !enum_variant.def.fields.is_empty() {
-            // This logic assumes that if there are fields, they represent
-            // the payload of the enum variant, similar to the old AST.
-            // This might need refinement if variant payloads become more complex.
-            let field = enum_variant.def.fields.first().unwrap();
-            let type_decl_code = generate_type_decl_code(&field.type_decl);
-            if type_decl_code.starts_with('{') {
-                quote_in! { self.tokens =>
-                    $['\r'] $(&enum_variant.name) $type_decl_code,
-                };
-            } else {
-                quote_in! { self.tokens =>
-                    $['\r'] $(&enum_variant.name)($type_decl_code),
+        let variant_name = &enum_variant.name;
+
+        if enum_variant.def.fields.is_empty() {
+            // Unit variant: `Variant,`
+            quote_in! { self.tokens =>
+                $['\r'] $variant_name,
+            };
+            return;
+        }
+
+        let is_tuple = enum_variant.def.fields.iter().all(|f| f.name.is_none());
+        let is_struct = enum_variant.def.fields.iter().all(|f| f.name.is_some());
+
+        if !is_tuple && !is_struct {
+            panic!(
+                "Enum variant '{}' has a mix of named and unnamed fields, which is not supported.",
+                variant_name
+            );
+        }
+
+        if is_tuple {
+            // Tuple variant: `Variant(Type1, Type2),`
+            let mut field_tokens = Tokens::new();
+            for (i, field) in enum_variant.def.fields.iter().enumerate() {
+                if i > 0 {
+                    field_tokens.append(", ");
+                }
+                let type_code =
+                    generate_type_decl_with_path(&field.type_decl, self.sails_path.into());
+                field_tokens.append(type_code);
+            }
+            quote_in! { self.tokens =>
+                $['\r'] $variant_name($field_tokens),
+            };
+        } else {
+            // Struct variant: `Variant { field1: Type1, ... },`
+            let mut field_tokens = Tokens::new();
+            for field in &enum_variant.def.fields {
+                for doc in &field.docs {
+                    quote_in! { field_tokens =>
+                        $['\r'] $("///") $doc
+                    };
+                }
+                let field_name = field.name.as_ref().unwrap();
+                let type_code =
+                    generate_type_decl_with_path(&field.type_decl, self.sails_path.into());
+                quote_in! { field_tokens =>
+                    $['\r'] pub $field_name: $type_code,
                 };
             }
-        } else {
             quote_in! { self.tokens =>
-                $['\r'] $(&enum_variant.name),
+                $['\r'] $variant_name {
+                    $(field_tokens)
+                $['\r'] },
             };
         }
     }
@@ -236,6 +276,9 @@ impl<'ast> Visitor<'ast> for TypeDeclGenerator {
             }
             visitor::accept_type_decl(item, self);
         }
+        if items.len() == 1 {
+            self.tokens.append(",");
+        }
         self.tokens.append(")");
     }
 
@@ -285,14 +328,23 @@ impl<'ast> Visitor<'ast> for TypeDeclGenerator {
     fn visit_user_defined_type(
         &mut self,
         path: &'ast str,
-        _generics: &'ast Vec<TypeDecl>,
+        generics: &'ast Vec<TypeDecl>,
     ) {
         if !self.path.is_empty() {
             self.tokens.append(self.path.as_str());
             self.tokens.append("::");
         }
         self.tokens.append(path);
-        // TODO: Handle generics properly if needed for client gen
+        if !generics.is_empty() {
+            self.tokens.append("<");
+            for (i, generic) in generics.iter().enumerate() {
+                if i > 0 {
+                    self.tokens.append(", ");
+                }
+                visitor::accept_type_decl(generic, self);
+            }
+            self.tokens.append(">");
+        }
     }
 }
 
