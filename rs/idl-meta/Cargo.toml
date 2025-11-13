@@ -11,3 +11,7 @@ rust-version.workspace = true
 
 [dependencies]
 scale-info.workspace = true
+
+[features]
+default = [ "ast" ]
+ast = []
