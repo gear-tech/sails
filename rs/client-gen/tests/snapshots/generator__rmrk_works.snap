@@ -56,8 +56,8 @@ pub enum Error {
 #[codec(crate = sails_rs::scale_codec)]
 #[scale_info(crate = sails_rs::scale_info)]
 pub enum Part {
-    Fixed(sails_rs::FixedPart),
-    Slot(sails_rs::SlotPart),
+    Fixed(FixedPart),
+    Slot(SlotPart),
 }
 #[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo)]
 #[codec(crate = sails_rs::scale_codec)]

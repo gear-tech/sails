@@ -3,66 +3,94 @@ use sails_client_gen::ClientGenerator;
 #[test]
 fn full() {
     const IDL: &str = r#"
-        // Comments are supported but ignored by idl-parser
-        
-        /// ThisThatSvcAppTupleStruct docs
-        type ThisThatSvcAppTupleStruct = struct {
-            /// field `bool`
-            bool,
-        };
-
-        /// ThisThatSvcAppDoThatParam docs
-        type ThisThatSvcAppDoThatParam = struct {
-            /// field `query`
-            query: u32,
-            /// field `result`
-            result: str,
-            /// field `p3`
-            p3: ThisThatSvcAppManyVariants,
-        };
-
-        /// ThisThatSvcAppManyVariants docs
-        type ThisThatSvcAppManyVariants = enum {
-            /// variant `One` 
-            One,
-            /// variant `Two`
-            Two: u32,
-            Three: opt u32,
-            Four: struct { a: u32, b: opt u16 },
-            Five: struct { str, u32 },
-            Six: struct { u32 },
-        };
-
-        type T = enum { One };
-
-        constructor {
-            /// New constructor
-            New : (a: u32);
-        };
-
-        service {
-            /// Some description
-            DoThis : (p1: u32, p2: str, p3: struct { opt str, u8 }, p4: ThisThatSvcAppTupleStruct) -> struct { str, u32 };
-            /// Some multiline description
-            /// Second line
-            /// Third line
-            DoThat : (param: ThisThatSvcAppDoThatParam) -> result (struct { str, u32 }, struct { str });
-            /// This is a query
-            query This : (v1: vec u16) -> u32;
-            /// This is a second query
-            /// This is a second line
-            query That : (v1: null) -> result (str, str);
+        service ThisThatService {
+            functions {
+                /// Some description
+                DoThis(p1: u32, p2: str, p3: DoThisP3, p4: ThisThatSvcAppTupleStruct) -> DoThisReturn;
+                /// Some multiline description
+                /// Second line
+                /// Third line
+                DoThat(param: ThisThatSvcAppDoThatParam) -> Result<DoThatReturnOk, DoThatReturnErr>;
+                /// This is a query
+                @query
+                This(v1: Vec<u16>) -> u32;
+                /// This is a second query
+                /// This is a second line
+                @query
+                That(v1: ()) -> Result<str, str>;
+            }
 
             events {
                 /// `This` Done
-                ThisDone: u32;
+                ThisDone(u32),
                 /// `That` Done too
-                ThatDone: struct {
+                ThatDone {
                     /// This is `p1` field
                     p1: str
                 };
             }
-        };
+        }
+
+        program Service { // The anonymous service is now part of a program
+            constructors {
+                /// New constructor
+                New(a: u32);
+            }
+
+            services {
+                ThisThatService,
+            }
+
+            types {
+                /// ThisThatSvcAppTupleStruct docs
+                struct ThisThatSvcAppTupleStruct(bool);
+
+                /// ThisThatSvcAppDoThatParam docs
+                struct ThisThatSvcAppDoThatParam {
+                    /// field `query`
+                    query: u32,
+                    /// field `result`
+                    result: str,
+                    /// field `p3`
+                    p3: ThisThatSvcAppManyVariants,
+                }
+
+                /// ThisThatSvcAppManyVariants docs
+                enum ThisThatSvcAppManyVariants {
+                    /// variant `One` 
+                    One,
+                    /// variant `Two`
+                    Two(u32),
+                    Three(Option<u32>),
+                    Four { a: u32, b: Option<u16> },
+                    Five(str, u32),
+                    Six(u32),
+                }
+
+                enum T { One }
+
+                // New named structs for DoThis function
+                struct DoThisP3 {
+                    f1: Option<str>,
+                    f2: u8,
+                }
+
+                struct DoThisReturn {
+                    f1: str,
+                    f2: u32,
+                }
+
+                // New named structs for DoThat function return type
+                struct DoThatReturnOk {
+                    f1: str,
+                    f2: u32,
+                }
+
+                struct DoThatReturnErr {
+                    f1: str,
+                }
+            }
+        }
         "#;
 
     insta::assert_snapshot!(gen_client(IDL, "Service"));
@@ -353,4 +381,82 @@ fn gen_client(program: &str, service_name: &str) -> String {
         .with_mocks("with_mocks")
         .generate(service_name)
         .expect("generate client")
+}
+
+#[test]
+fn test_complex_type_generation_works() {
+    const IDL: &str = r#"
+        program ComplexTypesProgram {
+            constructors {
+                NewProgram(initial_count: u32, id_prefix: string);
+            }
+            services {
+                MyComplexService,
+                AnotherService,
+            }
+            types {
+                struct ProgramGlobalInfo {
+                    id: ActorId,
+                    config_version: u32,
+                    map_of_data: BTreeMap<string, ProgramScopedData>,
+                    optional_value: Option<u64>,
+                    result_status: Result<(u32, bool), ErrorType>,
+                    values_vec: Vec<u8>,
+                    non_zero_id: NonZeroU16,
+                    h256_hash: H256,
+                }
+
+                struct ProgramScopedData {
+                    name: string,
+                    value: U256,
+                    sub_id: u32,
+                }
+
+                enum ErrorType {
+                    InvalidInput,
+                    NotFound(string),
+                    AccessDenied { id: ActorId, reason: string },
+                }
+            }
+        }
+
+        service MyComplexService {
+            functions {
+                Initialize(
+                    start_data: ProgramGlobalInfo,
+                    max_size: NonZeroU32
+                ) -> Result<(), ErrorType>;
+
+                GetData(key: string) -> Result<ProgramScopedData, ErrorType>;
+
+                @query
+                GetInfo() -> ProgramGlobalInfo;
+
+                @query
+                GetActorIds(count: u32) -> Vec<ActorId>;
+            }
+            types {
+                struct ServiceLocalConfig {
+                    enabled: bool,
+                    retry_count: NonZeroU8,
+                    actor_list: Vec<ActorId>,
+                }
+
+                enum ServiceStatus {
+                    Active(ServiceLocalConfig),
+                    Paused,
+                    Error(ErrorType),
+                }
+            }
+        }
+
+        service AnotherService {
+            functions {
+                Ping() -> string;
+                ProcessValues(data: Vec<U256>) -> Result<(), ErrorType>;
+            }
+        }
+    "#;
+
+    insta::assert_snapshot!(gen_client(IDL, "ComplexTypesProgram"));
 }

@@ -2,7 +2,6 @@ use genco::prelude::*;
 use rust::Tokens;
 use sails_idl_parser_v2::{ast::visitor, ast::visitor::Visitor, ast::*};
 
-
 pub(crate) struct TopLevelTypeGenerator<'a> {
     type_name: &'a str,
     sails_path: &'a str,
@@ -188,8 +187,7 @@ impl<'ast> Visitor<'ast> for EnumDefGenerator<'ast> {
                 if i > 0 {
                     field_tokens.append(", ");
                 }
-                let type_code =
-                    generate_type_decl_with_path(&field.type_decl, self.sails_path.into());
+                let type_code = generate_type_decl_with_path(&field.type_decl, "".into());
                 field_tokens.append(type_code);
             }
             quote_in! { self.tokens =>
@@ -218,7 +216,8 @@ impl<'ast> Visitor<'ast> for EnumDefGenerator<'ast> {
             };
         }
     }
-}pub(crate) fn generate_type_decl_with_path(type_decl: &TypeDecl, path: String) -> String {
+}
+pub(crate) fn generate_type_decl_with_path(type_decl: &TypeDecl, path: String) -> String {
     let mut type_decl_generator = TypeDeclGenerator {
         tokens: Tokens::new(),
         path,
@@ -332,11 +331,7 @@ impl<'ast> Visitor<'ast> for TypeDeclGenerator {
         });
     }
 
-    fn visit_user_defined_type(
-        &mut self,
-        path: &'ast str,
-        generics: &'ast Vec<TypeDecl>,
-    ) {
+    fn visit_user_defined_type(&mut self, path: &'ast str, generics: &'ast Vec<TypeDecl>) {
         if !self.path.is_empty() {
             self.tokens.append(self.path.as_str());
             self.tokens.append("::");
@@ -357,4 +352,3 @@ impl<'ast> Visitor<'ast> for TypeDeclGenerator {
         }
     }
 }
-
