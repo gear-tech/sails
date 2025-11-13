@@ -99,16 +99,28 @@ fn test_basic_works() {
 
 #[test]
 fn test_multiple_services() {
-    let idl = r"
-        service {
-            DoThis: (p1: u32, p2: MyParam) -> u16;
-            DoThat: (p1: struct { u8, u32 }) -> u8;
-        };
+    let idl = r#"
+        service Multiple { // Anonymous service becomes named "Multiple" for the test
+            functions {
+                DoThis(p1: u32, p2: MyParam) -> u16;
+                DoThat(p1: (u8, u32)) -> u8;
+            }
+            types {
+                // MyParam is not defined in this IDL, it's assumed to be external or defined elsewhere.
+                // For this test, I'll define a dummy MyParam to make it self-contained.
+                struct MyParam {
+                    value: u32,
+                }
+            }
+        }
 
         service Named {
-            query That: (p1: u32) -> str;
-        };
-    ";
+            functions {
+                @query
+                That(p1: u32) -> string;
+            }
+        }
+    "#;
 
     insta::assert_snapshot!(gen_client(idl, "Multiple"));
 }
