@@ -183,56 +183,69 @@ fn test_events_works() {
 #[test]
 fn full_with_sails_path() {
     const IDL: &str = r#"
-        type ThisThatSvcAppTupleStruct = struct {
-            bool,
-        };
+        program Service { // The anonymous service is now part of a program
+            constructors {
+                /// New constructor
+                New(a: u32);
+                /// CreateWithData constructor
+                CreateWithData(a: u32, b: string, c: ThisThatSvcAppManyVariants);
+            }
+            services {
+                ThisThatService,
+                CounterService,
+            }
+            types {
+                struct ThisThatSvcAppTupleStruct(bool);
 
-        type ThisThatSvcAppDoThatParam = struct {
-            p1: u32,
-            p2: str,
-            p3: ThisThatSvcAppManyVariants,
-        };
+                struct ThisThatSvcAppDoThatParam {
+                    p1: u32,
+                    p2: string,
+                    p3: ThisThatSvcAppManyVariants,
+                }
 
-        type ThisThatSvcAppManyVariants = enum {
-            One,
-            Two: u32,
-            Three: opt u32,
-            Four: struct { a: u32, b: opt u16 },
-            Five: struct { str, u32 },
-            Six: struct { u32 },
-        };
+                enum ThisThatSvcAppManyVariants {
+                    One,
+                    Two(u32),
+                    Three(Option<u32>),
+                    Four { a: u32, b: Option<u16> },
+                    Five(string, u32),
+                    Six(u32),
+                }
 
-        type T = enum { One };
+                enum T { One } // This was a type T = enum { One };
+            }
+        }
 
-        constructor {
-            /// New constructor
-            New : (a: u32);
-            /// CreateWithData constructor
-            CreateWithData : (a: u32, b: str, c: ThisThatSvcAppManyVariants);
-        };
+        service ThisThatService {
+            functions {
+                DoThis(p1: u32, p2: string, p3: Option<(string, u8)>, p4: ThisThatSvcAppTupleStruct) -> (string, u32);
+                DoThat(param: ThisThatSvcAppDoThatParam) -> Result<(string, u32), string>;
+                @query
+                This(v1: Vec<u16>) -> u32;
+                @query
+                That(v1: ()) -> Result<string, string>;
+            }
+        }
 
-        service {
-            DoThis : (p1: u32, p2: str, p3: struct { opt str, u8 }, p4: ThisThatSvcAppTupleStruct) -> struct { str, u32 };
-            DoThat : (param: ThisThatSvcAppDoThatParam) -> result (struct { str, u32 }, struct { str });
-            query This : (v1: vec u16) -> u32;
-            query That : (v1: null) -> result (str, str);
-        };
-
-        service Counter {
-            /// Add a value to the counter
-            Add : (value: u32) -> u32;
-            /// Substract a value from the counter
-            Sub : (value: u32) -> u32;
-            /// Get the current value
-            query Value : () -> u32;
+        service CounterService {
+            functions {
+                /// Add a value to the counter
+                Add(value: u32) -> u32;
+                /// Substract a value from the counter
+                Sub(value: u32) -> u32;
+                /// Get the current value
+                @query
+                Value() -> u32;
+            }
 
             events {
                 /// Emitted when a new value is added to the counter
-                Added: u32;
+                Added(u32),
                 /// Emitted when a value is subtracted from the counter
-                Subtracted: u32;
+                Subtracted(u32),
             }
-        };"#;
+        }
+    "#;
 
     let code = ClientGenerator::from_idl(IDL)
         .with_sails_crate("my_crate::sails")
