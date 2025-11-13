@@ -110,7 +110,7 @@ impl<'ast> Visitor<'ast> for StructDefGenerator<'ast> {
 
         if let Some(field_name) = &struct_field.name {
             quote_in! { self.tokens =>
-                $['\r'] pub $field_name: $type_decl_code,
+                $['\r'] $field_name: $type_decl_code,
             };
         } else {
             quote_in! { self.tokens =>
@@ -208,7 +208,7 @@ impl<'ast> Visitor<'ast> for EnumDefGenerator<'ast> {
                 let type_code =
                     generate_type_decl_with_path(&field.type_decl, self.sails_path.into());
                 quote_in! { field_tokens =>
-                    $['\r'] pub $field_name: $type_code,
+                    $['\r'] $field_name: $type_code,
                 };
             }
             quote_in! { self.tokens =>

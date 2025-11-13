@@ -116,7 +116,7 @@ impl<'ast> Visitor<'ast> for EventsModuleGenerator<'_> {
                 let type_code =
                     crate::type_generators::generate_type_decl_with_path(&field.type_decl, "super".into());
                 quote_in! { field_tokens =>
-                    $['\r'] pub $field_name: $type_code,
+                    $['\r'] $field_name: $type_code,
                 };
             }
             quote_in! { self.tokens =>

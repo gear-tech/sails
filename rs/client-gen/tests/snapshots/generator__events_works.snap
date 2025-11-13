@@ -60,7 +60,7 @@ pub mod service_with_events {
         #[codec(crate = sails_rs::scale_codec)]
         pub enum ServiceWithEventsEvents {
             One(u64),
-            Two { pub id: u8, pub reference: u64 },
+            Two { id: u8, reference: u64 },
             Three(super::MyParam),
             Reset,
         }
@@ -76,9 +76,9 @@ pub mod service_with_events {
 #[codec(crate = sails_rs::scale_codec)]
 #[scale_info(crate = sails_rs::scale_info)]
 pub struct MyParam {
-    pub f1: U256,
-    pub f2: Vec<u8>,
-    pub f3: Option<(U64, U256)>,
+    f1: U256,
+    f2: Vec<u8>,
+    f3: Option<(U64, U256)>,
 }
 
 #[cfg(feature = "with_mocks")]
