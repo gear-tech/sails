@@ -122,17 +122,20 @@ fn test_rmrk_works() {
 
 #[test]
 fn test_nonzero_works() {
-    let idl = r"
-            type MyParam = struct {
-                f1: nat256,
-                f2: vec nat8,
-                f3: opt struct { nat64, nat256 },
-            };
-
-            service {
-                DoThis: (p1: nat256, p2: MyParam) -> nat64;
-            };
-        ";
+    let idl = r#"
+        service NonZeroParams {
+            functions {
+                DoThis(p1: U256, p2: MyParam) -> U64;
+            }
+            types {
+                struct MyParam {
+                    f1: U256,
+                    f2: [u8],
+                    f3: Option<(U64, U256)>,
+                }
+            }
+        }
+    "#;
 
     insta::assert_snapshot!(gen_client(idl, "NonZeroParams"));
 }
