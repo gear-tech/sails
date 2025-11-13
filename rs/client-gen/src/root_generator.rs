@@ -2,7 +2,7 @@ use crate::{ctor_generators::*, mock_generator::*, service_generators::*, type_g
 use convert_case::{Case, Casing};
 use genco::prelude::*;
 use rust::Tokens;
-use sails_idl_parser::{ast::visitor::Visitor, ast::*};
+use sails_idl_parser_v2::{ast::visitor::Visitor, ast::*};
 use std::collections::HashMap;
 
 pub(crate) struct RootGenerator<'a> {
@@ -107,40 +107,44 @@ impl<'a> RootGenerator<'a> {
 }
 
 impl<'ast> Visitor<'ast> for RootGenerator<'_> {
-    fn visit_ctor(&mut self, ctor: &'ast Ctor) {
+    fn visit_program_unit(&mut self, program: &'ast ProgramUnit) {
         let mut ctor_gen = CtorGenerator::new(self.anonymous_service_name, self.sails_path);
-        ctor_gen.visit_ctor(ctor);
+        for ctor in &program.ctors {
+            ctor_gen.visit_ctor_func(ctor);
+        }
         self.tokens.extend(ctor_gen.finalize());
+
+        visitor::accept_program_unit(program, self);
     }
 
-    fn visit_service(&mut self, service: &'ast Service) {
-        let service_name = if service.name().is_empty() {
+    fn visit_service_unit(&mut self, service: &'ast ServiceUnit) {
+        let service_name = if service.name.is_empty() {
             self.anonymous_service_name
         } else {
-            service.name()
+            &service.name
         };
 
         let mut ctor_gen = ServiceCtorGenerator::new(service_name, self.sails_path);
-        ctor_gen.visit_service(service);
+        ctor_gen.visit_service_unit(service);
         let (trait_tokens, impl_tokens) = ctor_gen.finalize();
         self.service_trait_tokens.extend(trait_tokens);
         self.service_impl_tokens.extend(impl_tokens);
 
         let mut client_gen = ServiceGenerator::new(service_name, self.sails_path);
-        client_gen.visit_service(service);
+        client_gen.visit_service_unit(service);
         self.tokens.extend(client_gen.finalize());
 
         let mut mock_gen = MockGenerator::new(service_name, self.sails_path);
-        mock_gen.visit_service(service);
+        mock_gen.visit_service_unit(service);
         self.mocks_tokens.extend(mock_gen.finalize());
     }
 
     fn visit_type(&mut self, t: &'ast Type) {
-        if self.external_types.contains_key(t.name()) {
+        if self.external_types.contains_key(t.name.as_str()) {
             return;
         }
         let mut type_gen =
-            TopLevelTypeGenerator::new(t.name(), self.sails_path, self.no_derive_traits);
+            TopLevelTypeGenerator::new(&t.name, self.sails_path, self.no_derive_traits);
         type_gen.visit_type(t);
         self.tokens.extend(type_gen.finalize());
     }

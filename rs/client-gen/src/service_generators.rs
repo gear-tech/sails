@@ -1,7 +1,7 @@
 use convert_case::{Case, Casing};
 use genco::prelude::*;
 use rust::Tokens;
-use sails_idl_parser::{ast::visitor, ast::visitor::Visitor, ast::*};
+use sails_idl_parser_v2::{ast::visitor::Visitor, ast::*};
 
 use crate::events_generator::EventsModuleGenerator;
 use crate::helpers::*;
@@ -31,7 +31,7 @@ impl<'a> ServiceCtorGenerator<'a> {
 }
 
 impl<'ast> Visitor<'ast> for ServiceCtorGenerator<'_> {
-    fn visit_service(&mut self, _service: &'ast Service) {
+    fn visit_service_unit(&mut self, _service: &'ast ServiceUnit) {
         let service_name_snake = &self.service_name.to_case(Case::Snake);
         quote_in!(self.trait_tokens =>
             fn $service_name_snake(&self) -> $(self.sails_path)::client::Service<$service_name_snake::$(self.service_name)Impl, Self::Env>;
@@ -99,25 +99,27 @@ impl<'a> ServiceGenerator<'a> {
 
 // using quote_in instead of tokens.append
 impl<'ast> Visitor<'ast> for ServiceGenerator<'_> {
-    fn visit_service(&mut self, service: &'ast Service) {
-        visitor::accept_service(service, self);
+    fn visit_service_unit(&mut self, service: &'ast ServiceUnit) {
+        for func in &service.funcs {
+            self.visit_service_func(func);
+        }
 
-        if !service.events().is_empty() {
+        if !service.events.is_empty() {
             let mut events_mod_gen = EventsModuleGenerator::new(self.service_name, self.sails_path);
-            events_mod_gen.visit_service(service);
+            events_mod_gen.visit_service_unit(service);
             self.events_tokens = events_mod_gen.finalize();
         }
     }
 
     fn visit_service_func(&mut self, func: &'ast ServiceFunc) {
-        let mutability = if func.is_query() { "" } else { "mut" };
-        let fn_name = func.name();
+        let mutability = if func.is_query { "" } else { "mut" };
+        let fn_name = &func.name;
         let fn_name_snake = &fn_name.to_case(Case::Snake);
 
-        let params_with_types = &fn_args_with_types(func.params());
-        let args = encoded_args(func.params());
+        let params_with_types = &fn_args_with_types(&func.params);
+        let args = encoded_args(&func.params);
 
-        for doc in func.docs() {
+        for doc in &func.docs {
             quote_in! { self.trait_tokens =>
                 $['\r'] $("///") $doc
             };
@@ -132,8 +134,8 @@ impl<'ast> Visitor<'ast> for ServiceGenerator<'_> {
             }
         };
 
-        let output_type_decl_code = generate_type_decl_with_path(func.output(), "super".to_owned());
-        let params_with_types_super = &fn_args_with_types_path(func.params(), "super");
+        let output_type_decl_code = generate_type_decl_with_path(&func.output, "super".to_owned());
+        let params_with_types_super = &fn_args_with_types_path(&func.params, "super");
         quote_in! { self.io_tokens =>
             $(self.sails_path)::io_struct_impl!($fn_name ($params_with_types_super) -> $output_type_decl_code);
         };

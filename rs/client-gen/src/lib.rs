@@ -1,7 +1,7 @@
 use anyhow::{Context, Result};
 use convert_case::{Case, Casing};
 use root_generator::RootGenerator;
-use sails_idl_parser::ast::visitor;
+use sails_idl_parser_v2::ast::visitor;
 use std::{collections::HashMap, ffi::OsStr, fs, io::Write, path::Path};
 
 mod ctor_generators;
@@ -166,8 +166,8 @@ impl<'a> ClientGenerator<'a, IdlString<'a>> {
             self.external_types,
             self.no_derive_traits,
         );
-        let program = sails_idl_parser::ast::parse_idl(idl).context("Failed to parse IDL")?;
-        visitor::accept_program(&program, &mut generator);
+        let program = sails_idl_parser_v2::IdlDoc::parse(idl).context("Failed to parse IDL")?;
+        visitor::accept_idl_doc(&program, &mut generator);
 
         let code = generator.finalize(self.with_no_std);
 

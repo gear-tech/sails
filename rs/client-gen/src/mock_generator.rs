@@ -2,7 +2,7 @@ use crate::helpers::fn_args_with_types;
 use convert_case::{Case, Casing};
 use genco::prelude::*;
 use rust::Tokens;
-use sails_idl_parser::{ast::visitor, ast::visitor::Visitor, ast::*};
+use sails_idl_parser_v2::{ast::visitor::Visitor, ast::*};
 
 pub(crate) struct MockGenerator<'a> {
     service_name: &'a str,
@@ -37,16 +37,18 @@ impl<'a> MockGenerator<'a> {
 }
 
 impl<'ast> Visitor<'ast> for MockGenerator<'_> {
-    fn visit_service(&mut self, service: &'ast Service) {
-        visitor::accept_service(service, self);
+    fn visit_service_unit(&mut self, service: &'ast ServiceUnit) {
+        for func in &service.funcs {
+            self.visit_service_func(func);
+        }
     }
 
     fn visit_service_func(&mut self, func: &'ast ServiceFunc) {
         let service_name_snake = &self.service_name.to_case(Case::Snake);
-        let mutability = if func.is_query() { "" } else { "mut" };
-        let fn_name = func.name();
-        let fn_name_snake = func.name().to_case(Case::Snake);
-        let params_with_types = &fn_args_with_types(func.params());
+        let mutability = if func.is_query { "" } else { "mut" };
+        let fn_name = &func.name;
+        let fn_name_snake = func.name.to_case(Case::Snake);
+        let params_with_types = &fn_args_with_types(&func.params);
 
         quote_in! { self.tokens =>
             fn $fn_name_snake (&$mutability self, $params_with_types) -> $(self.sails_path)::client::PendingCall<$service_name_snake::io::$fn_name, $(self.sails_path)::client::GstdEnv>;

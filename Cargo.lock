@@ -7224,7 +7224,7 @@ dependencies = [
  "genco",
  "insta",
  "parity-scale-codec",
- "sails-idl-parser",
+ "sails-idl-parser-v2",
 ]
 
 [[package]]

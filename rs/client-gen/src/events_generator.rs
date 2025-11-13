@@ -1,5 +1,5 @@
 use genco::prelude::*;
-use sails_idl_parser::{ast::visitor, ast::visitor::Visitor, ast::*};
+use sails_idl_parser_v2::{ast::visitor, ast::visitor::Visitor, ast::*};
 
 pub(crate) struct EventsModuleGenerator<'a> {
     service_name: &'a str,
@@ -22,12 +22,12 @@ impl<'a> EventsModuleGenerator<'a> {
 }
 
 impl<'ast> Visitor<'ast> for EventsModuleGenerator<'_> {
-    fn visit_service(&mut self, service: &'ast Service) {
+    fn visit_service_unit(&mut self, service: &'ast ServiceUnit) {
         let events_name = &format!("{}Events", self.service_name);
         let event_names = service
-            .events()
+            .events
             .iter()
-            .map(|e| format!("\"{}\"", e.name()))
+            .map(|e| format!("\"{}\"", e.name))
             .collect::<Vec<_>>()
             .join(", ");
 
@@ -41,7 +41,7 @@ impl<'ast> Visitor<'ast> for EventsModuleGenerator<'_> {
                 pub enum $events_name $("{")
         };
 
-        visitor::accept_service(service, self);
+        visitor::accept_service_unit(service, self);
 
         quote_in! { self.tokens =>
             $['\r'] $("}")
@@ -62,27 +62,37 @@ impl<'ast> Visitor<'ast> for EventsModuleGenerator<'_> {
         };
     }
 
-    fn visit_service_event(&mut self, event: &'ast ServiceEvent) {
-        if let Some(type_decl) = event.type_decl().as_ref() {
-            for doc in event.docs() {
-                quote_in! { self.tokens =>
-                    $['\r'] $("///") $doc
-                };
-            }
+    fn visit_enum_variant(&mut self, event: &'ast EnumVariant) {
+        // In the new AST, event is just an enum variant.
+        // We need to figure out if it has a payload.
+        let has_payload = !event.def.fields.is_empty();
 
-            let type_decl_code = crate::type_generators::generate_type_decl_code(type_decl);
-            if type_decl_code.starts_with('{') {
-                quote_in! { self.tokens =>
-                    $['\r'] $(event.name()) $(type_decl_code),
-                };
-            } else {
-                quote_in! { self.tokens =>
-                    $['\r'] $(event.name())($(type_decl_code)) ,
-                };
+        for doc in &event.docs {
+            quote_in! { self.tokens =>
+                $['\r'] $("///") $doc
+            };
+        }
+
+        if has_payload {
+            // Assuming the payload is a single unnamed type for simplicity,
+            // which was the case for service events in v1.
+            // This might need adjustment if events can have complex struct-like payloads.
+            if let Some(field) = event.def.fields.first() {
+                let type_decl_code =
+                    crate::type_generators::generate_type_decl_code(&field.type_decl);
+                if type_decl_code.starts_with('{') {
+                    quote_in! { self.tokens =>
+                        $['\r'] $(&event.name) $(type_decl_code),
+                    };
+                } else {
+                    quote_in! { self.tokens =>
+                        $['\r'] $(&event.name)($(type_decl_code)) ,
+                    };
+                }
             }
         } else {
             quote_in! { self.tokens =>
-                $['\r'] $(event.name()),
+                $['\r'] $(&event.name),
             };
         }
     }
