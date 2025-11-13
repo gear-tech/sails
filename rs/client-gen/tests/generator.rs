@@ -244,25 +244,28 @@ fn full_with_sails_path() {
 #[test]
 fn test_external_types() {
     const IDL: &str = r#"
-        type MyParam = struct {
-            f1: u32,
-            f2: vec str,
-            f3: opt struct { u8, u32 },
-        };
+        service Service { // Anonymous service becomes named "Service" for the test
+            functions {
+                DoThis(p1: u32, p2: MyParam) -> u16;
+                DoThat(p1: (u8, u32)) -> u8;
+            }
+            types {
+                struct MyParam {
+                    f1: u32,
+                    f2: [string],
+                    f3: Option<(u8, u32)>,
+                }
 
-        type MyParam2 = enum {
-            Variant1,
-            Variant2: u32,
-            Variant3: struct { u32 },
-            Variant4: struct { u8, u32 },
-            Variant5: struct { f1: str, f2: vec u8 },
-        };
-
-        service {
-            DoThis: (p1: u32, p2: MyParam) -> u16;
-            DoThat: (p1: struct { u8, u32 }) -> u8;
-        };
-        "#;
+                enum MyParam2 {
+                    Variant1,
+                    Variant2(u32),
+                    Variant3(u32),
+                    Variant4(u8, u32),
+                    Variant5 { f1: string, f2: [u8] },
+                }
+            }
+        }
+    "#;
 
     let code = ClientGenerator::from_idl(IDL)
         .with_sails_crate("my_crate::sails")
