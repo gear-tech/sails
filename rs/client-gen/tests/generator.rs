@@ -139,24 +139,28 @@ fn test_nonzero_works() {
 
 #[test]
 fn test_events_works() {
-    let idl = r"
-            type MyParam = struct {
-                f1: nat256,
-                f2: vec nat8,
-                f3: opt struct { nat64, nat256 },
-            };
+    let idl = r#"
+        service ServiceWithEvents {
+            functions {
+                DoThis(p1: U256, p2: MyParam) -> U64;
+            }
 
-            service {
-                DoThis: (p1: nat256, p2: MyParam) -> nat64;
+            events {
+                One(u64),
+                Two { id: u8, reference: u64 },
+                Three(MyParam),
+                Reset,
+            }
 
-                events {
-                    One: u64;
-                    Two: struct { id: u8, reference: u64 };
-                    Three: MyParam;
-                    Reset;
+            types {
+                struct MyParam {
+                    f1: U256,
+                    f2: [u8],
+                    f3: Option<(U64, U256)>,
                 }
-            };
-        ";
+            }
+        }
+    "#;
 
     insta::assert_snapshot!(gen_client(idl, "ServiceWithEvents"));
 }

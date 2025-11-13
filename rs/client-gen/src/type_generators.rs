@@ -218,18 +218,7 @@ impl<'ast> Visitor<'ast> for EnumDefGenerator<'ast> {
             };
         }
     }
-}
-
-pub(crate) fn generate_type_decl_code(type_decl: &TypeDecl) -> String {
-    let mut type_decl_generator = TypeDeclGenerator::default();
-    visitor::accept_type_decl(type_decl, &mut type_decl_generator);
-    type_decl_generator
-        .tokens
-        .to_string()
-        .expect("Failed to generate type decl code")
-}
-
-pub(crate) fn generate_type_decl_with_path(type_decl: &TypeDecl, path: String) -> String {
+}pub(crate) fn generate_type_decl_with_path(type_decl: &TypeDecl, path: String) -> String {
     let mut type_decl_generator = TypeDeclGenerator {
         tokens: Tokens::new(),
         path,
