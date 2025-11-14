@@ -173,9 +173,9 @@ impl ServiceBuilder {
                 let mut output = resolver.get(c.fields[1].ty.id).unwrap().clone();
                 let mut throws = None;
                 // TODO: unwrap result param
-                if let TypeDecl::Result { ok, err } = output {
-                    output = *ok;
-                    throws = Some(*err);
+                if let Some((ok, err)) = TypeDecl::result_type_decl(&output) {
+                    output = ok;
+                    throws = Some(err);
                 };
                 if let scale_info::TypeDef::Composite(params_type) = &params_type.type_def {
                     Ok(ServiceFunc {
@@ -190,7 +190,7 @@ impl ServiceBuilder {
                             .collect(),
                         output,
                         throws,
-                        is_query: false,
+                        kind: FunctionKind::Command,
                         docs: c.docs.iter().map(|s| s.to_string()).collect(),
                         annotations: vec![],
                     })
@@ -209,9 +209,9 @@ impl ServiceBuilder {
                 let mut output = resolver.get(c.fields[1].ty.id).unwrap().clone();
                 let mut throws = None;
                 // TODO: unwrap result param
-                if let TypeDecl::Result { ok, err } = output {
-                    output = *ok.clone();
-                    throws = Some(*err.clone());
+                if let Some((ok, err)) = TypeDecl::result_type_decl(&output) {
+                    output = ok;
+                    throws = Some(err);
                 };
                 if let scale_info::TypeDef::Composite(params_type) = &params_type.type_def {
                     Ok(ServiceFunc {
@@ -227,7 +227,7 @@ impl ServiceBuilder {
                         output,
                         // TODO: Throws type
                         throws,
-                        is_query: true,
+                        kind: FunctionKind::Query,
                         docs: c.docs.iter().map(|s| s.to_string()).collect(),
                         annotations: vec![("query".to_string(), None)],
                     })

@@ -104,10 +104,10 @@ impl<'a> TypeResolver<'a> {
             TypeDef::Sequence(type_def_sequence) => TypeDecl::Slice(Box::new(
                 self.resolve_by_id(type_def_sequence.type_param.id),
             )),
-            TypeDef::Array(type_def_array) => TypeDecl::Array {
-                item: Box::new(self.resolve_by_id(type_def_array.type_param.id)),
-                len: type_def_array.len,
-            },
+            TypeDef::Array(type_def_array) => TypeDecl::Array(
+                Box::new(self.resolve_by_id(type_def_array.type_param.id)),
+                type_def_array.len,
+            ),
             TypeDef::Tuple(type_def_tuple) => {
                 if type_def_tuple.fields.is_empty() {
                     TypeDecl::Primitive(PrimitiveType::Void)
@@ -214,14 +214,13 @@ impl<'a> TypeResolver<'a> {
     }
 
     fn resolve_user_defined(&mut self, name: String, ty: &Type<PortableForm>) -> TypeDecl {
-        TypeDecl::UserDefined {
+        TypeDecl::Named(
             name,
-            generics: ty
-                .type_params
+            ty.type_params
                 .iter()
                 .map(|tp| self.resolve_by_id(tp.ty.as_ref().unwrap().id))
                 .collect(),
-        }
+        )
     }
 
     fn resolve_field(
@@ -290,8 +289,6 @@ impl<'a> TypeResolver<'a> {
         ty: &Type<PortableForm>,
         def: &TypeDefVariant<PortableForm>,
     ) -> Option<TypeDecl> {
-        use TypeDecl::*;
-
         if is_type::<core::result::Result<(), ()>>(ty)
             && let [ok_var, err_var] = def.variants.as_slice()
             && let [ok] = ok_var.fields.as_slice()
@@ -299,16 +296,13 @@ impl<'a> TypeResolver<'a> {
         {
             let ok = self.resolve_by_id(ok.ty.id);
             let err = self.resolve_by_id(err.ty.id);
-            Some(Result {
-                ok: Box::new(ok),
-                err: Box::new(err),
-            })
+            Some(TypeDecl::result(ok, err))
         } else if is_type::<core::option::Option<()>>(ty)
             && let [_, some_var] = def.variants.as_slice()
             && let [some] = some_var.fields.as_slice()
         {
             let decl = self.resolve_by_id(some.ty.id);
-            Some(Option(Box::new(decl)))
+            Some(TypeDecl::option(decl))
         } else {
             None
         }
@@ -444,10 +438,10 @@ mod tests {
         let generic_struct_decl = resolver.get(h256_as_generic_param_id).unwrap();
         assert_eq!(
             *generic_struct_decl,
-            TypeDecl::UserDefined {
-                name: "GenericStruct".to_string(),
-                generics: vec![TypeDecl::Primitive(PrimitiveType::H256)]
-            }
+            TypeDecl::Named(
+                "GenericStruct".to_string(),
+                vec![TypeDecl::Primitive(PrimitiveType::H256)]
+            )
         );
         assert_eq!(generic_struct_decl.to_string(), "GenericStruct<H256>");
     }

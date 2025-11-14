@@ -28,7 +28,7 @@ fn counter_service() -> ServiceUnit {
                 }],
                 output: Primitive(U32),
                 throws: None,
-                is_query: false,
+                kind: FunctionKind::Command,
                 docs: vec!["Add a value to the counter".to_string()],
                 annotations: vec![],
             },
@@ -40,7 +40,7 @@ fn counter_service() -> ServiceUnit {
                 }],
                 output: Primitive(U32),
                 throws: Some(Primitive(String)),
-                is_query: false,
+                kind: FunctionKind::Command,
                 docs: vec!["Substract a value from the counter".to_string()],
                 annotations: vec![],
             },
@@ -49,7 +49,7 @@ fn counter_service() -> ServiceUnit {
                 params: vec![],
                 output: Primitive(U32),
                 throws: None,
-                is_query: true,
+                kind: FunctionKind::Query,
                 docs: vec!["Get the current value".to_string()],
                 annotations: vec![("query".to_string(), None)],
             },
@@ -110,24 +110,18 @@ fn this_that_service() -> ServiceUnit {
                 FuncParam {
                     name: "p3".to_string(),
                     type_decl: Tuple(vec![
-                        Option(Box::new(Primitive(H160))),
-                        UserDefined {
-                            path: "NonZeroU8".to_string(),
-                            generics: vec![],
-                        },
+                        TypeDecl::option(Primitive(H160)),
+                        Named("NonZeroU8".to_string(), vec![]),
                     ]),
                 },
                 FuncParam {
                     name: "p4".to_string(),
-                    type_decl: UserDefined {
-                        path: "TupleStruct".to_string(),
-                        generics: vec![],
-                    },
+                    type_decl: Named("TupleStruct".to_string(), vec![]),
                 },
             ],
             output: Tuple(vec![Primitive(String), Primitive(U32)]),
             throws: Some(Tuple(vec![Primitive(String)])),
-            is_query: false,
+            kind: FunctionKind::Command,
             docs: vec!["Add a value to the counter".to_string()],
             annotations: vec![],
         }],
@@ -152,10 +146,7 @@ fn this_that_service() -> ServiceUnit {
                         },
                         StructField {
                             name: Some("p3".to_string()),
-                            type_decl: UserDefined {
-                                path: "ManyVariants".to_string(),
-                                generics: vec![],
-                            },
+                            type_decl: Named("ManyVariants".to_string(), vec![]),
                             docs: vec![],
                             annotations: vec![],
                         },
@@ -193,7 +184,7 @@ fn this_that_service() -> ServiceUnit {
                             def: StructDef {
                                 fields: vec![StructField {
                                     name: None,
-                                    type_decl: Option(Box::new(Primitive(U32))),
+                                    type_decl: TypeDecl::option(Primitive(U32)),
                                     docs: vec![],
                                     annotations: vec![],
                                 }],
@@ -213,7 +204,7 @@ fn this_that_service() -> ServiceUnit {
                                     },
                                     StructField {
                                         name: Some("b".to_string()),
-                                        type_decl: Option(Box::new(Primitive(U16))),
+                                        type_decl: TypeDecl::option(Primitive(U16)),
                                         docs: vec![],
                                         annotations: vec![],
                                     },
@@ -294,8 +285,8 @@ fn idl_program() {
             ctors: vec![
                 CtorFunc {
                     name: "Create".to_string(),
-                    params: vec![FuncParam { name: "counter".to_string(), type_decl: Option(Box::new(Primitive(U32))) },
-                        FuncParam { name: "dog_position".to_string(), type_decl: Option(Box::new(Tuple(vec![Primitive(I32), Primitive(I32)]))) }],
+                    params: vec![FuncParam { name: "counter".to_string(), type_decl: TypeDecl::option(Primitive(U32)) },
+                        FuncParam { name: "dog_position".to_string(), type_decl: TypeDecl::option(Tuple(vec![Primitive(I32), Primitive(I32)])) }],
                     docs: vec!["Program constructor (called once at the very beginning of the program lifetime)".to_string()],
                     annotations: vec![],
                 },
@@ -313,7 +304,7 @@ fn idl_program() {
                 Type { name: "DoThatParam".to_string(), type_params: vec![], def: Struct(StructDef {fields:  vec![
                     StructField { name: Some("p1".to_string()), type_decl: Primitive(U32), docs: vec![], annotations: vec![] },
                     StructField { name: Some("p2".to_string()), type_decl: Primitive(ActorId), docs: vec![], annotations: vec![] },
-                    StructField { name: Some("p3".to_string()), type_decl: UserDefined { path: "ManyVariants".to_string(), generics: vec![] }, docs: vec![], annotations: vec![] },
+                    StructField { name: Some("p3".to_string()), type_decl: Named("ManyVariants".to_string(), vec![]), docs: vec![], annotations: vec![] },
                 ]}) , docs: vec![], annotations: vec![] },
                 Type { name: "TupleStruct".to_string(), type_params: vec![], def: Struct(StructDef {fields:  vec![
                     StructField { name: None, type_decl: Primitive(U32), docs: vec![], annotations: vec![] },

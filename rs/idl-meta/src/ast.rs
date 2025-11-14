@@ -1,4 +1,10 @@
-use alloc::{boxed::Box, format, string::String, vec::Vec};
+use alloc::{
+    boxed::Box,
+    format,
+    string::{String, ToString as _},
+    vec,
+    vec::Vec,
+};
 use askama::Template;
 use core::fmt::{Display, Write};
 
@@ -62,9 +68,16 @@ pub struct ServiceFunc {
     pub params: Vec<FuncParam>,
     pub output: TypeDecl,
     pub throws: Option<TypeDecl>,
-    pub is_query: bool,
+    pub kind: FunctionKind,
     pub docs: Vec<String>,
     pub annotations: Vec<(String, Option<String>)>,
+}
+
+#[derive(Debug, Default, PartialEq, Eq, Clone, Copy)]
+pub enum FunctionKind {
+    #[default]
+    Command,
+    Query,
 }
 
 impl ServiceFunc {
@@ -93,22 +106,46 @@ pub type ServiceEvent = EnumVariant;
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum TypeDecl {
     Slice(Box<TypeDecl>),
-    Array {
-        item: Box<TypeDecl>,
-        len: u32,
-    },
+    Array(Box<TypeDecl>, u32),
     Tuple(Vec<TypeDecl>),
-    Option(Box<TypeDecl>),
-    Result {
-        ok: Box<TypeDecl>,
-        err: Box<TypeDecl>,
-    },
     Primitive(PrimitiveType),
-    UserDefined {
-        name: String,
-        generics: Vec<TypeDecl>,
-    },
-    Generic(String),
+    Named(String, Vec<TypeDecl>),
+}
+
+impl TypeDecl {
+    pub fn option(item: TypeDecl) -> TypeDecl {
+        TypeDecl::Named("Option".to_string(), vec![item])
+    }
+
+    pub fn result(ok: TypeDecl, err: TypeDecl) -> TypeDecl {
+        TypeDecl::Named("Result".to_string(), vec![ok, err])
+    }
+
+    pub fn option_type_decl(ty: &TypeDecl) -> Option<TypeDecl> {
+        match ty {
+            TypeDecl::Named(name, vec) if name == "Option" => {
+                if let [item] = vec.as_slice() {
+                    Some(item.clone())
+                } else {
+                    None
+                }
+            }
+            _ => None,
+        }
+    }
+
+    pub fn result_type_decl(ty: &TypeDecl) -> Option<(TypeDecl, TypeDecl)> {
+        match ty {
+            TypeDecl::Named(name, vec) if name == "Result" => {
+                if let [ok, err] = vec.as_slice() {
+                    Some((ok.clone(), err.clone()))
+                } else {
+                    None
+                }
+            }
+            _ => None,
+        }
+    }
 }
 
 impl Display for TypeDecl {
@@ -116,7 +153,7 @@ impl Display for TypeDecl {
         use TypeDecl::*;
         match self {
             Slice(type_decl) => write!(f, "[{type_decl}]"),
-            Array { item, len } => write!(f, "[{item}; {len}]"),
+            Array(item, len) => write!(f, "[{item}; {len}]"),
             Tuple(type_decls) => {
                 f.write_char('(')?;
                 for (i, ty) in type_decls.iter().enumerate() {
@@ -128,10 +165,8 @@ impl Display for TypeDecl {
                 f.write_char(')')?;
                 Ok(())
             }
-            Option(type_decl) => write!(f, "Option<{type_decl}>"),
-            Result { ok, err } => write!(f, "Result<{ok}, {err}>"),
             Primitive(primitive_type) => write!(f, "{primitive_type}"),
-            UserDefined { name, generics } => {
+            Named(name, generics) => {
                 write!(f, "{name}")?;
                 if !generics.is_empty() {
                     f.write_char('<')?;
@@ -145,7 +180,6 @@ impl Display for TypeDecl {
                 }
                 Ok(())
             }
-            Generic(name) => write!(f, "{name}"),
         }
     }
 }

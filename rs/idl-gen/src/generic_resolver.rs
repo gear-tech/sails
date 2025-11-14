@@ -45,6 +45,10 @@ impl<'a> GenericCandidates<'a> {
     fn push(&mut self, candidate: TypeDecl, f: impl Fn(TypeDecl) -> TypeDecl) {
         for (td, name) in &self.type_params {
             if td == &&candidate {
+                println!(
+                    "type_params: {:?}, candidate {:?}, td: {:?}",
+                    &self.type_params, candidate, td
+                );
                 self.resolved.insert(f(generic_type_decl(name)));
             }
         }
@@ -66,13 +70,10 @@ fn build_generic_candidates(
                 candidates.push(item, |td| TypeDecl::Slice(Box::new(td)));
             }
         }
-        TypeDecl::Array { item, len } => {
+        TypeDecl::Array(item, len) => {
             let decls = build_generic_candidates(item, type_params);
             for item in decls {
-                candidates.push(item, |td| TypeDecl::Array {
-                    item: Box::new(td),
-                    len: *len,
-                });
+                candidates.push(item, |td| TypeDecl::Array(Box::new(td), *len));
             }
         }
         TypeDecl::Tuple(type_decls) => {
@@ -97,49 +98,19 @@ fn build_generic_candidates(
                 }
             }
         }
-        TypeDecl::Option(item) => {
-            let decls = build_generic_candidates(item, type_params);
-            for item in decls {
-                candidates.push(item, |td| TypeDecl::Option(Box::new(td)));
-            }
-        }
-        TypeDecl::Result { ok, err } => {
-            let ok_decls = build_generic_candidates(ok, type_params);
-            for item in ok_decls {
-                candidates.push(item, |td| TypeDecl::Result {
-                    ok: Box::new(td),
-                    err: err.clone(),
-                });
-            }
-            let err_decls = build_generic_candidates(err, type_params);
-            let ok_resolved: Vec<_> = candidates
-                .resolved
-                .iter()
-                .filter_map(|td| match td {
-                    TypeDecl::Result { ok, err: _ } => Some(ok.clone()),
-                    _ => None,
-                })
-                .collect();
-            for ok in ok_resolved {
-                for err in &err_decls {
-                    candidates.push(err.clone(), |td| TypeDecl::Result {
-                        ok: ok.clone(),
-                        err: Box::new(td),
-                    });
-                }
-            }
-        }
         TypeDecl::Primitive(_) => {
             // already pushed as `type_decl`
         }
-        TypeDecl::UserDefined { name, generics } => {
+        TypeDecl::Named(name, generics) => {
             for (idx, item) in generics.iter().enumerate() {
                 let decls = build_generic_candidates(item, type_params);
                 let type_decls_resolved: Vec<_> = candidates
                     .resolved
                     .iter()
                     .filter_map(|td| match td {
-                        TypeDecl::UserDefined { name: _, generics } => Some(generics.clone()),
+                        TypeDecl::Named(resolved_name, generics) if resolved_name == name => {
+                            Some(generics.clone())
+                        }
                         _ => None,
                     })
                     .collect();
@@ -149,22 +120,19 @@ fn build_generic_candidates(
                         candidates.push(item.clone(), |td| {
                             let mut tds = tds.clone();
                             tds[idx] = td;
-                            TypeDecl::UserDefined {
-                                name: name.to_string(),
-                                generics: tds,
-                            }
+                            TypeDecl::Named(name.to_string(), tds)
                         });
                     }
                 }
             }
         }
-        TypeDecl::Generic(_) => {}
     };
+    println!("type_decls_resolved {:?}", candidates.resolved);
     candidates.resolved
 }
 
 fn generic_type_decl(name: &str) -> TypeDecl {
-    TypeDecl::Generic(name.to_string())
+    TypeDecl::Named(name.to_string(), vec![])
 }
 
 mod syn_resolver {
@@ -186,10 +154,10 @@ mod syn_resolver {
         use TypeDecl::*;
 
         match t {
-            Type::Array(TypeArray { elem, len, .. }) => Some(Array {
-                item: Box::new(finalize_syn(elem)?),
-                len: len.to_token_stream().to_string().parse::<u32>().unwrap(),
-            }),
+            Type::Array(TypeArray { elem, len, .. }) => Some(Array(
+                Box::new(finalize_syn(elem)?),
+                len.to_token_stream().to_string().parse::<u32>().unwrap(),
+            )),
             Type::Slice(TypeSlice { elem, .. }) => Some(Slice(Box::new(finalize_syn(elem)?))),
             Type::Tuple(TypeTuple { elems, .. }) => {
                 Some(Tuple(elems.iter().filter_map(finalize_syn).collect()))
@@ -216,17 +184,17 @@ mod syn_resolver {
                         if let [ty] = generics.as_slice() {
                             Some(Slice(Box::new(ty.clone())))
                         } else {
-                            Some(UserDefined { name, generics })
+                            Some(Named(name, generics))
                         }
                     }
                     "BTreeMap" => {
                         if let [_, _] = generics.as_slice() {
                             Some(Slice(Box::new(Tuple(generics))))
                         } else {
-                            Some(UserDefined { name, generics })
+                            Some(Named(name, generics))
                         }
                     }
-                    _ => Some(UserDefined { name, generics }),
+                    _ => Some(Named(name, generics)),
                 }
             }
             _ => None,
@@ -321,14 +289,11 @@ mod tests {
         println!("{:?}", candidates);
 
         assert_eq!(2, candidates.len());
-        assert!(candidates.contains(&UserDefined {
-            name: "GenericStruct".to_string(),
-            generics: vec![Primitive(U32)]
-        }));
-        assert!(candidates.contains(&UserDefined {
-            name: "GenericStruct".to_string(),
-            generics: vec![Generic("T".to_string())]
-        }));
+        assert!(candidates.contains(&Named("GenericStruct".to_string(), vec![Primitive(U32)])));
+        assert!(candidates.contains(&Named(
+            "GenericStruct".to_string(),
+            vec![Named("T".to_string(), vec![])]
+        )));
 
         // let string_struct = resolver.get(string_struct_id).unwrap();
         // assert_eq!(string_struct.to_string(), "GenericStruct<String>");

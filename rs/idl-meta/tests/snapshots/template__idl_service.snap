@@ -17,7 +17,7 @@ service Counter {
         /// Add a value to the counter
         Add(value: u32) -> u32;
         /// Substract a value from the counter
-        Sub(value: u32) -> u32 throws string;
+        Sub(value: u32) -> u32 throws String;
         /// Get the current value
         @query
         Value() -> u32;
@@ -27,7 +27,7 @@ service Counter {
 service ThisThat  {
     functions {
         /// Add a value to the counter
-        DoThis(p1: u32, p2: string, p3: (Option<H160>, NonZeroU8), p4: TupleStruct) -> (string, u32) throws (string);
+        DoThis(p1: u32, p2: String, p3: (Option<H160>, NonZeroU8), p4: TupleStruct) -> (String, u32) throws (String);
     }
     types {
         struct DoThatParam {
@@ -45,7 +45,7 @@ service ThisThat  {
                 b: Option<u16>,
             },
             Five (
-                string,
+                String,
                 @key: value
                 H256,
             ),
