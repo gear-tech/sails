@@ -7,42 +7,7 @@ use crate::events_generator::EventsModuleGenerator;
 use crate::helpers::*;
 use crate::type_generators::generate_type_decl_with_path;
 
-/// Generates a trait with service methods
-pub(crate) struct ServiceCtorGenerator<'a> {
-    service_name: &'a str,
-    sails_path: &'a str,
-    trait_tokens: Tokens,
-    impl_tokens: Tokens,
-}
 
-impl<'a> ServiceCtorGenerator<'a> {
-    pub(crate) fn new(service_name: &'a str, sails_path: &'a str) -> Self {
-        Self {
-            service_name,
-            sails_path,
-            trait_tokens: Tokens::new(),
-            impl_tokens: Tokens::new(),
-        }
-    }
-
-    pub(crate) fn finalize(self) -> (Tokens, Tokens) {
-        (self.trait_tokens, self.impl_tokens)
-    }
-}
-
-impl<'ast> Visitor<'ast> for ServiceCtorGenerator<'_> {
-    fn visit_service_unit(&mut self, _service: &'ast ServiceUnit) {
-        let service_name_snake = &self.service_name.to_case(Case::Snake);
-        quote_in!(self.trait_tokens =>
-            fn $service_name_snake(&self) -> $(self.sails_path)::client::Service<$service_name_snake::$(self.service_name)Impl, Self::Env>;
-        );
-        quote_in!(self.impl_tokens =>
-            fn $service_name_snake(&self) -> $(self.sails_path)::client::Service<$service_name_snake::$(self.service_name)Impl, Self::Env> {
-                self.service(stringify!($(self.service_name)))
-            }
-        );
-    }
-}
 
 /// Generates a service module with trait and struct implementation
 pub(crate) struct ServiceGenerator<'a> {

@@ -1,5 +1,6 @@
-use crate::type_generators::generate_type_decl_with_path;
 use sails_idl_parser_v2::ast::FuncParam;
+use crate::func_param_generator::FuncParamGenerator;
+use sails_idl_parser_v2::ast::visitor::Visitor;
 
 pub(crate) fn fn_args(params: &[FuncParam]) -> String {
     params
@@ -24,8 +25,9 @@ pub(crate) fn fn_args_with_types_path(params: &[FuncParam], path: &str) -> Strin
     params
         .iter()
         .map(|p| {
-            let ty = generate_type_decl_with_path(&p.type_decl, path.to_owned());
-            format!("{}: {}", p.name, ty)
+            let mut generator = FuncParamGenerator::new(path.to_owned());
+            generator.visit_func_param(p);
+            generator.finalize().to_string().expect("Failed to generate func param")
         })
         .collect::<Vec<_>>()
         .join(", ")

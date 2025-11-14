@@ -2,6 +2,8 @@ use genco::prelude::*;
 use rust::Tokens;
 use sails_idl_parser_v2::{ast::visitor, ast::visitor::Visitor, ast::*};
 
+use crate::type_parameter_generator::TypeParameterGenerator;
+
 pub(crate) struct TopLevelTypeGenerator<'a> {
     type_name: &'a str,
     sails_path: &'a str,
@@ -36,22 +38,39 @@ impl<'ast> Visitor<'ast> for TopLevelTypeGenerator<'_> {
                 $['\r'] $("///") $doc
             };
         }
-        visitor::accept_type(r#type, self);
+
+        let mut type_params_tokens = Tokens::new();
+        if !r#type.type_params.is_empty() {
+            type_params_tokens.append("<");
+            for (i, type_param) in r#type.type_params.iter().enumerate() {
+                if i > 0 {
+                    type_params_tokens.append(", ");
+                }
+                let mut generator = TypeParameterGenerator::new();
+                generator.visit_type_parameter(type_param);
+                type_params_tokens.append(generator.finalize());
+            }
+            type_params_tokens.append(">");
+        }
+
+        match &r#type.def {
+            TypeDef::Struct(struct_def) => {
+                let mut struct_def_generator =
+                    StructDefGenerator::new(self.type_name, self.sails_path, self.derive_traits, type_params_tokens);
+                struct_def_generator.visit_struct_def(struct_def);
+                self.tokens.extend(struct_def_generator.finalize());
+            }
+            TypeDef::Enum(enum_def) => {
+                let mut enum_def_generator =
+                    EnumDefGenerator::new(self.type_name, self.sails_path, self.derive_traits, type_params_tokens);
+                enum_def_generator.visit_enum_def(enum_def);
+                self.tokens.extend(enum_def_generator.finalize());
+            }
+        }
     }
 
-    fn visit_struct_def(&mut self, struct_def: &'ast StructDef) {
-        let mut struct_def_generator =
-            StructDefGenerator::new(self.type_name, self.sails_path, self.derive_traits);
-        struct_def_generator.visit_struct_def(struct_def);
-        self.tokens.extend(struct_def_generator.finalize());
-    }
-
-    fn visit_enum_def(&mut self, enum_def: &'ast EnumDef) {
-        let mut enum_def_generator =
-            EnumDefGenerator::new(self.type_name, self.sails_path, self.derive_traits);
-        enum_def_generator.visit_enum_def(enum_def);
-        self.tokens.extend(enum_def_generator.finalize());
-    }
+    // Removed visit_struct_def and visit_enum_def from here, as they are now called directly
+    // from visit_type after processing type_params.
 }
 
 #[derive(Default)]
@@ -59,16 +78,18 @@ struct StructDefGenerator<'a> {
     type_name: &'a str,
     sails_path: &'a str,
     derive_traits: &'a str,
+    type_params_tokens: Tokens,
     is_tuple_struct: bool,
     tokens: Tokens,
 }
 
 impl<'a> StructDefGenerator<'a> {
-    fn new(type_name: &'a str, sails_path: &'a str, derive_traits: &'a str) -> Self {
+    fn new(type_name: &'a str, sails_path: &'a str, derive_traits: &'a str, type_params_tokens: Tokens) -> Self {
         Self {
             type_name,
             sails_path,
             derive_traits,
+            type_params_tokens,
             is_tuple_struct: false,
             tokens: Tokens::new(),
         }
@@ -82,7 +103,7 @@ impl<'a> StructDefGenerator<'a> {
             #[derive($(self.derive_traits))]
             #[codec(crate = $(self.sails_path)::scale_codec)]
             #[scale_info(crate = $(self.sails_path)::scale_info)]
-            pub struct $(self.type_name) $prefix $(self.tokens) $postfix
+            pub struct $(self.type_name) $(self.type_params_tokens) $prefix $(self.tokens) $postfix
         }
     }
 }
@@ -124,15 +145,17 @@ struct EnumDefGenerator<'a> {
     type_name: &'a str,
     sails_path: &'a str,
     derive_traits: &'a str,
+    type_params_tokens: Tokens,
     tokens: Tokens,
 }
 
 impl<'a> EnumDefGenerator<'a> {
-    pub(crate) fn new(type_name: &'a str, sails_path: &'a str, derive_traits: &'a str) -> Self {
+    pub(crate) fn new(type_name: &'a str, sails_path: &'a str, derive_traits: &'a str, type_params_tokens: Tokens) -> Self {
         Self {
             type_name,
             sails_path,
             derive_traits,
+            type_params_tokens,
             tokens: Tokens::new(),
         }
     }
@@ -143,7 +166,7 @@ impl<'a> EnumDefGenerator<'a> {
             #[derive($(self.derive_traits))]
             #[codec(crate = $(self.sails_path)::scale_codec)]
             #[scale_info(crate = $(self.sails_path)::scale_info)]
-            pub enum $(self.type_name) { $(self.tokens) }
+            pub enum $(self.type_name) $(self.type_params_tokens) { $(self.tokens) }
         )
     }
 }

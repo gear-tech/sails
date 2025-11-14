@@ -6,11 +6,13 @@ use std::{collections::HashMap, ffi::OsStr, fs, io::Write, path::Path};
 
 mod ctor_generators;
 mod events_generator;
+mod func_param_generator;
 mod helpers;
 mod mock_generator;
 mod root_generator;
 mod service_generators;
 mod type_generators;
+mod type_parameter_generator;
 
 const SAILS: &str = "sails_rs";
 
