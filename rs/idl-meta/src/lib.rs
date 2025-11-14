@@ -2,6 +2,9 @@
 
 extern crate alloc;
 
+pub mod interface;
+pub use interface::*;
+
 #[cfg(feature = "ast")]
 pub mod ast;
 

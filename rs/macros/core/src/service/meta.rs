@@ -9,32 +9,8 @@ impl ServiceBuilder<'_> {
         let service_type_path = self.type_path;
         let service_type_constraints = self.type_constraints();
         let meta_module_ident = &self.meta_module_ident;
-
-        let base_services_meta = self.base_types.iter().map(|base_type| {
-            let path_wo_lifetimes = shared::remove_lifetimes(base_type);
-            quote! {
-                #sails_path::meta::AnyServiceMeta::new::< #path_wo_lifetimes >
-            }
-        });
-
-        let has_async_handler = self
-            .service_handlers
-            .iter()
-            .any(|fn_builder| fn_builder.is_async());
-
-        let service_meta_asyncness = if has_async_handler {
-            quote!(true)
-        } else if self.base_types.is_empty() {
-            quote!(false)
-        } else {
-            let base_asyncness = self.base_types.iter().map(|base_type| {
-                let path_wo_lifetimes = shared::remove_lifetimes(base_type);
-                quote! {
-                    <#path_wo_lifetimes as #sails_path::meta::ServiceMeta>::ASYNC
-                }
-            });
-            quote!(#( #base_asyncness )||*)
-        };
+        let base_services_meta = self.base_services_meta_tokens();
+        let service_meta_asyncness = self.service_meta_asyncness_tokens();
 
         quote! {
             impl #generics #sails_path::meta::ServiceMeta for #service_type_path #service_type_constraints {
@@ -45,6 +21,46 @@ impl ServiceBuilder<'_> {
                     #( #base_services_meta ),*
                 ];
                 const ASYNC: bool = #service_meta_asyncness ;
+            }
+        }
+    }
+
+    pub(super) fn meta_witness_impl(&self) -> TokenStream {
+        let sails_path = self.sails_path;
+        let meta_module_ident = &self.meta_module_ident;
+        let meta_witness_ident = &self.meta_witness_ident;
+        let base_services_meta = self.base_services_meta_tokens();
+        let service_meta_asyncness = self.service_meta_asyncness_tokens();
+
+        quote! {
+            #[doc(hidden)]
+            pub struct #meta_witness_ident;
+
+            impl #sails_path::meta::ServiceMeta for #meta_witness_ident {
+                type CommandsMeta = #meta_module_ident::CommandsMeta;
+                type QueriesMeta = #meta_module_ident::QueriesMeta;
+                type EventsMeta = #meta_module_ident::EventsMeta;
+                const BASE_SERVICES: &'static [#sails_path::meta::AnyServiceMetaFn] = &[
+                    #( #base_services_meta ),*
+                ];
+                const ASYNC: bool = #service_meta_asyncness;
+            }
+        }
+    }
+
+    pub(super) fn meta_helper_impl(&self) -> TokenStream {
+        let sails_path = self.sails_path;
+        let service_type_path = self.type_path;
+        let generics = &self.generics;
+        let service_type_constraints = self.type_constraints();
+        let meta_witness_ident = &self.meta_witness_ident;
+
+        quote! {
+            impl #generics #service_type_path #service_type_constraints {
+                #[doc(hidden)]
+                pub fn __sails_any_service_meta() -> #sails_path::meta::AnyServiceMeta {
+                    #sails_path::meta::AnyServiceMeta::new::<#meta_witness_ident>()
+                }
             }
         }
     }
@@ -95,6 +111,41 @@ impl ServiceBuilder<'_> {
 
                 pub type EventsMeta = #events_type;
             }
+        }
+    }
+
+    fn base_services_meta_tokens(&self) -> Vec<TokenStream> {
+        let sails_path = self.sails_path;
+        self.base_types
+            .iter()
+            .map(|base_type| {
+                let path_wo_lifetimes = shared::remove_lifetimes(base_type);
+                quote! {
+                    #sails_path::meta::AnyServiceMeta::new::< #path_wo_lifetimes >
+                }
+            })
+            .collect()
+    }
+
+    fn service_meta_asyncness_tokens(&self) -> TokenStream {
+        let sails_path = self.sails_path;
+        let has_async_handler = self
+            .service_handlers
+            .iter()
+            .any(|fn_builder| fn_builder.is_async());
+
+        if has_async_handler {
+            quote!(true)
+        } else if self.base_types.is_empty() {
+            quote!(false)
+        } else {
+            let base_asyncness = self.base_types.iter().map(|base_type| {
+                let path_wo_lifetimes = shared::remove_lifetimes(base_type);
+                quote! {
+                    <#path_wo_lifetimes as #sails_path::meta::ServiceMeta>::ASYNC
+                }
+            });
+            quote!(#( #base_asyncness )||*)
         }
     }
 }

@@ -9,9 +9,8 @@ use alloc::string::{String, ToString};
 use alloc::vec::Vec;
 
 use scale_info::{
-    Field, MetaType, Path, PortableRegistry, Registry, Type, TypeDef, TypeDefArray,
-    TypeDefComposite, TypeDefPrimitive, TypeDefSequence, TypeDefTuple, TypeDefVariant,
-    form::PortableForm,
+    Field, MetaType, Path, PortableRegistry, Registry, TypeDef, TypeDefArray, TypeDefComposite,
+    TypeDefPrimitive, TypeDefSequence, TypeDefTuple, TypeDefVariant, form::PortableForm,
 };
 
 use crate::ast::{
@@ -303,10 +302,12 @@ impl TypeConverter {
             TypeDef::BitSequence(_) => {
                 TypeDecl::Slice(Box::new(TypeDecl::Primitive(PrimitiveType::U8)))
             }
-            TypeDef::Composite(composite) =>
-                self.user_defined_or_inline_struct(type_id, &path, &type_params, composite)?,
-            TypeDef::Variant(variant) =>
-                self.user_defined_or_inline_enum(type_id, &path, &type_params, variant)?,
+            TypeDef::Composite(composite) => {
+                self.user_defined_or_inline_struct(type_id, &path, &type_params, composite)?
+            }
+            TypeDef::Variant(variant) => {
+                self.user_defined_or_inline_enum(type_id, &path, &type_params, variant)?
+            }
         };
 
         self.resolving.remove(&type_id);
@@ -349,14 +350,14 @@ impl TypeConverter {
             }
             TypeDef::Variant(TypeDefVariant { variants, .. }) => {
                 let variants = variants
-                    .into_iter()
+                    .iter()
                     .map(|variant| {
                         let fields = variant
                             .fields
-                            .into_iter()
+                            .iter()
                             .map(|field| {
                                 Ok(StructField {
-                                    name: field.name.map(|n| n.to_string()),
+                                    name: field.name.as_ref().map(|n| n.to_string()),
                                     type_decl: self.type_decl(field.ty.id)?,
                                     docs: convert_docs(&field.docs),
                                     annotations: Vec::new(),
@@ -396,7 +397,12 @@ impl TypeConverter {
         composite: TypeDefComposite<PortableForm>,
     ) -> Result<TypeDecl, ServiceAstError> {
         if let Some(name) = type_path_string(path) {
-            self.ensure_named_type(type_id, path, type_params, &TypeDef::Composite(composite.clone()))?;
+            self.ensure_named_type(
+                type_id,
+                path,
+                type_params,
+                &TypeDef::Composite(composite.clone()),
+            )?;
             Ok(TypeDecl::UserDefined {
                 name,
                 generics: Vec::new(),
