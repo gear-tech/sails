@@ -1,7 +1,7 @@
 service ThisThatService {
     functions {
         /// Some description
-        DoThis(p1: u32, p2: str, p3: DoThisP3, p4: ThisThatSvcAppTupleStruct) -> DoThisReturn;
+        DoThis(p1: u32, p2: string, p3: DoThisP3, p4: ThisThatSvcAppTupleStruct) -> DoThisReturn;
         /// Some multiline description
         /// Second line
         /// Third line
@@ -12,7 +12,7 @@ service ThisThatService {
         /// This is a second query
         /// This is a second line
         @query
-        That(v1: ()) -> Result<str, str>;
+        That(v1: ()) -> Result<string, string>;
     }
 
     events {
@@ -21,7 +21,7 @@ service ThisThatService {
         /// `That` Done too
         ThatDone {
             /// This is `p1` field
-            p1: str
+            p1: string
         };
     }
 }
@@ -45,7 +45,7 @@ program Service { // The anonymous service is now part of a program
             /// field `query`
             query: u32,
             /// field `result`
-            result: str,
+            result: string,
             /// field `p3`
             p3: ThisThatSvcAppManyVariants,
         }
@@ -58,7 +58,7 @@ program Service { // The anonymous service is now part of a program
             Two(u32),
             Three(Option<u32>),
             Four { a: u32, b: Option<u16> },
-            Five(str, u32),
+            Five(string, u32),
             Six(u32),
         }
 
@@ -66,23 +66,23 @@ program Service { // The anonymous service is now part of a program
 
         // New named structs for DoThis function
         struct DoThisP3 {
-            f1: Option<str>,
+            f1: Option<string>,
             f2: u8,
         }
 
         struct DoThisReturn {
-            f1: str,
+            f1: string,
             f2: u32,
         }
 
         // New named structs for DoThat function return type
         struct DoThatReturnOk {
-            f1: str,
+            f1: string,
             f2: u32,
         }
 
         struct DoThatReturnErr {
-            f1: str,
+            f1: string,
         }
     }
 }

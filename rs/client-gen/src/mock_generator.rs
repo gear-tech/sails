@@ -45,13 +45,13 @@ impl<'ast> Visitor<'ast> for MockGenerator<'ast> {
 
     fn visit_service_func(&mut self, func: &'ast ServiceFunc) {
         let service_name_snake = &self.service_name.to_case(Case::Snake);
-        let mutability = if func.is_query { "" } else { "mut" };
+        let self_ref = if func.is_query { "&self" } else { "&mut self" };
         let fn_name = &func.name;
         let fn_name_snake = func.name.to_case(Case::Snake);
         let params_with_types = &fn_args_with_types(&func.params);
 
         quote_in! { self.tokens =>
-            fn $fn_name_snake (&$mutability self, $params_with_types) -> $(self.sails_path)::client::PendingCall<$service_name_snake::io::$fn_name, $(self.sails_path)::client::GstdEnv>;
+            fn $fn_name_snake ($self_ref, $params_with_types) -> $(self.sails_path)::client::PendingCall<$service_name_snake::io::$fn_name, $(self.sails_path)::client::GstdEnv>;
         };
     }
 }

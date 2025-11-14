@@ -77,7 +77,7 @@ impl<'ast> Visitor<'ast> for ServiceGenerator<'ast> {
     }
 
     fn visit_service_func(&mut self, func: &'ast ServiceFunc) {
-        let mutability = if func.is_query { "" } else { "mut" };
+        let self_ref = if func.is_query { "&self" } else { "&mut self" };
         let fn_name = &func.name;
         let fn_name_snake = &fn_name.to_case(Case::Snake);
 
@@ -90,11 +90,11 @@ impl<'ast> Visitor<'ast> for ServiceGenerator<'ast> {
             };
         }
         quote_in! { self.trait_tokens =>
-            $['\r'] fn $fn_name_snake (&$mutability self, $params_with_types) -> $(self.sails_path)::client::PendingCall<io::$fn_name, Self::Env>;
+            $['\r'] fn $fn_name_snake ($self_ref, $params_with_types) -> $(self.sails_path)::client::PendingCall<io::$fn_name, Self::Env>;
         };
 
         quote_in! {self.impl_tokens =>
-            $['\r'] fn $fn_name_snake (&$mutability self, $params_with_types) -> $(self.sails_path)::client::PendingCall<io::$fn_name, Self::Env> {
+            $['\r'] fn $fn_name_snake ($self_ref, $params_with_types) -> $(self.sails_path)::client::PendingCall<io::$fn_name, Self::Env> {
                 self.pending_call($args)
             }
         };

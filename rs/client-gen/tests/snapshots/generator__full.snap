@@ -54,7 +54,7 @@ pub struct ThisThatSvcAppDoThatParam {
     /// field `query`
     query: u32,
     /// field `result`
-    result: str,
+    result: String,
     /// field `p3`
     p3: ThisThatSvcAppManyVariants,
 }
@@ -72,7 +72,7 @@ pub enum ThisThatSvcAppManyVariants {
         a: u32,
         b: Option<u16>,
     },
-    Five(str, u32),
+    Five(String, u32),
     Six(u32),
 }
 #[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo)]
@@ -85,28 +85,28 @@ pub enum T {
 #[codec(crate = sails_rs::scale_codec)]
 #[scale_info(crate = sails_rs::scale_info)]
 pub struct DoThisP3 {
-    f1: Option<str>,
+    f1: Option<String>,
     f2: u8,
 }
 #[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo)]
 #[codec(crate = sails_rs::scale_codec)]
 #[scale_info(crate = sails_rs::scale_info)]
 pub struct DoThisReturn {
-    f1: str,
+    f1: String,
     f2: u32,
 }
 #[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo)]
 #[codec(crate = sails_rs::scale_codec)]
 #[scale_info(crate = sails_rs::scale_info)]
 pub struct DoThatReturnOk {
-    f1: str,
+    f1: String,
     f2: u32,
 }
 #[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo)]
 #[codec(crate = sails_rs::scale_codec)]
 #[scale_info(crate = sails_rs::scale_info)]
 pub struct DoThatReturnErr {
-    f1: str,
+    f1: String,
 }
 
 pub mod this_that_service {
@@ -117,7 +117,7 @@ pub mod this_that_service {
         fn do_this(
             &mut self,
             p1: u32,
-            p2: str,
+            p2: String,
             p3: DoThisP3,
             p4: ThisThatSvcAppTupleStruct,
         ) -> sails_rs::client::PendingCall<io::DoThis, Self::Env>;
@@ -142,7 +142,7 @@ pub mod this_that_service {
         fn do_this(
             &mut self,
             p1: u32,
-            p2: str,
+            p2: String,
             p3: DoThisP3,
             p4: ThisThatSvcAppTupleStruct,
         ) -> sails_rs::client::PendingCall<io::DoThis, Self::Env> {
@@ -164,10 +164,10 @@ pub mod this_that_service {
 
     pub mod io {
         use super::*;
-        sails_rs::io_struct_impl!(DoThis (p1: u32, p2: super::str, p3: super::DoThisP3, p4: super::ThisThatSvcAppTupleStruct) -> super::DoThisReturn);
+        sails_rs::io_struct_impl!(DoThis (p1: u32, p2: String, p3: super::DoThisP3, p4: super::ThisThatSvcAppTupleStruct) -> super::DoThisReturn);
         sails_rs::io_struct_impl!(DoThat (param: super::ThisThatSvcAppDoThatParam) -> Result<DoThatReturnOk, DoThatReturnErr>);
         sails_rs::io_struct_impl!(This (v1: super::Vec<u16>) -> u32);
-        sails_rs::io_struct_impl!(That (v1: ()) -> Result<str, str>);
+        sails_rs::io_struct_impl!(That (v1: ()) -> Result<String, String>);
     }
 
     #[cfg(not(target_arch = "wasm32"))]
@@ -181,7 +181,7 @@ pub mod this_that_service {
             /// `That` Done too
             ThatDone {
                 /// This is `p1` field
-                p1: super::str,
+                p1: String,
             },
         }
         impl sails_rs::client::Event for ThisThatServiceEvents {
@@ -202,5 +202,5 @@ extern crate std;
 pub mod mockall {
     use super::*;
     use sails_rs::mockall::*;
-    mock! { pub ThisThatService {} #[allow(refining_impl_trait)] #[allow(clippy::type_complexity)] impl this_that_service::ThisThatService for ThisThatService { type Env = sails_rs::client::GstdEnv; fn do_this (&mut self, p1: u32, p2: str, p3: DoThisP3, p4: ThisThatSvcAppTupleStruct) -> sails_rs::client::PendingCall<this_that_service::io::DoThis, sails_rs::client::GstdEnv>;fn do_that (&mut self, param: ThisThatSvcAppDoThatParam) -> sails_rs::client::PendingCall<this_that_service::io::DoThat, sails_rs::client::GstdEnv>;fn this (& self, v1: Vec<u16>) -> sails_rs::client::PendingCall<this_that_service::io::This, sails_rs::client::GstdEnv>;fn that (& self, v1: ()) -> sails_rs::client::PendingCall<this_that_service::io::That, sails_rs::client::GstdEnv>; } }
+    mock! { pub ThisThatService {} #[allow(refining_impl_trait)] #[allow(clippy::type_complexity)] impl this_that_service::ThisThatService for ThisThatService { type Env = sails_rs::client::GstdEnv; fn do_this (&mut self, p1: u32, p2: String, p3: DoThisP3, p4: ThisThatSvcAppTupleStruct) -> sails_rs::client::PendingCall<this_that_service::io::DoThis, sails_rs::client::GstdEnv>;fn do_that (&mut self, param: ThisThatSvcAppDoThatParam) -> sails_rs::client::PendingCall<this_that_service::io::DoThat, sails_rs::client::GstdEnv>;fn this (&self, v1: Vec<u16>) -> sails_rs::client::PendingCall<this_that_service::io::This, sails_rs::client::GstdEnv>;fn that (&self, v1: ()) -> sails_rs::client::PendingCall<this_that_service::io::That, sails_rs::client::GstdEnv>; } }
 }
