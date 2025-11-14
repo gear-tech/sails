@@ -1,5 +1,12 @@
 #![no_std]
 
+extern crate alloc;
+
+#[cfg(feature = "ast")]
+pub mod ast;
+
+#[cfg(feature = "ast")]
+pub use ast::*;
 use scale_info::{MetaType, StaticTypeInfo, prelude::vec::Vec};
 
 pub type AnyServiceMetaFn = fn() -> AnyServiceMeta;
