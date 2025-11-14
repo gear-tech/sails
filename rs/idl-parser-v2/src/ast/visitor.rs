@@ -7,11 +7,6 @@ use crate::ast;
 // to continue the traversal down the tree. This allows a visitor to only override
 // the methods for the nodes it is interested in.
 pub trait Visitor<'ast> {
-    /// Visits the root of the AST, [ast::IdlDoc].
-    fn visit_idl_doc(&mut self, doc: &'ast ast::IdlDoc) {
-        accept_idl_doc(doc, self);
-    }
-
     /// Visits a program unit, [ast::ProgramUnit].
     fn visit_program_unit(&mut self, program: &'ast ast::ProgramUnit) {
         accept_program_unit(program, self);
@@ -368,7 +363,7 @@ mod tests {
         let doc = IdlDoc::parse(IDL_SOURCE).expect("Failed to parse IDL");
 
         let mut visitor = CountingVisitor::default();
-        visitor.visit_idl_doc(&doc);
+        accept_idl_doc(&doc, &mut visitor);
 
         assert_eq!(visitor.program_count, 1);
         assert_eq!(visitor.service_count, 6);
@@ -399,7 +394,7 @@ mod tests {
         let doc = IdlDoc::parse(IDL_SOURCE).expect("Failed to parse IDL");
 
         let mut visitor = CountingVisitor::default();
-        visitor.visit_idl_doc(&doc);
+        accept_idl_doc(&doc, &mut visitor);
 
         assert_eq!(visitor.program_count, 0);
         assert_eq!(visitor.service_count, 2);

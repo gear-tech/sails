@@ -128,10 +128,6 @@ impl<'a> VisitorWrapper<'a> {
 }
 
 impl<'a, 'ast> RawVisitor<'ast> for VisitorWrapper<'a> {
-    fn visit_idl_doc(&mut self, doc: &'ast ast::IdlDoc) {
-        crate::ast::visitor::accept_idl_doc(doc, self);
-    }
-
     fn visit_program_unit(&mut self, program: &'ast ast::ProgramUnit) {
         if let Some(visit) = self.visitor.visit_program_unit {
             let ffi_program = ProgramUnit::from_ast(program, &mut self.allocations);
