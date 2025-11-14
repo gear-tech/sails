@@ -7,8 +7,6 @@ use crate::events_generator::EventsModuleGenerator;
 use crate::helpers::*;
 use crate::type_generators::generate_type_decl_with_path;
 
-
-
 /// Generates a service module with trait and struct implementation
 pub(crate) struct ServiceGenerator<'ast> {
     service_name: &'ast str,

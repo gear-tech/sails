@@ -55,14 +55,22 @@ impl<'ast> Visitor<'ast> for TopLevelTypeGenerator<'ast> {
 
         match &r#type.def {
             TypeDef::Struct(struct_def) => {
-                let mut struct_def_generator =
-                    StructDefGenerator::new(self.type_name, self.sails_path, self.derive_traits, type_params_tokens);
+                let mut struct_def_generator = StructDefGenerator::new(
+                    self.type_name,
+                    self.sails_path,
+                    self.derive_traits,
+                    type_params_tokens,
+                );
                 struct_def_generator.visit_struct_def(struct_def);
                 self.tokens.extend(struct_def_generator.finalize());
             }
             TypeDef::Enum(enum_def) => {
-                let mut enum_def_generator =
-                    EnumDefGenerator::new(self.type_name, self.sails_path, self.derive_traits, type_params_tokens);
+                let mut enum_def_generator = EnumDefGenerator::new(
+                    self.type_name,
+                    self.sails_path,
+                    self.derive_traits,
+                    type_params_tokens,
+                );
                 enum_def_generator.visit_enum_def(enum_def);
                 self.tokens.extend(enum_def_generator.finalize());
             }
@@ -84,7 +92,12 @@ struct StructDefGenerator<'a> {
 }
 
 impl<'a> StructDefGenerator<'a> {
-    fn new(type_name: &'a str, sails_path: &'a str, derive_traits: &'a str, type_params_tokens: Tokens) -> Self {
+    fn new(
+        type_name: &'a str,
+        sails_path: &'a str,
+        derive_traits: &'a str,
+        type_params_tokens: Tokens,
+    ) -> Self {
         Self {
             type_name,
             sails_path,
@@ -150,7 +163,12 @@ struct EnumDefGenerator<'a> {
 }
 
 impl<'a> EnumDefGenerator<'a> {
-    pub(crate) fn new(type_name: &'a str, sails_path: &'a str, derive_traits: &'a str, type_params_tokens: Tokens) -> Self {
+    pub(crate) fn new(
+        type_name: &'a str,
+        sails_path: &'a str,
+        derive_traits: &'a str,
+        type_params_tokens: Tokens,
+    ) -> Self {
         Self {
             type_name,
             sails_path,
@@ -197,7 +215,9 @@ impl<'ast> Visitor<'ast> for EnumDefGenerator<'ast> {
         let is_struct = enum_variant.def.fields.iter().all(|f| f.name.is_some());
 
         if !is_tuple && !is_struct {
-            panic!("Enum variant '{variant_name}' has a mix of named and unnamed fields, which is not supported.");
+            panic!(
+                "Enum variant '{variant_name}' has a mix of named and unnamed fields, which is not supported."
+            );
         }
 
         if is_tuple {
@@ -223,8 +243,7 @@ impl<'ast> Visitor<'ast> for EnumDefGenerator<'ast> {
                     };
                 }
                 let field_name = field.name.as_ref().unwrap();
-                let type_code =
-                    generate_type_decl_with_path(&field.type_decl, self.sails_path);
+                let type_code = generate_type_decl_with_path(&field.type_decl, "");
                 quote_in! { field_tokens =>
                     $['\r'] $field_name: $type_code,
                 };
@@ -237,7 +256,11 @@ impl<'ast> Visitor<'ast> for EnumDefGenerator<'ast> {
         }
     }
 }
-pub(crate) fn generate_type_decl_with_path<'ast>(type_decl: &'ast TypeDecl, path: &'ast str) -> String {
+
+pub(crate) fn generate_type_decl_with_path<'ast>(
+    type_decl: &'ast TypeDecl,
+    path: &'ast str,
+) -> String {
     let mut type_decl_generator = TypeDeclGenerator {
         tokens: Tokens::new(),
         path,
@@ -249,14 +272,6 @@ pub(crate) fn generate_type_decl_with_path<'ast>(type_decl: &'ast TypeDecl, path
         .expect("Failed to generate type decl code")
 }
 
-// (The rest of the file remains the same for now)
-// ...
-
-/*
- * Commented out old implementation
-...
-*/
-
 #[derive(Default)]
 struct TypeDeclGenerator<'ast> {
     tokens: Tokens,
@@ -267,7 +282,10 @@ impl<'ast> Visitor<'ast> for TypeDeclGenerator<'ast> {
     fn visit_slice_type_decl(&mut self, item_type_decl: &'ast TypeDecl) {
         self.tokens.append("Vec<");
         // Create a new TypeDeclGenerator with an empty path for inner types
-        let mut inner_generator = TypeDeclGenerator { tokens: Tokens::new(), path: "" };
+        let mut inner_generator = TypeDeclGenerator {
+            tokens: Tokens::new(),
+            path: "",
+        };
         visitor::accept_type_decl(item_type_decl, &mut inner_generator);
         self.tokens.append(inner_generator.tokens);
         self.tokens.append(">");
@@ -276,7 +294,10 @@ impl<'ast> Visitor<'ast> for TypeDeclGenerator<'ast> {
     fn visit_array_type_decl(&mut self, item_type_decl: &'ast TypeDecl, len: u32) {
         self.tokens.append("[");
         // Create a new TypeDeclGenerator with an empty path for inner types
-        let mut inner_generator = TypeDeclGenerator { tokens: Tokens::new(), path: "" };
+        let mut inner_generator = TypeDeclGenerator {
+            tokens: Tokens::new(),
+            path: "",
+        };
         visitor::accept_type_decl(item_type_decl, &mut inner_generator);
         self.tokens.append(inner_generator.tokens);
         self.tokens.append(format!("; {len}]"));
@@ -289,7 +310,10 @@ impl<'ast> Visitor<'ast> for TypeDeclGenerator<'ast> {
                 self.tokens.append(", ");
             }
             // Create a new TypeDeclGenerator with an empty path for inner types
-            let mut inner_generator = TypeDeclGenerator { tokens: Tokens::new(), path: "" };
+            let mut inner_generator = TypeDeclGenerator {
+                tokens: Tokens::new(),
+                path: "",
+            };
             visitor::accept_type_decl(item, &mut inner_generator);
             self.tokens.append(inner_generator.tokens);
         }
@@ -302,7 +326,10 @@ impl<'ast> Visitor<'ast> for TypeDeclGenerator<'ast> {
     fn visit_option_type_decl(&mut self, inner_type_decl: &'ast TypeDecl) {
         self.tokens.append("Option<");
         // Create a new TypeDeclGenerator with an empty path for inner types
-        let mut inner_generator = TypeDeclGenerator { tokens: Tokens::new(), path: "" };
+        let mut inner_generator = TypeDeclGenerator {
+            tokens: Tokens::new(),
+            path: "",
+        };
         visitor::accept_type_decl(inner_type_decl, &mut inner_generator);
         self.tokens.append(inner_generator.tokens);
         self.tokens.append(">");
@@ -315,12 +342,18 @@ impl<'ast> Visitor<'ast> for TypeDeclGenerator<'ast> {
     ) {
         self.tokens.append("Result<");
         // Create a new TypeDeclGenerator with an empty path for inner types
-        let mut ok_generator = TypeDeclGenerator { tokens: Tokens::new(), path: "" };
+        let mut ok_generator = TypeDeclGenerator {
+            tokens: Tokens::new(),
+            path: "",
+        };
         visitor::accept_type_decl(ok_type_decl, &mut ok_generator);
         self.tokens.append(ok_generator.tokens);
         self.tokens.append(", ");
         // Create a new TypeDeclGenerator with an empty path for inner types
-        let mut err_generator = TypeDeclGenerator { tokens: Tokens::new(), path: "" };
+        let mut err_generator = TypeDeclGenerator {
+            tokens: Tokens::new(),
+            path: "",
+        };
         visitor::accept_type_decl(err_type_decl, &mut err_generator);
         self.tokens.append(err_generator.tokens);
         self.tokens.append(">");
@@ -364,7 +397,10 @@ impl<'ast> Visitor<'ast> for TypeDeclGenerator<'ast> {
                     self.tokens.append(", ");
                 }
                 // Create a new TypeDeclGenerator with an empty path for inner generics
-                let mut inner_generator = TypeDeclGenerator { tokens: Tokens::new(), path: "" };
+                let mut inner_generator = TypeDeclGenerator {
+                    tokens: Tokens::new(),
+                    path: "",
+                };
                 visitor::accept_type_decl(generic, &mut inner_generator);
                 self.tokens.append(inner_generator.tokens);
             }

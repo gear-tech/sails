@@ -1,7 +1,7 @@
 use genco::prelude::*;
 use rust::Tokens;
-use sails_idl_parser_v2::ast::visitor::Visitor;
 use sails_idl_parser_v2::ast::TypeParameter;
+use sails_idl_parser_v2::ast::visitor::Visitor;
 
 pub(crate) struct TypeParameterGenerator {
     tokens: Tokens,

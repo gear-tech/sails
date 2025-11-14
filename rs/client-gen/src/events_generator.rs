@@ -83,7 +83,9 @@ impl<'ast> Visitor<'ast> for EventsModuleGenerator<'ast> {
         let is_struct = event.def.fields.iter().all(|f| f.name.is_some());
 
         if !is_tuple && !is_struct {
-            panic!("Event variant '{variant_name}' has a mix of named and unnamed fields, which is not supported.");
+            panic!(
+                "Event variant '{variant_name}' has a mix of named and unnamed fields, which is not supported."
+            );
         }
 
         if is_tuple {

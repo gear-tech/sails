@@ -1,5 +1,5 @@
-use sails_idl_parser_v2::ast::FuncParam;
 use crate::func_param_generator::FuncParamGenerator;
+use sails_idl_parser_v2::ast::FuncParam;
 use sails_idl_parser_v2::ast::visitor::Visitor;
 
 pub(crate) fn fn_args(params: &[FuncParam]) -> String {
@@ -27,7 +27,10 @@ pub(crate) fn fn_args_with_types_path<'ast>(params: &'ast [FuncParam], path: &'a
         .map(|p| {
             let mut generator = FuncParamGenerator::new(path);
             generator.visit_func_param(p);
-            generator.finalize().to_string().expect("Failed to generate func param")
+            generator
+                .finalize()
+                .to_string()
+                .expect("Failed to generate func param")
         })
         .collect::<Vec<_>>()
         .join(", ")

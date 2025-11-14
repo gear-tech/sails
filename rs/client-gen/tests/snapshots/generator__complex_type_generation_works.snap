@@ -83,10 +83,7 @@ pub struct ProgramScopedData {
 pub enum ErrorType {
     InvalidInput,
     NotFound(String),
-    AccessDenied {
-        id: sails_rs::ActorId,
-        reason: String,
-    },
+    AccessDenied { id: ActorId, reason: String },
 }
 
 pub mod my_complex_service {
