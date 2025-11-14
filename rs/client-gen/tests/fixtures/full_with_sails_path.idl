@@ -1,0 +1,62 @@
+program Service { // The anonymous service is now part of a program
+    constructors {
+        /// New constructor
+        New(a: u32);
+        /// CreateWithData constructor
+        CreateWithData(a: u32, b: string, c: ThisThatSvcAppManyVariants);
+    }
+    services {
+        ThisThatService,
+        CounterService,
+    }
+    types {
+        struct ThisThatSvcAppTupleStruct(bool);
+
+        struct ThisThatSvcAppDoThatParam {
+            p1: u32,
+            p2: string,
+            p3: ThisThatSvcAppManyVariants,
+        }
+
+        enum ThisThatSvcAppManyVariants {
+            One,
+            Two(u32),
+            Three(Option<u32>),
+            Four { a: u32, b: Option<u16> },
+            Five(string, u32),
+            Six(u32),
+        }
+
+        enum T { One } // This was a type T = enum { One };
+    }
+}
+
+service ThisThatService {
+    functions {
+        DoThis(p1: u32, p2: string, p3: Option<(string, u8)>, p4: ThisThatSvcAppTupleStruct) -> (string, u32);
+        DoThat(param: ThisThatSvcAppDoThatParam) -> Result<(string, u32), string>;
+        @query
+        This(v1: Vec<u16>) -> u32;
+        @query
+        That(v1: ()) -> Result<string, string>;
+    }
+}
+
+service CounterService {
+    functions {
+        /// Add a value to the counter
+        Add(value: u32) -> u32;
+        /// Substract a value from the counter
+        Sub(value: u32) -> u32;
+        /// Get the current value
+        @query
+        Value() -> u32;
+    }
+
+    events {
+        /// Emitted when a new value is added to the counter
+        Added(u32),
+        /// Emitted when a value is subtracted from the counter
+        Subtracted(u32),
+    }
+}
