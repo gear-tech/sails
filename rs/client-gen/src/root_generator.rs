@@ -5,25 +5,25 @@ use rust::Tokens;
 use sails_idl_parser_v2::{ast::visitor::Visitor, ast::*};
 use std::collections::HashMap;
 
-pub(crate) struct RootGenerator<'a> {
+pub(crate) struct RootGenerator<'ast> {
     tokens: Tokens,
     mocks_tokens: Tokens,
     service_impl_tokens: Tokens,
     service_trait_tokens: Tokens,
-    anonymous_service_name: &'a str,
-    mocks_feature_name: Option<&'a str>,
-    sails_path: &'a str,
-    external_types: HashMap<&'a str, &'a str>,
+    anonymous_service_name: &'ast str,
+    mocks_feature_name: Option<&'ast str>,
+    sails_path: &'ast str,
+    external_types: HashMap<&'ast str, &'ast str>,
     no_derive_traits: bool,
-    program_exported_services: Vec<String>,
+    program_exported_services: Vec<&'ast str>,
 }
 
-impl<'a> RootGenerator<'a> {
+impl<'ast> RootGenerator<'ast> {
     pub(crate) fn new(
-        anonymous_service_name: &'a str,
-        mocks_feature_name: Option<&'a str>,
-        sails_path: &'a str,
-        external_types: HashMap<&'a str, &'a str>,
+        anonymous_service_name: &'ast str,
+        mocks_feature_name: Option<&'ast str>,
+        sails_path: &'ast str,
+        external_types: HashMap<&'ast str, &'ast str>,
         no_derive_traits: bool,
     ) -> Self {
         Self {
@@ -108,7 +108,7 @@ impl<'a> RootGenerator<'a> {
     }
 }
 
-impl<'ast> Visitor<'ast> for RootGenerator<'_> {
+impl<'ast> Visitor<'ast> for RootGenerator<'ast> {
     fn visit_program_unit(&mut self, program: &'ast ProgramUnit) {
         let mut ctor_gen = CtorGenerator::new(self.anonymous_service_name, self.sails_path);
         for ctor in &program.ctors {
@@ -117,7 +117,7 @@ impl<'ast> Visitor<'ast> for RootGenerator<'_> {
         self.tokens.extend(ctor_gen.finalize());
 
         for service_item in &program.services {
-            self.program_exported_services.push(service_item.route.clone());
+            self.program_exported_services.push(&service_item.route);
         }
 
         visitor::accept_program_unit(program, self);
@@ -131,7 +131,7 @@ impl<'ast> Visitor<'ast> for RootGenerator<'_> {
         };
 
         // Generate service access methods only if the service is not exported by the program
-        if !self.program_exported_services.contains(&service_name.to_string()) {
+        if !self.program_exported_services.contains(&service_name) {
             let service_name_snake = &service_name.to_case(Case::Snake);
             let service_name_pascal = &service_name.to_case(Case::Pascal);
 

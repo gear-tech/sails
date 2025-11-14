@@ -4,14 +4,14 @@ use genco::prelude::*;
 use rust::Tokens;
 use sails_idl_parser_v2::{ast::visitor::Visitor, ast::*};
 
-pub(crate) struct MockGenerator<'a> {
-    service_name: &'a str,
-    sails_path: &'a str,
+pub(crate) struct MockGenerator<'ast> {
+    service_name: &'ast str,
+    sails_path: &'ast str,
     tokens: rust::Tokens,
 }
 
-impl<'a> MockGenerator<'a> {
-    pub(crate) fn new(service_name: &'a str, sails_path: &'a str) -> Self {
+impl<'ast> MockGenerator<'ast> {
+    pub(crate) fn new(service_name: &'ast str, sails_path: &'ast str) -> Self {
         Self {
             service_name,
             sails_path,
@@ -36,7 +36,7 @@ impl<'a> MockGenerator<'a> {
     }
 }
 
-impl<'ast> Visitor<'ast> for MockGenerator<'_> {
+impl<'ast> Visitor<'ast> for MockGenerator<'ast> {
     fn visit_service_unit(&mut self, service: &'ast ServiceUnit) {
         for func in &service.funcs {
             self.visit_service_func(func);

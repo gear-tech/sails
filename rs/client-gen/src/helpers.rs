@@ -21,11 +21,11 @@ pub(crate) fn fn_args_with_types(params: &[FuncParam]) -> String {
     fn_args_with_types_path(params, "")
 }
 
-pub(crate) fn fn_args_with_types_path(params: &[FuncParam], path: &str) -> String {
+pub(crate) fn fn_args_with_types_path<'ast>(params: &'ast [FuncParam], path: &'ast str) -> String {
     params
         .iter()
         .map(|p| {
-            let mut generator = FuncParamGenerator::new(path.to_owned());
+            let mut generator = FuncParamGenerator::new(path);
             generator.visit_func_param(p);
             generator.finalize().to_string().expect("Failed to generate func param")
         })

@@ -1,14 +1,14 @@
 use genco::prelude::*;
 use sails_idl_parser_v2::{ast::visitor, ast::visitor::Visitor, ast::*};
 
-pub(crate) struct EventsModuleGenerator<'a> {
-    service_name: &'a str,
-    sails_path: &'a str,
+pub(crate) struct EventsModuleGenerator<'ast> {
+    service_name: &'ast str,
+    sails_path: &'ast str,
     tokens: rust::Tokens,
 }
 
-impl<'a> EventsModuleGenerator<'a> {
-    pub(crate) fn new(service_name: &'a str, sails_path: &'a str) -> Self {
+impl<'ast> EventsModuleGenerator<'ast> {
+    pub(crate) fn new(service_name: &'ast str, sails_path: &'ast str) -> Self {
         Self {
             service_name,
             sails_path,
@@ -21,7 +21,7 @@ impl<'a> EventsModuleGenerator<'a> {
     }
 }
 
-impl<'ast> Visitor<'ast> for EventsModuleGenerator<'_> {
+impl<'ast> Visitor<'ast> for EventsModuleGenerator<'ast> {
     fn visit_service_unit(&mut self, service: &'ast ServiceUnit) {
         let events_name = &format!("{}Events", self.service_name);
         let event_names = service
@@ -83,10 +83,7 @@ impl<'ast> Visitor<'ast> for EventsModuleGenerator<'_> {
         let is_struct = event.def.fields.iter().all(|f| f.name.is_some());
 
         if !is_tuple && !is_struct {
-            panic!(
-                "Event variant '{}' has a mix of named and unnamed fields, which is not supported.",
-                variant_name
-            );
+            panic!("Event variant '{variant_name}' has a mix of named and unnamed fields, which is not supported.");
         }
 
         if is_tuple {
@@ -97,7 +94,7 @@ impl<'ast> Visitor<'ast> for EventsModuleGenerator<'_> {
                     field_tokens.append(", ");
                 }
                 let type_code =
-                    crate::type_generators::generate_type_decl_with_path(&field.type_decl, "super".into());
+                    crate::type_generators::generate_type_decl_with_path(&field.type_decl, "super");
                 field_tokens.append(type_code);
             }
             quote_in! { self.tokens =>
@@ -114,7 +111,7 @@ impl<'ast> Visitor<'ast> for EventsModuleGenerator<'_> {
                 }
                 let field_name = field.name.as_ref().unwrap();
                 let type_code =
-                    crate::type_generators::generate_type_decl_with_path(&field.type_decl, "super".into());
+                    crate::type_generators::generate_type_decl_with_path(&field.type_decl, "super");
                 quote_in! { field_tokens =>
                     $['\r'] $field_name: $type_code,
                 };

@@ -1,19 +1,18 @@
 use crate::type_generators::generate_type_decl_with_path;
 use genco::prelude::*;
 use rust::Tokens;
-use sails_idl_parser_v2::ast::visitor::Visitor; // Import Visitor trait
-use sails_idl_parser_v2::ast::FuncParam;
+use sails_idl_parser_v2::{ast::FuncParam, ast::visitor::Visitor};
 
-pub(crate) struct FuncParamGenerator {
-    path: String,
+pub(crate) struct FuncParamGenerator<'ast> {
     tokens: Tokens,
+    path: &'ast str,
 }
 
-impl FuncParamGenerator {
-    pub(crate) fn new(path: String) -> Self {
+impl<'ast> FuncParamGenerator<'ast> {
+    pub(crate) fn new(path: &'ast str) -> Self {
         Self {
-            path,
             tokens: Tokens::new(),
+            path,
         }
     }
 
@@ -22,9 +21,9 @@ impl FuncParamGenerator {
     }
 }
 
-impl<'ast> Visitor<'ast> for FuncParamGenerator { // Remove lifetime from impl block
+impl<'ast> Visitor<'ast> for FuncParamGenerator<'ast> {
     fn visit_func_param(&mut self, func_param: &'ast FuncParam) {
-        let type_decl_code = generate_type_decl_with_path(&func_param.type_decl, self.path.clone());
+        let type_decl_code = generate_type_decl_with_path(&func_param.type_decl, self.path);
         quote_in! { self.tokens =>
             $(&func_param.name): $type_decl_code
         };

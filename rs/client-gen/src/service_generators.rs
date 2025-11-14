@@ -10,17 +10,17 @@ use crate::type_generators::generate_type_decl_with_path;
 
 
 /// Generates a service module with trait and struct implementation
-pub(crate) struct ServiceGenerator<'a> {
-    service_name: &'a str,
-    sails_path: &'a str,
+pub(crate) struct ServiceGenerator<'ast> {
+    service_name: &'ast str,
+    sails_path: &'ast str,
     trait_tokens: Tokens,
     impl_tokens: Tokens,
     io_tokens: Tokens,
     events_tokens: Tokens,
 }
 
-impl<'a> ServiceGenerator<'a> {
-    pub(crate) fn new(service_name: &'a str, sails_path: &'a str) -> Self {
+impl<'ast> ServiceGenerator<'ast> {
+    pub(crate) fn new(service_name: &'ast str, sails_path: &'ast str) -> Self {
         Self {
             service_name,
             sails_path,
@@ -63,7 +63,7 @@ impl<'a> ServiceGenerator<'a> {
 }
 
 // using quote_in instead of tokens.append
-impl<'ast> Visitor<'ast> for ServiceGenerator<'_> {
+impl<'ast> Visitor<'ast> for ServiceGenerator<'ast> {
     fn visit_service_unit(&mut self, service: &'ast ServiceUnit) {
         for func in &service.funcs {
             self.visit_service_func(func);
@@ -99,7 +99,7 @@ impl<'ast> Visitor<'ast> for ServiceGenerator<'_> {
             }
         };
 
-        let output_type_decl_code = generate_type_decl_with_path(&func.output, "super".to_owned());
+        let output_type_decl_code = generate_type_decl_with_path(&func.output, "super");
         let params_with_types_super = &fn_args_with_types_path(&func.params, "super");
         quote_in! { self.io_tokens =>
             $(self.sails_path)::io_struct_impl!($fn_name ($params_with_types_super) -> $output_type_decl_code);
