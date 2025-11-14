@@ -284,7 +284,7 @@ impl<'ast> Visitor<'ast> for TypeDeclGenerator<'ast> {
         // Create a new TypeDeclGenerator with an empty path for inner types
         let mut inner_generator = TypeDeclGenerator {
             tokens: Tokens::new(),
-            path: "",
+            path: self.path,
         };
         visitor::accept_type_decl(item_type_decl, &mut inner_generator);
         self.tokens.append(inner_generator.tokens);
@@ -296,7 +296,7 @@ impl<'ast> Visitor<'ast> for TypeDeclGenerator<'ast> {
         // Create a new TypeDeclGenerator with an empty path for inner types
         let mut inner_generator = TypeDeclGenerator {
             tokens: Tokens::new(),
-            path: "",
+            path: self.path,
         };
         visitor::accept_type_decl(item_type_decl, &mut inner_generator);
         self.tokens.append(inner_generator.tokens);
@@ -312,7 +312,7 @@ impl<'ast> Visitor<'ast> for TypeDeclGenerator<'ast> {
             // Create a new TypeDeclGenerator with an empty path for inner types
             let mut inner_generator = TypeDeclGenerator {
                 tokens: Tokens::new(),
-                path: "",
+                path: self.path,
             };
             visitor::accept_type_decl(item, &mut inner_generator);
             self.tokens.append(inner_generator.tokens);
@@ -328,7 +328,7 @@ impl<'ast> Visitor<'ast> for TypeDeclGenerator<'ast> {
         // Create a new TypeDeclGenerator with an empty path for inner types
         let mut inner_generator = TypeDeclGenerator {
             tokens: Tokens::new(),
-            path: "",
+            path: self.path,
         };
         visitor::accept_type_decl(inner_type_decl, &mut inner_generator);
         self.tokens.append(inner_generator.tokens);
@@ -344,7 +344,7 @@ impl<'ast> Visitor<'ast> for TypeDeclGenerator<'ast> {
         // Create a new TypeDeclGenerator with an empty path for inner types
         let mut ok_generator = TypeDeclGenerator {
             tokens: Tokens::new(),
-            path: "",
+            path: self.path,
         };
         visitor::accept_type_decl(ok_type_decl, &mut ok_generator);
         self.tokens.append(ok_generator.tokens);
@@ -352,7 +352,7 @@ impl<'ast> Visitor<'ast> for TypeDeclGenerator<'ast> {
         // Create a new TypeDeclGenerator with an empty path for inner types
         let mut err_generator = TypeDeclGenerator {
             tokens: Tokens::new(),
-            path: "",
+            path: self.path,
         };
         visitor::accept_type_decl(err_type_decl, &mut err_generator);
         self.tokens.append(err_generator.tokens);
@@ -399,7 +399,7 @@ impl<'ast> Visitor<'ast> for TypeDeclGenerator<'ast> {
                 // Create a new TypeDeclGenerator with an empty path for inner generics
                 let mut inner_generator = TypeDeclGenerator {
                     tokens: Tokens::new(),
-                    path: "",
+                    path: self.path,
                 };
                 visitor::accept_type_decl(generic, &mut inner_generator);
                 self.tokens.append(inner_generator.tokens);

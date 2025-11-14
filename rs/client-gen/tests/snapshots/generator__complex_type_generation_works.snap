@@ -136,10 +136,10 @@ pub mod my_complex_service {
 
     pub mod io {
         use super::*;
-        sails_rs::io_struct_impl!(Initialize (start_data: super::ProgramGlobalInfo, max_size: super::NonZeroU32) -> Result<(), ErrorType>);
-        sails_rs::io_struct_impl!(GetData (key: String) -> Result<ProgramScopedData, ErrorType>);
+        sails_rs::io_struct_impl!(Initialize (start_data: super::ProgramGlobalInfo, max_size: super::NonZeroU32) -> Result<(), super::ErrorType>);
+        sails_rs::io_struct_impl!(GetData (key: String) -> Result<super::ProgramScopedData, super::ErrorType>);
         sails_rs::io_struct_impl!(GetInfo () -> super::ProgramGlobalInfo);
-        sails_rs::io_struct_impl!(GetActorIds (count: u32) -> super::Vec<ActorId>);
+        sails_rs::io_struct_impl!(GetActorIds (count: u32) -> super::Vec<super::ActorId>);
     }
 }
 #[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo)]
@@ -188,7 +188,7 @@ pub mod another_service {
     pub mod io {
         use super::*;
         sails_rs::io_struct_impl!(Ping () -> String);
-        sails_rs::io_struct_impl!(ProcessValues (data: super::Vec<U256>) -> Result<(), ErrorType>);
+        sails_rs::io_struct_impl!(ProcessValues (data: super::Vec<U256>) -> Result<(), super::ErrorType>);
     }
 }
 

@@ -165,7 +165,7 @@ pub mod this_that_service {
     pub mod io {
         use super::*;
         sails_rs::io_struct_impl!(DoThis (p1: u32, p2: String, p3: super::DoThisP3, p4: super::ThisThatSvcAppTupleStruct) -> super::DoThisReturn);
-        sails_rs::io_struct_impl!(DoThat (param: super::ThisThatSvcAppDoThatParam) -> Result<DoThatReturnOk, DoThatReturnErr>);
+        sails_rs::io_struct_impl!(DoThat (param: super::ThisThatSvcAppDoThatParam) -> Result<super::DoThatReturnOk, super::DoThatReturnErr>);
         sails_rs::io_struct_impl!(This (v1: super::Vec<u16>) -> u32);
         sails_rs::io_struct_impl!(That (v1: ()) -> Result<String, String>);
     }
