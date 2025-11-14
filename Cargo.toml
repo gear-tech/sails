@@ -42,6 +42,7 @@ members = [
     "benchmarks/ping-pong/app",
     "benchmarks/ping-pong/client",
     "benchmarks",
+    "rs/build-support",
 ]
 
 [workspace.dependencies]
@@ -52,6 +53,7 @@ sails-idl-gen = { path = "rs/idl-gen" }
 sails-client-gen = { path = "rs/client-gen" }
 sails-macros-core = { path = "rs/macros/core" }
 sails-macros = { path = "rs/macros" }
+sails-build = { path = "rs/build-support" }
 sails-rs = { path = "rs" }
 sails-sol-gen = { path = "rs/sol-gen" }
 # Renamed sails-rs for `proxy` demo
@@ -104,6 +106,7 @@ scale-info = { version = "2.11", default-features = false }
 serde = { version = "1.0", features = ["derive"] }
 serde-json = { package = "serde_json", version = "1.0" }
 serde_json_canonicalizer = "0.3.1"
+serde_bytes = "0.11"
 spin = { version = "0.9", default-features = false, features = ["spin_mutex"] }
 syn = "2.0"
 thiserror = { version = "2.0", default-features = false }
