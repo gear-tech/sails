@@ -1,4 +1,10 @@
-use alloc::{boxed::Box, format, string::String, vec::Vec};
+use alloc::{
+    boxed::Box,
+    format,
+    string::{String, ToString as _},
+    vec,
+    vec::Vec,
+};
 use core::fmt::{Display, Write};
 
 // -------------------------------- IDL model ---------------------------------
@@ -93,9 +99,17 @@ pub struct ServiceFunc {
     pub params: Vec<FuncParam>,
     pub output: TypeDecl,
     pub throws: Option<TypeDecl>,
-    pub is_query: bool,
+    pub kind: FunctionKind,
     pub docs: Vec<String>,
     pub annotations: Vec<(String, Option<String>)>,
+}
+
+/// Function kind based on mutability.
+#[derive(Debug, Default, PartialEq, Eq, Clone, Copy)]
+pub enum FunctionKind {
+    #[default]
+    Command,
+    Query,
 }
 
 impl ServiceFunc {
@@ -137,44 +151,70 @@ pub type ServiceEvent = EnumVariant;
 /// - primitive types (`Primitive`),
 /// - slices and fixed arrays (`Slice`, `Array`),
 /// - tuples (`Tuple`),
-/// - container types like `Option` and `Result`,
-/// - user-defined nominal types with generics (`UserDefined`),
-/// - bare generic parameters (`Generic`).
+/// - named types (e.g. `Point<u32>`)
+///     - container types like `Option<T>`, `Result<T, E>`
+///     - user-defined types with generics (`UserDefined`),
+///     - bare generic parameters (`T`).
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum TypeDecl {
     /// Slice type `[T]`.
     Slice(Box<TypeDecl>),
     /// Fixed-length array type `[T; N]`.
-    Array { item: Box<TypeDecl>, len: u32 },
+    Array(Box<TypeDecl>, u32),
     /// Tuple type `(T1, T2, ...)`, including `()` for an empty tuple.
     Tuple(Vec<TypeDecl>),
-    /// Optional value `Option<T>`.
-    Option(Box<TypeDecl>),
-    /// Result type `Result<Ok, Err>`.
-    Result {
-        ok: Box<TypeDecl>,
-        err: Box<TypeDecl>,
-    },
     /// Built-in primitive type from `PrimitiveType`.
     Primitive(PrimitiveType),
-    /// User-defined named type, possibly generic (e.g. `Point<u32>`).
+    /// Named type, possibly generic (e.g. `Point<u32>`).
     ///
-    /// `name` is the type identifier, optionally including a service namespace,
-    /// and `generics` is the list of applied type arguments.
-    UserDefined {
-        name: String,
-        generics: Vec<TypeDecl>,
-    },
-    /// Generic type parameter (e.g. `T`) used in type definitions.
-    Generic(String),
+    /// - known named type, e.g. `Option<T>`, `Result<T, E>`
+    /// - user-defined named type
+    /// - generic type parameter (e.g. `T`) used in type definitions.
+    Named(String, Vec<TypeDecl>),
+}
+
+impl TypeDecl {
+    pub fn option(item: TypeDecl) -> TypeDecl {
+        TypeDecl::Named("Option".to_string(), vec![item])
+    }
+
+    pub fn result(ok: TypeDecl, err: TypeDecl) -> TypeDecl {
+        TypeDecl::Named("Result".to_string(), vec![ok, err])
+    }
+
+    pub fn option_type_decl(ty: &TypeDecl) -> Option<TypeDecl> {
+        match ty {
+            TypeDecl::Named(name, generics) if name == "Option" => {
+                if let [item] = generics.as_slice() {
+                    Some(item.clone())
+                } else {
+                    None
+                }
+            }
+            _ => None,
+        }
+    }
+
+    pub fn result_type_decl(ty: &TypeDecl) -> Option<(TypeDecl, TypeDecl)> {
+        match ty {
+            TypeDecl::Named(name, generics) if name == "Result" => {
+                if let [ok, err] = generics.as_slice() {
+                    Some((ok.clone(), err.clone()))
+                } else {
+                    None
+                }
+            }
+            _ => None,
+        }
+    }
 }
 
 impl Display for TypeDecl {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         use TypeDecl::*;
         match self {
-            Slice(type_decl) => write!(f, "[{type_decl}]"),
-            Array { item, len } => write!(f, "[{item}; {len}]"),
+            Slice(item) => write!(f, "[{item}]"),
+            Array(item, len) => write!(f, "[{item}; {len}]"),
             Tuple(type_decls) => {
                 f.write_char('(')?;
                 for (i, ty) in type_decls.iter().enumerate() {
@@ -186,10 +226,8 @@ impl Display for TypeDecl {
                 f.write_char(')')?;
                 Ok(())
             }
-            Option(type_decl) => write!(f, "Option<{type_decl}>"),
-            Result { ok, err } => write!(f, "Result<{ok}, {err}>"),
             Primitive(primitive_type) => write!(f, "{primitive_type}"),
-            UserDefined { name, generics } => {
+            Named(name, generics) => {
                 write!(f, "{name}")?;
                 if !generics.is_empty() {
                     f.write_char('<')?;
@@ -203,7 +241,6 @@ impl Display for TypeDecl {
                 }
                 Ok(())
             }
-            Generic(name) => write!(f, "{name}"),
         }
     }
 }
