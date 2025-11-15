@@ -84,6 +84,7 @@ impl Default for CanonicalService {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct CanonicalParent {
     pub interface_id: u64,
+    #[serde(skip_serializing)]
     pub name: String,
 }
 
@@ -169,13 +170,38 @@ pub enum CanonicalType {
     },
 }
 
+#[derive(Clone, Copy)]
+pub enum TypeScope<'a> {
+    Local,
+    Parent(&'a ParentInterface<'a>),
+}
+
+impl<'a> TypeScope<'a> {
+    fn canonical_key(&self, ty_name: &str) -> String {
+        if ty_name.contains("::") {
+            ty_name.to_owned()
+        } else {
+            match self {
+                TypeScope::Local => format!("self::{ty_name}"),
+                TypeScope::Parent(parent) => {
+                    format!("{}::{ty_name}", parent_type_prefix(parent.interface_id))
+                }
+            }
+        }
+    }
+}
+
+fn parent_type_prefix(interface_id: u64) -> String {
+    format!("parent@{interface_id:016x}")
+}
+
 #[derive(Default)]
 pub struct TypeRegistry<'a> {
     entries: BTreeMap<String, RegisteredType<'a>>,
 }
 
 pub struct RegisteredType<'a> {
-    pub owner: &'a str,
+    pub owner: TypeScope<'a>,
     pub ty: &'a Type,
 }
 
@@ -186,16 +212,19 @@ impl<'a> TypeRegistry<'a> {
         }
     }
 
-    pub fn insert_service(&mut self, service: &'a ServiceUnit) {
+    pub fn insert_local_service(&mut self, service: &'a ServiceUnit) {
+        self.insert_with_scope(service, TypeScope::Local);
+    }
+
+    pub fn insert_parent_service(&mut self, parent: &'a ParentInterface<'a>) {
+        self.insert_with_scope(parent.service, TypeScope::Parent(parent));
+    }
+
+    fn insert_with_scope(&mut self, service: &'a ServiceUnit, scope: TypeScope<'a>) {
         for ty in &service.types {
-            let key = scoped_type_name(&service.name, &ty.name);
-            self.entries.insert(
-                key,
-                RegisteredType {
-                    owner: service.name.as_str(),
-                    ty,
-                },
-            );
+            let key = scope.canonical_key(&ty.name);
+            self.entries
+                .insert(key, RegisteredType { owner: scope, ty });
         }
     }
 
@@ -215,17 +244,26 @@ impl<'a> TypeRegistry<'a> {
 pub struct TypeResolver<'a, 'b> {
     registry: &'a TypeRegistry<'b>,
     parents: &'a ResolvedParents<'b>,
+    local_service_name: &'b str,
 }
 
 impl<'a, 'b> TypeResolver<'a, 'b> {
-    pub fn new(registry: &'a TypeRegistry<'b>, parents: &'a ResolvedParents<'b>) -> Self {
-        Self { registry, parents }
+    pub fn new(
+        registry: &'a TypeRegistry<'b>,
+        parents: &'a ResolvedParents<'b>,
+        local_service_name: &'b str,
+    ) -> Self {
+        Self {
+            registry,
+            parents,
+            local_service_name,
+        }
     }
 
     pub fn canonical_type(
         &self,
         ty: &TypeDecl,
-        scope: &str,
+        scope: TypeScope<'b>,
     ) -> Result<CanonicalType, CanonicalError> {
         Ok(match ty {
             TypeDecl::Primitive(primitive) => CanonicalType::Primitive {
@@ -267,28 +305,59 @@ impl<'a, 'b> TypeResolver<'a, 'b> {
         })
     }
 
-    pub fn qualify_name(&self, raw: &str, scope: &str) -> Result<String, CanonicalError> {
-        if raw.contains("::") {
-            return if self.registry.contains(raw) {
-                Ok(raw.to_owned())
-            } else {
-                Err(CanonicalError::UnknownType(raw.to_owned()))
-            };
+    pub fn qualify_name(&self, raw: &str, scope: TypeScope<'b>) -> Result<String, CanonicalError> {
+        if let Some(candidate) = self.try_absolute_name(raw) {
+            return Ok(candidate);
         }
 
-        let local = qualify_type_name(scope, raw);
-        if self.registry.contains(&local) {
-            return Ok(local);
+        if let Some(candidate) = self.try_scoped_name(raw, scope) {
+            return Ok(candidate);
         }
 
-        for (parent_name, _) in self.parents.iter() {
-            let candidate = qualify_type_name(parent_name, raw);
-            if self.registry.contains(&candidate) {
+        for (_, parent) in self.parents.iter() {
+            if let Some(candidate) = self.try_scoped_name(raw, TypeScope::Parent(parent)) {
                 return Ok(candidate);
             }
         }
 
         Err(CanonicalError::UnknownType(raw.to_owned()))
+    }
+
+    fn try_absolute_name(&self, raw: &str) -> Option<String> {
+        if raw.contains("::") && self.registry.contains(raw) {
+            Some(raw.to_owned())
+        } else {
+            None
+        }
+    }
+
+    fn try_scoped_name(&self, raw: &str, scope: TypeScope<'b>) -> Option<String> {
+        let candidate = if raw.contains("::") {
+            let remainder = self.strip_scope_prefix(raw, scope)?;
+            scope.canonical_key(remainder)
+        } else {
+            scope.canonical_key(raw)
+        };
+
+        if self.registry.contains(&candidate) {
+            Some(candidate)
+        } else {
+            None
+        }
+    }
+
+    fn strip_scope_prefix<'c>(&self, raw: &'c str, scope: TypeScope<'b>) -> Option<&'c str> {
+        let (prefix, needs_separator) = match scope {
+            TypeScope::Local => (self.local_service_name, true),
+            TypeScope::Parent(parent) => (parent.name, true),
+        };
+        raw.strip_prefix(prefix).and_then(|rest| {
+            if needs_separator {
+                rest.strip_prefix("::")
+            } else {
+                Some(rest)
+            }
+        })
     }
 }
 
@@ -408,15 +477,15 @@ pub fn canonicalize_service(
 ) -> Result<CanonicalEnvelope, CanonicalError> {
     let resolved_parents = resolve_parents(service, ctx)?;
     let mut registry = TypeRegistry::new();
-    registry.insert_service(service);
+    registry.insert_local_service(service);
     for (_, parent) in resolved_parents.iter() {
-        registry.insert_service(parent.service);
+        registry.insert_parent_service(parent);
     }
 
-    let type_resolver = TypeResolver::new(&registry, &resolved_parents);
+    let type_resolver = TypeResolver::new(&registry, &resolved_parents, service.name.as_str());
     let extends = canonicalize_extends(resolved_parents.as_map());
-    let functions = canonicalize_functions(&service.funcs, service.name.as_str(), &type_resolver)?;
-    let events = canonicalize_events(&service.events, service.name.as_str(), &type_resolver)?;
+    let functions = canonicalize_functions(&service.funcs, TypeScope::Local, &type_resolver)?;
+    let events = canonicalize_events(&service.events, TypeScope::Local, &type_resolver)?;
     let reachable = collect_reachable_types(service, &resolved_parents, &registry, &type_resolver)?;
     let mut types = BTreeMap::new();
     for qualified in reachable {
@@ -468,8 +537,10 @@ pub fn compute_interface_id(
 fn canonicalize_extends(
     parent_map: &BTreeMap<String, ParentInterface<'_>>,
 ) -> Vec<CanonicalParent> {
-    parent_map
-        .iter()
+    let mut entries: Vec<_> = parent_map.iter().collect();
+    entries.sort_by_key(|(_, parent)| parent.interface_id);
+    entries
+        .into_iter()
         .map(|(name, parent)| CanonicalParent {
             interface_id: parent.interface_id,
             name: name.clone(),
@@ -482,13 +553,13 @@ pub fn canonicalize_parent_types(
     resolver: &TypeResolver,
 ) -> Result<BTreeMap<String, CanonicalNamedType>, CanonicalError> {
     let mut types = BTreeMap::new();
-    for (name, parent) in parents.iter() {
+    for (_, parent) in parents.iter() {
         for ty in &parent.service.types {
-            let qualified = scoped_type_name(name, &ty.name);
+            let qualified = TypeScope::Parent(parent).canonical_key(&ty.name);
             if types.contains_key(&qualified) {
                 continue;
             }
-            let canonical = canonicalize_named_type(ty, parent.service.name.as_str(), resolver)?;
+            let canonical = canonicalize_named_type(ty, TypeScope::Parent(parent), resolver)?;
             types.insert(qualified, canonical);
         }
     }
@@ -497,7 +568,7 @@ pub fn canonicalize_parent_types(
 
 fn canonicalize_functions(
     funcs: &[ServiceFunc],
-    service_name: &str,
+    scope: TypeScope,
     resolver: &TypeResolver,
 ) -> Result<Vec<CanonicalFunction>, CanonicalError> {
     let mut canonicalized = Vec::with_capacity(funcs.len());
@@ -505,11 +576,11 @@ fn canonicalize_functions(
         let params = func
             .params
             .iter()
-            .map(|param| resolver.canonical_type(&param.type_decl, service_name))
+            .map(|param| resolver.canonical_type(&param.type_decl, scope))
             .collect::<Result<Vec<_>, _>>()?;
-        let output = resolver.canonical_type(&func.output, service_name)?;
+        let output = resolver.canonical_type(&func.output, scope)?;
         let throws = match &func.throws {
-            Some(ty) => Some(resolver.canonical_type(ty, service_name)?),
+            Some(ty) => Some(resolver.canonical_type(ty, scope)?),
             None => None,
         };
 
@@ -534,14 +605,14 @@ fn canonicalize_functions(
 
 fn canonicalize_events(
     events: &[ServiceEvent],
-    service_name: &str,
+    scope: TypeScope,
     resolver: &TypeResolver,
 ) -> Result<Vec<CanonicalEvent>, CanonicalError> {
     let mut canonicalized = Vec::with_capacity(events.len());
     for event in events {
         canonicalized.push(CanonicalEvent {
             name: event.name.clone(),
-            payload: canonicalize_aggregate(&event.def, service_name, resolver)?,
+            payload: canonicalize_aggregate(&event.def, scope, resolver)?,
         });
     }
 
@@ -552,7 +623,7 @@ fn canonicalize_events(
 
 fn canonicalize_named_type(
     ty: &Type,
-    service_name: &str,
+    scope: TypeScope,
     resolver: &TypeResolver,
 ) -> Result<CanonicalNamedType, CanonicalError> {
     if !ty.type_params.is_empty() {
@@ -561,13 +632,13 @@ fn canonicalize_named_type(
 
     let kind = match &ty.def {
         TypeDef::Struct(def) => CanonicalNamedTypeKind::Struct {
-            fields: canonicalize_aggregate(def, service_name, resolver)?.fields,
+            fields: canonicalize_aggregate(def, scope, resolver)?.fields,
         },
         TypeDef::Enum(enum_def) => {
             let mut variants = enum_def
                 .variants
                 .iter()
-                .map(|variant| canonicalize_variant(variant, service_name, resolver))
+                .map(|variant| canonicalize_variant(variant, scope, resolver))
                 .collect::<Result<Vec<_>, _>>()?;
             variants.sort_by(|lhs, rhs| {
                 canonical_variant_sort_key(lhs).cmp(&canonical_variant_sort_key(rhs))
@@ -581,24 +652,24 @@ fn canonicalize_named_type(
 
 fn canonicalize_variant(
     variant: &EnumVariant,
-    service_name: &str,
+    scope: TypeScope,
     resolver: &TypeResolver,
 ) -> Result<CanonicalVariant, CanonicalError> {
     Ok(CanonicalVariant {
         name: variant.name.clone(),
-        payload: canonicalize_aggregate(&variant.def, service_name, resolver)?,
+        payload: canonicalize_aggregate(&variant.def, scope, resolver)?,
     })
 }
 
 fn canonicalize_aggregate(
     def: &StructDef,
-    service_name: &str,
+    scope: TypeScope,
     resolver: &TypeResolver,
 ) -> Result<CanonicalAggregate, CanonicalError> {
     let fields = def
         .fields
         .iter()
-        .map(|field| resolver.canonical_type(&field.type_decl, service_name))
+        .map(|field| resolver.canonical_type(&field.type_decl, scope))
         .collect::<Result<Vec<_>, _>>()?;
     Ok(CanonicalAggregate { fields })
 }
@@ -636,18 +707,6 @@ fn collect_parent_recursive<'a>(
     resolved.entry(parent.name.to_owned()).or_insert(parent);
     visiting.remove(name);
     Ok(())
-}
-
-fn qualify_type_name(service: &str, ty: &str) -> String {
-    format!("{service}::{ty}")
-}
-
-fn scoped_type_name(service: &str, ty: &str) -> String {
-    if ty.contains("::") {
-        ty.to_owned()
-    } else {
-        qualify_type_name(service, ty)
-    }
 }
 
 fn canonical_function_sort_key(func: &CanonicalFunction) -> (String, String) {
@@ -741,7 +800,7 @@ fn canonical_type_repr(ty: &CanonicalType) -> String {
 
 fn collect_reachable_types<'a>(
     service: &'a ServiceUnit,
-    parents: &ResolvedParents<'a>,
+    parents: &'a ResolvedParents<'a>,
     registry: &TypeRegistry<'a>,
     resolver: &TypeResolver<'_, 'a>,
 ) -> Result<BTreeSet<String>, CanonicalError> {
@@ -750,7 +809,7 @@ fn collect_reachable_types<'a>(
 
     fn visit_decl<'a>(
         decl: &TypeDecl,
-        scope: &str,
+        scope: TypeScope<'a>,
         resolver: &TypeResolver<'_, 'a>,
         reachable: &mut BTreeSet<String>,
         pending: &mut VecDeque<String>,
@@ -786,51 +845,40 @@ fn collect_reachable_types<'a>(
         Ok(())
     }
 
-    let mut process_service = |unit: &ServiceUnit| -> Result<(), CanonicalError> {
-        for func in &unit.funcs {
-            for param in &func.params {
-                visit_decl(
-                    &param.type_decl,
-                    unit.name.as_str(),
-                    resolver,
-                    &mut reachable,
-                    &mut pending,
-                )?;
+    let mut process_service =
+        |unit: &ServiceUnit, scope: TypeScope<'a>| -> Result<(), CanonicalError> {
+            for func in &unit.funcs {
+                for param in &func.params {
+                    visit_decl(
+                        &param.type_decl,
+                        scope,
+                        resolver,
+                        &mut reachable,
+                        &mut pending,
+                    )?;
+                }
+                visit_decl(&func.output, scope, resolver, &mut reachable, &mut pending)?;
+                if let Some(throws) = &func.throws {
+                    visit_decl(throws, scope, resolver, &mut reachable, &mut pending)?;
+                }
             }
-            visit_decl(
-                &func.output,
-                unit.name.as_str(),
-                resolver,
-                &mut reachable,
-                &mut pending,
-            )?;
-            if let Some(throws) = &func.throws {
-                visit_decl(
-                    throws,
-                    unit.name.as_str(),
-                    resolver,
-                    &mut reachable,
-                    &mut pending,
-                )?;
+            for event in &unit.events {
+                for field in &event.def.fields {
+                    visit_decl(
+                        &field.type_decl,
+                        scope,
+                        resolver,
+                        &mut reachable,
+                        &mut pending,
+                    )?;
+                }
             }
-        }
-        for event in &unit.events {
-            for field in &event.def.fields {
-                visit_decl(
-                    &field.type_decl,
-                    unit.name.as_str(),
-                    resolver,
-                    &mut reachable,
-                    &mut pending,
-                )?;
-            }
-        }
-        Ok(())
-    };
+            Ok(())
+        };
 
-    process_service(service)?;
+    process_service(service, TypeScope::Local)?;
     for (_, parent) in parents.iter() {
-        process_service(parent.service)?;
+        process_service(parent.service, TypeScope::Parent(parent))?;
     }
 
     while let Some(name) = pending.pop_front() {
@@ -961,11 +1009,14 @@ mod tests {
         let ctx = CanonicalizationContext::with_resolver(&resolver);
         let resolved = resolve_parents(&child, &ctx).expect("parents resolved");
         let mut registry = TypeRegistry::new();
-        registry.insert_service(&base);
-        let type_resolver = TypeResolver::new(&registry, &resolved);
+        for (_, parent) in resolved.iter() {
+            registry.insert_parent_service(parent);
+        }
+        let type_resolver = TypeResolver::new(&registry, &resolved, child.name.as_str());
         let inherited = canonicalize_parent_types(&resolved, &type_resolver).expect("types merged");
 
         assert_eq!(resolved.iter().count(), 1);
-        assert!(inherited.contains_key("Base::Foo"));
+        let key = TypeScope::Parent(resolved.iter().next().unwrap().1).canonical_key("Foo");
+        assert!(inherited.contains_key(&key));
     }
 }
