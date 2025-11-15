@@ -23,26 +23,25 @@ use serde_bytes::ByteBuf;
 
 const CONSTS_DIRNAME: &str = "sails_interface_consts";
 
-/// Emit canonical interface constants for `service_path`, assuming the crate
-/// uses the default `sails_rs` import path.
-pub fn emit_interface_consts(service_path: &str, out_dir: impl AsRef<Path>) -> Result<()> {
-    emit_interface_consts_with_options(service_path, "sails_rs", &[], out_dir)
+/// Emit canonical interface constants for every service listed in the
+/// `sails_services!` manifest, assuming the crate uses the default `sails_rs`
+/// import path.
+pub fn emit_interface_consts(out_dir: impl AsRef<Path>) -> Result<()> {
+    emit_interface_consts_with_options("sails_rs", &[], out_dir)
 }
 
 /// Same as [`emit_interface_consts`], but with a custom path to the `sails-rs`
 /// crate (for crates that re-export it under another name).
 pub fn emit_interface_consts_with_sails_path(
-    service_path: &str,
     sails_crate_path: &str,
     out_dir: impl AsRef<Path>,
 ) -> Result<()> {
-    emit_interface_consts_with_options(service_path, sails_crate_path, &[], out_dir)
+    emit_interface_consts_with_options(sails_crate_path, &[], out_dir)
 }
 
 /// Fully configurable variant that allows specifying both the `sails-rs` crate
 /// path and extra features required to compile the `sails_meta_dump` binary.
 pub fn emit_interface_consts_with_options(
-    service_path: &str,
     sails_crate_path: &str,
     meta_dump_features: &[&str],
     out_dir: impl AsRef<Path>,
@@ -51,23 +50,35 @@ pub fn emit_interface_consts_with_options(
         env::var("CARGO_MANIFEST_DIR")
             .context("CARGO_MANIFEST_DIR is not set in the environment")?,
     );
-    let artifacts = run_meta_dump(service_path, meta_dump_features, &manifest_dir)?;
-    let rendered = render_consts(&artifacts, sails_crate_path);
-    write_service_consts(out_dir.as_ref(), service_path, rendered.as_bytes())
+    let artifacts = run_meta_dump_all(meta_dump_features, &manifest_dir)?;
+    if artifacts.is_empty() {
+        return Ok(());
+    }
+
+    let consts_dir = out_dir.as_ref().join(CONSTS_DIRNAME);
+    fs::create_dir_all(&consts_dir).with_context(|| format!("failed to create {consts_dir:?}"))?;
+
+    for entry in &artifacts {
+        let rendered = render_consts(&entry.artifacts, sails_crate_path);
+        let filename = consts_filename(&entry.service_path);
+        let path = consts_dir.join(filename);
+        write_if_changed(&path, rendered.as_bytes())?;
+    }
+
+    write_manifest(&consts_dir, &artifacts)
 }
 
-fn run_meta_dump(
-    service_path: &str,
+fn run_meta_dump_all(
     meta_dump_features: &[&str],
     manifest_dir: &Path,
-) -> Result<InterfaceArtifacts> {
+) -> Result<Vec<ServiceArtifacts>> {
     let cargo = env::var("CARGO").unwrap_or_else(|_| "cargo".to_string());
     let mut cmd = Command::new(cargo);
     cmd.current_dir(manifest_dir);
     cmd.arg("run");
     if let Ok(host_target) = env::var("HOST") {
         if !host_target.is_empty() {
-            eprintln!("[sails-build] HOST={host_target}; targeting host triple for {service_path}");
+            eprintln!("[sails-build] HOST={host_target}; targeting host triple for meta dump");
             cmd.arg("--target").arg(host_target);
         }
     }
@@ -81,7 +92,7 @@ fn run_meta_dump(
     let host_target_dir = base_target_dir.join("sails-meta-dump");
     cmd.arg("--target-dir").arg(&host_target_dir);
     cmd.env("CARGO_TARGET_DIR", &host_target_dir);
-    cmd.args(["--", "--service", service_path]);
+    cmd.args(["--", "--all"]);
     cmd.env("SAILS_CANONICAL_DUMP", "1");
     let mut rustflags = env::var("RUSTFLAGS").unwrap_or_default();
     if !rustflags.is_empty() && !rustflags.ends_with(' ') {
@@ -92,7 +103,7 @@ fn run_meta_dump(
     cmd.env_remove("CARGO_ENCODED_RUSTFLAGS");
 
     eprintln!(
-        "[sails-build] running sails_meta_dump for {service_path} (features: {:?}) in {} (host target-dir: {})",
+        "[sails-build] running sails_meta_dump for all services (features: {:?}) in {} (host target-dir: {})",
         meta_dump_features,
         manifest_dir.display(),
         host_target_dir.display()
@@ -105,11 +116,32 @@ fn run_meta_dump(
         bail!("sails_meta_dump failed: {stderr}");
     }
     eprintln!(
-        "[sails-build] sails_meta_dump finished for {service_path}; received {} bytes",
+        "[sails-build] sails_meta_dump finished; received {} bytes",
         output.stdout.len()
     );
 
-    serde_json::from_slice(&output.stdout).context("failed to parse sails_meta_dump output")
+    parse_meta_dump_stream(&output.stdout)
+}
+
+fn parse_meta_dump_stream(bytes: &[u8]) -> Result<Vec<ServiceArtifacts>> {
+    let mut artifacts = Vec::new();
+    for chunk in bytes.split(|b| *b == b'\n') {
+        let line = if let Some(stripped) = chunk.strip_suffix(&[b'\r']) {
+            stripped
+        } else {
+            chunk
+        };
+        if line.is_empty() {
+            continue;
+        }
+        let record: ServiceArtifactsRecord =
+            serde_json::from_slice(line).context("failed to parse sails_meta_dump record")?;
+        artifacts.push(ServiceArtifacts {
+            service_path: record.service,
+            artifacts: record.artifacts,
+        });
+    }
+    Ok(artifacts)
 }
 
 fn render_consts(artifacts: &InterfaceArtifacts, sails_crate_path: &str) -> String {
@@ -163,18 +195,17 @@ fn format_byte_array(bytes: &[u8]) -> String {
     buf
 }
 
-fn write_service_consts(out_dir: &Path, service_path: &str, contents: &[u8]) -> Result<()> {
-    let consts_dir = out_dir.join(CONSTS_DIRNAME);
-    fs::create_dir_all(&consts_dir).with_context(|| format!("failed to create {consts_dir:?}"))?;
-    let filename = consts_filename(service_path);
-    let path = consts_dir.join(filename);
-    let should_write = match fs::read(&path) {
+fn write_if_changed(path: &Path, contents: &[u8]) -> Result<()> {
+    let should_write = match fs::read(path) {
         Ok(existing) => existing != contents,
         Err(_) => true,
     };
     if should_write {
-        fs::write(&path, contents)
-            .with_context(|| format!("failed to write generated constants to {path:?}"))?;
+        if let Some(parent) = path.parent() {
+            fs::create_dir_all(parent).with_context(|| format!("failed to create {parent:?}"))?;
+        }
+        fs::write(path, contents)
+            .with_context(|| format!("failed to write generated data to {path:?}"))?;
     }
     Ok(())
 }
@@ -198,6 +229,20 @@ fn consts_filename(service_path: &str) -> String {
     format!("{stem}.rs")
 }
 
+fn write_manifest(consts_dir: &Path, artifacts: &[ServiceArtifacts]) -> Result<()> {
+    let manifest_path = consts_dir.join("manifest.json");
+    let records: Vec<ServiceArtifactsRecord> = artifacts
+        .iter()
+        .map(|entry| ServiceArtifactsRecord {
+            service: entry.service_path.clone(),
+            artifacts: entry.artifacts.clone(),
+        })
+        .collect();
+    let data =
+        serde_json::to_vec_pretty(&records).context("failed to serialize canonical manifest")?;
+    write_if_changed(&manifest_path, &data)
+}
+
 /// Canonical artifacts emitted by the helper binary and consumed by build
 /// scripts. The same structure can be serialized or deserialized via JSON.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -206,6 +251,18 @@ pub struct InterfaceArtifacts {
     #[serde(with = "serde_bytes")]
     pub canonical_json: ByteBuf,
     pub entry_meta: Vec<EntryRecord>,
+}
+
+#[derive(Debug, Clone)]
+struct ServiceArtifacts {
+    service_path: String,
+    artifacts: InterfaceArtifacts,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct ServiceArtifactsRecord {
+    service: String,
+    artifacts: InterfaceArtifacts,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -366,6 +423,7 @@ impl DumpService {
 pub fn run_meta_dump_cli(services: &[DumpService]) -> Result<()> {
     let mut service_name: Option<String> = None;
     let mut args = env::args().skip(1);
+    let mut dump_all = false;
     while let Some(arg) = args.next() {
         match arg.as_str() {
             "--service" => {
@@ -373,6 +431,9 @@ pub fn run_meta_dump_cli(services: &[DumpService]) -> Result<()> {
                     .next()
                     .ok_or_else(|| anyhow!("--service requires a value"))?;
                 service_name = Some(value);
+            }
+            "--all" => {
+                dump_all = true;
             }
             "--list" => {
                 for svc in services {
@@ -388,20 +449,44 @@ pub fn run_meta_dump_cli(services: &[DumpService]) -> Result<()> {
         }
     }
 
-    let selected = if let Some(name) = service_name {
-        services
-            .iter()
-            .find(|svc| service_name_matches(svc.name, &name))
-            .ok_or_else(|| anyhow!("unknown service `{name}`"))?
-    } else if services.len() == 1 {
-        &services[0]
+    if dump_all {
+        if service_name.is_some() {
+            bail!("--all cannot be combined with --service");
+        }
+        dump_all_services(services)
     } else {
-        bail!("multiple services available; pass --service <path>");
-    };
+        let selected = if let Some(name) = service_name {
+            services
+                .iter()
+                .find(|svc| service_name_matches(svc.name, &name))
+                .ok_or_else(|| anyhow!("unknown service `{name}`"))?
+        } else if services.len() == 1 {
+            &services[0]
+        } else {
+            bail!("multiple services available; pass --service <path> or --all");
+        };
 
-    let artifacts = (selected.make_artifacts)()?;
-    serde_json::to_writer(io::stdout().lock(), &artifacts)
-        .context("failed to serialize canonical artifacts")?;
+        let artifacts = (selected.make_artifacts)()?;
+        serde_json::to_writer(io::stdout().lock(), &artifacts)
+            .context("failed to serialize canonical artifacts")?;
+        Ok(())
+    }
+}
+
+fn dump_all_services(services: &[DumpService]) -> Result<()> {
+    let mut stdout = io::stdout().lock();
+    for svc in services {
+        let artifacts = (svc.make_artifacts)()?;
+        let record = ServiceArtifactsRecord {
+            service: svc.name.to_string(),
+            artifacts,
+        };
+        serde_json::to_writer(&mut stdout, &record)
+            .context("failed to serialize canonical artifacts stream")?;
+        stdout
+            .write_all(b"\n")
+            .context("failed to write canonical artifacts delimiter")?;
+    }
     Ok(())
 }
 
@@ -429,7 +514,7 @@ fn print_usage(services: &[DumpService]) {
     let mut stderr = io::stderr().lock();
     writeln!(
         &mut stderr,
-        "Usage: sails_meta_dump [--service <path>] [--list]"
+        "Usage: sails_meta_dump [--service <path> | --all] [--list]"
     )
     .ok();
     writeln!(&mut stderr, "\nAvailable services:").ok();

@@ -56,17 +56,12 @@ fn emit_interface_consts_if_needed() {
     }
 
     let out_dir = PathBuf::from(env::var("OUT_DIR").expect("OUT_DIR is not set"));
-    for service in SERVICE_PATHS {
-        sails_build::emit_interface_consts_with_options(
-            service,
-            "sails_rs",
-            &["sails-canonical", "sails-meta-dump"],
-            &out_dir,
-        )
-        .unwrap_or_else(|err| {
-            panic!("failed to generate canonical interface constants for {service}: {err}")
-        });
-    }
+    sails_build::emit_interface_consts_with_options(
+        "sails_rs",
+        &["sails-canonical", "sails-meta-dump"],
+        &out_dir,
+    )
+    .unwrap_or_else(|err| panic!("failed to generate canonical interface constants: {err}"));
 }
 
 fn should_skip_build_work() -> bool {
