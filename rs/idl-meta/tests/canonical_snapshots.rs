@@ -205,18 +205,14 @@ fn rename_parent_references(service: &mut ServiceUnit, old: &str, new: &str) {
 
 fn rename_type_decl(ty: &mut TypeDecl, old: &str, new: &str) {
     match ty {
-        TypeDecl::Slice(inner) | TypeDecl::Option(inner) => rename_type_decl(inner, old, new),
-        TypeDecl::Array { item, .. } => rename_type_decl(item, old, new),
+        TypeDecl::Slice(inner) => rename_type_decl(inner, old, new),
+        TypeDecl::Array(inner, ..) => rename_type_decl(inner, old, new),
         TypeDecl::Tuple(items) => {
             for item in items {
                 rename_type_decl(item, old, new);
             }
         }
-        TypeDecl::Result { ok, err } => {
-            rename_type_decl(ok, old, new);
-            rename_type_decl(err, old, new);
-        }
-        TypeDecl::UserDefined { name, generics } => {
+        TypeDecl::Named(name, generics) => {
             if let Some(rest) = name
                 .strip_prefix(old)
                 .and_then(|suffix| suffix.strip_prefix("::"))
@@ -229,6 +225,6 @@ fn rename_type_decl(ty: &mut TypeDecl, old: &str, new: &str) {
                 rename_type_decl(arg, old, new);
             }
         }
-        TypeDecl::Generic(_) | TypeDecl::Primitive(_) => {}
+        TypeDecl::Primitive(_) => {}
     }
 }

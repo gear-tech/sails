@@ -15,8 +15,8 @@ use scale_info::{
 };
 
 use crate::ast::{
-    EnumDef, EnumVariant, FuncParam, PrimitiveType, ServiceFunc, ServiceUnit, StructDef,
-    StructField, Type as AstType, TypeDecl, TypeDef as AstTypeDef,
+    EnumDef, EnumVariant, FuncParam, FunctionKind, PrimitiveType, ServiceFunc, ServiceUnit,
+    StructDef, StructField, Type as AstType, TypeDecl, TypeDef as AstTypeDef,
     TypeParameter as AstTypeParameter,
 };
 use crate::{AnyServiceMeta, ServiceMeta};
@@ -115,9 +115,9 @@ fn collect_service_funcs(
 
         let mut output = converter.type_decl(variant.fields[1].ty.id)?;
         let mut throws = None;
-        if let TypeDecl::Result { ok, err } = output {
-            output = *ok;
-            throws = Some(*err);
+        if let Some((ok, err)) = TypeDecl::result_type_decl(&output) {
+            output = ok;
+            throws = Some(err);
         }
 
         funcs.push(ServiceFunc {
@@ -125,7 +125,11 @@ fn collect_service_funcs(
             params,
             output,
             throws,
-            is_query,
+            kind: if is_query {
+                FunctionKind::Query
+            } else {
+                FunctionKind::Command
+            },
             docs: convert_docs(&variant.docs),
             annotations: Vec::new(),
         });
@@ -220,10 +224,7 @@ impl TypeConverter {
         // To avoid infinite recursion on self-referential types, keep track of IDs currently
         // under conversion and fall back to a placeholder if we re-enter the same ID.
         if self.resolving.contains(&type_id) {
-            return Ok(TypeDecl::UserDefined {
-                name: format!("type_{type_id}"),
-                generics: Vec::new(),
-            });
+            return Ok(TypeDecl::Named(format!("type_{type_id}"), Vec::new()));
         }
         self.resolving.insert(type_id);
 
@@ -255,20 +256,14 @@ impl TypeConverter {
                 TypeDefPrimitive::I32 => TypeDecl::Primitive(PrimitiveType::I32),
                 TypeDefPrimitive::I64 => TypeDecl::Primitive(PrimitiveType::I64),
                 TypeDefPrimitive::I128 => TypeDecl::Primitive(PrimitiveType::I128),
-                other => TypeDecl::UserDefined {
-                    name: format!("primitive::{other:?}"),
-                    generics: Vec::new(),
-                },
+                other => TypeDecl::Named(format!("primitive::{other:?}"), Vec::new()),
             },
             TypeDef::Sequence(TypeDefSequence { type_param, .. }) => {
                 TypeDecl::Slice(Box::new(self.type_decl(type_param.id)?))
             }
             TypeDef::Array(TypeDefArray { len, type_param }) => {
                 let item = self.type_decl(type_param.id)?;
-                TypeDecl::Array {
-                    item: Box::new(item),
-                    len: len as u32,
-                }
+                TypeDecl::Array(Box::new(item), len as u32)
             }
             TypeDef::Tuple(TypeDefTuple { fields }) => {
                 let items = fields
@@ -284,7 +279,7 @@ impl TypeConverter {
                     .flat_map(|v| v.fields)
                     .next()
                     .ok_or(ServiceAstError::InvalidFunction("option missing field"))?;
-                TypeDecl::Option(Box::new(self.type_decl(inner.ty.id)?))
+                TypeDecl::option(self.type_decl(inner.ty.id)?)
             }
             TypeDef::Variant(variant) if is_result_type(&path) => {
                 let variants = variant.variants;
@@ -300,10 +295,7 @@ impl TypeConverter {
                     .ok_or(ServiceAstError::InvalidFunction("result missing err"))?
                     .ty
                     .id;
-                TypeDecl::Result {
-                    ok: Box::new(self.type_decl(ok)?),
-                    err: Box::new(self.type_decl(err)?),
-                }
+                TypeDecl::result(self.type_decl(ok)?, self.type_decl(err)?)
             }
             TypeDef::Compact(compact) => self.type_decl(compact.type_param.id)?,
             TypeDef::BitSequence(_) => {
@@ -410,10 +402,7 @@ impl TypeConverter {
                 type_params,
                 &TypeDef::Composite(composite.clone()),
             )?;
-            Ok(TypeDecl::UserDefined {
-                name,
-                generics: Vec::new(),
-            })
+            Ok(TypeDecl::Named(name, Vec::new()))
         } else {
             let items = composite
                 .fields
@@ -433,10 +422,7 @@ impl TypeConverter {
     ) -> Result<TypeDecl, ServiceAstError> {
         if let Some(name) = type_path_string(path) {
             self.ensure_named_type(type_id, path, type_params, &TypeDef::Variant(variant))?;
-            Ok(TypeDecl::UserDefined {
-                name,
-                generics: Vec::new(),
-            })
+            Ok(TypeDecl::Named(name, Vec::new()))
         } else {
             Ok(TypeDecl::Tuple(Vec::new()))
         }

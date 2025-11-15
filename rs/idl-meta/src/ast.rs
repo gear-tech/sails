@@ -91,7 +91,7 @@ pub struct ServiceUnit {
 /// - `params` is the ordered list of IDL parameters;
 /// - `output` is the return type (use `PrimitiveType::Void` for `()` / no value);
 /// - `throws` is an optional error type after the `throws` keyword;
-/// - `is_query` marks read-only / query functions as defined by the spec;
+/// - `kind` marks commands vs. queries as defined by the spec;
 /// - may contain documentation comments and annotations.
 #[derive(Debug, Clone, PartialEq)]
 pub struct ServiceFunc {
@@ -119,6 +119,14 @@ impl ServiceFunc {
         use PrimitiveType::*;
         use TypeDecl::*;
         self.output == Primitive(Void)
+    }
+
+    pub fn is_query(&self) -> bool {
+        matches!(self.kind, FunctionKind::Query)
+    }
+
+    pub fn is_command(&self) -> bool {
+        matches!(self.kind, FunctionKind::Command)
     }
 }
 

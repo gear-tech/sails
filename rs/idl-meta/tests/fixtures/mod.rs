@@ -10,25 +10,16 @@ pub fn canvas_service() -> ServiceUnit {
                 params: vec![
                     FuncParam {
                         name: "point".to_string(),
-                        type_decl: TypeDecl::UserDefined {
-                            name: "Point".to_string(),
-                            generics: Vec::new(),
-                        },
+                        type_decl: TypeDecl::Named("Point".to_string(), Vec::new()),
                     },
                     FuncParam {
                         name: "color".to_string(),
-                        type_decl: TypeDecl::UserDefined {
-                            name: "Color".to_string(),
-                            generics: Vec::new(),
-                        },
+                        type_decl: TypeDecl::Named("Color".to_string(), Vec::new()),
                     },
                 ],
                 output: TypeDecl::Primitive(PrimitiveType::Bool),
-                throws: Some(TypeDecl::UserDefined {
-                    name: "ColorError".to_string(),
-                    generics: Vec::new(),
-                }),
-                is_query: false,
+                throws: Some(TypeDecl::Named("ColorError".to_string(), Vec::new())),
+                kind: FunctionKind::Command,
                 docs: Vec::new(),
                 annotations: Vec::new(),
             },
@@ -44,12 +35,9 @@ pub fn canvas_service() -> ServiceUnit {
                         type_decl: TypeDecl::Primitive(PrimitiveType::U32),
                     },
                 ],
-                output: TypeDecl::UserDefined {
-                    name: "PointStatus".to_string(),
-                    generics: Vec::new(),
-                },
+                output: TypeDecl::Named("PointStatus".to_string(), Vec::new()),
                 throws: Some(TypeDecl::Primitive(PrimitiveType::String)),
-                is_query: true,
+                kind: FunctionKind::Query,
                 docs: Vec::new(),
                 annotations: Vec::new(),
             },
@@ -57,17 +45,11 @@ pub fn canvas_service() -> ServiceUnit {
                 name: "PointStatus".to_string(),
                 params: vec![FuncParam {
                     name: "point".to_string(),
-                    type_decl: TypeDecl::UserDefined {
-                        name: "Point".to_string(),
-                        generics: Vec::new(),
-                    },
+                    type_decl: TypeDecl::Named("Point".to_string(), Vec::new()),
                 }],
-                output: TypeDecl::Option(Box::new(TypeDecl::UserDefined {
-                    name: "PointStatus".to_string(),
-                    generics: Vec::new(),
-                })),
+                output: TypeDecl::option(TypeDecl::Named("PointStatus".to_string(), Vec::new())),
                 throws: None,
-                is_query: true,
+                kind: FunctionKind::Query,
                 docs: Vec::new(),
                 annotations: Vec::new(),
             },
@@ -78,19 +60,13 @@ pub fn canvas_service() -> ServiceUnit {
                 fields: vec![
                     StructField {
                         name: Some("point".to_string()),
-                        type_decl: TypeDecl::UserDefined {
-                            name: "Point".to_string(),
-                            generics: Vec::new(),
-                        },
+                        type_decl: TypeDecl::Named("Point".to_string(), Vec::new()),
                         docs: Vec::new(),
                         annotations: Vec::new(),
                     },
                     StructField {
                         name: Some("color".to_string()),
-                        type_decl: TypeDecl::UserDefined {
-                            name: "Color".to_string(),
-                            generics: Vec::new(),
-                        },
+                        type_decl: TypeDecl::Named("Color".to_string(), Vec::new()),
                         docs: Vec::new(),
                         annotations: Vec::new(),
                     },
@@ -128,10 +104,10 @@ pub fn canvas_service() -> ServiceUnit {
                 def: TypeDef::Struct(StructDef {
                     fields: vec![StructField {
                         name: Some("rgba".to_string()),
-                        type_decl: TypeDecl::Array {
-                            item: Box::new(TypeDecl::Primitive(PrimitiveType::U8)),
-                            len: 4,
-                        },
+                        type_decl: TypeDecl::Array(
+                            Box::new(TypeDecl::Primitive(PrimitiveType::U8)),
+                            4,
+                        ),
                         docs: Vec::new(),
                         annotations: Vec::new(),
                     }],
@@ -178,10 +154,7 @@ pub fn canvas_service() -> ServiceUnit {
                                     },
                                     StructField {
                                         name: Some("color".to_string()),
-                                        type_decl: TypeDecl::UserDefined {
-                                            name: "Color".to_string(),
-                                            generics: Vec::new(),
-                                        },
+                                        type_decl: TypeDecl::Named("Color".to_string(), Vec::new()),
                                         docs: Vec::new(),
                                         annotations: Vec::new(),
                                     },
@@ -215,14 +188,11 @@ pub fn unused_type_service() -> ServiceUnit {
             name: "Touch".to_string(),
             params: vec![FuncParam {
                 name: "value".to_string(),
-                type_decl: TypeDecl::UserDefined {
-                    name: "Used".to_string(),
-                    generics: Vec::new(),
-                },
+                type_decl: TypeDecl::Named("Used".to_string(), Vec::new()),
             }],
             output: TypeDecl::Primitive(PrimitiveType::Void),
             throws: None,
-            is_query: false,
+            kind: FunctionKind::Command,
             docs: Vec::new(),
             annotations: Vec::new(),
         }],
@@ -289,14 +259,11 @@ pub fn collision_child_service() -> ServiceUnit {
                 name: "Process".to_string(),
                 params: vec![FuncParam {
                     name: "item".to_string(),
-                    type_decl: TypeDecl::UserDefined {
-                        name: "CollisionBase::Shared".to_string(),
-                        generics: Vec::new(),
-                    },
+                    type_decl: TypeDecl::Named("CollisionBase::Shared".to_string(), Vec::new()),
                 }],
                 output: TypeDecl::Primitive(PrimitiveType::Bool),
                 throws: None,
-                is_query: false,
+                kind: FunctionKind::Command,
                 docs: Vec::new(),
                 annotations: Vec::new(),
             },
@@ -304,14 +271,11 @@ pub fn collision_child_service() -> ServiceUnit {
                 name: "Process".to_string(),
                 params: vec![FuncParam {
                     name: "item".to_string(),
-                    type_decl: TypeDecl::UserDefined {
-                        name: "Shared".to_string(),
-                        generics: Vec::new(),
-                    },
+                    type_decl: TypeDecl::Named("Shared".to_string(), Vec::new()),
                 }],
                 output: TypeDecl::Primitive(PrimitiveType::Bool),
                 throws: None,
-                is_query: true,
+                kind: FunctionKind::Query,
                 docs: Vec::new(),
                 annotations: Vec::new(),
             },
@@ -322,10 +286,7 @@ pub fn collision_child_service() -> ServiceUnit {
                 def: StructDef {
                     fields: vec![StructField {
                         name: Some("payload".to_string()),
-                        type_decl: TypeDecl::UserDefined {
-                            name: "CollisionBase::Shared".to_string(),
-                            generics: Vec::new(),
-                        },
+                        type_decl: TypeDecl::Named("CollisionBase::Shared".to_string(), Vec::new()),
                         docs: Vec::new(),
                         annotations: Vec::new(),
                     }],
@@ -338,10 +299,7 @@ pub fn collision_child_service() -> ServiceUnit {
                 def: StructDef {
                     fields: vec![StructField {
                         name: Some("payload".to_string()),
-                        type_decl: TypeDecl::UserDefined {
-                            name: "Shared".to_string(),
-                            generics: Vec::new(),
-                        },
+                        type_decl: TypeDecl::Named("Shared".to_string(), Vec::new()),
                         docs: Vec::new(),
                         annotations: Vec::new(),
                     }],

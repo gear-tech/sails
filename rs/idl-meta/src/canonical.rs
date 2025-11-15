@@ -265,6 +265,18 @@ impl<'a, 'b> TypeResolver<'a, 'b> {
         ty: &TypeDecl,
         scope: TypeScope<'b>,
     ) -> Result<CanonicalType, CanonicalError> {
+        if let Some(inner) = TypeDecl::option_type_decl(ty) {
+            return Ok(CanonicalType::Option {
+                item: Box::new(self.canonical_type(&inner, scope)?),
+            });
+        }
+        if let Some((ok, err)) = TypeDecl::result_type_decl(ty) {
+            return Ok(CanonicalType::Result {
+                ok: Box::new(self.canonical_type(&ok, scope)?),
+                err: Box::new(self.canonical_type(&err, scope)?),
+            });
+        }
+
         Ok(match ty {
             TypeDecl::Primitive(primitive) => CanonicalType::Primitive {
                 name: primitive.as_str(),
@@ -272,7 +284,7 @@ impl<'a, 'b> TypeResolver<'a, 'b> {
             TypeDecl::Slice(inner) => CanonicalType::Slice {
                 item: Box::new(self.canonical_type(inner, scope)?),
             },
-            TypeDecl::Array { item, len } => CanonicalType::Array {
+            TypeDecl::Array(item, len) => CanonicalType::Array {
                 item: Box::new(self.canonical_type(item, scope)?),
                 len: *len,
             },
@@ -282,14 +294,7 @@ impl<'a, 'b> TypeResolver<'a, 'b> {
                     .map(|item| self.canonical_type(item, scope))
                     .collect::<Result<Vec<_>, _>>()?,
             },
-            TypeDecl::Option(inner) => CanonicalType::Option {
-                item: Box::new(self.canonical_type(inner, scope)?),
-            },
-            TypeDecl::Result { ok, err } => CanonicalType::Result {
-                ok: Box::new(self.canonical_type(ok, scope)?),
-                err: Box::new(self.canonical_type(err, scope)?),
-            },
-            TypeDecl::UserDefined { name, generics } => {
+            TypeDecl::Named(name, generics) => {
                 let qualified = self.qualify_name(name, scope)?;
                 CanonicalType::Named {
                     name: qualified,
@@ -298,9 +303,6 @@ impl<'a, 'b> TypeResolver<'a, 'b> {
                         .map(|arg| self.canonical_type(arg, scope))
                         .collect::<Result<Vec<_>, _>>()?,
                 }
-            }
-            TypeDecl::Generic(name) => {
-                return Err(CanonicalError::UnsupportedGenericParameter(name.clone()));
             }
         })
     }
@@ -586,7 +588,7 @@ fn canonicalize_functions(
 
         canonicalized.push(CanonicalFunction {
             name: func.name.clone(),
-            kind: if func.is_query {
+            kind: if func.is_query() {
                 CanonicalFunctionKind::Query
             } else {
                 CanonicalFunctionKind::Command
@@ -814,21 +816,25 @@ fn collect_reachable_types<'a>(
         reachable: &mut BTreeSet<String>,
         pending: &mut VecDeque<String>,
     ) -> Result<(), CanonicalError> {
+        if let Some(inner) = TypeDecl::option_type_decl(decl) {
+            visit_decl(&inner, scope, resolver, reachable, pending)?;
+            return Ok(());
+        }
+        if let Some((ok, err)) = TypeDecl::result_type_decl(decl) {
+            visit_decl(&ok, scope, resolver, reachable, pending)?;
+            visit_decl(&err, scope, resolver, reachable, pending)?;
+            return Ok(());
+        }
+
         match decl {
-            TypeDecl::Slice(inner) | TypeDecl::Option(inner) => {
-                visit_decl(inner, scope, resolver, reachable, pending)?
-            }
-            TypeDecl::Array { item, .. } => visit_decl(item, scope, resolver, reachable, pending)?,
+            TypeDecl::Slice(inner) => visit_decl(inner, scope, resolver, reachable, pending)?,
+            TypeDecl::Array(item, ..) => visit_decl(item, scope, resolver, reachable, pending)?,
             TypeDecl::Tuple(items) => {
                 for item in items {
                     visit_decl(item, scope, resolver, reachable, pending)?;
                 }
             }
-            TypeDecl::Result { ok, err } => {
-                visit_decl(ok, scope, resolver, reachable, pending)?;
-                visit_decl(err, scope, resolver, reachable, pending)?;
-            }
-            TypeDecl::UserDefined { name, generics } => {
+            TypeDecl::Named(name, generics) => {
                 let qualified = resolver.qualify_name(name, scope)?;
                 if reachable.insert(qualified.clone()) {
                     pending.push_back(qualified);
@@ -836,9 +842,6 @@ fn collect_reachable_types<'a>(
                 for arg in generics {
                     visit_decl(arg, scope, resolver, reachable, pending)?;
                 }
-            }
-            TypeDecl::Generic(name) => {
-                return Err(CanonicalError::UnsupportedGenericParameter(name.clone()));
             }
             TypeDecl::Primitive(_) => {}
         }
