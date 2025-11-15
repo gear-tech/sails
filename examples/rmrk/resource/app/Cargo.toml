@@ -5,7 +5,7 @@ edition.workspace = true
 
 [dependencies]
 mockall = { workspace = true, optional = true }
-sails-rs = { workspace = true, features = ["runtime-canonical"] }
+sails-rs = { workspace = true }
 anyhow = { workspace = true, optional = true }
 sails-build = { workspace = true, optional = true }
 
@@ -20,12 +20,11 @@ rmrk-resource-app = { path = ".", features = ["mockall"] }
 tokio = { workspace = true, features = ["rt", "macros"] }
 
 [features]
-default = ["runtime-canonical", "sails-canonical", "wasm-builder"]
+default = ["sails-canonical", "wasm-builder"]
 mockall = ["sails-rs/mockall", "dep:mockall"]
 sails-canonical = []
-runtime-canonical = []
 wasm-builder = []
-sails-meta-dump = ["runtime-canonical", "sails-canonical", "dep:anyhow", "dep:sails-build"]
+sails-meta-dump = ["sails-canonical", "dep:anyhow", "dep:sails-build"]
 
 [[bin]]
 name = "sails_meta_dump"

@@ -4,7 +4,7 @@ version = "0.1.0"
 edition.workspace = true
 
 [dependencies]
-sails-rs = { workspace = true, features = ["runtime-canonical"] }
+sails-rs = { workspace = true }
 anyhow = { workspace = true, optional = true }
 sails-build = { workspace = true, optional = true }
 
@@ -13,11 +13,10 @@ sails-build.workspace = true
 sails-rs = { workspace = true, features = ["wasm-builder"] }
 
 [features]
-default = ["runtime-canonical", "sails-canonical", "wasm-builder"]
+default = ["sails-canonical", "wasm-builder"]
 sails-canonical = []
-runtime-canonical = []
 wasm-builder = []
-sails-meta-dump = ["runtime-canonical", "sails-canonical", "dep:anyhow", "dep:sails-build"]
+sails-meta-dump = ["sails-canonical", "dep:anyhow", "dep:sails-build"]
 
 [[bin]]
 name = "sails_meta_dump"

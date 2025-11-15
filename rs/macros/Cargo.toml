@@ -26,4 +26,3 @@ trybuild.workspace = true
 
 [features]
 ethexe = ["sails-macros-core/ethexe", "sails-rs/ethexe"]
-runtime-canonical = ["sails-macros-core/runtime-canonical"]

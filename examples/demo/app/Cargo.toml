@@ -5,7 +5,7 @@ edition.workspace = true
 
 [dependencies]
 demo-walker = { path = "../walker" }
-sails-rs = { workspace = true, features = ["runtime-canonical"] }
+sails-rs = { workspace = true }
 anyhow = { workspace = true, optional = true }
 sails-build = { workspace = true, optional = true }
 
@@ -14,11 +14,10 @@ sails-rs = { workspace = true, features = ["wasm-builder"] }
 sails-build.workspace = true
 
 [features]
-default = ["runtime-canonical", "sails-canonical", "wasm-builder"]
+default = ["sails-canonical", "wasm-builder"]
 sails-canonical = []
-runtime-canonical = []
 wasm-builder = []
-sails-meta-dump = ["runtime-canonical", "sails-canonical", "dep:anyhow", "dep:sails-build"]
+sails-meta-dump = ["sails-canonical", "dep:anyhow", "dep:sails-build"]
 
 [dev-dependencies]
 demo-client = { path = "../client" }
