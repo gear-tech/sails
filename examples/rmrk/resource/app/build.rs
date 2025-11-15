@@ -1,39 +1,32 @@
+use sails_build::{BuildScript, WasmBuildConfig};
 use sails_client_gen::ClientGenerator;
 use std::{env, path::PathBuf};
 
-macro_rules! sails_services {
-    (
-        $(type $alias:ident = $ty:ty;)*
-        services: [
-            $($path:path),* $(,)?
-        ] $(,)?
-    ) => {
-        $(#[allow(dead_code)] pub type $alias = $ty;)*
-        pub const SAILS_SERVICE_PATHS: &[&str] = &[$(stringify!($path)),*];
-    };
-    ($($path:path),* $(,)?) => {
-        sails_services! {
-            services: [ $($path),* ]
-        }
+macro_rules! sails_services_manifest {
+    ($($tt:tt)*) => {
+        sails_build::service_paths!($($tt)*)
     };
 }
 
-mod sails_services_manifest {
-    include!("sails_services.in");
-}
-
-const SERVICE_PATHS: &[&str] = sails_services_manifest::SAILS_SERVICE_PATHS;
+const SERVICE_PATHS: &[&str] = include!("sails_services.in");
 
 fn main() {
-    println!("cargo:rerun-if-changed=src");
-    println!("cargo:rerun-if-changed=sails_services.in");
+    let wasm_config = WasmBuildConfig::new("CARGO_FEATURE_WASM_BUILDER", || {
+        let _ = sails_rs::build_wasm();
+    })
+    .skip_features(&["CARGO_FEATURE_MOCKALL"])
+    .skip_env(&["__GEAR_WASM_BUILDER_NO_BUILD"]);
 
-    if env::var_os("SAILS_CANONICAL_DUMP").is_some() {
-        println!("cargo:rustc-cfg=sails_canonical_dump");
+    if env::var_os("CARGO_FEATURE_MOCKALL").is_some() {
+        eprintln!("[sails-build] mockall feature enabled; skipping wasm build for host-only tests");
     }
-    println!("cargo:rustc-check-cfg=cfg(sails_canonical_dump)");
 
-    emit_interface_consts_if_needed();
+    BuildScript::new(SERVICE_PATHS)
+        .manifest_path("sails_services.in")
+        .meta_dump_features(&["sails-canonical", "sails-meta-dump"])
+        .wasm_build(wasm_config)
+        .run()
+        .unwrap_or_else(|err| panic!("failed to generate canonical interface constants: {err}"));
 
     let manifest_dir = PathBuf::from(env::var("CARGO_MANIFEST_DIR").unwrap());
 
@@ -58,49 +51,4 @@ fn main() {
         .with_mocks("mockall")
         .generate_to(client_rs_file_path)
         .unwrap();
-}
-
-fn emit_interface_consts_if_needed() {
-    if should_skip_build_work() {
-        return;
-    }
-
-    build_wasm_if_requested();
-
-    if env::var_os("CARGO_FEATURE_SAILS_CANONICAL").is_none() {
-        return;
-    }
-
-    if SERVICE_PATHS.is_empty() {
-        eprintln!("[sails-build] SERVICE_PATHS is empty; nothing to canonicalize");
-        return;
-    }
-
-    let out_dir = PathBuf::from(env::var("OUT_DIR").expect("OUT_DIR is not set"));
-    sails_build::emit_interface_consts_with_options(
-        "sails_rs",
-        &["sails-canonical", "sails-meta-dump"],
-        &out_dir,
-    )
-    .unwrap_or_else(|err| panic!("failed to generate canonical interface constants: {err}"));
-}
-
-fn should_skip_build_work() -> bool {
-    env::var_os("SAILS_CANONICAL_DUMP").is_some()
-        || env::var_os("CARGO_FEATURE_SAILS_META_DUMP").is_some()
-}
-
-fn build_wasm_if_requested() {
-    if env::var_os("CARGO_FEATURE_MOCKALL").is_some() {
-        eprintln!("[sails-build] mockall feature enabled; skipping wasm build for host-only tests");
-        return;
-    }
-
-    if env::var("__GEAR_WASM_BUILDER_NO_BUILD").is_ok() {
-        return;
-    }
-
-    if env::var_os("CARGO_FEATURE_WASM_BUILDER").is_some() {
-        sails_rs::build_wasm();
-    }
 }

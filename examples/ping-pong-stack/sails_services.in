@@ -1,4 +1,4 @@
-sails_services! {
+sails_services_manifest! {
     services: [
         ping_pong_stack::PingPongStack,
     ],

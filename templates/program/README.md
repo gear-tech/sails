@@ -9,6 +9,7 @@ The program workspace includes the following packages:
 {% endif %}
 
 The `{{ app-project-name }}` package now keeps its canonicalization targets in `sails_services.in`. Both the build script and the
-`sails_meta_dump` helper include that manifest, so adding or removing services only requires editing that single file. The file uses the
-`sails_services! { services: [ ... ] }` syntax and may declare witness aliases before the `services` block if a generic service needs to be
-instantiated with a concrete client type.
+`sails_meta_dump` helper include that manifest by first defining a local `sails_services_manifest!` macro (that expands to either
+`sails_build::service_paths!` or `sails_build::service_manifest!`) and then `include!`-ing the file. Adding or removing services only
+requires editing that single file. The file stores the bare `services: [ ... ]` payload (optionally wrapped in braces) and may declare
+witness aliases before the `services` block if a generic service needs to be instantiated with a concrete client type.

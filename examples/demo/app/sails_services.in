@@ -1,4 +1,4 @@
-sails_services! {
+sails_services_manifest! {
     services: [
         demo::chaos::ChaosService,
         demo::counter::CounterService<'static>,

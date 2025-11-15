@@ -70,14 +70,16 @@ impl MyProgram {
 ### Canonical builds & manifests
 
 Every Sails service crate now records the list of canonicalized services inside a
-`sails_services.in` file next to its `Cargo.toml`. The file defines a
-`sails_services! { services: [ ... ] }` manifest with fully-qualified service
-paths (including concrete lifetime or generic bindings when needed). You can
-also declare witness aliases ahead of the `services` block to pin generic
-implementations:
+`sails_services.in` file next to its `Cargo.toml`. The file invokes the
+`sails_services_manifest!` macro with the raw manifest payload, and each
+consumer defines that macro locally to decide which helper (`service_paths!` for
+build scripts vs `service_manifest!` for runtime helpers like `sails_meta_dump`)
+should process the payload. Paths must be fully-qualified (including concrete
+lifetimes or generic bindings when needed), and the manifest may declare witness
+aliases before the `services` block to pin generic implementations:
 
 ```rust
-sails_services! {
+sails_services_manifest! {
     type ProxyThisThat = proxy::ThisThatCaller<ActualClient>;
 
     services: [
@@ -86,11 +88,34 @@ sails_services! {
 }
 ```
 
-The build script
-reads this manifest to emit canonical interface constants during normal builds,
-and the `sails_meta_dump` helper uses the same manifest to register services when
-the `sails-meta-dump` feature is enabled. This keeps the build pipeline and the
-meta dumper perfectly in sync—adding or removing a service means editing the
+Build scripts include the manifest after defining the dispatcher macro:
+
+```rust
+macro_rules! sails_services_manifest {
+    ($($tt:tt)*) => {
+        sails_build::service_paths!($($tt)*)
+    };
+}
+
+const SERVICE_PATHS: &[&str] =
+    include!("sails_services.in");
+```
+
+…while host-only helpers do the same but call into `service_manifest!`:
+
+```rust
+macro_rules! sails_services_manifest {
+    ($($tt:tt)*) => {
+        sails_build::service_manifest!($($tt)*)
+    };
+}
+
+const SERVICE_MANIFEST: sails_build::ServiceManifest =
+    include!(concat!(env!("CARGO_MANIFEST_DIR"), "/sails_services.in"));
+```
+
+Both views expand from the exact same file, so the build pipeline and the meta
+dumper stay perfectly in sync—adding or removing a service means editing the
 manifest once.
 
 By default, build scripts bail out when `SAILS_CANONICAL_DUMP` or the

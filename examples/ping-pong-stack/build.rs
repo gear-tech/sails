@@ -1,37 +1,16 @@
 use std::{env, path::PathBuf};
 
-macro_rules! sails_services {
-    (
-        $(type $alias:ident = $ty:ty;)*
-        services: [
-            $($path:path),* $(,)?
-        ] $(,)?
-    ) => {
-        $(#[allow(dead_code)] pub type $alias = $ty;)*
-        pub const SAILS_SERVICE_PATHS: &[&str] = &[$(stringify!($path)),*];
-    };
-    ($($path:path),* $(,)?) => {
-        sails_services! {
-            services: [ $($path),* ]
-        }
+use sails_build::{BuildScript, WasmBuildConfig};
+
+macro_rules! sails_services_manifest {
+    ($($tt:tt)*) => {
+        sails_build::service_paths!($($tt)*)
     };
 }
 
-mod sails_services_manifest {
-    include!("sails_services.in");
-}
-
-const SERVICE_PATHS: &[&str] = sails_services_manifest::SAILS_SERVICE_PATHS;
+const SERVICE_PATHS: &[&str] = include!("sails_services.in");
 
 fn main() {
-    println!("cargo:rerun-if-changed=src");
-    println!("cargo:rerun-if-changed=sails_services.in");
-
-    if env::var_os("SAILS_CANONICAL_DUMP").is_some() {
-        println!("cargo:rustc-cfg=sails_canonical_dump");
-    }
-    println!("cargo:rustc-check-cfg=cfg(sails_canonical_dump)");
-
     println!(
         "cargo:rerun-if-changed={}",
         PathBuf::from(env!("CARGO_MANIFEST_DIR"))
@@ -39,29 +18,15 @@ fn main() {
             .display()
     );
 
-    if should_skip_build_work() {
-        return;
-    }
-
-    build_wasm_if_requested();
-    generate_client();
-
-    if env::var_os("CARGO_FEATURE_SAILS_CANONICAL").is_none() {
-        return;
-    }
-
-    emit_interface_consts();
-}
-
-fn should_skip_build_work() -> bool {
-    env::var_os("SAILS_CANONICAL_DUMP").is_some()
-        || env::var_os("CARGO_FEATURE_SAILS_META_DUMP").is_some()
-}
-
-fn build_wasm_if_requested() {
-    if env::var_os("CARGO_FEATURE_WASM_BUILDER").is_some() {
-        sails_rs::build_wasm();
-    }
+    BuildScript::new(SERVICE_PATHS)
+        .manifest_path("sails_services.in")
+        .meta_dump_features(&["sails-canonical", "sails-meta-dump"])
+        .wasm_build(WasmBuildConfig::new("CARGO_FEATURE_WASM_BUILDER", || {
+            let _ = sails_rs::build_wasm();
+        }))
+        .before_emit(generate_client)
+        .run()
+        .unwrap_or_else(|err| panic!("failed to generate canonical interface constants: {err}"));
 }
 
 fn generate_client() {
@@ -71,19 +36,4 @@ fn generate_client() {
     sails_rs::ClientGenerator::from_idl_path(&idl_path)
         .generate_to(out_path)
         .unwrap();
-}
-
-fn emit_interface_consts() {
-    if SERVICE_PATHS.is_empty() {
-        eprintln!("[sails-build] SERVICE_PATHS is empty; nothing to canonicalize");
-        return;
-    }
-
-    let out_dir = PathBuf::from(env::var("OUT_DIR").expect("OUT_DIR is not set"));
-    sails_build::emit_interface_consts_with_options(
-        "sails_rs",
-        &["sails-canonical", "sails-meta-dump"],
-        &out_dir,
-    )
-    .unwrap_or_else(|err| panic!("failed to generate canonical interface constants: {err}"));
 }

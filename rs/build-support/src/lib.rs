@@ -23,9 +23,156 @@ use serde_bytes::ByteBuf;
 
 const CONSTS_DIRNAME: &str = "sails_interface_consts";
 
-/// Emit canonical interface constants for every service listed in the
-/// `sails_services!` manifest, assuming the crate uses the default `sails_rs`
-/// import path.
+/// Convenience builder for Sails-aware build scripts. Handles rerun directives,
+/// conditional wasm builds, and canonical interface emission.
+pub struct BuildScript<'a> {
+    service_paths: &'a [&'a str],
+    manifest_path: Option<&'a str>,
+    sails_crate: &'a str,
+    meta_dump_features: &'a [&'a str],
+    wasm: Option<WasmBuildConfig<'a>>,
+    rerun_src: bool,
+    before_emit: Option<fn()>,
+}
+
+impl<'a> BuildScript<'a> {
+    pub fn new(service_paths: &'a [&'a str]) -> Self {
+        Self {
+            service_paths,
+            manifest_path: None,
+            sails_crate: "sails_rs",
+            meta_dump_features: &[],
+            wasm: None,
+            rerun_src: true,
+            before_emit: None,
+        }
+    }
+
+    pub fn manifest_path(mut self, path: &'a str) -> Self {
+        self.manifest_path = Some(path);
+        self
+    }
+
+    pub fn sails_crate_path(mut self, path: &'a str) -> Self {
+        self.sails_crate = path;
+        self
+    }
+
+    pub fn meta_dump_features(mut self, features: &'a [&'a str]) -> Self {
+        self.meta_dump_features = features;
+        self
+    }
+
+    pub fn wasm_build(mut self, config: WasmBuildConfig<'a>) -> Self {
+        self.wasm = Some(config);
+        self
+    }
+
+    pub fn emit_src_rerun(mut self, enabled: bool) -> Self {
+        self.rerun_src = enabled;
+        self
+    }
+
+    pub fn before_emit(mut self, callback: fn()) -> Self {
+        self.before_emit = Some(callback);
+        self
+    }
+
+    /// Executes the configured build steps.
+    pub fn run(self) -> Result<()> {
+        if self.rerun_src {
+            println!("cargo:rerun-if-changed=src");
+        }
+        if let Some(path) = self.manifest_path {
+            println!("cargo:rerun-if-changed={path}");
+        }
+
+        let canonical_dump = env::var_os("SAILS_CANONICAL_DUMP").is_some();
+        if canonical_dump {
+            println!("cargo:rustc-cfg=sails_canonical_dump");
+        }
+        println!("cargo:rustc-check-cfg=cfg(sails_canonical_dump)");
+
+        let meta_dump_mode = env::var_os("CARGO_FEATURE_SAILS_META_DUMP").is_some();
+        if (canonical_dump || meta_dump_mode) && self.wasm.is_some() {
+            write_stub_wasm_binary()?;
+        }
+
+        if canonical_dump || meta_dump_mode {
+            return Ok(());
+        }
+
+        if let Some(cfg) = &self.wasm {
+            cfg.maybe_run();
+        }
+
+        if let Some(callback) = self.before_emit {
+            callback();
+        }
+
+        if env::var_os("CARGO_FEATURE_SAILS_CANONICAL").is_none() {
+            return Ok(());
+        }
+
+        if self.service_paths.is_empty() {
+            eprintln!("[sails-build] SERVICE_PATHS is empty; nothing to canonicalize");
+            return Ok(());
+        }
+
+        let out_dir =
+            PathBuf::from(env::var("OUT_DIR").context("OUT_DIR is not set in the environment")?);
+        emit_interface_consts_with_options(self.sails_crate, self.meta_dump_features, &out_dir)
+    }
+}
+
+/// Configuration for optional wasm builds driven by build scripts.
+pub struct WasmBuildConfig<'a> {
+    gate_env: &'a str,
+    skip_env: &'a [&'a str],
+    skip_features: &'a [&'a str],
+    runner: fn(),
+}
+
+impl<'a> WasmBuildConfig<'a> {
+    pub fn new(gate_env: &'a str, runner: fn()) -> Self {
+        Self {
+            gate_env,
+            skip_env: &[],
+            skip_features: &[],
+            runner,
+        }
+    }
+
+    pub fn skip_env(mut self, vars: &'a [&'a str]) -> Self {
+        self.skip_env = vars;
+        self
+    }
+
+    pub fn skip_features(mut self, features: &'a [&'a str]) -> Self {
+        self.skip_features = features;
+        self
+    }
+
+    fn maybe_run(&self) {
+        if self.skip_env.iter().any(|var| env::var_os(var).is_some()) {
+            return;
+        }
+        if self
+            .skip_features
+            .iter()
+            .any(|feat| env::var_os(feat).is_some())
+        {
+            return;
+        }
+        if env::var_os(self.gate_env).is_some() {
+            (self.runner)();
+        }
+    }
+}
+
+/// Emit canonical interface constants for every service listed in the manifest
+/// payload (see [`service_manifest!`]), assuming the crate uses the default
+/// `sails_rs` import path.
 pub fn emit_interface_consts(out_dir: impl AsRef<Path>) -> Result<()> {
     emit_interface_consts_with_options("sails_rs", &[], out_dir)
 }
@@ -66,6 +213,17 @@ pub fn emit_interface_consts_with_options(
     }
 
     write_manifest(&consts_dir, &artifacts)
+}
+
+fn write_stub_wasm_binary() -> Result<()> {
+    let out_dir =
+        PathBuf::from(env::var("OUT_DIR").context("OUT_DIR is not set in the environment")?);
+    let stub = br#"#[allow(unused)]
+pub const WASM_BINARY: &[u8] = &[];
+#[allow(unused)]
+pub const WASM_BINARY_OPT: &[u8] = &[];
+"#;
+    write_if_changed(&out_dir.join("wasm_binary.rs"), stub)
 }
 
 fn run_meta_dump_all(
@@ -545,5 +703,119 @@ macro_rules! service_dump {
             $crate::canonicalize_service_with_async(stringify!($service), &meta, $async_lookup)
         }
         $crate::DumpService::new(stringify!($service), __sails_dump_fn)
+    }};
+}
+
+#[derive(Clone, Copy)]
+pub struct ServiceManifest {
+    pub paths: &'static [&'static str],
+    pub registry: &'static [DumpService],
+}
+
+impl ServiceManifest {
+    pub const fn new(paths: &'static [&'static str], registry: &'static [DumpService]) -> Self {
+        Self { paths, registry }
+    }
+}
+
+/// Expands a manifest payload into a [`ServiceManifest`], suitable for runtime
+/// helpers such as `sails_meta_dump`.
+///
+/// This macro accepts either a plain list of service paths or a block payload.
+/// Typical projects wrap their manifest block inside a `sails_services_manifest!`
+/// call stored in `sails_services.in`, then locally define that macro to expand
+/// to either `service_manifest!` (for runtime helpers) or `service_paths!`
+/// (inside `build.rs`).
+///
+/// ```ignore
+/// macro_rules! sails_services_manifest {
+///     ($($tt:tt)*) => {
+///         sails_build::service_manifest!($($tt)*)
+///     };
+/// }
+///
+/// const SERVICE_MANIFEST: sails_build::ServiceManifest =
+///     include!(concat!(env!("CARGO_MANIFEST_DIR"), "/sails_services.in"));
+/// ```
+#[macro_export]
+macro_rules! service_manifest {
+    ($($tt:tt)*) => {{
+        $crate::__sails_parse_service_manifest!(@manifest $($tt)*)
+    }};
+}
+
+/// Expands a manifest payload into a static slice of service path strings. This
+/// form is lightweight enough to use inside build scripts, because it never
+/// references the actual service types.
+///
+/// ```ignore
+/// macro_rules! sails_services_manifest {
+///     ($($tt:tt)*) => {
+///         sails_build::service_paths!($($tt)*)
+///     };
+/// }
+///
+/// const SERVICE_PATHS: &[&str] = include!("sails_services.in");
+/// ```
+#[macro_export]
+macro_rules! service_paths {
+    ($($tt:tt)*) => {{
+        $crate::__sails_parse_service_manifest!(@paths $($tt)*)
+    }};
+}
+
+#[doc(hidden)]
+#[macro_export]
+macro_rules! __sails_parse_service_manifest {
+    (@$mode:ident { $($tt:tt)* }) => {
+        $crate::__sails_parse_service_manifest!(@$mode $($tt)*)
+    };
+    (@$mode:ident
+        $(type $alias:ident = $ty:ty;)*
+        services: [
+            $($path:path),* $(,)?
+        ] $(,)?
+    ) => {
+        $crate::__sails_emit_service_manifest!(
+            @$mode
+            [ $( ($alias $ty) )* ]
+            [ $( $path ),* ]
+        )
+    };
+    (@$mode:ident $($path:path),* $(,)?) => {
+        $crate::__sails_emit_service_manifest!(@$mode [] [ $($path),* ])
+    };
+}
+
+#[doc(hidden)]
+#[macro_export]
+macro_rules! __sails_emit_service_manifest {
+    (@manifest [$(($alias:ident $ty:ty))*] [ $($path:path),* ]) => {{
+        $(#[allow(dead_code)] type $alias = $ty;)*
+        $crate::ServiceManifest::new(
+            &[$(stringify!($path)),*],
+            &[
+                $(
+                    $crate::service_dump!(
+                        $path,
+                        |entry| <$path>::__sails_entry_async(entry)
+                    )
+                ),*
+            ],
+        )
+    }};
+    (@paths [$(($alias:ident $ty:ty))*] [ $($path:path),* ]) => {{
+        const __SAILS_PATHS: &[&str] = &[$(stringify!($path)),*];
+        __SAILS_PATHS
+    }};
+}
+
+/// Backwards-compatible alias for [`service_manifest!`]. Prefer calling
+/// [`service_manifest!`] and [`service_paths!`] directly so build scripts can
+/// include the same manifest payload as runtime helpers.
+#[macro_export]
+macro_rules! sails_services {
+    ($($tt:tt)*) => {{
+        $crate::service_manifest!($($tt)*)
     }};
 }
