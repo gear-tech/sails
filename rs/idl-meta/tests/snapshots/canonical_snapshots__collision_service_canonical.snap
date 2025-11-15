@@ -1,0 +1,6 @@
+---
+source: rs/idl-meta/tests/canonical_snapshots.rs
+expression: "format!(\"interface_id: 0x{interface_id:016x}\\n{json}\", interface_id =\nresult.interface_id, json = json)"
+---
+interface_id: 0x14e07394c896ec58
+{"canon_schema":"sails-idl-jcs","canon_version":"1","hash":{"algo":"blake3","domain":"SAILS-IDL/v1/interface-id"},"service":{"events":[{"name":"Notified","payload":{"fields":[{"kind":"named","name":"CollisionBase::Shared"}]}},{"name":"Notified","payload":{"fields":[{"kind":"named","name":"CollisionChild::Shared"}]}}],"extends":[{"interface_id":8674845362276426000,"name":"CollisionBase"}],"functions":[{"kind":"command","name":"Process","output":{"kind":"primitive","name":"bool"},"params":[{"kind":"named","name":"CollisionBase::Shared"}]},{"kind":"query","name":"Process","output":{"kind":"primitive","name":"bool"},"params":[{"kind":"named","name":"CollisionChild::Shared"}]}]},"types":{"CollisionBase::Shared":{"kind":{"fields":[{"kind":"primitive","name":"u32"}],"kind":"struct"}},"CollisionChild::Shared":{"kind":{"fields":[{"kind":"primitive","name":"ActorId"}],"kind":"struct"}}}}

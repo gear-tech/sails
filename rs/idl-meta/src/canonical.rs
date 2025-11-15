@@ -500,36 +500,36 @@ fn canonicalize_functions(
     service_name: &str,
     resolver: &TypeResolver,
 ) -> Result<Vec<CanonicalFunction>, CanonicalError> {
-    let mut sorted: Vec<_> = funcs.iter().collect();
-    sorted.sort_by(|lhs, rhs| function_sort_key(lhs).cmp(&function_sort_key(rhs)));
+    let mut canonicalized = Vec::with_capacity(funcs.len());
+    for func in funcs {
+        let params = func
+            .params
+            .iter()
+            .map(|param| resolver.canonical_type(&param.type_decl, service_name))
+            .collect::<Result<Vec<_>, _>>()?;
+        let output = resolver.canonical_type(&func.output, service_name)?;
+        let throws = match &func.throws {
+            Some(ty) => Some(resolver.canonical_type(ty, service_name)?),
+            None => None,
+        };
 
-    sorted
-        .into_iter()
-        .map(|func| {
-            let params = func
-                .params
-                .iter()
-                .map(|param| resolver.canonical_type(&param.type_decl, service_name))
-                .collect::<Result<Vec<_>, _>>()?;
-            let output = resolver.canonical_type(&func.output, service_name)?;
-            let throws = match &func.throws {
-                Some(ty) => Some(resolver.canonical_type(ty, service_name)?),
-                None => None,
-            };
+        canonicalized.push(CanonicalFunction {
+            name: func.name.clone(),
+            kind: if func.is_query {
+                CanonicalFunctionKind::Query
+            } else {
+                CanonicalFunctionKind::Command
+            },
+            params,
+            output,
+            throws,
+        });
+    }
 
-            Ok(CanonicalFunction {
-                name: func.name.clone(),
-                kind: if func.is_query {
-                    CanonicalFunctionKind::Query
-                } else {
-                    CanonicalFunctionKind::Command
-                },
-                params,
-                output,
-                throws,
-            })
-        })
-        .collect()
+    canonicalized.sort_by(|lhs, rhs| {
+        canonical_function_sort_key(lhs).cmp(&canonical_function_sort_key(rhs))
+    });
+    Ok(canonicalized)
 }
 
 fn canonicalize_events(
@@ -537,18 +537,18 @@ fn canonicalize_events(
     service_name: &str,
     resolver: &TypeResolver,
 ) -> Result<Vec<CanonicalEvent>, CanonicalError> {
-    let mut sorted: Vec<_> = events.iter().collect();
-    sorted.sort_by(|lhs, rhs| event_sort_key(lhs).cmp(&event_sort_key(rhs)));
+    let mut canonicalized = Vec::with_capacity(events.len());
+    for event in events {
+        canonicalized.push(CanonicalEvent {
+            name: event.name.clone(),
+            payload: canonicalize_aggregate(&event.def, service_name, resolver)?,
+        });
+    }
 
-    sorted
-        .into_iter()
-        .map(|event| {
-            Ok(CanonicalEvent {
-                name: event.name.clone(),
-                payload: canonicalize_aggregate(&event.def, service_name, resolver)?,
-            })
-        })
-        .collect()
+    canonicalized.sort_by(|lhs, rhs| {
+        canonical_event_sort_key(lhs).cmp(&canonical_event_sort_key(rhs))
+    });
+    Ok(canonicalized)
 }
 
 fn canonicalize_named_type(
@@ -565,14 +565,14 @@ fn canonicalize_named_type(
             fields: canonicalize_aggregate(def, service_name, resolver)?.fields,
         },
         TypeDef::Enum(enum_def) => {
-            let mut variants: Vec<_> = enum_def.variants.iter().collect();
-            variants
-                .sort_by(|lhs, rhs| enum_variant_sort_key(lhs).cmp(&enum_variant_sort_key(rhs)));
-
-            let variants = variants
-                .into_iter()
+            let mut variants = enum_def
+                .variants
+                .iter()
                 .map(|variant| canonicalize_variant(variant, service_name, resolver))
                 .collect::<Result<Vec<_>, _>>()?;
+            variants.sort_by(|lhs, rhs| {
+                canonical_variant_sort_key(lhs).cmp(&canonical_variant_sort_key(rhs))
+            });
             CanonicalNamedTypeKind::Enum { variants }
         }
     };
@@ -651,42 +651,93 @@ fn scoped_type_name(service: &str, ty: &str) -> String {
     }
 }
 
-fn function_sort_key(func: &ServiceFunc) -> (String, String) {
+fn canonical_function_sort_key(func: &CanonicalFunction) -> (String, String) {
     let mut signature = String::new();
-    signature.push_str(if func.is_query { "query" } else { "command" });
+    signature.push_str(match func.kind {
+        CanonicalFunctionKind::Command => "command",
+        CanonicalFunctionKind::Query => "query",
+    });
     signature.push('|');
-    signature.push_str(&join_type_list(func.params.iter().map(|p| &p.type_decl)));
+    signature.push_str(&join_canonical_type_list(&func.params));
     signature.push('|');
-    signature.push_str(&func.output.to_string());
+    signature.push_str(&canonical_type_repr(&func.output));
     if let Some(throws) = &func.throws {
         signature.push('|');
-        signature.push_str(&throws.to_string());
+        signature.push_str(&canonical_type_repr(throws));
     }
 
     (func.name.clone(), signature)
 }
 
-fn event_sort_key(event: &ServiceEvent) -> (String, String) {
-    let signature = join_type_list(event.def.fields.iter().map(|f| &f.type_decl));
+fn canonical_event_sort_key(event: &CanonicalEvent) -> (String, String) {
+    let signature = join_canonical_type_list(&event.payload.fields);
     (event.name.clone(), signature)
 }
 
-fn enum_variant_sort_key(variant: &EnumVariant) -> (String, String) {
-    let signature = join_type_list(variant.def.fields.iter().map(|f| &f.type_decl));
+fn canonical_variant_sort_key(variant: &CanonicalVariant) -> (String, String) {
+    let signature = join_canonical_type_list(&variant.payload.fields);
     (variant.name.clone(), signature)
 }
 
-fn join_type_list<'a>(iter: impl Iterator<Item = &'a TypeDecl>) -> String {
+fn join_canonical_type_list(types: &[CanonicalType]) -> String {
     let mut acc = String::new();
     let mut first = true;
-    for ty in iter {
+    for ty in types {
         if !first {
             acc.push(',');
         }
         first = false;
-        acc.push_str(&ty.to_string());
+        acc.push_str(&canonical_type_repr(ty));
     }
     acc
+}
+
+fn canonical_type_repr(ty: &CanonicalType) -> String {
+    match ty {
+        CanonicalType::Primitive { name } => name.to_string(),
+        CanonicalType::Slice { item } => {
+            format!("[{}]", canonical_type_repr(item))
+        }
+        CanonicalType::Array { item, len } => {
+            format!("[{}; {len}]", canonical_type_repr(item))
+        }
+        CanonicalType::Tuple { items } => {
+            let mut repr = String::from("(");
+            for (idx, item) in items.iter().enumerate() {
+                if idx > 0 {
+                    repr.push_str(", ");
+                }
+                repr.push_str(&canonical_type_repr(item));
+            }
+            repr.push(')');
+            repr
+        }
+        CanonicalType::Option { item } => {
+            format!("Option<{}>", canonical_type_repr(item))
+        }
+        CanonicalType::Result { ok, err } => format!(
+            "Result<{}, {}>",
+            canonical_type_repr(ok),
+            canonical_type_repr(err)
+        ),
+        CanonicalType::Named { name, args } => {
+            if args.is_empty() {
+                name.clone()
+            } else {
+                let mut repr = String::new();
+                repr.push_str(name);
+                repr.push('<');
+                for (idx, arg) in args.iter().enumerate() {
+                    if idx > 0 {
+                        repr.push_str(", ");
+                    }
+                    repr.push_str(&canonical_type_repr(arg));
+                }
+                repr.push('>');
+                repr
+            }
+        }
+    }
 }
 
 fn collect_reachable_types<'a>(
@@ -773,12 +824,6 @@ fn collect_reachable_types<'a>(
                     &mut reachable,
                     &mut pending,
                 )?;
-            }
-        }
-        for ty in &unit.types {
-            let qualified = scoped_type_name(&unit.name, &ty.name);
-            if reachable.insert(qualified.clone()) {
-                pending.push_back(qualified);
             }
         }
         Ok(())

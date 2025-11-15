@@ -206,3 +206,165 @@ pub fn canvas_service() -> ServiceUnit {
         annotations: Vec::new(),
     }
 }
+
+pub fn unused_type_service() -> ServiceUnit {
+    ServiceUnit {
+        name: "Unused".to_string(),
+        extends: Vec::new(),
+        funcs: vec![ServiceFunc {
+            name: "Touch".to_string(),
+            params: vec![FuncParam {
+                name: "value".to_string(),
+                type_decl: TypeDecl::UserDefined {
+                    name: "Used".to_string(),
+                    generics: Vec::new(),
+                },
+            }],
+            output: TypeDecl::Primitive(PrimitiveType::Void),
+            throws: None,
+            is_query: false,
+            docs: Vec::new(),
+            annotations: Vec::new(),
+        }],
+        events: Vec::new(),
+        types: vec![
+            Type {
+                name: "Used".to_string(),
+                type_params: Vec::new(),
+                def: TypeDef::Struct(StructDef {
+                    fields: vec![StructField {
+                        name: Some("inner".to_string()),
+                        type_decl: TypeDecl::Primitive(PrimitiveType::U32),
+                        docs: Vec::new(),
+                        annotations: Vec::new(),
+                    }],
+                }),
+                docs: Vec::new(),
+                annotations: Vec::new(),
+            },
+            Type {
+                name: "Unused".to_string(),
+                type_params: Vec::new(),
+                def: TypeDef::Struct(StructDef { fields: Vec::new() }),
+                docs: Vec::new(),
+                annotations: Vec::new(),
+            },
+        ],
+        docs: Vec::new(),
+        annotations: Vec::new(),
+    }
+}
+
+pub fn collision_base_service() -> ServiceUnit {
+    ServiceUnit {
+        name: "CollisionBase".to_string(),
+        extends: Vec::new(),
+        funcs: Vec::new(),
+        events: Vec::new(),
+        types: vec![Type {
+            name: "Shared".to_string(),
+            type_params: Vec::new(),
+            def: TypeDef::Struct(StructDef {
+                fields: vec![StructField {
+                    name: Some("id".to_string()),
+                    type_decl: TypeDecl::Primitive(PrimitiveType::U32),
+                    docs: Vec::new(),
+                    annotations: Vec::new(),
+                }],
+            }),
+            docs: Vec::new(),
+            annotations: Vec::new(),
+        }],
+        docs: Vec::new(),
+        annotations: Vec::new(),
+    }
+}
+
+pub fn collision_child_service() -> ServiceUnit {
+    ServiceUnit {
+        name: "CollisionChild".to_string(),
+        extends: vec!["CollisionBase".to_string()],
+        funcs: vec![
+            ServiceFunc {
+                name: "Process".to_string(),
+                params: vec![FuncParam {
+                    name: "item".to_string(),
+                    type_decl: TypeDecl::UserDefined {
+                        name: "CollisionBase::Shared".to_string(),
+                        generics: Vec::new(),
+                    },
+                }],
+                output: TypeDecl::Primitive(PrimitiveType::Bool),
+                throws: None,
+                is_query: false,
+                docs: Vec::new(),
+                annotations: Vec::new(),
+            },
+            ServiceFunc {
+                name: "Process".to_string(),
+                params: vec![FuncParam {
+                    name: "item".to_string(),
+                    type_decl: TypeDecl::UserDefined {
+                        name: "Shared".to_string(),
+                        generics: Vec::new(),
+                    },
+                }],
+                output: TypeDecl::Primitive(PrimitiveType::Bool),
+                throws: None,
+                is_query: true,
+                docs: Vec::new(),
+                annotations: Vec::new(),
+            },
+        ],
+        events: vec![
+            EnumVariant {
+                name: "Notified".to_string(),
+                def: StructDef {
+                    fields: vec![StructField {
+                        name: Some("payload".to_string()),
+                        type_decl: TypeDecl::UserDefined {
+                            name: "CollisionBase::Shared".to_string(),
+                            generics: Vec::new(),
+                        },
+                        docs: Vec::new(),
+                        annotations: Vec::new(),
+                    }],
+                },
+                docs: Vec::new(),
+                annotations: Vec::new(),
+            },
+            EnumVariant {
+                name: "Notified".to_string(),
+                def: StructDef {
+                    fields: vec![StructField {
+                        name: Some("payload".to_string()),
+                        type_decl: TypeDecl::UserDefined {
+                            name: "Shared".to_string(),
+                            generics: Vec::new(),
+                        },
+                        docs: Vec::new(),
+                        annotations: Vec::new(),
+                    }],
+                },
+                docs: Vec::new(),
+                annotations: Vec::new(),
+            },
+        ],
+        types: vec![Type {
+            name: "Shared".to_string(),
+            type_params: Vec::new(),
+            def: TypeDef::Struct(StructDef {
+                fields: vec![StructField {
+                    name: Some("tag".to_string()),
+                    type_decl: TypeDecl::Primitive(PrimitiveType::ActorId),
+                    docs: Vec::new(),
+                    annotations: Vec::new(),
+                }],
+            }),
+            docs: Vec::new(),
+            annotations: Vec::new(),
+        }],
+        docs: Vec::new(),
+        annotations: Vec::new(),
+    }
+}
