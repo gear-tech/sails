@@ -13,10 +13,11 @@ sails-build.workspace = true
 sails-rs = { workspace = true, features = ["wasm-builder"] }
 
 [features]
-default = ["sails-canonical", "wasm-builder"]
+default = ["runtime-canonical", "sails-canonical", "wasm-builder"]
 sails-canonical = []
+runtime-canonical = []
 wasm-builder = []
-sails-meta-dump = ["sails-canonical", "dep:anyhow", "dep:sails-build"]
+sails-meta-dump = ["runtime-canonical", "sails-canonical", "dep:anyhow", "dep:sails-build"]
 
 [[bin]]
 name = "sails_meta_dump"

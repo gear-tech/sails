@@ -70,9 +70,23 @@ impl MyProgram {
 ### Canonical builds & manifests
 
 Every Sails service crate now records the list of canonicalized services inside a
-`sails_services.in` file next to its `Cargo.toml`. The file contains a single
-`sails_services![ ... ]` macro invocation with fully-qualified service paths
-(including concrete lifetime or generic bindings when needed). The build script
+`sails_services.in` file next to its `Cargo.toml`. The file defines a
+`sails_services! { services: [ ... ] }` manifest with fully-qualified service
+paths (including concrete lifetime or generic bindings when needed). You can
+also declare witness aliases ahead of the `services` block to pin generic
+implementations:
+
+```rust
+sails_services! {
+    type ProxyThisThat = proxy::ThisThatCaller<ActualClient>;
+
+    services: [
+        ProxyThisThat,
+    ],
+}
+```
+
+The build script
 reads this manifest to emit canonical interface constants during normal builds,
 and the `sails_meta_dump` helper uses the same manifest to register services when
 the `sails-meta-dump` feature is enabled. This keeps the build pipeline and the
@@ -95,8 +109,8 @@ To add a new service to an existing program:
 
 1. Implement the service with `#[service]` and expose it through your
    `#[program]` impl as usual.
-2. Append the fully-qualified service type (e.g. `demo::counter::CounterService<'static>`) to
-   `sails_services.in`.
+2. Append the fully-qualified service type (or a witness alias) to the
+   `services: [ ... ]` block inside `sails_services.in`.
 3. Run `cargo check -p my-crate` (or `cargo run --bin sails_meta_dump` if you want
    to inspect the canonical artifacts). The build script will emit the new
    `sails_interface_consts/<Service>.rs` file automatically, and the meta dump

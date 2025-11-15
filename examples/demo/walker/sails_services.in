@@ -1,3 +1,5 @@
-sails_services![
-    demo_walker::WalkerService,
-]
+sails_services! {
+    services: [
+        demo_walker::WalkerService,
+    ],
+}

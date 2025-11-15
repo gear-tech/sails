@@ -1,0 +1,5 @@
+sails_services! {
+    services: [
+        ping_pong_bench_app::PingPongService,
+    ],
+}

@@ -1,0 +1,9 @@
+sails_services! {
+    type ProxyThisThatService = proxy::this_that::ThisThatCaller<
+        sails_rename::client::Service<demo_client::this_that::ThisThatImpl>,
+    >;
+
+    services: [
+        ProxyThisThatService,
+    ],
+}

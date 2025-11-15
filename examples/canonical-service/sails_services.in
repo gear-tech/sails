@@ -1,3 +1,5 @@
-sails_services![
-    canonical_service::DemoService,
-]
+sails_services! {
+    services: [
+        canonical_service::DemoService,
+    ],
+}

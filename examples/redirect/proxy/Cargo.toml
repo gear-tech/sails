@@ -3,6 +3,9 @@ name = "redirect-proxy"
 version = "0.1.0"
 edition.workspace = true
 
+[package.metadata.sails]
+skip-manifest-check = true
+
 [dependencies]
 sails-rs.workspace = true
 redirect-client = { path = "../client" }

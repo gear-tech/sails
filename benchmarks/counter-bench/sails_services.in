@@ -1,0 +1,5 @@
+sails_services! {
+    services: [
+        counter_bench::CounterBenchService,
+    ],
+}

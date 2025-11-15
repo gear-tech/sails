@@ -4,11 +4,26 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-sails-rs.workspace = true
+sails-rs = { workspace = true, features = ["runtime-canonical"] }
+anyhow = { workspace = true, optional = true }
+sails-build = { workspace = true, optional = true }
 
 [build-dependencies]
 sails-rs = { workspace = true, features = ["build"] }
+sails-build.workspace = true
 
 [dev-dependencies]
 sails-rs = { workspace = true, features = ["gtest"] }
 tokio = { workspace = true, features = ["rt", "macros"] }
+
+[features]
+default = ["runtime-canonical", "sails-canonical", "wasm-builder"]
+sails-canonical = []
+runtime-canonical = []
+wasm-builder = []
+sails-meta-dump = ["runtime-canonical", "sails-canonical", "dep:anyhow", "dep:sails-build"]
+
+[[bin]]
+name = "sails_meta_dump"
+path = "src/bin/sails_meta_dump.rs"
+required-features = ["sails-meta-dump"]

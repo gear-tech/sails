@@ -1,5 +1,5 @@
-sails_services![
-    rmrk_resource_app::services::ResourceStorage<
-        sails_rs::client::Service<rmrk_resource_app::catalogs::rmrk_catalog::RmrkCatalogImpl>,
-    >,
-]
+sails_services! {
+    services: [
+        rmrk_resource_app::RmrkResourceService,
+    ],
+}

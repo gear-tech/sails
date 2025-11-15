@@ -1,5 +1,5 @@
 sails_services! {
     services: [
-        redirect_app::RedirectService,
+        ping_pong_stack::PingPongStack,
     ],
 }

@@ -1,0 +1,5 @@
+sails_services! {
+    services: [
+        compute_stress::ComputeStressService,
+    ],
+}

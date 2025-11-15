@@ -1,16 +1,36 @@
 use std::{env, path::PathBuf};
 
 macro_rules! sails_services {
+    (
+        $(type $alias:ident = $ty:ty;)*
+        services: [
+            $($path:path),* $(,)?
+        ] $(,)?
+    ) => {
+        $(#[allow(dead_code)] pub type $alias = $ty;)*
+        pub const SAILS_SERVICE_PATHS: &[&str] = &[$(stringify!($path)),*];
+    };
     ($($path:path),* $(,)?) => {
-        &[$(stringify!($path)),*]
+        sails_services! {
+            services: [ $($path),* ]
+        }
     };
 }
 
-const SERVICE_PATHS: &[&str] = include!("sails_services.in");
+mod sails_services_manifest {
+    include!("sails_services.in");
+}
+
+const SERVICE_PATHS: &[&str] = sails_services_manifest::SAILS_SERVICE_PATHS;
 
 fn main() {
     println!("cargo:rerun-if-changed=src");
     println!("cargo:rerun-if-changed=sails_services.in");
+
+    if env::var_os("SAILS_CANONICAL_DUMP").is_some() {
+        println!("cargo:rustc-cfg=sails_canonical_dump");
+    }
+    println!("cargo:rustc-check-cfg=cfg(sails_canonical_dump)");
 
     if should_skip_build_work() {
         return;

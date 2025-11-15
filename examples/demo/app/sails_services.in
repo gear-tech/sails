@@ -1,10 +1,12 @@
-sails_services![
-    demo::chaos::ChaosService,
-    demo::counter::CounterService<'static>,
-    demo::dog::DogService,
-    demo::mammal::MammalService,
-    demo::ping::PingService,
-    demo::references::ReferenceService<'static>,
-    demo::this_that::MyService,
-    demo::value_fee::FeeService,
-]
+sails_services! {
+    services: [
+        demo::chaos::ChaosService,
+        demo::counter::CounterService<'static>,
+        demo::dog::DogService,
+        demo::mammal::MammalService,
+        demo::ping::PingService,
+        demo::references::ReferenceService<'static>,
+        demo::this_that::MyService,
+        demo::value_fee::FeeService,
+    ],
+}

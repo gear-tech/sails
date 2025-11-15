@@ -1,3 +1,5 @@
-sails_services![
-    {{ app_crate_name }}::{{ service-struct-name }},
-]
+sails_services! {
+    services: [
+        {{ app_crate_name }}::{{ service-struct-name }},
+    ],
+}

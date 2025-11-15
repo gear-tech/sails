@@ -72,6 +72,7 @@ impl ServiceBuilder<'_> {
         };
 
         let runtime_module = quote! {
+            #[allow(unexpected_cfgs)]
             #[cfg(all(
                 feature = "runtime-canonical",
                 any(
@@ -153,6 +154,7 @@ impl ServiceBuilder<'_> {
         };
 
         let const_module = quote! {
+            #[allow(unexpected_cfgs)]
             #[cfg(all(
                 feature = "sails-canonical",
                 not(feature = "sails-meta-dump"),
@@ -185,6 +187,7 @@ impl ServiceBuilder<'_> {
         };
 
         let stub_module = quote! {
+            #[allow(unexpected_cfgs)]
             #[cfg(all(
                 not(feature = "runtime-canonical"),
                 any(
@@ -265,6 +268,7 @@ impl ServiceBuilder<'_> {
         );
         let consts_literal = Literal::string(&consts_rel_path);
         quote! {
+            #[allow(unexpected_cfgs)]
             #[cfg(all(
                 feature = "sails-canonical",
                 not(feature = "sails-meta-dump"),

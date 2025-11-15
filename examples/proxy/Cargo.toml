@@ -14,14 +14,28 @@ required-features = ["idl-gen"]
 [dependencies]
 demo-client = { path = "../demo/client" }
 sails-idl-gen = { workspace = true, optional = true }
-sails-rename.workspace = true
+sails-rename = { workspace = true, features = ["runtime-canonical"] }
+anyhow = { workspace = true, optional = true }
+sails-build = { workspace = true, optional = true }
 
 [dev-dependencies]
 demo-client = { path = "../demo/client", features = ["with_mocks"] }
 tokio = { workspace = true, features = ["rt", "macros"] }
 
 [build-dependencies]
+demo-client = { path = "../demo/client" }
 sails-rename = { workspace = true, features = ["build"] }
+sails-build.workspace = true
 
 [features]
+default = ["runtime-canonical", "sails-canonical", "wasm-builder"]
+sails-canonical = []
+runtime-canonical = []
+wasm-builder = []
+sails-meta-dump = ["runtime-canonical", "sails-canonical", "dep:anyhow", "dep:sails-build"]
 idl-gen = ["dep:sails-idl-gen"]
+
+[[bin]]
+name = "sails_meta_dump"
+path = "src/bin/sails_meta_dump.rs"
+required-features = ["sails-meta-dump"]

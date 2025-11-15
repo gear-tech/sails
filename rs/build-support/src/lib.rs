@@ -98,7 +98,7 @@ fn run_meta_dump_all(
     if !rustflags.is_empty() && !rustflags.ends_with(' ') {
         rustflags.push(' ');
     }
-    rustflags.push_str("--cfg sails_canonical_dump --check-cfg=cfg(sails_canonical_dump)");
+    rustflags.push_str("--cfg sails_canonical_dump");
     cmd.env("RUSTFLAGS", rustflags);
     cmd.env_remove("CARGO_ENCODED_RUSTFLAGS");
 
