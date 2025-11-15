@@ -1,4 +1,5 @@
 #![cfg(not(feature = "ethexe"))]
+#![allow(unexpected_cfgs)]
 
 use sails_rs::gstd::services::{ExposureWithEvents, Service};
 use sails_rs::{Decode, Encode};

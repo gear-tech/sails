@@ -567,7 +567,7 @@ impl DumpService {
 
 /// Runs the canonicalization CLI (used by `sails_meta_dump`).
 ///
-/// ```no_run
+/// ```ignore
 /// use sails_build::{run_meta_dump_cli, service_dump};
 /// use sails_idl_meta::interface::{CanonicalEntry, EntryKind};
 ///
@@ -683,7 +683,7 @@ fn print_usage(services: &[DumpService]) {
 
 /// Helper macro for defining a [`DumpService`] entry inside the binary.
 ///
-/// ```no_run
+/// ```ignore
 /// use sails_build::{run_meta_dump_cli, service_dump};
 /// use sails_idl_meta::interface::{CanonicalEntry, EntryKind};
 ///

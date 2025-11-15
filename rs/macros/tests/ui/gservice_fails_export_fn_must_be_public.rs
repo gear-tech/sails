@@ -1,3 +1,4 @@
+#![allow(unexpected_cfgs)]
 use sails_macros::{export, service};
 
 struct MyService;
