@@ -7,3 +7,6 @@ The program workspace includes the following packages:
 - `{{ client-project-name }}` is the package containing the client for the program allowing to interact with it from another program, tests, or
   off-chain client.
 {% endif %}
+
+The `{{ app-project-name }}` package now keeps its canonicalization targets in `sails_services.in`. Both the build script and the
+`sails_meta_dump` helper include that manifest, so adding or removing services only requires editing that single file.

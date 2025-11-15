@@ -1,4 +1,7 @@
 #![no_std]
+#![allow(unexpected_cfgs)]
+
+extern crate alloc;
 
 use sails_rs::{gstd, prelude::*};
 
@@ -12,7 +15,7 @@ pub enum Events {
 }
 
 #[derive(Default)]
-struct Service(u8);
+pub struct Service(u8);
 
 impl Service {
     pub fn new(byte: u8) -> Self {
@@ -54,10 +57,10 @@ impl Program {
     }
 }
 
-#[cfg(not(target_arch = "wasm32"))]
+#[cfg(all(not(target_arch = "wasm32"), not(feature = "sails-meta-dump")))]
 pub use code::WASM_BINARY_OPT as WASM_BINARY;
 
-#[cfg(not(target_arch = "wasm32"))]
+#[cfg(all(not(target_arch = "wasm32"), not(feature = "sails-meta-dump")))]
 mod code {
     include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 }

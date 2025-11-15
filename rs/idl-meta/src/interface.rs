@@ -4,12 +4,10 @@
 //! compile-time constants so runtimes can consume `(interface_id, entry_id)` pairs
 //! without re-running canonicalization at runtime.
 
-use alloc::{
-    borrow::Cow,
-    format,
-    string::{String, ToString},
-    vec::Vec,
-};
+use alloc::{borrow::Cow, string::String};
+
+#[cfg(all(feature = "ast", not(target_family = "wasm")))]
+use alloc::{format, string::ToString, vec::Vec};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum EntryKind {
@@ -50,7 +48,7 @@ impl EntryMeta<'static> {
     }
 }
 
-#[cfg(feature = "ast")]
+#[cfg(all(feature = "ast", not(target_family = "wasm")))]
 use crate::canonical::{
     CanonicalEnvelope, CanonicalEvent, CanonicalFunction, CanonicalFunctionKind, CanonicalType,
 };
@@ -63,14 +61,14 @@ pub struct CanonicalEntry {
     pub signature: String,
 }
 
-#[cfg(feature = "ast")]
+#[cfg(all(feature = "ast", not(target_family = "wasm")))]
 #[derive(Debug, thiserror::Error, PartialEq, Eq)]
 pub enum EntryAssignmentError {
     #[error("too many interface entries ({0}); entry_id is a 16-bit value")]
     TooManyEntries(usize),
 }
 
-#[cfg(feature = "ast")]
+#[cfg(all(feature = "ast", not(target_family = "wasm")))]
 pub fn canonical_entries(envelope: &CanonicalEnvelope) -> Vec<CanonicalEntry> {
     let mut entries = Vec::new();
     for func in &envelope.service.functions {
@@ -100,7 +98,7 @@ pub fn canonical_entries(envelope: &CanonicalEnvelope) -> Vec<CanonicalEntry> {
     entries
 }
 
-#[cfg(feature = "ast")]
+#[cfg(all(feature = "ast", not(target_family = "wasm")))]
 pub fn build_entry_meta_with_async(
     envelope: &CanonicalEnvelope,
     mut async_lookup: impl FnMut(&CanonicalEntry) -> bool,
@@ -120,7 +118,7 @@ pub fn build_entry_meta_with_async(
         .collect())
 }
 
-#[cfg(feature = "ast")]
+#[cfg(all(feature = "ast", not(target_family = "wasm")))]
 fn canonical_function_signature(func: &CanonicalFunction) -> String {
     let mut signature = String::new();
     signature.push_str(match func.kind {
@@ -138,12 +136,12 @@ fn canonical_function_signature(func: &CanonicalFunction) -> String {
     signature
 }
 
-#[cfg(feature = "ast")]
+#[cfg(all(feature = "ast", not(target_family = "wasm")))]
 fn canonical_event_signature(event: &CanonicalEvent) -> String {
     join_type_list(&event.payload.fields)
 }
 
-#[cfg(feature = "ast")]
+#[cfg(all(feature = "ast", not(target_family = "wasm")))]
 fn join_type_list(types: &[CanonicalType]) -> String {
     let mut acc = String::new();
     let mut first = true;
@@ -157,7 +155,7 @@ fn join_type_list(types: &[CanonicalType]) -> String {
     acc
 }
 
-#[cfg(feature = "ast")]
+#[cfg(all(feature = "ast", not(target_family = "wasm")))]
 fn canonical_type_repr(ty: &CanonicalType) -> String {
     match ty {
         CanonicalType::Primitive { name } => name.to_string(),

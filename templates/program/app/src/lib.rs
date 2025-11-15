@@ -1,4 +1,7 @@
 #![no_std]
+#![allow(unexpected_cfgs)]
+
+extern crate alloc;
 
 use sails_rs::prelude::*;
 

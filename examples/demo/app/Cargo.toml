@@ -5,10 +5,19 @@ edition.workspace = true
 
 [dependencies]
 demo-walker = { path = "../walker" }
-sails-rs.workspace = true
+sails-rs = { workspace = true, features = ["runtime-canonical"] }
+anyhow = { workspace = true, optional = true }
+sails-build = { workspace = true, optional = true }
 
 [build-dependencies]
 sails-rs = { workspace = true, features = ["wasm-builder"] }
+sails-build.workspace = true
+
+[features]
+default = ["sails-canonical", "wasm-builder"]
+sails-canonical = []
+wasm-builder = []
+sails-meta-dump = ["sails-canonical", "dep:anyhow", "dep:sails-build"]
 
 [dev-dependencies]
 demo-client = { path = "../client" }
@@ -18,3 +27,8 @@ gstd.workspace = true
 gtest.workspace = true
 sails-rs = { workspace = true, features = ["gtest", "gclient"] }
 tokio = { workspace = true, features = ["rt", "macros"] }
+
+[[bin]]
+name = "sails_meta_dump"
+path = "src/bin/sails_meta_dump.rs"
+required-features = ["sails-meta-dump"]

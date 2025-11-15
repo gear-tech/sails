@@ -188,7 +188,7 @@ impl<'a> TypeRegistry<'a> {
 
     pub fn insert_service(&mut self, service: &'a ServiceUnit) {
         for ty in &service.types {
-            let key = qualify_type_name(&service.name, &ty.name);
+            let key = scoped_type_name(&service.name, &ty.name);
             self.entries.insert(
                 key,
                 RegisteredType {
@@ -484,7 +484,7 @@ pub fn canonicalize_parent_types(
     let mut types = BTreeMap::new();
     for (name, parent) in parents.iter() {
         for ty in &parent.service.types {
-            let qualified = qualify_type_name(name, &ty.name);
+            let qualified = scoped_type_name(name, &ty.name);
             if types.contains_key(&qualified) {
                 continue;
             }
@@ -643,6 +643,14 @@ fn qualify_type_name(service: &str, ty: &str) -> String {
     format!("{service}::{ty}")
 }
 
+fn scoped_type_name(service: &str, ty: &str) -> String {
+    if ty.contains("::") {
+        ty.to_owned()
+    } else {
+        qualify_type_name(service, ty)
+    }
+}
+
 fn function_sort_key(func: &ServiceFunc) -> (String, String) {
     let mut signature = String::new();
     signature.push_str(if func.is_query { "query" } else { "command" });
@@ -768,7 +776,7 @@ fn collect_reachable_types<'a>(
             }
         }
         for ty in &unit.types {
-            let qualified = qualify_type_name(&unit.name, &ty.name);
+            let qualified = scoped_type_name(&unit.name, &ty.name);
             if reachable.insert(qualified.clone()) {
                 pending.push_back(qualified);
             }

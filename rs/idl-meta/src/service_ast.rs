@@ -6,6 +6,7 @@ use alloc::boxed::Box;
 use alloc::collections::{BTreeMap, BTreeSet};
 use alloc::format;
 use alloc::string::{String, ToString};
+use alloc::vec;
 use alloc::vec::Vec;
 
 use scale_info::{
@@ -28,6 +29,8 @@ pub enum ServiceAstError {
     InvalidFunction(&'static str),
     #[error("invalid events metadata: {0}")]
     InvalidEvent(&'static str),
+    #[error("invalid type metadata: {0}")]
+    InvalidType(&'static str),
 }
 
 pub fn service_unit_from_meta<S: ServiceMeta>(
@@ -231,6 +234,10 @@ impl TypeConverter {
             .clone();
         let path = ty.path.clone();
         let type_params = ty.type_params.clone();
+        if let Some(decl) = self.try_lower_builtin(&path, &type_params)? {
+            self.resolving.remove(&type_id);
+            return Ok(decl);
+        }
         let type_def = ty.type_def.clone();
         let decl = match type_def {
             TypeDef::Primitive(primitive) => match primitive {
@@ -433,6 +440,46 @@ impl TypeConverter {
         } else {
             Ok(TypeDecl::Tuple(Vec::new()))
         }
+    }
+
+    fn try_lower_builtin(
+        &mut self,
+        path: &Path<PortableForm>,
+        type_params: &[scale_info::TypeParameter<PortableForm>],
+    ) -> Result<Option<TypeDecl>, ServiceAstError> {
+        if path.segments.is_empty() {
+            return Ok(None);
+        }
+
+        match path.segments.last().map(|seg| seg.as_ref()) {
+            Some("BTreeMap") => {
+                let key = self.resolve_type_param(type_params, 0)?;
+                let value = self.resolve_type_param(type_params, 1)?;
+                Ok(Some(TypeDecl::Slice(Box::new(TypeDecl::Tuple(vec![key, value])))))
+            }
+            Some("HashMap") => {
+                let key = self.resolve_type_param(type_params, 0)?;
+                let value = self.resolve_type_param(type_params, 1)?;
+                Ok(Some(TypeDecl::Slice(Box::new(TypeDecl::Tuple(vec![key, value])))))
+            }
+            Some("BTreeSet") | Some("HashSet") => {
+                let item = self.resolve_type_param(type_params, 0)?;
+                Ok(Some(TypeDecl::Slice(Box::new(item))))
+            }
+            _ => Ok(None),
+        }
+    }
+
+    fn resolve_type_param(
+        &mut self,
+        params: &[scale_info::TypeParameter<PortableForm>],
+        index: usize,
+    ) -> Result<TypeDecl, ServiceAstError> {
+        let ty = params
+            .get(index)
+            .and_then(|param| param.ty.as_ref())
+            .ok_or(ServiceAstError::InvalidType("missing type parameter binding"))?;
+        self.type_decl(ty.id)
     }
 }
 

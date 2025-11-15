@@ -24,3 +24,4 @@ prettyplease.workspace = true
 
 [features]
 ethexe = []
+runtime-canonical = []

@@ -5,7 +5,7 @@ use quote::{ToTokens, quote};
 impl ServiceBuilder<'_> {
     pub(super) fn canonical_module(&self) -> TokenStream {
         let sails_path = self.sails_path;
-        let service_type_path = self.type_path;
+        let meta_witness_ident = &self.meta_witness_ident;
         let module_ident = &self.canonical_module_ident;
         let service_name_literal = Literal::string(&self.service_ident.to_string());
         let async_match_arms = self.async_match_arms();
@@ -71,10 +71,18 @@ impl ServiceBuilder<'_> {
             }
         };
 
-        quote! {
+        let runtime_module = quote! {
+            #[cfg(all(
+                feature = "runtime-canonical",
+                any(
+                    not(feature = "sails-canonical"),
+                    feature = "sails-meta-dump",
+                    sails_canonical_dump
+                )
+            ))]
             mod #module_ident {
                 use super::*;
-                use ::alloc::{boxed::Box, vec::Vec};
+                use #sails_path::prelude::{boxed::Box, vec::Vec};
                 use #sails_path::meta::{
                     AnyServiceMeta,
                     CanonicalizationContext,
@@ -82,6 +90,7 @@ impl ServiceBuilder<'_> {
                     build_service_unit,
                     compute_interface_id,
                     interface::{build_entry_meta_with_async, EntryKind, EntryMeta},
+                    CanonicalEntry,
                 };
                 use #sails_path::spin::Once;
 
@@ -93,8 +102,12 @@ impl ServiceBuilder<'_> {
 
                 static META: Once<InterfaceMetadata> = Once::new();
 
+                fn entry_is_async(entry: &CanonicalEntry) -> bool {
+                    #match_body
+                }
+
                 fn compute() -> InterfaceMetadata {
-                    let service_meta = AnyServiceMeta::new::<#service_type_path>();
+                    let service_meta = AnyServiceMeta::new::<#meta_witness_ident>();
                     let service_unit = build_service_unit(#service_name_literal, &service_meta)
                         .expect("failed to build service AST");
 
@@ -103,9 +116,7 @@ impl ServiceBuilder<'_> {
                     let result = compute_interface_id(&service_unit, &context)
                         .expect("canonicalization failed");
 
-                    let entry_meta_vec = build_entry_meta_with_async(&result.envelope, |entry| {
-                        #match_body
-                    })
+                    let entry_meta_vec = build_entry_meta_with_async(&result.envelope, entry_is_async)
                     .expect("entry metadata assignment failed");
 
                     let entry_meta = Box::leak(entry_meta_vec.into_boxed_slice());
@@ -133,7 +144,88 @@ impl ServiceBuilder<'_> {
                 pub fn canonical_json() -> &'static [u8] {
                     metadata().canonical_json
                 }
+
+                #[cfg(feature = "sails-canonical")]
+                pub fn __sails_entry_async_lookup(entry: &CanonicalEntry) -> bool {
+                    entry_is_async(entry)
+                }
             }
+        };
+
+        let const_module = quote! {
+            #[cfg(all(
+                feature = "sails-canonical",
+                not(feature = "sails-meta-dump"),
+                not(sails_canonical_dump)
+            ))]
+            mod #module_ident {
+                use super::*;
+                use #sails_path::meta::{CanonicalEntry, EntryKind, EntryMeta};
+
+                fn entry_is_async(entry: &CanonicalEntry) -> bool {
+                    #match_body
+                }
+
+                pub fn interface_id() -> u64 {
+                    super::INTERFACE_ID
+                }
+
+                pub fn entry_meta() -> &'static [EntryMeta<'static>] {
+                    super::ENTRY_META
+                }
+
+                pub fn canonical_json() -> &'static [u8] {
+                    super::CANONICAL_INTERFACE_JSON
+                }
+
+                pub fn __sails_entry_async_lookup(entry: &CanonicalEntry) -> bool {
+                    entry_is_async(entry)
+                }
+            }
+        };
+
+        let stub_module = quote! {
+            #[cfg(all(
+                not(feature = "runtime-canonical"),
+                any(
+                    not(feature = "sails-canonical"),
+                    feature = "sails-meta-dump",
+                    sails_canonical_dump
+                )
+            ))]
+            mod #module_ident {
+                use super::*;
+                use #sails_path::meta::{CanonicalEntry, EntryKind, EntryMeta};
+
+                static ENTRY_META_STUB: [EntryMeta<'static>; 0] = [];
+                static CANONICAL_JSON_STUB: [u8; 0] = [];
+
+                fn entry_is_async(entry: &CanonicalEntry) -> bool {
+                    #match_body
+                }
+
+                pub fn interface_id() -> u64 {
+                    0
+                }
+
+                pub fn entry_meta() -> &'static [EntryMeta<'static>] {
+                    &ENTRY_META_STUB
+                }
+
+                pub fn canonical_json() -> &'static [u8] {
+                    &CANONICAL_JSON_STUB
+                }
+
+                pub fn __sails_entry_async_lookup(entry: &CanonicalEntry) -> bool {
+                    entry_is_async(entry)
+                }
+            }
+        };
+
+        quote! {
+            #runtime_module
+            #const_module
+            #stub_module
         }
     }
 
@@ -157,14 +249,28 @@ impl ServiceBuilder<'_> {
                 pub fn canonical_interface_json() -> &'static [u8] {
                     #module_ident::canonical_json()
                 }
+
+                #[cfg(feature = "sails-canonical")]
+                pub fn __sails_entry_async(entry: &#sails_path::meta::CanonicalEntry) -> bool {
+                    #module_ident::__sails_entry_async_lookup(entry)
+                }
             }
         }
     }
 
     pub(super) fn canonical_include(&self) -> TokenStream {
+        let consts_rel_path = format!(
+            "/sails_interface_consts/{}.rs",
+            self.service_ident.to_string()
+        );
+        let consts_literal = Literal::string(&consts_rel_path);
         quote! {
-            #[cfg(feature = "sails-canonical")]
-            include!(concat!(env!("OUT_DIR"), "/sails_interface_consts.rs"));
+            #[cfg(all(
+                feature = "sails-canonical",
+                not(feature = "sails-meta-dump"),
+                not(sails_canonical_dump)
+            ))]
+            include!(concat!(env!("OUT_DIR"), #consts_literal));
         }
     }
 

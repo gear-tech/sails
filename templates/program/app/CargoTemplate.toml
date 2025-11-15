@@ -4,4 +4,21 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-sails-rs = "{{ sails-rs-version }}"
+sails-rs = { version = "{{ sails-rs-version }}", features = ["runtime-canonical"] }
+anyhow = { version = "1", optional = true }
+sails-build = { version = "{{ sails-rs-version }}", optional = true }
+
+[build-dependencies]
+sails-build = "{{ sails-rs-version }}"
+sails-rs = { version = "{{ sails-rs-version }}", features = ["wasm-builder"] }
+
+[features]
+default = ["sails-canonical", "wasm-builder"]
+sails-canonical = []
+wasm-builder = []
+sails-meta-dump = ["sails-canonical", "dep:anyhow", "dep:sails-build"]
+
+[[bin]]
+name = "sails_meta_dump"
+path = "src/bin/sails_meta_dump.rs"
+required-features = ["sails-meta-dump"]

@@ -1,0 +1,3 @@
+sails_services![
+    redirect_app::RedirectService,
+]

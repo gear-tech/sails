@@ -14,7 +14,8 @@ scale-info.workspace = true
 thiserror.workspace = true
 blake3.workspace = true
 serde.workspace = true
-serde-json.workspace = true
+
+[target.'cfg(all(not(target_arch = "wasm32"), not(target_arch = "wasm32v1")))'.dependencies]
 serde_json_canonicalizer.workspace = true
 
 [features]

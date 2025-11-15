@@ -159,13 +159,15 @@ impl sails_rename::meta::ServiceMeta for __some_service_meta_witness {
     const BASE_SERVICES: &'static [sails_rename::meta::AnyServiceMetaFn] = &[];
     const ASYNC: bool = true;
 }
+#[cfg(any(not(feature = "sails-canonical"), feature = "sails-meta-dump"))]
 mod some_service_canonical {
     use super::*;
-    use ::alloc::{boxed::Box, vec::Vec};
+    use sails_rename::prelude::{boxed::Box, vec::Vec};
     use sails_rename::meta::{
         AnyServiceMeta, CanonicalizationContext, ParentInterface, build_service_unit,
         compute_interface_id,
         interface::{build_entry_meta_with_async, EntryKind, EntryMeta},
+        CanonicalEntry,
     };
     use sails_rename::spin::Once;
     struct InterfaceMetadata {
@@ -174,8 +176,15 @@ mod some_service_canonical {
         canonical_json: &'static [u8],
     }
     static META: Once<InterfaceMetadata> = Once::new();
+    fn entry_is_async(entry: &CanonicalEntry) -> bool {
+        match (entry.name.as_str(), entry.kind) {
+            ("DoThis", EntryKind::Command) => true,
+            ("This", EntryKind::Query) => false,
+            _ => false,
+        }
+    }
     fn compute() -> InterfaceMetadata {
-        let service_meta = AnyServiceMeta::new::<SomeService>();
+        let service_meta = AnyServiceMeta::new::<__some_service_meta_witness>();
         let service_unit = build_service_unit("SomeService", &service_meta)
             .expect("failed to build service AST");
         let context = CanonicalizationContext::default();
@@ -183,13 +192,7 @@ mod some_service_canonical {
             .expect("canonicalization failed");
         let entry_meta_vec = build_entry_meta_with_async(
                 &result.envelope,
-                |entry| {
-                    match (entry.name.as_str(), entry.kind) {
-                        ("DoThis", EntryKind::Command) => true,
-                        ("This", EntryKind::Query) => false,
-                        _ => false,
-                    }
-                },
+                entry_is_async,
             )
             .expect("entry metadata assignment failed");
         let entry_meta = Box::leak(entry_meta_vec.into_boxed_slice());
@@ -212,6 +215,34 @@ mod some_service_canonical {
     pub fn canonical_json() -> &'static [u8] {
         metadata().canonical_json
     }
+    #[cfg(feature = "sails-canonical")]
+    pub fn __sails_entry_async_lookup(entry: &CanonicalEntry) -> bool {
+        entry_is_async(entry)
+    }
+}
+#[cfg(all(feature = "sails-canonical", not(feature = "sails-meta-dump")))]
+mod some_service_canonical {
+    use super::*;
+    use sails_rename::meta::{CanonicalEntry, EntryMeta};
+    fn entry_is_async(entry: &CanonicalEntry) -> bool {
+        match (entry.name.as_str(), entry.kind) {
+            ("DoThis", EntryKind::Command) => true,
+            ("This", EntryKind::Query) => false,
+            _ => false,
+        }
+    }
+    pub fn interface_id() -> u64 {
+        super::INTERFACE_ID
+    }
+    pub fn entry_meta() -> &'static [EntryMeta<'static>] {
+        super::ENTRY_META
+    }
+    pub fn canonical_json() -> &'static [u8] {
+        super::CANONICAL_INTERFACE_JSON
+    }
+    pub fn __sails_entry_async_lookup(entry: &CanonicalEntry) -> bool {
+        entry_is_async(entry)
+    }
 }
 impl SomeService {
     #[doc(hidden)]
@@ -229,6 +260,10 @@ impl SomeService {
     pub fn canonical_interface_json() -> &'static [u8] {
         some_service_canonical::canonical_json()
     }
+    #[cfg(feature = "sails-canonical")]
+    pub fn __sails_entry_async(entry: &sails_rename::meta::CanonicalEntry) -> bool {
+        some_service_canonical::__sails_entry_async_lookup(entry)
+    }
 }
-#[cfg(feature = "sails-canonical")]
-include!(concat!(env!("OUT_DIR"), "/sails_interface_consts.rs"));
+#[cfg(all(feature = "sails-canonical", not(feature = "sails-meta-dump")))]
+include!(concat!(env!("OUT_DIR"), "/sails_interface_consts/SomeService.rs"));

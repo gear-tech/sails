@@ -1091,6 +1091,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "canonical-service"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "sails-build",
+ "sails-rs",
+]
+
+[[package]]
 name = "cargo-generate"
 version = "0.23.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1807,12 +1816,14 @@ checksum = "930c7171c8df9fb1782bdf9b918ed9ed2d33d1d22300abb754f9085bc48bf8e8"
 name = "demo"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "demo-client",
  "demo-walker",
  "futures",
  "gclient",
  "gstd",
  "gtest",
+ "sails-build",
  "sails-rs",
  "tokio",
 ]
@@ -1830,6 +1841,8 @@ dependencies = [
 name = "demo-walker"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
+ "sails-build",
  "sails-rs",
 ]
 
@@ -2401,6 +2414,8 @@ dependencies = [
 name = "event-routes-app"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
+ "sails-build",
  "sails-rs",
 ]
 
@@ -6650,6 +6665,8 @@ dependencies = [
 name = "redirect-app"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
+ "sails-build",
  "sails-rs",
 ]
 
@@ -6899,6 +6916,8 @@ dependencies = [
 name = "rmrk-catalog-app"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
+ "sails-build",
  "sails-rs",
 ]
 
@@ -6917,9 +6936,11 @@ dependencies = [
 name = "rmrk-resource-app"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "git-download",
  "mockall",
  "rmrk-resource-app",
+ "sails-build",
  "sails-client-gen",
  "sails-rs",
  "tokio",
@@ -7209,6 +7230,7 @@ name = "sails-build"
 version = "0.9.2"
 dependencies = [
  "anyhow",
+ "sails-idl-meta",
  "serde",
  "serde_bytes",
  "serde_json",
@@ -7267,7 +7289,6 @@ dependencies = [
  "insta",
  "scale-info",
  "serde",
- "serde_json",
  "serde_json_canonicalizer",
  "thiserror 2.0.12",
 ]

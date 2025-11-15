@@ -66,6 +66,44 @@ impl MyProgram {
         MyPing::new()
     }
 }
+
+### Canonical builds & manifests
+
+Every Sails service crate now records the list of canonicalized services inside a
+`sails_services.in` file next to its `Cargo.toml`. The file contains a single
+`sails_services![ ... ]` macro invocation with fully-qualified service paths
+(including concrete lifetime or generic bindings when needed). The build script
+reads this manifest to emit canonical interface constants during normal builds,
+and the `sails_meta_dump` helper uses the same manifest to register services when
+the `sails-meta-dump` feature is enabled. This keeps the build pipeline and the
+meta dumper perfectly in sync—adding or removing a service means editing the
+manifest once.
+
+By default, build scripts bail out when `SAILS_CANONICAL_DUMP` or the
+`sails-meta-dump` feature is set so host-only meta builds never recurse into wasm
+compilation. Program crates enable a `wasm-builder` feature, so build scripts can
+look for `CARGO_FEATURE_WASM_BUILDER` and only call `sails_rs::build_wasm()` when
+they actually embed `include!(.../wasm_binary.rs)`. Service-only crates simply
+omit that feature and skip the expensive wasm build entirely.
+
+Some crates also expose host-only testing features (for example `mockall`) that
+pull in standard-library dependencies. Build scripts now check those features so
+host-driven tests skip the wasm build altogether instead of re-compiling the
+crate for `wasm32v1-none` and hitting missing `std` errors.
+
+To add a new service to an existing program:
+
+1. Implement the service with `#[service]` and expose it through your
+   `#[program]` impl as usual.
+2. Append the fully-qualified service type (e.g. `demo::counter::CounterService<'static>`) to
+   `sails_services.in`.
+3. Run `cargo check -p my-crate` (or `cargo run --bin sails_meta_dump` if you want
+   to inspect the canonical artifacts). The build script will emit the new
+   `sails_interface_consts/<Service>.rs` file automatically, and the meta dump
+   helper will immediately pick it up.
+
+This manifest-driven flow is also what the template uses, so newly generated
+programs inherit the same “one list feeds everything” build system.
 ```
 
 ## Details

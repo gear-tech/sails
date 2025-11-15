@@ -11,10 +11,10 @@ pub mod ast;
 #[cfg(feature = "ast")]
 pub use ast::*;
 
-#[cfg(feature = "ast")]
+#[cfg(all(feature = "ast", not(target_family = "wasm")))]
 pub mod canonical;
 
-#[cfg(feature = "ast")]
+#[cfg(all(feature = "ast", not(target_family = "wasm")))]
 pub use canonical::*;
 
 #[cfg(feature = "ast")]

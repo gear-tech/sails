@@ -3,7 +3,7 @@
 use sails_rs::{gstd, prelude::*};
 
 #[derive(Default)]
-struct RedirectService;
+pub struct RedirectService;
 
 impl RedirectService {
     pub const fn new() -> Self {
@@ -45,10 +45,10 @@ impl RedirectProgram {
     }
 }
 
-#[cfg(not(target_arch = "wasm32"))]
+#[cfg(all(not(target_arch = "wasm32"), not(feature = "sails-meta-dump")))]
 pub use code::WASM_BINARY_OPT as WASM_BINARY;
 
-#[cfg(not(target_arch = "wasm32"))]
+#[cfg(all(not(target_arch = "wasm32"), not(feature = "sails-meta-dump")))]
 mod code {
     include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 }

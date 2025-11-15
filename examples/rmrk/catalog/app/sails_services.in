@@ -1,0 +1,3 @@
+sails_services![
+    rmrk_catalog_app::services::Catalog,
+]
