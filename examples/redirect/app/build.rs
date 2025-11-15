@@ -50,6 +50,8 @@ fn emit_interface_consts() {
             &["sails-canonical", "sails-meta-dump"],
             &out_dir,
         )
-        .unwrap_or_else(|err| panic!("failed to generate canonical interface constants for {service}: {err}"));
+        .unwrap_or_else(|err| {
+            panic!("failed to generate canonical interface constants for {service}: {err}")
+        });
     }
 }

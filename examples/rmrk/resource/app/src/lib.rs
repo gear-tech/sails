@@ -8,7 +8,10 @@ extern crate alloc;
 pub extern crate std;
 
 use crate::catalogs::{RmrkCatalog as _, RmrkCatalogProgram, rmrk_catalog::RmrkCatalogImpl};
-use sails_rs::{client::{self, Program as _, *}, prelude::*};
+use sails_rs::{
+    client::{self, Program as _, *},
+    prelude::*,
+};
 use services::ResourceStorage;
 
 pub mod catalogs;

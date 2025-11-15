@@ -455,12 +455,16 @@ impl TypeConverter {
             Some("BTreeMap") => {
                 let key = self.resolve_type_param(type_params, 0)?;
                 let value = self.resolve_type_param(type_params, 1)?;
-                Ok(Some(TypeDecl::Slice(Box::new(TypeDecl::Tuple(vec![key, value])))))
+                Ok(Some(TypeDecl::Slice(Box::new(TypeDecl::Tuple(vec![
+                    key, value,
+                ])))))
             }
             Some("HashMap") => {
                 let key = self.resolve_type_param(type_params, 0)?;
                 let value = self.resolve_type_param(type_params, 1)?;
-                Ok(Some(TypeDecl::Slice(Box::new(TypeDecl::Tuple(vec![key, value])))))
+                Ok(Some(TypeDecl::Slice(Box::new(TypeDecl::Tuple(vec![
+                    key, value,
+                ])))))
             }
             Some("BTreeSet") | Some("HashSet") => {
                 let item = self.resolve_type_param(type_params, 0)?;
@@ -478,7 +482,9 @@ impl TypeConverter {
         let ty = params
             .get(index)
             .and_then(|param| param.ty.as_ref())
-            .ok_or(ServiceAstError::InvalidType("missing type parameter binding"))?;
+            .ok_or(ServiceAstError::InvalidType(
+                "missing type parameter binding",
+            ))?;
         self.type_decl(ty.id)
     }
 }

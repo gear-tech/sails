@@ -63,7 +63,9 @@ fn emit_interface_consts_if_needed() {
             &["sails-canonical", "sails-meta-dump"],
             &out_dir,
         )
-        .unwrap_or_else(|err| panic!("failed to generate canonical interface constants for {service}: {err}"));
+        .unwrap_or_else(|err| {
+            panic!("failed to generate canonical interface constants for {service}: {err}")
+        });
     }
 }
 
@@ -74,9 +76,7 @@ fn should_skip_build_work() -> bool {
 
 fn build_wasm_if_requested() {
     if env::var_os("CARGO_FEATURE_MOCKALL").is_some() {
-        eprintln!(
-            "[sails-build] mockall feature enabled; skipping wasm build for host-only tests"
-        );
+        eprintln!("[sails-build] mockall feature enabled; skipping wasm build for host-only tests");
         return;
     }
 

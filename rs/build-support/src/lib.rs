@@ -67,9 +67,7 @@ fn run_meta_dump(
     cmd.arg("run");
     if let Ok(host_target) = env::var("HOST") {
         if !host_target.is_empty() {
-            eprintln!(
-                "[sails-build] HOST={host_target}; targeting host triple for {service_path}"
-            );
+            eprintln!("[sails-build] HOST={host_target}; targeting host triple for {service_path}");
             cmd.arg("--target").arg(host_target);
         }
     }
@@ -167,8 +165,7 @@ fn format_byte_array(bytes: &[u8]) -> String {
 
 fn write_service_consts(out_dir: &Path, service_path: &str, contents: &[u8]) -> Result<()> {
     let consts_dir = out_dir.join(CONSTS_DIRNAME);
-    fs::create_dir_all(&consts_dir)
-        .with_context(|| format!("failed to create {consts_dir:?}"))?;
+    fs::create_dir_all(&consts_dir).with_context(|| format!("failed to create {consts_dir:?}"))?;
     let filename = consts_filename(service_path);
     let path = consts_dir.join(filename);
     let should_write = match fs::read(&path) {
