@@ -545,9 +545,8 @@ fn canonicalize_events(
         });
     }
 
-    canonicalized.sort_by(|lhs, rhs| {
-        canonical_event_sort_key(lhs).cmp(&canonical_event_sort_key(rhs))
-    });
+    canonicalized
+        .sort_by(|lhs, rhs| canonical_event_sort_key(lhs).cmp(&canonical_event_sort_key(rhs)));
     Ok(canonicalized)
 }
 
@@ -896,7 +895,7 @@ mod tests {
     }
 
     #[test]
-    fn merges_parent_types_via_resolver() {
+    fn skips_unreferenced_parent_types() {
         let base = service_unit("Base", &[], vec![unit_struct("Foo")]);
         let mid = service_unit("Mid", &["Base"], vec![unit_struct("Bar")]);
         let child = service_unit("Child", &["Mid"], vec![unit_struct("Baz")]);
@@ -922,9 +921,9 @@ mod tests {
         assert_eq!(envelope.service.extends[0].interface_id, 10);
         assert_eq!(envelope.service.extends[1].interface_id, 20);
 
-        assert!(envelope.types.contains_key("Base::Foo"));
-        assert!(envelope.types.contains_key("Mid::Bar"));
-        assert!(envelope.types.contains_key("Child::Baz"));
+        // No types are referenced by the service surface, so the canonical envelope
+        // should not contain any type definitions.
+        assert!(envelope.types.is_empty());
     }
 
     #[test]
