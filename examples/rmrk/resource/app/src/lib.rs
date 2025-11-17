@@ -7,9 +7,9 @@ extern crate alloc;
 #[cfg(not(target_arch = "wasm32"))]
 pub extern crate std;
 
-use crate::catalogs::{RmrkCatalog as _, RmrkCatalogProgram, rmrk_catalog::RmrkCatalogImpl};
+use crate::catalogs::{RmrkCatalog as _, RmrkCatalogProgram};
 use sails_rs::{
-    client::{self, Program as _, *},
+    client::{self, Program as _},
     prelude::*,
 };
 use services::ResourceStorage;

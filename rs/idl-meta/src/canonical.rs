@@ -68,21 +68,11 @@ impl Default for CanonicalHashSettings {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Default)]
 pub struct CanonicalService {
     pub extends: Vec<CanonicalParent>,
     pub functions: Vec<CanonicalFunction>,
     pub events: Vec<CanonicalEvent>,
-}
-
-impl Default for CanonicalService {
-    fn default() -> Self {
-        Self {
-            extends: Vec::new(),
-            functions: Vec::new(),
-            events: Vec::new(),
-        }
-    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
@@ -596,6 +586,7 @@ impl<'a> ParentInterface<'a> {
     }
 }
 
+#[derive(Clone, Default)]
 pub struct CanonicalizationContext<'a> {
     pub parent_interfaces: &'a [ParentInterface<'a>],
     pub parent_resolver: Option<&'a ParentResolver<'a>>,
@@ -614,15 +605,6 @@ impl<'a> fmt::Debug for CanonicalizationContext<'a> {
                     .unwrap_or("<none>"),
             )
             .finish()
-    }
-}
-
-impl<'a> Default for CanonicalizationContext<'a> {
-    fn default() -> Self {
-        Self {
-            parent_interfaces: &[],
-            parent_resolver: None,
-        }
     }
 }
 
@@ -899,9 +881,7 @@ fn convert_functions(
                 .transpose()?,
         });
     }
-    converted.sort_by(|lhs, rhs| {
-        canonical_function_sort_key(lhs).cmp(&canonical_function_sort_key(rhs))
-    });
+    converted.sort_by_key(canonical_function_sort_key);
     Ok(converted)
 }
 
@@ -916,7 +896,7 @@ fn convert_events(
             payload: convert_aggregate_binding(&event.payload, ids)?,
         });
     }
-    converted.sort_by(|lhs, rhs| canonical_event_sort_key(lhs).cmp(&canonical_event_sort_key(rhs)));
+    converted.sort_by_key(canonical_event_sort_key);
     Ok(converted)
 }
 
@@ -1192,7 +1172,7 @@ fn canonical_type_repr(ty: &CanonicalType) -> String {
         ),
         CanonicalType::Named { type_id, args } => {
             if args.is_empty() {
-                format!("type:{}", type_id)
+                format!("type:{type_id}")
             } else {
                 let mut repr = String::new();
                 repr.push_str("type:");

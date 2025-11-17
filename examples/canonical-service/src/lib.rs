@@ -4,14 +4,9 @@ extern crate alloc;
 
 use sails_rs::prelude::*;
 
+#[derive(Default)]
 pub struct DemoService {
     counter: u32,
-}
-
-impl Default for DemoService {
-    fn default() -> Self {
-        Self { counter: 0 }
-    }
 }
 
 #[service]

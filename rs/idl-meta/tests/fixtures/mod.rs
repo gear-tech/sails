@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use sails_idl_meta::ast::*;
 
 pub fn canvas_service() -> ServiceUnit {

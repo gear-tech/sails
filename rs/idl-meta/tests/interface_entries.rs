@@ -45,11 +45,13 @@ fn entry_meta_assigns_ids_and_async_flags() {
 fn entry_meta_errors_on_overflow() {
     use sails_idl_meta::canonical::{CanonicalEnvelope, CanonicalService};
 
-    let mut envelope = CanonicalEnvelope::default();
-    envelope.service = CanonicalService {
-        extends: Vec::new(),
-        functions: Vec::new(),
-        events: Vec::new(),
+    let mut envelope = CanonicalEnvelope {
+        service: CanonicalService {
+            extends: Vec::new(),
+            functions: Vec::new(),
+            events: Vec::new(),
+        },
+        ..CanonicalEnvelope::default()
     };
 
     // Simulate overflow by crafting many fake entries.

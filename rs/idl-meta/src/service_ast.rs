@@ -69,7 +69,7 @@ pub fn build_service_unit(
     Ok(ServiceUnit {
         name: name.to_string(),
         extends,
-        funcs: commands.into_iter().chain(queries.into_iter()).collect(),
+        funcs: commands.into_iter().chain(queries).collect(),
         events,
         types,
         docs: Vec::new(),
@@ -263,7 +263,7 @@ impl TypeConverter {
             }
             TypeDef::Array(TypeDefArray { len, type_param }) => {
                 let item = self.type_decl(type_param.id)?;
-                TypeDecl::Array(Box::new(item), len as u32)
+                TypeDecl::Array(Box::new(item), len)
             }
             TypeDef::Tuple(TypeDefTuple { fields }) => {
                 let items = fields
@@ -284,14 +284,14 @@ impl TypeConverter {
             TypeDef::Variant(variant) if is_result_type(&path) => {
                 let variants = variant.variants;
                 let ok = variants
-                    .get(0)
-                    .and_then(|v| v.fields.get(0))
+                    .first()
+                    .and_then(|v| v.fields.first())
                     .ok_or(ServiceAstError::InvalidFunction("result missing ok"))?
                     .ty
                     .id;
                 let err = variants
                     .get(1)
-                    .and_then(|v| v.fields.get(0))
+                    .and_then(|v| v.fields.first())
                     .ok_or(ServiceAstError::InvalidFunction("result missing err"))?
                     .ty
                     .id;
@@ -490,14 +490,14 @@ fn short_type_name(full: &str) -> &str {
 fn is_option_type(path: &Path<PortableForm>) -> bool {
     path.segments
         .last()
-        .map(|seg| seg.to_string() == "Option")
+        .map(|seg| *seg == "Option")
         .unwrap_or(false)
 }
 
 fn is_result_type(path: &Path<PortableForm>) -> bool {
     path.segments
         .last()
-        .map(|seg| seg.to_string() == "Result")
+        .map(|seg| *seg == "Result")
         .unwrap_or(false)
 }
 

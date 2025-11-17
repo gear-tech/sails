@@ -1,4 +1,5 @@
 #![no_std]
+#![allow(unexpected_cfgs)]
 
 use redirect_client::{redirect::Redirect as _, *};
 use sails_rs::{client::*, prelude::*};

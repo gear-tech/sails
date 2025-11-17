@@ -124,10 +124,7 @@ impl ServiceBuilder<'_> {
     }
 
     pub(super) fn canonical_include(&self) -> TokenStream {
-        let consts_rel_path = format!(
-            "/sails_interface_consts/{}.rs",
-            self.service_ident.to_string()
-        );
+        let consts_rel_path = format!("/sails_interface_consts/{}.rs", self.service_ident);
         let consts_literal = Literal::string(&consts_rel_path);
         quote! {
             #[allow(unexpected_cfgs)]

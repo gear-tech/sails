@@ -12,3 +12,8 @@ redirect-client = { path = "../client" }
 
 [build-dependencies]
 sails-rs = { workspace = true, features = ["wasm-builder"] }
+
+[features]
+default = []
+sails-canonical = []
+sails-meta-dump = ["sails-canonical"]
