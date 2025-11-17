@@ -97,14 +97,8 @@ fn drops_unused_types_from_canonical_output() {
     let service = unused_type_service();
     let ctx = CanonicalizationContext::default();
     let result = compute_interface_id(&service, &ctx).expect("canonicalization");
-    assert!(result
-        .envelope
-        .type_bindings
-        .contains_key("self::Used"));
-    assert!(!result
-        .envelope
-        .type_bindings
-        .contains_key("self::Unused"));
+    assert!(result.envelope.type_bindings.contains_key("self::Used"));
+    assert!(!result.envelope.type_bindings.contains_key("self::Unused"));
 }
 
 #[test]
@@ -199,7 +193,11 @@ fn renaming_parent_type_name_does_not_change_child_interface_id() {
         compute_interface_id(&base, &base_ctx).expect("renamed base canonicalization");
     assert_eq!(base_result.interface_id, renamed_base.interface_id);
 
-    rename_type_references(&mut child, "CollisionBase::Shared", "CollisionBase::SharedRenamed");
+    rename_type_references(
+        &mut child,
+        "CollisionBase::Shared",
+        "CollisionBase::SharedRenamed",
+    );
     let renamed_parent = ParentInterface::new(&base, renamed_base.interface_id);
     let renamed_parents = [renamed_parent];
     let renamed_ctx = CanonicalizationContext::with_parents(&renamed_parents);
