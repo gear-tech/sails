@@ -6,6 +6,7 @@
 //! calling the generated `__sails_any_service_meta` hook.
 
 use std::{
+    collections::BTreeMap,
     env, fs,
     io::{self, Write},
     path::{Path, PathBuf},
@@ -409,6 +410,8 @@ pub struct InterfaceArtifacts {
     #[serde(with = "serde_bytes")]
     pub canonical_json: ByteBuf,
     pub entry_meta: Vec<EntryRecord>,
+    #[serde(default, skip_serializing_if = "DiagnosticsRecord::is_empty")]
+    pub diagnostics: DiagnosticsRecord,
 }
 
 #[derive(Debug, Clone)]
@@ -429,6 +432,31 @@ pub struct EntryRecord {
     pub entry_id: u16,
     pub kind: EntryKindRepr,
     pub is_async: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct DiagnosticsRecord {
+    pub type_bindings: BTreeMap<String, String>,
+    pub type_display_names: BTreeMap<String, String>,
+}
+
+impl DiagnosticsRecord {
+    fn from_envelope(envelope: &canonical::CanonicalEnvelope) -> Self {
+        let mut display_names = BTreeMap::new();
+        for (type_id, ty) in &envelope.types {
+            if let Some(name) = &ty.display_name {
+                display_names.insert(type_id.clone(), name.clone());
+            }
+        }
+        Self {
+            type_bindings: envelope.type_bindings.clone(),
+            type_display_names: display_names,
+        }
+    }
+
+    fn is_empty(&self) -> bool {
+        self.type_bindings.is_empty() && self.type_display_names.is_empty()
+    }
 }
 
 impl EntryRecord {
@@ -500,6 +528,7 @@ pub fn canonicalize_service_with_async(
             .into_iter()
             .map(EntryRecord::from_entry)
             .collect(),
+        diagnostics: DiagnosticsRecord::from_envelope(&result.envelope),
     })
 }
 

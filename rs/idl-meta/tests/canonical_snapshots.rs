@@ -167,6 +167,47 @@ fn renaming_parent_name_does_not_change_child_interface_id() {
     assert_eq!(baseline_child.interface_id, renamed_child.interface_id);
 }
 
+#[test]
+fn renaming_type_name_does_not_change_interface_id() {
+    let mut service = canvas_service();
+    let ctx = CanonicalizationContext::default();
+    let baseline = compute_interface_id(&service, &ctx).expect("baseline canonicalization");
+
+    rename_type_definition(&mut service, "Point", "PointRenamed");
+    let renamed = compute_interface_id(&service, &ctx).expect("renamed canonicalization");
+
+    assert_eq!(baseline.interface_id, renamed.interface_id);
+}
+
+#[test]
+fn renaming_parent_type_name_does_not_change_child_interface_id() {
+    let mut base = collision_base_service();
+    let mut child = collision_child_service();
+    let base_ctx = CanonicalizationContext::default();
+    let base_result = compute_interface_id(&base, &base_ctx).expect("base canonicalization");
+    let baseline_child_id = {
+        let parent = ParentInterface::new(&base, base_result.interface_id);
+        let parents = [parent];
+        let ctx = CanonicalizationContext::with_parents(&parents);
+        compute_interface_id(&child, &ctx)
+            .expect("child canonicalization")
+            .interface_id
+    };
+
+    rename_type_definition(&mut base, "Shared", "SharedRenamed");
+    let renamed_base =
+        compute_interface_id(&base, &base_ctx).expect("renamed base canonicalization");
+    assert_eq!(base_result.interface_id, renamed_base.interface_id);
+
+    rename_type_references(&mut child, "CollisionBase::Shared", "CollisionBase::SharedRenamed");
+    let renamed_parent = ParentInterface::new(&base, renamed_base.interface_id);
+    let renamed_parents = [renamed_parent];
+    let renamed_ctx = CanonicalizationContext::with_parents(&renamed_parents);
+    let renamed_child =
+        compute_interface_id(&child, &renamed_ctx).expect("renamed child canonicalization");
+    assert_eq!(baseline_child_id, renamed_child.interface_id);
+}
+
 fn rename_service(service: &mut ServiceUnit, new_name: &str) {
     service.name = new_name.to_string();
 }
@@ -177,6 +218,19 @@ fn rename_parent_references(service: &mut ServiceUnit, old: &str, new: &str) {
             *extends = new.to_string();
         }
     }
+    rename_type_references(service, old, new);
+}
+
+fn rename_type_definition(service: &mut ServiceUnit, old: &str, new: &str) {
+    rename_type_references(service, old, new);
+    for ty in &mut service.types {
+        if ty.name == old {
+            ty.name = new.to_string();
+        }
+    }
+}
+
+fn rename_type_references(service: &mut ServiceUnit, old: &str, new: &str) {
     for func in &mut service.funcs {
         for param in &mut func.params {
             rename_type_decl(&mut param.type_decl, old, new);

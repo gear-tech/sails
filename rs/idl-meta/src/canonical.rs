@@ -28,6 +28,7 @@ pub struct CanonicalEnvelope {
     pub hash: CanonicalHashSettings,
     pub service: CanonicalService,
     pub types: BTreeMap<String, CanonicalNamedType>,
+    #[serde(skip_serializing)]
     pub type_bindings: BTreeMap<String, String>,
 }
 
@@ -117,7 +118,7 @@ pub struct CanonicalEvent {
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct CanonicalNamedType {
     pub kind: CanonicalNamedTypeKind,
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(skip_serializing)]
     pub display_name: Option<String>,
 }
 
