@@ -29,6 +29,17 @@ program ComplexTypesProgram {
             NotFound(string),
             AccessDenied { id: ActorId, reason: string },
         }
+
+        struct GenericData<T, U> {
+            value_t: T,
+            value_u: U,
+            description: string,
+        }
+
+        enum GenericResult<V> {
+            Success(V),
+            Failure(ErrorType),
+        }
     }
 }
 
@@ -46,6 +57,18 @@ service MyComplexService {
 
         @query
         GetActorIds(count: u32) -> Vec<ActorId>;
+
+        ProcessGenericData(
+            input_data: GenericData<u32, string>,
+            list_of_generics: Vec<GenericData<ActorId, U256>>,
+            optional_generic_result: Option<GenericResult<bool>>
+        ) -> GenericData<bool, u8>;
+
+        UpdateStatus(
+            id: u64,
+            new_status: ServiceStatus,
+            metadata: Option<string>
+        ) -> GenericResult<u32>;
     }
     types {
         struct ServiceLocalConfig {
