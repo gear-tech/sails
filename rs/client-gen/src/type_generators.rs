@@ -281,25 +281,13 @@ struct TypeDeclGenerator<'ast> {
 impl<'ast> Visitor<'ast> for TypeDeclGenerator<'ast> {
     fn visit_slice_type_decl(&mut self, item_type_decl: &'ast TypeDecl) {
         self.tokens.append("Vec<");
-        // Create a new TypeDeclGenerator with an empty path for inner types
-        let mut inner_generator = TypeDeclGenerator {
-            tokens: Tokens::new(),
-            path: self.path,
-        };
-        visitor::accept_type_decl(item_type_decl, &mut inner_generator);
-        self.tokens.append(inner_generator.tokens);
+        visitor::accept_type_decl(item_type_decl, self);
         self.tokens.append(">");
     }
 
     fn visit_array_type_decl(&mut self, item_type_decl: &'ast TypeDecl, len: u32) {
         self.tokens.append("[");
-        // Create a new TypeDeclGenerator with an empty path for inner types
-        let mut inner_generator = TypeDeclGenerator {
-            tokens: Tokens::new(),
-            path: self.path,
-        };
-        visitor::accept_type_decl(item_type_decl, &mut inner_generator);
-        self.tokens.append(inner_generator.tokens);
+        visitor::accept_type_decl(item_type_decl, self);
         self.tokens.append(format!("; {len}]"));
     }
 
@@ -309,13 +297,7 @@ impl<'ast> Visitor<'ast> for TypeDeclGenerator<'ast> {
             if i > 0 {
                 self.tokens.append(", ");
             }
-            // Create a new TypeDeclGenerator with an empty path for inner types
-            let mut inner_generator = TypeDeclGenerator {
-                tokens: Tokens::new(),
-                path: self.path,
-            };
-            visitor::accept_type_decl(item, &mut inner_generator);
-            self.tokens.append(inner_generator.tokens);
+            visitor::accept_type_decl(item, self);
         }
         if items.len() == 1 {
             self.tokens.append(",");
@@ -325,13 +307,7 @@ impl<'ast> Visitor<'ast> for TypeDeclGenerator<'ast> {
 
     fn visit_option_type_decl(&mut self, inner_type_decl: &'ast TypeDecl) {
         self.tokens.append("Option<");
-        // Create a new TypeDeclGenerator with an empty path for inner types
-        let mut inner_generator = TypeDeclGenerator {
-            tokens: Tokens::new(),
-            path: self.path,
-        };
-        visitor::accept_type_decl(inner_type_decl, &mut inner_generator);
-        self.tokens.append(inner_generator.tokens);
+        visitor::accept_type_decl(inner_type_decl, self);
         self.tokens.append(">");
     }
 
@@ -341,21 +317,9 @@ impl<'ast> Visitor<'ast> for TypeDeclGenerator<'ast> {
         err_type_decl: &'ast TypeDecl,
     ) {
         self.tokens.append("Result<");
-        // Create a new TypeDeclGenerator with an empty path for inner types
-        let mut ok_generator = TypeDeclGenerator {
-            tokens: Tokens::new(),
-            path: self.path,
-        };
-        visitor::accept_type_decl(ok_type_decl, &mut ok_generator);
-        self.tokens.append(ok_generator.tokens);
+        visitor::accept_type_decl(ok_type_decl, self);
         self.tokens.append(", ");
-        // Create a new TypeDeclGenerator with an empty path for inner types
-        let mut err_generator = TypeDeclGenerator {
-            tokens: Tokens::new(),
-            path: self.path,
-        };
-        visitor::accept_type_decl(err_type_decl, &mut err_generator);
-        self.tokens.append(err_generator.tokens);
+        visitor::accept_type_decl(err_type_decl, self);
         self.tokens.append(">");
     }
 
@@ -396,13 +360,7 @@ impl<'ast> Visitor<'ast> for TypeDeclGenerator<'ast> {
                 if i > 0 {
                     self.tokens.append(", ");
                 }
-                // Create a new TypeDeclGenerator with an empty path for inner generics
-                let mut inner_generator = TypeDeclGenerator {
-                    tokens: Tokens::new(),
-                    path: self.path,
-                };
-                visitor::accept_type_decl(generic, &mut inner_generator);
-                self.tokens.append(inner_generator.tokens);
+                visitor::accept_type_decl(generic, self);
             }
             self.tokens.append(">");
         }
