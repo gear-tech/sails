@@ -1,70 +1,72 @@
-type Error = enum {
-  NotAuthorized,
-  ZeroResourceId,
-  ResourceAlreadyExists,
-  ResourceNotFound,
-  WrongResourceType,
-  PartNotFound,
-};
+program RmrkResource {
+    constructors {
+        New();
+    }
+    services {
+        RmrkResource,
+    }
+    types {
+        enum Error {
+            NotAuthorized,
+            ZeroResourceId,
+            ResourceAlreadyExists,
+            ResourceNotFound,
+            WrongResourceType,
+            PartNotFound,
+        }
 
-type Resource = enum {
-  Basic: BasicResource,
-  Slot: SlotResource,
-  Composed: ComposedResource,
-};
+        enum Resource {
+            Basic(BasicResource),
+            Slot(SlotResource),
+            Composed(ComposedResource),
+        }
 
-type BasicResource = struct {
-  /// URI like IPFS hash
-  src: str,
-  /// If the resource has the thumb property, this will be a URI to a thumbnail of the given
-  /// resource.
-  thumb: opt str,
-  /// Reference to IPFS location of metadata
-  metadata_uri: str,
-};
+        struct BasicResource {
+            /// URI like IPFS hash
+            src: string,
+            /// If the resource has the thumb property, this will be a URI to a thumbnail of the given
+            /// resource.
+            thumb: Option<string>,
+            /// Reference to IPFS location of metadata
+            metadata_uri: string,
+        }
 
-type SlotResource = struct {
-  /// URI like ipfs hash
-  src: str,
-  /// If the resource has the thumb property, this will be a URI to a thumbnail of the given
-  /// resource.
-  thumb: str,
-  /// Reference to IPFS location of metadata
-  metadata_uri: str,
-  base: actor_id,
-  /// If the resource has the slot property, it was designed to fit into a specific Base's slot.
-  slot: u32,
-};
+        struct SlotResource {
+            /// URI like ipfs hash
+            src: string,
+            /// If the resource has the thumb property, this will be a URI to a thumbnail of the given
+            /// resource.
+            thumb: string,
+            /// Reference to IPFS location of metadata
+            metadata_uri: string,
+            base: ActorId,
+            /// If the resource has the slot property, it was designed to fit into a specific Base's slot.
+            slot: u32,
+        }
 
-type ComposedResource = struct {
-  /// URI like ipfs hash
-  src: str,
-  /// If the resource has the thumb property, this will be a URI to a thumbnail of the given
-  /// resource.
-  thumb: str,
-  /// Reference to IPFS location of metadata
-  metadata_uri: str,
-  base: actor_id,
-  parts: vec u32,
-};
-
-constructor {
-  New : ();
-};
+        struct ComposedResource {
+            /// URI like ipfs hash
+            src: string,
+            /// If the resource has the thumb property, this will be a URI to a thumbnail of the given
+            /// resource.
+            thumb: string,
+            /// Reference to IPFS location of metadata
+            metadata_uri: string,
+            base: ActorId,
+            parts: Vec<u32>,
+        }
+    }
+}
 
 service RmrkResource {
-  AddPartToResource : (resource_id: u8, part_id: u32) -> result (u32, Error);
-  AddResourceEntry : (resource_id: u8, resource: Resource) -> result (struct { u8, Resource }, Error);
-  query Resource : (resource_id: u8) -> result (Resource, Error);
-
-  events {
-    ResourceAdded: struct {
-      resource_id: u8
-    };
-    PartAdded: struct {
-      resource_id: u8,
-      part_id: u32,
-    };
-  }
-};
-
+    functions {
+        AddPartToResource(resource_id: u8, part_id: u32) -> Result<u32, Error>;
+        AddResourceEntry(resource_id: u8, resource: Resource) -> Result<(u8, Resource), Error>;
+        @query
+        Resource(resource_id: u8) -> Result<Resource, Error>;
+    }
+    events {
+        ResourceAdded(resource_id: u8),
+        PartAdded(resource_id: u8, part_id: u32),
+    }
+}

@@ -63,7 +63,7 @@ pub mod redirect {
 
     pub mod io {
         use super::*;
-        sails_rs::io_struct_impl!(Exit (inheritor_id: ActorId) -> ());
-        sails_rs::io_struct_impl!(GetProgramId () -> ActorId);
+        sails_rs::io_struct_impl!(Exit (inheritor_id: super::ActorId) -> ());
+        sails_rs::io_struct_impl!(GetProgramId () -> super::ActorId);
     }
 }
