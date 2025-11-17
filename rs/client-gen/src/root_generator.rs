@@ -1,4 +1,4 @@
-use crate::{ctor_generators::*, mock_generator::*, service_generators::*, type_generators::*};
+use crate::{ctor_generators::*, mock_generator::*, service_generators::*, type_generators::*, helpers::generate_doc_comments};
 use convert_case::{Case, Casing};
 use genco::prelude::*;
 use rust::Tokens;
@@ -172,11 +172,7 @@ impl<'ast> Visitor<'ast> for RootGenerator<'ast> {
         let route_pascal_case = service_item.route.to_case(Case::Pascal);
         let route_snake_case = service_item.route.to_case(Case::Snake);
 
-        for doc in &service_item.docs {
-            quote_in! { self.service_trait_tokens =>
-                $['\r'] $("///") $doc
-            };
-        }
+        generate_doc_comments(&mut self.service_trait_tokens, &service_item.docs);
 
         quote_in!(self.service_trait_tokens =>
             $['\r'] fn $(&method_name)(&self) -> $(self.sails_path)::client::Service<$(route_snake_case.clone())::$(route_pascal_case.clone())Impl, Self::Env>;

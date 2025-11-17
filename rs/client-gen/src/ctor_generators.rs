@@ -52,11 +52,7 @@ impl<'ast> Visitor<'ast> for CtorGenerator<'ast> {
         let params_with_types = &fn_args_with_types(&func.params);
         let args = &encoded_args(&func.params);
 
-        for doc in &func.docs {
-            quote_in! { self.trait_ctors_tokens =>
-                $['\r'] $("///") $doc
-            };
-        }
+        generate_doc_comments(&mut self.trait_ctors_tokens, &func.docs);
 
         if fn_name_snake == "new" {
             quote_in! {self.trait_ctors_tokens =>

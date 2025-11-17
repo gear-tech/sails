@@ -1,4 +1,6 @@
 use crate::func_param_generator::FuncParamGenerator;
+use genco::prelude::*;
+use rust::Tokens;
 use sails_idl_parser_v2::ast::FuncParam;
 use sails_idl_parser_v2::ast::visitor::Visitor;
 
@@ -34,4 +36,12 @@ pub(crate) fn fn_args_with_types_path<'ast>(params: &'ast [FuncParam], path: &'a
         })
         .collect::<Vec<_>>()
         .join(", ")
+}
+
+pub(crate) fn generate_doc_comments(target_tokens: &mut Tokens, docs: &[String]) {
+    for doc in docs {
+        quote_in! { *target_tokens =>
+            $['\r'] $("///") $doc
+        };
+    }
 }

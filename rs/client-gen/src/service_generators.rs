@@ -82,11 +82,8 @@ impl<'ast> Visitor<'ast> for ServiceGenerator<'ast> {
         let params_with_types = &fn_args_with_types(&func.params);
         let args = encoded_args(&func.params);
 
-        for doc in &func.docs {
-            quote_in! { self.trait_tokens =>
-                $['\r'] $("///") $doc
-            };
-        }
+        generate_doc_comments(&mut self.trait_tokens, &func.docs);
+
         quote_in! { self.trait_tokens =>
             $['\r'] fn $fn_name_snake ($self_ref, $params_with_types) -> $(self.sails_path)::client::PendingCall<io::$fn_name, Self::Env>;
         };

@@ -3,6 +3,7 @@ use rust::Tokens;
 use sails_idl_parser_v2::{ast::visitor, ast::visitor::Visitor, ast::*};
 
 use crate::type_parameter_generator::TypeParameterGenerator;
+use crate::helpers::generate_doc_comments;
 
 pub(crate) struct TopLevelTypeGenerator<'ast> {
     type_name: &'ast str,
@@ -35,11 +36,7 @@ impl<'ast> TopLevelTypeGenerator<'ast> {
 
 impl<'ast> Visitor<'ast> for TopLevelTypeGenerator<'ast> {
     fn visit_type(&mut self, r#type: &'ast Type) {
-        for doc in &r#type.docs {
-            quote_in! { self.tokens =>
-                $['\r'] $("///") $doc
-            };
-        }
+        generate_doc_comments(&mut self.tokens, &r#type.docs);
 
         if !r#type.type_params.is_empty() {
             self.type_params_tokens.append("<");
@@ -137,11 +134,7 @@ impl<'ast> Visitor<'ast> for StructDefGenerator<'ast> {
     fn visit_struct_field(&mut self, struct_field: &'ast StructField) {
         let type_decl_code = generate_type_decl_with_path(&struct_field.type_decl, "");
 
-        for doc in &struct_field.docs {
-            quote_in! { self.tokens =>
-                $['\r'] $("///") $doc
-            };
-        }
+        generate_doc_comments(&mut self.tokens, &struct_field.docs);
 
         if let Some(field_name) = &struct_field.name {
             quote_in! { self.tokens =>
@@ -197,11 +190,7 @@ impl<'ast> Visitor<'ast> for EnumDefGenerator<'ast> {
     }
 
     fn visit_enum_variant(&mut self, enum_variant: &'ast EnumVariant) {
-        for doc in &enum_variant.docs {
-            quote_in! { self.tokens =>
-                $['\r'] $("///") $doc
-            };
-        }
+        generate_doc_comments(&mut self.tokens, &enum_variant.docs);
 
         let variant_name = &enum_variant.name;
 
@@ -239,11 +228,7 @@ impl<'ast> Visitor<'ast> for EnumDefGenerator<'ast> {
             // Struct variant: `Variant { field1: Type1, ... },`
             let mut field_tokens = Tokens::new();
             for field in &enum_variant.def.fields {
-                for doc in &field.docs {
-                    quote_in! { field_tokens =>
-                        $['\r'] $("///") $doc
-                    };
-                }
+                generate_doc_comments(&mut field_tokens, &field.docs);
                 let field_name = field.name.as_ref().unwrap();
                 let type_code = generate_type_decl_with_path(&field.type_decl, "");
                 quote_in! { field_tokens =>
