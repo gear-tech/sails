@@ -3,7 +3,7 @@ use rust::Tokens;
 use sails_idl_parser_v2::{ast::visitor, ast::visitor::Visitor, ast::*};
 
 use crate::type_parameter_generator::TypeParameterGenerator;
-use crate::helpers::generate_doc_comments;
+use crate::helpers::{generate_doc_comments, FieldVariantKind, get_field_variant_kind};
 
 pub(crate) struct TopLevelTypeGenerator<'ast> {
     type_name: &'ast str,
@@ -122,12 +122,21 @@ impl<'a> StructDefGenerator<'a> {
 
 impl<'ast> Visitor<'ast> for StructDefGenerator<'ast> {
     fn visit_struct_def(&mut self, struct_def: &'ast StructDef) {
-        let is_regular_struct = struct_def.fields.iter().all(|f| f.name.is_some());
-        let is_tuple_struct = struct_def.fields.iter().all(|f| f.name.is_none());
-        if !is_regular_struct && !is_tuple_struct {
-            panic!("Struct must be either regular or tuple");
+        match get_field_variant_kind(&struct_def.fields) {
+            FieldVariantKind::Unit => {
+                // A StructDef with no fields is a regular struct (e.g., `struct MyStruct;`)
+                self.is_tuple_struct = false;
+            }
+            FieldVariantKind::Tuple => {
+                self.is_tuple_struct = true;
+            }
+            FieldVariantKind::Struct => {
+                self.is_tuple_struct = false;
+            }
+            FieldVariantKind::Mixed => {
+                panic!("Struct fields have a mix of named and unnamed fields, which is not supported.");
+            }
         }
-        self.is_tuple_struct = is_tuple_struct;
         visitor::accept_struct_def(struct_def, self);
     }
 
@@ -194,52 +203,49 @@ impl<'ast> Visitor<'ast> for EnumDefGenerator<'ast> {
 
         let variant_name = &enum_variant.name;
 
-        if enum_variant.def.fields.is_empty() {
-            // Unit variant: `Variant,`
-            quote_in! { self.tokens =>
-                $['\r'] $variant_name,
-            };
-            return;
-        }
-
-        let is_tuple = enum_variant.def.fields.iter().all(|f| f.name.is_none());
-        let is_struct = enum_variant.def.fields.iter().all(|f| f.name.is_some());
-
-        if !is_tuple && !is_struct {
-            panic!(
-                "Enum variant '{variant_name}' has a mix of named and unnamed fields, which is not supported."
-            );
-        }
-
-        if is_tuple {
-            // Tuple variant: `Variant(Type1, Type2),`
-            let mut field_tokens = Tokens::new();
-            for (i, field) in enum_variant.def.fields.iter().enumerate() {
-                if i > 0 {
-                    field_tokens.append(", ");
-                }
-                let type_code = generate_type_decl_with_path(&field.type_decl, "");
-                field_tokens.append(type_code);
-            }
-            quote_in! { self.tokens =>
-                $['\r'] $variant_name($field_tokens),
-            };
-        } else {
-            // Struct variant: `Variant { field1: Type1, ... },`
-            let mut field_tokens = Tokens::new();
-            for field in &enum_variant.def.fields {
-                generate_doc_comments(&mut field_tokens, &field.docs);
-                let field_name = field.name.as_ref().unwrap();
-                let type_code = generate_type_decl_with_path(&field.type_decl, "");
-                quote_in! { field_tokens =>
-                    $['\r'] $field_name: $type_code,
+        match get_field_variant_kind(&enum_variant.def.fields) {
+            FieldVariantKind::Unit => {
+                // Unit variant: `Variant,`
+                quote_in! { self.tokens =>
+                    $['\r'] $variant_name,
                 };
             }
-            quote_in! { self.tokens =>
-                $['\r'] $variant_name {
-                    $(field_tokens)
-                $['\r'] },
-            };
+            FieldVariantKind::Tuple => {
+                // Tuple variant: `Variant(Type1, Type2),`
+                let mut field_tokens = Tokens::new();
+                for (i, field) in enum_variant.def.fields.iter().enumerate() {
+                    if i > 0 {
+                        field_tokens.append(", ");
+                    }
+                    let type_code = generate_type_decl_with_path(&field.type_decl, "");
+                    field_tokens.append(type_code);
+                }
+                quote_in! { self.tokens =>
+                    $['\r'] $variant_name($field_tokens),
+                };
+            }
+            FieldVariantKind::Struct => {
+                // Struct variant: `Variant { field1: Type1, ... },`
+                let mut field_tokens = Tokens::new();
+                for field in &enum_variant.def.fields {
+                    generate_doc_comments(&mut field_tokens, &field.docs);
+                    let field_name = field.name.as_ref().unwrap();
+                    let type_code = generate_type_decl_with_path(&field.type_decl, "");
+                    quote_in! { field_tokens =>
+                        $['\r'] $field_name: $type_code,
+                    };
+                }
+                quote_in! { self.tokens =>
+                    $['\r'] $variant_name {
+                        $(field_tokens)
+                    $['\r'] },
+                };
+            }
+            FieldVariantKind::Mixed => {
+                panic!(
+                    "Enum variant '{variant_name}' has a mix of named and unnamed fields, which is not supported."
+                );
+            }
         }
     }
 }

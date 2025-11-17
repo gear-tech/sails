@@ -1,7 +1,7 @@
 use crate::func_param_generator::FuncParamGenerator;
 use genco::prelude::*;
 use rust::Tokens;
-use sails_idl_parser_v2::ast::FuncParam;
+use sails_idl_parser_v2::ast::{FuncParam, StructField};
 use sails_idl_parser_v2::ast::visitor::Visitor;
 
 pub(crate) fn fn_args(params: &[FuncParam]) -> String {
@@ -43,5 +43,29 @@ pub(crate) fn generate_doc_comments(target_tokens: &mut Tokens, docs: &[String])
         quote_in! { *target_tokens =>
             $['\r'] $("///") $doc
         };
+    }
+}
+
+pub(crate) enum FieldVariantKind {
+    Unit,
+    Tuple,
+    Struct,
+    Mixed,
+}
+
+pub(crate) fn get_field_variant_kind(fields: &[StructField]) -> FieldVariantKind {
+    if fields.is_empty() {
+        return FieldVariantKind::Unit;
+    }
+
+    let is_tuple = fields.iter().all(|f| f.name.is_none());
+    let is_struct = fields.iter().all(|f| f.name.is_some());
+
+    if is_tuple {
+        FieldVariantKind::Tuple
+    } else if is_struct {
+        FieldVariantKind::Struct
+    } else {
+        FieldVariantKind::Mixed
     }
 }

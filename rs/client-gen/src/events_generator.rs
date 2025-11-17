@@ -1,7 +1,7 @@
 use genco::prelude::*;
 use sails_idl_parser_v2::{ast::visitor, ast::visitor::Visitor, ast::*};
 
-use crate::helpers::generate_doc_comments;
+use crate::helpers::{generate_doc_comments, FieldVariantKind, get_field_variant_kind};
 
 pub(crate) struct EventsModuleGenerator<'ast> {
     service_name: &'ast str,
@@ -69,54 +69,51 @@ impl<'ast> Visitor<'ast> for EventsModuleGenerator<'ast> {
 
         let variant_name = &event.name;
 
-        if event.def.fields.is_empty() {
-            // Unit variant: `Variant,`
-            quote_in! { self.tokens =>
-                $['\r'] $variant_name,
-            };
-            return;
-        }
-
-        let is_tuple = event.def.fields.iter().all(|f| f.name.is_none());
-        let is_struct = event.def.fields.iter().all(|f| f.name.is_some());
-
-        if !is_tuple && !is_struct {
-            panic!(
-                "Event variant '{variant_name}' has a mix of named and unnamed fields, which is not supported."
-            );
-        }
-
-        if is_tuple {
-            // Tuple variant: `Variant(Type1, Type2),`
-            let mut field_tokens = rust::Tokens::new();
-            for (i, field) in event.def.fields.iter().enumerate() {
-                if i > 0 {
-                    field_tokens.append(", ");
-                }
-                let type_code =
-                    crate::type_generators::generate_type_decl_with_path(&field.type_decl, "super");
-                field_tokens.append(type_code);
-            }
-            quote_in! { self.tokens =>
-                $['\r'] $variant_name($field_tokens),
-            };
-        } else {
-            // Struct variant: `Variant { field1: Type1, ... },`
-            let mut field_tokens = rust::Tokens::new();
-            for field in &event.def.fields {
-                generate_doc_comments(&mut field_tokens, &field.docs);
-                let field_name = field.name.as_ref().unwrap();
-                let type_code =
-                    crate::type_generators::generate_type_decl_with_path(&field.type_decl, "super");
-                quote_in! { field_tokens =>
-                    $['\r'] $field_name: $type_code,
+        match get_field_variant_kind(&event.def.fields) {
+            FieldVariantKind::Unit => {
+                // Unit variant: `Variant,`
+                quote_in! { self.tokens =>
+                    $['\r'] $variant_name,
                 };
             }
-            quote_in! { self.tokens =>
-                $['\r'] $variant_name {
-                    $(field_tokens)
-                $['\r'] },
-            };
+            FieldVariantKind::Tuple => {
+                // Tuple variant: `Variant(Type1, Type2),`
+                let mut field_tokens = rust::Tokens::new();
+                for (i, field) in event.def.fields.iter().enumerate() {
+                    if i > 0 {
+                        field_tokens.append(", ");
+                    }
+                    let type_code =
+                        crate::type_generators::generate_type_decl_with_path(&field.type_decl, "super");
+                    field_tokens.append(type_code);
+                }
+                quote_in! { self.tokens =>
+                    $['\r'] $variant_name($field_tokens),
+                };
+            }
+            FieldVariantKind::Struct => {
+                // Struct variant: `Variant { field1: Type1, ... },`
+                let mut field_tokens = rust::Tokens::new();
+                for field in &event.def.fields {
+                    generate_doc_comments(&mut field_tokens, &field.docs);
+                    let field_name = field.name.as_ref().unwrap();
+                    let type_code =
+                        crate::type_generators::generate_type_decl_with_path(&field.type_decl, "super");
+                    quote_in! { field_tokens =>
+                        $['\r'] $field_name: $type_code,
+                    };
+                }
+                quote_in! { self.tokens =>
+                    $['\r'] $variant_name {
+                        $(field_tokens)
+                    $['\r'] },
+                };
+            }
+            FieldVariantKind::Mixed => {
+                panic!(
+                    "Event variant '{variant_name}' has a mix of named and unnamed fields, which is not supported."
+                );
+            }
         }
     }
 }
