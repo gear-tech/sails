@@ -2,18 +2,18 @@ use crate::helpers::*;
 use convert_case::{Case, Casing};
 use genco::prelude::*;
 use rust::Tokens;
-use sails_idl_parser::{ast::visitor, ast::visitor::Visitor, ast::*};
+use sails_idl_parser_v2::{ast::visitor::Visitor, ast::*};
 
-pub(crate) struct CtorGenerator<'a> {
-    service_name: &'a str,
-    sails_path: &'a str,
+pub(crate) struct CtorGenerator<'ast> {
+    service_name: &'ast str,
+    sails_path: &'ast str,
     ctor_tokens: Tokens,
     io_tokens: Tokens,
     trait_ctors_tokens: Tokens,
 }
 
-impl<'a> CtorGenerator<'a> {
-    pub(crate) fn new(service_name: &'a str, sails_path: &'a str) -> Self {
+impl<'ast> CtorGenerator<'ast> {
+    pub(crate) fn new(service_name: &'ast str, sails_path: &'ast str) -> Self {
         Self {
             service_name,
             sails_path,
@@ -44,19 +44,15 @@ impl<'a> CtorGenerator<'a> {
     }
 }
 
-impl<'ast> Visitor<'ast> for CtorGenerator<'_> {
-    fn visit_ctor(&mut self, ctor: &'ast Ctor) {
-        visitor::accept_ctor(ctor, self);
-    }
-
+impl<'ast> Visitor<'ast> for CtorGenerator<'ast> {
     fn visit_ctor_func(&mut self, func: &'ast CtorFunc) {
-        let fn_name = func.name();
+        let fn_name = &func.name;
         let fn_name_snake = &fn_name.to_case(Case::Snake);
 
-        let params_with_types = &fn_args_with_types(func.params());
-        let args = &encoded_args(func.params());
+        let params_with_types = &fn_args_with_types(&func.params);
+        let args = &encoded_args(&func.params);
 
-        for doc in func.docs() {
+        for doc in &func.docs {
             quote_in! { self.trait_ctors_tokens =>
                 $['\r'] $("///") $doc
             };
@@ -81,7 +77,7 @@ impl<'ast> Visitor<'ast> for CtorGenerator<'_> {
             }
         };
 
-        let params_with_types_super = &fn_args_with_types_path(func.params(), "super");
+        let params_with_types_super = &fn_args_with_types_path(&func.params, "super");
         quote_in! { self.io_tokens =>
             $(self.sails_path)::io_struct_impl!($fn_name ($params_with_types_super) -> ());
         };

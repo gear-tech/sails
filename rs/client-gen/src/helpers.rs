@@ -1,10 +1,11 @@
-use crate::type_generators::generate_type_decl_with_path;
-use sails_idl_parser::ast::FuncParam;
+use crate::func_param_generator::FuncParamGenerator;
+use sails_idl_parser_v2::ast::FuncParam;
+use sails_idl_parser_v2::ast::visitor::Visitor;
 
 pub(crate) fn fn_args(params: &[FuncParam]) -> String {
     params
         .iter()
-        .map(|a| a.name())
+        .map(|a| a.name.as_str())
         .collect::<Vec<_>>()
         .join(", ")
 }
@@ -20,12 +21,16 @@ pub(crate) fn fn_args_with_types(params: &[FuncParam]) -> String {
     fn_args_with_types_path(params, "")
 }
 
-pub(crate) fn fn_args_with_types_path(params: &[FuncParam], path: &str) -> String {
+pub(crate) fn fn_args_with_types_path<'ast>(params: &'ast [FuncParam], path: &'ast str) -> String {
     params
         .iter()
         .map(|p| {
-            let ty = generate_type_decl_with_path(p.type_decl(), path.to_owned());
-            format!("{}: {}", p.name(), ty)
+            let mut generator = FuncParamGenerator::new(path);
+            generator.visit_func_param(p);
+            generator
+                .finalize()
+                .to_string()
+                .expect("Failed to generate func param")
         })
         .collect::<Vec<_>>()
         .join(", ")

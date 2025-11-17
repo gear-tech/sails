@@ -1,0 +1,70 @@
+program ComplexTypesProgram {
+    constructors {
+        NewProgram(initial_count: u32, id_prefix: string);
+    }
+    services {
+        MyComplexService,
+        AnotherService,
+    }
+    types {
+        struct ProgramGlobalInfo {
+            id: ActorId,
+            config_version: u32,
+            map_of_data: BTreeMap<string, ProgramScopedData>,
+            optional_value: Option<u64>,
+            result_status: Result<(u32, bool), ErrorType>,
+            values_vec: Vec<u8>,
+            non_zero_id: NonZeroU16,
+            h256_hash: H256,
+        }
+
+        struct ProgramScopedData {
+            name: string,
+            value: U256,
+            sub_id: u32,
+        }
+
+        enum ErrorType {
+            InvalidInput,
+            NotFound(string),
+            AccessDenied { id: ActorId, reason: string },
+        }
+    }
+}
+
+service MyComplexService {
+    functions {
+        Initialize(
+            start_data: ProgramGlobalInfo,
+            max_size: NonZeroU32
+        ) -> Result<(), ErrorType>;
+
+        GetData(key: string) -> Result<ProgramScopedData, ErrorType>;
+
+        @query
+        GetInfo() -> ProgramGlobalInfo;
+
+        @query
+        GetActorIds(count: u32) -> Vec<ActorId>;
+    }
+    types {
+        struct ServiceLocalConfig {
+            enabled: bool,
+            retry_count: NonZeroU8,
+            actor_list: Vec<ActorId>,
+        }
+
+        enum ServiceStatus {
+            Active(ServiceLocalConfig),
+            Paused,
+            Error(ErrorType),
+        }
+    }
+}
+
+service AnotherService {
+    functions {
+        Ping() -> string;
+        ProcessValues(data: Vec<U256>) -> Result<(), ErrorType>;
+    }
+}

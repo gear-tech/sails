@@ -9,18 +9,26 @@ pub struct ServiceProgram;
 impl my_crate::sails::client::Program for ServiceProgram {}
 pub trait Service {
     type Env: my_crate::sails::client::GearEnv;
-    fn service(&self) -> my_crate::sails::client::Service<service::ServiceImpl, Self::Env>;
-    fn counter(&self) -> my_crate::sails::client::Service<counter::CounterImpl, Self::Env>;
+    fn this_that_service(
+        &self,
+    ) -> my_crate::sails::client::Service<this_that_service::ThisThatServiceImpl, Self::Env>;
+    fn counter_service(
+        &self,
+    ) -> my_crate::sails::client::Service<counter_service::CounterServiceImpl, Self::Env>;
 }
 impl<E: my_crate::sails::client::GearEnv> Service
     for my_crate::sails::client::Actor<ServiceProgram, E>
 {
     type Env = E;
-    fn service(&self) -> my_crate::sails::client::Service<service::ServiceImpl, Self::Env> {
-        self.service(stringify!(Service))
+    fn this_that_service(
+        &self,
+    ) -> my_crate::sails::client::Service<this_that_service::ThisThatServiceImpl, Self::Env> {
+        self.service(stringify!(ThisThatService))
     }
-    fn counter(&self) -> my_crate::sails::client::Service<counter::CounterImpl, Self::Env> {
-        self.service(stringify!(Counter))
+    fn counter_service(
+        &self,
+    ) -> my_crate::sails::client::Service<counter_service::CounterServiceImpl, Self::Env> {
+        self.service(stringify!(CounterService))
     }
 }
 pub trait ServiceCtors {
@@ -65,16 +73,45 @@ pub mod io {
     my_crate::sails::io_struct_impl!(New (a: u32) -> ());
     my_crate::sails::io_struct_impl!(CreateWithData (a: u32, b: String, c: super::ThisThatSvcAppManyVariants) -> ());
 }
+#[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo)]
+#[codec(crate = my_crate::sails::scale_codec)]
+#[scale_info(crate = my_crate::sails::scale_info)]
+pub struct ThisThatSvcAppTupleStruct(pub bool);
+#[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo)]
+#[codec(crate = my_crate::sails::scale_codec)]
+#[scale_info(crate = my_crate::sails::scale_info)]
+pub struct ThisThatSvcAppDoThatParam {
+    pub p1: u32,
+    pub p2: String,
+    pub p3: ThisThatSvcAppManyVariants,
+}
+#[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo)]
+#[codec(crate = my_crate::sails::scale_codec)]
+#[scale_info(crate = my_crate::sails::scale_info)]
+pub enum ThisThatSvcAppManyVariants {
+    One,
+    Two(u32),
+    Three(Option<u32>),
+    Four { a: u32, b: Option<u16> },
+    Five(String, u32),
+    Six(u32),
+}
+#[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo)]
+#[codec(crate = my_crate::sails::scale_codec)]
+#[scale_info(crate = my_crate::sails::scale_info)]
+pub enum T {
+    One,
+}
 
-pub mod service {
+pub mod this_that_service {
     use super::*;
-    pub trait Service {
+    pub trait ThisThatService {
         type Env: my_crate::sails::client::GearEnv;
         fn do_this(
             &mut self,
             p1: u32,
             p2: String,
-            p3: (Option<String>, u8),
+            p3: Option<(String, u8)>,
             p4: ThisThatSvcAppTupleStruct,
         ) -> my_crate::sails::client::PendingCall<io::DoThis, Self::Env>;
         fn do_that(
@@ -84,16 +121,16 @@ pub mod service {
         fn this(&self, v1: Vec<u16>) -> my_crate::sails::client::PendingCall<io::This, Self::Env>;
         fn that(&self, v1: ()) -> my_crate::sails::client::PendingCall<io::That, Self::Env>;
     }
-    pub struct ServiceImpl;
-    impl<E: my_crate::sails::client::GearEnv> Service
-        for my_crate::sails::client::Service<ServiceImpl, E>
+    pub struct ThisThatServiceImpl;
+    impl<E: my_crate::sails::client::GearEnv> ThisThatService
+        for my_crate::sails::client::Service<ThisThatServiceImpl, E>
     {
         type Env = E;
         fn do_this(
             &mut self,
             p1: u32,
             p2: String,
-            p3: (Option<String>, u8),
+            p3: Option<(String, u8)>,
             p4: ThisThatSvcAppTupleStruct,
         ) -> my_crate::sails::client::PendingCall<io::DoThis, Self::Env> {
             self.pending_call((p1, p2, p3, p4))
@@ -114,16 +151,16 @@ pub mod service {
 
     pub mod io {
         use super::*;
-        my_crate::sails::io_struct_impl!(DoThis (p1: u32, p2: String, p3: (Option<String>,u8,), p4: super::ThisThatSvcAppTupleStruct) -> (String,u32,));
-        my_crate::sails::io_struct_impl!(DoThat (param: super::ThisThatSvcAppDoThatParam) -> Result<(String,u32,), (String,)>);
-        my_crate::sails::io_struct_impl!(This (v1: Vec<u16>) -> u32);
+        my_crate::sails::io_struct_impl!(DoThis (p1: u32, p2: String, p3: Option<(String, u8)>, p4: super::ThisThatSvcAppTupleStruct) -> (String, u32));
+        my_crate::sails::io_struct_impl!(DoThat (param: super::ThisThatSvcAppDoThatParam) -> Result<(String, u32), String>);
+        my_crate::sails::io_struct_impl!(This (v1: super::Vec<u16>) -> u32);
         my_crate::sails::io_struct_impl!(That (v1: ()) -> Result<String, String>);
     }
 }
 
-pub mod counter {
+pub mod counter_service {
     use super::*;
-    pub trait Counter {
+    pub trait CounterService {
         type Env: my_crate::sails::client::GearEnv;
         /// Add a value to the counter
         fn add(&mut self, value: u32) -> my_crate::sails::client::PendingCall<io::Add, Self::Env>;
@@ -132,9 +169,9 @@ pub mod counter {
         /// Get the current value
         fn value(&self) -> my_crate::sails::client::PendingCall<io::Value, Self::Env>;
     }
-    pub struct CounterImpl;
-    impl<E: my_crate::sails::client::GearEnv> Counter
-        for my_crate::sails::client::Service<CounterImpl, E>
+    pub struct CounterServiceImpl;
+    impl<E: my_crate::sails::client::GearEnv> CounterService
+        for my_crate::sails::client::Service<CounterServiceImpl, E>
     {
         type Env = E;
         fn add(&mut self, value: u32) -> my_crate::sails::client::PendingCall<io::Add, Self::Env> {
@@ -160,46 +197,17 @@ pub mod counter {
         use super::*;
         #[derive(PartialEq, Debug, Encode, Decode)]
         #[codec(crate = my_crate::sails::scale_codec)]
-        pub enum CounterEvents {
+        pub enum CounterServiceEvents {
             /// Emitted when a new value is added to the counter
             Added(u32),
             /// Emitted when a value is subtracted from the counter
             Subtracted(u32),
         }
-        impl my_crate::sails::client::Event for CounterEvents {
+        impl my_crate::sails::client::Event for CounterServiceEvents {
             const EVENT_NAMES: &'static [Route] = &["Added", "Subtracted"];
         }
-        impl my_crate::sails::client::ServiceWithEvents for CounterImpl {
-            type Event = CounterEvents;
+        impl my_crate::sails::client::ServiceWithEvents for CounterServiceImpl {
+            type Event = CounterServiceEvents;
         }
     }
-}
-#[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo)]
-#[codec(crate = my_crate::sails::scale_codec)]
-#[scale_info(crate = my_crate::sails::scale_info)]
-pub struct ThisThatSvcAppTupleStruct(pub bool);
-#[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo)]
-#[codec(crate = my_crate::sails::scale_codec)]
-#[scale_info(crate = my_crate::sails::scale_info)]
-pub struct ThisThatSvcAppDoThatParam {
-    pub p1: u32,
-    pub p2: String,
-    pub p3: ThisThatSvcAppManyVariants,
-}
-#[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo)]
-#[codec(crate = my_crate::sails::scale_codec)]
-#[scale_info(crate = my_crate::sails::scale_info)]
-pub enum ThisThatSvcAppManyVariants {
-    One,
-    Two(u32),
-    Three(Option<u32>),
-    Four { a: u32, b: Option<u16> },
-    Five((String, u32)),
-    Six((u32,)),
-}
-#[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo)]
-#[codec(crate = my_crate::sails::scale_codec)]
-#[scale_info(crate = my_crate::sails::scale_info)]
-pub enum T {
-    One,
 }
