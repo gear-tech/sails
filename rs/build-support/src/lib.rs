@@ -6,7 +6,7 @@
 //! calling the generated `__sails_any_service_meta` hook.
 
 use std::{
-    collections::BTreeMap,
+    collections::{BTreeMap, BTreeSet},
     env, fs,
     io::{self, Write},
     path::{Path, PathBuf},
@@ -107,10 +107,6 @@ impl<'a> BuildScript<'a> {
             cfg.maybe_run();
         }
 
-        if let Some(callback) = self.before_emit {
-            callback();
-        }
-
         if env::var_os("CARGO_FEATURE_SAILS_CANONICAL").is_none() {
             return Ok(());
         }
@@ -120,9 +116,18 @@ impl<'a> BuildScript<'a> {
             return Ok(());
         }
 
+        if let Some(callback) = self.before_emit {
+            callback();
+        }
+
         let out_dir =
             PathBuf::from(env::var("OUT_DIR").context("OUT_DIR is not set in the environment")?);
-        emit_interface_consts_with_options(self.sails_crate, self.meta_dump_features, &out_dir)
+        emit_interface_consts_impl(
+            Some(self.service_paths),
+            self.sails_crate,
+            self.meta_dump_features,
+            &out_dir,
+        )
     }
 }
 
@@ -175,7 +180,7 @@ impl<'a> WasmBuildConfig<'a> {
 /// payload (see [`service_manifest!`]), assuming the crate uses the default
 /// `sails_rs` import path.
 pub fn emit_interface_consts(out_dir: impl AsRef<Path>) -> Result<()> {
-    emit_interface_consts_with_options("sails_rs", &[], out_dir)
+    emit_interface_consts_impl(None, "sails_rs", &[], out_dir)
 }
 
 /// Same as [`emit_interface_consts`], but with a custom path to the `sails-rs`
@@ -184,7 +189,7 @@ pub fn emit_interface_consts_with_sails_path(
     sails_crate_path: &str,
     out_dir: impl AsRef<Path>,
 ) -> Result<()> {
-    emit_interface_consts_with_options(sails_crate_path, &[], out_dir)
+    emit_interface_consts_impl(None, sails_crate_path, &[], out_dir)
 }
 
 /// Fully configurable variant that allows specifying both the `sails-rs` crate
@@ -194,11 +199,23 @@ pub fn emit_interface_consts_with_options(
     meta_dump_features: &[&str],
     out_dir: impl AsRef<Path>,
 ) -> Result<()> {
+    emit_interface_consts_impl(None, sails_crate_path, meta_dump_features, out_dir)
+}
+
+fn emit_interface_consts_impl(
+    expected_services: Option<&[&str]>,
+    sails_crate_path: &str,
+    meta_dump_features: &[&str],
+    out_dir: impl AsRef<Path>,
+) -> Result<()> {
     let manifest_dir = PathBuf::from(
         env::var("CARGO_MANIFEST_DIR")
             .context("CARGO_MANIFEST_DIR is not set in the environment")?,
     );
     let artifacts = run_meta_dump_all(meta_dump_features, &manifest_dir)?;
+    if let Some(expected) = expected_services {
+        validate_service_artifacts(expected, &artifacts)?;
+    }
     if artifacts.is_empty() {
         return Ok(());
     }
@@ -424,6 +441,37 @@ struct ServiceArtifacts {
 struct ServiceArtifactsRecord {
     service: String,
     artifacts: InterfaceArtifacts,
+}
+
+fn validate_service_artifacts(expected: &[&str], artifacts: &[ServiceArtifacts]) -> Result<()> {
+    let expected_set = expected
+        .iter()
+        .map(|path| normalized_service_name(path))
+        .collect::<BTreeSet<_>>();
+    let actual_set = artifacts
+        .iter()
+        .map(|entry| normalized_service_name(&entry.service_path))
+        .collect::<BTreeSet<_>>();
+
+    if expected_set == actual_set {
+        return Ok(());
+    }
+
+    if !expected_set.is_subset(&actual_set) {
+        eprintln!("[sails-build] missing services in sails_meta_dump output:");
+        for name in expected_set.difference(&actual_set) {
+            eprintln!("  - {name}");
+        }
+    }
+
+    if !actual_set.is_subset(&expected_set) {
+        eprintln!("[sails-build] unexpected services returned by sails_meta_dump:");
+        for name in actual_set.difference(&expected_set) {
+            eprintln!("  - {name}");
+        }
+    }
+
+    bail!("service manifest differs from sails_meta_dump registry")
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -678,10 +726,10 @@ fn dump_all_services(services: &[DumpService]) -> Result<()> {
 }
 
 fn service_name_matches(candidate: &str, query: &str) -> bool {
-    normalize_service_name(candidate) == normalize_service_name(query)
+    normalized_service_name(candidate) == normalized_service_name(query)
 }
 
-fn normalize_service_name(name: &str) -> &str {
+fn normalized_service_name(name: &str) -> String {
     fn trim_leading_colons(mut input: &str) -> &str {
         while let Some(stripped) = input.strip_prefix("::") {
             input = stripped;
@@ -689,12 +737,16 @@ fn normalize_service_name(name: &str) -> &str {
         input
     }
 
-    let mut normalized = name.trim();
-    normalized = trim_leading_colons(normalized);
+    let compact = name
+        .chars()
+        .filter(|ch| !ch.is_whitespace())
+        .collect::<String>();
+    let mut normalized = trim_leading_colons(compact.as_str());
     if let Some(stripped) = normalized.strip_prefix("crate::") {
         normalized = stripped;
     }
-    trim_leading_colons(normalized)
+    normalized = trim_leading_colons(normalized);
+    normalized.to_string()
 }
 
 fn print_usage(services: &[DumpService]) {
