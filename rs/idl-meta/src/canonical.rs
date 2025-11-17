@@ -28,6 +28,7 @@ pub struct CanonicalEnvelope {
     pub hash: CanonicalHashSettings,
     pub service: CanonicalService,
     pub types: BTreeMap<String, CanonicalNamedType>,
+    pub type_bindings: BTreeMap<String, String>,
 }
 
 impl Default for CanonicalEnvelope {
@@ -38,6 +39,7 @@ impl Default for CanonicalEnvelope {
             hash: CanonicalHashSettings::default(),
             service: CanonicalService::default(),
             types: BTreeMap::new(),
+            type_bindings: BTreeMap::new(),
         }
     }
 }
@@ -53,6 +55,7 @@ impl CanonicalHashSettings {
     pub const VERSION: &'static str = "1";
     pub const HASH_DOMAIN: &'static str = "SAILS-IDL/v1/interface-id";
     pub const HASH_ALGO: &'static str = "blake3";
+    pub const TYPE_HASH_DOMAIN: &'static str = "SAILS-IDL/v1/type-body";
 }
 
 impl Default for CanonicalHashSettings {
@@ -114,6 +117,8 @@ pub struct CanonicalEvent {
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct CanonicalNamedType {
     pub kind: CanonicalNamedTypeKind,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub display_name: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
@@ -134,10 +139,191 @@ pub struct CanonicalAggregate {
     pub fields: Vec<CanonicalType>,
 }
 
-impl CanonicalAggregate {
+#[derive(Debug, Clone, PartialEq)]
+pub struct CanonicalServiceBindings {
+    pub extends: Vec<CanonicalParent>,
+    pub functions: Vec<CanonicalFunctionBindings>,
+    pub events: Vec<CanonicalEventBindings>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct CanonicalFunctionBindings {
+    pub name: String,
+    pub kind: CanonicalFunctionKind,
+    pub params: Vec<CanonicalTypeBinding>,
+    pub output: CanonicalTypeBinding,
+    pub throws: Option<CanonicalTypeBinding>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct CanonicalEventBindings {
+    pub name: String,
+    pub payload: CanonicalAggregateBinding,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct CanonicalNamedTypeBinding {
+    pub kind: CanonicalNamedTypeBindingKind,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum CanonicalNamedTypeBindingKind {
+    Struct {
+        fields: Vec<CanonicalTypeBinding>,
+    },
+    Enum {
+        variants: Vec<CanonicalVariantBinding>,
+    },
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct CanonicalVariantBinding {
+    pub name: String,
+    pub payload: CanonicalAggregateBinding,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct CanonicalAggregateBinding {
+    pub fields: Vec<CanonicalTypeBinding>,
+}
+
+impl CanonicalAggregateBinding {
     pub fn unit() -> Self {
         Self { fields: Vec::new() }
     }
+}
+
+fn serialize_named_type_binding<'a>(
+    ty: &'a CanonicalNamedTypeBinding,
+) -> SerializableNamedTypeBinding<'a> {
+    match &ty.kind {
+        CanonicalNamedTypeBindingKind::Struct { fields } => SerializableNamedTypeBinding::Struct {
+            fields: fields.iter().map(serialize_type_binding).collect(),
+        },
+        CanonicalNamedTypeBindingKind::Enum { variants } => SerializableNamedTypeBinding::Enum {
+            variants: variants
+                .iter()
+                .map(|variant| SerializableVariantBinding {
+                    name: &variant.name,
+                    payload: SerializableAggregateBinding {
+                        fields: variant
+                            .payload
+                            .fields
+                            .iter()
+                            .map(serialize_type_binding)
+                            .collect(),
+                    },
+                })
+                .collect(),
+        },
+    }
+}
+
+fn serialize_type_binding<'a>(ty: &'a CanonicalTypeBinding) -> SerializableTypeBinding<'a> {
+    match ty {
+        CanonicalTypeBinding::Primitive { name } => SerializableTypeBinding::Primitive { name },
+        CanonicalTypeBinding::Slice { item } => SerializableTypeBinding::Slice {
+            item: Box::new(serialize_type_binding(item)),
+        },
+        CanonicalTypeBinding::Array { item, len } => SerializableTypeBinding::Array {
+            item: Box::new(serialize_type_binding(item)),
+            len: *len,
+        },
+        CanonicalTypeBinding::Tuple { items } => SerializableTypeBinding::Tuple {
+            items: items.iter().map(serialize_type_binding).collect(),
+        },
+        CanonicalTypeBinding::Option { item } => SerializableTypeBinding::Option {
+            item: Box::new(serialize_type_binding(item)),
+        },
+        CanonicalTypeBinding::Result { ok, err } => SerializableTypeBinding::Result {
+            ok: Box::new(serialize_type_binding(ok)),
+            err: Box::new(serialize_type_binding(err)),
+        },
+        CanonicalTypeBinding::Named { binding, args } => SerializableTypeBinding::Named {
+            binding,
+            args: args.iter().map(serialize_type_binding).collect(),
+        },
+    }
+}
+
+#[derive(Serialize)]
+#[serde(tag = "kind", rename_all = "snake_case")]
+enum SerializableNamedTypeBinding<'a> {
+    Struct {
+        fields: Vec<SerializableTypeBinding<'a>>,
+    },
+    Enum {
+        variants: Vec<SerializableVariantBinding<'a>>,
+    },
+}
+
+#[derive(Serialize)]
+struct SerializableVariantBinding<'a> {
+    name: &'a str,
+    payload: SerializableAggregateBinding<'a>,
+}
+
+#[derive(Serialize)]
+struct SerializableAggregateBinding<'a> {
+    fields: Vec<SerializableTypeBinding<'a>>,
+}
+
+#[derive(Serialize)]
+#[serde(tag = "kind", rename_all = "snake_case")]
+enum SerializableTypeBinding<'a> {
+    Primitive {
+        name: &'static str,
+    },
+    Slice {
+        item: Box<SerializableTypeBinding<'a>>,
+    },
+    Array {
+        item: Box<SerializableTypeBinding<'a>>,
+        len: u32,
+    },
+    Tuple {
+        items: Vec<SerializableTypeBinding<'a>>,
+    },
+    Option {
+        item: Box<SerializableTypeBinding<'a>>,
+    },
+    Result {
+        ok: Box<SerializableTypeBinding<'a>>,
+        err: Box<SerializableTypeBinding<'a>>,
+    },
+    Named {
+        binding: &'a str,
+        #[serde(default, skip_serializing_if = "Vec::is_empty")]
+        args: Vec<SerializableTypeBinding<'a>>,
+    },
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum CanonicalTypeBinding {
+    Primitive {
+        name: &'static str,
+    },
+    Slice {
+        item: Box<CanonicalTypeBinding>,
+    },
+    Array {
+        item: Box<CanonicalTypeBinding>,
+        len: u32,
+    },
+    Tuple {
+        items: Vec<CanonicalTypeBinding>,
+    },
+    Option {
+        item: Box<CanonicalTypeBinding>,
+    },
+    Result {
+        ok: Box<CanonicalTypeBinding>,
+        err: Box<CanonicalTypeBinding>,
+    },
+    Named {
+        binding: String,
+        args: Vec<CanonicalTypeBinding>,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
@@ -164,7 +350,7 @@ pub enum CanonicalType {
         err: Box<CanonicalType>,
     },
     Named {
-        name: String,
+        type_id: String,
         #[serde(default, skip_serializing_if = "Vec::is_empty")]
         args: Vec<CanonicalType>,
     },
@@ -189,6 +375,19 @@ impl<'a> TypeScope<'a> {
             }
         }
     }
+
+    fn binding_key(&self, ty_name: &str, ordinal: usize) -> String {
+        if ty_name.contains("::") {
+            ty_name.to_owned()
+        } else {
+            match self {
+                TypeScope::Local => format!("self@{ordinal:04}"),
+                TypeScope::Parent(parent) => {
+                    format!("{}@{ordinal:04}", parent_type_prefix(parent.interface_id))
+                }
+            }
+        }
+    }
 }
 
 fn parent_type_prefix(interface_id: u64) -> String {
@@ -203,6 +402,7 @@ pub struct TypeRegistry<'a> {
 pub struct RegisteredType<'a> {
     pub owner: TypeScope<'a>,
     pub ty: &'a Type,
+    pub binding: String,
 }
 
 impl<'a> TypeRegistry<'a> {
@@ -221,10 +421,17 @@ impl<'a> TypeRegistry<'a> {
     }
 
     fn insert_with_scope(&mut self, service: &'a ServiceUnit, scope: TypeScope<'a>) {
-        for ty in &service.types {
+        for (ordinal, ty) in service.types.iter().enumerate() {
             let key = scope.canonical_key(&ty.name);
-            self.entries
-                .insert(key, RegisteredType { owner: scope, ty });
+            let binding = scope.binding_key(&ty.name, ordinal);
+            self.entries.insert(
+                key,
+                RegisteredType {
+                    owner: scope,
+                    ty,
+                    binding,
+                },
+            );
         }
     }
 
@@ -264,31 +471,31 @@ impl<'a, 'b> TypeResolver<'a, 'b> {
         &self,
         ty: &TypeDecl,
         scope: TypeScope<'b>,
-    ) -> Result<CanonicalType, CanonicalError> {
+    ) -> Result<CanonicalTypeBinding, CanonicalError> {
         if let Some(inner) = TypeDecl::option_type_decl(ty) {
-            return Ok(CanonicalType::Option {
+            return Ok(CanonicalTypeBinding::Option {
                 item: Box::new(self.canonical_type(&inner, scope)?),
             });
         }
         if let Some((ok, err)) = TypeDecl::result_type_decl(ty) {
-            return Ok(CanonicalType::Result {
+            return Ok(CanonicalTypeBinding::Result {
                 ok: Box::new(self.canonical_type(&ok, scope)?),
                 err: Box::new(self.canonical_type(&err, scope)?),
             });
         }
 
         Ok(match ty {
-            TypeDecl::Primitive(primitive) => CanonicalType::Primitive {
+            TypeDecl::Primitive(primitive) => CanonicalTypeBinding::Primitive {
                 name: primitive.as_str(),
             },
-            TypeDecl::Slice(inner) => CanonicalType::Slice {
+            TypeDecl::Slice(inner) => CanonicalTypeBinding::Slice {
                 item: Box::new(self.canonical_type(inner, scope)?),
             },
-            TypeDecl::Array(item, len) => CanonicalType::Array {
+            TypeDecl::Array(item, len) => CanonicalTypeBinding::Array {
                 item: Box::new(self.canonical_type(item, scope)?),
                 len: *len,
             },
-            TypeDecl::Tuple(items) => CanonicalType::Tuple {
+            TypeDecl::Tuple(items) => CanonicalTypeBinding::Tuple {
                 items: items
                     .iter()
                     .map(|item| self.canonical_type(item, scope))
@@ -296,8 +503,12 @@ impl<'a, 'b> TypeResolver<'a, 'b> {
             },
             TypeDecl::Named(name, generics) => {
                 let qualified = self.qualify_name(name, scope)?;
-                CanonicalType::Named {
-                    name: qualified,
+                let entry = self
+                    .registry
+                    .get(&qualified)
+                    .ok_or_else(|| CanonicalError::UnknownType(qualified.clone()))?;
+                CanonicalTypeBinding::Named {
+                    binding: entry.binding.clone(),
                     args: generics
                         .iter()
                         .map(|arg| self.canonical_type(arg, scope))
@@ -486,16 +697,25 @@ pub fn canonicalize_service(
 
     let type_resolver = TypeResolver::new(&registry, &resolved_parents, service.name.as_str());
     let extends = canonicalize_extends(resolved_parents.as_map());
-    let functions = canonicalize_functions(&service.funcs, TypeScope::Local, &type_resolver)?;
-    let events = canonicalize_events(&service.events, TypeScope::Local, &type_resolver)?;
+    let functions_binding =
+        canonicalize_functions(&service.funcs, TypeScope::Local, &type_resolver)?;
+    let events_binding = canonicalize_events(&service.events, TypeScope::Local, &type_resolver)?;
     let reachable = collect_reachable_types(service, &resolved_parents, &registry, &type_resolver)?;
-    let mut types = BTreeMap::new();
+    let mut binding_types = BTreeMap::new();
+    let mut binding_display = BTreeMap::new();
     for qualified in reachable {
         if let Some(entry) = registry.get(&qualified) {
             let canonical = canonicalize_named_type(entry.ty, entry.owner, &type_resolver)?;
-            types.insert(qualified, canonical);
+            binding_display.insert(entry.binding.clone(), qualified.clone());
+            binding_types.insert(entry.binding.clone(), canonical);
         }
     }
+
+    let type_ids = compute_type_ids(&binding_types)?;
+    let type_bindings = build_type_bindings(&binding_display, &type_ids);
+    let types = convert_named_types(&binding_types, &binding_display, &type_ids)?;
+    let functions = convert_functions(functions_binding, &type_ids)?;
+    let events = convert_events(events_binding, &type_ids)?;
 
     Ok(CanonicalEnvelope {
         service: CanonicalService {
@@ -504,6 +724,7 @@ pub fn canonicalize_service(
             events,
         },
         types,
+        type_bindings,
         ..CanonicalEnvelope::default()
     })
 }
@@ -550,29 +771,225 @@ fn canonicalize_extends(
         .collect()
 }
 
+fn compute_type_ids(
+    types: &BTreeMap<String, CanonicalNamedTypeBinding>,
+) -> Result<BTreeMap<String, String>, CanonicalError> {
+    let mut ids = BTreeMap::new();
+    for (binding, ty) in types {
+        let serializable = serialize_named_type_binding(ty);
+        let bytes = jcs::to_vec(&serializable)
+            .map_err(|err| CanonicalError::Serialization(err.to_string()))?;
+        let mut hasher = Hasher::new();
+        hasher.update(CanonicalHashSettings::TYPE_HASH_DOMAIN.as_bytes());
+        hasher.update(&bytes);
+        let digest = hasher.finalize();
+        let mut id_bytes = [0u8; 16];
+        id_bytes.copy_from_slice(&digest.as_bytes()[..16]);
+        let type_id = hex_lower(&id_bytes);
+        ids.insert(binding.clone(), type_id);
+    }
+    Ok(ids)
+}
+
+fn build_type_bindings(
+    display: &BTreeMap<String, String>,
+    ids: &BTreeMap<String, String>,
+) -> BTreeMap<String, String> {
+    let mut map = BTreeMap::new();
+    for (binding, name) in display {
+        if let Some(type_id) = ids.get(binding) {
+            map.insert(name.clone(), type_id.clone());
+        }
+    }
+    map
+}
+
+fn convert_named_types(
+    types: &BTreeMap<String, CanonicalNamedTypeBinding>,
+    display: &BTreeMap<String, String>,
+    ids: &BTreeMap<String, String>,
+) -> Result<BTreeMap<String, CanonicalNamedType>, CanonicalError> {
+    let mut converted = BTreeMap::new();
+    for (binding, ty) in types {
+        let type_id = ids
+            .get(binding)
+            .ok_or_else(|| CanonicalError::UnknownType(binding.clone()))?
+            .clone();
+        let kind = convert_named_type_kind(&ty.kind, ids)?;
+        converted.insert(
+            type_id.clone(),
+            CanonicalNamedType {
+                kind,
+                display_name: display.get(binding).cloned(),
+            },
+        );
+    }
+    Ok(converted)
+}
+
+fn convert_named_type_kind(
+    kind: &CanonicalNamedTypeBindingKind,
+    ids: &BTreeMap<String, String>,
+) -> Result<CanonicalNamedTypeKind, CanonicalError> {
+    Ok(match kind {
+        CanonicalNamedTypeBindingKind::Struct { fields } => CanonicalNamedTypeKind::Struct {
+            fields: fields
+                .iter()
+                .map(|field| convert_type_binding(field, ids))
+                .collect::<Result<Vec<_>, _>>()?,
+        },
+        CanonicalNamedTypeBindingKind::Enum { variants } => {
+            let mut converted = variants
+                .iter()
+                .map(|variant| convert_variant_binding(variant, ids))
+                .collect::<Result<Vec<_>, _>>()?;
+            converted.sort_by(|lhs, rhs| {
+                canonical_variant_sort_key(lhs).cmp(&canonical_variant_sort_key(rhs))
+            });
+            CanonicalNamedTypeKind::Enum {
+                variants: converted,
+            }
+        }
+    })
+}
+
+fn convert_variant_binding(
+    variant: &CanonicalVariantBinding,
+    ids: &BTreeMap<String, String>,
+) -> Result<CanonicalVariant, CanonicalError> {
+    Ok(CanonicalVariant {
+        name: variant.name.clone(),
+        payload: convert_aggregate_binding(&variant.payload, ids)?,
+    })
+}
+
+fn convert_aggregate_binding(
+    aggregate: &CanonicalAggregateBinding,
+    ids: &BTreeMap<String, String>,
+) -> Result<CanonicalAggregate, CanonicalError> {
+    Ok(CanonicalAggregate {
+        fields: aggregate
+            .fields
+            .iter()
+            .map(|field| convert_type_binding(field, ids))
+            .collect::<Result<Vec<_>, _>>()?,
+    })
+}
+
+fn convert_functions(
+    funcs: Vec<CanonicalFunctionBindings>,
+    ids: &BTreeMap<String, String>,
+) -> Result<Vec<CanonicalFunction>, CanonicalError> {
+    let mut converted = Vec::with_capacity(funcs.len());
+    for func in funcs {
+        converted.push(CanonicalFunction {
+            name: func.name,
+            kind: func.kind,
+            params: func
+                .params
+                .iter()
+                .map(|param| convert_type_binding(param, ids))
+                .collect::<Result<Vec<_>, _>>()?,
+            output: convert_type_binding(&func.output, ids)?,
+            throws: func
+                .throws
+                .as_ref()
+                .map(|ty| convert_type_binding(ty, ids))
+                .transpose()?,
+        });
+    }
+    converted.sort_by(|lhs, rhs| {
+        canonical_function_sort_key(lhs).cmp(&canonical_function_sort_key(rhs))
+    });
+    Ok(converted)
+}
+
+fn convert_events(
+    events: Vec<CanonicalEventBindings>,
+    ids: &BTreeMap<String, String>,
+) -> Result<Vec<CanonicalEvent>, CanonicalError> {
+    let mut converted = Vec::with_capacity(events.len());
+    for event in events {
+        converted.push(CanonicalEvent {
+            name: event.name,
+            payload: convert_aggregate_binding(&event.payload, ids)?,
+        });
+    }
+    converted.sort_by(|lhs, rhs| canonical_event_sort_key(lhs).cmp(&canonical_event_sort_key(rhs)));
+    Ok(converted)
+}
+
+fn convert_type_binding(
+    ty: &CanonicalTypeBinding,
+    ids: &BTreeMap<String, String>,
+) -> Result<CanonicalType, CanonicalError> {
+    Ok(match ty {
+        CanonicalTypeBinding::Primitive { name } => CanonicalType::Primitive { name },
+        CanonicalTypeBinding::Slice { item } => CanonicalType::Slice {
+            item: Box::new(convert_type_binding(item, ids)?),
+        },
+        CanonicalTypeBinding::Array { item, len } => CanonicalType::Array {
+            item: Box::new(convert_type_binding(item, ids)?),
+            len: *len,
+        },
+        CanonicalTypeBinding::Tuple { items } => CanonicalType::Tuple {
+            items: items
+                .iter()
+                .map(|arg| convert_type_binding(arg, ids))
+                .collect::<Result<Vec<_>, _>>()?,
+        },
+        CanonicalTypeBinding::Option { item } => CanonicalType::Option {
+            item: Box::new(convert_type_binding(item, ids)?),
+        },
+        CanonicalTypeBinding::Result { ok, err } => CanonicalType::Result {
+            ok: Box::new(convert_type_binding(ok, ids)?),
+            err: Box::new(convert_type_binding(err, ids)?),
+        },
+        CanonicalTypeBinding::Named { binding, args } => {
+            let type_id = ids
+                .get(binding)
+                .ok_or_else(|| CanonicalError::UnknownType(binding.clone()))?
+                .clone();
+            CanonicalType::Named {
+                type_id,
+                args: args
+                    .iter()
+                    .map(|arg| convert_type_binding(arg, ids))
+                    .collect::<Result<Vec<_>, _>>()?,
+            }
+        }
+    })
+}
+
 pub fn canonicalize_parent_types(
     parents: &ResolvedParents,
     resolver: &TypeResolver,
 ) -> Result<BTreeMap<String, CanonicalNamedType>, CanonicalError> {
-    let mut types = BTreeMap::new();
+    let mut binding_types = BTreeMap::new();
+    let mut binding_display = BTreeMap::new();
+    let mut seen_names = BTreeSet::new();
     for (_, parent) in parents.iter() {
         for ty in &parent.service.types {
             let qualified = TypeScope::Parent(parent).canonical_key(&ty.name);
-            if types.contains_key(&qualified) {
+            if !seen_names.insert(qualified.clone()) {
                 continue;
             }
-            let canonical = canonicalize_named_type(ty, TypeScope::Parent(parent), resolver)?;
-            types.insert(qualified, canonical);
+            if let Some(entry) = resolver.registry.get(&qualified) {
+                let canonical = canonicalize_named_type(ty, TypeScope::Parent(parent), resolver)?;
+                binding_types.insert(entry.binding.clone(), canonical);
+                binding_display.insert(entry.binding.clone(), qualified.clone());
+            }
         }
     }
-    Ok(types)
+    let ids = compute_type_ids(&binding_types)?;
+    convert_named_types(&binding_types, &binding_display, &ids)
 }
 
 fn canonicalize_functions(
     funcs: &[ServiceFunc],
     scope: TypeScope,
     resolver: &TypeResolver,
-) -> Result<Vec<CanonicalFunction>, CanonicalError> {
+) -> Result<Vec<CanonicalFunctionBindings>, CanonicalError> {
     let mut canonicalized = Vec::with_capacity(funcs.len());
     for func in funcs {
         let params = func
@@ -586,7 +1003,7 @@ fn canonicalize_functions(
             None => None,
         };
 
-        canonicalized.push(CanonicalFunction {
+        canonicalized.push(CanonicalFunctionBindings {
             name: func.name.clone(),
             kind: if func.is_query() {
                 CanonicalFunctionKind::Query
@@ -599,9 +1016,6 @@ fn canonicalize_functions(
         });
     }
 
-    canonicalized.sort_by(|lhs, rhs| {
-        canonical_function_sort_key(lhs).cmp(&canonical_function_sort_key(rhs))
-    });
     Ok(canonicalized)
 }
 
@@ -609,17 +1023,15 @@ fn canonicalize_events(
     events: &[ServiceEvent],
     scope: TypeScope,
     resolver: &TypeResolver,
-) -> Result<Vec<CanonicalEvent>, CanonicalError> {
+) -> Result<Vec<CanonicalEventBindings>, CanonicalError> {
     let mut canonicalized = Vec::with_capacity(events.len());
     for event in events {
-        canonicalized.push(CanonicalEvent {
+        canonicalized.push(CanonicalEventBindings {
             name: event.name.clone(),
             payload: canonicalize_aggregate(&event.def, scope, resolver)?,
         });
     }
 
-    canonicalized
-        .sort_by(|lhs, rhs| canonical_event_sort_key(lhs).cmp(&canonical_event_sort_key(rhs)));
     Ok(canonicalized)
 }
 
@@ -627,37 +1039,34 @@ fn canonicalize_named_type(
     ty: &Type,
     scope: TypeScope,
     resolver: &TypeResolver,
-) -> Result<CanonicalNamedType, CanonicalError> {
+) -> Result<CanonicalNamedTypeBinding, CanonicalError> {
     if !ty.type_params.is_empty() {
         return Err(CanonicalError::UnsupportedGenericParameter(ty.name.clone()));
     }
 
     let kind = match &ty.def {
-        TypeDef::Struct(def) => CanonicalNamedTypeKind::Struct {
+        TypeDef::Struct(def) => CanonicalNamedTypeBindingKind::Struct {
             fields: canonicalize_aggregate(def, scope, resolver)?.fields,
         },
         TypeDef::Enum(enum_def) => {
-            let mut variants = enum_def
+            let variants = enum_def
                 .variants
                 .iter()
                 .map(|variant| canonicalize_variant(variant, scope, resolver))
                 .collect::<Result<Vec<_>, _>>()?;
-            variants.sort_by(|lhs, rhs| {
-                canonical_variant_sort_key(lhs).cmp(&canonical_variant_sort_key(rhs))
-            });
-            CanonicalNamedTypeKind::Enum { variants }
+            CanonicalNamedTypeBindingKind::Enum { variants }
         }
     };
 
-    Ok(CanonicalNamedType { kind })
+    Ok(CanonicalNamedTypeBinding { kind })
 }
 
 fn canonicalize_variant(
     variant: &EnumVariant,
     scope: TypeScope,
     resolver: &TypeResolver,
-) -> Result<CanonicalVariant, CanonicalError> {
-    Ok(CanonicalVariant {
+) -> Result<CanonicalVariantBinding, CanonicalError> {
+    Ok(CanonicalVariantBinding {
         name: variant.name.clone(),
         payload: canonicalize_aggregate(&variant.def, scope, resolver)?,
     })
@@ -667,13 +1076,13 @@ fn canonicalize_aggregate(
     def: &StructDef,
     scope: TypeScope,
     resolver: &TypeResolver,
-) -> Result<CanonicalAggregate, CanonicalError> {
+) -> Result<CanonicalAggregateBinding, CanonicalError> {
     let fields = def
         .fields
         .iter()
         .map(|field| resolver.canonical_type(&field.type_decl, scope))
         .collect::<Result<Vec<_>, _>>()?;
-    Ok(CanonicalAggregate { fields })
+    Ok(CanonicalAggregateBinding { fields })
 }
 
 pub fn resolve_parents<'a>(
@@ -780,12 +1189,13 @@ fn canonical_type_repr(ty: &CanonicalType) -> String {
             canonical_type_repr(ok),
             canonical_type_repr(err)
         ),
-        CanonicalType::Named { name, args } => {
+        CanonicalType::Named { type_id, args } => {
             if args.is_empty() {
-                name.clone()
+                format!("type:{}", type_id)
             } else {
                 let mut repr = String::new();
-                repr.push_str(name);
+                repr.push_str("type:");
+                repr.push_str(type_id);
                 repr.push('<');
                 for (idx, arg) in args.iter().enumerate() {
                     if idx > 0 {
@@ -798,6 +1208,16 @@ fn canonical_type_repr(ty: &CanonicalType) -> String {
             }
         }
     }
+}
+
+fn hex_lower(bytes: &[u8]) -> String {
+    const LUT: &[u8; 16] = b"0123456789abcdef";
+    let mut output = String::with_capacity(bytes.len() * 2);
+    for &byte in bytes {
+        output.push(LUT[(byte >> 4) as usize] as char);
+        output.push(LUT[(byte & 0x0f) as usize] as char);
+    }
+    output
 }
 
 fn collect_reachable_types<'a>(
@@ -1020,6 +1440,9 @@ mod tests {
 
         assert_eq!(resolved.iter().count(), 1);
         let key = TypeScope::Parent(resolved.iter().next().unwrap().1).canonical_key("Foo");
-        assert!(inherited.contains_key(&key));
+        let has_display = inherited
+            .values()
+            .any(|ty| ty.display_name.as_deref() == Some(key.as_str()));
+        assert!(has_display);
     }
 }

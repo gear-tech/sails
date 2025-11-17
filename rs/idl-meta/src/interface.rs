@@ -180,12 +180,13 @@ fn canonical_type_repr(ty: &CanonicalType) -> String {
             canonical_type_repr(ok),
             canonical_type_repr(err)
         ),
-        CanonicalType::Named { name, args } => {
+        CanonicalType::Named { type_id, args } => {
             if args.is_empty() {
-                name.clone()
+                format!("type:{type_id}")
             } else {
                 let mut repr = String::new();
-                repr.push_str(name);
+                repr.push_str("type:");
+                repr.push_str(type_id);
                 repr.push('<');
                 for (idx, arg) in args.iter().enumerate() {
                     if idx > 0 {

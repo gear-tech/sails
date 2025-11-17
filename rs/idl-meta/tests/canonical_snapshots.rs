@@ -97,8 +97,14 @@ fn drops_unused_types_from_canonical_output() {
     let service = unused_type_service();
     let ctx = CanonicalizationContext::default();
     let result = compute_interface_id(&service, &ctx).expect("canonicalization");
-    assert!(result.envelope.types.contains_key("self::Used"));
-    assert!(!result.envelope.types.contains_key("self::Unused"));
+    assert!(result
+        .envelope
+        .type_bindings
+        .contains_key("self::Used"));
+    assert!(!result
+        .envelope
+        .type_bindings
+        .contains_key("self::Unused"));
 }
 
 #[test]
