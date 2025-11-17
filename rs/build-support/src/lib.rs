@@ -93,6 +93,9 @@ impl<'a> BuildScript<'a> {
             println!("cargo:rustc-cfg=sails_canonical_dump");
         }
         println!("cargo:rustc-check-cfg=cfg(sails_canonical_dump)");
+        println!(
+            "cargo:rustc-check-cfg=cfg(feature, values(\"sails-canonical\", \"sails-meta-dump\"))"
+        );
 
         let meta_dump_mode = env::var_os("CARGO_FEATURE_SAILS_META_DUMP").is_some();
         if (canonical_dump || meta_dump_mode) && self.wasm.is_some() {
