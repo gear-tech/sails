@@ -8,6 +8,7 @@ pub(crate) struct TopLevelTypeGenerator<'ast> {
     type_name: &'ast str,
     sails_path: &'ast str,
     derive_traits: &'ast str,
+    type_params_tokens: Tokens,
     tokens: Tokens,
 }
 
@@ -22,6 +23,7 @@ impl<'ast> TopLevelTypeGenerator<'ast> {
             type_name,
             sails_path,
             derive_traits,
+            type_params_tokens: Tokens::new(),
             tokens: Tokens::new(),
         }
     }
@@ -39,27 +41,30 @@ impl<'ast> Visitor<'ast> for TopLevelTypeGenerator<'ast> {
             };
         }
 
-        let mut type_params_tokens = Tokens::new();
         if !r#type.type_params.is_empty() {
-            type_params_tokens.append("<");
+            self.type_params_tokens.append("<");
             for (i, type_param) in r#type.type_params.iter().enumerate() {
                 if i > 0 {
-                    type_params_tokens.append(", ");
+                    self.type_params_tokens.append(", ");
                 }
                 let mut generator = TypeParameterGenerator::new();
                 generator.visit_type_parameter(type_param);
-                type_params_tokens.append(generator.finalize());
+                self.type_params_tokens.append(generator.finalize());
             }
-            type_params_tokens.append(">");
+            self.type_params_tokens.append(">");
         }
 
-        match &r#type.def {
+        visitor::accept_type(r#type, self);
+    }
+
+    fn visit_type_def(&mut self, type_def: &'ast TypeDef) {
+        match type_def {
             TypeDef::Struct(struct_def) => {
                 let mut struct_def_generator = StructDefGenerator::new(
                     self.type_name,
                     self.sails_path,
                     self.derive_traits,
-                    type_params_tokens,
+                    self.type_params_tokens.clone(),
                 );
                 struct_def_generator.visit_struct_def(struct_def);
                 self.tokens.extend(struct_def_generator.finalize());
@@ -69,16 +74,13 @@ impl<'ast> Visitor<'ast> for TopLevelTypeGenerator<'ast> {
                     self.type_name,
                     self.sails_path,
                     self.derive_traits,
-                    type_params_tokens,
+                    self.type_params_tokens.clone(),
                 );
                 enum_def_generator.visit_enum_def(enum_def);
                 self.tokens.extend(enum_def_generator.finalize());
             }
         }
     }
-
-    // Removed visit_struct_def and visit_enum_def from here, as they are now called directly
-    // from visit_type after processing type_params.
 }
 
 #[derive(Default)]
