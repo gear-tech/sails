@@ -28,13 +28,6 @@ js/test/demo/
 js/**/*.tgz
 .pnpm-debug.log*
 
-# Local-only docs & tooling artifacts
-docs/
-PR_DESCRIPTION.md
-rust-analyzer.toml
-stringify
-stringify_generic
-
 # Verify
 *.received.*
 *.received/
