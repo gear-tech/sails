@@ -16,6 +16,11 @@ use core::fmt::{Display, Write};
 /// - `program` holds an optional `program <ident> { ... }` block;
 /// - `services` contains all top-level `service <ident> { ... }` definitions.
 #[derive(Debug, Default, Clone, PartialEq)]
+#[cfg_attr(
+    feature = "templates",
+    derive(askama::Template),
+    template(path = "idl.askama", escape = "none")
+)]
 pub struct IdlDoc {
     pub globals: Vec<(String, Option<String>)>,
     pub program: Option<ProgramUnit>,
@@ -30,6 +35,11 @@ pub struct IdlDoc {
 /// - may define shared types in `types { ... }`,
 /// - may contain documentation comments and annotations.
 #[derive(Debug, Default, Clone, PartialEq)]
+#[cfg_attr(
+    feature = "templates",
+    derive(askama::Template),
+    template(path = "program.askama", escape = "none")
+)]
 pub struct ProgramUnit {
     pub name: String,
     pub ctors: Vec<CtorFunc>,
@@ -76,6 +86,11 @@ pub struct CtorFunc {
 /// - defines service-local `types { ... }`,
 /// - may contain documentation comments and annotations.
 #[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(
+    feature = "templates",
+    derive(askama::Template),
+    template(path = "service.askama", escape = "none")
+)]
 pub struct ServiceUnit {
     pub name: String,
     pub extends: Vec<String>,
@@ -360,6 +375,11 @@ impl core::str::FromStr for PrimitiveType {
 /// `Type` describes either a struct or enum with an optional list of generic
 /// type parameters, along with documentation and annotations taken from IDL.
 #[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(
+    feature = "templates",
+    derive(askama::Template),
+    template(path = "type.askama", escape = "none")
+)]
 pub struct Type {
     pub name: String,
     pub type_params: Vec<TypeParameter>,
@@ -408,6 +428,11 @@ pub enum TypeDef {
 /// - classic form with named fields,
 /// - tuple-like form with unnamed fields.
 #[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(
+    feature = "templates",
+    derive(askama::Template),
+    template(path = "struct_def.askama", escape = "none")
+)]
 pub struct StructDef {
     pub fields: Vec<StructField>,
 }
@@ -437,6 +462,11 @@ impl StructDef {
 /// `name` is `None` for tuple-like structs / variants; otherwise it stores the
 /// field identifier from IDL. Each field keeps its own documentation and annotations.
 #[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(
+    feature = "templates",
+    derive(askama::Template),
+    template(path = "field.askama", escape = "none")
+)]
 pub struct StructField {
     pub name: Option<String>,
     pub type_decl: TypeDecl,
@@ -459,6 +489,11 @@ pub struct EnumDef {
 /// - `def` is a `StructDef` describing the payload shape (unit / classic / tuple),
 /// - `docs` and `annotations` are attached to the variant in IDL.
 #[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(
+    feature = "templates",
+    derive(askama::Template),
+    template(path = "variant.askama", escape = "none")
+)]
 pub struct EnumVariant {
     pub name: String,
     pub def: StructDef,
