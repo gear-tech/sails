@@ -87,7 +87,9 @@ impl ServiceMetadata {
         }
         buf.push_str("    ],\n}");
         let manifest_path = out_dir.join(GENERATED_MANIFEST_FILE);
-        write_if_changed(&manifest_path, buf.as_bytes())
+        write_if_changed(&manifest_path, buf.as_bytes())?;
+        println!("cargo:rerun-if-changed={}", manifest_path.display());
+        Ok(())
     }
 }
 
