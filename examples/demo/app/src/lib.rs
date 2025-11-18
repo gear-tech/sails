@@ -1,16 +1,18 @@
 #![no_std]
 
+extern crate alloc;
+
 use demo_walker as walker;
 use sails_rs::{cell::RefCell, prelude::*};
 
-mod chaos;
-mod counter;
-mod dog;
-mod mammal;
-mod ping;
-mod references;
-mod this_that;
-mod value_fee;
+pub mod chaos;
+pub mod counter;
+pub mod dog;
+pub mod mammal;
+pub mod ping;
+pub mod references;
+pub mod this_that;
+pub mod value_fee;
 
 // Dog data is stored as a global variable. However, it has exactly the same lifetime
 // the Counter data incapsulated in the program itself, i.e. there are no any benefits

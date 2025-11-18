@@ -28,6 +28,7 @@ members = [
     "examples/event-routes/app",
     "examples/ping-pong-stack",
     "rs",
+    "examples/canonical-service",
     "rs/cli",
     "rs/client-gen",
     "rs/idl-gen",
@@ -42,6 +43,7 @@ members = [
     "benchmarks/ping-pong/app",
     "benchmarks/ping-pong/client",
     "benchmarks",
+    "rs/build-support",
 ]
 
 [workspace.dependencies]
@@ -52,6 +54,7 @@ sails-idl-gen = { path = "rs/idl-gen" }
 sails-client-gen = { path = "rs/client-gen" }
 sails-macros-core = { path = "rs/macros/core" }
 sails-macros = { path = "rs/macros" }
+sails-build = { path = "rs/build-support" }
 sails-rs = { path = "rs" }
 sails-sol-gen = { path = "rs/sol-gen" }
 # Renamed sails-rs for `proxy` demo
@@ -72,6 +75,7 @@ alloy-primitives = { version = "0.8.19", default-features = false }
 alloy-sol-types = { version = "0.8.19", default-features = false }
 anyhow = "1"
 askama = "0.14"
+blake3 = { version = "1.5", default-features = false }
 cargo-generate = "0.23"
 cargo_metadata = "0.19"
 clap = "4.5"
@@ -100,12 +104,15 @@ proc-macro2 = { version = "1", default-features = false }
 rustdoc-types = "=0.36.0"
 quote = "1.0"
 scale-info = { version = "2.11", default-features = false }
-serde = "1.0"
+serde = { version = "1.0", default-features = false, features = ["derive", "alloc"] }
 serde-json = { package = "serde_json", version = "1.0" }
-spin = { version = "0.9", default-features = false, features = ["spin_mutex"] }
+serde_json_canonicalizer = "0.3.1"
+serde_bytes = "0.11"
+spin = { version = "0.9", default-features = false, features = ["spin_mutex", "once"] }
 syn = "2.0"
 thiserror = { version = "2.0", default-features = false }
 toml_edit = "0.22"
+toml = "0.8"
 tempfile = "3.19"
 tokio = "1.45"
 tokio-stream = "0.1"

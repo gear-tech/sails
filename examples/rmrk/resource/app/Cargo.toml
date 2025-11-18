@@ -3,17 +3,35 @@ name = "rmrk-resource-app"
 version = "0.1.0"
 edition.workspace = true
 
+[package.metadata.sails]
+services = [
+    "rmrk_resource_app::services::ResourceStorage<sails_rs::client::Service<rmrk_resource_app::catalogs::rmrk_catalog::RmrkCatalogImpl>>",
+]
+
 [dependencies]
 mockall = { workspace = true, optional = true }
-sails-rs.workspace = true
+sails-rs = { workspace = true }
+anyhow = { workspace = true, optional = true }
+sails-build = { workspace = true, optional = true }
 
 [build-dependencies]
 git-download.workspace = true
+sails-build.workspace = true
 sails-client-gen.workspace = true
+sails-rs = { workspace = true, features = ["wasm-builder"] }
 
 [dev-dependencies]
 rmrk-resource-app = { path = ".", features = ["mockall"] }
 tokio = { workspace = true, features = ["rt", "macros"] }
 
 [features]
+default = ["sails-canonical", "wasm-builder"]
 mockall = ["sails-rs/mockall", "dep:mockall"]
+sails-canonical = []
+wasm-builder = []
+sails-meta-dump = ["sails-canonical", "dep:anyhow", "dep:sails-build"]
+
+[[bin]]
+name = "sails_meta_dump"
+path = "src/bin/sails_meta_dump.rs"
+required-features = ["sails-meta-dump"]

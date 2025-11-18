@@ -3,12 +3,29 @@ name = "ping-pong-stack"
 version = "0.1.0"
 edition = "2024"
 
+[package.metadata.sails]
+services = ["ping_pong_stack::PingPongStack"]
+
 [dependencies]
-sails-rs.workspace = true
+sails-rs = { workspace = true }
+anyhow = { workspace = true, optional = true }
+sails-build = { workspace = true, optional = true }
 
 [build-dependencies]
 sails-rs = { workspace = true, features = ["build"] }
+sails-build.workspace = true
 
 [dev-dependencies]
 sails-rs = { workspace = true, features = ["gtest"] }
 tokio = { workspace = true, features = ["rt", "macros"] }
+
+[features]
+default = ["sails-canonical", "wasm-builder"]
+sails-canonical = []
+wasm-builder = []
+sails-meta-dump = ["sails-canonical", "dep:anyhow", "dep:sails-build"]
+
+[[bin]]
+name = "sails_meta_dump"
+path = "src/bin/sails_meta_dump.rs"
+required-features = ["sails-meta-dump"]

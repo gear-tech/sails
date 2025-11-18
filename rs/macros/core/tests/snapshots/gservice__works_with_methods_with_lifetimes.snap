@@ -272,3 +272,112 @@ mod reference_service_meta {
     pub enum NoEvents {}
     pub type EventsMeta = NoEvents;
 }
+#[doc(hidden)]
+pub struct __reference_service_meta_witness;
+impl sails_rs::meta::ServiceMeta for __reference_service_meta_witness {
+    type CommandsMeta = reference_service_meta::CommandsMeta;
+    type QueriesMeta = reference_service_meta::QueriesMeta;
+    type EventsMeta = reference_service_meta::EventsMeta;
+    const BASE_SERVICES: &'static [sails_rs::meta::AnyServiceMetaFn] = &[];
+    const ASYNC: bool = true;
+}
+#[allow(unexpected_cfgs)]
+#[cfg(
+    all(
+        feature = "sails-canonical",
+        not(feature = "sails-meta-dump"),
+        not(sails_canonical_dump)
+    )
+)]
+mod reference_service_canonical {
+    use super::*;
+    use sails_rs::meta::{CanonicalEntry, EntryKind, EntryMeta};
+    fn entry_is_async(entry: &CanonicalEntry) -> bool {
+        match (entry.name.as_str(), entry.kind) {
+            ("AddByte", EntryKind::Command) => false,
+            ("Baked", EntryKind::Query) => false,
+            ("FirstByte", EntryKind::Query) => true,
+            ("Incr", EntryKind::Command) => false,
+            ("LastByte", EntryKind::Query) => true,
+            _ => false,
+        }
+    }
+    pub fn interface_id() -> u64 {
+        super::INTERFACE_ID
+    }
+    pub fn entry_meta() -> &'static [EntryMeta<'static>] {
+        super::ENTRY_META
+    }
+    pub fn canonical_json() -> &'static [u8] {
+        super::CANONICAL_INTERFACE_JSON
+    }
+    pub fn __sails_entry_async_lookup(entry: &CanonicalEntry) -> bool {
+        entry_is_async(entry)
+    }
+}
+#[allow(unexpected_cfgs)]
+#[cfg(
+    any(
+        not(feature = "sails-canonical"),
+        feature = "sails-meta-dump",
+        sails_canonical_dump
+    )
+)]
+mod reference_service_canonical {
+    use super::*;
+    use sails_rs::meta::{CanonicalEntry, EntryKind, EntryMeta};
+    static ENTRY_META_STUB: [EntryMeta<'static>; 0] = [];
+    static CANONICAL_JSON_STUB: [u8; 0] = [];
+    fn entry_is_async(entry: &CanonicalEntry) -> bool {
+        match (entry.name.as_str(), entry.kind) {
+            ("AddByte", EntryKind::Command) => false,
+            ("Baked", EntryKind::Query) => false,
+            ("FirstByte", EntryKind::Query) => true,
+            ("Incr", EntryKind::Command) => false,
+            ("LastByte", EntryKind::Query) => true,
+            _ => false,
+        }
+    }
+    pub fn interface_id() -> u64 {
+        0
+    }
+    pub fn entry_meta() -> &'static [EntryMeta<'static>] {
+        &ENTRY_META_STUB
+    }
+    pub fn canonical_json() -> &'static [u8] {
+        &CANONICAL_JSON_STUB
+    }
+    pub fn __sails_entry_async_lookup(entry: &CanonicalEntry) -> bool {
+        entry_is_async(entry)
+    }
+}
+impl ReferenceService {
+    #[doc(hidden)]
+    pub fn __sails_any_service_meta() -> sails_rs::meta::AnyServiceMeta {
+        sails_rs::meta::AnyServiceMeta::new::<__reference_service_meta_witness>()
+    }
+}
+impl ReferenceService {
+    pub fn interface_id() -> u64 {
+        reference_service_canonical::interface_id()
+    }
+    pub fn entry_meta() -> &'static [sails_rs::meta::EntryMeta<'static>] {
+        reference_service_canonical::entry_meta()
+    }
+    pub fn canonical_interface_json() -> &'static [u8] {
+        reference_service_canonical::canonical_json()
+    }
+    #[cfg(feature = "sails-canonical")]
+    pub fn __sails_entry_async(entry: &sails_rs::meta::CanonicalEntry) -> bool {
+        reference_service_canonical::__sails_entry_async_lookup(entry)
+    }
+}
+#[allow(unexpected_cfgs)]
+#[cfg(
+    all(
+        feature = "sails-canonical",
+        not(feature = "sails-meta-dump"),
+        not(sails_canonical_dump)
+    )
+)]
+include!(concat!(env!("OUT_DIR"), "/sails_interface_consts/ReferenceService.rs"));

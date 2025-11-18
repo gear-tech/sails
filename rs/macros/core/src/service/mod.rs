@@ -12,6 +12,7 @@ use quote::quote;
 use syn::{Generics, Ident, ItemImpl, Path, Type, TypePath, Visibility, WhereClause};
 
 mod args;
+mod canonical;
 #[cfg(feature = "ethexe")]
 mod ethexe;
 mod exposure;
@@ -63,6 +64,7 @@ struct ServiceBuilder<'a> {
     generics: Generics,
     type_constraints: Option<WhereClause>,
     type_path: &'a TypePath,
+    service_ident: Ident,
     events_type: Option<&'a Path>,
     service_handlers: Vec<FnBuilder<'a>>,
     exposure_ident: Ident,
@@ -70,6 +72,8 @@ struct ServiceBuilder<'a> {
     inner_ident: Ident,
     input_ident: Ident,
     meta_module_ident: Ident,
+    canonical_module_ident: Ident,
+    meta_witness_ident: Ident,
 }
 
 impl<'a> ServiceBuilder<'a> {
@@ -92,6 +96,16 @@ impl<'a> ServiceBuilder<'a> {
         let input_ident = Ident::new("input", Span::call_site());
         let meta_module_name = format!("{}_meta", service_ident.to_string().to_case(Case::Snake));
         let meta_module_ident = Ident::new(&meta_module_name, Span::call_site());
+        let canonical_module_name = format!(
+            "{}_canonical",
+            service_ident.to_string().to_case(Case::Snake)
+        );
+        let canonical_module_ident = Ident::new(&canonical_module_name, Span::call_site());
+        let meta_witness_name = format!(
+            "__{}_meta_witness",
+            service_ident.to_string().to_case(Case::Snake)
+        );
+        let meta_witness_ident = Ident::new(&meta_witness_name, Span::call_site());
 
         Self {
             service_impl,
@@ -100,6 +114,7 @@ impl<'a> ServiceBuilder<'a> {
             generics,
             type_constraints,
             type_path,
+            service_ident: service_ident.clone(),
             events_type: service_args.events_type(),
             service_handlers,
             exposure_ident,
@@ -107,6 +122,8 @@ impl<'a> ServiceBuilder<'a> {
             inner_ident,
             input_ident,
             meta_module_ident,
+            canonical_module_ident,
+            meta_witness_ident,
         }
     }
 
@@ -151,6 +168,11 @@ fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
 
     let meta_trait_impl = service_builder.meta_trait_impl();
     let meta_module = service_builder.meta_module();
+    let meta_witness_impl = service_builder.meta_witness_impl();
+    let meta_helper_impl = service_builder.meta_helper_impl();
+    let canonical_module = service_builder.canonical_module();
+    let canonical_api_impl = service_builder.canonical_api_impl();
+    let canonical_include = service_builder.canonical_include();
 
     let exposure_struct = service_builder.exposure_struct();
     let exposure_impl = service_builder.exposure_impl();
@@ -169,6 +191,16 @@ fn generate_gservice(args: TokenStream, service_impl: ItemImpl) -> TokenStream {
         #meta_trait_impl
 
         #meta_module
+
+        #meta_witness_impl
+
+        #canonical_module
+
+        #meta_helper_impl
+
+        #canonical_api_impl
+
+        #canonical_include
 
         #service_signature_impl
     )

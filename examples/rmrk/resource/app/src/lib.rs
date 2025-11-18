@@ -1,12 +1,14 @@
 #![no_std]
 
+extern crate alloc;
+
 #[cfg(feature = "mockall")]
 #[cfg(not(target_arch = "wasm32"))]
 pub extern crate std;
 
-use crate::catalogs::{RmrkCatalog as _, RmrkCatalogProgram, rmrk_catalog::RmrkCatalogImpl};
+use crate::catalogs::{RmrkCatalog as _, RmrkCatalogProgram};
 use sails_rs::{
-    client::{Program as _, *},
+    client::{self, Program as _},
     prelude::*,
 };
 use services::ResourceStorage;
@@ -16,6 +18,9 @@ pub mod catalogs;
 // while there is no generated client
 pub mod services;
 
+pub type RmrkResourceService =
+    services::ResourceStorage<client::Service<catalogs::rmrk_catalog::RmrkCatalogImpl>>;
+
 #[derive(Default)]
 pub struct Program;
 
@@ -23,13 +28,13 @@ pub struct Program;
 impl Program {
     // Initialize program and seed hosted services
     pub fn new() -> Self {
-        ResourceStorage::<Service<RmrkCatalogImpl>>::seed();
+        RmrkResourceService::seed();
         Self
     }
 
     // Expose hosted service
     #[export(route = "RmrkResource")]
-    pub fn resource_storage(&self) -> ResourceStorage<Service<RmrkCatalogImpl>> {
+    pub fn resource_storage(&self) -> RmrkResourceService {
         let rmrk_catalog_client = RmrkCatalogProgram::client(ActorId::zero()).rmrk_catalog();
         ResourceStorage::new(rmrk_catalog_client)
     }

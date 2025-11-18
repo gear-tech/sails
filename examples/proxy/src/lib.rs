@@ -3,7 +3,7 @@
 use demo_client::{this_that::ThisThatImpl, *};
 use sails_rename::{ActorId, client::*};
 
-mod this_that;
+pub mod this_that;
 
 pub struct ProxyProgram {
     this_that_addr: ActorId,

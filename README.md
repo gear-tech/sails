@@ -66,6 +66,91 @@ impl MyProgram {
         MyPing::new()
     }
 }
+
+### Canonical builds & manifests
+
+Every Sails service crate now declares its canonicalized services inside
+`[package.metadata.sails]` in `Cargo.toml`:
+
+```toml
+[package.metadata.sails]
+services = [
+    "demo::chaos::ChaosService",
+    "demo::value_fee::FeeService",
+]
+```
+
+Entries must be fully-qualified Rust paths (including concrete lifetimes or
+generic bindings when needed).
+
+The build script loads this metadata, emits a generated manifest into `OUT_DIR`,
+and feeds the service list into `BuildScript`:
+
+```rust
+use sails_build::{prepare_service_metadata, BuildScript, WasmBuildConfig};
+use std::{env, path::PathBuf};
+
+fn service_paths() -> Vec<String> {
+    let out_dir = PathBuf::from(env::var("OUT_DIR").unwrap());
+    prepare_service_metadata(&out_dir)
+        .map(|metadata| metadata.into_service_paths())
+        .unwrap()
+}
+
+fn main() {
+    BuildScript::from_service_paths(service_paths())
+        .manifest_path("Cargo.toml")
+        .meta_dump_features(&["sails-canonical", "sails-meta-dump"])
+        .wasm_build(WasmBuildConfig::new("CARGO_FEATURE_WASM_BUILDER", || {
+            let _ = sails_rs::build_wasm();
+        }))
+        .run()
+        .unwrap();
+}
+```
+
+Host-only helpers such as `sails_meta_dump` pull in that same generated manifest
+via `include!`:
+
+```rust
+use sails_build::{run_meta_dump_cli, GENERATED_MANIFEST_FILE};
+
+const SERVICE_MANIFEST: sails_build::ServiceManifest =
+    include!(concat!(env!("OUT_DIR"), "/", GENERATED_MANIFEST_FILE));
+
+fn main() -> anyhow::Result<()> {
+    run_meta_dump_cli(SERVICE_MANIFEST.registry)
+}
+```
+
+The metadata, build script, and helper binary therefore stay perfectly in sync—
+adding or removing a service means editing `Cargo.toml` once.
+
+By default, build scripts bail out when `SAILS_CANONICAL_DUMP` or the
+`sails-meta-dump` feature is set so host-only meta builds never recurse into wasm
+compilation. Program crates enable a `wasm-builder` feature, so build scripts can
+look for `CARGO_FEATURE_WASM_BUILDER` and only call `sails_rs::build_wasm()` when
+they actually embed `include!(.../wasm_binary.rs)`. Service-only crates simply
+omit that feature and skip the expensive wasm build entirely.
+
+Some crates also expose host-only testing features (for example `mockall`) that
+pull in standard-library dependencies. Build scripts now check those features so
+host-driven tests skip the wasm build altogether instead of re-compiling the
+crate for `wasm32v1-none` and hitting missing `std` errors.
+
+To add a new service to an existing program:
+
+1. Implement the service with `#[service]` and expose it through your
+   `#[program]` impl as usual.
+2. Append the fully-qualified service type to
+   `[package.metadata.sails].services` in `Cargo.toml`.
+3. Run `cargo check -p my-crate` (or `cargo run --bin sails_meta_dump` if you want
+   to inspect the canonical artifacts). The build script will emit the new
+   `sails_interface_consts/<Service>.rs` file automatically, and the meta dump
+   helper will immediately pick it up.
+
+This metadata-driven flow is also what the template uses, so newly generated
+programs inherit the same “one list feeds everything” build system.
 ```
 
 ## Details

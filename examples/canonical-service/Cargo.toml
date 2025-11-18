@@ -1,0 +1,26 @@
+[package]
+name = "canonical-service"
+version = "0.1.0"
+edition.workspace = true
+
+[package.metadata.sails]
+services = ["canonical_service::DemoService"]
+
+[dependencies]
+sails-rs = { workspace = true, features = ["std"] }
+anyhow = { workspace = true, optional = true }
+sails-build = { workspace = true, optional = true }
+
+[build-dependencies]
+sails-build.workspace = true
+sails-rs = { workspace = true, features = ["wasm-builder"] }
+
+[features]
+default = ["sails-canonical"]
+sails-canonical = []
+sails-meta-dump = ["sails-canonical", "dep:anyhow", "dep:sails-build"]
+
+[[bin]]
+name = "sails_meta_dump"
+path = "src/bin/sails_meta_dump.rs"
+required-features = ["sails-meta-dump"]

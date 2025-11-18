@@ -2,7 +2,7 @@
 
 use sails_rs::prelude::*;
 
-struct AllocStressService;
+pub struct AllocStressService;
 
 #[sails_rs::service]
 impl AllocStressService {

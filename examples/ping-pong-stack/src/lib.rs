@@ -6,7 +6,7 @@ use client::{
 };
 use sails_rs::{client::Program as _, gstd::*, prelude::*};
 
-struct PingPongStack(ActorId);
+pub struct PingPongStack(ActorId);
 
 impl PingPongStack {
     pub fn new(actor_id: ActorId) -> Self {

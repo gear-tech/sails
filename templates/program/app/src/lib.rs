@@ -1,5 +1,7 @@
 #![no_std]
 
+extern crate alloc;
+
 use sails_rs::prelude::*;
 
 struct {{ service-struct-name }}(());

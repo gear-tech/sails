@@ -2,7 +2,7 @@
 
 use sails_rs::prelude::*;
 
-struct ComputeStressService;
+pub struct ComputeStressService;
 
 #[sails_rs::service]
 impl ComputeStressService {

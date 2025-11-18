@@ -1,0 +1,7 @@
+---
+source: rs/idl-meta/tests/canonical_snapshots.rs
+assertion_line: 121
+expression: "format!(\"interface_id: 0x{interface_id:016x}\\n{json}\", interface_id =\nresult.interface_id, json = json)"
+---
+interface_id: 0x02ab2fb316755c8f
+{"canon_schema":"sails-idl-jcs","canon_version":"1","hash":{"algo":"blake3","domain":"SAILS-IDL/v1/interface-id"},"service":{"events":[{"name":"Notified","payload":{"fields":[{"kind":"named","type_id":"938ce04d517fed3e0641a5598f1700d3"}]}},{"name":"Notified","payload":{"fields":[{"kind":"named","type_id":"fc45fde8a3cac93270d9a28790bd5aa1"}]}}],"extends":[{"interface_id":8674845362276426000}],"functions":[{"kind":"command","name":"Process","output":{"kind":"primitive","name":"bool"},"params":[{"kind":"named","type_id":"938ce04d517fed3e0641a5598f1700d3"}]},{"kind":"query","name":"Process","output":{"kind":"primitive","name":"bool"},"params":[{"kind":"named","type_id":"fc45fde8a3cac93270d9a28790bd5aa1"}]}]},"types":{"938ce04d517fed3e0641a5598f1700d3":{"kind":{"fields":[{"kind":"primitive","name":"u32"}],"kind":"struct"}},"fc45fde8a3cac93270d9a28790bd5aa1":{"kind":{"fields":[{"kind":"primitive","name":"ActorId"}],"kind":"struct"}}}}

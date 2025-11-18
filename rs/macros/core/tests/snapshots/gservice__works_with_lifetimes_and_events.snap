@@ -136,3 +136,110 @@ mod my_generic_events_service_meta {
     pub enum NoEvents {}
     pub type EventsMeta = MyEvents;
 }
+#[doc(hidden)]
+pub struct __my_generic_events_service_meta_witness;
+impl sails_rs::meta::ServiceMeta for __my_generic_events_service_meta_witness {
+    type CommandsMeta = my_generic_events_service_meta::CommandsMeta;
+    type QueriesMeta = my_generic_events_service_meta::QueriesMeta;
+    type EventsMeta = my_generic_events_service_meta::EventsMeta;
+    const BASE_SERVICES: &'static [sails_rs::meta::AnyServiceMetaFn] = &[];
+    const ASYNC: bool = false;
+}
+#[allow(unexpected_cfgs)]
+#[cfg(
+    all(
+        feature = "sails-canonical",
+        not(feature = "sails-meta-dump"),
+        not(sails_canonical_dump)
+    )
+)]
+mod my_generic_events_service_canonical {
+    use super::*;
+    use sails_rs::meta::{CanonicalEntry, EntryKind, EntryMeta};
+    fn entry_is_async(entry: &CanonicalEntry) -> bool {
+        match (entry.name.as_str(), entry.kind) {
+            ("DoThis", EntryKind::Command) => false,
+            _ => false,
+        }
+    }
+    pub fn interface_id() -> u64 {
+        super::INTERFACE_ID
+    }
+    pub fn entry_meta() -> &'static [EntryMeta<'static>] {
+        super::ENTRY_META
+    }
+    pub fn canonical_json() -> &'static [u8] {
+        super::CANONICAL_INTERFACE_JSON
+    }
+    pub fn __sails_entry_async_lookup(entry: &CanonicalEntry) -> bool {
+        entry_is_async(entry)
+    }
+}
+#[allow(unexpected_cfgs)]
+#[cfg(
+    any(
+        not(feature = "sails-canonical"),
+        feature = "sails-meta-dump",
+        sails_canonical_dump
+    )
+)]
+mod my_generic_events_service_canonical {
+    use super::*;
+    use sails_rs::meta::{CanonicalEntry, EntryKind, EntryMeta};
+    static ENTRY_META_STUB: [EntryMeta<'static>; 0] = [];
+    static CANONICAL_JSON_STUB: [u8; 0] = [];
+    fn entry_is_async(entry: &CanonicalEntry) -> bool {
+        match (entry.name.as_str(), entry.kind) {
+            ("DoThis", EntryKind::Command) => false,
+            _ => false,
+        }
+    }
+    pub fn interface_id() -> u64 {
+        0
+    }
+    pub fn entry_meta() -> &'static [EntryMeta<'static>] {
+        &ENTRY_META_STUB
+    }
+    pub fn canonical_json() -> &'static [u8] {
+        &CANONICAL_JSON_STUB
+    }
+    pub fn __sails_entry_async_lookup(entry: &CanonicalEntry) -> bool {
+        entry_is_async(entry)
+    }
+}
+impl<'a, T> MyGenericEventsService<'a, T>
+where
+    T: Clone,
+{
+    #[doc(hidden)]
+    pub fn __sails_any_service_meta() -> sails_rs::meta::AnyServiceMeta {
+        sails_rs::meta::AnyServiceMeta::new::<__my_generic_events_service_meta_witness>()
+    }
+}
+impl<'a, T> MyGenericEventsService<'a, T>
+where
+    T: Clone,
+{
+    pub fn interface_id() -> u64 {
+        my_generic_events_service_canonical::interface_id()
+    }
+    pub fn entry_meta() -> &'static [sails_rs::meta::EntryMeta<'static>] {
+        my_generic_events_service_canonical::entry_meta()
+    }
+    pub fn canonical_interface_json() -> &'static [u8] {
+        my_generic_events_service_canonical::canonical_json()
+    }
+    #[cfg(feature = "sails-canonical")]
+    pub fn __sails_entry_async(entry: &sails_rs::meta::CanonicalEntry) -> bool {
+        my_generic_events_service_canonical::__sails_entry_async_lookup(entry)
+    }
+}
+#[allow(unexpected_cfgs)]
+#[cfg(
+    all(
+        feature = "sails-canonical",
+        not(feature = "sails-meta-dump"),
+        not(sails_canonical_dump)
+    )
+)]
+include!(concat!(env!("OUT_DIR"), "/sails_interface_consts/MyGenericEventsService.rs"));

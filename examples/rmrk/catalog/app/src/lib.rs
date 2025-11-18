@@ -1,5 +1,7 @@
 #![no_std]
 
+extern crate alloc;
+
 use services::Catalog;
 
 // Exposed publicly because of tests which use generated data
