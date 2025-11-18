@@ -3,6 +3,9 @@ name = "rmrk-catalog-app"
 version = "0.1.0"
 edition.workspace = true
 
+[package.metadata.sails]
+services = ["rmrk_catalog_app::services::Catalog"]
+
 [dependencies]
 sails-rs = { workspace = true }
 anyhow = { workspace = true, optional = true }

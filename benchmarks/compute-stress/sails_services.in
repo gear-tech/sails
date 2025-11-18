@@ -1,5 +1,0 @@
-sails_services_manifest! {
-    services: [
-        compute_stress::ComputeStressService,
-    ],
-}

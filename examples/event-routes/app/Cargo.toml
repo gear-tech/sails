@@ -3,6 +3,9 @@ name = "event-routes-app"
 version = "0.1.0"
 edition.workspace = true
 
+[package.metadata.sails]
+services = ["event_routes_app::Service"]
+
 [dependencies]
 sails-rs = { workspace = true }
 anyhow = { workspace = true, optional = true }

@@ -6,6 +6,9 @@ edition.workspace = true
 license.workspace = true
 repository.workspace = true
 
+[package.metadata.sails]
+services = ["ping_pong_bench_app::PingPongService"]
+
 [dependencies]
 sails-rs = { workspace = true }
 anyhow = { workspace = true, optional = true }

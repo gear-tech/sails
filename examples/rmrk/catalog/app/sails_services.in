@@ -1,5 +1,0 @@
-sails_services_manifest! {
-    services: [
-        rmrk_catalog_app::services::Catalog,
-    ],
-}

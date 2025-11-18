@@ -1,5 +1,0 @@
-sails_services_manifest! {
-    services: [
-        alloc_stress::AllocStressService,
-    ],
-}

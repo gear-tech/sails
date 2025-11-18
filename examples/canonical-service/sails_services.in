@@ -1,5 +1,0 @@
-sails_services_manifest! {
-    services: [
-        canonical_service::DemoService,
-    ],
-}

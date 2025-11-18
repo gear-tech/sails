@@ -3,6 +3,9 @@ name = "{{ app-project-name }}"
 version = "0.1.0"
 edition = "2024"
 
+[package.metadata.sails]
+services = ["{{ app_crate_name }}::{{ service-struct-name }}"]
+
 [dependencies]
 sails-rs = { version = "{{ sails-rs-version }}" }
 anyhow = { version = "1", optional = true }

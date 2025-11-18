@@ -3,6 +3,9 @@ name = "canonical-service"
 version = "0.1.0"
 edition.workspace = true
 
+[package.metadata.sails]
+services = ["canonical_service::DemoService"]
+
 [dependencies]
 sails-rs = { workspace = true, features = ["std"] }
 anyhow = { workspace = true, optional = true }

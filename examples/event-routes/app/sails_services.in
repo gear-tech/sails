@@ -1,5 +1,0 @@
-sails_services_manifest! {
-    services: [
-        event_routes_app::Service,
-    ],
-}

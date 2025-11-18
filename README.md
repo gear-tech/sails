@@ -69,54 +69,62 @@ impl MyProgram {
 
 ### Canonical builds & manifests
 
-Every Sails service crate now records the list of canonicalized services inside a
-`sails_services.in` file next to its `Cargo.toml`. The file invokes the
-`sails_services_manifest!` macro with the raw manifest payload, and each
-consumer defines that macro locally to decide which helper (`service_paths!` for
-build scripts vs `service_manifest!` for runtime helpers like `sails_meta_dump`)
-should process the payload. Paths must be fully-qualified (including concrete
-lifetimes or generic bindings when needed), and the manifest may declare witness
-aliases before the `services` block to pin generic implementations:
+Every Sails service crate now declares its canonicalized services inside
+`[package.metadata.sails]` in `Cargo.toml`:
+
+```toml
+[package.metadata.sails]
+services = [
+    "demo::chaos::ChaosService",
+    "demo::value_fee::FeeService",
+]
+```
+
+Entries must be fully-qualified Rust paths (including concrete lifetimes or
+generic bindings when needed).
+
+The build script loads this metadata, emits a generated manifest into `OUT_DIR`,
+and feeds the service list into `BuildScript`:
 
 ```rust
-sails_services_manifest! {
-    type ProxyThisThat = proxy::ThisThatCaller<ActualClient>;
+use sails_build::{prepare_service_metadata, BuildScript, WasmBuildConfig};
+use std::{env, path::PathBuf};
 
-    services: [
-        ProxyThisThat,
-    ],
+fn service_paths() -> Vec<String> {
+    let out_dir = PathBuf::from(env::var("OUT_DIR").unwrap());
+    prepare_service_metadata(&out_dir)
+        .map(|metadata| metadata.into_service_paths())
+        .unwrap()
+}
+
+fn main() {
+    BuildScript::from_service_paths(service_paths())
+        .manifest_path("Cargo.toml")
+        .meta_dump_features(&["sails-canonical", "sails-meta-dump"])
+        .wasm_build(WasmBuildConfig::new("CARGO_FEATURE_WASM_BUILDER", || {
+            let _ = sails_rs::build_wasm();
+        }))
+        .run()
+        .unwrap();
 }
 ```
 
-Build scripts include the manifest after defining the dispatcher macro:
+Host-only helpers such as `sails_meta_dump` pull in that same generated manifest
+via `include!`:
 
 ```rust
-macro_rules! sails_services_manifest {
-    ($($tt:tt)*) => {
-        sails_build::service_paths!($($tt)*)
-    };
-}
-
-const SERVICE_PATHS: &[&str] =
-    include!("sails_services.in");
-```
-
-…while host-only helpers do the same but call into `service_manifest!`:
-
-```rust
-macro_rules! sails_services_manifest {
-    ($($tt:tt)*) => {
-        sails_build::service_manifest!($($tt)*)
-    };
-}
+use sails_build::{run_meta_dump_cli, GENERATED_MANIFEST_FILE};
 
 const SERVICE_MANIFEST: sails_build::ServiceManifest =
-    include!(concat!(env!("CARGO_MANIFEST_DIR"), "/sails_services.in"));
+    include!(concat!(env!("OUT_DIR"), "/", GENERATED_MANIFEST_FILE));
+
+fn main() -> anyhow::Result<()> {
+    run_meta_dump_cli(SERVICE_MANIFEST.registry)
+}
 ```
 
-Both views expand from the exact same file, so the build pipeline and the meta
-dumper stay perfectly in sync—adding or removing a service means editing the
-manifest once.
+The metadata, build script, and helper binary therefore stay perfectly in sync—
+adding or removing a service means editing `Cargo.toml` once.
 
 By default, build scripts bail out when `SAILS_CANONICAL_DUMP` or the
 `sails-meta-dump` feature is set so host-only meta builds never recurse into wasm
@@ -134,14 +142,14 @@ To add a new service to an existing program:
 
 1. Implement the service with `#[service]` and expose it through your
    `#[program]` impl as usual.
-2. Append the fully-qualified service type (or a witness alias) to the
-   `services: [ ... ]` block inside `sails_services.in`.
+2. Append the fully-qualified service type to
+   `[package.metadata.sails].services` in `Cargo.toml`.
 3. Run `cargo check -p my-crate` (or `cargo run --bin sails_meta_dump` if you want
    to inspect the canonical artifacts). The build script will emit the new
    `sails_interface_consts/<Service>.rs` file automatically, and the meta dump
    helper will immediately pick it up.
 
-This manifest-driven flow is also what the template uses, so newly generated
+This metadata-driven flow is also what the template uses, so newly generated
 programs inherit the same “one list feeds everything” build system.
 ```
 

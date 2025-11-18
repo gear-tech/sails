@@ -21,13 +21,88 @@ use sails_idl_meta::{
 };
 use serde::{Deserialize, Serialize};
 use serde_bytes::ByteBuf;
+use toml::Value;
 
 const CONSTS_DIRNAME: &str = "sails_interface_consts";
+pub const GENERATED_MANIFEST_FILE: &str = "sails_services_manifest.rs";
+
+#[macro_export]
+macro_rules! generated_manifest_file {
+    () => {
+        "sails_services_manifest.rs"
+    };
+}
+
+/// Declarative manifest derived from `[package.metadata.sails]` in `Cargo.toml`.
+pub struct ServiceMetadata {
+    services: Vec<String>,
+}
+
+impl ServiceMetadata {
+    pub fn load_from_env() -> Result<Self> {
+        let manifest_dir = env::var("CARGO_MANIFEST_DIR")
+            .context("CARGO_MANIFEST_DIR is not set in the environment")?;
+        Self::load_from_dir(manifest_dir)
+    }
+
+    pub fn load_from_dir(manifest_dir: impl AsRef<Path>) -> Result<Self> {
+        let manifest_path = manifest_dir.as_ref().join("Cargo.toml");
+        let raw = fs::read_to_string(&manifest_path)
+            .with_context(|| format!("failed to read manifest at {manifest_path:?}"))?;
+        let toml_value: Value =
+            toml::from_str(&raw).with_context(|| format!("{manifest_path:?} is not valid TOML"))?;
+        let services = toml_value
+            .get("package")
+            .and_then(|pkg| pkg.get("metadata"))
+            .and_then(|meta| meta.get("sails"))
+            .and_then(|sails| sails.get("services"))
+            .and_then(|services| services.as_array())
+            .ok_or_else(|| anyhow!("package.metadata.sails.services is missing"))?
+            .iter()
+            .map(|item| {
+                item.as_str()
+                    .map(|s| s.to_string())
+                    .ok_or_else(|| anyhow!("services entries must be strings"))
+            })
+            .collect::<Result<Vec<_>>>()?;
+        Ok(Self { services })
+    }
+
+    pub fn service_paths(&self) -> &[String] {
+        &self.services
+    }
+
+    pub fn into_service_paths(self) -> Vec<String> {
+        self.services
+    }
+
+    pub fn write_generated_manifest(&self, out_dir: &Path) -> Result<()> {
+        let mut buf = String::new();
+        buf.push_str("sails_build::service_manifest! {\n");
+        buf.push_str("    services: [\n");
+        for service in &self.services {
+            buf.push_str("        ");
+            buf.push_str(service);
+            buf.push_str(",\n");
+        }
+        buf.push_str("    ],\n}");
+        let manifest_path = out_dir.join(GENERATED_MANIFEST_FILE);
+        write_if_changed(&manifest_path, buf.as_bytes())
+    }
+}
+
+/// Loads service metadata from `Cargo.toml`, writes the generated manifest file
+/// into `OUT_DIR`, and returns the parsed metadata for further use.
+pub fn prepare_service_metadata(out_dir: &Path) -> Result<ServiceMetadata> {
+    let metadata = ServiceMetadata::load_from_env()?;
+    metadata.write_generated_manifest(out_dir)?;
+    Ok(metadata)
+}
 
 /// Convenience builder for Sails-aware build scripts. Handles rerun directives,
 /// conditional wasm builds, and canonical interface emission.
 pub struct BuildScript<'a> {
-    service_paths: &'a [&'a str],
+    service_paths: Vec<String>,
     manifest_path: Option<&'a str>,
     sails_crate: &'a str,
     meta_dump_features: &'a [&'a str],
@@ -38,6 +113,18 @@ pub struct BuildScript<'a> {
 
 impl<'a> BuildScript<'a> {
     pub fn new(service_paths: &'a [&'a str]) -> Self {
+        Self {
+            service_paths: service_paths.iter().map(|path| path.to_string()).collect(),
+            manifest_path: None,
+            sails_crate: "sails_rs",
+            meta_dump_features: &[],
+            wasm: None,
+            rerun_src: true,
+            before_emit: None,
+        }
+    }
+
+    pub fn from_service_paths(service_paths: Vec<String>) -> Self {
         Self {
             service_paths,
             manifest_path: None,
@@ -126,7 +213,7 @@ impl<'a> BuildScript<'a> {
         let out_dir =
             PathBuf::from(env::var("OUT_DIR").context("OUT_DIR is not set in the environment")?);
         emit_interface_consts_impl(
-            Some(self.service_paths),
+            Some(&self.service_paths),
             self.sails_crate,
             self.meta_dump_features,
             &out_dir,
@@ -206,7 +293,7 @@ pub fn emit_interface_consts_with_options(
 }
 
 fn emit_interface_consts_impl(
-    expected_services: Option<&[&str]>,
+    expected_services: Option<&[String]>,
     sails_crate_path: &str,
     meta_dump_features: &[&str],
     out_dir: impl AsRef<Path>,
@@ -445,7 +532,7 @@ struct ServiceArtifactsRecord {
     artifacts: InterfaceArtifacts,
 }
 
-fn validate_service_artifacts(expected: &[&str], artifacts: &[ServiceArtifacts]) -> Result<()> {
+fn validate_service_artifacts(expected: &[String], artifacts: &[ServiceArtifacts]) -> Result<()> {
     let expected_set = expected
         .iter()
         .map(|path| normalized_service_name(path))
@@ -805,10 +892,12 @@ impl ServiceManifest {
 /// helpers such as `sails_meta_dump`.
 ///
 /// This macro accepts either a plain list of service paths or a block payload.
-/// Typical projects wrap their manifest block inside a `sails_services_manifest!`
-/// call stored in `sails_services.in`, then locally define that macro to expand
-/// to either `service_manifest!` (for runtime helpers) or `service_paths!`
-/// (inside `build.rs`).
+/// Typical projects point this macro at the generated manifest emitted by
+/// [`prepare_service_metadata`], which writes the raw payload to
+/// `$OUT_DIR/sails_services_manifest.rs`. Defining a local
+/// `sails_services_manifest!` macro is still supported for projects that prefer
+/// handwritten manifests, but most consumers simply
+/// `include!(concat!(env!("OUT_DIR"), "/", sails_build::GENERATED_MANIFEST_FILE))`.
 ///
 /// ```ignore
 /// macro_rules! sails_services_manifest {
@@ -818,7 +907,7 @@ impl ServiceManifest {
 /// }
 ///
 /// const SERVICE_MANIFEST: sails_build::ServiceManifest =
-///     include!(concat!(env!("CARGO_MANIFEST_DIR"), "/sails_services.in"));
+///     include!(concat!(env!("OUT_DIR"), "/", sails_build::GENERATED_MANIFEST_FILE));
 /// ```
 #[macro_export]
 macro_rules! service_manifest {
@@ -831,15 +920,9 @@ macro_rules! service_manifest {
 /// form is lightweight enough to use inside build scripts, because it never
 /// references the actual service types.
 ///
-/// ```ignore
-/// macro_rules! sails_services_manifest {
-///     ($($tt:tt)*) => {
-///         sails_build::service_paths!($($tt)*)
-///     };
-/// }
-///
-/// const SERVICE_PATHS: &[&str] = include!("sails_services.in");
-/// ```
+/// When using [`prepare_service_metadata`], this macro primarily serves internal
+/// use within the generated manifest file, so most end users no longer invoke it
+/// directly.
 #[macro_export]
 macro_rules! service_paths {
     ($($tt:tt)*) => {{

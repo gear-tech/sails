@@ -14,3 +14,4 @@ serde = { workspace = true, features = ["derive"] }
 serde-json.workspace = true
 serde_bytes.workspace = true
 sails-idl-meta.workspace = true
+toml.workspace = true

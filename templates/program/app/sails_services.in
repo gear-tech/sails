@@ -1,5 +1,0 @@
-sails_services_manifest! {
-    services: [
-        {{ app_crate_name }}::{{ service-struct-name }},
-    ],
-}

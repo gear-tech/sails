@@ -6,6 +6,9 @@ edition.workspace = true
 license.workspace = true
 repository.workspace = true
 
+[package.metadata.sails]
+services = ["compute_stress::ComputeStressService"]
+
 [dependencies]
 sails-rs = { workspace = true }
 anyhow = { workspace = true, optional = true }

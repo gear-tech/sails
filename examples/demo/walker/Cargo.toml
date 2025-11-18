@@ -3,6 +3,9 @@ name = "demo-walker"
 version = "0.1.0"
 edition.workspace = true
 
+[package.metadata.sails]
+services = ["demo_walker::WalkerService"]
+
 [dependencies]
 sails-rs = { workspace = true }
 anyhow = { workspace = true, optional = true }

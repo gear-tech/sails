@@ -8,17 +8,24 @@ The program workspace includes the following packages:
   off-chain client.
 {% endif %}
 
-The `{{ app-project-name }}` package now keeps its canonicalization targets in `sails_services.in`. Both the build script and the
-`sails_meta_dump` helper include that manifest by first defining a local `sails_services_manifest!` macro (that expands to either
-`sails_build::service_paths!` or `sails_build::service_manifest!`) and then `include!`-ing the file. Adding or removing services only
-requires editing that single file. The file stores the bare `services: [ ... ]` payload (optionally wrapped in braces) and may declare
-witness aliases before the `services` block if a generic service needs to be instantiated with a concrete client type.
+The `{{ app-project-name }}` package now keeps its canonicalization targets in
+`[package.metadata.sails]` within `Cargo.toml`. The build script loads that
+metadata, writes a generated manifest into `OUT_DIR`, and shares it between the
+canonicalizer and the host-only `sails_meta_dump` helper.
 
-`build.rs` drives canonicalization exclusively at compile time via the `sails_build::BuildScript` helper:
+`build.rs` drives canonicalization exclusively at compile time via the
+`sails_build::BuildScript` helper:
 
 ```rust
-BuildScript::new(SERVICE_PATHS)
-    .manifest_path("sails_services.in")
+fn service_paths() -> Vec<String> {
+    let out_dir = PathBuf::from(env::var("OUT_DIR").unwrap());
+    prepare_service_metadata(&out_dir)
+        .map(|metadata| metadata.into_service_paths())
+        .unwrap()
+}
+
+BuildScript::from_service_paths(service_paths())
+    .manifest_path("Cargo.toml")
     .meta_dump_features(&["sails-canonical", "sails-meta-dump"])
     .wasm_build(WasmBuildConfig::new("CARGO_FEATURE_WASM_BUILDER", || {
         let _ = sails_rs::build_wasm();

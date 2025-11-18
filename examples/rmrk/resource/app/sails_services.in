@@ -1,7 +1,0 @@
-sails_services_manifest! {
-    services: [
-        rmrk_resource_app::services::ResourceStorage<
-            sails_rs::client::Service<rmrk_resource_app::catalogs::rmrk_catalog::RmrkCatalogImpl>,
-        >,
-    ],
-}

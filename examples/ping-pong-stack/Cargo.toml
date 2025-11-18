@@ -3,6 +3,9 @@ name = "ping-pong-stack"
 version = "0.1.0"
 edition = "2024"
 
+[package.metadata.sails]
+services = ["ping_pong_stack::PingPongStack"]
+
 [dependencies]
 sails-rs = { workspace = true }
 anyhow = { workspace = true, optional = true }

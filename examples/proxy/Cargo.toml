@@ -3,6 +3,11 @@ name = "proxy"
 version = "0.1.0"
 edition.workspace = true
 
+[package.metadata.sails]
+services = [
+    "proxy::this_that::ThisThatCaller<sails_rename::client::Service<demo_client::this_that::ThisThatImpl>>",
+]
+
 [lib]
 crate-type = ["cdylib", "rlib"]
 
