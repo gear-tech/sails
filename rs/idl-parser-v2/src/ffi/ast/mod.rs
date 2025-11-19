@@ -439,13 +439,20 @@ impl TypeDecl {
     }
 }
 
+/// FFI-safe representation of a [crate::ast::FunctionKind].
+#[repr(C)]
+pub enum FunctionKind {
+    Query,
+    Command,
+}
+
 /// FFI-safe representation of a [crate::ast::ServiceFunc].
 #[repr(C)]
 pub struct ServiceFunc {
     pub raw_ptr: Ptr,
     pub name_ptr: *const u8,
     pub name_len: u32,
-    pub is_query: bool,
+    pub kind: FunctionKind,
     pub docs_ptr: *const FFIString,
     pub docs_len: u32,
     pub annotations_ptr: *const Annotation,
@@ -463,7 +470,10 @@ impl ServiceFunc {
             raw_ptr: Ptr::from(service_func),
             name_ptr: name_ffi.ptr,
             name_len: name_ffi.len,
-            is_query: service_func.kind == ast::FunctionKind::Query,
+            kind: match service_func.kind {
+                ast::FunctionKind::Query => FunctionKind::Query,
+                ast::FunctionKind::Command => FunctionKind::Command,
+            },
             docs_ptr,
             docs_len,
             annotations_ptr,
