@@ -116,7 +116,7 @@ impl<'ast> Visitor<'ast> for ServiceGenerator<'ast> {
         let output_type_decl_code = if let Some(throws_type) = &func.throws {
             let ok_type = generate_type_decl_with_path(&func.output, "");
             let err_type = generate_type_decl_with_path(throws_type, "super");
-            format!("Result<{}, {}>", ok_type, err_type)
+            format!("Result<{ok_type}, {err_type}>")
         } else {
             generate_type_decl_with_path(&func.output, "super")
         };
