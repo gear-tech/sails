@@ -99,3 +99,17 @@ pub enum ManyVariantsReply {
     Five,
     Six,
 }
+
+// Mock ReflectHash implementation for demo purposes  
+impl sails_rs::sails_reflect_hash::ReflectHash for ManyVariantsReply {
+    const HASH: [u8; 32] = {
+        let mut hasher = sails_rs::keccak_const::Keccak256::new();
+        hasher = hasher.update(&sails_rs::keccak_const::Keccak256::new().update(b"One").finalize());
+        hasher = hasher.update(&sails_rs::keccak_const::Keccak256::new().update(b"Two").finalize());
+        hasher = hasher.update(&sails_rs::keccak_const::Keccak256::new().update(b"Three").finalize());
+        hasher = hasher.update(&sails_rs::keccak_const::Keccak256::new().update(b"Four").finalize());
+        hasher = hasher.update(&sails_rs::keccak_const::Keccak256::new().update(b"Five").finalize());
+        hasher = hasher.update(&sails_rs::keccak_const::Keccak256::new().update(b"Six").finalize());
+        hasher.finalize()
+    };
+}

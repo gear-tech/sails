@@ -102,3 +102,11 @@ impl<'t> ReferenceService<'t> {
 #[scale_info(crate = sails_rs::scale_info)]
 #[reflect_hash(crate = sails_rs::sails_reflect_hash)]
 pub struct ReferenceCount(u32);
+
+// todo [sab] Mock ReflectHash implementation for demo purposes
+impl sails_rs::sails_reflect_hash::ReflectHash for ReferenceCount {
+    const HASH: [u8; 32] = sails_rs::keccak_const::Keccak256::new()
+        .update(b"ReferenceCount")
+        .update(&u32::HASH)
+        .finalize();
+}
