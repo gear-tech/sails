@@ -24,11 +24,11 @@ service Counter {
     }
 }
 
-service ThisThat  {
+service ThisThat {
     functions {
         /// Some func
         /// With multiline doc
-        DoThis(p1: u32, p2: String, p3: (Option<H160>, NonZeroU8), p4: TupleStruct) -> (String, u32) throws (String);
+        DoThis(p1: u32, p2: String, p3: (Option<H160>, NonZero<u8>), p4: TupleStruct) -> (String, u32) throws (String);
     }
     types {
         struct DoThatParam {

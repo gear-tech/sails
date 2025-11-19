@@ -3,7 +3,7 @@
 extern crate alloc;
 
 #[cfg(feature = "ast")]
-pub mod ast;
+mod ast;
 
 #[cfg(feature = "ast")]
 pub use ast::*;

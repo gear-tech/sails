@@ -141,7 +141,7 @@ impl ServiceFunc {
 ///
 /// Stores the parameter name as written in IDL and its fully resolved type
 /// (`TypeDecl`), preserving declaration order.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FuncParam {
     pub name: String,
     pub type_decl: TypeDecl,
@@ -173,33 +173,53 @@ pub type ServiceEvent = EnumVariant;
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum TypeDecl {
     /// Slice type `[T]`.
-    Slice(Box<TypeDecl>),
+    Slice { item: Box<TypeDecl> },
     /// Fixed-length array type `[T; N]`.
-    Array(Box<TypeDecl>, u32),
+    Array { item: Box<TypeDecl>, len: u32 },
     /// Tuple type `(T1, T2, ...)`, including `()` for an empty tuple.
-    Tuple(Vec<TypeDecl>),
-    /// Built-in primitive type from `PrimitiveType`.
-    Primitive(PrimitiveType),
+    Tuple { types: Vec<TypeDecl> },
     /// Named type, possibly generic (e.g. `Point<u32>`).
     ///
     /// - known named type, e.g. `Option<T>`, `Result<T, E>`
     /// - user-defined named type
     /// - generic type parameter (e.g. `T`) used in type definitions.
-    Named(String, Vec<TypeDecl>),
+    Named {
+        name: String,
+        generics: Vec<TypeDecl>,
+    },
+    /// Built-in primitive type from `PrimitiveType`.
+    Primitive(PrimitiveType),
 }
 
 impl TypeDecl {
+    pub fn named(name: String) -> TypeDecl {
+        TypeDecl::Named {
+            name,
+            generics: vec![],
+        }
+    }
+
+    pub fn tuple(types: Vec<TypeDecl>) -> TypeDecl {
+        TypeDecl::Tuple { types }
+    }
+
     pub fn option(item: TypeDecl) -> TypeDecl {
-        TypeDecl::Named("Option".to_string(), vec![item])
+        TypeDecl::Named {
+            name: "Option".to_string(),
+            generics: vec![item],
+        }
     }
 
     pub fn result(ok: TypeDecl, err: TypeDecl) -> TypeDecl {
-        TypeDecl::Named("Result".to_string(), vec![ok, err])
+        TypeDecl::Named {
+            name: "Result".to_string(),
+            generics: vec![ok, err],
+        }
     }
 
     pub fn option_type_decl(ty: &TypeDecl) -> Option<TypeDecl> {
         match ty {
-            TypeDecl::Named(name, generics) if name == "Option" => {
+            TypeDecl::Named { name, generics } if name == "Option" => {
                 if let [item] = generics.as_slice() {
                     Some(item.clone())
                 } else {
@@ -212,7 +232,7 @@ impl TypeDecl {
 
     pub fn result_type_decl(ty: &TypeDecl) -> Option<(TypeDecl, TypeDecl)> {
         match ty {
-            TypeDecl::Named(name, generics) if name == "Result" => {
+            TypeDecl::Named { name, generics } if name == "Result" => {
                 if let [ok, err] = generics.as_slice() {
                     Some((ok.clone(), err.clone()))
                 } else {
@@ -228,11 +248,11 @@ impl Display for TypeDecl {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         use TypeDecl::*;
         match self {
-            Slice(item) => write!(f, "[{item}]"),
-            Array(item, len) => write!(f, "[{item}; {len}]"),
-            Tuple(type_decls) => {
+            Slice { item } => write!(f, "[{item}]"),
+            Array { item, len } => write!(f, "[{item}; {len}]"),
+            Tuple { types } => {
                 f.write_char('(')?;
-                for (i, ty) in type_decls.iter().enumerate() {
+                for (i, ty) in types.iter().enumerate() {
                     if i > 0 {
                         f.write_str(", ")?;
                     }
@@ -241,8 +261,7 @@ impl Display for TypeDecl {
                 f.write_char(')')?;
                 Ok(())
             }
-            Primitive(primitive_type) => write!(f, "{primitive_type}"),
-            Named(name, generics) => {
+            Named { name, generics } => {
                 write!(f, "{name}")?;
                 if !generics.is_empty() {
                     f.write_char('<')?;
@@ -256,6 +275,7 @@ impl Display for TypeDecl {
                 }
                 Ok(())
             }
+            Primitive(primitive_type) => write!(f, "{primitive_type}"),
         }
     }
 }
@@ -413,8 +433,8 @@ impl Display for TypeParameter {
 /// Underlying definition of a named type: either a struct or an enum.
 ///
 /// This mirrors the two composite categories in the IDL:
-/// - `Struct` — record / tuple / unit structs;
-/// - `Enum` — tagged unions with variants that may carry payloads.
+/// - `Struct` - record / tuple / unit structs;
+/// - `Enum` - tagged unions with variants that may carry payloads.
 #[derive(Debug, Clone, PartialEq)]
 pub enum TypeDef {
     Struct(StructDef),
