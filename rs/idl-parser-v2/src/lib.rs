@@ -1,3 +1,10 @@
+pub use sails_idl_meta as ast;
+
+pub mod ffi {
+    pub mod ast;
+}
+pub mod visitor;
+
 // Sails IDL v2 — parser using `pest-rs`
 use anyhow::{Context, Error, Result, bail};
 use core::str::FromStr;
