@@ -843,6 +843,7 @@ dependencies = [
  "redirect-client",
  "redirect-proxy",
  "redirect-proxy-client",
+ "sails-client-gen",
  "sails-rs",
  "serde",
  "serde_json",
@@ -5686,6 +5687,7 @@ name = "no-svcs-prog"
 version = "0.1.0"
 dependencies = [
  "no-svcs-prog-app",
+ "sails-client-gen",
  "sails-rs",
  "tokio",
 ]
@@ -6658,6 +6660,7 @@ name = "redirect-client"
 version = "0.1.0"
 dependencies = [
  "redirect-app",
+ "sails-client-gen",
  "sails-rs",
 ]
 
@@ -6909,6 +6912,7 @@ dependencies = [
  "gtest",
  "rmrk-catalog",
  "rmrk-resource-app",
+ "sails-client-gen",
  "sails-rs",
  "tokio",
 ]
@@ -7224,7 +7228,7 @@ dependencies = [
  "genco",
  "insta",
  "parity-scale-codec",
- "sails-idl-parser",
+ "sails-idl-parser-v2",
 ]
 
 [[package]]
@@ -7266,6 +7270,7 @@ name = "sails-idl-parser-v2"
 version = "0.9.2"
 dependencies = [
  "anyhow",
+ "paste",
  "pest",
  "pest_derive",
  "sails-idl-meta",

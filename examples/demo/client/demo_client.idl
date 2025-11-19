@@ -1,115 +1,135 @@
-type ReferenceCount = struct {
-  u32,
-};
+program Demo {
+    constructors {
+        /// Program constructor (called once at the very beginning of the program lifetime)
+        Default();
+        /// Another program constructor (called once at the very beginning of the program lifetime)
+        New(counter: Option<u32>, dog_position: Option<(i32, i32)>);
+    }
+    services {
+        PingPong,
+        Counter,
+        Dog,
+        References,
+        ThisThat,
+        ValueFee,
+        Chaos,
+    }
+    types {
+        struct ReferenceCount(u32);
 
-type DoThatParam = struct {
-  p1: nat32,
-  p2: actor_id,
-  p3: ManyVariants,
-};
+        struct DoThatParam {
+            p1: NonZeroU32,
+            p2: ActorId,
+            p3: ManyVariants,
+        }
 
-type ManyVariants = enum {
-  One,
-  Two: u32,
-  Three: opt u256,
-  Four: struct {
-    a: u32,
-    b: opt u16,
-  },
-  Five: struct {
-    str,
-    h256,
-  },
-  Six: struct { u32 },
-};
+        enum ManyVariants {
+            One,
+            Two(u32),
+            Three(Option<U256>),
+            Four { a: u32, b: Option<u16> },
+            Five(string, H256),
+            Six(u32),
+        }
 
-type ManyVariantsReply = enum {
-  One,
-  Two,
-  Three,
-  Four,
-  Five,
-  Six,
-};
+        enum ManyVariantsReply {
+            One,
+            Two,
+            Three,
+            Four,
+            Five,
+            Six,
+        }
 
-type TupleStruct = struct {
-  bool,
-};
-
-constructor {
-  /// Program constructor (called once at the very beginning of the program lifetime)
-  Default : ();
-  /// Another program constructor (called once at the very beginning of the program lifetime)
-  New : (counter: opt u32, dog_position: opt struct { i32, i32 });
-};
+        struct TupleStruct(bool);
+    }
+}
 
 service PingPong {
-  Ping : (input: str) -> result (str, str);
-};
+    functions {
+        Ping(input: string) -> Result<string, string>;
+    }
+}
 
 service Counter {
-  /// Add a value to the counter
-  Add : (value: u32) -> u32;
-  /// Substract a value from the counter
-  Sub : (value: u32) -> u32;
-  /// Get the current value
-  query Value : () -> u32;
-
-  events {
-    /// Emitted when a new value is added to the counter
-    Added: u32;
-    /// Emitted when a value is subtracted from the counter
-    Subtracted: u32;
-  }
-};
+    functions {
+        /// Add a value to the counter
+        Add(value: u32) -> u32;
+        /// Substract a value from the counter
+        Sub(value: u32) -> u32;
+        /// Get the current value
+        @query
+        Value() -> u32;
+    }
+    events {
+        /// Emitted when a new value is added to the counter
+        Added(u32),
+        /// Emitted when a value is subtracted from the counter
+        Subtracted(u32),
+    }
+}
 
 service Dog {
-  MakeSound : () -> str;
-  Walk : (dx: i32, dy: i32) -> null;
-  query AvgWeight : () -> u32;
-  query Position : () -> struct { i32, i32 };
-
-  events {
-    Barked;
-    Walked: struct {
-      from: struct { i32, i32 },
-      to: struct { i32, i32 },
-    };
-  }
-};
+    functions {
+        MakeSound() -> string;
+        Walk(dx: i32, dy: i32) -> ();
+        @query
+        AvgWeight() -> u32;
+        @query
+        Position() -> (i32, i32);
+    }
+    events {
+        Barked,
+        Walked { from: (i32, i32), to: (i32, i32) },
+    }
+}
 
 service References {
-  Add : (v: u32) -> u32;
-  AddByte : (byte: u8) -> vec u8;
-  GuessNum : (number: u8) -> result (str, str);
-  Incr : () -> ReferenceCount;
-  SetNum : (number: u8) -> result (null, str);
-  query Baked : () -> str;
-  query LastByte : () -> opt u8;
-  query Message : () -> opt str;
-};
+    functions {
+        Add(v: u32) -> u32;
+        AddByte(byte: u8) -> Vec<u8>;
+        GuessNum(number: u8) -> Result<string, string>;
+        Incr() -> ReferenceCount;
+        SetNum(number: u8) -> Result<(), string>;
+        @query
+        Baked() -> string;
+        @query
+        LastByte() -> Option<u8>;
+        @query
+        Message() -> Option<string>;
+    }
+}
 
 service ThisThat {
-  DoThat : (param: DoThatParam) -> result (struct { actor_id, nat32, ManyVariantsReply }, struct { str });
-  DoThis : (p1: u32, p2: str, p3: struct { opt h160, nat8 }, p4: TupleStruct) -> struct { str, u32 };
-  Noop : () -> null;
-  query That : () -> result (str, str);
-  query This : () -> u32;
-};
+    functions {
+        DoThat(param: DoThatParam) -> Result<(ActorId, NonZeroU32, ManyVariantsReply), (string,)>;
+        DoThis(p1: u32, p2: string, p3: (Option<H160>, NonZeroU8), p4: TupleStruct) -> (string, u32);
+        Noop() -> ();
+        @query
+        That() -> Result<string, string>;
+        @query
+        This() -> u32;
+    }
+}
 
 service ValueFee {
-  /// Return flag if fee taken and remain value,
-  /// using special type `CommandReply<T>`
-  DoSomethingAndTakeFee : () -> bool;
-
-  events {
-    Withheld: u128;
-  }
-};
+    functions {
+        /// Return flag if fee taken and remain value,
+        /// using special type `CommandReply<T>`
+        DoSomethingAndTakeFee() -> bool;
+    }
+    events {
+        Withheld(u128),
+    }
+}
 
 service Chaos {
-  query PanicAfterWait : () -> null;
-  query ReplyHookCounter : () -> u32;
-  query TimeoutWait : () -> null;
-};
-
+    functions {
+        @query
+        PanicAfterWait() -> ();
+        @query
+        ReplyHookCounter() -> u32;
+        @query
+        TimeoutWait() -> ();
+    }
+}

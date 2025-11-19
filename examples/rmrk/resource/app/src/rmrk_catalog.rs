@@ -32,6 +32,49 @@ pub mod io {
     use super::*;
     sails_rs::io_struct_impl!(New () -> ());
 }
+#[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo)]
+#[codec(crate = sails_rs::scale_codec)]
+#[scale_info(crate = sails_rs::scale_info)]
+pub enum Error {
+    PartIdCantBeZero,
+    BadConfig,
+    PartAlreadyExists,
+    ZeroLengthPassed,
+    PartDoesNotExist,
+    WrongPartFormat,
+    NotAllowedToCall,
+}
+#[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo)]
+#[codec(crate = sails_rs::scale_codec)]
+#[scale_info(crate = sails_rs::scale_info)]
+pub enum Part {
+    Fixed(FixedPart),
+    Slot(SlotPart),
+}
+#[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo)]
+#[codec(crate = sails_rs::scale_codec)]
+#[scale_info(crate = sails_rs::scale_info)]
+pub struct FixedPart {
+    /// An optional zIndex of base part layer.
+    /// specifies the stack order of an element.
+    /// An element with greater stack order is always in front of an element with a lower stack order.
+    pub z: Option<u32>,
+    /// The metadata URI of the part.
+    pub metadata_uri: String,
+}
+#[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo)]
+#[codec(crate = sails_rs::scale_codec)]
+#[scale_info(crate = sails_rs::scale_info)]
+pub struct SlotPart {
+    /// Array of whitelisted collections that can be equipped in the given slot. Used with slot parts only.
+    pub equippable: Vec<ActorId>,
+    /// An optional zIndex of base part layer.
+    /// specifies the stack order of an element.
+    /// An element with greater stack order is always in front of an element with a lower stack order.
+    pub z: Option<u32>,
+    /// The metadata URI of the part.
+    pub metadata_uri: String,
+}
 
 pub mod rmrk_catalog {
     use super::*;
@@ -125,58 +168,15 @@ pub mod rmrk_catalog {
 
     pub mod io {
         use super::*;
-        sails_rs::io_struct_impl!(AddEquippables (part_id: u32, collection_ids: Vec<ActorId>) -> Result<(u32,Vec<ActorId>,), super::Error>);
-        sails_rs::io_struct_impl!(AddParts (parts: BTreeMap<u32, super::Part>) -> Result<BTreeMap<u32, super::Part>, super::Error>);
-        sails_rs::io_struct_impl!(RemoveEquippable (part_id: u32, collection_id: ActorId) -> Result<(u32,ActorId,), super::Error>);
-        sails_rs::io_struct_impl!(RemoveParts (part_ids: Vec<u32>) -> Result<Vec<u32>, super::Error>);
-        sails_rs::io_struct_impl!(ResetEquippables (part_id: u32) -> Result<(), super::Error>);
-        sails_rs::io_struct_impl!(SetEquippablesToAll (part_id: u32) -> Result<(), super::Error>);
-        sails_rs::io_struct_impl!(Equippable (part_id: u32, collection_id: ActorId) -> Result<bool, super::Error>);
-        sails_rs::io_struct_impl!(Part (part_id: u32) -> Option<super::Part>);
+        sails_rs::io_struct_impl!(AddEquippables (part_id: u32, collection_ids: super::Vec<ActorId>) -> super::Result<(u32, super::Vec<ActorId>), super::Error>);
+        sails_rs::io_struct_impl!(AddParts (parts: super::BTreeMap<u32, super::Part>) -> super::Result<super::BTreeMap<u32, super::Part>, super::Error>);
+        sails_rs::io_struct_impl!(RemoveEquippable (part_id: u32, collection_id: ActorId) -> super::Result<(u32, ActorId), super::Error>);
+        sails_rs::io_struct_impl!(RemoveParts (part_ids: super::Vec<u32>) -> super::Result<super::Vec<u32>, super::Error>);
+        sails_rs::io_struct_impl!(ResetEquippables (part_id: u32) -> super::Result<(), super::Error>);
+        sails_rs::io_struct_impl!(SetEquippablesToAll (part_id: u32) -> super::Result<(), super::Error>);
+        sails_rs::io_struct_impl!(Equippable (part_id: u32, collection_id: ActorId) -> super::Result<bool, super::Error>);
+        sails_rs::io_struct_impl!(Part (part_id: u32) -> super::Option<super::Part>);
     }
-}
-#[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo)]
-#[codec(crate = sails_rs::scale_codec)]
-#[scale_info(crate = sails_rs::scale_info)]
-pub enum Error {
-    PartIdCantBeZero,
-    BadConfig,
-    PartAlreadyExists,
-    ZeroLengthPassed,
-    PartDoesNotExist,
-    WrongPartFormat,
-    NotAllowedToCall,
-}
-#[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo)]
-#[codec(crate = sails_rs::scale_codec)]
-#[scale_info(crate = sails_rs::scale_info)]
-pub enum Part {
-    Fixed(FixedPart),
-    Slot(SlotPart),
-}
-#[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo)]
-#[codec(crate = sails_rs::scale_codec)]
-#[scale_info(crate = sails_rs::scale_info)]
-pub struct FixedPart {
-    /// An optional zIndex of base part layer.
-    /// specifies the stack order of an element.
-    /// An element with greater stack order is always in front of an element with a lower stack order.
-    pub z: Option<u32>,
-    /// The metadata URI of the part.
-    pub metadata_uri: String,
-}
-#[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo)]
-#[codec(crate = sails_rs::scale_codec)]
-#[scale_info(crate = sails_rs::scale_info)]
-pub struct SlotPart {
-    /// Array of whitelisted collections that can be equipped in the given slot. Used with slot parts only.
-    pub equippable: Vec<ActorId>,
-    /// An optional zIndex of base part layer.
-    /// specifies the stack order of an element.
-    /// An element with greater stack order is always in front of an element with a lower stack order.
-    pub z: Option<u32>,
-    /// The metadata URI of the part.
-    pub metadata_uri: String,
 }
 
 #[cfg(feature = "mockall")]
@@ -188,5 +188,5 @@ extern crate std;
 pub mod mockall {
     use super::*;
     use sails_rs::mockall::*;
-    mock! { pub RmrkCatalog {} #[allow(refining_impl_trait)] #[allow(clippy::type_complexity)] impl rmrk_catalog::RmrkCatalog for RmrkCatalog { type Env = sails_rs::client::GstdEnv; fn add_equippables (&mut self, part_id: u32, collection_ids: Vec<ActorId>) -> sails_rs::client::PendingCall<rmrk_catalog::io::AddEquippables, sails_rs::client::GstdEnv>;fn add_parts (&mut self, parts: BTreeMap<u32, Part>) -> sails_rs::client::PendingCall<rmrk_catalog::io::AddParts, sails_rs::client::GstdEnv>;fn remove_equippable (&mut self, part_id: u32, collection_id: ActorId) -> sails_rs::client::PendingCall<rmrk_catalog::io::RemoveEquippable, sails_rs::client::GstdEnv>;fn remove_parts (&mut self, part_ids: Vec<u32>) -> sails_rs::client::PendingCall<rmrk_catalog::io::RemoveParts, sails_rs::client::GstdEnv>;fn reset_equippables (&mut self, part_id: u32) -> sails_rs::client::PendingCall<rmrk_catalog::io::ResetEquippables, sails_rs::client::GstdEnv>;fn set_equippables_to_all (&mut self, part_id: u32) -> sails_rs::client::PendingCall<rmrk_catalog::io::SetEquippablesToAll, sails_rs::client::GstdEnv>;fn equippable (& self, part_id: u32, collection_id: ActorId) -> sails_rs::client::PendingCall<rmrk_catalog::io::Equippable, sails_rs::client::GstdEnv>;fn part (& self, part_id: u32) -> sails_rs::client::PendingCall<rmrk_catalog::io::Part, sails_rs::client::GstdEnv>; } }
+    mock! { pub RmrkCatalog {} #[allow(refining_impl_trait)] #[allow(clippy::type_complexity)] impl rmrk_catalog::RmrkCatalog for RmrkCatalog { type Env = sails_rs::client::GstdEnv; fn add_equippables (&mut self, part_id: u32, collection_ids: Vec<ActorId>) -> sails_rs::client::PendingCall<rmrk_catalog::io::AddEquippables, sails_rs::client::GstdEnv>;fn add_parts (&mut self, parts: BTreeMap<u32, Part>) -> sails_rs::client::PendingCall<rmrk_catalog::io::AddParts, sails_rs::client::GstdEnv>;fn remove_equippable (&mut self, part_id: u32, collection_id: ActorId) -> sails_rs::client::PendingCall<rmrk_catalog::io::RemoveEquippable, sails_rs::client::GstdEnv>;fn remove_parts (&mut self, part_ids: Vec<u32>) -> sails_rs::client::PendingCall<rmrk_catalog::io::RemoveParts, sails_rs::client::GstdEnv>;fn reset_equippables (&mut self, part_id: u32) -> sails_rs::client::PendingCall<rmrk_catalog::io::ResetEquippables, sails_rs::client::GstdEnv>;fn set_equippables_to_all (&mut self, part_id: u32) -> sails_rs::client::PendingCall<rmrk_catalog::io::SetEquippablesToAll, sails_rs::client::GstdEnv>;fn equippable (&self, part_id: u32, collection_id: ActorId) -> sails_rs::client::PendingCall<rmrk_catalog::io::Equippable, sails_rs::client::GstdEnv>;fn part (&self, part_id: u32) -> sails_rs::client::PendingCall<rmrk_catalog::io::Part, sails_rs::client::GstdEnv>; } }
 }

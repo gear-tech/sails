@@ -41,6 +41,12 @@ pub mod io {
     use super::*;
     sails_rs::io_struct_impl!(NewForBench () -> ());
 }
+#[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo)]
+#[codec(crate = sails_rs::scale_codec)]
+#[scale_info(crate = sails_rs::scale_info)]
+pub struct ComputeStressResult {
+    pub res: u32,
+}
 
 pub mod compute_stress {
     use super::*;
@@ -68,10 +74,4 @@ pub mod compute_stress {
         use super::*;
         sails_rs::io_struct_impl!(ComputeStress (n: u32) -> super::ComputeStressResult);
     }
-}
-#[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo)]
-#[codec(crate = sails_rs::scale_codec)]
-#[scale_info(crate = sails_rs::scale_info)]
-pub struct ComputeStressResult {
-    pub res: u32,
 }
