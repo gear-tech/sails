@@ -24,6 +24,24 @@ impl<E: my_crate::sails::client::GearEnv> Service
 
 pub mod service {
     use super::*;
+    #[derive(Encode, Decode, TypeInfo)]
+    #[codec(crate = my_crate::sails::scale_codec)]
+    #[scale_info(crate = my_crate::sails::scale_info)]
+    pub struct MyParam {
+        pub f1: u32,
+        pub f2: Vec<String>,
+        pub f3: Option<(u8, u32)>,
+    }
+    #[derive(Encode, Decode, TypeInfo)]
+    #[codec(crate = my_crate::sails::scale_codec)]
+    #[scale_info(crate = my_crate::sails::scale_info)]
+    pub enum MyParam2 {
+        Variant1,
+        Variant2(u32),
+        Variant3(u32),
+        Variant4(u8, u32),
+        Variant5 { f1: String, f2: Vec<u8> },
+    }
     pub trait Service {
         type Env: my_crate::sails::client::GearEnv;
         fn do_this(
@@ -59,16 +77,6 @@ pub mod service {
     pub mod io {
         use super::*;
         my_crate::sails::io_struct_impl!(DoThis (p1: u32, p2: super::MyParam) -> u16);
-        my_crate::sails::io_struct_impl!(DoThat (p1: (u8,u32,)) -> u8);
+        my_crate::sails::io_struct_impl!(DoThat (p1: (u8, u32)) -> u8);
     }
-}
-#[derive(Encode, Decode, TypeInfo)]
-#[codec(crate = my_crate::sails::scale_codec)]
-#[scale_info(crate = my_crate::sails::scale_info)]
-pub enum MyParam2 {
-    Variant1,
-    Variant2(u32),
-    Variant3((u32,)),
-    Variant4((u8, u32)),
-    Variant5 { f1: String, f2: Vec<u8> },
 }

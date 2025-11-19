@@ -20,6 +20,24 @@ impl<E: sails_rs::client::GearEnv> Basic for sails_rs::client::Actor<BasicProgra
 
 pub mod basic {
     use super::*;
+    #[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo)]
+    #[codec(crate = sails_rs::scale_codec)]
+    #[scale_info(crate = sails_rs::scale_info)]
+    pub struct MyParam {
+        pub f1: u32,
+        pub f2: Vec<String>,
+        pub f3: Option<(u8, u32)>,
+    }
+    #[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo)]
+    #[codec(crate = sails_rs::scale_codec)]
+    #[scale_info(crate = sails_rs::scale_info)]
+    pub enum MyParam2 {
+        Variant1,
+        Variant2(u32),
+        Variant3(u32),
+        Variant4(u8, u32),
+        Variant5 { f1: String, f2: Vec<u8> },
+    }
     pub trait Basic {
         type Env: sails_rs::client::GearEnv;
         fn do_this(
@@ -53,26 +71,8 @@ pub mod basic {
     pub mod io {
         use super::*;
         sails_rs::io_struct_impl!(DoThis (p1: u32, p2: super::MyParam) -> u16);
-        sails_rs::io_struct_impl!(DoThat (p1: (u8,u32,)) -> u8);
+        sails_rs::io_struct_impl!(DoThat (p1: (u8, u32)) -> u8);
     }
-}
-#[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo)]
-#[codec(crate = sails_rs::scale_codec)]
-#[scale_info(crate = sails_rs::scale_info)]
-pub struct MyParam {
-    pub f1: u32,
-    pub f2: Vec<String>,
-    pub f3: Option<(u8, u32)>,
-}
-#[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo)]
-#[codec(crate = sails_rs::scale_codec)]
-#[scale_info(crate = sails_rs::scale_info)]
-pub enum MyParam2 {
-    Variant1,
-    Variant2(u32),
-    Variant3((u32,)),
-    Variant4((u8, u32)),
-    Variant5 { f1: String, f2: Vec<u8> },
 }
 
 #[cfg(feature = "with_mocks")]
@@ -84,5 +84,5 @@ extern crate std;
 pub mod mockall {
     use super::*;
     use sails_rs::mockall::*;
-    mock! { pub Basic {} #[allow(refining_impl_trait)] #[allow(clippy::type_complexity)] impl basic::Basic for Basic { type Env = sails_rs::client::GstdEnv; fn do_this (&mut self, p1: u32, p2: MyParam) -> sails_rs::client::PendingCall<basic::io::DoThis, sails_rs::client::GstdEnv>;fn do_that (&mut self, p1: (u8,u32,)) -> sails_rs::client::PendingCall<basic::io::DoThat, sails_rs::client::GstdEnv>; } }
+    mock! { pub Basic {} #[allow(refining_impl_trait)] #[allow(clippy::type_complexity)] impl basic::Basic for Basic { type Env = sails_rs::client::GstdEnv; fn do_this (&mut self, p1: u32, p2: MyParam) -> sails_rs::client::PendingCall<basic::io::DoThis, sails_rs::client::GstdEnv>;fn do_that (&mut self, p1: (u8, u32)) -> sails_rs::client::PendingCall<basic::io::DoThat, sails_rs::client::GstdEnv>; } }
 }
