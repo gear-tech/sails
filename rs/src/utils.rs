@@ -114,3 +114,96 @@ impl<T> SyncCell<T> {
         self.0.into_inner()
     }
 }
+
+/// Sorts an array of byte arrays in place at compile time using bubble sort.
+/// This is used for deterministic ordering of service interface IDs.
+///
+/// # Examples
+///
+/// ```
+/// const SORTED: [[u8; 4]; 3] = sails_rs::utils::const_bubble_sort_bytes(&[
+///     [3, 2, 1, 0],
+///     [1, 2, 3, 4],
+///     [2, 1, 0, 0],
+/// ]);
+/// assert_eq!(SORTED, [[1, 2, 3, 4], [2, 1, 0, 0], [3, 2, 1, 0]]);
+/// ```
+pub const fn const_bubble_sort_bytes<const N: usize, const M: usize>(
+    arr: &[[u8; M]; N],
+) -> [[u8; M]; N] {
+    let mut result = *arr;
+    let mut i = 0;
+    while i < result.len() {
+        let mut j = 0;
+        while j < result.len() - i - 1 {
+            // Compare arrays lexicographically
+            let mut k = 0;
+            let mut should_swap = false;
+            while k < M {
+                if result[j][k] > result[j + 1][k] {
+                    should_swap = true;
+                    break;
+                } else if result[j][k] < result[j + 1][k] {
+                    break;
+                }
+                k += 1;
+            }
+            if should_swap {
+                let temp = result[j];
+                result[j] = result[j + 1];
+                result[j + 1] = temp;
+            }
+            j += 1;
+        }
+        i += 1;
+    }
+    result
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_const_bubble_sort_bytes() {
+        const UNSORTED: [[u8; 4]; 5] = [[3, 2, 1, 0], [1, 2, 3, 4], [2, 1, 0, 0], [0, 0, 0, 1], [1, 2, 3, 3]];
+        const SORTED: [[u8; 4]; 5] = const_bubble_sort_bytes(&UNSORTED);
+        
+        assert_eq!(SORTED[0], [0, 0, 0, 1]);
+        assert_eq!(SORTED[1], [1, 2, 3, 3]);
+        assert_eq!(SORTED[2], [1, 2, 3, 4]);
+        assert_eq!(SORTED[3], [2, 1, 0, 0]);
+        assert_eq!(SORTED[4], [3, 2, 1, 0]);
+    }
+
+    #[test]
+    fn test_const_bubble_sort_bytes_32() {
+        // Test with 32-byte arrays (like interface IDs)
+        const ID1: [u8; 32] = [1; 32];
+        const ID2: [u8; 32] = [2; 32];
+        const ID3: [u8; 32] = [0; 32];
+        
+        const UNSORTED: [[u8; 32]; 3] = [ID2, ID1, ID3];
+        const SORTED: [[u8; 32]; 3] = const_bubble_sort_bytes(&UNSORTED);
+        
+        assert_eq!(SORTED[0], ID3);
+        assert_eq!(SORTED[1], ID1);
+        assert_eq!(SORTED[2], ID2);
+    }
+
+    #[test]
+    fn test_const_bubble_sort_bytes_already_sorted() {
+        const ALREADY_SORTED: [[u8; 4]; 3] = [[1, 2, 3, 4], [2, 1, 0, 0], [3, 2, 1, 0]];
+        const RESULT: [[u8; 4]; 3] = const_bubble_sort_bytes(&ALREADY_SORTED);
+        
+        assert_eq!(RESULT, ALREADY_SORTED);
+    }
+
+    #[test]
+    fn test_const_bubble_sort_bytes_empty() {
+        const EMPTY: [[u8; 4]; 0] = [];
+        const RESULT: [[u8; 4]; 0] = const_bubble_sort_bytes(&EMPTY);
+        
+        assert_eq!(RESULT, EMPTY);
+    }
+}

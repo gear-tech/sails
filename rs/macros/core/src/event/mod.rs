@@ -26,6 +26,7 @@ pub fn event(attrs: TokenStream, input: TokenStream) -> TokenStream {
     let sails_path = &sails_path_or_default(sails_path_attr.map(|attr| attr.path()));
 
     let event_impl = generate_sails_event_impl(&input, sails_path);
+    let reflect_hash_impl = generate_reflect_hash_impl(&input, sails_path);
 
     #[cfg(feature = "ethexe")]
     let eth_event_impl = ethexe::generate_eth_event_impl(&input, sails_path);
@@ -38,6 +39,8 @@ pub fn event(attrs: TokenStream, input: TokenStream) -> TokenStream {
         #input
 
         #event_impl
+
+        #reflect_hash_impl
 
         #eth_event_impl
     }
@@ -98,6 +101,76 @@ fn generate_sails_event_impl(input: &ItemEnum, sails_path: &Path) -> TokenStream
             fn skip_bytes() -> usize {
                 1 // The first byte is reserved for the index of the event enum variant
             }
+        }
+    }
+}
+
+fn generate_reflect_hash_impl(input: &ItemEnum, sails_path: &Path) -> TokenStream {
+    let enum_ident = &input.ident;
+    let variants = &input.variants;
+
+    // Build the hash computation for each variant
+    let mut variant_hash_computations = Vec::new();
+
+    for variant in variants {
+        let variant_ident = &variant.ident;
+        let variant_name = variant_ident.to_string();
+
+        let variant_hash = match &variant.fields {
+            Fields::Unit => {
+                // Unit variant: hash(b"VariantName")
+                quote! {
+                    #sails_path::keccak_const::Keccak256::new()
+                        .update(#variant_name.as_bytes())
+                        .finalize()
+                }
+            }
+            Fields::Unnamed(fields) => {
+                // Tuple variant: hash(b"VariantName" || T1::HASH || T2::HASH || ...)
+                let field_hashes = fields.unnamed.iter().map(|field| {
+                    let ty = &field.ty;
+                    quote! {
+                        .update(&<#ty as #sails_path::sails_reflect_hash::ReflectHash>::HASH)
+                    }
+                });
+                quote! {
+                    #sails_path::keccak_const::Keccak256::new()
+                        .update(#variant_name.as_bytes())
+                        #(#field_hashes)*
+                        .finalize()
+                }
+            }
+            Fields::Named(fields) => {
+                // Named variant: hash(b"VariantName" || T1::HASH || T2::HASH || ...)
+                // Field names are ignored for structural hashing
+                let field_hashes = fields.named.iter().map(|field| {
+                    let ty = &field.ty;
+                    quote! {
+                        .update(&<#ty as #sails_path::sails_reflect_hash::ReflectHash>::HASH)
+                    }
+                });
+                quote! {
+                    #sails_path::keccak_const::Keccak256::new()
+                        .update(#variant_name.as_bytes())
+                        #(#field_hashes)*
+                        .finalize()
+                }
+            }
+        };
+
+        variant_hash_computations.push(quote! {
+            let variant_hash = #variant_hash;
+            hasher = hasher.update(&variant_hash);
+        });
+    }
+
+    quote! {
+        impl #sails_path::sails_reflect_hash::ReflectHash for #enum_ident {
+            const HASH: [u8; 32] = {
+                let mut hasher = #sails_path::keccak_const::Keccak256::new();
+                #(#variant_hash_computations)*
+                hasher.finalize()
+            };
         }
     }
 }
