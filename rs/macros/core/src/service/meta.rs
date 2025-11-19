@@ -36,6 +36,8 @@ impl ServiceBuilder<'_> {
             quote!(#( #base_asyncness )||*)
         };
 
+        let interface_id_computation = self.generate_interface_id();
+
         quote! {
             impl #generics #sails_path::meta::ServiceMeta for #service_type_path #service_type_constraints {
                 type CommandsMeta = #meta_module_ident::CommandsMeta;
@@ -45,6 +47,7 @@ impl ServiceBuilder<'_> {
                     #( #base_services_meta ),*
                 ];
                 const ASYNC: bool = #service_meta_asyncness ;
+                const INTERFACE_ID: [u8; 32] = #interface_id_computation;
             }
         }
     }
@@ -94,6 +97,116 @@ impl ServiceBuilder<'_> {
                 pub enum #no_events_type {}
 
                 pub type EventsMeta = #events_type;
+            }
+        }
+    }
+
+    fn generate_interface_id(&self) -> TokenStream {
+        let sails_path = self.sails_path;
+        
+        // Sort handlers by name for deterministic ordering
+        let mut sorted_handlers = self.service_handlers.clone();
+        sorted_handlers.sort_by_key(|h| h.ident.to_string());
+
+        // Generate function hash computations
+        let fn_hash_computations: Vec<_> = sorted_handlers
+            .iter()
+            .map(|handler| {
+                let comment_string = format!("/// Hashing for function `{}`", handler.ident)
+                    .parse::<TokenStream>().unwrap();
+                let is_query = handler.is_query();
+                let fn_type = if is_query { "query" } else { "command" };
+                
+                // Hash each argument
+                let arg_hashes = handler.params().map(|(_, ty)| {
+                    quote! {
+                        fn_hash = fn_hash.update(b"arg");
+                        fn_hash = fn_hash.update(&<#ty as #sails_path::sails_reflect_hash::ReflectHash>::HASH);
+                    }
+                });
+                
+                // Hash result type
+                let result_type = handler.result_type_with_static_lifetime();
+                let result_hash = quote! {
+                    fn_hash = fn_hash.update(b"res");
+                    fn_hash = fn_hash.update(&<#result_type as #sails_path::sails_reflect_hash::ReflectHash>::HASH);
+                };
+
+                quote! {
+                    #comment_string
+                    {
+                        let mut fn_hash = #sails_path::keccak_const::Keccak256::new();
+                        fn_hash = fn_hash.update(#fn_type.as_bytes());
+                        #(#arg_hashes)*
+                        #result_hash
+                        fns_hash = fns_hash.update(&fn_hash.finalize());
+                    }
+                }
+            })
+            .collect();
+
+        // Handle events if present
+        let events_hash = if let Some(events_type) = self.events_type {
+            quote! {
+                final_hash = final_hash.update(&<#events_type as #sails_path::sails_reflect_hash::ReflectHash>::HASH);
+            }
+        } else {
+            quote!()
+        };
+
+        // Handle base services if present
+        let base_services_hash = if !self.base_types.is_empty() {
+            let base_service_ids: Vec<_> = self.base_types.iter().map(|base_type| {
+                let path_wo_lifetimes = shared::remove_lifetimes(base_type);
+                quote! {
+                    <#path_wo_lifetimes as #sails_path::meta::ServiceMeta>::INTERFACE_ID
+                }
+            }).collect();
+
+            // We need to sort base service IDs deterministically
+            // Create array literal with all base service IDs
+            // let base_count = base_service_ids.len();
+            
+            quote! {
+                {
+                    // Collect base service IDs into an array
+                    let base_ids = [
+                        #(#base_service_ids),*
+                    ];
+                    
+                    // Sort them using const bubble sort from utils
+                    let sorted_base_ids = 
+                        #sails_path::utils::const_bubble_sort_bytes(&base_ids);
+                    
+                    let mut base_services_hash = #sails_path::keccak_const::Keccak256::new();
+                    let mut i = 0;
+                    while i < sorted_base_ids.len() {
+                        base_services_hash = base_services_hash.update(&sorted_base_ids[i]);
+                        i += 1;
+                    }
+                    final_hash = final_hash.update(&base_services_hash.finalize());
+                }
+            }
+        } else {
+            quote!()
+        };
+
+        quote! {
+            {
+                let mut final_hash = #sails_path::keccak_const::Keccak256::new();
+                
+                // Hash all functions
+                let mut fns_hash = #sails_path::keccak_const::Keccak256::new();
+                #(#fn_hash_computations)*
+                final_hash = final_hash.update(&fns_hash.finalize());
+                
+                // Hash events if present
+                #events_hash
+                
+                // Hash base services if present
+                #base_services_hash
+                
+                final_hash.finalize()
             }
         }
     }

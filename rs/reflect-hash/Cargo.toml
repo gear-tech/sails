@@ -1,0 +1,16 @@
+[package]
+name = "sails-reflect-hash"
+description = "Structural compile-time hashing for Sails types"
+documentation = "https://docs.rs/sails-reflect-hash"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+gprimitives = { workspace = true, default-features = false, features = ["codec"] }
+keccak-const.workspace = true
+
+[dev-dependencies]
