@@ -1,0 +1,55 @@
+{%- for d in docs -%}
+/// {{ d }}
+{%- endfor %}
+{%- for (k, v) in annotations -%}
+@{{ k }} {%- if v.is_some() -%}: {{ v.as_ref().unwrap() }}{% endif %}
+{%- endfor %}
+service {{ name }} {
+    {%- if extends.len() > 0 %}
+    extends {
+        {%- for ext in extends %}
+        {{ ext }},
+        {%- endfor %}
+    }
+    {%- endif %}
+
+    {%- if events.len() > 0 %}
+    events {
+        {%- for evt in events -%}
+        {{ evt | indent(8) }},
+        {%- endfor %}
+    }
+    {%- endif %}
+
+    {%- if funcs.len() > 0 %}
+    functions {
+        {%- for f in funcs -%}
+
+        {%- for d in f.docs %}
+        /// {{ d }}
+        {%- endfor %}
+        {%- for (k, v) in f.annotations %}
+        @{{ k }} {%- if v.is_some() -%}: {{ v.as_ref().unwrap() }}{% endif %}
+        {%- endfor %}
+        {{ f.name }}(
+            {%- for p in f.params %}
+            {%- if loop.first %}{{ p }}{% else %}, {{ p }}{% endif -%}
+            {%- endfor -%}
+        )
+        {%- if !f.returns_void() %} -> {{ f.output }}{%- endif -%}
+        {%- if f.throws.is_some()  %} throws {{ f.throws.as_ref().unwrap() }}{%- endif -%}
+        ;
+
+        {%- endfor %}
+    }
+    {%- endif %}
+
+    {%- if types.len() > 0 %}
+    types {
+        {%- for t in types -%}
+        {{ t | indent(8) }}
+        {%- endfor %}
+    }
+    {%- endif %}
+}
+{{- "\n" -}}

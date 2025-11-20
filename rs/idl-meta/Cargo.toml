@@ -10,8 +10,17 @@ repository.workspace = true
 rust-version.workspace = true
 
 [dependencies]
+askama = { workspace = true, optional = true }
 scale-info.workspace = true
 
+[dev-dependencies]
+insta.workspace = true
+
 [features]
-default = [ "ast" ]
+default = ["ast"]
 ast = []
+templates = ["dep:askama", "ast"]
+
+[[test]]
+name = "templates"
+required-features = ["templates"]
