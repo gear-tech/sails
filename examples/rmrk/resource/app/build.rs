@@ -1,4 +1,4 @@
-use sails_client_gen::ClientGenerator;
+use sails_rs::ClientGenerator;
 use std::{env, path::PathBuf};
 
 fn main() {

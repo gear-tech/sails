@@ -3,7 +3,7 @@ fn main() {
 
     // sails_rs::build_client::<rmrk_resource_app::Program>();
 
-    use sails_client_gen::ClientGenerator;
+    use sails_rs::ClientGenerator;
     use std::{env, path::PathBuf};
 
     let manifest_dir = PathBuf::from(env::var("CARGO_MANIFEST_DIR").unwrap());
