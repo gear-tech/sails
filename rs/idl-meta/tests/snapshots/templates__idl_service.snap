@@ -7,6 +7,10 @@ expression: idl
 !@include: git://github.com/some_repo/tippable.idl
 
 service Counter {
+    extends {
+        BaseService,
+        AnotherBaseService,
+    }
     events {
         /// Emitted when a new value is added to the counter
         Added(u32),
