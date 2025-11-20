@@ -12,6 +12,8 @@ rust-version.workspace = true
 [dependencies]
 askama = { workspace = true, optional = true }
 scale-info.workspace = true
+serde = { workspace = true, features = ["derive"], optional = true }
+serde-json = { workspace = true, features = ["alloc"], optional = true }
 
 [dev-dependencies]
 insta.workspace = true
@@ -19,7 +21,12 @@ insta.workspace = true
 [features]
 default = ["ast"]
 ast = []
+serde = ["dep:serde", "dep:serde-json", "ast"]
 templates = ["dep:askama", "ast"]
+
+[[test]]
+name = "serde"
+required-features = ["serde"]
 
 [[test]]
 name = "templates"

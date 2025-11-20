@@ -1,0 +1,369 @@
+---
+source: rs/idl-meta/tests/serde.rs
+expression: serialized
+---
+{
+  "globals": [
+    [
+      "sails",
+      "0.1.0"
+    ],
+    [
+      "include",
+      "ownable.idl"
+    ],
+    [
+      "include",
+      "git://github.com/some_repo/tippable.idl"
+    ]
+  ],
+  "program": {
+    "name": "Demo",
+    "ctors": [
+      {
+        "name": "Create",
+        "params": [
+          {
+            "name": "counter",
+            "type": {
+              "kind": "named",
+              "name": "Option",
+              "generics": [
+                "u32"
+              ]
+            }
+          },
+          {
+            "name": "dog_position",
+            "type": {
+              "kind": "named",
+              "name": "Option",
+              "generics": [
+                {
+                  "kind": "tuple",
+                  "types": [
+                    "i32",
+                    "i32"
+                  ]
+                }
+              ]
+            }
+          }
+        ],
+        "docs": [
+          "Program constructor (called once at the very beginning of the program lifetime)"
+        ]
+      },
+      {
+        "name": "Default",
+        "params": [],
+        "docs": [
+          "Another program constructor",
+          "(called once at the very beginning of the program lifetime)"
+        ]
+      }
+    ],
+    "services": [
+      {
+        "name": "Ping"
+      },
+      {
+        "name": "Counter"
+      },
+      {
+        "name": "Counter",
+        "route": "Counter2",
+        "docs": [
+          "Another Counter service"
+        ]
+      }
+    ],
+    "types": [
+      {
+        "name": "DoThatParam",
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "p1",
+            "type": "u32"
+          },
+          {
+            "name": "p2",
+            "type": "ActorId"
+          },
+          {
+            "name": "p3",
+            "type": {
+              "kind": "named",
+              "name": "ManyVariants"
+            }
+          }
+        ]
+      },
+      {
+        "name": "TupleStruct",
+        "kind": "struct",
+        "fields": [
+          {
+            "type": "u32"
+          }
+        ]
+      },
+      {
+        "name": "UnitStruct",
+        "kind": "struct",
+        "fields": []
+      }
+    ],
+    "docs": [
+      "Demo Program"
+    ]
+  },
+  "services": [
+    {
+      "name": "Counter",
+      "funcs": [
+        {
+          "name": "Add",
+          "params": [
+            {
+              "name": "value",
+              "type": "u32"
+            }
+          ],
+          "output": "u32",
+          "kind": "command",
+          "docs": [
+            "Add a value to the counter"
+          ]
+        },
+        {
+          "name": "Sub",
+          "params": [
+            {
+              "name": "value",
+              "type": "u32"
+            }
+          ],
+          "output": "u32",
+          "throws": "String",
+          "kind": "command",
+          "docs": [
+            "Substract a value from the counter"
+          ]
+        },
+        {
+          "name": "Value",
+          "params": [],
+          "output": "u32",
+          "kind": "query",
+          "docs": [
+            "Get the current value"
+          ],
+          "annotations": [
+            [
+              "query",
+              null
+            ]
+          ]
+        }
+      ],
+      "events": [
+        {
+          "name": "Added",
+          "fields": [
+            {
+              "type": "u32"
+            }
+          ],
+          "docs": [
+            "Emitted when a new value is added to the counter"
+          ]
+        },
+        {
+          "name": "Subtracted",
+          "fields": [
+            {
+              "type": "u32"
+            }
+          ],
+          "docs": [
+            "Emitted when a value is subtracted from the counter"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "ThisThat",
+      "funcs": [
+        {
+          "name": "DoThis",
+          "params": [
+            {
+              "name": "p1",
+              "type": "u32"
+            },
+            {
+              "name": "p2",
+              "type": "String"
+            },
+            {
+              "name": "p3",
+              "type": {
+                "kind": "tuple",
+                "types": [
+                  {
+                    "kind": "named",
+                    "name": "Option",
+                    "generics": [
+                      "H160"
+                    ]
+                  },
+                  {
+                    "kind": "named",
+                    "name": "NonZero",
+                    "generics": [
+                      "u8"
+                    ]
+                  }
+                ]
+              }
+            },
+            {
+              "name": "p4",
+              "type": {
+                "kind": "named",
+                "name": "TupleStruct"
+              }
+            }
+          ],
+          "output": {
+            "kind": "tuple",
+            "types": [
+              "String",
+              "u32"
+            ]
+          },
+          "throws": {
+            "kind": "tuple",
+            "types": [
+              "String"
+            ]
+          },
+          "kind": "command",
+          "docs": [
+            "Some func",
+            "With multiline doc"
+          ]
+        }
+      ],
+      "types": [
+        {
+          "name": "DoThatParam",
+          "kind": "struct",
+          "fields": [
+            {
+              "name": "p1",
+              "type": "u32",
+              "docs": [
+                "Parametr p1: u32"
+              ]
+            },
+            {
+              "name": "p2",
+              "type": "ActorId"
+            },
+            {
+              "name": "p3",
+              "type": {
+                "kind": "named",
+                "name": "ManyVariants"
+              }
+            }
+          ]
+        },
+        {
+          "name": "ManyVariants",
+          "kind": "enum",
+          "variants": [
+            {
+              "name": "One",
+              "fields": []
+            },
+            {
+              "name": "Two",
+              "fields": [
+                {
+                  "type": "u32"
+                }
+              ]
+            },
+            {
+              "name": "Three",
+              "fields": [
+                {
+                  "type": {
+                    "kind": "named",
+                    "name": "Option",
+                    "generics": [
+                      "u32"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Four",
+              "fields": [
+                {
+                  "name": "a",
+                  "type": "u32"
+                },
+                {
+                  "name": "b",
+                  "type": {
+                    "kind": "named",
+                    "name": "Option",
+                    "generics": [
+                      "u16"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Five",
+              "fields": [
+                {
+                  "type": "String"
+                },
+                {
+                  "type": "H256",
+                  "annotations": [
+                    [
+                      "key",
+                      "value"
+                    ]
+                  ]
+                }
+              ]
+            },
+            {
+              "name": "Six",
+              "fields": [
+                {
+                  "type": {
+                    "kind": "tuple",
+                    "types": [
+                      "u32"
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

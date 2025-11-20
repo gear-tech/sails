@@ -7250,6 +7250,8 @@ dependencies = [
  "askama",
  "insta",
  "scale-info",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]
