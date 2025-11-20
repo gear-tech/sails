@@ -166,9 +166,15 @@ mod tests {
 
     #[test]
     fn test_const_bubble_sort_bytes() {
-        const UNSORTED: [[u8; 4]; 5] = [[3, 2, 1, 0], [1, 2, 3, 4], [2, 1, 0, 0], [0, 0, 0, 1], [1, 2, 3, 3]];
+        const UNSORTED: [[u8; 4]; 5] = [
+            [3, 2, 1, 0],
+            [1, 2, 3, 4],
+            [2, 1, 0, 0],
+            [0, 0, 0, 1],
+            [1, 2, 3, 3],
+        ];
         const SORTED: [[u8; 4]; 5] = const_bubble_sort_bytes(&UNSORTED);
-        
+
         assert_eq!(SORTED[0], [0, 0, 0, 1]);
         assert_eq!(SORTED[1], [1, 2, 3, 3]);
         assert_eq!(SORTED[2], [1, 2, 3, 4]);
@@ -182,10 +188,10 @@ mod tests {
         const ID1: [u8; 32] = [1; 32];
         const ID2: [u8; 32] = [2; 32];
         const ID3: [u8; 32] = [0; 32];
-        
+
         const UNSORTED: [[u8; 32]; 3] = [ID2, ID1, ID3];
         const SORTED: [[u8; 32]; 3] = const_bubble_sort_bytes(&UNSORTED);
-        
+
         assert_eq!(SORTED[0], ID3);
         assert_eq!(SORTED[1], ID1);
         assert_eq!(SORTED[2], ID2);
@@ -195,7 +201,7 @@ mod tests {
     fn test_const_bubble_sort_bytes_already_sorted() {
         const ALREADY_SORTED: [[u8; 4]; 3] = [[1, 2, 3, 4], [2, 1, 0, 0], [3, 2, 1, 0]];
         const RESULT: [[u8; 4]; 3] = const_bubble_sort_bytes(&ALREADY_SORTED);
-        
+
         assert_eq!(RESULT, ALREADY_SORTED);
     }
 
@@ -203,7 +209,7 @@ mod tests {
     fn test_const_bubble_sort_bytes_empty() {
         const EMPTY: [[u8; 4]; 0] = [];
         const RESULT: [[u8; 4]; 0] = const_bubble_sort_bytes(&EMPTY);
-        
+
         assert_eq!(RESULT, EMPTY);
     }
 }
