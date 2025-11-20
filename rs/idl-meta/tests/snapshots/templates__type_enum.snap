@@ -1,0 +1,29 @@
+---
+source: rs/idl-meta/tests/templates.rs
+expression: idl
+---
+/// SomeType Enum
+@rusttype: sails-idl-meta::SomeType
+enum SomeType<T1, T2> {
+    /// Unit-like Variant
+    Unit,
+    /// Tuple-like Variant
+    Tuple(u32),
+    /// Tuple-like Variant with field docs
+    TupleWithDocs (
+        /// Some docs
+        Option<u32>,
+        /// Some docs
+        (u32, u32),
+    ),
+    /// Struct-like Variant
+    Struct {
+        p1: Option<u32>,
+        p2: (u32, u32),
+    },
+    /// Generic Struct-like Variant
+    GenericStruct {
+        p1: Option<T1>,
+        p2: (T2, T2),
+    },
+}
