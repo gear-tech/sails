@@ -1,12 +1,19 @@
-type ComputeStressResult = struct {
-  res: u32,
-};
-
-constructor {
-  NewForBench : ();
-};
+program ComputeStress {
+    constructors {
+        NewForBench();
+    }
+    services {
+        ComputeStress,
+    }
+    types {
+        struct ComputeStressResult {
+            res: u32,
+        }
+    }
+}
 
 service ComputeStress {
-  ComputeStress : (n: u32) -> ComputeStressResult;
-};
-
+    functions {
+        ComputeStress(n: u32) -> ComputeStressResult;
+    }
+}

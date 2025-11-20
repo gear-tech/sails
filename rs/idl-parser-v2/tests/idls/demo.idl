@@ -1,0 +1,124 @@
+!@sails: 0.9.1
+!@author: Test Author
+!@version: 1.0.0
+service PingPong {
+    functions {
+        Ping(input: String) -> String throws String;
+    }
+}
+service Counter {
+    events {
+        /// Emitted when a new value is added to the counter
+        Added(u32),
+        /// Emitted when a value is subtracted from the counter
+        Subtracted(u32),
+    }
+    functions {
+        /// Add a value to the counter
+        Add(value: u32) -> u32;
+        /// Substract a value from the counter
+        Sub(value: u32) -> u32;
+        /// Get the current value
+        @query
+        Value() -> u32;
+    }
+}
+service Dog {
+    events {
+        Barked,
+        Walked {
+            from: (i32, i32),
+            to: (i32, i32),
+        },
+    }
+    functions {
+        MakeSound() -> String;
+        Walk(dx: i32, dy: i32);
+        @query
+        AvgWeight() -> u32;
+        @query
+        Position() -> (i32, i32);
+    }
+}
+service References {
+    functions {
+        Add(v: u32) -> u32;
+        AddByte(byte: u8) -> [u8];
+        GuessNum(number: u8) -> String throws String;
+        Incr() -> ReferenceCount;
+        SetNum(number: u8) throws String;
+        @query
+        Baked() -> String;
+        @query
+        LastByte() -> Option<u8>;
+        @query
+        Message() -> Option<String>;
+    }
+    types {
+        struct ReferenceCount(u32);
+    }
+}
+service ThisThat {
+    functions {
+        DoThat(param: DoThatParam) -> (ActorId, NonZeroU32, ManyVariantsReply) throws (String,);
+        DoThis(p1: u32, p2: String, p3: (Option<H160>, NonZeroU8), p4: TupleStruct) -> (String, u32);
+        Noop();
+        @query
+        That() -> String throws String;
+        @query
+        This() -> u32;
+    }
+    types {
+        struct DoThatParam {
+            p1: NonZeroU32,
+            p2: ActorId,
+            p3: ManyVariants,
+        }
+        enum ManyVariants {
+            One,
+            Two(u32),
+            Three(Option<u256>),
+            Four {
+                a: u32,
+                b: Option<u16>,
+            },
+            Five(String, H256),
+            Six((u32,)),
+        }
+        enum ManyVariantsReply {
+            One,
+            Two,
+            Three,
+            Four,
+            Five,
+            Six,
+        }
+        struct TupleStruct(bool);
+    }
+}
+service ValueFee {
+    events {
+        Withheld(u128),
+    }
+    functions {
+        /// Return flag if fee taken and remain value,
+        /// using special type `CommandReply<T>`
+        DoSomethingAndTakeFee() -> bool;
+    }
+}
+program Demo {
+    constructors {
+        /// Program constructor (called once at the very beginning of the program lifetime)
+        Default();
+        /// Another program constructor (called once at the very beginning of the program lifetime)
+        New(counter: Option<u32>, dog_position: Option<(i32, i32)>);
+    }
+    services {
+        PingPong,
+        Counter,
+        Dog,
+        References,
+        ThisThat,
+        ValueFee,
+    }
+}

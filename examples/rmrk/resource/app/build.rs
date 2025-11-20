@@ -1,4 +1,4 @@
-use sails_client_gen::ClientGenerator;
+use sails_rs::ClientGenerator;
 use std::{env, path::PathBuf};
 
 fn main() {
@@ -6,20 +6,22 @@ fn main() {
 
     let client_rs_file_path = manifest_dir.join("src/rmrk_catalog.rs");
 
-    #[cfg(not(target_family = "windows"))]
-    let idl_file_path = PathBuf::from(env::var("OUT_DIR").unwrap()).join("rmrk-catalog.idl");
-    #[cfg(not(target_family = "windows"))]
-    git_download::repo("https://github.com/gear-tech/sails")
-        .branch_name("master")
-        .add_file(
-            "examples/rmrk/catalog/wasm/rmrk-catalog.idl",
-            &idl_file_path,
-        )
-        .exec()
-        .unwrap();
+    // #[cfg(not(target_family = "windows"))]
+    // let idl_file_path = PathBuf::from(env::var("OUT_DIR").unwrap()).join("rmrk-catalog.idl");
+    // #[cfg(not(target_family = "windows"))]
+    // git_download::repo("https://github.com/gear-tech/sails")
+    //     .branch_name("master")
+    //     .add_file(
+    //         "examples/rmrk/catalog/wasm/rmrk-catalog.idl",
+    //         &idl_file_path,
+    //     )
+    //     .exec()
+    //     .unwrap();
 
-    #[cfg(target_family = "windows")]
-    let idl_file_path = manifest_dir.join("..\\..\\catalog\\wasm\\rmrk-catalog.idl");
+    // #[cfg(target_family = "windows")]
+    // let idl_file_path = manifest_dir.join("..\\..\\catalog\\wasm\\rmrk-catalog.idl");
+
+    let idl_file_path = manifest_dir.join("../../catalog/wasm/rmrk-catalog.idl");
 
     ClientGenerator::from_idl_path(&idl_file_path)
         .with_mocks("mockall")
