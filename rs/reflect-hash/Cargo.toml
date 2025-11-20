@@ -12,5 +12,4 @@ rust-version.workspace = true
 [dependencies]
 gprimitives = { workspace = true, default-features = false, features = ["codec"] }
 keccak-const.workspace = true
-
-[dev-dependencies]
+sails-reflect-hash-derive = { path = "./derive" }

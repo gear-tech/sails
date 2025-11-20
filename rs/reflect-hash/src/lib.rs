@@ -3,12 +3,41 @@
 //! This crate provides the `ReflectHash` trait which computes a deterministic,
 //! name-independent structural hash for types at compile time using const evaluation.
 //! This enables unique interface IDs for services based purely on their structure.
+//!
+//! # Deriving ReflectHash
+//!
+//! The easiest way to implement `ReflectHash` is to derive it:
+//!
+//! ```ignore
+//! use sails_reflect_hash::ReflectHash;
+//!
+//! #[derive(ReflectHash)]
+//! struct Transfer {
+//!     from: ActorId,
+//!     to: ActorId,
+//!     amount: u128,
+//! }
+//!
+//! #[derive(ReflectHash)]
+//! enum Event {
+//!     Transferred { from: ActorId, to: ActorId },
+//!     Approved(ActorId, u128),
+//!     Paused,
+//! }
+//! ```
 
 // todo [sab] check the crate
 
 #![no_std]
 
 extern crate alloc;
+
+// Re-export the derive macro
+pub use sails_reflect_hash_derive::ReflectHash;
+
+// Re-export dependencies needed by the derive macro
+#[doc(hidden)]
+pub use keccak_const;
 
 use core::num::{
     NonZeroI128, NonZeroI16, NonZeroI32, NonZeroI64, NonZeroI8, NonZeroU128, NonZeroU16,
@@ -19,6 +48,11 @@ use core::num::{
 ///
 /// Types implementing this trait can be hashed at compile time to produce
 /// a unique 32-byte identifier based solely on their structure, not their names.
+///
+/// # Deriving
+///
+/// Most types should use `#[derive(ReflectHash)]` which automatically generates
+/// the correct implementation based on the type's structure.
 pub trait ReflectHash {
     /// The 256-bit structural hash of this type, computed at compile time.
     const HASH: [u8; 32];
