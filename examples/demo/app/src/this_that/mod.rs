@@ -58,41 +58,26 @@ impl MyService {
 }
 
 #[allow(dead_code)]
-#[derive(Debug, Decode, TypeInfo)]
+#[derive(Debug, Decode, TypeInfo, ReflectHash)]
 #[codec(crate = sails_rs::scale_codec)]
 #[scale_info(crate = sails_rs::scale_info)]
+#[reflect_hash(crate = sails_rs::sails_reflect_hash)]
 pub struct TupleStruct(bool);
 
-// todo [sab] Mock ReflectHash implementation for demo purposes
-impl sails_rs::sails_reflect_hash::ReflectHash for TupleStruct {
-    const HASH: [u8; 32] = sails_rs::keccak_const::Keccak256::new()
-        .update(b"TupleStruct")
-        .update(&bool::HASH)
-        .finalize();
-}
-
-#[derive(Debug, Decode, TypeInfo)]
+#[derive(Debug, Decode, TypeInfo, ReflectHash)]
 #[codec(crate = sails_rs::scale_codec)]
 #[scale_info(crate = sails_rs::scale_info)]
+#[reflect_hash(crate = sails_rs::sails_reflect_hash)]
 pub struct DoThatParam {
     pub p1: NonZeroU32,
     pub p2: ActorId,
     pub p3: ManyVariants,
 }
 
-// todo [sab] Mock ReflectHash implementation for demo purposes
-impl sails_rs::sails_reflect_hash::ReflectHash for DoThatParam {
-    const HASH: [u8; 32] = sails_rs::keccak_const::Keccak256::new()
-        .update(b"DoThatParam")
-        .update(&NonZeroU32::HASH)
-        .update(&ActorId::HASH)
-        .update(&ManyVariants::HASH)
-        .finalize();
-}
-
-#[derive(Debug, Decode, TypeInfo)]
+#[derive(Debug, Decode, TypeInfo, ReflectHash)]
 #[codec(crate = sails_rs::scale_codec)]
 #[scale_info(crate = sails_rs::scale_info)]
+#[reflect_hash(crate = sails_rs::sails_reflect_hash)]
 pub enum ManyVariants {
     One,
     Two(u32),
@@ -102,54 +87,10 @@ pub enum ManyVariants {
     Six((u32,)),
 }
 
-// todo [sab] Mock ReflectHash implementation for demo purposes
-impl sails_rs::sails_reflect_hash::ReflectHash for ManyVariants {
-    const HASH: [u8; 32] = {
-        let mut hasher = sails_rs::keccak_const::Keccak256::new();
-        // One
-        let variant_hash = sails_rs::keccak_const::Keccak256::new()
-            .update(b"One")
-            .finalize();
-        hasher = hasher.update(&variant_hash);
-        // Two(u32)
-        let variant_hash = sails_rs::keccak_const::Keccak256::new()
-            .update(b"Two")
-            .update(&u32::HASH)
-            .finalize();
-        hasher = hasher.update(&variant_hash);
-        // Three(Option<U256>)
-        let variant_hash = sails_rs::keccak_const::Keccak256::new()
-            .update(b"Three")
-            .update(&Option::<U256>::HASH)
-            .finalize();
-        hasher = hasher.update(&variant_hash);
-        // Four { a: u32, b: Option<u16> }
-        let variant_hash = sails_rs::keccak_const::Keccak256::new()
-            .update(b"Four")
-            .update(&u32::HASH)
-            .update(&Option::<u16>::HASH)
-            .finalize();
-        hasher = hasher.update(&variant_hash);
-        // Five(String, H256)
-        let variant_hash = sails_rs::keccak_const::Keccak256::new()
-            .update(b"Five")
-            .update(&<&str as sails_rs::sails_reflect_hash::ReflectHash>::HASH)
-            .update(&H256::HASH)
-            .finalize();
-        hasher = hasher.update(&variant_hash);
-        // Six((u32,))
-        let variant_hash = sails_rs::keccak_const::Keccak256::new()
-            .update(b"Six")
-            .update(&<(u32,)>::HASH)
-            .finalize();
-        hasher = hasher.update(&variant_hash);
-        hasher.finalize()
-    };
-}
-
-#[derive(Debug, Encode, TypeInfo)]
+#[derive(Debug, Encode, TypeInfo, ReflectHash)]
 #[codec(crate = sails_rs::scale_codec)]
 #[scale_info(crate = sails_rs::scale_info)]
+#[reflect_hash(crate = sails_rs::sails_reflect_hash)]
 pub enum ManyVariantsReply {
     One,
     Two,
@@ -157,18 +98,4 @@ pub enum ManyVariantsReply {
     Four,
     Five,
     Six,
-}
-
-// Mock ReflectHash implementation for demo purposes  
-impl sails_rs::sails_reflect_hash::ReflectHash for ManyVariantsReply {
-    const HASH: [u8; 32] = {
-        let mut hasher = sails_rs::keccak_const::Keccak256::new();
-        hasher = hasher.update(&sails_rs::keccak_const::Keccak256::new().update(b"One").finalize());
-        hasher = hasher.update(&sails_rs::keccak_const::Keccak256::new().update(b"Two").finalize());
-        hasher = hasher.update(&sails_rs::keccak_const::Keccak256::new().update(b"Three").finalize());
-        hasher = hasher.update(&sails_rs::keccak_const::Keccak256::new().update(b"Four").finalize());
-        hasher = hasher.update(&sails_rs::keccak_const::Keccak256::new().update(b"Five").finalize());
-        hasher = hasher.update(&sails_rs::keccak_const::Keccak256::new().update(b"Six").finalize());
-        hasher.finalize()
-    };
 }

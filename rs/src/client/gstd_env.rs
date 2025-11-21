@@ -313,7 +313,7 @@ const _: () = {
             }
             let this = self.as_mut().project();
             // SAFETY: checked in the code above.
-            let mut state = unsafe { this.state.as_pin_mut().unwrap_unchecked() };
+            let state = unsafe { this.state.as_pin_mut().unwrap_unchecked() };
             if let Projection::CreateProgram { future } = state.project() {
                 // Poll create program future
                 match ready!(future.poll(cx)) {

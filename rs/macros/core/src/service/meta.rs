@@ -103,7 +103,7 @@ impl ServiceBuilder<'_> {
 
     fn generate_interface_id(&self) -> TokenStream {
         let sails_path = self.sails_path;
-        
+
         // Sort handlers by name for deterministic ordering
         let mut sorted_handlers = self.service_handlers.clone();
         sorted_handlers.sort_by_key(|h| h.ident.to_string());
@@ -112,10 +112,9 @@ impl ServiceBuilder<'_> {
         let fn_hash_computations: Vec<_> = sorted_handlers
             .iter()
             .map(|handler| {
-                let fn_name = handler.ident.to_string();
-                let is_query = handler.is_query();
-                let fn_type = if is_query { "query" } else { "command" };
-                
+                let fn_name = &handler.route;
+                let fn_type = if handler.is_query() { "query" } else { "command" };
+
                 // Generate ARG_HASH = hash(b"arg" || REFLECT_HASH) for each argument
                 let arg_hash_computations = handler.params().map(|(_, ty)| {
                     quote! {
@@ -128,37 +127,24 @@ impl ServiceBuilder<'_> {
                         }
                     }
                 });
-                
+
                 // Generate RES_HASH - check if result type is Result<T, E>
                 let result_type = handler.result_type_with_static_lifetime();
-                let result_hash = if let syn::Type::Path(ref tp) = result_type {
-                    if let Some((ok_ty, err_ty)) = shared::extract_result_types(tp) {
-                        // Result type: RES_HASH = hash(b"res" || T::HASH || b"throws" || E::HASH)
-                        quote! {
-                            {
-                                let res_hash = #sails_path::keccak_const::Keccak256::new()
-                                    .update(b"res")
-                                    .update(&<#ok_ty as #sails_path::sails_reflect_hash::ReflectHash>::HASH)
-                                    .update(b"throws")
-                                    .update(&<#err_ty as #sails_path::sails_reflect_hash::ReflectHash>::HASH)
-                                    .finalize();
-                                fn_hash = fn_hash.update(&res_hash);
-                            }
-                        }
-                    } else {
-                        // Non-Result type: RES_HASH = hash(b"res" || REFLECT_HASH)
-                        quote! {
-                            {
-                                let res_hash = #sails_path::keccak_const::Keccak256::new()
-                                    .update(b"res")
-                                    .update(&<#result_type as #sails_path::sails_reflect_hash::ReflectHash>::HASH)
-                                    .finalize();
-                                fn_hash = fn_hash.update(&res_hash);
-                            }
+                let result_hash = if let Type::Path(ref tp) = result_type && let Some((ok_ty, err_ty)) = shared::extract_result_types(tp) {
+                    // Result type: RES_HASH = hash(b"res" || T::HASH || b"throws" || E::HASH)
+                    quote! {
+                        {
+                            let res_hash = #sails_path::keccak_const::Keccak256::new()
+                                .update(b"res")
+                                .update(&<#ok_ty as #sails_path::sails_reflect_hash::ReflectHash>::HASH)
+                                .update(b"throws")
+                                .update(&<#err_ty as #sails_path::sails_reflect_hash::ReflectHash>::HASH)
+                                .finalize();
+                            fn_hash = fn_hash.update(&res_hash);
                         }
                     }
                 } else {
-                    // Non-Path type (shouldn't happen in practice, but handle it)
+                    // Other types: RES_HASH = hash(b"res" || REFLECT_HASH)
                     quote! {
                         {
                             let res_hash = #sails_path::keccak_const::Keccak256::new()
@@ -170,7 +156,7 @@ impl ServiceBuilder<'_> {
                     }
                 };
 
-                // FN_HASH = hash(FN_TYPE || bytes(FN_NAME) || ARG_HASH || RES_HASH)
+                // FN_HASH = hash(bytes(FN_TYPE) || bytes(FN_NAME) || ARG_HASH || RES_HASH)
                 quote! {
                     {
                         let mut fn_hash = #sails_path::keccak_const::Keccak256::new();
@@ -195,51 +181,58 @@ impl ServiceBuilder<'_> {
 
         // Handle base services if present
         let base_services_hash = if !self.base_types.is_empty() {
-            let base_service_ids: Vec<_> = self.base_types.iter().map(|base_type| {
-                let path_wo_lifetimes = shared::remove_lifetimes(base_type);
-                quote! {
-                    <#path_wo_lifetimes as #sails_path::meta::ServiceMeta>::INTERFACE_ID
-                }
-            }).collect();
+            let mut base_services = self
+                .base_types
+                .iter()
+                .map(shared::remove_lifetimes)
+                .collect::<Vec<_>>();
+            base_services.sort_by_key(|base_type_no_lifetime| {
+                base_type_no_lifetime
+                    .segments
+                    .last()
+                    .expect("Base service path should have at least one segment")
+                    .ident
+                    .to_string()
+            });
 
-            // We need to sort base service IDs deterministically
-            // Create array literal with all base service IDs
-            quote! {
-                {
-                    // Sort them using const bubble sort from utils
-                    let sorted_base_ids = 
-                        #sails_path::utils::const_bubble_sort_bytes(&[
-                            #(#base_service_ids),*
-                        ]);
-                    
-                    let mut base_services_hash = #sails_path::keccak_const::Keccak256::new();
-                    let mut i = 0;
-                    while i < sorted_base_ids.len() {
-                        base_services_hash = base_services_hash.update(&sorted_base_ids[i]);
-                        i += 1;
-                    }
-                    final_hash = final_hash.update(&base_services_hash.finalize());
+            let base_service_ids = base_services.into_iter().map(|base_type_no_lifetime| {
+                quote! {
+                    <#base_type_no_lifetime as #sails_path::meta::ServiceMeta>::INTERFACE_ID
                 }
+            });
+
+            quote! {
+                let base_ids = [
+                    #( #base_service_ids ),*
+                ];
+
+                let mut base_services_hash = #sails_path::keccak_const::Keccak256::new();
+                let mut i = 0;
+                while i < base_ids.len() {
+                    base_services_hash = base_services_hash.update(&base_ids[i]);
+                    i += 1;
+                }
+                final_hash = final_hash.update(&base_services_hash.finalize());
             }
         } else {
-            quote!()
+            Default::default()
         };
 
         quote! {
             {
                 let mut final_hash = #sails_path::keccak_const::Keccak256::new();
-                
+
                 // Hash all functions
                 let mut fns_hash = #sails_path::keccak_const::Keccak256::new();
                 #(#fn_hash_computations)*
                 final_hash = final_hash.update(&fns_hash.finalize());
-                
+
                 // Hash events if present
                 #events_hash
-                
+
                 // Hash base services if present
                 #base_services_hash
-                
+
                 final_hash.finalize()
             }
         }
