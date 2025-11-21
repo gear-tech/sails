@@ -244,22 +244,23 @@ fn extract_reply_result_type_from_impl_into(tit: &TypeImplTrait) -> Option<&Type
 /// Check if type is `Result<T, E>` and extract inner type `T`
 pub(crate) fn extract_result_type_from_path(ty: &Type) -> Option<&Type> {
     match ty {
-        Type::Path(tp) if tp.qself.is_none() => extract_result_type(tp),
+        Type::Path(tp) if tp.qself.is_none() => extract_result_types(tp).map(|(ok_ty, _)| ok_ty),
         _ => None,
     }
 }
 
-/// Extract `T` type from `Result<T, E>`
-pub(crate) fn extract_result_type(tp: &TypePath) -> Option<&Type> {
+/// Extract both `T` and `E` types from `Result<T, E>`
+pub(crate) fn extract_result_types(tp: &TypePath) -> Option<(&Type, &Type)> {
     if let Some(last) = tp.path.segments.last() {
         if last.ident != "Result" {
             return None;
         }
         if let PathArguments::AngleBracketed(args) = &last.arguments
             && args.args.len() == 2
-            && let Some(GenericArgument::Type(ty)) = args.args.first()
+            && let Some(GenericArgument::Type(ok_ty)) = args.args.first()
+            && let Some(GenericArgument::Type(err_ty)) = args.args.iter().nth(1)
         {
-            return Some(ty);
+            return Some((ok_ty, err_ty));
         }
     }
     None
