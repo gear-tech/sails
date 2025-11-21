@@ -36,6 +36,8 @@ impl ServiceBuilder<'_> {
             quote!(#( #base_asyncness )||*)
         };
 
+        let interface_id_computation = self.generate_interface_id();
+
         quote! {
             impl #generics #sails_path::meta::ServiceMeta for #service_type_path #service_type_constraints {
                 type CommandsMeta = #meta_module_ident::CommandsMeta;
@@ -45,6 +47,7 @@ impl ServiceBuilder<'_> {
                     #( #base_services_meta ),*
                 ];
                 const ASYNC: bool = #service_meta_asyncness ;
+                const INTERFACE_ID: [u8; 32] = #interface_id_computation;
             }
         }
     }
@@ -94,6 +97,143 @@ impl ServiceBuilder<'_> {
                 pub enum #no_events_type {}
 
                 pub type EventsMeta = #events_type;
+            }
+        }
+    }
+
+    fn generate_interface_id(&self) -> TokenStream {
+        let sails_path = self.sails_path;
+
+        // Sort handlers by name for deterministic ordering
+        let mut sorted_handlers = self.service_handlers.clone();
+        sorted_handlers.sort_by_key(|h| h.ident.to_string());
+
+        // Generate function hash computations
+        let fn_hash_computations: Vec<_> = sorted_handlers
+            .iter()
+            .map(|handler| {
+                let fn_name = &handler.route;
+                let fn_type = if handler.is_query() { "query" } else { "command" };
+
+                // Generate ARG_HASH = hash(b"arg" || REFLECT_HASH) for each argument
+                let arg_hash_computations = handler.params().map(|(_, ty)| {
+                    quote! {
+                        {
+                            let arg_hash = #sails_path::keccak_const::Keccak256::new()
+                                .update(b"arg")
+                                .update(&<#ty as #sails_path::sails_reflect_hash::ReflectHash>::HASH)
+                                .finalize();
+                            fn_hash = fn_hash.update(&arg_hash);
+                        }
+                    }
+                });
+
+                // Generate RES_HASH - check if result type is Result<T, E>
+                let result_type = handler.result_type_with_static_lifetime();
+                let result_hash = if let Type::Path(ref tp) = result_type && let Some((ok_ty, err_ty)) = shared::extract_result_types(tp) {
+                    // Result type: RES_HASH = hash(b"res" || T::HASH || b"throws" || E::HASH)
+                    quote! {
+                        {
+                            let res_hash = #sails_path::keccak_const::Keccak256::new()
+                                .update(b"res")
+                                .update(&<#ok_ty as #sails_path::sails_reflect_hash::ReflectHash>::HASH)
+                                .update(b"throws")
+                                .update(&<#err_ty as #sails_path::sails_reflect_hash::ReflectHash>::HASH)
+                                .finalize();
+                            fn_hash = fn_hash.update(&res_hash);
+                        }
+                    }
+                } else {
+                    // Other types: RES_HASH = hash(b"res" || REFLECT_HASH)
+                    quote! {
+                        {
+                            let res_hash = #sails_path::keccak_const::Keccak256::new()
+                                .update(b"res")
+                                .update(&<#result_type as #sails_path::sails_reflect_hash::ReflectHash>::HASH)
+                                .finalize();
+                            fn_hash = fn_hash.update(&res_hash);
+                        }
+                    }
+                };
+
+                // FN_HASH = hash(bytes(FN_TYPE) || bytes(FN_NAME) || ARG_HASH || RES_HASH)
+                quote! {
+                    {
+                        let mut fn_hash = #sails_path::keccak_const::Keccak256::new();
+                        fn_hash = fn_hash.update(#fn_type.as_bytes());
+                        fn_hash = fn_hash.update(#fn_name.as_bytes());
+                        #(#arg_hash_computations)*
+                        #result_hash
+                        fns_hash = fns_hash.update(&fn_hash.finalize());
+                    }
+                }
+            })
+            .collect();
+
+        // Handle events if present
+        let events_hash = if let Some(events_type) = self.events_type {
+            quote! {
+                final_hash = final_hash.update(&<#events_type as #sails_path::sails_reflect_hash::ReflectHash>::HASH);
+            }
+        } else {
+            quote!()
+        };
+
+        // Handle base services if present
+        let base_services_hash = if !self.base_types.is_empty() {
+            let mut base_services = self
+                .base_types
+                .iter()
+                .map(shared::remove_lifetimes)
+                .collect::<Vec<_>>();
+            base_services.sort_by_key(|base_type_no_lifetime| {
+                base_type_no_lifetime
+                    .segments
+                    .last()
+                    .expect("Base service path should have at least one segment")
+                    .ident
+                    .to_string()
+            });
+
+            let base_service_ids = base_services.into_iter().map(|base_type_no_lifetime| {
+                quote! {
+                    <#base_type_no_lifetime as #sails_path::meta::ServiceMeta>::INTERFACE_ID
+                }
+            });
+
+            quote! {
+                let base_ids = [
+                    #( #base_service_ids ),*
+                ];
+
+                let mut base_services_hash = #sails_path::keccak_const::Keccak256::new();
+                let mut i = 0;
+                while i < base_ids.len() {
+                    base_services_hash = base_services_hash.update(&base_ids[i]);
+                    i += 1;
+                }
+                final_hash = final_hash.update(&base_services_hash.finalize());
+            }
+        } else {
+            Default::default()
+        };
+
+        quote! {
+            {
+                let mut final_hash = #sails_path::keccak_const::Keccak256::new();
+
+                // Hash all functions
+                let mut fns_hash = #sails_path::keccak_const::Keccak256::new();
+                #(#fn_hash_computations)*
+                final_hash = final_hash.update(&fns_hash.finalize());
+
+                // Hash events if present
+                #events_hash
+
+                // Hash base services if present
+                #base_services_hash
+
+                final_hash.finalize()
             }
         }
     }

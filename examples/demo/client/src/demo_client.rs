@@ -127,8 +127,9 @@ pub mod counter {
     #[cfg(not(target_arch = "wasm32"))]
     pub mod events {
         use super::*;
-        #[derive(PartialEq, Debug, Encode, Decode)]
+        #[derive(PartialEq, Debug, Encode, Decode, ReflectHash)]
         #[codec(crate = sails_rs::scale_codec)]
+        #[reflect_hash(crate = sails_rs)]
         pub enum CounterEvents {
             /// Emitted when a new value is added to the counter
             Added(u32),
@@ -150,8 +151,8 @@ pub mod dog {
         type Env: sails_rs::client::GearEnv;
         fn make_sound(&mut self) -> sails_rs::client::PendingCall<io::MakeSound, Self::Env>;
         fn walk(&mut self, dx: i32, dy: i32) -> sails_rs::client::PendingCall<io::Walk, Self::Env>;
-        fn avg_weight(&self) -> sails_rs::client::PendingCall<io::AvgWeight, Self::Env>;
         fn position(&self) -> sails_rs::client::PendingCall<io::Position, Self::Env>;
+        fn avg_weight(&self) -> sails_rs::client::PendingCall<io::AvgWeight, Self::Env>;
     }
     pub struct DogImpl;
     impl<E: sails_rs::client::GearEnv> Dog for sails_rs::client::Service<DogImpl, E> {
@@ -162,10 +163,10 @@ pub mod dog {
         fn walk(&mut self, dx: i32, dy: i32) -> sails_rs::client::PendingCall<io::Walk, Self::Env> {
             self.pending_call((dx, dy))
         }
-        fn avg_weight(&self) -> sails_rs::client::PendingCall<io::AvgWeight, Self::Env> {
+        fn position(&self) -> sails_rs::client::PendingCall<io::Position, Self::Env> {
             self.pending_call(())
         }
-        fn position(&self) -> sails_rs::client::PendingCall<io::Position, Self::Env> {
+        fn avg_weight(&self) -> sails_rs::client::PendingCall<io::AvgWeight, Self::Env> {
             self.pending_call(())
         }
     }
@@ -174,15 +175,16 @@ pub mod dog {
         use super::*;
         sails_rs::io_struct_impl!(MakeSound () -> String);
         sails_rs::io_struct_impl!(Walk (dx: i32, dy: i32) -> ());
-        sails_rs::io_struct_impl!(AvgWeight () -> u32);
         sails_rs::io_struct_impl!(Position () -> (i32,i32,));
+        sails_rs::io_struct_impl!(AvgWeight () -> u32);
     }
 
     #[cfg(not(target_arch = "wasm32"))]
     pub mod events {
         use super::*;
-        #[derive(PartialEq, Debug, Encode, Decode)]
+        #[derive(PartialEq, Debug, Encode, Decode, ReflectHash)]
         #[codec(crate = sails_rs::scale_codec)]
+        #[reflect_hash(crate = sails_rs)]
         pub enum DogEvents {
             Barked,
             Walked { from: (i32, i32), to: (i32, i32) },
@@ -343,8 +345,9 @@ pub mod value_fee {
     #[cfg(not(target_arch = "wasm32"))]
     pub mod events {
         use super::*;
-        #[derive(PartialEq, Debug, Encode, Decode)]
+        #[derive(PartialEq, Debug, Encode, Decode, ReflectHash)]
         #[codec(crate = sails_rs::scale_codec)]
+        #[reflect_hash(crate = sails_rs)]
         pub enum ValueFeeEvents {
             Withheld(u128),
         }
@@ -390,21 +393,24 @@ pub mod chaos {
         sails_rs::io_struct_impl!(TimeoutWait () -> ());
     }
 }
-#[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo)]
+#[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo, ReflectHash)]
 #[codec(crate = sails_rs::scale_codec)]
 #[scale_info(crate = sails_rs::scale_info)]
+#[reflect_hash(crate = sails_rs)]
 pub struct ReferenceCount(pub u32);
-#[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo)]
+#[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo, ReflectHash)]
 #[codec(crate = sails_rs::scale_codec)]
 #[scale_info(crate = sails_rs::scale_info)]
+#[reflect_hash(crate = sails_rs)]
 pub struct DoThatParam {
     pub p1: NonZeroU32,
     pub p2: ActorId,
     pub p3: ManyVariants,
 }
-#[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo)]
+#[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo, ReflectHash)]
 #[codec(crate = sails_rs::scale_codec)]
 #[scale_info(crate = sails_rs::scale_info)]
+#[reflect_hash(crate = sails_rs)]
 pub enum ManyVariants {
     One,
     Two(u32),
@@ -413,9 +419,10 @@ pub enum ManyVariants {
     Five((String, H256)),
     Six((u32,)),
 }
-#[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo)]
+#[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo, ReflectHash)]
 #[codec(crate = sails_rs::scale_codec)]
 #[scale_info(crate = sails_rs::scale_info)]
+#[reflect_hash(crate = sails_rs)]
 pub enum ManyVariantsReply {
     One,
     Two,
@@ -424,9 +431,10 @@ pub enum ManyVariantsReply {
     Five,
     Six,
 }
-#[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo)]
+#[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo, ReflectHash)]
 #[codec(crate = sails_rs::scale_codec)]
 #[scale_info(crate = sails_rs::scale_info)]
+#[reflect_hash(crate = sails_rs)]
 pub struct TupleStruct(pub bool);
 
 #[cfg(feature = "with_mocks")]
@@ -440,7 +448,7 @@ pub mod mockall {
     use sails_rs::mockall::*;
     mock! { pub PingPong {} #[allow(refining_impl_trait)] #[allow(clippy::type_complexity)] impl ping_pong::PingPong for PingPong { type Env = sails_rs::client::GstdEnv; fn ping (&mut self, input: String) -> sails_rs::client::PendingCall<ping_pong::io::Ping, sails_rs::client::GstdEnv>; } }
     mock! { pub Counter {} #[allow(refining_impl_trait)] #[allow(clippy::type_complexity)] impl counter::Counter for Counter { type Env = sails_rs::client::GstdEnv; fn add (&mut self, value: u32) -> sails_rs::client::PendingCall<counter::io::Add, sails_rs::client::GstdEnv>;fn sub (&mut self, value: u32) -> sails_rs::client::PendingCall<counter::io::Sub, sails_rs::client::GstdEnv>;fn value (& self, ) -> sails_rs::client::PendingCall<counter::io::Value, sails_rs::client::GstdEnv>; } }
-    mock! { pub Dog {} #[allow(refining_impl_trait)] #[allow(clippy::type_complexity)] impl dog::Dog for Dog { type Env = sails_rs::client::GstdEnv; fn make_sound (&mut self, ) -> sails_rs::client::PendingCall<dog::io::MakeSound, sails_rs::client::GstdEnv>;fn walk (&mut self, dx: i32, dy: i32) -> sails_rs::client::PendingCall<dog::io::Walk, sails_rs::client::GstdEnv>;fn avg_weight (& self, ) -> sails_rs::client::PendingCall<dog::io::AvgWeight, sails_rs::client::GstdEnv>;fn position (& self, ) -> sails_rs::client::PendingCall<dog::io::Position, sails_rs::client::GstdEnv>; } }
+    mock! { pub Dog {} #[allow(refining_impl_trait)] #[allow(clippy::type_complexity)] impl dog::Dog for Dog { type Env = sails_rs::client::GstdEnv; fn make_sound (&mut self, ) -> sails_rs::client::PendingCall<dog::io::MakeSound, sails_rs::client::GstdEnv>;fn walk (&mut self, dx: i32, dy: i32) -> sails_rs::client::PendingCall<dog::io::Walk, sails_rs::client::GstdEnv>;fn position (& self, ) -> sails_rs::client::PendingCall<dog::io::Position, sails_rs::client::GstdEnv>;fn avg_weight (& self, ) -> sails_rs::client::PendingCall<dog::io::AvgWeight, sails_rs::client::GstdEnv>; } }
     mock! { pub References {} #[allow(refining_impl_trait)] #[allow(clippy::type_complexity)] impl references::References for References { type Env = sails_rs::client::GstdEnv; fn add (&mut self, v: u32) -> sails_rs::client::PendingCall<references::io::Add, sails_rs::client::GstdEnv>;fn add_byte (&mut self, byte: u8) -> sails_rs::client::PendingCall<references::io::AddByte, sails_rs::client::GstdEnv>;fn guess_num (&mut self, number: u8) -> sails_rs::client::PendingCall<references::io::GuessNum, sails_rs::client::GstdEnv>;fn incr (&mut self, ) -> sails_rs::client::PendingCall<references::io::Incr, sails_rs::client::GstdEnv>;fn set_num (&mut self, number: u8) -> sails_rs::client::PendingCall<references::io::SetNum, sails_rs::client::GstdEnv>;fn baked (& self, ) -> sails_rs::client::PendingCall<references::io::Baked, sails_rs::client::GstdEnv>;fn last_byte (& self, ) -> sails_rs::client::PendingCall<references::io::LastByte, sails_rs::client::GstdEnv>;fn message (& self, ) -> sails_rs::client::PendingCall<references::io::Message, sails_rs::client::GstdEnv>; } }
     mock! { pub ThisThat {} #[allow(refining_impl_trait)] #[allow(clippy::type_complexity)] impl this_that::ThisThat for ThisThat { type Env = sails_rs::client::GstdEnv; fn do_that (&mut self, param: DoThatParam) -> sails_rs::client::PendingCall<this_that::io::DoThat, sails_rs::client::GstdEnv>;fn do_this (&mut self, p1: u32, p2: String, p3: (Option<H160>,NonZeroU8,), p4: TupleStruct) -> sails_rs::client::PendingCall<this_that::io::DoThis, sails_rs::client::GstdEnv>;fn noop (&mut self, ) -> sails_rs::client::PendingCall<this_that::io::Noop, sails_rs::client::GstdEnv>;fn that (& self, ) -> sails_rs::client::PendingCall<this_that::io::That, sails_rs::client::GstdEnv>;fn this (& self, ) -> sails_rs::client::PendingCall<this_that::io::This, sails_rs::client::GstdEnv>; } }
     mock! { pub ValueFee {} #[allow(refining_impl_trait)] #[allow(clippy::type_complexity)] impl value_fee::ValueFee for ValueFee { type Env = sails_rs::client::GstdEnv; fn do_something_and_take_fee (&mut self, ) -> sails_rs::client::PendingCall<value_fee::io::DoSomethingAndTakeFee, sails_rs::client::GstdEnv>; } }

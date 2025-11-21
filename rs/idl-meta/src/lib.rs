@@ -17,6 +17,7 @@ pub trait ServiceMeta {
     type EventsMeta: StaticTypeInfo;
     const BASE_SERVICES: &'static [AnyServiceMetaFn];
     const ASYNC: bool;
+    const INTERFACE_ID: [u8; 32];
 
     fn commands() -> MetaType {
         MetaType::new::<Self::CommandsMeta>()
