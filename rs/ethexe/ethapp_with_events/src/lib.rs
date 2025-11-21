@@ -37,7 +37,7 @@ pub struct SomeService;
 impl SomeService {
     #[sails_rs::export]
     pub async fn do_this(&mut self, p1: u32, p2: sails_rs::String) -> u32 {
-        let r1 = p1 * 2;
+        let r1 = p1.checked_mul(2).expect("failed to multiply");
         self.emit_eth_event(Events::DoThisEvent {
             p1: r1,
             p2: format!("{p2}: greetings from sails #1"),
@@ -60,7 +60,7 @@ pub struct SomeService2 {
 impl SomeService2 {
     #[sails_rs::export]
     pub async fn do_this(&mut self, p1: u32, p2: sails_rs::String) -> u32 {
-        let r1 = p1 * 2;
+        let r1 = p1.checked_mul(2).expect("failed to multiply");
         let r2 = format!("{p2}: greetings from sails #2");
         // Emit EthEvent via Svc1 Exposure
         self.svc1
