@@ -21,13 +21,11 @@
 pub use event::{derive_sails_event, event};
 pub use export::export;
 pub use program::{__gprogram_internal, gprogram};
-pub use reflect_hash::derive_reflect_hash;
 pub use service::{__gservice_internal, gservice};
 
 mod event;
 mod export;
 mod program;
-mod reflect_hash;
 mod sails_paths;
 mod service;
 mod shared;
