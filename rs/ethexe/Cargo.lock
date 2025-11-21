@@ -4277,6 +4277,25 @@ dependencies = [
 ]
 
 [[package]]
+name = "sails-reflect-hash"
+version = "0.9.2"
+dependencies = [
+ "gprimitives",
+ "keccak-const",
+ "sails-reflect-hash-derive",
+]
+
+[[package]]
+name = "sails-reflect-hash-derive"
+version = "0.9.2"
+dependencies = [
+ "proc-macro-crate 3.2.0",
+ "proc-macro2",
+ "quote",
+ "syn 2.0.100",
+]
+
+[[package]]
 name = "sails-rs"
 version = "0.9.2"
 dependencies = [
@@ -4300,6 +4319,7 @@ dependencies = [
  "sails-idl-gen",
  "sails-idl-meta",
  "sails-macros",
+ "sails-reflect-hash",
  "scale-info",
  "spin",
  "thiserror 2.0.12",

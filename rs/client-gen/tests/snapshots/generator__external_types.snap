@@ -32,9 +32,10 @@ pub mod service {
         pub f2: Vec<String>,
         pub f3: Option<(u8, u32)>,
     }
-    #[derive(Encode, Decode, TypeInfo)]
+    #[derive(Encode, Decode, TypeInfo, ReflectHash)]
     #[codec(crate = my_crate::sails::scale_codec)]
     #[scale_info(crate = my_crate::sails::scale_info)]
+    #[reflect_hash(crate = sails_rs)]
     pub enum MyParam2 {
         Variant1,
         Variant2(u32),

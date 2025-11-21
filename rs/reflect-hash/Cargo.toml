@@ -1,6 +1,6 @@
 [package]
 name = "sails-reflect-hash"
-description = "Structural compile-time hashing for Sails types"
+description = "Structural compile-time self-descriptive hash generation for types"
 documentation = "https://docs.rs/sails-reflect-hash"
 version.workspace = true
 authors.workspace = true

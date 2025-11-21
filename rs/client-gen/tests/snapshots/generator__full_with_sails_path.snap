@@ -361,8 +361,9 @@ pub mod counter {
     #[cfg(not(target_arch = "wasm32"))]
     pub mod events {
         use super::*;
-        #[derive(PartialEq, Debug, Encode, Decode)]
+        #[derive(PartialEq, Debug, Encode, Decode, ReflectHash)]
         #[codec(crate = my_crate::sails::scale_codec)]
+        #[reflect_hash(crate = my_crate::sails)]
         pub enum CounterEvents {
             /// Emitted when a new value is added to the counter
             Added(u32),

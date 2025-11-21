@@ -20,17 +20,19 @@ impl<E: sails_rs::client::GearEnv> Basic for sails_rs::client::Actor<BasicProgra
 
 pub mod basic {
     use super::*;
-    #[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo)]
+    #[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo, ReflectHash)]
     #[codec(crate = sails_rs::scale_codec)]
     #[scale_info(crate = sails_rs::scale_info)]
+    #[reflect_hash(crate = sails_rs)]
     pub struct MyParam {
         pub f1: u32,
         pub f2: Vec<String>,
         pub f3: Option<(u8, u32)>,
     }
-    #[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo)]
+    #[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo, ReflectHash)]
     #[codec(crate = sails_rs::scale_codec)]
     #[scale_info(crate = sails_rs::scale_info)]
+    #[reflect_hash(crate = sails_rs)]
     pub enum MyParam2 {
         Variant1,
         Variant2(u32),

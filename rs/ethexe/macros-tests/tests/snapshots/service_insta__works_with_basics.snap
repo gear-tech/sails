@@ -163,6 +163,59 @@ impl sails_rs::meta::ServiceMeta for SomeService {
     type EventsMeta = some_service_meta::EventsMeta;
     const BASE_SERVICES: &'static [sails_rs::meta::AnyServiceMetaFn] = &[];
     const ASYNC: bool = true;
+    const INTERFACE_ID: [u8; 32] = {
+        let mut final_hash = sails_rs::keccak_const::Keccak256::new();
+        let mut fns_hash = sails_rs::keccak_const::Keccak256::new();
+        {
+            let mut fn_hash = sails_rs::keccak_const::Keccak256::new();
+            fn_hash = fn_hash.update("command".as_bytes());
+            fn_hash = fn_hash.update("DoThis".as_bytes());
+            {
+                let arg_hash = sails_rs::keccak_const::Keccak256::new()
+                    .update(b"arg")
+                    .update(&<u32 as sails_rs::sails_reflect_hash::ReflectHash>::HASH)
+                    .finalize();
+                fn_hash = fn_hash.update(&arg_hash);
+            }
+            {
+                let arg_hash = sails_rs::keccak_const::Keccak256::new()
+                    .update(b"arg")
+                    .update(&<String as sails_rs::sails_reflect_hash::ReflectHash>::HASH)
+                    .finalize();
+                fn_hash = fn_hash.update(&arg_hash);
+            }
+            {
+                let res_hash = sails_rs::keccak_const::Keccak256::new()
+                    .update(b"res")
+                    .update(&<u32 as sails_rs::sails_reflect_hash::ReflectHash>::HASH)
+                    .finalize();
+                fn_hash = fn_hash.update(&res_hash);
+            }
+            fns_hash = fns_hash.update(&fn_hash.finalize());
+        }
+        {
+            let mut fn_hash = sails_rs::keccak_const::Keccak256::new();
+            fn_hash = fn_hash.update("query".as_bytes());
+            fn_hash = fn_hash.update("This".as_bytes());
+            {
+                let arg_hash = sails_rs::keccak_const::Keccak256::new()
+                    .update(b"arg")
+                    .update(&<bool as sails_rs::sails_reflect_hash::ReflectHash>::HASH)
+                    .finalize();
+                fn_hash = fn_hash.update(&arg_hash);
+            }
+            {
+                let res_hash = sails_rs::keccak_const::Keccak256::new()
+                    .update(b"res")
+                    .update(&<bool as sails_rs::sails_reflect_hash::ReflectHash>::HASH)
+                    .finalize();
+                fn_hash = fn_hash.update(&res_hash);
+            }
+            fns_hash = fns_hash.update(&fn_hash.finalize());
+        }
+        final_hash = final_hash.update(&fns_hash.finalize());
+        final_hash.finalize()
+    };
 }
 mod some_service_meta {
     use super::*;

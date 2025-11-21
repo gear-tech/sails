@@ -212,6 +212,36 @@ impl sails_rs::meta::ServiceMeta for SomeService {
     ];
     const ASYNC: bool = <ExtendedService1 as sails_rs::meta::ServiceMeta>::ASYNC
         || <ExtendedService2 as sails_rs::meta::ServiceMeta>::ASYNC;
+    const INTERFACE_ID: [u8; 32] = {
+        let mut final_hash = sails_rs::keccak_const::Keccak256::new();
+        let mut fns_hash = sails_rs::keccak_const::Keccak256::new();
+        {
+            let mut fn_hash = sails_rs::keccak_const::Keccak256::new();
+            fn_hash = fn_hash.update("command".as_bytes());
+            fn_hash = fn_hash.update("DoThis".as_bytes());
+            {
+                let res_hash = sails_rs::keccak_const::Keccak256::new()
+                    .update(b"res")
+                    .update(&<u32 as sails_rs::sails_reflect_hash::ReflectHash>::HASH)
+                    .finalize();
+                fn_hash = fn_hash.update(&res_hash);
+            }
+            fns_hash = fns_hash.update(&fn_hash.finalize());
+        }
+        final_hash = final_hash.update(&fns_hash.finalize());
+        let base_ids = [
+            <ExtendedService1 as sails_rs::meta::ServiceMeta>::INTERFACE_ID,
+            <ExtendedService2 as sails_rs::meta::ServiceMeta>::INTERFACE_ID,
+        ];
+        let mut base_services_hash = sails_rs::keccak_const::Keccak256::new();
+        let mut i = 0;
+        while i < base_ids.len() {
+            base_services_hash = base_services_hash.update(&base_ids[i]);
+            i += 1;
+        }
+        final_hash = final_hash.update(&base_services_hash.finalize());
+        final_hash.finalize()
+    };
 }
 mod some_service_meta {
     use super::*;

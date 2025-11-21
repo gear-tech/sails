@@ -26,9 +26,9 @@ impl DogService {
 }
 
 // Implementing `From` for each of the extended services
-impl From<DogService> for (MammalService, WalkerService) {
+impl From<DogService> for (WalkerService, MammalService) {
     fn from(value: DogService) -> Self {
-        (value.mammal, value.walker)
+        (value.walker, value.mammal)
     }
 }
 
@@ -41,7 +41,7 @@ impl From<DogService> for (MammalService, WalkerService) {
 // - Barked (from DogEvents)
 // - Walked (from WalkerEvents)
 // See [IDL](/examples/demo/wasm/demo.idl)
-#[service(extends = [MammalService, WalkerService], events = DogEvents)]
+#[service(extends = [WalkerService, MammalService], events = DogEvents)]
 impl DogService {
     #[export]
     pub fn make_sound(&mut self) -> &'static str {

@@ -192,6 +192,7 @@ impl<C: StaticTypeInfo, Q: StaticTypeInfo, E: StaticTypeInfo> RtlServiceMeta
     type EventsMeta = E;
     const BASE_SERVICES: &'static [AnyServiceMetaFn] = &[];
     const ASYNC: bool = false;
+    const INTERFACE_ID: [u8; 32] = [0u8; 32];
 }
 
 struct ServiceMetaWithBase<C, Q, E, B> {
@@ -209,6 +210,7 @@ impl<C: StaticTypeInfo, Q: StaticTypeInfo, E: StaticTypeInfo, B: RtlServiceMeta>
     type EventsMeta = E;
     const BASE_SERVICES: &'static [AnyServiceMetaFn] = &[AnyServiceMeta::new::<B>];
     const ASYNC: bool = false;
+    const INTERFACE_ID: [u8; 32] = [0u8; 32];
 }
 
 type TestServiceMeta = ServiceMeta<CommandsMeta, QueriesMeta, EventsMeta>;
