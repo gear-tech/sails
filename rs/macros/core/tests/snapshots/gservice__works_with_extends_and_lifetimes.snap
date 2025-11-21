@@ -143,6 +143,48 @@ impl<'a> sails_rs::meta::ServiceMeta for ExtendedLifetime<'a> {
         sails_rs::meta::AnyServiceMeta::new::<base::BaseLifetime>,
     ];
     const ASYNC: bool = <base::BaseLifetime as sails_rs::meta::ServiceMeta>::ASYNC;
+    const INTERFACE_ID: [u8; 32] = {
+        let mut final_hash = sails_rs::keccak_const::Keccak256::new();
+        let mut fns_hash = sails_rs::keccak_const::Keccak256::new();
+        {
+            let mut fn_hash = sails_rs::keccak_const::Keccak256::new();
+            fn_hash = fn_hash.update("query".as_bytes());
+            fn_hash = fn_hash.update("ExtendedName".as_bytes());
+            {
+                let res_hash = sails_rs::keccak_const::Keccak256::new()
+                    .update(b"res")
+                    .update(&<String as sails_rs::sails_reflect_hash::ReflectHash>::HASH)
+                    .finalize();
+                fn_hash = fn_hash.update(&res_hash);
+            }
+            fns_hash = fns_hash.update(&fn_hash.finalize());
+        }
+        {
+            let mut fn_hash = sails_rs::keccak_const::Keccak256::new();
+            fn_hash = fn_hash.update("query".as_bytes());
+            fn_hash = fn_hash.update("Name".as_bytes());
+            {
+                let res_hash = sails_rs::keccak_const::Keccak256::new()
+                    .update(b"res")
+                    .update(&<String as sails_rs::sails_reflect_hash::ReflectHash>::HASH)
+                    .finalize();
+                fn_hash = fn_hash.update(&res_hash);
+            }
+            fns_hash = fns_hash.update(&fn_hash.finalize());
+        }
+        final_hash = final_hash.update(&fns_hash.finalize());
+        let base_ids = [
+            <base::BaseLifetime as sails_rs::meta::ServiceMeta>::INTERFACE_ID,
+        ];
+        let mut base_services_hash = sails_rs::keccak_const::Keccak256::new();
+        let mut i = 0;
+        while i < base_ids.len() {
+            base_services_hash = base_services_hash.update(&base_ids[i]);
+            i += 1;
+        }
+        final_hash = final_hash.update(&base_services_hash.finalize());
+        final_hash.finalize()
+    };
 }
 mod extended_lifetime_meta {
     use super::*;

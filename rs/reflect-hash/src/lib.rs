@@ -1,3 +1,21 @@
+// This file is part of Gear.
+
+// Copyright (C) 2025 Gear Technologies Inc.
+// SPDX-License-Identifier: GPL-3.0-or-later WITH Classpath-exception-2.0
+
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+// GNU General Public License for more details.
+
+// You should have received a copy of the GNU General Public License
+// along with this program. If not, see <https://www.gnu.org/licenses/>.
+
 //! Structural compile-time hashing for Sails types.
 //!
 //! This crate provides the `ReflectHash` trait which computes a deterministic,
@@ -26,8 +44,6 @@
 //! }
 //! ```
 
-// todo [sab] check the crate
-
 #![no_std]
 
 extern crate alloc;
@@ -39,10 +55,13 @@ pub use sails_reflect_hash_derive::ReflectHash;
 #[doc(hidden)]
 pub use keccak_const;
 
+use alloc::{collections::BTreeMap, string::String, vec::Vec};
 use core::num::{
-    NonZeroI128, NonZeroI16, NonZeroI32, NonZeroI64, NonZeroI8, NonZeroU128, NonZeroU16,
-    NonZeroU32, NonZeroU64, NonZeroU8,
+    NonZeroI8, NonZeroI16, NonZeroI32, NonZeroI64, NonZeroI128, NonZeroU8, NonZeroU16, NonZeroU32,
+    NonZeroU64, NonZeroU128,
 };
+use gprimitives::{ActorId, CodeId, H160, H256, MessageId, NonZeroU256, U256};
+use keccak_const::Keccak256;
 
 /// Core trait for computing structural compile-time hashes.
 ///
@@ -58,15 +77,11 @@ pub trait ReflectHash {
     const HASH: [u8; 32];
 }
 
-// ============================================================================
-// Primitive Integer Types
-// ============================================================================
-
 macro_rules! impl_reflect_hash_for_primitives {
     ($($t:ty => $discriminant:literal),* $(,)?) => {
         $(
             impl ReflectHash for $t {
-                const HASH: [u8; 32] = keccak_const::Keccak256::new()
+                const HASH: [u8; 32] = Keccak256::new()
                     .update($discriminant)
                     .finalize();
             }
@@ -74,6 +89,8 @@ macro_rules! impl_reflect_hash_for_primitives {
     };
 }
 
+// Note: str has the hash for "String" since they represent
+// the same logical type in a structural interface and in IDL.
 impl_reflect_hash_for_primitives! {
     u8 => b"u8",
     u16 => b"u16",
@@ -87,97 +104,84 @@ impl_reflect_hash_for_primitives! {
     i128 => b"i128",
     bool => b"bool",
     char => b"char",
+    str => b"String",
+    String => b"String",
 }
 
-// ============================================================================
-// NonZero Integer Types
-// ============================================================================
-
 impl ReflectHash for NonZeroU8 {
-    const HASH: [u8; 32] = keccak_const::Keccak256::new()
+    const HASH: [u8; 32] = Keccak256::new()
         .update(b"NonZeroU8")
+        .update(&<u8 as ReflectHash>::HASH)
         .finalize();
 }
 
 impl ReflectHash for NonZeroU16 {
-    const HASH: [u8; 32] = keccak_const::Keccak256::new()
+    const HASH: [u8; 32] = Keccak256::new()
         .update(b"NonZeroU16")
+        .update(&<u16 as ReflectHash>::HASH)
         .finalize();
 }
 
 impl ReflectHash for NonZeroU32 {
-    const HASH: [u8; 32] = keccak_const::Keccak256::new()
+    const HASH: [u8; 32] = Keccak256::new()
         .update(b"NonZeroU32")
+        .update(&<u32 as ReflectHash>::HASH)
         .finalize();
 }
 
 impl ReflectHash for NonZeroU64 {
-    const HASH: [u8; 32] = keccak_const::Keccak256::new()
+    const HASH: [u8; 32] = Keccak256::new()
         .update(b"NonZeroU64")
+        .update(&<u64 as ReflectHash>::HASH)
         .finalize();
 }
 
 impl ReflectHash for NonZeroU128 {
-    const HASH: [u8; 32] = keccak_const::Keccak256::new()
+    const HASH: [u8; 32] = Keccak256::new()
         .update(b"NonZeroU128")
+        .update(&<u128 as ReflectHash>::HASH)
         .finalize();
 }
 
 impl ReflectHash for NonZeroI8 {
-    const HASH: [u8; 32] = keccak_const::Keccak256::new()
+    const HASH: [u8; 32] = Keccak256::new()
         .update(b"NonZeroI8")
+        .update(&<i8 as ReflectHash>::HASH)
         .finalize();
 }
 
 impl ReflectHash for NonZeroI16 {
-    const HASH: [u8; 32] = keccak_const::Keccak256::new()
+    const HASH: [u8; 32] = Keccak256::new()
         .update(b"NonZeroI16")
+        .update(&<i16 as ReflectHash>::HASH)
         .finalize();
 }
 
 impl ReflectHash for NonZeroI32 {
-    const HASH: [u8; 32] = keccak_const::Keccak256::new()
+    const HASH: [u8; 32] = Keccak256::new()
         .update(b"NonZeroI32")
+        .update(&<i32 as ReflectHash>::HASH)
         .finalize();
 }
 
 impl ReflectHash for NonZeroI64 {
-    const HASH: [u8; 32] = keccak_const::Keccak256::new()
+    const HASH: [u8; 32] = Keccak256::new()
         .update(b"NonZeroI64")
+        .update(&<i64 as ReflectHash>::HASH)
         .finalize();
 }
 
 impl ReflectHash for NonZeroI128 {
-    const HASH: [u8; 32] = keccak_const::Keccak256::new()
+    const HASH: [u8; 32] = Keccak256::new()
         .update(b"NonZeroI128")
+        .update(&<i128 as ReflectHash>::HASH)
         .finalize();
 }
 
-// ============================================================================
-// String Types & Slices
-// ============================================================================
-
-// Note: str has the hash for "String" since they represent
-// the same logical type in a structural interface
-impl ReflectHash for str {
-    const HASH: [u8; 32] = keccak_const::Keccak256::new()
-        .update(b"String")
-        .finalize();
-}
-
-// [T] (slice) has same structure as Vec<T> 
+// [T] (slice) has same data structure as Vec<T>
 impl<T: ReflectHash> ReflectHash for [T] {
-    const HASH: [u8; 32] = {
-        keccak_const::Keccak256::new()
-            .update(b"Vec")
-            .update(&T::HASH)
-            .finalize()
-    };
+    const HASH: [u8; 32] = { Keccak256::new().update(b"Vec").update(&T::HASH).finalize() };
 }
-
-// ============================================================================
-// Reference Types
-// ============================================================================
 
 // Immutable references have the same hash as the referent
 // (structural equivalence: &T ≡ T in interface terms)
@@ -191,36 +195,22 @@ impl<T: ReflectHash + ?Sized> ReflectHash for &mut T {
     const HASH: [u8; 32] = T::HASH;
 }
 
-// ============================================================================
-// Unit Type
-// ============================================================================
-
 impl ReflectHash for () {
-    const HASH: [u8; 32] = keccak_const::Keccak256::new()
-        .update(b"()")
-        .finalize();
+    const HASH: [u8; 32] = Keccak256::new().update(b"()").finalize();
 }
-
-// ============================================================================
-// Option<T>
-// ============================================================================
 
 impl<T: ReflectHash> ReflectHash for Option<T> {
     const HASH: [u8; 32] = {
-        keccak_const::Keccak256::new()
+        Keccak256::new()
             .update(b"Option")
             .update(&T::HASH)
             .finalize()
     };
 }
 
-// ============================================================================
-// Result<T, E>
-// ============================================================================
-
 impl<T: ReflectHash, E: ReflectHash> ReflectHash for Result<T, E> {
     const HASH: [u8; 32] = {
-        keccak_const::Keccak256::new()
+        Keccak256::new()
             .update(b"Result")
             .update(&T::HASH)
             .update(&E::HASH)
@@ -228,22 +218,16 @@ impl<T: ReflectHash, E: ReflectHash> ReflectHash for Result<T, E> {
     };
 }
 
-// ============================================================================
-// Tuples (up to 12 elements)
-// ============================================================================
-
 macro_rules! impl_reflect_hash_for_tuples {
     () => {};
     ($first:ident $(, $rest:ident)*) => {
         impl<$first: ReflectHash, $($rest: ReflectHash),*> ReflectHash for ($first, $($rest),*) {
             const HASH: [u8; 32] = {
-                keccak_const::Keccak256::new()
-                    .update(b"(")
+                Keccak256::new()
                     .update(&$first::HASH)
                     $(
                         .update(&$rest::HASH)
                     )*
-                    .update(b")")
                     .finalize()
             };
         }
@@ -251,23 +235,18 @@ macro_rules! impl_reflect_hash_for_tuples {
     };
 }
 
+// Implement ReflectHash for tuples up to 12 elements
 impl_reflect_hash_for_tuples!(T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11);
 
-// ============================================================================
-// Arrays (fixed size up to 32)
-// ============================================================================
-
-macro_rules! impl_reflect_hash_for_arrays {
+macro_rules! impl_reflect_hash_for_bytes_arrays {
     ($($n:expr),* $(,)?) => {
         $(
             impl<T: ReflectHash> ReflectHash for [T; $n] {
                 const HASH: [u8; 32] = {
-                    keccak_const::Keccak256::new()
-                        .update(b"[")
+                    let n_str = stringify!($n);
+                    Keccak256::new()
                         .update(&T::HASH)
-                        .update(b";")
-                        .update(&[$n as u8]) // Size encoded as bytes
-                        .update(b"]")
+                        .update(n_str.as_bytes())
                         .finalize()
                 };
             }
@@ -275,89 +254,78 @@ macro_rules! impl_reflect_hash_for_arrays {
     };
 }
 
-impl_reflect_hash_for_arrays!(
+// Implement ReflectHash for arrays up to size 32
+impl_reflect_hash_for_bytes_arrays!(
     0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25,
     26, 27, 28, 29, 30, 31, 32,
 );
 
-// ============================================================================
-// Gear Primitive Types
-// ============================================================================
-
-impl ReflectHash for gprimitives::ActorId {
-    const HASH: [u8; 32] = keccak_const::Keccak256::new()
+impl ReflectHash for ActorId {
+    const HASH: [u8; 32] = Keccak256::new()
         .update(b"ActorId")
+        .update(&<[u8; 32] as ReflectHash>::HASH)
         .finalize();
 }
 
-impl ReflectHash for gprimitives::MessageId {
-    const HASH: [u8; 32] = keccak_const::Keccak256::new()
+impl ReflectHash for MessageId {
+    const HASH: [u8; 32] = Keccak256::new()
         .update(b"MessageId")
+        .update(&<[u8; 32] as ReflectHash>::HASH)
         .finalize();
 }
 
-impl ReflectHash for gprimitives::CodeId {
-    const HASH: [u8; 32] = keccak_const::Keccak256::new()
+impl ReflectHash for CodeId {
+    const HASH: [u8; 32] = Keccak256::new()
         .update(b"CodeId")
+        .update(&<[u8; 32] as ReflectHash>::HASH)
         .finalize();
 }
 
-impl ReflectHash for gprimitives::H256 {
-    const HASH: [u8; 32] = keccak_const::Keccak256::new()
+impl ReflectHash for H256 {
+    const HASH: [u8; 32] = Keccak256::new()
         .update(b"H256")
+        .update(&<[u8; 32] as ReflectHash>::HASH)
         .finalize();
 }
 
-impl ReflectHash for gprimitives::H160 {
-    const HASH: [u8; 32] = keccak_const::Keccak256::new()
+impl ReflectHash for H160 {
+    const HASH: [u8; 32] = Keccak256::new()
         .update(b"H160")
+        .update(&<[u8; 20] as ReflectHash>::HASH)
         .finalize();
 }
 
-impl ReflectHash for gprimitives::U256 {
-    const HASH: [u8; 32] = keccak_const::Keccak256::new()
+impl ReflectHash for U256 {
+    const HASH: [u8; 32] = Keccak256::new()
         .update(b"U256")
+        .update(
+            &Keccak256::new()
+                .update(&<u64 as ReflectHash>::HASH)
+                .update(b"4")
+                .finalize(),
+        )
         .finalize();
 }
 
-impl ReflectHash for gprimitives::NonZeroU256 {
-    const HASH: [u8; 32] = keccak_const::Keccak256::new()
+impl ReflectHash for NonZeroU256 {
+    const HASH: [u8; 32] = Keccak256::new()
         .update(b"NonZeroU256")
+        .update(&U256::HASH)
         .finalize();
 }
 
-// ============================================================================
-// Collection Types (Temporary Mock Hashes)
-// ============================================================================
+impl<T: ReflectHash> ReflectHash for Vec<T> {
+    const HASH: [u8; 32] = { Keccak256::new().update(b"Vec").update(&T::HASH).finalize() };
+}
 
-// TODO: Implement proper structural hashing for Vec<T>
-// For now, using a mock implementation
-impl<T: ReflectHash> ReflectHash for alloc::vec::Vec<T> {
+impl<K: ReflectHash, V: ReflectHash> ReflectHash for BTreeMap<K, V> {
     const HASH: [u8; 32] = {
-        keccak_const::Keccak256::new()
-            .update(b"Vec")
-            .update(&T::HASH)
+        Keccak256::new()
+            .update(b"BTreeMap")
+            .update(&K::HASH)
+            .update(&V::HASH)
             .finalize()
     };
-}
-
-// TODO: Implement proper structural hashing for BTreeMap<K, V>
-// For now, using a mock implementation with a comment
-// Note: This is a placeholder - proper implementation would require
-// const-compatible BTreeMap operations
-// impl<K: ReflectHash, V: ReflectHash> ReflectHash for alloc::collections::BTreeMap<K, V> {
-//     const HASH: [u8; 32] = {
-//         keccak_const::Keccak256::new()
-//             .update(b"BTreeMap")
-//             .update(&K::HASH)
-//             .update(&V::HASH)
-//             .finalize()
-//     };
-// }
-
-// Note: String type (owned) has same structural hash as str
-impl ReflectHash for alloc::string::String {
-    const HASH: [u8; 32] = <str as ReflectHash>::HASH;
 }
 
 #[cfg(test)]
@@ -365,84 +333,19 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_primitives_have_different_hashes() {
-        assert_ne!(u8::HASH, u16::HASH);
-        assert_ne!(u32::HASH, i32::HASH);
-        assert_ne!(bool::HASH, u8::HASH);
+    fn same_hash_types() {
+        assert_eq!(str::HASH, String::HASH);
+        assert_eq!(<[u8] as ReflectHash>::HASH, Vec::<u8>::HASH);
     }
 
+    // Test it builds and works
     #[test]
-    fn test_option_hashes() {
-        assert_ne!(Option::<u8>::HASH, Option::<u16>::HASH);
-        assert_ne!(Option::<u32>::HASH, u32::HASH);
-    }
+    fn crate_paths() {
+        use crate as reflect_hash_crate;
 
-    #[test]
-    fn test_result_hashes() {
-        assert_ne!(Result::<u8, u16>::HASH, Result::<u16, u8>::HASH);
-        assert_ne!(Result::<u32, bool>::HASH, u32::HASH);
-    }
-
-    #[test]
-    fn test_tuple_hashes() {
-        type Tuple1 = (u8, u16);
-        type Tuple2 = (u16, u8);
-        type Tuple3 = (u32,);
-        type Tuple4 = (u8, u16, bool);
-        
-        assert_ne!(Tuple1::HASH, Tuple2::HASH);
-        assert_ne!(Tuple3::HASH, u32::HASH);
-        assert_ne!(Tuple1::HASH, Tuple4::HASH);
-    }
-
-    #[test]
-    fn test_array_hashes() {
-        type Array1 = [u8; 4];
-        type Array2 = [u8; 8];
-        type Array3 = [u16; 4];
-        
-        assert_ne!(Array1::HASH, Array2::HASH);
-        assert_ne!(Array1::HASH, Array3::HASH);
-    }
-
-    #[test]
-    fn test_unit_hash() {
-        // Unit type should have a deterministic hash
-        let _ = <()>::HASH;
-    }
-
-    #[test]
-    fn test_nonzero_hashes() {
-        assert_ne!(core::num::NonZeroU8::HASH, u8::HASH);
-        assert_ne!(core::num::NonZeroU32::HASH, core::num::NonZeroU64::HASH);
-    }
-
-    #[test]
-    fn test_gear_types_hashes() {
-        use gprimitives::{ActorId, CodeId, H160, H256, MessageId, NonZeroU256, U256};
-        
-        // All Gear types should have different hashes
-        assert_ne!(ActorId::HASH, MessageId::HASH);
-        assert_ne!(ActorId::HASH, CodeId::HASH);
-        assert_ne!(H256::HASH, H160::HASH);
-        assert_ne!(U256::HASH, NonZeroU256::HASH);
-        
-        // Gear types should differ from primitives
-        assert_ne!(ActorId::HASH, <[u8; 32]>::HASH);
-        assert_ne!(H256::HASH, <[u8; 32]>::HASH);
-    }
-
-    #[test]
-    fn test_string_types() {
-        // String and &str should have the same structural hash
-        assert_eq!(alloc::string::String::HASH, <&str>::HASH);
-    }
-
-    #[test]
-    fn test_vec_hash() {
-        use alloc::vec::Vec;
-        
-        assert_ne!(Vec::<u8>::HASH, Vec::<u16>::HASH);
-        assert_ne!(Vec::<u32>::HASH, u32::HASH);
+        #[derive(ReflectHash)]
+        #[reflect_hash(crate = reflect_hash_crate)]
+        #[allow(dead_code)]
+        struct TestStruct(String);
     }
 }

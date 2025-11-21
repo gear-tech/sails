@@ -135,9 +135,10 @@ pub mod rmrk_catalog {
         sails_rs::io_struct_impl!(Part (part_id: u32) -> Option<super::Part>);
     }
 }
-#[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo)]
+#[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo, ReflectHash)]
 #[codec(crate = sails_rs::scale_codec)]
 #[scale_info(crate = sails_rs::scale_info)]
+#[reflect_hash(crate = sails_rs)]
 pub enum Error {
     PartIdCantBeZero,
     BadConfig,
@@ -147,16 +148,18 @@ pub enum Error {
     WrongPartFormat,
     NotAllowedToCall,
 }
-#[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo)]
+#[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo, ReflectHash)]
 #[codec(crate = sails_rs::scale_codec)]
 #[scale_info(crate = sails_rs::scale_info)]
+#[reflect_hash(crate = sails_rs)]
 pub enum Part {
     Fixed(FixedPart),
     Slot(SlotPart),
 }
-#[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo)]
+#[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo, ReflectHash)]
 #[codec(crate = sails_rs::scale_codec)]
 #[scale_info(crate = sails_rs::scale_info)]
+#[reflect_hash(crate = sails_rs)]
 pub struct FixedPart {
     /// An optional zIndex of base part layer.
     /// specifies the stack order of an element.
@@ -165,9 +168,10 @@ pub struct FixedPart {
     /// The metadata URI of the part.
     pub metadata_uri: String,
 }
-#[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo)]
+#[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo, ReflectHash)]
 #[codec(crate = sails_rs::scale_codec)]
 #[scale_info(crate = sails_rs::scale_info)]
+#[reflect_hash(crate = sails_rs)]
 pub struct SlotPart {
     /// Array of whitelisted collections that can be equipped in the given slot. Used with slot parts only.
     pub equippable: Vec<ActorId>,

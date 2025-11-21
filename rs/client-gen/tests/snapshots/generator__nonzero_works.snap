@@ -53,9 +53,10 @@ pub mod non_zero_params {
         sails_rs::io_struct_impl!(DoThis (p1: NonZeroU256, p2: super::MyParam) -> NonZeroU64);
     }
 }
-#[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo)]
+#[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo, ReflectHash)]
 #[codec(crate = sails_rs::scale_codec)]
 #[scale_info(crate = sails_rs::scale_info)]
+#[reflect_hash(crate = sails_rs)]
 pub struct MyParam {
     pub f1: NonZeroU256,
     pub f2: Vec<NonZeroU8>,

@@ -27,9 +27,9 @@ pub(crate) struct TopLevelTypeGenerator<'a> {
 impl<'a> TopLevelTypeGenerator<'a> {
     pub(crate) fn new(type_name: &'a str, sails_path: &'a str, no_derive_traits: bool) -> Self {
         let derive_traits = if no_derive_traits {
-            "Encode, Decode, TypeInfo"
+            "Encode, Decode, TypeInfo, ReflectHash"
         } else {
-            "PartialEq, Clone, Debug, Encode, Decode, TypeInfo"
+            "PartialEq, Clone, Debug, Encode, Decode, TypeInfo, ReflectHash"
         };
         Self {
             type_name,
@@ -97,6 +97,7 @@ impl<'a> StructDefGenerator<'a> {
             #[derive($(self.derive_traits))]
             #[codec(crate = $(self.sails_path)::scale_codec)]
             #[scale_info(crate = $(self.sails_path)::scale_info)]
+            #[reflect_hash(crate = $(self.sails_path))]
             pub struct $(self.type_name) $prefix $(self.tokens) $postfix
         }
     }
@@ -158,6 +159,7 @@ impl<'a> EnumDefGenerator<'a> {
             #[derive($(self.derive_traits))]
             #[codec(crate = $(self.sails_path)::scale_codec)]
             #[scale_info(crate = $(self.sails_path)::scale_info)]
+            #[reflect_hash(crate = $(self.sails_path))]
             pub enum $(self.type_name) { $(self.tokens) }
         )
     }

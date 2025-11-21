@@ -502,7 +502,8 @@ fn program_ctor_predicate(
         if output_type_path == self_type_path || output_type_path == program_type_path {
             return true;
         }
-        if let Some((Type::Path(output_type_path), _)) = shared::extract_result_types(output_type_path)
+        if let Some((Type::Path(output_type_path), _)) =
+            shared::extract_result_types(output_type_path)
             && (output_type_path == self_type_path || output_type_path == program_type_path)
         {
             return true;

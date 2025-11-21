@@ -8,9 +8,10 @@ pub(super) struct MyGenericEventsService<'l, T> {
 }
 
 #[event]
-#[derive(TypeInfo, Encode, Clone, Debug, PartialEq)]
+#[derive(TypeInfo, Encode, Clone, Debug, PartialEq, ReflectHash)]
 #[codec(crate = sails_rs::scale_codec)]
 #[scale_info(crate = sails_rs::scale_info)]
+#[reflect_hash(crate = sails_rs)]
 pub enum MyEvents {
     Event1,
 }
