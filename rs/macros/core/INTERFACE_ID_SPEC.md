@@ -64,7 +64,7 @@ Note: The bytes are the UTF-8 representation of the string literals.
 Each function argument is hashed individually:
 
 ```
-ARG_HASH = HASH(b"arg" || REFLECT_HASH)
+ARG_HASH = HASH(bytes("arg") || REFLECT_HASH)
 ```
 
 Where `REFLECT_HASH` is the 32-byte structural hash of the argument's type.
@@ -77,19 +77,19 @@ The result hash depends on whether the return type is a `Result<T, E>`:
 
 **For non-Result types:**
 ```
-RES_HASH = HASH(b"res" || REFLECT_HASH)
+RES_HASH = HASH(bytes("res) || REFLECT_HASH)
 ```
 
 **For CommandReply<T> result:**
 If a function returns `CommandReply<T>`, the type `T` is extracted and used for hashing. The `CommandReply` wrapper itself is not included in the hash since it's a protocol-level concern, not a logical interface concern.
 
 ```
-RES_HASH = HASH(b"res" || T::REFLECT_HASH)
+RES_HASH = HASH(bytes("res") || T::REFLECT_HASH)
 ```
 
 **For Result<T, E> types:**
 ```
-RES_HASH = HASH(b"res" || T::REFLECT_HASH || b"throws" || E::REFLECT_HASH)
+RES_HASH = HASH(bytes("res") || T::REFLECT_HASH || bytes("throws") || E::REFLECT_HASH)
 ```
 
 ### Events Hash
@@ -349,3 +349,15 @@ INTERFACE_ID = HASH(FUNCTIONS_HASH || BASE_SERVICES_HASH)
 ```
 
 Note: If Logger and Auditor themselves extend other services or have events, those are already included in their respective INTERFACE_IDs, creating a recursive dependency tree.
+
+
+### Review results:
+1. Calculate function's hashes differently: first calculate commands hashes, then queries. Inside commands and queries are sorted by route names.
+
+```
+INTERFACE_ID = HASH(COMMAND1_HASH || COMMAND2_HASH || QUERY1_HASH || EVENTS_HASH || BASE1_SERVICE_HASH)
+COMMAND_HASH = FN_HASH
+FN_HASH = HASH(bytes("command") || bytes(FN_NAME) || REFLECT_HASH || ... || ARG_HASH_N || RES_HASH)
+ARG_HASH = REFLECT_HASH
+RES_HASH = (REFLECT_HASH) OR (REFLECT_HASH || bytes("throws") || REFLECT_HASH)
+```
