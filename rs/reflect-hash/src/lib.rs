@@ -336,6 +336,9 @@ mod tests {
     fn same_hash_types() {
         assert_eq!(str::HASH, String::HASH);
         assert_eq!(<[u8] as ReflectHash>::HASH, Vec::<u8>::HASH);
+        assert_eq!(<&u32 as ReflectHash>::HASH, u32::HASH);
+        assert_eq!(<&mut u32 as ReflectHash>::HASH, u32::HASH);
+        assert_eq!(<&'static str as ReflectHash>::HASH, str::HASH);
     }
 
     // Test it builds and works
