@@ -320,86 +320,56 @@ impl sails_rs::meta::ServiceMeta for ReferenceService {
             let mut fn_hash = sails_rs::keccak_const::Keccak256::new();
             fn_hash = fn_hash.update("command".as_bytes());
             fn_hash = fn_hash.update("AddByte".as_bytes());
-            {
-                let arg_hash = sails_rs::keccak_const::Keccak256::new()
-                    .update(b"arg")
-                    .update(&<u8 as sails_rs::sails_reflect_hash::ReflectHash>::HASH)
-                    .finalize();
-                fn_hash = fn_hash.update(&arg_hash);
-            }
-            {
-                let res_hash = sails_rs::keccak_const::Keccak256::new()
-                    .update(b"res")
-                    .update(
-                        &<&'static [u8] as sails_rs::sails_reflect_hash::ReflectHash>::HASH,
-                    )
-                    .finalize();
-                fn_hash = fn_hash.update(&res_hash);
-            }
-            fns_hash = fns_hash.update(&fn_hash.finalize());
-        }
-        {
-            let mut fn_hash = sails_rs::keccak_const::Keccak256::new();
-            fn_hash = fn_hash.update("query".as_bytes());
-            fn_hash = fn_hash.update("Baked".as_bytes());
-            {
-                let res_hash = sails_rs::keccak_const::Keccak256::new()
-                    .update(b"res")
-                    .update(
-                        &<&'static str as sails_rs::sails_reflect_hash::ReflectHash>::HASH,
-                    )
-                    .finalize();
-                fn_hash = fn_hash.update(&res_hash);
-            }
-            fns_hash = fns_hash.update(&fn_hash.finalize());
-        }
-        {
-            let mut fn_hash = sails_rs::keccak_const::Keccak256::new();
-            fn_hash = fn_hash.update("query".as_bytes());
-            fn_hash = fn_hash.update("FirstByte".as_bytes());
-            {
-                let res_hash = sails_rs::keccak_const::Keccak256::new()
-                    .update(b"res")
-                    .update(
-                        &<Option<
-                            &'static u8,
-                        > as sails_rs::sails_reflect_hash::ReflectHash>::HASH,
-                    )
-                    .finalize();
-                fn_hash = fn_hash.update(&res_hash);
-            }
+            fn_hash = fn_hash
+                .update(&<u8 as sails_rs::sails_reflect_hash::ReflectHash>::HASH);
+            fn_hash = fn_hash
+                .update(
+                    &<&'static [u8] as sails_rs::sails_reflect_hash::ReflectHash>::HASH,
+                );
             fns_hash = fns_hash.update(&fn_hash.finalize());
         }
         {
             let mut fn_hash = sails_rs::keccak_const::Keccak256::new();
             fn_hash = fn_hash.update("command".as_bytes());
             fn_hash = fn_hash.update("Incr".as_bytes());
-            {
-                let res_hash = sails_rs::keccak_const::Keccak256::new()
-                    .update(b"res")
-                    .update(
-                        &<&'static ReferenceCount as sails_rs::sails_reflect_hash::ReflectHash>::HASH,
-                    )
-                    .finalize();
-                fn_hash = fn_hash.update(&res_hash);
-            }
+            fn_hash = fn_hash
+                .update(
+                    &<&'static ReferenceCount as sails_rs::sails_reflect_hash::ReflectHash>::HASH,
+                );
+            fns_hash = fns_hash.update(&fn_hash.finalize());
+        }
+        {
+            let mut fn_hash = sails_rs::keccak_const::Keccak256::new();
+            fn_hash = fn_hash.update("query".as_bytes());
+            fn_hash = fn_hash.update("Baked".as_bytes());
+            fn_hash = fn_hash
+                .update(
+                    &<&'static str as sails_rs::sails_reflect_hash::ReflectHash>::HASH,
+                );
+            fns_hash = fns_hash.update(&fn_hash.finalize());
+        }
+        {
+            let mut fn_hash = sails_rs::keccak_const::Keccak256::new();
+            fn_hash = fn_hash.update("query".as_bytes());
+            fn_hash = fn_hash.update("FirstByte".as_bytes());
+            fn_hash = fn_hash
+                .update(
+                    &<Option<
+                        &'static u8,
+                    > as sails_rs::sails_reflect_hash::ReflectHash>::HASH,
+                );
             fns_hash = fns_hash.update(&fn_hash.finalize());
         }
         {
             let mut fn_hash = sails_rs::keccak_const::Keccak256::new();
             fn_hash = fn_hash.update("query".as_bytes());
             fn_hash = fn_hash.update("LastByte".as_bytes());
-            {
-                let res_hash = sails_rs::keccak_const::Keccak256::new()
-                    .update(b"res")
-                    .update(
-                        &<Option<
-                            &'static u8,
-                        > as sails_rs::sails_reflect_hash::ReflectHash>::HASH,
-                    )
-                    .finalize();
-                fn_hash = fn_hash.update(&res_hash);
-            }
+            fn_hash = fn_hash
+                .update(
+                    &<Option<
+                        &'static u8,
+                    > as sails_rs::sails_reflect_hash::ReflectHash>::HASH,
+                );
             fns_hash = fns_hash.update(&fn_hash.finalize());
         }
         final_hash = final_hash.update(&fns_hash.finalize());
