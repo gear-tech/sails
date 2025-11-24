@@ -45,3 +45,19 @@ struct Order2 {
 fn test_field_order_matters() {
     assert_ne!(Order1::HASH, Order2::HASH);
 }
+
+// ============================================================================
+// Generic types
+// ============================================================================
+#[derive(ReflectHash)]
+#[allow(dead_code)]
+struct GenericStruct<T: ReflectHash> {
+    field: T,
+}
+
+#[derive(ReflectHash)]
+#[allow(dead_code)]
+enum GenericEnum<'a, T1: ReflectHash, T2: ReflectHash> {
+    Variant { value: T1 },
+    AnotherVariant(u32, &'a [T1], (T1, T2)),
+}

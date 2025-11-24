@@ -106,7 +106,7 @@ impl ServiceBuilder<'_> {
 
         // Sort handlers by name for deterministic ordering
         let mut sorted_handlers = self.service_handlers.clone();
-        sorted_handlers.sort_by_key(|h| h.ident.to_string());
+        sorted_handlers.sort_by_key(|h| h.route.to_lowercase());
 
         // Generate function hash computations
         let fn_hash_computations: Vec<_> = sorted_handlers
@@ -193,6 +193,7 @@ impl ServiceBuilder<'_> {
                     .expect("Base service path should have at least one segment")
                     .ident
                     .to_string()
+                    .to_lowercase()
             });
 
             let base_service_ids = base_services.into_iter().map(|base_type_no_lifetime| {
