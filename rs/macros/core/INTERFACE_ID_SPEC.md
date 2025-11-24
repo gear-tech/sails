@@ -349,15 +349,3 @@ INTERFACE_ID = HASH(FUNCTIONS_HASH || BASE_SERVICES_HASH)
 ```
 
 Note: If Logger and Auditor themselves extend other services or have events, those are already included in their respective INTERFACE_IDs, creating a recursive dependency tree.
-
-
-### Review results:
-1. Calculate function's hashes differently: first calculate commands hashes, then queries. Inside commands and queries are sorted by route names.
-
-```
-INTERFACE_ID = HASH(COMMAND1_HASH || COMMAND2_HASH || QUERY1_HASH || EVENTS_HASH || BASE1_SERVICE_HASH)
-COMMAND_HASH = FN_HASH
-FN_HASH = HASH(bytes("command") || bytes(FN_NAME) || REFLECT_HASH || ... || ARG_HASH_N || RES_HASH)
-ARG_HASH = REFLECT_HASH
-RES_HASH = (REFLECT_HASH) OR (REFLECT_HASH || bytes("throws") || REFLECT_HASH)
-```
