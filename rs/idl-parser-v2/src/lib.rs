@@ -69,16 +69,16 @@ fn parse_type_decl(p: Pair<Rule>) -> Result<TypeDecl> {
         // TypeDecl is `silent` Rule, but this for futureproof
         Rule::TypeDecl => parse_type_decl(p.into_inner().next().context("expected TypeDecl")?)?,
         Rule::Tuple => {
-            let mut items = Vec::new();
+            let mut types = Vec::new();
             for el in p.into_inner() {
-                items.push(parse_type_decl(el)?);
+                types.push(parse_type_decl(el)?);
             }
-            TypeDecl::Tuple(items)
+            TypeDecl::Tuple { types }
         }
         Rule::Slice => {
             let mut it = p.into_inner();
             let ty = expect_next(&mut it, parse_type_decl)?;
-            TypeDecl::Slice(Box::new(ty))
+            TypeDecl::Slice { item: Box::new(ty) }
         }
         Rule::Array => {
             let mut it = p.into_inner();
@@ -86,7 +86,10 @@ fn parse_type_decl(p: Pair<Rule>) -> Result<TypeDecl> {
             let len = expect_rule(&mut it, Rule::Number)?
                 .as_str()
                 .parse::<u32>()?;
-            TypeDecl::Array(Box::new(ty), len)
+            TypeDecl::Array {
+                item: Box::new(ty),
+                len,
+            }
         }
         Rule::Primitive => {
             let primitive_type = PrimitiveType::from_str(p.as_str()).map_err(Error::msg)?;
@@ -106,7 +109,7 @@ fn parse_type_decl(p: Pair<Rule>) -> Result<TypeDecl> {
                     _ => {}
                 }
             }
-            TypeDecl::Named(name, generics)
+            TypeDecl::Named { name, generics }
         }
         other => bail!("unexpected rule in TypeDecl: {:?}", other),
     })
@@ -510,11 +513,18 @@ mod tests {
 
         assert_eq!(
             ty,
-            Slice(Box::new(Tuple(vec![
-                Named("Point".to_string(), vec![Primitive(U32)]),
-                TypeDecl::option(Named("PointStatus".to_string(), vec![])),
-                Primitive(U32)
-            ])))
+            Slice {
+                item: Box::new(Tuple {
+                    types: vec![
+                        Named {
+                            name: "Point".to_string(),
+                            generics: vec![Primitive(U32)]
+                        },
+                        TypeDecl::option(TypeDecl::named("PointStatus".to_string())),
+                        Primitive(U32)
+                    ]
+                })
+            }
         );
     }
 
@@ -537,11 +547,11 @@ mod tests {
             ServiceFunc {
                 name: "ColorPoint".to_string(),
                 params: vec![
-                    FuncParam { name: "point".to_string(), type_decl: Tuple(vec![Primitive(U32), Primitive(U32)]) },
-                    FuncParam { name: "color".to_string(), type_decl: Named("Color".to_string(), vec![] ) }
+                    FuncParam { name: "point".to_string(), type_decl: TypeDecl::tuple(vec![Primitive(U32), Primitive(U32)]) },
+                    FuncParam { name: "color".to_string(), type_decl: TypeDecl::named("Color".to_string()) }
                 ],
                 output: Primitive(Void),
-                throws: Some(Named("ColorError".to_string(), vec![])),
+                throws: Some(TypeDecl::named("ColorError".to_string())),
                 kind: FunctionKind::Command,
                 annotations: vec![],
                 docs: vec![
