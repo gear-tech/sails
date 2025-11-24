@@ -1,0 +1,7 @@
+{%- for d in docs %}
+/// {{ d }}
+{%- endfor %}
+{%- for (k, v) in annotations %}
+@{{ k }} {%- if v.is_some() -%}: {{ v.as_ref().unwrap() }}{% endif %}
+{%- endfor %}
+{{ name }}{{ def -}}
