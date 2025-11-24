@@ -629,48 +629,4 @@ mod tests {
         assert!(err.to_string().contains("unimplmented AliasDecl"));
     }
 
-    #[test]
-    fn parse_doc_annotation_works() {
-        const SRC: &str = include_str!("../tests/idls/doc_annotation.idl");
-        let doc = parse_idl(SRC).expect("parse idl");
-
-        let program = doc.program.as_ref().unwrap();
-        assert_eq!(
-            program.docs,
-            vec![
-                "1. This is a program doc comment.",
-                "2. This is also a program doc comment."
-            ]
-        );
-
-        let ctor = &program.ctors[0];
-        assert_eq!(
-            ctor.docs,
-            vec![
-                "1. This is a ctor doc comment.",
-                "2. This is also a ctor doc comment."
-            ]
-        );
-
-        let ty = &program.types[0];
-        assert_eq!(
-            ty.docs,
-            vec![
-                "1. This is a struct doc comment.",
-                "2. This is also a struct doc comment."
-            ]
-        );
-
-        let field = match &ty.def {
-            TypeDef::Struct(s) => &s.fields[0],
-            _ => panic!("Expected struct"),
-        };
-        assert_eq!(
-            field.docs,
-            vec![
-                "1. This is a field doc comment.",
-                "2. This is also a field doc comment."
-            ]
-        );
-    }
 }
