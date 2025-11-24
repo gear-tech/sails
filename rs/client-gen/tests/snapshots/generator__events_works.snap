@@ -32,7 +32,7 @@ pub mod service_with_events {
     pub struct MyParam {
         pub f1: U256,
         pub f2: Vec<u8>,
-        pub f3: Option<(U64, U256)>,
+        pub f3: Option<(u64, U256)>,
     }
     pub trait ServiceWithEvents {
         type Env: sails_rs::client::GearEnv;
@@ -58,7 +58,7 @@ pub mod service_with_events {
 
     pub mod io {
         use super::*;
-        sails_rs::io_struct_impl!(DoThis (p1: U256, p2: super::MyParam) -> super::U64);
+        sails_rs::io_struct_impl!(DoThis (p1: U256, p2: super::MyParam) -> u64);
     }
 
     #[cfg(not(target_arch = "wasm32"))]

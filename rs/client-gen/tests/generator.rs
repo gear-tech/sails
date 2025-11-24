@@ -36,13 +36,6 @@ fn test_rmrk_works() {
 }
 
 #[test]
-fn test_nonzero_works() {
-    let idl = include_str!("idls/nonzero_works.idl");
-
-    insta::assert_snapshot!(gen_client(idl, "NonZeroParams"));
-}
-
-#[test]
 fn test_events_works() {
     let idl = include_str!("idls/events_works.idl");
 
