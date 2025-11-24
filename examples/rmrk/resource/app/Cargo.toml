@@ -10,6 +10,7 @@ sails-rs.workspace = true
 [build-dependencies]
 git-download.workspace = true
 sails-rs = { workspace = true, features = ["build"] }
+rmrk-catalog-app = { path = "../../catalog/app" }
 
 [dev-dependencies]
 rmrk-resource-app = { path = ".", features = ["mockall"] }

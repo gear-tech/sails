@@ -6919,6 +6919,7 @@ version = "0.1.0"
 dependencies = [
  "git-download",
  "mockall",
+ "rmrk-catalog-app",
  "rmrk-resource-app",
  "sails-rs",
  "tokio",
