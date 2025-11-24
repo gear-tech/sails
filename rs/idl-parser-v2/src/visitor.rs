@@ -226,19 +226,19 @@ pub fn accept_type_decl<'ast>(
     visitor: &mut (impl Visitor<'ast> + ?Sized),
 ) {
     match type_decl {
-        ast::TypeDecl::Slice(item_type_decl) => {
-            visitor.visit_slice_type_decl(item_type_decl);
+        ast::TypeDecl::Slice { item } => {
+            visitor.visit_slice_type_decl(item);
         }
-        ast::TypeDecl::Array(item, len) => {
+        ast::TypeDecl::Array { item, len } => {
             visitor.visit_array_type_decl(item, *len);
         }
-        ast::TypeDecl::Tuple(items) => {
-            visitor.visit_tuple_type_decl(items);
+        ast::TypeDecl::Tuple { types } => {
+            visitor.visit_tuple_type_decl(types);
         }
         ast::TypeDecl::Primitive(primitive_type) => {
             visitor.visit_primitive_type(*primitive_type);
         }
-        ast::TypeDecl::Named(name, generics) => {
+        ast::TypeDecl::Named { name, generics } => {
             visitor.visit_named_type_decl(name, generics);
         }
     }

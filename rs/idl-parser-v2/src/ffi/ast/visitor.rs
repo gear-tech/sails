@@ -392,17 +392,17 @@ fn accept_type_decl_impl(
     let raw_node: &ast::TypeDecl = unsafe { (*node).raw_ptr.as_ref() };
 
     match raw_node {
-        ast::TypeDecl::Slice(item_type_decl) => {
-            wrapper.visit_slice_type_decl(item_type_decl);
+        ast::TypeDecl::Slice { item } => {
+            wrapper.visit_slice_type_decl(item);
         }
-        ast::TypeDecl::Array(item, len) => {
+        ast::TypeDecl::Array { item, len } => {
             wrapper.visit_array_type_decl(item, *len);
         }
-        ast::TypeDecl::Tuple(items) => {
-            wrapper.visit_tuple_type_decl(items);
+        ast::TypeDecl::Tuple { types } => {
+            wrapper.visit_tuple_type_decl(types);
         }
         ast::TypeDecl::Primitive(primitive_type) => wrapper.visit_primitive_type(*primitive_type),
-        ast::TypeDecl::Named(name, generics) => {
+        ast::TypeDecl::Named { name, generics } => {
             wrapper.visit_named_type_decl(name, generics);
         }
     }
