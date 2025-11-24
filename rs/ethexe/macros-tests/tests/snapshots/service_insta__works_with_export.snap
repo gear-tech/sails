@@ -185,52 +185,24 @@ impl sails_rs::meta::ServiceMeta for SomeService {
             let mut fn_hash = sails_rs::keccak_const::Keccak256::new();
             fn_hash = fn_hash.update("command".as_bytes());
             fn_hash = fn_hash.update("DoSomething".as_bytes());
-            {
-                let arg_hash = sails_rs::keccak_const::Keccak256::new()
-                    .update(b"arg")
-                    .update(&<u32 as sails_rs::sails_reflect_hash::ReflectHash>::HASH)
-                    .finalize();
-                fn_hash = fn_hash.update(&arg_hash);
-            }
-            {
-                let arg_hash = sails_rs::keccak_const::Keccak256::new()
-                    .update(b"arg")
-                    .update(&<String as sails_rs::sails_reflect_hash::ReflectHash>::HASH)
-                    .finalize();
-                fn_hash = fn_hash.update(&arg_hash);
-            }
-            {
-                let res_hash = sails_rs::keccak_const::Keccak256::new()
-                    .update(b"res")
-                    .update(
-                        &<(
-                            u32,
-                            String,
-                        ) as sails_rs::sails_reflect_hash::ReflectHash>::HASH,
-                    )
-                    .finalize();
-                fn_hash = fn_hash.update(&res_hash);
-            }
+            fn_hash = fn_hash
+                .update(&<u32 as sails_rs::sails_reflect_hash::ReflectHash>::HASH);
+            fn_hash = fn_hash
+                .update(&<String as sails_rs::sails_reflect_hash::ReflectHash>::HASH);
+            fn_hash = fn_hash
+                .update(
+                    &<(u32, String) as sails_rs::sails_reflect_hash::ReflectHash>::HASH,
+                );
             fns_hash = fns_hash.update(&fn_hash.finalize());
         }
         {
             let mut fn_hash = sails_rs::keccak_const::Keccak256::new();
             fn_hash = fn_hash.update("query".as_bytes());
             fn_hash = fn_hash.update("This".as_bytes());
-            {
-                let arg_hash = sails_rs::keccak_const::Keccak256::new()
-                    .update(b"arg")
-                    .update(&<bool as sails_rs::sails_reflect_hash::ReflectHash>::HASH)
-                    .finalize();
-                fn_hash = fn_hash.update(&arg_hash);
-            }
-            {
-                let res_hash = sails_rs::keccak_const::Keccak256::new()
-                    .update(b"res")
-                    .update(&<bool as sails_rs::sails_reflect_hash::ReflectHash>::HASH)
-                    .finalize();
-                fn_hash = fn_hash.update(&res_hash);
-            }
+            fn_hash = fn_hash
+                .update(&<bool as sails_rs::sails_reflect_hash::ReflectHash>::HASH);
+            fn_hash = fn_hash
+                .update(&<bool as sails_rs::sails_reflect_hash::ReflectHash>::HASH);
             fns_hash = fns_hash.update(&fn_hash.finalize());
         }
         final_hash = final_hash.update(&fns_hash.finalize());
