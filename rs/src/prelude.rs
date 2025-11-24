@@ -53,6 +53,7 @@ pub use gear_core_errors::{
 };
 
 pub use parity_scale_codec::{self as scale_codec, Decode, Encode, EncodeLike, Output};
+pub use sails_reflect_hash::{self as sails_reflect_hash, ReflectHash};
 pub use scale_info::{self as scale_info, TypeInfo};
 
 #[cfg(all(feature = "gstd", feature = "ethexe"))]
@@ -63,7 +64,6 @@ pub use crate::solidity;
 pub use alloy_primitives;
 #[cfg(feature = "ethexe")]
 pub use alloy_sol_types;
-#[cfg(feature = "ethexe")]
 pub use keccak_const;
 
 /// Channels, Streams and Futures extensions types

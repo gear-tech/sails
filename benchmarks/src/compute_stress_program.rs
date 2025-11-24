@@ -69,9 +69,10 @@ pub mod compute_stress {
         sails_rs::io_struct_impl!(ComputeStress (n: u32) -> super::ComputeStressResult);
     }
 }
-#[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo)]
+#[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo, ReflectHash)]
 #[codec(crate = sails_rs::scale_codec)]
 #[scale_info(crate = sails_rs::scale_info)]
+#[reflect_hash(crate = sails_rs)]
 pub struct ComputeStressResult {
     pub res: u32,
 }

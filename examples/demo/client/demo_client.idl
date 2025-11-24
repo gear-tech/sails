@@ -66,8 +66,8 @@ service Counter {
 service Dog {
   MakeSound : () -> str;
   Walk : (dx: i32, dy: i32) -> null;
-  query AvgWeight : () -> u32;
   query Position : () -> struct { i32, i32 };
+  query AvgWeight : () -> u32;
 
   events {
     Barked;
