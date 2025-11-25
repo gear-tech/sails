@@ -30,10 +30,12 @@ interface ITestContractCallbacks {
 }
 
 contract TestContractCaller is ITestContractCallbacks {
-    ITestContract public immutable varaEthProgram;
+    ITestContract public immutable VAR_ETH_PROGRAM;
+
+    error UnauthorizedCaller();
 
     constructor(ITestContract _varaEthProgram) {
-        varaEthProgram = _varaEthProgram;
+        VAR_ETH_PROGRAM = _varaEthProgram;
     }
 
     modifier onlyVaraEthProgram() {
@@ -42,7 +44,9 @@ contract TestContractCaller is ITestContractCallbacks {
     }
 
     function _onlyVaraEthProgram() internal {
-        require(msg.sender == address(varaEthProgram), "Only Vara.Eth program can call this function");
+        if (msg.sender != address(varaEthProgram)) {
+            revert UnauthorizedCaller();
+        }
     }
 
     function replyOn_create(bytes32 messageId) external payable onlyVaraEthProgram {

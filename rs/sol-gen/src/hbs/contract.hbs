@@ -32,10 +32,12 @@ interface I{{contract_name}}Callbacks {
 }
 
 contract {{contract_name}}Caller is I{{contract_name}}Callbacks {
-    I{{contract_name}} public immutable varaEthProgram;
+    I{{contract_name}} public immutable VAR_ETH_PROGRAM;
+
+    error UnauthorizedCaller();
 
     constructor(I{{contract_name}} _varaEthProgram) {
-        varaEthProgram = _varaEthProgram;
+        VAR_ETH_PROGRAM = _varaEthProgram;
     }
 
     modifier onlyVaraEthProgram() {
@@ -44,7 +46,9 @@ contract {{contract_name}}Caller is I{{contract_name}}Callbacks {
     }
 
     function _onlyVaraEthProgram() internal {
-        require(msg.sender == address(varaEthProgram), "Only Vara.Eth program can call this function");
+        if (msg.sender != address(varaEthProgram)) {
+            revert UnauthorizedCaller();
+        }
     }
 
     {{#each functions}}
