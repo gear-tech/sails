@@ -32,7 +32,7 @@ program RmrkCatalog {
 
         struct SlotPart {
             /// Array of whitelisted collections that can be equipped in the given slot. Used with slot parts only.
-            equippable: Vec<ActorId>,
+            equippable: [ActorId],
             /// An optional zIndex of base part layer.
             /// specifies the stack order of an element.
             /// An element with greater stack order is always in front of an element with a lower stack order.
@@ -45,10 +45,10 @@ program RmrkCatalog {
 
 service RmrkCatalog {
     functions {
-        AddEquippables(part_id: u32, collection_ids: Vec<ActorId>) -> Result<(u32, Vec<ActorId>), Error>;
-        AddParts(parts: BTreeMap<u32, Part>) -> Result<BTreeMap<u32, Part>, Error>;
+        AddEquippables(part_id: u32, collection_ids: [ActorId]) -> Result<(u32, [ActorId]), Error>;
+        AddParts(parts: [(u32, Part)]) -> Result<[(u32, Part)], Error>;
         RemoveEquippable(part_id: u32, collection_id: ActorId) -> Result<(u32, ActorId), Error>;
-        RemoveParts(part_ids: Vec<u32>) -> Result<Vec<u32>, Error>;
+        RemoveParts(part_ids: [u32]) -> Result<[u32], Error>;
         ResetEquippables(part_id: u32) -> Result<(), Error>;
         SetEquippablesToAll(part_id: u32) -> Result<(), Error>;
         @query

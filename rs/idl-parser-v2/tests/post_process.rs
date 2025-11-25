@@ -1,5 +1,5 @@
-use sails_idl_parser_v2::parse_idl;
 use sails_idl_parser_v2::ast::TypeDef;
+use sails_idl_parser_v2::parse_idl;
 
 #[test]
 fn validate_named_types_fails_on_unknown_type() {

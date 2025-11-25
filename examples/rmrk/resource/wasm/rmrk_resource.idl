@@ -53,7 +53,7 @@ program RmrkResource {
             /// Reference to IPFS location of metadata
             metadata_uri: string,
             base: ActorId,
-            parts: Vec<u32>,
+            parts: [u32],
         }
     }
 }

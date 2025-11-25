@@ -285,7 +285,7 @@ pub mod references {
     pub mod io {
         use super::*;
         sails_rs::io_struct_impl!(Add (v: u32) -> u32);
-        sails_rs::io_struct_impl!(AddByte (byte: u8) -> super::Vec<u8>);
+        sails_rs::io_struct_impl!(AddByte (byte: u8) -> Vec<u8>);
         sails_rs::io_struct_impl!(GuessNum (number: u8) -> super::Result<String, String>);
         sails_rs::io_struct_impl!(Incr () -> super::ReferenceCount);
         sails_rs::io_struct_impl!(SetNum (number: u8) -> super::Result<(), String>);

@@ -87,7 +87,7 @@ service Dog {
 service References {
     functions {
         Add(v: u32) -> u32;
-        AddByte(byte: u8) -> Vec<u8>;
+        AddByte(byte: u8) -> [u8];
         GuessNum(number: u8) -> Result<string, string>;
         Incr() -> ReferenceCount;
         SetNum(number: u8) -> Result<(), string>;

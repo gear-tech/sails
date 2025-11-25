@@ -4,19 +4,9 @@ use anyhow::{Result, bail};
 use std::collections::HashSet;
 use std::str::FromStr;
 
-const CORE_CONTAINERS: &[&str] = &["Option", "Result", "Vec"];
-
-const COLLECTIONS: &[&str] = &[
-    "BTreeMap",
-    "BTreeSet",
-    "HashMap",
-    "HashSet",
-    "VecDeque",
-    "LinkedList",
-    "BinaryHeap",
-];
-
-const NUM_TYPES: &[&str] = &[
+const ALLOWED_TYPES: &[&str] = &[
+    "Option",
+    "Result",
     "NonZeroU8",
     "NonZeroU16",
     "NonZeroU32",
@@ -24,8 +14,6 @@ const NUM_TYPES: &[&str] = &[
     "NonZeroU128",
     "NonZeroU256",
 ];
-
-const SAILS_TYPES: &[&str] = &["ActorId", "CodeId", "MessageId", "H160", "H256", "U256"];
 
 pub fn validate_and_post_process(doc: &mut IdlDoc) -> Result<()> {
     let mut validator = Validator::new();
@@ -72,11 +60,7 @@ struct Validator<'a> {
 
 impl<'a> Validator<'a> {
     fn new() -> Self {
-        let global_scope: HashSet<&str> = [CORE_CONTAINERS, COLLECTIONS, NUM_TYPES, SAILS_TYPES]
-            .concat()
-            .iter()
-            .copied()
-            .collect();
+        let global_scope: HashSet<&str> = ALLOWED_TYPES.iter().copied().collect();
 
         Self {
             scopes: vec![global_scope],
