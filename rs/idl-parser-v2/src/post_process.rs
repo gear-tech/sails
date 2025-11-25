@@ -1,7 +1,7 @@
 use crate::ast::{self, IdlDoc, PrimitiveType};
 use crate::visitor::{self, Visitor};
 use anyhow::{Result, bail};
-use std::collections::HashSet;
+use std::collections::HashMap;
 use std::str::FromStr;
 
 const ALLOWED_TYPES: &[&str] = &[
@@ -19,8 +19,8 @@ pub fn validate_and_post_process(doc: &mut IdlDoc) -> Result<()> {
     let mut validator = Validator::new();
 
     // 1. Manually set up the program-level scope so it persists across all sibling service visits.
+    let program_scope_start = validator.names_stack.len();
     if let Some(program) = &doc.program {
-        validator.push_scope(); // Program scope
         for ty in &program.types {
             validator.add_type_to_current_scope(&ty.name);
         }
@@ -37,9 +37,7 @@ pub fn validate_and_post_process(doc: &mut IdlDoc) -> Result<()> {
     }
 
     // 4. Manually pop the program scope after the entire traversal is complete.
-    if doc.program.is_some() {
-        validator.pop_scope();
-    }
+    validator.unwind_scope(program_scope_start);
 
     if !validator.errors.is_empty() {
         let error_messages: Vec<String> = validator
@@ -54,59 +52,61 @@ pub fn validate_and_post_process(doc: &mut IdlDoc) -> Result<()> {
 }
 
 struct Validator<'a> {
-    scopes: Vec<HashSet<&'a str>>,
+    // Counts of active type names in the current scope chain.
+    active_names: HashMap<&'a str, u32>,
+    // Stack of all visible type names, used for rewinding scopes.
+    names_stack: Vec<&'a str>,
     errors: Vec<anyhow::Error>,
 }
 
 impl<'a> Validator<'a> {
     fn new() -> Self {
-        let global_scope: HashSet<&str> = ALLOWED_TYPES.iter().copied().collect();
-
         Self {
-            scopes: vec![global_scope],
+            active_names: HashMap::new(),
+            names_stack: Vec::new(),
             errors: Vec::new(),
         }
     }
 
-    fn push_scope(&mut self) {
-        self.scopes.push(HashSet::new());
-    }
-
-    fn pop_scope(&mut self) {
-        self.scopes.pop();
+    fn unwind_scope(&mut self, start_index: usize) {
+        // Remove types defined in this scope from the active set
+        for name in self.names_stack.drain(start_index..) {
+            if let Some(count) = self.active_names.get_mut(name) {
+                *count -= 1;
+                if *count == 0 {
+                    self.active_names.remove(name);
+                }
+            }
+        }
     }
 
     fn add_type_to_current_scope(&mut self, name: &'a str) {
-        if let Some(scope) = self.scopes.last_mut() {
-            scope.insert(name);
-        }
+        self.names_stack.push(name);
+        *self.active_names.entry(name).or_insert(0) += 1;
     }
 
     fn is_type_known(&self, name: &str) -> bool {
-        // Check from innermost scope to outermost (from top of the stack to bottom).
-        for scope in self.scopes.iter().rev() {
-            if scope.contains(name) {
-                return true;
-            }
+        if ALLOWED_TYPES.contains(&name) {
+            return true;
         }
-        false
+        self.active_names.contains_key(name)
     }
 }
 
 impl<'a> visitor::Visitor<'a> for Validator<'a> {
     fn visit_service_unit(&mut self, service: &'a ast::ServiceUnit) {
-        self.push_scope();
+        let scope_start = self.names_stack.len();
         for ty in &service.types {
             self.add_type_to_current_scope(&ty.name);
         }
 
         visitor::accept_service_unit(service, self);
 
-        self.pop_scope();
+        self.unwind_scope(scope_start);
     }
 
     fn visit_type(&mut self, ty: &'a ast::Type) {
-        self.push_scope();
+        let scope_start = self.names_stack.len();
         for param in &ty.type_params {
             self.add_type_to_current_scope(&param.name);
         }
@@ -114,7 +114,7 @@ impl<'a> visitor::Visitor<'a> for Validator<'a> {
         // Now that generics are in scope, traverse the type's definition.
         visitor::accept_type(ty, self);
 
-        self.pop_scope();
+        self.unwind_scope(scope_start);
     }
 
     fn visit_named_type_decl(&mut self, name: &'a str, generics: &'a [ast::TypeDecl]) {
