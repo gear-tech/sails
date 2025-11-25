@@ -77,13 +77,11 @@ impl<'ast> Visitor<'ast> for EventsModuleGenerator<'ast> {
         } else if event.def.is_tuple() {
             // Tuple variant: `Variant(Type1, Type2),`
             let mut field_tokens = rust::Tokens::new();
-            for (i, field) in event.def.fields.iter().enumerate() {
-                if i > 0 {
-                    field_tokens.append(", ");
-                }
+            for field in &event.def.fields {
                 let type_code =
                     crate::type_generators::generate_type_decl_with_path(&field.type_decl, "");
                 field_tokens.append(type_code);
+                field_tokens.append(", ");
             }
             quote_in! { self.tokens =>
                 $['\r'] $variant_name($field_tokens),

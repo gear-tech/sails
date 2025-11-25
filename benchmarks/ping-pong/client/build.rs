@@ -5,6 +5,7 @@ fn main() {
         .join("ping_pong.idl");
 
     // Generate IDL file for the `AllocStress` app
+    // TODO: uncomment
     // sails_idl_gen::generate_idl_to_file::<PingPongProgram>(&idl_file_path).unwrap();
 
     // Generate client code from IDL file

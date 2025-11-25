@@ -3,7 +3,6 @@ use rust::Tokens;
 use sails_idl_parser_v2::{ast, visitor, visitor::Visitor};
 
 use crate::helpers::generate_doc_comments;
-use crate::type_parameter_generator::TypeParameterGenerator;
 
 pub(crate) struct TopLevelTypeGenerator<'ast> {
     type_name: &'ast str,
@@ -44,9 +43,7 @@ impl<'ast> Visitor<'ast> for TopLevelTypeGenerator<'ast> {
                 if i > 0 {
                     self.type_params_tokens.append(", ");
                 }
-                let mut generator = TypeParameterGenerator::new();
-                generator.visit_type_parameter(type_param);
-                self.type_params_tokens.append(generator.finalize());
+                self.type_params_tokens.append(&type_param.name);
             }
             self.type_params_tokens.append(">");
         }
@@ -180,10 +177,6 @@ impl<'a> EnumDefGenerator<'a> {
 }
 
 impl<'ast> Visitor<'ast> for EnumDefGenerator<'ast> {
-    fn visit_enum_def(&mut self, enum_def: &'ast ast::EnumDef) {
-        visitor::accept_enum_def(enum_def, self);
-    }
-
     fn visit_enum_variant(&mut self, enum_variant: &'ast ast::EnumVariant) {
         generate_doc_comments(&mut self.tokens, &enum_variant.docs);
 

@@ -11,7 +11,6 @@ mod mock_generator;
 mod root_generator;
 mod service_generators;
 mod type_generators;
-mod type_parameter_generator;
 
 const SAILS: &str = "sails_rs";
 
@@ -167,8 +166,8 @@ impl<'ast> ClientGenerator<'ast, IdlString<'ast>> {
             self.external_types,
             self.no_derive_traits,
         );
-        let program = parse_idl(idl).context("Failed to parse IDL")?;
-        visitor::accept_idl_doc(&program, &mut generator);
+        let doc = parse_idl(idl).context("Failed to parse IDL")?;
+        visitor::accept_idl_doc(&doc, &mut generator);
 
         let code = generator.finalize(self.with_no_std);
 

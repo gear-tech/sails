@@ -2,7 +2,7 @@ use crate::helpers::{encoded_args, fn_args_with_types_path, generate_doc_comment
 use convert_case::{Case, Casing};
 use genco::prelude::*;
 use rust::Tokens;
-use sails_idl_parser_v2::{ast, visitor, visitor::Visitor};
+use sails_idl_parser_v2::{ast, visitor::Visitor};
 
 pub(crate) struct CtorGenerator<'ast> {
     service_name: &'ast str,
@@ -45,10 +45,6 @@ impl<'ast> CtorGenerator<'ast> {
 }
 
 impl<'ast> Visitor<'ast> for CtorGenerator<'ast> {
-    fn visit_program_unit(&mut self, program: &'ast ast::ProgramUnit) {
-        visitor::accept_program_unit(program, self);
-    }
-
     fn visit_ctor_func(&mut self, func: &'ast ast::CtorFunc) {
         let fn_name = &func.name;
         let fn_name_snake = &fn_name.to_case(Case::Snake);
