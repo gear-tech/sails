@@ -3,6 +3,7 @@
 #include "utils.h"
 
 // --- Globals for Counters ---
+static int count_globals = 0;
 static int count_program_unit = 0;
 static int count_service_unit = 0;
 static int count_ctor_func = 0;
@@ -24,6 +25,10 @@ static int count_type_parameter = 0;
 static int count_type_def = 0;
 
 // --- Visitor Callback Implementations ---
+
+void cb_visit_globals(const void *context, const Annotation *globals, uint32_t len) {
+  count_globals++;
+}
 
 void cb_visit_program_unit(const void *context, const ProgramUnit *node) {
   count_program_unit++;
@@ -153,6 +158,7 @@ int main() {
   assert(result->idl_doc != NULL && "parsed doc is null");
 
   Visitor full_visitor = {
+      .visit_globals = cb_visit_globals,
       .visit_program_unit = cb_visit_program_unit,
       .visit_service_unit = cb_visit_service_unit,
       .visit_ctor_func = cb_visit_ctor_func,
@@ -182,6 +188,7 @@ int main() {
   free_parse_result(result);
 
   printf("Final counts:\n");
+  printf("  globals: %d\n", count_globals);
   printf("  program_unit: %d\n", count_program_unit);
   printf("  service_unit: %d\n", count_service_unit);
   printf("  ctor_func: %d\n", count_ctor_func);
@@ -203,6 +210,7 @@ int main() {
   printf("  type_def: %d\n", count_type_def);
 
   printf("Checking assertions...\n");
+  assert(count_globals == 1);
   assert(count_program_unit == 1);
   assert(count_service_unit == 2);
   assert(count_ctor_func == 1);

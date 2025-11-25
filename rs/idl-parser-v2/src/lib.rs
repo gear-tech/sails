@@ -79,11 +79,11 @@ fn parse_type_decl(p: Pair<Rule>) -> Result<TypeDecl> {
         // TypeDecl is `silent` Rule, but this for futureproof
         Rule::TypeDecl => parse_type_decl(p.into_inner().next().context("expected TypeDecl")?)?,
         Rule::Tuple => {
-            let mut items = Vec::new();
+            let mut types = Vec::new();
             for el in p.into_inner() {
-                items.push(parse_type_decl(el)?);
+                types.push(parse_type_decl(el)?);
             }
-            TypeDecl::Tuple { types: items }
+            TypeDecl::Tuple { types }
         }
         Rule::Slice => {
             let mut it = p.into_inner();
@@ -537,10 +537,7 @@ mod tests {
                             name: "Point".to_string(),
                             generics: vec![Primitive(U32)]
                         },
-                        TypeDecl::option(Named {
-                            name: "PointStatus".to_string(),
-                            generics: vec![]
-                        }),
+                        TypeDecl::option(TypeDecl::named("PointStatus".to_string())),
                         Primitive(U32)
                     ]
                 })
@@ -655,5 +652,4 @@ mod tests {
             parse_type(pairs.next().expect("alias")).expect_err("alias should not be supported");
         assert!(err.to_string().contains("unimplmented AliasDecl"));
     }
-
 }

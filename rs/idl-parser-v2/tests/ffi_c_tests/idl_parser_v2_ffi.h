@@ -21,6 +21,7 @@ typedef struct TypeParameter TypeParameter;
 typedef struct TypeDef TypeDef;
 typedef struct ParseResult ParseResult;
 typedef struct Error Error;
+typedef struct Annotation Annotation;
 
 // ErrorCode enum (from ffi/ast/mod.rs)
 typedef enum ErrorCode {
@@ -41,9 +42,19 @@ typedef struct ParseResult {
   Error error;
 } ParseResult;
 
+// FFI-safe representation of an annotation (name and optional value).
+typedef struct Annotation {
+  const uint8_t *name_ptr;
+  uint32_t name_len;
+  const uint8_t *value_ptr;
+  uint32_t value_len;
+  bool has_value;
+} Annotation;
+
 // Visitor struct (from ffi/ast/visitor.rs)
 // Note: All fields are function pointers. NULL means None.
 typedef struct Visitor {
+  void (*visit_globals)(const void *context, const Annotation *globals, uint32_t len);
   void (*visit_program_unit)(const void *context, const ProgramUnit *program);
   void (*visit_service_unit)(const void *context, const ServiceUnit *service);
   void (*visit_ctor_func)(const void *context, const CtorFunc *ctor);

@@ -3,6 +3,7 @@
 #include "utils.h"
 
 // --- Global flags to check if visitors were called ---
+int globals_visited = 0;
 int program_unit_visited = 0;
 int ctor_func_visited = 0;
 int type_visited = 0;
@@ -12,6 +13,11 @@ int service_unit_visited = 0;
 int service_expo_visited = 0;
 
 // --- Visitor Callbacks ---
+
+void c_visit_globals(const void *context, const Annotation *globals, uint32_t len) {
+  printf("C: visit_globals called with %u annotations\n", len);
+  globals_visited = 1;
+}
 
 void c_visit_program_unit(const void *context, const ProgramUnit *program) {
   printf("C: visit_program_unit called\n");
@@ -83,6 +89,7 @@ int main() {
   IdlDoc *doc = result->idl_doc;
 
   Visitor my_visitor = {
+      .visit_globals = c_visit_globals,
       .visit_program_unit = c_visit_program_unit,
       .visit_ctor_func = c_visit_ctor_func,
       .visit_type =
@@ -137,6 +144,8 @@ int main() {
   printf("Visitor traversal completed.\n");
 
   // Assertions to check if visitors were called
+  assert(globals_visited == 1 &&
+         "visit_globals should have been called once");
   assert(program_unit_visited == 1 &&
          "visit_program_unit should have been called once");
   // TODO: check it

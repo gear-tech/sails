@@ -1,7 +1,7 @@
 use super::{
-    Allocations, CtorFunc, EnumDef, EnumVariant, ErrorCode, FuncParam, IdlDoc, ProgramUnit,
-    ServiceEvent, ServiceExpo, ServiceFunc, ServiceUnit, StructDef, StructField, Type, TypeDecl,
-    TypeDef, TypeParameter,
+    Allocations, Annotation, CtorFunc, EnumDef, EnumVariant, ErrorCode, FuncParam, IdlDoc,
+    ProgramUnit, ServiceEvent, ServiceExpo, ServiceFunc, ServiceUnit, StructDef, StructField, Type,
+    TypeDecl, TypeDef, TypeParameter,
 };
 use crate::ast;
 use crate::visitor::Visitor as RawVisitor;
@@ -9,6 +9,8 @@ use paste::paste;
 
 #[repr(C)]
 pub struct Visitor {
+    pub visit_globals:
+        Option<unsafe extern "C" fn(context: *const (), globals: *const Annotation, len: u32)>,
     pub visit_program_unit:
         Option<unsafe extern "C" fn(context: *const (), program: *const ProgramUnit)>,
     pub visit_service_unit:
@@ -53,6 +55,7 @@ pub struct Visitor {
 
 #[cfg(target_arch = "wasm32")]
 unsafe extern "C" {
+    fn visit_globals(context: *const (), globals: *const Annotation, len: u32);
     fn visit_program_unit(context: *const (), program: *const ProgramUnit);
     fn visit_service_unit(context: *const (), service: *const ServiceUnit);
     fn visit_ctor_func(context: *const (), ctor: *const CtorFunc);
@@ -82,6 +85,7 @@ unsafe extern "C" {
 
 #[cfg(target_arch = "wasm32")]
 static VISITOR: Visitor = Visitor {
+    visit_globals: Some(visit_globals),
     visit_program_unit: Some(visit_program_unit),
     visit_service_unit: Some(visit_service_unit),
     visit_ctor_func: Some(visit_ctor_func),
@@ -120,6 +124,13 @@ impl<'a> VisitorWrapper<'a> {
 }
 
 impl<'a, 'ast> RawVisitor<'ast> for VisitorWrapper<'a> {
+    fn visit_globals(&mut self, globals: &'ast [(String, Option<String>)]) {
+        if let Some(visit) = self.visitor.visit_globals {
+            let (ptr, len) = super::allocate_annotation_vec(globals, &mut self.allocations);
+            unsafe { visit(self.context, ptr, len) };
+        }
+    }
+
     fn visit_program_unit(&mut self, program: &'ast ast::ProgramUnit) {
         if let Some(visit) = self.visitor.visit_program_unit {
             let ffi_program = ProgramUnit::from_ast(program, &mut self.allocations);

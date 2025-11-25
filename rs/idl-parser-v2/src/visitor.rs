@@ -7,6 +7,9 @@ use crate::ast;
 // to continue the traversal down the tree. This allows a visitor to only override
 // the methods for the nodes it is interested in.
 pub trait Visitor<'ast> {
+    /// Visits global annotations of the IDL document.
+    fn visit_globals(&mut self, _globals: &'ast [(String, Option<String>)]) {}
+
     /// Visits a program unit, [ast::ProgramUnit].
     fn visit_program_unit(&mut self, program: &'ast ast::ProgramUnit) {
         accept_program_unit(program, self);
@@ -114,6 +117,7 @@ pub trait Visitor<'ast> {
 /// Traverses the children of an [ast::IdlDoc].
 /// This is the main entry point for visiting the entire AST.
 pub fn accept_idl_doc<'ast>(doc: &'ast ast::IdlDoc, visitor: &mut (impl Visitor<'ast> + ?Sized)) {
+    visitor.visit_globals(&doc.globals);
     if let Some(program) = &doc.program {
         visitor.visit_program_unit(program);
     }

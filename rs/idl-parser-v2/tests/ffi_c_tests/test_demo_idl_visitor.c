@@ -2,11 +2,19 @@
 
 #include "utils.h"
 
+static int c_visit_globals_calls = 0;
 static int c_visit_program_unit_calls = 0;
 static int c_visit_service_unit_calls = 0;
 static int c_visit_service_expo_calls = 0;
 
 // C-side callback implementations
+void c_visit_globals(const void *context, const Annotation *globals, uint32_t len) {
+  (void)context;
+  (void)globals;
+  printf("C: visit_globals called with %u annotations\n", len);
+  c_visit_globals_calls++;
+}
+
 void c_visit_program_unit(const void *context, const ProgramUnit *program) {
   (void)program;
   c_visit_program_unit_calls++;
@@ -54,6 +62,7 @@ int main() {
 
   // Create a C Visitor struct with some callbacks implemented and others NULL
   Visitor partial_visitor = {
+      .visit_globals = c_visit_globals,
       .visit_program_unit = c_visit_program_unit,
       .visit_service_unit = c_visit_service_unit,
       // All other callbacks are NULL, expecting Rust to use its fallback logic
@@ -88,6 +97,8 @@ int main() {
   assert(visitor_result == Ok && "Expected ErrorCode::Ok from accept_idl_doc");
 
   // Assert that our C callbacks were called the expected number of times
+  assert(c_visit_globals_calls == 1 &&
+         "c_visit_globals should have been called once");
   assert(c_visit_program_unit_calls == 1 &&
          "c_visit_program_unit should have been called once");
   assert(c_visit_service_unit_calls == 6 &&

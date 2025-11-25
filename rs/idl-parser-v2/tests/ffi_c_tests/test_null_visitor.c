@@ -26,6 +26,7 @@ int main() {
   IdlDoc* doc_ptr = result->idl_doc;
 
   Visitor null_visitor = {
+      .visit_globals = NULL,
       .visit_program_unit = NULL,
       .visit_service_unit = NULL,
       .visit_ctor_func = NULL,
