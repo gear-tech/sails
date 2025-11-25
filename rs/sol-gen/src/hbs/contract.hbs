@@ -10,7 +10,7 @@ interface I{{contract_name}} {
     {{#if @index}}
 
     {{/if}}
-    function {{name}}(bool _callReply{{#if args}}, {{#each args}}{{#if @index}}, {{/if}}{{ty}}{{#if mem_location}} {{mem_location}}{{/if}} {{name}}{{/each}}{{/if}}) external returns (bytes32 messageId);
+    function {{name}}(bool _callReply{{#if args}}, {{#each args}}{{#if @index}}, {{/if}}{{ty}}{{#if mem_location}} {{mem_location}}{{/if}} {{name}}{{/each}}{{/if}}) external payable returns (bytes32 messageId);
     {{/each}}
 }
 
@@ -19,7 +19,7 @@ contract {{contract_name}}Abi is I{{contract_name}} {
     {{#if @index}}
 
     {{/if}}
-    function {{name}}(bool _callReply{{#if args}}, {{#each args}}{{#if @index}}, {{/if}}{{ty}}{{#if mem_location}} {{mem_location}}{{/if}} {{name}}{{/each}}{{/if}}) external returns (bytes32 messageId) {}
+    function {{name}}(bool _callReply{{#if args}}, {{#each args}}{{#if @index}}, {{/if}}{{ty}}{{#if mem_location}} {{mem_location}}{{/if}} {{name}}{{/each}}{{/if}}) external payable returns (bytes32 messageId) {}
     {{/each}}
 }
 
@@ -32,24 +32,28 @@ interface I{{contract_name}}Callbacks {
 }
 
 contract {{contract_name}}Caller is I{{contract_name}}Callbacks {
-    I{{contract_name}} public immutable gearExeProgram;
+    I{{contract_name}} public immutable varaEthProgram;
 
-    constructor(I{{contract_name}} _gearExeProgram) {
-        gearExeProgram = _gearExeProgram;
+    constructor(I{{contract_name}} _varaEthProgram) {
+        varaEthProgram = _varaEthProgram;
     }
 
-    modifier onlyGearExeProgram() {
-        require(msg.sender == address(gearExeProgram), "Only Gear.exe program can call this function");
+    modifier onlyVaraEthProgram() {
+        _onlyVaraEthProgram();
         _;
     }
 
+    function _onlyVaraEthProgram() internal {
+        require(msg.sender == address(varaEthProgram), "Only Vara.Eth program can call this function");
+    }
+
     {{#each functions}}
-    function replyOn_{{name}}(bytes32 messageId{{#if reply_type}}, {{reply_type}} reply{{/if}}) external onlyGearExeProgram {
+    function replyOn_{{name}}(bytes32 messageId{{#if reply_type}}, {{reply_type}} reply{{/if}}) external payable onlyVaraEthProgram {
         // TODO: implement this
     }
 
     {{/each}}
-    function onErrorReply(bytes32 messageId, bytes calldata payload, bytes4 replyCode) external onlyGearExeProgram {
+    function onErrorReply(bytes32 messageId, bytes calldata payload, bytes4 replyCode) external payable onlyVaraEthProgram {
         // TODO: implement this
     }
 }
