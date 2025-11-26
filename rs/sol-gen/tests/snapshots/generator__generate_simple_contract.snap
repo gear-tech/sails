@@ -6,15 +6,15 @@ expression: "String::from_utf8(contract.unwrap().data).unwrap()"
 pragma solidity ^0.8.28;
 
 interface ITestContract {
-    function createPrg(bool _callReply) external returns (bytes32 messageId);
+    function createPrg(bool _callReply) external payable returns (bytes32 messageId);
 
-    function svc1DoThis(bool _callReply, uint32 p1, string calldata p2) external returns (bytes32 messageId);
+    function svc1DoThis(bool _callReply, uint32 p1, string calldata p2) external payable returns (bytes32 messageId);
 }
 
 contract TestContractAbi is ITestContract {
-    function createPrg(bool _callReply) external returns (bytes32 messageId) {}
+    function createPrg(bool _callReply) external payable returns (bytes32 messageId) {}
 
-    function svc1DoThis(bool _callReply, uint32 p1, string calldata p2) external returns (bytes32 messageId) {}
+    function svc1DoThis(bool _callReply, uint32 p1, string calldata p2) external payable returns (bytes32 messageId) {}
 }
 
 interface ITestContractCallbacks {
@@ -26,26 +26,34 @@ interface ITestContractCallbacks {
 }
 
 contract TestContractCaller is ITestContractCallbacks {
-    ITestContract public immutable gearExeProgram;
+    ITestContract public immutable VAR_ETH_PROGRAM;
 
-    constructor(ITestContract _gearExeProgram) {
-        gearExeProgram = _gearExeProgram;
+    error UnauthorizedCaller();
+
+    constructor(ITestContract _varaEthProgram) {
+        VAR_ETH_PROGRAM = _varaEthProgram;
     }
 
-    modifier onlyGearExeProgram() {
-        require(msg.sender == address(gearExeProgram), "Only Gear.exe program can call this function");
+    modifier onlyVaraEthProgram() {
+        _onlyVaraEthProgram();
         _;
     }
 
-    function replyOn_createPrg(bytes32 messageId) external onlyGearExeProgram {
+    function _onlyVaraEthProgram() internal {
+        if (msg.sender != address(varaEthProgram)) {
+            revert UnauthorizedCaller();
+        }
+    }
+
+    function replyOn_createPrg(bytes32 messageId) external payable onlyVaraEthProgram {
         // TODO: implement this
     }
 
-    function replyOn_svc1DoThis(bytes32 messageId, uint32 reply) external onlyGearExeProgram {
+    function replyOn_svc1DoThis(bytes32 messageId, uint32 reply) external payable onlyVaraEthProgram {
         // TODO: implement this
     }
 
-    function onErrorReply(bytes32 messageId, bytes calldata payload, bytes4 replyCode) external onlyGearExeProgram {
+    function onErrorReply(bytes32 messageId, bytes calldata payload, bytes4 replyCode) external payable onlyVaraEthProgram {
         // TODO: implement this
     }
 }
