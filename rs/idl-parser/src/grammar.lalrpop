@@ -120,8 +120,14 @@ StructDef: StructDef = {
 }
 
 StructField: StructField = {
-    <docs: Docs> <name: Ident> ":" <r#type: TypeDecl> => StructField::new(Some(name), r#type, docs),
-    <docs: Docs> <r#type: TypeDecl> => StructField::new(None, r#type, docs),
+    <docs: Docs> <name: Ident> ":" <r#type: TypeDecl> => {
+        let indexed = extract_indexed_from_docs(&docs);
+        StructField::new(Some(name), r#type, docs, indexed)
+    },
+    <docs: Docs> <r#type: TypeDecl> => {
+        let indexed = extract_indexed_from_docs(&docs);
+        StructField::new(None, r#type, docs, indexed)
+    },
 }
 
 EnumDef: EnumDef = {

@@ -6,25 +6,17 @@ expression: "String::from_utf8(contract.unwrap().data).unwrap()"
 pragma solidity ^0.8.28;
 
 interface ITestContract {
-    event DoThisEvent(uint32 indexed p1, string p2);
-
-    event DoThisEvent2(uint32, string);
+    event MixedEvent(uint32 indexed f1, string f2, uint128 indexed f3, uint128 f4);
 
     function create(bool _callReply) external returns (bytes32 messageId);
-
-    function svc1DoThis(bool _callReply, uint32 p1, string calldata p2) external returns (bytes32 messageId);
 }
 
 contract TestContractAbi is ITestContract {
     function create(bool _callReply) external returns (bytes32 messageId) {}
-
-    function svc1DoThis(bool _callReply, uint32 p1, string calldata p2) external returns (bytes32 messageId) {}
 }
 
 interface ITestContractCallbacks {
     function replyOn_create(bytes32 messageId) external;
-
-    function replyOn_svc1DoThis(bytes32 messageId, uint32 reply) external;
 
     function onErrorReply(bytes32 messageId, bytes calldata payload, bytes4 replyCode) external;
 }
@@ -42,10 +34,6 @@ contract TestContractCaller is ITestContractCallbacks {
     }
 
     function replyOn_create(bytes32 messageId) external onlyGearExeProgram {
-        // TODO: implement this
-    }
-
-    function replyOn_svc1DoThis(bytes32 messageId, uint32 reply) external onlyGearExeProgram {
         // TODO: implement this
     }
 

@@ -133,7 +133,7 @@ fn events_from_idl(program: &Program) -> Result<Vec<EventData>> {
                     for f in def.fields() {
                         let arg = EventArgData {
                             ty: f.type_decl().get_ty()?,
-                            indexed: false, // TODO: get this from the IDL
+                            indexed: f.indexed(),
                             name: f.name().map(|name| name.to_case(Case::Camel)),
                         };
                         args.push(arg);

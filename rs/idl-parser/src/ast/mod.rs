@@ -415,14 +415,21 @@ pub struct StructField {
     name: Option<String>,
     type_decl: TypeDecl,
     docs: Vec<String>,
+    indexed: bool,
 }
 
 impl StructField {
-    pub(crate) fn new(name: Option<String>, type_decl: TypeDecl, docs: Vec<String>) -> Self {
+    pub(crate) fn new(
+        name: Option<String>,
+        type_decl: TypeDecl,
+        docs: Vec<String>,
+        indexed: bool,
+    ) -> Self {
         Self {
             name,
             type_decl,
             docs,
+            indexed,
         }
     }
 
@@ -437,6 +444,15 @@ impl StructField {
     pub fn docs(&self) -> &Vec<String> {
         &self.docs
     }
+
+    pub fn indexed(&self) -> bool {
+        self.indexed
+    }
+}
+
+// Helper function to extract the indexed flag from doc comments.
+pub(crate) fn extract_indexed_from_docs(docs: &[String]) -> bool {
+    docs.iter().any(|doc| doc.contains("#[indexed]"))
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -784,11 +800,13 @@ mod tests {
                     Some("query".to_owned()),
                     TypeDecl::Id(TypeId::Primitive(PrimitiveType::U8)),
                     vec![],
+                    false,
                 ),
                 StructField::new(
                     Some("result".to_owned()),
                     TypeDecl::Id(TypeId::Primitive(PrimitiveType::U8)),
                     vec![],
+                    false,
                 ),
             ])
             .unwrap(),
@@ -870,16 +888,19 @@ mod tests {
                     Some("query".to_owned()),
                     TypeDecl::Id(TypeId::Primitive(PrimitiveType::NonZeroU32)),
                     vec!["field `query`".into()],
+                    false,
                 ),
                 StructField::new(
                     Some("data".to_owned()),
                     TypeDecl::Id(TypeId::Primitive(PrimitiveType::NonZeroU256)),
                     vec![],
+                    false,
                 ),
                 StructField::new(
                     Some("result".to_owned()),
                     TypeDecl::Id(TypeId::Primitive(PrimitiveType::NonZeroU8)),
                     vec!["field `result`".into(), "second line".into()],
+                    false,
                 ),
             ])
             .unwrap(),

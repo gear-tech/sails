@@ -17,7 +17,8 @@ constructor {
 service Svc1 {
   DoThis : (p1: u32, p2: str) -> u32;
   events {
-    DoThisEvent: struct { p1: u32, p2: str };
+    DoThisEvent: struct { /// #[indexed]
+    p1: u32, p2: str };
     DoThisEvent2: struct { u32, str };
   }
 };"#;
@@ -33,6 +34,30 @@ fn test_generate_simple_contract() {
 #[test]
 fn test_generate_contract_w_events() {
     let contract = generate_solidity_contract(IDL_W_EVENTS, "TestContract");
+
+    assert!(contract.is_ok());
+    assert_snapshot!(String::from_utf8(contract.unwrap().data).unwrap());
+}
+
+const IDL_MIXED_INDEXED: &str = r#"
+constructor { Create : (); };
+service Svc {
+  events {
+    MixedEvent: struct {
+      /// #[indexed]
+      f1: u32,
+      f2: str,
+      /// #[indexed]
+      f3: u128,
+      f4: u128
+    };
+  }
+};
+"#;
+
+#[test]
+fn test_generate_contract_w_mixed_indexed_events() {
+    let contract = generate_solidity_contract(IDL_MIXED_INDEXED, "TestContract");
 
     assert!(contract.is_ok());
     assert_snapshot!(String::from_utf8(contract.unwrap().data).unwrap());
