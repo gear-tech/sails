@@ -17,8 +17,7 @@ constructor {
 service Svc1 {
   DoThis : (p1: u32, p2: str) -> u32;
   events {
-    DoThisEvent: struct { /// #[indexed]
-    p1: u32, p2: str };
+    DoThisEvent: struct { p1: u32, p2: str };
     DoThisEvent2: struct { u32, str };
   }
 };"#;
