@@ -133,7 +133,7 @@ fn events_from_idl(program: &Program) -> Result<Vec<EventData>> {
                     for f in def.fields() {
                         let arg = EventArgData {
                             ty: f.type_decl().get_ty()?,
-                            indexed: false, // TODO: get this from the IDL
+                            indexed: extract_indexed_from_docs(f.docs()),
                             name: f.name().map(|name| name.to_case(Case::Camel)),
                         };
                         args.push(arg);
@@ -149,4 +149,9 @@ fn events_from_idl(program: &Program) -> Result<Vec<EventData>> {
     }
 
     Ok(events)
+}
+
+// Helper function to extract the indexed flag from doc comments.
+fn extract_indexed_from_docs(docs: &[String]) -> bool {
+    docs.iter().any(|doc| doc.contains("#[indexed]"))
 }
