@@ -40,7 +40,7 @@ async fn service_with_basics() {
         .await
         .unwrap();
 
-    let result = sails_rs::alloy_sol_types::SolValue::abi_decode(output.as_slice(), false);
+    let result = sails_rs::alloy_sol_types::SolValue::abi_decode(output.as_slice());
     assert_eq!(Ok("42: correct".to_owned()), result);
 }
 
@@ -61,7 +61,7 @@ async fn service_with_basics_with_encode_reply() {
         .unwrap();
 
     let (mid, result): (B256, String) =
-        sails_rs::alloy_sol_types::SolValue::abi_decode(output.as_slice(), false).unwrap();
+        sails_rs::alloy_sol_types::SolValue::abi_decode(output.as_slice()).unwrap();
     assert_eq!(message_id, MessageId::new(mid.0));
     assert_eq!("42: correct", result.as_str());
 }
@@ -96,7 +96,7 @@ fn service_with_lifetimes_and_events() {
         .try_handle_solidity(&DO_THIS.encode(), input.as_slice())
         .unwrap();
 
-    let result = sails_rs::alloy_sol_types::SolValue::abi_decode(output.as_slice(), false);
+    let result = sails_rs::alloy_sol_types::SolValue::abi_decode(output.as_slice());
     assert_eq!(Ok(42), result);
 
     let events = emitter.take_events();
@@ -134,14 +134,14 @@ fn service_with_extends() {
         .try_handle_solidity(&EXTENDED_NAME_METHOD.encode(), &input)
         .unwrap();
 
-    let result = sails_rs::alloy_sol_types::SolValue::abi_decode(output.as_slice(), false);
+    let result = sails_rs::alloy_sol_types::SolValue::abi_decode(output.as_slice());
     assert_eq!(Ok(EXTENDED_NAME_RESULT.to_owned()), result);
 
     let extended_svc = Extended::new(Base).expose(&[1, 2, 3]);
     let (output, ..) = extended_svc
         .try_handle_solidity(&BASE_NAME_METHOD.encode(), &input)
         .unwrap();
-    let result = sails_rs::alloy_sol_types::SolValue::abi_decode(output.as_slice(), false);
+    let result = sails_rs::alloy_sol_types::SolValue::abi_decode(output.as_slice());
     assert_eq!(Ok(BASE_NAME_RESULT.to_owned()), result);
 
     let extended_svc = Extended::new(Base).expose(&[1, 2, 3]);
@@ -149,7 +149,7 @@ fn service_with_extends() {
         .try_handle_solidity(&NAME_METHOD.encode(), &input)
         .unwrap();
 
-    let result = sails_rs::alloy_sol_types::SolValue::abi_decode(output.as_slice(), false);
+    let result = sails_rs::alloy_sol_types::SolValue::abi_decode(output.as_slice());
     assert_eq!(Ok(NAME_RESULT.to_owned()), result);
 }
 
@@ -167,7 +167,7 @@ fn service_with_lifecycles_and_generics() {
         .try_handle_solidity(&DO_THIS.encode(), &input)
         .unwrap();
 
-    let result = sails_rs::alloy_sol_types::SolValue::abi_decode(output.as_slice(), false);
+    let result = sails_rs::alloy_sol_types::SolValue::abi_decode(output.as_slice());
     assert_eq!(Ok(42u32), result);
 }
 
@@ -189,7 +189,7 @@ fn service_with_extends_and_lifetimes() {
         .try_handle_solidity(&EXTENDED_NAME_METHOD.encode(), &input)
         .unwrap();
 
-    let result = sails_rs::alloy_sol_types::SolValue::abi_decode(output.as_slice(), false);
+    let result = sails_rs::alloy_sol_types::SolValue::abi_decode(output.as_slice());
     assert_eq!(Ok(EXTENDED_NAME_RESULT.to_owned()), result);
 
     let extended_svc = ExtendedWithLifetime::new(BaseWithLifetime::new(&int)).expose(&[1, 2, 3]);
@@ -197,7 +197,7 @@ fn service_with_extends_and_lifetimes() {
         .try_handle_solidity(&BASE_NAME_METHOD.encode(), &input)
         .unwrap();
 
-    let result = sails_rs::alloy_sol_types::SolValue::abi_decode(output.as_slice(), false);
+    let result = sails_rs::alloy_sol_types::SolValue::abi_decode(output.as_slice());
     assert_eq!(Ok(BASE_NAME_RESULT.to_owned()), result);
 
     let extended_svc = ExtendedWithLifetime::new(BaseWithLifetime::new(&int)).expose(&[1, 2, 3]);
@@ -205,7 +205,7 @@ fn service_with_extends_and_lifetimes() {
         .try_handle_solidity(&NAME_METHOD.encode(), &input)
         .unwrap();
 
-    let result = sails_rs::alloy_sol_types::SolValue::abi_decode(output.as_slice(), false);
+    let result = sails_rs::alloy_sol_types::SolValue::abi_decode(output.as_slice());
     assert_eq!(Ok(NAME_RESULT.to_owned()), result);
 }
 
@@ -222,7 +222,7 @@ async fn service_with_export_unwrap_result() {
         .await
         .unwrap();
 
-    let result = sails_rs::alloy_sol_types::SolValue::abi_decode(output.as_slice(), false);
+    let result = sails_rs::alloy_sol_types::SolValue::abi_decode(output.as_slice());
     assert_eq!(Ok("42: correct".to_owned()), result);
 }
 
@@ -256,7 +256,7 @@ async fn service_with_reply_with_value() {
 
     assert_eq!(value, 100_000_000_000);
 
-    let result = sails_rs::alloy_sol_types::SolValue::abi_decode(output.as_slice(), false);
+    let result = sails_rs::alloy_sol_types::SolValue::abi_decode(output.as_slice());
     assert_eq!(Ok("42: correct".to_owned()), result);
 }
 
@@ -275,7 +275,7 @@ async fn service_with_reply_with_value_with_impl_from() {
 
     assert_eq!(value, 100_000_000_000);
 
-    let result = sails_rs::alloy_sol_types::SolValue::abi_decode(output.as_slice(), false);
+    let result = sails_rs::alloy_sol_types::SolValue::abi_decode(output.as_slice());
     assert_eq!(Ok("42: correct".to_owned()), result);
 }
 
@@ -291,6 +291,6 @@ async fn service_with_trait_bounds() {
         .try_handle_solidity(&DO_THIS.encode(), &input)
         .unwrap();
 
-    let result = sails_rs::alloy_sol_types::SolValue::abi_decode(output.as_slice(), false);
+    let result = sails_rs::alloy_sol_types::SolValue::abi_decode(output.as_slice());
     assert_eq!(Ok(42u32), result);
 }

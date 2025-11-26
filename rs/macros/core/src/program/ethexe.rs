@@ -6,7 +6,7 @@ impl ProgramBuilder {
     /// Generates code
     /// ```rust
     /// impl sails_rs::solidity::ProgramSignature for MyProgram {
-    ///     const CTORS: &'static [sails_rs::solidity::MethodExpo] = &[(    
+    ///     const CTORS: &'static [sails_rs::solidity::MethodExpo] = &[(
     ///         &[24u8, 67u8, 114u8, 101u8, 97u8, 116u8, 101u8] as &[u8],
     ///         "create",
     ///         <<(bool) as sails_rs::alloy_sol_types::SolValue>::SolType as sails_rs::alloy_sol_types::SolType>::SOL_NAME,
@@ -206,7 +206,7 @@ impl FnBuilder<'_> {
         // read uint128 as first parameter
         quote! {
             if ctor == &[ #(#handler_route_bytes),* ] {
-                let (__encode_reply, #(#handler_params,)*) : (bool, #(#handler_types,)*) = #sails_path::alloy_sol_types::SolValue::abi_decode_params(input, false).expect("Failed to decode request");
+                let (__encode_reply, #(#handler_params,)*) : (bool, #(#handler_types,)*) = #sails_path::alloy_sol_types::SolValue::abi_decode_params(input).expect("Failed to decode request");
                 #ctor_invocation
                 return Some(__encode_reply);
             }

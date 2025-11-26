@@ -172,7 +172,7 @@ impl FnBuilder<'_> {
         };
 
         quote! {
-            let (__encode_reply, #(#handler_params,)*) : (bool, #(#handler_types,)*) = #sails_path::alloy_sol_types::SolValue::abi_decode_params(input, false).ok()?;
+            let (__encode_reply, #(#handler_params,)*) : (bool, #(#handler_types,)*) = #sails_path::alloy_sol_types::SolValue::abi_decode_params(input).ok()?;
             #handle_token
             let output = if __encode_reply {
                 // encode MessageId and result if passed `encode_reply`

@@ -1,9 +1,9 @@
 error: multiple `program` attributes are not allowed
-  --> tests/ui/gprogram_fails_multiple_not_allowed_on_one_impl.rs:7:1
-   |
-7  | / impl MyProgram {
-8  | |     pub fn new() -> Self {
-9  | |         Self
+ --> tests/ui/gprogram_fails_multiple_not_allowed_on_one_impl.rs:7:1
+  |
+ 7 | / impl MyProgram {
+ 8 | |     pub fn new() -> Self {
+ 9 | |         Self
 10 | |     }
 11 | | }
    | |_^

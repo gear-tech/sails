@@ -61,7 +61,7 @@ async fn ethapp_with_events_low_level_works() {
         .find(|entry| entry.reply_to() == Some(message_id))
         .unwrap();
     let reply_payload = reply_log_record.payload();
-    let reply = u32::abi_decode(reply_payload, true);
+    let reply = u32::abi_decode(reply_payload);
 
     assert_eq!(reply, Ok(42));
 
@@ -97,8 +97,7 @@ async fn ethapp_with_events_low_level_works() {
     let topic2 = &event_payload[1 + 32..1 + 32 + 32];
     assert_eq!(hash2.as_slice(), topic2);
 
-    let (s,): (String,) =
-        SolValue::abi_decode_sequence(&event_payload[1 + 32 + 32..], false).unwrap();
+    let (s,): (String,) = SolValue::abi_decode_sequence(&event_payload[1 + 32 + 32..]).unwrap();
     assert_eq!("hello", s);
 }
 
@@ -130,7 +129,7 @@ async fn ethapp_with_events_remoting_works() {
         .await
         .unwrap();
 
-    let reply = u32::abi_decode(reply_payload.as_slice(), true);
+    let reply = u32::abi_decode(reply_payload.as_slice());
     assert_eq!(reply, Ok(42));
 
     let (from, event_payload) = listener.next().await.unwrap();
@@ -145,8 +144,7 @@ async fn ethapp_with_events_remoting_works() {
     let topic2 = &event_payload[1 + 32..1 + 32 + 32];
     assert_eq!(hash2.as_slice(), topic2);
 
-    let (s,): (String,) =
-        SolValue::abi_decode_sequence(&event_payload[1 + 32 + 32..], false).unwrap();
+    let (s,): (String,) = SolValue::abi_decode_sequence(&event_payload[1 + 32 + 32..]).unwrap();
     assert_eq!("hello", s);
 }
 
@@ -178,7 +176,7 @@ async fn ethapp_with_events_exposure_emit_works() {
         .await
         .unwrap();
 
-    let reply = u32::abi_decode(reply_payload.as_slice(), true);
+    let reply = u32::abi_decode(reply_payload.as_slice());
     assert_eq!(reply, Ok(42));
 
     // assert eth event
@@ -194,8 +192,7 @@ async fn ethapp_with_events_exposure_emit_works() {
     let topic2 = &event_payload[1 + 32..1 + 32 + 32];
     assert_eq!(hash2.as_slice(), topic2);
 
-    let (s,): (String,) =
-        SolValue::abi_decode_sequence(&event_payload[1 + 32 + 32..], false).unwrap();
+    let (s,): (String,) = SolValue::abi_decode_sequence(&event_payload[1 + 32 + 32..]).unwrap();
     assert_eq!("hello", s);
 
     // assert gear event
