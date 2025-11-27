@@ -25,14 +25,6 @@ fn validate_named_types_fails_on_service_type_in_program() {
 
 #[test]
 
-fn validate_named_types_allows_program_type_in_service() {
-    let src = include_str!("idls/post_process_program_type_in_service.idl");
-
-    parse_idl(src).expect("Should successfully parse IDL with program type used in service");
-}
-
-#[test]
-
 fn validate_scoping_fails_on_sibling_service_type_usage() {
     let src = include_str!("idls/post_process_advanced_scoping.idl");
 

@@ -269,7 +269,7 @@ pub mod canvas {
         use super::*;
         my_crate::sails::io_struct_impl!(ColorPoint (point: super::Point<u32>, color: super::Color) -> Result<(), super::ColorError>);
         my_crate::sails::io_struct_impl!(KillPoint (point: super::Point<u32>) -> Result<bool, String>);
-        my_crate::sails::io_struct_impl!(Points (offset: u32, len: u32) -> Result<Vec<(Point<u32>, PointStatus)>, String>);
+        my_crate::sails::io_struct_impl!(Points (offset: u32, len: u32) -> Result<Vec<(Point<u32>,PointStatus,)>, String>);
         my_crate::sails::io_struct_impl!(PointStatus (point: super::Point<u32>) -> super::Option<super::PointStatus>);
     }
 
@@ -417,7 +417,7 @@ pub mod dog {
         my_crate::sails::io_struct_impl!(MakeSound () -> String);
         my_crate::sails::io_struct_impl!(Walk (dx: i32, dy: i32) -> ());
         my_crate::sails::io_struct_impl!(AvgWeight () -> u32);
-        my_crate::sails::io_struct_impl!(Position () -> (i32, i32));
+        my_crate::sails::io_struct_impl!(Position () -> (i32,i32,));
     }
 
     #[cfg(not(target_arch = "wasm32"))]
@@ -603,8 +603,8 @@ pub mod this_that {
 
     pub mod io {
         use super::*;
-        my_crate::sails::io_struct_impl!(DoThat (param: super::DoThatParam) -> Result<(ActorId, u32, ManyVariantsReply), (String,)>);
-        my_crate::sails::io_struct_impl!(DoThis (p1: u32, p2: String, p3: (super::Option<H160>, u8), p4: super::TupleStruct) -> (String, u32));
+        my_crate::sails::io_struct_impl!(DoThat (param: super::DoThatParam) -> Result<(ActorId,u32,ManyVariantsReply,), (String,)>);
+        my_crate::sails::io_struct_impl!(DoThis (p1: u32, p2: String, p3: (super::Option<H160>,u8,), p4: super::TupleStruct) -> (String,u32,));
         my_crate::sails::io_struct_impl!(Noop () -> ());
         my_crate::sails::io_struct_impl!(That () -> Result<String, String>);
         my_crate::sails::io_struct_impl!(This () -> u32);
@@ -897,7 +897,7 @@ pub mod basic {
     pub mod io {
         use super::*;
         my_crate::sails::io_struct_impl!(DoThis (p1: u32, p2: super::MyParam) -> u16);
-        my_crate::sails::io_struct_impl!(DoThat (p1: (u8, u32)) -> u8);
+        my_crate::sails::io_struct_impl!(DoThat (p1: (u8,u32,)) -> u8);
     }
 }
 

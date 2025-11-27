@@ -83,7 +83,11 @@ fn parse_type_decl(p: Pair<Rule>) -> Result<TypeDecl> {
             for el in p.into_inner() {
                 types.push(parse_type_decl(el)?);
             }
-            TypeDecl::Tuple { types }
+            if types.is_empty() {
+                TypeDecl::Primitive(PrimitiveType::Void)
+            } else {
+                TypeDecl::Tuple { types }
+            }
         }
         Rule::Slice => {
             let mut it = p.into_inner();
@@ -566,16 +570,11 @@ mod tests {
                 params: vec![
                     FuncParam {
                         name: "point".to_string(),
-                        type_decl: Tuple {
-                            types: vec![Primitive(U32), Primitive(U32)]
-                        }
+                        type_decl: TypeDecl::tuple(vec![Primitive(U32), Primitive(U32)])
                     },
                     FuncParam {
                         name: "color".to_string(),
-                        type_decl: Named {
-                            name: "Color".to_string(),
-                            generics: vec![]
-                        }
+                        type_decl: TypeDecl::named("Color".to_string())
                     }
                 ],
                 output: Primitive(Void),

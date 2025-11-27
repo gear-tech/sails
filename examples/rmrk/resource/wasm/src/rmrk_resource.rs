@@ -146,7 +146,7 @@ pub mod rmrk_resource {
     pub mod io {
         use super::*;
         sails_rs::io_struct_impl!(AddPartToResource (resource_id: u8, part_id: u32) -> super::Result<u32, super::Error>);
-        sails_rs::io_struct_impl!(AddResourceEntry (resource_id: u8, resource: super::Resource) -> super::Result<(u8, super::Resource), super::Error>);
+        sails_rs::io_struct_impl!(AddResourceEntry (resource_id: u8, resource: super::Resource) -> super::Result<(u8,super::Resource,), super::Error>);
         sails_rs::io_struct_impl!(Resource (resource_id: u8) -> super::Result<super::Resource, super::Error>);
     }
 
