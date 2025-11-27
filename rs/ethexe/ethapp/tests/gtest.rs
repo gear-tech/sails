@@ -57,7 +57,7 @@ async fn ethapp_sol_works() {
         .unwrap();
 
     let reply_payload = reply_log_record.payload();
-    let reply = u32::abi_decode(reply_payload, true);
+    let reply = u32::abi_decode(reply_payload);
 
     assert_eq!(reply, Ok(42));
 
@@ -93,7 +93,7 @@ async fn ethapp_remoting_works() {
         .await
         .unwrap();
 
-    let reply = u32::abi_decode(reply_payload.as_slice(), true);
+    let reply = u32::abi_decode(reply_payload.as_slice());
     assert_eq!(reply, Ok(42));
 }
 
@@ -122,7 +122,7 @@ async fn ethapp_remoting_encode_reply_works() {
     // assert
     let callback_selector = sails_rs::solidity::selector("replyOn_createPrg(bytes32)");
     assert_eq!(callback_selector.as_slice(), &reply_payload[..4]);
-    let (_message_id,) = <(B256,)>::abi_decode_sequence(&reply_payload[4..], false).unwrap();
+    let (_message_id,) = <(B256,)>::abi_decode_sequence(&reply_payload[4..]).unwrap();
 
     // arrange
     let do_this_sig = sails_rs::solidity::selector("svc1DoThis(bool,uint32,string)");
@@ -139,7 +139,6 @@ async fn ethapp_remoting_encode_reply_works() {
     let callback_selector = sails_rs::solidity::selector("replyOn_svc1DoThis(bytes32,uint32)");
     assert_eq!(callback_selector.as_slice(), &reply_payload[..4]);
 
-    let (_message_id, result) =
-        <(B256, u32)>::abi_decode_sequence(&reply_payload[4..], false).unwrap();
+    let (_message_id, result) = <(B256, u32)>::abi_decode_sequence(&reply_payload[4..]).unwrap();
     assert_eq!(42, result);
 }

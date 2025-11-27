@@ -103,7 +103,6 @@ impl SomeServiceExposure<SomeService> {
         if method == &[16u8, 84u8, 104u8, 105u8, 115u8] {
             let (__encode_reply, p1): (bool, bool) = sails_rs::alloy_sol_types::SolValue::abi_decode_params(
                     input,
-                    false,
                 )
                 .ok()?;
             let result = self.this(p1);
@@ -131,7 +130,6 @@ impl SomeServiceExposure<SomeService> {
         if method == &[24u8, 68u8, 111u8, 84u8, 104u8, 105u8, 115u8] {
             let (__encode_reply, p1, p2): (bool, u32, String) = sails_rs::alloy_sol_types::SolValue::abi_decode_params(
                     input,
-                    false,
                 )
                 .ok()?;
             let command_reply: CommandReply<u32> = self.do_this(p1, p2).await.into();

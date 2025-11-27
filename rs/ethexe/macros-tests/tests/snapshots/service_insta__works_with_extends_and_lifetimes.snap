@@ -141,7 +141,6 @@ impl<'a> ExtendedWithLifetimeExposure<ExtendedWithLifetime<'a>> {
         {
             let (__encode_reply,): (bool,) = sails_rs::alloy_sol_types::SolValue::abi_decode_params(
                     input,
-                    false,
                 )
                 .ok()?;
             let result = self.extended_name();
@@ -161,7 +160,6 @@ impl<'a> ExtendedWithLifetimeExposure<ExtendedWithLifetime<'a>> {
         if method == &[16u8, 78u8, 97u8, 109u8, 101u8] {
             let (__encode_reply,): (bool,) = sails_rs::alloy_sol_types::SolValue::abi_decode_params(
                     input,
-                    false,
                 )
                 .ok()?;
             let result = self.name();
