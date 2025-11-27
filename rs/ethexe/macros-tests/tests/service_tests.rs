@@ -61,7 +61,7 @@ async fn service_with_basics_with_encode_reply() {
         .unwrap();
 
     let (mid, result): (B256, String) =
-        sails_rs::alloy_sol_types::SolValue::abi_decode(output.as_slice()).unwrap();
+        sails_rs::alloy_sol_types::SolValue::abi_decode_sequence(output.as_slice()).unwrap();
     assert_eq!(message_id, MessageId::new(mid.0));
     assert_eq!("42: correct", result.as_str());
 }

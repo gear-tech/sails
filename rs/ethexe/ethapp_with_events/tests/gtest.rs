@@ -129,7 +129,7 @@ async fn ethapp_with_events_remoting_works() {
         .await
         .unwrap();
 
-    let reply = u32::abi_decode(reply_payload.as_slice(), true);
+    let reply = u32::abi_decode(reply_payload.as_slice());
     assert_eq!(reply, Ok(84));
 
     let (from, event_payload) = listener.next().await.unwrap();
@@ -176,7 +176,7 @@ async fn ethapp_with_events_exposure_emit_works() {
         .await
         .unwrap();
 
-    let reply = u32::abi_decode(reply_payload.as_slice(), true);
+    let reply = u32::abi_decode(reply_payload.as_slice());
     assert_eq!(reply, Ok(84));
 
     // assert eth event
