@@ -171,8 +171,21 @@ impl FnBuilder<'_> {
             }
         };
 
+        // Add payable check for ethexe programs
+        let payable_check = if !self.payable {
+            quote! {
+                #[cfg(target_arch = "wasm32")]
+                if #sails_path::gstd::msg::value() > 0 {
+                   core::panic!("Method accepts no value");
+                }
+            }
+        } else {
+            quote!()
+        };
+
         quote! {
             let (__encode_reply, #(#handler_params,)*) : (bool, #(#handler_types,)*) = #sails_path::alloy_sol_types::SolValue::abi_decode_params(input, false).ok()?;
+            #payable_check
             #handle_token
             let output = if __encode_reply {
                 // encode MessageId and result if passed `encode_reply`

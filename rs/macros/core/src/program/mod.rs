@@ -167,8 +167,13 @@ impl ProgramBuilder {
                 if let ImplItem::Fn(fn_item) = impl_item
                     && service_ctor_predicate(fn_item)
                 {
-                    let (span, route, unwrap_result, _) =
+                    #[cfg(feature = "ethexe")]
+                    let (span, route, unwrap_result, _, payable) =
                         shared::invocation_export_or_default(fn_item);
+                    #[cfg(not(feature = "ethexe"))]
+                    let ((span, route, unwrap_result, _), payable) =
+                        (shared::invocation_export_or_default(fn_item), false);
+
                     if let Some(duplicate) =
                         routes.insert(route.clone(), fn_item.sig.ident.to_string())
                     {
@@ -178,13 +183,18 @@ impl ProgramBuilder {
                             duplicate
                         );
                     }
-                    return Some((idx, route, fn_item, unwrap_result));
+                    return Some((idx, route, fn_item, unwrap_result, payable));
                 }
                 None
             })
-            .map(|(idx, route, fn_item, unwrap_result)| {
+            .map(|(idx, route, fn_item, unwrap_result, payable)| {
+                #[cfg(feature = "ethexe")]
+                let fn_builder =
+                    FnBuilder::from(route, true, payable, fn_item, unwrap_result, self.sails_path());
+                #[cfg(not(feature = "ethexe"))]
                 let fn_builder =
                     FnBuilder::from(route, true, fn_item, unwrap_result, self.sails_path());
+
                 let original_service_ctor_fn = fn_builder.original_service_ctor_fn();
                 let wrapping_service_ctor_fn =
                     fn_builder.wrapping_service_ctor_fn(&original_service_ctor_fn.sig.ident);

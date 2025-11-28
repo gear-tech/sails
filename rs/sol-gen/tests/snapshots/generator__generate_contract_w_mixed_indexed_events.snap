@@ -8,17 +8,17 @@ pragma solidity ^0.8.28;
 interface ITestContract {
     event MixedEvent(uint32 indexed f1, string f2, uint128 indexed f3, uint128 f4);
 
-    function create(bool _callReply) external payable returns (bytes32 messageId);
+    function create(bool _callReply) external returns (bytes32 messageId);
 }
 
 contract TestContractAbi is ITestContract {
-    function create(bool _callReply) external payable returns (bytes32 messageId) {}
+    function create(bool _callReply) external returns (bytes32 messageId) {}
 }
 
 interface ITestContractCallbacks {
     function replyOn_create(bytes32 messageId) external;
 
-    function onErrorReply(bytes32 messageId, bytes calldata payload, bytes4 replyCode) external;
+    function onErrorReply(bytes32 messageId, bytes calldata payload, bytes4 replyCode) external payable;
 }
 
 contract TestContractCaller is ITestContractCallbacks {
@@ -35,13 +35,13 @@ contract TestContractCaller is ITestContractCallbacks {
         _;
     }
 
-    function _onlyVaraEthProgram() internal {
-        if (msg.sender != address(varaEthProgram)) {
+    function _onlyVaraEthProgram() internal view {
+        if (msg.sender != address(VAR_ETH_PROGRAM)) {
             revert UnauthorizedCaller();
         }
     }
 
-    function replyOn_create(bytes32 messageId) external payable onlyVaraEthProgram {
+    function replyOn_create(bytes32 messageId) external onlyVaraEthProgram {
         // TODO: implement this
     }
 
