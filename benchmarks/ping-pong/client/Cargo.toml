@@ -9,4 +9,5 @@ repository.workspace = true
 [build-dependencies]
 ping-pong-bench-app = { path = "../app" }
 sails-client-gen.workspace = true
-sails-idl-gen.workspace = true
+# TODO: Switch to new IDL generator crate
+# sails-idl-gen.workspace = true

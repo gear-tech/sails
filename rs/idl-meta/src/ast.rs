@@ -242,6 +242,48 @@ impl TypeDecl {
             _ => None,
         }
     }
+
+    /// Returns the Rust type code for the type declaration.
+    ///
+    /// This method is used to generate Rust code for the type declaration.
+    /// - `path` is an optional prefix for named types (e.g. `crate::module::Name`).
+    pub fn as_str(&self, path: &str) -> String {
+        match self {
+            TypeDecl::Slice { item } => format!("Vec<{}>", item.as_str(path)),
+            TypeDecl::Array { item, len } => {
+                format!("[{}; {}]", item.as_str(path), len)
+            }
+            TypeDecl::Tuple { types } => {
+                let mut s = String::from("(");
+                for ty in types {
+                    s.push_str(&ty.as_str(path));
+                    s.push(',');
+                }
+                s.push(')');
+                s
+            }
+            TypeDecl::Named { name, generics } => {
+                let mut s = String::new();
+                if !path.is_empty() {
+                    s.push_str(path);
+                    s.push_str("::");
+                }
+                s.push_str(name);
+                if !generics.is_empty() {
+                    s.push('<');
+                    for (i, g) in generics.iter().enumerate() {
+                        if i > 0 {
+                            s.push_str(", ");
+                        }
+                        s.push_str(&g.as_str(path));
+                    }
+                    s.push('>');
+                }
+                s
+            }
+            TypeDecl::Primitive(primitive_type) => primitive_type.as_str().to_string(),
+        }
+    }
 }
 
 impl Display for TypeDecl {

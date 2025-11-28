@@ -16,7 +16,7 @@ service Canvas {
             /// Amount of alive points.
             @indexed
             amount: u64,
-            bits: bitvec,
+            bits: [u8],
         },
         E1,
     }

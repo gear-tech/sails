@@ -17,3 +17,4 @@ anyhow.workspace = true
 pest.workspace = true
 pest_derive.workspace = true
 sails-idl-meta = { workspace = true, features = ["ast"] }
+paste.workspace = true

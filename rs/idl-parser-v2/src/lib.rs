@@ -1,3 +1,11 @@
+pub use sails_idl_meta as ast;
+
+pub mod ffi {
+    pub mod ast;
+}
+mod post_process;
+pub mod visitor;
+
 // Sails IDL v2 — parser using `pest-rs`
 use anyhow::{Context, Error, Result, bail};
 use core::str::FromStr;
@@ -14,7 +22,9 @@ pub struct IdlParser;
 // ----------------------------- Public API ------------------------------------
 pub fn parse_idl(src: &str) -> Result<IdlDoc> {
     let mut pairs = IdlParser::parse(Rule::Top, src)?;
-    build_idl(pairs.next().context("expected Top")?)
+    let mut doc = build_idl(pairs.next().context("expected Top")?)?;
+    post_process::validate_and_post_process(&mut doc)?;
+    Ok(doc)
 }
 
 // ------------------------------- Builders ------------------------------------
@@ -73,7 +83,11 @@ fn parse_type_decl(p: Pair<Rule>) -> Result<TypeDecl> {
             for el in p.into_inner() {
                 types.push(parse_type_decl(el)?);
             }
-            TypeDecl::Tuple { types }
+            if types.is_empty() {
+                TypeDecl::Primitive(PrimitiveType::Void)
+            } else {
+                TypeDecl::Tuple { types }
+            }
         }
         Rule::Slice => {
             let mut it = p.into_inner();
@@ -431,7 +445,14 @@ fn parse_docs_and_annotations(pairs: &mut Pairs<Rule>) -> Result<(Vec<String>, V
             Rule::LocalAnn => {
                 // pop pair
                 let _ = pairs.next();
-                anns.push(parse_annotation(p)?);
+                let ann = parse_annotation(p)?;
+                if ann.0 == "doc" {
+                    if let Some(val) = ann.1 {
+                        docs.push(val);
+                    }
+                } else {
+                    anns.push(ann);
+                }
             }
             _ => break,
         }
@@ -547,11 +568,20 @@ mod tests {
             ServiceFunc {
                 name: "ColorPoint".to_string(),
                 params: vec![
-                    FuncParam { name: "point".to_string(), type_decl: TypeDecl::tuple(vec![Primitive(U32), Primitive(U32)]) },
-                    FuncParam { name: "color".to_string(), type_decl: TypeDecl::named("Color".to_string()) }
+                    FuncParam {
+                        name: "point".to_string(),
+                        type_decl: TypeDecl::tuple(vec![Primitive(U32), Primitive(U32)])
+                    },
+                    FuncParam {
+                        name: "color".to_string(),
+                        type_decl: TypeDecl::named("Color".to_string())
+                    }
                 ],
                 output: Primitive(Void),
-                throws: Some(TypeDecl::named("ColorError".to_string())),
+                throws: Some(Named {
+                    name: "ColorError".to_string(),
+                    generics: vec![]
+                }),
                 kind: FunctionKind::Command,
                 annotations: vec![],
                 docs: vec![

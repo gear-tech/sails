@@ -1,10 +1,17 @@
-constructor {
-  /// Proxy Program's constructor
-  New : (target: actor_id);
-};
+program Proxy {
+    constructors {
+        /// Proxy Program's constructor
+        New(target: ActorId);
+    }
+    services {
+        Proxy,
+    }
+}
 
 service Proxy {
-  /// Get program ID of the target program via client
-  query GetProgramId : () -> actor_id;
-};
-
+    functions {
+        /// Get program ID of the target program via client
+        @query
+        GetProgramId() -> ActorId;
+    }
+}

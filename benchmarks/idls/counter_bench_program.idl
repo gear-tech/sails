@@ -1,9 +1,15 @@
-constructor {
-  NewForBench : ();
-};
+program CounterBench {
+    constructors {
+        NewForBench();
+    }
+    services {
+        CounterBench,
+    }
+}
 
 service CounterBench {
-  Inc : () -> u64;
-  IncAsync : () -> u64;
-};
-
+    functions {
+        Inc() -> u64;
+        IncAsync() -> u64;
+    }
+}

@@ -1,15 +1,22 @@
-type PingPongPayload = enum {
-  Start: actor_id,
-  Ping,
-  Pong,
-  Finished,
-};
-
-constructor {
-  NewForBench : ();
-};
+program PingPongProgram {
+    constructors {
+        NewForBench();
+    }
+    services {
+        PingPongService,
+    }
+    types {
+        enum PingPongPayload {
+            Start(ActorId),
+            Ping,
+            Pong,
+            Finished,
+        }
+    }
+}
 
 service PingPongService {
-  Ping : (payload: PingPongPayload) -> PingPongPayload;
-};
-
+    functions {
+        Ping(payload: PingPongPayload) -> PingPongPayload;
+    }
+}

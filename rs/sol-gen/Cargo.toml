@@ -10,7 +10,7 @@ repository.workspace = true
 rust-version.workspace = true
 
 [dependencies]
-sails-idl-parser.workspace = true
+sails-idl-parser-v2.workspace = true
 handlebars.workspace = true
 anyhow.workspace = true
 serde = { workspace = true, features = ["derive"] }

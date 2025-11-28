@@ -1,12 +1,19 @@
-type AllocStressResult = struct {
-  inner: vec u8,
-};
-
-constructor {
-  NewForBench : ();
-};
+program AllocStress {
+    constructors {
+        NewForBench();
+    }
+    services {
+        AllocStress,
+    }
+    types {
+        struct AllocStressResult {
+            inner: [u8],
+        }
+    }
+}
 
 service AllocStress {
-  AllocStress : (n: u32) -> AllocStressResult;
-};
-
+    functions {
+        AllocStress(n: u32) -> AllocStressResult;
+    }
+}
