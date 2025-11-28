@@ -39,8 +39,8 @@ contract TestContractCaller is ITestContractCallbacks {
         _;
     }
 
-    function _onlyVaraEthProgram() internal view {
-        if (msg.sender != address(VAR_ETH_PROGRAM)) {
+    function _onlyVaraEthProgram() internal {
+        if (msg.sender != address(varaEthProgram)) {
             revert UnauthorizedCaller();
         }
     }
