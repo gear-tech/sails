@@ -1,6 +1,6 @@
 use crate::{
     export, sails_paths,
-    shared::{self, FnBuilder},
+    shared::{self, FnBuilder, InvocationExport},
 };
 use args::ProgramArgs;
 use proc_macro_error::abort;
@@ -167,24 +167,36 @@ impl ProgramBuilder {
                 if let ImplItem::Fn(fn_item) = impl_item
                     && service_ctor_predicate(fn_item)
                 {
-                    let (span, route, unwrap_result, _) =
-                        shared::invocation_export_or_default(fn_item);
-                    if let Some(duplicate) =
-                        routes.insert(route.clone(), fn_item.sig.ident.to_string())
-                    {
+                    let invocation_export = shared::invocation_export_or_default(fn_item);
+
+                    if let Some(duplicate) = routes.insert(
+                        invocation_export.route.clone(),
+                        fn_item.sig.ident.to_string(),
+                    ) {
                         abort!(
-                            span,
+                            invocation_export.span,
                             "`export` attribute conflicts with one already assigned to '{}'",
                             duplicate
                         );
                     }
-                    return Some((idx, route, fn_item, unwrap_result));
+                    return Some((idx, fn_item, invocation_export));
                 }
                 None
             })
-            .map(|(idx, route, fn_item, unwrap_result)| {
+            .map(|(idx, fn_item, invocation_export)| {
+                let InvocationExport {
+                    route,
+                    unwrap_result,
+                    #[cfg(feature = "ethexe")]
+                    payable,
+                    ..
+                } = invocation_export;
+
                 let fn_builder =
-                    FnBuilder::from(route, true, fn_item, unwrap_result, self.sails_path());
+                    FnBuilder::new(route, true, fn_item, unwrap_result, self.sails_path());
+                #[cfg(feature = "ethexe")]
+                let fn_builder = fn_builder.payable(payable);
+
                 let original_service_ctor_fn = fn_builder.original_service_ctor_fn();
                 let wrapping_service_ctor_fn =
                     fn_builder.wrapping_service_ctor_fn(&original_service_ctor_fn.sig.ident);

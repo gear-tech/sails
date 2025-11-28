@@ -130,6 +130,10 @@ pub mod wasm {
                     false,
                 )
                 .expect("Failed to decode request");
+            #[cfg(target_arch = "wasm32")]
+            if sails_rs::gstd::msg::value() > 0 {
+                core::panic!("Method accepts no value");
+            }
             let program = MyProgram::create();
             unsafe { PROGRAM = Some(program) };
             return Some(__encode_reply);

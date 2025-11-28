@@ -203,10 +203,23 @@ impl FnBuilder<'_> {
             }
         };
 
+        // Add payable check for ethexe constructors
+        let payable_check = if !self.payable {
+            quote! {
+                #[cfg(target_arch = "wasm32")]
+                if #sails_path::gstd::msg::value() > 0 {
+                   core::panic!("Method accepts no value");
+                }
+            }
+        } else {
+            quote!()
+        };
+
         // read uint128 as first parameter
         quote! {
             if ctor == &[ #(#handler_route_bytes),* ] {
                 let (__encode_reply, #(#handler_params,)*) : (bool, #(#handler_types,)*) = #sails_path::alloy_sol_types::SolValue::abi_decode_params(input, false).expect("Failed to decode request");
+                #payable_check
                 #ctor_invocation
                 return Some(__encode_reply);
             }

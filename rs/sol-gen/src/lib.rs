@@ -21,6 +21,8 @@ struct FunctionData {
     pub args: Vec<ArgData>,
     pub reply_type: Option<String>,
     pub reply_mem_location: Option<String>,
+    pub payable: bool,
+    pub returns_value: bool,
 }
 
 #[derive(Serialize)]
@@ -90,8 +92,10 @@ fn functions_from_idl(program: &Program) -> Result<Vec<FunctionData>> {
             }
             functions.push(FunctionData {
                 name: func.name().to_case(Case::Camel),
-                reply_type: None,
+                reply_type: None, // Constructors don't have replies in this sense
                 reply_mem_location: None,
+                payable: has_tag(func.docs(), "#[payable]"),
+                returns_value: false, // Constructors don't return CommandReply values
                 args,
             });
         }
@@ -114,6 +118,8 @@ fn functions_from_idl(program: &Program) -> Result<Vec<FunctionData>> {
                     .to_case(Case::Camel),
                 reply_type: f.output().get_ty().ok(),
                 reply_mem_location: f.output().get_mem_location(),
+                payable: has_tag(f.docs(), "#[payable]"),
+                returns_value: has_tag(f.docs(), "#[returns_value]"),
                 args,
             });
         }
@@ -133,7 +139,7 @@ fn events_from_idl(program: &Program) -> Result<Vec<EventData>> {
                     for f in def.fields() {
                         let arg = EventArgData {
                             ty: f.type_decl().get_ty()?,
-                            indexed: extract_indexed_from_docs(f.docs()),
+                            indexed: has_tag(f.docs(), "#[indexed]"),
                             name: f.name().map(|name| name.to_case(Case::Camel)),
                         };
                         args.push(arg);
@@ -151,7 +157,6 @@ fn events_from_idl(program: &Program) -> Result<Vec<EventData>> {
     Ok(events)
 }
 
-// Helper function to extract the indexed flag from doc comments.
-fn extract_indexed_from_docs(docs: &[String]) -> bool {
-    docs.iter().any(|doc| doc.contains("#[indexed]"))
+fn has_tag(docs: &[String], tag: &str) -> bool {
+    docs.iter().any(|doc| doc.contains(tag))
 }

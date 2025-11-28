@@ -106,6 +106,10 @@ impl SomeServiceExposure<SomeService> {
                     false,
                 )
                 .ok()?;
+            #[cfg(target_arch = "wasm32")]
+            if sails_rs::gstd::msg::value() > 0 {
+                core::panic!("Method accepts no value");
+            }
             let result = self.this(p1);
             let value = 0u128;
             let output = if __encode_reply {
@@ -134,6 +138,10 @@ impl SomeServiceExposure<SomeService> {
                     false,
                 )
                 .ok()?;
+            #[cfg(target_arch = "wasm32")]
+            if sails_rs::gstd::msg::value() > 0 {
+                core::panic!("Method accepts no value");
+            }
             let command_reply: CommandReply<u32> = self.do_this(p1, p2).await.into();
             let (result, value) = command_reply.to_tuple();
             let output = if __encode_reply {

@@ -192,6 +192,10 @@ impl ReferenceServiceExposure<ReferenceService> {
                     false,
                 )
                 .ok()?;
+            #[cfg(target_arch = "wasm32")]
+            if sails_rs::gstd::msg::value() > 0 {
+                core::panic!("Method accepts no value");
+            }
             let result = self.add_byte(byte);
             let value = 0u128;
             let output = if __encode_reply {
@@ -212,6 +216,10 @@ impl ReferenceServiceExposure<ReferenceService> {
                     false,
                 )
                 .ok()?;
+            #[cfg(target_arch = "wasm32")]
+            if sails_rs::gstd::msg::value() > 0 {
+                core::panic!("Method accepts no value");
+            }
             let result = self.baked();
             let value = 0u128;
             let output = if __encode_reply {
@@ -232,6 +240,10 @@ impl ReferenceServiceExposure<ReferenceService> {
                     false,
                 )
                 .ok()?;
+            #[cfg(target_arch = "wasm32")]
+            if sails_rs::gstd::msg::value() > 0 {
+                core::panic!("Method accepts no value");
+            }
             let result = self.incr();
             let value = 0u128;
             let output = if __encode_reply {
@@ -261,6 +273,10 @@ impl ReferenceServiceExposure<ReferenceService> {
                     false,
                 )
                 .ok()?;
+            #[cfg(target_arch = "wasm32")]
+            if sails_rs::gstd::msg::value() > 0 {
+                core::panic!("Method accepts no value");
+            }
             let result = self.first_byte().await;
             let value = 0u128;
             let output = if __encode_reply {
@@ -281,6 +297,10 @@ impl ReferenceServiceExposure<ReferenceService> {
                     false,
                 )
                 .ok()?;
+            #[cfg(target_arch = "wasm32")]
+            if sails_rs::gstd::msg::value() > 0 {
+                core::panic!("Method accepts no value");
+            }
             let result = self.last_byte().await;
             let value = 0u128;
             let output = if __encode_reply {

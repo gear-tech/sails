@@ -144,6 +144,10 @@ impl<'a> ExtendedWithLifetimeExposure<ExtendedWithLifetime<'a>> {
                     false,
                 )
                 .ok()?;
+            #[cfg(target_arch = "wasm32")]
+            if sails_rs::gstd::msg::value() > 0 {
+                core::panic!("Method accepts no value");
+            }
             let result = self.extended_name();
             let value = 0u128;
             let output = if __encode_reply {
@@ -164,6 +168,10 @@ impl<'a> ExtendedWithLifetimeExposure<ExtendedWithLifetime<'a>> {
                     false,
                 )
                 .ok()?;
+            #[cfg(target_arch = "wasm32")]
+            if sails_rs::gstd::msg::value() > 0 {
+                core::panic!("Method accepts no value");
+            }
             let result = self.name();
             let value = 0u128;
             let output = if __encode_reply {
