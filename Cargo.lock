@@ -6183,7 +6183,6 @@ version = "0.9.2"
 dependencies = [
  "ping-pong-bench-app",
  "sails-client-gen",
- "sails-idl-gen",
 ]
 
 [[package]]
@@ -6483,7 +6482,6 @@ name = "proxy"
 version = "0.1.0"
 dependencies = [
  "demo-client",
- "sails-idl-gen",
  "sails-rs",
  "tokio",
 ]
@@ -6891,7 +6889,6 @@ name = "rmrk-catalog"
 version = "0.1.0"
 dependencies = [
  "rmrk-catalog-app",
- "sails-idl-gen",
  "sails-rs",
 ]
 
@@ -7345,7 +7342,7 @@ dependencies = [
  "handlebars",
  "insta",
  "sails-idl-meta",
- "sails-idl-parser",
+ "sails-idl-parser-v2",
  "serde",
 ]
 

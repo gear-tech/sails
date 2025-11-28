@@ -13,7 +13,8 @@ required-features = ["idl-gen"]
 
 [dependencies]
 demo-client = { path = "../demo/client" }
-sails-idl-gen = { workspace = true, optional = true }
+# TODO: Switch to new IDL generator crate
+# sails-idl-gen = { workspace = true, optional = true }
 sails-rename.workspace = true
 
 [dev-dependencies]
@@ -24,4 +25,6 @@ tokio = { workspace = true, features = ["rt", "macros"] }
 sails-rename = { workspace = true, features = ["build"] }
 
 [features]
-idl-gen = ["dep:sails-idl-gen"]
+# TODO: Switch to new IDL generator crate
+# idl-gen = ["dep:sails-idl-gen"]
+idl-gen = []
