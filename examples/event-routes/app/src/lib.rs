@@ -29,9 +29,7 @@ impl Service {
     pub async fn foo(&mut self) {
         let source = Syscall::message_source();
         self.emit_event(Events::Start).unwrap();
-        let _res = gstd::msg::send_for_reply(source, self.0, 0, 0)
-            .unwrap()
-            .await;
+        let _res = gstd::send_for_reply(source, self.0, 0).unwrap().await;
         self.emit_event(Events::End).unwrap();
     }
 }

@@ -48,7 +48,7 @@ log = { workspace = true, optional = true }
 tokio = { workspace = true, features = ["rt", "macros"] }
 
 [features]
-default = ["gstd"]
+default = ["gstd", "async-runtime"]
 build = ["client-builder", "wasm-builder"]
 debug = ["gstd?/debug"]
 ethexe = [
@@ -66,3 +66,4 @@ client-builder = ["std", "idl-gen", "dep:sails-client-gen", "dep:convert_case"]
 mockall = ["std", "dep:mockall"]
 std = ["futures/std"]
 wasm-builder = ["dep:gwasm-builder"]
+async-runtime = ["gstd"]
