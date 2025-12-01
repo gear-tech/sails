@@ -62,3 +62,39 @@ fn test_generate_contract_w_events() {
     );
     assert_snapshot!(String::from_utf8(contract.unwrap().data).unwrap());
 }
+
+const IDL_MIXED_INDEXED: &str = r#"
+program TestProgram {
+    constructors {
+        Create();
+    }
+    services {
+        Svc: Svc
+    }
+}
+
+service Svc {
+  events {
+    MixedEvent {
+      /// #[indexed]
+      f1: u32,
+      f2: String,
+      /// #[indexed]
+      f3: u128,
+      f4: u128
+    }
+  }
+}
+"#;
+
+#[test]
+fn test_generate_contract_w_mixed_indexed_events() {
+    let contract = generate_solidity_contract(IDL_MIXED_INDEXED, "TestContract");
+
+    assert!(
+        contract.is_ok(),
+        "Failed to generate contract: {:?}",
+        contract.err()
+    );
+    assert_snapshot!(String::from_utf8(contract.unwrap().data).unwrap());
+}

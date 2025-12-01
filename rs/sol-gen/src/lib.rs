@@ -139,7 +139,7 @@ fn events_from_idl(doc: &IdlDoc) -> Result<Vec<EventData>> {
             for f in &e.def.fields {
                 let arg = EventArgData {
                     ty: f.type_decl.get_ty()?,
-                    indexed: false, // TODO: get this from the IDL
+                    indexed: f.docs.iter().any(|doc| doc.contains("#[indexed]")),
                     name: f.name.as_ref().map(|name| name.to_case(Case::Camel)),
                 };
                 args.push(arg);
