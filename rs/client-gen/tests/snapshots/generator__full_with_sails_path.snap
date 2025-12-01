@@ -267,10 +267,10 @@ pub mod canvas {
 
     pub mod io {
         use super::*;
-        my_crate::sails::io_struct_impl!(ColorPoint (point: super::Point<u32>, color: super::Color) -> Result<(), super::ColorError>);
-        my_crate::sails::io_struct_impl!(KillPoint (point: super::Point<u32>) -> Result<bool, String>);
-        my_crate::sails::io_struct_impl!(Points (offset: u32, len: u32) -> Result<Vec<(Point<u32>,PointStatus,)>, String>);
-        my_crate::sails::io_struct_impl!(PointStatus (point: super::Point<u32>) -> super::Option<super::PointStatus>);
+        my_crate::sails::io_struct_impl!(ColorPoint (point: super::Point<u32, >, color: super::Color) -> Result<(), super::ColorError>);
+        my_crate::sails::io_struct_impl!(KillPoint (point: super::Point<u32, >) -> Result<bool, String>);
+        my_crate::sails::io_struct_impl!(Points (offset: u32, len: u32) -> Result<Vec<(Point<u32, >, PointStatus, )>, String>);
+        my_crate::sails::io_struct_impl!(PointStatus (point: super::Point<u32, >) -> super::Option<super::PointStatus, >);
     }
 
     #[cfg(not(target_arch = "wasm32"))]
@@ -417,7 +417,7 @@ pub mod dog {
         my_crate::sails::io_struct_impl!(MakeSound () -> String);
         my_crate::sails::io_struct_impl!(Walk (dx: i32, dy: i32) -> ());
         my_crate::sails::io_struct_impl!(AvgWeight () -> u32);
-        my_crate::sails::io_struct_impl!(Position () -> (i32,i32,));
+        my_crate::sails::io_struct_impl!(Position () -> (i32, i32, ));
     }
 
     #[cfg(not(target_arch = "wasm32"))]
@@ -512,8 +512,8 @@ pub mod references {
         my_crate::sails::io_struct_impl!(Incr () -> super::ReferenceCount);
         my_crate::sails::io_struct_impl!(SetNum (number: u8) -> Result<(), String>);
         my_crate::sails::io_struct_impl!(Baked () -> String);
-        my_crate::sails::io_struct_impl!(LastByte () -> super::Option<u8>);
-        my_crate::sails::io_struct_impl!(Message () -> super::Option<String>);
+        my_crate::sails::io_struct_impl!(LastByte () -> super::Option<u8, >);
+        my_crate::sails::io_struct_impl!(Message () -> super::Option<String, >);
     }
 }
 
@@ -603,8 +603,8 @@ pub mod this_that {
 
     pub mod io {
         use super::*;
-        my_crate::sails::io_struct_impl!(DoThat (param: super::DoThatParam) -> Result<(ActorId,u32,ManyVariantsReply,), (String,)>);
-        my_crate::sails::io_struct_impl!(DoThis (p1: u32, p2: String, p3: (super::Option<H160>,u8,), p4: super::TupleStruct) -> (String,u32,));
+        my_crate::sails::io_struct_impl!(DoThat (param: super::DoThatParam) -> Result<(ActorId, u32, ManyVariantsReply, ), (String, )>);
+        my_crate::sails::io_struct_impl!(DoThis (p1: u32, p2: String, p3: (super::Option<H160, >, u8, ), p4: super::TupleStruct) -> (String, u32, ));
         my_crate::sails::io_struct_impl!(Noop () -> ());
         my_crate::sails::io_struct_impl!(That () -> Result<String, String>);
         my_crate::sails::io_struct_impl!(This () -> u32);
@@ -897,7 +897,7 @@ pub mod basic {
     pub mod io {
         use super::*;
         my_crate::sails::io_struct_impl!(DoThis (p1: u32, p2: super::MyParam) -> u16);
-        my_crate::sails::io_struct_impl!(DoThat (p1: (u8,u32,)) -> u8);
+        my_crate::sails::io_struct_impl!(DoThat (p1: (u8, u32, )) -> u8);
     }
 }
 
@@ -1076,7 +1076,7 @@ pub mod my_complex_service {
         my_crate::sails::io_struct_impl!(GetData (key: String) -> Result<ProgramScopedData, super::ProgramError>);
         my_crate::sails::io_struct_impl!(GetInfo () -> super::ProgramGlobalInfo);
         my_crate::sails::io_struct_impl!(GetActorIds (count: u32) -> Vec<ActorId>);
-        my_crate::sails::io_struct_impl!(ProcessGenericData (input_data: super::GenericData<u32, String>, list_of_generics: Vec<super::GenericData<ActorId, U256>>, optional_generic_result: super::Option<super::GenericResult<bool>>) -> super::GenericData<bool, u8>);
-        my_crate::sails::io_struct_impl!(UpdateStatus (id: u64, new_status: super::ServiceStatus, metadata: super::Option<String>) -> super::GenericResult<u32>);
+        my_crate::sails::io_struct_impl!(ProcessGenericData (input_data: super::GenericData<u32, String, >, list_of_generics: Vec<super::GenericData<ActorId, U256, >>, optional_generic_result: super::Option<super::GenericResult<bool, >, >) -> super::GenericData<bool, u8, >);
+        my_crate::sails::io_struct_impl!(UpdateStatus (id: u64, new_status: super::ServiceStatus, metadata: super::Option<String, >) -> super::GenericResult<u32, >);
     }
 }

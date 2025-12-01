@@ -224,5 +224,67 @@ pub(crate) fn generate_type_decl_with_path<'ast>(
     type_decl: &'ast ast::TypeDecl,
     path: &'ast str,
 ) -> String {
-    type_decl.as_str(path)
+    let mut type_decl_generator = TypeDeclGenerator::new(path);
+    visitor::accept_type_decl(type_decl, &mut type_decl_generator);
+    type_decl_generator
+        .tokens
+        .to_string()
+        .expect("Failed to generate type decl code")
+}
+
+struct TypeDeclGenerator<'ast> {
+    tokens: Tokens,
+    path: &'ast str,
+}
+
+impl<'ast> TypeDeclGenerator<'ast> {
+    fn new(path: &'ast str) -> Self {
+        Self {
+            tokens: Tokens::new(),
+            path,
+        }
+    }
+}
+
+impl<'ast> Visitor<'ast> for TypeDeclGenerator<'ast> {
+    fn visit_slice_type_decl(&mut self, item_type_decl: &'ast ast::TypeDecl) {
+        self.tokens.append("Vec<");
+        visitor::accept_type_decl(item_type_decl, self);
+        self.tokens.append(">");
+    }
+
+    fn visit_array_type_decl(&mut self, item_type_decl: &'ast ast::TypeDecl, len: u32) {
+        self.tokens.append("[");
+        visitor::accept_type_decl(item_type_decl, self);
+        self.tokens.append(format!("; {len}]"));
+    }
+
+    fn visit_tuple_type_decl(&mut self, items: &'ast [ast::TypeDecl]) {
+        self.tokens.append("(");
+        for item in items {
+            visitor::accept_type_decl(item, self);
+            self.tokens.append(", ");
+        }
+        self.tokens.append(")");
+    }
+
+    fn visit_primitive_type(&mut self, primitive_type: ast::PrimitiveType) {
+        self.tokens.append(primitive_type.as_str());
+    }
+
+    fn visit_named_type_decl(&mut self, name: &'ast str, generics: &'ast [ast::TypeDecl]) {
+        if !self.path.is_empty() {
+            self.tokens.append(self.path);
+            self.tokens.append("::");
+        }
+        self.tokens.append(name);
+        if !generics.is_empty() {
+            self.tokens.append("<");
+            for generic in generics {
+                visitor::accept_type_decl(generic, self);
+                self.tokens.append(", ");
+            }
+            self.tokens.append(">");
+        }
+    }
 }
