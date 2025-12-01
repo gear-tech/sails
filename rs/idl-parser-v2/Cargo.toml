@@ -14,7 +14,7 @@ crate-type = ["cdylib", "rlib"]
 
 [features]
 default = ["std"]
-std = []
+std = ["pest/std", "pest_derive/std"]
 
 [dependencies]
 anyhow.workspace = true
