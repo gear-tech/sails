@@ -12,6 +12,10 @@ rust-version.workspace = true
 [lib]
 crate-type = ["cdylib", "rlib"]
 
+[features]
+default = ["std"]
+std = []
+
 [dependencies]
 anyhow.workspace = true
 pest.workspace = true
