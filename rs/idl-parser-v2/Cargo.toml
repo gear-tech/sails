@@ -12,9 +12,25 @@ rust-version.workspace = true
 [lib]
 crate-type = ["cdylib", "rlib"]
 
+[features]
+default = ["std"]
+std = ["anyhow/std", "pest/std", "pest_derive/std"]
+
 [dependencies]
-anyhow.workspace = true
-pest.workspace = true
-pest_derive.workspace = true
+anyhow = { version = "1", default-features = false }
+pest = { version = "2", default-features = false }
+pest_derive = { version = "2", default-features = false }
 sails-idl-meta = { workspace = true, features = ["ast"] }
 paste.workspace = true
+hashbrown = { workspace = true }
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+dlmalloc = { version = "0.2", features = ["global"] }
+
+[[test]]
+name = "full_coverage_visitor_test"
+required-features = ["std"]
+
+[[test]]
+name = "post_process"
+required-features = ["std"]

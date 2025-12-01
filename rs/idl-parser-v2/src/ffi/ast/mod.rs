@@ -1,9 +1,7 @@
 use crate::ast;
-use std::{
-    ffi::{CStr, CString},
-    os::raw::c_char,
-    ptr,
-};
+use alloc::{boxed::Box, ffi::CString, format, string::String, vec::Vec};
+use core::ffi::{CStr, c_char};
+use core::ptr;
 
 pub mod visitor;
 
@@ -91,7 +89,7 @@ fn create_parse_error(code: ErrorCode, details_str: impl Into<String>) -> *mut P
             code,
             details: details.into_raw(),
         },
-        idl_doc: std::ptr::null_mut(),
+        idl_doc: ptr::null_mut(),
     };
     Box::into_raw(Box::new(result))
 }
@@ -146,7 +144,7 @@ pub unsafe extern "C" fn parse_idl(source_ptr: *const c_char) -> *mut ParseResul
     let result = ParseResult {
         error: Error {
             code: ErrorCode::Ok,
-            details: std::ptr::null(),
+            details: ptr::null(),
         },
         idl_doc: Box::into_raw(Box::new(ffi_doc)),
     };

@@ -1,3 +1,20 @@
+#![cfg_attr(all(target_arch = "wasm32", not(feature = "std")), no_std)]
+#![allow(clippy::missing_safety_doc)]
+extern crate alloc;
+
+#[cfg(all(not(feature = "std"), target_arch = "wasm32"))]
+#[global_allocator]
+static ALLOC: dlmalloc::GlobalDlmalloc = dlmalloc::GlobalDlmalloc;
+
+#[cfg(all(not(feature = "std"), target_arch = "wasm32"))]
+#[panic_handler]
+fn panic(_info: &core::panic::PanicInfo) -> ! {
+    core::arch::wasm32::unreachable()
+}
+use alloc::boxed::Box;
+use alloc::string::{String, ToString};
+use alloc::vec::Vec;
+
 pub use sails_idl_meta as ast;
 
 pub mod ffi {
@@ -21,7 +38,7 @@ pub struct IdlParser;
 
 // ----------------------------- Public API ------------------------------------
 pub fn parse_idl(src: &str) -> Result<IdlDoc> {
-    let mut pairs = IdlParser::parse(Rule::Top, src)?;
+    let mut pairs = IdlParser::parse(Rule::Top, src).map_err(|e| Error::msg(e.to_string()))?;
     let mut doc = build_idl(pairs.next().context("expected Top")?)?;
     post_process::validate_and_post_process(&mut doc)?;
     Ok(doc)
@@ -483,7 +500,7 @@ fn expect_rule<'a>(
 }
 
 // ------------------------------ Tests ----------------------------------------
-#[cfg(test)]
+#[cfg(all(test, feature = "std"))]
 mod tests {
     use super::*;
 

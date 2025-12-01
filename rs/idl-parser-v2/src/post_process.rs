@@ -1,8 +1,15 @@
-use crate::ast::{self, IdlDoc, PrimitiveType};
-use crate::visitor::{self, Visitor};
+use crate::ast;
+use crate::{
+    ast::{IdlDoc, PrimitiveType},
+    visitor::{self, Visitor},
+};
+use alloc::{
+    string::{String, ToString},
+    vec::Vec,
+};
 use anyhow::{Result, bail};
-use std::collections::HashMap;
-use std::str::FromStr;
+use core::str::FromStr;
+use hashbrown::HashMap;
 
 const ALLOWED_TYPES: &[&str] = &[
     "Option",

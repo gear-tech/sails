@@ -5,6 +5,8 @@ use super::{
 };
 use crate::ast;
 use crate::visitor::Visitor as RawVisitor;
+use alloc::{string::String, vec::Vec};
+use core::ptr;
 use paste::paste;
 
 #[repr(C)]
@@ -238,7 +240,7 @@ impl<'a, 'ast> RawVisitor<'ast> for VisitorWrapper<'a> {
                 self.allocations.type_decls.push(boxed_slice);
                 (ptr, len)
             } else {
-                (std::ptr::null(), 0)
+                (ptr::null(), 0)
             };
 
             unsafe { visit(self.context, path_ptr, path_len, generics_ptr, generics_len) };

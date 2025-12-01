@@ -1,4 +1,5 @@
 use crate::ast;
+use alloc::string::String;
 
 // The main trait for visiting the IDL AST.
 //
@@ -316,7 +317,7 @@ pub fn accept_enum_variant<'ast>(
     visitor.visit_struct_def(&enum_variant.def);
 }
 
-#[cfg(test)]
+#[cfg(all(test, feature = "std"))]
 mod tests {
     use super::*;
     use crate::parse_idl;
