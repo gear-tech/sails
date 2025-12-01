@@ -81,7 +81,6 @@ pub(crate) struct InvocationExport {
     pub route: String,
     pub unwrap_result: bool,
     pub export: bool,
-    #[cfg(feature = "ethexe")]
     pub payable: bool,
 }
 
@@ -89,7 +88,6 @@ pub(crate) fn invocation_export(fn_impl: &ImplItemFn) -> Option<InvocationExport
     export::parse_export_args(&fn_impl.attrs).map(|(args, span)| {
         let ident = &fn_impl.sig.ident;
         let unwrap_result = args.unwrap_result();
-        #[cfg(feature = "ethexe")]
         let payable = args.payable();
 
         let route = args.route().map_or_else(
@@ -101,7 +99,6 @@ pub(crate) fn invocation_export(fn_impl: &ImplItemFn) -> Option<InvocationExport
             route,
             unwrap_result,
             export: true,
-            #[cfg(feature = "ethexe")]
             payable,
         }
     })
@@ -115,7 +112,6 @@ pub(crate) fn invocation_export_or_default(fn_impl: &ImplItemFn) -> InvocationEx
             route: ident.to_string().to_case(Case::Pascal),
             unwrap_result: false,
             export: false,
-            #[cfg(feature = "ethexe")]
             payable: false,
         }
     })
@@ -139,7 +135,6 @@ pub(crate) fn discover_invocation_targets<'a>(
                     route,
                     unwrap_result,
                     export,
-                    #[cfg(feature = "ethexe")]
                     payable,
                 } = invocation_export_or_default(fn_item);
 
@@ -151,9 +146,8 @@ pub(crate) fn discover_invocation_targets<'a>(
                         duplicate
                     );
                 }
-                let fn_builder = FnBuilder::new(route, export, fn_item, unwrap_result, sails_path);
-                #[cfg(feature = "ethexe")]
-                let fn_builder = fn_builder.payable(payable);
+                let fn_builder = FnBuilder::new(route, export, fn_item, unwrap_result, sails_path)
+                    .payable(payable);
                 return Some(fn_builder);
             }
             None
@@ -300,7 +294,6 @@ pub(crate) fn extract_result_type(tp: &TypePath) -> Option<&Type> {
 pub(crate) struct FnBuilder<'a> {
     pub route: String,
     pub export: bool,
-    #[cfg(feature = "ethexe")]
     pub payable: bool,
     pub encoded_route: Vec<u8>,
     pub impl_fn: &'a ImplItemFn,
@@ -331,7 +324,6 @@ impl<'a> FnBuilder<'a> {
         Self {
             route,
             export,
-            #[cfg(feature = "ethexe")]
             payable: false,
             encoded_route,
             impl_fn,
@@ -345,7 +337,6 @@ impl<'a> FnBuilder<'a> {
         }
     }
 
-    #[cfg(feature = "ethexe")]
     pub(crate) fn payable(mut self, payable: bool) -> Self {
         self.payable = payable;
         self

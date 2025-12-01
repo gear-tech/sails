@@ -50,6 +50,7 @@ pub struct Program(ActorId);
 
 #[sails_rs::program]
 impl Program {
+    #[export(payable)]
     pub async fn create_ping(code_id: CodeId) -> Self {
         let msg_id = Syscall::message_id();
         let actor = PingPongStackProgram::deploy(code_id, msg_id.into_bytes().into())

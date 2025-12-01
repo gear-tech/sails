@@ -127,6 +127,10 @@ pub mod wasm {
             }
         }
         if let Ok(request) = meta_in_program::__NewParams::decode_params(input) {
+            #[cfg(target_arch = "wasm32")]
+            if sails_rs::gstd::msg::value() > 0 {
+                core::panic!("Ctor accepts no value");
+            }
             gstd::message_loop(async move {
                 let program = MyProgram::new(request.p1, request.p2).await.unwrap();
                 unsafe {
@@ -134,6 +138,10 @@ pub mod wasm {
                 }
             });
         } else if let Ok(request) = meta_in_program::__New2Params::decode_params(input) {
+            #[cfg(target_arch = "wasm32")]
+            if sails_rs::gstd::msg::value() > 0 {
+                core::panic!("Ctor accepts no value");
+            }
             let program = MyProgram::new2(request.p2, request.p1).unwrap();
             unsafe {
                 PROGRAM = Some(program);
@@ -149,9 +157,8 @@ pub mod wasm {
                     false,
                 )
                 .expect("Failed to decode request");
-            #[cfg(target_arch = "wasm32")]
             if sails_rs::gstd::msg::value() > 0 {
-                core::panic!("Method accepts no value");
+                core::panic!("Ctor accepts no value");
             }
             gstd::message_loop(async move {
                 let program = MyProgram::new(p1, p2).await.unwrap();
@@ -165,9 +172,8 @@ pub mod wasm {
                     false,
                 )
                 .expect("Failed to decode request");
-            #[cfg(target_arch = "wasm32")]
             if sails_rs::gstd::msg::value() > 0 {
-                core::panic!("Method accepts no value");
+                core::panic!("Ctor accepts no value");
             }
             let program = MyProgram::new2(p2, p1).unwrap();
             unsafe { PROGRAM = Some(program) };

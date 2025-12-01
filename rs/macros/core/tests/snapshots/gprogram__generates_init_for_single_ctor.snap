@@ -43,6 +43,10 @@ pub mod wasm {
         use gstd::InvocationIo;
         let mut input: &[u8] = &gstd::msg::load_bytes().expect("Failed to read input");
         if let Ok(request) = meta_in_program::__NewParams::decode_params(input) {
+            #[cfg(target_arch = "wasm32")]
+            if sails_rs::gstd::msg::value() > 0 {
+                core::panic!("Ctor accepts no value");
+            }
             gstd::message_loop(async move {
                 let program = MyProgram::new(request.p1, request.p2).await;
                 unsafe {

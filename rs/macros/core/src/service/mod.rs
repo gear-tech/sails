@@ -205,8 +205,14 @@ impl FnBuilder<'_> {
         let params_struct_ident = &self.params_struct_ident;
         let result_type = self.result_type_with_static_lifetime();
 
+        let payable_doc = self.payable.then(|| quote!(#[doc = " #[payable]"]));
+        let (_, returns_value) = self.result_type_with_value();
+        let returns_value_doc = returns_value.then(|| quote!(#[doc = " #[returns_value]"]));
+
         quote!(
             #( #handler_docs_attrs )*
+            #payable_doc
+            #returns_value_doc
             #handler_route_ident(#params_struct_ident, #result_type)
         )
     }
@@ -238,6 +244,7 @@ impl FnBuilder<'_> {
         meta_module_ident: &Ident,
         input_ident: &Ident,
     ) -> TokenStream {
+        let sails_path = self.sails_path;
         let handler_func_ident = self.ident;
 
         let params_struct_ident = &self.params_struct_ident;
@@ -263,8 +270,21 @@ impl FnBuilder<'_> {
         };
 
         let result_type = self.result_type_with_static_lifetime();
+
+        let payable_check = if !self.payable {
+            quote! {
+                #[cfg(target_arch = "wasm32")]
+                if #sails_path::gstd::msg::value() > 0 {
+                   core::panic!("Method accepts no value");
+                }
+            }
+        } else {
+            quote!()
+        };
+
         quote! {
             if let Ok(request) = #meta_module_ident::#params_struct_ident::decode_params( #input_ident) {
+                #payable_check
                 #handle_token
                 if !#meta_module_ident::#params_struct_ident::is_empty_tuple::<#result_type>() {
                     #meta_module_ident::#params_struct_ident::with_optimized_encode(

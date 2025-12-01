@@ -145,11 +145,78 @@ async fn ethapp_remoting_encode_reply_works() {
 }
 
 #[tokio::test]
-async fn ethapp_non_payable_fails_with_value() {
+async fn ethapp_ctor_non_payable_fails_with_value() {
     let system = System::new();
     system.init_logger_with_default_filter("gwasm=debug,gtest=debug,sails_rs=debug");
     system.mint_to(ADMIN_ID, 1_000_000_000_000_000);
-    
+
+    let program = Program::from_file(&system, WASM_PATH);
+
+    // Init program with value but non-payable ctor
+    let ctor = sails_rs::solidity::selector("createPrg(bool)");
+    let input = (false,).abi_encode_sequence();
+    let payload = [ctor.as_slice(), input.as_slice()].concat();
+
+    let message_id = program.send_bytes_with_value(ADMIN_ID, payload.as_slice(), 1000);
+    let run_result = system.run_next_block();
+
+    let reply_log_record = run_result
+        .log()
+        .iter()
+        .find(|entry| entry.reply_to() == Some(message_id))
+        .expect("No reply found");
+
+    if let Some(sails_rs::gear_core_errors::ReplyCode::Error(
+        sails_rs::gear_core_errors::ErrorReplyReason::Execution(
+            sails_rs::gear_core_errors::SimpleExecutionError::UserspacePanic,
+        ),
+    )) = reply_log_record.reply_code()
+    {
+        let payload = reply_log_record.payload();
+        let msg = String::from_utf8_lossy(payload);
+        assert_eq!(msg, "panicked with 'Ctor accepts no value'");
+    } else {
+        panic!(
+            "Expected UserspacePanic, got {:?}",
+            reply_log_record.reply_code()
+        );
+    }
+}
+
+#[tokio::test]
+async fn ethapp_ctor_payable_works_with_value() {
+    let system = System::new();
+    system.init_logger_with_default_filter("gwasm=debug,gtest=debug,sails_rs=debug");
+    system.mint_to(ADMIN_ID, 1_000_000_000_000_000);
+
+    let program = Program::from_file(&system, WASM_PATH);
+
+    // Init program with value AND payable ctor
+    let ctor = sails_rs::solidity::selector("createPayable(bool)"); // ctor name should be createPayable
+
+    let input = (false,).abi_encode_sequence();
+    let payload = [ctor.as_slice(), input.as_slice()].concat();
+
+    let message_id = program.send_bytes_with_value(ADMIN_ID, payload.as_slice(), 1000);
+    let run_result = system.run_next_block();
+
+    let reply_log_record = run_result
+        .log()
+        .iter()
+        .find(|entry| entry.reply_to() == Some(message_id))
+        .unwrap();
+    assert!(matches!(
+        reply_log_record.reply_code(),
+        Some(sails_rs::gear_core_errors::ReplyCode::Success(_))
+    ));
+}
+
+#[tokio::test]
+async fn ethapp_method_non_payable_fails_with_value() {
+    let system = System::new();
+    system.init_logger_with_default_filter("gwasm=debug,gtest=debug,sails_rs=debug");
+    system.mint_to(ADMIN_ID, 1_000_000_000_000_000);
+
     let program = Program::from_file(&system, WASM_PATH);
 
     // Init program
@@ -177,78 +244,19 @@ async fn ethapp_non_payable_fails_with_value() {
 
     if let Some(sails_rs::gear_core_errors::ReplyCode::Error(
         sails_rs::gear_core_errors::ErrorReplyReason::Execution(
-            sails_rs::gear_core_errors::SimpleExecutionError::UserspacePanic
-        )
-    )) = reply_log_record.reply_code() {
-       let payload = reply_log_record.payload();
-       let msg = String::from_utf8_lossy(payload);
-       assert_eq!(msg, "panicked with 'Method accepts no value'");
+            sails_rs::gear_core_errors::SimpleExecutionError::UserspacePanic,
+        ),
+    )) = reply_log_record.reply_code()
+    {
+        let payload = reply_log_record.payload();
+        let msg = String::from_utf8_lossy(payload);
+        assert_eq!(msg, "panicked with 'Method accepts no value'");
     } else {
-        panic!("Expected UserspacePanic, got {:?}", reply_log_record.reply_code());
+        panic!(
+            "Expected UserspacePanic, got {:?}",
+            reply_log_record.reply_code()
+        );
     }
-}
-
-#[tokio::test]
-async fn ethapp_ctor_non_payable_fails_with_value() {
-    let system = System::new();
-    system.init_logger_with_default_filter("gwasm=debug,gtest=debug,sails_rs=debug");
-    system.mint_to(ADMIN_ID, 1_000_000_000_000_000);
-    
-    let program = Program::from_file(&system, WASM_PATH);
-
-    // Init program with value but non-payable ctor
-    let ctor = sails_rs::solidity::selector("createPrg(bool)");
-    let input = (false,).abi_encode_sequence();
-    let payload = [ctor.as_slice(), input.as_slice()].concat();
-    
-    let message_id = program.send_bytes_with_value(ADMIN_ID, payload.as_slice(), 1000);
-    let run_result = system.run_next_block();
-
-    let reply_log_record = run_result
-        .log()
-        .iter()
-        .find(|entry| entry.reply_to() == Some(message_id))
-        .expect("No reply found");
-
-    if let Some(sails_rs::gear_core_errors::ReplyCode::Error(
-        sails_rs::gear_core_errors::ErrorReplyReason::Execution(
-            sails_rs::gear_core_errors::SimpleExecutionError::UserspacePanic
-        )
-    )) = reply_log_record.reply_code() {
-       let payload = reply_log_record.payload();
-       let msg = String::from_utf8_lossy(payload);
-       assert_eq!(msg, "panicked with 'Method accepts no value'");
-    } else {
-        panic!("Expected UserspacePanic, got {:?}", reply_log_record.reply_code());
-    }
-}
-
-#[tokio::test]
-async fn ethapp_ctor_payable_works_with_value() {
-    let system = System::new();
-    system.init_logger_with_default_filter("gwasm=debug,gtest=debug,sails_rs=debug");
-    system.mint_to(ADMIN_ID, 1_000_000_000_000_000);
-    
-    let program = Program::from_file(&system, WASM_PATH);
-
-    // Init program with value AND payable ctor
-    let ctor = sails_rs::solidity::selector("createPayable(bool)"); // ctor name should be createPayable
-    
-    let input = (false,).abi_encode_sequence();
-    let payload = [ctor.as_slice(), input.as_slice()].concat();
-    
-    let message_id = program.send_bytes_with_value(ADMIN_ID, payload.as_slice(), 1000);
-    let run_result = system.run_next_block();
-
-    let reply_log_record = run_result
-        .log()
-        .iter()
-        .find(|entry| entry.reply_to() == Some(message_id))
-        .unwrap();
-    assert!(matches!(
-        reply_log_record.reply_code(),
-        Some(sails_rs::gear_core_errors::ReplyCode::Success(_))
-    ));
 }
 
 #[tokio::test]
@@ -256,7 +264,7 @@ async fn ethapp_method_payable_works_with_value() {
     let system = System::new();
     system.init_logger_with_default_filter("gwasm=debug,gtest=debug,sails_rs=debug");
     system.mint_to(ADMIN_ID, 1_000_000_000_000_000);
-    
+
     let program = Program::from_file(&system, WASM_PATH);
 
     // Init program
@@ -281,9 +289,8 @@ async fn ethapp_method_payable_works_with_value() {
         .iter()
         .find(|entry| entry.reply_to() == Some(message_id))
         .unwrap();
-    
+
     let reply_payload = reply_log_record.payload();
     let reply = u32::abi_decode(reply_payload, true);
     assert_eq!(reply, Ok(42));
 }
-

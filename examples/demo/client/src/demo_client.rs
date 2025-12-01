@@ -321,6 +321,8 @@ pub mod value_fee {
         type Env: sails_rs::client::GearEnv;
         /// Return flag if fee taken and remain value,
         /// using special type `CommandReply<T>`
+        /// #[payable]
+        /// #[returns_value]
         fn do_something_and_take_fee(
             &mut self,
         ) -> sails_rs::client::PendingCall<io::DoSomethingAndTakeFee, Self::Env>;

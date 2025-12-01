@@ -187,15 +187,13 @@ impl ProgramBuilder {
                 let InvocationExport {
                     route,
                     unwrap_result,
-                    #[cfg(feature = "ethexe")]
                     payable,
                     ..
                 } = invocation_export;
 
                 let fn_builder =
-                    FnBuilder::new(route, true, fn_item, unwrap_result, self.sails_path());
-                #[cfg(feature = "ethexe")]
-                let fn_builder = fn_builder.payable(payable);
+                    FnBuilder::new(route, true, fn_item, unwrap_result, self.sails_path())
+                        .payable(payable);
 
                 let original_service_ctor_fn = fn_builder.original_service_ctor_fn();
                 let wrapping_service_ctor_fn =
@@ -590,8 +588,9 @@ impl FnBuilder<'_> {
     }
 
     fn service_invocation(&self) -> TokenStream2 {
-        let route_ident = &self.route_ident();
+        let route_ident = self.route_ident();
         let service_ctor_ident = self.ident;
+
         quote! {
             if input.starts_with(& #route_ident) {
                 let mut service = program_ref.#service_ctor_ident();
@@ -667,6 +666,7 @@ impl FnBuilder<'_> {
         input_ident: &Ident,
         program_ident: &Ident,
     ) -> TokenStream2 {
+        let sails_path = self.sails_path;
         let handler_ident = self.ident;
         let unwrap_token = self.unwrap_result.then(|| quote!(.unwrap()));
         let handler_args = self
@@ -674,6 +674,17 @@ impl FnBuilder<'_> {
             .iter()
             .map(|ident| quote!(request.#ident));
         let params_struct_ident = &self.params_struct_ident;
+        let payable_check = if !self.payable {
+            quote! {
+                #[cfg(target_arch = "wasm32")]
+                if #sails_path::gstd::msg::value() > 0 {
+                   core::panic!("Ctor accepts no value");
+                }
+            }
+        } else {
+            quote!()
+        };
+
         let ctor_call_impl = if self.is_async() {
             quote! {
                 gstd::message_loop(async move {
@@ -695,6 +706,7 @@ impl FnBuilder<'_> {
 
         quote!(
             if let Ok(request) = meta_in_program::#params_struct_ident::decode_params( #input_ident) {
+                #payable_check
                 #ctor_call_impl
             }
         )

@@ -21,7 +21,7 @@ impl FeeService {
 impl FeeService {
     /// Return flag if fee taken and remain value,
     /// using special type `CommandReply<T>`
-    #[export]
+    #[export(payable)]
     pub fn do_something_and_take_fee(&mut self) -> CommandReply<bool> {
         let value = Syscall::message_value();
         if value == 0 {
