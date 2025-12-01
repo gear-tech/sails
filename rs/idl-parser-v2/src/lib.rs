@@ -1,20 +1,12 @@
-#![cfg_attr(all(target_arch = "wasm32", not(feature = "std")), no_std)]
-#![allow(clippy::missing_safety_doc)]
+#![no_std]
+
 extern crate alloc;
 
-#[cfg(all(not(feature = "std"), target_arch = "wasm32"))]
-#[global_allocator]
-static ALLOC: dlmalloc::GlobalDlmalloc = dlmalloc::GlobalDlmalloc;
-
-#[cfg(all(not(feature = "std"), target_arch = "wasm32"))]
-#[panic_handler]
-fn panic(_info: &core::panic::PanicInfo) -> ! {
-    core::arch::wasm32::unreachable()
-}
-use alloc::boxed::Box;
-use alloc::string::{String, ToString};
-use alloc::vec::Vec;
-
+use alloc::{
+    boxed::Box,
+    string::{String, ToString},
+    vec::Vec,
+};
 pub use sails_idl_meta as ast;
 
 pub mod ffi {
@@ -500,9 +492,10 @@ fn expect_rule<'a>(
 }
 
 // ------------------------------ Tests ----------------------------------------
-#[cfg(all(test, feature = "std"))]
+#[cfg(test)]
 mod tests {
     use super::*;
+    use alloc::vec;
 
     #[test]
     fn parse_docs_and_annotations_lines() {

@@ -96,8 +96,8 @@ mockall = "0.12"
 pin-project-lite = "0.2"
 parity-scale-codec = { version = "=3.7.5", default-features = false }
 paste = "1.0"
-pest = "2"
-pest_derive = "2"
+pest = { version = "2", default-features = false }
+pest_derive = { version = "2", default-features = false }
 prettyplease = "0.2"
 proc-macro-error = "1.0"
 proc-macro2 = { version = "1", default-features = false }
