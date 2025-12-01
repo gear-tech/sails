@@ -4,12 +4,12 @@ use crate::{
     visitor::{self, Visitor},
 };
 use alloc::{
+    collections::BTreeMap,
     string::{String, ToString},
     vec::Vec,
 };
 use anyhow::{Result, bail};
 use core::str::FromStr;
-use hashbrown::HashMap;
 
 const ALLOWED_TYPES: &[&str] = &[
     "Option",
@@ -60,7 +60,7 @@ pub fn validate_and_post_process(doc: &mut IdlDoc) -> Result<()> {
 
 struct Validator<'a> {
     // Counts of active type names in the current scope chain.
-    active_names: HashMap<&'a str, u32>,
+    active_names: BTreeMap<&'a str, u32>,
     // Stack of all visible type names, used for rewinding scopes.
     names_stack: Vec<&'a str>,
     errors: Vec<anyhow::Error>,
@@ -69,7 +69,7 @@ struct Validator<'a> {
 impl<'a> Validator<'a> {
     fn new() -> Self {
         Self {
-            active_names: HashMap::new(),
+            active_names: BTreeMap::new(),
             names_stack: Vec::new(),
             errors: Vec::new(),
         }

@@ -13,7 +13,7 @@ rust-version.workspace = true
 crate-type = ["cdylib", "rlib"]
 
 [features]
-default = ["std"]
+default = []
 std = ["pest/std", "pest_derive/std"]
 
 [dependencies]
@@ -22,4 +22,3 @@ pest.workspace = true
 pest_derive.workspace = true
 sails-idl-meta = { workspace = true, features = ["ast"] }
 paste.workspace = true
-hashbrown.workspace = true
