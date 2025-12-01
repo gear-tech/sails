@@ -1,28 +1,25 @@
+use askama::Template;
 pub use errors::*;
-use handlebars::{Handlebars, handlebars_helper};
-use meta::ExpandedProgramMeta;
 pub use program::*;
-use scale_info::{Field, PortableType, Variant, form::PortableForm};
-use serde::Serialize;
+use sails_idl_meta::*;
+use scale_info::{Variant, form::PortableForm};
 use std::{fs, io::Write, path::Path};
 
+mod builder;
 mod errors;
-mod meta;
-mod type_names;
+mod generic_resolver;
+mod type_resolver;
 
-const IDL_TEMPLATE: &str = include_str!("../hbs/idl.hbs");
-const COMPOSITE_TEMPLATE: &str = include_str!("../hbs/composite.hbs");
-const VARIANT_TEMPLATE: &str = include_str!("../hbs/variant.hbs");
+const SAILS_VERSION: &str = env!("CARGO_PKG_VERSION");
 
 pub mod program {
     use super::*;
     use sails_idl_meta::ProgramMeta;
 
-    pub fn generate_idl<P: ProgramMeta>(idl_writer: impl Write) -> Result<()> {
-        render_idl(
-            &ExpandedProgramMeta::new(Some(P::constructors()), P::services())?,
-            idl_writer,
-        )
+    pub fn generate_idl<P: ProgramMeta>(mut idl_writer: impl Write) -> Result<()> {
+        let doc = build_program_ast::<P>(Some("ProgramToDo".to_string()))?;
+        doc.write_into(&mut idl_writer)?;
+        Ok(())
     }
 
     pub fn generate_idl_to_file<P: ProgramMeta>(path: impl AsRef<Path>) -> Result<()> {
@@ -44,11 +41,10 @@ pub mod service {
     use super::*;
     use sails_idl_meta::{AnyServiceMeta, ServiceMeta};
 
-    pub fn generate_idl<S: ServiceMeta>(idl_writer: impl Write) -> Result<()> {
-        render_idl(
-            &ExpandedProgramMeta::new(None, vec![("", AnyServiceMeta::new::<S>())].into_iter())?,
-            idl_writer,
-        )
+    pub fn generate_idl<S: ServiceMeta>(mut idl_writer: impl Write) -> Result<()> {
+        let doc = build_service_ast("ServiceToDo", AnyServiceMeta::new::<S>())?;
+        doc.write_into(&mut idl_writer)?;
+        Ok(())
     }
 
     pub fn generate_idl_to_file<S: ServiceMeta>(path: impl AsRef<Path>) -> Result<()> {
@@ -63,58 +59,35 @@ pub mod service {
     }
 }
 
-fn render_idl(program_meta: &ExpandedProgramMeta, idl_writer: impl Write) -> Result<()> {
-    let program_idl_data = ProgramIdlData {
-        type_names: program_meta.type_names()?.collect(),
-        types: program_meta.types().collect(),
-        ctors: program_meta.ctors().collect(),
-        services: program_meta
-            .services()
-            .map(|s| ServiceIdlData {
-                name: s.name(),
-                commands: s.commands().collect(),
-                queries: s.queries().collect(),
-                events: s.events().collect(),
-            })
-            .collect(),
+fn build_program_ast<P: ProgramMeta>(name: Option<String>) -> Result<IdlDoc> {
+    // let
+    let service_builders: Vec<_> = P::services()
+        .map(|(name, meta)| builder::ServiceBuilder::new(name, meta))
+        .collect();
+    let services: Vec<_> = service_builders.into_iter().map(|b| b.build()).collect();
+    let program = name.map(|name| builder::ProgramBuilder::new::<P>().build(name));
+    let doc = IdlDoc {
+        globals: vec![
+            ("sails".to_string(), Some(SAILS_VERSION.to_string())),
+            // ("author".to_string(), Some(gen_meta_info.author)),
+            // ("version".to_string(), Some(gen_meta_info.version.format())),
+        ],
+        program,
+        services,
     };
-
-    let mut handlebars = Handlebars::new();
-    handlebars
-        .register_template_string("idl", IDL_TEMPLATE)
-        .map_err(Box::new)?;
-    handlebars
-        .register_template_string("composite", COMPOSITE_TEMPLATE)
-        .map_err(Box::new)?;
-    handlebars
-        .register_template_string("variant", VARIANT_TEMPLATE)
-        .map_err(Box::new)?;
-    handlebars.register_helper("deref", Box::new(deref));
-
-    handlebars
-        .render_to_write("idl", &program_idl_data, idl_writer)
-        .map_err(Box::new)?;
-
-    Ok(())
+    Ok(doc)
 }
 
-type CtorIdlData<'a> = (&'a str, &'a Vec<Field<PortableForm>>, &'a Vec<String>);
-type FuncIdlData<'a> = (&'a str, &'a Vec<Field<PortableForm>>, u32, &'a Vec<String>);
-
-#[derive(Serialize)]
-struct ProgramIdlData<'a> {
-    type_names: Vec<String>,
-    types: Vec<&'a PortableType>,
-    ctors: Vec<CtorIdlData<'a>>,
-    services: Vec<ServiceIdlData<'a>>,
+fn build_service_ast(name: &'static str, meta: AnyServiceMeta) -> Result<IdlDoc> {
+    let services: Vec<_> = vec![builder::ServiceBuilder::new(name, meta).build()];
+    let doc = IdlDoc {
+        globals: vec![
+            ("sails".to_string(), Some(SAILS_VERSION.to_string())),
+            // ("author".to_string(), Some(gen_meta_info.author)),
+            // ("version".to_string(), Some(gen_meta_info.version.format())),
+        ],
+        program: None,
+        services,
+    };
+    Ok(doc)
 }
-
-#[derive(Serialize)]
-struct ServiceIdlData<'a> {
-    name: &'a str,
-    commands: Vec<FuncIdlData<'a>>,
-    queries: Vec<FuncIdlData<'a>>,
-    events: Vec<&'a Variant<PortableForm>>,
-}
-
-handlebars_helper!(deref: |v: String| { v });
