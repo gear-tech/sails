@@ -62,7 +62,7 @@ pub mod service {
 fn build_program_ast<P: ProgramMeta>(program_name: Option<String>) -> Result<IdlDoc> {
     let mut services = Vec::new();
     for (name, meta) in P::services() {
-        services.extend(builder::ServiceBuilder::new(name, meta).build()?);
+        services.extend(builder::ServiceBuilder::new(name, &meta).build()?);
     }
     let program = if let Some(name) = program_name {
         Some(builder::ProgramBuilder::new::<P>().build(name)?)
@@ -82,7 +82,7 @@ fn build_program_ast<P: ProgramMeta>(program_name: Option<String>) -> Result<Idl
 }
 
 fn build_service_ast(name: &'static str, meta: AnyServiceMeta) -> Result<IdlDoc> {
-    let services = builder::ServiceBuilder::new(name, meta).build()?;
+    let services = builder::ServiceBuilder::new(name, &meta).build()?;
     let doc = IdlDoc {
         globals: vec![
             ("sails".to_string(), Some(SAILS_VERSION.to_string())),

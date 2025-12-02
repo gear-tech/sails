@@ -45,16 +45,29 @@ impl ProgramBuilder {
                         .resolve(params_type_id)
                         .ok_or(Error::TypeIdIsUnknown(params_type_id))?;
                     if let scale_info::TypeDef::Composite(params_type) = &params_type.type_def {
+                        let params = params_type
+                            .fields
+                            .iter()
+                            .map(|f| -> Result<_> {
+                                let name = f.name.as_ref().ok_or_else(|| {
+                                    Error::FuncMetaIsInvalid(format!(
+                                        "ctor `{}` param is missing a name",
+                                        c.name
+                                    ))
+                                })?;
+                                let type_decl = resolver
+                                    .get(f.ty.id)
+                                    .cloned()
+                                    .ok_or(Error::TypeIdIsUnknown(f.ty.id))?;
+                                Ok(FuncParam {
+                                    name: name.to_string(),
+                                    type_decl,
+                                })
+                            })
+                            .collect::<Result<Vec<_>>>()?;
                         Ok(CtorFunc {
                             name: c.name.to_string(),
-                            params: params_type
-                                .fields
-                                .iter()
-                                .map(|f| FuncParam {
-                                    name: f.name.as_ref().unwrap().to_string(),
-                                    type_decl: resolver.get(f.ty.id).unwrap().clone(),
-                                })
-                                .collect(),
+                            params,
                             docs: c.docs.iter().map(|s| s.to_string()).collect(),
                             annotations: vec![],
                         })
@@ -69,17 +82,13 @@ impl ProgramBuilder {
             .collect()
     }
 
-    fn services_expo(&self) -> &Vec<ServiceExpo> {
-        &self.services_expo
-    }
-
     pub fn build(self, name: String) -> Result<ProgramUnit> {
         let mut exclude = HashSet::new();
         exclude.insert(self.ctors_type_id);
         exclude.extend(any_funcs_ids(&self.registry, self.ctors_type_id)?);
         let resolver = TypeResolver::from(&self.registry, exclude);
         let ctors = self.ctor_funcs(&resolver)?;
-        let services = self.services_expo().clone();
+        let services = self.services_expo;
         let types = resolver.into_types();
 
         Ok(ProgramUnit {
@@ -109,24 +118,31 @@ fn any_funcs(
     }
 }
 
-fn any_funcs_ids(
-    registry: &PortableRegistry,
-    func_type_id: u32,
-) -> Result<impl Iterator<Item = u32>> {
-    let any_funcs = any_funcs(registry, func_type_id)?;
-    Ok(any_funcs.into_iter().map(|v| v.fields[0].ty.id))
+fn any_funcs_ids(registry: &PortableRegistry, func_type_id: u32) -> Result<Vec<u32>> {
+    any_funcs(registry, func_type_id)?
+        .map(|variant| {
+            variant
+                .fields
+                .first()
+                .map(|field| field.ty.id)
+                .ok_or_else(|| {
+                    Error::FuncMetaIsInvalid(format!("func `{}` has no fields", variant.name))
+                })
+        })
+        .collect::<Result<Vec<_>>>()
 }
 
-pub struct ServiceBuilder {
-    name: &'static str,
+pub struct ServiceBuilder<'a> {
+    name: &'a str,
+    meta: &'a AnyServiceMeta,
     registry: PortableRegistry,
     commands_type_id: u32,
     queries_type_id: u32,
     events_type_id: u32,
 }
 
-impl ServiceBuilder {
-    pub fn new(name: &'static str, meta: AnyServiceMeta) -> Self {
+impl<'a> ServiceBuilder<'a> {
+    pub fn new(name: &'a str, meta: &'a AnyServiceMeta) -> Self {
         let mut registry = Registry::new();
         let commands_type_id = registry.register_type(meta.commands()).id;
         let queries_type_id = registry.register_type(meta.queries()).id;
@@ -134,6 +150,7 @@ impl ServiceBuilder {
         let registry = PortableRegistry::from(registry);
         Self {
             name,
+            meta,
             registry,
             commands_type_id,
             queries_type_id,
@@ -142,35 +159,45 @@ impl ServiceBuilder {
     }
 
     pub fn build(self) -> Result<Vec<ServiceUnit>> {
+        let mut services = Vec::new();
+        let mut extends = Vec::new();
+        for meta in self.meta.base_services() {
+            // TODO: add base service names to Meta trait
+            let name = "TodoBaseName";
+            extends.push(name.to_string());
+            // TODO: dedup base services based on `interface_id`
+            services.extend(ServiceBuilder::new(name, meta).build()?);
+        }
+
         let exclude = HashSet::from_iter(self.exclude_type_ids()?);
         let resolver = TypeResolver::from(&self.registry, exclude);
         let commands = self.commands(&resolver)?;
         let queries = self.queries(&resolver)?;
         let events = self.events(&resolver)?;
-        // let extends = self.extends();
-        // let services = self.services_expo().clone();
         let types = resolver.into_types();
 
-        Ok(vec![ServiceUnit {
+        services.push(ServiceUnit {
             name: self.name.to_string(),
-            extends: vec![],
+            extends,
             funcs: [commands, queries].concat(),
             events,
             types,
             docs: vec![],
             annotations: vec![],
-        }])
+        });
+        Ok(services)
     }
 
     fn exclude_type_ids(&self) -> Result<impl Iterator<Item = u32>> {
-        Ok([
+        let base = vec![
             self.commands_type_id,
             self.queries_type_id,
             self.events_type_id,
         ]
-        .into_iter()
-        .chain(any_funcs_ids(&self.registry, self.commands_type_id)?)
-        .chain(any_funcs_ids(&self.registry, self.queries_type_id)?))
+        .into_iter();
+        let command_ids = any_funcs_ids(&self.registry, self.commands_type_id)?;
+        let query_ids = any_funcs_ids(&self.registry, self.queries_type_id)?;
+        Ok(base.chain(command_ids).chain(query_ids))
     }
 
     fn commands(&self, resolver: &TypeResolver) -> Result<Vec<ServiceFunc>> {
@@ -182,8 +209,16 @@ impl ServiceBuilder {
                         c.name
                     )))
                 } else {
-                    let params_type = self.registry.resolve(c.fields[0].ty.id).unwrap();
-                    let mut output = resolver.get(c.fields[1].ty.id).unwrap().clone();
+                    let params_type_id = c.fields[0].ty.id;
+                    let params_type = self
+                        .registry
+                        .resolve(params_type_id)
+                        .ok_or(Error::TypeIdIsUnknown(params_type_id))?;
+                    let output_type_id = c.fields[1].ty.id;
+                    let mut output = resolver
+                        .get(output_type_id)
+                        .cloned()
+                        .ok_or(Error::TypeIdIsUnknown(output_type_id))?;
                     let mut throws = None;
                     // TODO: unwrap result param
                     if let Some((ok, err)) = TypeDecl::result_type_decl(&output) {
@@ -191,16 +226,29 @@ impl ServiceBuilder {
                         throws = Some(err);
                     };
                     if let scale_info::TypeDef::Composite(params_type) = &params_type.type_def {
+                        let params = params_type
+                            .fields
+                            .iter()
+                            .map(|f| -> Result<_> {
+                                let name = f.name.as_ref().ok_or_else(|| {
+                                    Error::FuncMetaIsInvalid(format!(
+                                        "command `{}` param is missing a name",
+                                        c.name
+                                    ))
+                                })?;
+                                let type_decl = resolver
+                                    .get(f.ty.id)
+                                    .cloned()
+                                    .ok_or(Error::TypeIdIsUnknown(f.ty.id))?;
+                                Ok(FuncParam {
+                                    name: name.to_string(),
+                                    type_decl,
+                                })
+                            })
+                            .collect::<Result<Vec<_>>>()?;
                         Ok(ServiceFunc {
                             name: c.name.to_string(),
-                            params: params_type
-                                .fields
-                                .iter()
-                                .map(|f| FuncParam {
-                                    name: f.name.as_ref().unwrap().to_string(),
-                                    type_decl: resolver.get(f.ty.id).unwrap().clone(),
-                                })
-                                .collect(),
+                            params,
                             output,
                             throws,
                             kind: FunctionKind::Command,
@@ -227,8 +275,16 @@ impl ServiceBuilder {
                         c.name
                     )))
                 } else {
-                    let params_type = self.registry.resolve(c.fields[0].ty.id).unwrap();
-                    let mut output = resolver.get(c.fields[1].ty.id).unwrap().clone();
+                    let params_type_id = c.fields[0].ty.id;
+                    let params_type = self
+                        .registry
+                        .resolve(params_type_id)
+                        .ok_or(Error::TypeIdIsUnknown(params_type_id))?;
+                    let output_type_id = c.fields[1].ty.id;
+                    let mut output = resolver
+                        .get(output_type_id)
+                        .cloned()
+                        .ok_or(Error::TypeIdIsUnknown(output_type_id))?;
                     let mut throws = None;
                     // TODO: unwrap result param
                     if let Some((ok, err)) = TypeDecl::result_type_decl(&output) {
@@ -236,16 +292,29 @@ impl ServiceBuilder {
                         throws = Some(err);
                     };
                     if let scale_info::TypeDef::Composite(params_type) = &params_type.type_def {
+                        let params = params_type
+                            .fields
+                            .iter()
+                            .map(|f| -> Result<_> {
+                                let name = f.name.as_ref().ok_or_else(|| {
+                                    Error::FuncMetaIsInvalid(format!(
+                                        "query `{}` param is missing a name",
+                                        c.name
+                                    ))
+                                })?;
+                                let type_decl = resolver
+                                    .get(f.ty.id)
+                                    .cloned()
+                                    .ok_or(Error::TypeIdIsUnknown(f.ty.id))?;
+                                Ok(FuncParam {
+                                    name: name.to_string(),
+                                    type_decl,
+                                })
+                            })
+                            .collect::<Result<Vec<_>>>()?;
                         Ok(ServiceFunc {
                             name: c.name.to_string(),
-                            params: params_type
-                                .fields
-                                .iter()
-                                .map(|f| FuncParam {
-                                    name: f.name.as_ref().unwrap().to_string(),
-                                    type_decl: resolver.get(f.ty.id).unwrap().clone(),
-                                })
-                                .collect(),
+                            params,
                             output,
                             // TODO: Throws type
                             throws,
@@ -270,16 +339,19 @@ impl ServiceBuilder {
                 let fields = v
                     .fields
                     .iter()
-                    .map(|field| {
-                        let type_decl = resolver.get(field.ty.id).unwrap().clone();
-                        StructField {
+                    .map(|field| -> Result<_> {
+                        let type_decl = resolver
+                            .get(field.ty.id)
+                            .cloned()
+                            .ok_or(Error::TypeIdIsUnknown(field.ty.id))?;
+                        Ok(StructField {
                             name: field.name.as_ref().map(|s| s.to_string()),
                             type_decl,
                             docs: field.docs.iter().map(|d| d.to_string()).collect(),
                             annotations: vec![],
-                        }
+                        })
                     })
-                    .collect();
+                    .collect::<Result<Vec<_>>>()?;
 
                 Ok(ServiceEvent {
                     name: v.name.to_string(),

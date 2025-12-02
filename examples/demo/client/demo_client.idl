@@ -25,7 +25,33 @@ service Counter {
     }
 }
 
+service TodoBaseName {
+    functions {
+        MakeSound() -> String;
+        @query
+        AvgWeight() -> u32;
+    }
+}
+
+service TodoBaseName {
+    events {
+        Walked {
+            from: (i32, i32),
+            to: (i32, i32),
+        },
+    }
+    functions {
+        Walk(dx: i32, dy: i32);
+        @query
+        Position() -> (i32, i32);
+    }
+}
+
 service Dog {
+    extends {
+        TodoBaseName,
+        TodoBaseName,
+    }
     events {
         Barked,
     }
