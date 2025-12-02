@@ -13,7 +13,6 @@ rust-version.workspace = true
 askama.workspace = true
 convert_case.workspace = true
 gprimitives.workspace = true
-handlebars.workspace = true
 sails-idl-meta = { workspace = true, features = ["ast", "templates"] }
 scale-info = { workspace = true, features = ["derive", "docs", "serde"] }
 serde = { workspace = true, features = ["derive"] }

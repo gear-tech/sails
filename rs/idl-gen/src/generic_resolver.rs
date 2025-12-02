@@ -23,7 +23,7 @@ pub(crate) fn resolve_generic_type_decl(
     candidates
         .into_iter()
         .find(|td| td.to_string() == match_name)
-        .unwrap_or_else(|| panic!("Not Resolved {}", type_name))
+        .unwrap_or_else(|| panic!("Not Resolved {type_name}"))
 }
 
 struct GenericCandidates<'a> {
@@ -300,7 +300,7 @@ mod tests {
         let type_decl = resolver.get(id).unwrap();
 
         let candidates = build_generic_candidates(type_decl, &type_params);
-        println!("{:?}", candidates);
+        println!("{candidates:?}");
 
         assert_eq!(2, candidates.len());
         assert!(candidates.contains(&Named {

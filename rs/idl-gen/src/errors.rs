@@ -12,10 +12,10 @@ pub enum Error {
     TypeIdIsUnknown(u32),
     #[error("type `{0}` is not supported")]
     TypeIsUnsupported(String),
+    // #[error(transparent)]
+    // TemplateIsBroken(#[from] Box<handlebars::TemplateError>),
+    // #[error(transparent)]
+    // RenderingFailed(#[from] Box<handlebars::RenderError>),
     #[error(transparent)]
-    TemplateIsBroken(#[from] Box<handlebars::TemplateError>),
-    #[error(transparent)]
-    RenderingFailed(#[from] Box<handlebars::RenderError>),
-    #[error(transparent)]
-    IoFailed(#[from] std::io::Error),
+    Io(#[from] std::io::Error),
 }

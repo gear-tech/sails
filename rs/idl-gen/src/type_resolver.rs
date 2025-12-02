@@ -9,7 +9,6 @@ use std::collections::{BTreeMap, HashMap, HashSet};
 #[derive(Debug, Clone)]
 pub struct TypeResolver<'a> {
     registry: &'a PortableRegistry,
-    exclude: HashSet<u32>,
     map: HashMap<u32, TypeDecl>,
     user_defined: HashMap<String, UserDefinedEntry>,
 }
@@ -27,25 +26,18 @@ impl UserDefinedEntry {
 }
 
 impl<'a> TypeResolver<'a> {
+    #[cfg(test)]
     pub fn from_registry(registry: &'a PortableRegistry) -> Self {
-        let mut resolver = Self {
-            registry,
-            exclude: HashSet::new(),
-            map: HashMap::new(),
-            user_defined: HashMap::new(),
-        };
-        resolver.build_type_decl_map();
-        resolver
+        TypeResolver::from(registry, HashSet::new())
     }
 
     pub fn from(registry: &'a PortableRegistry, exclude: HashSet<u32>) -> Self {
         let mut resolver = Self {
             registry,
-            exclude,
             map: HashMap::new(),
             user_defined: HashMap::new(),
         };
-        resolver.build_type_decl_map();
+        resolver.build_type_decl_map(exclude);
         resolver
     }
 
@@ -63,12 +55,12 @@ impl<'a> TypeResolver<'a> {
         self.map.get(&key)
     }
 
-    fn build_type_decl_map(&mut self) {
+    fn build_type_decl_map(&mut self, exclude: HashSet<u32>) {
         let filtered: Vec<_> = self
             .registry
             .types
             .iter()
-            .filter(|pt| !self.exclude.contains(&pt.id))
+            .filter(|pt| !exclude.contains(&pt.id))
             .collect();
         for pt in filtered {
             let type_decl = self.resolve_type_decl(&pt.ty);
@@ -121,7 +113,7 @@ impl<'a> TypeResolver<'a> {
                 }
             }
             TypeDef::Primitive(type_def_primitive) => {
-                TypeDecl::Primitive(primitive_map(&type_def_primitive))
+                TypeDecl::Primitive(primitive_map(type_def_primitive))
             }
             TypeDef::Compact(_) => unimplemented!("TypeDef::Compact is unimplemented"),
             TypeDef::BitSequence(_) => {
@@ -430,7 +422,7 @@ mod tests {
         let portable_registry = PortableRegistry::from(registry);
 
         let resolver = TypeResolver::from_registry(&portable_registry);
-        println!("{:#?}", resolver);
+        println!("{resolver:#?}");
 
         let h256_decl = resolver.get(h256_id).unwrap();
         assert_eq!(*h256_decl, TypeDecl::Primitive(PrimitiveType::H256));
@@ -457,7 +449,7 @@ mod tests {
             .id;
         let portable_registry = PortableRegistry::from(registry);
         let resolver = TypeResolver::from_registry(&portable_registry);
-        println!("{:#?}", resolver);
+        println!("{resolver:#?}");
 
         let u32_struct = resolver.get(u32_struct_id).unwrap();
         assert_eq!(u32_struct.to_string(), "GenericStruct<u32>");
@@ -477,7 +469,7 @@ mod tests {
             .id;
         let portable_registry = PortableRegistry::from(registry);
         let resolver = TypeResolver::from_registry(&portable_registry);
-        println!("{:#?}", resolver);
+        println!("{resolver:#?}");
 
         let u32_string_enum = resolver.get(u32_string_enum_id).unwrap();
         assert_eq!(u32_string_enum.to_string(), "GenericEnum<u32, String>");
@@ -550,7 +542,7 @@ mod tests {
             .id;
         let portable_registry = PortableRegistry::from(registry);
         let resolver = TypeResolver::from_registry(&portable_registry);
-        println!("{:#?}", resolver);
+        println!("{resolver:#?}");
 
         let u32_option = resolver.get(u32_option_id).unwrap();
         assert_eq!(u32_option.to_string(), "Option<u32>");
@@ -585,7 +577,7 @@ mod tests {
             .id;
         let portable_registry = PortableRegistry::from(registry);
         let resolver = TypeResolver::from_registry(&portable_registry);
-        println!("{:#?}", resolver);
+        println!("{resolver:#?}");
 
         let btree_map = resolver.get(btree_map_id).unwrap();
         assert_eq!(btree_map.to_string(), "[(u32, String)]");

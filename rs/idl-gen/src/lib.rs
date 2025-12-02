@@ -59,13 +59,16 @@ pub mod service {
     }
 }
 
-fn build_program_ast<P: ProgramMeta>(name: Option<String>) -> Result<IdlDoc> {
-    // let
-    let service_builders: Vec<_> = P::services()
-        .map(|(name, meta)| builder::ServiceBuilder::new(name, meta))
-        .collect();
-    let services: Vec<_> = service_builders.into_iter().map(|b| b.build()).collect();
-    let program = name.map(|name| builder::ProgramBuilder::new::<P>().build(name));
+fn build_program_ast<P: ProgramMeta>(program_name: Option<String>) -> Result<IdlDoc> {
+    let mut services = Vec::new();
+    for (name, meta) in P::services() {
+        services.extend(builder::ServiceBuilder::new(name, meta).build()?);
+    }
+    let program = if let Some(name) = program_name {
+        Some(builder::ProgramBuilder::new::<P>().build(name)?)
+    } else {
+        None
+    };
     let doc = IdlDoc {
         globals: vec![
             ("sails".to_string(), Some(SAILS_VERSION.to_string())),
@@ -79,7 +82,7 @@ fn build_program_ast<P: ProgramMeta>(name: Option<String>) -> Result<IdlDoc> {
 }
 
 fn build_service_ast(name: &'static str, meta: AnyServiceMeta) -> Result<IdlDoc> {
-    let services: Vec<_> = vec![builder::ServiceBuilder::new(name, meta).build()];
+    let services = builder::ServiceBuilder::new(name, meta).build()?;
     let doc = IdlDoc {
         globals: vec![
             ("sails".to_string(), Some(SAILS_VERSION.to_string())),

@@ -7231,7 +7231,6 @@ dependencies = [
  "askama",
  "convert_case 0.7.1",
  "gprimitives",
- "handlebars",
  "insta",
  "quote",
  "sails-idl-meta",

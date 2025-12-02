@@ -4,7 +4,7 @@ expression: generated_idl
 ---
 !@sails: 0.9.2
 
-service  {
+service Service {
     events {
         /// `This` Done
         ThisDone (
@@ -164,7 +164,7 @@ service SomeService {
 
 program ProgramToDo {
     services {
-        ,
+        Service,
         SomeService,
     }
 }
