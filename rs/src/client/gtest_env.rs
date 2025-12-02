@@ -125,18 +125,19 @@ impl GtestEnv {
                 continue;
             }
             if let Some(message_id) = entry.reply_to()
-                && let Some(sender) = reply_senders.remove(&message_id) {
-                    log::debug!("Extract reply from entry {entry:?}");
-                    let reply: result::Result<Vec<u8>, _> = match entry.reply_code() {
-                        None => Err(GtestError::ReplyIsMissing),
-                        Some(ReplyCode::Error(reason)) => {
-                            Err(GtestError::ReplyHasError(reason, entry.payload().to_vec()))
-                        }
-                        Some(ReplyCode::Success(_)) => Ok(entry.payload().to_vec()),
-                        _ => Err(GtestError::ReplyIsMissing),
-                    };
-                    _ = sender.send(reply);
-                }
+                && let Some(sender) = reply_senders.remove(&message_id)
+            {
+                log::debug!("Extract reply from entry {entry:?}");
+                let reply: result::Result<Vec<u8>, _> = match entry.reply_code() {
+                    None => Err(GtestError::ReplyIsMissing),
+                    Some(ReplyCode::Error(reason)) => {
+                        Err(GtestError::ReplyHasError(reason, entry.payload().to_vec()))
+                    }
+                    Some(ReplyCode::Success(_)) => Ok(entry.payload().to_vec()),
+                    _ => Err(GtestError::ReplyIsMissing),
+                };
+                _ = sender.send(reply);
+            }
         }
     }
 
