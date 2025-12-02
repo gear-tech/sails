@@ -1,28 +1,34 @@
-use crate::{ctor_generators::*, mock_generator::*, service_generators::*, type_generators::*};
+use crate::{
+    ctor_generators::*, helpers::generate_doc_comments, mock_generator::*, service_generators::*,
+    type_generators::*,
+};
 use convert_case::{Case, Casing};
 use genco::prelude::*;
 use rust::Tokens;
-use sails_idl_parser::{ast::visitor::Visitor, ast::*};
-use std::collections::HashMap;
+use sails_idl_parser_v2::ast;
+use sails_idl_parser_v2::visitor::Visitor;
+use std::collections::{HashMap, HashSet};
 
-pub(crate) struct RootGenerator<'a> {
+pub(crate) struct RootGenerator<'ast> {
     tokens: Tokens,
     mocks_tokens: Tokens,
     service_impl_tokens: Tokens,
     service_trait_tokens: Tokens,
-    anonymous_service_name: &'a str,
-    mocks_feature_name: Option<&'a str>,
-    sails_path: &'a str,
-    external_types: HashMap<&'a str, &'a str>,
+    anonymous_service_name: &'ast str,
+    mocks_feature_name: Option<&'ast str>,
+    sails_path: &'ast str,
+    external_types: HashMap<&'ast str, &'ast str>,
     no_derive_traits: bool,
+    program_exported_services: Vec<&'ast str>,
+    program_types: HashSet<&'ast str>,
 }
 
-impl<'a> RootGenerator<'a> {
+impl<'ast> RootGenerator<'ast> {
     pub(crate) fn new(
-        anonymous_service_name: &'a str,
-        mocks_feature_name: Option<&'a str>,
-        sails_path: &'a str,
-        external_types: HashMap<&'a str, &'a str>,
+        anonymous_service_name: &'ast str,
+        mocks_feature_name: Option<&'ast str>,
+        sails_path: &'ast str,
+        external_types: HashMap<&'ast str, &'ast str>,
         no_derive_traits: bool,
     ) -> Self {
         Self {
@@ -35,6 +41,8 @@ impl<'a> RootGenerator<'a> {
             sails_path,
             external_types,
             no_derive_traits,
+            program_exported_services: Vec::new(),
+            program_types: HashSet::new(),
         }
     }
 
@@ -106,42 +114,79 @@ impl<'a> RootGenerator<'a> {
     }
 }
 
-impl<'ast> Visitor<'ast> for RootGenerator<'_> {
-    fn visit_ctor(&mut self, ctor: &'ast Ctor) {
+impl<'ast> Visitor<'ast> for RootGenerator<'ast> {
+    fn visit_program_unit(&mut self, program: &'ast ast::ProgramUnit) {
         let mut ctor_gen = CtorGenerator::new(self.anonymous_service_name, self.sails_path);
-        ctor_gen.visit_ctor(ctor);
+        ctor_gen.visit_program_unit(program);
         self.tokens.extend(ctor_gen.finalize());
+
+        for service_item in &program.services {
+            let service_name = service_item.route.as_ref().unwrap_or(&service_item.name);
+            self.program_exported_services.push(service_name);
+        }
+
+        sails_idl_parser_v2::visitor::accept_program_unit(program, self);
     }
 
-    fn visit_service(&mut self, service: &'ast Service) {
-        let service_name = if service.name().is_empty() {
+    fn visit_service_unit(&mut self, service: &'ast ast::ServiceUnit) {
+        let service_name = if service.name.is_empty() {
             self.anonymous_service_name
         } else {
-            service.name()
+            &service.name
         };
 
-        let mut ctor_gen = ServiceCtorGenerator::new(service_name, self.sails_path);
-        ctor_gen.visit_service(service);
-        let (trait_tokens, impl_tokens) = ctor_gen.finalize();
-        self.service_trait_tokens.extend(trait_tokens);
-        self.service_impl_tokens.extend(impl_tokens);
+        // Generate service access methods only if the service is not exported by the program
+        if !self.program_exported_services.contains(&service_name) {
+            let service_name_snake = &service_name.to_case(Case::Snake);
+            let service_name_pascal = &service_name.to_case(Case::Pascal);
 
-        let mut client_gen = ServiceGenerator::new(service_name, self.sails_path);
-        client_gen.visit_service(service);
+            quote_in!(self.service_trait_tokens =>
+                $['\r'] fn $(service_name_snake)(&self) -> $(self.sails_path)::client::Service<$(service_name_snake)::$(service_name_pascal)Impl, Self::Env>;
+            );
+            quote_in!(self.service_impl_tokens =>
+                $['\r'] fn $(service_name_snake)(&self) -> $(self.sails_path)::client::Service<$(service_name_snake)::$(service_name_pascal)Impl, Self::Env> {
+                    self.service(stringify!($(service_name)))
+                }
+            );
+        }
+
+        let mut client_gen =
+            ServiceGenerator::new(service_name, self.sails_path, self.no_derive_traits);
+        client_gen.visit_service_unit(service);
         self.tokens.extend(client_gen.finalize());
 
         let mut mock_gen = MockGenerator::new(service_name, self.sails_path);
-        mock_gen.visit_service(service);
+        mock_gen.visit_service_unit(service);
         self.mocks_tokens.extend(mock_gen.finalize());
     }
 
-    fn visit_type(&mut self, t: &'ast Type) {
-        if self.external_types.contains_key(t.name()) {
+    fn visit_type(&mut self, t: &'ast ast::Type) {
+        self.program_types.insert(&t.name);
+        if self.external_types.contains_key(t.name.as_str()) {
             return;
         }
         let mut type_gen =
-            TopLevelTypeGenerator::new(t.name(), self.sails_path, self.no_derive_traits);
+            TopLevelTypeGenerator::new(&t.name, self.sails_path, self.no_derive_traits);
         type_gen.visit_type(t);
         self.tokens.extend(type_gen.finalize());
+    }
+
+    fn visit_service_expo(&mut self, service_item: &'ast ast::ServiceExpo) {
+        let service_name = service_item.route.as_ref().unwrap_or(&service_item.name);
+        let method_name = service_item.name.to_case(Case::Snake);
+        let route_pascal_case = service_name.to_case(Case::Pascal);
+        let route_snake_case = service_name.to_case(Case::Snake);
+
+        generate_doc_comments(&mut self.service_trait_tokens, &service_item.docs);
+
+        quote_in!(self.service_trait_tokens =>
+            $['\r'] fn $(&method_name)(&self) -> $(self.sails_path)::client::Service<$(route_snake_case.clone())::$(route_pascal_case.clone())Impl, Self::Env>;
+        );
+
+        quote_in!(self.service_impl_tokens =>
+            $['\r'] fn $(&method_name)(&self) -> $(self.sails_path)::client::Service<$(route_snake_case)::$(route_pascal_case)Impl, Self::Env> {
+                self.service(stringify!($(service_item.name.clone())))
+            }
+        );
     }
 }

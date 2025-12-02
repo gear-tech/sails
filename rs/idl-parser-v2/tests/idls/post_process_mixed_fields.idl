@@ -1,0 +1,16 @@
+program MyProgram {
+    constructors { New(); }
+    services { MyService: MyService }
+}
+
+service MyService {
+    types {
+        struct MixedFieldsStruct {
+            field1: u32,
+            string
+        }
+    }
+    functions {
+        DoSomething() -> u32;
+    }
+}

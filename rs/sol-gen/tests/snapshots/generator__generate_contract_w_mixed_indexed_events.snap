@@ -1,0 +1,43 @@
+---
+source: rs/sol-gen/tests/generator.rs
+expression: "String::from_utf8(contract.unwrap().data).unwrap()"
+---
+// SPDX-License-Identifier: UNLICENSED
+pragma solidity ^0.8.28;
+
+interface ITestContract {
+    event MixedEvent(uint32 indexed f1, string f2, uint128 indexed f3, uint128 f4);
+
+    function create(bool _callReply) external returns (bytes32 messageId);
+}
+
+contract TestContractAbi is ITestContract {
+    function create(bool _callReply) external returns (bytes32 messageId) {}
+}
+
+interface ITestContractCallbacks {
+    function replyOn_create(bytes32 messageId) external;
+
+    function onErrorReply(bytes32 messageId, bytes calldata payload, bytes4 replyCode) external;
+}
+
+contract TestContractCaller is ITestContractCallbacks {
+    ITestContract public immutable gearExeProgram;
+
+    constructor(ITestContract _gearExeProgram) {
+        gearExeProgram = _gearExeProgram;
+    }
+
+    modifier onlyGearExeProgram() {
+        require(msg.sender == address(gearExeProgram), "Only Gear.exe program can call this function");
+        _;
+    }
+
+    function replyOn_create(bytes32 messageId) external onlyGearExeProgram {
+        // TODO: implement this
+    }
+
+    function onErrorReply(bytes32 messageId, bytes calldata payload, bytes4 replyCode) external onlyGearExeProgram {
+        // TODO: implement this
+    }
+}

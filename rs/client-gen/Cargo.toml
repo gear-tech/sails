@@ -14,7 +14,7 @@ anyhow.workspace = true
 convert_case.workspace = true
 genco.workspace = true
 parity-scale-codec.workspace = true
-sails-idl-parser.workspace = true
+sails-idl-parser-v2 = { workspace = true, features = ["std"] }
 
 [dev-dependencies]
 insta.workspace = true

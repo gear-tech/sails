@@ -38,75 +38,6 @@ pub mod io {
     use super::*;
     sails_rs::io_struct_impl!(New () -> ());
 }
-
-pub mod rmrk_resource {
-    use super::*;
-    pub trait RmrkResource {
-        type Env: sails_rs::client::GearEnv;
-        fn add_part_to_resource(
-            &mut self,
-            resource_id: u8,
-            part_id: u32,
-        ) -> sails_rs::client::PendingCall<io::AddPartToResource, Self::Env>;
-        fn add_resource_entry(
-            &mut self,
-            resource_id: u8,
-            resource: Resource,
-        ) -> sails_rs::client::PendingCall<io::AddResourceEntry, Self::Env>;
-        fn resource(
-            &self,
-            resource_id: u8,
-        ) -> sails_rs::client::PendingCall<io::Resource, Self::Env>;
-    }
-    pub struct RmrkResourceImpl;
-    impl<E: sails_rs::client::GearEnv> RmrkResource for sails_rs::client::Service<RmrkResourceImpl, E> {
-        type Env = E;
-        fn add_part_to_resource(
-            &mut self,
-            resource_id: u8,
-            part_id: u32,
-        ) -> sails_rs::client::PendingCall<io::AddPartToResource, Self::Env> {
-            self.pending_call((resource_id, part_id))
-        }
-        fn add_resource_entry(
-            &mut self,
-            resource_id: u8,
-            resource: Resource,
-        ) -> sails_rs::client::PendingCall<io::AddResourceEntry, Self::Env> {
-            self.pending_call((resource_id, resource))
-        }
-        fn resource(
-            &self,
-            resource_id: u8,
-        ) -> sails_rs::client::PendingCall<io::Resource, Self::Env> {
-            self.pending_call((resource_id,))
-        }
-    }
-
-    pub mod io {
-        use super::*;
-        sails_rs::io_struct_impl!(AddPartToResource (resource_id: u8, part_id: u32) -> Result<u32, super::Error>);
-        sails_rs::io_struct_impl!(AddResourceEntry (resource_id: u8, resource: super::Resource) -> Result<(u8,super::Resource,), super::Error>);
-        sails_rs::io_struct_impl!(Resource (resource_id: u8) -> Result<super::Resource, super::Error>);
-    }
-
-    #[cfg(not(target_arch = "wasm32"))]
-    pub mod events {
-        use super::*;
-        #[derive(PartialEq, Debug, Encode, Decode)]
-        #[codec(crate = sails_rs::scale_codec)]
-        pub enum RmrkResourceEvents {
-            ResourceAdded { resource_id: u8 },
-            PartAdded { resource_id: u8, part_id: u32 },
-        }
-        impl sails_rs::client::Event for RmrkResourceEvents {
-            const EVENT_NAMES: &'static [Route] = &["ResourceAdded", "PartAdded"];
-        }
-        impl sails_rs::client::ServiceWithEvents for RmrkResourceImpl {
-            type Event = RmrkResourceEvents;
-        }
-    }
-}
 #[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo)]
 #[codec(crate = sails_rs::scale_codec)]
 #[scale_info(crate = sails_rs::scale_info)]
@@ -166,4 +97,73 @@ pub struct ComposedResource {
     pub metadata_uri: String,
     pub base: ActorId,
     pub parts: Vec<u32>,
+}
+
+pub mod rmrk_resource {
+    use super::*;
+    pub trait RmrkResource {
+        type Env: sails_rs::client::GearEnv;
+        fn add_part_to_resource(
+            &mut self,
+            resource_id: u8,
+            part_id: u32,
+        ) -> sails_rs::client::PendingCall<io::AddPartToResource, Self::Env>;
+        fn add_resource_entry(
+            &mut self,
+            resource_id: u8,
+            resource: Resource,
+        ) -> sails_rs::client::PendingCall<io::AddResourceEntry, Self::Env>;
+        fn resource(
+            &self,
+            resource_id: u8,
+        ) -> sails_rs::client::PendingCall<io::Resource, Self::Env>;
+    }
+    pub struct RmrkResourceImpl;
+    impl<E: sails_rs::client::GearEnv> RmrkResource for sails_rs::client::Service<RmrkResourceImpl, E> {
+        type Env = E;
+        fn add_part_to_resource(
+            &mut self,
+            resource_id: u8,
+            part_id: u32,
+        ) -> sails_rs::client::PendingCall<io::AddPartToResource, Self::Env> {
+            self.pending_call((resource_id, part_id))
+        }
+        fn add_resource_entry(
+            &mut self,
+            resource_id: u8,
+            resource: Resource,
+        ) -> sails_rs::client::PendingCall<io::AddResourceEntry, Self::Env> {
+            self.pending_call((resource_id, resource))
+        }
+        fn resource(
+            &self,
+            resource_id: u8,
+        ) -> sails_rs::client::PendingCall<io::Resource, Self::Env> {
+            self.pending_call((resource_id,))
+        }
+    }
+
+    pub mod io {
+        use super::*;
+        sails_rs::io_struct_impl!(AddPartToResource (resource_id: u8, part_id: u32) -> super::Result<u32, super::Error, >);
+        sails_rs::io_struct_impl!(AddResourceEntry (resource_id: u8, resource: super::Resource) -> super::Result<(u8, super::Resource, ), super::Error, >);
+        sails_rs::io_struct_impl!(Resource (resource_id: u8) -> super::Result<super::Resource, super::Error, >);
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
+    pub mod events {
+        use super::*;
+        #[derive(PartialEq, Debug, Encode, Decode)]
+        #[codec(crate = sails_rs::scale_codec)]
+        pub enum RmrkResourceEvents {
+            ResourceAdded { resource_id: u8 },
+            PartAdded { resource_id: u8, part_id: u32 },
+        }
+        impl sails_rs::client::Event for RmrkResourceEvents {
+            const EVENT_NAMES: &'static [Route] = &["ResourceAdded", "PartAdded"];
+        }
+        impl sails_rs::client::ServiceWithEvents for RmrkResourceImpl {
+            type Event = RmrkResourceEvents;
+        }
+    }
 }

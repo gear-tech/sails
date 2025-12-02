@@ -10,10 +10,15 @@ repository.workspace = true
 rust-version.workspace = true
 
 [lib]
-crate-type = ["cdylib", "rlib"]
+crate-type = ["rlib"]
+
+[features]
+default = []
+std = ["pest/std", "pest_derive/std"]
 
 [dependencies]
 anyhow.workspace = true
 pest.workspace = true
 pest_derive.workspace = true
 sails-idl-meta = { workspace = true, features = ["ast"] }
+paste.workspace = true
