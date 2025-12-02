@@ -37,6 +37,8 @@ type TupleStruct = struct {
 };
 
 constructor {
+  CreateNonPayable : (_init_val: bool);
+  CreatePayable : (_init_val: bool);
   /// Program constructor (called once at the very beginning of the program lifetime)
   Default : ();
   /// Another program constructor (called once at the very beginning of the program lifetime)
@@ -113,5 +115,16 @@ service Chaos {
   query PanicAfterWait : () -> null;
   query ReplyHookCounter : () -> u32;
   query TimeoutWait : () -> null;
+};
+
+service PayableBehaviors {
+  /// #[returns_value]
+  CheckNonPayableWithReturn : (amount: u128) -> u128;
+  /// #[payable]
+  /// #[returns_value]
+  CheckPayableWithReturn : (amount: u128) -> u128;
+  query CheckNonPayableNoReturn : (input_val: u32) -> u32;
+  /// #[payable]
+  query CheckPayableNoReturn : (input_val: u32) -> u32;
 };
 

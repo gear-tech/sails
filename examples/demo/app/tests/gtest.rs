@@ -661,3 +661,177 @@ async fn chaos_panic_does_not_affect_other_services() {
     let final_value = counter_client.value().await.unwrap();
     assert_eq!(final_value, INIT_VALUE + 5);
 }
+
+#[test]
+fn payable_ctor_non_payable_fails_with_value() {
+    use demo_client::io::CreateNonPayable;
+    let system = System::new();
+    system.init_logger_with_default_filter("gwasm=debug,gtest=debug,sails_rs=debug");
+    system.mint_to(ACTOR_ID, 1_000_000_000_000_000);
+    let program = Program::from_file(&system, DEMO_WASM_PATH);
+
+    // Init program with value but non-payable ctor
+    let payload = CreateNonPayable::encode_params(false);
+
+    let msg_id = program.send_bytes_with_value(ACTOR_ID, payload, 1000);
+    let run_result = system.run_next_block();
+
+    check_reply_log_for_panic(&run_result, msg_id, "Ctor accepts no value");
+}
+
+#[test]
+fn payable_ctor_payable_works_with_value() {
+    use demo_client::io::CreatePayable;
+
+    let system = System::new();
+    system.init_logger_with_default_filter("gwasm=debug,gtest=debug,sails_rs=debug");
+    system.mint_to(ACTOR_ID, 1_000_000_000_000_000);
+    let program = Program::from_file(&system, DEMO_WASM_PATH);
+
+    // Init program with value AND payable ctor
+    let payload = CreatePayable::encode_params(false);
+
+    let msg_id = program.send_bytes_with_value(ACTOR_ID, payload, 1000);
+    let run_result = system.run_next_block();
+
+    check_reply_log_for_success(&run_result, msg_id);
+}
+
+#[test]
+fn payable_method_non_payable_no_return_fails_with_value() {
+    use demo_client::io::Default;
+    use demo_client::payable_behaviors::io::CheckNonPayableNoReturn;
+
+    let system = System::new();
+    system.init_logger_with_default_filter("gwasm=debug,gtest=debug,sails_rs=debug");
+    system.mint_to(ACTOR_ID, 1_000_000_000_000_000);
+    let program = Program::from_file(&system, DEMO_WASM_PATH);
+    program.send_bytes(ACTOR_ID, Default::encode_params()); // Init program
+    system.run_next_block();
+
+    // Call non-payable method with value
+    let payload = CheckNonPayableNoReturn::encode_params_with_prefix("PayableBehaviors", 42);
+
+    let msg_id = program.send_bytes_with_value(ACTOR_ID, payload, 1000);
+    let run_result = system.run_next_block();
+
+    check_reply_log_for_panic(&run_result, msg_id, "Method accepts no value");
+}
+
+#[test]
+fn payable_method_non_payable_with_return_fails_with_value() {
+    use demo_client::io::Default;
+    use demo_client::payable_behaviors::io::CheckNonPayableWithReturn;
+
+    let system = System::new();
+    system.init_logger_with_default_filter("gwasm=debug,gtest=debug,sails_rs=debug");
+    system.mint_to(ACTOR_ID, 1_000_000_000_000_000);
+    let program = Program::from_file(&system, DEMO_WASM_PATH);
+    program.send_bytes(ACTOR_ID, Default::encode_params()); // Init program
+    system.run_next_block();
+
+    // Call non-payable method with CommandReply and value
+    let payload = CheckNonPayableWithReturn::encode_params_with_prefix("PayableBehaviors", 123);
+
+    let msg_id = program.send_bytes_with_value(ACTOR_ID, payload, 1000);
+    let run_result = system.run_next_block();
+
+    check_reply_log_for_panic(&run_result, msg_id, "Method accepts no value");
+}
+
+#[test]
+fn payable_method_payable_no_return_works_with_value() {
+    use demo_client::io::Default;
+    use demo_client::payable_behaviors::io::CheckPayableNoReturn;
+
+    let system = System::new();
+    system.init_logger_with_default_filter("gwasm=debug,gtest=debug,sails_rs=debug");
+    system.mint_to(ACTOR_ID, 1_000_000_000_000_000);
+    let program = Program::from_file(&system, DEMO_WASM_PATH);
+    program.send_bytes(ACTOR_ID, Default::encode_params()); // Init program
+    system.run_next_block();
+
+    // Call payable method with value
+    let payload = CheckPayableNoReturn::encode_params_with_prefix("PayableBehaviors", 42);
+
+    let msg_id = program.send_bytes_with_value(ACTOR_ID, payload, 1000);
+    let run_result = system.run_next_block();
+
+    check_reply_log_for_success(&run_result, msg_id);
+}
+
+#[test]
+fn payable_method_payable_with_return_works_with_value() {
+    use demo_client::io::Default;
+    use demo_client::payable_behaviors::io::CheckPayableWithReturn;
+
+    let system = System::new();
+    system.init_logger_with_default_filter("gwasm=debug,gtest=debug,sails_rs=debug");
+    system.mint_to(ACTOR_ID, 1_000_000_000_000_000);
+    let program = Program::from_file(&system, DEMO_WASM_PATH);
+    program.send_bytes(ACTOR_ID, Default::encode_params());
+    system.run_next_block();
+
+    // Call payable method with CommandReply and value
+    let amount_to_return = 123;
+    let payload =
+        CheckPayableWithReturn::encode_params_with_prefix("PayableBehaviors", amount_to_return);
+
+    let msg_id = program.send_bytes_with_value(ACTOR_ID, payload, 1000);
+    let run_result = system.run_next_block();
+
+    check_reply_log_for_success(&run_result, msg_id);
+
+    let reply_log_record = run_result
+        .log()
+        .iter()
+        .find(|entry| entry.reply_to() == Some(msg_id))
+        .expect("No reply found");
+
+    let reply = CheckPayableWithReturn::decode_reply_with_prefix(
+        "PayableBehaviors",
+        reply_log_record.payload(),
+    )
+    .unwrap();
+    assert_eq!(reply, amount_to_return);
+}
+
+fn check_reply_log_for_success(run_result: &sails_rs::gtest::BlockRunResult, msg_id: MessageId) {
+    let reply_log_record = run_result
+        .log()
+        .iter()
+        .find(|entry| entry.reply_to() == Some(msg_id))
+        .expect("No reply found");
+
+    assert!(
+        matches!(reply_log_record.reply_code(), Some(ReplyCode::Success(_))),
+        "Expected Success, got {:?}",
+        reply_log_record.reply_code()
+    );
+}
+
+fn check_reply_log_for_panic(
+    run_result: &sails_rs::gtest::BlockRunResult,
+    msg_id: MessageId,
+    expected_panic_message: &str,
+) {
+    use gstd::errors::{ErrorReplyReason, SimpleExecutionError};
+    let reply_log_record = run_result
+        .log()
+        .iter()
+        .find(|entry| entry.reply_to() == Some(msg_id))
+        .expect("No reply found");
+
+    assert!(
+        matches!(
+            reply_log_record.reply_code(),
+            Some(ReplyCode::Error(ErrorReplyReason::Execution(
+                SimpleExecutionError::UserspacePanic
+            )))
+        ),
+        "Expected UserspacePanic, got {:?}",
+        reply_log_record.reply_code()
+    );
+    let msg = String::from_utf8_lossy(reply_log_record.payload());
+    assert_eq!(msg, format!("panicked with '{}'", expected_panic_message));
+}
