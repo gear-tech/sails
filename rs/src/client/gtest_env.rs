@@ -124,8 +124,8 @@ impl GtestEnv {
                 }
                 continue;
             }
-            if let Some(message_id) = entry.reply_to() {
-                if let Some(sender) = reply_senders.remove(&message_id) {
+            if let Some(message_id) = entry.reply_to()
+                && let Some(sender) = reply_senders.remove(&message_id) {
                     log::debug!("Extract reply from entry {entry:?}");
                     let reply: result::Result<Vec<u8>, _> = match entry.reply_code() {
                         None => Err(GtestError::ReplyIsMissing),
@@ -137,7 +137,6 @@ impl GtestEnv {
                     };
                     _ = sender.send(reply);
                 }
-            }
         }
     }
 
