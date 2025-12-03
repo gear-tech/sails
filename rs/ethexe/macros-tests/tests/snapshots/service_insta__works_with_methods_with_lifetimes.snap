@@ -311,7 +311,7 @@ impl sails_rs::meta::ServiceMeta for ReferenceService {
     type CommandsMeta = reference_service_meta::CommandsMeta;
     type QueriesMeta = reference_service_meta::QueriesMeta;
     type EventsMeta = reference_service_meta::EventsMeta;
-    const BASE_SERVICES: &'static [sails_rs::meta::AnyServiceMetaFn] = &[];
+    const BASE_SERVICES: &'static [(&'static str, sails_rs::meta::AnyServiceMetaFn)] = &[];
     const ASYNC: bool = true;
     const INTERFACE_ID: [u8; 8] = {
         let mut final_hash = sails_rs::keccak_const::Keccak256::new();

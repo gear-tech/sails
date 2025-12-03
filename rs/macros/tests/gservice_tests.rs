@@ -150,6 +150,26 @@ fn gservice_with_extends() {
 }
 
 #[test]
+fn gservice_with_extends_renamed() {
+    use gservice_with_extends::{
+        base::Base, extended_renamed::ExtendedRenamed, other_base::Base as OtherBase,
+    };
+    use sails_rs::meta::ServiceMeta;
+
+    let base_services = <ExtendedRenamed as ServiceMeta>::base_services().collect::<Vec<_>>();
+    assert_eq!(base_services.len(), 2);
+
+    // You can create `ExtendedRenamed` with `Base` without renaming, as it's Rust type.
+    let _ = ExtendedRenamed::new((Base, OtherBase)).expose(SERVICE_ROUTE);
+
+    let (base_service_name, _) = base_services[0];
+    assert_eq!(base_service_name, "RenamedBase");
+
+    let (other_base_service_name, _) = base_services[1];
+    assert_eq!(other_base_service_name, "Base");
+}
+
+#[test]
 fn gservice_extends_pure() {
     use gservice_with_extends::{
         base::{Base, NAME_RESULT},

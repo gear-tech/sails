@@ -15,7 +15,7 @@ pub trait ServiceMeta {
     type CommandsMeta: StaticTypeInfo;
     type QueriesMeta: StaticTypeInfo;
     type EventsMeta: StaticTypeInfo;
-    const BASE_SERVICES: &'static [AnyServiceMetaFn];
+    const BASE_SERVICES: &'static [(&'static str, AnyServiceMetaFn)];
     const ASYNC: bool;
     const INTERFACE_ID: [u8; 8];
 
@@ -31,8 +31,8 @@ pub trait ServiceMeta {
         MetaType::new::<Self::EventsMeta>()
     }
 
-    fn base_services() -> impl Iterator<Item = AnyServiceMeta> {
-        Self::BASE_SERVICES.iter().map(|f| f())
+    fn base_services() -> impl Iterator<Item = (&'static str, AnyServiceMeta)> {
+        Self::BASE_SERVICES.iter().map(|(name, f)| (*name, f()))
     }
 }
 
@@ -40,7 +40,7 @@ pub struct AnyServiceMeta {
     commands: MetaType,
     queries: MetaType,
     events: MetaType,
-    base_services: Vec<AnyServiceMeta>,
+    base_services: Vec<(&'static str, AnyServiceMeta)>,
 }
 
 impl AnyServiceMeta {
@@ -65,8 +65,8 @@ impl AnyServiceMeta {
         &self.events
     }
 
-    pub fn base_services(&self) -> impl Iterator<Item = &AnyServiceMeta> {
-        self.base_services.iter()
+    pub fn base_services(&self) -> impl Iterator<Item = (&'static str, &AnyServiceMeta)> {
+        self.base_services.iter().map(|(name, meta)| (*name, meta))
     }
 }
 
