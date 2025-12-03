@@ -588,7 +588,7 @@ impl FnBuilder<'_> {
     }
 
     fn service_invocation(&self) -> TokenStream2 {
-        let route_ident = self.route_ident();
+        let route_ident = &self.route_ident();
         let service_ctor_ident = self.ident;
 
         quote! {
