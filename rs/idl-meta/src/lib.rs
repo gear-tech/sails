@@ -7,9 +7,53 @@ mod ast;
 
 #[cfg(feature = "ast")]
 pub use ast::*;
+use parity_scale_codec::{Decode, Encode, Error};
 use scale_info::{MetaType, StaticTypeInfo, prelude::vec::Vec};
 
 pub type AnyServiceMetaFn = fn() -> AnyServiceMeta;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct InterfaceId(pub [u8; 8]);
+
+impl InterfaceId {
+    /// Serialize to bytes
+    pub fn to_bytes(&self) -> [u8; 8] {
+        self.0
+    }
+
+    /// Deserialize from bytes, advancing the slice
+    pub fn try_read_bytes(bytes: &mut &[u8]) -> Result<Self, &'static str> {
+        if bytes.len() < 8 {
+            return Err("Insufficient bytes for interface ID");
+        }
+
+        let mut id = [0u8; 8];
+        id.copy_from_slice(&bytes[0..8]);
+        *bytes = &bytes[8..];
+        Ok(Self(id))
+    }
+
+    /// Deserialize from bytes without mutating the input
+    pub fn try_from_bytes(bytes: &[u8]) -> Result<Self, &'static str> {
+        let mut slice = bytes;
+        Self::try_read_bytes(&mut slice)
+    }
+}
+
+impl Encode for InterfaceId {
+    fn encode_to<O: parity_scale_codec::Output + ?Sized>(&self, dest: &mut O) {
+        dest.write(&self.to_bytes());
+    }
+}
+
+impl Decode for InterfaceId {
+    fn decode<I: parity_scale_codec::Input>(input: &mut I) -> Result<Self, Error> {
+        let mut bytes = [0u8; 8];
+        input.read(&mut bytes)?;
+        let mut slice = bytes.as_slice();
+        Self::try_read_bytes(&mut slice).map_err(Error::from)
+    }
+}
 
 pub trait ServiceMeta {
     type CommandsMeta: StaticTypeInfo;
@@ -17,7 +61,7 @@ pub trait ServiceMeta {
     type EventsMeta: StaticTypeInfo;
     const BASE_SERVICES: &'static [AnyServiceMetaFn];
     const ASYNC: bool;
-    const INTERFACE_ID: [u8; 8];
+    const INTERFACE_ID: InterfaceId;
 
     fn commands() -> MetaType {
         MetaType::new::<Self::CommandsMeta>()
@@ -81,5 +125,22 @@ pub trait ProgramMeta {
 
     fn services() -> impl Iterator<Item = (&'static str, AnyServiceMeta)> {
         Self::SERVICES.iter().map(|(s, f)| (*s, f()))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn interface_id_codec() {
+        let inner = [1u8, 2, 3, 4, 5, 6, 7, 8];
+        let id = InterfaceId(inner);
+
+        let encoded = id.encode();
+        assert_eq!(inner.encode(), encoded);
+
+        let decoded = Decode::decode(&mut &encoded[..]).unwrap();
+        assert_eq!(id, decoded);
     }
 }

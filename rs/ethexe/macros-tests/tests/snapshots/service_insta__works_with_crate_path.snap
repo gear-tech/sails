@@ -163,7 +163,7 @@ impl sails_rename::meta::ServiceMeta for SomeService {
     type EventsMeta = some_service_meta::EventsMeta;
     const BASE_SERVICES: &'static [sails_rename::meta::AnyServiceMetaFn] = &[];
     const ASYNC: bool = true;
-    const INTERFACE_ID: [u8; 8] = {
+    const INTERFACE_ID: sails_rename::meta::InterfaceId = {
         let mut final_hash = sails_rename::keccak_const::Keccak256::new();
         {
             let mut fn_hash = sails_rename::keccak_const::Keccak256::new();
@@ -192,7 +192,16 @@ impl sails_rename::meta::ServiceMeta for SomeService {
             final_hash = final_hash.update(&fn_hash.finalize());
         }
         let hash = final_hash.finalize();
-        [hash[0], hash[1], hash[2], hash[3], hash[4], hash[5], hash[6], hash[7]]
+        sails_rename::meta::InterfaceId([
+            hash[0],
+            hash[1],
+            hash[2],
+            hash[3],
+            hash[4],
+            hash[5],
+            hash[6],
+            hash[7],
+        ])
     };
 }
 mod some_service_meta {
