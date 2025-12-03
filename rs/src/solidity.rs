@@ -433,11 +433,10 @@ mod tests {
         let original = (false, ActorId::zero(), [1u8, 2, 3, 4]);
         let input = original.clone().abi_encode_sequence();
 
-        let decoded: (
-            bool,
-            <<ActorId as SolValue>::SolType as SolType>::RustType,
-            <<[u8; 4] as SolValue>::SolType as SolType>::RustType,
-        ) = SolValue::abi_decode_sequence(&input).expect("decode failed");
+        type ActorType = <<ActorId as SolValue>::SolType as SolType>::RustType;
+        type ArrayType = <<[u8; 4] as SolValue>::SolType as SolType>::RustType;
+        let decoded: (bool, ActorType, ArrayType) =
+            SolValue::abi_decode_sequence(&input).expect("decode failed");
 
         let result: (bool, ActorId, [u8; 4]) = (decoded.0, decoded.1.into(), decoded.2.into());
         assert_eq!(original, result);
