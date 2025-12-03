@@ -120,7 +120,6 @@ impl MyServiceWithEventsExposure<MyServiceWithEvents> {
         if method == &[24u8, 68u8, 111u8, 84u8, 104u8, 105u8, 115u8] {
             let (__encode_reply,): (bool,) = sails_rs::alloy_sol_types::SolValue::abi_decode_params(
                     input,
-                    false,
                 )
                 .ok()?;
             #[cfg(target_arch = "wasm32")]
@@ -144,7 +143,6 @@ impl MyServiceWithEventsExposure<MyServiceWithEvents> {
         if method == &[16u8, 84u8, 104u8, 105u8, 115u8] {
             let (__encode_reply,): (bool,) = sails_rs::alloy_sol_types::SolValue::abi_decode_params(
                     input,
-                    false,
                 )
                 .ok()?;
             #[cfg(target_arch = "wasm32")]

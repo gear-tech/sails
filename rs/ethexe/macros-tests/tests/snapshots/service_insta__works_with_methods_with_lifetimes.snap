@@ -209,7 +209,6 @@ impl ReferenceServiceExposure<ReferenceService> {
         if method == &[28u8, 65u8, 100u8, 100u8, 66u8, 121u8, 116u8, 101u8] {
             let (__encode_reply, byte): (bool, u8) = sails_rs::alloy_sol_types::SolValue::abi_decode_params(
                     input,
-                    false,
                 )
                 .ok()?;
             #[cfg(target_arch = "wasm32")]
@@ -233,7 +232,6 @@ impl ReferenceServiceExposure<ReferenceService> {
         if method == &[20u8, 66u8, 97u8, 107u8, 101u8, 100u8] {
             let (__encode_reply,): (bool,) = sails_rs::alloy_sol_types::SolValue::abi_decode_params(
                     input,
-                    false,
                 )
                 .ok()?;
             #[cfg(target_arch = "wasm32")]
@@ -257,7 +255,6 @@ impl ReferenceServiceExposure<ReferenceService> {
         if method == &[16u8, 73u8, 110u8, 99u8, 114u8] {
             let (__encode_reply,): (bool,) = sails_rs::alloy_sol_types::SolValue::abi_decode_params(
                     input,
-                    false,
                 )
                 .ok()?;
             #[cfg(target_arch = "wasm32")]
@@ -290,7 +287,6 @@ impl ReferenceServiceExposure<ReferenceService> {
         {
             let (__encode_reply,): (bool,) = sails_rs::alloy_sol_types::SolValue::abi_decode_params(
                     input,
-                    false,
                 )
                 .ok()?;
             #[cfg(target_arch = "wasm32")]
@@ -314,7 +310,6 @@ impl ReferenceServiceExposure<ReferenceService> {
         if method == &[32u8, 76u8, 97u8, 115u8, 116u8, 66u8, 121u8, 116u8, 101u8] {
             let (__encode_reply,): (bool,) = sails_rs::alloy_sol_types::SolValue::abi_decode_params(
                     input,
-                    false,
                 )
                 .ok()?;
             #[cfg(target_arch = "wasm32")]

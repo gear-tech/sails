@@ -154,7 +154,6 @@ pub mod wasm {
         if ctor == &[12u8, 78u8, 101u8, 119u8] {
             let (__encode_reply, p1, p2): (bool, u32, String) = sails_rs::alloy_sol_types::SolValue::abi_decode_params(
                     input,
-                    false,
                 )
                 .expect("Failed to decode request");
             if sails_rs::gstd::msg::value() > 0 {
@@ -169,7 +168,6 @@ pub mod wasm {
         if ctor == &[16u8, 78u8, 101u8, 119u8, 50u8] {
             let (__encode_reply, p2, p1): (bool, String, u32) = sails_rs::alloy_sol_types::SolValue::abi_decode_params(
                     input,
-                    false,
                 )
                 .expect("Failed to decode request");
             if sails_rs::gstd::msg::value() > 0 {
