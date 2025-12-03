@@ -7,11 +7,13 @@ extern crate std;
 
 use alloc::{
     boxed::Box,
+    format,
     string::{String, ToString},
     vec::Vec,
 };
 pub use sails_idl_meta as ast;
 
+pub mod error;
 pub mod ffi {
     pub mod ast;
 }
@@ -19,7 +21,7 @@ mod post_process;
 pub mod visitor;
 
 // Sails IDL v2 — parser using `pest-rs`
-use anyhow::{Context, Error, Result, bail};
+use crate::error::{Error, Result};
 use core::str::FromStr;
 use pest::Parser;
 use pest::iterators::{Pair, Pairs};
@@ -33,8 +35,13 @@ pub struct IdlParser;
 
 // ----------------------------- Public API ------------------------------------
 pub fn parse_idl(src: &str) -> Result<IdlDoc> {
-    let mut pairs = IdlParser::parse(Rule::Top, src).map_err(|e| Error::msg(e.to_string()))?;
-    let mut doc = build_idl(pairs.next().context("expected Top")?)?;
+    let mut pairs = IdlParser::parse(Rule::Top, src)?;
+    let mut doc = build_idl(
+        pairs
+            .next()
+            .ok_or(Error::ExpectedNext(Some("expected Top".to_string())))?,
+    )?;
+
     post_process::validate_and_post_process(&mut doc)?;
     Ok(doc)
 }
@@ -52,7 +59,7 @@ fn build_idl(top: Pair<Rule>) -> Result<IdlDoc> {
             Rule::ServiceDecl => services.push(parse_service(p)?),
             Rule::ProgramDecl => {
                 if program.replace(parse_program(p)?).is_some() {
-                    bail!("expected at most one program per IDL document")
+                    return Err(Error::MultiplePrograms);
                 }
             }
             _ => {}
@@ -69,7 +76,11 @@ fn parse_ident(p: Pair<Rule>) -> Result<String> {
     if p.as_rule() == Rule::Ident {
         return Ok(p.as_str().to_string());
     }
-    bail!("expected Ident")
+    Err(Error::ExpectedRule {
+        expected: "Ident".to_string(),
+        found: format!("{:?}", p.as_rule()),
+        message: Some("expected Ident".to_string()),
+    })
 }
 
 fn parse_annotation(p: Pair<Rule>) -> Result<Annotation> {
@@ -82,14 +93,18 @@ fn parse_annotation(p: Pair<Rule>) -> Result<Annotation> {
             _ => {}
         }
     }
-    let key = key.context("expected Ident")?;
+    let key = key.ok_or(Error::ExpectedNext(Some("expected Ident".to_string())))?;
     Ok((key, val))
 }
 
 fn parse_type_decl(p: Pair<Rule>) -> Result<TypeDecl> {
     Ok(match p.as_rule() {
         // TypeDecl is `silent` Rule, but this for futureproof
-        Rule::TypeDecl => parse_type_decl(p.into_inner().next().context("expected TypeDecl")?)?,
+        Rule::TypeDecl => parse_type_decl(
+            p.into_inner()
+                .next()
+                .ok_or(Error::ExpectedNext(Some("expected TypeDecl".to_string())))?,
+        )?,
         Rule::Tuple => {
             let mut types = Vec::new();
             for el in p.into_inner() {
@@ -111,14 +126,16 @@ fn parse_type_decl(p: Pair<Rule>) -> Result<TypeDecl> {
             let ty = expect_next(&mut it, parse_type_decl)?;
             let len = expect_rule(&mut it, Rule::Number)?
                 .as_str()
-                .parse::<u32>()?;
+                .parse::<u32>()
+                .map_err(|e| Error::Internal(e.to_string()))?;
             TypeDecl::Array {
                 item: Box::new(ty),
                 len,
             }
         }
         Rule::Primitive => {
-            let primitive_type = PrimitiveType::from_str(p.as_str()).map_err(Error::msg)?;
+            let primitive_type = PrimitiveType::from_str(p.as_str())
+                .map_err(|e| Error::InvalidPrimitiveType(e.to_string()))?;
             TypeDecl::Primitive(primitive_type)
         }
         Rule::Named => {
@@ -137,7 +154,11 @@ fn parse_type_decl(p: Pair<Rule>) -> Result<TypeDecl> {
             }
             TypeDecl::Named { name, generics }
         }
-        other => bail!("unexpected rule in TypeDecl: {:?}", other),
+        other => {
+            return Err(Error::UnexpectedRule(format!(
+                "unexpected rule in TypeDecl: {other:?}"
+            )));
+        }
     })
 }
 
@@ -151,10 +172,12 @@ fn parse_param(p: Pair<'_, Rule>) -> Result<FuncParam> {
     })
 }
 
-fn parse_field(p: Pair<'_, Rule>) -> Result<StructField, anyhow::Error> {
+fn parse_field(p: Pair<'_, Rule>) -> Result<StructField> {
     let mut it = p.into_inner();
     let (docs, annotations) = parse_docs_and_annotations(&mut it)?;
-    let part = it.next().context("expected Ident | TypeDecl")?;
+    let part = it.next().ok_or(Error::ExpectedNext(Some(
+        "expected Ident | TypeDecl".to_string(),
+    )))?;
     let (name, type_decl) = match part.as_rule() {
         Rule::Ident => {
             let name = part.as_str().to_string();
@@ -177,9 +200,11 @@ pub fn parse_type(p: Pair<Rule>) -> Result<Type> {
         Rule::EnumDecl => parse_enum_type(p),
         Rule::AliasDecl => {
             // TODO: Alias is not implemented
-            bail!("unimplmented AliasDecl")
+            Err(Error::ValidationError("unimplmented AliasDecl".to_string()))
         }
-        _ => bail!("expected StructDecl | EnumDecl | AliasDecl"),
+        _ => Err(Error::UnexpectedRule(
+            "expected StructDecl | EnumDecl | AliasDecl".to_string(),
+        )),
     }
 }
 
@@ -202,7 +227,11 @@ fn parse_struct_type(p: Pair<Rule>) -> Result<Type> {
                     fields.push(parse_field(f)?);
                 }
             }
-            _ => bail!("expected StructDef | TupleDef | UnitDef"),
+            _ => {
+                return Err(Error::UnexpectedRule(
+                    "expected StructDef | TupleDef | UnitDef".to_string(),
+                ));
+            }
         };
     }
 
@@ -234,7 +263,11 @@ fn parse_enum_type(p: Pair<Rule>) -> Result<Type> {
                     variants.push(parse_enum_variant(v)?);
                 }
             }
-            _ => bail!("expected TypeParams | Variants"),
+            _ => {
+                return Err(Error::UnexpectedRule(
+                    "expected TypeParams | Variants".to_string(),
+                ));
+            }
         };
     }
 
@@ -259,7 +292,7 @@ fn parse_enum_variant(p: Pair<Rule>) -> Result<EnumVariant> {
                     fields.push(parse_field(f)?);
                 }
             }
-            _ => bail!("expected Fields"),
+            _ => return Err(Error::UnexpectedRule("expected Fields".to_string())),
         };
     }
 
@@ -291,14 +324,16 @@ fn parse_func(p: Pair<Rule>) -> Result<ServiceFunc> {
                 }
             }
             Rule::Ret => {
-                output = Some(parse_type_decl(
-                    part.into_inner().next().context("expect TypeDecl")?,
-                )?)
+                output =
+                    Some(parse_type_decl(part.into_inner().next().ok_or(
+                        Error::ExpectedNext(Some("expect TypeDecl".to_string())),
+                    )?)?)
             }
             Rule::Throws => {
-                throws = Some(parse_type_decl(
-                    part.into_inner().next().context("expect TypeDecl")?,
-                )?)
+                throws =
+                    Some(parse_type_decl(part.into_inner().next().ok_or(
+                        Error::ExpectedNext(Some("expect TypeDecl".to_string())),
+                    )?)?)
             }
             _ => {}
         }
@@ -423,7 +458,11 @@ fn parse_program(p: Pair<Rule>) -> Result<ProgramUnit> {
                     types.push(parse_type(t)?);
                 }
             }
-            _ => bail!("expected ConstructorsBlock | ServicesBlock | TypesBlock"),
+            _ => {
+                return Err(Error::UnexpectedRule(
+                    "expected ConstructorsBlock | ServicesBlock | TypesBlock".to_string(),
+                ));
+            }
         }
     }
     Ok(ProgramUnit {
@@ -479,7 +518,7 @@ fn expect_next<'a, F: FnOnce(Pair<'a, Rule>) -> Result<T>, T>(
     if let Some(p) = it.next() {
         return f(p);
     }
-    bail!("expected next Rule")
+    Err(Error::ExpectedNext(Some("expected next Rule".to_string())))
 }
 
 fn expect_rule<'a>(
@@ -489,9 +528,15 @@ fn expect_rule<'a>(
     if let Some(p) = it.next() {
         if p.as_rule() == r {
             return Ok(p);
+        } else {
+            return Err(Error::ExpectedRule {
+                expected: format!("{r:?}"),
+                found: format!("{:?}", p.as_rule()),
+                message: None,
+            });
         }
     }
-    bail!("expected {:?}", r)
+    Err(Error::ExpectedNext(None))
 }
 
 // ------------------------------ Tests ----------------------------------------
@@ -649,10 +694,7 @@ mod tests {
         "#;
 
         let err = parse_idl(SRC).expect_err("multiple programs should fail");
-        assert!(
-            err.to_string()
-                .contains("expected at most one program per IDL document")
-        );
+        assert_eq!(err, Error::MultiplePrograms);
     }
 
     #[test]
