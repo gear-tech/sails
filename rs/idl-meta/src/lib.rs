@@ -32,7 +32,7 @@ pub trait ServiceMeta {
     }
 
     fn base_services() -> impl Iterator<Item = (&'static str, AnyServiceMeta)> {
-        Self::BASE_SERVICES.iter().map(|(name, f)| (*name, f()))
+        Self::BASE_SERVICES.iter().map(|&(name, f)| (name, f()))
     }
 }
 
@@ -66,7 +66,9 @@ impl AnyServiceMeta {
     }
 
     pub fn base_services(&self) -> impl Iterator<Item = (&'static str, &AnyServiceMeta)> {
-        self.base_services.iter().map(|(name, meta)| (*name, meta))
+        self.base_services
+            .iter()
+            .map(|&(name, ref meta)| (name, meta))
     }
 }
 
@@ -80,6 +82,6 @@ pub trait ProgramMeta {
     }
 
     fn services() -> impl Iterator<Item = (&'static str, AnyServiceMeta)> {
-        Self::SERVICES.iter().map(|(s, f)| (*s, f()))
+        Self::SERVICES.iter().map(|&(s, f)| (s, f()))
     }
 }

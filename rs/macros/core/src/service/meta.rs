@@ -1,6 +1,7 @@
 use super::*;
 use proc_macro2::TokenStream;
 use quote::quote;
+use std::collections::HashSet;
 
 impl ServiceBuilder<'_> {
     pub(super) fn meta_trait_impl(&self) -> TokenStream {
@@ -10,6 +11,8 @@ impl ServiceBuilder<'_> {
         let service_type_constraints = self.type_constraints();
         let meta_module_ident = &self.meta_module_ident;
 
+        // TODO [future]: remove the duplicates check for the Sails binary protocol
+        let mut base_names = HashSet::new();
         let base_services_meta = self.base_types.iter().map(|base_type| {
             let path_wo_lifetimes = shared::remove_lifetimes(base_type);
             let base_type_pathless_name = path_wo_lifetimes
@@ -18,6 +21,13 @@ impl ServiceBuilder<'_> {
                 .expect("Base service path should have at least one segment")
                 .ident
                 .to_string();
+
+            if !base_names.insert(base_type_pathless_name.clone()) {
+                abort!(
+                    base_type, "Base service with the same name was defined - `{}`",
+                    base_type_pathless_name
+                );
+            }
 
             quote! {
                 (#base_type_pathless_name , #sails_path::meta::AnyServiceMeta::new::< #path_wo_lifetimes >)
