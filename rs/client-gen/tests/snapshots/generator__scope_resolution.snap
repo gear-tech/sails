@@ -34,30 +34,34 @@ pub mod io {
     use super::*;
     sails_rs::io_struct_impl!(Init () -> ());
 }
-#[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo)]
+#[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo, ReflectHash)]
 #[codec(crate = sails_rs::scale_codec)]
 #[scale_info(crate = sails_rs::scale_info)]
+#[reflect_hash(crate = sails_rs)]
 pub struct CommonType {
     pub program_value: u32,
 }
-#[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo)]
+#[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo, ReflectHash)]
 #[codec(crate = sails_rs::scale_codec)]
 #[scale_info(crate = sails_rs::scale_info)]
+#[reflect_hash(crate = sails_rs)]
 pub struct ProgramOnlyType {
     pub data: CommonType,
 }
 
 pub mod my_service {
     use super::*;
-    #[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo)]
+    #[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo, ReflectHash)]
     #[codec(crate = sails_rs::scale_codec)]
     #[scale_info(crate = sails_rs::scale_info)]
+    #[reflect_hash(crate = sails_rs)]
     pub struct CommonType {
         pub service_name: String,
     }
-    #[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo)]
+    #[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo, ReflectHash)]
     #[codec(crate = sails_rs::scale_codec)]
     #[scale_info(crate = sails_rs::scale_info)]
+    #[reflect_hash(crate = sails_rs)]
     pub struct ServiceCommonType {
         pub service_id: u64,
     }

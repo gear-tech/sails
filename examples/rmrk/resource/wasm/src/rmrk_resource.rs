@@ -38,9 +38,10 @@ pub mod io {
     use super::*;
     sails_rs::io_struct_impl!(New () -> ());
 }
-#[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo)]
+#[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo, ReflectHash)]
 #[codec(crate = sails_rs::scale_codec)]
 #[scale_info(crate = sails_rs::scale_info)]
+#[reflect_hash(crate = sails_rs)]
 pub enum Error {
     NotAuthorized,
     ZeroResourceId,
@@ -49,17 +50,19 @@ pub enum Error {
     WrongResourceType,
     PartNotFound,
 }
-#[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo)]
+#[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo, ReflectHash)]
 #[codec(crate = sails_rs::scale_codec)]
 #[scale_info(crate = sails_rs::scale_info)]
+#[reflect_hash(crate = sails_rs)]
 pub enum Resource {
     Basic(BasicResource),
     Slot(SlotResource),
     Composed(ComposedResource),
 }
-#[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo)]
+#[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo, ReflectHash)]
 #[codec(crate = sails_rs::scale_codec)]
 #[scale_info(crate = sails_rs::scale_info)]
+#[reflect_hash(crate = sails_rs)]
 pub struct BasicResource {
     /// URI like IPFS hash
     pub src: String,
@@ -69,9 +72,10 @@ pub struct BasicResource {
     /// Reference to IPFS location of metadata
     pub metadata_uri: String,
 }
-#[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo)]
+#[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo, ReflectHash)]
 #[codec(crate = sails_rs::scale_codec)]
 #[scale_info(crate = sails_rs::scale_info)]
+#[reflect_hash(crate = sails_rs)]
 pub struct SlotResource {
     /// URI like ipfs hash
     pub src: String,
@@ -84,9 +88,10 @@ pub struct SlotResource {
     /// If the resource has the slot property, it was designed to fit into a specific Base's slot.
     pub slot: u32,
 }
-#[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo)]
+#[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo, ReflectHash)]
 #[codec(crate = sails_rs::scale_codec)]
 #[scale_info(crate = sails_rs::scale_info)]
+#[reflect_hash(crate = sails_rs)]
 pub struct ComposedResource {
     /// URI like ipfs hash
     pub src: String,
@@ -153,8 +158,9 @@ pub mod rmrk_resource {
     #[cfg(not(target_arch = "wasm32"))]
     pub mod events {
         use super::*;
-        #[derive(PartialEq, Debug, Encode, Decode)]
+        #[derive(PartialEq, Debug, Encode, Decode, ReflectHash)]
         #[codec(crate = sails_rs::scale_codec)]
+        #[reflect_hash(crate = sails_rs)]
         pub enum RmrkResourceEvents {
             ResourceAdded { resource_id: u8 },
             PartAdded { resource_id: u8, part_id: u32 },

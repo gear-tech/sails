@@ -68,7 +68,7 @@ impl<'ast, S> ClientGenerator<'ast, S> {
         }
     }
 
-    /// Derive only nessessary [`parity_scale_codec::Encode`], [`parity_scale_codec::Decode`] and [`scale_info::TypeInfo`] traits for the generated types
+    /// Derive only nessessary [`parity_scale_codec::Encode`], [`parity_scale_codec::Decode`], [`scale_info::TypeInfo`] and [`sails_reflect_hash::ReflectHash`] traits for the generated types
     ///
     /// By default, types additionally derive [`PartialEq`], [`Clone`] and [`Debug`]
     pub fn with_no_derive_traits(self) -> Self {

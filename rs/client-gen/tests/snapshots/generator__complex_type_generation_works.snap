@@ -56,9 +56,10 @@ pub mod io {
     use super::*;
     sails_rs::io_struct_impl!(NewProgram (initial_count: u32, id_prefix: String) -> ());
 }
-#[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo)]
+#[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo, ReflectHash)]
 #[codec(crate = sails_rs::scale_codec)]
 #[scale_info(crate = sails_rs::scale_info)]
+#[reflect_hash(crate = sails_rs)]
 pub struct ProgramGlobalInfo {
     pub id: ActorId,
     pub config_version: u32,
@@ -69,33 +70,37 @@ pub struct ProgramGlobalInfo {
     pub non_zero_id: NonZeroU16,
     pub h256_hash: H256,
 }
-#[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo)]
+#[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo, ReflectHash)]
 #[codec(crate = sails_rs::scale_codec)]
 #[scale_info(crate = sails_rs::scale_info)]
+#[reflect_hash(crate = sails_rs)]
 pub struct ProgramScopedData {
     pub name: String,
     pub value: U256,
     pub sub_id: u32,
 }
-#[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo)]
+#[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo, ReflectHash)]
 #[codec(crate = sails_rs::scale_codec)]
 #[scale_info(crate = sails_rs::scale_info)]
+#[reflect_hash(crate = sails_rs)]
 pub enum ErrorType {
     InvalidInput,
     NotFound(String),
     AccessDenied { id: ActorId, reason: String },
 }
-#[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo)]
+#[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo, ReflectHash)]
 #[codec(crate = sails_rs::scale_codec)]
 #[scale_info(crate = sails_rs::scale_info)]
+#[reflect_hash(crate = sails_rs)]
 pub struct GenericData<T, U> {
     pub value_t: T,
     pub value_u: U,
     pub description: String,
 }
-#[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo)]
+#[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo, ReflectHash)]
 #[codec(crate = sails_rs::scale_codec)]
 #[scale_info(crate = sails_rs::scale_info)]
+#[reflect_hash(crate = sails_rs)]
 pub enum GenericResult<V> {
     Success(V),
     Failure(ErrorType),
@@ -103,17 +108,19 @@ pub enum GenericResult<V> {
 
 pub mod my_complex_service {
     use super::*;
-    #[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo)]
+    #[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo, ReflectHash)]
     #[codec(crate = sails_rs::scale_codec)]
     #[scale_info(crate = sails_rs::scale_info)]
+    #[reflect_hash(crate = sails_rs)]
     pub struct ServiceLocalConfig {
         pub enabled: bool,
         pub retry_count: NonZeroU8,
         pub actor_list: Vec<ActorId>,
     }
-    #[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo)]
+    #[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo, ReflectHash)]
     #[codec(crate = sails_rs::scale_codec)]
     #[scale_info(crate = sails_rs::scale_info)]
+    #[reflect_hash(crate = sails_rs)]
     pub enum ServiceStatus {
         Active(ServiceLocalConfig),
         Paused,

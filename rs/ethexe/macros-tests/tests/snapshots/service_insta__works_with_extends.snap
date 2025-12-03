@@ -212,6 +212,24 @@ impl sails_rs::meta::ServiceMeta for SomeService {
     ];
     const ASYNC: bool = <ExtendedService1 as sails_rs::meta::ServiceMeta>::ASYNC
         || <ExtendedService2 as sails_rs::meta::ServiceMeta>::ASYNC;
+    const INTERFACE_ID: [u8; 8] = {
+        let mut final_hash = sails_rs::keccak_const::Keccak256::new();
+        {
+            let mut fn_hash = sails_rs::keccak_const::Keccak256::new();
+            fn_hash = fn_hash.update("command".as_bytes());
+            fn_hash = fn_hash.update("DoThis".as_bytes());
+            fn_hash = fn_hash.update(b"res");
+            fn_hash = fn_hash
+                .update(&<u32 as sails_rs::sails_reflect_hash::ReflectHash>::HASH);
+            final_hash = final_hash.update(&fn_hash.finalize());
+        }
+        final_hash = final_hash
+            .update(&<ExtendedService1 as sails_rs::meta::ServiceMeta>::INTERFACE_ID);
+        final_hash = final_hash
+            .update(&<ExtendedService2 as sails_rs::meta::ServiceMeta>::INTERFACE_ID);
+        let hash = final_hash.finalize();
+        [hash[0], hash[1], hash[2], hash[3], hash[4], hash[5], hash[6], hash[7]]
+    };
 }
 mod some_service_meta {
     use super::*;
