@@ -139,8 +139,8 @@ impl<'a> sails_rs::meta::ServiceMeta for ExtendedLifetime<'a> {
     type CommandsMeta = extended_lifetime_meta::CommandsMeta;
     type QueriesMeta = extended_lifetime_meta::QueriesMeta;
     type EventsMeta = extended_lifetime_meta::EventsMeta;
-    const BASE_SERVICES: &'static [sails_rs::meta::AnyServiceMetaFn] = &[
-        sails_rs::meta::AnyServiceMeta::new::<base::BaseLifetime>,
+    const BASE_SERVICES: &'static [(&'static str, sails_rs::meta::AnyServiceMetaFn)] = &[
+        ("BaseLifetime", sails_rs::meta::AnyServiceMeta::new::<base::BaseLifetime>),
     ];
     const ASYNC: bool = <base::BaseLifetime as sails_rs::meta::ServiceMeta>::ASYNC;
     const INTERFACE_ID: [u8; 8] = {

@@ -161,7 +161,10 @@ impl sails_rename::meta::ServiceMeta for SomeService {
     type CommandsMeta = some_service_meta::CommandsMeta;
     type QueriesMeta = some_service_meta::QueriesMeta;
     type EventsMeta = some_service_meta::EventsMeta;
-    const BASE_SERVICES: &'static [sails_rename::meta::AnyServiceMetaFn] = &[];
+    const BASE_SERVICES: &'static [(
+        &'static str,
+        sails_rename::meta::AnyServiceMetaFn,
+    )] = &[];
     const ASYNC: bool = true;
     const INTERFACE_ID: [u8; 8] = {
         let mut final_hash = sails_rename::keccak_const::Keccak256::new();

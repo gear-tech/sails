@@ -107,7 +107,7 @@ where
     type CommandsMeta = my_generic_events_service_meta::CommandsMeta;
     type QueriesMeta = my_generic_events_service_meta::QueriesMeta;
     type EventsMeta = my_generic_events_service_meta::EventsMeta;
-    const BASE_SERVICES: &'static [sails_rs::meta::AnyServiceMetaFn] = &[];
+    const BASE_SERVICES: &'static [(&'static str, sails_rs::meta::AnyServiceMetaFn)] = &[];
     const ASYNC: bool = false;
     const INTERFACE_ID: [u8; 8] = {
         let mut final_hash = sails_rs::keccak_const::Keccak256::new();
