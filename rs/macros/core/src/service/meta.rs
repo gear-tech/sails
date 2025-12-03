@@ -190,7 +190,7 @@ impl ServiceBuilder<'_> {
             Default::default()
         };
 
-        let v = quote! {
+        quote! {
             {
                 let mut final_hash = #sails_path::keccak_const::Keccak256::new();
 
@@ -206,10 +206,6 @@ impl ServiceBuilder<'_> {
                 let hash = final_hash.finalize();
                 [hash[0], hash[1], hash[2], hash[3], hash[4], hash[5], hash[6], hash[7]]
             }
-        };
-
-        // panic!("{}" , v);
-
-        v
+        }
     }
 }
