@@ -104,7 +104,6 @@ pub mod wasm {
         if ctor == &[24u8, 67u8, 114u8, 101u8, 97u8, 116u8, 101u8] {
             let (__encode_reply,): (bool,) = sails_rs::alloy_sol_types::SolValue::abi_decode_params(
                     input,
-                    false,
                 )
                 .expect("Failed to decode request");
             let program = MyProgram::create();
