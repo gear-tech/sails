@@ -555,10 +555,22 @@ impl FnBuilder<'_> {
 
     fn service_meta(&self) -> TokenStream2 {
         let sails_path = self.sails_path;
-        let route = &self.route;
-        let service_type = &self.result_type;
+        let Type::Path(service_type_path) = &self.result_type else {
+            abort!(
+                self.result_type,
+                "Service constructor must return a type path"
+            );
+        };
+        let service_type_path_wo_lifetimes = shared::remove_lifetimes(&service_type_path.path);
+        let service_name = service_type_path_wo_lifetimes
+            .segments
+            .last()
+            .expect("Service path should have at least one segment")
+            .ident
+            .to_string();
+
         quote!(
-            ( #route , #sails_path::meta::AnyServiceMeta::new::< #service_type >)
+            ( #service_name , #sails_path::meta::AnyServiceMeta::new::< #service_type_path >)
         )
     }
 
