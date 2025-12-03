@@ -429,15 +429,17 @@ mod tests {
     }
 
     #[test]
-    fn encode_decode() {
-        let input = (false, ActorId::zero(), "correct".to_owned()).abi_encode_sequence();
+    fn encode_decode_sol_types() {
+        let original = (false, ActorId::zero(), [1u8, 2, 3, 4]);
+        let input = original.clone().abi_encode_sequence();
 
-        let output: (
+        let decoded: (
             bool,
             <<ActorId as SolValue>::SolType as SolType>::RustType,
-            String,
+            <<[u8; 4] as SolValue>::SolType as SolType>::RustType,
         ) = SolValue::abi_decode_sequence(&input).expect("decode failed");
 
-        let output: (bool, ActorId, String) = (output.0.into(), output.1.into(), output.2.into());
+        let result: (bool, ActorId, [u8; 4]) = (decoded.0, decoded.1.into(), decoded.2.into());
+        assert_eq!(original, result);
     }
 }
