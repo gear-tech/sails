@@ -9,6 +9,7 @@ use syn::{
 pub(crate) struct ExportArgs {
     route: Option<String>,
     unwrap_result: bool,
+    #[cfg(feature = "ethexe")]
     payable: bool,
 }
 
@@ -21,6 +22,7 @@ impl ExportArgs {
         self.unwrap_result
     }
 
+    #[cfg(feature = "ethexe")]
     pub fn payable(&self) -> bool {
         self.payable
     }
@@ -32,6 +34,7 @@ impl Parse for ExportArgs {
         let mut args = Self {
             route: None,
             unwrap_result: false,
+            #[cfg(feature = "ethexe")]
             payable: false,
         };
         for arg in punctuated {
@@ -42,6 +45,7 @@ impl Parse for ExportArgs {
                 ImportArg::UnwrapResult(unwrap_result) => {
                     args.unwrap_result = unwrap_result;
                 }
+                #[cfg(feature = "ethexe")]
                 ImportArg::Payable => {
                     args.payable = true;
                 }
@@ -55,6 +59,7 @@ impl Parse for ExportArgs {
 enum ImportArg {
     Route(String),
     UnwrapResult(bool),
+    #[cfg(feature = "ethexe")]
     Payable,
 }
 
@@ -86,6 +91,7 @@ impl Parse for ImportArg {
                 }
                 Ok(Self::UnwrapResult(true))
             }
+            #[cfg(feature = "ethexe")]
             "payable" => Ok(Self::Payable),
             _ => abort!(ident, "unknown argument: {}", ident),
         }
@@ -104,6 +110,7 @@ mod tests {
         let expected = ExportArgs {
             route: Some("CallMe".to_owned()),
             unwrap_result: true,
+            #[cfg(feature = "ethexe")]
             payable: false,
         };
 
@@ -121,6 +128,7 @@ mod tests {
         let expected = ExportArgs {
             route: None,
             unwrap_result: true,
+            #[cfg(feature = "ethexe")]
             payable: false,
         };
 
@@ -138,6 +146,7 @@ mod tests {
         let expected = ExportArgs {
             route: None,
             unwrap_result: false,
+            #[cfg(feature = "ethexe")]
             payable: false,
         };
 
@@ -148,6 +157,7 @@ mod tests {
         assert_eq!(expected, args);
     }
 
+    #[cfg(feature = "ethexe")]
     #[test]
     fn export_parse_args_payable() {
         // arrange

@@ -205,10 +205,19 @@ impl FnBuilder<'_> {
         let params_struct_ident = &self.params_struct_ident;
         let result_type = self.result_type_with_static_lifetime();
 
-        let payable_doc = self.payable.then(|| quote!(#[doc = " #[payable]"]));
-        let (_, returns_value) = self.result_type_with_value();
-        let returns_value_doc = returns_value.then(|| quote!(#[doc = " #[returns_value]"]));
+        let payable_doc = if cfg!(feature = "ethexe") {
+            self.payable.then(|| quote!(#[doc = " #[payable]"]))
+        } else {
+            None
+        };
 
+        let returns_value_doc = if cfg!(feature = "ethexe") {
+            self.result_type_with_value()
+                .1
+                .then(|| quote!(#[doc = " #[returns_value]"]))
+        } else {
+            None
+        };
         quote!(
             #( #handler_docs_attrs )*
             #payable_doc
@@ -271,7 +280,7 @@ impl FnBuilder<'_> {
 
         let result_type = self.result_type_with_static_lifetime();
 
-        let payable_check = if !self.payable {
+        let payable_check = if cfg!(feature = "ethexe") && !self.payable {
             quote! {
                 #[cfg(target_arch = "wasm32")]
                 if #sails_path::gstd::msg::value() > 0 {

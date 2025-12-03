@@ -12,9 +12,6 @@ pub trait DemoClient {
     fn this_that(&self) -> sails_rs::client::Service<this_that::ThisThatImpl, Self::Env>;
     fn value_fee(&self) -> sails_rs::client::Service<value_fee::ValueFeeImpl, Self::Env>;
     fn chaos(&self) -> sails_rs::client::Service<chaos::ChaosImpl, Self::Env>;
-    fn payable_behaviors(
-        &self,
-    ) -> sails_rs::client::Service<payable_behaviors::PayableBehaviorsImpl, Self::Env>;
 }
 impl<E: sails_rs::client::GearEnv> DemoClient for sails_rs::client::Actor<DemoClientProgram, E> {
     type Env = E;
@@ -39,22 +36,9 @@ impl<E: sails_rs::client::GearEnv> DemoClient for sails_rs::client::Actor<DemoCl
     fn chaos(&self) -> sails_rs::client::Service<chaos::ChaosImpl, Self::Env> {
         self.service(stringify!(Chaos))
     }
-    fn payable_behaviors(
-        &self,
-    ) -> sails_rs::client::Service<payable_behaviors::PayableBehaviorsImpl, Self::Env> {
-        self.service(stringify!(PayableBehaviors))
-    }
 }
 pub trait DemoClientCtors {
     type Env: sails_rs::client::GearEnv;
-    fn create_non_payable(
-        self,
-        _init_val: bool,
-    ) -> sails_rs::client::PendingCtor<DemoClientProgram, io::CreateNonPayable, Self::Env>;
-    fn create_payable(
-        self,
-        _init_val: bool,
-    ) -> sails_rs::client::PendingCtor<DemoClientProgram, io::CreatePayable, Self::Env>;
     /// Program constructor (called once at the very beginning of the program lifetime)
     fn default(self) -> sails_rs::client::PendingCtor<DemoClientProgram, io::Default, Self::Env>;
     /// Another program constructor (called once at the very beginning of the program lifetime)
@@ -70,18 +54,6 @@ impl<E: sails_rs::client::GearEnv> DemoClientCtors
     for sails_rs::client::Deployment<DemoClientProgram, E>
 {
     type Env = E;
-    fn create_non_payable(
-        self,
-        _init_val: bool,
-    ) -> sails_rs::client::PendingCtor<DemoClientProgram, io::CreateNonPayable, Self::Env> {
-        self.pending_ctor((_init_val,))
-    }
-    fn create_payable(
-        self,
-        _init_val: bool,
-    ) -> sails_rs::client::PendingCtor<DemoClientProgram, io::CreatePayable, Self::Env> {
-        self.pending_ctor((_init_val,))
-    }
     fn default(self) -> sails_rs::client::PendingCtor<DemoClientProgram, io::Default, Self::Env> {
         self.pending_ctor(())
     }
@@ -96,8 +68,6 @@ impl<E: sails_rs::client::GearEnv> DemoClientCtors
 
 pub mod io {
     use super::*;
-    sails_rs::io_struct_impl!(CreateNonPayable (_init_val: bool) -> ());
-    sails_rs::io_struct_impl!(CreatePayable (_init_val: bool) -> ());
     sails_rs::io_struct_impl!(Default () -> ());
     sails_rs::io_struct_impl!(New (counter: Option<u32>, dog_position: Option<(i32,i32,)>) -> ());
 }
@@ -351,8 +321,6 @@ pub mod value_fee {
         type Env: sails_rs::client::GearEnv;
         /// Return flag if fee taken and remain value,
         /// using special type `CommandReply<T>`
-        /// #[payable]
-        /// #[returns_value]
         fn do_something_and_take_fee(
             &mut self,
         ) -> sails_rs::client::PendingCall<io::DoSomethingAndTakeFee, Self::Env>;
@@ -422,71 +390,6 @@ pub mod chaos {
         sails_rs::io_struct_impl!(TimeoutWait () -> ());
     }
 }
-
-pub mod payable_behaviors {
-    use super::*;
-    pub trait PayableBehaviors {
-        type Env: sails_rs::client::GearEnv;
-        /// #[returns_value]
-        fn check_non_payable_with_return(
-            &mut self,
-            amount: u128,
-        ) -> sails_rs::client::PendingCall<io::CheckNonPayableWithReturn, Self::Env>;
-        /// #[payable]
-        /// #[returns_value]
-        fn check_payable_with_return(
-            &mut self,
-            amount: u128,
-        ) -> sails_rs::client::PendingCall<io::CheckPayableWithReturn, Self::Env>;
-        fn check_non_payable_no_return(
-            &self,
-            input_val: u32,
-        ) -> sails_rs::client::PendingCall<io::CheckNonPayableNoReturn, Self::Env>;
-        /// #[payable]
-        fn check_payable_no_return(
-            &self,
-            input_val: u32,
-        ) -> sails_rs::client::PendingCall<io::CheckPayableNoReturn, Self::Env>;
-    }
-    pub struct PayableBehaviorsImpl;
-    impl<E: sails_rs::client::GearEnv> PayableBehaviors
-        for sails_rs::client::Service<PayableBehaviorsImpl, E>
-    {
-        type Env = E;
-        fn check_non_payable_with_return(
-            &mut self,
-            amount: u128,
-        ) -> sails_rs::client::PendingCall<io::CheckNonPayableWithReturn, Self::Env> {
-            self.pending_call((amount,))
-        }
-        fn check_payable_with_return(
-            &mut self,
-            amount: u128,
-        ) -> sails_rs::client::PendingCall<io::CheckPayableWithReturn, Self::Env> {
-            self.pending_call((amount,))
-        }
-        fn check_non_payable_no_return(
-            &self,
-            input_val: u32,
-        ) -> sails_rs::client::PendingCall<io::CheckNonPayableNoReturn, Self::Env> {
-            self.pending_call((input_val,))
-        }
-        fn check_payable_no_return(
-            &self,
-            input_val: u32,
-        ) -> sails_rs::client::PendingCall<io::CheckPayableNoReturn, Self::Env> {
-            self.pending_call((input_val,))
-        }
-    }
-
-    pub mod io {
-        use super::*;
-        sails_rs::io_struct_impl!(CheckNonPayableWithReturn (amount: u128) -> u128);
-        sails_rs::io_struct_impl!(CheckPayableWithReturn (amount: u128) -> u128);
-        sails_rs::io_struct_impl!(CheckNonPayableNoReturn (input_val: u32) -> u32);
-        sails_rs::io_struct_impl!(CheckPayableNoReturn (input_val: u32) -> u32);
-    }
-}
 #[derive(PartialEq, Clone, Debug, Encode, Decode, TypeInfo)]
 #[codec(crate = sails_rs::scale_codec)]
 #[scale_info(crate = sails_rs::scale_info)]
@@ -542,5 +445,4 @@ pub mod mockall {
     mock! { pub ThisThat {} #[allow(refining_impl_trait)] #[allow(clippy::type_complexity)] impl this_that::ThisThat for ThisThat { type Env = sails_rs::client::GstdEnv; fn do_that (&mut self, param: DoThatParam) -> sails_rs::client::PendingCall<this_that::io::DoThat, sails_rs::client::GstdEnv>;fn do_this (&mut self, p1: u32, p2: String, p3: (Option<H160>,NonZeroU8,), p4: TupleStruct) -> sails_rs::client::PendingCall<this_that::io::DoThis, sails_rs::client::GstdEnv>;fn noop (&mut self, ) -> sails_rs::client::PendingCall<this_that::io::Noop, sails_rs::client::GstdEnv>;fn that (& self, ) -> sails_rs::client::PendingCall<this_that::io::That, sails_rs::client::GstdEnv>;fn this (& self, ) -> sails_rs::client::PendingCall<this_that::io::This, sails_rs::client::GstdEnv>; } }
     mock! { pub ValueFee {} #[allow(refining_impl_trait)] #[allow(clippy::type_complexity)] impl value_fee::ValueFee for ValueFee { type Env = sails_rs::client::GstdEnv; fn do_something_and_take_fee (&mut self, ) -> sails_rs::client::PendingCall<value_fee::io::DoSomethingAndTakeFee, sails_rs::client::GstdEnv>; } }
     mock! { pub Chaos {} #[allow(refining_impl_trait)] #[allow(clippy::type_complexity)] impl chaos::Chaos for Chaos { type Env = sails_rs::client::GstdEnv; fn panic_after_wait (& self, ) -> sails_rs::client::PendingCall<chaos::io::PanicAfterWait, sails_rs::client::GstdEnv>;fn reply_hook_counter (& self, ) -> sails_rs::client::PendingCall<chaos::io::ReplyHookCounter, sails_rs::client::GstdEnv>;fn timeout_wait (& self, ) -> sails_rs::client::PendingCall<chaos::io::TimeoutWait, sails_rs::client::GstdEnv>; } }
-    mock! { pub PayableBehaviors {} #[allow(refining_impl_trait)] #[allow(clippy::type_complexity)] impl payable_behaviors::PayableBehaviors for PayableBehaviors { type Env = sails_rs::client::GstdEnv; fn check_non_payable_with_return (&mut self, amount: u128) -> sails_rs::client::PendingCall<payable_behaviors::io::CheckNonPayableWithReturn, sails_rs::client::GstdEnv>;fn check_payable_with_return (&mut self, amount: u128) -> sails_rs::client::PendingCall<payable_behaviors::io::CheckPayableWithReturn, sails_rs::client::GstdEnv>;fn check_non_payable_no_return (& self, input_val: u32) -> sails_rs::client::PendingCall<payable_behaviors::io::CheckNonPayableNoReturn, sails_rs::client::GstdEnv>;fn check_payable_no_return (& self, input_val: u32) -> sails_rs::client::PendingCall<payable_behaviors::io::CheckPayableNoReturn, sails_rs::client::GstdEnv>; } }
 }

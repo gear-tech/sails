@@ -11,7 +11,6 @@ mod ping;
 mod references;
 mod this_that;
 mod value_fee;
-mod payable_behaviors;
 
 // Dog data is stored as a global variable. However, it has exactly the same lifetime
 // the Counter data incapsulated in the program itself, i.e. there are no any benefits
@@ -97,43 +96,6 @@ impl DemoProgram {
 
     pub fn chaos(&self) -> chaos::ChaosService {
         chaos::ChaosService
-    }
-
-    // --- Constructors for Payable Behaviors ---
-
-    // Non-payable constructor
-    #[export]
-    pub fn create_non_payable(_init_val: bool) -> Self {
-        unsafe {
-            DOG_DATA = Some(RefCell::new(walker::WalkerData::new(
-                Default::default(),
-                Default::default(),
-            )));
-        }
-        Self {
-            counter_data: RefCell::new(counter::CounterData::new(Default::default())),
-            ref_data: 42,
-        }
-    }
-
-    // Payable constructor
-    #[export(payable)]
-    pub fn create_payable(_init_val: bool) -> Self {
-        unsafe {
-            DOG_DATA = Some(RefCell::new(walker::WalkerData::new(
-                Default::default(),
-                Default::default(),
-            )));
-        }
-        Self {
-            counter_data: RefCell::new(counter::CounterData::new(Default::default())),
-            ref_data: 42,
-        }
-    }
-
-    // --- Expose Payable Behaviors Service ---
-    pub fn payable_behaviors(&self) -> payable_behaviors::PayableBehaviorsService {
-        payable_behaviors::PayableBehaviorsService {}
     }
 }
 
