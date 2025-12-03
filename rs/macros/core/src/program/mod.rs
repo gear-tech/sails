@@ -591,8 +591,8 @@ impl FnBuilder<'_> {
     }
 
     fn service_invocation(&self) -> TokenStream2 {
-        let route_ident = self.route_ident();
-        let service_ctor_ident = &self.ident;
+        let route_ident = &self.route_ident();
+        let service_ctor_ident = self.ident;
 
         quote! {
             if input.starts_with(& #route_ident) {
@@ -670,7 +670,7 @@ impl FnBuilder<'_> {
         program_ident: &Ident,
     ) -> TokenStream2 {
         let sails_path = self.sails_path;
-        let handler_ident = &self.ident;
+        let handler_ident = self.ident;
         let unwrap_token = self.unwrap_result.then(|| quote!(.unwrap()));
         let handler_args = self
             .params_idents()
