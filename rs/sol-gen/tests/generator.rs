@@ -61,3 +61,32 @@ fn test_generate_contract_w_mixed_indexed_events() {
     assert!(contract.is_ok());
     assert_snapshot!(String::from_utf8(contract.unwrap().data).unwrap());
 }
+
+const PAYABLE_IDL: &str = r#"
+constructor {
+    /// #[payable]
+    New: ();
+};
+
+service MyService {
+    /// #[payable]
+    Deposit: () -> null;
+
+    /// #[returns_value]
+    Withdraw: () -> u128;
+
+    /// #[payable]
+    /// #[returns_value]
+    SwapAndRefund: () -> u128;
+
+    RegularCall: () -> bool;
+}
+"#;
+
+#[test]
+fn test_generate_payable_contract() {
+    let contract = generate_solidity_contract(PAYABLE_IDL, "PayableContract");
+
+    assert!(contract.is_ok());
+    assert_snapshot!(String::from_utf8(contract.unwrap().data).unwrap());
+}
