@@ -258,7 +258,7 @@ pub(crate) fn extract_result_types(tp: &TypePath) -> Option<(&Type, &Type)> {
         if let PathArguments::AngleBracketed(args) = &last.arguments
             && args.args.len() == 2
             && let Some(GenericArgument::Type(ok_ty)) = args.args.first()
-            && let Some(GenericArgument::Type(err_ty)) = args.args.iter().nth(1)
+            && let Some(GenericArgument::Type(err_ty)) = args.args.last()
         {
             return Some((ok_ty, err_ty));
         }

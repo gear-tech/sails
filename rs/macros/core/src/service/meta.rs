@@ -47,7 +47,7 @@ impl ServiceBuilder<'_> {
                     #( #base_services_meta ),*
                 ];
                 const ASYNC: bool = #service_meta_asyncness ;
-                const INTERFACE_ID: [u8; 32] = #interface_id_computation;
+                const INTERFACE_ID: [u8; 8] = #interface_id_computation;
             }
         }
     }
@@ -111,6 +111,7 @@ impl ServiceBuilder<'_> {
         commands.sort_by_key(|h| h.route.to_lowercase());
         queries.sort_by_key(|h| h.route.to_lowercase());
 
+        // TODO: #1124
         let fn_hash_computations: Vec<_> = commands
             .into_iter()
             .chain(queries)
@@ -126,19 +127,23 @@ impl ServiceBuilder<'_> {
                 // Generate RES_HASH - check if result type is Result<T, E>
                 let result_type = handler.result_type_with_static_lifetime();
                 let result_hash = if let Type::Path(ref tp) = result_type && let Some((ok_ty, err_ty)) = shared::extract_result_types(tp) {
-                    // Result type: RES_HASH = T::HASH || b"throws" || E::HASH
+                    // Result type: RES_HASH = b"res" || T::HASH || b"throws" || E::HASH
                     quote! {
+                        fn_hash = fn_hash.update(b"res");
                         fn_hash = fn_hash.update(&<#ok_ty as #sails_path::sails_reflect_hash::ReflectHash>::HASH);
                         fn_hash = fn_hash.update(b"throws");
                         fn_hash = fn_hash.update(&<#err_ty as #sails_path::sails_reflect_hash::ReflectHash>::HASH);
                     }
                 } else {
-                    // Other types: RES_HASH = hash(b"res" || REFLECT_HASH)
-                    quote!(fn_hash = fn_hash.update(&<#result_type as #sails_path::sails_reflect_hash::ReflectHash>::HASH);)
+                    // Other types: RES_HASH = b"res" || REFLECT_HASH
+                    quote! {
+                        fn_hash = fn_hash.update(b"res");
+                        fn_hash = fn_hash.update(&<#result_type as #sails_path::sails_reflect_hash::ReflectHash>::HASH);
+                    }
                 };
 
-                // FN_HASH = hash(bytes(FN_TYPE) || bytes(FN_NAME) || ARG_REFLECT_HASH || RES_HASH)
-                // RES_HASH = (RES_REFLECT_HASH) | (T_REFLECT_HASH || bytes("throws") || E_REFLECT_HASH)
+                // FN_HASH = hash(bytes(FN_TYPE) || bytes(FN_NAME) || ARGS_REFLECT_HASH || RES_HASH)
+                // RES_HASH = (b"res" || REFLECT_HASH) | (b"res" || T_REFLECT_HASH || bytes("throws") || E_REFLECT_HASH)
                 quote! {
                     {
                         let mut fn_hash = #sails_path::keccak_const::Keccak256::new();
@@ -146,7 +151,7 @@ impl ServiceBuilder<'_> {
                         fn_hash = fn_hash.update(#fn_name.as_bytes());
                         #(#arg_hash_computations)*
                         #result_hash
-                        fns_hash = fns_hash.update(&fn_hash.finalize());
+                        final_hash = final_hash.update(&fn_hash.finalize());
                     }
                 }
             })
@@ -185,14 +190,12 @@ impl ServiceBuilder<'_> {
             Default::default()
         };
 
-        let v = quote! {
+        quote! {
             {
                 let mut final_hash = #sails_path::keccak_const::Keccak256::new();
 
                 // Hash all functions
-                let mut fns_hash = #sails_path::keccak_const::Keccak256::new();
                 #(#fn_hash_computations)*
-                final_hash = final_hash.update(&fns_hash.finalize());
 
                 // Hash events if present
                 #events_hash
@@ -200,12 +203,9 @@ impl ServiceBuilder<'_> {
                 // Hash base services if present
                 #base_services_hash
 
-                final_hash.finalize()
+                let hash = final_hash.finalize();
+                [hash[0], hash[1], hash[2], hash[3], hash[4], hash[5], hash[6], hash[7]]
             }
-        };
-
-        // panic!("{}" , v);
-
-        v
+        }
     }
 }

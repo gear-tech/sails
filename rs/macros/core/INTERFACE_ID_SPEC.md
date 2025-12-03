@@ -4,7 +4,7 @@ This document specifies how interface IDs are generated for Sails services at co
 
 ## Overview
 
-Each Sails service has a unique 32-byte **Interface ID** that is computed deterministically at compile time based on the service's structural definition: its functions, their signatures, events, and inherited base services. The Interface ID provides **unique service fingerprinting**, so two services with different structures will have different IDs, even if they have the same name
+Each Sails service has a unique 8-byte **Interface ID** that is computed deterministically at compile time based on the service's structural definition: its functions, their signatures, events, and inherited base services. The Interface ID provides **unique service fingerprinting**, so two services with different structures will have different IDs, even if they have the same name
 
 ## Terminology
 
@@ -18,23 +18,20 @@ Each Sails service has a unique 32-byte **Interface ID** that is computed determ
 The Interface ID is computed as:
 
 ```
-INTERFACE_ID = HASH(FUNCTIONS_HASH || EVENTS_HASH || BASE_SERVICES_HASH)
+PRE_INTERFACE_ID = HASH(FN_HASH_1 || FN_HASH_2 || ... || FN_HASH_N || EVENTS_HASH || BASE_SERVICE_HASH_1 || ... || BASE_SERVICE_HASH_M)
+
+# First 8 bytes of the hash
+INTERFACE_ID = PRE_INTERFACE_ID[0..8]
 ```
 
 Where:
-- `FUNCTIONS_HASH`: Hash of all service functions
+- `FN_HASH_N`: Hash of service's function *N*
 - `EVENTS_HASH`: Hash of the service's event type (if present)
-- `BASE_SERVICES_HASH`: Hash of extended base services (if present)
+- `BASE_SERVICE_HASH_M`: Hash of extended base services (if present)
 
 ### Functions Hash
 
-Functions are sorted lexicographically by their route name (case-insensitive), then hashed:
-
-```
-FUNCTIONS_HASH = HASH(FN_HASH_1 || FN_HASH_2 || ... || FN_HASH_N)
-```
-
-Note: Functions are sorted by the **lowercase** version of their route names, but the original case is preserved in the hash computation.
+Functions are sorted lexicographically by their route name (case-insensitive). Functions are sorted by the **lowercase** version of their route names, but the original case is preserved in the hash computation.
 
 Each function's hash is computed as:
 
@@ -61,13 +58,10 @@ Note: The bytes are the UTF-8 representation of the string literals.
 
 #### Argument Hash (ARG_HASH)
 
-Each function argument is hashed individually:
-
+Each function argument hash is just a structural hash of its type returned from `ReflectHash` trait implementation:
 ```
-ARG_HASH = HASH(bytes("arg") || REFLECT_HASH)
+ARG_HASH = REFLECT_HASH
 ```
-
-Where `REFLECT_HASH` is the 32-byte structural hash of the argument's type.
 
 Arguments are processed in their declaration order.
 
@@ -77,20 +71,27 @@ The result hash depends on whether the return type is a `Result<T, E>`:
 
 **For non-Result types:**
 ```
-RES_HASH = HASH(bytes("res) || REFLECT_HASH)
+RES_HASH = bytes("res) || REFLECT_HASH
 ```
+It's a concatenation of the UTF-8 bytes of the string "res" and the structural hash of the return type.
 
 **For CommandReply<T> result:**
 If a function returns `CommandReply<T>`, the type `T` is extracted and used for hashing. The `CommandReply` wrapper itself is not included in the hash since it's a protocol-level concern, not a logical interface concern.
 
 ```
-RES_HASH = HASH(bytes("res") || T::REFLECT_HASH)
+RES_HASH = bytes("res") || T::REFLECT_HASH
 ```
+It's a concatenation of the UTF-8 bytes of the string "res" and the structural hash of the inner type `T`.
 
 **For Result<T, E> types:**
 ```
-RES_HASH = HASH(bytes("res") || T::REFLECT_HASH || bytes("throws") || E::REFLECT_HASH)
+RES_HASH = bytes("res") || T::REFLECT_HASH || bytes("throws") || E::REFLECT_HASH
 ```
+It's a concatenation of:
+- UTF-8 bytes of the string "res"
+- Structural hash of the success type `T`
+- UTF-8 bytes of the string "throws"
+- Structural hash of the error type `E`
 
 ### Events Hash
 
@@ -104,13 +105,13 @@ If no events type is declared, this component is omitted from the interface ID c
 
 ### Base Services Hash
 
-If the service extends base services, their interface IDs are sorted lexicographically by the base service type name (case-insensitive), then hashed:
+If the service extends base services, their interface IDs are sorted lexicographically by the base service type name (case-insensitive), and concatenated:
 
 ```
-BASE_SERVICES_HASH = HASH(BASE_ID_1 || BASE_ID_2 || ... || BASE_ID_N)
+BASE_ID_1 || BASE_ID_2 || ... || BASE_ID_N
 ```
 
-Where each `BASE_ID_i` is the 32-byte Interface ID of a base service.
+Where each `BASE_ID_i` is the 8-byte Interface ID of a base service.
 
 Base services are sorted by their type identifier (the last segment of their type path) in ascending case-insensitive lexicographical order. The sorting uses the **lowercase** version of type names, but the actual Interface IDs are used in the hash (not the names themselves).
 
@@ -124,91 +125,6 @@ The base services would be sorted as: `[BaseServiceB, BaseServiceC, ServiceC, Se
 
 If no base services exist, this component is omitted from the interface ID computation.
 
-## Type Structural Hashing (ReflectHash)
-
-The `ReflectHash` trait computes a 32-byte structural hash for types at compile time.
-
-### Primitives
-
-Primitive types are hashed by their type name:
-
-```rust
-// Examples:
-u32::HASH = HASH(b"u32")
-bool::HASH = HASH(b"bool")
-String::HASH = HASH(b"String")
-str::HASH = HASH(b"String")  // str hashes same as String
-```
-
-### Compound Types
-
-#### Tuples
-```
-HASH = HASH(b"(" || T1::HASH || T2::HASH || ... || TN::HASH || b")")
-```
-
-#### Arrays
-```
-HASH = HASH(b"[" || T::HASH || b";" || bytes(stringify!(N)) || b"]")
-```
-
-#### Vectors
-```
-HASH = HASH(b"Vec<" || T::HASH || b">")
-```
-
-#### Options
-```
-HASH = HASH(b"Option<" || T::HASH || b">")
-```
-
-#### Results
-```
-HASH = HASH(b"Result<" || T::HASH || b"," || E::HASH || b">")
-```
-
-### Structs
-
-For structs, the hash includes the type name and field types (but NOT field names):
-
-```
-HASH = HASH(TypeName || T1::HASH || T2::HASH || ... || TN::HASH)
-```
-
-Where:
-- `TypeName` is the UTF-8 bytes of the struct's identifier
-- Field types are included in declaration order
-- Field names are **excluded** to maintain structural equivalence
-
-This applies to:
-- **Unit structs**: `struct Foo;` → `HASH(b"Foo")`
-- **Tuple structs**: `struct Foo(u32, u64);` → `HASH(b"Foo" || u32::HASH || u64::HASH)`
-- **Named structs**: `struct Foo { x: u32, y: u64 }` → `HASH(b"Foo" || u32::HASH || u64::HASH)`
-
-### Enums
-
-For enums, the hash includes the enum name and all variant hashes:
-
-```
-HASH = HASH(EnumName || VARIANT_HASH_1 || VARIANT_HASH_2 || ... || VARIANT_HASH_N)
-```
-
-Each variant is hashed as:
-
-```
-VARIANT_HASH = HASH(VariantName || T1::HASH || T2::HASH || ... || TN::HASH)
-```
-
-Where:
-- Variants are processed in declaration order
-- Variant field types are included in declaration order
-- Field names in named variants are **excluded**
-
-Examples:
-- Unit variant: `A` → `HASH(b"A")`
-- Tuple variant: `B(u32, u64)` → `HASH(b"B" || u32::HASH || u64::HASH)`
-- Named variant: `C { x: u32, y: u64 }` → `HASH(b"C" || u32::HASH || u64::HASH)`
-
 ## Determinism Guarantees
 
 The interface ID computation is **deterministic** and **stable** under:
@@ -217,10 +133,10 @@ The interface ID computation is **deterministic** and **stable** under:
 2. **Adding/removing functions**: Changes the FUNCTIONS_HASH
 3. **Changing function types**: query ↔ command changes FN_TYPE and thus the hash
 4. **Adding/removing events**: Changes EVENTS_HASH presence
-5. **Adding/removing base services**: Changes BASE_SERVICES_HASH
+5. **Adding/removing base services**: Changes final hash because added/removed base service IDs affects the final computation
 6. **Renaming fields**: Field name changes do NOT affect the hash (structural hashing)
 7. **Reordering functions**: Does NOT change FUNCTIONS_HASH (functions are sorted)
-8. **Reordering base services**: Does NOT change BASE_SERVICES_HASH (base services are sorted)
+8. **Reordering base services**: Does NOT change the final hash (base services are sorted)
 
 ## Examples
 
@@ -242,21 +158,19 @@ Interface ID computation:
 // Functions sorted: ["Get", "Increment"]
 
 GET_FN_HASH = HASH(
-    b"query" ||
-    b"Get" ||
-    HASH(b"res" || u32::HASH)
+    bytes("query") ||
+    bytes("Get") ||
+    bytes("res") || u32::HASH
 )
 
 INCREMENT_FN_HASH = HASH(
-    b"command" ||
-    b"Increment" ||
-    HASH(b"arg" || u32::HASH) ||
-    HASH(b"res" || u32::HASH)
+    bytes("command") ||
+    bytes("Increment") ||
+    u32::HASH ||
+    bytes("res") || u32::HASH
 )
 
-FUNCTIONS_HASH = HASH(GET_FN_HASH || INCREMENT_FN_HASH)
-
-INTERFACE_ID = HASH(FUNCTIONS_HASH)
+INTERFACE_ID = HASH(GET_FN_HASH || INCREMENT_FN_HASH)
 ```
 
 ### Service with Events
@@ -276,9 +190,8 @@ impl Counter {
 
 Interface ID computation:
 ```
-FUNCTIONS_HASH = HASH(INCREMENT_FN_HASH)
 EVENTS_HASH = CounterEvents::HASH
-INTERFACE_ID = HASH(FUNCTIONS_HASH || EVENTS_HASH)
+INTERFACE_ID = HASH(INCREMENT_FN_HASH || EVENTS_HASH)
 ```
 
 ### Service with Result Type
@@ -294,11 +207,11 @@ impl Wallet {
 Function hash includes error type:
 ```
 TRANSFER_FN_HASH = HASH(
-    b"command" ||
-    b"Transfer" ||
-    HASH(b"arg" || ActorId::HASH) ||
-    HASH(b"arg" || u128::HASH) ||
-    HASH(b"res" || unit::HASH || b"throws" || Error::HASH)
+    bytes("command") ||
+    bytes("Transfer") ||
+    ActorId::HASH ||
+    u128::HASH ||
+    bytes("res") || unit::HASH || bytes("throws") || Error::HASH
 )
 ```
 
@@ -332,20 +245,16 @@ Interface ID computation with base services:
 // Base services sorted case-insensitively: ["Auditor", "Logger"]
 // (sorted by lowercase: "auditor" < "logger")
 
-AUDITOR_ID = Auditor::INTERFACE_ID  // 32 bytes
-LOGGER_ID = Logger::INTERFACE_ID     // 32 bytes
-
-BASE_SERVICES_HASH = HASH(AUDITOR_ID || LOGGER_ID)
+AUDITOR_ID = Auditor::INTERFACE_ID  // 8 bytes
+LOGGER_ID = Logger::INTERFACE_ID     // 8 bytes
 
 INCREMENT_FN_HASH = HASH(
-    b"command" ||
-    b"Increment" ||
-    HASH(b"res" || u32::HASH)
+    bytes("command") ||
+    bytes("Increment") ||
+    bytes("res") || u32::HASH
 )
 
-FUNCTIONS_HASH = HASH(INCREMENT_FN_HASH)
-
-INTERFACE_ID = HASH(FUNCTIONS_HASH || BASE_SERVICES_HASH)
+INTERFACE_ID = HASH(INCREMENT_FN_HASH || AUDITOR_ID || LOGGER_ID)
 ```
 
 Note: If Logger and Auditor themselves extend other services or have events, those are already included in their respective INTERFACE_IDs, creating a recursive dependency tree.

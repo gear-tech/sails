@@ -130,6 +130,7 @@ fn derive_reflect_hash_impl(input: DeriveInput) -> SynResult<TokenStream2> {
     })
 }
 
+// TODO: #1125
 /// Look for `#[reflect_hash(crate = ...)]` attribute and return the path.
 /// If not found, use proc-macro-crate to detect the crate name.
 fn reflect_hash_crate_path(attrs: &[Attribute]) -> SynResult<TokenStream2> {
