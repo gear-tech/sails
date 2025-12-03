@@ -427,4 +427,17 @@ mod tests {
         let sel = *b"ABCD";
         assert!(!selector_equals(sel, b"A", b"B")); // only "AB" < 4 bytes
     }
+
+    #[test]
+    fn encode_decode() {
+        let input = (false, ActorId::zero(), "correct".to_owned()).abi_encode_sequence();
+
+        let output: (
+            bool,
+            <<ActorId as SolValue>::SolType as SolType>::RustType,
+            String,
+        ) = SolValue::abi_decode_sequence(&input).expect("decode failed");
+
+        let output: (bool, ActorId, String) = (output.0.into(), output.1.into(), output.2.into());
+    }
 }

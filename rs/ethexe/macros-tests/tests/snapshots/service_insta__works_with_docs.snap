@@ -101,11 +101,14 @@ impl SomeServiceExposure<SomeService> {
     ) -> Option<(sails_rs::Vec<u8>, u128, bool)> {
         use sails_rs::gstd::services::{Service, Exposure};
         if method == &[16u8, 84u8, 104u8, 105u8, 115u8] {
-            let (__encode_reply, p1): (bool, bool) = sails_rs::alloy_sol_types::SolValue::abi_decode_params(
-                    input,
-                )
-                .ok()?;
-            let result = self.this(p1);
+            let (
+                __encode_reply,
+                p1,
+            ): (
+                bool,
+                <<bool as sails_rs::alloy_sol_types::SolValue>::SolType as sails_rs::alloy_sol_types::SolType>::RustType,
+            ) = sails_rs::alloy_sol_types::SolValue::abi_decode_params(input).ok()?;
+            let result = self.this(p1.into());
             let value = 0u128;
             let output = if __encode_reply {
                 let message_id = sails_rs::alloy_primitives::B256::new(
@@ -128,11 +131,16 @@ impl SomeServiceExposure<SomeService> {
     ) -> Option<(sails_rs::Vec<u8>, u128, bool)> {
         use sails_rs::gstd::services::{Service, Exposure};
         if method == &[24u8, 68u8, 111u8, 84u8, 104u8, 105u8, 115u8] {
-            let (__encode_reply, p1, p2): (bool, u32, String) = sails_rs::alloy_sol_types::SolValue::abi_decode_params(
-                    input,
-                )
-                .ok()?;
-            let result = self.do_this(p1, p2).await;
+            let (
+                __encode_reply,
+                p1,
+                p2,
+            ): (
+                bool,
+                <<u32 as sails_rs::alloy_sol_types::SolValue>::SolType as sails_rs::alloy_sol_types::SolType>::RustType,
+                <<String as sails_rs::alloy_sol_types::SolValue>::SolType as sails_rs::alloy_sol_types::SolType>::RustType,
+            ) = sails_rs::alloy_sol_types::SolValue::abi_decode_params(input).ok()?;
+            let result = self.do_this(p1.into(), p2.into()).await;
             let value = 0u128;
             let output = if __encode_reply {
                 let message_id = sails_rs::alloy_primitives::B256::new(

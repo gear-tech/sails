@@ -25,7 +25,7 @@ impl SomeService {
     }
 
     #[export]
-    pub fn this(&self, p1: bool) -> bool {
+    pub fn this(&self, p1: ActorId) -> ActorId {
         p1
     }
 }
