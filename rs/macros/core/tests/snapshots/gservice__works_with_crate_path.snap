@@ -107,9 +107,8 @@ impl sails_rename::meta::ServiceMeta for SomeService {
     type EventsMeta = some_service_meta::EventsMeta;
     const BASE_SERVICES: &'static [sails_rename::meta::AnyServiceMetaFn] = &[];
     const ASYNC: bool = true;
-    const INTERFACE_ID: [u8; 32] = {
+    const INTERFACE_ID: [u8; 8] = {
         let mut final_hash = sails_rename::keccak_const::Keccak256::new();
-        let mut fns_hash = sails_rename::keccak_const::Keccak256::new();
         {
             let mut fn_hash = sails_rename::keccak_const::Keccak256::new();
             fn_hash = fn_hash.update("command".as_bytes());
@@ -120,9 +119,10 @@ impl sails_rename::meta::ServiceMeta for SomeService {
                 .update(
                     &<String as sails_rename::sails_reflect_hash::ReflectHash>::HASH,
                 );
+            fn_hash = fn_hash.update(b"res");
             fn_hash = fn_hash
                 .update(&<u32 as sails_rename::sails_reflect_hash::ReflectHash>::HASH);
-            fns_hash = fns_hash.update(&fn_hash.finalize());
+            final_hash = final_hash.update(&fn_hash.finalize());
         }
         {
             let mut fn_hash = sails_rename::keccak_const::Keccak256::new();
@@ -130,12 +130,13 @@ impl sails_rename::meta::ServiceMeta for SomeService {
             fn_hash = fn_hash.update("This".as_bytes());
             fn_hash = fn_hash
                 .update(&<bool as sails_rename::sails_reflect_hash::ReflectHash>::HASH);
+            fn_hash = fn_hash.update(b"res");
             fn_hash = fn_hash
                 .update(&<bool as sails_rename::sails_reflect_hash::ReflectHash>::HASH);
-            fns_hash = fns_hash.update(&fn_hash.finalize());
+            final_hash = final_hash.update(&fn_hash.finalize());
         }
-        final_hash = final_hash.update(&fns_hash.finalize());
-        final_hash.finalize()
+        let hash = final_hash.finalize();
+        [hash[0], hash[1], hash[2], hash[3], hash[4], hash[5], hash[6], hash[7]]
     };
 }
 mod some_service_meta {

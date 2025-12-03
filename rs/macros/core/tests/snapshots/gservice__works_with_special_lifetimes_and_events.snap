@@ -109,21 +109,21 @@ where
     type EventsMeta = my_generic_events_service_meta::EventsMeta;
     const BASE_SERVICES: &'static [sails_rs::meta::AnyServiceMetaFn] = &[];
     const ASYNC: bool = false;
-    const INTERFACE_ID: [u8; 32] = {
+    const INTERFACE_ID: [u8; 8] = {
         let mut final_hash = sails_rs::keccak_const::Keccak256::new();
-        let mut fns_hash = sails_rs::keccak_const::Keccak256::new();
         {
             let mut fn_hash = sails_rs::keccak_const::Keccak256::new();
             fn_hash = fn_hash.update("command".as_bytes());
             fn_hash = fn_hash.update("DoThis".as_bytes());
+            fn_hash = fn_hash.update(b"res");
             fn_hash = fn_hash
                 .update(&<u32 as sails_rs::sails_reflect_hash::ReflectHash>::HASH);
-            fns_hash = fns_hash.update(&fn_hash.finalize());
+            final_hash = final_hash.update(&fn_hash.finalize());
         }
-        final_hash = final_hash.update(&fns_hash.finalize());
         final_hash = final_hash
             .update(&<MyEvents as sails_rs::sails_reflect_hash::ReflectHash>::HASH);
-        final_hash.finalize()
+        let hash = final_hash.finalize();
+        [hash[0], hash[1], hash[2], hash[3], hash[4], hash[5], hash[6], hash[7]]
     };
 }
 mod my_generic_events_service_meta {

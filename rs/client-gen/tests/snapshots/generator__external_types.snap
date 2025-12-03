@@ -24,9 +24,10 @@ impl<E: my_crate::sails::client::GearEnv> Service
 
 pub mod service {
     use super::*;
-    #[derive(Encode, Decode, TypeInfo)]
+    #[derive(Encode, Decode, TypeInfo, ReflectHash)]
     #[codec(crate = my_crate::sails::scale_codec)]
     #[scale_info(crate = my_crate::sails::scale_info)]
+    #[reflect_hash(crate = my_crate::sails)]
     pub struct MyParam {
         pub f1: u32,
         pub f2: Vec<String>,
@@ -35,7 +36,7 @@ pub mod service {
     #[derive(Encode, Decode, TypeInfo, ReflectHash)]
     #[codec(crate = my_crate::sails::scale_codec)]
     #[scale_info(crate = my_crate::sails::scale_info)]
-    #[reflect_hash(crate = sails_rs)]
+    #[reflect_hash(crate = my_crate::sails)]
     pub enum MyParam2 {
         Variant1,
         Variant2(u32),
