@@ -8,7 +8,7 @@ use std::{
     fs::{self, File},
     io::{self, Write},
     path::{Path, PathBuf},
-    process::{self, Command, ExitStatus, Output},
+    process::{Command, ExitStatus, Output, Stdio},
 };
 
 const SAILS_VERSION: &str = env!("CARGO_PKG_VERSION");
@@ -456,7 +456,7 @@ impl ProgramGenerator {
 fn git_show_current_branch<P: AsRef<Path>>(target_dir: P) -> anyhow::Result<String> {
     let git_command = git_command();
     let mut cmd = Command::new(git_command);
-    cmd.stdout(process::Stdio::piped())
+    cmd.stdout(Stdio::piped())
         .arg("-C")
         .arg(target_dir.as_ref())
         .arg("branch")
@@ -481,7 +481,7 @@ fn cargo_new<P: AsRef<Path>>(
     let target_dir = target_dir.as_ref();
     let cargo_new_or_init = if target_dir.exists() { "init" } else { "new" };
     let mut cmd = Command::new(cargo_command);
-    cmd.stdout(process::Stdio::null()) // Don't pollute output
+    cmd.stdout(Stdio::null()) // Don't pollute output
         .arg(cargo_new_or_init)
         .arg(target_dir)
         .arg("--name")
@@ -522,7 +522,7 @@ where
     let cargo_command = cargo_command();
 
     let mut cmd = Command::new(cargo_command);
-    cmd.stdout(process::Stdio::null()) // Don't pollute output
+    cmd.stdout(Stdio::null()) // Don't pollute output
         .arg("add")
         .args(packages)
         .arg("--manifest-path")
@@ -564,7 +564,7 @@ fn cargo_fmt<P: AsRef<Path>>(manifest_path: P) -> anyhow::Result<()> {
     let cargo_command = cargo_command();
 
     let mut cmd = Command::new(cargo_command);
-    cmd.stdout(process::Stdio::null()) // Don't pollute output
+    cmd.stdout(Stdio::null()) // Don't pollute output
         .arg("fmt")
         .arg("--manifest-path")
         .arg(manifest_path.as_ref())
