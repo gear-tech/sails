@@ -604,6 +604,7 @@ impl SomeService {
     }
 
     // This method implicitly `returns_value` because of its return type
+    #[export]
     pub fn withdraw(&mut self, amount: u64) -> CommandReply<()> {
         CommandReply::new(()).with_value(amount)
     }
