@@ -11,7 +11,7 @@ impl {{ service_name }} {
 }
 
 #[sails_rs::service]
-impl {{ service_name }} { 
+impl {{ service_name }} {
     // Service's method (command)
     #[export]
     pub fn do_something(&mut self) -> String {
@@ -34,3 +34,4 @@ impl {{ program_struct_name }} {
         {{ service_name }}::new()
     }
 }
+

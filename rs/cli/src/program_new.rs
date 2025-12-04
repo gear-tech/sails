@@ -2,37 +2,21 @@ use anyhow::Context;
 use askama::Template;
 use cargo_metadata::DependencyKind::{Build, Development, Normal};
 use convert_case::{Case, Casing};
+use std::io::Write;
 use std::{
     env,
     ffi::OsStr,
     fs::{self, File},
     path::{Path, PathBuf},
-    process::{Command, ExitStatus},
+    process::{self, Command, ExitStatus},
 };
 
 const SAILS_VERSION: &str = env!("CARGO_PKG_VERSION");
 
 #[derive(Template)]
-#[template(path = "build.askama")]
-struct RootBuild {
-    app_crate_name: String,
-    program_struct_name: String,
-}
-
-#[derive(Template)]
-#[template(path = "src/lib.askama")]
-struct RootLib {
-    app_crate_name: String,
-}
-
-#[derive(Template)]
-#[template(path = "readme.askama")]
-struct Readme {
-    program_crate_name: String,
-    app_crate_name: String,
-    client_crate_name: String,
-    service_name: String,
-    app: bool,
+#[template(path = ".github/workflows/ci.askama")]
+struct CIWorkflow {
+    git_branch_name: String,
 }
 
 #[derive(Template)]
@@ -44,6 +28,12 @@ struct AppLib {
 }
 
 #[derive(Template)]
+#[template(path = "client/src/lib.askama")]
+struct ClientLib {
+    client_file_name: String,
+}
+
+#[derive(Template)]
 #[template(path = "client/build.askama")]
 struct ClientBuild {
     app_crate_name: String,
@@ -51,9 +41,9 @@ struct ClientBuild {
 }
 
 #[derive(Template)]
-#[template(path = "client/src/lib.askama")]
-struct ClientLib {
-    client_file_name: String,
+#[template(path = "src/lib.askama")]
+struct RootLib {
+    app_crate_name: String,
 }
 
 #[derive(Template)]
@@ -66,9 +56,35 @@ struct TestsGtest {
     service_name_snake: String,
 }
 
+#[derive(Template)]
+#[template(path = "build.askama")]
+struct RootBuild {
+    app_crate_name: String,
+    program_struct_name: String,
+}
+
+#[derive(Template)]
+#[template(path = "license.askama")]
+struct RootLicense {
+    package_author: String,
+}
+
+#[derive(Template)]
+#[template(path = "readme.askama")]
+struct RootReadme {
+    program_crate_name: String,
+    github_username: String,
+    app_crate_name: String,
+    client_crate_name: String,
+    service_name: String,
+    app: bool,
+}
+
 pub struct ProgramGenerator {
     path: PathBuf,
     package_name: String,
+    package_author: String,
+    github_username: String,
     sails_path: Option<PathBuf>,
     app: bool,
     offline: bool,
@@ -80,6 +96,8 @@ impl ProgramGenerator {
     pub fn new(
         path: PathBuf,
         name: Option<String>,
+        author: Option<String>,
+        username: Option<String>,
         sails_path: Option<PathBuf>,
         app: bool,
         offline: bool,
@@ -95,9 +113,13 @@ impl ProgramGenerator {
             |name| name.to_case(Case::Kebab),
         );
         let service_name = package_name.to_case(Case::Pascal);
+        let package_author = author.unwrap_or_else(|| "Gear Technologies".to_string());
+        let github_username = username.unwrap_or_else(|| "gear-tech".to_string());
         Self {
             path,
             package_name,
+            package_author,
+            github_username,
             sails_path,
             app,
             offline,
@@ -106,26 +128,9 @@ impl ProgramGenerator {
         }
     }
 
-    fn root_build(&self) -> RootBuild {
-        RootBuild {
-            app_crate_name: self.app_name().to_case(Case::Snake),
-            program_struct_name: self.program_struct_name.clone(),
-        }
-    }
-
-    fn root_lib(&self) -> RootLib {
-        RootLib {
-            app_crate_name: self.app_name().to_case(Case::Snake),
-        }
-    }
-
-    fn root_readme(&self) -> Readme {
-        Readme {
-            program_crate_name: self.package_name.to_owned(),
-            app_crate_name: self.app_name(),
-            client_crate_name: self.client_name(),
-            service_name: self.service_name.clone(),
-            app: self.app,
+    fn ci_workflow(&self, git_branch_name: &str) -> CIWorkflow {
+        CIWorkflow {
+            git_branch_name: git_branch_name.into(),
         }
     }
 
@@ -137,6 +142,12 @@ impl ProgramGenerator {
         }
     }
 
+    fn client_lib(&self) -> ClientLib {
+        ClientLib {
+            client_file_name: format!("{}_client", self.package_name.to_case(Case::Snake)),
+        }
+    }
+
     fn client_build(&self) -> ClientBuild {
         ClientBuild {
             app_crate_name: self.app_name().to_case(Case::Snake),
@@ -144,9 +155,9 @@ impl ProgramGenerator {
         }
     }
 
-    fn client_lib(&self) -> ClientLib {
-        ClientLib {
-            client_file_name: format!("{}_client", self.package_name.to_case(Case::Snake)),
+    fn root_lib(&self) -> RootLib {
+        RootLib {
+            app_crate_name: self.app_name().to_case(Case::Snake),
         }
     }
 
@@ -157,6 +168,30 @@ impl ProgramGenerator {
             client_program_name: self.client_name().to_case(Case::Pascal),
             service_name: self.service_name.clone(),
             service_name_snake: self.service_name.to_case(Case::Snake),
+        }
+    }
+
+    fn root_build(&self) -> RootBuild {
+        RootBuild {
+            app_crate_name: self.app_name().to_case(Case::Snake),
+            program_struct_name: self.program_struct_name.clone(),
+        }
+    }
+
+    fn root_license(&self) -> RootLicense {
+        RootLicense {
+            package_author: self.package_author.clone(),
+        }
+    }
+
+    fn root_readme(&self) -> RootReadme {
+        RootReadme {
+            program_crate_name: self.package_name.clone(),
+            github_username: self.github_username.clone(),
+            app_crate_name: self.app_name(),
+            client_crate_name: self.client_name(),
+            service_name: self.service_name.clone(),
+            app: self.app,
         }
     }
 
@@ -196,6 +231,7 @@ impl ProgramGenerator {
                 sails_path,
                 dependency,
                 features,
+                self.app,
                 self.offline,
             )
         } else {
@@ -205,6 +241,7 @@ impl ProgramGenerator {
                 sails_package,
                 dependency,
                 features,
+                self.app,
                 self.offline,
             )
         }
@@ -226,7 +263,7 @@ impl ProgramGenerator {
 
     fn generate_app(&self) -> anyhow::Result<()> {
         let path = &self.app_path();
-        cargo_new(path, &self.app_name(), self.offline)?;
+        cargo_new(path, &self.app_name(), self.app, self.offline)?;
         let manifest_path = &manifest_path(path);
 
         // add sails-rs refs
@@ -240,10 +277,33 @@ impl ProgramGenerator {
 
     fn generate_root(&self) -> anyhow::Result<()> {
         let path = &self.path;
-        cargo_new(path, &self.package_name, self.offline)?;
+        cargo_new(path, &self.package_name, self.app, self.offline)?;
+
+        let (_, git_branch_name) = git_show_current_branch(path)?;
+
+        fs::create_dir_all(ci_workflow_dir_path(path))?;
+        let mut ci_workflow = File::create(ci_workflow_path(path))?;
+        self.ci_workflow(&git_branch_name)
+            .write_into(&mut ci_workflow)?;
+
+        let gitignore_path = &gitignore_path(path);
+        let mut gitignore = File::create(gitignore_path)?;
+        gitignore.write_all(
+            [".binpath", ".DS_Store", ".vscode", ".idea", "target/", ""]
+                .join("\n")
+                .as_ref(),
+        )?;
 
         let manifest_path = &manifest_path(path);
-        cargo_toml_create_workspace(manifest_path)?;
+        cargo_toml_create_workspace_and_fill_package(
+            manifest_path,
+            &self.package_name,
+            &self.package_author,
+            &self.github_username,
+        )?;
+
+        let mut license = File::create(license_path(path))?;
+        self.root_license().write_into(&mut license)?;
 
         let mut readme_md = File::create(readme_path(path))?;
         self.root_readme().write_into(&mut readme_md)?;
@@ -262,8 +322,22 @@ impl ProgramGenerator {
         self.root_build().write_into(&mut build_rs)?;
 
         // add app ref
-        cargo_add_by_path(manifest_path, self.app_path(), Normal, None, self.offline)?;
-        cargo_add_by_path(manifest_path, self.app_path(), Build, None, self.offline)?;
+        cargo_add_by_path(
+            manifest_path,
+            self.app_path(),
+            Normal,
+            None,
+            self.app,
+            self.offline,
+        )?;
+        cargo_add_by_path(
+            manifest_path,
+            self.app_path(),
+            Build,
+            None,
+            self.app,
+            self.offline,
+        )?;
         // add sails-rs refs
         self.cargo_add_sails_rs(manifest_path, Normal, None)?;
         self.cargo_add_sails_rs(manifest_path, Build, Some("build"))?;
@@ -273,7 +347,7 @@ impl ProgramGenerator {
 
     fn generate_client(&self) -> anyhow::Result<()> {
         let path = &self.client_path();
-        cargo_new(path, &self.client_name(), self.offline)?;
+        cargo_new(path, &self.client_name(), self.app, self.offline)?;
 
         let manifest_path = &manifest_path(path);
         // add sails-rs refs
@@ -281,7 +355,14 @@ impl ProgramGenerator {
         self.cargo_add_sails_rs(manifest_path, Build, Some("build"))?;
 
         // add app ref
-        cargo_add_by_path(manifest_path, self.app_path(), Build, None, self.offline)?;
+        cargo_add_by_path(
+            manifest_path,
+            self.app_path(),
+            Build,
+            None,
+            self.app,
+            self.offline,
+        )?;
 
         let mut build_rs = File::create(build_rs_path(path))?;
         self.client_build().write_into(&mut build_rs)?;
@@ -304,6 +385,7 @@ impl ProgramGenerator {
             ["tokio"],
             Development,
             Some("rt,macros"),
+            self.app,
             self.offline,
         )?;
 
@@ -313,6 +395,7 @@ impl ProgramGenerator {
             self.app_path(),
             Development,
             None,
+            self.app,
             self.offline,
         )?;
         // add client ref
@@ -321,6 +404,7 @@ impl ProgramGenerator {
             self.client_path(),
             Development,
             None,
+            self.app,
             self.offline,
         )?;
 
@@ -339,16 +423,32 @@ impl ProgramGenerator {
     }
 }
 
+fn git_show_current_branch<P: AsRef<Path>>(target_dir: P) -> anyhow::Result<(ExitStatus, String)> {
+    let git_command = git_command();
+    let mut cmd = Command::new(git_command);
+    cmd.stdout(process::Stdio::piped())
+        .arg("-C")
+        .arg(target_dir.as_ref())
+        .arg("branch")
+        .arg("--show-current");
+
+    let output = cmd.output()?;
+    let git_branch_name = String::from_utf8(output.stdout)?.trim_end().into();
+
+    Ok((output.status, git_branch_name))
+}
+
 fn cargo_new<P: AsRef<Path>>(
     target_dir: P,
     name: &str,
+    app: bool,
     offline: bool,
 ) -> anyhow::Result<ExitStatus> {
     let cargo_command = cargo_command();
     let target_dir = target_dir.as_ref();
     let cargo_new_or_init = if target_dir.exists() { "init" } else { "new" };
     let mut cmd = Command::new(cargo_command);
-    cmd.stdout(std::process::Stdio::null()) // Don't pollute output
+    cmd.stdout(process::Stdio::null()) // Don't pollute output
         .arg(cargo_new_or_init)
         .arg(target_dir)
         .arg("--name")
@@ -360,8 +460,16 @@ fn cargo_new<P: AsRef<Path>>(
         cmd.arg("--offline");
     }
 
-    cmd.status()
-        .context("failed to execute `cargo new` command")
+    let exit_status = cmd
+        .status()
+        .context("failed to execute `cargo new` command")?;
+
+    let is_workspace = !app;
+    if exit_status.success() && is_workspace {
+        // TODO: move dependency to workspace
+    }
+
+    Ok(exit_status)
 }
 
 fn cargo_add<P, I, S>(
@@ -369,6 +477,7 @@ fn cargo_add<P, I, S>(
     packages: I,
     dependency: cargo_metadata::DependencyKind,
     features: Option<&str>,
+    app: bool,
     offline: bool,
 ) -> anyhow::Result<ExitStatus>
 where
@@ -379,7 +488,7 @@ where
     let cargo_command = cargo_command();
 
     let mut cmd = Command::new(cargo_command);
-    cmd.stdout(std::process::Stdio::null()) // Don't pollute output
+    cmd.stdout(process::Stdio::null()) // Don't pollute output
         .arg("add")
         .args(packages)
         .arg("--manifest-path")
@@ -404,15 +513,23 @@ where
         cmd.arg("--offline");
     }
 
-    cmd.status()
-        .context("failed to execute `cargo add` command")
+    let exit_status = cmd
+        .status()
+        .context("failed to execute `cargo add` command")?;
+
+    let is_workspace = !app;
+    if exit_status.success() && is_workspace {
+        // TODO: move dependency to workspace
+    }
+
+    Ok(exit_status)
 }
 
 fn cargo_fmt<P: AsRef<Path>>(manifest_path: P) -> anyhow::Result<ExitStatus> {
     let cargo_command = cargo_command();
 
     let mut cmd = Command::new(cargo_command);
-    cmd.stdout(std::process::Stdio::null()) // Don't pollute output
+    cmd.stdout(process::Stdio::null()) // Don't pollute output
         .arg("fmt")
         .arg("--manifest-path")
         .arg(manifest_path.as_ref())
@@ -427,17 +544,54 @@ fn cargo_add_by_path<P1: AsRef<Path>, P2: AsRef<Path>>(
     crate_path: P2,
     dependency: cargo_metadata::DependencyKind,
     features: Option<&str>,
+    app: bool,
     offline: bool,
 ) -> anyhow::Result<ExitStatus> {
     let crate_path = crate_path.as_ref().to_str().context("Invalid UTF-8 Path")?;
     let package = &["--path", crate_path];
-    cargo_add(manifest_path, package, dependency, features, offline)
+    cargo_add(manifest_path, package, dependency, features, app, offline)
 }
 
-fn cargo_toml_create_workspace<P: AsRef<Path>>(manifest_path: P) -> anyhow::Result<()> {
+fn cargo_toml_create_workspace_and_fill_package<P: AsRef<Path>>(
+    manifest_path: P,
+    name: &str,
+    author: &str,
+    username: &str,
+) -> anyhow::Result<()> {
     let manifest_path = manifest_path.as_ref();
     let cargo_toml = fs::read_to_string(manifest_path)?;
     let mut document: toml_edit::DocumentMut = cargo_toml.parse()?;
+
+    let package = document
+        .entry("package")
+        .or_insert_with(toml_edit::table)
+        .as_table_mut()
+        .context("package was not a table in Cargo.toml")?;
+    package.remove("edition");
+    for key in [
+        "version",
+        "authors",
+        "edition",
+        "rust-version",
+        "repository",
+        "license",
+        "keywords",
+        "categories",
+    ] {
+        let item = package.entry(key).or_insert_with(toml_edit::table);
+        let mut table = toml_edit::Table::new();
+        table.insert("workspace", toml_edit::value(true));
+        table.set_dotted(true);
+        *item = table.into();
+    }
+
+    for key in ["build-dependencies", "dev-dependencies"] {
+        _ = document
+            .entry(key)
+            .or_insert_with(toml_edit::table)
+            .as_table_mut()
+            .with_context(|| format!("package.{key} was not a table in Cargo.toml"))?;
+    }
 
     let workspace = document
         .entry("workspace")
@@ -459,13 +613,60 @@ fn cargo_toml_create_workspace<P: AsRef<Path>>(manifest_path: P) -> anyhow::Resu
     _ = workspace_package
         .entry("version")
         .or_insert_with(|| toml_edit::value("0.1.0"));
+    let mut authors = toml_edit::Array::new();
+    authors.push(author);
     _ = workspace_package
-        .entry("edition")
-        .or_insert_with(|| toml_edit::value("2024"));
+        .entry("authors")
+        .or_insert_with(|| toml_edit::value(authors));
+    for (key, value) in [
+        ("edition", "2024".into()),
+        ("rust-version", "1.91".into()),
+        (
+            "repository",
+            format!("https://github.com/{username}/{name}"),
+        ),
+        ("license", "MIT".into()),
+    ] {
+        _ = workspace_package
+            .entry(key)
+            .or_insert_with(|| toml_edit::value(value));
+    }
+    let mut keywords = toml_edit::Array::new();
+    for keyword in ["gear", "sails", "smart-contracts", "wasm", "no-std"] {
+        keywords.push(keyword);
+    }
+    _ = workspace_package
+        .entry("keywords")
+        .or_insert_with(|| toml_edit::value(keywords));
+    let mut categories = toml_edit::Array::new();
+    for category in ["cryptography::cryptocurrencies", "no-std", "wasm"] {
+        categories.push(category);
+    }
+    _ = workspace_package
+        .entry("categories")
+        .or_insert_with(|| toml_edit::value(categories));
+
+    _ = workspace
+        .entry("dependencies")
+        .or_insert_with(toml_edit::table)
+        .as_table_mut()
+        .context("workspace.dependencies was not a table in Cargo.toml")?;
 
     fs::write(manifest_path, document.to_string())?;
 
     Ok(())
+}
+
+fn ci_workflow_dir_path<P: AsRef<Path>>(path: P) -> PathBuf {
+    path.as_ref().join(".github/workflows")
+}
+
+fn ci_workflow_path<P: AsRef<Path>>(path: P) -> PathBuf {
+    path.as_ref().join(".github/workflows/ci.yml")
+}
+
+fn gitignore_path<P: AsRef<Path>>(path: P) -> PathBuf {
+    path.as_ref().join(".gitignore")
 }
 
 fn manifest_path<P: AsRef<Path>>(path: P) -> PathBuf {
@@ -484,10 +685,18 @@ fn tests_path<P: AsRef<Path>>(path: P) -> PathBuf {
     path.as_ref().join("tests/gtest.rs")
 }
 
+fn license_path<P: AsRef<Path>>(path: P) -> PathBuf {
+    path.as_ref().join("LICENSE")
+}
+
 fn readme_path<P: AsRef<Path>>(path: P) -> PathBuf {
     path.as_ref().join("README.md")
 }
 
+fn git_command() -> String {
+    env::var("GIT").unwrap_or("git".into())
+}
+
 fn cargo_command() -> String {
-    std::env::var("CARGO").unwrap_or("cargo".into())
+    env::var("CARGO").unwrap_or("cargo".into())
 }

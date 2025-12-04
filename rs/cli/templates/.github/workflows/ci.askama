@@ -1,0 +1,42 @@
+name: CI
+
+on:
+  push:
+    branches: [ {{ git_branch_name }} ]
+  pull_request:
+    branches: [ {{ git_branch_name }} ]
+  workflow_dispatch:
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    name: Build project
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown, wasm32v1-none
+          components: rustfmt, clippy
+
+      - name: Cargo cache
+        uses: Swatinem/rust-cache@v2
+
+      - name: Cargo fmt
+        run: cargo fmt -- --check
+
+      - name: Cargo clippy
+        run: cargo clippy --release --all-targets -- -D warnings
+
+      - name: Cargo build
+        run: cargo build --release
+
+      - name: Cargo test
+        run: cargo test --release
+
