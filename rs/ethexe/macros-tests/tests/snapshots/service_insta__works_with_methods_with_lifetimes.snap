@@ -98,7 +98,7 @@ impl ReferenceServiceExposure<ReferenceService> {
         ) {
             #[cfg(target_arch = "wasm32")]
             if sails_rs::gstd::msg::value() > 0 {
-                core::panic!("Method accepts no value");
+                core::panic!("'add_byte' accepts no value");
             }
             let result = self.add_byte(request.byte);
             let value = 0u128;
@@ -118,7 +118,7 @@ impl ReferenceServiceExposure<ReferenceService> {
         ) {
             #[cfg(target_arch = "wasm32")]
             if sails_rs::gstd::msg::value() > 0 {
-                core::panic!("Method accepts no value");
+                core::panic!("'baked' accepts no value");
             }
             let result = self.baked();
             let value = 0u128;
@@ -134,7 +134,7 @@ impl ReferenceServiceExposure<ReferenceService> {
         if let Ok(request) = reference_service_meta::__IncrParams::decode_params(input) {
             #[cfg(target_arch = "wasm32")]
             if sails_rs::gstd::msg::value() > 0 {
-                core::panic!("Method accepts no value");
+                core::panic!("'incr' accepts no value");
             }
             let result = self.incr();
             let value = 0u128;
@@ -163,7 +163,7 @@ impl ReferenceServiceExposure<ReferenceService> {
         ) {
             #[cfg(target_arch = "wasm32")]
             if sails_rs::gstd::msg::value() > 0 {
-                core::panic!("Method accepts no value");
+                core::panic!("'first_byte' accepts no value");
             }
             let result = self.first_byte().await;
             let value = 0u128;
@@ -183,7 +183,7 @@ impl ReferenceServiceExposure<ReferenceService> {
         ) {
             #[cfg(target_arch = "wasm32")]
             if sails_rs::gstd::msg::value() > 0 {
-                core::panic!("Method accepts no value");
+                core::panic!("'last_byte' accepts no value");
             }
             let result = self.last_byte().await;
             let value = 0u128;
@@ -213,7 +213,7 @@ impl ReferenceServiceExposure<ReferenceService> {
                 .ok()?;
             #[cfg(target_arch = "wasm32")]
             if sails_rs::gstd::msg::value() > 0 {
-                core::panic!("Method accepts no value");
+                core::panic!("'add_byte' accepts no value");
             }
             let result = self.add_byte(byte);
             let value = 0u128;
@@ -236,7 +236,7 @@ impl ReferenceServiceExposure<ReferenceService> {
                 .ok()?;
             #[cfg(target_arch = "wasm32")]
             if sails_rs::gstd::msg::value() > 0 {
-                core::panic!("Method accepts no value");
+                core::panic!("'baked' accepts no value");
             }
             let result = self.baked();
             let value = 0u128;
@@ -259,7 +259,7 @@ impl ReferenceServiceExposure<ReferenceService> {
                 .ok()?;
             #[cfg(target_arch = "wasm32")]
             if sails_rs::gstd::msg::value() > 0 {
-                core::panic!("Method accepts no value");
+                core::panic!("'incr' accepts no value");
             }
             let result = self.incr();
             let value = 0u128;
@@ -291,7 +291,7 @@ impl ReferenceServiceExposure<ReferenceService> {
                 .ok()?;
             #[cfg(target_arch = "wasm32")]
             if sails_rs::gstd::msg::value() > 0 {
-                core::panic!("Method accepts no value");
+                core::panic!("'first_byte' accepts no value");
             }
             let result = self.first_byte().await;
             let value = 0u128;
@@ -314,7 +314,7 @@ impl ReferenceServiceExposure<ReferenceService> {
                 .ok()?;
             #[cfg(target_arch = "wasm32")]
             if sails_rs::gstd::msg::value() > 0 {
-                core::panic!("Method accepts no value");
+                core::panic!("'last_byte' accepts no value");
             }
             let result = self.last_byte().await;
             let value = 0u128;

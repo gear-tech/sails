@@ -69,7 +69,7 @@ impl MyServiceWithEventsExposure<MyServiceWithEvents> {
         ) {
             #[cfg(target_arch = "wasm32")]
             if sails_rs::gstd::msg::value() > 0 {
-                core::panic!("Method accepts no value");
+                core::panic!("'do_this' accepts no value");
             }
             let result = self.do_this();
             let value = 0u128;
@@ -87,7 +87,7 @@ impl MyServiceWithEventsExposure<MyServiceWithEvents> {
         ) {
             #[cfg(target_arch = "wasm32")]
             if sails_rs::gstd::msg::value() > 0 {
-                core::panic!("Method accepts no value");
+                core::panic!("'this' accepts no value");
             }
             let result = self.this();
             let value = 0u128;
@@ -124,7 +124,7 @@ impl MyServiceWithEventsExposure<MyServiceWithEvents> {
                 .ok()?;
             #[cfg(target_arch = "wasm32")]
             if sails_rs::gstd::msg::value() > 0 {
-                core::panic!("Method accepts no value");
+                core::panic!("'do_this' accepts no value");
             }
             let result = self.do_this();
             let value = 0u128;
@@ -147,7 +147,7 @@ impl MyServiceWithEventsExposure<MyServiceWithEvents> {
                 .ok()?;
             #[cfg(target_arch = "wasm32")]
             if sails_rs::gstd::msg::value() > 0 {
-                core::panic!("Method accepts no value");
+                core::panic!("'this' accepts no value");
             }
             let result = self.this();
             let value = 0u128;

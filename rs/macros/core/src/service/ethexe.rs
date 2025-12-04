@@ -171,16 +171,7 @@ impl FnBuilder<'_> {
             }
         };
 
-        let payable_check = if !self.payable {
-            quote! {
-                #[cfg(target_arch = "wasm32")]
-                if #sails_path::gstd::msg::value() > 0 {
-                   core::panic!("Method accepts no value");
-                }
-            }
-        } else {
-            quote!()
-        };
+        let payable_check = self.payable_check();
 
         quote! {
             let (__encode_reply, #(#handler_params,)*) : (bool, #(#handler_types,)*) = #sails_path::alloy_sol_types::SolValue::abi_decode_params(input).ok()?;

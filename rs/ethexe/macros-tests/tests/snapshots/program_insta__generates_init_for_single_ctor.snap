@@ -99,7 +99,7 @@ pub mod wasm {
         if let Ok(request) = meta_in_program::__NewParams::decode_params(input) {
             #[cfg(target_arch = "wasm32")]
             if sails_rs::gstd::msg::value() > 0 {
-                core::panic!("Ctor accepts no value");
+                core::panic!("'new' accepts no value");
             }
             gstd::message_loop(async move {
                 let program = MyProgram::new(request.p1, request.p2).await;
@@ -117,8 +117,9 @@ pub mod wasm {
                     input,
                 )
                 .expect("Failed to decode request");
+            #[cfg(target_arch = "wasm32")]
             if sails_rs::gstd::msg::value() > 0 {
-                core::panic!("Ctor accepts no value");
+                core::panic!("'new' accepts no value");
             }
             gstd::message_loop(async move {
                 let program = MyProgram::new(p1, p2).await;

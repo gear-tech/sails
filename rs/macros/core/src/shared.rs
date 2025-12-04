@@ -394,4 +394,20 @@ impl<'a> FnBuilder<'a> {
             .with_boundaries(&[Boundary::UNDERSCORE, Boundary::LOWER_UPPER])
             .to_case(Case::Camel)
     }
+
+    #[cfg(feature = "ethexe")]
+    pub(crate) fn payable_check(&self) -> proc_macro2::TokenStream {
+        if !self.payable {
+            let sails_path = self.sails_path;
+            let msg = format!("'{}' accepts no value", self.ident);
+            quote::quote! {
+                #[cfg(target_arch = "wasm32")]
+                if #sails_path::gstd::msg::value() > 0 {
+                    core::panic!(#msg);
+                }
+            }
+        } else {
+            quote::quote!()
+        }
+    }
 }

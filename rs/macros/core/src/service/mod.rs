@@ -253,7 +253,6 @@ impl FnBuilder<'_> {
         meta_module_ident: &Ident,
         input_ident: &Ident,
     ) -> TokenStream {
-        let sails_path = self.sails_path;
         let handler_func_ident = self.ident;
 
         let params_struct_ident = &self.params_struct_ident;
@@ -280,15 +279,15 @@ impl FnBuilder<'_> {
 
         let result_type = self.result_type_with_static_lifetime();
 
-        let payable_check = if cfg!(feature = "ethexe") && !self.payable {
-            quote! {
-                #[cfg(target_arch = "wasm32")]
-                if #sails_path::gstd::msg::value() > 0 {
-                   core::panic!("Method accepts no value");
-                }
+        let payable_check = {
+            #[cfg(feature = "ethexe")]
+            {
+                self.payable_check()
             }
-        } else {
-            quote!()
+            #[cfg(not(feature = "ethexe"))]
+            {
+                quote!()
+            }
         };
 
         quote! {

@@ -63,7 +63,7 @@ where
         ) {
             #[cfg(target_arch = "wasm32")]
             if sails_rs::gstd::msg::value() > 0 {
-                core::panic!("Method accepts no value");
+                core::panic!("'do_this' accepts no value");
             }
             let result = self.do_this();
             let value = 0u128;
@@ -100,7 +100,7 @@ where
                 .ok()?;
             #[cfg(target_arch = "wasm32")]
             if sails_rs::gstd::msg::value() > 0 {
-                core::panic!("Method accepts no value");
+                core::panic!("'do_this' accepts no value");
             }
             let result = self.do_this();
             let value = 0u128;

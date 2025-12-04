@@ -203,15 +203,7 @@ impl FnBuilder<'_> {
             }
         };
 
-        let payable_check = if !self.payable {
-            quote! {
-                if #sails_path::gstd::msg::value() > 0 {
-                   core::panic!("Ctor accepts no value");
-                }
-            }
-        } else {
-            quote!()
-        };
+        let payable_check = self.payable_check();
 
         // read uint128 as first parameter
         quote! {

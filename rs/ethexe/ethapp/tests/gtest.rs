@@ -173,7 +173,7 @@ async fn ethapp_ctor_non_payable_fails_with_value() {
     {
         let payload = reply_log_record.payload();
         let msg = String::from_utf8_lossy(payload);
-        assert_eq!(msg, "panicked with 'Ctor accepts no value'");
+        assert_eq!(msg, "panicked with ''create_prg' accepts no value'");
     } else {
         panic!(
             "Expected UserspacePanic, got {:?}",
@@ -249,7 +249,7 @@ async fn ethapp_method_non_payable_fails_with_value() {
     {
         let payload = reply_log_record.payload();
         let msg = String::from_utf8_lossy(payload);
-        assert_eq!(msg, "panicked with 'Method accepts no value'");
+        assert_eq!(msg, "panicked with ''do_this' accepts no value'");
     } else {
         panic!(
             "Expected UserspacePanic, got {:?}",

@@ -669,7 +669,6 @@ impl FnBuilder<'_> {
         input_ident: &Ident,
         program_ident: &Ident,
     ) -> TokenStream2 {
-        let sails_path = self.sails_path;
         let handler_ident = self.ident;
         let unwrap_token = self.unwrap_result.then(|| quote!(.unwrap()));
         let handler_args = self
@@ -677,15 +676,15 @@ impl FnBuilder<'_> {
             .iter()
             .map(|ident| quote!(request.#ident));
         let params_struct_ident = &self.params_struct_ident;
-        let payable_check = if cfg!(feature = "ethexe") && !self.payable {
-            quote! {
-                #[cfg(target_arch = "wasm32")]
-                if #sails_path::gstd::msg::value() > 0 {
-                   core::panic!("Ctor accepts no value");
-                }
+        let payable_check = {
+            #[cfg(feature = "ethexe")]
+            {
+                self.payable_check()
             }
-        } else {
-            quote!()
+            #[cfg(not(feature = "ethexe"))]
+            {
+                quote!()
+            }
         };
 
         let ctor_call_impl = if self.is_async() {

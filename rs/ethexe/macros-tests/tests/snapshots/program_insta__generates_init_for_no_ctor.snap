@@ -94,7 +94,7 @@ pub mod wasm {
         if let Ok(request) = meta_in_program::__CreateParams::decode_params(input) {
             #[cfg(target_arch = "wasm32")]
             if sails_rs::gstd::msg::value() > 0 {
-                core::panic!("Ctor accepts no value");
+                core::panic!("'create' accepts no value");
             }
             let program = MyProgram::create();
             unsafe {
@@ -110,8 +110,9 @@ pub mod wasm {
                     input,
                 )
                 .expect("Failed to decode request");
+            #[cfg(target_arch = "wasm32")]
             if sails_rs::gstd::msg::value() > 0 {
-                core::panic!("Ctor accepts no value");
+                core::panic!("'create' accepts no value");
             }
             let program = MyProgram::create();
             unsafe { PROGRAM = Some(program) };
