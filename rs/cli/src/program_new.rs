@@ -2,16 +2,44 @@ use anyhow::Context;
 use askama::Template;
 use cargo_metadata::DependencyKind::{Build, Development, Normal};
 use convert_case::{Case, Casing};
-use std::io::Write;
 use std::{
     env,
     ffi::OsStr,
     fs::{self, File},
+    io::{self, Write},
     path::{Path, PathBuf},
-    process::{self, Command, ExitStatus},
+    process::{self, Command, ExitStatus, Output},
 };
 
 const SAILS_VERSION: &str = env!("CARGO_PKG_VERSION");
+
+trait ExitStatusExt: Sized {
+    fn exit_result(self) -> io::Result<()>;
+}
+
+impl ExitStatusExt for ExitStatus {
+    fn exit_result(self) -> io::Result<()> {
+        if self.success() {
+            Ok(())
+        } else {
+            Err(io::Error::from(io::ErrorKind::Other))
+        }
+    }
+}
+
+trait OutputExt: Sized {
+    fn exit_result(self) -> io::Result<Self>;
+}
+
+impl OutputExt for Output {
+    fn exit_result(self) -> io::Result<Self> {
+        if self.status.success() {
+            Ok(self)
+        } else {
+            Err(io::Error::from(io::ErrorKind::Other))
+        }
+    }
+}
 
 #[derive(Template)]
 #[template(path = ".github/workflows/ci.askama")]
@@ -93,6 +121,12 @@ pub struct ProgramGenerator {
 }
 
 impl ProgramGenerator {
+    const DEFAULT_AUTHOR: &str = "Gear Technologies";
+    const DEFAULT_GITHUB_USERNAME: &str = "gear-tech";
+
+    const GITIGNORE_ENTRIES: &[&str] =
+        &[".binpath", ".DS_Store", ".vscode", ".idea", "target/", ""];
+
     pub fn new(
         path: PathBuf,
         name: Option<String>,
@@ -113,8 +147,8 @@ impl ProgramGenerator {
             |name| name.to_case(Case::Kebab),
         );
         let service_name = package_name.to_case(Case::Pascal);
-        let package_author = author.unwrap_or_else(|| "Gear Technologies".to_string());
-        let github_username = username.unwrap_or_else(|| "gear-tech".to_string());
+        let package_author = author.unwrap_or_else(|| Self::DEFAULT_AUTHOR.to_string());
+        let github_username = username.unwrap_or_else(|| Self::DEFAULT_GITHUB_USERNAME.to_string());
         Self {
             path,
             package_name,
@@ -224,7 +258,7 @@ impl ProgramGenerator {
         manifest_path: P,
         dependency: cargo_metadata::DependencyKind,
         features: Option<&str>,
-    ) -> anyhow::Result<ExitStatus> {
+    ) -> anyhow::Result<()> {
         if let Some(sails_path) = self.sails_path.as_ref() {
             cargo_add_by_path(
                 manifest_path,
@@ -279,7 +313,7 @@ impl ProgramGenerator {
         let path = &self.path;
         cargo_new(path, &self.package_name, self.app, self.offline)?;
 
-        let (_, git_branch_name) = git_show_current_branch(path)?;
+        let git_branch_name = git_show_current_branch(path)?;
 
         fs::create_dir_all(ci_workflow_dir_path(path))?;
         let mut ci_workflow = File::create(ci_workflow_path(path))?;
@@ -288,11 +322,7 @@ impl ProgramGenerator {
 
         let gitignore_path = &gitignore_path(path);
         let mut gitignore = File::create(gitignore_path)?;
-        gitignore.write_all(
-            [".binpath", ".DS_Store", ".vscode", ".idea", "target/", ""]
-                .join("\n")
-                .as_ref(),
-        )?;
+        gitignore.write_all(Self::GITIGNORE_ENTRIES.join("\n").as_ref())?;
 
         let manifest_path = &manifest_path(path);
         cargo_toml_create_workspace_and_fill_package(
@@ -417,13 +447,13 @@ impl ProgramGenerator {
         Ok(())
     }
 
-    fn fmt(&self) -> anyhow::Result<ExitStatus> {
+    fn fmt(&self) -> anyhow::Result<()> {
         let manifest_path = &manifest_path(&self.path);
         cargo_fmt(manifest_path)
     }
 }
 
-fn git_show_current_branch<P: AsRef<Path>>(target_dir: P) -> anyhow::Result<(ExitStatus, String)> {
+fn git_show_current_branch<P: AsRef<Path>>(target_dir: P) -> anyhow::Result<String> {
     let git_command = git_command();
     let mut cmd = Command::new(git_command);
     cmd.stdout(process::Stdio::piped())
@@ -432,10 +462,13 @@ fn git_show_current_branch<P: AsRef<Path>>(target_dir: P) -> anyhow::Result<(Exi
         .arg("branch")
         .arg("--show-current");
 
-    let output = cmd.output()?;
-    let git_branch_name = String::from_utf8(output.stdout)?.trim_end().into();
+    let output = cmd
+        .output()?
+        .exit_result()
+        .context("failed to get current git branch")?;
+    let git_branch_name = String::from_utf8(output.stdout)?;
 
-    Ok((output.status, git_branch_name))
+    Ok(git_branch_name.trim().into())
 }
 
 fn cargo_new<P: AsRef<Path>>(
@@ -443,7 +476,7 @@ fn cargo_new<P: AsRef<Path>>(
     name: &str,
     app: bool,
     offline: bool,
-) -> anyhow::Result<ExitStatus> {
+) -> anyhow::Result<()> {
     let cargo_command = cargo_command();
     let target_dir = target_dir.as_ref();
     let cargo_new_or_init = if target_dir.exists() { "init" } else { "new" };
@@ -460,16 +493,17 @@ fn cargo_new<P: AsRef<Path>>(
         cmd.arg("--offline");
     }
 
-    let exit_status = cmd
-        .status()
-        .context("failed to execute `cargo new` command")?;
+    cmd.status()
+        .context("failed to execute `cargo new` command")?
+        .exit_result()
+        .context("failed to run `cargo new` command")?;
 
     let is_workspace = !app;
-    if exit_status.success() && is_workspace {
+    if is_workspace {
         // TODO: move dependency to workspace
     }
 
-    Ok(exit_status)
+    Ok(())
 }
 
 fn cargo_add<P, I, S>(
@@ -479,7 +513,7 @@ fn cargo_add<P, I, S>(
     features: Option<&str>,
     app: bool,
     offline: bool,
-) -> anyhow::Result<ExitStatus>
+) -> anyhow::Result<()>
 where
     P: AsRef<Path>,
     I: IntoIterator<Item = S>,
@@ -513,19 +547,20 @@ where
         cmd.arg("--offline");
     }
 
-    let exit_status = cmd
-        .status()
-        .context("failed to execute `cargo add` command")?;
+    cmd.status()
+        .context("failed to execute `cargo add` command")?
+        .exit_result()
+        .context("failed to run `cargo add` command")?;
 
     let is_workspace = !app;
-    if exit_status.success() && is_workspace {
+    if is_workspace {
         // TODO: move dependency to workspace
     }
 
-    Ok(exit_status)
+    Ok(())
 }
 
-fn cargo_fmt<P: AsRef<Path>>(manifest_path: P) -> anyhow::Result<ExitStatus> {
+fn cargo_fmt<P: AsRef<Path>>(manifest_path: P) -> anyhow::Result<()> {
     let cargo_command = cargo_command();
 
     let mut cmd = Command::new(cargo_command);
@@ -536,7 +571,9 @@ fn cargo_fmt<P: AsRef<Path>>(manifest_path: P) -> anyhow::Result<ExitStatus> {
         .arg("--quiet");
 
     cmd.status()
-        .context("failed to execute `cargo fmt` command")
+        .context("failed to execute `cargo fmt` command")?
+        .exit_result()
+        .context("failed to run `cargo fmt` command")
 }
 
 fn cargo_add_by_path<P1: AsRef<Path>, P2: AsRef<Path>>(
@@ -546,7 +583,7 @@ fn cargo_add_by_path<P1: AsRef<Path>, P2: AsRef<Path>>(
     features: Option<&str>,
     app: bool,
     offline: bool,
-) -> anyhow::Result<ExitStatus> {
+) -> anyhow::Result<()> {
     let crate_path = crate_path.as_ref().to_str().context("Invalid UTF-8 Path")?;
     let package = &["--path", crate_path];
     cargo_add(manifest_path, package, dependency, features, app, offline)
@@ -631,17 +668,13 @@ fn cargo_toml_create_workspace_and_fill_package<P: AsRef<Path>>(
             .entry(key)
             .or_insert_with(|| toml_edit::value(value));
     }
-    let mut keywords = toml_edit::Array::new();
-    for keyword in ["gear", "sails", "smart-contracts", "wasm", "no-std"] {
-        keywords.push(keyword);
-    }
+    let keywords =
+        toml_edit::Array::from_iter(["gear", "sails", "smart-contracts", "wasm", "no-std"]);
     _ = workspace_package
         .entry("keywords")
         .or_insert_with(|| toml_edit::value(keywords));
-    let mut categories = toml_edit::Array::new();
-    for category in ["cryptography::cryptocurrencies", "no-std", "wasm"] {
-        categories.push(category);
-    }
+    let categories =
+        toml_edit::Array::from_iter(["cryptography::cryptocurrencies", "no-std", "wasm"]);
     _ = workspace_package
         .entry("categories")
         .or_insert_with(|| toml_edit::value(categories));
