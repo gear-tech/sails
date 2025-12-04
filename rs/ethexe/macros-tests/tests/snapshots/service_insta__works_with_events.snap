@@ -67,6 +67,10 @@ impl MyServiceWithEventsExposure<MyServiceWithEvents> {
         if let Ok(request) = my_service_with_events_meta::__DoThisParams::decode_params(
             input,
         ) {
+            #[cfg(target_arch = "wasm32")]
+            if sails_rs::gstd::msg::value() > 0 {
+                core::panic!("'do_this' accepts no value");
+            }
             let result = self.do_this();
             let value = 0u128;
             if !my_service_with_events_meta::__DoThisParams::is_empty_tuple::<u32>() {
@@ -81,6 +85,10 @@ impl MyServiceWithEventsExposure<MyServiceWithEvents> {
         if let Ok(request) = my_service_with_events_meta::__ThisParams::decode_params(
             input,
         ) {
+            #[cfg(target_arch = "wasm32")]
+            if sails_rs::gstd::msg::value() > 0 {
+                core::panic!("'this' accepts no value");
+            }
             let result = self.this();
             let value = 0u128;
             if !my_service_with_events_meta::__ThisParams::is_empty_tuple::<bool>() {
@@ -114,6 +122,10 @@ impl MyServiceWithEventsExposure<MyServiceWithEvents> {
                     input,
                 )
                 .ok()?;
+            #[cfg(target_arch = "wasm32")]
+            if sails_rs::gstd::msg::value() > 0 {
+                core::panic!("'do_this' accepts no value");
+            }
             let result = self.do_this();
             let value = 0u128;
             let output = if __encode_reply {
@@ -133,6 +145,10 @@ impl MyServiceWithEventsExposure<MyServiceWithEvents> {
                     input,
                 )
                 .ok()?;
+            #[cfg(target_arch = "wasm32")]
+            if sails_rs::gstd::msg::value() > 0 {
+                core::panic!("'this' accepts no value");
+            }
             let result = self.this();
             let value = 0u128;
             let output = if __encode_reply {

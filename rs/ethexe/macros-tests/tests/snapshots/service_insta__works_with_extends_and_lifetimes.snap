@@ -76,6 +76,10 @@ impl<'a> ExtendedWithLifetimeExposure<ExtendedWithLifetime<'a>> {
         if let Ok(request) = extended_with_lifetime_meta::__ExtendedNameParams::decode_params(
             input,
         ) {
+            #[cfg(target_arch = "wasm32")]
+            if sails_rs::gstd::msg::value() > 0 {
+                core::panic!("'extended_name' accepts no value");
+            }
             let result = self.extended_name();
             let value = 0u128;
             if !extended_with_lifetime_meta::__ExtendedNameParams::is_empty_tuple::<
@@ -92,6 +96,10 @@ impl<'a> ExtendedWithLifetimeExposure<ExtendedWithLifetime<'a>> {
         if let Ok(request) = extended_with_lifetime_meta::__NameParams::decode_params(
             input,
         ) {
+            #[cfg(target_arch = "wasm32")]
+            if sails_rs::gstd::msg::value() > 0 {
+                core::panic!("'name' accepts no value");
+            }
             let result = self.name();
             let value = 0u128;
             if !extended_with_lifetime_meta::__NameParams::is_empty_tuple::<String>() {
@@ -143,6 +151,10 @@ impl<'a> ExtendedWithLifetimeExposure<ExtendedWithLifetime<'a>> {
                     input,
                 )
                 .ok()?;
+            #[cfg(target_arch = "wasm32")]
+            if sails_rs::gstd::msg::value() > 0 {
+                core::panic!("'extended_name' accepts no value");
+            }
             let result = self.extended_name();
             let value = 0u128;
             let output = if __encode_reply {
@@ -162,6 +174,10 @@ impl<'a> ExtendedWithLifetimeExposure<ExtendedWithLifetime<'a>> {
                     input,
                 )
                 .ok()?;
+            #[cfg(target_arch = "wasm32")]
+            if sails_rs::gstd::msg::value() > 0 {
+                core::panic!("'name' accepts no value");
+            }
             let result = self.name();
             let value = 0u128;
             let output = if __encode_reply {

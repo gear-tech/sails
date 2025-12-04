@@ -76,27 +76,48 @@ pub(crate) fn unwrap_result_type(handler_signature: &Signature, unwrap_result: b
     }
 }
 
-pub(crate) fn invocation_export(fn_impl: &ImplItemFn) -> Option<(Span, String, bool, bool)> {
+pub(crate) struct InvocationExport {
+    pub span: Span,
+    pub route: String,
+    pub unwrap_result: bool,
+    pub export: bool,
+    #[cfg(feature = "ethexe")]
+    pub payable: bool,
+}
+
+pub(crate) fn invocation_export(fn_impl: &ImplItemFn) -> Option<InvocationExport> {
     export::parse_export_args(&fn_impl.attrs).map(|(args, span)| {
         let ident = &fn_impl.sig.ident;
         let unwrap_result = args.unwrap_result();
+        #[cfg(feature = "ethexe")]
+        let payable = args.payable();
+
         let route = args.route().map_or_else(
             || ident.to_string().to_case(Case::Pascal),
             |route| route.to_case(Case::Pascal),
         );
-        (span, route, unwrap_result, true)
+        InvocationExport {
+            span,
+            route,
+            unwrap_result,
+            export: true,
+            #[cfg(feature = "ethexe")]
+            payable,
+        }
     })
 }
 
-pub(crate) fn invocation_export_or_default(fn_impl: &ImplItemFn) -> (Span, String, bool, bool) {
+pub(crate) fn invocation_export_or_default(fn_impl: &ImplItemFn) -> InvocationExport {
     invocation_export(fn_impl).unwrap_or_else(|| {
         let ident = &fn_impl.sig.ident;
-        (
-            ident.span(),
-            ident.to_string().to_case(Case::Pascal),
-            false,
-            false,
-        )
+        InvocationExport {
+            span: ident.span(),
+            route: ident.to_string().to_case(Case::Pascal),
+            unwrap_result: false,
+            export: false,
+            #[cfg(feature = "ethexe")]
+            payable: false,
+        }
     })
 }
 
@@ -113,7 +134,14 @@ pub(crate) fn discover_invocation_targets<'a>(
             if let ImplItem::Fn(fn_item) = item
                 && filter(fn_item)
             {
-                let (span, route, unwrap_result, export) = invocation_export_or_default(fn_item);
+                let InvocationExport {
+                    span,
+                    route,
+                    unwrap_result,
+                    export,
+                    #[cfg(feature = "ethexe")]
+                    payable,
+                } = invocation_export_or_default(fn_item);
 
                 if let Some(duplicate) = routes.insert(route.clone(), fn_item.sig.ident.to_string())
                 {
@@ -123,7 +151,9 @@ pub(crate) fn discover_invocation_targets<'a>(
                         duplicate
                     );
                 }
-                let fn_builder = FnBuilder::from(route, export, fn_item, unwrap_result, sails_path);
+                let fn_builder = FnBuilder::new(route, export, fn_item, unwrap_result, sails_path);
+                #[cfg(feature = "ethexe")]
+                let fn_builder = fn_builder.payable(payable);
                 return Some(fn_builder);
             }
             None
@@ -270,6 +300,7 @@ pub(crate) fn extract_result_type(tp: &TypePath) -> Option<&Type> {
 pub(crate) struct FnBuilder<'a> {
     pub route: String,
     pub export: bool,
+    pub payable: bool,
     pub encoded_route: Vec<u8>,
     pub impl_fn: &'a ImplItemFn,
     pub ident: &'a Ident,
@@ -282,7 +313,7 @@ pub(crate) struct FnBuilder<'a> {
 }
 
 impl<'a> FnBuilder<'a> {
-    pub(crate) fn from(
+    pub(crate) fn new(
         route: String,
         export: bool,
         impl_fn: &'a ImplItemFn,
@@ -299,6 +330,7 @@ impl<'a> FnBuilder<'a> {
         Self {
             route,
             export,
+            payable: false,
             encoded_route,
             impl_fn,
             ident,
@@ -311,6 +343,11 @@ impl<'a> FnBuilder<'a> {
         }
     }
 
+    #[cfg(feature = "ethexe")]
+    pub(crate) fn payable(mut self, payable: bool) -> Self {
+        self.payable = payable;
+        self
+    }
     pub(crate) fn is_async(&self) -> bool {
         self.impl_fn.sig.asyncness.is_some()
     }
@@ -356,5 +393,21 @@ impl<'a> FnBuilder<'a> {
         self.route
             .with_boundaries(&[Boundary::UNDERSCORE, Boundary::LOWER_UPPER])
             .to_case(Case::Camel)
+    }
+
+    #[cfg(feature = "ethexe")]
+    pub(crate) fn payable_check(&self) -> proc_macro2::TokenStream {
+        if !self.payable {
+            let sails_path = self.sails_path;
+            let msg = format!("'{}' accepts no value", self.ident);
+            quote::quote! {
+                #[cfg(target_arch = "wasm32")]
+                if #sails_path::gstd::msg::value() > 0 {
+                    core::panic!(#msg);
+                }
+            }
+        } else {
+            quote::quote!()
+        }
     }
 }

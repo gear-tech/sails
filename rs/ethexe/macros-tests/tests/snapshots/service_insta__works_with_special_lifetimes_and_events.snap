@@ -61,6 +61,10 @@ where
         if let Ok(request) = my_generic_events_service_meta::__DoThisParams::decode_params(
             input,
         ) {
+            #[cfg(target_arch = "wasm32")]
+            if sails_rs::gstd::msg::value() > 0 {
+                core::panic!("'do_this' accepts no value");
+            }
             let result = self.do_this();
             let value = 0u128;
             if !my_generic_events_service_meta::__DoThisParams::is_empty_tuple::<u32>() {
@@ -94,6 +98,10 @@ where
                     input,
                 )
                 .ok()?;
+            #[cfg(target_arch = "wasm32")]
+            if sails_rs::gstd::msg::value() > 0 {
+                core::panic!("'do_this' accepts no value");
+            }
             let result = self.do_this();
             let value = 0u128;
             let output = if __encode_reply {

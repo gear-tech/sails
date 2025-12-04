@@ -96,6 +96,10 @@ impl ReferenceServiceExposure<ReferenceService> {
         if let Ok(request) = reference_service_meta::__AddByteParams::decode_params(
             input,
         ) {
+            #[cfg(target_arch = "wasm32")]
+            if sails_rs::gstd::msg::value() > 0 {
+                core::panic!("'add_byte' accepts no value");
+            }
             let result = self.add_byte(request.byte);
             let value = 0u128;
             if !reference_service_meta::__AddByteParams::is_empty_tuple::<
@@ -112,6 +116,10 @@ impl ReferenceServiceExposure<ReferenceService> {
         if let Ok(request) = reference_service_meta::__BakedParams::decode_params(
             input,
         ) {
+            #[cfg(target_arch = "wasm32")]
+            if sails_rs::gstd::msg::value() > 0 {
+                core::panic!("'baked' accepts no value");
+            }
             let result = self.baked();
             let value = 0u128;
             if !reference_service_meta::__BakedParams::is_empty_tuple::<&'static str>() {
@@ -124,6 +132,10 @@ impl ReferenceServiceExposure<ReferenceService> {
             return Some(());
         }
         if let Ok(request) = reference_service_meta::__IncrParams::decode_params(input) {
+            #[cfg(target_arch = "wasm32")]
+            if sails_rs::gstd::msg::value() > 0 {
+                core::panic!("'incr' accepts no value");
+            }
             let result = self.incr();
             let value = 0u128;
             if !reference_service_meta::__IncrParams::is_empty_tuple::<
@@ -149,6 +161,10 @@ impl ReferenceServiceExposure<ReferenceService> {
         if let Ok(request) = reference_service_meta::__FirstByteParams::decode_params(
             input,
         ) {
+            #[cfg(target_arch = "wasm32")]
+            if sails_rs::gstd::msg::value() > 0 {
+                core::panic!("'first_byte' accepts no value");
+            }
             let result = self.first_byte().await;
             let value = 0u128;
             if !reference_service_meta::__FirstByteParams::is_empty_tuple::<
@@ -165,6 +181,10 @@ impl ReferenceServiceExposure<ReferenceService> {
         if let Ok(request) = reference_service_meta::__LastByteParams::decode_params(
             input,
         ) {
+            #[cfg(target_arch = "wasm32")]
+            if sails_rs::gstd::msg::value() > 0 {
+                core::panic!("'last_byte' accepts no value");
+            }
             let result = self.last_byte().await;
             let value = 0u128;
             if !reference_service_meta::__LastByteParams::is_empty_tuple::<
@@ -191,6 +211,10 @@ impl ReferenceServiceExposure<ReferenceService> {
                     input,
                 )
                 .ok()?;
+            #[cfg(target_arch = "wasm32")]
+            if sails_rs::gstd::msg::value() > 0 {
+                core::panic!("'add_byte' accepts no value");
+            }
             let result = self.add_byte(byte);
             let value = 0u128;
             let output = if __encode_reply {
@@ -210,6 +234,10 @@ impl ReferenceServiceExposure<ReferenceService> {
                     input,
                 )
                 .ok()?;
+            #[cfg(target_arch = "wasm32")]
+            if sails_rs::gstd::msg::value() > 0 {
+                core::panic!("'baked' accepts no value");
+            }
             let result = self.baked();
             let value = 0u128;
             let output = if __encode_reply {
@@ -229,6 +257,10 @@ impl ReferenceServiceExposure<ReferenceService> {
                     input,
                 )
                 .ok()?;
+            #[cfg(target_arch = "wasm32")]
+            if sails_rs::gstd::msg::value() > 0 {
+                core::panic!("'incr' accepts no value");
+            }
             let result = self.incr();
             let value = 0u128;
             let output = if __encode_reply {
@@ -257,6 +289,10 @@ impl ReferenceServiceExposure<ReferenceService> {
                     input,
                 )
                 .ok()?;
+            #[cfg(target_arch = "wasm32")]
+            if sails_rs::gstd::msg::value() > 0 {
+                core::panic!("'first_byte' accepts no value");
+            }
             let result = self.first_byte().await;
             let value = 0u128;
             let output = if __encode_reply {
@@ -276,6 +312,10 @@ impl ReferenceServiceExposure<ReferenceService> {
                     input,
                 )
                 .ok()?;
+            #[cfg(target_arch = "wasm32")]
+            if sails_rs::gstd::msg::value() > 0 {
+                core::panic!("'last_byte' accepts no value");
+            }
             let result = self.last_byte().await;
             let value = 0u128;
             let output = if __encode_reply {

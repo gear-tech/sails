@@ -205,8 +205,23 @@ impl FnBuilder<'_> {
         let params_struct_ident = &self.params_struct_ident;
         let result_type = self.result_type_with_static_lifetime();
 
+        let payable_doc = if cfg!(feature = "ethexe") {
+            self.payable.then(|| quote!(#[doc = " #[payable]"]))
+        } else {
+            None
+        };
+
+        let returns_value_doc = if cfg!(feature = "ethexe") {
+            self.result_type_with_value()
+                .1
+                .then(|| quote!(#[doc = " #[returns_value]"]))
+        } else {
+            None
+        };
         quote!(
             #( #handler_docs_attrs )*
+            #payable_doc
+            #returns_value_doc
             #handler_route_ident(#params_struct_ident, #result_type)
         )
     }
@@ -263,8 +278,21 @@ impl FnBuilder<'_> {
         };
 
         let result_type = self.result_type_with_static_lifetime();
+
+        let payable_check = {
+            #[cfg(feature = "ethexe")]
+            {
+                self.payable_check()
+            }
+            #[cfg(not(feature = "ethexe"))]
+            {
+                quote!()
+            }
+        };
+
         quote! {
             if let Ok(request) = #meta_module_ident::#params_struct_ident::decode_params( #input_ident) {
+                #payable_check
                 #handle_token
                 if !#meta_module_ident::#params_struct_ident::is_empty_tuple::<#result_type>() {
                     #meta_module_ident::#params_struct_ident::with_optimized_encode(

@@ -10,15 +10,15 @@ interface ITestContract {
 
     event DoThisEvent2(uint32, string);
 
-    function create(bool _callReply) external payable returns (bytes32 messageId);
+    function create(bool _callReply) external returns (bytes32 messageId);
 
-    function svc1DoThis(bool _callReply, uint32 p1, string calldata p2) external payable returns (bytes32 messageId);
+    function svc1DoThis(bool _callReply, uint32 p1, string calldata p2) external returns (bytes32 messageId);
 }
 
 contract TestContractAbi is ITestContract {
-    function create(bool _callReply) external payable returns (bytes32 messageId) {}
+    function create(bool _callReply) external returns (bytes32 messageId) {}
 
-    function svc1DoThis(bool _callReply, uint32 p1, string calldata p2) external payable returns (bytes32 messageId) {}
+    function svc1DoThis(bool _callReply, uint32 p1, string calldata p2) external returns (bytes32 messageId) {}
 }
 
 interface ITestContractCallbacks {
@@ -26,7 +26,7 @@ interface ITestContractCallbacks {
 
     function replyOn_svc1DoThis(bytes32 messageId, uint32 reply) external;
 
-    function onErrorReply(bytes32 messageId, bytes calldata payload, bytes4 replyCode) external;
+    function onErrorReply(bytes32 messageId, bytes calldata payload, bytes4 replyCode) external payable;
 }
 
 contract TestContractCaller is ITestContractCallbacks {
@@ -49,11 +49,11 @@ contract TestContractCaller is ITestContractCallbacks {
         }
     }
 
-    function replyOn_create(bytes32 messageId) external payable onlyVaraEthProgram {
+    function replyOn_create(bytes32 messageId) external onlyVaraEthProgram {
         // TODO: implement this
     }
 
-    function replyOn_svc1DoThis(bytes32 messageId, uint32 reply) external payable onlyVaraEthProgram {
+    function replyOn_svc1DoThis(bytes32 messageId, uint32 reply) external onlyVaraEthProgram {
         // TODO: implement this
     }
 
