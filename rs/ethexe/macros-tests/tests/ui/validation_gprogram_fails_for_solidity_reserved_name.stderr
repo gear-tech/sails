@@ -1,0 +1,8 @@
+error: The name 'new' cannot be used for a Program constructor because it is a reserved keyword in Solidity.
+
+         = help: Please rename this item to avoid compilation errors in the generated Solidity contract.
+
+ --> tests/ui/validation_gprogram_fails_for_solidity_reserved_name.rs:9:12
+  |
+9 |     pub fn new() -> Self {
+  |            ^^^

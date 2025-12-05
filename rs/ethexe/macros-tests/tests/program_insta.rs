@@ -6,7 +6,7 @@ use sails_macros_core::__gprogram_internal as gprogram;
 fn generates_init_for_single_ctor() {
     let input = quote! {
         impl MyProgram {
-            pub async fn new(p1: u32, p2: String) -> Self {
+            pub async fn create(p1: u32, p2: String) -> Self {
                 Self { p1, p2 }
             }
         }
@@ -22,7 +22,7 @@ fn generates_init_for_single_ctor() {
 fn generates_init_for_multiple_ctors() {
     let input = quote! {
         impl MyProgram {
-            pub async fn new(p1: u32, p2: String) -> Self {
+            pub async fn create(p1: u32, p2: String) -> Self {
                 Self { p1, p2 }
             }
 
@@ -105,8 +105,8 @@ fn generates_handle_with_crate_path() {
 fn generates_ctors_meta_with_docs() {
     let input = quote! {
         impl MyProgram {
-            /// This is New ctor
-            pub async fn new(p1: u32, p2: String) -> Self {
+            /// This is Create ctor
+            pub async fn create(p1: u32, p2: String) -> Self {
                 Self { p1, p2 }
             }
 
@@ -129,7 +129,7 @@ fn generates_init_with_unwrap_result() {
     let input = quote! {
         impl MyProgram {
             #[export(unwrap_result)]
-            pub async fn new(p1: u32, p2: String) -> Result<Self, String> {
+            pub async fn create(p1: u32, p2: String) -> Result<Self, String> {
                 Self { p1, p2 }
             }
 
