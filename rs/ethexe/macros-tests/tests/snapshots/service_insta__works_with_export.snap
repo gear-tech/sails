@@ -116,15 +116,18 @@ impl SomeServiceExposure<SomeService> {
     ) -> Option<(sails_rs::Vec<u8>, u128, bool)> {
         use sails_rs::gstd::services::{Service, Exposure};
         if method == &[16u8, 84u8, 104u8, 105u8, 115u8] {
-            let (__encode_reply, p1): (bool, bool) = sails_rs::alloy_sol_types::SolValue::abi_decode_params(
-                    input,
-                )
-                .ok()?;
+            let (
+                __encode_reply,
+                p1,
+            ): (
+                bool,
+                <<bool as sails_rs::alloy_sol_types::SolValue>::SolType as sails_rs::alloy_sol_types::SolType>::RustType,
+            ) = sails_rs::alloy_sol_types::SolValue::abi_decode_params(input).ok()?;
             #[cfg(target_arch = "wasm32")]
             if sails_rs::gstd::msg::value() > 0 {
                 core::panic!("'this' accepts no value");
             }
-            let result = self.this(p1);
+            let result = self.this(p1.into());
             let value = 0u128;
             let output = if __encode_reply {
                 let message_id = sails_rs::alloy_primitives::B256::new(
@@ -152,15 +155,20 @@ impl SomeServiceExposure<SomeService> {
                 103u8,
             ]
         {
-            let (__encode_reply, p1, p2): (bool, u32, String) = sails_rs::alloy_sol_types::SolValue::abi_decode_params(
-                    input,
-                )
-                .ok()?;
+            let (
+                __encode_reply,
+                p1,
+                p2,
+            ): (
+                bool,
+                <<u32 as sails_rs::alloy_sol_types::SolValue>::SolType as sails_rs::alloy_sol_types::SolType>::RustType,
+                <<String as sails_rs::alloy_sol_types::SolValue>::SolType as sails_rs::alloy_sol_types::SolType>::RustType,
+            ) = sails_rs::alloy_sol_types::SolValue::abi_decode_params(input).ok()?;
             #[cfg(target_arch = "wasm32")]
             if sails_rs::gstd::msg::value() > 0 {
                 core::panic!("'do_this' accepts no value");
             }
-            let result = self.do_this(p1, p2).await.unwrap();
+            let result = self.do_this(p1.into(), p2.into()).await.unwrap();
             let value = 0u128;
             let output = if __encode_reply {
                 let message_id = sails_rs::alloy_primitives::B256::new(

@@ -152,7 +152,16 @@ impl FnBuilder<'_> {
         let sails_path = self.sails_path;
         let handler_ident = self.ident;
         let handler_params = self.params_idents();
-        let handler_types = self.params_types();
+        let sol_types = self.params_types().iter().map(|t| {
+            quote! {
+                << #t as #sails_path::alloy_sol_types::SolValue >::SolType as #sails_path::alloy_sol_types::SolType>::RustType
+            }
+        });
+        let handler_params_into = self.params_idents().iter().map(|p| {
+            quote! {
+                #p.into()
+            }
+        });
 
         let (result_type, reply_with_value) = self.result_type_with_value();
 
@@ -161,12 +170,12 @@ impl FnBuilder<'_> {
 
         let handle_token = if reply_with_value {
             quote! {
-                let command_reply: CommandReply< #result_type > = self.#handler_ident(#(#handler_params),*)#await_token #unwrap_token.into();
+                let command_reply: CommandReply< #result_type > = self.#handler_ident(#(#handler_params_into),*)#await_token #unwrap_token.into();
                 let (result, value) = command_reply.to_tuple();
             }
         } else {
             quote! {
-                let result = self.#handler_ident(#(#handler_params),*)#await_token #unwrap_token;
+                let result = self.#handler_ident(#(#handler_params_into),*)#await_token #unwrap_token;
                 let value = 0u128;
             }
         };
@@ -174,7 +183,7 @@ impl FnBuilder<'_> {
         let payable_check = self.payable_check();
 
         quote! {
-            let (__encode_reply, #(#handler_params,)*) : (bool, #(#handler_types,)*) = #sails_path::alloy_sol_types::SolValue::abi_decode_params(input).ok()?;
+            let (__encode_reply, #(#handler_params,)*) : (bool, #(#sol_types,)*) = #sails_path::alloy_sol_types::SolValue::abi_decode_params(input).ok()?;
             #payable_check
             #handle_token
             let output = if __encode_reply {

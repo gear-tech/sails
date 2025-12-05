@@ -185,20 +185,29 @@ impl FnBuilder<'_> {
         let handler_route_bytes = self.encoded_route.as_slice();
         let handler_ident = self.ident;
         let handler_params = self.params_idents();
-        let handler_types = self.params_types();
+        let sol_types = self.params_types().iter().map(|t| {
+            quote! {
+                << #t as #sails_path::alloy_sol_types::SolValue >::SolType as #sails_path::alloy_sol_types::SolType>::RustType
+            }
+        });
+        let handler_params_into = self.params_idents().iter().map(|p| {
+            quote! {
+                #p.into()
+            }
+        });
 
         let unwrap_token = self.unwrap_result.then(|| quote!(.unwrap()));
 
         let ctor_invocation = if self.is_async() {
             quote! {
                 gstd::message_loop(async move {
-                    let program = #program_type_path :: #handler_ident (#(#handler_params),*).await #unwrap_token;
+                    let program = #program_type_path :: #handler_ident (#(#handler_params_into),*).await #unwrap_token;
                     unsafe { #program_ident = Some(program) };
                 });
             }
         } else {
             quote! {
-                let program = #program_type_path :: #handler_ident (#(#handler_params),*) #unwrap_token;
+                let program = #program_type_path :: #handler_ident (#(#handler_params_into),*) #unwrap_token;
                 unsafe { #program_ident = Some(program) };
             }
         };
@@ -208,7 +217,7 @@ impl FnBuilder<'_> {
         // read uint128 as first parameter
         quote! {
             if ctor == &[ #(#handler_route_bytes),* ] {
-                let (__encode_reply, #(#handler_params,)*) : (bool, #(#handler_types,)*) = #sails_path::alloy_sol_types::SolValue::abi_decode_params(input).expect("Failed to decode request");
+                let (__encode_reply, #(#handler_params,)*) : (bool, #(#sol_types,)*) = #sails_path::alloy_sol_types::SolValue::abi_decode_params(input).expect("Failed to decode request");
                 #payable_check
                 #ctor_invocation
                 return Some(__encode_reply);
