@@ -212,10 +212,13 @@ impl FnBuilder<'_> {
             }
         };
 
+        let payable_check = self.payable_check();
+
         // read uint128 as first parameter
         quote! {
             if ctor == &[ #(#handler_route_bytes),* ] {
                 let (__encode_reply, #(#handler_params,)*) : (bool, #(#sol_types,)*) = #sails_path::alloy_sol_types::SolValue::abi_decode_params(input).expect("Failed to decode request");
+                #payable_check
                 #ctor_invocation
                 return Some(__encode_reply);
             }

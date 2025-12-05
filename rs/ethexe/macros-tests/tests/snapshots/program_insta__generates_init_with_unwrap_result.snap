@@ -127,6 +127,10 @@ pub mod wasm {
             }
         }
         if let Ok(request) = meta_in_program::__NewParams::decode_params(input) {
+            #[cfg(target_arch = "wasm32")]
+            if sails_rs::gstd::msg::value() > 0 {
+                core::panic!("'new' accepts no value");
+            }
             gstd::message_loop(async move {
                 let program = MyProgram::new(request.p1, request.p2).await.unwrap();
                 unsafe {
@@ -134,6 +138,10 @@ pub mod wasm {
                 }
             });
         } else if let Ok(request) = meta_in_program::__New2Params::decode_params(input) {
+            #[cfg(target_arch = "wasm32")]
+            if sails_rs::gstd::msg::value() > 0 {
+                core::panic!("'new2' accepts no value");
+            }
             let program = MyProgram::new2(request.p2, request.p1).unwrap();
             unsafe {
                 PROGRAM = Some(program);
@@ -154,6 +162,10 @@ pub mod wasm {
                 <<String as sails_rs::alloy_sol_types::SolValue>::SolType as sails_rs::alloy_sol_types::SolType>::RustType,
             ) = sails_rs::alloy_sol_types::SolValue::abi_decode_params(input)
                 .expect("Failed to decode request");
+            #[cfg(target_arch = "wasm32")]
+            if sails_rs::gstd::msg::value() > 0 {
+                core::panic!("'new' accepts no value");
+            }
             gstd::message_loop(async move {
                 let program = MyProgram::new(p1.into(), p2.into()).await.unwrap();
                 unsafe { PROGRAM = Some(program) };
@@ -171,6 +183,10 @@ pub mod wasm {
                 <<u32 as sails_rs::alloy_sol_types::SolValue>::SolType as sails_rs::alloy_sol_types::SolType>::RustType,
             ) = sails_rs::alloy_sol_types::SolValue::abi_decode_params(input)
                 .expect("Failed to decode request");
+            #[cfg(target_arch = "wasm32")]
+            if sails_rs::gstd::msg::value() > 0 {
+                core::panic!("'new2' accepts no value");
+            }
             let program = MyProgram::new2(p2.into(), p1.into()).unwrap();
             unsafe { PROGRAM = Some(program) };
             return Some(__encode_reply);

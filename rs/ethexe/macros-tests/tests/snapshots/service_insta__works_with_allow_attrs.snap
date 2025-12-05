@@ -60,6 +60,10 @@ impl SomeServiceExposure<SomeService> {
         use sails_rs::gstd::InvocationIo;
         use sails_rs::gstd::services::{Service, Exposure};
         if let Ok(request) = some_service_meta::__ThisParams::decode_params(input) {
+            #[cfg(target_arch = "wasm32")]
+            if sails_rs::gstd::msg::value() > 0 {
+                core::panic!("'this' accepts no value");
+            }
             let result = self.this(request.p1);
             let value = 0u128;
             if !some_service_meta::__ThisParams::is_empty_tuple::<bool>() {
@@ -81,6 +85,10 @@ impl SomeServiceExposure<SomeService> {
         use sails_rs::gstd::InvocationIo;
         use sails_rs::gstd::services::{Service, Exposure};
         if let Ok(request) = some_service_meta::__DoThisParams::decode_params(input) {
+            #[cfg(target_arch = "wasm32")]
+            if sails_rs::gstd::msg::value() > 0 {
+                core::panic!("'do_this' accepts no value");
+            }
             let result = self.do_this(request.p1, request.p2).await;
             let value = 0u128;
             if !some_service_meta::__DoThisParams::is_empty_tuple::<u32>() {
@@ -108,6 +116,10 @@ impl SomeServiceExposure<SomeService> {
                 bool,
                 <<bool as sails_rs::alloy_sol_types::SolValue>::SolType as sails_rs::alloy_sol_types::SolType>::RustType,
             ) = sails_rs::alloy_sol_types::SolValue::abi_decode_params(input).ok()?;
+            #[cfg(target_arch = "wasm32")]
+            if sails_rs::gstd::msg::value() > 0 {
+                core::panic!("'this' accepts no value");
+            }
             let result = self.this(p1.into());
             let value = 0u128;
             let output = if __encode_reply {
@@ -140,6 +152,10 @@ impl SomeServiceExposure<SomeService> {
                 <<u32 as sails_rs::alloy_sol_types::SolValue>::SolType as sails_rs::alloy_sol_types::SolType>::RustType,
                 <<String as sails_rs::alloy_sol_types::SolValue>::SolType as sails_rs::alloy_sol_types::SolType>::RustType,
             ) = sails_rs::alloy_sol_types::SolValue::abi_decode_params(input).ok()?;
+            #[cfg(target_arch = "wasm32")]
+            if sails_rs::gstd::msg::value() > 0 {
+                core::panic!("'do_this' accepts no value");
+            }
             let result = self.do_this(p1.into(), p2.into()).await;
             let value = 0u128;
             let output = if __encode_reply {
