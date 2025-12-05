@@ -557,6 +557,68 @@ To summarize:
   - For `Timeout` errors, optimize by increasing the number of blocks allowed for waiting on a response.
 - Keep in mind that every call to an application will eventually yield a response.
 
+### `ethexe` feature
+
+The `ethexe` cargo feature enables several features:
+
+When this feature is active:
+*   The `#[export]` macro accepts a `payable` argument (`#[export(payable)]`). This allows service methods and program constructors to accept value with a message. If a non-payable method or constructor receives value, the execution will panic.
+
+> **NOTE**
+>
+> The accepted value (tokens) depends on whether the `ethexe` feature is enabled. Without the feature, these are native VARA tokens; with the feature, these are ETH.
+
+*   The generated IDL is enhanced with additional documentation to signify payable methods and methods that return value. Specifically, methods marked with `#[export(payable)]` will have a `/// #[payable]` doc comment, and methods returning `CommandReply<T>` will have a `/// #[returns_value]` doc comment. This metadata is necessary for the correct generation of Solidity interfaces via the `sails-sol-gen` crate.
+
+Here is an example demonstrating these features:
+```rust
+#![no_std]
+
+use sails_rs::prelude::*;
+
+pub struct MyProgram;
+
+#[program]
+impl MyProgram {
+    pub fn create_prg() -> Self {
+        MyProgram
+    }
+
+    #[export(payable)]
+    pub fn create_payable() -> Self {
+        MyProgram
+    }
+
+    pub fn svc1(&self) -> SomeService {
+        SomeService
+    }
+}
+
+pub struct SomeService;
+
+#[service]
+impl SomeService {
+    #[export]
+    pub async fn do_this(&mut self, p1: u32, _p2: String) -> u32 {
+        p1
+    }
+
+    #[export(payable)]
+    pub fn do_this_payable(&mut self, p1: u32) -> u32 {
+        p1
+    }
+
+    // This method implicitly `returns_value` because of its return type
+    #[export]
+    pub fn withdraw(&mut self, amount: u64) -> CommandReply<()> {
+        CommandReply::new(()).with_value(amount)
+    }
+}
+```
+In the example above, `create_payable` is a payable constructor, and `do_this_payable` is a payable service method.
+The `withdraw` method will have the `/// #[returns_value]` doc comment in the IDL.
+For more details, you can refer to the full example at [`rs/ethexe/ethapp/src/lib.rs`](rs/ethexe/ethapp/src/lib.rs).
+
 ## Examples
 
 You can find all examples <a href="examples/">here</a> along with some descriptions
