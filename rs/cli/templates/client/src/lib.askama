@@ -2,3 +2,4 @@
 
 // Incorporate code generated based on the IDL file
 include!("{{ client_file_name }}.rs");
+
