@@ -20,7 +20,7 @@ for SomeServiceExposure<T> {
         if let Ok(is_async) = some_service_meta::__DoThisParams::check_asyncness(input) {
             return Some(is_async);
         }
-        if let Ok(is_async) = some_service_meta::__ThisParams::check_asyncness(input) {
+        if let Ok(is_async) = some_service_meta::__InvertParams::check_asyncness(input) {
             return Some(is_async);
         }
         None
@@ -43,7 +43,7 @@ impl SomeServiceExposure<SomeService> {
         p1
     }
     #[export]
-    pub fn this(&self, p1: bool) -> bool {
+    pub fn invert(&self, p1: bool) -> bool {
         p1
     }
     pub fn check_asyncness(&self, input: &[u8]) -> Option<bool> {
@@ -56,15 +56,15 @@ impl SomeServiceExposure<SomeService> {
     ) -> Option<()> {
         use sails_rename::gstd::InvocationIo;
         use sails_rename::gstd::services::{Service, Exposure};
-        if let Ok(request) = some_service_meta::__ThisParams::decode_params(input) {
+        if let Ok(request) = some_service_meta::__InvertParams::decode_params(input) {
             #[cfg(target_arch = "wasm32")]
             if sails_rename::gstd::msg::value() > 0 {
-                core::panic!("'this' accepts no value");
+                core::panic!("'invert' accepts no value");
             }
-            let result = self.this(request.p1);
+            let result = self.invert(request.p1);
             let value = 0u128;
-            if !some_service_meta::__ThisParams::is_empty_tuple::<bool>() {
-                some_service_meta::__ThisParams::with_optimized_encode(
+            if !some_service_meta::__InvertParams::is_empty_tuple::<bool>() {
+                some_service_meta::__InvertParams::with_optimized_encode(
                     &result,
                     self.route().as_ref(),
                     |encoded_result| result_handler(encoded_result, value),
@@ -105,7 +105,7 @@ impl SomeServiceExposure<SomeService> {
         input: &[u8],
     ) -> Option<(sails_rename::Vec<u8>, u128, bool)> {
         use sails_rename::gstd::services::{Service, Exposure};
-        if method == &[16u8, 84u8, 104u8, 105u8, 115u8] {
+        if method == &[24u8, 73u8, 110u8, 118u8, 101u8, 114u8, 116u8] {
             let (
                 __encode_reply,
                 p1,
@@ -115,9 +115,9 @@ impl SomeServiceExposure<SomeService> {
             ) = sails_rename::alloy_sol_types::SolValue::abi_decode_params(input).ok()?;
             #[cfg(target_arch = "wasm32")]
             if sails_rename::gstd::msg::value() > 0 {
-                core::panic!("'this' accepts no value");
+                core::panic!("'invert' accepts no value");
             }
-            let result = self.this(p1.into());
+            let result = self.invert(p1.into());
             let value = 0u128;
             let output = if __encode_reply {
                 let message_id = sails_rename::alloy_primitives::B256::new(
@@ -205,11 +205,11 @@ mod some_service_meta {
     #[derive(Decode, TypeInfo)]
     #[codec(crate = sails_rename::scale_codec)]
     #[scale_info(crate = sails_rename::scale_info)]
-    pub struct __ThisParams {
+    pub struct __InvertParams {
         pub(super) p1: bool,
     }
-    impl InvocationIo for __ThisParams {
-        const ROUTE: &'static [u8] = &[16u8, 84u8, 104u8, 105u8, 115u8];
+    impl InvocationIo for __InvertParams {
+        const ROUTE: &'static [u8] = &[24u8, 73u8, 110u8, 118u8, 101u8, 114u8, 116u8];
         type Params = Self;
         const ASYNC: bool = false;
     }
@@ -221,7 +221,7 @@ mod some_service_meta {
     #[derive(TypeInfo)]
     #[scale_info(crate = sails_rename::scale_info)]
     pub enum QueriesMeta {
-        This(__ThisParams, bool),
+        Invert(__InvertParams, bool),
     }
     #[derive(TypeInfo)]
     #[scale_info(crate = sails_rename::scale_info)]
@@ -244,8 +244,8 @@ impl sails_rename::solidity::ServiceSignature for SomeService {
             ) as sails_rename::alloy_sol_types::SolValue>::SolType as sails_rename::alloy_sol_types::SolType>::SOL_NAME,
         ),
         (
-            &[16u8, 84u8, 104u8, 105u8, 115u8] as &[u8],
-            "This",
+            &[24u8, 73u8, 110u8, 118u8, 101u8, 114u8, 116u8] as &[u8],
+            "Invert",
             <<(
                 bool,
                 bool,

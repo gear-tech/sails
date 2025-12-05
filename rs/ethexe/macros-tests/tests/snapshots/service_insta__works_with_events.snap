@@ -22,7 +22,7 @@ for MyServiceWithEventsExposure<T> {
         ) {
             return Some(is_async);
         }
-        if let Ok(is_async) = my_service_with_events_meta::__ThisParams::check_asyncness(
+        if let Ok(is_async) = my_service_with_events_meta::__InvertParams::check_asyncness(
             input,
         ) {
             return Some(is_async);
@@ -51,7 +51,7 @@ impl MyServiceWithEventsExposure<MyServiceWithEvents> {
         42
     }
     #[export]
-    pub fn this(&self) -> bool {
+    pub fn invert(&self) -> bool {
         true
     }
     pub fn check_asyncness(&self, input: &[u8]) -> Option<bool> {
@@ -82,17 +82,17 @@ impl MyServiceWithEventsExposure<MyServiceWithEvents> {
             }
             return Some(());
         }
-        if let Ok(request) = my_service_with_events_meta::__ThisParams::decode_params(
+        if let Ok(request) = my_service_with_events_meta::__InvertParams::decode_params(
             input,
         ) {
             #[cfg(target_arch = "wasm32")]
             if sails_rs::gstd::msg::value() > 0 {
-                core::panic!("'this' accepts no value");
+                core::panic!("'invert' accepts no value");
             }
-            let result = self.this();
+            let result = self.invert();
             let value = 0u128;
-            if !my_service_with_events_meta::__ThisParams::is_empty_tuple::<bool>() {
-                my_service_with_events_meta::__ThisParams::with_optimized_encode(
+            if !my_service_with_events_meta::__InvertParams::is_empty_tuple::<bool>() {
+                my_service_with_events_meta::__InvertParams::with_optimized_encode(
                     &result,
                     self.route().as_ref(),
                     |encoded_result| result_handler(encoded_result, value),
@@ -140,16 +140,16 @@ impl MyServiceWithEventsExposure<MyServiceWithEvents> {
             };
             return Some((output, value, __encode_reply));
         }
-        if method == &[16u8, 84u8, 104u8, 105u8, 115u8] {
+        if method == &[24u8, 73u8, 110u8, 118u8, 101u8, 114u8, 116u8] {
             let (__encode_reply,): (bool,) = sails_rs::alloy_sol_types::SolValue::abi_decode_params(
                     input,
                 )
                 .ok()?;
             #[cfg(target_arch = "wasm32")]
             if sails_rs::gstd::msg::value() > 0 {
-                core::panic!("'this' accepts no value");
+                core::panic!("'invert' accepts no value");
             }
-            let result = self.this();
+            let result = self.invert();
             let value = 0u128;
             let output = if __encode_reply {
                 let message_id = sails_rs::alloy_primitives::B256::new(
@@ -214,9 +214,9 @@ mod my_service_with_events_meta {
     #[derive(Decode, TypeInfo)]
     #[codec(crate = sails_rs::scale_codec)]
     #[scale_info(crate = sails_rs::scale_info)]
-    pub struct __ThisParams {}
-    impl InvocationIo for __ThisParams {
-        const ROUTE: &'static [u8] = &[16u8, 84u8, 104u8, 105u8, 115u8];
+    pub struct __InvertParams {}
+    impl InvocationIo for __InvertParams {
+        const ROUTE: &'static [u8] = &[24u8, 73u8, 110u8, 118u8, 101u8, 114u8, 116u8];
         type Params = Self;
         const ASYNC: bool = false;
     }
@@ -228,7 +228,7 @@ mod my_service_with_events_meta {
     #[derive(TypeInfo)]
     #[scale_info(crate = sails_rs::scale_info)]
     pub enum QueriesMeta {
-        This(__ThisParams, bool),
+        Invert(__InvertParams, bool),
     }
     #[derive(TypeInfo)]
     #[scale_info(crate = sails_rs::scale_info)]
@@ -249,8 +249,8 @@ impl sails_rs::solidity::ServiceSignature for MyServiceWithEvents {
             ) as sails_rs::alloy_sol_types::SolValue>::SolType as sails_rs::alloy_sol_types::SolType>::SOL_NAME,
         ),
         (
-            &[16u8, 84u8, 104u8, 105u8, 115u8] as &[u8],
-            "This",
+            &[24u8, 73u8, 110u8, 118u8, 101u8, 114u8, 116u8] as &[u8],
+            "Invert",
             <<(
                 bool,
             ) as sails_rs::alloy_sol_types::SolValue>::SolType as sails_rs::alloy_sol_types::SolType>::SOL_NAME,

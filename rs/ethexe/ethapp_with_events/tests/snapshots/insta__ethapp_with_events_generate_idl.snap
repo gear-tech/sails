@@ -8,7 +8,7 @@ constructor {
 
 service Svc1 {
   DoThis : (p1: u32, p2: str) -> u32;
-  query This : (p1: bool) -> bool;
+  query Invert : (p1: bool) -> bool;
 
   events {
     DoThisEvent: struct {

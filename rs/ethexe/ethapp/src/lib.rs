@@ -35,7 +35,7 @@ impl SomeService {
     }
 
     #[export]
-    pub fn this(&self, p1: ActorId) -> ActorId {
+    pub fn echo_actor(&self, p1: ActorId) -> ActorId {
         p1
     }
 }

@@ -16,7 +16,7 @@ impl MyServiceWithReplyWithValue {
 
     #[allow(unused)]
     #[export]
-    pub fn this(&self, p1: bool) -> bool {
+    pub fn invert(&self, p1: bool) -> bool {
         !p1
     }
 }
