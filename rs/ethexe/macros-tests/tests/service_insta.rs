@@ -12,7 +12,7 @@ fn works_with_basics() {
             }
 
             #[export]
-            pub fn invert(&self, p1: bool) -> bool {
+            pub fn this(&self, p1: bool) -> bool {
                 p1
             }
         }
@@ -78,7 +78,7 @@ fn works_with_events() {
             }
 
             #[export]
-            pub fn invert(&self) -> bool {
+            pub fn this(&self) -> bool {
                 true
             }
         }
@@ -192,7 +192,7 @@ fn works_with_crate_path() {
             }
 
             #[export]
-            pub fn invert(&self, p1: bool) -> bool {
+            pub fn this(&self, p1: bool) -> bool {
                 p1
             }
         }
@@ -214,7 +214,7 @@ fn works_with_reply_with_value() {
             }
 
             #[export]
-            pub fn invert(&self, p1: bool) -> bool {
+            pub fn this(&self, p1: bool) -> bool {
                 p1
             }
         }
@@ -239,7 +239,7 @@ fn works_with_allow_attrs() {
             }
 
             #[export]
-            pub fn invert(&self, p1: bool) -> bool {
+            pub fn this(&self, p1: bool) -> bool {
                 p1
             }
         }
@@ -264,7 +264,7 @@ fn works_with_docs() {
 
             /// `This` query
             #[export]
-            pub fn invert(&self, p1: bool) -> bool {
+            pub fn this(&self, p1: bool) -> bool {
                 p1
             }
         }
@@ -309,7 +309,7 @@ fn works_with_export() {
             }
 
             #[export]
-            pub fn invert(&self, p1: bool) -> bool {
+            pub fn this(&self, p1: bool) -> bool {
                 p1
             }
         }

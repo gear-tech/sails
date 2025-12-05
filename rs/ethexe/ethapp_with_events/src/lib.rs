@@ -47,7 +47,7 @@ impl SomeService {
     }
 
     #[sails_rs::export]
-    pub fn invert(&self, p1: bool) -> bool {
+    pub fn this(&self, p1: bool) -> bool {
         !p1
     }
 }
