@@ -1,8 +1,0 @@
-error: The name 'new' cannot be used for a Service method because it is a reserved keyword in Solidity.
-
-         = help: Please rename this item to avoid compilation errors in the generated Solidity contract.
-
-  --> tests/ui/validation_gservice_fails_for_solidity_reserved_name.rs:14:12
-   |
-14 |     pub fn new(&mut self) -> u32 {
-   |            ^^^
