@@ -562,7 +562,12 @@ To summarize:
 The `ethexe` cargo feature enables several features:
 
 When this feature is active:
-*   The `#[export]` macro accepts a `payable` argument (`#[export(payable)]`). This allows service methods and program constructors to accept value (tokens) with a message. If a non-payable method or constructor receives value, the execution will panic.
+*   The `#[export]` macro accepts a `payable` argument (`#[export(payable)]`). This allows service methods and program constructors to accept value with a message. If a non-payable method or constructor receives value, the execution will panic.
+
+> **NOTE**
+>
+> The accepted value (tokens) depends on whether the `ethexe` feature is enabled. Without the feature, these are native VARA tokens; with the feature, these are ETH.
+
 *   The generated IDL is enhanced with additional documentation to signify payable methods and methods that return value. Specifically, methods marked with `#[export(payable)]` will have a `/// #[payable]` doc comment, and methods returning `CommandReply<T>` will have a `/// #[returns_value]` doc comment. This metadata is necessary for the correct generation of Solidity interfaces via the `sails-sol-gen` crate.
 
 Here is an example demonstrating these features:
