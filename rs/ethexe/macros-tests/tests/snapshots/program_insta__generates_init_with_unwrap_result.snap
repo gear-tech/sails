@@ -4,7 +4,7 @@ expression: result
 ---
 impl MyProgram {
     #[export(unwrap_result)]
-    pub async fn new(p1: u32, p2: String) -> Result<Self, String> {
+    pub async fn create(p1: u32, p2: String) -> Result<Self, String> {
         Self { p1, p2 }
     }
     #[export(unwrap_result)]
@@ -23,12 +23,12 @@ mod meta_in_program {
     #[derive(sails_rs::Decode, sails_rs::TypeInfo)]
     #[codec(crate = sails_rs::scale_codec)]
     #[scale_info(crate = sails_rs::scale_info)]
-    pub struct __NewParams {
+    pub struct __CreateParams {
         pub(super) p1: u32,
         pub(super) p2: String,
     }
-    impl InvocationIo for __NewParams {
-        const ROUTE: &'static [u8] = &[12u8, 78u8, 101u8, 119u8];
+    impl InvocationIo for __CreateParams {
+        const ROUTE: &'static [u8] = &[24u8, 67u8, 114u8, 101u8, 97u8, 116u8, 101u8];
         type Params = Self;
         const ASYNC: bool = true;
     }
@@ -47,15 +47,15 @@ mod meta_in_program {
     #[derive(sails_rs::TypeInfo)]
     #[scale_info(crate = sails_rs::scale_info)]
     pub enum ConstructorsMeta {
-        New(__NewParams),
+        Create(__CreateParams),
         New2(__New2Params),
     }
 }
 impl sails_rs::solidity::ProgramSignature for MyProgram {
     const CTORS: &'static [sails_rs::solidity::MethodExpo] = &[
         (
-            &[12u8, 78u8, 101u8, 119u8] as &[u8],
-            "new",
+            &[24u8, 67u8, 114u8, 101u8, 97u8, 116u8, 101u8] as &[u8],
+            "create",
             <<(
                 bool,
                 u32,
@@ -126,13 +126,13 @@ pub mod wasm {
                 }
             }
         }
-        if let Ok(request) = meta_in_program::__NewParams::decode_params(input) {
+        if let Ok(request) = meta_in_program::__CreateParams::decode_params(input) {
             #[cfg(target_arch = "wasm32")]
             if sails_rs::gstd::msg::value() > 0 {
-                core::panic!("'new' accepts no value");
+                core::panic!("'create' accepts no value");
             }
             gstd::message_loop(async move {
-                let program = MyProgram::new(request.p1, request.p2).await.unwrap();
+                let program = MyProgram::create(request.p1, request.p2).await.unwrap();
                 unsafe {
                     PROGRAM = Some(program);
                 }
@@ -151,17 +151,17 @@ pub mod wasm {
         };
     }
     fn match_ctor_solidity(ctor: &[u8], input: &[u8]) -> Option<bool> {
-        if ctor == &[12u8, 78u8, 101u8, 119u8] {
+        if ctor == &[24u8, 67u8, 114u8, 101u8, 97u8, 116u8, 101u8] {
             let (__encode_reply, p1, p2): (bool, u32, String) = sails_rs::alloy_sol_types::SolValue::abi_decode_params(
                     input,
                 )
                 .expect("Failed to decode request");
             #[cfg(target_arch = "wasm32")]
             if sails_rs::gstd::msg::value() > 0 {
-                core::panic!("'new' accepts no value");
+                core::panic!("'create' accepts no value");
             }
             gstd::message_loop(async move {
-                let program = MyProgram::new(p1, p2).await.unwrap();
+                let program = MyProgram::create(p1, p2).await.unwrap();
                 unsafe { PROGRAM = Some(program) };
             });
             return Some(__encode_reply);

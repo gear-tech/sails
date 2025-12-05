@@ -7,7 +7,7 @@ pub(super) struct MyProgram {
 
 #[program]
 impl MyProgram {
-    pub fn new(counter: i32) -> Self {
+    pub fn create(counter: i32) -> Self {
         Self { counter }
     }
 

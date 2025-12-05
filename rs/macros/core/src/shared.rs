@@ -411,3 +411,152 @@ impl<'a> FnBuilder<'a> {
         }
     }
 }
+
+#[cfg(feature = "ethexe")]
+pub mod validation {
+    use proc_macro2::Span;
+    use proc_macro_error::abort;
+
+    // Source: https://github.com/argotorg/solidity/blob/develop/liblangutil/Token.h
+    // docs:
+    // https://docs.soliditylang.org/en/latest/types.html
+    // https://docs.soliditylang.org/en/latest/units-and-global-variables.html#reserved-keywords
+    const SOL_KEYWORDS: &[&str] = &[
+        "abstract",
+        "address",
+        "after",
+        "alias",
+        "anonymous",
+        "apply",
+        "as",
+        "assembly",
+        "auto",
+        "bool",
+        "break",
+        "byte",
+        "bytes",
+        "calldata",
+        "case",
+        "catch",
+        "constant",
+        "constructor",
+        "continue",
+        "contract",
+        "copyof",
+        "days",
+        "default",
+        "define",
+        "delete",
+        "do",
+        "else",
+        "emit",
+        "enum",
+        "ether",
+        "event",
+        "external",
+        "false",
+        "final",
+        "fixed",
+        "for",
+        "function",
+        "gwei",
+        "hex",
+        "hours",
+        "if",
+        "immutable",
+        "implements",
+        "import",
+        "in",
+        "indexed",
+        "inline",
+        "int",
+        "interface",
+        "internal",
+        "is",
+        "let",
+        "library",
+        "macro",
+        "mapping",
+        "match",
+        "memory",
+        "minutes",
+        "modifier",
+        "mutable",
+        "new",
+        "null",
+        "of",
+        "override",
+        "partial",
+        "payable",
+        "pragma",
+        "private",
+        "promise",
+        "public",
+        "pure",
+        "reference",
+        "relocatable",
+        "return",
+        "returns",
+        "sealed",
+        "seconds",
+        "sizeof",
+        "static",
+        "storage",
+        "string",
+        "struct",
+        "supports",
+        "switch",
+        "throw",
+        "true",
+        "try",
+        "type",
+        "typedef",
+        "typeof",
+        "ufixed",
+        "uint",
+        "unchecked",
+        "unicode",
+        "using",
+        "var",
+        "view",
+        "virtual",
+        "weeks",
+        "wei",
+        "while",
+        "years",
+    ];
+
+    fn is_reserved(s: &str) -> bool {
+        let s = s.to_ascii_lowercase();
+
+        if SOL_KEYWORDS.binary_search(&s.as_str()).is_ok() {
+            return true;
+        }
+
+        // bytes<N>
+        if let Some(num) = s.strip_prefix("bytes").and_then(|x| x.parse::<u8>().ok()) {
+            return (1..=32).contains(&num);
+        }
+
+        // uint<N> | int<N>
+        if let Some(rest) = s.strip_prefix("uint").or_else(|| s.strip_prefix("int"))
+            && let Ok(n) = rest.parse::<u16>()
+        {
+            return n == 8 || (16..=256).contains(&n) && n % 8 == 0;
+        }
+
+        false
+    }
+
+    pub fn validate_identifier(name: &str, span: Span, type_of_ident: &str) {
+        if is_reserved(name) {
+            abort!(
+                span,
+                "The name '{}' cannot be used for a {} because it is a reserved keyword in Solidity.",
+                name,
+                type_of_ident;
+                help = "Please rename this item to avoid compilation errors in the generated Solidity contract."
+            );
+        }
+    }
+}

@@ -184,7 +184,22 @@ fn discover_service_handlers<'a>(
         sails_path,
     )
     .into_iter()
-    .filter(|fn_builder| fn_builder.export)
+    .filter_map(|fn_builder| {
+        if !fn_builder.export {
+            return None;
+        }
+
+        #[cfg(feature = "ethexe")]
+        {
+            shared::validation::validate_identifier(
+                &fn_builder.route_camel_case(),
+                fn_builder.ident.span(),
+                "Service method",
+            );
+        }
+
+        Some(fn_builder)
+    })
     .collect()
 }
 
