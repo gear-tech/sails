@@ -161,9 +161,7 @@ impl<'a> ServiceBuilder<'a> {
     pub fn build(self) -> Result<Vec<ServiceUnit>> {
         let mut services = Vec::new();
         let mut extends = Vec::new();
-        for meta in self.meta.base_services() {
-            // TODO: add base service names to Meta trait
-            let name = "TodoBaseName";
+        for (name, meta) in self.meta.base_services() {
             extends.push(name.to_string());
             // TODO: dedup base services based on `interface_id`
             services.extend(ServiceBuilder::new(name, meta).build()?);

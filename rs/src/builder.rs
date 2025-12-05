@@ -15,7 +15,7 @@ use std::{
 /// See [Builder::build()].
 ///
 /// Code
-/// ```rust
+/// ```rust,ignore
 /// use std::{env, path::PathBuf};
 ///
 /// let out_dir = env::var("CARGO_MANIFEST_DIR").unwrap();

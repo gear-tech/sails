@@ -28,15 +28,6 @@ pub mod service {
     #[codec(crate = my_crate::sails::scale_codec)]
     #[scale_info(crate = my_crate::sails::scale_info)]
     #[reflect_hash(crate = my_crate::sails)]
-    pub struct MyParam {
-        pub f1: u32,
-        pub f2: Vec<String>,
-        pub f3: Option<(u8, u32)>,
-    }
-    #[derive(Encode, Decode, TypeInfo, ReflectHash)]
-    #[codec(crate = my_crate::sails::scale_codec)]
-    #[scale_info(crate = my_crate::sails::scale_info)]
-    #[reflect_hash(crate = my_crate::sails)]
     pub enum MyParam2 {
         Variant1,
         Variant2(u32),

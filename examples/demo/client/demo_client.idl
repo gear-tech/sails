@@ -25,15 +25,7 @@ service Counter {
     }
 }
 
-service TodoBaseName {
-    functions {
-        MakeSound() -> String;
-        @query
-        AvgWeight() -> u32;
-    }
-}
-
-service TodoBaseName {
+service WalkerService {
     events {
         Walked {
             from: (i32, i32),
@@ -47,10 +39,18 @@ service TodoBaseName {
     }
 }
 
+service MammalService {
+    functions {
+        MakeSound() -> String;
+        @query
+        AvgWeight() -> u32;
+    }
+}
+
 service Dog {
     extends {
-        TodoBaseName,
-        TodoBaseName,
+        WalkerService,
+        MammalService,
     }
     events {
         Barked,
