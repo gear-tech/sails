@@ -414,15 +414,17 @@ impl<'a> FnBuilder<'a> {
 
 #[cfg(feature = "ethexe")]
 pub mod validation {
-    use proc_macro2::Span;
     use proc_macro_error::abort;
+    use proc_macro2::Span;
 
     // Source: https://github.com/argotorg/solidity/blob/develop/liblangutil/Token.h
     // docs:
     // https://docs.soliditylang.org/en/latest/types.html
     // https://docs.soliditylang.org/en/latest/units-and-global-variables.html#reserved-keywords
     const SOL_KEYWORDS: &[&str] = &[
+        "abi",
         "abstract",
+        "addmod",
         "address",
         "after",
         "alias",
@@ -430,7 +432,10 @@ pub mod validation {
         "apply",
         "as",
         "assembly",
+        "assert",
         "auto",
+        "block",
+        "blockhash",
         "bool",
         "break",
         "byte",
@@ -448,6 +453,7 @@ pub mod validation {
         "define",
         "delete",
         "do",
+        "ecrecover",
         "else",
         "emit",
         "enum",
@@ -459,6 +465,7 @@ pub mod validation {
         "fixed",
         "for",
         "function",
+        "gasleft",
         "gwei",
         "hex",
         "hours",
@@ -473,6 +480,7 @@ pub mod validation {
         "interface",
         "internal",
         "is",
+        "keccak256",
         "let",
         "library",
         "macro",
@@ -481,6 +489,8 @@ pub mod validation {
         "memory",
         "minutes",
         "modifier",
+        "msg",
+        "mulmod",
         "mutable",
         "new",
         "null",
@@ -495,20 +505,28 @@ pub mod validation {
         "pure",
         "reference",
         "relocatable",
+        "require",
         "return",
         "returns",
+        "revert",
+        "ripemd160",
         "sealed",
         "seconds",
+        "selfdestruct",
+        "sha256",
         "sizeof",
         "static",
         "storage",
         "string",
         "struct",
+        "super",
         "supports",
         "switch",
+        "this",
         "throw",
         "true",
         "try",
+        "tx",
         "type",
         "typedef",
         "typeof",
@@ -545,6 +563,17 @@ pub mod validation {
             return n == 8 || (16..=256).contains(&n) && n % 8 == 0;
         }
 
+        // ufixed<M>x<N> | fixed<M>x<N>
+        if let Some(rest) = s.strip_prefix("ufixed").or_else(|| s.strip_prefix("fixed"))
+            && let Some((m_str, n_str)) = rest.split_once('x')
+            && let (Ok(m), Ok(n)) = (m_str.parse::<u16>(), n_str.parse::<u8>())
+            && (8..=256).contains(&m)
+            && m % 8 == 0
+            && n <= 80
+        {
+            return true;
+        }
+
         false
     }
 
@@ -557,6 +586,55 @@ pub mod validation {
                 type_of_ident;
                 help = "Please rename this item to avoid compilation errors in the generated Solidity contract."
             );
+        }
+    }
+
+    #[cfg(test)]
+    mod tests {
+        use super::*;
+
+        #[test]
+        fn is_reserved_works() {
+            // Keywords
+            assert!(is_reserved("address"));
+            assert!(is_reserved("contract"));
+            assert!(is_reserved("function"));
+            assert!(!is_reserved("myfunction"));
+
+            // bytes<N>
+            assert!(is_reserved("bytes1"));
+            assert!(is_reserved("bytes16"));
+            assert!(is_reserved("bytes32"));
+            assert!(!is_reserved("bytes0"));
+            assert!(!is_reserved("bytes33"));
+            assert!(!is_reserved("sbytes1"));
+
+            // uint<N> | int<N>
+            assert!(is_reserved("uint8"));
+            assert!(is_reserved("int8"));
+            assert!(is_reserved("uint16"));
+            assert!(is_reserved("int24"));
+            assert!(is_reserved("uint256"));
+            assert!(!is_reserved("uint9"));
+            assert!(!is_reserved("int17"));
+            assert!(!is_reserved("uint257"));
+            assert!(!is_reserved("uint249"));
+            assert!(!is_reserved("uint"));
+            assert!(!is_reserved("int"));
+
+            // ufixed<M>x<N> | fixed<M>x<N>
+            assert!(is_reserved("fixed128x18"));
+            assert!(is_reserved("ufixed256x80"));
+            assert!(is_reserved("fixed8x1"));
+            assert!(is_reserved("ufixed256x0"));
+            assert!(!is_reserved("fixed"));
+            assert!(!is_reserved("ufixed"));
+            assert!(!is_reserved("fixed128x81")); // N > 80
+            assert!(!is_reserved("fixed264x18")); // M > 256
+            assert!(!is_reserved("fixed129x18")); // M not divisible by 8
+            assert!(!is_reserved("fixed4x1")); // M < 8
+            assert!(!is_reserved("fixed128"));
+            assert!(!is_reserved("fixed128xN"));
         }
     }
 }
