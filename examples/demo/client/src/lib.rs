@@ -9,7 +9,9 @@ mod tests {
 
     #[test]
     fn test_io_module_encode() {
-        let bytes = this_that::io::DoThat::encode_params_with_prefix(
+        use this_that::*;
+
+        let bytes = io::DoThat::encode_params_with_prefix(
             "ThisThat",
             DoThatParam {
                 p1: NonZeroU32::MAX,
@@ -33,6 +35,8 @@ mod tests {
 
     #[test]
     fn test_io_module_decode_reply() {
+        use this_that::*;
+
         let bytes = vec![
             32, 84, 104, 105, 115, 84, 104, 97, 116, // ThisThat
             24, 68, 111, 84, 104, 97, 116, // DoThat
@@ -44,7 +48,7 @@ mod tests {
         ];
 
         let reply: Result<(ActorId, NonZeroU32, ManyVariantsReply), (String,)> =
-            this_that::io::DoThat::decode_reply_with_prefix("ThisThat", bytes).unwrap();
+            io::DoThat::decode_reply_with_prefix("ThisThat", bytes).unwrap();
 
         assert_eq!(
             reply,
