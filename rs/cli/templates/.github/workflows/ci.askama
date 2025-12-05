@@ -20,10 +20,14 @@ jobs:
         uses: actions/checkout@v6
 
       - name: Install Rust
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: wasm32-unknown-unknown, wasm32v1-none
-          components: rustfmt, clippy
+        uses: dsherret/rust-toolchain-file@v1
+
+      - name: Install Binaryen
+        run: |
+          sudo wget -c https://github.com/WebAssembly/binaryen/releases/download/$BINARYEN_VERSION/binaryen-$BINARYEN_VERSION-x86_64-linux.tar.gz -O - | sudo tar -xz -C .
+          sudo cp binaryen-$BINARYEN_VERSION/bin/wasm-opt /usr/bin/
+        env:
+          BINARYEN_VERSION: version_125
 
       - name: Cargo cache
         uses: Swatinem/rust-cache@v2
@@ -40,3 +44,9 @@ jobs:
       - name: Cargo test
         run: cargo test --release
 
+      - name: Check client files
+        run: |
+          CLIENT_RS_FILE="client/src/{{ client_file_name }}.rs"
+          test -f $CLIENT_RS_FILE && git diff --exit-code $CLIENT_RS_FILE || (echo "$CLIENT_RS_FILE missing or modified" && exit 1)
+          CLIENT_IDL_FILE="client/{{ client_file_name }}.idl"
+          test -f $CLIENT_IDL_FILE && git diff --exit-code $CLIENT_IDL_FILE || (echo "$CLIENT_IDL_FILE missing or modified" && exit 1)

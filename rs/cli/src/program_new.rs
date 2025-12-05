@@ -45,6 +45,7 @@ impl OutputExt for Output {
 #[template(path = ".github/workflows/ci.askama")]
 struct CIWorkflow {
     git_branch_name: String,
+    client_file_name: String,
 }
 
 #[derive(Template)]
@@ -108,11 +109,16 @@ struct RootReadme {
     app: bool,
 }
 
+#[derive(Template)]
+#[template(path = "rust-toolchain.askama")]
+struct RootRustToolchain;
+
 pub struct ProgramGenerator {
     path: PathBuf,
     package_name: String,
     package_author: String,
     github_username: String,
+    client_file_name: String,
     sails_path: Option<PathBuf>,
     app: bool,
     offline: bool,
@@ -149,11 +155,13 @@ impl ProgramGenerator {
         let service_name = package_name.to_case(Case::Pascal);
         let package_author = author.unwrap_or_else(|| Self::DEFAULT_AUTHOR.to_string());
         let github_username = username.unwrap_or_else(|| Self::DEFAULT_GITHUB_USERNAME.to_string());
+        let client_file_name = format!("{}_client", package_name.to_case(Case::Snake));
         Self {
             path,
             package_name,
             package_author,
             github_username,
+            client_file_name,
             sails_path,
             app,
             offline,
@@ -165,6 +173,7 @@ impl ProgramGenerator {
     fn ci_workflow(&self, git_branch_name: &str) -> CIWorkflow {
         CIWorkflow {
             git_branch_name: git_branch_name.into(),
+            client_file_name: self.client_file_name.clone(),
         }
     }
 
@@ -178,7 +187,7 @@ impl ProgramGenerator {
 
     fn client_lib(&self) -> ClientLib {
         ClientLib {
-            client_file_name: format!("{}_client", self.package_name.to_case(Case::Snake)),
+            client_file_name: self.client_file_name.clone(),
         }
     }
 
@@ -227,6 +236,10 @@ impl ProgramGenerator {
             service_name: self.service_name.clone(),
             app: self.app,
         }
+    }
+
+    fn root_rust_toolchain(&self) -> RootRustToolchain {
+        RootRustToolchain
     }
 
     fn app_path(&self) -> PathBuf {
@@ -316,12 +329,11 @@ impl ProgramGenerator {
         let git_branch_name = git_show_current_branch(path)?;
 
         fs::create_dir_all(ci_workflow_dir_path(path))?;
-        let mut ci_workflow = File::create(ci_workflow_path(path))?;
+        let mut ci_workflow_yml = File::create(ci_workflow_path(path))?;
         self.ci_workflow(&git_branch_name)
-            .write_into(&mut ci_workflow)?;
+            .write_into(&mut ci_workflow_yml)?;
 
-        let gitignore_path = &gitignore_path(path);
-        let mut gitignore = File::create(gitignore_path)?;
+        let mut gitignore = File::create(gitignore_path(path))?;
         gitignore.write_all(Self::GITIGNORE_ENTRIES.join("\n").as_ref())?;
 
         let manifest_path = &manifest_path(path);
@@ -337,6 +349,10 @@ impl ProgramGenerator {
 
         let mut readme_md = File::create(readme_path(path))?;
         self.root_readme().write_into(&mut readme_md)?;
+
+        let mut rust_toolchain_toml = File::create(rust_toolchain_path(path))?;
+        self.root_rust_toolchain()
+            .write_into(&mut rust_toolchain_toml)?;
 
         Ok(())
     }
@@ -724,6 +740,10 @@ fn license_path<P: AsRef<Path>>(path: P) -> PathBuf {
 
 fn readme_path<P: AsRef<Path>>(path: P) -> PathBuf {
     path.as_ref().join("README.md")
+}
+
+fn rust_toolchain_path<P: AsRef<Path>>(path: P) -> PathBuf {
+    path.as_ref().join("rust-toolchain.toml")
 }
 
 fn git_command() -> String {
