@@ -44,12 +44,12 @@ interface IPayableContractCallbacks {
 }
 
 contract PayableContractCaller is IPayableContractCallbacks {
-    IPayableContract public immutable VAR_ETH_PROGRAM;
+    IPayableContract public immutable VARA_ETH_PROGRAM;
 
     error UnauthorizedCaller();
 
     constructor(IPayableContract _varaEthProgram) {
-        VAR_ETH_PROGRAM = _varaEthProgram;
+        VARA_ETH_PROGRAM = _varaEthProgram;
     }
 
     modifier onlyVaraEthProgram() {
@@ -57,8 +57,8 @@ contract PayableContractCaller is IPayableContractCallbacks {
         _;
     }
 
-    function _onlyVaraEthProgram() internal {
-        if (msg.sender != address(varaEthProgram)) {
+    function _onlyVaraEthProgram() internal view {
+        if (msg.sender != address(VARA_ETH_PROGRAM)) {
             revert UnauthorizedCaller();
         }
     }

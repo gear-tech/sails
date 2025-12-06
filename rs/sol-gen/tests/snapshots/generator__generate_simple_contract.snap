@@ -26,12 +26,12 @@ interface ITestContractCallbacks {
 }
 
 contract TestContractCaller is ITestContractCallbacks {
-    ITestContract public immutable VAR_ETH_PROGRAM;
+    ITestContract public immutable VARA_ETH_PROGRAM;
 
     error UnauthorizedCaller();
 
     constructor(ITestContract _varaEthProgram) {
-        VAR_ETH_PROGRAM = _varaEthProgram;
+        VARA_ETH_PROGRAM = _varaEthProgram;
     }
 
     modifier onlyVaraEthProgram() {
@@ -39,8 +39,8 @@ contract TestContractCaller is ITestContractCallbacks {
         _;
     }
 
-    function _onlyVaraEthProgram() internal {
-        if (msg.sender != address(varaEthProgram)) {
+    function _onlyVaraEthProgram() internal view {
+        if (msg.sender != address(VARA_ETH_PROGRAM)) {
             revert UnauthorizedCaller();
         }
     }
