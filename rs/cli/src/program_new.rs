@@ -710,6 +710,7 @@ fn cargo_toml_create_workspace_and_fill_package<P: AsRef<Path>>(
         dependency.insert(
             "path",
             sails_path
+                .canonicalize()?
                 .to_str()
                 .context("failed to convert to UTF-8 string")?
                 .into(),
