@@ -34,6 +34,7 @@ pub use gtest;
 #[cfg(not(target_arch = "wasm32"))]
 pub use mockall;
 pub mod prelude;
+pub mod routing;
 #[cfg(feature = "ethexe")]
 pub mod solidity;
 mod types;

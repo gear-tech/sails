@@ -10,10 +10,31 @@ impl ServiceBuilder<'_> {
         let service_type_constraints = self.type_constraints();
         let meta_module_ident = &self.meta_module_ident;
 
-        let base_services_meta = self.base_types.iter().map(|base_type| {
-            let path_wo_lifetimes = shared::remove_lifetimes(base_type);
+        // Sort base services lexicographically
+        let mut base_services_sorted = self
+            .base_types
+            .iter()
+            .map(|base_type| (base_type, shared::remove_lifetimes(base_type)))
+            .collect::<Vec<_>>();
+        base_services_sorted.sort_by_key(|(_, path_wo_lifetimes)| {
+            path_wo_lifetimes
+                .segments
+                .last()
+                .expect("Base service path should have at least one segment")
+                .ident
+                .to_string()
+                .to_lowercase()
+        });
+
+        let base_services_meta = base_services_sorted.iter().map(|(_, path_wo_lifetimes)| {
             quote! {
                 #sails_path::meta::AnyServiceMeta::new::< #path_wo_lifetimes >
+            }
+        });
+
+        let base_services_ids = base_services_sorted.iter().map(|(_, path_wo_lifetimes)| {
+            quote! {
+                #sails_path::meta::AnyServiceIds::new::< #path_wo_lifetimes >()
             }
         });
 
@@ -27,8 +48,7 @@ impl ServiceBuilder<'_> {
         } else if self.base_types.is_empty() {
             quote!(false)
         } else {
-            let base_asyncness = self.base_types.iter().map(|base_type| {
-                let path_wo_lifetimes = shared::remove_lifetimes(base_type);
+            let base_asyncness = base_services_sorted.iter().map(|(_, path_wo_lifetimes)| {
                 quote! {
                     <#path_wo_lifetimes as #sails_path::meta::ServiceMeta>::ASYNC
                 }
@@ -45,6 +65,9 @@ impl ServiceBuilder<'_> {
                 type EventsMeta = #meta_module_ident::EventsMeta;
                 const BASE_SERVICES: &'static [#sails_path::meta::AnyServiceMetaFn] = &[
                     #( #base_services_meta ),*
+                ];
+                const BASE_SERVICES_IDS: &'static [#sails_path::meta::AnyServiceIds] = &[
+                    #( #base_services_ids ),*
                 ];
                 const ASYNC: bool = #service_meta_asyncness ;
                 const INTERFACE_ID: #sails_path::meta::InterfaceId = #interface_id_computation;

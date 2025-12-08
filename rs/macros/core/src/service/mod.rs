@@ -65,10 +65,11 @@ struct ServiceBuilder<'a> {
     type_path: &'a TypePath,
     events_type: Option<&'a Path>,
     service_handlers: Vec<FnBuilder<'a>>,
+    /// Handlers with assigned entry IDs (sorted: commands then queries)
+    service_handlers_with_ids: Vec<(FnBuilder<'a>, u16)>,
     exposure_ident: Ident,
     route_ident: Ident,
     inner_ident: Ident,
-    input_ident: Ident,
     meta_module_ident: Ident,
 }
 
@@ -82,6 +83,10 @@ impl<'a> ServiceBuilder<'a> {
         let (type_path, _type_args, service_ident) =
             shared::impl_type_refs(service_impl.self_ty.as_ref());
         let service_handlers = discover_service_handlers(service_impl, sails_path);
+
+        // Assign entry IDs: commands (sorted) get 0..N-1, queries (sorted) get N..M-1
+        let service_handlers_with_ids = Self::assign_entry_ids(&service_handlers);
+
         let exposure_name = format!(
             "{}Exposure",
             service_ident.to_string().to_case(Case::Pascal)
@@ -89,7 +94,6 @@ impl<'a> ServiceBuilder<'a> {
         let exposure_ident = Ident::new(&exposure_name, Span::call_site());
         let route_ident = Ident::new("route", Span::call_site());
         let inner_ident = Ident::new("inner", Span::call_site());
-        let input_ident = Ident::new("input", Span::call_site());
         let meta_module_name = format!("{}_meta", service_ident.to_string().to_case(Case::Snake));
         let meta_module_ident = Ident::new(&meta_module_name, Span::call_site());
 
@@ -102,12 +106,36 @@ impl<'a> ServiceBuilder<'a> {
             type_path,
             events_type: service_args.events_type(),
             service_handlers,
+            service_handlers_with_ids,
             exposure_ident,
             route_ident,
             inner_ident,
-            input_ident,
             meta_module_ident,
         }
+    }
+
+    fn assign_entry_ids(handlers: &[FnBuilder<'a>]) -> Vec<(FnBuilder<'a>, u16)> {
+        let (mut commands, mut queries): (Vec<_>, Vec<_>) =
+            handlers.iter().partition(|h| !h.is_query());
+
+        // Sort by name (lowercase for case-insensitive)
+        commands.sort_by_key(|h| h.route.to_lowercase());
+        queries.sort_by_key(|h| h.route.to_lowercase());
+
+        let mut result = Vec::new();
+        let mut entry_id = 0u16;
+
+        for cmd in commands {
+            result.push((cmd.clone(), entry_id));
+            entry_id += 1;
+        }
+
+        for query in queries {
+            result.push((query.clone(), entry_id));
+            entry_id += 1;
+        }
+
+        result
     }
 
     fn type_constraints(&self) -> Option<&WhereClause> {
@@ -231,65 +259,6 @@ impl FnBuilder<'_> {
                 const ASYNC: bool = #is_async;
             }
         )
-    }
-
-    fn try_handle_branch_impl(
-        &self,
-        meta_module_ident: &Ident,
-        input_ident: &Ident,
-    ) -> TokenStream {
-        let handler_func_ident = self.ident;
-
-        let params_struct_ident = &self.params_struct_ident;
-        let handler_func_params = self
-            .params_idents()
-            .iter()
-            .map(|ident| quote!(request.#ident));
-
-        let (result_type, reply_with_value) = self.result_type_with_value();
-        let await_token = self.is_async().then(|| quote!(.await));
-        let unwrap_token = self.unwrap_result.then(|| quote!(.unwrap()));
-
-        let handle_token = if reply_with_value {
-            quote! {
-                let command_reply: CommandReply< #result_type > = self.#handler_func_ident(#(#handler_func_params),*)#await_token #unwrap_token.into();
-                let (result, value) = command_reply.to_tuple();
-            }
-        } else {
-            quote! {
-                let result = self.#handler_func_ident(#(#handler_func_params),*)#await_token #unwrap_token;
-                let value = 0u128;
-            }
-        };
-
-        let result_type = self.result_type_with_static_lifetime();
-        quote! {
-            if let Ok(request) = #meta_module_ident::#params_struct_ident::decode_params( #input_ident) {
-                #handle_token
-                if !#meta_module_ident::#params_struct_ident::is_empty_tuple::<#result_type>() {
-                    #meta_module_ident::#params_struct_ident::with_optimized_encode(
-                        &result,
-                        self.route().as_ref(),
-                        |encoded_result| result_handler(encoded_result, value),
-                    );
-                }
-                return Some(());
-            }
-        }
-    }
-
-    fn check_asyncness_branch_impl(
-        &self,
-        meta_module_ident: &Ident,
-        input_ident: &Ident,
-    ) -> TokenStream {
-        let params_struct_ident = &self.params_struct_ident;
-
-        quote! {
-            if let Ok(is_async) = #meta_module_ident::#params_struct_ident::check_asyncness( #input_ident) {
-                return Some(is_async);
-            }
-        }
     }
 }
 
