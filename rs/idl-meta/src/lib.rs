@@ -19,6 +19,11 @@ pub type AnyServiceMetaFn = fn() -> AnyServiceMeta;
 pub struct InterfaceId(pub [u8; 8]);
 
 impl InterfaceId {
+    /// Create a zeroed interface ID.
+    pub fn zero() -> Self {
+        Self([0u8; 8])
+    }
+
     /// Get interface ID as a byte slice
     pub fn as_bytes(&self) -> &[u8] {
         &self.0
@@ -58,11 +63,31 @@ impl Decode for InterfaceId {
     }
 }
 
+/// Compile-time service identifier information
+#[derive(Copy, Clone)]
+pub struct AnyServiceIds {
+    pub base_services: &'static [AnyServiceIds],
+    pub interface_id: [u8; 8],
+}
+
+impl AnyServiceIds {
+    /// Create new service IDs from a service meta.
+    pub const fn new<S: ServiceMeta>() -> Self {
+        Self {
+            base_services: S::BASE_SERVICES_IDS,
+            interface_id: S::INTERFACE_ID.0,
+        }
+    }
+}
+
 pub trait ServiceMeta {
     type CommandsMeta: StaticTypeInfo;
     type QueriesMeta: StaticTypeInfo;
     type EventsMeta: StaticTypeInfo;
+    /// The order of base services here is lexicographical by their names
     const BASE_SERVICES: &'static [AnyServiceMetaFn];
+    /// The order of base services here is lexicographical by their names
+    const BASE_SERVICES_IDS: &'static [AnyServiceIds];
     const ASYNC: bool;
     const INTERFACE_ID: InterfaceId;
 

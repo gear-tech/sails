@@ -1,4 +1,4 @@
-use crate::gstd::EventEmitter;
+use crate::{gstd::EventEmitter, meta::InterfaceId};
 
 pub trait Service {
     type Exposure: Exposure;
@@ -8,7 +8,7 @@ pub trait Service {
 
 pub trait Exposure {
     fn route(&self) -> &'static [u8];
-    fn check_asyncness(input: &[u8]) -> Option<bool>;
+    fn check_asyncness(interface_id: InterfaceId, entry_id: u16) -> Option<bool>;
 }
 
 pub trait ExposureWithEvents: Exposure {

@@ -143,7 +143,6 @@ impl ProgramBuilder {
         let mut services_route = Vec::new();
         let mut services_meta = Vec::new();
         let mut meta_asyncness = Vec::new();
-        let mut invocation_dispatches = Vec::new();
         let mut routes = BTreeMap::new();
         // only used for ethexe
         #[allow(unused_mut)]
@@ -158,33 +157,29 @@ impl ProgramBuilder {
             meta_asyncness.push(quote!(true));
         }
 
-        let item_impl = self
-            .program_impl
-            .items
-            .iter()
-            .enumerate()
-            .filter_map(|(idx, impl_item)| {
-                if let ImplItem::Fn(fn_item) = impl_item
-                    && service_ctor_predicate(fn_item)
+        // Collect all data we need in one pass without holding borrows
+        let mut modifications = Vec::new();
+        let mut services_count_data = Vec::new(); // Store data for count_base_services calls
+        let mut services_ids_data = Vec::new(); // Store data for AnyServiceIds
+        let mut route_dispatch_data = Vec::new(); // Store data for route dispatches
+
+        for (idx, impl_item) in self.program_impl.items.iter().enumerate() {
+            if let ImplItem::Fn(fn_item) = impl_item
+                && service_ctor_predicate(fn_item)
+            {
+                let (span, route, unwrap_result, _) = shared::invocation_export_or_default(fn_item);
+                if let Some(duplicate) = routes.insert(route.clone(), fn_item.sig.ident.to_string())
                 {
-                    let (span, route, unwrap_result, _) =
-                        shared::invocation_export_or_default(fn_item);
-                    if let Some(duplicate) =
-                        routes.insert(route.clone(), fn_item.sig.ident.to_string())
-                    {
-                        abort!(
-                            span,
-                            "`export` attribute conflicts with one already assigned to '{}'",
-                            duplicate
-                        );
-                    }
-                    return Some((idx, route, fn_item, unwrap_result));
+                    abort!(
+                        span,
+                        "`export` attribute conflicts with one already assigned to '{}'",
+                        duplicate
+                    );
                 }
-                None
-            })
-            .map(|(idx, route, fn_item, unwrap_result)| {
+
                 let fn_builder =
                     FnBuilder::from(route, true, fn_item, unwrap_result, self.sails_path());
+
                 let original_service_ctor_fn = fn_builder.original_service_ctor_fn();
                 let wrapping_service_ctor_fn =
                     fn_builder.wrapping_service_ctor_fn(&original_service_ctor_fn.sig.ident);
@@ -193,29 +188,34 @@ impl ProgramBuilder {
                 services_meta.push(fn_builder.service_meta());
 
                 if !has_async_ctor {
-                    // If there are no async constructors, we can't push the asyncness as false,
-                    // as there could be async handlers in services.
                     meta_asyncness.push(fn_builder.service_meta_asyncness());
                 }
-                invocation_dispatches.push(fn_builder.service_invocation());
+
                 #[cfg(feature = "ethexe")]
                 solidity_dispatchers.push(fn_builder.sol_service_invocation());
 
-                (idx, original_service_ctor_fn, wrapping_service_ctor_fn)
-            })
-            .collect::<Vec<_>>();
+                // Extract data needed later (not the fn_builder itself)
+                let service_type = fn_builder.result_type.clone();
+                let service_ctor_ident = fn_builder.ident.clone();
 
-        if meta_asyncness.is_empty() {
-            // In case non of constructors is async and there are no services exposed.
-            meta_asyncness.push(quote!(false));
+                services_count_data.push(service_type.clone());
+                services_ids_data.push(service_type.clone());
+                route_dispatch_data.push((service_ctor_ident, service_type));
+
+                modifications.push((idx, original_service_ctor_fn, wrapping_service_ctor_fn));
+            }
         }
 
-        // replace service ctor fn impls
-        for (idx, original_service_ctor_fn, wrapping_service_ctor_fn, ..) in item_impl {
+        // Apply modifications to self - no more borrows from items after this point
+        for (idx, original_service_ctor_fn, wrapping_service_ctor_fn) in modifications {
             self.program_impl.items[idx] = ImplItem::Fn(original_service_ctor_fn);
             self.program_impl
                 .items
                 .push(ImplItem::Fn(wrapping_service_ctor_fn));
+        }
+
+        if meta_asyncness.is_empty() {
+            meta_asyncness.push(quote!(false));
         }
 
         let handle_reply_fn = self.handle_reply_fn().map(|item_fn| {
@@ -250,9 +250,84 @@ impl ProgramBuilder {
             }
         };
 
-        invocation_dispatches.push(quote! {
-            { gstd::unknown_input_panic("Unexpected service", &input) }
-        });
+        // Generate the INTERFACE_IDS registry using extracted data
+        let services_count_expr = {
+            let count_exprs = services_count_data.iter().map(|service_type| {
+                quote! {
+                    + #sails_path::count_base_services::<#service_type>()
+                }
+            });
+
+            let base_count = services_count_data.len();
+
+            quote! {
+                const SERVICES_COUNT: usize = #base_count #(#count_exprs)*;
+            }
+        };
+
+        let services_ids_expr = {
+            let ids_exprs = services_ids_data.iter().map(|service_type| {
+                quote! {
+                    #sails_path::meta::AnyServiceIds::new::<#service_type>(),
+                }
+            });
+
+            quote! {
+                const INTERFACE_IDS: &'static [(#sails_path::meta::InterfaceId, u8)] =
+                    &#sails_path::interface_ids::<SERVICES_COUNT>(&[
+                        #(#ids_exprs)*
+                    ]);
+            }
+        };
+
+        // Generate route_id match arms using extracted data
+        let route_dispatches = route_dispatch_data
+            .iter()
+            .enumerate()
+            .map(|(idx, (service_ctor_ident, service_type))| {
+                let route_id = (idx + 1) as u8;
+
+                quote! {
+                    #route_id => {
+                        let svc = program_ref.#service_ctor_ident();
+                        let is_async = <#service_type as #sails_path::gstd::services::Service>::Exposure::check_asyncness(interface_id, entry_id)
+                            .unwrap_or_else(|| {
+                                gstd::unknown_input_panic("Unknown call", &[])
+                            });
+                        if is_async {
+                            gstd::message_loop(async move {
+                                svc
+                                    .try_handle_async(
+                                        interface_id,
+                                        entry_id,
+                                        payload,
+                                        |encoded_result, value| {
+                                            gstd::msg::reply_bytes(encoded_result, value)
+                                                .expect("Failed to send output");
+                                        },
+                                    )
+                                    .await
+                                    .unwrap_or_else(|| {
+                                        gstd::unknown_input_panic("Unknown request", &[])
+                                    });
+                            });
+                        } else {
+                            svc
+                                .try_handle(
+                                    interface_id,
+                                    entry_id,
+                                    payload,
+                                    |encoded_result, value| {
+                                        gstd::msg::reply_bytes(encoded_result, value)
+                                            .expect("Failed to send output");
+                                    },
+                                )
+                                .unwrap_or_else(|| gstd::unknown_input_panic("Unknown request", &[]));
+                        }
+                    }
+                }
+            })
+            .collect::<Vec<_>>();
 
         let solidity_main = self.sol_main(solidity_dispatchers.as_slice());
 
@@ -265,18 +340,29 @@ impl ProgramBuilder {
         });
 
         let main_fn = quote!(
+            #services_count_expr
+            #services_ids_expr
+
             #[unsafe(no_mangle)]
             extern "C" fn handle() {
                 #payable
 
-                let mut input = gstd::msg::load_bytes().expect("Failed to read input");
+                let sails_message = gstd::msg::load::<#sails_path::SailsMessage>()
+                    .expect("Failed to read sails message");
+
                 let program_ref = unsafe { #program_ident.as_mut() }.expect("Program not initialized");
 
                 #solidity_main
 
-                #(#invocation_dispatches)else*;
-            }
+                let (interface_id, route_id, entry_id, payload) = sails_message
+                    .try_match_interfaces(INTERFACE_IDS)
+                    .expect("Failed to find matching service");
 
+                match route_id {
+                    #(#route_dispatches)*
+                    _ => gstd::unknown_input_panic("Unknown route_id", &[route_id])
+                }
+            }
         );
 
         let handle_reply_fn = quote! {
@@ -576,41 +662,6 @@ impl FnBuilder<'_> {
         quote!(
             const #route_ident: [u8; #ctor_route_len] = [ #(#ctor_route_bytes),* ];
         )
-    }
-
-    fn service_invocation(&self) -> TokenStream2 {
-        let route_ident = &self.route_ident();
-        let service_ctor_ident = self.ident;
-        quote! {
-            if input.starts_with(& #route_ident) {
-                let mut service = program_ref.#service_ctor_ident();
-                let is_async = service
-                    .check_asyncness(&input[#route_ident .len()..])
-                    .unwrap_or_else(|| {
-                        gstd::unknown_input_panic("Unknown call", &input[#route_ident .len()..])
-                    });
-                if is_async {
-                    gstd::message_loop(async move {
-                        service
-                            .try_handle_async(&input[#route_ident .len()..], |encoded_result, value| {
-                                gstd::msg::reply_bytes(encoded_result, value)
-                                    .expect("Failed to send output");
-                            })
-                            .await
-                            .unwrap_or_else(|| {
-                                gstd::unknown_input_panic("Unknown request", &input)
-                            });
-                    });
-                } else {
-                    service
-                        .try_handle(&input[#route_ident .len()..], |encoded_result, value| {
-                            gstd::msg::reply_bytes(encoded_result, value)
-                                .expect("Failed to send output");
-                        })
-                        .unwrap_or_else(|| gstd::unknown_input_panic("Unknown request", &input));
-                }
-            }
-        }
     }
 
     fn original_service_ctor_fn(&self) -> ImplItemFn {

@@ -70,7 +70,6 @@ impl ServiceBuilder<'_> {
     }
 
     pub(super) fn exposure_impl(&self) -> TokenStream {
-        let sails_path = self.sails_path;
         let exposure_ident = &self.exposure_ident;
         let generics = &self.generics;
         let service_type_path = self.type_path;
@@ -97,10 +96,6 @@ impl ServiceBuilder<'_> {
             impl #generics #exposure_ident< #service_type_path > #service_type_constraints {
                 #( #exposure_funcs )*
 
-                pub fn check_asyncness(&self, input: &[u8]) -> Option<bool> {
-                    <Self as #sails_path::gstd::services::Exposure>::check_asyncness(input)
-                }
-
                 #try_handle_impl
 
                 #try_handle_solidity_impl
@@ -114,8 +109,10 @@ impl ServiceBuilder<'_> {
 
     pub(super) fn try_handle_impl(&self) -> TokenStream {
         let sails_path = self.sails_path;
+        let service_type_path = self.type_path;
         let inner_ident = &self.inner_ident;
-        let input_ident = &self.input_ident;
+        let meta_module_ident = &self.meta_module_ident;
+
         let impl_inner = |is_async: bool| {
             let (name_ident, asyncness, await_token) = if is_async {
                 (
@@ -127,9 +124,48 @@ impl ServiceBuilder<'_> {
                 (quote!(try_handle), None, None)
             };
 
-            let invocation_dispatches = self.service_handlers.iter().filter_map(|fn_builder| {
+            // Generate match arms for each handler's entry_id
+            let invocation_dispatches = self.service_handlers_with_ids.iter().filter_map(|(fn_builder, entry_id)| {
                 if is_async == fn_builder.is_async() {
-                    Some(fn_builder.try_handle_branch_impl(&self.meta_module_ident, input_ident))
+                    let handler_func_ident = fn_builder.ident;
+                    let params_struct_ident = &fn_builder.params_struct_ident;
+                    let handler_func_params = fn_builder
+                        .params_idents()
+                        .iter()
+                        .map(|ident| quote!(request.#ident));
+
+                    let (result_type, reply_with_value) = fn_builder.result_type_with_value();
+                    let unwrap_token = fn_builder.unwrap_result.then(|| quote!(.unwrap()));
+
+                    let handle_token = if reply_with_value {
+                        quote! {
+                            let command_reply: CommandReply< #result_type > = self.#handler_func_ident(#(#handler_func_params),*)#await_token #unwrap_token.into();
+                            let (result, value) = command_reply.to_tuple();
+                        }
+                    } else {
+                        quote! {
+                            let result = self.#handler_func_ident(#(#handler_func_params),*)#await_token #unwrap_token;
+                            let value = 0u128;
+                        }
+                    };
+
+                    let result_type_static = fn_builder.result_type_with_static_lifetime();
+
+                    Some(quote! {
+                        #entry_id => {
+                            let request = <#meta_module_ident::#params_struct_ident as #sails_path::gstd::InvocationIo>::decode_params(&input)
+                                .expect("Failed to decode params");
+                            #handle_token
+                            if !<#meta_module_ident::#params_struct_ident as #sails_path::gstd::InvocationIo>::is_empty_tuple::<#result_type_static>() {
+                                <#meta_module_ident::#params_struct_ident as #sails_path::gstd::InvocationIo>::with_optimized_encode(
+                                    &result,
+                                    self.route().as_ref(),
+                                    |encoded_result| result_handler(encoded_result, value),
+                                );
+                            }
+                            return Some(());
+                        }
+                    })
                 } else {
                     None
                 }
@@ -138,18 +174,39 @@ impl ServiceBuilder<'_> {
             let base_invocation = if self.base_types.is_empty() {
                 None
             } else {
+                // Sort base services lexicographically
+                let mut base_services_with_index: Vec<_> = self
+                    .base_types
+                    .iter()
+                    .enumerate()
+                    .map(|(idx, base_type)| (idx, base_type, shared::remove_lifetimes(base_type)))
+                    .collect();
+
+                base_services_with_index.sort_by_key(|(_, _, path_wo_lifetimes)| {
+                    path_wo_lifetimes
+                        .segments
+                        .last()
+                        .expect("Base service path should have at least one segment")
+                        .ident
+                        .to_string()
+                        .to_lowercase()
+                });
+
                 let base_types = self.base_types;
-                let base_exposure_invocations = base_types.iter().enumerate().map(|(idx, _)| {
-                    let idx_token = if base_types.len() == 1 { None } else {
-                        let idx_literal = Literal::usize_unsuffixed(idx);
+                let base_exposure_invocations = base_services_with_index.iter().map(|(idx, _, _)| {
+                    let idx_token = if base_types.len() == 1 {
+                        None
+                    } else {
+                        let idx_literal = Literal::usize_unsuffixed(*idx);
                         Some(quote! { . #idx_literal })
                     };
                     quote! {
-                        if base_services #idx_token .expose(self.route) . #name_ident(#input_ident, result_handler) #await_token.is_some() {
+                        if base_services #idx_token .expose(self.route) . #name_ident(interface_id, entry_id, input.clone(), result_handler) #await_token.is_some() {
                             return Some(());
                         }
                     }
                 });
+
                 // Base Services, as `Into` tuple from Service
                 Some(quote! {
                     let base_services: ( #( #base_types ),* ) = self. #inner_ident .into();
@@ -158,12 +215,25 @@ impl ServiceBuilder<'_> {
             };
 
             quote! {
-                pub #asyncness fn #name_ident(mut self, #input_ident : &[u8], result_handler: fn(&[u8], u128)) -> Option<()> {
-                    use #sails_path::gstd::InvocationIo;
+                pub #asyncness fn #name_ident(
+                    mut self,
+                    interface_id: #sails_path::meta::InterfaceId,
+                    entry_id: u16,
+                    input: #sails_path::Vec<u8>,
+                    result_handler: fn(&[u8], u128)
+                ) -> Option<()> {
+                    use #sails_path::gstd::{InvocationIo, CommandReply};
                     use #sails_path::gstd::services::{Service, Exposure};
-                    #( #invocation_dispatches )*
-                    #base_invocation
-                    None
+
+                    if interface_id == <#service_type_path as #sails_path::meta::ServiceMeta>::INTERFACE_ID {
+                        match entry_id {
+                            #( #invocation_dispatches )*
+                            _ => None,
+                        }
+                    } else {
+                        #base_invocation
+                        None
+                    }
                 }
             }
         };
@@ -203,7 +273,6 @@ impl ServiceBuilder<'_> {
 
     fn check_asyncness_impl(&self) -> TokenStream {
         let sails_path = self.sails_path;
-        let input_ident = &self.input_ident;
 
         // Here `T` is Service Type
         let service_asyncness_check = quote! {
@@ -215,31 +284,56 @@ impl ServiceBuilder<'_> {
             }
         };
 
-        let asyncness_checks = self.service_handlers.iter().map(|fn_builder| {
-            fn_builder.check_asyncness_branch_impl(&self.meta_module_ident, input_ident)
+        // Generate match arms for each handler's entry_id
+        let asyncness_checks =
+            self.service_handlers_with_ids
+                .iter()
+                .map(|(fn_builder, entry_id)| {
+                    let is_async = fn_builder.is_async();
+                    quote! {
+                        #entry_id => Some(#is_async),
+                    }
+                });
+
+        // Sort base services lexicographically
+        let mut base_services_sorted = self
+            .base_types
+            .iter()
+            .map(shared::remove_lifetimes)
+            .collect::<Vec<_>>();
+        base_services_sorted.sort_by_key(|path_wo_lifetimes| {
+            path_wo_lifetimes
+                .segments
+                .last()
+                .expect("Base service path should have at least one segment")
+                .ident
+                .to_string()
+                .to_lowercase()
         });
 
-        let base_services_asyncness_checks = self.base_types.iter().map(|base_type| {
-            let path_wo_lifetimes = shared::remove_lifetimes(base_type);
+        let base_services_asyncness_checks = base_services_sorted.iter().map(|base_type| {
             quote! {
-                if let Some(is_async) = <<#path_wo_lifetimes as Service>::Exposure as Exposure>::check_asyncness(#input_ident) {
+                if let Some(is_async) = <<#base_type as Service>::Exposure as Exposure>::check_asyncness(interface_id, entry_id) {
                     return Some(is_async);
                 }
             }
         });
 
         quote! {
-            fn check_asyncness(#input_ident : &[u8]) -> Option<bool> {
-                use #sails_path::gstd::InvocationIo;
+            fn check_asyncness(interface_id: #sails_path::meta::InterfaceId, entry_id: u16) -> Option<bool> {
                 use #sails_path::gstd::services::{Service, Exposure};
 
                 #service_asyncness_check
 
-                #( #asyncness_checks )*
-
-                #( #base_services_asyncness_checks )*
-
-                None
+                if interface_id == T::INTERFACE_ID {
+                    match entry_id {
+                        #( #asyncness_checks )*
+                        _ => None,
+                    }
+                } else {
+                    #( #base_services_asyncness_checks )*
+                    None
+                }
             }
         }
     }
