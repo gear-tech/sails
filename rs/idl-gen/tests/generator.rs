@@ -2,7 +2,7 @@ use gprimitives::*;
 use meta_params::*;
 use sails_idl_gen::{program, service};
 use sails_idl_meta::{
-    AnyServiceMeta, AnyServiceMetaFn, ProgramMeta, ServiceMeta as RtlServiceMeta,
+    AnyServiceMeta, AnyServiceMetaFn, InterfaceId, ProgramMeta, ServiceMeta as RtlServiceMeta,
 };
 use scale_info::{StaticTypeInfo, TypeInfo};
 use std::{collections::BTreeMap, result::Result as StdResult};
@@ -192,7 +192,7 @@ impl<C: StaticTypeInfo, Q: StaticTypeInfo, E: StaticTypeInfo> RtlServiceMeta
     type EventsMeta = E;
     const BASE_SERVICES: &'static [(&'static str, AnyServiceMetaFn)] = &[];
     const ASYNC: bool = false;
-    const INTERFACE_ID: [u8; 8] = [0u8; 8];
+    const INTERFACE_ID: InterfaceId = InterfaceId([0u8; 8]);
 }
 
 struct ServiceMetaWithBase<C, Q, E, B> {
@@ -211,7 +211,7 @@ impl<C: StaticTypeInfo, Q: StaticTypeInfo, E: StaticTypeInfo, B: RtlServiceMeta>
     const BASE_SERVICES: &'static [(&'static str, AnyServiceMetaFn)] =
         &[("B", AnyServiceMeta::new::<B>)];
     const ASYNC: bool = false;
-    const INTERFACE_ID: [u8; 8] = [0u8; 8];
+    const INTERFACE_ID: InterfaceId = InterfaceId([0u8; 8]);
 }
 
 type TestServiceMeta = ServiceMeta<CommandsMeta, QueriesMeta, EventsMeta>;
