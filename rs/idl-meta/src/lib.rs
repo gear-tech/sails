@@ -12,6 +12,9 @@ use scale_info::{MetaType, StaticTypeInfo, prelude::vec::Vec};
 
 pub type AnyServiceMetaFn = fn() -> AnyServiceMeta;
 
+/// Unique identifier for a service (or "interface" in terms of sails binary protocol).
+///
+/// For more information about interface IDs, see the interface ID spec.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct InterfaceId(pub [u8; 8]);
 
@@ -142,5 +145,42 @@ mod tests {
 
         let decoded = Decode::decode(&mut &encoded[..]).unwrap();
         assert_eq!(id, decoded);
+    }
+
+    #[test]
+    fn interface_id_serde() {
+        let inner = [1u8, 2, 3, 4, 5, 6, 7, 8];
+        let mut slice = inner.as_slice();
+        let id = InterfaceId::try_read_bytes(&mut slice).unwrap();
+        assert_eq!(inner, id.0);
+        assert_eq!(slice.len(), 0);
+        assert_eq!(id.to_bytes(), inner);
+    }
+
+    #[test]
+    fn interface_id_try_read_bytes() {
+        // Read from a slice with extra data
+        let data = [1u8, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+        let mut slice = data.as_slice();
+
+        let id = InterfaceId::try_read_bytes(&mut slice).unwrap();
+        assert_eq!(id.0, [1, 2, 3, 4, 5, 6, 7, 8]);
+        assert_eq!(slice, &[9, 10]);
+
+        // Read from a slice with insufficient data
+        let data = [1u8, 2, 3, 4, 5, 6, 7];
+        let mut slice = data.as_slice();
+        let result = InterfaceId::try_read_bytes(&mut slice);
+        assert_eq!(result, Err("Insufficient bytes for interface ID"));
+    }
+
+    #[test]
+    fn interface_id_try_from_bytes() {
+        let data = [1u8, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+        let slice = data.as_slice();
+
+        let id = InterfaceId::try_from_bytes(slice).unwrap();
+        assert_eq!(id.0, [1, 2, 3, 4, 5, 6, 7, 8]);
+        assert_eq!(slice.len(), data.len()); // Original slice should remain unchanged
     }
 }

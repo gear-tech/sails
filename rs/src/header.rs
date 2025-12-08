@@ -4,16 +4,17 @@ use crate::{
     scale_codec::{Decode, Encode, Error, Input, Output},
 };
 
-/// Sails protocol highest supported version
+/// Sails protocol highest supported version.
 pub const HIGHEST_SUPPORTED_VERSION: u8 = 1;
 
-/// Sails protocol magic bytes
-/// Bytes stand for "GM" utf-8 string
+/// Sails protocol magic bytes.
+/// Bytes stand for "GM" utf-8 string.
 pub const MAGIC_BYTES: [u8; 2] = [0x47, 0x4D];
 
-/// Minimal Sails message header length in bytes
+/// Minimal Sails message header length in bytes.
 pub const MINIMAL_HLEN: u8 = 16;
 
+/// Builder for Sails message header.
 pub struct SailsMessageHeaderBuilder {
     interface_id: InterfaceId,
     route_id: u8,
@@ -22,7 +23,7 @@ pub struct SailsMessageHeaderBuilder {
 }
 
 impl SailsMessageHeaderBuilder {
-    /// Creates a new Sails message header builder
+    /// Creates a new Sails message header builder.
     pub fn new(interface_id: InterfaceId, entry_id: u16) -> Self {
         Self {
             interface_id,
@@ -82,8 +83,8 @@ impl SailsMessageHeaderBuilder {
 
 /// Sails message header.
 ///
-/// The header is a feature of an IDLv2. It gives opportunity on-top of blockchain
-/// for services to trace sails messages and programs.
+/// The header is a feature of an IDLv2. It gives opportunity for on-top of blockchain
+/// services to trace sails messages and programs.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SailsMessageHeader {
     version: Version,
@@ -93,8 +94,32 @@ pub struct SailsMessageHeader {
     entry_id: u16,
 }
 
+// Accessors
 impl SailsMessageHeader {
-    /// Serialize header to bytes
+    pub fn version(&self) -> Version {
+        self.version
+    }
+
+    pub fn hlen(&self) -> HeaderLength {
+        self.hlen
+    }
+
+    pub fn interface_id(&self) -> InterfaceId {
+        self.interface_id
+    }
+
+    pub fn route_id(&self) -> u8 {
+        self.route_id
+    }
+
+    pub fn entry_id(&self) -> u16 {
+        self.entry_id
+    }
+}
+
+// Serialization and deserialization
+impl SailsMessageHeader {
+    /// Serialize header to bytes.
     pub fn to_bytes(&self) -> Vec<u8> {
         let mut bytes = Vec::with_capacity(self.hlen.0 as usize);
         bytes.extend_from_slice(&MAGIC_BYTES);
@@ -109,13 +134,13 @@ impl SailsMessageHeader {
         bytes
     }
 
-    /// Deserialize header from bytes advancing the slice
+    /// Deserialize header from bytes advancing the slice.
     pub fn try_read_bytes(bytes: &mut &[u8]) -> Result<Self, &'static str> {
         if bytes.len() < MINIMAL_HLEN as usize {
             return Err("Insufficient bytes for header");
         }
 
-        // Validate and consume magic bytes
+        // Validate and consume magic bytes.
         Magic::try_read_bytes(bytes)?;
 
         let version = Version::try_read_bytes(bytes)?;
@@ -130,7 +155,7 @@ impl SailsMessageHeader {
             return Err("Reserved byte must be zero in version 1");
         }
 
-        // Read 4 bytes for entry_id, route_id and reserved
+        // Read 4 bytes for entry_id, route_id and reserved.
         *bytes = &bytes[4..];
 
         Ok(Self {
@@ -142,7 +167,7 @@ impl SailsMessageHeader {
         })
     }
 
-    /// Deserialize header from bytes (expects magic bytes at the start) without mutating the input
+    /// Deserialize header from bytes (expects magic bytes at the start) without mutating the input.
     pub fn try_from_bytes(bytes: &[u8]) -> Result<Self, &'static str> {
         let mut slice = bytes;
         Self::try_read_bytes(&mut slice)
@@ -178,7 +203,7 @@ impl SailsMessageHeader {
         if same_interface_ids == 0 {
             Err("No matching interface ID found")
         } else if message_route_id == 0 && same_interface_ids > 1 {
-            Err("Can't infer the interface by route id 0, many instance")
+            Err("Can't infer the interface by route id 0, many instances")
         } else if !has_route && message_route_id != 0 {
             // In case of route_id == 0, the has_route is always false
             Err("No matching route ID found for the interface ID")
@@ -209,7 +234,7 @@ impl Decode for SailsMessageHeader {
     }
 }
 
-/// Sails message header's protocol magic bytes
+/// Sails message header's protocol magic bytes.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Encode)]
 pub struct Magic([u8; 2]);
 
@@ -219,12 +244,12 @@ impl Magic {
         Self(MAGIC_BYTES)
     }
 
-    /// Serialize to bytes
+    /// Serialize to bytes.
     pub fn to_bytes(&self) -> [u8; 2] {
         self.0
     }
 
-    /// Deserialize from bytes, advancing the slice
+    /// Deserialize from bytes, advancing the slice.
     pub fn try_read_bytes(bytes: &mut &[u8]) -> Result<Self, &'static str> {
         if bytes.len() < MAGIC_BYTES.len() {
             return Err("Insufficient bytes for magic");
@@ -239,7 +264,7 @@ impl Magic {
         Ok(Self(magic))
     }
 
-    /// Deserialize from bytes without mutating the input
+    /// Deserialize from bytes without mutating the input.
     pub fn try_from_bytes(bytes: &[u8]) -> Result<Self, &'static str> {
         let mut slice = bytes;
         Self::try_read_bytes(&mut slice)
@@ -256,15 +281,21 @@ impl Decode for Magic {
     }
 }
 
-/// Sails message header's protocol version
+/// Sails message header's protocol version.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Encode)]
 pub struct Version(u8);
 
 impl Version {
+    /// Instantiates the type with the latest supported version.
     pub fn latest() -> Self {
         Self(HIGHEST_SUPPORTED_VERSION)
     }
 
+    /// Creates a new version instance if the version is supported.
+    ///
+    /// Returns error if the version is unsupported, i.e. if:
+    /// - version is 0
+    /// - version is greater than highest supported version
     pub fn new(version: u8) -> Result<Self, &'static str> {
         if version == 0 || version > HIGHEST_SUPPORTED_VERSION {
             Err("Unsupported Sails version")
@@ -273,12 +304,12 @@ impl Version {
         }
     }
 
-    /// Serialize to bytes
+    /// Serialize to bytes.
     pub fn to_bytes(&self) -> u8 {
         self.0
     }
 
-    /// Deserialize from bytes, advancing the slice
+    /// Deserialize from bytes, advancing the slice.
     pub fn try_read_bytes(bytes: &mut &[u8]) -> Result<Self, &'static str> {
         if bytes.is_empty() {
             return Err("Insufficient bytes for version");
@@ -289,7 +320,7 @@ impl Version {
         Self::new(version)
     }
 
-    /// Deserialize from bytes without mutating the input
+    /// Deserialize from bytes without mutating the input.
     pub fn try_from_bytes(bytes: &[u8]) -> Result<Self, &'static str> {
         let mut slice = bytes;
         Self::try_read_bytes(&mut slice)
@@ -305,7 +336,7 @@ impl Decode for Version {
     }
 }
 
-/// Sails message header length
+/// Sails message header length.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Encode)]
 pub struct HeaderLength(u8);
 
@@ -318,12 +349,17 @@ impl HeaderLength {
         }
     }
 
-    /// Serialize to bytes
+    /// Get the header length as a u8.
+    pub fn length(&self) -> u8 {
+        self.0
+    }
+
+    /// Serialize to bytes.
     pub fn to_bytes(&self) -> u8 {
         self.0
     }
 
-    /// Deserialize from bytes, advancing the slice
+    /// Deserialize from bytes, advancing the slice.
     pub fn try_read_bytes(bytes: &mut &[u8]) -> Result<Self, &'static str> {
         if bytes.is_empty() {
             return Err("Insufficient bytes for header length");
@@ -334,7 +370,7 @@ impl HeaderLength {
         Self::new(hlen)
     }
 
-    /// Deserialize from bytes without mutating the input
+    /// Deserialize from bytes without mutating the input.
     pub fn try_from_bytes(bytes: &[u8]) -> Result<Self, &'static str> {
         let mut slice = bytes;
         Self::try_read_bytes(&mut slice)
@@ -350,6 +386,12 @@ impl Decode for HeaderLength {
     }
 }
 
+/// The outcome of matching a message header against known interfaces.
+///
+/// Contains the matched interface ID, route ID, and entry ID to be executed.
+///
+/// The type is only instantiated upon successful matching. This guarantees, that
+/// the contained values are against known interfaces map.
 #[derive(Debug)]
 pub struct MatchedInterface {
     interface_id: InterfaceId,
@@ -358,6 +400,7 @@ pub struct MatchedInterface {
 }
 
 impl MatchedInterface {
+    /// Consumes the matched interface and returns its components.
     pub fn into_inner(self) -> (InterfaceId, u8, u16) {
         (self.interface_id, self.route_id, self.entry_id)
     }
