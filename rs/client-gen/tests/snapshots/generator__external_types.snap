@@ -11,28 +11,15 @@ pub struct ServiceProgram;
 impl my_crate::sails::client::Program for ServiceProgram {}
 pub trait Service {
     type Env: my_crate::sails::client::GearEnv;
-    fn service(&self) -> my_crate::sails::client::Service<service::ServiceImpl, Self::Env>;
 }
 impl<E: my_crate::sails::client::GearEnv> Service
     for my_crate::sails::client::Actor<ServiceProgram, E>
 {
     type Env = E;
-    fn service(&self) -> my_crate::sails::client::Service<service::ServiceImpl, Self::Env> {
-        self.service(stringify!(Service))
-    }
 }
 
 pub mod service {
     use super::*;
-    #[derive(Encode, Decode, TypeInfo, ReflectHash)]
-    #[codec(crate = my_crate::sails::scale_codec)]
-    #[scale_info(crate = my_crate::sails::scale_info)]
-    #[reflect_hash(crate = my_crate::sails)]
-    pub struct MyParam {
-        pub f1: u32,
-        pub f2: Vec<String>,
-        pub f3: Option<(u8, u32)>,
-    }
     #[derive(Encode, Decode, TypeInfo, ReflectHash)]
     #[codec(crate = my_crate::sails::scale_codec)]
     #[scale_info(crate = my_crate::sails::scale_info)]

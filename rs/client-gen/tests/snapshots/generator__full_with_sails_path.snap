@@ -44,10 +44,6 @@ pub trait FullCoverageProgram {
     fn my_complex_service(
         &self,
     ) -> my_crate::sails::client::Service<my_complex_service::MyComplexServiceImpl, Self::Env>;
-    fn dog(&self) -> my_crate::sails::client::Service<dog::DogImpl, Self::Env>;
-    fn pausable(&self) -> my_crate::sails::client::Service<pausable::PausableImpl, Self::Env>;
-    fn ownable(&self) -> my_crate::sails::client::Service<ownable::OwnableImpl, Self::Env>;
-    fn tippable(&self) -> my_crate::sails::client::Service<tippable::TippableImpl, Self::Env>;
 }
 impl<E: my_crate::sails::client::GearEnv> FullCoverageProgram
     for my_crate::sails::client::Actor<FullCoverageProgramProgram, E>
@@ -101,18 +97,6 @@ impl<E: my_crate::sails::client::GearEnv> FullCoverageProgram
         &self,
     ) -> my_crate::sails::client::Service<my_complex_service::MyComplexServiceImpl, Self::Env> {
         self.service(stringify!(MyComplexService))
-    }
-    fn dog(&self) -> my_crate::sails::client::Service<dog::DogImpl, Self::Env> {
-        self.service(stringify!(Dog))
-    }
-    fn pausable(&self) -> my_crate::sails::client::Service<pausable::PausableImpl, Self::Env> {
-        self.service(stringify!(Pausable))
-    }
-    fn ownable(&self) -> my_crate::sails::client::Service<ownable::OwnableImpl, Self::Env> {
-        self.service(stringify!(Ownable))
-    }
-    fn tippable(&self) -> my_crate::sails::client::Service<tippable::TippableImpl, Self::Env> {
-        self.service(stringify!(Tippable))
     }
 }
 pub trait FullCoverageProgramCtors {
@@ -238,6 +222,15 @@ pub mod canvas {
             &self,
             point: Point<u32>,
         ) -> my_crate::sails::client::PendingCall<io::PointStatus, Self::Env>;
+        fn ownable(
+            &self,
+        ) -> my_crate::sails::client::Service<super::ownable::OwnableImpl, Self::Env>;
+        fn tippable(
+            &self,
+        ) -> my_crate::sails::client::Service<super::tippable::TippableImpl, Self::Env>;
+        fn pausable(
+            &self,
+        ) -> my_crate::sails::client::Service<super::pausable::PausableImpl, Self::Env>;
     }
     pub struct CanvasImpl;
     impl<E: my_crate::sails::client::GearEnv> Canvas
@@ -270,13 +263,28 @@ pub mod canvas {
         ) -> my_crate::sails::client::PendingCall<io::PointStatus, Self::Env> {
             self.pending_call((point,))
         }
+        fn ownable(
+            &self,
+        ) -> my_crate::sails::client::Service<super::ownable::OwnableImpl, Self::Env> {
+            self.base_service()
+        }
+        fn tippable(
+            &self,
+        ) -> my_crate::sails::client::Service<super::tippable::TippableImpl, Self::Env> {
+            self.base_service()
+        }
+        fn pausable(
+            &self,
+        ) -> my_crate::sails::client::Service<super::pausable::PausableImpl, Self::Env> {
+            self.base_service()
+        }
     }
 
     pub mod io {
         use super::*;
-        my_crate::sails::io_struct_impl!(ColorPoint (point: super::Point<u32, >, color: super::Color) -> Result<(), super::ColorError>);
-        my_crate::sails::io_struct_impl!(KillPoint (point: super::Point<u32, >) -> Result<bool, String>);
-        my_crate::sails::io_struct_impl!(Points (offset: u32, len: u32) -> Result<Vec<(Point<u32, >, PointStatus, )>, String>);
+        my_crate::sails::io_struct_impl!(ColorPoint (point: super::Point<u32, >, color: super::Color) -> super::Result<(), super::ColorError>);
+        my_crate::sails::io_struct_impl!(KillPoint (point: super::Point<u32, >) -> super::Result<bool, String>);
+        my_crate::sails::io_struct_impl!(Points (offset: u32, len: u32) -> super::Result<Vec<(super::Point<u32, >, super::PointStatus, )>, String>);
         my_crate::sails::io_struct_impl!(PointStatus (point: super::Point<u32, >) -> super::Option<super::PointStatus, >);
     }
 
@@ -328,7 +336,7 @@ pub mod ping_pong {
 
     pub mod io {
         use super::*;
-        my_crate::sails::io_struct_impl!(Ping (input: String) -> Result<String, String>);
+        my_crate::sails::io_struct_impl!(Ping (input: String) -> super::Result<String, String>);
     }
 }
 
@@ -519,9 +527,9 @@ pub mod references {
         use super::*;
         my_crate::sails::io_struct_impl!(Add (v: u32) -> u32);
         my_crate::sails::io_struct_impl!(AddByte (byte: u8) -> Vec<u8>);
-        my_crate::sails::io_struct_impl!(GuessNum (number: u8) -> Result<String, String>);
+        my_crate::sails::io_struct_impl!(GuessNum (number: u8) -> super::Result<String, String>);
         my_crate::sails::io_struct_impl!(Incr () -> super::ReferenceCount);
-        my_crate::sails::io_struct_impl!(SetNum (number: u8) -> Result<(), String>);
+        my_crate::sails::io_struct_impl!(SetNum (number: u8) -> super::Result<(), String>);
         my_crate::sails::io_struct_impl!(Baked () -> String);
         my_crate::sails::io_struct_impl!(LastByte () -> super::Option<u8, >);
         my_crate::sails::io_struct_impl!(Message () -> super::Option<String, >);
@@ -618,10 +626,10 @@ pub mod this_that {
 
     pub mod io {
         use super::*;
-        my_crate::sails::io_struct_impl!(DoThat (param: super::DoThatParam) -> Result<(ActorId, u32, ManyVariantsReply, ), (String, )>);
+        my_crate::sails::io_struct_impl!(DoThat (param: super::DoThatParam) -> super::Result<(ActorId, u32, super::ManyVariantsReply, ), (String, )>);
         my_crate::sails::io_struct_impl!(DoThis (p1: u32, p2: String, p3: (super::Option<H160, >, u8, ), p4: super::TupleStruct) -> (String, u32, ));
         my_crate::sails::io_struct_impl!(Noop () -> ());
-        my_crate::sails::io_struct_impl!(That () -> Result<String, String>);
+        my_crate::sails::io_struct_impl!(That () -> super::Result<String, String>);
         my_crate::sails::io_struct_impl!(This () -> u32);
     }
 }
@@ -953,7 +961,7 @@ pub mod another_service {
     pub mod io {
         use super::*;
         my_crate::sails::io_struct_impl!(Ping () -> String);
-        my_crate::sails::io_struct_impl!(ProcessValues (data: Vec<U256>) -> Result<(), super::ProgramError>);
+        my_crate::sails::io_struct_impl!(ProcessValues (data: Vec<U256>) -> super::Result<(), super::ProgramError>);
     }
 }
 
@@ -1102,8 +1110,8 @@ pub mod my_complex_service {
 
     pub mod io {
         use super::*;
-        my_crate::sails::io_struct_impl!(Initialize (start_data: super::ProgramGlobalInfo, max_size: u32) -> Result<(), super::ProgramError>);
-        my_crate::sails::io_struct_impl!(GetData (key: String) -> Result<ProgramScopedData, super::ProgramError>);
+        my_crate::sails::io_struct_impl!(Initialize (start_data: super::ProgramGlobalInfo, max_size: u32) -> super::Result<(), super::ProgramError>);
+        my_crate::sails::io_struct_impl!(GetData (key: String) -> super::Result<super::ProgramScopedData, super::ProgramError>);
         my_crate::sails::io_struct_impl!(GetInfo () -> super::ProgramGlobalInfo);
         my_crate::sails::io_struct_impl!(GetActorIds (count: u32) -> Vec<ActorId>);
         my_crate::sails::io_struct_impl!(ProcessGenericData (input_data: super::GenericData<u32, String, >, list_of_generics: Vec<super::GenericData<ActorId, U256, >>, optional_generic_result: super::Option<super::GenericResult<bool, >, >) -> super::GenericData<bool, u8, >);
