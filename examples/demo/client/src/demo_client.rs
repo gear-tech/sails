@@ -96,7 +96,7 @@ pub mod ping_pong {
 
     pub mod io {
         use super::*;
-        sails_rs::io_struct_impl!(Ping (input: String) -> Result<String, String>);
+        sails_rs::io_struct_impl!(Ping (input: String) -> super::Result<String, String>);
     }
 
     #[cfg(feature = "with_mocks")]
@@ -278,13 +278,13 @@ pub mod dog {
             &self,
         ) -> sails_rs::client::Service<super::walker_service::WalkerServiceImpl, Self::Env>
         {
-            self.for_service("Dog")
+            self.base_service()
         }
         fn mammal_service(
             &self,
         ) -> sails_rs::client::Service<super::mammal_service::MammalServiceImpl, Self::Env>
         {
-            self.for_service("Dog")
+            self.base_service()
         }
     }
 
@@ -376,9 +376,9 @@ pub mod references {
         use super::*;
         sails_rs::io_struct_impl!(Add (v: u32) -> u32);
         sails_rs::io_struct_impl!(AddByte (byte: u8) -> Vec<u8>);
-        sails_rs::io_struct_impl!(GuessNum (number: u8) -> Result<String, String>);
+        sails_rs::io_struct_impl!(GuessNum (number: u8) -> super::Result<String, String>);
         sails_rs::io_struct_impl!(Incr () -> super::ReferenceCount);
-        sails_rs::io_struct_impl!(SetNum (number: u8) -> Result<(), String>);
+        sails_rs::io_struct_impl!(SetNum (number: u8) -> super::Result<(), String>);
         sails_rs::io_struct_impl!(Baked () -> String);
         sails_rs::io_struct_impl!(LastByte () -> super::Option<u8, >);
         sails_rs::io_struct_impl!(Message () -> super::Option<String, >);
@@ -481,10 +481,10 @@ pub mod this_that {
 
     pub mod io {
         use super::*;
-        sails_rs::io_struct_impl!(DoThat (param: super::DoThatParam) -> Result<(ActorId, super::NonZeroU32, super::ManyVariantsReply, ), (String, )>);
+        sails_rs::io_struct_impl!(DoThat (param: super::DoThatParam) -> super::Result<(ActorId, super::NonZeroU32, super::ManyVariantsReply, ), (String, )>);
         sails_rs::io_struct_impl!(DoThis (p1: u32, p2: String, p3: (super::Option<H160, >, super::NonZeroU8, ), p4: super::TupleStruct) -> (String, u32, ));
         sails_rs::io_struct_impl!(Noop () -> ());
-        sails_rs::io_struct_impl!(That () -> Result<String, String>);
+        sails_rs::io_struct_impl!(That () -> super::Result<String, String>);
         sails_rs::io_struct_impl!(This () -> u32);
     }
 

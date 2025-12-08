@@ -168,8 +168,8 @@ impl<S, E: GearEnv> Service<S, E> {
         PendingCall::new(self.env.clone(), self.actor_id, self.route, args)
     }
 
-    pub fn for_service<NewS>(&self, route: Route) -> Service<NewS, E> {
-        Service::new(self.env.clone(), self.actor_id, route)
+    pub fn base_service<B>(&self) -> Service<B, E> {
+        Service::new(self.env.clone(), self.actor_id, self.route)
     }
 
     #[cfg(not(target_arch = "wasm32"))]

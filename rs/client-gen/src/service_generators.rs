@@ -111,7 +111,7 @@ impl<'ast> Visitor<'ast> for ServiceGenerator<'ast> {
 
             quote_in! { self.impl_tokens =>
                 $['\r'] fn $(&method_name)(&self) -> $(self.sails_path)::client::Service<super::$(mod_name.as_str())::$(impl_name.as_str())Impl, Self::Env> {
-                    self.for_service($(quoted(self.service_name)))
+                    self.base_service()
                 }
             };
         }
@@ -165,7 +165,7 @@ impl<'ast> Visitor<'ast> for ServiceGenerator<'ast> {
         let output_type_decl_code = if let Some(throws_type) = &func.throws {
             let ok_type = generate_type_decl_with_path(&func.output, "super");
             let err_type = generate_type_decl_with_path(throws_type, "super");
-            format!("Result<{ok_type}, {err_type}>")
+            format!("super::Result<{ok_type}, {err_type}>")
         } else {
             generate_type_decl_with_path(&func.output, "super")
         };

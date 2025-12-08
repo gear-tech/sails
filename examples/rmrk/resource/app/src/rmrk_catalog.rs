@@ -176,13 +176,13 @@ pub mod rmrk_catalog {
 
     pub mod io {
         use super::*;
-        sails_rs::io_struct_impl!(AddEquippables (part_id: u32, collection_ids: Vec<ActorId>) -> Result<(u32, Vec<ActorId>, ), super::Error>);
-        sails_rs::io_struct_impl!(AddParts (parts: Vec<(u32, super::Part, )>) -> Result<Vec<(u32, super::Part, )>, super::Error>);
-        sails_rs::io_struct_impl!(RemoveEquippable (part_id: u32, collection_id: ActorId) -> Result<(u32, ActorId, ), super::Error>);
-        sails_rs::io_struct_impl!(RemoveParts (part_ids: Vec<u32>) -> Result<Vec<u32>, super::Error>);
-        sails_rs::io_struct_impl!(ResetEquippables (part_id: u32) -> Result<(), super::Error>);
-        sails_rs::io_struct_impl!(SetEquippablesToAll (part_id: u32) -> Result<(), super::Error>);
-        sails_rs::io_struct_impl!(Equippable (part_id: u32, collection_id: ActorId) -> Result<bool, super::Error>);
+        sails_rs::io_struct_impl!(AddEquippables (part_id: u32, collection_ids: Vec<ActorId>) -> super::Result<(u32, Vec<ActorId>, ), super::Error>);
+        sails_rs::io_struct_impl!(AddParts (parts: Vec<(u32, super::Part, )>) -> super::Result<Vec<(u32, super::Part, )>, super::Error>);
+        sails_rs::io_struct_impl!(RemoveEquippable (part_id: u32, collection_id: ActorId) -> super::Result<(u32, ActorId, ), super::Error>);
+        sails_rs::io_struct_impl!(RemoveParts (part_ids: Vec<u32>) -> super::Result<Vec<u32>, super::Error>);
+        sails_rs::io_struct_impl!(ResetEquippables (part_id: u32) -> super::Result<(), super::Error>);
+        sails_rs::io_struct_impl!(SetEquippablesToAll (part_id: u32) -> super::Result<(), super::Error>);
+        sails_rs::io_struct_impl!(Equippable (part_id: u32, collection_id: ActorId) -> super::Result<bool, super::Error>);
         sails_rs::io_struct_impl!(Part (part_id: u32) -> super::Option<super::Part, >);
     }
 
