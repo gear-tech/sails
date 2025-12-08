@@ -19,9 +19,9 @@ pub type AnyServiceMetaFn = fn() -> AnyServiceMeta;
 pub struct InterfaceId(pub [u8; 8]);
 
 impl InterfaceId {
-    /// Serialize to bytes
-    pub fn to_bytes(&self) -> [u8; 8] {
-        self.0
+    /// Get interface ID as a byte slice
+    pub fn as_bytes(&self) -> &[u8] {
+        &self.0
     }
 
     /// Deserialize from bytes, advancing the slice
@@ -45,7 +45,7 @@ impl InterfaceId {
 
 impl Encode for InterfaceId {
     fn encode_to<O: parity_scale_codec::Output + ?Sized>(&self, dest: &mut O) {
-        dest.write(&self.to_bytes());
+        dest.write(self.as_bytes());
     }
 }
 
@@ -154,7 +154,7 @@ mod tests {
         let id = InterfaceId::try_read_bytes(&mut slice).unwrap();
         assert_eq!(inner, id.0);
         assert_eq!(slice.len(), 0);
-        assert_eq!(id.to_bytes(), inner);
+        assert_eq!(id.as_bytes(), inner);
     }
 
     #[test]

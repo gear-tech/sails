@@ -94,24 +94,45 @@ pub struct SailsMessageHeader {
     entry_id: u16,
 }
 
-// Accessors
 impl SailsMessageHeader {
+    /// Creates a new Sails message header.
+    pub fn new(
+        version: Version,
+        hlen: HeaderLength,
+        interface_id: InterfaceId,
+        route_id: u8,
+        entry_id: u16,
+    ) -> Self {
+        Self {
+            version,
+            hlen,
+            interface_id,
+            route_id,
+            entry_id,
+        }
+    }
+
+    /// Gets the version of the header.
     pub fn version(&self) -> Version {
         self.version
     }
 
+    /// Gets the header length.
     pub fn hlen(&self) -> HeaderLength {
         self.hlen
     }
 
+    /// Gets the interface ID.
     pub fn interface_id(&self) -> InterfaceId {
         self.interface_id
     }
 
+    /// Gets the route ID.
     pub fn route_id(&self) -> u8 {
         self.route_id
     }
 
+    /// Gets the entry ID.
     pub fn entry_id(&self) -> u16 {
         self.entry_id
     }
@@ -121,11 +142,11 @@ impl SailsMessageHeader {
 impl SailsMessageHeader {
     /// Serialize header to bytes.
     pub fn to_bytes(&self) -> Vec<u8> {
-        let mut bytes = Vec::with_capacity(self.hlen.0 as usize);
-        bytes.extend_from_slice(&MAGIC_BYTES);
-        bytes.push(self.version.to_bytes());
-        bytes.push(self.hlen.to_bytes());
-        bytes.extend_from_slice(&self.interface_id.to_bytes());
+        let mut bytes = Vec::with_capacity(self.hlen.inner() as usize);
+        bytes.extend_from_slice(Magic::new().as_bytes());
+        bytes.push(self.version.inner());
+        bytes.push(self.hlen.inner());
+        bytes.extend_from_slice(self.interface_id.as_bytes());
         bytes.extend_from_slice(&self.entry_id.to_le_bytes());
         bytes.push(self.route_id);
         // Reserved byte
@@ -244,9 +265,9 @@ impl Magic {
         Self(MAGIC_BYTES)
     }
 
-    /// Serialize to bytes.
-    pub fn to_bytes(&self) -> [u8; 2] {
-        self.0
+    /// Get magic bytes as a byte slice.
+    pub fn as_bytes(&self) -> &[u8] {
+        &self.0
     }
 
     /// Deserialize from bytes, advancing the slice.
@@ -309,8 +330,8 @@ impl Version {
         }
     }
 
-    /// Serialize to bytes.
-    pub fn to_bytes(&self) -> u8 {
+    /// Get inner version type.
+    pub fn inner(&self) -> u8 {
         self.0
     }
 
@@ -355,12 +376,7 @@ impl HeaderLength {
     }
 
     /// Get the header length as a u8.
-    pub fn length(&self) -> u8 {
-        self.0
-    }
-
-    /// Serialize to bytes.
-    pub fn to_bytes(&self) -> u8 {
+    pub fn inner(&self) -> u8 {
         self.0
     }
 
@@ -419,9 +435,9 @@ mod tests {
     #[test]
     fn try_from_bytes_does_not_move_offset() {
         let magic = Magic::new();
-        let bytes = magic.to_bytes();
+        let bytes = magic.as_bytes();
 
-        let _ = Magic::try_from_bytes(&bytes).expect("same bytes");
+        let _ = Magic::try_from_bytes(bytes).expect("same bytes");
         assert_eq!(bytes, [0x47, 0x4D]);
     }
 
@@ -440,9 +456,9 @@ mod tests {
     fn magic_serde() {
         let magic = Magic::new();
 
-        let serialized = magic.to_bytes();
+        let mut serialized = magic.as_bytes();
         assert_eq!(MAGIC_BYTES, serialized);
-        let deserialized = Magic::try_read_bytes(&mut serialized.as_slice()).unwrap();
+        let deserialized = Magic::try_read_bytes(&mut serialized).unwrap();
 
         assert_eq!(magic, deserialized);
     }
@@ -470,7 +486,7 @@ mod tests {
     fn version_serde() {
         let version = Version::new(1).unwrap();
 
-        let serialized = version.to_bytes();
+        let serialized = version.inner();
         assert_eq!(1u8, serialized);
         let deserialized = Version::try_read_bytes(&mut [serialized].as_slice()).unwrap();
 
@@ -516,14 +532,14 @@ mod tests {
     #[test]
     fn version_latest() {
         let version = Version::latest();
-        assert_eq!(version.to_bytes(), HIGHEST_SUPPORTED_VERSION);
+        assert_eq!(version.inner(), HIGHEST_SUPPORTED_VERSION);
     }
 
     #[test]
     fn header_length_serde() {
         let hlen = HeaderLength::new(20).unwrap();
 
-        let serialized = hlen.to_bytes();
+        let serialized = hlen.inner();
         assert_eq!(20u8, serialized);
         let deserialized = HeaderLength::try_read_bytes(&mut [serialized].as_slice()).unwrap();
 
