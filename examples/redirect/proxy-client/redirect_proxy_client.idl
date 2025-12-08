@@ -1,17 +1,20 @@
-program Proxy {
-    constructors {
-        /// Proxy Program's constructor
-        New(target: ActorId);
-    }
-    services {
-        Proxy,
-    }
-}
+
+!@sails: 0.9.2
 
 service Proxy {
     functions {
         /// Get program ID of the target program via client
         @query
         GetProgramId() -> ActorId;
+    }
+}
+
+program ProgramToDo {
+    constructors {
+        /// Proxy Program's constructor
+        New(target: ActorId);
+    }
+    services {
+        Proxy,
     }
 }

@@ -1,9 +1,18 @@
-program RmrkCatalog {
-    constructors {
-        New();
-    }
-    services {
-        RmrkCatalog,
+
+!@sails: 0.9.2
+
+service RmrkCatalog {
+    functions {
+        AddEquippables(part_id: u32, collection_ids: [ActorId]) -> (u32, [ActorId]) throws Error;
+        AddParts(parts: [(u32, Part)]) -> [(u32, Part)] throws Error;
+        RemoveEquippable(part_id: u32, collection_id: ActorId) -> (u32, ActorId) throws Error;
+        RemoveParts(part_ids: [u32]) -> [u32] throws Error;
+        ResetEquippables(part_id: u32) throws Error;
+        SetEquippablesToAll(part_id: u32) throws Error;
+        @query
+        Equippable(part_id: u32, collection_id: ActorId) -> bool throws Error;
+        @query
+        Part(part_id: u32) -> Option<Part>;
     }
     types {
         enum Error {
@@ -15,21 +24,18 @@ program RmrkCatalog {
             WrongPartFormat,
             NotAllowedToCall,
         }
-
-        enum Part {
-            Fixed(FixedPart),
-            Slot(SlotPart),
-        }
-
         struct FixedPart {
             /// An optional zIndex of base part layer.
             /// specifies the stack order of an element.
             /// An element with greater stack order is always in front of an element with a lower stack order.
             z: Option<u32>,
             /// The metadata URI of the part.
-            metadata_uri: string,
+            metadata_uri: String,
         }
-
+        enum Part {
+            Fixed(FixedPart),
+            Slot(SlotPart),
+        }
         struct SlotPart {
             /// Array of whitelisted collections that can be equipped in the given slot. Used with slot parts only.
             equippable: [ActorId],
@@ -38,22 +44,16 @@ program RmrkCatalog {
             /// An element with greater stack order is always in front of an element with a lower stack order.
             z: Option<u32>,
             /// The metadata URI of the part.
-            metadata_uri: string,
+            metadata_uri: String,
         }
     }
 }
 
-service RmrkCatalog {
-    functions {
-        AddEquippables(part_id: u32, collection_ids: [ActorId]) -> Result<(u32, [ActorId]), Error>;
-        AddParts(parts: [(u32, Part)]) -> Result<[(u32, Part)], Error>;
-        RemoveEquippable(part_id: u32, collection_id: ActorId) -> Result<(u32, ActorId), Error>;
-        RemoveParts(part_ids: [u32]) -> Result<[u32], Error>;
-        ResetEquippables(part_id: u32) -> Result<(), Error>;
-        SetEquippablesToAll(part_id: u32) -> Result<(), Error>;
-        @query
-        Equippable(part_id: u32, collection_id: ActorId) -> Result<bool, Error>;
-        @query
-        Part(part_id: u32) -> Option<Part>;
+program ProgramToDo {
+    constructors {
+        New();
+    }
+    services {
+        RmrkCatalog,
     }
 }
