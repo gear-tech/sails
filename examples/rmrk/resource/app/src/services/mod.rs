@@ -180,7 +180,7 @@ fn resource_storage_admin() -> ActorId {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::catalogs::rmrk_catalog::{mockall::MockRmrkCatalog, FixedPart, Part};
+    use crate::catalogs::rmrk_catalog::{FixedPart, Part, mockall::MockRmrkCatalog};
     use resources::ComposedResource;
     use sails_rs::{client::PendingCall, gstd::services::Service};
 

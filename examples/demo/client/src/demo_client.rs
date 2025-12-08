@@ -20,12 +20,6 @@ pub trait DemoClient {
     fn this_that(&self) -> sails_rs::client::Service<this_that::ThisThatImpl, Self::Env>;
     fn value_fee(&self) -> sails_rs::client::Service<value_fee::ValueFeeImpl, Self::Env>;
     fn chaos(&self) -> sails_rs::client::Service<chaos::ChaosImpl, Self::Env>;
-    fn walker_service(
-        &self,
-    ) -> sails_rs::client::Service<walker_service::WalkerServiceImpl, Self::Env>;
-    fn mammal_service(
-        &self,
-    ) -> sails_rs::client::Service<mammal_service::MammalServiceImpl, Self::Env>;
 }
 impl<E: sails_rs::client::GearEnv> DemoClient for sails_rs::client::Actor<DemoClientProgram, E> {
     type Env = E;
@@ -49,16 +43,6 @@ impl<E: sails_rs::client::GearEnv> DemoClient for sails_rs::client::Actor<DemoCl
     }
     fn chaos(&self) -> sails_rs::client::Service<chaos::ChaosImpl, Self::Env> {
         self.service(stringify!(Chaos))
-    }
-    fn walker_service(
-        &self,
-    ) -> sails_rs::client::Service<walker_service::WalkerServiceImpl, Self::Env> {
-        self.service(stringify!(WalkerService))
-    }
-    fn mammal_service(
-        &self,
-    ) -> sails_rs::client::Service<mammal_service::MammalServiceImpl, Self::Env> {
-        self.service(stringify!(MammalService))
     }
 }
 pub trait DemoClientCtors {

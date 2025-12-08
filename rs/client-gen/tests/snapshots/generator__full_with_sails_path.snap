@@ -44,10 +44,6 @@ pub trait FullCoverageProgram {
     fn my_complex_service(
         &self,
     ) -> my_crate::sails::client::Service<my_complex_service::MyComplexServiceImpl, Self::Env>;
-    fn dog(&self) -> my_crate::sails::client::Service<dog::DogImpl, Self::Env>;
-    fn pausable(&self) -> my_crate::sails::client::Service<pausable::PausableImpl, Self::Env>;
-    fn ownable(&self) -> my_crate::sails::client::Service<ownable::OwnableImpl, Self::Env>;
-    fn tippable(&self) -> my_crate::sails::client::Service<tippable::TippableImpl, Self::Env>;
 }
 impl<E: my_crate::sails::client::GearEnv> FullCoverageProgram
     for my_crate::sails::client::Actor<FullCoverageProgramProgram, E>
@@ -101,18 +97,6 @@ impl<E: my_crate::sails::client::GearEnv> FullCoverageProgram
         &self,
     ) -> my_crate::sails::client::Service<my_complex_service::MyComplexServiceImpl, Self::Env> {
         self.service(stringify!(MyComplexService))
-    }
-    fn dog(&self) -> my_crate::sails::client::Service<dog::DogImpl, Self::Env> {
-        self.service(stringify!(Dog))
-    }
-    fn pausable(&self) -> my_crate::sails::client::Service<pausable::PausableImpl, Self::Env> {
-        self.service(stringify!(Pausable))
-    }
-    fn ownable(&self) -> my_crate::sails::client::Service<ownable::OwnableImpl, Self::Env> {
-        self.service(stringify!(Ownable))
-    }
-    fn tippable(&self) -> my_crate::sails::client::Service<tippable::TippableImpl, Self::Env> {
-        self.service(stringify!(Tippable))
     }
 }
 pub trait FullCoverageProgramCtors {

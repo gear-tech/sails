@@ -233,7 +233,7 @@ async fn dog_barks() {
 #[tokio::test]
 async fn dog_walks() {
     use demo_client::dog::Dog as _;
-    use demo_client::walker_service::{events::WalkerServiceEvents, WalkerService as _};
+    use demo_client::walker_service::{WalkerService as _, events::WalkerServiceEvents};
     // Arrange
     let (env, code_id, _gas_limit) = create_env();
 
