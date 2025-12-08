@@ -19,6 +19,20 @@ pub type AnyServiceMetaFn = fn() -> AnyServiceMeta;
 pub struct InterfaceId(pub [u8; 8]);
 
 impl InterfaceId {
+    /// Create a zeroed interface ID.
+    pub const fn zero() -> Self {
+        Self([0u8; 8])
+    }
+
+    /// Create interface ID from bytes.
+    pub const fn from_bytes_32(bytes: [u8; 32]) -> Self {
+        let inner = [
+            bytes[0], bytes[1], bytes[2], bytes[3], bytes[4], bytes[5], bytes[6], bytes[7],
+        ];
+
+        Self(inner)
+    }
+
     /// Get interface ID as a byte slice
     pub fn as_bytes(&self) -> &[u8] {
         &self.0

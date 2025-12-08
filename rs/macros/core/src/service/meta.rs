@@ -204,7 +204,7 @@ impl ServiceBuilder<'_> {
                 #base_services_hash
 
                 let hash = final_hash.finalize();
-                #sails_path::meta::InterfaceId([hash[0], hash[1], hash[2], hash[3], hash[4], hash[5], hash[6], hash[7]])
+                #sails_path::meta::InterfaceId::from_bytes_32(hash)
             }
         }
     }
