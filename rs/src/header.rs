@@ -151,7 +151,7 @@ impl SailsMessageHeader {
         let route_id = bytes[2];
         let reserved = bytes[3];
 
-        if reserved != 0 {
+        if version == Version::v1() && reserved != 0 {
             return Err("Reserved byte must be zero in version 1");
         }
 
@@ -286,6 +286,11 @@ impl Decode for Magic {
 pub struct Version(u8);
 
 impl Version {
+    /// Instantiates the type with version 1.
+    pub fn v1() -> Self {
+        Self(1)
+    }
+
     /// Instantiates the type with the latest supported version.
     pub fn latest() -> Self {
         Self(HIGHEST_SUPPORTED_VERSION)
@@ -629,6 +634,43 @@ mod tests {
     }
 
     #[test]
+    fn message_header_with_non_zero_reserved_fails() {
+        // Reserved byte is non-zero when version is 1
+        let header_bytes = vec![
+            0x47, 0x4D, // magic ("GM")
+            1,    // version
+            16,   // hlen
+            1, 2, 3, 4, 5, 6, 7, 8, // interface_id
+            210, 4,  // entry_id (1234 in little-endian)
+            42, // route_id
+            1,  // reserved (non-zero)
+        ];
+        let mut slice = header_bytes.as_slice();
+        let result = SailsMessageHeader::try_read_bytes(&mut slice);
+
+        assert!(result.is_err());
+        assert_eq!(
+            result.unwrap_err(),
+            "Reserved byte must be zero in version 1"
+        );
+
+        // Reserved byte is non-zero when version is 2 (unsupported currently version)
+        let header_bytes = vec![
+            0x47, 0x4D, // magic ("GM")
+            2,    // version
+            16,   // hlen
+            1, 2, 3, 4, 5, 6, 7, 8, // interface_id
+            210, 4,  // entry_id (1234 in little-endian)
+            42, // route_id
+            1,  // reserved (non-zero)
+        ];
+        let mut slice = header_bytes.as_slice();
+        let result = SailsMessageHeader::try_read_bytes(&mut slice);
+        assert!(result.is_err());
+        assert_eq!(result.unwrap_err(), "Unsupported Sails version");
+    }
+
+    #[test]
     fn match_interfaces_works() {
         // Simple test case
         let header = SailsMessageHeader {
@@ -704,7 +746,7 @@ mod tests {
         assert!(result.is_err());
         assert_eq!(
             result.unwrap_err(),
-            "Can't infer the interface by route id 0, many instance"
+            "Can't infer the interface by route id 0, many instances"
         );
     }
 
