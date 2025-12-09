@@ -224,65 +224,14 @@ mod syn_resolver {
 
 #[cfg(test)]
 mod tests {
-    use crate::type_resolver::TypeResolver;
-
     use super::*;
+    use crate::type_resolver::TypeResolver;
     use scale_info::{MetaType, PortableRegistry, Registry, TypeInfo};
-    use std::collections::BTreeMap;
 
     #[allow(dead_code)]
     #[derive(TypeInfo)]
     struct GenericStruct<T> {
         field: T,
-    }
-
-    #[allow(dead_code)]
-    #[derive(TypeInfo)]
-    enum GenericEnum<T1, T2> {
-        Variant1(T1),
-        Variant2(T2),
-        Variant3(T1, Option<T2>),
-        Variant4(Option<(T1, GenericStruct<T2>, u32)>),
-    }
-
-    #[allow(dead_code)]
-    #[derive(TypeInfo)]
-    pub enum ManyVariants {
-        One,
-        Two(u32),
-        Three(Option<Vec<gprimitives::U256>>),
-        Four { a: u32, b: Option<u16> },
-        Five(String, Vec<u8>),
-        Six((u32,)),
-        Seven(GenericEnum<u32, String>),
-        Eight([BTreeMap<u32, String>; 10]),
-        Nine(TupleVariantsDocs),
-    }
-
-    #[derive(TypeInfo)]
-    pub enum TupleVariantsDocs {
-        /// Docs for no tuple docs 1
-        NoTupleDocs1(u32, String),
-        NoTupleDocs2(gprimitives::CodeId, Vec<u8>),
-        /// Docs for tuple docs 1
-        TupleDocs1(
-            u32,
-            /// This is the second field
-            String,
-        ),
-        TupleDocs2(
-            /// This is the first field
-            u32,
-            /// This is the second field
-            String,
-        ),
-        /// Docs for struct docs
-        StructDocs {
-            /// This is field `a`
-            a: u32,
-            /// This is field `b`
-            b: String,
-        },
     }
 
     #[test]
@@ -295,7 +244,7 @@ mod tests {
         let portable_registry = PortableRegistry::from(registry);
         let mut resolver = TypeResolver::from_registry(&portable_registry);
         let ty = portable_registry.resolve(id).unwrap();
-        let type_params = resolver.resolve_type_params(ty);
+        let type_params = resolver.resolve_type_params(ty).unwrap();
 
         let type_decl = resolver.get(id).unwrap();
 
@@ -314,8 +263,5 @@ mod tests {
                 generics: vec![]
             }]
         }));
-
-        // let string_struct = resolver.get(string_struct_id).unwrap();
-        // assert_eq!(string_struct.to_string(), "GenericStruct<String>");
     }
 }

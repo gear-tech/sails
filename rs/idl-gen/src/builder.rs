@@ -86,7 +86,7 @@ impl ProgramBuilder {
         let mut exclude = HashSet::new();
         exclude.insert(self.ctors_type_id);
         exclude.extend(any_funcs_ids(&self.registry, self.ctors_type_id)?);
-        let resolver = TypeResolver::from(&self.registry, exclude);
+        let resolver = TypeResolver::try_from(&self.registry, exclude)?;
         let ctors = self.ctor_funcs(&resolver)?;
         let services = self.services_expo;
         let types = resolver.into_types();
@@ -168,7 +168,7 @@ impl<'a> ServiceBuilder<'a> {
         }
 
         let exclude = HashSet::from_iter(self.exclude_type_ids()?);
-        let resolver = TypeResolver::from(&self.registry, exclude);
+        let resolver = TypeResolver::try_from(&self.registry, exclude)?;
         let commands = self.commands(&resolver)?;
         let queries = self.queries(&resolver)?;
         let events = self.events(&resolver)?;

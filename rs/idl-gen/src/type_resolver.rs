@@ -1,5 +1,5 @@
+use super::*;
 use convert_case::{Case, Casing};
-use sails_idl_meta::*;
 use scale_info::{
     Field, Path, PortableRegistry, StaticTypeInfo, Type, TypeDef, TypeDefComposite,
     TypeDefPrimitive, TypeDefVariant, form::PortableForm,
@@ -28,17 +28,17 @@ impl UserDefinedEntry {
 impl<'a> TypeResolver<'a> {
     #[cfg(test)]
     pub fn from_registry(registry: &'a PortableRegistry) -> Self {
-        TypeResolver::from(registry, HashSet::new())
+        TypeResolver::try_from(registry, HashSet::new()).unwrap()
     }
 
-    pub fn from(registry: &'a PortableRegistry, exclude: HashSet<u32>) -> Self {
+    pub fn try_from(registry: &'a PortableRegistry, exclude: HashSet<u32>) -> Result<Self> {
         let mut resolver = Self {
             registry,
             map: HashMap::new(),
             user_defined: HashMap::new(),
         };
-        resolver.build_type_decl_map(exclude);
-        resolver
+        resolver.build_type_decl_map(exclude)?;
+        Ok(resolver)
     }
 
     pub fn into_types(self) -> Vec<sails_idl_meta::Type> {
@@ -55,7 +55,7 @@ impl<'a> TypeResolver<'a> {
         self.map.get(&key)
     }
 
-    fn build_type_decl_map(&mut self, exclude: HashSet<u32>) {
+    fn build_type_decl_map(&mut self, exclude: HashSet<u32>) -> Result<()> {
         let filtered: Vec<_> = self
             .registry
             .types
@@ -63,72 +63,86 @@ impl<'a> TypeResolver<'a> {
             .filter(|pt| !exclude.contains(&pt.id))
             .collect();
         for pt in filtered {
-            let type_decl = self.resolve_type_decl(&pt.ty);
+            let type_decl = self.resolve_type_decl(&pt.ty)?;
             self.map.insert(pt.id, type_decl);
         }
+        Ok(())
     }
 
-    fn resolve_by_id(&mut self, id: u32) -> TypeDecl {
+    fn resolve_by_id(&mut self, id: u32) -> Result<TypeDecl> {
         if let Some(decl) = self.get(id) {
-            return decl.clone();
+            return Ok(decl.clone());
         }
-        let ty = self.registry.resolve(id).unwrap();
-        let type_decl = self.resolve_type_decl(ty);
+        let ty = self
+            .registry
+            .resolve(id)
+            .ok_or(Error::TypeIdIsUnknown(id))?;
+        let type_decl = self.resolve_type_decl(ty)?;
         self.map.insert(id, type_decl.clone());
-        type_decl
+        Ok(type_decl)
     }
 
-    fn resolve_type_decl(&mut self, ty: &Type<PortableForm>) -> TypeDecl {
-        match &ty.type_def {
-            TypeDef::Composite(type_def_composite) => self
-                .resolve_known_composite(ty, type_def_composite)
-                .unwrap_or_else(|| {
-                    let name = self.register_user_defined(ty);
-                    self.resolve_user_defined(name, ty)
-                }),
-            TypeDef::Variant(type_def_variant) => self
-                .resolve_known_enum(ty, type_def_variant)
-                .unwrap_or_else(|| {
-                    let name = self.register_user_defined(ty);
-                    self.resolve_user_defined(name, ty)
-                }),
+    fn resolve_type_decl(&mut self, ty: &Type<PortableForm>) -> Result<TypeDecl> {
+        let decl = match &ty.type_def {
+            TypeDef::Composite(type_def_composite) => {
+                if let Some(decl) = self.resolve_known_composite(ty, type_def_composite) {
+                    decl
+                } else {
+                    let name = self.register_user_defined(ty)?;
+                    self.resolve_user_defined(name, ty)?
+                }
+            }
+            TypeDef::Variant(type_def_variant) => {
+                if let Some(decl) = self.resolve_known_enum(ty, type_def_variant) {
+                    decl
+                } else {
+                    let name = self.register_user_defined(ty)?;
+                    self.resolve_user_defined(name, ty)?
+                }
+            }
             TypeDef::Sequence(type_def_sequence) => TypeDecl::Slice {
-                item: Box::new(self.resolve_by_id(type_def_sequence.type_param.id)),
+                item: Box::new(self.resolve_by_id(type_def_sequence.type_param.id)?),
             },
             TypeDef::Array(type_def_array) => TypeDecl::Array {
-                item: Box::new(self.resolve_by_id(type_def_array.type_param.id)),
+                item: Box::new(self.resolve_by_id(type_def_array.type_param.id)?),
                 len: type_def_array.len,
             },
             TypeDef::Tuple(type_def_tuple) => {
                 if type_def_tuple.fields.is_empty() {
                     TypeDecl::Primitive(PrimitiveType::Void)
                 } else {
-                    TypeDecl::tuple(
-                        type_def_tuple
-                            .fields
-                            .iter()
-                            .map(|f| self.resolve_by_id(f.id))
-                            .collect(),
-                    )
+                    let types = type_def_tuple
+                        .fields
+                        .iter()
+                        .map(|f| self.resolve_by_id(f.id))
+                        .collect::<Result<Vec<_>>>()?;
+                    TypeDecl::tuple(types)
                 }
             }
             TypeDef::Primitive(type_def_primitive) => {
-                TypeDecl::Primitive(primitive_map(type_def_primitive))
+                TypeDecl::Primitive(primitive_map(type_def_primitive)?)
             }
-            TypeDef::Compact(_) => unimplemented!("TypeDef::Compact is unimplemented"),
+            TypeDef::Compact(_) => {
+                return Err(Error::TypeIsUnsupported(
+                    "TypeDef::Compact is unsupported".to_string(),
+                ));
+            }
             TypeDef::BitSequence(_) => {
-                unimplemented!("TypeDef::BitSequence is unimplemented")
+                return Err(Error::TypeIsUnsupported(
+                    "TypeDef::BitSequence is unsupported".to_string(),
+                ));
             }
-        }
+        };
+        Ok(decl)
     }
 
-    fn register_user_defined(&mut self, ty: &Type<PortableForm>) -> String {
+    fn register_user_defined(&mut self, ty: &Type<PortableForm>) -> Result<String> {
         let name = match self.unique_type_name(ty) {
             Ok(name) => name,
-            Err(exist) => return exist,
+            Err(exist) => return Ok(exist),
         };
 
-        let type_params = self.resolve_type_params(ty);
+        let type_params = self.resolve_type_params(ty)?;
 
         let def = match &ty.type_def {
             TypeDef::Composite(type_def_composite) => {
@@ -136,7 +150,7 @@ impl<'a> TypeResolver<'a> {
                     .fields
                     .iter()
                     .map(|f| self.resolve_field(f, &type_params))
-                    .collect();
+                    .collect::<Result<Vec<_>>>()?;
                 sails_idl_meta::TypeDef::Struct(StructDef { fields })
             }
             TypeDef::Variant(type_def_variant) => {
@@ -148,16 +162,15 @@ impl<'a> TypeResolver<'a> {
                             .fields
                             .iter()
                             .map(|f| self.resolve_field(f, &type_params))
-                            .collect();
-                        EnumVariant {
+                            .collect::<Result<Vec<_>>>()?;
+                        Ok(EnumVariant {
                             name: v.name.to_string(),
                             def: StructDef { fields },
                             docs: v.docs.iter().map(|d| d.to_string()).collect(),
                             annotations: vec![], // ("index".to_string(), Some(v.index.to_string()))
-                        }
+                        })
                     })
-                    .collect();
-
+                    .collect::<Result<Vec<_>>>()?;
                 sails_idl_meta::TypeDef::Enum(EnumDef { variants })
             }
             _ => unreachable!(),
@@ -173,18 +186,22 @@ impl<'a> TypeResolver<'a> {
         let path = ty.path.clone();
         self.user_defined
             .insert(name.clone(), UserDefinedEntry { meta_type, path });
-        name
+        Ok(name)
     }
 
     pub(crate) fn resolve_type_params(
         &mut self,
         ty: &Type<PortableForm>,
-    ) -> Vec<sails_idl_meta::TypeParameter> {
+    ) -> Result<Vec<sails_idl_meta::TypeParameter>> {
         ty.type_params
             .iter()
-            .map(|tp| sails_idl_meta::TypeParameter {
-                name: tp.name.to_string(),
-                ty: tp.ty.map(|ty| self.resolve_by_id(ty.id)),
+            .map(|tp| {
+                let ty = match tp.ty {
+                    Some(ref inner) => Some(self.resolve_by_id(inner.id)?),
+                    None => None,
+                };
+                let name = tp.name.to_string();
+                Ok(sails_idl_meta::TypeParameter { name, ty })
             })
             .collect()
     }
@@ -204,21 +221,31 @@ impl<'a> TypeResolver<'a> {
         unreachable!();
     }
 
-    fn resolve_user_defined(&mut self, name: String, ty: &Type<PortableForm>) -> TypeDecl {
+    fn resolve_user_defined(&mut self, name: String, ty: &Type<PortableForm>) -> Result<TypeDecl> {
         let generics = ty
             .type_params
             .iter()
-            .map(|tp| self.resolve_by_id(tp.ty.as_ref().unwrap().id))
-            .collect();
-        TypeDecl::Named { name, generics }
+            .map(|tp| {
+                self.resolve_by_id(
+                    tp.ty
+                        .as_ref()
+                        .ok_or(Error::TypeIsUnsupported(format!(
+                            "Generic type parameter is unknown: {}",
+                            tp.name
+                        )))?
+                        .id,
+                )
+            })
+            .collect::<Result<Vec<_>>>()?;
+        Ok(TypeDecl::Named { name, generics })
     }
 
     fn resolve_field(
         &mut self,
         field: &Field<PortableForm>,
         type_params: &Vec<sails_idl_meta::TypeParameter>,
-    ) -> StructField {
-        let resolved = self.resolve_by_id(field.ty.id);
+    ) -> Result<StructField> {
+        let resolved = self.resolve_by_id(field.ty.id)?;
         let type_decl = if let Some(type_name) = field.type_name.as_ref()
             && &resolved.to_string() != type_name
             && !type_params.is_empty()
@@ -227,12 +254,12 @@ impl<'a> TypeResolver<'a> {
         } else {
             resolved
         };
-        StructField {
+        Ok(StructField {
             name: field.name.as_ref().map(|s| s.to_string()),
             type_decl,
             docs: field.docs.iter().map(|d| d.to_string()).collect(),
             annotations: vec![],
-        }
+        })
     }
 
     fn resolve_known_composite(
@@ -258,16 +285,16 @@ impl<'a> TypeResolver<'a> {
         } else if is_type::<Vec<()>>(ty)
             && let [vec_tp] = ty.type_params.as_slice()
             && let Some(ty) = vec_tp.ty
+            && let Ok(ty) = self.resolve_by_id(ty.id)
         {
-            let ty = self.resolve_by_id(ty.id);
             Some(Slice { item: Box::new(ty) })
         } else if is_type::<BTreeMap<(), ()>>(ty)
             && let [key_tp, value_tp] = ty.type_params.as_slice()
             && let Some(key) = key_tp.ty
             && let Some(value) = value_tp.ty
+            && let Ok(key) = self.resolve_by_id(key.id)
+            && let Ok(value) = self.resolve_by_id(value.id)
         {
-            let key = self.resolve_by_id(key.id);
-            let value = self.resolve_by_id(value.id);
             Some(Slice {
                 item: Box::new(TypeDecl::tuple(vec![key, value])),
             })
@@ -285,15 +312,15 @@ impl<'a> TypeResolver<'a> {
             && let [ok_var, err_var] = def.variants.as_slice()
             && let [ok] = ok_var.fields.as_slice()
             && let [err] = err_var.fields.as_slice()
+            && let Ok(ok) = self.resolve_by_id(ok.ty.id)
+            && let Ok(err) = self.resolve_by_id(err.ty.id)
         {
-            let ok = self.resolve_by_id(ok.ty.id);
-            let err = self.resolve_by_id(err.ty.id);
             Some(TypeDecl::result(ok, err))
         } else if is_type::<core::option::Option<()>>(ty)
             && let [_, some_var] = def.variants.as_slice()
             && let [some] = some_var.fields.as_slice()
+            && let Ok(decl) = self.resolve_by_id(some.ty.id)
         {
-            let decl = self.resolve_by_id(some.ty.id);
             Some(TypeDecl::option(decl))
         } else {
             None
@@ -305,10 +332,10 @@ fn is_type<T: StaticTypeInfo>(type_info: &Type<PortableForm>) -> bool {
     T::type_info().path.segments == type_info.path.segments
 }
 
-fn primitive_map(type_def_primitive: &TypeDefPrimitive) -> PrimitiveType {
+fn primitive_map(type_def_primitive: &TypeDefPrimitive) -> Result<PrimitiveType> {
     use PrimitiveType::*;
 
-    match type_def_primitive {
+    let p = match type_def_primitive {
         TypeDefPrimitive::Bool => Bool,
         TypeDefPrimitive::Char => Char,
         TypeDefPrimitive::Str => String,
@@ -323,8 +350,13 @@ fn primitive_map(type_def_primitive: &TypeDefPrimitive) -> PrimitiveType {
         TypeDefPrimitive::I32 => I32,
         TypeDefPrimitive::I64 => I64,
         TypeDefPrimitive::I128 => I128,
-        TypeDefPrimitive::I256 => todo!(),
-    }
+        TypeDefPrimitive::I256 => {
+            return Err(Error::TypeIsUnsupported(
+                "TypeDefPrimitive::I256 is unsupported".to_string(),
+            ));
+        }
+    };
+    Ok(p)
 }
 
 fn possible_names_by_path(ty: &Type<PortableForm>) -> impl Iterator<Item = String> + '_ {
@@ -338,7 +370,9 @@ fn possible_names_by_path(ty: &Type<PortableForm>) -> impl Iterator<Item = Strin
 #[cfg(test)]
 mod tests {
     use super::*;
+    use gprimitives::NonZeroU256;
     use scale_info::{MetaType, Registry, TypeInfo};
+    use std::num::{NonZeroU8, NonZeroU16, NonZeroU32, NonZeroU64, NonZeroU128};
 
     #[allow(dead_code)]
     #[derive(TypeInfo)]
@@ -364,7 +398,7 @@ mod tests {
 
     #[allow(dead_code)]
     #[derive(TypeInfo)]
-    pub enum ManyVariants {
+    enum ManyVariants {
         One,
         Two(u32),
         Three(Option<Vec<gprimitives::U256>>),
@@ -376,8 +410,9 @@ mod tests {
         Nine(TupleVariantsDocs),
     }
 
+    #[allow(dead_code)]
     #[derive(TypeInfo)]
-    pub enum TupleVariantsDocs {
+    enum TupleVariantsDocs {
         /// Docs for no tuple docs 1
         NoTupleDocs1(u32, String),
         NoTupleDocs2(gprimitives::CodeId, Vec<u8>),
@@ -400,6 +435,32 @@ mod tests {
             /// This is field `b`
             b: String,
         },
+    }
+
+    #[allow(dead_code)]
+    mod mod_1 {
+        use super::*;
+
+        #[derive(TypeInfo)]
+        pub struct T1 {}
+
+        pub mod mod_2 {
+            use super::*;
+
+            #[derive(TypeInfo)]
+            pub struct T2 {}
+        }
+    }
+
+    #[allow(dead_code)]
+    mod mod_2 {
+        use super::*;
+
+        #[derive(TypeInfo)]
+        pub struct T1 {}
+
+        #[derive(TypeInfo)]
+        pub struct T2 {}
     }
 
     #[test]
@@ -603,5 +664,106 @@ mod tests {
         assert_eq!(ty.to_string(), "ManyVariants");
         let as_generic_param = resolver.get(generic_id).unwrap();
         assert_eq!(as_generic_param.to_string(), "GenericStruct<ManyVariants>");
+    }
+
+    #[test]
+    fn non_zero_types_name_resolution_works() {
+        type Test = (
+            NonZeroU8,
+            NonZeroU16,
+            NonZeroU32,
+            NonZeroU64,
+            NonZeroU128,
+            NonZeroU256,
+        );
+        let mut registry = Registry::new();
+        let id = registry.register_type(&MetaType::new::<Test>()).id;
+        let generic_id = registry
+            .register_type(&MetaType::new::<GenericStruct<Test>>())
+            .id;
+        let portable_registry = PortableRegistry::from(registry);
+        let resolver = TypeResolver::from_registry(&portable_registry);
+
+        let ty = resolver.get(id).unwrap();
+        assert_eq!(
+            ty.to_string(),
+            "(NonZeroU8, NonZeroU16, NonZeroU32, NonZeroU64, NonZeroU128, NonZeroU256)"
+        );
+
+        let as_generic_param = resolver.get(generic_id).unwrap();
+        assert_eq!(
+            as_generic_param.to_string(),
+            "GenericStruct<(NonZeroU8, NonZeroU16, NonZeroU32, NonZeroU64, NonZeroU128, NonZeroU256)>"
+        );
+    }
+
+    macro_rules! type_name_resolution_works {
+        ($primitive:ty) => {
+            let mut registry = Registry::new();
+            let id = registry.register_type(&MetaType::new::<$primitive>()).id;
+            let generic_id = registry
+                .register_type(&MetaType::new::<GenericStruct<$primitive>>())
+                .id;
+            let portable_registry = PortableRegistry::from(registry);
+            let resolver = TypeResolver::from_registry(&portable_registry);
+            let ty = resolver.get(id).unwrap();
+
+            assert_eq!(ty.to_string(), stringify!($primitive));
+            let as_generic_param = resolver.get(generic_id).unwrap();
+            assert_eq!(
+                as_generic_param.to_string(),
+                format!("GenericStruct<{}>", stringify!($primitive))
+            );
+        };
+    }
+
+    #[test]
+    fn actor_id_type_name_resolution_works() {
+        use gprimitives::ActorId;
+        type_name_resolution_works!(ActorId);
+    }
+
+    #[test]
+    fn message_id_type_name_resolution_works() {
+        use gprimitives::MessageId;
+        type_name_resolution_works!(MessageId);
+    }
+
+    #[test]
+    fn code_id_type_name_resolution_works() {
+        use gprimitives::CodeId;
+        type_name_resolution_works!(CodeId);
+    }
+
+    #[test]
+    fn type_name_minification_works_for_types_with_the_same_mod_depth() {
+        let mut registry = Registry::new();
+        let t1_id = registry.register_type(&MetaType::new::<mod_1::T1>()).id;
+        let t2_id = registry.register_type(&MetaType::new::<mod_2::T1>()).id;
+        let portable_registry = PortableRegistry::from(registry);
+        let resolver = TypeResolver::from_registry(&portable_registry);
+
+        let t1_name = resolver.get(t1_id).unwrap().to_string();
+        assert_eq!(t1_name, "T1");
+
+        let t2_name = resolver.get(t2_id).unwrap().to_string();
+        assert_eq!(t2_name, "Mod2T1");
+    }
+
+    #[test]
+    fn type_name_minification_works_for_types_with_different_mod_depth() {
+        let mut registry = Registry::new();
+        let t1_id = registry
+            .register_type(&MetaType::new::<mod_1::mod_2::T2>())
+            .id;
+        let t2_id = registry.register_type(&MetaType::new::<mod_2::T2>()).id;
+        let portable_registry = PortableRegistry::from(registry);
+        let resolver = TypeResolver::from_registry(&portable_registry);
+
+        let t1_name = resolver.get(t1_id).unwrap().to_string();
+        assert_eq!(t1_name, "T2");
+
+        let t2_name = resolver.get(t2_id).unwrap().to_string();
+        assert_eq!(t2_name, "Mod2T2");
     }
 }
