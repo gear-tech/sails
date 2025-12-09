@@ -562,7 +562,7 @@ To summarize:
 The `ethexe` cargo feature enables several features:
 
 When this feature is active:
-*   Identifiers for **program constructors** and **exposed service constructors** (methods within a `#[program]` block that return a service) are validated against Solidity reserved keywords. Using a reserved name for these (e.g., `new` for a program constructor, or `function` for an exposed service constructor) will result in a compilation error, preventing naming conflicts in the generated Solidity interface. The comprehensive list of these reserved keywords can be found in the [source code](rs/macros/core/src/shared.rs#L424).
+*   Identifiers for **program constructors** and **exposed service constructors** (methods within a `#[program]` block that return a service) are validated against Solidity reserved keywords. Using a reserved name for these (e.g., `new` for a program constructor, or `function` for an exposed service constructor) will result in a compilation error, preventing naming conflicts in the generated Solidity interface. The comprehensive list of these reserved keywords can be found in the [source code](rs/macros/core/src/shared.rs) (see the `SOL_KEYWORDS` constant).
 *   The `#[export]` macro accepts a `payable` argument (`#[export(payable)]`). This allows service methods and program constructors to accept value with a message. If a non-payable method or constructor receives value, the execution will panic.
 
 > **NOTE**
