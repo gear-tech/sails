@@ -24,7 +24,7 @@ use crate::clients::{
 };
 use gtest::{System, constants::DEFAULT_USER_ALICE};
 use itertools::{Either, Itertools};
-use ping_pong_bench_app::client::{PingPong, PingPongCtors, PingPongPayload, ping_pong_service::*};
+use ping_pong_bench_app::client::{PingPong, PingPongCtors, ping_pong_service::*};
 use redirect_client::{RedirectClient, RedirectClientCtors, redirect::*};
 use redirect_proxy_client::{RedirectProxyClient, RedirectProxyClientCtors, proxy::*};
 use sails_rs::{client::*, prelude::*};

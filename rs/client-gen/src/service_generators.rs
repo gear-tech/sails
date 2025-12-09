@@ -100,6 +100,22 @@ impl<'ast> Visitor<'ast> for ServiceGenerator<'ast> {
     fn visit_service_unit(&mut self, service: &'ast ast::ServiceUnit) {
         visitor::accept_service_unit(service, self);
 
+        for extended_service_name in &service.extends {
+            let method_name = extended_service_name.to_case(Case::Snake);
+            let impl_name = extended_service_name.to_case(Case::Pascal);
+            let mod_name = extended_service_name.to_case(Case::Snake);
+
+            quote_in! { self.trait_tokens =>
+                $['\r'] fn $(&method_name)(&self) -> $(self.sails_path)::client::Service<super::$(mod_name.as_str())::$(impl_name.as_str())Impl, Self::Env>;
+            };
+
+            quote_in! { self.impl_tokens =>
+                $['\r'] fn $(&method_name)(&self) -> $(self.sails_path)::client::Service<super::$(mod_name.as_str())::$(impl_name.as_str())Impl, Self::Env> {
+                    self.base_service()
+                }
+            };
+        }
+
         let mut mock_gen = MockGenerator::new(self.service_name, self.sails_path);
         mock_gen.visit_service_unit(service);
         self.mocks_tokens.extend(mock_gen.finalize());
@@ -149,7 +165,7 @@ impl<'ast> Visitor<'ast> for ServiceGenerator<'ast> {
         let output_type_decl_code = if let Some(throws_type) = &func.throws {
             let ok_type = generate_type_decl_with_path(&func.output, "super");
             let err_type = generate_type_decl_with_path(throws_type, "super");
-            format!("Result<{ok_type}, {err_type}>")
+            format!("super::Result<{ok_type}, {err_type}>")
         } else {
             generate_type_decl_with_path(&func.output, "super")
         };

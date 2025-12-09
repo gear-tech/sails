@@ -13,17 +13,9 @@ pub struct MultipleProgram;
 impl sails_rs::client::Program for MultipleProgram {}
 pub trait Multiple {
     type Env: sails_rs::client::GearEnv;
-    fn multiple(&self) -> sails_rs::client::Service<multiple::MultipleImpl, Self::Env>;
-    fn named(&self) -> sails_rs::client::Service<named::NamedImpl, Self::Env>;
 }
 impl<E: sails_rs::client::GearEnv> Multiple for sails_rs::client::Actor<MultipleProgram, E> {
     type Env = E;
-    fn multiple(&self) -> sails_rs::client::Service<multiple::MultipleImpl, Self::Env> {
-        self.service(stringify!(Multiple))
-    }
-    fn named(&self) -> sails_rs::client::Service<named::NamedImpl, Self::Env> {
-        self.service(stringify!(Named))
-    }
 }
 
 pub mod multiple {

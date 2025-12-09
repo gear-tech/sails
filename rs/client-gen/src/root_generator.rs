@@ -124,21 +124,6 @@ impl<'ast> Visitor<'ast> for RootGenerator<'ast> {
             &service.name
         };
 
-        // Generate service access methods only if the service is not exported by the program
-        if !self.program_exported_services.contains(&service_name) {
-            let service_name_snake = &service_name.to_case(Case::Snake);
-            let service_name_pascal = &service_name.to_case(Case::Pascal);
-
-            quote_in!(self.service_trait_tokens =>
-                $['\r'] fn $(service_name_snake)(&self) -> $(self.sails_path)::client::Service<$(service_name_snake)::$(service_name_pascal)Impl, Self::Env>;
-            );
-            quote_in!(self.service_impl_tokens =>
-                $['\r'] fn $(service_name_snake)(&self) -> $(self.sails_path)::client::Service<$(service_name_snake)::$(service_name_pascal)Impl, Self::Env> {
-                    self.service(stringify!($(service_name)))
-                }
-            );
-        }
-
         let mut client_gen = ServiceGenerator::new(
             service_name,
             self.sails_path,
