@@ -1,29 +1,23 @@
-use sails_idl_meta::*;
+use super::*;
 use std::collections::HashSet;
 
 pub(crate) fn resolve_generic_type_decl(
     type_decl: &TypeDecl,
     type_name: &str,
     type_params: &Vec<sails_idl_meta::TypeParameter>,
-) -> TypeDecl {
+) -> Result<TypeDecl> {
     let candidates = build_generic_candidates(type_decl, type_params);
     let syn_name = syn_resolver::try_resolve(type_name).map(|td| td.to_string());
     let match_name = syn_name.unwrap_or_else(|| type_name.to_string());
 
-    println!(
-        "type_decl: {:?}, type_name: {}, match_name: {}, candidates: {:?}",
-        type_decl.to_string(),
-        type_name,
-        match_name,
-        candidates
-            .iter()
-            .map(|td| td.to_string())
-            .collect::<Vec<_>>()
-    );
     candidates
         .into_iter()
         .find(|td| td.to_string() == match_name)
-        .unwrap_or_else(|| panic!("Not Resolved {type_name}"))
+        .ok_or_else(|| {
+            Error::TypeIsUnsupported(format!(
+                "Generic type {type_name} not resolved from decl {type_decl}"
+            ))
+        })
 }
 
 struct GenericCandidates<'a> {
@@ -43,12 +37,8 @@ impl<'a> GenericCandidates<'a> {
     }
 
     fn push(&mut self, candidate: TypeDecl, f: impl Fn(TypeDecl) -> TypeDecl) {
-        for (td, name) in &self.type_params {
-            if td == &&candidate {
-                println!(
-                    "type_params: {:?}, candidate {:?}, td: {:?}",
-                    &self.type_params, candidate, td
-                );
+        for &(td, name) in &self.type_params {
+            if td == &candidate {
                 self.resolved.insert(f(generic_type_decl(name)));
             }
         }
@@ -134,7 +124,6 @@ fn build_generic_candidates(
             }
         }
     };
-    println!("type_decls_resolved {:?}", candidates.resolved);
     candidates.resolved
 }
 
@@ -161,10 +150,13 @@ mod syn_resolver {
         use TypeDecl::*;
 
         match t {
-            Type::Array(TypeArray { elem, len, .. }) => Some(Array {
-                item: Box::new(finalize_syn(elem)?),
-                len: len.to_token_stream().to_string().parse::<u32>().unwrap(),
-            }),
+            Type::Array(TypeArray { elem, len, .. }) => {
+                let len = len.to_token_stream().to_string().parse::<u32>().ok()?;
+                Some(Array {
+                    item: Box::new(finalize_syn(elem)?),
+                    len,
+                })
+            }
             Type::Slice(TypeSlice { elem, .. }) => Some(Slice {
                 item: Box::new(finalize_syn(elem)?),
             }),
@@ -175,7 +167,7 @@ mod syn_resolver {
             // No paren types in the final output. Only single value tuples
             Type::Paren(TypeParen { elem, .. }) => finalize_syn(elem),
             Type::Path(TypePath { path, .. }) => {
-                let last_segment = path.segments.last().unwrap();
+                let last_segment = path.segments.last()?;
                 let name = last_segment.ident.to_string();
 
                 let generics: Vec<_> =

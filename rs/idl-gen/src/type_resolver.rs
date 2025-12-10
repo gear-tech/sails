@@ -250,7 +250,7 @@ impl<'a> TypeResolver<'a> {
             && &resolved.to_string() != type_name
             && !type_params.is_empty()
         {
-            crate::generic_resolver::resolve_generic_type_decl(&resolved, type_name, type_params)
+            crate::generic_resolver::resolve_generic_type_decl(&resolved, type_name, type_params)?
         } else {
             resolved
         };
