@@ -50,9 +50,6 @@ enum SailsCommands {
         /// Local path to `sails-rs` crate
         #[arg(long, value_hint = clap::ValueHint::DirPath)]
         sails_path: Option<PathBuf>,
-        /// Generate application package only
-        #[arg(long)]
-        app: bool,
         /// Run without accessing the network
         #[arg(long)]
         offline: bool,
@@ -148,12 +145,9 @@ fn main() -> Result<(), i32> {
             author,
             username,
             sails_path,
-            app,
             offline,
-        } => program_new::ProgramGenerator::new(
-            path, name, author, username, sails_path, app, offline,
-        )
-        .generate(),
+        } => program_new::ProgramGenerator::new(path, name, author, username, sails_path, offline)
+            .generate(),
         SailsCommands::ClientRs {
             idl_path,
             out_path,
