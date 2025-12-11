@@ -1,0 +1,5 @@
+error: Base service with the same name was defined - `MyService1`
+  --> tests/ui/gservice_fails_for_multiple_same_base_services.rs:21:44
+   |
+21 |     #[service(extends = [svc1::MyService1, svc1::MyService1])]
+   |                                            ^^^^^^^^^^^^^^^^
